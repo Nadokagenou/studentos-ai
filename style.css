@@ -136,11 +136,18 @@ label.btn{display:block}
 .card.empty{text-align:center; color:var(--muted); font-size:14.5px; line-height:2; padding:26px 18px}
 .btn.danger{background:transparent; color:#C0392B; border:1.5px solid #F0C4BE; margin-top:8px}
 
-/* มือถือจริง: เต็มจอ */
-@media (max-width:480px){
-  .stage{padding:0}
-  .phone{width:100%; height:100vh; height:100dvh; border-radius:0; border:none; box-shadow:none}
+/* มือถือ/แท็บเล็ตจริง: เต็มจอเหมือนแอป — กรอบมือถือจำลองแสดงเฉพาะจอคอม */
+@media (max-width:768px){
+  html, body{height:100%; overscroll-behavior:none}
+  .stage{padding:0; gap:0; max-width:none}
+  .phone{
+    width:100%; max-width:none; height:100vh; height:100dvh;
+    border-radius:0; border:none; box-shadow:none;
+  }
   .demo-bar, .stage-note, .statusbar{display:none}
+  /* กันเนื้อหาชนรอยบาก/ขอบโค้งของมือถือรุ่นใหม่ */
+  .screen{padding-top:calc(8px + env(safe-area-inset-top)); padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+  .tabbar{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
 }
 
 /* ---------- timeline ---------- */
