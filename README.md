@@ -6,10 +6,20 @@ AI Decision Assistant สำหรับนักเรียนมัธยม 
 > เวอร์ชันนี้**ทำงานได้จริง** ไม่ใช่ mockup: เพิ่ม/แก้/ลบ/ติ๊กเสร็จงานได้จริง,
 > ข้อมูลเก็บในเครื่อง (localStorage), AI อ่านข้อความ/รูปใบงานได้จริง
 
-## วิธีเปิด
+## 🌐 ใช้งานจริง (สำหรับทุกคน)
 
-- ดับเบิลคลิก `index.html` หรือใน VS Code ใช้ **Live Server** (คลิกขวา → Open with Live Server)
-- **Scan รูปด้วย OCR ต้องเปิดผ่าน Live Server / http** (เปิดจากไฟล์ตรง ๆ ใช้ได้เฉพาะแปะข้อความ)
+**https://nadokagenou.github.io/studentos-ai/**
+
+- เปิดจากมือถือได้เลย — ไม่ต้องติดตั้งอะไร
+- ติดตั้งเป็นแอปได้: Chrome/Android → เมนู ⋮ → **"เพิ่มลงในหน้าจอหลัก"** · iPhone/Safari → Share → **"Add to Home Screen"**
+- เป็น PWA: หลังเปิดครั้งแรก ใช้งาน offline ได้ (ยกเว้น OCR รูปที่ต้องใช้เน็ต)
+- ข้อมูลของแต่ละคนอยู่ในเครื่องตัวเอง (localStorage) — ไม่มีการส่งขึ้น server
+
+## วิธีเปิดแบบ dev
+
+- ใน VS Code ใช้ **Live Server** (คลิกขวา `index.html` → Open with Live Server)
+- **Scan รูปด้วย OCR ต้องเปิดผ่าน http/https** (เปิดจากไฟล์ตรง ๆ ใช้ได้เฉพาะแปะข้อความ)
+- Deploy: push ขึ้น branch `main` → GitHub Pages อัปเดตเองอัตโนมัติใน ~1 นาที
 
 ## ฟีเจอร์ที่ทำงานจริงแล้ว
 
