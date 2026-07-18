@@ -1,0 +1,377 @@
+<title>StudentOS AI — Product Strategy &amp; MVP v0.1</title>
+<style>
+:root{
+  --bg:#FAFAF8; --card:#FFFFFF; --ink:#21242B; --muted:#6B7080; --line:#DDDFE4;
+  --accent:#2B50C8; --accent-soft:#EDF1FC; --hl:#FFE9A3; --wf:#EDEEF0; --wf-line:#B9BDC7;
+  --bad:#B4372F; --good:#1F7A4D;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#16181D; --card:#1E2128; --ink:#E8E9EC; --muted:#9AA0AD; --line:#2E323B;
+    --accent:#8CA3F2; --accent-soft:#232A42; --hl:rgba(255,224,102,.16); --wf:#262A32; --wf-line:#4A505C;
+    --bad:#E0776F; --good:#5FBF8F;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16181D; --card:#1E2128; --ink:#E8E9EC; --muted:#9AA0AD; --line:#2E323B;
+  --accent:#8CA3F2; --accent-soft:#232A42; --hl:rgba(255,224,102,.16); --wf:#262A32; --wf-line:#4A505C;
+  --bad:#E0776F; --good:#5FBF8F;
+}
+:root[data-theme="light"]{
+  --bg:#FAFAF8; --card:#FFFFFF; --ink:#21242B; --muted:#6B7080; --line:#DDDFE4;
+  --accent:#2B50C8; --accent-soft:#EDF1FC; --hl:#FFE9A3; --wf:#EDEEF0; --wf-line:#B9BDC7;
+  --bad:#B4372F; --good:#1F7A4D;
+}
+html{background:var(--bg)}
+body{
+  font-family:"Leelawadee UI","Segoe UI","Noto Sans Thai",-apple-system,sans-serif;
+  color:var(--ink); background:var(--bg); line-height:1.75; font-size:16px;
+}
+.wrap{max-width:860px; margin:0 auto; padding:48px 24px 96px}
+.mono{font-family:Consolas,"Cascadia Mono",monospace}
+.eyebrow{font-family:Consolas,monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:8px}
+h1{font-size:34px; line-height:1.25; font-weight:700; text-wrap:balance; margin:4px 0 10px}
+h2{font-size:24px; font-weight:700; margin:0 0 4px; text-wrap:balance}
+h3{font-size:17px; font-weight:700; margin:0 0 6px}
+p{margin:0 0 14px; max-width:70ch}
+section{margin-top:72px; border-top:1px solid var(--line); padding-top:36px}
+.sub{color:var(--muted); font-size:15px; max-width:70ch}
+.hl{background:var(--hl); padding:0 4px; border-radius:2px}
+ul{margin:0 0 16px; padding-left:22px}
+li{margin-bottom:6px}
+table{border-collapse:collapse; width:100%; font-size:14.5px; margin:16px 0 8px}
+th{text-align:left; font-family:Consolas,monospace; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600; padding:8px 12px; border-bottom:2px solid var(--ink)}
+td{padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+.tblwrap{overflow-x:auto}
+.num{font-family:Consolas,monospace; font-variant-numeric:tabular-nums; white-space:nowrap}
+.card{background:var(--card); border:1px solid var(--line); border-radius:8px; padding:20px 24px; margin:16px 0}
+.callout{border-left:3px solid var(--accent); background:var(--accent-soft); border-radius:0 8px 8px 0; padding:16px 20px; margin:18px 0}
+.callout.warn{border-left-color:var(--bad)}
+.callout p:last-child{margin-bottom:0}
+.tag{display:inline-block; font-family:Consolas,monospace; font-size:11px; letter-spacing:.06em; padding:2px 8px; border-radius:3px; border:1px solid var(--line); color:var(--muted); vertical-align:middle}
+.tag.in{color:var(--good); border-color:var(--good)}
+.tag.out{color:var(--bad); border-color:var(--bad)}
+/* flow */
+.flow{display:flex; flex-direction:column; gap:0; margin:20px 0; max-width:520px}
+.fstep{border:1.5px solid var(--ink); background:var(--card); border-radius:6px; padding:10px 16px; font-size:15px}
+.fstep b{display:block; font-size:15px}
+.fstep span{color:var(--muted); font-size:13.5px}
+.fstep.ai{border-color:var(--accent); background:var(--accent-soft)}
+.farrow{align-self:center; color:var(--muted); font-family:Consolas,monospace; padding:2px 0; font-size:14px}
+.fphase{font-family:Consolas,monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin:14px 0 6px}
+/* wireframes */
+.wfgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:28px; margin-top:24px}
+.wfitem{display:flex; flex-direction:column; gap:10px}
+.phone{border:2px solid var(--ink); border-radius:14px; background:var(--card); padding:14px 12px; display:flex; flex-direction:column; gap:8px; min-height:420px}
+.phone .b{background:var(--wf); border:1px solid var(--wf-line); border-radius:4px; padding:7px 10px; font-family:Consolas,monospace; font-size:11.5px; color:var(--muted); line-height:1.5}
+.phone .b.big{flex:1; display:flex; align-items:center; justify-content:center; text-align:center; min-height:56px}
+.phone .b.accent{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
+.phone .row{display:flex; gap:8px}
+.phone .row .b{flex:1}
+.wfitem.deferred .phone{border-style:dashed; opacity:.55}
+.wfitem h3{margin:0}
+.wfitem .why{font-size:13.5px; color:var(--muted); line-height:1.65}
+.wfitem .why b{color:var(--ink)}
+/* persona */
+.persona{display:grid; grid-template-columns:1fr 1fr; gap:0 32px}
+@media (max-width:640px){.persona{grid-template-columns:1fr}}
+.persona h3{font-family:Consolas,monospace; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); margin-top:14px}
+.quote{font-size:17px; font-style:italic; border-left:3px solid var(--hl); padding-left:16px; margin:14px 0; max-width:60ch}
+.footer{margin-top:80px; padding-top:24px; border-top:1px solid var(--line); font-size:13px; color:var(--muted); font-family:Consolas,monospace}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Samsung Solve for Tomorrow 2026 · Internal Product Doc · v0.1</div>
+  <h1>StudentOS AI — จาก Survey สู่ MVP</h1>
+  <p class="sub">Product analysis, MVP definition และ lo-fi wireframes จากผลสำรวจนักเรียน 13 คน · จัดทำ 18 ก.ค. 2026</p>
+  <div class="callout warn">
+    <p><b>ข้อจำกัดของข้อมูล — อ่านก่อน:</b> n = 13 และ 12/13 เป็น ม.4 (น่าจะห้อง/กลุ่มเพื่อนเดียวกัน) ตัวเลขทุกตัวในเอกสารนี้คือ <b>สัญญาณตั้งต้น</b> ไม่ใช่ข้อพิสูจน์ โดยเฉพาะ "92.3% สนใจจะใช้" — คำตอบแบบนี้แทบไม่มีค่าพยากรณ์การใช้งานจริง (social desirability bias) สิ่งที่เชื่อถือได้มากกว่าคือ <span class="hl">ลำดับความรุนแรงของปัญหา</span> ซึ่งชัดมาก</p>
+  </div>
+</header>
+
+<!-- ============ TASK 1 ============ -->
+<section>
+  <div class="eyebrow">Task 1</div>
+  <h2>วิเคราะห์ผลสำรวจ</h2>
+
+  <h3 style="margin-top:24px">Pain Points (เรียงตามความรุนแรง)</h3>
+  <div class="tblwrap"><table>
+    <tr><th>#</th><th>ปัญหา</th><th>%</th><th>ธรรมชาติที่แท้จริงของปัญหา</th></tr>
+    <tr><td class="num">1</td><td>งานเยอะ ไม่รู้จะเริ่มอะไรก่อน</td><td class="num">76.9%</td><td><b>ปัญหาการตัดสินใจ</b> (decision paralysis) ไม่ใช่ปัญหาความจำ</td></tr>
+    <tr><td class="num">2</td><td>ลืมการบ้าน</td><td class="num">46.2%</td><td><b>ปัญหาการจับข้อมูลเข้าระบบ</b> — การบ้านมาทางปากเปล่า / LINE / กระดาน แล้วไม่ถูกจดทันที</td></tr>
+    <tr><td class="num">3</td><td>บริหารเวลาไม่เป็น</td><td class="num">38.5%</td><td>ผลพวงจาก #1 — ถ้าไม่รู้ว่าอะไรสำคัญ ก็วางแผนเวลาไม่ได้</td></tr>
+    <tr><td class="num">4</td><td>พลาดประกาศครู</td><td class="num">30.8%</td><td>ประกาศจมหายใน LINE กลุ่มที่เลื่อนผ่านเร็ว</td></tr>
+    <tr><td class="num">5</td><td>ข้อมูลกระจายหลายแอป</td><td class="num">23.1%</td><td>อาการของระบบโรงเรียนที่สื่อสารแบบ informal</td></tr>
+  </table></div>
+
+  <h3 style="margin-top:28px">User Behavior</h3>
+  <ul>
+    <li><b>Notes (5) + LINE (4) = 9/13</b> — นักเรียนใช้เครื่องมือ "จด" ไม่ใช่เครื่องมือ "วางแผน" พฤติกรรมคือ dump ข้อมูลไว้แล้วไม่กลับมาดู</li>
+    <li><b>แทบไม่มีใครใช้ calendar</b> — นักเรียนไม่ได้คิดเป็น "ตารางเดือน" แต่คิดเป็น "วันนี้ต้องทำอะไร" → ห้ามออกแบบแอปแบบ calendar-first เด็ดขาด</li>
+    <li><b>Google Classroom แค่ 1 คน</b> — โรงเรียนไทยส่วนใหญ่ไม่มี single source of truth ที่เป็นระบบ ข้อมูลจริงวิ่งผ่าน LINE กลุ่มและคำพูดครูหน้าห้อง</li>
+  </ul>
+
+  <h3 style="margin-top:28px">Hidden Insights</h3>
+  <div class="card">
+    <p><b>1. Feature ที่คนโหวตสูงสุด ≠ ปัญหาที่เจ็บที่สุด</b><br>
+    AI สรุปบทเรียนได้โหวต 69.2% แต่ pain อันดับ 1 คือการจัดลำดับงาน (76.9%) — "สรุปบทเรียน" คือสิ่งที่ <i>อยากได้</i> (เพราะขี้เกียจอ่านเอง ใคร ๆ ก็อยาก) ส่วนการจัดลำดับคือสิ่งที่ <i>เจ็บจริง</i> Feature vote เป็น popularity contest ไม่ใช่ problem validation</p>
+    <p><b>2. คนลืมการบ้านเพราะ "การจดมี friction" ไม่ใช่เพราะความจำไม่ดี</b><br>
+    ตอนครูสั่งงาน นักเรียนกำลังเก็บของ/คุยกับเพื่อน ถ้าแอปเราต้องพิมพ์ชื่องาน+เลือกวิชา+ตั้ง deadline เอง มันจะตายแบบเดียวกับ Notes — <span class="hl">การ capture ต้องใช้เวลาต่ำกว่า 10 วินาที ไม่งั้นแพ้ "ไม่จดเลย"</span></p>
+    <p><b>3. Cold start คือความเสี่ยงอันดับหนึ่งของ AI Prioritizer</b><br>
+    AI จัดลำดับงานให้ไม่ได้ถ้าไม่มีงานอยู่ในระบบ ดังนั้น capture ไม่ใช่ feature เสริม — มันคือ <b>เงื่อนไขการอยู่รอด</b> ของ feature หลัก</p>
+    <p><b>4. LINE คือ source of truth ของโรงเรียนไทย</b><br>
+    นี่คือบริบทที่แอปต่างชาติ (Notion, Todoist, MyStudyLife) ไม่มีวันออกแบบมารองรับ และเป็นช่องว่างเชิงกลยุทธ์ที่ใหญ่ที่สุดของเรา</p>
+  </div>
+
+  <h3 style="margin-top:28px">Opportunities</h3>
+  <ul>
+    <li><b>AI Decision Assistant</b> — ตอบคำถามเดียว: "ตอนนี้ควรทำอะไรก่อน เพราะอะไร" (ยืนยัน insight ของคุณ — ถูกต้อง)</li>
+    <li><b>Zero-friction capture</b> — ถ่ายรูปใบงาน/กระดาน หรือแปะข้อความจาก LINE → AI แกะเป็นงาน+deadline อัตโนมัติ</li>
+    <li><b>Thai-context moat</b> — สร้างมาเพื่อ workflow โรงเรียนไทยที่วิ่งบน LINE โดยเฉพาะ</li>
+  </ul>
+</section>
+
+<!-- ============ TASK 2 ============ -->
+<section>
+  <div class="eyebrow">Task 2</div>
+  <h2>Problem Statement</h2>
+  <div class="callout">
+    <p><b>ภาษาไทย:</b> นักเรียนมัธยมไทยได้รับงานผ่านช่องทางที่กระจัดกระจายและไม่เป็นทางการ — ครูสั่งปากเปล่า, LINE กลุ่ม, ใบงาน — จากผลสำรวจเบื้องต้น 76.9% บอกว่ามีงานมากจน<b>ไม่รู้ว่าควรเริ่มทำอะไรก่อน</b> และเกือบครึ่งลืมการบ้านเพราะไม่มีจังหวะได้จดไว้ เครื่องมือที่มีอยู่ (Notes, calendar, to-do apps) เป็นเพียง "ที่เก็บงาน" ที่ต้องพิมพ์เองทุกอย่าง และไม่ได้ช่วย<b>ตัดสินใจ</b> ผลคือความเครียดสะสม งานค้าง และเวลาที่เสียไปกับการกังวลแทนการลงมือทำ</p>
+    <p style="margin-top:12px"><b>StudentOS AI</b> คือ AI Decision Assistant ที่เก็บงานเข้าระบบภายใน 10 วินาทีจากภาพถ่ายหรือข้อความ LINE แล้วบอกนักเรียนว่า<b>ควรทำอะไรก่อน เพราะอะไร</b> — เปลี่ยนจากแอปที่ "จำแทน" เป็นแอปที่ "ช่วยคิด"</p>
+  </div>
+  <p class="sub" style="margin-top:12px"><b>English (for submission):</b> Thai high-school students receive assignments through fragmented, informal channels — verbal instructions, LINE group chats, paper handouts. In our initial survey, 76.9% said they have so many tasks they don't know what to do first, and nearly half forget homework because capturing it is inconvenient. Existing tools only store tasks; none help students decide. StudentOS AI is an AI decision assistant that captures assignments in under 10 seconds from a photo or a pasted message, then tells students what to do first — and why.</p>
+</section>
+
+<!-- ============ TASK 3 ============ -->
+<section>
+  <div class="eyebrow">Task 3</div>
+  <h2>User Persona <span class="tag">provisional — n=13, ม.4 เกือบทั้งหมด</span></h2>
+  <div class="card persona">
+    <div>
+      <h3>Profile</h3>
+      <p><b>"ปุณ"</b> · ม.4 · อายุ 15–16 · โรงเรียนรัฐขนาดกลาง · ใช้มือถือ Android ระดับกลางเป็นอุปกรณ์หลัก (ไม่มีแล็ปท็อปส่วนตัว)</p>
+      <h3>เครื่องมือปัจจุบัน</h3>
+      <p>จดการบ้านใน Notes บ้าง ถามเพื่อนใน LINE บ้าง — ไม่มีระบบเดียวที่เชื่อถือได้ ประกาศครูอยู่ใน LINE กลุ่ม 5–6 กลุ่มที่เลื่อนผ่านตลอด</p>
+      <h3>วันปกติ</h3>
+      <p>เรียน 8 คาบ 8+ วิชา ครูแต่ละคนสั่งงานไม่รู้กัน กลับถึงบ้าน 17:30 เหนื่อย เปิดมือถือ ตั้งใจจะทำงาน แต่ไม่รู้จะเริ่มอันไหน</p>
+    </div>
+    <div>
+      <h3>Goals</h3>
+      <p>ส่งงานครบ ไม่โดนครูตำหนิ มีเวลาเหลือให้ตัวเอง และ<b>เลิกรู้สึกผิด</b>เวลาพัก</p>
+      <h3>Frustrations</h3>
+      <p>เปิด Notes เห็นงาน 12 รายการปนกัน → เครียด → ปิดแอป → ไปเล่น TikTok → มารู้ตัวอีกที 4 ทุ่ม ทำงานที่ง่ายที่สุดแทนที่จะเป็นงานที่ด่วนที่สุด</p>
+      <h3>Quote</h3>
+      <div class="quote">"รู้ว่างานเยอะ แต่พอเปิดดูแล้วยิ่งเครียด เลยปิดไปก่อน เดี๋ยวค่อยทำ"</div>
+    </div>
+  </div>
+  <p class="sub">สังเกต: ศัตรูตัวจริงของปุณไม่ใช่ "ความขี้เกียจ" แต่คือ <b>overwhelm → avoidance loop</b> — แอปที่โชว์งานทั้งหมดพร้อมกันยิ่งทำให้ loop นี้แย่ลง นี่คือเหตุผลที่ Dashboard ต้องโชว์แค่ 3 อันดับแรก</p>
+</section>
+
+<!-- ============ TASK 4 ============ -->
+<section>
+  <div class="eyebrow">Task 4</div>
+  <h2>MVP — Core Loop เดียว: Capture → Decide → Act</h2>
+  <p>ทุก feature ต้องรับใช้ loop นี้ ถ้าไม่รับใช้ = ตัดออก</p>
+
+  <div class="tblwrap"><table>
+    <tr><th>Feature</th><th>สถานะ</th><th>หลักฐานจาก survey</th><th>เหตุผล</th></tr>
+    <tr><td><b>Smart Scanner</b> — ถ่ายรูปใบงาน/กระดาน หรือแปะข้อความ LINE → AI แกะ วิชา+งาน+deadline</td><td><span class="tag in">IN — หัวใจ</span></td><td class="num">46.2% + 30.8%</td><td>แก้ "ลืมการบ้าน" และ "พลาดประกาศ" ที่ต้นเหตุ (capture friction) และเป็นเงื่อนไขให้ AI มีข้อมูล</td></tr>
+    <tr><td><b>Today's Top 3</b> — AI จัดลำดับ + อธิบายเหตุผลสั้น ๆ ต่องาน</td><td><span class="tag in">IN — หัวใจ</span></td><td class="num">76.9% + 61.5%</td><td>แก้ pain อันดับ 1 ตรง ๆ โชว์แค่ 3 เพื่อตัด overwhelm</td></tr>
+    <tr><td><b>Assignment List</b> — งานทั้งหมด เรียงตามลำดับ AI</td><td><span class="tag in">IN</span></td><td class="num">76.9%</td><td>ต้องมีที่ดูภาพรวม/แก้ไขงานที่ AI แกะผิด (correction loop สำคัญมาก)</td></tr>
+    <tr><td><b>Smart Reminders</b> — เตือนตามความเสี่ยง ไม่ใช่เตือนทุกงานเท่ากัน</td><td><span class="tag in">IN</span></td><td class="num">46.2%</td><td>ปิด loop "ลืม" — แต่เตือนน้อยและแม่น ไม่งั้นโดน mute</td></tr>
+    <tr><td><b>Deadline Timeline</b> — เส้นเวลา 14 วันข้างหน้า (ไม่ใช่ตารางเดือน)</td><td><span class="tag in">IN</span></td><td class="num">พฤติกรรม: ไม่ใช้ calendar</td><td>นักเรียนต้องเห็น "อะไรกำลังจะมา" — แต่ month grid คือ mental model ของผู้ใหญ่ ไม่ใช่ของเขา</td></tr>
+    <tr><td><b>ตั้งค่าตารางเรียนครั้งเดียว</b> (ใน Profile)</td><td><span class="tag in">IN — infra</span></td><td class="num">46.2% (time planning)</td><td>AI วางแผนเวลาไม่ได้ถ้าไม่รู้ว่านักเรียนว่างตอนไหน</td></tr>
+    <tr><td><b>AI สรุปบทเรียน</b></td><td><span class="tag out">OUT — Phase 2</span></td><td class="num">โหวต 69.2%</td><td>โหวตสูงแต่ไม่แก้ pain หลัก และเป็น "อีก product หนึ่ง" ที่ scope ใหญ่มาก ทำตอนนี้ = MVP ไม่เสร็จ</td></tr>
+    <tr><td><b>AI Chat Q&amp;A ทั่วไป</b></td><td><span class="tag out">OUT — Phase 2</span></td><td class="num">โหวต 53.8%</td><td>Q&amp;A ทั่วไป = ChatGPT ที่ด้อยกว่า ไม่มีทางชนะ เก็บ chat ไว้เป็น interface ถามเรื่อง "แผนของฉัน" เท่านั้นในอนาคต</td></tr>
+    <tr><td><b>Analytics</b></td><td><span class="tag out">OUT — Phase 2</span></td><td class="num">ไม่มีข้อมูลรองรับ</td><td>ไม่มีใครใน survey ขอ และวันแรกไม่มี data ให้วิเคราะห์ เหลือไว้แค่ progress ring เล็ก ๆ ใน Dashboard</td></tr>
+    <tr><td><b>Month-grid Calendar / Gamification / Social</b></td><td><span class="tag out">OUT</span></td><td class="num">—</td><td>Survey บอกชัดว่าไม่ใช้ calendar; gamification/social ไม่มีหลักฐานปัญหารองรับเลย</td></tr>
+  </table></div>
+
+  <div class="callout">
+    <p><b>นิยามความสำเร็จของ MVP:</b> นักเรียนทดสอบ 5 คน ใช้ต่อเนื่อง 7 วัน — วัดว่า (1) capture งานผ่าน Scanner จริงกี่ % ของงานที่ครูสั่ง (2) เปิดดู Today's Top 3 กี่วันจาก 7 วัน (3) เชื่อลำดับที่ AI จัดหรือลากสลับเอง ถ้า capture rate ต่ำ = product ตายตั้งแต่สมมติฐานแรก ต้องรู้ให้เร็ว</p>
+  </div>
+</section>
+
+<!-- ============ TASK 5 ============ -->
+<section>
+  <div class="eyebrow">Task 5</div>
+  <h2>User Flow — หนึ่งวันของปุณ</h2>
+  <div class="flow">
+    <div class="fphase">เช้า · 07:10 บนรถ</div>
+    <div class="fstep"><b>เปิดแอป เห็น Today's Top 3</b><span>ไม่ต้องกดอะไร — คำตอบอยู่หน้าแรก</span></div>
+    <div class="farrow">↓</div>
+    <div class="fstep ai"><b>AI สรุป workload วันนี้ 1 ประโยค</b><span>"วันนี้หนักปานกลาง — ฟิสิกส์ด่วนสุดเพราะส่งพรุ่งนี้เช้าและใช้เวลานาน"</span></div>
+    <div class="fphase">ระหว่างเรียน · 14:50</div>
+    <div class="fstep"><b>ครูสั่งงานใหม่ท้ายคาบ</b><span>โมเมนต์ที่ปกติ "ลืม" เกิดขึ้นตรงนี้</span></div>
+    <div class="farrow">↓</div>
+    <div class="fstep"><b>ถ่ายรูปใบงาน / กระดาน (&lt;10 วินาที)</b><span>หรือ copy ข้อความจาก LINE กลุ่มมาแปะ</span></div>
+    <div class="farrow">↓</div>
+    <div class="fstep ai"><b>AI แกะ วิชา + งาน + deadline → ยืนยัน 1 แตะ</b><span>แก้ได้ถ้าแกะผิด — จุดนี้คือการสอน AI ไปในตัว</span></div>
+    <div class="farrow">↓</div>
+    <div class="fstep ai"><b>AI จัดลำดับใหม่อัตโนมัติ + แจ้งถ้าลำดับเปลี่ยน</b><span>"งานใหม่แทรกเป็นอันดับ 2 — เลข เลื่อนไปพรุ่งนี้ได้"</span></div>
+    <div class="fphase">เย็น · 19:00 ที่บ้าน</div>
+    <div class="fstep"><b>เปิดแอป → ทำงานตามลำดับ → ติ๊กเสร็จ</b><span>เสร็จ 1 งาน ลำดับถัดไปขึ้นมาแทน</span></div>
+    <div class="farrow">↓</div>
+    <div class="fstep"><b>ก่อนนอน: เห็น progress วันนี้ + preview พรุ่งนี้</b><span>ปิดวันด้วยความรู้สึก "เอาอยู่" ไม่ใช่ความรู้สึกผิด</span></div>
+  </div>
+  <p class="sub">สังเกตว่า flow ไม่มีขั้นตอน "พิมพ์งานเอง" เลย — ทุกการเพิ่มงานผ่าน Scanner/Paste เพราะนั่นคือจุดที่แอปอื่นตาย (เพิ่มเองได้เป็น fallback แต่ไม่ใช่ทางหลัก)</p>
+</section>
+
+<!-- ============ TASK 6 ============ -->
+<section>
+  <div class="eyebrow">Task 6</div>
+  <h2>Lo-fi Wireframes</h2>
+  <p class="sub">กล่องเทา = โครงสร้าง ไม่ใช่ UI จริง · จอที่เส้นประ = <b>ตัดออกจาก MVP</b> (ออกแบบไว้ให้เห็นว่าทำไมถึงยังไม่ควรมี)</p>
+
+  <div class="wfgrid">
+
+    <div class="wfitem">
+      <div class="phone">
+        <div class="b big" style="flex:2">LOGO<br>StudentOS AI</div>
+        <div class="b">tagline: "รู้ว่าต้องทำอะไรก่อน เสมอ"</div>
+        <div class="b accent">[ เข้าสู่ระบบด้วย Google / LINE ]</div>
+      </div>
+      <h3>1 · Splash / Login</h3>
+      <p class="why"><b>ทำไมมีจอนี้:</b> มีเพื่อ login และตั้งความคาดหวังใน 1 ประโยคเท่านั้น ไม่ใช่ feature — ห้ามใส่ animation ยาว ๆ ให้คนรอ Login ด้วย LINE สำคัญเพราะเป็น identity ที่นักเรียนไทยมีทุกคน</p>
+    </div>
+
+    <div class="wfitem">
+      <div class="phone">
+        <div class="b">สวัสดี ปุณ · อังคาร 18 ก.ค. · progress ○○●</div>
+        <div class="b accent">AI: "วันนี้หนักปานกลาง ฟิสิกส์ด่วนสุด — ส่งพรุ่งนี้เช้า"</div>
+        <div class="b big">① ฟิสิกส์ — โจทย์บทที่ 4<br>ส่งพรุ่งนี้ · ~1 ชม. · "ด่วน+ใช้เวลานาน"</div>
+        <div class="b">② อังกฤษ — essay (ส่งศุกร์ · เริ่มวันนี้กันงานชน)</div>
+        <div class="b">③ เลข — แบบฝึกหัด (เลื่อนได้ถึงพฤหัส)</div>
+        <div class="b">+ งานอื่นอีก 4 → ดูทั้งหมด</div>
+        <div class="row"><div class="b accent">📷 Scan</div><div class="b">งาน</div><div class="b">เส้นเวลา</div><div class="b">ฉัน</div></div>
+      </div>
+      <h3>2 · Dashboard "Today"</h3>
+      <p class="why"><b>ทำไมมีจอนี้:</b> จอที่สำคัญที่สุด — ตอบ pain 76.9% ภายใน 3 วินาทีโดยไม่ต้องกดอะไร โชว์แค่ Top 3 เพราะรายการยาวคือสิ่งที่ทำให้ปุณปิดแอปหนี ทุกงานมี "เหตุผล" กำกับ — นี่คือสิ่งที่ทำให้เราเป็น Decision Assistant ไม่ใช่ to-do list ปุ่ม Scan อยู่กลาง tab bar เพราะเป็น action ที่บ่อยที่สุด</p>
+    </div>
+
+    <div class="wfitem">
+      <div class="phone">
+        <div class="b">งานทั้งหมด (7) · เรียงโดย AI ▾ · filter: วิชา</div>
+        <div class="b accent">① ฟิสิกส์ · พรุ่งนี้ · [≡ ลากสลับได้]</div>
+        <div class="b">② อังกฤษ essay · ศุกร์</div>
+        <div class="b">③ เลข ·  พฤหัส</div>
+        <div class="b">④ ชีวะ รายงานกลุ่ม · จันทร์หน้า</div>
+        <div class="b">⑤–⑦ …</div>
+        <div class="b big">แตะงาน → รายละเอียด / แก้ deadline / รูปใบงานต้นฉบับ</div>
+      </div>
+      <h3>3 · Assignments</h3>
+      <p class="why"><b>ทำไมมีจอนี้:</b> ที่เดียวที่เห็น "ทั้งหมด" และที่สำคัญกว่า — <b>ที่แก้ข้อมูลที่ AI แกะผิด</b> ถ้าผู้ใช้แก้ไม่ได้ ความเชื่อใจตายทันที การลากสลับลำดับเองคือ feedback ให้ AI เรียนรู้ และเก็บรูปใบงานต้นฉบับไว้อ้างอิงเสมอ</p>
+    </div>
+
+    <div class="wfitem">
+      <div class="phone">
+        <div class="b big" style="flex:2">[ กล้อง — ถ่ายใบงาน / กระดาน ]</div>
+        <div class="row"><div class="b accent">📷 ถ่ายรูป</div><div class="b">🖼 คลังภาพ</div></div>
+        <div class="b accent">📋 แปะข้อความจาก LINE</div>
+        <div class="b">ผล AI: วิชา [ฟิสิกส์▾] งาน [โจทย์บท 4] ส่ง [พรุ่งนี้ 08:00]</div>
+        <div class="row"><div class="b accent">✓ ถูกต้อง เพิ่มเลย</div><div class="b">แก้ไข</div></div>
+      </div>
+      <h3>4 · Smart Scanner</h3>
+      <p class="why"><b>ทำไมมีจอนี้:</b> แก้ "ลืมการบ้าน 46.2%" ที่ต้นเหตุ — ลด friction การจดจาก ~1 นาทีเหลือ &lt;10 วินาที และเป็นประตูข้อมูลเข้าสู่ AI ทั้งหมด ปุ่ม "แปะจาก LINE" สำคัญเท่ากล้อง เพราะประกาศครึ่งหนึ่งมาเป็นข้อความ จอยืนยันต้องมีเสมอ — AI แกะผิดแล้วเข้าระบบเงียบ ๆ อันตรายกว่าไม่แกะ</p>
+    </div>
+
+    <div class="wfitem">
+      <div class="phone">
+        <div class="b">เส้นเวลา 14 วันข้างหน้า</div>
+        <div class="b accent">พรุ่งนี้ ▸ ฟิสิกส์ ⚠ · สอบเก็บคะแนนอังกฤษ</div>
+        <div class="b">ศุกร์ ▸ essay อังกฤษ</div>
+        <div class="b">พฤหัส ▸ เลข</div>
+        <div class="b">จันทร์หน้า ▸ ชีวะ (กลุ่ม)</div>
+        <div class="b big">แถบความหนาแน่น: ▁▃▇▂ — "ศุกร์นี้งานชน 3 งาน AI แนะนำเริ่ม essay วันนี้"</div>
+      </div>
+      <h3>5 · Timeline (แทน Calendar)</h3>
+      <p class="why"><b>ทำไมมีจอนี้ (และทำไมไม่ใช่ตารางเดือน):</b> Survey บอกว่าแทบไม่มีใครใช้ calendar — month grid คือ mental model ของคนทำงาน ไม่ใช่นักเรียน สิ่งที่เขาต้องการคือ "อะไรกำลังพุ่งเข้ามา" เส้นเวลา 14 วัน + แถบความหนาแน่นตอบโจทย์นั้น และทำให้ AI ชี้ "วันงานชน" ล่วงหน้าได้ — นี่คือ time management 38.5% ในรูปแบบที่นักเรียนเข้าใจ</p>
+    </div>
+
+    <div class="wfitem">
+      <div class="phone">
+        <div class="b">แผนเย็นนี้ (จากตารางเรียน + งานของคุณ)</div>
+        <div class="b accent">19:00–20:00 ฟิสิกส์ (โฟกัสยาก เอาไว้ตอนยังไม่ง่วง)</div>
+        <div class="b">20:00–20:15 พัก</div>
+        <div class="b">20:15–21:00 ร่าง essay อังกฤษ (แค่ร่าง ไม่ต้องเสร็จ)</div>
+        <div class="b">เลข → ย้ายไปพรุ่งนี้ (มีคาบว่างบ่าย)</div>
+        <div class="row"><div class="b accent">ใช้แผนนี้</div><div class="b">ขยับเอง</div></div>
+      </div>
+      <h3>6 · AI Planner</h3>
+      <p class="why"><b>ทำไมมีจอนี้:</b> แปลง "ลำดับ" ให้เป็น "แผนเวลาจริง" โดยใช้ตารางเรียนที่ตั้งไว้ครั้งเดียวใน Profile — ตอบ AI Time Planning 46.2% หลักการสำคัญ: AI <i>เสนอ</i> ผู้ใช้<i>ตัดสินใจ</i> ปุ่ม "ขยับเอง" ต้องมีเสมอ ไม่งั้นแผนที่ทำตามไม่ได้จริงจะทำลายความเชื่อใจ</p>
+    </div>
+
+    <div class="wfitem">
+      <div class="phone">
+        <div class="b">ตารางเรียน (ตั้งครั้งเดียว ตอน onboarding)</div>
+        <div class="b">การแจ้งเตือน: เตือนก่อน deadline [1 วัน▾]</div>
+        <div class="b">เวลาทำการบ้านปกติ: [19:00–21:30]</div>
+        <div class="b">วิชาของฉัน (8)</div>
+        <div class="b big">ไม่มี settings อื่น — ทุกอย่างในจอนี้คือข้อมูลที่ AI ใช้ ไม่ใช่ options</div>
+      </div>
+      <h3>7 · Profile / Setup</h3>
+      <p class="why"><b>ทำไมมีจอนี้:</b> ไม่ใช่จอ "โปรไฟล์" แบบ social — มันคือ <b>ที่ป้อนข้อมูลให้ AI</b>: ตารางเรียน (AI Planner ใช้), เวลาว่างปกติ, ระดับการเตือน ตั้งครั้งเดียวตอน onboarding แล้วแทบไม่ต้องกลับมา ทุก field ต้องตอบได้ว่า AI เอาไปใช้ทำอะไร ถ้าตอบไม่ได้ = ลบทิ้ง</p>
+    </div>
+
+    <div class="wfitem deferred">
+      <div class="phone">
+        <div class="b big" style="flex:2">AI Chat Q&amp;A<br>[ DEFERRED — Phase 2 ]</div>
+        <div class="b">ถ้ามีตอนนี้ = ChatGPT ที่ด้อยกว่า</div>
+      </div>
+      <h3>8 · AI Chat <span class="tag out">ตัดออกจาก MVP</span></h3>
+      <p class="why"><b>ทำไมยังไม่ควรมี:</b> โหวต 53.8% ก็จริง แต่ Q&amp;A ความรู้ทั่วไปแข่งกับ ChatGPT/Gemini ตรง ๆ และแพ้แน่นอน จุดที่ chat จะมีค่าในอนาคตคือถามเรื่อง "แผนของฉัน" ("คืนนี้ทำอะไรดีถ้ามีเวลาแค่ชั่วโมงเดียว?") — ซึ่งต้องมีข้อมูลงานสะสมก่อน จึงเป็น Phase 2 โดยธรรมชาติ</p>
+    </div>
+
+    <div class="wfitem deferred">
+      <div class="phone">
+        <div class="b big" style="flex:2">Analytics<br>[ DEFERRED — Phase 2 ]</div>
+        <div class="b">วันแรกไม่มี data · survey ไม่มีใครขอ</div>
+      </div>
+      <h3>9 · Analytics <span class="tag out">ตัดออกจาก MVP</span></h3>
+      <p class="why"><b>ทำไมยังไม่ควรมี:</b> ไม่มีข้อใดใน survey ชี้มาที่ปัญหานี้ และสัปดาห์แรกกราฟจะว่างเปล่า — จอว่างทำร้าย first impression สิ่งเดียวที่เก็บไว้คือ progress ring เล็ก ๆ บน Dashboard (เสร็จ 2/5 วันนี้) ซึ่งให้ความรู้สึก "เอาอยู่" โดยไม่ต้องมีทั้งจอ</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ TASK 7 ============ -->
+<section>
+  <div class="eyebrow">Task 7</div>
+  <h2>Critical Review — พูดตรง ๆ แบบกรรมการและนักลงทุน</h2>
+
+  <div class="callout warn">
+    <p><b>ความจริงที่ต้องยอมรับ:</b> ถ้าสร้างตาม feature list ใน survey ตรง ๆ (การบ้าน + ตารางเรียน + ปฏิทิน + เตือน + AI) ผลลัพธ์คือ <b>MyStudyLife ที่เสียบ ChatGPT</b> — กรรมการเห็นแอปแบบนี้ปีละหลายสิบทีม และคำว่า "AI" ในปี 2026 ไม่ทำให้ใครตื่นเต้นอีกแล้ว ทุกทีมมี AI</p>
+  </div>
+
+  <h3 style="margin-top:24px">จุดต่างที่แท้จริงมี 3 ข้อ — ต้องพูดให้ชัดทุกครั้งที่ pitch</h3>
+  <ul>
+    <li><b>Capture จากบริบทโรงเรียนไทย</b> — ใบงานกระดาษ, กระดาน, LINE กลุ่ม แอปต่างชาติไม่มีวันทำเพราะตลาดเขาไม่ได้ใช้ LINE นี่คือ moat จริงข้อเดียวของเรา</li>
+    <li><b>Decision layer ที่อธิบายเหตุผล</b> — Todoist เรียงตามวันที่ เราเรียงตาม ด่วน × หนัก × คะแนน × เวลาว่างจริง แล้ว<i>บอกว่าทำไม</i> ความต่างอยู่ที่คำอธิบาย ไม่ใช่การเรียง</li>
+    <li><b>Proactive replan</b> — งานใหม่เข้ามา แผนขยับเองพร้อมแจ้งเหตุผล แอปอื่นรอให้ผู้ใช้จัดการเอง</li>
+  </ul>
+
+  <h3 style="margin-top:24px">Assumptions ที่ยังอ่อน — ผมไม่ปล่อยผ่าน</h3>
+  <div class="tblwrap"><table>
+    <tr><th>Assumption</th><th>ทำไมอ่อน</th><th>วิธีพิสูจน์</th></tr>
+    <tr><td>"92.3% จะใช้"</td><td>n=13 น่าจะเป็นเพื่อนกันเอง ตอบเอาใจ — stated ≠ revealed preference</td><td>Prototype test 5 คน 7 วัน วัด <b>การใช้จริง</b> ไม่ใช่คำตอบ</td></tr>
+    <tr><td>"นักเรียนจะยอม scan ทุกงาน"</td><td>ต่อให้ &lt;10 วิ ก็ยังต้อง "จำได้ว่าต้อง scan" — ถ้า capture rate ต่ำ ทั้ง product พัง</td><td>วัด capture rate เทียบงานที่ครูสั่งจริงในสัปดาห์ทดสอบ — นี่คือตัวเลขชี้เป็นชี้ตาย</td></tr>
+    <tr><td>"นักเรียนจะเชื่อลำดับของ AI"</td><td>ถ้า AI จัดผิด 1–2 ครั้ง (เช่น ไม่รู้ว่าวิชานี้ครูโหด) ความเชื่อใจหายทันที</td><td>ให้ลากสลับได้เสมอ + AI เรียนจากการสลับ + วัด % ที่ผู้ใช้ยอมรับลำดับ</td></tr>
+    <tr><td>"ต้องใช้ AI จัดลำดับ"</td><td>ตามตรง: deadline + น้ำหนักคะแนน เรียงด้วย if-else ก็ได้ 80% — AI จำเป็นจริงที่ <b>การแกะข้อมูลจากรูป/ข้อความ</b> และ <b>การอธิบายเหตุผล</b> มากกว่าการเรียง อย่าขาย AI ผิดจุด</td><td>โฟกัส demo ไปที่ Scanner + คำอธิบาย ไม่ใช่อัลกอริทึมเรียงลำดับ</td></tr>
+    <tr><td>"เก็บครบ ม.4–ม.6"</td><td>ข้อมูลตอนนี้คือ ม.4 ล้วน — ม.6 ชีวิตหมุนรอบ TCAS/สอบเข้า เป็นคนละ product</td><td>Survey เพิ่มต่างระดับชั้น ต่างโรงเรียน อย่างน้อย 50 คน — และยอมโฟกัส ม.ต้น–ม.4 ไปก่อนถ้าข้อมูลบอกอย่างนั้น</td></tr>
+  </table></div>
+
+  <h3 style="margin-top:28px">มุมกรรมการ Samsung Solve for Tomorrow</h3>
+  <p>เวทีนี้ให้คะแนน <b>social impact</b> ไม่ใช่ความเท่ของเทคโนโลยี เรื่องที่ควรเล่า: ความเครียดสะสมของนักเรียนไทยจากระบบที่สั่งงานแบบไร้ศูนย์กลาง และ<b>ความเหลื่อมล้ำ</b> — เด็กที่มีติวเตอร์/ผู้ปกครองช่วยจัดตาราง ได้เปรียบเด็กที่ต้องจัดการเองทุกอย่าง StudentOS AI คือการให้ "ผู้ช่วยส่วนตัว" กับเด็กทุกคน บนมือถือระดับกลางเครื่องเดียว</p>
+  <p><b>Demo ที่ชนะ:</b> หยิบใบงานจริงจากโรงเรียนจริงขึ้นมาต่อหน้ากรรมการ → ถ่ายรูป → 10 วินาทีต่อมา งานเข้าระบบพร้อมลำดับและเหตุผล นั่นคือโมเมนต์เดียวที่ต้องซ้อมให้ไม่พลาด</p>
+
+  <h3 style="margin-top:24px">Next steps (เรียงตามลำดับ — ตามหลักของเราเอง)</h3>
+  <ul>
+    <li><b>1.</b> ขยาย survey เป็น 50+ คน ข้ามระดับชั้น/โรงเรียน (ใช้ยืนยันลำดับ pain ไม่ใช่ feature votes)</li>
+    <li><b>2.</b> Prototype ทดสอบ Scanner อย่างเดียวก่อน (แค่ LINE bot ที่รับรูป/ข้อความแล้วตอบกลับเป็นงาน+deadline ก็พิสูจน์ได้) — วัด capture rate</li>
+    <li><b>3.</b> ถ้า capture rate ผ่าน ค่อยสร้าง Dashboard + Prioritizer แล้วทดสอบ 7 วันกับนักเรียน 5 คน</li>
+  </ul>
+</section>
+
+<div class="footer">StudentOS AI · Product Strategy v0.1 · 18 JUL 2026 · ข้อมูลจาก survey n=13 — provisional ทุกตัวเลข</div>
+</div>

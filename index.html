@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudentOS AI</title>
+  <meta name="theme-color" content="#1465E0">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="stage">
+  <div class="phone">
+    <div class="statusbar"><span id="clock">--:--</span><span>📶 🔋</span></div>
+    <div class="screens">
+
+      <!-- ============ SCREEN: SCAN ============ -->
+      <div class="screen" id="scr-scan">
+        <div class="big-title">Scan Homework 📷</div>
+        <p class="sub">ถ่ายรูปใบงาน หรือแปะข้อความจาก LINE — AI อ่านให้</p>
+
+        <label class="btn primary" for="photoInput">📷 ถ่ายรูป / เลือกภาพใบงาน</label>
+        <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+        <div class="scan-status" id="ocrStatus"></div>
+        <div class="ocr-bar" id="ocrBarWrap" hidden><div class="ocr-fill" id="ocrBar"></div></div>
+
+        <div class="divider">หรือ</div>
+
+        <textarea id="pasteText" class="paste-box" rows="5"
+          placeholder="แปะข้อความจาก LINE กลุ่ม เช่น&#10;&quot;การบ้านฟิสิกส์ ครูสมชาย ทำโจทย์บทที่ 4 ข้อ 1-10 ส่งพรุ่งนี้ 16:00 คะแนนเก็บ 20%&quot;"></textarea>
+        <button class="btn primary" onclick="scanFromText()">🤖 ให้ AI อ่านข้อความ</button>
+        <button class="btn ghost" onclick="openForm(null)">✎ พิมพ์เพิ่มเองทีละช่อง</button>
+        <p class="hint">การอ่านรูปครั้งแรกต้องดาวน์โหลดโมเดล OCR (~ใช้เน็ต อาจรอ 1–2 นาที)</p>
+      </div>
+
+      <!-- ============ SCREEN: FORM (ยืนยัน/แก้ไข) ============ -->
+      <div class="screen" id="scr-form">
+        <div class="big-title" id="formTitle">AI ตรวจพบ ✨</div>
+        <p class="sub" id="formSub">ตรวจสอบก่อนบันทึก — แก้สิ่งที่ AI อ่านผิดได้เสมอ</p>
+        <div class="chips" id="detectedChips" style="margin-bottom:10px"></div>
+
+        <div class="card">
+          <div class="field"><label>วิชา</label><select id="fSubject"></select></div>
+          <div class="field"><label>งานที่ต้องทำ</label><input type="text" id="fDetail" placeholder="เช่น ทำโจทย์บทที่ 4 ข้อ 1–10"></div>
+          <div class="field-row">
+            <div class="field"><label>ส่งวันที่</label><input type="date" id="fDate"></div>
+            <div class="field"><label>เวลา</label><input type="time" id="fTime"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>คะแนน (%)</label><input type="number" id="fScore" min="0" max="100" placeholder="เช่น 20"></div>
+            <div class="field"><label>ใช้เวลา (นาที)</label><input type="number" id="fEst" min="5" step="5" value="30"></div>
+          </div>
+          <div class="field"><label>ครูผู้สั่ง</label><input type="text" id="fTeacher" placeholder="เช่น ครูสมชาย"></div>
+          <label class="check-line"><input type="checkbox" id="fExam"> เป็นการสอบ / quiz</label>
+        </div>
+
+        <button class="btn primary" onclick="saveForm()">✓ บันทึกเข้าแผน</button>
+        <button class="btn ghost" onclick="go('scr-home')">ยกเลิก</button>
+      </div>
+
+      <!-- ============ SCREEN: HOME / DASHBOARD ============ -->
+      <div class="screen on" id="scr-home">
+        <div class="big-title" id="greeting">สวัสดี 👋</div>
+        <p class="sub" id="homeSub"></p>
+
+        <div class="card ai">
+          <div class="ai-head"><span class="ai-dot">S</span><span class="ai-name">STUDENTOS AI</span></div>
+          <div class="ai-msg" id="aiMsg">…</div>
+        </div>
+
+        <div class="sect">🔥 Today's Top 3</div>
+        <div id="top3"></div>
+      </div>
+
+      <!-- ============ SCREEN: ALL ASSIGNMENTS ============ -->
+      <div class="screen" id="scr-tasks">
+        <div class="big-title">All Assignments</div>
+        <p class="sub" id="tasksSub"></p>
+        <div id="taskList"></div>
+      </div>
+
+      <!-- ============ SCREEN: TIMELINE ============ -->
+      <div class="screen" id="scr-timeline">
+        <div class="big-title">Timeline</div>
+        <p class="sub">อะไรกำลังเข้ามา — ไม่ใช่ปฏิทินรายเดือน</p>
+        <div id="timeline"></div>
+      </div>
+
+      <!-- ============ SCREEN: PROFILE ============ -->
+      <div class="screen" id="scr-profile">
+        <div class="big-title">ฉัน</div>
+        <p class="sub">ทุกช่องในหน้านี้คือข้อมูลที่ AI ใช้วางแผน</p>
+
+        <div class="card">
+          <div class="field"><label>ชื่อเล่น</label><input type="text" id="pName" placeholder="เช่น Nado"></div>
+          <div class="field"><label>เวลาว่างทำการบ้านต่อวัน (ชม.)</label><input type="number" id="pFree" min="0.5" step="0.5" value="2"></div>
+          <button class="btn primary sm" onclick="saveProfile()">บันทึก</button>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-bottom:8px">การแจ้งเตือน</h4>
+          <p class="hint" style="text-align:left; margin:0 0 10px" id="notifStatus">ยังไม่ได้เปิด</p>
+          <button class="btn ghost sm" onclick="enableNotif()">🔔 เปิดการแจ้งเตือน (เตือนงานที่ใกล้ส่งใน 24 ชม.)</button>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-bottom:8px">ข้อมูล</h4>
+          <button class="btn ghost sm" onclick="loadSample()">📦 โหลดข้อมูลตัวอย่าง (สำหรับ demo)</button>
+          <button class="btn danger sm" onclick="clearAll()">🗑 ล้างข้อมูลทั้งหมด</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============ TAB BAR ============ -->
+    <div class="tabbar">
+      <button class="tab" data-scr="scr-home" onclick="go('scr-home')"><span class="ic">🏠</span>หน้าแรก</button>
+      <button class="tab" data-scr="scr-tasks" onclick="go('scr-tasks')"><span class="ic">📝</span>งาน</button>
+      <div class="tab fab-wrap">
+        <button class="fab" onclick="go('scr-scan')">📷</button>
+        <div class="fab-label">Scan</div>
+      </div>
+      <button class="tab" data-scr="scr-timeline" onclick="go('scr-timeline')"><span class="ic">🗓</span>เส้นเวลา</button>
+      <button class="tab" data-scr="scr-profile" onclick="go('scr-profile')"><span class="ic">👤</span>ฉัน</button>
+    </div>
+  </div>
+
+  <p class="stage-note">
+    StudentOS AI — ข้อมูลเก็บในเครื่อง (localStorage) · Scan รูปใช้ OCR ในเบราว์เซอร์ ·
+    การจัดลำดับคำนวณจาก deadline × คะแนน × ขนาดงาน พร้อมเหตุผลกำกับทุกงาน
+  </p>
+</div>
+
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

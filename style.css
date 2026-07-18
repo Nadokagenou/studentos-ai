@@ -1,0 +1,155 @@
+/* ============================================================
+   StudentOS AI — Prototype Stylesheet
+   Design language: ขาว + น้ำเงิน, card ใหญ่แบบ One UI,
+   หัวข้อหนาใหญ่, ไอคอนเรียบ
+   ============================================================ */
+
+:root{
+  --pg:#EEF1F6; --pg-ink:#21242B; --pg-muted:#6B7080;
+  --scr:#F4F6FA; --card:#FFFFFF; --ink:#17181C; --muted:#73788A;
+  --blue:#1465E0; --blue-soft:#E8F0FE; --blue-deep:#0B4DB3;
+  --line:#E4E8F0; --good:#1F9D5B; --fire:#E8590C;
+  --shadow:0 2px 12px rgba(23,40,80,.07);
+}
+
+*{margin:0; padding:0; box-sizing:border-box}
+html{background:var(--pg)}
+body{
+  font-family:"Leelawadee UI","Segoe UI","Noto Sans Thai",-apple-system,sans-serif;
+  background:var(--pg); color:var(--pg-ink); line-height:1.55;
+}
+
+/* ---------- stage (พื้นที่รอบมือถือ) ---------- */
+.stage{max-width:960px; margin:0 auto; padding:32px 16px 64px; display:flex; flex-direction:column; align-items:center; gap:18px}
+.demo-bar{display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-size:13.5px; color:var(--pg-muted)}
+.demo-bar .step{display:flex; align-items:center; gap:6px}
+.demo-bar .n{width:20px; height:20px; border-radius:50%; background:var(--blue); color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center}
+.demo-bar button{border:1px solid var(--pg-muted); background:transparent; color:var(--pg-ink); border-radius:8px; padding:4px 12px; font-size:12.5px; cursor:pointer; font-family:inherit}
+.stage-note{font-size:13px; color:var(--pg-muted); max-width:520px; text-align:center}
+
+/* ---------- phone frame ---------- */
+.phone{width:380px; max-width:100%; height:780px; background:var(--scr); border-radius:38px; border:10px solid #101216; box-shadow:0 24px 60px rgba(10,20,50,.25); overflow:hidden; position:relative; display:flex; flex-direction:column; color:var(--ink)}
+.statusbar{flex:none; display:flex; justify-content:space-between; padding:12px 26px 4px; font-size:12.5px; font-weight:600; color:var(--ink)}
+.screens{flex:1; position:relative; overflow:hidden}
+.screen{position:absolute; inset:0; overflow-y:auto; padding:8px 18px 90px; display:none}
+.screen.on{display:block; animation:fadein .25s ease}
+@keyframes fadein{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+@media (prefers-reduced-motion: reduce){ .screen.on{animation:none} }
+
+/* ---------- typography (One UI style) ---------- */
+.big-title{font-size:27px; font-weight:800; line-height:1.3; margin:18px 4px 2px; letter-spacing:-.01em}
+.sub{font-size:13.5px; color:var(--muted); margin:0 4px 14px}
+.sect{font-size:14px; font-weight:800; margin:20px 6px 10px; display:flex; align-items:center; gap:6px}
+
+/* ---------- cards ---------- */
+.card{background:var(--card); border-radius:22px; box-shadow:var(--shadow); padding:16px 18px; margin-bottom:12px}
+.card.ai{background:linear-gradient(135deg,#EAF1FE 0%,#F5F9FF 100%); border:1px solid #D6E4FB}
+.ai-head{display:flex; align-items:center; gap:8px; margin-bottom:6px}
+.ai-dot{width:26px; height:26px; border-radius:50%; background:var(--blue); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800}
+.ai-name{font-size:12px; font-weight:700; color:var(--blue-deep); letter-spacing:.04em}
+.ai-msg{font-size:15px; line-height:1.65; color:#1B2B4A}
+.card h4{font-size:17px; font-weight:800; margin:0}
+.due{font-size:13px; font-weight:700; color:var(--fire); margin-top:2px}
+.due.ok{color:var(--muted); font-weight:600}
+.stars{color:#F5A623; font-size:13px; letter-spacing:2px; margin-top:2px}
+.stars .off{color:#D9DEE8}
+.chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
+.chip{font-size:11.5px; background:var(--blue-soft); color:var(--blue-deep); border-radius:99px; padding:3px 10px; font-weight:600}
+.chip.new{background:#E3F6EC; color:var(--good)}
+.rank{width:26px; height:26px; flex:none; border-radius:50%; background:var(--ink); color:#fff; font-size:13px; font-weight:800; display:flex; align-items:center; justify-content:center}
+.rank.r1{background:var(--blue)}
+.thead{display:flex; align-items:flex-start; gap:12px}
+.thead > div{flex:1}
+
+/* ---------- buttons ---------- */
+.btn{display:block; width:100%; border:none; border-radius:16px; padding:13px; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; text-align:center}
+.btn.primary{background:var(--blue); color:#fff}
+.btn.ghost{background:transparent; color:var(--blue-deep); border:1.5px solid #C9D9F5; margin-top:8px}
+.btn.sm{padding:10px; font-size:14px; border-radius:13px; margin-top:12px}
+
+/* ---------- tab bar ---------- */
+.tabbar{position:absolute; bottom:0; left:0; right:0; background:var(--card); border-top:1px solid var(--line); display:flex; align-items:flex-end; justify-content:space-around; padding:8px 6px 14px; z-index:5}
+.tab{flex:1; text-align:center; font-size:10.5px; color:var(--muted); cursor:pointer; border:none; background:none; font-family:inherit; font-weight:600}
+.tab .ic{font-size:19px; display:block; margin-bottom:2px; filter:grayscale(1); opacity:.55}
+.tab.active{color:var(--blue-deep)}
+.tab.active .ic{filter:none; opacity:1}
+.tab.fab-wrap{flex:1.2}
+.fab{width:56px; height:56px; border-radius:50%; background:var(--blue); color:#fff; border:none; font-size:22px; cursor:pointer; box-shadow:0 6px 16px rgba(20,101,224,.4); margin-bottom:2px}
+.fab-label{font-size:10.5px; color:var(--blue-deep); font-weight:700}
+
+/* ---------- scan screen ---------- */
+.viewfinder{position:relative; background:#22262E; border-radius:22px; height:300px; margin:14px 0; display:flex; align-items:center; justify-content:center; overflow:hidden}
+.sheet{background:#F6F4EC; color:#3A3A33; width:72%; border-radius:6px; padding:14px 16px; font-size:10px; line-height:1.7; transform:rotate(-2deg); box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.sheet b{font-size:11px}
+.corner{position:absolute; width:26px; height:26px; border:3px solid #fff; opacity:.9}
+.c1{top:14px; left:14px; border-right:none; border-bottom:none; border-radius:6px 0 0 0}
+.c2{top:14px; right:14px; border-left:none; border-bottom:none; border-radius:0 6px 0 0}
+.c3{bottom:14px; left:14px; border-right:none; border-top:none; border-radius:0 0 0 6px}
+.c4{bottom:14px; right:14px; border-left:none; border-top:none; border-radius:0 0 6px 0}
+.scanline{position:absolute; left:8%; right:8%; height:3px; background:linear-gradient(90deg,transparent,#4D9FFF,transparent); border-radius:2px; animation:sweep 1.6s ease-in-out infinite; display:none}
+.scanning .scanline{display:block}
+@keyframes sweep{0%{top:12%} 50%{top:86%} 100%{top:12%}}
+@media (prefers-reduced-motion: reduce){ .scanline{animation:none; top:50%} }
+.hint{text-align:center; font-size:13px; color:var(--muted); margin:4px 0 12px}
+.scan-status{text-align:center; font-size:14.5px; font-weight:700; color:var(--blue-deep); min-height:24px; margin-top:10px}
+
+/* ---------- AI detect result rows ---------- */
+.drow{display:flex; align-items:center; gap:10px; padding:11px 4px; border-bottom:1px solid var(--line); opacity:0; transform:translateY(4px); transition:opacity .3s, transform .3s}
+.drow.show{opacity:1; transform:none}
+.drow:last-of-type{border-bottom:none}
+.dcheck{width:22px; height:22px; flex:none; border-radius:50%; background:#E3F6EC; color:var(--good); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center}
+.dlabel{font-size:12px; color:var(--muted); width:74px; flex:none}
+.dval{font-size:14.5px; font-weight:700}
+.dval small{font-weight:600; color:var(--muted)}
+
+/* ---------- forms ---------- */
+.field{margin-bottom:12px}
+.field label{display:block; font-size:12px; font-weight:700; color:var(--muted); margin-bottom:4px}
+.field input, .field select, .paste-box{
+  width:100%; border:1.5px solid var(--line); border-radius:12px; padding:10px 12px;
+  font-size:14.5px; font-family:inherit; background:var(--card); color:var(--ink);
+}
+.field input:focus, .field select:focus, .paste-box:focus{outline:none; border-color:var(--blue)}
+.field-row{display:flex; gap:10px}
+.field-row .field{flex:1}
+.check-line{display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600}
+.check-line input{width:17px; height:17px; accent-color:var(--blue)}
+.paste-box{resize:none; margin-bottom:10px; line-height:1.6}
+.divider{display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12.5px; margin:14px 0}
+.divider::before, .divider::after{content:''; flex:1; height:1px; background:var(--line)}
+label.btn{display:block}
+
+/* ---------- task rows ---------- */
+.task-row{display:flex; align-items:center; gap:10px; background:var(--card); border-radius:16px; box-shadow:var(--shadow); padding:12px 14px; margin-bottom:8px}
+.task-row input[type=checkbox]{width:20px; height:20px; flex:none; accent-color:var(--blue); cursor:pointer}
+.task-main{flex:1; cursor:pointer; min-width:0}
+.task-title{font-size:14.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.task-row.done .task-title{text-decoration:line-through; color:var(--muted); font-weight:600}
+.icon-btn{border:none; background:none; font-size:16px; cursor:pointer; opacity:.5; padding:4px}
+.icon-btn:hover{opacity:1}
+
+/* ---------- OCR progress ---------- */
+.ocr-bar{height:6px; background:var(--line); border-radius:3px; margin:8px 0; overflow:hidden}
+.ocr-fill{height:100%; width:0; background:var(--blue); border-radius:3px; transition:width .3s}
+
+/* ---------- misc ---------- */
+.card.empty{text-align:center; color:var(--muted); font-size:14.5px; line-height:2; padding:26px 18px}
+.btn.danger{background:transparent; color:#C0392B; border:1.5px solid #F0C4BE; margin-top:8px}
+
+/* มือถือจริง: เต็มจอ */
+@media (max-width:480px){
+  .stage{padding:0}
+  .phone{width:100%; height:100vh; height:100dvh; border-radius:0; border:none; box-shadow:none}
+  .demo-bar, .stage-note, .statusbar{display:none}
+}
+
+/* ---------- timeline ---------- */
+.tl-group{margin-bottom:6px}
+.tl-head{font-size:12.5px; font-weight:800; color:var(--blue-deep); text-transform:uppercase; letter-spacing:.08em; margin:16px 6px 8px}
+.tl-item{display:flex; gap:12px; align-items:center}
+.tl-bar{width:4px; align-self:stretch; border-radius:2px; background:var(--line); flex:none}
+.tl-bar.hot{background:var(--fire)}
+.tl-bar.mid{background:#F5A623}
+.tl-item .card{flex:1; padding:13px 16px; margin-bottom:10px}
+.assign-sect{font-size:12.5px; font-weight:800; letter-spacing:.06em; margin:18px 6px 8px; color:var(--fire)}
+.assign-sect.norm{color:var(--muted)}
