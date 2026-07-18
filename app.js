@@ -35,7 +35,7 @@ function esc(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 function starsHtml(n) {
-  return '<span class="stars">' + '★'.repeat(n) + '<span class="off">' + '★'.repeat(5 - n) + '</span></span>';
+  return '<span class="stars lv' + n + '">' + '★'.repeat(n) + '<span class="off">' + '★'.repeat(5 - n) + '</span></span>';
 }
 function chipsHtml(reasons) {
   return '<div class="chips">' + reasons.slice(0, 4).map(r => '<span class="chip">' + esc(r) + '</span>').join('') + '</div>';
@@ -128,11 +128,14 @@ function renderTimeline() {
   for (const b of buckets) {
     const list = pending.filter(t => b.test(priorityInfo(t, now).hoursLeft));
     if (!list.length) continue;
-    html += `<div class="tl-group"><div class="tl-head">${b.name}</div>` + list.map(t => `
-      <div class="tl-item"><span class="tl-bar ${b.bar}"></span>
+    html += `<div class="tl-group"><div class="tl-head">${b.name}</div>` + list.map(t => {
+      const info = priorityInfo(t, now);
+      return `
+      <div class="tl-item"><span class="tl-bar lv${info.stars}"></span>
         <div class="card"><h4 style="font-size:15px">${esc(t.subject)} — ${esc(t.detail)}</h4>
-        <div class="due ${b.bar === 'hot' ? '' : 'ok'}">${fmtDue(t.due, now)}</div></div>
-      </div>`).join('') + `</div>`;
+        <div class="due ${b.bar === 'hot' ? '' : 'ok'}">${fmtDue(t.due, now)} · ${starsHtml(info.stars)}</div></div>
+      </div>`;
+    }).join('') + `</div>`;
   }
   const insight = timelineInsight(pending, now);
   if (insight) html += `
@@ -168,6 +171,14 @@ function removeTask(id) {
 }
 
 // ---------- form (เพิ่ม/แก้/ยืนยันผล AI) ----------
+let formUserStars = 0; // 0 = ให้ AI จัดให้
+
+function setStarPick(n) {
+  formUserStars = n;
+  document.querySelectorAll('#starPick .sp').forEach(b =>
+    b.classList.toggle('active', +b.dataset.lv === n));
+}
+
 function fillSubjectSelect() {
   document.getElementById('fSubject').innerHTML =
     SUBJECTS.map(s => `<option>${s.name}</option>`).join('');
@@ -207,6 +218,7 @@ function openForm(id, parsed) {
     chips.innerHTML = '';
   }
 
+  setStarPick(t?.userStars || 0);
   f.subject.value = t?.subject || 'อื่น ๆ';
   f.detail.value = t?.detail || '';
   f.teacher.value = t?.teacher || '';
@@ -237,6 +249,7 @@ function saveForm() {
     scorePct: scoreV === '' ? null : Math.min(100, +scoreV),
     estMin: Math.max(5, +document.getElementById('fEst').value || 30),
     isExam: document.getElementById('fExam').checked,
+    userStars: formUserStars || null,
     due: due ? due.toISOString() : null,
   };
 

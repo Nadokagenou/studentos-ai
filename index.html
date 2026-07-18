@@ -53,6 +53,17 @@
             <div class="field"><label>คะแนน (%)</label><input type="number" id="fScore" min="0" max="100" placeholder="เช่น 20"></div>
             <div class="field"><label>ใช้เวลา (นาที)</label><input type="number" id="fEst" min="5" step="5" value="30"></div>
           </div>
+          <div class="field"><label>ความสำคัญ</label>
+            <div class="star-pick" id="starPick">
+              <button type="button" class="sp sp-auto" data-lv="0" onclick="setStarPick(0)">🤖 AI จัดให้</button>
+              <button type="button" class="sp lv1" data-lv="1" onclick="setStarPick(1)">★1</button>
+              <button type="button" class="sp lv2" data-lv="2" onclick="setStarPick(2)">★2</button>
+              <button type="button" class="sp lv3" data-lv="3" onclick="setStarPick(3)">★3</button>
+              <button type="button" class="sp lv4" data-lv="4" onclick="setStarPick(4)">★4</button>
+              <button type="button" class="sp lv5" data-lv="5" onclick="setStarPick(5)">★5</button>
+            </div>
+            <p class="hint" style="text-align:left; margin:6px 0 0">★5 = ด่วนมาก · ถ้าเลือกเอง AI จะเคารพลำดับของคุณ</p>
+          </div>
           <div class="field"><label>ครูผู้สั่ง</label><input type="text" id="fTeacher" placeholder="เช่น ครูสมชาย"></div>
           <label class="check-line"><input type="checkbox" id="fExam"> เป็นการสอบ / quiz</label>
         </div>
@@ -86,6 +97,13 @@
       <div class="screen" id="scr-timeline">
         <div class="big-title">Timeline</div>
         <p class="sub">อะไรกำลังเข้ามา — ไม่ใช่ปฏิทินรายเดือน</p>
+        <div class="legend">
+          <span><i class="dot lv5"></i>ด่วนมาก</span>
+          <span><i class="dot lv4"></i>สำคัญ</span>
+          <span><i class="dot lv3"></i>ปานกลาง</span>
+          <span><i class="dot lv2"></i>ไม่เร่ง</span>
+          <span><i class="dot lv1"></i>รอได้</span>
+        </div>
         <div id="timeline"></div>
       </div>
 

@@ -130,6 +130,7 @@ function parseAssignment(text, now = new Date()) {
   const mD = t.match(/((?:ทำ|อ่าน|สรุป|ท่อง|เตรียม|เขียน|วาด).{3,80}?)(?=\s*(?:ส่ง|ภายใน|คะแนน|ครู|เวลา|พรุ่งนี้|วันนี้|มะรืน|วันที่|$))/);
   if (mD) { detail = mD[1].trim(); detected.detail = true; }
   else detail = t.replace(/\s*(?:ส่ง|ภายใน|คะแนน)[^]*$/, '').trim().slice(0, 80) || t.slice(0, 80);
+  detail = detail.replace(/[\s(\-–—]+$/, ''); // ตัดวงเล็บ/ขีดค้างท้ายประโยค
 
   return {
     subject, teacher, scorePct,
@@ -166,7 +167,16 @@ function priorityInfo(task, now = new Date()) {
   else if (task.estMin >= 45) { score += 9;  reasons.push('ใช้เวลา ~' + task.estMin + ' นาที'); }
   else                        { score += 4;  reasons.push('~' + task.estMin + ' นาที'); }
 
-  const stars = score >= 70 ? 5 : score >= 55 ? 4 : score >= 40 ? 3 : score >= 25 ? 2 : 1;
+  let stars = score >= 70 ? 5 : score >= 55 ? 4 : score >= 40 ? 3 : score >= 25 ? 2 : 1;
+
+  // ผู้ใช้กำหนดความสำคัญเอง → เคารพการตัดสินใจของเขา (override AI)
+  // ลำดับภายในดาวเท่ากัน: ใกล้ deadline กว่ามาก่อน
+  if (task.userStars >= 1) {
+    stars = task.userStars;
+    score = task.userStars * 20
+      + (hoursLeft != null ? Math.max(0, 15 - Math.max(0, hoursLeft) / 12) : 0);
+    reasons.unshift('★ กำหนดความสำคัญเอง');
+  }
   const urgency = (hoursLeft != null && hoursLeft < 0) ? 'over'
     : (hoursLeft != null && hoursLeft <= 30) ? 'hot'
     : (hoursLeft != null && hoursLeft <= 54) ? 'mid' : 'norm';

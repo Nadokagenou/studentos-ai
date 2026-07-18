@@ -53,6 +53,13 @@ body{
 .due.ok{color:var(--muted); font-weight:600}
 .stars{color:#F5A623; font-size:13px; letter-spacing:2px; margin-top:2px}
 .stars .off{color:#D9DEE8}
+
+/* ระดับความสำคัญ 1–5: สีเดียวกันทั้งดาว แถบ timeline และปุ่มเลือก */
+.stars.lv5{color:#E03131}
+.stars.lv4{color:#F76707}
+.stars.lv3{color:#F5A623}
+.stars.lv2{color:#1465E0}
+.stars.lv1{color:#98A2B3}
 .chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
 .chip{font-size:11.5px; background:var(--blue-soft); color:var(--blue-deep); border-radius:99px; padding:3px 10px; font-weight:600}
 .chip.new{background:#E3F6EC; color:var(--good)}
@@ -154,9 +161,35 @@ label.btn{display:block}
 .tl-group{margin-bottom:6px}
 .tl-head{font-size:12.5px; font-weight:800; color:var(--blue-deep); text-transform:uppercase; letter-spacing:.08em; margin:16px 6px 8px}
 .tl-item{display:flex; gap:12px; align-items:center}
-.tl-bar{width:4px; align-self:stretch; border-radius:2px; background:var(--line); flex:none}
+.tl-bar{width:5px; align-self:stretch; border-radius:3px; background:var(--line); flex:none}
 .tl-bar.hot{background:var(--fire)}
 .tl-bar.mid{background:#F5A623}
+.tl-bar.lv5{background:#E03131}
+.tl-bar.lv4{background:#F76707}
+.tl-bar.lv3{background:#F5A623}
+.tl-bar.lv2{background:#1465E0}
+.tl-bar.lv1{background:#98A2B3}
+
+/* legend อธิบายสี */
+.legend{display:flex; flex-wrap:wrap; gap:10px 14px; font-size:11.5px; color:var(--muted); margin:0 4px 14px}
+.legend span{display:flex; align-items:center; gap:5px}
+.legend .dot{width:10px; height:10px; border-radius:3px; display:inline-block}
+.dot.lv5{background:#E03131}
+.dot.lv4{background:#F76707}
+.dot.lv3{background:#F5A623}
+.dot.lv2{background:#1465E0}
+.dot.lv1{background:#98A2B3}
+
+/* ปุ่มเลือกความสำคัญเอง */
+.star-pick{display:flex; gap:6px; flex-wrap:wrap}
+.sp{border:1.5px solid var(--line); background:var(--card); color:var(--muted); border-radius:10px; padding:7px 10px; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer}
+.sp.sp-auto{font-size:12.5px}
+.sp.lv5.active{background:#E03131; border-color:#E03131; color:#fff}
+.sp.lv4.active{background:#F76707; border-color:#F76707; color:#fff}
+.sp.lv3.active{background:#F5A623; border-color:#F5A623; color:#fff}
+.sp.lv2.active{background:#1465E0; border-color:#1465E0; color:#fff}
+.sp.lv1.active{background:#98A2B3; border-color:#98A2B3; color:#fff}
+.sp.sp-auto.active{background:var(--blue-soft); border-color:var(--blue); color:var(--blue-deep)}
 .tl-item .card{flex:1; padding:13px 16px; margin-bottom:10px}
 .assign-sect{font-size:12.5px; font-weight:800; letter-spacing:.06em; margin:18px 6px 8px; color:var(--fire)}
 .assign-sect.norm{color:var(--muted)}
