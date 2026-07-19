@@ -6,6 +6,6 @@
 // เพราะสิทธิ์เข้าถึงข้อมูลถูกคุมด้วย Row Level Security ฝั่งเซิร์ฟเวอร์)
 // ============================================================
 window.SUPABASE_CONFIG = {
-  url: '',      // เช่น 'https://abcdefgh.supabase.co'
-  anonKey: '',  // anon / public key
+  url: 'https://yunbytxtgghizrdqftvj.supabase.co',
+  anonKey: 'sb_publishable_GCXZU_uLAlv3yuGxu5cOrw_YU4UCWXY',
 };
