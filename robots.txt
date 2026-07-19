@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nadokagenou.github.io/studentos-ai/sitemap.xml
