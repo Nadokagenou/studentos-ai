@@ -15,7 +15,10 @@ function load() {
     if (raw) state = Object.assign({ tasks: [], settings: { name: '', freeHours: 2 } }, JSON.parse(raw));
   } catch (e) { /* ข้อมูลเสีย → เริ่มใหม่ */ }
 }
-function save() { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+function save() {
+  localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  pushToCloud(); // ซิงก์ขึ้น cloud อัตโนมัติ (ถ้าล็อกอินอยู่)
+}
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
 function pendingTasks() { return state.tasks.filter(t => !t.done); }
@@ -24,9 +27,97 @@ function pendingTasks() { return state.tasks.filter(t => !t.done); }
 function go(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
   document.getElementById(id).classList.add('on');
+  document.body.classList.toggle('login-mode', id === 'scr-login');
   document.querySelectorAll('.tab[data-scr]').forEach(b =>
     b.classList.toggle('active', b.dataset.scr === id));
   renderAll();
+}
+
+// ---------- cloud: Supabase auth + sync ----------
+let sb = null, currentUser = null, syncTimer = null, lastSync = null;
+
+function cloudConfigured() {
+  const c = window.SUPABASE_CONFIG || {};
+  return !!(c.url && c.anonKey) && typeof supabase !== 'undefined';
+}
+
+async function initCloud() {
+  if (!cloudConfigured()) return;
+  sb = supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonKey);
+  const { data: { session } } = await sb.auth.getSession();
+  currentUser = session ? session.user : null;
+  sb.auth.onAuthStateChange((event, sess) => {
+    const wasLoggedIn = !!currentUser;
+    currentUser = sess ? sess.user : null;
+    if (currentUser && !wasLoggedIn) {
+      // เพิ่งล็อกอินเสร็จ (รวมถึงกลับมาจากหน้า Google)
+      syncFromCloud().then(() => go(state.tasks.length ? 'scr-home' : 'scr-scan'));
+    } else {
+      renderAll();
+    }
+  });
+  if (currentUser) await syncFromCloud();
+}
+
+// ดึงข้อมูลจาก cloud มารวมกับในเครื่อง (รวมงานตาม id — ฝั่ง cloud ชนะเมื่อซ้ำ)
+async function syncFromCloud() {
+  if (!sb || !currentUser) return;
+  try {
+    const { data, error } = await sb.from('user_state')
+      .select('data').eq('id', currentUser.id).maybeSingle();
+    if (error) throw error;
+    if (data && data.data) {
+      const remote = data.data;
+      const byId = {};
+      for (const t of (state.tasks || [])) byId[t.id] = t;
+      for (const t of (remote.tasks || [])) byId[t.id] = t;
+      state.tasks = Object.values(byId);
+      state.settings = Object.assign({}, state.settings, remote.settings || {});
+      localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    }
+    await pushToCloud(true);
+    renderAll();
+  } catch (e) { console.warn('[sync] pull failed:', e.message); }
+}
+
+// ส่งข้อมูลขึ้น cloud (debounce 1.5 วิ กันยิงถี่)
+function pushToCloud(immediate) {
+  if (!sb || !currentUser) return;
+  const doPush = async () => {
+    try {
+      const { error } = await sb.from('user_state').upsert({
+        id: currentUser.id,
+        data: { tasks: state.tasks, settings: state.settings },
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      lastSync = new Date();
+      renderProfile();
+    } catch (e) { console.warn('[sync] push failed:', e.message); }
+  };
+  if (immediate) return doPush();
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(doPush, 1500);
+}
+
+function loginGoogle() {
+  if (!sb) { alert('ระบบบัญชียังไม่เปิดใช้งาน — ใช้แบบไม่ล็อกอินไปก่อนได้เลย'); return; }
+  sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: location.origin + location.pathname },
+  });
+}
+
+function skipLogin() {
+  localStorage.setItem('studentos.skipLogin', '1');
+  go(state.tasks.length ? 'scr-home' : 'scr-scan');
+}
+
+async function logout() {
+  if (sb) await sb.auth.signOut();
+  currentUser = null; lastSync = null;
+  localStorage.removeItem('studentos.skipLogin');
+  go('scr-login');
 }
 
 // ---------- render ----------
@@ -148,6 +239,20 @@ function renderTimeline() {
 }
 
 function renderProfile() {
+  const acc = document.getElementById('accountCard');
+  if (!cloudConfigured()) {
+    acc.innerHTML = `<h4 style="margin-bottom:6px">บัญชี</h4>
+      <p class="hint" style="text-align:left; margin:0">โหมดออฟไลน์ — ข้อมูลอยู่ในเครื่องนี้เครื่องเดียว<br>(ระบบล็อกอิน/ซิงก์กำลังตั้งค่า)</p>`;
+  } else if (currentUser) {
+    acc.innerHTML = `<h4 style="margin-bottom:6px">บัญชี</h4>
+      <p style="font-size:14px; margin-bottom:4px">✅ ${esc(currentUser.email || currentUser.id)}</p>
+      <p class="hint" style="text-align:left; margin:0 0 10px">ซิงก์ข้ามเครื่องอัตโนมัติ${lastSync ? ' · ล่าสุด ' + lastSync.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : ''}</p>
+      <button class="btn ghost sm" onclick="logout()">ออกจากระบบ</button>`;
+  } else {
+    acc.innerHTML = `<h4 style="margin-bottom:6px">บัญชี</h4>
+      <p class="hint" style="text-align:left; margin:0 0 10px">ยังไม่ได้ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้เท่านั้น</p>
+      <button class="btn google sm" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>`;
+  }
   document.getElementById('pName').value = state.settings.name || '';
   document.getElementById('pFree').value = state.settings.freeHours || 2;
   const st = document.getElementById('notifStatus');
@@ -383,10 +488,19 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
-load();
-fillSubjectSelect();
-tickClock();
-setInterval(tickClock, 30_000);
-setInterval(checkReminders, 5 * 60_000);
-checkReminders();
-go(state.tasks.length ? 'scr-home' : 'scr-scan'); // ครั้งแรก: เริ่มที่ Scan (จุดขายของเรา)
+(async function initApp() {
+  load();
+  fillSubjectSelect();
+  tickClock();
+  setInterval(tickClock, 30_000);
+  setInterval(checkReminders, 5 * 60_000);
+  checkReminders();
+
+  await initCloud();
+
+  if (cloudConfigured() && !currentUser && !localStorage.getItem('studentos.skipLogin')) {
+    go('scr-login'); // มีระบบบัญชี + ยังไม่เคยเลือก → ให้เลือกก่อน
+  } else {
+    go(state.tasks.length ? 'scr-home' : 'scr-scan'); // ครั้งแรก: เริ่มที่ Scan (จุดขายของเรา)
+  }
+})();

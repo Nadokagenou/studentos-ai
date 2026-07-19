@@ -17,6 +17,18 @@
     <div class="statusbar"><span id="clock">--:--</span><span>📶 🔋</span></div>
     <div class="screens">
 
+      <!-- ============ SCREEN: LOGIN ============ -->
+      <div class="screen" id="scr-login">
+        <div class="login-wrap">
+          <div class="login-logo">S</div>
+          <div class="big-title" style="margin:0">StudentOS AI</div>
+          <p class="sub" style="margin:0 0 18px">รู้ว่าต้องทำอะไรก่อน เสมอ</p>
+          <button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>
+          <button class="btn ghost" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>
+          <p class="hint">ล็อกอินแล้วข้อมูลจะซิงก์ข้ามเครื่องอัตโนมัติ<br>ไม่ล็อกอินก็ใช้ได้ — ข้อมูลอยู่ในเครื่องนี้เครื่องเดียว</p>
+        </div>
+      </div>
+
       <!-- ============ SCREEN: SCAN ============ -->
       <div class="screen" id="scr-scan">
         <div class="big-title">Scan Homework 📷</div>
@@ -112,6 +124,8 @@
         <div class="big-title">ฉัน</div>
         <p class="sub">ทุกช่องในหน้านี้คือข้อมูลที่ AI ใช้วางแผน</p>
 
+        <div class="card" id="accountCard"></div>
+
         <div class="card">
           <div class="field"><label>ชื่อเล่น</label><input type="text" id="pName" placeholder="เช่น Nado"></div>
           <div class="field"><label>เวลาว่างทำการบ้านต่อวัน (ชม.)</label><input type="number" id="pFree" min="0.5" step="0.5" value="2"></div>
@@ -152,6 +166,8 @@
   </p>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>
 </body>

@@ -139,6 +139,14 @@ label.btn{display:block}
 .ocr-bar{height:6px; background:var(--line); border-radius:3px; margin:8px 0; overflow:hidden}
 .ocr-fill{height:100%; width:0; background:var(--blue); border-radius:3px; transition:width .3s}
 
+/* ---------- login ---------- */
+.login-wrap{display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100%; gap:10px; text-align:center; padding:20px 10px}
+.login-logo{width:86px; height:86px; border-radius:24px; background:var(--blue); color:#fff; font-size:46px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 10px 26px rgba(20,101,224,.35); margin-bottom:6px}
+.login-wrap .btn{width:100%; max-width:300px}
+.btn.google{background:var(--card); color:var(--ink); border:1.5px solid var(--line); display:flex; align-items:center; justify-content:center; gap:10px}
+.g-badge{width:22px; height:22px; border-radius:50%; background:#fff; border:1px solid var(--line); color:#4285F4; font-weight:800; font-size:13px; display:inline-flex; align-items:center; justify-content:center; flex:none}
+.login-mode .tabbar{display:none}
+
 /* ---------- misc ---------- */
 .card.empty{text-align:center; color:var(--muted); font-size:14.5px; line-height:2; padding:26px 18px}
 .btn.danger{background:transparent; color:#C0392B; border:1.5px solid #F0C4BE; margin-top:8px}
