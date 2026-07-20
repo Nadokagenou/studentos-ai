@@ -23,6 +23,22 @@
 </head>
 <body>
 
+<!-- โลโก้ S เป็น SVG กลาง — ใช้ซ้ำได้ทั้ง splash และหน้า login -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="sgrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#57A5FF"/><stop offset="1" stop-color="#1E5AE8"/>
+    </linearGradient>
+    <g id="s-mark">
+      <path d="M352 148 C340 118 200 108 178 168 C158 226 262 246 306 270 C364 300 360 372 296 392 C240 408 160 396 150 360"
+        fill="none" stroke="url(#sgrad)" stroke-width="72" stroke-linecap="round"/>
+      <circle cx="150" cy="372" r="42" fill="#1E5AE8"/>
+      <path class="sp-star1" d="M408 64 L420.2 105.8 L462 118 L420.2 130.2 L408 172 L395.8 130.2 L354 118 L395.8 105.8 Z" fill="#6FB2FF"/>
+      <path class="sp-star2" d="M452 170 L456.5 185.5 L472 190 L456.5 194.5 L452 210 L447.5 194.5 L432 190 L447.5 185.5 Z" fill="#9CCBFF"/>
+    </g>
+  </defs>
+</svg>
+
 <div class="stage">
   <div class="phone">
     <div class="statusbar"><span id="clock">--:--</span><span>📶 🔋</span></div>
@@ -31,8 +47,8 @@
       <!-- ============ SCREEN: LOGIN ============ -->
       <div class="screen" id="scr-login">
         <div class="login-wrap">
-          <div class="login-logo">S</div>
-          <div class="big-title" style="margin:0">StudentOS AI</div>
+          <svg class="login-mark" viewBox="0 0 512 512"><use href="#s-mark"/></svg>
+          <div class="big-title" style="margin:0">StudentOS <span class="ai-blue">AI</span></div>
           <p class="sub" style="margin:0 0 18px">รู้ว่าต้องทำอะไรก่อน เสมอ</p>
           <button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>
           <button class="btn ghost" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>
@@ -185,6 +201,14 @@
       </div>
       <button class="tab" data-scr="scr-timeline" onclick="go('scr-timeline')"><span class="ic">🗓</span>เส้นเวลา</button>
       <button class="tab" data-scr="scr-profile" onclick="go('scr-profile')"><span class="ic">👤</span>ฉัน</button>
+    </div>
+
+    <!-- ============ SPLASH: ฉากเปิดแอป ============ -->
+    <div id="splash">
+      <div class="sp-glow"></div>
+      <svg class="sp-logo" viewBox="0 0 512 512"><use href="#s-mark"/></svg>
+      <div class="sp-word">StudentOS <span>AI</span></div>
+      <div class="sp-tag">รู้ว่าต้องทำอะไรก่อน เสมอ</div>
     </div>
   </div>
 

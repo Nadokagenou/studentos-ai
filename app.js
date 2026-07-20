@@ -4,6 +4,7 @@
 // ============================================================
 
 const STORE_KEY = 'studentos.v1';
+const APP_T0 = performance.now(); // ใช้คุมเวลาโชว์ splash ขั้นต่ำ
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
 let editingId = null; // null = เพิ่มใหม่, ไม่ null = แก้ไขงานเดิม
@@ -591,4 +592,13 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   } else {
     go(state.tasks.length ? 'scr-home' : 'scr-scan'); // ครั้งแรก: เริ่มที่ Scan (จุดขายของเรา)
   }
+
+  // ปิดฉากเปิดแอป: โชว์อย่างน้อย 2.3 วิ (ถ้าโหลดเร็ว) แล้วเฟดออก
+  const splash = document.getElementById('splash');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const minShow = reduced ? 600 : 2300;
+  setTimeout(() => {
+    splash.classList.add('hide');
+    setTimeout(() => splash.classList.add('gone'), 600);
+  }, Math.max(300, minShow - (performance.now() - APP_T0)));
 })();
