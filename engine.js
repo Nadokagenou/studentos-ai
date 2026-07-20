@@ -231,6 +231,53 @@ function timelineInsight(pending, now = new Date()) {
   return null;
 }
 
+// ---------- 4) AI Planner: จัดงานลงช่วงเวลาว่างของวันนี้ ----------
+// หลัก: เรียงตาม priority → หั่นลงเวลาว่าง (จาก settings.freeHours)
+// งานใหญ่เกิน 50 นาทีแทรกพัก 10 นาที · เวลาไม่พอ → บอกตรง ๆ ว่างานไหนต้องย้ายวัน
+function buildDayPlan(pending, settings, now = new Date()) {
+  const sorted = sortByPriority(pending, now);
+  const freeMin = Math.round((settings.freeHours || 2) * 60);
+
+  // เริ่มแผน: ถ้ายังไม่ถึงเวลาทำการบ้านปกติ (19:00) ให้เริ่ม 19:00, ถ้าเลยแล้วเริ่มตอนนี้
+  let cursor = new Date(now);
+  const evening = atTime(now, 19, 0);
+  if (cursor < evening) cursor = evening;
+  cursor.setMinutes(Math.ceil(cursor.getMinutes() / 5) * 5, 0, 0);
+
+  const slots = [], overflow = [];
+  let remaining = freeMin, sinceBreak = 0;
+
+  for (const t of sorted) {
+    // เหลืองานจริงเท่าไหร่ตาม progress ที่ทำไปแล้ว
+    const need = Math.max(10, Math.round((t.estMin || 30) * (1 - (t.progress || 0) / 100)));
+    if (remaining < 10) { overflow.push({ task: t, need }); continue; }
+
+    const use = Math.min(need, remaining);
+    const start = new Date(cursor);
+    cursor = new Date(cursor.getTime() + use * 60000);
+    slots.push({
+      task: t, start, end: new Date(cursor), min: use,
+      partial: use < need,
+      note: use < need ? 'ทำบางส่วน (' + use + '/' + need + ' นาที) ที่เหลือย้ายพรุ่งนี้'
+        : (t.progress ? 'ต่อจากที่ทำไว้ ' + t.progress + '%' : null),
+    });
+    remaining -= use;
+    sinceBreak += use;
+
+    if (sinceBreak >= 50 && remaining >= 15) {
+      const bs = new Date(cursor);
+      cursor = new Date(cursor.getTime() + 10 * 60000);
+      slots.push({ break: true, start: bs, end: new Date(cursor), min: 10 });
+      sinceBreak = 0;
+    }
+  }
+  return { slots, overflow, freeMin, usedMin: freeMin - remaining };
+}
+
+function fmtClock(d) {
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
 // ---------- format ----------
 function fmtDue(iso, now = new Date()) {
   if (!iso) return 'ยังไม่ระบุกำหนดส่ง';

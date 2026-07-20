@@ -135,6 +135,14 @@ label.btn{display:block}
 .icon-btn{border:none; background:none; font-size:16px; cursor:pointer; opacity:.5; padding:4px}
 .icon-btn:hover{opacity:1}
 
+/* ---------- AI planner ---------- */
+.plan-slot{display:flex; gap:12px; margin-bottom:12px; align-items:stretch}
+.plan-time{flex:none; width:52px; font-family:Consolas,monospace; font-size:13px; font-weight:700; color:var(--blue-deep); padding-top:14px; font-variant-numeric:tabular-nums; line-height:1.4}
+.plan-time small{color:var(--muted); font-weight:600; font-size:11px}
+.plan-body{flex:1}
+.plan-slot.break .plan-body{background:none; border:1.5px dashed var(--line); border-radius:14px; padding:10px 16px; font-size:13.5px; color:var(--muted); display:flex; align-items:center}
+.plan-slot.break .plan-time{padding-top:10px}
+
 /* ---------- task progress % ---------- */
 .progress-row{display:flex; align-items:center; gap:8px; margin-top:8px}
 .progress-track{flex:1; height:7px; background:var(--line); border-radius:4px; overflow:hidden}

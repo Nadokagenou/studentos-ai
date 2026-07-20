@@ -114,6 +114,16 @@
 
         <div class="sect">🔥 Today's Top 3</div>
         <div id="top3"></div>
+        <button class="btn ghost sm" id="planBtn" onclick="go('scr-plan')" style="display:none">🗓 ให้ AI วางแผนเวลาวันนี้</button>
+      </div>
+
+      <!-- ============ SCREEN: AI PLANNER ============ -->
+      <div class="screen" id="scr-plan">
+        <div class="big-title">แผนวันนี้ 🗓</div>
+        <p class="sub" id="planSub"></p>
+        <div id="planList"></div>
+        <button class="btn ghost sm" onclick="go('scr-home')">← กลับหน้าแรก</button>
+        <p class="hint">แผนคำนวณใหม่ทุกครั้งจากงานล่าสุด · ตั้งเวลาว่างต่อวันได้ที่แท็บ "ฉัน"</p>
       </div>
 
       <!-- ============ SCREEN: ALL ASSIGNMENTS ============ -->

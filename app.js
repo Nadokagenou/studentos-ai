@@ -169,6 +169,8 @@ function renderHome() {
   document.getElementById('aiMsg').textContent = aiGreeting(pending, state.settings, now);
 
   const box = document.getElementById('top3');
+  const planBtn = document.getElementById('planBtn');
+  if (planBtn) planBtn.style.display = pending.length ? 'block' : 'none';
   if (!pending.length) {
     box.innerHTML = `<div class="card empty">ยังไม่มีงานในระบบ<br>
       กดปุ่ม 📷 <b>Scan</b> ด้านล่างเพื่อเพิ่มงานแรก<br>
@@ -245,6 +247,51 @@ function renderTimeline() {
   document.getElementById('timeline').innerHTML = html;
 }
 
+function renderPlan() {
+  const list = document.getElementById('planList');
+  const sub = document.getElementById('planSub');
+  if (!list) return;
+  const now = new Date();
+  const pending = pendingTasks();
+  if (!pending.length) {
+    sub.textContent = '';
+    list.innerHTML = `<div class="card empty">ไม่มีงานค้าง — วันนี้พักได้เต็มที่ 🎉</div>`;
+    return;
+  }
+  const plan = buildDayPlan(pending, state.settings, now);
+  sub.textContent = `เวลาว่าง ${state.settings.freeHours || 2} ชม. · ใช้จริง ${Math.round(plan.usedMin / 6) / 10} ชม. · เรียงตามความสำคัญ`;
+
+  let html = '';
+  for (const s of plan.slots) {
+    if (s.break) {
+      html += `<div class="plan-slot break"><span class="plan-time">${fmtClock(s.start)}</span>
+        <div class="plan-body">☕ พัก ${s.min} นาที</div></div>`;
+    } else {
+      const info = priorityInfo(s.task, now);
+      html += `<div class="plan-slot"><span class="plan-time">${fmtClock(s.start)}<br><small>${fmtClock(s.end)}</small></span>
+        <div class="plan-body card" style="margin:0">
+          <h4 style="font-size:15px">${esc(s.task.subject)} — ${esc(s.task.detail)}</h4>
+          <div class="due ok">${s.min} นาที · ${starsHtml(info.stars)}</div>
+          ${s.note ? `<div class="hint" style="text-align:left; margin:4px 0 0">${esc(s.note)}</div>` : ''}
+        </div></div>`;
+    }
+  }
+  if (plan.overflow.length) {
+    html += `<div class="assign-sect norm" style="margin-top:16px">เวลาวันนี้ไม่พอ — AI แนะนำย้ายไปพรุ่งนี้</div>`
+      + plan.overflow.map(o => `<div class="card" style="opacity:.65"><h4 style="font-size:14.5px">${esc(o.task.subject)} — ${esc(o.task.detail)}</h4>
+        <div class="due ok">ต้องใช้ ~${o.need} นาที · ${fmtDue(o.task.due)}</div></div>`).join('');
+    const risky = plan.overflow.filter(o => {
+      const h = priorityInfo(o.task, now).hoursLeft;
+      return h != null && h < 24;
+    });
+    if (risky.length) {
+      html += `<div class="card ai"><div class="ai-head"><span class="ai-dot">S</span><span class="ai-name">STUDENTOS AI</span></div>
+        <div class="ai-msg" style="font-size:13.5px">⚠ ${esc(risky[0].task.subject)} ส่งภายในพรุ่งนี้แต่เวลาวันนี้ไม่พอ — แนะนำเพิ่มเวลาอีก ~${risky.reduce((s, o) => s + o.need, 0)} นาที หรือเริ่มเร็วกว่า 1 ทุ่ม</div></div>`;
+    }
+  }
+  list.innerHTML = html;
+}
+
 function renderProfile() {
   const acc = document.getElementById('accountCard');
   if (!cloudConfigured()) {
@@ -267,7 +314,7 @@ function renderProfile() {
   else st.textContent = Notification.permission === 'granted' ? 'เปิดอยู่ ✓ — เตือนงานที่ใกล้ส่งใน 24 ชม. ขณะเปิดแอป' : 'ยังไม่ได้เปิด';
 }
 
-function renderAll() { renderHome(); renderTasks(); renderTimeline(); renderProfile(); }
+function renderAll() { renderHome(); renderTasks(); renderTimeline(); renderProfile(); renderPlan(); }
 
 // ---------- task actions ----------
 function toggleDone(id) {
