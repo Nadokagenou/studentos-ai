@@ -45,8 +45,10 @@
         <div class="big-title">Scan Homework 📷</div>
         <p class="sub">ถ่ายรูปใบงาน หรือแปะข้อความจาก LINE — AI อ่านให้</p>
 
-        <label class="btn primary" for="photoInput">📷 ถ่ายรูป / เลือกภาพใบงาน</label>
-        <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+        <label class="btn primary" for="cameraInput">📷 ถ่ายรูปใบงาน</label>
+        <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+        <label class="btn ghost" for="galleryInput">🖼 เลือกรูปจากคลังภาพ</label>
+        <input type="file" id="galleryInput" accept="image/*" hidden>
         <div class="scan-status" id="ocrStatus"></div>
         <div class="ocr-bar" id="ocrBarWrap" hidden><div class="ocr-fill" id="ocrBar"></div></div>
 
@@ -89,6 +91,11 @@
           </div>
           <div class="field"><label>ครูผู้สั่ง</label><input type="text" id="fTeacher" placeholder="เช่น ครูสมชาย"></div>
           <label class="check-line"><input type="checkbox" id="fExam"> เป็นการสอบ / quiz</label>
+          <div class="field" style="margin-top:14px">
+            <label>ความคืบหน้า — <span id="fProgressVal">0%</span></label>
+            <input type="range" id="fProgress" min="0" max="100" step="5" value="0"
+              oninput="document.getElementById('fProgressVal').textContent = this.value + '%'">
+          </div>
         </div>
 
         <button class="btn primary" onclick="saveForm()">✓ บันทึกเข้าแผน</button>

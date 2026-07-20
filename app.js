@@ -131,6 +131,11 @@ function starsHtml(n) {
 function chipsHtml(reasons) {
   return '<div class="chips">' + reasons.slice(0, 4).map(r => '<span class="chip">' + esc(r) + '</span>').join('') + '</div>';
 }
+function progressHtml(p) {
+  p = Math.max(0, Math.min(100, p || 0));
+  if (p <= 0) return '';
+  return `<div class="progress-row"><div class="progress-track"><div class="progress-fill" style="width:${p}%"></div></div><span class="progress-pct">${p}%</span></div>`;
+}
 
 function taskCard(t, rank, now) {
   const info = priorityInfo(t, now);
@@ -142,6 +147,7 @@ function taskCard(t, rank, now) {
         <h4>${esc(t.subject)} — ${esc(t.detail)}</h4>
         <div class="due ${info.urgency === 'over' || info.urgency === 'hot' ? '' : 'ok'}">${fmtDue(t.due, now)}</div>
         ${starsHtml(info.stars)}
+        ${progressHtml(t.progress)}
         ${chipsHtml(info.reasons)}
       </div>
     </div>
@@ -182,6 +188,7 @@ function taskRow(t, now) {
     <div class="task-main" onclick="openForm('${t.id}')">
       <div class="task-title">${esc(t.subject)} — ${esc(t.detail)}</div>
       <div class="due ${t.done ? 'ok' : (info.urgency === 'over' || info.urgency === 'hot' ? '' : 'ok')}">${t.done ? 'เสร็จแล้ว ✓' : fmtDue(t.due, now)}</div>
+      ${!t.done ? progressHtml(t.progress) : ''}
     </div>
     <button class="icon-btn" onclick="removeTask('${t.id}')" title="ลบ">🗑</button>
   </div>`;
@@ -265,7 +272,11 @@ function renderAll() { renderHome(); renderTasks(); renderTimeline(); renderProf
 // ---------- task actions ----------
 function toggleDone(id) {
   const t = state.tasks.find(x => x.id === id);
-  if (t) { t.done = !t.done; save(); renderAll(); }
+  if (t) {
+    t.done = !t.done;
+    t.progress = t.done ? 100 : (t.progress === 100 ? 0 : t.progress);
+    save(); renderAll();
+  }
 }
 function removeTask(id) {
   const t = state.tasks.find(x => x.id === id);
@@ -330,6 +341,9 @@ function openForm(id, parsed) {
   f.score.value = t?.scorePct ?? '';
   f.est.value = t?.estMin || 30;
   f.exam.checked = !!t?.isExam;
+  const prog = t?.progress || 0;
+  document.getElementById('fProgress').value = prog;
+  document.getElementById('fProgressVal').textContent = prog + '%';
 
   const due = t?.due ? new Date(t.due) : new Date(Date.now() + 8.64e7); // default พรุ่งนี้
   f.date.value = due.getFullYear() + '-' + String(due.getMonth() + 1).padStart(2, '0') + '-' + String(due.getDate()).padStart(2, '0');
@@ -355,8 +369,10 @@ function saveForm() {
     estMin: Math.max(5, +document.getElementById('fEst').value || 30),
     isExam: document.getElementById('fExam').checked,
     userStars: formUserStars || null,
+    progress: +document.getElementById('fProgress').value || 0,
     due: due ? due.toISOString() : null,
   };
+  if (data.progress >= 100) data.done = true;
 
   if (editingId) {
     Object.assign(state.tasks.find(x => x.id === editingId), data);
@@ -378,46 +394,69 @@ function scanFromText() {
 }
 
 // ---------- scan: รูป (OCR ด้วย Tesseract.js) ----------
+// ปักเวอร์ชันตายตัว (ไม่ใช่ @5 ลอย ๆ) กัน CDN resolve เวอร์ชันไม่ตรงกันระหว่าง
+// ตัวไลบรารีกับ core/worker/lang ที่โหลดตามมา ซึ่งเป็นสาเหตุ OCR ค้าง/พังเงียบบนมือถือ
+const TESSERACT_VER = '5.1.1';
+const TESSERACT_BASE = `https://cdn.jsdelivr.net/npm/tesseract.js@${TESSERACT_VER}/dist/`;
 let tesseractReady = null;
 function loadTesseract() {
   if (tesseractReady) return tesseractReady;
   tesseractReady = new Promise((res, rej) => {
     const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    s.src = TESSERACT_BASE + 'tesseract.min.js';
     s.onload = res;
-    s.onerror = () => { tesseractReady = null; rej(new Error('โหลดไลบรารี OCR ไม่ได้ — เช็คอินเทอร์เน็ต')); };
+    s.onerror = () => { tesseractReady = null; rej(new Error('โหลดไลบรารี OCR ไม่ได้ — เช็คอินเทอร์เน็ตแล้วลองใหม่')); };
     document.head.appendChild(s);
   });
   return tesseractReady;
+}
+
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, rej) => setTimeout(() => rej(new Error(label + ' ใช้เวลานานเกินไป — เน็ตอาจช้าหรือหลุด')), ms)),
+  ]);
 }
 
 async function scanFromPhoto(file) {
   const st = document.getElementById('ocrStatus');
   const barWrap = document.getElementById('ocrBarWrap');
   const bar = document.getElementById('ocrBar');
+  let worker = null;
   try {
-    st.textContent = '⏳ กำลังโหลดโมเดล OCR…';
+    st.textContent = '⏳ กำลังโหลดโมเดล OCR… (ครั้งแรกอาจรอนานหน่อย)';
     barWrap.hidden = false; bar.style.width = '5%';
-    await loadTesseract();
+    await withTimeout(loadTesseract(), 30_000, 'โหลดไลบรารี OCR');
 
-    const worker = await Tesseract.createWorker('tha+eng', 1, {
-      logger: m => {
-        if (m.status === 'recognizing text') {
-          bar.style.width = Math.round(m.progress * 100) + '%';
-          st.textContent = '📖 AI กำลังอ่านใบงาน… ' + Math.round(m.progress * 100) + '%';
-        }
-      },
-    });
-    const { data } = await worker.recognize(file);
+    worker = await withTimeout(
+      Tesseract.createWorker('tha+eng', 1, {
+        workerPath: TESSERACT_BASE + 'worker.min.js',
+        corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd.wasm.js',
+        langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            bar.style.width = Math.round(m.progress * 100) + '%';
+            st.textContent = '📖 AI กำลังอ่านใบงาน… ' + Math.round(m.progress * 100) + '%';
+          } else if (m.status) {
+            st.textContent = '⏳ ' + m.status + '…';
+          }
+        },
+      }),
+      45_000, 'เตรียมเครื่องมือ OCR'
+    );
+    const { data } = await withTimeout(worker.recognize(file), 60_000, 'อ่านรูปภาพ');
     await worker.terminate();
+    worker = null;
 
     st.textContent = ''; barWrap.hidden = true;
     const text = (data.text || '').trim();
-    if (text.length < 5) { alert('อ่านตัวหนังสือจากรูปไม่ได้ — ลองถ่ายให้ชัดขึ้น หรือแปะข้อความแทน'); return; }
+    if (text.length < 5) { alert('อ่านตัวหนังสือจากรูปไม่ได้ — ลองถ่ายให้ชัดขึ้น สว่างขึ้น หรือแปะข้อความแทน'); return; }
     openForm(null, parseAssignment(text));
   } catch (e) {
     st.textContent = ''; barWrap.hidden = true;
-    alert('OCR ล้มเหลว: ' + e.message + '\nใช้วิธีแปะข้อความแทนได้เลย');
+    console.error('[OCR]', e);
+    if (worker) { try { await worker.terminate(); } catch (_) {} }
+    alert('อ่านรูปไม่สำเร็จ: ' + e.message + '\n\nใช้วิธี "แปะข้อความจาก LINE" แทนได้เลย — เร็วกว่าและแม่นกว่าด้วย');
   }
 }
 
@@ -478,10 +517,12 @@ function tickClock() {
     String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
 }
 
-document.getElementById('photoInput').addEventListener('change', e => {
-  if (e.target.files[0]) scanFromPhoto(e.target.files[0]);
-  e.target.value = '';
-});
+for (const id of ['cameraInput', 'galleryInput']) {
+  document.getElementById(id).addEventListener('change', e => {
+    if (e.target.files[0]) scanFromPhoto(e.target.files[0]);
+    e.target.value = '';
+  });
+}
 
 // PWA: ลงทะเบียน service worker (เฉพาะเมื่อเปิดผ่าน http/https)
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
