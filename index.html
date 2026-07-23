@@ -61,23 +61,23 @@
 
       <!-- ============ SCREEN: SCAN ============ -->
       <div class="screen" id="scr-scan">
-        <div class="big-title">Scan Homework 📷</div>
-        <p class="sub">ถ่ายรูปใบงาน หรือแปะข้อความจาก LINE — AI อ่านให้</p>
+        <div class="big-title">เพิ่มงานใหม่</div>
+        <p class="sub">ถ่ายรูปใบงาน หรือแปะข้อความจาก LINE แล้วให้ AI อ่านให้</p>
 
-        <label class="btn primary" for="cameraInput">📷 ถ่ายรูปใบงาน</label>
+        <label class="btn primary" for="cameraInput">ถ่ายรูปใบงาน</label>
         <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
-        <label class="btn ghost" for="galleryInput">🖼 เลือกรูปจากคลังภาพ</label>
+        <label class="btn ghost" for="galleryInput">เลือกรูปจากคลังภาพ</label>
         <input type="file" id="galleryInput" accept="image/*" hidden>
         <div class="scan-status" id="ocrStatus"></div>
         <div class="ocr-bar" id="ocrBarWrap" hidden><div class="ocr-fill" id="ocrBar"></div></div>
 
-        <div class="divider">หรือ</div>
+        <div class="divider">หรือแปะข้อความ</div>
 
         <textarea id="pasteText" class="paste-box" rows="5"
-          placeholder="แปะข้อความจาก LINE กลุ่ม เช่น&#10;&quot;การบ้านฟิสิกส์ ครูสมชาย ทำโจทย์บทที่ 4 ข้อ 1-10 ส่งพรุ่งนี้ 16:00 คะแนนเก็บ 20%&quot;"></textarea>
-        <button class="btn primary" onclick="scanFromText()">🤖 ให้ AI อ่านข้อความ</button>
-        <button class="btn ghost" onclick="openForm(null)">✎ พิมพ์เพิ่มเองทีละช่อง</button>
-        <p class="hint">การอ่านรูปครั้งแรกต้องดาวน์โหลดโมเดล OCR (~ใช้เน็ต อาจรอ 1–2 นาที)</p>
+          placeholder="วางข้อความจาก LINE กลุ่ม เช่น&#10;การบ้านฟิสิกส์ ครูสมชาย ทำโจทย์บทที่ 4 ข้อ 1-10 ส่งพรุ่งนี้ 16:00 คะแนนเก็บ 20%"></textarea>
+        <button class="btn primary" onclick="scanFromText()">ให้ AI อ่านข้อความ</button>
+        <button class="btn ghost" onclick="openForm(null)">พิมพ์เพิ่มเองทีละช่อง</button>
+        <p class="hint">การอ่านรูปครั้งแรกต้องโหลดโมเดล AI อาจรอสักครู่</p>
       </div>
 
       <!-- ============ SCREEN: FORM (ยืนยัน/แก้ไข) ============ -->
@@ -131,9 +131,9 @@
           <div class="ai-msg" id="aiMsg">…</div>
         </div>
 
-        <div class="sect">🔥 Today's Top 3</div>
+        <div class="sect">งานสำคัญวันนี้</div>
         <div id="top3"></div>
-        <button class="btn ghost sm" id="planBtn" onclick="go('scr-plan')" style="display:none">🗓 ให้ AI วางแผนเวลาวันนี้</button>
+        <button class="btn ghost sm" id="planBtn" onclick="go('scr-plan')" style="display:none">ให้ AI วางแผนเวลาวันนี้</button>
       </div>
 
       <!-- ============ SCREEN: AI PLANNER ============ -->

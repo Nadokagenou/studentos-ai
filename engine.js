@@ -278,6 +278,10 @@ function fmtClock(d) {
   return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 }
 
+// ป้ายระดับความสำคัญ (แทนดาว 5 ดวง) — ชื่อ + คลาสสีตามระดับ
+const PRIORITY_LABELS = { 5: 'ด่วนมาก', 4: 'สำคัญ', 3: 'ปานกลาง', 2: 'ไม่เร่ง', 1: 'รอได้' };
+function priorityLabel(stars) { return PRIORITY_LABELS[stars] || 'ปานกลาง'; }
+
 // ---------- format ----------
 function fmtDue(iso, now = new Date()) {
   if (!iso) return 'ยังไม่ระบุกำหนดส่ง';

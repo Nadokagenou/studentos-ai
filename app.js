@@ -129,8 +129,16 @@ function esc(s) {
 function starsHtml(n) {
   return '<span class="stars lv' + n + '">' + '★'.repeat(n) + '<span class="off">' + '★'.repeat(5 - n) + '</span></span>';
 }
-function chipsHtml(reasons) {
-  return '<div class="chips">' + reasons.slice(0, 4).map(r => '<span class="chip">' + esc(r) + '</span>').join('') + '</div>';
+// ป้ายระดับความสำคัญแบบกะทัดรัด (ใช้แทนดาวในการ์ด)
+function priorityBadge(stars) {
+  return `<span class="pbadge lv${stars}">${esc(priorityLabel(stars))}</span>`;
+}
+// เมตาดาต้าสั้น ไม่เกิน 2 อัน — กรองเอาแต่ที่สำคัญ ไม่เอาที่ซ้ำกับ badge/deadline
+function metaHtml(reasons) {
+  const drop = /ใกล้กำหนด|ส่งภายใน|ยังพอมีเวลา|ส่งใน|กำหนดความสำคัญเอง|ยังไม่ระบุ/;
+  const keep = reasons.filter(r => !drop.test(r)).slice(0, 2);
+  if (!keep.length) return '';
+  return '<div class="meta">' + keep.map(r => '<span class="mchip">' + esc(r) + '</span>').join('') + '</div>';
 }
 function progressHtml(p) {
   p = Math.max(0, Math.min(100, p || 0));
@@ -140,19 +148,18 @@ function progressHtml(p) {
 
 function taskCard(t, rank, now) {
   const info = priorityInfo(t, now);
+  const hot = info.urgency === 'over' || info.urgency === 'hot';
+  const pin = t.userStars ? '<span class="pin" title="กำหนดความสำคัญเอง">📌</span>' : '';
   return `
-  <div class="card" data-id="${t.id}">
-    <div class="thead">
-      <span class="rank ${rank === 1 ? 'r1' : ''}">${rank}</span>
-      <div>
-        <h4>${esc(t.subject)} — ${esc(t.detail)}</h4>
-        <div class="due ${info.urgency === 'over' || info.urgency === 'hot' ? '' : 'ok'}">${fmtDue(t.due, now)}</div>
-        ${starsHtml(info.stars)}
-        ${progressHtml(t.progress)}
-        ${chipsHtml(info.reasons)}
-      </div>
+  <div class="tcard" data-id="${t.id}" onclick="openForm('${t.id}')">
+    <span class="rank ${rank === 1 ? 'r1' : ''}">${rank}</span>
+    <div class="tbody">
+      <div class="trow1">${priorityBadge(info.stars)}${pin}<span class="tdue ${hot ? 'hot' : ''}">${fmtDue(t.due, now)}</span></div>
+      <h4 class="ttitle">${esc(t.subject)} · ${esc(t.detail)}</h4>
+      ${progressHtml(t.progress)}
+      ${metaHtml(info.reasons)}
     </div>
-    ${rank === 1 ? `<button class="btn primary sm" onclick="toggleDone('${t.id}')">✓ ทำเสร็จแล้ว</button>` : ''}
+    <button class="tcheck" onclick="event.stopPropagation();toggleDone('${t.id}')" aria-label="ทำเสร็จ" title="ทำเสร็จ"></button>
   </div>`;
 }
 
@@ -162,11 +169,11 @@ function renderHome() {
   const doneToday = state.tasks.filter(t => t.done).length;
 
   const h = now.getHours();
-  const eng = h < 11 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
+  const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนค่ำ';
   const name = state.settings.name || 'นักเรียน';
-  document.getElementById('greeting').textContent = `${eng}, ${name} 👋`;
+  document.getElementById('greeting').textContent = `${greet}, ${name}`;
   document.getElementById('homeSub').textContent =
-    `${fmtThaiDate(now)} · 📚 งานค้าง ${pending.length} งาน · เสร็จแล้ว ${doneToday}`;
+    `${fmtThaiDate(now)}  ·  งานค้าง ${pending.length}  ·  เสร็จแล้ว ${doneToday}`;
   document.getElementById('aiMsg').textContent = aiGreeting(pending, state.settings, now);
 
   const box = document.getElementById('top3');
@@ -174,26 +181,27 @@ function renderHome() {
   if (planBtn) planBtn.style.display = pending.length ? 'block' : 'none';
   if (!pending.length) {
     box.innerHTML = `<div class="card empty">ยังไม่มีงานในระบบ<br>
-      กดปุ่ม 📷 <b>Scan</b> ด้านล่างเพื่อเพิ่มงานแรก<br>
-      <span class="hint">หรือโหลดข้อมูลตัวอย่างได้ที่แท็บ "ฉัน"</span></div>`;
+      กดปุ่ม <b>Scan</b> ด้านล่างเพื่อเพิ่มงานแรก<br>
+      <span class="hint">หรือลองข้อมูลตัวอย่างได้ที่แท็บ “ฉัน”</span></div>`;
     return;
   }
   box.innerHTML = pending.slice(0, 3).map((t, i) => taskCard(t, i + 1, now)).join('')
     + (pending.length > 3
-      ? `<button class="btn ghost sm" onclick="go('scr-tasks')">ดูงานทั้งหมด (${pending.length})</button>` : '');
+      ? `<button class="btn ghost sm" onclick="go('scr-tasks')">ดูงานทั้งหมด ${pending.length} งาน</button>` : '');
 }
 
 function taskRow(t, now) {
   const info = priorityInfo(t, now);
+  const hot = info.urgency === 'over' || info.urgency === 'hot';
   return `
   <div class="task-row ${t.done ? 'done' : ''}">
-    <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleDone('${t.id}')">
+    <button class="tcheck ${t.done ? 'on' : ''}" onclick="toggleDone('${t.id}')" aria-label="${t.done ? 'ทำเสร็จแล้ว' : 'ทำเสร็จ'}"></button>
     <div class="task-main" onclick="openForm('${t.id}')">
-      <div class="task-title">${esc(t.subject)} — ${esc(t.detail)}</div>
-      <div class="due ${t.done ? 'ok' : (info.urgency === 'over' || info.urgency === 'hot' ? '' : 'ok')}">${t.done ? 'เสร็จแล้ว ✓' : fmtDue(t.due, now)}</div>
+      <div class="task-title">${esc(t.subject)} · ${esc(t.detail)}</div>
+      <div class="trow1 sm">${t.done ? '<span class="tdue ok">เสร็จแล้ว</span>' : priorityBadge(info.stars) + '<span class="tdue ' + (hot ? 'hot' : '') + '">' + fmtDue(t.due, now) + '</span>'}</div>
       ${!t.done ? progressHtml(t.progress) : ''}
     </div>
-    <button class="icon-btn" onclick="removeTask('${t.id}')" title="ลบ">🗑</button>
+    <button class="icon-btn" onclick="removeTask('${t.id}')" aria-label="ลบ">✕</button>
   </div>`;
 }
 
@@ -208,10 +216,10 @@ function renderTasks() {
   const rest = pending.filter(t => !hot.includes(t));
 
   let html = '';
-  if (hot.length) html += `<div class="assign-sect">🔥 HIGH PRIORITY</div>` + hot.map(t => taskRow(t, now)).join('');
+  if (hot.length) html += `<div class="assign-sect">ด่วน</div>` + hot.map(t => taskRow(t, now)).join('');
   if (rest.length) html += `<div class="assign-sect norm">ต่อจากนั้น</div>` + rest.map(t => taskRow(t, now)).join('');
-  if (done.length) html += `<div class="assign-sect norm">เสร็จแล้ว (${done.length})</div>` + done.map(t => taskRow(t, now)).join('');
-  if (!html) html = `<div class="card empty">ยังไม่มีงาน — กด 📷 Scan เพื่อเพิ่ม</div>`;
+  if (done.length) html += `<div class="assign-sect norm">เสร็จแล้ว · ${done.length}</div>` + done.map(t => taskRow(t, now)).join('');
+  if (!html) html = `<div class="card empty">ยังไม่มีงาน — กดปุ่ม Scan เพื่อเพิ่ม</div>`;
   document.getElementById('taskList').innerHTML = html;
 }
 
@@ -232,9 +240,9 @@ function renderTimeline() {
     html += `<div class="tl-group"><div class="tl-head">${b.name}</div>` + list.map(t => {
       const info = priorityInfo(t, now);
       return `
-      <div class="tl-item"><span class="tl-bar lv${info.stars}"></span>
-        <div class="card"><h4 style="font-size:15px">${esc(t.subject)} — ${esc(t.detail)}</h4>
-        <div class="due ${b.bar === 'hot' ? '' : 'ok'}">${fmtDue(t.due, now)} · ${starsHtml(info.stars)}</div></div>
+      <div class="tl-item" onclick="openForm('${t.id}')"><span class="tl-bar lv${info.stars}"></span>
+        <div class="card"><div class="trow1 sm">${priorityBadge(info.stars)}<span class="tdue ${b.bar === 'hot' ? 'hot' : ''}">${fmtDue(t.due, now)}</span></div>
+        <h4 class="ttitle" style="margin-top:4px">${esc(t.subject)} · ${esc(t.detail)}</h4></div>
       </div>`;
     }).join('') + `</div>`;
   }
@@ -271,9 +279,9 @@ function renderPlan() {
       const info = priorityInfo(s.task, now);
       html += `<div class="plan-slot"><span class="plan-time">${fmtClock(s.start)}<br><small>${fmtClock(s.end)}</small></span>
         <div class="plan-body card" style="margin:0">
-          <h4 style="font-size:15px">${esc(s.task.subject)} — ${esc(s.task.detail)}</h4>
-          <div class="due ok">${s.min} นาที · ${starsHtml(info.stars)}</div>
-          ${s.note ? `<div class="hint" style="text-align:left; margin:4px 0 0">${esc(s.note)}</div>` : ''}
+          <div class="trow1 sm">${priorityBadge(info.stars)}<span class="tdue">${s.min} นาที</span></div>
+          <h4 class="ttitle" style="margin-top:4px">${esc(s.task.subject)} · ${esc(s.task.detail)}</h4>
+          ${s.note ? `<div class="hint" style="text-align:left; margin:5px 0 0">${esc(s.note)}</div>` : ''}
         </div></div>`;
     }
   }
