@@ -156,7 +156,7 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px}
 
 /* ---------- splash: ฉากเปิดแอป ---------- */
 #splash{position:absolute; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
-  background:linear-gradient(160deg,#111A38 0%,#0A1026 100%); transition:opacity .55s ease}
+  background:linear-gradient(160deg,#16233F 0%,#0F172A 100%); transition:opacity .55s ease}
 #splash.hide{opacity:0; pointer-events:none}
 #splash.gone{display:none}
 .sp-glow{position:absolute; width:270px; height:270px; border-radius:50%;
