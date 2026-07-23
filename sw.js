@@ -1,7 +1,7 @@
 // StudentOS AI — Service Worker
 // กลยุทธ์: network-first (ได้เวอร์ชันใหม่เสมอเมื่อมีเน็ต) + cache fallback (เปิด offline ได้)
-const CACHE = 'studentos-v8';
-const SHELL = ['.', 'index.html', 'style.css', 'engine.js', 'app.js', 'config.js', 'manifest.json', 'icon-192.png', 'icon-512.png'];
+const CACHE = 'studentos-v9';
+const SHELL = ['.', 'index.html', 'style.css', 'engine.js', 'app.js', 'config.js', 'manifest.json', 'icon-192.png', 'icon-512.png', 'logo-mark.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
