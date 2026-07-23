@@ -329,9 +329,11 @@ function renderAll() { renderHome(); renderTasks(); renderTimeline(); renderProf
 function toggleDone(id) {
   const t = state.tasks.find(x => x.id === id);
   if (t) {
+    const wasDone = t.done;
     t.done = !t.done;
     t.progress = t.done ? 100 : (t.progress === 100 ? 0 : t.progress);
     save(); renderAll();
+    if (!wasDone && t.done) showToast(celebrateCopy(pendingTasks().length === 0)); // ฉลองตอนทำเสร็จ
   }
 }
 function removeTask(id) {
@@ -529,20 +531,90 @@ function enableNotif() {
   Notification.requestPermission().then(() => { renderProfile(); checkReminders(); });
 }
 
+// ---------- ข้อความเตือนสไตล์เพื่อน (แนว Duolingo) ----------
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+
+function reminderCopy(t, now) {
+  const h = t.due ? (new Date(t.due) - now) / 3.6e6 : null;
+  const s = t.subject;
+  const hr = h != null ? Math.max(1, Math.round(h)) : 0;
+  if (h != null && h < 0) return { title: 'อุ๊ย เลยกำหนดแล้ว! 😬', body: pick([
+    `${s} เลยเวลาส่งไปแล้วน้า… แต่ยังไม่สายเกินไป รีบเคลียร์เลย!`,
+    `${s} ยังค้างอยู่นะ ครูกำลังมองอยู่ 👀 ส่งตอนนี้ยังพอทัน!`,
+    `เฮ้! ${s} หนีไม่พ้นหรอกน้า ทำให้จบวันนี้เถอะ 🙏`,
+  ]) };
+  if (h != null && h <= 3) return { title: '⏰ เหลือเวลาไม่มากแล้ว!', body: pick([
+    `${s} เหลือแค่ ${hr} ชม.! ลุยเลยตอนนี้ เดี๋ยวไม่ทันน้า`,
+    `นับถอยหลัง ${hr} ชม. สำหรับ ${s} — สู้ ๆ คุณทำได้! 💪`,
+    `${s} กำลังจะหมดเวลาแล้ว รีบอีกนิดเดียว ใกล้เสร็จแล้ว!`,
+  ]) };
+  if (h != null && h <= 12) return { title: 'อย่าเพิ่งลืมนะ 📚', body: pick([
+    `${s} รออยู่ เหลือ ${hr} ชม. ทำตอนนี้สบายกว่าตอนดึกเยอะ 😉`,
+    `แอบเตือนเรื่อง ${s} หน่อย~ เริ่มเลยดีกว่า จะได้พักแบบไม่มีห่วง`,
+    `${s} ยังรอคุณอยู่นะ เริ่มจากนิดเดียวก็ได้ เดี๋ยวก็เสร็จ!`,
+  ]) };
+  return { title: 'มีงานรออยู่นะ ✨', body: `${s} — ${t.detail} (${fmtDue(t.due, now)})` };
+}
+
+function celebrateCopy(allDone) {
+  return allDone
+    ? { title: 'เคลียร์หมดแล้ว! 🎉', body: pick([
+        'เก่งมาก! งานหมดเกลี้ยง วันนี้พักได้เต็มที่เลย',
+        'สุดยอด! ไม่เหลืองานค้างสักงาน ภูมิใจในตัวเองได้เลย 💙',
+      ]) }
+    : { title: 'เยี่ยม! เสร็จอีกงาน 💪', body: pick([
+        'ทำได้ดีมาก ไปต่องานถัดไปกันเลย!',
+        'อีกนิดเดียว ใกล้เคลียร์หมดแล้ว สู้ ๆ!',
+        'เก่งจัง! ทุกงานที่เสร็จคือก้าวเล็ก ๆ สู่เป้าหมาย ✨',
+      ]) };
+}
+
+// ---------- toast ในแอป ----------
+let toastTimer = null;
+function showToast(copy) {
+  const phone = document.querySelector('.phone');
+  if (!phone) return;
+  let el = document.getElementById('appToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'appToast'; el.className = 'toast';
+    el.innerHTML = `<img class="tav" src="logo-mark.png" alt=""><div class="tc"><div class="tt"></div><div class="tb"></div></div>`;
+    el.onclick = () => el.classList.remove('show');
+    phone.appendChild(el);
+  }
+  el.querySelector('.tt').textContent = copy.title;
+  el.querySelector('.tb').textContent = copy.body;
+  void el.offsetWidth; // บังคับ reflow ให้ transition ทำงาน
+  setTimeout(() => el.classList.add('show'), 30);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 6000);
+}
+
 function checkReminders() {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
   const now = new Date();
+  const canNotify = ('Notification' in window) && Notification.permission === 'granted';
   for (const t of pendingTasks()) {
     if (!t.due || t.remindedAt) continue;
     const hLeft = (new Date(t.due) - now) / 3.6e6;
     if (hLeft > 0 && hLeft <= 24) {
-      new Notification('StudentOS AI — ใกล้กำหนดส่ง', {
-        body: `${t.subject} — ${t.detail} (${fmtDue(t.due, now)})`,
-      });
+      if (canNotify) {
+        const c = reminderCopy(t, now);
+        new Notification(c.title, { body: c.body, icon: 'icon-192.png', badge: 'icon-192.png' });
+      }
       t.remindedAt = now.toISOString();
     }
   }
   save();
+}
+
+// เตือนแบบ toast ตอนเปิดแอป (ครั้งเดียวต่อการเปิด) ถ้ามีงานด่วน
+let openNudgeShown = false;
+function openNudge() {
+  if (openNudgeShown) return;
+  const now = new Date();
+  const soon = sortByPriority(pendingTasks(), now)
+    .find(t => { const h = t.due ? (new Date(t.due) - now) / 3.6e6 : null; return h != null && h <= 24; });
+  if (soon) { openNudgeShown = true; setTimeout(() => showToast(reminderCopy(soon, now)), 900); }
 }
 
 // ---------- sample / clear ----------
@@ -608,5 +680,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   setTimeout(() => {
     splash.classList.add('hide');
     setTimeout(() => splash.classList.add('gone'), 600);
+    // หลัง splash หาย ค่อยเด้ง toast เตือนงานด่วน (ถ้าอยู่หน้าแอป ไม่ใช่หน้า login)
+    if (!document.getElementById('scr-login').classList.contains('on')) openNudge();
   }, Math.max(300, minShow - (performance.now() - APP_T0)));
 })();
