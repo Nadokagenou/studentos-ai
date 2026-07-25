@@ -324,8 +324,13 @@ function renderProfile() {
   const st = document.getElementById('notifStatus');
   const nb = document.getElementById('notifBtn');
   if (!('Notification' in window)) {
-    st.textContent = 'เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน';
-    if (nb) nb.style.display = 'none';
+    if (isIOS() && !isStandalone()) {
+      st.textContent = 'ต้องติดตั้งเป็นแอปก่อนถึงจะแจ้งเตือนได้ — ดูวิธีด้านล่าง';
+      if (nb) { nb.style.display = 'block'; nb.textContent = 'ดูวิธีติดตั้ง'; }
+    } else {
+      st.textContent = 'เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน';
+      if (nb) nb.style.display = 'none';
+    }
   } else if (Notification.permission === 'granted') {
     if (pushState === 'on' && currentUser) {
       st.textContent = 'เปิดอยู่ — เตือนก่อนถึงกำหนดส่ง แม้ปิดแอปอยู่';
@@ -349,7 +354,7 @@ function renderProfile() {
   }
 }
 
-function renderAll() { renderHome(); renderTasks(); renderTimeline(); renderProfile(); renderPlan(); }
+function renderAll() { renderHome(); renderTasks(); renderTimeline(); renderProfile(); renderPlan(); renderInstallCard(); }
 
 // ---------- task actions ----------
 function toggleDone(id) {
@@ -684,7 +689,10 @@ async function subscribePush() {
 }
 
 async function enableNotif() {
-  if (!('Notification' in window)) return;
+  if (!('Notification' in window)) {
+    if (isIOS() && !isStandalone()) { showInstallGuide(); return; } // สาเหตุคือยังไม่ได้ติดตั้ง แก้ตรงนี้ทันที
+    return;
+  }
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') { renderProfile(); return; }
   try {
@@ -809,6 +817,60 @@ function clearAll() {
   }
 }
 
+// ---------- ติดตั้งเป็นแอป (PWA install) ----------
+function isIOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
+function isStandalone() {
+  return matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e; // Android/Chrome: เก็บไว้เรียกตอนกดปุ่มเอง
+  renderProfile();
+});
+window.addEventListener('appinstalled', () => { deferredInstallPrompt = null; renderProfile(); });
+
+function showInstallGuide() {
+  const el = document.getElementById('installGuide');
+  el.hidden = false;
+  void el.offsetWidth; // บังคับ reflow ก่อนใส่คลาส กัน transition ไม่ทำงาน
+  setTimeout(() => el.classList.add('show'), 20);
+}
+function dismissInstallGuide(dontShowAgain) {
+  document.getElementById('installGuide').classList.remove('show');
+  document.getElementById('installGuide').hidden = true;
+  if (dontShowAgain) localStorage.setItem('studentos.installGuideDismissed', '1');
+}
+
+async function handleInstallClick() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    renderProfile();
+  } else if (isIOS()) {
+    showInstallGuide();
+  }
+}
+
+function renderInstallCard() {
+  const card = document.getElementById('installCard');
+  const btn = document.getElementById('installBtn');
+  const hint = document.getElementById('installHint');
+  if (!card) return;
+  if (isStandalone()) { card.hidden = true; return; } // ติดตั้งแล้ว ไม่ต้องโชว์
+  if (deferredInstallPrompt) {
+    card.hidden = false; btn.style.display = 'block'; btn.textContent = 'ติดตั้งเลย';
+    hint.textContent = 'ติดตั้งแล้วเปิดเร็วขึ้น เต็มจอ และรับการแจ้งเตือนได้';
+  } else if (isIOS()) {
+    card.hidden = false; btn.style.display = 'block'; btn.textContent = 'ดูวิธีติดตั้ง';
+    hint.textContent = 'บน iPhone ต้องติดตั้งก่อนถึงจะรับการแจ้งเตือนได้';
+  } else {
+    card.hidden = true; // เบราว์เซอร์อื่นที่ยังตรวจไม่ได้ว่าติดตั้งได้ไหม ไม่ต้องกวนใจ
+  }
+}
+
 // ---------- init ----------
 function tickClock() {
   const n = new Date();
@@ -858,5 +920,9 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     setTimeout(() => splash.classList.add('gone'), 600);
     // หลัง splash หาย ค่อยเด้ง toast เตือนงานด่วน (ถ้าอยู่หน้าแอป ไม่ใช่หน้า login)
     if (!document.getElementById('scr-login').classList.contains('on')) openNudge();
+    // iPhone + Safari (ยังไม่ติดตั้ง) → เด้งแนะนำวิธีติดตั้งอัตโนมัติครั้งเดียว กันลืม/กันงง
+    if (isIOS() && !isStandalone() && !localStorage.getItem('studentos.installGuideDismissed')) {
+      setTimeout(showInstallGuide, 1400);
+    }
   }, Math.max(300, minShow - (performance.now() - APP_T0)));
 })();

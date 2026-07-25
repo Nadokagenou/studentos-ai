@@ -195,6 +195,12 @@
           <button class="btn ghost sm" id="notifBtn" onclick="enableNotif()">เปิดการแจ้งเตือน</button>
         </div>
 
+        <div class="card" id="installCard" hidden>
+          <h4 style="margin-bottom:8px">ติดตั้งเป็นแอป</h4>
+          <p class="hint" style="text-align:left; margin:0 0 10px" id="installHint">ติดตั้งแล้วเปิดเร็วขึ้น เต็มจอ และรับการแจ้งเตือนได้</p>
+          <button class="btn primary sm" id="installBtn" onclick="handleInstallClick()">ติดตั้งเลย</button>
+        </div>
+
         <div class="card">
           <h4 style="margin-bottom:8px">ข้อมูล</h4>
           <button class="btn ghost sm" onclick="loadSample()">โหลดข้อมูลตัวอย่าง</button>
@@ -202,6 +208,20 @@
         </div>
       </div>
 
+    </div>
+
+    <!-- ============ INSTALL GUIDE (iOS) ============ -->
+    <div id="installGuide" hidden>
+      <div class="ig-sheet">
+        <div class="ig-icon"><img src="logo-mark.png" alt=""></div>
+        <div class="ig-title">ติดตั้ง StudentOS AI</div>
+        <p class="ig-sub">ติดตั้งเป็นแอปเพื่อเปิดเต็มจอและรับการแจ้งเตือนได้ — ใช้เวลาแค่ 10 วินาที</p>
+        <div class="ig-step"><span class="ig-num">1</span>แตะปุ่ม <b>แชร์</b> <span class="ig-share">⬆️</span> ที่แถบด้านล่างจอ Safari</div>
+        <div class="ig-step"><span class="ig-num">2</span>เลื่อนหาแล้วแตะ <b>“เพิ่มไปยังหน้าจอโฮม”</b></div>
+        <div class="ig-step"><span class="ig-num">3</span>แตะ <b>“เพิ่ม”</b> มุมขวาบน แล้วเปิดแอปจากไอคอนใหม่</div>
+        <button class="btn primary sm" onclick="dismissInstallGuide()">เข้าใจแล้ว</button>
+        <button class="btn ghost sm" onclick="dismissInstallGuide(true)">ไม่ต้องเตือนอีก</button>
+      </div>
     </div>
 
     <!-- ============ TAB BAR ============ -->
