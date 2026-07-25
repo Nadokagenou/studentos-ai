@@ -313,7 +313,7 @@ function renderProfile() {
     acc.innerHTML = `<h4 style="margin-bottom:6px">บัญชี</h4>
       <p style="font-size:14px; margin-bottom:4px">✅ ${esc(currentUser.email || currentUser.id)}</p>
       <p class="hint" style="text-align:left; margin:0 0 10px">ซิงก์ข้ามเครื่องอัตโนมัติ${lastSync ? ' · ล่าสุด ' + lastSync.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : ''}</p>
-      <button class="btn ghost sm" onclick="logout()">ออกจากระบบ</button>`;
+      <button class="btn text sm" onclick="logout()">ออกจากระบบ</button>`;
   } else {
     acc.innerHTML = `<h4 style="margin-bottom:6px">บัญชี</h4>
       <p class="hint" style="text-align:left; margin:0 0 10px">ยังไม่ได้ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้เท่านั้น</p>

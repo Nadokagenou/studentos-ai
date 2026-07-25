@@ -74,7 +74,7 @@
 
         <div class="divider">หรือถ่ายรูป</div>
 
-        <label class="btn primary" for="cameraInput">ถ่ายรูปใบงาน</label>
+        <label class="btn secondary" for="cameraInput">ถ่ายรูปใบงาน</label>
         <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
         <label class="btn ghost" for="galleryInput">เลือกรูปจากคลังภาพ</label>
         <input type="file" id="galleryInput" accept="image/*" hidden>
@@ -85,8 +85,8 @@
 
         <textarea id="pasteText" class="paste-box" rows="5"
           placeholder="วางข้อความจาก LINE กลุ่ม เช่น&#10;การบ้านฟิสิกส์ ครูสมชาย ทำโจทย์บทที่ 4 ข้อ 1-10 ส่งพรุ่งนี้ 16:00 คะแนนเก็บ 20%"></textarea>
-        <button class="btn primary" onclick="scanFromText()">ให้ AI อ่านข้อความ</button>
-        <button class="btn ghost" onclick="openForm(null)">พิมพ์เพิ่มเองทีละช่อง</button>
+        <button class="btn secondary" onclick="scanFromText()">ให้ AI อ่านข้อความ</button>
+        <button class="btn text" onclick="openForm(null)">พิมพ์เพิ่มเองทีละช่อง</button>
         <p class="hint">การอ่านรูปครั้งแรกต้องโหลดโมเดล AI อาจรอสักครู่</p>
       </div>
 
@@ -127,8 +127,8 @@
           </div>
         </div>
 
-        <button class="btn primary" onclick="saveForm()">✓ บันทึกเข้าแผน</button>
-        <button class="btn ghost" onclick="go('scr-home')">ยกเลิก</button>
+        <button class="btn primary" onclick="saveForm()">บันทึกเข้าแผน</button>
+        <button class="btn text" onclick="go('scr-home')">ยกเลิก</button>
       </div>
 
       <!-- ============ SCREEN: HOME / DASHBOARD ============ -->
@@ -143,7 +143,7 @@
 
         <div class="sect">ลำดับที่ AI แนะนำ</div>
         <div id="top3"></div>
-        <button class="btn ghost sm" id="planBtn" onclick="go('scr-plan')" style="display:none">ให้ AI วางแผนเวลาวันนี้</button>
+        <button class="btn secondary sm" id="planBtn" onclick="go('scr-plan')" style="display:none">ให้ AI วางแผนเวลาวันนี้</button>
       </div>
 
       <!-- ============ SCREEN: AI PLANNER ============ -->
@@ -151,7 +151,7 @@
         <div class="big-title">แผนวันนี้ 🗓</div>
         <p class="sub" id="planSub"></p>
         <div id="planList"></div>
-        <button class="btn ghost sm" onclick="go('scr-home')">← กลับหน้าแรก</button>
+        <button class="btn text sm" onclick="go('scr-home')">← กลับหน้าแรก</button>
         <p class="hint">แผนคำนวณใหม่ทุกครั้งจากงานล่าสุด · ตั้งเวลาว่างต่อวันได้ที่แท็บ "ฉัน"</p>
       </div>
 
@@ -186,13 +186,13 @@
         <div class="card">
           <div class="field"><label>ชื่อเล่น</label><input type="text" id="pName" placeholder="เช่น Nado"></div>
           <div class="field"><label>เวลาว่างทำการบ้านต่อวัน (ชม.)</label><input type="number" id="pFree" min="0.5" step="0.5" value="2"></div>
-          <button class="btn primary sm" onclick="saveProfile()">บันทึก</button>
+          <button class="btn secondary sm" onclick="saveProfile()">บันทึก</button>
         </div>
 
         <div class="card">
           <h4 style="margin-bottom:8px">การแจ้งเตือน</h4>
           <p class="hint" style="text-align:left; margin:0 0 10px" id="notifStatus">ยังไม่ได้เปิด</p>
-          <button class="btn ghost sm" id="notifBtn" onclick="enableNotif()">เปิดการแจ้งเตือน</button>
+          <button class="btn secondary sm" id="notifBtn" onclick="enableNotif()">เปิดการแจ้งเตือน</button>
         </div>
 
         <div class="card" id="installCard" hidden>
@@ -204,7 +204,7 @@
         <div class="card">
           <h4 style="margin-bottom:8px">ข้อมูล</h4>
           <button class="btn ghost sm" onclick="loadSample()">โหลดข้อมูลตัวอย่าง</button>
-          <button class="btn danger sm" onclick="clearAll()">ล้างข้อมูลทั้งหมด</button>
+          <button class="btn danger sm" onclick="clearAll()">ล้างข้อมูล</button>
         </div>
       </div>
 
@@ -220,7 +220,7 @@
         <div class="ig-step"><span class="ig-num">2</span>เลื่อนหาแล้วแตะ <b>“เพิ่มไปยังหน้าจอโฮม”</b></div>
         <div class="ig-step"><span class="ig-num">3</span>แตะ <b>“เพิ่ม”</b> มุมขวาบน แล้วเปิดแอปจากไอคอนใหม่</div>
         <button class="btn primary sm" onclick="dismissInstallGuide()">เข้าใจแล้ว</button>
-        <button class="btn ghost sm" onclick="dismissInstallGuide(true)">ไม่ต้องเตือนอีก</button>
+        <button class="btn text sm" onclick="dismissInstallGuide(true)">ไม่ต้องเตือนอีก</button>
       </div>
     </div>
 

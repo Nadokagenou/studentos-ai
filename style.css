@@ -78,10 +78,14 @@ body{
   .pbadge.lv1{background:rgba(152,162,179,.16); color:#AEB4C0}
 }
 
-/* checkbox กลม */
-.tcheck{width:24px; height:24px; flex:none; border-radius:50%; border:2px solid #CBD2DE; background:transparent; cursor:pointer; margin-top:1px; position:relative; transition:all .15s}
-.tcheck:hover{border-color:var(--blue)}
-.tcheck.on, .task-row.done .tcheck{background:var(--good); border-color:var(--good)}
+/* checkbox กลม — พื้นที่แตะจริง 44px ตามมาตรฐาน แต่วงกลมที่มองเห็นขนาด 24px
+   (margin ติดลบดึงกลับ ไม่ให้กินพื้นที่ layout เพิ่ม) */
+.tcheck{width:44px; height:44px; flex:none; border:none; background:transparent; cursor:pointer;
+  position:relative; padding:0; margin:-10px; -webkit-tap-highlight-color:transparent}
+.tcheck::before{content:''; position:absolute; top:50%; left:50%; width:24px; height:24px; box-sizing:border-box;
+  transform:translate(-50%,-50%); border-radius:50%; border:2px solid #CBD2DE; transition:all .15s}
+.tcheck:hover::before{border-color:var(--blue)}
+.tcheck.on::before, .task-row.done .tcheck::before{background:var(--good); border-color:var(--good)}
 .tcheck.on::after, .task-row.done .tcheck::after{content:'✓'; color:#fff; font-size:13px; font-weight:800; position:absolute; inset:0; display:flex; align-items:center; justify-content:center}
 
 /* เมตาดาต้าย่อย */
@@ -94,11 +98,19 @@ body{
 .stars .off{color:#D9DEE8}
 .stars.lv5{color:#E03131} .stars.lv4{color:#F76707} .stars.lv3{color:#F5A623} .stars.lv2{color:#1465E0} .stars.lv1{color:#98A2B3}
 
-/* ---------- buttons ---------- */
-.btn{display:block; width:100%; border:none; border-radius:16px; padding:13px; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; text-align:center}
-.btn.primary{background:var(--blue); color:#fff}
-.btn.ghost{background:transparent; color:var(--blue-deep); border:1.5px solid #C9D9F5; margin-top:8px}
-.btn.sm{padding:10px; font-size:14px; border-radius:13px; margin-top:12px}
+/* ---------- buttons ----------
+   ลำดับความสำคัญ 4 ระดับ · กติกา: หนึ่งจอมีปุ่มทึบ (primary) ได้แค่ปุ่มเดียว
+   ที่เหลือลดระดับลงเป็น secondary → ghost → text เพื่อคุมสัดส่วนสีราว 70/30 */
+.btn{display:block; width:100%; min-height:48px; border:none; border-radius:14px; padding:13px 16px;
+  font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; text-align:center; transition:filter .15s, background .15s}
+.btn + .btn, .btn + .paste-box{margin-top:8px}
+.btn:active{filter:brightness(.94)}
+
+.btn.primary{background:var(--blue); color:#fff}                                  /* ปุ่มหลัก */
+.btn.secondary{background:var(--blue-soft); color:var(--blue-deep)}               /* รอง — พื้นอ่อน ไม่แย่งสายตา */
+.btn.ghost{background:transparent; color:var(--ink); border:1.5px solid var(--line)}  /* ตติยะ — ขอบกลาง ๆ */
+.btn.text{background:transparent; color:var(--muted); font-weight:600; min-height:44px}  /* ต่ำสุด */
+.btn.sm{min-height:44px; padding:11px 14px; font-size:14px; border-radius:12px}
 
 /* ---------- tab bar ---------- */
 .tabbar{position:absolute; bottom:0; left:0; right:0; background:var(--card); border-top:1px solid var(--line); display:flex; align-items:flex-end; justify-content:space-around; padding:8px 6px 14px; z-index:5}
@@ -157,7 +169,8 @@ label.btn{display:block}
 .task-main{flex:1; cursor:pointer; min-width:0}
 .task-title{font-size:14.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .task-row.done .task-title{text-decoration:line-through; color:var(--muted); font-weight:600}
-.icon-btn{border:none; background:none; font-size:14px; color:var(--muted); cursor:pointer; opacity:.55; padding:6px; line-height:1}
+.icon-btn{border:none; background:none; font-size:14px; color:var(--muted); cursor:pointer; opacity:.55; line-height:1;
+  width:44px; height:44px; flex:none; display:flex; align-items:center; justify-content:center; border-radius:10px; margin:-6px -6px -6px 0}
 .icon-btn:hover{opacity:1; color:var(--fire)}
 
 /* ---------- AI planner ---------- */
@@ -237,6 +250,8 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px}
 /* ---------- Install guide (iOS) ---------- */
 #installGuide{position:absolute; inset:0; z-index:80; display:flex; align-items:flex-end; justify-content:center;
   background:rgba(10,16,32,.55); backdrop-filter:blur(2px)}
+/* ต้องมี ไม่งั้น display:flex ด้านบนจะทับ attribute hidden แล้วปิดไม่ลง */
+#installGuide[hidden]{display:none}
 #installGuide.show{animation:ig-fade .25s ease}
 @keyframes ig-fade{from{opacity:0} to{opacity:1}}
 .ig-sheet{width:100%; background:var(--card); border-radius:24px 24px 0 0; padding:22px 22px calc(22px + env(safe-area-inset-bottom));
@@ -264,7 +279,7 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px}
 
 /* ---------- misc ---------- */
 .card.empty{text-align:center; color:var(--muted); font-size:14.5px; line-height:2; padding:26px 18px}
-.btn.danger{background:transparent; color:#C0392B; border:1.5px solid #F0C4BE; margin-top:8px}
+.btn.danger{background:transparent; color:#C0392B; font-weight:600; min-height:44px}
 
 /* มือถือ/แท็บเล็ตจริง: เต็มจอเหมือนแอป — กรอบมือถือจำลองแสดงเฉพาะจอคอม */
 @media (max-width:768px){
@@ -305,7 +320,8 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px}
 
 /* ปุ่มเลือกความสำคัญเอง */
 .star-pick{display:flex; gap:6px; flex-wrap:wrap}
-.sp{border:1.5px solid var(--line); background:var(--card); color:var(--muted); border-radius:10px; padding:7px 10px; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer}
+.sp{border:1.5px solid var(--line); background:var(--card); color:var(--muted); border-radius:10px;
+  min-height:44px; padding:8px 12px; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer}
 .sp.sp-auto{font-size:12.5px}
 .sp.lv5.active{background:#E03131; border-color:#E03131; color:#fff}
 .sp.lv4.active{background:#F76707; border-color:#F76707; color:#fff}
