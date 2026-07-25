@@ -319,8 +319,20 @@ function renderProfile() {
   document.getElementById('pName').value = state.settings.name || '';
   document.getElementById('pFree').value = state.settings.freeHours || 2;
   const st = document.getElementById('notifStatus');
-  if (!('Notification' in window)) st.textContent = 'เบราว์เซอร์นี้ไม่รองรับ';
-  else st.textContent = Notification.permission === 'granted' ? 'เปิดอยู่ ✓ — เตือนงานที่ใกล้ส่งใน 24 ชม. ขณะเปิดแอป' : 'ยังไม่ได้เปิด';
+  const nb = document.getElementById('notifBtn');
+  if (!('Notification' in window)) {
+    st.textContent = 'เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน';
+    if (nb) nb.style.display = 'none';
+  } else if (Notification.permission === 'granted') {
+    st.textContent = 'เปิดอยู่ — เตือนงานที่ใกล้ส่งใน 24 ชม. ขณะเปิดแอป';
+    if (nb) nb.style.display = 'none'; // เปิดแล้วไม่ต้องโชว์ปุ่มซ้ำ
+  } else if (Notification.permission === 'denied') {
+    st.textContent = 'ถูกปิดไว้ในเบราว์เซอร์ — เปิดได้ที่การตั้งค่าเว็บไซต์';
+    if (nb) nb.style.display = 'none';
+  } else {
+    st.textContent = 'ยังไม่ได้เปิด — เตือนก่อนถึงกำหนดส่ง 24 ชม.';
+    if (nb) nb.style.display = 'block';
+  }
 }
 
 function renderAll() { renderHome(); renderTasks(); renderTimeline(); renderProfile(); renderPlan(); }

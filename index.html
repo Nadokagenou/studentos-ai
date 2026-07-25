@@ -131,7 +131,7 @@
           <div class="ai-msg" id="aiMsg">…</div>
         </div>
 
-        <div class="sect">งานสำคัญวันนี้</div>
+        <div class="sect">ลำดับที่ AI แนะนำ</div>
         <div id="top3"></div>
         <button class="btn ghost sm" id="planBtn" onclick="go('scr-plan')" style="display:none">ให้ AI วางแผนเวลาวันนี้</button>
       </div>
@@ -182,13 +182,13 @@
         <div class="card">
           <h4 style="margin-bottom:8px">การแจ้งเตือน</h4>
           <p class="hint" style="text-align:left; margin:0 0 10px" id="notifStatus">ยังไม่ได้เปิด</p>
-          <button class="btn ghost sm" onclick="enableNotif()">🔔 เปิดการแจ้งเตือน (เตือนงานที่ใกล้ส่งใน 24 ชม.)</button>
+          <button class="btn ghost sm" id="notifBtn" onclick="enableNotif()">เปิดการแจ้งเตือน</button>
         </div>
 
         <div class="card">
           <h4 style="margin-bottom:8px">ข้อมูล</h4>
-          <button class="btn ghost sm" onclick="loadSample()">📦 โหลดข้อมูลตัวอย่าง (สำหรับ demo)</button>
-          <button class="btn danger sm" onclick="clearAll()">🗑 ล้างข้อมูลทั้งหมด</button>
+          <button class="btn ghost sm" onclick="loadSample()">โหลดข้อมูลตัวอย่าง</button>
+          <button class="btn danger sm" onclick="clearAll()">ล้างข้อมูลทั้งหมด</button>
         </div>
       </div>
 

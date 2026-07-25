@@ -199,16 +199,13 @@ function aiGreeting(pending, settings, now = new Date()) {
   const totalH = Math.round(totalMin / 60 * 10) / 10;
   const freeH = settings.freeHours || 2;
 
-  let msg = '';
-  if (info.urgency === 'over') {
-    msg = 'งาน' + top.subject + 'เลยกำหนดแล้ว — รีบจัดการก่อนเป็นอันดับแรก';
-  } else {
-    msg = 'ตอนนี้มีงานค้าง ' + pending.length + ' งาน แนะนำเริ่ม ' + top.subject + ' ก่อน — ' + info.reasons[0]
-      + (top.scorePct != null ? ' และคะแนนสูง' : '');
-  }
-  msg += ' งานทั้งหมดใช้เวลารวม ~' + totalH + ' ชม. '
-    + (totalH <= freeH ? 'เวลาว่างวันนี้ (' + freeH + ' ชม.) เพียงพอ' : 'มากกว่าเวลาว่างวันนี้ — ทำเฉพาะงานด่วนก่อน');
-  return msg;
+  // สั้นเสมอ: 1 ประโยคบอกว่าทำอะไรก่อน + 1 วลีบอกว่าเวลาพอไหม
+  if (info.urgency === 'over') return top.subject + 'เลยกำหนดแล้ว รีบเคลียร์ก่อนเลย';
+  const why = (info.reasons[0] || '').replace(/^★ /, '');
+  const fit = totalH > freeH
+    ? 'งานรวม ~' + totalH + ' ชม. เกินเวลาว่าง เลือกทำเฉพาะงานด่วน'
+    : 'งานรวม ~' + totalH + ' ชม. เวลาว่างพอสบาย';
+  return 'เริ่มที่' + top.subject + 'ก่อน — ' + why + ' · ' + fit;
 }
 
 function timelineInsight(pending, now = new Date()) {
