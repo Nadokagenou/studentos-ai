@@ -42,6 +42,25 @@ function addDays(d, n) {
   return x;
 }
 
+// ---------- ประเภทของสิ่งที่ต้องทำ ----------
+// แต่ละประเภทมีธรรมชาติต่างกัน จึงต้องให้ AI คิดคนละแบบ:
+//   schedulable = ต้องเจียดเวลานั่งทำ (AI Planner จัดลงตารางให้)
+//   prepHours   = ต้องเตรียมตัวล่วงหน้ากี่ชั่วโมง (สอบต้องอ่านก่อน ไม่ใช่เตือนวันสอบ)
+const TASK_TYPES = {
+  homework: { name: 'การบ้าน', icon: '📝', schedulable: true,  prepHours: 0,  dateLabel: 'ส่งวันที่', verb: 'ส่ง' },
+  exam:     { name: 'สอบ',     icon: '📖', schedulable: true,  prepHours: 48, dateLabel: 'วันสอบ',   verb: 'สอบ' },
+  activity: { name: 'กิจกรรม', icon: '🎯', schedulable: false, prepHours: 0,  dateLabel: 'วันที่จัด', verb: 'เริ่ม' },
+  reminder: { name: 'อื่น ๆ',  icon: '📌', schedulable: false, prepHours: 0,  dateLabel: 'วันที่',    verb: 'ถึงกำหนด' },
+};
+
+// รองรับข้อมูลเก่าที่ยังไม่มีฟิลด์ type (เคยใช้ isExam)
+function taskType(t) {
+  if (t && TASK_TYPES[t.type]) return t.type;
+  if (t && t.isExam) return 'exam';
+  return 'homework';
+}
+function typeInfo(t) { return TASK_TYPES[taskType(t)]; }
+
 // ---------- 0) เตรียมข้อความจากเสียงพูด ----------
 // เสียงพูดมักได้เลขเป็นคำอ่าน ("ข้อหนึ่งถึงสิบ") ตัวแกะข้อความอ่านไม่ออก
 // แปลงเฉพาะตำแหน่งที่มีคำนำหน้าชัดเจน เพื่อไม่ให้ไปโดนคำปกติ (เช่น "สี่แยก")
@@ -154,21 +173,28 @@ function parseAssignment(text, now = new Date()) {
   else if (mRange) estMin = Math.max(10, (+mRange[2] - +mRange[1] + 1) * 4);
   if (estMin) detected.est = true;
 
-  // สอบไหม
-  const isExam = /สอบ|quiz|test/i.test(t);
+  // ประเภท: เดาจากคำที่นักเรียนใช้จริง (ตรวจสอบก่อน เพราะกิจกรรมบางอย่างมีคำว่า "สอบ" ปนไม่ได้)
+  let type = 'homework';
+  if (/สอบ(?!ถาม)|quiz|test|มิดเทอม|ไฟนอล|กลางภาค|ปลายภาค/i.test(t)) type = 'exam';
+  else if (/กิจกรรม|ประชุม|ซ้อม|แข่ง|เข้าค่าย|ค่าย|ทัศนศึกษา|ตักบาตร|เข้าแถว|พิธี|งานวัด|ชมรม|บำเพ็ญ|จิตอาสา|อบรม|สัมมนา|ไปงาน|นัด/i.test(t)) type = 'activity';
+  else if (/เตือน|อย่าลืม|จำไว้|ติดต่อ|จ่ายเงิน|จ่ายค่า|ส่งเงิน/i.test(t) && !/การบ้าน|ทำ|เขียน|อ่าน/.test(t)) type = 'reminder';
+  if (type !== 'homework') detected.type = true;
+  const isExam = type === 'exam'; // เก็บไว้เพื่อความเข้ากันได้กับข้อมูลเก่า
 
   // รายละเอียด: ประโยคที่มี verb งาน — ตัดจบก่อนคำบอกกำหนดส่ง/คะแนน
   let detail = '';
-  const mD = t.match(/((?:ทำ|อ่าน|สรุป|ท่อง|เตรียม|เขียน|วาด).{3,80}?)(?=\s*(?:ส่ง|ภายใน|คะแนน|ครู|เวลา|พรุ่งนี้|วันนี้|มะรืน|วันที่|$))/);
+  const mD = t.match(/((?:ทำ|อ่าน|สรุป|ท่อง|เตรียม|เขียน|วาด|สอบ|ประชุม|ซ้อม|แข่ง|อัด).{3,80}?)(?=\s*(?:ส่ง|ภายใน|คะแนน|ครู|เวลา|พรุ่งนี้|วันนี้|มะรืน|วันที่|$))/);
   if (mD) { detail = mD[1].trim(); detected.detail = true; }
   else detail = t.replace(/\s*(?:ส่ง|ภายใน|คะแนน)[^]*$/, '').trim().slice(0, 80) || t.slice(0, 80);
+  // ตัดคำบอกเวลาท้ายประโยคออกจากชื่อเรื่อง (มันไปอยู่ในช่องวันที่แล้ว)
+  detail = detail.replace(/\s*(?:เริ่ม)?(?:วันที่|วัน(?:จันทร์|อังคาร|พุธ|พฤหัสบดี|พฤหัส|ศุกร์|เสาร์|อาทิตย์)|พรุ่งนี้|วันนี้|มะรืน|สัปดาห์หน้า)[^]*$/, '').trim();
   detail = detail.replace(/[\s(\-–—]+$/, ''); // ตัดวงเล็บ/ขีดค้างท้ายประโยค
 
   return {
     subject, teacher, scorePct,
     due: due ? due.toISOString() : null,
-    estMin: estMin || 30,
-    isExam, detail, detected, raw: text,
+    estMin: estMin || (type === 'activity' || type === 'reminder' ? 15 : 30),
+    type, isExam, detail, detected, raw: text,
   };
 }
 
@@ -179,25 +205,44 @@ function priorityInfo(task, now = new Date()) {
 
   const due = task.due ? new Date(task.due) : null;
   const hoursLeft = due ? (due - now) / 3.6e6 : null;
+  const type = taskType(task);
+  const ti = TASK_TYPES[type];
+
+  // สอบต้องเริ่มอ่านล่วงหน้า จึงนับ "เวลาที่เหลือจริง" ให้เร็วขึ้นตาม prepHours
+  const effHours = hoursLeft == null ? null : hoursLeft - ti.prepHours;
 
   if (due) {
-    if (hoursLeft < 0)        { score += 60; reasons.push('⚠ เลยกำหนดแล้ว'); }
-    else if (hoursLeft <= 6)  { score += 50; reasons.push('ส่งภายใน ' + Math.max(1, Math.round(hoursLeft)) + ' ชม.'); }
-    else if (hoursLeft <= 30) { score += 40; reasons.push('ใกล้กำหนดส่ง'); }
-    else if (hoursLeft <= 54) { score += 28; reasons.push('ส่งใน 2 วัน'); }
-    else if (hoursLeft <= 24 * 7) { score += 14; reasons.push('ส่งภายในสัปดาห์นี้'); }
+    if (type === 'activity' || type === 'reminder') {
+      // เหตุการณ์ตามเวลา: ไม่ต้องเจียดเวลาทำล่วงหน้า ความด่วนพุ่งเฉพาะตอนใกล้ถึงเวลา
+      if (hoursLeft < 0)        { score += 30; reasons.push('⚠ เลยเวลาแล้ว'); }
+      else if (hoursLeft <= 3)  { score += 55; reasons.push('อีก ' + Math.max(1, Math.round(hoursLeft)) + ' ชม. ถึงเวลา'); }
+      else if (hoursLeft <= 14) { score += 38; reasons.push('ถึงเวลาวันนี้'); }
+      else if (hoursLeft <= 30) { score += 24; reasons.push('ถึงเวลาพรุ่งนี้'); }
+      else                      { score += 6;  reasons.push('ยังอีกหลายวัน'); }
+    } else if (effHours < 0 && hoursLeft >= 0) {
+      // ถึงเวลาที่ควรเริ่มเตรียมตัวแล้ว (ใช้กับสอบเป็นหลัก)
+      score += 46;
+      reasons.push(type === 'exam' ? 'สอบใน ' + Math.max(1, Math.round(hoursLeft / 24)) + ' วัน — ควรเริ่มอ่านแล้ว' : 'ควรเริ่มได้แล้ว');
+    } else if (hoursLeft < 0)        { score += 60; reasons.push('⚠ เลยกำหนดแล้ว'); }
+    else if (effHours <= 6)  { score += 50; reasons.push(ti.verb + 'ภายใน ' + Math.max(1, Math.round(hoursLeft)) + ' ชม.'); }
+    else if (effHours <= 30) { score += 40; reasons.push('ใกล้กำหนด' + (type === 'exam' ? 'สอบ' : 'ส่ง')); }
+    else if (effHours <= 54) { score += 28; reasons.push(ti.verb + 'ใน 2 วัน'); }
+    else if (effHours <= 24 * 7) { score += 14; reasons.push(ti.verb + 'ภายในสัปดาห์นี้'); }
     else                      { score += 5;  reasons.push('ยังพอมีเวลา'); }
-  } else { score += 10; reasons.push('ยังไม่ระบุกำหนดส่ง'); }
+  } else { score += 10; reasons.push('ยังไม่ระบุกำหนด'); }
 
   if (task.scorePct != null) {
     score += Math.min(30, task.scorePct);
     reasons.push('คะแนน ' + task.scorePct + '%');
   }
-  if (task.isExam) { score += 15; reasons.push('เป็นการสอบ'); }
+  if (type === 'exam') { score += 12; reasons.push('เป็นการสอบ'); }
 
-  if (task.estMin >= 90)      { score += 15; reasons.push('งานใหญ่ ~' + Math.round(task.estMin / 60 * 10) / 10 + ' ชม. — ควรเริ่มก่อน'); }
-  else if (task.estMin >= 45) { score += 9;  reasons.push('ใช้เวลา ~' + task.estMin + ' นาที'); }
-  else                        { score += 4;  reasons.push('~' + task.estMin + ' นาที'); }
+  // เวลาที่ใช้ทำมีความหมายเฉพาะงานที่ต้องนั่งทำ — กิจกรรมไม่ต้องเจียดเวลา
+  if (ti.schedulable) {
+    if (task.estMin >= 90)      { score += 15; reasons.push((type === 'exam' ? 'อ่าน' : 'งานใหญ่') + ' ~' + Math.round(task.estMin / 60 * 10) / 10 + ' ชม. — ควรเริ่มก่อน'); }
+    else if (task.estMin >= 45) { score += 9;  reasons.push('ใช้เวลา ~' + task.estMin + ' นาที'); }
+    else                        { score += 4;  reasons.push('~' + task.estMin + ' นาที'); }
+  }
 
   let stars = score >= 70 ? 5 : score >= 55 ? 4 : score >= 40 ? 3 : score >= 25 ? 2 : 1;
 
@@ -213,7 +258,7 @@ function priorityInfo(task, now = new Date()) {
     : (hoursLeft != null && hoursLeft <= 30) ? 'hot'
     : (hoursLeft != null && hoursLeft <= 54) ? 'mid' : 'norm';
 
-  return { score, stars, reasons, hoursLeft, urgency };
+  return { score, stars, reasons, hoursLeft, urgency, type, typeInfo: ti };
 }
 
 function sortByPriority(tasks, now = new Date()) {
@@ -264,7 +309,15 @@ function timelineInsight(pending, now = new Date()) {
 // หลัก: เรียงตาม priority → หั่นลงเวลาว่าง (จาก settings.freeHours)
 // งานใหญ่เกิน 50 นาทีแทรกพัก 10 นาที · เวลาไม่พอ → บอกตรง ๆ ว่างานไหนต้องย้ายวัน
 function buildDayPlan(pending, settings, now = new Date()) {
-  const sorted = sortByPriority(pending, now);
+  // กิจกรรม/เตือนความจำ = เหตุการณ์ตามเวลา ไม่ต้องเจียดเวลานั่งทำ
+  // แยกออกมาแสดงเป็นหมุดเวลาแทน ไม่เอาไปกินเวลาอ่านหนังสือ
+  const schedulable = pending.filter(t => TASK_TYPES[taskType(t)].schedulable);
+  const events = pending
+    .filter(t => !TASK_TYPES[taskType(t)].schedulable && t.due)
+    .filter(t => { const h = (new Date(t.due) - now) / 3.6e6; return h > -2 && h <= 24; })
+    .sort((a, b) => new Date(a.due) - new Date(b.due));
+
+  const sorted = sortByPriority(schedulable, now);
   const freeMin = Math.round((settings.freeHours || 2) * 60);
 
   // เริ่มแผน: ถ้ายังไม่ถึงเวลาทำการบ้านปกติ (19:00) ให้เริ่ม 19:00, ถ้าเลยแล้วเริ่มตอนนี้
@@ -300,7 +353,7 @@ function buildDayPlan(pending, settings, now = new Date()) {
       sinceBreak = 0;
     }
   }
-  return { slots, overflow, freeMin, usedMin: freeMin - remaining };
+  return { slots, overflow, events, freeMin, usedMin: freeMin - remaining };
 }
 
 function fmtClock(d) {
@@ -312,16 +365,19 @@ const PRIORITY_LABELS = { 5: 'ด่วนมาก', 4: 'สำคัญ', 3: '
 function priorityLabel(stars) { return PRIORITY_LABELS[stars] || 'ปานกลาง'; }
 
 // ---------- format ----------
-function fmtDue(iso, now = new Date()) {
-  if (!iso) return 'ยังไม่ระบุกำหนดส่ง';
+// task ใส่มาด้วยได้ เพื่อเลือกคำนำหน้าให้ตรงประเภท (ส่ง / สอบ / ไม่มีคำนำหน้า)
+function fmtDue(iso, now = new Date(), task) {
+  if (!iso) return 'ยังไม่ระบุกำหนด';
+  const type = task ? taskType(task) : 'homework';
+  const pre = type === 'homework' ? 'ส่ง' : type === 'exam' ? 'สอบ' : '';
   const d = new Date(iso);
   const diff = Math.floor((atTime(d, 0, 0) - atTime(now, 0, 0)) / 8.64e7);
   const time = (d.getHours() === 23 && d.getMinutes() === 59) ? '' :
     ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   if (d < now) return '⚠ เลยกำหนด (' + WEEKDAY_SHORT[d.getDay()] + ' ' + d.getDate() + ' ' + MONTH_SHORT[d.getMonth()] + ')';
-  if (diff === 0) return 'ส่งวันนี้' + time;
-  if (diff === 1) return 'ส่งพรุ่งนี้' + time;
-  return 'ส่ง' + WEEKDAY_SHORT[d.getDay()] + ' ' + d.getDate() + ' ' + MONTH_SHORT[d.getMonth()] + time;
+  if (diff === 0) return pre + 'วันนี้' + time;
+  if (diff === 1) return pre + 'พรุ่งนี้' + time;
+  return pre + WEEKDAY_SHORT[d.getDay()] + ' ' + d.getDate() + ' ' + MONTH_SHORT[d.getMonth()] + time;
 }
 
 function fmtThaiDate(d = new Date()) {

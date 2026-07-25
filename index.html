@@ -97,15 +97,23 @@
         <div class="chips" id="detectedChips" style="margin-bottom:10px"></div>
 
         <div class="card">
-          <div class="field"><label>วิชา</label><select id="fSubject"></select></div>
-          <div class="field"><label>งานที่ต้องทำ</label><input type="text" id="fDetail" placeholder="เช่น ทำโจทย์บทที่ 4 ข้อ 1–10"></div>
+          <div class="field"><label>ประเภท</label>
+            <div class="type-pick" id="typePick">
+              <button type="button" class="tp" data-type="homework" onclick="setTypePick('homework')">📝 การบ้าน</button>
+              <button type="button" class="tp" data-type="exam" onclick="setTypePick('exam')">📖 สอบ</button>
+              <button type="button" class="tp" data-type="activity" onclick="setTypePick('activity')">🎯 กิจกรรม</button>
+              <button type="button" class="tp" data-type="reminder" onclick="setTypePick('reminder')">📌 อื่น ๆ</button>
+            </div>
+          </div>
+          <div class="field" id="fSubjectWrap"><label>วิชา</label><select id="fSubject"></select></div>
+          <div class="field"><label id="fDetailLabel">งานที่ต้องทำ</label><input type="text" id="fDetail" placeholder="เช่น ทำโจทย์บทที่ 4 ข้อ 1–10"></div>
           <div class="field-row">
-            <div class="field"><label>ส่งวันที่</label><input type="date" id="fDate"></div>
+            <div class="field"><label id="fDateLabel">ส่งวันที่</label><input type="date" id="fDate"></div>
             <div class="field"><label>เวลา</label><input type="time" id="fTime"></div>
           </div>
-          <div class="field-row">
-            <div class="field"><label>คะแนน (%)</label><input type="number" id="fScore" min="0" max="100" placeholder="เช่น 20"></div>
-            <div class="field"><label>ใช้เวลา (นาที)</label><input type="number" id="fEst" min="5" step="5" value="30"></div>
+          <div class="field-row" id="fScoreEstRow">
+            <div class="field" id="fScoreWrap"><label>คะแนน (%)</label><input type="number" id="fScore" min="0" max="100" placeholder="เช่น 20"></div>
+            <div class="field" id="fEstWrap"><label id="fEstLabel">ใช้เวลา (นาที)</label><input type="number" id="fEst" min="5" step="5" value="30"></div>
           </div>
           <div class="field"><label>ความสำคัญ</label>
             <div class="star-pick" id="starPick">
@@ -118,9 +126,8 @@
             </div>
             <p class="hint" style="text-align:left; margin:6px 0 0">★5 = ด่วนมาก · ถ้าเลือกเอง AI จะเคารพลำดับของคุณ</p>
           </div>
-          <div class="field"><label>ครูผู้สั่ง</label><input type="text" id="fTeacher" placeholder="เช่น ครูสมชาย"></div>
-          <label class="check-line"><input type="checkbox" id="fExam"> เป็นการสอบ / quiz</label>
-          <div class="field" style="margin-top:14px">
+          <div class="field" id="fTeacherWrap"><label>ครูผู้สั่ง</label><input type="text" id="fTeacher" placeholder="เช่น ครูสมชาย"></div>
+          <div class="field" id="fProgressWrap" style="margin-top:14px">
             <label>ความคืบหน้า — <span id="fProgressVal">0%</span></label>
             <input type="range" id="fProgress" min="0" max="100" step="5" value="0"
               oninput="document.getElementById('fProgressVal').textContent = this.value + '%'">

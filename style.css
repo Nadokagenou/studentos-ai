@@ -318,6 +318,26 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px}
 .dot.lv2{background:#1465E0}
 .dot.lv1{background:#98A2B3}
 
+/* ป้ายประเภท (สอบ / กิจกรรม / อื่น ๆ) — การบ้านเป็นค่าปกติจึงไม่ติดป้าย */
+.tchip{font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; white-space:nowrap; background:#EEF0F3; color:#5B6373}
+.tchip.exam{background:#EDE9FE; color:#5B3FBF}
+.tchip.activity{background:#E3F6EC; color:#177F52}
+.tchip.reminder{background:#F1F3F7; color:#5B6373}
+@media (prefers-color-scheme: dark){
+  .tchip{background:#262A32; color:#AEB4C0}
+  .tchip.exam{background:rgba(139,92,246,.18); color:#C4B1F5}
+  .tchip.activity{background:rgba(16,185,129,.16); color:#6FD3A6}
+}
+
+/* ปุ่มเลือกประเภทในฟอร์ม */
+.type-pick{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.tp{border:1.5px solid var(--line); background:var(--card); color:var(--muted); border-radius:12px;
+  min-height:44px; padding:8px 10px; font-size:13.5px; font-weight:700; font-family:inherit; cursor:pointer}
+.tp.active{background:var(--blue-soft); border-color:var(--blue); color:var(--blue-deep)}
+
+/* การ์ดกิจกรรมในแผนวันนี้ — เส้นประบอกว่าเป็นหมุดเวลา ไม่ใช่ช่วงเวลาทำงาน */
+.plan-body.card.event{border:1.5px dashed var(--line); box-shadow:none}
+
 /* ปุ่มเลือกความสำคัญเอง */
 .star-pick{display:flex; gap:6px; flex-wrap:wrap}
 .sp{border:1.5px solid var(--line); background:var(--card); color:var(--muted); border-radius:10px;

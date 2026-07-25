@@ -143,6 +143,17 @@ function metaHtml(reasons) {
   if (!keep.length) return '';
   return '<div class="meta">' + keep.map(r => '<span class="mchip">' + esc(r) + '</span>').join('') + '</div>';
 }
+// หัวเรื่องการ์ด: ไม่โชว์ "อื่น ๆ ·" ซ้ำซ้อนเวลาไม่ได้ระบุวิชา
+function taskTitle(t) {
+  const subj = t.subject && t.subject !== 'อื่น ๆ' ? esc(t.subject) + ' · ' : '';
+  return subj + esc(t.detail);
+}
+function typeChip(t) {
+  const type = taskType(t);
+  if (type === 'homework') return ''; // การบ้านคือค่าปกติ ไม่ต้องติดป้ายให้รก
+  const ti = TASK_TYPES[type];
+  return `<span class="tchip ${type}">${ti.icon} ${esc(ti.name)}</span>`;
+}
 function progressHtml(p) {
   p = Math.max(0, Math.min(100, p || 0));
   if (p <= 0) return '';
@@ -157,8 +168,8 @@ function taskCard(t, rank, now) {
   <div class="tcard" data-id="${t.id}" onclick="openForm('${t.id}')">
     <span class="rank ${rank === 1 ? 'r1' : ''}">${rank}</span>
     <div class="tbody">
-      <div class="trow1">${priorityBadge(info.stars)}${pin}<span class="tdue ${hot ? 'hot' : ''}">${fmtDue(t.due, now)}</span></div>
-      <h4 class="ttitle">${esc(t.subject)} · ${esc(t.detail)}</h4>
+      <div class="trow1">${priorityBadge(info.stars)}${typeChip(t)}${pin}<span class="tdue ${hot ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span></div>
+      <h4 class="ttitle">${taskTitle(t)}</h4>
       ${progressHtml(t.progress)}
       ${metaHtml(info.reasons)}
     </div>
@@ -200,8 +211,8 @@ function taskRow(t, now) {
   <div class="task-row ${t.done ? 'done' : ''}">
     <button class="tcheck ${t.done ? 'on' : ''}" onclick="toggleDone('${t.id}')" aria-label="${t.done ? 'ทำเสร็จแล้ว' : 'ทำเสร็จ'}"></button>
     <div class="task-main" onclick="openForm('${t.id}')">
-      <div class="task-title">${esc(t.subject)} · ${esc(t.detail)}</div>
-      <div class="trow1 sm">${t.done ? '<span class="tdue ok">เสร็จแล้ว</span>' : priorityBadge(info.stars) + '<span class="tdue ' + (hot ? 'hot' : '') + '">' + fmtDue(t.due, now) + '</span>'}</div>
+      <div class="task-title">${taskTitle(t)}</div>
+      <div class="trow1 sm">${t.done ? '<span class="tdue ok">เสร็จแล้ว</span>' : priorityBadge(info.stars) + typeChip(t) + '<span class="tdue ' + (hot ? 'hot' : '') + '">' + fmtDue(t.due, now, t) + '</span>'}</div>
       ${!t.done ? progressHtml(t.progress) : ''}
     </div>
     <button class="icon-btn" onclick="removeTask('${t.id}')" aria-label="ลบ">✕</button>
@@ -244,8 +255,8 @@ function renderTimeline() {
       const info = priorityInfo(t, now);
       return `
       <div class="tl-item" onclick="openForm('${t.id}')"><span class="tl-bar lv${info.stars}"></span>
-        <div class="card"><div class="trow1 sm">${priorityBadge(info.stars)}<span class="tdue ${b.bar === 'hot' ? 'hot' : ''}">${fmtDue(t.due, now)}</span></div>
-        <h4 class="ttitle" style="margin-top:4px">${esc(t.subject)} · ${esc(t.detail)}</h4></div>
+        <div class="card"><div class="trow1 sm">${priorityBadge(info.stars)}${typeChip(t)}<span class="tdue ${b.bar === 'hot' ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span></div>
+        <h4 class="ttitle" style="margin-top:4px">${taskTitle(t)}</h4></div>
       </div>`;
     }).join('') + `</div>`;
   }
@@ -274,6 +285,16 @@ function renderPlan() {
   sub.textContent = `เวลาว่าง ${state.settings.freeHours || 2} ชม. · ใช้จริง ${Math.round(plan.usedMin / 6) / 10} ชม. · เรียงตามความสำคัญ`;
 
   let html = '';
+  // กิจกรรมตามเวลา: แสดงเป็นหมุดเวลา ไม่ใช่ช่วงเวลาที่ต้องนั่งทำ
+  if (plan.events.length) {
+    html += `<div class="assign-sect norm" style="margin-top:0">ตามเวลา — ไม่ต้องเจียดเวลาทำ</div>`
+      + plan.events.map(e => `<div class="plan-slot"><span class="plan-time">${fmtClock(new Date(e.due))}</span>
+        <div class="plan-body card event" style="margin:0">
+          <div class="trow1 sm">${typeChip(e)}</div>
+          <h4 class="ttitle" style="margin-top:4px">${taskTitle(e)}</h4>
+        </div></div>`).join('');
+    if (plan.slots.length) html += `<div class="assign-sect norm">เวลาอ่าน/ทำงาน</div>`;
+  }
   for (const s of plan.slots) {
     if (s.break) {
       html += `<div class="plan-slot break"><span class="plan-time">${fmtClock(s.start)}</span>
@@ -282,16 +303,19 @@ function renderPlan() {
       const info = priorityInfo(s.task, now);
       html += `<div class="plan-slot"><span class="plan-time">${fmtClock(s.start)}<br><small>${fmtClock(s.end)}</small></span>
         <div class="plan-body card" style="margin:0">
-          <div class="trow1 sm">${priorityBadge(info.stars)}<span class="tdue">${s.min} นาที</span></div>
-          <h4 class="ttitle" style="margin-top:4px">${esc(s.task.subject)} · ${esc(s.task.detail)}</h4>
+          <div class="trow1 sm">${priorityBadge(info.stars)}${typeChip(s.task)}<span class="tdue">${s.min} นาที</span></div>
+          <h4 class="ttitle" style="margin-top:4px">${taskTitle(s.task)}</h4>
           ${s.note ? `<div class="hint" style="text-align:left; margin:5px 0 0">${esc(s.note)}</div>` : ''}
         </div></div>`;
     }
   }
+  if (!plan.slots.length && !plan.events.length) {
+    html += `<div class="card empty">วันนี้ไม่มีอะไรต้องนั่งทำ — พักได้เต็มที่ 🎉</div>`;
+  }
   if (plan.overflow.length) {
     html += `<div class="assign-sect norm" style="margin-top:16px">เวลาวันนี้ไม่พอ — AI แนะนำย้ายไปพรุ่งนี้</div>`
-      + plan.overflow.map(o => `<div class="card" style="opacity:.65"><h4 style="font-size:14.5px">${esc(o.task.subject)} — ${esc(o.task.detail)}</h4>
-        <div class="due ok">ต้องใช้ ~${o.need} นาที · ${fmtDue(o.task.due)}</div></div>`).join('');
+      + plan.overflow.map(o => `<div class="card" style="opacity:.65"><h4 style="font-size:14.5px">${taskTitle(o.task)}</h4>
+        <div class="due ok">ต้องใช้ ~${o.need} นาที · ${fmtDue(o.task.due, now, o.task)}</div></div>`).join('');
     const risky = plan.overflow.filter(o => {
       const h = priorityInfo(o.task, now).hoursLeft;
       return h != null && h < 24;
@@ -377,6 +401,35 @@ function removeTask(id) {
 
 // ---------- form (เพิ่ม/แก้/ยืนยันผล AI) ----------
 let formUserStars = 0; // 0 = ให้ AI จัดให้
+let formType = 'homework';
+
+// เลือกประเภท → ฟอร์มปรับหน้าตาตามธรรมชาติของสิ่งนั้น
+// (กิจกรรมไม่มีคะแนน/ครูผู้สั่ง · สอบเรียกว่า "วันสอบ" ไม่ใช่ "ส่งวันที่")
+function setTypePick(type) {
+  formType = TASK_TYPES[type] ? type : 'homework';
+  const ti = TASK_TYPES[formType];
+  document.querySelectorAll('#typePick .tp').forEach(b =>
+    b.classList.toggle('active', b.dataset.type === formType));
+
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  const isWork = ti.schedulable;                    // การบ้าน/สอบ = ต้องนั่งทำ
+  const isHomework = formType === 'homework';
+
+  document.getElementById('fDateLabel').textContent = ti.dateLabel;
+  document.getElementById('fDetailLabel').textContent =
+    formType === 'exam' ? 'สอบเรื่องอะไร' : formType === 'activity' ? 'กิจกรรมอะไร' : formType === 'reminder' ? 'เรื่องอะไร' : 'งานที่ต้องทำ';
+  document.getElementById('fEstLabel').textContent = formType === 'exam' ? 'ใช้เวลาอ่าน (นาที)' : 'ใช้เวลา (นาที)';
+  document.getElementById('fDetail').placeholder =
+    formType === 'exam' ? 'เช่น สอบกลางภาค บทที่ 1–5' :
+    formType === 'activity' ? 'เช่น ตักบาตร คาบ 8–9' :
+    formType === 'reminder' ? 'เช่น จ่ายค่าชุดพละ' : 'เช่น ทำโจทย์บทที่ 4 ข้อ 1–10';
+
+  show('fSubjectWrap', formType !== 'reminder');
+  show('fScoreWrap', isHomework || formType === 'exam');
+  show('fEstWrap', isWork);
+  show('fTeacherWrap', isHomework || formType === 'exam');
+  show('fProgressWrap', isWork);
+}
 
 function setStarPick(n) {
   formUserStars = n;
@@ -396,7 +449,7 @@ function openForm(id, parsed) {
     subject: document.getElementById('fSubject'), detail: document.getElementById('fDetail'),
     date: document.getElementById('fDate'), time: document.getElementById('fTime'),
     score: document.getElementById('fScore'), est: document.getElementById('fEst'),
-    teacher: document.getElementById('fTeacher'), exam: document.getElementById('fExam'),
+    teacher: document.getElementById('fTeacher'),
   };
   const chips = document.getElementById('detectedChips');
   const title = document.getElementById('formTitle');
@@ -409,7 +462,7 @@ function openForm(id, parsed) {
     title.textContent = 'AI ตรวจพบ ✨';
     sub.textContent = 'ตรวจสอบก่อนบันทึก — แก้สิ่งที่ AI อ่านผิดได้เสมอ';
     const d = parsed.detected;
-    const found = [d.subject && 'วิชา', d.teacher && 'ครู', d.due && 'Deadline', d.score && 'คะแนน', d.est && 'เวลาที่ใช้'].filter(Boolean);
+    const found = [d.type && 'ประเภท', d.subject && 'วิชา', d.teacher && 'ครู', d.due && 'Deadline', d.score && 'คะแนน', d.est && 'เวลาที่ใช้'].filter(Boolean);
     chips.innerHTML = found.map(x => `<span class="chip new">✔ ${x}</span>`).join('')
       + (found.length < 3 ? `<span class="chip">บางช่องอ่านไม่เจอ — เติมเองได้เลย</span>` : '');
     t = parsed;
@@ -423,13 +476,13 @@ function openForm(id, parsed) {
     chips.innerHTML = '';
   }
 
+  setTypePick(t ? taskType(t) : 'homework');
   setStarPick(t?.userStars || 0);
   f.subject.value = t?.subject || 'อื่น ๆ';
   f.detail.value = t?.detail || '';
   f.teacher.value = t?.teacher || '';
   f.score.value = t?.scorePct ?? '';
   f.est.value = t?.estMin || 30;
-  f.exam.checked = !!t?.isExam;
   const prog = t?.progress || 0;
   document.getElementById('fProgress').value = prog;
   document.getElementById('fProgressVal').textContent = prog + '%';
@@ -450,18 +503,20 @@ function saveForm() {
   const due = dateV ? new Date(dateV + 'T' + timeV) : null;
   const scoreV = document.getElementById('fScore').value;
 
+  const ti = TASK_TYPES[formType];
   const data = {
-    subject: document.getElementById('fSubject').value,
+    type: formType,
+    subject: formType === 'reminder' ? 'อื่น ๆ' : document.getElementById('fSubject').value,
     detail,
     teacher: document.getElementById('fTeacher').value.trim(),
     scorePct: scoreV === '' ? null : Math.min(100, +scoreV),
     estMin: Math.max(5, +document.getElementById('fEst').value || 30),
-    isExam: document.getElementById('fExam').checked,
+    isExam: formType === 'exam', // เก็บไว้เพื่อความเข้ากันได้กับข้อมูลเก่า
     userStars: formUserStars || null,
-    progress: +document.getElementById('fProgress').value || 0,
+    progress: ti.schedulable ? (+document.getElementById('fProgress').value || 0) : 0,
     due: due ? due.toISOString() : null,
   };
-  if (data.progress >= 100) data.done = true;
+  if (ti.schedulable && data.progress >= 100) data.done = true;
 
   if (editingId) {
     Object.assign(state.tasks.find(x => x.id === editingId), data);
@@ -732,7 +787,7 @@ function reminderCopy(t, now) {
     `แอบเตือนเรื่อง ${s} หน่อย~ เริ่มเลยดีกว่า จะได้พักแบบไม่มีห่วง`,
     `${s} ยังรอคุณอยู่นะ เริ่มจากนิดเดียวก็ได้ เดี๋ยวก็เสร็จ!`,
   ]) };
-  return { title: 'มีงานรออยู่นะ ✨', body: `${s} — ${t.detail} (${fmtDue(t.due, now)})` };
+  return { title: 'มีงานรออยู่นะ ✨', body: `${s} — ${t.detail} (${fmtDue(t.due, now, t)})` };
 }
 
 function celebrateCopy(allDone) {
