@@ -468,6 +468,87 @@ function saveForm() {
   go('scr-home');
 }
 
+// ---------- scan: เสียงพูด (Web Speech API) ----------
+let recog = null, recogActive = false;
+
+function speechSupported() {
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+
+function setVoiceUI({ recording, text, dim }) {
+  const btn = document.getElementById('voiceBtn');
+  const label = document.getElementById('voiceLabel');
+  const box = document.getElementById('voiceBox');
+  const txt = document.getElementById('voiceText');
+  btn.classList.toggle('rec', !!recording);
+  label.textContent = recording ? 'กำลังฟัง… แตะเพื่อหยุด' : 'พูดใส่ไมค์ — เร็วที่สุด';
+  box.classList.toggle('idle', !recording);
+  if (text != null) {
+    box.hidden = false;
+    txt.textContent = text;
+    txt.classList.toggle('dim', !!dim);
+  }
+}
+
+function toggleVoice() {
+  if (recogActive) { try { recog.stop(); } catch (_) {} return; }
+  if (!speechSupported()) {
+    setVoiceUI({ recording: false, dim: true,
+      text: 'เบราว์เซอร์นี้ยังไม่รองรับการพูด — ลองใช้ Chrome (Android) หรือ Safari (iPhone) · ระหว่างนี้แปะข้อความแทนได้เลย' });
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recog = new SR();
+  recog.lang = 'th-TH';
+  recog.interimResults = true;
+  recog.continuous = false;
+  recog.maxAlternatives = 1;
+
+  let finalText = '';
+  recog.onstart = () => {
+    recogActive = true;
+    setVoiceUI({ recording: true, dim: true,
+      text: 'พูดได้เลย เช่น “การบ้านเลข ข้อ 1 ถึง 10 ส่งพรุ่งนี้ คะแนน 20 เปอร์เซ็นต์”' });
+  };
+  recog.onresult = e => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const r = e.results[i];
+      if (r.isFinal) finalText += r[0].transcript;
+      else interim += r[0].transcript;
+    }
+    const shown = (finalText + interim).trim();
+    if (shown) setVoiceUI({ recording: true, text: shown, dim: false });
+  };
+  recog.onerror = e => {
+    recogActive = false;
+    const msg = {
+      'not-allowed': 'ยังไม่ได้อนุญาตให้ใช้ไมค์ — เปิดสิทธิ์ไมโครโฟนให้เว็บนี้ก่อนนะ',
+      'service-not-allowed': 'ยังไม่ได้อนุญาตให้ใช้ไมค์ — เปิดสิทธิ์ไมโครโฟนให้เว็บนี้ก่อนนะ',
+      'no-speech': 'ไม่ได้ยินเสียงเลย ลองพูดใหม่อีกครั้ง',
+      'audio-capture': 'หาไมโครโฟนไม่เจอ',
+      'network': 'ต้องต่อเน็ตเพื่อแปลงเสียงเป็นข้อความ',
+    }[e.error] || ('เกิดข้อผิดพลาด: ' + e.error);
+    setVoiceUI({ recording: false, text: msg, dim: true });
+  };
+  recog.onend = () => {
+    recogActive = false;
+    const raw = finalText.trim();
+    if (!raw) { setVoiceUI({ recording: false }); return; }
+    const text = normalizeSpokenText(raw); // แปลงเลขคำอ่านไทยเป็นตัวเลขก่อนแกะ
+    if (text.length < 3) {
+      setVoiceUI({ recording: false, text: 'ได้ยินไม่ชัด ลองพูดใหม่อีกครั้ง', dim: true });
+      return;
+    }
+    setVoiceUI({ recording: false, text: text, dim: false });
+    document.getElementById('voiceBox').hidden = true;
+    openForm(null, parseAssignment(text));
+  };
+
+  try { recog.start(); }
+  catch (_) { setVoiceUI({ recording: false, text: 'เริ่มฟังไม่สำเร็จ ลองอีกครั้ง', dim: true }); }
+}
+
 // ---------- scan: ข้อความ ----------
 function scanFromText() {
   const text = document.getElementById('pasteText').value.trim();

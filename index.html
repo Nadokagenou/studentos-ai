@@ -62,7 +62,17 @@
       <!-- ============ SCREEN: SCAN ============ -->
       <div class="screen" id="scr-scan">
         <div class="big-title">เพิ่มงานใหม่</div>
-        <p class="sub">ถ่ายรูปใบงาน หรือแปะข้อความจาก LINE แล้วให้ AI อ่านให้</p>
+        <p class="sub">พูด ถ่ายรูป หรือแปะข้อความ — AI แกะเป็นงานให้เอง</p>
+
+        <button class="btn voice" id="voiceBtn" onclick="toggleVoice()">
+          <span class="mic">🎙</span><span id="voiceLabel">พูดใส่ไมค์ — เร็วที่สุด</span>
+        </button>
+        <div class="voice-box" id="voiceBox" hidden>
+          <div class="wave"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="voice-text" id="voiceText"></div>
+        </div>
+
+        <div class="divider">หรือถ่ายรูป</div>
 
         <label class="btn primary" for="cameraInput">ถ่ายรูปใบงาน</label>
         <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>

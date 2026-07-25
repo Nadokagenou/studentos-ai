@@ -42,6 +42,38 @@ function addDays(d, n) {
   return x;
 }
 
+// ---------- 0) เตรียมข้อความจากเสียงพูด ----------
+// เสียงพูดมักได้เลขเป็นคำอ่าน ("ข้อหนึ่งถึงสิบ") ตัวแกะข้อความอ่านไม่ออก
+// แปลงเฉพาะตำแหน่งที่มีคำนำหน้าชัดเจน เพื่อไม่ให้ไปโดนคำปกติ (เช่น "สี่แยก")
+const THAI_DIGIT = { 'ศูนย์': 0, 'หนึ่ง': 1, 'สอง': 2, 'สาม': 3, 'สี่': 4, 'ห้า': 5, 'หก': 6, 'เจ็ด': 7, 'แปด': 8, 'เก้า': 9 };
+const THAI_D_PAT = Object.keys(THAI_DIGIT).join('|');
+const THAI_NUM_PAT = `(?:(?:ยี่|${THAI_D_PAT})?สิบ(?:เอ็ด|${THAI_D_PAT})?|${THAI_D_PAT})`;
+
+function thaiWordToNumber(w) {
+  if (!w.includes('สิบ')) return THAI_DIGIT[w];
+  const [tensPart, onesPart] = w.split('สิบ');
+  let v = tensPart ? (tensPart === 'ยี่' ? 2 : THAI_DIGIT[tensPart]) * 10 : 10;
+  if (onesPart) v += onesPart === 'เอ็ด' ? 1 : (THAI_DIGIT[onesPart] || 0);
+  return v;
+}
+
+function normalizeSpokenText(text) {
+  let t = String(text || '');
+  // คำนำหน้า + เลขคำอ่าน  เช่น "ข้อหนึ่ง" "บทที่สี่" "ถึงสิบ" "วันที่ยี่สิบห้า"
+  const lead = '(ข้อที่|ข้อ|บทที่|บท|หน้าที่|หน้า|ชุดที่|ถึง|วันที่|ที่)';
+  t = t.replace(new RegExp(lead + '\\s*' + THAI_NUM_PAT, 'g'), (m, pre) => {
+    const num = thaiWordToNumber(m.slice(pre.length).trim());
+    return num == null || isNaN(num) ? m : pre + ' ' + num + ' ';
+  });
+  // เลขคำอ่าน + หน่วยต่อท้าย  เช่น "ยี่สิบเปอร์เซ็นต์" "สี่สิบนาที" "สองชั่วโมง"
+  const unit = '(เปอร์เซ็นต์|%|นาที|ชั่วโมง|ชม\\.?|โมง|ทุ่ม|คะแนน|วัน)';
+  t = t.replace(new RegExp(THAI_NUM_PAT + '\\s*' + unit, 'g'), (m, u) => {
+    const num = thaiWordToNumber(m.slice(0, m.length - u.length).trim());
+    return num == null || isNaN(num) ? m : ' ' + num + ' ' + u;
+  });
+  return t.replace(/\s+/g, ' ').trim();
+}
+
 // ---------- 1) แกะข้อความ ----------
 function parseAssignment(text, now = new Date()) {
   const t = String(text || '').replace(/\s+/g, ' ').trim();
