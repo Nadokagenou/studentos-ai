@@ -23,6 +23,8 @@ create table if not exists public.push_subscriptions (
 
 alter table public.push_subscriptions enable row level security;
 
+-- drop ก่อนเพื่อให้รันซ้ำได้ไม่ error (create policy ไม่มี if not exists)
+drop policy if exists "own subscriptions" on public.push_subscriptions;
 create policy "own subscriptions" on public.push_subscriptions
   for all
   using (auth.uid() = user_id)
@@ -30,6 +32,10 @@ create policy "own subscriptions" on public.push_subscriptions
 
 create index if not exists push_subs_user_idx on public.push_subscriptions(user_id);
 ```
+
+> ถ้าเจอ `ERROR: policy ... already exists` แปลว่ารันสำเร็จไปแล้วรอบก่อน — ข้ามไปขั้นที่ 2 ได้เลย
+>
+> เช็กว่าครบไหม: `select * from pg_policies where tablename = 'push_subscriptions';` ควรได้ 1 แถว
 
 ## 2. สร้าง Edge Function
 
