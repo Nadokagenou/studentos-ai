@@ -39,6 +39,31 @@
       <rect class="sp-px" x="422" y="98" width="12" height="12" rx="3" fill="#7DD3FC"/>
       <path class="sp-star1" d="M250 292 L262 330 L300 342 L262 354 L250 392 L238 354 L200 342 L238 330 Z" fill="#FFFFFF"/>
     </g>
+
+    <!-- ไอคอนแถบเมนู: เส้นเรียบ 24px แทน emoji เพื่อความคมและเป็นมาตรฐานแอป -->
+    <g id="ic-home" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 10.4 12 4l8 6.4V19a1.6 1.6 0 0 1-1.6 1.6H15V15H9v5.6H5.6A1.6 1.6 0 0 1 4 19z"/>
+    </g>
+    <g id="ic-tasks" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 6.5h10M10 12h10M10 17.5h10"/>
+      <path d="M4 6.4l1.3 1.3L7.8 5.2M4 11.9l1.3 1.3 2.5-2.5M4 17.4l1.3 1.3 2.5-2.5"/>
+    </g>
+    <g id="ic-scan" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3.2" y="7" width="17.6" height="13.4" rx="3.2"/>
+      <circle cx="12" cy="13.7" r="3.4"/>
+      <path d="M8.6 7l1.1-2.2h4.6L15.4 7"/>
+    </g>
+    <g id="ic-timeline" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3.4" y="5.2" width="17.2" height="15.6" rx="3.2"/>
+      <path d="M3.4 10.2h17.2M8.4 3.2v4M15.6 3.2v4"/>
+    </g>
+    <g id="ic-profile" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="8.6" r="3.7"/>
+      <path d="M4.8 20.4c1.6-3.5 4.2-5.3 7.2-5.3s5.6 1.8 7.2 5.3"/>
+    </g>
+    <g id="ic-arrow" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 12h13M12.5 6l6 6-6 6"/>
+    </g>
   </defs>
 </svg>
 
@@ -148,7 +173,11 @@
           <div class="ai-msg" id="aiMsg">…</div>
         </div>
 
-        <div class="sect">ลำดับที่ AI แนะนำ</div>
+        <div class="sect-row">
+          <div class="sect">ลำดับที่ AI แนะนำ</div>
+          <button class="sect-more" id="seeAllBtn" onclick="go('scr-tasks')" aria-label="ดูงานทั้งหมด" style="display:none">
+            <svg viewBox="0 0 24 24"><use href="#ic-arrow"/></svg></button>
+        </div>
         <div id="top3"></div>
         <button class="btn secondary sm" id="planBtn" onclick="go('scr-plan')" style="display:none">ให้ AI วางแผนเวลาวันนี้</button>
       </div>
@@ -164,8 +193,15 @@
 
       <!-- ============ SCREEN: ALL ASSIGNMENTS ============ -->
       <div class="screen" id="scr-tasks">
-        <div class="big-title">All Assignments</div>
+        <div class="big-title">งานทั้งหมด</div>
         <p class="sub" id="tasksSub"></p>
+        <div class="filter-row" id="filterRow">
+          <button class="fchip active" data-f="all" onclick="setFilter('all')">ทั้งหมด</button>
+          <button class="fchip" data-f="homework" onclick="setFilter('homework')">📝 การบ้าน</button>
+          <button class="fchip" data-f="exam" onclick="setFilter('exam')">📖 สอบ</button>
+          <button class="fchip" data-f="activity" onclick="setFilter('activity')">🎯 กิจกรรม</button>
+          <button class="fchip" data-f="reminder" onclick="setFilter('reminder')">📌 อื่น ๆ</button>
+        </div>
         <div id="taskList"></div>
       </div>
 
@@ -185,9 +221,7 @@
 
       <!-- ============ SCREEN: PROFILE ============ -->
       <div class="screen" id="scr-profile">
-        <div class="big-title">ฉัน</div>
-        <p class="sub">ทุกช่องในหน้านี้คือข้อมูลที่ AI ใช้วางแผน</p>
-
+        <div class="pf-header" id="pfHeader"></div>
         <div class="card" id="accountCard"></div>
 
         <div class="card">
@@ -233,14 +267,16 @@
 
     <!-- ============ TAB BAR ============ -->
     <div class="tabbar">
-      <button class="tab" data-scr="scr-home" onclick="go('scr-home')"><span class="ic">🏠</span>หน้าแรก</button>
-      <button class="tab" data-scr="scr-tasks" onclick="go('scr-tasks')"><span class="ic">📝</span>งาน</button>
-      <div class="tab fab-wrap">
-        <button class="fab" onclick="go('scr-scan')">📷</button>
-        <div class="fab-label">Scan</div>
-      </div>
-      <button class="tab" data-scr="scr-timeline" onclick="go('scr-timeline')"><span class="ic">🗓</span>เส้นเวลา</button>
-      <button class="tab" data-scr="scr-profile" onclick="go('scr-profile')"><span class="ic">👤</span>ฉัน</button>
+      <button class="tab" data-scr="scr-home" onclick="go('scr-home')">
+        <svg class="ic" viewBox="0 0 24 24"><use href="#ic-home"/></svg><span>หน้าแรก</span></button>
+      <button class="tab" data-scr="scr-tasks" onclick="go('scr-tasks')">
+        <svg class="ic" viewBox="0 0 24 24"><use href="#ic-tasks"/></svg><span>งาน</span></button>
+      <button class="tab scan" data-scr="scr-scan" onclick="go('scr-scan')">
+        <span class="scan-dot"><svg viewBox="0 0 24 24"><use href="#ic-scan"/></svg></span><span>เพิ่ม</span></button>
+      <button class="tab" data-scr="scr-timeline" onclick="go('scr-timeline')">
+        <svg class="ic" viewBox="0 0 24 24"><use href="#ic-timeline"/></svg><span>เส้นเวลา</span></button>
+      <button class="tab" data-scr="scr-profile" onclick="go('scr-profile')">
+        <svg class="ic" viewBox="0 0 24 24"><use href="#ic-profile"/></svg><span>ฉัน</span></button>
     </div>
 
     <!-- ============ SPLASH: ฉากเปิดแอป ============ -->

@@ -192,16 +192,16 @@ function renderHome() {
 
   const box = document.getElementById('top3');
   const planBtn = document.getElementById('planBtn');
+  const seeAll = document.getElementById('seeAllBtn');
   if (planBtn) planBtn.style.display = pending.length ? 'block' : 'none';
+  if (seeAll) seeAll.style.display = pending.length > 3 ? 'flex' : 'none';
   if (!pending.length) {
     box.innerHTML = `<div class="card empty">ยังไม่มีงานในระบบ<br>
       กดปุ่ม <b>Scan</b> ด้านล่างเพื่อเพิ่มงานแรก<br>
       <span class="hint">หรือลองข้อมูลตัวอย่างได้ที่แท็บ “ฉัน”</span></div>`;
     return;
   }
-  box.innerHTML = pending.slice(0, 3).map((t, i) => taskCard(t, i + 1, now)).join('')
-    + (pending.length > 3
-      ? `<button class="btn ghost sm" onclick="go('scr-tasks')">ดูงานทั้งหมด ${pending.length} งาน</button>` : '');
+  box.innerHTML = pending.slice(0, 3).map((t, i) => taskCard(t, i + 1, now)).join('');
 }
 
 function taskRow(t, now) {
@@ -219,12 +219,21 @@ function taskRow(t, now) {
   </div>`;
 }
 
+let taskFilter = 'all';
+function setFilter(f) {
+  taskFilter = f;
+  document.querySelectorAll('#filterRow .fchip').forEach(b => b.classList.toggle('active', b.dataset.f === f));
+  renderTasks();
+}
+
 function renderTasks() {
   const now = new Date();
-  const pending = sortByPriority(pendingTasks(), now);
-  const done = state.tasks.filter(t => t.done);
+  const match = t => taskFilter === 'all' || taskType(t) === taskFilter;
+  const pending = sortByPriority(pendingTasks().filter(match), now);
+  const done = state.tasks.filter(t => t.done && match(t));
+  const label = taskFilter === 'all' ? '' : ' · ' + TASK_TYPES[taskFilter].name;
   document.getElementById('tasksSub').textContent =
-    `${pending.length} งานค้าง · เรียงโดย AI — แตะงานเพื่อแก้ไข`;
+    `${pending.length} งานค้าง${label} · เรียงโดย AI — แตะงานเพื่อแก้ไข`;
 
   const hot = pending.filter(t => ['over', 'hot'].includes(priorityInfo(t, now).urgency));
   const rest = pending.filter(t => !hot.includes(t));
@@ -233,7 +242,9 @@ function renderTasks() {
   if (hot.length) html += `<div class="assign-sect">ด่วน</div>` + hot.map(t => taskRow(t, now)).join('');
   if (rest.length) html += `<div class="assign-sect norm">ต่อจากนั้น</div>` + rest.map(t => taskRow(t, now)).join('');
   if (done.length) html += `<div class="assign-sect norm">เสร็จแล้ว · ${done.length}</div>` + done.map(t => taskRow(t, now)).join('');
-  if (!html) html = `<div class="card empty">ยังไม่มีงาน — กดปุ่ม Scan เพื่อเพิ่ม</div>`;
+  if (!html) html = taskFilter === 'all'
+    ? `<div class="card empty">ยังไม่มีงาน — กดปุ่ม <b>เพิ่ม</b> ด้านล่างเพื่อเริ่ม</div>`
+    : `<div class="card empty">ไม่มีรายการประเภท “${esc(TASK_TYPES[taskFilter].name)}”</div>`;
   document.getElementById('taskList').innerHTML = html;
 }
 
@@ -329,6 +340,19 @@ function renderPlan() {
 }
 
 function renderProfile() {
+  // หัวโปรไฟล์: รูปจาก Google ถ้ามี ไม่งั้นใช้ตัวอักษรแรกของชื่อ
+  const pf = document.getElementById('pfHeader');
+  if (pf) {
+    const name = state.settings.name || (currentUser?.user_metadata?.full_name) || 'นักเรียน';
+    const pic = currentUser?.user_metadata?.avatar_url || currentUser?.user_metadata?.picture;
+    const sub = currentUser ? (currentUser.email || 'ซิงก์ข้ามเครื่องอยู่') : 'ยังไม่ได้ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้';
+    pf.innerHTML = `
+      <div class="pf-avatar">${pic ? `<img src="${esc(pic)}" alt="">` : esc(name.trim().charAt(0).toUpperCase() || 'N')}</div>
+      <div class="pf-meta">
+        <div class="pf-name">${esc(name)}</div>
+        <div class="pf-sub">${esc(sub)}</div>
+      </div>`;
+  }
   const acc = document.getElementById('accountCard');
   if (!cloudConfigured()) {
     acc.innerHTML = `<h4 style="margin-bottom:6px">บัญชี</h4>
