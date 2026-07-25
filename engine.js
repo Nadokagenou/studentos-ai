@@ -285,6 +285,22 @@ function aiGreeting(pending, settings, now = new Date()) {
   return 'เริ่มที่' + top.subject + 'ก่อน — ' + why + ' · ' + fit;
 }
 
+// เหตุผลสั้น ๆ ในการ์ดงานหลัก: ทำไมงานนี้มาก่อน + ภาระวันนี้พอไหม
+// (ไม่ต้องเอ่ยชื่อวิชาซ้ำ เพราะการ์ดบอกอยู่แล้ว)
+function aiHeroWhy(top, pending, settings, now = new Date()) {
+  const why = (priorityInfo(top, now).reasons[0] || '').replace(/^★ /, '');
+  // นับเฉพาะงานที่ต้องนั่งทำ — กิจกรรมไม่กินเวลาอ่านหนังสือ
+  const totalMin = pending.reduce((s, t) =>
+    s + (TASK_TYPES[taskType(t)].schedulable ? (t.estMin || 30) : 0), 0);
+  const totalH = Math.round(totalMin / 60 * 10) / 10;
+  const freeH = settings.freeHours || 2;
+  if (!totalMin) return why;
+  const fit = totalH > freeH
+    ? `งานวันนี้รวม ~${totalH} ชม. เกินเวลาว่าง`
+    : `งานวันนี้รวม ~${totalH} ชม. เวลาว่างพอ`;
+  return why + ' · ' + fit;
+}
+
 function timelineInsight(pending, now = new Date()) {
   const byDay = {};
   for (const t of pending) {

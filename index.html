@@ -168,17 +168,9 @@
         <div class="big-title" id="greeting">สวัสดี 👋</div>
         <p class="sub" id="homeSub"></p>
 
-        <div class="card ai">
-          <div class="ai-head"><span class="ai-dot">S</span><span class="ai-name">STUDENTOS AI</span></div>
-          <div class="ai-msg" id="aiMsg">…</div>
-        </div>
-
-        <div class="sect-row">
-          <div class="sect">ลำดับที่ AI แนะนำ</div>
-          <button class="sect-more" id="seeAllBtn" onclick="go('scr-tasks')" aria-label="ดูงานทั้งหมด" style="display:none">
-            <svg viewBox="0 0 24 24"><use href="#ic-arrow"/></svg></button>
-        </div>
         <div id="top3"></div>
+        <button class="sect-more wide" id="seeAllBtn" onclick="go('scr-tasks')" style="display:none">
+          <span>ดูงานทั้งหมด</span><svg viewBox="0 0 24 24"><use href="#ic-arrow"/></svg></button>
         <button class="btn secondary sm" id="planBtn" onclick="go('scr-plan')" style="display:none">ให้ AI วางแผนเวลาวันนี้</button>
       </div>
 
@@ -212,9 +204,7 @@
         <div class="legend">
           <span><i class="dot lv5"></i>ด่วนมาก</span>
           <span><i class="dot lv4"></i>สำคัญ</span>
-          <span><i class="dot lv3"></i>ปานกลาง</span>
-          <span><i class="dot lv2"></i>ไม่เร่ง</span>
-          <span><i class="dot lv1"></i>รอได้</span>
+          <span><i class="dot lv3"></i>ยังมีเวลา</span>
         </div>
         <div id="timeline"></div>
       </div>

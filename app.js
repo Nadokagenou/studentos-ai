@@ -160,6 +160,42 @@ function progressHtml(p) {
   return `<div class="progress-row"><div class="progress-track"><div class="progress-fill" style="width:${p}%"></div></div><span class="progress-pct">${p}%</span></div>`;
 }
 
+// การ์ดงานหลัก — ตัวเดียวที่เด่นในหน้าแรก พร้อมเหตุผลจาก AI
+function heroCard(t, pending, now) {
+  const info = priorityInfo(t, now);
+  const urgent = info.urgency === 'over' || info.urgency === 'hot';
+  const ti = TASK_TYPES[taskType(t)];
+  const meta = [
+    `<span class="tdue ${urgent ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span>`,
+    ti.schedulable ? `<span>~${t.estMin} นาที</span>` : '',
+    t.scorePct != null ? `<span>คะแนน ${t.scorePct}%</span>` : '',
+  ].filter(Boolean).join('<span class="dotsep">·</span>');
+  return `
+  <div class="hero ${urgent ? 'urgent' : ''}" onclick="openForm('${t.id}')">
+    <div class="hero-eyebrow">${urgent ? 'ทำก่อนเลย' : 'เริ่มที่นี่'}</div>
+    <h3 class="hero-title">${taskTitle(t)}</h3>
+    <div class="hero-meta">${typeChip(t)}${meta}</div>
+    ${progressHtml(t.progress)}
+    <div class="hero-why"><span class="ai-mark">✦</span><span>${esc(aiHeroWhy(t, pending, state.settings, now))}</span></div>
+    <button class="btn primary sm" onclick="event.stopPropagation();toggleDone('${t.id}')">ทำเสร็จแล้ว</button>
+  </div>`;
+}
+
+// งานถัดไป — ย่อเหลือแถวเดียว อ่านผ่านตาเร็ว ไม่แย่งความสนใจจากงานหลัก
+function nextRow(t, rank, now) {
+  const info = priorityInfo(t, now);
+  const hot = info.urgency === 'over' || info.urgency === 'hot';
+  return `
+  <div class="nrow" onclick="openForm('${t.id}')">
+    <span class="nrank">${rank}</span>
+    <div class="nbody">
+      <div class="ntitle">${taskTitle(t)}</div>
+      <div class="nmeta">${info.stars >= 4 ? priorityBadge(info.stars) : ''}${typeChip(t)}<span class="tdue ${hot ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span></div>
+    </div>
+    <button class="tcheck" onclick="event.stopPropagation();toggleDone('${t.id}')" aria-label="ทำเสร็จ"></button>
+  </div>`;
+}
+
 function taskCard(t, rank, now) {
   const info = priorityInfo(t, now);
   const hot = info.urgency === 'over' || info.urgency === 'hot';
@@ -188,20 +224,24 @@ function renderHome() {
   document.getElementById('greeting').textContent = `${greet}, ${name}`;
   document.getElementById('homeSub').textContent =
     `${fmtThaiDate(now)}  ·  งานค้าง ${pending.length}  ·  เสร็จแล้ว ${doneToday}`;
-  document.getElementById('aiMsg').textContent = aiGreeting(pending, state.settings, now);
 
   const box = document.getElementById('top3');
   const planBtn = document.getElementById('planBtn');
   const seeAll = document.getElementById('seeAllBtn');
   if (planBtn) planBtn.style.display = pending.length ? 'block' : 'none';
   if (seeAll) seeAll.style.display = pending.length > 3 ? 'flex' : 'none';
+  if (seeAll && pending.length > 3) seeAll.querySelector('span').textContent = `ดูงานทั้งหมด ${pending.length} งาน`;
   if (!pending.length) {
     box.innerHTML = `<div class="card empty">ยังไม่มีงานในระบบ<br>
       กดปุ่ม <b>Scan</b> ด้านล่างเพื่อเพิ่มงานแรก<br>
       <span class="hint">หรือลองข้อมูลตัวอย่างได้ที่แท็บ “ฉัน”</span></div>`;
     return;
   }
-  box.innerHTML = pending.slice(0, 3).map((t, i) => taskCard(t, i + 1, now)).join('');
+  // ลำดับสายตา: งานหลัก 1 ชิ้นเด่นชัด → งานถัดไปย่อเป็นแถว
+  const rest = pending.slice(1, 3);
+  box.innerHTML = heroCard(pending[0], pending, now)
+    + (rest.length ? `<div class="sect" style="margin-top:18px">ถัดไป</div>` : '')
+    + rest.map((t, i) => nextRow(t, i + 2, now)).join('');
 }
 
 function taskRow(t, now) {

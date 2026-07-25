@@ -4,12 +4,35 @@
    หัวข้อหนาใหญ่, ไอคอนเรียบ
    ============================================================ */
 
+/* ============ ระบบสี 60-30-10 ============
+   60% พื้น (เทาอ่อน + การ์ดขาว) · 30% โครงสร้าง (กรมท่า/เทา/พื้นรอง)
+   10% สีเน้น (น้ำเงินแบรนด์) + สีเตือนที่ใช้เฉพาะของด่วนจริงเท่านั้น
+   กติกา: สีสด = ข้อมูลสำคัญเท่านั้น ที่เหลือเป็นกลางทั้งหมด          */
 :root{
-  --pg:#EEF1F6; --pg-ink:#21242B; --pg-muted:#6B7080;
-  --scr:#F4F6FA; --card:#FFFFFF; --ink:#17181C; --muted:#73788A;
-  --blue:#1465E0; --blue-soft:#E8F0FE; --blue-deep:#0B4DB3;
-  --line:#E4E8F0; --good:#1F9D5B; --fire:#E8590C;
-  --shadow:0 2px 12px rgba(23,40,80,.07);
+  /* 60% — ผืนหลัก */
+  --scr:#F5F6F9; --card:#FFFFFF;
+  /* 30% — โครงสร้างและตัวอักษร */
+  --ink:#0F172A; --muted:#64748B; --surface:#EEF1F6; --line:#E4E8EF;
+  /* 10% — สีเน้น (ใช้ให้น้อย) */
+  --blue:#2563EB; --blue-soft:#EAF1FE; --blue-deep:#1D4ED8;
+  --alert:#DC2626; --alert-soft:#FDE9E7;   /* เฉพาะเลยกำหนด / ด่วนมาก */
+  --warn:#B45309;  --warn-soft:#FBF0DD;    /* สำคัญ */
+  --good:#15803D; --fire:#DC2626;
+  --shadow:0 1px 3px rgba(15,23,42,.05), 0 8px 22px rgba(15,23,42,.05);
+  /* พื้นเว็บรอบกรอบมือถือ */
+  --pg:#E9ECF2; --pg-ink:#0F172A; --pg-muted:#64748B;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --scr:#0F1218; --card:#171B22;
+    --ink:#E8EAEE; --muted:#98A1B2; --surface:#20252E; --line:#262C36;
+    --blue:#5B8DEF; --blue-soft:#1B2540; --blue-deep:#9BB8F7;
+    --alert:#F87171; --alert-soft:#3A1E1E;
+    --warn:#E0A860;  --warn-soft:#372A17;
+    --good:#4ADE80; --fire:#F87171;
+    --shadow:0 1px 3px rgba(0,0,0,.3), 0 8px 22px rgba(0,0,0,.28);
+    --pg:#0B0E13; --pg-ink:#E8EAEE; --pg-muted:#98A1B2;
+  }
 }
 
 *{margin:0; padding:0; box-sizing:border-box}
@@ -50,6 +73,11 @@ body{
   margin-bottom:6px; box-shadow:var(--shadow); transition:background .15s}
 .sect-more svg{width:18px; height:18px}
 .sect-more:active{background:var(--blue-soft)}
+/* แบบเต็มความกว้าง ใช้ท้ายรายการ */
+.sect-more.wide{width:100%; border-radius:14px; min-height:46px; gap:8px; margin:2px 0 0;
+  font-size:14px; font-weight:700; font-family:inherit; color:var(--muted); box-shadow:none;
+  background:transparent; border:1.5px solid var(--line)}
+.sect-more.wide svg{width:16px; height:16px}
 
 /* ชิปกรองแบบเม็ดยา — เลือกอยู่ = ทึบเข้ม */
 .filter-row{display:flex; gap:8px; overflow-x:auto; padding:2px 2px 12px; margin:0 -2px;
@@ -81,6 +109,33 @@ body{
 .ai-msg{font-size:14.5px; line-height:1.6; color:#1B2B4A}
 .card h4{font-size:16px; font-weight:700; margin:0}
 
+/* ---------- Home: การ์ดงานหลัก (ตัวเดียวที่เด่น) ----------
+   หลักการ: ตาต้องเจอ "ทำอะไรก่อน" ภายในวินาทีเดียว
+   งานที่เหลือย่อเป็นแถวเล็ก ไม่แย่งความสนใจ */
+.hero{background:var(--card); border-radius:20px; box-shadow:var(--shadow); padding:18px 18px 16px;
+  margin-bottom:8px; cursor:pointer; border-left:4px solid var(--blue)}
+.hero.urgent{border-left-color:var(--alert)}
+.hero-eyebrow{font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--blue); margin-bottom:7px}
+.hero.urgent .hero-eyebrow{color:var(--alert)}
+.hero-title{font-size:19px; font-weight:800; line-height:1.35; margin:0 0 6px; letter-spacing:-.01em}
+.hero-meta{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:13px; color:var(--muted); font-weight:600}
+.dotsep{opacity:.45}
+.hero-meta .tdue.hot{color:var(--alert)}
+.hero-why{display:flex; gap:8px; align-items:flex-start; font-size:13px; line-height:1.55; color:var(--muted);
+  border-top:1px solid var(--line); margin-top:13px; padding-top:11px}
+.hero-why .ai-mark{color:var(--blue); font-weight:800; flex:none}
+.hero .btn{margin-top:13px}
+
+/* งานถัดไป — แถวเรียบ ๆ อ่านเร็ว */
+.nrow{display:flex; align-items:center; gap:12px; background:var(--card); border-radius:14px;
+  box-shadow:var(--shadow); padding:12px 14px; margin-bottom:8px; cursor:pointer}
+.nrank{width:22px; height:22px; flex:none; border-radius:7px; background:var(--surface); color:var(--muted);
+  font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; font-variant-numeric:tabular-nums}
+.nbody{flex:1; min-width:0}
+.ntitle{font-size:14.5px; font-weight:700; line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.nmeta{display:flex; align-items:center; gap:8px; margin-top:3px}
+
 /* ---------- task card (Home Top 3) ---------- */
 .tcard{background:var(--card); border-radius:18px; box-shadow:var(--shadow); padding:14px 14px 14px 12px; margin-bottom:10px; display:flex; gap:11px; align-items:flex-start; cursor:pointer; transition:box-shadow .15s}
 .tcard:active{box-shadow:0 1px 4px rgba(23,40,80,.1)}
@@ -94,19 +149,12 @@ body{
 .tdue.hot{color:var(--fire); font-weight:700}
 .pin{font-size:12px; opacity:.8}
 
-/* ป้ายระดับความสำคัญ */
-.pbadge{font-size:11px; font-weight:700; padding:2px 9px; border-radius:99px; white-space:nowrap; letter-spacing:.01em}
-.pbadge.lv5{background:#FDE7E5; color:#C0362C}
-.pbadge.lv4{background:#FCEBDD; color:#C4550A}
-.pbadge.lv3{background:#FCF3D9; color:#A97A0B}
-.pbadge.lv2{background:var(--blue-soft); color:var(--blue-deep)}
-.pbadge.lv1{background:#EEF0F3; color:#6B7280}
-@media (prefers-color-scheme: dark){
-  .pbadge.lv5{background:rgba(224,55,55,.16); color:#F0938B}
-  .pbadge.lv4{background:rgba(247,103,7,.16); color:#F0A876}
-  .pbadge.lv3{background:rgba(245,166,35,.16); color:#E6BE6B}
-  .pbadge.lv1{background:rgba(152,162,179,.16); color:#AEB4C0}
-}
+/* ป้ายระดับความสำคัญ — ใส่สีเฉพาะของด่วนจริง ที่เหลือเป็นกลาง
+   (เดิมใช้ 5 เฉดแข่งกันจนตาลาย ไม่มีอะไรเด่นจริง) */
+.pbadge{font-size:11px; font-weight:700; padding:2px 9px; border-radius:99px; white-space:nowrap;
+  letter-spacing:.01em; background:var(--surface); color:var(--muted)}
+.pbadge.lv5{background:var(--alert-soft); color:var(--alert)}
+.pbadge.lv4{background:var(--warn-soft); color:var(--warn)}
 
 /* checkbox กลม — พื้นที่แตะจริง 44px ตามมาตรฐาน แต่วงกลมที่มองเห็นขนาด 24px
    (margin ติดลบดึงกลับ ไม่ให้กินพื้นที่ layout เพิ่ม) */
@@ -228,7 +276,7 @@ label.btn{display:block}
 /* ---------- task progress % ---------- */
 .progress-row{display:flex; align-items:center; gap:8px; margin-top:8px}
 .progress-track{flex:1; height:7px; background:var(--line); border-radius:4px; overflow:hidden}
-.progress-fill{height:100%; background:linear-gradient(90deg,var(--blue),#4D9FFF); border-radius:4px}
+.progress-fill{height:100%; background:var(--blue); border-radius:4px}
 .progress-pct{font-size:11.5px; font-weight:700; color:var(--blue-deep); font-variant-numeric:tabular-nums; flex:none}
 input[type=range]{width:100%; accent-color:var(--blue); height:28px}
 
@@ -343,35 +391,25 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px}
 .tl-group{margin-bottom:6px}
 .tl-head{font-size:12.5px; font-weight:800; color:var(--blue-deep); text-transform:uppercase; letter-spacing:.08em; margin:16px 6px 8px}
 .tl-item{display:flex; gap:12px; align-items:center}
-.tl-bar{width:5px; align-self:stretch; border-radius:3px; background:var(--line); flex:none}
-.tl-bar.hot{background:var(--fire)}
-.tl-bar.mid{background:#F5A623}
-.tl-bar.lv5{background:#E03131}
-.tl-bar.lv4{background:#F76707}
-.tl-bar.lv3{background:#F5A623}
-.tl-bar.lv2{background:#1465E0}
-.tl-bar.lv1{background:#98A2B3}
+/* แถบสีเส้นเวลา — ไล่จากเข้มไปเรียบ ไม่ใช่คนละสี */
+.tl-bar{width:4px; align-self:stretch; border-radius:3px; background:var(--line); flex:none}
+.tl-bar.hot, .tl-bar.lv5{background:var(--alert)}
+.tl-bar.mid, .tl-bar.lv4{background:var(--warn)}
+.tl-bar.lv3{background:var(--muted); opacity:.45}
+.tl-bar.lv2, .tl-bar.lv1{background:var(--line)}
 
-/* legend อธิบายสี */
+/* legend อธิบายสี — เหลือ 3 ระดับที่มีความหมายจริง */
 .legend{display:flex; flex-wrap:wrap; gap:10px 14px; font-size:11.5px; color:var(--muted); margin:0 4px 14px}
 .legend span{display:flex; align-items:center; gap:5px}
 .legend .dot{width:10px; height:10px; border-radius:3px; display:inline-block}
-.dot.lv5{background:#E03131}
-.dot.lv4{background:#F76707}
-.dot.lv3{background:#F5A623}
-.dot.lv2{background:#1465E0}
-.dot.lv1{background:#98A2B3}
+.dot.lv5{background:var(--alert)}
+.dot.lv4{background:var(--warn)}
+.dot.lv3{background:var(--line)}
 
-/* ป้ายประเภท (สอบ / กิจกรรม / อื่น ๆ) — การบ้านเป็นค่าปกติจึงไม่ติดป้าย */
-.tchip{font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; white-space:nowrap; background:#EEF0F3; color:#5B6373}
-.tchip.exam{background:#EDE9FE; color:#5B3FBF}
-.tchip.activity{background:#E3F6EC; color:#177F52}
-.tchip.reminder{background:#F1F3F7; color:#5B6373}
-@media (prefers-color-scheme: dark){
-  .tchip{background:#262A32; color:#AEB4C0}
-  .tchip.exam{background:rgba(139,92,246,.18); color:#C4B1F5}
-  .tchip.activity{background:rgba(16,185,129,.16); color:#6FD3A6}
-}
+/* ป้ายประเภท — เป็นกลางทั้งหมด ให้ไอคอนสื่อความหมายแทนสี
+   (สีสงวนไว้บอกความด่วนอย่างเดียว จะได้ไม่แย่งความหมายกัน) */
+.tchip{font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; white-space:nowrap;
+  background:var(--surface); color:var(--muted)}
 
 /* ปุ่มเลือกประเภทในฟอร์ม */
 .type-pick{display:grid; grid-template-columns:1fr 1fr; gap:8px}
