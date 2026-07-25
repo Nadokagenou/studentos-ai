@@ -52,6 +52,9 @@ async function initCloud() {
     currentUser = sess ? sess.user : null;
     if (currentUser && !wasLoggedIn) {
       // เพิ่งล็อกอินเสร็จ (รวมถึงกลับมาจากหน้า Google)
+      if ('Notification' in window && Notification.permission === 'granted') {
+        subscribePush().catch(() => {}); // ผูก push กับบัญชีที่เพิ่งล็อกอิน
+      }
       syncFromCloud().then(() => go(state.tasks.length ? 'scr-home' : 'scr-scan'));
     } else {
       renderAll();
@@ -324,8 +327,19 @@ function renderProfile() {
     st.textContent = 'เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน';
     if (nb) nb.style.display = 'none';
   } else if (Notification.permission === 'granted') {
-    st.textContent = 'เปิดอยู่ — เตือนงานที่ใกล้ส่งใน 24 ชม. ขณะเปิดแอป';
-    if (nb) nb.style.display = 'none'; // เปิดแล้วไม่ต้องโชว์ปุ่มซ้ำ
+    if (pushState === 'on' && currentUser) {
+      st.textContent = 'เปิดอยู่ — เตือนก่อนถึงกำหนดส่ง แม้ปิดแอปอยู่';
+      if (nb) nb.style.display = 'none';
+    } else if (pushState === 'on') {
+      st.textContent = 'เปิดอยู่ — แต่เตือนได้เฉพาะตอนเปิดแอป · ล็อกอินด้วย Google เพื่อให้เตือนแม้ปิดแอป';
+      if (nb) nb.style.display = 'none';
+    } else if (pushState === 'unsupported') {
+      st.textContent = 'เปิดอยู่ — เตือนขณะเปิดแอป (เบราว์เซอร์นี้ไม่รองรับการเตือนนอกแอป)';
+      if (nb) nb.style.display = 'none';
+    } else {
+      st.textContent = 'เปิดอยู่ — เตือนขณะเปิดแอป';
+      if (nb) { nb.style.display = 'block'; nb.textContent = 'เปิดการเตือนแม้ปิดแอป'; }
+    }
   } else if (Notification.permission === 'denied') {
     st.textContent = 'ถูกปิดไว้ในเบราว์เซอร์ — เปิดได้ที่การตั้งค่าเว็บไซต์';
     if (nb) nb.style.display = 'none';
@@ -538,9 +552,73 @@ function saveProfile() {
   alert('บันทึกแล้ว ✓');
 }
 
-function enableNotif() {
+// ---------- Web Push: สมัครรับการเตือนแม้ปิดแอป ----------
+function urlB64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const b64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(b64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+let pushState = 'unknown'; // unknown | on | off | unsupported | need-login
+
+function pushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window && !!window.VAPID_PUBLIC_KEY;
+}
+
+async function refreshPushState() {
+  if (!pushSupported()) { pushState = 'unsupported'; return; }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    pushState = sub ? 'on' : 'off';
+  } catch (_) { pushState = 'off'; }
+}
+
+async function subscribePush() {
+  if (!pushSupported()) return false;
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlB64ToUint8Array(window.VAPID_PUBLIC_KEY),
+    });
+  }
+  // เก็บ subscription ไว้บน cloud เพื่อให้เซิร์ฟเวอร์ส่ง push ได้ (ต้องล็อกอิน)
+  if (sb && currentUser) {
+    const j = sub.toJSON();
+    const { error } = await sb.from('push_subscriptions').upsert({
+      user_id: currentUser.id,
+      endpoint: j.endpoint,
+      p256dh: j.keys.p256dh,
+      auth: j.keys.auth,
+      tz_offset: -new Date().getTimezoneOffset(),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'endpoint' });
+    if (error) { console.warn('[push] save failed:', error.message); return false; }
+  }
+  pushState = 'on';
+  return true;
+}
+
+async function enableNotif() {
   if (!('Notification' in window)) return;
-  Notification.requestPermission().then(() => { renderProfile(); checkReminders(); });
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') { renderProfile(); return; }
+  try {
+    const ok = await subscribePush();
+    if (ok && !(sb && currentUser)) {
+      showToast({ title: 'เปิดการเตือนแล้ว 🔔', body: 'ล็อกอินด้วย Google เพิ่ม เพื่อให้เตือนได้แม้ปิดแอป' });
+    } else if (ok) {
+      showToast({ title: 'เปิดการเตือนแล้ว 🔔', body: 'จะเตือนก่อนถึงกำหนดส่ง แม้ปิดแอปอยู่' });
+    }
+  } catch (e) {
+    console.warn('[push] subscribe failed:', e.message);
+    showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'แต่ยังตั้งการเตือนนอกแอปไม่ได้ ลองใหม่อีกครั้งภายหลัง' });
+  }
+  renderProfile();
+  checkReminders();
 }
 
 // ---------- ข้อความเตือนสไตล์เพื่อน (แนว Duolingo) ----------
@@ -678,6 +756,11 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   checkReminders();
 
   await initCloud();
+  await refreshPushState();
+  // เคยกดอนุญาตไว้แล้ว + ล็อกอินอยู่ → ต่อ push ให้อัตโนมัติ (เผื่อ subscription หลุด)
+  if ('Notification' in window && Notification.permission === 'granted' && currentUser) {
+    subscribePush().then(() => renderProfile()).catch(() => {});
+  }
 
   if (cloudConfigured() && !currentUser && !localStorage.getItem('studentos.skipLogin')) {
     go('scr-login'); // มีระบบบัญชี + ยังไม่เคยเลือก → ให้เลือกก่อน

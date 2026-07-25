@@ -1,6 +1,6 @@
 // StudentOS AI — Service Worker
 // กลยุทธ์: network-first (ได้เวอร์ชันใหม่เสมอเมื่อมีเน็ต) + cache fallback (เปิด offline ได้)
-const CACHE = 'studentos-v12';
+const CACHE = 'studentos-v13';
 const SHELL = ['.', 'index.html', 'style.css', 'engine.js', 'app.js', 'config.js', 'manifest.json', 'icon-192.png', 'icon-512.png', 'logo-mark.png'];
 
 self.addEventListener('install', e => {
@@ -11,6 +11,35 @@ self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
+  );
+});
+
+// ---------- Web Push: เตือนได้แม้ปิดแอป ----------
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = { title: 'StudentOS AI', body: e.data ? e.data.text() : '' }; }
+  const title = d.title || 'StudentOS AI';
+  e.waitUntil(self.registration.showNotification(title, {
+    body: d.body || '',
+    icon: 'icon-192.png',
+    badge: 'icon-192.png',
+    tag: d.tag || 'studentos-reminder',
+    renotify: true,
+    requireInteraction: false,
+    data: { url: d.url || './' },
+  }));
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const target = (e.notification.data && e.notification.data.url) || './';
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) {
+        if (c.url.includes(self.registration.scope) && 'focus' in c) return c.focus();
+      }
+      return self.clients.openWindow(target);
+    })
   );
 });
 
