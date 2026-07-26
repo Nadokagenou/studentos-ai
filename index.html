@@ -164,6 +164,29 @@
         </div>
       </div>
 
+      <!-- ============ SCREEN: AI กำลังอ่าน (สถานะระหว่างแกะข้อความ) ============ -->
+      <div class="screen flush" id="scr-parsing">
+        <div class="scr-body parse-body">
+          <div>
+            <div class="pr-head">
+              <span class="pr-dot"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+              <h2 class="pr-h">AI กำลังอ่าน…</h2>
+            </div>
+            <p class="pr-p" id="parseSub">แกะวิชา ครู กำหนดส่ง คะแนน และเวลาที่ต้องใช้จากข้อความที่แปะมา</p>
+          </div>
+          <div class="skel-card">
+            <div class="skel-row"><span class="k"></span><span class="v" style="max-width:78%"></span></div>
+            <div class="skel-row"><span class="k"></span><span class="v" style="max-width:92%"></span></div>
+            <div class="skel-row"><span class="k"></span><span class="v" style="max-width:64%"></span></div>
+            <div class="skel-row"><span class="k"></span><span class="v" style="max-width:85%"></span></div>
+            <div class="skel-row"><span class="k"></span><span class="v" style="max-width:55%"></span></div>
+          </div>
+          <div class="pr-steps" id="parseSteps"></div>
+          <div class="pr-bar"><div class="fill" id="parseFill" style="width:10%"></div></div>
+          <button class="pr-go" id="parseGo" style="display:none" onclick="showParsedResult()">ดูผลที่ AI อ่านได้ →</button>
+        </div>
+      </div>
+
       <!-- ============ SCREEN: FORM (ยืนยัน/แก้ไข) ============ -->
       <div class="screen flush" id="scr-form">
         <div class="scr-body form-body">

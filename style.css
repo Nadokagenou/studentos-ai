@@ -870,3 +870,59 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .fm-save:active{transform:scale(.98)}
 .fm-cancel{width:100%; min-height:44px; border:none; border-radius:14px; background:transparent;
   color:var(--muted); font-family:inherit; font-size:13.5px; font-weight:500; cursor:pointer}
+
+/* ---------- AI กำลังอ่าน (skeleton) ---------- */
+.parse-body{padding-top:22px; gap:22px}
+.pr-head{display:flex; align-items:center; gap:8px}
+.pr-dot{width:26px; height:26px; border-radius:9px; background:var(--blue); color:#fff; flex:none;
+  display:flex; align-items:center; justify-content:center}
+.pr-dot svg{width:15px; height:15px}
+.pr-h{font-size:20px; font-weight:700; letter-spacing:-.028em; margin:0}
+.pr-p{font-size:13px; color:var(--muted); margin:8px 0 0; line-height:1.6}
+.skel-card{background:var(--card); border-radius:22px; box-shadow:var(--shadow); padding:18px;
+  display:flex; flex-direction:column; gap:15px}
+.skel-row{display:flex; align-items:center; gap:13px}
+.skel-row .k{width:74px; flex:none; height:9px; border-radius:99px; background:var(--skel)}
+.skel-row .v{flex:1; height:15px; border-radius:8px; background-size:220px 100%;
+  background:linear-gradient(90deg,var(--skel) 0%,var(--skel-hi) 50%,var(--skel) 100%);
+  animation:shimmer 1.25s linear infinite}
+@keyframes shimmer{0%{background-position:-220px 0} 100%{background-position:220px 0}}
+@media (prefers-reduced-motion: reduce){ .skel-row .v{animation:none} }
+.pr-steps{display:flex; flex-direction:column; gap:10px}
+.pr-step{display:flex; align-items:center; gap:10px; font-size:13px; font-weight:500; color:var(--faint)}
+.pr-step .dot{width:20px; height:20px; flex:none; border-radius:50%; background:var(--card2); color:var(--faint);
+  display:flex; align-items:center; justify-content:center}
+.pr-step .dot svg{width:12px; height:12px}
+.pr-step.on{color:var(--good)}
+.pr-step.on .dot{background:var(--good-soft); color:var(--good)}
+.pr-bar{height:5px; border-radius:99px; background:var(--card2); overflow:hidden}
+.pr-bar .fill{height:100%; border-radius:99px; background:var(--blue); transition:width .35s ease}
+.pr-go{border:none; background:none; font-family:inherit; font-size:13px; font-weight:600;
+  color:var(--blue); cursor:pointer; min-height:44px}
+
+/* ---------- หน้าแรกตอนเคลียร์หมด ---------- */
+.empty-wrap{display:flex; flex-direction:column; align-items:center; text-align:center; padding:26px 4px 0; gap:0}
+.empty-ring{width:104px; height:104px; border-radius:50%; background:var(--blue-soft); color:var(--blue);
+  display:flex; align-items:center; justify-content:center; margin-bottom:20px}
+.empty-ring svg{width:44px; height:44px; stroke-width:1.7}
+.empty-h{font-size:22px; font-weight:700; letter-spacing:-.026em; margin:0}
+.empty-p{font-size:13.5px; line-height:1.65; color:var(--muted); margin:9px 0 0; max-width:270px}
+.empty-note{display:flex; gap:9px; align-items:flex-start; background:var(--card); border-radius:16px;
+  box-shadow:var(--shadow); padding:13px 15px; margin-top:20px; text-align:left; width:100%}
+.empty-note svg{width:15px; height:15px; flex:none; margin-top:2px; color:var(--blue)}
+.empty-note span{font-size:12.5px; line-height:1.6; color:var(--muted)}
+.empty-cta{width:100%; min-height:52px; margin-top:18px; border:none; border-radius:16px; background:var(--blue);
+  color:#fff; font-family:inherit; font-size:15px; font-weight:600; cursor:pointer; box-shadow:var(--shadow-brand);
+  display:flex; align-items:center; justify-content:center; gap:8px; transition:transform .14s ease}
+.empty-cta:active{transform:scale(.98)}
+.empty-cta svg{width:18px; height:18px}
+
+/* ---------- แถวสถิติวันติดต่อกัน (ท้ายหน้าแรก) ---------- */
+.streak{background:var(--card); border-radius:20px; box-shadow:var(--shadow); padding:15px 16px;
+  display:flex; flex-direction:column; gap:11px}
+.streak-days{display:flex; gap:7px; justify-content:space-between}
+.streak-days span{flex:1; min-width:0; height:30px; border-radius:9px; background:var(--card2); color:var(--faint);
+  font-size:10.5px; font-weight:600; display:flex; align-items:center; justify-content:center}
+.streak-days span.on{background:var(--good-soft); color:var(--good)}
+.streak-txt{font-size:12.5px; color:var(--muted); text-align:center}
+.streak-txt b{color:var(--ink); font-weight:700}

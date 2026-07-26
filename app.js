@@ -25,6 +25,7 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function pendingTasks() { return state.tasks.filter(t => !t.done); }
 
 // ---------- navigation ----------
+function go2(id){ return go(id); }
 function go(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
   document.getElementById(id).classList.add('on');
@@ -245,6 +246,21 @@ function taskCard(t, rank, now) {
   </div>`;
 }
 
+
+// แถวสถิติ "ส่งตรงเวลากี่วันติด" — ให้เห็นความต่อเนื่อง ไม่ใช่แค่ตัวเลขรวม
+function streakSection() {
+  const days = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+  const now = new Date();
+  const doneDays = new Set(state.tasks.filter(t => t.done && t.due)
+    .map(t => new Date(t.due).getDay()));
+  if (!doneDays.size) return '';
+  const cells = days.map((d, i) => `<span class="${doneDays.has(i) ? 'on' : ''}">${d}</span>`).join('');
+  return `<section><div class="streak">
+    <div class="streak-days">${cells}</div>
+    <div class="streak-txt">ส่งตรงเวลา <b>${doneDays.size} วัน</b> ในสัปดาห์นี้</div>
+  </div></section>`;
+}
+
 function renderHome() {
   const now = new Date();
   const pending = sortByPriority(pendingTasks(), now);
@@ -263,9 +279,17 @@ function renderHome() {
 
   const body = document.getElementById('homeBody');
   if (!pending.length) {
-    body.innerHTML = `<section><div class="card empty">${doneToday ? 'เคลียร์งานหมดแล้ว 🎉<br>วันนี้พักได้เต็มที่' : 'ยังไม่มีงานในระบบ'}<br>
-      กดปุ่ม <b>เพิ่ม</b> ด้านล่างเพื่อเริ่ม<br>
-      <span class="hint">หรือลองข้อมูลตัวอย่างได้ที่แท็บ “ฉัน”</span></div></section>`;
+    // เคลียร์หมด — เป็นช่วงเวลาที่ควรให้กำลังใจ ไม่ใช่จอว่างเปล่า
+    const cleared = doneToday > 0;
+    body.innerHTML = `<section class="empty-wrap">
+      <div class="empty-ring">${icon('check-circle')}</div>
+      <h3 class="empty-h">${cleared ? 'เคลียร์หมดแล้ว' : 'ยังไม่มีงานในระบบ'}</h3>
+      <p class="empty-p">${cleared
+        ? 'ไม่มีงานค้างสักงาน — วันนี้พักได้เต็มที่<br>ครูสั่งอะไรมาใหม่ กดปุ่มกลางแถบล่างแล้วให้ AI แกะให้'
+        : 'กดปุ่มกลางแถบล่างเพื่อเพิ่มงานแรก<br>พูด ถ่ายรูป หรือแปะข้อความจาก LINE ก็ได้'}</p>
+      ${cleared ? `<div class="empty-note">${icon('sparkles')}<span>ทำเสร็จไปแล้ว ${doneToday} งาน — รักษาจังหวะนี้ไว้ คะแนนเก็บจะเต็มทั้งเทอม</span></div>` : ''}
+      <button class="empty-cta" onclick="go('scr-scan')">${icon('sparkles')}เพิ่มงานแรกของวัน</button>
+    </section>` + streakSection();
     return;
   }
 
@@ -692,6 +716,45 @@ function saveForm() {
   go('scr-home');
 }
 
+
+// ---------- สถานะ "AI กำลังอ่าน" ----------
+// ให้ผู้ใช้เห็นว่าระบบกำลังทำงานอยู่ แทนที่จะกระโดดเข้าฟอร์มทันที
+let parsedPending = null;
+function runParsing(text, source) {
+  parsedPending = parseAssignment(text);
+  const p = parsedPending.detected || {};
+  const steps = [
+    { on: true,  label: `อ่านตัวหนังสือครบ ${text.trim().length} ตัวอักษร` },
+    { on: !!(p.subject || p.teacher || p.score),
+      label: [p.subject && 'วิชา', p.teacher && 'ครูผู้สั่ง', p.score && 'คะแนนเก็บ'].filter(Boolean).join(' · ') || 'ยังไม่เจอวิชา/ครู' },
+    { on: !!(p.due || p.est), label: 'กำลังตีความกำหนดส่งและเวลาที่ต้องใช้' },
+  ];
+  const sub = document.getElementById('parseSub');
+  if (sub) sub.textContent = source === 'voice'
+    ? 'แกะสิ่งที่คุณพูดเป็นวิชา กำหนดส่ง คะแนน และเวลาที่ต้องใช้'
+    : 'แกะวิชา ครู กำหนดส่ง คะแนน และเวลาที่ต้องใช้จากข้อความที่แปะมา';
+  const box = document.getElementById('parseSteps');
+  const fill = document.getElementById('parseFill');
+  const go = document.getElementById('parseGo');
+  if (go) go.style.display = 'none';
+  if (box) box.innerHTML = '';
+  go2('scr-parsing');
+
+  steps.forEach((st, i) => setTimeout(() => {
+    if (box) box.insertAdjacentHTML('beforeend',
+      `<div class="pr-step ${st.on ? 'on' : ''}">
+         <span class="dot">${icon('check')}</span>${esc(st.label)}</div>`);
+    if (fill) fill.style.width = Math.round((i + 1) / steps.length * 100) + '%';
+  }, 380 * (i + 1)));
+
+  setTimeout(() => { if (go) go.style.display = 'block'; showParsedResult(); }, 380 * steps.length + 520);
+}
+function showParsedResult() {
+  if (!parsedPending) return;
+  const p = parsedPending; parsedPending = null;
+  openForm(null, p);
+}
+
 // ---------- scan: เสียงพูด (Web Speech API) ----------
 let recog = null, recogActive = false;
 
@@ -768,7 +831,7 @@ function toggleVoice() {
     }
     setVoiceUI({ recording: false, text: text, dim: false });
     document.getElementById('voiceBox').hidden = true;
-    openForm(null, parseAssignment(text));
+    runParsing(text, 'voice');
   };
 
   try { recog.start(); }
@@ -779,9 +842,8 @@ function toggleVoice() {
 function scanFromText() {
   const text = document.getElementById('pasteText').value.trim();
   if (!text) { alert('แปะข้อความก่อนนะ'); return; }
-  const parsed = parseAssignment(text);
   document.getElementById('pasteText').value = '';
-  openForm(null, parsed);
+  runParsing(text, 'paste');
 }
 
 // ---------- scan: รูป (OCR ด้วย Tesseract.js) ----------
@@ -842,7 +904,7 @@ async function scanFromPhoto(file) {
     st.textContent = ''; barWrap.hidden = true;
     const text = (data.text || '').trim();
     if (text.length < 5) { alert('อ่านตัวหนังสือจากรูปไม่ได้ — ลองถ่ายให้ชัดขึ้น สว่างขึ้น หรือแปะข้อความแทน'); return; }
-    openForm(null, parseAssignment(text));
+    runParsing(text, 'ocr');
   } catch (e) {
     st.textContent = ''; barWrap.hidden = true;
     console.error('[OCR]', e);
