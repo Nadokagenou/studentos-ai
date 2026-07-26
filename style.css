@@ -233,7 +233,9 @@ body{
 .tab.active .ic{stroke-width:2.3}
 
 /* ปุ่มเพิ่มงาน: กว้างคงที่ ไม่มีข้อความ จึงสูงเท่าปุ่มอื่นพอดี */
-.tab.scan{flex:none; width:56px; padding:0; background:none}
+/* ปุ่มกลางไม่มีตัวหนังสือใต้ไอคอน ถ้าปล่อยให้จัดกึ่งกลางเองจะจมต่ำกว่าไอคอนอื่น 10px
+   ยกขึ้นมาให้จุดกึ่งกลางอยู่แนวเดียวกับไอคอนที่เหลือ (ยกทั้งปุ่ม พื้นที่แตะจึงตามไปด้วย) */
+.tab.scan{flex:none; width:56px; padding:0; background:none; position:relative; top:-10px}
 .tab.scan .scan-dot{width:38px; height:38px; border-radius:14px;
   background:var(--grad-brand); color:#fff;
   display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-brand);

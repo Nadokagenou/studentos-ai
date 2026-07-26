@@ -3,7 +3,7 @@
 // ข้อมูลจริง เก็บใน localStorage · ทุกจอ render จาก state
 // ============================================================
 
-const APP_VERSION = 'v33';
+const APP_VERSION = 'v34';
 const STORE_KEY = 'studentos.v1';
 const APP_T0 = performance.now(); // ใช้คุมเวลาโชว์ splash ขั้นต่ำ
 
