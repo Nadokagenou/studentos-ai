@@ -219,28 +219,30 @@ body{
 .btn.sm{min-height:44px; padding:12px 15px; font-size:13.5px; border-radius:13px}
 
 /* ---------- tab bar: แคปซูลลอย · ทุกปุ่มสูงเท่ากัน 48px ตามไฟล์ออกแบบ ---------- */
+/* แถบเมนู: แคปซูลลอย เว้นขอบซ้าย-ขวาเท่ากัน
+   ห้ามตั้ง position ให้ .tabbar ที่อื่นอีก ไม่งั้น left/right จะเพี้ยนแล้วแถบล้นขอบ */
 .tabbar{position:absolute; left:14px; right:14px; bottom:var(--tabgap);
   background:var(--glass); backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%);
-  border:1px solid var(--glass-line); border-radius:24px;
-  display:flex; align-items:center; justify-content:space-around; padding:7px 8px; z-index:5;
+  border:1px solid var(--glass-line); border-radius:20px;
+  display:flex; align-items:center; padding:5px 6px; z-index:5;
   box-shadow:var(--shadow-lg)}
-.tab{flex:1; min-height:48px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-  font-size:10px; font-weight:600; color:var(--muted); background:none; cursor:pointer; border:none;
-  font-family:inherit; border-radius:16px; padding:5px 2px; transition:all .16s ease;
-  -webkit-tap-highlight-color:transparent}
-.tab .ic{width:21px; height:21px; display:block; stroke-width:1.9}
+/* ทุกปุ่มโครงเดียวกันเป๊ะ: กล่องไอคอนสูง 22px + เว้น 3px + ตัวหนังสือ
+   ความสูงก้อนเท่ากันทุกปุ่ม แนวไอคอนกับแนวตัวหนังสือจึงตรงกันเองทั้งแถบ */
+.tab{flex:1; min-width:0; min-height:40px; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:3px; font-size:10px; font-weight:600; color:var(--muted);
+  background:none; cursor:pointer; border:none; font-family:inherit; border-radius:14px;
+  padding:4px 2px; transition:all .16s ease; -webkit-tap-highlight-color:transparent}
+.tab .ic{width:22px; height:22px; display:block; stroke-width:1.9}
 .tab.active{color:var(--blue-deep); background:var(--blue-soft)}
 .tab.active .ic{stroke-width:2.3}
 
-/* ปุ่มเพิ่มงาน: กว้างคงที่ ไม่มีข้อความ จึงสูงเท่าปุ่มอื่นพอดี */
-/* ปุ่มกลางไม่มีตัวหนังสือใต้ไอคอน ถ้าปล่อยให้จัดกึ่งกลางเองจะจมต่ำกว่าไอคอนอื่น 10px
-   ยกขึ้นมาให้จุดกึ่งกลางอยู่แนวเดียวกับไอคอนที่เหลือ (ยกทั้งปุ่ม พื้นที่แตะจึงตามไปด้วย) */
-.tab.scan{flex:none; width:56px; padding:0; background:none; position:relative; top:-10px}
-.tab.scan .scan-dot{width:38px; height:38px; border-radius:14px;
-  background:var(--grad-brand); color:#fff;
-  display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-brand);
-  transition:transform .16s ease}
-.tab.scan .scan-dot svg{width:20px; height:20px; stroke-width:2.1}
+/* ปุ่มเพิ่มงาน: กล่องสูงเท่าไอคอนอื่นเป๊ะ แต่กว้างกว่าและมีพื้นสีแบรนด์
+   จึงเด่นสุดในแถบโดยไม่ทำให้แถบสูงขึ้นและไม่หลุดแนว */
+.tab.scan .scan-dot{width:40px; height:22px; border-radius:8px;
+  background:var(--grad-brand); color:#fff; box-shadow:var(--glow-scan);
+  display:flex; align-items:center; justify-content:center; transition:transform .16s ease}
+.tab.scan .scan-dot svg{width:15px; height:15px; stroke-width:2.2}
+.tab.scan{color:var(--blue-deep)}
 .tab.scan:active .scan-dot{transform:scale(.92)}
 
 /* ---------- scan screen ---------- */
@@ -941,8 +943,11 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 @media (prefers-reduced-motion: reduce){
   :root[data-theme="space"] .starfield i{animation:none}
 }
-/* เนื้อหาต้องอยู่เหนือชั้นดาว */
-.statusbar, .screens, .tabbar{position:relative; z-index:1}
+/* เนื้อหาต้องอยู่เหนือชั้นดาว — แตะเฉพาะ statusbar เท่านั้น
+   (.screens เป็น relative อยู่แล้ว ส่วน .tabbar เป็น absolute + z-index:5 อยู่แล้ว
+   ถ้าเผลอตั้ง position ให้มันซ้ำ แถบจะหลุดจาก left/right แล้วล้นขอบขวา) */
+.statusbar{position:relative; z-index:1}
+.screens{z-index:1}
 
 /* ---------- ปรับโครงเดิมให้เข้ากับหน้าตา v33 ---------- */
 /* .screen คุม padding ให้แล้ว กล่องเนื้อหาจึงไม่ต้องเว้นซ้อนอีก */
