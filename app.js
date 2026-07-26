@@ -573,7 +573,7 @@ function setTypePick(type) {
   document.getElementById('fDateLabel').textContent = ti.dateLabel;
   document.getElementById('fDetailLabel').textContent =
     formType === 'exam' ? 'สอบเรื่องอะไร' : formType === 'activity' ? 'กิจกรรมอะไร' : formType === 'reminder' ? 'เรื่องอะไร' : 'งานที่ต้องทำ';
-  document.getElementById('fEstLabel').textContent = formType === 'exam' ? 'ใช้เวลาอ่าน (นาที)' : 'ใช้เวลา (นาที)';
+  document.getElementById('fEstLabel').textContent = formType === 'exam' ? 'ใช้เวลาอ่าน' : 'ใช้เวลา';
   document.getElementById('fDetail').placeholder =
     formType === 'exam' ? 'เช่น สอบกลางภาค บทที่ 1–5' :
     formType === 'activity' ? 'เช่น ตักบาตร คาบ 8–9' :
@@ -613,22 +613,30 @@ function openForm(id, parsed) {
   let t = null;
   if (id) t = state.tasks.find(x => x.id === id);
 
+  const okBadge = document.getElementById('fmOk');
   if (parsed) {
-    title.textContent = 'AI ตรวจพบ ✨';
-    sub.textContent = 'ตรวจสอบก่อนบันทึก — แก้สิ่งที่ AI อ่านผิดได้เสมอ';
+    title.textContent = 'ตรวจก่อนบันทึก';
+    sub.textContent = 'แก้ช่องที่ AI อ่านผิดได้ทุกช่อง — ระบบจะจำรูปแบบที่คุณแก้ไว้';
     const d = parsed.detected;
-    const found = [d.type && 'ประเภท', d.subject && 'วิชา', d.teacher && 'ครู', d.due && 'Deadline', d.score && 'คะแนน', d.est && 'เวลาที่ใช้'].filter(Boolean);
-    chips.innerHTML = found.map(x => `<span class="chip new">✔ ${x}</span>`).join('')
-      + (found.length < 3 ? `<span class="chip">บางช่องอ่านไม่เจอ — เติมเองได้เลย</span>` : '');
+    const fields = [[d.type,'ประเภท'],[d.subject,'วิชา'],[d.teacher,'ครูผู้สั่ง'],[d.due,'กำหนดส่ง'],[d.score,'คะแนน'],[d.est,'เวลาที่ใช้']];
+    const got = fields.filter(f => f[0]);
+    chips.innerHTML = got.map(f => `<span class="chip new">${icon('check')}${esc(f[1])}</span>`).join('')
+      + fields.filter(f => !f[0]).map(f => `<span class="chip">${esc(f[1])} — เติมเอง</span>`).join('');
+    if (okBadge) {
+      okBadge.className = 'fm-ok show';
+      okBadge.innerHTML = `${icon('check-circle')}AI อ่านได้ ${got.length} จาก ${fields.length} ช่อง`;
+    }
     t = parsed;
   } else if (t) {
-    title.textContent = 'แก้ไขงาน ✎';
-    sub.textContent = '';
+    title.textContent = 'แก้ไขงาน';
+    sub.textContent = 'ปรับรายละเอียดได้ทุกช่อง';
     chips.innerHTML = '';
+    if (okBadge) okBadge.className = 'fm-ok';
   } else {
     title.textContent = 'เพิ่มงานใหม่';
-    sub.textContent = 'กรอกเอง — หรือกลับไปใช้ Scan ให้ AI ช่วยอ่าน';
+    sub.textContent = 'กรอกเอง — หรือกลับไปให้ AI ช่วยอ่าน';
     chips.innerHTML = '';
+    if (okBadge) okBadge.className = 'fm-ok';
   }
 
   setTypePick(t ? taskType(t) : 'homework');
@@ -638,6 +646,7 @@ function openForm(id, parsed) {
   f.teacher.value = t?.teacher || '';
   f.score.value = t?.scorePct ?? '';
   f.est.value = t?.estMin || 30;
+  const ev=document.getElementById('fEstVal'); if(ev) ev.textContent=(t?.estMin||30)+' นาที';
   const prog = t?.progress || 0;
   document.getElementById('fProgress').value = prog;
   document.getElementById('fProgressVal').textContent = prog + '%';

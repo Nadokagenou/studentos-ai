@@ -804,3 +804,69 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .manual{border:none; background:none; font-family:inherit; font-size:13px; font-weight:500; color:var(--muted);
   cursor:pointer; min-height:44px; display:flex; align-items:center; justify-content:center; gap:7px}
 .manual svg{width:15px; height:15px}
+
+/* ---------- หน้ายืนยัน/แก้ไข (โครง Refined) ---------- */
+.form-body{padding-top:22px; gap:20px}
+.fm-ok{display:none; align-items:center; gap:6px; background:var(--good-soft); color:var(--good);
+  border-radius:8px; padding:4px 10px; font-size:11px; font-weight:600; letter-spacing:.02em}
+.fm-ok.show{display:inline-flex}
+.fm-ok svg{width:13px; height:13px}
+.fm-h{font-size:26px; font-weight:700; letter-spacing:-.032em; margin:11px 0 0; line-height:1.18}
+.fm-p{font-size:13px; color:var(--muted); margin:7px 0 0; line-height:1.6}
+.fm-chips{display:flex; flex-wrap:wrap; gap:7px}
+.fm-chips .chip{display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600;
+  padding:5px 10px; border-radius:8px; background:var(--card2); color:var(--muted)}
+.fm-chips .chip.new{background:var(--good-soft); color:var(--good)}
+.fm-chips .chip svg{width:12px; height:12px}
+
+.fm-card{background:var(--card); border-radius:22px; box-shadow:var(--shadow);
+  padding:18px 18px 20px; display:flex; flex-direction:column; gap:18px}
+.fld{display:flex; flex-direction:column; gap:8px; flex:1; min-width:0}
+.fld > label{font-size:11px; font-weight:600; color:var(--faint); letter-spacing:.08em; text-transform:uppercase}
+.fld-head{display:flex; align-items:baseline; justify-content:space-between}
+.fld-head label{font-size:11px; font-weight:600; color:var(--faint); letter-spacing:.08em; text-transform:uppercase}
+.fld-head .val{font-size:13px; font-weight:600; color:var(--blue); font-variant-numeric:tabular-nums}
+.fld-row{display:flex; gap:12px}
+.fld-hint{font-size:11.5px; color:var(--faint); margin:0; line-height:1.5}
+
+/* ช่องกรอกทั้งหมดหน้าตาเดียวกัน */
+.fm-card input[type=text], .fm-card input[type=number], .fm-card input[type=date],
+.fm-card input[type=time], .fm-card select{
+  background:var(--card2); border:none; border-radius:12px; min-height:46px; padding:0 13px;
+  font-size:14.5px; font-weight:500; font-family:inherit; color:var(--ink); width:100%;
+  font-variant-numeric:tabular-nums; -webkit-appearance:none; appearance:none}
+.fm-card select{background-image:none}
+.fm-card input:focus, .fm-card select:focus{outline:2px solid var(--blue); outline-offset:-2px}
+.fld-pair{display:flex; gap:8px}
+.fld-pair.accent input{background:var(--blue-soft); color:var(--blue-deep); font-weight:600}
+
+/* แถบเลื่อน */
+.fm-card input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:6px;
+  background:var(--card2); border-radius:99px; padding:0; min-height:0; outline:none}
+.fm-card input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px;
+  border-radius:50%; background:var(--card); box-shadow:0 2px 8px rgba(15,23,42,.2), 0 0 0 2px var(--blue); cursor:pointer}
+.fm-card input[type=range]::-moz-range-thumb{width:20px; height:20px; border:none; border-radius:50%;
+  background:var(--card); box-shadow:0 2px 8px rgba(15,23,42,.2), 0 0 0 2px var(--blue); cursor:pointer}
+
+/* เลือกประเภท 2x2 */
+.type-pick{display:grid; grid-template-columns:1fr 1fr; gap:9px}
+.tp{border:none; background:var(--card2); color:var(--muted); border-radius:13px; min-height:46px;
+  padding:8px 12px; font-size:13.5px; font-weight:600; font-family:inherit; cursor:pointer;
+  display:flex; align-items:center; gap:8px; transition:transform .14s ease}
+.tp svg{width:16px; height:16px; flex:none}
+.tp:active{transform:scale(.97)}
+.tp.active{background:var(--blue); color:#fff; box-shadow:var(--shadow-brand)}
+
+/* เลือกความสำคัญ */
+.star-pick{display:flex; gap:7px; flex-wrap:wrap}
+.sp{border:none; background:var(--card2); color:var(--muted); border-radius:11px; min-height:44px;
+  padding:0 13px; font-size:12.5px; font-weight:600; font-family:inherit; cursor:pointer;
+  display:flex; align-items:center; gap:6px}
+.sp.active{background:var(--blue); color:#fff; box-shadow:var(--shadow-brand)}
+
+.fm-save{width:100%; min-height:52px; border:none; border-radius:16px; background:var(--blue); color:#fff;
+  font-family:inherit; font-size:15px; font-weight:600; cursor:pointer; box-shadow:var(--shadow-brand);
+  letter-spacing:-.01em; transition:transform .14s ease}
+.fm-save:active{transform:scale(.98)}
+.fm-cancel{width:100%; min-height:44px; border:none; border-radius:14px; background:transparent;
+  color:var(--muted); font-family:inherit; font-size:13.5px; font-weight:500; cursor:pointer}
