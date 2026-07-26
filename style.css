@@ -931,3 +931,6 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .streak-txt b{color:var(--ink); font-weight:700}
 
 .app-ver{font-size:11px; color:var(--faint); text-align:center; margin:2px 0 0; letter-spacing:.04em}
+
+/* ข้อความรองที่ว่างเปล่าไม่ควรกินที่ */
+.sh-sub:empty, .fm-p:empty, .sub:empty, .pf-row .sb:empty{display:none}

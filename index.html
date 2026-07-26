@@ -105,7 +105,7 @@
           <p class="sub" style="margin:0 0 18px">รู้ว่าต้องทำอะไรก่อน เสมอ</p>
           <button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>
           <button class="btn ghost" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>
-          <p class="hint">ล็อกอินแล้วข้อมูลจะซิงก์ข้ามเครื่องอัตโนมัติ<br>ไม่ล็อกอินก็ใช้ได้ — ข้อมูลอยู่ในเครื่องนี้เครื่องเดียว</p>
+          <p class="hint">ล็อกอินแล้วข้อมูลจะซิงก์ข้ามเครื่อง</p>
         </div>
       </div>
 
@@ -114,7 +114,6 @@
         <div class="scr-body scan-body">
           <div>
             <h2 class="scan-h">เพิ่มงานใหม่</h2>
-            <p class="scan-p">พูด ถ่ายรูป หรือแปะข้อความจาก LINE — AI แกะเป็นงานให้เอง</p>
           </div>
 
           <div class="scan-actions">
@@ -172,7 +171,6 @@
               <span class="pr-dot"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
               <h2 class="pr-h">AI กำลังอ่าน…</h2>
             </div>
-            <p class="pr-p" id="parseSub">แกะวิชา ครู กำหนดส่ง คะแนน และเวลาที่ต้องใช้จากข้อความที่แปะมา</p>
           </div>
           <div class="skel-card">
             <div class="skel-row"><span class="k"></span><span class="v" style="max-width:78%"></span></div>
@@ -193,7 +191,6 @@
           <div>
             <div class="fm-ok" id="fmOk"></div>
             <h2 class="fm-h" id="formTitle">ตรวจก่อนบันทึก</h2>
-            <p class="fm-p" id="formSub">แก้ช่องที่ AI อ่านผิดได้ทุกช่อง — ระบบจะจำรูปแบบที่คุณแก้ไว้</p>
           </div>
           <div class="fm-chips" id="detectedChips"></div>
 
@@ -234,7 +231,6 @@
               <div class="fld-head"><label id="fEstLabel">ใช้เวลา</label><span class="val" id="fEstVal">30 นาที</span></div>
               <input type="range" id="fEst" min="5" max="180" step="5" value="30"
                 oninput="document.getElementById('fEstVal').textContent = this.value + ' นาที'">
-              <p class="fld-hint">AI ประเมินจากรายละเอียดงาน — ปรับได้ถ้าคุณทำเร็วหรือช้ากว่านี้</p>
             </div>
 
             <div class="fld">
@@ -312,7 +308,6 @@
       <div class="screen flush" id="scr-timeline">
         <div class="sticky-head">
           <h2 class="sh-title">เส้นเวลา</h2>
-          <p class="sh-sub">อะไรกำลังเข้ามา — ไม่ใช่ปฏิทินรายเดือน</p>
         </div>
         <div class="scr-body tl-body" id="timeline"></div>
       </div>
@@ -341,12 +336,12 @@
           <div class="pf-list">
             <div class="pf-row">
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#ic-profile"/></svg></span>
-              <span class="bd"><span class="lb">ชื่อเล่น</span><span class="sb">ใช้ทักทายในหน้าแรก</span></span>
+              <span class="bd"><span class="lb">ชื่อเล่น</span></span>
               <input type="text" id="pName" placeholder="เช่น Nado" onchange="saveProfile()">
             </div>
             <div class="pf-row">
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
-              <span class="bd"><span class="lb">เวลาว่างต่อวัน</span><span class="sb">AI ใช้คำนวณแผนวันนี้</span></span>
+              <span class="bd"><span class="lb">เวลาว่างต่อวัน</span></span>
               <input type="number" id="pFree" min="0.5" step="0.5" value="2" onchange="saveProfile()">
             </div>
             <div class="pf-row" id="notifRow">
@@ -356,7 +351,7 @@
             </div>
             <div class="pf-row" id="installCard" hidden>
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-check-circle"/></svg></span>
-              <span class="bd"><span class="lb">ติดตั้งเป็นแอป</span><span class="sb" id="installHint">เปิดเร็วขึ้น เต็มจอ รับแจ้งเตือนได้</span></span>
+              <span class="bd"><span class="lb">ติดตั้งเป็นแอป</span><span class="sb" id="installHint"></span></span>
               <button class="btn primary sm" id="installBtn" style="width:auto;min-height:38px;padding:0 14px" onclick="handleInstallClick()">ติดตั้ง</button>
             </div>
           </div>

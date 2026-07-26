@@ -3,7 +3,7 @@
 // ข้อมูลจริง เก็บใน localStorage · ทุกจอ render จาก state
 // ============================================================
 
-const APP_VERSION = 'v30';
+const APP_VERSION = 'v31';
 const STORE_KEY = 'studentos.v1';
 const APP_T0 = performance.now(); // ใช้คุมเวลาโชว์ splash ขั้นต่ำ
 
@@ -289,8 +289,8 @@ function renderHome() {
       <div class="empty-ring">${icon('check-circle')}</div>
       <h3 class="empty-h">${cleared ? 'เคลียร์หมดแล้ว' : 'ยังไม่มีงานในระบบ'}</h3>
       <p class="empty-p">${cleared
-        ? 'ไม่มีงานค้างสักงาน — วันนี้พักได้เต็มที่<br>ครูสั่งอะไรมาใหม่ กดปุ่มกลางแถบล่างแล้วให้ AI แกะให้'
-        : 'กดปุ่มกลางแถบล่างเพื่อเพิ่มงานแรก<br>พูด ถ่ายรูป หรือแปะข้อความจาก LINE ก็ได้'}</p>
+        ? 'ไม่มีงานค้างสักงาน — วันนี้พักได้เต็มที่'
+        : 'กดปุ่มกลางแถบล่างเพื่อเพิ่มงานแรก'}</p>
       ${cleared ? `<div class="empty-note">${icon('sparkles')}<span>ทำเสร็จไปแล้ว ${doneToday} งาน — รักษาจังหวะนี้ไว้ คะแนนเก็บจะเต็มทั้งเทอม</span></div>` : ''}
       <button class="empty-cta" onclick="go('scr-scan')">${icon('sparkles')}เพิ่มงานแรกของวัน</button>
     </section>` + streakSection();
@@ -352,8 +352,7 @@ function renderTasks() {
   const pending = sortByPriority(pendingTasks().filter(match), now);
   const done = state.tasks.filter(t => t.done && match(t));
   const label = taskFilter === 'all' ? '' : ' · ' + TASK_TYPES[taskFilter].name;
-  document.getElementById('tasksSub').textContent =
-    `${pending.length} งานค้าง${label} · เรียงโดย AI — แตะเพื่อแก้ไข`;
+  document.getElementById('tasksSub').textContent = `${pending.length} งานค้าง${label}`;
 
   const hot = pending.filter(t => ['over', 'hot'].includes(priorityInfo(t, now).urgency));
   const rest = pending.filter(t => !hot.includes(t));
@@ -500,7 +499,6 @@ function renderPlan() {
   if (!plan.slots.length && !plan.events.length) {
     html += `<div class="card empty">วันนี้ไม่มีอะไรต้องนั่งทำ — พักได้เต็มที่ 🎉</div>`;
   }
-  html += `<p class="plan-foot">แผนคำนวณใหม่ทุกครั้งจากงานล่าสุด · ตั้งเวลาว่างต่อวันได้ที่แท็บ “ฉัน”</p>`;
   list.innerHTML = html;
 }
 
@@ -646,7 +644,7 @@ function openForm(id, parsed) {
   const okBadge = document.getElementById('fmOk');
   if (parsed) {
     title.textContent = 'ตรวจก่อนบันทึก';
-    sub.textContent = 'แก้ช่องที่ AI อ่านผิดได้ทุกช่อง — ระบบจะจำรูปแบบที่คุณแก้ไว้';
+    sub.textContent = '';
     const d = parsed.detected;
     const fields = [[d.type,'ประเภท'],[d.subject,'วิชา'],[d.teacher,'ครูผู้สั่ง'],[d.due,'กำหนดส่ง'],[d.score,'คะแนน'],[d.est,'เวลาที่ใช้']];
     const got = fields.filter(f => f[0]);
@@ -660,12 +658,12 @@ function openForm(id, parsed) {
     t = parsed;
   } else if (t) {
     title.textContent = 'แก้ไขงาน';
-    sub.textContent = 'ปรับรายละเอียดได้ทุกช่อง';
+    sub.textContent = '';
     chips.innerHTML = '';
     if (okBadge) okBadge.className = 'fm-ok';
   } else {
     title.textContent = 'เพิ่มงานใหม่';
-    sub.textContent = 'กรอกเอง — หรือกลับไปให้ AI ช่วยอ่าน';
+    sub.textContent = '';
     chips.innerHTML = '';
     if (okBadge) okBadge.className = 'fm-ok';
   }
@@ -736,10 +734,6 @@ function runParsing(text, source) {
       label: [p.subject && 'วิชา', p.teacher && 'ครูผู้สั่ง', p.score && 'คะแนนเก็บ'].filter(Boolean).join(' · ') || 'ยังไม่เจอวิชา/ครู' },
     { on: !!(p.due || p.est), label: 'กำลังตีความกำหนดส่งและเวลาที่ต้องใช้' },
   ];
-  const sub = document.getElementById('parseSub');
-  if (sub) sub.textContent = source === 'voice'
-    ? 'แกะสิ่งที่คุณพูดเป็นวิชา กำหนดส่ง คะแนน และเวลาที่ต้องใช้'
-    : 'แกะวิชา ครู กำหนดส่ง คะแนน และเวลาที่ต้องใช้จากข้อความที่แปะมา';
   const box = document.getElementById('parseSteps');
   const fill = document.getElementById('parseFill');
   const go = document.getElementById('parseGo');
