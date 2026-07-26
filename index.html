@@ -15,7 +15,19 @@
   <meta property="og:image" content="https://nadokagenou.github.io/studentos-ai/icon-512.png">
   <meta name="twitter:card" content="summary">
 
-  <meta name="theme-color" content="#1465E0">
+  <meta name="theme-color" content="#F8FAFC">
+  <!-- ธีมต้องถูกตัดสินก่อนวาดจอแรก ไม่งั้นคนใช้ธีมมืดจะเห็นจอขาวแวบหนึ่ง -->
+  <script>
+    (function () {
+      var pref = null;
+      try { pref = localStorage.getItem('studentos.theme'); } catch (e) {}
+      var dark = pref === 'dark' ||
+        (pref !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      var m = document.querySelector('meta[name=theme-color]');
+      if (m) m.content = dark ? '#0F172A' : '#F8FAFC';
+    })();
+  </script>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -75,6 +87,7 @@
     <g id="lu-book" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v16"></path><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"></path></g>
     <g id="lu-pencil" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></g>
 
+    <g id="lu-contrast" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 18a6 6 0 0 0 0-12z"></path></g>
     <g id="lu-trash" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></g>
     <g id="lu-mic" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19v3"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><rect x="9" y="2" width="6" height="13" rx="3"></rect></g>
     <g id="lu-camera" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></g>
@@ -254,7 +267,7 @@
 
           <div style="display:flex;flex-direction:column;gap:9px">
             <button class="fm-save" onclick="saveForm()">บันทึกเข้าแผน</button>
-            <button class="fm-cancel" onclick="go('scr-home')">ยกเลิก</button>
+            <button class="fm-cancel" onclick="cancelForm()">ยกเลิก</button>
           </div>
         </div>
       </div>
@@ -343,6 +356,17 @@
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
               <span class="bd"><span class="lb">เวลาว่างต่อวัน</span></span>
               <input type="number" id="pFree" min="0.5" step="0.5" value="2" onchange="saveProfile()">
+            </div>
+            <div class="pf-row col">
+              <span class="hd">
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-contrast"/></svg></span>
+                <span class="bd"><span class="lb">ธีมสี</span></span>
+              </span>
+              <div class="seg" id="themePick">
+                <button type="button" data-th="system" onclick="setTheme('system')">ตามระบบ</button>
+                <button type="button" data-th="light" onclick="setTheme('light')">สว่าง</button>
+                <button type="button" data-th="dark" onclick="setTheme('dark')">มืด</button>
+              </div>
             </div>
             <div class="pf-row" id="notifRow">
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg></span>

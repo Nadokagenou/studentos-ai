@@ -15,8 +15,12 @@
    ชื่อ class ทุกตัวเหมือนเดิม — วางทับไฟล์เดิมได้เลย ไม่ต้องแก้ HTML
    ============================================================ */
 
-/* ============ ระบบสี 60-30-10 ============ */
-:root{
+/* ============ ระบบสี 60-30-10 ============
+   ธีมเลือกได้เอง: สคริปต์ใน <head> ปั๊ม data-theme="light|dark" ไว้ก่อนวาดจอ
+   (ค่า "ตามระบบ" ถูกแปลงเป็น light/dark ตอนนั้นเลย) จึงไม่ต้องใช้ media query
+   ที่นี่ — ทำให้ผู้ใช้บังคับธีมสวนเครื่องได้ และไม่มีจอกะพริบตอนเปิดแอป */
+:root, :root[data-theme="light"]{
+  color-scheme:light;
   /* 60% — ผืนหลัก */
   --scr:#F8FAFC; --card:#FFFFFF; --card2:#F1F5F9;
   /* 30% — โครงสร้างและตัวอักษร */
@@ -41,22 +45,21 @@
   /* ระยะแถบเมนูถึงขอบล่าง — ครึ่งหนึ่งของ safe area ก็พ้น home indicator แล้ว */
   --tabgap:calc(6px + env(safe-area-inset-bottom) * .5);
 }
-@media (prefers-color-scheme: dark){
-  :root{
-    --scr:#0F172A; --card:#1E293B; --card2:#26334A;
-    --ink:#E9EDF5; --muted:#94A3B8; --faint:#8A97AB; --surface:#26334A;  /* faint ยกจาก #64748B ให้ผ่าน AA */
-    --line:rgba(255,255,255,.06);
-    --blue:#7C98E8; --blue-soft:rgba(124,152,232,.14); --blue-deep:#A9BCF0;
-    --alert:#F98080; --alert-soft:rgba(249,128,128,.13);
-    --warn:#E5B372;  --warn-soft:rgba(229,179,114,.13);
-    --good:#4ADE80;  --good-soft:rgba(74,222,128,.13); --fire:#F98080;
-    --shadow:0 2px 6px rgba(0,0,0,.4), 0 18px 40px -14px rgba(0,0,0,.75);
-    --shadow-lg:0 4px 10px rgba(0,0,0,.45), 0 38px 70px -18px rgba(0,0,0,.85);
-    --shadow-brand:0 10px 26px -8px rgba(29,78,216,.55);
-    --glass:rgba(15,23,42,.72); --glass-line:rgba(255,255,255,.07);
-    --skel:rgba(255,255,255,.07); --skel-hi:rgba(255,255,255,.13);
-    --pg:#0B0E16; --pg-ink:#E9EDF5; --pg-muted:#94A3B8;
-  }
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --scr:#0F172A; --card:#1E293B; --card2:#26334A;
+  --ink:#E9EDF5; --muted:#94A3B8; --faint:#8A97AB; --surface:#26334A;  /* faint ยกจาก #64748B ให้ผ่าน AA */
+  --line:rgba(255,255,255,.06);
+  --blue:#7C98E8; --blue-soft:rgba(124,152,232,.14); --blue-deep:#A9BCF0;
+  --alert:#F98080; --alert-soft:rgba(249,128,128,.13);
+  --warn:#E5B372;  --warn-soft:rgba(229,179,114,.13);
+  --good:#4ADE80;  --good-soft:rgba(74,222,128,.13); --fire:#F98080;
+  --shadow:0 2px 6px rgba(0,0,0,.4), 0 18px 40px -14px rgba(0,0,0,.75);
+  --shadow-lg:0 4px 10px rgba(0,0,0,.45), 0 38px 70px -18px rgba(0,0,0,.85);
+  --shadow-brand:0 10px 26px -8px rgba(29,78,216,.55);
+  --glass:rgba(15,23,42,.72); --glass-line:rgba(255,255,255,.07);
+  --skel:rgba(255,255,255,.07); --skel-hi:rgba(255,255,255,.13);
+  --pg:#0B0E16; --pg-ink:#E9EDF5; --pg-muted:#94A3B8;
 }
 
 *{margin:0; padding:0; box-sizing:border-box}
@@ -389,6 +392,8 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .g-badge{width:22px; height:22px; border-radius:50%; background:#fff; border:none; box-shadow:0 0 0 1px rgba(15,23,42,.12);
   color:#4285F4; font-weight:700; font-size:12.5px; display:inline-flex; align-items:center; justify-content:center; flex:none}
 .login-mode .tabbar{display:none}
+/* จอล็อกอินเป็นพื้นเข้มทุกธีม — นาฬิกาบนสุดต้องสว่างตาม ไม่ใช่ตามสีตัวอักษรของธีม */
+.login-mode .statusbar{color:#E9EDF5}
 
 /* ---------- Voice input ---------- */
 .btn.voice{display:flex; align-items:center; justify-content:center; gap:11px; min-height:64px; border-radius:20px;
@@ -748,6 +753,17 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
   padding:8px 10px; font-size:13px; font-weight:600; font-family:inherit; color:var(--ink); min-height:38px}
 .pf-row input[type=text]{width:120px}
 .pf-row input:focus{outline:2px solid var(--blue); outline-offset:-2px}
+/* แถวที่ตัวควบคุมกว้างเกินจะวางข้างป้ายชื่อ — ให้ลงบรรทัดใหม่เต็มความกว้างแทน */
+.pf-row.col{flex-direction:column; align-items:stretch; gap:11px}
+.pf-row.col .hd{display:flex; align-items:center; gap:13px}
+/* สวิตช์แบบแบ่งช่อง — เลือกได้ทีละอัน เห็นตัวเลือกทั้งหมดพร้อมกัน */
+.seg{display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:4px; padding:4px;
+  background:var(--card2); border-radius:13px}
+.seg button{border:none; background:transparent; color:var(--muted); border-radius:10px; min-height:36px;
+  font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap;
+  transition:background .16s, color .16s, transform .14s ease}
+.seg button:active{transform:scale(.97)}
+.seg button.active{background:var(--card); color:var(--ink); box-shadow:var(--shadow)}
 .pf-quiet{width:100%; min-height:46px; border:none; border-radius:14px; background:transparent; color:var(--muted);
   font-family:inherit; font-size:13.5px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:9px; padding:0 4px}
 .pf-quiet svg{width:16px; height:16px}

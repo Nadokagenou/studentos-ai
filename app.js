@@ -3,7 +3,7 @@
 // ข้อมูลจริง เก็บใน localStorage · ทุกจอ render จาก state
 // ============================================================
 
-const APP_VERSION = 'v31';
+const APP_VERSION = 'v32';
 const STORE_KEY = 'studentos.v1';
 const APP_T0 = performance.now(); // ใช้คุมเวลาโชว์ splash ขั้นต่ำ
 
@@ -24,6 +24,39 @@ function save() {
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
 function pendingTasks() { return state.tasks.filter(t => !t.done); }
+
+// ---------- ธีมสี ----------
+// เก็บแยกจาก state เพราะเป็นค่าประจำ "เครื่องนี้" ไม่ใช่ของบัญชี —
+// มือถือกับคอมของคนเดียวกันอาจอยากได้ธีมต่างกัน จึงไม่ซิงก์ข้ามเครื่อง
+const THEME_KEY = 'studentos.theme';
+const THEMES = ['system', 'light', 'dark'];
+
+function themePref() {
+  let v = null;
+  try { v = localStorage.getItem(THEME_KEY); } catch (_) {}
+  return THEMES.includes(v) ? v : 'system';
+}
+function systemDark() { return matchMedia('(prefers-color-scheme: dark)').matches; }
+
+function applyTheme() {
+  const pref = themePref();
+  const dark = pref === 'dark' || (pref === 'system' && systemDark());
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  const meta = document.querySelector('meta[name=theme-color]');
+  if (meta) meta.content = dark ? '#0F172A' : '#F8FAFC';
+  document.querySelectorAll('#themePick button').forEach(b =>
+    b.classList.toggle('active', b.dataset.th === pref));
+}
+
+function setTheme(pref) {
+  try { localStorage.setItem(THEME_KEY, THEMES.includes(pref) ? pref : 'system'); } catch (_) {}
+  applyTheme();
+}
+
+// ผู้ใช้เลือก "ตามระบบ" แล้วเครื่องสลับธีมกลางทาง → เปลี่ยนตามทันที ไม่ต้องรีเปิดแอป
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (themePref() === 'system') applyTheme();
+});
 
 // ---------- navigation ----------
 function go2(id){ return go(id); }
@@ -178,15 +211,19 @@ function heroCard(t, pending, now) {
   const prog = Math.max(0, Math.min(100, t.progress || 0));
 
   // ติดป้ายเฉพาะที่บอกอะไรจริง ๆ — งานบ้านธรรมดาที่ยังไม่ด่วนไม่ต้องมีป้ายเลย
+  // ป้ายประเภทติดแค่ตอนบรรทัดกำหนดส่งไม่ได้บอกประเภทให้แล้ว
+  // (การบ้านขึ้น "ส่ง…" สอบขึ้น "สอบ…" อยู่แล้ว — ติดป้ายซ้ำคือคำเกิน)
+  const dueNamesType = type === 'homework' || type === 'exam';
   const badges = [
     info.stars >= 4 ? `<span class="hbadge ${info.stars >= 5 ? 'lv5' : 'lv4'}">${urgent ? icon('flame') : ''}${esc(priorityLabel(info.stars))}</span>` : '',
-    type !== 'homework' ? `<span class="hbadge">${icon(TYPE_ICON[type])}${esc(ti.name)}</span>` : '',
+    dueNamesType ? '' : `<span class="hbadge">${icon(TYPE_ICON[type])}${esc(ti.name)}</span>`,
   ].filter(Boolean).join('');
 
   // เวลาที่เหลือคือตัวตัดสินใจหลัก — ตามด้วยอีกอย่างเดียวเท่านั้น
   const second = ti.schedulable ? `<span>~${t.estMin} นาที</span>`
     : (t.scorePct != null ? `<span>คะแนน ${t.scorePct}%</span>` : '');
   const subject = t.subject && t.subject !== 'อื่น ๆ' ? `<div class="hero-subject">${esc(t.subject)}</div>` : '';
+  const why = aiHeroWhy(t, pending, state.settings, now);
 
   return `
   <section>
@@ -206,7 +243,7 @@ function heroCard(t, pending, now) {
         ${prog > 0 ? `<div class="hero-prog">
           <div class="track"><div class="fill" style="width:${prog}%"></div></div>
           <span class="pct">${prog}%</span></div>` : ''}
-        <div class="hero-why">${icon('sparkles')}<span>${esc(aiHeroWhy(t, pending, state.settings, now))}</span></div>
+        ${why ? `<div class="hero-why">${icon('sparkles')}<span>${esc(why)}</span></div>` : ''}
         <button class="hero-done" onclick="event.stopPropagation();toggleDone('${t.id}')">${icon('check')}ทำเสร็จแล้ว</button>
       </div>
     </div>
@@ -302,8 +339,8 @@ function renderHome() {
   const plan = buildDayPlan(pending, state.settings, now);
   const firstSlot = plan.slots.find(s => !s.break);
   const teaser = firstSlot
-    ? `เริ่ม ${fmtClock(firstSlot.start)} · ${plan.slots.filter(s => !s.break).length} ช่วง จัดตามความสำคัญ`
-    : 'จัดเวลาให้อัตโนมัติตามความสำคัญ';
+    ? `เริ่ม ${fmtClock(firstSlot.start)} · ${plan.slots.filter(s => !s.break).length} ช่วง`
+    : 'จัดเวลาให้อัตโนมัติ';
 
   body.innerHTML = heroCard(pending[0], pending, now)
     + (rest.length ? `<section>
@@ -530,6 +567,7 @@ function renderProfile() {
     }
   }
 
+  applyTheme(); // ให้ปุ่มธีมที่เลือกไว้สว่างตรงกับที่ใช้จริงเสมอ
   const ver = document.getElementById('appVer');
   if (ver) ver.textContent = 'StudentOS AI · ' + APP_VERSION;
   const pn = document.getElementById('pName'); if (pn) pn.value = state.settings.name || '';
@@ -625,8 +663,14 @@ function fillSubjectSelect() {
     SUBJECTS.map(s => `<option>${s.name}</option>`).join('');
 }
 
+// จอที่ควรกลับไปหลังบันทึก/ยกเลิก — แก้งานจากรายการไหน ก็เด้งกลับรายการนั้น
+let formReturn = 'scr-home';
+
 function openForm(id, parsed) {
   editingId = id;
+  const from = document.querySelector('.screen.on');
+  formReturn = (from && !['scr-form', 'scr-parsing', 'scr-scan', 'scr-login'].includes(from.id))
+    ? from.id : 'scr-home';
   fillSubjectSelect();
   const f = {
     subject: document.getElementById('fSubject'), detail: document.getElementById('fDetail'),
@@ -636,7 +680,6 @@ function openForm(id, parsed) {
   };
   const chips = document.getElementById('detectedChips');
   const title = document.getElementById('formTitle');
-  const sub = document.getElementById('formSub');
 
   let t = null;
   if (id) t = state.tasks.find(x => x.id === id);
@@ -644,7 +687,6 @@ function openForm(id, parsed) {
   const okBadge = document.getElementById('fmOk');
   if (parsed) {
     title.textContent = 'ตรวจก่อนบันทึก';
-    sub.textContent = '';
     const d = parsed.detected;
     const fields = [[d.type,'ประเภท'],[d.subject,'วิชา'],[d.teacher,'ครูผู้สั่ง'],[d.due,'กำหนดส่ง'],[d.score,'คะแนน'],[d.est,'เวลาที่ใช้']];
     const got = fields.filter(f => f[0]);
@@ -658,12 +700,10 @@ function openForm(id, parsed) {
     t = parsed;
   } else if (t) {
     title.textContent = 'แก้ไขงาน';
-    sub.textContent = '';
     chips.innerHTML = '';
     if (okBadge) okBadge.className = 'fm-ok';
   } else {
     title.textContent = 'เพิ่มงานใหม่';
-    sub.textContent = '';
     chips.innerHTML = '';
     if (okBadge) okBadge.className = 'fm-ok';
   }
@@ -711,14 +751,23 @@ function saveForm() {
   };
   if (ti.schedulable && data.progress >= 100) data.done = true;
 
-  if (editingId) {
-    Object.assign(state.tasks.find(x => x.id === editingId), data);
+  const target = editingId ? state.tasks.find(x => x.id === editingId) : null;
+  if (target) {
+    Object.assign(target, data);
   } else {
     state.tasks.push(Object.assign({ id: uid(), done: false, createdAt: new Date().toISOString(), fromScan: !!data._scan }, data));
   }
+  const back = formReturn;
   editingId = null;
   save();
-  go('scr-home');
+  go(back);
+}
+
+// ยกเลิก = ทิ้งการแก้ทั้งหมด แล้วกลับจอที่มาจาก (ไม่ใช่เด้งไปหน้าแรกเสมอ)
+function cancelForm() {
+  const back = formReturn;
+  editingId = null;
+  go(back);
 }
 
 
@@ -903,7 +952,7 @@ async function scanFromPhoto(file) {
     worker = null;
 
     st.textContent = ''; barWrap.hidden = true;
-    const text = (data.text || '').trim();
+    const text = normalizeOcrText(data.text); // OCR ไทยเว้นวรรคทีละตัวอักษร ต้องยุบก่อนแกะ
     if (text.length < 5) { alert('อ่านตัวหนังสือจากรูปไม่ได้ — ลองถ่ายให้ชัดขึ้น สว่างขึ้น หรือแปะข้อความแทน'); return; }
     runParsing(text, 'ocr');
   } catch (e) {
@@ -1183,6 +1232,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 
 (async function initApp() {
   load();
+  applyTheme();
   fillSubjectSelect();
   tickClock();
   setInterval(tickClock, 30_000);

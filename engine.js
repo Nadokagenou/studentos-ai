@@ -93,6 +93,19 @@ function normalizeSpokenText(text) {
   return t.replace(/\s+/g, ' ').trim();
 }
 
+// ---------- 0.5) เตรียมข้อความจาก OCR ----------
+// โมเดลภาษาไทยของ Tesseract คืนค่ามาแบบเว้นวรรคทีละตัวอักษร ("ก า ร บ ้ า น เค ม ี")
+// ถ้าส่งเข้าตัวแกะข้อความตรง ๆ จะหาคำว่า "เคมี" หรือ "พรุ่งนี้" ไม่เจอเลย —
+// ยุบช่องว่างที่คั่นกลางอักษรไทยก่อน (ไทยไม่เว้นวรรคในคำ จึงยุบได้ไม่เสียความหมาย)
+function normalizeOcrText(text) {
+  return String(text || '')
+    .replace(/[|¦]/g, ' ')                       // เส้นตารางในใบงานที่ OCR อ่านเป็นขีด
+    .replace(/([฀-๿])[ \t]+(?=[฀-๿])/g, '$1')    // ยุบช่องว่างที่คั่นกลางอักษรไทย
+    .replace(/ํา/g, 'ำ')          // ยุบแล้วค่อยแก้ "ํ+า" ให้เป็น "ำ" ตัวเดียว
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
 // ---------- 1) แกะข้อความ ----------
 function parseAssignment(text, now = new Date()) {
   const t = String(text || '').replace(/\s+/g, ' ').trim();
@@ -108,9 +121,11 @@ function parseAssignment(text, now = new Date()) {
     }
   }
 
-  // ครู (เอาเฉพาะคำแรกหลังคำว่า "ครู" — กันดึงคำอื่นติดมา)
+  // ครู (เอาเฉพาะชื่อ — หยุดที่ช่องว่างหรือคำที่ขึ้นความใหม่ ไม่ลากประโยคทั้งท่อนมา
+  // สำคัญกับข้อความจาก OCR ที่ไม่มีช่องว่างคั่นคำเลย เช่น "ครูมาลีทำแบบฝึกหัด")
   let teacher = '';
-  const mT = t.match(/(?:ครู|อาจารย์|อ\.)\s?([ก-๙A-Za-z]{2,})/);
+  const nameEnd = 'ทำ|อ่าน|เขียน|สรุป|ท่อง|เตรียม|วาด|ส่ง|สอบ|แบบฝึกหัด|แบบ|บทที่|บท|ข้อ|หน้า|ใบงาน|คะแนน|ภายใน|เวลา|วันที่|วันนี้|พรุ่งนี้|มะรืน|สัปดาห์';
+  const mT = t.match(new RegExp('(?:ครู|อาจารย์|อ\\.)\\s?([ก-๙A-Za-z]{2,20}?)(?=\\s|' + nameEnd + '|$)'));
   if (mT) { teacher = 'ครู' + mT[1].replace(/^ครู/, ''); detected.teacher = true; }
 
   // คะแนน
@@ -160,6 +175,17 @@ function parseAssignment(text, now = new Date()) {
     const mIn = t.match(/ภายใน\s*(\d{1,2})\s*วัน/);
     if (mIn) due = atTime(addDays(now, +mIn[1]), hh, mm);
     else if (/สัปดาห์หน้า/.test(t)) due = atTime(addDays(now, 7), hh, mm);
+  }
+  // ทางสำรองสำหรับข้อความจากรูป: OCR มักทำวรรณยุกต์/สระหาย ("พรุ่งน่" แทน "พรุ่งนี้")
+  // จับแบบตัดวรรณยุกต์กับสระบน-ล่างทิ้งทั้งสองฝ่าย — ใช้เฉพาะเมื่อจับตรงตัวไม่ได้
+  // และเฉพาะคำบอกวันที่ยาวพอจะไม่ชนคำอื่น (ไม่รวมชื่อวันในสัปดาห์ที่สั้นเกินไป)
+  if (!due) {
+    // ตัดสระบน/ล่าง + วรรณยุกต์ (ไม่แตะ า ำ ที่เป็นสระเต็มตัว)
+    const bare = s => s.replace(/[ัิ-ฺ็-๎]/g, '');
+    const lt = bare(t);
+    if (lt.includes(bare('วันนี้')))         due = atTime(now, hh, mm);
+    else if (lt.includes(bare('พรุ่งนี้')))  due = atTime(addDays(now, 1), hh, mm);
+    else if (lt.includes(bare('มะรืน')))     due = atTime(addDays(now, 2), hh, mm);
   }
   if (due) detected.due = true;
 
@@ -285,10 +311,14 @@ function aiGreeting(pending, settings, now = new Date()) {
   return 'เริ่มที่' + top.subject + 'ก่อน — ' + why + ' · ' + fit;
 }
 
-// เหตุผลสั้น ๆ ในการ์ดงานหลัก: ทำไมงานนี้มาก่อน + ภาระวันนี้พอไหม
-// (ไม่ต้องเอ่ยชื่อวิชาซ้ำ เพราะการ์ดบอกอยู่แล้ว)
+// เหตุผลสั้น ๆ ในการ์ดงานหลัก — พูดแต่สิ่งที่การ์ดยังไม่ได้บอก
+// การ์ดโชว์ วิชา / ชื่องาน / กำหนดส่ง / เวลาที่ใช้ อยู่แล้ว เหตุผลที่แค่พูดซ้ำ
+// ("ใกล้กำหนดส่ง" ทั้งที่บรรทัดข้างบนบอกวันไปแล้ว) ตัดทิ้ง เหลือแต่ข้อมูลใหม่จริง
+const HERO_WHY_DROP = /เลยกำหนด|เลยเวลา|ใกล้กำหนด|ถึงเวลา|ยังอีกหลายวัน|ยังพอมีเวลา|ยังไม่ระบุ|กำหนดความสำคัญเอง|เป็นการสอบ|ชม\. ถึงเวลา|^ส่งภายใน|^ส่งใน|^สอบภายใน|^~|^ใช้เวลา ~/;
+
 function aiHeroWhy(top, pending, settings, now = new Date()) {
-  const why = (priorityInfo(top, now).reasons[0] || '').replace(/^★ /, '');
+  const why = (priorityInfo(top, now).reasons.find(r => !HERO_WHY_DROP.test(r)) || '')
+    .replace(/^★ /, '');
   // นับเฉพาะงานที่ต้องนั่งทำ — กิจกรรมไม่กินเวลาอ่านหนังสือ
   const totalMin = pending.reduce((s, t) =>
     s + (TASK_TYPES[taskType(t)].schedulable ? (t.estMin || 30) : 0), 0);
@@ -296,9 +326,9 @@ function aiHeroWhy(top, pending, settings, now = new Date()) {
   const freeH = settings.freeHours || 2;
   if (!totalMin) return why;
   const fit = totalH > freeH
-    ? `งานวันนี้รวม ~${totalH} ชม. เกินเวลาว่าง`
-    : `งานวันนี้รวม ~${totalH} ชม. เวลาว่างพอ`;
-  return why + ' · ' + fit;
+    ? `งานวันนี้ ~${totalH} ชม. เกินเวลาว่าง ${freeH} ชม.`
+    : `งานวันนี้ ~${totalH} ชม. เวลาว่างพอ`;
+  return why ? why + ' · ' + fit : fit;
 }
 
 function timelineInsight(pending, now = new Date()) {
@@ -393,7 +423,8 @@ function fmtDue(iso, now = new Date(), task) {
   if (d < now) return '⚠ เลยกำหนด (' + WEEKDAY_SHORT[d.getDay()] + ' ' + d.getDate() + ' ' + MONTH_SHORT[d.getMonth()] + ')';
   if (diff === 0) return pre + 'วันนี้' + time;
   if (diff === 1) return pre + 'พรุ่งนี้' + time;
-  return pre + WEEKDAY_SHORT[d.getDay()] + ' ' + d.getDate() + ' ' + MONTH_SHORT[d.getMonth()] + time;
+  // เว้นวรรคหลังคำนำหน้า ไม่งั้นได้ "สอบพ. 29 ก.ค." ที่อ่านสะดุด
+  return (pre ? pre + ' ' : '') + WEEKDAY_SHORT[d.getDay()] + ' ' + d.getDate() + ' ' + MONTH_SHORT[d.getMonth()] + time;
 }
 
 function fmtThaiDate(d = new Date()) {
