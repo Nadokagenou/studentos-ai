@@ -581,13 +581,13 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .hero-why{display:flex; gap:9px; align-items:flex-start; background:var(--blue-soft); border-radius:14px; padding:11px 13px}
 .hero-why svg{width:15px; height:15px; flex:none; margin-top:2px; color:var(--blue)}
 .hero-why span{font-size:12.5px; line-height:1.6; color:var(--blue-deep); font-weight:500}
-.hero-acts{display:flex; justify-content:flex-end; gap:8px; margin-top:1px}
-.hero-acts button{min-height:44px; border:none; border-radius:13px; font-family:inherit; font-weight:600;
-  cursor:pointer; display:flex; align-items:center; gap:6px; transition:transform .14s ease}
-.hero-acts button svg{width:15px; height:15px}
-.hero-acts .edit{padding:0 15px; font-size:13.5px; background:transparent; color:var(--muted)}
-.hero-acts .done{padding:0 18px; font-size:14px; background:var(--blue); color:#fff; box-shadow:var(--shadow-brand)}
-.hero-acts .done:active{transform:scale(.96)}
+/* ปุ่มเดียวพอ — แตะที่การ์ดคือแก้ไขอยู่แล้ว ไม่ต้องมีปุ่มแก้ไขซ้ำ */
+.hero-done{width:100%; min-height:46px; margin-top:2px; border:none; border-radius:14px;
+  background:var(--blue); color:#fff; font-family:inherit; font-size:14.5px; font-weight:600;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px;
+  box-shadow:var(--shadow-brand); transition:transform .14s ease}
+.hero-done:active{transform:scale(.97)}
+.hero-done svg{width:16px; height:16px}
 
 /* แถวงานถัดไป */
 .nrow{display:flex; align-items:center; gap:13px; background:var(--card); border-radius:18px;

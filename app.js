@@ -3,7 +3,7 @@
 // ข้อมูลจริง เก็บใน localStorage · ทุกจอ render จาก state
 // ============================================================
 
-const APP_VERSION = 'v29';
+const APP_VERSION = 'v30';
 const STORE_KEY = 'studentos.v1';
 const APP_T0 = performance.now(); // ใช้คุมเวลาโชว์ splash ขั้นต่ำ
 
@@ -175,36 +175,39 @@ function heroCard(t, pending, now) {
   const urgent = info.urgency === 'over' || info.urgency === 'hot';
   const type = taskType(t);
   const ti = TASK_TYPES[type];
-  const lv = info.stars >= 5 ? 'lv5' : info.stars >= 4 ? 'lv4' : '';
-  const subject = t.subject && t.subject !== 'อื่น ๆ' ? `<div class="hero-subject">${esc(t.subject)}</div>` : '';
   const prog = Math.max(0, Math.min(100, t.progress || 0));
+
+  // ติดป้ายเฉพาะที่บอกอะไรจริง ๆ — งานบ้านธรรมดาที่ยังไม่ด่วนไม่ต้องมีป้ายเลย
+  const badges = [
+    info.stars >= 4 ? `<span class="hbadge ${info.stars >= 5 ? 'lv5' : 'lv4'}">${urgent ? icon('flame') : ''}${esc(priorityLabel(info.stars))}</span>` : '',
+    type !== 'homework' ? `<span class="hbadge">${icon(TYPE_ICON[type])}${esc(ti.name)}</span>` : '',
+  ].filter(Boolean).join('');
+
+  // เวลาที่เหลือคือตัวตัดสินใจหลัก — ตามด้วยอีกอย่างเดียวเท่านั้น
+  const second = ti.schedulable ? `<span>~${t.estMin} นาที</span>`
+    : (t.scorePct != null ? `<span>คะแนน ${t.scorePct}%</span>` : '');
+  const subject = t.subject && t.subject !== 'อื่น ๆ' ? `<div class="hero-subject">${esc(t.subject)}</div>` : '';
+
   return `
   <section>
     <div class="eyebrow">${icon('sparkles')}<span>AI แนะนำให้ทำก่อน</span></div>
     <div class="hero ${urgent ? 'urgent' : ''}" onclick="openForm('${t.id}')">
       <div class="hero-strip"></div>
       <div class="hero-in">
-        <div class="hero-badges">
-          <span class="hbadge ${lv}">${urgent ? icon('flame') : ''}${esc(priorityLabel(info.stars))}</span>
-          <span class="hbadge">${icon(TYPE_ICON[type] || 'pencil')}${esc(ti.name)}</span>
-        </div>
+        ${badges ? `<div class="hero-badges">${badges}</div>` : ''}
         <div>
           ${subject}
           <h3 class="hero-title">${esc(t.detail)}</h3>
         </div>
         <div class="hero-meta">
           <span class="due ${urgent ? 'hot' : ''}">${icon('clock')}${fmtDue(t.due, now, t)}</span>
-          ${ti.schedulable ? `<span>~${t.estMin} นาที</span>` : ''}
-          ${t.scorePct != null ? `<span>คะแนนเก็บ ${t.scorePct}%</span>` : ''}
+          ${second}
         </div>
         ${prog > 0 ? `<div class="hero-prog">
           <div class="track"><div class="fill" style="width:${prog}%"></div></div>
           <span class="pct">${prog}%</span></div>` : ''}
         <div class="hero-why">${icon('sparkles')}<span>${esc(aiHeroWhy(t, pending, state.settings, now))}</span></div>
-        <div class="hero-acts">
-          <button class="edit" onclick="event.stopPropagation();openForm('${t.id}')">${icon('pencil')}แก้ไข</button>
-          <button class="done" onclick="event.stopPropagation();toggleDone('${t.id}')">${icon('check')}ทำเสร็จแล้ว</button>
-        </div>
+        <button class="hero-done" onclick="event.stopPropagation();toggleDone('${t.id}')">${icon('check')}ทำเสร็จแล้ว</button>
       </div>
     </div>
   </section>`;
@@ -647,8 +650,9 @@ function openForm(id, parsed) {
     const d = parsed.detected;
     const fields = [[d.type,'ประเภท'],[d.subject,'วิชา'],[d.teacher,'ครูผู้สั่ง'],[d.due,'กำหนดส่ง'],[d.score,'คะแนน'],[d.est,'เวลาที่ใช้']];
     const got = fields.filter(f => f[0]);
+    const miss = fields.filter(f => !f[0]);
     chips.innerHTML = got.map(f => `<span class="chip new">${icon('check')}${esc(f[1])}</span>`).join('')
-      + fields.filter(f => !f[0]).map(f => `<span class="chip">${esc(f[1])} — เติมเอง</span>`).join('');
+      + (miss.length ? `<span class="chip">อีก ${miss.length} ช่องเติมเอง</span>` : '');
     if (okBadge) {
       okBadge.className = 'fm-ok show';
       okBadge.innerHTML = `${icon('check-circle')}AI อ่านได้ ${got.length} จาก ${fields.length} ช่อง`;
