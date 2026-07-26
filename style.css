@@ -464,7 +464,8 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
   }
   .demo-bar, .stage-note, .statusbar{display:none}
   .screen{padding-top:calc(10px + env(safe-area-inset-top)); padding-bottom:calc(112px + env(safe-area-inset-bottom))}
-  .tabbar{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+  /* ไม่ใส่ padding-bottom ให้ .tabbar ที่นี่ — ตำแหน่ง bottom ของแคปซูลจัดการ
+     ระยะปลอดภัยอยู่แล้ว ถ้าใส่ซ้ำแคปซูลจะบวมมีที่ว่างด้านล่าง */
 }
 
 /* ---------- timeline ---------- */
