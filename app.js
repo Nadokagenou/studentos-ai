@@ -3,7 +3,7 @@
 // ข้อมูลจริง เก็บใน localStorage · ทุกจอ render จาก state
 // ============================================================
 
-const APP_VERSION = 'v32';
+const APP_VERSION = 'v33';
 const STORE_KEY = 'studentos.v1';
 const APP_T0 = performance.now(); // ใช้คุมเวลาโชว์ splash ขั้นต่ำ
 
@@ -23,13 +23,18 @@ function save() {
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
-function pendingTasks() { return state.tasks.filter(t => !t.done); }
+// งานที่ยังอยู่จริง — ของในถังขยะไม่นับในทุกจอ ทุกการนับ และการเตือน
+function liveTasks() { return state.tasks.filter(t => !t.deleted); }
+function pendingTasks() { return state.tasks.filter(t => !t.done && !t.deleted); }
 
 // ---------- ธีมสี ----------
 // เก็บแยกจาก state เพราะเป็นค่าประจำ "เครื่องนี้" ไม่ใช่ของบัญชี —
 // มือถือกับคอมของคนเดียวกันอาจอยากได้ธีมต่างกัน จึงไม่ซิงก์ข้ามเครื่อง
 const THEME_KEY = 'studentos.theme';
-const THEMES = ['system', 'light', 'dark'];
+// สีแถบสถานะของแต่ละโทน (ต้องตรงกับ --scr ใน style.css และตารางในสคริปต์ <head>)
+const THEME_BAR = { light: '#FCFBF7', dark: '#0D1220', warm: '#F7F1E4', space: '#0A0E24' };
+const THEME_NAME = { system: 'ตามระบบ', light: 'สว่าง', dark: 'มืด', warm: 'อุ่น', space: 'อวกาศ' };
+const THEMES = Object.keys(THEME_NAME);
 
 function themePref() {
   let v = null;
@@ -40,12 +45,15 @@ function systemDark() { return matchMedia('(prefers-color-scheme: dark)').matche
 
 function applyTheme() {
   const pref = themePref();
-  const dark = pref === 'dark' || (pref === 'system' && systemDark());
-  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  // "ตามระบบ" = สลับระหว่างโทนสว่างกับโทนมืดตามเครื่อง (อีก 2 โทนต้องเลือกเอง)
+  const theme = pref === 'system' ? (systemDark() ? 'dark' : 'light') : pref;
+  document.documentElement.dataset.theme = theme;
   const meta = document.querySelector('meta[name=theme-color]');
-  if (meta) meta.content = dark ? '#0F172A' : '#F8FAFC';
+  if (meta) meta.content = THEME_BAR[theme];
   document.querySelectorAll('#themePick button').forEach(b =>
     b.classList.toggle('active', b.dataset.th === pref));
+  const now = document.getElementById('themeNow');
+  if (now) now.textContent = pref === 'system' ? `ตามระบบ · ตอนนี้โทน${THEME_NAME[theme]}` : '';
 }
 
 function setTheme(pref) {
@@ -90,7 +98,7 @@ async function initCloud() {
       if ('Notification' in window && Notification.permission === 'granted') {
         subscribePush().catch(() => {}); // ผูก push กับบัญชีที่เพิ่งล็อกอิน
       }
-      syncFromCloud().then(() => go(state.tasks.length ? 'scr-home' : 'scr-scan'));
+      syncFromCloud().then(() => go(liveTasks().length ? 'scr-home' : 'scr-scan'));
     } else {
       renderAll();
     }
@@ -149,7 +157,7 @@ function loginGoogle() {
 
 function skipLogin() {
   localStorage.setItem('studentos.skipLogin', '1');
-  go(state.tasks.length ? 'scr-home' : 'scr-scan');
+  go(liveTasks().length ? 'scr-home' : 'scr-scan');
 }
 
 async function logout() {
@@ -164,310 +172,284 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
-function starsHtml(n) {
-  return '<span class="stars lv' + n + '">' + '★'.repeat(n) + '<span class="off">' + '★'.repeat(5 - n) + '</span></span>';
-}
-// ป้ายระดับความสำคัญแบบกะทัดรัด (ใช้แทนดาวในการ์ด)
-function priorityBadge(stars) {
-  return `<span class="pbadge lv${stars}">${esc(priorityLabel(stars))}</span>`;
-}
-// เมตาดาต้าสั้น ไม่เกิน 2 อัน — กรองเอาแต่ที่สำคัญ ไม่เอาที่ซ้ำกับ badge/deadline
-function metaHtml(reasons) {
-  const drop = /ใกล้กำหนด|ส่งภายใน|ยังพอมีเวลา|ส่งใน|กำหนดความสำคัญเอง|ยังไม่ระบุ/;
-  const keep = reasons.filter(r => !drop.test(r)).slice(0, 2);
-  if (!keep.length) return '';
-  return '<div class="meta">' + keep.map(r => '<span class="mchip">' + esc(r) + '</span>').join('') + '</div>';
-}
 // หัวเรื่องการ์ด: ไม่โชว์ "อื่น ๆ ·" ซ้ำซ้อนเวลาไม่ได้ระบุวิชา
 function taskTitle(t) {
   const subj = t.subject && t.subject !== 'อื่น ๆ' ? esc(t.subject) + ' · ' : '';
   return subj + esc(t.detail);
 }
-function typeChip(t) {
-  const type = taskType(t);
-  if (type === 'homework') return ''; // การบ้านคือค่าปกติ ไม่ต้องติดป้ายให้รก
-  const ti = TASK_TYPES[type];
-  return `<span class="tchip ${type}">${ti.icon} ${esc(ti.name)}</span>`;
-}
-function progressHtml(p) {
-  p = Math.max(0, Math.min(100, p || 0));
-  if (p <= 0) return '';
-  return `<div class="progress-row"><div class="progress-track"><div class="progress-fill" style="width:${p}%"></div></div><span class="progress-pct">${p}%</span></div>`;
-}
-
 // ไอคอน Lucide — เรียกใช้ซ้ำได้จาก <defs> ใน index.html
 function icon(name, cls) {
   return `<svg viewBox="0 0 24 24"${cls ? ` class="${cls}"` : ''} aria-hidden="true"><use href="#lu-${name}"/></svg>`;
 }
-// ไอคอนประจำประเภทงาน
-const TYPE_ICON = { homework: 'pencil', exam: 'book', activity: 'calendar', reminder: 'clock' };
+// ---------- หน้าแรก ----------
+// โครง: หัวข้อทักทาย → การ์ดสรุปของ AI → งาน 3 อันดับแรก → ทางไปงานที่เหลือ
+// การ์ดสรุปคือที่เดียวที่ AI "พูด" ยาว ๆ ได้ การ์ดงานจึงเหลือแต่ข้อมูลดิบล้วน
+function briefCard(pending, now) {
+  const top = pending[0];
+  const raw = aiGreeting(pending, state.settings, now);
+  // เน้นชื่อวิชากับจำนวนชั่วโมง เพราะเป็นสองคำที่สายตาต้องจับให้ได้ก่อน
+  let msg = esc(raw).replace(/~([\d.]+) ชม\./g, '<b>~$1 ชม.</b>');
+  if (top && top.subject) msg = msg.replace(esc(top.subject), '<b>' + esc(top.subject) + '</b>');
+  return `<div class="brief">
+    <div class="brief-head"><span class="brief-mark">${icon('sparkles')}</span><b>STUDENTOS AI</b></div>
+    <p class="brief-body">${msg}</p>
+    <button class="brief-cta" onclick="go('scr-plan')">${icon('calendar')}ให้ AI วางแผนเวลาวันนี้</button>
+  </div>`;
+}
 
-// การ์ดงานหลัก — ตัวเดียวที่เด่นในหน้าแรก พร้อมเหตุผลจาก AI
-function heroCard(t, pending, now) {
+// การ์ดงานพร้อมเลขลำดับ — สีของเลขและป้ายมาจากระดับความสำคัญชุดเดียวกัน
+function rankCard(t, n, now) {
   const info = priorityInfo(t, now);
-  const urgent = info.urgency === 'over' || info.urgency === 'hot';
-  const type = taskType(t);
-  const ti = TASK_TYPES[type];
+  const tone = priorityTone(info.stars);
+  const hot = info.urgency === 'over' || info.urgency === 'hot';
+  const ti = TASK_TYPES[taskType(t)];
   const prog = Math.max(0, Math.min(100, t.progress || 0));
-
-  // ติดป้ายเฉพาะที่บอกอะไรจริง ๆ — งานบ้านธรรมดาที่ยังไม่ด่วนไม่ต้องมีป้ายเลย
-  // ป้ายประเภทติดแค่ตอนบรรทัดกำหนดส่งไม่ได้บอกประเภทให้แล้ว
-  // (การบ้านขึ้น "ส่ง…" สอบขึ้น "สอบ…" อยู่แล้ว — ติดป้ายซ้ำคือคำเกิน)
-  const dueNamesType = type === 'homework' || type === 'exam';
-  const badges = [
-    info.stars >= 4 ? `<span class="hbadge ${info.stars >= 5 ? 'lv5' : 'lv4'}">${urgent ? icon('flame') : ''}${esc(priorityLabel(info.stars))}</span>` : '',
-    dueNamesType ? '' : `<span class="hbadge">${icon(TYPE_ICON[type])}${esc(ti.name)}</span>`,
-  ].filter(Boolean).join('');
-
-  // เวลาที่เหลือคือตัวตัดสินใจหลัก — ตามด้วยอีกอย่างเดียวเท่านั้น
-  const second = ti.schedulable ? `<span>~${t.estMin} นาที</span>`
-    : (t.scorePct != null ? `<span>คะแนน ${t.scorePct}%</span>` : '');
-  const subject = t.subject && t.subject !== 'อื่น ๆ' ? `<div class="hero-subject">${esc(t.subject)}</div>` : '';
-  const why = aiHeroWhy(t, pending, state.settings, now);
-
-  return `
-  <section>
-    <div class="eyebrow">${icon('sparkles')}<span>AI แนะนำให้ทำก่อน</span></div>
-    <div class="hero ${urgent ? 'urgent' : ''}" onclick="openForm('${t.id}')">
-      <div class="hero-strip"></div>
-      <div class="hero-in">
-        ${badges ? `<div class="hero-badges">${badges}</div>` : ''}
-        <div>
-          ${subject}
-          <h3 class="hero-title">${esc(t.detail)}</h3>
-        </div>
-        <div class="hero-meta">
-          <span class="due ${urgent ? 'hot' : ''}">${icon('clock')}${fmtDue(t.due, now, t)}</span>
-          ${second}
-        </div>
-        ${prog > 0 ? `<div class="hero-prog">
-          <div class="track"><div class="fill" style="width:${prog}%"></div></div>
-          <span class="pct">${prog}%</span></div>` : ''}
-        ${why ? `<div class="hero-why">${icon('sparkles')}<span>${esc(why)}</span></div>` : ''}
-        <button class="hero-done" onclick="event.stopPropagation();toggleDone('${t.id}')">${icon('check')}ทำเสร็จแล้ว</button>
-      </div>
+  // กำหนดส่งคือตัวตัดสินใจหลัก + อีกอย่างเดียวเท่านั้น ให้อยู่บรรทัดเดียวจบ
+  const second = prog > 0 ? `ทำไป ${prog}%`
+    : ti.schedulable ? `~${t.estMin} นาที`
+    : t.scorePct != null ? `คะแนน ${t.scorePct}%` : '';
+  const bits = [
+    `<span class="mono ${hot ? 'hot' : ''}">${esc(fmtDue(t.due, now, t))}</span>`,
+    second ? `<span>${esc(second)}</span>` : '',
+  ].filter(Boolean);
+  return `<div class="rank-card" onclick="openForm('${t.id}')">
+    <span class="rank ${tone}">${n}</span>
+    <div class="rc-body">
+      <span class="tag ${tone}">${esc(priorityLabel(info.stars))}</span>
+      <div class="rc-title">${taskTitle(t)}</div>
+      <div class="rc-meta">${bits.join('<i class="msep"></i>')}</div>
     </div>
-  </section>`;
-}
-
-// งานถัดไป — ย่อเหลือแถวเดียว อ่านผ่านตาเร็ว ไม่แย่งความสนใจจากงานหลัก
-function nextRow(t, now) {
-  const info = priorityInfo(t, now);
-  const hot = info.urgency === 'over' || info.urgency === 'hot';
-  const lv = info.stars >= 5 ? 'lv5' : info.stars >= 4 ? 'lv4' : '';
-  return `
-  <div class="nrow" onclick="openForm('${t.id}')">
-    <div class="nbody">
-      <div class="ntitle">${taskTitle(t)}</div>
-      <div class="nmeta">
-        <span class="nbadge ${lv}">${esc(priorityLabel(info.stars))}</span>
-        <span class="ndue ${hot ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span>
-      </div>
-    </div>
-    <button class="ncheck" onclick="event.stopPropagation();toggleDone('${t.id}')" aria-label="ทำเสร็จ">
-      <span>${icon('check')}</span>
-    </button>
+    <button class="rc-check" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
+      aria-label="ทำเสร็จ">${icon('check')}</button>
   </div>`;
-}
-
-function taskCard(t, rank, now) {
-  const info = priorityInfo(t, now);
-  const hot = info.urgency === 'over' || info.urgency === 'hot';
-  const pin = t.userStars ? '<span class="pin" title="กำหนดความสำคัญเอง">📌</span>' : '';
-  return `
-  <div class="tcard" data-id="${t.id}" onclick="openForm('${t.id}')">
-    <span class="rank ${rank === 1 ? 'r1' : ''}">${rank}</span>
-    <div class="tbody">
-      <div class="trow1">${priorityBadge(info.stars)}${typeChip(t)}${pin}<span class="tdue ${hot ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span></div>
-      <h4 class="ttitle">${taskTitle(t)}</h4>
-      ${progressHtml(t.progress)}
-      ${metaHtml(info.reasons)}
-    </div>
-    <button class="tcheck" onclick="event.stopPropagation();toggleDone('${t.id}')" aria-label="ทำเสร็จ" title="ทำเสร็จ"></button>
-  </div>`;
-}
-
-
-// แถวสถิติ "ส่งตรงเวลากี่วันติด" — ให้เห็นความต่อเนื่อง ไม่ใช่แค่ตัวเลขรวม
-function streakSection() {
-  const days = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
-  const now = new Date();
-  const doneDays = new Set(state.tasks.filter(t => t.done && t.due)
-    .map(t => new Date(t.due).getDay()));
-  if (!doneDays.size) return '';
-  const cells = days.map((d, i) => `<span class="${doneDays.has(i) ? 'on' : ''}">${d}</span>`).join('');
-  return `<section><div class="streak">
-    <div class="streak-days">${cells}</div>
-    <div class="streak-txt">ส่งตรงเวลา <b>${doneDays.size} วัน</b> ในสัปดาห์นี้</div>
-  </div></section>`;
 }
 
 function renderHome() {
+  const body = document.getElementById('homeBody');
+  if (!body) return;
   const now = new Date();
   const pending = sortByPriority(pendingTasks(), now);
-  const doneToday = state.tasks.filter(t => t.done).length;
-
+  const doneCount = liveTasks().filter(t => t.done).length;
   const h = now.getHours();
   const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนค่ำ';
   const name = state.settings.name || 'นักเรียน';
-  document.getElementById('greeting').textContent = `${greet}, ${name}`;
-  document.getElementById('hhDate').textContent = fmtThaiDate(now);
-  const hhNum = document.getElementById('hhNum');
-  hhNum.textContent = pending.length;
-  hhNum.classList.toggle('hot', pending.some(t => {
-    const u = priorityInfo(t, now).urgency; return u === 'over' || u === 'hot';
-  }));
 
-  const body = document.getElementById('homeBody');
+  const head = `<div class="page-head">
+    <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
+    <h1 class="page-title">${greet}, ${esc(name)}</h1>
+    <p class="page-sub">งานค้าง <b>${pending.length}</b> · เสร็จแล้ว ${doneCount}
+      · เวลาว่างวันนี้ ~${state.settings.freeHours || 2} ชม.</p>
+  </div>`;
+
   if (!pending.length) {
     // เคลียร์หมด — เป็นช่วงเวลาที่ควรให้กำลังใจ ไม่ใช่จอว่างเปล่า
-    const cleared = doneToday > 0;
-    body.innerHTML = `<section class="empty-wrap">
+    const cleared = doneCount > 0;
+    body.innerHTML = head + `<section class="empty-wrap">
       <div class="empty-ring">${icon('check-circle')}</div>
       <h3 class="empty-h">${cleared ? 'เคลียร์หมดแล้ว' : 'ยังไม่มีงานในระบบ'}</h3>
       <p class="empty-p">${cleared
         ? 'ไม่มีงานค้างสักงาน — วันนี้พักได้เต็มที่'
         : 'กดปุ่มกลางแถบล่างเพื่อเพิ่มงานแรก'}</p>
-      ${cleared ? `<div class="empty-note">${icon('sparkles')}<span>ทำเสร็จไปแล้ว ${doneToday} งาน — รักษาจังหวะนี้ไว้ คะแนนเก็บจะเต็มทั้งเทอม</span></div>` : ''}
-      <button class="empty-cta" onclick="go('scr-scan')">${icon('sparkles')}เพิ่มงานแรกของวัน</button>
-    </section>` + streakSection();
+      <button class="empty-cta" onclick="go('scr-scan')">${icon('sparkles')}เพิ่มงานใหม่</button>
+    </section>`;
     return;
   }
 
-  // ลำดับสายตา: งานหลัก 1 ชิ้นเด่นชัด → งานถัดไปย่อเป็นแถว → ทางเข้าแผนวันนี้
-  const rest = pending.slice(1, 3);
-  const plan = buildDayPlan(pending, state.settings, now);
-  const firstSlot = plan.slots.find(s => !s.break);
-  const teaser = firstSlot
-    ? `เริ่ม ${fmtClock(firstSlot.start)} · ${plan.slots.filter(s => !s.break).length} ช่วง`
-    : 'จัดเวลาให้อัตโนมัติ';
-
-  body.innerHTML = heroCard(pending[0], pending, now)
-    + (rest.length ? `<section>
-        <div class="row-head">
-          <span class="lbl">ถัดไป</span>
-          ${pending.length > 3 ? `<button class="more" onclick="go('scr-tasks')">ทั้งหมด ${pending.length}${icon('chevron')}</button>` : ''}
-        </div>
-        ${rest.map(t => nextRow(t, now)).join('')}
-      </section>` : '')
-    + `<button class="plan-card" onclick="go('scr-plan')">
-        <span class="tile">${icon('calendar')}</span>
-        <span class="pc-body">
-          <span class="pc-title">ให้ AI วางแผนเวลาวันนี้</span>
-          <span class="pc-sub">${esc(teaser)}</span>
-        </span>
-        ${icon('chevron')}
-      </button>`;
+  const rest = pending.length - 3;
+  body.innerHTML = head + briefCard(pending, now)
+    + `<div class="sec-label">ลำดับที่ AI แนะนำ</div>`
+    + pending.slice(0, 3).map((t, i) => rankCard(t, i + 1, now)).join('')
+    + (rest > 0 ? `<button class="ghost-wide" onclick="go('scr-tasks')">
+        ดูงานที่เหลืออีก ${rest} งาน${icon('chevron')}</button>` : '');
 }
 
-function taskRow(t, now) {
-  const info = priorityInfo(t, now);
-  const hot = info.urgency === 'over' || info.urgency === 'hot';
-  return `
-  <div class="task-row ${t.done ? 'done' : ''}">
-    <button class="tcheck ${t.done ? 'on' : ''}" onclick="toggleDone('${t.id}')" aria-label="${t.done ? 'ทำเสร็จแล้ว' : 'ทำเสร็จ'}"></button>
-    <div class="task-main" onclick="openForm('${t.id}')">
-      <div class="task-title">${taskTitle(t)}</div>
-      <div class="trow1 sm">${t.done ? '<span class="tdue ok">เสร็จแล้ว</span>' : priorityBadge(info.stars) + typeChip(t) + '<span class="tdue ' + (hot ? 'hot' : '') + '">' + fmtDue(t.due, now, t) + '</span>'}</div>
-      ${!t.done ? progressHtml(t.progress) : ''}
-    </div>
-    <button class="icon-btn" onclick="removeTask('${t.id}')" aria-label="ลบ">✕</button>
-  </div>`;
-}
-
-let taskFilter = 'all';
+// ---------- หน้างาน ----------
+// 3 แท็บเท่านั้น: ค้างอยู่ · เสร็จแล้ว · ทั้งหมด
+// ของที่ลบไม่หายทันที แต่ไปนอนในถังขยะที่ซ่อนไว้ท้ายหน้า กดเปิดเองได้
+let taskFilter = 'pending'; // pending | done | all | bin
 function setFilter(f) {
   taskFilter = f;
-  document.querySelectorAll('#filterRow .fchip').forEach(b => b.classList.toggle('active', b.dataset.f === f));
   renderTasks();
-}
-
-// ---------- งานทั้งหมด (โครง Refined: เช็คซ้าย · ลบขวา · หัวหมวดมีไอคอน) ----------
-function renderTasks() {
-  const now = new Date();
-  const match = t => taskFilter === 'all' || taskType(t) === taskFilter;
-  const pending = sortByPriority(pendingTasks().filter(match), now);
-  const done = state.tasks.filter(t => t.done && match(t));
-  const label = taskFilter === 'all' ? '' : ' · ' + TASK_TYPES[taskFilter].name;
-  document.getElementById('tasksSub').textContent = `${pending.length} งานค้าง${label}`;
-
-  const hot = pending.filter(t => ['over', 'hot'].includes(priorityInfo(t, now).urgency));
-  const rest = pending.filter(t => !hot.includes(t));
-  const sec = (label, rows, isHot) => rows.length ? `
-    <div class="tsec">
-      <div class="tsec-head ${isHot ? 'hot' : ''}">${isHot ? icon('flame') : ''}<span>${esc(label)}</span></div>
-      ${rows.map(t => taskRow(t, now)).join('')}
-    </div>` : '';
-
-  let html = sec('ด่วน', hot, true) + sec('ต่อจากนั้น', rest, false) + sec(`เสร็จแล้ว · ${done.length}`, done, false);
-  if (!html) html = `<div class="card empty">${taskFilter === 'all'
-    ? 'ยังไม่มีงาน — กดปุ่ม <b>เพิ่ม</b> ด้านล่างเพื่อเริ่ม'
-    : `ไม่มีรายการประเภท “${esc(TASK_TYPES[taskFilter].name)}”`}</div>`;
-  document.getElementById('taskList').innerHTML = html;
+  const s = document.getElementById('scr-tasks');
+  if (s) s.scrollTop = 0;
 }
 
 function taskRow(t, now) {
   const info = priorityInfo(t, now);
+  const tone = priorityTone(info.stars);
   const hot = info.urgency === 'over' || info.urgency === 'hot';
-  const lv = info.stars >= 5 ? 'lv5' : info.stars >= 4 ? 'lv4' : '';
-  return `
-  <div class="trow ${t.done ? 'done' : ''}">
-    <button class="tcheck2" onclick="toggleDone('${t.id}')" aria-label="${t.done ? 'ทำเสร็จแล้ว' : 'ทำเสร็จ'}">
-      <span>${icon('check')}</span>
-    </button>
-    <div class="tmain" onclick="openForm('${t.id}')">
-      <div class="tt">${taskTitle(t)}</div>
-      <div class="tm">
-        ${t.done ? '<span class="nbadge">เสร็จแล้ว</span>'
-          : `<span class="nbadge ${lv}">${esc(priorityLabel(info.stars))}</span>
-             <span class="ndue ${hot ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span>`}
-      </div>
+  return `<div class="arow ${t.done ? 'done' : ''}">
+    <button class="chk ${t.done ? 'on' : ''}" onclick="toggleDone('${t.id}',this)"
+      aria-label="${t.done ? 'ทำเสร็จแล้ว' : 'ทำเสร็จ'}">${icon('check')}</button>
+    <div class="ab" onclick="openForm('${t.id}')">
+      <div class="at">${taskTitle(t)}</div>
+      <div class="am">${t.done
+        ? '<span>เสร็จแล้ว</span>'
+        : `<span class="tag ${tone}">${esc(priorityLabel(info.stars))}</span>
+           <span class="mono ${hot ? 'hot' : ''}">${esc(fmtDue(t.due, now, t))}</span>`}</div>
     </div>
-    <button class="tdel" onclick="removeTask('${t.id}')" aria-label="ลบ">${icon('trash')}</button>
   </div>`;
 }
 
-// ---------- เส้นเวลา (โครง Refined: หัวหมวดมีจุดสี + เส้นคั่น + จำนวน) ----------
-function renderTimeline() {
+function renderTasks() {
+  const el = document.getElementById('taskList');
+  if (!el) return;
   const now = new Date();
-  const pending = sortByPriority(pendingTasks(), now);
-  const buckets = [
-    { name: 'เลยกำหนด', hot: true,  test: h => h != null && h < 0 },
-    { name: 'วันนี้',    hot: true,  test: h => h != null && h >= 0 && h <= (24 - now.getHours()) },
-    { name: 'พรุ่งนี้',  hot: false, test: h => h != null && h > (24 - now.getHours()) && h <= (48 - now.getHours()) },
-    { name: 'สัปดาห์นี้', hot: false, test: h => h != null && h > (48 - now.getHours()) && h <= 24 * 7 },
-    { name: 'ถัดจากนั้น', hot: false, test: h => h == null || h > 24 * 7 },
-  ];
-  let html = '';
-  for (const b of buckets) {
-    const list = pending.filter(t => b.test(priorityInfo(t, now).hoursLeft));
-    if (!list.length) continue;
-    const top = priorityInfo(list[0], now).stars;
-    const dot = top >= 5 ? 'lv5' : top >= 4 ? 'lv4' : '';
-    html += `<div class="tlg">
-      <div class="tlg-head">
-        <span class="dot ${dot}"></span>
-        <span class="nm ${b.hot ? 'hot' : ''}">${esc(b.name)}</span>
-        <span class="ln"></span>
-        <span class="ct">${list.length}</span>
-      </div>
-      ${list.map(t => {
-        const info = priorityInfo(t, now);
-        const lv = info.stars >= 5 ? 'lv5' : info.stars >= 4 ? 'lv4' : info.stars >= 3 ? 'lv3' : '';
-        const isHot = info.urgency === 'over' || info.urgency === 'hot';
-        return `<div class="tli" onclick="openForm('${t.id}')">
-          <div class="bar ${lv}"></div>
-          <div class="cd">
-            <div class="tm">
-              <span class="nbadge ${lv === 'lv3' ? '' : lv}">${esc(priorityLabel(info.stars))}</span>
-              <span class="ndue ${isHot ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span>
-            </div>
-            <div class="tt">${taskTitle(t)}</div>
-          </div>
-        </div>`;
-      }).join('')}
+  const live = liveTasks();
+  const pending = sortByPriority(live.filter(t => !t.done), now);
+  // งานที่เสร็จ: อันที่เพิ่งเสร็จอยู่บนสุด (ไม่มีเวลาเสร็จก็เรียงตามกำหนดส่ง)
+  const done = live.filter(t => t.done)
+    .sort((a, b) => (b.doneAt || b.due || '').localeCompare(a.doneAt || a.due || ''));
+  const bin = state.tasks.filter(t => t.deleted);
+
+  if (taskFilter === 'bin') { el.innerHTML = binView(bin); return; }
+
+  const tab = (key, label, n) =>
+    `<button class="${taskFilter === key ? 'active' : ''}" onclick="setFilter('${key}')">
+      ${label}<span class="ct">${n}</span></button>`;
+  const head = `<div class="page-head">
+      <div class="eyebrow">รายการงาน</div>
+      <h1 class="page-title">งานทั้งหมด</h1>
+    </div>
+    <div class="seg3">
+      ${tab('pending', 'ค้างอยู่', pending.length)}
+      ${tab('done', 'เสร็จแล้ว', done.length)}
+      ${tab('all', 'ทั้งหมด', live.length)}
     </div>`;
+
+  const rows = taskFilter === 'done' ? done
+    : taskFilter === 'all' ? pending.concat(done) : pending;
+  const empty = taskFilter === 'done' ? 'ยังไม่มีงานที่ทำเสร็จ'
+    : taskFilter === 'all' ? 'ยังไม่มีงาน — กดปุ่มกลางแถบล่างเพื่อเพิ่ม'
+    : 'ไม่มีงานค้างเลย — เคลียร์หมดแล้ว';
+
+  el.innerHTML = head
+    + (rows.length ? rows.map(t => taskRow(t, now)).join('') : `<div class="card empty">${empty}</div>`)
+    + (bin.length ? `<button class="bin-btn" onclick="setFilter('bin')">
+        ${icon('trash')}ถังขยะ · ${bin.length} รายการ</button>` : '');
+}
+
+// ---------- ถังขยะ ----------
+function binView(bin) {
+  const head = `<div class="bin-head">
+      <button class="back" onclick="setFilter('pending')" aria-label="กลับ">${icon('chevron')}</button>
+      <div style="flex:1;min-width:0">
+        <div class="eyebrow">ที่เก็บของที่ลบ</div>
+        <div class="page-title" style="font-size:21px;margin-top:2px">ถังขยะ</div>
+      </div>
+      ${bin.length ? `<div class="bin-act"><button class="del" onclick="emptyBin()">ล้างทั้งหมด</button></div>` : ''}
+    </div>`;
+  if (!bin.length) return head + `<div class="card empty">ถังขยะว่าง</div>`;
+  const rows = bin
+    .slice()
+    .sort((a, b) => (b.deletedAt || '').localeCompare(a.deletedAt || ''))
+    .map(t => `<div class="arow done">
+      <div class="ab" style="cursor:default">
+        <div class="at">${taskTitle(t)}</div>
+        <div class="am"><span>${esc(binWhen(t))}</span></div>
+      </div>
+      <div class="bin-act">
+        <button onclick="restoreTask('${t.id}')">กู้คืน</button>
+        <button class="del" onclick="purgeTask('${t.id}')" aria-label="ลบถาวร">${icon('trash')}</button>
+      </div>
+    </div>`).join('');
+  return head + rows + `<p class="bin-note">ของในถังขยะจะถูกลบถาวรเองหลังครบ 30 วัน</p>`;
+}
+
+function binWhen(t) {
+  if (!t.deletedAt) return 'ลบแล้ว';
+  const d = new Date(t.deletedAt);
+  const days = Math.floor((Date.now() - d) / 8.64e7);
+  return days <= 0 ? 'ลบวันนี้' : days === 1 ? 'ลบเมื่อวาน' : `ลบเมื่อ ${days} วันก่อน`;
+}
+
+function restoreTask(id) {
+  const t = state.tasks.find(x => x.id === id);
+  if (!t) return;
+  delete t.deleted; delete t.deletedAt;
+  save(); renderAll();
+  showToast({ title: 'กู้คืนแล้ว ↩', body: taskTitle(t).replace(/<[^>]*>/g, '') });
+}
+function purgeTask(id) {
+  const t = state.tasks.find(x => x.id === id);
+  if (!t) return;
+  if (!confirm('ลบถาวร กู้คืนไม่ได้อีก แน่ใจนะ?')) return;
+  state.tasks = state.tasks.filter(x => x.id !== id);
+  save(); renderAll();
+}
+function emptyBin() {
+  const n = state.tasks.filter(t => t.deleted).length;
+  if (!n || !confirm(`ลบถาวรทั้ง ${n} รายการ กู้คืนไม่ได้อีก แน่ใจนะ?`)) return;
+  state.tasks = liveTasks();
+  save();
+  setFilter('pending');
+  renderAll();
+}
+// ล้างของที่นอนในถังขยะเกิน 30 วันทิ้งอัตโนมัติ (เรียกตอนเปิดแอป)
+function purgeOldTrash() {
+  const cut = Date.now() - 30 * 8.64e7;
+  const before = state.tasks.length;
+  state.tasks = state.tasks.filter(t => !(t.deleted && t.deletedAt && new Date(t.deletedAt) < cut));
+  if (state.tasks.length !== before) save();
+}
+
+// ---------- เส้นเวลา ----------
+// จัดกลุ่มตามวันจริง เรียงตามเวลาในวัน และบอกเวลาส่งไว้ริมเส้น
+function renderTimeline() {
+  const el = document.getElementById('timeline');
+  if (!el) return;
+  const now = new Date();
+  const pending = pendingTasks();
+
+  const groups = new Map(); // key -> { label, hot, order, list }
+  const put = (key, label, hot, order, t) => {
+    if (!groups.has(key)) groups.set(key, { label, hot, order, list: [] });
+    groups.get(key).list.push(t);
+  };
+  for (const t of pending) {
+    if (!t.due) { put('none', 'ยังไม่ระบุวัน', false, 9e5, t); continue; }
+    const d = new Date(t.due);
+    if (d < now) { put('over', 'เลยกำหนด', true, -1, t); continue; }
+    const diff = Math.round((atTime(d, 0, 0) - atTime(now, 0, 0)) / 8.64e7);
+    if (diff > 7) { put('far', 'ถัดจากนั้น', false, 8e4, t); continue; }
+    const label = diff === 0 ? 'วันนี้' : diff === 1 ? 'พรุ่งนี้'
+      : 'วัน' + THAI_DAY[d.getDay()] + ' ' + d.getDate() + ' ' + MONTH_SHORT[d.getMonth()];
+    put('d' + diff, label, diff <= 1, diff, t);
   }
+
+  let html = `<div class="page-head">
+      <div class="eyebrow">ภาพรวม</div>
+      <h1 class="page-title">เส้นเวลา</h1>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--pri-red)"></i>ด่วนมาก</span>
+      <span><i style="background:var(--pri-yellow)"></i>สำคัญ–ปานกลาง</span>
+      <span><i style="background:var(--pri-green)"></i>รอได้</span>
+    </div>`;
+
+  const sorted = [...groups.values()].sort((a, b) => a.order - b.order);
+  for (const g of sorted) {
+    g.list.sort((a, b) => new Date(a.due || 8.64e15) - new Date(b.due || 8.64e15));
+    html += `<div class="day-label ${g.hot ? 'hot' : ''}">
+      <span>${esc(g.label)}</span><span class="ln"></span><span class="ct">${g.list.length}</span></div>`;
+    for (const t of g.list) {
+      const info = priorityInfo(t, now);
+      const tone = priorityTone(info.stars);
+      const hot = info.urgency === 'over' || info.urgency === 'hot';
+      html += `<div class="tlrow">
+        <div class="tltime ${hot ? 'hot' : ''}">${esc(dueClock(t))}</div>
+        <div class="tlrail ${tone}"></div>
+        <div class="tlcard" onclick="openForm('${t.id}')">
+          <span class="tag ${tone}">${esc(priorityLabel(info.stars))}</span>
+          <div class="tltitle">${taskTitle(t)}</div>
+          <div class="tlsub">${esc(fmtDue(t.due, now, t))}</div>
+        </div>
+      </div>`;
+    }
+  }
+
+  if (!sorted.length) html += `<div class="card empty">ไม่มีงานในเส้นเวลา 🎉</div>`;
+
   const insight = timelineInsight(pending, now);
   if (insight) html += `<div class="tl-note">
     <span class="tile">${icon('sparkles')}</span>
@@ -476,8 +458,14 @@ function renderTimeline() {
       <div class="tx">${esc(insight)}</div>
     </div>
   </div>`;
-  if (!html) html = `<div class="card empty">ไม่มีงานในเส้นเวลา 🎉</div>`;
-  document.getElementById('timeline').innerHTML = html;
+  el.innerHTML = html;
+}
+
+// เวลาส่งสำหรับริมเส้น — 23:59 คือ "ไม่ได้ระบุเวลา" จึงเขียนว่าทั้งวัน
+function dueClock(t) {
+  if (!t.due) return '—';
+  const d = new Date(t.due);
+  return (d.getHours() === 23 && d.getMinutes() === 59) ? 'ทั้งวัน' : fmtClock(d);
 }
 
 // ---------- แผนวันนี้ (โครง Refined: เวลาซ้าย · การ์ดขวา · พักเป็นบล็อกจาง) ----------
@@ -542,7 +530,7 @@ function renderPlan() {
 function renderProfile() {
   const now = new Date();
   const pending = pendingTasks();
-  const done = state.tasks.filter(t => t.done).length;
+  const done = liveTasks().filter(t => t.done).length;
   const name = state.settings.name || (currentUser && currentUser.user_metadata && currentUser.user_metadata.full_name) || 'นักเรียน';
   const pic = currentUser && currentUser.user_metadata && (currentUser.user_metadata.avatar_url || currentUser.user_metadata.picture);
 
@@ -602,21 +590,78 @@ function renderProfile() {
 function renderAll() { renderHome(); renderTasks(); renderTimeline(); renderProfile(); renderPlan(); renderInstallCard(); }
 
 // ---------- task actions ----------
-function toggleDone(id) {
+// el = ปุ่มที่กด (ถ้ามี) ใช้เป็นจุดกำเนิดของเอฟเฟกต์ฉลอง
+function toggleDone(id, el) {
   const t = state.tasks.find(x => x.id === id);
-  if (t) {
-    const wasDone = t.done;
-    t.done = !t.done;
-    t.progress = t.done ? 100 : (t.progress === 100 ? 0 : t.progress);
-    save(); renderAll();
-    if (!wasDone && t.done) showToast(celebrateCopy(pendingTasks().length === 0)); // ฉลองตอนทำเสร็จ
+  if (!t) return;
+  const wasDone = t.done;
+  t.done = !t.done;
+  t.progress = t.done ? 100 : (t.progress === 100 ? 0 : t.progress);
+  t.doneAt = t.done ? new Date().toISOString() : null;
+  save();
+
+  if (!wasDone && t.done) {
+    // ให้เห็นจังหวะฉลองก่อน แล้วค่อยวาดรายการใหม่ (ไม่งั้นปุ่มหายไปก่อนดูจบ)
+    if (el) { el.classList.add('on', 'pop'); }
+    celebrate(el);
+    if (navigator.vibrate) { try { navigator.vibrate(15); } catch (_) {} }
+    const cleared = pendingTasks().length === 0;
+    setTimeout(() => { renderAll(); showToast(celebrateCopy(cleared)); }, 430);
+  } else {
+    renderAll();
   }
 }
+
+// ลบ = ย้ายไปถังขยะ ไม่ใช่หายจริง — กดพลาดกู้คืนได้ จึงไม่ต้องถามยืนยัน
 function removeTask(id) {
   const t = state.tasks.find(x => x.id === id);
-  if (t && confirm(`ลบ "${t.subject} — ${t.detail}" ?`)) {
-    state.tasks = state.tasks.filter(x => x.id !== id);
-    save(); renderAll();
+  if (!t) return;
+  t.deleted = true;
+  t.deletedAt = new Date().toISOString();
+  save(); renderAll();
+  showToast({ title: 'ย้ายไปถังขยะแล้ว 🗑', body: 'กู้คืนได้ที่ปุ่มถังขยะท้ายหน้า “งาน”' });
+}
+
+// ---------- เอฟเฟกต์ฉลองตอนเช็คงานเสร็จ ----------
+// เศษกระดาษพุ่งออกจากปุ่มที่กด ตกตามแรงโน้มถ่วง แล้วจางหาย
+// วางไว้ในกรอบ .phone เพื่อให้ไม่ทะลุออกนอกจอแอป
+function celebrate(el) {
+  const phone = document.querySelector('.phone');
+  if (!phone || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const pr = phone.getBoundingClientRect();
+  const r = el ? el.getBoundingClientRect() : null;
+  const x0 = r ? r.left - pr.left + r.width / 2 : pr.width / 2;
+  const y0 = r ? r.top - pr.top + r.height / 2 : pr.height / 2;
+
+  const cs = getComputedStyle(document.documentElement);
+  const colors = ['--pri-green', '--pri-yellow', '--pri-red', '--blue']
+    .map(v => cs.getPropertyValue(v).trim()).filter(Boolean).concat('#FFFFFF');
+
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement('i');
+    p.className = 'particle';
+    const size = 4 + Math.random() * 6;
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.width = p.style.height = size + 'px';
+    p.style.borderRadius = Math.random() > .5 ? '50%' : '2px';
+    p.style.left = x0 + 'px';
+    p.style.top = y0 + 'px';
+    phone.appendChild(p);
+
+    const ang = Math.random() * Math.PI * 2;
+    const vel = 2.5 + Math.random() * 5.5;
+    let vx = Math.cos(ang) * vel, vy = Math.sin(ang) * vel - 1.5;
+    let x = x0, y = y0, op = 1, rot = 0;
+    const spin = (Math.random() - .5) * 16;
+    const step = () => {
+      x += vx; y += vy; vy += .17; vx *= .985;
+      op -= .017; rot += spin;
+      p.style.left = x + 'px'; p.style.top = y + 'px';
+      p.style.opacity = op;
+      p.style.transform = `scale(${Math.max(0, op)}) rotate(${rot}deg)`;
+      if (op > 0) requestAnimationFrame(step); else p.remove();
+    };
+    requestAnimationFrame(step);
   }
 }
 
@@ -708,6 +753,10 @@ function openForm(id, parsed) {
     if (okBadge) okBadge.className = 'fm-ok';
   }
 
+  // ปุ่มลบมีความหมายเฉพาะกับงานที่บันทึกไว้แล้ว
+  const del = document.getElementById('fmDel');
+  if (del) del.hidden = !(id && state.tasks.some(x => x.id === id));
+
   setTypePick(t ? taskType(t) : 'homework');
   setStarPick(t?.userStars || 0);
   f.subject.value = t?.subject || 'อื่น ๆ';
@@ -767,6 +816,15 @@ function saveForm() {
 function cancelForm() {
   const back = formReturn;
   editingId = null;
+  go(back);
+}
+
+// ลบจากหน้าแก้ไขงาน — แถวในรายการจึงไม่ต้องมีปุ่มถังขยะให้รกตา
+function deleteFromForm() {
+  if (!editingId) return;
+  const id = editingId, back = formReturn;
+  editingId = null;
+  removeTask(id);
   go(back);
 }
 
@@ -1232,6 +1290,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 
 (async function initApp() {
   load();
+  purgeOldTrash(); // ของในถังขยะที่เกิน 30 วัน ทิ้งถาวรตอนเปิดแอป
   applyTheme();
   fillSubjectSelect();
   tickClock();
@@ -1249,7 +1308,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   if (cloudConfigured() && !currentUser && !localStorage.getItem('studentos.skipLogin')) {
     go('scr-login'); // มีระบบบัญชี + ยังไม่เคยเลือก → ให้เลือกก่อน
   } else {
-    go(state.tasks.length ? 'scr-home' : 'scr-scan'); // ครั้งแรก: เริ่มที่ Scan (จุดขายของเรา)
+    go(liveTasks().length ? 'scr-home' : 'scr-scan'); // ครั้งแรก: เริ่มที่ Scan (จุดขายของเรา)
   }
 
   // ปิดฉากเปิดแอป: โชว์อย่างน้อย 2.3 วิ (ถ้าโหลดเร็ว) แล้วเฟดออก

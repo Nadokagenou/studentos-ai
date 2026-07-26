@@ -16,16 +16,18 @@
   <meta name="twitter:card" content="summary">
 
   <meta name="theme-color" content="#F8FAFC">
-  <!-- ธีมต้องถูกตัดสินก่อนวาดจอแรก ไม่งั้นคนใช้ธีมมืดจะเห็นจอขาวแวบหนึ่ง -->
+  <!-- ธีมต้องถูกตัดสินก่อนวาดจอแรก ไม่งั้นคนใช้ธีมมืดจะเห็นจอขาวแวบหนึ่ง
+       ค่า "system" ถูกแปลงเป็น light/dark ที่นี่เลย CSS จึงมีแค่ 4 โทนจริง -->
   <script>
     (function () {
+      var BAR = { light: '#FCFBF7', dark: '#0D1220', warm: '#F7F1E4', space: '#0A0E24' };
       var pref = null;
       try { pref = localStorage.getItem('studentos.theme'); } catch (e) {}
-      var dark = pref === 'dark' ||
-        (pref !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      var t = BAR[pref] ? pref
+        : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.dataset.theme = t;
       var m = document.querySelector('meta[name=theme-color]');
-      if (m) m.content = dark ? '#0F172A' : '#F8FAFC';
+      if (m) m.content = BAR[t];
     })();
   </script>
   <link rel="manifest" href="manifest.json">
@@ -33,7 +35,8 @@
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap">
+  <!-- Space Mono ใช้เฉพาะวันที่/เวลา/ตัวเลข ให้ตัวเลขเรียงตรงคอลัมน์และอ่านเป็นข้อมูล -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -107,6 +110,8 @@
 
 <div class="stage">
   <div class="phone">
+    <!-- ชั้นดาว: โชว์เฉพาะโทนอวกาศ (CSS ซ่อนในโทนอื่น) ลอยช้า ๆ + กะพริบเบา ๆ -->
+    <div class="starfield" aria-hidden="true"><i></i><i></i><i></i></div>
     <div class="statusbar"><span id="clock">--:--</span><span>📶 🔋</span></div>
     <div class="screens">
 
@@ -268,23 +273,16 @@
           <div style="display:flex;flex-direction:column;gap:9px">
             <button class="fm-save" onclick="saveForm()">บันทึกเข้าแผน</button>
             <button class="fm-cancel" onclick="cancelForm()">ยกเลิก</button>
+            <!-- โชว์เฉพาะตอนแก้งานที่มีอยู่แล้ว — ลบแล้วไปนอนในถังขยะ กู้คืนได้ -->
+            <button class="fm-del" id="fmDel" onclick="deleteFromForm()" hidden>
+              <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg>ย้ายงานนี้ไปถังขยะ</button>
           </div>
         </div>
       </div>
 
       <!-- ============ SCREEN: HOME / DASHBOARD ============ -->
-      <div class="screen on flush" id="scr-home">
-        <!-- หัวติดบน พื้นกระจกฝ้า -->
-        <div class="home-head">
-          <div class="hh-left">
-            <div class="hh-date" id="hhDate"></div>
-            <div class="hh-greet" id="greeting">สวัสดี</div>
-          </div>
-          <div class="hh-stat">
-            <div class="hh-num" id="hhNum">0</div>
-            <div class="hh-lbl">งานค้าง</div>
-          </div>
-        </div>
+      <!-- หัวหน้าจอเลื่อนไปกับเนื้อหา (ไม่ติดบน) — วาดจาก state ทั้งก้อนใน renderHome -->
+      <div class="screen on" id="scr-home">
         <div class="home-body" id="homeBody"></div>
       </div>
 
@@ -302,27 +300,14 @@
       </div>
 
       <!-- ============ SCREEN: ALL ASSIGNMENTS ============ -->
-      <div class="screen flush" id="scr-tasks">
-        <div class="sticky-head">
-          <h2 class="sh-title">งานทั้งหมด</h2>
-          <p class="sh-sub" id="tasksSub"></p>
-          <div class="filter-row noscroll" id="filterRow">
-            <button class="fchip active" data-f="all" onclick="setFilter('all')">ทั้งหมด</button>
-            <button class="fchip" data-f="homework" onclick="setFilter('homework')">การบ้าน</button>
-            <button class="fchip" data-f="exam" onclick="setFilter('exam')">สอบ</button>
-            <button class="fchip" data-f="activity" onclick="setFilter('activity')">กิจกรรม</button>
-            <button class="fchip" data-f="reminder" onclick="setFilter('reminder')">อื่น ๆ</button>
-          </div>
-        </div>
-        <div class="scr-body" id="taskList"></div>
+      <!-- หัวข้อ + แท็บ + รายการ + ถังขยะ วาดจาก state ทั้งหมดใน renderTasks -->
+      <div class="screen" id="scr-tasks">
+        <div id="taskList"></div>
       </div>
 
       <!-- ============ SCREEN: TIMELINE ============ -->
-      <div class="screen flush" id="scr-timeline">
-        <div class="sticky-head">
-          <h2 class="sh-title">เส้นเวลา</h2>
-        </div>
-        <div class="scr-body tl-body" id="timeline"></div>
+      <div class="screen" id="scr-timeline">
+        <div id="timeline"></div>
       </div>
 
       <!-- ============ SCREEN: PROFILE ============ -->
@@ -360,12 +345,19 @@
             <div class="pf-row col">
               <span class="hd">
                 <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-contrast"/></svg></span>
-                <span class="bd"><span class="lb">ธีมสี</span></span>
+                <span class="bd"><span class="lb">ธีมสี</span><span class="sb" id="themeNow"></span></span>
               </span>
-              <div class="seg" id="themePick">
-                <button type="button" data-th="system" onclick="setTheme('system')">ตามระบบ</button>
-                <button type="button" data-th="light" onclick="setTheme('light')">สว่าง</button>
-                <button type="button" data-th="dark" onclick="setTheme('dark')">มืด</button>
+              <div class="th-grid" id="themePick">
+                <button type="button" class="th-sys" data-th="system" onclick="setTheme('system')">
+                  <span class="sw sw-system"></span><span class="nm">ตามระบบ</span></button>
+                <button type="button" data-th="light" onclick="setTheme('light')">
+                  <span class="sw sw-light"></span><span class="nm">สว่าง</span></button>
+                <button type="button" data-th="dark" onclick="setTheme('dark')">
+                  <span class="sw sw-dark"></span><span class="nm">มืด</span></button>
+                <button type="button" data-th="warm" onclick="setTheme('warm')">
+                  <span class="sw sw-warm"></span><span class="nm">อุ่น</span></button>
+                <button type="button" data-th="space" onclick="setTheme('space')">
+                  <span class="sw sw-space"></span><span class="nm">อวกาศ</span></button>
               </div>
             </div>
             <div class="pf-row" id="notifRow">

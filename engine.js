@@ -28,6 +28,7 @@ const THAI_MONTHS = {
 
 const WEEKDAYS = { 'อาทิตย์': 0, 'จันทร์': 1, 'อังคาร': 2, 'พุธ': 3, 'พฤหัสบดี': 4, 'พฤหัส': 4, 'ศุกร์': 5, 'เสาร์': 6 };
 const WEEKDAY_SHORT = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+const THAI_DAY = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
 const MONTH_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
 // ---------- helpers ----------
@@ -311,26 +312,6 @@ function aiGreeting(pending, settings, now = new Date()) {
   return 'เริ่มที่' + top.subject + 'ก่อน — ' + why + ' · ' + fit;
 }
 
-// เหตุผลสั้น ๆ ในการ์ดงานหลัก — พูดแต่สิ่งที่การ์ดยังไม่ได้บอก
-// การ์ดโชว์ วิชา / ชื่องาน / กำหนดส่ง / เวลาที่ใช้ อยู่แล้ว เหตุผลที่แค่พูดซ้ำ
-// ("ใกล้กำหนดส่ง" ทั้งที่บรรทัดข้างบนบอกวันไปแล้ว) ตัดทิ้ง เหลือแต่ข้อมูลใหม่จริง
-const HERO_WHY_DROP = /เลยกำหนด|เลยเวลา|ใกล้กำหนด|ถึงเวลา|ยังอีกหลายวัน|ยังพอมีเวลา|ยังไม่ระบุ|กำหนดความสำคัญเอง|เป็นการสอบ|ชม\. ถึงเวลา|^ส่งภายใน|^ส่งใน|^สอบภายใน|^~|^ใช้เวลา ~/;
-
-function aiHeroWhy(top, pending, settings, now = new Date()) {
-  const why = (priorityInfo(top, now).reasons.find(r => !HERO_WHY_DROP.test(r)) || '')
-    .replace(/^★ /, '');
-  // นับเฉพาะงานที่ต้องนั่งทำ — กิจกรรมไม่กินเวลาอ่านหนังสือ
-  const totalMin = pending.reduce((s, t) =>
-    s + (TASK_TYPES[taskType(t)].schedulable ? (t.estMin || 30) : 0), 0);
-  const totalH = Math.round(totalMin / 60 * 10) / 10;
-  const freeH = settings.freeHours || 2;
-  if (!totalMin) return why;
-  const fit = totalH > freeH
-    ? `งานวันนี้ ~${totalH} ชม. เกินเวลาว่าง ${freeH} ชม.`
-    : `งานวันนี้ ~${totalH} ชม. เวลาว่างพอ`;
-  return why ? why + ' · ' + fit : fit;
-}
-
 function timelineInsight(pending, now = new Date()) {
   const byDay = {};
   for (const t of pending) {
@@ -343,7 +324,7 @@ function timelineInsight(pending, now = new Date()) {
   for (const [diff, list] of Object.entries(byDay).sort((a, b) => a[0] - b[0])) {
     if (list.length >= 2) {
       const d = addDays(now, +diff);
-      const dayName = +diff === 0 ? 'วันนี้' : +diff === 1 ? 'พรุ่งนี้' : 'วัน' + ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'][d.getDay()];
+      const dayName = +diff === 0 ? 'วันนี้' : +diff === 1 ? 'พรุ่งนี้' : 'วัน' + THAI_DAY[d.getDay()];
       const biggest = list.reduce((a, b) => (a.estMin > b.estMin ? a : b));
       return dayName + 'มีงานชน ' + list.length + ' งาน — แนะนำเริ่ม ' + biggest.subject + ' (งานใหญ่สุด) ล่วงหน้าตั้งแต่วันนี้';
     }
@@ -409,6 +390,11 @@ function fmtClock(d) {
 // ป้ายระดับความสำคัญ (แทนดาว 5 ดวง) — ชื่อ + คลาสสีตามระดับ
 const PRIORITY_LABELS = { 5: 'ด่วนมาก', 4: 'สำคัญ', 3: 'ปานกลาง', 2: 'ไม่เร่ง', 1: 'รอได้' };
 function priorityLabel(stars) { return PRIORITY_LABELS[stars] || 'ปานกลาง'; }
+
+// สีของระดับความสำคัญ — ใช้แค่ 3 สี (แดง/เหลือง/เขียว) เพราะสายตาแยกได้ทันทีว่า
+// "ทำเลย / เร็ว ๆ นี้ / รอได้" ส่วนคำบนป้ายยังบอกละเอียด 5 ระดับเหมือนเดิม
+// สีชุดนี้คงที่ทุกธีม เพื่อให้ความหมายไม่เปลี่ยนตามโทนสีที่ผู้ใช้เลือก
+function priorityTone(stars) { return stars >= 5 ? 'red' : stars >= 3 ? 'yellow' : 'green'; }
 
 // ---------- format ----------
 // task ใส่มาด้วยได้ เพื่อเลือกคำนำหน้าให้ตรงประเภท (ส่ง / สอบ / ไม่มีคำนำหน้า)
