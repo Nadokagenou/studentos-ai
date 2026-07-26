@@ -927,3 +927,5 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .streak-days span.on{background:var(--good-soft); color:var(--good)}
 .streak-txt{font-size:12.5px; color:var(--muted); text-align:center}
 .streak-txt b{color:var(--ink); font-weight:700}
+
+.app-ver{font-size:11px; color:var(--faint); text-align:center; margin:2px 0 0; letter-spacing:.04em}

@@ -3,6 +3,7 @@
 // ข้อมูลจริง เก็บใน localStorage · ทุกจอ render จาก state
 // ============================================================
 
+const APP_VERSION = 'v28';
 const STORE_KEY = 'studentos.v1';
 const APP_T0 = performance.now(); // ใช้คุมเวลาโชว์ splash ขั้นต่ำ
 
@@ -528,6 +529,8 @@ function renderProfile() {
     }
   }
 
+  const ver = document.getElementById('appVer');
+  if (ver) ver.textContent = 'StudentOS AI · ' + APP_VERSION;
   const pn = document.getElementById('pName'); if (pn) pn.value = state.settings.name || '';
   const pf = document.getElementById('pFree'); if (pf) pf.value = state.settings.freeHours || 2;
 
@@ -1171,6 +1174,13 @@ for (const id of ['cameraInput', 'galleryInput']) {
 // PWA: ลงทะเบียน service worker (เฉพาะเมื่อเปิดผ่าน http/https)
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
+  // มีโค้ดรุ่นใหม่เข้าคุมเมื่อไหร่ รีโหลดเองครั้งเดียว (กันแอปที่ติดตั้งไว้ค้างรุ่นเก่า)
+  let swReloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (swReloaded) return;
+    swReloaded = true;
+    location.reload();
+  });
 }
 
 (async function initApp() {
