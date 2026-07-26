@@ -231,28 +231,28 @@ body{
 .btn.text{background:transparent; color:var(--muted); font-weight:500; min-height:44px}
 .btn.sm{min-height:44px; padding:12px 15px; font-size:13.5px; border-radius:13px}
 
-/* ---------- tab bar: แคปซูลกระจกลอยเหนือเนื้อหา ---------- */
+/* ---------- tab bar: แคปซูลลอย · ทุกปุ่มสูงเท่ากัน 48px ตามไฟล์ออกแบบ ---------- */
 .tabbar{position:absolute; left:14px; right:14px; bottom:calc(12px + env(safe-area-inset-bottom));
   background:var(--glass); backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%);
   border:1px solid var(--glass-line); border-radius:24px;
   display:flex; align-items:center; justify-content:space-around; padding:7px 8px; z-index:5;
   box-shadow:var(--shadow-lg)}
 .tab{flex:1; min-height:48px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-  font-size:10px; font-weight:600; color:var(--muted); cursor:pointer; border:none; background:none;
-  font-family:inherit; border-radius:16px; padding:5px 2px; transition:color .16s, background .16s, transform .14s ease;
+  font-size:10px; font-weight:600; color:var(--muted); background:none; cursor:pointer; border:none;
+  font-family:inherit; border-radius:16px; padding:5px 2px; transition:all .16s ease;
   -webkit-tap-highlight-color:transparent}
-.tab:active{transform:scale(.94)}
-.tab .ic{width:21px; height:21px; display:block}
-.tab.active{color:var(--blue); background:var(--blue-soft)}
-.tab.active .ic{stroke-width:2.1}
+.tab .ic{width:21px; height:21px; display:block; stroke-width:1.9}
+.tab.active{color:var(--blue-deep); background:var(--blue-soft)}
+.tab.active .ic{stroke-width:2.3}
 
-/* ปุ่มเพิ่มงาน: สี่เหลี่ยมมนสีแบรนด์ อยู่ในแถบ ไม่ทะลุออกมาให้ขัดทรงแคปซูล */
-.tab.scan{flex:none; width:56px; color:var(--blue); font-weight:600}
-.tab.scan .scan-dot{width:38px; height:38px; border-radius:14px; background:linear-gradient(140deg,#1D4ED8,#5B5BE0);
-  color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-brand); transition:transform .16s ease}
+/* ปุ่มเพิ่มงาน: กว้างคงที่ ไม่มีข้อความ จึงสูงเท่าปุ่มอื่นพอดี */
+.tab.scan{flex:none; width:56px; padding:0; background:none}
+.tab.scan .scan-dot{width:38px; height:38px; border-radius:14px;
+  background:linear-gradient(140deg,#071A3D,#2563EB); color:#fff;
+  display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-brand);
+  transition:transform .16s ease}
+.tab.scan .scan-dot svg{width:20px; height:20px; stroke-width:2.1}
 .tab.scan:active .scan-dot{transform:scale(.92)}
-.tab.scan .scan-dot svg{width:20px; height:20px}
-.tab.scan.active{background:none}
 
 /* ---------- scan screen ---------- */
 .viewfinder{position:relative; background:#0B0E14; border-radius:24px; height:300px; margin:16px 0; display:flex; align-items:center; justify-content:center; overflow:hidden}
@@ -749,3 +749,58 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
   font-family:inherit; font-size:13.5px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:9px; padding:0 4px}
 .pf-quiet svg{width:16px; height:16px}
 .pf-quiet.danger{color:var(--alert)}
+
+/* ---------- หน้าเพิ่มงาน (โครง Refined) ---------- */
+.scan-body{padding-top:22px; gap:26px}
+.scan-h{font-size:27px; font-weight:700; line-height:1.15; letter-spacing:-.034em; margin:0}
+.scan-p{font-size:13.5px; line-height:1.6; color:var(--muted); margin:7px 0 0; max-width:290px}
+.scan-actions{display:flex; flex-direction:column; gap:12px}
+
+/* ปุ่มพูดใส่ไมค์ — ตัวเอกของหน้า */
+.voice-hero{width:100%; min-height:76px; border:none; border-radius:22px; color:#fff; font-family:inherit;
+  cursor:pointer; box-shadow:var(--shadow-brand); display:flex; align-items:center; gap:15px;
+  padding:0 18px; text-align:left; transition:transform .14s ease;
+  background:linear-gradient(135deg,#1D4ED8 0%,#3B5BE3 52%,#2563EB 100%)}
+.voice-hero:active{transform:scale(.98)}
+.voice-hero.rec{background:linear-gradient(135deg,#B91C1C 0%,#DC2626 55%,#EA580C 100%)}
+.vh-ring{width:46px; height:46px; flex:none; border-radius:50%; background:rgba(255,255,255,.18);
+  display:flex; align-items:center; justify-content:center; position:relative}
+.vh-ring svg{width:21px; height:21px}
+.vh-ring .ring{position:absolute; inset:0; border-radius:50%; border:1.5px solid rgba(255,255,255,.5);
+  animation:pulse-ring 2.2s ease-out infinite}
+@keyframes pulse-ring{0%{transform:scale(1); opacity:.9} 70%{transform:scale(1.35); opacity:0} 100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){ .vh-ring .ring{animation:none} }
+.vh-txt{flex:1; min-width:0}
+.vh-txt .t{display:block; font-size:15.5px; font-weight:600; letter-spacing:-.015em}
+.vh-txt .s{display:block; font-size:12px; font-weight:400; opacity:.82; margin-top:2px}
+.vh-ch{width:18px; height:18px; flex:none; opacity:.85}
+
+/* สองปุ่มรูปภาพ */
+.scan-pair{display:flex; gap:12px}
+.scan-tile{flex:1; min-height:104px; border:none; border-radius:20px; background:var(--card);
+  box-shadow:var(--shadow); font-family:inherit; cursor:pointer; display:flex; flex-direction:column;
+  align-items:flex-start; justify-content:space-between; padding:15px; text-align:left; color:var(--ink);
+  transition:transform .16s ease}
+.scan-tile:active{transform:scale(.97)}
+.scan-tile .tile{width:38px; height:38px; border-radius:12px; background:var(--card2); color:var(--blue);
+  display:flex; align-items:center; justify-content:center}
+.scan-tile .tile svg{width:19px; height:19px}
+.scan-tile .lb{font-size:13.5px; font-weight:600; letter-spacing:-.01em}
+
+/* แปะข้อความ */
+.scan-paste{display:flex; flex-direction:column; gap:11px}
+.scan-paste .rule{display:flex; align-items:center; gap:12px; color:var(--faint);
+  font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase}
+.scan-paste .rule span{flex:1; height:1px; background:var(--line)}
+.paste-card{background:var(--card); border-radius:20px; box-shadow:var(--shadow); padding:15px 16px}
+.paste-card textarea{width:100%; border:none; background:transparent; color:var(--ink); font-family:inherit;
+  font-size:14px; line-height:1.65; resize:none; outline:none; padding:0}
+.pc-act{display:flex; justify-content:flex-end; margin-top:10px}
+.ai-read{min-height:44px; border:none; border-radius:13px; padding:0 18px; background:var(--blue-soft);
+  color:var(--blue-deep); font-family:inherit; font-size:13.5px; font-weight:600; cursor:pointer;
+  display:flex; align-items:center; gap:7px; transition:transform .14s ease}
+.ai-read:active{transform:scale(.96)}
+.ai-read svg{width:15px; height:15px}
+.manual{border:none; background:none; font-family:inherit; font-size:13px; font-weight:500; color:var(--muted);
+  cursor:pointer; min-height:44px; display:flex; align-items:center; justify-content:center; gap:7px}
+.manual svg{width:15px; height:15px}

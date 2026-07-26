@@ -693,12 +693,14 @@ function speechSupported() {
 function setVoiceUI({ recording, text, dim }) {
   const btn = document.getElementById('voiceBtn');
   const label = document.getElementById('voiceLabel');
+  const sub = document.getElementById('voiceSub');
   const box = document.getElementById('voiceBox');
   const txt = document.getElementById('voiceText');
-  btn.classList.toggle('rec', !!recording);
-  label.textContent = recording ? 'กำลังฟัง… แตะเพื่อหยุด' : 'พูดใส่ไมค์ — เร็วที่สุด';
-  box.classList.toggle('idle', !recording);
-  if (text != null) {
+  if (btn) btn.classList.toggle('rec', !!recording);
+  if (label) label.textContent = recording ? 'กำลังฟัง…' : 'พูดใส่ไมค์';
+  if (sub) sub.textContent = recording ? 'แตะอีกครั้งเพื่อหยุด' : 'เร็วที่สุด — 5 วินาทีเสร็จ';
+  if (box) box.classList.toggle('idle', !recording);
+  if (text != null && box && txt) {
     box.hidden = false;
     txt.textContent = text;
     txt.classList.toggle('dim', !!dim);
