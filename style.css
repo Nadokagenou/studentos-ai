@@ -38,6 +38,8 @@
   --skel:rgba(15,23,42,.06); --skel-hi:rgba(15,23,42,.11);
   /* พื้นเว็บรอบกรอบมือถือ */
   --pg:#EEF0F4; --pg-ink:#0B1220; --pg-muted:#64748B;
+  /* ระยะแถบเมนูถึงขอบล่าง — ครึ่งหนึ่งของ safe area ก็พ้น home indicator แล้ว */
+  --tabgap:calc(6px + env(safe-area-inset-bottom) * .5);
 }
 @media (prefers-color-scheme: dark){
   :root{
@@ -232,7 +234,7 @@ body{
 .btn.sm{min-height:44px; padding:12px 15px; font-size:13.5px; border-radius:13px}
 
 /* ---------- tab bar: แคปซูลลอย · ทุกปุ่มสูงเท่ากัน 48px ตามไฟล์ออกแบบ ---------- */
-.tabbar{position:absolute; left:14px; right:14px; bottom:calc(12px + env(safe-area-inset-bottom));
+.tabbar{position:absolute; left:14px; right:14px; bottom:var(--tabgap);
   background:var(--glass); backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%);
   border:1px solid var(--glass-line); border-radius:24px;
   display:flex; align-items:center; justify-content:space-around; padding:7px 8px; z-index:5;
@@ -463,7 +465,7 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
     border-radius:0; border:none; box-shadow:none;
   }
   .demo-bar, .stage-note, .statusbar{display:none}
-  .screen{padding-top:calc(10px + env(safe-area-inset-top)); padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+  .screen{padding-top:calc(10px + env(safe-area-inset-top)); padding-bottom:calc(88px + var(--tabgap))}
   /* ไม่ใส่ padding-bottom ให้ .tabbar ที่นี่ — ตำแหน่ง bottom ของแคปซูลจัดการ
      ระยะปลอดภัยอยู่แล้ว ถ้าใส่ซ้ำแคปซูลจะบวมมีที่ว่างด้านล่าง */
 }
@@ -538,7 +540,7 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .hh-num.hot{color:var(--alert)}
 .hh-lbl{font-size:10.5px; font-weight:500; color:var(--faint); letter-spacing:.02em}
 
-.home-body{padding:20px 20px calc(112px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:28px}
+.home-body{padding:20px 20px calc(88px + var(--tabgap)); display:flex; flex-direction:column; gap:28px}
 .home-body > section{display:flex; flex-direction:column; gap:10px}
 
 /* ป้ายหัวข้อพร้อมไอคอน */
@@ -632,7 +634,7 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .sh-btn{width:38px; height:38px; flex:none; border:none; border-radius:12px; background:var(--card);
   box-shadow:var(--shadow); color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center}
 .sh-btn svg{width:18px; height:18px; transform:scaleX(-1)}
-.scr-body{padding:18px 20px calc(112px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:24px}
+.scr-body{padding:18px 20px calc(88px + var(--tabgap)); display:flex; flex-direction:column; gap:24px}
 .noscroll{scrollbar-width:none}
 .noscroll::-webkit-scrollbar{display:none}
 
