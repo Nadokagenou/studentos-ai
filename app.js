@@ -1,1911 +1,1047 @@
-// GENERATED from dc-runtime/src/*.ts — do not edit. Rebuild with `cd dc-runtime && bun run build`.
-"use strict";
-(() => {
-  var __defProp = Object.defineProperty;
-  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+// ============================================================
+// StudentOS AI — App (UI + state)
+// ข้อมูลจริง เก็บใน localStorage · ทุกจอ render จาก state
+// ============================================================
 
-  // src/react.ts
-  function getReact() {
-    const R = window.React;
-    if (!R) throw new Error("dc-runtime: window.React is not available yet");
-    return R;
-  }
-  function getReactDOM() {
-    const RD = window.ReactDOM;
-    if (!RD) throw new Error("dc-runtime: window.ReactDOM is not available yet");
-    return RD;
-  }
-  var h = ((...args) => getReact().createElement(
-    ...args
-  ));
+const STORE_KEY = 'studentos.v1';
+const APP_T0 = performance.now(); // ใช้คุมเวลาโชว์ splash ขั้นต่ำ
 
-  // src/parse.ts
-  function parseDcDocument(doc) {
-    const dc = doc.querySelector("x-dc");
-    if (!dc) return null;
-    const scriptEl = doc.querySelector("script[data-dc-script]");
-    const { props, preview } = parseDataProps(
-      scriptEl?.getAttribute("data-props") ?? null
-    );
-    return {
-      template: dc.innerHTML,
-      js: scriptEl ? scriptEl.textContent || "" : "",
-      props,
-      preview
-    };
-  }
-  function parseDcText(src) {
-    const openMatch = /<x-dc(?:\s[^>]*)?>/.exec(src);
-    if (!openMatch) return null;
-    const close = src.lastIndexOf("</x-dc>");
-    if (close === -1 || close < openMatch.index) return null;
-    const template = src.slice(openMatch.index + openMatch[0].length, close);
-    const doc = new DOMParser().parseFromString(src, "text/html");
-    const scriptEl = doc.querySelector("script[data-dc-script]");
-    const { props, preview } = parseDataProps(
-      scriptEl?.getAttribute("data-props") ?? null
-    );
-    return {
-      template,
-      js: scriptEl ? scriptEl.textContent || "" : "",
-      props,
-      preview
-    };
-  }
-  function parseDataProps(raw) {
-    if (!raw) return { props: null, preview: null };
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return { props: null, preview: null };
-    }
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return { props: null, preview: null };
-    }
-    const obj = parsed;
-    const preview = obj.$preview && typeof obj.$preview === "object" ? obj.$preview : null;
-    const rest = {};
-    for (const k of Object.keys(obj)) {
-      if (k[0] !== "$") rest[k] = obj[k];
-    }
-    return { props: Object.keys(rest).length ? rest : null, preview };
-  }
-  function dcNameFromPath(pathname) {
-    let p = pathname || "";
-    try {
-      p = decodeURIComponent(p);
-    } catch {
-    }
-    const base = p.split("/").pop() || "Root";
-    return base.replace(/\.dc\.html$/, "").replace(/\.html?$/, "") || "Root";
-  }
+let state = { tasks: [], settings: { name: '', freeHours: 2 } };
+let editingId = null; // null = เพิ่มใหม่, ไม่ null = แก้ไขงานเดิม
 
-  // src/boot.ts
-  var BASE_CSS = `
-    .sc-placeholder{background:color-mix(in srgb,currentColor 8%,transparent);
-      border:1px solid color-mix(in srgb,currentColor 50%,transparent);
-      border-radius:2px;box-sizing:border-box;overflow:hidden}
-    @keyframes sc-shine{0%{background-position:100% 50%}100%{background-position:0% 50%}}
-    html.sc-dc-streaming .sc-placeholder,
-    html.sc-dc-streaming .sc-interp.sc-missing{position:relative;
-      background:color-mix(in srgb,currentColor 5%,transparent);
-      border-color:transparent}
-    html.sc-dc-streaming .sc-placeholder::before,
-    html.sc-dc-streaming .sc-interp.sc-missing::before{content:'';
-      position:absolute;inset:0;pointer-events:none;
-      background:linear-gradient(90deg,rgba(217,119,87,0) 25%,rgba(247,225,211,.95) 37%,rgba(217,119,87,0) 63%);
-      background-size:400% 100%;animation:sc-shine 1.4s ease infinite}
-    html.sc-dc-streaming .sc-placeholder:nth-child(n+9 of .sc-placeholder)::before,
-    html.sc-dc-streaming .sc-interp.sc-missing:nth-child(n+9 of .sc-interp.sc-missing)::before{animation:none;
-      background:color-mix(in srgb,currentColor 8%,transparent)}
-    .sc-placeholder-error{padding:4px 8px;font:11px/1.4 ui-monospace,monospace;
-      color:color-mix(in srgb,currentColor 70%,transparent);word-break:break-word}
-    .sc-interp.sc-missing{display:inline-block;width:2em;height:1em;overflow:hidden;
-      vertical-align:text-bottom;background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.5);
-      border-radius:2px;box-sizing:border-box;color:transparent;
-      user-select:none}
-    .sc-interp.sc-unresolved{font-family:ui-monospace,monospace;font-size:.85em;
-      color:color-mix(in srgb,currentColor 50%,transparent);
-      background:color-mix(in srgb,currentColor 10%,transparent);border-radius:3px;
-      padding:0 3px}
-    .sc-host.sc-has-error{position:relative}
-    .sc-logic-error{position:absolute;top:8px;left:8px;z-index:2147483647;max-width:60ch;
-      padding:6px 10px;background:#b00020;color:#fff;font:12px/1.4 ui-monospace,monospace;
-      border-radius:4px;white-space:pre-wrap;pointer-events:none}
-    /* Mirrors PRINT_BASELINE_CSS in apps/web deck-stage-export.ts \u2014 keep both
-       in sync until dc-runtime regains a build step. */
-    @media print {
-      @page { margin: 0.5cm; }
-      figure, table { break-inside: avoid; }
-      #dc-root, #dc-root > .sc-host { height: auto; }
-      *, *::before, *::after {
-        print-color-adjust: exact; -webkit-print-color-adjust: exact;
-        backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
-        animation-delay: -99s !important; animation-duration: .001s !important;
-        animation-iteration-count: 1 !important; animation-fill-mode: both !important;
-        animation-play-state: running !important; transition-duration: 0s !important;
-      }
-    }
-  `;
-  var FULL_PAGE_CSS = "html,body{height:100%;margin:0}#dc-root,#dc-root>.sc-host{height:100%}";
-  function rootNameForDocument(doc, loc) {
-    let bootPath = loc.pathname || "";
-    if (!/\.dc\.html?$/i.test(safeDecode(bootPath))) {
-      try {
-        bootPath = new URL(doc.baseURI || "/").pathname;
-      } catch {
-      }
-    }
-    return dcNameFromPath(bootPath);
-  }
-  function safeDecode(s) {
-    try {
-      return decodeURIComponent(s);
-    } catch {
-      return s;
-    }
-  }
-  function boot(runtime, doc = document) {
-    const parsed = parseDcDocument(doc);
-    if (!parsed) return null;
-    const React = getReact();
-    const rootName = rootNameForDocument(doc, location);
-    runtime.markFetched(rootName);
-    runtime.setRootName(rootName);
-    runtime.adoptParsed(rootName, parsed);
-    if (!window.__resources) {
-      fetch(location.href).then((res) => res.ok ? res.text() : "").then((t) => {
-        const raw = t ? parseDcText(t) : null;
-        if (raw?.template) runtime.updateHtml(rootName, raw.template);
-      }).catch(() => {
-      });
-    }
-    const dc = doc.querySelector("x-dc");
-    const hostEl = doc.createElement("div");
-    hostEl.id = "dc-root";
-    dc.replaceWith(hostEl);
-    if (!parsed.preview) {
-      const s = doc.createElement("style");
-      s.textContent = FULL_PAGE_CSS;
-      doc.head.appendChild(s);
-    }
-    const Root = runtime.getDC(rootName);
-    const entry = runtime.registry.get(rootName);
-    function StandaloneRoot() {
-      const [, setTick] = React.useState(0);
-      React.useEffect(() => {
-        const sub = () => setTick((n) => n + 1);
-        entry.subs.add(sub);
-        return () => {
-          entry.subs.delete(sub);
-        };
-      }, []);
-      const defaults = React.useMemo(() => {
-        const d = {};
-        for (const k in entry.propsMeta || {}) {
-          const v = entry.propsMeta?.[k]?.default;
-          if (v !== void 0) d[k] = v;
-        }
-        return d;
-      }, [entry.propsMeta]);
-      return h(Root, { ...defaults, ...entry.propOverrides || {} });
-    }
-    const ReactDOM = getReactDOM();
-    if (ReactDOM.createRoot)
-      ReactDOM.createRoot(hostEl).render(h(StandaloneRoot));
-    else ReactDOM.render(h(StandaloneRoot), hostEl);
-    return rootName;
-  }
+// ---------- storage ----------
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) state = Object.assign({ tasks: [], settings: { name: '', freeHours: 2 } }, JSON.parse(raw));
+  } catch (e) { /* ข้อมูลเสีย → เริ่มใหม่ */ }
+}
+function save() {
+  localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  pushToCloud(); // ซิงก์ขึ้น cloud อัตโนมัติ (ถ้าล็อกอินอยู่)
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
-  // src/expr.ts
-  var IDENT_RE = /^[A-Za-z_$][A-Za-z0-9_$]*/;
-  var NUMBER_RE = /^-?\d+(\.\d+)?$/;
-  function resolve(vals, src) {
-    const expr = String(src).trim();
-    if (!expr) return void 0;
-    if (expr[0] === "(" && expr[expr.length - 1] === ")" && parensWrapWhole(expr)) {
-      return resolve(vals, expr.slice(1, -1));
-    }
-    const eq = findTopLevelEquality(expr);
-    if (eq) {
-      const lv = resolve(vals, expr.slice(0, eq.index));
-      const rv = resolve(vals, expr.slice(eq.index + eq.op.length));
-      switch (eq.op) {
-        case "===":
-          return lv === rv;
-        case "!==":
-          return lv !== rv;
-        case "==":
-          return lv == rv;
-        default:
-          return lv != rv;
-      }
-    }
-    if (expr[0] === "!") return !resolve(vals, expr.slice(1));
-    if (expr === "true") return true;
-    if (expr === "false") return false;
-    if (expr === "null") return null;
-    if (expr === "undefined") return void 0;
-    if (NUMBER_RE.test(expr)) return Number(expr);
-    if (expr.length >= 2 && (expr[0] === '"' || expr[0] === "'") && expr[expr.length - 1] === expr[0]) {
-      return expr.slice(1, -1);
-    }
-    return resolvePath(vals, expr);
-  }
-  function parensWrapWhole(expr) {
-    let depth = 0;
-    for (let i = 0; i < expr.length - 1; i++) {
-      if (expr[i] === "(") depth++;
-      else if (expr[i] === ")") {
-        depth--;
-        if (depth === 0) return false;
-      }
-    }
-    return true;
-  }
-  function findTopLevelEquality(expr) {
-    let depth = 0;
-    for (let i = 0; i < expr.length; i++) {
-      const c = expr[i];
-      if (c === "[" || c === "(") depth++;
-      else if (c === "]" || c === ")") depth--;
-      else if (depth === 0 && (c === "=" || c === "!") && expr[i + 1] === "=") {
-        if (i > 0 && (expr[i - 1] === "=" || expr[i - 1] === "!")) continue;
-        if (!expr.slice(0, i).trim()) continue;
-        const op = expr[i + 2] === "=" ? c + "==" : c + "=";
-        return { index: i, op };
-      }
-    }
-    return null;
-  }
-  function resolvePath(vals, expr) {
-    const head = expr.match(IDENT_RE);
-    if (!head) return void 0;
-    let cur = vals == null ? void 0 : vals[head[0]];
-    let i = head[0].length;
-    while (i < expr.length) {
-      if (expr[i] === ".") {
-        const m = expr.slice(i + 1).match(IDENT_RE) || expr.slice(i + 1).match(/^\d+/);
-        if (!m) return void 0;
-        cur = cur == null ? void 0 : cur[m[0]];
-        i += 1 + m[0].length;
-      } else if (expr[i] === "[") {
-        let depth = 1;
-        let j = i + 1;
-        while (j < expr.length && depth > 0) {
-          if (expr[j] === "[") depth++;
-          else if (expr[j] === "]") {
-            depth--;
-            if (depth === 0) break;
-          }
-          j++;
-        }
-        if (depth !== 0) return void 0;
-        const key = resolve(vals, expr.slice(i + 1, j));
-        cur = cur == null ? void 0 : cur[key];
-        i = j + 1;
-      } else {
-        return void 0;
-      }
-    }
-    return cur;
-  }
+function pendingTasks() { return state.tasks.filter(t => !t.done); }
 
-  // src/encode.ts
-  var CAMEL_ATTR = "sc-camel-";
-  var INLINE_TEXT_TAGS = new Set(
-    "a abbr b bdi bdo br cite code del dfn em i ins kbd mark q s samp small span strike strong sub sup u var wbr".split(
-      " "
-    )
-  );
-  var RAW_WRAP = {
-    select: "sc-raw-select",
-    table: "sc-raw-table",
-    tbody: "sc-raw-tbody",
-    thead: "sc-raw-thead",
-    tfoot: "sc-raw-tfoot",
-    tr: "sc-raw-tr",
-    td: "sc-raw-td",
-    th: "sc-raw-th",
-    caption: "sc-raw-caption"
-  };
-  var RAW_UNWRAP = Object.fromEntries(
-    Object.entries(RAW_WRAP).map(([k, v]) => [v, k])
-  );
-  var EVENT_MAP = {
-    onclick: "onClick",
-    onchange: "onChange",
-    oninput: "onInput",
-    onsubmit: "onSubmit",
-    onkeydown: "onKeyDown",
-    onkeyup: "onKeyUp",
-    onkeypress: "onKeyPress",
-    onmousedown: "onMouseDown",
-    onmouseup: "onMouseUp",
-    onmouseenter: "onMouseEnter",
-    onmouseleave: "onMouseLeave",
-    onfocus: "onFocus",
-    onblur: "onBlur",
-    ondoubleclick: "onDoubleClick",
-    oncontextmenu: "onContextMenu",
-    onmousemove: "onMouseMove",
-    onmouseover: "onMouseOver",
-    onmouseout: "onMouseOut",
-    onpointerdown: "onPointerDown",
-    onpointerup: "onPointerUp",
-    onpointermove: "onPointerMove",
-    onpointerenter: "onPointerEnter",
-    onpointerleave: "onPointerLeave",
-    onpointercancel: "onPointerCancel",
-    onpointerover: "onPointerOver",
-    onpointerout: "onPointerOut",
-    ongotpointercapture: "onGotPointerCapture",
-    onlostpointercapture: "onLostPointerCapture",
-    ontouchstart: "onTouchStart",
-    ontouchend: "onTouchEnd",
-    ontouchmove: "onTouchMove",
-    ontouchcancel: "onTouchCancel",
-    ondragstart: "onDragStart",
-    ondragend: "onDragEnd",
-    ondragenter: "onDragEnter",
-    ondragleave: "onDragLeave",
-    ondragover: "onDragOver",
-    onanimationstart: "onAnimationStart",
-    onanimationend: "onAnimationEnd",
-    onanimationiteration: "onAnimationIteration",
-    ontransitionend: "onTransitionEnd"
-  };
-  var ATTRS = `(?:[^>"']|"[^"]*"|'[^']*')*`;
-  var IMPORT_SELF_CLOSE_RE = new RegExp(
-    "<(x-import|dc-import)(" + ATTRS + ")/>",
-    "gi"
-  );
-  var CAMEL_ATTR_RE = /(\s)([a-z]+[A-Z][A-Za-z0-9]*)(\s*=)/g;
-  function encodeCamelAttrs(html) {
-    return html.replace(
-      CAMEL_ATTR_RE,
-      (_, sp, name, eq) => sp + CAMEL_ATTR + name.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()) + eq
-    );
-  }
-  function encodeCase(html) {
-    html = html.replace(
-      IMPORT_SELF_CLOSE_RE,
-      (_, t, a) => "<" + t + a + "></" + t + ">"
-    );
-    html = html.replace(/<helmet(\s|>)/gi, "<sc-helmet$1");
-    html = html.replace(/<\/helmet\s*>/gi, "</sc-helmet>");
-    html = encodeCamelAttrs(html);
-    for (const [real, alias] of Object.entries(RAW_WRAP)) {
-      html = html.replace(
-        new RegExp("(</?)" + real + "(?=[\\s>])", "gi"),
-        "$1" + alias
-      );
-    }
-    return html;
-  }
-  function kebabToCamel(s) {
-    return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-  }
-  function cssToObj(css) {
-    const o = {};
-    for (const decl of css.split(";")) {
-      const i = decl.indexOf(":");
-      if (i < 0) continue;
-      const prop = decl.slice(0, i).trim();
-      o[prop.startsWith("--") ? prop : kebabToCamel(prop)] = decl.slice(i + 1).trim();
-    }
-    return o;
-  }
-  function compileAttr(raw) {
-    const whole = raw.match(/^\s*\{\{([\s\S]+?)\}\}\s*$/);
-    if (whole) {
-      const path = whole[1];
-      return (vals) => resolve(vals, path);
-    }
-    if (raw.includes("{{")) {
-      const parts = raw.split(/\{\{([\s\S]+?)\}\}/g);
-      return (vals) => parts.map((s, i) => i & 1 ? resolve(vals, s) ?? "" : s).join("");
-    }
-    return () => raw;
-  }
+// ---------- navigation ----------
+function go(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  document.body.classList.toggle('login-mode', id === 'scr-login');
+  document.querySelectorAll('.tab[data-scr]').forEach(b =>
+    b.classList.toggle('active', b.dataset.scr === id));
+  renderAll();
+}
 
-  // src/compile.ts
-  function collectProps(node, kind, host) {
-    const propGetters = [];
-    const pseudoClasses = [];
-    let hintSize = null;
-    for (const { name, value } of [...node.attributes]) {
-      if (name === "sc-name" || name === "data-dc-tpl") continue;
-      let key = name;
-      if (key.startsWith(CAMEL_ATTR))
-        key = kebabToCamel(key.slice(CAMEL_ATTR.length));
-      if (key === "hint-size") {
-        hintSize = value;
-        continue;
-      }
-      if (key.startsWith("style-")) {
-        pseudoClasses.push(host.pseudoClass(key.slice(6), value));
-        continue;
-      }
-      if (kind !== "dom") {
-        if (key.includes("-") && !(kind === "x-import" && (key.startsWith("aria-") || key.startsWith("data-"))))
-          key = kebabToCamel(key);
-      } else {
-        if (key === "class") key = "className";
-        else if (key === "for") key = "htmlFor";
-        else if (key.startsWith("on"))
-          key = EVENT_MAP[key] || "on" + key[2].toUpperCase() + key.slice(3);
-      }
-      propGetters.push([key, compileAttr(value)]);
-    }
-    return { propGetters, pseudoClasses, hintSize };
-  }
-  var HOST_STYLE_PROPS = /* @__PURE__ */ new Set([
-    "position",
-    "left",
-    "right",
-    "top",
-    "bottom",
-    "inset",
-    "width",
-    "height",
-    "z-index",
-    "transform"
-  ]);
-  function hostPositionStyle(style) {
-    const all = typeof style === "string" ? cssToObj(style) : style != null && typeof style === "object" ? style : null;
-    if (!all) return void 0;
-    const out = {};
-    for (const [k, v] of Object.entries(all)) {
-      const kebab = k.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
-      if (HOST_STYLE_PROPS.has(kebab)) out[k] = v;
-    }
-    return Object.keys(out).length ? out : void 0;
-  }
-  function compileTemplate(html, host) {
-    const tpl = document.createElement("template");
-    //! nosemgrep: direct-inner-html-assignment
-    tpl.innerHTML = encodeCase(html);
-    let tplN = 0;
-    (function stamp(node) {
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        node.setAttribute("data-dc-tpl", String(tplN++));
-      }
-      for (const c of node.childNodes) stamp(c);
-    })(tpl.content);
-    const builders = walkChildren(tpl.content, host);
-    const render = ((vals, ctx) => builders.map((b, i) => b(vals || {}, ctx, i)));
-    render.__annotated = tpl.innerHTML;
-    return render;
-  }
-  function walkChildren(node, host) {
-    return [...node.childNodes].map((c) => walk(c, host)).filter((b) => b != null);
-  }
-  var SLIDE_ID_VALUE_RE = /^[0-9a-f]{8}$/;
-  var DECK_CONTROL_FLOW_RE = /^(sc-if|sc-for|sc-else|dc-import|x-import)$/;
-  var DECK_AUX_RE = /^(template|script|style|sc-helmet|helmet)$/;
-  function isDeckMountTag(el) {
-    if (el.localName === "deck-stage") return true;
-    return el.localName === "x-import" && (el.getAttribute("component-from-global-scope") || "") === "deck-stage";
-  }
-  function walkDeckChildren(el, host) {
-    const pairs = [...el.childNodes].map((c) => ({ c, b: walk(c, host) })).filter((p) => p.b !== null);
-    const kids = pairs.map((p) => p.b);
-    const seen = /* @__PURE__ */ new Set();
-    const wsSeen = /* @__PURE__ */ new Map();
-    const keys = [];
-    const nextSlideId = new Array(pairs.length);
-    {
-      let upcoming = null;
-      for (let j = pairs.length - 1; j >= 0; j--) {
-        const n = pairs[j].c;
-        if (n.nodeType === Node.ELEMENT_NODE) {
-          const t = n.localName;
-          upcoming = !DECK_AUX_RE.test(t) && !DECK_CONTROL_FLOW_RE.test(t) ? n.getAttribute("data-om-slide-id") : null;
-        }
-        nextSlideId[j] = upcoming;
-      }
-    }
-    for (let j = 0; j < pairs.length; j++) {
-      const { c } = pairs[j];
-      if (c.nodeType === Node.TEXT_NODE) {
-        if ((c.nodeValue ?? "").trim() === "") {
-          const base = nextSlideId[j] ? "omid-ws:" + nextSlideId[j] : "omid-ws:aux";
-          const n = wsSeen.get(base) ?? 0;
-          wsSeen.set(base, n + 1);
-          keys.push(n === 0 ? base : base + ":" + n);
-          continue;
-        }
-        return { kids, keys: null };
-      }
-      if (c.nodeType !== Node.ELEMENT_NODE) {
-        keys.push(j);
-        continue;
-      }
-      const child = c;
-      const tag = child.localName;
-      if (DECK_AUX_RE.test(tag)) {
-        keys.push(j);
-        continue;
-      }
-      if (DECK_CONTROL_FLOW_RE.test(tag)) return { kids, keys: null };
-      const v = child.getAttribute("data-om-slide-id");
-      if (!v || !SLIDE_ID_VALUE_RE.test(v) || seen.has(v)) {
-        return { kids, keys: null };
-      }
-      seen.add(v);
-      keys.push("omid:" + v);
-    }
-    return { kids, keys };
-  }
-  function renderDeckKids(kids, kidKeys, vals, ctx) {
-    return kids.map((b, j) => {
-      const k = kidKeys ? kidKeys[j] : j;
-      const out = b(vals, ctx, k);
-      return kidKeys != null && typeof out === "string" ? h(getReact().Fragment, { key: k }, out) : out;
-    });
-  }
-  function walk(node, host) {
-    if (node.nodeType === Node.TEXT_NODE) return walkText(node);
-    if (node.nodeType !== Node.ELEMENT_NODE) return null;
-    const el = node;
-    const tag = el.tagName.toLowerCase();
-    if (tag === "sc-for") return walkFor(el, host);
-    if (tag === "sc-if") return walkIf(el, host);
-    if (tag === "x-import") return walkXImport(el, host);
-    if (tag === "sc-helmet") return host.helmet(el);
-    if (tag === "dc-import") return walkComponent(el, host);
-    return walkElement(el, host);
-  }
-  var warnedHoles = /* @__PURE__ */ new Set();
-  function warnUnresolved(ctx, what) {
-    const key = (ctx?.__name || "?") + "\0" + what;
-    if (warnedHoles.has(key)) return;
-    warnedHoles.add(key);
-    console.warn("[dc-runtime] " + (ctx?.__name || "template") + ": " + what);
-  }
-  function walkText(node) {
-    const txt = node.nodeValue ?? "";
-    if (!txt.includes("{{")) {
-      if (!txt.trim() && !txt.includes(" ")) return null;
-      return () => txt;
-    }
-    const parts = txt.split(/\{\{([\s\S]+?)\}\}/g);
-    return (vals, ctx, key) => h(
-      getReact().Fragment,
-      { key },
-      ...parts.map((p, i) => {
-        if (!(i & 1)) return p;
-        const v = resolve(vals, p);
-        if (v === void 0) {
-          if (!ctx?.__streamingNow) {
-            if (document.body?.hasAttribute("data-dc-editor-on")) {
-              return h(
-                "span",
-                { key: i, className: "sc-interp sc-unresolved" },
-                "{{ " + p.trim() + " }}"
-              );
-            }
-            warnUnresolved(
-              ctx,
-              "{{ " + p.trim() + " }} never resolved \u2014 rendered as empty"
-            );
-            return null;
-          }
-          return h(
-            "span",
-            { key: i, className: "sc-interp sc-missing" },
-            p.trim()
-          );
-        }
-        if (getReact().isValidElement(v) || Array.isArray(v)) {
-          return h(getReact().Fragment, { key: i }, v);
-        }
-        if (v === null || typeof v === "boolean") return null;
-        return h("span", { key: i, className: "sc-interp" }, String(v));
-      })
-    );
-  }
-  function walkFor(el, host) {
-    const listGet = compileAttr(el.getAttribute("list") || "");
-    const asName = el.getAttribute("as") || "item";
-    const hintN = parseInt(el.getAttribute("hint-placeholder-count") || "0", 10);
-    const kids = walkChildren(el, host);
-    const listSrc = el.getAttribute("list") || "";
-    return (vals, ctx, key) => {
-      let list = listGet(vals);
-      if (!Array.isArray(list)) {
-        if (!ctx?.__streamingNow) {
-          if (list !== void 0 && list !== null) {
-            warnUnresolved(
-              ctx,
-              'sc-for list="' + listSrc + '" is not an array (' + typeof list + ")"
-            );
-          }
-          list = [];
-        } else {
-          list = hintN > 0 ? Array(hintN).fill(void 0) : [];
-        }
-      }
-      return h(
-        getReact().Fragment,
-        { key },
-        list.map((item, i) => {
-          const sub = { ...vals, [asName]: item, $index: i };
-          return h(
-            getReact().Fragment,
-            { key: i },
-            kids.map((b, j) => b(sub, ctx, j))
-          );
-        })
-      );
-    };
-  }
-  function walkIf(el, host) {
-    const valGet = compileAttr(el.getAttribute("value") || "");
-    const hintRaw = el.getAttribute("hint-placeholder-val");
-    const hintGet = hintRaw != null ? compileAttr(hintRaw) : null;
-    const kids = walkChildren(el, host);
-    return (vals, ctx, key) => {
-      let v = valGet(vals);
-      if (v === void 0 && hintGet && ctx?.__streamingNow) v = hintGet(vals);
-      return v ? h(
-        getReact().Fragment,
-        { key },
-        kids.map((b, j) => b(vals, ctx, j))
-      ) : null;
-    };
-  }
-  function walkComponent(el, host) {
-    const name = el.getAttribute("name") || el.getAttribute("component") || "";
-    el.removeAttribute("name");
-    el.removeAttribute("component");
-    const tplId = el.getAttribute("data-dc-tpl");
-    const styleRaw = el.getAttribute("style");
-    el.removeAttribute("style");
-    const styleGet = styleRaw != null ? compileAttr(styleRaw) : null;
-    const { propGetters, hintSize } = collectProps(el, "dc-import", host);
-    const kids = walkChildren(el, host);
-    return (vals, ctx, key) => {
-      const props = {
-        key,
-        __hintSize: hintSize,
-        __tplId: tplId,
-        __hostStyle: styleGet ? hostPositionStyle(styleGet(vals)) : void 0
-      };
-      for (const [k, g] of propGetters) {
-        const v = g(vals);
-        if (k === "dcProps") {
-          if (v && typeof v === "object") Object.assign(props, v);
-          continue;
-        }
-        props[k] = v;
-      }
-      if (kids.length) props.children = kids.map((b, j) => b(vals, ctx, j));
-      return h(host.component(name), props);
-    };
-  }
-  function walkXImport(el, host) {
-    const globalNameGet = compileAttr(
-      el.getAttribute("component-from-global-scope") || ""
-    );
-    const exportNameGet = compileAttr(
-      el.getAttribute("component") || el.getAttribute("name") || ""
-    );
-    const fromRaw = el.getAttribute("from") || (el.getAttribute("component-from-global-scope") ? "" : el.getAttribute("src") || el.getAttribute("import") || "");
-    const urls = fromRaw.trim() ? fromRaw.trim().split(/\s+/) : [];
-    const url = urls.length ? urls[urls.length - 1] : "";
-    const kindOf = (u) => /\.(jsx|tsx)(\?|#|$)/i.test(u) ? "jsx" : "js";
-    const tplId = el.getAttribute("data-dc-tpl");
-    const styleRaw = el.getAttribute("style");
-    el.removeAttribute("style");
-    const styleGet = styleRaw != null ? compileAttr(styleRaw) : null;
-    const wrap = tplId != null || styleGet != null;
-    const { propGetters, hintSize } = collectProps(el, "x-import", host);
-    const hasContent = el.children.length > 0 || !!(el.textContent || "").trim();
-    const deckKeyed = hasContent && isDeckMountTag(el) ? walkDeckChildren(el, host) : null;
-    const kids = deckKeyed ? deckKeyed.kids : hasContent ? walkChildren(el, host) : [];
-    const kidKeys = deckKeyed?.keys ?? null;
-    const urlBindable = fromRaw.includes("{{");
-    if (urls.length && !urlBindable) {
-      let prev;
-      for (const u of urls) prev = host.loadExternal(kindOf(u), u, prev);
-    }
-    const evalName = (g, vals) => {
-      const v = g(vals);
-      const s = v == null ? "" : String(v);
-      return s.includes("{{") ? "" : s;
-    };
-    return (vals, ctx, key) => {
-      const globalName = evalName(globalNameGet, vals);
-      const name = globalName || evalName(exportNameGet, vals);
-      const C = !name || urlBindable ? null : globalName ? host.resolveExternalGlobal(url, globalName) : host.resolveExternal(url, name);
-      const hostStyle = styleGet ? hostPositionStyle(styleGet(vals)) : void 0;
-      const wrapper = wrap ? {
-        key,
-        className: "sc-host-x",
-        "data-dc-tpl": tplId,
-        style: hostStyle || { display: "contents" }
-      } : null;
-      if (!C) {
-        const error = urlBindable ? "x-import `from` cannot contain {{ \u2026 }} \u2014 module URLs are resolved at parse time; use a literal URL" : host.resolveExternalError(url, name);
-        const ph = host.placeholder({
-          key: wrapper ? void 0 : key,
-          name,
-          hintSize,
-          error
-        });
-        return wrapper ? h("div", wrapper, ph) : ph;
-      }
-      const props = wrapper ? {} : { key };
-      let unresolvedHole = false;
-      for (const [k, g] of propGetters) {
-        if (k === "component" || k === "componentFromGlobalScope" || k === "from") {
-          continue;
-        }
-        const v = g(vals);
-        if (v === void 0) unresolvedHole = true;
-        if (k === "dcProps") {
-          if (v && typeof v === "object") Object.assign(props, v);
-          continue;
-        }
-        props[k] = v;
-      }
-      if (unresolvedHole && ctx?.__htmlStreamingNow) {
-        const ph = host.placeholder({
-          key: wrapper ? void 0 : key,
-          name,
-          hintSize,
-          error: null
-        });
-        return wrapper ? h("div", wrapper, ph) : ph;
-      }
-      if (kids.length) {
-        props.children = renderDeckKids(kids, kidKeys, vals, ctx);
-      }
-      return wrapper ? h("div", wrapper, h(C, props)) : h(C, props);
-    };
-  }
-  function contentKey(el) {
-    const clone = el.cloneNode(true);
-    for (const d of clone.querySelectorAll("*")) {
-      while (d.attributes.length) d.removeAttribute(d.attributes[0].name);
-    }
-    const s = clone.innerHTML;
-    let h2 = 5381;
-    for (let i = 0; i < s.length; i++) h2 = (h2 << 5) + h2 + s.charCodeAt(i) | 0;
-    return s.length + "." + (h2 >>> 0).toString(36);
-  }
-  var NEVER_CONTENT_KEYED = new Set(
-    "script style textarea option title select canvas iframe video audio".split(
-      " "
-    )
-  );
-  var NOT_INLINE_SELECTOR = ":not(" + [...INLINE_TEXT_TAGS].join(",") + ")";
-  function walkElement(el, host) {
-    const realTag = RAW_UNWRAP[el.localName] || el.localName;
-    const tplId = el.getAttribute("data-dc-tpl");
-    const inlineOnly = el.childNodes.length > 0 && !NEVER_CONTENT_KEYED.has(realTag) && el.querySelector(NOT_INLINE_SELECTOR) === null;
-    const keySuffix = inlineOnly ? "|" + contentKey(el) : "";
-    const { propGetters, pseudoClasses } = collectProps(el, "dom", host);
-    const deckKeyed = isDeckMountTag(el) ? walkDeckChildren(el, host) : null;
-    const kids = deckKeyed ? deckKeyed.kids : walkChildren(el, host);
-    const kidKeys = deckKeyed?.keys ?? null;
-    return (vals, ctx, key) => {
-      const props = {
-        key: key + keySuffix,
-        "data-dc-tpl": tplId
-      };
-      for (const [k, g] of propGetters) {
-        let v = g(vals);
-        if (k === "style" && typeof v === "string") v = cssToObj(v);
-        if ((k === "value" || k === "checked") && v === void 0) {
-          v = k === "checked" ? false : "";
-        }
-        props[k] = v;
-      }
-      if (pseudoClasses.length) {
-        props.className = [props.className, ...pseudoClasses].filter(Boolean).join(" ");
-      }
-      return h(realTag, props, ...renderDeckKids(kids, kidKeys, vals, ctx));
-    };
-  }
+// ---------- cloud: Supabase auth + sync ----------
+let sb = null, currentUser = null, syncTimer = null, lastSync = null;
 
-  // src/logic.ts
-  var StreamableLogic = class {
-    constructor(props) {
-      __publicField(this, "props");
-      __publicField(this, "state", {});
-      /** Back-pointer to the wrapper component, installed after construction. */
-      __publicField(this, "__host");
-      this.props = props || {};
-    }
-    setState(update, cb) {
-      this.__host && this.__host.__setLogicState(update, cb);
-    }
-    forceUpdate() {
-      this.__host && this.__host.forceUpdate();
-    }
-    componentDidMount() {
-    }
-    componentDidUpdate(_prevProps) {
-    }
-    componentWillUnmount() {
-    }
-    /** The flat object the template renders against (merged over props). */
-    renderVals() {
-      return {};
-    }
-  };
-  function evalDcLogic(src) {
-    //! nosemgrep: eval-and-function-constructor
-    const fn = new Function(
-      "DCLogic",
-      "StreamableLogic",
-      "React",
-      src + '\n;return (typeof Component!=="undefined"&&Component)||undefined;'
-    );
-    return fn(StreamableLogic, StreamableLogic, getReact());
-  }
+function cloudConfigured() {
+  const c = window.SUPABASE_CONFIG || {};
+  return !!(c.url && c.anonKey) && typeof supabase !== 'undefined';
+}
 
-  // src/component.ts
-  function shallowEqual(a, b) {
-    if (!b) return false;
-    const ak = Object.keys(a).filter((k) => k !== "children");
-    const bk = Object.keys(b).filter((k) => k !== "children");
-    if (ak.length !== bk.length) return false;
-    for (const k of ak) if (a[k] !== b[k]) return false;
-    return true;
-  }
-  function Placeholder({
-    name,
-    hintSize,
-    streaming,
-    error
-  }) {
-    const [w, hgt] = (hintSize || "100%,60px").split(",");
-    return h(
-      "div",
-      {
-        className: "sc-placeholder" + (streaming ? " sc-streaming" : ""),
-        style: { width: w.trim(), height: hgt && hgt.trim() },
-        title: name
-      },
-      error ? h(
-        "div",
-        { className: "sc-placeholder-error" },
-        (name ? name + ": " : "") + error
-      ) : null
-    );
-  }
-  function hintToMin(hint) {
-    if (!hint) return void 0;
-    const [w, hgt] = hint.split(",");
-    return { minWidth: w.trim(), minHeight: hgt && hgt.trim() };
-  }
-  function createComponentFactory(registry, ensureFetched) {
-    const React = getReact();
-    const AncestorContext = React.createContext([]);
-    class StreamableComponent extends React.Component {
-      constructor(props) {
-        super(props);
-        __publicField(this, "__name");
-        __publicField(this, "__sub");
-        __publicField(this, "__needsDidMount", false);
-        /** Snapshot of the registry's streaming flags taken at render time —
-         *  builders read it off the RenderCtx (this) to pick placeholder vs
-         *  render-nothing for unresolved values. */
-        __publicField(this, "__streamingNow", false);
-        __publicField(this, "__htmlStreamingNow", false);
-        /** When a construct throws, remember the (class, registry.ver, props)
-         *  triple so render-time reconcile doesn't re-attempt it on every parent
-         *  re-render. A registry bump (new class, template, external module
-         *  resolving via bumpAll) changes `ver` and breaks the memo so an
-         *  env-dependent constructor can self-heal. */
-        __publicField(this, "__failedLogic", null);
-        __publicField(this, "__failedUserProps", null);
-        __publicField(this, "__failedVer", -1);
-        /** Per-instance constructor error — kept here (not on the registry entry)
-         *  so one instance's successful construct can't hide a sibling's failure,
-         *  and a construct can never wipe an eval error `updateJs` recorded on
-         *  `r.logicError`. */
-        __publicField(this, "__ctorError", null);
-        __publicField(this, "logic");
-        this.__name = props.__name;
-        this.state = { __v: 0, __err: null };
-        this.__sub = () => {
-          if (this.state.__err) this.setState({ __err: null });
-          this.forceUpdate();
-        };
-        this.__makeLogic(registry.get(this.__name).Logic, null);
-        ensureFetched(this.__name);
+async function initCloud() {
+  if (!cloudConfigured()) return;
+  sb = supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonKey);
+  const { data: { session } } = await sb.auth.getSession();
+  currentUser = session ? session.user : null;
+  sb.auth.onAuthStateChange((event, sess) => {
+    const wasLoggedIn = !!currentUser;
+    currentUser = sess ? sess.user : null;
+    if (currentUser && !wasLoggedIn) {
+      // เพิ่งล็อกอินเสร็จ (รวมถึงกลับมาจากหน้า Google)
+      if ('Notification' in window && Notification.permission === 'granted') {
+        subscribePush().catch(() => {}); // ผูก push กับบัญชีที่เพิ่งล็อกอิน
       }
-      /** Error-boundary hook: a render crash anywhere in this DC's subtree
-       *  (its own template, an x-import'd component, a child DC without its
-       *  own deeper boundary) lands here instead of unmounting the page. */
-      static getDerivedStateFromError(e) {
-        return { __err: e instanceof Error && e.message ? e.message : String(e) };
-      }
-      componentDidCatch(e, info) {
-        console.error(
-          "[dc-runtime] render error in <" + this.__name + ">:",
-          e,
-          info?.componentStack || ""
-        );
-      }
-      /** Instantiate the logic class (or the no-op base) and adopt `prevState`
-       *  over its initial state — used both at mount and on hot-swap. */
-      __makeLogic(Logic, prevState) {
-        const L = Logic || StreamableLogic;
-        try {
-          this.logic = new L(this.__userProps());
-          this.__failedLogic = null;
-          this.__failedUserProps = null;
-          this.__ctorError = null;
-        } catch (e) {
-          console.error(e);
-          this.__failedLogic = Logic;
-          this.__failedUserProps = this.__userProps();
-          this.__failedVer = registry.get(this.__name).ver;
-          this.__ctorError = this.__name + ": " + (e instanceof Error && e.message ? e.message : String(e));
-          this.logic = new StreamableLogic(
-            this.__userProps()
-          );
-        }
-        this.logic.__host = this;
-        if (prevState)
-          this.logic.state = { ...this.logic.state || {}, ...prevState };
-      }
-      /** The props the author's logic + template see — internal __-prefixed
-       *  wiring stripped. */
-      __userProps() {
-        const { __name, __hintSize, __tplId, __hostStyle, ...rest } = this.props;
-        return rest;
-      }
-      __setLogicState(update, cb) {
-        const prev = this.logic.state;
-        const patch = typeof update === "function" ? update(prev) : update;
-        this.logic.state = { ...prev, ...patch };
-        this.setState((s) => ({ __v: s.__v + 1 }), cb);
-      }
-      /** Swap the logic instance when the registry's Logic class changed
-       *  (streaming completion, hot reload). State carries over; didMount
-       *  re-fires after the swap commits so refs exist. */
-      __reconcileLogic() {
-        const r = registry.get(this.__name);
-        const Next = r.Logic;
-        const Cur = this.logic.constructor;
-        if (Next === Cur || !Next && Cur === StreamableLogic || Next === this.__failedLogic && r.ver === this.__failedVer && shallowEqual(this.__userProps(), this.__failedUserProps)) {
-          return;
-        }
-        if (!this.__needsDidMount) {
-          try {
-            this.logic.componentWillUnmount();
-          } catch (e) {
-            console.error(e);
-          }
-        }
-        this.__makeLogic(Next, this.logic.state);
-        this.__needsDidMount = true;
-      }
-      componentDidMount() {
-        registry.get(this.__name).subs.add(this.__sub);
-        try {
-          this.logic.componentDidMount();
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      componentDidUpdate(prevProps) {
-        this.logic.props = this.__userProps();
-        if (this.__needsDidMount) {
-          if (this.state.__err || !registry.get(this.__name).tpl) return;
-          this.__needsDidMount = false;
-          try {
-            this.logic.componentDidMount();
-          } catch (e) {
-            console.error(e);
-          }
-        } else {
-          try {
-            this.logic.componentDidUpdate(prevProps);
-          } catch (e) {
-            console.error(e);
-          }
-        }
-      }
-      componentWillUnmount() {
-        registry.get(this.__name).subs.delete(this.__sub);
-        if (!this.__needsDidMount) {
-          try {
-            this.logic.componentWillUnmount();
-          } catch (e) {
-            console.error(e);
-          }
-        }
-      }
-      render() {
-        const r = registry.get(this.__name);
-        const cls = "sc-host" + (r.htmlStreaming ? " sc-streaming-html" : "") + (r.jsStreaming ? " sc-streaming-js" : "");
-        const hintStyle = r.htmlStreaming ? hintToMin(this.props.__hintSize) : void 0;
-        const hostStyle = this.props.__hostStyle || hintStyle ? { ...hintStyle || {}, ...this.props.__hostStyle || {} } : void 0;
-        const hostBase = {
-          className: cls,
-          style: hostStyle,
-          "data-sc-name": this.__name,
-          "data-dc-tpl": this.props.__tplId
-        };
-        const chain = Array.isArray(this.context) ? this.context : [];
-        if (chain.includes(this.__name)) {
-          const cycle = [
-            ...chain.slice(chain.indexOf(this.__name)),
-            this.__name
-          ].join(" \u2192 ");
-          return h(
-            "div",
-            { ...hostBase, className: cls + " sc-has-error" },
-            h(Placeholder, {
-              name: this.__name,
-              hintSize: this.props.__hintSize,
-              error: "circular import: " + cycle
-            })
-          );
-        }
-        if (this.state.__err) {
-          return h(
-            "div",
-            { ...hostBase, className: cls + " sc-has-error" },
-            h(
-              "div",
-              { className: "sc-logic-error", "data-omelette-chrome": "" },
-              this.__name + ": " + this.state.__err
-            ),
-            h(Placeholder, {
-              name: this.__name,
-              hintSize: this.props.__hintSize,
-              error: this.state.__err
-            })
-          );
-        }
-        this.__reconcileLogic();
-        if (!r.tpl) {
-          return h(
-            "div",
-            hostBase,
-            h(Placeholder, { name: this.__name, hintSize: this.props.__hintSize })
-          );
-        }
-        const userProps = this.__userProps();
-        this.logic.props = userProps;
-        let vals = userProps;
-        let renderErr = r.logicError || this.__ctorError;
-        try {
-          vals = { ...userProps, ...this.logic.renderVals() || {} };
-        } catch (e) {
-          console.error(e);
-          renderErr = this.__name + ".renderVals(): " + (e instanceof Error && e.message ? e.message : String(e));
-        }
-        this.__streamingNow = !!(r.htmlStreaming || r.jsStreaming);
-        this.__htmlStreamingNow = !!r.htmlStreaming;
-        return h(
-          "div",
-          { ...hostBase, className: cls + (renderErr ? " sc-has-error" : "") },
-          renderErr && h(
-            "div",
-            { className: "sc-logic-error", "data-omelette-chrome": "" },
-            renderErr
-          ),
-          h(
-            AncestorContext.Provider,
-            { value: [...chain, this.__name] },
-            r.tpl(vals, this)
-          )
-        );
-      }
+      syncFromCloud().then(() => go(state.tasks.length ? 'scr-home' : 'scr-scan'));
+    } else {
+      renderAll();
     }
-    __publicField(StreamableComponent, "contextType", AncestorContext);
-    const named = /* @__PURE__ */ new Map();
-    function getDC(name) {
-      const hit = named.get(name);
-      if (hit) return hit;
-      function Dispatcher(p) {
-        const [, setTick] = React.useState(0);
-        React.useEffect(() => {
-          const sub = () => setTick((n) => n + 1);
-          registry.get(name).subs.add(sub);
-          return () => {
-            registry.get(name).subs.delete(sub);
-          };
-        }, []);
-        ensureFetched(name);
-        return h(StreamableComponent, { ...p, __name: name });
-      }
-      Dispatcher.displayName = name;
-      named.set(name, Dispatcher);
-      return Dispatcher;
-    }
-    return {
-      getDC,
-      StreamableComponent
-    };
-  }
-
-  // src/bundled.ts
-  function bundledBlob(url) {
-    const blobs = window.__resourceBlobs;
-    const b = blobs ? blobs[url.split("#")[0]] : void 0;
-    return b instanceof Blob ? b : null;
-  }
-
-  // src/cdn.ts
-  var REACT_URL = "https://unpkg.com/react@18.3.1/umd/react.production.min.js";
-  var REACT_SRI = "sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z";
-  var REACT_DOM_URL = "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js";
-  var REACT_DOM_SRI = "sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1";
-  var BABEL_URL = "https://unpkg.com/@babel/standalone@7.29.0/babel.min.js";
-  var BABEL_SRI = "sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y";
-  function cdnScriptFor(url, sri) {
-    const res = window.__resources;
-    const v = res ? res[url] : void 0;
-    return typeof v === "string" && v ? { src: v } : { src: url, integrity: sri };
-  }
-
-  // src/external.ts
-  var isCustomElementName = (n) => !n.includes(".") && n.includes("-");
-  function isRenderableType(g) {
-    if (typeof g === "function") return !isElementClass(g);
-    return typeof g === "object" && g !== null && typeof g.$$typeof === "symbol";
-  }
-  function resolveDottedPath(root, name) {
-    let cur = root;
-    for (const seg of name.split(".")) {
-      if (cur == null) return void 0;
-      cur = cur[seg];
-    }
-    return cur;
-  }
-  var GLOBAL_POLL_INTERVAL_MS = 50;
-  var GLOBAL_POLL_TIMEOUT_MS = 3e4;
-  function createExternalModules(onResolved) {
-    const cache = /* @__PURE__ */ new Map();
-    let babelLoading = null;
-    const reportedMissing = /* @__PURE__ */ new Map();
-    const polling = /* @__PURE__ */ new Set();
-    function ensureBabel() {
-      if (window.Babel) return Promise.resolve();
-      if (babelLoading) return babelLoading;
-      const babel = cdnScriptFor(BABEL_URL, BABEL_SRI);
-      babelLoading = new Promise((res, rej) => {
-        const s = document.createElement("script");
-        s.src = babel.src;
-        if (babel.integrity) {
-          s.integrity = babel.integrity;
-          s.crossOrigin = "anonymous";
-        }
-        s.onload = () => res();
-        s.onerror = rej;
-        document.head.appendChild(s);
-      });
-      return babelLoading;
-    }
-    const pending = /* @__PURE__ */ new Map();
-    function load(kind, url, after) {
-      const existing = pending.get(url);
-      if (existing) return existing;
-      cache.set(url, null);
-      console.info("[dc-runtime] x-import: loading", url, "(" + kind + ")");
-      const ready = Promise.all([
-        kind === "jsx" ? ensureBabel() : Promise.resolve(),
-        after ?? Promise.resolve()
-      ]);
-      const p = ready.then(() => {
-        const pre = bundledBlob(url);
-        if (pre) return pre.text();
-        return fetch(url).then((r) => {
-          if (!r.ok) throw new Error("HTTP " + r.status);
-          return r.text();
-        });
-      }).then((src) => {
-        const code = kind === "jsx" ? window.Babel.transform(src, {
-          filename: url,
-          presets: ["react", "typescript"]
-        }).code : src;
-        const module = { exports: {} };
-        const before = new Set(Object.keys(window));
-        //! nosemgrep: eval-and-function-constructor
-        new Function("React", "module", "exports", "require", code)(
-          getReact(),
-          module,
-          module.exports,
-          () => ({})
-        );
-        const globals = {};
-        for (const k of Object.keys(window)) {
-          if (!before.has(k) && typeof window[k] === "function") {
-            globals[k] = window[k];
-          }
-        }
-        cache.set(url, { mod: module.exports, globals });
-        console.info(
-          "[dc-runtime] x-import: loaded",
-          url,
-          "\u2014 exports:",
-          Object.keys(module.exports),
-          "window globals:",
-          Object.keys(globals)
-        );
-        onResolved();
-      }).catch((e) => {
-        cache.set(url, {
-          mod: {},
-          globals: {},
-          error: "failed to load: " + (e instanceof Error && e.message ? e.message : String(e))
-        });
-        console.error(
-          "[dc-runtime] x-import: FAILED to load",
-          url,
-          "(" + kind + ")",
-          e
-        );
-        onResolved();
-      });
-      pending.set(url, p);
-      return p;
-    }
-    function resolve2(url, name) {
-      const entry = cache.get(url);
-      if (!entry) return null;
-      const { mod, globals } = entry;
-      const C = mod && mod[name] || globals && globals[name] || typeof window !== "undefined" && window[name] || mod && mod.default;
-      if (typeof C === "function") return C;
-      const key = url + "\0" + name;
-      if (!reportedMissing.has(key)) {
-        reportedMissing.set(
-          key,
-          entry.error || 'no export named "' + name + '" (has: ' + Object.keys(mod).join(", ") + ")"
-        );
-        console.error(
-          "[dc-runtime] x-import: module",
-          url,
-          "loaded but has no component named",
-          JSON.stringify(name),
-          "\u2014 available exports:",
-          Object.keys(mod),
-          "window globals:",
-          Object.keys(globals),
-          ". The module must `module.exports = {" + name + "}` or set `window." + name + "`."
-        );
-      }
-      return null;
-    }
-    function waitForGlobal(name) {
-      if (polling.has(name)) return;
-      polling.add(name);
-      const started = Date.now();
-      const isCE = isCustomElementName(name);
-      const tick = () => {
-        const found = isCE ? customElements.get(name) : isRenderableType(resolveDottedPath(window, name));
-        if (found) {
-          polling.delete(name);
-          onResolved();
-          return;
-        }
-        if (Date.now() - started >= GLOBAL_POLL_TIMEOUT_MS) {
-          console.warn(
-            "[dc-runtime] x-import: global",
-            JSON.stringify(name),
-            "never appeared on window after " + GLOBAL_POLL_TIMEOUT_MS + "ms"
-          );
-          return;
-        }
-        setTimeout(tick, GLOBAL_POLL_INTERVAL_MS);
-      };
-      setTimeout(tick, GLOBAL_POLL_INTERVAL_MS);
-    }
-    function resolveGlobal(url, name) {
-      const isCE = isCustomElementName(name);
-      if (!url) {
-        if (isCE) {
-          if (customElements.get(name)) return name;
-          waitForGlobal(name);
-          return null;
-        }
-        const g2 = resolveDottedPath(window, name);
-        if (isRenderableType(g2)) return g2;
-        waitForGlobal(name);
-        return null;
-      }
-      const entry = cache.get(url);
-      if (!entry) return null;
-      if (isCE && customElements.get(name)) return name;
-      const g = entry.globals[name] ?? resolveDottedPath(window, name);
-      if (isRenderableType(g)) return g;
-      if (name.includes(".")) return null;
-      const key = url + "\0global\0" + name;
-      if (!reportedMissing.has(key)) {
-        reportedMissing.set(key, null);
-        if (isCE && !customElements.get(name)) {
-          console.warn(
-            "[dc-runtime] x-import:",
-            url,
-            "loaded but no custom element",
-            JSON.stringify(name),
-            "is registered and window." + name + " is not a function \u2014 rendering <" + name + "> as an unknown element."
-          );
-        }
-      }
-      return name;
-    }
-    function getError(url, name) {
-      const entry = cache.get(url);
-      if (entry?.error) return entry.error;
-      return reportedMissing.get(url + "\0" + name) || null;
-    }
-    return { load, resolve: resolve2, resolveGlobal, getError };
-  }
-  function isElementClass(g) {
-    try {
-      return typeof g === "function" && typeof HTMLElement !== "undefined" && g.prototype instanceof HTMLElement;
-    } catch {
-      return false;
-    }
-  }
-
-  // src/atomics.ts
-  var ATOMIC_CSS = (
-    // layout
-    ".fx{display:flex}.col{display:flex;flex-direction:column}.grid{display:grid}.ac{align-items:center}.jc{justify-content:center}.jb{justify-content:space-between}.f1{flex:1}.noshrink{flex-shrink:0}.wrap{flex-wrap:wrap}.fw5{font-weight:500}.fw6{font-weight:600}.fw7{font-weight:700}.fw8{font-weight:800}.fs11{font-size:11px}.fs12{font-size:12px}.fs13{font-size:13px}.fs14{font-size:14px}.fs15{font-size:15px}.fs16{font-size:16px}.fs20{font-size:20px}.fs22{font-size:22px}.upper{text-transform:uppercase}.tc{text-align:center}.nowrap{white-space:nowrap}.gap8{gap:8px}.gap10{gap:10px}.gap12{gap:12px}.gap16{gap:16px}.gap24{gap:24px}.m0{margin:0}.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}.mb16{margin-bottom:16px}.posrel{position:relative}.posabs{position:absolute}.round{border-radius:50%}.ohide{overflow:hidden}.bbox{box-sizing:border-box}.pointer{cursor:pointer}.w100{width:100%}.b0{border:none}"
-  );
-
-  // src/helmet.ts
-  var DESIGN_DOC_MODE_RE = /<meta\b[^>]*\bname\s*=\s*["']design_doc_mode["'][^>]*\b(?:content|value)\s*=\s*["'](\w+)["']/i;
-  var CANVAS_BG_LIGHT = "#f0eee6";
-  var CANVAS_BG_DARK = "#2e2c26";
-  function createHelmetManager(doc, isStreaming) {
-    const mounted = /* @__PURE__ */ new Set();
-    const live = /* @__PURE__ */ new Map();
-    let designDocMode = null;
-    let canvasStyleEl = null;
-    let appTheme = "light";
-    try {
-      const ds = doc.documentElement.dataset.theme;
-      appTheme = ds === "dark" || ds === "light" ? ds : new URLSearchParams(doc.defaultView?.location.search ?? "").get(
-        "theme"
-      ) === "dark" ? "dark" : "light";
-    } catch {
-    }
-    function applyCanvasBg() {
-      if (!canvasStyleEl) return;
-      const bg = appTheme === "dark" ? CANVAS_BG_DARK : CANVAS_BG_LIGHT;
-      canvasStyleEl.textContent = `html,body{background:${bg}}#dc-root>.sc-host{position:relative}`;
-    }
-    function postDesignMode(mode) {
-      if (window.parent === window) return;
-      try {
-        window.parent.postMessage({ type: "__dc_design_mode", mode }, "*");
-      } catch {
-      }
-    }
-    function setDesignDocMode(mode) {
-      if (mode === designDocMode) return;
-      designDocMode = mode;
-      postDesignMode(mode);
-      if (mode === "canvas") {
-        doc.documentElement.setAttribute("data-dc-canvas", "");
-        canvasStyleEl = doc.createElement("style");
-        canvasStyleEl.setAttribute("data-dc-canvas", "");
-        applyCanvasBg();
-        doc.head.appendChild(canvasStyleEl);
-      } else {
-        doc.documentElement.removeAttribute("data-dc-canvas");
-        canvasStyleEl?.remove();
-        canvasStyleEl = null;
-      }
-    }
-    window.addEventListener("message", (e) => {
-      const type = e.data && e.data.type;
-      if (type === "__dc_theme") {
-        const t = e.data.theme;
-        if (t === "light" || t === "dark") {
-          appTheme = t;
-          applyCanvasBg();
-        }
-        return;
-      }
-      if (!designDocMode || type !== "__dc_probe") return;
-      postDesignMode(designDocMode);
-    });
-    function compile(node) {
-      const raw = [...node.children];
-      const helmetClosed = node.nextSibling != null || node.parentNode?.nextSibling != null;
-      if (node.hasAttribute("data-dc-atomics") && !mounted.has("__dc-atomics")) {
-        mounted.add("__dc-atomics");
-        const el = doc.createElement("style");
-        el.id = "__dc-atomics";
-        el.textContent = ATOMIC_CSS;
-        doc.head.appendChild(el);
-      }
-      return (_vals, ctx) => {
-        const name = ctx && ctx.__name || "";
-        const streaming = !!(name && isStreaming(name));
-        for (let i = 0; i < raw.length; i++) {
-          const child = raw[i];
-          const tag = child.tagName;
-          const mayBePartial = streaming && !helmetClosed && i === raw.length - 1;
-          if (tag === "SCRIPT") {
-            if (mayBePartial) continue;
-            const key = "SCRIPT|" + (child.getAttribute("src") || child.textContent || "");
-            if (mounted.has(key)) continue;
-            mounted.add(key);
-            const el = doc.createElement("script");
-            for (const { name: an, value } of [...child.attributes])
-              el.setAttribute(an, value);
-            if (child.textContent) el.textContent = child.textContent;
-            doc.head.appendChild(el);
-          } else if (tag === "LINK" || tag === "META") {
-            if (mayBePartial) continue;
-            const key = tag + "|" + (child.getAttribute("href") || child.getAttribute("src") || child.outerHTML);
-            if (mounted.has(key)) continue;
-            mounted.add(key);
-            if (tag === "LINK") {
-              const rel = (child.getAttribute("rel") || "").toLowerCase().split(/\s+/);
-              const href = (child.getAttribute("href") || "").trim();
-              const res = window.__resources;
-              const pre = res && rel.includes("stylesheet") && !rel.includes("alternate") ? res[href] : void 0;
-              const blob = typeof pre === "string" && pre ? bundledBlob(pre) : null;
-              if (blob) {
-                const el = doc.createElement("style");
-                if (child.hasAttribute("disabled")) {
-                  el.setAttribute("media", "not all");
-                } else if (child.getAttribute("media")) {
-                  el.setAttribute("media", child.getAttribute("media"));
-                }
-                if (child.getAttribute("title"))
-                  el.setAttribute("title", child.getAttribute("title"));
-                void blob.text().then((css) => {
-                  el.textContent = css;
-                });
-                doc.head.appendChild(el);
-                continue;
-              }
-            }
-            doc.head.appendChild(child.cloneNode(true));
-          } else {
-            const key = name + "|" + i;
-            let el = live.get(key);
-            if (!el || el.tagName !== tag) {
-              if (el) el.remove();
-              el = doc.createElement(tag.toLowerCase());
-              live.set(key, el);
-              doc.head.appendChild(el);
-            }
-            for (const { name: an, value } of [...child.attributes]) {
-              if (el.getAttribute(an) !== value) el.setAttribute(an, value);
-            }
-            if (el.textContent !== child.textContent)
-              el.textContent = child.textContent;
-          }
-        }
-        return null;
-      };
-    }
-    return { compile, setDesignDocMode };
-  }
-
-  // src/pseudo.ts
-  function scanUnquotedUrl(css, i) {
-    if (css[i] !== "u" && css[i] !== "U" || css.slice(i, i + 4).toLowerCase() !== "url(" || /[a-z0-9_-]/i.test(css[i - 1] ?? "")) {
-      return -1;
-    }
-    let j = i + 4;
-    while (j < css.length && /\s/.test(css[j])) j++;
-    if (css[j] === '"' || css[j] === "'") return -1;
-    while (j < css.length && css[j] !== ")") {
-      if (css[j] === "\\") j++;
-      j++;
-    }
-    return j < css.length ? j + 1 : css.length;
-  }
-  function stripComments(css) {
-    let out = "";
-    let quote = "";
-    for (let i = 0; i < css.length; i++) {
-      const c = css[i];
-      if (quote) {
-        if (c === "\\") {
-          out += c + (css[i + 1] ?? "");
-          i++;
-          continue;
-        }
-        if (c === quote) quote = "";
-        out += c;
-      } else if (c === "'" || c === '"') {
-        quote = c;
-        out += c;
-      } else if (c === "/" && css[i + 1] === "*") {
-        const end = css.indexOf("*/", i + 2);
-        i = end === -1 ? css.length : end + 1;
-        out += " ";
-      } else {
-        const end = scanUnquotedUrl(css, i);
-        if (end === -1) out += c;
-        else {
-          out += css.slice(i, end);
-          i = end - 1;
-        }
-      }
-    }
-    return out;
-  }
-  function importantify(css) {
-    css = stripComments(css);
-    const decls = [];
-    let start = 0;
-    let depth = 0;
-    let quote = "";
-    for (let i = 0; i < css.length; i++) {
-      const c = css[i];
-      if (quote) {
-        if (c === "\\") i++;
-        else if (c === quote) quote = "";
-      } else if (c === "'" || c === '"') quote = c;
-      else if (c === "(") depth++;
-      else if (c === ")") depth = Math.max(0, depth - 1);
-      else if (c === ";" && depth === 0) {
-        decls.push(css.slice(start, i));
-        start = i + 1;
-      } else {
-        const end = scanUnquotedUrl(css, i);
-        if (end !== -1) i = end - 1;
-      }
-    }
-    decls.push(css.slice(start));
-    return decls.map((d) => d.trim()).filter(Boolean).map((d) => /!\s*important$/i.test(d) ? d : d + " !important").join(";");
-  }
-  function createPseudoSheet(doc) {
-    let el = null;
-    const cache = /* @__PURE__ */ new Map();
-    let n = 0;
-    return (pseudo, css) => {
-      const k = pseudo + "|" + css;
-      const hit = cache.get(k);
-      if (hit) return hit;
-      if (!el) {
-        el = doc.createElement("style");
-        doc.head.appendChild(el);
-      }
-      const cls = "scp" + (n++).toString(36);
-      const isPseudoElement = pseudo === "before" || pseudo === "after";
-      const sel = isPseudoElement ? "." + cls + "::" + pseudo : "." + cls + ":" + pseudo;
-      el.sheet.insertRule(
-        sel + "{" + (isPseudoElement ? css : importantify(css)) + "}",
-        el.sheet.cssRules.length
-      );
-      cache.set(k, cls);
-      return cls;
-    };
-  }
-
-  // src/registry.ts
-  function createRegistry() {
-    const entries = /* @__PURE__ */ Object.create(null);
-    function get(name) {
-      return entries[name] || (entries[name] = {
-        html: "",
-        tpl: null,
-        Logic: null,
-        jsStreaming: false,
-        htmlStreaming: false,
-        ver: 0,
-        subs: /* @__PURE__ */ new Set(),
-        fetched: false
-      });
-    }
-    function bump(name) {
-      const r = get(name);
-      r.ver++;
-      for (const fn of r.subs) fn();
-    }
-    return {
-      entries,
-      get,
-      bump,
-      bumpAll() {
-        for (const n in entries) bump(n);
-      }
-    };
-  }
-
-  // src/runtime.ts
-  var COMPONENT_DIR = ".";
-  function createRuntime(doc = document) {
-    const registry = createRegistry();
-    const pseudoClass = createPseudoSheet(doc);
-    const helmet = createHelmetManager(
-      doc,
-      (name) => registry.get(name).htmlStreaming
-    );
-    const external = createExternalModules(() => registry.bumpAll());
-    const factory = createComponentFactory(registry, ensureFetched);
-    const host = {
-      component: (name) => factory.getDC(name),
-      placeholder: (props) => h(Placeholder, props),
-      helmet: (node) => helmet.compile(node),
-      loadExternal: (kind, url, after) => external.load(kind, url, after),
-      resolveExternal: (url, name) => external.resolve(url, name),
-      resolveExternalGlobal: (url, name) => external.resolveGlobal(url, name),
-      resolveExternalError: (url, name) => external.getError(url, name),
-      pseudoClass
-    };
-    function ensureFetched(name) {
-      const r = registry.get(name);
-      if (r.fetched) return;
-      r.fetched = true;
-      const url = COMPONENT_DIR + "/" + encodeURIComponent(name) + ".dc.html";
-      const res = window.__resources;
-      const pre = res ? res[url] : void 0;
-      const target = typeof pre === "string" && pre ? pre : url;
-      const blob = bundledBlob(target);
-      (blob ? blob.text() : fetch(target).then((res2) => {
-        if (!res2.ok) {
-          console.error(
-            '[dc-runtime] sibling fetch for "' + name + '" failed:',
-            url,
-            "returned",
-            res2.status,
-            "\u2014 the reference renders as an empty placeholder."
-          );
-          return "";
-        }
-        return res2.text();
-      })).then((t) => {
-        if (!t) return;
-        const parsed = parseDcText(t);
-        if (!parsed) {
-          console.error(
-            '[dc-runtime] sibling fetch for "' + name + '":',
-            url,
-            "has no <x-dc> block \u2014 not a Design Component."
-          );
-          return;
-        }
-        if (parsed.props) r.propsMeta = parsed.props;
-        if (parsed.preview) r.preview = parsed.preview;
-        if (parsed.template && !r.html) updateHtml(name, parsed.template);
-        if (parsed.js && !r.Logic) updateJs(name, parsed.js);
-      }).catch(
-        (e) => console.error(
-          '[dc-runtime] sibling fetch for "' + name + '" threw:',
-          url,
-          e
-        )
-      );
-    }
-    let rootName = null;
-    function updateHtml(name, html) {
-      const r = registry.get(name);
-      r.html = html;
-      if (name === rootName) {
-        const mode = DESIGN_DOC_MODE_RE.exec(html)?.[1] ?? null;
-        if (mode || !r.htmlStreaming) helmet.setDesignDocMode(mode);
-      }
-      try {
-        r.tpl = compileTemplate(html, host);
-      } catch (e) {
-        console.error("[dc-runtime] template compile FAILED for", name, e);
-      }
-      registry.bump(name);
-    }
-    function updateJs(name, src) {
-      const r = registry.get(name);
-      const seq = r.jsSeq = (r.jsSeq || 0) + 1;
-      try {
-        const Cls = evalDcLogic(src);
-        if (r.jsSeq !== seq) return;
-        if (typeof Cls !== "function") {
-          r.logicError = name + ".dc.html: <script data-dc-script> must define `class Component extends DCLogic`";
-        } else {
-          r.logicError = null;
-          r.Logic = Cls;
-        }
-      } catch (e) {
-        if (r.jsSeq !== seq) return;
-        console.error(
-          "[dc-runtime] logic class eval FAILED for",
-          name,
-          "\u2014 the template renders with props only.",
-          e
-        );
-        r.logicError = name + ": " + (e instanceof Error && e.message ? e.message : String(e));
-      }
-      registry.bump(name);
-    }
-    function setStreaming(name, kind, on) {
-      const r = registry.get(name);
-      if (kind === "html") r.htmlStreaming = !!on;
-      else r.jsStreaming = !!on;
-      let any = false;
-      for (const n in registry.entries) {
-        const e = registry.entries[n];
-        if (e && (e.htmlStreaming || e.jsStreaming)) {
-          any = true;
-          break;
-        }
-      }
-      doc.documentElement.classList.toggle("sc-dc-streaming", any);
-      registry.bump(name);
-    }
-    function dcUpdate(name, kind, content, streaming) {
-      if (streaming) registry.get(name).fetched = true;
-      if (kind === "html") {
-        setStreaming(name, "html", !!streaming);
-        updateHtml(name, content);
-      } else if (kind === "js") {
-        setStreaming(name, "js", !!streaming);
-        if (!streaming) updateJs(name, content);
-      } else if (kind === "props") {
-        const { props, preview } = parseDataProps(content);
-        const r = registry.get(name);
-        r.propsMeta = props ?? void 0;
-        r.preview = preview;
-        registry.bump(name);
-      }
-    }
-    function setProps(name, overrides) {
-      registry.get(name).propOverrides = overrides && typeof overrides === "object" ? { ...overrides } : null;
-      registry.bump(name);
-    }
-    function adoptParsed(name, parsed) {
-      if (!parsed) return;
-      const r = registry.get(name);
-      if (parsed.props) r.propsMeta = parsed.props;
-      if (parsed.preview) r.preview = parsed.preview;
-      if (parsed.template) updateHtml(name, parsed.template);
-      if (parsed.js) updateJs(name, parsed.js);
-    }
-    return {
-      registry,
-      getDC: factory.getDC,
-      updateHtml,
-      updateJs,
-      dcUpdate,
-      setProps,
-      adoptParsed,
-      setRootName: (name) => {
-        rootName = name;
-      },
-      markFetched: (name) => {
-        registry.get(name).fetched = true;
-      },
-      annotatedTemplate: (name) => {
-        const r = registry.get(name);
-        return r.tpl && r.tpl.__annotated || null;
-      },
-      templateSource: (name) => registry.get(name).html || null,
-      StreamableLogic
-    };
-  }
-
-  // src/stream-state.ts
-  function createStreamTracker(staleMs = 6e4, now = Date.now) {
-    const since = /* @__PURE__ */ new Map();
-    const liveOne = (n) => {
-      const t = since.get(n);
-      if (t === void 0) return false;
-      if (now() - t > staleMs) {
-        since.delete(n);
-        return false;
-      }
-      return true;
-    };
-    return {
-      push(name, streaming, viewportKey) {
-        if (viewportKey === "dc-model") return;
-        if (streaming) since.set(name, now());
-        else since.delete(name);
-      },
-      live(name) {
-        if (name !== void 0) return liveOne(name);
-        for (const n of [...since.keys()]) if (liveOne(n)) return true;
-        return false;
-      }
-    };
-  }
-
-  // src/index.ts
-  function hideRawTemplate() {
-    const s = document.createElement("style");
-    s.textContent = "x-dc{display:none!important}";
-    document.head.appendChild(s);
-  }
-  function loadScript(src, integrity) {
-    return new Promise((resolve2, reject) => {
-      //! nosemgrep: create-script-element
-      const s = document.createElement("script");
-      s.src = src;
-      if (integrity) {
-        s.integrity = integrity;
-        s.crossOrigin = "anonymous";
-      }
-      s.async = false;
-      s.onload = () => resolve2();
-      s.onerror = () => reject(new Error(`failed to load ${src}`));
-      document.head.appendChild(s);
-    });
-  }
-  function loadReactUmd() {
-    const w = window;
-    if (w.React && w.ReactDOM) return Promise.resolve();
-    const react = cdnScriptFor(REACT_URL, REACT_SRI);
-    const reactDom = cdnScriptFor(REACT_DOM_URL, REACT_DOM_SRI);
-    return Promise.all([
-      loadScript(react.src, react.integrity),
-      loadScript(reactDom.src, reactDom.integrity)
-    ]).then(() => void 0);
-  }
-  function init() {
-    const runtime = createRuntime(document);
-    let rootName = "Root";
-    const baseCss = document.createElement("style");
-    baseCss.textContent = BASE_CSS;
-    document.head.prepend(baseCss);
-    const notifyHost = () => {
-      if (window.parent === window) return;
-      const r = runtime.registry.entries[rootName];
-      try {
-        window.parent.postMessage(
-          {
-            type: "__dc_booted",
-            rootName,
-            propsMeta: r && r.propsMeta || null,
-            preview: r && r.preview || null
-          },
-          "*"
-        );
-      } catch {
-      }
-    };
-    const streams = createStreamTracker();
-    const api = {
-      __dcUpdate: (name, kind, content, streaming, viewportKey) => {
-        streams.push(name, streaming, viewportKey);
-        runtime.dcUpdate(name, kind, content, streaming);
-        if (name === rootName && !streaming && kind === "props") notifyHost();
-      },
-      __dcStreaming: (name) => streams.live(name),
-      __dcSetProps: (name, overrides) => runtime.setProps(name, overrides),
-      /** Name of the component currently mounted as the page root — DC tools
-       *  push their template-stream here when targeting "the open page". */
-      __dcRootName: () => rootName,
-      /** Editor bridge — the encoded, `data-dc-tpl`-annotated template source.
-       *  The host editor parses this into its own template DOM so it can map a
-       *  rendered node (carrying the same `data-dc-tpl`) back to the source
-       *  node that emitted it. Returns the encoded form (`sc-camel-*` attrs,
-       *  `<sc-raw-*>`/`<sc-helmet>` tags); the editor decodes on serialize. */
-      __dcAnnotatedTemplate: (name) => runtime.annotatedTemplate(name),
-      /** Editor bridge — the *original* (decoded) template source. */
-      __dcTemplateSource: (name) => runtime.templateSource(name),
-      __dcBoot: () => {
-        rootName = boot(runtime, document) ?? rootName;
-        notifyHost();
-      },
-      __dcRegistry: runtime.registry.entries,
-      getDC: (name) => runtime.getDC(name),
-      // `DCLogic` is the documented base class name; `StreamableLogic` is the
-      // implementation alias kept for any project that already references it.
-      DCLogic: runtime.StreamableLogic,
-      StreamableLogic: runtime.StreamableLogic
-    };
-    Object.assign(window, api);
-    window.__dcContentKeyed = true;
-    if (document.readyState !== "loading") api.__dcBoot();
-    else document.addEventListener("DOMContentLoaded", () => api.__dcBoot());
-  }
-  hideRawTemplate();
-  loadReactUmd().then(init).catch((err) => {
-    console.error("[dc] failed to load React or boot:", err);
-    throw err;
   });
+  if (currentUser) await syncFromCloud();
+}
+
+// ดึงข้อมูลจาก cloud มารวมกับในเครื่อง (รวมงานตาม id — ฝั่ง cloud ชนะเมื่อซ้ำ)
+async function syncFromCloud() {
+  if (!sb || !currentUser) return;
+  try {
+    const { data, error } = await sb.from('user_state')
+      .select('data').eq('id', currentUser.id).maybeSingle();
+    if (error) throw error;
+    if (data && data.data) {
+      const remote = data.data;
+      const byId = {};
+      for (const t of (state.tasks || [])) byId[t.id] = t;
+      for (const t of (remote.tasks || [])) byId[t.id] = t;
+      state.tasks = Object.values(byId);
+      state.settings = Object.assign({}, state.settings, remote.settings || {});
+      localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    }
+    await pushToCloud(true);
+    renderAll();
+  } catch (e) { console.warn('[sync] pull failed:', e.message); }
+}
+
+// ส่งข้อมูลขึ้น cloud (debounce 1.5 วิ กันยิงถี่)
+function pushToCloud(immediate) {
+  if (!sb || !currentUser) return;
+  const doPush = async () => {
+    try {
+      const { error } = await sb.from('user_state').upsert({
+        id: currentUser.id,
+        data: { tasks: state.tasks, settings: state.settings },
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      lastSync = new Date();
+      renderProfile();
+    } catch (e) { console.warn('[sync] push failed:', e.message); }
+  };
+  if (immediate) return doPush();
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(doPush, 1500);
+}
+
+function loginGoogle() {
+  if (!sb) { alert('ระบบบัญชียังไม่เปิดใช้งาน — ใช้แบบไม่ล็อกอินไปก่อนได้เลย'); return; }
+  sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: location.origin + location.pathname },
+  });
+}
+
+function skipLogin() {
+  localStorage.setItem('studentos.skipLogin', '1');
+  go(state.tasks.length ? 'scr-home' : 'scr-scan');
+}
+
+async function logout() {
+  if (sb) await sb.auth.signOut();
+  currentUser = null; lastSync = null;
+  localStorage.removeItem('studentos.skipLogin');
+  go('scr-login');
+}
+
+// ---------- render ----------
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function starsHtml(n) {
+  return '<span class="stars lv' + n + '">' + '★'.repeat(n) + '<span class="off">' + '★'.repeat(5 - n) + '</span></span>';
+}
+// ป้ายระดับความสำคัญแบบกะทัดรัด (ใช้แทนดาวในการ์ด)
+function priorityBadge(stars) {
+  return `<span class="pbadge lv${stars}">${esc(priorityLabel(stars))}</span>`;
+}
+// เมตาดาต้าสั้น ไม่เกิน 2 อัน — กรองเอาแต่ที่สำคัญ ไม่เอาที่ซ้ำกับ badge/deadline
+function metaHtml(reasons) {
+  const drop = /ใกล้กำหนด|ส่งภายใน|ยังพอมีเวลา|ส่งใน|กำหนดความสำคัญเอง|ยังไม่ระบุ/;
+  const keep = reasons.filter(r => !drop.test(r)).slice(0, 2);
+  if (!keep.length) return '';
+  return '<div class="meta">' + keep.map(r => '<span class="mchip">' + esc(r) + '</span>').join('') + '</div>';
+}
+// หัวเรื่องการ์ด: ไม่โชว์ "อื่น ๆ ·" ซ้ำซ้อนเวลาไม่ได้ระบุวิชา
+function taskTitle(t) {
+  const subj = t.subject && t.subject !== 'อื่น ๆ' ? esc(t.subject) + ' · ' : '';
+  return subj + esc(t.detail);
+}
+function typeChip(t) {
+  const type = taskType(t);
+  if (type === 'homework') return ''; // การบ้านคือค่าปกติ ไม่ต้องติดป้ายให้รก
+  const ti = TASK_TYPES[type];
+  return `<span class="tchip ${type}">${ti.icon} ${esc(ti.name)}</span>`;
+}
+function progressHtml(p) {
+  p = Math.max(0, Math.min(100, p || 0));
+  if (p <= 0) return '';
+  return `<div class="progress-row"><div class="progress-track"><div class="progress-fill" style="width:${p}%"></div></div><span class="progress-pct">${p}%</span></div>`;
+}
+
+// การ์ดงานหลัก — ตัวเดียวที่เด่นในหน้าแรก พร้อมเหตุผลจาก AI
+function heroCard(t, pending, now) {
+  const info = priorityInfo(t, now);
+  const urgent = info.urgency === 'over' || info.urgency === 'hot';
+  const ti = TASK_TYPES[taskType(t)];
+  const meta = [
+    `<span class="tdue ${urgent ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span>`,
+    ti.schedulable ? `<span>~${t.estMin} นาที</span>` : '',
+    t.scorePct != null ? `<span>คะแนน ${t.scorePct}%</span>` : '',
+  ].filter(Boolean).join('<span class="dotsep">·</span>');
+  return `
+  <div class="hero ${urgent ? 'urgent' : ''}" onclick="openForm('${t.id}')">
+    <div class="hero-eyebrow">${urgent ? 'ทำก่อนเลย' : 'เริ่มที่นี่'}</div>
+    <h3 class="hero-title">${taskTitle(t)}</h3>
+    <div class="hero-meta">${typeChip(t)}${meta}</div>
+    ${progressHtml(t.progress)}
+    <div class="hero-why"><span class="ai-mark">✦</span><span>${esc(aiHeroWhy(t, pending, state.settings, now))}</span></div>
+    <button class="btn primary sm" onclick="event.stopPropagation();toggleDone('${t.id}')">ทำเสร็จแล้ว</button>
+  </div>`;
+}
+
+// งานถัดไป — ย่อเหลือแถวเดียว อ่านผ่านตาเร็ว ไม่แย่งความสนใจจากงานหลัก
+function nextRow(t, rank, now) {
+  const info = priorityInfo(t, now);
+  const hot = info.urgency === 'over' || info.urgency === 'hot';
+  return `
+  <div class="nrow" onclick="openForm('${t.id}')">
+    <span class="nrank">${rank}</span>
+    <div class="nbody">
+      <div class="ntitle">${taskTitle(t)}</div>
+      <div class="nmeta">${info.stars >= 4 ? priorityBadge(info.stars) : ''}${typeChip(t)}<span class="tdue ${hot ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span></div>
+    </div>
+    <button class="tcheck" onclick="event.stopPropagation();toggleDone('${t.id}')" aria-label="ทำเสร็จ"></button>
+  </div>`;
+}
+
+function taskCard(t, rank, now) {
+  const info = priorityInfo(t, now);
+  const hot = info.urgency === 'over' || info.urgency === 'hot';
+  const pin = t.userStars ? '<span class="pin" title="กำหนดความสำคัญเอง">📌</span>' : '';
+  return `
+  <div class="tcard" data-id="${t.id}" onclick="openForm('${t.id}')">
+    <span class="rank ${rank === 1 ? 'r1' : ''}">${rank}</span>
+    <div class="tbody">
+      <div class="trow1">${priorityBadge(info.stars)}${typeChip(t)}${pin}<span class="tdue ${hot ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span></div>
+      <h4 class="ttitle">${taskTitle(t)}</h4>
+      ${progressHtml(t.progress)}
+      ${metaHtml(info.reasons)}
+    </div>
+    <button class="tcheck" onclick="event.stopPropagation();toggleDone('${t.id}')" aria-label="ทำเสร็จ" title="ทำเสร็จ"></button>
+  </div>`;
+}
+
+function renderHome() {
+  const now = new Date();
+  const pending = sortByPriority(pendingTasks(), now);
+  const doneToday = state.tasks.filter(t => t.done).length;
+
+  const h = now.getHours();
+  const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนค่ำ';
+  const name = state.settings.name || 'นักเรียน';
+  document.getElementById('greeting').textContent = `${greet}, ${name}`;
+  document.getElementById('homeSub').textContent =
+    `${fmtThaiDate(now)}  ·  งานค้าง ${pending.length}  ·  เสร็จแล้ว ${doneToday}`;
+
+  const box = document.getElementById('top3');
+  const planBtn = document.getElementById('planBtn');
+  const seeAll = document.getElementById('seeAllBtn');
+  if (planBtn) planBtn.style.display = pending.length ? 'block' : 'none';
+  if (seeAll) seeAll.style.display = pending.length > 3 ? 'flex' : 'none';
+  if (seeAll && pending.length > 3) seeAll.querySelector('span').textContent = `ดูงานทั้งหมด ${pending.length} งาน`;
+  if (!pending.length) {
+    box.innerHTML = `<div class="card empty">ยังไม่มีงานในระบบ<br>
+      กดปุ่ม <b>Scan</b> ด้านล่างเพื่อเพิ่มงานแรก<br>
+      <span class="hint">หรือลองข้อมูลตัวอย่างได้ที่แท็บ “ฉัน”</span></div>`;
+    return;
+  }
+  // ลำดับสายตา: งานหลัก 1 ชิ้นเด่นชัด → งานถัดไปย่อเป็นแถว
+  const rest = pending.slice(1, 3);
+  box.innerHTML = heroCard(pending[0], pending, now)
+    + (rest.length ? `<div class="sect" style="margin-top:18px">ถัดไป</div>` : '')
+    + rest.map((t, i) => nextRow(t, i + 2, now)).join('');
+}
+
+function taskRow(t, now) {
+  const info = priorityInfo(t, now);
+  const hot = info.urgency === 'over' || info.urgency === 'hot';
+  return `
+  <div class="task-row ${t.done ? 'done' : ''}">
+    <button class="tcheck ${t.done ? 'on' : ''}" onclick="toggleDone('${t.id}')" aria-label="${t.done ? 'ทำเสร็จแล้ว' : 'ทำเสร็จ'}"></button>
+    <div class="task-main" onclick="openForm('${t.id}')">
+      <div class="task-title">${taskTitle(t)}</div>
+      <div class="trow1 sm">${t.done ? '<span class="tdue ok">เสร็จแล้ว</span>' : priorityBadge(info.stars) + typeChip(t) + '<span class="tdue ' + (hot ? 'hot' : '') + '">' + fmtDue(t.due, now, t) + '</span>'}</div>
+      ${!t.done ? progressHtml(t.progress) : ''}
+    </div>
+    <button class="icon-btn" onclick="removeTask('${t.id}')" aria-label="ลบ">✕</button>
+  </div>`;
+}
+
+let taskFilter = 'all';
+function setFilter(f) {
+  taskFilter = f;
+  document.querySelectorAll('#filterRow .fchip').forEach(b => b.classList.toggle('active', b.dataset.f === f));
+  renderTasks();
+}
+
+function renderTasks() {
+  const now = new Date();
+  const match = t => taskFilter === 'all' || taskType(t) === taskFilter;
+  const pending = sortByPriority(pendingTasks().filter(match), now);
+  const done = state.tasks.filter(t => t.done && match(t));
+  const label = taskFilter === 'all' ? '' : ' · ' + TASK_TYPES[taskFilter].name;
+  document.getElementById('tasksSub').textContent =
+    `${pending.length} งานค้าง${label} · เรียงโดย AI — แตะงานเพื่อแก้ไข`;
+
+  const hot = pending.filter(t => ['over', 'hot'].includes(priorityInfo(t, now).urgency));
+  const rest = pending.filter(t => !hot.includes(t));
+
+  let html = '';
+  if (hot.length) html += `<div class="assign-sect">ด่วน</div>` + hot.map(t => taskRow(t, now)).join('');
+  if (rest.length) html += `<div class="assign-sect norm">ต่อจากนั้น</div>` + rest.map(t => taskRow(t, now)).join('');
+  if (done.length) html += `<div class="assign-sect norm">เสร็จแล้ว · ${done.length}</div>` + done.map(t => taskRow(t, now)).join('');
+  if (!html) html = taskFilter === 'all'
+    ? `<div class="card empty">ยังไม่มีงาน — กดปุ่ม <b>เพิ่ม</b> ด้านล่างเพื่อเริ่ม</div>`
+    : `<div class="card empty">ไม่มีรายการประเภท “${esc(TASK_TYPES[taskFilter].name)}”</div>`;
+  document.getElementById('taskList').innerHTML = html;
+}
+
+function renderTimeline() {
+  const now = new Date();
+  const pending = sortByPriority(pendingTasks(), now);
+  const buckets = [
+    { name: '⚠ เลยกำหนด', bar: 'hot',  test: h => h != null && h < 0 },
+    { name: 'Today',      bar: 'hot',  test: h => h != null && h >= 0 && h <= (24 - now.getHours()) },
+    { name: 'Tomorrow',   bar: 'mid',  test: h => h != null && h > (24 - now.getHours()) && h <= (48 - now.getHours()) },
+    { name: 'This Week',  bar: '',     test: h => h != null && h > (48 - now.getHours()) && h <= 24 * 7 },
+    { name: 'Later',      bar: '',     test: h => h == null || h > 24 * 7 },
+  ];
+  let html = '';
+  for (const b of buckets) {
+    const list = pending.filter(t => b.test(priorityInfo(t, now).hoursLeft));
+    if (!list.length) continue;
+    html += `<div class="tl-group"><div class="tl-head">${b.name}</div>` + list.map(t => {
+      const info = priorityInfo(t, now);
+      return `
+      <div class="tl-item" onclick="openForm('${t.id}')"><span class="tl-bar lv${info.stars}"></span>
+        <div class="card"><div class="trow1 sm">${priorityBadge(info.stars)}${typeChip(t)}<span class="tdue ${b.bar === 'hot' ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span></div>
+        <h4 class="ttitle" style="margin-top:4px">${taskTitle(t)}</h4></div>
+      </div>`;
+    }).join('') + `</div>`;
+  }
+  const insight = timelineInsight(pending, now);
+  if (insight) html += `
+    <div class="card ai" style="margin-top:4px">
+      <div class="ai-head"><span class="ai-dot">S</span><span class="ai-name">STUDENTOS AI</span></div>
+      <div class="ai-msg" style="font-size:13.5px">${esc(insight)}</div>
+    </div>`;
+  if (!html) html = `<div class="card empty">ไม่มีงานในเส้นเวลา 🎉</div>`;
+  document.getElementById('timeline').innerHTML = html;
+}
+
+function renderPlan() {
+  const list = document.getElementById('planList');
+  const sub = document.getElementById('planSub');
+  if (!list) return;
+  const now = new Date();
+  const pending = pendingTasks();
+  if (!pending.length) {
+    sub.textContent = '';
+    list.innerHTML = `<div class="card empty">ไม่มีงานค้าง — วันนี้พักได้เต็มที่ 🎉</div>`;
+    return;
+  }
+  const plan = buildDayPlan(pending, state.settings, now);
+  sub.textContent = `เวลาว่าง ${state.settings.freeHours || 2} ชม. · ใช้จริง ${Math.round(plan.usedMin / 6) / 10} ชม. · เรียงตามความสำคัญ`;
+
+  let html = '';
+  // กิจกรรมตามเวลา: แสดงเป็นหมุดเวลา ไม่ใช่ช่วงเวลาที่ต้องนั่งทำ
+  if (plan.events.length) {
+    html += `<div class="assign-sect norm" style="margin-top:0">ตามเวลา — ไม่ต้องเจียดเวลาทำ</div>`
+      + plan.events.map(e => `<div class="plan-slot"><span class="plan-time">${fmtClock(new Date(e.due))}</span>
+        <div class="plan-body card event" style="margin:0">
+          <div class="trow1 sm">${typeChip(e)}</div>
+          <h4 class="ttitle" style="margin-top:4px">${taskTitle(e)}</h4>
+        </div></div>`).join('');
+    if (plan.slots.length) html += `<div class="assign-sect norm">เวลาอ่าน/ทำงาน</div>`;
+  }
+  for (const s of plan.slots) {
+    if (s.break) {
+      html += `<div class="plan-slot break"><span class="plan-time">${fmtClock(s.start)}</span>
+        <div class="plan-body">☕ พัก ${s.min} นาที</div></div>`;
+    } else {
+      const info = priorityInfo(s.task, now);
+      html += `<div class="plan-slot"><span class="plan-time">${fmtClock(s.start)}<br><small>${fmtClock(s.end)}</small></span>
+        <div class="plan-body card" style="margin:0">
+          <div class="trow1 sm">${priorityBadge(info.stars)}${typeChip(s.task)}<span class="tdue">${s.min} นาที</span></div>
+          <h4 class="ttitle" style="margin-top:4px">${taskTitle(s.task)}</h4>
+          ${s.note ? `<div class="hint" style="text-align:left; margin:5px 0 0">${esc(s.note)}</div>` : ''}
+        </div></div>`;
+    }
+  }
+  if (!plan.slots.length && !plan.events.length) {
+    html += `<div class="card empty">วันนี้ไม่มีอะไรต้องนั่งทำ — พักได้เต็มที่ 🎉</div>`;
+  }
+  if (plan.overflow.length) {
+    html += `<div class="assign-sect norm" style="margin-top:16px">เวลาวันนี้ไม่พอ — AI แนะนำย้ายไปพรุ่งนี้</div>`
+      + plan.overflow.map(o => `<div class="card" style="opacity:.65"><h4 style="font-size:14.5px">${taskTitle(o.task)}</h4>
+        <div class="due ok">ต้องใช้ ~${o.need} นาที · ${fmtDue(o.task.due, now, o.task)}</div></div>`).join('');
+    const risky = plan.overflow.filter(o => {
+      const h = priorityInfo(o.task, now).hoursLeft;
+      return h != null && h < 24;
+    });
+    if (risky.length) {
+      html += `<div class="card ai"><div class="ai-head"><span class="ai-dot">S</span><span class="ai-name">STUDENTOS AI</span></div>
+        <div class="ai-msg" style="font-size:13.5px">⚠ ${esc(risky[0].task.subject)} ส่งภายในพรุ่งนี้แต่เวลาวันนี้ไม่พอ — แนะนำเพิ่มเวลาอีก ~${risky.reduce((s, o) => s + o.need, 0)} นาที หรือเริ่มเร็วกว่า 1 ทุ่ม</div></div>`;
+    }
+  }
+  list.innerHTML = html;
+}
+
+function renderProfile() {
+  // หัวโปรไฟล์: รูปจาก Google ถ้ามี ไม่งั้นใช้ตัวอักษรแรกของชื่อ
+  const pf = document.getElementById('pfHeader');
+  if (pf) {
+    const name = state.settings.name || (currentUser?.user_metadata?.full_name) || 'นักเรียน';
+    const pic = currentUser?.user_metadata?.avatar_url || currentUser?.user_metadata?.picture;
+    const sub = currentUser ? (currentUser.email || 'ซิงก์ข้ามเครื่องอยู่') : 'ยังไม่ได้ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้';
+    pf.innerHTML = `
+      <div class="pf-avatar">${pic ? `<img src="${esc(pic)}" alt="">` : esc(name.trim().charAt(0).toUpperCase() || 'N')}</div>
+      <div class="pf-meta">
+        <div class="pf-name">${esc(name)}</div>
+        <div class="pf-sub">${esc(sub)}</div>
+      </div>`;
+  }
+  const acc = document.getElementById('accountCard');
+  if (!cloudConfigured()) {
+    acc.innerHTML = `<h4 style="margin-bottom:6px">บัญชี</h4>
+      <p class="hint" style="text-align:left; margin:0">โหมดออฟไลน์ — ข้อมูลอยู่ในเครื่องนี้เครื่องเดียว<br>(ระบบล็อกอิน/ซิงก์กำลังตั้งค่า)</p>`;
+  } else if (currentUser) {
+    acc.innerHTML = `<h4 style="margin-bottom:6px">บัญชี</h4>
+      <p style="font-size:14px; margin-bottom:4px">✅ ${esc(currentUser.email || currentUser.id)}</p>
+      <p class="hint" style="text-align:left; margin:0 0 10px">ซิงก์ข้ามเครื่องอัตโนมัติ${lastSync ? ' · ล่าสุด ' + lastSync.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : ''}</p>
+      <button class="btn text sm" onclick="logout()">ออกจากระบบ</button>`;
+  } else {
+    acc.innerHTML = `<h4 style="margin-bottom:6px">บัญชี</h4>
+      <p class="hint" style="text-align:left; margin:0 0 10px">ยังไม่ได้ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้เท่านั้น</p>
+      <button class="btn google sm" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>`;
+  }
+  document.getElementById('pName').value = state.settings.name || '';
+  document.getElementById('pFree').value = state.settings.freeHours || 2;
+  const st = document.getElementById('notifStatus');
+  const nb = document.getElementById('notifBtn');
+  if (!('Notification' in window)) {
+    if (isIOS() && !isStandalone()) {
+      st.textContent = 'ต้องติดตั้งเป็นแอปก่อนถึงจะแจ้งเตือนได้ — ดูวิธีด้านล่าง';
+      if (nb) { nb.style.display = 'block'; nb.textContent = 'ดูวิธีติดตั้ง'; }
+    } else {
+      st.textContent = 'เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน';
+      if (nb) nb.style.display = 'none';
+    }
+  } else if (Notification.permission === 'granted') {
+    if (pushState === 'on' && currentUser) {
+      st.textContent = 'เปิดอยู่ — เตือนก่อนถึงกำหนดส่ง แม้ปิดแอปอยู่';
+      if (nb) nb.style.display = 'none';
+    } else if (pushState === 'on') {
+      st.textContent = 'เปิดอยู่ — แต่เตือนได้เฉพาะตอนเปิดแอป · ล็อกอินด้วย Google เพื่อให้เตือนแม้ปิดแอป';
+      if (nb) nb.style.display = 'none';
+    } else if (pushState === 'unsupported') {
+      st.textContent = 'เปิดอยู่ — เตือนขณะเปิดแอป (เบราว์เซอร์นี้ไม่รองรับการเตือนนอกแอป)';
+      if (nb) nb.style.display = 'none';
+    } else {
+      st.textContent = 'เปิดอยู่ — เตือนขณะเปิดแอป';
+      if (nb) { nb.style.display = 'block'; nb.textContent = 'เปิดการเตือนแม้ปิดแอป'; }
+    }
+  } else if (Notification.permission === 'denied') {
+    st.textContent = 'ถูกปิดไว้ในเบราว์เซอร์ — เปิดได้ที่การตั้งค่าเว็บไซต์';
+    if (nb) nb.style.display = 'none';
+  } else {
+    st.textContent = 'ยังไม่ได้เปิด — เตือนก่อนถึงกำหนดส่ง 24 ชม.';
+    if (nb) nb.style.display = 'block';
+  }
+}
+
+function renderAll() { renderHome(); renderTasks(); renderTimeline(); renderProfile(); renderPlan(); renderInstallCard(); }
+
+// ---------- task actions ----------
+function toggleDone(id) {
+  const t = state.tasks.find(x => x.id === id);
+  if (t) {
+    const wasDone = t.done;
+    t.done = !t.done;
+    t.progress = t.done ? 100 : (t.progress === 100 ? 0 : t.progress);
+    save(); renderAll();
+    if (!wasDone && t.done) showToast(celebrateCopy(pendingTasks().length === 0)); // ฉลองตอนทำเสร็จ
+  }
+}
+function removeTask(id) {
+  const t = state.tasks.find(x => x.id === id);
+  if (t && confirm(`ลบ "${t.subject} — ${t.detail}" ?`)) {
+    state.tasks = state.tasks.filter(x => x.id !== id);
+    save(); renderAll();
+  }
+}
+
+// ---------- form (เพิ่ม/แก้/ยืนยันผล AI) ----------
+let formUserStars = 0; // 0 = ให้ AI จัดให้
+let formType = 'homework';
+
+// เลือกประเภท → ฟอร์มปรับหน้าตาตามธรรมชาติของสิ่งนั้น
+// (กิจกรรมไม่มีคะแนน/ครูผู้สั่ง · สอบเรียกว่า "วันสอบ" ไม่ใช่ "ส่งวันที่")
+function setTypePick(type) {
+  formType = TASK_TYPES[type] ? type : 'homework';
+  const ti = TASK_TYPES[formType];
+  document.querySelectorAll('#typePick .tp').forEach(b =>
+    b.classList.toggle('active', b.dataset.type === formType));
+
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  const isWork = ti.schedulable;                    // การบ้าน/สอบ = ต้องนั่งทำ
+  const isHomework = formType === 'homework';
+
+  document.getElementById('fDateLabel').textContent = ti.dateLabel;
+  document.getElementById('fDetailLabel').textContent =
+    formType === 'exam' ? 'สอบเรื่องอะไร' : formType === 'activity' ? 'กิจกรรมอะไร' : formType === 'reminder' ? 'เรื่องอะไร' : 'งานที่ต้องทำ';
+  document.getElementById('fEstLabel').textContent = formType === 'exam' ? 'ใช้เวลาอ่าน (นาที)' : 'ใช้เวลา (นาที)';
+  document.getElementById('fDetail').placeholder =
+    formType === 'exam' ? 'เช่น สอบกลางภาค บทที่ 1–5' :
+    formType === 'activity' ? 'เช่น ตักบาตร คาบ 8–9' :
+    formType === 'reminder' ? 'เช่น จ่ายค่าชุดพละ' : 'เช่น ทำโจทย์บทที่ 4 ข้อ 1–10';
+
+  show('fSubjectWrap', formType !== 'reminder');
+  show('fScoreWrap', isHomework || formType === 'exam');
+  show('fEstWrap', isWork);
+  show('fTeacherWrap', isHomework || formType === 'exam');
+  show('fProgressWrap', isWork);
+}
+
+function setStarPick(n) {
+  formUserStars = n;
+  document.querySelectorAll('#starPick .sp').forEach(b =>
+    b.classList.toggle('active', +b.dataset.lv === n));
+}
+
+function fillSubjectSelect() {
+  document.getElementById('fSubject').innerHTML =
+    SUBJECTS.map(s => `<option>${s.name}</option>`).join('');
+}
+
+function openForm(id, parsed) {
+  editingId = id;
+  fillSubjectSelect();
+  const f = {
+    subject: document.getElementById('fSubject'), detail: document.getElementById('fDetail'),
+    date: document.getElementById('fDate'), time: document.getElementById('fTime'),
+    score: document.getElementById('fScore'), est: document.getElementById('fEst'),
+    teacher: document.getElementById('fTeacher'),
+  };
+  const chips = document.getElementById('detectedChips');
+  const title = document.getElementById('formTitle');
+  const sub = document.getElementById('formSub');
+
+  let t = null;
+  if (id) t = state.tasks.find(x => x.id === id);
+
+  if (parsed) {
+    title.textContent = 'AI ตรวจพบ ✨';
+    sub.textContent = 'ตรวจสอบก่อนบันทึก — แก้สิ่งที่ AI อ่านผิดได้เสมอ';
+    const d = parsed.detected;
+    const found = [d.type && 'ประเภท', d.subject && 'วิชา', d.teacher && 'ครู', d.due && 'Deadline', d.score && 'คะแนน', d.est && 'เวลาที่ใช้'].filter(Boolean);
+    chips.innerHTML = found.map(x => `<span class="chip new">✔ ${x}</span>`).join('')
+      + (found.length < 3 ? `<span class="chip">บางช่องอ่านไม่เจอ — เติมเองได้เลย</span>` : '');
+    t = parsed;
+  } else if (t) {
+    title.textContent = 'แก้ไขงาน ✎';
+    sub.textContent = '';
+    chips.innerHTML = '';
+  } else {
+    title.textContent = 'เพิ่มงานใหม่';
+    sub.textContent = 'กรอกเอง — หรือกลับไปใช้ Scan ให้ AI ช่วยอ่าน';
+    chips.innerHTML = '';
+  }
+
+  setTypePick(t ? taskType(t) : 'homework');
+  setStarPick(t?.userStars || 0);
+  f.subject.value = t?.subject || 'อื่น ๆ';
+  f.detail.value = t?.detail || '';
+  f.teacher.value = t?.teacher || '';
+  f.score.value = t?.scorePct ?? '';
+  f.est.value = t?.estMin || 30;
+  const prog = t?.progress || 0;
+  document.getElementById('fProgress').value = prog;
+  document.getElementById('fProgressVal').textContent = prog + '%';
+
+  const due = t?.due ? new Date(t.due) : new Date(Date.now() + 8.64e7); // default พรุ่งนี้
+  f.date.value = due.getFullYear() + '-' + String(due.getMonth() + 1).padStart(2, '0') + '-' + String(due.getDate()).padStart(2, '0');
+  f.time.value = String(due.getHours()).padStart(2, '0') + ':' + String(due.getMinutes()).padStart(2, '0');
+
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  document.getElementById('scr-form').classList.add('on');
+}
+
+function saveForm() {
+  const detail = document.getElementById('fDetail').value.trim();
+  if (!detail) { alert('ใส่ชื่องานก่อนนะ'); return; }
+  const dateV = document.getElementById('fDate').value;
+  const timeV = document.getElementById('fTime').value || '23:59';
+  const due = dateV ? new Date(dateV + 'T' + timeV) : null;
+  const scoreV = document.getElementById('fScore').value;
+
+  const ti = TASK_TYPES[formType];
+  const data = {
+    type: formType,
+    subject: formType === 'reminder' ? 'อื่น ๆ' : document.getElementById('fSubject').value,
+    detail,
+    teacher: document.getElementById('fTeacher').value.trim(),
+    scorePct: scoreV === '' ? null : Math.min(100, +scoreV),
+    estMin: Math.max(5, +document.getElementById('fEst').value || 30),
+    isExam: formType === 'exam', // เก็บไว้เพื่อความเข้ากันได้กับข้อมูลเก่า
+    userStars: formUserStars || null,
+    progress: ti.schedulable ? (+document.getElementById('fProgress').value || 0) : 0,
+    due: due ? due.toISOString() : null,
+  };
+  if (ti.schedulable && data.progress >= 100) data.done = true;
+
+  if (editingId) {
+    Object.assign(state.tasks.find(x => x.id === editingId), data);
+  } else {
+    state.tasks.push(Object.assign({ id: uid(), done: false, createdAt: new Date().toISOString(), fromScan: !!data._scan }, data));
+  }
+  editingId = null;
+  save();
+  go('scr-home');
+}
+
+// ---------- scan: เสียงพูด (Web Speech API) ----------
+let recog = null, recogActive = false;
+
+function speechSupported() {
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+
+function setVoiceUI({ recording, text, dim }) {
+  const btn = document.getElementById('voiceBtn');
+  const label = document.getElementById('voiceLabel');
+  const box = document.getElementById('voiceBox');
+  const txt = document.getElementById('voiceText');
+  btn.classList.toggle('rec', !!recording);
+  label.textContent = recording ? 'กำลังฟัง… แตะเพื่อหยุด' : 'พูดใส่ไมค์ — เร็วที่สุด';
+  box.classList.toggle('idle', !recording);
+  if (text != null) {
+    box.hidden = false;
+    txt.textContent = text;
+    txt.classList.toggle('dim', !!dim);
+  }
+}
+
+function toggleVoice() {
+  if (recogActive) { try { recog.stop(); } catch (_) {} return; }
+  if (!speechSupported()) {
+    setVoiceUI({ recording: false, dim: true,
+      text: 'เบราว์เซอร์นี้ยังไม่รองรับการพูด — ลองใช้ Chrome (Android) หรือ Safari (iPhone) · ระหว่างนี้แปะข้อความแทนได้เลย' });
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recog = new SR();
+  recog.lang = 'th-TH';
+  recog.interimResults = true;
+  recog.continuous = false;
+  recog.maxAlternatives = 1;
+
+  let finalText = '';
+  recog.onstart = () => {
+    recogActive = true;
+    setVoiceUI({ recording: true, dim: true,
+      text: 'พูดได้เลย เช่น “การบ้านเลข ข้อ 1 ถึง 10 ส่งพรุ่งนี้ คะแนน 20 เปอร์เซ็นต์”' });
+  };
+  recog.onresult = e => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const r = e.results[i];
+      if (r.isFinal) finalText += r[0].transcript;
+      else interim += r[0].transcript;
+    }
+    const shown = (finalText + interim).trim();
+    if (shown) setVoiceUI({ recording: true, text: shown, dim: false });
+  };
+  recog.onerror = e => {
+    recogActive = false;
+    const msg = {
+      'not-allowed': 'ยังไม่ได้อนุญาตให้ใช้ไมค์ — เปิดสิทธิ์ไมโครโฟนให้เว็บนี้ก่อนนะ',
+      'service-not-allowed': 'ยังไม่ได้อนุญาตให้ใช้ไมค์ — เปิดสิทธิ์ไมโครโฟนให้เว็บนี้ก่อนนะ',
+      'no-speech': 'ไม่ได้ยินเสียงเลย ลองพูดใหม่อีกครั้ง',
+      'audio-capture': 'หาไมโครโฟนไม่เจอ',
+      'network': 'ต้องต่อเน็ตเพื่อแปลงเสียงเป็นข้อความ',
+    }[e.error] || ('เกิดข้อผิดพลาด: ' + e.error);
+    setVoiceUI({ recording: false, text: msg, dim: true });
+  };
+  recog.onend = () => {
+    recogActive = false;
+    const raw = finalText.trim();
+    if (!raw) { setVoiceUI({ recording: false }); return; }
+    const text = normalizeSpokenText(raw); // แปลงเลขคำอ่านไทยเป็นตัวเลขก่อนแกะ
+    if (text.length < 3) {
+      setVoiceUI({ recording: false, text: 'ได้ยินไม่ชัด ลองพูดใหม่อีกครั้ง', dim: true });
+      return;
+    }
+    setVoiceUI({ recording: false, text: text, dim: false });
+    document.getElementById('voiceBox').hidden = true;
+    openForm(null, parseAssignment(text));
+  };
+
+  try { recog.start(); }
+  catch (_) { setVoiceUI({ recording: false, text: 'เริ่มฟังไม่สำเร็จ ลองอีกครั้ง', dim: true }); }
+}
+
+// ---------- scan: ข้อความ ----------
+function scanFromText() {
+  const text = document.getElementById('pasteText').value.trim();
+  if (!text) { alert('แปะข้อความก่อนนะ'); return; }
+  const parsed = parseAssignment(text);
+  document.getElementById('pasteText').value = '';
+  openForm(null, parsed);
+}
+
+// ---------- scan: รูป (OCR ด้วย Tesseract.js) ----------
+// ปักเวอร์ชันตายตัว (ไม่ใช่ @5 ลอย ๆ) กัน CDN resolve เวอร์ชันไม่ตรงกันระหว่าง
+// ตัวไลบรารีกับ core/worker/lang ที่โหลดตามมา ซึ่งเป็นสาเหตุ OCR ค้าง/พังเงียบบนมือถือ
+const TESSERACT_VER = '5.1.1';
+const TESSERACT_BASE = `https://cdn.jsdelivr.net/npm/tesseract.js@${TESSERACT_VER}/dist/`;
+let tesseractReady = null;
+function loadTesseract() {
+  if (tesseractReady) return tesseractReady;
+  tesseractReady = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = TESSERACT_BASE + 'tesseract.min.js';
+    s.onload = res;
+    s.onerror = () => { tesseractReady = null; rej(new Error('โหลดไลบรารี OCR ไม่ได้ — เช็คอินเทอร์เน็ตแล้วลองใหม่')); };
+    document.head.appendChild(s);
+  });
+  return tesseractReady;
+}
+
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, rej) => setTimeout(() => rej(new Error(label + ' ใช้เวลานานเกินไป — เน็ตอาจช้าหรือหลุด')), ms)),
+  ]);
+}
+
+async function scanFromPhoto(file) {
+  const st = document.getElementById('ocrStatus');
+  const barWrap = document.getElementById('ocrBarWrap');
+  const bar = document.getElementById('ocrBar');
+  let worker = null;
+  try {
+    st.textContent = '⏳ กำลังโหลดโมเดล OCR… (ครั้งแรกอาจรอนานหน่อย)';
+    barWrap.hidden = false; bar.style.width = '5%';
+    await withTimeout(loadTesseract(), 30_000, 'โหลดไลบรารี OCR');
+
+    worker = await withTimeout(
+      Tesseract.createWorker('tha+eng', 1, {
+        workerPath: TESSERACT_BASE + 'worker.min.js',
+        corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd.wasm.js',
+        langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            bar.style.width = Math.round(m.progress * 100) + '%';
+            st.textContent = '📖 AI กำลังอ่านใบงาน… ' + Math.round(m.progress * 100) + '%';
+          } else if (m.status) {
+            st.textContent = '⏳ ' + m.status + '…';
+          }
+        },
+      }),
+      45_000, 'เตรียมเครื่องมือ OCR'
+    );
+    const { data } = await withTimeout(worker.recognize(file), 60_000, 'อ่านรูปภาพ');
+    await worker.terminate();
+    worker = null;
+
+    st.textContent = ''; barWrap.hidden = true;
+    const text = (data.text || '').trim();
+    if (text.length < 5) { alert('อ่านตัวหนังสือจากรูปไม่ได้ — ลองถ่ายให้ชัดขึ้น สว่างขึ้น หรือแปะข้อความแทน'); return; }
+    openForm(null, parseAssignment(text));
+  } catch (e) {
+    st.textContent = ''; barWrap.hidden = true;
+    console.error('[OCR]', e);
+    if (worker) { try { await worker.terminate(); } catch (_) {} }
+    alert('อ่านรูปไม่สำเร็จ: ' + e.message + '\n\nใช้วิธี "แปะข้อความจาก LINE" แทนได้เลย — เร็วกว่าและแม่นกว่าด้วย');
+  }
+}
+
+// ---------- profile ----------
+function saveProfile() {
+  state.settings.name = document.getElementById('pName').value.trim();
+  state.settings.freeHours = Math.max(0.5, +document.getElementById('pFree').value || 2);
+  save(); renderAll();
+  alert('บันทึกแล้ว ✓');
+}
+
+// ---------- Web Push: สมัครรับการเตือนแม้ปิดแอป ----------
+function urlB64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const b64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(b64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+let pushState = 'unknown'; // unknown | on | off | unsupported | need-login
+
+function pushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window && !!window.VAPID_PUBLIC_KEY;
+}
+
+async function refreshPushState() {
+  if (!pushSupported()) { pushState = 'unsupported'; return; }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    pushState = sub ? 'on' : 'off';
+  } catch (_) { pushState = 'off'; }
+}
+
+async function subscribePush() {
+  if (!pushSupported()) return false;
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlB64ToUint8Array(window.VAPID_PUBLIC_KEY),
+    });
+  }
+  // เก็บ subscription ไว้บน cloud เพื่อให้เซิร์ฟเวอร์ส่ง push ได้ (ต้องล็อกอิน)
+  if (sb && currentUser) {
+    const j = sub.toJSON();
+    const { error } = await sb.from('push_subscriptions').upsert({
+      user_id: currentUser.id,
+      endpoint: j.endpoint,
+      p256dh: j.keys.p256dh,
+      auth: j.keys.auth,
+      tz_offset: -new Date().getTimezoneOffset(),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'endpoint' });
+    if (error) { console.warn('[push] save failed:', error.message); return false; }
+  }
+  pushState = 'on';
+  return true;
+}
+
+async function enableNotif() {
+  if (!('Notification' in window)) {
+    if (isIOS() && !isStandalone()) { showInstallGuide(); return; } // สาเหตุคือยังไม่ได้ติดตั้ง แก้ตรงนี้ทันที
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') { renderProfile(); return; }
+  try {
+    const ok = await subscribePush();
+    if (ok && !(sb && currentUser)) {
+      showToast({ title: 'เปิดการเตือนแล้ว 🔔', body: 'ล็อกอินด้วย Google เพิ่ม เพื่อให้เตือนได้แม้ปิดแอป' });
+    } else if (ok) {
+      showToast({ title: 'เปิดการเตือนแล้ว 🔔', body: 'จะเตือนก่อนถึงกำหนดส่ง แม้ปิดแอปอยู่' });
+    }
+  } catch (e) {
+    console.warn('[push] subscribe failed:', e.message);
+    showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'แต่ยังตั้งการเตือนนอกแอปไม่ได้ ลองใหม่อีกครั้งภายหลัง' });
+  }
+  renderProfile();
+  checkReminders();
+}
+
+// ---------- ข้อความเตือนสไตล์เพื่อน (แนว Duolingo) ----------
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+
+function reminderCopy(t, now) {
+  const h = t.due ? (new Date(t.due) - now) / 3.6e6 : null;
+  const s = t.subject;
+  const hr = h != null ? Math.max(1, Math.round(h)) : 0;
+  if (h != null && h < 0) return { title: 'อุ๊ย เลยกำหนดแล้ว! 😬', body: pick([
+    `${s} เลยเวลาส่งไปแล้วน้า… แต่ยังไม่สายเกินไป รีบเคลียร์เลย!`,
+    `${s} ยังค้างอยู่นะ ครูกำลังมองอยู่ 👀 ส่งตอนนี้ยังพอทัน!`,
+    `เฮ้! ${s} หนีไม่พ้นหรอกน้า ทำให้จบวันนี้เถอะ 🙏`,
+  ]) };
+  if (h != null && h <= 3) return { title: '⏰ เหลือเวลาไม่มากแล้ว!', body: pick([
+    `${s} เหลือแค่ ${hr} ชม.! ลุยเลยตอนนี้ เดี๋ยวไม่ทันน้า`,
+    `นับถอยหลัง ${hr} ชม. สำหรับ ${s} — สู้ ๆ คุณทำได้! 💪`,
+    `${s} กำลังจะหมดเวลาแล้ว รีบอีกนิดเดียว ใกล้เสร็จแล้ว!`,
+  ]) };
+  if (h != null && h <= 12) return { title: 'อย่าเพิ่งลืมนะ 📚', body: pick([
+    `${s} รออยู่ เหลือ ${hr} ชม. ทำตอนนี้สบายกว่าตอนดึกเยอะ 😉`,
+    `แอบเตือนเรื่อง ${s} หน่อย~ เริ่มเลยดีกว่า จะได้พักแบบไม่มีห่วง`,
+    `${s} ยังรอคุณอยู่นะ เริ่มจากนิดเดียวก็ได้ เดี๋ยวก็เสร็จ!`,
+  ]) };
+  return { title: 'มีงานรออยู่นะ ✨', body: `${s} — ${t.detail} (${fmtDue(t.due, now, t)})` };
+}
+
+function celebrateCopy(allDone) {
+  return allDone
+    ? { title: 'เคลียร์หมดแล้ว! 🎉', body: pick([
+        'เก่งมาก! งานหมดเกลี้ยง วันนี้พักได้เต็มที่เลย',
+        'สุดยอด! ไม่เหลืองานค้างสักงาน ภูมิใจในตัวเองได้เลย 💙',
+      ]) }
+    : { title: 'เยี่ยม! เสร็จอีกงาน 💪', body: pick([
+        'ทำได้ดีมาก ไปต่องานถัดไปกันเลย!',
+        'อีกนิดเดียว ใกล้เคลียร์หมดแล้ว สู้ ๆ!',
+        'เก่งจัง! ทุกงานที่เสร็จคือก้าวเล็ก ๆ สู่เป้าหมาย ✨',
+      ]) };
+}
+
+// ---------- toast ในแอป ----------
+let toastTimer = null;
+function showToast(copy) {
+  const phone = document.querySelector('.phone');
+  if (!phone) return;
+  let el = document.getElementById('appToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'appToast'; el.className = 'toast';
+    el.innerHTML = `<img class="tav" src="logo-mark.png" alt=""><div class="tc"><div class="tt"></div><div class="tb"></div></div>`;
+    el.onclick = () => el.classList.remove('show');
+    phone.appendChild(el);
+  }
+  el.querySelector('.tt').textContent = copy.title;
+  el.querySelector('.tb').textContent = copy.body;
+  void el.offsetWidth; // บังคับ reflow ให้ transition ทำงาน
+  setTimeout(() => el.classList.add('show'), 30);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 6000);
+}
+
+function checkReminders() {
+  const now = new Date();
+  const canNotify = ('Notification' in window) && Notification.permission === 'granted';
+  for (const t of pendingTasks()) {
+    if (!t.due || t.remindedAt) continue;
+    const hLeft = (new Date(t.due) - now) / 3.6e6;
+    if (hLeft > 0 && hLeft <= 24) {
+      if (canNotify) {
+        const c = reminderCopy(t, now);
+        new Notification(c.title, { body: c.body, icon: 'icon-192.png', badge: 'icon-192.png' });
+      }
+      t.remindedAt = now.toISOString();
+    }
+  }
+  save();
+}
+
+// เตือนแบบ toast ตอนเปิดแอป (ครั้งเดียวต่อการเปิด) ถ้ามีงานด่วน
+let openNudgeShown = false;
+function openNudge() {
+  if (openNudgeShown) return;
+  const now = new Date();
+  const soon = sortByPriority(pendingTasks(), now)
+    .find(t => { const h = t.due ? (new Date(t.due) - now) / 3.6e6 : null; return h != null && h <= 24; });
+  if (soon) { openNudgeShown = true; setTimeout(() => showToast(reminderCopy(soon, now)), 900); }
+}
+
+// ---------- sample / clear ----------
+function loadSample() {
+  const now = new Date();
+  const mk = (h) => new Date(now.getTime() + h * 3.6e6).toISOString();
+  state.tasks.push(
+    { id: uid(), subject: 'ฟิสิกส์', detail: 'ทำโจทย์บทที่ 4 ข้อ 1–10', teacher: 'ครูสมชาย', scorePct: 20, estMin: 40, isExam: false, due: mk(5), done: false },
+    { id: uid(), subject: 'ภาษาอังกฤษ', detail: 'เขียน Essay หัวข้อ My Dream', teacher: '', scorePct: 10, estMin: 90, isExam: false, due: mk(30), done: false },
+    { id: uid(), subject: 'คณิตศาสตร์', detail: 'แบบฝึกหัด 2.3', teacher: '', scorePct: null, estMin: 30, isExam: false, due: mk(72), done: false },
+    { id: uid(), subject: 'สังคมศึกษา', detail: 'อ่านสอบ quiz บทที่ 2', teacher: '', scorePct: 15, estMin: 45, isExam: true, due: mk(75), done: false },
+  );
+  save(); go('scr-home');
+}
+
+function clearAll() {
+  if (confirm('ลบข้อมูลทุกอย่าง (งานทั้งหมด + การตั้งค่า) แน่ใจนะ?')) {
+    localStorage.removeItem(STORE_KEY);
+    state = { tasks: [], settings: { name: '', freeHours: 2 } };
+    renderAll();
+  }
+}
+
+// ---------- ติดตั้งเป็นแอป (PWA install) ----------
+function isIOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
+function isStandalone() {
+  return matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e; // Android/Chrome: เก็บไว้เรียกตอนกดปุ่มเอง
+  renderProfile();
+});
+window.addEventListener('appinstalled', () => { deferredInstallPrompt = null; renderProfile(); });
+
+function showInstallGuide() {
+  const el = document.getElementById('installGuide');
+  el.hidden = false;
+  void el.offsetWidth; // บังคับ reflow ก่อนใส่คลาส กัน transition ไม่ทำงาน
+  setTimeout(() => el.classList.add('show'), 20);
+}
+function dismissInstallGuide(dontShowAgain) {
+  document.getElementById('installGuide').classList.remove('show');
+  document.getElementById('installGuide').hidden = true;
+  if (dontShowAgain) localStorage.setItem('studentos.installGuideDismissed', '1');
+}
+
+async function handleInstallClick() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    renderProfile();
+  } else if (isIOS()) {
+    showInstallGuide();
+  }
+}
+
+function renderInstallCard() {
+  const card = document.getElementById('installCard');
+  const btn = document.getElementById('installBtn');
+  const hint = document.getElementById('installHint');
+  if (!card) return;
+  if (isStandalone()) { card.hidden = true; return; } // ติดตั้งแล้ว ไม่ต้องโชว์
+  if (deferredInstallPrompt) {
+    card.hidden = false; btn.style.display = 'block'; btn.textContent = 'ติดตั้งเลย';
+    hint.textContent = 'ติดตั้งแล้วเปิดเร็วขึ้น เต็มจอ และรับการแจ้งเตือนได้';
+  } else if (isIOS()) {
+    card.hidden = false; btn.style.display = 'block'; btn.textContent = 'ดูวิธีติดตั้ง';
+    hint.textContent = 'บน iPhone ต้องติดตั้งก่อนถึงจะรับการแจ้งเตือนได้';
+  } else {
+    card.hidden = true; // เบราว์เซอร์อื่นที่ยังตรวจไม่ได้ว่าติดตั้งได้ไหม ไม่ต้องกวนใจ
+  }
+}
+
+// ---------- init ----------
+function tickClock() {
+  const n = new Date();
+  document.getElementById('clock').textContent =
+    String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
+}
+
+for (const id of ['cameraInput', 'galleryInput']) {
+  document.getElementById(id).addEventListener('change', e => {
+    if (e.target.files[0]) scanFromPhoto(e.target.files[0]);
+    e.target.value = '';
+  });
+}
+
+// PWA: ลงทะเบียน service worker (เฉพาะเมื่อเปิดผ่าน http/https)
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+(async function initApp() {
+  load();
+  fillSubjectSelect();
+  tickClock();
+  setInterval(tickClock, 30_000);
+  setInterval(checkReminders, 5 * 60_000);
+  checkReminders();
+
+  await initCloud();
+  await refreshPushState();
+  // เคยกดอนุญาตไว้แล้ว + ล็อกอินอยู่ → ต่อ push ให้อัตโนมัติ (เผื่อ subscription หลุด)
+  if ('Notification' in window && Notification.permission === 'granted' && currentUser) {
+    subscribePush().then(() => renderProfile()).catch(() => {});
+  }
+
+  if (cloudConfigured() && !currentUser && !localStorage.getItem('studentos.skipLogin')) {
+    go('scr-login'); // มีระบบบัญชี + ยังไม่เคยเลือก → ให้เลือกก่อน
+  } else {
+    go(state.tasks.length ? 'scr-home' : 'scr-scan'); // ครั้งแรก: เริ่มที่ Scan (จุดขายของเรา)
+  }
+
+  // ปิดฉากเปิดแอป: โชว์อย่างน้อย 2.3 วิ (ถ้าโหลดเร็ว) แล้วเฟดออก
+  const splash = document.getElementById('splash');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const minShow = reduced ? 600 : 2300;
+  setTimeout(() => {
+    splash.classList.add('hide');
+    setTimeout(() => splash.classList.add('gone'), 600);
+    // หลัง splash หาย ค่อยเด้ง toast เตือนงานด่วน (ถ้าอยู่หน้าแอป ไม่ใช่หน้า login)
+    if (!document.getElementById('scr-login').classList.contains('on')) openNudge();
+    // iPhone + Safari (ยังไม่ติดตั้ง) → เด้งแนะนำวิธีติดตั้งอัตโนมัติครั้งเดียว กันลืม/กันงง
+    if (isIOS() && !isStandalone() && !localStorage.getItem('studentos.installGuideDismissed')) {
+      setTimeout(showInstallGuide, 1400);
+    }
+  }, Math.max(300, minShow - (performance.now() - APP_T0)));
 })();
