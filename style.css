@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap');
+/* ฟอนต์ IBM Plex Sans Thai โหลดผ่าน <link> ใน index.html — เร็วกว่า @import ที่บล็อกการเรนเดอร์ */
 
 /* ============================================================
    StudentOS AI — Prototype Stylesheet  (v2 · visual polish)
