@@ -160,39 +160,71 @@ function progressHtml(p) {
   return `<div class="progress-row"><div class="progress-track"><div class="progress-fill" style="width:${p}%"></div></div><span class="progress-pct">${p}%</span></div>`;
 }
 
+// ไอคอน Lucide — เรียกใช้ซ้ำได้จาก <defs> ใน index.html
+function icon(name, cls) {
+  return `<svg viewBox="0 0 24 24"${cls ? ` class="${cls}"` : ''} aria-hidden="true"><use href="#lu-${name}"/></svg>`;
+}
+// ไอคอนประจำประเภทงาน
+const TYPE_ICON = { homework: 'pencil', exam: 'book', activity: 'calendar', reminder: 'clock' };
+
 // การ์ดงานหลัก — ตัวเดียวที่เด่นในหน้าแรก พร้อมเหตุผลจาก AI
 function heroCard(t, pending, now) {
   const info = priorityInfo(t, now);
   const urgent = info.urgency === 'over' || info.urgency === 'hot';
-  const ti = TASK_TYPES[taskType(t)];
-  const meta = [
-    `<span class="tdue ${urgent ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span>`,
-    ti.schedulable ? `<span>~${t.estMin} นาที</span>` : '',
-    t.scorePct != null ? `<span>คะแนน ${t.scorePct}%</span>` : '',
-  ].filter(Boolean).join('<span class="dotsep">·</span>');
+  const type = taskType(t);
+  const ti = TASK_TYPES[type];
+  const lv = info.stars >= 5 ? 'lv5' : info.stars >= 4 ? 'lv4' : '';
+  const subject = t.subject && t.subject !== 'อื่น ๆ' ? `<div class="hero-subject">${esc(t.subject)}</div>` : '';
+  const prog = Math.max(0, Math.min(100, t.progress || 0));
   return `
-  <div class="hero ${urgent ? 'urgent' : ''}" onclick="openForm('${t.id}')">
-    <div class="hero-eyebrow">${urgent ? 'ทำก่อนเลย' : 'เริ่มที่นี่'}</div>
-    <h3 class="hero-title">${taskTitle(t)}</h3>
-    <div class="hero-meta">${typeChip(t)}${meta}</div>
-    ${progressHtml(t.progress)}
-    <div class="hero-why"><span class="ai-mark">✦</span><span>${esc(aiHeroWhy(t, pending, state.settings, now))}</span></div>
-    <button class="btn primary sm" onclick="event.stopPropagation();toggleDone('${t.id}')">ทำเสร็จแล้ว</button>
-  </div>`;
+  <section>
+    <div class="eyebrow">${icon('sparkles')}<span>AI แนะนำให้ทำก่อน</span></div>
+    <div class="hero ${urgent ? 'urgent' : ''}" onclick="openForm('${t.id}')">
+      <div class="hero-strip"></div>
+      <div class="hero-in">
+        <div class="hero-badges">
+          <span class="hbadge ${lv}">${urgent ? icon('flame') : ''}${esc(priorityLabel(info.stars))}</span>
+          <span class="hbadge">${icon(TYPE_ICON[type] || 'pencil')}${esc(ti.name)}</span>
+        </div>
+        <div>
+          ${subject}
+          <h3 class="hero-title">${esc(t.detail)}</h3>
+        </div>
+        <div class="hero-meta">
+          <span class="due ${urgent ? 'hot' : ''}">${icon('clock')}${fmtDue(t.due, now, t)}</span>
+          ${ti.schedulable ? `<span>~${t.estMin} นาที</span>` : ''}
+          ${t.scorePct != null ? `<span>คะแนนเก็บ ${t.scorePct}%</span>` : ''}
+        </div>
+        ${prog > 0 ? `<div class="hero-prog">
+          <div class="track"><div class="fill" style="width:${prog}%"></div></div>
+          <span class="pct">${prog}%</span></div>` : ''}
+        <div class="hero-why">${icon('sparkles')}<span>${esc(aiHeroWhy(t, pending, state.settings, now))}</span></div>
+        <div class="hero-acts">
+          <button class="edit" onclick="event.stopPropagation();openForm('${t.id}')">${icon('pencil')}แก้ไข</button>
+          <button class="done" onclick="event.stopPropagation();toggleDone('${t.id}')">${icon('check')}ทำเสร็จแล้ว</button>
+        </div>
+      </div>
+    </div>
+  </section>`;
 }
 
 // งานถัดไป — ย่อเหลือแถวเดียว อ่านผ่านตาเร็ว ไม่แย่งความสนใจจากงานหลัก
-function nextRow(t, rank, now) {
+function nextRow(t, now) {
   const info = priorityInfo(t, now);
   const hot = info.urgency === 'over' || info.urgency === 'hot';
+  const lv = info.stars >= 5 ? 'lv5' : info.stars >= 4 ? 'lv4' : '';
   return `
   <div class="nrow" onclick="openForm('${t.id}')">
-    <span class="nrank">${rank}</span>
     <div class="nbody">
       <div class="ntitle">${taskTitle(t)}</div>
-      <div class="nmeta">${info.stars >= 4 ? priorityBadge(info.stars) : ''}${typeChip(t)}<span class="tdue ${hot ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span></div>
+      <div class="nmeta">
+        <span class="nbadge ${lv}">${esc(priorityLabel(info.stars))}</span>
+        <span class="ndue ${hot ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span>
+      </div>
     </div>
-    <button class="tcheck" onclick="event.stopPropagation();toggleDone('${t.id}')" aria-label="ทำเสร็จ"></button>
+    <button class="ncheck" onclick="event.stopPropagation();toggleDone('${t.id}')" aria-label="ทำเสร็จ">
+      <span>${icon('check')}</span>
+    </button>
   </div>`;
 }
 
@@ -222,26 +254,45 @@ function renderHome() {
   const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนค่ำ';
   const name = state.settings.name || 'นักเรียน';
   document.getElementById('greeting').textContent = `${greet}, ${name}`;
-  document.getElementById('homeSub').textContent =
-    `${fmtThaiDate(now)}  ·  งานค้าง ${pending.length}  ·  เสร็จแล้ว ${doneToday}`;
+  document.getElementById('hhDate').textContent = fmtThaiDate(now);
+  const hhNum = document.getElementById('hhNum');
+  hhNum.textContent = pending.length;
+  hhNum.classList.toggle('hot', pending.some(t => {
+    const u = priorityInfo(t, now).urgency; return u === 'over' || u === 'hot';
+  }));
 
-  const box = document.getElementById('top3');
-  const planBtn = document.getElementById('planBtn');
-  const seeAll = document.getElementById('seeAllBtn');
-  if (planBtn) planBtn.style.display = pending.length ? 'block' : 'none';
-  if (seeAll) seeAll.style.display = pending.length > 3 ? 'flex' : 'none';
-  if (seeAll && pending.length > 3) seeAll.querySelector('span').textContent = `ดูงานทั้งหมด ${pending.length} งาน`;
+  const body = document.getElementById('homeBody');
   if (!pending.length) {
-    box.innerHTML = `<div class="card empty">ยังไม่มีงานในระบบ<br>
-      กดปุ่ม <b>Scan</b> ด้านล่างเพื่อเพิ่มงานแรก<br>
-      <span class="hint">หรือลองข้อมูลตัวอย่างได้ที่แท็บ “ฉัน”</span></div>`;
+    body.innerHTML = `<section><div class="card empty">${doneToday ? 'เคลียร์งานหมดแล้ว 🎉<br>วันนี้พักได้เต็มที่' : 'ยังไม่มีงานในระบบ'}<br>
+      กดปุ่ม <b>เพิ่ม</b> ด้านล่างเพื่อเริ่ม<br>
+      <span class="hint">หรือลองข้อมูลตัวอย่างได้ที่แท็บ “ฉัน”</span></div></section>`;
     return;
   }
-  // ลำดับสายตา: งานหลัก 1 ชิ้นเด่นชัด → งานถัดไปย่อเป็นแถว
+
+  // ลำดับสายตา: งานหลัก 1 ชิ้นเด่นชัด → งานถัดไปย่อเป็นแถว → ทางเข้าแผนวันนี้
   const rest = pending.slice(1, 3);
-  box.innerHTML = heroCard(pending[0], pending, now)
-    + (rest.length ? `<div class="sect" style="margin-top:18px">ถัดไป</div>` : '')
-    + rest.map((t, i) => nextRow(t, i + 2, now)).join('');
+  const plan = buildDayPlan(pending, state.settings, now);
+  const firstSlot = plan.slots.find(s => !s.break);
+  const teaser = firstSlot
+    ? `เริ่ม ${fmtClock(firstSlot.start)} · ${plan.slots.filter(s => !s.break).length} ช่วง จัดตามความสำคัญ`
+    : 'จัดเวลาให้อัตโนมัติตามความสำคัญ';
+
+  body.innerHTML = heroCard(pending[0], pending, now)
+    + (rest.length ? `<section>
+        <div class="row-head">
+          <span class="lbl">ถัดไป</span>
+          ${pending.length > 3 ? `<button class="more" onclick="go('scr-tasks')">ทั้งหมด ${pending.length}${icon('chevron')}</button>` : ''}
+        </div>
+        ${rest.map(t => nextRow(t, now)).join('')}
+      </section>` : '')
+    + `<button class="plan-card" onclick="go('scr-plan')">
+        <span class="tile">${icon('calendar')}</span>
+        <span class="pc-body">
+          <span class="pc-title">ให้ AI วางแผนเวลาวันนี้</span>
+          <span class="pc-sub">${esc(teaser)}</span>
+        </span>
+        ${icon('chevron')}
+      </button>`;
 }
 
 function taskRow(t, now) {
@@ -266,6 +317,7 @@ function setFilter(f) {
   renderTasks();
 }
 
+// ---------- งานทั้งหมด (โครง Refined: เช็คซ้าย · ลบขวา · หัวหมวดมีไอคอน) ----------
 function renderTasks() {
   const now = new Date();
   const match = t => taskFilter === 'all' || taskType(t) === taskFilter;
@@ -273,54 +325,98 @@ function renderTasks() {
   const done = state.tasks.filter(t => t.done && match(t));
   const label = taskFilter === 'all' ? '' : ' · ' + TASK_TYPES[taskFilter].name;
   document.getElementById('tasksSub').textContent =
-    `${pending.length} งานค้าง${label} · เรียงโดย AI — แตะงานเพื่อแก้ไข`;
+    `${pending.length} งานค้าง${label} · เรียงโดย AI — แตะเพื่อแก้ไข`;
 
   const hot = pending.filter(t => ['over', 'hot'].includes(priorityInfo(t, now).urgency));
   const rest = pending.filter(t => !hot.includes(t));
+  const sec = (label, rows, isHot) => rows.length ? `
+    <div class="tsec">
+      <div class="tsec-head ${isHot ? 'hot' : ''}">${isHot ? icon('flame') : ''}<span>${esc(label)}</span></div>
+      ${rows.map(t => taskRow(t, now)).join('')}
+    </div>` : '';
 
-  let html = '';
-  if (hot.length) html += `<div class="assign-sect">ด่วน</div>` + hot.map(t => taskRow(t, now)).join('');
-  if (rest.length) html += `<div class="assign-sect norm">ต่อจากนั้น</div>` + rest.map(t => taskRow(t, now)).join('');
-  if (done.length) html += `<div class="assign-sect norm">เสร็จแล้ว · ${done.length}</div>` + done.map(t => taskRow(t, now)).join('');
-  if (!html) html = taskFilter === 'all'
-    ? `<div class="card empty">ยังไม่มีงาน — กดปุ่ม <b>เพิ่ม</b> ด้านล่างเพื่อเริ่ม</div>`
-    : `<div class="card empty">ไม่มีรายการประเภท “${esc(TASK_TYPES[taskFilter].name)}”</div>`;
+  let html = sec('ด่วน', hot, true) + sec('ต่อจากนั้น', rest, false) + sec(`เสร็จแล้ว · ${done.length}`, done, false);
+  if (!html) html = `<div class="card empty">${taskFilter === 'all'
+    ? 'ยังไม่มีงาน — กดปุ่ม <b>เพิ่ม</b> ด้านล่างเพื่อเริ่ม'
+    : `ไม่มีรายการประเภท “${esc(TASK_TYPES[taskFilter].name)}”`}</div>`;
   document.getElementById('taskList').innerHTML = html;
 }
 
+function taskRow(t, now) {
+  const info = priorityInfo(t, now);
+  const hot = info.urgency === 'over' || info.urgency === 'hot';
+  const lv = info.stars >= 5 ? 'lv5' : info.stars >= 4 ? 'lv4' : '';
+  return `
+  <div class="trow ${t.done ? 'done' : ''}">
+    <button class="tcheck2" onclick="toggleDone('${t.id}')" aria-label="${t.done ? 'ทำเสร็จแล้ว' : 'ทำเสร็จ'}">
+      <span>${icon('check')}</span>
+    </button>
+    <div class="tmain" onclick="openForm('${t.id}')">
+      <div class="tt">${taskTitle(t)}</div>
+      <div class="tm">
+        ${t.done ? '<span class="nbadge">เสร็จแล้ว</span>'
+          : `<span class="nbadge ${lv}">${esc(priorityLabel(info.stars))}</span>
+             <span class="ndue ${hot ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span>`}
+      </div>
+    </div>
+    <button class="tdel" onclick="removeTask('${t.id}')" aria-label="ลบ">${icon('trash')}</button>
+  </div>`;
+}
+
+// ---------- เส้นเวลา (โครง Refined: หัวหมวดมีจุดสี + เส้นคั่น + จำนวน) ----------
 function renderTimeline() {
   const now = new Date();
   const pending = sortByPriority(pendingTasks(), now);
   const buckets = [
-    { name: '⚠ เลยกำหนด', bar: 'hot',  test: h => h != null && h < 0 },
-    { name: 'Today',      bar: 'hot',  test: h => h != null && h >= 0 && h <= (24 - now.getHours()) },
-    { name: 'Tomorrow',   bar: 'mid',  test: h => h != null && h > (24 - now.getHours()) && h <= (48 - now.getHours()) },
-    { name: 'This Week',  bar: '',     test: h => h != null && h > (48 - now.getHours()) && h <= 24 * 7 },
-    { name: 'Later',      bar: '',     test: h => h == null || h > 24 * 7 },
+    { name: 'เลยกำหนด', hot: true,  test: h => h != null && h < 0 },
+    { name: 'วันนี้',    hot: true,  test: h => h != null && h >= 0 && h <= (24 - now.getHours()) },
+    { name: 'พรุ่งนี้',  hot: false, test: h => h != null && h > (24 - now.getHours()) && h <= (48 - now.getHours()) },
+    { name: 'สัปดาห์นี้', hot: false, test: h => h != null && h > (48 - now.getHours()) && h <= 24 * 7 },
+    { name: 'ถัดจากนั้น', hot: false, test: h => h == null || h > 24 * 7 },
   ];
   let html = '';
   for (const b of buckets) {
     const list = pending.filter(t => b.test(priorityInfo(t, now).hoursLeft));
     if (!list.length) continue;
-    html += `<div class="tl-group"><div class="tl-head">${b.name}</div>` + list.map(t => {
-      const info = priorityInfo(t, now);
-      return `
-      <div class="tl-item" onclick="openForm('${t.id}')"><span class="tl-bar lv${info.stars}"></span>
-        <div class="card"><div class="trow1 sm">${priorityBadge(info.stars)}${typeChip(t)}<span class="tdue ${b.bar === 'hot' ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span></div>
-        <h4 class="ttitle" style="margin-top:4px">${taskTitle(t)}</h4></div>
-      </div>`;
-    }).join('') + `</div>`;
+    const top = priorityInfo(list[0], now).stars;
+    const dot = top >= 5 ? 'lv5' : top >= 4 ? 'lv4' : '';
+    html += `<div class="tlg">
+      <div class="tlg-head">
+        <span class="dot ${dot}"></span>
+        <span class="nm ${b.hot ? 'hot' : ''}">${esc(b.name)}</span>
+        <span class="ln"></span>
+        <span class="ct">${list.length}</span>
+      </div>
+      ${list.map(t => {
+        const info = priorityInfo(t, now);
+        const lv = info.stars >= 5 ? 'lv5' : info.stars >= 4 ? 'lv4' : info.stars >= 3 ? 'lv3' : '';
+        const isHot = info.urgency === 'over' || info.urgency === 'hot';
+        return `<div class="tli" onclick="openForm('${t.id}')">
+          <div class="bar ${lv}"></div>
+          <div class="cd">
+            <div class="tm">
+              <span class="nbadge ${lv === 'lv3' ? '' : lv}">${esc(priorityLabel(info.stars))}</span>
+              <span class="ndue ${isHot ? 'hot' : ''}">${fmtDue(t.due, now, t)}</span>
+            </div>
+            <div class="tt">${taskTitle(t)}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
   }
   const insight = timelineInsight(pending, now);
-  if (insight) html += `
-    <div class="card ai" style="margin-top:4px">
-      <div class="ai-head"><span class="ai-dot">S</span><span class="ai-name">STUDENTOS AI</span></div>
-      <div class="ai-msg" style="font-size:13.5px">${esc(insight)}</div>
-    </div>`;
+  if (insight) html += `<div class="tl-note">
+    <span class="tile">${icon('sparkles')}</span>
+    <div style="flex:1;min-width:0">
+      <div class="lb">วันงานชน</div>
+      <div class="tx">${esc(insight)}</div>
+    </div>
+  </div>`;
   if (!html) html = `<div class="card empty">ไม่มีงานในเส้นเวลา 🎉</div>`;
   document.getElementById('timeline').innerHTML = html;
 }
 
+// ---------- แผนวันนี้ (โครง Refined: เวลาซ้าย · การ์ดขวา · พักเป็นบล็อกจาง) ----------
 function renderPlan() {
   const list = document.getElementById('planList');
   const sub = document.getElementById('planSub');
@@ -333,112 +429,107 @@ function renderPlan() {
     return;
   }
   const plan = buildDayPlan(pending, state.settings, now);
-  sub.textContent = `เวลาว่าง ${state.settings.freeHours || 2} ชม. · ใช้จริง ${Math.round(plan.usedMin / 6) / 10} ชม. · เรียงตามความสำคัญ`;
+  sub.textContent = `เวลาว่าง ${state.settings.freeHours || 2} ชม. · ใช้จริง ${Math.round(plan.usedMin / 6) / 10} ชม.`;
 
   let html = '';
-  // กิจกรรมตามเวลา: แสดงเป็นหมุดเวลา ไม่ใช่ช่วงเวลาที่ต้องนั่งทำ
-  if (plan.events.length) {
-    html += `<div class="assign-sect norm" style="margin-top:0">ตามเวลา — ไม่ต้องเจียดเวลาทำ</div>`
-      + plan.events.map(e => `<div class="plan-slot"><span class="plan-time">${fmtClock(new Date(e.due))}</span>
-        <div class="plan-body card event" style="margin:0">
-          <div class="trow1 sm">${typeChip(e)}</div>
-          <h4 class="ttitle" style="margin-top:4px">${taskTitle(e)}</h4>
-        </div></div>`).join('');
-    if (plan.slots.length) html += `<div class="assign-sect norm">เวลาอ่าน/ทำงาน</div>`;
+  for (const e of plan.events) {
+    html += `<div class="pslot">
+      <div class="ptime"><span class="s">${fmtClock(new Date(e.due))}</span></div>
+      <div class="brk">${icon('calendar')}${esc(taskTitle(e))}</div>
+    </div>`;
   }
   for (const s of plan.slots) {
     if (s.break) {
-      html += `<div class="plan-slot break"><span class="plan-time">${fmtClock(s.start)}</span>
-        <div class="plan-body">☕ พัก ${s.min} นาที</div></div>`;
+      html += `<div class="pslot">
+        <div class="ptime"><span class="s">${fmtClock(s.start)}</span></div>
+        <div class="brk">${icon('clock')}พัก ${s.min} นาที</div>
+      </div>`;
     } else {
       const info = priorityInfo(s.task, now);
-      html += `<div class="plan-slot"><span class="plan-time">${fmtClock(s.start)}<br><small>${fmtClock(s.end)}</small></span>
-        <div class="plan-body card" style="margin:0">
-          <div class="trow1 sm">${priorityBadge(info.stars)}${typeChip(s.task)}<span class="tdue">${s.min} นาที</span></div>
-          <h4 class="ttitle" style="margin-top:4px">${taskTitle(s.task)}</h4>
-          ${s.note ? `<div class="hint" style="text-align:left; margin:5px 0 0">${esc(s.note)}</div>` : ''}
-        </div></div>`;
+      const lv = info.stars >= 5 ? 'lv5' : info.stars >= 4 ? 'lv4' : '';
+      html += `<div class="pslot">
+        <div class="ptime"><span class="s">${fmtClock(s.start)}</span><span class="e">${fmtClock(s.end)}</span></div>
+        <div class="work ${lv}">
+          <div class="tm">
+            <span class="nbadge ${lv}">${esc(priorityLabel(info.stars))}</span>
+            <span class="ndue">${s.min} นาที</span>
+          </div>
+          <div class="tt">${taskTitle(s.task)}</div>
+          ${s.note ? `<div class="nt">${esc(s.note)}</div>` : ''}
+        </div>
+      </div>`;
     }
+  }
+  if (plan.overflow.length) {
+    html += `<div class="povf">
+      <div class="povf-head">${icon('flame')}<span>เวลาวันนี้ไม่พอ — ย้ายไปพรุ่งนี้</span></div>
+      ${plan.overflow.map(o => `<div class="it">
+        <div class="tt">${taskTitle(o.task)}</div>
+        <div class="ln">ต้องใช้ ~${o.need} นาที · ${fmtDue(o.task.due, now, o.task)}</div>
+      </div>`).join('')}
+    </div>`;
   }
   if (!plan.slots.length && !plan.events.length) {
     html += `<div class="card empty">วันนี้ไม่มีอะไรต้องนั่งทำ — พักได้เต็มที่ 🎉</div>`;
   }
-  if (plan.overflow.length) {
-    html += `<div class="assign-sect norm" style="margin-top:16px">เวลาวันนี้ไม่พอ — AI แนะนำย้ายไปพรุ่งนี้</div>`
-      + plan.overflow.map(o => `<div class="card" style="opacity:.65"><h4 style="font-size:14.5px">${taskTitle(o.task)}</h4>
-        <div class="due ok">ต้องใช้ ~${o.need} นาที · ${fmtDue(o.task.due, now, o.task)}</div></div>`).join('');
-    const risky = plan.overflow.filter(o => {
-      const h = priorityInfo(o.task, now).hoursLeft;
-      return h != null && h < 24;
-    });
-    if (risky.length) {
-      html += `<div class="card ai"><div class="ai-head"><span class="ai-dot">S</span><span class="ai-name">STUDENTOS AI</span></div>
-        <div class="ai-msg" style="font-size:13.5px">⚠ ${esc(risky[0].task.subject)} ส่งภายในพรุ่งนี้แต่เวลาวันนี้ไม่พอ — แนะนำเพิ่มเวลาอีก ~${risky.reduce((s, o) => s + o.need, 0)} นาที หรือเริ่มเร็วกว่า 1 ทุ่ม</div></div>`;
-    }
-  }
+  html += `<p class="plan-foot">แผนคำนวณใหม่ทุกครั้งจากงานล่าสุด · ตั้งเวลาว่างต่อวันได้ที่แท็บ “ฉัน”</p>`;
   list.innerHTML = html;
 }
 
 function renderProfile() {
-  // หัวโปรไฟล์: รูปจาก Google ถ้ามี ไม่งั้นใช้ตัวอักษรแรกของชื่อ
-  const pf = document.getElementById('pfHeader');
-  if (pf) {
-    const name = state.settings.name || (currentUser?.user_metadata?.full_name) || 'นักเรียน';
-    const pic = currentUser?.user_metadata?.avatar_url || currentUser?.user_metadata?.picture;
-    const sub = currentUser ? (currentUser.email || 'ซิงก์ข้ามเครื่องอยู่') : 'ยังไม่ได้ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้';
-    pf.innerHTML = `
-      <div class="pf-avatar">${pic ? `<img src="${esc(pic)}" alt="">` : esc(name.trim().charAt(0).toUpperCase() || 'N')}</div>
-      <div class="pf-meta">
-        <div class="pf-name">${esc(name)}</div>
-        <div class="pf-sub">${esc(sub)}</div>
-      </div>`;
-  }
+  const now = new Date();
+  const pending = pendingTasks();
+  const done = state.tasks.filter(t => t.done).length;
+  const name = state.settings.name || (currentUser && currentUser.user_metadata && currentUser.user_metadata.full_name) || 'นักเรียน';
+  const pic = currentUser && currentUser.user_metadata && (currentUser.user_metadata.avatar_url || currentUser.user_metadata.picture);
+
+  const av = document.getElementById('pfAv');
+  if (av) av.innerHTML = pic ? `<img src="${esc(pic)}" alt="">` : esc(name.trim().charAt(0).toUpperCase() || 'N');
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('pfNm', name);
+  set('pfSb', currentUser ? (currentUser.email || 'ซิงก์ข้ามเครื่องอยู่') : 'ยังไม่ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้');
+  set('pfDone', done);
+  set('pfFree', (state.settings.freeHours || 2) + ' ชม.');
+  set('pfPending', pending.length);
+
+  // บัญชี
   const acc = document.getElementById('accountCard');
-  if (!cloudConfigured()) {
-    acc.innerHTML = `<h4 style="margin-bottom:6px">บัญชี</h4>
-      <p class="hint" style="text-align:left; margin:0">โหมดออฟไลน์ — ข้อมูลอยู่ในเครื่องนี้เครื่องเดียว<br>(ระบบล็อกอิน/ซิงก์กำลังตั้งค่า)</p>`;
-  } else if (currentUser) {
-    acc.innerHTML = `<h4 style="margin-bottom:6px">บัญชี</h4>
-      <p style="font-size:14px; margin-bottom:4px">✅ ${esc(currentUser.email || currentUser.id)}</p>
-      <p class="hint" style="text-align:left; margin:0 0 10px">ซิงก์ข้ามเครื่องอัตโนมัติ${lastSync ? ' · ล่าสุด ' + lastSync.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : ''}</p>
-      <button class="btn text sm" onclick="logout()">ออกจากระบบ</button>`;
-  } else {
-    acc.innerHTML = `<h4 style="margin-bottom:6px">บัญชี</h4>
-      <p class="hint" style="text-align:left; margin:0 0 10px">ยังไม่ได้ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้เท่านั้น</p>
-      <button class="btn google sm" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>`;
+  if (acc) {
+    if (!cloudConfigured()) {
+      acc.innerHTML = '';
+    } else if (currentUser) {
+      acc.innerHTML = `<button class="pf-quiet" onclick="logout()">${icon('chevron')}ออกจากระบบ</button>`;
+    } else {
+      acc.innerHTML = `<button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span>เข้าสู่ระบบเพื่อซิงก์ข้ามเครื่อง</button>`;
+    }
   }
-  document.getElementById('pName').value = state.settings.name || '';
-  document.getElementById('pFree').value = state.settings.freeHours || 2;
+
+  const pn = document.getElementById('pName'); if (pn) pn.value = state.settings.name || '';
+  const pf = document.getElementById('pFree'); if (pf) pf.value = state.settings.freeHours || 2;
+
+  // การแจ้งเตือน
   const st = document.getElementById('notifStatus');
   const nb = document.getElementById('notifBtn');
+  if (!st) return;
   if (!('Notification' in window)) {
     if (isIOS() && !isStandalone()) {
-      st.textContent = 'ต้องติดตั้งเป็นแอปก่อนถึงจะแจ้งเตือนได้ — ดูวิธีด้านล่าง';
-      if (nb) { nb.style.display = 'block'; nb.textContent = 'ดูวิธีติดตั้ง'; }
+      st.textContent = 'ต้องติดตั้งเป็นแอปก่อน';
+      if (nb) { nb.style.display = 'block'; nb.textContent = 'วิธีติดตั้ง'; }
     } else {
-      st.textContent = 'เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน';
+      st.textContent = 'เบราว์เซอร์นี้ไม่รองรับ';
       if (nb) nb.style.display = 'none';
     }
   } else if (Notification.permission === 'granted') {
-    if (pushState === 'on' && currentUser) {
-      st.textContent = 'เปิดอยู่ — เตือนก่อนถึงกำหนดส่ง แม้ปิดแอปอยู่';
-      if (nb) nb.style.display = 'none';
-    } else if (pushState === 'on') {
-      st.textContent = 'เปิดอยู่ — แต่เตือนได้เฉพาะตอนเปิดแอป · ล็อกอินด้วย Google เพื่อให้เตือนแม้ปิดแอป';
-      if (nb) nb.style.display = 'none';
-    } else if (pushState === 'unsupported') {
-      st.textContent = 'เปิดอยู่ — เตือนขณะเปิดแอป (เบราว์เซอร์นี้ไม่รองรับการเตือนนอกแอป)';
-      if (nb) nb.style.display = 'none';
-    } else {
-      st.textContent = 'เปิดอยู่ — เตือนขณะเปิดแอป';
-      if (nb) { nb.style.display = 'block'; nb.textContent = 'เปิดการเตือนแม้ปิดแอป'; }
-    }
+    if (pushState === 'on' && currentUser) st.textContent = 'เตือนก่อนถึงกำหนด แม้ปิดแอป';
+    else if (pushState === 'on') st.textContent = 'เตือนตอนเปิดแอป · ล็อกอินเพื่อเตือนแม้ปิดแอป';
+    else st.textContent = 'เตือนตอนเปิดแอป';
+    if (nb) nb.style.display = (pushState === 'on' || pushState === 'unsupported') ? 'none' : 'block';
   } else if (Notification.permission === 'denied') {
-    st.textContent = 'ถูกปิดไว้ในเบราว์เซอร์ — เปิดได้ที่การตั้งค่าเว็บไซต์';
+    st.textContent = 'ถูกปิดไว้ในเบราว์เซอร์';
     if (nb) nb.style.display = 'none';
   } else {
-    st.textContent = 'ยังไม่ได้เปิด — เตือนก่อนถึงกำหนดส่ง 24 ชม.';
-    if (nb) nb.style.display = 'block';
+    st.textContent = 'ยังไม่ได้เปิด';
+    if (nb) { nb.style.display = 'block'; nb.textContent = 'เปิด'; }
   }
 }
 

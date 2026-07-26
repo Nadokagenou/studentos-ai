@@ -64,6 +64,18 @@
       <circle cx="12" cy="8.6" r="3.7"/>
       <path d="M4.8 20.4c1.6-3.5 4.2-5.3 7.2-5.3s5.6 1.8 7.2 5.3"/>
     </g>
+    <!-- ไอคอน Lucide สำหรับดีไซน์ Refined -->
+    <g id="lu-sparkles" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path></g>
+    <g id="lu-check" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></g>
+    <g id="lu-chevron" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></g>
+    <g id="lu-flame" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"></path></g>
+    <g id="lu-clock" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></g>
+    <g id="lu-calendar" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path></g>
+    <g id="lu-check-circle" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></g>
+    <g id="lu-book" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v16"></path><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"></path></g>
+    <g id="lu-pencil" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></g>
+
+    <g id="lu-trash" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></g>
     <g id="ic-arrow" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M5 12h13M12.5 6l6 6-6 6"/>
     </g>
@@ -88,9 +100,12 @@
       </div>
 
       <!-- ============ SCREEN: SCAN ============ -->
-      <div class="screen" id="scr-scan">
-        <div class="big-title">เพิ่มงานใหม่</div>
-        <p class="sub">พูด ถ่ายรูป หรือแปะข้อความ — AI แกะเป็นงานให้เอง</p>
+      <div class="screen flush" id="scr-scan">
+        <div class="sticky-head">
+          <h2 class="sh-title">เพิ่มงานใหม่</h2>
+          <p class="sh-sub">พูด ถ่ายรูป หรือแปะข้อความ — AI แกะเป็นงานให้เอง</p>
+        </div>
+        <div class="scr-body" style="gap:0">
 
         <button class="btn voice" id="voiceBtn" onclick="toggleVoice()">
           <span class="mic">🎙</span><span id="voiceLabel">พูดใส่ไมค์ — เร็วที่สุด</span>
@@ -116,12 +131,16 @@
         <button class="btn secondary" onclick="scanFromText()">ให้ AI อ่านข้อความ</button>
         <button class="btn text" onclick="openForm(null)">พิมพ์เพิ่มเองทีละช่อง</button>
         <p class="hint">การอ่านรูปครั้งแรกต้องโหลดโมเดล AI อาจรอสักครู่</p>
+        </div>
       </div>
 
       <!-- ============ SCREEN: FORM (ยืนยัน/แก้ไข) ============ -->
-      <div class="screen" id="scr-form">
-        <div class="big-title" id="formTitle">AI ตรวจพบ ✨</div>
-        <p class="sub" id="formSub">ตรวจสอบก่อนบันทึก — แก้สิ่งที่ AI อ่านผิดได้เสมอ</p>
+      <div class="screen flush" id="scr-form">
+        <div class="sticky-head">
+          <h2 class="sh-title" id="formTitle">AI ตรวจพบ</h2>
+          <p class="sh-sub" id="formSub">ตรวจสอบก่อนบันทึก — แก้สิ่งที่ AI อ่านผิดได้เสมอ</p>
+        </div>
+        <div class="scr-body" style="gap:0">
         <div class="chips" id="detectedChips" style="margin-bottom:10px"></div>
 
         <div class="card">
@@ -164,81 +183,113 @@
 
         <button class="btn primary" onclick="saveForm()">บันทึกเข้าแผน</button>
         <button class="btn text" onclick="go('scr-home')">ยกเลิก</button>
+        </div>
       </div>
 
       <!-- ============ SCREEN: HOME / DASHBOARD ============ -->
-      <div class="screen on" id="scr-home">
-        <div class="big-title" id="greeting">สวัสดี 👋</div>
-        <p class="sub" id="homeSub"></p>
-
-        <div id="top3"></div>
-        <button class="sect-more wide" id="seeAllBtn" onclick="go('scr-tasks')" style="display:none">
-          <span>ดูงานทั้งหมด</span><svg viewBox="0 0 24 24"><use href="#ic-arrow"/></svg></button>
-        <button class="btn secondary sm" id="planBtn" onclick="go('scr-plan')" style="display:none">ให้ AI วางแผนเวลาวันนี้</button>
+      <div class="screen on flush" id="scr-home">
+        <!-- หัวติดบน พื้นกระจกฝ้า -->
+        <div class="home-head">
+          <div class="hh-left">
+            <div class="hh-date" id="hhDate"></div>
+            <div class="hh-greet" id="greeting">สวัสดี</div>
+          </div>
+          <div class="hh-stat">
+            <div class="hh-num" id="hhNum">0</div>
+            <div class="hh-lbl">งานค้าง</div>
+          </div>
+        </div>
+        <div class="home-body" id="homeBody"></div>
       </div>
 
       <!-- ============ SCREEN: AI PLANNER ============ -->
-      <div class="screen" id="scr-plan">
-        <div class="big-title">แผนวันนี้ 🗓</div>
-        <p class="sub" id="planSub"></p>
-        <div id="planList"></div>
-        <button class="btn text sm" onclick="go('scr-home')">← กลับหน้าแรก</button>
-        <p class="hint">แผนคำนวณใหม่ทุกครั้งจากงานล่าสุด · ตั้งเวลาว่างต่อวันได้ที่แท็บ "ฉัน"</p>
+      <div class="screen flush" id="scr-plan">
+        <div class="sticky-head row">
+          <div>
+            <h2 class="sh-title">แผนวันนี้</h2>
+            <p class="sh-sub" id="planSub"></p>
+          </div>
+          <button class="sh-btn" onclick="go('scr-home')" aria-label="กลับหน้าแรก">
+            <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+        </div>
+        <div class="scr-body plan-body" id="planList"></div>
       </div>
 
       <!-- ============ SCREEN: ALL ASSIGNMENTS ============ -->
-      <div class="screen" id="scr-tasks">
-        <div class="big-title">งานทั้งหมด</div>
-        <p class="sub" id="tasksSub"></p>
-        <div class="filter-row" id="filterRow">
-          <button class="fchip active" data-f="all" onclick="setFilter('all')">ทั้งหมด</button>
-          <button class="fchip" data-f="homework" onclick="setFilter('homework')">📝 การบ้าน</button>
-          <button class="fchip" data-f="exam" onclick="setFilter('exam')">📖 สอบ</button>
-          <button class="fchip" data-f="activity" onclick="setFilter('activity')">🎯 กิจกรรม</button>
-          <button class="fchip" data-f="reminder" onclick="setFilter('reminder')">📌 อื่น ๆ</button>
+      <div class="screen flush" id="scr-tasks">
+        <div class="sticky-head">
+          <h2 class="sh-title">งานทั้งหมด</h2>
+          <p class="sh-sub" id="tasksSub"></p>
+          <div class="filter-row noscroll" id="filterRow">
+            <button class="fchip active" data-f="all" onclick="setFilter('all')">ทั้งหมด</button>
+            <button class="fchip" data-f="homework" onclick="setFilter('homework')">การบ้าน</button>
+            <button class="fchip" data-f="exam" onclick="setFilter('exam')">สอบ</button>
+            <button class="fchip" data-f="activity" onclick="setFilter('activity')">กิจกรรม</button>
+            <button class="fchip" data-f="reminder" onclick="setFilter('reminder')">อื่น ๆ</button>
+          </div>
         </div>
-        <div id="taskList"></div>
+        <div class="scr-body" id="taskList"></div>
       </div>
 
       <!-- ============ SCREEN: TIMELINE ============ -->
-      <div class="screen" id="scr-timeline">
-        <div class="big-title">Timeline</div>
-        <p class="sub">อะไรกำลังเข้ามา — ไม่ใช่ปฏิทินรายเดือน</p>
-        <div class="legend">
-          <span><i class="dot lv5"></i>ด่วนมาก</span>
-          <span><i class="dot lv4"></i>สำคัญ</span>
-          <span><i class="dot lv3"></i>ยังมีเวลา</span>
+      <div class="screen flush" id="scr-timeline">
+        <div class="sticky-head">
+          <h2 class="sh-title">เส้นเวลา</h2>
+          <p class="sh-sub">อะไรกำลังเข้ามา — ไม่ใช่ปฏิทินรายเดือน</p>
         </div>
-        <div id="timeline"></div>
+        <div class="scr-body tl-body" id="timeline"></div>
       </div>
 
       <!-- ============ SCREEN: PROFILE ============ -->
-      <div class="screen" id="scr-profile">
-        <div class="pf-header" id="pfHeader"></div>
-        <div class="card" id="accountCard"></div>
+      <div class="screen flush" id="scr-profile">
+        <div class="scr-body pf-body">
+          <div class="pf-hero">
+            <span class="b1"></span><span class="b2"></span>
+            <div class="pf-id">
+              <div class="pf-av" id="pfAv">N</div>
+              <div style="flex:1;min-width:0">
+                <div class="pf-nm" id="pfNm">นักเรียน</div>
+                <div class="pf-sb" id="pfSb"></div>
+              </div>
+            </div>
+            <div class="pf-stats">
+              <div><div class="v" id="pfDone">0</div><div class="k">ทำเสร็จแล้ว</div></div>
+              <div class="sep"></div>
+              <div><div class="v" id="pfFree">2 ชม.</div><div class="k">เวลาว่าง/วัน</div></div>
+              <div class="sep"></div>
+              <div><div class="v" id="pfPending">0</div><div class="k">งานค้าง</div></div>
+            </div>
+          </div>
 
-        <div class="card">
-          <div class="field"><label>ชื่อเล่น</label><input type="text" id="pName" placeholder="เช่น Nado"></div>
-          <div class="field"><label>เวลาว่างทำการบ้านต่อวัน (ชม.)</label><input type="number" id="pFree" min="0.5" step="0.5" value="2"></div>
-          <button class="btn secondary sm" onclick="saveProfile()">บันทึก</button>
-        </div>
+          <div class="pf-list">
+            <div class="pf-row">
+              <span class="tile"><svg viewBox="0 0 24 24"><use href="#ic-profile"/></svg></span>
+              <span class="bd"><span class="lb">ชื่อเล่น</span><span class="sb">ใช้ทักทายในหน้าแรก</span></span>
+              <input type="text" id="pName" placeholder="เช่น Nado" onchange="saveProfile()">
+            </div>
+            <div class="pf-row">
+              <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
+              <span class="bd"><span class="lb">เวลาว่างต่อวัน</span><span class="sb">AI ใช้คำนวณแผนวันนี้</span></span>
+              <input type="number" id="pFree" min="0.5" step="0.5" value="2" onchange="saveProfile()">
+            </div>
+            <div class="pf-row" id="notifRow">
+              <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg></span>
+              <span class="bd"><span class="lb">การแจ้งเตือน</span><span class="sb" id="notifStatus">ยังไม่ได้เปิด</span></span>
+              <button class="btn secondary sm" id="notifBtn" style="width:auto;min-height:38px;padding:0 14px" onclick="enableNotif()">เปิด</button>
+            </div>
+            <div class="pf-row" id="installCard" hidden>
+              <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-check-circle"/></svg></span>
+              <span class="bd"><span class="lb">ติดตั้งเป็นแอป</span><span class="sb" id="installHint">เปิดเร็วขึ้น เต็มจอ รับแจ้งเตือนได้</span></span>
+              <button class="btn primary sm" id="installBtn" style="width:auto;min-height:38px;padding:0 14px" onclick="handleInstallClick()">ติดตั้ง</button>
+            </div>
+          </div>
 
-        <div class="card">
-          <h4 style="margin-bottom:8px">การแจ้งเตือน</h4>
-          <p class="hint" style="text-align:left; margin:0 0 10px" id="notifStatus">ยังไม่ได้เปิด</p>
-          <button class="btn secondary sm" id="notifBtn" onclick="enableNotif()">เปิดการแจ้งเตือน</button>
-        </div>
+          <div id="accountCard"></div>
 
-        <div class="card" id="installCard" hidden>
-          <h4 style="margin-bottom:8px">ติดตั้งเป็นแอป</h4>
-          <p class="hint" style="text-align:left; margin:0 0 10px" id="installHint">ติดตั้งแล้วเปิดเร็วขึ้น เต็มจอ และรับการแจ้งเตือนได้</p>
-          <button class="btn primary sm" id="installBtn" onclick="handleInstallClick()">ติดตั้งเลย</button>
-        </div>
-
-        <div class="card">
-          <h4 style="margin-bottom:8px">ข้อมูล</h4>
-          <button class="btn ghost sm" onclick="loadSample()">โหลดข้อมูลตัวอย่าง</button>
-          <button class="btn danger sm" onclick="clearAll()">ล้างข้อมูล</button>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <button class="pf-quiet" onclick="loadSample()"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg>โหลดข้อมูลตัวอย่าง</button>
+            <button class="pf-quiet danger" onclick="clearAll()"><svg viewBox="0 0 24 24"><use href="#lu-flame"/></svg>ล้างข้อมูลทั้งหมด</button>
+          </div>
         </div>
       </div>
 
