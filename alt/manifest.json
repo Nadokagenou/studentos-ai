@@ -1,7 +1,7 @@
 {
-  "name": "StudentOS AI · ALT (รุ่นทดลองฟีเจอร์)",
+  "name": "StudentOS ALT Version 1A5",
   "short_name": "StudentOS ALT",
-  "description": "บิลด์ ALT ของ StudentOS AI — ไว้ทดลองฟีเจอร์ใหม่ ข้อมูลแยกจากตัวจริง",
+  "description": "StudentOS ALT Version 1A5 — บิลด์ทดลองฟีเจอร์ใหม่ ข้อมูลแยกจากตัวจริง",
   "lang": "th",
   "start_url": ".",
   "scope": ".",

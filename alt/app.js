@@ -7,7 +7,7 @@
 //   - service worker ใช้ cache คนละชื่อ
 // ============================================================
 
-const APP_VERSION = 'v35-ALT';
+const APP_VERSION = '1A5';                 // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
 const APP_CHANNEL = 'ALT';                 // ป้ายกำกับรุ่น — โชว์ทั้งบนแอปและในหน้า "ฉัน"
 const STORE_KEY = 'studentos.alt.v1';      // ALT: แยกที่เก็บข้อมูลจากตัวจริง ('studentos.v1')
 const APP_T0 = performance.now(); // ใช้คุมเวลาโชว์ splash ขั้นต่ำ
@@ -36,9 +36,15 @@ function pendingTasks() { return state.tasks.filter(t => !t.done && !t.deleted);
 // เก็บแยกจาก state เพราะเป็นค่าประจำ "เครื่องนี้" ไม่ใช่ของบัญชี —
 // มือถือกับคอมของคนเดียวกันอาจอยากได้ธีมต่างกัน จึงไม่ซิงก์ข้ามเครื่อง
 const THEME_KEY = 'studentos.alt.theme';   // ALT: แยกจากตัวจริง (ต้องตรงกับสคริปต์ใน <head>)
-// สีแถบสถานะของแต่ละโทน (ต้องตรงกับ --scr ใน style.css และตารางในสคริปต์ <head>)
-const THEME_BAR = { light: '#FCFBF7', dark: '#0D1220', warm: '#F7F1E4', space: '#0A0E24' };
-const THEME_NAME = { system: 'ตามระบบ', light: 'สว่าง', dark: 'มืด', warm: 'อุ่น', space: 'อวกาศ' };
+// สีแถบสถานะของแต่ละโทน (ต้องตรงกับ --scr ใน style.css/alt.css และตารางในสคริปต์ <head>)
+const THEME_BAR = {
+  light: '#FCFBF7', dark: '#0D1220', warm: '#F7F1E4', space: '#0A0E24',
+  earth: '#F1F6F1', library: '#EFE3CE', magic: '#150E26', galaxy: '#0B0618',
+};
+const THEME_NAME = {
+  system: 'ตามระบบ', light: 'สว่าง', dark: 'มืด', warm: 'อุ่น', space: 'อวกาศ',
+  earth: 'โลก', library: 'ห้องสมุด', magic: 'เวทมนตร์', galaxy: 'กาแล็กซี',
+};
 const THEMES = Object.keys(THEME_NAME);
 
 function themePref() {
@@ -70,6 +76,124 @@ function setTheme(pref) {
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   if (themePref() === 'system') applyTheme();
 });
+
+// ---------- ALT: ขนาดตัวอักษร ----------
+// ดีไซน์เดิมกำหนดขนาดเป็น px ทุกจุด การขยับ font-size ที่ราก html จึงไม่มีผล
+// ใช้ zoom กับกล่องเนื้อหาแทน — ตัวหนังสือ ไอคอน และระยะห่างขยายพร้อมกันทั้งชุด
+// สัดส่วนจึงไม่เพี้ยน (แถบล่างกับกรอบเครื่องไม่โดน จะได้ไม่ล้นจอ)
+const FONT_KEY = 'studentos.alt.fontScale';
+const FONT_STEPS = { s: 0.92, m: 1, l: 1.12, xl: 1.26 };
+const FONT_NAME = { s: 'เล็ก', m: 'ปกติ', l: 'ใหญ่', xl: 'ใหญ่มาก' };
+
+function fontPref() {
+  let v = null;
+  try { v = localStorage.getItem(FONT_KEY); } catch (_) {}
+  return FONT_STEPS[v] ? v : 'm';
+}
+
+function applyFontScale() {
+  const key = fontPref();
+  document.documentElement.style.setProperty('--fs', FONT_STEPS[key]);
+  document.documentElement.dataset.fs = key;
+}
+
+function setFontScale(key) {
+  try { localStorage.setItem(FONT_KEY, FONT_STEPS[key] ? key : 'm'); } catch (_) {}
+  applyFontScale();
+  renderAppearance();
+}
+
+// ---------- ALT: พื้นหลังภาพของผู้ใช้เอง ----------
+// เก็บเป็น data URL ใน localStorage — ย่อก่อนเสมอ (กว้างสุด 1280px, JPEG คุณภาพ .72)
+// รูปจากกล้องมือถือดิบ ๆ ใหญ่เกินโควตา localStorage (~5MB) แน่นอน
+const BG_KEY = 'studentos.alt.bg';
+const BG_DIM_KEY = 'studentos.alt.bgDim';
+const BG_MAX_W = 1280;
+
+function bgDim() {
+  const v = parseInt(localStorage.getItem(BG_DIM_KEY) || '55', 10);
+  return isNaN(v) ? 55 : Math.max(0, Math.min(85, v));
+}
+
+function applyUserBg() {
+  const el = document.getElementById('userBg');
+  if (!el) return;
+  let data = null;
+  try { data = localStorage.getItem(BG_KEY); } catch (_) {}
+  if (data) {
+    el.style.backgroundImage = `url("${data}")`;
+    document.documentElement.dataset.bg = 'on'; // การ์ดจะกลายเป็นกึ่งโปร่งให้เห็นภาพลอด
+  } else {
+    el.style.backgroundImage = '';
+    delete document.documentElement.dataset.bg;
+  }
+  document.documentElement.style.setProperty('--bg-veil', bgDim() / 100);
+}
+
+function setBgDim(v) {
+  try { localStorage.setItem(BG_DIM_KEY, String(v)); } catch (_) {}
+  const lb = document.getElementById('bgDimVal');
+  if (lb) lb.textContent = v + '%';
+  document.documentElement.style.setProperty('--bg-veil', Math.max(0, Math.min(85, +v)) / 100);
+}
+
+function readUserBg(file) {
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    const scale = Math.min(1, BG_MAX_W / img.width);
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width * scale);
+    c.height = Math.round(img.height * scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const data = c.toDataURL('image/jpeg', 0.72);
+    try {
+      localStorage.setItem(BG_KEY, data);
+    } catch (_) {
+      showToast({ title: 'ภาพใหญ่เกินไป 😅', body: 'ที่เก็บในเครื่องเต็ม — ลองเลือกภาพที่เล็กลงอีกหน่อย' });
+      return;
+    }
+    applyUserBg();
+    renderAppearance();
+    haptic('done');
+    showToast({ title: 'เปลี่ยนพื้นหลังแล้ว 🖼', body: 'ปรับ “ความจางของภาพ” ได้ถ้าตัวหนังสืออ่านยาก' });
+  };
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    showToast({ title: 'เปิดภาพนี้ไม่ได้', body: 'ลองเลือกไฟล์ภาพอื่น (JPG หรือ PNG)' });
+  };
+  img.src = url;
+}
+
+function clearUserBg() {
+  try { localStorage.removeItem(BG_KEY); } catch (_) {}
+  applyUserBg();
+  renderAppearance();
+  showToast({ title: 'เอาพื้นหลังออกแล้ว', body: 'กลับไปใช้พื้นหลังของธีมตามเดิม' });
+}
+
+// ปุ่ม/ป้ายในแท็บ "ฉัน" ที่เกี่ยวกับหน้าตา — เรียกหลังเปลี่ยนค่าใด ๆ
+function renderAppearance() {
+  const fs = fontPref();
+  document.querySelectorAll('#fontPick button').forEach(b =>
+    b.classList.toggle('active', b.dataset.fs === fs));
+  const fnow = document.getElementById('fontNow');
+  if (fnow) fnow.textContent = FONT_NAME[fs] + (fs === 'm' ? '' : ' · ' + Math.round(FONT_STEPS[fs] * 100) + '%');
+
+  const has = !!localStorage.getItem(BG_KEY);
+  const bnow = document.getElementById('bgNow');
+  if (bnow) bnow.textContent = has ? 'ใช้ภาพของคุณอยู่' : 'ยังไม่ได้ตั้ง';
+  const del = document.getElementById('bgDel');
+  if (del) del.hidden = !has;
+  const dimWrap = document.getElementById('bgDimWrap');
+  if (dimWrap) dimWrap.hidden = !has;
+  const pickLabel = document.getElementById('bgPickLabel');
+  if (pickLabel) pickLabel.textContent = has ? 'เปลี่ยนภาพ' : 'เลือกภาพ';
+  const dim = document.getElementById('bgDim');
+  if (dim) { dim.value = bgDim(); const l = document.getElementById('bgDimVal'); if (l) l.textContent = bgDim() + '%'; }
+}
 
 // ---------- navigation ----------
 function go2(id){ return go(id); }
@@ -350,7 +474,9 @@ function swEase(dx) {
 
 function swPaint(d) {
   const p = Math.min(1, Math.abs(d.dx) / SW_TRIGGER);
-  d.card.style.transform = `translateX(${swEase(d.dx)}px)`;
+  // การ์ดอยู่ในกล่องที่ถูก zoom ตามขนาดตัวอักษร — หารกลับ ไม่งั้นการ์ดวิ่งเร็วกว่านิ้ว
+  const z = FONT_STEPS[fontPref()] || 1;
+  d.card.style.transform = `translateX(${swEase(d.dx) / z}px)`;
   d.wrap.querySelector('.sw-act.done').style.opacity = d.dx > 0 ? p : 0;
   d.wrap.querySelector('.sw-act.snooze').style.opacity = d.dx < 0 ? p : 0;
   const armed = p >= 1 ? Math.sign(d.dx) : 0;
@@ -605,70 +731,179 @@ function purgeOldTrash() {
 
 // ---------- เส้นเวลา ----------
 // จัดกลุ่มตามวันจริง เรียงตามเวลาในวัน และบอกเวลาส่งไว้ริมเส้น
+// ---------- ALT: เส้นเวลาแบบ "การเดินทาง" (แนวนอน) ----------
+// อ่านเป็นเส้นทางที่กำลังเดินอยู่จริง: ถนนพาดซ้าย→ขวาตามเวลา · ป้ายจอด = งานที่ตั้งไว้
+// หมุด "ตอนนี้" ซิงก์กับเวลาจริง ขยับเองทุก 30 วินาทีพร้อมนาฬิกาบนแถบสถานะ
+// เลือกแนวนอนเพราะเวลาเป็นเส้นตรง — ระยะห่างระหว่างป้ายบอก "ว่างกี่วัน" ได้ในตาเดียว
+const JR_DAY_W = 132;      // ความกว้างของ 1 วันบนถนน (px)
+const JR_MAX_DAYS = 21;    // ไกลกว่านี้ไม่วาด ยาวเกินจนเลื่อนหาไม่เจอ
+const JR_GAP = 78;         // ป้ายในเลนเดียวกันต้องห่างกันอย่างน้อยเท่านี้
+
+const JR_PIN_ICON = { homework: 'type', exam: 'book', activity: 'calendar', reminder: 'clock' };
+
+function humanLeft(ms) {
+  if (ms < 0) return 'เลยมาแล้ว';
+  const min = Math.round(ms / 60000);
+  if (min < 60) return 'อีก ' + Math.max(1, min) + ' นาที';
+  const h = Math.floor(min / 60);
+  if (h < 24) return 'อีก ' + h + ' ชม.' + (min % 60 ? ' ' + (min % 60) + ' นาที' : '');
+  return 'อีก ' + Math.round(h / 24) + ' วัน';
+}
+
 function renderTimeline() {
   const el = document.getElementById('timeline');
   if (!el) return;
   const now = new Date();
   const pending = pendingTasks();
+  const dated = pending.filter(t => t.due).sort((a, b) => new Date(a.due) - new Date(b.due));
+  const undated = pending.filter(t => !t.due);
 
-  const groups = new Map(); // key -> { label, hot, order, list }
-  const put = (key, label, hot, order, t) => {
-    if (!groups.has(key)) groups.set(key, { label, hot, order, list: [] });
-    groups.get(key).list.push(t);
-  };
-  for (const t of pending) {
-    if (!t.due) { put('none', 'ยังไม่ระบุวัน', false, 9e5, t); continue; }
-    const d = new Date(t.due);
-    if (d < now) { put('over', 'เลยกำหนด', true, -1, t); continue; }
-    const diff = Math.round((atTime(d, 0, 0) - atTime(now, 0, 0)) / 8.64e7);
-    if (diff > 7) { put('far', 'ถัดจากนั้น', false, 8e4, t); continue; }
-    const label = diff === 0 ? 'วันนี้' : diff === 1 ? 'พรุ่งนี้'
-      : 'วัน' + THAI_DAY[d.getDay()] + ' ' + d.getDate() + ' ' + MONTH_SHORT[d.getMonth()];
-    put('d' + diff, label, diff <= 1, diff, t);
-  }
-
-  let html = `<div class="page-head">
-      <div class="eyebrow">ภาพรวม</div>
-      <h1 class="page-title">เส้นเวลา</h1>
-    </div>
-    <div class="legend">
-      <span><i style="background:var(--pri-red)"></i>ด่วนมาก</span>
-      <span><i style="background:var(--pri-yellow)"></i>สำคัญ–ปานกลาง</span>
-      <span><i style="background:var(--pri-green)"></i>รอได้</span>
+  const head = `<div class="page-head">
+      <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
+      <h1 class="page-title">เส้นทาง${who() ? 'ของ' + esc(who()) : 'ของวันนี้'}</h1>
+      <p class="page-sub">ป้ายจอด <b>${dated.length}</b> งาน · หมุดของคุณขยับตามเวลาจริง</p>
     </div>`;
 
-  const sorted = [...groups.values()].sort((a, b) => a.order - b.order);
-  for (const g of sorted) {
-    g.list.sort((a, b) => new Date(a.due || 8.64e15) - new Date(b.due || 8.64e15));
-    html += `<div class="day-label ${g.hot ? 'hot' : ''}">
-      <span>${esc(g.label)}</span><span class="ln"></span><span class="ct">${g.list.length}</span></div>`;
-    for (const t of g.list) {
-      const info = priorityInfo(t, now);
-      const tone = priorityTone(info.stars);
-      const hot = info.urgency === 'over' || info.urgency === 'hot';
-      html += `<div class="tlrow">
-        <div class="tltime ${hot ? 'hot' : ''}">${esc(dueClock(t))}</div>
-        <div class="tlrail ${tone}"></div>
-        <div class="tlcard" onclick="openForm('${t.id}')">
-          <span class="tag ${tone}">${esc(priorityLabel(info.stars))}</span>
-          <div class="tltitle">${taskTitle(t)}</div>
-          <div class="tlsub">${esc(fmtDue(t.due, now, t))}</div>
-        </div>
-      </div>`;
-    }
+  if (!dated.length) {
+    el.innerHTML = head + `<section class="empty-wrap">
+      <div class="empty-ring">${icon('flag')}</div>
+      <h3 class="empty-h">เส้นทางยังโล่ง</h3>
+      <p class="empty-p">${undated.length
+        ? 'มีงานอยู่ ' + undated.length + ' งานแต่ยังไม่ได้ใส่วัน — ใส่กำหนดส่งแล้วจะขึ้นมาเป็นป้ายบนเส้นทางทันที'
+        : 'ยังไม่มีงานที่มีกำหนดส่ง เพิ่มงานแล้วจะเห็นเป็นป้ายจอดเรียงตามเวลา'}</p>
+      <button class="empty-cta" onclick="go('scr-scan')">${icon('sparkles')}เพิ่มงานใหม่</button>
+    </section>`;
+    return;
   }
 
-  if (!sorted.length) html += `<div class="card empty">ไม่มีงานในเส้นเวลา 🎉</div>`;
+  // ---- ขอบเขตของถนน ----
+  const dayStart = atTime(now, 0, 0);
+  let start = dayStart;
+  let end = addDays(dayStart, 7);
+  const firstDue = new Date(dated[0].due);
+  if (firstDue < start) start = atTime(firstDue, 0, 0);       // มีงานเลยกำหนด → ถอยจุดเริ่มไปหามัน
+  const lastDue = new Date(dated[dated.length - 1].due);
+  if (atTime(lastDue, 0, 0) >= end) end = addDays(atTime(lastDue, 0, 0), 1);
+  const hardEnd = addDays(start, JR_MAX_DAYS);
+  let beyond = [];
+  if (end > hardEnd) { end = hardEnd; beyond = dated.filter(t => new Date(t.due) >= end); }
+
+  const span = end - start;
+  const days = Math.max(1, Math.round(span / 8.64e7));
+  const width = days * JR_DAY_W;
+  const xOf = d => ((d - start) / span) * width;
+  const meX = Math.max(0, Math.min(width, xOf(now)));
+
+  // ---- หลักวัน ----
+  let ticks = '';
+  for (let i = 0; i < days; i++) {
+    const d = addDays(start, i);
+    const diff = Math.round((atTime(d, 0, 0) - dayStart) / 8.64e7);
+    const label = diff === 0 ? 'วันนี้' : diff === 1 ? 'พรุ่งนี้' : diff === -1 ? 'เมื่อวาน'
+      : WEEKDAY_SHORT[d.getDay()] + ' ' + d.getDate();
+    ticks += `<div class="jr-day${diff === 0 ? ' today' : ''}${diff < 0 ? ' past' : ''}"
+      style="left:${xOf(d)}px"><i></i><span>${esc(label)}</span></div>`;
+  }
+
+  // ---- ป้ายจอด: สลับ 4 เลน (บน/ล่าง) กันป้ายทับกันเวลางานอยู่ใกล้กัน ----
+  const laneX = [-9e9, -9e9, -9e9, -9e9];
+  let stops = '';
+  for (const t of dated) {
+    const due = new Date(t.due);
+    if (due >= end) continue;
+    const x = xOf(due);
+    let lane = laneX.findIndex(lx => x - lx > JR_GAP);
+    if (lane < 0) lane = laneX.indexOf(Math.min(...laneX));
+    laneX[lane] = x;
+    const info = priorityInfo(t, now);
+    const tone = priorityTone(info.stars);
+    const type = taskType(t);
+    const name = t.subject && t.subject !== 'อื่น ๆ' ? t.subject : t.detail;
+    stops += `<button class="jr-stop lane${lane} ${tone}${due < now ? ' over' : ''}"
+      data-x="${Math.round(x)}" style="left:${x}px" onclick="openForm('${t.id}')"
+      aria-label="${esc(taskTitle(t))} ${esc(fmtDue(t.due, now, t))}">
+      <span class="jr-bub"><b>${esc(name)}</b><i class="mono">${esc(dueClock(t))}</i></span>
+      <span class="jr-leg"></span>
+      <span class="jr-pin">${icon(JR_PIN_ICON[type] || 'pin')}</span>
+    </button>`;
+  }
+
+  // ---- การ์ดบอกว่าป้ายถัดไปคืออะไร ----
+  const late = dated.filter(t => new Date(t.due) < now);
+  const next = dated.find(t => new Date(t.due) >= now);
+  const nextCard = `<div class="jr-next${late.length ? ' late' : ''}">
+    <span class="tile">${icon(late.length ? 'flame' : 'pin')}</span>
+    <div class="bd">
+      <div class="lb">${late.length ? 'เลยป้ายมาแล้ว ' + late.length + ' งาน' : 'ป้ายถัดไป'}</div>
+      <div class="tx">${next
+        ? esc(taskTitle(next)) + ' · <b>' + esc(humanLeft(new Date(next.due) - now)) + '</b>'
+        : 'ผ่านป้ายสุดท้ายของช่วงนี้แล้ว'}</div>
+    </div>
+    ${next ? `<button class="go" onclick="openForm('${next.id}')" aria-label="เปิดงานนี้">${icon('chevron')}</button>` : ''}
+  </div>`;
+
+  const legend = `<div class="jr-legend">
+    <span><i class="d red"></i>ด่วนมาก</span>
+    <span><i class="d yellow"></i>สำคัญ–ปานกลาง</span>
+    <span><i class="d green"></i>รอได้</span>
+    <span><i class="d me"></i>ตำแหน่งตอนนี้</span>
+  </div>`;
+
+  const extras = (undated.length ? `<div class="jr-un">
+      <div class="lb">ยังไม่ได้ใส่วัน — ยังไม่ขึ้นเส้นทาง</div>
+      <div class="chips">${undated.map(t =>
+        `<button onclick="openForm('${t.id}')">${esc(taskTitle(t))}</button>`).join('')}</div>
+    </div>` : '')
+    + (beyond.length ? `<p class="jr-far">อีก ${beyond.length} งานอยู่ไกลกว่า ${JR_MAX_DAYS} วัน — ดูได้ในแท็บ “งาน”</p>` : '');
 
   const insight = timelineInsight(pending, now);
-  if (insight) html += `<div class="tl-note">
+  const note = insight ? `<div class="tl-note">
     <span class="tile">${icon('sparkles')}</span>
     <div style="flex:1;min-width:0">
       <div class="lb">วันงานชน</div>
       <div class="tx">${esc(insight)}</div>
     </div>
-  </div>`;
-  el.innerHTML = html;
+  </div>` : '';
+
+  el.innerHTML = head + nextCard + legend + `
+    <div class="jr" id="jrScroll">
+      <div class="jr-track" id="jrTrack" data-start="${+start}" data-span="${span}" data-w="${width}"
+        style="width:${width}px">
+        <div class="jr-road"></div>
+        <div class="jr-road done" id="jrDone" style="width:${meX}px"></div>
+        ${ticks}
+        <div class="jr-finish" style="left:${width}px">${icon('flag')}</div>
+        ${stops}
+        <div class="jr-me" id="jrMe" style="left:${meX}px">
+          <span class="me-dot"></span><span class="me-lb mono">ตอนนี้ ${fmtClock(now)}</span>
+        </div>
+      </div>
+    </div>
+    <p class="jr-hint">ปัดซ้าย–ขวาเพื่อดูทั้งเส้นทาง · แตะป้ายเพื่อเปิดงานนั้น</p>`
+    + extras + note;
+
+  syncJourneyNow();
+  // เลื่อนให้เห็นตำแหน่งปัจจุบันก่อนเสมอ (ไม่ใช่ต้นเส้นทางที่อาจเลยไปแล้ว)
+  const sc = document.getElementById('jrScroll');
+  if (sc) setTimeout(() => { sc.scrollLeft = Math.max(0, meX - sc.clientWidth * 0.34); }, 0);
+}
+
+// ขยับหมุด "ตอนนี้" ตามเวลาจริง โดยไม่ต้องวาดเส้นทางใหม่ทั้งเส้น
+function syncJourneyNow() {
+  const track = document.getElementById('jrTrack');
+  if (!track) return;
+  const start = +track.dataset.start, span = +track.dataset.span, w = +track.dataset.w;
+  if (!span) return;
+  const x = Math.max(0, Math.min(1, (Date.now() - start) / span)) * w;
+  const me = document.getElementById('jrMe');
+  if (me) {
+    me.style.left = x + 'px';
+    const lb = me.querySelector('.me-lb');
+    if (lb) lb.textContent = 'ตอนนี้ ' + fmtClock(new Date());
+  }
+  const done = document.getElementById('jrDone');
+  if (done) done.style.width = x + 'px';
+  track.querySelectorAll('.jr-stop').forEach(s => s.classList.toggle('passed', +s.dataset.x <= x));
 }
 
 // เวลาส่งสำหรับริมเส้น — 23:59 คือ "ไม่ได้ระบุเวลา" จึงเขียนว่าทั้งวัน
@@ -766,8 +1001,9 @@ function renderProfile() {
   }
 
   applyTheme(); // ให้ปุ่มธีมที่เลือกไว้สว่างตรงกับที่ใช้จริงเสมอ
+  renderAppearance(); // ALT: ขนาดตัวอักษร + พื้นหลังภาพของผู้ใช้
   const ver = document.getElementById('appVer');
-  if (ver) ver.textContent = 'StudentOS AI · เวอร์ชัน ' + APP_CHANNEL + ' (รุ่นทดลองฟีเจอร์) · ' + APP_VERSION;
+  if (ver) ver.textContent = 'StudentOS ' + APP_CHANNEL + ' Version ' + APP_VERSION + ' · รุ่นทดลองฟีเจอร์';
   const pn = document.getElementById('pName'); if (pn) pn.value = state.settings.name || '';
   const pf = document.getElementById('pFree'); if (pf) pf.value = state.settings.freeHours || 2;
 
@@ -1650,6 +1886,7 @@ function tickClock() {
   const n = new Date();
   document.getElementById('clock').textContent =
     String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
+  syncJourneyNow(); // ALT: หมุดบนเส้นทางเดินตามเวลาจริงไปพร้อมนาฬิกา
 }
 
 for (const id of ['cameraInput', 'galleryInput']) {
@@ -1658,6 +1895,12 @@ for (const id of ['cameraInput', 'galleryInput']) {
     e.target.value = '';
   });
 }
+
+// ALT: เลือกภาพพื้นหลังของตัวเอง
+document.getElementById('bgInput').addEventListener('change', e => {
+  if (e.target.files[0]) readUserBg(e.target.files[0]);
+  e.target.value = '';
+});
 
 // PWA: ลงทะเบียน service worker (เฉพาะเมื่อเปิดผ่าน http/https)
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
@@ -1679,6 +1922,8 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   splashStep('data');
 
   applyTheme();
+  applyFontScale();  // ALT: ต้องมาก่อนวาดจอแรก ไม่งั้นตัวอักษรกระโดดขนาดให้เห็น
+  applyUserBg();
   fillSubjectSelect();
   initHomeSwipe(); // ALT: ปัดการ์ดในหน้าแรก (เกาะที่ #homeBody ครั้งเดียว อยู่รอดทุกการ render)
   // ฟอนต์ไทยมาจาก CDN — รอให้พร้อมก่อน ไม่งั้นจอแรกกระตุกตอนฟอนต์สลับ

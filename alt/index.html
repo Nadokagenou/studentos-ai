@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="google-site-verification" content="EL8HSk9rzF6WS9GYcfkFaYwxf00p2PzEKganiKXzDh0" />
-  <title>StudentOS AI · ALT — รุ่นทดลองฟีเจอร์ (Sandbox)</title>
-  <meta name="description" content="StudentOS AI เวอร์ชัน ALT — บิลด์ทดลองฟีเจอร์ แยกข้อมูลจากตัวจริง ไม่ใช่รุ่นที่ใช้งานจริง">
+  <title>StudentOS ALT Version 1A5 — รุ่นทดลองฟีเจอร์ (Sandbox)</title>
+  <meta name="description" content="StudentOS ALT Version 1A5 — บิลด์ทดลองฟีเจอร์ แยกข้อมูลจากตัวจริง ไม่ใช่รุ่นที่ใช้งานจริง">
   <!-- ALT = บิลด์ทดลอง ไม่ควรถูก index ปนกับตัวจริงบน GitHub Pages -->
   <meta name="robots" content="noindex, nofollow">
 
   <meta property="og:type" content="website">
-  <meta property="og:title" content="StudentOS AI · ALT — รุ่นทดลองฟีเจอร์">
+  <meta property="og:title" content="StudentOS ALT Version 1A5 — รุ่นทดลองฟีเจอร์">
   <meta property="og:description" content="AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงาน จัดลำดับความสำคัญพร้อมเหตุผล">
   <meta property="og:url" content="https://nadokagenou.github.io/studentos-ai/">
   <meta property="og:image" content="https://nadokagenou.github.io/studentos-ai/icon-512.png">
@@ -21,7 +21,10 @@
        ค่า "system" ถูกแปลงเป็น light/dark ที่นี่เลย CSS จึงมีแค่ 4 โทนจริง -->
   <script>
     (function () {
-      var BAR = { light: '#FCFBF7', dark: '#0D1220', warm: '#F7F1E4', space: '#0A0E24' };
+      // ALT: ธีมเพิ่มมาอีก 4 โทน — ตารางนี้ต้องตรงกับ THEME_BAR ใน app.js เสมอ
+      // ไม่งั้นธีมใหม่จะไม่ถูกจำ แล้วจอแรกกะพริบเป็นโทนสว่างก่อนสลับ
+      var BAR = { light: '#FCFBF7', dark: '#0D1220', warm: '#F7F1E4', space: '#0A0E24',
+        earth: '#F1F6F1', library: '#EFE3CE', magic: '#150E26', galaxy: '#0B0618' };
       var pref = null;
       try { pref = localStorage.getItem('studentos.alt.theme'); } catch (e) {} // ALT: คนละคีย์กับตัวจริง
       var t = BAR[pref] ? pref
@@ -99,6 +102,11 @@
     <g id="lu-camera" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></g>
     <g id="lu-image" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></g>
     <g id="lu-type" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16"></path><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"></path><path d="M9 20h6"></path></g>
+    <!-- ALT: เพื่อน / ล็อก / หมุดเส้นทาง -->
+    <g id="lu-users" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></g>
+    <g id="lu-lock" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></g>
+    <g id="lu-pin" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></g>
+    <g id="lu-flag" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><path d="M4 22v-7"></path></g>
     <g id="tb-home" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></g>
     <g id="tb-tasks" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5h8"></path><path d="M13 12h8"></path><path d="M13 19h8"></path><path d="m3 17 2 2 4-4"></path><path d="m3 7 2 2 4-4"></path></g>
     <g id="tb-scan" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M7 12h10"></path></g>
@@ -114,7 +122,16 @@
 <div class="stage">
   <div class="phone">
     <!-- ชั้นดาว: โชว์เฉพาะโทนอวกาศ (CSS ซ่อนในโทนอื่น) ลอยช้า ๆ + กะพริบเบา ๆ -->
-    <div class="starfield" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="starfield" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <!-- ALT: ชั้นบรรยากาศของธีม — CSS เลือกเองว่าธีมไหนใช้ชั้นไหน
+         fx-a/b = พื้นหลังใหญ่ (เนบิวลา ชั้นหนังสือ ขอบฟ้า) · fx-c/d = อนุภาคลอย
+         fx-shoot = ดาวตก/ประกายวิ่ง -->
+    <div class="fx" aria-hidden="true">
+      <i class="fx-a"></i><i class="fx-b"></i><i class="fx-c"></i><i class="fx-d"></i>
+      <span class="fx-shoot"></span>
+    </div>
+    <!-- ALT: พื้นหลังภาพของผู้ใช้เอง (ตั้งในแท็บ "ฉัน") — ม่านหรี่ทับให้ตัวหนังสืออ่านออก -->
+    <div class="userbg" id="userBg" aria-hidden="true"><span class="ub-veil"></span></div>
     <div class="statusbar"><span id="clock">--:--</span><span>📶 🔋</span></div>
     <!-- ALT: ป้ายบอกรุ่นบนตัวเครื่อง — กันสับสนว่ากำลังเปิดตัวจริงหรือตัวทดลองอยู่ -->
     <div class="alt-badge" title="บิลด์ทดลองฟีเจอร์ · ข้อมูลแยกจากตัวจริง">ALT</div>
@@ -126,7 +143,7 @@
           <img class="login-mark" src="logo-mark.png" alt="StudentOS AI">
           <div class="big-title" style="margin:0">StudentOS <span class="ai-blue">AI</span></div>
           <p class="sub" style="margin:0 0 6px">รู้ว่าต้องทำอะไรก่อน เสมอ</p>
-          <p class="alt-note" style="margin:0 0 16px">เวอร์ชัน <b>ALT</b> · รุ่นทดลองฟีเจอร์ — ข้อมูลแยกจากตัวจริง</p>
+          <p class="alt-note" style="margin:0 0 16px">StudentOS <b>ALT</b> Version <b>1A5</b> · รุ่นทดลองฟีเจอร์ — ข้อมูลแยกจากตัวจริง</p>
           <button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>
           <button class="btn ghost" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>
           <p class="hint">ล็อกอินแล้วข้อมูลจะซิงก์ข้ามเครื่อง</p>
@@ -416,8 +433,64 @@
                   <span class="sw sw-warm"></span><span class="nm">อุ่น</span></button>
                 <button type="button" data-th="space" onclick="setTheme('space')">
                   <span class="sw sw-space"></span><span class="nm">อวกาศ</span></button>
+                <!-- ALT: 4 โทนใหม่ -->
+                <button type="button" data-th="earth" onclick="setTheme('earth')">
+                  <span class="sw sw-earth"></span><span class="nm">โลก</span></button>
+                <button type="button" data-th="library" onclick="setTheme('library')">
+                  <span class="sw sw-library"></span><span class="nm">ห้องสมุด</span></button>
+                <button type="button" data-th="magic" onclick="setTheme('magic')">
+                  <span class="sw sw-magic"></span><span class="nm">เวทมนตร์</span></button>
+                <button type="button" data-th="galaxy" onclick="setTheme('galaxy')">
+                  <span class="sw sw-galaxy"></span><span class="nm">กาแล็กซี</span></button>
               </div>
             </div>
+
+            <!-- ALT: ขนาดตัวอักษร -->
+            <div class="pf-row col">
+              <span class="hd">
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-type"/></svg></span>
+                <span class="bd"><span class="lb">ขนาดตัวอักษร</span><span class="sb" id="fontNow"></span></span>
+              </span>
+              <div class="fs-grid" id="fontPick">
+                <button type="button" data-fs="s"  onclick="setFontScale('s')"><b style="font-size:12px">ก</b>เล็ก</button>
+                <button type="button" data-fs="m"  onclick="setFontScale('m')"><b style="font-size:14px">ก</b>ปกติ</button>
+                <button type="button" data-fs="l"  onclick="setFontScale('l')"><b style="font-size:17px">ก</b>ใหญ่</button>
+                <button type="button" data-fs="xl" onclick="setFontScale('xl')"><b style="font-size:20px">ก</b>ใหญ่มาก</button>
+              </div>
+            </div>
+
+            <!-- ALT: พื้นหลังภาพของตัวเอง -->
+            <div class="pf-row col">
+              <span class="hd">
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
+                <span class="bd"><span class="lb">พื้นหลังภาพของตัวเอง</span>
+                  <span class="sb" id="bgNow">ยังไม่ได้ตั้ง</span></span>
+              </span>
+              <div class="bg-tools">
+                <label class="bg-pick" for="bgInput">
+                  <svg viewBox="0 0 24 24"><use href="#lu-image"/></svg><span id="bgPickLabel">เลือกภาพ</span></label>
+                <input type="file" id="bgInput" accept="image/*" hidden>
+                <button type="button" class="bg-del" id="bgDel" onclick="clearUserBg()" hidden>
+                  <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg></button>
+              </div>
+              <div class="bg-dim" id="bgDimWrap" hidden>
+                <div class="fld-head"><label for="bgDim">ความจางของภาพ</label>
+                  <span class="val" id="bgDimVal">55%</span></div>
+                <input type="range" id="bgDim" min="0" max="85" step="5" value="55"
+                  oninput="setBgDim(this.value)">
+                <p class="bg-note">จางมาก = อ่านง่ายขึ้น · จางน้อย = เห็นภาพชัดขึ้น</p>
+              </div>
+            </div>
+            <!-- ALT: ระบบเพื่อน — ยังไม่เสร็จ กดเข้าไม่ได้ (ติ๊กค้างไว้ว่ายังไม่เสร็จ) -->
+            <div class="pf-row soon" id="friendsRow" aria-disabled="true">
+              <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
+              <span class="bd">
+                <span class="lb">เพื่อน <span class="soon-tag">กำลังพัฒนา</span></span>
+                <span class="sb">ชวนเพื่อนมาดูแผนกัน · ยังไม่เสร็จ ยังเข้าไม่ได้</span>
+              </span>
+              <span class="soon-box" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
+            </div>
+
             <div class="pf-row" id="notifRow">
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg></span>
               <span class="bd"><span class="lb">การแจ้งเตือน</span><span class="sb" id="notifStatus">ยังไม่ได้เปิด</span></span>
@@ -475,7 +548,7 @@
       <div class="sp-glow"></div>
       <img class="sp-logo" src="logo-mark.png" alt="StudentOS AI">
       <div class="sp-word">StudentOS <span>AI</span></div>
-      <div class="sp-alt">ALT · รุ่นทดลองฟีเจอร์</div>
+      <div class="sp-alt">ALT · VERSION 1A5</div>
       <div class="sp-tag">รู้ว่าต้องทำอะไรก่อน เสมอ</div>
       <!-- ALT: เปอร์เซ็นต์จริง — เดินตามงานที่โหลดเสร็จจริง ไม่ใช่แถบหลอกตา -->
       <div class="sp-load">
@@ -489,7 +562,7 @@
   </div>
 
   <p class="stage-note">
-    <b class="alt-tag">เวอร์ชัน ALT (Sandbox)</b> — บิลด์ไว้ทดลองฟีเจอร์ใหม่ ไม่ใช่ตัวที่ปล่อยจริง ·
+    <b class="alt-tag">StudentOS ALT Version 1A5</b> — บิลด์ไว้ทดลองฟีเจอร์ใหม่ ไม่ใช่ตัวที่ปล่อยจริง ·
     เก็บข้อมูลแยกจากตัวจริงด้วยคีย์ <code>studentos.alt.*</code> ใน localStorage<br>
     StudentOS AI — Scan รูปใช้ OCR ในเบราว์เซอร์ ·
     การจัดลำดับคำนวณจาก deadline × คะแนน × ขนาดงาน พร้อมเหตุผลกำกับทุกงาน
