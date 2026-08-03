@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="google-site-verification" content="EL8HSk9rzF6WS9GYcfkFaYwxf00p2PzEKganiKXzDh0" />
+  <title>StudentOS AI · ALT — รุ่นทดลองฟีเจอร์ (Sandbox)</title>
+  <meta name="description" content="StudentOS AI เวอร์ชัน ALT — บิลด์ทดลองฟีเจอร์ แยกข้อมูลจากตัวจริง ไม่ใช่รุ่นที่ใช้งานจริง">
+  <!-- ALT = บิลด์ทดลอง ไม่ควรถูก index ปนกับตัวจริงบน GitHub Pages -->
+  <meta name="robots" content="noindex, nofollow">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="StudentOS AI · ALT — รุ่นทดลองฟีเจอร์">
+  <meta property="og:description" content="AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงาน จัดลำดับความสำคัญพร้อมเหตุผล">
+  <meta property="og:url" content="https://nadokagenou.github.io/studentos-ai/">
+  <meta property="og:image" content="https://nadokagenou.github.io/studentos-ai/icon-512.png">
+  <meta name="twitter:card" content="summary">
+
+  <meta name="theme-color" content="#F8FAFC">
+  <!-- ธีมต้องถูกตัดสินก่อนวาดจอแรก ไม่งั้นคนใช้ธีมมืดจะเห็นจอขาวแวบหนึ่ง
+       ค่า "system" ถูกแปลงเป็น light/dark ที่นี่เลย CSS จึงมีแค่ 4 โทนจริง -->
+  <script>
+    (function () {
+      var BAR = { light: '#FCFBF7', dark: '#0D1220', warm: '#F7F1E4', space: '#0A0E24' };
+      var pref = null;
+      try { pref = localStorage.getItem('studentos.alt.theme'); } catch (e) {} // ALT: คนละคีย์กับตัวจริง
+      var t = BAR[pref] ? pref
+        : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.dataset.theme = t;
+      var m = document.querySelector('meta[name=theme-color]');
+      if (m) m.content = BAR[t];
+    })();
+  </script>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Space Mono ใช้เฉพาะวันที่/เวลา/ตัวเลข ให้ตัวเลขเรียงตรงคอลัมน์และอ่านเป็นข้อมูล -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <!-- ALT เท่านั้น: ป้ายกำกับรุ่นทดลอง แยกไฟล์ไว้ ไม่แตะ style.css เดิม จะสลับ stylesheet ทีหลังก็ได้ -->
+  <link rel="stylesheet" href="alt.css">
+</head>
+<body>
+
+<!-- โลโก้ S เป็น SVG กลาง — ใช้ซ้ำได้ทั้ง splash และหน้า login -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="sgrad" x1="0.1" y1="0.9" x2="0.9" y2="0.1">
+      <stop offset="0" stop-color="#2563EB"/><stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+    <!-- โลโก้ตามแบรนด์: S ribbon ไล่เฉด + ประกายดาวขาวกลาง + พิกเซลแตกมุมขวาบน -->
+    <g id="s-mark">
+      <path d="M300 120 Q190 120 175 175 Q168 210 205 232 L300 285 Q355 315 350 360 Q345 400 292 400 L200 400"
+        fill="none" stroke="url(#sgrad)" stroke-width="80" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect class="sp-px" x="350" y="92" width="30" height="30" rx="7" fill="#60A5FA"/>
+      <rect class="sp-px" x="392" y="120" width="22" height="22" rx="6" fill="#22D3EE"/>
+      <rect class="sp-px" x="388" y="72" width="15" height="15" rx="4" fill="#2563EB"/>
+      <rect class="sp-px" x="422" y="98" width="12" height="12" rx="3" fill="#7DD3FC"/>
+      <path class="sp-star1" d="M250 292 L262 330 L300 342 L262 354 L250 392 L238 354 L200 342 L238 330 Z" fill="#FFFFFF"/>
+    </g>
+
+    <!-- ไอคอนแถบเมนู: เส้นเรียบ 24px แทน emoji เพื่อความคมและเป็นมาตรฐานแอป -->
+    <g id="ic-home" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 10.4 12 4l8 6.4V19a1.6 1.6 0 0 1-1.6 1.6H15V15H9v5.6H5.6A1.6 1.6 0 0 1 4 19z"/>
+    </g>
+    <g id="ic-tasks" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 6.5h10M10 12h10M10 17.5h10"/>
+      <path d="M4 6.4l1.3 1.3L7.8 5.2M4 11.9l1.3 1.3 2.5-2.5M4 17.4l1.3 1.3 2.5-2.5"/>
+    </g>
+    <g id="ic-scan" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3.2" y="7" width="17.6" height="13.4" rx="3.2"/>
+      <circle cx="12" cy="13.7" r="3.4"/>
+      <path d="M8.6 7l1.1-2.2h4.6L15.4 7"/>
+    </g>
+    <g id="ic-timeline" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3.4" y="5.2" width="17.2" height="15.6" rx="3.2"/>
+      <path d="M3.4 10.2h17.2M8.4 3.2v4M15.6 3.2v4"/>
+    </g>
+    <g id="ic-profile" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="8.6" r="3.7"/>
+      <path d="M4.8 20.4c1.6-3.5 4.2-5.3 7.2-5.3s5.6 1.8 7.2 5.3"/>
+    </g>
+    <!-- ไอคอน Lucide สำหรับดีไซน์ Refined -->
+    <g id="lu-sparkles" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path></g>
+    <g id="lu-check" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></g>
+    <g id="lu-chevron" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></g>
+    <g id="lu-flame" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"></path></g>
+    <g id="lu-clock" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></g>
+    <g id="lu-calendar" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path></g>
+    <g id="lu-check-circle" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></g>
+    <g id="lu-book" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v16"></path><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"></path></g>
+    <g id="lu-pencil" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></g>
+
+    <g id="lu-contrast" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 18a6 6 0 0 0 0-12z"></path></g>
+    <g id="lu-trash" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></g>
+    <g id="lu-mic" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19v3"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><rect x="9" y="2" width="6" height="13" rx="3"></rect></g>
+    <g id="lu-camera" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></g>
+    <g id="lu-image" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></g>
+    <g id="lu-type" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16"></path><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"></path><path d="M9 20h6"></path></g>
+    <g id="tb-home" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></g>
+    <g id="tb-tasks" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5h8"></path><path d="M13 12h8"></path><path d="M13 19h8"></path><path d="m3 17 2 2 4-4"></path><path d="m3 7 2 2 4-4"></path></g>
+    <g id="tb-scan" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M7 12h10"></path></g>
+    <g id="tb-timeline" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path></g>
+    <g id="tb-profile" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"></circle><path d="M20 21a8 8 0 0 0-16 0"></path></g>
+
+    <g id="ic-arrow" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 12h13M12.5 6l6 6-6 6"/>
+    </g>
+  </defs>
+</svg>
+
+<div class="stage">
+  <div class="phone">
+    <!-- ชั้นดาว: โชว์เฉพาะโทนอวกาศ (CSS ซ่อนในโทนอื่น) ลอยช้า ๆ + กะพริบเบา ๆ -->
+    <div class="starfield" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="statusbar"><span id="clock">--:--</span><span>📶 🔋</span></div>
+    <!-- ALT: ป้ายบอกรุ่นบนตัวเครื่อง — กันสับสนว่ากำลังเปิดตัวจริงหรือตัวทดลองอยู่ -->
+    <div class="alt-badge" title="บิลด์ทดลองฟีเจอร์ · ข้อมูลแยกจากตัวจริง">ALT</div>
+    <div class="screens">
+
+      <!-- ============ SCREEN: LOGIN ============ -->
+      <div class="screen" id="scr-login">
+        <div class="login-wrap">
+          <img class="login-mark" src="logo-mark.png" alt="StudentOS AI">
+          <div class="big-title" style="margin:0">StudentOS <span class="ai-blue">AI</span></div>
+          <p class="sub" style="margin:0 0 6px">รู้ว่าต้องทำอะไรก่อน เสมอ</p>
+          <p class="alt-note" style="margin:0 0 16px">เวอร์ชัน <b>ALT</b> · รุ่นทดลองฟีเจอร์ — ข้อมูลแยกจากตัวจริง</p>
+          <button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>
+          <button class="btn ghost" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>
+          <p class="hint">ล็อกอินแล้วข้อมูลจะซิงก์ข้ามเครื่อง</p>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: ONBOARD (ALT) ============ -->
+      <!-- ถามแค่ 2 อย่างที่ AI ต้องใช้จริง: เรียกว่าอะไร + วันหนึ่งว่างกี่ชั่วโมง
+           จบในหน้าเดียว ไม่มีขั้นตอนถัดไป — ยิ่งถามน้อย ยิ่งมีคนตอบจนจบ -->
+      <div class="screen flush" id="scr-onboard">
+        <div class="scr-body ob-body">
+          <div class="ob-head">
+            <img class="ob-mark" src="logo-mark.png" alt="">
+            <div class="ob-eyebrow">ตั้งค่าครั้งเดียว · ใช้เวลา 20 วินาที</div>
+            <h2 class="ob-h">ขอรู้จักกันหน่อย</h2>
+            <p class="ob-p">บอกแค่ 2 อย่าง แล้ว AI จะจัดแผนให้ตรงกับเวลาที่มีจริง</p>
+          </div>
+
+          <div class="ob-card">
+            <div class="fld">
+              <label for="obName">เรียกคุณว่าอะไรดี</label>
+              <input type="text" id="obName" placeholder="เช่น นาโด" maxlength="24"
+                autocomplete="nickname" enterkeyhint="done" onkeydown="if(event.key==='Enter')finishOnboard()">
+              <span class="ob-err" id="obErr" hidden>ใส่ชื่อที่อยากให้เรียกก่อนนะ</span>
+            </div>
+
+            <div class="fld">
+              <div class="fld-head">
+                <label for="obFree">วันหนึ่งว่างทำงานกี่ชั่วโมง</label>
+                <span class="val" id="obFreeVal">2 ชม.</span>
+              </div>
+              <input type="range" id="obFree" min="0.5" max="8" step="0.5" value="2"
+                oninput="setObFree(this.value)">
+              <div class="ob-quick" id="obQuick">
+                <button type="button" onclick="setObFree(1,true)">1 ชม.</button>
+                <button type="button" onclick="setObFree(2,true)">2 ชม.</button>
+                <button type="button" onclick="setObFree(3,true)">3 ชม.</button>
+                <button type="button" onclick="setObFree(4,true)">4 ชม.</button>
+              </div>
+              <p class="ob-note">ใช้คำนวณว่างานที่ค้างอยู่ทำทันไหม — แก้ทีหลังได้ในแท็บ “ฉัน”</p>
+            </div>
+          </div>
+
+          <div class="ob-act">
+            <button class="fm-save" onclick="finishOnboard()">เริ่มใช้งาน</button>
+            <button class="fm-cancel" onclick="skipOnboard()">ข้ามไปก่อน</button>
+          </div>
+        </div>
+
+        <!-- ฉากทักทายหลังกรอกเสร็จ -->
+        <div class="ob-welcome" id="obWelcome" hidden>
+          <div class="obw-ring"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></div>
+          <div class="obw-h">ยินดีที่ได้รู้จัก</div>
+          <div class="obw-name" id="obwName"></div>
+          <p class="obw-p" id="obwSub"></p>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: SCAN ============ -->
+      <div class="screen flush" id="scr-scan">
+        <div class="scr-body scan-body">
+          <div>
+            <h2 class="scan-h">เพิ่มงานใหม่</h2>
+          </div>
+
+          <div class="scan-actions">
+            <button class="voice-hero" id="voiceBtn" onclick="toggleVoice()">
+              <span class="vh-ring"><span class="ring"></span><svg viewBox="0 0 24 24"><use href="#lu-mic"/></svg></span>
+              <span class="vh-txt">
+                <span class="t" id="voiceLabel">พูดใส่ไมค์</span>
+                <span class="s" id="voiceSub">เร็วที่สุด — 5 วินาทีเสร็จ</span>
+              </span>
+              <svg class="vh-ch" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+
+            <div class="scan-pair">
+              <label class="scan-tile" for="cameraInput">
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-camera"/></svg></span>
+                <span class="lb">ถ่ายรูปใบงาน</span>
+              </label>
+              <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+              <label class="scan-tile" for="galleryInput">
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
+                <span class="lb">เลือกจากคลังภาพ</span>
+              </label>
+              <input type="file" id="galleryInput" accept="image/*" hidden>
+            </div>
+          </div>
+
+          <div class="voice-box" id="voiceBox" hidden>
+            <div class="wave"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="voice-text" id="voiceText"></div>
+          </div>
+          <div class="scan-status" id="ocrStatus"></div>
+          <div class="ocr-bar" id="ocrBarWrap" hidden><div class="ocr-fill" id="ocrBar"></div></div>
+
+          <div class="scan-paste">
+            <div class="rule"><span></span>หรือแปะข้อความ<span></span></div>
+            <div class="paste-card">
+              <textarea id="pasteText" rows="4"
+                placeholder="วางข้อความจากกลุ่ม LINE เช่น การบ้านฟิสิกส์ ครูสมชาย ทำโจทย์บทที่ 4 ข้อ 1-10 ส่งพรุ่งนี้ 16:00 คะแนนเก็บ 20%"></textarea>
+              <div class="pc-act">
+                <button class="ai-read" onclick="scanFromText()">
+                  <svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg>ให้ AI อ่าน</button>
+              </div>
+            </div>
+            <button class="manual" onclick="openForm(null)">
+              <svg viewBox="0 0 24 24"><use href="#lu-type"/></svg>พิมพ์เพิ่มเองทีละช่อง</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: AI กำลังอ่าน (สถานะระหว่างแกะข้อความ) ============ -->
+      <div class="screen flush" id="scr-parsing">
+        <div class="scr-body parse-body">
+          <div>
+            <div class="pr-head">
+              <span class="pr-dot"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+              <h2 class="pr-h">AI กำลังอ่าน…</h2>
+            </div>
+          </div>
+          <div class="skel-card">
+            <div class="skel-row"><span class="k"></span><span class="v" style="max-width:78%"></span></div>
+            <div class="skel-row"><span class="k"></span><span class="v" style="max-width:92%"></span></div>
+            <div class="skel-row"><span class="k"></span><span class="v" style="max-width:64%"></span></div>
+            <div class="skel-row"><span class="k"></span><span class="v" style="max-width:85%"></span></div>
+            <div class="skel-row"><span class="k"></span><span class="v" style="max-width:55%"></span></div>
+          </div>
+          <div class="pr-steps" id="parseSteps"></div>
+          <div class="pr-bar"><div class="fill" id="parseFill" style="width:10%"></div></div>
+          <button class="pr-go" id="parseGo" style="display:none" onclick="showParsedResult()">ดูผลที่ AI อ่านได้ →</button>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: FORM (ยืนยัน/แก้ไข) ============ -->
+      <div class="screen flush" id="scr-form">
+        <div class="scr-body form-body">
+          <div>
+            <div class="fm-ok" id="fmOk"></div>
+            <h2 class="fm-h" id="formTitle">ตรวจก่อนบันทึก</h2>
+          </div>
+          <div class="fm-chips" id="detectedChips"></div>
+
+          <div class="fm-card">
+            <div class="fld">
+              <label>ประเภท</label>
+              <div class="type-pick" id="typePick">
+                <button type="button" class="tp" data-type="homework" onclick="setTypePick('homework')">
+                  <svg viewBox="0 0 24 24"><use href="#lu-type"/></svg>การบ้าน</button>
+                <button type="button" class="tp" data-type="exam" onclick="setTypePick('exam')">
+                  <svg viewBox="0 0 24 24"><use href="#lu-book"/></svg>สอบ</button>
+                <button type="button" class="tp" data-type="activity" onclick="setTypePick('activity')">
+                  <svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg>กิจกรรม</button>
+                <button type="button" class="tp" data-type="reminder" onclick="setTypePick('reminder')">
+                  <svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg>อื่น ๆ</button>
+              </div>
+            </div>
+
+            <div class="fld-row">
+              <div class="fld" id="fSubjectWrap"><label>วิชา</label><select id="fSubject"></select></div>
+              <div class="fld" id="fTeacherWrap"><label>ครูผู้สั่ง</label><input type="text" id="fTeacher" placeholder="เช่น ครูสมชาย"></div>
+            </div>
+
+            <div class="fld"><label id="fDetailLabel">งานที่ต้องทำ</label>
+              <input type="text" id="fDetail" placeholder="เช่น ทำโจทย์บทที่ 4 ข้อ 1–10"></div>
+
+            <div class="fld-row">
+              <div class="fld" style="flex:1.3"><label id="fDateLabel">กำหนดส่ง</label>
+                <div class="fld-pair accent">
+                  <input type="date" id="fDate"><input type="time" id="fTime">
+                </div>
+              </div>
+              <div class="fld" id="fScoreWrap"><label>คะแนน</label>
+                <input type="number" id="fScore" min="0" max="100" placeholder="20"></div>
+            </div>
+
+            <div class="fld" id="fEstWrap">
+              <div class="fld-head"><label id="fEstLabel">ใช้เวลา</label><span class="val" id="fEstVal">30 นาที</span></div>
+              <input type="range" id="fEst" min="5" max="180" step="5" value="30"
+                oninput="document.getElementById('fEstVal').textContent = this.value + ' นาที'">
+            </div>
+
+            <div class="fld">
+              <label>ความสำคัญ</label>
+              <div class="star-pick" id="starPick">
+                <button type="button" class="sp sp-auto" data-lv="0" onclick="setStarPick(0)">AI จัดให้</button>
+                <button type="button" class="sp lv1" data-lv="1" onclick="setStarPick(1)">★1</button>
+                <button type="button" class="sp lv2" data-lv="2" onclick="setStarPick(2)">★2</button>
+                <button type="button" class="sp lv3" data-lv="3" onclick="setStarPick(3)">★3</button>
+                <button type="button" class="sp lv4" data-lv="4" onclick="setStarPick(4)">★4</button>
+                <button type="button" class="sp lv5" data-lv="5" onclick="setStarPick(5)">★5</button>
+              </div>
+            </div>
+
+            <div class="fld" id="fProgressWrap">
+              <div class="fld-head"><label>ความคืบหน้า</label><span class="val" id="fProgressVal">0%</span></div>
+              <input type="range" id="fProgress" min="0" max="100" step="5" value="0"
+                oninput="document.getElementById('fProgressVal').textContent = this.value + '%'">
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <button class="fm-save" onclick="saveForm()">บันทึกเข้าแผน</button>
+            <button class="fm-cancel" onclick="cancelForm()">ยกเลิก</button>
+            <!-- โชว์เฉพาะตอนแก้งานที่มีอยู่แล้ว — ลบแล้วไปนอนในถังขยะ กู้คืนได้ -->
+            <button class="fm-del" id="fmDel" onclick="deleteFromForm()" hidden>
+              <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg>ย้ายงานนี้ไปถังขยะ</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: HOME / DASHBOARD ============ -->
+      <!-- หัวหน้าจอเลื่อนไปกับเนื้อหา (ไม่ติดบน) — วาดจาก state ทั้งก้อนใน renderHome -->
+      <div class="screen on" id="scr-home">
+        <div class="home-body" id="homeBody"></div>
+      </div>
+
+      <!-- ============ SCREEN: AI PLANNER ============ -->
+      <div class="screen flush" id="scr-plan">
+        <div class="sticky-head row">
+          <div>
+            <h2 class="sh-title">แผนวันนี้</h2>
+            <p class="sh-sub" id="planSub"></p>
+          </div>
+          <button class="sh-btn" onclick="go('scr-home')" aria-label="กลับหน้าแรก">
+            <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+        </div>
+        <div class="scr-body plan-body" id="planList"></div>
+      </div>
+
+      <!-- ============ SCREEN: ALL ASSIGNMENTS ============ -->
+      <!-- หัวข้อ + แท็บ + รายการ + ถังขยะ วาดจาก state ทั้งหมดใน renderTasks -->
+      <div class="screen" id="scr-tasks">
+        <div id="taskList"></div>
+      </div>
+
+      <!-- ============ SCREEN: TIMELINE ============ -->
+      <div class="screen" id="scr-timeline">
+        <div id="timeline"></div>
+      </div>
+
+      <!-- ============ SCREEN: PROFILE ============ -->
+      <div class="screen flush" id="scr-profile">
+        <div class="scr-body pf-body">
+          <div class="pf-hero">
+            <span class="b1"></span><span class="b2"></span>
+            <div class="pf-id">
+              <div class="pf-av" id="pfAv">N</div>
+              <div style="flex:1;min-width:0">
+                <div class="pf-nm" id="pfNm">นักเรียน</div>
+                <div class="pf-sb" id="pfSb"></div>
+              </div>
+            </div>
+            <div class="pf-stats">
+              <div><div class="v" id="pfDone">0</div><div class="k">ทำเสร็จแล้ว</div></div>
+              <div class="sep"></div>
+              <div><div class="v" id="pfFree">2 ชม.</div><div class="k">เวลาว่าง/วัน</div></div>
+              <div class="sep"></div>
+              <div><div class="v" id="pfPending">0</div><div class="k">งานค้าง</div></div>
+            </div>
+          </div>
+
+          <div class="pf-list">
+            <div class="pf-row">
+              <span class="tile"><svg viewBox="0 0 24 24"><use href="#ic-profile"/></svg></span>
+              <span class="bd"><span class="lb">ชื่อเล่น</span></span>
+              <input type="text" id="pName" placeholder="เช่น Nado" onchange="saveProfile()">
+            </div>
+            <div class="pf-row">
+              <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
+              <span class="bd"><span class="lb">เวลาว่างต่อวัน</span></span>
+              <input type="number" id="pFree" min="0.5" step="0.5" value="2" onchange="saveProfile()">
+            </div>
+            <div class="pf-row col">
+              <span class="hd">
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-contrast"/></svg></span>
+                <span class="bd"><span class="lb">ธีมสี</span><span class="sb" id="themeNow"></span></span>
+              </span>
+              <div class="th-grid" id="themePick">
+                <button type="button" class="th-sys" data-th="system" onclick="setTheme('system')">
+                  <span class="sw sw-system"></span><span class="nm">ตามระบบ</span></button>
+                <button type="button" data-th="light" onclick="setTheme('light')">
+                  <span class="sw sw-light"></span><span class="nm">สว่าง</span></button>
+                <button type="button" data-th="dark" onclick="setTheme('dark')">
+                  <span class="sw sw-dark"></span><span class="nm">มืด</span></button>
+                <button type="button" data-th="warm" onclick="setTheme('warm')">
+                  <span class="sw sw-warm"></span><span class="nm">อุ่น</span></button>
+                <button type="button" data-th="space" onclick="setTheme('space')">
+                  <span class="sw sw-space"></span><span class="nm">อวกาศ</span></button>
+              </div>
+            </div>
+            <div class="pf-row" id="notifRow">
+              <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg></span>
+              <span class="bd"><span class="lb">การแจ้งเตือน</span><span class="sb" id="notifStatus">ยังไม่ได้เปิด</span></span>
+              <button class="btn secondary sm" id="notifBtn" style="width:auto;min-height:38px;padding:0 14px" onclick="enableNotif()">เปิด</button>
+            </div>
+            <div class="pf-row" id="installCard" hidden>
+              <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-check-circle"/></svg></span>
+              <span class="bd"><span class="lb">ติดตั้งเป็นแอป</span><span class="sb" id="installHint"></span></span>
+              <button class="btn primary sm" id="installBtn" style="width:auto;min-height:38px;padding:0 14px" onclick="handleInstallClick()">ติดตั้ง</button>
+            </div>
+          </div>
+
+          <div id="accountCard"></div>
+
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <button class="pf-quiet" onclick="loadSample()"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg>โหลดข้อมูลตัวอย่าง</button>
+            <button class="pf-quiet danger" onclick="clearAll()"><svg viewBox="0 0 24 24"><use href="#lu-flame"/></svg>ล้างข้อมูลทั้งหมด</button>
+          </div>
+          <p class="app-ver" id="appVer"></p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============ INSTALL GUIDE (iOS) ============ -->
+    <div id="installGuide" hidden>
+      <div class="ig-sheet">
+        <div class="ig-icon"><img src="logo-mark.png" alt=""></div>
+        <div class="ig-title">ติดตั้ง StudentOS AI</div>
+        <p class="ig-sub">ติดตั้งเป็นแอปเพื่อเปิดเต็มจอและรับการแจ้งเตือนได้ — ใช้เวลาแค่ 10 วินาที</p>
+        <div class="ig-step"><span class="ig-num">1</span>แตะปุ่ม <b>แชร์</b> <span class="ig-share">⬆️</span> ที่แถบด้านล่างจอ Safari</div>
+        <div class="ig-step"><span class="ig-num">2</span>เลื่อนหาแล้วแตะ <b>“เพิ่มไปยังหน้าจอโฮม”</b></div>
+        <div class="ig-step"><span class="ig-num">3</span>แตะ <b>“เพิ่ม”</b> มุมขวาบน แล้วเปิดแอปจากไอคอนใหม่</div>
+        <button class="btn primary sm" onclick="dismissInstallGuide()">เข้าใจแล้ว</button>
+        <button class="btn text sm" onclick="dismissInstallGuide(true)">ไม่ต้องเตือนอีก</button>
+      </div>
+    </div>
+
+    <!-- ============ TAB BAR ============ -->
+    <div class="tabbar">
+      <button class="tab" data-scr="scr-home" onclick="go('scr-home')">
+        <svg class="ic" viewBox="0 0 24 24"><use href="#tb-home"/></svg><span>หน้าแรก</span></button>
+      <button class="tab" data-scr="scr-tasks" onclick="go('scr-tasks')">
+        <svg class="ic" viewBox="0 0 24 24"><use href="#tb-tasks"/></svg><span>งาน</span></button>
+      <button class="tab scan" data-scr="scr-scan" onclick="go('scr-scan')">
+        <span class="scan-dot"><svg viewBox="0 0 24 24"><use href="#tb-scan"/></svg></span><span>เพิ่ม</span></button>
+      <button class="tab" data-scr="scr-timeline" onclick="go('scr-timeline')">
+        <svg class="ic" viewBox="0 0 24 24"><use href="#tb-timeline"/></svg><span>เส้นเวลา</span></button>
+      <button class="tab" data-scr="scr-profile" onclick="go('scr-profile')">
+        <svg class="ic" viewBox="0 0 24 24"><use href="#tb-profile"/></svg><span>ฉัน</span></button>
+    </div>
+
+    <!-- ============ SPLASH: ฉากเปิดแอป ============ -->
+    <div id="splash">
+      <div class="sp-glow"></div>
+      <img class="sp-logo" src="logo-mark.png" alt="StudentOS AI">
+      <div class="sp-word">StudentOS <span>AI</span></div>
+      <div class="sp-alt">ALT · รุ่นทดลองฟีเจอร์</div>
+      <div class="sp-tag">รู้ว่าต้องทำอะไรก่อน เสมอ</div>
+      <!-- ALT: เปอร์เซ็นต์จริง — เดินตามงานที่โหลดเสร็จจริง ไม่ใช่แถบหลอกตา -->
+      <div class="sp-load">
+        <div class="sp-bar"><i id="spFill"></i></div>
+        <div class="sp-meta">
+          <span class="sp-step" id="spStep">กำลังเริ่ม…</span>
+          <span class="sp-pct"><b id="spPct">0</b>%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="stage-note">
+    <b class="alt-tag">เวอร์ชัน ALT (Sandbox)</b> — บิลด์ไว้ทดลองฟีเจอร์ใหม่ ไม่ใช่ตัวที่ปล่อยจริง ·
+    เก็บข้อมูลแยกจากตัวจริงด้วยคีย์ <code>studentos.alt.*</code> ใน localStorage<br>
+    StudentOS AI — Scan รูปใช้ OCR ในเบราว์เซอร์ ·
+    การจัดลำดับคำนวณจาก deadline × คะแนน × ขนาดงาน พร้อมเหตุผลกำกับทุกงาน
+  </p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

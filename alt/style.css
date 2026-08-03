@@ -1,0 +1,966 @@
+/* ฟอนต์ IBM Plex Sans Thai โหลดผ่าน <link> ใน index.html — เร็วกว่า @import ที่บล็อกการเรนเดอร์ */
+
+/* ============================================================
+   StudentOS AI — Prototype Stylesheet  (v2 · visual polish)
+   Design language: ขาว + Electric Indigo, การ์ดไร้ขอบ + ambient shadow,
+   หัวข้อหนาใหญ่ tracking แน่น, ไอคอนเส้นเรียบชุดเดียว
+   ------------------------------------------------------------
+   สิ่งที่เปลี่ยนจาก v1 (ทั้งหมดเป็นเรื่องผิวสัมผัส ไม่มีการรื้อ layout):
+   1) --blue #2563EB → Deep Sapphire #1D4ED8 (+ เฉดอ่อน/เข้มใหม่)
+   2) เอา border ของการ์ดออก ใช้ lifted shadow 2 ชั้น (blur 34–60px opacity ต่ำ)
+   3) Dark mode เป็น layered slate (#0F172A / #1E293B / #26334A) แทนดำสนิท
+   4) .tabbar + .toast + #installGuide เป็น glass (backdrop-filter blur+saturate)
+   5) .big-title หนาขึ้น ใหญ่ขึ้น tracking แน่นขึ้น · body line-height สูงขึ้น
+   6) ระยะห่างระหว่าง section 28px · micro-interaction scale() ตอนกด
+   ชื่อ class ทุกตัวเหมือนเดิม — วางทับไฟล์เดิมได้เลย ไม่ต้องแก้ HTML
+   ============================================================ */
+
+/* ============================================================
+   ระบบโทเคนสี — 4 โทนให้ผู้ใช้เลือกเอง
+   ------------------------------------------------------------
+   สคริปต์ใน <head> ปั๊ม data-theme ไว้ก่อนวาดจอแรก (ค่า "ตามระบบ"
+   ถูกแปลงเป็น light/dark ที่นั้นแล้ว) จึงไม่มี media query ที่นี่ —
+   ผู้ใช้บังคับธีมสวนเครื่องได้ และไม่มีจอกะพริบตอนเปิดแอป
+
+   ทุกจอใช้ชื่อโทเคนชุดเดียวกัน เพิ่มโทนใหม่ = เติมบล็อกใหม่บล็อกเดียว
+   ไม่ต้องแก้ CSS ของจอไหนเลย
+   ============================================================ */
+
+/* ---------- โทน 1: สว่าง — ขาว + เหลือง/ส้ม (ค่าเริ่มต้น) ---------- */
+:root, :root[data-theme="light"]{
+  color-scheme:light;
+  --scr:#FCFBF7; --card:#FFFFFF; --card2:#F4F2EC; --surface:#F4F2EC;
+  --ink:#1F2430; --muted:#6A6F7E; --faint:#6E7484;
+  --line:rgba(31,36,48,.09);
+  /* สีเน้น: เข้มพอให้เป็นตัวอักษรบนพื้นขาวได้ และขาวบนตัวมันก็ยังอ่านออก */
+  --blue:#9E5B04; --blue-soft:#FFF3DF; --blue-deep:#7A4604; --on-accent:#FFFFFF;
+  --neon:#9E5B04;
+  --alert:#C42B1F; --alert-soft:#FCE7E4;
+  --warn:#8A6206;  --warn-soft:#FBEFC4;
+  --good:#1C6B3B;  --good-soft:#D9EFE1; --fire:#C42B1F;
+  --shadow:0 1px 2px rgba(31,36,48,.04), 0 12px 28px -12px rgba(31,36,48,.16);
+  --shadow-lg:0 2px 6px rgba(31,36,48,.05), 0 28px 52px -16px rgba(31,36,48,.22);
+  --shadow-brand:0 10px 24px -8px rgba(192,115,10,.42);
+  --glass:rgba(252,251,247,.82); --glass-line:rgba(31,36,48,.07);
+  --skel:rgba(31,36,48,.06); --skel-hi:rgba(31,36,48,.11);
+  --grad-brand:linear-gradient(135deg,#EE9A2E 0%,#C46A0A 100%);
+  --grad-hero:linear-gradient(150deg,#8A4B06 0%,#C0730A 100%);
+  --glow-scan:0 8px 20px -6px rgba(196,106,10,.55);
+  --pg:#EDEAE2; --pg-ink:#1F2430; --pg-muted:#6A6F7E;
+  --r-card:20px; --r-tile:14px; --frame:#2A2622;
+  /* ระยะแถบเมนูถึงขอบล่าง — ครึ่งหนึ่งของ safe area ก็พ้น home indicator แล้ว */
+  --tabgap:calc(6px + env(safe-area-inset-bottom) * .5);
+}
+
+/* ---------- โทน 2: มืด — ดำน้ำเงิน + ฟ้า ---------- */
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --scr:#0D1220; --card:#161E31; --card2:#202B44; --surface:#202B44;
+  --ink:#E9EDF5; --muted:#96A1B9; --faint:#8A94AB;
+  --line:rgba(255,255,255,.07);
+  --blue:#6FA8FF; --blue-soft:rgba(111,168,255,.15); --blue-deep:#A9C8FF; --on-accent:#0A1120;
+  --neon:#6FA8FF;
+  --alert:#FF8A80; --alert-soft:rgba(255,138,128,.14);
+  --warn:#E9B76B;  --warn-soft:rgba(233,183,107,.14);
+  --good:#5BDC93;  --good-soft:rgba(91,220,147,.14); --fire:#FF8A80;
+  --shadow:0 2px 6px rgba(0,0,0,.45), 0 16px 36px -14px rgba(0,0,0,.8);
+  --shadow-lg:0 4px 10px rgba(0,0,0,.5), 0 34px 64px -18px rgba(0,0,0,.9);
+  --shadow-brand:0 10px 26px -8px rgba(37,99,235,.55);
+  --glass:rgba(13,18,32,.78); --glass-line:rgba(255,255,255,.08);
+  --skel:rgba(255,255,255,.07); --skel-hi:rgba(255,255,255,.13);
+  --grad-brand:linear-gradient(135deg,#3B82F6 0%,#22D3EE 100%);
+  --grad-hero:linear-gradient(150deg,#101B36 0%,#1E3A8A 100%);
+  --glow-scan:0 8px 22px -6px rgba(56,189,248,.5);
+  --pg:#070A12; --pg-ink:#E9EDF5; --pg-muted:#96A1B9; --frame:#05070E;
+}
+
+/* ---------- โทน 3: อุ่น — ครีม/งาช้าง + ส้มอิฐ (เงาฟุ้ง มุมโค้งกว่า) ---------- */
+:root[data-theme="warm"]{
+  color-scheme:light;
+  --scr:#F6F0E3; --card:#FFFDF7; --card2:#EFE6D4; --surface:#EFE6D4;
+  --ink:#3B2F25; --muted:#7A6959; --faint:#857260;
+  --line:rgba(59,47,37,.10);
+  --blue:#B0532C; --blue-soft:#F7E6D9; --blue-deep:#8A3D1E; --on-accent:#FFFFFF;
+  --neon:#B0532C;
+  --alert:#B23A2B; --alert-soft:#F8E2DD;
+  --warn:#8A6206;  --warn-soft:#F8EFD3;
+  --good:#2F6B47;  --good-soft:#E0EDE2; --fire:#B23A2B;
+  /* เงาฟุ้ง: blur กว้าง opacity ต่ำ ให้ความรู้สึกละมุนแบบกระดาษ */
+  --shadow:0 3px 10px rgba(94,66,41,.07), 0 18px 40px -16px rgba(94,66,41,.22);
+  --shadow-lg:0 6px 18px rgba(94,66,41,.09), 0 34px 60px -18px rgba(94,66,41,.28);
+  --shadow-brand:0 12px 30px -10px rgba(176,83,44,.45);
+  --glass:rgba(246,240,227,.85); --glass-line:rgba(59,47,37,.08);
+  --skel:rgba(59,47,37,.07); --skel-hi:rgba(59,47,37,.12);
+  --grad-brand:linear-gradient(135deg,#C9663A 0%,#A34524 100%);
+  --grad-hero:linear-gradient(150deg,#6B3A22 0%,#A9542C 100%);
+  --glow-scan:0 10px 26px -6px rgba(176,83,44,.5);
+  --pg:#E8DDC8; --pg-ink:#3B2F25; --pg-muted:#7A6959;
+  --r-card:26px; --r-tile:18px; --frame:#4A3826;
+}
+
+/* ---------- โทน 4: อวกาศ — กรมท่า + ม่วง + เหลืองนีออนตัดขอบ ---------- */
+:root[data-theme="space"]{
+  color-scheme:dark;
+  --scr:#0A0E24; --card:#141A38; --card2:#1E2650; --surface:#1E2650;
+  --ink:#E9EBFA; --muted:#9BA2CC; --faint:#8D94BC;
+  --line:rgba(255,255,255,.09);
+  --blue:#9B8CFF; --blue-soft:rgba(155,140,255,.16); --blue-deep:#C4BCFF; --on-accent:#0B0F26;
+  --neon:#F5E663;
+  --alert:#FF7A94; --alert-soft:rgba(255,122,148,.15);
+  --warn:#F5E663;  --warn-soft:rgba(245,230,99,.14);
+  --good:#5ED0E8;  --good-soft:rgba(94,208,232,.14); --fire:#FF7A94;
+  --shadow:0 2px 8px rgba(0,0,0,.5), 0 18px 40px -14px rgba(0,0,0,.85);
+  --shadow-lg:0 4px 12px rgba(0,0,0,.55), 0 36px 66px -18px rgba(0,0,0,.95);
+  --shadow-brand:0 10px 28px -8px rgba(124,107,240,.6);
+  --glass:rgba(10,14,36,.8); --glass-line:rgba(245,230,99,.16);
+  --skel:rgba(255,255,255,.07); --skel-hi:rgba(255,255,255,.13);
+  --grad-brand:linear-gradient(135deg,#8F7BFF 0%,#5B4BD6 100%);
+  --grad-hero:linear-gradient(150deg,#2A2270 0%,#141A38 100%);
+  /* ปุ่มสแกนเรืองแสง: ขอบนีออนบาง + ฟุ้งม่วง + ฟุ้งเหลืองรอบนอก */
+  --glow-scan:0 0 0 1px rgba(245,230,99,.5), 0 8px 26px -4px rgba(124,107,240,.7),
+    0 0 30px -4px rgba(245,230,99,.3);
+  --pg:#05061A; --pg-ink:#E9EBFA; --pg-muted:#9BA2CC; --frame:#04061A;
+}
+
+/* ---------- ป้ายความสำคัญ: แดง/เหลือง/เขียว คงที่ทุกโทน ----------
+   ความหมายต้องไม่เปลี่ยนตามธีม — แดงคือทำเลย เหลืองคือเร็ว ๆ นี้ เขียวคือรอได้ */
+:root{
+  --pri-red:#E03A2F;    --pri-red-soft:#FBDDD9;   --pri-red-text:#A8281D;
+  --pri-yellow:#EFAE0B; --pri-yellow-soft:#FBEFC4; --pri-yellow-text:#8A6206;
+  --pri-green:#2C9C57;  --pri-green-soft:#D9EFE1;  --pri-green-text:#1C6B3B;
+}
+/* โทนมืด: พื้นป้ายเป็นสีโปร่ง ตัวอักษรสว่าง (พื้นพาสเทลกับตัวเข้มอ่านไม่ออกบนจอมืด) */
+:root[data-theme="dark"], :root[data-theme="space"]{
+  --pri-red-soft:rgba(255,107,124,.18);  --pri-red-text:#FF9AA6;
+  --pri-yellow-soft:rgba(240,185,10,.16); --pri-yellow-text:#F3C64B;
+  --pri-green-soft:rgba(52,211,153,.16);  --pri-green-text:#5BDC93;
+}
+
+*{margin:0; padding:0; box-sizing:border-box}
+html{background:var(--pg)}
+body{
+  font-family:"IBM Plex Sans Thai","Leelawadee UI","Noto Sans Thai",-apple-system,sans-serif;
+  background:var(--pg); color:var(--pg-ink); line-height:1.65;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+}
+
+/* ---------- stage (พื้นที่รอบมือถือ) ---------- */
+.stage{max-width:960px; margin:0 auto; padding:32px 16px 64px; display:flex; flex-direction:column; align-items:center; gap:18px}
+.stage-note{font-size:13px; color:var(--pg-muted); max-width:520px; text-align:center; line-height:1.7}
+
+/* ---------- phone frame ---------- */
+.phone{width:380px; max-width:100%; height:780px; background:var(--scr); border-radius:40px; border:10px solid var(--frame);
+  box-shadow:0 30px 70px -18px rgba(10,20,50,.42); overflow:hidden; position:relative; display:flex; flex-direction:column; color:var(--ink)}
+.statusbar{flex:none; display:flex; justify-content:space-between; padding:13px 26px 5px; font-size:12.5px; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums}
+.screens{flex:1; position:relative; overflow:hidden}
+/* padding ล่างต้องมากกว่าความสูง tab bar (~100px) ไม่งั้นปุ่มท้ายหน้าโดนบัง */
+.screen{position:absolute; inset:0; overflow-y:auto; padding:10px 20px 112px; display:none}
+.screen.on{display:block; animation:rise .3s ease}
+@keyframes rise{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none}}
+@media (prefers-reduced-motion: reduce){ .screen.on{animation:none} }
+
+/* ---------- typography scale ----------
+   contrast มาจาก size + weight + tracking (IBM Plex Sans Thai หนักสุด 700)
+   ถ้าต้องการ 800–900 จริง ให้เพิ่ม Noto Sans Thai เฉพาะ .big-title */
+.big-title{font-size:26px; font-weight:700; line-height:1.18; margin:16px 2px 2px; letter-spacing:-.032em; text-wrap:balance}
+.sub{font-size:13px; color:var(--muted); margin:6px 2px 22px; line-height:1.6; font-variant-numeric:tabular-nums}
+
+/* หัวข้อ + ปุ่มลูกศรกลม (ดูทั้งหมด) */
+/* แบบเต็มความกว้าง ใช้ท้ายรายการ * */
+
+/* ชิปกรองแบบเม็ดยา — เลือกอยู่ = สีแบรนด์ทึบ + เงาแบรนด์ */
+
+/* หัวโปรไฟล์ พื้นไล่เฉดสีแบรนด์ */
+
+/* ---------- cards ----------
+   ไม่มี border เลย — ความลึกมาจากเงาอย่างเดียว */
+.card{background:var(--card); border-radius:20px; box-shadow:var(--shadow); padding:16px 17px; margin-bottom:10px; border:none}
+.card:active{transform:none}
+.card.ai{background:var(--card); box-shadow:var(--shadow); border:none}
+.card h4{font-size:15.5px; font-weight:600; margin:0; letter-spacing:-.012em}
+
+/* ---------- Home: การ์ดงานหลัก (ตัวเดียวที่เด่น) ---------- */
+
+.hero .btn{margin:14px 20px 18px; width:auto; min-width:150px; margin-left:auto; box-shadow:var(--shadow-brand)}
+
+/* งานถัดไป — แถวเรียบ ๆ อ่านเร็ว */
+
+/* ---------- task card (Home Top 3) ---------- */
+.rank{width:24px; height:24px; flex:none; border-radius:8px; background:var(--card2); color:var(--faint); font-size:12.5px; font-weight:600; display:flex; align-items:center; justify-content:center; font-variant-numeric:tabular-nums; margin-top:1px}
+.rank.r1{background:var(--blue); color:var(--on-accent)}
+
+/* ป้ายระดับความสำคัญ — ใส่สีเฉพาะของด่วนจริง ที่เหลือเป็นกลาง */
+
+/* checkbox กลม — พื้นที่แตะจริง 44px, วงกลมที่เห็น 26px */
+.tcheck.on::before, .task-row.done .tcheck::before{background:var(--good); border-color:var(--good)}
+.tcheck.on::after, .task-row.done .tcheck::after{content:'✓'; color:#fff; font-size:13px; font-weight:700; position:absolute; inset:0; display:flex; align-items:center; justify-content:center}
+
+/* เมตาดาต้าย่อย */
+
+/* chips หน้ายืนยันผล AI (v1 ไม่มี rule ให้ class นี้ ตัวหนังสือจึงติดกันหมด) */
+.chip{display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600;
+  padding:5px 10px; border-radius:8px; background:var(--card2); color:var(--muted); white-space:nowrap}
+.chip.new{background:var(--good-soft); color:var(--good)}
+
+/* stars (ใช้ในฟอร์มเลือกดาว) */
+
+/* ---------- buttons ----------
+   ลำดับความสำคัญ 4 ระดับ · หนึ่งจอมีปุ่มทึบ (primary) ได้แค่ปุ่มเดียว */
+.btn{display:block; width:100%; min-height:50px; border:none; border-radius:16px; padding:14px 16px;
+  font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; text-align:center; letter-spacing:-.01em;
+  transition:transform .14s ease, background .16s, filter .16s}
+.btn + .btn, .btn + .paste-box{margin-top:9px}
+.btn:active{transform:scale(.98)}
+
+.btn.primary{background:var(--blue); color:var(--on-accent); box-shadow:var(--shadow-brand)}
+.btn.secondary{background:var(--blue-soft); color:var(--blue-deep)}
+.btn.ghost{background:var(--card2); color:var(--ink); border:none}
+.btn.text{background:transparent; color:var(--muted); font-weight:500; min-height:44px}
+.btn.sm{min-height:44px; padding:12px 15px; font-size:13.5px; border-radius:13px}
+
+/* ---------- tab bar: แคปซูลลอย · ทุกปุ่มสูงเท่ากัน 48px ตามไฟล์ออกแบบ ---------- */
+/* แถบเมนู: แคปซูลลอย เว้นขอบซ้าย-ขวาเท่ากัน
+   ห้ามตั้ง position ให้ .tabbar ที่อื่นอีก ไม่งั้น left/right จะเพี้ยนแล้วแถบล้นขอบ */
+.tabbar{position:absolute; left:14px; right:14px; bottom:var(--tabgap);
+  background:var(--glass); backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%);
+  border:1px solid var(--glass-line); border-radius:20px;
+  display:flex; align-items:center; padding:5px 6px; z-index:5;
+  box-shadow:var(--shadow-lg)}
+/* ทุกปุ่มโครงเดียวกันเป๊ะ: กล่องไอคอนสูง 22px + เว้น 3px + ตัวหนังสือ
+   ความสูงก้อนเท่ากันทุกปุ่ม แนวไอคอนกับแนวตัวหนังสือจึงตรงกันเองทั้งแถบ */
+.tab{flex:1; min-width:0; min-height:40px; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:3px; font-size:10px; font-weight:600; color:var(--muted);
+  background:none; cursor:pointer; border:none; font-family:inherit; border-radius:14px;
+  padding:4px 2px; transition:all .16s ease; -webkit-tap-highlight-color:transparent}
+.tab .ic{width:22px; height:22px; display:block; stroke-width:1.9}
+.tab.active{color:var(--blue-deep); background:var(--blue-soft)}
+.tab.active .ic{stroke-width:2.3}
+
+/* ปุ่มเพิ่มงาน: กล่องสูงเท่าไอคอนอื่นเป๊ะ แต่กว้างกว่าและมีพื้นสีแบรนด์
+   จึงเด่นสุดในแถบโดยไม่ทำให้แถบสูงขึ้นและไม่หลุดแนว */
+.tab.scan .scan-dot{width:40px; height:22px; border-radius:8px;
+  background:var(--grad-brand); color:#fff; box-shadow:var(--glow-scan);
+  display:flex; align-items:center; justify-content:center; transition:transform .16s ease}
+.tab.scan .scan-dot svg{width:15px; height:15px; stroke-width:2.2}
+.tab.scan{color:var(--blue-deep)}
+.tab.scan:active .scan-dot{transform:scale(.92)}
+
+/* ---------- scan screen ---------- */
+ 100%{top:12%}}
+@media (prefers-reduced-motion: reduce){ }
+.hint{text-align:center; font-size:12.5px; color:var(--faint); margin:6px 0 14px; line-height:1.6}
+.scan-status{text-align:center; font-size:14px; font-weight:600; color:var(--blue); min-height:24px; margin-top:12px}
+
+/* ---------- AI detect result rows ---------- */
+
+/* ---------- forms ---------- */
+.field input, .field select, .paste-box{
+  width:100%; border:none; border-radius:12px; padding:12px 13px; min-height:46px;
+  font-size:14.5px; font-weight:500; font-family:inherit; background:var(--card2); color:var(--ink);
+  transition:box-shadow .16s;
+}
+.field input:focus, .field select:focus, .paste-box:focus{outline:none; box-shadow:0 0 0 2px var(--blue)}
+.divider::before, .divider::after{content:''; flex:1; height:1px; background:var(--line)}
+label.btn{display:block}
+
+/* ---------- task rows (Assignments) ---------- */
+
+/* ---------- AI planner ---------- */
+.plan-body{flex:1}
+.plan-slot .plan-body.card{border-left:3px solid var(--blue)}
+.plan-slot.break .plan-body{background:var(--card2); border:none; border-radius:16px; padding:12px 15px;
+  font-size:13px; font-weight:500; color:var(--muted); display:flex; align-items:center; gap:9px}
+
+/* ---------- task progress % ---------- */
+input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:transparent}
+
+/* ---------- OCR progress ---------- */
+.ocr-bar{height:5px; background:var(--card2); border-radius:99px; margin:10px 0; overflow:hidden}
+.ocr-fill{height:100%; width:0; background:var(--blue); border-radius:99px; transition:width .3s}
+
+/* ---------- skeleton loader (ใช้แทน "Loading…" ตอน AI ประมวลผล) ----------
+   markup: <div class="skel-card"><div class="skel-row"><span class="skel-label"></span><span class="skel-bar"></span></div>…</div> */
+.skel-card{background:var(--card); border-radius:22px; box-shadow:var(--shadow); padding:18px; display:flex; flex-direction:column; gap:15px}
+.skel-row{display:flex; align-items:center; gap:13px}
+.skel-row:nth-child(2) .skel-bar{max-width:80%}
+.skel-row:nth-child(3) .skel-bar{max-width:42%}
+.skel-row:nth-child(4) .skel-bar{max-width:66%}
+.skel-row:nth-child(5) .skel-bar{max-width:34%}
+@keyframes shimmer{0%{background-position:-220px 0} 100%{background-position:220px 0}}
+@media (prefers-reduced-motion: reduce){ }
+
+/* ---------- splash: ฉากเปิดแอป ---------- */
+#splash{position:absolute; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+  background:radial-gradient(110% 70% at 50% 38%,#1F3F96 0%,#132A64 45%,#08122E 100%); transition:opacity .55s ease}
+#splash.hide{opacity:0; pointer-events:none}
+#splash.gone{display:none}
+.sp-glow{position:absolute; width:280px; height:280px; border-radius:50%;
+  background:radial-gradient(circle, rgba(124,152,232,.42), transparent 68%); animation:sp-glow 3.2s ease-in-out infinite}
+.sp-logo{width:118px; height:118px; border-radius:30px; box-shadow:0 22px 50px rgba(0,0,0,.55); animation:sp-pop .7s cubic-bezier(.2,.8,.3,1.25) both; position:relative}
+.sp-word{font-size:26px; font-weight:700; color:#fff; letter-spacing:-.034em; animation:sp-up .6s .28s ease both; position:relative}
+.sp-word span, .ai-blue{color:#A9BCF0}
+.sp-tag{font-size:13px; color:rgba(199,210,254,.72); animation:sp-up .6s .5s ease both; position:relative}
+.sp-star1{transform-box:fill-box; transform-origin:center; animation:sp-spark .5s .55s cubic-bezier(.2,.8,.3,1.4) both}
+@keyframes sp-pop{from{opacity:0; transform:scale(.55)} 62%{transform:scale(1.06)} to{opacity:1; transform:scale(1)}}
+@keyframes sp-spark{from{opacity:0; transform:scale(0) rotate(-90deg)} 70%{transform:scale(1.25) rotate(8deg)} to{opacity:1; transform:scale(1) rotate(0)}}
+@keyframes sp-up{from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none}}
+@keyframes sp-glow{0%,100%{opacity:.5; transform:scale(1)} 50%{opacity:.95; transform:scale(1.1)}}
+@media (prefers-reduced-motion: reduce){
+  .sp-logo,.sp-word,.sp-tag,.sp-star1,.sp-star2,.sp-glow{animation:none}
+}
+
+/* ---------- login (ธีมเข้มต่อเนื่องจาก splash) ---------- */
+#scr-login{background:radial-gradient(120% 80% at 50% 0%,#1E3A8A 0%,#122A63 40%,#08122E 100%)}
+#scr-login .big-title{color:#fff; font-size:30px; letter-spacing:-.036em}
+#scr-login .sub{color:rgba(199,210,254,.8); font-size:14px}
+#scr-login .hint{color:rgba(199,210,254,.5); font-size:11.5px; line-height:1.7}
+#scr-login.on{display:flex; align-items:center; justify-content:center;
+  padding-top:calc(env(safe-area-inset-top) + 8px); padding-bottom:calc(env(safe-area-inset-bottom) + 8px)}
+.login-wrap{display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; padding:20px 10px; width:100%}
+.login-mark{width:88px; height:88px; border-radius:24px; margin-bottom:6px; box-shadow:0 18px 44px rgba(0,0,0,.5)}
+.login-wrap .btn{width:100%; max-width:300px; min-height:54px; border-radius:17px}
+.btn.google{background:#fff; color:#0B1220; border:none; display:flex; align-items:center; justify-content:center; gap:11px;
+  box-shadow:0 12px 30px -8px rgba(0,0,0,.28)}
+#scr-login .btn.ghost{background:rgba(255,255,255,.05); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(169,188,240,.28); color:#BFD0F5}
+.g-badge{width:22px; height:22px; border-radius:50%; background:#fff; border:none; box-shadow:0 0 0 1px rgba(15,23,42,.12);
+  color:#4285F4; font-weight:700; font-size:12.5px; display:inline-flex; align-items:center; justify-content:center; flex:none}
+.login-mode .tabbar{display:none}
+/* จอล็อกอินเป็นพื้นเข้มทุกธีม — นาฬิกาบนสุดต้องสว่างตาม ไม่ใช่ตามสีตัวอักษรของธีม */
+.login-mode .statusbar{color:#E9EDF5}
+
+/* ---------- Voice input ---------- */
+.btn.voice{display:flex; align-items:center; justify-content:center; gap:11px; min-height:64px; border-radius:20px;
+  background:var(--grad-brand); color:#fff; box-shadow:var(--shadow-brand);
+  font-size:15.5px; letter-spacing:-.015em}
+.btn.voice .mic{font-size:19px; line-height:1}
+.btn.voice.rec{background:linear-gradient(135deg,#DB4C4C,#E8833A); box-shadow:0 10px 26px -8px rgba(219,76,76,.55)}
+.btn.voice.rec .mic{animation:mic-pulse 1s ease-in-out infinite}
+@keyframes mic-pulse{0%,100%{transform:scale(1); opacity:1} 50%{transform:scale(1.22); opacity:.6}}
+
+.voice-box{background:var(--card); border:none; box-shadow:var(--shadow); border-radius:20px; padding:16px 17px; margin-top:11px}
+.voice-text{font-size:15px; line-height:1.65; color:var(--ink); min-height:44px}
+.voice-text.dim{color:var(--muted); font-size:13.5px}
+.wave{display:flex; align-items:center; justify-content:center; gap:4px; height:22px; margin-bottom:8px}
+.wave i{width:4px; height:8px; border-radius:2px; background:var(--blue); display:block; animation:wave .9s ease-in-out infinite}
+.wave i:nth-child(2){animation-delay:.12s} .wave i:nth-child(3){animation-delay:.24s}
+.wave i:nth-child(4){animation-delay:.36s} .wave i:nth-child(5){animation-delay:.48s}
+@keyframes wave{0%,100%{height:8px; opacity:.45} 50%{height:20px; opacity:1}}
+.voice-box.idle .wave{display:none}
+@media (prefers-reduced-motion: reduce){ .wave i, .btn.voice.rec .mic{animation:none} }
+
+/* ---------- Install guide (iOS) ---------- */
+#installGuide{position:absolute; inset:0; z-index:80; display:flex; align-items:flex-end; justify-content:center;
+  background:rgba(10,16,32,.5); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px)}
+#installGuide[hidden]{display:none}
+#installGuide.show{animation:ig-fade .25s ease}
+@keyframes ig-fade{from{opacity:0} to{opacity:1}}
+.ig-sheet{width:100%; background:var(--card); border-radius:26px 26px 0 0; padding:24px 22px calc(24px + env(safe-area-inset-bottom));
+  box-shadow:0 -18px 50px rgba(0,0,0,.35); text-align:center}
+.ig-icon{width:64px; height:64px; margin:0 auto 14px}
+.ig-icon img{width:100%; height:100%; border-radius:20px; box-shadow:0 10px 24px rgba(0,0,0,.28)}
+.ig-title{font-size:19px; font-weight:700; margin-bottom:6px; letter-spacing:-.024em}
+.ig-sub{font-size:13px; color:var(--muted); margin:0 0 20px; line-height:1.6}
+.ig-step{display:flex; align-items:center; gap:12px; text-align:left; font-size:14px; line-height:1.45; padding:11px 4px; border-bottom:1px solid var(--line)}
+.ig-step:last-of-type{border-bottom:none; margin-bottom:18px}
+.ig-num{width:24px; height:24px; flex:none; border-radius:8px; background:var(--blue-soft); color:var(--blue-deep); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center}
+.ig-share{margin-left:auto; font-size:16px; flex:none}
+
+/* ---------- toast แจ้งเตือนในแอป (กระจก) ---------- */
+.toast{position:absolute; top:calc(env(safe-area-inset-top) + 14px); left:14px; right:14px;
+  background:var(--glass); backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%);
+  border:1px solid var(--glass-line); border-radius:20px;
+  box-shadow:var(--shadow-lg); padding:15px 16px; display:flex; gap:13px; align-items:center;
+  z-index:70; cursor:pointer; transform:translateY(-180%); transition:transform .55s cubic-bezier(.2,.9,.3,1.2)}
+.toast.show{transform:none}
+.toast .tav{width:44px; height:44px; flex:none; border-radius:14px; background:var(--grad-brand); padding:4px}
+.toast .tc{flex:1; min-width:0}
+.toast .tt{font-weight:700; font-size:14.5px; line-height:1.3; letter-spacing:-.015em}
+.toast .tb{font-size:12.5px; color:var(--muted); line-height:1.5; margin-top:2px}
+@media (prefers-reduced-motion: reduce){ .toast{transition:none} }
+
+/* ---------- empty state ---------- */
+.card.empty{text-align:center; color:var(--muted); font-size:14px; line-height:1.9; padding:34px 22px; background:var(--card); box-shadow:var(--shadow)}
+.card.empty b{color:var(--ink); font-weight:600}
+.card.empty .hint{margin:8px 0 0}
+
+.btn.danger{background:transparent; color:var(--alert); font-weight:500; min-height:46px}
+
+/* มือถือ/แท็บเล็ตจริง: เต็มจอเหมือนแอป — กรอบมือถือจำลองแสดงเฉพาะจอคอม */
+@media (max-width:768px){
+  html, body{height:100%; overscroll-behavior:none}
+  .stage{padding:0; gap:0; max-width:none}
+  .phone{
+    width:100%; max-width:none; height:100vh; height:100dvh;
+    border-radius:0; border:none; box-shadow:none;
+  }
+  .demo-bar, .stage-note, .statusbar{display:none}
+  .screen{padding-top:calc(10px + env(safe-area-inset-top)); padding-bottom:calc(88px + var(--tabgap))}
+  /* ไม่ใส่ padding-bottom ให้ .tabbar ที่นี่ — ตำแหน่ง bottom ของแคปซูลจัดการ
+     ระยะปลอดภัยอยู่แล้ว ถ้าใส่ซ้ำแคปซูลจะบวมมีที่ว่างด้านล่าง */
+}
+
+/* ---------- timeline ---------- */
+/* แถบสีเส้นเวลา — ไล่จากเข้มไปเรียบ ไม่ใช่คนละสี * */
+.tl-bar.hot, .tl-bar.lv5{background:var(--alert); opacity:1}
+
+.tl-bar.lv2, .tl-bar.lv1{background:var(--faint); opacity:.28}
+
+/* legend อธิบายสี — เหลือ 3 ระดับที่มีความหมายจริง */
+.legend{display:flex; flex-wrap:wrap; gap:10px 16px; font-size:11px; font-weight:500; color:var(--muted); margin:0 4px 18px}
+.legend span{display:flex; align-items:center; gap:6px}
+.legend .dot{width:7px; height:7px; border-radius:50%; display:inline-block}
+.dot.lv5{background:var(--alert)}
+.dot.lv4{background:var(--warn)}
+.dot.lv3{background:var(--faint)}
+
+/* ป้ายประเภท — เป็นกลางทั้งหมด ให้ไอคอนสื่อความหมายแทนสี */
+
+/* ปุ่มเลือกประเภทในฟอร์ม */
+.type-pick{display:grid; grid-template-columns:1fr 1fr; gap:9px}
+.tp{border:none; background:var(--card2); color:var(--muted); border-radius:13px;
+  min-height:46px; padding:8px 12px; font-size:13.5px; font-weight:600; font-family:inherit; cursor:pointer;
+  transition:transform .14s ease, background .16s, color .16s}
+.tp:active{transform:scale(.97)}
+.tp.active{background:var(--blue); border-color:transparent; color:var(--on-accent); box-shadow:var(--shadow-brand)}
+
+/* การ์ดกิจกรรมในแผนวันนี้ — พื้นจางบอกว่าเป็นหมุดเวลา ไม่ใช่ช่วงเวลาทำงาน */
+.plan-body.card.event{background:var(--card2); box-shadow:none; border:none; border-left:3px dashed var(--faint)}
+
+/* ปุ่มเลือกความสำคัญเอง */
+.star-pick{display:flex; gap:7px; flex-wrap:wrap}
+.sp{border:none; background:var(--card2); color:var(--muted); border-radius:11px;
+  min-height:44px; padding:8px 13px; font-size:12.5px; font-weight:600; font-family:inherit; cursor:pointer;
+  transition:transform .14s ease}
+.sp:active{transform:scale(.96)}
+.sp.sp-auto{font-size:12.5px}
+.sp.lv5.active{background:var(--alert); color:#fff}
+.sp.lv4.active{background:var(--warn); color:#fff}
+.sp.lv3.active{background:var(--pri-yellow); color:#fff}
+.sp.lv2.active{background:var(--blue); color:var(--on-accent)}
+.sp.lv1.active{background:var(--faint); color:#fff}
+.sp.sp-auto.active{background:var(--blue); color:var(--on-accent); box-shadow:var(--shadow-brand)}
+.tl-item .card{flex:1; padding:14px 15px; margin-bottom:10px}
+
+/* ============================================================
+   Home — โครงตามไฟล์ออกแบบ "StudentOS AI · Refined"
+   หัวติดบนพื้นกระจก · การ์ดงานหลักมีแถบสีบนสุด · ไอคอน Lucide
+   ============================================================ */
+.screen.flush{padding:0}                    /* หน้าแรกคุม padding เอง เ */
+
+.home-body{padding:20px 20px calc(88px + var(--tabgap)); display:flex; flex-direction:column; gap:28px}
+.home-body > section{display:flex; flex-direction:column; gap:10px}
+
+/* ป้ายหัวข้อพร้อมไอคอน */
+.eyebrow{display:flex; align-items:center; gap:7px; padding-left:2px;
+  font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--blue)}
+.eyebrow svg{width:13px; height:13px; flex:none}
+
+/* การ์ดงานหลัก */
+
+.hero-prog .fill{height:100%; border-radius:99px; background:var(--blue)}
+/* ปุ่มเดียวพอ — แตะที่การ์ดคือแก้ไขอยู่แล้ว ไม่ต้องมีปุ่มแก้ไขซ้ำ * */
+
+/* แถวงานถัดไป */
+.nbadge{font-size:10.5px; font-weight:600; padding:2.5px 8px; border-radius:7px; white-space:nowrap;
+  background:var(--card2); color:var(--muted)}
+.nbadge.lv5{background:var(--alert-soft); color:var(--alert)}
+.nbadge.lv4{background:var(--warn-soft); color:var(--warn)}
+.ndue{font-size:12px; font-weight:500; color:var(--muted); font-variant-numeric:tabular-nums}
+.ndue.hot{color:var(--alert)}
+
+/* การ์ดเข้าสู่แผนวันนี้ */
+.plan-card .tile{width:40px; height:40px; flex:none; border-radius:13px; background:var(--blue-soft);
+  color:var(--blue); display:flex; align-items:center; justify-content:center}
+.plan-card .tile svg{width:19px; height:19px}
+
+/* ---------- หัวจอแบบติดบน (ใช้ร่วมกันทุกหน้า) ---------- */
+.sticky-head{position:sticky; top:0; z-index:4;
+  background:var(--glass); backdrop-filter:blur(18px) saturate(180%); -webkit-backdrop-filter:blur(18px) saturate(180%);
+  border-bottom:1px solid var(--glass-line); padding:calc(14px + env(safe-area-inset-top)) 20px 12px}
+.sticky-head.row{display:flex; align-items:flex-end; justify-content:space-between; gap:12px}
+.sh-title{font-size:24px; font-weight:700; letter-spacing:-.032em; margin:0; line-height:1.15}
+.sh-sub{font-size:12px; color:var(--muted); margin:4px 0 0; font-variant-numeric:tabular-nums}
+.sh-btn{width:38px; height:38px; flex:none; border:none; border-radius:12px; background:var(--card);
+  box-shadow:var(--shadow); color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center}
+.sh-btn svg{width:18px; height:18px; transform:scaleX(-1)}
+.scr-body{padding:18px 20px calc(88px + var(--tabgap)); display:flex; flex-direction:column; gap:24px}
+
+/* ชิปกรองในหัวจอ */
+.sticky-head .filter-row{display:flex; gap:7px; overflow-x:auto; margin:11px -20px 0; padding:0 20px 2px}
+.sticky-head .fchip{flex:none; min-height:36px; padding:0 14px; border-radius:99px; border:none;
+  background:var(--card2); color:var(--muted); font-size:12.5px; font-weight:600; font-family:inherit;
+  cursor:pointer; white-space:nowrap; transition:transform .14s ease}
+.sticky-head .fchip:active{transform:scale(.96)}
+.sticky-head .fchip.active{background:var(--blue); color:var(--on-accent); box-shadow:var(--shadow-brand)}
+
+/* ---------- งานทั้งหมด ---------- */
+
+.trow .tt{font-size:14.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; letter-spacing:-.01em}
+.trow.done .tt{text-decoration:line-through; color:var(--muted)}
+.trow .tm{display:flex; align-items:center; gap:9px}
+
+/* ---------- เส้นเวลา ---------- */
+.tlg-head .dot{width:7px; height:7px; border-radius:50%; flex:none; background:var(--faint)}
+.tlg-head .dot.lv5{background:var(--alert)} .tlg-head .dot.lv4{background:var(--warn)}
+.tlg-head .nm{font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--faint)}
+.tlg-head .nm.hot{color:var(--alert)}
+.tlg-head .ln{flex:1; height:1px; background:var(--line)}
+.tlg-head .ct{font-size:11px; font-weight:600; color:var(--faint); font-variant-numeric:tabular-nums}
+
+.tli .tt{font-size:14.5px; font-weight:600; line-height:1.4; letter-spacing:-.01em}
+.tl-note{background:var(--card); border-radius:20px; box-shadow:var(--shadow); padding:16px; display:flex; gap:12px; align-items:flex-start}
+.tl-note .tile{width:32px; height:32px; flex:none; border-radius:11px; background:var(--blue-soft); color:var(--blue);
+  display:flex; align-items:center; justify-content:center}
+.tl-note .tile svg{width:16px; height:16px}
+.tl-note .lb{font-size:10.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin-bottom:4px}
+.tl-note .tx{font-size:13px; line-height:1.65; color:var(--ink)}
+
+/* ---------- แผนวันนี้ ---------- */
+.plan-body{gap:0; padding-top:20px}
+.pslot{display:flex; gap:14px; align-items:stretch; padding-bottom:12px}
+.pslot .ptime{width:46px; flex:none; display:flex; flex-direction:column; align-items:flex-end; padding-top:14px}
+.pslot .ptime .s{font-size:13px; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+.pslot .ptime .e{font-size:11px; font-weight:500; color:var(--faint); font-variant-numeric:tabular-nums}
+.pslot .brk{flex:1; border-radius:16px; background:var(--card2); padding:12px 15px; font-size:13px;
+  color:var(--muted); display:flex; align-items:center; gap:9px; font-weight:500}
+.pslot .brk svg{width:15px; height:15px}
+.pslot .work{flex:1; background:var(--card); border-radius:18px; box-shadow:var(--shadow); padding:14px 15px;
+  display:flex; flex-direction:column; gap:7px; border-left:3px solid var(--blue)}
+.pslot .work.lv5{border-left-color:var(--alert)} .pslot .work.lv4{border-left-color:var(--warn)}
+.pslot .work .tt{font-size:14.5px; font-weight:600; line-height:1.4; letter-spacing:-.01em}
+.pslot .work .nt{font-size:12px; color:var(--muted); line-height:1.55}
+.povf{display:flex; flex-direction:column; gap:10px; margin-top:14px}
+.povf-head{display:flex; align-items:center; gap:7px; padding-left:2px;
+  font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--warn)}
+.povf-head svg{width:13px; height:13px}
+.povf .it{background:var(--warn-soft); border-radius:18px; padding:14px 15px; display:flex; flex-direction:column; gap:4px}
+.povf .it .tt{font-size:14px; font-weight:600; letter-spacing:-.01em; color:var(--ink)}
+.povf .it .ln{font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums}
+
+/* ---------- ฉัน (โปรไฟล์) ---------- */
+.pf-body{padding-top:16px; gap:22px}
+.pf-hero{border-radius:26px; padding:22px 20px; position:relative; overflow:hidden; box-shadow:var(--shadow-brand);
+  background:var(--grad-hero)}
+.pf-hero .b1{position:absolute; right:-40px; top:-40px; width:150px; height:150px; border-radius:50%; background:rgba(255,255,255,.12)}
+.pf-hero .b2{position:absolute; right:22px; bottom:-58px; width:96px; height:96px; border-radius:50%; background:rgba(255,255,255,.08)}
+.pf-id{display:flex; align-items:center; gap:15px; position:relative}
+.pf-av{width:60px; height:60px; flex:none; border-radius:20px; background:rgba(255,255,255,.2);
+  border:1px solid rgba(255,255,255,.35); color:#fff; font-size:23px; font-weight:700;
+  display:flex; align-items:center; justify-content:center; letter-spacing:-.02em; overflow:hidden}
+.pf-av img{width:100%; height:100%; object-fit:cover}
+.pf-nm{font-size:20px; font-weight:700; line-height:1.2; letter-spacing:-.024em; color:#fff}
+.pf-sb{font-size:12px; opacity:.82; margin-top:3px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.pf-stats{display:flex; gap:22px; margin-top:18px; position:relative}
+.pf-stats .v{font-size:20px; font-weight:700; color:#fff; font-variant-numeric:tabular-nums; line-height:1}
+.pf-stats .k{font-size:10.5px; color:rgba(255,255,255,.75); margin-top:3px}
+.pf-stats .sep{width:1px; background:rgba(255,255,255,.2)}
+.pf-list{background:var(--card); border-radius:20px; box-shadow:var(--shadow); overflow:hidden}
+.pf-row{display:flex; align-items:center; gap:13px; padding:15px 16px; border-bottom:1px solid var(--line)}
+.pf-row:last-child{border-bottom:none}
+.pf-row .tile{width:36px; height:36px; flex:none; border-radius:12px; background:var(--blue-soft); color:var(--blue);
+  display:flex; align-items:center; justify-content:center}
+.pf-row .tile svg{width:17px; height:17px}
+.pf-row .bd{flex:1; min-width:0}
+.pf-row .lb{display:block; font-size:14px; font-weight:600; letter-spacing:-.01em}
+.pf-row .sb{display:block; font-size:12px; color:var(--muted); margin-top:2px}
+.pf-row input{width:80px; flex:none; text-align:right; border:none; background:var(--card2); border-radius:10px;
+  padding:8px 10px; font-size:13px; font-weight:600; font-family:inherit; color:var(--ink); min-height:38px}
+.pf-row input[type=text]{width:120px}
+.pf-row input:focus{outline:2px solid var(--blue); outline-offset:-2px}
+/* แถวที่ตัวควบคุมกว้างเกินจะวางข้างป้ายชื่อ — ให้ลงบรรทัดใหม่เต็มความกว้างแทน */
+.pf-row.col{flex-direction:column; align-items:stretch; gap:11px}
+.pf-row.col .hd{display:flex; align-items:center; gap:13px}
+/* สวิตช์แบบแบ่งช่อง — เลือกได้ทีละอัน เห็นตัวเลือกทั้งหมดพร้อมกัน * */
+
+.pf-quiet{width:100%; min-height:46px; border:none; border-radius:14px; background:transparent; color:var(--muted);
+  font-family:inherit; font-size:13.5px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:9px; padding:0 4px}
+.pf-quiet svg{width:16px; height:16px}
+.pf-quiet.danger{color:var(--alert)}
+
+/* ---------- หน้าเพิ่มงาน (โครง Refined) ---------- */
+.scan-body{padding-top:22px; gap:26px}
+.scan-h{font-size:27px; font-weight:700; line-height:1.15; letter-spacing:-.034em; margin:0}
+.scan-actions{display:flex; flex-direction:column; gap:12px}
+
+/* ปุ่มพูดใส่ไมค์ — ตัวเอกของหน้า */
+.voice-hero{width:100%; min-height:76px; border:none; border-radius:22px; color:#fff; font-family:inherit;
+  cursor:pointer; box-shadow:var(--shadow-brand); display:flex; align-items:center; gap:15px;
+  padding:0 18px; text-align:left; transition:transform .14s ease;
+  background:var(--grad-brand)}
+.voice-hero:active{transform:scale(.98)}
+.voice-hero.rec{background:linear-gradient(135deg,#B91C1C 0%,#DC2626 55%,#EA580C 100%)}
+.vh-ring{width:46px; height:46px; flex:none; border-radius:50%; background:rgba(255,255,255,.18);
+  display:flex; align-items:center; justify-content:center; position:relative}
+.vh-ring svg{width:21px; height:21px}
+.vh-ring .ring{position:absolute; inset:0; border-radius:50%; border:1.5px solid rgba(255,255,255,.5);
+  animation:pulse-ring 2.2s ease-out infinite}
+@keyframes pulse-ring{0%{transform:scale(1); opacity:.9} 70%{transform:scale(1.35); opacity:0} 100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){ .vh-ring .ring{animation:none} }
+.vh-txt{flex:1; min-width:0}
+.vh-txt .t{display:block; font-size:15.5px; font-weight:600; letter-spacing:-.015em}
+.vh-txt .s{display:block; font-size:12px; font-weight:400; opacity:.82; margin-top:2px}
+.vh-ch{width:18px; height:18px; flex:none; opacity:.85}
+
+/* สองปุ่มรูปภาพ */
+.scan-pair{display:flex; gap:12px}
+.scan-tile{flex:1; min-height:104px; border:none; border-radius:20px; background:var(--card);
+  box-shadow:var(--shadow); font-family:inherit; cursor:pointer; display:flex; flex-direction:column;
+  align-items:flex-start; justify-content:space-between; padding:15px; text-align:left; color:var(--ink);
+  transition:transform .16s ease}
+.scan-tile:active{transform:scale(.97)}
+.scan-tile .tile{width:38px; height:38px; border-radius:12px; background:var(--card2); color:var(--blue);
+  display:flex; align-items:center; justify-content:center}
+.scan-tile .tile svg{width:19px; height:19px}
+.scan-tile .lb{font-size:13.5px; font-weight:600; letter-spacing:-.01em}
+
+/* แปะข้อความ */
+.scan-paste{display:flex; flex-direction:column; gap:11px}
+.scan-paste .rule{display:flex; align-items:center; gap:12px; color:var(--faint);
+  font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase}
+.scan-paste .rule span{flex:1; height:1px; background:var(--line)}
+.paste-card{background:var(--card); border-radius:20px; box-shadow:var(--shadow); padding:15px 16px}
+.paste-card textarea{width:100%; border:none; background:transparent; color:var(--ink); font-family:inherit;
+  font-size:14px; line-height:1.65; resize:none; outline:none; padding:0}
+.pc-act{display:flex; justify-content:flex-end; margin-top:10px}
+.ai-read{min-height:44px; border:none; border-radius:13px; padding:0 18px; background:var(--blue-soft);
+  color:var(--blue-deep); font-family:inherit; font-size:13.5px; font-weight:600; cursor:pointer;
+  display:flex; align-items:center; gap:7px; transition:transform .14s ease}
+.ai-read:active{transform:scale(.96)}
+.ai-read svg{width:15px; height:15px}
+.manual{border:none; background:none; font-family:inherit; font-size:13px; font-weight:500; color:var(--muted);
+  cursor:pointer; min-height:44px; display:flex; align-items:center; justify-content:center; gap:7px}
+.manual svg{width:15px; height:15px}
+
+/* ---------- หน้ายืนยัน/แก้ไข (โครง Refined) ---------- */
+.form-body{padding-top:22px; gap:20px}
+.fm-ok{display:none; align-items:center; gap:6px; background:var(--good-soft); color:var(--good);
+  border-radius:8px; padding:4px 10px; font-size:11px; font-weight:600; letter-spacing:.02em}
+.fm-ok.show{display:inline-flex}
+.fm-ok svg{width:13px; height:13px}
+.fm-h{font-size:26px; font-weight:700; letter-spacing:-.032em; margin:11px 0 0; line-height:1.18}
+.fm-chips{display:flex; flex-wrap:wrap; gap:7px}
+.fm-chips .chip{display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600;
+  padding:5px 10px; border-radius:8px; background:var(--card2); color:var(--muted)}
+.fm-chips .chip.new{background:var(--good-soft); color:var(--good)}
+.fm-chips .chip svg{width:12px; height:12px}
+
+.fm-card{background:var(--card); border-radius:22px; box-shadow:var(--shadow);
+  padding:18px 18px 20px; display:flex; flex-direction:column; gap:18px}
+.fld{display:flex; flex-direction:column; gap:8px; flex:1; min-width:0}
+.fld > label{font-size:11px; font-weight:600; color:var(--faint); letter-spacing:.08em; text-transform:uppercase}
+.fld-head{display:flex; align-items:baseline; justify-content:space-between}
+.fld-head label{font-size:11px; font-weight:600; color:var(--faint); letter-spacing:.08em; text-transform:uppercase}
+.fld-head .val{font-size:13px; font-weight:600; color:var(--blue); font-variant-numeric:tabular-nums}
+.fld-row{display:flex; gap:12px}
+
+/* ช่องกรอกทั้งหมดหน้าตาเดียวกัน */
+.fm-card input[type=text], .fm-card input[type=number], .fm-card input[type=date],
+.fm-card input[type=time], .fm-card select{
+  background:var(--card2); border:none; border-radius:12px; min-height:46px; padding:0 13px;
+  font-size:14.5px; font-weight:500; font-family:inherit; color:var(--ink); width:100%;
+  font-variant-numeric:tabular-nums; -webkit-appearance:none; appearance:none}
+.fm-card select{background-image:none}
+.fm-card input:focus, .fm-card select:focus{outline:2px solid var(--blue); outline-offset:-2px}
+.fld-pair{display:flex; gap:8px}
+.fld-pair.accent input{background:var(--blue-soft); color:var(--blue-deep); font-weight:600}
+
+/* แถบเลื่อน */
+.fm-card input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:6px;
+  background:var(--card2); border-radius:99px; padding:0; min-height:0; outline:none}
+.fm-card input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px;
+  border-radius:50%; background:var(--card); box-shadow:0 2px 8px rgba(15,23,42,.2), 0 0 0 2px var(--blue); cursor:pointer}
+.fm-card input[type=range]::-moz-range-thumb{width:20px; height:20px; border:none; border-radius:50%;
+  background:var(--card); box-shadow:0 2px 8px rgba(15,23,42,.2), 0 0 0 2px var(--blue); cursor:pointer}
+
+/* เลือกประเภท 2x2 */
+.type-pick{display:grid; grid-template-columns:1fr 1fr; gap:9px}
+.tp{border:none; background:var(--card2); color:var(--muted); border-radius:13px; min-height:46px;
+  padding:8px 12px; font-size:13.5px; font-weight:600; font-family:inherit; cursor:pointer;
+  display:flex; align-items:center; gap:8px; transition:transform .14s ease}
+.tp svg{width:16px; height:16px; flex:none}
+.tp:active{transform:scale(.97)}
+.tp.active{background:var(--blue); color:var(--on-accent); box-shadow:var(--shadow-brand)}
+
+/* เลือกความสำคัญ */
+.star-pick{display:flex; gap:7px; flex-wrap:wrap}
+.sp{border:none; background:var(--card2); color:var(--muted); border-radius:11px; min-height:44px;
+  padding:0 13px; font-size:12.5px; font-weight:600; font-family:inherit; cursor:pointer;
+  display:flex; align-items:center; gap:6px}
+.sp.active{background:var(--blue); color:var(--on-accent); box-shadow:var(--shadow-brand)}
+
+.fm-save{width:100%; min-height:52px; border:none; border-radius:16px; background:var(--blue); color:var(--on-accent);
+  font-family:inherit; font-size:15px; font-weight:600; cursor:pointer; box-shadow:var(--shadow-brand);
+  letter-spacing:-.01em; transition:transform .14s ease}
+.fm-save:active{transform:scale(.98)}
+.fm-cancel{width:100%; min-height:44px; border:none; border-radius:14px; background:transparent;
+  color:var(--muted); font-family:inherit; font-size:13.5px; font-weight:500; cursor:pointer}
+
+/* ---------- AI กำลังอ่าน (skeleton) ---------- */
+.parse-body{padding-top:22px; gap:22px}
+.pr-head{display:flex; align-items:center; gap:8px}
+.pr-dot{width:26px; height:26px; border-radius:9px; background:var(--blue); color:var(--on-accent); flex:none;
+  display:flex; align-items:center; justify-content:center}
+.pr-dot svg{width:15px; height:15px}
+.pr-h{font-size:20px; font-weight:700; letter-spacing:-.028em; margin:0}
+.skel-card{background:var(--card); border-radius:22px; box-shadow:var(--shadow); padding:18px;
+  display:flex; flex-direction:column; gap:15px}
+.skel-row{display:flex; align-items:center; gap:13px}
+.skel-row .k{width:74px; flex:none; height:9px; border-radius:99px; background:var(--skel)}
+.skel-row .v{flex:1; height:15px; border-radius:8px; background-size:220px 100%;
+  background:linear-gradient(90deg,var(--skel) 0%,var(--skel-hi) 50%,var(--skel) 100%);
+  animation:shimmer 1.25s linear infinite}
+@media (prefers-reduced-motion: reduce){ .skel-row .v{animation:none} }
+.pr-steps{display:flex; flex-direction:column; gap:10px}
+.pr-step{display:flex; align-items:center; gap:10px; font-size:13px; font-weight:500; color:var(--faint)}
+.pr-step .dot{width:20px; height:20px; flex:none; border-radius:50%; background:var(--card2); color:var(--faint);
+  display:flex; align-items:center; justify-content:center}
+.pr-step .dot svg{width:12px; height:12px}
+.pr-step.on{color:var(--good)}
+.pr-step.on .dot{background:var(--good-soft); color:var(--good)}
+.pr-bar{height:5px; border-radius:99px; background:var(--card2); overflow:hidden}
+.pr-bar .fill{height:100%; border-radius:99px; background:var(--blue); transition:width .35s ease}
+.pr-go{border:none; background:none; font-family:inherit; font-size:13px; font-weight:600;
+  color:var(--blue); cursor:pointer; min-height:44px}
+
+/* ---------- หน้าแรกตอนเคลียร์หมด ---------- */
+.empty-wrap{display:flex; flex-direction:column; align-items:center; text-align:center; padding:26px 4px 0; gap:0}
+.empty-ring{width:104px; height:104px; border-radius:50%; background:var(--blue-soft); color:var(--blue);
+  display:flex; align-items:center; justify-content:center; margin-bottom:20px}
+.empty-ring svg{width:44px; height:44px; stroke-width:1.7}
+.empty-h{font-size:22px; font-weight:700; letter-spacing:-.026em; margin:0}
+.empty-p{font-size:13.5px; line-height:1.65; color:var(--muted); margin:9px 0 0; max-width:270px}
+.empty-cta{width:100%; min-height:52px; margin-top:18px; border:none; border-radius:16px; background:var(--blue);
+  color:#fff; font-family:inherit; font-size:15px; font-weight:600; cursor:pointer; box-shadow:var(--shadow-brand);
+  display:flex; align-items:center; justify-content:center; gap:8px; transition:transform .14s ease}
+.empty-cta:active{transform:scale(.98)}
+.empty-cta svg{width:18px; height:18px}
+
+/* ---------- แถวสถิติวันติดต่อกัน (ท้ายหน้าแรก) ---------- */
+
+.app-ver{font-size:11px; color:var(--faint); text-align:center; margin:2px 0 0; letter-spacing:.04em}
+
+/* ข้อความรองที่ว่างเปล่าไม่ควรกินที่ */
+.sh-sub:empty, .fm-p:empty, .sub:empty, .pf-row .sb:empty{display:none}
+
+/* ============================================================
+   หน้าตา v33 — โครงจาก studyplan-ui: หัวข้อเรียบ ๆ · การ์ดขอบบาง
+   · ป้ายไฮไลต์ 3 สี · ตัวเลขเป็น Space Mono
+   วางท้ายไฟล์เพื่อทับกฎรุ่นก่อนที่ยังค้างอยู่ในไฟล์เดียวกัน
+   ============================================================ */
+.mono{font-family:"Space Mono","IBM Plex Sans Thai",ui-monospace,monospace; font-variant-numeric:tabular-nums;
+  letter-spacing:-.01em}
+
+/* ---------- หัวหน้าจอ (ใช้ทุกจอ) ---------- */
+.page-head{padding:12px 2px 2px}
+.eyebrow{display:flex; align-items:center; gap:7px; font-size:11px; font-weight:600;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--faint)}
+.eyebrow svg{width:13px; height:13px; flex:none}
+.page-title{font-size:27px; font-weight:700; line-height:1.2; letter-spacing:-.03em;
+  color:var(--ink); margin:5px 0 0; text-wrap:balance}
+.page-sub{font-size:13px; color:var(--muted); margin:5px 0 0; line-height:1.55}
+.page-sub b{color:var(--ink); font-weight:600}
+.sec-label{font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--faint); margin:22px 2px 10px}
+
+/* ---------- ป้ายความสำคัญ (ทรงปากกาไฮไลต์) ---------- */
+.tag{display:inline-flex; align-items:center; padding:3px 10px 4px; font-size:11px; font-weight:700;
+  border-radius:4px 9px 4px 9px / 8px 4px 8px 4px; white-space:nowrap}
+.tag.red{background:var(--pri-red-soft); color:var(--pri-red-text)}
+.tag.yellow{background:var(--pri-yellow-soft); color:var(--pri-yellow-text)}
+.tag.green{background:var(--pri-green-soft); color:var(--pri-green-text)}
+
+/* ---------- การ์ดสรุปของ AI (หน้าแรก) ---------- */
+.brief{background:var(--grad-hero); border-radius:calc(var(--r-card) + 2px); padding:20px 18px;
+  color:#fff; position:relative; overflow:hidden; box-shadow:var(--shadow-brand); margin-top:16px}
+.brief::before{content:""; position:absolute; top:-70px; right:-56px; width:190px; height:190px;
+  border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,.17), transparent 70%)}
+.brief-head{display:flex; align-items:center; gap:10px; margin-bottom:13px; position:relative}
+.brief-mark{width:34px; height:34px; flex:none; border-radius:11px; background:rgba(255,255,255,.16);
+  border:1px solid rgba(255,255,255,.28); display:flex; align-items:center; justify-content:center}
+.brief-mark svg{width:17px; height:17px; color:#fff}
+.brief-head b{font-size:12px; font-weight:600; letter-spacing:.14em; color:rgba(255,255,255,.92)}
+.brief-body{font-size:13.5px; line-height:1.68; color:rgba(255,255,255,.84); position:relative; margin:0}
+.brief-body b{color:#fff; font-weight:600}
+.brief-cta{margin-top:16px; width:100%; min-height:44px; border:none; border-radius:999px;
+  background:rgba(255,255,255,.96); color:#1F2430; font-family:inherit; font-size:13.5px; font-weight:600;
+  cursor:pointer; position:relative; display:flex; align-items:center; justify-content:center; gap:8px;
+  box-shadow:0 6px 16px -6px rgba(0,0,0,.3); transition:transform .16s ease}
+.brief-cta svg{width:16px; height:16px}
+.brief-cta:active{transform:scale(.97)}
+
+/* ---------- การ์ดงานมีเลขลำดับ (หน้าแรก) ---------- */
+.rank-card{display:flex; gap:12px; align-items:flex-start; background:var(--card);
+  border:1px solid var(--line); border-radius:var(--r-card); padding:14px 14px 14px 13px;
+  margin-bottom:10px; box-shadow:var(--shadow); cursor:pointer; transition:transform .16s ease}
+.rank-card:active{transform:scale(.985)}
+.rank{width:25px; height:25px; flex:none; border-radius:8px; margin-top:2px;
+  font-family:"Space Mono","IBM Plex Sans Thai",monospace; font-size:12px; font-weight:700; color:#fff;
+  display:flex; align-items:center; justify-content:center}
+.rank.red{background:var(--pri-red)}
+.rank.yellow{background:var(--pri-yellow); color:var(--pri-yellow-text)}
+.rank.green{background:var(--pri-green)}
+.rc-body{flex:1; min-width:0}
+.rc-title{font-size:15px; font-weight:600; line-height:1.4; letter-spacing:-.015em; color:var(--ink);
+  margin:7px 0 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.rc-meta{display:flex; align-items:center; gap:7px; flex-wrap:wrap; font-size:11.5px; color:var(--muted)}
+.rc-meta .hot{color:var(--alert); font-weight:600}
+.msep{width:3px; height:3px; border-radius:50%; background:var(--faint); flex:none}
+.rc-check{width:30px; height:30px; flex:none; margin-top:1px; border-radius:50%;
+  border:1.5px solid var(--line); background:var(--card2); color:var(--muted); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; transition:all .18s ease}
+.rc-check svg{width:15px; height:15px}
+.rc-check:active{transform:scale(.9)}
+.rc-check.on{background:var(--pri-green); border-color:var(--pri-green); color:#fff}
+
+/* ปุ่มบาง ๆ ท้ายรายการ */
+.ghost-wide{width:100%; min-height:46px; margin-top:4px; border-radius:var(--r-tile);
+  border:1.5px dashed var(--line); background:transparent; color:var(--muted);
+  font-family:inherit; font-size:13.5px; font-weight:600; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:8px; transition:all .16s ease}
+.ghost-wide svg{width:15px; height:15px}
+.ghost-wide:active{transform:scale(.985); color:var(--blue)}
+
+/* ---------- หน้างาน: แท็บ 3 ช่อง + แถวงาน ---------- */
+.seg3{display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:4px; padding:4px;
+  background:var(--card2); border-radius:var(--r-tile); margin:16px 0}
+.seg3 button{border:none; background:transparent; color:var(--muted);
+  border-radius:calc(var(--r-tile) - 4px); min-height:36px; font-family:inherit; font-size:13px;
+  font-weight:600; cursor:pointer; transition:all .16s ease}
+.seg3 button:active{transform:scale(.97)}
+.seg3 button.active{background:var(--card); color:var(--ink); box-shadow:var(--shadow)}
+.seg3 .ct{font-family:"Space Mono","IBM Plex Sans Thai",monospace; font-size:11px; opacity:.75; margin-left:5px}
+
+.arow{display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--line);
+  border-radius:var(--r-tile); padding:12px 14px; margin-bottom:9px; transition:opacity .2s}
+.arow.done{opacity:.62}
+.chk{width:23px; height:23px; flex:none; border-radius:7px; border:2px solid var(--line);
+  background:transparent; cursor:pointer; padding:0; color:transparent;
+  display:flex; align-items:center; justify-content:center; transition:all .2s cubic-bezier(.34,1.56,.64,1)}
+.chk svg{width:14px; height:14px}
+.chk:active{transform:scale(.88)}
+.chk.on{background:var(--pri-green); border-color:var(--pri-green); color:#fff}
+.chk.pop{animation:chk-pop .42s cubic-bezier(.175,.885,.32,1.275)}
+@keyframes chk-pop{0%{transform:scale(1)} 45%{transform:scale(1.28)} 100%{transform:scale(1)}}
+.ab{flex:1; min-width:0; cursor:pointer}
+.at{font-size:14px; font-weight:500; color:var(--ink); line-height:1.45;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.arow.done .at{text-decoration:line-through; color:var(--muted)}
+.am{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:5px;
+  font-size:11.5px; color:var(--muted)}
+.am .hot{color:var(--alert); font-weight:600}
+
+/* ถังขยะ: ซ่อนไว้ท้ายรายการ กดเปิดดูเอง */
+.bin-btn{width:100%; min-height:44px; margin:18px 0 4px; border:none; border-radius:var(--r-tile);
+  background:var(--card2); color:var(--muted); font-family:inherit; font-size:13px; font-weight:600;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;
+  transition:transform .16s ease}
+.bin-btn svg{width:15px; height:15px}
+.bin-btn:active{transform:scale(.985)}
+.bin-head{display:flex; align-items:center; gap:10px; margin:14px 0 4px}
+.bin-head .back{width:36px; height:36px; flex:none; border-radius:12px; border:1px solid var(--line);
+  background:var(--card); color:var(--ink); cursor:pointer; display:flex; align-items:center;
+  justify-content:center}
+.bin-head .back svg{width:16px; height:16px; transform:rotate(180deg)}
+.bin-act{display:flex; gap:8px; flex:none}
+.bin-act button{min-height:34px; padding:0 12px; border-radius:10px; border:1px solid var(--line);
+  background:var(--card2); color:var(--ink); font-family:inherit; font-size:12px; font-weight:600;
+  cursor:pointer}
+.bin-act .del{color:var(--alert); border-color:transparent; background:var(--alert-soft)}
+.bin-note{font-size:11.5px; color:var(--faint); text-align:center; margin:14px 2px 0; line-height:1.6}
+
+/* ---------- เส้นเวลา: เวลาส่งอยู่ริมเส้น ---------- */
+.legend{display:flex; flex-wrap:wrap; gap:8px 14px; font-size:11px; font-weight:500;
+  color:var(--muted); margin:16px 2px 6px}
+.legend span{display:flex; align-items:center; gap:6px}
+.legend i{width:8px; height:8px; border-radius:50%; flex:none}
+.day-label{display:flex; align-items:center; gap:9px; margin:22px 0 10px;
+  font-size:11px; font-weight:700; letter-spacing:.08em; color:var(--blue)}
+.day-label .ln{flex:1; height:1px; background:var(--line)}
+.day-label .ct{font-family:"Space Mono","IBM Plex Sans Thai",monospace; font-size:11px; color:var(--faint)}
+.day-label.hot{color:var(--alert)}
+.tlrow{display:flex; gap:10px; align-items:stretch; margin-bottom:9px}
+.tltime{width:48px; flex:none; padding-top:12px; text-align:right;
+  font-family:"Space Mono","IBM Plex Sans Thai",monospace; font-size:11.5px; color:var(--muted); line-height:1.25}
+.tltime .d{display:block; font-size:9.5px; color:var(--faint); margin-top:3px}
+.tltime.hot{color:var(--alert); font-weight:700}
+.tlrail{width:3px; flex:none; border-radius:2px; background:var(--line)}
+.tlrail.red{background:var(--pri-red)}
+.tlrail.yellow{background:var(--pri-yellow)}
+.tlrail.green{background:var(--pri-green)}
+.tlcard{flex:1; min-width:0; background:var(--card); border:1px solid var(--line);
+  border-radius:var(--r-tile); padding:11px 13px; cursor:pointer; transition:transform .16s ease}
+.tlcard:active{transform:scale(.985)}
+.tltitle{font-size:14px; font-weight:600; color:var(--ink); line-height:1.4; margin-top:6px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.tlsub{font-size:11px; color:var(--muted); margin-top:3px}
+
+/* ---------- ตัวเลือกธีมในหน้าฉัน ---------- */
+.th-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.th-grid button{display:flex; align-items:center; gap:9px; padding:9px 11px; min-height:44px;
+  border:1.5px solid var(--line); border-radius:var(--r-tile); background:var(--card2);
+  color:var(--muted); font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer;
+  transition:all .16s ease}
+.th-grid button:active{transform:scale(.97)}
+.th-grid button.active{border-color:var(--blue); color:var(--ink); background:var(--blue-soft)}
+.th-grid .th-sys{grid-column:span 2}
+.th-grid .sw{width:22px; height:22px; flex:none; border-radius:7px; border:1px solid var(--line)}
+.sw-light{background:linear-gradient(135deg,#FFFFFF 48%,#EE9A2E 48%)}
+.sw-dark{background:linear-gradient(135deg,#0D1220 48%,#6FA8FF 48%)}
+.sw-warm{background:linear-gradient(135deg,#F6F0E3 48%,#B0532C 48%)}
+.sw-space{background:linear-gradient(135deg,#0A0E24 42%,#7C6BF0 42%,#7C6BF0 74%,#F5E663 74%)}
+.sw-system{background:linear-gradient(135deg,#FCFBF7 0%,#FCFBF7 46%,#0D1220 54%,#0D1220 100%)}
+
+/* ---------- เอฟเฟกต์ฉลองตอนเช็คงานเสร็จ ---------- */
+.particle{position:absolute; width:8px; height:8px; border-radius:2px; pointer-events:none; z-index:40}
+
+/* ---------- ชั้นดาว: เฉพาะโทนอวกาศ ---------- */
+.starfield{display:none}
+:root[data-theme="space"] .starfield{display:block; position:absolute; inset:0; z-index:0;
+  pointer-events:none; overflow:hidden}
+:root[data-theme="space"] .starfield i{position:absolute; left:0; right:0; top:-10%; bottom:-10%;
+  display:block; background-repeat:repeat-y; background-size:100% 700px;
+  animation:star-drift 90s linear infinite, star-twinkle 5.5s ease-in-out infinite}
+.starfield i:nth-child(1){opacity:.85; background-image:
+  radial-gradient(1.4px 1.4px at 22px 34px,#fff 100%,transparent),
+  radial-gradient(1px 1px at 92px 82px,#C4BCFF 100%,transparent),
+  radial-gradient(1.4px 1.4px at 162px 152px,#fff 100%,transparent),
+  radial-gradient(1px 1px at 58px 206px,#F5E663 100%,transparent),
+  radial-gradient(1.4px 1.4px at 224px 262px,#fff 100%,transparent)}
+.starfield i:nth-child(2){opacity:.7; animation-duration:130s, 7s; animation-delay:0s, -2s;
+  background-image:
+  radial-gradient(1px 1px at 300px 62px,#fff 100%,transparent),
+  radial-gradient(1.2px 1.2px at 338px 342px,#C4BCFF 100%,transparent),
+  radial-gradient(1px 1px at 42px 420px,#fff 100%,transparent),
+  radial-gradient(1.4px 1.4px at 252px 482px,#F5E663 100%,transparent)}
+.starfield i:nth-child(3){opacity:.55; animation-duration:170s, 9s; animation-delay:0s, -4s;
+  background-image:
+  radial-gradient(1px 1px at 122px 560px,#fff 100%,transparent),
+  radial-gradient(1.3px 1.3px at 350px 622px,#C4BCFF 100%,transparent),
+  radial-gradient(1px 1px at 180px 660px,#fff 100%,transparent)}
+@keyframes star-drift{from{transform:translateY(0)} to{transform:translateY(-700px)}}
+@keyframes star-twinkle{0%,100%{filter:brightness(1)} 50%{filter:brightness(1.7)}}
+@media (prefers-reduced-motion: reduce){
+  :root[data-theme="space"] .starfield i{animation:none}
+}
+/* เนื้อหาต้องอยู่เหนือชั้นดาว — แตะเฉพาะ statusbar เท่านั้น
+   (.screens เป็น relative อยู่แล้ว ส่วน .tabbar เป็น absolute + z-index:5 อยู่แล้ว
+   ถ้าเผลอตั้ง position ให้มันซ้ำ แถบจะหลุดจาก left/right แล้วล้นขอบขวา) */
+.statusbar{position:relative; z-index:1}
+.screens{z-index:1}
+
+/* ---------- ปรับโครงเดิมให้เข้ากับหน้าตา v33 ---------- */
+/* .screen คุม padding ให้แล้ว กล่องเนื้อหาจึงไม่ต้องเว้นซ้อนอีก */
+.home-body{padding:0; display:block}
+.rc-title{white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical}
+.tl-note{margin-top:22px; border:1px solid var(--line)}
+.card, .card.empty{border:1px solid var(--line); border-radius:var(--r-card)}
+/* ปุ่มลบในหน้าแก้ไขงาน — เงียบ ๆ ไม่แย่งความสนใจจากปุ่มบันทึก */
+.fm-del{width:100%; min-height:44px; border:none; border-radius:var(--r-tile); background:transparent;
+  color:var(--alert); font-family:inherit; font-size:13.5px; font-weight:600; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:8px; transition:transform .16s ease}
+.fm-del svg{width:16px; height:16px}
+.fm-del:active{transform:scale(.98); background:var(--alert-soft)}
+/* ซ่อนแถบเลื่อนบนจอคอม — บนมือถือไม่มีอยู่แล้ว */
+.screen{scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}

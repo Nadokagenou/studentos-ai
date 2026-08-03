@@ -1,0 +1,371 @@
+/* ============================================================
+   StudentOS AI — ALT overlay
+   ใช้เฉพาะบิลด์ ALT (รุ่นทดลองฟีเจอร์) — โหลดต่อจาก style.css
+   หน้าที่เดียว: ทำให้ "รู้ทันทีว่านี่คือตัวทดลอง ไม่ใช่ตัวจริง"
+   ไม่แตะ layout เดิมเลย เพื่อให้สลับ/อัปเดต style.css ได้อิสระ
+   ============================================================ */
+
+/* ป้าย ALT มุมขวาบนของตัวเครื่อง — ลอยเหนือทุกจอ แต่ไม่รับคลิก */
+.alt-badge {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 90;
+  pointer-events: none;
+  font: 700 10px/1 'Space Mono', ui-monospace, monospace;
+  letter-spacing: .14em;
+  padding: 5px 8px 4px;
+  border-radius: 6px;
+  color: #0B1220;
+  background: linear-gradient(135deg, #FACC15, #F59E0B);
+  box-shadow: 0 2px 10px rgba(245, 158, 11, .45);
+}
+
+/* บรรทัดบอกรุ่นในหน้า login */
+.alt-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted, #64748B);
+  text-align: center;
+}
+.alt-note b { color: var(--warn, #B5730E); letter-spacing: .04em; }
+
+/* คำว่า ALT บนฉากเปิดแอป */
+.sp-alt {
+  margin: 6px 0 2px;
+  font: 700 11px/1 'Space Mono', ui-monospace, monospace;
+  letter-spacing: .22em;
+  color: #FACC15;
+  opacity: .9;
+}
+
+/* ============================================================
+   ปัดการ์ดงานในหน้าแรก (ฟีเจอร์เฉพาะ ALT)
+   ปัดขวา = ทำเสร็จ · ปัดซ้าย = เลื่อนไปพรุ่งนี้
+   โครง: .swipe (กรอบอยู่กับที่) > .sw-act สองชั้นซ้อนอยู่ล่าง + .rank-card ทับอยู่บน
+   การ์ดทึบแสง ชั้นล่างจึงโผล่มาเองตอนการ์ดเลื่อนหนี ไม่ต้องสั่งซ่อน/แสดง
+   ============================================================ */
+.swipe {
+  position: relative;
+  margin-bottom: 10px;
+  border-radius: var(--r-card, 18px);
+}
+
+/* ชั้นปุ่มที่ซ่อนอยู่ใต้การ์ด — JS ค่อย ๆ เพิ่ม opacity ตามระยะที่ปัด */
+.sw-act {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 20px;
+  border-radius: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  transition: opacity .12s linear;
+}
+.sw-act .sw-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .25);
+  transition: transform .18s cubic-bezier(.2, .9, .3, 1.4);
+}
+.sw-act svg { width: 15px; height: 15px; }
+.sw-act.done   { justify-content: flex-start; background: var(--pri-green, #1A8047); color: #fff; }
+.sw-act.snooze { justify-content: flex-end; background: var(--pri-yellow, #E9A93C); color: var(--pri-yellow-text, #6B4708); }
+.sw-act.snooze .sw-ic { background: rgba(0, 0, 0, .12); }
+/* ปัดถึงระยะที่ปล่อยแล้วทำงานจริง — เด้งไอคอนให้รู้ตัวโดยไม่ต้องอ่าน */
+.swipe.armed .sw-act .sw-ic { transform: scale(1.22); }
+
+/* การ์ดที่ปัดได้ */
+.swipe .rank-card {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 0;
+  /* pan-y = แนวตั้งยกให้เบราว์เซอร์เลื่อนจอ แนวนอนเราเอาไว้ปัดเอง */
+  touch-action: pan-y;
+  transition: transform .26s cubic-bezier(.2, .9, .3, 1.1);
+}
+/* ระหว่างนิ้วยังจับอยู่ ต้องไม่มี transition ไม่งั้นการ์ดตามนิ้วไม่ทัน */
+.swipe.sw-live .rank-card { transition: none; }
+.swipe.sw-live .rank-card:active { transform: none; }
+/* ปัดสำเร็จ — การ์ดไหลออกนอกจอแล้วจางหาย */
+.swipe.sw-out { opacity: 0; transition: opacity .22s ease .04s; }
+.swipe.sw-out .rank-card { transition: transform .22s cubic-bezier(.4, 0, 1, 1); }
+
+/* ---------- ป้าย "เลื่อน" ข้างป้ายความสำคัญ ---------- */
+.rc-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tag.snoozed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--pri-yellow-soft, #FDF3E3);
+  color: var(--pri-yellow-text, #8A5A05);
+  box-shadow: inset 0 0 0 1px var(--pri-yellow, #E9A93C);
+}
+.tag.snoozed svg { width: 12px; height: 12px; }
+/* ในแถวของหน้า "งาน" ป้ายอยู่บรรทัดเดียวกับกำหนดส่ง — เว้นหายใจให้หน่อย */
+.am .tag.snoozed { margin-left: 2px; }
+
+/* หัวข้อกลุ่มงานที่เลื่อนไว้ — เบากว่าหัวข้อหลัก เพราะไม่ใช่สิ่งที่ต้องทำก่อน */
+.sec-label.soft {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--pri-yellow-text, #8A5A05);
+  opacity: .85;
+}
+.sec-label.soft svg { width: 13px; height: 13px; }
+
+/* ---------- วันที่ไม่มีงานค้าง ---------- */
+.empty-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 16px 0 0;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--good-soft, #E7F6EC);
+  color: var(--good, #1A8047);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.empty-stat b { font-weight: 700; }
+.empty-stat svg { width: 14px; height: 14px; }
+.empty-2nd {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  padding: 8px 6px;
+  border: none;
+  background: transparent;
+  color: var(--muted, #64748B);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.empty-2nd svg { width: 14px; height: 14px; }
+.empty-2nd:active { transform: scale(.97); color: var(--blue, #1D4ED8); }
+
+/* คำใบ้ว่าปัดได้ — วางเหนือการ์ดใบแรก */
+.sw-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: -4px 4px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--faint, #94A3B8);
+}
+.sw-hint span { display: inline-flex; align-items: center; gap: 3px; }
+.sw-hint svg { width: 13px; height: 13px; }
+.sw-hint .l svg { transform: rotate(180deg); }
+
+/* ปุ่มเลิกทำใน toast */
+.toast .tu {
+  flex: none;
+  align-self: center;
+  border: 1px solid var(--line, rgba(15, 23, 42, .12));
+  background: var(--card2, #F1F5F9);
+  color: var(--blue, #1D4ED8);
+  border-radius: 999px;
+  padding: 7px 13px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.toast .tu:active { transform: scale(.95); }
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe .rank-card, .sw-act, .sw-act .sw-ic { transition: none; }
+}
+
+/* ============================================================
+   ฉากเปิดแอป: แถบ + เปอร์เซ็นต์จริง
+   ============================================================ */
+.sp-load {
+  width: 224px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 10px;
+  position: relative;
+  animation: sp-up .6s .62s ease both;
+}
+.sp-bar {
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, .15);
+  overflow: hidden;
+}
+.sp-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #60A5FA, #22D3EE);
+  transition: width .18s linear;
+}
+.sp-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  color: rgba(199, 210, 254, .62);
+}
+.sp-step { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-pct {
+  flex: none;
+  font-family: 'Space Mono', ui-monospace, monospace;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   หน้าทำความรู้จัก (ครั้งแรกที่เปิดแอป)
+   ============================================================ */
+.ob-body {
+  min-height: 100%;
+  justify-content: center;
+  padding-top: 26px;
+  gap: 22px;
+}
+.ob-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 7px;
+}
+.ob-mark {
+  width: 62px;
+  height: 62px;
+  border-radius: 19px;
+  margin-bottom: 4px;
+  box-shadow: var(--shadow-lg, 0 18px 40px rgba(15, 23, 42, .25));
+}
+.ob-eyebrow {
+  font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: .06em;
+  color: var(--faint, #94A3B8);
+}
+.ob-h { margin: 0; font-size: 25px; font-weight: 700; letter-spacing: -.032em; color: var(--ink); }
+.ob-p { margin: 0; max-width: 285px; font-size: 13.5px; line-height: 1.65; color: var(--muted); }
+
+.ob-card {
+  background: var(--card);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  padding: 18px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+/* ช่องกรอกหน้าตาเดียวกับฟอร์มหลัก (style.css คุมไว้เฉพาะ .fm-card) */
+.ob-card input[type=text] {
+  background: var(--card2); border: none; border-radius: 12px; min-height: 48px; padding: 0 13px;
+  font-size: 15px; font-weight: 500; font-family: inherit; color: var(--ink); width: 100%;
+  -webkit-appearance: none; appearance: none;
+}
+.ob-card input[type=text]:focus { outline: 2px solid var(--blue); outline-offset: -2px; }
+.ob-card input[type=text].bad { outline: 2px solid var(--alert); animation: ob-shake .38s ease; }
+@keyframes ob-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+.ob-err { font-size: 12px; font-weight: 600; color: var(--alert); }
+.ob-card input[type=range] {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 6px;
+  background: var(--card2); border-radius: 99px; padding: 0; min-height: 0; outline: none;
+}
+.ob-card input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--card); box-shadow: 0 2px 8px rgba(15, 23, 42, .2), 0 0 0 2px var(--blue); cursor: pointer;
+}
+.ob-card input[type=range]::-moz-range-thumb {
+  width: 20px; height: 20px; border: none; border-radius: 50%;
+  background: var(--card); box-shadow: 0 2px 8px rgba(15, 23, 42, .2), 0 0 0 2px var(--blue); cursor: pointer;
+}
+
+.ob-quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ob-quick button {
+  border: none; background: var(--card2); color: var(--muted); border-radius: 12px; min-height: 40px;
+  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: transform .14s ease, background .14s ease, color .14s ease;
+}
+.ob-quick button:active { transform: scale(.96); }
+.ob-quick button.on {
+  background: var(--blue-soft); color: var(--blue-deep);
+  box-shadow: inset 0 0 0 1.5px var(--blue);
+}
+.ob-note { margin: 2px 0 0; font-size: 11.5px; line-height: 1.6; color: var(--faint); }
+.ob-act { display: flex; flex-direction: column; gap: 8px; }
+
+/* ฉาก "ยินดีที่ได้รู้จัก ___" */
+.ob-welcome {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: var(--scr);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 30px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity .35s ease;
+}
+.ob-welcome[hidden] { display: none; }
+.ob-welcome.on { opacity: 1; }
+.obw-ring {
+  width: 96px; height: 96px; border-radius: 50%;
+  background: var(--blue-soft); color: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 8px;
+}
+.obw-ring svg { width: 40px; height: 40px; }
+.ob-welcome.on .obw-ring { animation: obw-pop .6s cubic-bezier(.2, .8, .3, 1.4) both; }
+@keyframes obw-pop { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.obw-h { font-size: 15.5px; color: var(--muted); }
+.obw-name {
+  font-size: 30px; font-weight: 700; letter-spacing: -.034em; color: var(--blue-deep);
+  line-height: 1.25; word-break: break-word; max-width: 100%;
+}
+.obw-p { margin: 8px 0 0; max-width: 280px; font-size: 13.5px; line-height: 1.7; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-load, .ob-welcome.on .obw-ring, .ob-card input[type=text].bad { animation: none; }
+  .sp-bar i, .ob-welcome { transition: none; }
+}
+
+/* หมายเหตุใต้ตัวเครื่อง (เห็นเฉพาะตอนเปิดบนจอคอม) */
+.stage-note .alt-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  margin-right: 4px;
+  border-radius: 5px;
+  background: #FACC15;
+  color: #0B1220;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+.stage-note code {
+  font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: .92em;
+}
