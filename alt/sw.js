@@ -1,7 +1,7 @@
 // StudentOS AI — Service Worker  ·  *** เวอร์ชัน ALT (SANDBOX) ***
 // กลยุทธ์: network-first (ได้เวอร์ชันใหม่เสมอเมื่อมีเน็ต) + cache fallback (เปิด offline ได้)
 // ALT ใช้ชื่อ cache คนละตัวกับตัวจริง — สลับไปมาระหว่างสองรุ่นแล้วไฟล์ไม่ปนกัน
-const CACHE = 'studentos-alt-1a5';   // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
+const CACHE = 'studentos-alt-1a6';   // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
 const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'engine.js', 'app.js', 'config.js', 'manifest.json', 'icon-192.png', 'icon-512.png', 'logo-mark.png'];
 
 self.addEventListener('install', e => {

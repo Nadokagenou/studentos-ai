@@ -1,4 +1,4 @@
-# StudentOS **ALT** Version 1A5 (Sandbox)
+# StudentOS **ALT** Version 1A6 (Sandbox)
 
 > บิลด์นี้ **ไม่ใช่ตัวที่ปล่อยจริง** — เป็นรุ่นไว้ทดลองฟีเจอร์ใหม่
 > ตัวจริงอยู่ที่ https://nadokagenou.github.io/studentos-ai/
@@ -22,13 +22,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "serve-alt.ps1"
 
 | จุด | ตัวจริง | ALT |
 |---|---|---|
-| `APP_VERSION` (app.js) | `v35` | `1A5` + `APP_CHANNEL = 'ALT'` (สายเลขของตัวเอง) |
+| `APP_VERSION` (app.js) | `v35` | `1A6` + `APP_CHANNEL = 'ALT'` (สายเลขของตัวเอง) |
 | ข้อมูลใน localStorage | `studentos.v1` | `studentos.alt.v1` |
 | ธีม / skipLogin / installGuide | `studentos.*` | `studentos.alt.*` |
-| service worker cache (sw.js) | `studentos-v35` | `studentos-alt-1a5` (ขึ้นเลขทุกครั้งที่ปล่อย) |
+| service worker cache (sw.js) | `studentos-v35` | `studentos-alt-1a6` (ขึ้นเลขทุกครั้งที่ปล่อย) |
 | ชื่อใน manifest.json | StudentOS AI | StudentOS AI · ALT |
 | `<title>` + meta | ปกติ | + `robots: noindex` (กันโดน index ปนตัวจริง) |
-| ป้ายบนหน้าจอ | — | ป้าย `ALT` มุมขวาบน · บรรทัดบอกรุ่นในหน้า login · คำว่า ALT บน splash · หมายเหตุใต้เครื่อง |
+| ป้ายบนหน้าจอ | — | ป้ายเลขเวอร์ชันมุมขวาบน (ดึงจาก `APP_VERSION`) · บรรทัดบอกรุ่นในหน้า login · คำว่า ALT บน splash · หมายเหตุใต้เครื่อง |
 
 **สำคัญ:** คีย์ localStorage แยกกันหมด → เล่นฟีเจอร์ใน ALT ยังไงก็ไม่กระทบข้อมูลของตัวจริง
 (กลับกัน ALT ก็ไม่เห็นงานที่เคยเพิ่มไว้ในตัวจริง — กด "โหลดข้อมูลตัวอย่าง" ในแท็บ **ฉัน** ได้)
@@ -148,7 +148,7 @@ CSS เป็นคนตัดสินว่าธีมไหนใช้ช�
 
 - `alt.css` — หน้าตาและฟีเจอร์ใหม่ทั้งหมดของ ALT แยกไฟล์ไว้ ไม่แตะ `style.css` เดิม
   จะสลับไปใช้ `style.css` ตัว v2 (drop-in) ของโฟลเดอร์แม่เมื่อไหร่ก็ได้ ไม่ต้องรื้อ
-- `PATCHNOTES.md` — ประวัติการอัปเดตแต่ละเวอร์ชัน (ล่าสุด **Ver.1A5**)
+- `PATCHNOTES.md` — ประวัติการอัปเดตแต่ละเวอร์ชัน (ล่าสุด **Ver.1A6**)
 - `README-ALT.md` — ไฟล์นี้
 
 ## ต่อจากนี้ (ที่ตั้งใจจะทดลอง)

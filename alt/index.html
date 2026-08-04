@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="google-site-verification" content="EL8HSk9rzF6WS9GYcfkFaYwxf00p2PzEKganiKXzDh0" />
-  <title>StudentOS ALT Version 1A5 — รุ่นทดลองฟีเจอร์ (Sandbox)</title>
-  <meta name="description" content="StudentOS ALT Version 1A5 — บิลด์ทดลองฟีเจอร์ แยกข้อมูลจากตัวจริง ไม่ใช่รุ่นที่ใช้งานจริง">
+  <title>StudentOS ALT Version 1A6 — รุ่นทดลองฟีเจอร์ (Sandbox)</title>
+  <meta name="description" content="StudentOS ALT Version 1A6 — บิลด์ทดลองฟีเจอร์ แยกข้อมูลจากตัวจริง ไม่ใช่รุ่นที่ใช้งานจริง">
   <!-- ALT = บิลด์ทดลอง ไม่ควรถูก index ปนกับตัวจริงบน GitHub Pages -->
   <meta name="robots" content="noindex, nofollow">
 
   <meta property="og:type" content="website">
-  <meta property="og:title" content="StudentOS ALT Version 1A5 — รุ่นทดลองฟีเจอร์">
+  <meta property="og:title" content="StudentOS ALT Version 1A6 — รุ่นทดลองฟีเจอร์">
   <meta property="og:description" content="AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงาน จัดลำดับความสำคัญพร้อมเหตุผล">
   <meta property="og:url" content="https://nadokagenou.github.io/studentos-ai/">
   <meta property="og:image" content="https://nadokagenou.github.io/studentos-ai/icon-512.png">
@@ -133,8 +133,8 @@
     <!-- ALT: พื้นหลังภาพของผู้ใช้เอง (ตั้งในแท็บ "ฉัน") — ม่านหรี่ทับให้ตัวหนังสืออ่านออก -->
     <div class="userbg" id="userBg" aria-hidden="true"><span class="ub-veil"></span></div>
     <div class="statusbar"><span id="clock">--:--</span><span>📶 🔋</span></div>
-    <!-- ALT: ป้ายบอกรุ่นบนตัวเครื่อง — กันสับสนว่ากำลังเปิดตัวจริงหรือตัวทดลองอยู่ -->
-    <div class="alt-badge" title="บิลด์ทดลองฟีเจอร์ · ข้อมูลแยกจากตัวจริง">ALT</div>
+    <!-- ALT: ป้ายบอกรุ่นบนตัวเครื่อง — โชว์เลขเวอร์ชัน (app.js เขียนทับจาก APP_VERSION ตอนเปิด) -->
+    <div class="alt-badge" id="altBadge" title="StudentOS ALT · บิลด์ทดลองฟีเจอร์ ข้อมูลแยกจากตัวจริง">1A6</div>
     <div class="screens">
 
       <!-- ============ SCREEN: LOGIN ============ -->
@@ -143,7 +143,7 @@
           <img class="login-mark" src="logo-mark.png" alt="StudentOS AI">
           <div class="big-title" style="margin:0">StudentOS <span class="ai-blue">AI</span></div>
           <p class="sub" style="margin:0 0 6px">รู้ว่าต้องทำอะไรก่อน เสมอ</p>
-          <p class="alt-note" style="margin:0 0 16px">StudentOS <b>ALT</b> Version <b>1A5</b> · รุ่นทดลองฟีเจอร์ — ข้อมูลแยกจากตัวจริง</p>
+          <p class="alt-note" style="margin:0 0 16px">StudentOS <b>ALT</b> Version <b>1A6</b> · รุ่นทดลองฟีเจอร์ — ข้อมูลแยกจากตัวจริง</p>
           <button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>
           <button class="btn ghost" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>
           <p class="hint">ล็อกอินแล้วข้อมูลจะซิงก์ข้ามเครื่อง</p>
@@ -157,7 +157,6 @@
         <div class="scr-body ob-body">
           <div class="ob-head">
             <img class="ob-mark" src="logo-mark.png" alt="">
-            <div class="ob-eyebrow">ตั้งค่าครั้งเดียว · ใช้เวลา 20 วินาที</div>
             <h2 class="ob-h">ขอรู้จักกันหน่อย</h2>
             <p class="ob-p">บอกแค่ 2 อย่าง แล้ว AI จะจัดแผนให้ตรงกับเวลาที่มีจริง</p>
           </div>
@@ -252,6 +251,31 @@
             </div>
             <button class="manual" onclick="openForm(null)">
               <svg viewBox="0 0 24 24"><use href="#lu-type"/></svg>พิมพ์เพิ่มเองทีละช่อง</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: ครอบกรอบก่อนอ่าน (ALT) ============ -->
+      <!-- ตัดหัวกระดาษ/เลขหน้า/ขอบโต๊ะออกก่อนส่งเข้า OCR — ได้ผลพอ ๆ กับการปรับภาพเลย
+           เพราะ parser ไม่ต้องไปเจอคำอื่นก่อนคำที่ใช่ -->
+      <div class="screen flush" id="scr-crop">
+        <div class="scr-body crop-body">
+          <div>
+            <h2 class="scan-h">ครอบเฉพาะส่วนที่เป็นโจทย์</h2>
+          </div>
+          <div class="crop-stage" id="cropStage">
+            <img id="cropImg" alt="">
+            <div class="crop-shade" id="cropShade"></div>
+            <div class="crop-box" id="cropBox">
+              <span class="h tl"></span><span class="h tr"></span>
+              <span class="h bl"></span><span class="h br"></span>
+            </div>
+          </div>
+          <p class="crop-hint" id="cropHint">ลากในรูปเพื่อวาดกรอบใหม่ · ลากมุมเพื่อปรับขนาด</p>
+          <div class="crop-act">
+            <button class="fm-save" onclick="confirmCrop(false)">อ่านเฉพาะกรอบนี้</button>
+            <button class="fm-cancel" onclick="confirmCrop(true)">อ่านทั้งรูป</button>
+            <button class="fm-cancel" onclick="cancelCrop()">ยกเลิก</button>
           </div>
         </div>
       </div>
@@ -548,7 +572,7 @@
       <div class="sp-glow"></div>
       <img class="sp-logo" src="logo-mark.png" alt="StudentOS AI">
       <div class="sp-word">StudentOS <span>AI</span></div>
-      <div class="sp-alt">ALT · VERSION 1A5</div>
+      <div class="sp-alt">ALT · VERSION 1A6</div>
       <div class="sp-tag">รู้ว่าต้องทำอะไรก่อน เสมอ</div>
       <!-- ALT: เปอร์เซ็นต์จริง — เดินตามงานที่โหลดเสร็จจริง ไม่ใช่แถบหลอกตา -->
       <div class="sp-load">
@@ -562,7 +586,7 @@
   </div>
 
   <p class="stage-note">
-    <b class="alt-tag">StudentOS ALT Version 1A5</b> — บิลด์ไว้ทดลองฟีเจอร์ใหม่ ไม่ใช่ตัวที่ปล่อยจริง ·
+    <b class="alt-tag">StudentOS ALT Version 1A6</b> — บิลด์ไว้ทดลองฟีเจอร์ใหม่ ไม่ใช่ตัวที่ปล่อยจริง ·
     เก็บข้อมูลแยกจากตัวจริงด้วยคีย์ <code>studentos.alt.*</code> ใน localStorage<br>
     StudentOS AI — Scan รูปใช้ OCR ในเบราว์เซอร์ ·
     การจัดลำดับคำนวณจาก deadline × คะแนน × ขนาดงาน พร้อมเหตุผลกำกับทุกงาน

@@ -7,7 +7,7 @@
 //   - service worker ใช้ cache คนละชื่อ
 // ============================================================
 
-const APP_VERSION = '1A5';                 // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
+const APP_VERSION = '1A6';                 // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
 const APP_CHANNEL = 'ALT';                 // ป้ายกำกับรุ่น — โชว์ทั้งบนแอปและในหน้า "ฉัน"
 const STORE_KEY = 'studentos.alt.v1';      // ALT: แยกที่เก็บข้อมูลจากตัวจริง ('studentos.v1')
 const APP_T0 = performance.now(); // ใช้คุมเวลาโชว์ splash ขั้นต่ำ
@@ -404,8 +404,8 @@ function renderHome() {
 
   body.innerHTML = head + briefCard(pending, now)
     + `<div class="sec-label">ลำดับที่ AI แนะนำ</div>`
-    + `<div class="sw-hint"><span class="l">${icon('chevron')}เลื่อนพรุ่งนี้</span>
-        <span class="r">ทำเสร็จ${icon('chevron')}</span></div>`
+    + `<div class="sw-hint"><span class="l">ทำเสร็จ${icon('chevron')}</span>
+        <span class="r">${icon('chevron')}เลื่อนพรุ่งนี้</span></div>`
     + top.map((t, i) => rankCard(t, i + 1, now)).join('')
     + (snoozed.length ? `<div class="sec-label soft">${icon('clock')}เลื่อนไว้ — ยังอยู่ในแผน</div>`
         + snoozed.map(t => rankCard(t, pending.indexOf(t) + 1, now)).join('') : '')
@@ -761,7 +761,7 @@ function renderTimeline() {
   const head = `<div class="page-head">
       <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
       <h1 class="page-title">เส้นทาง${who() ? 'ของ' + esc(who()) : 'ของวันนี้'}</h1>
-      <p class="page-sub">ป้ายจอด <b>${dated.length}</b> งาน · หมุดของคุณขยับตามเวลาจริง</p>
+      <p class="page-sub">ป้ายจอด <b>${dated.length}</b> งาน</p>
     </div>`;
 
   if (!dated.length) {
@@ -878,8 +878,7 @@ function renderTimeline() {
           <span class="me-dot"></span><span class="me-lb mono">ตอนนี้ ${fmtClock(now)}</span>
         </div>
       </div>
-    </div>
-    <p class="jr-hint">ปัดซ้าย–ขวาเพื่อดูทั้งเส้นทาง · แตะป้ายเพื่อเปิดงานนั้น</p>`
+    </div>`
     + extras + note;
 
   syncJourneyNow();
@@ -1179,15 +1178,22 @@ function openForm(id, parsed) {
   if (parsed) {
     title.textContent = 'ตรวจก่อนบันทึก';
     const d = parsed.detected;
-    const fields = [[d.type,'ประเภท'],[d.subject,'วิชา'],[d.teacher,'ครูผู้สั่ง'],[d.due,'กำหนดส่ง'],[d.score,'คะแนน'],[d.est,'เวลาที่ใช้']];
+    // วิชาที่ได้จากการเดา (รูปเบลอจน AI ต้องประมาณ) ต้องบอกให้รู้ว่าเป็นการเดา
+    const fields = [[d.type,'ประเภท'],[d.subject, d.subjectFuzzy ? 'วิชา (เดา)' : 'วิชา'],
+      [d.teacher,'ครูผู้สั่ง'],[d.due,'กำหนดส่ง'],[d.score,'คะแนน'],[d.est,'เวลาที่ใช้']];
     const got = fields.filter(f => f[0]);
     const miss = fields.filter(f => !f[0]);
     chips.innerHTML = got.map(f => `<span class="chip new">${icon('check')}${esc(f[1])}</span>`).join('')
       + (miss.length ? `<span class="chip">อีก ${miss.length} ช่องเติมเอง</span>` : '');
     if (okBadge) {
-      okBadge.className = 'fm-ok show';
-      okBadge.innerHTML = `${icon('check-circle')}AI อ่านได้ ${got.length} จาก ${fields.length} ช่อง`;
+      // ALT: ถ้ามาจากรูปแล้ว OCR ไม่ค่อยมั่นใจ ให้ป้ายเปลี่ยนโทนเป็นเตือน แทนที่จะบอกว่าสำเร็จเฉย ๆ
+      const shaky = lastOcrConfidence != null && lastOcrConfidence < OCR_CONF_OK;
+      okBadge.className = 'fm-ok show' + (shaky ? ' shaky' : '');
+      okBadge.innerHTML = shaky
+        ? `${icon('flame')}อ่านจากรูปได้ ${got.length} จาก ${fields.length} ช่อง · มั่นใจ ${lastOcrConfidence}% — ตรวจให้ดีก่อนบันทึก`
+        : `${icon('check-circle')}AI อ่านได้ ${got.length} จาก ${fields.length} ช่อง`;
     }
+    lastOcrConfidence = null; // ใช้ครั้งเดียวต่อการสแกน ไม่ให้ค้างไปเตือนงานที่พิมพ์เอง
     t = parsed;
   } else if (t) {
     title.textContent = 'แก้ไขงาน';
@@ -1202,6 +1208,15 @@ function openForm(id, parsed) {
   // ปุ่มลบมีความหมายเฉพาะกับงานที่บันทึกไว้แล้ว
   const del = document.getElementById('fmDel');
   if (del) del.hidden = !(id && state.tasks.some(x => x.id === id));
+
+  // ALT: ช่องที่ค่ามาจากคำที่ OCR ไม่มั่นใจ ตีกรอบเตือนไว้ให้ตรวจก่อนบันทึก
+  document.querySelectorAll('#scr-form .fld.unsure').forEach(el => el.classList.remove('unsure'));
+  const unsureIds = { subject: 'fSubject', teacher: 'fTeacher', detail: 'fDetail' };
+  for (const key of (parsed && parsed._low) || []) {
+    const el = document.getElementById(unsureIds[key]);
+    const fld = el && el.closest('.fld');
+    if (fld) fld.classList.add('unsure');
+  }
 
   setTypePick(t ? taskType(t) : 'homework');
   setStarPick(t?.userStars || 0);
@@ -1281,7 +1296,10 @@ function deleteFromForm() {
 // ให้ผู้ใช้เห็นว่าระบบกำลังทำงานอยู่ แทนที่จะกระโดดเข้าฟอร์มทันที
 let parsedPending = null;
 function runParsing(text, source) {
-  parsedPending = parseAssignment(text);
+  // เฉพาะข้อความจากรูปเท่านั้นที่ให้ parser เดาคำที่เพี้ยน — ที่พิมพ์เองถือว่าถูกอยู่แล้ว
+  parsedPending = parseAssignment(text, new Date(), { fuzzy: source === 'ocr' });
+  if (source !== 'ocr') lastOcrLowWords = [];
+  parsedPending._low = source === 'ocr' ? fieldsToDoubleCheck(parsedPending) : [];
   const p = parsedPending.detected || {};
   const steps = [
     { on: true,  label: `อ่านตัวหนังสือครบ ${text.trim().length} ตัวอักษร` },
@@ -1407,6 +1425,10 @@ function scanFromText() {
 // ตัวไลบรารีกับ core/worker/lang ที่โหลดตามมา ซึ่งเป็นสาเหตุ OCR ค้าง/พังเงียบบนมือถือ
 const TESSERACT_VER = '5.1.1';
 const TESSERACT_BASE = `https://cdn.jsdelivr.net/npm/tesseract.js@${TESSERACT_VER}/dist/`;
+// โมเดลภาษามี 3 ระดับ: _fast (เล็ก/เร็ว) · 4.0.0 (มาตรฐาน) · _best (float LSTM แม่นสุด/ไฟล์ใหญ่สุด)
+// ALT ตั้งเป็น _best เพราะภาษาไทยต่างกันชัด — โหลดครั้งแรกนานขึ้น แล้วเบราว์เซอร์แคชไว้
+// สลับกลับเป็น '.../4.0.0' ได้ทันทีถ้าวัดแล้วไม่คุ้มกับเวลาที่เสียไป
+const TESSERACT_LANG = 'https://tessdata.projectnaptha.com/4.0.0_best';
 let tesseractReady = null;
 function loadTesseract() {
   if (tesseractReady) return tesseractReady;
@@ -1427,44 +1449,378 @@ function withTimeout(promise, ms, label) {
   ]);
 }
 
+// ============================================================
+// ALT: เตรียมภาพก่อนส่งเข้า OCR
+// ------------------------------------------------------------
+// เดิมส่งไฟล์จากกล้องเข้า Tesseract ตรง ๆ ซึ่งเป็นจุดที่เสียความแม่นมากที่สุด:
+// รูปมือถือใหญ่ 4000px (ตัวอักษรใหญ่เกินจนโมเดลเสียรายละเอียด) แสงไม่เท่ากันทั้งแผ่น
+// มีเงามือ และกระดาษไม่ขาวจริง — Tesseract ชอบตัวอักษรสูง ~30–40px บนพื้นขาวดำคม
+//
+// ท่อใหม่: หมุนตาม EXIF → ปรับขนาดให้พอดี → เทา → ยืด contrast → Sauvola (ไบนารีแบบดูเฉพาะถิ่น)
+// Sauvola ดูค่าเฉลี่ยกับส่วนเบี่ยงเบนของ "หน้าต่างรอบจุดนั้น" ไม่ใช่ทั้งภาพ
+// เงาหรือแสงเอียงจึงไม่ทำให้ครึ่งแผ่นดำทั้งแถบเหมือน threshold ค่าเดียวทั้งภาพ
+// ============================================================
+const OCR_MAX_LONG = 1800;  // ใหญ่กว่านี้ไม่ได้แม่นขึ้น มีแต่ช้าลง
+const OCR_MIN_LONG = 1200;  // ภาพเล็ก (แคปหน้าจอ) ขยายขึ้นก่อน ตัวอักษรจะได้หนาพอให้โมเดลจับขอบได้
+
+async function ocrLoadBitmap(file) {
+  // from-image = หมุนตาม EXIF ให้เอง รูปแนวตั้งจากมือถือจะได้ไม่เข้ามาเป็นแนวนอน
+  if (window.createImageBitmap) {
+    try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (_) {}
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    return await new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => res(img);
+      img.onerror = () => rej(new Error('เปิดไฟล์ภาพไม่ได้'));
+      img.src = url;
+    });
+  } finally { setTimeout(() => URL.revokeObjectURL(url), 5000); }
+}
+
+// เทา + ยืด contrast ด้วยเปอร์เซ็นไทล์ (ตัดหัวท้าย 2% กันจุดสว่าง/จุดดำหลุด ๆ ลากค่าไปทั้งภาพ)
+function ocrToGray(img) {
+  const long = Math.max(img.width, img.height);
+  const scale = long > OCR_MAX_LONG ? OCR_MAX_LONG / long
+    : long < OCR_MIN_LONG ? OCR_MIN_LONG / long : 1;
+  const w = Math.max(1, Math.round(img.width * scale));
+  const h = Math.max(1, Math.round(img.height * scale));
+
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, w, h);
+
+  const id = ctx.getImageData(0, 0, w, h);
+  const px = id.data;
+  const gray = new Uint8ClampedArray(w * h);
+  const hist = new Uint32Array(256);
+  for (let i = 0, g = 0; i < px.length; i += 4, g++) {
+    const v = (px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114) | 0;
+    gray[g] = v;
+    hist[v]++;
+  }
+  // เปอร์เซ็นไทล์ต้องเล็กพอ: ใบงานทั่วไปมีหมึกแค่ 1–3% ของพื้นที่
+  // ถ้าตัดที่ 2% ขอบล่างจะไปตกอยู่ในกองพิกเซลสีขาว → lo กับ hi เท่ากัน → ยืดแล้วดำทั้งภาพ
+  const total = w * h, cut = Math.max(1, total * 0.004);
+  let lo = 0, hi = 255, acc = 0;
+  for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc > cut) { lo = v; break; } }
+  acc = 0;
+  for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc > cut) { hi = v; break; } }
+  // กันเหนียวอีกชั้น: ช่วงแคบผิดปกติ = เปอร์เซ็นไทล์ยุบ ไม่ต้องยืดเลยดีกว่ายืดผิด
+  if (hi - lo < 24) { lo = 0; hi = 255; }
+  const range = Math.max(1, hi - lo);
+  for (let g = 0; g < gray.length; g++) {
+    gray[g] = Math.max(0, Math.min(255, ((gray[g] - lo) * 255) / range));
+  }
+  return { canvas: c, ctx, id, gray, w, h };
+}
+
+function ocrGrayToCanvas(prep) {
+  const { ctx, id, gray, w, h } = prep;
+  for (let g = 0, i = 0; g < gray.length; g++, i += 4) {
+    id.data[i] = id.data[i + 1] = id.data[i + 2] = gray[g];
+    id.data[i + 3] = 255;
+  }
+  ctx.putImageData(id, 0, 0);
+  return prep.canvas;
+}
+
+// Sauvola: threshold ของแต่ละจุด = mean * (1 + k * (sd / 128 - 1))
+// ใช้ integral image เพื่อคิด mean/sd ของหน้าต่างในเวลาคงที่ ไม่งั้นภาพ 1800px ค้างเป็นวินาที
+function ocrBinarize(prep) {
+  const { gray, w, h } = prep;
+  const win = Math.max(15, ((Math.max(w, h) / 28) | 0) | 1); // เลขคี่เสมอ ~1/28 ของด้านยาว
+  const r = win >> 1, k = 0.3, R = 128;
+
+  const sum = new Float64Array((w + 1) * (h + 1));
+  const sqs = new Float64Array((w + 1) * (h + 1));
+  for (let y = 1; y <= h; y++) {
+    let rs = 0, rq = 0;
+    for (let x = 1; x <= w; x++) {
+      const v = gray[(y - 1) * w + (x - 1)];
+      rs += v; rq += v * v;
+      sum[y * (w + 1) + x] = sum[(y - 1) * (w + 1) + x] + rs;
+      sqs[y * (w + 1) + x] = sqs[(y - 1) * (w + 1) + x] + rq;
+    }
+  }
+  const out = new Uint8ClampedArray(w * h);
+  for (let y = 0; y < h; y++) {
+    const y0 = Math.max(0, y - r), y1 = Math.min(h - 1, y + r);
+    for (let x = 0; x < w; x++) {
+      const x0 = Math.max(0, x - r), x1 = Math.min(w - 1, x + r);
+      const a = y0 * (w + 1) + x0, b = y0 * (w + 1) + (x1 + 1);
+      const c2 = (y1 + 1) * (w + 1) + x0, d = (y1 + 1) * (w + 1) + (x1 + 1);
+      const n = (x1 - x0 + 1) * (y1 - y0 + 1);
+      const s = sum[d] - sum[b] - sum[c2] + sum[a];
+      const q = sqs[d] - sqs[b] - sqs[c2] + sqs[a];
+      const mean = s / n;
+      const sd = Math.sqrt(Math.max(0, q / n - mean * mean));
+      const th = mean * (1 + k * (sd / R - 1));
+      out[y * w + x] = gray[y * w + x] > th ? 255 : 0;
+    }
+  }
+  return { ...prep, gray: out };
+}
+
+// ---------- worker ใช้ซ้ำ ----------
+// เดิมสร้าง worker ใหม่แล้วทิ้งทุกครั้งที่สแกน — สแกนติดกันหลายใบเสียเวลา init ซ้ำทุกใบ
+let ocrWorker = null, ocrProgress = null;
+
+async function getOcrWorker() {
+  if (ocrWorker) return ocrWorker;
+  await withTimeout(loadTesseract(), 30_000, 'โหลดไลบรารี OCR');
+  const w = await withTimeout(
+    Tesseract.createWorker('tha+eng', 1, {   // 1 = LSTM อย่างเดียว
+      workerPath: TESSERACT_BASE + 'worker.min.js',
+      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd.wasm.js',
+      langPath: TESSERACT_LANG,
+      logger: m => { if (ocrProgress) ocrProgress(m); },
+    }),
+    60_000, 'เตรียมเครื่องมือ OCR'
+  );
+  // PSM 6 = มองทั้งรูปเป็นบล็อกข้อความก้อนเดียว
+  // ค่าเริ่มต้น (PSM 3) พยายามแบ่งคอลัมน์เอง เจอใบงานที่มีตาราง/หัวกระดาษแล้วแบ่งผิด อ่านสลับคอลัมน์
+  await w.setParameters({
+    tessedit_pageseg_mode: '6',
+    preserve_interword_spaces: '1',
+  });
+  ocrWorker = w;
+  return w;
+}
+
+// ค่าความมั่นใจที่ Tesseract คืนมา (0–100) — เก็บไว้ให้หน้า "ตรวจก่อนบันทึก" เตือนผู้ใช้
+let lastOcrConfidence = null;
+const OCR_CONF_OK = 70;    // สูงกว่านี้ = เชื่อได้ตามปกติ
+const OCR_CONF_MIN = 45;   // ต่ำกว่านี้ = อ่านมั่ว บอกให้ถ่ายใหม่ดีกว่าปล่อยข้อความเพี้ยนเข้าฟอร์ม
+const OCR_WORD_CUT = 62;   // คำที่ต่ำกว่านี้ = ไม่ควรเชื่อทั้งช่องที่มันไปโผล่
+// ขอผลแบบมีบล็อก เพื่อเอา confidence ราย "คำ" มาชี้ว่าช่องไหนในฟอร์มควรถูกตรวจ
+const OCR_OUTPUT = { text: true, blocks: true };
+let lastOcrLowWords = [];
+
+// คำที่ Tesseract อ่านมาแบบไม่มั่นใจ — ไล่จาก blocks → ย่อหน้า → บรรทัด → คำ
+function collectLowWords(data) {
+  const out = [];
+  for (const b of (data.blocks || [])) {
+    for (const p of (b.paragraphs || [])) {
+      for (const l of (p.lines || [])) {
+        for (const w of (l.words || [])) {
+          const t = (w.text || '').trim();
+          if (t.length >= 2 && (w.confidence ?? 100) < OCR_WORD_CUT) out.push(t);
+        }
+      }
+    }
+  }
+  return out;
+}
+
+// ช่องไหนในฟอร์มที่ค่าของมันมาจากคำที่ OCR ไม่มั่นใจ
+// หมายเหตุจากการวัดจริง: Tesseract ให้คะแนนความมั่นใจสูงเกินจริงบ่อย —
+// อ่าน "ครูมาลี" เป็น "ครูบาลี" ยังได้ 93% ค่าราย "คำ" จึงจับผิดได้แค่ตอนภาพแย่จริง ๆ
+// เลยใช้ 2 สัญญาณ: คำที่คะแนนต่ำ + คะแนนรวมทั้งรูปที่ต่ำกว่าเกณฑ์ (ตอนนั้นทุกช่องน่าสงสัยหมด)
+function fieldsToDoubleCheck(p) {
+  const low = lastOcrLowWords;
+  if (lastOcrConfidence != null && lastOcrConfidence < OCR_CONF_OK) {
+    return ['subject', 'teacher', 'detail'].filter(k =>
+      k === 'detail' ? p.detail : k === 'teacher' ? p.teacher : p.detected.subject);
+  }
+  const out = [];
+  const hit = v => {
+    if (!v || !low.length) return false;
+    const kv = ocrKey(v);
+    return low.some(w => { const kw = ocrKey(w); return kw.length > 1 && (kv.includes(kw) || kw.includes(kv)); });
+  };
+  if (p.detected.subjectFuzzy || hit(p.subject)) out.push('subject');
+  if (hit(p.teacher)) out.push('teacher');
+  if (hit(p.detail)) out.push('detail');
+  return out;
+}
+
+// ---------- ALT: ครอบกรอบก่อนอ่าน ----------
+// กรอบเก็บเป็นสัดส่วน 0–1 ของภาพ เวทีแสดงผลตั้ง aspect-ratio ตามภาพ
+// พิกัดบนจอกับพิกัดในภาพจึงเป็นสัดส่วนเดียวกันตรง ๆ ไม่ต้องแปลงไปมา
+let cropState = null;
+const CROP_MIN = 0.08;   // กรอบเล็กสุด 8% ของด้านนั้น กันลากพลาดจนเหลือจุดเดียว
+const CROP_GRAB = 26;    // ระยะที่นับว่าจับมุมอยู่ (px บนจอ)
+
 async function scanFromPhoto(file) {
+  try {
+    const bmp = await ocrLoadBitmap(file);
+    cropState = { bmp, box: { x: .06, y: .06, w: .88, h: .88 }, drag: null };
+    const stage = document.getElementById('cropStage');
+    const img = document.getElementById('cropImg');
+    img.src = URL.createObjectURL(file);
+    stage.style.aspectRatio = bmp.width + ' / ' + bmp.height;
+    paintCrop();
+    go('scr-crop');
+  } catch (e) {
+    console.error('[OCR]', e);
+    alert('เปิดไฟล์ภาพนี้ไม่ได้ — ลองเลือกไฟล์อื่น (JPG หรือ PNG)');
+  }
+}
+
+function paintCrop() {
+  if (!cropState) return;
+  const b = cropState.box;
+  const box = document.getElementById('cropBox');
+  box.style.left = (b.x * 100) + '%';
+  box.style.top = (b.y * 100) + '%';
+  box.style.width = (b.w * 100) + '%';
+  box.style.height = (b.h * 100) + '%';
+  // ม่านมืดนอกกรอบ: เจาะรูด้วย clip-path ให้เห็นเฉพาะส่วนที่จะถูกอ่าน
+  const x1 = (b.x * 100), y1 = (b.y * 100), x2 = ((b.x + b.w) * 100), y2 = ((b.y + b.h) * 100);
+  document.getElementById('cropShade').style.clipPath =
+    `polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 ${y1}%, ${x1}% ${y1}%, ${x1}% ${y2}%, ${x2}% ${y2}%, ${x2}% ${y1}%, 0 ${y1}%)`;
+  const px = Math.round(cropState.bmp.width * b.w) + '×' + Math.round(cropState.bmp.height * b.h);
+  const hint = document.getElementById('cropHint');
+  if (hint) hint.textContent = 'กรอบที่จะอ่าน ' + px + ' px · ลากในรูปเพื่อวาดกรอบใหม่ · ลากมุมเพื่อปรับขนาด';
+}
+
+function cropPos(e, rect) {
+  return {
+    x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+    y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
+  };
+}
+
+function initCrop() {
+  const stage = document.getElementById('cropStage');
+  if (!stage) return;
+  stage.addEventListener('pointerdown', e => {
+    if (!cropState) return;
+    const rect = stage.getBoundingClientRect();
+    const p = cropPos(e, rect);
+    const b = cropState.box;
+    const near = (px, py) => Math.hypot((px - p.x) * rect.width, (py - p.y) * rect.height) < CROP_GRAB;
+    // จับมุมไหนอยู่ไหม → ปรับขนาดจากมุมนั้น (ยึดมุมตรงข้ามไว้)
+    const corners = [
+      ['tl', b.x, b.y, b.x + b.w, b.y + b.h], ['tr', b.x + b.w, b.y, b.x, b.y + b.h],
+      ['bl', b.x, b.y + b.h, b.x + b.w, b.y], ['br', b.x + b.w, b.y + b.h, b.x, b.y],
+    ];
+    const hit = corners.find(c => near(c[1], c[2]));
+    if (hit) cropState.drag = { mode: 'corner', ax: hit[3], ay: hit[4] };
+    else if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h)
+      cropState.drag = { mode: 'move', dx: p.x - b.x, dy: p.y - b.y };
+    else cropState.drag = { mode: 'corner', ax: p.x, ay: p.y }; // ลากพื้นที่ว่าง = วาดกรอบใหม่
+    stage.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  stage.addEventListener('pointermove', e => {
+    if (!cropState || !cropState.drag) return;
+    const rect = stage.getBoundingClientRect();
+    const p = cropPos(e, rect);
+    const b = cropState.box, d = cropState.drag;
+    if (d.mode === 'move') {
+      b.x = Math.max(0, Math.min(1 - b.w, p.x - d.dx));
+      b.y = Math.max(0, Math.min(1 - b.h, p.y - d.dy));
+    } else {
+      b.x = Math.min(d.ax, p.x); b.w = Math.max(CROP_MIN, Math.abs(p.x - d.ax));
+      b.y = Math.min(d.ay, p.y); b.h = Math.max(CROP_MIN, Math.abs(p.y - d.ay));
+      if (b.x + b.w > 1) b.w = 1 - b.x;
+      if (b.y + b.h > 1) b.h = 1 - b.y;
+    }
+    paintCrop();
+  });
+  const end = () => { if (cropState) cropState.drag = null; };
+  stage.addEventListener('pointerup', end);
+  stage.addEventListener('pointercancel', end);
+}
+
+function cancelCrop() {
+  if (cropState && cropState.bmp.close) cropState.bmp.close();
+  cropState = null;
+  go('scr-scan');
+}
+
+async function confirmCrop(whole) {
+  if (!cropState) { go('scr-scan'); return; }
+  const { bmp, box } = cropState;
+  const b = whole ? { x: 0, y: 0, w: 1, h: 1 } : box;
+  const sx = Math.round(bmp.width * b.x), sy = Math.round(bmp.height * b.y);
+  const sw = Math.max(1, Math.round(bmp.width * b.w)), sh = Math.max(1, Math.round(bmp.height * b.h));
+  const c = document.createElement('canvas');
+  c.width = sw; c.height = sh;
+  c.getContext('2d').drawImage(bmp, sx, sy, sw, sh, 0, 0, sw, sh);
+  cropState = null;
+  go('scr-scan');
+  await runOcrOn(c, whole ? 'ทั้งรูป' : 'ครอบกรอบ');
+}
+
+async function runOcrOn(source, how) {
   const st = document.getElementById('ocrStatus');
   const barWrap = document.getElementById('ocrBarWrap');
   const bar = document.getElementById('ocrBar');
-  let worker = null;
+  const t0 = performance.now();
   try {
-    st.textContent = '⏳ กำลังโหลดโมเดล OCR… (ครั้งแรกอาจรอนานหน่อย)';
-    barWrap.hidden = false; bar.style.width = '5%';
-    await withTimeout(loadTesseract(), 30_000, 'โหลดไลบรารี OCR');
+    barWrap.hidden = false; bar.style.width = '4%';
+    st.textContent = '🖼 กำลังปรับภาพให้อ่านง่ายขึ้น…';
+    // ปรับภาพก่อน แล้วค่อยโหลดโมเดล — ผู้ใช้จะได้เห็นความคืบหน้าตั้งแต่วินาทีแรก
+    const gray = ocrToGray(source);
+    const binCanvas = ocrGrayToCanvas(ocrBinarize(gray));
+    bar.style.width = '12%';
 
-    worker = await withTimeout(
-      Tesseract.createWorker('tha+eng', 1, {
-        workerPath: TESSERACT_BASE + 'worker.min.js',
-        corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd.wasm.js',
-        langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            bar.style.width = Math.round(m.progress * 100) + '%';
-            st.textContent = '📖 AI กำลังอ่านใบงาน… ' + Math.round(m.progress * 100) + '%';
-          } else if (m.status) {
-            st.textContent = '⏳ ' + m.status + '…';
-          }
-        },
-      }),
-      45_000, 'เตรียมเครื่องมือ OCR'
-    );
-    const { data } = await withTimeout(worker.recognize(file), 60_000, 'อ่านรูปภาพ');
-    await worker.terminate();
-    worker = null;
+    st.textContent = '⏳ กำลังเตรียมโมเดล OCR… (ครั้งแรกอาจรอนานหน่อย)';
+    ocrProgress = m => {
+      if (m.status === 'recognizing text') {
+        const p = 15 + Math.round(m.progress * 80);
+        bar.style.width = p + '%';
+        st.textContent = '📖 AI กำลังอ่านใบงาน… ' + Math.round(m.progress * 100) + '%';
+      } else if (m.status) {
+        st.textContent = '⏳ ' + m.status + '…';
+      }
+    };
+    const worker = await getOcrWorker();
 
+    let { data } = await withTimeout(worker.recognize(binCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
+    let pass = 'binarized';
+
+    // รอบสำรอง 1: ไบนารีทำงานไม่ดีกับกระดาษสีหรือรูปที่ถ่ายจากจอ (เส้นตัวอักษรขาดเป็นจุด)
+    // ถ้ารอบแรกได้คะแนนต่ำ ลองอ่านจากภาพเทาที่ยังไม่ไบนารี แล้วเก็บอันที่ดีกว่า
+    if ((data.confidence || 0) < OCR_CONF_OK) {
+      st.textContent = '🔁 ลองอ่านอีกแบบให้ชัดขึ้น…';
+      const soft = await withTimeout(worker.recognize(ocrGrayToCanvas(gray), {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
+      if ((soft.data.confidence || 0) > (data.confidence || 0)) { data = soft.data; pass = 'grayscale'; }
+    }
+    // รอบสำรอง 2: ยังต่ำอยู่ → เปลี่ยนวิธีมองหน้ากระดาษเป็น PSM 4 (หลายย่อหน้าเรียงลงมา)
+    // ใบงานที่มีบล็อกข้อความแยกกันหลายก้อน PSM 6 จะรวบเป็นก้อนเดียวแล้วอ่านสลับบรรทัด
+    if ((data.confidence || 0) < OCR_CONF_OK) {
+      st.textContent = '🔁 ลองมองหน้ากระดาษอีกแบบ…';
+      await worker.setParameters({ tessedit_pageseg_mode: '4' });
+      const alt = await withTimeout(worker.recognize(binCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
+      await worker.setParameters({ tessedit_pageseg_mode: '6' });
+      if ((alt.data.confidence || 0) > (data.confidence || 0)) { data = alt.data; pass = 'psm4'; }
+    }
+
+    ocrProgress = null;
     st.textContent = ''; barWrap.hidden = true;
+
     const text = normalizeOcrText(data.text); // OCR ไทยเว้นวรรคทีละตัวอักษร ต้องยุบก่อนแกะ
-    if (text.length < 5) { alert('อ่านตัวหนังสือจากรูปไม่ได้ — ลองถ่ายให้ชัดขึ้น สว่างขึ้น หรือแปะข้อความแทน'); return; }
+    const conf = Math.round(data.confidence || 0);
+    lastOcrConfidence = conf;
+    lastOcrLowWords = collectLowWords(data);
+    // บรรทัดเดียวก๊อปไปทำตารางวัดผลได้เลย (รอบวัดผลกับรูปจริง)
+    console.debug(`[ALT OCR] conf=${conf}% pass=${pass} how=${how || '-'} chars=${text.length} `
+      + `lowWords=${lastOcrLowWords.length} ms=${Math.round(performance.now() - t0)} size=${gray.w}×${gray.h}`);
+
+    if (text.length < 5 || conf < OCR_CONF_MIN) {
+      lastOcrConfidence = null;
+      alert('อ่านตัวหนังสือจากรูปนี้ไม่ค่อยออก (ความมั่นใจ ' + conf + '%)\n\n'
+        + 'ลองอีกที: ถ่ายให้เห็นเฉพาะส่วนที่เป็นโจทย์ · วางกล้องขนานกับกระดาษ · เลี่ยงเงามือทับตัวหนังสือ\n'
+        + 'หรือใช้ "แปะข้อความ" แทน — เร็วกว่าและแม่นกว่า');
+      return;
+    }
+    if (conf < OCR_CONF_OK) {
+      showToast({ title: 'อ่านได้ แต่ไม่ค่อยมั่นใจ 🤔',
+        body: 'ความมั่นใจ ' + conf + '% — ช่วยตรวจให้ดีก่อนกดบันทึกนะ' });
+    }
     runParsing(text, 'ocr');
   } catch (e) {
+    ocrProgress = null;
+    lastOcrConfidence = null;
     st.textContent = ''; barWrap.hidden = true;
     console.error('[OCR]', e);
-    if (worker) { try { await worker.terminate(); } catch (_) {} }
     alert('อ่านรูปไม่สำเร็จ: ' + e.message + '\n\nใช้วิธี "แปะข้อความจาก LINE" แทนได้เลย — เร็วกว่าและแม่นกว่าด้วย');
   }
 }
@@ -1921,11 +2277,16 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   purgeOldTrash(); // ของในถังขยะที่เกิน 30 วัน ทิ้งถาวรตอนเปิดแอป
   splashStep('data');
 
+  // ป้ายมุมจอบอกเลขเวอร์ชัน — ดึงจาก APP_VERSION ที่เดียว ขึ้นรุ่นใหม่ไม่ต้องไล่แก้ HTML
+  const badge = document.getElementById('altBadge');
+  if (badge) badge.textContent = APP_VERSION;
+
   applyTheme();
   applyFontScale();  // ALT: ต้องมาก่อนวาดจอแรก ไม่งั้นตัวอักษรกระโดดขนาดให้เห็น
   applyUserBg();
   fillSubjectSelect();
   initHomeSwipe(); // ALT: ปัดการ์ดในหน้าแรก (เกาะที่ #homeBody ครั้งเดียว อยู่รอดทุกการ render)
+  initCrop();      // ALT: ลากกรอบในหน้าครอบภาพ
   // ฟอนต์ไทยมาจาก CDN — รอให้พร้อมก่อน ไม่งั้นจอแรกกระตุกตอนฟอนต์สลับ
   // ถ้าเน็ตช้าหรือโหลดไม่ขึ้น ไม่รอเกิน 2.5 วิ แล้วไปต่อด้วยฟอนต์ระบบ
   if (document.fonts && document.fonts.ready) {

@@ -108,8 +108,80 @@ function normalizeOcrText(text) {
     .trim();
 }
 
+// ---------- 0.6) จับคำแบบทนตัวอักษรเพี้ยน (ใช้กับข้อความจากรูปเท่านั้น) ----------
+// OCR พลาดตัวเดียว includes() ก็หาไม่เจอทั้งคำ — ของจริงที่วัดมา "ฟิสิกส์" ถูกอ่านเป็น "แฟสักส"
+// วิธีเทียบ: ตัดสระบน-ล่างกับวรรณยุกต์ทิ้ง → ยุบตัวอักษรที่หน้าตาใกล้กันให้เป็นตัวแทนเดียว
+//   → วัดระยะแก้ไข (Levenshtein) กับทุกช่วงของข้อความที่ยาวใกล้เคียงกัน
+// เปิดเฉพาะข้อความจากรูป — ที่พิมพ์เองหรือแปะจาก LINE ถือว่าถูกอยู่แล้ว ไม่ต้องเดาให้เสี่ยง
+const OCR_LOOKALIKE = [
+  'ผฝพฟ', 'กถภฦ', 'ขชซฃ', 'บปษ', 'ดคตฅ', 'นมณ', 'รว', 'ลส',
+  'อฮธ', 'จฉฐ', 'เแ', 'ไใโ', 'หฬ', '0Oo', '1lI|ๅ', '5S', '8B',
+];
+const LOOKALIKE_MAP = (() => {
+  const m = {};
+  for (const cls of OCR_LOOKALIKE) for (const ch of cls) m[ch] = cls[0];
+  return m;
+})();
+
+// คีย์สำหรับเทียบ: ตัดเครื่องหมายบน-ล่าง แล้วยุบตัวที่หน้าตาคล้ายกัน
+// keepGap = คงรอยต่อระหว่างคำไว้เป็นตัวคั่น (ใช้กับข้อความที่ถูกค้นหา)
+const OCR_GAP = '';
+function ocrKey(s, keepGap) {
+  let out = '';
+  for (const ch of String(s).toLowerCase().replace(/[ัิ-ฺ็-๎]/g, '')) {
+    if (ch === ' ') { if (keepGap) out += OCR_GAP; continue; }
+    out += LOOKALIKE_MAP[ch] || ch;
+  }
+  return out;
+}
+
+// Levenshtein ที่เลิกคิดทันทีเมื่อเกินเพดาน — ไม่ต้องคำนวณจนจบให้เปลือง
+function editDistance(a, b, cap) {
+  const n = a.length, m = b.length;
+  if (Math.abs(n - m) > cap) return cap + 1;
+  let prev = Array.from({ length: m + 1 }, (_, j) => j);
+  for (let i = 1; i <= n; i++) {
+    const cur = [i];
+    let best = i;
+    for (let j = 1; j <= m; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (cur[j] < best) best = cur[j];
+    }
+    if (best > cap) return cap + 1;
+    prev = cur;
+  }
+  return prev[m];
+}
+
+// ระยะที่ดีที่สุดของคำนี้ในข้อความ (null = ไม่เจอในเพดานที่ยอมได้)
+// คำที่สั้นกว่า 4 ตัวหลังยุบ ไม่เอามาเดา — สั้นเกินจนชนคำอื่นได้ง่าย
+function fuzzyDistance(hay, needle) {
+  const h = ocrKey(hay, true), k = ocrKey(needle);
+  if (k.length < 4 || !h) return null;
+  if (h.includes(k)) return 0;
+  // คำสั้นต้องตรงเป๊ะหลังยุบตัวอักษร ยอมให้เพี้ยนได้เฉพาะคำที่ยาวพอ
+  // ("สังคม" ยุบแล้วเหลือ 4 ตัว ถ้ายอมให้พลาด 1 ตัว คำว่า "ส่งวันศุกร์" จะกลายเป็นวิชาสังคมทันที)
+  const cap = k.length >= 8 ? 2 : k.length >= 6 ? 1 : 0;
+  if (!cap) return null;
+  let best = cap + 1;
+  for (let len = Math.max(1, k.length - cap); len <= k.length + cap; len++) {
+    for (let i = 0; i + len <= h.length; i++) {
+      const win = h.substr(i, len);
+      // ชื่อวิชาเป็นคำเดียว ห้ามให้ช่วงที่จับได้คร่อมรอยต่อระหว่างคำ
+      // (ไม่งั้น "เคม ครมาล" จะกลายเป็น "ดนตรี" เพราะตัวอักษรบังเอิญเรียงพอดี)
+      if (win.includes(OCR_GAP)) continue;
+      const d = editDistance(win, k, cap);
+      if (d < best) best = d;
+      if (best === 0) return 0;
+    }
+  }
+  return best <= cap ? best : null;
+}
+
 // ---------- 1) แกะข้อความ ----------
-function parseAssignment(text, now = new Date()) {
+// opts.fuzzy = ข้อความมาจาก OCR ให้ยอมให้ตัวอักษรเพี้ยนได้
+function parseAssignment(text, now = new Date(), opts = {}) {
+  const fuzzy = !!opts.fuzzy;
   const t = String(text || '').replace(/\s+/g, ' ').trim();
   const detected = {};
 
@@ -121,6 +193,19 @@ function parseAssignment(text, now = new Date()) {
     for (const k of s.keys) {
       if (low.includes(k.toLowerCase())) { subject = s.name; detected.subject = true; break outer; }
     }
+  }
+  // หาแบบตรงตัวไม่เจอ + ข้อความมาจากรูป → เดาแบบทนเพี้ยน
+  // เลือกวิชาที่ "ใกล้ที่สุด" ทั้งกระดาน ไม่ใช่ตัวแรกที่ผ่านเกณฑ์ — กันคำสั้นแย่งไปก่อน
+  if (subject === 'อื่น ๆ' && fuzzy) {
+    let best = null;
+    for (const s of SUBJECTS) {
+      for (const k of s.keys) {
+        const d = fuzzyDistance(t, k);
+        if (d == null) continue;
+        if (!best || d < best.d) best = { d, name: s.name };
+      }
+    }
+    if (best) { subject = best.name; detected.subject = true; detected.subjectFuzzy = true; }
   }
 
   // ครู (เอาเฉพาะชื่อ — หยุดที่ช่องว่างหรือคำที่ขึ้นความใหม่ ไม่ลากประโยคทั้งท่อนมา
@@ -195,7 +280,14 @@ function parseAssignment(text, now = new Date()) {
   let estMin = null;
   const mMin = t.match(/(\d{1,3})\s*นาที/);
   const mHr = t.match(/(\d{1,2}(?:\.\d)?)\s*(?:ชม\.?|ชั่วโมง)/);
-  const mRange = t.match(/ข้อ\s*(\d{1,3})\s*[-–ถึง]+\s*(\d{1,3})/);
+  let mRange = t.match(/ข้อ\s*(\d{1,3})\s*[-–ถึง]+\s*(\d{1,3})/);
+  // จากรูป คำว่า "ข้อ" มักเพี้ยนจนหาไม่เจอ (ของจริงที่วัดมา อ่านได้เป็น "Jo 1-10")
+  // ยอมรับช่วงตัวเลขล้วนแทน แต่ต้องดูเหมือนช่วงข้อจริง ๆ: เรียงจากน้อยไปมาก ห่างกันไม่เกิน 100
+  // และต้องไม่ติดกับ : . / - ซึ่งแปลว่าเป็นเวลา วันที่ หรือเลขชุดอื่น
+  if (!mRange && fuzzy) {
+    const m = t.match(/(?:^|[^\d:.\/-])(\d{1,3})\s*[-–—]\s*(\d{1,3})(?![\d:.\/-])/);
+    if (m && +m[2] > +m[1] && +m[2] - +m[1] <= 100) mRange = m;
+  }
   if (mMin) estMin = +mMin[1];
   else if (mHr) estMin = Math.round(+mHr[1] * 60);
   else if (mRange) estMin = Math.max(10, (+mRange[2] - +mRange[1] + 1) * 4);
