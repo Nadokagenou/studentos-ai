@@ -226,6 +226,35 @@
   color: rgba(199, 210, 254, .62);
 }
 .sp-step { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* เกร็ดความรู้ระหว่างรอ */
+.sp-fact {
+  max-width: 280px;
+  margin: 16px auto 0;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.7;
+  color: rgba(199, 210, 254, .68);
+  min-height: 40px;
+}
+.sp-fact.in { animation: fact-in .5s ease both; }
+.scan-fact {
+  margin: 10px 2px 0;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.scan-fact[hidden] { display: none; }
+.scan-fact.in { animation: fact-in .5s ease both; }
+.scan-fact::before {
+  content: 'รู้หรือไม่ · ';
+  font-weight: 700;
+  color: var(--blue);
+}
+@keyframes fact-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .sp-fact.in, .scan-fact.in { animation: none; }
+}
 .sp-pct {
   flex: none;
   font-family: 'Space Mono', ui-monospace, monospace;
@@ -385,28 +414,28 @@
   --r-card:22px; --r-tile:15px;
 }
 
-/* ---------- โทน 6: ห้องสมุด — กระดาษ + ไม้ + โคมไฟอุ่น ---------- */
-:root[data-theme="library"] {
+/* ---------- โทน 6: มหาสมุทร — ฟ้าอ่อนผิวน้ำ + น้ำเงินทะเลลึก ---------- */
+:root[data-theme="ocean"] {
   color-scheme: light;
-  --scr:#EFE3CE; --card:#FCF6EA; --card2:#E8DAC0; --surface:#E8DAC0;
-  --ink:#372718; --muted:#775F44; --faint:#846B4F;
-  --line:rgba(55,39,24,.12);
-  --blue:#8A5A2A; --blue-soft:#F3E5CF; --blue-deep:#66401A; --on-accent:#FFF8EC;
-  --neon:#8A5A2A;
-  --alert:#A83A2A; --alert-soft:#F6E0DA;
-  --warn:#8A6206;  --warn-soft:#F6EBCE;
-  --good:#3F6B47;  --good-soft:#E1EBDD; --fire:#A83A2A;
-  --shadow:0 2px 8px rgba(70,48,24,.10), 0 18px 38px -14px rgba(70,48,24,.30);
-  --shadow-lg:0 5px 16px rgba(70,48,24,.12), 0 34px 60px -18px rgba(70,48,24,.36);
-  --shadow-brand:0 10px 26px -8px rgba(138,90,42,.45);
-  --glass:rgba(239,227,206,.86); --glass-line:rgba(55,39,24,.10);
-  --skel:rgba(55,39,24,.08); --skel-hi:rgba(55,39,24,.14);
-  --grad-brand:linear-gradient(135deg,#B07A3C 0%,#8A5A2A 100%);
-  --grad-hero:linear-gradient(150deg,#5C3A18 0%,#8A5A2A 100%);
-  --glow-scan:0 10px 26px -6px rgba(138,90,42,.5);
-  --pg:#D8C4A2; --pg-ink:#372718; --pg-muted:#775F44;
-  --frame:#3A2716;
-  --r-card:18px; --r-tile:13px;
+  --scr:#E9F4FB; --card:#FFFFFF; --card2:#D7EAF7; --surface:#D7EAF7;
+  --ink:#0C2C3E; --muted:#4E7186; --faint:#5D8296;
+  --line:rgba(12,44,62,.10);
+  --blue:#0E6E92; --blue-soft:#D5EDF9; --blue-deep:#0A5170; --on-accent:#FFFFFF;
+  --neon:#0E6E92;
+  --alert:#C0392B; --alert-soft:#FBE4E0;
+  --warn:#8A6206;  --warn-soft:#F8EFD3;
+  --good:#0F766E;  --good-soft:#D6F0EC; --fire:#C0392B;
+  --shadow:0 2px 8px rgba(10,60,86,.08), 0 18px 38px -14px rgba(10,60,86,.24);
+  --shadow-lg:0 5px 16px rgba(10,60,86,.10), 0 34px 60px -18px rgba(10,60,86,.30);
+  --shadow-brand:0 10px 26px -8px rgba(14,110,146,.45);
+  --glass:rgba(233,244,251,.84); --glass-line:rgba(12,44,62,.09);
+  --skel:rgba(12,44,62,.07); --skel-hi:rgba(12,44,62,.13);
+  --grad-brand:linear-gradient(135deg,#38BDF8 0%,#0E6E92 100%);
+  --grad-hero:linear-gradient(150deg,#0A4C68 0%,#0E7490 100%);
+  --glow-scan:0 8px 24px -6px rgba(14,110,146,.55);
+  --pg:#CDE5F3; --pg-ink:#0C2C3E; --pg-muted:#4E7186;
+  --frame:#0A3348;
+  --r-card:22px; --r-tile:16px;
 }
 
 /* ---------- โทน 7: เวทมนตร์ — ม่วงหมึก + ทองเทียน ---------- */
@@ -466,7 +495,7 @@
 
 /* สวอตช์ในหน้าเลือกธีม */
 .sw-earth{background:linear-gradient(135deg,#2C7CC4 34%,#2FA37A 34%,#2FA37A 68%,#5A4128 68%)}
-.sw-library{background:linear-gradient(135deg,#EFE3CE 46%,#8A5A2A 46%)}
+.sw-ocean{background:linear-gradient(135deg,#BFE6F7 38%,#38BDF8 38%,#38BDF8 70%,#0A5170 70%)}
 .sw-magic{background:linear-gradient(135deg,#150E26 40%,#8B5CF6 40%,#8B5CF6 72%,#E8C25A 72%)}
 .sw-galaxy{background:linear-gradient(135deg,#0B0618 38%,#A855F7 38%,#A855F7 70%,#EC4899 70%)}
 
@@ -476,7 +505,7 @@
    ============================================================ */
 .fx { display: none; }
 :root[data-theme="earth"] .fx,
-:root[data-theme="library"] .fx,
+:root[data-theme="ocean"] .fx,
 :root[data-theme="magic"] .fx,
 :root[data-theme="galaxy"] .fx,
 :root[data-theme="space"] .fx {
@@ -508,35 +537,113 @@
   animation: fx-drift-x 120s linear infinite;
 }
 
-/* ---------- ห้องสมุด: ชั้นหนังสือ + โคมไฟ + ฝุ่นลอย ---------- */
-:root[data-theme="library"] .fx-a {
-  inset: 0;
-  opacity: .42;
-  filter: blur(1.4px);
-  background:
-    repeating-linear-gradient(180deg, transparent 0 132px, rgba(58,39,22,.85) 132px 146px),
-    repeating-linear-gradient(90deg,
-      #8C4A2F 0 15px, #B5793C 15px 27px, #6E8B5A 27px 41px, #A8563B 41px 53px,
-      #C9A15B 53px 63px, #7B4B2A 63px 79px, #93643A 79px 89px, #5F7C6A 89px 103px,
-      #A97C4A 103px 116px, #6B4A6E 116px 128px),
-    linear-gradient(#3A2415, #241407);
-}
-:root[data-theme="library"] .fx-b {   /* แสงโคมอุ่นจากมุมบน + ขอบมืดรอบจอ */
+/* ---------- มหาสมุทร: ผิวน้ำ + ลำแสงลอด + ปลาว่าย + สาหร่ายโบก ---------- */
+/* น้ำลึกลงเรื่อย ๆ จากบนลงล่าง — เนื้อหาอยู่ช่วงบนที่สว่าง ตัวหนังสือจึงยังอ่านง่าย */
+:root[data-theme="ocean"] .fx-a {
   inset: 0;
   background:
-    radial-gradient(70% 45% at 78% -6%, rgba(255,206,120,.42), transparent 72%),
-    radial-gradient(120% 100% at 50% 50%, transparent 46%, rgba(38,22,8,.5) 100%);
-  animation: fx-lamp 9s ease-in-out infinite;
+    linear-gradient(180deg, rgba(186,230,253,0) 0%, rgba(56,189,248,.16) 46%,
+      rgba(12,110,146,.34) 78%, rgba(8,60,90,.55) 100%),
+    radial-gradient(120% 50% at 50% -8%, rgba(255,255,255,.55), transparent 70%);
 }
-:root[data-theme="library"] .fx-c {   /* ฝุ่นในลำแสง */
-  inset: 0;
+/* ลำแสงลอดผิวน้ำ เอียงจากมุมบน แกว่งช้า ๆ */
+:root[data-theme="ocean"] .fx-b {
+  inset: -20% -10%;
+  background:
+    linear-gradient(97deg, transparent 24%, rgba(255,255,255,.34) 30%, transparent 36%),
+    linear-gradient(101deg, transparent 48%, rgba(255,255,255,.26) 53%, transparent 58%),
+    linear-gradient(94deg, transparent 68%, rgba(255,255,255,.22) 73%, transparent 78%);
+  filter: blur(5px);
+  animation: sea-rays 14s ease-in-out infinite;
+}
+/* ฝูงปลา 2 ชั้น: ชั้นไกลตัวเล็กจาง ว่ายช้า · ชั้นใกล้ตัวใหญ่ ว่ายสวนทาง */
+:root[data-theme="ocean"] .fx-c,
+:root[data-theme="ocean"] .fx-d {
+  left: -30%; right: -30%; top: 0; bottom: 22%;
+  background-repeat: no-repeat;
+}
+:root[data-theme="ocean"] .fx-c {
   opacity: .5;
-  background:
-    radial-gradient(1.6px 1.6px at 22% 30%, rgba(255,236,190,.9), transparent),
-    radial-gradient(1.2px 1.2px at 58% 52%, rgba(255,236,190,.75), transparent),
-    radial-gradient(1.8px 1.8px at 76% 22%, rgba(255,236,190,.8), transparent),
-    radial-gradient(1.2px 1.2px at 40% 74%, rgba(255,236,190,.7), transparent);
-  animation: fx-float 26s ease-in-out infinite;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 32'><path d='M6 16c8-10 24-12 33-6 4 3 7 6 7 6s-3 3-7 6c-9 6-25 4-33-6z' fill='%230E7490'/><path d='M46 16l13-8v16z' fill='%230E7490'/><circle cx='17' cy='13.5' r='1.5' fill='%23fff'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 32'><path d='M6 16c8-10 24-12 33-6 4 3 7 6 7 6s-3 3-7 6c-9 6-25 4-33-6z' fill='%230891B2'/><path d='M46 16l13-8v16z' fill='%230891B2'/><circle cx='17' cy='13.5' r='1.5' fill='%23fff'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 32'><path d='M6 16c8-10 24-12 33-6 4 3 7 6 7 6s-3 3-7 6c-9 6-25 4-33-6z' fill='%2338BDF8'/><path d='M46 16l13-8v16z' fill='%2338BDF8'/><circle cx='17' cy='13.5' r='1.5' fill='%23fff'/></svg>");
+  background-size: 34px 17px, 26px 13px, 30px 15px;
+  background-position: 12% 18%, 46% 40%, 74% 26%;
+  /* ปลาชุดนี้หันหน้าไปทางซ้าย → ต้องว่ายไปทางซ้าย ไม่งั้นเหมือนถอยหลัง */
+  animation: sea-swim-l 46s linear infinite, sea-bob 7s ease-in-out infinite;
+}
+:root[data-theme="ocean"] .fx-d {
+  opacity: .75;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 32'><path d='M58 16c-8-10-24-12-33-6-4 3-7 6-7 6s3 3 7 6c9 6 25 4 33-6z' fill='%230A5170'/><path d='M18 16L5 8v16z' fill='%230A5170'/><circle cx='47' cy='13.5' r='1.6' fill='%23fff'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 32'><path d='M58 16c-8-10-24-12-33-6-4 3-7 6-7 6s3 3 7 6c9 6 25 4 33-6z' fill='%230E7490'/><path d='M18 16L5 8v16z' fill='%230E7490'/><circle cx='47' cy='13.5' r='1.6' fill='%23fff'/></svg>");
+  background-size: 46px 23px, 38px 19px;
+  background-position: 30% 62%, 68% 74%;
+  /* ชุดนี้หันหน้าไปทางขวา → ว่ายไปทางขวา สวนทางกับชั้นบน */
+  animation: sea-swim-r 34s linear infinite, sea-bob 5.5s ease-in-out infinite reverse;
+}
+/* สาหร่ายก้นจอ: ก้านหลักที่ตัว element + อีก 2 ก้านจาก ::before/::after */
+:root[data-theme="ocean"] .fx-e,
+:root[data-theme="ocean"] .fx-f {
+  bottom: -8px;
+  width: 20px; height: 92px;
+  border-radius: 60% 60% 8px 8px / 72% 72% 8px 8px;
+  background: linear-gradient(180deg, rgba(13,148,136,0) 0%, rgba(13,148,136,.5) 38%, rgba(6,78,74,.8) 100%);
+  transform-origin: 50% 100%;
+  animation: sea-sway 6.5s ease-in-out infinite;
+}
+:root[data-theme="ocean"] .fx-e { left: 5%; }
+:root[data-theme="ocean"] .fx-f { right: 8%; height: 116px; animation-duration: 8s; animation-delay: -2.4s; }
+:root[data-theme="ocean"] .fx-e::before,
+:root[data-theme="ocean"] .fx-e::after,
+:root[data-theme="ocean"] .fx-f::before,
+:root[data-theme="ocean"] .fx-f::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  width: 15px;
+  border-radius: inherit;
+  background: inherit;
+  transform-origin: 50% 100%;
+  animation: sea-sway 7.5s ease-in-out infinite;
+}
+:root[data-theme="ocean"] .fx-e::before { left: 20px; height: 68px; animation-delay: -1.2s; }
+:root[data-theme="ocean"] .fx-e::after  { left: 38px; height: 104px; width: 12px; animation-delay: -3.4s; animation-duration: 9s; }
+:root[data-theme="ocean"] .fx-f::before { right: 22px; height: 78px; animation-delay: -2.8s; }
+:root[data-theme="ocean"] .fx-f::after  { right: 42px; height: 58px; width: 12px; animation-delay: -4.6s; animation-duration: 6s; }
+/* ฟองอากาศลอยขึ้นจากพื้น */
+:root[data-theme="ocean"] .fx-shoot {
+  left: 0; right: 0; bottom: 0; height: 100%;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.75) 40%, transparent 62%),
+    radial-gradient(circle, rgba(255,255,255,.55) 40%, transparent 62%),
+    radial-gradient(circle, rgba(255,255,255,.65) 40%, transparent 62%);
+  background-size: 7px 7px, 5px 5px, 9px 9px;
+  background-repeat: no-repeat;
+  background-position: 14% 100%, 62% 100%, 84% 100%;
+  animation: sea-bubble 9s linear infinite;
+}
+
+@keyframes sea-rays {
+  0%, 100% { opacity: .55; transform: translateX(-2%); }
+  50% { opacity: .95; transform: translateX(3%); }
+}
+@keyframes sea-swim-r { from { transform: translateX(-16%); } to { transform: translateX(16%); } }
+@keyframes sea-swim-l { from { transform: translateX(16%); } to { transform: translateX(-16%); } }
+@keyframes sea-bob {
+  0%, 100% { margin-top: 0; }
+  50% { margin-top: 10px; }
+}
+@keyframes sea-sway {
+  0%, 100% { transform: rotate(-7deg); }
+  50% { transform: rotate(8deg); }
+}
+@keyframes sea-bubble {
+  0%   { background-position: 14% 100%, 62% 100%, 84% 100%; opacity: 0; }
+  10%  { opacity: .9; }
+  90%  { opacity: .5; }
+  100% { background-position: 17% -6%, 58% -6%, 88% -6%; opacity: 0; }
 }
 
 /* ---------- เวทมนตร์: วงเวทหมุน + ประกายลอยขึ้น ---------- */
@@ -720,17 +827,26 @@
 
 /* มีภาพพื้นหลัง (หรือธีมห้องสมุด) → การ์ดกึ่งโปร่ง + เบลอหลังการ์ด
    ให้เห็นภาพลอดโดยที่ตัวหนังสือยังอ่านออก */
-:root[data-bg="on"] .brief, :root[data-bg="on"] .rank-card, :root[data-bg="on"] .card,
+/* หมายเหตุ: ห้ามใส่ .brief ในกลุ่มนี้ — การ์ดของ AI ใช้พื้นไล่สีเข้มกับตัวอักษรสีขาว
+   ถ้าเอาสีการ์ด (ขาว) ไปทับ พื้นจะกลายเป็นขาว ตัวหนังสือขาวก็หายไปทั้งใบ */
+:root[data-bg="on"] .rank-card, :root[data-bg="on"] .card,
 :root[data-bg="on"] .fm-card, :root[data-bg="on"] .ob-card, :root[data-bg="on"] .pf-list,
-:root[data-bg="on"] .arow, :root[data-bg="on"] .paste-card, :root[data-bg="on"] .skel-card,
-:root[data-theme="library"] .brief, :root[data-theme="library"] .rank-card,
-:root[data-theme="library"] .card, :root[data-theme="library"] .fm-card,
-:root[data-theme="library"] .ob-card, :root[data-theme="library"] .pf-list,
-:root[data-theme="library"] .arow, :root[data-theme="library"] .paste-card {
+:root[data-bg="on"] .arow, :root[data-bg="on"] .paste-card, :root[data-bg="on"] .skel-card {
   background: var(--card); /* เบราว์เซอร์เก่าที่ไม่รู้จัก color-mix ได้พื้นทึบตามเดิม */
   background: color-mix(in srgb, var(--card) 86%, transparent);
   backdrop-filter: blur(14px) saturate(135%);
   -webkit-backdrop-filter: blur(14px) saturate(135%);
+}
+/* ธีมมหาสมุทร: การ์ดโปร่งนิดเดียวพอให้เห็นเงาปลาว่ายผ่านหลังการ์ดราง ๆ
+   ไม่โปร่งมากเพราะตัวหนังสือต้องมาก่อนความสวย */
+:root[data-theme="ocean"] .rank-card,
+:root[data-theme="ocean"] .card, :root[data-theme="ocean"] .fm-card,
+:root[data-theme="ocean"] .ob-card, :root[data-theme="ocean"] .pf-list,
+:root[data-theme="ocean"] .arow, :root[data-theme="ocean"] .paste-card {
+  background: var(--card);
+  background: color-mix(in srgb, var(--card) 93%, transparent);
+  backdrop-filter: blur(10px) saturate(125%);
+  -webkit-backdrop-filter: blur(10px) saturate(125%);
 }
 
 .bg-tools { display: flex; gap: 8px; }
@@ -1001,6 +1117,202 @@
   display: flex; align-items: center; justify-content: center;
 }
 .soon-box svg { width: 15px; height: 15px; }
+
+/* ============================================================
+   หน้าแรก = เมนูหลัก
+   ไทล์ใหญ่ กดง่าย ไม่มีข้อความอธิบาย — มีแค่ไอคอน ชื่อ และตัวเลขจริงจาก state
+   ============================================================ */
+.menu-body { gap: 20px; padding-top: 22px; }
+.menu-head .page-title { margin-top: 4px; }
+.menu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.mtile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 10px;
+  min-height: 116px;
+  padding: 16px 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -.015em;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.mtile::after {              /* แสงจาง ๆ มุมบนขวา ให้ไทล์ไม่แบนจนเกินไป */
+  content: '';
+  position: absolute;
+  top: -46px; right: -34px;
+  width: 128px; height: 128px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--blue-soft), transparent 70%);
+  pointer-events: none;
+}
+.mtile:active { transform: scale(.975); box-shadow: var(--shadow-lg); }
+.mt-ic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px; height: 42px;
+  border-radius: 14px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  position: relative;
+}
+.mt-ic svg { width: 21px; height: 21px; }
+.mt-lb { position: relative; }
+.mt-ct {
+  position: absolute;
+  top: 15px; right: 15px;
+  min-width: 30px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--card2);
+  color: var(--muted);
+  font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+/* ไทล์เด่น: เพิ่มงานใหม่ — กว้างเต็มแถวและใช้สีแบรนด์ */
+.mtile.hero {
+  grid-column: span 2;
+  min-height: 104px;
+  background: var(--grad-hero);
+  border: none;
+  color: #fff;
+  box-shadow: var(--shadow-brand);
+  font-size: 17px;
+}
+.mtile.hero .mt-ic { background: rgba(255,255,255,.18); color: #fff; }
+.mtile.hero::after { background: radial-gradient(circle, rgba(255,255,255,.22), transparent 70%); }
+/* ไทล์แนวนอน: ต้องสั่ง flex-start ด้วย ไม่งั้นค่า flex-end ที่ตั้งไว้ให้แนวตั้ง
+   (แปลว่า "ชิดล่าง") จะกลายเป็น "ชิดขวา" แล้วหลุดแนวจากไทล์อื่นทั้งกริด */
+.mtile.wide {
+  grid-column: span 2;
+  min-height: 88px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 13px;
+}
+.mtile.wide .mt-ic { width: 38px; height: 38px; }
+
+/* จอกว้าง (แถบซ้าย) วางได้ 3 คอลัมน์สบาย ๆ */
+:root[data-nav="side"] .menu-grid { grid-template-columns: repeat(3, 1fr); }
+:root[data-nav="side"] .mtile.hero { grid-column: span 3; }
+:root[data-nav="side"] .mtile.wide { grid-column: span 3; }
+
+/* ============================================================
+   ปุ่มเพิ่มงานตรงกลางแถบล่าง — ใหญ่ขึ้นและยกลอยเหนือแถบ (1A6M)
+   ของเดิมสูงเท่าไอคอนอื่นเป๊ะเพื่อไม่ให้แถบสูงขึ้น แต่พอเป็นปุ่มที่ใช้บ่อยที่สุด
+   มันเด่นไม่พอ — ยกขึ้นด้วย margin ลบแทน แถบจึงยังสูงเท่าเดิม
+   ============================================================ */
+/* กุญแจสำคัญ: ปุ่มต้องกินพื้นที่ในผังเท่าไอคอนเดิม (22px) เป๊ะ ๆ
+   56 − 34 = 22 → แถบล่างสูงเท่าเดิม และฐานตัวอักษรทุกปุ่มยังตรงแนวกัน
+   ส่วนที่เกินขึ้นไปเป็นการล้นออกนอกผัง ไม่ดันอะไรทั้งนั้น */
+.tab.scan .scan-dot {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  margin-top: -34px;
+  box-shadow: var(--glow-scan), 0 10px 24px -8px rgba(0, 0, 0, .45);
+  outline: 4px solid var(--scr);   /* วงแหวนสีพื้นจอ ตัดปุ่มออกจากแถบให้เห็นเป็นก้อนลอย */
+  transition: transform .16s cubic-bezier(.2, .9, .3, 1.3);
+}
+.tab.scan .scan-dot svg { width: 26px; height: 26px; stroke-width: 2.1; }
+.tab.scan:active .scan-dot { transform: scale(.9); }
+.tab.scan.active .scan-dot { transform: translateY(-2px); }
+.tab.scan.active { background: none; }   /* ปุ่มมีพื้นของตัวเองอยู่แล้ว ไม่ต้องมีกล่องซ้อน */
+
+/* ============================================================
+   แถบเมนูด้านซ้าย — โหมดจอกว้าง (iPad / แท็บเล็ต / PC)
+   จอกว้างแล้ววางแถบไว้ล่างสุดคือเสียพื้นที่แนวตั้งฟรี ๆ
+   ย้ายเป็นแถบตั้งด้านซ้าย เนื้อหาได้ความสูงคืนเต็ม ๆ
+   ============================================================ */
+:root[data-nav="side"] .phone {
+  width: min(1080px, 94vw);
+  height: min(820px, 90vh);
+}
+/* แท็บเล็ต/ไอแพด (รวมแนวตั้ง 768px): เต็มจอไปเลย ไม่ต้องมีกรอบมือถือจำลอง
+   ที่จอขนาดนี้กรอบจำลองไม่ได้ช่วยอะไร มีแต่กินพื้นที่ไปฟรี ๆ */
+@media (max-width: 1120px) {
+  :root[data-nav="side"] .stage { padding: 0; gap: 0; max-width: none; }
+  :root[data-nav="side"] .stage-note { display: none; }
+  :root[data-nav="side"] .phone {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-width: none;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+  :root[data-nav="side"] .statusbar { display: none; }
+  :root[data-nav="side"] .tabbar { top: calc(14px + env(safe-area-inset-top)); }
+}
+:root[data-nav="side"] .tabbar {
+  top: 14px;
+  bottom: 14px;
+  left: 14px;
+  right: auto;
+  width: 92px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: 26px;
+}
+:root[data-nav="side"] .tab {
+  flex: none;
+  width: 100%;
+  min-height: 60px;
+  border-radius: 18px;
+}
+/* ในแถบตั้ง ปุ่มเพิ่มงานไม่ต้องยกลอยแล้ว — วางเต็มก้อนกลางแถบได้เลย */
+:root[data-nav="side"] .tab.scan .scan-dot {
+  margin: 0 0 3px;
+  outline: none;
+  width: 50px;
+  height: 50px;
+}
+:root[data-nav="side"] .tab.scan { min-height: 78px; }
+/* เนื้อหาเลื่อนมาพ้นแถบ และไม่ต้องเผื่อที่ว่างด้านล่างให้แถบอีก */
+:root[data-nav="side"] .screens { margin-left: 106px; }
+:root[data-nav="side"] .statusbar { padding-left: 120px; }
+:root[data-nav="side"] .screen { padding-bottom: 28px; }
+:root[data-nav="side"] .home-body,
+:root[data-nav="side"] .scr-body {
+  padding-bottom: 28px;
+}
+/* จอกว้างแล้วบรรทัดยาวเกินอ่านยาก — คุมความกว้างคอลัมน์ไว้ */
+:root[data-nav="side"] .home-body,
+:root[data-nav="side"] .scr-body,
+:root[data-nav="side"] .sticky-head,
+:root[data-nav="side"] #taskList,
+:root[data-nav="side"] #timeline {
+  max-width: 720px;
+  margin-inline: auto;
+}
+/* toast กับแผ่นแนะนำติดตั้ง ต้องไม่ไปทับแถบซ้าย */
+:root[data-nav="side"] .toast { left: 120px; }
+:root[data-nav="side"] .particle { z-index: 40; }
+
+.nav-grid { grid-template-columns: repeat(3, 1fr); }
+.nav-grid button { min-height: 44px; font-size: 12.5px; }
 
 /* ---------- OCR: คำแนะนำตอนถ่าย + ป้ายเตือนตอนอ่านได้ไม่ชัด ---------- */
 .scan-tip {

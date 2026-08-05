@@ -186,12 +186,14 @@ function parseAssignment(text, now = new Date(), opts = {}) {
   const detected = {};
 
   // วิชา
-  let subject = 'อื่น ๆ';
+  let subject = 'อื่น ๆ', subjKey = '';
   const low = t.toLowerCase();
   outer:
   for (const s of SUBJECTS) {
     for (const k of s.keys) {
-      if (low.includes(k.toLowerCase())) { subject = s.name; detected.subject = true; break outer; }
+      if (low.includes(k.toLowerCase())) {
+        subject = s.name; subjKey = k; detected.subject = true; break outer;
+      }
     }
   }
   // หาแบบตรงตัวไม่เจอ + ข้อความมาจากรูป → เดาแบบทนเพี้ยน
@@ -211,26 +213,31 @@ function parseAssignment(text, now = new Date(), opts = {}) {
   // ครู (เอาเฉพาะชื่อ — หยุดที่ช่องว่างหรือคำที่ขึ้นความใหม่ ไม่ลากประโยคทั้งท่อนมา
   // สำคัญกับข้อความจาก OCR ที่ไม่มีช่องว่างคั่นคำเลย เช่น "ครูมาลีทำแบบฝึกหัด")
   let teacher = '';
-  const nameEnd = 'ทำ|อ่าน|เขียน|สรุป|ท่อง|เตรียม|วาด|ส่ง|สอบ|แบบฝึกหัด|แบบ|บทที่|บท|ข้อ|หน้า|ใบงาน|คะแนน|ภายใน|เวลา|วันที่|วันนี้|พรุ่งนี้|มะรืน|สัปดาห์';
+  // คำที่แปลว่า "จบชื่อครูแล้ว" — ไม่งั้นชื่อจะลากประโยคถัดไปมาด้วย
+  // เช่น "ครูมาลีสั่งงานเคมี" ต้องได้ "ครูมาลี" ไม่ใช่ทั้งท่อน
+  const nameEnd = 'สั่ง|ให้|บอก|แจ้ง|มอบหมาย|นัด|ทำ|อ่าน|เขียน|สรุป|ท่อง|เตรียม|วาด|ส่ง|สอบ|แบบฝึกหัด|แบบ|บทที่|บท|ข้อ|หน้า|ใบงาน|คะแนน|ภายใน|เวลา|วันที่|วันนี้|พรุ่งนี้|มะรืน|สัปดาห์';
   const mT = t.match(new RegExp('(?:ครู|อาจารย์|อ\\.)\\s?([ก-๙A-Za-z]{2,20}?)(?=\\s|' + nameEnd + '|$)'));
   if (mT) { teacher = 'ครู' + mT[1].replace(/^ครู/, ''); detected.teacher = true; }
 
   // คะแนน
   let scorePct = null;
-  const mS = t.match(/(\d{1,3})\s*(?:%|เปอร์เซ็นต์)/) || t.match(/คะแนน(?:เก็บ)?\s*(\d{1,3})/);
+  // รับทั้ง "20%" · "คะแนนเก็บ 20" · และ "10 คะแนน" (เลขมาก่อนคำ)
+  const mS = t.match(/(\d{1,3})\s*(?:%|เปอร์เซ็นต์)/) || t.match(/คะแนน(?:เก็บ)?\s*(\d{1,3})/)
+    || t.match(/(\d{1,3})\s*คะแนน/);
   if (mS) { scorePct = Math.min(100, parseInt(mS[1], 10)); detected.score = true; }
 
   // เวลา (16:00 / 16.00 น. / เที่ยง)
-  let hh = 23, mm = 59, hasTime = false;
+  let hh = 23, mm = 59, hasTime = false, timeText = '';
   const mTime = t.match(/(\d{1,2})[:.](\d{2})\s*(?:น\.?)?/);
-  if (mTime && +mTime[1] <= 23 && +mTime[2] <= 59) { hh = +mTime[1]; mm = +mTime[2]; hasTime = true; }
-  else if (/เที่ยง/.test(t)) { hh = 12; mm = 0; hasTime = true; }
+  if (mTime && +mTime[1] <= 23 && +mTime[2] <= 59) {
+    hh = +mTime[1]; mm = +mTime[2]; hasTime = true; timeText = mTime[0];
+  } else if (/เที่ยง/.test(t)) { hh = 12; mm = 0; hasTime = true; timeText = 'เที่ยง'; }
 
-  // วันส่ง
-  let due = null;
-  if (/วันนี้/.test(t)) due = atTime(now, hh, mm);
-  else if (/พรุ่งนี้/.test(t)) due = atTime(addDays(now, 1), hh, mm);
-  else if (/มะรืน/.test(t)) due = atTime(addDays(now, 2), hh, mm);
+  // วันส่ง — dueText เก็บคำที่ใช้ตัดสิน ไว้เอาไปหักออกจากรายละเอียดทีหลัง
+  let due = null, dueText = '';
+  if (/วันนี้/.test(t)) { due = atTime(now, hh, mm); dueText = 'วันนี้'; }
+  else if (/พรุ่งนี้/.test(t)) { due = atTime(addDays(now, 1), hh, mm); dueText = 'พรุ่งนี้'; }
+  else if (/มะรืน/.test(t)) { due = atTime(addDays(now, 2), hh, mm); dueText = 'มะรืน'; }
   else {
     // "วันศุกร์" / "ศุกร์หน้า"
     for (const [name, dow] of Object.entries(WEEKDAYS)) {
@@ -241,6 +248,7 @@ function parseAssignment(text, now = new Date(), opts = {}) {
         if (diff === 0) diff = 7;              // "วันศุกร์" ในวันศุกร์ = ศุกร์ถัดไป
         if (m[1]) diff += 7;                    // "หน้า"
         due = atTime(addDays(now, diff), hh, mm);
+        dueText = m[0];
         break;
       }
     }
@@ -254,14 +262,15 @@ function parseAssignment(text, now = new Date(), opts = {}) {
         let d = new Date(now.getFullYear(), idx, +m[1], hh, mm);
         if (d < now) d = new Date(now.getFullYear() + 1, idx, +m[1], hh, mm);
         due = d;
+        dueText = m[0];
         break;
       }
     }
   }
   if (!due) {
     const mIn = t.match(/ภายใน\s*(\d{1,2})\s*วัน/);
-    if (mIn) due = atTime(addDays(now, +mIn[1]), hh, mm);
-    else if (/สัปดาห์หน้า/.test(t)) due = atTime(addDays(now, 7), hh, mm);
+    if (mIn) { due = atTime(addDays(now, +mIn[1]), hh, mm); dueText = mIn[0]; }
+    else if (/สัปดาห์หน้า/.test(t)) { due = atTime(addDays(now, 7), hh, mm); dueText = 'สัปดาห์หน้า'; }
   }
   // ทางสำรองสำหรับข้อความจากรูป: OCR มักทำวรรณยุกต์/สระหาย ("พรุ่งน่" แทน "พรุ่งนี้")
   // จับแบบตัดวรรณยุกต์กับสระบน-ล่างทิ้งทั้งสองฝ่าย — ใช้เฉพาะเมื่อจับตรงตัวไม่ได้
@@ -301,14 +310,34 @@ function parseAssignment(text, now = new Date(), opts = {}) {
   if (type !== 'homework') detected.type = true;
   const isExam = type === 'exam'; // เก็บไว้เพื่อความเข้ากันได้กับข้อมูลเก่า
 
-  // รายละเอียด: ประโยคที่มี verb งาน — ตัดจบก่อนคำบอกกำหนดส่ง/คะแนน
+  // ---------- รายละเอียด ----------
+  // วิธีเดิมจับเฉพาะประโยคที่ขึ้นต้นด้วยคำกริยา แล้วตัดจบทันทีที่เจอคำบอกกำหนดส่ง
+  // ข้อความยาว ๆ ที่แปะจาก LINE จึงหายไปครึ่งหนึ่ง (เจอ "ส่ง" กลางประโยคก็ตัดแล้ว)
+  // วิธีใหม่: เอาข้อความทั้งก้อน แล้ว "หักเฉพาะส่วนที่ถูกแยกไปช่องอื่นแล้ว" ออก
+  // ที่เหลือคือสิ่งที่ผู้ใช้เขียนจริง ๆ และไม่มีอะไรหายไประหว่างทาง
+  const escRe = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const cutOut = [dueText, mT && mT[0], mS && mS[0], mMin && mMin[0], mHr && mHr[0]].filter(Boolean);
+  if (timeText && !(dueText && dueText.includes(timeText))) cutOut.push(timeText);
+
+  let rest = t;
+  for (const piece of cutOut) rest = rest.replace(piece, ' ');
+  // คำเรียกงาน + ชื่อวิชาที่ต้นประโยค ซ้ำกับช่อง "วิชา" อยู่แล้ว
+  if (subjKey) rest = rest.replace(new RegExp('^\\s*(?:การบ้าน|ใบงาน|วิชา|งาน)?\\s*' + escRe(subjKey), 'i'), ' ');
+  // คำเชื่อมที่ค้างลอยอยู่หลังหักข้อมูลออก (เช่น "…ส่ง  16:00" เหลือ "ส่ง" โดด ๆ)
+  rest = rest
+    .replace(/(?:^|\s)(?:ส่ง|กำหนดส่ง|เดดไลน์|ภายใน|คะแนนเก็บ|คะแนน|เก็บ|เวลา|ตอน|น\.|ครู|อาจารย์)(?=\s|$)/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    // คำที่ค้างอยู่ท้ายสุดหลังหักข้อมูลออก ("สอบวันพุธ" → เหลือ "สอบ" ลอย ๆ)
+    .replace(/\s(?:สอบ|ส่ง|เริ่ม|ก่อน|ตอน|ภายใน|ที่|เมื่อ|วัน)\s*$/, '')
+    .replace(/^[\s·,:;\-–—]+|[\s·,:;\-–—(]+$/g, '')
+    .trim();
+
   let detail = '';
-  const mD = t.match(/((?:ทำ|อ่าน|สรุป|ท่อง|เตรียม|เขียน|วาด|สอบ|ประชุม|ซ้อม|แข่ง|อัด).{3,80}?)(?=\s*(?:ส่ง|ภายใน|คะแนน|ครู|เวลา|พรุ่งนี้|วันนี้|มะรืน|วันที่|$))/);
-  if (mD) { detail = mD[1].trim(); detected.detail = true; }
-  else detail = t.replace(/\s*(?:ส่ง|ภายใน|คะแนน)[^]*$/, '').trim().slice(0, 80) || t.slice(0, 80);
-  // ตัดคำบอกเวลาท้ายประโยคออกจากชื่อเรื่อง (มันไปอยู่ในช่องวันที่แล้ว)
-  detail = detail.replace(/\s*(?:เริ่ม)?(?:วันที่|วัน(?:จันทร์|อังคาร|พุธ|พฤหัสบดี|พฤหัส|ศุกร์|เสาร์|อาทิตย์)|พรุ่งนี้|วันนี้|มะรืน|สัปดาห์หน้า)[^]*$/, '').trim();
-  detail = detail.replace(/[\s(\-–—]+$/, ''); // ตัดวงเล็บ/ขีดค้างท้ายประโยค
+  if (rest.length >= 3) { detail = rest.slice(0, 200); detected.detail = true; }
+  else {
+    // ข้อความสั้นมากจนหักแล้วไม่เหลืออะไร → ใช้ข้อความเดิมทั้งก้อน ดีกว่าปล่อยว่าง
+    detail = t.slice(0, 200);
+  }
 
   return {
     subject, teacher, scorePct,

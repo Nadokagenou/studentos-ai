@@ -7,7 +7,8 @@
 //   - service worker ใช้ cache คนละชื่อ
 // ============================================================
 
-const APP_VERSION = '1A6';                 // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
+const APP_VERSION = '1A6M';                // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
+const APP_CODENAME = 'Modern';             // ชื่อรุ่นของอัปเดตนี้
 const APP_CHANNEL = 'ALT';                 // ป้ายกำกับรุ่น — โชว์ทั้งบนแอปและในหน้า "ฉัน"
 const STORE_KEY = 'studentos.alt.v1';      // ALT: แยกที่เก็บข้อมูลจากตัวจริง ('studentos.v1')
 const APP_T0 = performance.now(); // ใช้คุมเวลาโชว์ splash ขั้นต่ำ
@@ -39,17 +40,18 @@ const THEME_KEY = 'studentos.alt.theme';   // ALT: แยกจากตัว�
 // สีแถบสถานะของแต่ละโทน (ต้องตรงกับ --scr ใน style.css/alt.css และตารางในสคริปต์ <head>)
 const THEME_BAR = {
   light: '#FCFBF7', dark: '#0D1220', warm: '#F7F1E4', space: '#0A0E24',
-  earth: '#F1F6F1', library: '#EFE3CE', magic: '#150E26', galaxy: '#0B0618',
+  earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
 };
 const THEME_NAME = {
   system: 'ตามระบบ', light: 'สว่าง', dark: 'มืด', warm: 'อุ่น', space: 'อวกาศ',
-  earth: 'โลก', library: 'ห้องสมุด', magic: 'เวทมนตร์', galaxy: 'กาแล็กซี',
+  earth: 'โลก', ocean: 'มหาสมุทร', magic: 'เวทมนตร์', galaxy: 'กาแล็กซี',
 };
 const THEMES = Object.keys(THEME_NAME);
 
 function themePref() {
   let v = null;
   try { v = localStorage.getItem(THEME_KEY); } catch (_) {}
+  if (v === 'library') v = 'ocean'; // 1A6M: ธีมห้องสมุดถูกแทนที่ — คนที่เคยเลือกไว้ไม่ต้องมาตั้งใหม่
   return THEMES.includes(v) ? v : 'system';
 }
 function systemDark() { return matchMedia('(prefers-color-scheme: dark)').matches; }
@@ -102,6 +104,48 @@ function setFontScale(key) {
   applyFontScale();
   renderAppearance();
 }
+
+// ---------- ALT: ตำแหน่งแถบเมนู (รองรับ iPad / แท็บเล็ต / PC) ----------
+// จอกว้างแล้ววางแถบไว้ล่างสุดคือเสียพื้นที่แนวตั้งฟรี ๆ และนิ้ว/เมาส์ต้องวิ่งไกล
+// จอกว้าง = ย้ายไปเป็นแถบตั้งด้านซ้าย · จอมือถือ = อยู่ด้านล่างเหมือนเดิม
+// ผู้ใช้บังคับเองได้ในแท็บ "ฉัน" ถ้าไม่ชอบที่ระบบเลือกให้
+const NAV_KEY = 'studentos.alt.nav';
+const NAV_NAME = { auto: 'อัตโนมัติ', bottom: 'ด้านล่าง', side: 'ด้านซ้าย' };
+// 760px ครอบไอแพดแนวตั้ง (768) ด้วย — ขนาดนั้นวางแถบไว้ล่างแล้วเหลือที่ว่างเยอะเกินไป
+const NAV_WIDE = '(min-width: 760px)';
+
+function navPref() {
+  let v = null;
+  try { v = localStorage.getItem(NAV_KEY); } catch (_) {}
+  return NAV_NAME[v] ? v : 'auto';
+}
+
+function navMode() {
+  const p = navPref();
+  return p === 'auto' ? (matchMedia(NAV_WIDE).matches ? 'side' : 'bottom') : p;
+}
+
+function applyNav() {
+  document.documentElement.dataset.nav = navMode();
+  syncJourneyNow(); // ความกว้างจอเปลี่ยน → หมุดบนเส้นทางต้องคำนวณใหม่
+}
+
+function setNav(p) {
+  try { localStorage.setItem(NAV_KEY, NAV_NAME[p] ? p : 'auto'); } catch (_) {}
+  applyNav();
+  renderAppearance();
+}
+
+// จอเปลี่ยนขนาด (หมุนไอแพด / ย่อหน้าต่าง) → สลับให้เองถ้าตั้งเป็นอัตโนมัติ
+// ดักทั้ง matchMedia และ resize: บางกรณีหน้าต่างถูกปรับตอนแท็บไม่ได้แสดงผล
+// แล้ว event ของ matchMedia ไม่ยิง ทำให้ค้างอยู่โหมดเดิมทั้งที่จอกว้างแล้ว
+let navTimer = null;
+const navRecheck = () => {
+  if (navPref() !== 'auto') return;
+  if (document.documentElement.dataset.nav !== navMode()) applyNav();
+};
+matchMedia(NAV_WIDE).addEventListener('change', navRecheck);
+addEventListener('resize', () => { clearTimeout(navTimer); navTimer = setTimeout(navRecheck, 150); });
 
 // ---------- ALT: พื้นหลังภาพของผู้ใช้เอง ----------
 // เก็บเป็น data URL ใน localStorage — ย่อก่อนเสมอ (กว้างสุด 1280px, JPEG คุณภาพ .72)
@@ -176,6 +220,13 @@ function clearUserBg() {
 
 // ปุ่ม/ป้ายในแท็บ "ฉัน" ที่เกี่ยวกับหน้าตา — เรียกหลังเปลี่ยนค่าใด ๆ
 function renderAppearance() {
+  const nav = navPref();
+  document.querySelectorAll('#navPick button').forEach(b =>
+    b.classList.toggle('active', b.dataset.nav === nav));
+  const nnow = document.getElementById('navNow');
+  if (nnow) nnow.textContent = nav === 'auto'
+    ? 'อัตโนมัติ · ตอนนี้อยู่' + NAV_NAME[navMode()] : NAV_NAME[nav];
+
   const fs = fontPref();
   document.querySelectorAll('#fontPick button').forEach(b =>
     b.classList.toggle('active', b.dataset.fs === fs));
@@ -328,8 +379,43 @@ function snoozeBadge(t) {
   const n = t.snoozeCount || 1;
   return `<span class="tag snoozed">${icon('clock')}เลื่อน${n > 1 ? ' ×' + n : ''}</span>`;
 }
-// ---------- หน้าแรก ----------
-// โครง: หัวข้อทักทาย → การ์ดสรุปของ AI → งาน 3 อันดับแรก → ทางไปงานที่เหลือ
+// ---------- ALT: หน้าแรก = เมนูหลัก ----------
+// รวมทางเข้าฟีเจอร์หลักไว้ที่เดียว กดแล้วเด้งไปเลย
+// ตัวเลขบนไทล์เป็นข้อมูลจริงจาก state ไม่ใช่คำอธิบาย — หน้านี้ตั้งใจให้ไม่มีข้อความอธิบายเลย
+function menuTile(cls, ic, label, count, target) {
+  return `<button class="mtile ${cls}" onclick="go('${target}')">
+    <span class="mt-ic">${icon(ic)}</span>
+    <span class="mt-lb">${label}</span>
+    ${count != null ? `<span class="mt-ct">${count}</span>` : ''}
+  </button>`;
+}
+
+function renderMenu() {
+  const body = document.getElementById('menuBody');
+  if (!body) return;
+  const now = new Date();
+  const pending = pendingTasks();
+  const live = liveTasks();
+  const dated = pending.filter(t => t.due).length;
+  const h = now.getHours();
+  const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนค่ำ';
+
+  body.innerHTML = `<div class="menu-head">
+      <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
+      <h1 class="page-title">${greet}${who() ? ', ' + esc(who()) : ''}</h1>
+    </div>
+    <div class="menu-grid">
+      ${menuTile('hero', 'sparkles', 'เพิ่มงานใหม่', null, 'scr-scan')}
+      ${menuTile('', 'calendar', 'ตารางงาน', pending.length, 'scr-home')}
+      ${menuTile('', 'check-circle', 'งานทั้งหมด', live.length, 'scr-tasks')}
+      ${menuTile('', 'clock', 'แผนวันนี้', null, 'scr-plan')}
+      ${menuTile('', 'pin', 'เส้นทาง', dated, 'scr-timeline')}
+      ${menuTile('wide', 'user', 'ฉัน', null, 'scr-profile')}
+    </div>`;
+}
+
+// ---------- ตารางงาน (เดิมคือหน้าแรก) ----------
+// โครง: หัวข้อ → การ์ดสรุปของ AI → งาน 3 อันดับแรก → ทางไปงานที่เหลือ
 // การ์ดสรุปคือที่เดียวที่ AI "พูด" ยาว ๆ ได้ การ์ดงานจึงเหลือแต่ข้อมูลดิบล้วน
 function briefCard(pending, now) {
   const top = pending[0];
@@ -388,7 +474,7 @@ function renderHome() {
 
   const head = `<div class="page-head">
     <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
-    <h1 class="page-title">${greet}, ${esc(name)}</h1>
+    <h1 class="page-title">ตารางงาน</h1>
     <p class="page-sub">งานค้าง <b>${pending.length}</b> · เสร็จแล้ว ${doneCount}
       · เวลาว่างวันนี้ ~${state.settings.freeHours || 2} ชม.</p>
   </div>`;
@@ -582,7 +668,7 @@ function snoozeToTomorrow(id) {
   else tmr.setHours(23, 59, 0, 0);
   const next = (base && base > tmr) ? new Date(base.getTime() + 864e5) : tmr;
   t.due = next.toISOString();
-  t.remindedAt = null;   // กำหนดใหม่แล้ว ต้องเตือนใหม่ได้อีกครั้ง
+  t.remindedAt = null; t.remindedStage = null;  // กำหนดใหม่แล้ว ต้องเตือนใหม่ได้อีกครั้ง
   t.snoozedAt = new Date().toISOString();
   t.snoozeCount = (t.snoozeCount || 0) + 1;
   save();
@@ -1002,13 +1088,18 @@ function renderProfile() {
   applyTheme(); // ให้ปุ่มธีมที่เลือกไว้สว่างตรงกับที่ใช้จริงเสมอ
   renderAppearance(); // ALT: ขนาดตัวอักษร + พื้นหลังภาพของผู้ใช้
   const ver = document.getElementById('appVer');
-  if (ver) ver.textContent = 'StudentOS ' + APP_CHANNEL + ' Version ' + APP_VERSION + ' · รุ่นทดลองฟีเจอร์';
+  if (ver) ver.textContent = 'StudentOS ' + APP_CHANNEL + ' Version ' + APP_VERSION
+    + ' “' + APP_CODENAME + '” · รุ่นทดลองฟีเจอร์';
   const pn = document.getElementById('pName'); if (pn) pn.value = state.settings.name || '';
   const pf = document.getElementById('pFree'); if (pf) pf.value = state.settings.freeHours || 2;
 
   // การแจ้งเตือน
   const st = document.getElementById('notifStatus');
   const nb = document.getElementById('notifBtn');
+  const ntest = document.getElementById('notifTest');
+  // ปุ่มทดสอบโผล่เฉพาะตอนอนุญาตแล้ว — ให้กดพิสูจน์ได้ว่าเด้งจริงบนเครื่องนี้
+  if (ntest) ntest.style.display =
+    ('Notification' in window && Notification.permission === 'granted') ? 'block' : 'none';
   if (!st) return;
   if (!('Notification' in window)) {
     if (isIOS() && !isStandalone()) {
@@ -1032,7 +1123,7 @@ function renderProfile() {
   }
 }
 
-function renderAll() { renderHome(); renderTasks(); renderTimeline(); renderProfile(); renderPlan(); renderInstallCard(); }
+function renderAll() { renderMenu(); renderHome(); renderTasks(); renderTimeline(); renderProfile(); renderPlan(); renderInstallCard(); }
 
 // ---------- task actions ----------
 // el = ปุ่มที่กด (ถ้ามี) ใช้เป็นจุดกำเนิดของเอฟเฟกต์ฉลอง
@@ -1264,7 +1355,10 @@ function saveForm() {
   const target = editingId ? state.tasks.find(x => x.id === editingId) : null;
   if (target) {
     // ตั้งกำหนดส่งใหม่เองในฟอร์ม = ตัดสินใจใหม่แล้ว ป้าย "เลื่อน" จึงหมดหน้าที่
-    if (target.due !== data.due) { data.snoozedAt = null; data.snoozeCount = 0; }
+    if (target.due !== data.due) {
+      data.snoozedAt = null; data.snoozeCount = 0;
+      data.remindedAt = null; data.remindedStage = null; // กำหนดใหม่ = ต้องเตือนใหม่ได้
+    }
     Object.assign(target, data);
   } else {
     state.tasks.push(Object.assign({ id: uid(), done: false, createdAt: new Date().toISOString(), fromScan: !!data._scan }, data));
@@ -1756,6 +1850,7 @@ async function runOcrOn(source, how) {
   try {
     barWrap.hidden = false; bar.style.width = '4%';
     st.textContent = '🖼 กำลังปรับภาพให้อ่านง่ายขึ้น…';
+    startFunFacts(document.getElementById('scanFact')); // มีอะไรให้อ่านระหว่างรอ OCR
     // ปรับภาพก่อน แล้วค่อยโหลดโมเดล — ผู้ใช้จะได้เห็นความคืบหน้าตั้งแต่วินาทีแรก
     const gray = ocrToGray(source);
     const binCanvas = ocrGrayToCanvas(ocrBinarize(gray));
@@ -1794,6 +1889,7 @@ async function runOcrOn(source, how) {
     }
 
     ocrProgress = null;
+    stopFunFacts(document.getElementById('scanFact'));
     st.textContent = ''; barWrap.hidden = true;
 
     const text = normalizeOcrText(data.text); // OCR ไทยเว้นวรรคทีละตัวอักษร ต้องยุบก่อนแกะ
@@ -1819,6 +1915,7 @@ async function runOcrOn(source, how) {
   } catch (e) {
     ocrProgress = null;
     lastOcrConfidence = null;
+    stopFunFacts(document.getElementById('scanFact'));
     st.textContent = ''; barWrap.hidden = true;
     console.error('[OCR]', e);
     alert('อ่านรูปไม่สำเร็จ: ' + e.message + '\n\nใช้วิธี "แปะข้อความจาก LINE" แทนได้เลย — เร็วกว่าและแม่นกว่าด้วย');
@@ -1890,6 +1987,9 @@ async function enableNotif() {
   }
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') { renderProfile(); return; }
+  // ยิงของจริงทันทีหนึ่งดอก — ผู้ใช้จะได้เห็นกับตาว่ามันทำงาน ไม่ใช่แค่ปุ่มเปลี่ยนสี
+  await notify('เปิดแจ้งเตือนแล้ว 🔔',
+    (who() ? who() + ' ' : '') + 'จะเตือนก่อนถึงกำหนดส่ง — ลองกด "ทดสอบ" ได้ทุกเมื่อ', 'studentos-alt-on');
   try {
     const ok = await subscribePush();
     if (ok && !(sb && currentUser)) {
@@ -1975,21 +2075,57 @@ function showToast(copy) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 6000);
 }
 
+// ---------- ALT: ยิงแจ้งเตือนของจริง ----------
+// เดิมใช้ new Notification() ตรง ๆ ซึ่ง "บน Chrome มือถือใช้ไม่ได้เลย" — มันโยน error ทิ้ง
+// ทางที่ใช้ได้ทุกที่คือให้ service worker เป็นคนแสดงแทน (และแตะแล้วเปิดแอปกลับมาได้ด้วย)
+async function notify(title, body, tag) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return false;
+  const opt = {
+    body, tag: tag || 'studentos-alt',
+    icon: 'icon-alt-192.png', badge: 'icon-alt-192.png',
+    renotify: true, data: { url: location.pathname },
+  };
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, opt);
+      return true;
+    }
+  } catch (e) { console.warn('[notify] sw failed:', e.message); }
+  try { new Notification(title, opt); return true; }   // เดสก์ท็อปที่ไม่มี SW
+  catch (e) { console.warn('[notify] failed:', e.message); return false; }
+}
+
+// ปุ่ม "ทดสอบ" ในแท็บฉัน — พิสูจน์ว่ามันเด้งจริงบนเครื่องนี้ ไม่ต้องรอถึงกำหนดส่ง
+async function testNotify() {
+  if (Notification.permission !== 'granted') { enableNotif(); return; }
+  const ok = await notify('ทดสอบแจ้งเตือน 🔔',
+    (who() ? who() + ' ' : '') + 'ถ้าเห็นข้อความนี้แปลว่าแจ้งเตือนใช้งานได้แล้ว', 'studentos-alt-test');
+  showToast(ok
+    ? { title: 'ส่งแจ้งเตือนแล้ว', body: 'ถ้าไม่เห็น ลองเช็คการตั้งค่าแจ้งเตือนของเครื่อง/เบราว์เซอร์' }
+    : { title: 'ยังส่งไม่ได้', body: 'เบราว์เซอร์นี้บล็อกการแจ้งเตือนอยู่' });
+}
+
 function checkReminders() {
   const now = new Date();
   const canNotify = ('Notification' in window) && Notification.permission === 'granted';
+  let touched = false;
   for (const t of pendingTasks()) {
-    if (!t.due || t.remindedAt) continue;
+    if (!t.due) continue;
     const hLeft = (new Date(t.due) - now) / 3.6e6;
-    if (hLeft > 0 && hLeft <= 24) {
-      if (canNotify) {
-        const c = reminderCopy(t, now);
-        new Notification(c.title, { body: c.body, icon: 'icon-192.png', badge: 'icon-192.png' });
-      }
-      t.remindedAt = now.toISOString();
+    // เตือน 2 จังหวะต่องาน: ตอนเหลือ < 24 ชม. และย้ำอีกทีตอนเหลือ < 3 ชม.
+    const stage = hLeft <= 0 ? null : hLeft <= 3 ? 'soon' : hLeft <= 24 ? 'day' : null;
+    if (!stage) continue;
+    if (t.remindedStage === stage || (stage === 'day' && t.remindedAt)) continue;
+    if (canNotify) {
+      const c = reminderCopy(t, now);
+      notify(c.title, c.body, 'studentos-alt-' + t.id);
     }
+    t.remindedAt = now.toISOString();
+    t.remindedStage = stage;
+    touched = true;
   }
-  save();
+  if (touched) save();
 }
 
 // เตือนแบบ toast ตอนเปิดแอป (ครั้งเดียวต่อการเปิด) ถ้ามีงานด่วน
@@ -2077,6 +2213,54 @@ function renderInstallCard() {
   }
 }
 
+// ---------- ALT: เกร็ดความรู้ระหว่างรอ ----------
+// จอโหลดกับจอ OCR เป็นช่วงที่ผู้ใช้ต้องนั่งรอเฉย ๆ — ใส่อะไรให้อ่านดีกว่าปล่อยว่าง
+// 2 ข้อแรกเป็นเรื่องของผู้พัฒนาเอง ที่เหลือเป็นเกร็ดของโลก
+const FUN_FACTS = [
+  'ชื่อรุ่นของแอปได้แรงบันดาลใจมาจากรถถังซีรีส์ Leopard',
+  'ผู้พัฒนาชอบกินเงาะ',
+  'น้ำผึ้งไม่เน่าเสีย — เคยมีคนเจอน้ำผึ้งในสุสานอียิปต์อายุกว่า 3,000 ปี ที่ยังกินได้',
+  'หมึกยักษ์มีหัวใจ 3 ดวง และเลือดของมันเป็นสีฟ้า',
+  'กล้วยนับเป็นผลเบอร์รีตามนิยามพฤกษศาสตร์ แต่สตรอว์เบอร์รีไม่ใช่',
+  'ดาวศุกร์หมุนรอบตัวเองช้ามาก จน 1 วันของมันยาวกว่า 1 ปีของมันเอง',
+  'เต่าทะเลใช้สนามแม่เหล็กโลกนำทางกลับมาวางไข่ที่ชายหาดที่มันเกิด',
+  'แสงจากดวงอาทิตย์ใช้เวลาราว 8 นาที 20 วินาที กว่าจะเดินทางมาถึงโลก',
+  'ไม้ไผ่บางชนิดโตได้เกือบ 1 เมตรภายในวันเดียว',
+  'มดไม่มีปอด มันหายใจผ่านรูเล็ก ๆ ข้างลำตัวแทน',
+  'ทะเลทรายซาฮาราเคยเป็นทุ่งหญ้าเขียวที่มีทะเลสาบ เมื่อราว 6,000 ปีก่อน',
+  'พระอาทิตย์ตกบนดาวอังคารเป็นสีฟ้า — ตรงข้ามกับบนโลกพอดี',
+];
+
+let factTimer = null, lastFactIdx = -1;
+
+function pickFunFact() {
+  let i;
+  do { i = Math.floor(Math.random() * FUN_FACTS.length); }
+  while (FUN_FACTS.length > 1 && i === lastFactIdx);   // ไม่ซ้ำอันเดิมติดกัน
+  lastFactIdx = i;
+  return FUN_FACTS[i];
+}
+
+function startFunFacts(el, ms = 4500) {
+  stopFunFacts();
+  if (!el) return;
+  el.hidden = false;
+  const show = () => {
+    el.textContent = pickFunFact();
+    el.classList.remove('in');
+    void el.offsetWidth;      // บังคับ reflow ให้อนิเมชันเล่นใหม่ทุกครั้ง
+    el.classList.add('in');
+  };
+  show();
+  factTimer = setInterval(show, ms);
+}
+
+function stopFunFacts(el) {
+  clearInterval(factTimer);
+  factTimer = null;
+  if (el) { el.hidden = true; el.textContent = ''; }
+}
+
 // ---------- ALT: ฉากเปิดแอป + เปอร์เซ็นต์จริง ----------
 // เปอร์เซ็นต์ที่โชว์ = min(งานที่เสร็จจริง, เวลาที่ผ่านไป/เวลาขั้นต่ำ)
 //   - ไม่โกหกว่าเสร็จ ทั้งที่ยังโหลดไม่เสร็จ (ติดเพดานที่งานจริง)
@@ -2124,6 +2308,7 @@ function startSplashMeter() {
     if (splashShown < 100 || !splashReady) return;
 
     clearInterval(splashTimer);
+    stopFunFacts();
     const step = document.getElementById('spStep');
     if (step) step.textContent = 'พร้อมแล้ว';
     // บิลด์ทดลอง: ทิ้งเวลาบูตไว้ใน console จะได้รู้ว่าเปอร์เซ็นต์ไปติดที่เวลาหรือที่งานจริง
@@ -2137,6 +2322,7 @@ function startSplashMeter() {
   };
   splashTimer = setInterval(tick, 60);
   tick();
+  startFunFacts(document.getElementById('spFact'));
 }
 
 // เรียกตอนงานเปิดแอปเสร็จครบ — ตัวนับจะปิดฉากให้เองเมื่อถึง 100
@@ -2162,14 +2348,14 @@ function routeStart() {
   } else if (needsOnboard()) {
     openOnboard();
   } else {
-    go(liveTasks().length ? 'scr-home' : 'scr-scan'); // ครั้งแรก: เริ่มที่ Scan (จุดขายของเรา)
+    go('scr-menu'); // ALT: เข้าแอปมาเจอเมนูหลักก่อนเสมอ
   }
 }
 
 // ใช้หลังผ่านหน้าบัญชีแล้ว (ล็อกอินสำเร็จ หรือกดใช้แบบไม่ล็อกอิน)
 function routeAfterLogin() {
   if (needsOnboard()) openOnboard();
-  else go(liveTasks().length ? 'scr-home' : 'scr-scan');
+  else go('scr-menu');
 }
 
 function openOnboard() {
@@ -2215,7 +2401,7 @@ function finishOnboard() {
 
 function skipOnboard() {
   localStorage.setItem(ONBOARD_SKIP_KEY, '1'); // ข้ามแล้วไม่ต้องถามซ้ำทุกครั้งที่เปิด
-  go(liveTasks().length ? 'scr-home' : 'scr-scan');
+  go('scr-menu');
 }
 
 // ฉาก "ยินดีที่ได้รู้จัก ___" — จังหวะเดียวที่แอปได้ทักผู้ใช้ด้วยชื่อเขาเป็นครั้งแรก
@@ -2228,7 +2414,7 @@ function showWelcome(name) {
   setTimeout(() => w.classList.add('on'), 20);
   setTimeout(() => {
     w.classList.remove('on');
-    go(liveTasks().length ? 'scr-home' : 'scr-scan');
+    go('scr-menu');
     setTimeout(() => { w.hidden = true; }, 300);
     showToast({
       title: 'ยินดีที่ได้รู้จัก ' + name + ' 👋',
@@ -2284,6 +2470,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   applyTheme();
   applyFontScale();  // ALT: ต้องมาก่อนวาดจอแรก ไม่งั้นตัวอักษรกระโดดขนาดให้เห็น
   applyUserBg();
+  applyNav();
   fillSubjectSelect();
   initHomeSwipe(); // ALT: ปัดการ์ดในหน้าแรก (เกาะที่ #homeBody ครั้งเดียว อยู่รอดทุกการ render)
   initCrop();      // ALT: ลากกรอบในหน้าครอบภาพ
@@ -2296,7 +2483,10 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 
   tickClock();
   setInterval(tickClock, 30_000);
-  setInterval(checkReminders, 5 * 60_000);
+  // เช็คบ่อยขึ้น (นาทีละครั้ง) + เช็คทุกครั้งที่กลับมาที่แอป
+  // เวลาที่มือถือพักหน้าจอ timer จะถูกหยุด การกลับมาแล้วเช็คทันทีคือสิ่งที่ทำให้เตือนไม่หลุด
+  setInterval(checkReminders, 60_000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkReminders(); });
   checkReminders();
 
   await initCloud();
