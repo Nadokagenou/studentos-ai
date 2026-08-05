@@ -146,6 +146,12 @@ const navRecheck = () => {
 };
 matchMedia(NAV_WIDE).addEventListener('change', navRecheck);
 addEventListener('resize', () => { clearTimeout(navTimer); navTimer = setTimeout(navRecheck, 150); });
+addEventListener('orientationchange', () => setTimeout(navRecheck, 250));
+// กลับมาที่แอป / ถูกกู้จาก bfcache → เช็คซ้ำ
+// จำเป็นจริง ๆ: ถ้าจอเปลี่ยนขนาดตอนแอปอยู่เบื้องหลัง event ทั้ง resize และ matchMedia จะไม่ยิงเลย
+// เคยเจอกับตัว — ย่อหน้าต่างเหลือขนาดมือถือแล้วแถบซ้ายค้างอยู่ ทั้งที่ควรกลับไปอยู่ด้านล่าง
+document.addEventListener('visibilitychange', () => { if (!document.hidden) navRecheck(); });
+addEventListener('pageshow', navRecheck);
 
 // ---------- ALT: พื้นหลังภาพของผู้ใช้เอง ----------
 // เก็บเป็น data URL ใน localStorage — ย่อก่อนเสมอ (กว้างสุด 1280px, JPEG คุณภาพ .72)
@@ -2341,6 +2347,18 @@ function needsOnboard() {
   return !who() && !localStorage.getItem(ONBOARD_SKIP_KEY);
 }
 
+// ปุ่มลัดจากไอคอนแอป (manifest shortcuts) ส่ง ?go=... มา — ต้องพาไปจอนั้นจริง ไม่งั้นปุ่มลัดโกหก
+const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-timeline' };
+function shortcutTarget() {
+  try {
+    const g = new URLSearchParams(location.search).get('go');
+    if (!g || !SHORTCUT_SCREENS[g]) return null;
+    // ล้าง query ทิ้ง กันค้างอยู่ใน URL แล้วรีเฟรชทีไรก็เด้งไปจอเดิมทุกที
+    history.replaceState(null, '', location.pathname);
+    return SHORTCUT_SCREENS[g];
+  } catch (_) { return null; }
+}
+
 // เลือกจอแรกหลังเปิดแอป: บัญชี → ทำความรู้จัก → เข้าแอป
 function routeStart() {
   if (cloudConfigured() && !currentUser && !localStorage.getItem('studentos.alt.skipLogin')) {
@@ -2348,7 +2366,7 @@ function routeStart() {
   } else if (needsOnboard()) {
     openOnboard();
   } else {
-    go('scr-menu'); // ALT: เข้าแอปมาเจอเมนูหลักก่อนเสมอ
+    go(shortcutTarget() || 'scr-menu'); // ALT: เข้าแอปมาเจอเมนูหลักก่อนเสมอ (ยกเว้นมาจากปุ่มลัด)
   }
 }
 
@@ -2429,6 +2447,7 @@ function tickClock() {
   document.getElementById('clock').textContent =
     String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
   syncJourneyNow(); // ALT: หมุดบนเส้นทางเดินตามเวลาจริงไปพร้อมนาฬิกา
+  navRecheck();     // ALT: กันเลย์เอาต์ค้างผิดโหมด ถ้า event เรื่องขนาดจอพลาดไปสักตัว
 }
 
 for (const id of ['cameraInput', 'galleryInput']) {
