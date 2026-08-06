@@ -77,6 +77,122 @@ async function reply(replyToken: string, text: string) {
 // ข้อความที่ไม่มีทางเป็นงาน — กรองทิ้งตั้งแต่ต้นทาง จะได้ไม่ไปกวนกล่องเข้า
 const NOISE = /^(ครับ|ค่ะ|คะ|จ้า|จ้าา|ok|โอเค|ได้|รับทราบ|555+|ขอบคุณ|thanks?|👍|🙏|\s*)$/i;
 
+// ============================================================
+// น้องไซ — ผู้ช่วยที่ "ตอบเฉพาะตอนถูกเรียก"
+// ------------------------------------------------------------
+// บอทที่แจมทุกประโยคในกลุ่มห้องเรียนจะโดนเตะออกภายในวันเดียว
+// ต้องเรียกก่อนถึงจะพูด นอกนั้นเงียบสนิทและทำหน้าที่เก็บงานไปตามปกติ
+// ============================================================
+const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
+const GEMINI_MODEL = 'gemini-3.6-flash';
+
+// "ไซ" คำเดียวไม่นับ เพราะไปชนกับ ไซส์/ไซเบอร์/ไซโล — ต้องเรียกให้ชัด
+const CALLED = /น้องไซ|\bsynara\b|^ไซ[\s,.!?ๆ]/i;
+
+const PERSONA = `คุณคือ "น้องไซ" (Synara) ผู้ช่วยประจำแอป students OS
+อยู่ในกลุ่มไลน์ห้องเรียนกับนักเรียนมัธยม
+
+บุคลิก: เป็นกันเอง สดใส แต่ไม่เว่อร์ พูดสั้นกระชับ เหมือนเพื่อนที่เก่งเรื่อง
+จัดตารางและคอยเตือนงาน แทนตัวเองว่า "เรา"
+
+กติกาที่ห้ามผิด:
+- ตอบสั้น 1-3 ประโยค ไม่เกิน 60 คำ เพราะนี่คือแชทกลุ่ม ยาวไปคือกวน
+- ห้ามแต่งเรื่องการบ้าน กำหนดส่ง หรือคะแนนของใครขึ้นมาเอง ไม่รู้ให้บอกว่าไม่รู้
+- ถ้าถูกถามว่ามีงานอะไรค้าง ให้บอกว่าดูในแอป students OS ได้เลย
+  เพราะเราไม่เห็นข้อมูลส่วนตัวของใครจากในกลุ่ม
+- ห้ามทำการบ้านให้ทั้งข้อ ให้ใบ้หรืออธิบายวิธีคิดแทน แล้วชวนให้ลองทำเอง
+- อยู่ในกลุ่มห้องเรียน ถ้าถูกชวนคุยเรื่องไม่เหมาะสม เลี่ยงอย่างสุภาพแล้วเปลี่ยนเรื่อง
+
+ช่วยได้: อธิบายบทเรียน ให้กำลังใจ แนะนำวิธีแบ่งเวลาอ่านหนังสือ ตอบคำถามทั่วไป`;
+
+// บางเวอร์ชันของ LINE ส่ง mention มาให้ด้วย ถ้ามีก็ใช้ ไม่มีก็ยังจับจากชื่อได้
+function mentionedSelf(ev: any): boolean {
+  const list = ev?.message?.mention?.mentionees;
+  return Array.isArray(list) && list.some((m: any) => m?.isSelf === true);
+}
+
+// ---------- ความจำสั้น ๆ ----------
+// เก็บเฉพาะที่คุยกับน้องไซ ไม่ใช่ทุกข้อความในกลุ่ม
+// ถ้ายังไม่ได้สร้างตาราง line_chat ก็ทำงานได้ปกติ แค่จำเรื่องที่เพิ่งคุยไม่ได้
+async function recentChat(roomId: string) {
+  try {
+    const { data } = await db.from('line_chat').select('role, text')
+      .eq('room_id', roomId).order('created_at', { ascending: false }).limit(8);
+    return (data ?? []).reverse();
+  } catch { return []; }
+}
+
+async function rememberChat(roomId: string, q: string, a: string) {
+  try {
+    await db.from('line_chat').insert([
+      { room_id: roomId, role: 'user', text: q.slice(0, 500) },
+      { room_id: roomId, role: 'bot', text: a.slice(0, 500) },
+    ]);
+  } catch { /* ไม่มีตารางก็ข้ามไป ไม่ใช่เรื่องคอขาดบาดตาย */ }
+}
+
+async function askGemini(q: string, history: any[]): Promise<string> {
+  const contents = [
+    ...history.map((h) => ({
+      role: h.role === 'bot' ? 'model' : 'user',
+      parts: [{ text: String(h.text ?? '') }],
+    })),
+    { role: 'user', parts: [{ text: q }] },
+  ];
+
+  // LINE รอ webhook ไม่นาน ถ้า Gemini อืดต้องยอมแพ้แล้วตอบอย่างอื่นไปก่อน
+  // ดีกว่าปล่อยให้ LINE timeout แล้วมองว่า webhook เรามีปัญหา
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 8000);
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: ctl.signal,
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: PERSONA }] },
+          contents,
+          generationConfig: { temperature: 0.8, maxOutputTokens: 220 },
+        }),
+      },
+    );
+    const j = await res.json();
+    if (!res.ok) {
+      console.error('[gemini]', res.status, JSON.stringify(j).slice(0, 300));
+      return 'ตอนนี้สมองเราติดขัดนิดหน่อย เดี๋ยวลองใหม่อีกทีนะ';
+    }
+    const out = (j?.candidates?.[0]?.content?.parts ?? [])
+      .map((p: any) => p?.text ?? '').join('').trim();
+    return out || 'เราคิดไม่ออกเลยแฮะ ถามใหม่อีกแบบได้ไหม';
+  } catch {
+    return 'เราค้างไปแป๊บนึง ลองเรียกใหม่อีกทีนะ';
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function handleChat(ev: any, text: string, roomId: string) {
+  if (!ev.replyToken) return;
+
+  const q = text.replace(CALLED, '').replace(/^[\s,:@]+/, '').trim().slice(0, 400);
+
+  if (!GEMINI_KEY) {
+    await reply(ev.replyToken,
+      'เรียกเราเหรอ 🙌 ตอนนี้ยังคิดเองไม่ได้นะ ต้องให้คนดูแลใส่ GEMINI_API_KEY ใน Supabase ก่อน');
+    return;
+  }
+  if (!q) {
+    await reply(ev.replyToken, 'เรียกเราเหรอ มีอะไรให้ช่วยบอกได้เลย');
+    return;
+  }
+
+  const answer = await askGemini(q, await recentChat(roomId));
+  await reply(ev.replyToken, answer);
+  await rememberChat(roomId, q, answer);
+}
+
 Deno.serve(async (req) => {
   const body = await req.text();
 
@@ -126,7 +242,15 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    // ---------- 2) ข้อความธรรมดา → หย่อนเข้ากล่องเข้า ----------
+    // ---------- 2) เรียกน้องไซ ----------
+    // อยู่ก่อนขั้นเก็บงานโดยตั้งใจ — ข้อความที่พิมพ์คุยกับน้องไซ
+    // ไม่ใช่งานที่ครูสั่ง จึงไม่ควรถูกเก็บเข้ากล่องเข้าซ้ำอีกที
+    if (CALLED.test(text) || mentionedSelf(ev)) {
+      await handleChat(ev, text, roomId);
+      continue;
+    }
+
+    // ---------- 3) ข้อความธรรมดา → หย่อนเข้ากล่องเข้า ----------
     if (text.length < 8 || NOISE.test(text)) continue;
 
     const { data: links } = await db.from('line_links')
