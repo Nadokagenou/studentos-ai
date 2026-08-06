@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="google-site-verification" content="EL8HSk9rzF6WS9GYcfkFaYwxf00p2PzEKganiKXzDh0" />
-  <title>StudentOS ALT Version 1A6M — รุ่นทดลองฟีเจอร์ (Sandbox)</title>
-  <meta name="description" content="StudentOS ALT Version 1A6M — บิลด์ทดลองฟีเจอร์ แยกข้อมูลจากตัวจริง ไม่ใช่รุ่นที่ใช้งานจริง">
+  <title>StudentOS ALT Version 1A6M2 — รุ่นทดลองฟีเจอร์ (Sandbox)</title>
+  <meta name="description" content="StudentOS ALT Version 1A6M2 — บิลด์ทดลองฟีเจอร์ แยกข้อมูลจากตัวจริง ไม่ใช่รุ่นที่ใช้งานจริง">
   <!-- ALT = บิลด์ทดลอง ไม่ควรถูก index ปนกับตัวจริงบน GitHub Pages -->
   <meta name="robots" content="noindex, nofollow">
 
   <meta property="og:type" content="website">
-  <meta property="og:title" content="StudentOS ALT Version 1A6M — รุ่นทดลองฟีเจอร์">
+  <meta property="og:title" content="StudentOS ALT Version 1A6M2 — รุ่นทดลองฟีเจอร์">
   <meta property="og:description" content="AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงาน จัดลำดับความสำคัญพร้อมเหตุผล">
   <meta property="og:url" content="https://nadokagenou.github.io/studentos-ai/">
   <meta property="og:image" content="https://nadokagenou.github.io/studentos-ai/icon-512.png">
@@ -24,10 +24,11 @@
       // ALT: ธีมเพิ่มมาอีก 4 โทน — ตารางนี้ต้องตรงกับ THEME_BAR ใน app.js เสมอ
       // ไม่งั้นธีมใหม่จะไม่ถูกจำ แล้วจอแรกกะพริบเป็นโทนสว่างก่อนสลับ
       var BAR = { light: '#FCFBF7', dark: '#0D1220', warm: '#F7F1E4', space: '#0A0E24',
-        earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618' };
+        earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
+        deepocean: '#04121F' };
       var pref = null;
       try { pref = localStorage.getItem('studentos.alt.theme'); } catch (e) {} // ALT: คนละคีย์กับตัวจริง
-      if (pref === 'library') pref = 'ocean'; // 1A6M: ธีมห้องสมุดถูกแทนที่ด้วยมหาสมุทร
+      if (pref === 'library') pref = 'ocean'; // 1A6M2: ธีมห้องสมุดถูกแทนที่ด้วยมหาสมุทร
       var t = BAR[pref] ? pref
         : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
       document.documentElement.dataset.theme = t;
@@ -143,7 +144,7 @@
     <div class="userbg" id="userBg" aria-hidden="true"><span class="ub-veil"></span></div>
     <div class="statusbar"><span id="clock">--:--</span><span>📶 🔋</span></div>
     <!-- ALT: ป้ายบอกรุ่นบนตัวเครื่อง — โชว์เลขเวอร์ชัน (app.js เขียนทับจาก APP_VERSION ตอนเปิด) -->
-    <div class="alt-badge" id="altBadge" title="StudentOS ALT · บิลด์ทดลองฟีเจอร์ ข้อมูลแยกจากตัวจริง">1A6M</div>
+    <div class="alt-badge" id="altBadge" title="StudentOS ALT · บิลด์ทดลองฟีเจอร์ ข้อมูลแยกจากตัวจริง">1A6M2</div>
     <div class="screens">
 
       <!-- ============ SCREEN: LOGIN ============ -->
@@ -152,7 +153,7 @@
           <img class="login-mark" src="logo-mark.png" alt="StudentOS AI">
           <div class="big-title" style="margin:0">StudentOS <span class="ai-blue">AI</span></div>
           <p class="sub" style="margin:0 0 6px">รู้ว่าต้องทำอะไรก่อน เสมอ</p>
-          <p class="alt-note" style="margin:0 0 16px">StudentOS <b>ALT</b> Version <b>1A6M “Modern”</b> · รุ่นทดลองฟีเจอร์ — ข้อมูลแยกจากตัวจริง</p>
+          <p class="alt-note" style="margin:0 0 16px">StudentOS <b>ALT</b> Version <b>1A6M2 “Modern”</b> · รุ่นทดลองฟีเจอร์ — ข้อมูลแยกจากตัวจริง</p>
           <button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>
           <button class="btn ghost" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>
           <p class="hint">ล็อกอินแล้วข้อมูลจะซิงก์ข้ามเครื่อง</p>
@@ -446,6 +447,10 @@
             </div>
           </div>
 
+          <!-- ALT 1A6M2: ผลของฉัน — สรุปจากข้อมูลที่แอปมีจริง วาดใน renderStats -->
+          <div id="statsBox"></div>
+
+          <div class="sec-label">ตั้งค่า</div>
           <div class="pf-list">
             <div class="pf-row">
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#ic-profile"/></svg></span>
@@ -482,6 +487,41 @@
                   <span class="sw sw-magic"></span><span class="nm">เวทมนตร์</span></button>
                 <button type="button" data-th="galaxy" onclick="setTheme('galaxy')">
                   <span class="sw sw-galaxy"></span><span class="nm">กาแล็กซี</span></button>
+                <!-- ปลดล็อกด้วยการกดปุ่ม "มหาสมุทร" ซ้ำ 4 ครั้ง (อีสเตอร์เอกก์) -->
+                <button type="button" class="th-secret" data-th="deepocean" onclick="setTheme('deepocean')">
+                  <span class="sw sw-deepocean"></span><span class="nm">ทะเลลึก</span></button>
+              </div>
+            </div>
+
+            <!-- ALT 1A6M2: วิดเจ็ตบนหน้าแรก -->
+            <div class="pf-row col">
+              <span class="hd">
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+                <span class="bd"><span class="lb">วิดเจ็ตหน้าแรก</span><span class="sb" id="wgNow"></span></span>
+              </span>
+              <div class="fs-grid wg-grid" id="wgPick">
+                <button type="button" data-wg="urgent" onclick="setWidget('urgent')">
+                  <svg viewBox="0 0 24 24"><use href="#lu-flame"/></svg>งานด่วน</button>
+                <button type="button" data-wg="note" onclick="setWidget('note')">
+                  <svg viewBox="0 0 24 24"><use href="#lu-pencil"/></svg>โน้ต</button>
+                <button type="button" data-wg="clock" onclick="setWidget('clock')">
+                  <svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg>เวลา</button>
+                <button type="button" data-wg="photo" onclick="setWidget('photo')">
+                  <svg viewBox="0 0 24 24"><use href="#lu-image"/></svg>ภาพ</button>
+              </div>
+              <div class="wg-extra" id="wgNoteWrap" hidden>
+                <textarea id="wgNoteInput" rows="3" maxlength="240"
+                  placeholder="จดอะไรไว้ก็ได้ — เลขห้องสอบ ของที่ต้องเอาไปส่ง อะไรที่ลืมบ่อย"
+                  onchange="saveWidgetNote()"></textarea>
+              </div>
+              <div class="wg-extra" id="wgPhotoWrap" hidden>
+                <div class="bg-tools">
+                  <label class="bg-pick" for="wgPhotoInput">
+                    <svg viewBox="0 0 24 24"><use href="#lu-image"/></svg><span id="wgPhotoLabel">เลือกภาพ</span></label>
+                  <input type="file" id="wgPhotoInput" accept="image/*" hidden>
+                  <button type="button" class="bg-del" id="wgPhotoDel" onclick="clearWidgetPhoto()" hidden>
+                    <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg></button>
+                </div>
               </div>
             </div>
 
@@ -590,7 +630,8 @@
       <button class="tab" data-scr="scr-menu" onclick="go('scr-menu')">
         <svg class="ic" viewBox="0 0 24 24"><use href="#tb-home"/></svg><span>หน้าแรก</span></button>
       <button class="tab" data-scr="scr-home" onclick="go('scr-home')">
-        <svg class="ic" viewBox="0 0 24 24"><use href="#tb-tasks"/></svg><span>ตารางงาน</span></button>
+        <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24"><use href="#tb-tasks"/></svg>
+          <span class="tab-badge" id="badgeHome" hidden></span></span><span>ตารางงาน</span></button>
       <button class="tab scan" data-scr="scr-scan" onclick="go('scr-scan')">
         <span class="scan-dot"><svg viewBox="0 0 24 24"><use href="#tb-scan"/></svg></span><span>เพิ่ม</span></button>
       <button class="tab" data-scr="scr-timeline" onclick="go('scr-timeline')">
@@ -604,7 +645,7 @@
       <div class="sp-glow"></div>
       <img class="sp-logo" src="logo-mark.png" alt="StudentOS AI">
       <div class="sp-word">StudentOS <span>AI</span></div>
-      <div class="sp-alt">ALT · VERSION 1A6M “MODERN”</div>
+      <div class="sp-alt">ALT · VERSION 1A6M2 “MODERN”</div>
       <div class="sp-tag">รู้ว่าต้องทำอะไรก่อน เสมอ</div>
       <!-- ALT: เปอร์เซ็นต์จริง — เดินตามงานที่โหลดเสร็จจริง ไม่ใช่แถบหลอกตา -->
       <div class="sp-load">
@@ -620,7 +661,7 @@
   </div>
 
   <p class="stage-note">
-    <b class="alt-tag">StudentOS ALT Version 1A6M “Modern”</b> — บิลด์ไว้ทดลองฟีเจอร์ใหม่ ไม่ใช่ตัวที่ปล่อยจริง ·
+    <b class="alt-tag">StudentOS ALT Version 1A6M2 “Modern”</b> — บิลด์ไว้ทดลองฟีเจอร์ใหม่ ไม่ใช่ตัวที่ปล่อยจริง ·
     เก็บข้อมูลแยกจากตัวจริงด้วยคีย์ <code>studentos.alt.*</code> ใน localStorage<br>
     StudentOS AI — Scan รูปใช้ OCR ในเบราว์เซอร์ ·
     การจัดลำดับคำนวณจาก deadline × คะแนน × ขนาดงาน พร้อมเหตุผลกำกับทุกงาน

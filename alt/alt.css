@@ -486,8 +486,33 @@
   --r-card:22px; --r-tile:15px;
 }
 
+/* ---------- โทน 9 (ลับ): ทะเลลึก — มหาสมุทรเวอร์ชันมืด ---------- */
+/* ปลดล็อกด้วยการกดปุ่มธีมมหาสมุทรซ้ำ 4 ครั้ง */
+:root[data-theme="deepocean"] {
+  color-scheme: dark;
+  --scr:#04121F; --card:#0B2033; --card2:#132E45; --surface:#132E45;
+  --ink:#DCEEF9; --muted:#8AAEC6; --faint:#7CA3BD;
+  --line:rgba(160,220,255,.11);
+  --blue:#38BDF8; --blue-soft:rgba(56,189,248,.16); --blue-deep:#9BDCFB; --on-accent:#04121F;
+  --neon:#22D3EE;
+  --alert:#FF7A94; --alert-soft:rgba(255,122,148,.15);
+  --warn:#F0C05A;  --warn-soft:rgba(240,192,90,.15);
+  --good:#4FD8C0;  --good-soft:rgba(79,216,192,.15); --fire:#FF7A94;
+  --shadow:0 2px 8px rgba(0,10,20,.55), 0 18px 40px -14px rgba(0,8,16,.9);
+  --shadow-lg:0 4px 12px rgba(0,10,20,.6), 0 36px 66px -18px rgba(0,8,16,.95);
+  --shadow-brand:0 10px 28px -8px rgba(14,165,233,.55);
+  --glass:rgba(4,18,31,.8); --glass-line:rgba(56,189,248,.18);
+  --skel:rgba(255,255,255,.06); --skel-hi:rgba(255,255,255,.12);
+  --grad-brand:linear-gradient(135deg,#22D3EE 0%,#0369A1 100%);
+  --grad-hero:linear-gradient(150deg,#06304A 0%,#041B2B 100%);
+  --glow-scan:0 0 0 1px rgba(34,211,238,.35), 0 8px 26px -4px rgba(14,165,233,.7),
+    0 0 34px -6px rgba(34,211,238,.35);
+  --pg:#020B14; --pg-ink:#DCEEF9; --pg-muted:#8AAEC6; --frame:#020A12;
+  --r-card:22px; --r-tile:15px;
+}
+
 /* ป้ายความสำคัญบนโทนมืดใหม่ — พื้นโปร่ง ตัวอักษรสว่าง (เหมือนที่ dark/space ทำ) */
-:root[data-theme="magic"], :root[data-theme="galaxy"] {
+:root[data-theme="magic"], :root[data-theme="galaxy"], :root[data-theme="deepocean"] {
   --pri-red-soft:rgba(255,107,124,.18);  --pri-red-text:#FF9AA6;
   --pri-yellow-soft:rgba(240,185,10,.18); --pri-yellow-text:#F3C64B;
   --pri-green-soft:rgba(52,211,153,.18);  --pri-green-text:#5BDC93;
@@ -496,6 +521,29 @@
 /* สวอตช์ในหน้าเลือกธีม */
 .sw-earth{background:linear-gradient(135deg,#2C7CC4 34%,#2FA37A 34%,#2FA37A 68%,#5A4128 68%)}
 .sw-ocean{background:linear-gradient(135deg,#BFE6F7 38%,#38BDF8 38%,#38BDF8 70%,#0A5170 70%)}
+.sw-deepocean{background:linear-gradient(135deg,#04121F 40%,#0369A1 40%,#0369A1 72%,#22D3EE 72%)}
+/* ปุ่มธีมลับ: โผล่เฉพาะคนที่ปลดล็อกแล้ว */
+.th-grid .th-secret { display: none; }
+:root[data-deep="on"] .th-grid .th-secret { display: flex; }
+
+/* ฟองอากาศตอนกดปุ่มธีมซ้ำ (อีสเตอร์เอกก์) */
+.egg-bub {
+  position: absolute;
+  bottom: -24px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(190, 235, 255, .8);
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.6), rgba(160,220,255,.12) 60%, transparent 70%);
+  pointer-events: none;
+  z-index: 45;
+  animation: egg-rise 1.4s ease-out forwards;
+}
+@keyframes egg-rise {
+  0% { transform: translateY(0) scale(.6); opacity: 0; }
+  15% { opacity: .95; }
+  70% { opacity: .8; }
+  100% { transform: translateY(-88vh) translateX(14px) scale(1.15); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .egg-bub { display: none; } }
 .sw-magic{background:linear-gradient(135deg,#150E26 40%,#8B5CF6 40%,#8B5CF6 72%,#E8C25A 72%)}
 .sw-galaxy{background:linear-gradient(135deg,#0B0618 38%,#A855F7 38%,#A855F7 70%,#EC4899 70%)}
 
@@ -506,6 +554,7 @@
 .fx { display: none; }
 :root[data-theme="earth"] .fx,
 :root[data-theme="ocean"] .fx,
+:root[data-theme="deepocean"] .fx,
 :root[data-theme="magic"] .fx,
 :root[data-theme="galaxy"] .fx,
 :root[data-theme="space"] .fx {
@@ -644,6 +693,92 @@
   10%  { opacity: .9; }
   90%  { opacity: .5; }
   100% { background-position: 17% -6%, 58% -6%, 88% -6%; opacity: 0; }
+}
+
+/* ---------- ทะเลลึก: น้ำมืด + ฉลาม + หมึกยักษ์ + แพลงก์ตอนเรืองแสง ---------- */
+/* น้ำลึกกว่าโทนมหาสมุทรมาก แสงเหลือน้อย เงาสัตว์จึงเป็นตัวเล่าเรื่องแทน */
+:root[data-theme="deepocean"] .fx-a {
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(6,60,95,.55) 0%, rgba(4,32,54,.75) 45%, rgba(2,12,22,.92) 100%),
+    radial-gradient(120% 44% at 50% -12%, rgba(120,210,255,.26), transparent 72%);
+}
+:root[data-theme="deepocean"] .fx-b {   /* ลำแสงจาง ๆ ลอดลงมาจากผิวน้ำไกล ๆ */
+  inset: -20% -10%;
+  background:
+    linear-gradient(96deg, transparent 26%, rgba(150,220,255,.15) 31%, transparent 36%),
+    linear-gradient(102deg, transparent 56%, rgba(150,220,255,.10) 60%, transparent 65%);
+  filter: blur(7px);
+  animation: sea-rays 18s ease-in-out infinite;
+}
+/* ฉลาม: เงาใหญ่ ว่ายช้า ๆ ผ่านจอ */
+:root[data-theme="deepocean"] .fx-c {
+  left: -40%; right: -40%; top: 0; bottom: 30%;
+  opacity: .5;
+  background-repeat: no-repeat;
+  background-size: 132px 52px;
+  background-position: 22% 34%;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 132 52'><path d='M6 30c12-13 34-19 58-18 12 .5 22 3 30 7l10-13-2 17 10 8-13 5-5 15-7-11c-8 4-18 6.5-30 7-24 1-46-5-58-17z' fill='%2394C9E8'/><path d='M56 12l14 8-22 2z' fill='%2394C9E8'/><path d='M64 40l8 8-16-4z' fill='%2394C9E8'/><circle cx='24' cy='27' r='2' fill='%2304121F'/></svg>");
+  animation: sea-swim-r 62s linear infinite, sea-bob 9s ease-in-out infinite;
+}
+/* หมึกยักษ์: ลอยขึ้นลงช้า ๆ อีกฝั่งของจอ */
+:root[data-theme="deepocean"] .fx-d {
+  left: 0; right: 0; top: 0; bottom: 8%;
+  opacity: .42;
+  background-repeat: no-repeat;
+  background-size: 70px 96px;
+  background-position: 74% 58%;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 70 96'><path d='M35 4c14 0 23 12 23 26 0 9-4 16-9 21H21c-5-5-9-12-9-21C12 16 21 4 35 4z' fill='%23A7C4E8'/><path d='M22 51c-2 12-8 18-14 22 8 0 14-6 18-14zM30 53c-1 14-4 24-7 33 6-6 10-18 12-31zM40 53c1 13 4 23 7 32-6-6-9-18-11-30zM48 51c2 12 8 18 15 22-8 1-15-6-19-14z' fill='%23A7C4E8'/><circle cx='27' cy='26' r='3.4' fill='%2304121F'/><circle cx='43' cy='26' r='3.4' fill='%2304121F'/></svg>");
+  animation: deep-float 26s ease-in-out infinite;
+}
+/* สาหร่ายก้นจอ เหมือนโทนมหาสมุทรแต่มืดกว่า */
+:root[data-theme="deepocean"] .fx-e,
+:root[data-theme="deepocean"] .fx-f {
+  bottom: -8px;
+  width: 20px; height: 100px;
+  border-radius: 60% 60% 8px 8px / 72% 72% 8px 8px;
+  background: linear-gradient(180deg, rgba(20,120,120,0) 0%, rgba(15,110,110,.45) 38%, rgba(4,50,52,.8) 100%);
+  transform-origin: 50% 100%;
+  animation: sea-sway 7s ease-in-out infinite;
+}
+:root[data-theme="deepocean"] .fx-e { left: 5%; }
+:root[data-theme="deepocean"] .fx-f { right: 8%; height: 124px; animation-duration: 8.5s; animation-delay: -2.4s; }
+:root[data-theme="deepocean"] .fx-e::before,
+:root[data-theme="deepocean"] .fx-e::after,
+:root[data-theme="deepocean"] .fx-f::before,
+:root[data-theme="deepocean"] .fx-f::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  width: 15px;
+  border-radius: inherit;
+  background: inherit;
+  transform-origin: 50% 100%;
+  animation: sea-sway 8s ease-in-out infinite;
+}
+:root[data-theme="deepocean"] .fx-e::before { left: 20px; height: 72px; animation-delay: -1.2s; }
+:root[data-theme="deepocean"] .fx-e::after  { left: 38px; height: 110px; width: 12px; animation-delay: -3.4s; }
+:root[data-theme="deepocean"] .fx-f::before { right: 22px; height: 84px; animation-delay: -2.8s; }
+:root[data-theme="deepocean"] .fx-f::after  { right: 42px; height: 62px; width: 12px; animation-delay: -4.6s; }
+/* แพลงก์ตอนเรืองแสงลอยขึ้น */
+:root[data-theme="deepocean"] .fx-shoot {
+  left: 0; right: 0; bottom: 0; height: 100%;
+  background-image:
+    radial-gradient(circle, rgba(120,240,255,.9) 40%, transparent 62%),
+    radial-gradient(circle, rgba(120,240,255,.6) 40%, transparent 62%),
+    radial-gradient(circle, rgba(160,255,240,.75) 40%, transparent 62%),
+    radial-gradient(circle, rgba(120,240,255,.5) 40%, transparent 62%);
+  background-size: 5px 5px, 3px 3px, 4px 4px, 3px 3px;
+  background-repeat: no-repeat;
+  background-position: 18% 100%, 44% 100%, 68% 100%, 88% 100%;
+  animation: sea-bubble 13s linear infinite;
+}
+@keyframes deep-float {
+  0%, 100% { transform: translate(0, 0); }
+  30% { transform: translate(-6%, -8%); }
+  65% { transform: translate(5%, 6%); }
 }
 
 /* ---------- เวทมนตร์: วงเวทหมุน + ประกายลอยขึ้น ---------- */
@@ -1173,7 +1308,16 @@
   position: relative;
 }
 .mt-ic svg { width: 21px; height: 21px; }
+.mt-tx { position: relative; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .mt-lb { position: relative; }
+.mt-sub {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+.mtile.hero .mt-sub { color: rgba(255,255,255,.72); }
 .mt-ct {
   position: absolute;
   top: 15px; right: 15px;
@@ -1215,6 +1359,274 @@
 :root[data-nav="side"] .menu-grid { grid-template-columns: repeat(3, 1fr); }
 :root[data-nav="side"] .mtile.hero { grid-column: span 3; }
 :root[data-nav="side"] .mtile.wide { grid-column: span 3; }
+
+/* ============================================================
+   วิดเจ็ตบนหน้าแรก (1A6M2) — เลือกได้ 4 แบบในแท็บ "ฉัน"
+   ============================================================ */
+.wg {
+  position: relative;
+  border-radius: calc(var(--r-card) + 2px);
+  padding: 17px 17px 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+}
+.wg-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  opacity: .85;
+}
+.wg-head svg { width: 14px; height: 14px; }
+.wg-pill {
+  margin-left: auto;
+  padding: 3px 9px 4px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.18);
+  font-size: 10.5px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.wg-title {
+  margin-top: 9px;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -.028em;
+}
+.wg-meta { margin-top: 6px; font-size: 12px; line-height: 1.6; opacity: .82; }
+.wg-cta {
+  margin-top: auto;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 15px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255,255,255,.95);
+  color: #10233A;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.wg-cta svg { width: 14px; height: 14px; }
+.wg-cta:active { transform: scale(.97); }
+
+/* 1) งานด่วนที่สุด */
+.wg-urgent { background: var(--grad-hero); color: #fff; }
+.wg-urgent.red { background: linear-gradient(150deg, #7F1D1D 0%, #B02A2A 100%); }
+.wg-urgent.yellow { background: linear-gradient(150deg, #7A5309 0%, #B5820F 100%); }
+.wg-urgent.clear { background: var(--grad-brand); }
+.wg-urgent .wg-cta { margin-top: 14px; }
+
+/* 2) โน้ต */
+.wg-note { background: var(--card); border: 1px solid var(--line); color: var(--ink); }
+.wg-note .wg-head { color: var(--blue); opacity: 1; }
+.wg-note-in {
+  flex: 1;
+  margin-top: 10px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  resize: none;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--ink);
+}
+.wg-note-in:focus { outline: none; }
+
+/* 3) เวลา */
+.wg-clock {
+  background: var(--grad-hero);
+  color: #fff;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.wg-time { font-size: 46px; font-weight: 700; line-height: 1.05; letter-spacing: -.03em; }
+.wg-date { margin-top: 4px; font-size: 12.5px; opacity: .8; }
+.wg-next {
+  margin-top: 12px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.16);
+  font-size: 12px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 4) ภาพของฉัน */
+.wg-photo {
+  background-size: cover;
+  background-position: center;
+  justify-content: flex-end;
+  min-height: 158px;
+  color: #fff;
+}
+.wg-photo .wg-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,.05) 40%, rgba(0,0,0,.6) 100%);
+}
+.wg-photo-tx {
+  position: relative;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  text-shadow: 0 2px 10px rgba(0,0,0,.5);
+}
+.wg-photo.empty {
+  background: var(--card2);
+  border: 1.5px dashed var(--line);
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+}
+.wg-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.wg-pick svg { width: 17px; height: 17px; }
+
+.wg-grid button { flex-direction: column; gap: 3px; font-size: 11px; }
+.wg-grid button svg { width: 17px; height: 17px; }
+.wg-extra { margin-top: 2px; }
+.wg-extra textarea {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  background: var(--card2);
+  padding: 11px 12px;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink);
+  resize: vertical;
+}
+.wg-extra textarea:focus { outline: 2px solid var(--blue); outline-offset: -2px; }
+
+/* ============================================================
+   ป้ายเตือนบนแถบเมนู
+   ============================================================ */
+.tab .ic-wrap { position: relative; display: block; }
+.tab-badge {
+  position: absolute;
+  top: -5px;
+  right: -8px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--pri-red);
+  color: #fff;
+  font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--glass);
+  animation: badge-pop .28s cubic-bezier(.2,.9,.3,1.5);
+}
+.tab-badge[hidden] { display: none; }
+@keyframes badge-pop { from { transform: scale(.4); } to { transform: none; } }
+
+/* ============================================================
+   ผลของฉัน (แท็บ "ฉัน")
+   ============================================================ */
+.st-hero {
+  display: flex;
+  align-items: stretch;
+  background: var(--grad-hero);
+  color: #fff;
+  border-radius: var(--r-card);
+  padding: 16px 10px;
+  box-shadow: var(--shadow);
+}
+.st-hero > div { flex: 1; text-align: center; }
+.st-hero .sep { flex: none; width: 1px; background: rgba(255,255,255,.18); }
+.st-hero .v { font-family: 'Space Mono', ui-monospace, monospace; font-size: 23px; font-weight: 700; }
+.st-hero .v .u { font-size: 12px; margin-left: 2px; opacity: .8; }
+.st-hero .k { margin-top: 3px; font-size: 11px; opacity: .78; }
+
+.st-card {
+  margin-top: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow);
+  padding: 15px 15px 14px;
+}
+.st-card.soft { box-shadow: none; background: var(--card2); border: none; }
+.st-h {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 12px;
+}
+.st-line { display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--ink); }
+.st-line svg { width: 15px; height: 15px; color: var(--muted); }
+.st-line b { color: var(--blue); }
+.st-track {
+  margin-top: 10px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--card2);
+  overflow: hidden;
+}
+.st-track i { display: block; height: 100%; border-radius: 999px; background: var(--grad-brand); }
+
+.st-bars { display: flex; align-items: flex-end; gap: 7px; height: 104px; }
+.st-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 4px;
+}
+.st-bar .bar {
+  width: 100%;
+  min-height: 4px;
+  border-radius: 7px 7px 3px 3px;
+  background: var(--card2);
+}
+.st-bar.now .bar { background: var(--grad-brand); }
+.st-bar .n { font-size: 10px; color: var(--muted); min-height: 12px; }
+.st-bar .d { font-size: 10.5px; color: var(--faint); }
+.st-bar.now .d { color: var(--blue); font-weight: 700; }
+
+.st-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13.5px;
+}
+.st-row:first-of-type { border-top: none; }
+.st-row .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-row .ct { flex: none; font-size: 12px; color: var(--muted); }
 
 /* ============================================================
    ปุ่มเพิ่มงานตรงกลางแถบล่าง — ใหญ่ขึ้นและยกลอยเหนือแถบ (1A6M)

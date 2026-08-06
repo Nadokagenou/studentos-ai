@@ -1,4 +1,4 @@
-# StudentOS **ALT** Version 1A6M “Modern” (Sandbox)
+# StudentOS **ALT** Version 1A6M2 “Modern” (Sandbox)
 
 > บิลด์นี้ **ไม่ใช่ตัวที่ปล่อยจริง** — เป็นรุ่นไว้ทดลองฟีเจอร์ใหม่
 > ตัวจริงอยู่ที่ https://nadokagenou.github.io/studentos-ai/
@@ -22,10 +22,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "serve-alt.ps1"
 
 | จุด | ตัวจริง | ALT |
 |---|---|---|
-| `APP_VERSION` (app.js) | `v35` | `1A6M` + `APP_CHANNEL = 'ALT'` (สายเลขของตัวเอง) |
+| `APP_VERSION` (app.js) | `v35` | `1A6M2` + `APP_CHANNEL = 'ALT'` (สายเลขของตัวเอง) |
 | ข้อมูลใน localStorage | `studentos.v1` | `studentos.alt.v1` |
 | ธีม / skipLogin / installGuide | `studentos.*` | `studentos.alt.*` |
-| service worker cache (sw.js) | `studentos-v35` | `studentos-alt-1a6m` (ขึ้นเลขทุกครั้งที่ปล่อย) |
+| service worker cache (sw.js) | `studentos-v35` | `studentos-alt-1a6m2` (ขึ้นเลขทุกครั้งที่ปล่อย) |
 | ชื่อใน manifest.json | StudentOS AI | StudentOS AI · ALT |
 | `<title>` + meta | ปกติ | + `robots: noindex` (กันโดน index ปนตัวจริง) |
 | ป้ายบนหน้าจอ | — | ป้ายเลขเวอร์ชันมุมขวาบน (ดึงจาก `APP_VERSION`) · บรรทัดบอกรุ่นในหน้า login · คำว่า ALT บน splash · หมายเหตุใต้เครื่อง |
@@ -91,7 +91,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "serve-alt.ps1"
 | โทน | สี | บรรยากาศ |
 |---|---|---|
 | **โลก** `earth` | ฟ้า + เขียว + น้ำตาล (ขอบเครื่องสีไม้) | ขอบฟ้าไล่สี + เมฆลอยข้าง ๆ ช้า ๆ |
-| **มหาสมุทร** `ocean` | ฟ้าอ่อนผิวน้ำ + น้ำเงินทะเลลึก | ลำแสงลอดผิวน้ำ + ปลาว่าย 2 ชั้นสวนทาง + สาหร่าย 6 ก้านโบกก้นจอ + ฟองอากาศลอยขึ้น (แทนธีมห้องสมุดตั้งแต่ 1A6M) |
+| **มหาสมุทร** `ocean` | ฟ้าอ่อนผิวน้ำ + น้ำเงินทะเลลึก | ลำแสงลอดผิวน้ำ + ปลาว่าย 2 ชั้นสวนทาง + สาหร่าย 6 ก้านโบกก้นจอ + ฟองอากาศลอยขึ้น (แทนธีมห้องสมุดตั้งแต่ 1A6M2) |
 | **เวทมนตร์** `magic` | ม่วงหมึก + ทองเทียน | วงเวทเส้นทองหมุนช้า + ประกายลอยขึ้น 2 ชั้น |
 | **กาแล็กซี** `galaxy` | ม่วง/ชมพูเนบิวลา | เนบิวลาหมุน + ทางช้างเผือกพาดเฉียง + ดาวพารัลแลกซ์ 2 ชั้น + ดาวตกทุก ~11 วิ |
 
@@ -148,7 +148,7 @@ CSS เป็นคนตัดสินว่าธีมไหนใช้ช�
 
 - `alt.css` — หน้าตาและฟีเจอร์ใหม่ทั้งหมดของ ALT แยกไฟล์ไว้ ไม่แตะ `style.css` เดิม
   จะสลับไปใช้ `style.css` ตัว v2 (drop-in) ของโฟลเดอร์แม่เมื่อไหร่ก็ได้ ไม่ต้องรื้อ
-- `PATCHNOTES.md` — ประวัติการอัปเดตแต่ละเวอร์ชัน (ล่าสุด **Ver.1A6M**)
+- `PATCHNOTES.md` — ประวัติการอัปเดตแต่ละเวอร์ชัน (ล่าสุด **Ver.1A6M2**)
 - `README-ALT.md` — ไฟล์นี้
 
 ## ต่อจากนี้ (ที่ตั้งใจจะทดลอง)

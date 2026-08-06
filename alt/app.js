@@ -7,7 +7,7 @@
 //   - service worker ใช้ cache คนละชื่อ
 // ============================================================
 
-const APP_VERSION = '1A6M';                // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
+const APP_VERSION = '1A6M2';                // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
 const APP_CODENAME = 'Modern';             // ชื่อรุ่นของอัปเดตนี้
 const APP_CHANNEL = 'ALT';                 // ป้ายกำกับรุ่น — โชว์ทั้งบนแอปและในหน้า "ฉัน"
 const STORE_KEY = 'studentos.alt.v1';      // ALT: แยกที่เก็บข้อมูลจากตัวจริง ('studentos.v1')
@@ -41,17 +41,57 @@ const THEME_KEY = 'studentos.alt.theme';   // ALT: แยกจากตัว�
 const THEME_BAR = {
   light: '#FCFBF7', dark: '#0D1220', warm: '#F7F1E4', space: '#0A0E24',
   earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
+  deepocean: '#04121F',
 };
 const THEME_NAME = {
   system: 'ตามระบบ', light: 'สว่าง', dark: 'มืด', warm: 'อุ่น', space: 'อวกาศ',
   earth: 'โลก', ocean: 'มหาสมุทร', magic: 'เวทมนตร์', galaxy: 'กาแล็กซี',
+  deepocean: 'ทะเลลึก',
 };
+// ---------- ALT 1A6M2: อีสเตอร์เอกก์ ธีมทะเลลึก ----------
+// กดปุ่มธีม "มหาสมุทร" ซ้ำ 4 ครั้ง = ปลดล็อกธีมทะเลลึก (ฉลาม + หมึกยักษ์)
+const DEEP_KEY = 'studentos.alt.deepUnlocked';
+let oceanTaps = 0, oceanTapAt = 0;
+
+function deepUnlocked() {
+  try { return localStorage.getItem(DEEP_KEY) === '1'; } catch (_) { return false; }
+}
+function applyDeepUnlock() {
+  if (deepUnlocked()) document.documentElement.dataset.deep = 'on';
+  else delete document.documentElement.dataset.deep;
+}
+function unlockDeepOcean() {
+  try { localStorage.setItem(DEEP_KEY, '1'); } catch (_) {}
+  applyDeepUnlock();
+  oceanTaps = 0;
+  haptic('done');
+  bubbleBurst(16);
+  setTheme('deepocean');
+  showToast({ title: 'ปลดล็อกธีมทะเลลึก 🦈', body: 'ดำลงไปอีกชั้น — มีฉลามกับหมึกยักษ์ว่ายอยู่ข้างหลัง' });
+}
+
+// ฟองอากาศลอยขึ้นจากก้นจอ ใช้ตอนกดปุ่มซ้ำระหว่างปลดล็อก
+function bubbleBurst(n = 8) {
+  const phone = document.querySelector('.phone');
+  if (!phone || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  for (let i = 0; i < n; i++) {
+    const b = document.createElement('i');
+    b.className = 'egg-bub';
+    const size = 6 + Math.random() * 16;
+    b.style.width = b.style.height = size + 'px';
+    b.style.left = (8 + Math.random() * 84) + '%';
+    b.style.animationDuration = (1 + Math.random() * 0.9) + 's';
+    b.style.animationDelay = (Math.random() * 0.25) + 's';
+    phone.appendChild(b);
+    setTimeout(() => b.remove(), 2400);
+  }
+}
 const THEMES = Object.keys(THEME_NAME);
 
 function themePref() {
   let v = null;
   try { v = localStorage.getItem(THEME_KEY); } catch (_) {}
-  if (v === 'library') v = 'ocean'; // 1A6M: ธีมห้องสมุดถูกแทนที่ — คนที่เคยเลือกไว้ไม่ต้องมาตั้งใหม่
+  if (v === 'library') v = 'ocean'; // 1A6M2: ธีมห้องสมุดถูกแทนที่ — คนที่เคยเลือกไว้ไม่ต้องมาตั้งใหม่
   return THEMES.includes(v) ? v : 'system';
 }
 function systemDark() { return matchMedia('(prefers-color-scheme: dark)').matches; }
@@ -70,6 +110,16 @@ function applyTheme() {
 }
 
 function setTheme(pref) {
+  // นับการกดซ้ำที่ปุ่ม "มหาสมุทร" — กดรัว ๆ 4 ครั้งเพื่อปลดล็อกทะเลลึก
+  if (pref === 'ocean' && !deepUnlocked()) {
+    const t = performance.now();
+    oceanTaps = (t - oceanTapAt < 2500) ? oceanTaps + 1 : 1;
+    oceanTapAt = t;
+    if (oceanTaps >= 4) { unlockDeepOcean(); return; }
+    if (oceanTaps > 1) { haptic('arm'); bubbleBurst(3 + oceanTaps * 2); }
+  } else if (pref !== 'ocean') {
+    oceanTaps = 0;
+  }
   try { localStorage.setItem(THEME_KEY, THEMES.includes(pref) ? pref : 'system'); } catch (_) {}
   applyTheme();
 }
@@ -226,6 +276,24 @@ function clearUserBg() {
 
 // ปุ่ม/ป้ายในแท็บ "ฉัน" ที่เกี่ยวกับหน้าตา — เรียกหลังเปลี่ยนค่าใด ๆ
 function renderAppearance() {
+  // วิดเจ็ตหน้าแรก
+  const wg = widgetPref();
+  document.querySelectorAll('#wgPick button').forEach(b =>
+    b.classList.toggle('active', b.dataset.wg === wg));
+  const wgnow = document.getElementById('wgNow');
+  if (wgnow) wgnow.textContent = WG_NAME[wg];
+  const noteWrap = document.getElementById('wgNoteWrap');
+  if (noteWrap) noteWrap.hidden = wg !== 'note';
+  const noteIn = document.getElementById('wgNoteInput');
+  if (noteIn && document.activeElement !== noteIn) noteIn.value = widgetNote();
+  const photoWrap = document.getElementById('wgPhotoWrap');
+  if (photoWrap) photoWrap.hidden = wg !== 'photo';
+  const hasPhoto = !!widgetPhoto();
+  const pdel = document.getElementById('wgPhotoDel');
+  if (pdel) pdel.hidden = !hasPhoto;
+  const plabel = document.getElementById('wgPhotoLabel');
+  if (plabel) plabel.textContent = hasPhoto ? 'เปลี่ยนภาพ' : 'เลือกภาพ';
+
   const nav = navPref();
   document.querySelectorAll('#navPick button').forEach(b =>
     b.classList.toggle('active', b.dataset.nav === nav));
@@ -388,12 +456,117 @@ function snoozeBadge(t) {
 // ---------- ALT: หน้าแรก = เมนูหลัก ----------
 // รวมทางเข้าฟีเจอร์หลักไว้ที่เดียว กดแล้วเด้งไปเลย
 // ตัวเลขบนไทล์เป็นข้อมูลจริงจาก state ไม่ใช่คำอธิบาย — หน้านี้ตั้งใจให้ไม่มีข้อความอธิบายเลย
-function menuTile(cls, ic, label, count, target) {
+function menuTile(cls, ic, label, sub, count, target) {
   return `<button class="mtile ${cls}" onclick="go('${target}')">
     <span class="mt-ic">${icon(ic)}</span>
-    <span class="mt-lb">${label}</span>
+    <span class="mt-tx"><span class="mt-lb">${label}</span><span class="mt-sub">${sub}</span></span>
     ${count != null ? `<span class="mt-ct">${count}</span>` : ''}
   </button>`;
+}
+
+// ---------- ALT 1A6M2: วิดเจ็ตบนหน้าแรก ----------
+// ช่องบนสุดของหน้าแรกที่ผู้ใช้เลือกเองว่าจะให้แสดงอะไร
+const WG_KEY = 'studentos.alt.widget';
+const WG_NOTE_KEY = 'studentos.alt.widgetNote';
+const WG_PHOTO_KEY = 'studentos.alt.widgetPhoto';
+const WG_NAME = { urgent: 'งานด่วนที่สุด', note: 'โน้ตของฉัน', clock: 'เวลา', photo: 'ภาพของฉัน' };
+
+function widgetPref() {
+  let v = null;
+  try { v = localStorage.getItem(WG_KEY); } catch (_) {}
+  return WG_NAME[v] ? v : 'urgent';
+}
+function widgetNote() {
+  try { return localStorage.getItem(WG_NOTE_KEY) || ''; } catch (_) { return ''; }
+}
+function widgetPhoto() {
+  try { return localStorage.getItem(WG_PHOTO_KEY) || ''; } catch (_) { return ''; }
+}
+
+function setWidget(kind) {
+  try { localStorage.setItem(WG_KEY, WG_NAME[kind] ? kind : 'urgent'); } catch (_) {}
+  renderMenu();
+  renderAppearance();
+}
+
+function saveWidgetNote() {
+  const el = document.getElementById('wgNoteInput');
+  if (!el) return;
+  try { localStorage.setItem(WG_NOTE_KEY, el.value.slice(0, 240)); } catch (_) {}
+  renderMenu();
+}
+
+// โน้ตแก้ได้จากตัววิดเจ็ตเลย ไม่ต้องเข้าไปที่ตั้งค่า
+function saveWidgetNoteInline(el) {
+  try { localStorage.setItem(WG_NOTE_KEY, el.value.slice(0, 240)); } catch (_) {}
+  const s = document.getElementById('wgNoteInput');
+  if (s) s.value = el.value;
+}
+
+function clearWidgetPhoto() {
+  try { localStorage.removeItem(WG_PHOTO_KEY); } catch (_) {}
+  renderMenu();
+  renderAppearance();
+  showToast({ title: 'เอาภาพออกแล้ว', body: 'เลือกภาพใหม่ได้ทุกเมื่อ' });
+}
+
+function widgetHtml(now) {
+  const kind = widgetPref();
+
+  if (kind === 'note') {
+    return `<section class="wg wg-note">
+      <div class="wg-head">${icon('pencil')}<span>โน้ตของฉัน</span></div>
+      <textarea class="wg-note-in" maxlength="240" placeholder="แตะเพื่อจด…"
+        oninput="saveWidgetNoteInline(this)">${esc(widgetNote())}</textarea>
+    </section>`;
+  }
+
+  if (kind === 'clock') {
+    const pending = sortByPriority(pendingTasks(), now);
+    const next = pending.find(t => t.due && new Date(t.due) > now);
+    return `<section class="wg wg-clock">
+      <div class="wg-time mono" id="wgClock">${fmtClock(now)}</div>
+      <div class="wg-date">${esc(fmtThaiDate(now))}</div>
+      ${next ? `<div class="wg-next" id="wgNext">${esc(taskTitle(next))} · <b>${esc(humanLeft(new Date(next.due) - now))}</b></div>`
+        : `<div class="wg-next" id="wgNext">ไม่มีกำหนดส่งที่ใกล้เข้ามา</div>`}
+    </section>`;
+  }
+
+  if (kind === 'photo') {
+    const src = widgetPhoto();
+    if (!src) {
+      return `<section class="wg wg-photo empty">
+        <label class="wg-pick" for="wgPhotoInput2">${icon('image')}เลือกภาพของคุณ</label>
+        <input type="file" id="wgPhotoInput2" accept="image/*" hidden>
+      </section>`;
+    }
+    return `<section class="wg wg-photo" style="background-image:url('${src}')">
+      <span class="wg-shade"></span>
+      <div class="wg-photo-tx">${esc(who() ? 'สู้ ๆ นะ ' + who() : 'สู้ ๆ นะ')}</div>
+    </section>`;
+  }
+
+  // urgent (ค่าเริ่มต้น)
+  const pending = sortByPriority(pendingTasks(), now);
+  const top = pending[0];
+  if (!top) {
+    return `<section class="wg wg-urgent clear">
+      <div class="wg-head">${icon('check-circle')}<span>ไม่มีงานด่วน</span></div>
+      <div class="wg-title">เคลียร์หมดแล้ว</div>
+      <button class="wg-cta" onclick="go('scr-scan')">${icon('sparkles')}เพิ่มงานใหม่</button>
+    </section>`;
+  }
+  const info = priorityInfo(top, now);
+  const why = (info.reasons[0] || '').replace(/^★ /, '');
+  const bits = [fmtDue(top.due, now, top), '~' + top.estMin + ' นาที',
+    top.scorePct != null ? 'คะแนน ' + top.scorePct + '%' : null].filter(Boolean);
+  return `<section class="wg wg-urgent ${priorityTone(info.stars)}">
+    <div class="wg-head">${icon('flame')}<span>ควรทำก่อน</span>
+      <span class="wg-pill">${esc(priorityLabel(info.stars))}</span></div>
+    <div class="wg-title">${taskTitle(top)}</div>
+    <div class="wg-meta">${esc(bits.join(' · '))} · ${esc(why)}</div>
+    <button class="wg-cta" onclick="openForm('${top.id}')">${icon('chevron')}เปิดงานนี้</button>
+  </section>`;
 }
 
 function renderMenu() {
@@ -406,17 +579,21 @@ function renderMenu() {
   const h = now.getHours();
   const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนค่ำ';
 
+  const doneWeek = liveTasks().filter(t => t.done && t.doneAt &&
+    (now - new Date(t.doneAt)) < 7 * 8.64e7).length;
+
   body.innerHTML = `<div class="menu-head">
       <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
       <h1 class="page-title">${greet}${who() ? ', ' + esc(who()) : ''}</h1>
     </div>
+    ${widgetHtml(now)}
     <div class="menu-grid">
-      ${menuTile('hero', 'sparkles', 'เพิ่มงานใหม่', null, 'scr-scan')}
-      ${menuTile('', 'calendar', 'ตารางงาน', pending.length, 'scr-home')}
-      ${menuTile('', 'check-circle', 'งานทั้งหมด', live.length, 'scr-tasks')}
-      ${menuTile('', 'clock', 'แผนวันนี้', null, 'scr-plan')}
-      ${menuTile('', 'pin', 'เส้นทาง', dated, 'scr-timeline')}
-      ${menuTile('wide', 'user', 'ฉัน', null, 'scr-profile')}
+      ${menuTile('hero', 'sparkles', 'เพิ่มงานใหม่', 'ถ่ายรูป · พูด · แปะข้อความ', null, 'scr-scan')}
+      ${menuTile('', 'calendar', 'ตารางงาน', 'ลำดับที่ AI แนะนำ', pending.length, 'scr-home')}
+      ${menuTile('', 'check-circle', 'งานทั้งหมด', 'ค้าง · เสร็จ · ถังขยะ', live.length, 'scr-tasks')}
+      ${menuTile('', 'clock', 'แผนวันนี้', 'AI จัดเวลาให้', null, 'scr-plan')}
+      ${menuTile('', 'pin', 'เส้นทาง', 'ไทม์ไลน์ถึงกำหนดส่ง', dated, 'scr-timeline')}
+      ${menuTile('wide', 'user', 'ฉัน', 'ผลของฉัน · ธีม · ตั้งค่า', doneWeek ? doneWeek : null, 'scr-profile')}
     </div>`;
 }
 
@@ -1129,7 +1306,97 @@ function renderProfile() {
   }
 }
 
-function renderAll() { renderMenu(); renderHome(); renderTasks(); renderTimeline(); renderProfile(); renderPlan(); renderInstallCard(); }
+// ---------- ALT 1A6M2: ป้ายเตือนบนแถบเมนู ----------
+// งานที่ AI จัดว่า "ด่วนมาก" และยังไม่เสร็จ ต้องเห็นได้โดยไม่ต้องเข้าไปดู
+function renderTabBadges() {
+  const el = document.getElementById('badgeHome');
+  if (!el) return;
+  const now = new Date();
+  const urgent = pendingTasks().filter(t => priorityInfo(t, now).stars >= 5).length;
+  el.hidden = !urgent;
+  el.textContent = urgent > 9 ? '9+' : urgent;
+  el.setAttribute('aria-label', urgent ? 'งานด่วนมาก ' + urgent + ' งาน' : '');
+}
+
+// ---------- ALT 1A6M2: ผลของฉัน ----------
+// ใช้เฉพาะข้อมูลที่แอปมีจริง — จำนวนงานที่เสร็จ เวลาที่ "ประเมินไว้" และการส่งทันกำหนด
+// ไม่มีการจับเวลานั่งทำจริง จึงไม่เขียนว่าเป็นเวลาที่นั่งทำ (จะกลายเป็นตัวเลขที่แต่งขึ้น)
+function renderStats() {
+  const box = document.getElementById('statsBox');
+  if (!box) return;
+  const now = new Date();
+  const live = liveTasks();
+  const done = live.filter(t => t.done);
+  const week = done.filter(t => t.doneAt && (now - new Date(t.doneAt)) < 7 * 8.64e7);
+  const estH = Math.round(done.reduce((s, t) => s + (t.estMin || 0), 0) / 6) / 10;
+  const onTime = done.filter(t => t.doneAt && t.due && new Date(t.doneAt) <= new Date(t.due)).length;
+  const rated = done.filter(t => t.doneAt && t.due).length;
+  const onTimePct = rated ? Math.round(onTime / rated * 100) : null;
+  const snoozes = live.reduce((s, t) => s + (t.snoozeCount || 0), 0);
+
+  // กราฟ 7 วัน: นับงานที่ติ๊กเสร็จในแต่ละวัน
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = addDays(now, -i);
+    const n = done.filter(t => t.doneAt &&
+      new Date(t.doneAt).toDateString() === d.toDateString()).length;
+    days.push({ n, label: WEEKDAY_SHORT[d.getDay()], today: i === 0 });
+  }
+  const peak = Math.max(1, ...days.map(d => d.n));
+
+  // แยกตามวิชา (เฉพาะที่ทำเสร็จแล้ว)
+  const bySubject = {};
+  for (const t of done) {
+    const k = t.subject || 'อื่น ๆ';
+    bySubject[k] = bySubject[k] || { n: 0, min: 0 };
+    bySubject[k].n++;
+    bySubject[k].min += t.estMin || 0;
+  }
+  const subjRows = Object.entries(bySubject).sort((a, b) => b[1].n - a[1].n).slice(0, 5);
+
+  box.innerHTML = `<div class="sec-label">ผลของฉัน</div>
+    <div class="st-hero">
+      <div><div class="v">${done.length}</div><div class="k">งานที่เสร็จ</div></div>
+      <div class="sep"></div>
+      <div><div class="v">${week.length}</div><div class="k">เสร็จใน 7 วัน</div></div>
+      <div class="sep"></div>
+      <div><div class="v">${estH}<span class="u">ชม.</span></div><div class="k">เวลาที่ประเมินไว้</div></div>
+    </div>
+
+    <div class="st-card">
+      <div class="st-h">งานที่ติ๊กเสร็จ 7 วันล่าสุด</div>
+      <div class="st-bars">
+        ${days.map(d => `<div class="st-bar${d.today ? ' now' : ''}">
+          <span class="bar" style="height:${Math.round(d.n / peak * 100)}%"></span>
+          <span class="n mono">${d.n || ''}</span>
+          <span class="d">${d.label}</span>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    ${onTimePct != null ? `<div class="st-card">
+      <div class="st-h">ส่งทันกำหนด</div>
+      <div class="st-line"><b>${onTimePct}%</b> ของงานที่มีกำหนดส่ง (${onTime}/${rated} งาน)</div>
+      <div class="st-track"><i style="width:${onTimePct}%"></i></div>
+    </div>` : ''}
+
+    ${snoozes ? `<div class="st-card soft">
+      <div class="st-line">${icon('clock')}เลื่อนงานไปแล้วรวม <b>${snoozes}</b> ครั้ง</div>
+    </div>` : ''}
+
+    ${subjRows.length ? `<div class="st-card">
+      <div class="st-h">แยกตามวิชา</div>
+      ${subjRows.map(([name, v]) => `<div class="st-row">
+        <span class="nm">${esc(name)}</span>
+        <span class="ct mono">${v.n} งาน · ${Math.round(v.min / 6) / 10} ชม.</span>
+      </div>`).join('')}
+    </div>` : ''}`;
+}
+
+function renderAll() {
+  renderMenu(); renderHome(); renderTasks(); renderTimeline();
+  renderProfile(); renderStats(); renderPlan(); renderInstallCard(); renderTabBadges();
+}
 
 // ---------- task actions ----------
 // el = ปุ่มที่กด (ถ้ามี) ใช้เป็นจุดกำเนิดของเอฟเฟกต์ฉลอง
@@ -1745,10 +2012,25 @@ let cropState = null;
 const CROP_MIN = 0.08;   // กรอบเล็กสุด 8% ของด้านนั้น กันลากพลาดจนเหลือจุดเดียว
 const CROP_GRAB = 26;    // ระยะที่นับว่าจับมุมอยู่ (px บนจอ)
 
-async function scanFromPhoto(file) {
+async function scanFromPhoto(file) { return openCropFor(file, 'ocr'); }
+async function pickWidgetPhoto(file) { return openCropFor(file, 'widget'); }
+
+// mode: 'ocr' = ครอบเพื่ออ่านตัวหนังสือ · 'widget' = ครอบเพื่อเอาไปเป็นภาพวิดเจ็ต
+async function openCropFor(file, mode) {
   try {
     const bmp = await ocrLoadBitmap(file);
-    cropState = { bmp, box: { x: .06, y: .06, w: .88, h: .88 }, drag: null };
+    // วิดเจ็ตเป็นช่องแนวนอน ตั้งกรอบเริ่มต้นให้ใกล้สัดส่วนนั้นไว้เลย
+    const box = mode === 'widget'
+      ? { x: .04, y: Math.max(0, .5 - (bmp.width * .92 / 2.1) / bmp.height / 2), w: .92,
+          h: Math.min(.92, (bmp.width * .92 / 2.1) / bmp.height) }
+      : { x: .06, y: .06, w: .88, h: .88 };
+    cropState = { bmp, box, drag: null, mode };
+    const h2 = document.querySelector('#scr-crop .scan-h');
+    if (h2) h2.textContent = mode === 'widget' ? 'ครอบภาพสำหรับวิดเจ็ต' : 'ครอบเฉพาะส่วนที่เป็นโจทย์';
+    const okBtn = document.querySelector('#scr-crop .fm-save');
+    if (okBtn) okBtn.textContent = mode === 'widget' ? 'ใช้ภาพนี้' : 'อ่านเฉพาะกรอบนี้';
+    const wholeBtn = document.querySelector('#scr-crop .crop-act .fm-cancel');
+    if (wholeBtn) wholeBtn.textContent = mode === 'widget' ? 'ใช้ทั้งรูป' : 'อ่านทั้งรูป';
     const stage = document.getElementById('cropStage');
     const img = document.getElementById('cropImg');
     img.src = URL.createObjectURL(file);
@@ -1836,7 +2118,7 @@ function cancelCrop() {
 
 async function confirmCrop(whole) {
   if (!cropState) { go('scr-scan'); return; }
-  const { bmp, box } = cropState;
+  const { bmp, box, mode } = cropState;
   const b = whole ? { x: 0, y: 0, w: 1, h: 1 } : box;
   const sx = Math.round(bmp.width * b.x), sy = Math.round(bmp.height * b.y);
   const sw = Math.max(1, Math.round(bmp.width * b.w)), sh = Math.max(1, Math.round(bmp.height * b.h));
@@ -1844,8 +2126,33 @@ async function confirmCrop(whole) {
   c.width = sw; c.height = sh;
   c.getContext('2d').drawImage(bmp, sx, sy, sw, sh, 0, 0, sw, sh);
   cropState = null;
+
+  if (mode === 'widget') { saveWidgetPhoto(c); return; }
   go('scr-scan');
   await runOcrOn(c, whole ? 'ทั้งรูป' : 'ครอบกรอบ');
+}
+
+// ย่อก่อนเก็บเหมือนพื้นหลัง — วิดเจ็ตกว้างไม่เกิน ~1000px ก็เกินพอแล้ว
+function saveWidgetPhoto(canvas) {
+  const max = 1000;
+  const scale = Math.min(1, max / canvas.width);
+  const out = document.createElement('canvas');
+  out.width = Math.round(canvas.width * scale);
+  out.height = Math.round(canvas.height * scale);
+  out.getContext('2d').drawImage(canvas, 0, 0, out.width, out.height);
+  const data = out.toDataURL('image/jpeg', 0.72);
+  try {
+    localStorage.setItem(WG_PHOTO_KEY, data);
+  } catch (_) {
+    showToast({ title: 'ภาพใหญ่เกินไป 😅', body: 'ที่เก็บในเครื่องเต็ม — ลองครอบให้แคบลงหรือเลือกภาพที่เล็กกว่านี้' });
+    go('scr-profile');
+    return;
+  }
+  try { localStorage.setItem(WG_KEY, 'photo'); } catch (_) {}
+  renderMenu(); renderAppearance();
+  haptic('done');
+  go('scr-menu');
+  showToast({ title: 'ตั้งภาพวิดเจ็ตแล้ว 🖼', body: 'เปลี่ยนหรือเอาออกได้ที่แท็บ “ฉัน”' });
 }
 
 async function runOcrOn(source, how) {
@@ -2448,6 +2755,9 @@ function tickClock() {
     String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
   syncJourneyNow(); // ALT: หมุดบนเส้นทางเดินตามเวลาจริงไปพร้อมนาฬิกา
   navRecheck();     // ALT: กันเลย์เอาต์ค้างผิดโหมด ถ้า event เรื่องขนาดจอพลาดไปสักตัว
+  // วิดเจ็ตนาฬิกาบนหน้าแรกเดินตามไปด้วย (ไม่ต้องวาดหน้าใหม่ทั้งหน้า)
+  const wc = document.getElementById('wgClock');
+  if (wc) wc.textContent = fmtClock(n);
 }
 
 for (const id of ['cameraInput', 'galleryInput']) {
@@ -2461,6 +2771,15 @@ for (const id of ['cameraInput', 'galleryInput']) {
 document.getElementById('bgInput').addEventListener('change', e => {
   if (e.target.files[0]) readUserBg(e.target.files[0]);
   e.target.value = '';
+});
+
+// ALT 1A6M2: ภาพของวิดเจ็ต — ช่องเลือกมี 2 ที่ (ในตั้งค่า และบนตัววิดเจ็ตเอง
+// ซึ่งถูกวาดใหม่ทุกครั้ง) จึงดักที่ document ทีเดียวจบ
+document.addEventListener('change', e => {
+  if (e.target && (e.target.id === 'wgPhotoInput' || e.target.id === 'wgPhotoInput2')) {
+    if (e.target.files[0]) pickWidgetPhoto(e.target.files[0]);
+    e.target.value = '';
+  }
 });
 
 // PWA: ลงทะเบียน service worker (เฉพาะเมื่อเปิดผ่าน http/https)
@@ -2486,6 +2805,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   const badge = document.getElementById('altBadge');
   if (badge) badge.textContent = APP_VERSION;
 
+  applyDeepUnlock(); // ALT: ปุ่มธีมทะเลลึกจะโผล่เฉพาะคนที่ปลดล็อกแล้ว
   applyTheme();
   applyFontScale();  // ALT: ต้องมาก่อนวาดจอแรก ไม่งั้นตัวอักษรกระโดดขนาดให้เห็น
   applyUserBg();
