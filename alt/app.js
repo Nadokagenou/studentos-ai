@@ -133,12 +133,14 @@ function applyTheme() {
 function setTheme(pref) {
   // นับการกดซ้ำที่ปุ่มธีมที่มีของลับ — กดรัว ๆ ครบ 5 ครั้งแล้วปลดล็อก
   const secret = SECRETS[pref];
-  if (secret && !secretUnlocked(pref)) {
+  if (secret) {
     const t = performance.now();
     tapCount = (tapTheme === pref && t - tapAt < 2500) ? tapCount + 1 : 1;
     tapTheme = pref; tapAt = t;
-    if (tapCount >= SECRET_TAPS) { unlockSecret(pref); return; }
-    if (tapCount > 1) { haptic('arm'); splashBurst(3 + tapCount * 3, secret.fx); }
+    if (!secretUnlocked(pref) && tapCount >= SECRET_TAPS) { unlockSecret(pref); return; }
+    // เอฟเฟกต์เล่นทุกครั้งที่กดซ้ำ ไม่ว่าจะปลดล็อกไปแล้วหรือยัง
+    // (ปลดล็อกแล้วยังกดเล่นได้ ไม่งั้นพอปลดล็อกเสร็จปุ่มก็กลายเป็นปุ่มธรรมดาทันที)
+    if (tapCount > 1) { haptic('arm'); splashBurst(3 + Math.min(tapCount, 6) * 3, secret.fx); }
   } else {
     tapCount = 0; tapTheme = '';
   }
@@ -1307,6 +1309,9 @@ function renderProfile() {
 
   applyTheme(); // ให้ปุ่มธีมที่เลือกไว้สว่างตรงกับที่ใช้จริงเสมอ
   renderAppearance(); // ALT: ขนาดตัวอักษร + พื้นหลังภาพของผู้ใช้
+  // ปุ่มล็อกธีมลับกลับ โผล่เฉพาะคนที่ปลดล็อกไปแล้วอย่างน้อยหนึ่งอัน
+  const rel = document.getElementById('relockBtn');
+  if (rel) rel.hidden = !Object.keys(SECRETS).some(id => secretUnlocked(id));
   const ver = document.getElementById('appVer');
   if (ver) ver.textContent = 'StudentOS ' + APP_CHANNEL + ' Version ' + APP_VERSION
     + ' “' + APP_CODENAME + '” · รุ่นทดลองฟีเจอร์';
@@ -2653,9 +2658,23 @@ function loadSample() {
 function clearAll() {
   if (confirm('ลบข้อมูลทุกอย่าง (งานทั้งหมด + การตั้งค่า) แน่ใจนะ?')) {
     localStorage.removeItem(STORE_KEY);
+    // ธีมลับกลับไปล็อกด้วย — ล้างข้อมูลแล้วต้องได้แอปเหมือนเปิดครั้งแรกจริง ๆ
+    for (const s of Object.values(SECRETS)) { try { localStorage.removeItem(s.store); } catch (_) {} }
+    applySecrets();
+    if (['deepocean', 'earth2'].includes(themePref())) setTheme('system');
     state = { tasks: [], settings: { name: '', freeHours: 2 } };
     renderAll();
   }
+}
+
+// ปุ่มลับในแท็บ "ฉัน" — ล็อกธีมลับกลับเหมือนยังไม่เคยปลดล็อก (ไว้ลองอีสเตอร์เอกก์ใหม่)
+function relockSecrets() {
+  for (const s of Object.values(SECRETS)) { try { localStorage.removeItem(s.store); } catch (_) {} }
+  applySecrets();
+  if (['deepocean', 'earth2'].includes(themePref())) setTheme('system');
+  tapCount = 0; tapTheme = '';
+  renderProfile();
+  showToast({ title: 'ล็อกธีมลับกลับแล้ว 🔒', body: 'กดปุ่มธีมมหาสมุทรหรือโลกซ้ำ 5 ครั้งเพื่อปลดล็อกใหม่' });
 }
 
 // ---------- ติดตั้งเป็นแอป (PWA install) ----------

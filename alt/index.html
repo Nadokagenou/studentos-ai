@@ -652,6 +652,9 @@
 
           <div style="display:flex;flex-direction:column;gap:2px">
             <button class="pf-quiet" onclick="loadSample()"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg>โหลดข้อมูลตัวอย่าง</button>
+            <!-- ALT 1A6M2: ล็อกธีมลับกลับ ไว้ลองอีสเตอร์เอกก์ใหม่ -->
+            <button class="pf-quiet" id="relockBtn" onclick="relockSecrets()" hidden>
+              <svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg>ล็อกธีมลับกลับ</button>
             <button class="pf-quiet danger" onclick="clearAll()"><svg viewBox="0 0 24 24"><use href="#lu-flame"/></svg>ล้างข้อมูลทั้งหมด</button>
           </div>
           <p class="app-ver" id="appVer"></p>
