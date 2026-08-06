@@ -1,0 +1,134 @@
+/* ============================================================
+   inbox.css — กล่องเข้า + แหล่งข้อมูล + แผงเชื่อมกลุ่ม LINE   ·  *** ALT ***
+   ------------------------------------------------------------
+   แยกเป็นไฟล์ของตัวเองเพราะเป็นชั้นใหม่ทั้งชั้น ไม่ได้แก้ของเดิม —
+   ถอดออกทั้งฟีเจอร์ก็แค่เอา <link> กับ <script> สองบรรทัดออก
+
+   การ์ดในกล่องเข้าต้องตอบ 3 อย่างในสายตาเดียว:
+     มาจากไหน · AI อ่านได้ว่าอะไร · มั่นใจแค่ไหน
+   ตัวเลขความมั่นใจต้องโชว์เสมอ เพราะมันคือเหตุผลที่แอปถามหรือไม่ถาม
+   ============================================================ */
+
+.sec-title{font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--faint); margin:24px 2px 10px}
+
+/* ---------- การ์ดที่รอให้ตัดสินใจ ---------- */
+.ib{padding:15px 15px 13px; margin-bottom:10px; border-radius:var(--r-card);
+  background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow)}
+.ib-top{display:flex; align-items:center; justify-content:space-between; gap:10px}
+.ib-src{display:inline-flex; align-items:center; gap:6px; padding:4px 10px 5px; border-radius:999px;
+  background:var(--card2); color:var(--muted); font-size:11px; font-weight:700}
+.ib-src svg{width:13px; height:13px}
+.ib-conf{font-size:11px; font-weight:700; padding:4px 9px 5px; border-radius:999px}
+.ib-conf.ok{background:var(--good-soft); color:var(--good)}
+.ib-conf.low{background:var(--warn-soft); color:var(--warn)}
+.ib-title{font-size:15px; font-weight:700; line-height:1.4; color:var(--ink); margin-top:11px;
+  letter-spacing:-.018em}
+.ib-meta{display:flex; flex-wrap:wrap; gap:7px 12px; margin-top:6px; font-size:11.5px; color:var(--muted);
+  font-variant-numeric:tabular-nums}
+.ib-meta .miss{color:var(--warn); font-weight:600}
+/* ข้อความดิบที่ครูพิมพ์จริง — เก็บไว้ให้เทียบได้ว่า AI อ่านตกอะไรไป */
+.ib-raw{margin-top:10px; padding:9px 11px; border-radius:11px; background:var(--card2);
+  font-size:11.5px; line-height:1.6; color:var(--muted)}
+.ib-act{display:flex; gap:7px; margin-top:12px; flex-wrap:wrap}
+.ib-act button{flex:1; min-width:96px; min-height:40px; border-radius:11px; cursor:pointer;
+  border:1px solid var(--line); background:var(--card2); color:var(--muted);
+  font-family:inherit; font-size:12.5px; font-weight:600;
+  display:flex; align-items:center; justify-content:center; gap:5px; transition:transform .16s ease}
+.ib-act button svg{width:14px; height:14px}
+.ib-act button:active{transform:scale(.97)}
+.ib-act .ib-go{flex:2}
+.ib-act .warn{color:var(--alert)}
+
+/* ปุ่มหลักสีเน้น — ใช้ทั้งในการ์ดและในแผงเชื่อม LINE */
+.ib-go{min-height:40px; padding:0 14px; border-radius:11px; cursor:pointer;
+  border:1px solid var(--blue); background:var(--blue); color:var(--on-accent);
+  font-family:inherit; font-size:12.5px; font-weight:600;
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  transition:transform .16s ease}
+.ib-go svg{width:14px; height:14px}
+.ib-go:active{transform:scale(.97)}
+
+/* บันทึกย้อนหลัง — บอกได้ว่า "ทำไมงานนี้ไม่ขึ้น" ซึ่งสำคัญพอ ๆ กับตอนมันขึ้น */
+.ib-log{display:flex; align-items:center; gap:11px; padding:11px 13px; margin-bottom:7px;
+  border-radius:var(--r-tile); background:var(--card2)}
+.ib-log-ic{width:30px; height:30px; flex:none; border-radius:10px; background:var(--card);
+  color:var(--faint); display:flex; align-items:center; justify-content:center}
+.ib-log-ic svg{width:15px; height:15px}
+.ib-log-bd{flex:1; min-width:0; display:flex; flex-direction:column}
+.ib-log-bd .t{font-size:12.5px; font-weight:600; color:var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.ib-log-bd .s{font-size:11px; color:var(--muted); margin-top:1px}
+.ib-log.accepted .ib-log-ic{background:var(--good-soft); color:var(--good)}
+.ib-log.duplicate .ib-log-ic{background:var(--warn-soft); color:var(--warn)}
+
+/* ---------- ไม่มีอะไรค้าง ---------- */
+/* กล่องเข้าว่าง = ระบบทำงานถูก ไม่ใช่ความผิดพลาด ข้อความจึงต้องอ่านแล้วสบายใจ */
+.ib-empty{padding:34px 20px; text-align:center; border-radius:var(--r-card);
+  background:var(--card); border:1px solid var(--line)}
+.ib-empty-ic{width:44px; height:44px; margin:0 auto 12px; border-radius:14px;
+  background:var(--good-soft); color:var(--good);
+  display:flex; align-items:center; justify-content:center}
+.ib-empty-ic svg{width:22px; height:22px}
+.ib-empty-t{font-size:15px; font-weight:700; color:var(--ink); letter-spacing:-.02em}
+.ib-empty-p{font-size:12.5px; color:var(--muted); margin:6px 0 0; line-height:1.6}
+
+.ib-wide{width:100%; min-height:46px; margin-top:14px; border-radius:var(--r-tile); cursor:pointer;
+  border:1px solid var(--line); background:var(--card2); color:var(--muted);
+  font-family:inherit; font-size:13px; font-weight:600;
+  display:flex; align-items:center; justify-content:center; gap:7px; transition:transform .16s ease}
+.ib-wide svg{width:15px; height:15px}
+.ib-wide:active{transform:scale(.985); color:var(--blue)}
+
+/* ---------- แหล่งข้อมูล ---------- */
+.src{display:flex; align-items:flex-start; gap:12px; padding:14px 14px; margin-bottom:9px;
+  border-radius:var(--r-card); background:var(--card); border:1px solid var(--line)}
+.src.on{box-shadow:var(--shadow)}
+.src-ic{width:38px; height:38px; flex:none; border-radius:12px; background:var(--blue-soft);
+  color:var(--blue); display:flex; align-items:center; justify-content:center}
+.src-ic svg{width:18px; height:18px}
+.src-ic.off{background:var(--card2); color:var(--faint)}
+.src-bd{flex:1; min-width:0; display:flex; flex-direction:column; gap:3px}
+.src-bd .t{font-size:14px; font-weight:700; color:var(--ink); letter-spacing:-.015em}
+.src-bd .s{font-size:12px; color:var(--muted); line-height:1.5}
+/* สิ่งที่ยังขาด เขียนตรง ๆ ว่าติดอะไร — "เร็ว ๆ นี้" ไม่ได้บอกอะไรกับใครเลย */
+.src-need{display:flex; gap:7px; margin-top:7px; padding:8px 10px; border-radius:10px;
+  background:var(--warn-soft); color:var(--warn); font-size:11.5px; line-height:1.5; font-weight:600}
+.src-need svg{width:13px; height:13px; flex:none; margin-top:2px}
+.src-note{margin-top:6px; font-size:11.5px; line-height:1.6; color:var(--faint)}
+.src-n{flex:none; min-width:26px; height:26px; padding:0 8px; border-radius:999px;
+  background:var(--good-soft); color:var(--good); font-size:12px; font-weight:700;
+  font-variant-numeric:tabular-nums; display:flex; align-items:center; justify-content:center}
+.src-foot{font-size:11.5px; color:var(--faint); text-align:center; margin:14px 2px 0; line-height:1.6}
+
+/* ---------- แผงเชื่อมกลุ่ม LINE ---------- */
+.lk-code{margin-top:11px; padding:14px; border-radius:var(--r-tile); text-align:center;
+  background:var(--blue-soft); border:1.5px dashed var(--blue)}
+.lk-lb{font-size:11.5px; font-weight:600; color:var(--muted)}
+/* รหัสต้องใหญ่พอให้มองจอนี้แล้วพิมพ์ในอีกแอปได้โดยไม่ต้องมองสลับไปมา */
+.lk-val{font-size:30px; font-weight:700; letter-spacing:.06em; color:var(--blue); margin:8px 0 6px;
+  font-family:ui-monospace, SFMono-Regular, Menlo, monospace}
+.lk-hint{display:flex; align-items:center; justify-content:center; gap:6px;
+  font-size:11px; color:var(--muted)}
+.lk-hint svg{width:13px; height:13px}
+.lk-room{display:flex; align-items:center; gap:10px; margin-top:9px; padding:10px 12px;
+  border-radius:var(--r-tile); background:var(--card2)}
+.lk-room-ic{width:30px; height:30px; flex:none; border-radius:10px; background:var(--good-soft);
+  color:var(--good); display:flex; align-items:center; justify-content:center}
+.lk-room-ic svg{width:15px; height:15px}
+.lk-room-bd{flex:1; min-width:0; display:flex; flex-direction:column}
+.lk-room-bd .t{font-size:12.5px; font-weight:600; color:var(--ink)}
+.lk-room-bd .s{font-size:10.5px; color:var(--faint);
+  font-family:ui-monospace, SFMono-Regular, Menlo, monospace}
+.lk-room button{flex:none; min-height:32px; padding:0 11px; border-radius:9px; cursor:pointer;
+  border:1px solid var(--line); background:var(--card); color:var(--alert);
+  font-family:inherit; font-size:11.5px; font-weight:600}
+.lk-new{margin-top:11px; min-height:36px; padding:0 14px; border-radius:10px; cursor:pointer;
+  border:1px solid var(--blue); background:transparent; color:var(--blue);
+  font-family:inherit; font-size:12px; font-weight:600;
+  display:inline-flex; align-items:center; gap:6px}
+.lk-new svg{width:13px; height:13px}
+
+/* ---------- ป้ายจำนวนที่รอตรวจ บนไทล์หน้าแรก ---------- */
+/* ตัวเลขนี้คือเหตุผลเดียวที่นักเรียนจะเปิดจอนี้ ถ้าไม่เด่นพอก็เท่ากับไม่มี */
+.mtile .mt-ct.hot{background:var(--alert); color:var(--on-accent)}

@@ -49,6 +49,8 @@
   <link rel="stylesheet" href="style.css">
   <!-- ALT เท่านั้น: ป้ายกำกับรุ่นทดลอง แยกไฟล์ไว้ ไม่แตะ style.css เดิม จะสลับ stylesheet ทีหลังก็ได้ -->
   <link rel="stylesheet" href="alt.css">
+  <!-- ชั้นกล่องเข้า + เชื่อม LINE — ชั้นใหม่ทั้งชั้น แยกไฟล์ไว้ให้ถอดออกได้ทั้งก้อน -->
+  <link rel="stylesheet" href="inbox.css">
 </head>
 <body>
 
@@ -115,6 +117,11 @@
     <g id="lu-user" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M20 21a8 8 0 0 0-16 0"></path></g>
     <g id="lu-pin" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></g>
     <g id="lu-flag" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><path d="M4 22v-7"></path></g>
+    <!-- กลุ่มแชท — ใช้แทน LINE ทั้งในกล่องเข้าและจอแหล่งข้อมูล -->
+    <g id="lu-chat" fill="currentColor">
+      <path opacity=".34" d="M2.6 7.8A4.2 4.2 0 0 1 6.8 3.6h10.4a4.2 4.2 0 0 1 4.2 4.2v5.6a4.2 4.2 0 0 1-4.2 4.2H9.4l-4.5 3.4a1 1 0 0 1-1.6-.8v-2.9a4.2 4.2 0 0 1-.7-2.3z"/>
+      <circle cx="8.4" cy="10.6" r="1.35"/><circle cx="12" cy="10.6" r="1.35"/><circle cx="15.6" cy="10.6" r="1.35"/>
+    </g>
     <g id="tb-home" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></g>
     <g id="tb-tasks" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5h8"></path><path d="M13 12h8"></path><path d="M13 19h8"></path><path d="m3 17 2 2 4-4"></path><path d="m3 7 2 2 4-4"></path></g>
     <g id="tb-scan" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M7 12h10"></path></g>
@@ -425,6 +432,34 @@
         <div id="timeline"></div>
       </div>
 
+      <!-- ============ SCREEN: กล่องเข้า ============ -->
+      <!-- ของที่ไหลเข้ามาเองจากทุกแหล่ง — วาดจาก state.inbox ทั้งก้อนใน renderInbox -->
+      <div class="screen flush" id="scr-inbox">
+        <div class="sticky-head row">
+          <div>
+            <h2 class="sh-title">กล่องเข้า</h2>
+            <p class="sh-sub" id="inboxSub"></p>
+          </div>
+          <button class="sh-btn" onclick="go('scr-menu')" aria-label="กลับหน้าแรก">
+            <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+        </div>
+        <div class="scr-body" id="inboxBody"></div>
+      </div>
+
+      <!-- ============ SCREEN: แหล่งข้อมูล ============ -->
+      <!-- บอกตรง ๆ ว่าแหล่งไหนต่อได้แล้ว แหล่งไหนติดอะไรอยู่ -->
+      <div class="screen flush" id="scr-sources">
+        <div class="sticky-head row">
+          <div>
+            <h2 class="sh-title">แหล่งข้อมูล</h2>
+            <p class="sh-sub">ทางที่งานไหลเข้าแอปโดยไม่ต้องพิมพ์</p>
+          </div>
+          <button class="sh-btn" onclick="go('scr-inbox')" aria-label="กลับกล่องเข้า">
+            <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+        </div>
+        <div class="scr-body" id="srcBody"></div>
+      </div>
+
       <!-- ============ SCREEN: PROFILE ============ -->
       <div class="screen flush" id="scr-profile">
         <div class="scr-body pf-body">
@@ -630,6 +665,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
 <script src="engine.js"></script>
+<!-- ต้องมาก่อน app.js: app.js เรียก renderInbox/renderSources ใน renderAll
+     และเรียก loadLineLinks/pullInbox ตอนซิงก์ -->
+<script src="inbox.js"></script>
+<script src="linelink.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

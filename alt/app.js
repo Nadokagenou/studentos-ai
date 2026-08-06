@@ -310,6 +310,9 @@ async function syncFromCloud() {
       localStorage.setItem(STORE_KEY, JSON.stringify(state));
     }
     await pushToCloud(true);
+    // ของที่บอท LINE หย่อนไว้ตอนแอปปิดอยู่ — ดึงมาทีเดียวตอนเปิด
+    await loadLineLinks();
+    await pullInbox();
     renderAll();
   } catch (e) { console.warn('[sync] pull failed:', e.message); }
 }
@@ -396,6 +399,17 @@ function menuTile(cls, ic, label, count, target) {
   </button>`;
 }
 
+// ไทล์กล่องเข้า — วางกว้างเต็มแถวใต้ปุ่มเพิ่มงาน เพราะเป็นจอเดียวที่บอกว่า
+// "มีของเข้ามาเองระหว่างที่คุณไม่ได้เปิดแอป" ตัวเลขค้างจึงต้องสะดุดตากว่าตัวเลขอื่น
+function inboxTile() {
+  const wait = typeof inboxPending === 'function' ? inboxPending().length : 0;
+  return `<button class="mtile wide" onclick="go('scr-inbox')">
+    <span class="mt-ic">${icon('chat')}</span>
+    <span class="mt-lb">กล่องเข้า</span>
+    <span class="mt-ct${wait ? ' hot' : ''}">${wait}</span>
+  </button>`;
+}
+
 function renderMenu() {
   const body = document.getElementById('menuBody');
   if (!body) return;
@@ -412,6 +426,7 @@ function renderMenu() {
     </div>
     <div class="menu-grid">
       ${menuTile('hero', 'sparkles', 'เพิ่มงานใหม่', null, 'scr-scan')}
+      ${inboxTile()}
       ${menuTile('', 'calendar', 'ตารางงาน', pending.length, 'scr-home')}
       ${menuTile('', 'check-circle', 'งานทั้งหมด', live.length, 'scr-tasks')}
       ${menuTile('', 'clock', 'แผนวันนี้', null, 'scr-plan')}
@@ -1129,7 +1144,7 @@ function renderProfile() {
   }
 }
 
-function renderAll() { renderMenu(); renderHome(); renderTasks(); renderTimeline(); renderProfile(); renderPlan(); renderInstallCard(); }
+function renderAll() { renderMenu(); renderHome(); renderTasks(); renderTimeline(); renderProfile(); renderPlan(); renderInbox(); renderSources(); renderInstallCard(); }
 
 // ---------- task actions ----------
 // el = ปุ่มที่กด (ถ้ามี) ใช้เป็นจุดกำเนิดของเอฟเฟกต์ฉลอง
