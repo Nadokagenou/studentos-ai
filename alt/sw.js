@@ -1,8 +1,10 @@
 // StudentOS AI — Service Worker  ·  *** เวอร์ชัน ALT (SANDBOX) ***
 // กลยุทธ์: network-first (ได้เวอร์ชันใหม่เสมอเมื่อมีเน็ต) + cache fallback (เปิด offline ได้)
 // ALT ใช้ชื่อ cache คนละตัวกับตัวจริง — สลับไปมาระหว่างสองรุ่นแล้วไฟล์ไม่ปนกัน
+// รวมสองสาย: ไฟล์ของระบบ LINE (inbox/brain/linelink) + เลขรุ่น 1A6M2 ของฝั่งหน้าตา
 const CACHE = 'studentos-alt-1a6m2';   // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
-const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'engine.js', 'app.js', 'config.js', 'manifest.json',
+const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css',
+  'engine.js', 'brain.js', 'inbox.js', 'linelink.js', 'app.js', 'config.js', 'manifest.json',
   'icon-alt-192.png', 'icon-alt-512.png', 'icon-192.png', 'icon-512.png', 'logo-mark.png'];
 
 self.addEventListener('install', e => {
@@ -50,8 +52,12 @@ self.addEventListener('fetch', e => {
   // ปล่อยให้คำขอข้ามโดเมนผ่านตรง ไม่ผ่าน SW เลย — กัน CDN ของ OCR (Tesseract.js,
   // wasm, ไฟล์ภาษา) พังเวลาเน็ตสะดุดแล้วตกไปหา cache ที่ไม่เคยเก็บไฟล์เหล่านี้ไว้
   if (new URL(e.request.url).origin !== location.origin) return;
+  // cache: 'no-store' สำคัญกว่าที่เห็น — network-first เฉย ๆ ยังไม่พอ
+  // เพราะ HTTP cache ของเบราว์เซอร์นั่งขวางอยู่หน้า fetch() ของ SW อีกชั้น
+  // GitHub Pages ส่ง max-age=600 มาด้วย แปลว่าอัปเดตแล้วผู้ใช้จะยังเห็นของเก่า
+  // ไปอีก 10 นาที รีเฟรชกี่ครั้งก็ไม่เปลี่ยน — ซึ่งหาสาเหตุยากมากเวลาเจอ
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-store' })
       .then(res => {
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put(e.request, copy));

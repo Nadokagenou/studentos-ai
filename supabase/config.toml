@@ -1,0 +1,19 @@
+# ============================================================
+# Supabase — ตั้งค่าโปรเจกต์ (ใช้ตอน deploy ด้วย CLI)
+# ============================================================
+project_id = "yunbytxtgghizrdqftvj"
+
+# ---------- Edge Functions ----------
+# verify_jwt = false สำคัญมาก และไม่ได้แปลว่าไม่ปลอดภัย:
+#   ปกติ Supabase บังคับให้ทุกคำขอแนบ JWT ของผู้ใช้มาด้วย
+#   แต่ LINE เป็นคนยิง webhook มา มันไม่มีทางรู้จัก JWT ของเรา —
+#   ถ้าเปิดไว้ LINE จะโดน 401 ทุกครั้งแล้ว webhook เงียบไปเฉย ๆ โดยไม่มีใครรู้
+#
+# ด่านความปลอดภัยจริงของ webhook คือลายเซ็น HMAC ที่ LINE เซ็นมากับ body
+# แล้วเราตรวจด้วย LINE_CHANNEL_SECRET ในไฟล์ index.ts — ใครไม่มี secret ก็ปลอมไม่ได้
+[functions.line-webhook]
+verify_jwt = false
+
+# ตัวนี้ยิงจาก cron ของ Supabase เอง จึงแนบ JWT ได้ตามปกติ
+[functions.send-reminders]
+verify_jwt = true

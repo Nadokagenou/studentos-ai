@@ -378,6 +378,9 @@ async function syncFromCloud() {
       localStorage.setItem(STORE_KEY, JSON.stringify(state));
     }
     await pushToCloud(true);
+    // ของที่บอท LINE หย่อนไว้ตอนแอปปิดอยู่ — ดึงมาทีเดียวตอนเปิด
+    await loadLineLinks();
+    await pullInbox();
     renderAll();
   } catch (e) { console.warn('[sync] pull failed:', e.message); }
 }
@@ -569,6 +572,18 @@ function widgetHtml(now) {
   </section>`;
 }
 
+// ไทล์กล่องเข้า — วางกว้างเต็มแถวใต้ปุ่มเพิ่มงาน เพราะเป็นจอเดียวที่บอกว่า
+// "มีของเข้ามาเองระหว่างที่คุณไม่ได้เปิดแอป" ตัวเลขค้างจึงต้องสะดุดตากว่าตัวเลขอื่น
+function inboxTile() {
+  const wait = typeof inboxPending === 'function' ? inboxPending().length : 0;
+  return `<button class="mtile wide" onclick="go('scr-inbox')">
+    <span class="mt-ic">${icon('chat')}</span>
+    <span class="mt-tx"><span class="mt-lb">กล่องเข้า</span>
+      <span class="mt-sub">ข้อความจาก LINE ที่รอตรวจ</span></span>
+    <span class="mt-ct${wait ? ' hot' : ''}">${wait}</span>
+  </button>`;
+}
+
 function renderMenu() {
   const body = document.getElementById('menuBody');
   if (!body) return;
@@ -589,6 +604,7 @@ function renderMenu() {
     ${widgetHtml(now)}
     <div class="menu-grid">
       ${menuTile('hero', 'sparkles', 'เพิ่มงานใหม่', 'ถ่ายรูป · พูด · แปะข้อความ', null, 'scr-scan')}
+      ${inboxTile()}
       ${menuTile('', 'calendar', 'ตารางงาน', 'ลำดับที่ AI แนะนำ', pending.length, 'scr-home')}
       ${menuTile('', 'check-circle', 'งานทั้งหมด', 'ค้าง · เสร็จ · ถังขยะ', live.length, 'scr-tasks')}
       ${menuTile('', 'clock', 'แผนวันนี้', 'AI จัดเวลาให้', null, 'scr-plan')}
@@ -1396,6 +1412,10 @@ function renderStats() {
 function renderAll() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline();
   renderProfile(); renderStats(); renderPlan(); renderInstallCard(); renderTabBadges();
+  // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น
+  // (กันแอปพังทั้งจอถ้าไฟล์ inbox.js/linelink.js โหลดไม่ขึ้น)
+  if (typeof renderInbox === 'function') renderInbox();
+  if (typeof renderSources === 'function') renderSources();
 }
 
 // ---------- task actions ----------
