@@ -61,6 +61,9 @@
 .ib-log-bd .s{font-size:11px; color:var(--muted); margin-top:1px}
 .ib-log.accepted .ib-log-ic{background:var(--good-soft); color:var(--good)}
 .ib-log.duplicate .ib-log-ic{background:var(--warn-soft); color:var(--warn)}
+/* ข้อความที่ตัดสินว่าไม่ใช่งาน — จางกว่าเพื่อน เพราะมีไว้ให้ตรวจย้อนหลังเฉย ๆ
+   ไม่ใช่ของที่ต้องอ่านทุกวัน แต่ก็ต้องหาเจอเวลาสงสัยว่า "งานหายไปไหน" */
+.ib-log.noise{opacity:.55}
 
 /* ---------- ไม่มีอะไรค้าง ---------- */
 /* กล่องเข้าว่าง = ระบบทำงานถูก ไม่ใช่ความผิดพลาด ข้อความจึงต้องอ่านแล้วสบายใจ */
