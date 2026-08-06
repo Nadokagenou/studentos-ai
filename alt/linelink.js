@@ -133,6 +133,29 @@ async function pullInbox() {
   return added;
 }
 
+// ---------- คอยดึงของใหม่ระหว่างที่แอปเปิดค้างอยู่ ----------
+// เดิมดึงแค่ตอนเปิดแอป/ล็อกอินเท่านั้น — ครูสั่งงานตอนที่นักเรียนเปิดแอปค้างไว้อยู่แล้ว
+// จะไม่มีอะไรเกิดขึ้นเลยจนกว่าจะปิดแล้วเปิดใหม่ ซึ่งพังทั้งแนวคิด "ไม่ต้องทำอะไรเลย"
+// ถ้าต้องคอยรีเฟรชเอง ก็ไม่ต่างอะไรกับแอปที่ต้องกรอกเอง
+const INBOX_POLL_MS = 45000;
+let inboxPoll = null;
+
+function startInboxPolling() {
+  clearInterval(inboxPoll);
+  // ถามเฉพาะตอนที่หน้าจอเปิดอยู่จริง — อยู่ในกระเป๋าแล้วยังยิงทุก 45 วิ คือกินแบตฟรี ๆ
+  inboxPoll = setInterval(() => {
+    if (document.visibilityState === 'visible') pullInbox();
+  }, INBOX_POLL_MS);
+}
+
+// สลับจากแชทกลับมาที่แอป = จังหวะที่มีของใหม่รออยู่มากที่สุด
+// ดึงทันทีเลย ไม่ต้องให้รอจนครบรอบถัดไป
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') pullInbox();
+});
+
+startInboxPolling();
+
 // ---------- ส่วนที่แสดงในจอ "แหล่งข้อมูล" ----------
 function lineLinkPanel() {
   if (!cloudConfigured()) {
