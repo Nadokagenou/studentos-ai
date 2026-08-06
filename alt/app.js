@@ -41,51 +41,72 @@ const THEME_KEY = 'studentos.alt.theme';   // ALT: แยกจากตัว�
 const THEME_BAR = {
   light: '#FCFBF7', dark: '#0D1220', warm: '#F7F1E4', space: '#0A0E24',
   earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
-  deepocean: '#04121F',
+  deepocean: '#04121F', earth2: '#EFF7EE',
 };
 const THEME_NAME = {
   system: 'ตามระบบ', light: 'สว่าง', dark: 'มืด', warm: 'อุ่น', space: 'อวกาศ',
   earth: 'โลก', ocean: 'มหาสมุทร', magic: 'เวทมนตร์', galaxy: 'กาแล็กซี',
-  deepocean: 'ทะเลลึก',
+  deepocean: 'ทะเลลึก', earth2: 'โลก V.2',
 };
-// ---------- ALT 1A6M2: อีสเตอร์เอกก์ ธีมทะเลลึก ----------
-// กดปุ่มธีม "มหาสมุทร" ซ้ำ 4 ครั้ง = ปลดล็อกธีมทะเลลึก (ฉลาม + หมึกยักษ์)
-const DEEP_KEY = 'studentos.alt.deepUnlocked';
-let oceanTaps = 0, oceanTapAt = 0;
+// ---------- ALT 1A6M2: อีสเตอร์เอกก์ ธีมลับ ----------
+// กดปุ่มธีมเดิมซ้ำ 5 ครั้งรวด = ปลดล็อกธีมลับของโทนนั้น
+// ทุกครั้งที่กดซ้ำมีเอฟเฟกต์กระเด็น + เครื่องสั่น เป็นการบอกว่า "มีอะไรอยู่ตรงนี้"
+const SECRETS = {
+  ocean: {
+    store: 'studentos.alt.deepUnlocked', flag: 'deep', theme: 'deepocean', fx: 'egg-bub',
+    title: 'ปลดล็อกธีมทะเลลึก 🦈', body: 'ดำลงไปอีกชั้น — มีฉลามกับหมึกยักษ์ว่ายอยู่ข้างหลัง',
+  },
+  earth: {
+    store: 'studentos.alt.earth2Unlocked', flag: 'earth2', theme: 'earth2', fx: 'egg-leaf',
+    title: 'ปลดล็อกธีมโลก V.2 🌳', body: 'มีลม มีนกบินผ่าน มีต้นไม้กลางจอ และหญ้าไหวอยู่ก้นจอ',
+  },
+};
+const SECRET_TAPS = 5;
+let tapTheme = '', tapCount = 0, tapAt = 0;
 
-function deepUnlocked() {
-  try { return localStorage.getItem(DEEP_KEY) === '1'; } catch (_) { return false; }
+function secretUnlocked(id) {
+  const s = SECRETS[id];
+  try { return !!s && localStorage.getItem(s.store) === '1'; } catch (_) { return false; }
 }
-function applyDeepUnlock() {
-  if (deepUnlocked()) document.documentElement.dataset.deep = 'on';
-  else delete document.documentElement.dataset.deep;
+function applySecrets() {
+  for (const [id, s] of Object.entries(SECRETS)) {
+    if (secretUnlocked(id)) document.documentElement.dataset[s.flag] = 'on';
+    else delete document.documentElement.dataset[s.flag];
+  }
 }
-function unlockDeepOcean() {
-  try { localStorage.setItem(DEEP_KEY, '1'); } catch (_) {}
-  applyDeepUnlock();
-  oceanTaps = 0;
+// เก็บชื่อเดิมไว้ให้โค้ดส่วนอื่นเรียกได้เหมือนเดิม
+function deepUnlocked() { return secretUnlocked('ocean'); }
+function applyDeepUnlock() { applySecrets(); }
+
+function unlockSecret(id) {
+  const s = SECRETS[id];
+  if (!s) return;
+  try { localStorage.setItem(s.store, '1'); } catch (_) {}
+  applySecrets();
+  tapCount = 0; tapTheme = '';
   haptic('done');
-  bubbleBurst(16);
-  setTheme('deepocean');
-  showToast({ title: 'ปลดล็อกธีมทะเลลึก 🦈', body: 'ดำลงไปอีกชั้น — มีฉลามกับหมึกยักษ์ว่ายอยู่ข้างหลัง' });
+  splashBurst(18, s.fx);
+  setTheme(s.theme);
+  showToast({ title: s.title, body: s.body });
 }
 
-// ฟองอากาศลอยขึ้นจากก้นจอ ใช้ตอนกดปุ่มซ้ำระหว่างปลดล็อก
-function bubbleBurst(n = 8) {
+// เอฟเฟกต์กระเด็นตอนกดซ้ำ — ฟองน้ำ (ทะเล) หรือใบไม้ (โลก)
+function splashBurst(n = 8, cls = 'egg-bub') {
   const phone = document.querySelector('.phone');
   if (!phone || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   for (let i = 0; i < n; i++) {
     const b = document.createElement('i');
-    b.className = 'egg-bub';
+    b.className = cls;
     const size = 6 + Math.random() * 16;
     b.style.width = b.style.height = size + 'px';
-    b.style.left = (8 + Math.random() * 84) + '%';
+    b.style.left = (6 + Math.random() * 88) + '%';
     b.style.animationDuration = (1 + Math.random() * 0.9) + 's';
     b.style.animationDelay = (Math.random() * 0.25) + 's';
     phone.appendChild(b);
-    setTimeout(() => b.remove(), 2400);
+    setTimeout(() => b.remove(), 2600);
   }
 }
+function bubbleBurst(n = 8) { splashBurst(n, 'egg-bub'); }
 const THEMES = Object.keys(THEME_NAME);
 
 function themePref() {
@@ -110,15 +131,16 @@ function applyTheme() {
 }
 
 function setTheme(pref) {
-  // นับการกดซ้ำที่ปุ่ม "มหาสมุทร" — กดรัว ๆ 4 ครั้งเพื่อปลดล็อกทะเลลึก
-  if (pref === 'ocean' && !deepUnlocked()) {
+  // นับการกดซ้ำที่ปุ่มธีมที่มีของลับ — กดรัว ๆ ครบ 5 ครั้งแล้วปลดล็อก
+  const secret = SECRETS[pref];
+  if (secret && !secretUnlocked(pref)) {
     const t = performance.now();
-    oceanTaps = (t - oceanTapAt < 2500) ? oceanTaps + 1 : 1;
-    oceanTapAt = t;
-    if (oceanTaps >= 4) { unlockDeepOcean(); return; }
-    if (oceanTaps > 1) { haptic('arm'); bubbleBurst(3 + oceanTaps * 2); }
-  } else if (pref !== 'ocean') {
-    oceanTaps = 0;
+    tapCount = (tapTheme === pref && t - tapAt < 2500) ? tapCount + 1 : 1;
+    tapTheme = pref; tapAt = t;
+    if (tapCount >= SECRET_TAPS) { unlockSecret(pref); return; }
+    if (tapCount > 1) { haptic('arm'); splashBurst(3 + tapCount * 3, secret.fx); }
+  } else {
+    tapCount = 0; tapTheme = '';
   }
   try { localStorage.setItem(THEME_KEY, THEMES.includes(pref) ? pref : 'system'); } catch (_) {}
   applyTheme();
@@ -607,9 +629,8 @@ function renderMenu() {
       ${inboxTile()}
       ${menuTile('', 'calendar', 'ตารางงาน', 'ลำดับที่ AI แนะนำ', pending.length, 'scr-home')}
       ${menuTile('', 'check-circle', 'งานทั้งหมด', 'ค้าง · เสร็จ · ถังขยะ', live.length, 'scr-tasks')}
-      ${menuTile('', 'clock', 'แผนวันนี้', 'AI จัดเวลาให้', null, 'scr-plan')}
       ${menuTile('', 'pin', 'เส้นทาง', 'ไทม์ไลน์ถึงกำหนดส่ง', dated, 'scr-timeline')}
-      ${menuTile('wide', 'user', 'ฉัน', 'ผลของฉัน · ธีม · ตั้งค่า', doneWeek ? doneWeek : null, 'scr-profile')}
+      ${menuTile('', 'user', 'ฉัน', 'ผลของฉัน · ธีม · ตั้งค่า', doneWeek ? doneWeek : null, 'scr-profile')}
     </div>`;
 }
 
@@ -1322,6 +1343,138 @@ function renderProfile() {
   }
 }
 
+// ---------- ALT 1A6M2: ระบบเพื่อน (เฟสแรก) ----------
+// ยังไม่มีตารางฝั่งเซิร์ฟเวอร์สำหรับเพื่อน จึงทำให้ใช้งานได้จริงวันนี้ด้วยการ
+// "แลกรหัสสถานะ" กันตรง ๆ — ก๊อปรหัสของตัวเองส่งให้เพื่อน แล้ววางรหัสของเพื่อนกลับมา
+// ไม่ต้องรอ backend และไม่มีข้อมูลใครถูกส่งไปไหนโดยที่เจ้าตัวไม่ได้กดเอง
+function friends() {
+  state.settings = state.settings || {};
+  if (!Array.isArray(state.settings.friends)) state.settings.friends = [];
+  return state.settings.friends;
+}
+
+// สถานะของเราแบบย่อ — เอาไปทำเป็นรหัสให้เพื่อน
+function myStatus() {
+  const now = new Date();
+  const live = liveTasks();
+  const done = live.filter(t => t.done);
+  return {
+    n: who() || 'เพื่อน',
+    p: live.filter(t => !t.done).length,
+    d7: done.filter(t => t.doneAt && (now - new Date(t.doneAt)) < 7 * 8.64e7).length,
+    d: done.length,
+    u: now.toISOString(),
+  };
+}
+
+function myShareCode() {
+  try {
+    const json = JSON.stringify(myStatus());
+    return 'SOS1.' + btoa(unescape(encodeURIComponent(json)));
+  } catch (_) { return ''; }
+}
+
+function parseShareCode(code) {
+  const raw = String(code || '').trim();
+  if (!raw.startsWith('SOS1.')) return null;
+  try {
+    const json = decodeURIComponent(escape(atob(raw.slice(5))));
+    const o = JSON.parse(json);
+    if (!o || typeof o.n !== 'string') return null;
+    return o;
+  } catch (_) { return null; }
+}
+
+async function copyMyCode() {
+  const code = myShareCode();
+  try {
+    await navigator.clipboard.writeText(code);
+    haptic('arm');
+    showToast({ title: 'ก๊อปรหัสแล้ว 📋', body: 'ส่งให้เพื่อนวางในหน้า “เพื่อน” ของเขาได้เลย' });
+  } catch (_) {
+    // เบราว์เซอร์ไม่ให้ก๊อปอัตโนมัติ → โชว์ให้เลือกเอง
+    const box = document.getElementById('frMyCode');
+    if (box) { box.hidden = false; box.value = code; box.select(); }
+  }
+}
+
+function addFriendCode() {
+  const el = document.getElementById('frInput');
+  const o = parseShareCode(el && el.value);
+  if (!o) {
+    showToast({ title: 'รหัสไม่ถูกต้อง', body: 'ต้องเป็นรหัสที่ขึ้นต้นด้วย SOS1. ที่เพื่อนก๊อปมาให้' });
+    return;
+  }
+  const list = friends();
+  const i = list.findIndex(f => f.n === o.n);
+  if (i >= 0) list[i] = o; else list.push(o);
+  save();
+  if (el) el.value = '';
+  haptic('done');
+  renderFriends(); renderTabBadges();
+  showToast({ title: (i >= 0 ? 'อัปเดตสถานะของ ' : 'เพิ่มเพื่อนแล้ว: ') + o.n, body: 'เห็นงานค้างและผลของเขาในหน้าเพื่อนแล้ว' });
+}
+
+function removeFriend(name) {
+  state.settings.friends = friends().filter(f => f.n !== name);
+  save();
+  renderFriends();
+}
+
+function friendAgo(iso) {
+  if (!iso) return 'ไม่รู้เวลา';
+  const m = Math.round((Date.now() - new Date(iso)) / 60000);
+  if (m < 2) return 'เมื่อครู่';
+  if (m < 60) return m + ' นาทีที่แล้ว';
+  const h = Math.round(m / 60);
+  if (h < 24) return h + ' ชม.ที่แล้ว';
+  return Math.round(h / 24) + ' วันที่แล้ว';
+}
+
+function renderFriends() {
+  const body = document.getElementById('friendsBody');
+  if (!body) return;
+  const me = myStatus();
+  const list = friends().slice().sort((a, b) => (b.d7 || 0) - (a.d7 || 0));
+  const board = [{ ...me, me: true }, ...list].sort((a, b) => (b.d7 || 0) - (a.d7 || 0));
+  const peak = Math.max(1, ...board.map(f => f.d7 || 0));
+
+  body.innerHTML = `<div class="page-head">
+      <div class="eyebrow mono">${esc(fmtThaiDate(new Date()))}</div>
+      <h1 class="page-title">เพื่อน</h1>
+      <p class="page-sub">แลกรหัสสถานะกัน แล้วดูว่าใครเคลียร์งานไปถึงไหน</p>
+    </div>
+
+    <div class="fr-me">
+      <div class="fr-me-h">${icon('user')}รหัสสถานะของฉัน</div>
+      <p class="fr-me-p">ก๊อปส่งให้เพื่อน — ในรหัสมีแค่ชื่อเล่น จำนวนงานค้าง และจำนวนงานที่เสร็จ</p>
+      <button class="fr-copy" onclick="copyMyCode()">${icon('check')}ก๊อปรหัสของฉัน</button>
+      <textarea class="fr-code" id="frMyCode" rows="2" readonly hidden></textarea>
+    </div>
+
+    <div class="fr-add">
+      <label for="frInput">วางรหัสของเพื่อน</label>
+      <textarea id="frInput" rows="2" placeholder="SOS1.…"></textarea>
+      <button class="fr-add-btn" onclick="addFriendCode()">${icon('users')}เพิ่ม / อัปเดตเพื่อน</button>
+    </div>
+
+    <div class="sec-label">กระดานเทียบผล 7 วัน</div>
+    ${board.map(f => `<div class="fr-card${f.me ? ' me' : ''}">
+      <div class="fr-av">${esc((f.n || '?').slice(0, 1))}</div>
+      <div class="fr-bd">
+        <div class="fr-nm">${esc(f.n)}${f.me ? '<span class="fr-tag">คุณ</span>' : ''}</div>
+        <div class="fr-st">งานค้าง <b>${f.p ?? '—'}</b> · เสร็จ 7 วัน <b>${f.d7 ?? '—'}</b> · รวม ${f.d ?? '—'}</div>
+        <div class="fr-bar"><i style="width:${Math.round((f.d7 || 0) / peak * 100)}%"></i></div>
+        <div class="fr-ago">${f.me ? 'อัปเดตสด' : 'ข้อมูล ' + esc(friendAgo(f.u))}</div>
+      </div>
+      ${f.me ? '' : `<button class="fr-del" onclick="removeFriend('${esc(f.n).replace(/'/g, "\\'")}')"
+        aria-label="เอาออก">${icon('trash')}</button>`}
+    </div>`).join('')}
+
+    ${list.length ? '' : `<p class="fr-note">ยังไม่มีเพื่อนในรายการ — ส่งรหัสของคุณให้เพื่อนก่อน
+      แล้วขอรหัสของเขามาวางตรงช่องด้านบน · สถานะเป็นภาพนิ่ง ณ เวลาที่แลกรหัสกัน ไม่ได้อัปเดตเอง</p>`}`;
+}
+
 // ---------- ALT 1A6M2: ป้ายเตือนบนแถบเมนู ----------
 // งานที่ AI จัดว่า "ด่วนมาก" และยังไม่เสร็จ ต้องเห็นได้โดยไม่ต้องเข้าไปดู
 function renderTabBadges() {
@@ -1332,6 +1485,19 @@ function renderTabBadges() {
   el.hidden = !urgent;
   el.textContent = urgent > 9 ? '9+' : urgent;
   el.setAttribute('aria-label', urgent ? 'งานด่วนมาก ' + urgent + ' งาน' : '');
+
+  // ปุ่มเพื่อนมุมขวาบน — ขึ้นจำนวนเพื่อนที่มีในรายการ
+  const fb = document.getElementById('friendsBadge');
+  if (fb) {
+    const n = friends().length;
+    fb.hidden = !n;
+    fb.textContent = n > 9 ? '9+' : n;
+  }
+  const fsub = document.getElementById('friendsSub');
+  if (fsub) {
+    const n = friends().length;
+    fsub.textContent = n ? n + ' คนในรายการ · ดูสถานะและผลของเพื่อน' : 'ดูสถานะและผลของเพื่อน';
+  }
 }
 
 // ---------- ALT 1A6M2: ผลของฉัน ----------
@@ -1411,7 +1577,7 @@ function renderStats() {
 
 function renderAll() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline();
-  renderProfile(); renderStats(); renderPlan(); renderInstallCard(); renderTabBadges();
+  renderProfile(); renderStats(); renderPlan(); renderFriends(); renderInstallCard(); renderTabBadges();
   // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น
   // (กันแอปพังทั้งจอถ้าไฟล์ inbox.js/linelink.js โหลดไม่ขึ้น)
   if (typeof renderInbox === 'function') renderInbox();
@@ -2552,6 +2718,7 @@ function renderInstallCard() {
 const FUN_FACTS = [
   'ชื่อรุ่นของแอปได้แรงบันดาลใจมาจากรถถังซีรีส์ Leopard',
   'ผู้พัฒนาชอบกินเงาะ',
+  'You Cannot Beat Us — We Are STUDENTOS',
   'น้ำผึ้งไม่เน่าเสีย — เคยมีคนเจอน้ำผึ้งในสุสานอียิปต์อายุกว่า 3,000 ปี ที่ยังกินได้',
   'หมึกยักษ์มีหัวใจ 3 ดวง และเลือดของมันเป็นสีฟ้า',
   'กล้วยนับเป็นผลเบอร์รีตามนิยามพฤกษศาสตร์ แต่สตรอว์เบอร์รีไม่ใช่',

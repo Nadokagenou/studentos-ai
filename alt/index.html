@@ -25,7 +25,7 @@
       // ไม่งั้นธีมใหม่จะไม่ถูกจำ แล้วจอแรกกะพริบเป็นโทนสว่างก่อนสลับ
       var BAR = { light: '#FCFBF7', dark: '#0D1220', warm: '#F7F1E4', space: '#0A0E24',
         earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
-        deepocean: '#04121F' };
+        deepocean: '#04121F', earth2: '#EFF7EE' };
       var pref = null;
       try { pref = localStorage.getItem('studentos.alt.theme'); } catch (e) {} // ALT: คนละคีย์กับตัวจริง
       if (pref === 'library') pref = 'ocean'; // 1A6M2: ธีมห้องสมุดถูกแทนที่ด้วยมหาสมุทร
@@ -150,8 +150,13 @@
     <!-- ALT: พื้นหลังภาพของผู้ใช้เอง (ตั้งในแท็บ "ฉัน") — ม่านหรี่ทับให้ตัวหนังสืออ่านออก -->
     <div class="userbg" id="userBg" aria-hidden="true"><span class="ub-veil"></span></div>
     <div class="statusbar"><span id="clock">--:--</span><span>📶 🔋</span></div>
-    <!-- ALT: ป้ายบอกรุ่นบนตัวเครื่อง — โชว์เลขเวอร์ชัน (app.js เขียนทับจาก APP_VERSION ตอนเปิด) -->
+    <!-- ALT: ป้ายบอกรุ่น — อยู่กลางบนจอ (app.js เขียนทับจาก APP_VERSION ตอนเปิด) -->
     <div class="alt-badge" id="altBadge" title="StudentOS ALT · บิลด์ทดลองฟีเจอร์ ข้อมูลแยกจากตัวจริง">1A6M2</div>
+    <!-- ALT 1A6M2: ทางเข้าระบบเพื่อน — มุมขวาบน ไม่กินช่องในเมนูหลัก -->
+    <button class="top-friends" onclick="go('scr-friends')" aria-label="เพื่อน">
+      <svg viewBox="0 0 24 24"><use href="#lu-users"/></svg>
+      <span class="tf-badge" id="friendsBadge" hidden></span>
+    </button>
     <div class="screens">
 
       <!-- ============ SCREEN: LOGIN ============ -->
@@ -461,6 +466,12 @@
         <div class="scr-body" id="srcBody"></div>
       </div>
 
+      <!-- ============ SCREEN: เพื่อน (ALT 1A6M2) ============ -->
+      <!-- ดูสถานะและผลของเพื่อน · วาดจาก state ใน renderFriends -->
+      <div class="screen flush" id="scr-friends">
+        <div class="scr-body fr-body" id="friendsBody"></div>
+      </div>
+
       <!-- ============ SCREEN: PROFILE ============ -->
       <div class="screen flush" id="scr-profile">
         <div class="scr-body pf-body">
@@ -525,6 +536,9 @@
                 <!-- ปลดล็อกด้วยการกดปุ่ม "มหาสมุทร" ซ้ำ 4 ครั้ง (อีสเตอร์เอกก์) -->
                 <button type="button" class="th-secret" data-th="deepocean" onclick="setTheme('deepocean')">
                   <span class="sw sw-deepocean"></span><span class="nm">ทะเลลึก</span></button>
+                <!-- ปลดล็อกด้วยการกดปุ่ม "โลก" ซ้ำ 5 ครั้ง -->
+                <button type="button" class="th-secret" data-th="earth2" onclick="setTheme('earth2')">
+                  <span class="sw sw-earth2"></span><span class="nm">โลก V.2</span></button>
               </div>
             </div>
 
@@ -610,14 +624,14 @@
                 <p class="bg-note">จางมาก = อ่านง่ายขึ้น · จางน้อย = เห็นภาพชัดขึ้น</p>
               </div>
             </div>
-            <!-- ALT: ระบบเพื่อน — ยังไม่เสร็จ กดเข้าไม่ได้ (ติ๊กค้างไว้ว่ายังไม่เสร็จ) -->
-            <div class="pf-row soon" id="friendsRow" aria-disabled="true">
+            <!-- ALT 1A6M2: ระบบเพื่อน — เปิดใช้ได้แล้ว (เฟสแรก) -->
+            <div class="pf-row" id="friendsRow" onclick="go('scr-friends')" style="cursor:pointer">
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
               <span class="bd">
-                <span class="lb">เพื่อน <span class="soon-tag">กำลังพัฒนา</span></span>
-                <span class="sb">ชวนเพื่อนมาดูแผนกัน · ยังไม่เสร็จ ยังเข้าไม่ได้</span>
+                <span class="lb">เพื่อน</span>
+                <span class="sb" id="friendsSub">ดูสถานะและผลของเพื่อน</span>
               </span>
-              <span class="soon-box" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
+              <span class="pf-go"><svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></span>
             </div>
 
             <div class="pf-row" id="notifRow">

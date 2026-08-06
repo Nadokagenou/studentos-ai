@@ -5,11 +5,12 @@
    ไม่แตะ layout เดิมเลย เพื่อให้สลับ/อัปเดต style.css ได้อิสระ
    ============================================================ */
 
-/* ป้าย ALT มุมขวาบนของตัวเครื่อง — ลอยเหนือทุกจอ แต่ไม่รับคลิก */
+/* ป้ายเลขรุ่น — กลางบนจอ (1A6M2) ลอยเหนือทุกจอ แต่ไม่รับคลิก */
 .alt-badge {
   position: absolute;
   top: 10px;
-  right: 12px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 90;
   pointer-events: none;
   font: 700 10px/1 'Space Mono', ui-monospace, monospace;
@@ -20,6 +21,44 @@
   background: linear-gradient(135deg, #FACC15, #F59E0B);
   box-shadow: 0 2px 10px rgba(245, 158, 11, .45);
 }
+
+/* ปุ่มเพื่อนมุมขวาบน (1A6M2) — อยู่นอกกริดเมนู หน้าแรกจะได้ไม่ต้องเลื่อน */
+.top-friends {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 91;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--blue);
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform .16s ease;
+}
+.top-friends svg { width: 17px; height: 17px; }
+.top-friends:active { transform: scale(.9); }
+.tf-badge {
+  position: absolute;
+  top: -3px; right: -3px;
+  min-width: 15px; height: 15px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--pri-green);
+  color: #fff;
+  font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+}
+.tf-badge[hidden] { display: none; }
+.login-mode .top-friends { display: none; }
 
 /* บรรทัดบอกรุ่นในหน้า login */
 .alt-note {
@@ -486,6 +525,31 @@
   --r-card:22px; --r-tile:15px;
 }
 
+/* ---------- โทน 10 (ลับ): โลก V.2 — ทุ่งหญ้ามีลม ---------- */
+/* ปลดล็อกด้วยการกดปุ่มธีมโลกซ้ำ 5 ครั้ง */
+:root[data-theme="earth2"] {
+  color-scheme: light;
+  --scr:#EFF7EE; --card:#FFFFFF; --card2:#E2EFE1; --surface:#E2EFE1;
+  --ink:#1B2E20; --muted:#57735E; --faint:#65816C;
+  --line:rgba(27,46,32,.10);
+  --blue:#2F7D42; --blue-soft:#DCEFDC; --blue-deep:#1E5B2E; --on-accent:#FFFFFF;
+  --neon:#2F7D42;
+  --alert:#B23A2B; --alert-soft:#F7E3DF;
+  --warn:#8A6206;  --warn-soft:#F8EFD3;
+  --good:#1C6B3B;  --good-soft:#DAEFE2; --fire:#B23A2B;
+  --shadow:0 2px 6px rgba(28,58,40,.07), 0 16px 34px -14px rgba(28,58,40,.24);
+  --shadow-lg:0 4px 12px rgba(28,58,40,.09), 0 32px 58px -18px rgba(28,58,40,.3);
+  --shadow-brand:0 10px 26px -8px rgba(47,125,66,.42);
+  --glass:rgba(239,247,238,.86); --glass-line:rgba(27,46,32,.08);
+  --skel:rgba(27,46,32,.06); --skel-hi:rgba(27,46,32,.11);
+  --grad-brand:linear-gradient(135deg,#5FBF6B 0%,#2F7D42 100%);
+  --grad-hero:linear-gradient(150deg,#1E5B2E 0%,#4E9E5C 100%);
+  --glow-scan:0 8px 22px -6px rgba(47,125,66,.5);
+  --pg:#DDECDC; --pg-ink:#1B2E20; --pg-muted:#57735E;
+  --frame:#5A4128;
+  --r-card:22px; --r-tile:15px;
+}
+
 /* ---------- โทน 9 (ลับ): ทะเลลึก — มหาสมุทรเวอร์ชันมืด ---------- */
 /* ปลดล็อกด้วยการกดปุ่มธีมมหาสมุทรซ้ำ 4 ครั้ง */
 :root[data-theme="deepocean"] {
@@ -522,9 +586,29 @@
 .sw-earth{background:linear-gradient(135deg,#2C7CC4 34%,#2FA37A 34%,#2FA37A 68%,#5A4128 68%)}
 .sw-ocean{background:linear-gradient(135deg,#BFE6F7 38%,#38BDF8 38%,#38BDF8 70%,#0A5170 70%)}
 .sw-deepocean{background:linear-gradient(135deg,#04121F 40%,#0369A1 40%,#0369A1 72%,#22D3EE 72%)}
-/* ปุ่มธีมลับ: โผล่เฉพาะคนที่ปลดล็อกแล้ว */
+.sw-earth2{background:linear-gradient(135deg,#BFE3F7 34%,#5BAE5B 34%,#5BAE5B 68%,#6B4A2A 68%)}
+/* ปุ่มธีมลับ: โผล่เฉพาะอันที่ปลดล็อกแล้ว (แยกกันต่อธีม) */
 .th-grid .th-secret { display: none; }
-:root[data-deep="on"] .th-grid .th-secret { display: flex; }
+:root[data-deep="on"] .th-grid .th-secret[data-th="deepocean"],
+:root[data-earth2="on"] .th-grid .th-secret[data-th="earth2"] { display: flex; }
+
+/* ใบไม้ปลิวตอนกดปุ่มธีมโลกซ้ำ */
+.egg-leaf {
+  position: absolute;
+  bottom: -24px;
+  border-radius: 60% 8% 60% 8%;
+  background: linear-gradient(135deg, #7CC47C, #3F8F4F);
+  box-shadow: 0 2px 6px rgba(20,60,30,.25);
+  pointer-events: none;
+  z-index: 45;
+  animation: egg-leaf-fly 1.6s ease-out forwards;
+}
+@keyframes egg-leaf-fly {
+  0% { transform: translateY(0) rotate(0); opacity: 0; }
+  12% { opacity: 1; }
+  100% { transform: translateY(-86vh) translateX(30px) rotate(420deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .egg-leaf { display: none; } }
 
 /* ฟองอากาศตอนกดปุ่มธีมซ้ำ (อีสเตอร์เอกก์) */
 .egg-bub {
@@ -553,6 +637,7 @@
    ============================================================ */
 .fx { display: none; }
 :root[data-theme="earth"] .fx,
+:root[data-theme="earth2"] .fx,
 :root[data-theme="ocean"] .fx,
 :root[data-theme="deepocean"] .fx,
 :root[data-theme="magic"] .fx,
@@ -584,6 +669,105 @@
     radial-gradient(30px 13px at 62% 32%, rgba(255,255,255,.55), transparent 70%),
     radial-gradient(46px 18px at 84% 56%, rgba(255,255,255,.5), transparent 72%);
   animation: fx-drift-x 120s linear infinite;
+}
+
+/* ---------- โลก V.2: ท้องฟ้า + ลม + นกบิน + ต้นไม้กลางจอ + หญ้า ---------- */
+:root[data-theme="earth2"] .fx-a {
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(150,205,240,.42) 0%, rgba(190,225,235,.22) 38%,
+      rgba(120,180,110,.22) 78%, rgba(74,140,80,.42) 100%),
+    radial-gradient(90% 40% at 78% 8%, rgba(255,246,200,.55), transparent 70%);
+}
+/* ลม: ริ้วโปร่ง ๆ พัดผ่านจากซ้ายไปขวา */
+:root[data-theme="earth2"] .fx-b {
+  inset: 0;
+  background:
+    linear-gradient(92deg, transparent 8%, rgba(255,255,255,.5) 12%, transparent 17%),
+    linear-gradient(92deg, transparent 38%, rgba(255,255,255,.36) 42%, transparent 47%),
+    linear-gradient(92deg, transparent 66%, rgba(255,255,255,.42) 70%, transparent 75%);
+  background-size: 100% 12px, 100% 9px, 100% 10px;
+  background-position: 0 28%, 0 44%, 0 62%;
+  background-repeat: no-repeat;
+  filter: blur(1px);
+  animation: wind-blow 9s linear infinite;
+}
+/* นกบินผ่านไปมา 2 ชั้น */
+:root[data-theme="earth2"] .fx-c,
+:root[data-theme="earth2"] .fx-d {
+  left: -30%; right: -30%; top: 0; bottom: 52%;
+  background-repeat: no-repeat;
+}
+:root[data-theme="earth2"] .fx-c {
+  opacity: .55;
+  background-size: 26px 12px, 18px 9px, 22px 10px;
+  background-position: 18% 24%, 44% 42%, 70% 18%;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 12'><path d='M1 9c4 0 5-6 6-6s2 4 5 4 4-4 5-4 3 6 8 6' fill='none' stroke='%23375C42' stroke-width='1.6' stroke-linecap='round'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 12'><path d='M1 9c4 0 5-6 6-6s2 4 5 4 4-4 5-4 3 6 8 6' fill='none' stroke='%23486E52' stroke-width='1.6' stroke-linecap='round'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 12'><path d='M1 9c4 0 5-6 6-6s2 4 5 4 4-4 5-4 3 6 8 6' fill='none' stroke='%23375C42' stroke-width='1.6' stroke-linecap='round'/></svg>");
+  animation: sea-swim-r 38s linear infinite, sea-bob 6s ease-in-out infinite;
+}
+:root[data-theme="earth2"] .fx-d {
+  opacity: .38;
+  background-size: 16px 8px, 13px 7px;
+  background-position: 30% 58%, 62% 66%;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 12'><path d='M1 9c4 0 5-6 6-6s2 4 5 4 4-4 5-4 3 6 8 6' fill='none' stroke='%235A7F63' stroke-width='1.8' stroke-linecap='round'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 12'><path d='M1 9c4 0 5-6 6-6s2 4 5 4 4-4 5-4 3 6 8 6' fill='none' stroke='%235A7F63' stroke-width='1.8' stroke-linecap='round'/></svg>");
+  animation: sea-swim-l 52s linear infinite, sea-bob 8s ease-in-out infinite reverse;
+}
+/* ต้นไม้กลางจอ + หญ้าเต็มก้นจอ (ใช้ช่อง e กับ f) */
+:root[data-theme="earth2"] .fx-e {
+  left: 50%;
+  bottom: 6%;
+  width: 210px;
+  height: 250px;
+  margin-left: -105px;
+  opacity: .3;
+  transform-origin: 50% 100%;
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: bottom center;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 210 250'><path d='M99 250V150c-18-6-30-14-38-26l30 10-34-30 34 8-26-30 34 16V78l14-26 14 26v20l34-16-26 30 34-8-34 30 30-10c-8 12-20 20-38 26v100z' fill='%234A7A3E'/><ellipse cx='105' cy='74' rx='72' ry='56' fill='%235B9A4C'/><ellipse cx='64' cy='96' rx='44' ry='34' fill='%234E8942'/><ellipse cx='148' cy='94' rx='42' ry='32' fill='%2367A857'/><rect x='97' y='150' width='16' height='100' rx='5' fill='%236B4A2A'/></svg>");
+  animation: tree-sway 7s ease-in-out infinite;
+}
+:root[data-theme="earth2"] .fx-f {
+  left: 0; right: 0; bottom: 0;
+  height: 74px;
+  opacity: .55;
+  background-repeat: repeat-x;
+  background-size: 96px 74px;
+  background-position: bottom;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 74'><g fill='none' stroke='%234E8B45' stroke-width='4' stroke-linecap='round'><path d='M8 74C8 54 4 44 2 36'/><path d='M20 74C20 50 26 40 32 32'/><path d='M34 74C34 56 30 46 26 40'/><path d='M50 74C50 48 56 38 62 30'/><path d='M64 74C64 54 60 44 56 38'/><path d='M78 74C78 50 84 40 90 34'/><path d='M92 74C92 58 88 48 86 44'/></g></svg>");
+  animation: grass-wave 6s ease-in-out infinite;
+}
+/* ใบไม้ปลิวขึ้น */
+:root[data-theme="earth2"] .fx-shoot {
+  left: 0; right: 0; bottom: 0; height: 100%;
+  background-image:
+    radial-gradient(circle, rgba(120,180,100,.85) 45%, transparent 62%),
+    radial-gradient(circle, rgba(160,200,120,.7) 45%, transparent 62%),
+    radial-gradient(circle, rgba(100,160,90,.75) 45%, transparent 62%);
+  background-size: 7px 5px, 5px 4px, 6px 5px;
+  background-repeat: no-repeat;
+  background-position: 22% 100%, 55% 100%, 82% 100%;
+  animation: sea-bubble 15s linear infinite;
+}
+@keyframes wind-blow {
+  0% { background-position: -60% 28%, -40% 44%, -80% 62%; opacity: .5; }
+  50% { opacity: 1; }
+  100% { background-position: 160% 28%, 170% 44%, 150% 62%; opacity: .5; }
+}
+@keyframes tree-sway {
+  0%, 100% { transform: rotate(-1.2deg); }
+  50% { transform: rotate(1.4deg); }
+}
+@keyframes grass-wave {
+  0%, 100% { transform: skewX(-3deg); }
+  50% { transform: skewX(3deg); }
 }
 
 /* ---------- มหาสมุทร: ผิวน้ำ + ลำแสงลอด + ปลาว่าย + สาหร่ายโบก ---------- */
@@ -720,7 +904,8 @@
   background-position: 22% 34%;
   background-image:
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 132 52'><path d='M6 30c12-13 34-19 58-18 12 .5 22 3 30 7l10-13-2 17 10 8-13 5-5 15-7-11c-8 4-18 6.5-30 7-24 1-46-5-58-17z' fill='%2394C9E8'/><path d='M56 12l14 8-22 2z' fill='%2394C9E8'/><path d='M64 40l8 8-16-4z' fill='%2394C9E8'/><circle cx='24' cy='27' r='2' fill='%2304121F'/></svg>");
-  animation: sea-swim-r 62s linear infinite, sea-bob 9s ease-in-out infinite;
+  /* ตัวฉลามหันหน้าไปทางซ้าย → ต้องว่ายไปทางซ้ายด้วย */
+  animation: sea-swim-l 62s linear infinite, sea-bob 9s ease-in-out infinite;
 }
 /* หมึกยักษ์: ลอยขึ้นลงช้า ๆ อีกฝั่งของจอ */
 :root[data-theme="deepocean"] .fx-d {
@@ -1257,12 +1442,14 @@
    หน้าแรก = เมนูหลัก
    ไทล์ใหญ่ กดง่าย ไม่มีข้อความอธิบาย — มีแค่ไอคอน ชื่อ และตัวเลขจริงจาก state
    ============================================================ */
-.menu-body { gap: 20px; padding-top: 22px; }
-.menu-head .page-title { margin-top: 4px; }
+/* หน้าแรกต้องจบในจอเดียว ไม่ต้องเลื่อน — ทุกระยะในหน้านี้จึงถูกบีบกว่าจอทั่วไป */
+.menu-body { gap: 13px; padding-top: 16px; padding-bottom: calc(84px + var(--tabgap)); }
+.menu-head .page-title { margin-top: 2px; font-size: 24px; }
+.menu-head .page-sub { display: none; }
 .menu-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 .mtile {
   position: relative;
@@ -1270,9 +1457,9 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-end;
-  gap: 10px;
-  min-height: 116px;
-  padding: 16px 15px;
+  gap: 8px;
+  min-height: 98px;
+  padding: 13px 14px;
   border: 1px solid var(--line);
   border-radius: var(--r-card);
   background: var(--card);
@@ -1318,23 +1505,32 @@
   letter-spacing: 0;
 }
 .mtile.hero .mt-sub { color: rgba(255,255,255,.72); }
+/* ตัวเลขบนไทล์: เดิมใช้ card2 + muted ซึ่งบนธีมสว่างมันจางจนแทบมองไม่เห็น
+   เปลี่ยนมาใช้สีเน้นของธีม อ่านออกทั้งโทนสว่างและโทนมืด */
 .mt-ct {
   position: absolute;
-  top: 15px; right: 15px;
-  min-width: 30px;
+  top: 14px; right: 14px;
+  min-width: 26px;
   padding: 3px 9px;
   border-radius: 999px;
-  background: var(--card2);
-  color: var(--muted);
+  background: var(--blue-soft);
+  color: var(--blue-deep);
+  box-shadow: inset 0 0 0 1px var(--blue);
   font-family: 'Space Mono', ui-monospace, monospace;
   font-size: 12px;
   font-weight: 700;
   text-align: center;
 }
+.mt-ct.hot { background: var(--pri-red); color: #fff; box-shadow: none; }
+.mtile.hero .mt-ct {
+  background: rgba(255,255,255,.24);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.4);
+}
 /* ไทล์เด่น: เพิ่มงานใหม่ — กว้างเต็มแถวและใช้สีแบรนด์ */
 .mtile.hero {
   grid-column: span 2;
-  min-height: 104px;
+  min-height: 88px;
   background: var(--grad-hero);
   border: none;
   color: #fff;
@@ -1347,7 +1543,7 @@
    (แปลว่า "ชิดล่าง") จะกลายเป็น "ชิดขวา" แล้วหลุดแนวจากไทล์อื่นทั้งกริด */
 .mtile.wide {
   grid-column: span 2;
-  min-height: 88px;
+  min-height: 74px;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
@@ -1366,10 +1562,10 @@
 .wg {
   position: relative;
   border-radius: calc(var(--r-card) + 2px);
-  padding: 17px 17px 16px;
+  padding: 14px 15px 13px;
   box-shadow: var(--shadow);
   overflow: hidden;
-  min-height: 132px;
+  min-height: 112px;
   display: flex;
   flex-direction: column;
 }
@@ -1394,21 +1590,35 @@
   text-transform: none;
 }
 .wg-title {
-  margin-top: 9px;
-  font-size: 19px;
+  margin-top: 6px;
+  font-size: 17px;
   font-weight: 700;
-  line-height: 1.35;
+  line-height: 1.32;
   letter-spacing: -.028em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
-.wg-meta { margin-top: 6px; font-size: 12px; line-height: 1.6; opacity: .82; }
+/* บีบให้จบบรรทัดเดียว — หน้าแรกต้องไม่ยาวจนต้องเลื่อน */
+.wg-meta {
+  margin-top: 4px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  opacity: .82;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .wg-cta {
   margin-top: auto;
   align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 38px;
-  padding: 0 15px;
+  min-height: 34px;
+  padding: 0 14px;
   border: none;
   border-radius: 999px;
   background: rgba(255,255,255,.95);
@@ -1426,7 +1636,7 @@
 .wg-urgent.red { background: linear-gradient(150deg, #7F1D1D 0%, #B02A2A 100%); }
 .wg-urgent.yellow { background: linear-gradient(150deg, #7A5309 0%, #B5820F 100%); }
 .wg-urgent.clear { background: var(--grad-brand); }
-.wg-urgent .wg-cta { margin-top: 14px; }
+.wg-urgent .wg-cta { margin-top: 10px; }
 
 /* 2) โน้ต */
 .wg-note { background: var(--card); border: 1px solid var(--line); color: var(--ink); }
@@ -1521,6 +1731,88 @@
   resize: vertical;
 }
 .wg-extra textarea:focus { outline: 2px solid var(--blue); outline-offset: -2px; }
+
+/* ============================================================
+   หน้าเพื่อน (1A6M2)
+   ============================================================ */
+.fr-body { gap: 16px; padding-top: 22px; }
+.fr-me {
+  background: var(--grad-hero);
+  color: #fff;
+  border-radius: var(--r-card);
+  padding: 16px;
+  box-shadow: var(--shadow-brand);
+}
+.fr-me-h { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; opacity: .9; }
+.fr-me-h svg { width: 15px; height: 15px; }
+.fr-me-p { margin: 8px 0 12px; font-size: 12.5px; line-height: 1.6; opacity: .82; }
+.fr-copy {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 40px; padding: 0 16px;
+  border: none; border-radius: 999px;
+  background: rgba(255,255,255,.95); color: #14321F;
+  font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.fr-copy svg { width: 15px; height: 15px; }
+.fr-copy:active { transform: scale(.97); }
+.fr-code {
+  width: 100%; margin-top: 10px; border: none; border-radius: 10px;
+  background: rgba(0,0,0,.25); color: #fff; padding: 8px 10px;
+  font-family: 'Space Mono', ui-monospace, monospace; font-size: 11px; resize: none;
+}
+.fr-code[hidden] { display: none; }
+
+.fr-add { display: flex; flex-direction: column; gap: 8px; }
+.fr-add label { font-size: 11px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--faint); }
+.fr-add textarea {
+  width: 100%; border: none; border-radius: 12px; background: var(--card2);
+  padding: 11px 12px; font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 12px; line-height: 1.5; color: var(--ink); resize: vertical;
+}
+.fr-add textarea:focus { outline: 2px solid var(--blue); outline-offset: -2px; }
+.fr-add-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 46px; border: none; border-radius: var(--r-tile);
+  background: var(--blue); color: var(--on-accent);
+  font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  box-shadow: var(--shadow-brand);
+}
+.fr-add-btn svg { width: 16px; height: 16px; }
+.fr-add-btn:active { transform: scale(.98); }
+
+.fr-card {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card);
+  box-shadow: var(--shadow); padding: 13px 14px; margin-bottom: 9px;
+}
+.fr-card.me { border-color: var(--blue); background: var(--blue-soft); }
+.fr-av {
+  width: 40px; height: 40px; flex: none; border-radius: 50%;
+  background: var(--grad-brand); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 700;
+}
+.fr-bd { flex: 1; min-width: 0; }
+.fr-nm { display: flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 600; letter-spacing: -.015em; }
+.fr-tag { padding: 2px 7px; border-radius: 999px; background: var(--blue); color: var(--on-accent);
+  font-size: 9.5px; font-weight: 700; }
+.fr-st { margin-top: 3px; font-size: 12px; color: var(--muted); }
+.fr-st b { color: var(--ink); }
+.fr-bar { margin-top: 7px; height: 5px; border-radius: 999px; background: var(--card2); overflow: hidden; }
+.fr-bar i { display: block; height: 100%; border-radius: 999px; background: var(--grad-brand); }
+.fr-ago { margin-top: 5px; font-size: 10.5px; color: var(--faint); }
+.fr-del {
+  flex: none; width: 34px; height: 34px; border-radius: 50%;
+  border: none; background: transparent; color: var(--faint); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.fr-del svg { width: 15px; height: 15px; }
+.fr-del:active { color: var(--alert); }
+.fr-note { margin: 4px 2px 0; font-size: 12px; line-height: 1.7; color: var(--faint); }
+.pf-go { flex: none; color: var(--faint); display: flex; }
+.pf-go svg { width: 16px; height: 16px; }
 
 /* ============================================================
    ป้ายเตือนบนแถบเมนู
