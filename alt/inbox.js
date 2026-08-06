@@ -67,19 +67,52 @@ const AUTO_ACCEPT = 0.8;
 //
 // ตั้งใจให้ "ยอมปล่อยผ่านมาถามดีกว่าเผลอทิ้งงานจริง" — ของที่หลุดมาผิด
 // นักเรียนกดทิ้งทีเดียวจบ แต่ของที่ถูกทิ้งไปเงียบ ๆ ไม่มีใครรู้ว่าเคยมี
-const TASK_HINTS = new RegExp([
+// คำที่แทบไม่มีทางโผล่ในบทสนทนาทั่วไป — เจอแล้วเป็นงานเกือบแน่นอน
+const STRONG_HINTS = new RegExp([
   'การบ้าน', 'แบบฝึกหัด', 'ใบงาน', 'ชีท', 'รายงาน', 'ชิ้นงาน', 'โครงงาน', 'ผังงาน',
   'พรีเซ', 'นำเสนอ', 'สอบ', 'ควิซ', 'quiz', 'แล็บ', 'ปฏิบัติการ', 'assignment', 'homework',
-  'ส่ง', 'กำหนดส่ง', 'เดดไลน์', 'deadline', 'คะแนน', 'เก็บคะแนน',
-  'ทำข้อ', 'ทำโจทย์', 'ทำแบบ', 'บทที่', 'ท่อง', 'สรุป',
-  'เตรียม', 'อย่าลืม', 'เอามา', 'นำมา', 'พกมา', 'ใส่มา',
+  'กำหนดส่ง', 'เดดไลน์', 'deadline', 'คะแนน', 'เก็บคะแนน',
+  'ทำข้อ', 'ทำโจทย์', 'ทำแบบ', 'บทที่',
 ].join('|'), 'i');
 
-function looksLikeTask(text, parsed) {
+// คำที่ "อาจจะ" เป็นงาน แต่ใช้คุยเรื่องอื่นได้พอ ๆ กัน
+// "ส่ง" เป็นตัวอย่างที่ชัดที่สุด — ส่งการบ้าน ส่งรูป ส่งไลน์ ส่งสติกเกอร์
+const WEAK_HINTS = new RegExp([
+  'ส่ง', 'เตรียม', 'อย่าลืม', 'เอามา', 'นำมา', 'พกมา', 'ใส่มา', 'ท่อง', 'สรุป',
+].join('|'), 'i');
+
+// หลักฐานที่มี แบ่งเป็น 3 ระดับ เพราะสิทธิ์ของโมเดลขึ้นกับระดับนี้
+function taskEvidence(text, parsed) {
   const d = (parsed && parsed.detected) || {};
-  if (d.score) return true;
-  if (TASK_HINTS.test(text)) return true;
-  return !!(d.due && d.subject);
+  if (d.score) return 'strong';           // ไม่มีใครคุยเล่นเรื่องคะแนนเก็บ
+  if (STRONG_HINTS.test(text)) return 'strong';
+  if (d.due && d.subject) return 'strong'; // มีทั้งกำหนดส่งและวิชา
+  if (WEAK_HINTS.test(text)) return 'weak';
+  return 'none';
+}
+
+function looksLikeTask(text, parsed) { return taskEvidence(text, parsed) !== 'none'; }
+
+// ประตูจริง = กฎคำ + สิ่งที่เรียนรู้จากผู้ใช้ (brain.js)
+//
+// จุดสำคัญ: โมเดลไม่ได้มีสิทธิ์เท่ากันทั้งสองทาง เพราะราคาของการผิดไม่เท่ากัน
+//   ค้านให้ "ผ่านเพิ่ม"  ผิดแล้วเสียแค่หนึ่งแตะ                → ให้สิทธิ์เต็ม
+//   ค้านให้ "ทิ้ง"       ผิดแล้วการบ้านจริงหายเงียบ ๆ ถึงวันส่ง  → ให้เฉพาะเคสก้ำกึ่ง
+//
+// เคยเขียนให้ค้านได้ทุกกรณี แล้วทดสอบเจอว่า "ส่งรายงานวิทยาศาสตร์ภายในวันศุกร์"
+// โดนทิ้ง เพราะสอนมันด้วยข้อความขยะที่ขึ้นต้นด้วย "ส่ง" หลายอัน — มันเลยเหมาว่า
+// อะไรที่มีคำว่าส่งคือขยะ ทั้งที่คำว่า "รายงาน" ในประโยคเดียวกันบอกชัดว่าเป็นงาน
+function taskGate(text, parsed) {
+  const ev = taskEvidence(text, parsed);
+  if (ev === 'strong') return { pass: true, why: 'rule' };  // ห้ามพลิกทิ้ง
+
+  const learned = brainScore(text);   // 0 ตลอด จนกว่าจะถูกสอนครบทั้งสองฝั่ง
+
+  if (ev === 'weak') {
+    // ก้ำกึ่ง — ตรงนี้แหละที่สิ่งที่เรียนรู้จากห้องนี้มีค่าที่สุด
+    return learned <= -BRAIN_FLIP ? { pass: false, why: 'learned' } : { pass: true, why: 'rule' };
+  }
+  return learned >= BRAIN_FLIP ? { pass: true, why: 'learned' } : { pass: false, why: 'rule' };
 }
 
 // แหล่งที่ข้อมูลไหลเข้ามาเองโดยไม่มีใครสั่ง — พวกนี้ต้องผ่านประตูแรกก่อน
@@ -128,13 +161,17 @@ function inboxAdd(rawText, sourceId = 'text', meta = {}) {
   // ไม่ให้บันทึกโตไม่มีที่สิ้นสุด — กลุ่มที่คุยกันเยอะจะกิน localStorage จนแอปอืด
   if (state.inbox.length > 150) state.inbox.length = 150;
 
-  if (PASSIVE_SOURCES.includes(sourceId) && !looksLikeTask(text, parsed)) {
-    // ไม่ทิ้งหายไปเฉย ๆ — เก็บไว้ในบันทึกให้ตอบได้ว่า "ทำไมงานนี้ไม่ขึ้น"
-    // แต่ไม่ไปโผล่เป็นคำถามให้ต้องกดทิ้ง
-    item.status = 'noise';
-    state.inbox.unshift(item);
-    save();
-    return { status: 'noise', item };
+  if (PASSIVE_SOURCES.includes(sourceId)) {
+    const gate = taskGate(text, parsed);
+    item.why = gate.why;
+    if (!gate.pass) {
+      // ไม่ทิ้งหายไปเฉย ๆ — เก็บไว้ในบันทึกให้ตอบได้ว่า "ทำไมงานนี้ไม่ขึ้น"
+      // แต่ไม่ไปโผล่เป็นคำถามให้ต้องกดทิ้ง
+      item.status = 'noise';
+      state.inbox.unshift(item);
+      save();
+      return { status: 'noise', item };
+    }
   }
 
   if (dup) {
@@ -180,11 +217,13 @@ function inboxToTask(item) {
 
 function inboxPending() { return (state.inbox || []).filter(i => i.status === 'new'); }
 
+// สามฟังก์ชันข้างล่างนี้คือที่เดียวที่ brain เรียนรู้ — เพราะเป็นที่เดียวที่ "คน" ตัดสิน
 function inboxAccept(id) {
   const item = (state.inbox || []).find(i => i.id === id);
   if (!item || item.status !== 'new') return;
   const t = inboxToTask(item);
   item.status = 'accepted'; item.taskId = t.id;
+  brainLearn(item.raw, true);
   save(); renderAll();
   showToast({ title: 'เพิ่มเข้าแผนแล้ว', body: `${t.subject} — ${t.detail}` });
 }
@@ -193,7 +232,17 @@ function inboxIgnore(id) {
   const item = (state.inbox || []).find(i => i.id === id);
   if (!item) return;
   item.status = 'ignored';
+  brainLearn(item.raw, false);
   save(); renderAll();
+  // บอกให้รู้ตัวว่าเพิ่งสอนไป ไม่งั้นมันดูเหมือนแค่ลบทิ้งเฉย ๆ
+  // ครั้งแรก ๆ สำคัญที่สุด เพราะเป็นตอนที่ผู้ใช้ยังไม่รู้ว่าแอปจำได้
+  if (brainExamples() <= BRAIN_MIN_EXAMPLES + 2) {
+    const need = brainNeeds();
+    showToast({ title: 'จำไว้แล้ว',
+      body: brainReady() ? 'ข้อความแนวนี้จะถูกคัดออกให้เองตั้งแต่ต้นทาง'
+        : need.pos ? `ขอตัวอย่างงานจริงอีก ${need.pos} ครั้งด้วย จะได้ไม่เหมาเอาว่าทุกอย่างคือขยะ`
+        : `สอนอีก ${BRAIN_MIN_EXAMPLES - brainExamples()} ครั้ง จะเริ่มคัดให้เอง` });
+  }
 }
 
 // แก้ก่อนรับ — ส่งเข้าฟอร์มเดิมที่มีอยู่ แล้วให้ฟอร์มเป็นคนบันทึก
@@ -201,6 +250,8 @@ function inboxEdit(id) {
   const item = (state.inbox || []).find(i => i.id === id);
   if (!item) return;
   item.status = 'ignored'; // ฟอร์มจะสร้างงานใหม่ให้เอง รายการในกล่องจึงถือว่าจบหน้าที่
+  // แก้ก่อนรับ = ยอมรับว่าเป็นงาน แค่รายละเอียดเพี้ยน จึงนับเป็นตัวอย่างฝั่งบวก
+  brainLearn(item.raw, true);
   save();
   openForm(null, item.parsed);
 }
@@ -256,7 +307,8 @@ function renderInbox() {
     const s = sourceById(it.source);
     const label = it.status === 'accepted' ? 'เข้าแผนเอง'
       : it.status === 'duplicate' ? 'ซ้ำกับที่มีอยู่ — ไม่เพิ่มให้'
-      : it.status === 'noise' ? 'ไม่ใช่งาน — ข้ามให้เอง'
+      : it.status === 'noise' ? (it.why === 'learned'
+          ? 'ไม่ใช่งาน — จำได้จากที่คุณเคยลบ' : 'ไม่ใช่งาน — ข้ามให้เอง')
       : 'ข้ามไป';
     return `<div class="ib-log ${it.status}">
       <span class="ib-log-ic">${icon(s.icon)}</span>
@@ -276,6 +328,7 @@ function renderInbox() {
           <p class="ib-empty-p">ของที่ AI มั่นใจพอ เข้าแผนไปเองหมดแล้ว</p>
         </div>`)
     + (recent.length ? `<div class="sec-title">ที่ผ่านมา</div>` + recent.map(logRow).join('') : '')
+    + brainCard()
     + `<button class="ib-wide" onclick="go('scr-sources')">${icon('chevron')}จัดการแหล่งข้อมูล</button>`;
 }
 
