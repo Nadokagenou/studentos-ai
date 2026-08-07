@@ -2508,14 +2508,21 @@
    ปรับ 3 อย่าง: ขนาดหัวข้อไล่ลำดับชัดขึ้น · ตัวอักษรรองไม่จางเกิน ·
    ตัวเลขทุกที่ใช้ฟอนต์ตัวเลขที่ความกว้างเท่ากัน อ่านเป็นข้อมูลไม่ใช่ข้อความ
    ============================================================ */
-/* ฟอนต์หลักของทั้งแอป — Noto Sans Thai อ่านง่ายกว่า IBM Plex Sans Thai บนจอเล็ก
-   (ตัวอักษรสูงกว่า ช่องว่างในตัวกว้างกว่า สระบน-ล่างไม่ตีกัน)
-   ตั้งที่ body + input/textarea/select/button เพราะพวกนี้ไม่สืบทอด font จาก body เอง */
+/* ฟอนต์เนื้อความ = Sarabun (ภาษาไทยแบบ "มีหัว") — หัวตัวอักษรช่วยให้สายตาจับตัวอักษรได้เร็ว
+   อ่านยาว ๆ สบายกว่าแบบไม่มีหัว · ตั้งที่ body + ช่องกรอก เพราะช่องกรอกไม่สืบทอดฟอนต์เอง */
 body,
 input, textarea, select, button {
-  font-family: 'Noto Sans Thai', 'Sarabun', 'IBM Plex Sans Thai', 'Leelawadee UI', 'Noto Sans', sans-serif;
+  font-family: 'Sarabun', 'IBM Plex Sans Thai', 'Leelawadee UI', 'Noto Sans Thai', sans-serif;
 }
 body { line-height: 1.7; letter-spacing: 0; }
+
+/* หัวข้อกับป้ายกำกับยังเป็นฟอนต์เดิม (IBM Plex Sans Thai) — ตัวหนากระชับ
+   ใช้เป็นหัวเรื่องได้ดีกว่า และทำให้ลำดับสายตาแยกจากเนื้อความชัดขึ้นอีกชั้น */
+.page-title, .sh-title, .big-title, .fm-h, .ob-h, .obw-name, .empty-h,
+.wg-title, .wg-time, .mt-lb, .pe-tx b, .st-hero .v, .fr-nm, .bg-nm,
+.sec-label, .eyebrow, .sp-word {
+  font-family: 'IBM Plex Sans Thai', 'Sarabun', 'Leelawadee UI', sans-serif;
+}
 
 .page-title { font-size: 25px; line-height: 1.24; letter-spacing: -.034em; }
 .page-sub { font-size: 13px; line-height: 1.65; color: var(--muted); }
@@ -2618,14 +2625,57 @@ body { line-height: 1.7; letter-spacing: 0; }
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 
-/* ---------- ขอบไฮไลต์เคลื่อนไหวของเหรียญพิเศษ ----------
-   วาดด้วย conic-gradient หมุนอยู่ "ใต้" วงเหรียญ แล้วเจาะกลางด้วยพื้นการ์ด
-   ทุกอย่างถูกตัดด้วย overflow:hidden ของตัววง จึงไม่มีอะไรออกนอกกรอบ
-   โผล่เฉพาะเหรียญที่ปลดล็อกแล้วเท่านั้น (.on) */
+/* ---------- ขอบไฮไลต์เคลื่อนไหว: ล้อมทั้งแถว ----------
+   conic-gradient หมุนอยู่ใต้การ์ด (z-index:-1) โผล่ออกมาแค่ 2px รอบขอบ
+   ขอบจึงคมชัดเป็นเส้นเดียว ไม่ฟุ้ง และวิ่งรอบทั้งข้อไม่ใช่แค่วงเหรียญ
+   โผล่เฉพาะเหรียญที่ปลดล็อกแล้ว (.on) */
+.bg-row { position: relative; isolation: isolate; }
+.bg-row.on.sea, .bg-row.on.tree, .bg-row.on.sweet, .bg-row.on.genesis {
+  border-color: transparent;
+}
+.bg-row.on.sea::before,
+.bg-row.on.tree::before,
+.bg-row.on.sweet::before,
+.bg-row.on.genesis::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  border-radius: calc(var(--r-card) + 2px);
+  animation: mark-spin 4.5s linear infinite;
+}
+.bg-row.on.sea::before {
+  background: conic-gradient(from 0deg, #38BDF8, #1E3A8A 22%, #22D3EE 46%, #1D4ED8 70%, #38BDF8);
+}
+.bg-row.on.tree::before {
+  background: conic-gradient(from 0deg, #86EFAC, #14532D 26%, #4ADE80 52%, #166534 76%, #86EFAC);
+  animation-duration: 6s;
+}
+.bg-row.on.sweet::before {
+  background: conic-gradient(from 0deg, #FF5FC8, #A855F7 22%, #FF8AE2 48%, #7C3AED 74%, #FF5FC8);
+  animation-duration: 3.2s;
+}
+.bg-row.on.genesis::before {
+  background: conic-gradient(from 0deg, #B7F5FF, #3B49B8 24%, #FFFFFF 48%, #6F7FE8 72%, #B7F5FF);
+  animation-duration: 5s;
+}
+/* เหรียญ GENESIS: วงกลม + ชื่อ */
+.bg-row.on.genesis .bg-mark { background: linear-gradient(140deg,#B7F5FF,#4C57C9); }
+.bg-row.genesis .bg-nm.fancy {
+  font-family: 'Orbitron', 'Space Mono', monospace;
+  font-weight: 800; font-size: 15px; letter-spacing: .12em;
+}
+.bg-row.on.genesis .bg-nm.fancy {
+  background: linear-gradient(96deg, #2C3597, #6F7FE8 40%, #37B9D6);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* ---------- ขอบวงในของเหรียญ (เสริมจากขอบแถว) ---------- */
 .bg-row .bg-mark { position: relative; overflow: hidden; }
 .bg-row.on.sea .bg-mark::before,
 .bg-row.on.tree .bg-mark::before,
-.bg-row.on.sweet .bg-mark::before {
+.bg-row.on.sweet .bg-mark::before,
+.bg-row.on.genesis .bg-mark::before {
   content: '';
   position: absolute;
   inset: -55%;
@@ -2645,9 +2695,14 @@ body { line-height: 1.7; letter-spacing: 0; }
   filter: saturate(1.5) brightness(1.12);
 }
 /* วงในทึบ — เหลือให้เห็นเป็น "ขอบ" กว้าง 3px */
+.bg-row.on.genesis .bg-mark::before {
+  background: conic-gradient(from 0deg, #B7F5FF, #3B49B8 24%, #FFFFFF 48%, #6F7FE8 72%, #B7F5FF);
+  animation-duration: 3.8s;
+}
 .bg-row.on.sea .bg-mark::after,
 .bg-row.on.tree .bg-mark::after,
-.bg-row.on.sweet .bg-mark::after {
+.bg-row.on.sweet .bg-mark::after,
+.bg-row.on.genesis .bg-mark::after {
   content: '';
   position: absolute;
   inset: 3px;
@@ -2656,7 +2711,8 @@ body { line-height: 1.7; letter-spacing: 0; }
 }
 .bg-row.on.sea .bg-mark span,
 .bg-row.on.tree .bg-mark span,
-.bg-row.on.sweet .bg-mark span { position: relative; z-index: 2; }
+.bg-row.on.sweet .bg-mark span,
+.bg-row.on.genesis .bg-mark span { position: relative; z-index: 2; }
 /* ใบไม้ลอยอยู่ในวงของ World Tree (ตัดขอบด้วย overflow ของตัววง) */
 .bg-row.on.tree .bg-mark span::before,
 .bg-row.on.tree .bg-mark span::after {

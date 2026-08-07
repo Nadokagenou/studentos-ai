@@ -95,7 +95,9 @@ function genesisUnlocked() {
 // เรียกทุกครั้งที่เหรียญเปลี่ยน — ครบทุกเหรียญเมื่อไหร่ปลดล็อกทันที
 function checkGenesisUnlock() {
   if (genesisUnlocked()) return false;
-  if (badgesEarned().length < BADGES.length) return false;
+  // นับเฉพาะเหรียญอื่น — เหรียญ GENESIS เองผูกกับการปลดล็อกนี้ ถ้านับรวมจะวนกันเอง
+  const others = BADGES.filter(b => !b.genesis);
+  if (others.some(b => !badgeEarned(b))) return false;
   try { localStorage.setItem(GENESIS_KEY, '1'); } catch (_) {}
   document.documentElement.dataset.genesis = 'on';
   haptic('done');
@@ -1554,11 +1556,15 @@ const BADGES = [
     desc: 'ยังมีลมพัดอยู่ตรงนั้นเสมอ', secret: 'earth' },
   { id: 'sophyra', tone: 'sweet', mark: '✧', name: 'Sophyra',
     desc: 'บางอย่างสวยเกินกว่าจะเป็นเรื่องบังเอิญ', secret: 'warm' },
+  // เหรียญปลายทาง — ผูกกับการปลดล็อกธีม GENESIS (ซึ่งต้องได้เหรียญอื่นครบก่อน)
+  { id: 'genesis', tone: 'genesis', mark: '◆', name: 'GENESIS',
+    desc: 'จุดที่ทุกอย่างเริ่มต้นใหม่อีกครั้ง', genesis: true },
 ];
 
 function doneCount() { return liveTasks().filter(t => t.done).length; }
 
 function badgeEarned(b) {
+  if (b.genesis) return genesisUnlocked();
   if (b.secret) return secretUnlocked(b.secret);
   return doneCount() >= b.goal;
 }
@@ -1596,8 +1602,8 @@ function renderBadges() {
       return `<div class="bg-row${on ? ' on' : ''} ${b.tone}">
         <div class="bg-mark"><span>${b.mark}</span></div>
         <div class="bg-bd">
-          <div class="bg-nm${b.secret ? ' fancy' : ''}">${esc(b.name)}</div>
-          <div class="bg-ds">${on ? esc(b.desc) : (b.secret ? '— — —' : esc(b.desc))}</div>
+          <div class="bg-nm${b.secret || b.genesis ? ' fancy' : ''}">${esc(b.name)}</div>
+          <div class="bg-ds">${on ? esc(b.desc) : (b.secret || b.genesis ? '— — —' : esc(b.desc))}</div>
           ${prog ? `<div class="bg-pg"><i style="width:${Math.round(done / b.goal * 100)}%"></i></div>
             <div class="bg-ct mono">${prog}</div>` : ''}
         </div>
