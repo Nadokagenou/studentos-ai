@@ -7,7 +7,7 @@
 //   - service worker ใช้ cache คนละชื่อ
 // ============================================================
 
-const APP_VERSION = '1A6M2';                // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
+const APP_VERSION = '1A6M3';                // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
 const APP_CODENAME = 'Modern';             // ชื่อรุ่นของอัปเดตนี้
 const APP_CHANNEL = 'ALT';                 // ป้ายกำกับรุ่น — โชว์ทั้งบนแอปและในหน้า "ฉัน"
 const STORE_KEY = 'studentos.alt.v1';      // ALT: แยกที่เก็บข้อมูลจากตัวจริง ('studentos.v1')
@@ -39,29 +39,32 @@ function pendingTasks() { return state.tasks.filter(t => !t.done && !t.deleted);
 const THEME_KEY = 'studentos.alt.theme';   // ALT: แยกจากตัวจริง (ต้องตรงกับสคริปต์ใน <head>)
 // สีแถบสถานะของแต่ละโทน (ต้องตรงกับ --scr ใน style.css/alt.css และตารางในสคริปต์ <head>)
 const THEME_BAR = {
-  light: '#FCFBF7', dark: '#0D1220', warm: '#F7F1E4', space: '#0A0E24',
+  light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
   earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
-  deepocean: '#04121F', earth2: '#EFF7EE',
+  deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8',
 };
 const THEME_NAME = {
-  system: 'ตามระบบ', light: 'สว่าง', dark: 'มืด', warm: 'อุ่น', space: 'อวกาศ',
+  system: 'ตามระบบ', light: 'สว่าง', dark: 'มืด', warm: 'ชมพู', space: 'อวกาศ',
   earth: 'โลก', ocean: 'มหาสมุทร', magic: 'เวทมนตร์', galaxy: 'กาแล็กซี',
-  deepocean: 'ทะเลลึก', earth2: 'โลก V.2',
+  deepocean: 'ทะเลลึก', earth2: 'ต้นไม้โลก', sweet: 'จักรวาลหวานแหว',
 };
-// ---------- ALT 1A6M2: อีสเตอร์เอกก์ ธีมลับ ----------
+// ---------- ALT 1A6M3: อีสเตอร์เอกก์ ธีมลับ ----------
 // กดปุ่มธีมเดิมซ้ำ 5 ครั้งรวด = ปลดล็อกธีมลับของโทนนั้น
 // ทุกครั้งที่กดซ้ำมีเอฟเฟกต์กระเด็น + เครื่องสั่น เป็นการบอกว่า "มีอะไรอยู่ตรงนี้"
 const SECRETS = {
   ocean: {
-    store: 'studentos.alt.deepUnlocked', flag: 'deep', theme: 'deepocean', fx: 'egg-bub',
+    store: 'studentos.alt.deepUnlocked', flag: 'deep', theme: 'deepocean', fx: 'egg-bub', taps: 5,
     title: 'ปลดล็อกธีมทะเลลึก 🦈', body: 'ดำลงไปอีกชั้น — มีฉลามกับหมึกยักษ์ว่ายอยู่ข้างหลัง',
   },
   earth: {
-    store: 'studentos.alt.earth2Unlocked', flag: 'earth2', theme: 'earth2', fx: 'egg-leaf',
-    title: 'ปลดล็อกธีมโลก V.2 🌳', body: 'มีลม มีนกบินผ่าน มีต้นไม้กลางจอ และหญ้าไหวอยู่ก้นจอ',
+    store: 'studentos.alt.earth2Unlocked', flag: 'earth2', theme: 'earth2', fx: 'egg-leaf', taps: 5,
+    title: 'ปลดล็อกธีมต้นไม้โลก 🌳', body: 'มีลม มีนกบินผ่าน มีต้นไม้ใหญ่กลางจอ และหญ้าไหวอยู่ก้นจอ',
+  },
+  warm: {
+    store: 'studentos.alt.sweetUnlocked', flag: 'sweet', theme: 'sweet', fx: 'egg-star', taps: 22,
+    title: 'ปลดล็อกธีมจักรวาลหวานแหว 🌈', body: 'ก้อนเมฆพาสเทล สายรุ้ง และดาวเคราะห์มีวงแหวน',
   },
 };
-const SECRET_TAPS = 5;
 let tapTheme = '', tapCount = 0, tapAt = 0;
 
 function secretUnlocked(id) {
@@ -88,6 +91,7 @@ function unlockSecret(id) {
   splashBurst(18, s.fx);
   setTheme(s.theme);
   showToast({ title: s.title, body: s.body });
+  setTimeout(checkBadges, 6500); // ธีมลับมีเหรียญของตัวเอง ตามมาทีหลังไม่ให้ทับ toast แรก
 }
 
 // เอฟเฟกต์กระเด็นตอนกดซ้ำ — ฟองน้ำ (ทะเล) หรือใบไม้ (โลก)
@@ -112,7 +116,7 @@ const THEMES = Object.keys(THEME_NAME);
 function themePref() {
   let v = null;
   try { v = localStorage.getItem(THEME_KEY); } catch (_) {}
-  if (v === 'library') v = 'ocean'; // 1A6M2: ธีมห้องสมุดถูกแทนที่ — คนที่เคยเลือกไว้ไม่ต้องมาตั้งใหม่
+  if (v === 'library') v = 'ocean'; // 1A6M3: ธีมห้องสมุดถูกแทนที่ — คนที่เคยเลือกไว้ไม่ต้องมาตั้งใหม่
   return THEMES.includes(v) ? v : 'system';
 }
 function systemDark() { return matchMedia('(prefers-color-scheme: dark)').matches; }
@@ -137,7 +141,7 @@ function setTheme(pref) {
     const t = performance.now();
     tapCount = (tapTheme === pref && t - tapAt < 2500) ? tapCount + 1 : 1;
     tapTheme = pref; tapAt = t;
-    if (!secretUnlocked(pref) && tapCount >= SECRET_TAPS) { unlockSecret(pref); return; }
+    if (!secretUnlocked(pref) && tapCount >= (secret.taps || 5)) { unlockSecret(pref); return; }
     // เอฟเฟกต์เล่นทุกครั้งที่กดซ้ำ ไม่ว่าจะปลดล็อกไปแล้วหรือยัง
     // (ปลดล็อกแล้วยังกดเล่นได้ ไม่งั้นพอปลดล็อกเสร็จปุ่มก็กลายเป็นปุ่มธรรมดาทันที)
     if (tapCount > 1) { haptic('arm'); splashBurst(3 + Math.min(tapCount, 6) * 3, secret.fx); }
@@ -491,7 +495,7 @@ function menuTile(cls, ic, label, sub, count, target) {
   </button>`;
 }
 
-// ---------- ALT 1A6M2: วิดเจ็ตบนหน้าแรก ----------
+// ---------- ALT 1A6M3: วิดเจ็ตบนหน้าแรก ----------
 // ช่องบนสุดของหน้าแรกที่ผู้ใช้เลือกเองว่าจะให้แสดงอะไร
 const WG_KEY = 'studentos.alt.widget';
 const WG_NOTE_KEY = 'studentos.alt.widgetNote';
@@ -1312,6 +1316,11 @@ function renderProfile() {
   // ปุ่มล็อกธีมลับกลับ โผล่เฉพาะคนที่ปลดล็อกไปแล้วอย่างน้อยหนึ่งอัน
   const rel = document.getElementById('relockBtn');
   if (rel) rel.hidden = !Object.keys(SECRETS).some(id => secretUnlocked(id));
+  // ตัวเลขบนปุ่มทางเข้าใหญ่ 3 ปุ่ม
+  const pb = document.getElementById('peBadgeCt');
+  if (pb) pb.textContent = badgesEarned().length + ' จาก ' + BADGES.length + ' เหรียญ';
+  const pf2 = document.getElementById('peFriendCt');
+  if (pf2) pf2.textContent = friends().length ? friends().length + ' คนในรายการ' : 'ยังไม่มีใครในรายการ';
   const ver = document.getElementById('appVer');
   if (ver) ver.textContent = 'StudentOS ' + APP_CHANNEL + ' Version ' + APP_VERSION
     + ' “' + APP_CODENAME + '” · รุ่นทดลองฟีเจอร์';
@@ -1348,7 +1357,7 @@ function renderProfile() {
   }
 }
 
-// ---------- ALT 1A6M2: ระบบเพื่อน (เฟสแรก) ----------
+// ---------- ALT 1A6M3: ระบบเพื่อน (เฟสแรก) ----------
 // ยังไม่มีตารางฝั่งเซิร์ฟเวอร์สำหรับเพื่อน จึงทำให้ใช้งานได้จริงวันนี้ด้วยการ
 // "แลกรหัสสถานะ" กันตรง ๆ — ก๊อปรหัสของตัวเองส่งให้เพื่อน แล้ววางรหัสของเพื่อนกลับมา
 // ไม่ต้องรอ backend และไม่มีข้อมูลใครถูกส่งไปไหนโดยที่เจ้าตัวไม่ได้กดเอง
@@ -1480,7 +1489,78 @@ function renderFriends() {
       แล้วขอรหัสของเขามาวางตรงช่องด้านบน · สถานะเป็นภาพนิ่ง ณ เวลาที่แลกรหัสกัน ไม่ได้อัปเดตเอง</p>`}`;
 }
 
-// ---------- ALT 1A6M2: ป้ายเตือนบนแถบเมนู ----------
+// ---------- ALT 1A6M3: เหรียญตรา ----------
+// เงื่อนไขคำนวณสด ๆ จาก state — ไม่ต้องเก็บสถานะ "ได้แล้ว" ให้หลุดกันเอง
+// เก็บแค่ว่า "เคยเห็นแล้วหรือยัง" ไว้เด้งฉลองครั้งแรกครั้งเดียว
+// คำบรรยายเป็นคำเปรย ๆ ไม่บอกวิธีได้มา โดยเฉพาะเหรียญพิเศษ 3 อันท้าย
+const BADGES = [
+  { id: 'hello', tone: 'b1', mark: 'I', name: 'โอ้..สวัดดี!',
+    desc: 'ก้าวแรกที่นับได้จริง', goal: 1 },
+  { id: 'try', tone: 'b2', mark: 'C', name: 'ฉันพึ่งลองใช้ StudentOS',
+    desc: 'เริ่มจับจังหวะของตัวเองได้แล้ว', goal: 10 },
+  { id: 'hard', tone: 'b3', mark: 'M', name: 'การบ้านนี่มันลำบากจริง ๆ',
+    desc: 'ผ่านมาหลายคืนกว่าจะถึงตรงนี้', goal: 25 },
+  { id: 'nah', tone: 'b4', mark: 'V', name: 'คุณจะเลิกทำการบ้านไหม? Nah I\'d ทำการบ้าน',
+    desc: 'ยืนยันคำตอบเดิมทุกครั้งที่ถูกถาม', goal: 75 },
+  { id: 'unstoppable', tone: 'b5', mark: 'X', name: 'หยุดไม่ได้แล้ว!',
+    desc: 'กลายเป็นนิสัยไปแล้วเรียบร้อย', goal: 100 },
+  { id: 'deep', tone: 'sea', mark: '≡', name: 'Challenger Deep',
+    desc: 'ลงไปได้ลึกกว่าที่ควรจะเป็น', secret: 'ocean' },
+  { id: 'tree', tone: 'tree', mark: '✦', name: 'โลกที่แท้จริง',
+    desc: 'ยังมีลมพัดอยู่ตรงนั้นเสมอ', secret: 'earth' },
+  { id: 'sophyra', tone: 'sweet', mark: '✧', name: 'Sophyra',
+    desc: 'บางอย่างสวยเกินกว่าจะเป็นเรื่องบังเอิญ', secret: 'warm' },
+];
+
+function doneCount() { return liveTasks().filter(t => t.done).length; }
+
+function badgeEarned(b) {
+  if (b.secret) return secretUnlocked(b.secret);
+  return doneCount() >= b.goal;
+}
+function badgesEarned() { return BADGES.filter(badgeEarned); }
+
+// เด้งฉลามเหรียญใหม่ครั้งเดียวต่อเหรียญ
+function checkBadges() {
+  state.settings = state.settings || {};
+  const seen = Array.isArray(state.settings.badgesSeen) ? state.settings.badgesSeen : [];
+  const fresh = badgesEarned().filter(b => !seen.includes(b.id));
+  if (!fresh.length) return;
+  state.settings.badgesSeen = seen.concat(fresh.map(b => b.id));
+  save();
+  const b = fresh[fresh.length - 1];
+  haptic('done');
+  celebrate(document.querySelector('.tabbar'));
+  showToast({ title: 'ได้เหรียญใหม่ · ' + b.name, body: b.desc });
+}
+
+function renderBadges() {
+  const box = document.getElementById('badgesBody');
+  if (!box) return;
+  const done = doneCount();
+  const got = badgesEarned().length;
+
+  box.innerHTML = `<div class="page-head">
+      <div class="eyebrow mono">${got} / ${BADGES.length}</div>
+      <h1 class="page-title">เหรียญตรา</h1>
+    </div>
+    ${BADGES.map(b => {
+      const on = badgeEarned(b);
+      const prog = !on && b.goal ? Math.min(done, b.goal) + ' / ' + b.goal : '';
+      return `<div class="bg-row${on ? ' on' : ''} ${b.tone}">
+        <div class="bg-mark"><span>${b.mark}</span></div>
+        <div class="bg-bd">
+          <div class="bg-nm">${esc(b.name)}</div>
+          <div class="bg-ds">${on ? esc(b.desc) : (b.secret ? '— — —' : esc(b.desc))}</div>
+          ${prog ? `<div class="bg-pg"><i style="width:${Math.round(done / b.goal * 100)}%"></i></div>
+            <div class="bg-ct mono">${prog}</div>` : ''}
+        </div>
+        ${on ? `<span class="bg-ok">${icon('check')}</span>` : ''}
+      </div>`;
+    }).join('')}`;
+}
+
+// ---------- ALT 1A6M3: ป้ายเตือนบนแถบเมนู ----------
 // งานที่ AI จัดว่า "ด่วนมาก" และยังไม่เสร็จ ต้องเห็นได้โดยไม่ต้องเข้าไปดู
 function renderTabBadges() {
   const el = document.getElementById('badgeHome');
@@ -1505,7 +1585,7 @@ function renderTabBadges() {
   }
 }
 
-// ---------- ALT 1A6M2: ผลของฉัน ----------
+// ---------- ALT 1A6M3: ผลของฉัน ----------
 // ใช้เฉพาะข้อมูลที่แอปมีจริง — จำนวนงานที่เสร็จ เวลาที่ "ประเมินไว้" และการส่งทันกำหนด
 // ไม่มีการจับเวลานั่งทำจริง จึงไม่เขียนว่าเป็นเวลาที่นั่งทำ (จะกลายเป็นตัวเลขที่แต่งขึ้น)
 function renderStats() {
@@ -1582,7 +1662,8 @@ function renderStats() {
 
 function renderAll() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline();
-  renderProfile(); renderStats(); renderPlan(); renderFriends(); renderInstallCard(); renderTabBadges();
+  renderProfile(); renderStats(); renderPlan(); renderFriends(); renderBadges();
+  renderInstallCard(); renderTabBadges();
   // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น
   // (กันแอปพังทั้งจอถ้าไฟล์ inbox.js/linelink.js โหลดไม่ขึ้น)
   if (typeof renderInbox === 'function') renderInbox();
@@ -1606,7 +1687,12 @@ function toggleDone(id, el) {
     celebrate(el);
     haptic('done'); // ALT: จังหวะคู่ ให้รู้สึกว่า "เช็คสำเร็จ" ไม่ใช่แค่ภาพเปลี่ยน
     const cleared = pendingTasks().length === 0;
-    setTimeout(() => { renderAll(); showToast(celebrateCopy(cleared)); }, 430);
+    setTimeout(() => {
+      renderAll();
+      showToast(celebrateCopy(cleared));
+      // เหรียญใหม่ (ถ้ามี) เด้งตามหลังคำชม ไม่ให้ทับกัน
+      setTimeout(checkBadges, 2600);
+    }, 430);
   } else {
     renderAll();
   }
@@ -2674,7 +2760,8 @@ function relockSecrets() {
   if (['deepocean', 'earth2'].includes(themePref())) setTheme('system');
   tapCount = 0; tapTheme = '';
   renderProfile();
-  showToast({ title: 'ล็อกธีมลับกลับแล้ว 🔒', body: 'กดปุ่มธีมมหาสมุทรหรือโลกซ้ำ 5 ครั้งเพื่อปลดล็อกใหม่' });
+  // ไม่บอกวิธีปลดล็อกซ้ำ — ของลับที่บอกวิธีไว้ข้าง ๆ ก็ไม่ใช่ของลับแล้ว
+  showToast({ title: 'ล็อกธีมลับกลับแล้ว 🔒', body: 'ธีมลับหายไปจากรายการเรียบร้อย' });
 }
 
 // ---------- ติดตั้งเป็นแอป (PWA install) ----------
@@ -2979,7 +3066,7 @@ document.getElementById('bgInput').addEventListener('change', e => {
   e.target.value = '';
 });
 
-// ALT 1A6M2: ภาพของวิดเจ็ต — ช่องเลือกมี 2 ที่ (ในตั้งค่า และบนตัววิดเจ็ตเอง
+// ALT 1A6M3: ภาพของวิดเจ็ต — ช่องเลือกมี 2 ที่ (ในตั้งค่า และบนตัววิดเจ็ตเอง
 // ซึ่งถูกวาดใหม่ทุกครั้ง) จึงดักที่ document ทีเดียวจบ
 document.addEventListener('change', e => {
   if (e.target && (e.target.id === 'wgPhotoInput' || e.target.id === 'wgPhotoInput2')) {

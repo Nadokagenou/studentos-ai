@@ -525,7 +525,72 @@
   --r-card:22px; --r-tile:15px;
 }
 
-/* ---------- โทน 10 (ลับ): โลก V.2 — ทุ่งหญ้ามีลม ---------- */
+/* ============================================================
+   1A6M3 — ปรับสองโทนหลักตามที่สั่ง
+   สว่าง = ขาว-ฟ้า · อุ่น = ขาว-ชมพู (เปลี่ยนชื่อเป็น "ชมพู")
+   เขียนทับเฉพาะโทเคนสี ไม่แตะโครงของ style.css
+   ============================================================ */
+:root, :root[data-theme="light"] {
+  --scr:#F7FAFF; --card:#FFFFFF; --card2:#EAF2FD; --surface:#EAF2FD;
+  --ink:#0F1B2D; --muted:#556884; --faint:#637692;
+  --line:rgba(15,27,45,.10);
+  --blue:#1566CE; --blue-soft:#E2EEFC; --blue-deep:#0D4A9B; --on-accent:#FFFFFF;
+  --neon:#1566CE;
+  --shadow:0 2px 6px rgba(15,40,80,.06), 0 16px 34px -14px rgba(15,40,80,.22);
+  --shadow-lg:0 4px 12px rgba(15,40,80,.08), 0 32px 58px -18px rgba(15,40,80,.28);
+  --shadow-brand:0 10px 26px -8px rgba(21,102,206,.42);
+  --glass:rgba(247,250,255,.86); --glass-line:rgba(15,27,45,.08);
+  --grad-brand:linear-gradient(135deg,#3E97F7 0%,#1566CE 100%);
+  --grad-hero:linear-gradient(150deg,#0D4A9B 0%,#2F86EC 100%);
+  --glow-scan:0 8px 22px -6px rgba(21,102,206,.5);
+  --pg:#E4EDFA; --pg-ink:#0F1B2D; --pg-muted:#556884; --frame:#22344D;
+}
+
+:root[data-theme="warm"] {
+  --scr:#FFF6FA; --card:#FFFFFF; --card2:#FCE7F1; --surface:#FCE7F1;
+  --ink:#2E1420; --muted:#7A5265; --faint:#8A6072;
+  --line:rgba(46,20,32,.10);
+  --blue:#CE3F79; --blue-soft:#FCE1EE; --blue-deep:#A22759; --on-accent:#FFFFFF;
+  --neon:#CE3F79;
+  --alert:#C42B3F; --alert-soft:#FBE0E4;
+  --warn:#8A6206;  --warn-soft:#F8EFD3;
+  --good:#1C6B4F;  --good-soft:#DAF0E8; --fire:#C42B3F;
+  --shadow:0 2px 8px rgba(90,30,60,.07), 0 18px 38px -16px rgba(90,30,60,.24);
+  --shadow-lg:0 5px 16px rgba(90,30,60,.09), 0 34px 60px -18px rgba(90,30,60,.3);
+  --shadow-brand:0 12px 30px -10px rgba(206,63,121,.45);
+  --glass:rgba(255,246,250,.86); --glass-line:rgba(46,20,32,.08);
+  --skel:rgba(46,20,32,.06); --skel-hi:rgba(46,20,32,.11);
+  --grad-brand:linear-gradient(135deg,#F783B6 0%,#CE3F79 100%);
+  --grad-hero:linear-gradient(150deg,#A22759 0%,#E96BA3 100%);
+  --glow-scan:0 10px 26px -6px rgba(206,63,121,.5);
+  --pg:#F8DCE9; --pg-ink:#2E1420; --pg-muted:#7A5265; --frame:#5A2238;
+  --r-card:24px; --r-tile:17px;
+}
+
+/* ---------- โทน 11 (ลับ): จักรวาลหวานแหว — พาสเทลชมพู + สายรุ้ง ---------- */
+:root[data-theme="sweet"] {
+  color-scheme: light;
+  --scr:#FDF0F8; --card:#FFFFFF; --card2:#F8E5F6; --surface:#F8E5F6;
+  --ink:#3A1F4A; --muted:#7B5B90; --faint:#8B6C9E;
+  --line:rgba(58,31,74,.10);
+  --blue:#B247CC; --blue-soft:#F7E3FB; --blue-deep:#8A2FA6; --on-accent:#FFFFFF;
+  --neon:#FF8FD0;
+  --alert:#D1417C; --alert-soft:#FCE2EC;
+  --warn:#A87516;  --warn-soft:#FBEFD6;
+  --good:#2E9182;  --good-soft:#DDF2EE; --fire:#D1417C;
+  --shadow:0 2px 8px rgba(110,50,130,.08), 0 18px 38px -16px rgba(110,50,130,.24);
+  --shadow-lg:0 5px 16px rgba(110,50,130,.10), 0 34px 60px -18px rgba(110,50,130,.3);
+  --shadow-brand:0 12px 30px -10px rgba(178,71,204,.45);
+  --glass:rgba(253,240,248,.85); --glass-line:rgba(58,31,74,.09);
+  --skel:rgba(58,31,74,.06); --skel-hi:rgba(58,31,74,.11);
+  --grad-brand:linear-gradient(135deg,#FF9BD2 0%,#9B6BF0 100%);
+  --grad-hero:linear-gradient(150deg,#8C51E0 0%,#F282C8 100%);
+  --glow-scan:0 0 0 1px rgba(255,155,210,.45), 0 10px 28px -6px rgba(155,107,240,.55);
+  --pg:#F4DCEF; --pg-ink:#3A1F4A; --pg-muted:#7B5B90; --frame:#4A2A5C;
+  --r-card:26px; --r-tile:18px;
+}
+
+/* ---------- โทน 10 (ลับ): ต้นไม้โลก — ทุ่งหญ้ามีลม ---------- */
 /* ปลดล็อกด้วยการกดปุ่มธีมโลกซ้ำ 5 ครั้ง */
 :root[data-theme="earth2"] {
   color-scheme: light;
@@ -587,10 +652,32 @@
 .sw-ocean{background:linear-gradient(135deg,#BFE6F7 38%,#38BDF8 38%,#38BDF8 70%,#0A5170 70%)}
 .sw-deepocean{background:linear-gradient(135deg,#04121F 40%,#0369A1 40%,#0369A1 72%,#22D3EE 72%)}
 .sw-earth2{background:linear-gradient(135deg,#BFE3F7 34%,#5BAE5B 34%,#5BAE5B 68%,#6B4A2A 68%)}
+.sw-sweet{background:linear-gradient(135deg,#FFD3EC 30%,#FF9BD2 30%,#FF9BD2 58%,#9B6BF0 58%,#9B6BF0 80%,#8ED4FF 80%)}
+.sw-warm{background:linear-gradient(135deg,#FFF6FA 46%,#CE3F79 46%)}
+.sw-light{background:linear-gradient(135deg,#FFFFFF 48%,#1566CE 48%)}
+
+/* ประกายดาวตอนกดปุ่มธีมชมพูซ้ำ */
+.egg-star {
+  position: absolute;
+  bottom: -24px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #fff 20%, #FFB6E1 55%, rgba(155,107,240,.2) 75%, transparent 78%);
+  box-shadow: 0 0 12px 2px rgba(255,160,220,.6);
+  pointer-events: none;
+  z-index: 45;
+  animation: egg-star-fly 1.5s ease-out forwards;
+}
+@keyframes egg-star-fly {
+  0% { transform: translateY(0) scale(.5) rotate(0); opacity: 0; }
+  14% { opacity: 1; }
+  100% { transform: translateY(-88vh) translateX(-18px) scale(1.2) rotate(220deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .egg-star { display: none; } }
 /* ปุ่มธีมลับ: โผล่เฉพาะอันที่ปลดล็อกแล้ว (แยกกันต่อธีม) */
 .th-grid .th-secret { display: none; }
 :root[data-deep="on"] .th-grid .th-secret[data-th="deepocean"],
-:root[data-earth2="on"] .th-grid .th-secret[data-th="earth2"] { display: flex; }
+:root[data-earth2="on"] .th-grid .th-secret[data-th="earth2"],
+:root[data-sweet="on"] .th-grid .th-secret[data-th="sweet"] { display: flex; }
 
 /* ใบไม้ปลิวตอนกดปุ่มธีมโลกซ้ำ */
 .egg-leaf {
@@ -638,6 +725,7 @@
 .fx { display: none; }
 :root[data-theme="earth"] .fx,
 :root[data-theme="earth2"] .fx,
+:root[data-theme="sweet"] .fx,
 :root[data-theme="ocean"] .fx,
 :root[data-theme="deepocean"] .fx,
 :root[data-theme="magic"] .fx,
@@ -671,7 +759,94 @@
   animation: fx-drift-x 120s linear infinite;
 }
 
-/* ---------- โลก V.2: ท้องฟ้า + ลม + นกบิน + ต้นไม้กลางจอ + หญ้า ---------- */
+/* ---------- จักรวาลหวานแหว: เมฆพาสเทล + สายรุ้ง + ดาวเคราะห์มีวงแหวน + ประกาย ---------- */
+:root[data-theme="sweet"] .fx-a {
+  inset: -10%;
+  background:
+    radial-gradient(closest-side, rgba(255,170,220,.55), transparent 72%) 18% 22% / 62% 46% no-repeat,
+    radial-gradient(closest-side, rgba(170,150,255,.5), transparent 72%) 78% 34% / 58% 44% no-repeat,
+    radial-gradient(closest-side, rgba(150,220,255,.42), transparent 72%) 42% 74% / 66% 42% no-repeat,
+    radial-gradient(closest-side, rgba(255,225,150,.34), transparent 72%) 84% 82% / 46% 34% no-repeat;
+  filter: blur(12px);
+  animation: fx-breathe 16s ease-in-out infinite;
+}
+/* สายรุ้งพาดโค้ง */
+:root[data-theme="sweet"] .fx-b {
+  left: -20%; right: -20%; top: 8%;
+  height: 60%;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  border-top: 16px solid transparent;
+  background:
+    linear-gradient(180deg,
+      rgba(255,120,170,.42) 0 3px, rgba(255,190,120,.4) 3px 6px, rgba(255,240,140,.38) 6px 9px,
+      rgba(150,230,170,.38) 9px 12px, rgba(140,200,255,.4) 12px 15px, rgba(190,150,255,.42) 15px 18px,
+      transparent 18px) top center / 100% 20px no-repeat;
+  filter: blur(1.5px);
+  opacity: .8;
+  animation: fx-breathe 12s ease-in-out infinite;
+}
+/* ก้อนเมฆลอยสองชั้น */
+:root[data-theme="sweet"] .fx-c,
+:root[data-theme="sweet"] .fx-d {
+  left: -30%; right: -30%; top: 0; bottom: 0;
+  background-repeat: no-repeat;
+}
+:root[data-theme="sweet"] .fx-c {
+  opacity: .75;
+  background-size: 150px 62px, 110px 46px, 130px 54px;
+  background-position: 14% 20%, 62% 40%, 34% 70%;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 62'><g fill='%23FFFFFF' opacity='0.92'><ellipse cx='48' cy='40' rx='40' ry='22'/><ellipse cx='86' cy='34' rx='32' ry='24'/><ellipse cx='112' cy='44' rx='26' ry='17'/></g></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 62'><g fill='%23FDE7F6'><ellipse cx='48' cy='40' rx='40' ry='22'/><ellipse cx='86' cy='34' rx='32' ry='24'/><ellipse cx='112' cy='44' rx='26' ry='17'/></g></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 62'><g fill='%23F1E6FF'><ellipse cx='48' cy='40' rx='40' ry='22'/><ellipse cx='86' cy='34' rx='32' ry='24'/><ellipse cx='112' cy='44' rx='26' ry='17'/></g></svg>");
+  animation: sea-swim-r 90s linear infinite, sea-bob 11s ease-in-out infinite;
+}
+/* ดาวเคราะห์มีวงแหวน */
+:root[data-theme="sweet"] .fx-d {
+  opacity: .58;
+  background-size: 132px 92px;
+  background-position: 76% 24%;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 132 92'><defs><linearGradient id='p' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23FFC2E4'/><stop offset='0.55' stop-color='%23C79BF5'/><stop offset='1' stop-color='%238ED4FF'/></linearGradient></defs><ellipse cx='66' cy='46' rx='42' ry='16' fill='none' stroke='%23FFFFFF' stroke-width='4' opacity='0.85' transform='rotate(-18 66 46)'/><circle cx='66' cy='44' r='27' fill='url(%23p)'/><ellipse cx='66' cy='46' rx='47' ry='13' fill='none' stroke='%23FFE9F6' stroke-width='3' opacity='0.75' transform='rotate(-18 66 46)'/></svg>");
+  animation: sea-bob 9s ease-in-out infinite;
+}
+/* ประกายดาวกระพริบ */
+:root[data-theme="sweet"] .fx-e,
+:root[data-theme="sweet"] .fx-f {
+  inset: 0;
+  background-repeat: no-repeat;
+}
+:root[data-theme="sweet"] .fx-e {
+  background-image:
+    radial-gradient(2px 2px at 22% 18%, #fff, transparent),
+    radial-gradient(2.6px 2.6px at 58% 28%, #FFF0FA, transparent),
+    radial-gradient(2px 2px at 82% 52%, #fff, transparent),
+    radial-gradient(2.4px 2.4px at 34% 62%, #F6E9FF, transparent),
+    radial-gradient(2px 2px at 68% 78%, #fff, transparent);
+  animation: fx-twinkle 4s ease-in-out infinite;
+}
+:root[data-theme="sweet"] .fx-f {
+  opacity: .7;
+  background-image:
+    radial-gradient(1.6px 1.6px at 12% 44%, #fff, transparent),
+    radial-gradient(1.6px 1.6px at 46% 12%, #FFE6F5, transparent),
+    radial-gradient(1.6px 1.6px at 90% 34%, #fff, transparent),
+    radial-gradient(1.6px 1.6px at 74% 88%, #EFE2FF, transparent);
+  animation: fx-twinkle 6.5s ease-in-out infinite reverse;
+}
+:root[data-theme="sweet"] .fx-shoot {
+  left: 0; right: 0; bottom: 0; height: 100%;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.95) 42%, transparent 62%),
+    radial-gradient(circle, rgba(255,200,235,.85) 42%, transparent 62%),
+    radial-gradient(circle, rgba(205,180,255,.85) 42%, transparent 62%);
+  background-size: 6px 6px, 5px 5px, 7px 7px;
+  background-repeat: no-repeat;
+  background-position: 26% 100%, 58% 100%, 86% 100%;
+  animation: sea-bubble 12s linear infinite;
+}
+
+/* ---------- ต้นไม้โลก: ท้องฟ้า + ลม + นกบิน + ต้นไม้กลางจอ + หญ้า ---------- */
 :root[data-theme="earth2"] .fx-a {
   inset: 0;
   background:
@@ -733,6 +908,51 @@
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 210 250'><path d='M99 250V150c-18-6-30-14-38-26l30 10-34-30 34 8-26-30 34 16V78l14-26 14 26v20l34-16-26 30 34-8-34 30 30-10c-8 12-20 20-38 26v100z' fill='%234A7A3E'/><ellipse cx='105' cy='74' rx='72' ry='56' fill='%235B9A4C'/><ellipse cx='64' cy='96' rx='44' ry='34' fill='%234E8942'/><ellipse cx='148' cy='94' rx='42' ry='32' fill='%2367A857'/><rect x='97' y='150' width='16' height='100' rx='5' fill='%236B4A2A'/></svg>");
   animation: tree-sway 7s ease-in-out infinite;
 }
+/* ดวงอาทิตย์มุมบนขวา + ต้นไม้เล็กอีกต้น (ต้นไม้โลก เวอร์ชันเต็ม) */
+:root[data-theme="earth2"] .fx-a::after {
+  content: '';
+  position: absolute;
+  top: 6%; right: 10%;
+  width: 76px; height: 76px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,246,190,.95) 38%, rgba(255,226,130,.45) 62%, transparent 72%);
+  animation: fx-breathe 11s ease-in-out infinite;
+}
+:root[data-theme="earth2"] .fx-e::after {
+  content: '';
+  position: absolute;
+  left: -118px; bottom: -6px;
+  width: 108px; height: 130px;
+  opacity: .8;
+  transform-origin: 50% 100%;
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: bottom center;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 108 130'><ellipse cx='54' cy='46' rx='40' ry='32' fill='%235B9A4C'/><ellipse cx='30' cy='62' rx='24' ry='19' fill='%234E8942'/><ellipse cx='78' cy='60' rx='23' ry='18' fill='%2367A857'/><rect x='48' y='74' width='11' height='56' rx='4' fill='%236B4A2A'/></svg>");
+  animation: tree-sway 9s ease-in-out infinite reverse;
+}
+/* ผีเสื้อบินวนเหนือทุ่ง */
+:root[data-theme="earth2"] .fx-f::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 46px;
+  height: 90px;
+  background-repeat: no-repeat;
+  background-size: 20px 18px, 15px 13px;
+  background-position: 24% 40%, 68% 74%;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 18'><path d='M10 9c-3-6-9-8-9-4s5 6 9 4zM10 9c3-6 9-8 9-4s-5 6-9 4z' fill='%23F2A0C4'/><path d='M10 9c-3 6-8 7-8 3s5-5 8-3zM10 9c3 6 8 7 8 3s-5-5-8-3z' fill='%23E88AB4'/><rect x='9.2' y='4' width='1.6' height='11' rx='.8' fill='%234A3A2A'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 18'><path d='M10 9c-3-6-9-8-9-4s5 6 9 4zM10 9c3-6 9-8 9-4s-5 6-9 4z' fill='%23FFD98A'/><path d='M10 9c-3 6-8 7-8 3s5-5 8-3zM10 9c3 6 8 7 8 3s-5-5-8-3z' fill='%23F2C05F'/><rect x='9.2' y='4' width='1.6' height='11' rx='.8' fill='%234A3A2A'/></svg>");
+  animation: butterfly 17s ease-in-out infinite;
+}
+@keyframes butterfly {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(30px, -18px); }
+  55% { transform: translate(-24px, -32px); }
+  80% { transform: translate(16px, -8px); }
+}
+
 :root[data-theme="earth2"] .fx-f {
   left: 0; right: 0; bottom: 0;
   height: 74px;
@@ -1443,7 +1663,7 @@
    ไทล์ใหญ่ กดง่าย ไม่มีข้อความอธิบาย — มีแค่ไอคอน ชื่อ และตัวเลขจริงจาก state
    ============================================================ */
 /* หน้าแรกต้องจบในจอเดียว ไม่ต้องเลื่อน — ทุกระยะในหน้านี้จึงถูกบีบกว่าจอทั่วไป */
-.menu-body { gap: 13px; padding-top: 16px; padding-bottom: calc(84px + var(--tabgap)); }
+.menu-body { gap: 11px; padding-top: 14px; padding-bottom: calc(80px + var(--tabgap)); }
 .menu-head .page-title { margin-top: 2px; font-size: 24px; }
 .menu-head .page-sub { display: none; }
 .menu-grid {
@@ -1457,9 +1677,9 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-end;
-  gap: 8px;
-  min-height: 98px;
-  padding: 13px 14px;
+  gap: 7px;
+  min-height: 92px;
+  padding: 11px 13px;
   border: 1px solid var(--line);
   border-radius: var(--r-card);
   background: var(--card);
@@ -1488,49 +1708,56 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px; height: 42px;
-  border-radius: 14px;
+  width: 36px; height: 36px;
+  border-radius: 12px;
   background: var(--blue-soft);
   color: var(--blue);
   position: relative;
 }
-.mt-ic svg { width: 21px; height: 21px; }
+.mt-ic svg { width: 18px; height: 18px; }
 .mt-tx { position: relative; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .mt-lb { position: relative; }
+/* คำอธิบายใต้ชื่อไทล์ต้องอยู่บรรทัดเดียวเสมอ — ตกบรรทัดเมื่อไหร่หน้าแรกก็ต้องเลื่อนทันที */
 .mt-sub {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 500;
-  line-height: 1.45;
+  line-height: 1.4;
   color: var(--muted);
   letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .mtile.hero .mt-sub { color: rgba(255,255,255,.72); }
 /* ตัวเลขบนไทล์: เดิมใช้ card2 + muted ซึ่งบนธีมสว่างมันจางจนแทบมองไม่เห็น
    เปลี่ยนมาใช้สีเน้นของธีม อ่านออกทั้งโทนสว่างและโทนมืด */
+/* ตัวเลขบนไทล์: พื้นทึบสีเน้น + ตัวอักษรสีตัดกันเต็มที่
+   (เคยใช้พื้นอ่อนกับตัวอักษรอ่อน แล้วบางธีมมองแทบไม่เห็นเลย) */
 .mt-ct {
   position: absolute;
-  top: 14px; right: 14px;
-  min-width: 26px;
-  padding: 3px 9px;
+  top: 13px; right: 13px;
+  min-width: 24px;
+  padding: 3px 8px 4px;
   border-radius: 999px;
-  background: var(--blue-soft);
-  color: var(--blue-deep);
-  box-shadow: inset 0 0 0 1px var(--blue);
+  background: var(--blue);
+  color: var(--on-accent);
   font-family: 'Space Mono', ui-monospace, monospace;
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.15;
   text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,.16);
 }
 .mt-ct.hot { background: var(--pri-red); color: #fff; box-shadow: none; }
 .mtile.hero .mt-ct {
-  background: rgba(255,255,255,.24);
-  color: #fff;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.4);
+  background: rgba(255,255,255,.92);
+  color: var(--blue-deep);
+  box-shadow: none;
 }
 /* ไทล์เด่น: เพิ่มงานใหม่ — กว้างเต็มแถวและใช้สีแบรนด์ */
 .mtile.hero {
   grid-column: span 2;
-  min-height: 88px;
+  min-height: 78px;
   background: var(--grad-hero);
   border: none;
   color: #fff;
@@ -1543,7 +1770,7 @@
    (แปลว่า "ชิดล่าง") จะกลายเป็น "ชิดขวา" แล้วหลุดแนวจากไทล์อื่นทั้งกริด */
 .mtile.wide {
   grid-column: span 2;
-  min-height: 74px;
+  min-height: 66px;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
@@ -1565,7 +1792,7 @@
   padding: 14px 15px 13px;
   box-shadow: var(--shadow);
   overflow: hidden;
-  min-height: 112px;
+  min-height: 104px;
   display: flex;
   flex-direction: column;
 }
@@ -2089,6 +2316,142 @@
   color: var(--faint);
 }
 .crop-act { display: flex; flex-direction: column; gap: 8px; }
+
+/* ============================================================
+   1A6M3 — ลำดับสายตา + ความอ่านง่าย
+   ปรับ 3 อย่าง: ขนาดหัวข้อไล่ลำดับชัดขึ้น · ตัวอักษรรองไม่จางเกิน ·
+   ตัวเลขทุกที่ใช้ฟอนต์ตัวเลขที่ความกว้างเท่ากัน อ่านเป็นข้อมูลไม่ใช่ข้อความ
+   ============================================================ */
+.page-title { font-size: 25px; line-height: 1.24; letter-spacing: -.034em; }
+.page-sub { font-size: 13px; line-height: 1.65; color: var(--muted); }
+.sh-title { font-size: 21px; letter-spacing: -.03em; }
+.sec-label { font-size: 11.5px; letter-spacing: .09em; color: var(--muted); margin-top: 20px; }
+.eyebrow { font-size: 11px; letter-spacing: .04em; }
+/* ตัวหนังสือรองเดิมจางจนอ่านยากบนธีมสว่าง — ยกน้ำหนักขึ้นนิดหนึ่ง */
+.rc-meta, .am, .mt-sub, .st-row .ct, .fr-st { font-weight: 500; }
+.rc-title, .at { font-size: 15.5px; line-height: 1.45; }
+.brief-body { font-size: 14px; line-height: 1.7; color: rgba(255,255,255,.9); }
+.mono, .st-hero .v, .wg-time { font-variant-numeric: tabular-nums; }
+
+/* ============================================================
+   หน้าฉัน: ปุ่มทางเข้าใหญ่ 3 ปุ่ม (1A6M3)
+   ============================================================ */
+.pf-entry { display: flex; flex-direction: column; gap: 9px; margin-top: 20px; }
+.pe {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .16s ease;
+}
+.pe:active { transform: scale(.985); }
+.pe-ic {
+  width: 40px; height: 40px; flex: none;
+  border-radius: 14px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+}
+.pe-ic svg { width: 19px; height: 19px; }
+.pe-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pe-tx b { font-size: 15.5px; font-weight: 600; letter-spacing: -.015em; }
+.pe-tx i { font-style: normal; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+.pe-go { width: 16px; height: 16px; flex: none; color: var(--faint); }
+
+/* ============================================================
+   หน้าเหรียญตรา (1A6M3)
+   ============================================================ */
+.bg-body { gap: 10px; padding-top: 22px; }
+.bg-row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  opacity: .62;
+}
+.bg-row.on { opacity: 1; }
+.bg-mark {
+  width: 52px; height: 52px; flex: none;
+  border-radius: 50%;
+  background: var(--card2);
+  color: var(--faint);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 20px; font-weight: 700;
+  box-shadow: inset 0 0 0 2px var(--line);
+}
+.bg-row.on .bg-mark { color: #fff; box-shadow: none; }
+.bg-row.on.b1 .bg-mark { background: linear-gradient(140deg,#94A3B8,#64748B); }
+.bg-row.on.b2 .bg-mark { background: linear-gradient(140deg,#60A5FA,#2563EB); }
+.bg-row.on.b3 .bg-mark { background: linear-gradient(140deg,#C084FC,#7C3AED); }
+.bg-row.on.b4 .bg-mark { background: linear-gradient(140deg,#FB7185,#E11D48); }
+.bg-row.on.b5 .bg-mark { background: linear-gradient(140deg,#FBBF24,#D97706); }
+.bg-row.on.sea .bg-mark { background: linear-gradient(140deg,#22D3EE,#0369A1); }
+.bg-row.on.tree .bg-mark { background: linear-gradient(140deg,#86EFAC,#15803D); }
+.bg-row.on.sweet .bg-mark { background: linear-gradient(140deg,#FF9BD2,#9B6BF0); }
+.bg-bd { flex: 1; min-width: 0; }
+.bg-nm { font-size: 14.5px; font-weight: 700; line-height: 1.4; letter-spacing: -.015em; }
+.bg-ds { margin-top: 3px; font-size: 12px; line-height: 1.55; color: var(--muted); }
+.bg-pg { margin-top: 8px; height: 5px; border-radius: 999px; background: var(--card2); overflow: hidden; }
+.bg-pg i { display: block; height: 100%; border-radius: 999px; background: var(--grad-brand); }
+.bg-ct { margin-top: 4px; font-size: 10.5px; color: var(--faint); }
+.bg-ok { flex: none; color: var(--good); }
+.bg-ok svg { width: 18px; height: 18px; }
+
+/* ============================================================
+   หน้าเพิ่ม/แก้งาน — จัดกลุ่มให้อ่านง่ายขึ้น (1A6M3)
+   ============================================================ */
+.fm-card { gap: 20px; padding: 18px 17px 20px; }
+.fm-card .fld > label,
+.fm-card .fld-head label {
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+.fm-card input[type=text],
+.fm-card input[type=number],
+.fm-card input[type=date],
+.fm-card input[type=time],
+.fm-card select {
+  min-height: 48px;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 15px;
+}
+.fm-card input:focus, .fm-card select:focus { box-shadow: none; }
+/* ปุ่มเลือกประเภท: ให้ตัวที่เลือกอยู่เด่นชัดกว่าเดิมมาก */
+.type-pick { gap: 10px; }
+.tp { min-height: 50px; border-radius: 15px; font-size: 14px; box-shadow: inset 0 0 0 1px var(--line); }
+.tp svg { width: 17px; height: 17px; }
+.tp.on, .tp.active {
+  background: var(--blue);
+  color: var(--on-accent);
+  box-shadow: var(--shadow-brand);
+}
+/* แถวดาวความสำคัญ: ให้เป็นแถวเดียวเลื่อนได้ ไม่ตกบรรทัดจนดูรก */
+.star-pick {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.star-pick::-webkit-scrollbar { display: none; }
+.star-pick .sp { flex: none; min-height: 40px; border-radius: 12px; padding: 0 13px; }
+.fm-h { font-size: 23px; letter-spacing: -.03em; }
+.fm-save { min-height: 54px; font-size: 15.5px; border-radius: 17px; }
 
 /* หมายเหตุใต้ตัวเครื่อง (เห็นเฉพาะตอนเปิดบนจอคอม) */
 .stage-note .alt-tag {

@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="google-site-verification" content="EL8HSk9rzF6WS9GYcfkFaYwxf00p2PzEKganiKXzDh0" />
-  <title>StudentOS ALT Version 1A6M2 — รุ่นทดลองฟีเจอร์ (Sandbox)</title>
-  <meta name="description" content="StudentOS ALT Version 1A6M2 — บิลด์ทดลองฟีเจอร์ แยกข้อมูลจากตัวจริง ไม่ใช่รุ่นที่ใช้งานจริง">
+  <title>StudentOS ALT Version 1A6M3 — รุ่นทดลองฟีเจอร์ (Sandbox)</title>
+  <meta name="description" content="StudentOS ALT Version 1A6M3 — บิลด์ทดลองฟีเจอร์ แยกข้อมูลจากตัวจริง ไม่ใช่รุ่นที่ใช้งานจริง">
   <!-- ALT = บิลด์ทดลอง ไม่ควรถูก index ปนกับตัวจริงบน GitHub Pages -->
   <meta name="robots" content="noindex, nofollow">
 
   <meta property="og:type" content="website">
-  <meta property="og:title" content="StudentOS ALT Version 1A6M2 — รุ่นทดลองฟีเจอร์">
+  <meta property="og:title" content="StudentOS ALT Version 1A6M3 — รุ่นทดลองฟีเจอร์">
   <meta property="og:description" content="AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงาน จัดลำดับความสำคัญพร้อมเหตุผล">
   <meta property="og:url" content="https://nadokagenou.github.io/studentos-ai/">
   <meta property="og:image" content="https://nadokagenou.github.io/studentos-ai/icon-512.png">
@@ -23,12 +23,12 @@
     (function () {
       // ALT: ธีมเพิ่มมาอีก 4 โทน — ตารางนี้ต้องตรงกับ THEME_BAR ใน app.js เสมอ
       // ไม่งั้นธีมใหม่จะไม่ถูกจำ แล้วจอแรกกะพริบเป็นโทนสว่างก่อนสลับ
-      var BAR = { light: '#FCFBF7', dark: '#0D1220', warm: '#F7F1E4', space: '#0A0E24',
+      var BAR = { light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
         earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
-        deepocean: '#04121F', earth2: '#EFF7EE' };
+        deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8' };
       var pref = null;
       try { pref = localStorage.getItem('studentos.alt.theme'); } catch (e) {} // ALT: คนละคีย์กับตัวจริง
-      if (pref === 'library') pref = 'ocean'; // 1A6M2: ธีมห้องสมุดถูกแทนที่ด้วยมหาสมุทร
+      if (pref === 'library') pref = 'ocean'; // 1A6M3: ธีมห้องสมุดถูกแทนที่ด้วยมหาสมุทร
       var t = BAR[pref] ? pref
         : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
       document.documentElement.dataset.theme = t;
@@ -116,6 +116,8 @@
     <!-- ALT: ไอคอนตำแหน่งแถบเมนู (จอ + แถบด้านข้าง) -->
     <g id="lu-tasks-alt" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="16" x="3" y="4" rx="2"></rect><path d="M9 4v16"></path></g>
     <g id="lu-user" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M20 21a8 8 0 0 0-16 0"></path></g>
+    <!-- ALT 1A6M3: เหรียญตรา -->
+    <g id="lu-medal" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"></path><path d="M11 12 5.12 2.2"></path><path d="m13 12 5.88-9.8"></path><path d="M8 7h8"></path><circle cx="12" cy="17" r="5"></circle><path d="M12 18v-2h-.5"></path></g>
     <g id="lu-pin" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></g>
     <g id="lu-flag" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><path d="M4 22v-7"></path></g>
     <!-- กลุ่มแชท — ใช้แทน LINE ทั้งในกล่องเข้าและจอแหล่งข้อมูล -->
@@ -151,8 +153,8 @@
     <div class="userbg" id="userBg" aria-hidden="true"><span class="ub-veil"></span></div>
     <div class="statusbar"><span id="clock">--:--</span><span>📶 🔋</span></div>
     <!-- ALT: ป้ายบอกรุ่น — อยู่กลางบนจอ (app.js เขียนทับจาก APP_VERSION ตอนเปิด) -->
-    <div class="alt-badge" id="altBadge" title="StudentOS ALT · บิลด์ทดลองฟีเจอร์ ข้อมูลแยกจากตัวจริง">1A6M2</div>
-    <!-- ALT 1A6M2: ทางเข้าระบบเพื่อน — มุมขวาบน ไม่กินช่องในเมนูหลัก -->
+    <div class="alt-badge" id="altBadge" title="StudentOS ALT · บิลด์ทดลองฟีเจอร์ ข้อมูลแยกจากตัวจริง">1A6M3</div>
+    <!-- ALT 1A6M3: ทางเข้าระบบเพื่อน — มุมขวาบน ไม่กินช่องในเมนูหลัก -->
     <button class="top-friends" onclick="go('scr-friends')" aria-label="เพื่อน">
       <svg viewBox="0 0 24 24"><use href="#lu-users"/></svg>
       <span class="tf-badge" id="friendsBadge" hidden></span>
@@ -165,7 +167,7 @@
           <img class="login-mark" src="logo-mark.png" alt="StudentOS AI">
           <div class="big-title" style="margin:0">StudentOS <span class="ai-blue">AI</span></div>
           <p class="sub" style="margin:0 0 6px">รู้ว่าต้องทำอะไรก่อน เสมอ</p>
-          <p class="alt-note" style="margin:0 0 16px">StudentOS <b>ALT</b> Version <b>1A6M2 “Modern”</b> · รุ่นทดลองฟีเจอร์ — ข้อมูลแยกจากตัวจริง</p>
+          <p class="alt-note" style="margin:0 0 16px">StudentOS <b>ALT</b> Version <b>1A6M3 “Modern”</b> · รุ่นทดลองฟีเจอร์ — ข้อมูลแยกจากตัวจริง</p>
           <button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>
           <button class="btn ghost" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>
           <p class="hint">ล็อกอินแล้วข้อมูลจะซิงก์ข้ามเครื่อง</p>
@@ -466,7 +468,7 @@
         <div class="scr-body" id="srcBody"></div>
       </div>
 
-      <!-- ============ SCREEN: เพื่อน (ALT 1A6M2) ============ -->
+      <!-- ============ SCREEN: เพื่อน (ALT 1A6M3) ============ -->
       <!-- ดูสถานะและผลของเพื่อน · วาดจาก state ใน renderFriends -->
       <div class="screen flush" id="scr-friends">
         <div class="scr-body fr-body" id="friendsBody"></div>
@@ -493,10 +495,46 @@
             </div>
           </div>
 
-          <!-- ALT 1A6M2: ผลของฉัน — สรุปจากข้อมูลที่แอปมีจริง วาดใน renderStats -->
+          <!-- ALT 1A6M3: ผลของฉัน — สรุปจากข้อมูลที่แอปมีจริง วาดใน renderStats -->
           <div id="statsBox"></div>
 
-          <div class="sec-label">ตั้งค่า</div>
+          <!-- ALT 1A6M3: ทางเข้าใหญ่ 3 ทาง — ตั้งค่าทั้งหมดย้ายไปอยู่หลังปุ่ม -->
+          <div class="pf-entry">
+            <button class="pe" onclick="go('scr-badges')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-medal"/></svg></span>
+              <span class="pe-tx"><b>เหรียญตรา</b><i id="peBadgeCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <button class="pe" onclick="go('scr-friends')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
+              <span class="pe-tx"><b>เพื่อน</b><i id="peFriendCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <button class="pe" onclick="go('scr-settings')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-contrast"/></svg></span>
+              <span class="pe-tx"><b>ตั้งค่า</b><i>ธีม · ตัวอักษร · วิดเจ็ต · แจ้งเตือน</i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+          </div>
+          <p class="app-ver" id="appVer"></p>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: เหรียญตรา (ALT 1A6M3) ============ -->
+      <div class="screen flush" id="scr-badges">
+        <div class="scr-body bg-body" id="badgesBody"></div>
+      </div>
+
+      <!-- ============ SCREEN: ตั้งค่า (ALT 1A6M3) ============ -->
+      <div class="screen flush" id="scr-settings">
+        <div class="scr-body pf-body">
+          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+            <div>
+              <h2 class="sh-title">ตั้งค่า</h2>
+            </div>
+            <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
           <div class="pf-list">
             <div class="pf-row">
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#ic-profile"/></svg></span>
@@ -521,7 +559,7 @@
                 <button type="button" data-th="dark" onclick="setTheme('dark')">
                   <span class="sw sw-dark"></span><span class="nm">มืด</span></button>
                 <button type="button" data-th="warm" onclick="setTheme('warm')">
-                  <span class="sw sw-warm"></span><span class="nm">อุ่น</span></button>
+                  <span class="sw sw-warm"></span><span class="nm">ชมพู</span></button>
                 <button type="button" data-th="space" onclick="setTheme('space')">
                   <span class="sw sw-space"></span><span class="nm">อวกาศ</span></button>
                 <!-- ALT: 4 โทนใหม่ -->
@@ -538,11 +576,13 @@
                   <span class="sw sw-deepocean"></span><span class="nm">ทะเลลึก</span></button>
                 <!-- ปลดล็อกด้วยการกดปุ่ม "โลก" ซ้ำ 5 ครั้ง -->
                 <button type="button" class="th-secret" data-th="earth2" onclick="setTheme('earth2')">
-                  <span class="sw sw-earth2"></span><span class="nm">โลก V.2</span></button>
+                  <span class="sw sw-earth2"></span><span class="nm">ต้นไม้โลก</span></button>
+                <button type="button" class="th-secret" data-th="sweet" onclick="setTheme('sweet')">
+                  <span class="sw sw-sweet"></span><span class="nm">จักรวาลหวานแหว</span></button>
               </div>
             </div>
 
-            <!-- ALT 1A6M2: วิดเจ็ตบนหน้าแรก -->
+            <!-- ALT 1A6M3: วิดเจ็ตบนหน้าแรก -->
             <div class="pf-row col">
               <span class="hd">
                 <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
@@ -624,7 +664,7 @@
                 <p class="bg-note">จางมาก = อ่านง่ายขึ้น · จางน้อย = เห็นภาพชัดขึ้น</p>
               </div>
             </div>
-            <!-- ALT 1A6M2: ระบบเพื่อน — เปิดใช้ได้แล้ว (เฟสแรก) -->
+            <!-- ALT 1A6M3: ระบบเพื่อน — เปิดใช้ได้แล้ว (เฟสแรก) -->
             <div class="pf-row" id="friendsRow" onclick="go('scr-friends')" style="cursor:pointer">
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
               <span class="bd">
@@ -652,12 +692,11 @@
 
           <div style="display:flex;flex-direction:column;gap:2px">
             <button class="pf-quiet" onclick="loadSample()"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg>โหลดข้อมูลตัวอย่าง</button>
-            <!-- ALT 1A6M2: ล็อกธีมลับกลับ ไว้ลองอีสเตอร์เอกก์ใหม่ -->
+            <!-- ALT 1A6M3: ล็อกธีมลับกลับ ไว้ลองอีสเตอร์เอกก์ใหม่ -->
             <button class="pf-quiet" id="relockBtn" onclick="relockSecrets()" hidden>
               <svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg>ล็อกธีมลับกลับ</button>
             <button class="pf-quiet danger" onclick="clearAll()"><svg viewBox="0 0 24 24"><use href="#lu-flame"/></svg>ล้างข้อมูลทั้งหมด</button>
           </div>
-          <p class="app-ver" id="appVer"></p>
         </div>
       </div>
 
@@ -697,7 +736,7 @@
       <div class="sp-glow"></div>
       <img class="sp-logo" src="logo-mark.png" alt="StudentOS AI">
       <div class="sp-word">StudentOS <span>AI</span></div>
-      <div class="sp-alt">ALT · VERSION 1A6M2 “MODERN”</div>
+      <div class="sp-alt">ALT · VERSION 1A6M3 “MODERN”</div>
       <div class="sp-tag">รู้ว่าต้องทำอะไรก่อน เสมอ</div>
       <!-- ALT: เปอร์เซ็นต์จริง — เดินตามงานที่โหลดเสร็จจริง ไม่ใช่แถบหลอกตา -->
       <div class="sp-load">
@@ -713,7 +752,7 @@
   </div>
 
   <p class="stage-note">
-    <b class="alt-tag">StudentOS ALT Version 1A6M2 “Modern”</b> — บิลด์ไว้ทดลองฟีเจอร์ใหม่ ไม่ใช่ตัวที่ปล่อยจริง ·
+    <b class="alt-tag">StudentOS ALT Version 1A6M3 “Modern”</b> — บิลด์ไว้ทดลองฟีเจอร์ใหม่ ไม่ใช่ตัวที่ปล่อยจริง ·
     เก็บข้อมูลแยกจากตัวจริงด้วยคีย์ <code>studentos.alt.*</code> ใน localStorage<br>
     StudentOS AI — Scan รูปใช้ OCR ในเบราว์เซอร์ ·
     การจัดลำดับคำนวณจาก deadline × คะแนน × ขนาดงาน พร้อมเหตุผลกำกับทุกงาน
