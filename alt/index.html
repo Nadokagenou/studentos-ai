@@ -25,7 +25,7 @@
       // ไม่งั้นธีมใหม่จะไม่ถูกจำ แล้วจอแรกกะพริบเป็นโทนสว่างก่อนสลับ
       var BAR = { light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
         earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
-        deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8' };
+        deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8', genesis: '#8E9BE8' };
       var pref = null;
       try { pref = localStorage.getItem('studentos.alt.theme'); } catch (e) {} // ALT: คนละคีย์กับตัวจริง
       if (pref === 'library') pref = 'ocean'; // 1A6M3: ธีมห้องสมุดถูกแทนที่ด้วยมหาสมุทร
@@ -46,7 +46,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Space Mono ใช้เฉพาะวันที่/เวลา/ตัวเลข ให้ตัวเลขเรียงตรงคอลัมน์และอ่านเป็นข้อมูล -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
+  <!-- 1A6M3: เปลี่ยนฟอนต์หลักเป็น Noto Sans Thai — ตัวอักษรสูงกว่า ช่องว่างในตัวอักษรกว้างกว่า
+       อ่านง่ายกว่าเดิมชัดเจนบนจอเล็ก · Sarabun เป็นตัวสำรองถ้า CDN ล่ม
+       Orbitron / Cinzel / Cinzel Decorative ใช้เฉพาะชื่อเหรียญพิเศษ 3 อันเท่านั้น -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Orbitron:wght@600;800&family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&display=swap">
   <link rel="stylesheet" href="style.css">
   <!-- ALT เท่านั้น: ป้ายกำกับรุ่นทดลอง แยกไฟล์ไว้ ไม่แตะ style.css เดิม จะสลับ stylesheet ทีหลังก็ได้ -->
   <link rel="stylesheet" href="alt.css">
@@ -579,6 +582,9 @@
                   <span class="sw sw-earth2"></span><span class="nm">ต้นไม้โลก</span></button>
                 <button type="button" class="th-secret" data-th="sweet" onclick="setTheme('sweet')">
                   <span class="sw sw-sweet"></span><span class="nm">จักรวาลหวานแหว</span></button>
+                <!-- ปลดล็อกเมื่อได้เหรียญครบทุกอันในแอป -->
+                <button type="button" class="th-secret th-genesis" data-th="genesis" onclick="setTheme('genesis')">
+                  <span class="sw sw-genesis"></span><span class="nm">GENESIS</span></button>
               </div>
             </div>
 

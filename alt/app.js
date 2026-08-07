@@ -41,12 +41,12 @@ const THEME_KEY = 'studentos.alt.theme';   // ALT: แยกจากตัว�
 const THEME_BAR = {
   light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
   earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
-  deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8',
+  deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8', genesis: '#8E9BE8',
 };
 const THEME_NAME = {
   system: 'ตามระบบ', light: 'สว่าง', dark: 'มืด', warm: 'ชมพู', space: 'อวกาศ',
   earth: 'โลก', ocean: 'มหาสมุทร', magic: 'เวทมนตร์', galaxy: 'กาแล็กซี',
-  deepocean: 'ทะเลลึก', earth2: 'ต้นไม้โลก', sweet: 'จักรวาลหวานแหว',
+  deepocean: 'ทะเลลึก', earth2: 'ต้นไม้โลก', sweet: 'จักรวาลหวานแหว', genesis: 'GENESIS',
 };
 // ---------- ALT 1A6M3: อีสเตอร์เอกก์ ธีมลับ ----------
 // กดปุ่มธีมเดิมซ้ำ 5 ครั้งรวด = ปลดล็อกธีมลับของโทนนั้น
@@ -80,6 +80,49 @@ function applySecrets() {
 // เก็บชื่อเดิมไว้ให้โค้ดส่วนอื่นเรียกได้เหมือนเดิม
 function deepUnlocked() { return secretUnlocked('ocean'); }
 function applyDeepUnlock() { applySecrets(); }
+
+// ---------- ALT 1A6M3: GENESIS ----------
+// ธีมปลายทาง — ปลดล็อกเมื่อได้เหรียญครบทุกอันในแอป (ซึ่งแปลว่าต้องผ่านทุกอย่างมาแล้ว)
+const GENESIS_KEY = 'studentos.alt.genesisUnlocked';
+const GENESIS_CYCLE = 99_000;  // ทุก 99 วิ
+const GENESIS_EVENT = 20_000;  // อีเวนต์ยาว 20 วิ
+let genesisTimer = null, genesisEndTimer = null;
+
+function genesisUnlocked() {
+  try { return localStorage.getItem(GENESIS_KEY) === '1'; } catch (_) { return false; }
+}
+
+// เรียกทุกครั้งที่เหรียญเปลี่ยน — ครบทุกเหรียญเมื่อไหร่ปลดล็อกทันที
+function checkGenesisUnlock() {
+  if (genesisUnlocked()) return false;
+  if (badgesEarned().length < BADGES.length) return false;
+  try { localStorage.setItem(GENESIS_KEY, '1'); } catch (_) {}
+  document.documentElement.dataset.genesis = 'on';
+  haptic('done');
+  splashBurst(24, 'egg-star');
+  setTheme('genesis');
+  showToast({ title: 'GENESIS', body: 'ครบทุกเหรียญแล้ว — ธีมสุดท้ายเปิดให้แล้ว' });
+  return true;
+}
+
+function applyGenesisUnlock() {
+  if (genesisUnlocked()) document.documentElement.dataset.genesis = 'on';
+  else delete document.documentElement.dataset.genesis;
+}
+
+// อีเวนต์ของธีม GENESIS: เดินเฉพาะตอนใช้ธีมนี้อยู่ ไม่งั้นปล่อย timer ทิ้งไว้กินแรงเปล่า
+function genesisLoop(on) {
+  clearInterval(genesisTimer); clearTimeout(genesisEndTimer);
+  genesisTimer = null;
+  document.documentElement.removeAttribute('data-gevent');
+  if (!on) return;
+  const fire = () => {
+    document.documentElement.dataset.gevent = 'on';
+    if (navigator.vibrate) { try { navigator.vibrate([18, 60, 26]); } catch (_) {} }
+    genesisEndTimer = setTimeout(() => document.documentElement.removeAttribute('data-gevent'), GENESIS_EVENT);
+  };
+  genesisTimer = setInterval(fire, GENESIS_CYCLE);
+}
 
 function unlockSecret(id) {
   const s = SECRETS[id];
@@ -130,6 +173,7 @@ function applyTheme() {
   if (meta) meta.content = THEME_BAR[theme];
   document.querySelectorAll('#themePick button').forEach(b =>
     b.classList.toggle('active', b.dataset.th === pref));
+  genesisLoop(theme === 'genesis'); // อีเวนต์ 99 วิ เดินเฉพาะตอนอยู่ในธีมนี้
   const now = document.getElementById('themeNow');
   if (now) now.textContent = pref === 'system' ? `ตามระบบ · ตอนนี้โทน${THEME_NAME[theme]}` : '';
 }
@@ -1506,7 +1550,7 @@ const BADGES = [
     desc: 'กลายเป็นนิสัยไปแล้วเรียบร้อย', goal: 100 },
   { id: 'deep', tone: 'sea', mark: '≡', name: 'Challenger Deep',
     desc: 'ลงไปได้ลึกกว่าที่ควรจะเป็น', secret: 'ocean' },
-  { id: 'tree', tone: 'tree', mark: '✦', name: 'โลกที่แท้จริง',
+  { id: 'tree', tone: 'tree', mark: '✦', name: 'World Tree',
     desc: 'ยังมีลมพัดอยู่ตรงนั้นเสมอ', secret: 'earth' },
   { id: 'sophyra', tone: 'sweet', mark: '✧', name: 'Sophyra',
     desc: 'บางอย่างสวยเกินกว่าจะเป็นเรื่องบังเอิญ', secret: 'warm' },
@@ -1532,6 +1576,8 @@ function checkBadges() {
   haptic('done');
   celebrate(document.querySelector('.tabbar'));
   showToast({ title: 'ได้เหรียญใหม่ · ' + b.name, body: b.desc });
+  // ครบทุกเหรียญ → GENESIS (ตามหลัง toast เหรียญไม่ให้ทับกัน)
+  setTimeout(checkGenesisUnlock, 6500);
 }
 
 function renderBadges() {
@@ -1550,7 +1596,7 @@ function renderBadges() {
       return `<div class="bg-row${on ? ' on' : ''} ${b.tone}">
         <div class="bg-mark"><span>${b.mark}</span></div>
         <div class="bg-bd">
-          <div class="bg-nm">${esc(b.name)}</div>
+          <div class="bg-nm${b.secret ? ' fancy' : ''}">${esc(b.name)}</div>
           <div class="bg-ds">${on ? esc(b.desc) : (b.secret ? '— — —' : esc(b.desc))}</div>
           ${prog ? `<div class="bg-pg"><i style="width:${Math.round(done / b.goal * 100)}%"></i></div>
             <div class="bg-ct mono">${prog}</div>` : ''}
@@ -2747,7 +2793,7 @@ function clearAll() {
     // ธีมลับกลับไปล็อกด้วย — ล้างข้อมูลแล้วต้องได้แอปเหมือนเปิดครั้งแรกจริง ๆ
     for (const s of Object.values(SECRETS)) { try { localStorage.removeItem(s.store); } catch (_) {} }
     applySecrets();
-    if (['deepocean', 'earth2'].includes(themePref())) setTheme('system');
+    if (['deepocean', 'earth2', 'sweet', 'genesis'].includes(themePref())) setTheme('system');
     state = { tasks: [], settings: { name: '', freeHours: 2 } };
     renderAll();
   }
@@ -2756,8 +2802,10 @@ function clearAll() {
 // ปุ่มลับในแท็บ "ฉัน" — ล็อกธีมลับกลับเหมือนยังไม่เคยปลดล็อก (ไว้ลองอีสเตอร์เอกก์ใหม่)
 function relockSecrets() {
   for (const s of Object.values(SECRETS)) { try { localStorage.removeItem(s.store); } catch (_) {} }
+  try { localStorage.removeItem(GENESIS_KEY); } catch (_) {}
   applySecrets();
-  if (['deepocean', 'earth2'].includes(themePref())) setTheme('system');
+  applyGenesisUnlock();
+  if (['deepocean', 'earth2', 'sweet', 'genesis'].includes(themePref())) setTheme('system');
   tapCount = 0; tapTheme = '';
   renderProfile();
   // ไม่บอกวิธีปลดล็อกซ้ำ — ของลับที่บอกวิธีไว้ข้าง ๆ ก็ไม่ใช่ของลับแล้ว
@@ -3098,7 +3146,8 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   const badge = document.getElementById('altBadge');
   if (badge) badge.textContent = APP_VERSION;
 
-  applyDeepUnlock(); // ALT: ปุ่มธีมทะเลลึกจะโผล่เฉพาะคนที่ปลดล็อกแล้ว
+  applyDeepUnlock();     // ALT: ปุ่มธีมลับจะโผล่เฉพาะคนที่ปลดล็อกแล้ว
+  applyGenesisUnlock();
   applyTheme();
   applyFontScale();  // ALT: ต้องมาก่อนวาดจอแรก ไม่งั้นตัวอักษรกระโดดขนาดให้เห็น
   applyUserBg();

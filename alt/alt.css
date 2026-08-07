@@ -567,6 +567,41 @@
   --r-card:24px; --r-tile:17px;
 }
 
+/* ---------- โทน 12 (ลับสุดท้าย): GENESIS — ฟ้าอมม่วง + ฟ้าอมเขียวอ่อน ---------- */
+/* ปลดล็อกเมื่อได้เหรียญครบทุกอันในแอป */
+:root[data-theme="genesis"] {
+  color-scheme: dark;
+  --scr:#8E9BE8; --card:#EDF0FF; --card2:#D5DCFA; --surface:#D5DCFA;
+  --ink:#1B2154; --muted:#4A5599; --faint:#5A66AB;
+  --line:rgba(27,33,84,.12);
+  --blue:#3B49B8; --blue-soft:#DFE5FF; --blue-deep:#232C87; --on-accent:#FFFFFF;
+  --neon:#B7F5FF;
+  --alert:#C43B5E; --alert-soft:#FBE0E7;
+  --warn:#8A6206;  --warn-soft:#F8EFD3;
+  --good:#17796F;  --good-soft:#D6F2EE; --fire:#C43B5E;
+  --shadow:0 2px 10px rgba(30,40,110,.14), 0 20px 42px -16px rgba(30,40,110,.4);
+  --shadow-lg:0 6px 18px rgba(30,40,110,.18), 0 36px 66px -18px rgba(30,40,110,.46);
+  --shadow-brand:0 12px 32px -10px rgba(120,150,255,.6);
+  --glass:rgba(226,232,255,.8); --glass-line:rgba(255,255,255,.6);
+  --skel:rgba(27,33,84,.07); --skel-hi:rgba(27,33,84,.13);
+  --grad-brand:linear-gradient(135deg,#B7F5FF 0%,#6F7FE8 55%, #4C57C9 100%);
+  --grad-hero:linear-gradient(150deg,#2C3597 0%,#7C8BF0 60%, #A9F0FF 100%);
+  --glow-scan:0 0 0 1px rgba(183,245,255,.7), 0 10px 30px -6px rgba(140,170,255,.8),
+    0 0 40px -6px rgba(183,245,255,.6);
+  --pg:#7C8AE0; --pg-ink:#1B2154; --pg-muted:#4A5599; --frame:#3A45A8;
+  --r-card:24px; --r-tile:16px;
+}
+/* บรรยากาศทั้งจอค่อย ๆ คลื่นไปเป็นฟ้าอมเขียวอ่อนแวบหนึ่ง แล้วจางกลับ */
+:root[data-theme="genesis"] .phone {
+  animation: gen-tide 17s ease-in-out infinite;
+}
+@keyframes gen-tide {
+  0%, 62%, 100% { background: #8E9BE8; }
+  72% { background: #A8CFF0; }
+  78% { background: #BDEAF6; }
+  86% { background: #A2C3F2; }
+}
+
 /* ---------- โทน 11 (ลับ): จักรวาลหวานแหว — พาสเทลชมพู + สายรุ้ง ---------- */
 :root[data-theme="sweet"] {
   color-scheme: light;
@@ -677,7 +712,13 @@
 .th-grid .th-secret { display: none; }
 :root[data-deep="on"] .th-grid .th-secret[data-th="deepocean"],
 :root[data-earth2="on"] .th-grid .th-secret[data-th="earth2"],
-:root[data-sweet="on"] .th-grid .th-secret[data-th="sweet"] { display: flex; }
+:root[data-sweet="on"] .th-grid .th-secret[data-th="sweet"],
+:root[data-genesis="on"] .th-grid .th-secret[data-th="genesis"] { display: flex; }
+/* ปุ่มธีม GENESIS: ชื่อใช้ฟอนต์เดียวกับคอนเซปต์ */
+.th-grid .th-genesis .nm {
+  font-family: 'Orbitron', 'Space Mono', monospace;
+  font-weight: 800; font-size: 11px; letter-spacing: .1em;
+}
 
 /* ใบไม้ปลิวตอนกดปุ่มธีมโลกซ้ำ */
 .egg-leaf {
@@ -726,6 +767,7 @@
 :root[data-theme="earth"] .fx,
 :root[data-theme="earth2"] .fx,
 :root[data-theme="sweet"] .fx,
+:root[data-theme="genesis"] .fx,
 :root[data-theme="ocean"] .fx,
 :root[data-theme="deepocean"] .fx,
 :root[data-theme="magic"] .fx,
@@ -757,6 +799,150 @@
     radial-gradient(30px 13px at 62% 32%, rgba(255,255,255,.55), transparent 70%),
     radial-gradient(46px 18px at 84% 56%, rgba(255,255,255,.5), transparent 72%);
   animation: fx-drift-x 120s linear infinite;
+}
+
+/* ============================================================
+   GENESIS — เพชรยักษ์ · ลม · หิมะ · เส้นพุ่งขึ้นจากพื้น · คลื่นกระแทก
+   ปกติเดินเบา ๆ · ทุก 99 วิ JS ติดธง data-gevent 20 วิ แล้วทุกอย่างแรงขึ้นพร้อมกัน
+   ============================================================ */
+:root[data-theme="genesis"] .fx-a {          /* แสงจากใจกลาง + ขอบจอเข้ม */
+  inset: 0;
+  background:
+    radial-gradient(72% 46% at 50% 46%, rgba(233,247,255,.92), rgba(178,196,255,.5) 42%, transparent 74%),
+    radial-gradient(120% 92% at 50% 108%, rgba(60,74,190,.55), transparent 70%);
+  animation: gen-glow 6s ease-in-out infinite;
+}
+:root[data-theme="genesis"] .fx-b {          /* เพชรยักษ์กลางจอ */
+  left: 50%; top: 34%;
+  width: 190px; height: 250px;
+  margin: -125px 0 0 -95px;
+  background: no-repeat center/contain
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 190 250'><defs><linearGradient id='d' x1='0' y1='0' x2='0.6' y2='1'><stop offset='0' stop-color='%23FFFFFF'/><stop offset='0.45' stop-color='%23DCEBFF'/><stop offset='1' stop-color='%238FA6F5'/></linearGradient></defs><path d='M95 6 172 118 95 244 18 118Z' fill='url(%23d)' opacity='0.95'/><path d='M95 6 132 118 95 244 58 118Z' fill='%23FFFFFF' opacity='0.8'/><path d='M18 118h154' stroke='%23FFFFFF' stroke-width='3' opacity='0.7'/></svg>");
+  filter: drop-shadow(0 0 26px rgba(190,230,255,.9));
+  animation: gen-diamond 7s ease-in-out infinite;
+}
+:root[data-theme="genesis"] .fx-c {          /* ลมหมุนรอบเพชร */
+  left: 50%; top: 34%;
+  width: 460px; height: 460px;
+  margin: -230px 0 0 -230px;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 0deg, transparent 0 12%, rgba(255,255,255,.5) 18%, transparent 26% 62%,
+      rgba(215,240,255,.42) 70%, transparent 78%);
+  mask: radial-gradient(circle, transparent 32%, #000 40%, #000 62%, transparent 70%);
+  -webkit-mask: radial-gradient(circle, transparent 32%, #000 40%, #000 62%, transparent 70%);
+  opacity: .8;
+  animation: gen-wind 9s linear infinite;
+}
+:root[data-theme="genesis"] .fx-d {          /* หิมะ 2 ชั้น */
+  left: 0; right: 0; top: -12%; bottom: -12%;
+  background-repeat: repeat;
+  background-size: 200px 320px, 150px 260px;
+  background-image:
+    radial-gradient(2.2px 2.2px at 30px 40px, rgba(255,255,255,.95), transparent),
+    radial-gradient(1.6px 1.6px at 120px 180px, rgba(226,244,255,.9), transparent);
+  animation: gen-snow 14s linear infinite;
+}
+:root[data-theme="genesis"] .fx-e {          /* เส้นตรง + สามเหลี่ยมพุ่งขึ้นจากพื้น */
+  left: 0; right: 0; bottom: 0;
+  height: 62%;
+  opacity: 0;
+  background-repeat: no-repeat;
+  background-size: 3px 70px, 3px 92px, 3px 58px, 16px 16px, 12px 12px;
+  background-position: 16% 100%, 42% 100%, 76% 100%, 30% 100%, 62% 100%;
+  background-image:
+    linear-gradient(180deg, transparent, rgba(214,244,255,.95)),
+    linear-gradient(180deg, transparent, rgba(255,255,255,.95)),
+    linear-gradient(180deg, transparent, rgba(190,225,255,.95)),
+    conic-gradient(from 180deg at 50% 100%, transparent 0 30%, rgba(226,247,255,.95) 30% 70%, transparent 70%),
+    conic-gradient(from 180deg at 50% 100%, transparent 0 30%, rgba(255,255,255,.9) 30% 70%, transparent 70%);
+}
+:root[data-theme="genesis"] .fx-f {          /* คลื่นกระแทกวงกว้าง */
+  left: 50%; top: 52%;
+  width: 300px; height: 300px;
+  margin: -150px 0 0 -150px;
+  border-radius: 50%;
+  border: 3px solid rgba(226,247,255,.9);
+  box-shadow: 0 0 40px 8px rgba(180,225,255,.5), inset 0 0 30px rgba(255,255,255,.6);
+  opacity: 0;
+}
+:root[data-theme="genesis"] .fx-shoot {      /* สี่เหลี่ยมเล็กผุดแล้วหดหาย */
+  left: 0; right: 0; top: 0; bottom: 0;
+  opacity: 0;
+  background-repeat: no-repeat;
+  background-size: 14px 14px, 10px 10px, 18px 18px, 12px 12px;
+  background-position: 22% 62%, 68% 40%, 44% 74%, 82% 66%;
+  background-image:
+    linear-gradient(0deg, rgba(255,255,255,.95), rgba(255,255,255,.95)),
+    linear-gradient(0deg, rgba(214,244,255,.9), rgba(214,244,255,.9)),
+    linear-gradient(0deg, rgba(255,255,255,.85), rgba(255,255,255,.85)),
+    linear-gradient(0deg, rgba(190,225,255,.9), rgba(190,225,255,.9));
+}
+
+/* ---------- ตอนอีเวนต์ (20 วิ) ทุกอย่างแรงขึ้นพร้อมกัน ---------- */
+:root[data-gevent="on"][data-theme="genesis"] .fx-b {
+  animation: gen-diamond-burst 2.6s ease-in-out infinite;
+}
+:root[data-gevent="on"][data-theme="genesis"] .fx-c {
+  animation-duration: 2.6s;                 /* ลมหมุนจัดขึ้นชัดเจน */
+  opacity: 1;
+}
+:root[data-gevent="on"][data-theme="genesis"] .fx-d {
+  animation-duration: 3.4s;                 /* หิมะตกเร็วขึ้น */
+}
+:root[data-gevent="on"][data-theme="genesis"] .fx-e {
+  animation: gen-rise 1.5s linear infinite;
+}
+:root[data-gevent="on"][data-theme="genesis"] .fx-f {
+  animation: gen-shock 2.4s ease-out infinite;
+}
+:root[data-gevent="on"][data-theme="genesis"] .fx-shoot {
+  animation: gen-cubes 1.9s ease-in-out infinite;
+}
+:root[data-gevent="on"][data-theme="genesis"] .fx-a {
+  animation: gen-glow 1.6s ease-in-out infinite;
+}
+
+@keyframes gen-glow {
+  0%, 100% { opacity: .82; }
+  50% { opacity: 1; }
+}
+@keyframes gen-diamond {
+  0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 22px rgba(190,230,255,.8)); }
+  50% { transform: translateY(-10px) scale(1.05); filter: drop-shadow(0 0 34px rgba(215,245,255,1)); }
+}
+@keyframes gen-diamond-burst {
+  0% { transform: translateY(0) scale(1.12); filter: drop-shadow(0 0 30px rgba(215,245,255,.9)); }
+  38% { transform: translateY(-16px) scale(1.5); filter: drop-shadow(0 0 70px rgba(255,255,255,1)) brightness(1.5); }
+  52% { transform: translateY(-10px) scale(1.28); filter: drop-shadow(0 0 44px rgba(226,247,255,1)); }
+  100% { transform: translateY(0) scale(1.12); filter: drop-shadow(0 0 30px rgba(215,245,255,.9)); }
+}
+@keyframes gen-wind { to { transform: rotate(360deg); } }
+@keyframes gen-snow {
+  from { background-position: 0 -320px, 60px -260px; }
+  to { background-position: 40px 320px, 10px 260px; }
+}
+@keyframes gen-rise {
+  0% { opacity: 0; background-position: 16% 100%, 42% 100%, 76% 100%, 30% 100%, 62% 100%; }
+  15% { opacity: .95; }
+  100% { opacity: 0; background-position: 16% -20%, 42% -35%, 76% -10%, 30% -25%, 62% -40%; }
+}
+@keyframes gen-shock {
+  0% { opacity: .95; transform: scale(.15); }
+  70% { opacity: .35; }
+  100% { opacity: 0; transform: scale(2.6); }
+}
+@keyframes gen-cubes {
+  0% { opacity: 0; transform: scale(.2) rotate(0); }
+  25% { opacity: .95; transform: scale(1) rotate(12deg); }
+  70% { opacity: .8; transform: scale(.9) rotate(-8deg); }
+  100% { opacity: 0; transform: scale(.1) rotate(20deg); }
+}
+.sw-genesis {
+  background: linear-gradient(135deg, #8E9BE8 34%, #B7F5FF 34%, #B7F5FF 66%, #EDF0FF 66%);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="genesis"] .phone { animation: none; }
 }
 
 /* ---------- จักรวาลหวานแหว: เมฆพาสเทล + สายรุ้ง + ดาวเคราะห์มีวงแหวน + ประกาย ---------- */
@@ -2322,6 +2508,15 @@
    ปรับ 3 อย่าง: ขนาดหัวข้อไล่ลำดับชัดขึ้น · ตัวอักษรรองไม่จางเกิน ·
    ตัวเลขทุกที่ใช้ฟอนต์ตัวเลขที่ความกว้างเท่ากัน อ่านเป็นข้อมูลไม่ใช่ข้อความ
    ============================================================ */
+/* ฟอนต์หลักของทั้งแอป — Noto Sans Thai อ่านง่ายกว่า IBM Plex Sans Thai บนจอเล็ก
+   (ตัวอักษรสูงกว่า ช่องว่างในตัวกว้างกว่า สระบน-ล่างไม่ตีกัน)
+   ตั้งที่ body + input/textarea/select/button เพราะพวกนี้ไม่สืบทอด font จาก body เอง */
+body,
+input, textarea, select, button {
+  font-family: 'Noto Sans Thai', 'Sarabun', 'IBM Plex Sans Thai', 'Leelawadee UI', 'Noto Sans', sans-serif;
+}
+body { line-height: 1.7; letter-spacing: 0; }
+
 .page-title { font-size: 25px; line-height: 1.24; letter-spacing: -.034em; }
 .page-sub { font-size: 13px; line-height: 1.65; color: var(--muted); }
 .sh-title { font-size: 21px; letter-spacing: -.03em; }
@@ -2403,6 +2598,86 @@
 .bg-row.on.sweet .bg-mark { background: linear-gradient(140deg,#FF9BD2,#9B6BF0); }
 .bg-bd { flex: 1; min-width: 0; }
 .bg-nm { font-size: 14.5px; font-weight: 700; line-height: 1.4; letter-spacing: -.015em; }
+/* ชื่อเหรียญพิเศษใช้ฟอนต์ตามคอนเซปต์ของแต่ละอัน */
+.bg-row.sea .bg-nm.fancy {
+  font-family: 'Orbitron', 'Space Mono', ui-monospace, monospace;
+  font-weight: 800; font-size: 14px; letter-spacing: .06em; text-transform: uppercase;
+}
+.bg-row.tree .bg-nm.fancy {
+  font-family: 'Cinzel', Georgia, serif;
+  font-weight: 700; font-size: 16px; letter-spacing: .04em;
+}
+.bg-row.sweet .bg-nm.fancy {
+  font-family: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+  font-weight: 700; font-size: 17px; letter-spacing: .05em;
+}
+.bg-row.on.sea .bg-nm.fancy { color: #0E7BA8; }
+.bg-row.on.tree .bg-nm.fancy { color: #1E7A3C; }
+.bg-row.on.sweet .bg-nm.fancy {
+  background: linear-gradient(96deg, #C349D8, #FF6FB5 45%, #8A5BF0);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* ---------- ขอบไฮไลต์เคลื่อนไหวของเหรียญพิเศษ ----------
+   วาดด้วย conic-gradient หมุนอยู่ "ใต้" วงเหรียญ แล้วเจาะกลางด้วยพื้นการ์ด
+   ทุกอย่างถูกตัดด้วย overflow:hidden ของตัววง จึงไม่มีอะไรออกนอกกรอบ
+   โผล่เฉพาะเหรียญที่ปลดล็อกแล้วเท่านั้น (.on) */
+.bg-row .bg-mark { position: relative; overflow: hidden; }
+.bg-row.on.sea .bg-mark::before,
+.bg-row.on.tree .bg-mark::before,
+.bg-row.on.sweet .bg-mark::before {
+  content: '';
+  position: absolute;
+  inset: -55%;
+  border-radius: 50%;
+  animation: mark-spin 3.4s linear infinite;
+}
+.bg-row.on.sea .bg-mark::before {
+  background: conic-gradient(from 0deg, #0EA5E9, #1E3A8A 25%, #22D3EE 50%, #1D4ED8 75%, #0EA5E9);
+}
+.bg-row.on.tree .bg-mark::before {
+  background: conic-gradient(from 0deg, #86EFAC, #14532D 28%, #4ADE80 52%, #166534 78%, #86EFAC);
+  animation-duration: 4.6s;
+}
+.bg-row.on.sweet .bg-mark::before {
+  background: conic-gradient(from 0deg, #FF5FC8, #A855F7 22%, #FF8AE2 48%, #7C3AED 72%, #FF5FC8);
+  animation-duration: 2.6s;
+  filter: saturate(1.5) brightness(1.12);
+}
+/* วงในทึบ — เหลือให้เห็นเป็น "ขอบ" กว้าง 3px */
+.bg-row.on.sea .bg-mark::after,
+.bg-row.on.tree .bg-mark::after,
+.bg-row.on.sweet .bg-mark::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: inherit;
+}
+.bg-row.on.sea .bg-mark span,
+.bg-row.on.tree .bg-mark span,
+.bg-row.on.sweet .bg-mark span { position: relative; z-index: 2; }
+/* ใบไม้ลอยอยู่ในวงของ World Tree (ตัดขอบด้วย overflow ของตัววง) */
+.bg-row.on.tree .bg-mark span::before,
+.bg-row.on.tree .bg-mark span::after {
+  content: '';
+  position: absolute;
+  width: 9px; height: 9px;
+  border-radius: 62% 8% 62% 8%;
+  background: #BBF7D0;
+  box-shadow: 0 0 0 1px rgba(20,83,45,.25);
+  animation: mark-leaf 5s ease-in-out infinite;
+}
+.bg-row.on.tree .bg-mark span::before { left: -15px; top: -12px; }
+.bg-row.on.tree .bg-mark span::after { right: -14px; top: 6px; animation-delay: -2.4s; width: 7px; height: 7px; }
+@keyframes mark-spin { to { transform: rotate(360deg); } }
+@keyframes mark-leaf {
+  0%, 100% { transform: translate(0, 0) rotate(0); opacity: .95; }
+  50% { transform: translate(6px, 9px) rotate(140deg); opacity: .65; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bg-mark::before, .bg-mark span::before, .bg-mark span::after { animation: none !important; }
+}
 .bg-ds { margin-top: 3px; font-size: 12px; line-height: 1.55; color: var(--muted); }
 .bg-pg { margin-top: 8px; height: 5px; border-radius: 999px; background: var(--card2); overflow: hidden; }
 .bg-pg i { display: block; height: 100%; border-radius: 999px; background: var(--grad-brand); }
