@@ -39,9 +39,13 @@ C:\Users\UsEr\Downloads\studentos-ai-repo\            ← git clone ของ re
 
 1. แก้ไฟล์ใน `StudentOS AI design system\alt\`
 2. ทดสอบผ่าน preview
-3. ซิงก์: ลบ `studentos-ai-repo\alt` แล้วก๊อปทับใหม่ → `git add -A alt` → commit
-4. **`git push` เป็นหน้าที่ของผู้ใช้เท่านั้น** — เครื่องนี้ไม่มี credential ของ GitHub และเราไม่กรอกรหัสแทนเขา
-   บอกคำสั่งนี้ให้เขาไปกดเอง:
+3. ซิงก์: ก๊อปไฟล์ใน `alt\` ทับลง `studentos-ai-repo\alt\` → `git add -A alt` → commit
+   **อย่าลบโฟลเดอร์ `studentos-ai-repo\alt` ทิ้งแล้วก๊อปใหม่** — ใน repo มี `alt/HANDOFF.md`
+   ที่ไม่มีในโฟลเดอร์ทำงาน ลบทีเดียวหายเลย ให้ก๊อปทับไฟล์ต่อไฟล์แทน
+4. **`git push` ต้องให้ผู้ใช้สั่งก่อนทุกครั้ง** — ของขึ้นเว็บจริงทันทีที่ push
+   (แก้ 8 ส.ค. 2569) เครื่องนี้ **push ได้แล้ว** มี credential helper เก็บไว้ให้ — ของเดิมที่เขียนว่า
+   "เครื่องนี้ไม่มี credential" ใช้ไม่ได้แล้ว แต่ **"ได้" ไม่ได้แปลว่า "ทำเองได้โดยไม่ต้องถาม"**
+   ถ้าเขายังไม่ได้สั่ง ให้ commit ไว้เฉย ๆ แล้วบอกคำสั่งนี้:
    ```
    git -C "C:/Users/UsEr/Downloads/studentos-ai-repo" push origin main
    ```
@@ -105,6 +109,7 @@ C:\Users\UsEr\Downloads\studentos-ai-repo\            ← git clone ของ re
 | หน้าโหลด | `ALT: ฉากเปิดแอป + เปอร์เซ็นต์จริง` | % = min(งานที่เสร็จจริง, เวลา/3.6วิ) |
 | OCR | `ALT: เตรียมภาพก่อนส่งเข้า OCR` | Sauvola + ครอบกรอบ + อ่านซ้ำ 3 แบบ |
 | แถบเมนู | `ALT: ตำแหน่งแถบเมนู` | จอ ≥760px = แถบซ้าย · เช็คซ้ำ 4 ทางกันค้างผิดโหมด |
+| ช่องใส่โค้ด | `ALT 1A6M3: ช่องใส่โค้ด` | ดูข้อ 14 — **ห้ามเขียนตัวโค้ดลงไฟล์ไหนใน repo** |
 
 ---
 
@@ -194,13 +199,32 @@ getComputedStyle(el).animationName                                 // เช็�
 ## 13. คอมมิตล่าสุด ณ ตอนส่งต่อ
 
 ```
+97ab314  Make the badge highlight a border again, and add a code box to settings
+1271a71  Merge remote-tracking branch 'origin/main'
+99e346a  Loop the Thai text, ring the whole badge, and write the handoff
 b44b23a  Switch to Noto Sans Thai, dress the special badges, and add GENESIS
 5d7f17c  StudentOS Update 1A6M3 "Modern" Final Part
 a963af3  Keep the theme eggs playable after they are found
-60d1306  Fit the whole menu on one screen, and open up the friends system
-03f2fc4  Write up the LINE work the other branch never documented
-c0d637c  Merge the LINE inbox work into 1A6M2
 ```
 
 > หมายเหตุ: คอมมิต `b44b23a` เขียนว่า Noto Sans Thai แต่หลังจากนั้นผู้ใช้ขอ **ฟอนต์ไทยแบบมีหัว**
 > จึงเปลี่ยนเป็น **Sarabun** ในคอมมิตถัดไป — ยึดตามข้อ 9 เป็นหลัก
+
+---
+
+## 14. ช่องใส่โค้ด (เพิ่ม 8 ส.ค. 2569)
+
+ในจอ **ตั้งค่า** มีช่องพิมพ์โค้ด · โค้ดจริงอยู่กับผู้ใช้ **ห้ามเขียนลงไฟล์ไหนใน repo เด็ดขาด**
+(repo เป็นสาธารณะ — เขียนลงไปเมื่อไหร่คือหลุดทันที) ในโค้ดเก็บไว้แค่ลายนิ้วมือ SHA-256 ใน `CODE_HASH`
+
+**กฎที่ผู้ใช้สั่งไว้:**
+- แอป**ห้ามบอกว่ามีโค้ดอะไรบ้าง หรือโค้ดไหนทำอะไร** — ทั้งใน UI, placeholder, ข้อความตอนพิมพ์ผิด
+  และในแพตช์โน้ต · ตอนผิดบอกได้แค่ "ใช้ไม่ได้" ห้ามใบ้ว่าใกล้เคียงแค่ไหน
+- **โค้ดมีเฉพาะรุ่น 1A6M3** — บังคับด้วย `CODE_VERSION` ที่เทียบกับ `APP_VERSION`
+  ขึ้นรุ่นใหม่ = ช่องหายเองและโค้ดหมดอายุเอง **ถ้าจะให้รุ่นถัดไปใช้ได้ต้องตั้งใจแก้บรรทัดนั้น**
+
+**สิ่งที่ต้องไม่ทำพัง:**
+- โค้ดที่ปลดล็อกของ ใช้ธง `ALLBADGE_KEY` แยกต่างหาก **ห้ามไปปลอม `doneCount()`** เลขในจอผลของฉันต้องจริงเสมอ
+- โค้ดที่ล้างแอป ลบเฉพาะคีย์ prefix `studentos.alt.` **ห้ามแตะข้อมูลบิลด์ตัวจริง** (`studentos.v1`)
+- `clearAll()` กับ `relockSecrets()` ต้องลบ `ALLBADGE_KEY` ด้วย ไม่งั้นล้างแล้วเหรียญยังครบค้างอยู่
+- โค้ดที่ล้างแอป **ยังไม่มีจังหวะถามยืนยัน** — ตั้งใจให้เป็นแบบนั้น ถ้าจะเพิ่มต้องถามผู้ใช้ก่อน
