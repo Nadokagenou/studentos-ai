@@ -152,6 +152,9 @@
     <div class="fx" aria-hidden="true">
       <i class="fx-a"></i><i class="fx-b"></i><i class="fx-c"></i><i class="fx-d"></i>
       <i class="fx-e"></i><i class="fx-f"></i>
+      <!-- 2 ช่องท้ายเพิ่มให้ GENESIS (แสงเหนือ + หมู่ดาว) ธีมอื่นไม่ได้ตั้งสไตล์ไว้
+           จึงเป็นกล่องเปล่าไม่มีขนาด ไม่กระทบฉากของธีมไหนเลย -->
+      <i class="fx-g"></i><i class="fx-h"></i>
       <span class="fx-shoot"></span>
     </div>
     <!-- ALT: พื้นหลังภาพของผู้ใช้เอง (ตั้งในแท็บ "ฉัน") — ม่านหรี่ทับให้ตัวหนังสืออ่านออก -->
@@ -511,6 +514,13 @@
 
           <!-- ALT 1A6M3: ทางเข้าใหญ่ 3 ทาง — ตั้งค่าทั้งหมดย้ายไปอยู่หลังปุ่ม -->
           <div class="pf-entry">
+            <!-- ALT 1A6M3: ร้านค้า — อยู่เหนือเหรียญตรา · ติดป้าย "กำลังทำ" เพราะของในร้านยังไม่เปิด
+                 แต่โทเคนสะสมจริงตั้งแต่ตอนนี้ ปุ่มจึงกดเข้าไปดูยอดได้ ไม่ใช่ปุ่มตาย -->
+            <button class="pe pe-shop" onclick="go('scr-shop')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+              <span class="pe-tx"><b>ร้านค้า <span class="pe-wip">กำลังทำ</span></b><i id="peShopCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
             <button class="pe" onclick="go('scr-badges')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-medal"/></svg></span>
               <span class="pe-tx"><b>เหรียญตรา</b><i id="peBadgeCt"></i></span>
@@ -528,6 +538,18 @@
             </button>
           </div>
           <p class="app-ver" id="appVer"></p>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: ร้านค้า (ALT 1A6M3 — ยังสร้างไม่เสร็จ) ============ -->
+      <div class="screen flush" id="scr-shop">
+        <div class="scr-body pf-body">
+          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+            <div></div>
+            <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <div id="shopBody"></div>
         </div>
       </div>
 
@@ -781,9 +803,12 @@
     <!-- ============ SPLASH: ฉากเปิดแอป ============ -->
     <div id="splash">
       <div class="sp-glow"></div>
-      <img class="sp-logo" src="logo-mark.png" alt="StudentOS AI">
+      <!-- โลโก้วางบนแผ่นรองสีอ่อน — โลโก้ตัวใหม่เป็นน้ำเงินเข้มบนพื้นใส
+           ถ้าวางลงบนพื้นกรมท่าของฉากเปิดตรง ๆ จะจมหายไปทั้งอัน -->
+      <div class="sp-plate"><img class="sp-logo" src="logo-mark.png" alt="StudentOS AI"></div>
       <div class="sp-word">StudentOS <span>AI</span></div>
-      <div class="sp-alt">ALT · VERSION 1A6M3 “MODERN”</div>
+      <!-- เลขรุ่นดึงจาก APP_VERSION ที่เดียว (app.js เขียนให้) ขึ้นรุ่นใหม่ไม่ต้องมาไล่แก้ตรงนี้ -->
+      <div class="sp-alt" id="spVer">ALT</div>
       <div class="sp-tag">รู้ว่าต้องทำอะไรก่อน เสมอ</div>
       <!-- ALT: เปอร์เซ็นต์จริง — เดินตามงานที่โหลดเสร็จจริง ไม่ใช่แถบหลอกตา -->
       <div class="sp-load">

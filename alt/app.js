@@ -1420,6 +1420,12 @@ function renderProfile() {
   if (pb) pb.textContent = badgesEarned().length + ' จาก ' + BADGES.length + ' เหรียญ';
   const pf2 = document.getElementById('peFriendCt');
   if (pf2) pf2.textContent = friends().length ? friends().length + ' คนในรายการ' : 'ยังไม่มีใครในรายการ';
+  const ps = document.getElementById('peShopCt');
+  if (ps) {
+    const st = loginStreak();
+    ps.textContent = tokenBalance() + ' โทเคน'
+      + (st > 1 ? ' · เปิดติดกัน ' + st + ' วัน' : '');
+  }
   const ver = document.getElementById('appVer');
   if (ver) ver.textContent = 'StudentOS ' + APP_CHANNEL + ' Version ' + APP_VERSION
     + ' “' + APP_CODENAME + '” · รุ่นทดลองฟีเจอร์';
@@ -1673,6 +1679,83 @@ function renderBadges() {
     }).join('')}`;
 }
 
+// ---------- ALT 1A6M3: โทเคน (เงินในแอป) ----------
+// สถานะ: **ร้านค้ายังสร้างไม่เสร็จ** ปุ่มจึงติดป้าย "กำลังทำ" ไว้
+// แต่การนับวันกับการสะสมโทเคน **เดินจริงตั้งแต่ตอนนี้** ตั้งใจให้เป็นแบบนั้น —
+// ถ้ารอเปิดร้านก่อนค่อยเริ่มนับ วันแรกที่ร้านเปิดทุกคนจะมียอดเป็นศูนย์เท่ากันหมด
+// คนที่เปิดแอปมาตลอดจะไม่ได้อะไรจากความสม่ำเสมอที่ผ่านมาเลย
+const TOKEN_KEY = 'studentos.alt.tokens';
+const TOKEN_BASE = 5;        // ได้ทุกวันที่เปิดแอป
+const TOKEN_STREAK_CAP = 7;  // โบนัสต่อเนื่องตันที่ 7 วัน กันไม่ให้ห่างกันจนไล่ไม่ทัน
+
+function dayKey(d = new Date()) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+    + '-' + String(d.getDate()).padStart(2, '0');
+}
+function tokenState() {
+  try { return JSON.parse(localStorage.getItem(TOKEN_KEY)) || {}; } catch (_) { return {}; }
+}
+function saveTokenState(s) {
+  try { localStorage.setItem(TOKEN_KEY, JSON.stringify(s)); } catch (_) {}
+}
+function tokenBalance() { return tokenState().bal || 0; }
+function loginStreak() { return tokenState().streak || 0; }
+
+// เรียกครั้งเดียวตอนเปิดแอป — วันละครั้ง ไม่ว่าจะเปิดกี่รอบ
+function checkDailyToken() {
+  const s = tokenState();
+  const today = dayKey();
+  if (s.day === today) return null;
+  const yesterday = dayKey(new Date(Date.now() - 86400000));
+  // ต่อเนื่องนับจาก "เปิดเมื่อวาน" เท่านั้น ขาดไปวันหนึ่งก็เริ่มนับหนึ่งใหม่
+  s.streak = (s.day === yesterday) ? (s.streak || 0) + 1 : 1;
+  s.best = Math.max(s.best || 0, s.streak);
+  s.days = (s.days || 0) + 1;
+  const bonus = Math.min(s.streak, TOKEN_STREAK_CAP);
+  const earned = TOKEN_BASE + bonus;
+  s.bal = (s.bal || 0) + earned;
+  s.day = today;
+  saveTokenState(s);
+  return { earned, bonus, streak: s.streak, bal: s.bal, firstEver: s.days === 1 };
+}
+
+function renderShop() {
+  const box = document.getElementById('shopBody');
+  if (!box) return;
+  const s = tokenState();
+  const streak = s.streak || 0;
+  const next = TOKEN_BASE + Math.min(streak + 1, TOKEN_STREAK_CAP);
+  box.innerHTML = `<div class="page-head">
+      <div class="eyebrow mono">ยังสร้างไม่เสร็จ</div>
+      <h1 class="page-title">ร้านค้า</h1>
+      <p class="page-sub">โทเคนสะสมไว้ได้ตั้งแต่ตอนนี้ ของในร้านกำลังทำอยู่</p>
+    </div>
+    <div class="tk-hero">
+      <div class="tk-coin">${icon('sparkles')}</div>
+      <div class="tk-bd">
+        <div class="tk-bal mono">${s.bal || 0}</div>
+        <div class="tk-unit">โทเคน</div>
+      </div>
+    </div>
+    <div class="tk-stats">
+      <div><div class="v mono">${streak}</div><div class="k">ต่อเนื่อง (วัน)</div></div>
+      <div><div class="v mono">${s.best || 0}</div><div class="k">สถิติต่อเนื่อง</div></div>
+      <div><div class="v mono">${s.days || 0}</div><div class="k">เปิดแอปรวม</div></div>
+    </div>
+    <div class="tk-note">
+      <span class="tile">${icon('sparkles')}</span>
+      <div style="flex:1;min-width:0">
+        <div class="lb">ได้โทเคนมายังไง</div>
+        <div class="tx">เปิดแอปวันละครั้งได้ ${TOKEN_BASE} โทเคน บวกโบนัสตามจำนวนวันที่เปิดติดกัน
+          (สูงสุด ${TOKEN_STREAK_CAP}) — พรุ่งนี้ถ้าเปิดต่อจะได้ <b>${next}</b> โทเคน</div>
+      </div>
+    </div>
+    <div class="tk-soon">
+      <div class="lb">ของในร้านยังไม่เปิด</div>
+      <p>กำลังทำอยู่ — โทเคนที่สะสมไว้ตอนนี้จะยังอยู่ครบเมื่อร้านเปิด ไม่ต้องรีบใช้</p>
+    </div>`;
+}
+
 // ---------- ALT 1A6M3: ป้ายเตือนบนแถบเมนู ----------
 // งานที่ AI จัดว่า "ด่วนมาก" และยังไม่เสร็จ ต้องเห็นได้โดยไม่ต้องเข้าไปดู
 function renderTabBadges() {
@@ -1776,7 +1859,7 @@ function renderStats() {
 function renderAll() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline();
   renderProfile(); renderStats(); renderPlan(); renderFriends(); renderBadges();
-  renderInstallCard(); renderTabBadges();
+  renderShop(); renderInstallCard(); renderTabBadges();
   // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น
   // (กันแอปพังทั้งจอถ้าไฟล์ inbox.js/linelink.js โหลดไม่ขึ้น)
   if (typeof renderInbox === 'function') renderInbox();
@@ -3417,6 +3500,9 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   // ป้ายมุมจอบอกเลขเวอร์ชัน — ดึงจาก APP_VERSION ที่เดียว ขึ้นรุ่นใหม่ไม่ต้องไล่แก้ HTML
   const badge = document.getElementById('altBadge');
   if (badge) badge.textContent = APP_VERSION;
+  // ป้ายรุ่นบนฉากเปิดแอป — เคยพิมพ์เลขรุ่นไว้ตรง ๆ ใน HTML แล้วลืมแก้ตอนขึ้นรุ่น
+  const spv = document.getElementById('spVer');
+  if (spv) spv.textContent = APP_CHANNEL + ' · VERSION ' + APP_VERSION + ' “' + APP_CODENAME + '”';
 
   applyDeepUnlock();     // ALT: ปุ่มธีมลับจะโผล่เฉพาะคนที่ปลดล็อกแล้ว
   applyGenesisUnlock();
@@ -3451,8 +3537,23 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   }
   splashStep('notif');
 
+  // โทเคนรายวัน — นับก่อนวาดจอ ยอดบนปุ่มร้านค้าจะได้ตรงตั้งแต่เฟรมแรก
+  const gotToken = checkDailyToken();
+
   routeStart();
   splashStep('plan');
+
+  // เด้งบอกทีหลังให้ฉากเปิดแอปปิดไปก่อน และไม่ไปทับ toast เหรียญที่อาจมาในจังหวะเดียวกัน
+  if (gotToken) {
+    setTimeout(() => {
+      showToast({
+        title: gotToken.firstEver ? 'เริ่มสะสมโทเคนแล้ว ✦' : '+' + gotToken.earned + ' โทเคน',
+        body: gotToken.streak > 1
+          ? 'เปิดแอปติดกัน ' + gotToken.streak + ' วัน — รวมมี ' + gotToken.bal + ' โทเคน'
+          : 'เปิดแอปวันนี้ได้ ' + gotToken.earned + ' โทเคน · ร้านค้ากำลังทำอยู่',
+      });
+    }, 5200);
+  }
 
   // ปิดฉากเปิดแอปเมื่อเปอร์เซ็นต์ถึง 100 (= งานเสร็จจริง + ครบเวลาขั้นต่ำ)
   endSplashWhenReady(() => {
