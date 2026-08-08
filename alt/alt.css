@@ -1932,22 +1932,29 @@
   font-weight: 700;
   line-height: 1.15;
   text-align: center;
-  /* วงแหวนสีการ์ดคั่นระหว่างป้ายกับพื้นหลัง — ธีมไหนที่สีป้ายใกล้กับสีไทล์
-     (ธีมสว่างเป็นบ่อยสุด) ป้ายจะยังเห็นเป็นก้อนแยกออกมาชัด ไม่จมหายไปกับพื้น */
-  box-shadow: 0 0 0 2px var(--card), 0 2px 6px rgba(0,0,0,.22);
+  /* ต้นเหตุที่ตัวเลขจางในธีมสว่าง: .mtile::after คือวงแสงมุมบนขวา 128px
+     ที่ไล่จาก var(--blue-soft) ออกไปโปร่ง — ธีมสว่างสีนั้นเป็นสีทึบ (เช่น #E2EEFC)
+     และ pseudo-element เป็นลูกคนสุดท้าย จึงวาดทับป้ายที่ไม่มี z-index จนมิด
+     (.mt-tx ของดีไซน์เดิมกัน position:relative ไว้แล้ว แต่ป้ายตัวเลขตกหล่นไป)
+     ธีมมืดไม่เป็นเพราะสีนั้นเป็น rgba โปร่งเกือบหมด */
+  z-index: 2;
+  /* เงาใต้ป้าย + วงแหวนสีการ์ด ทำให้ป้ายลอยขึ้นมาจากไทล์ ไม่จมไปกับพื้นไม่ว่าธีมไหน */
+  box-shadow: 0 0 0 2px var(--card), 0 3px 8px rgba(0,0,0,.3);
+  /* เงาใต้ตัวเลขอีกชั้น เผื่อธีมที่สีป้ายกับสีตัวอักษรใกล้กันกว่าที่ควร */
+  text-shadow: 0 1px 2px rgba(0,0,0,.35);
   /* กันไม่ให้ความโปร่งของกล่องแม่ (ธีมที่การ์ดกึ่งโปร่ง / มีภาพพื้นหลัง) ลามมาที่ตัวเลข */
   opacity: 1;
-  isolation: isolate;
 }
 .mt-ct.hot {
   background: var(--pri-red);
   color: #fff;
-  box-shadow: 0 0 0 2px var(--card), 0 2px 6px rgba(0,0,0,.22);
+  box-shadow: 0 0 0 2px var(--card), 0 3px 8px rgba(0,0,0,.3);
 }
 .mtile.hero .mt-ct {
   background: #fff;
   color: var(--blue-deep);
-  box-shadow: 0 0 0 2px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.2);
+  text-shadow: none;                       /* พื้นขาวตัวน้ำเงินเข้ม ไม่ต้องมีเงาช่วย */
+  box-shadow: 0 0 0 2px rgba(0,0,0,.14), 0 3px 8px rgba(0,0,0,.26);
 }
 /* ไทล์เด่น: เพิ่มงานใหม่ — กว้างเต็มแถวและใช้สีแบรนด์ */
 .mtile.hero {
@@ -3221,58 +3228,167 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 @keyframes jf-drift   { from { left: -80px; } to { left: 100%; } }
 @keyframes jf-twinkle { from { opacity: .35; } to { opacity: .8; } }
 
-/* ---------- GENESIS: เส้นเวลาในอวกาศ ---------- */
+/* ---------- GENESIS: จุดที่ทุกอย่างเริ่มต้นใหม่ ----------
+   ธีมนี้เป็นปลายทางของทั้งแอป (ต้องได้เหรียญครบทุกอันก่อนถึงจะเปิด)
+   ฉากบนเส้นทางจึงต้องหนักแน่นกว่าธีมอื่นชัดเจน ไม่ใช่แค่พื้นเข้ม ๆ กับจุดลอย
+   ชั้นทั้งหมด: ห้วงอวกาศ + เส้นขอบฟ้าพาดตามถนน → แสงเหนือไหลสวนทาง + คลื่นกระแทก
+                → ลำแสงพุ่งขึ้นจากถนน → หมู่ดาวมีเส้นเชื่อม → เพชรใหญ่มีเหลี่ยม → ผลึกน้ำแข็งตก
+   และทุกชั้นแรงขึ้นพร้อมกันตอนอีเวนต์ 99 วิของธีมทำงาน (data-gevent)
+   เหมือนที่ฉากพื้นหลังของธีมทำอยู่แล้ว เส้นทางจึงไม่ใช่จอที่ถูกลืม */
 :root[data-theme="genesis"] .jf-a {
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(24,32,86,.42), rgba(8,12,38,.5)),
-    radial-gradient(90% 50% at 50% 50%, rgba(142,155,232,.22), transparent 72%);
+    radial-gradient(120% 72% at 50% 50%, rgba(142,155,232,.32), transparent 68%),
+    linear-gradient(180deg, rgba(10,14,44,.66) 0%, rgba(32,42,108,.40) 47%, rgba(8,12,38,.70) 100%);
 }
+/* เส้นขอบฟ้าเรืองแสงพาดทับแนวถนนพอดี — ถนนกลายเป็นเส้นเวลาที่เปล่งแสงเอง */
+:root[data-theme="genesis"] .jf-a::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 3px;
+  margin-top: -1.5px;
+  background: linear-gradient(90deg, transparent, rgba(183,245,255,.6) 22%, rgba(255,255,255,.5) 50%, rgba(183,245,255,.6) 78%, transparent);
+  filter: blur(2.5px);
+  animation: gx-horizon 7s ease-in-out infinite alternate;
+}
+
+/* แสงเหนือ 2 ผืนไหลสวนทางกัน — ใช้ alternate จึงไม่มีรอยต่อตอนวนกลับ */
 :root[data-theme="genesis"] .jf-b {
   inset: 0;
-  background: linear-gradient(100deg, transparent 34%, rgba(183,245,255,.24) 47%, rgba(255,255,255,.14) 52%, transparent 66%);
-  background-size: 260% 100%;
-  animation: jf-sweep 9s linear infinite;
+  background-image:
+    linear-gradient(100deg, transparent 28%, rgba(183,245,255,.22) 42%, rgba(255,255,255,.14) 50%, transparent 64%),
+    linear-gradient(78deg, transparent 52%, rgba(142,155,232,.26) 66%, transparent 82%);
+  background-size: 220% 100%, 280% 100%;
+  background-repeat: no-repeat;
+  animation: gx-aurora 12s ease-in-out infinite alternate;
 }
+/* คลื่นกระแทกวงกว้างกระจายออกจากกลางฉากเป็นจังหวะ
+   วางบนชั้นแสงเหนือเพราะชั้นนี้ไม่มี transform ของตัวเอง ขนาดจึงคุมได้ตรง ๆ */
+:root[data-theme="genesis"] .jf-b::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 46px; height: 46px;
+  margin: -23px 0 0 -23px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(183,245,255,.65);
+  transform: rotate(45deg);
+  animation: gx-shock 6.5s ease-out infinite;
+}
+
+/* ลำแสงพุ่งขึ้นจากถนน — เสาแสงบาง ๆ เรียงตลอดแนว จางหายไปทางด้านบน
+   ล้อกับ "พื้นดินยิงเส้นตรงขึ้นฟ้า" ที่ฉากพื้นหลังของธีมทำตอนอีเวนต์ */
+:root[data-theme="genesis"] .jf-d {
+  left: 0; right: 0; top: 10%;
+  height: 40%;
+  background-repeat: repeat-x;
+  background-size: 124px 100%;
+  background-image: linear-gradient(90deg, transparent 46%, rgba(183,245,255,.45) 48.5%, rgba(255,255,255,.5) 50%, rgba(183,245,255,.45) 51.5%, transparent 54%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 4%, #000 82%);
+          mask-image: linear-gradient(180deg, transparent 4%, #000 82%);
+  animation: gx-beam 4.6s ease-in-out infinite;
+}
+
+/* หมู่ดาว: จุดสว่างพร้อมเส้นเชื่อมจาง ๆ ให้อ่านเป็นกลุ่มดาว ไม่ใช่จุดกระจายมั่ว */
+:root[data-theme="genesis"] .jf-e {
+  inset: 0;
+  background-repeat: repeat;
+  background-size: 154px 98px, 98px 134px;
+  background-position: 22px 18px, 76px 60px;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.92) 22%, transparent 24%),
+    radial-gradient(circle, rgba(183,245,255,.7) 18%, transparent 20%);
+  animation: gx-twinkle 5.2s ease-in-out infinite alternate;
+}
+:root[data-theme="genesis"] .jf-e::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  background-size: 154px 98px;
+  background-image: linear-gradient(27deg, transparent 48.4%, rgba(190,215,255,.2) 49.2%, rgba(190,215,255,.2) 50.4%, transparent 51.2%);
+}
+
+/* เพชรใหญ่กลางฉาก — มีเหลี่ยมด้านในและแสงขอบ ไม่ใช่สี่เหลี่ยมเอียงเปล่า ๆ */
 :root[data-theme="genesis"] .jf-c {
   left: 50%; top: 50%;
-  width: 30px; height: 30px;
-  margin: -15px 0 0 -15px;
-  background: linear-gradient(150deg, rgba(214,250,255,.85), rgba(120,140,235,.7));
+  width: 42px; height: 42px;
+  margin: -21px 0 0 -21px;
+  border-radius: 8px;
+  background: linear-gradient(150deg, rgba(228,252,255,.95), rgba(152,172,246,.78) 54%, rgba(88,108,220,.72));
+  box-shadow: 0 0 34px rgba(170,210,255,.7), inset 0 0 16px rgba(255,255,255,.6);
   transform: rotate(45deg);
-  border-radius: 5px;
-  box-shadow: 0 0 24px rgba(160,200,255,.6);
-  animation: jf-gem 6.5s ease-in-out infinite;
+  animation: gx-gem 7s ease-in-out infinite;
 }
-:root[data-theme="genesis"] .jf-d,
-:root[data-theme="genesis"] .jf-e {
-  left: 0; right: 0; bottom: -20px;
-  height: 130%;
-  background-repeat: repeat-x;
-  background-size: 130px 130px;
-  background-image: linear-gradient(45deg, transparent 44%, rgba(200,225,255,.45) 46%, rgba(200,225,255,.45) 50%, transparent 52%);
-  animation: jf-rise 14s linear infinite;
+:root[data-theme="genesis"] .jf-c::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border: 1px solid rgba(255,255,255,.6);
+  border-radius: 5px;
+}
+:root[data-theme="genesis"] .jf-c::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 1px;
+  margin-top: -.5px;
+  background: rgba(255,255,255,.55);
+}
+
+/* ผลึกน้ำแข็งตกลงมาเบา ๆ 2 ขนาด */
+:root[data-theme="genesis"] .jf-f {
+  inset: -30% 0 0;
+  height: 160%;
+  background-repeat: repeat;
+  background-size: 58px 58px, 94px 94px;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.78) 20%, transparent 22%),
+    radial-gradient(circle, rgba(183,245,255,.62) 16%, transparent 18%);
+  animation: gx-fall 13s linear infinite;
   opacity: .5;
 }
-:root[data-theme="genesis"] .jf-e { background-size: 88px 88px; animation-duration: 20s; animation-delay: -6s; opacity: .3; }
-:root[data-theme="genesis"] .jf-f {
-  inset: -20% 0 0;
-  height: 140%;
-  background-repeat: repeat;
-  background-size: 64px 64px, 104px 104px;
-  background-image:
-    radial-gradient(circle, rgba(255,255,255,.7) 26%, transparent 28%),
-    radial-gradient(circle, rgba(183,245,255,.55) 22%, transparent 24%);
-  animation: jf-fall 17s linear infinite;
-  opacity: .45;
+
+/* ถนนช่วงที่เดินผ่านมาแล้ว เปล่งแสงเย็นแบบ GENESIS แทนสีน้ำเงินเรียบของธีมปกติ */
+:root[data-theme="genesis"] .jr-road.done {
+  background: linear-gradient(90deg, #6F7FE8, #B7F5FF);
+  box-shadow: 0 0 22px -2px rgba(183,245,255,.85);
 }
-@keyframes jf-sweep { to { background-position: 260% 0; } }
-@keyframes jf-gem {
-  0%, 100% { transform: rotate(45deg) scale(1);    opacity: .8; }
-  50%      { transform: rotate(45deg) scale(1.18); opacity: 1; }
+
+/* ---- อีเวนต์ 99 วิ: ฉากบนเส้นทางแรงขึ้นพร้อมกันทั้งชุด ----
+   ตัวจับเวลาเดินเฉพาะตอนใช้ธีมนี้อยู่ (genesisLoop ใน app.js) จอนี้จึงไม่กินแรงเปล่า */
+:root[data-gevent="on"][data-theme="genesis"] .jf-a::after { animation-duration: 1.8s; }
+:root[data-gevent="on"][data-theme="genesis"] .jf-b { animation-duration: 4s; }
+:root[data-gevent="on"][data-theme="genesis"] .jf-b::after { animation-duration: 2.2s; }
+:root[data-gevent="on"][data-theme="genesis"] .jf-c { animation-duration: 2.4s; }
+/* ลำแสงต้องสว่างขึ้นด้วย ไม่ใช่แค่เร็วขึ้น — แต่ opacity ถูก keyframe คุมอยู่
+   ตั้ง opacity ตรง ๆ จึงไม่มีผล (อนิเมชันชนะประกาศธรรมดาเสมอ) ต้องสลับชุด keyframe แทน */
+:root[data-gevent="on"][data-theme="genesis"] .jf-d { animation: gx-beam-hot 1.4s ease-in-out infinite; }
+:root[data-gevent="on"][data-theme="genesis"] .jf-e { animation-duration: 1.6s; }
+:root[data-gevent="on"][data-theme="genesis"] .jf-f { animation-duration: 4.2s; opacity: .9; }
+
+@keyframes gx-horizon {
+  from { opacity: .45; transform: scaleX(.92); }
+  to   { opacity: 1;   transform: scaleX(1); }
 }
-@keyframes jf-rise { from { transform: translateY(0); } to { transform: translateY(-130px); } }
-@keyframes jf-fall { from { transform: translateY(-64px); } to { transform: translateY(0); } }
+@keyframes gx-aurora {
+  from { background-position: 0% 0, 100% 0; }
+  to   { background-position: 100% 0, 0% 0; }
+}
+@keyframes gx-shock {
+  0%   { transform: rotate(45deg) scale(1);   opacity: .8; }
+  72%  { transform: rotate(45deg) scale(4.2); opacity: 0; }
+  100% { transform: rotate(45deg) scale(4.2); opacity: 0; }
+}
+@keyframes gx-beam     { 0%, 100% { opacity: .32; } 50% { opacity: .95; } }
+@keyframes gx-beam-hot { 0%, 100% { opacity: .7; }  50% { opacity: 1; } }
+@keyframes gx-gem {
+  0%, 100% { transform: rotate(45deg) scale(1);    opacity: .85; }
+  50%      { transform: rotate(45deg) scale(1.17); opacity: 1; }
+}
+@keyframes gx-twinkle { from { opacity: .4; } to { opacity: .95; } }
+@keyframes gx-fall { from { transform: translateY(-58px); } to { transform: translateY(0); } }
 
 /* ธีมลับทำให้ฉากเข้มขึ้น ตัวหนังสือบนเส้นทางต้องสว่างขึ้นตาม ไม่งั้นจมหายไปกับฉาก */
 :root[data-theme="deepocean"] .jr-day span,
