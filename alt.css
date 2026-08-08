@@ -3468,10 +3468,12 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
   position: relative;
 }
 
+/* คำโปรยขึ้นมาต่อจากโลโก้ตรง ๆ แล้ว (ชื่อแอปกับป้ายเลขรุ่นถูกตัดออกจากจอนี้)
+   13px ที่เคยใช้ตอนมีสองบรรทัดคั่นอยู่ เลยแคบเกินไป */
 .sp-tag {
-  margin-top: 13px;
+  margin-top: 24px;
   font-size: 13.5px;
-  animation-delay: .56s;
+  animation-delay: .3s;
 }
 
 .sp-load { margin-top: 26px; }
