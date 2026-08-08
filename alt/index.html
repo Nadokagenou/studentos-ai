@@ -46,10 +46,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Space Mono ใช้เฉพาะวันที่/เวลา/ตัวเลข ให้ตัวเลขเรียงตรงคอลัมน์และอ่านเป็นข้อมูล -->
-  <!-- 1A6M3: ฟอนต์เนื้อความเป็น Sarabun — ภาษาไทยแบบ "มีหัว" หัวตัวอักษรช่วยให้สายตา
-       จับตัวอักษรได้เร็ว อ่านยาว ๆ สบายกว่าแบบไม่มีหัว · หัวข้อกับป้ายกำกับยังเป็น IBM Plex Sans Thai
-       Orbitron / Cinzel / Cinzel Decorative ใช้เฉพาะชื่อเหรียญพิเศษเท่านั้น -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Orbitron:wght@600;800&family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&display=swap">
+  <!-- ฟอนต์: ตัวไทยทั้งแอปเป็น Sarabun (แบบ "มีหัว") ทั้งเนื้อความและหัวข้อ
+       หัวข้อใช้ IBM Plex Sans ซึ่งเป็นตัวละตินล้วน ไม่มีตัวไทยอยู่ในฟอนต์
+       เบราว์เซอร์จึงหยิบทีละตัวอักษร: อังกฤษ/ตัวเลข = IBM Plex เหมือนเดิม · ไทย = Sarabun
+       (เลิกโหลด IBM Plex Sans Thai แล้ว เพราะมีตัวไทยแบบไม่มีหัวติดมาด้วย)
+       Space Mono = ตัวเลข · Orbitron / Cinzel / Cinzel Decorative = ชื่อเหรียญพิเศษ -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Orbitron:wght@600;800&family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&display=swap">
   <link rel="stylesheet" href="style.css">
   <!-- ALT เท่านั้น: ป้ายกำกับรุ่นทดลอง แยกไฟล์ไว้ ไม่แตะ style.css เดิม จะสลับ stylesheet ทีหลังก็ได้ -->
   <link rel="stylesheet" href="alt.css">
@@ -483,7 +485,13 @@
           <div class="pf-hero">
             <span class="b1"></span><span class="b2"></span>
             <div class="pf-id">
-              <div class="pf-av" id="pfAv">N</div>
+              <!-- ALT: แตะที่รูปเปลี่ยนรูปได้เลย ไม่ต้องเข้าไปหาในตั้งค่า -->
+              <button type="button" class="pf-av-btn" id="pfAvBtn"
+                onclick="document.getElementById('avInput').click()" aria-label="เปลี่ยนรูปโปรไฟล์">
+                <div class="pf-av" id="pfAv">N</div>
+                <span class="pf-av-cam"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
+              </button>
+              <input type="file" id="avInput" accept="image/*" hidden>
               <div style="flex:1;min-width:0">
                 <div class="pf-nm" id="pfNm">นักเรียน</div>
                 <div class="pf-sb" id="pfSb"></div>
@@ -543,6 +551,21 @@
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#ic-profile"/></svg></span>
               <span class="bd"><span class="lb">ชื่อเล่น</span></span>
               <input type="text" id="pName" placeholder="เช่น Nado" onchange="saveProfile()">
+            </div>
+
+            <!-- ALT: รูปโปรไฟล์ของตัวเอง — เก็บในเครื่อง ไม่ต้องมีบัญชี -->
+            <div class="pf-row col">
+              <span class="hd">
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
+                <span class="bd"><span class="lb">รูปโปรไฟล์</span>
+                  <span class="sb">แตะที่รูปในหน้า “ฉัน” ก็เปลี่ยนได้เหมือนกัน</span></span>
+              </span>
+              <div class="bg-tools">
+                <button type="button" class="bg-pick" onclick="document.getElementById('avInput').click()">
+                  <svg viewBox="0 0 24 24"><use href="#lu-image"/></svg><span id="avPickLabel">เลือกรูป</span></button>
+                <button type="button" class="bg-del" id="avDel" onclick="clearAvatar()" hidden>
+                  <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg></button>
+              </div>
             </div>
             <div class="pf-row">
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>

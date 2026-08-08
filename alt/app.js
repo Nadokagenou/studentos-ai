@@ -60,8 +60,11 @@ const SECRETS = {
     store: 'studentos.alt.earth2Unlocked', flag: 'earth2', theme: 'earth2', fx: 'egg-leaf', taps: 5,
     title: 'ปลดล็อกธีมต้นไม้โลก 🌳', body: 'มีลม มีนกบินผ่าน มีต้นไม้ใหญ่กลางจอ และหญ้าไหวอยู่ก้นจอ',
   },
-  warm: {
-    store: 'studentos.alt.sweetUnlocked', flag: 'sweet', theme: 'sweet', fx: 'egg-star', taps: 22,
+  // ย้ายมาจากปุ่มชมพู (เดิมต้องกด 22 ครั้ง) — กาแล็กซีเป็นธีมอวกาศอยู่แล้ว
+  // ของที่ซ่อนอยู่ข้างหลังจึงเป็นจักรวาลอีกใบ เข้ากันกว่าและนับ 5 ครั้งเท่าอันอื่น
+  // ที่เก็บ (store) ยังเป็นคีย์เดิม คนที่ปลดล็อกไปแล้วจึงไม่หลุด
+  galaxy: {
+    store: 'studentos.alt.sweetUnlocked', flag: 'sweet', theme: 'sweet', fx: 'egg-star', taps: 5,
     title: 'ปลดล็อกธีมจักรวาลหวานแหว 🌈', body: 'ก้อนเมฆพาสเทล สายรุ้ง และดาวเคราะห์มีวงแหวน',
   },
 };
@@ -395,10 +398,37 @@ function renderAppearance() {
 }
 
 // ---------- navigation ----------
+// ---------- ALT: ทิศทางของอนิเมชันเปลี่ยนจอ ----------
+// จอระดับบนสุด = จอที่มีปุ่มของตัวเองอยู่บนแถบเมนู สลับกันไปมาได้อิสระ
+// สลับระหว่างจอพวกนี้ = "แนวนอน" (จางสลับ) ไม่ใช่การเข้าไปข้างในหรือถอยออกมา
+// เข้าไปจอที่ไม่มีบนแถบเมนู = "เข้า" (เลื่อนมาจากขวา) · กลับออกมา = "ถอย" (เลื่อนมาจากซ้าย)
+// ทิศทางที่ตรงกับสิ่งที่เพิ่งกด ทำให้รู้ว่าตัวเองอยู่ตรงไหนของแอปโดยไม่ต้องอ่านหัวจอ
+const TOP_SCREENS = ['scr-menu', 'scr-home', 'scr-tasks', 'scr-timeline', 'scr-profile'];
+let curScreen = '';
+
+function navDirection(from, to) {
+  if (!from || from === to) return 'lat';
+  const fromTop = TOP_SCREENS.includes(from), toTop = TOP_SCREENS.includes(to);
+  if (fromTop && toTop) return 'lat';
+  return toTop ? 'back' : 'fwd';
+}
+
+let enterTimer = null;
+
 function go2(id){ return go(id); }
 function go(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
-  document.getElementById(id).classList.add('on');
+  const dir = navDirection(curScreen, id);
+  curScreen = id;
+  document.body.dataset.godir = dir;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on', 'just-in'));
+  const scr = document.getElementById(id);
+  scr.classList.add('on');
+  // เนื้อหาไล่ขึ้นทีละชิ้นเฉพาะตอน "เพิ่งเข้าจอ" เท่านั้น
+  // renderAll() ถูกเรียกทุกครั้งที่ข้อมูลเปลี่ยน (ติ๊กงานเสร็จ ปัดการ์ด ซิงก์จาก cloud)
+  // ถ้าไม่กันไว้ การ์ดทั้งจอจะไล่ขึ้นใหม่ทุกครั้งที่แตะอะไรสักอย่าง กระตุกและกวนสายตา
+  clearTimeout(enterTimer);
+  scr.classList.add('just-in');
+  enterTimer = setTimeout(() => scr.classList.remove('just-in'), 520);
   // ซ่อนแถบล่างในจอที่ยังไม่ได้เข้าแอปจริง (บัญชี / ทำความรู้จัก)
   document.body.classList.toggle('login-mode', id === 'scr-login' || id === 'scr-onboard');
   document.querySelectorAll('.tab[data-scr]').forEach(b =>
@@ -1227,6 +1257,12 @@ function renderTimeline() {
     <div class="jr" id="jrScroll">
       <div class="jr-track" id="jrTrack" data-start="${+start}" data-span="${span}" data-w="${width}"
         style="width:${width}px">
+        <!-- ฉากประจำธีมลับ — วางก่อนถนนใน DOM ทุกอย่างที่เหลือจึงทับอยู่ข้างบนเสมอ
+             ธีมปกติซ่อนชั้นนี้ทั้งก้อน (ดู .jr-fx ใน alt.css) -->
+        <div class="jr-fx" aria-hidden="true">
+          <i class="jf-a"></i><i class="jf-b"></i><i class="jf-c"></i>
+          <i class="jf-d"></i><i class="jf-e"></i><i class="jf-f"></i>
+        </div>
         <div class="jr-road"></div>
         <div class="jr-road done" id="jrDone" style="width:${meX}px"></div>
         ${ticks}
@@ -1336,8 +1372,20 @@ function renderProfile() {
   const name = state.settings.name || (currentUser && currentUser.user_metadata && currentUser.user_metadata.full_name) || 'นักเรียน';
   const pic = currentUser && currentUser.user_metadata && (currentUser.user_metadata.avatar_url || currentUser.user_metadata.picture);
 
+  // รูปที่ตั้งเองมาก่อนรูปจากบัญชี Google — ผู้ใช้เลือกเองย่อมตั้งใจกว่า
+  const mine = userAvatar();
   const av = document.getElementById('pfAv');
-  if (av) av.innerHTML = pic ? `<img src="${esc(pic)}" alt="">` : esc(name.trim().charAt(0).toUpperCase() || 'N');
+  if (av) {
+    av.innerHTML = (mine || pic)
+      ? `<img src="${esc(mine || pic)}" alt="">`
+      : esc(name.trim().charAt(0).toUpperCase() || 'N');
+    av.classList.toggle('has-img', !!(mine || pic));
+  }
+  // ปุ่มเอารูปออก โผล่เฉพาะคนที่ตั้งรูปเองไว้ (รูปจากบัญชี Google เอาออกที่นี่ไม่ได้)
+  const avDel = document.getElementById('avDel');
+  if (avDel) avDel.hidden = !mine;
+  const avLabel = document.getElementById('avPickLabel');
+  if (avLabel) avLabel.textContent = mine ? 'เปลี่ยนรูป' : 'เลือกรูป';
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
   set('pfNm', name);
   set('pfSb', currentUser ? (currentUser.email || 'ซิงก์ข้ามเครื่องอยู่') : 'ยังไม่ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้');
@@ -1560,7 +1608,7 @@ const BADGES = [
   { id: 'tree', tone: 'tree', mark: '✦', name: 'World Tree',
     desc: 'ยังมีลมพัดอยู่ตรงนั้นเสมอ', secret: 'earth' },
   { id: 'sophyra', tone: 'sweet', mark: '✧', name: 'Sophyra',
-    desc: 'บางอย่างสวยเกินกว่าจะเป็นเรื่องบังเอิญ', secret: 'warm' },
+    desc: 'บางอย่างสวยเกินกว่าจะเป็นเรื่องบังเอิญ', secret: 'galaxy' },
   // เหรียญปลายทาง — ผูกกับการปลดล็อกธีม GENESIS (ซึ่งต้องได้เหรียญอื่นครบก่อน)
   { id: 'genesis', tone: 'genesis', mark: '◆', name: 'GENESIS',
     desc: 'จุดที่ทุกอย่างเริ่มต้นใหม่อีกครั้ง', genesis: true },
@@ -2474,6 +2522,44 @@ async function confirmCrop(whole) {
   await runOcrOn(c, whole ? 'ทั้งรูป' : 'ครอบกรอบ');
 }
 
+// ---------- ALT: รูปโปรไฟล์ของตัวเอง ----------
+// เดิมรูปมาจากบัญชี Google เท่านั้น ใครไม่ล็อกอินก็ได้แค่ตัวอักษรตัวแรกของชื่อ
+// เก็บในเครื่องเหมือนภาพพื้นหลังกับภาพวิดเจ็ต ไม่ต้องมีบัญชีก็ตั้งรูปได้
+const AV_KEY = 'studentos.alt.avatar';
+
+function userAvatar() {
+  try { return localStorage.getItem(AV_KEY) || ''; } catch (_) { return ''; }
+}
+
+async function pickAvatar(file) {
+  let bmp;
+  try { bmp = await ocrLoadBitmap(file); }
+  catch (_) { showToast({ title: 'เปิดไฟล์ภาพไม่ได้', body: 'ลองเลือกภาพอื่นดูอีกที' }); return; }
+  // ครอบเป็นสี่เหลี่ยมจัตุรัสจากกลางภาพ — กรอบรูปโปรไฟล์เป็นจัตุรัส
+  // ถ้าไม่ครอบก่อน ภาพแนวตั้งจะโดน object-fit ตัดหัวหรือตัดคางทีหลังอยู่ดี
+  const side = Math.min(bmp.width, bmp.height);
+  const sx = Math.round((bmp.width - side) / 2);
+  const sy = Math.round((bmp.height - side) / 2);
+  const out = document.createElement('canvas');
+  out.width = out.height = 256;          // แสดงจริงแค่ 60px ที่ 2x-3x ก็ยังเหลือเฟือ
+  out.getContext('2d').drawImage(bmp, sx, sy, side, side, 0, 0, 256, 256);
+  const data = out.toDataURL('image/jpeg', 0.82);
+  try { localStorage.setItem(AV_KEY, data); }
+  catch (_) {
+    showToast({ title: 'ที่เก็บในเครื่องเต็ม 😅', body: 'ลบภาพพื้นหลังหรือภาพวิดเจ็ตออกสักอันแล้วลองใหม่' });
+    return;
+  }
+  haptic('done');
+  renderProfile();
+  showToast({ title: 'เปลี่ยนรูปโปรไฟล์แล้ว 🖼', body: 'เอาออกได้ที่จอตั้งค่า' });
+}
+
+function clearAvatar() {
+  try { localStorage.removeItem(AV_KEY); } catch (_) {}
+  renderProfile();
+  showToast({ title: 'เอารูปโปรไฟล์ออกแล้ว', body: 'กลับไปใช้ตัวอักษรแรกของชื่อเหมือนเดิม' });
+}
+
 // ย่อก่อนเก็บเหมือนพื้นหลัง — วิดเจ็ตกว้างไม่เกิน ~1000px ก็เกินพอแล้ว
 function saveWidgetPhoto(canvas) {
   const max = 1000;
@@ -3022,14 +3108,58 @@ const FUN_FACTS = [
   'พระอาทิตย์ตกบนดาวอังคารเป็นสีฟ้า — ตรงข้ามกับบนโลกพอดี',
 ];
 
-let factTimer = null, lastFactIdx = -1;
+// ---------- ALT: เกร็ดเฉพาะธีมลับ ----------
+// ธีมลับแต่ละอันมีเกร็ดของตัวเองที่เข้ากับฉากในธีมนั้น — คนที่อุตส่าห์ปลดล็อกมาได้
+// จะเจอเนื้อหาที่คนอื่นไม่เคยเห็น ไม่ใช่แค่เปลี่ยนสีจอเฉย ๆ
+const THEME_FACTS = {
+  deepocean: [
+    'จุดที่ลึกที่สุดในมหาสมุทรชื่อ Challenger Deep ลึกราว 10,900 เมตร — เอายอดเขาเอเวอเรสต์หย่อนลงไปยังจมมิด',
+    'ใต้ทะเลลึก 1,000 เมตรลงไปไม่มีแสงอาทิตย์เหลือแล้ว แสงเกือบทั้งหมดที่เห็นมาจากตัวสัตว์ที่เรืองแสงเอง',
+    'ปลาหมึกยักษ์มีเซลล์ประสาทสองในสามอยู่ที่หนวด แต่ละหนวดจึงตัดสินใจเองได้โดยไม่ต้องรอสมอง',
+    'แรงดันที่ก้นร่องลึกมาเรียนามากกว่าที่ผิวน้ำราว 1,000 เท่า',
+    'ฉลามมีอยู่บนโลกมาก่อนต้นไม้ — ฉลามเก่าแก่กว่าต้นไม้ราว 50 ล้านปี',
+  ],
+  earth2: [
+    'ต้นไม้ในป่าส่งอาหารและสัญญาณเตือนถึงกันผ่านเครือข่ายเชื้อราใต้ดิน',
+    'ต้นไม้ที่เก่าแก่ที่สุดที่ยังมีชีวิตอยู่คือสนบริสเซิลโคน อายุกว่า 4,800 ปี — แก่กว่าพีระมิดบางแห่ง',
+    'ป่าแอมะซอนสร้างฝนให้ตัวเอง ไอน้ำที่ต้นไม้คายออกมากลายเป็นเมฆแล้วตกกลับลงมา',
+    'ใบไม้เปลี่ยนสีในฤดูใบไม้ร่วงเพราะคลอโรฟิลล์สลายไป สีเหลืองส้มอยู่ในใบมาตลอดแต่ถูกสีเขียวบังไว้',
+    'รากของต้นไม้ใหญ่แผ่กว้างกว่าเรือนยอดของมันเอง แต่ส่วนใหญ่ลึกไม่ถึง 1 เมตร',
+  ],
+  sweet: [
+    'สายรุ้งเป็นวงกลมเต็มวงเสมอ เราเห็นแค่ครึ่งเดียวเพราะพื้นดินบังอีกครึ่งไว้',
+    'ดาวเสาร์มีความหนาแน่นน้อยกว่าน้ำ ถ้าหาอ่างที่ใหญ่พอได้ มันจะลอย',
+    'วงแหวนของดาวเสาร์หนาเฉลี่ยไม่ถึง 1 กิโลเมตร ทั้งที่กว้างเป็นแสนกิโลเมตร',
+    'สีชมพูไม่มีความยาวคลื่นเป็นของตัวเองในสเปกตรัม — สมองสร้างมันขึ้นมาจากแสงสีแดงกับม่วง',
+    'มีดาวเคราะห์ที่ฝนตกเป็นแก้วและพัดในแนวนอนด้วยความเร็วกว่า 7,000 กม./ชม. ชื่อ HD 189733b',
+  ],
+  genesis: [
+    'อะตอมทุกตัวในร่างกายเรา ยกเว้นไฮโดรเจน เกิดขึ้นในใจกลางของดาวฤกษ์ที่ตายไปแล้ว',
+    'แสงจากกาแล็กซีที่ไกลที่สุดที่เรามองเห็น ออกเดินทางมาตั้งแต่ก่อนโลกจะถือกำเนิด',
+    'เพชรก่อตัวลึกลงไปใต้ผิวโลกราว 150 กิโลเมตร ใช้เวลานับพันล้านปี',
+    'อวกาศไม่ได้เงียบเพราะไม่มีเสียง แต่เพราะไม่มีอากาศให้เสียงเดินทาง',
+    'จักรวาลยังขยายตัวอยู่ทุกวินาที และขยายเร็วขึ้นเรื่อย ๆ ไม่ได้ช้าลงอย่างที่เคยคิดกัน',
+  ],
+};
+
+let factTimer = null, lastFact = '';
+
+// ธีมลับมีโอกาสออกเกร็ดของตัวเองราวครึ่งหนึ่ง — บ่อยพอให้รู้สึกว่าธีมมีของจริง
+// แต่ไม่ถึงกับกลบเกร็ดชุดกลางจนหายไปหมด
+function factPool() {
+  const extra = THEME_FACTS[document.documentElement.dataset.theme];
+  if (!extra) return FUN_FACTS;
+  return Math.random() < 0.5 ? extra : FUN_FACTS;
+}
 
 function pickFunFact() {
-  let i;
-  do { i = Math.floor(Math.random() * FUN_FACTS.length); }
-  while (FUN_FACTS.length > 1 && i === lastFactIdx);   // ไม่ซ้ำอันเดิมติดกัน
-  lastFactIdx = i;
-  return FUN_FACTS[i];
+  const pool = factPool();
+  let pick;
+  let guard = 0;
+  do { pick = pool[Math.floor(Math.random() * pool.length)]; }
+  while (pick === lastFact && ++guard < 8);   // ไม่ซ้ำอันเดิมติดกัน
+  lastFact = pick;
+  return pick;
 }
 
 function startFunFacts(el, ms = 4500) {
@@ -3256,6 +3386,11 @@ document.getElementById('bgInput').addEventListener('change', e => {
 document.addEventListener('change', e => {
   if (e.target && (e.target.id === 'wgPhotoInput' || e.target.id === 'wgPhotoInput2')) {
     if (e.target.files[0]) pickWidgetPhoto(e.target.files[0]);
+    e.target.value = '';
+  }
+  // รูปโปรไฟล์ — ช่องเดียวใช้ร่วมกันทั้งปุ่มในตั้งค่าและการแตะที่รูปในหน้า "ฉัน"
+  if (e.target && e.target.id === 'avInput') {
+    if (e.target.files[0]) pickAvatar(e.target.files[0]);
     e.target.value = '';
   }
 });

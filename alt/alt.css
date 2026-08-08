@@ -1928,17 +1928,26 @@
   background: var(--blue);
   color: var(--on-accent);
   font-family: 'Space Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
   line-height: 1.15;
   text-align: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,.16);
+  /* วงแหวนสีการ์ดคั่นระหว่างป้ายกับพื้นหลัง — ธีมไหนที่สีป้ายใกล้กับสีไทล์
+     (ธีมสว่างเป็นบ่อยสุด) ป้ายจะยังเห็นเป็นก้อนแยกออกมาชัด ไม่จมหายไปกับพื้น */
+  box-shadow: 0 0 0 2px var(--card), 0 2px 6px rgba(0,0,0,.22);
+  /* กันไม่ให้ความโปร่งของกล่องแม่ (ธีมที่การ์ดกึ่งโปร่ง / มีภาพพื้นหลัง) ลามมาที่ตัวเลข */
+  opacity: 1;
+  isolation: isolate;
 }
-.mt-ct.hot { background: var(--pri-red); color: #fff; box-shadow: none; }
+.mt-ct.hot {
+  background: var(--pri-red);
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--card), 0 2px 6px rgba(0,0,0,.22);
+}
 .mtile.hero .mt-ct {
-  background: rgba(255,255,255,.92);
+  background: #fff;
   color: var(--blue-deep);
-  box-shadow: none;
+  box-shadow: 0 0 0 2px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.2);
 }
 /* ไทล์เด่น: เพิ่มงานใหม่ — กว้างเต็มแถวและใช้สีแบรนด์ */
 .mtile.hero {
@@ -2512,16 +2521,31 @@
    อ่านยาว ๆ สบายกว่าแบบไม่มีหัว · ตั้งที่ body + ช่องกรอก เพราะช่องกรอกไม่สืบทอดฟอนต์เอง */
 body,
 input, textarea, select, button {
-  font-family: 'Sarabun', 'IBM Plex Sans Thai', 'Leelawadee UI', 'Noto Sans Thai', sans-serif;
+  font-family: 'Sarabun', 'Leelawadee UI', sans-serif;
 }
 body { line-height: 1.7; letter-spacing: 0; }
 
-/* หัวข้อกับป้ายกำกับยังเป็นฟอนต์เดิม (IBM Plex Sans Thai) — ตัวหนากระชับ
-   ใช้เป็นหัวเรื่องได้ดีกว่า และทำให้ลำดับสายตาแยกจากเนื้อความชัดขึ้นอีกชั้น */
+/* style.css (ห้ามแก้) มีอีก 5 กฎที่ตั้งฟอนต์เป็น "Space Mono","IBM Plex Sans Thai"
+   ตัวเลขได้ Space Mono ถูกแล้ว แต่ตัวไทยในกล่องพวกนี้จะตกไปเป็นแบบไม่มีหัว
+   จึงต้องเปลี่ยนตัวสำรองเป็น Sarabun ให้ครบทุกอัน (ไล่จาก grep "font-family" ในไฟล์นั้น)
+   ตัวเลขไม่กระทบ เพราะ Space Mono ยังอยู่หน้าสุดเหมือนเดิม */
+.mono,
+.rank,
+.seg3 .ct,
+.day-label .ct,
+.tltime {
+  font-family: 'Space Mono', 'Sarabun', ui-monospace, monospace;
+}
+
+/* หัวข้อ: ภาษาอังกฤษกับตัวเลขยังเป็น IBM Plex เหมือนเดิม แต่ภาษาไทยต้องเป็นแบบ "มีหัว"
+   วิธี: ใส่ 'IBM Plex Sans' (ตัวละติน ไม่มีสระ/พยัญชนะไทยอยู่ในฟอนต์) ไว้หน้าสุด
+   เบราว์เซอร์เลือกฟอนต์ทีละตัวอักษร ตัวอังกฤษกับเลขจึงได้ IBM Plex เหมือนเดิมทุกประการ
+   ส่วนตัวไทยหาไม่เจอในฟอนต์นั้น เลยตกไปใช้ Sarabun ซึ่งมีหัวโดยอัตโนมัติ
+   (ของเดิมใส่ 'IBM Plex Sans Thai' ซึ่งมีตัวไทยอยู่ด้วย ตัวไทยเลยไม่มีหัวทั้งหน้า) */
 .page-title, .sh-title, .big-title, .fm-h, .ob-h, .obw-name, .empty-h,
 .wg-title, .wg-time, .mt-lb, .pe-tx b, .st-hero .v, .fr-nm, .bg-nm,
 .sec-label, .eyebrow, .sp-word {
-  font-family: 'IBM Plex Sans Thai', 'Sarabun', 'Leelawadee UI', sans-serif;
+  font-family: 'IBM Plex Sans', 'Sarabun', 'Leelawadee UI', sans-serif;
 }
 
 .page-title { font-size: 25px; line-height: 1.24; letter-spacing: -.034em; }
@@ -2887,4 +2911,377 @@ body { line-height: 1.7; letter-spacing: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .wipe-mark { animation: none; }
+}
+
+/* ============================================================
+   ALT: อนิเมชันเปลี่ยนจอ + จังหวะตอนกด
+   ของเดิมมีแค่ rise เดียวใช้กับทุกการเปลี่ยนจอ ไม่ว่าจะเข้า ถอย หรือสลับแท็บ
+   แยกเป็น 3 ทิศให้ตรงกับสิ่งที่เพิ่งกด (ทิศตั้งใน go() ที่ body[data-godir])
+   .screens มี overflow:hidden อยู่แล้ว การเลื่อนแนวนอนจึงไม่ทำให้จอเลื่อนได้
+   ============================================================ */
+body[data-godir="fwd"] .screen.on  { animation: scr-fwd  .34s cubic-bezier(.22,.9,.28,1) both; }
+body[data-godir="back"] .screen.on { animation: scr-back .32s cubic-bezier(.22,.9,.28,1) both; }
+body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.85,.3,1) both; }
+
+@keyframes scr-fwd {
+  from { opacity: 0; transform: translate3d(26px, 0, 0); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes scr-back {
+  from { opacity: 0; transform: translate3d(-22px, 0, 0); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes scr-lat {
+  from { opacity: 0; transform: translate3d(0, 8px, 0) scale(.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* เนื้อหาไล่ขึ้นทีละชิ้นแทนที่จะโผล่พร้อมกันทั้งจอ — สายตาได้ไล่จากบนลงล่าง
+   จำกัดที่ 6 ชิ้นแรกพอ ที่เหลือขึ้นพร้อมกัน ไม่งั้นชิ้นท้าย ๆ รอนานจนรู้สึกแอปช้า */
+.screen.on.just-in .menu-grid > *,
+.screen.on.just-in .rank-card,
+.screen.on.just-in .pf-entry > *,
+.screen.on.just-in .bg-row,
+.screen.on.just-in .pf-list > .pf-row {
+  animation: item-in .3s cubic-bezier(.22,.9,.28,1) both;
+}
+.screen.on.just-in .menu-grid > :nth-child(1),
+.screen.on.just-in .pf-list > .pf-row:nth-child(1) { animation-delay: .02s; }
+.screen.on.just-in .menu-grid > :nth-child(2),
+.screen.on.just-in .rank-card:nth-child(2),
+.screen.on.just-in .pf-entry > :nth-child(2),
+.screen.on.just-in .bg-row:nth-child(2),
+.screen.on.just-in .pf-list > .pf-row:nth-child(2) { animation-delay: .05s; }
+.screen.on.just-in .menu-grid > :nth-child(3),
+.screen.on.just-in .rank-card:nth-child(3),
+.screen.on.just-in .pf-entry > :nth-child(3),
+.screen.on.just-in .bg-row:nth-child(3),
+.screen.on.just-in .pf-list > .pf-row:nth-child(3) { animation-delay: .08s; }
+.screen.on.just-in .menu-grid > :nth-child(4),
+.screen.on.just-in .bg-row:nth-child(4),
+.screen.on.just-in .pf-list > .pf-row:nth-child(4) { animation-delay: .11s; }
+.screen.on.just-in .menu-grid > :nth-child(5),
+.screen.on.just-in .bg-row:nth-child(5),
+.screen.on.just-in .pf-list > .pf-row:nth-child(5) { animation-delay: .14s; }
+.screen.on.just-in .menu-grid > :nth-child(n+6),
+.screen.on.just-in .bg-row:nth-child(n+6),
+.screen.on.just-in .pf-list > .pf-row:nth-child(n+6) { animation-delay: .17s; }
+
+@keyframes item-in {
+  from { opacity: 0; transform: translate3d(0, 9px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---------- จังหวะตอนกด ----------
+   กดแล้วยุบลงทันที ปล่อยแล้วเด้งกลับ — บอกว่าแอปรับคำสั่งแล้วก่อนจอจะเปลี่ยน */
+.mtile, .pe, .pf-row, .jr-stop, .rank-card, .bg-pick, .empty-cta {
+  transition: transform .13s cubic-bezier(.3,.8,.4,1), box-shadow .13s ease;
+}
+.pe:active, .pf-row:active, .rank-card:active { transform: scale(.982); }
+.jr-stop:active { transform: scale(.94); }
+.empty-cta:active { transform: scale(.96); }
+
+/* ปุ่มบนแถบเมนู: ไอคอนเด้งขึ้นตอนกลายเป็นแท็บที่เลือกอยู่ */
+.tab.active .ic { animation: tab-pop .32s cubic-bezier(.2,.9,.3,1.5); }
+@keyframes tab-pop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.22) translateY(-2px); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-godir] .screen.on,
+  .screen.on.just-in .menu-grid > *,
+  .screen.on.just-in .rank-card,
+  .screen.on.just-in .pf-entry > *,
+  .screen.on.just-in .bg-row,
+  .screen.on.just-in .pf-list > .pf-row,
+  .tab.active .ic { animation: none; }
+  .mtile, .pe, .pf-row, .jr-stop, .rank-card, .bg-pick, .empty-cta { transition: none; }
+}
+
+/* ---------- ALT: รูปโปรไฟล์ตั้งเองได้ ---------- */
+.pf-av-btn {
+  position: relative;
+  flex: none;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+  border-radius: 20px;
+  transition: transform .13s cubic-bezier(.3,.8,.4,1);
+}
+.pf-av-btn:active { transform: scale(.94); }
+.pf-av-btn:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+/* ป้ายกล้องมุมขวาล่าง บอกว่ารูปนี้แตะเปลี่ยนได้ ไม่ใช่แค่รูปแสดงผล */
+.pf-av-cam {
+  position: absolute;
+  right: -3px; bottom: -3px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--blue-deep);
+  box-shadow: 0 2px 6px rgba(0,0,0,.28);
+  display: flex; align-items: center; justify-content: center;
+}
+.pf-av-cam svg { width: 12px; height: 12px; }
+/* ตั้งรูปแล้วไม่ต้องมีพื้นกับขอบของกรอบตัวอักษรอีก ปล่อยให้เห็นรูปเต็ม ๆ */
+.pf-av.has-img { background: none; border-color: rgba(255,255,255,.45); }
+@media (prefers-reduced-motion: reduce) { .pf-av-btn { transition: none; } }
+
+/* ============================================================
+   ALT: ฉากบนหน้าเส้นทาง เฉพาะธีมลับ 4 โทน
+   แต่ละโทนเล่าคนละเรื่อง ไม่ใช่เอฟเฟกต์เดียวกันเปลี่ยนสี:
+     ทะเลลึก   = ถนนคือพื้นร่องลึก มีฟองลอยขึ้นและเงาฉลามว่ายผ่าน
+     ต้นไม้โลก = ถนนคือทางเดินในป่า มีหญ้าไหวและใบไม้ปลิวข้าม
+     หวานแหว   = ถนนคือทางในจักรวาลพาสเทล มีสายรุ้งคร่อมและดาวมีวงแหวน
+     GENESIS   = ถนนคือเส้นเวลาในอวกาศ มีคลื่นแสงกวาดและเพชรลอย
+   ทุกชั้นอยู่ใต้ถนนกับป้ายจอด และ pointer-events:none จึงไม่บังทั้งสายตาและการกด
+   ============================================================ */
+.jr-fx { display: none; }
+:root[data-theme="deepocean"] .jr-fx,
+:root[data-theme="earth2"] .jr-fx,
+:root[data-theme="sweet"] .jr-fx,
+:root[data-theme="genesis"] .jr-fx {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  pointer-events: none;
+}
+.jr-fx i { position: absolute; display: block; }
+
+/* ---------- ทะเลลึก: ร่องลึกใต้น้ำ ---------- */
+:root[data-theme="deepocean"] .jf-a {
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(14,68,110,.34) 0%, rgba(3,20,38,.5) 62%, rgba(1,10,22,.6) 100%),
+    radial-gradient(120% 40% at 50% 0%, rgba(120,220,255,.16), transparent 70%);
+}
+:root[data-theme="deepocean"] .jf-b {
+  inset: -10% -5% auto -5%;
+  height: 70%;
+  background:
+    linear-gradient(96deg, transparent 12%, rgba(150,225,255,.16) 16%, transparent 21%),
+    linear-gradient(84deg, transparent 46%, rgba(150,225,255,.12) 51%, transparent 56%),
+    linear-gradient(92deg, transparent 74%, rgba(150,225,255,.15) 79%, transparent 84%);
+  animation: jf-ray 13s ease-in-out infinite alternate;
+}
+:root[data-theme="deepocean"] .jf-c,
+:root[data-theme="deepocean"] .jf-d {
+  left: 0; right: 0; bottom: -14px;
+  height: 130%;
+  background-repeat: repeat-x;
+  background-image:
+    radial-gradient(circle, rgba(200,240,255,.5) 38%, transparent 40%),
+    radial-gradient(circle, rgba(200,240,255,.34) 36%, transparent 38%);
+  background-size: 140px 140px, 96px 96px;
+  background-position: 0 0, 60px 40px;
+  animation: jf-bub 11s linear infinite;
+  opacity: .55;
+}
+:root[data-theme="deepocean"] .jf-d { animation-duration: 16s; animation-delay: -5s; opacity: .34; }
+:root[data-theme="deepocean"] .jf-e {
+  top: 16%;
+  width: 74px; height: 20px;
+  border-radius: 60% 12% 55% 12%;
+  background: rgba(6,26,46,.62);
+  box-shadow: 26px 5px 0 -7px rgba(6,26,46,.62);
+  animation: jf-swim 26s linear infinite;
+}
+:root[data-theme="deepocean"] .jf-f {
+  bottom: 20%;
+  width: 42px; height: 12px;
+  border-radius: 58% 10% 52% 10%;
+  background: rgba(6,26,46,.42);
+  animation: jf-swim-back 19s linear infinite;
+  animation-delay: -7s;
+}
+@keyframes jf-ray  { from { transform: translateX(-14px); } to { transform: translateX(14px); } }
+@keyframes jf-bub  { from { transform: translateY(0); } to { transform: translateY(-140px); } }
+@keyframes jf-swim      { from { left: -90px; } to { left: 100%; } }
+@keyframes jf-swim-back { from { left: 100%; } to { left: -60px; } }
+
+/* ---------- ต้นไม้โลก: ทางเดินในป่า ---------- */
+:root[data-theme="earth2"] .jf-a {
+  inset: 0;
+  background:
+    radial-gradient(110% 46% at 24% -8%, rgba(255,224,140,.30), transparent 68%),
+    linear-gradient(180deg, transparent 52%, rgba(28,84,44,.26) 88%, rgba(20,62,32,.36) 100%);
+}
+:root[data-theme="earth2"] .jf-b {
+  left: 26px; bottom: 0;
+  width: 12px; height: 84px;
+  background: linear-gradient(90deg, rgba(58,36,18,.55), rgba(92,58,28,.55));
+  border-radius: 3px 3px 0 0;
+  transform-origin: 50% 100%;
+  animation: jf-sway 7s ease-in-out infinite alternate;
+}
+:root[data-theme="earth2"] .jf-b::before {
+  content: '';
+  position: absolute;
+  left: -37px; top: -52px;
+  width: 86px; height: 66px;
+  border-radius: 52% 48% 46% 54%;
+  background: radial-gradient(circle at 38% 34%, rgba(126,206,124,.62), rgba(30,96,48,.62));
+}
+:root[data-theme="earth2"] .jf-c {
+  left: 0; right: 0; bottom: 0;
+  height: 22px;
+  background-repeat: repeat-x;
+  background-size: 34px 22px;
+  background-image:
+    linear-gradient(178deg, transparent 42%, rgba(58,140,68,.5) 44%, transparent 52%),
+    linear-gradient(184deg, transparent 50%, rgba(78,164,86,.44) 52%, transparent 60%);
+  animation: jf-grass 5.5s ease-in-out infinite alternate;
+}
+:root[data-theme="earth2"] .jf-d,
+:root[data-theme="earth2"] .jf-e {
+  top: 22%;
+  width: 11px; height: 11px;
+  border-radius: 62% 8% 62% 8%;
+  background: rgba(168,224,150,.75);
+  animation: jf-leaf 15s linear infinite;
+}
+:root[data-theme="earth2"] .jf-e { top: 58%; width: 8px; height: 8px; animation-duration: 21s; animation-delay: -8s; opacity: .7; }
+:root[data-theme="earth2"] .jf-f {
+  top: 13%;
+  width: 13px; height: 5px;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  border-top: 1.6px solid rgba(40,70,50,.5);
+  box-shadow: 17px 5px 0 -1px rgba(40,70,50,.36);
+  animation: jf-bird 24s linear infinite;
+}
+@keyframes jf-sway  { from { transform: rotate(-1.6deg); } to { transform: rotate(1.6deg); } }
+@keyframes jf-grass { from { transform: skewX(-3deg); } to { transform: skewX(3deg); } }
+@keyframes jf-leaf {
+  from { left: -20px; transform: translateY(0) rotate(0deg); }
+  to   { left: 100%;  transform: translateY(52px) rotate(420deg); }
+}
+@keyframes jf-bird { from { left: -30px; } to { left: 100%; } }
+
+/* ---------- จักรวาลหวานแหว: ทางในจักรวาลพาสเทล ---------- */
+:root[data-theme="sweet"] .jf-a {
+  inset: 0;
+  background:
+    radial-gradient(100% 60% at 18% 0%, rgba(255,196,232,.34), transparent 68%),
+    radial-gradient(90% 55% at 82% 100%, rgba(186,170,255,.32), transparent 70%);
+}
+:root[data-theme="sweet"] .jf-b {
+  left: 8%; top: 6%;
+  width: 210px; height: 105px;
+  border-radius: 210px 210px 0 0 / 105px 105px 0 0;
+  border: 9px solid;
+  border-bottom: none;
+  border-image: linear-gradient(90deg, #FF9BD2, #FFD3A1, #FFF6A6, #A7F0C4, #A9D8FF, #C9B4FF) 1;
+  opacity: .5;
+  animation: jf-float 9s ease-in-out infinite alternate;
+}
+:root[data-theme="sweet"] .jf-c,
+:root[data-theme="sweet"] .jf-d {
+  top: 20%;
+  width: 62px; height: 22px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.6);
+  box-shadow: 20px -9px 0 -4px rgba(255,255,255,.55), -19px -6px 0 -6px rgba(255,255,255,.5);
+  animation: jf-drift 30s linear infinite;
+}
+:root[data-theme="sweet"] .jf-d { top: 68%; animation-duration: 42s; animation-delay: -14s; opacity: .7; }
+:root[data-theme="sweet"] .jf-e {
+  right: 44px; top: 12%;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #FFD9F0, #C78BE8);
+  box-shadow: 0 0 18px rgba(220,150,240,.5);
+  animation: jf-float 11s ease-in-out infinite alternate;
+}
+:root[data-theme="sweet"] .jf-e::after {
+  content: '';
+  position: absolute;
+  left: -15px; top: 13px;
+  width: 68px; height: 15px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255,214,240,.75);
+  transform: rotate(-19deg);
+}
+:root[data-theme="sweet"] .jf-f {
+  inset: 0;
+  background-repeat: repeat;
+  background-size: 118px 84px, 76px 112px;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.85) 34%, transparent 36%),
+    radial-gradient(circle, rgba(255,226,247,.7) 30%, transparent 32%);
+  background-position: 12px 20px, 58px 66px;
+  animation: jf-twinkle 4.4s ease-in-out infinite alternate;
+}
+@keyframes jf-float   { from { transform: translateY(-4px); } to { transform: translateY(6px); } }
+@keyframes jf-drift   { from { left: -80px; } to { left: 100%; } }
+@keyframes jf-twinkle { from { opacity: .35; } to { opacity: .8; } }
+
+/* ---------- GENESIS: เส้นเวลาในอวกาศ ---------- */
+:root[data-theme="genesis"] .jf-a {
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(24,32,86,.42), rgba(8,12,38,.5)),
+    radial-gradient(90% 50% at 50% 50%, rgba(142,155,232,.22), transparent 72%);
+}
+:root[data-theme="genesis"] .jf-b {
+  inset: 0;
+  background: linear-gradient(100deg, transparent 34%, rgba(183,245,255,.24) 47%, rgba(255,255,255,.14) 52%, transparent 66%);
+  background-size: 260% 100%;
+  animation: jf-sweep 9s linear infinite;
+}
+:root[data-theme="genesis"] .jf-c {
+  left: 50%; top: 50%;
+  width: 30px; height: 30px;
+  margin: -15px 0 0 -15px;
+  background: linear-gradient(150deg, rgba(214,250,255,.85), rgba(120,140,235,.7));
+  transform: rotate(45deg);
+  border-radius: 5px;
+  box-shadow: 0 0 24px rgba(160,200,255,.6);
+  animation: jf-gem 6.5s ease-in-out infinite;
+}
+:root[data-theme="genesis"] .jf-d,
+:root[data-theme="genesis"] .jf-e {
+  left: 0; right: 0; bottom: -20px;
+  height: 130%;
+  background-repeat: repeat-x;
+  background-size: 130px 130px;
+  background-image: linear-gradient(45deg, transparent 44%, rgba(200,225,255,.45) 46%, rgba(200,225,255,.45) 50%, transparent 52%);
+  animation: jf-rise 14s linear infinite;
+  opacity: .5;
+}
+:root[data-theme="genesis"] .jf-e { background-size: 88px 88px; animation-duration: 20s; animation-delay: -6s; opacity: .3; }
+:root[data-theme="genesis"] .jf-f {
+  inset: -20% 0 0;
+  height: 140%;
+  background-repeat: repeat;
+  background-size: 64px 64px, 104px 104px;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.7) 26%, transparent 28%),
+    radial-gradient(circle, rgba(183,245,255,.55) 22%, transparent 24%);
+  animation: jf-fall 17s linear infinite;
+  opacity: .45;
+}
+@keyframes jf-sweep { to { background-position: 260% 0; } }
+@keyframes jf-gem {
+  0%, 100% { transform: rotate(45deg) scale(1);    opacity: .8; }
+  50%      { transform: rotate(45deg) scale(1.18); opacity: 1; }
+}
+@keyframes jf-rise { from { transform: translateY(0); } to { transform: translateY(-130px); } }
+@keyframes jf-fall { from { transform: translateY(-64px); } to { transform: translateY(0); } }
+
+/* ธีมลับทำให้ฉากเข้มขึ้น ตัวหนังสือบนเส้นทางต้องสว่างขึ้นตาม ไม่งั้นจมหายไปกับฉาก */
+:root[data-theme="deepocean"] .jr-day span,
+:root[data-theme="genesis"] .jr-day span { color: rgba(226,240,255,.9); }
+:root[data-theme="deepocean"] .jr-track,
+:root[data-theme="earth2"] .jr-track,
+:root[data-theme="sweet"] .jr-track,
+:root[data-theme="genesis"] .jr-track { border-radius: 18px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .jr-fx i { animation: none !important; }
 }
