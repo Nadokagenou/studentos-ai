@@ -18,10 +18,51 @@ let editingId = null; // null = เพิ่มใหม่, ไม่ null = �
 
 // ---------- storage ----------
 function load() {
+  let hadNewData = false;
   try {
     const raw = localStorage.getItem(STORE_KEY);
+    hadNewData = !!raw;
     if (raw) state = Object.assign({ tasks: [], settings: { name: '', freeHours: 2 } }, JSON.parse(raw));
   } catch (e) { /* ข้อมูลเสีย → เริ่มใหม่ */ }
+  migrateLegacyStore(hadNewData);
+}
+
+// ลิงก์หลักตัวเก่าเก็บข้อมูลไว้ที่คีย์ 'studentos.v1' — ตอนนี้แอปอ่านคีย์ใหม่
+// ('studentos.alt.v1') แทน ใครที่เคยใช้ลิงก์หลักตัวเก่า (ไม่เคยเปิด /alt/ เลย)
+// จะเปิดมาแล้วเห็นงานหายหมด ทั้งที่ข้อมูลยังอยู่ในเครื่องจริง ๆ ฟังก์ชันนี้ดึงกลับมาให้
+// รันครั้งเดียวพอ (มีธงกันย้ายซ้ำ) และไม่ลบข้อมูลเก่าทิ้ง เผื่อมีอะไรผิดพลาดยังย้อนดูได้
+//
+// hadNewData = คีย์ใหม่มีข้อมูลอยู่ก่อนแล้วไหม (แยกจาก state ที่เป็นค่า default เปล่า ๆ เสมอ)
+//   true  → เครื่องนี้เคยใช้ ALT จริง ๆ → ของเครื่องนี้เป็นหลัก เติมเฉพาะช่องที่ขาด
+//   false → เครื่องนี้ไม่เคยมีข้อมูล ALT เลย (แค่ผู้ใช้ลิงก์หลักเก่า) → เอาของเก่ามาทั้งชุด
+function migrateLegacyStore(hadNewData) {
+  const LEGACY_KEY = 'studentos.v1';
+  const MIGRATED_FLAG = 'studentos.legacyMigrated';
+  try {
+    if (localStorage.getItem(MIGRATED_FLAG)) return;
+    localStorage.setItem(MIGRATED_FLAG, '1'); // ตั้งก่อนเช็ค กันรันซ้ำแม้ไม่มีอะไรให้ย้าย
+    const legacyRaw = localStorage.getItem(LEGACY_KEY);
+    if (!legacyRaw) return;
+    const legacy = JSON.parse(legacyRaw);
+    if (!legacy || !Array.isArray(legacy.tasks) || !legacy.tasks.length) return;
+
+    if (hadNewData) {
+      // งานรวมกันตาม id — งานฝั่งเครื่องนี้ (ALT) ชนะถ้ามี id ซ้ำ เพราะเป็นรุ่นที่พัฒนาต่อมาไกลกว่า
+      const byId = {};
+      for (const t of legacy.tasks) byId[t.id] = t;
+      for (const t of (state.tasks || [])) byId[t.id] = t;
+      state.tasks = Object.values(byId);
+      // ตั้งค่าเอาของเครื่องนี้เป็นหลัก เติมเฉพาะช่องที่ยังไม่เคยตั้ง
+      state.settings = Object.assign({}, legacy.settings, state.settings);
+    } else {
+      // ไม่เคยมีข้อมูล ALT มาก่อนเลย — state ตอนนี้เป็นแค่ค่า default ว่าง ๆ
+      // เอาของเก่ามาทั้งชุดตรง ๆ ไม่ต้องผสม
+      state.tasks = legacy.tasks;
+      state.settings = Object.assign({}, legacy.settings);
+    }
+
+    save();
+  } catch (e) { /* ข้อมูลเก่าอ่านไม่ออก ข้ามไปเฉย ๆ ไม่กระทบข้อมูลปัจจุบัน */ }
 }
 function save() {
   localStorage.setItem(STORE_KEY, JSON.stringify(state));
