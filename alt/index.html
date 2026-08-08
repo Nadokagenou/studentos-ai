@@ -46,9 +46,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Space Mono ใช้เฉพาะวันที่/เวลา/ตัวเลข ให้ตัวเลขเรียงตรงคอลัมน์และอ่านเป็นข้อมูล -->
-  <!-- 1A6M3: เปลี่ยนฟอนต์หลักเป็น Noto Sans Thai — ตัวอักษรสูงกว่า ช่องว่างในตัวอักษรกว้างกว่า
-       อ่านง่ายกว่าเดิมชัดเจนบนจอเล็ก · Sarabun เป็นตัวสำรองถ้า CDN ล่ม
-       Orbitron / Cinzel / Cinzel Decorative ใช้เฉพาะชื่อเหรียญพิเศษ 3 อันเท่านั้น -->
+  <!-- 1A6M3: ฟอนต์เนื้อความเป็น Sarabun — ภาษาไทยแบบ "มีหัว" หัวตัวอักษรช่วยให้สายตา
+       จับตัวอักษรได้เร็ว อ่านยาว ๆ สบายกว่าแบบไม่มีหัว · หัวข้อกับป้ายกำกับยังเป็น IBM Plex Sans Thai
+       Orbitron / Cinzel / Cinzel Decorative ใช้เฉพาะชื่อเหรียญพิเศษเท่านั้น -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Orbitron:wght@600;800&family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&display=swap">
   <link rel="stylesheet" href="style.css">
   <!-- ALT เท่านั้น: ป้ายกำกับรุ่นทดลอง แยกไฟล์ไว้ ไม่แตะ style.css เดิม จะสลับ stylesheet ทีหลังก็ได้ -->
@@ -691,6 +691,24 @@
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-check-circle"/></svg></span>
               <span class="bd"><span class="lb">ติดตั้งเป็นแอป</span><span class="sb" id="installHint"></span></span>
               <button class="btn primary sm" id="installBtn" style="width:auto;min-height:38px;padding:0 14px" onclick="handleInstallClick()">ติดตั้ง</button>
+            </div>
+
+            <!-- ALT 1A6M3: ช่องใส่โค้ด
+                 ห้ามใบ้ว่ามีโค้ดอะไรอยู่บ้างหรือทำอะไรได้ ไม่ว่าจะใน placeholder หรือคำบรรยาย
+                 คนที่ได้โค้ดมาเท่านั้นถึงจะรู้ว่าต้องพิมพ์อะไร -->
+            <div class="pf-row col" id="codeRow" hidden>
+              <span class="hd">
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
+                <span class="bd"><span class="lb">ใส่โค้ด</span>
+                  <span class="sb">ถ้ามีโค้ดอยู่ในมือ พิมพ์ลงช่องนี้ได้เลย</span></span>
+              </span>
+              <div class="code-tools">
+                <input type="text" id="codeInput" placeholder="พิมพ์โค้ด" maxlength="64"
+                  autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault();redeemCode();}">
+                <button type="button" class="btn primary sm" onclick="redeemCode()">ใช้</button>
+              </div>
+              <p class="bg-note code-msg" id="codeMsg" hidden></p>
             </div>
           </div>
 

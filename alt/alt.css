@@ -2625,9 +2625,11 @@ body { line-height: 1.7; letter-spacing: 0; }
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 
-/* ---------- ขอบไฮไลต์เคลื่อนไหว: ล้อมทั้งแถว ----------
-   conic-gradient หมุนอยู่ใต้การ์ด (z-index:-1) โผล่ออกมาแค่ 2px รอบขอบ
-   ขอบจึงคมชัดเป็นเส้นเดียว ไม่ฟุ้ง และวิ่งรอบทั้งข้อไม่ใช่แค่วงเหรียญ
+/* ---------- ขอบไฮไลต์เคลื่อนไหว: เป็น "กรอบ" ของการ์ดเท่านั้น ----------
+   ของเดิมเอา conic-gradient ทั้งแผ่นมาสั่ง rotate() — การ์ดเป็นทรงยาว
+   พอหมุน มุมทั้งสี่จึงเหวี่ยงออกไปไกลกว่าตัวการ์ดมาก กลายเป็นแผ่นสีพาดทับการ์ดใบอื่น
+   ของใหม่: ไล่สีแนวนอนเลื่อนไปทางเดียว แล้วเจาะไส้กลางทิ้งด้วย mask
+   เหลือเป็นกรอบหนา 2px ทาบขอบการ์ดพอดี ไม่มีอะไรออกไปนอกกรอบได้เลย
    โผล่เฉพาะเหรียญที่ปลดล็อกแล้ว (.on) */
 .bg-row { position: relative; isolation: isolate; }
 .bg-row.on.sea, .bg-row.on.tree, .bg-row.on.sweet, .bg-row.on.genesis {
@@ -2639,25 +2641,57 @@ body { line-height: 1.7; letter-spacing: 0; }
 .bg-row.on.genesis::before {
   content: '';
   position: absolute;
-  inset: -2px;
-  z-index: -1;
-  border-radius: calc(var(--r-card) + 2px);
-  animation: mark-spin 4.5s linear infinite;
+  /* กล่องลอยอิงจาก padding box — ถอย 1px ออกไปจึงพอดีขอบนอกสุดของการ์ด
+     (ทับเส้น border 1px ที่ทำใสไว้ข้างบน) */
+  inset: -1px;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: var(--r-card);
+  padding: 2px;                 /* = ความหนาของกรอบ */
+  /* กว้าง 2 เท่าของการ์ด → เลื่อน 200% พอดี 1 รอบ รอยต่อจึงไม่กระตุก */
+  background-size: 200% 100%;
+  animation: bd-slide 4.5s linear infinite;
+  /* ชั้นในคลุม content box ชั้นนอกคลุมทั้งกล่อง แล้วหักลบกัน = เหลือเฉพาะขอบ */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask-composite: exclude;
 }
+/* ไล่สีต้องเริ่มและจบด้วยสีเดียวกัน ตอนวนกลับมาจะได้ต่อกันสนิท */
 .bg-row.on.sea::before {
-  background: conic-gradient(from 0deg, #38BDF8, #1E3A8A 22%, #22D3EE 46%, #1D4ED8 70%, #38BDF8);
+  background-image: linear-gradient(90deg, #38BDF8, #1E3A8A 25%, #22D3EE 50%, #1D4ED8 75%, #38BDF8);
 }
 .bg-row.on.tree::before {
-  background: conic-gradient(from 0deg, #86EFAC, #14532D 26%, #4ADE80 52%, #166534 76%, #86EFAC);
+  background-image: linear-gradient(90deg, #86EFAC, #14532D 25%, #4ADE80 50%, #166534 75%, #86EFAC);
   animation-duration: 6s;
 }
 .bg-row.on.sweet::before {
-  background: conic-gradient(from 0deg, #FF5FC8, #A855F7 22%, #FF8AE2 48%, #7C3AED 74%, #FF5FC8);
+  background-image: linear-gradient(90deg, #FF5FC8, #A855F7 25%, #FF8AE2 50%, #7C3AED 75%, #FF5FC8);
   animation-duration: 3.2s;
 }
 .bg-row.on.genesis::before {
-  background: conic-gradient(from 0deg, #B7F5FF, #3B49B8 24%, #FFFFFF 48%, #6F7FE8 72%, #B7F5FF);
+  background-image: linear-gradient(90deg, #B7F5FF, #3B49B8 25%, #FFFFFF 50%, #6F7FE8 75%, #B7F5FF);
   animation-duration: 5s;
+}
+@keyframes bd-slide { to { background-position: 200% 0; } }
+
+/* เบราว์เซอร์ที่เจาะไส้กลางไม่ได้ ให้เหลือเป็นขอบสีเรียบไปเลย
+   ดีกว่าปล่อยให้ไล่สีทั้งแผ่นทับเนื้อการ์ดจนอ่านไม่ออก */
+@supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+  .bg-row.on.sea::before,
+  .bg-row.on.tree::before,
+  .bg-row.on.sweet::before,
+  .bg-row.on.genesis::before { display: none; }
+  .bg-row.on.sea     { border-color: #22D3EE; }
+  .bg-row.on.tree    { border-color: #4ADE80; }
+  .bg-row.on.sweet   { border-color: #FF8AE2; }
+  .bg-row.on.genesis { border-color: #8E9BE8; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bg-row.on.sea::before,
+  .bg-row.on.tree::before,
+  .bg-row.on.sweet::before,
+  .bg-row.on.genesis::before { animation: none; }
 }
 /* เหรียญ GENESIS: วงกลม + ชื่อ */
 .bg-row.on.genesis .bg-mark { background: linear-gradient(140deg,#B7F5FF,#4C57C9); }
@@ -2798,4 +2832,59 @@ body { line-height: 1.7; letter-spacing: 0; }
 .stage-note code {
   font-family: 'Space Mono', ui-monospace, monospace;
   font-size: .92em;
+}
+
+/* ============================================================
+   ALT 1A6M3: ช่องใส่โค้ดในหน้าตั้งค่า
+   ไม่มีที่ไหนในแอปบอกว่ามีโค้ดอะไรอยู่บ้าง — คนที่ได้โค้ดมาเท่านั้นถึงจะรู้
+   ============================================================ */
+.code-tools { display: flex; align-items: center; gap: 8px; }
+/* .pf-row input ของดีไซน์เดิมถูกบังคับกว้าง 120px และชิดขวา ช่องนี้ต้องยาวเต็มแถว */
+.pf-row .code-tools input[type=text] {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  text-align: left;
+  min-height: 42px;
+  padding: 0 12px;
+  font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 13.5px;
+  letter-spacing: .02em;
+}
+.code-tools .btn { flex: none; width: auto; min-height: 42px; padding: 0 18px; }
+.code-msg { margin: 0; }
+.code-msg.bad { color: var(--alert); }
+.code-msg[hidden] { display: none; }
+
+/* ---------- ฉากปิดจอตอนโค้ดล้างแอป ----------
+   ปิดทึบไว้ก่อน ไม่ให้เห็นข้อมูลค่อย ๆ หายทีละส่วนระหว่างรอโหลดใหม่ */
+.wipe-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  background: #070B14;
+  color: #C8D4FF;
+  animation: wipe-in .4s ease both;
+}
+.wipe-mark {
+  font-size: 46px;
+  line-height: 1;
+  animation: wipe-pulse 1.5s ease-in-out infinite;
+}
+.wipe-tx {
+  font-size: 14px;
+  letter-spacing: .05em;
+}
+@keyframes wipe-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wipe-pulse {
+  0%, 100% { opacity: .5;  transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wipe-mark { animation: none; }
 }

@@ -1360,8 +1360,13 @@ function renderProfile() {
   applyTheme(); // ให้ปุ่มธีมที่เลือกไว้สว่างตรงกับที่ใช้จริงเสมอ
   renderAppearance(); // ALT: ขนาดตัวอักษร + พื้นหลังภาพของผู้ใช้
   // ปุ่มล็อกธีมลับกลับ โผล่เฉพาะคนที่ปลดล็อกไปแล้วอย่างน้อยหนึ่งอัน
+  // (นับ GENESIS กับเหรียญที่เปิดด้วยโค้ดด้วย ไม่งั้นเปิดครบแล้วกลับไม่มีปุ่มให้ล็อกคืน)
   const rel = document.getElementById('relockBtn');
-  if (rel) rel.hidden = !Object.keys(SECRETS).some(id => secretUnlocked(id));
+  if (rel) rel.hidden = !(Object.keys(SECRETS).some(id => secretUnlocked(id))
+    || genesisUnlocked() || allBadgesGranted());
+  // ช่องใส่โค้ด — มีเฉพาะรุ่นที่ผูกไว้ใน CODE_VERSION
+  const codeRow = document.getElementById('codeRow');
+  if (codeRow) codeRow.hidden = !codesLive();
   // ตัวเลขบนปุ่มทางเข้าใหญ่ 3 ปุ่ม
   const pb = document.getElementById('peBadgeCt');
   if (pb) pb.textContent = badgesEarned().length + ' จาก ' + BADGES.length + ' เหรียญ';
@@ -1563,7 +1568,15 @@ const BADGES = [
 
 function doneCount() { return liveTasks().filter(t => t.done).length; }
 
+// โค้ดในหน้าตั้งค่าเปิดเหรียญได้ทั้งแผงรวดเดียว — เก็บเป็นธงใบเดียว
+// ไม่ไปปลอมจำนวนงานที่ทำเสร็จ ตัวเลข "ผลของฉัน" จึงยังเป็นของจริงอยู่
+const ALLBADGE_KEY = 'studentos.alt.allBadges';
+function allBadgesGranted() {
+  try { return localStorage.getItem(ALLBADGE_KEY) === '1'; } catch (_) { return false; }
+}
+
 function badgeEarned(b) {
+  if (allBadgesGranted()) return true;
   if (b.genesis) return genesisUnlocked();
   if (b.secret) return secretUnlocked(b.secret);
   return doneCount() >= b.goal;
@@ -2798,7 +2811,11 @@ function clearAll() {
     localStorage.removeItem(STORE_KEY);
     // ธีมลับกลับไปล็อกด้วย — ล้างข้อมูลแล้วต้องได้แอปเหมือนเปิดครั้งแรกจริง ๆ
     for (const s of Object.values(SECRETS)) { try { localStorage.removeItem(s.store); } catch (_) {} }
+    // รวมถึงธงที่โค้ดในตั้งค่าเปิดเหรียญไว้ ไม่งั้นล้างแล้วเหรียญยังครบอยู่
+    try { localStorage.removeItem(ALLBADGE_KEY); } catch (_) {}
+    try { localStorage.removeItem(GENESIS_KEY); } catch (_) {}
     applySecrets();
+    applyGenesisUnlock();
     if (['deepocean', 'earth2', 'sweet', 'genesis'].includes(themePref())) setTheme('system');
     state = { tasks: [], settings: { name: '', freeHours: 2 } };
     renderAll();
@@ -2809,6 +2826,8 @@ function clearAll() {
 function relockSecrets() {
   for (const s of Object.values(SECRETS)) { try { localStorage.removeItem(s.store); } catch (_) {} }
   try { localStorage.removeItem(GENESIS_KEY); } catch (_) {}
+  // เหรียญที่เปิดด้วยโค้ดก็ล็อกกลับพร้อมกัน — ปุ่มนี้ต้องพากลับไปจุดเริ่มต้นได้จริง
+  try { localStorage.removeItem(ALLBADGE_KEY); } catch (_) {}
   applySecrets();
   applyGenesisUnlock();
   if (['deepocean', 'earth2', 'sweet', 'genesis'].includes(themePref())) setTheme('system');
@@ -2816,6 +2835,118 @@ function relockSecrets() {
   renderProfile();
   // ไม่บอกวิธีปลดล็อกซ้ำ — ของลับที่บอกวิธีไว้ข้าง ๆ ก็ไม่ใช่ของลับแล้ว
   showToast({ title: 'ล็อกธีมลับกลับแล้ว 🔒', body: 'ธีมลับหายไปจากรายการเรียบร้อย' });
+}
+
+// ---------- ALT 1A6M3: ช่องใส่โค้ดในหน้าตั้งค่า ----------
+// โค้ดชุดนี้ผูกกับรุ่น 1A6M3 เท่านั้น: ถ้า APP_VERSION ขยับไปรุ่นอื่นเมื่อไหร่
+// ช่องใส่โค้ดจะหายไปเองและโค้ดจะหมดอายุทันที ไม่ต้องไล่ลบทีละจุด
+// จะให้รุ่นถัดไปใช้ได้ต้องตั้งใจแก้บรรทัดล่างนี้เอง
+const CODE_VERSION = '1A6M3';
+function codesLive() { return APP_VERSION === CODE_VERSION; }
+
+// เก็บเป็นลายนิ้วมือ SHA-256 ไม่ใช่ตัวโค้ด — เปิดซอร์สอ่านก็ยังไม่รู้ว่าต้องพิมพ์อะไร
+// และย้อนจากค่าพวกนี้กลับไปเป็นโค้ดไม่ได้
+const CODE_HASH = {
+  eabeafccf40bb03ff2b1e4f02f6ab3531864c9ccc1472b8fa7eb6a1ff3a039b7: 'grant',
+  '05f0e0d52558bdff80cda651d7c67461d5324b18776d44e183ecd8b89e418b2b': 'wipe',
+};
+
+async function codeFingerprint(s) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function redeemCode() {
+  const input = document.getElementById('codeInput');
+  const msg = document.getElementById('codeMsg');
+  if (!input) return;
+  const say = (t, bad) => {
+    if (!msg) return;
+    msg.textContent = t || '';
+    msg.hidden = !t;
+    msg.classList.toggle('bad', !!bad);
+  };
+  const raw = input.value.trim();
+  if (!raw) { say('ยังไม่ได้พิมพ์อะไรเลย', true); return; }
+  // crypto.subtle มีเฉพาะบน https กับ localhost — เปิดผ่าน IP วงแลนจะไม่มีให้ใช้
+  if (!codesLive() || !(window.crypto && crypto.subtle)) { say('โค้ดนี้ใช้ไม่ได้', true); return; }
+
+  let kind = '';
+  try { kind = CODE_HASH[await codeFingerprint(raw)] || ''; } catch (_) { kind = ''; }
+  if (!kind) {
+    // บอกแค่ว่าไม่ผ่าน ไม่ใบ้ว่าใกล้เคียงแค่ไหนหรือมีโค้ดอะไรอยู่บ้าง
+    say('โค้ดนี้ใช้ไม่ได้', true);
+    haptic('snooze');
+    input.select();
+    return;
+  }
+  input.value = '';
+  say('');
+  if (kind === 'grant') codeGrantAll();
+  else if (kind === 'wipe') codeWipeAll();
+}
+
+// โค้ดที่ 1 — เปิดทุกอย่างในแอปให้เลย: เหรียญครบทุกอัน + ธีมลับครบทุกโทน
+function codeGrantAll() {
+  try { localStorage.setItem(ALLBADGE_KEY, '1'); } catch (_) {}
+  for (const s of Object.values(SECRETS)) { try { localStorage.setItem(s.store, '1'); } catch (_) {} }
+  try { localStorage.setItem(GENESIS_KEY, '1'); } catch (_) {}
+  applySecrets();
+  applyGenesisUnlock();
+  // ทำเครื่องหมายว่าเห็นครบแล้ว ไม่งั้น checkBadges จะไล่เด้งฉลองซ้ำอีกรอบ
+  state.settings = state.settings || {};
+  state.settings.badgesSeen = BADGES.map(b => b.id);
+  save();
+  haptic('done');
+  splashBurst(26, 'egg-star');
+  setTheme('genesis');
+  renderAll();
+  showToast({ title: 'ปลดล็อกครบทุกอย่างแล้ว ✦', body: 'เหรียญตราครบทุกอัน และธีมลับเปิดให้หมดแล้ว' });
+}
+
+// โค้ดที่ 2 — ล้างทุกอย่างแล้วเด้งออก เปิดกลับมาได้แอปเปล่าเหมือนเพิ่งติดตั้ง
+async function codeWipeAll() {
+  // ล้างเฉพาะคีย์ prefix 'studentos.alt.' — ข้อมูลของบิลด์ตัวจริงไม่โดนแตะ
+  // ไล่จากรายชื่อคีย์จริงในเครื่อง ไม่ใช่จากรายการที่เขียนไว้ จะได้ไม่มีตกหล่น
+  try {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('studentos.alt.')) keys.push(k);
+    }
+    keys.forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
+  } catch (_) {}
+  try { sessionStorage.clear(); } catch (_) {}
+
+  // ต้องล้างแคชกับถอน service worker ด้วย ไม่งั้นเปิดใหม่ยังได้ไฟล์ชุดเดิมจากแคช
+  // ซึ่งจะไม่นับว่า "เหมือนได้แอปใหม่" จริง ๆ
+  try {
+    if (window.caches) {
+      const names = await caches.keys();
+      await Promise.all(names.filter(n => n.includes('studentos-alt')).map(n => caches.delete(n)));
+    }
+    if (navigator.serviceWorker) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+  } catch (_) {}
+
+  state = { tasks: [], settings: { name: '', freeHours: 2 } };
+  wipeCurtain();
+}
+
+function wipeCurtain() {
+  const c = document.createElement('div');
+  c.className = 'wipe-curtain';
+  c.innerHTML = '<div class="wipe-mark">◆</div><div class="wipe-tx">กำลังคืนค่าทุกอย่าง…</div>';
+  document.body.appendChild(c);
+  if (navigator.vibrate) { try { navigator.vibrate([30, 80, 30, 80, 140]); } catch (_) {} }
+  setTimeout(() => {
+    // ปิดหน้าต่างให้ถ้าปิดได้ (แท็บที่สคริปต์เปิดเอง) — เบราว์เซอร์ส่วนใหญ่ปิดไม่ได้
+    // จึงต้องมีทางถอยเป็นโหลดใหม่ ซึ่งได้ผลเหมือนกันคือกลับไปจอเปิดแอปครั้งแรก
+    try { window.close(); } catch (_) {}
+    setTimeout(() => location.replace(location.pathname), 400);
+  }, 1700);
 }
 
 // ---------- ติดตั้งเป็นแอป (PWA install) ----------
