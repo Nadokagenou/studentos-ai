@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="google-site-verification" content="EL8HSk9rzF6WS9GYcfkFaYwxf00p2PzEKganiKXzDh0" />
-  <title>StudentOS AI — รู้ว่าต้องทำอะไรก่อน เสมอ</title>
-  <meta name="description" content="StudentOS AI คือ AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงานหรือแปะข้อความจาก LINE แล้วให้ AI จัดลำดับความสำคัญพร้อมเหตุผล ไม่ต้องเดาว่าจะทำอะไรก่อน">
+  <title>students OS — รู้ว่าต้องทำอะไรก่อน เสมอ</title>
+  <meta name="description" content="students OS คือ AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงานหรือแปะข้อความจาก LINE แล้ว AI จัดลำดับความสำคัญพร้อมเหตุผล ไม่ต้องเดาว่าจะทำอะไรก่อน">
   <link rel="canonical" href="https://nadokagenou.github.io/studentos-ai/">
 
   <meta property="og:type" content="website">
-  <meta property="og:title" content="StudentOS AI — รู้ว่าต้องทำอะไรก่อน เสมอ">
+  <meta property="og:title" content="students OS — รู้ว่าต้องทำอะไรก่อน เสมอ">
   <meta property="og:description" content="AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงาน จัดลำดับความสำคัญพร้อมเหตุผล">
   <meta property="og:url" content="https://nadokagenou.github.io/studentos-ai/">
   <meta property="og:image" content="https://nadokagenou.github.io/studentos-ai/icon-512.png">
@@ -20,9 +20,14 @@
        ค่า "system" ถูกแปลงเป็น light/dark ที่นี่เลย CSS จึงมีแค่ 4 โทนจริง -->
   <script>
     (function () {
-      var BAR = { light: '#FCFBF7', dark: '#0D1220', warm: '#F7F1E4', space: '#0A0E24' };
+      // ALT: ธีมเพิ่มมาอีก 4 โทน — ตารางนี้ต้องตรงกับ THEME_BAR ใน app.js เสมอ
+      // ไม่งั้นธีมใหม่จะไม่ถูกจำ แล้วจอแรกกะพริบเป็นโทนสว่างก่อนสลับ
+      var BAR = { light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
+        earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
+        deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8', genesis: '#8E9BE8' };
       var pref = null;
-      try { pref = localStorage.getItem('studentos.theme'); } catch (e) {}
+      try { pref = localStorage.getItem('studentos.alt.theme'); } catch (e) {} // ALT: คนละคีย์กับตัวจริง
+      if (pref === 'library') pref = 'ocean'; // 1A6M3: ธีมห้องสมุดถูกแทนที่ด้วยมหาสมุทร
       var t = BAR[pref] ? pref
         : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
       document.documentElement.dataset.theme = t;
@@ -33,11 +38,23 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="students OS">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Space Mono ใช้เฉพาะวันที่/เวลา/ตัวเลข ให้ตัวเลขเรียงตรงคอลัมน์และอ่านเป็นข้อมูล -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
+  <!-- ฟอนต์: ตัวไทยทั้งแอปเป็น Sarabun (แบบ "มีหัว") ทั้งเนื้อความและหัวข้อ
+       หัวข้อใช้ IBM Plex Sans ซึ่งเป็นตัวละตินล้วน ไม่มีตัวไทยอยู่ในฟอนต์
+       เบราว์เซอร์จึงหยิบทีละตัวอักษร: อังกฤษ/ตัวเลข = IBM Plex เหมือนเดิม · ไทย = Sarabun
+       (เลิกโหลด IBM Plex Sans Thai แล้ว เพราะมีตัวไทยแบบไม่มีหัวติดมาด้วย)
+       Space Mono = ตัวเลข · Orbitron / Cinzel / Cinzel Decorative = ชื่อเหรียญพิเศษ -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Orbitron:wght@600;800&family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&display=swap">
   <link rel="stylesheet" href="style.css">
+  <!-- ALT เท่านั้น: ป้ายกำกับรุ่นทดลอง แยกไฟล์ไว้ ไม่แตะ style.css เดิม จะสลับ stylesheet ทีหลังก็ได้ -->
+  <link rel="stylesheet" href="alt.css">
+  <!-- ชั้นกล่องเข้า + เชื่อม LINE — ชั้นใหม่ทั้งชั้น แยกไฟล์ไว้ให้ถอดออกได้ทั้งก้อน -->
+  <link rel="stylesheet" href="inbox.css">
 </head>
 <body>
 
@@ -96,6 +113,21 @@
     <g id="lu-camera" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></g>
     <g id="lu-image" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></g>
     <g id="lu-type" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16"></path><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"></path><path d="M9 20h6"></path></g>
+    <!-- ALT: เพื่อน / ล็อก / หมุดเส้นทาง -->
+    <g id="lu-users" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></g>
+    <g id="lu-lock" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></g>
+    <!-- ALT: ไอคอนตำแหน่งแถบเมนู (จอ + แถบด้านข้าง) -->
+    <g id="lu-tasks-alt" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="16" x="3" y="4" rx="2"></rect><path d="M9 4v16"></path></g>
+    <g id="lu-user" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M20 21a8 8 0 0 0-16 0"></path></g>
+    <!-- ALT 1A6M3: เหรียญตรา -->
+    <g id="lu-medal" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"></path><path d="M11 12 5.12 2.2"></path><path d="m13 12 5.88-9.8"></path><path d="M8 7h8"></path><circle cx="12" cy="17" r="5"></circle><path d="M12 18v-2h-.5"></path></g>
+    <g id="lu-pin" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></g>
+    <g id="lu-flag" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><path d="M4 22v-7"></path></g>
+    <!-- กลุ่มแชท — ใช้แทน LINE ทั้งในกล่องเข้าและจอแหล่งข้อมูล -->
+    <g id="lu-chat" fill="currentColor">
+      <path opacity=".34" d="M2.6 7.8A4.2 4.2 0 0 1 6.8 3.6h10.4a4.2 4.2 0 0 1 4.2 4.2v5.6a4.2 4.2 0 0 1-4.2 4.2H9.4l-4.5 3.4a1 1 0 0 1-1.6-.8v-2.9a4.2 4.2 0 0 1-.7-2.3z"/>
+      <circle cx="8.4" cy="10.6" r="1.35"/><circle cx="12" cy="10.6" r="1.35"/><circle cx="15.6" cy="10.6" r="1.35"/>
+    </g>
     <g id="tb-home" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></g>
     <g id="tb-tasks" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5h8"></path><path d="M13 12h8"></path><path d="M13 19h8"></path><path d="m3 17 2 2 4-4"></path><path d="m3 7 2 2 4-4"></path></g>
     <g id="tb-scan" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M7 12h10"></path></g>
@@ -111,8 +143,28 @@
 <div class="stage">
   <div class="phone">
     <!-- ชั้นดาว: โชว์เฉพาะโทนอวกาศ (CSS ซ่อนในโทนอื่น) ลอยช้า ๆ + กะพริบเบา ๆ -->
-    <div class="starfield" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="starfield" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <!-- ALT: ชั้นบรรยากาศของธีม — CSS เลือกเองว่าธีมไหนใช้ชั้นไหน
+         fx-a/b = พื้นหลังใหญ่ (เนบิวลา ชั้นหนังสือ ขอบฟ้า) · fx-c/d = อนุภาคลอย
+         fx-shoot = ดาวตก/ประกายวิ่ง -->
+    <div class="fx" aria-hidden="true">
+      <i class="fx-a"></i><i class="fx-b"></i><i class="fx-c"></i><i class="fx-d"></i>
+      <i class="fx-e"></i><i class="fx-f"></i>
+      <!-- 2 ช่องท้ายเพิ่มให้ GENESIS (แสงเหนือ + หมู่ดาว) ธีมอื่นไม่ได้ตั้งสไตล์ไว้
+           จึงเป็นกล่องเปล่าไม่มีขนาด ไม่กระทบฉากของธีมไหนเลย -->
+      <i class="fx-g"></i><i class="fx-h"></i>
+      <span class="fx-shoot"></span>
+    </div>
+    <!-- ALT: พื้นหลังภาพของผู้ใช้เอง (ตั้งในแท็บ "ฉัน") — ม่านหรี่ทับให้ตัวหนังสืออ่านออก -->
+    <div class="userbg" id="userBg" aria-hidden="true"><span class="ub-veil"></span></div>
     <div class="statusbar"><span id="clock">--:--</span><span>📶 🔋</span></div>
+    <!-- ALT: ป้ายบอกรุ่น — อยู่กลางบนจอ (app.js เขียนทับจาก APP_VERSION ตอนเปิด) -->
+    <div class="alt-badge" id="altBadge" title="students OS · เลขรุ่นที่ใช้อยู่">1A6M3</div>
+    <!-- ALT 1A6M3: ทางเข้าระบบเพื่อน — มุมขวาบน ไม่กินช่องในเมนูหลัก -->
+    <button class="top-friends" onclick="go('scr-friends')" aria-label="เพื่อน">
+      <svg viewBox="0 0 24 24"><use href="#lu-users"/></svg>
+      <span class="tf-badge" id="friendsBadge" hidden></span>
+    </button>
     <div class="screens">
 
       <!-- ============ SCREEN: LOGIN ============ -->
@@ -120,10 +172,62 @@
         <div class="login-wrap">
           <img class="login-mark" src="logo-mark.png" alt="StudentOS AI">
           <div class="big-title" style="margin:0">StudentOS <span class="ai-blue">AI</span></div>
-          <p class="sub" style="margin:0 0 18px">รู้ว่าต้องทำอะไรก่อน เสมอ</p>
+          <p class="sub" style="margin:0 0 6px">รู้ว่าต้องทำอะไรก่อน เสมอ</p>
+          <p class="alt-note" style="margin:0 0 16px">students OS · Version <b>1A6M3 “Modern”</b></p>
           <button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>
           <button class="btn ghost" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>
           <p class="hint">ล็อกอินแล้วข้อมูลจะซิงก์ข้ามเครื่อง</p>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: ONBOARD (ALT) ============ -->
+      <!-- ถามแค่ 2 อย่างที่ AI ต้องใช้จริง: เรียกว่าอะไร + วันหนึ่งว่างกี่ชั่วโมง
+           จบในหน้าเดียว ไม่มีขั้นตอนถัดไป — ยิ่งถามน้อย ยิ่งมีคนตอบจนจบ -->
+      <div class="screen flush" id="scr-onboard">
+        <div class="scr-body ob-body">
+          <div class="ob-head">
+            <img class="ob-mark" src="logo-mark.png" alt="">
+            <h2 class="ob-h">ขอรู้จักกันหน่อย</h2>
+            <p class="ob-p">บอกแค่ 2 อย่าง แล้ว AI จะจัดแผนให้ตรงกับเวลาที่มีจริง</p>
+          </div>
+
+          <div class="ob-card">
+            <div class="fld">
+              <label for="obName">เรียกคุณว่าอะไรดี</label>
+              <input type="text" id="obName" placeholder="เช่น นาโด" maxlength="24"
+                autocomplete="nickname" enterkeyhint="done" onkeydown="if(event.key==='Enter')finishOnboard()">
+              <span class="ob-err" id="obErr" hidden>ใส่ชื่อที่อยากให้เรียกก่อนนะ</span>
+            </div>
+
+            <div class="fld">
+              <div class="fld-head">
+                <label for="obFree">วันหนึ่งว่างทำงานกี่ชั่วโมง</label>
+                <span class="val" id="obFreeVal">2 ชม.</span>
+              </div>
+              <input type="range" id="obFree" min="0.5" max="8" step="0.5" value="2"
+                oninput="setObFree(this.value)">
+              <div class="ob-quick" id="obQuick">
+                <button type="button" onclick="setObFree(1,true)">1 ชม.</button>
+                <button type="button" onclick="setObFree(2,true)">2 ชม.</button>
+                <button type="button" onclick="setObFree(3,true)">3 ชม.</button>
+                <button type="button" onclick="setObFree(4,true)">4 ชม.</button>
+              </div>
+              <p class="ob-note">ใช้คำนวณว่างานที่ค้างอยู่ทำทันไหม — แก้ทีหลังได้ในแท็บ “ฉัน”</p>
+            </div>
+          </div>
+
+          <div class="ob-act">
+            <button class="fm-save" onclick="finishOnboard()">เริ่มใช้งาน</button>
+            <button class="fm-cancel" onclick="skipOnboard()">ข้ามไปก่อน</button>
+          </div>
+        </div>
+
+        <!-- ฉากทักทายหลังกรอกเสร็จ -->
+        <div class="ob-welcome" id="obWelcome" hidden>
+          <div class="obw-ring"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></div>
+          <div class="obw-h">ยินดีที่ได้รู้จัก</div>
+          <div class="obw-name" id="obwName"></div>
+          <p class="obw-p" id="obwSub"></p>
         </div>
       </div>
 
@@ -164,6 +268,7 @@
           </div>
           <div class="scan-status" id="ocrStatus"></div>
           <div class="ocr-bar" id="ocrBarWrap" hidden><div class="ocr-fill" id="ocrBar"></div></div>
+          <p class="scan-fact" id="scanFact" hidden></p>
 
           <div class="scan-paste">
             <div class="rule"><span></span>หรือแปะข้อความ<span></span></div>
@@ -177,6 +282,31 @@
             </div>
             <button class="manual" onclick="openForm(null)">
               <svg viewBox="0 0 24 24"><use href="#lu-type"/></svg>พิมพ์เพิ่มเองทีละช่อง</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: ครอบกรอบก่อนอ่าน (ALT) ============ -->
+      <!-- ตัดหัวกระดาษ/เลขหน้า/ขอบโต๊ะออกก่อนส่งเข้า OCR — ได้ผลพอ ๆ กับการปรับภาพเลย
+           เพราะ parser ไม่ต้องไปเจอคำอื่นก่อนคำที่ใช่ -->
+      <div class="screen flush" id="scr-crop">
+        <div class="scr-body crop-body">
+          <div>
+            <h2 class="scan-h">ครอบเฉพาะส่วนที่เป็นโจทย์</h2>
+          </div>
+          <div class="crop-stage" id="cropStage">
+            <img id="cropImg" alt="">
+            <div class="crop-shade" id="cropShade"></div>
+            <div class="crop-box" id="cropBox">
+              <span class="h tl"></span><span class="h tr"></span>
+              <span class="h bl"></span><span class="h br"></span>
+            </div>
+          </div>
+          <p class="crop-hint" id="cropHint">ลากในรูปเพื่อวาดกรอบใหม่ · ลากมุมเพื่อปรับขนาด</p>
+          <div class="crop-act">
+            <button class="fm-save" onclick="confirmCrop(false)">อ่านเฉพาะกรอบนี้</button>
+            <button class="fm-cancel" onclick="confirmCrop(true)">อ่านทั้งรูป</button>
+            <button class="fm-cancel" onclick="cancelCrop()">ยกเลิก</button>
           </div>
         </div>
       </div>
@@ -280,7 +410,13 @@
         </div>
       </div>
 
-      <!-- ============ SCREEN: HOME / DASHBOARD ============ -->
+      <!-- ============ SCREEN: หน้าแรก (เมนูหลัก) ============ -->
+      <!-- รวมทางเข้าฟีเจอร์หลักไว้ที่เดียว กดแล้วเด้งไปจอนั้น — วาดจาก state ใน renderMenu -->
+      <div class="screen flush" id="scr-menu">
+        <div class="scr-body menu-body" id="menuBody"></div>
+      </div>
+
+      <!-- ============ SCREEN: ตารางงาน (เดิมคือหน้าแรก) ============ -->
       <!-- หัวหน้าจอเลื่อนไปกับเนื้อหา (ไม่ติดบน) — วาดจาก state ทั้งก้อนใน renderHome -->
       <div class="screen on" id="scr-home">
         <div class="home-body" id="homeBody"></div>
@@ -310,13 +446,53 @@
         <div id="timeline"></div>
       </div>
 
+      <!-- ============ SCREEN: กล่องเข้า ============ -->
+      <!-- ของที่ไหลเข้ามาเองจากทุกแหล่ง — วาดจาก state.inbox ทั้งก้อนใน renderInbox -->
+      <div class="screen flush" id="scr-inbox">
+        <div class="sticky-head row">
+          <div>
+            <h2 class="sh-title">กล่องเข้า</h2>
+            <p class="sh-sub" id="inboxSub"></p>
+          </div>
+          <button class="sh-btn" onclick="go('scr-menu')" aria-label="กลับหน้าแรก">
+            <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+        </div>
+        <div class="scr-body" id="inboxBody"></div>
+      </div>
+
+      <!-- ============ SCREEN: แหล่งข้อมูล ============ -->
+      <!-- บอกตรง ๆ ว่าแหล่งไหนต่อได้แล้ว แหล่งไหนติดอะไรอยู่ -->
+      <div class="screen flush" id="scr-sources">
+        <div class="sticky-head row">
+          <div>
+            <h2 class="sh-title">แหล่งข้อมูล</h2>
+            <p class="sh-sub">ทางที่งานไหลเข้าแอปโดยไม่ต้องพิมพ์</p>
+          </div>
+          <button class="sh-btn" onclick="go('scr-inbox')" aria-label="กลับกล่องเข้า">
+            <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+        </div>
+        <div class="scr-body" id="srcBody"></div>
+      </div>
+
+      <!-- ============ SCREEN: เพื่อน (ALT 1A6M3) ============ -->
+      <!-- ดูสถานะและผลของเพื่อน · วาดจาก state ใน renderFriends -->
+      <div class="screen flush" id="scr-friends">
+        <div class="scr-body fr-body" id="friendsBody"></div>
+      </div>
+
       <!-- ============ SCREEN: PROFILE ============ -->
       <div class="screen flush" id="scr-profile">
         <div class="scr-body pf-body">
           <div class="pf-hero">
             <span class="b1"></span><span class="b2"></span>
             <div class="pf-id">
-              <div class="pf-av" id="pfAv">N</div>
+              <!-- ALT: แตะที่รูปเปลี่ยนรูปได้เลย ไม่ต้องเข้าไปหาในตั้งค่า -->
+              <button type="button" class="pf-av-btn" id="pfAvBtn"
+                onclick="document.getElementById('avInput').click()" aria-label="เปลี่ยนรูปโปรไฟล์">
+                <div class="pf-av" id="pfAv">N</div>
+                <span class="pf-av-cam"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
+              </button>
+              <input type="file" id="avInput" accept="image/*" hidden>
               <div style="flex:1;min-width:0">
                 <div class="pf-nm" id="pfNm">นักเรียน</div>
                 <div class="pf-sb" id="pfSb"></div>
@@ -331,11 +507,85 @@
             </div>
           </div>
 
+          <!-- ALT 1A6M3: ผลของฉัน — สรุปจากข้อมูลที่แอปมีจริง วาดใน renderStats -->
+          <div id="statsBox"></div>
+
+          <!-- ALT 1A6M3: ทางเข้าใหญ่ 3 ทาง — ตั้งค่าทั้งหมดย้ายไปอยู่หลังปุ่ม -->
+          <div class="pf-entry">
+            <!-- ALT 1A6M3: ร้านค้า — อยู่เหนือเหรียญตรา · ติดป้าย "กำลังทำ" เพราะของในร้านยังไม่เปิด
+                 แต่โทเคนสะสมจริงตั้งแต่ตอนนี้ ปุ่มจึงกดเข้าไปดูยอดได้ ไม่ใช่ปุ่มตาย -->
+            <button class="pe pe-shop" onclick="go('scr-shop')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+              <span class="pe-tx"><b>ร้านค้า <span class="pe-wip">กำลังทำ</span></b><i id="peShopCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <button class="pe" onclick="go('scr-badges')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-medal"/></svg></span>
+              <span class="pe-tx"><b>เหรียญตรา</b><i id="peBadgeCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <button class="pe" onclick="go('scr-friends')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
+              <span class="pe-tx"><b>เพื่อน</b><i id="peFriendCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <button class="pe" onclick="go('scr-settings')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-contrast"/></svg></span>
+              <span class="pe-tx"><b>ตั้งค่า</b><i>ธีม · ตัวอักษร · วิดเจ็ต · แจ้งเตือน</i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+          </div>
+          <p class="app-ver" id="appVer"></p>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: ร้านค้า (ALT 1A6M3 — ยังสร้างไม่เสร็จ) ============ -->
+      <div class="screen flush" id="scr-shop">
+        <div class="scr-body pf-body">
+          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+            <div></div>
+            <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <div id="shopBody"></div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: เหรียญตรา (ALT 1A6M3) ============ -->
+      <div class="screen flush" id="scr-badges">
+        <div class="scr-body bg-body" id="badgesBody"></div>
+      </div>
+
+      <!-- ============ SCREEN: ตั้งค่า (ALT 1A6M3) ============ -->
+      <div class="screen flush" id="scr-settings">
+        <div class="scr-body pf-body">
+          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+            <div>
+              <h2 class="sh-title">ตั้งค่า</h2>
+            </div>
+            <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
           <div class="pf-list">
             <div class="pf-row">
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#ic-profile"/></svg></span>
               <span class="bd"><span class="lb">ชื่อเล่น</span></span>
               <input type="text" id="pName" placeholder="เช่น Nado" onchange="saveProfile()">
+            </div>
+
+            <!-- ALT: รูปโปรไฟล์ของตัวเอง — เก็บในเครื่อง ไม่ต้องมีบัญชี -->
+            <div class="pf-row col">
+              <span class="hd">
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
+                <span class="bd"><span class="lb">รูปโปรไฟล์</span>
+                  <span class="sb">แตะที่รูปในหน้า “ฉัน” ก็เปลี่ยนได้เหมือนกัน</span></span>
+              </span>
+              <div class="bg-tools">
+                <button type="button" class="bg-pick" onclick="document.getElementById('avInput').click()">
+                  <svg viewBox="0 0 24 24"><use href="#lu-image"/></svg><span id="avPickLabel">เลือกรูป</span></button>
+                <button type="button" class="bg-del" id="avDel" onclick="clearAvatar()" hidden>
+                  <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg></button>
+              </div>
             </div>
             <div class="pf-row">
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
@@ -355,14 +605,129 @@
                 <button type="button" data-th="dark" onclick="setTheme('dark')">
                   <span class="sw sw-dark"></span><span class="nm">มืด</span></button>
                 <button type="button" data-th="warm" onclick="setTheme('warm')">
-                  <span class="sw sw-warm"></span><span class="nm">อุ่น</span></button>
+                  <span class="sw sw-warm"></span><span class="nm">ชมพู</span></button>
                 <button type="button" data-th="space" onclick="setTheme('space')">
                   <span class="sw sw-space"></span><span class="nm">อวกาศ</span></button>
+                <!-- ALT: 4 โทนใหม่ -->
+                <button type="button" data-th="earth" onclick="setTheme('earth')">
+                  <span class="sw sw-earth"></span><span class="nm">โลก</span></button>
+                <button type="button" data-th="ocean" onclick="setTheme('ocean')">
+                  <span class="sw sw-ocean"></span><span class="nm">มหาสมุทร</span></button>
+                <button type="button" data-th="magic" onclick="setTheme('magic')">
+                  <span class="sw sw-magic"></span><span class="nm">เวทมนตร์</span></button>
+                <button type="button" data-th="galaxy" onclick="setTheme('galaxy')">
+                  <span class="sw sw-galaxy"></span><span class="nm">กาแล็กซี</span></button>
+                <!-- ปลดล็อกด้วยการกดปุ่ม "มหาสมุทร" ซ้ำ 4 ครั้ง (อีสเตอร์เอกก์) -->
+                <button type="button" class="th-secret" data-th="deepocean" onclick="setTheme('deepocean')">
+                  <span class="sw sw-deepocean"></span><span class="nm">ทะเลลึก</span></button>
+                <!-- ปลดล็อกด้วยการกดปุ่ม "โลก" ซ้ำ 5 ครั้ง -->
+                <button type="button" class="th-secret" data-th="earth2" onclick="setTheme('earth2')">
+                  <span class="sw sw-earth2"></span><span class="nm">ต้นไม้โลก</span></button>
+                <button type="button" class="th-secret" data-th="sweet" onclick="setTheme('sweet')">
+                  <span class="sw sw-sweet"></span><span class="nm">จักรวาลหวานแหว</span></button>
+                <!-- ปลดล็อกเมื่อได้เหรียญครบทุกอันในแอป -->
+                <button type="button" class="th-secret th-genesis" data-th="genesis" onclick="setTheme('genesis')">
+                  <span class="sw sw-genesis"></span><span class="nm">GENESIS</span></button>
               </div>
             </div>
+
+            <!-- ALT 1A6M3: วิดเจ็ตบนหน้าแรก -->
+            <div class="pf-row col">
+              <span class="hd">
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+                <span class="bd"><span class="lb">วิดเจ็ตหน้าแรก</span><span class="sb" id="wgNow"></span></span>
+              </span>
+              <div class="fs-grid wg-grid" id="wgPick">
+                <button type="button" data-wg="urgent" onclick="setWidget('urgent')">
+                  <svg viewBox="0 0 24 24"><use href="#lu-flame"/></svg>งานด่วน</button>
+                <button type="button" data-wg="note" onclick="setWidget('note')">
+                  <svg viewBox="0 0 24 24"><use href="#lu-pencil"/></svg>โน้ต</button>
+                <button type="button" data-wg="clock" onclick="setWidget('clock')">
+                  <svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg>เวลา</button>
+                <button type="button" data-wg="photo" onclick="setWidget('photo')">
+                  <svg viewBox="0 0 24 24"><use href="#lu-image"/></svg>ภาพ</button>
+              </div>
+              <div class="wg-extra" id="wgNoteWrap" hidden>
+                <textarea id="wgNoteInput" rows="3" maxlength="240"
+                  placeholder="จดอะไรไว้ก็ได้ — เลขห้องสอบ ของที่ต้องเอาไปส่ง อะไรที่ลืมบ่อย"
+                  onchange="saveWidgetNote()"></textarea>
+              </div>
+              <div class="wg-extra" id="wgPhotoWrap" hidden>
+                <div class="bg-tools">
+                  <label class="bg-pick" for="wgPhotoInput">
+                    <svg viewBox="0 0 24 24"><use href="#lu-image"/></svg><span id="wgPhotoLabel">เลือกภาพ</span></label>
+                  <input type="file" id="wgPhotoInput" accept="image/*" hidden>
+                  <button type="button" class="bg-del" id="wgPhotoDel" onclick="clearWidgetPhoto()" hidden>
+                    <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ALT: ตำแหน่งแถบเมนู (จอกว้างย้ายไปด้านซ้าย) -->
+            <div class="pf-row col">
+              <span class="hd">
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-tasks-alt"/></svg></span>
+                <span class="bd"><span class="lb">ตำแหน่งแถบเมนู</span><span class="sb" id="navNow"></span></span>
+              </span>
+              <div class="fs-grid nav-grid" id="navPick">
+                <button type="button" data-nav="auto" onclick="setNav('auto')">อัตโนมัติ</button>
+                <button type="button" data-nav="bottom" onclick="setNav('bottom')">ด้านล่าง</button>
+                <button type="button" data-nav="side" onclick="setNav('side')">ด้านซ้าย</button>
+              </div>
+              <p class="bg-note">จอกว้าง (ไอแพด แท็บเล็ต คอม) จะย้ายแถบไปด้านซ้ายให้เอง — เลือกบังคับเองได้</p>
+            </div>
+
+            <!-- ALT: ขนาดตัวอักษร -->
+            <div class="pf-row col">
+              <span class="hd">
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-type"/></svg></span>
+                <span class="bd"><span class="lb">ขนาดตัวอักษร</span><span class="sb" id="fontNow"></span></span>
+              </span>
+              <div class="fs-grid" id="fontPick">
+                <button type="button" data-fs="s"  onclick="setFontScale('s')"><b style="font-size:12px">ก</b>เล็ก</button>
+                <button type="button" data-fs="m"  onclick="setFontScale('m')"><b style="font-size:14px">ก</b>ปกติ</button>
+                <button type="button" data-fs="l"  onclick="setFontScale('l')"><b style="font-size:17px">ก</b>ใหญ่</button>
+                <button type="button" data-fs="xl" onclick="setFontScale('xl')"><b style="font-size:20px">ก</b>ใหญ่มาก</button>
+              </div>
+            </div>
+
+            <!-- ALT: พื้นหลังภาพของตัวเอง -->
+            <div class="pf-row col">
+              <span class="hd">
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
+                <span class="bd"><span class="lb">พื้นหลังภาพของตัวเอง</span>
+                  <span class="sb" id="bgNow">ยังไม่ได้ตั้ง</span></span>
+              </span>
+              <div class="bg-tools">
+                <label class="bg-pick" for="bgInput">
+                  <svg viewBox="0 0 24 24"><use href="#lu-image"/></svg><span id="bgPickLabel">เลือกภาพ</span></label>
+                <input type="file" id="bgInput" accept="image/*" hidden>
+                <button type="button" class="bg-del" id="bgDel" onclick="clearUserBg()" hidden>
+                  <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg></button>
+              </div>
+              <div class="bg-dim" id="bgDimWrap" hidden>
+                <div class="fld-head"><label for="bgDim">ความจางของภาพ</label>
+                  <span class="val" id="bgDimVal">55%</span></div>
+                <input type="range" id="bgDim" min="0" max="85" step="5" value="55"
+                  oninput="setBgDim(this.value)">
+                <p class="bg-note">จางมาก = อ่านง่ายขึ้น · จางน้อย = เห็นภาพชัดขึ้น</p>
+              </div>
+            </div>
+            <!-- ALT 1A6M3: ระบบเพื่อน — เปิดใช้ได้แล้ว (เฟสแรก) -->
+            <div class="pf-row" id="friendsRow" onclick="go('scr-friends')" style="cursor:pointer">
+              <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
+              <span class="bd">
+                <span class="lb">เพื่อน</span>
+                <span class="sb" id="friendsSub">ดูสถานะและผลของเพื่อน</span>
+              </span>
+              <span class="pf-go"><svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></span>
+            </div>
+
             <div class="pf-row" id="notifRow">
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg></span>
               <span class="bd"><span class="lb">การแจ้งเตือน</span><span class="sb" id="notifStatus">ยังไม่ได้เปิด</span></span>
+              <button class="btn secondary sm" id="notifTest" style="width:auto;min-height:38px;padding:0 12px;display:none"
+                onclick="testNotify()">ทดสอบ</button>
               <button class="btn secondary sm" id="notifBtn" style="width:auto;min-height:38px;padding:0 14px" onclick="enableNotif()">เปิด</button>
             </div>
             <div class="pf-row" id="installCard" hidden>
@@ -370,15 +735,35 @@
               <span class="bd"><span class="lb">ติดตั้งเป็นแอป</span><span class="sb" id="installHint"></span></span>
               <button class="btn primary sm" id="installBtn" style="width:auto;min-height:38px;padding:0 14px" onclick="handleInstallClick()">ติดตั้ง</button>
             </div>
+
+            <!-- ALT 1A6M3: ช่องใส่โค้ด
+                 ห้ามใบ้ว่ามีโค้ดอะไรอยู่บ้างหรือทำอะไรได้ ไม่ว่าจะใน placeholder หรือคำบรรยาย
+                 คนที่ได้โค้ดมาเท่านั้นถึงจะรู้ว่าต้องพิมพ์อะไร -->
+            <div class="pf-row col" id="codeRow" hidden>
+              <span class="hd">
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
+                <span class="bd"><span class="lb">ใส่โค้ด</span>
+                  <span class="sb">ถ้ามีโค้ดอยู่ในมือ พิมพ์ลงช่องนี้ได้เลย</span></span>
+              </span>
+              <div class="code-tools">
+                <input type="text" id="codeInput" placeholder="พิมพ์โค้ด" maxlength="64"
+                  autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault();redeemCode();}">
+                <button type="button" class="btn primary sm" onclick="redeemCode()">ใช้</button>
+              </div>
+              <p class="bg-note code-msg" id="codeMsg" hidden></p>
+            </div>
           </div>
 
           <div id="accountCard"></div>
 
           <div style="display:flex;flex-direction:column;gap:2px">
             <button class="pf-quiet" onclick="loadSample()"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg>โหลดข้อมูลตัวอย่าง</button>
+            <!-- ALT 1A6M3: ล็อกธีมลับกลับ ไว้ลองอีสเตอร์เอกก์ใหม่ -->
+            <button class="pf-quiet" id="relockBtn" onclick="relockSecrets()" hidden>
+              <svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg>ล็อกธีมลับกลับ</button>
             <button class="pf-quiet danger" onclick="clearAll()"><svg viewBox="0 0 24 24"><use href="#lu-flame"/></svg>ล้างข้อมูลทั้งหมด</button>
           </div>
-          <p class="app-ver" id="appVer"></p>
         </div>
       </div>
 
@@ -400,10 +785,11 @@
 
     <!-- ============ TAB BAR ============ -->
     <div class="tabbar">
-      <button class="tab" data-scr="scr-home" onclick="go('scr-home')">
+      <button class="tab" data-scr="scr-menu" onclick="go('scr-menu')">
         <svg class="ic" viewBox="0 0 24 24"><use href="#tb-home"/></svg><span>หน้าแรก</span></button>
-      <button class="tab" data-scr="scr-tasks" onclick="go('scr-tasks')">
-        <svg class="ic" viewBox="0 0 24 24"><use href="#tb-tasks"/></svg><span>งาน</span></button>
+      <button class="tab" data-scr="scr-home" onclick="go('scr-home')">
+        <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24"><use href="#tb-tasks"/></svg>
+          <span class="tab-badge" id="badgeHome" hidden></span></span><span>ตารางงาน</span></button>
       <button class="tab scan" data-scr="scr-scan" onclick="go('scr-scan')">
         <span class="scan-dot"><svg viewBox="0 0 24 24"><use href="#tb-scan"/></svg></span><span>เพิ่ม</span></button>
       <button class="tab" data-scr="scr-timeline" onclick="go('scr-timeline')">
@@ -415,14 +801,28 @@
     <!-- ============ SPLASH: ฉากเปิดแอป ============ -->
     <div id="splash">
       <div class="sp-glow"></div>
-      <img class="sp-logo" src="logo-mark.png" alt="StudentOS AI">
+      <!-- โลโก้วางบนแผ่นรองสีอ่อน — โลโก้ตัวใหม่เป็นน้ำเงินเข้มบนพื้นใส
+           ถ้าวางลงบนพื้นกรมท่าของฉากเปิดตรง ๆ จะจมหายไปทั้งอัน -->
+      <div class="sp-plate"><img class="sp-logo" src="logo-mark.png" alt="StudentOS AI"></div>
       <div class="sp-word">StudentOS <span>AI</span></div>
+      <!-- เลขรุ่นดึงจาก APP_VERSION ที่เดียว (app.js เขียนให้) ขึ้นรุ่นใหม่ไม่ต้องมาไล่แก้ตรงนี้ -->
+      <div class="sp-alt" id="spVer">ALT</div>
       <div class="sp-tag">รู้ว่าต้องทำอะไรก่อน เสมอ</div>
+      <!-- ALT: เปอร์เซ็นต์จริง — เดินตามงานที่โหลดเสร็จจริง ไม่ใช่แถบหลอกตา -->
+      <div class="sp-load">
+        <div class="sp-bar"><i id="spFill"></i></div>
+        <div class="sp-meta">
+          <span class="sp-step" id="spStep">กำลังเริ่ม…</span>
+          <span class="sp-pct"><b id="spPct">0</b>%</span>
+        </div>
+      </div>
+      <!-- ALT: เกร็ดเล็กเกร็ดน้อยระหว่างรอ — ทำให้เวลารอไม่รู้สึกเป็นเวลาที่เสียเปล่า -->
+      <p class="sp-fact" id="spFact"></p>
     </div>
   </div>
 
   <p class="stage-note">
-    StudentOS AI — ข้อมูลเก็บในเครื่อง (localStorage) · Scan รูปใช้ OCR ในเบราว์เซอร์ ·
+    students OS — ข้อมูลเก็บในเครื่อง (localStorage) · Scan รูปใช้ OCR ในเบราว์เซอร์ ·
     การจัดลำดับคำนวณจาก deadline × คะแนน × ขนาดงาน พร้อมเหตุผลกำกับทุกงาน
   </p>
 </div>
@@ -430,6 +830,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
 <script src="engine.js"></script>
+<!-- ต้องมาก่อน app.js: app.js เรียก renderInbox/renderSources ใน renderAll
+     และเรียก loadLineLinks/pullInbox ตอนซิงก์ -->
+<script src="brain.js"></script>
+<script src="inbox.js"></script>
+<script src="linelink.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

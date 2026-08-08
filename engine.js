@@ -16,6 +16,7 @@ const SUBJECTS = [
   { name: 'วิทยาการคำนวณ',  keys: ['วิทยาการคำนวณ', 'คอมพิวเตอร์', 'เขียนโปรแกรม', 'coding'] },
   { name: 'ศิลปะ',          keys: ['ศิลปะ', 'วาดภาพ', 'ดนตรี'] },
   { name: 'สุขศึกษา/พลศึกษา', keys: ['พละ', 'สุขศึกษา', 'กีฬา'] },
+  { name: 'แนะแนว',         keys: ['แนะแนว', 'โฮมรูม', 'guidance'] },
   { name: 'อื่น ๆ',          keys: [] },
 ];
 
@@ -107,44 +108,136 @@ function normalizeOcrText(text) {
     .trim();
 }
 
+// ---------- 0.6) จับคำแบบทนตัวอักษรเพี้ยน (ใช้กับข้อความจากรูปเท่านั้น) ----------
+// OCR พลาดตัวเดียว includes() ก็หาไม่เจอทั้งคำ — ของจริงที่วัดมา "ฟิสิกส์" ถูกอ่านเป็น "แฟสักส"
+// วิธีเทียบ: ตัดสระบน-ล่างกับวรรณยุกต์ทิ้ง → ยุบตัวอักษรที่หน้าตาใกล้กันให้เป็นตัวแทนเดียว
+//   → วัดระยะแก้ไข (Levenshtein) กับทุกช่วงของข้อความที่ยาวใกล้เคียงกัน
+// เปิดเฉพาะข้อความจากรูป — ที่พิมพ์เองหรือแปะจาก LINE ถือว่าถูกอยู่แล้ว ไม่ต้องเดาให้เสี่ยง
+const OCR_LOOKALIKE = [
+  'ผฝพฟ', 'กถภฦ', 'ขชซฃ', 'บปษ', 'ดคตฅ', 'นมณ', 'รว', 'ลส',
+  'อฮธ', 'จฉฐ', 'เแ', 'ไใโ', 'หฬ', '0Oo', '1lI|ๅ', '5S', '8B',
+];
+const LOOKALIKE_MAP = (() => {
+  const m = {};
+  for (const cls of OCR_LOOKALIKE) for (const ch of cls) m[ch] = cls[0];
+  return m;
+})();
+
+// คีย์สำหรับเทียบ: ตัดเครื่องหมายบน-ล่าง แล้วยุบตัวที่หน้าตาคล้ายกัน
+// keepGap = คงรอยต่อระหว่างคำไว้เป็นตัวคั่น (ใช้กับข้อความที่ถูกค้นหา)
+const OCR_GAP = '';
+function ocrKey(s, keepGap) {
+  let out = '';
+  for (const ch of String(s).toLowerCase().replace(/[ัิ-ฺ็-๎]/g, '')) {
+    if (ch === ' ') { if (keepGap) out += OCR_GAP; continue; }
+    out += LOOKALIKE_MAP[ch] || ch;
+  }
+  return out;
+}
+
+// Levenshtein ที่เลิกคิดทันทีเมื่อเกินเพดาน — ไม่ต้องคำนวณจนจบให้เปลือง
+function editDistance(a, b, cap) {
+  const n = a.length, m = b.length;
+  if (Math.abs(n - m) > cap) return cap + 1;
+  let prev = Array.from({ length: m + 1 }, (_, j) => j);
+  for (let i = 1; i <= n; i++) {
+    const cur = [i];
+    let best = i;
+    for (let j = 1; j <= m; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (cur[j] < best) best = cur[j];
+    }
+    if (best > cap) return cap + 1;
+    prev = cur;
+  }
+  return prev[m];
+}
+
+// ระยะที่ดีที่สุดของคำนี้ในข้อความ (null = ไม่เจอในเพดานที่ยอมได้)
+// คำที่สั้นกว่า 4 ตัวหลังยุบ ไม่เอามาเดา — สั้นเกินจนชนคำอื่นได้ง่าย
+function fuzzyDistance(hay, needle) {
+  const h = ocrKey(hay, true), k = ocrKey(needle);
+  if (k.length < 4 || !h) return null;
+  if (h.includes(k)) return 0;
+  // คำสั้นต้องตรงเป๊ะหลังยุบตัวอักษร ยอมให้เพี้ยนได้เฉพาะคำที่ยาวพอ
+  // ("สังคม" ยุบแล้วเหลือ 4 ตัว ถ้ายอมให้พลาด 1 ตัว คำว่า "ส่งวันศุกร์" จะกลายเป็นวิชาสังคมทันที)
+  const cap = k.length >= 8 ? 2 : k.length >= 6 ? 1 : 0;
+  if (!cap) return null;
+  let best = cap + 1;
+  for (let len = Math.max(1, k.length - cap); len <= k.length + cap; len++) {
+    for (let i = 0; i + len <= h.length; i++) {
+      const win = h.substr(i, len);
+      // ชื่อวิชาเป็นคำเดียว ห้ามให้ช่วงที่จับได้คร่อมรอยต่อระหว่างคำ
+      // (ไม่งั้น "เคม ครมาล" จะกลายเป็น "ดนตรี" เพราะตัวอักษรบังเอิญเรียงพอดี)
+      if (win.includes(OCR_GAP)) continue;
+      const d = editDistance(win, k, cap);
+      if (d < best) best = d;
+      if (best === 0) return 0;
+    }
+  }
+  return best <= cap ? best : null;
+}
+
 // ---------- 1) แกะข้อความ ----------
-function parseAssignment(text, now = new Date()) {
+// opts.fuzzy = ข้อความมาจาก OCR ให้ยอมให้ตัวอักษรเพี้ยนได้
+function parseAssignment(text, now = new Date(), opts = {}) {
+  const fuzzy = !!opts.fuzzy;
   const t = String(text || '').replace(/\s+/g, ' ').trim();
   const detected = {};
 
   // วิชา
-  let subject = 'อื่น ๆ';
+  let subject = 'อื่น ๆ', subjKey = '';
   const low = t.toLowerCase();
   outer:
   for (const s of SUBJECTS) {
     for (const k of s.keys) {
-      if (low.includes(k.toLowerCase())) { subject = s.name; detected.subject = true; break outer; }
+      if (low.includes(k.toLowerCase())) {
+        subject = s.name; subjKey = k; detected.subject = true; break outer;
+      }
     }
+  }
+  // หาแบบตรงตัวไม่เจอ + ข้อความมาจากรูป → เดาแบบทนเพี้ยน
+  // เลือกวิชาที่ "ใกล้ที่สุด" ทั้งกระดาน ไม่ใช่ตัวแรกที่ผ่านเกณฑ์ — กันคำสั้นแย่งไปก่อน
+  if (subject === 'อื่น ๆ' && fuzzy) {
+    let best = null;
+    for (const s of SUBJECTS) {
+      for (const k of s.keys) {
+        const d = fuzzyDistance(t, k);
+        if (d == null) continue;
+        if (!best || d < best.d) best = { d, name: s.name };
+      }
+    }
+    if (best) { subject = best.name; detected.subject = true; detected.subjectFuzzy = true; }
   }
 
   // ครู (เอาเฉพาะชื่อ — หยุดที่ช่องว่างหรือคำที่ขึ้นความใหม่ ไม่ลากประโยคทั้งท่อนมา
   // สำคัญกับข้อความจาก OCR ที่ไม่มีช่องว่างคั่นคำเลย เช่น "ครูมาลีทำแบบฝึกหัด")
   let teacher = '';
-  const nameEnd = 'ทำ|อ่าน|เขียน|สรุป|ท่อง|เตรียม|วาด|ส่ง|สอบ|แบบฝึกหัด|แบบ|บทที่|บท|ข้อ|หน้า|ใบงาน|คะแนน|ภายใน|เวลา|วันที่|วันนี้|พรุ่งนี้|มะรืน|สัปดาห์';
+  // คำที่แปลว่า "จบชื่อครูแล้ว" — ไม่งั้นชื่อจะลากประโยคถัดไปมาด้วย
+  // เช่น "ครูมาลีสั่งงานเคมี" ต้องได้ "ครูมาลี" ไม่ใช่ทั้งท่อน
+  const nameEnd = 'สั่ง|ให้|บอก|แจ้ง|มอบหมาย|นัด|ทำ|อ่าน|เขียน|สรุป|ท่อง|เตรียม|วาด|ส่ง|สอบ|แบบฝึกหัด|แบบ|บทที่|บท|ข้อ|หน้า|ใบงาน|คะแนน|ภายใน|เวลา|วันที่|วันนี้|พรุ่งนี้|มะรืน|สัปดาห์';
   const mT = t.match(new RegExp('(?:ครู|อาจารย์|อ\\.)\\s?([ก-๙A-Za-z]{2,20}?)(?=\\s|' + nameEnd + '|$)'));
   if (mT) { teacher = 'ครู' + mT[1].replace(/^ครู/, ''); detected.teacher = true; }
 
   // คะแนน
   let scorePct = null;
-  const mS = t.match(/(\d{1,3})\s*(?:%|เปอร์เซ็นต์)/) || t.match(/คะแนน(?:เก็บ)?\s*(\d{1,3})/);
+  // รับทั้ง "20%" · "คะแนนเก็บ 20" · และ "10 คะแนน" (เลขมาก่อนคำ)
+  const mS = t.match(/(\d{1,3})\s*(?:%|เปอร์เซ็นต์)/) || t.match(/คะแนน(?:เก็บ)?\s*(\d{1,3})/)
+    || t.match(/(\d{1,3})\s*คะแนน/);
   if (mS) { scorePct = Math.min(100, parseInt(mS[1], 10)); detected.score = true; }
 
   // เวลา (16:00 / 16.00 น. / เที่ยง)
-  let hh = 23, mm = 59, hasTime = false;
+  let hh = 23, mm = 59, hasTime = false, timeText = '';
   const mTime = t.match(/(\d{1,2})[:.](\d{2})\s*(?:น\.?)?/);
-  if (mTime && +mTime[1] <= 23 && +mTime[2] <= 59) { hh = +mTime[1]; mm = +mTime[2]; hasTime = true; }
-  else if (/เที่ยง/.test(t)) { hh = 12; mm = 0; hasTime = true; }
+  if (mTime && +mTime[1] <= 23 && +mTime[2] <= 59) {
+    hh = +mTime[1]; mm = +mTime[2]; hasTime = true; timeText = mTime[0];
+  } else if (/เที่ยง/.test(t)) { hh = 12; mm = 0; hasTime = true; timeText = 'เที่ยง'; }
 
-  // วันส่ง
-  let due = null;
-  if (/วันนี้/.test(t)) due = atTime(now, hh, mm);
-  else if (/พรุ่งนี้/.test(t)) due = atTime(addDays(now, 1), hh, mm);
-  else if (/มะรืน/.test(t)) due = atTime(addDays(now, 2), hh, mm);
+  // วันส่ง — dueText เก็บคำที่ใช้ตัดสิน ไว้เอาไปหักออกจากรายละเอียดทีหลัง
+  let due = null, dueText = '';
+  if (/วันนี้/.test(t)) { due = atTime(now, hh, mm); dueText = 'วันนี้'; }
+  else if (/พรุ่งนี้/.test(t)) { due = atTime(addDays(now, 1), hh, mm); dueText = 'พรุ่งนี้'; }
+  else if (/มะรืน/.test(t)) { due = atTime(addDays(now, 2), hh, mm); dueText = 'มะรืน'; }
   else {
     // "วันศุกร์" / "ศุกร์หน้า"
     for (const [name, dow] of Object.entries(WEEKDAYS)) {
@@ -155,6 +248,7 @@ function parseAssignment(text, now = new Date()) {
         if (diff === 0) diff = 7;              // "วันศุกร์" ในวันศุกร์ = ศุกร์ถัดไป
         if (m[1]) diff += 7;                    // "หน้า"
         due = atTime(addDays(now, diff), hh, mm);
+        dueText = m[0];
         break;
       }
     }
@@ -168,14 +262,15 @@ function parseAssignment(text, now = new Date()) {
         let d = new Date(now.getFullYear(), idx, +m[1], hh, mm);
         if (d < now) d = new Date(now.getFullYear() + 1, idx, +m[1], hh, mm);
         due = d;
+        dueText = m[0];
         break;
       }
     }
   }
   if (!due) {
     const mIn = t.match(/ภายใน\s*(\d{1,2})\s*วัน/);
-    if (mIn) due = atTime(addDays(now, +mIn[1]), hh, mm);
-    else if (/สัปดาห์หน้า/.test(t)) due = atTime(addDays(now, 7), hh, mm);
+    if (mIn) { due = atTime(addDays(now, +mIn[1]), hh, mm); dueText = mIn[0]; }
+    else if (/สัปดาห์หน้า/.test(t)) { due = atTime(addDays(now, 7), hh, mm); dueText = 'สัปดาห์หน้า'; }
   }
   // ทางสำรองสำหรับข้อความจากรูป: OCR มักทำวรรณยุกต์/สระหาย ("พรุ่งน่" แทน "พรุ่งนี้")
   // จับแบบตัดวรรณยุกต์กับสระบน-ล่างทิ้งทั้งสองฝ่าย — ใช้เฉพาะเมื่อจับตรงตัวไม่ได้
@@ -194,7 +289,14 @@ function parseAssignment(text, now = new Date()) {
   let estMin = null;
   const mMin = t.match(/(\d{1,3})\s*นาที/);
   const mHr = t.match(/(\d{1,2}(?:\.\d)?)\s*(?:ชม\.?|ชั่วโมง)/);
-  const mRange = t.match(/ข้อ\s*(\d{1,3})\s*[-–ถึง]+\s*(\d{1,3})/);
+  let mRange = t.match(/ข้อ\s*(\d{1,3})\s*[-–ถึง]+\s*(\d{1,3})/);
+  // จากรูป คำว่า "ข้อ" มักเพี้ยนจนหาไม่เจอ (ของจริงที่วัดมา อ่านได้เป็น "Jo 1-10")
+  // ยอมรับช่วงตัวเลขล้วนแทน แต่ต้องดูเหมือนช่วงข้อจริง ๆ: เรียงจากน้อยไปมาก ห่างกันไม่เกิน 100
+  // และต้องไม่ติดกับ : . / - ซึ่งแปลว่าเป็นเวลา วันที่ หรือเลขชุดอื่น
+  if (!mRange && fuzzy) {
+    const m = t.match(/(?:^|[^\d:.\/-])(\d{1,3})\s*[-–—]\s*(\d{1,3})(?![\d:.\/-])/);
+    if (m && +m[2] > +m[1] && +m[2] - +m[1] <= 100) mRange = m;
+  }
   if (mMin) estMin = +mMin[1];
   else if (mHr) estMin = Math.round(+mHr[1] * 60);
   else if (mRange) estMin = Math.max(10, (+mRange[2] - +mRange[1] + 1) * 4);
@@ -208,14 +310,34 @@ function parseAssignment(text, now = new Date()) {
   if (type !== 'homework') detected.type = true;
   const isExam = type === 'exam'; // เก็บไว้เพื่อความเข้ากันได้กับข้อมูลเก่า
 
-  // รายละเอียด: ประโยคที่มี verb งาน — ตัดจบก่อนคำบอกกำหนดส่ง/คะแนน
+  // ---------- รายละเอียด ----------
+  // วิธีเดิมจับเฉพาะประโยคที่ขึ้นต้นด้วยคำกริยา แล้วตัดจบทันทีที่เจอคำบอกกำหนดส่ง
+  // ข้อความยาว ๆ ที่แปะจาก LINE จึงหายไปครึ่งหนึ่ง (เจอ "ส่ง" กลางประโยคก็ตัดแล้ว)
+  // วิธีใหม่: เอาข้อความทั้งก้อน แล้ว "หักเฉพาะส่วนที่ถูกแยกไปช่องอื่นแล้ว" ออก
+  // ที่เหลือคือสิ่งที่ผู้ใช้เขียนจริง ๆ และไม่มีอะไรหายไประหว่างทาง
+  const escRe = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const cutOut = [dueText, mT && mT[0], mS && mS[0], mMin && mMin[0], mHr && mHr[0]].filter(Boolean);
+  if (timeText && !(dueText && dueText.includes(timeText))) cutOut.push(timeText);
+
+  let rest = t;
+  for (const piece of cutOut) rest = rest.replace(piece, ' ');
+  // คำเรียกงาน + ชื่อวิชาที่ต้นประโยค ซ้ำกับช่อง "วิชา" อยู่แล้ว
+  if (subjKey) rest = rest.replace(new RegExp('^\\s*(?:การบ้าน|ใบงาน|วิชา|งาน)?\\s*' + escRe(subjKey), 'i'), ' ');
+  // คำเชื่อมที่ค้างลอยอยู่หลังหักข้อมูลออก (เช่น "…ส่ง  16:00" เหลือ "ส่ง" โดด ๆ)
+  rest = rest
+    .replace(/(?:^|\s)(?:ส่ง|กำหนดส่ง|เดดไลน์|ภายใน|คะแนนเก็บ|คะแนน|เก็บ|เวลา|ตอน|น\.|ครู|อาจารย์)(?=\s|$)/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    // คำที่ค้างอยู่ท้ายสุดหลังหักข้อมูลออก ("สอบวันพุธ" → เหลือ "สอบ" ลอย ๆ)
+    .replace(/\s(?:สอบ|ส่ง|เริ่ม|ก่อน|ตอน|ภายใน|ที่|เมื่อ|วัน)\s*$/, '')
+    .replace(/^[\s·,:;\-–—]+|[\s·,:;\-–—(]+$/g, '')
+    .trim();
+
   let detail = '';
-  const mD = t.match(/((?:ทำ|อ่าน|สรุป|ท่อง|เตรียม|เขียน|วาด|สอบ|ประชุม|ซ้อม|แข่ง|อัด).{3,80}?)(?=\s*(?:ส่ง|ภายใน|คะแนน|ครู|เวลา|พรุ่งนี้|วันนี้|มะรืน|วันที่|$))/);
-  if (mD) { detail = mD[1].trim(); detected.detail = true; }
-  else detail = t.replace(/\s*(?:ส่ง|ภายใน|คะแนน)[^]*$/, '').trim().slice(0, 80) || t.slice(0, 80);
-  // ตัดคำบอกเวลาท้ายประโยคออกจากชื่อเรื่อง (มันไปอยู่ในช่องวันที่แล้ว)
-  detail = detail.replace(/\s*(?:เริ่ม)?(?:วันที่|วัน(?:จันทร์|อังคาร|พุธ|พฤหัสบดี|พฤหัส|ศุกร์|เสาร์|อาทิตย์)|พรุ่งนี้|วันนี้|มะรืน|สัปดาห์หน้า)[^]*$/, '').trim();
-  detail = detail.replace(/[\s(\-–—]+$/, ''); // ตัดวงเล็บ/ขีดค้างท้ายประโยค
+  if (rest.length >= 3) { detail = rest.slice(0, 200); detected.detail = true; }
+  else {
+    // ข้อความสั้นมากจนหักแล้วไม่เหลืออะไร → ใช้ข้อความเดิมทั้งก้อน ดีกว่าปล่อยว่าง
+    detail = t.slice(0, 200);
+  }
 
   return {
     subject, teacher, scorePct,
@@ -294,7 +416,10 @@ function sortByPriority(tasks, now = new Date()) {
 
 // ---------- 3) ประโยคของ AI ----------
 function aiGreeting(pending, settings, now = new Date()) {
-  if (!pending.length) return 'ตอนนี้ไม่มีงานค้างเลย 🎉 ถ้าครูสั่งงานใหม่ กด Scan เพิ่มได้ทันที';
+  // ALT: เรียกชื่อที่ผู้ใช้บอกไว้ตอนทำความรู้จัก — ประโยคของ AI จะได้พูดกับ "คนคนนี้"
+  const nm = (settings.name || '').trim();
+  const hey = nm ? nm + ' ' : '';
+  if (!pending.length) return hey + 'ตอนนี้ไม่มีงานค้างเลย 🎉 ถ้าครูสั่งงานใหม่ กด Scan เพิ่มได้ทันที';
 
   const sorted = sortByPriority(pending, now);
   const top = sorted[0];
@@ -304,12 +429,12 @@ function aiGreeting(pending, settings, now = new Date()) {
   const freeH = settings.freeHours || 2;
 
   // สั้นเสมอ: 1 ประโยคบอกว่าทำอะไรก่อน + 1 วลีบอกว่าเวลาพอไหม
-  if (info.urgency === 'over') return top.subject + 'เลยกำหนดแล้ว รีบเคลียร์ก่อนเลย';
+  if (info.urgency === 'over') return hey + top.subject + 'เลยกำหนดแล้ว รีบเคลียร์ก่อนเลย';
   const why = (info.reasons[0] || '').replace(/^★ /, '');
   const fit = totalH > freeH
     ? 'งานรวม ~' + totalH + ' ชม. เกินเวลาว่าง เลือกทำเฉพาะงานด่วน'
     : 'งานรวม ~' + totalH + ' ชม. เวลาว่างพอสบาย';
-  return 'เริ่มที่' + top.subject + 'ก่อน — ' + why + ' · ' + fit;
+  return hey + 'เริ่มที่' + top.subject + 'ก่อน — ' + why + ' · ' + fit;
 }
 
 function timelineInsight(pending, now = new Date()) {
