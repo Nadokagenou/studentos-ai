@@ -565,6 +565,18 @@
         </div>
       </div>
 
+      <!-- ============ SCREEN: วงล้อสุ่มสกิน (ALT 1A7) ============ -->
+      <div class="screen flush" id="scr-wheel">
+        <div class="scr-body pf-body">
+          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+            <div></div>
+            <button class="sh-btn" onclick="go('scr-shop')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <div id="wheelBody"></div>
+        </div>
+      </div>
+
       <!-- ============ SCREEN: เหรียญตรา (ALT 1A6M3) ============ -->
       <div class="screen flush" id="scr-badges">
         <div class="scr-body bg-body" id="badgesBody"></div>
@@ -782,6 +794,10 @@
       </div>
 
     </div>
+
+    <!-- ============ เช็คอินรายวัน (ALT 1A7) ============
+         เด้งเองเมื่อถึง 6 โมงเช้าเวลาไทยและยังไม่ได้กดรับ · app.js เป็นคนเติมเนื้อใน -->
+    <div id="checkin" hidden></div>
 
     <!-- ============ INSTALL GUIDE (iOS) ============ -->
     <div id="installGuide" hidden>

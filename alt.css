@@ -3593,3 +3593,298 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 .ob-mark, .ig-icon img {
   border-radius: 0; box-shadow: none; object-fit: contain;
 }
+
+/* ============================================================
+   ALT 1A7: เช็คอินรายวัน + วงล้อสุ่มสกิน
+   ============================================================ */
+:root {
+  --r-common: #7C8AA5;
+  --r-rare: #3B82F6;
+  --r-legend: #F59E0B;
+}
+
+/* ---------- หน้าต่างเช็คอิน ---------- */
+#checkin {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(6,10,22,.62);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  animation: ck-fade .22s ease both;
+}
+#checkin[hidden] { display: none; }
+.ck-sheet {
+  width: 100%;
+  max-width: 330px;
+  padding: 20px 18px 16px;
+  border-radius: 24px;
+  background: var(--card);
+  box-shadow: 0 26px 60px rgba(0,0,0,.45);
+  text-align: center;
+  animation: ck-rise .34s cubic-bezier(.2,.9,.3,1.1) both;
+}
+.ck-ttl { font-size: 19px; font-weight: 700; letter-spacing: -.02em; }
+.ck-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.ck-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin: 16px 0 14px;
+}
+.ck-cell {
+  position: relative;
+  padding: 10px 4px 9px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+/* วันที่ 7 กินเต็มแถวสุดท้าย — เป็นรางวัลใหญ่ของรอบ ควรเด่นกว่าช่องอื่น */
+.ck-cell.big {
+  grid-column: span 3;
+  background: linear-gradient(135deg, var(--blue-deep), var(--blue));
+  border-color: transparent;
+  color: #fff;
+}
+.ck-d { font-size: 10px; color: var(--muted); font-weight: 600; }
+.ck-cell.big .ck-d { color: rgba(255,255,255,.8); }
+.ck-cell b { font-size: 19px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.ck-u { font-size: 9.5px; color: var(--faint); }
+.ck-cell.big .ck-u { color: rgba(255,255,255,.85); }
+.ck-spin svg { width: 22px; height: 22px; }
+/* วันที่รับไปแล้ว — จางลงและมีเครื่องหมายถูกทับ */
+.ck-cell.done { opacity: .5; }
+.ck-tick {
+  position: absolute;
+  inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(34,197,94,.18);
+  border-radius: 13px;
+  color: #16A34A;
+}
+.ck-tick svg { width: 20px; height: 20px; }
+/* วันนี้ — ขอบเน้นและเต้นเบา ๆ ให้รู้ว่าต้องกดตรงไหน */
+.ck-cell.now {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px var(--blue-soft);
+  animation: ck-beat 1.6s ease-in-out infinite;
+}
+.ck-cta {
+  width: 100%;
+  min-height: 50px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--blue-deep), var(--blue));
+  color: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-brand);
+}
+.ck-cta:active { transform: scale(.98); }
+.ck-done { font-size: 12.5px; color: var(--muted); margin: 6px 0 2px; }
+.ck-close {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 6px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+@keyframes ck-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ck-rise { from { opacity: 0; transform: translateY(18px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes ck-beat { 0%,100% { box-shadow: 0 0 0 2px var(--blue-soft); } 50% { box-shadow: 0 0 0 5px var(--blue-soft); } }
+
+/* ---------- วงล้อ ---------- */
+.wh-wrap {
+  position: relative;
+  width: 268px;
+  height: 268px;
+  margin: 8px auto 14px;
+}
+/* หัวลูกศรชี้ลงจากด้านบน = ช่องที่หยุดตรงนี้คือของที่ได้ */
+.wh-pin {
+  position: absolute;
+  top: -4px; left: 50%;
+  width: 0; height: 0;
+  margin-left: -11px;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-top: 20px solid var(--ink);
+  z-index: 3;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.4));
+}
+.wh {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 0 6px var(--card), 0 0 0 8px var(--line), 0 16px 40px rgba(0,0,0,.3);
+  will-change: transform;
+}
+/* แต่ละช่อง = สามเหลี่ยม 45 องศา ตัดด้วย clip-path แล้วหมุนไปตามลำดับ */
+.wh-seg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(calc(var(--i) * 45deg));
+  clip-path: polygon(50% 50%, 29.3% 0%, 70.7% 0%);
+  display: block;
+}
+.wh-seg.r-common { background: linear-gradient(180deg, #94A3B8, #64748B); }
+.wh-seg.r-rare { background: linear-gradient(180deg, #60A5FA, #2563EB); }
+.wh-seg.r-legendary { background: linear-gradient(180deg, #FCD34D, #D97706); }
+.wh-seg span {
+  position: absolute;
+  top: 16px; left: 50%;
+  transform: translateX(-50%);
+  width: 74px;
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,.45);
+  line-height: 1.2;
+}
+.wh-hub {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 54px; height: 54px;
+  margin: -27px 0 0 -27px;
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: 0 0 0 3px var(--line), 0 4px 12px rgba(0,0,0,.3);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--blue);
+  z-index: 2;
+}
+.wh-hub svg { width: 22px; height: 22px; }
+
+.wh-odds {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 13px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.wh-odds .r-legendary { color: var(--r-legend); }
+.wh-odds .r-rare { color: var(--r-rare); }
+.wh-odds .r-common { color: var(--r-common); }
+
+.wh-btns { display: flex; gap: 9px; margin-bottom: 14px; }
+.wh-go {
+  flex: 1;
+  min-height: 58px;
+  border: none;
+  border-radius: 17px;
+  background: linear-gradient(135deg, var(--blue-deep), var(--blue));
+  color: #fff;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  box-shadow: var(--shadow-brand);
+  transition: transform .13s ease;
+}
+.wh-go.alt { background: linear-gradient(135deg, #B45309, #F59E0B); box-shadow: 0 10px 24px -8px rgba(245,158,11,.6); }
+.wh-go b { font-size: 14.5px; font-weight: 700; }
+.wh-go i { font-size: 11px; font-style: normal; opacity: .85; }
+.wh-go:active { transform: scale(.97); }
+.wh-go:disabled { opacity: .45; pointer-events: none; }
+
+/* ---------- การ์ดรางวัล ---------- */
+.wh-res { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.wh-res:has(.wh-card:only-child) { grid-template-columns: 1fr; }
+.wh-card {
+  padding: 11px 5px 10px;
+  border-radius: 13px;
+  text-align: center;
+  color: #fff;
+  animation: wh-flip .42s cubic-bezier(.2,.9,.3,1.3) both;
+}
+.wh-card.r-common { background: linear-gradient(160deg, #94A3B8, #64748B); }
+.wh-card.r-rare { background: linear-gradient(160deg, #60A5FA, #1D4ED8); box-shadow: 0 0 16px -4px rgba(59,130,246,.8); }
+.wh-card.r-legendary {
+  background: linear-gradient(160deg, #FCD34D, #D97706);
+  box-shadow: 0 0 22px -3px rgba(245,158,11,.9);
+  animation: wh-flip .42s cubic-bezier(.2,.9,.3,1.3) both, wh-shine 1.6s ease-in-out infinite;
+}
+.wh-rar { font-size: 8.5px; font-weight: 800; letter-spacing: .06em; opacity: .9; margin-bottom: 3px; }
+.wh-card b { display: block; font-size: 14px; font-weight: 700; line-height: 1.2; }
+.wh-card span { display: block; font-size: 9.5px; opacity: .9; margin-top: 2px; }
+@keyframes wh-flip {
+  from { opacity: 0; transform: rotateY(90deg) scale(.8); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes wh-shine {
+  0%,100% { box-shadow: 0 0 22px -3px rgba(245,158,11,.9); }
+  50%     { box-shadow: 0 0 34px 0 rgba(252,211,77,1); }
+}
+
+/* ---------- ปุ่มใหญ่ในร้าน + ตู้สกิน ---------- */
+.tk-cta {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 15px;
+  margin-bottom: 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .13s ease;
+}
+.tk-cta:active { transform: scale(.985); }
+.tk-cta .tile {
+  width: 38px; height: 38px; flex: none;
+  border-radius: 12px;
+  background: var(--pri-yellow); color: var(--pri-yellow-text);
+  display: flex; align-items: center; justify-content: center;
+}
+.tk-cta.ghost .tile { background: var(--blue-soft); color: var(--blue); }
+.tk-cta .tile svg { width: 18px; height: 18px; }
+.tk-cta .bd { flex: 1; min-width: 0; }
+.tk-cta b { display: block; font-size: 14.5px; font-weight: 700; }
+.tk-cta i { display: block; font-size: 11.5px; font-style: normal; color: var(--muted); margin-top: 2px; }
+.tk-cta > svg { width: 18px; height: 18px; color: var(--faint); flex: none; }
+
+.tk-skins { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 11px; }
+.tk-skin {
+  padding: 12px 11px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  opacity: .55;
+}
+.tk-skin.got { opacity: 1; }
+.tk-skin.got.r-rare { border-color: var(--r-rare); }
+.tk-skin.got.r-legendary { border-color: var(--r-legend); box-shadow: 0 0 14px -5px var(--r-legend), var(--shadow); }
+.ts-rar { font-size: 9px; font-weight: 800; letter-spacing: .05em; }
+.tk-skin.r-rare .ts-rar { color: var(--r-rare); }
+.tk-skin.r-legendary .ts-rar { color: var(--r-legend); }
+.ts-nm { font-size: 14px; font-weight: 700; margin-top: 3px; }
+.ts-ct { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  #checkin, .ck-sheet, .ck-cell.now, .wh-card { animation: none; }
+  .wh { transition: none !important; }
+}

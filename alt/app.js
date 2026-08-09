@@ -7,7 +7,7 @@
 //   - service worker ใช้ cache คนละชื่อ
 // ============================================================
 
-const APP_VERSION = '1A6M4';                // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
+const APP_VERSION = '1A7';                // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
 const APP_CODENAME = 'Modern';             // ชื่อรุ่นของอัปเดตนี้
 const APP_CHANNEL = 'ALT';                  // ป้ายกำกับรุ่น — โชว์ทั้งบนแอปและในหน้า "ฉัน"
 const STORE_KEY = 'studentos.alt.v1';      // ALT: แยกที่เก็บข้อมูลจากตัวจริง ('studentos.v1')
@@ -459,6 +459,8 @@ let enterTimer = null;
 function go2(id){ return go(id); }
 function go(id) {
   const dir = navDirection(curScreen, id);
+  // ออกจากจอวงล้อเมื่อไหร่ ปลดล็อกให้วาดใหม่ได้ กลับเข้ามาจะได้เจอวงล้อสะอาด ๆ
+  if (id !== 'scr-wheel') wheelKeep = false;
   curScreen = id;
   document.body.dataset.godir = dir;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on', 'just-in'));
@@ -1720,19 +1722,54 @@ function renderBadges() {
     }).join('')}`;
 }
 
-// ---------- ALT 1A6M3: โทเคน (เงินในแอป) ----------
-// สถานะ: **ร้านค้ายังสร้างไม่เสร็จ** ปุ่มจึงติดป้าย "กำลังทำ" ไว้
-// แต่การนับวันกับการสะสมโทเคน **เดินจริงตั้งแต่ตอนนี้** ตั้งใจให้เป็นแบบนั้น —
-// ถ้ารอเปิดร้านก่อนค่อยเริ่มนับ วันแรกที่ร้านเปิดทุกคนจะมียอดเป็นศูนย์เท่ากันหมด
-// คนที่เปิดแอปมาตลอดจะไม่ได้อะไรจากความสม่ำเสมอที่ผ่านมาเลย
+// ---------- ALT 1A7: โทเคน · เช็คอินรายวัน · วงล้อสุ่ม ----------
+// "วันของรางวัล" เริ่ม 6 โมงเช้าเวลาไทย ไม่ใช่เที่ยงคืน
+// เหตุผล: นักเรียนที่นั่งทำการบ้านถึงตีสอง ยังควรนับเป็นวันเดิมอยู่
+// ถ้าตัดที่เที่ยงคืน คนกลุ่มนี้จะเผลอกินสิทธิ์ของวันถัดไปทั้งที่ยังไม่ได้นอน
 const TOKEN_KEY = 'studentos.alt.tokens';
-const TOKEN_BASE = 5;        // ได้ทุกวันที่เปิดแอป
-const TOKEN_STREAK_CAP = 7;  // โบนัสต่อเนื่องตันที่ 7 วัน กันไม่ให้ห่างกันจนไล่ไม่ทัน
+const REWARD_HOUR = 6;          // เวลาไทยที่วันของรางวัลเปลี่ยน
+const THAI_OFFSET_MIN = 7 * 60; // ไทย = UTC+7 คงที่ ไม่มี DST
 
-function dayKey(d = new Date()) {
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
-    + '-' + String(d.getDate()).padStart(2, '0');
+// ตารางรอบ 7 วัน: วันแรก 9 · ทุกวันที่หาร 3 ลงตัวได้ 3 · วันอื่น 1 · วันที่ 7 ได้หมุนวงล้อฟรี
+const DAILY_PLAN = [9, 1, 3, 1, 1, 3, 'spin'];
+
+// ---------- ราคาและอัตราของวงล้อ ----------
+const SPIN_COST_1 = 2;    // หมุน 1 ครั้ง
+const SPIN_COST_10 = 10;  // หมุน 10 ครั้ง (ถูกกว่าหมุนทีละครั้งครึ่งหนึ่ง)
+
+// สกินที่อยู่ในวงล้อ = ธีมที่มีอยู่แล้วในแอป การได้รางวัลคือ "สะสมได้" ไม่ใช่ปลดล็อกสิทธิ์ใช้งาน
+// ตั้งใจไม่ไปล็อกธีมที่คนใช้อยู่แล้ว — ระบบสุ่มไม่ควรยึดของที่เขามีอยู่ก่อนคืน
+const SPIN_TABLE = [
+  { id: 'tk1', rarity: 'common', kind: 'token', min: 1, max: 3, label: 'โทเคน', weight: 78 },
+  { id: 'earth', rarity: 'rare', kind: 'skin', theme: 'earth', label: 'โลก', weight: 9 },
+  { id: 'magic', rarity: 'rare', kind: 'skin', theme: 'magic', label: 'เวทมนตร์', weight: 9 },
+  { id: 'ocean', rarity: 'legendary', kind: 'skin', theme: 'ocean', label: 'มหาสมุทร', weight: 2 },
+  { id: 'galaxy', rarity: 'legendary', kind: 'skin', theme: 'galaxy', label: 'กาแล็กซี', weight: 2 },
+];
+const RARITY_NAME = { common: 'Common', rare: 'Rare', legendary: 'Legendary' };
+// ได้สกินซ้ำ แปลงเป็นโทเคนคืนตามระดับ — กันความรู้สึก "หมุนแล้วได้ของเปล่า"
+const DUP_REFUND = { rare: 4, legendary: 12 };
+
+// เวลาไทยตอนนี้ ในรูป Date ที่อ่านฟิลด์ local ได้เป็นเวลาไทยตรง ๆ
+function thaiNow(now = new Date()) {
+  return new Date(now.getTime() + (now.getTimezoneOffset() + THAI_OFFSET_MIN) * 60000);
 }
+// รหัสวันของรางวัล — ถอย 6 ชั่วโมงก่อนตัดวัน เส้นแบ่งจึงอยู่ที่ 6 โมงเช้าไทย
+function rewardDayKey(now = new Date()) {
+  const t = thaiNow(now);
+  t.setHours(t.getHours() - REWARD_HOUR);
+  return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0')
+    + '-' + String(t.getDate()).padStart(2, '0');
+}
+function prevDayKey(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  const t = new Date(y, m - 1, d - 1);
+  return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0')
+    + '-' + String(t.getDate()).padStart(2, '0');
+}
+// ชื่อเดิมที่โค้ดส่วนอื่นเรียกอยู่
+function dayKey(d = new Date()) { return rewardDayKey(d); }
+
 function tokenState() {
   try { return JSON.parse(localStorage.getItem(TOKEN_KEY)) || {}; } catch (_) { return {}; }
 }
@@ -1741,59 +1778,307 @@ function saveTokenState(s) {
 }
 function tokenBalance() { return tokenState().bal || 0; }
 function loginStreak() { return tokenState().streak || 0; }
-
-// เรียกครั้งเดียวตอนเปิดแอป — วันละครั้ง ไม่ว่าจะเปิดกี่รอบ
-function checkDailyToken() {
+function skinsOwned() { return tokenState().skins || {}; }
+function addTokens(n) {
   const s = tokenState();
-  const today = dayKey();
-  if (s.day === today) return null;
-  const yesterday = dayKey(new Date(Date.now() - 86400000));
-  // ต่อเนื่องนับจาก "เปิดเมื่อวาน" เท่านั้น ขาดไปวันหนึ่งก็เริ่มนับหนึ่งใหม่
-  s.streak = (s.day === yesterday) ? (s.streak || 0) + 1 : 1;
-  s.best = Math.max(s.best || 0, s.streak);
-  s.days = (s.days || 0) + 1;
-  const bonus = Math.min(s.streak, TOKEN_STREAK_CAP);
-  const earned = TOKEN_BASE + bonus;
-  s.bal = (s.bal || 0) + earned;
-  s.day = today;
+  s.bal = Math.max(0, (s.bal || 0) + n);
   saveTokenState(s);
-  return { earned, bonus, streak: s.streak, bal: s.bal, firstEver: s.days === 1 };
+  return s.bal;
 }
 
+// วันนี้ยังไม่ได้รับของรางวัลใช่ไหม
+function dailyPending() { return tokenState().day !== rewardDayKey(); }
+// อยู่วันที่เท่าไหร่ของรอบ (1–7) ถ้ายังไม่ได้รับของวันนี้
+function pendingCycleDay() {
+  const s = tokenState();
+  if (!dailyPending()) return s.cycleDay || 1;
+  const today = rewardDayKey();
+  const carried = (s.day === prevDayKey(today)) ? (s.cycleDay || 0) : 0;  // ขาดวัน = เริ่มรอบใหม่
+  return carried >= 7 ? 1 : carried + 1;
+}
+
+// รับของรางวัลของวันนี้ — วันละครั้ง ไม่ว่าจะเปิดแอปกี่รอบ
+function claimDaily() {
+  if (!dailyPending()) return null;
+  const s = tokenState();
+  const today = rewardDayKey();
+  const day = pendingCycleDay();
+  const prize = DAILY_PLAN[day - 1];
+
+  s.streak = (s.day === prevDayKey(today)) ? (s.streak || 0) + 1 : 1;
+  s.best = Math.max(s.best || 0, s.streak);
+  s.days = (s.days || 0) + 1;
+  s.cycleDay = day;
+  s.day = today;
+  if (prize === 'spin') {
+    s.freeSpins = (s.freeSpins || 0) + 1;   // วันที่ 7 ได้สิทธิ์หมุนฟรี 1 ครั้ง
+  } else {
+    s.bal = (s.bal || 0) + prize;
+  }
+  saveTokenState(s);
+  return { day, prize, bal: s.bal || 0, streak: s.streak, freeSpins: s.freeSpins || 0 };
+}
+
+// ---------- วงล้อ ----------
+function spinOnce() {
+  const total = SPIN_TABLE.reduce((n, p) => n + p.weight, 0);
+  let r = Math.random() * total;
+  const prize = SPIN_TABLE.find(p => (r -= p.weight) < 0) || SPIN_TABLE[0];
+  const s = tokenState();
+  s.skins = s.skins || {};
+  const out = { id: prize.id, rarity: prize.rarity, kind: prize.kind, label: prize.label };
+  if (prize.kind === 'token') {
+    out.amount = prize.min + Math.floor(Math.random() * (prize.max - prize.min + 1));
+    s.bal = (s.bal || 0) + out.amount;
+  } else {
+    const had = s.skins[prize.id] || 0;
+    s.skins[prize.id] = had + 1;
+    out.duplicate = had > 0;
+    out.theme = prize.theme;
+    if (out.duplicate) {
+      out.amount = DUP_REFUND[prize.rarity] || 1;   // ซ้ำแล้วคืนเป็นโทเคน
+      s.bal = (s.bal || 0) + out.amount;
+    }
+  }
+  saveTokenState(s);
+  return out;
+}
+
+// n = จำนวนครั้ง · คิดเงินก่อนหมุน ถ้าไม่พอไม่หมุนเลยสักครั้ง (ไม่หักครึ่ง ๆ กลาง ๆ)
+function paySpin(n) {
+  const s = tokenState();
+  if (n === 1 && (s.freeSpins || 0) > 0) {
+    s.freeSpins -= 1;
+    saveTokenState(s);
+    return { ok: true, free: true, cost: 0 };
+  }
+  const cost = n === 10 ? SPIN_COST_10 : SPIN_COST_1 * n;
+  if ((s.bal || 0) < cost) return { ok: false, cost, short: cost - (s.bal || 0) };
+  s.bal -= cost;
+  saveTokenState(s);
+  return { ok: true, free: false, cost };
+}
+
+// ---------- หน้าต่างเช็คอินรายวัน ----------
+// เด้งเองเมื่อถึงวันใหม่ (6 โมงเช้าไทย) และยังไม่ได้กดรับ
+function dailyGrid(activeDay, claimedUpTo) {
+  return DAILY_PLAN.map((p, i) => {
+    const d = i + 1;
+    const done = d <= claimedUpTo;
+    const now = d === activeDay;
+    const face = p === 'spin'
+      ? '<span class="ck-spin">' + icon('sparkles') + '</span>'
+      : '<b class="mono">' + p + '</b>';
+    return `<div class="ck-cell${done ? ' done' : ''}${now ? ' now' : ''}${p === 'spin' ? ' big' : ''}">
+      <span class="ck-d">วันที่ ${d}</span>
+      ${face}
+      <span class="ck-u">${p === 'spin' ? 'หมุนฟรี' : 'โทเคน'}</span>
+      ${done ? '<span class="ck-tick">' + icon('check') + '</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function openDailyCheck(auto) {
+  const wrap = document.getElementById('checkin');
+  if (!wrap) return;
+  if (auto && !dailyPending()) return;
+  const day = pendingCycleDay();
+  const claimed = dailyPending() ? day - 1 : (tokenState().cycleDay || 0);
+  const prize = DAILY_PLAN[day - 1];
+  wrap.hidden = false;
+  wrap.innerHTML = `<div class="ck-sheet">
+      <div class="ck-head">
+        <div class="ck-ttl">เช็คอินรายวัน</div>
+        <div class="ck-sub">วันของรางวัลเปลี่ยนตอน 6 โมงเช้า</div>
+      </div>
+      <div class="ck-grid">${dailyGrid(day, claimed)}</div>
+      ${dailyPending()
+        ? `<button class="ck-cta" onclick="claimDailyFromSheet()">
+             ${prize === 'spin' ? 'รับสิทธิ์หมุนวงล้อ' : 'รับ ' + prize + ' โทเคน'}</button>`
+        : `<p class="ck-done">รับของวันนี้ไปแล้ว — กลับมาใหม่พรุ่งนี้ 6 โมงเช้า</p>`}
+      <button class="ck-close" onclick="closeDailyCheck()">ปิด</button>
+    </div>`;
+}
+function closeDailyCheck() {
+  const wrap = document.getElementById('checkin');
+  if (wrap) { wrap.hidden = true; wrap.innerHTML = ''; }
+}
+function claimDailyFromSheet() {
+  const got = claimDaily();
+  if (!got) { closeDailyCheck(); return; }
+  haptic('done');
+  splashBurst(16, 'egg-star');
+  renderAll();
+  if (got.prize === 'spin') {
+    closeDailyCheck();
+    go('scr-wheel');
+    showToast({ title: 'ครบ 7 วันแล้ว 🎡', body: 'ได้สิทธิ์หมุนวงล้อฟรี 1 ครั้ง' });
+  } else {
+    openDailyCheck(false);   // วาดใหม่ให้ช่องวันนี้ติ๊กถูก
+    showToast({ title: '+' + got.prize + ' โทเคน', body: 'เช็คอินต่อเนื่อง ' + got.streak + ' วัน · รวม ' + got.bal + ' โทเคน' });
+  }
+}
+
+// ---------- วงล้อ ----------
+// เรียงช่องบนวงล้อให้ของหายากกระจายอยู่คนละฝั่ง มองแล้วรู้ว่าไม่ได้เรียงตามลำดับความหายาก
+const WHEEL_SLOTS = ['tk1', 'earth', 'tk1', 'ocean', 'tk1', 'magic', 'tk1', 'galaxy'];
+const SEG = 360 / WHEEL_SLOTS.length;
+let spinning = false;
+
+// การ์ดรางวัลอยู่ในกล่องเดียวกับวงล้อ ถ้าปล่อยให้ renderAll() วาดจอนี้ใหม่หลังหมุนจบ
+// การ์ดที่เพิ่งขึ้นจะถูกลบทิ้งทันที และจานก็เด้งกลับไปองศา 0 ด้วย
+// จึงล็อกจอนี้ไว้หลังหมุน แล้วปลดล็อกเมื่อผู้ใช้ออกจากจอไป (ดู go())
+let wheelKeep = false;
+
+// อัปเดตเฉพาะยอดกับป้ายบนปุ่ม ไม่ต้องวาดจอใหม่ทั้งจอ
+function refreshWheelHead() {
+  const s = tokenState();
+  const eb = document.querySelector('#wheelBody .eyebrow');
+  if (eb) eb.textContent = (s.bal || 0) + ' โทเคน' + ((s.freeSpins || 0) ? ' · หมุนฟรี ' + s.freeSpins : '');
+  const b1 = document.querySelector('#whGo1 i');
+  if (b1) b1.textContent = (s.freeSpins || 0) ? 'ใช้สิทธิ์ฟรี' : SPIN_COST_1 + ' โทเคน';
+}
+
+function renderWheel() {
+  const box = document.getElementById('wheelBody');
+  if (!box) return;
+  if (wheelKeep && curScreen === 'scr-wheel') return;   // กำลังโชว์ผลอยู่ ห้ามวาดทับ
+  const s = tokenState();
+  const free = s.freeSpins || 0;
+  const segs = WHEEL_SLOTS.map((id, i) => {
+    const p = SPIN_TABLE.find(x => x.id === id);
+    return `<i class="wh-seg r-${p.rarity}" style="--i:${i}">
+      <span>${p.kind === 'token' ? '1–3' : esc(p.label)}</span></i>`;
+  }).join('');
+  box.innerHTML = `<div class="page-head">
+      <div class="eyebrow mono">${s.bal || 0} โทเคน${free ? ' · หมุนฟรี ' + free : ''}</div>
+      <h1 class="page-title">วงล้อสุ่มสกิน</h1>
+    </div>
+    <div class="wh-wrap">
+      <div class="wh-pin"></div>
+      <div class="wh" id="whDisc">${segs}<span class="wh-hub">${icon('sparkles')}</span></div>
+    </div>
+    <div class="wh-odds">
+      <span class="r-legendary">Legendary 4%</span>
+      <span class="r-rare">Rare 18%</span>
+      <span class="r-common">Common 78%</span>
+    </div>
+    <div class="wh-btns">
+      <button class="wh-go" id="whGo1" onclick="doSpin(1)">
+        <b>หมุน 1 ครั้ง</b><i>${free ? 'ใช้สิทธิ์ฟรี' : SPIN_COST_1 + ' โทเคน'}</i></button>
+      <button class="wh-go alt" id="whGo10" onclick="doSpin(10)">
+        <b>หมุน 10 ครั้ง</b><i>${SPIN_COST_10} โทเคน</i></button>
+    </div>
+    <div id="whOut"></div>`;
+}
+
+function prizeCard(r, i) {
+  const cls = 'r-' + r.rarity;
+  const body = r.kind === 'token'
+    ? '<b class="mono">+' + r.amount + '</b><span>โทเคน</span>'
+    : '<b>' + esc(r.label) + '</b><span>' + (r.duplicate ? 'ซ้ำ · คืน ' + r.amount + ' โทเคน' : 'สกินใหม่!') + '</span>';
+  return `<div class="wh-card ${cls}" style="animation-delay:${i * 70}ms">
+    <div class="wh-rar">${RARITY_NAME[r.rarity]}</div>${body}</div>`;
+}
+
+async function doSpin(n) {
+  if (spinning) return;
+  const pay = paySpin(n);
+  if (!pay.ok) {
+    haptic('snooze');
+    showToast({ title: 'โทเคนไม่พอ', body: 'ต้องใช้ ' + pay.cost + ' โทเคน — ยังขาดอีก ' + pay.short });
+    return;
+  }
+  spinning = true;
+  const disc = document.getElementById('whDisc');
+  const out = document.getElementById('whOut');
+  out.innerHTML = '';
+  document.getElementById('whGo1').disabled = true;
+  document.getElementById('whGo10').disabled = true;
+
+  const results = Array.from({ length: n }, () => spinOnce());
+  // ของที่หายากที่สุดในรอบนี้คือช่องที่วงล้อจะไปหยุด — หมุน 10 ครั้งจึงยังลุ้นตอนวงล้อชะลอ
+  const rank = { common: 0, rare: 1, legendary: 2 };
+  const head = results.reduce((a, b) => rank[b.rarity] > rank[a.rarity] ? b : a, results[0]);
+  const slots = WHEEL_SLOTS.map((id, i) => ({ id, i })).filter(x => x.id === head.id);
+  const slot = slots[Math.floor(Math.random() * slots.length)].i;
+
+  // หมุน 6 รอบเต็มแล้วค่อยหยุดตรงช่องที่ได้ — เผื่อองศาสุ่มในช่องนิดหน่อยไม่ให้หยุดกลางเป๊ะทุกครั้ง
+  const jitter = (Math.random() - 0.5) * (SEG - 12);
+  const target = 360 * 6 - (slot * SEG + SEG / 2) + jitter;
+  disc.style.transition = 'none';
+  disc.style.transform = 'rotate(0deg)';
+  void disc.offsetWidth;                       // บังคับ reflow ให้เริ่มนับจาก 0 ทุกครั้ง
+  disc.style.transition = 'transform 4.2s cubic-bezier(.16,.86,.28,1)';
+  disc.style.transform = 'rotate(' + target + 'deg)';
+  if (navigator.vibrate) { try { navigator.vibrate([8, 90, 8, 140, 8, 200, 14]); } catch (_) {} }
+
+  await new Promise(r => setTimeout(r, 4350));
+
+  haptic(head.rarity === 'common' ? 'arm' : 'done');
+  if (head.rarity !== 'common') splashBurst(head.rarity === 'legendary' ? 30 : 16, 'egg-star');
+  wheelKeep = true;                 // ล็อกไว้ก่อน renderAll จะได้ไม่ลบการ์ดที่กำลังจะเขียน
+  renderAll();                      // จออื่น (ร้านค้า/หน้าฉัน) อัปเดตยอดตาม
+  out.innerHTML = `<div class="wh-res">${results.map(prizeCard).join('')}</div>`;
+  refreshWheelHead();               // ยอดกับป้ายบนปุ่มอัปเดตเอง ไม่ต้องวาดจอใหม่
+  document.getElementById('whGo1').disabled = false;
+  document.getElementById('whGo10').disabled = false;
+  spinning = false;
+  if (head.rarity === 'legendary') {
+    showToast({ title: 'LEGENDARY ✦ ' + head.label, body: head.duplicate ? 'ซ้ำ — คืน ' + head.amount + ' โทเคน' : 'ได้สกินหายากที่สุดแล้ว' });
+  }
+}
+
+// ---------- ร้านค้า ----------
 function renderShop() {
   const box = document.getElementById('shopBody');
   if (!box) return;
   const s = tokenState();
-  const streak = s.streak || 0;
-  const next = TOKEN_BASE + Math.min(streak + 1, TOKEN_STREAK_CAP);
+  const skins = s.skins || {};
+  const owned = SPIN_TABLE.filter(p => p.kind === 'skin');
+  const day = pendingCycleDay();
   box.innerHTML = `<div class="page-head">
-      <div class="eyebrow mono">ยังสร้างไม่เสร็จ</div>
+      <div class="eyebrow mono">เช็คอินต่อเนื่อง ${s.streak || 0} วัน</div>
       <h1 class="page-title">ร้านค้า</h1>
-      <p class="page-sub">โทเคนสะสมไว้ได้ตั้งแต่ตอนนี้ ของในร้านกำลังทำอยู่</p>
     </div>
     <div class="tk-hero">
       <div class="tk-coin">${icon('medal')}</div>
       <div class="tk-bd">
         <div class="tk-bal mono">${s.bal || 0}</div>
-        <div class="tk-unit">โทเคน</div>
+        <div class="tk-unit">โทเคน${(s.freeSpins || 0) ? ' · หมุนฟรี ' + s.freeSpins + ' ครั้ง' : ''}</div>
       </div>
+    </div>
+    <button class="tk-cta" onclick="go('scr-wheel')">
+      <span class="tile">${icon('sparkles')}</span>
+      <span class="bd"><b>วงล้อสุ่มสกิน</b><i>หมุน 1 ครั้ง ${SPIN_COST_1} โทเคน · 10 ครั้ง ${SPIN_COST_10} โทเคน</i></span>
+      ${icon('chevron')}
+    </button>
+    <button class="tk-cta ghost" onclick="openDailyCheck(false)">
+      <span class="tile">${icon('calendar')}</span>
+      <span class="bd"><b>เช็คอินรายวัน</b><i>${dailyPending()
+        ? 'วันที่ ' + day + ' ของรอบ — ยังไม่ได้รับ'
+        : 'รับของวันนี้แล้ว · พรุ่งนี้ 6 โมงเช้า'}</i></span>
+      ${icon('chevron')}
+    </button>
+    <div class="sec-label">สกินที่สะสมได้</div>
+    <div class="tk-skins">
+      ${owned.map(p => {
+        const n = skins[p.id] || 0;
+        return `<div class="tk-skin r-${p.rarity}${n ? ' got' : ''}">
+          <div class="ts-rar">${RARITY_NAME[p.rarity]}</div>
+          <div class="ts-nm">${esc(p.label)}</div>
+          <div class="ts-ct mono">${n ? '×' + n : '— — —'}</div>
+        </div>`;
+      }).join('')}
     </div>
     <div class="tk-stats">
-      <div><div class="v mono">${streak}</div><div class="k">ต่อเนื่อง (วัน)</div></div>
       <div><div class="v mono">${s.best || 0}</div><div class="k">สถิติต่อเนื่อง</div></div>
-      <div><div class="v mono">${s.days || 0}</div><div class="k">เปิดแอปรวม</div></div>
-    </div>
-    <div class="tk-note">
-      <span class="tile">${icon('medal')}</span>
-      <div style="flex:1;min-width:0">
-        <div class="lb">ได้โทเคนมายังไง</div>
-        <div class="tx">เปิดแอปวันละครั้งได้ ${TOKEN_BASE} โทเคน บวกโบนัสตามจำนวนวันที่เปิดติดกัน
-          (สูงสุด ${TOKEN_STREAK_CAP}) — พรุ่งนี้ถ้าเปิดต่อจะได้ <b>${next}</b> โทเคน</div>
-      </div>
+      <div><div class="v mono">${s.days || 0}</div><div class="k">เช็คอินรวม</div></div>
+      <div><div class="v mono">${Object.values(skins).reduce((a, b) => a + b, 0)}</div><div class="k">สกินที่ได้</div></div>
     </div>
     <div class="tk-soon">
-      <div class="lb">ของในร้านยังไม่เปิด</div>
-      <p>กำลังทำอยู่ — โทเคนที่สะสมไว้ตอนนี้จะยังอยู่ครบเมื่อร้านเปิด ไม่ต้องรีบใช้</p>
+      <div class="lb">ของอื่นในร้านยังไม่เปิด</div>
+      <p>ตอนนี้มีวงล้อสุ่มสกินก่อนอย่างเดียว — โทเคนที่สะสมไว้จะยังอยู่ครบเมื่อของอื่นเปิด</p>
     </div>`;
 }
 
@@ -1900,7 +2185,7 @@ function renderStats() {
 function renderAll() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline();
   renderProfile(); renderStats(); renderPlan(); renderFriends(); renderBadges();
-  renderShop(); renderInstallCard(); renderTabBadges();
+  renderShop(); renderWheel(); renderInstallCard(); renderTabBadges();
   // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น
   // (กันแอปพังทั้งจอถ้าไฟล์ inbox.js/linelink.js โหลดไม่ขึ้น)
   if (typeof renderInbox === 'function') renderInbox();
@@ -3051,7 +3336,7 @@ function relockSecrets() {
 // โค้ดชุดนี้ผูกกับรุ่น 1A6M3 เท่านั้น: ถ้า APP_VERSION ขยับไปรุ่นอื่นเมื่อไหร่
 // ช่องใส่โค้ดจะหายไปเองและโค้ดจะหมดอายุทันที ไม่ต้องไล่ลบทีละจุด
 // จะให้รุ่นถัดไปใช้ได้ต้องตั้งใจแก้บรรทัดล่างนี้เอง
-const CODE_VERSION = '1A6M3';
+const CODE_VERSION = '1A7';
 function codesLive() { return APP_VERSION === CODE_VERSION; }
 
 // เก็บเป็นลายนิ้วมือ SHA-256 ไม่ใช่ตัวโค้ด — เปิดซอร์สอ่านก็ยังไม่รู้ว่าต้องพิมพ์อะไร
@@ -3059,7 +3344,9 @@ function codesLive() { return APP_VERSION === CODE_VERSION; }
 const CODE_HASH = {
   eabeafccf40bb03ff2b1e4f02f6ab3531864c9ccc1472b8fa7eb6a1ff3a039b7: 'grant',
   '05f0e0d52558bdff80cda651d7c67461d5324b18776d44e183ecd8b89e418b2b': 'wipe',
+  '62ed3ce6a794c046bec29578ffcd0741d67de59b5b017e35e8156f131e7efebd': 'tokens',
 };
+const CODE_TOKEN_GRANT = 1000;
 
 async function codeFingerprint(s) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
@@ -3094,6 +3381,16 @@ async function redeemCode() {
   say('');
   if (kind === 'grant') codeGrantAll();
   else if (kind === 'wipe') codeWipeAll();
+  else if (kind === 'tokens') codeGrantTokens();
+}
+
+// โค้ดโทเคน — เติมยอดให้ก้อนใหญ่ ไว้ลองวงล้อโดยไม่ต้องรอเช็คอินหลายวัน
+function codeGrantTokens() {
+  const bal = addTokens(CODE_TOKEN_GRANT);
+  haptic('done');
+  splashBurst(22, 'egg-star');
+  renderAll();
+  showToast({ title: '+' + CODE_TOKEN_GRANT + ' โทเคน ✦', body: 'ตอนนี้มี ' + bal + ' โทเคน — ลองวงล้อได้เลย' });
 }
 
 // โค้ดที่ 1 — เปิดทุกอย่างในแอปให้เลย: เหรียญครบทุกอัน + ธีมลับครบทุกโทน
@@ -3578,23 +3875,19 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   }
   splashStep('notif');
 
-  // โทเคนรายวัน — นับก่อนวาดจอ ยอดบนปุ่มร้านค้าจะได้ตรงตั้งแต่เฟรมแรก
-  const gotToken = checkDailyToken();
-
   routeStart();
   splashStep('plan');
 
-  // เด้งบอกทีหลังให้ฉากเปิดแอปปิดไปก่อน และไม่ไปทับ toast เหรียญที่อาจมาในจังหวะเดียวกัน
-  if (gotToken) {
-    setTimeout(() => {
-      showToast({
-        title: gotToken.firstEver ? 'เริ่มสะสมโทเคนแล้ว ✦' : '+' + gotToken.earned + ' โทเคน',
-        body: gotToken.streak > 1
-          ? 'เปิดแอปติดกัน ' + gotToken.streak + ' วัน — รวมมี ' + gotToken.bal + ' โทเคน'
-          : 'เปิดแอปวันนี้ได้ ' + gotToken.earned + ' โทเคน · ร้านค้ากำลังทำอยู่',
-      });
-    }, 5200);
-  }
+  // หน้าต่างเช็คอินเด้งเองเมื่อถึงวันใหม่ (6 โมงเช้าไทย) และยังไม่ได้กดรับ
+  // รอให้ฉากเปิดแอปปิดไปก่อน ไม่งั้นจะไปเด้งซ้อนอยู่หลังจอโหลด
+  // ไม่แจกให้เองโดยไม่ถาม — ให้ผู้ใช้เห็นตารางแล้วกดรับเอง จะได้รู้ว่าตัวเองอยู่วันที่เท่าไหร่ของรอบ
+  setTimeout(() => openDailyCheck(true), 4200);
+
+  // ถึง 6 โมงเช้าระหว่างที่แอปเปิดค้างอยู่ ก็เด้งให้เลย ไม่ต้องรอปิดเปิดใหม่
+  setInterval(() => { if (dailyPending()) openDailyCheck(true); }, 60_000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && dailyPending()) openDailyCheck(true);
+  });
 
   // ปิดฉากเปิดแอปเมื่อเปอร์เซ็นต์ถึง 100 (= งานเสร็จจริง + ครบเวลาขั้นต่ำ)
   endSplashWhenReady(() => {

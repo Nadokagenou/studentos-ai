@@ -1,4 +1,4 @@
-# StudentOS **ALT** Version 1A6M3 “Modern” (Sandbox)
+# StudentOS **ALT** Version 1A7 “Modern” (Sandbox)
 
 > บิลด์นี้ **ไม่ใช่ตัวที่ปล่อยจริง** — เป็นรุ่นไว้ทดลองฟีเจอร์ใหม่
 > ตัวจริงอยู่ที่ https://nadokagenou.github.io/studentos-ai/
@@ -22,7 +22,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "serve-alt.ps1"
 
 | จุด | ตัวจริง | ALT |
 |---|---|---|
-| `APP_VERSION` (app.js) | `v35` | `1A6M3` + `APP_CHANNEL = 'ALT'` (สายเลขของตัวเอง) |
+| `APP_VERSION` (app.js) | `v35` | `1A7` + `APP_CHANNEL = 'ALT'` (สายเลขของตัวเอง) |
 | ข้อมูลใน localStorage | `studentos.v1` | `studentos.alt.v1` |
 | ธีม / skipLogin / installGuide | `studentos.*` | `studentos.alt.*` |
 | service worker cache (sw.js) | `studentos-v35` | `studentos-alt-1a6m3` (ขึ้นเลขทุกครั้งที่ปล่อย) |
