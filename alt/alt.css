@@ -3708,85 +3708,166 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 @keyframes ck-rise { from { opacity: 0; transform: translateY(18px) scale(.96); } to { opacity: 1; transform: none; } }
 @keyframes ck-beat { 0%,100% { box-shadow: 0 0 0 2px var(--blue-soft); } 50% { box-shadow: 0 0 0 5px var(--blue-soft); } }
 
-/* ---------- วงล้อ ---------- */
-.wh-wrap {
-  position: relative;
-  width: 268px;
-  height: 268px;
-  margin: 8px auto 14px;
-}
-/* หัวลูกศรชี้ลงจากด้านบน = ช่องที่หยุดตรงนี้คือของที่ได้ */
-.wh-pin {
-  position: absolute;
-  top: -4px; left: 50%;
-  width: 0; height: 0;
-  margin-left: -11px;
-  border-left: 11px solid transparent;
-  border-right: 11px solid transparent;
-  border-top: 20px solid var(--ink);
-  z-index: 3;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,.4));
-}
-.wh {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  overflow: hidden;
-  box-shadow: 0 0 0 6px var(--card), 0 0 0 8px var(--line), 0 16px 40px rgba(0,0,0,.3);
-  will-change: transform;
-}
-/* แต่ละช่อง = สามเหลี่ยม 45 องศา ตัดด้วย clip-path แล้วหมุนไปตามลำดับ */
-.wh-seg {
-  position: absolute;
-  inset: 0;
-  transform: rotate(calc(var(--i) * 45deg));
-  clip-path: polygon(50% 50%, 29.3% 0%, 70.7% 0%);
-  display: block;
-}
-.wh-seg.r-common { background: linear-gradient(180deg, #94A3B8, #64748B); }
-.wh-seg.r-rare { background: linear-gradient(180deg, #60A5FA, #2563EB); }
-.wh-seg.r-legendary { background: linear-gradient(180deg, #FCD34D, #D97706); }
-.wh-seg span {
-  position: absolute;
-  top: 16px; left: 50%;
-  transform: translateX(-50%);
-  width: 74px;
-  text-align: center;
-  font-size: 10.5px;
-  font-weight: 700;
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0,0,0,.45);
-  line-height: 1.2;
-}
-.wh-hub {
-  position: absolute;
-  left: 50%; top: 50%;
-  width: 54px; height: 54px;
-  margin: -27px 0 0 -27px;
-  border-radius: 50%;
-  background: var(--card);
-  box-shadow: 0 0 0 3px var(--line), 0 4px 12px rgba(0,0,0,.3);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--blue);
-  z-index: 2;
-}
-.wh-hub svg { width: 22px; height: 22px; }
-
-.wh-odds {
+/* ============================================================
+   ALT 1A7: การ์ดสุ่มสกิน 3D (แทนวงล้อเดิม)
+   แถบเลื่อนได้จริงด้วยการเลื่อนของเบราว์เซอร์เอง — ไม่ได้จำลองด้วยอนิเมชัน
+   JS อ่าน scrollLeft แล้วเซ็ต --ry/--tz/--sc ให้แต่ละใบตามระยะห่างจากกึ่งกลาง
+   การ์ดจึงหันตามนิ้วจริง ๆ ไม่ใช่เล่นท่าเดิมซ้ำรอบเดียว
+   ============================================================ */
+.gc-odds {
   display: flex;
   justify-content: center;
   gap: 12px;
-  margin-bottom: 13px;
+  margin-bottom: 6px;
   font-size: 11px;
   font-weight: 700;
 }
-.wh-odds .r-legendary { color: var(--r-legend); }
-.wh-odds .r-rare { color: var(--r-rare); }
-.wh-odds .r-common { color: var(--r-common); }
+.gc-odds .r-legendary, .r-legendary { color: var(--r-legend); }
+.gc-odds .r-rare, .r-rare { color: var(--r-rare); }
+.gc-odds .r-common, .r-common { color: var(--r-common); }
 
-.wh-btns { display: flex; gap: 9px; margin-bottom: 14px; }
-.wh-go {
+/* ที่ว่างก่อนสุ่มครั้งแรก — สูงเท่าแถบการ์ดจริง จอจะได้ไม่กระโดดตอนการ์ดโผล่ */
+.gc-empty { min-height: 250px; display: flex; align-items: center; justify-content: center; }
+.gc-ph { text-align: center; color: var(--faint); }
+.gc-ph i { display: block; }
+.gc-ph svg { width: 34px; height: 34px; opacity: .5; }
+.gc-ph p { font-size: 12.5px; margin-top: 8px; }
+
+/* ---------- แถบการ์ด ---------- */
+.gc-strip {
+  display: flex;
+  gap: 14px;
+  padding: 24px calc(50% - 66px) 26px;   /* เว้นข้างให้ใบแรก/ใบสุดท้ายเลื่อนมาอยู่กลางจอได้ */
+  margin: 0 -20px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  perspective: 1000px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.gc-strip::-webkit-scrollbar { display: none; }
+
+.gc {
+  flex: none;
+  width: 132px;
+  height: 190px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  scroll-snap-align: center;
+  transform-style: preserve-3d;
+  transform: rotateY(var(--ry, 0deg)) translateZ(var(--tz, 0px)) scale(var(--sc, 1));
+  opacity: var(--dim, 1);
+  transition: opacity .2s linear;
+  animation: gc-in .38s cubic-bezier(.2,.9,.3,1.1) both;
+}
+@keyframes gc-in {
+  from { opacity: 0; transform: translateY(26px) scale(.86); }
+  to   { opacity: var(--dim, 1); }
+}
+
+.gc-in {
+  position: relative;
+  width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform .72s cubic-bezier(.3,.9,.28,1.05);
+}
+.gc.open .gc-in { transform: rotateY(180deg); }
+
+.gc-back, .gc-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 17px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+/* หลังการ์ด — ลายทแยงกับตราตรงกลาง ให้ดูเป็นการ์ดคว่ำจริง ไม่ใช่กล่องเปล่า */
+.gc-back {
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.06) 0 6px, transparent 6px 12px),
+    linear-gradient(150deg, var(--blue-deep), var(--blue));
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.18), 0 12px 26px -10px rgba(0,0,0,.6);
+  color: rgba(255,255,255,.9);
+}
+.gc-mark {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.14);
+  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.3);
+  display: flex; align-items: center; justify-content: center;
+}
+.gc-mark svg { width: 24px; height: 24px; }
+
+/* หน้าการ์ด — พลิกไว้ 180 องศาตั้งแต่ต้น พอ .open พลิกทั้งใบมันจึงหันมาพอดี */
+.gc-face {
+  transform: rotateY(180deg);
+  color: #fff;
+  text-align: center;
+  padding: 10px;
+  gap: 2px;
+}
+.gc-face.r-common { background: linear-gradient(160deg, #94A3B8, #55637A); }
+.gc-face.r-rare {
+  background: linear-gradient(160deg, #60A5FA, #1D4ED8);
+  box-shadow: inset 0 0 0 2px rgba(191,219,254,.7), 0 0 20px -4px rgba(59,130,246,.9);
+}
+.gc-face.r-legendary {
+  background: linear-gradient(160deg, #FDE68A, #D97706);
+  box-shadow: inset 0 0 0 2px rgba(255,247,214,.85), 0 0 28px -3px rgba(245,158,11,.95);
+  animation: gc-shine 1.7s ease-in-out infinite;
+}
+.gc-rar {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  opacity: .95;
+  margin-bottom: 4px;
+}
+.gc-face b { font-size: 20px; font-weight: 700; line-height: 1.15; }
+.gc-face .mono { font-size: 30px; }
+.gc-face span { font-size: 11px; opacity: .92; }
+@keyframes gc-shine {
+  0%,100% { box-shadow: inset 0 0 0 2px rgba(255,247,214,.85), 0 0 28px -3px rgba(245,158,11,.95); }
+  50%     { box-shadow: inset 0 0 0 2px #FFFBEB, 0 0 40px 2px rgba(252,211,77,1); }
+}
+
+/* ---------- ปุ่ม ---------- */
+.gc-all {
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: 12px;
+  border: 1.5px dashed var(--line);
+  border-radius: 15px;
+  background: var(--card2);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.gc-all:active { transform: scale(.985); }
+.gc-sum {
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border-radius: 15px;
+  background: var(--card2);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+  text-align: center;
+}
+.gc-sum b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.gc-btns { display: flex; gap: 9px; }
+.gc-go {
   flex: 1;
   min-height: 58px;
   border: none;
@@ -3799,39 +3880,16 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
   box-shadow: var(--shadow-brand);
   transition: transform .13s ease;
 }
-.wh-go.alt { background: linear-gradient(135deg, #B45309, #F59E0B); box-shadow: 0 10px 24px -8px rgba(245,158,11,.6); }
-.wh-go b { font-size: 14.5px; font-weight: 700; }
-.wh-go i { font-size: 11px; font-style: normal; opacity: .85; }
-.wh-go:active { transform: scale(.97); }
-.wh-go:disabled { opacity: .45; pointer-events: none; }
+.gc-go.alt { background: linear-gradient(135deg, #B45309, #F59E0B); box-shadow: 0 10px 24px -8px rgba(245,158,11,.6); }
+.gc-go b { font-size: 14.5px; font-weight: 700; }
+.gc-go i { font-size: 11px; font-style: normal; opacity: .85; }
+.gc-go:active { transform: scale(.97); }
+.gc-go:disabled { opacity: .45; pointer-events: none; }
 
-/* ---------- การ์ดรางวัล ---------- */
-.wh-res { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-.wh-res:has(.wh-card:only-child) { grid-template-columns: 1fr; }
-.wh-card {
-  padding: 11px 5px 10px;
-  border-radius: 13px;
-  text-align: center;
-  color: #fff;
-  animation: wh-flip .42s cubic-bezier(.2,.9,.3,1.3) both;
-}
-.wh-card.r-common { background: linear-gradient(160deg, #94A3B8, #64748B); }
-.wh-card.r-rare { background: linear-gradient(160deg, #60A5FA, #1D4ED8); box-shadow: 0 0 16px -4px rgba(59,130,246,.8); }
-.wh-card.r-legendary {
-  background: linear-gradient(160deg, #FCD34D, #D97706);
-  box-shadow: 0 0 22px -3px rgba(245,158,11,.9);
-  animation: wh-flip .42s cubic-bezier(.2,.9,.3,1.3) both, wh-shine 1.6s ease-in-out infinite;
-}
-.wh-rar { font-size: 8.5px; font-weight: 800; letter-spacing: .06em; opacity: .9; margin-bottom: 3px; }
-.wh-card b { display: block; font-size: 14px; font-weight: 700; line-height: 1.2; }
-.wh-card span { display: block; font-size: 9.5px; opacity: .9; margin-top: 2px; }
-@keyframes wh-flip {
-  from { opacity: 0; transform: rotateY(90deg) scale(.8); }
-  to   { opacity: 1; transform: none; }
-}
-@keyframes wh-shine {
-  0%,100% { box-shadow: 0 0 22px -3px rgba(245,158,11,.9); }
-  50%     { box-shadow: 0 0 34px 0 rgba(252,211,77,1); }
+@media (prefers-reduced-motion: reduce) {
+  .gc { animation: none; }
+  .gc-in { transition: none; }
+  .gc-face.r-legendary { animation: none; }
 }
 
 /* ---------- ปุ่มใหญ่ในร้าน + ตู้สกิน ---------- */
@@ -3885,6 +3943,5 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 .ts-ct { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
-  #checkin, .ck-sheet, .ck-cell.now, .wh-card { animation: none; }
-  .wh { transition: none !important; }
+  #checkin, .ck-sheet, .ck-cell.now { animation: none; }
 }

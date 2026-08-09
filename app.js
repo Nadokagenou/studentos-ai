@@ -459,8 +459,8 @@ let enterTimer = null;
 function go2(id){ return go(id); }
 function go(id) {
   const dir = navDirection(curScreen, id);
-  // ออกจากจอวงล้อเมื่อไหร่ ปลดล็อกให้วาดใหม่ได้ กลับเข้ามาจะได้เจอวงล้อสะอาด ๆ
-  if (id !== 'scr-wheel') wheelKeep = false;
+  // ออกจากจอสุ่มเมื่อไหร่ ทิ้งผลรอบเดิม กลับเข้ามาจะได้เริ่มใหม่สะอาด ๆ
+  if (id !== 'scr-wheel') { drawResults = []; drawOpen = []; }
   curScreen = id;
   document.body.dataset.godir = dir;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on', 'just-in'));
@@ -1722,7 +1722,7 @@ function renderBadges() {
     }).join('')}`;
 }
 
-// ---------- ALT 1A7: โทเคน · เช็คอินรายวัน · วงล้อสุ่ม ----------
+// ---------- ALT 1A7: โทเคน · เช็คอินรายวัน · สุ่มสกิน ----------
 // "วันของรางวัล" เริ่ม 6 โมงเช้าเวลาไทย ไม่ใช่เที่ยงคืน
 // เหตุผล: นักเรียนที่นั่งทำการบ้านถึงตีสอง ยังควรนับเป็นวันเดิมอยู่
 // ถ้าตัดที่เที่ยงคืน คนกลุ่มนี้จะเผลอกินสิทธิ์ของวันถัดไปทั้งที่ยังไม่ได้นอน
@@ -1730,14 +1730,14 @@ const TOKEN_KEY = 'studentos.alt.tokens';
 const REWARD_HOUR = 6;          // เวลาไทยที่วันของรางวัลเปลี่ยน
 const THAI_OFFSET_MIN = 7 * 60; // ไทย = UTC+7 คงที่ ไม่มี DST
 
-// ตารางรอบ 7 วัน: วันแรก 9 · ทุกวันที่หาร 3 ลงตัวได้ 3 · วันอื่น 1 · วันที่ 7 ได้หมุนวงล้อฟรี
+// ตารางรอบ 7 วัน: วันแรก 9 · ทุกวันที่หาร 3 ลงตัวได้ 3 · วันอื่น 1 · วันที่ 7 ได้สุ่มฟรี
 const DAILY_PLAN = [9, 1, 3, 1, 1, 3, 'spin'];
 
-// ---------- ราคาและอัตราของวงล้อ ----------
+// ---------- ราคาและอัตราของการสุ่ม ----------
 const SPIN_COST_1 = 2;    // หมุน 1 ครั้ง
 const SPIN_COST_10 = 10;  // หมุน 10 ครั้ง (ถูกกว่าหมุนทีละครั้งครึ่งหนึ่ง)
 
-// สกินที่อยู่ในวงล้อ = ธีมที่มีอยู่แล้วในแอป การได้รางวัลคือ "สะสมได้" ไม่ใช่ปลดล็อกสิทธิ์ใช้งาน
+// สกินที่สุ่มได้ = ธีมที่มีอยู่แล้วในแอป การได้รางวัลคือ "สะสมได้" ไม่ใช่ปลดล็อกสิทธิ์ใช้งาน
 // ตั้งใจไม่ไปล็อกธีมที่คนใช้อยู่แล้ว — ระบบสุ่มไม่ควรยึดของที่เขามีอยู่ก่อนคืน
 const SPIN_TABLE = [
   { id: 'tk1', rarity: 'common', kind: 'token', min: 1, max: 3, label: 'โทเคน', weight: 78 },
@@ -1819,7 +1819,7 @@ function claimDaily() {
   return { day, prize, bal: s.bal || 0, streak: s.streak, freeSpins: s.freeSpins || 0 };
 }
 
-// ---------- วงล้อ ----------
+// ---------- ตารางรางวัลของการสุ่ม ----------
 function spinOnce() {
   const total = SPIN_TABLE.reduce((n, p) => n + p.weight, 0);
   let r = Math.random() * total;
@@ -1894,7 +1894,7 @@ function openDailyCheck(auto) {
       <div class="ck-grid">${dailyGrid(day, claimed)}</div>
       ${dailyPending()
         ? `<button class="ck-cta" onclick="claimDailyFromSheet()">
-             ${prize === 'spin' ? 'รับสิทธิ์หมุนวงล้อ' : 'รับ ' + prize + ' โทเคน'}</button>`
+             ${prize === 'spin' ? 'รับสิทธิ์สุ่มฟรี' : 'รับ ' + prize + ' โทเคน'}</button>`
         : `<p class="ck-done">รับของวันนี้ไปแล้ว — กลับมาใหม่พรุ่งนี้ 6 โมงเช้า</p>`}
       <button class="ck-close" onclick="closeDailyCheck()">ปิด</button>
     </div>`;
@@ -1912,123 +1912,175 @@ function claimDailyFromSheet() {
   if (got.prize === 'spin') {
     closeDailyCheck();
     go('scr-wheel');
-    showToast({ title: 'ครบ 7 วันแล้ว 🎡', body: 'ได้สิทธิ์หมุนวงล้อฟรี 1 ครั้ง' });
+    showToast({ title: 'ครบ 7 วันแล้ว 🎡', body: 'ได้สิทธิ์สุ่มสกินฟรี 1 ใบ' });
   } else {
     openDailyCheck(false);   // วาดใหม่ให้ช่องวันนี้ติ๊กถูก
     showToast({ title: '+' + got.prize + ' โทเคน', body: 'เช็คอินต่อเนื่อง ' + got.streak + ' วัน · รวม ' + got.bal + ' โทเคน' });
   }
 }
 
-// ---------- วงล้อ ----------
-// เรียงช่องบนวงล้อให้ของหายากกระจายอยู่คนละฝั่ง มองแล้วรู้ว่าไม่ได้เรียงตามลำดับความหายาก
-const WHEEL_SLOTS = ['tk1', 'earth', 'tk1', 'ocean', 'tk1', 'magic', 'tk1', 'galaxy'];
-const SEG = 360 / WHEEL_SLOTS.length;
-let spinning = false;
+// ---------- เปิดการ์ดสุ่มสกิน (3D) ----------
+// ของเดิมเป็นวงล้อหมุน ถอดออกแล้วด้วยเหตุผลสองข้อ:
+//   1) ตัวชี้กับของที่ได้ไม่ตรงกัน — สูตรหาองศาบวกเกินไปครึ่งช่อง ลิ่มถูกวาดให้กึ่งกลางอยู่ที่ 12 นาฬิกาอยู่แล้ว
+//      จึงไม่ต้องบวกครึ่งช่องซ้ำ วงล้อเลยหยุดเลื่อนไปหนึ่งช่องเสมอ
+//   2) วงล้อบอกผลรวดเดียว ไม่มีจังหวะให้ลุ้นทีละใบตอนหมุน 10 ครั้ง
+// ของใหม่: การ์ดคว่ำเรียงเป็นแถวเลื่อนได้จริง ผู้ใช้แตะหงายเองทีละใบ
+let drawResults = [];
+let drawOpen = [];
+let drawing = false;
 
-// การ์ดรางวัลอยู่ในกล่องเดียวกับวงล้อ ถ้าปล่อยให้ renderAll() วาดจอนี้ใหม่หลังหมุนจบ
-// การ์ดที่เพิ่งขึ้นจะถูกลบทิ้งทันที และจานก็เด้งกลับไปองศา 0 ด้วย
-// จึงล็อกจอนี้ไว้หลังหมุน แล้วปลดล็อกเมื่อผู้ใช้ออกจากจอไป (ดู go())
-let wheelKeep = false;
+// การ์ดเอียงตามตำแหน่งจริงในแถบเลื่อน — ใบกลางตั้งตรง ใบข้าง ๆ หันหนีออกไป
+// อ่านจาก scrollLeft ทุกครั้งที่เลื่อน มันจึงขยับตามนิ้วจริง ไม่ใช่อนิเมชันที่เล่นเองรอบเดียว
+function tiltCards() {
+  const strip = document.getElementById('gcStrip');
+  if (!strip) return;
+  const mid = strip.scrollLeft + strip.clientWidth / 2;
+  strip.querySelectorAll('.gc').forEach(c => {
+    const d = Math.max(-1, Math.min(1, ((c.offsetLeft + c.offsetWidth / 2) - mid) / (strip.clientWidth / 2)));
+    c.style.setProperty('--ry', (d * -30).toFixed(2) + 'deg');
+    c.style.setProperty('--tz', (-Math.abs(d) * 110).toFixed(1) + 'px');
+    c.style.setProperty('--sc', (1 - Math.abs(d) * 0.14).toFixed(3));
+    c.style.setProperty('--dim', (1 - Math.abs(d) * 0.4).toFixed(2));
+  });
+}
 
-// อัปเดตเฉพาะยอดกับป้ายบนปุ่ม ไม่ต้องวาดจอใหม่ทั้งจอ
-function refreshWheelHead() {
-  const s = tokenState();
-  const eb = document.querySelector('#wheelBody .eyebrow');
-  if (eb) eb.textContent = (s.bal || 0) + ' โทเคน' + ((s.freeSpins || 0) ? ' · หมุนฟรี ' + s.freeSpins : '');
-  const b1 = document.querySelector('#whGo1 i');
-  if (b1) b1.textContent = (s.freeSpins || 0) ? 'ใช้สิทธิ์ฟรี' : SPIN_COST_1 + ' โทเคน';
+function cardFace(r) {
+  const body = r.kind === 'token'
+    ? `<b class="mono">+${r.amount}</b><span>โทเคน</span>`
+    : `<b>${esc(r.label)}</b><span>${r.duplicate ? 'ซ้ำ · คืน ' + r.amount + ' โทเคน' : 'สกินใหม่!'}</span>`;
+  return `<span class="gc-rar">${RARITY_NAME[r.rarity]}</span>${body}`;
+}
+
+function drawCardsHtml() {
+  return `<div class="gc-strip" id="gcStrip" onscroll="tiltCards()">
+      ${drawResults.map((r, i) => `
+        <button class="gc${drawOpen[i] ? ' open' : ''}" data-i="${i}" onclick="flipCard(${i})"
+          aria-label="${drawOpen[i] ? 'เปิดแล้ว' : 'แตะเพื่อเปิดการ์ด'}">
+          <span class="gc-in">
+            <span class="gc-back"><i class="gc-mark">${icon('sparkles')}</i></span>
+            <span class="gc-face r-${r.rarity}">${cardFace(r)}</span>
+          </span>
+        </button>`).join('')}
+    </div>
+    ${drawOpen.some(v => !v)
+      ? `<button class="gc-all" onclick="flipAllCards()">หงายที่เหลือทั้งหมด</button>`
+      : `<div class="gc-sum">${drawSummary()}</div>`}`;
+}
+
+function drawSummary() {
+  const tok = drawResults.reduce((n, r) => n + (r.amount || 0), 0);
+  const skins = drawResults.filter(r => r.kind === 'skin' && !r.duplicate).length;
+  const best = drawResults.reduce((a, b) => RANK[b.rarity] > RANK[a.rarity] ? b : a, drawResults[0]);
+  return `รอบนี้ได้ <b>${tok}</b> โทเคน${skins ? ' · สกินใหม่ ' + skins + ' อัน' : ''}
+    · ดีที่สุด <b class="r-${best.rarity}">${RARITY_NAME[best.rarity]}</b>`;
+}
+const RANK = { common: 0, rare: 1, legendary: 2 };
+
+function flipCard(i) {
+  if (drawOpen[i]) return;
+  drawOpen[i] = true;
+  const el = document.querySelector('.gc[data-i="' + i + '"]');
+  if (el) el.classList.add('open');
+  const r = drawResults[i];
+  haptic(r.rarity === 'common' ? 'arm' : 'done');
+  // ของหายากค่อยเด้งเอฟเฟกต์ตอนการ์ดพลิกไปครึ่งทาง ไม่ใช่ตอนแตะ
+  if (r.rarity !== 'common') {
+    setTimeout(() => splashBurst(r.rarity === 'legendary' ? 26 : 12, 'egg-star'), 340);
+  }
+  if (r.rarity === 'legendary') {
+    setTimeout(() => showToast({
+      title: 'LEGENDARY ✦ ' + r.label,
+      body: r.duplicate ? 'ซ้ำ — คืน ' + r.amount + ' โทเคน' : 'ได้สกินหายากที่สุดแล้ว',
+    }), 620);
+  }
+  // เหลือใบสุดท้ายค่อยวาดปุ่มท้ายใหม่ ระหว่างนี้ปล่อยให้การ์ดพลิกจนจบก่อน
+  if (!drawOpen.some(v => !v)) setTimeout(refreshDrawFooter, 760);
+}
+
+function flipAllCards() {
+  drawResults.forEach((_, i) => {
+    if (!drawOpen[i]) setTimeout(() => flipCard(i), i * 130);   // ไล่ทีละใบ ไม่พลิกพร้อมกันทั้งแถว
+  });
+}
+
+function refreshDrawFooter() {
+  const foot = document.getElementById('gcFoot');
+  if (!foot) return;
+  foot.innerHTML = drawOpen.some(v => !v)
+    ? `<button class="gc-all" onclick="flipAllCards()">หงายที่เหลือทั้งหมด</button>`
+    : `<div class="gc-sum">${drawSummary()}</div>`;
 }
 
 function renderWheel() {
   const box = document.getElementById('wheelBody');
   if (!box) return;
-  if (wheelKeep && curScreen === 'scr-wheel') return;   // กำลังโชว์ผลอยู่ ห้ามวาดทับ
+  if (drawResults.length && curScreen === 'scr-wheel') return;  // กำลังโชว์การ์ดอยู่ ห้ามวาดทับ
   const s = tokenState();
   const free = s.freeSpins || 0;
-  const segs = WHEEL_SLOTS.map((id, i) => {
-    const p = SPIN_TABLE.find(x => x.id === id);
-    return `<i class="wh-seg r-${p.rarity}" style="--i:${i}">
-      <span>${p.kind === 'token' ? '1–3' : esc(p.label)}</span></i>`;
-  }).join('');
   box.innerHTML = `<div class="page-head">
-      <div class="eyebrow mono">${s.bal || 0} โทเคน${free ? ' · หมุนฟรี ' + free : ''}</div>
-      <h1 class="page-title">วงล้อสุ่มสกิน</h1>
+      <div class="eyebrow mono" id="gcBal">${s.bal || 0} โทเคน${free ? ' · เปิดฟรี ' + free : ''}</div>
+      <h1 class="page-title">สุ่มสกิน</h1>
+      <p class="page-sub">แตะการ์ดเพื่อหงายทีละใบ · ลากซ้ายขวาเพื่อดูใบอื่น</p>
     </div>
-    <div class="wh-wrap">
-      <div class="wh-pin"></div>
-      <div class="wh" id="whDisc">${segs}<span class="wh-hub">${icon('sparkles')}</span></div>
-    </div>
-    <div class="wh-odds">
+    <div class="gc-odds">
       <span class="r-legendary">Legendary 4%</span>
       <span class="r-rare">Rare 18%</span>
       <span class="r-common">Common 78%</span>
     </div>
-    <div class="wh-btns">
-      <button class="wh-go" id="whGo1" onclick="doSpin(1)">
-        <b>หมุน 1 ครั้ง</b><i>${free ? 'ใช้สิทธิ์ฟรี' : SPIN_COST_1 + ' โทเคน'}</i></button>
-      <button class="wh-go alt" id="whGo10" onclick="doSpin(10)">
-        <b>หมุน 10 ครั้ง</b><i>${SPIN_COST_10} โทเคน</i></button>
+    <div id="gcArea" class="gc-empty">
+      <div class="gc-ph"><i>${icon('sparkles')}</i><p>กดปุ่มด้านล่างเพื่อสุ่ม</p></div>
     </div>
-    <div id="whOut"></div>`;
+    <div id="gcFoot"></div>
+    <div class="gc-btns">
+      <button class="gc-go" id="gcGo1" onclick="doSpin(1)">
+        <b>สุ่ม 1 ใบ</b><i>${free ? 'ใช้สิทธิ์ฟรี' : SPIN_COST_1 + ' โทเคน'}</i></button>
+      <button class="gc-go alt" id="gcGo10" onclick="doSpin(10)">
+        <b>สุ่ม 10 ใบ</b><i>${SPIN_COST_10} โทเคน</i></button>
+    </div>`;
 }
 
-function prizeCard(r, i) {
-  const cls = 'r-' + r.rarity;
-  const body = r.kind === 'token'
-    ? '<b class="mono">+' + r.amount + '</b><span>โทเคน</span>'
-    : '<b>' + esc(r.label) + '</b><span>' + (r.duplicate ? 'ซ้ำ · คืน ' + r.amount + ' โทเคน' : 'สกินใหม่!') + '</span>';
-  return `<div class="wh-card ${cls}" style="animation-delay:${i * 70}ms">
-    <div class="wh-rar">${RARITY_NAME[r.rarity]}</div>${body}</div>`;
+function refreshDrawHead() {
+  const s = tokenState();
+  const bal = document.getElementById('gcBal');
+  if (bal) bal.textContent = (s.bal || 0) + ' โทเคน' + ((s.freeSpins || 0) ? ' · เปิดฟรี ' + s.freeSpins : '');
+  const b1 = document.querySelector('#gcGo1 i');
+  if (b1) b1.textContent = (s.freeSpins || 0) ? 'ใช้สิทธิ์ฟรี' : SPIN_COST_1 + ' โทเคน';
 }
 
 async function doSpin(n) {
-  if (spinning) return;
+  if (drawing) return;
   const pay = paySpin(n);
   if (!pay.ok) {
     haptic('snooze');
     showToast({ title: 'โทเคนไม่พอ', body: 'ต้องใช้ ' + pay.cost + ' โทเคน — ยังขาดอีก ' + pay.short });
     return;
   }
-  spinning = true;
-  const disc = document.getElementById('whDisc');
-  const out = document.getElementById('whOut');
-  out.innerHTML = '';
-  document.getElementById('whGo1').disabled = true;
-  document.getElementById('whGo10').disabled = true;
+  drawing = true;
+  document.getElementById('gcGo1').disabled = true;
+  document.getElementById('gcGo10').disabled = true;
 
-  const results = Array.from({ length: n }, () => spinOnce());
-  // ของที่หายากที่สุดในรอบนี้คือช่องที่วงล้อจะไปหยุด — หมุน 10 ครั้งจึงยังลุ้นตอนวงล้อชะลอ
-  const rank = { common: 0, rare: 1, legendary: 2 };
-  const head = results.reduce((a, b) => rank[b.rarity] > rank[a.rarity] ? b : a, results[0]);
-  const slots = WHEEL_SLOTS.map((id, i) => ({ id, i })).filter(x => x.id === head.id);
-  const slot = slots[Math.floor(Math.random() * slots.length)].i;
+  // สุ่มผลทั้งหมดตั้งแต่ตอนนี้ (ยอดโทเคนเข้าเลย) แต่ยังไม่บอกผู้ใช้จนกว่าจะหงายเอง
+  drawResults = Array.from({ length: n }, () => spinOnce());
+  drawOpen = drawResults.map(() => false);
 
-  // หมุน 6 รอบเต็มแล้วค่อยหยุดตรงช่องที่ได้ — เผื่อองศาสุ่มในช่องนิดหน่อยไม่ให้หยุดกลางเป๊ะทุกครั้ง
-  const jitter = (Math.random() - 0.5) * (SEG - 12);
-  const target = 360 * 6 - (slot * SEG + SEG / 2) + jitter;
-  disc.style.transition = 'none';
-  disc.style.transform = 'rotate(0deg)';
-  void disc.offsetWidth;                       // บังคับ reflow ให้เริ่มนับจาก 0 ทุกครั้ง
-  disc.style.transition = 'transform 4.2s cubic-bezier(.16,.86,.28,1)';
-  disc.style.transform = 'rotate(' + target + 'deg)';
-  if (navigator.vibrate) { try { navigator.vibrate([8, 90, 8, 140, 8, 200, 14]); } catch (_) {} }
+  const area = document.getElementById('gcArea');
+  area.className = '';
+  area.innerHTML = drawCardsHtml().replace(/<button class="gc-all"[\s\S]*$/, '');
+  refreshDrawFooter();
+  refreshDrawHead();
+  renderAll();          // จออื่นอัปเดตยอด (จอนี้กันไว้แล้วด้านบน)
 
-  await new Promise(r => setTimeout(r, 4350));
+  // การ์ดไหลเข้ามาทีละใบก่อนให้แตะ
+  const cards = [...area.querySelectorAll('.gc')];
+  cards.forEach((c, i) => { c.style.animationDelay = (i * 60) + 'ms'; });
+  tiltCards();
+  requestAnimationFrame(tiltCards);
+  await new Promise(r => setTimeout(r, 260 + cards.length * 60));
 
-  haptic(head.rarity === 'common' ? 'arm' : 'done');
-  if (head.rarity !== 'common') splashBurst(head.rarity === 'legendary' ? 30 : 16, 'egg-star');
-  wheelKeep = true;                 // ล็อกไว้ก่อน renderAll จะได้ไม่ลบการ์ดที่กำลังจะเขียน
-  renderAll();                      // จออื่น (ร้านค้า/หน้าฉัน) อัปเดตยอดตาม
-  out.innerHTML = `<div class="wh-res">${results.map(prizeCard).join('')}</div>`;
-  refreshWheelHead();               // ยอดกับป้ายบนปุ่มอัปเดตเอง ไม่ต้องวาดจอใหม่
-  document.getElementById('whGo1').disabled = false;
-  document.getElementById('whGo10').disabled = false;
-  spinning = false;
-  if (head.rarity === 'legendary') {
-    showToast({ title: 'LEGENDARY ✦ ' + head.label, body: head.duplicate ? 'ซ้ำ — คืน ' + head.amount + ' โทเคน' : 'ได้สกินหายากที่สุดแล้ว' });
-  }
+  document.getElementById('gcGo1').disabled = false;
+  document.getElementById('gcGo10').disabled = false;
+  drawing = false;
 }
-
 // ---------- ร้านค้า ----------
 function renderShop() {
   const box = document.getElementById('shopBody');
@@ -2050,7 +2102,7 @@ function renderShop() {
     </div>
     <button class="tk-cta" onclick="go('scr-wheel')">
       <span class="tile">${icon('sparkles')}</span>
-      <span class="bd"><b>วงล้อสุ่มสกิน</b><i>หมุน 1 ครั้ง ${SPIN_COST_1} โทเคน · 10 ครั้ง ${SPIN_COST_10} โทเคน</i></span>
+      <span class="bd"><b>สุ่มสกิน</b><i>สุ่ม 1 ใบ ${SPIN_COST_1} โทเคน · 10 ใบ ${SPIN_COST_10} โทเคน</i></span>
       ${icon('chevron')}
     </button>
     <button class="tk-cta ghost" onclick="openDailyCheck(false)">
@@ -2078,7 +2130,7 @@ function renderShop() {
     </div>
     <div class="tk-soon">
       <div class="lb">ของอื่นในร้านยังไม่เปิด</div>
-      <p>ตอนนี้มีวงล้อสุ่มสกินก่อนอย่างเดียว — โทเคนที่สะสมไว้จะยังอยู่ครบเมื่อของอื่นเปิด</p>
+      <p>ตอนนี้มีการสุ่มสกินก่อนอย่างเดียว — โทเคนที่สะสมไว้จะยังอยู่ครบเมื่อของอื่นเปิด</p>
     </div>`;
 }
 
@@ -3384,13 +3436,13 @@ async function redeemCode() {
   else if (kind === 'tokens') codeGrantTokens();
 }
 
-// โค้ดโทเคน — เติมยอดให้ก้อนใหญ่ ไว้ลองวงล้อโดยไม่ต้องรอเช็คอินหลายวัน
+// โค้ดโทเคน — เติมยอดให้ก้อนใหญ่ ไว้ลองสุ่มสกินโดยไม่ต้องรอเช็คอินหลายวัน
 function codeGrantTokens() {
   const bal = addTokens(CODE_TOKEN_GRANT);
   haptic('done');
   splashBurst(22, 'egg-star');
   renderAll();
-  showToast({ title: '+' + CODE_TOKEN_GRANT + ' โทเคน ✦', body: 'ตอนนี้มี ' + bal + ' โทเคน — ลองวงล้อได้เลย' });
+  showToast({ title: '+' + CODE_TOKEN_GRANT + ' โทเคน ✦', body: 'ตอนนี้มี ' + bal + ' โทเคน — ลองสุ่มสกินได้เลย' });
 }
 
 // โค้ดที่ 1 — เปิดทุกอย่างในแอปให้เลย: เหรียญครบทุกอัน + ธีมลับครบทุกโทน
