@@ -3541,3 +3541,55 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
   object-fit: contain;
   margin-bottom: 0;
 }
+
+/* ============================================================
+   ตรามาร์ค: เอากรอบสีออกให้หมด (1A6M4b)
+   ------------------------------------------------------------
+   เดิมทุกที่ที่วางโลโก้จะมีกล่องรองสีแบรนด์/พื้นขาวอยู่ข้างหลัง — มันมาจากยุคที่
+   โลโก้เก่ามีพื้นเข้มติดมาในรูปอยู่แล้ว กล่องพวกนั้นเลยกลายเป็นของส่วนเกิน
+
+   ปัญหาคือตราใหม่เป็นสันหนังสือกรมท่าเข้ม วางบนพื้นมืดตรง ๆ แล้วหายไป 47%
+   (วัดด้วยอัตราส่วนความสว่างจริง ไม่ได้กะเอา) จึงทำตราไว้สองไฟล์:
+     logo-splash.png        ตราเข้ม  ใช้บนพื้นสว่าง
+     logo-splash-light.png  ตราสว่าง ใช้บนพื้นมืด  (จมหายเหลือ 14% เท่ากันพอดี)
+   แล้วให้ CSS สลับให้ตามธีม — ได้ทั้ง "ไม่มีกรอบ" และ "ไม่จมหาย" พร้อมกัน
+   ============================================================ */
+
+/* ค่าเริ่มต้น = ธีมสว่าง จึงโชว์ตราเข้ม */
+.brand-dark { display: none; }
+.brand-light { display: inline; }
+/* ธีมพื้นมืดทั้งหมด สลับไปใช้ตราสว่าง */
+:root[data-theme="dark"] .brand-light,
+:root[data-theme="space"] .brand-light,
+:root[data-theme="magic"] .brand-light,
+:root[data-theme="galaxy"] .brand-light,
+:root[data-theme="genesis"] .brand-light { display: none; }
+:root[data-theme="dark"] .brand-dark,
+:root[data-theme="space"] .brand-dark,
+:root[data-theme="magic"] .brand-dark,
+:root[data-theme="galaxy"] .brand-dark,
+:root[data-theme="genesis"] .brand-dark { display: inline; }
+
+/* ---------- เอากล่องรองออกให้หมด ---------- */
+/* แจ้งเตือนในแอป — เดิมเป็นกล่องไล่สีแบรนด์ */
+.toast .tav {
+  background: none; padding: 0; border-radius: 0;
+  width: 40px; height: 40px; object-fit: contain;
+}
+/* การ์ด AI · จอ AI กำลังอ่าน · วงต้อนรับ · การ์ดวันงานชน · การ์ดเรียนรู้จากคุณ */
+.brief-mark, .pr-dot, .obw-ring, .tl-note .tile, .brain-hd > svg:first-child {
+  background: none !important;
+  border: none !important;
+  box-shadow: none;
+  padding: 0;
+}
+/* ฉากเปิดแอป · หน้าล็อกอิน — แผ่นรองขาวไม่ต้องมีแล้ว ตราสว่างอ่านออกเองบนพื้นกรมท่า */
+.sp-plate, .login-plate {
+  background: none;
+  box-shadow: none;
+  border: none;
+}
+/* หน้าต้อนรับ · คู่มือติดตั้ง */
+.ob-mark, .ig-icon img {
+  border-radius: 0; box-shadow: none; object-fit: contain;
+}

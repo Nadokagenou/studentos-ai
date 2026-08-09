@@ -2925,7 +2925,7 @@ function showToast(copy) {
     el = document.createElement('div');
     el.id = 'appToast'; el.className = 'toast';
     // ALT: มีปุ่ม "เลิกทำ" เพิ่มมา — ปัดพลาดแล้วต้องย้อนได้ในที่เดียวกับที่แจ้งผล
-    el.innerHTML = `<img class="tav" src="logo-mark.png" alt=""><div class="tc"><div class="tt"></div><div class="tb"></div></div><button class="tu" type="button" hidden>เลิกทำ</button>`;
+    el.innerHTML = `<img class="tav brand-light" src="logo-splash.png" alt=""><img class="tav brand-dark" src="logo-splash-light.png" alt=""><div class="tc"><div class="tt"></div><div class="tb"></div></div><button class="tu" type="button" hidden>เลิกทำ</button>`;
     el.onclick = e => { if (!e.target.closest('.tu')) el.classList.remove('show'); };
     phone.appendChild(el);
   }

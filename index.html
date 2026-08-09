@@ -101,7 +101,10 @@
          ห่อเป็น <g> ให้ <use> เรียกได้เหมือนไอคอนตัวอื่น กฎ CSS ที่จัดขนาด svg
          จึงมีผลกับตัวนี้ด้วยโดยไม่ต้องเขียนกฎแยก -->
     <g id="lu-brand">
-      <image href="logo-splash.png" x="1" y="1" width="22" height="22" preserveAspectRatio="xMidYMid meet"/>
+      <!-- สองไฟล์ ต่างกันแค่ความสว่าง — CSS เลือกให้ตามธีม (ดู .brand-dark/.brand-light)
+           ทำแบบนี้แทนการใส่กล่องขาวรอง เพราะกล่องคือของส่วนเกินที่แย่งสายตา -->
+      <image class="brand-light" href="logo-splash.png" x="1" y="1" width="22" height="22" preserveAspectRatio="xMidYMid meet"/>
+      <image class="brand-dark" href="logo-splash-light.png" x="1" y="1" width="22" height="22" preserveAspectRatio="xMidYMid meet"/>
     </g>
     <!-- ถุงช้อปปิ้ง — ร้านค้าเคยใช้ไอคอนดาวร่วมกับ AI จนแยกไม่ออกว่าอันไหนคืออะไร -->
     <g id="lu-bag" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -183,7 +186,7 @@
         <div class="login-wrap">
           <!-- โลโก้ต้องมีแผ่นรองขาวเหมือนฉากเปิดแอป — ตัวมาร์คเป็นน้ำเงินเข้มพื้นใส
                วางบนพื้นกรมท่าตรง ๆ แล้วจมหายไปครึ่งอัน -->
-          <div class="login-plate"><img class="login-mark" src="logo-splash.png" alt="students OS"></div>
+          <div class="login-plate"><img class="login-mark brand-light" src="logo-splash.png" alt="students OS"><img class="login-mark brand-dark" src="logo-splash-light.png" alt=""></div>
           <div class="big-title" style="margin:0">StudentOS <span class="ai-blue">AI</span></div>
           <p class="sub" style="margin:0 0 16px">รู้ว่าต้องทำอะไรก่อน เสมอ</p>
           <button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>
@@ -197,7 +200,7 @@
       <div class="screen flush" id="scr-onboard">
         <div class="scr-body ob-body">
           <div class="ob-head">
-            <img class="ob-mark" src="logo-mark.png" alt="">
+            <img class="ob-mark brand-light" src="logo-splash.png" alt=""><img class="ob-mark brand-dark" src="logo-splash-light.png" alt="">
             <h2 class="ob-h">ขอรู้จักกันหน่อย</h2>
             <p class="ob-p">บอกแค่ 2 อย่าง แล้ว AI จะจัดแผนให้ตรงกับเวลาที่มีจริง</p>
           </div>
@@ -783,7 +786,7 @@
     <!-- ============ INSTALL GUIDE (iOS) ============ -->
     <div id="installGuide" hidden>
       <div class="ig-sheet">
-        <div class="ig-icon"><img src="logo-mark.png" alt=""></div>
+        <div class="ig-icon"><img class="brand-light" src="logo-splash.png" alt=""><img class="brand-dark" src="logo-splash-light.png" alt=""></div>
         <div class="ig-title">ติดตั้ง StudentOS AI</div>
         <p class="ig-sub">ติดตั้งเป็นแอปเพื่อเปิดเต็มจอและรับการแจ้งเตือนได้ — ใช้เวลาแค่ 10 วินาที</p>
         <div class="ig-step"><span class="ig-num">1</span>แตะปุ่ม <b>แชร์</b> <span class="ig-share">⬆️</span> ที่แถบด้านล่างจอ Safari</div>
@@ -816,7 +819,7 @@
            ถ้าวางลงบนพื้นกรมท่าของฉากเปิดตรง ๆ จะจมหายไปทั้งอัน
            ชื่อแอปกับป้ายเลขรุ่นถูกตัดออกจากจอนี้ — เหลือแค่โลโก้กับคำโปรย
            (เลขรุ่นยังอยู่ที่ป้ายมุมบนของจอ ไม่ได้หายไปไหน) -->
-      <div class="sp-plate"><img class="sp-logo" src="logo-splash.png" alt="students OS"></div>
+      <div class="sp-plate"><img class="sp-logo brand-light" src="logo-splash.png" alt="students OS"><img class="sp-logo brand-dark" src="logo-splash-light.png" alt=""></div>
       <div class="sp-tag">รู้ว่าต้องทำอะไรก่อน เสมอ</div>
       <!-- ALT: เปอร์เซ็นต์จริง — เดินตามงานที่โหลดเสร็จจริง ไม่ใช่แถบหลอกตา -->
       <div class="sp-load">
