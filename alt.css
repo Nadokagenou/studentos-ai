@@ -15,11 +15,16 @@
   pointer-events: none;
   font: 700 10px/1 'Space Mono', ui-monospace, monospace;
   letter-spacing: .14em;
-  padding: 5px 8px 4px;
-  border-radius: 6px;
-  color: #0B1220;
-  background: linear-gradient(135deg, #FACC15, #F59E0B);
-  box-shadow: 0 2px 10px rgba(245, 158, 11, .45);
+  padding: 5px 9px 4px;
+  border-radius: 999px;
+  /* เดิมเป็นป้ายทองสด — มันถูกออกแบบมาเตือนว่า "นี่คือบิลด์ทดลอง" ตอนอยู่ใน alt/
+     พอย้ายขึ้นตัวหลักแล้วความหมายนั้นหายไป เหลือแค่เลขรุ่น แต่สียังตะโกนอยู่
+     และเป็นสีเดียวในจอที่ไม่ได้อยู่ในชุดสีน้ำเงินของแบรนด์เลย
+     เปลี่ยนเป็นป้ายเงียบ ๆ กลืนกับพื้น — อยากรู้ก็อ่านได้ ไม่อยากรู้ก็ไม่สะดุดตา */
+  color: rgba(214, 226, 255, .72);
+  background: rgba(169, 188, 240, .14);
+  border: 1px solid rgba(169, 188, 240, .22);
+  backdrop-filter: blur(6px);
 }
 
 /* ปุ่มเพื่อนมุมขวาบน (1A6M2) — อยู่นอกกริดเมนู หน้าแรกจะได้ไม่ต้องเลื่อน */
