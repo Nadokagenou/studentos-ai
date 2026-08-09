@@ -3770,6 +3770,10 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 }
 
 .gc-in {
+  /* ต้องมี display:block — ตัวนี้เป็น <span> ซึ่งเป็น inline โดยปริยาย
+     inline ไม่รับ width/height กล่องจึงยุบเป็น 0x0 และหน้า/หลังการ์ดที่ใช้ inset:0
+     อ้างอิงกล่องนี้ ก็เลยเป็น 0x0 ตามไปด้วย (การ์ดขึ้นครบแต่มองไม่เห็นอะไรเลย) */
+  display: block;
   position: relative;
   width: 100%; height: 100%;
   transform-style: preserve-3d;
