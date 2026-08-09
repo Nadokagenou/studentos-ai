@@ -97,6 +97,17 @@
       <path d="M4.8 20.4c1.6-3.5 4.2-5.3 7.2-5.3s5.6 1.8 7.2 5.3"/>
     </g>
     <!-- ไอคอน Lucide สำหรับดีไซน์ Refined -->
+    <!-- ตรามาร์คของแบรนด์ — ใช้แทน "ไอคอนดาว" ทุกที่ที่หมายถึง AI ของเรา
+         ห่อเป็น <g> ให้ <use> เรียกได้เหมือนไอคอนตัวอื่น กฎ CSS ที่จัดขนาด svg
+         จึงมีผลกับตัวนี้ด้วยโดยไม่ต้องเขียนกฎแยก -->
+    <g id="lu-brand">
+      <image href="logo-splash.png" x="1" y="1" width="22" height="22" preserveAspectRatio="xMidYMid meet"/>
+    </g>
+    <!-- ถุงช้อปปิ้ง — ร้านค้าเคยใช้ไอคอนดาวร่วมกับ AI จนแยกไม่ออกว่าอันไหนคืออะไร -->
+    <g id="lu-bag" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4.5 8h15l-1 11.2a2.4 2.4 0 0 1-2.4 2.2H7.9a2.4 2.4 0 0 1-2.4-2.2z"/>
+      <path d="M8.6 8V6.4a3.4 3.4 0 0 1 6.8 0V8"/>
+    </g>
     <g id="lu-sparkles" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path></g>
     <g id="lu-check" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></g>
     <g id="lu-chevron" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></g>
@@ -170,13 +181,13 @@
       <!-- ============ SCREEN: LOGIN ============ -->
       <div class="screen" id="scr-login">
         <div class="login-wrap">
-          <img class="login-mark" src="logo-mark.png" alt="StudentOS AI">
+          <!-- โลโก้ต้องมีแผ่นรองขาวเหมือนฉากเปิดแอป — ตัวมาร์คเป็นน้ำเงินเข้มพื้นใส
+               วางบนพื้นกรมท่าตรง ๆ แล้วจมหายไปครึ่งอัน -->
+          <div class="login-plate"><img class="login-mark" src="logo-splash.png" alt="students OS"></div>
           <div class="big-title" style="margin:0">StudentOS <span class="ai-blue">AI</span></div>
-          <p class="sub" style="margin:0 0 6px">รู้ว่าต้องทำอะไรก่อน เสมอ</p>
-          <p class="alt-note" style="margin:0 0 16px">students OS · Version <b>1A6M3 “Modern”</b></p>
+          <p class="sub" style="margin:0 0 16px">รู้ว่าต้องทำอะไรก่อน เสมอ</p>
           <button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>
           <button class="btn ghost" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>
-          <p class="hint">ล็อกอินแล้วข้อมูลจะซิงก์ข้ามเครื่อง</p>
         </div>
       </div>
 
@@ -224,7 +235,7 @@
 
         <!-- ฉากทักทายหลังกรอกเสร็จ -->
         <div class="ob-welcome" id="obWelcome" hidden>
-          <div class="obw-ring"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></div>
+          <div class="obw-ring"><svg viewBox="0 0 24 24"><use href="#lu-brand"/></svg></div>
           <div class="obw-h">ยินดีที่ได้รู้จัก</div>
           <div class="obw-name" id="obwName"></div>
           <p class="obw-p" id="obwSub"></p>
@@ -277,7 +288,7 @@
                 placeholder="วางข้อความจากกลุ่ม LINE เช่น การบ้านฟิสิกส์ ครูสมชาย ทำโจทย์บทที่ 4 ข้อ 1-10 ส่งพรุ่งนี้ 16:00 คะแนนเก็บ 20%"></textarea>
               <div class="pc-act">
                 <button class="ai-read" onclick="scanFromText()">
-                  <svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg>ให้ AI อ่าน</button>
+                  <svg viewBox="0 0 24 24"><use href="#lu-brand"/></svg>ให้ AI อ่าน</button>
               </div>
             </div>
             <button class="manual" onclick="openForm(null)">
@@ -316,7 +327,7 @@
         <div class="scr-body parse-body">
           <div>
             <div class="pr-head">
-              <span class="pr-dot"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+              <span class="pr-dot"><svg viewBox="0 0 24 24"><use href="#lu-brand"/></svg></span>
               <h2 class="pr-h">AI กำลังอ่าน…</h2>
             </div>
           </div>
@@ -515,7 +526,7 @@
             <!-- ALT 1A6M3: ร้านค้า — อยู่เหนือเหรียญตรา · ติดป้าย "กำลังทำ" เพราะของในร้านยังไม่เปิด
                  แต่โทเคนสะสมจริงตั้งแต่ตอนนี้ ปุ่มจึงกดเข้าไปดูยอดได้ ไม่ใช่ปุ่มตาย -->
             <button class="pe pe-shop" onclick="go('scr-shop')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-bag"/></svg></span>
               <span class="pe-tx"><b>ร้านค้า <span class="pe-wip">กำลังทำ</span></b><i id="peShopCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
@@ -634,12 +645,12 @@
             <!-- ALT 1A6M3: วิดเจ็ตบนหน้าแรก -->
             <div class="pf-row col">
               <span class="hd">
-                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-tasks-alt"/></svg></span>
                 <span class="bd"><span class="lb">วิดเจ็ตหน้าแรก</span><span class="sb" id="wgNow"></span></span>
               </span>
               <div class="fs-grid wg-grid" id="wgPick">
                 <button type="button" data-wg="urgent" onclick="setWidget('urgent')">
-                  <svg viewBox="0 0 24 24"><use href="#lu-flame"/></svg>งานด่วน</button>
+                  <svg viewBox="0 0 24 24"><use href="#lu-flag"/></svg>งานด่วน</button>
                 <button type="button" data-wg="note" onclick="setWidget('note')">
                   <svg viewBox="0 0 24 24"><use href="#lu-pencil"/></svg>โน้ต</button>
                 <button type="button" data-wg="clock" onclick="setWidget('clock')">
@@ -758,11 +769,11 @@
           <div id="accountCard"></div>
 
           <div style="display:flex;flex-direction:column;gap:2px">
-            <button class="pf-quiet" onclick="loadSample()"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg>โหลดข้อมูลตัวอย่าง</button>
+            <button class="pf-quiet" onclick="loadSample()"><svg viewBox="0 0 24 24"><use href="#lu-book"/></svg>โหลดข้อมูลตัวอย่าง</button>
             <!-- ALT 1A6M3: ล็อกธีมลับกลับ ไว้ลองอีสเตอร์เอกก์ใหม่ -->
             <button class="pf-quiet" id="relockBtn" onclick="relockSecrets()" hidden>
               <svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg>ล็อกธีมลับกลับ</button>
-            <button class="pf-quiet danger" onclick="clearAll()"><svg viewBox="0 0 24 24"><use href="#lu-flame"/></svg>ล้างข้อมูลทั้งหมด</button>
+            <button class="pf-quiet danger" onclick="clearAll()"><svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg>ล้างข้อมูลทั้งหมด</button>
           </div>
         </div>
       </div>

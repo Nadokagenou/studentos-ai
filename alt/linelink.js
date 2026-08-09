@@ -159,10 +159,10 @@ startInboxPolling();
 // ---------- ส่วนที่แสดงในจอ "แหล่งข้อมูล" ----------
 function lineLinkPanel() {
   if (!cloudConfigured()) {
-    return `<div class="src-need">${icon('flame')}ยังไม่ได้ตั้งค่า Supabase — เชื่อม LINE ไม่ได้</div>`;
+    return `<div class="src-need">${icon('lock')}ยังไม่ได้ตั้งค่า Supabase — เชื่อม LINE ไม่ได้</div>`;
   }
   if (!currentUser) {
-    return `<div class="src-need">${icon('flame')}ต้องล็อกอินก่อน เพราะระบบต้องรู้ว่ากลุ่มนี้ส่งงานให้ใคร</div>
+    return `<div class="src-need">${icon('lock')}ต้องล็อกอินก่อน เพราะระบบต้องรู้ว่ากลุ่มนี้ส่งงานให้ใคร</div>
       <button class="ib-go" style="margin-top:10px" onclick="go('scr-profile')">ไปล็อกอิน</button>`;
   }
 
@@ -175,7 +175,7 @@ function lineLinkPanel() {
       <div class="lk-hint">${icon('clock')}${leftMin
         ? `รอบอทตอบกลับในกลุ่ม… รหัสใช้ได้อีก ${leftMin} นาที`
         : 'รหัสหมดอายุแล้ว กดขอใหม่ได้เลย'}</div>
-      <button class="lk-new" onclick="resetLineCode()">${icon('sparkles')}ขอรหัสใหม่</button>
+      <button class="lk-new" onclick="resetLineCode()">${icon('pencil')}ขอรหัสใหม่</button>
     </div>`;
   }
 

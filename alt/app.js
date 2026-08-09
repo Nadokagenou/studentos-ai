@@ -7,9 +7,9 @@
 //   - service worker ใช้ cache คนละชื่อ
 // ============================================================
 
-const APP_VERSION = '1A6M3';                // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
+const APP_VERSION = '1A6M4';                // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
 const APP_CODENAME = 'Modern';             // ชื่อรุ่นของอัปเดตนี้
-const APP_CHANNEL = 'ALT';                 // ป้ายกำกับรุ่น — โชว์ทั้งบนแอปและในหน้า "ฉัน"
+const APP_CHANNEL = 'ALT';                  // ป้ายกำกับรุ่น — โชว์ทั้งบนแอปและในหน้า "ฉัน"
 const STORE_KEY = 'studentos.alt.v1';      // ALT: แยกที่เก็บข้อมูลจากตัวจริง ('studentos.v1')
 const APP_T0 = performance.now(); // ใช้คุมเวลาโชว์ splash ขั้นต่ำ
 
@@ -701,7 +701,7 @@ function widgetHtml(now) {
     return `<section class="wg wg-urgent clear">
       <div class="wg-head">${icon('check-circle')}<span>ไม่มีงานด่วน</span></div>
       <div class="wg-title">เคลียร์หมดแล้ว</div>
-      <button class="wg-cta" onclick="go('scr-scan')">${icon('sparkles')}เพิ่มงานใหม่</button>
+      <button class="wg-cta" onclick="go('scr-scan')">${icon('camera')}เพิ่มงานใหม่</button>
     </section>`;
   }
   const info = priorityInfo(top, now);
@@ -709,7 +709,7 @@ function widgetHtml(now) {
   const bits = [fmtDue(top.due, now, top), '~' + top.estMin + ' นาที',
     top.scorePct != null ? 'คะแนน ' + top.scorePct + '%' : null].filter(Boolean);
   return `<section class="wg wg-urgent ${priorityTone(info.stars)}">
-    <div class="wg-head">${icon('flame')}<span>ควรทำก่อน</span>
+    <div class="wg-head">${icon('flag')}<span>ควรทำก่อน</span>
       <span class="wg-pill">${esc(priorityLabel(info.stars))}</span></div>
     <div class="wg-title">${taskTitle(top)}</div>
     <div class="wg-meta">${esc(bits.join(' · '))} · ${esc(why)}</div>
@@ -748,7 +748,7 @@ function renderMenu() {
     </div>
     ${widgetHtml(now)}
     <div class="menu-grid">
-      ${menuTile('hero', 'sparkles', 'เพิ่มงานใหม่', 'ถ่ายรูป · พูด · แปะข้อความ', null, 'scr-scan')}
+      ${menuTile('hero', 'camera', 'เพิ่มงานใหม่', 'ถ่ายรูป · พูด · แปะข้อความ', null, 'scr-scan')}
       ${inboxTile()}
       ${menuTile('', 'calendar', 'ตารางงาน', 'ลำดับที่ AI แนะนำ', pending.length, 'scr-home')}
       ${menuTile('', 'check-circle', 'งานทั้งหมด', 'ค้าง · เสร็จ · ถังขยะ', live.length, 'scr-tasks')}
@@ -767,7 +767,7 @@ function briefCard(pending, now) {
   let msg = esc(raw).replace(/~([\d.]+) ชม\./g, '<b>~$1 ชม.</b>');
   if (top && top.subject) msg = msg.replace(esc(top.subject), '<b>' + esc(top.subject) + '</b>');
   return `<div class="brief">
-    <div class="brief-head"><span class="brief-mark">${icon('sparkles')}</span><b>STUDENTOS AI</b></div>
+    <div class="brief-head"><span class="brief-mark">${icon('brand')}</span><b>STUDENTOS AI</b></div>
     <p class="brief-body">${msg}</p>
     <button class="brief-cta" onclick="go('scr-plan')">${icon('calendar')}ให้ AI วางแผนเวลาวันนี้</button>
   </div>`;
@@ -872,11 +872,11 @@ function emptyDay(doneCount, now) {
     t.done && t.doneAt && new Date(t.doneAt).toDateString() === now.toDateString()).length;
 
   return `<section class="empty-wrap">
-    <div class="empty-ring">${icon(cleared ? 'check-circle' : 'sparkles')}</div>
+    <div class="empty-ring">${icon(cleared ? 'check-circle' : 'camera')}</div>
     <h3 class="empty-h">${c.h}</h3>
     <p class="empty-p">${c.p}</p>
-    ${today ? `<div class="empty-stat">${icon('flame')}วันนี้ติ๊กไปแล้ว <b>${today}</b> งาน</div>` : ''}
-    <button class="empty-cta" onclick="go('scr-scan')">${icon('sparkles')}เพิ่มงานใหม่</button>
+    ${today ? `<div class="empty-stat">${icon('check-circle')}วันนี้ติ๊กไปแล้ว <b>${today}</b> งาน</div>` : ''}
+    <button class="empty-cta" onclick="go('scr-scan')">${icon('camera')}เพิ่มงานใหม่</button>
     ${cleared ? `<button class="empty-2nd" onclick="setFilter('done');go('scr-tasks')">
       ดูงานที่ทำเสร็จแล้ว ${doneCount} งาน${icon('chevron')}</button>` : ''}
   </section>`;
@@ -1200,7 +1200,7 @@ function renderTimeline() {
       <p class="empty-p">${undated.length
         ? 'มีงานอยู่ ' + undated.length + ' งานแต่ยังไม่ได้ใส่วัน — ใส่กำหนดส่งแล้วจะขึ้นมาเป็นป้ายบนเส้นทางทันที'
         : 'ยังไม่มีงานที่มีกำหนดส่ง เพิ่มงานแล้วจะเห็นเป็นป้ายจอดเรียงตามเวลา'}</p>
-      <button class="empty-cta" onclick="go('scr-scan')">${icon('sparkles')}เพิ่มงานใหม่</button>
+      <button class="empty-cta" onclick="go('scr-scan')">${icon('camera')}เพิ่มงานใหม่</button>
     </section>`;
     return;
   }
@@ -1261,7 +1261,7 @@ function renderTimeline() {
   const late = dated.filter(t => new Date(t.due) < now);
   const next = dated.find(t => new Date(t.due) >= now);
   const nextCard = `<div class="jr-next${late.length ? ' late' : ''}">
-    <span class="tile">${icon(late.length ? 'flame' : 'pin')}</span>
+    <span class="tile">${icon(late.length ? 'clock' : 'pin')}</span>
     <div class="bd">
       <div class="lb">${late.length ? 'เลยป้ายมาแล้ว ' + late.length + ' งาน' : 'ป้ายถัดไป'}</div>
       <div class="tx">${next
@@ -1287,7 +1287,7 @@ function renderTimeline() {
 
   const insight = timelineInsight(pending, now);
   const note = insight ? `<div class="tl-note">
-    <span class="tile">${icon('sparkles')}</span>
+    <span class="tile">${icon('brand')}</span>
     <div style="flex:1;min-width:0">
       <div class="lb">วันงานชน</div>
       <div class="tx">${esc(insight)}</div>
@@ -1393,7 +1393,7 @@ function renderPlan() {
   }
   if (plan.overflow.length) {
     html += `<div class="povf">
-      <div class="povf-head">${icon('flame')}<span>เวลาวันนี้ไม่พอ — ย้ายไปพรุ่งนี้</span></div>
+      <div class="povf-head">${icon('clock')}<span>เวลาวันนี้ไม่พอ — ย้ายไปพรุ่งนี้</span></div>
       ${plan.overflow.map(o => `<div class="it">
         <div class="tt">${taskTitle(o.task)}</div>
         <div class="ln">ต้องใช้ ~${o.need} นาที · ${fmtDue(o.task.due, now, o.task)}</div>
@@ -1772,7 +1772,7 @@ function renderShop() {
       <p class="page-sub">โทเคนสะสมไว้ได้ตั้งแต่ตอนนี้ ของในร้านกำลังทำอยู่</p>
     </div>
     <div class="tk-hero">
-      <div class="tk-coin">${icon('sparkles')}</div>
+      <div class="tk-coin">${icon('medal')}</div>
       <div class="tk-bd">
         <div class="tk-bal mono">${s.bal || 0}</div>
         <div class="tk-unit">โทเคน</div>
@@ -1784,7 +1784,7 @@ function renderShop() {
       <div><div class="v mono">${s.days || 0}</div><div class="k">เปิดแอปรวม</div></div>
     </div>
     <div class="tk-note">
-      <span class="tile">${icon('sparkles')}</span>
+      <span class="tile">${icon('medal')}</span>
       <div style="flex:1;min-width:0">
         <div class="lb">ได้โทเคนมายังไง</div>
         <div class="tx">เปิดแอปวันละครั้งได้ ${TOKEN_BASE} โทเคน บวกโบนัสตามจำนวนวันที่เปิดติดกัน
@@ -2068,7 +2068,7 @@ function openForm(id, parsed) {
       const shaky = lastOcrConfidence != null && lastOcrConfidence < OCR_CONF_OK;
       okBadge.className = 'fm-ok show' + (shaky ? ' shaky' : '');
       okBadge.innerHTML = shaky
-        ? `${icon('flame')}อ่านจากรูปได้ ${got.length} จาก ${fields.length} ช่อง · มั่นใจ ${lastOcrConfidence}% — ตรวจให้ดีก่อนบันทึก`
+        ? `${icon('image')}อ่านจากรูปได้ ${got.length} จาก ${fields.length} ช่อง · มั่นใจ ${lastOcrConfidence}% — ตรวจให้ดีก่อนบันทึก`
         : `${icon('check-circle')}AI อ่านได้ ${got.length} จาก ${fields.length} ช่อง`;
     }
     lastOcrConfidence = null; // ใช้ครั้งเดียวต่อการสแกน ไม่ให้ค้างไปเตือนงานที่พิมพ์เอง

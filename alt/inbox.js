@@ -359,7 +359,7 @@ function renderSources() {
     ${SOURCES.filter(s => !s.live).map(s => `<div class="src">
       <span class="src-ic off">${icon(s.icon)}</span>
       <span class="src-bd"><span class="t">${esc(s.name)}</span><span class="s">${esc(s.desc)}</span>
-        <span class="src-need">${icon('flame')}${esc(s.needs)}</span>
+        <span class="src-need">${icon('lock')}${esc(s.needs)}</span>
         ${s.note ? `<span class="src-note">${esc(s.note)}</span>` : ''}</span>
     </div>`).join('')}
 

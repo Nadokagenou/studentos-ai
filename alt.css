@@ -3485,3 +3485,54 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 @media (prefers-reduced-motion: reduce) {
   .sp-plate, .sp-alt { animation: none; }
 }
+
+/* ============================================================
+   ตรามาร์คแบรนด์แทนไอคอนดาว (1A6M4)
+   ------------------------------------------------------------
+   ตัวมาร์คเป็นหนังสือน้ำเงินเข้ม + ฟ้า บนพื้นใส วางบนพื้นกรมท่าตรง ๆ แล้วจมหาย
+   ทุกที่ที่ใช้มาร์คจึงต้องมีวงกลม/แผ่นรองสีขาวรองรับ — และเพราะมันเป็นรูปหลายสี
+   จะสั่ง color ให้เปลี่ยนสีตามธีมไม่ได้เหมือนไอคอนเส้น ต้องรองพื้นขาวเสมอ
+   ============================================================ */
+
+/* การ์ด "STUDENTOS AI" บนหน้าแรก — เดิมเป็นกรอบโปร่งบนพื้นไล่สีเข้ม */
+.brief-mark {
+  background: #fff;
+  border-color: rgba(255,255,255,.9);
+}
+.brief-mark svg { width: 22px; height: 22px; }
+
+/* จอ "AI กำลังอ่าน" — เดิมพื้นเป็นสีแบรนด์ทึบ */
+.pr-dot {
+  width: 30px; height: 30px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.pr-dot svg { width: 21px; height: 21px; }
+
+/* วงต้อนรับตอนเปิดแอปครั้งแรก */
+.obw-ring { background: #fff; }
+.obw-ring svg { width: 62px; height: 62px; }
+
+/* การ์ด "วันงานชน" บนเส้นเวลา */
+.tl-note .tile { background: #fff; }
+.tl-note .tile svg { width: 22px; height: 22px; }
+
+/* ปุ่ม "ให้ AI อ่าน" — ปุ่มพื้นอ่อนอยู่แล้ว แค่ขยายมาร์คให้เห็นลายหนังสือ */
+.ai-read svg { width: 19px; height: 19px; }
+
+/* ---------- หน้าล็อกอิน: แผ่นรองโลโก้ ---------- */
+.login-plate {
+  width: 112px; height: 112px;
+  border-radius: 30px;
+  background: linear-gradient(160deg, #FFFFFF, #EAF1FF);
+  box-shadow: 0 18px 44px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.35);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 6px;
+}
+.login-mark {
+  width: 86px; height: 86px;
+  border-radius: 0;
+  box-shadow: none;
+  object-fit: contain;
+  margin-bottom: 0;
+}
