@@ -220,11 +220,21 @@ function applyTheme() {
   document.querySelectorAll('#themePick button').forEach(b =>
     b.classList.toggle('active', b.dataset.th === pref));
   genesisLoop(theme === 'genesis'); // อีเวนต์ 99 วิ เดินเฉพาะตอนอยู่ในธีมนี้
+  // ปุ่มธีมที่ยังไม่ได้เป็นเจ้าของต้องไม่โผล่ — เรียกทุกครั้งที่ธีมเปลี่ยน
+  // เพราะ "ธีมที่ใช้อยู่" คือหนึ่งในเงื่อนไขที่ทำให้ปุ่มยังโผล่ได้
+  if (typeof applyThemeLocks === 'function') applyThemeLocks();
   const now = document.getElementById('themeNow');
   if (now) now.textContent = pref === 'system' ? `ตามระบบ · ตอนนี้โทน${THEME_NAME[theme]}` : '';
 }
 
 function setTheme(pref) {
+  // กันเลือกธีมที่ยังไม่ได้เป็นเจ้าของ (เช่นกดจากที่อื่นหรือค่าค้างใน localStorage)
+  // ธีมที่ใช้อยู่ตอนนี้ผ่านได้เสมอ — ไม่ยึดของที่เขาใช้อยู่คืน
+  if (typeof themeVisible === 'function' && pref !== 'system' && !themeVisible(pref)) {
+    haptic('snooze');
+    showToast({ title: 'ยังไม่มีธีมนี้', body: THEME_SHOP[pref] ? 'ซื้อได้ที่ร้านค้า' : 'ได้จากการสุ่มสกินในร้านค้า' });
+    return;
+  }
   // นับการกดซ้ำที่ปุ่มธีมที่มีของลับ — กดรัว ๆ ครบ 5 ครั้งแล้วปลดล็อก
   const secret = SECRETS[pref];
   if (secret) {
@@ -1734,21 +1744,123 @@ const THAI_OFFSET_MIN = 7 * 60; // ไทย = UTC+7 คงที่ ไม่�
 const DAILY_PLAN = [9, 1, 3, 1, 1, 3, 'spin'];
 
 // ---------- ราคาและอัตราของการสุ่ม ----------
-const SPIN_COST_1 = 2;    // หมุน 1 ครั้ง
-const SPIN_COST_10 = 10;  // หมุน 10 ครั้ง (ถูกกว่าหมุนทีละครั้งครึ่งหนึ่ง)
+const SPIN_COST_1 = 2;    // สุ่ม 1 ใบ
+const SPIN_COST_10 = 10;  // สุ่ม 10 ใบ (ถูกกว่าสุ่มทีละใบครึ่งหนึ่ง)
 
-// สกินที่สุ่มได้ = ธีมที่มีอยู่แล้วในแอป การได้รางวัลคือ "สะสมได้" ไม่ใช่ปลดล็อกสิทธิ์ใช้งาน
-// ตั้งใจไม่ไปล็อกธีมที่คนใช้อยู่แล้ว — ระบบสุ่มไม่ควรยึดของที่เขามีอยู่ก่อนคืน
+// ---------- ธีมที่ต้องได้มาก่อนถึงจะใช้ได้ ----------
+// ธีมพวกนี้เคยเปิดให้ใช้ฟรีทุกคน ตอนนี้ย้ายไปอยู่หลังระบบสุ่มกับร้านค้า
+// **ธีมที่ผู้ใช้เลือกใช้อยู่ตอนนี้จะไม่ถูกยึดคืน** — ปุ่มยังโผล่และยังกดได้เหมือนเดิม
+// (ดู themeVisible) การเปลี่ยนกติกากลางทางไม่ควรไปเอาของที่เขาใช้อยู่แล้วออกจากมือ
+const THEME_GACHA = ['earth', 'ocean', 'magic', 'galaxy'];   // ได้จากการสุ่มเท่านั้น
+const THEME_SHOP = {                                          // ซื้อด้วยโทเคน
+  warm:  { cost: 30, name: 'ชมพู' },
+  space: { cost: 30, name: 'อวกาศ' },
+};
+
+function themeLocked(id) { return THEME_GACHA.includes(id) || !!THEME_SHOP[id]; }
+function themeOwned(id) {
+  if (!themeLocked(id)) return true;
+  const s = tokenState();
+  if (THEME_GACHA.includes(id)) return ((s.skins || {})[id] || 0) > 0;
+  return (s.bought || []).includes(id);
+}
+function themeVisible(id) { return themeOwned(id) || themePref() === id; }
+
+// ซ่อน/โชว์ปุ่มธีมตามสิทธิ์ — เรียกทุกครั้งที่สิทธิ์เปลี่ยน
+function applyThemeLocks() {
+  document.querySelectorAll('#themePick button[data-th]').forEach(b => {
+    const id = b.dataset.th;
+    if (!themeLocked(id)) return;                 // ธีมฟรี ไม่ต้องยุ่ง
+    b.hidden = !themeVisible(id);
+    // ธีมที่ยังใช้อยู่แต่ยังไม่ได้เป็นเจ้าของ ติดป้ายบอกว่าใช้ต่อได้แต่เปลี่ยนออกแล้วจะหาย
+    b.classList.toggle('th-grace', themeVisible(id) && !themeOwned(id));
+  });
+}
+
+function buyTheme(id) {
+  const t = THEME_SHOP[id];
+  if (!t || themeOwned(id)) return;
+  const s = tokenState();
+  if ((s.bal || 0) < t.cost) {
+    haptic('snooze');
+    showToast({ title: 'โทเคนไม่พอ', body: 'ธีม' + t.name + ' ราคา ' + t.cost + ' โทเคน — ยังขาดอีก ' + fmtTok(t.cost - (s.bal || 0)) });
+    return;
+  }
+  s.bal -= t.cost;
+  s.bought = (s.bought || []).concat(id);
+  saveTokenState(s);
+  haptic('done');
+  splashBurst(18, 'egg-star');
+  applyThemeLocks();
+  renderAll();
+  showToast({ title: 'ได้ธีม' + t.name + 'แล้ว 🎨', body: 'เลือกใช้ได้ที่จอตั้งค่า · เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
+}
+
+// ---------- ตารางรางวัลของการสุ่ม ----------
+// Common 83 · Rare 16 · Legendary 1 (ธีมออกยากขึ้นกว่าเดิมมาก)
 const SPIN_TABLE = [
-  { id: 'tk1', rarity: 'common', kind: 'token', min: 1, max: 3, label: 'โทเคน', weight: 78 },
-  { id: 'earth', rarity: 'rare', kind: 'skin', theme: 'earth', label: 'โลก', weight: 9 },
-  { id: 'magic', rarity: 'rare', kind: 'skin', theme: 'magic', label: 'เวทมนตร์', weight: 9 },
-  { id: 'ocean', rarity: 'legendary', kind: 'skin', theme: 'ocean', label: 'มหาสมุทร', weight: 2 },
-  { id: 'galaxy', rarity: 'legendary', kind: 'skin', theme: 'galaxy', label: 'กาแล็กซี', weight: 2 },
+  { id: 'tk1', rarity: 'common', kind: 'token', label: 'โทเคน', weight: 83 },
+  { id: 'earth', rarity: 'rare', kind: 'skin', theme: 'earth', label: 'โลก', weight: 8 },
+  { id: 'magic', rarity: 'rare', kind: 'skin', theme: 'magic', label: 'เวทมนตร์', weight: 8 },
+  { id: 'ocean', rarity: 'legendary', kind: 'skin', theme: 'ocean', label: 'มหาสมุทร', weight: 0.5 },
+  { id: 'galaxy', rarity: 'legendary', kind: 'skin', theme: 'galaxy', label: 'กาแล็กซี', weight: 0.5 },
 ];
 const RARITY_NAME = { common: 'Common', rare: 'Rare', legendary: 'Legendary' };
-// ได้สกินซ้ำ แปลงเป็นโทเคนคืนตามระดับ — กันความรู้สึก "หมุนแล้วได้ของเปล่า"
 const DUP_REFUND = { rare: 4, legendary: 12 };
+
+// โทเคนมีทศนิยมได้แล้ว (Common จ่าย 0–0.5) — แสดงผลให้พอดี ไม่โชว์ .0 ลอย ๆ
+function fmtTok(n) {
+  const v = Math.round((n || 0) * 10) / 10;
+  return Number.isInteger(v) ? String(v) : v.toFixed(1);
+}
+
+// สุ่มผล **โดยยังไม่แตะยอดใด ๆ** — ผลถูกล็อกตั้งแต่ตอนกดปุ่ม แต่ของยังไม่เข้ากระเป๋า
+// จนกว่าจะหงายการ์ดใบนั้น ไม่งั้นยอดบนจอจะขยับก่อนผู้ใช้เปิด = สปอยล์ผลตัวเอง
+function rollPrize() {
+  const total = SPIN_TABLE.reduce((n, p) => n + p.weight, 0);
+  let r = Math.random() * total;
+  const p = SPIN_TABLE.find(x => (r -= x.weight) < 0) || SPIN_TABLE[0];
+  const out = { id: p.id, rarity: p.rarity, kind: p.kind, label: p.label, theme: p.theme };
+  // Common จ่าย 0–0.5 โทเคน (ทีละ 0.1)
+  if (p.kind === 'token') out.amount = Math.round(Math.random() * 5) / 10;
+  return out;
+}
+
+// ให้ของจริงตอนหงายการ์ด — เช็ค "ซ้ำ" ณ ตอนนี้ ใบที่สองของรอบเดียวกันจึงนับเป็นซ้ำถูกต้อง
+function grantPrize(r) {
+  if (r.granted) return r;
+  const s = tokenState();
+  if (r.kind === 'token') {
+    s.bal = Math.round(((s.bal || 0) + r.amount) * 10) / 10;
+  } else {
+    s.skins = s.skins || {};
+    const had = s.skins[r.id] || 0;
+    s.skins[r.id] = had + 1;
+    r.duplicate = had > 0;
+    if (r.duplicate) {
+      r.amount = DUP_REFUND[r.rarity] || 1;
+      s.bal = Math.round(((s.bal || 0) + r.amount) * 10) / 10;
+    }
+  }
+  saveTokenState(s);
+  r.granted = true;
+  return r;
+}
+
+// n = จำนวนใบ · คิดเงินก่อนสุ่ม ถ้าไม่พอไม่สุ่มเลยสักใบ (ไม่หักครึ่ง ๆ กลาง ๆ)
+function paySpin(n) {
+  const s = tokenState();
+  if (n === 1 && (s.freeSpins || 0) > 0) {
+    s.freeSpins -= 1;
+    saveTokenState(s);
+    return { ok: true, free: true, cost: 0 };
+  }
+  const cost = n === 10 ? SPIN_COST_10 : SPIN_COST_1 * n;
+  if ((s.bal || 0) < cost) return { ok: false, cost, short: Math.round((cost - (s.bal || 0)) * 10) / 10 };
+  s.bal = Math.round((s.bal - cost) * 10) / 10;
+  saveTokenState(s);
+  return { ok: true, free: false, cost };
+}
 
 // เวลาไทยตอนนี้ ในรูป Date ที่อ่านฟิลด์ local ได้เป็นเวลาไทยตรง ๆ
 function thaiNow(now = new Date()) {
@@ -1819,45 +1931,6 @@ function claimDaily() {
   return { day, prize, bal: s.bal || 0, streak: s.streak, freeSpins: s.freeSpins || 0 };
 }
 
-// ---------- ตารางรางวัลของการสุ่ม ----------
-function spinOnce() {
-  const total = SPIN_TABLE.reduce((n, p) => n + p.weight, 0);
-  let r = Math.random() * total;
-  const prize = SPIN_TABLE.find(p => (r -= p.weight) < 0) || SPIN_TABLE[0];
-  const s = tokenState();
-  s.skins = s.skins || {};
-  const out = { id: prize.id, rarity: prize.rarity, kind: prize.kind, label: prize.label };
-  if (prize.kind === 'token') {
-    out.amount = prize.min + Math.floor(Math.random() * (prize.max - prize.min + 1));
-    s.bal = (s.bal || 0) + out.amount;
-  } else {
-    const had = s.skins[prize.id] || 0;
-    s.skins[prize.id] = had + 1;
-    out.duplicate = had > 0;
-    out.theme = prize.theme;
-    if (out.duplicate) {
-      out.amount = DUP_REFUND[prize.rarity] || 1;   // ซ้ำแล้วคืนเป็นโทเคน
-      s.bal = (s.bal || 0) + out.amount;
-    }
-  }
-  saveTokenState(s);
-  return out;
-}
-
-// n = จำนวนครั้ง · คิดเงินก่อนหมุน ถ้าไม่พอไม่หมุนเลยสักครั้ง (ไม่หักครึ่ง ๆ กลาง ๆ)
-function paySpin(n) {
-  const s = tokenState();
-  if (n === 1 && (s.freeSpins || 0) > 0) {
-    s.freeSpins -= 1;
-    saveTokenState(s);
-    return { ok: true, free: true, cost: 0 };
-  }
-  const cost = n === 10 ? SPIN_COST_10 : SPIN_COST_1 * n;
-  if ((s.bal || 0) < cost) return { ok: false, cost, short: cost - (s.bal || 0) };
-  s.bal -= cost;
-  saveTokenState(s);
-  return { ok: true, free: false, cost };
-}
 
 // ---------- หน้าต่างเช็คอินรายวัน ----------
 // เด้งเองเมื่อถึงวันใหม่ (6 โมงเช้าไทย) และยังไม่ได้กดรับ
@@ -1920,11 +1993,8 @@ function claimDailyFromSheet() {
 }
 
 // ---------- เปิดการ์ดสุ่มสกิน (3D) ----------
-// ของเดิมเป็นวงล้อหมุน ถอดออกแล้วด้วยเหตุผลสองข้อ:
-//   1) ตัวชี้กับของที่ได้ไม่ตรงกัน — สูตรหาองศาบวกเกินไปครึ่งช่อง ลิ่มถูกวาดให้กึ่งกลางอยู่ที่ 12 นาฬิกาอยู่แล้ว
-//      จึงไม่ต้องบวกครึ่งช่องซ้ำ วงล้อเลยหยุดเลื่อนไปหนึ่งช่องเสมอ
-//   2) วงล้อบอกผลรวดเดียว ไม่มีจังหวะให้ลุ้นทีละใบตอนหมุน 10 ครั้ง
-// ของใหม่: การ์ดคว่ำเรียงเป็นแถวเลื่อนได้จริง ผู้ใช้แตะหงายเองทีละใบ
+// ผลถูกล็อกตั้งแต่ตอนกดปุ่ม แต่ **ของเข้ากระเป๋าตอนหงายการ์ดใบนั้นเท่านั้น**
+// ถ้าให้ทั้งก้อนตอนกด ยอดโทเคนบนหัวจอจะขยับก่อนผู้ใช้เปิด = สปอยล์ผลตัวเอง
 let drawResults = [];
 let drawOpen = [];
 let drawing = false;
@@ -1944,34 +2014,38 @@ function tiltCards() {
   });
 }
 
+// ยังเปิดไม่ครบ = ห้ามออกจากจอ ต้องดูให้จบก่อน
+function drawBusy() { return drawResults.length > 0 && drawOpen.some(v => !v); }
+function applyDrawLock() {
+  document.body.classList.toggle('draw-lock', drawBusy());
+}
+
 function cardFace(r) {
   const body = r.kind === 'token'
-    ? `<b class="mono">+${r.amount}</b><span>โทเคน</span>`
-    : `<b>${esc(r.label)}</b><span>${r.duplicate ? 'ซ้ำ · คืน ' + r.amount + ' โทเคน' : 'สกินใหม่!'}</span>`;
+    ? `<b class="mono">+${fmtTok(r.amount)}</b><span>โทเคน</span>`
+    : `<b>${esc(r.label)}</b><span>${r.duplicate ? 'ซ้ำ · คืน ' + fmtTok(r.amount) + ' โทเคน' : 'ธีมใหม่!'}</span>`;
   return `<span class="gc-rar">${RARITY_NAME[r.rarity]}</span>${body}`;
 }
 
 function drawCardsHtml() {
-  return `<div class="gc-strip" id="gcStrip" onscroll="tiltCards()">
+  return `<div class="gc-stage"></div>
+    <div class="gc-strip" id="gcStrip" onscroll="tiltCards()">
       ${drawResults.map((r, i) => `
-        <button class="gc${drawOpen[i] ? ' open' : ''}" data-i="${i}" onclick="flipCard(${i})"
-          aria-label="${drawOpen[i] ? 'เปิดแล้ว' : 'แตะเพื่อเปิดการ์ด'}">
+        <button class="gc" data-i="${i}" onclick="flipCard(${i})"
+          aria-label="แตะเพื่อเปิดการ์ด">
           <span class="gc-in">
-            <span class="gc-back"><i class="gc-mark">${icon('sparkles')}</i></span>
-            <span class="gc-face r-${r.rarity}">${cardFace(r)}</span>
+            <span class="gc-back"><i class="gc-mark">${icon('sparkles')}</i><i class="gc-shine"></i></span>
+            <span class="gc-face r-${r.rarity}"></span>
           </span>
         </button>`).join('')}
-    </div>
-    ${drawOpen.some(v => !v)
-      ? `<button class="gc-all" onclick="flipAllCards()">หงายที่เหลือทั้งหมด</button>`
-      : `<div class="gc-sum">${drawSummary()}</div>`}`;
+    </div>`;
 }
 
 function drawSummary() {
   const tok = drawResults.reduce((n, r) => n + (r.amount || 0), 0);
-  const skins = drawResults.filter(r => r.kind === 'skin' && !r.duplicate).length;
+  const fresh = drawResults.filter(r => r.kind === 'skin' && !r.duplicate).length;
   const best = drawResults.reduce((a, b) => RANK[b.rarity] > RANK[a.rarity] ? b : a, drawResults[0]);
-  return `รอบนี้ได้ <b>${tok}</b> โทเคน${skins ? ' · สกินใหม่ ' + skins + ' อัน' : ''}
+  return `รอบนี้ได้ <b>${fmtTok(tok)}</b> โทเคน${fresh ? ' · ธีมใหม่ ' + fresh + ' อัน' : ''}
     · ดีที่สุด <b class="r-${best.rarity}">${RARITY_NAME[best.rarity]}</b>`;
 }
 const RANK = { common: 0, rare: 1, legendary: 2 };
@@ -1979,22 +2053,37 @@ const RANK = { common: 0, rare: 1, legendary: 2 };
 function flipCard(i) {
   if (drawOpen[i]) return;
   drawOpen[i] = true;
+  const r = grantPrize(drawResults[i]);     // ของเข้ากระเป๋าตอนนี้ ไม่ใช่ตอนกดปุ่ม
   const el = document.querySelector('.gc[data-i="' + i + '"]');
-  if (el) el.classList.add('open');
-  const r = drawResults[i];
+  if (el) {
+    el.querySelector('.gc-face').innerHTML = cardFace(r);   // เติมหน้าการ์ดตอนจะพลิกเท่านั้น
+    el.classList.add('open', 'lit-' + r.rarity);
+  }
   haptic(r.rarity === 'common' ? 'arm' : 'done');
-  // ของหายากค่อยเด้งเอฟเฟกต์ตอนการ์ดพลิกไปครึ่งทาง ไม่ใช่ตอนแตะ
+  // ของหายากเด้งเอฟเฟกต์ตอนการ์ดพลิกไปครึ่งทาง ไม่ใช่ตอนแตะ
   if (r.rarity !== 'common') {
-    setTimeout(() => splashBurst(r.rarity === 'legendary' ? 26 : 12, 'egg-star'), 340);
+    setTimeout(() => {
+      splashBurst(r.rarity === 'legendary' ? 28 : 13, 'egg-star');
+      const stage = document.querySelector('.gc-stage');
+      if (stage) {
+        stage.classList.remove('burst-rare', 'burst-legendary');
+        void stage.offsetWidth;
+        stage.classList.add('burst-' + r.rarity);
+      }
+    }, 340);
   }
   if (r.rarity === 'legendary') {
     setTimeout(() => showToast({
       title: 'LEGENDARY ✦ ' + r.label,
-      body: r.duplicate ? 'ซ้ำ — คืน ' + r.amount + ' โทเคน' : 'ได้สกินหายากที่สุดแล้ว',
+      body: r.duplicate ? 'ซ้ำ — คืน ' + fmtTok(r.amount) + ' โทเคน' : 'ปลดล็อกธีม' + r.label + 'แล้ว',
     }), 620);
+  } else if (r.kind === 'skin' && !r.duplicate) {
+    setTimeout(() => showToast({ title: 'ได้ธีมใหม่ · ' + r.label, body: 'เลือกใช้ได้ที่จอตั้งค่า' }), 620);
   }
-  // เหลือใบสุดท้ายค่อยวาดปุ่มท้ายใหม่ ระหว่างนี้ปล่อยให้การ์ดพลิกจนจบก่อน
-  if (!drawOpen.some(v => !v)) setTimeout(refreshDrawFooter, 760);
+  refreshDrawHead();
+  applyThemeLocks();
+  if (!drawBusy()) setTimeout(() => { applyDrawLock(); refreshDrawFooter(); renderAll(); }, 760);
+  else refreshDrawFooter();
 }
 
 function flipAllCards() {
@@ -2006,9 +2095,10 @@ function flipAllCards() {
 function refreshDrawFooter() {
   const foot = document.getElementById('gcFoot');
   if (!foot) return;
-  foot.innerHTML = drawOpen.some(v => !v)
-    ? `<button class="gc-all" onclick="flipAllCards()">หงายที่เหลือทั้งหมด</button>`
-    : `<div class="gc-sum">${drawSummary()}</div>`;
+  const left = drawOpen.filter(v => !v).length;
+  foot.innerHTML = left
+    ? `<button class="gc-all" onclick="flipAllCards()">หงายที่เหลือทั้งหมด (${left})</button>`
+    : (drawResults.length ? `<div class="gc-sum">${drawSummary()}</div>` : '');
 }
 
 function renderWheel() {
@@ -2018,16 +2108,17 @@ function renderWheel() {
   const s = tokenState();
   const free = s.freeSpins || 0;
   box.innerHTML = `<div class="page-head">
-      <div class="eyebrow mono" id="gcBal">${s.bal || 0} โทเคน${free ? ' · เปิดฟรี ' + free : ''}</div>
-      <h1 class="page-title">สุ่มสกิน</h1>
+      <div class="eyebrow mono" id="gcBal">${fmtTok(s.bal)} โทเคน${free ? ' · เปิดฟรี ' + free : ''}</div>
+      <h1 class="page-title gc-title">สุ่มสกิน</h1>
       <p class="page-sub">แตะการ์ดเพื่อหงายทีละใบ · ลากซ้ายขวาเพื่อดูใบอื่น</p>
     </div>
     <div class="gc-odds">
-      <span class="r-legendary">Legendary 4%</span>
-      <span class="r-rare">Rare 18%</span>
-      <span class="r-common">Common 78%</span>
+      <span class="r-legendary">Legendary 1%</span>
+      <span class="r-rare">Rare 16%</span>
+      <span class="r-common">Common 83%</span>
     </div>
     <div id="gcArea" class="gc-empty">
+      <div class="gc-stage idle"></div>
       <div class="gc-ph"><i>${icon('sparkles')}</i><p>กดปุ่มด้านล่างเพื่อสุ่ม</p></div>
     </div>
     <div id="gcFoot"></div>
@@ -2042,35 +2133,34 @@ function renderWheel() {
 function refreshDrawHead() {
   const s = tokenState();
   const bal = document.getElementById('gcBal');
-  if (bal) bal.textContent = (s.bal || 0) + ' โทเคน' + ((s.freeSpins || 0) ? ' · เปิดฟรี ' + s.freeSpins : '');
+  if (bal) bal.textContent = fmtTok(s.bal) + ' โทเคน' + ((s.freeSpins || 0) ? ' · เปิดฟรี ' + s.freeSpins : '');
   const b1 = document.querySelector('#gcGo1 i');
   if (b1) b1.textContent = (s.freeSpins || 0) ? 'ใช้สิทธิ์ฟรี' : SPIN_COST_1 + ' โทเคน';
 }
 
 async function doSpin(n) {
-  if (drawing) return;
+  if (drawing || drawBusy()) return;
   const pay = paySpin(n);
   if (!pay.ok) {
     haptic('snooze');
-    showToast({ title: 'โทเคนไม่พอ', body: 'ต้องใช้ ' + pay.cost + ' โทเคน — ยังขาดอีก ' + pay.short });
+    showToast({ title: 'โทเคนไม่พอ', body: 'ต้องใช้ ' + pay.cost + ' โทเคน — ยังขาดอีก ' + fmtTok(pay.short) });
     return;
   }
   drawing = true;
   document.getElementById('gcGo1').disabled = true;
   document.getElementById('gcGo10').disabled = true;
 
-  // สุ่มผลทั้งหมดตั้งแต่ตอนนี้ (ยอดโทเคนเข้าเลย) แต่ยังไม่บอกผู้ใช้จนกว่าจะหงายเอง
-  drawResults = Array.from({ length: n }, () => spinOnce());
+  // ล็อกผลไว้ตั้งแต่ตอนนี้ (ยุติธรรม — หงายช้าเร็วไม่เปลี่ยนของ) แต่ยังไม่ให้ของ
+  drawResults = Array.from({ length: n }, () => rollPrize());
   drawOpen = drawResults.map(() => false);
+  applyDrawLock();
 
   const area = document.getElementById('gcArea');
   area.className = '';
-  area.innerHTML = drawCardsHtml().replace(/<button class="gc-all"[\s\S]*$/, '');
+  area.innerHTML = drawCardsHtml();
   refreshDrawFooter();
-  refreshDrawHead();
-  renderAll();          // จออื่นอัปเดตยอด (จอนี้กันไว้แล้วด้านบน)
+  refreshDrawHead();          // ยอดลดลงตามค่าสุ่มแล้ว แต่ยังไม่มีรางวัลเข้า
 
-  // การ์ดไหลเข้ามาทีละใบก่อนให้แตะ
   const cards = [...area.querySelectorAll('.gc')];
   cards.forEach((c, i) => { c.style.animationDelay = (i * 60) + 'ms'; });
   tiltCards();
@@ -2081,14 +2171,15 @@ async function doSpin(n) {
   document.getElementById('gcGo10').disabled = false;
   drawing = false;
 }
+
 // ---------- ร้านค้า ----------
 function renderShop() {
   const box = document.getElementById('shopBody');
   if (!box) return;
   const s = tokenState();
   const skins = s.skins || {};
-  const owned = SPIN_TABLE.filter(p => p.kind === 'skin');
   const day = pendingCycleDay();
+  const gacha = SPIN_TABLE.filter(p => p.kind === 'skin');
   box.innerHTML = `<div class="page-head">
       <div class="eyebrow mono">เช็คอินต่อเนื่อง ${s.streak || 0} วัน</div>
       <h1 class="page-title">ร้านค้า</h1>
@@ -2096,8 +2187,8 @@ function renderShop() {
     <div class="tk-hero">
       <div class="tk-coin">${icon('medal')}</div>
       <div class="tk-bd">
-        <div class="tk-bal mono">${s.bal || 0}</div>
-        <div class="tk-unit">โทเคน${(s.freeSpins || 0) ? ' · หมุนฟรี ' + s.freeSpins + ' ครั้ง' : ''}</div>
+        <div class="tk-bal mono">${fmtTok(s.bal)}</div>
+        <div class="tk-unit">โทเคน${(s.freeSpins || 0) ? ' · เปิดฟรี ' + s.freeSpins + ' ใบ' : ''}</div>
       </div>
     </div>
     <button class="tk-cta" onclick="go('scr-wheel')">
@@ -2112,9 +2203,23 @@ function renderShop() {
         : 'รับของวันนี้แล้ว · พรุ่งนี้ 6 โมงเช้า'}</i></span>
       ${icon('chevron')}
     </button>
-    <div class="sec-label">สกินที่สะสมได้</div>
+
+    <div class="sec-label">ธีมที่ซื้อได้</div>
+    <div class="tk-buy">
+      ${Object.entries(THEME_SHOP).map(([id, t]) => {
+        const own = themeOwned(id);
+        return `<div class="tb-row${own ? ' own' : ''}">
+          <span class="tb-sw sw-${id}"></span>
+          <span class="tb-bd"><b>${esc(t.name)}</b><i>${own ? 'มีแล้ว' : t.cost + ' โทเคน'}</i></span>
+          ${own ? `<span class="tb-ok">${icon('check')}</span>`
+                : `<button class="tb-go${(s.bal || 0) < t.cost ? ' poor' : ''}" onclick="buyTheme('${id}')">ซื้อ</button>`}
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="sec-label">ธีมจากการสุ่มเท่านั้น</div>
     <div class="tk-skins">
-      ${owned.map(p => {
+      ${gacha.map(p => {
         const n = skins[p.id] || 0;
         return `<div class="tk-skin r-${p.rarity}${n ? ' got' : ''}">
           <div class="ts-rar">${RARITY_NAME[p.rarity]}</div>
@@ -2126,14 +2231,13 @@ function renderShop() {
     <div class="tk-stats">
       <div><div class="v mono">${s.best || 0}</div><div class="k">สถิติต่อเนื่อง</div></div>
       <div><div class="v mono">${s.days || 0}</div><div class="k">เช็คอินรวม</div></div>
-      <div><div class="v mono">${Object.values(skins).reduce((a, b) => a + b, 0)}</div><div class="k">สกินที่ได้</div></div>
+      <div><div class="v mono">${Object.values(skins).reduce((a, b) => a + b, 0)}</div><div class="k">ธีมที่สุ่มได้</div></div>
     </div>
     <div class="tk-soon">
       <div class="lb">ของอื่นในร้านยังไม่เปิด</div>
-      <p>ตอนนี้มีการสุ่มสกินก่อนอย่างเดียว — โทเคนที่สะสมไว้จะยังอยู่ครบเมื่อของอื่นเปิด</p>
+      <p>ตอนนี้มีธีมกับการสุ่มก่อน — โทเคนที่สะสมไว้จะยังอยู่ครบเมื่อของอื่นเปิด</p>
     </div>`;
 }
-
 // ---------- ALT 1A6M3: ป้ายเตือนบนแถบเมนู ----------
 // งานที่ AI จัดว่า "ด่วนมาก" และยังไม่เสร็จ ต้องเห็นได้โดยไม่ต้องเข้าไปดู
 function renderTabBadges() {
@@ -3448,6 +3552,13 @@ function codeGrantTokens() {
 // โค้ดที่ 1 — เปิดทุกอย่างในแอปให้เลย: เหรียญครบทุกอัน + ธีมลับครบทุกโทน
 function codeGrantAll() {
   try { localStorage.setItem(ALLBADGE_KEY, '1'); } catch (_) {}
+  // ธีมที่ต้องสุ่ม/ซื้อ ก็เปิดให้ด้วย ไม่งั้น "ปลดล็อกทุกอย่าง" ก็ยังใช้ธีมไม่ได้ครึ่งหนึ่ง
+  const ts = tokenState();
+  ts.skins = ts.skins || {};
+  THEME_GACHA.forEach(id => { ts.skins[id] = Math.max(1, ts.skins[id] || 0); });
+  ts.bought = Object.keys(THEME_SHOP);
+  saveTokenState(ts);
+  applyThemeLocks();
   for (const s of Object.values(SECRETS)) { try { localStorage.setItem(s.store, '1'); } catch (_) {} }
   try { localStorage.setItem(GENESIS_KEY, '1'); } catch (_) {}
   applySecrets();
