@@ -4040,12 +4040,8 @@ body.draw-lock #scr-wheel .scr-body { padding-bottom: 24px; }
 /* ---------- ลูกเล่นของ Glitch: จอสั่นบัคสั้น ๆ ----------
    ติดธง data-gfx ที่ <html> จาก JS แล้วปล่อยทิ้งใน ~380ms
    แยกชั้นสีแดง/ฟ้าออกจากกันด้วยเงาข้อความ + ขยับกล่องทั้งจอ */
-:root[data-gfx="on"] .phone {
-  animation: gl-shake .38s steps(2, end);
-}
-:root[data-gfx="on"] .screen.on {
-  text-shadow: 1.5px 0 rgba(255,46,136,.75), -1.5px 0 rgba(39,224,245,.75);
-}
+/* ชุดอาการสั่นย้ายไปอยู่ท้ายไฟล์ (รุ่นแรงขึ้น) */
+
 @keyframes gl-shake {
   0%   { transform: translate(0,0); }
   20%  { transform: translate(-3px,1px) skewX(.6deg); }
@@ -4124,3 +4120,152 @@ body.draw-lock #scr-wheel .scr-body { padding-bottom: 24px; }
 /* ชื่อธีมลับใช้ฟอนต์ให้เข้ากับคอนเซปต์ */
 .th-grid .th-meta .nm { font-family: 'Orbitron', 'Space Mono', monospace; font-weight: 800; font-size: 10.5px; letter-spacing: .08em; }
 .th-grid .th-glitch .nm { font-family: 'Space Mono', ui-monospace, monospace; font-weight: 700; font-size: 11px; letter-spacing: .06em; }
+
+/* ============================================================
+   ALT 1A7V (แก้): อาการบัคของ Glitch แรงขึ้นและลงมาบน UI จริง
+   ทุกอย่างเป็นชั้นภาพล้วน ๆ — ไม่มีอันไหนไปหยุดการทำงานหรือบล็อกการกดจริง
+   ============================================================ */
+
+/* จังหวะสั่นปกติ */
+:root[data-gfx="on"] .phone { animation: gl-shake .4s steps(2, end); }
+/* จังหวะสั่นแรง — ขยับมากขึ้น เอียงมากขึ้น และมีกระตุกซ้อน */
+:root[data-gfx="hard"] .phone { animation: gl-shake-hard .62s steps(3, end); }
+
+/* แยกสีตัวหนังสือทั้งจอ (แดง/ฟ้า) ตอนสั่น */
+:root[data-gfx] .screen.on {
+  text-shadow: 1.5px 0 rgba(255,46,136,.75), -1.5px 0 rgba(39,224,245,.75);
+}
+:root[data-gfx="hard"] .screen.on {
+  text-shadow: 3px 0 rgba(255,46,136,.9), -3px 0 rgba(39,224,245,.9);
+}
+/* การ์ดกับไทล์ขยับคนละจังหวะกับตัวเครื่อง ให้เห็นว่า UI เองก็รวน ไม่ใช่แค่กล้องสั่น */
+:root[data-gfx="hard"] .mtile:nth-child(odd),
+:root[data-gfx="hard"] .rank-card:nth-child(even) {
+  animation: gl-jolt .3s steps(2, end);
+}
+/* แถบเมนูกับหัวจอเลื่อนหลุดแนวแวบหนึ่ง */
+:root[data-gfx="hard"] .tabbar { animation: gl-slip .34s steps(2, end); }
+:root[data-gfx="hard"] .page-title { animation: gl-slip-x .28s steps(2, end); }
+
+@keyframes gl-shake {
+  0%   { transform: translate(0,0); }
+  20%  { transform: translate(-3px,1px) skewX(.6deg); }
+  40%  { transform: translate(3px,-1px) skewX(-.6deg); }
+  60%  { transform: translate(-2px,0); }
+  80%  { transform: translate(2px,1px); }
+  100% { transform: translate(0,0); }
+}
+@keyframes gl-shake-hard {
+  0%   { transform: translate(0,0) skewX(0); }
+  12%  { transform: translate(-7px,3px) skewX(1.6deg); }
+  26%  { transform: translate(6px,-4px) skewX(-1.4deg); }
+  40%  { transform: translate(-5px,-2px) skewY(.8deg); }
+  55%  { transform: translate(5px,3px) skewX(1deg); }
+  70%  { transform: translate(-3px,1px); }
+  85%  { transform: translate(3px,-1px); }
+  100% { transform: translate(0,0) skewX(0); }
+}
+@keyframes gl-jolt {
+  0%,100% { transform: none; }
+  35%     { transform: translateX(-5px) skewX(1.2deg); filter: hue-rotate(40deg); }
+  70%     { transform: translateX(4px); }
+}
+@keyframes gl-slip {
+  0%,100% { transform: none; }
+  40%     { transform: translateY(5px); opacity: .6; }
+  75%     { transform: translateY(-3px); }
+}
+@keyframes gl-slip-x {
+  0%,100% { transform: none; }
+  45%     { transform: translateX(9px); letter-spacing: .05em; }
+}
+
+/* ---------- ระบบสะดุด ----------
+   หน่วงภาพทั้งจอสั้น ๆ ให้เหมือนเครื่องค้าง เป็นชั้นภาพล้วน
+   pointer-events ไม่ถูกปิด ระหว่างนี้ยังกดใช้งานได้จริงทุกอย่าง */
+:root[data-gstut="on"] .screens {
+  filter: contrast(1.25) saturate(1.4);
+  animation: gl-freeze .26s steps(1, end);
+}
+:root[data-gstut="on"] .screen.on {
+  clip-path: polygon(0 0, 100% 0, 100% 42%, 0 42%, 0 44%, 100% 44%, 100% 100%, 0 100%);
+}
+@keyframes gl-freeze {
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-6px); }
+  100% { transform: translateY(0); }
+}
+
+/* ตัวหนังสือที่กำลังเพี้ยนอยู่ */
+[data-glx="1"] {
+  color: var(--neon) !important;
+  text-shadow: 2px 0 rgba(255,46,136,.8), -2px 0 rgba(39,224,245,.8);
+  animation: gl-txt .16s steps(2, end) infinite;
+}
+@keyframes gl-txt {
+  0%,100% { transform: translateX(0); }
+  50%     { transform: translateX(-1.5px); }
+}
+
+/* ---------- เหรียญตราของธีมระดับลับ ---------- */
+.bg-row.on.meta .bg-mark { background: linear-gradient(140deg,#3FA9FF,#0B2E63); }
+.bg-row.on.glitch .bg-mark { background: linear-gradient(140deg,#27E0F5,#8A1046); }
+.bg-row.meta .bg-nm.fancy {
+  font-family: 'Orbitron', 'Space Mono', monospace;
+  font-weight: 800; font-size: 14px; letter-spacing: .08em;
+}
+.bg-row.glitch .bg-nm.fancy {
+  font-family: 'Space Mono', ui-monospace, monospace;
+  font-weight: 700; font-size: 15px; letter-spacing: .04em;
+}
+.bg-row.on.meta .bg-nm.fancy { color: #2C8BD8; }
+.bg-row.on.glitch .bg-nm.fancy {
+  background: linear-gradient(96deg, #E0197A, #17B6C9 55%, #7C3AED);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+/* ขอบไล่สีเลื่อน — ใช้กลไกเดียวกับเหรียญพิเศษอื่น (เจาะไส้กลางด้วย mask เหลือแค่กรอบ) */
+.bg-row.on.meta, .bg-row.on.glitch { border-color: transparent; }
+.bg-row.on.meta::before,
+.bg-row.on.glitch::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: var(--r-card);
+  padding: 2px;
+  background-size: 200% 100%;
+  animation: bd-slide 4.5s linear infinite;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask-composite: exclude;
+}
+.bg-row.on.meta::before {
+  background-image: linear-gradient(90deg, #3FA9FF, #0B2E63 25%, #9CD4FF 50%, #1E6FD9 75%, #3FA9FF);
+  animation-duration: 5.5s;
+}
+.bg-row.on.glitch::before {
+  background-image: linear-gradient(90deg, #27E0F5, #FF2E88 25%, #9DF3FF 50%, #7C3AED 75%, #27E0F5);
+  animation-duration: 2.4s;   /* เร็วที่สุดในบรรดาเหรียญ — ให้เข้ากับคอนเซปต์สัญญาณเสีย */
+}
+@supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+  .bg-row.on.meta::before, .bg-row.on.glitch::before { display: none; }
+  .bg-row.on.meta    { border-color: #3FA9FF; }
+  .bg-row.on.glitch  { border-color: #27E0F5; }
+}
+
+/* ตัวอย่างสีของธีมคราฟบนแถวร้านค้า (ใช้ swatch เดิมของแต่ละธีม) */
+.tb-sw.sw-deepocean, .tb-sw.sw-earth2, .tb-sw.sw-sweet { background-size: cover; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-gfx] .phone,
+  :root[data-gfx="hard"] .mtile,
+  :root[data-gfx="hard"] .rank-card,
+  :root[data-gfx="hard"] .tabbar,
+  :root[data-gfx="hard"] .page-title,
+  :root[data-gstut="on"] .screens,
+  [data-glx="1"] { animation: none; }
+  :root[data-gstut="on"] .screen.on { clip-path: none; }
+  .bg-row.on.meta::before, .bg-row.on.glitch::before { animation: none; }
+}

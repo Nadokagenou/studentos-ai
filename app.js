@@ -142,7 +142,8 @@ function genesisUnlocked() {
 function checkGenesisUnlock() {
   if (genesisUnlocked()) return false;
   // นับเฉพาะเหรียญอื่น — เหรียญ GENESIS เองผูกกับการปลดล็อกนี้ ถ้านับรวมจะวนกันเอง
-  const others = BADGES.filter(b => !b.genesis);
+  // ไม่นับเหรียญ Crystal เอง และไม่นับเหรียญธีมลับที่มาทีหลัง — กติกาปลดล็อก Crystal ต้องเท่าเดิม
+  const others = BADGES.filter(b => !b.genesis && !b.postGenesis);
   if (others.some(b => !badgeEarned(b))) return false;
   try { localStorage.setItem(GENESIS_KEY, '1'); } catch (_) {}
   document.documentElement.dataset.genesis = 'on';
@@ -154,25 +155,26 @@ function checkGenesisUnlock() {
 }
 
 // ---------- ALT 1A7V: ลูกเล่นของธีม Glitch ----------
-// จอสั่นบัคสั้น ๆ เป็นระยะ + ป้ายแจ้งข้อผิดพลาดสีแดงโผล่แวบเดียว
-// เดินเฉพาะตอนใช้ธีมนี้อยู่ เหมือนอีเวนต์ของ Crystal ไม่งั้นปล่อย timer กินแรงเปล่า
-let glitchTimer = null, glitchErrTimer = null;
-const GL_HEX = '0123456789abcdef';
-function glHex(n) {
-  let s = '';
-  for (let i = 0; i < n; i++) s += GL_HEX[Math.floor(Math.random() * 16)];
-  return s;
-}
-// ข้อความมั่ว ๆ แบบ log ที่อ่านไม่ออก — เป็นบรรยากาศ ไม่ได้สื่อว่าแอปพังจริง
-function glMessage() {
-  const forms = [
-    () => '0x' + glHex(8) + ' :: segment ' + glHex(4) + ' unreachable',
-    () => 'trace ' + glHex(6) + ' — buffer overrun at frame ' + Math.floor(Math.random() * 9999),
-    () => 'packet ' + glHex(4) + '-' + glHex(4) + ' dropped · retry ' + (1 + Math.floor(Math.random() * 8)),
-    () => 'node ' + glHex(5) + ' desync ' + (Math.random() * 90 + 9).toFixed(2) + 'ms',
-  ];
-  return forms[Math.floor(Math.random() * forms.length)]();
-}
+// ธีมนี้แกล้งทำเป็นว่าแอปกำลังรวน — จอสั่น ตัวหนังสือเพี้ยน ระบบสะดุด และมีป้ายแจ้งข้อผิดพลาด
+// **ทุกอย่างเป็นของปลอมทั้งหมด ไม่มีอะไรแตะข้อมูลจริงสักตัว** ตัวหนังสือที่เพี้ยนถูกเก็บต้นฉบับไว้
+// แล้วคืนค่าเป๊ะ ๆ ทุกครั้ง · สลับธีมออกเมื่อไหร่ทุกอย่างกลับเป็นปกติทันที ไม่ต้องรีเฟรช
+let glitchTimer = null, glitchErrTimer = null, glitchTxtTimer = null;
+let glitchHeld = [];   // ตัวหนังสือที่กำลังถูกทำให้เพี้ยนอยู่ พร้อมต้นฉบับ
+
+// ป้ายแจ้งข้อผิดพลาด — เป็นภาษาไทยและพูดถึงระบบของแอปเอง
+// เขียนให้ดูเหมือนระบบภายในกำลังรวน ไม่ใช่ข้อความสุ่มที่อ่านไม่รู้เรื่อง
+const GL_ERRORS = [
+  'ตัวจัดลำดับงานตอบสนองช้ากว่าปกติ · กำลังลองใหม่',
+  'อ่านรายการงานไม่สำเร็จ — ข้อมูลบางส่วนอาจไม่ตรง',
+  'การเชื่อมต่อกับตัวช่วย AI ขาดช่วง',
+  'คำนวณความสำคัญของงานไม่สมบูรณ์ · ข้ามไปก่อน',
+  'นาฬิกาของเครื่องกับเซิร์ฟเวอร์ไม่ตรงกัน',
+  'เขียนข้อมูลลงเครื่องช้าผิดปกติ',
+  'ตารางเส้นทางโหลดไม่ครบ · แสดงเท่าที่มี',
+  'ระบบแจ้งเตือนไม่ตอบสนอง',
+];
+function glMessage() { return GL_ERRORS[Math.floor(Math.random() * GL_ERRORS.length)]; }
+
 function glitchError() {
   const phone = document.querySelector('.phone');
   if (!phone || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -182,26 +184,93 @@ function glitchError() {
   el.innerHTML = '<i>⚠</i><div class="b"><div class="h">&lt;&lt; SERVER INFO &gt;&gt;</div>'
     + '<div class="m">' + esc(glMessage()) + '</div></div>';
   phone.appendChild(el);
-  setTimeout(() => el.remove(), 2100);
+  setTimeout(() => el.remove(), 2400);
 }
+
+// ---------- ตัวหนังสือเพี้ยนเป็นช่วง ๆ ----------
+const GL_CHARS = '▓▒░#@%&*<>/\\|_—=+เอกขคงจฉ0123456789';
+function glScramble(s) {
+  return [...s].map(c => (c === ' ' || Math.random() > 0.42) ? c
+    : GL_CHARS[Math.floor(Math.random() * GL_CHARS.length)]).join('');
+}
+// เลือกเฉพาะตัวหนังสือที่อยู่บนจอที่เปิดอยู่ตอนนี้ และเป็นข้อความสั้น ๆ
+const GL_TEXT_SEL = '.screen.on .page-title, .screen.on .mt-lb, .screen.on .rc-title,'
+  + '.screen.on .at, .screen.on .sh-title, .screen.on .pe-tx b, .screen.on .mt-sub,'
+  + '.screen.on .wg-title, .screen.on .bg-nm, .screen.on .tk-bal';
+
+function glitchTextBurst() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const els = [...document.querySelectorAll(GL_TEXT_SEL)]
+    .filter(e => e.children.length === 0 && e.textContent.trim().length > 1 && !e.dataset.glx);
+  if (!els.length) return;
+  // จับทีละ 2–4 ชิ้น ไม่ทำทั้งจอพร้อมกัน จะได้ดูเหมือนรวนเป็นจุด ไม่ใช่จอพัง
+  const n = 2 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < n && els.length; i++) {
+    const el = els.splice(Math.floor(Math.random() * els.length), 1)[0];
+    const original = el.textContent;
+    el.dataset.glx = '1';
+    el.textContent = glScramble(original);
+    glitchHeld.push({ el, original, shown: el.textContent });
+  }
+  // สลับไปมา 2 รอบก่อนคืนค่า ให้รู้สึกว่ากำลังพยายามซ่อมตัวเอง
+  setTimeout(() => glitchHeld.forEach(h => {
+    if (h.el.dataset.glx === '1' && h.el.textContent === h.shown) {
+      h.el.textContent = glScramble(h.original);
+      h.shown = h.el.textContent;
+    }
+  }), 150);
+  setTimeout(glitchTextRestore, 480);
+}
+
+// คืนตัวหนังสือทุกชิ้นที่ค้างอยู่ — เช็คก่อนว่ายังเป็นข้อความที่เราเขียนไว้จริง
+// ถ้าแอปวาดจอใหม่ระหว่างนั้น ข้อความจะไม่ใช่ของเราแล้ว ต้องไม่ไปเขียนของเก่าทับ
+function glitchTextRestore() {
+  glitchHeld.forEach(h => {
+    if (h.el.dataset.glx !== '1') return;
+    if (h.el.textContent === h.shown) h.el.textContent = h.original;
+    delete h.el.dataset.glx;
+  });
+  glitchHeld = [];
+}
+
+// ---------- ระบบสะดุด ----------
+// หน่วงภาพทั้งจอสั้น ๆ ให้เหมือนเครื่องค้าง แล้วปล่อย — ไม่ได้หยุดโค้ดจริง
+// ใช้ CSS ล้วน ๆ จึงไม่มีทางไปค้างการทำงานของแอปหรือทำให้กดอะไรไม่ได้จริง
+function glitchStutter() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const root = document.documentElement;
+  root.dataset.gstut = 'on';
+  setTimeout(() => root.removeAttribute('data-gstut'), 260 + Math.random() * 220);
+}
+
+function glitchShake(strong) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const root = document.documentElement;
+  root.dataset.gfx = strong ? 'hard' : 'on';
+  if (navigator.vibrate) { try { navigator.vibrate(strong ? [18, 40, 14, 30, 10] : [12, 40, 8]); } catch (_) {} }
+  setTimeout(() => root.removeAttribute('data-gfx'), strong ? 620 : 400);
+}
+
 function glitchLoop(on) {
-  clearInterval(glitchTimer); clearInterval(glitchErrTimer);
-  glitchTimer = glitchErrTimer = null;
+  [glitchTimer, glitchErrTimer, glitchTxtTimer].forEach(clearInterval);
+  glitchTimer = glitchErrTimer = glitchTxtTimer = null;
+  // คืนทุกอย่างให้เป็นปกติ — ธงบนราก ป้ายที่ค้าง และตัวหนังสือที่ยังเพี้ยนอยู่
   document.documentElement.removeAttribute('data-gfx');
-  // ป้ายที่ค้างอยู่ต้องเก็บทิ้งด้วย — ไม่งั้นสลับออกจากธีมนี้ตอนป้ายกำลังโชว์
-  // จะมีป้ายแดงค้างอยู่บนธีมอื่นโดยไม่มีอะไรมาลบให้
+  document.documentElement.removeAttribute('data-gstut');
   document.querySelectorAll('.gl-err').forEach(el => el.remove());
+  glitchTextRestore();
   if (!on) return;
-  // สั่นทุก ~11 วิ (สุ่มเลื่อนได้นิดหน่อย ไม่ให้เป็นจังหวะเป๊ะจนน่ารำคาญ)
-  glitchTimer = setInterval(() => {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    document.documentElement.dataset.gfx = 'on';
-    if (navigator.vibrate) { try { navigator.vibrate([12, 40, 8]); } catch (_) {} }
-    setTimeout(() => document.documentElement.removeAttribute('data-gfx'), 400);
-  }, 11_000);
-  // ป้ายแดงถี่กว่านิดหนึ่ง แต่ไม่ทับกับจังหวะสั่น
-  glitchErrTimer = setInterval(glitchError, 17_000);
-  setTimeout(glitchError, 2500);   // ทักทายหนึ่งครั้งหลังเปลี่ยนธีม
+
+  // สั่นถี่ขึ้นกว่าเดิม และมีจังหวะแรงสลับมาเป็นครั้งคราว
+  glitchTimer = setInterval(() => glitchShake(Math.random() < 0.35), 6500);
+  // ตัวหนังสือเพี้ยนบ่อยที่สุด เพราะเป็นอาการที่เห็นชัดที่สุดบน UI จริง
+  glitchTxtTimer = setInterval(() => {
+    glitchTextBurst();
+    if (Math.random() < 0.5) setTimeout(glitchStutter, 200);
+  }, 4200);
+  glitchErrTimer = setInterval(glitchError, 13_000);
+  setTimeout(() => { glitchShake(true); glitchTextBurst(); }, 900);
+  setTimeout(glitchError, 2600);
 }
 
 function applyGenesisUnlock() {
@@ -1716,9 +1785,18 @@ const BADGES = [
     desc: 'ยังมีลมพัดอยู่ตรงนั้นเสมอ', secret: 'earth' },
   { id: 'sophyra', tone: 'sweet', mark: '✧', name: 'Sophyra',
     desc: 'บางอย่างสวยเกินกว่าจะเป็นเรื่องบังเอิญ', secret: 'galaxy' },
-  // เหรียญปลายทาง — ผูกกับการปลดล็อกธีม GENESIS (ซึ่งต้องได้เหรียญอื่นครบก่อน)
+  // เหรียญปลายทาง — ผูกกับการปลดล็อกธีม Crystal (ซึ่งต้องได้เหรียญอื่นครบก่อน)
   { id: 'genesis', tone: 'genesis', mark: '◆', name: 'Crystal',
     desc: 'จุดที่ทุกอย่างเริ่มต้นใหม่อีกครั้ง', genesis: true },
+  // เหรียญของธีมระดับลับ — ชื่อโผล่ให้ทุกคนเห็น แต่คำบรรยายขึ้น "— — —" จนกว่าจะได้
+  // ติด postGenesis ไว้เพื่อ **ไม่ให้ไปนับรวมในเงื่อนไขปลดล็อก Crystal**
+  // ไม่งั้น Crystal จะกลายเป็นของที่ต้องรอสุ่มระดับลับก่อน ซึ่งไม่ใช่กติกาเดิม
+  { id: 'metaworld', tone: 'meta', mark: '◇', name: 'MetaWorld!',
+    desc: 'โลกทั้งใบถูกสร้างขึ้นมา ไม่มีอะไรจริงสักอย่าง แต่ก็ยืนอยู่บนนั้นได้',
+    skin: 'meta', postGenesis: true },
+  { id: 'err404', tone: 'glitch', mark: '!', name: 'Erorr 404',
+    desc: 'ไม่พบสิ่งที่ตามหา — แต่ไปเจออย่างอื่นเข้าแทน',
+    skin: 'glitch', postGenesis: true },
 ];
 
 function doneCount() { return liveTasks().filter(t => t.done).length; }
@@ -1731,6 +1809,7 @@ function allBadgesGranted() {
 }
 
 function badgeEarned(b) {
+  if (b.skin) return themeOwned(b.skin);   // เหรียญธีมลับ — ต้องได้ธีมนั้นมาจริง ๆ เท่านั้น
   if (allBadgesGranted()) return true;
   if (b.genesis) return genesisUnlocked();
   if (b.secret) return secretUnlocked(b.secret);
@@ -1770,8 +1849,8 @@ function renderBadges() {
       return `<div class="bg-row${on ? ' on' : ''} ${b.tone}">
         <div class="bg-mark"><span>${b.mark}</span></div>
         <div class="bg-bd">
-          <div class="bg-nm${b.secret || b.genesis ? ' fancy' : ''}">${esc(b.name)}</div>
-          <div class="bg-ds">${on ? esc(b.desc) : (b.secret || b.genesis ? '— — —' : esc(b.desc))}</div>
+          <div class="bg-nm${b.secret || b.genesis || b.skin ? ' fancy' : ''}">${esc(b.name)}</div>
+          <div class="bg-ds">${on ? esc(b.desc) : (b.secret || b.genesis || b.skin ? '— — —' : esc(b.desc))}</div>
           ${prog ? `<div class="bg-pg"><i style="width:${Math.round(done / b.goal * 100)}%"></i></div>
             <div class="bg-ct mono">${prog}</div>` : ''}
         </div>
@@ -1807,6 +1886,42 @@ const THEME_SHOP = {                                          // ซื้อด
   warm:  { cost: 30, name: 'ชมพู' },
   space: { cost: 30, name: 'อวกาศ' },
 };
+
+// ---------- คราฟธีมลับจากธีมต้นแบบ ----------
+// ต้องมีธีมต้นแบบอยู่ในมือก่อน แล้วจ่ายโทเคนแปลงร่างเป็นธีมลับของสายนั้น
+// เป็นทางที่สองนอกจากอีสเตอร์เอกก์ (กดปุ่มธีมต้นแบบซ้ำ 5 ครั้ง) — ของเดิมยังใช้ได้เหมือนเดิม
+// ต้นไม้โลกถูกกว่าเพื่อน เพราะสายโลกเป็นสายที่หาต้นแบบได้ง่ายที่สุด
+const THEME_CRAFT = {
+  deepocean: { base: 'ocean',  secret: 'ocean',  cost: 120, name: 'ทะเลลึก' },
+  sweet:     { base: 'galaxy', secret: 'galaxy', cost: 120, name: 'จักรวาลหวานแหว' },
+  earth2:    { base: 'earth',  secret: 'earth',  cost: 60,  name: 'ต้นไม้โลก' },
+};
+
+function craftTheme(id) {
+  const c = THEME_CRAFT[id];
+  if (!c || secretUnlocked(c.secret)) return;
+  if (!themeOwned(c.base)) {
+    haptic('snooze');
+    showToast({ title: 'ยังคราฟไม่ได้', body: 'ต้องมีธีม' + THEME_NAME[c.base] + 'ก่อน' });
+    return;
+  }
+  const s = tokenState();
+  if ((s.bal || 0) < c.cost) {
+    haptic('snooze');
+    showToast({ title: 'โทเคนไม่พอ', body: 'คราฟธีม' + c.name + 'ใช้ ' + c.cost + ' โทเคน — ยังขาดอีก ' + fmtTok(c.cost - (s.bal || 0)) });
+    return;
+  }
+  s.bal = Math.round((s.bal - c.cost) * 10) / 10;
+  saveTokenState(s);
+  try { localStorage.setItem(SECRETS[c.secret].store, '1'); } catch (_) {}
+  applySecrets();
+  applyThemeLocks();
+  haptic('done');
+  splashBurst(20, SECRETS[c.secret].fx);
+  renderAll();
+  setTimeout(checkBadges, 600);   // ธีมลับพวกนี้มีเหรียญของตัวเอง
+  showToast({ title: 'คราฟธีม' + c.name + 'สำเร็จ ✦', body: 'เลือกใช้ได้ที่จอตั้งค่า · เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
+}
 
 function themeLocked(id) { return THEME_GACHA.includes(id) || !!THEME_SHOP[id]; }
 function themeOwned(id) {
@@ -2272,6 +2387,23 @@ function renderShop() {
           <span class="tb-bd"><b>${esc(t.name)}</b><i>${own ? 'มีแล้ว' : t.cost + ' โทเคน'}</i></span>
           ${own ? `<span class="tb-ok">${icon('check')}</span>`
                 : `<button class="tb-go${(s.bal || 0) < t.cost ? ' poor' : ''}" onclick="buyTheme('${id}')">ซื้อ</button>`}
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="sec-label">คราฟธีม</div>
+    <div class="tk-buy">
+      ${Object.entries(THEME_CRAFT).map(([id, c]) => {
+        const done = secretUnlocked(c.secret);
+        const hasBase = themeOwned(c.base);
+        const poor = (s.bal || 0) < c.cost;
+        return `<div class="tb-row${done ? ' own' : ''}">
+          <span class="tb-sw sw-${id}"></span>
+          <span class="tb-bd"><b>${esc(c.name)}</b><i>${done ? 'คราฟแล้ว'
+            : (hasBase ? 'ใช้ธีม' + esc(THEME_NAME[c.base]) + ' + ' + c.cost + ' โทเคน'
+                       : 'ต้องมีธีม' + esc(THEME_NAME[c.base]) + 'ก่อน')}</i></span>
+          ${done ? `<span class="tb-ok">${icon('check')}</span>`
+                 : `<button class="tb-go${(!hasBase || poor) ? ' poor' : ''}" onclick="craftTheme('${id}')">คราฟ</button>`}
         </div>`;
       }).join('')}
     </div>
