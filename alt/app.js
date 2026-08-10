@@ -1983,12 +1983,31 @@ function fmtTok(n) {
   return Number.isInteger(v) ? String(v) : v.toFixed(1);
 }
 
+// ---------- โชคเพิ่ม ----------
+// เปิดด้วยโค้ด ปิดด้วยอีกโค้ดหนึ่ง · คูณน้ำหนักของทุกอย่างที่ไม่ใช่ Common ขึ้น 10 เท่า
+// (= บวกโชค 1000%) ส่วน Common ปล่อยไว้เท่าเดิม สัดส่วนจึงเอียงไปทางของดีทั้งแผง
+const LUCK_KEY = 'studentos.alt.luck';
+const LUCK_MULT = 10;
+function luckOn() {
+  try { return localStorage.getItem(LUCK_KEY) === '1'; } catch (_) { return false; }
+}
+function spinWeight(p) {
+  return (luckOn() && p.rarity !== 'common') ? p.weight * LUCK_MULT : p.weight;
+}
+// อัตราจริงตอนนี้ แยกตามระดับ — ใช้ทั้งตอนสุ่มและตอนวาดตารางบนจอ
+function currentOdds() {
+  const total = SPIN_TABLE.reduce((n, p) => n + spinWeight(p), 0);
+  const by = {};
+  SPIN_TABLE.forEach(p => { by[p.rarity] = (by[p.rarity] || 0) + spinWeight(p) / total * 100; });
+  return by;
+}
+
 // สุ่มผล **โดยยังไม่แตะยอดใด ๆ** — ผลถูกล็อกตั้งแต่ตอนกดปุ่ม แต่ของยังไม่เข้ากระเป๋า
 // จนกว่าจะหงายการ์ดใบนั้น ไม่งั้นยอดบนจอจะขยับก่อนผู้ใช้เปิด = สปอยล์ผลตัวเอง
 function rollPrize() {
-  const total = SPIN_TABLE.reduce((n, p) => n + p.weight, 0);
+  const total = SPIN_TABLE.reduce((n, p) => n + spinWeight(p), 0);
   let r = Math.random() * total;
-  const p = SPIN_TABLE.find(x => (r -= x.weight) < 0) || SPIN_TABLE[0];
+  const p = SPIN_TABLE.find(x => (r -= spinWeight(x)) < 0) || SPIN_TABLE[0];
   const out = { id: p.id, rarity: p.rarity, kind: p.kind, label: p.label, theme: p.theme };
   // Common จ่าย 0–0.5 โทเคน (ทีละ 0.1)
   if (p.kind === 'token') out.amount = Math.round(Math.random() * 5) / 10;
@@ -2207,7 +2226,7 @@ function drawCardsHtml() {
           aria-label="แตะเพื่อเปิดการ์ด">
           <span class="gc-in">
             <span class="gc-back"><i class="gc-mark">${icon('sparkles')}</i><i class="gc-shine"></i></span>
-            <span class="gc-face r-${r.rarity}"></span>
+            <span class="gc-face r-${r.rarity}${r.rarity === 'secret' ? ' p-' + r.id : ''}"></span>
           </span>
         </button>`).join('')}
     </div>`;
@@ -2273,6 +2292,14 @@ function refreshDrawFooter() {
     : (drawResults.length ? `<div class="gc-sum">${drawSummary()}</div>` : '');
 }
 
+// ตัวเลขบนตารางอัตรา — **ระดับลับถูกยุบเข้าไปใน Common เสมอ**
+// ผลรวมจึงได้ 100% พอดีทุกกรณี ไม่มีช่องว่างให้สังเกตว่ามีอะไรซ่อนอยู่
+function oddsText(rarity) {
+  const od = currentOdds();
+  const v = rarity === 'common' ? (od.common || 0) + (od.secret || 0) : (od[rarity] || 0);
+  return (v >= 10 ? Math.round(v) : +v.toFixed(1)) + '%';
+}
+
 function renderWheel() {
   const box = document.getElementById('wheelBody');
   if (!box) return;
@@ -2284,10 +2311,11 @@ function renderWheel() {
       <h1 class="page-title gc-title">สุ่มสกิน</h1>
       <p class="page-sub">แตะการ์ดเพื่อหงายทีละใบ · ลากซ้ายขวาเพื่อดูใบอื่น</p>
     </div>
-    <div class="gc-odds">
-      <span class="r-legendary">Legendary 1%</span>
-      <span class="r-rare">Rare 16%</span>
-      <span class="r-common">Common 83%</span>
+    <div class="gc-odds${luckOn() ? ' lucky' : ''}">
+      <span class="r-legendary">Legendary ${oddsText('legendary')}</span>
+      <span class="r-rare">Rare ${oddsText('rare')}</span>
+      <span class="r-common">Common ${oddsText('common')}</span>
+      ${luckOn() ? '<span class="gc-luck">โชค ×' + LUCK_MULT + '</span>' : ''}
     </div>
     <div id="gcArea" class="gc-empty">
       <div class="gc-stage idle"></div>
@@ -3693,6 +3721,8 @@ const CODE_HASH = {
   '05f0e0d52558bdff80cda651d7c67461d5324b18776d44e183ecd8b89e418b2b': 'wipe',
   '62ed3ce6a794c046bec29578ffcd0741d67de59b5b017e35e8156f131e7efebd': 'tokens',
   '6f9d5fc713a77486673d90d9e5f9c71bdcd1c88308537b182fc0784beaf48226': 'grantAll',
+  '2a5854678809fc5e5e632af6454ab997ef5a6a9cc0f433df499a4cc4b90e17cc': 'luckOn',
+  '84d74768527898c47b601208e11b640b65388fe251deb2d1da036ae30f2316b7': 'luckOff',
 };
 const CODE_TOKEN_GRANT = 1000;
 
@@ -3731,6 +3761,20 @@ async function redeemCode() {
   else if (kind === 'wipe') codeWipeAll();
   else if (kind === 'tokens') codeGrantTokens();
   else if (kind === 'grantAll') codeGrantEverything();
+  else if (kind === 'luckOn') codeSetLuck(true);
+  else if (kind === 'luckOff') codeSetLuck(false);
+}
+
+// เปิด/ปิดโชคเพิ่ม — เก็บเป็นธงในเครื่อง ไม่ผูกกับยอดโทเคน
+function codeSetLuck(on) {
+  try { on ? localStorage.setItem(LUCK_KEY, '1') : localStorage.removeItem(LUCK_KEY); } catch (_) {}
+  haptic('done');
+  if (on) splashBurst(20, 'egg-star');
+  renderAll();
+  const od = currentOdds();
+  showToast(on
+    ? { title: 'โชคเพิ่มขึ้นแล้ว ✦', body: 'โอกาสได้ของหายากขึ้นเป็น 10 เท่า — ตอนนี้ Rare ' + od.rare.toFixed(1) + '%' }
+    : { title: 'โชคกลับเป็นปกติ', body: 'อัตราการสุ่มกลับไปเท่าเดิมทุกระดับ' });
 }
 
 // แจกธีมที่ต้องสุ่ม/ซื้อ · withSecret = แจกระดับลับด้วยไหม

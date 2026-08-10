@@ -4269,3 +4269,138 @@ body.draw-lock #scr-wheel .scr-body { padding-bottom: 24px; }
   :root[data-gstut="on"] .screen.on { clip-path: none; }
   .bg-row.on.meta::before, .bg-row.on.glitch::before { animation: none; }
 }
+
+/* ============================================================
+   ALT 1A7V hotfix: การ์ดระดับลับแต่งตามธีม · เหรียญ Erorr 404 กระตุก
+                    · ธีม Metaverse ทันสมัยขึ้น · ป้ายโชคเพิ่ม
+   ============================================================ */
+
+/* ---------- การ์ดของระดับลับ — หน้าตาเป็นแนวของธีมนั้นเอง ----------
+   ระดับอื่นใช้ไล่สีตามระดับ แต่ระดับลับควรบอกได้ตั้งแต่แรกเห็นว่าเป็น "ของอีกโลกหนึ่ง" */
+.gc-face.p-meta {
+  background:
+    repeating-linear-gradient(60deg, transparent 0 15px, rgba(120,200,255,.4) 15px 16px),
+    repeating-linear-gradient(-60deg, transparent 0 15px, rgba(120,200,255,.4) 15px 16px),
+    linear-gradient(165deg, #0E2A52, #050A16);
+  box-shadow: inset 0 0 0 2px rgba(156,212,255,.85), 0 0 26px -2px rgba(63,169,255,.95);
+  color: #DCF0FF;
+  animation: p-meta-pulse 2.4s ease-in-out infinite;
+}
+.gc-face.p-meta .gc-rar,
+.gc-face.p-meta b { text-shadow: 0 0 10px rgba(120,200,255,.9); }
+@keyframes p-meta-pulse {
+  0%,100% { box-shadow: inset 0 0 0 2px rgba(156,212,255,.85), 0 0 26px -2px rgba(63,169,255,.95); }
+  50%     { box-shadow: inset 0 0 0 2px #DCF0FF, 0 0 40px 2px rgba(63,169,255,1); }
+}
+
+.gc-face.p-glitch {
+  background:
+    repeating-linear-gradient(180deg, rgba(255,255,255,.07) 0 1px, transparent 1px 4px),
+    linear-gradient(90deg, rgba(255,46,136,.5) 0 8px, transparent 8px 100%),
+    linear-gradient(165deg, #08313A, #04060A);
+  background-size: auto, 100% 22px, auto;
+  background-position: 0 0, 0 62%, 0 0;
+  background-repeat: repeat, no-repeat, no-repeat;
+  box-shadow: inset 0 0 0 2px rgba(39,224,245,.85), 0 0 26px -2px rgba(39,224,245,.9);
+  color: #DFF7FF;
+  animation: p-glitch-jump .5s steps(3, end) infinite;
+}
+.gc-face.p-glitch .gc-rar,
+.gc-face.p-glitch b { text-shadow: 2px 0 rgba(255,46,136,.9), -2px 0 rgba(39,224,245,.9); }
+@keyframes p-glitch-jump {
+  0%, 60%, 100% { background-position: 0 0, 0 62%, 0 0; transform: none; }
+  70%  { background-position: 0 0, 0 30%, 0 0; transform: translateX(-2px); }
+  85%  { background-position: 0 0, 0 78%, 0 0; transform: translateX(2px); }
+}
+
+/* ---------- เหรียญ Erorr 404: กระตุกช็อคเป็นระยะ ----------
+   ผูกกับ .on เท่านั้น — คนที่ยังไม่ปลดล็อกเห็นแค่แถวเปล่า ๆ กับ "— — —" เหมือนเดิม
+   กระตุกสั้น ๆ ทุก 6 วิ ไม่ได้ขยับตลอดเวลา จะได้ไม่กวนตอนเลื่อนอ่านเหรียญอื่น */
+.bg-row.on.glitch { animation: bg-shock 6s steps(2, end) infinite; }
+.bg-row.on.glitch .bg-mark { animation: bg-shock-mark 6s steps(2, end) infinite; }
+.bg-row.on.glitch .bg-nm.fancy { animation: bg-shock-txt 6s steps(2, end) infinite; }
+@keyframes bg-shock {
+  0%, 86%, 100% { transform: none; }
+  88%  { transform: translateX(-5px) skewX(1.6deg); }
+  91%  { transform: translateX(5px) skewX(-1.2deg); }
+  94%  { transform: translateX(-2px); }
+  97%  { transform: translateX(1px); }
+}
+@keyframes bg-shock-mark {
+  0%, 86%, 100% { filter: none; }
+  89%  { filter: hue-rotate(120deg) saturate(2); }
+  95%  { filter: hue-rotate(-60deg); }
+}
+@keyframes bg-shock-txt {
+  0%, 86%, 100% { opacity: 1; letter-spacing: .04em; }
+  88%  { opacity: .55; letter-spacing: .14em; }
+  92%  { opacity: 1; letter-spacing: 0; }
+}
+
+/* ---------- Metaverse: ทำให้แอปดู "ทันสมัย" ขึ้นทั้งชุด ----------
+   ตัวอังกฤษกับตัวเลขของหัวข้อเปลี่ยนเป็น Orbitron (ฟอนต์แนวเทค)
+   **Orbitron เป็นฟอนต์ละตินล้วน ไม่มีตัวไทย** ตัวไทยจึงตกไปใช้ Sarabun เหมือนเดิม
+   กฎ "ตัวไทยต้องมีหัว" ยังอยู่ครบ ไม่ได้ถูกละเมิด */
+:root[data-theme="meta"] .page-title,
+:root[data-theme="meta"] .sh-title,
+:root[data-theme="meta"] .big-title,
+:root[data-theme="meta"] .mt-lb,
+:root[data-theme="meta"] .eyebrow,
+:root[data-theme="meta"] .sec-label,
+:root[data-theme="meta"] .pe-tx b,
+:root[data-theme="meta"] .fm-h {
+  font-family: 'Orbitron', 'Sarabun', 'Leelawadee UI', sans-serif;
+  letter-spacing: .01em;
+}
+/* มุมคมขึ้น = อ่านเป็นงานเทคมากกว่างานนุ่ม ๆ */
+:root[data-theme="meta"] {
+  --r-card: 12px;
+  --r-tile: 9px;
+}
+/* เส้นนีออนบางบนขอบบนของการ์ด — รายละเอียดเล็ก ๆ ที่ทำให้ดูเป็นแผงข้อมูล */
+:root[data-theme="meta"] .mtile,
+:root[data-theme="meta"] .rank-card,
+:root[data-theme="meta"] .pe,
+:root[data-theme="meta"] .pf-list,
+:root[data-theme="meta"] .tk-cta {
+  position: relative;
+  overflow: hidden;
+}
+:root[data-theme="meta"] .mtile::before,
+:root[data-theme="meta"] .pe::before,
+:root[data-theme="meta"] .tk-cta::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(95,208,255,.85), transparent);
+}
+/* ไอคอนบนแถบเมนูที่เลือกอยู่ มีแสงเรืองรอบตัว */
+:root[data-theme="meta"] .tab.active .ic { filter: drop-shadow(0 0 6px rgba(63,169,255,.9)); }
+/* จังหวะเปลี่ยนจอคมและเร็วกว่าธีมอื่น */
+:root[data-theme="meta"] body[data-godir] .screen.on,
+body[data-godir] :root[data-theme="meta"] .screen.on { animation-duration: .24s; }
+:root[data-theme="meta"] .mtile,
+:root[data-theme="meta"] .pe,
+:root[data-theme="meta"] .tk-cta { transition: transform .1s cubic-bezier(.2,.9,.3,1), box-shadow .1s ease; }
+:root[data-theme="meta"] .mtile:active { transform: scale(.965); box-shadow: 0 0 0 1px rgba(95,208,255,.7), var(--shadow-lg); }
+
+/* ---------- ป้ายโชคเพิ่มบนตารางอัตรา ---------- */
+.gc-luck {
+  padding: 1px 8px 2px;
+  border-radius: 999px;
+  background: var(--pri-yellow);
+  color: #33230A;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .03em;
+}
+.gc-odds.lucky .r-legendary,
+.gc-odds.lucky .r-rare { text-shadow: 0 0 8px currentColor; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gc-face.p-meta, .gc-face.p-glitch,
+  .bg-row.on.glitch,
+  .bg-row.on.glitch .bg-mark,
+  .bg-row.on.glitch .bg-nm.fancy { animation: none; }
+}
