@@ -3042,209 +3042,9 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 .pf-av.has-img { background: none; border-color: rgba(255,255,255,.45); }
 @media (prefers-reduced-motion: reduce) { .pf-av-btn { transition: none; } }
 
-/* ============================================================
-   ALT: ฉากบนหน้าเส้นทาง เฉพาะธีมลับ 3 โทน
-   แต่ละโทนเล่าคนละเรื่อง ไม่ใช่เอฟเฟกต์เดียวกันเปลี่ยนสี:
-     ทะเลลึก   = ถนนคือพื้นร่องลึก มีฟองลอยขึ้นและเงาฉลามว่ายผ่าน
-     ต้นไม้โลก = ถนนคือทางเดินในป่า มีหญ้าไหวและใบไม้ปลิวข้าม
-     หวานแหว   = ถนนคือทางในจักรวาลพาสเทล มีสายรุ้งคร่อมและดาวมีวงแหวน
-   ทุกชั้นอยู่ใต้ถนนกับป้ายจอด และ pointer-events:none จึงไม่บังทั้งสายตาและการกด
-
-   GENESIS ไม่มีฉากตรงนี้ (เอาออกแล้ว) — น้ำหนักของธีมนี้ย้ายไปอยู่ที่พื้นหลังของทุกจอแทน
-   เพราะเป็นธีมปลายทาง ควรรู้สึกได้ทั้งแอป ไม่ใช่เด่นอยู่จอเดียว
-   ============================================================ */
-.jr-fx { display: none; }
-:root[data-theme="deepocean"] .jr-fx,
-:root[data-theme="earth2"] .jr-fx,
-:root[data-theme="sweet"] .jr-fx {
-  display: block;
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  border-radius: 18px;
-  pointer-events: none;
-}
-.jr-fx i { position: absolute; display: block; }
-
-/* ---------- ทะเลลึก: ร่องลึกใต้น้ำ ---------- */
-:root[data-theme="deepocean"] .jf-a {
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(14,68,110,.34) 0%, rgba(3,20,38,.5) 62%, rgba(1,10,22,.6) 100%),
-    radial-gradient(120% 40% at 50% 0%, rgba(120,220,255,.16), transparent 70%);
-}
-:root[data-theme="deepocean"] .jf-b {
-  inset: -10% -5% auto -5%;
-  height: 70%;
-  background:
-    linear-gradient(96deg, transparent 12%, rgba(150,225,255,.16) 16%, transparent 21%),
-    linear-gradient(84deg, transparent 46%, rgba(150,225,255,.12) 51%, transparent 56%),
-    linear-gradient(92deg, transparent 74%, rgba(150,225,255,.15) 79%, transparent 84%);
-  animation: jf-ray 13s ease-in-out infinite alternate;
-}
-:root[data-theme="deepocean"] .jf-c,
-:root[data-theme="deepocean"] .jf-d {
-  left: 0; right: 0; bottom: -14px;
-  height: 130%;
-  background-repeat: repeat-x;
-  background-image:
-    radial-gradient(circle, rgba(200,240,255,.5) 38%, transparent 40%),
-    radial-gradient(circle, rgba(200,240,255,.34) 36%, transparent 38%);
-  background-size: 140px 140px, 96px 96px;
-  background-position: 0 0, 60px 40px;
-  animation: jf-bub 11s linear infinite;
-  opacity: .55;
-}
-:root[data-theme="deepocean"] .jf-d { animation-duration: 16s; animation-delay: -5s; opacity: .34; }
-:root[data-theme="deepocean"] .jf-e {
-  top: 16%;
-  width: 74px; height: 20px;
-  border-radius: 60% 12% 55% 12%;
-  background: rgba(6,26,46,.62);
-  box-shadow: 26px 5px 0 -7px rgba(6,26,46,.62);
-  animation: jf-swim 26s linear infinite;
-}
-:root[data-theme="deepocean"] .jf-f {
-  bottom: 20%;
-  width: 42px; height: 12px;
-  border-radius: 58% 10% 52% 10%;
-  background: rgba(6,26,46,.42);
-  animation: jf-swim-back 19s linear infinite;
-  animation-delay: -7s;
-}
-@keyframes jf-ray  { from { transform: translateX(-14px); } to { transform: translateX(14px); } }
-@keyframes jf-bub  { from { transform: translateY(0); } to { transform: translateY(-140px); } }
-@keyframes jf-swim      { from { left: -90px; } to { left: 100%; } }
-@keyframes jf-swim-back { from { left: 100%; } to { left: -60px; } }
-
-/* ---------- ต้นไม้โลก: ทางเดินในป่า ---------- */
-:root[data-theme="earth2"] .jf-a {
-  inset: 0;
-  background:
-    radial-gradient(110% 46% at 24% -8%, rgba(255,224,140,.30), transparent 68%),
-    linear-gradient(180deg, transparent 52%, rgba(28,84,44,.26) 88%, rgba(20,62,32,.36) 100%);
-}
-:root[data-theme="earth2"] .jf-b {
-  left: 26px; bottom: 0;
-  width: 12px; height: 84px;
-  background: linear-gradient(90deg, rgba(58,36,18,.55), rgba(92,58,28,.55));
-  border-radius: 3px 3px 0 0;
-  transform-origin: 50% 100%;
-  animation: jf-sway 7s ease-in-out infinite alternate;
-}
-:root[data-theme="earth2"] .jf-b::before {
-  content: '';
-  position: absolute;
-  left: -37px; top: -52px;
-  width: 86px; height: 66px;
-  border-radius: 52% 48% 46% 54%;
-  background: radial-gradient(circle at 38% 34%, rgba(126,206,124,.62), rgba(30,96,48,.62));
-}
-:root[data-theme="earth2"] .jf-c {
-  left: 0; right: 0; bottom: 0;
-  height: 22px;
-  background-repeat: repeat-x;
-  background-size: 34px 22px;
-  background-image:
-    linear-gradient(178deg, transparent 42%, rgba(58,140,68,.5) 44%, transparent 52%),
-    linear-gradient(184deg, transparent 50%, rgba(78,164,86,.44) 52%, transparent 60%);
-  animation: jf-grass 5.5s ease-in-out infinite alternate;
-}
-:root[data-theme="earth2"] .jf-d,
-:root[data-theme="earth2"] .jf-e {
-  top: 22%;
-  width: 11px; height: 11px;
-  border-radius: 62% 8% 62% 8%;
-  background: rgba(168,224,150,.75);
-  animation: jf-leaf 15s linear infinite;
-}
-:root[data-theme="earth2"] .jf-e { top: 58%; width: 8px; height: 8px; animation-duration: 21s; animation-delay: -8s; opacity: .7; }
-:root[data-theme="earth2"] .jf-f {
-  top: 13%;
-  width: 13px; height: 5px;
-  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-  border-top: 1.6px solid rgba(40,70,50,.5);
-  box-shadow: 17px 5px 0 -1px rgba(40,70,50,.36);
-  animation: jf-bird 24s linear infinite;
-}
-@keyframes jf-sway  { from { transform: rotate(-1.6deg); } to { transform: rotate(1.6deg); } }
-@keyframes jf-grass { from { transform: skewX(-3deg); } to { transform: skewX(3deg); } }
-@keyframes jf-leaf {
-  from { left: -20px; transform: translateY(0) rotate(0deg); }
-  to   { left: 100%;  transform: translateY(52px) rotate(420deg); }
-}
-@keyframes jf-bird { from { left: -30px; } to { left: 100%; } }
-
-/* ---------- จักรวาลหวานแหว: ทางในจักรวาลพาสเทล ---------- */
-:root[data-theme="sweet"] .jf-a {
-  inset: 0;
-  background:
-    radial-gradient(100% 60% at 18% 0%, rgba(255,196,232,.34), transparent 68%),
-    radial-gradient(90% 55% at 82% 100%, rgba(186,170,255,.32), transparent 70%);
-}
-:root[data-theme="sweet"] .jf-b {
-  left: 8%; top: 6%;
-  width: 210px; height: 105px;
-  border-radius: 210px 210px 0 0 / 105px 105px 0 0;
-  border: 9px solid;
-  border-bottom: none;
-  border-image: linear-gradient(90deg, #FF9BD2, #FFD3A1, #FFF6A6, #A7F0C4, #A9D8FF, #C9B4FF) 1;
-  opacity: .5;
-  animation: jf-float 9s ease-in-out infinite alternate;
-}
-:root[data-theme="sweet"] .jf-c,
-:root[data-theme="sweet"] .jf-d {
-  top: 20%;
-  width: 62px; height: 22px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.6);
-  box-shadow: 20px -9px 0 -4px rgba(255,255,255,.55), -19px -6px 0 -6px rgba(255,255,255,.5);
-  animation: jf-drift 30s linear infinite;
-}
-:root[data-theme="sweet"] .jf-d { top: 68%; animation-duration: 42s; animation-delay: -14s; opacity: .7; }
-:root[data-theme="sweet"] .jf-e {
-  right: 44px; top: 12%;
-  width: 38px; height: 38px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, #FFD9F0, #C78BE8);
-  box-shadow: 0 0 18px rgba(220,150,240,.5);
-  animation: jf-float 11s ease-in-out infinite alternate;
-}
-:root[data-theme="sweet"] .jf-e::after {
-  content: '';
-  position: absolute;
-  left: -15px; top: 13px;
-  width: 68px; height: 15px;
-  border-radius: 50%;
-  border: 2.5px solid rgba(255,214,240,.75);
-  transform: rotate(-19deg);
-}
-:root[data-theme="sweet"] .jf-f {
-  inset: 0;
-  background-repeat: repeat;
-  background-size: 118px 84px, 76px 112px;
-  background-image:
-    radial-gradient(circle, rgba(255,255,255,.85) 34%, transparent 36%),
-    radial-gradient(circle, rgba(255,226,247,.7) 30%, transparent 32%);
-  background-position: 12px 20px, 58px 66px;
-  animation: jf-twinkle 4.4s ease-in-out infinite alternate;
-}
-@keyframes jf-float   { from { transform: translateY(-4px); } to { transform: translateY(6px); } }
-@keyframes jf-drift   { from { left: -80px; } to { left: 100%; } }
-@keyframes jf-twinkle { from { opacity: .35; } to { opacity: .8; } }
-
-/* ฉากทะเลลึกเข้ม ตัวหนังสือบนเส้นทางต้องสว่างขึ้นตาม ไม่งั้นจมหายไปกับฉาก
-   (GENESIS ไม่ต้องแล้ว เพราะไม่มีฉากบนเส้นทางอีกต่อไป ตัวหนังสือกลับไปใช้สีปกติของธีม) */
-:root[data-theme="deepocean"] .jr-day span { color: rgba(226,240,255,.9); }
-:root[data-theme="deepocean"] .jr-track,
-:root[data-theme="earth2"] .jr-track,
-:root[data-theme="sweet"] .jr-track { border-radius: 18px; }
-
-@media (prefers-reduced-motion: reduce) {
-  .jr-fx i { animation: none !important; }
-}
-
+/* ฉากประจำธีมบนหน้าเส้นทางถูกถอดออกทั้งหมดแล้ว (ทะเลลึก/ต้นไม้โลก/หวานแหว/Crystal)
+   หน้าเส้นทางมีข้อมูลแน่นอยู่แล้ว ฉากหลังถนนไปแย่งสายตากับป้ายจอด
+   บรรยากาศของธีมยังอยู่ครบที่พื้นหลัง (.fx) ซึ่งเห็นได้ทุกจออยู่แล้ว */
 /* ---------- GENESIS: 2 ชั้นบรรยากาศเพิ่ม (ทุกจอ) ----------
    ฉากบนหน้าเส้นทางถูกถอดออกแล้ว น้ำหนักของธีมย้ายมาอยู่ที่พื้นหลังแทน
    .fx เป็นพี่น้องกับ .screens อยู่ใน .phone จึงอยู่หลังทุกจอโดยอัตโนมัติ
@@ -3263,34 +3063,21 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
   animation: gen-aurora 26s ease-in-out infinite alternate;
 }
 
-/* หมู่ดาวมีเส้นเชื่อมจาง ๆ — อ่านเป็นกลุ่มดาว ไม่ใช่จุดกระจายมั่ว
-   จางกว่าหิมะที่มีอยู่แล้วหนึ่งระดับ เพื่อไม่ให้สองชั้นตีกันเอง */
-:root[data-theme="genesis"] .fx-h {
-  inset: 0;
-  background-repeat: repeat;
-  background-size: 168px 112px, 112px 148px, 168px 112px;
-  background-position: 24px 20px, 82px 64px, 24px 20px;
-  background-image:
-    radial-gradient(circle, rgba(255,255,255,.7) 18%, transparent 20%),
-    radial-gradient(circle, rgba(183,245,255,.5) 15%, transparent 17%),
-    linear-gradient(27deg, transparent 48.6%, rgba(190,215,255,.13) 49.3%, rgba(190,215,255,.13) 50.3%, transparent 51%);
-  opacity: .55;
-  animation: gen-stars 9s ease-in-out infinite alternate;
-}
+/* ชั้นหมู่ดาวถูกถอดออกแล้ว — radial ที่ตั้ง stop ไว้ 18% บนไทล์ 168×112
+   ให้วงกลมกว้างราว 36px ซึ่งใหญ่เกินจนอ่านเป็น "จุดเต็มจอ" ไม่ใช่ดาว
+   ธีมนี้ควรสะอาด เหลือเพชร ลม แสงเหนือ และหิมะเม็ดเล็ก ๆ ก็พอ */
+:root[data-theme="genesis"] .fx-h { display: none; }
 
 @keyframes gen-aurora {
   from { background-position: 0% 0, 100% 0; }
   to   { background-position: 100% 0, 0% 0; }
 }
-@keyframes gen-stars { from { opacity: .35; } to { opacity: .75; } }
 
-/* ตอนอีเวนต์ 99 วิ สองชั้นนี้เร่งขึ้นพร้อมของเดิม */
+/* ตอนอีเวนต์ 99 วิ ชั้นนี้เร่งขึ้นพร้อมของเดิม */
 :root[data-gevent="on"][data-theme="genesis"] .fx-g { animation-duration: 7s; }
-:root[data-gevent="on"][data-theme="genesis"] .fx-h { animation-duration: 2.2s; }
 
 @media (prefers-reduced-motion: reduce) {
-  :root[data-theme="genesis"] .fx-g,
-  :root[data-theme="genesis"] .fx-h { animation: none; }
+  :root[data-theme="genesis"] .fx-g { animation: none; }
 }
 
 /* ============================================================
@@ -4081,3 +3868,8 @@ body.draw-lock #scr-wheel .scr-body { padding-bottom: 24px; }
 @media (prefers-reduced-motion: reduce) {
   .gc-stage, .gc-shine { animation: none; }
 }
+/* ปุ่มธีมที่ยังไม่ได้เป็นเจ้าของต้องหายจริง
+   style.css ตั้ง .th-grid button { display:flex } ไว้ ซึ่งชนะกฎ [hidden]{display:none}
+   ของเบราว์เซอร์ (กฎผู้เขียนชนะกฎ UA เสมอ) การตั้ง el.hidden = true จึงไม่มีผลเลย
+   ต้องเขียนกฎผู้เขียนของเราเองมาทับ */
+.th-grid button[hidden] { display: none; }

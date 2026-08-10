@@ -87,7 +87,7 @@ const THEME_BAR = {
 const THEME_NAME = {
   system: 'ตามระบบ', light: 'สว่าง', dark: 'มืด', warm: 'ชมพู', space: 'อวกาศ',
   earth: 'โลก', ocean: 'มหาสมุทร', magic: 'เวทมนตร์', galaxy: 'กาแล็กซี',
-  deepocean: 'ทะเลลึก', earth2: 'ต้นไม้โลก', sweet: 'จักรวาลหวานแหว', genesis: 'GENESIS',
+  deepocean: 'ทะเลลึก', earth2: 'ต้นไม้โลก', sweet: 'จักรวาลหวานแหว', genesis: 'Crystal',
 };
 // ---------- ALT 1A6M3: อีสเตอร์เอกก์ ธีมลับ ----------
 // กดปุ่มธีมเดิมซ้ำ 5 ครั้งรวด = ปลดล็อกธีมลับของโทนนั้น
@@ -147,7 +147,7 @@ function checkGenesisUnlock() {
   haptic('done');
   splashBurst(24, 'egg-star');
   setTheme('genesis');
-  showToast({ title: 'GENESIS', body: 'ครบทุกเหรียญแล้ว — ธีมสุดท้ายเปิดให้แล้ว' });
+  showToast({ title: 'Crystal', body: 'ครบทุกเหรียญแล้ว — ธีมสุดท้ายเปิดให้แล้ว' });
   return true;
 }
 
@@ -1310,12 +1310,6 @@ function renderTimeline() {
     <div class="jr" id="jrScroll">
       <div class="jr-track" id="jrTrack" data-start="${+start}" data-span="${span}" data-w="${width}"
         style="width:${width}px">
-        <!-- ฉากประจำธีมลับ — วางก่อนถนนใน DOM ทุกอย่างที่เหลือจึงทับอยู่ข้างบนเสมอ
-             ธีมปกติซ่อนชั้นนี้ทั้งก้อน (ดู .jr-fx ใน alt.css) -->
-        <div class="jr-fx" aria-hidden="true">
-          <i class="jf-a"></i><i class="jf-b"></i><i class="jf-c"></i>
-          <i class="jf-d"></i><i class="jf-e"></i><i class="jf-f"></i>
-        </div>
         <div class="jr-road"></div>
         <div class="jr-road done" id="jrDone" style="width:${meX}px"></div>
         ${ticks}
@@ -1669,7 +1663,7 @@ const BADGES = [
   { id: 'sophyra', tone: 'sweet', mark: '✧', name: 'Sophyra',
     desc: 'บางอย่างสวยเกินกว่าจะเป็นเรื่องบังเอิญ', secret: 'galaxy' },
   // เหรียญปลายทาง — ผูกกับการปลดล็อกธีม GENESIS (ซึ่งต้องได้เหรียญอื่นครบก่อน)
-  { id: 'genesis', tone: 'genesis', mark: '◆', name: 'GENESIS',
+  { id: 'genesis', tone: 'genesis', mark: '◆', name: 'Crystal',
     desc: 'จุดที่ทุกอย่างเริ่มต้นใหม่อีกครั้ง', genesis: true },
 ];
 
@@ -1806,7 +1800,7 @@ const SPIN_TABLE = [
   { id: 'galaxy', rarity: 'legendary', kind: 'skin', theme: 'galaxy', label: 'กาแล็กซี', weight: 0.5 },
 ];
 const RARITY_NAME = { common: 'Common', rare: 'Rare', legendary: 'Legendary' };
-const DUP_REFUND = { rare: 4, legendary: 12 };
+const DUP_REFUND = { rare: 1.5, legendary: 2.5 };
 
 // โทเคนมีทศนิยมได้แล้ว (Common จ่าย 0–0.5) — แสดงผลให้พอดี ไม่โชว์ .0 ลอย ๆ
 function fmtTok(n) {
@@ -1955,6 +1949,9 @@ function openDailyCheck(auto) {
   const wrap = document.getElementById('checkin');
   if (!wrap) return;
   if (auto && !dailyPending()) return;
+  // ยังไม่ได้เข้าแอปจริง (จอบัญชี / จอทำความรู้จัก) ห้ามเด้ง —
+  // ของรางวัลรายวันเป็นของคนที่เข้ามาใช้แอปแล้ว ไม่ใช่ของที่โผล่ทับหน้าล็อกอิน
+  if (auto && document.body.classList.contains('login-mode')) return;
   const day = pendingCycleDay();
   const claimed = dailyPending() ? day - 1 : (tokenState().cycleDay || 0);
   const prize = DAILY_PLAN[day - 1];
