@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "StudentOS ALT Version 1A7",
+  "name": "StudentOS ALT Version 1A7V",
   "short_name": "StudentOS ALT",
-  "description": "StudentOS ALT Version 1A7 — บิลด์ทดลองฟีเจอร์ใหม่ ข้อมูลแยกจากตัวจริง",
+  "description": "StudentOS ALT Version 1A7V — บิลด์ทดลองฟีเจอร์ใหม่ ข้อมูลแยกจากตัวจริง",
   "lang": "th",
   "start_url": ".",
   "scope": ".",

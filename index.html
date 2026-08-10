@@ -24,7 +24,8 @@
       // ไม่งั้นธีมใหม่จะไม่ถูกจำ แล้วจอแรกกะพริบเป็นโทนสว่างก่อนสลับ
       var BAR = { light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
         earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
-        deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8', genesis: '#8E9BE8' };
+        deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8', genesis: '#8E9BE8',
+        meta: '#050A16', glitch: '#04060A' };
       var pref = null;
       try { pref = localStorage.getItem('studentos.alt.theme'); } catch (e) {} // ALT: คนละคีย์กับตัวจริง
       if (pref === 'library') pref = 'ocean'; // 1A6M3: ธีมห้องสมุดถูกแทนที่ด้วยมหาสมุทร
@@ -654,6 +655,13 @@
                 <!-- ปลดล็อกเมื่อได้เหรียญครบทุกอันในแอป -->
                 <button type="button" class="th-secret th-genesis" data-th="genesis" onclick="setTheme('genesis')">
                   <span class="sw sw-genesis"></span><span class="nm">Crystal</span></button>
+                <!-- ALT 1A7V: ธีมระดับลับ — ได้จากการสุ่มเท่านั้น
+                     ปุ่มถูกซ่อนด้วยระบบสิทธิ์ (applyThemeLocks) ไม่ใช่ CSS
+                     ห้ามใบ้ว่ามีระดับนี้อยู่ที่ไหนในแอป -->
+                <button type="button" class="th-meta" data-th="meta" onclick="setTheme('meta')">
+                  <span class="sw sw-meta"></span><span class="nm">METAVERSE</span></button>
+                <button type="button" class="th-glitch" data-th="glitch" onclick="setTheme('glitch')">
+                  <span class="sw sw-glitch"></span><span class="nm">GL!TCH</span></button>
               </div>
             </div>
 

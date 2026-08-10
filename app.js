@@ -7,7 +7,7 @@
 //   - service worker ใช้ cache คนละชื่อ
 // ============================================================
 
-const APP_VERSION = '1A7';                // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
+const APP_VERSION = '1A7V';                // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
 const APP_CODENAME = 'Modern';             // ชื่อรุ่นของอัปเดตนี้
 const APP_CHANNEL = 'AI';                  // ป้ายกำกับรุ่น — โชว์ทั้งบนแอปและในหน้า "ฉัน"
 const STORE_KEY = 'studentos.alt.v1';      // ALT: แยกที่เก็บข้อมูลจากตัวจริง ('studentos.v1')
@@ -83,11 +83,13 @@ const THEME_BAR = {
   light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
   earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
   deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8', genesis: '#8E9BE8',
+  meta: '#050A16', glitch: '#04060A',
 };
 const THEME_NAME = {
   system: 'ตามระบบ', light: 'สว่าง', dark: 'มืด', warm: 'ชมพู', space: 'อวกาศ',
   earth: 'โลก', ocean: 'มหาสมุทร', magic: 'เวทมนตร์', galaxy: 'กาแล็กซี',
   deepocean: 'ทะเลลึก', earth2: 'ต้นไม้โลก', sweet: 'จักรวาลหวานแหว', genesis: 'Crystal',
+  meta: 'Metaverse', glitch: 'Glitch',
 };
 // ---------- ALT 1A6M3: อีสเตอร์เอกก์ ธีมลับ ----------
 // กดปุ่มธีมเดิมซ้ำ 5 ครั้งรวด = ปลดล็อกธีมลับของโทนนั้น
@@ -149,6 +151,57 @@ function checkGenesisUnlock() {
   setTheme('genesis');
   showToast({ title: 'Crystal', body: 'ครบทุกเหรียญแล้ว — ธีมสุดท้ายเปิดให้แล้ว' });
   return true;
+}
+
+// ---------- ALT 1A7V: ลูกเล่นของธีม Glitch ----------
+// จอสั่นบัคสั้น ๆ เป็นระยะ + ป้ายแจ้งข้อผิดพลาดสีแดงโผล่แวบเดียว
+// เดินเฉพาะตอนใช้ธีมนี้อยู่ เหมือนอีเวนต์ของ Crystal ไม่งั้นปล่อย timer กินแรงเปล่า
+let glitchTimer = null, glitchErrTimer = null;
+const GL_HEX = '0123456789abcdef';
+function glHex(n) {
+  let s = '';
+  for (let i = 0; i < n; i++) s += GL_HEX[Math.floor(Math.random() * 16)];
+  return s;
+}
+// ข้อความมั่ว ๆ แบบ log ที่อ่านไม่ออก — เป็นบรรยากาศ ไม่ได้สื่อว่าแอปพังจริง
+function glMessage() {
+  const forms = [
+    () => '0x' + glHex(8) + ' :: segment ' + glHex(4) + ' unreachable',
+    () => 'trace ' + glHex(6) + ' — buffer overrun at frame ' + Math.floor(Math.random() * 9999),
+    () => 'packet ' + glHex(4) + '-' + glHex(4) + ' dropped · retry ' + (1 + Math.floor(Math.random() * 8)),
+    () => 'node ' + glHex(5) + ' desync ' + (Math.random() * 90 + 9).toFixed(2) + 'ms',
+  ];
+  return forms[Math.floor(Math.random() * forms.length)]();
+}
+function glitchError() {
+  const phone = document.querySelector('.phone');
+  if (!phone || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const el = document.createElement('div');
+  el.className = 'gl-err';
+  el.setAttribute('aria-hidden', 'true');   // ไม่ให้โปรแกรมอ่านหน้าจออ่านออกมา มันไม่ใช่ข้อผิดพลาดจริง
+  el.innerHTML = '<i>⚠</i><div class="b"><div class="h">&lt;&lt; SERVER INFO &gt;&gt;</div>'
+    + '<div class="m">' + esc(glMessage()) + '</div></div>';
+  phone.appendChild(el);
+  setTimeout(() => el.remove(), 2100);
+}
+function glitchLoop(on) {
+  clearInterval(glitchTimer); clearInterval(glitchErrTimer);
+  glitchTimer = glitchErrTimer = null;
+  document.documentElement.removeAttribute('data-gfx');
+  // ป้ายที่ค้างอยู่ต้องเก็บทิ้งด้วย — ไม่งั้นสลับออกจากธีมนี้ตอนป้ายกำลังโชว์
+  // จะมีป้ายแดงค้างอยู่บนธีมอื่นโดยไม่มีอะไรมาลบให้
+  document.querySelectorAll('.gl-err').forEach(el => el.remove());
+  if (!on) return;
+  // สั่นทุก ~11 วิ (สุ่มเลื่อนได้นิดหน่อย ไม่ให้เป็นจังหวะเป๊ะจนน่ารำคาญ)
+  glitchTimer = setInterval(() => {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    document.documentElement.dataset.gfx = 'on';
+    if (navigator.vibrate) { try { navigator.vibrate([12, 40, 8]); } catch (_) {} }
+    setTimeout(() => document.documentElement.removeAttribute('data-gfx'), 400);
+  }, 11_000);
+  // ป้ายแดงถี่กว่านิดหนึ่ง แต่ไม่ทับกับจังหวะสั่น
+  glitchErrTimer = setInterval(glitchError, 17_000);
+  setTimeout(glitchError, 2500);   // ทักทายหนึ่งครั้งหลังเปลี่ยนธีม
 }
 
 function applyGenesisUnlock() {
@@ -220,6 +273,7 @@ function applyTheme() {
   document.querySelectorAll('#themePick button').forEach(b =>
     b.classList.toggle('active', b.dataset.th === pref));
   genesisLoop(theme === 'genesis'); // อีเวนต์ 99 วิ เดินเฉพาะตอนอยู่ในธีมนี้
+  glitchLoop(theme === 'glitch');   // จอสั่น + ป้ายแดง เดินเฉพาะตอนอยู่ในธีม Glitch
   // ปุ่มธีมที่ยังไม่ได้เป็นเจ้าของต้องไม่โผล่ — เรียกทุกครั้งที่ธีมเปลี่ยน
   // เพราะ "ธีมที่ใช้อยู่" คือหนึ่งในเงื่อนไขที่ทำให้ปุ่มยังโผล่ได้
   if (typeof applyThemeLocks === 'function') applyThemeLocks();
@@ -1745,7 +1799,10 @@ const SPIN_COST_10 = 10;  // สุ่ม 10 ใบ (ถูกกว่าสุ
 // ธีมพวกนี้เคยเปิดให้ใช้ฟรีทุกคน ตอนนี้ย้ายไปอยู่หลังระบบสุ่มกับร้านค้า
 // **ธีมที่ผู้ใช้เลือกใช้อยู่ตอนนี้จะไม่ถูกยึดคืน** — ปุ่มยังโผล่และยังกดได้เหมือนเดิม
 // (ดู themeVisible) การเปลี่ยนกติกากลางทางไม่ควรไปเอาของที่เขาใช้อยู่แล้วออกจากมือ
-const THEME_GACHA = ['earth', 'ocean', 'magic', 'galaxy'];   // ได้จากการสุ่มเท่านั้น
+const THEME_GACHA = ['earth', 'ocean', 'magic', 'galaxy', 'meta', 'glitch'];  // ได้จากการสุ่มเท่านั้น
+// ระดับลับ — **แอปไม่บอกว่ามีระดับนี้อยู่** ไม่โผล่ในตารางอัตรา ไม่โผล่ในตู้สะสม
+// จนกว่าจะได้จริง · โค้ดปลดล็อกทั่วไปก็ไม่แจกให้ ต้องโค้ดอีกใบเท่านั้น
+const THEME_SECRET = ['meta', 'glitch'];
 const THEME_SHOP = {                                          // ซื้อด้วยโทเคน
   warm:  { cost: 30, name: 'ชมพู' },
   space: { cost: 30, name: 'อวกาศ' },
@@ -1792,15 +1849,18 @@ function buyTheme(id) {
 
 // ---------- ตารางรางวัลของการสุ่ม ----------
 // Common 83 · Rare 16 · Legendary 1 (ธีมออกยากขึ้นกว่าเดิมมาก)
+// น้ำหนักรวม 100 พอดี — ระดับลับกินไป 0.4 โดยหักออกจาก Common
 const SPIN_TABLE = [
-  { id: 'tk1', rarity: 'common', kind: 'token', label: 'โทเคน', weight: 83 },
+  { id: 'tk1', rarity: 'common', kind: 'token', label: 'โทเคน', weight: 82.6 },
   { id: 'earth', rarity: 'rare', kind: 'skin', theme: 'earth', label: 'โลก', weight: 8 },
   { id: 'magic', rarity: 'rare', kind: 'skin', theme: 'magic', label: 'เวทมนตร์', weight: 8 },
   { id: 'ocean', rarity: 'legendary', kind: 'skin', theme: 'ocean', label: 'มหาสมุทร', weight: 0.5 },
   { id: 'galaxy', rarity: 'legendary', kind: 'skin', theme: 'galaxy', label: 'กาแล็กซี', weight: 0.5 },
+  { id: 'meta', rarity: 'secret', kind: 'skin', theme: 'meta', label: 'METAVERSE', weight: 0.2 },
+  { id: 'glitch', rarity: 'secret', kind: 'skin', theme: 'glitch', label: 'GL!TCH', weight: 0.2 },
 ];
-const RARITY_NAME = { common: 'Common', rare: 'Rare', legendary: 'Legendary' };
-const DUP_REFUND = { rare: 1.5, legendary: 2.5 };
+const RARITY_NAME = { common: 'Common', rare: 'Rare', legendary: 'Legendary', secret: '???' };
+const DUP_REFUND = { rare: 1.5, legendary: 2.5, secret: 5 };
 
 // โทเคนมีทศนิยมได้แล้ว (Common จ่าย 0–0.5) — แสดงผลให้พอดี ไม่โชว์ .0 ลอย ๆ
 function fmtTok(n) {
@@ -2045,7 +2105,7 @@ function drawSummary() {
   return `รอบนี้ได้ <b>${fmtTok(tok)}</b> โทเคน${fresh ? ' · ธีมใหม่ ' + fresh + ' อัน' : ''}
     · ดีที่สุด <b class="r-${best.rarity}">${RARITY_NAME[best.rarity]}</b>`;
 }
-const RANK = { common: 0, rare: 1, legendary: 2 };
+const RANK = { common: 0, rare: 1, legendary: 2, secret: 3 };
 
 function flipCard(i) {
   if (drawOpen[i]) return;
@@ -2176,7 +2236,9 @@ function renderShop() {
   const s = tokenState();
   const skins = s.skins || {};
   const day = pendingCycleDay();
-  const gacha = SPIN_TABLE.filter(p => p.kind === 'skin');
+  // ตู้สะสม: ระดับลับไม่โผล่จนกว่าจะได้จริง — เห็นช่องว่างรออยู่ก็เท่ากับบอกว่ามีอยู่
+  const gacha = SPIN_TABLE.filter(p => p.kind === 'skin'
+    && (p.rarity !== 'secret' || (skins[p.id] || 0) > 0));
   box.innerHTML = `<div class="page-head">
       <div class="eyebrow mono">เช็คอินต่อเนื่อง ${s.streak || 0} วัน</div>
       <h1 class="page-title">ร้านค้า</h1>
@@ -3489,7 +3551,7 @@ function relockSecrets() {
 // โค้ดชุดนี้ผูกกับรุ่น 1A6M3 เท่านั้น: ถ้า APP_VERSION ขยับไปรุ่นอื่นเมื่อไหร่
 // ช่องใส่โค้ดจะหายไปเองและโค้ดจะหมดอายุทันที ไม่ต้องไล่ลบทีละจุด
 // จะให้รุ่นถัดไปใช้ได้ต้องตั้งใจแก้บรรทัดล่างนี้เอง
-const CODE_VERSION = '1A7';
+const CODE_VERSION = '1A7V';
 function codesLive() { return APP_VERSION === CODE_VERSION; }
 
 // เก็บเป็นลายนิ้วมือ SHA-256 ไม่ใช่ตัวโค้ด — เปิดซอร์สอ่านก็ยังไม่รู้ว่าต้องพิมพ์อะไร
@@ -3498,6 +3560,7 @@ const CODE_HASH = {
   eabeafccf40bb03ff2b1e4f02f6ab3531864c9ccc1472b8fa7eb6a1ff3a039b7: 'grant',
   '05f0e0d52558bdff80cda651d7c67461d5324b18776d44e183ecd8b89e418b2b': 'wipe',
   '62ed3ce6a794c046bec29578ffcd0741d67de59b5b017e35e8156f131e7efebd': 'tokens',
+  '6f9d5fc713a77486673d90d9e5f9c71bdcd1c88308537b182fc0784beaf48226': 'grantAll',
 };
 const CODE_TOKEN_GRANT = 1000;
 
@@ -3535,6 +3598,27 @@ async function redeemCode() {
   if (kind === 'grant') codeGrantAll();
   else if (kind === 'wipe') codeWipeAll();
   else if (kind === 'tokens') codeGrantTokens();
+  else if (kind === 'grantAll') codeGrantEverything();
+}
+
+// แจกธีมที่ต้องสุ่ม/ซื้อ · withSecret = แจกระดับลับด้วยไหม
+function grantThemes(withSecret) {
+  const ts = tokenState();
+  ts.skins = ts.skins || {};
+  THEME_GACHA
+    .filter(id => withSecret || !THEME_SECRET.includes(id))
+    .forEach(id => { ts.skins[id] = Math.max(1, ts.skins[id] || 0); });
+  ts.bought = Object.keys(THEME_SHOP);
+  saveTokenState(ts);
+  applyThemeLocks();
+}
+
+// โค้ดใบที่ให้ทุกอย่างจริง ๆ รวมถึงธีมระดับลับ
+function codeGrantEverything() {
+  codeGrantAll();
+  grantThemes(true);
+  renderAll();
+  setTimeout(() => showToast({ title: 'ปลดล็อกครบทุกอย่างจริง ๆ ✦', body: 'รวมของที่ไม่ได้บอกว่ามีด้วย' }), 900);
 }
 
 // โค้ดโทเคน — เติมยอดให้ก้อนใหญ่ ไว้ลองสุ่มสกินโดยไม่ต้องรอเช็คอินหลายวัน
@@ -3550,12 +3634,8 @@ function codeGrantTokens() {
 function codeGrantAll() {
   try { localStorage.setItem(ALLBADGE_KEY, '1'); } catch (_) {}
   // ธีมที่ต้องสุ่ม/ซื้อ ก็เปิดให้ด้วย ไม่งั้น "ปลดล็อกทุกอย่าง" ก็ยังใช้ธีมไม่ได้ครึ่งหนึ่ง
-  const ts = tokenState();
-  ts.skins = ts.skins || {};
-  THEME_GACHA.forEach(id => { ts.skins[id] = Math.max(1, ts.skins[id] || 0); });
-  ts.bought = Object.keys(THEME_SHOP);
-  saveTokenState(ts);
-  applyThemeLocks();
+  // **ยกเว้นระดับลับ** — โค้ดใบนี้ไม่แจกให้ ต้องอีกใบเท่านั้น
+  grantThemes(false);
   for (const s of Object.values(SECRETS)) { try { localStorage.setItem(s.store, '1'); } catch (_) {} }
   try { localStorage.setItem(GENESIS_KEY, '1'); } catch (_) {}
   applySecrets();
