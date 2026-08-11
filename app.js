@@ -3106,6 +3106,114 @@ function ocrBinarize(prep) {
   return { ...prep, gray: out };
 }
 
+// ---------- ALT 1A7V: แก้ภาพเอียงก่อนส่งเข้า OCR ----------
+// ผู้ใช้ถ่ายใบงานวางบนโต๊ะ ภาพเอียง 3–8 องศาเป็นเรื่องปกติ
+// LSTM ของ Tesseract ไวต่อความเอียงมาก เพราะตัวอักษรในบรรทัดเดียวกันตกคนละ baseline
+//
+// วิธีหามุม: ยิงเส้นแนวนอนแบบเฉียงตามมุมที่ลอง แล้วนับหมึกที่ตกในแต่ละแถว
+// มุมที่ทำให้หมึก "กองรวมกันเป็นแถบ ๆ" มากที่สุด = มุมที่บรรทัดตรงที่สุด
+// วัดด้วยผลรวมกำลังสองของโปรไฟล์ (ยิ่งกองรวม ยิ่งสูง)
+//
+// ไม่ต้องหมุนภาพจริงตอนลองมุม — เลื่อนแถวตาม tan(θ) เอา ซึ่งเป็นการวนรอบเดียวต่อมุม
+// และลองบนภาพย่อ ~640px เท่านั้น หามุมเสร็จค่อยหมุนภาพเต็มครั้งเดียว
+const DESKEW_MAX = 8;        // องศาสูงสุดที่ยอมแก้ให้ — เกินนี้คือถ่ายเอียงจนควรถ่ายใหม่
+const DESKEW_STEP = 0.5;     // หยาบ ๆ ก่อน แล้วค่อยละเอียดรอบสอง
+const DESKEW_MIN = 0.35;     // เอียงน้อยกว่านี้ไม่ต้องหมุน หมุนแล้วเสียรายละเอียดเปล่า
+const DESKEW_WORK = 640;     // ขนาดภาพที่ใช้หามุม
+
+// นับหมึกทีละแถวตามมุมที่ลอง แล้วคืนค่าความ "เป็นแถบ" ของโปรไฟล์
+function skewScore(bin, w, h, tan) {
+  const span = Math.ceil(Math.abs(tan) * w);
+  const rows = new Float64Array(h + span * 2 + 2);
+  for (let y = 0; y < h; y++) {
+    const base = y + span;
+    for (let x = 0; x < w; x++) {
+      // ต้อง **ลบ** ไม่ใช่บวก: canvas หมุนบวก = ตามเข็ม (แกน y ชี้ลง)
+      // บรรทัดที่เคยตรงจึงกลายเป็น y = y0 + x·tan(θ) การจะรีดให้กลับมาตรงต้องหักออก
+      // ถ้าใส่เป็นบวก คะแนนจะไปพีคที่ -θ แล้วคืนมุมกลับด้าน — หมุนแก้ทีก็เอียงเป็นสองเท่า
+      if (bin[y * w + x] === 0) rows[base - ((tan * x) | 0)]++;   // 0 = หมึก
+    }
+  }
+  let s = 0;
+  for (let i = 0; i < rows.length; i++) s += rows[i] * rows[i];
+  return s;
+}
+
+// ย่อภาพไบนารีลงมาให้หามุมได้เร็ว
+function skewShrink(bin, w, h, target) {
+  const scale = Math.min(1, target / Math.max(w, h));
+  if (scale >= 1) return { bin, w, h };
+  const nw = Math.max(1, Math.round(w * scale)), nh = Math.max(1, Math.round(h * scale));
+  const out = new Uint8ClampedArray(nw * nh);
+  for (let y = 0; y < nh; y++) {
+    const sy = (y / scale) | 0;
+    for (let x = 0; x < nw; x++) {
+      out[y * nw + x] = bin[sy * w + ((x / scale) | 0)];
+    }
+  }
+  return { bin: out, w: nw, h: nh };
+}
+
+// คืนมุมเอียงเป็นองศา (บวก = ภาพเอียงตามเข็ม ต้องหมุนทวนเข็มเพื่อแก้)
+function ocrFindSkew(binPrep) {
+  const s = skewShrink(binPrep.gray, binPrep.w, binPrep.h, DESKEW_WORK);
+  const scan = (from, to, step) => {
+    let bestA = 0, bestS = -1;
+    for (let a = from; a <= to + 1e-9; a += step) {
+      const sc = skewScore(s.bin, s.w, s.h, Math.tan(a * Math.PI / 180));
+      if (sc > bestS) { bestS = sc; bestA = a; }
+    }
+    return bestA;
+  };
+  const coarse = scan(-DESKEW_MAX, DESKEW_MAX, DESKEW_STEP);
+  // รอบสองละเอียดขึ้นรอบ ๆ มุมที่ได้ — ได้ความละเอียด 0.1 องศาโดยไม่ต้องไล่ทั้งช่วง
+  return +scan(coarse - DESKEW_STEP, coarse + DESKEW_STEP, 0.1).toFixed(2);
+}
+
+// หมุนภาพเทาตามมุมที่หาได้ แล้วคืนโครงเดียวกับ ocrToGray เพื่อเอาไปไบนารีใหม่
+// **หมุนภาพเทา ไม่ใช่ภาพไบนารี** — หมุนภาพขาวดำแล้วขอบตัวอักษรจะแตกเป็นขั้นบันได
+function ocrRotateGray(prep, deg) {
+  const { gray, w, h } = prep;
+  const src = document.createElement('canvas');
+  src.width = w; src.height = h;
+  const sctx = src.getContext('2d', { willReadFrequently: true });
+  const sid = sctx.createImageData(w, h);
+  for (let g = 0, i = 0; g < gray.length; g++, i += 4) {
+    sid.data[i] = sid.data[i + 1] = sid.data[i + 2] = gray[g];
+    sid.data[i + 3] = 255;
+  }
+  sctx.putImageData(sid, 0, 0);
+
+  const rad = -deg * Math.PI / 180;
+  const cos = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
+  const nw = Math.ceil(w * cos + h * sin), nh = Math.ceil(w * sin + h * cos);
+  const dst = document.createElement('canvas');
+  dst.width = nw; dst.height = nh;
+  const dctx = dst.getContext('2d', { willReadFrequently: true });
+  dctx.fillStyle = '#fff';           // มุมที่ว่างหลังหมุนต้องเป็นขาว ไม่ใช่ดำ
+  dctx.fillRect(0, 0, nw, nh);
+  dctx.imageSmoothingQuality = 'high';
+  dctx.translate(nw / 2, nh / 2);
+  dctx.rotate(rad);
+  dctx.drawImage(src, -w / 2, -h / 2);
+
+  const id = dctx.getImageData(0, 0, nw, nh);
+  const out = new Uint8ClampedArray(nw * nh);
+  for (let g = 0, i = 0; g < out.length; g++, i += 4) out[g] = id.data[i];
+  return { canvas: dst, ctx: dctx, id, gray: out, w: nw, h: nh };
+}
+
+// ทั้งชุด: หามุมจากภาพไบนารี → ถ้าเอียงพอ หมุนภาพเทาแล้วไบนารีใหม่
+// คืน { gray, bin, deg } เพื่อให้ผู้เรียกใช้ต่อได้ทั้งสองแบบ
+function ocrDeskew(grayPrep) {
+  const bin0 = ocrBinarize(grayPrep);
+  let deg = 0;
+  try { deg = ocrFindSkew(bin0); } catch (_) { deg = 0; }
+  if (!isFinite(deg) || Math.abs(deg) < DESKEW_MIN) return { gray: grayPrep, bin: bin0, deg: 0 };
+  const rot = ocrRotateGray(grayPrep, deg);
+  return { gray: rot, bin: ocrBinarize(rot), deg };
+}
+
 // ---------- worker ใช้ซ้ำ ----------
 // เดิมสร้าง worker ใหม่แล้วทิ้งทุกครั้งที่สแกน — สแกนติดกันหลายใบเสียเวลา init ซ้ำทุกใบ
 let ocrWorker = null, ocrProgress = null;
@@ -3377,8 +3485,11 @@ async function runOcrOn(source, how) {
     st.textContent = '🖼 กำลังปรับภาพให้อ่านง่ายขึ้น…';
     startFunFacts(document.getElementById('scanFact')); // มีอะไรให้อ่านระหว่างรอ OCR
     // ปรับภาพก่อน แล้วค่อยโหลดโมเดล — ผู้ใช้จะได้เห็นความคืบหน้าตั้งแต่วินาทีแรก
-    const gray = ocrToGray(source);
-    const binCanvas = ocrGrayToCanvas(ocrBinarize(gray));
+    const gray0 = ocrToGray(source);
+    // แก้ภาพเอียงก่อน แล้วค่อยใช้ผลที่ตรงแล้วไปทุก pass ที่เหลือ
+    const sk = ocrDeskew(gray0);
+    const gray = sk.gray;
+    const binCanvas = ocrGrayToCanvas(sk.bin);
     bar.style.width = '12%';
 
     st.textContent = '⏳ กำลังเตรียมโมเดล OCR… (ครั้งแรกอาจรอนานหน่อย)';
@@ -3423,7 +3534,8 @@ async function runOcrOn(source, how) {
     lastOcrLowWords = collectLowWords(data);
     // บรรทัดเดียวก๊อปไปทำตารางวัดผลได้เลย (รอบวัดผลกับรูปจริง)
     console.debug(`[ALT OCR] conf=${conf}% pass=${pass} how=${how || '-'} chars=${text.length} `
-      + `lowWords=${lastOcrLowWords.length} ms=${Math.round(performance.now() - t0)} size=${gray.w}×${gray.h}`);
+      + `lowWords=${lastOcrLowWords.length} ms=${Math.round(performance.now() - t0)} size=${gray.w}×${gray.h} `
+      + `skew=${sk.deg}°`);
 
     if (text.length < 5 || conf < OCR_CONF_MIN) {
       lastOcrConfidence = null;
