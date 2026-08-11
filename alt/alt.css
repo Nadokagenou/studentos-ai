@@ -1855,15 +1855,54 @@
    หน้าแรก = เมนูหลัก
    ไทล์ใหญ่ กดง่าย ไม่มีข้อความอธิบาย — มีแค่ไอคอน ชื่อ และตัวเลขจริงจาก state
    ============================================================ */
+/* ---------- สีประจำไทล์ ----------
+   เดิมไทล์ทั้ง 4 ใบใช้ --blue ชุดเดียวกันหมด วางเรียงกันแล้วกลายเป็นกำแพงสีเดียว
+   ตาต้องอ่านตัวหนังสือทุกใบก่อนถึงจะรู้ว่าอันไหนคืออะไร — จำตำแหน่งด้วยสีไม่ได้เลย
+   ให้แต่ละใบมีสีของตัวเอง แต่อยู่ใน "ตระกูลน้ำเงิน" ทั้งหมด
+   (แอปนี้คือขาวน้ำเงินกับดำน้ำเงิน สีที่หลุดตระกูลไปจะอ่านเป็นแอปคนละตัวทันที)
+
+   ค่าเริ่มต้นตรงนี้คือ --blue ล้วน ๆ เท่ากับหน้าตาเดิมเป๊ะ
+   ธีมไหนไม่ได้กำหนดทับข้างล่าง ก็ไม่มีอะไรเปลี่ยน ไม่ต้องไล่แก้ทั้ง 12 ธีม */
+:root {
+  --tile-plan:  var(--blue); --tile-plan-soft:  var(--blue-soft);
+  --tile-tasks: var(--blue); --tile-tasks-soft: var(--blue-soft);
+  --tile-route: var(--blue); --tile-route-soft: var(--blue-soft);
+  --tile-me:    var(--blue); --tile-me-soft:    var(--blue-soft);
+}
+/* ดำน้ำเงิน — ไล่จากน้ำเงินหลักไปฟ้าและคราม ห่างกันพอให้แยกออกด้วยหางตา
+   ทุกค่าต้องสว่างพอ เพราะป้ายตัวเลขใช้สีนี้เป็นพื้นแล้ววางตัวอักษรสีเข้ม (--on-accent) ทับ */
+:root[data-theme="dark"] {
+  --tile-plan:  #6FA8FF; --tile-plan-soft:  rgba(111,168,255,.16);
+  --tile-tasks: #4BD8F0; --tile-tasks-soft: rgba(75,216,240,.15);
+  --tile-route: #A69BFF; --tile-route-soft: rgba(166,155,255,.16);
+  --tile-me:    #5EC8F7; --tile-me-soft:    rgba(94,200,247,.15);
+}
+/* ขาวน้ำเงิน — กลับกัน ต้องเข้มพอเพราะเป็นไอคอนบนพื้นขาว และป้ายตัวเลขวางตัวอักษรขาวทับ */
+:root[data-theme="ocean"] {
+  --tile-plan:  #0E6E92; --tile-plan-soft:  #D5EDF9;
+  --tile-tasks: #0E8AA8; --tile-tasks-soft: #D3EFF7;
+  --tile-route: #4B57C4; --tile-route-soft: #E1E4FB;
+  --tile-me:    #1667BF; --tile-me-soft:    #DCEAFA;
+}
+
 /* หน้าแรกต้องจบในจอเดียว ไม่ต้องเลื่อน — ทุกระยะในหน้านี้จึงถูกบีบกว่าจอทั่วไป */
 .menu-body { gap: 11px; padding-top: 14px; padding-bottom: calc(80px + var(--tabgap)); }
 .menu-head .page-title { margin-top: 2px; font-size: 24px; }
 .menu-head .page-sub { display: none; }
+/* ชื่อผู้ใช้ในคำทักทาย — คำเดียวบนจอที่เป็นของเขาคนเดียว ให้มันมีสี */
+.menu-head .page-title .pt-me { color: var(--blue); font-weight: 700; }
 .menu-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
+/* --mt-a / --mt-s = สีของไทล์ใบนี้ (เข้ม/อ่อน) — ทุกชิ้นข้างในอ่านจากสองตัวนี้ตัวเดียว
+   เปลี่ยนสีไทล์ทั้งใบจึงแก้ที่บรรทัดเดียว ไม่ต้องไล่แก้ไอคอน ป้ายเลข และวงแสงทีละอัน */
+.mtile { --mt-a: var(--blue); --mt-s: var(--blue-soft); }
+.mtile.tone-plan  { --mt-a: var(--tile-plan);  --mt-s: var(--tile-plan-soft); }
+.mtile.tone-tasks { --mt-a: var(--tile-tasks); --mt-s: var(--tile-tasks-soft); }
+.mtile.tone-route { --mt-a: var(--tile-route); --mt-s: var(--tile-route-soft); }
+.mtile.tone-me    { --mt-a: var(--tile-me);    --mt-s: var(--tile-me-soft); }
 .mtile {
   position: relative;
   display: flex;
@@ -1893,7 +1932,7 @@
   top: -46px; right: -34px;
   width: 128px; height: 128px;
   border-radius: 50%;
-  background: radial-gradient(circle, var(--blue-soft), transparent 70%);
+  background: radial-gradient(circle, var(--mt-s), transparent 70%);
   pointer-events: none;
 }
 .mtile:active { transform: scale(.975); box-shadow: var(--shadow-lg); }
@@ -1903,8 +1942,8 @@
   justify-content: center;
   width: 36px; height: 36px;
   border-radius: 12px;
-  background: var(--blue-soft);
-  color: var(--blue);
+  background: var(--mt-s);
+  color: var(--mt-a);
   position: relative;
 }
 .mt-ic svg { width: 18px; height: 18px; }
@@ -1932,7 +1971,7 @@
   min-width: 24px;
   padding: 3px 8px 4px;
   border-radius: 999px;
-  background: var(--blue);
+  background: var(--mt-a);
   color: var(--on-accent);
   font-family: 'Space Mono', ui-monospace, monospace;
   font-size: 12.5px;
@@ -1986,6 +2025,30 @@
   gap: 13px;
 }
 .mtile.wide .mt-ic { width: 38px; height: 38px; }
+
+/* ---------- ลูกศร "กดแล้วไปต่อ" ----------
+   จาง ๆ พอ ไม่ใช่ของที่ต้องอ่าน แค่ต้องเห็นตอนกวาดตาว่าไทล์นี้พาไปที่อื่นได้ */
+.mt-go {
+  position: absolute;
+  right: 12px; bottom: 11px;
+  display: flex;
+  color: var(--mt-a);
+  opacity: .5;
+  pointer-events: none;
+  z-index: 2;
+}
+.mt-go svg { width: 15px; height: 15px; }
+/* ไทล์แนวนอน: ลูกศรไปอยู่กลางแนวตั้งสุดขวา แล้วดันป้ายตัวเลขเข้ามาให้พ้นกัน */
+.mtile.wide .mt-go { top: 50%; bottom: auto; transform: translateY(-50%); right: 13px; }
+.mtile.wide .mt-ct { top: 50%; right: 36px; transform: translateY(-50%); }
+/* ไทล์เด่นพื้นสีเข้ม ลูกศรต้องเป็นสีขาวถึงจะเห็น */
+.mtile.hero .mt-go {
+  top: 50%; bottom: auto; transform: translateY(-50%); right: 14px;
+  color: #fff; opacity: .75;
+}
+.mtile.hero .mt-go svg { width: 17px; height: 17px; }
+/* ไทล์เล็ก 4 ใบ: กันที่มุมล่างขวาไว้ให้ลูกศร ไม่งั้นคำอธิบายยาว ๆ วิ่งไปทับ */
+.mtile:not(.hero):not(.wide) .mt-tx { padding-right: 18px; }
 
 /* จอกว้าง (แถบซ้าย) วางได้ 3 คอลัมน์สบาย ๆ */
 :root[data-nav="side"] .menu-grid { grid-template-columns: repeat(3, 1fr); }

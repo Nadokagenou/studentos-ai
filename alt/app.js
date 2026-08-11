@@ -623,7 +623,13 @@ function cloudConfigured() {
 async function initCloud() {
   if (!cloudConfigured()) return;
   sb = supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonKey);
-  const { data: { session } } = await sb.auth.getSession();
+  // ไม่เคยมี try/catch หรือลิมิตเวลาตรงนี้ — เน็ตหลุดหรือ Supabase ตอบช้าตอนบูต
+  // แปลว่า initApp โยน error ทิ้งค้างไว้โดยไม่มีใครจับ แล้วแอปค้างที่ฉากเปิดถาวร
+  // ล้มแบบเงียบแล้วเข้าแอปในสถานะยังไม่ล็อกอิน ดีกว่าค้างจนใช้อะไรไม่ได้เลย
+  let session = null;
+  try {
+    ({ data: { session } } = await withTimeout(sb.auth.getSession(), 6000, 'เชื่อมบัญชี'));
+  } catch (e) { console.warn('[cloud] getSession failed:', e.message); }
   currentUser = session ? session.user : null;
   sb.auth.onAuthStateChange((event, sess) => {
     const wasLoggedIn = !!currentUser;
@@ -739,11 +745,14 @@ function snoozeBadge(t) {
 // ---------- ALT: หน้าแรก = เมนูหลัก ----------
 // รวมทางเข้าฟีเจอร์หลักไว้ที่เดียว กดแล้วเด้งไปเลย
 // ตัวเลขบนไทล์เป็นข้อมูลจริงจาก state ไม่ใช่คำอธิบาย — หน้านี้ตั้งใจให้ไม่มีข้อความอธิบายเลย
+// ลูกศรมุมล่างขวาไม่ใช่ของประดับ — ไทล์พวกนี้หน้าตาเหมือนการ์ดข้อมูล
+// ถ้าไม่มีอะไรบอกว่า "กดแล้วไปต่อ" คนจะอ่านมันเป็นป้ายสรุปแล้วไม่กดเลย
 function menuTile(cls, ic, label, sub, count, target) {
   return `<button class="mtile ${cls}" onclick="go('${target}')">
     <span class="mt-ic">${icon(ic)}</span>
     <span class="mt-tx"><span class="mt-lb">${label}</span><span class="mt-sub">${sub}</span></span>
     ${count != null ? `<span class="mt-ct">${count}</span>` : ''}
+    <span class="mt-go">${icon('chevron')}</span>
   </button>`;
 }
 
@@ -856,11 +865,12 @@ function widgetHtml(now) {
 // "มีของเข้ามาเองระหว่างที่คุณไม่ได้เปิดแอป" ตัวเลขค้างจึงต้องสะดุดตากว่าตัวเลขอื่น
 function inboxTile() {
   const wait = typeof inboxPending === 'function' ? inboxPending().length : 0;
-  return `<button class="mtile wide" onclick="go('scr-inbox')">
+  return `<button class="mtile wide tone-inbox" onclick="go('scr-inbox')">
     <span class="mt-ic">${icon('chat')}</span>
     <span class="mt-tx"><span class="mt-lb">กล่องเข้า</span>
       <span class="mt-sub">ข้อความจาก LINE ที่รอตรวจ</span></span>
     <span class="mt-ct${wait ? ' hot' : ''}">${wait}</span>
+    <span class="mt-go">${icon('chevron')}</span>
   </button>`;
 }
 
@@ -877,18 +887,20 @@ function renderMenu() {
   const doneWeek = liveTasks().filter(t => t.done && t.doneAt &&
     (now - new Date(t.doneAt)) < 7 * 8.64e7).length;
 
+  // ชื่อผู้ใช้เน้นสี — ทั้งจอมีคำที่เป็น "ของเขาคนเดียว" อยู่คำเดียวคือชื่อตัวเอง
+  // ปล่อยให้กลืนไปกับคำทักทายก็เสียโอกาสที่จอนี้จะรู้สึกเป็นของเขาไปฟรี ๆ
   body.innerHTML = `<div class="menu-head">
       <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
-      <h1 class="page-title">${greet}${who() ? ', ' + esc(who()) : ''}</h1>
+      <h1 class="page-title">${greet}${who() ? ', <b class="pt-me">' + esc(who()) + '</b>' : ''}</h1>
     </div>
     ${widgetHtml(now)}
     <div class="menu-grid">
       ${menuTile('hero', 'camera', 'เพิ่มงานใหม่', 'ถ่ายรูป · พูด · แปะข้อความ', null, 'scr-scan')}
       ${inboxTile()}
-      ${menuTile('', 'calendar', 'ตารางงาน', 'ลำดับที่ AI แนะนำ', pending.length, 'scr-home')}
-      ${menuTile('', 'check-circle', 'งานทั้งหมด', 'ค้าง · เสร็จ · ถังขยะ', live.length, 'scr-tasks')}
-      ${menuTile('', 'pin', 'เส้นทาง', 'ไทม์ไลน์ถึงกำหนดส่ง', dated, 'scr-timeline')}
-      ${menuTile('', 'user', 'ฉัน', 'ผลของฉัน · ธีม · ตั้งค่า', doneWeek ? doneWeek : null, 'scr-profile')}
+      ${menuTile('tone-plan', 'calendar', 'ตารางงาน', 'ลำดับที่ AI แนะนำ', pending.length, 'scr-home')}
+      ${menuTile('tone-tasks', 'check-circle', 'งานทั้งหมด', 'ค้าง · เสร็จ · ถังขยะ', live.length, 'scr-tasks')}
+      ${menuTile('tone-route', 'pin', 'เส้นทาง', 'ไทม์ไลน์ถึงกำหนดส่ง', dated, 'scr-timeline')}
+      ${menuTile('tone-me', 'user', 'ฉัน', 'ผลของฉัน · ธีม · ตั้งค่า', doneWeek ? doneWeek : null, 'scr-profile')}
     </div>`;
 }
 
@@ -3644,7 +3656,10 @@ function pushSupported() {
 async function refreshPushState() {
   if (!pushSupported()) { pushState = 'unsupported'; return; }
   try {
-    const reg = await navigator.serviceWorker.ready;
+    // serviceWorker.ready ไม่รีเจ็กต์เองถ้า SW ตัวเก่าติดค้างอยู่ — มันค้างเงียบ ๆ ตลอดไป
+    // และเพราะ initApp รอบรรทัดนี้อยู่ ฉากเปิดแอปเลยค้างที่ 66% ไม่ไปไหนทั้งที่โหลดอย่างอื่นครบแล้ว
+    // เจอจริงบนเครื่องที่เคยติดตั้งรุ่นก่อนหน้าไว้ (เครื่องที่เพิ่งเปิดครั้งแรกจะไม่เจอ)
+    const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ตรวจสิทธิ์แจ้งเตือน');
     const sub = await reg.pushManager.getSubscription();
     pushState = sub ? 'on' : 'off';
   } catch (_) { pushState = 'off'; }
@@ -4253,6 +4268,22 @@ function startSplashMeter() {
   splashTimer = setInterval(tick, 60);
   tick();
   startFunFacts(document.getElementById('spFact'));
+
+  // ตาข่ายกันตาย: ไม่ว่าขั้นตอนไหนของ initApp จะค้างหรือพัง 12 วินาทีแล้วต้องเข้าแอปให้ได้
+  // เหตุผลที่ต้องมี: ทุกอย่างใน initApp คือ await เรียงกัน ใครค้างคนเดียวจอเปิดแอปก็ค้างถาวร
+  // แล้วผู้ใช้เจอ "แอปเปิดไม่ได้" ทั้งที่ข้อมูลในเครื่องพร้อมใช้ตั้งแต่วินาทีแรก
+  // ยอมเข้าแอปแบบฟีเจอร์คลาวด์ไม่ครบ ดีกว่ามองจอค้างแล้วกดอะไรไม่ได้เลย
+  setTimeout(() => {
+    if (splash.classList.contains('hide') || splash.classList.contains('gone')) return;
+    console.warn('[ALT] splash ตัดจบด้วยตาข่ายกันตาย — ขั้นที่เสร็จ '
+      + splashDone.size + '/' + SPLASH_STEPS.length);
+    clearInterval(splashTimer);
+    stopFunFacts();
+    if (!splashReady) { try { routeStart(); } catch (e) { console.error('[ALT] routeStart', e); } }
+    splash.classList.add('hide');
+    setTimeout(() => splash.classList.add('gone'), 600);
+    if (splashAfter) splashAfter();
+  }, 12_000);
 }
 
 // เรียกตอนงานเปิดแอปเสร็จครบ — ตัวนับจะปิดฉากให้เองเมื่อถึง 100
