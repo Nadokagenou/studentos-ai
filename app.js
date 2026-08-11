@@ -3116,30 +3116,22 @@ function ocrBinarize(prep) {
 //
 // ไม่ต้องหมุนภาพจริงตอนลองมุม — เลื่อนแถวตาม tan(θ) เอา ซึ่งเป็นการวนรอบเดียวต่อมุม
 // และลองบนภาพย่อ ~640px เท่านั้น หามุมเสร็จค่อยหมุนภาพเต็มครั้งเดียว
-const DESKEW_MAX = 8;        // องศาสูงสุดที่ยอมแก้ให้ — เกินนี้คือถ่ายเอียงจนควรถ่ายใหม่
+// เพดานตั้งไว้ 30 องศาโดยมีเหตุผลจากการวัด ไม่ใช่เดา:
+// วัดแล้วพบว่า Tesseract อ่านได้ครบ 100% จนถึง 10 องศา แล้วร่วงเป็น 50% ที่ 15 องศา
+// 30% ที่ 20 และ 10% ที่ 25 — ช่วงที่ "ต้องแก้จริง ๆ" คือ 12 องศาขึ้นไป
+// เพดานเดิม 8 องศาจึงไปแก้เฉพาะมุมที่มันอ่านออกอยู่แล้ว และไม่เคยแตะช่วงที่พังเลย
+const DESKEW_MAX = 30;
 const DESKEW_STEP = 0.5;     // หยาบ ๆ ก่อน แล้วค่อยละเอียดรอบสอง
 const DESKEW_MIN = 0.35;     // เอียงน้อยกว่านี้ไม่ต้องหมุน หมุนแล้วเสียรายละเอียดเปล่า
 const DESKEW_WORK = 640;     // ขนาดภาพที่ใช้หามุม
 
-// นับหมึกทีละแถวตามมุมที่ลอง แล้วคืนค่าความ "เป็นแถบ" ของโปรไฟล์
-function skewScore(bin, w, h, tan) {
-  const span = Math.ceil(Math.abs(tan) * w);
-  const rows = new Float64Array(h + span * 2 + 2);
-  for (let y = 0; y < h; y++) {
-    const base = y + span;
-    for (let x = 0; x < w; x++) {
-      // ต้อง **ลบ** ไม่ใช่บวก: canvas หมุนบวก = ตามเข็ม (แกน y ชี้ลง)
-      // บรรทัดที่เคยตรงจึงกลายเป็น y = y0 + x·tan(θ) การจะรีดให้กลับมาตรงต้องหักออก
-      // ถ้าใส่เป็นบวก คะแนนจะไปพีคที่ -θ แล้วคืนมุมกลับด้าน — หมุนแก้ทีก็เอียงเป็นสองเท่า
-      if (bin[y * w + x] === 0) rows[base - ((tan * x) | 0)]++;   // 0 = หมึก
-    }
-  }
-  let s = 0;
-  for (let i = 0; i < rows.length; i++) s += rows[i] * rows[i];
-  return s;
-}
-
-// ย่อภาพไบนารีลงมาให้หามุมได้เร็ว
+// หาชิ้นส่วนที่เชื่อมกัน (connected components) แล้วคัดเฉพาะชิ้นที่ "ขนาดเหมือนตัวอักษร"
+// เหตุผล: วิธีเดิมนับหมึกทุกจุดในภาพ ซึ่งพังทันทีเมื่อรูปมีสิ่งที่ตรงกับแกนภาพอยู่แล้ว
+//   — บล็อก JPEG · ขอบกระดาษ · รอยเงา · เส้นตาราง
+//   ของพวกนี้ตรง 0° อยู่แล้ว โปรไฟล์เลยพีคที่ 0° อย่างมั่นใจ ทั้งที่ข้อความเอียง 7°
+//   (วัดจริง: ภาพ hard เอียง 7° แต่คะแนนที่ 0° ชนะที่ 7° ถึง 2.7 เท่า)
+// ตัวอักษรมีขนาดใกล้เคียงกันทั้งหน้า ส่วนสิ่งรบกวนไม่ใช่ — คัดด้วยขนาดจึงแยกออกได้
+// ย่อภาพไบนารีลงมาให้หามุมได้เร็ว — หามุมไม่ต้องใช้ความละเอียดเต็ม
 function skewShrink(bin, w, h, target) {
   const scale = Math.min(1, target / Math.max(w, h));
   if (scale >= 1) return { bin, w, h };
@@ -3147,27 +3139,95 @@ function skewShrink(bin, w, h, target) {
   const out = new Uint8ClampedArray(nw * nh);
   for (let y = 0; y < nh; y++) {
     const sy = (y / scale) | 0;
-    for (let x = 0; x < nw; x++) {
-      out[y * nw + x] = bin[sy * w + ((x / scale) | 0)];
-    }
+    for (let x = 0; x < nw; x++) out[y * nw + x] = bin[sy * w + ((x / scale) | 0)];
   }
   return { bin: out, w: nw, h: nh };
 }
 
+function skewComponents(bin, w, h) {
+  const lab = new Int32Array(w * h).fill(-1);
+  const comps = [];
+  const stack = new Int32Array(w * h);
+  for (let p = 0; p < bin.length; p++) {
+    if (bin[p] !== 0 || lab[p] !== -1) continue;   // 0 = หมึก
+    let sp = 0;
+    stack[sp++] = p;
+    lab[p] = comps.length;
+    let x0 = p % w, x1 = x0, y0 = (p / w) | 0, y1 = y0, n = 0;
+    while (sp > 0) {
+      const q = stack[--sp];
+      const qx = q % w, qy = (q / w) | 0;
+      n++;
+      if (qx < x0) x0 = qx; if (qx > x1) x1 = qx;
+      if (qy < y0) y0 = qy; if (qy > y1) y1 = qy;
+      for (let dy = -1; dy <= 1; dy++) {
+        const ny = qy + dy;
+        if (ny < 0 || ny >= h) continue;
+        for (let dx = -1; dx <= 1; dx++) {
+          const nx = qx + dx;
+          if (nx < 0 || nx >= w) continue;
+          const r = ny * w + nx;
+          if (bin[r] === 0 && lab[r] === -1) { lab[r] = lab[p]; stack[sp++] = r; }
+        }
+      }
+    }
+    comps.push({ x0, x1, y0, y1, n, w: x1 - x0 + 1, h: y1 - y0 + 1 });
+  }
+  return comps;
+}
+
+// จุดที่เอาไปฉาย = จุดกึ่งกลางขอบล่างของแต่ละชิ้น (เส้นฐานของตัวอักษร)
+// เส้นฐานของตัวอักษรในบรรทัดเดียวกันเรียงตรงกันเสมอ ต่อให้ตัวอักษรสูงไม่เท่ากัน
+// ส่วนสิ่งรบกวนไม่ได้เรียงเป็นเส้นฐาน จึงไม่สร้างพีคปลอม
+function skewBaselines(bin, w, h) {
+  const comps = skewComponents(bin, w, h);
+  if (comps.length < 8) return null;
+  const hs = comps.map(c => c.h).sort((a, b) => a - b);
+  const med = hs[hs.length >> 1];
+  if (med < 2) return null;
+  const keep = comps.filter(c =>
+    c.h >= Math.max(2, med * 0.45) && c.h <= med * 3.2 &&    // สูงพอ ๆ กับตัวอักษรทั่วไป
+    c.w <= med * 14 &&                                       // ยาวเกินไป = เส้นตาราง/ขอบกระดาษ
+    c.n >= 3 &&                                              // เล็กเกินไป = จุดรบกวน
+    c.n <= c.w * c.h * 0.92);                                // ตันทั้งกล่อง = ก้อนเงา ไม่ใช่ตัวอักษร
+  if (keep.length < 8) return null;
+  return { pts: keep.map(c => ({ x: (c.x0 + c.x1) / 2, y: c.y1 })), med };
+}
+
+// คะแนนของมุมหนึ่ง = ความ "กองรวมเป็นแถบ" ของเส้นฐานหลังหักความเอียงออก
+function skewScorePts(pts, tan, h) {
+  const rows = new Float64Array(h * 2 + 4);
+  const off = h >> 1;
+  for (let i = 0; i < pts.length; i++) {
+    const r = (pts[i].y - tan * pts[i].x + off) | 0;
+    if (r >= 0 && r < rows.length) rows[r]++;
+  }
+  let s = 0;
+  for (let i = 0; i < rows.length; i++) s += rows[i] * rows[i];
+  return s;
+}
+
 // คืนมุมเอียงเป็นองศา (บวก = ภาพเอียงตามเข็ม ต้องหมุนทวนเข็มเพื่อแก้)
+// คืน null เมื่อหาไม่ได้อย่างมั่นใจ — ดีกว่าเดามั่วแล้วหมุนผิดทาง
 function ocrFindSkew(binPrep) {
   const s = skewShrink(binPrep.gray, binPrep.w, binPrep.h, DESKEW_WORK);
+  const base = skewBaselines(s.bin, s.w, s.h);
+  if (!base) return 0;
   const scan = (from, to, step) => {
     let bestA = 0, bestS = -1;
     for (let a = from; a <= to + 1e-9; a += step) {
-      const sc = skewScore(s.bin, s.w, s.h, Math.tan(a * Math.PI / 180));
+      const sc = skewScorePts(base.pts, Math.tan(a * Math.PI / 180), s.h);
       if (sc > bestS) { bestS = sc; bestA = a; }
     }
-    return bestA;
+    return { a: bestA, s: bestS };
   };
   const coarse = scan(-DESKEW_MAX, DESKEW_MAX, DESKEW_STEP);
-  // รอบสองละเอียดขึ้นรอบ ๆ มุมที่ได้ — ได้ความละเอียด 0.1 องศาโดยไม่ต้องไล่ทั้งช่วง
-  return +scan(coarse - DESKEW_STEP, coarse + DESKEW_STEP, 0.1).toFixed(2);
+  const fine = scan(coarse.a - DESKEW_STEP, coarse.a + DESKEW_STEP, 0.1);
+  // ต้องชนะมุม 0 องศาชัดเจนพอ ไม่งั้นถือว่าไม่มั่นใจ แล้วปล่อยภาพไว้อย่างเดิม
+  // กันเคสที่เส้นฐานกระจายจนพีคไม่มีความหมาย — หมุนมั่วแย่กว่าไม่หมุน
+  const flat = skewScorePts(base.pts, 0, s.h);
+  if (fine.s < flat * 1.08) return 0;
+  return +fine.a.toFixed(2);
 }
 
 // หมุนภาพเทาตามมุมที่หาได้ แล้วคืนโครงเดียวกับ ocrToGray เพื่อเอาไปไบนารีใหม่

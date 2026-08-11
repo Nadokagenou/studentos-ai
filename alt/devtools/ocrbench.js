@@ -1,3 +1,7 @@
+// (ห่อด้วย IIFE เพื่อให้ฉีดไฟล์นี้ซ้ำได้โดยไม่พัง — const ที่ประกาศซ้ำใน script scope
+//  จะโยน SyntaxError ทั้งไฟล์ ซึ่งเคยทำให้ console เต็มไปด้วย error ตอนทดสอบหลายรอบ)
+(function () {
+if (window.__ocrbench) { console.log('[ocrbench] โหลดไว้อยู่แล้ว'); return; }
 // ============================================================
 // StudentOS ALT — เครื่องมือวัดผล OCR (เครื่องมือนักพัฒนา)
 //
@@ -195,4 +199,146 @@ async function loadRealCases() {
   return out;
 }
 
-console.log('[ocrbench] พร้อมแล้ว — ลอง: await benchSkew()  หรือ  await benchOcr()');
+// ============================================================
+// ชุดทดสอบแบบ "เหมือนรูปถ่ายจริง"
+//
+// ชุดแรกที่วาดด้วย canvas เฉย ๆ ง่ายเกินไป — Tesseract อ่านออกหมดแม้เอียง 7 องศา
+// ทุกอย่างเลยได้ 100% และวัดไม่ได้ว่าอะไรช่วยจริง
+// ชุดนี้ใส่สิ่งที่รูปถ่ายจริงมีติดมาด้วยเสมอ แล้วค่อยวัด
+// ============================================================
+
+// ---------- แสงไม่สม่ำเสมอ / เงาทาบ ----------
+// มือถือถ่ายใกล้ ๆ มักมีเงามือหรือเงาตัวเองทาบมุมใดมุมหนึ่ง
+function degShadow(cv, strength = 0.55) {
+  const ctx = cv.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, cv.width, cv.height);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(0.55, 'rgba(0,0,0,' + (strength * 0.35) + ')');
+  g.addColorStop(1, 'rgba(0,0,0,' + strength + ')');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  // แสงจ้าอีกมุมหนึ่ง — กระดาษสะท้อนไฟเพดาน
+  const h = ctx.createRadialGradient(cv.width * 0.18, cv.height * 0.12, 10,
+    cv.width * 0.18, cv.height * 0.12, cv.width * 0.5);
+  h.addColorStop(0, 'rgba(255,255,255,.5)');
+  h.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = h;
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  return cv;
+}
+
+// ---------- มุมกล้อง (perspective) ----------
+// canvas ทำ perspective ตรง ๆ ไม่ได้ — วาดทีละแถบแนวนอนแล้วย่อความกว้างไล่ลงมาแทน
+// amt = ด้านบนแคบกว่าด้านล่างกี่ส่วน (0.12 = เอียงกล้องพอประมาณ)
+function degPerspective(cv, amt = 0.12) {
+  const out = document.createElement('canvas');
+  out.width = cv.width; out.height = cv.height;
+  const ctx = out.getContext('2d');
+  ctx.fillStyle = '#f4f2ee';
+  ctx.fillRect(0, 0, out.width, out.height);
+  const rows = cv.height;
+  for (let y = 0; y < rows; y++) {
+    const t = y / rows;
+    const shrink = amt * (1 - t);                 // บนแคบ ล่างกว้าง
+    const w = cv.width * (1 - shrink);
+    ctx.drawImage(cv, 0, y, cv.width, 1, (cv.width - w) / 2, y, w, 1);
+  }
+  return out;
+}
+
+// ---------- เบลอจากมือสั่น ----------
+function degBlur(cv, px = 1) {
+  const out = document.createElement('canvas');
+  out.width = cv.width; out.height = cv.height;
+  const ctx = out.getContext('2d');
+  ctx.filter = 'blur(' + px + 'px)';
+  ctx.drawImage(cv, 0, 0);
+  return out;
+}
+
+// ---------- ความละเอียดต่ำ (ถ่ายห่าง / ครอบแล้วเหลือนิดเดียว) ----------
+function degDownscale(cv, factor = 0.45) {
+  const s = document.createElement('canvas');
+  s.width = Math.round(cv.width * factor); s.height = Math.round(cv.height * factor);
+  s.getContext('2d').drawImage(cv, 0, 0, s.width, s.height);
+  return s;
+}
+
+// ---------- JPEG คุณภาพต่ำ ----------
+async function degJpeg(cv, q = 0.45) {
+  const url = cv.toDataURL('image/jpeg', q);
+  const img = await new Promise((res, rej) => {
+    const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url;
+  });
+  const out = document.createElement('canvas');
+  out.width = cv.width; out.height = cv.height;
+  out.getContext('2d').drawImage(img, 0, 0);
+  return out;
+}
+
+// ---------- ระดับความยาก ----------
+// easy   = ชุดเดิม (คุมไว้เป็นฐานเทียบ)
+// medium = เงา + เบลอเล็กน้อย + JPEG
+// hard   = เงาแรง + มุมกล้อง + เบลอ + ความละเอียดต่ำ + JPEG แรง  ← ใกล้ของจริงที่สุด
+async function benchMakeHard(sheet, deg, level) {
+  let cv = benchRender(sheet, deg, { noise: level === 'easy' ? 6 : 14 });
+  if (level === 'easy') return cv;
+  if (level === 'medium') {
+    cv = degShadow(cv, 0.4);
+    cv = degBlur(cv, 0.8);
+    return await degJpeg(cv, 0.6);
+  }
+  // hard
+  cv = degPerspective(cv, 0.11);
+  cv = degShadow(cv, 0.62);
+  cv = degBlur(cv, 1.2);
+  cv = degDownscale(cv, 0.5);
+  return await degJpeg(cv, 0.42);
+}
+
+// ---------- วัดผลบนชุดยาก ----------
+async function benchHard(opts = {}) {
+  const levels = opts.levels || ['easy', 'medium', 'hard'];
+  const angles = opts.angles || [0, 4, 7];
+  const sheets = opts.sheets || BENCH_SHEETS;
+  const rows = [];
+  await getOcrWorker();
+  for (const level of levels) {
+    for (const sheet of sheets) {
+      for (const a of angles) {
+        const cv = await benchMakeHard(sheet, a, level);
+        for (const on of [false, true]) {
+          const r = await benchOnce(cv, on);
+          const cmp = benchCompare(r.parsed, sheet.expect);
+          rows.push({ level, sheet: sheet.id, เอียง: a, แก้เอียง: on ? 'เปิด' : 'ปิด',
+            conf: r.conf, มุมที่หา: r.deg, ได้: cmp.ได้, จาก: cmp.จาก, พลาด: cmp.พลาด.join(',') || '-' });
+        }
+      }
+    }
+    const cur = rows.filter(x => x.level === level);
+    const side = on => { const r = cur.filter(x => x.แก้เอียง === (on ? 'เปิด' : 'ปิด'));
+      return r.reduce((a,x)=>a+x.ได้,0) + '/' + r.reduce((a,x)=>a+x.จาก,0); };
+    console.log(`[hard] ${level}: ปิด ${side(false)} · เปิด ${side(true)}`);
+  }
+  const summary = levels.map(level => {
+    const cur = rows.filter(x => x.level === level);
+    const side = on => { const r = cur.filter(x => x.แก้เอียง === (on ? 'เปิด' : 'ปิด'));
+      const g = r.reduce((a,x)=>a+x.ได้,0), t = r.reduce((a,x)=>a+x.จาก,0);
+      return { ช่อง: g + '/' + t, pct: +(g/t*100).toFixed(1),
+        conf: Math.round(r.reduce((a,x)=>a+x.conf,0)/r.length) }; };
+    const off = side(false), on = side(true);
+    return { ระดับ: level, ปิด: off.ช่อง + ' (' + off.pct + '%)', เปิด: on.ช่อง + ' (' + on.pct + '%)',
+      ต่าง: +(on.pct - off.pct).toFixed(1) + '%', confปิด: off.conf, confเปิด: on.conf };
+  });
+  console.table(rows); console.table(summary);
+  return { rows, summary };
+}
+
+Object.assign(window, {
+  BENCH_SHEETS, benchRender, benchSkew, benchCompare, benchOnce, benchOcr,
+  REAL_CASES, loadRealCases, degShadow, degPerspective, degBlur, degDownscale,
+  degJpeg, benchMakeHard, benchHard,
+});
+window.__ocrbench = true;
+console.log('[ocrbench] พร้อมแล้ว — await benchSkew() · await benchOcr() · await benchHard()');
+})();
