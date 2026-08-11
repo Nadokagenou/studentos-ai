@@ -3522,8 +3522,33 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 .tl-note .tile { background: #fff; }
 .tl-note .tile svg { width: 22px; height: 22px; }
 
-/* ปุ่ม "ให้ AI อ่าน" — ปุ่มพื้นอ่อนอยู่แล้ว แค่ขยายมาร์คให้เห็นลายหนังสือ */
-.ai-read svg { width: 19px; height: 19px; }
+/* ปุ่มส่งข้อความให้ AI — เปลี่ยนจากคำว่า "ให้ AI อ่าน" เป็นสัญลักษณ์ Enter
+   เพราะคนเห็นลูกศรแล้วรู้ทันทีว่ากดเพื่อส่ง ไม่ต้องแปลคำก่อน
+   คำอธิบายว่า AI ทำอะไรให้ ย้ายไปอยู่ที่ .paste-note ใต้หัวข้อแทน */
+.ai-read {
+  width: 46px; height: 46px; min-height: 46px;
+  padding: 0; border-radius: 14px;
+  justify-content: center; gap: 0;
+}
+.ai-read svg { width: 21px; height: 21px; }
+
+/* บอกก่อนว่าจะได้อะไรกลับมา คนถึงจะยอมวางข้อความลงไป */
+.paste-note {
+  margin: -3px 2px 0;
+  font-size: 12.5px; line-height: 1.6;
+  color: var(--muted);
+}
+
+/* "พิมพ์เพิ่มเองทีละช่อง" เคยเป็นตัวหนังสือลอย ๆ คนนึกว่าเป็นคำอธิบาย ไม่ใช่ปุ่ม
+   ใส่กรอบเส้นประจาง ๆ ให้เห็นว่ากดได้ แต่ยังเบากว่าปุ่มหลักอยู่ */
+.manual {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0 16px;
+  background: var(--card2);   /* พื้นอ่อนคือสัญญาณว่า "กดได้" ที่อ่านออกทุกธีม เส้นขอบอย่างเดียวจางเกินในธีมมืด */
+  transition: border-color .15s ease, color .15s ease, transform .14s ease;
+}
+.manual:active { transform: scale(.98); color: var(--blue); }
 
 /* ---------- หน้าล็อกอิน: แผ่นรองโลโก้ ---------- */
 .login-plate {
@@ -3593,3 +3618,464 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 .ob-mark, .ig-icon img {
   border-radius: 0; box-shadow: none; object-fit: contain;
 }
+
+/* ============================================================
+   เชื่อมแอป + Google Classroom (1A6M5)
+   ============================================================ */
+
+/* การ์ด "เชื่อมแอป" ในเมนู — เป็นทางเข้า ไม่ใช่งานค้าง
+   จึงไม่ใช้สีเตือน แต่ใช้พื้นจางสีแบรนด์ให้ต่างจากไทล์ธรรมดาพอให้สังเกตเห็น */
+.mtile.link {
+  background: var(--blue-soft);
+  border-color: color-mix(in srgb, var(--blue) 22%, transparent);
+}
+.mtile.link .mt-ic { background: var(--blue); color: var(--on-accent); }
+.mtile.link .mt-ct {
+  background: color-mix(in srgb, var(--blue) 16%, transparent);
+  color: var(--blue);
+}
+/* กล่องเข้าตอนมีของค้าง — ตอนนี้เท่านั้นที่ควรใช้สีเตือน */
+.mtile.wide.alert { border-color: color-mix(in srgb, var(--alert) 35%, transparent); }
+
+/* ---------- แผงเชื่อม Classroom ---------- */
+.cr-on {
+  display: flex; align-items: center; gap: 7px;
+  margin-top: 10px; font-size: 12px; font-weight: 600;
+  color: var(--good, #22C55E);
+}
+.cr-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: currentColor; flex: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 22%, transparent);
+}
+.cr-act { display: flex; gap: 8px; margin-top: 10px; }
+.cr-act .ib-go { flex: 1; }
+.cr-act .ib-go[disabled] { opacity: .6; pointer-events: none; }
+.cr-off {
+  flex: none; padding: 0 14px; min-height: 40px;
+  border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--line); background: transparent;
+  color: var(--muted); font-family: inherit; font-size: 12.5px; font-weight: 600;
+}
+.cr-off:active { transform: scale(.97); }
+
+/* ============================================================
+   หน้าแรกใหม่ — คำตอบเดียว ไม่ใช่เมนู
+   เดิมหน้าแรกเป็นกริด 7 ปุ่มน้ำหนักเท่ากันหมด ผู้ใช้ต้องอ่านครบก่อนตัดสินใจ
+   ตอนนี้มีของชิ้นเดียวที่ใหญ่จนมองข้ามไม่ได้ (.lead) ที่เหลือลดลงเป็นของรอง
+   ============================================================ */
+
+/* ระยะห่างเดิม 28px ตั้งไว้ตอนหน้าแรกมีไม่กี่ก้อน — โครงใหม่มีชิ้นย่อยเยอะกว่า
+   ถ้าคงไว้ทั้งจอจะยืดจนต้องเลื่อนหาของ · บีบลงแล้วค่อยเว้นเป็นจุด ๆ ที่ต้องการ */
+.home-body { gap: 14px; }
+.home-body > .sec-label { margin-top: 8px; }
+.home-body > .he-grid { margin-top: 6px; }
+.home-body .page-title { font-size: var(--t-title); }
+
+/* ของทุกชิ้นที่ "ลอย" ได้เท่ากัน = ไม่มีอะไรลอยจริง
+   ในจอนี้อนุญาตให้การ์ดนำลอยอยู่ชิ้นเดียว ที่เหลือนอนราบกับพื้นแล้วใช้เส้นขอบบาง ๆ แทน
+   นี่คือเหตุผลหลักที่จอเดิมรู้สึก "เฉย ๆ" — ทุกกล่องใช้เงาชุดเดียวกันหมดทั้ง 30 จุด */
+.home-body .rank-card,
+.home-body .he,
+.home-body .wg {
+  box-shadow: none;
+  border: 1px solid var(--line);
+}
+.home-body .rank-card { border-radius: var(--r-tile); }
+.home-body .rc-title { font-size: var(--t-body); }
+.home-body .rc-meta { font-size: var(--t-meta); }
+.home-body .sec-label { font-size: var(--t-label); }
+.home-body .df-tx { font-size: var(--t-meta); }
+.home-body .he-lb { font-size: var(--t-label); }
+
+/* พื้นหลังภาพของผู้ใช้ทำให้เส้นขอบบางจมหาย — คืนเงาให้เฉพาะกรณีนั้น */
+:root[data-bg="on"] .home-body .rank-card,
+:root[data-bg="on"] .home-body .he {
+  box-shadow: var(--shadow);
+}
+
+/* ---------- บันไดขนาดตัวอักษร ----------
+   ปัญหาเดิม: ขนาดตัวอักษรทั้งแอปมี 30 ค่า แต่เกาะกลุ่มอยู่ในช่วง 16–27px แทบทั้งหมด
+   ห่างกันไม่ถึง 1.7 เท่า = ทุกอย่าง "ดังเท่ากันหมด" ตาเลยไม่รู้ว่าต้องดูอะไรก่อน
+   ชุดนี้ห่างกัน 4 เท่าจากบนลงล่าง ของสำคัญจึงดังจริง ของรองเงียบจริง
+   ค่าพวกนี้คือชุดเดียวที่จอใหม่ใช้ ห้ามใส่ px ลอย ๆ เพิ่มนอกบันไดนี้ */
+:root {
+  --t-hero: 52px;   /* ตัวเลขนับถอยหลัง — ชิ้นเดียวในจอที่ได้ขนาดนี้ */
+  --t-title: 22px;  /* หัวจอ */
+  --t-lead: 19px;   /* ชื่องานบนการ์ดนำ */
+  --t-body: 14px;   /* เนื้อความ ปุ่ม */
+  --t-meta: 12px;   /* ข้อมูลประกอบ */
+  --t-label: 10.5px;/* ป้ายกำกับ ตัวพิมพ์ใหญ่ */
+}
+
+/* ---------- การ์ดนำ: "ทำอันนี้ก่อน" ---------- */
+.lead {
+  position: relative; overflow: hidden;
+  background: var(--grad-hero); color: #fff;
+  border-radius: calc(var(--r-card) + 2px);
+  padding: 17px 17px 16px;
+  box-shadow: var(--shadow-lg);
+}
+.lead::before {
+  content: ""; position: absolute; top: -70px; right: -56px;
+  width: 190px; height: 190px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,.15), transparent 70%);
+}
+.lead-top {
+  position: relative; display: flex; align-items: center;
+  justify-content: space-between; gap: 10px; margin-bottom: 11px;
+}
+.lead-eyebrow {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: var(--t-label); font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: rgba(255,255,255,.92);
+}
+.lead-eyebrow svg { width: 18px; height: 18px; flex: none; }
+
+.lead-main {
+  position: relative; display: block; width: 100%; text-align: left;
+  background: none; border: none; padding: 0; margin: 0;
+  color: inherit; font-family: inherit; cursor: pointer;
+}
+
+/* ตัวเลขนับถอยหลัง — ของชิ้นเดียวในแอปที่ได้ขนาดนี้
+   ที่ต้องใหญ่ขนาดนี้เพราะมันคือข้อมูลเดียวที่ตัดสินใจแทนได้โดยไม่ต้องอ่านอะไรเลย
+   เห็นเลข 2 กับคำว่า "วัน" จบ ไม่ต้องประมวลผลประโยคใด ๆ ต่อ */
+.lead-count { display: flex; align-items: baseline; gap: 8px; margin-bottom: 1px; }
+.lc-n {
+  font-size: var(--t-hero); font-weight: 700; line-height: .92;
+  letter-spacing: -.05em; color: #fff; font-variant-numeric: tabular-nums;
+}
+.lc-u { font-size: var(--t-lead); font-style: normal; font-weight: 500; color: rgba(255,255,255,.72); }
+.lc-lb {
+  display: block; margin-bottom: 13px;
+  font-size: var(--t-label); font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: rgba(255,255,255,.55);
+}
+/* เลยกำหนดแล้ว = ตัวเลขต้องอ่านว่า "แย่แล้ว" ทันที ไม่ใช่เลขเฉย ๆ */
+.lead.over .lc-n, .lead.over .lc-u { color: #FFD9D4; }
+.lead.over .lc-lb { color: #FFB4AB; }
+
+.lead-title {
+  display: block; font-size: var(--t-lead); font-weight: 700; line-height: 1.34;
+  letter-spacing: -.026em; color: #fff;
+}
+.lead-meta {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 7px; font-size: var(--t-meta); color: rgba(255,255,255,.78);
+}
+.lead-meta .msep {
+  width: 3px; height: 3px; border-radius: 50%;
+  background: rgba(255,255,255,.45); display: inline-block;
+}
+.lead-prog {
+  position: relative; height: 4px; margin-top: 12px;
+  border-radius: 999px; background: rgba(255,255,255,.22); overflow: hidden;
+}
+.lead-prog span { display: block; height: 100%; background: #fff; border-radius: 999px; }
+
+/* ---------- ลายเซ็นของแอป: แถบน้ำหนักเหตุผล ----------
+   ไม่มีแอปจัดตารางตัวไหนโชว์อันนี้ได้ เพราะมันไม่ได้คำนวณอะไรมาก่อนจะเรียง
+   ของเราคำนวณอยู่แล้วจริง ๆ — แค่เดิมทิ้งตัวเลขแล้วโชว์ออกมาเป็นคำเฉย ๆ
+   นี่คือของชิ้นที่ควรถูกถ่ายลงคลิปตอนพรีเซนต์ ไม่ใช่หน้าตั้งค่าธีม */
+.lead-why {
+  position: relative; margin-top: 15px; padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,.17);
+}
+.lw-lb {
+  display: flex; align-items: center; gap: 7px; margin-bottom: 11px;
+  font-size: var(--t-label); font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: rgba(255,255,255,.64);
+}
+.lw-lb svg { width: 15px; height: 15px; flex: none; }
+
+.lw-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.lw-row:last-child { margin-bottom: 0; }
+.lw-tx {
+  flex: 0 0 40%; min-width: 0; font-size: var(--t-meta); line-height: 1.35;
+  color: rgba(255,255,255,.9);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.lw-bar {
+  flex: 1; height: 6px; border-radius: 999px;
+  background: rgba(255,255,255,.16); overflow: hidden;
+}
+.lw-bar i { display: block; height: 100%; border-radius: 999px; background: #fff; }
+.lw-pc {
+  flex: none; width: 34px; text-align: right;
+  font-size: var(--t-meta); font-weight: 700; color: rgba(255,255,255,.82);
+  font-variant-numeric: tabular-nums;
+}
+
+.lead-act { position: relative; display: flex; gap: 8px; margin-top: 15px; }
+.la-done, .la-snooze {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 48px; border: none; border-radius: 999px; cursor: pointer;
+  font-family: inherit; font-size: var(--t-body); font-weight: 700; letter-spacing: -.01em;
+  transition: transform .16s;
+}
+/* ปุ่มพื้นขาวต้องใช้หมึกเข้มตายตัว — var(--ink) เป็นสีอ่อนในธีมมืด จะจมหาย */
+.la-done { flex: 1.7; background: #fff; color: #1F2430; }
+.la-snooze { flex: 1; background: rgba(255,255,255,.17); color: #fff; }
+.la-done svg, .la-snooze svg { width: 16px; height: 16px; flex: none; }
+.la-done:active, .la-snooze:active { transform: scale(.97); }
+
+/* ---------- ปุ่มเลื่อนบนการ์ดงานถัดไป ---------- */
+/* ปัดซ้าย/ขวาเป็นทางลัดของคนที่ใช้คล่อง ไม่ใช่ทางเดียว
+   WCAG 2.5.1 บังคับว่าทุกอย่างที่ทำด้วยการลากนิ้ว ต้องมีปุ่มกดแทนได้ด้วย */
+.rc-side { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: none; }
+.rc-snooze {
+  width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); background: transparent; color: var(--faint);
+  transition: transform .16s;
+}
+.rc-snooze svg { width: 15px; height: 15px; }
+.rc-snooze:active { transform: scale(.9); }
+
+/* วงกลมขนาด 36px กำลังดีในสายตาสำหรับงานรอง แต่พื้นที่นิ้วต้องได้ 44px ตามเกณฑ์ HIG
+   จึงขยาย "เขตกด" ออกไปอีกด้านละ 5px โดยไม่ขยายวงกลมที่มองเห็น
+   ระยะห่างระหว่างสองปุ่มตั้งไว้ 10px = 5+5 พอดี เขตกดจึงชนกันโดยไม่ทับกัน */
+.rc-side .rc-check, .rc-side .rc-snooze { position: relative; }
+.rc-side .rc-check { width: 36px; height: 36px; }
+.rc-side .rc-check svg { width: 16px; height: 16px; }
+.rc-side .rc-check::after, .rc-side .rc-snooze::after {
+  content: ""; position: absolute; inset: -5px; border-radius: 50%;
+}
+
+/* ---------- แถบเตือนกล่องเข้า ---------- */
+.inbox-alert {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 12px 13px; border: none; border-radius: var(--r-tile);
+  background: var(--warn-soft); color: var(--ink);
+  font-family: inherit; text-align: left; cursor: pointer;
+}
+.ia-ic {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  width: 34px; height: 34px; border-radius: 11px;
+  background: rgba(0,0,0,.07); color: var(--warn);
+}
+.ia-ic svg { width: 17px; height: 17px; }
+.ia-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ia-tx b { font-size: 13.5px; font-weight: 700; letter-spacing: -.01em; }
+.ia-tx i { font-style: normal; font-size: 11.5px; color: var(--muted); }
+.ia-go { display: flex; flex: none; color: var(--faint); }
+.ia-go svg { width: 16px; height: 16px; }
+.inbox-alert:active { transform: scale(.985); }
+
+/* ---------- เวลาพอไหม ---------- */
+.day-fit {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 12px 14px; border-radius: var(--r-tile); background: var(--card2);
+}
+.df-tx { font-size: 12.5px; line-height: 1.55; color: var(--ink); }
+.df-tx b { font-weight: 700; }
+.df-note { font-size: 11.5px; color: var(--muted); }
+.day-fit.over { background: var(--alert-soft); }
+.day-fit.over .df-note { color: var(--alert); font-weight: 600; }
+
+/* ---------- ปุ่มไปหน้าวางแผน ---------- */
+.plan-cta {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; min-height: 46px; border: none; border-radius: var(--r-tile);
+  background: var(--blue-soft); color: var(--blue); cursor: pointer;
+  font-family: inherit; font-size: 13.5px; font-weight: 700; letter-spacing: -.01em;
+  transition: transform .16s;
+}
+.plan-cta svg { width: 16px; height: 16px; flex: none; }
+.plan-cta svg:last-child { width: 14px; height: 14px; opacity: .65; margin-left: -3px; }
+.plan-cta:active { transform: scale(.985); }
+
+/* ---------- ทางเข้าอื่น ๆ ท้ายหน้า ---------- */
+.he-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.he {
+  position: relative; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 7px;
+  min-height: 74px; padding: 12px 5px 11px;
+  border: none; border-radius: var(--r-tile); cursor: pointer;
+  background: var(--card); box-shadow: var(--shadow);
+  font-family: inherit; transition: transform .16s;
+}
+.he-ic { display: flex; color: var(--blue); }
+.he-ic svg { width: 19px; height: 19px; }
+.he-lb {
+  font-size: 11px; font-weight: 600; line-height: 1.3;
+  text-align: center; color: var(--ink);
+}
+.he-ct {
+  position: absolute; top: 6px; right: 6px;
+  display: flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 17px; padding: 0 5px; border-radius: 999px;
+  background: var(--card2); color: var(--faint);
+  font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.he:active { transform: scale(.97); }
+
+@media (prefers-reduced-motion: reduce) {
+  .la-done, .la-snooze, .rc-snooze, .plan-cta, .he { transition: none; }
+}
+
+/* ============================================================
+   ระบบชั้นความเด่น (3 ชั้น) + สีประจำเสาหลัก
+   ------------------------------------------------------------
+   ผู้ใช้เลือกไว้ว่าฟีเจอร์ที่ต้อง "เด่นสุด" มี 3 อย่าง ซึ่งต่อกันเป็นวงจรพอดี:
+       งานไหลเข้าเอง  →  AI ตัดสินใจให้  →  ทำเสร็จได้รางวัล  →  วนกลับ
+   ที่ไม่ได้เลือก (พิมพ์เอง · ตั้งค่า · ธีม) ต้องถูกกดให้เงียบลงทุกหน้า
+
+   สีทำหน้าที่แยก "เสา" ไม่ใช่ตกแต่ง — เห็นสีเขียวน้ำเงินที่ไหนแปลว่าของไหลเข้าเอง
+   เห็นสีทองแปลว่ารางวัล เห็นโทนแบรนด์แปลว่า AI กำลังตัดสินใจ
+   ทั้งสามสีถูกล็อกไว้ค่าเดียวทุกธีม เพราะความหมายห้ามเปลี่ยนตามธีม
+   (ธีมเปลี่ยนได้ 16 แบบ ถ้าสีความหมายเปลี่ยนตาม ผู้ใช้จะจำไม่ได้ว่าสีไหนแปลว่าอะไร)
+   ค่าที่เลือกเข้มพอให้ตัวอักษรขาวผ่าน WCAG AA (>4.5:1) บนพื้นตัวมันเองทุกใบ
+   ============================================================ */
+:root {
+  --pillar-flow: #0E6A60;        /* งานไหลเข้าเอง */
+  --pillar-flow-soft: #D7F0EC;
+  --pillar-reward: #8A5A0C;      /* รางวัล */
+  --pillar-reward-soft: #FBEFD6;
+}
+:root[data-theme="dark"], :root[data-theme="space"], :root[data-theme="galaxy"],
+:root[data-theme="magic"], :root[data-theme="deepocean"], :root[data-theme="genesis"] {
+  --pillar-flow-soft: rgba(29,158,117,.17);
+  --pillar-reward-soft: rgba(239,159,39,.16);
+}
+
+/* ---------- ชั้น 1: ของที่ต้องเห็นก่อนเสมอ ---------- */
+/* กล่องทึบสีเสา + ตัวอักษรขาว + เงา — ในหนึ่งจอมีได้ไม่กี่ใบเท่านั้น
+   ถ้าใส่เยอะกว่านี้ ชั้น 1 จะเลิกแปลว่า "สำคัญ" ทันที */
+.t1 {
+  display: block; width: 100%; border: none; text-align: left;
+  border-radius: calc(var(--r-card) + 2px); padding: 15px 16px;
+  color: #fff; font-family: inherit; box-shadow: var(--shadow-lg);
+  position: relative; overflow: hidden; cursor: pointer;
+  transition: transform .16s;
+}
+.t1:active { transform: scale(.985); }
+.t1.flow { background: var(--pillar-flow); }
+.t1.reward { background: var(--pillar-reward); }
+.t1-lb {
+  display: flex; align-items: center; gap: 7px; margin-bottom: 9px;
+  font-size: var(--t-label); font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: rgba(255,255,255,.72);
+}
+.t1-lb svg { width: 15px; height: 15px; flex: none; }
+
+/* ---------- ชั้น 3: ของที่ยังต้องมี แต่ห้ามแย่งสายตา ---------- */
+/* ไม่มีพื้น ไม่มีเงา เหลือแค่เส้นคั่นบาง ๆ — อ่านออกแต่ไม่ดึงตา */
+.t3-row {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  padding: 11px 2px; border: none; background: none; cursor: pointer;
+  font-family: inherit; text-align: left; color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+.t3-row:last-child { border-bottom: none; }
+.t3-row .lb { flex: 1; font-size: var(--t-body); color: var(--ink); font-weight: 500; }
+.t3-row .vl { font-size: var(--t-meta); color: var(--faint); }
+.t3-row svg { width: 16px; height: 16px; flex: none; color: var(--faint); }
+
+/* ---------- แถบงานไหลเข้าเอง (หน้าแรก) ---------- */
+/* เดิมแถบนี้หายไปทั้งแถบตอนไม่มีของค้าง = ซ่อนฟีเจอร์เรือธงไปครึ่งเวลา
+   แก้เป็น: มีของค้าง = ชั้น 1 เต็มใบ · ไม่มีของค้าง = เหลือบรรทัดสถานะเงียบ ๆ
+   ฟีเจอร์ยังประกาศตัวอยู่ตลอด แต่ไม่ตะโกนตอนไม่มีอะไรให้ทำ */
+.flow-quiet {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 10px 13px; border-radius: var(--r-tile); cursor: pointer;
+  border: 1px solid var(--line); background: transparent;
+  font-family: inherit; text-align: left;
+}
+.flow-quiet .dot {
+  width: 7px; height: 7px; border-radius: 50%; flex: none;
+  background: var(--pillar-flow);
+}
+.flow-quiet .tx { flex: 1; font-size: var(--t-meta); color: var(--muted); }
+.flow-quiet .tx b { color: var(--ink); font-weight: 600; }
+.flow-quiet .go { width: 14px; height: 14px; flex: none; color: var(--faint); }
+
+.t1 .fw-n {
+  font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+}
+.t1 .fw-tx { font-size: var(--t-body); line-height: 1.5; color: rgba(255,255,255,.92); }
+.t1 .fw-sub { margin-top: 3px; font-size: var(--t-meta); color: rgba(255,255,255,.7); }
+.fw-head { display: flex; align-items: flex-end; gap: 10px; }
+.fw-head .fw-bd { flex: 1; min-width: 0; }
+
+/* ---------- แถบรางวัล (หน้าแรก) ---------- */
+/* เดิมโทเคน สตรีค เหรียญ อยู่ลึก 2 ชั้นในหน้า "ฉัน" — วงจรเลยขาดตอนตรงรางวัล
+   ดึงขึ้นมาไว้ท้ายหน้าแรก: ทำงานเสร็จแล้วเลื่อนลงมาเห็นผลของตัวเองทันที */
+.rw-grid { display: flex; align-items: stretch; gap: 0; }
+.rw-cell { flex: 1; min-width: 0; }
+.rw-cell .v {
+  font-size: 26px; font-weight: 700; line-height: 1.05; letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums; color: #fff;
+}
+.rw-cell .k {
+  margin-top: 3px; font-size: var(--t-label); font-weight: 600;
+  color: rgba(255,255,255,.68); letter-spacing: .04em;
+}
+.rw-sep { width: 1px; flex: none; margin: 2px 13px; background: rgba(255,255,255,.2); }
+.rw-next { margin-top: 13px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.18); }
+.rw-next .nm {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-size: var(--t-meta); color: rgba(255,255,255,.9); margin-bottom: 7px;
+}
+.rw-next .nm b { font-weight: 700; }
+.rw-bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,.2); overflow: hidden; }
+.rw-bar i { display: block; height: 100%; border-radius: 999px; background: #fff; }
+
+@media (prefers-reduced-motion: reduce) { .t1 { transition: none; } }
+
+/* ============================================================
+   จัดชั้นความเด่นให้จอที่เหลือ
+   กติกาเดียวกันทุกจอ: เสาหลัก 3 ต้น (ไหลเข้า · ตัดสินใจ · รางวัล) ดัง
+   ที่เหลือ (พิมพ์เอง · ตั้งค่า · ธีม) เงียบ
+   ============================================================ */
+
+/* ---------- จอ "ฉัน" ---------- */
+/* เดิม 4 ปุ่มนี้หน้าตาเท่ากันหมด — ร้านค้า เหรียญ เพื่อน และ "ตั้งค่า"
+   ทั้งที่สามอันแรกคือเสารางวัล ส่วนตั้งค่าเป็นของที่เข้าปีละไม่กี่ครั้ง */
+.pf-entry.rewardy .pe-ic {
+  background: var(--pillar-reward-soft); color: var(--pillar-reward);
+}
+.pf-entry.rewardy .pe { border-left: 3px solid var(--pillar-reward); border-radius: 0 var(--r-tile) var(--r-tile) 0; }
+.pf-quiet-list { margin-top: 14px; padding: 0 2px; }
+
+/* ---------- จอตั้งค่า ---------- */
+/* ตารางธีม 16 ปุ่มเคยเป็นก้อนที่สูงที่สุดในจอตั้งค่า ทั้งที่ธีมไม่ใช่ฟีเจอร์ที่ถูกเลือก
+   ย่อสวอตช์ลงให้เห็นครบในตาเดียว ไม่ต้องเลื่อนผ่านทีละแถว */
+#scr-settings .th-grid { gap: 6px; }
+#scr-settings .th-grid button { padding: 7px 4px; }
+#scr-settings .th-grid .sw { width: 26px; height: 26px; }
+#scr-settings .th-grid .nm { font-size: var(--t-label); }
+
+/* ---------- จอเพิ่มงาน ---------- */
+/* "พิมพ์เอง/ถ่ายรูป" ไม่ใช่ฟีเจอร์ที่ถูกเลือกให้เด่น — ยังต้องใช้ได้เต็มที่
+   แต่ไม่ต้องตะโกน · เอาเงาออก เหลือเส้นขอบ ให้เท่ากับของรองในจออื่น */
+#scr-scan .voice-hero, #scr-scan .scan-tile .tile, #scr-scan .paste-card {
+  box-shadow: none; border: 1px solid var(--line);
+}
+/* เตือนว่ามีทางที่ไม่ต้องพิมพ์เลย — ทางลัดไปเสา "ไหลเข้า" จากจอที่คนพิมพ์มืออยู่ */
+.scan-flow-hint {
+  display: flex; align-items: center; gap: 9px; width: 100%; margin-top: 4px;
+  padding: 11px 13px; border-radius: var(--r-tile); cursor: pointer;
+  border: 1px solid var(--pillar-flow); background: var(--pillar-flow-soft);
+  font-family: inherit; text-align: left;
+}
+.scan-flow-hint svg { width: 16px; height: 16px; flex: none; color: var(--pillar-flow); }
+.scan-flow-hint .tx { flex: 1; font-size: var(--t-meta); line-height: 1.5; color: var(--ink); }
+.scan-flow-hint .tx b { color: var(--pillar-flow); font-weight: 700; }
+
+/* ---------- จอแหล่งข้อมูล + กล่องเข้า ---------- */
+/* สองจอนี้คือเสา "ไหลเข้า" ทั้งคู่ ต้องใส่สีเสาให้จำได้ว่าเป็นเรื่องเดียวกัน */
+#scr-sources .src.on .src-ic { background: var(--pillar-flow-soft); color: var(--pillar-flow); }
+#scr-sources .src-n { background: var(--pillar-flow); color: #fff; }
+#scr-inbox .ib-conf.ok { background: var(--pillar-flow-soft); color: var(--pillar-flow); }
+
+/* หลักฐานว่าเครื่องยนต์ทำงานอยู่จริง — ตัวเลข "AI จัดเข้าแผนให้เองแล้วกี่รายการ"
+   คือสิ่งเดียวที่พิสูจน์ว่า auto-ingest ไม่ใช่แค่คำโฆษณา จึงต้องเป็นชั้น 1 */
+.auto-proof { margin-bottom: 12px; }
+.auto-proof .ap-n {
+  font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums; color: #fff;
+}
+.auto-proof .ap-tx { margin-top: 5px; font-size: var(--t-meta); color: rgba(255,255,255,.82); line-height: 1.5; }

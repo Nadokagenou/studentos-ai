@@ -29,9 +29,9 @@ const SOURCES = [
   { id: 'line',      name: 'LINE (บอทในกลุ่มห้อง)', icon: 'chat', live: true, link: 'line', viaInbox: true,
     desc: 'ครูสั่งงานในกลุ่มครั้งเดียว เข้าระบบให้ทุกคนที่เชื่อมไว้พร้อมกัน',
     note: 'LINE ไม่เปิดให้อ่านแชทส่วนตัวของใครทั้งนั้น — บอทเห็นเฉพาะข้อความในกลุ่มที่ถูกเชิญเข้าไปเท่านั้น' },
-  { id: 'classroom', name: 'Google Classroom', icon: 'book',   live: false,
+  { id: 'classroom', name: 'Google Classroom', icon: 'book', live: true, link: 'classroom', viaInbox: true,
     desc: 'ดึงงานที่ครูมอบหมายและกำหนดส่งมาเอง',
-    needs: 'ต้องมี Google Cloud project + OAuth consent screen (โหมด test user ใช้ได้เลย)' },
+    note: 'ขอสิทธิ์อ่านอย่างเดียว — แอปไม่เคยเขียนอะไรกลับเข้า Classroom' },
 ];
 const sourceById = id => SOURCES.find(s => s.id === id) || SOURCES[0];
 
@@ -272,12 +272,20 @@ function renderInbox() {
       : `เข้าแผนเองแล้ว ${auto} รายการ`;
   }
 
+  const auto2 = all.filter(i => i.status === 'accepted').length;
   const head = `<div class="page-head">
     <div class="eyebrow">ของที่ไหลเข้ามาเอง</div>
     <h1 class="page-title">กล่องเข้า</h1>
-    <p class="page-sub">AI อ่านทุกอย่างที่เข้ามาก่อน แล้วถามเฉพาะตอนที่ไม่มั่นใจ
-      — ที่เหลือเข้าแผนให้เองโดยไม่ต้องกด</p>
-  </div>`;
+  </div>`
+    // ตัวเลข "จัดเข้าแผนให้เองแล้วกี่รายการ" คือหลักฐานชิ้นเดียวที่พิสูจน์ว่า
+    // auto-ingest ทำงานจริง ไม่ใช่คำโฆษณา — เดิมมันเป็นตัวหนังสือจาง ๆ ใต้หัวข้อ
+    + (auto2 ? `<div class="t1 flow auto-proof">
+        <div class="t1-lb">${icon('brand')}AI จัดการให้เองแล้ว</div>
+        <div class="ap-n mono">${auto2}</div>
+        <div class="ap-tx">รายการที่เข้าแผนไปเองโดยคุณไม่ต้องกดอะไรเลย</div>
+      </div>`
+      : `<p class="page-sub">AI อ่านทุกอย่างที่เข้ามาก่อน แล้วถามเฉพาะตอนที่ไม่มั่นใจ
+          — ที่เหลือเข้าแผนให้เองโดยไม่ต้องกด</p>`);
 
   const card = it => {
     const p = it.parsed, s = sourceById(it.source);
@@ -351,18 +359,17 @@ function renderSources() {
       <span class="src-ic">${icon(s.icon)}</span>
       <span class="src-bd"><span class="t">${esc(s.name)}</span><span class="s">${esc(s.desc)}</span>
         ${s.note ? `<span class="src-note">${esc(s.note)}</span>` : ''}
-        ${s.link === 'line' ? lineLinkPanel() : ''}</span>
+        ${s.link === 'line' ? lineLinkPanel() : ''}${s.link === 'classroom' && typeof crPanel === 'function' ? crPanel() : ''}</span>
       ${s.viaInbox ? `<span class="src-n">${counts[s.id] || 0}</span>` : ''}
     </div>`).join('')}
 
-    <div class="sec-title">ยังต่อไม่ได้</div>
+    ${SOURCES.some(s => !s.live) ? `<div class="sec-title">ยังต่อไม่ได้</div>
     ${SOURCES.filter(s => !s.live).map(s => `<div class="src">
       <span class="src-ic off">${icon(s.icon)}</span>
       <span class="src-bd"><span class="t">${esc(s.name)}</span><span class="s">${esc(s.desc)}</span>
         <span class="src-need">${icon('lock')}${esc(s.needs)}</span>
         ${s.note ? `<span class="src-note">${esc(s.note)}</span>` : ''}</span>
     </div>`).join('')}
-
     <p class="src-foot">ที่ยังต่อไม่ได้ ติดที่การเปิดบัญชีนักพัฒนา ไม่ได้ติดที่โค้ด —
-      เปิดได้เมื่อไหร่ เสียบเข้ากล่องเข้าได้ทันทีโดยไม่ต้องแก้ส่วนอื่นของแอป</p>`;
+      เปิดได้เมื่อไหร่ เสียบเข้ากล่องเข้าได้ทันทีโดยไม่ต้องแก้ส่วนอื่นของแอป</p>` : ''}`;
 }

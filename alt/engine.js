@@ -348,9 +348,15 @@ function parseAssignment(text, now = new Date(), opts = {}) {
 }
 
 // ---------- 2) ลำดับความสำคัญ + เหตุผล ----------
+// factors = เหตุผลเดียวกับ reasons แต่พ่วงน้ำหนักคะแนนที่ใช้จริงมาด้วย
+// มีไว้ให้หน้าจอกาง "วิธีคิด" ของ AI ออกมาได้ตรง ๆ ว่าคะแนนนี้มาจากไหนบ้าง
+// เดิมตัวเลขพวกนี้ถูกบวกทิ้งอยู่ในตัวแปรแล้วโชว์ออกมาแค่คำ ทั้งที่มันคือหลักฐาน
+// ว่า AI ไม่ได้เดา — add() จึงบันทึกทั้งสองอย่างพร้อมกัน กันไม่ให้สองชุดหลุดจากกัน
 function priorityInfo(task, now = new Date()) {
   const reasons = [];
+  const factors = [];
   let score = 0;
+  const add = (pts, label) => { score += pts; reasons.push(label); factors.push({ label, pts }); };
 
   const due = task.due ? new Date(task.due) : null;
   const hoursLeft = due ? (due - now) / 3.6e6 : null;
@@ -363,37 +369,36 @@ function priorityInfo(task, now = new Date()) {
   if (due) {
     if (type === 'activity' || type === 'reminder') {
       // เหตุการณ์ตามเวลา: ไม่ต้องเจียดเวลาทำล่วงหน้า ความด่วนพุ่งเฉพาะตอนใกล้ถึงเวลา
-      if (hoursLeft < 0)        { score += 30; reasons.push('⚠ เลยเวลาแล้ว'); }
-      else if (hoursLeft <= 3)  { score += 55; reasons.push('อีก ' + Math.max(1, Math.round(hoursLeft)) + ' ชม. ถึงเวลา'); }
-      else if (hoursLeft <= 14) { score += 38; reasons.push('ถึงเวลาวันนี้'); }
-      else if (hoursLeft <= 30) { score += 24; reasons.push('ถึงเวลาพรุ่งนี้'); }
-      else                      { score += 6;  reasons.push('ยังอีกหลายวัน'); }
+      if (hoursLeft < 0)        { add(30, '⚠ เลยเวลาแล้ว'); }
+      else if (hoursLeft <= 3)  { add(55, 'อีก ' + Math.max(1, Math.round(hoursLeft)) + ' ชม. ถึงเวลา'); }
+      else if (hoursLeft <= 14) { add(38, 'ถึงเวลาวันนี้'); }
+      else if (hoursLeft <= 30) { add(24, 'ถึงเวลาพรุ่งนี้'); }
+      else                      { add(6,  'ยังอีกหลายวัน'); }
     } else if (effHours < 0 && hoursLeft >= 0) {
       // ถึงเวลาที่ควรเริ่มเตรียมตัวแล้ว (ใช้กับสอบเป็นหลัก)
-      score += 46;
-      reasons.push(type === 'exam' ? 'สอบใน ' + Math.max(1, Math.round(hoursLeft / 24)) + ' วัน — ควรเริ่มอ่านแล้ว' : 'ควรเริ่มได้แล้ว');
-    } else if (hoursLeft < 0)        { score += 60; reasons.push('⚠ เลยกำหนดแล้ว'); }
-    else if (effHours <= 6)  { score += 50; reasons.push(ti.verb + 'ภายใน ' + Math.max(1, Math.round(hoursLeft)) + ' ชม.'); }
-    else if (effHours <= 30) { score += 40; reasons.push('ใกล้กำหนด' + (type === 'exam' ? 'สอบ' : 'ส่ง')); }
-    else if (effHours <= 54) { score += 28; reasons.push(ti.verb + 'ใน 2 วัน'); }
-    else if (effHours <= 24 * 7) { score += 14; reasons.push(ti.verb + 'ภายในสัปดาห์นี้'); }
-    else                      { score += 5;  reasons.push('ยังพอมีเวลา'); }
-  } else { score += 10; reasons.push('ยังไม่ระบุกำหนด'); }
+      add(46, type === 'exam' ? 'สอบใน ' + Math.max(1, Math.round(hoursLeft / 24)) + ' วัน — ควรเริ่มอ่านแล้ว' : 'ควรเริ่มได้แล้ว');
+    } else if (hoursLeft < 0)        { add(60, '⚠ เลยกำหนดแล้ว'); }
+    else if (effHours <= 6)  { add(50, ti.verb + 'ภายใน ' + Math.max(1, Math.round(hoursLeft)) + ' ชม.'); }
+    else if (effHours <= 30) { add(40, 'ใกล้กำหนด' + (type === 'exam' ? 'สอบ' : 'ส่ง')); }
+    else if (effHours <= 54) { add(28, ti.verb + 'ใน 2 วัน'); }
+    else if (effHours <= 24 * 7) { add(14, ti.verb + 'ภายในสัปดาห์นี้'); }
+    else                      { add(5,  'ยังพอมีเวลา'); }
+  } else { add(10, 'ยังไม่ระบุกำหนด'); }
 
-  if (task.scorePct != null) {
-    score += Math.min(30, task.scorePct);
-    reasons.push('คะแนน ' + task.scorePct + '%');
-  }
-  if (type === 'exam') { score += 12; reasons.push('เป็นการสอบ'); }
+  if (task.scorePct != null) add(Math.min(30, task.scorePct), 'คะแนน ' + task.scorePct + '%');
+  if (type === 'exam') add(12, 'เป็นการสอบ');
 
   // เวลาที่ใช้ทำมีความหมายเฉพาะงานที่ต้องนั่งทำ — กิจกรรมไม่ต้องเจียดเวลา
   if (ti.schedulable) {
-    if (task.estMin >= 90)      { score += 15; reasons.push((type === 'exam' ? 'อ่าน' : 'งานใหญ่') + ' ~' + Math.round(task.estMin / 60 * 10) / 10 + ' ชม. — ควรเริ่มก่อน'); }
-    else if (task.estMin >= 45) { score += 9;  reasons.push('ใช้เวลา ~' + task.estMin + ' นาที'); }
-    else                        { score += 4;  reasons.push('~' + task.estMin + ' นาที'); }
+    if (task.estMin >= 90)      { add(15, (type === 'exam' ? 'อ่าน' : 'งานใหญ่') + ' ~' + Math.round(task.estMin / 60 * 10) / 10 + ' ชม. — ควรเริ่มก่อน'); }
+    else if (task.estMin >= 45) { add(9,  'ใช้เวลา ~' + task.estMin + ' นาที'); }
+    else                        { add(4,  '~' + task.estMin + ' นาที'); }
   }
 
   let stars = score >= 70 ? 5 : score >= 55 ? 4 : score >= 40 ? 3 : score >= 25 ? 2 : 1;
+  // เกณฑ์ตัดดาว — หน้าจอใช้บอกว่าอีกกี่คะแนนจะขยับขั้น โดยไม่ต้องรู้สูตรข้างใน
+  const cut = 70;
+  let byUser = false;
 
   // ผู้ใช้กำหนดความสำคัญเอง → เคารพการตัดสินใจของเขา (override AI)
   // ลำดับภายในดาวเท่ากัน: ใกล้ deadline กว่ามาก่อน
@@ -402,12 +407,16 @@ function priorityInfo(task, now = new Date()) {
     score = task.userStars * 20
       + (hoursLeft != null ? Math.max(0, 15 - Math.max(0, hoursLeft) / 12) : 0);
     reasons.unshift('★ กำหนดความสำคัญเอง');
+    // คะแนนถูกคิดใหม่ทั้งก้อน รายการน้ำหนักเดิมจึงไม่ใช่ที่มาของเลขนี้อีกต่อไป
+    // ถ้าปล่อยไว้ หน้าจอจะกางตัวเลขที่บวกแล้วไม่ตรงกับผลรวม = โกหกผู้ใช้
+    byUser = true;
   }
   const urgency = (hoursLeft != null && hoursLeft < 0) ? 'over'
     : (hoursLeft != null && hoursLeft <= 30) ? 'hot'
     : (hoursLeft != null && hoursLeft <= 54) ? 'mid' : 'norm';
 
-  return { score, stars, reasons, hoursLeft, urgency, type, typeInfo: ti };
+  return { score, stars, reasons, factors: byUser ? [] : factors, byUser, cut,
+    hoursLeft, urgency, type, typeInfo: ti };
 }
 
 function sortByPriority(tasks, now = new Date()) {

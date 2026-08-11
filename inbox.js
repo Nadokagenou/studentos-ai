@@ -29,9 +29,9 @@ const SOURCES = [
   { id: 'line',      name: 'LINE (บอทในกลุ่มห้อง)', icon: 'chat', live: true, link: 'line', viaInbox: true,
     desc: 'ครูสั่งงานในกลุ่มครั้งเดียว เข้าระบบให้ทุกคนที่เชื่อมไว้พร้อมกัน',
     note: 'LINE ไม่เปิดให้อ่านแชทส่วนตัวของใครทั้งนั้น — บอทเห็นเฉพาะข้อความในกลุ่มที่ถูกเชิญเข้าไปเท่านั้น' },
-  { id: 'classroom', name: 'Google Classroom', icon: 'book',   live: false,
+  { id: 'classroom', name: 'Google Classroom', icon: 'book', live: true, link: 'classroom', viaInbox: true,
     desc: 'ดึงงานที่ครูมอบหมายและกำหนดส่งมาเอง',
-    needs: 'ต้องมี Google Cloud project + OAuth consent screen (โหมด test user ใช้ได้เลย)' },
+    note: 'ขอสิทธิ์อ่านอย่างเดียว — แอปไม่เคยเขียนอะไรกลับเข้า Classroom' },
 ];
 const sourceById = id => SOURCES.find(s => s.id === id) || SOURCES[0];
 
@@ -351,18 +351,17 @@ function renderSources() {
       <span class="src-ic">${icon(s.icon)}</span>
       <span class="src-bd"><span class="t">${esc(s.name)}</span><span class="s">${esc(s.desc)}</span>
         ${s.note ? `<span class="src-note">${esc(s.note)}</span>` : ''}
-        ${s.link === 'line' ? lineLinkPanel() : ''}</span>
+        ${s.link === 'line' ? lineLinkPanel() : ''}${s.link === 'classroom' && typeof crPanel === 'function' ? crPanel() : ''}</span>
       ${s.viaInbox ? `<span class="src-n">${counts[s.id] || 0}</span>` : ''}
     </div>`).join('')}
 
-    <div class="sec-title">ยังต่อไม่ได้</div>
+    ${SOURCES.some(s => !s.live) ? `<div class="sec-title">ยังต่อไม่ได้</div>
     ${SOURCES.filter(s => !s.live).map(s => `<div class="src">
       <span class="src-ic off">${icon(s.icon)}</span>
       <span class="src-bd"><span class="t">${esc(s.name)}</span><span class="s">${esc(s.desc)}</span>
         <span class="src-need">${icon('lock')}${esc(s.needs)}</span>
         ${s.note ? `<span class="src-note">${esc(s.note)}</span>` : ''}</span>
     </div>`).join('')}
-
     <p class="src-foot">ที่ยังต่อไม่ได้ ติดที่การเปิดบัญชีนักพัฒนา ไม่ได้ติดที่โค้ด —
-      เปิดได้เมื่อไหร่ เสียบเข้ากล่องเข้าได้ทันทีโดยไม่ต้องแก้ส่วนอื่นของแอป</p>`;
+      เปิดได้เมื่อไหร่ เสียบเข้ากล่องเข้าได้ทันทีโดยไม่ต้องแก้ส่วนอื่นของแอป</p>` : ''}`;
 }

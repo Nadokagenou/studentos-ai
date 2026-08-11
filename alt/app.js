@@ -444,7 +444,7 @@ function renderAppearance() {
 // สลับระหว่างจอพวกนี้ = "แนวนอน" (จางสลับ) ไม่ใช่การเข้าไปข้างในหรือถอยออกมา
 // เข้าไปจอที่ไม่มีบนแถบเมนู = "เข้า" (เลื่อนมาจากขวา) · กลับออกมา = "ถอย" (เลื่อนมาจากซ้าย)
 // ทิศทางที่ตรงกับสิ่งที่เพิ่งกด ทำให้รู้ว่าตัวเองอยู่ตรงไหนของแอปโดยไม่ต้องอ่านหัวจอ
-const TOP_SCREENS = ['scr-menu', 'scr-home', 'scr-tasks', 'scr-timeline', 'scr-profile'];
+const TOP_SCREENS = ['scr-home', 'scr-tasks', 'scr-timeline', 'scr-profile'];
 let curScreen = '';
 
 function navDirection(from, to) {
@@ -458,6 +458,9 @@ let enterTimer = null;
 
 function go2(id){ return go(id); }
 function go(id) {
+  // จอเมนูกริดถูกยุบรวมเข้าหน้าแรกแล้ว — ทางเรียกเก่าที่หลงเหลือ (ปุ่มลัด, deep link,
+  // service worker) ยังใช้ชื่อเดิมได้ ไม่พาไปจอเปล่า
+  if (id === 'scr-menu') id = 'scr-home';
   const dir = navDirection(curScreen, id);
   curScreen = id;
   document.body.dataset.godir = dir;
@@ -488,11 +491,20 @@ function cloudConfigured() {
 async function initCloud() {
   if (!cloudConfigured()) return;
   sb = supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonKey);
-  const { data: { session } } = await sb.auth.getSession();
+  // ไม่มี try/catch หรือลิมิตเวลาตรงนี้มาก่อน — เน็ตหลุดหรือ Supabase ตอบช้าตอนบูต
+  // แปลว่าแอปค้างที่ฉากเปิดตลอดไป (initApp โยน error ค้างไว้ ไม่มีใครจับ)
+  // ให้ล้มแบบเงียบแล้วเข้าแอปแบบไม่ล็อกอินแทน ดีกว่าค้างไม่ให้ใช้อะไรเลย
+  let session = null;
+  try {
+    ({ data: { session } } = await withTimeout(sb.auth.getSession(), 6000, 'เชื่อมบัญชี'));
+  } catch (e) { console.warn('[cloud] getSession failed:', e.message); }
   currentUser = session ? session.user : null;
+  // provider_token ของ Google อยู่แค่ในเซสชันรอบที่เพิ่งล็อกอิน — ไม่คว้าเก็บตอนนี้แล้วหายเลย
+  if (typeof crCaptureToken === 'function') crCaptureToken(session);
   sb.auth.onAuthStateChange((event, sess) => {
     const wasLoggedIn = !!currentUser;
     currentUser = sess ? sess.user : null;
+    if (typeof crCaptureToken === 'function') crCaptureToken(sess);
     if (currentUser && !wasLoggedIn) {
       // เพิ่งล็อกอินเสร็จ (รวมถึงกลับมาจากหน้า Google)
       if ('Notification' in window && Notification.permission === 'granted') {
@@ -601,23 +613,13 @@ function snoozeBadge(t) {
   const n = t.snoozeCount || 1;
   return `<span class="tag snoozed">${icon('clock')}เลื่อน${n > 1 ? ' ×' + n : ''}</span>`;
 }
-// ---------- ALT: หน้าแรก = เมนูหลัก ----------
-// รวมทางเข้าฟีเจอร์หลักไว้ที่เดียว กดแล้วเด้งไปเลย
-// ตัวเลขบนไทล์เป็นข้อมูลจริงจาก state ไม่ใช่คำอธิบาย — หน้านี้ตั้งใจให้ไม่มีข้อความอธิบายเลย
-function menuTile(cls, ic, label, sub, count, target) {
-  return `<button class="mtile ${cls}" onclick="go('${target}')">
-    <span class="mt-ic">${icon(ic)}</span>
-    <span class="mt-tx"><span class="mt-lb">${label}</span><span class="mt-sub">${sub}</span></span>
-    ${count != null ? `<span class="mt-ct">${count}</span>` : ''}
-  </button>`;
-}
-
 // ---------- ALT 1A6M3: วิดเจ็ตบนหน้าแรก ----------
 // ช่องบนสุดของหน้าแรกที่ผู้ใช้เลือกเองว่าจะให้แสดงอะไร
 const WG_KEY = 'studentos.alt.widget';
 const WG_NOTE_KEY = 'studentos.alt.widgetNote';
 const WG_PHOTO_KEY = 'studentos.alt.widgetPhoto';
-const WG_NAME = { urgent: 'งานด่วนที่สุด', note: 'โน้ตของฉัน', clock: 'เวลา', photo: 'ภาพของฉัน' };
+const WG_NAME = { urgent: 'ไม่แสดง — งานด่วนอยู่บนสุดอยู่แล้ว', note: 'โน้ตของฉัน',
+  clock: 'เวลา', photo: 'ภาพของฉัน' };
 
 function widgetPref() {
   let v = null;
@@ -633,7 +635,7 @@ function widgetPhoto() {
 
 function setWidget(kind) {
   try { localStorage.setItem(WG_KEY, WG_NAME[kind] ? kind : 'urgent'); } catch (_) {}
-  renderMenu();
+  renderHome();
   renderAppearance();
 }
 
@@ -641,7 +643,7 @@ function saveWidgetNote() {
   const el = document.getElementById('wgNoteInput');
   if (!el) return;
   try { localStorage.setItem(WG_NOTE_KEY, el.value.slice(0, 240)); } catch (_) {}
-  renderMenu();
+  renderHome();
 }
 
 // โน้ตแก้ได้จากตัววิดเจ็ตเลย ไม่ต้องเข้าไปที่ตั้งค่า
@@ -653,13 +655,17 @@ function saveWidgetNoteInline(el) {
 
 function clearWidgetPhoto() {
   try { localStorage.removeItem(WG_PHOTO_KEY); } catch (_) {}
-  renderMenu();
+  renderHome();
   renderAppearance();
   showToast({ title: 'เอาภาพออกแล้ว', body: 'เลือกภาพใหม่ได้ทุกเมื่อ' });
 }
 
 function widgetHtml(now) {
   const kind = widgetPref();
+
+  // "งานด่วน" ถูกยกขึ้นไปเป็นการ์ดนำถาวรบนสุดของหน้าแรกแล้ว
+  // วางซ้ำอีกกล่องคือบอกเรื่องเดิมสองครั้ง — ตัวเลือกนี้จึงกลายเป็น "ไม่แสดงอะไรเพิ่ม"
+  if (kind === 'urgent') return '';
 
   if (kind === 'note') {
     return `<section class="wg wg-note">
@@ -717,60 +723,212 @@ function widgetHtml(now) {
   </section>`;
 }
 
-// ไทล์กล่องเข้า — วางกว้างเต็มแถวใต้ปุ่มเพิ่มงาน เพราะเป็นจอเดียวที่บอกว่า
-// "มีของเข้ามาเองระหว่างที่คุณไม่ได้เปิดแอป" ตัวเลขค้างจึงต้องสะดุดตากว่าตัวเลขอื่น
-function inboxTile() {
+// ---------- เสาที่ 1: งานไหลเข้าเอง ----------
+// เดิมแถบนี้หายไปทั้งแถบตอนกล่องเข้าว่าง = ซ่อนฟีเจอร์เรือธงไปครึ่งเวลาที่เปิดแอป
+// ("ของที่ไม่มีไม่ควรกินที่" ใช้กับฟีเจอร์รองได้ แต่ใช้กับเสาหลักไม่ได้ —
+//  ถ้าจุดขายหลักโผล่เฉพาะตอนมีปัญหา ผู้ใช้จะไม่มีวันรู้ว่ามันทำงานอยู่)
+//
+// มีของค้าง  → ชั้น 1 เต็มใบ ตัวเลขใหญ่ สีเสา "ไหลเข้า"
+// ไม่มีของค้าง → เหลือบรรทัดสถานะเงียบ ๆ ยังประกาศตัวอยู่ แต่ไม่ตะโกน
+function flowBar() {
   const wait = typeof inboxPending === 'function' ? inboxPending().length : 0;
-  return `<button class="mtile wide" onclick="go('scr-inbox')">
-    <span class="mt-ic">${icon('chat')}</span>
-    <span class="mt-tx"><span class="mt-lb">กล่องเข้า</span>
-      <span class="mt-sub">ข้อความจาก LINE ที่รอตรวจ</span></span>
-    <span class="mt-ct${wait ? ' hot' : ''}">${wait}</span>
+  const auto = (state.inbox || []).filter(i => i.status === 'accepted').length;
+  let on = 0;
+  if (typeof lineLinks !== 'undefined' && lineLinks.length) on += lineLinks.length;
+  if (typeof crToken === 'function' && crToken()) on++;
+
+  if (wait) {
+    return `<button class="t1 flow" onclick="go('scr-inbox')">
+      <span class="t1-lb">${icon('chat')}งานไหลเข้าเอง</span>
+      <span class="fw-head">
+        <b class="fw-n mono">${wait}</b>
+        <span class="fw-bd">
+          <span class="fw-tx">รายการรอคุณตัดสิน</span>
+          <span class="fw-sub">AI ไม่มั่นใจพอที่จะจัดเข้าแผนให้เอง${
+            auto ? ` · ที่เหลือจัดเองไปแล้ว ${auto}` : ''}</span>
+        </span>
+      </span>
+    </button>`;
+  }
+
+  // ยังไม่ได้เชื่อมอะไรเลย → ชวนเชื่อม ไม่ใช่ขึ้นว่า "ว่าง" เฉย ๆ
+  if (!on) {
+    return `<button class="flow-quiet" onclick="go('scr-sources')">
+      <span class="dot"></span>
+      <span class="tx">ยังไม่ได้เชื่อมแหล่งไหน — <b>เชื่อม LINE หรือ Classroom</b>
+        แล้วงานจะไหลเข้าเอง</span>
+      <svg class="go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+    </button>`;
+  }
+  return `<button class="flow-quiet" onclick="go('scr-inbox')">
+    <span class="dot"></span>
+    <span class="tx">เชื่อมไว้ <b>${on} แหล่ง</b> · งานไหลเข้าเอง${
+      auto ? ` — จัดเข้าแผนให้แล้ว <b>${auto}</b> รายการ` : ' ไม่มีอะไรค้างให้ตรวจ'}</span>
+    <svg class="go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
   </button>`;
 }
 
-function renderMenu() {
-  const body = document.getElementById('menuBody');
-  if (!body) return;
-  const now = new Date();
-  const pending = pendingTasks();
-  const live = liveTasks();
-  const dated = pending.filter(t => t.due).length;
-  const h = now.getHours();
-  const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนค่ำ';
+// ---------- เสาที่ 3: รางวัล ----------
+// โทเคน สตรีค เหรียญ เคยอยู่ลึก 2 ชั้นในหน้า "ฉัน" — วงจรเลยขาดตอนตรงปลายทาง
+// ทำงานเสร็จแล้วไม่เห็นผลอะไรเลยในหน้าเดียวกัน ต้องไปตามหาเอง
+// ย้ายมาไว้ท้ายหน้าแรก: ติ๊กงานเสร็จ เลื่อนลงนิดเดียวก็เห็นผลของตัวเองทันที
+function rewardBar() {
+  const bal = tokenBalance();
+  const streak = loginStreak();
+  const got = badgesEarned().length;
+  const done = doneCount();
 
-  const doneWeek = liveTasks().filter(t => t.done && t.doneAt &&
-    (now - new Date(t.doneAt)) < 7 * 8.64e7).length;
+  // เหรียญถัดไปที่ยังไล่ได้จริง (เหรียญลับ/GENESIS ไม่มีเป้าเป็นตัวเลข ข้ามไป)
+  const next = BADGES.filter(b => b.goal && !badgeEarned(b))
+    .sort((a, b) => a.goal - b.goal)[0];
+  const pc = next ? Math.min(100, Math.round(done / next.goal * 100)) : 100;
 
-  body.innerHTML = `<div class="menu-head">
-      <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
-      <h1 class="page-title">${greet}${who() ? ', ' + esc(who()) : ''}</h1>
-    </div>
-    ${widgetHtml(now)}
-    <div class="menu-grid">
-      ${menuTile('hero', 'camera', 'เพิ่มงานใหม่', 'ถ่ายรูป · พูด · แปะข้อความ', null, 'scr-scan')}
-      ${inboxTile()}
-      ${menuTile('', 'calendar', 'ตารางงาน', 'ลำดับที่ AI แนะนำ', pending.length, 'scr-home')}
-      ${menuTile('', 'check-circle', 'งานทั้งหมด', 'ค้าง · เสร็จ · ถังขยะ', live.length, 'scr-tasks')}
-      ${menuTile('', 'pin', 'เส้นทาง', 'ไทม์ไลน์ถึงกำหนดส่ง', dated, 'scr-timeline')}
-      ${menuTile('', 'user', 'ฉัน', 'ผลของฉัน · ธีม · ตั้งค่า', doneWeek ? doneWeek : null, 'scr-profile')}
-    </div>`;
+  return `<button class="t1 reward" onclick="go('scr-profile')">
+    <span class="t1-lb">${icon('medal')}ผลของคุณ</span>
+    <span class="rw-grid">
+      <span class="rw-cell"><span class="v mono">${bal}</span><span class="k">โทเคน</span></span>
+      <span class="rw-sep"></span>
+      <span class="rw-cell"><span class="v mono">${streak}</span><span class="k">วันติดต่อกัน</span></span>
+      <span class="rw-sep"></span>
+      <span class="rw-cell"><span class="v mono">${got}</span><span class="k">เหรียญ</span></span>
+    </span>
+    ${next ? `<span class="rw-next">
+      <span class="nm"><span>เหรียญถัดไป · ${esc(next.name)}</span>
+        <b class="mono">${done}/${next.goal}</b></span>
+      <span class="rw-bar"><i style="width:${pc}%"></i></span>
+    </span>` : ''}
+  </button>`;
 }
 
-// ---------- ตารางงาน (เดิมคือหน้าแรก) ----------
-// โครง: หัวข้อ → การ์ดสรุปของ AI → งาน 3 อันดับแรก → ทางไปงานที่เหลือ
-// การ์ดสรุปคือที่เดียวที่ AI "พูด" ยาว ๆ ได้ การ์ดงานจึงเหลือแต่ข้อมูลดิบล้วน
-function briefCard(pending, now) {
-  const top = pending[0];
-  const raw = aiGreeting(pending, state.settings, now);
-  // เน้นชื่อวิชากับจำนวนชั่วโมง เพราะเป็นสองคำที่สายตาต้องจับให้ได้ก่อน
-  let msg = esc(raw).replace(/~([\d.]+) ชม\./g, '<b>~$1 ชม.</b>');
-  if (top && top.subject) msg = msg.replace(esc(top.subject), '<b>' + esc(top.subject) + '</b>');
-  return `<div class="brief">
-    <div class="brief-head"><span class="brief-mark">${icon('brand')}</span><b>STUDENTOS AI</b></div>
-    <p class="brief-body">${msg}</p>
-    <button class="brief-cta" onclick="go('scr-plan')">${icon('calendar')}ให้ AI วางแผนเวลาวันนี้</button>
+// ---------- ทางเข้าอื่น ๆ ท้ายหน้าแรก ----------
+// เดิมคือกริด 7 ปุ่มน้ำหนักเท่ากันหมดที่กินครึ่งจอบนสุด — ผู้ใช้ต้องอ่านครบทุกปุ่มก่อนตัดสินใจ
+// ตอนนี้ถูกบีบเป็นแถวเดียวท้ายหน้า เพราะมันคือ "ทางไปที่อื่น" ไม่ใช่คำตอบของหน้านี้
+// (ปุ่มเพิ่มงานไม่อยู่ในนี้ — มันอยู่กลางแถบล่างซึ่งกดถึงได้จากทุกจอ)
+function heTile(ic, label, target, count) {
+  return `<button class="he" onclick="go('${target}')">
+    <span class="he-ic">${icon(ic)}</span>
+    <span class="he-lb">${label}</span>
+    ${count ? `<span class="he-ct">${count}</span>` : ''}
+  </button>`;
+}
+
+function homeEntries() {
+  const dated = pendingTasks().filter(t => t.due).length;
+  let on = 3;                       // สแกน · พูด · แปะข้อความ ใช้ได้เองอยู่แล้ว
+  if (typeof lineLinks !== 'undefined' && lineLinks.length) on++;
+  if (typeof crToken === 'function' && crToken()) on++;
+  const total = typeof SOURCES !== 'undefined' ? SOURCES.length : 5;
+  return `<div class="he-grid">
+    ${heTile('check-circle', 'งานทั้งหมด', 'scr-tasks', liveTasks().length)}
+    ${heTile('pin', 'เส้นทาง', 'scr-timeline', dated)}
+    ${heTile('chat', 'กล่องเข้า', 'scr-inbox')}
+    ${heTile('book', 'เชื่อมแอป', 'scr-sources', on + '/' + total)}
   </div>`;
+}
+
+// ---------- หน้าแรก: คำตอบเดียว ไม่ใช่เมนู ----------
+// โครง: ทักทาย → "ทำอันนี้ก่อน" พร้อมเหตุผล → งานถัดไป → เวลาพอไหม → ทางเข้าอื่น
+//
+// ที่ทิ้ง briefCard เดิมไป เพราะมันกับการ์ดนำเป็นเสียงของ AI ทั้งคู่ วางซ้อนกันแล้ว
+// แย่งกันพูด · ตอนนี้แบ่งหน้าที่ชัด: หัวจอบอก "ข้อเท็จจริง" การ์ดนำบอก "คำตัดสิน + เหตุผล"
+
+// งานทั้งหมดที่ค้างอยู่ ใช้เวลารวมเท่าไหร่ เทียบกับเวลาว่างที่ผู้ใช้บอกไว้
+// นับเฉพาะงานที่ต้องนั่งทำ — กิจกรรม/เตือนความจำเป็นหมุดเวลา ไม่กินเวลานั่งทำ
+function homeFit(pending) {
+  const freeH = state.settings.freeHours || 2;
+  const totalMin = pending.reduce((s, t) =>
+    s + (typeInfo(t).schedulable ? (t.estMin || 30) : 0), 0);
+  const totalH = Math.round(totalMin / 60 * 10) / 10;
+  return { totalH, freeH, over: totalH > freeH };
+}
+
+// เวลาที่เหลือ แยกเป็นตัวเลขกับหน่วย เพื่อให้จอวางคนละขนาดได้
+// ตัวเลขคือสิ่งเดียวบนจอที่ตัดสินใจแทนได้ทันทีโดยไม่ต้องอ่านอะไรเลย จึงต้องใหญ่ที่สุด
+function bigLeft(ms) {
+  if (ms == null) return { n: '—', u: '', lb: 'ยังไม่ได้ตั้งกำหนด' };
+  if (ms < 0) {
+    const d = Math.max(1, Math.round(-ms / 8.64e7));
+    return { n: d, u: d === 1 ? 'วัน' : 'วัน', lb: 'เลยกำหนดมาแล้ว', over: true };
+  }
+  const min = Math.round(ms / 60000);
+  if (min < 60) return { n: Math.max(1, min), u: 'นาที', lb: 'ก่อนถึงกำหนด' };
+  const h = Math.floor(min / 60);
+  if (h < 24) return { n: h, u: 'ชม.', lb: 'ก่อนถึงกำหนด' };
+  return { n: Math.round(h / 24), u: 'วัน', lb: 'ก่อนถึงกำหนด' };
+}
+
+// ปัดเปอร์เซ็นต์ให้รวมกันได้ 100 พอดีเสมอ (largest remainder)
+// ปัดตรง ๆ ทีละตัวแล้วบวกกันจะได้ 99 หรือ 101 เป็นบางที — แถบที่อ้างว่า "นี่คือวิธีคิด
+// ของ AI" แล้วบวกกันไม่ลงตัว จะทำลายความน่าเชื่อถือของทั้งจอ ทั้งที่เป็นแค่เศษปัดเลข
+function exactPct(vals) {
+  const fl = vals.map(Math.floor);
+  const rem = 100 - fl.reduce((a, c) => a + c, 0);
+  const order = vals.map((v, i) => ({ i, frac: v - Math.floor(v) }))
+    .sort((a, b) => b.frac - a.frac);
+  for (let k = 0; k < rem && k < order.length; k++) fl[order[k].i]++;
+  return fl;
+}
+
+// การ์ดนำ — จอนี้มีของชิ้นเดียวที่ใหญ่จนมองข้ามไม่ได้ และนี่คือชิ้นนั้น
+//
+// ลายเซ็นของแอปอยู่ที่แถบน้ำหนัก: engine ให้คะแนนแต่ละปัจจัยเป็นตัวเลขจริงอยู่แล้ว
+// แต่เดิมทิ้งตัวเลขนั้นแล้วโชว์ออกมาแค่คำ — กางออกมาเป็นสัดส่วนเลยว่าอะไรดันคะแนน
+// ขึ้นมาเท่าไหร่ นี่คือสิ่งที่แอปจัดตารางทั่วไปทำไม่ได้ เพราะมันไม่ได้คิดมาก่อนจะเรียง
+//
+// โชว์เป็น % ไม่ใช่คะแนนดิบ เพราะ "+40" ไม่มีความหมายถ้าไม่รู้ว่าเต็มเท่าไหร่
+// ส่วน "60% ของเหตุผล" อ่านรู้เรื่องทันทีโดยไม่ต้องรู้สูตรข้างใน
+function homeHero(t, now) {
+  const info = priorityInfo(t, now);
+  const tone = priorityTone(info.stars);
+  const ti = TASK_TYPES[taskType(t)];
+  const prog = Math.max(0, Math.min(100, t.progress || 0));
+  const left = bigLeft(t.due ? new Date(t.due) - now : null);
+
+  const bits = [];
+  if (t.due) bits.push(fmtDue(t.due, now, t));
+  if (ti.schedulable) bits.push('~' + t.estMin + ' นาที');
+  if (t.scorePct != null) bits.push('คะแนน ' + t.scorePct + '%');
+
+  // เรียงจากปัจจัยที่ดันแรงสุดลงมา — โชว์ครบทุกตัว ไม่ตัดทิ้ง
+  // engine ใส่ปัจจัยได้มากสุด 4 ตัว (กำหนดส่ง · คะแนน · เป็นข้อสอบ · ขนาดงาน)
+  // ถ้าตัดเหลือ 3 แถบจะรวมกันไม่ครบ 100% แล้วต้องมานั่งอธิบายว่าอีกกี่ % หายไปไหน
+  const tot = info.factors.reduce((s, f) => s + f.pts, 0) || 1;
+  const ranked = [...info.factors].sort((a, b) => b.pts - a.pts);
+  const pcs = exactPct(ranked.map(f => f.pts / tot * 100));
+  const why = ranked.length ? `<div class="lead-why">
+      <div class="lw-lb">${icon('brand')}AI ให้น้ำหนักจาก</div>
+      ${ranked.map((f, i) => `<div class="lw-row">
+          <span class="lw-tx">${esc(f.label.replace(/^[⚠★] /, ''))}</span>
+          <span class="lw-bar"><i style="width:${pcs[i]}%"></i></span>
+          <b class="lw-pc mono">${pcs[i]}%</b>
+        </div>`).join('')}
+    </div>` : (info.byUser ? `<div class="lead-why">
+      <div class="lw-lb">${icon('brand')}คุณตั้งความสำคัญเอง — AI ไม่แตะลำดับนี้</div>
+    </div>` : '');
+
+  return `<section class="lead ${tone}${left.over ? ' over' : ''}">
+    <div class="lead-top">
+      <span class="lead-eyebrow">${icon('brand')}ทำอันนี้ก่อน</span>
+      <span class="tag ${tone}">${esc(priorityLabel(info.stars))}</span>
+    </div>
+
+    <button class="lead-main" onclick="openForm('${t.id}')">
+      <span class="lead-count">
+        <b class="lc-n mono">${left.n}</b><i class="lc-u">${left.u}</i>
+      </span>
+      <span class="lc-lb">${left.lb}</span>
+      <span class="lead-title">${taskTitle(t)}</span>
+      ${bits.length ? `<span class="lead-meta">${bits.map(esc).join('<i class="msep"></i>')}</span>` : ''}
+    </button>
+
+    ${prog ? `<div class="lead-prog"><span style="width:${prog}%"></span></div>` : ''}
+    ${why}
+
+    <div class="lead-act">
+      <button class="la-done" onclick="toggleDone('${t.id}',this)">${icon('check')}ทำเสร็จแล้ว</button>
+      <button class="la-snooze" onclick="snoozeToTomorrow('${t.id}')">${icon('clock')}เลื่อน</button>
+    </div>
+  </section>`;
 }
 
 // การ์ดงานพร้อมเลขลำดับ — สีของเลขและป้ายมาจากระดับความสำคัญชุดเดียวกัน
@@ -799,8 +957,12 @@ function rankCard(t, n, now) {
         <div class="rc-title">${taskTitle(t)}</div>
         <div class="rc-meta">${bits.join('<i class="msep"></i>')}</div>
       </div>
-      <button class="rc-check" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
-        aria-label="ทำเสร็จ">${icon('check')}</button>
+      <div class="rc-side">
+        <button class="rc-check" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
+          aria-label="ทำเสร็จ">${icon('check')}</button>
+        <button class="rc-snooze" onclick="event.stopPropagation();snoozeToTomorrow('${t.id}')"
+          aria-label="เลื่อนไปพรุ่งนี้">${icon('clock')}</button>
+      </div>
     </div>
   </div>`;
 }
@@ -815,31 +977,55 @@ function renderHome() {
   const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนค่ำ';
   const name = state.settings.name || 'นักเรียน';
 
+  // หัวจอเป็นเสียงคน ไม่ใช่ชื่อเมนู — เปิดแอปมาแล้วต้องรู้สึกว่ามีคนทักก่อน
   const head = `<div class="page-head">
     <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
-    <h1 class="page-title">ตารางงาน</h1>
-    <p class="page-sub">งานค้าง <b>${pending.length}</b> · เสร็จแล้ว ${doneCount}
-      · เวลาว่างวันนี้ ~${state.settings.freeHours || 2} ชม.</p>
+    <h1 class="page-title">${greet}${who() ? ', ' + esc(who()) : ''}</h1>
   </div>`;
 
-  if (!pending.length) { body.innerHTML = head + emptyDay(doneCount, now); return; }
+  // แม้ไม่มีงานค้าง เสา "ไหลเข้า" กับ "รางวัล" ยังต้องอยู่
+  // จอว่างคือจอที่ผู้ใช้ภูมิใจที่สุด — เป็นจังหวะที่ควรเห็นผลของตัวเองมากที่สุดด้วย
+  if (!pending.length) {
+    body.innerHTML = head + flowBar() + emptyDay(doneCount, now)
+      + rewardBar() + homeEntries();
+    return;
+  }
 
-  // ALT: การ์ดที่โชว์ = 3 อันดับแรกของ AI + งานที่ถูกปัดเลื่อนไว้ (สูงสุด 3)
-  // งานที่เพิ่งเลื่อนลำดับจะตกลงไปท้ายแถวทันที ถ้าตัดที่ 3 เฉย ๆ คนปัดจะรู้สึกว่า "งานหายไป"
-  // จึงดึงกลับขึ้นมาแสดงเสมอ พร้อมเลขลำดับจริงของมัน — ยังอยู่ แค่ถูกเลื่อน
-  const top = pending.slice(0, 3);
-  const snoozed = pending.slice(3).filter(t => t.snoozedAt).slice(0, 3);
-  const rest = pending.length - top.length - snoozed.length;
+  const fit = homeFit(pending);
+  const top = pending[0];
+  // เหลืออีกแค่ 2 งานถัดไป — พอให้เห็นว่า "หลังจากนี้คืออะไร" โดยไม่กลายเป็นลิสต์ยาว
+  // ถ้าอยากเห็นทั้งหมดมีปุ่มไปหน้างานทั้งหมดอยู่ข้างล่างแล้ว
+  const next = pending.slice(1, 3);
+  // งานที่เพิ่งถูกปัดเลื่อนจะตกไปท้ายแถวทันที ถ้าตัดทิ้งเฉย ๆ คนปัดจะรู้สึกว่า "งานหายไป"
+  // จึงดึงกลับขึ้นมาแสดงพร้อมเลขลำดับจริง — ยังอยู่ แค่ถูกเลื่อน
+  const snoozed = pending.slice(3).filter(t => t.snoozedAt).slice(0, 2);
+  const rest = pending.length - 1 - next.length - snoozed.length;
 
-  body.innerHTML = head + briefCard(pending, now)
-    + `<div class="sec-label">ลำดับที่ AI แนะนำ</div>`
-    + `<div class="sw-hint"><span class="l">ทำเสร็จ${icon('chevron')}</span>
-        <span class="r">${icon('chevron')}เลื่อนพรุ่งนี้</span></div>`
-    + top.map((t, i) => rankCard(t, i + 1, now)).join('')
+  // ลำดับบนจอ = ลำดับของวงจร: ไหลเข้า → ตัดสินใจ → (ทำ) → รางวัล
+  body.innerHTML = head
+    + flowBar()
+    + homeHero(top, now)
+    + (next.length ? `<div class="sec-label">ต่อไป</div>`
+        + `<div class="sw-hint"><span class="l">ทำเสร็จ${icon('chevron')}</span>
+            <span class="r">${icon('chevron')}เลื่อนพรุ่งนี้</span></div>`
+        + next.map((t, i) => rankCard(t, i + 2, now)).join('') : '')
     + (snoozed.length ? `<div class="sec-label soft">${icon('clock')}เลื่อนไว้ — ยังอยู่ในแผน</div>`
         + snoozed.map(t => rankCard(t, pending.indexOf(t) + 1, now)).join('') : '')
+    // เวลาพอไหม = ข้อเท็จจริงที่ตัดสินใจต่อได้ ไม่ใช่ตัวเลขประดับ
+    // วางไว้ติดปุ่มวางแผนพอดี เพราะ "เวลาไม่พอ" คือเหตุผลเดียวที่คนจะกดปุ่มนั้น
+    + `<div class="day-fit${fit.over ? ' over' : ''}">
+        <span class="df-tx">งานค้าง <b>${pending.length}</b> · รวม ~${fit.totalH} ชม.
+          · ว่างวันนี้ ~${fit.freeH} ชม.</span>
+        <span class="df-note">${fit.over
+          ? 'เวลาไม่พอทำทั้งหมด — ไล่ตามลำดับข้างบนก่อน'
+          : 'เวลาพอสบาย ทำได้ครบวันนี้'}</span>
+      </div>`
+    + `<button class="plan-cta" onclick="go('scr-plan')">${icon('calendar')}ให้ AI จัดเวลาให้ทั้งวัน${icon('chevron')}</button>`
     + (rest > 0 ? `<button class="ghost-wide" onclick="go('scr-tasks')">
-        ดูงานที่เหลืออีก ${rest} งาน${icon('chevron')}</button>` : '');
+        ดูงานที่เหลืออีก ${rest} งาน${icon('chevron')}</button>` : '')
+    + rewardBar()
+    + widgetHtml(now)
+    + homeEntries();
 }
 
 // ---------- ALT: วันที่ไม่มีงานค้าง ----------
@@ -1847,6 +2033,8 @@ function renderStats() {
     days.push({ n, label: WEEKDAY_SHORT[d.getDay()], today: i === 0 });
   }
   const peak = Math.max(1, ...days.map(d => d.n));
+  // peak ถูกบังคับให้อย่างน้อย 1 เสมอ (กันหารศูนย์) จึงใช้ตัดสินว่ามีข้อมูลไหมไม่ได้
+  const weekTotal = days.reduce((a, d) => a + d.n, 0);
 
   // แยกตามวิชา (เฉพาะที่ทำเสร็จแล้ว)
   const bySubject = {};
@@ -1867,7 +2055,7 @@ function renderStats() {
       <div><div class="v">${estH}<span class="u">ชม.</span></div><div class="k">เวลาที่ประเมินไว้</div></div>
     </div>
 
-    <div class="st-card">
+    ${weekTotal ? `<div class="st-card">
       <div class="st-h">งานที่ติ๊กเสร็จ 7 วันล่าสุด</div>
       <div class="st-bars">
         ${days.map(d => `<div class="st-bar${d.today ? ' now' : ''}">
@@ -1876,7 +2064,7 @@ function renderStats() {
           <span class="d">${d.label}</span>
         </div>`).join('')}
       </div>
-    </div>
+    </div>` : ''}
 
     ${onTimePct != null ? `<div class="st-card">
       <div class="st-h">ส่งทันกำหนด</div>
@@ -1898,7 +2086,7 @@ function renderStats() {
 }
 
 function renderAll() {
-  renderMenu(); renderHome(); renderTasks(); renderTimeline();
+  renderHome(); renderTasks(); renderTimeline();
   renderProfile(); renderStats(); renderPlan(); renderFriends(); renderBadges();
   renderShop(); renderInstallCard(); renderTabBadges();
   // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น
@@ -2701,9 +2889,9 @@ function saveWidgetPhoto(canvas) {
     return;
   }
   try { localStorage.setItem(WG_KEY, 'photo'); } catch (_) {}
-  renderMenu(); renderAppearance();
+  renderHome(); renderAppearance();
   haptic('done');
-  go('scr-menu');
+  go('scr-home');
   showToast({ title: 'ตั้งภาพวิดเจ็ตแล้ว 🖼', body: 'เปลี่ยนหรือเอาออกได้ที่แท็บ “ฉัน”' });
 }
 
@@ -2767,9 +2955,14 @@ async function runOcrOn(source, how) {
 
     if (text.length < 5 || conf < OCR_CONF_MIN) {
       lastOcrConfidence = null;
-      alert('อ่านตัวหนังสือจากรูปนี้ไม่ค่อยออก (ความมั่นใจ ' + conf + '%)\n\n'
-        + 'ลองอีกที: ถ่ายให้เห็นเฉพาะส่วนที่เป็นโจทย์ · วางกล้องขนานกับกระดาษ · เลี่ยงเงามือทับตัวหนังสือ\n'
-        + 'หรือใช้ "แปะข้อความ" แทน — เร็วกว่าและแม่นกว่า');
+      // เลขความมั่นใจไม่ช่วยให้คนใช้ตัดสินใจอะไรได้ — บอกสั้น ๆ ว่าให้ลองใหม่
+      // แล้วไล่วิธีทีละบรรทัด อ่านง่ายกว่าประโยคยาวคั่นด้วยจุด
+      alert('โปรดลองใหม่อีกครั้ง\n\n'
+        + 'แนะนำ:\n'
+        + '1. ถ่ายให้เห็นเฉพาะส่วนที่เป็นโจทย์\n'
+        + '2. วางกล้องขนานกับกระดาษ\n'
+        + '3. เลี่ยงเงามือทับตัวหนังสือ\n'
+        + '4. หรือใช้ "แปะข้อความ" แทน');
       return;
     }
     if (conf < OCR_CONF_OK) {
@@ -2812,7 +3005,9 @@ function pushSupported() {
 async function refreshPushState() {
   if (!pushSupported()) { pushState = 'unsupported'; return; }
   try {
-    const reg = await navigator.serviceWorker.ready;
+    // serviceWorker.ready ไม่มีวันรีเจ็กต์เองถ้าติดตั้งไม่สำเร็จ — ค้างเฉย ๆ ตลอดไป
+    // (เจอจริง: เครื่องที่เคยติดตั้งรุ่นก่อนหน้าค้าง ทำให้แอปเปิดไม่ขึ้นทั้งที่หน้าจออื่นโหลดเสร็จหมดแล้ว)
+    const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ตรวจสิทธิ์แจ้งเตือน');
     const sub = await reg.pushManager.getSubscription();
     pushState = sub ? 'on' : 'off';
   } catch (_) { pushState = 'off'; }
@@ -3405,14 +3600,14 @@ function routeStart() {
   } else if (needsOnboard()) {
     openOnboard();
   } else {
-    go(shortcutTarget() || 'scr-menu'); // ALT: เข้าแอปมาเจอเมนูหลักก่อนเสมอ (ยกเว้นมาจากปุ่มลัด)
+    go(shortcutTarget() || 'scr-home'); // เข้าแอปมาเจอคำตอบก่อนเสมอ (ยกเว้นมาจากปุ่มลัด)
   }
 }
 
 // ใช้หลังผ่านหน้าบัญชีแล้ว (ล็อกอินสำเร็จ หรือกดใช้แบบไม่ล็อกอิน)
 function routeAfterLogin() {
   if (needsOnboard()) openOnboard();
-  else go('scr-menu');
+  else go('scr-home');
 }
 
 function openOnboard() {
@@ -3458,7 +3653,7 @@ function finishOnboard() {
 
 function skipOnboard() {
   localStorage.setItem(ONBOARD_SKIP_KEY, '1'); // ข้ามแล้วไม่ต้องถามซ้ำทุกครั้งที่เปิด
-  go('scr-menu');
+  go('scr-home');
 }
 
 // ฉาก "ยินดีที่ได้รู้จัก ___" — จังหวะเดียวที่แอปได้ทักผู้ใช้ด้วยชื่อเขาเป็นครั้งแรก
@@ -3471,7 +3666,7 @@ function showWelcome(name) {
   setTimeout(() => w.classList.add('on'), 20);
   setTimeout(() => {
     w.classList.remove('on');
-    go('scr-menu');
+    go('scr-home');
     setTimeout(() => { w.hidden = true; }, 300);
     showToast({
       title: 'ยินดีที่ได้รู้จัก ' + name + ' 👋',

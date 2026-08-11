@@ -488,11 +488,20 @@ function cloudConfigured() {
 async function initCloud() {
   if (!cloudConfigured()) return;
   sb = supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonKey);
-  const { data: { session } } = await sb.auth.getSession();
+  // ไม่มี try/catch หรือลิมิตเวลาตรงนี้มาก่อน — เน็ตหลุดหรือ Supabase ตอบช้าตอนบูต
+  // แปลว่าแอปค้างที่ฉากเปิดตลอดไป (initApp โยน error ค้างไว้ ไม่มีใครจับ)
+  // ให้ล้มแบบเงียบแล้วเข้าแอปแบบไม่ล็อกอินแทน ดีกว่าค้างไม่ให้ใช้อะไรเลย
+  let session = null;
+  try {
+    ({ data: { session } } = await withTimeout(sb.auth.getSession(), 6000, 'เชื่อมบัญชี'));
+  } catch (e) { console.warn('[cloud] getSession failed:', e.message); }
   currentUser = session ? session.user : null;
+  // provider_token ของ Google อยู่แค่ในเซสชันรอบที่เพิ่งล็อกอิน — ไม่คว้าเก็บตอนนี้แล้วหายเลย
+  if (typeof crCaptureToken === 'function') crCaptureToken(session);
   sb.auth.onAuthStateChange((event, sess) => {
     const wasLoggedIn = !!currentUser;
     currentUser = sess ? sess.user : null;
+    if (typeof crCaptureToken === 'function') crCaptureToken(sess);
     if (currentUser && !wasLoggedIn) {
       // เพิ่งล็อกอินเสร็จ (รวมถึงกลับมาจากหน้า Google)
       if ('Notification' in window && Notification.permission === 'granted') {
@@ -719,13 +728,31 @@ function widgetHtml(now) {
 
 // ไทล์กล่องเข้า — วางกว้างเต็มแถวใต้ปุ่มเพิ่มงาน เพราะเป็นจอเดียวที่บอกว่า
 // "มีของเข้ามาเองระหว่างที่คุณไม่ได้เปิดแอป" ตัวเลขค้างจึงต้องสะดุดตากว่าตัวเลขอื่น
+// กล่องเข้ากินพื้นที่เต็มแถวเท่าปุ่ม "เพิ่มงานใหม่" ทั้งที่ส่วนใหญ่ค่าเป็น 0
+// = ช่องว่างที่แย่งสายตาโดยไม่มีอะไรให้ทำ · มีของรอตรวจค่อยขยายเป็นแถวเต็ม
 function inboxTile() {
   const wait = typeof inboxPending === 'function' ? inboxPending().length : 0;
-  return `<button class="mtile wide" onclick="go('scr-inbox')">
+  if (!wait) return menuTile('', 'chat', 'กล่องเข้า', 'ของที่ไหลเข้ามาเอง', null, 'scr-inbox');
+  return `<button class="mtile wide alert" onclick="go('scr-inbox')">
     <span class="mt-ic">${icon('chat')}</span>
     <span class="mt-tx"><span class="mt-lb">กล่องเข้า</span>
-      <span class="mt-sub">ข้อความจาก LINE ที่รอตรวจ</span></span>
-    <span class="mt-ct${wait ? ' hot' : ''}">${wait}</span>
+      <span class="mt-sub">มี ${wait} รายการรอคุณตรวจ</span></span>
+    <span class="mt-ct hot">${wait}</span>
+  </button>`;
+}
+
+// ทางเข้า "เชื่อมแอป" — เดิมซ่อนอยู่ 3 ชั้น (เมนู > กล่องเข้า > เลื่อนสุด > ปุ่ม)
+// ทั้งที่เป็นจุดขายหลัก · ยกขึ้นมาเป็นการ์ดในเมนู และบอกสถานะจริงว่าเชื่อมไปกี่แหล่งแล้ว
+function sourcesTile() {
+  let on = 3;                       // สแกน · พูด · แปะข้อความ ใช้ได้เองอยู่แล้ว
+  if (typeof lineLinks !== 'undefined' && lineLinks.length) on++;
+  if (typeof crToken === 'function' && crToken()) on++;
+  const total = typeof SOURCES !== 'undefined' ? SOURCES.length : 5;
+  return `<button class="mtile wide link" onclick="go('scr-sources')">
+    <span class="mt-ic">${icon('book')}</span>
+    <span class="mt-tx"><span class="mt-lb">เชื่อมแอป</span>
+      <span class="mt-sub">Classroom · LINE — ให้งานไหลเข้าเอง</span></span>
+    <span class="mt-ct">${on}/${total}</span>
   </button>`;
 }
 
@@ -749,6 +776,7 @@ function renderMenu() {
     ${widgetHtml(now)}
     <div class="menu-grid">
       ${menuTile('hero', 'camera', 'เพิ่มงานใหม่', 'ถ่ายรูป · พูด · แปะข้อความ', null, 'scr-scan')}
+      ${sourcesTile()}
       ${inboxTile()}
       ${menuTile('', 'calendar', 'ตารางงาน', 'ลำดับที่ AI แนะนำ', pending.length, 'scr-home')}
       ${menuTile('', 'check-circle', 'งานทั้งหมด', 'ค้าง · เสร็จ · ถังขยะ', live.length, 'scr-tasks')}
@@ -1847,6 +1875,8 @@ function renderStats() {
     days.push({ n, label: WEEKDAY_SHORT[d.getDay()], today: i === 0 });
   }
   const peak = Math.max(1, ...days.map(d => d.n));
+  // peak ถูกบังคับให้อย่างน้อย 1 เสมอ (กันหารศูนย์) จึงใช้ตัดสินว่ามีข้อมูลไหมไม่ได้
+  const weekTotal = days.reduce((a, d) => a + d.n, 0);
 
   // แยกตามวิชา (เฉพาะที่ทำเสร็จแล้ว)
   const bySubject = {};
@@ -1867,7 +1897,7 @@ function renderStats() {
       <div><div class="v">${estH}<span class="u">ชม.</span></div><div class="k">เวลาที่ประเมินไว้</div></div>
     </div>
 
-    <div class="st-card">
+    ${weekTotal ? `<div class="st-card">
       <div class="st-h">งานที่ติ๊กเสร็จ 7 วันล่าสุด</div>
       <div class="st-bars">
         ${days.map(d => `<div class="st-bar${d.today ? ' now' : ''}">
@@ -1876,7 +1906,7 @@ function renderStats() {
           <span class="d">${d.label}</span>
         </div>`).join('')}
       </div>
-    </div>
+    </div>` : ''}
 
     ${onTimePct != null ? `<div class="st-card">
       <div class="st-h">ส่งทันกำหนด</div>
@@ -2812,7 +2842,9 @@ function pushSupported() {
 async function refreshPushState() {
   if (!pushSupported()) { pushState = 'unsupported'; return; }
   try {
-    const reg = await navigator.serviceWorker.ready;
+    // serviceWorker.ready ไม่มีวันรีเจ็กต์เองถ้าติดตั้งไม่สำเร็จ — ค้างเฉย ๆ ตลอดไป
+    // (เจอจริง: เครื่องที่เคยติดตั้งรุ่นก่อนหน้าค้าง ทำให้แอปเปิดไม่ขึ้นทั้งที่หน้าจออื่นโหลดเสร็จหมดแล้ว)
+    const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ตรวจสิทธิ์แจ้งเตือน');
     const sub = await reg.pushManager.getSubscription();
     pushState = sub ? 'on' : 'off';
   } catch (_) { pushState = 'off'; }

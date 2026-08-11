@@ -3593,3 +3593,43 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 .ob-mark, .ig-icon img {
   border-radius: 0; box-shadow: none; object-fit: contain;
 }
+
+/* ============================================================
+   เชื่อมแอป + Google Classroom (1A6M5)
+   ============================================================ */
+
+/* การ์ด "เชื่อมแอป" ในเมนู — เป็นทางเข้า ไม่ใช่งานค้าง
+   จึงไม่ใช้สีเตือน แต่ใช้พื้นจางสีแบรนด์ให้ต่างจากไทล์ธรรมดาพอให้สังเกตเห็น */
+.mtile.link {
+  background: var(--blue-soft);
+  border-color: color-mix(in srgb, var(--blue) 22%, transparent);
+}
+.mtile.link .mt-ic { background: var(--blue); color: var(--on-accent); }
+.mtile.link .mt-ct {
+  background: color-mix(in srgb, var(--blue) 16%, transparent);
+  color: var(--blue);
+}
+/* กล่องเข้าตอนมีของค้าง — ตอนนี้เท่านั้นที่ควรใช้สีเตือน */
+.mtile.wide.alert { border-color: color-mix(in srgb, var(--alert) 35%, transparent); }
+
+/* ---------- แผงเชื่อม Classroom ---------- */
+.cr-on {
+  display: flex; align-items: center; gap: 7px;
+  margin-top: 10px; font-size: 12px; font-weight: 600;
+  color: var(--good, #22C55E);
+}
+.cr-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: currentColor; flex: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 22%, transparent);
+}
+.cr-act { display: flex; gap: 8px; margin-top: 10px; }
+.cr-act .ib-go { flex: 1; }
+.cr-act .ib-go[disabled] { opacity: .6; pointer-events: none; }
+.cr-off {
+  flex: none; padding: 0 14px; min-height: 40px;
+  border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--line); background: transparent;
+  color: var(--muted); font-family: inherit; font-size: 12.5px; font-weight: 600;
+}
+.cr-off:active { transform: scale(.97); }
