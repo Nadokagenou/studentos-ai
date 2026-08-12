@@ -185,7 +185,7 @@ async function benchOcr(cases, angles) {
 // เมื่อมีรูปจริงแล้ว: วางไฟล์ที่ alt/devtools/samples/ แล้วเติมรายการนี้
 // จากนั้นเรียก await benchOcr(await loadRealCases())
 const REAL_CASES = [
-  // { file: 'samples/01.jpg', id: '01', expect: { subject: 'ฟิสิกส์', teacher: 'ครูสมชาย' } },
+  // { file: 'devtools/samples/01.jpg', id: '01', expect: { subject: 'ฟิสิกส์', teacher: 'ครูสมชาย' } },
 ];
 async function loadRealCases() {
   const out = [];
@@ -334,10 +334,116 @@ async function benchHard(opts = {}) {
   return { rows, summary };
 }
 
+// ============================================================
+// วัดกับรูปจริง — เฉลยเป็น "วลีสำคัญที่ต้องอ่านเจอ"
+//
+// ทำไมไม่วัดเป็นช่อง (วิชา/ครู/กำหนดส่ง): ภาพชุดนี้ไม่ใช่ใบงานทุกใบ
+// มีทั้งโลโก้ ภาพมีม และแถบ UI เกม การวัดเป็นช่องจึงไม่มีความหมาย
+// วัดว่า "อ่านข้อความออกไหม" ตรงกว่า และเป็นสิ่งที่ต้องแก้ก่อนอยู่แล้ว
+//
+// RP = Real Photo (ถ่ายจากมือถือ) · DP = Digital Photo (ภาพดิจิทัล/แคปหน้าจอ)
+// ============================================================
+const SAMPLES = [
+  { id: 'RP-1', file: 'devtools/samples/RP-1.jpg', kind: 'RP', ว่าด้วย: 'ใบงานเซต ถ่ายจากมือถือ',
+    keys: ['ใบความรู้', 'การดำเนินการระหว่างเซต', 'อินเตอร์เซกชัน', 'บทนิยาม',
+           'แผนภาพเวนน์', 'ตัวอย่าง', 'กำหนด'] },
+  { id: 'RP-2', file: 'devtools/samples/RP-2.jpg', kind: 'RP', ว่าด้วย: 'ใบงานเซต แนวนอน',
+    keys: ['แบบฝึกหัด', 'คำชี้แจง', 'จงเขียนแผนภาพแทนการดำเนินการของเซต', 'กำหนด'] },
+  { id: 'RP-3', file: 'devtools/samples/RP-3.jpg', kind: 'RP', ว่าด้วย: 'ถ่ายจากจอคอม',
+    keys: ['กระปุกออมความสุข', 'เครื่องตรวจจับอารมณ์', 'ช้อนลดความอ้วน',
+           'จานควบคุมปริมาณอาหาร', 'นาฬิกาเตือนกินผัก', 'กล่องข้าวอัจฉริยะ',
+           'แก้วน้ำเพิ่มรสชาติ', 'เครื่องไล่ความขี้เกียจ', 'ยาดมช่วยการหายใจ',
+           'เครื่องเตือนให้อาบน้ำ', 'รองเท้าเพิ่มความเร็ว'] },
+  { id: 'DP-1', file: 'devtools/samples/DP-1.png', kind: 'DP', ว่าด้วย: 'โลโก้ ตัวหนังสือน้อย',
+    keys: ['StudentOS', 'PLAN SMARTER', 'LEARN BETTER', 'ACHIEVE MORE'] },
+  { id: 'DP-2', file: 'devtools/samples/DP-2.png', kind: 'DP', ว่าด้วย: 'ภาพมีม ไทยปนอังกฤษ',
+    keys: ['JIB.COM', 'overclockers', 'ผลเทสจาก', 'Ineffable Benchmarks',
+           'Support', 'Gaming Test', 'อยากให้ผมทำหรือแนะนำอะไร', 'คอมเม้นได้ครับ'] },
+  { id: 'DP-3', file: 'devtools/samples/DP-3.png', kind: 'DP', ว่าด้วย: 'แถบ UI บรรทัดเดียว 443×61',
+    keys: ['Max Framerate', 'VSync'] },
+];
+
+async function loadSample(s) {
+  const bmp = await createImageBitmap(await (await fetch(s.file)).blob());
+  const cv = document.createElement('canvas');
+  cv.width = bmp.width; cv.height = bmp.height;
+  cv.getContext('2d').drawImage(bmp, 0, 0);
+  return cv;
+}
+
+// เจอวลีนี้ในข้อความไหม — ใช้ตัวเทียบแบบทนตัวอักษรเพี้ยนตัวเดียวกับที่แอปใช้จริง
+function hasKey(text, key) {
+  if (String(text).includes(key)) return true;
+  try { return fuzzyDistance(text, key) !== null; } catch (_) { return false; }
+}
+
+function scoreKeys(text, keys) {
+  const hit = keys.filter(k => hasKey(text, k));
+  return { ได้: hit.length, จาก: keys.length, พลาด: keys.filter(k => !hit.includes(k)) };
+}
+
+// รันภาพหนึ่งใบด้วยสูตรที่เลือก
+//   opt.bin    : ไบนารีไหม (false = ส่งภาพเทาเข้าไปตรง ๆ)
+//   opt.psm    : โหมดมองหน้ากระดาษ
+//   opt.deskew : แก้เอียงไหม
+//   opt.minLong: ขนาดด้านยาวขั้นต่ำ (null = ไม่ขยาย)
+async function runVariant(cv, opt = {}) {
+  const saveMin = window.__OCR_MIN_OVERRIDE;
+  window.__OCR_MIN_OVERRIDE = opt.minLong === undefined ? null : opt.minLong;
+  const gray0 = ocrToGray(cv);
+  const sk = opt.deskew === false ? { gray: gray0, bin: ocrBinarize(gray0), deg: 0 } : ocrDeskew(gray0);
+  // adaptive = ทำตามสายงานจริง คือให้ ocrIsDigital ตัดสินเองว่าจะไบนารีไหม
+  const useBin = opt.adaptive ? !ocrIsDigital(sk.gray) : (opt.bin !== false);
+  const src = useBin ? ocrGrayToCanvas(sk.bin) : ocrGrayToCanvas(sk.gray);
+  const worker = await getOcrWorker();
+  if (opt.psm) await worker.setParameters({ tessedit_pageseg_mode: String(opt.psm) });
+  const t0 = performance.now();
+  const { data } = await worker.recognize(src, {}, { text: true });
+  const ms = Math.round(performance.now() - t0);
+  if (opt.psm) await worker.setParameters({ tessedit_pageseg_mode: '6' });
+  window.__OCR_MIN_OVERRIDE = saveMin;
+  return { text: normalizeOcrText(data.text), conf: Math.round(data.confidence || 0), deg: sk.deg, ms,
+    size: sk.gray.w + '×' + sk.gray.h };
+}
+
+// วัดสูตรเดียวกับที่แอปใช้อยู่ตอนนี้ ให้เห็นฐานก่อน
+async function benchReal(variants) {
+  const vs = variants || [{ ชื่อ: 'ปัจจุบัน', opt: {} }];
+  await getOcrWorker();
+  const rows = [];
+  for (const s of SAMPLES) {
+    const cv = await loadSample(s);
+    for (const v of vs) {
+      const r = await runVariant(cv, v.opt);
+      const sc = scoreKeys(r.text, s.keys);
+      rows.push({ id: s.id, kind: s.kind, สูตร: v.ชื่อ, ได้: sc.ได้, จาก: sc.จาก,
+        conf: r.conf, มุม: r.deg, ขนาด: r.size, ms: r.ms,
+        พลาด: sc.พลาด.join(' | ') || '-', text: r.text });
+      console.log(`[real] ${s.id} ${v.ชื่อ} → ${sc.ได้}/${sc.จาก} conf=${r.conf} ${r.ms}ms`);
+    }
+  }
+  const byV = vs.map(v => {
+    const r = rows.filter(x => x.สูตร === v.ชื่อ);
+    const g = r.reduce((a,x)=>a+x.ได้,0), t = r.reduce((a,x)=>a+x.จาก,0);
+    const rp = r.filter(x=>x.kind==='RP'), dp = r.filter(x=>x.kind==='DP');
+    const sum = a => [a.reduce((x,y)=>x+y.ได้,0), a.reduce((x,y)=>x+y.จาก,0)];
+    const [rg,rt] = sum(rp), [dg,dt] = sum(dp);
+    return { สูตร: v.ชื่อ, รวม: `${g}/${t} (${(g/t*100).toFixed(0)}%)`,
+      รูปถ่าย: `${rg}/${rt} (${(rg/rt*100).toFixed(0)}%)`,
+      ภาพดิจิทัล: `${dg}/${dt} (${(dg/dt*100).toFixed(0)}%)`,
+      conf: Math.round(r.reduce((a,x)=>a+x.conf,0)/r.length),
+      msรวม: r.reduce((a,x)=>a+x.ms,0) };
+  });
+  console.table(rows.map(({text, ...k}) => k));
+  console.table(byV);
+  return { rows, byV };
+}
+
 Object.assign(window, {
   BENCH_SHEETS, benchRender, benchSkew, benchCompare, benchOnce, benchOcr,
   REAL_CASES, loadRealCases, degShadow, degPerspective, degBlur, degDownscale,
   degJpeg, benchMakeHard, benchHard,
+  SAMPLES, loadSample, hasKey, scoreKeys, runVariant, benchReal,
 });
 window.__ocrbench = true;
 console.log('[ocrbench] พร้อมแล้ว — await benchSkew() · await benchOcr() · await benchHard()');

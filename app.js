@@ -623,7 +623,13 @@ function cloudConfigured() {
 async function initCloud() {
   if (!cloudConfigured()) return;
   sb = supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonKey);
-  const { data: { session } } = await sb.auth.getSession();
+  // ไม่เคยมี try/catch หรือลิมิตเวลาตรงนี้ — เน็ตหลุดหรือ Supabase ตอบช้าตอนบูต
+  // แปลว่า initApp โยน error ทิ้งค้างไว้โดยไม่มีใครจับ แล้วแอปค้างที่ฉากเปิดถาวร
+  // ล้มแบบเงียบแล้วเข้าแอปในสถานะยังไม่ล็อกอิน ดีกว่าค้างจนใช้อะไรไม่ได้เลย
+  let session = null;
+  try {
+    ({ data: { session } } = await withTimeout(sb.auth.getSession(), 6000, 'เชื่อมบัญชี'));
+  } catch (e) { console.warn('[cloud] getSession failed:', e.message); }
   currentUser = session ? session.user : null;
   sb.auth.onAuthStateChange((event, sess) => {
     const wasLoggedIn = !!currentUser;
@@ -739,11 +745,14 @@ function snoozeBadge(t) {
 // ---------- ALT: หน้าแรก = เมนูหลัก ----------
 // รวมทางเข้าฟีเจอร์หลักไว้ที่เดียว กดแล้วเด้งไปเลย
 // ตัวเลขบนไทล์เป็นข้อมูลจริงจาก state ไม่ใช่คำอธิบาย — หน้านี้ตั้งใจให้ไม่มีข้อความอธิบายเลย
+// ลูกศรมุมล่างขวาไม่ใช่ของประดับ — ไทล์พวกนี้หน้าตาเหมือนการ์ดข้อมูล
+// ถ้าไม่มีอะไรบอกว่า "กดแล้วไปต่อ" คนจะอ่านมันเป็นป้ายสรุปแล้วไม่กดเลย
 function menuTile(cls, ic, label, sub, count, target) {
   return `<button class="mtile ${cls}" onclick="go('${target}')">
     <span class="mt-ic">${icon(ic)}</span>
     <span class="mt-tx"><span class="mt-lb">${label}</span><span class="mt-sub">${sub}</span></span>
     ${count != null ? `<span class="mt-ct">${count}</span>` : ''}
+    <span class="mt-go">${icon('chevron')}</span>
   </button>`;
 }
 
@@ -856,11 +865,12 @@ function widgetHtml(now) {
 // "มีของเข้ามาเองระหว่างที่คุณไม่ได้เปิดแอป" ตัวเลขค้างจึงต้องสะดุดตากว่าตัวเลขอื่น
 function inboxTile() {
   const wait = typeof inboxPending === 'function' ? inboxPending().length : 0;
-  return `<button class="mtile wide" onclick="go('scr-inbox')">
+  return `<button class="mtile wide tone-inbox" onclick="go('scr-inbox')">
     <span class="mt-ic">${icon('chat')}</span>
     <span class="mt-tx"><span class="mt-lb">กล่องเข้า</span>
       <span class="mt-sub">ข้อความจาก LINE ที่รอตรวจ</span></span>
     <span class="mt-ct${wait ? ' hot' : ''}">${wait}</span>
+    <span class="mt-go">${icon('chevron')}</span>
   </button>`;
 }
 
@@ -877,18 +887,20 @@ function renderMenu() {
   const doneWeek = liveTasks().filter(t => t.done && t.doneAt &&
     (now - new Date(t.doneAt)) < 7 * 8.64e7).length;
 
+  // ชื่อผู้ใช้เน้นสี — ทั้งจอมีคำที่เป็น "ของเขาคนเดียว" อยู่คำเดียวคือชื่อตัวเอง
+  // ปล่อยให้กลืนไปกับคำทักทายก็เสียโอกาสที่จอนี้จะรู้สึกเป็นของเขาไปฟรี ๆ
   body.innerHTML = `<div class="menu-head">
       <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
-      <h1 class="page-title">${greet}${who() ? ', ' + esc(who()) : ''}</h1>
+      <h1 class="page-title">${greet}${who() ? ', <b class="pt-me">' + esc(who()) + '</b>' : ''}</h1>
     </div>
     ${widgetHtml(now)}
     <div class="menu-grid">
       ${menuTile('hero', 'camera', 'เพิ่มงานใหม่', 'ถ่ายรูป · พูด · แปะข้อความ', null, 'scr-scan')}
       ${inboxTile()}
-      ${menuTile('', 'calendar', 'ตารางงาน', 'ลำดับที่ AI แนะนำ', pending.length, 'scr-home')}
-      ${menuTile('', 'check-circle', 'งานทั้งหมด', 'ค้าง · เสร็จ · ถังขยะ', live.length, 'scr-tasks')}
-      ${menuTile('', 'pin', 'เส้นทาง', 'ไทม์ไลน์ถึงกำหนดส่ง', dated, 'scr-timeline')}
-      ${menuTile('', 'user', 'ฉัน', 'ผลของฉัน · ธีม · ตั้งค่า', doneWeek ? doneWeek : null, 'scr-profile')}
+      ${menuTile('tone-plan', 'calendar', 'ตารางงาน', 'ลำดับที่ AI แนะนำ', pending.length, 'scr-home')}
+      ${menuTile('tone-tasks', 'check-circle', 'งานทั้งหมด', 'ค้าง · เสร็จ · ถังขยะ', live.length, 'scr-tasks')}
+      ${menuTile('tone-route', 'pin', 'เส้นทาง', 'ไทม์ไลน์ถึงกำหนดส่ง', dated, 'scr-timeline')}
+      ${menuTile('tone-me', 'user', 'ฉัน', 'ผลของฉัน · ธีม · ตั้งค่า', doneWeek ? doneWeek : null, 'scr-profile')}
     </div>`;
 }
 
@@ -3023,8 +3035,14 @@ async function ocrLoadBitmap(file) {
 // เทา + ยืด contrast ด้วยเปอร์เซ็นไทล์ (ตัดหัวท้าย 2% กันจุดสว่าง/จุดดำหลุด ๆ ลากค่าไปทั้งภาพ)
 function ocrToGray(img) {
   const long = Math.max(img.width, img.height);
-  const scale = long > OCR_MAX_LONG ? OCR_MAX_LONG / long
-    : long < OCR_MIN_LONG ? OCR_MIN_LONG / long : 1;
+  // __OCR_MIN_OVERRIDE เป็นช่องให้เครื่องมือวัดผลทดลองค่าอื่นได้โดยไม่ต้องแก้โค้ด
+  // แอปจริงไม่เคยตั้งค่านี้ จึงใช้ OCR_MIN_LONG ตามปกติเสมอ (null = ไม่ขยายเลย)
+  const minLong = (typeof window !== 'undefined' && window.__OCR_MIN_OVERRIDE !== undefined)
+    ? window.__OCR_MIN_OVERRIDE : OCR_MIN_LONG;
+  const maxLong = (typeof window !== 'undefined' && window.__OCR_MAX_OVERRIDE)
+    ? window.__OCR_MAX_OVERRIDE : OCR_MAX_LONG;
+  const scale = long > maxLong ? maxLong / long
+    : (minLong && long < minLong) ? minLong / long : 1;
   const w = Math.max(1, Math.round(img.width * scale));
   const h = Math.max(1, Math.round(img.height * scale));
 
@@ -3274,6 +3292,25 @@ function ocrDeskew(grayPrep) {
   return { gray: rot, bin: ocrBinarize(rot), deg };
 }
 
+// ---------- ภาพนี้เป็นภาพดิจิทัลหรือรูปถ่าย ----------
+// สำคัญเพราะสองแบบต้องเตรียมภาพคนละทาง:
+//   รูปถ่าย   — แสงไม่สม่ำเสมอ ต้องแยกขาวดำแบบดูเฉพาะบริเวณ (Sauvola)
+//   ภาพดิจิทัล — พื้นเรียบสมบูรณ์ ตัวอักษรคมอยู่แล้ว การแยกขาวดำมีแต่ทำให้เส้นบวมและขอบแตก
+// วัดจาก "ความเรียบ" = สัดส่วนพิกเซลที่เท่ากับเพื่อนบ้านด้านขวาเป๊ะ ๆ
+// รูปถ่ายมีสัญญาณรบกวนจากเซนเซอร์ พิกเซลแทบไม่มีทางเท่ากันพอดี ภาพดิจิทัลเท่ากันเป็นผืน ๆ
+// วัดจากรูปจริง 6 ใบ: รูปถ่ายได้ 27–45% · ภาพดิจิทัลได้ 79–86% — ช่องว่างกว้างมาก
+const OCR_FLAT_CUT = 60;
+function ocrIsDigital(prep) {
+  const { gray, w, h } = prep;
+  let same = 0, n = 0;
+  const step = Math.max(1, (h / 400) | 0);   // สุ่มดูทีละแถว ไม่ต้องไล่ทุกพิกเซล
+  for (let y = 0; y < h; y += step) {
+    const row = y * w;
+    for (let x = 0; x < w - 1; x++) { if (gray[row + x] === gray[row + x + 1]) same++; n++; }
+  }
+  return n ? (same / n * 100) >= OCR_FLAT_CUT : false;
+}
+
 // ---------- worker ใช้ซ้ำ ----------
 // เดิมสร้าง worker ใหม่แล้วทิ้งทุกครั้งที่สแกน — สแกนติดกันหลายใบเสียเวลา init ซ้ำทุกใบ
 let ocrWorker = null, ocrProgress = null;
@@ -3290,10 +3327,12 @@ async function getOcrWorker() {
     }),
     60_000, 'เตรียมเครื่องมือ OCR'
   );
-  // PSM 6 = มองทั้งรูปเป็นบล็อกข้อความก้อนเดียว
-  // ค่าเริ่มต้น (PSM 3) พยายามแบ่งคอลัมน์เอง เจอใบงานที่มีตาราง/หัวกระดาษแล้วแบ่งผิด อ่านสลับคอลัมน์
+  // PSM 11 = "ข้อความกระจาย" หาตัวหนังสือให้เจอมากที่สุดโดยไม่พยายามเดาโครงหน้ากระดาษ
+  // เดิมใช้ PSM 6 (มองทั้งรูปเป็นบล็อกเดียว) ซึ่งเดาโครงผิดบ่อยกับภาพที่ข้อความไม่ได้เรียงเป็นย่อหน้า
+  // วัดกับรูปจริง 6 ใบ: PSM 6 ได้ 25/36 · PSM 11 ได้ 29/36 — ดีขึ้นทั้งรูปถ่ายและภาพดิจิทัล
+  // (เคยลอง PSM 7 "บรรทัดเดียว" ด้วย ได้ 0/36 พังทุกใบ — อย่ากลับไปใช้)
   await w.setParameters({
-    tessedit_pageseg_mode: '6',
+    tessedit_pageseg_mode: '11',
     preserve_interword_spaces: '1',
   });
   ocrWorker = w;
@@ -3549,7 +3588,11 @@ async function runOcrOn(source, how) {
     // แก้ภาพเอียงก่อน แล้วค่อยใช้ผลที่ตรงแล้วไปทุก pass ที่เหลือ
     const sk = ocrDeskew(gray0);
     const gray = sk.gray;
-    const binCanvas = ocrGrayToCanvas(sk.bin);
+    // ภาพดิจิทัลส่งภาพเทาเข้าไปตรง ๆ — คมอยู่แล้ว แยกขาวดำมีแต่ทำให้แย่ลง
+    // วัดกับรูปจริง: ภาพดิจิทัลดีขึ้น 86%→93% ส่วนรูปถ่ายถ้าไม่แยกขาวดำจะร่วง 77%→73%
+    const digital = ocrIsDigital(gray);
+    const binCanvas = ocrGrayToCanvas(digital ? gray : sk.bin);
+    const altCanvas = () => ocrGrayToCanvas(digital ? sk.bin : gray);
     bar.style.width = '12%';
 
     st.textContent = '⏳ กำลังเตรียมโมเดล OCR… (ครั้งแรกอาจรอนานหน่อย)';
@@ -3565,23 +3608,23 @@ async function runOcrOn(source, how) {
     const worker = await getOcrWorker();
 
     let { data } = await withTimeout(worker.recognize(binCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
-    let pass = 'binarized';
+    let pass = digital ? 'digital' : 'photo';
 
-    // รอบสำรอง 1: ไบนารีทำงานไม่ดีกับกระดาษสีหรือรูปที่ถ่ายจากจอ (เส้นตัวอักษรขาดเป็นจุด)
-    // ถ้ารอบแรกได้คะแนนต่ำ ลองอ่านจากภาพเทาที่ยังไม่ไบนารี แล้วเก็บอันที่ดีกว่า
+    // รอบสำรอง 1: สลับไปเตรียมภาพอีกแบบ — เผื่อตัวแยกประเภทภาพตัดสินผิด
+    // (เช่นแคปหน้าจอที่มีรูปถ่ายเต็มจอ หรือรูปถ่ายกระดาษขาวจัดที่เรียบผิดปกติ)
     if ((data.confidence || 0) < OCR_CONF_OK) {
       st.textContent = '🔁 ลองอ่านอีกแบบให้ชัดขึ้น…';
-      const soft = await withTimeout(worker.recognize(ocrGrayToCanvas(gray), {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
-      if ((soft.data.confidence || 0) > (data.confidence || 0)) { data = soft.data; pass = 'grayscale'; }
+      const soft = await withTimeout(worker.recognize(altCanvas(), {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
+      if ((soft.data.confidence || 0) > (data.confidence || 0)) { data = soft.data; pass += '+alt'; }
     }
-    // รอบสำรอง 2: ยังต่ำอยู่ → เปลี่ยนวิธีมองหน้ากระดาษเป็น PSM 4 (หลายย่อหน้าเรียงลงมา)
-    // ใบงานที่มีบล็อกข้อความแยกกันหลายก้อน PSM 6 จะรวบเป็นก้อนเดียวแล้วอ่านสลับบรรทัด
+    // รอบสำรอง 2: ยังต่ำอยู่ → กลับไปมองเป็นบล็อกข้อความก้อนเดียว (PSM 6)
+    // ใบงานที่เป็นย่อหน้ายาว ๆ ต่อเนื่องบางทีอ่านแบบนี้ดีกว่าแบบ "ข้อความกระจาย"
     if ((data.confidence || 0) < OCR_CONF_OK) {
       st.textContent = '🔁 ลองมองหน้ากระดาษอีกแบบ…';
-      await worker.setParameters({ tessedit_pageseg_mode: '4' });
-      const alt = await withTimeout(worker.recognize(binCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
       await worker.setParameters({ tessedit_pageseg_mode: '6' });
-      if ((alt.data.confidence || 0) > (data.confidence || 0)) { data = alt.data; pass = 'psm4'; }
+      const alt = await withTimeout(worker.recognize(binCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
+      await worker.setParameters({ tessedit_pageseg_mode: '11' });
+      if ((alt.data.confidence || 0) > (data.confidence || 0)) { data = alt.data; pass += '+psm6'; }
     }
 
     ocrProgress = null;
@@ -3644,7 +3687,10 @@ function pushSupported() {
 async function refreshPushState() {
   if (!pushSupported()) { pushState = 'unsupported'; return; }
   try {
-    const reg = await navigator.serviceWorker.ready;
+    // serviceWorker.ready ไม่รีเจ็กต์เองถ้า SW ตัวเก่าติดค้างอยู่ — มันค้างเงียบ ๆ ตลอดไป
+    // และเพราะ initApp รอบรรทัดนี้อยู่ ฉากเปิดแอปเลยค้างที่ 66% ไม่ไปไหนทั้งที่โหลดอย่างอื่นครบแล้ว
+    // เจอจริงบนเครื่องที่เคยติดตั้งรุ่นก่อนหน้าไว้ (เครื่องที่เพิ่งเปิดครั้งแรกจะไม่เจอ)
+    const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ตรวจสิทธิ์แจ้งเตือน');
     const sub = await reg.pushManager.getSubscription();
     pushState = sub ? 'on' : 'off';
   } catch (_) { pushState = 'off'; }
@@ -4253,6 +4299,22 @@ function startSplashMeter() {
   splashTimer = setInterval(tick, 60);
   tick();
   startFunFacts(document.getElementById('spFact'));
+
+  // ตาข่ายกันตาย: ไม่ว่าขั้นตอนไหนของ initApp จะค้างหรือพัง 12 วินาทีแล้วต้องเข้าแอปให้ได้
+  // เหตุผลที่ต้องมี: ทุกอย่างใน initApp คือ await เรียงกัน ใครค้างคนเดียวจอเปิดแอปก็ค้างถาวร
+  // แล้วผู้ใช้เจอ "แอปเปิดไม่ได้" ทั้งที่ข้อมูลในเครื่องพร้อมใช้ตั้งแต่วินาทีแรก
+  // ยอมเข้าแอปแบบฟีเจอร์คลาวด์ไม่ครบ ดีกว่ามองจอค้างแล้วกดอะไรไม่ได้เลย
+  setTimeout(() => {
+    if (splash.classList.contains('hide') || splash.classList.contains('gone')) return;
+    console.warn('[ALT] splash ตัดจบด้วยตาข่ายกันตาย — ขั้นที่เสร็จ '
+      + splashDone.size + '/' + SPLASH_STEPS.length);
+    clearInterval(splashTimer);
+    stopFunFacts();
+    if (!splashReady) { try { routeStart(); } catch (e) { console.error('[ALT] routeStart', e); } }
+    splash.classList.add('hide');
+    setTimeout(() => splash.classList.add('gone'), 600);
+    if (splashAfter) splashAfter();
+  }, 12_000);
 }
 
 // เรียกตอนงานเปิดแอปเสร็จครบ — ตัวนับจะปิดฉากให้เองเมื่อถึง 100

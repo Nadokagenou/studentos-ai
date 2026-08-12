@@ -3035,8 +3035,14 @@ async function ocrLoadBitmap(file) {
 // เทา + ยืด contrast ด้วยเปอร์เซ็นไทล์ (ตัดหัวท้าย 2% กันจุดสว่าง/จุดดำหลุด ๆ ลากค่าไปทั้งภาพ)
 function ocrToGray(img) {
   const long = Math.max(img.width, img.height);
-  const scale = long > OCR_MAX_LONG ? OCR_MAX_LONG / long
-    : long < OCR_MIN_LONG ? OCR_MIN_LONG / long : 1;
+  // __OCR_MIN_OVERRIDE เป็นช่องให้เครื่องมือวัดผลทดลองค่าอื่นได้โดยไม่ต้องแก้โค้ด
+  // แอปจริงไม่เคยตั้งค่านี้ จึงใช้ OCR_MIN_LONG ตามปกติเสมอ (null = ไม่ขยายเลย)
+  const minLong = (typeof window !== 'undefined' && window.__OCR_MIN_OVERRIDE !== undefined)
+    ? window.__OCR_MIN_OVERRIDE : OCR_MIN_LONG;
+  const maxLong = (typeof window !== 'undefined' && window.__OCR_MAX_OVERRIDE)
+    ? window.__OCR_MAX_OVERRIDE : OCR_MAX_LONG;
+  const scale = long > maxLong ? maxLong / long
+    : (minLong && long < minLong) ? minLong / long : 1;
   const w = Math.max(1, Math.round(img.width * scale));
   const h = Math.max(1, Math.round(img.height * scale));
 
@@ -3286,6 +3292,25 @@ function ocrDeskew(grayPrep) {
   return { gray: rot, bin: ocrBinarize(rot), deg };
 }
 
+// ---------- ภาพนี้เป็นภาพดิจิทัลหรือรูปถ่าย ----------
+// สำคัญเพราะสองแบบต้องเตรียมภาพคนละทาง:
+//   รูปถ่าย   — แสงไม่สม่ำเสมอ ต้องแยกขาวดำแบบดูเฉพาะบริเวณ (Sauvola)
+//   ภาพดิจิทัล — พื้นเรียบสมบูรณ์ ตัวอักษรคมอยู่แล้ว การแยกขาวดำมีแต่ทำให้เส้นบวมและขอบแตก
+// วัดจาก "ความเรียบ" = สัดส่วนพิกเซลที่เท่ากับเพื่อนบ้านด้านขวาเป๊ะ ๆ
+// รูปถ่ายมีสัญญาณรบกวนจากเซนเซอร์ พิกเซลแทบไม่มีทางเท่ากันพอดี ภาพดิจิทัลเท่ากันเป็นผืน ๆ
+// วัดจากรูปจริง 6 ใบ: รูปถ่ายได้ 27–45% · ภาพดิจิทัลได้ 79–86% — ช่องว่างกว้างมาก
+const OCR_FLAT_CUT = 60;
+function ocrIsDigital(prep) {
+  const { gray, w, h } = prep;
+  let same = 0, n = 0;
+  const step = Math.max(1, (h / 400) | 0);   // สุ่มดูทีละแถว ไม่ต้องไล่ทุกพิกเซล
+  for (let y = 0; y < h; y += step) {
+    const row = y * w;
+    for (let x = 0; x < w - 1; x++) { if (gray[row + x] === gray[row + x + 1]) same++; n++; }
+  }
+  return n ? (same / n * 100) >= OCR_FLAT_CUT : false;
+}
+
 // ---------- worker ใช้ซ้ำ ----------
 // เดิมสร้าง worker ใหม่แล้วทิ้งทุกครั้งที่สแกน — สแกนติดกันหลายใบเสียเวลา init ซ้ำทุกใบ
 let ocrWorker = null, ocrProgress = null;
@@ -3302,10 +3327,12 @@ async function getOcrWorker() {
     }),
     60_000, 'เตรียมเครื่องมือ OCR'
   );
-  // PSM 6 = มองทั้งรูปเป็นบล็อกข้อความก้อนเดียว
-  // ค่าเริ่มต้น (PSM 3) พยายามแบ่งคอลัมน์เอง เจอใบงานที่มีตาราง/หัวกระดาษแล้วแบ่งผิด อ่านสลับคอลัมน์
+  // PSM 11 = "ข้อความกระจาย" หาตัวหนังสือให้เจอมากที่สุดโดยไม่พยายามเดาโครงหน้ากระดาษ
+  // เดิมใช้ PSM 6 (มองทั้งรูปเป็นบล็อกเดียว) ซึ่งเดาโครงผิดบ่อยกับภาพที่ข้อความไม่ได้เรียงเป็นย่อหน้า
+  // วัดกับรูปจริง 6 ใบ: PSM 6 ได้ 25/36 · PSM 11 ได้ 29/36 — ดีขึ้นทั้งรูปถ่ายและภาพดิจิทัล
+  // (เคยลอง PSM 7 "บรรทัดเดียว" ด้วย ได้ 0/36 พังทุกใบ — อย่ากลับไปใช้)
   await w.setParameters({
-    tessedit_pageseg_mode: '6',
+    tessedit_pageseg_mode: '11',
     preserve_interword_spaces: '1',
   });
   ocrWorker = w;
@@ -3561,7 +3588,11 @@ async function runOcrOn(source, how) {
     // แก้ภาพเอียงก่อน แล้วค่อยใช้ผลที่ตรงแล้วไปทุก pass ที่เหลือ
     const sk = ocrDeskew(gray0);
     const gray = sk.gray;
-    const binCanvas = ocrGrayToCanvas(sk.bin);
+    // ภาพดิจิทัลส่งภาพเทาเข้าไปตรง ๆ — คมอยู่แล้ว แยกขาวดำมีแต่ทำให้แย่ลง
+    // วัดกับรูปจริง: ภาพดิจิทัลดีขึ้น 86%→93% ส่วนรูปถ่ายถ้าไม่แยกขาวดำจะร่วง 77%→73%
+    const digital = ocrIsDigital(gray);
+    const binCanvas = ocrGrayToCanvas(digital ? gray : sk.bin);
+    const altCanvas = () => ocrGrayToCanvas(digital ? sk.bin : gray);
     bar.style.width = '12%';
 
     st.textContent = '⏳ กำลังเตรียมโมเดล OCR… (ครั้งแรกอาจรอนานหน่อย)';
@@ -3577,23 +3608,23 @@ async function runOcrOn(source, how) {
     const worker = await getOcrWorker();
 
     let { data } = await withTimeout(worker.recognize(binCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
-    let pass = 'binarized';
+    let pass = digital ? 'digital' : 'photo';
 
-    // รอบสำรอง 1: ไบนารีทำงานไม่ดีกับกระดาษสีหรือรูปที่ถ่ายจากจอ (เส้นตัวอักษรขาดเป็นจุด)
-    // ถ้ารอบแรกได้คะแนนต่ำ ลองอ่านจากภาพเทาที่ยังไม่ไบนารี แล้วเก็บอันที่ดีกว่า
+    // รอบสำรอง 1: สลับไปเตรียมภาพอีกแบบ — เผื่อตัวแยกประเภทภาพตัดสินผิด
+    // (เช่นแคปหน้าจอที่มีรูปถ่ายเต็มจอ หรือรูปถ่ายกระดาษขาวจัดที่เรียบผิดปกติ)
     if ((data.confidence || 0) < OCR_CONF_OK) {
       st.textContent = '🔁 ลองอ่านอีกแบบให้ชัดขึ้น…';
-      const soft = await withTimeout(worker.recognize(ocrGrayToCanvas(gray), {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
-      if ((soft.data.confidence || 0) > (data.confidence || 0)) { data = soft.data; pass = 'grayscale'; }
+      const soft = await withTimeout(worker.recognize(altCanvas(), {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
+      if ((soft.data.confidence || 0) > (data.confidence || 0)) { data = soft.data; pass += '+alt'; }
     }
-    // รอบสำรอง 2: ยังต่ำอยู่ → เปลี่ยนวิธีมองหน้ากระดาษเป็น PSM 4 (หลายย่อหน้าเรียงลงมา)
-    // ใบงานที่มีบล็อกข้อความแยกกันหลายก้อน PSM 6 จะรวบเป็นก้อนเดียวแล้วอ่านสลับบรรทัด
+    // รอบสำรอง 2: ยังต่ำอยู่ → กลับไปมองเป็นบล็อกข้อความก้อนเดียว (PSM 6)
+    // ใบงานที่เป็นย่อหน้ายาว ๆ ต่อเนื่องบางทีอ่านแบบนี้ดีกว่าแบบ "ข้อความกระจาย"
     if ((data.confidence || 0) < OCR_CONF_OK) {
       st.textContent = '🔁 ลองมองหน้ากระดาษอีกแบบ…';
-      await worker.setParameters({ tessedit_pageseg_mode: '4' });
-      const alt = await withTimeout(worker.recognize(binCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
       await worker.setParameters({ tessedit_pageseg_mode: '6' });
-      if ((alt.data.confidence || 0) > (data.confidence || 0)) { data = alt.data; pass = 'psm4'; }
+      const alt = await withTimeout(worker.recognize(binCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
+      await worker.setParameters({ tessedit_pageseg_mode: '11' });
+      if ((alt.data.confidence || 0) > (data.confidence || 0)) { data = alt.data; pass += '+psm6'; }
     }
 
     ocrProgress = null;
