@@ -1855,15 +1855,58 @@
    หน้าแรก = เมนูหลัก
    ไทล์ใหญ่ กดง่าย ไม่มีข้อความอธิบาย — มีแค่ไอคอน ชื่อ และตัวเลขจริงจาก state
    ============================================================ */
+/* ---------- สีประจำไทล์ ----------
+   เดิมไทล์ทั้ง 4 ใบใช้ --blue ชุดเดียวกันหมด วางเรียงกันแล้วกลายเป็นกำแพงสีเดียว
+   ตาต้องอ่านตัวหนังสือทุกใบก่อนถึงจะรู้ว่าอันไหนคืออะไร — จำตำแหน่งด้วยสีไม่ได้เลย
+   ให้แต่ละใบมีสีของตัวเอง แต่อยู่ใน "ตระกูลน้ำเงิน" ทั้งหมด
+   (แอปนี้คือขาวน้ำเงินกับดำน้ำเงิน สีที่หลุดตระกูลไปจะอ่านเป็นแอปคนละตัวทันที)
+
+   ค่าเริ่มต้นตรงนี้คือ --blue ล้วน ๆ เท่ากับหน้าตาเดิมเป๊ะ
+   ธีมไหนไม่ได้กำหนดทับข้างล่าง ก็ไม่มีอะไรเปลี่ยน ไม่ต้องไล่แก้ทั้ง 12 ธีม */
+:root {
+  --tile-plan:  var(--blue); --tile-plan-soft:  var(--blue-soft);
+  --tile-tasks: var(--blue); --tile-tasks-soft: var(--blue-soft);
+  --tile-route: var(--blue); --tile-route-soft: var(--blue-soft);
+  --tile-me:    var(--blue); --tile-me-soft:    var(--blue-soft);
+}
+/* ดำน้ำเงิน — ไล่จากน้ำเงินหลักไปฟ้าและคราม ห่างกันพอให้แยกออกด้วยหางตา
+   ทุกค่าต้องสว่างพอ เพราะป้ายตัวเลขใช้สีนี้เป็นพื้นแล้ววางตัวอักษรสีเข้ม (--on-accent) ทับ */
+/* ธีมมืดเคยแยกสีไทล์เป็น 4 เฉด (ฟ้า/ฟ้าอมเขียว/ม่วง/ฟ้าอ่อน) เพื่อให้จำตำแหน่งด้วยสีได้
+   ผลจริงคือหน้าแรกมีสีเน้นสี่สีพร้อมกัน บวกกับปุ่มสแกนและไทล์เด่นอีกสองสี = หกสี
+   กฎ 60/30/10 อนุญาตให้มีสีเน้น "สีเดียว" และต้องน้อยด้วย จึงยุบกลับมาเหลือสีเดียว
+   หน้าที่ "แยกไทล์ออกจากกัน" ย้ายไปอยู่กับไอคอนและตำแหน่งแทน ซึ่งจำได้เร็วกว่าสีอยู่แล้ว */
+:root[data-theme="dark"] {
+  --tile-plan:  var(--blue); --tile-plan-soft:  var(--blue-soft);
+  --tile-tasks: var(--blue); --tile-tasks-soft: var(--blue-soft);
+  --tile-route: var(--blue); --tile-route-soft: var(--blue-soft);
+  --tile-me:    var(--blue); --tile-me-soft:    var(--blue-soft);
+}
+/* ขาวน้ำเงิน — กลับกัน ต้องเข้มพอเพราะเป็นไอคอนบนพื้นขาว และป้ายตัวเลขวางตัวอักษรขาวทับ */
+:root[data-theme="ocean"] {
+  --tile-plan:  #0E6E92; --tile-plan-soft:  #D5EDF9;
+  --tile-tasks: #0E8AA8; --tile-tasks-soft: #D3EFF7;
+  --tile-route: #4B57C4; --tile-route-soft: #E1E4FB;
+  --tile-me:    #1667BF; --tile-me-soft:    #DCEAFA;
+}
+
 /* หน้าแรกต้องจบในจอเดียว ไม่ต้องเลื่อน — ทุกระยะในหน้านี้จึงถูกบีบกว่าจอทั่วไป */
 .menu-body { gap: 11px; padding-top: 14px; padding-bottom: calc(80px + var(--tabgap)); }
 .menu-head .page-title { margin-top: 2px; font-size: 24px; }
 .menu-head .page-sub { display: none; }
+/* ชื่อผู้ใช้ในคำทักทาย — คำเดียวบนจอที่เป็นของเขาคนเดียว ให้มันมีสี */
+.menu-head .page-title .pt-me { color: var(--blue); font-weight: 700; }
 .menu-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
+/* --mt-a / --mt-s = สีของไทล์ใบนี้ (เข้ม/อ่อน) — ทุกชิ้นข้างในอ่านจากสองตัวนี้ตัวเดียว
+   เปลี่ยนสีไทล์ทั้งใบจึงแก้ที่บรรทัดเดียว ไม่ต้องไล่แก้ไอคอน ป้ายเลข และวงแสงทีละอัน */
+.mtile { --mt-a: var(--blue); --mt-s: var(--blue-soft); }
+.mtile.tone-plan  { --mt-a: var(--tile-plan);  --mt-s: var(--tile-plan-soft); }
+.mtile.tone-tasks { --mt-a: var(--tile-tasks); --mt-s: var(--tile-tasks-soft); }
+.mtile.tone-route { --mt-a: var(--tile-route); --mt-s: var(--tile-route-soft); }
+.mtile.tone-me    { --mt-a: var(--tile-me);    --mt-s: var(--tile-me-soft); }
 .mtile {
   position: relative;
   display: flex;
@@ -1893,7 +1936,7 @@
   top: -46px; right: -34px;
   width: 128px; height: 128px;
   border-radius: 50%;
-  background: radial-gradient(circle, var(--blue-soft), transparent 70%);
+  background: radial-gradient(circle, var(--mt-s), transparent 70%);
   pointer-events: none;
 }
 .mtile:active { transform: scale(.975); box-shadow: var(--shadow-lg); }
@@ -1903,8 +1946,12 @@
   justify-content: center;
   width: 36px; height: 36px;
   border-radius: 12px;
-  background: var(--blue-soft);
-  color: var(--blue);
+  /* ชิปไอคอนเป็นพื้นทึบสีเน้น ไม่ใช่พื้นจาง ๆ อีกแล้ว
+     พื้นจางบนการ์ดสีเข้มแทบไม่ต่างจากตัวการ์ด ไอคอนเลยลอยอยู่เฉย ๆ ไม่มีขอบเขต
+     ก้อนทึบทำให้ตาจับ "จุดเริ่มของไทล์" ได้ก่อนอ่านตัวหนังสือ และเป็นตัวเดียวกับ
+     ที่กฎ 60/30/10 กันไว้ให้เป็นสีเน้น 10% */
+  background: var(--fill);
+  color: var(--on-fill);
   position: relative;
 }
 .mt-ic svg { width: 18px; height: 18px; }
@@ -1932,8 +1979,11 @@
   min-width: 24px;
   padding: 3px 8px 4px;
   border-radius: 999px;
-  background: var(--blue);
-  color: var(--on-accent);
+  /* ตัวเลขบนไทล์เป็นสีกลาง ไม่ใช่สีเน้น — ตัวเลขส่วนใหญ่บนหน้าแรกเป็นแค่ "ของที่มีอยู่"
+     ไม่ใช่ "ของที่ต้องทำเดี๋ยวนี้" ป้าย 0 ของกล่องเข้าเคยเด่นเท่าป้าย 5 ของงานค้าง
+     ซึ่งบอกลำดับผิดตรง ๆ ตัวที่ต้องลงมือจริงจะได้สีเน้นทีละใบข้างล่าง */
+  background: var(--card2);
+  color: var(--ink);
   font-family: 'Space Mono', ui-monospace, monospace;
   font-size: 12.5px;
   font-weight: 700;
@@ -1957,6 +2007,9 @@
   color: #fff;
   box-shadow: 0 0 0 2px var(--card), 0 3px 8px rgba(0,0,0,.3);
 }
+/* ไทล์เดียวบนหน้าแรกที่ตัวเลขแปลว่า "งานที่ยังไม่ได้ทำ" คือตารางงาน
+   มันจึงเป็นตัวเลขตัวเดียวที่ได้สีเน้น ที่เหลือเป็นสีกลางหมด */
+.mtile.tone-plan .mt-ct { background: var(--fill); color: var(--on-fill); }
 .mtile.hero .mt-ct {
   background: #fff;
   color: var(--blue-deep);
@@ -1986,6 +2039,30 @@
   gap: 13px;
 }
 .mtile.wide .mt-ic { width: 38px; height: 38px; }
+
+/* ---------- ลูกศร "กดแล้วไปต่อ" ----------
+   จาง ๆ พอ ไม่ใช่ของที่ต้องอ่าน แค่ต้องเห็นตอนกวาดตาว่าไทล์นี้พาไปที่อื่นได้ */
+.mt-go {
+  position: absolute;
+  right: 12px; bottom: 11px;
+  display: flex;
+  color: var(--mt-a);
+  opacity: .5;
+  pointer-events: none;
+  z-index: 2;
+}
+.mt-go svg { width: 15px; height: 15px; }
+/* ไทล์แนวนอน: ลูกศรไปอยู่กลางแนวตั้งสุดขวา แล้วดันป้ายตัวเลขเข้ามาให้พ้นกัน */
+.mtile.wide .mt-go { top: 50%; bottom: auto; transform: translateY(-50%); right: 13px; }
+.mtile.wide .mt-ct { top: 50%; right: 36px; transform: translateY(-50%); }
+/* ไทล์เด่นพื้นสีเข้ม ลูกศรต้องเป็นสีขาวถึงจะเห็น */
+.mtile.hero .mt-go {
+  top: 50%; bottom: auto; transform: translateY(-50%); right: 14px;
+  color: #fff; opacity: .75;
+}
+.mtile.hero .mt-go svg { width: 17px; height: 17px; }
+/* ไทล์เล็ก 4 ใบ: กันที่มุมล่างขวาไว้ให้ลูกศร ไม่งั้นคำอธิบายยาว ๆ วิ่งไปทับ */
+.mtile:not(.hero):not(.wide) .mt-tx { padding-right: 18px; }
 
 /* จอกว้าง (แถบซ้าย) วางได้ 3 คอลัมน์สบาย ๆ */
 :root[data-nav="side"] .menu-grid { grid-template-columns: repeat(3, 1fr); }
@@ -2067,12 +2144,48 @@
 .wg-cta svg { width: 14px; height: 14px; }
 .wg-cta:active { transform: scale(.97); }
 
-/* 1) งานด่วนที่สุด */
-.wg-urgent { background: var(--grad-hero); color: #fff; }
-.wg-urgent.red { background: linear-gradient(150deg, #7F1D1D 0%, #B02A2A 100%); }
-.wg-urgent.yellow { background: linear-gradient(150deg, #7A5309 0%, #B5820F 100%); }
-.wg-urgent.clear { background: var(--grad-brand); }
-.wg-urgent .wg-cta { margin-top: 10px; }
+/* 1) งานด่วนที่สุด
+   เดิมทั้งใบเป็นพื้นแดง/เหลืองไล่เฉดตามระดับความด่วน — ก้อนที่ใหญ่ที่สุดบนหน้าแรก
+   จึงกลายเป็นสีเตือน ซึ่งกลับหัวกฎ 60/30/10 (สีเตือนควรเป็นของน้อยที่สุดบนจอ)
+   ตอนนี้ตัววิดเจ็ตเป็นการ์ดสีเดียวกับไทล์อื่น แล้วย้ายความด่วนไปไว้ที่ชิปใบเล็ก
+   ข้อดีอีกอย่าง: ผู้ใช้สลับวิดเจ็ตได้ 4 แบบ ทุกแบบจึงมีน้ำหนักบนจอเท่ากันแล้ว
+   ไม่ใช่ว่าเลือก "ควรทำก่อน" ทีหน้าแรกเปลี่ยนสีทั้งหน้า */
+.wg-urgent { background: var(--card); color: var(--ink); border: 1px solid var(--line); }
+.wg-urgent.red, .wg-urgent.yellow, .wg-urgent.clear { background: var(--card); }
+.wg-urgent .wg-head { color: var(--muted); }
+.wg-urgent .wg-pill { background: var(--card2); color: var(--muted); }
+.wg-urgent .wg-cta { margin-top: 10px; background: var(--fill); color: var(--on-fill); }
+/* หัวข้อวิดเจ็ต: ไอคอนอยู่ในชิปทึบชุดเดียวกับไทล์ ไม่ใช่ไอคอนเปล่า ๆ ลอย ๆ */
+.wg-urgent .wg-head > svg:first-child {
+  box-sizing: content-box;
+  width: 13px; height: 13px;
+  padding: 5px;
+  border-radius: 7px;
+  background: var(--fill);
+  color: var(--on-fill);
+}
+
+/* ---------- ชิปบอกสถานะใต้ชื่องาน ----------
+   ของเดิมเป็นข้อความยาวบรรทัดเดียวคั่นด้วยจุด: กำหนดส่ง เวลาที่ใช้ คะแนน และเหตุผล
+   ต่อกันหมด ตัวหนังสือขนาดเท่ากันทุกคำ เลยไม่มีทางรู้ว่าคำไหนคือคำที่ต้องอ่านก่อน
+   (แถมยาวเกินจนโดนตัดกลางคัน) แยกเป็นก้อน ๆ แล้วให้สีเฉพาะก้อนที่เป็นข่าวร้ายจริง */
+.wg-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.wg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--card2);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.wg-chip svg { width: 13px; height: 13px; }
+.wg-chip.late { background: var(--pri-red-soft); color: var(--pri-red-text); }
+.wg-chip.soon { background: var(--pri-yellow-soft); color: var(--pri-yellow-text); }
 
 /* 2) โน้ต */
 .wg-note { background: var(--card); border: 1px solid var(--line); color: var(--ink); }
@@ -4404,3 +4517,114 @@ body[data-godir] :root[data-theme="meta"] .screen.on { animation-duration: .24s;
   .bg-row.on.glitch .bg-mark,
   .bg-row.on.glitch .bg-nm.fancy { animation: none; }
 }
+
+/* ============================================================
+   60 / 30 / 10 — ระเบียบสีของธีมมืด (ALT 1A7W)
+   ------------------------------------------------------------
+   60%  --scr    #0B1120  พื้นจอ ไม่มีอะไรวางทับนอกจากการ์ด
+   30%  --card   #18233C  การ์ด ไทล์ วิดเจ็ต แถบเมนู — ทุกกล่องบนจอใช้สีนี้
+        --card2  #22304F  ชั้นในของกล่อง (ชิป ป้ายตัวเลข แถบพื้นหลังกราฟ)
+   10%  --fill   #2E6BFF  เฉพาะของที่ "กดแล้วเกิดอะไรขึ้น" กับของที่ต้องเห็นก่อนเพื่อน
+
+   ปัญหาเดิมไม่ใช่ว่าสีไม่สวย แต่คือทุกอย่างบนจอสำคัญเท่ากันหมด: การ์ด AI เป็นพื้นน้ำเงิน
+   ไล่เฉด การ์ดโปรไฟล์เป็นพื้นน้ำเงินไล่เฉด วิดเจ็ตงานด่วนเป็นพื้นแดงเต็มใบ ไทล์สี่ใบสี่สี
+   พอทุกอย่างตะโกน ก็ไม่มีอะไรถูกได้ยิน — บล็อกนี้ลดทุกกล่องลงมาเป็นชั้น 30% เท่ากันหมด
+   แล้วคืนสีเน้นให้เฉพาะปุ่มกับตำแหน่งปัจจุบัน
+
+   วิธีทำคือเปลี่ยนความหมายของสองโทเคนที่ทั้งแอปใช้ร่วมกันอยู่แล้ว ไม่ใช่ไล่แก้ทีละจอ:
+     --grad-hero  = พื้นของ "กล่องใหญ่" → กลายเป็น --card (ชั้น 30%)
+     --grad-brand = พื้นของ "ปุ่มหลัก"  → กลายเป็น --fill (ชั้น 10%)
+   จอไหนที่ยังไม่ได้เขียนตอนนี้ ถ้าใช้สองโทเคนนี้ก็เข้าระเบียบเองอัตโนมัติ
+   ธีมอีก 11 ตัวไม่ถูกแตะเลย เพราะทุกกฎในบล็อกนี้ล็อกด้วย [data-theme="dark"]
+   ============================================================ */
+:root[data-theme="dark"] {
+  --grad-hero: var(--card);
+  --grad-brand: var(--fill);
+  /* กล่องพวกนี้ไม่ใช่สีแบรนด์แล้ว เงาเรืองสีน้ำเงินใต้กล่องจึงไม่มีที่มา */
+  --shadow-brand: var(--shadow);
+  --glow-scan: 0 8px 22px -6px rgba(46,107,255,.55);
+}
+
+/* ---------- กล่องใหญ่ที่เคยเป็นพื้นสีเน้น ----------
+   พื้นเปลี่ยนเป็นสีการ์ดแล้ว ของข้างในที่เคยเป็น "สีขาวโปร่ง" ต้องเปลี่ยนตาม
+   ไม่งั้นจะได้ชิปสีเทาจาง ๆ บนพื้นเข้ม ซึ่งจมหายไปทั้งอัน */
+:root[data-theme="dark"] .mtile.hero,
+:root[data-theme="dark"] .brief,
+:root[data-theme="dark"] .pf-hero,
+:root[data-theme="dark"] .st-hero,
+:root[data-theme="dark"] .fr-me { border: 1px solid var(--line); }
+:root[data-theme="dark"] .mtile.hero .mt-ic,
+:root[data-theme="dark"] .brief-mark {
+  background: var(--fill);
+  border-color: transparent;
+  color: var(--on-fill);
+}
+:root[data-theme="dark"] .brief-mark svg { color: var(--on-fill); }
+:root[data-theme="dark"] .mtile.hero .mt-ct { background: var(--fill); color: var(--on-fill); }
+:root[data-theme="dark"] .mtile.hero .mt-go { color: var(--blue); opacity: .85; }
+/* ปุ่มในการ์ด AI: เดิมเป็นพื้นขาวเต็มความกว้าง = ของที่สว่างที่สุดบนจอตารางงาน
+   ทั้งที่มันเป็นทางเลือกเสริม ส่วนการ์ดงานจริงที่ต้องอ่านกลับหม่นกว่า
+   ให้มันเป็นปุ่มสีเน้นขนาดปกติแทน สว่างพอให้เห็นว่ากดได้ แต่ไม่แย่งซีนงานจริง */
+:root[data-theme="dark"] .brief-cta {
+  background: var(--fill);
+  color: var(--on-fill);
+  box-shadow: none;
+}
+
+/* ---------- ลูกศร "ไปต่อ" บนไทล์ ----------
+   เป็นของประกอบ ไม่ใช่ของที่ต้องอ่าน จึงเป็นสีกลาง ไม่ใช่สีเน้น */
+:root[data-theme="dark"] .mtile:not(.hero) .mt-go { color: var(--muted); opacity: .7; }
+
+/* ---------- กราฟ 7 วันในแท็บ "ฉัน" ----------
+   แท่งที่มีค่ากับแท่งที่เป็นศูนย์เคยใช้สีเดียวกัน (--card2) ต่างกันแค่ความสูง
+   บนพื้นการ์ดสีใกล้กันจึงมองไม่ออกว่าวันไหนทำงานเสร็จบ้าง — ตอนนี้แท่งที่มีค่าเป็นสีเน้น */
+.st-bar .bar { background: var(--card2); }
+.st-bar.has .bar { background: var(--fill); }
+.st-bar.now .d { color: var(--blue); }
+
+/* ---------- ระยะปลอดภัยเหนือแถบเมนู ----------
+   ปุ่มสแกนกลม ๆ ลอยขึ้นเหนือแถบ 34px แต่ padding ล่างของทุกจอเผื่อไว้แค่ความสูงแถบ
+   ปุ่มสุดท้ายของหน้า (เช่น "ดูงานที่เหลืออีก 2 งาน") จึงถูกปุ่มสแกนทับจนกดไม่ได้ */
+.home-body, .scr-body { padding-bottom: calc(118px + var(--tabgap)); }
+.menu-body { padding-bottom: calc(108px + var(--tabgap)); }
+
+/* ---------- ระยะปลอดภัยใต้แถบบน ----------
+   ป้ายเลขรุ่นกับปุ่มเพื่อนลอยอยู่เหนือทุกจอ จอที่ขึ้นต้นด้วยการ์ดเต็มความกว้าง
+   (แท็บ "ฉัน") จึงมีของมาทับหัวการ์ดพอดี จอที่ขึ้นต้นด้วยหัวข้อไม่เป็น เพราะบรรทัด
+   วันที่ตัวเล็กรับแรงชนไว้ให้อยู่แล้ว */
+.pf-body { padding-top: 42px; }
+
+/* ---------- การ์ดงานในตารางงาน ----------
+   หนึ่งใบเคยพูดว่า "ด่วน" สามครั้ง: เลขลำดับพื้นแดง ป้ายคำว่าด่วนมากพื้นแดง
+   และเวลาส่งตัวหนังสือแดง พอวางเรียงสามใบ ทั้งหน้าจึงเป็นสีเตือน
+   เก็บสีไว้ที่ป้ายคำอย่างเดียว เพราะมันคือที่เดียวที่บอก "ระดับ" ได้จริง
+   เลขลำดับกลับไปเป็นตัวเลขเฉย ๆ — มันบอกแค่ลำดับ ไม่ได้บอกความด่วน */
+:root[data-theme="dark"] .rank.red,
+:root[data-theme="dark"] .rank.yellow,
+:root[data-theme="dark"] .rank.green {
+  background: var(--card2);
+  color: var(--ink);
+}
+/* ใบแรกยังต้องต่างจากใบอื่น — ใช้สีเน้น ไม่ใช่สีเตือน เพราะมันแปลว่า "เริ่มที่นี่" */
+:root[data-theme="dark"] .rank.first { background: var(--fill); color: var(--on-fill); }
+
+/* ปุ่มของการ์ด AI ไม่ต้องเต็มความกว้าง — ปุ่มเต็มแถบอ่านเป็น "ปุ่มหลักของทั้งหน้า"
+   ทั้งที่หน้านี้มีหน้าที่หลักคือให้กดการ์ดงาน ไม่ใช่กดวางแผน */
+:root[data-theme="dark"] .brief-cta { width: auto; padding: 0 18px; }
+
+/* ---------- การ์ดโปรไฟล์ ----------
+   วงกลมตกแต่งสองวงเคยเป็นสีขาวโปร่งบนพื้นน้ำเงินเข้ม พอพื้นเป็นสีการ์ดแล้ว
+   มันกลายเป็นก้อนเทาใหญ่กลางการ์ด ดูเหมือนภาพโหลดไม่ขึ้นมากกว่าลายตกแต่ง */
+:root[data-theme="dark"] .pf-hero .b1 { background: rgba(255,255,255,.035); }
+:root[data-theme="dark"] .pf-hero .b2 { background: rgba(255,255,255,.025); }
+:root[data-theme="dark"] .pf-av { background: var(--fill); color: var(--on-fill); }
+/* วงแสงมุมบนขวาของไทล์เด่น — พื้นไม่ใช่สีเน้นแล้ว แสงสีขาวจึงไม่มีที่มาเหมือนกัน */
+:root[data-theme="dark"] .mtile.hero::after { background: none; }
+
+/* ปุ่มเพื่อนมุมขวาบนหลบให้ปุ่มย้อนกลับของจอชั้นใน (ดู TABBED_SCREENS ใน app.js) */
+body.deep-scr .top-friends { display: none; }
+
+/* ชิปไอคอนของทางเข้าหลักในจอ "เพิ่มงานใหม่" ใช้กฎเดียวกับไทล์หน้าแรก — พื้นทึบ
+   (ชิปในลิสต์ยาว ๆ เช่นแถวตั้งค่า ยังเป็นพื้นจางเหมือนเดิม ไม่งั้นสีเน้นจะเกินโควตา
+   ทันทีที่ลิสต์ยาวขึ้น — กฎคือ "ทางเข้า" ได้พื้นทึบ ส่วน "รายการ" ไม่ได้) */
+:root[data-theme="dark"] .scan-tile .tile { background: var(--fill); color: var(--on-fill); }

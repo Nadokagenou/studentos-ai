@@ -50,15 +50,25 @@
   --r-card:20px; --r-tile:14px; --frame:#2A2622;
   /* ระยะแถบเมนูถึงขอบล่าง — ครึ่งหนึ่งของ safe area ก็พ้น home indicator แล้ว */
   --tabgap:calc(6px + env(safe-area-inset-bottom) * .5);
+  /* สีเน้นแบบพื้นทึบ (ชิปไอคอน · แท็บที่เลือก · ปุ่มหลัก)
+     ค่าเริ่มต้นคือสีเน้นของธีมนั้น ๆ ตรง ๆ — ธีมไหนไม่ได้กำหนดทับ หน้าตาจึงไม่เปลี่ยน */
+  --fill:var(--blue); --on-fill:var(--on-accent);
 }
 
-/* ---------- โทน 2: มืด — ดำน้ำเงิน + ฟ้า ---------- */
+/* ---------- โทน 2: มืด — ดำน้ำเงิน + ฟ้า (คุมด้วยกฎ 60/30/10) ----------
+   60% = --scr พื้นจอ · 30% = --card / --card2 การ์ดกับแถบเมนู · 10% = --fill สีเน้น
+   สามชั้นนี้ต้องต่างกันพอให้แยกออกโดยไม่ต้องมีเส้นขอบ แต่ไม่ต่างจนเป็นลายสลับ
+   ของที่เคยเป็นสีเน้นทั้งก้อน (ไทล์เด่น · การ์ดโปรไฟล์ · วิดเจ็ต) ถูกลดลงมาเป็นชั้น 30%
+   เหลือสีเน้นไว้เฉพาะของที่กดได้จริง — ดูบล็อก "60/30/10" ท้าย alt.css */
 :root[data-theme="dark"]{
   color-scheme:dark;
-  --scr:#0D1220; --card:#161E31; --card2:#202B44; --surface:#202B44;
+  --scr:#0B1120; --card:#18233C; --card2:#22304F; --surface:#22304F;
   --ink:#E9EDF5; --muted:#96A1B9; --faint:#8A94AB;
   --line:rgba(255,255,255,.07);
   --blue:#6FA8FF; --blue-soft:rgba(111,168,255,.15); --blue-deep:#A9C8FF; --on-accent:#0A1120;
+  /* สีเน้นแบบพื้นทึบ — เข้มกว่า --blue เพราะต้องวางตัวอักษร/ไอคอนสีขาวทับ
+     (--blue ยังใช้เป็น "สีตัวอักษรบนพื้นเข้ม" เหมือนเดิม สองบทบาทนี้ใช้ค่าเดียวกันไม่ได้) */
+  --fill:#2E6BFF; --on-fill:#FFFFFF;
   --neon:#6FA8FF;
   --alert:#FF8A80; --alert-soft:rgba(255,138,128,.14);
   --warn:#E9B76B;  --warn-soft:rgba(233,183,107,.14);
@@ -233,8 +243,15 @@ body{
   background:none; cursor:pointer; border:none; font-family:inherit; border-radius:14px;
   padding:4px 2px; transition:all .16s ease; -webkit-tap-highlight-color:transparent}
 .tab .ic{width:22px; height:22px; display:block; stroke-width:1.9}
-.tab.active{color:var(--blue-deep); background:var(--blue-soft)}
+/* แท็บที่กำลังอยู่ = ก้อนสีเน้นทึบ ไอคอนกับตัวหนังสือเป็นสีขาวทับ
+   ของเดิมเป็นพื้นจาง ๆ สีเดียวกับที่ใช้อีกสิบที่บนจอ เลยไม่มีใครรู้ว่าตัวเองอยู่หน้าไหน
+   ตำแหน่งปัจจุบันคือข้อมูลชิ้นเดียวที่แถบนี้มีหน้าที่บอก มันจึงควรเป็นของที่เห็นก่อนเพื่อน */
+.tab.active{color:var(--on-fill); background:var(--fill)}
 .tab.active .ic{stroke-width:2.3}
+/* ไอคอนแบบทึบ — ซ่อนไว้ก่อน โผล่แทนไอคอนเส้นเฉพาะตอนแท็บนั้นถูกเลือก */
+.tab .ic-f{display:none}
+.tab.active .ic-f{display:block}
+.tab.active .ic-l{display:none}
 
 /* ปุ่มเพิ่มงาน: กล่องสูงเท่าไอคอนอื่นเป๊ะ แต่กว้างกว่าและมีพื้นสีแบรนด์
    จึงเด่นสุดในแถบโดยไม่ทำให้แถบสูงขึ้นและไม่หลุดแนว */

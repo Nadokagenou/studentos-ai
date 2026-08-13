@@ -433,7 +433,9 @@ function aiGreeting(pending, settings, now = new Date()) {
   const freeH = settings.freeHours || 2;
 
   // สั้นเสมอ: 1 ประโยคบอกว่าทำอะไรก่อน + 1 วลีบอกว่าเวลาพอไหม
-  if (info.urgency === 'over') return hey + top.subject + 'เลยกำหนดแล้ว รีบเคลียร์ก่อนเลย';
+  // "nado ภาษาอังกฤษเลยกำหนดแล้ว" อ่านแล้วสะดุด เพราะชื่อวิชาไปชนชื่อคนพอดี
+  // เติมคำว่า "งาน" คั่นไว้ ประโยคจึงมีประธานชัดว่ากำลังพูดถึงงาน ไม่ใช่ตัววิชา
+  if (info.urgency === 'over') return hey + 'งาน' + top.subject + 'เลยกำหนดแล้ว รีบเคลียร์ก่อนเลย';
   const why = (info.reasons[0] || '').replace(/^★ /, '');
   const fit = totalH > freeH
     ? 'งานรวม ~' + totalH + ' ชม. เกินเวลาว่าง เลือกทำเฉพาะงานด่วน'
@@ -473,7 +475,18 @@ function buildDayPlan(pending, settings, now = new Date()) {
     .filter(t => { const h = (new Date(t.due) - now) / 3.6e6; return h > -2 && h <= 24; })
     .sort((a, b) => new Date(a.due) - new Date(b.due));
 
-  const sorted = sortByPriority(schedulable, now);
+  // ลำดับในแผน ≠ ลำดับความสำคัญเป๊ะ ๆ
+  // งานที่เลยกำหนดแล้วได้คะแนนความสำคัญสูงสุดเสมอ มันจึงกินเวลาว่างทั้งก้อนไปก่อน
+  // แล้วงานที่ "ส่งคืนนี้" ถูกดันไปพรุ่งนี้ — ซึ่งแปลว่าพรุ่งนี้มันจะเลยกำหนดเพิ่มอีกใบ
+  // แผนของวันนี้จึงต้องกันที่ให้งานที่เส้นตายอยู่ในวันนี้ก่อน (เรียงตามเวลาส่ง)
+  // ความเสียหายที่ยังกันได้ มาก่อนความเสียหายที่เกิดไปแล้ว
+  // ที่เหลือ (รวมงานที่เลยกำหนด) ต่อท้ายตามลำดับความสำคัญเดิมไม่เปลี่ยน
+  const byPriority = sortByPriority(schedulable, now);
+  const endOfDay = atTime(now, 23, 59);
+  const dueToday = byPriority
+    .filter(t => t.due && new Date(t.due) >= now && new Date(t.due) <= endOfDay)
+    .sort((a, b) => new Date(a.due) - new Date(b.due));
+  const sorted = [...dueToday, ...byPriority.filter(t => !dueToday.includes(t))];
   const freeMin = Math.round((settings.freeHours || 2) * 60);
 
   // เริ่มแผน: ถ้ายังไม่ถึงเวลาทำการบ้านปกติ (19:00) ให้เริ่ม 19:00, ถ้าเลยแล้วเริ่มตอนนี้
