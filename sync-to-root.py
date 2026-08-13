@@ -12,7 +12,7 @@
 import io, os, sys
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-FILES = ['app.js', 'engine.js', 'style.css', 'alt.css', 'index.html', 'context.js']
+FILES = ['app.js', 'engine.js', 'style.css', 'alt.css', 'custom.css', 'index.html', 'context.js']
 
 # (ไฟล์, ข้อความในเวอร์ชัน alt, ข้อความที่ตัวจริงต้องได้)
 IDENTITY = [

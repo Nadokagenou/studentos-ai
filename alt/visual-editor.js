@@ -96,6 +96,9 @@
       try {
         var e = document.querySelector(s);
         if (!e) continue;
+        /* กำลังพิมพ์แก้ชิ้นนี้อยู่ ห้ามยุ่ง — ตัวนี้เดินทุก 2.5 วิ แล้วเขียนข้อความเดิมกลับลงไป
+           ทับสิ่งที่เพิ่งพิมพ์ ลบอะไรก็เด้งกลับมา เคอร์เซอร์กระโดดไปต้นบรรทัด */
+        if (e.getAttribute('contenteditable')) continue;
         /* ชิ้นที่มีลูกเป็นอิลิเมนต์ ห้ามเขียนทับ — ไม่งั้นลูกหายทั้งกิ่ง */
         if ([].some.call(e.childNodes, function (n) { return n.nodeType === 1; })) continue;
         if (e.textContent !== S.texts[s]) e.textContent = S.texts[s];
@@ -177,7 +180,10 @@
   }
 
   /* ==================== FONTS ==================== */
-  var GF = ['Kanit', 'Prompt', 'Sarabun', 'Mitr', 'Bai Jamjuree', 'Noto Sans Thai', 'IBM Plex Sans Thai', 'Chakra Petch', 'Athiti', 'Charm', 'Pridi'];
+  /* ฟอนต์ไทยจาก Google Fonts — โหลดจริงตอนเลือกเท่านั้น ไม่ได้ดึงมาทั้งกองตอนเปิดแอป */
+  var GF = ['Kanit', 'Prompt', 'Sarabun', 'Mitr', 'Bai Jamjuree', 'Noto Sans Thai', 'IBM Plex Sans Thai',
+    'Chakra Petch', 'Athiti', 'Charm', 'Pridi', 'Anuphan', 'K2D', 'Krub', 'Maitree', 'Niramit',
+    'Noto Serif Thai', 'Taviraj', 'Trirong', 'Fahkwang', 'Kodchasan', 'Itim', 'Sriracha', 'Chonburi', 'Srisakdi'];
   function loadFont(f) {
     if (!f || S.fonts.indexOf(f) > -1) return;
     S.fonts.push(f);
@@ -336,7 +342,10 @@
 '.pe{pointer-events:auto}' +
 '#hl{position:fixed;pointer-events:none;outline:2px dashed #6FA8FF;background:rgba(111,168,255,.13);border-radius:4px;display:none}' +
 '#se{position:fixed;pointer-events:none;outline:2.5px solid #F59E0B;border-radius:4px;display:none}' +
-'#mv{position:fixed;pointer-events:auto;display:none;cursor:move;touch-action:none}' +
+/* ที่จับสำหรับ "ย้าย" ต้องเป็นปุ่มเล็ก ๆ ของมันเอง
+   ของเดิมคลุมทับชิ้นที่เลือกไว้ทั้งชิ้นเพื่อให้ลากตรงไหนก็ได้ — พอเผลอเลือกชิ้นใหญ่
+   อย่างทั้งหน้าจอ มันก็กลืนทุกการกดหลังจากนั้น เลยเหมือนแก้ได้ครั้งเดียวแล้วตาย */
+'#grip{position:fixed;width:32px;height:32px;border-radius:10px;background:#F59E0B;color:#111;border:2.5px solid #0B0F17;display:none;align-items:center;justify-content:center;font-size:15px;font-weight:800;cursor:move;touch-action:none;z-index:7}' +
 '.hd{position:fixed;width:12px;height:12px;background:#F59E0B;border:2.5px solid #0B0F17;border-radius:50%;pointer-events:auto;display:none;z-index:6;touch-action:none}' +
 '#tip{position:fixed;font:600 11px ui-monospace,monospace;background:#0B0F17;color:#fff;padding:3px 8px;border-radius:7px;pointer-events:none;white-space:nowrap;display:none}' +
 
@@ -454,7 +463,8 @@
 '.cd .f2 button{flex:1;padding:11px;border-radius:10px;border:0;font-weight:800;font-size:11.5px;cursor:pointer}' +
 '</style>' +
 
-'<div id="hl"></div><div id="se"></div><div id="mv"></div><div id="tip"></div>' +
+'<div id="hl"></div><div id="se"></div><div id="tip"></div>' +
+'<div id="grip" class="pe" title="ลากตรงนี้เพื่อย้าย">&#10021;</div>' +
 '<div class="hd" data-h="nw"></div><div class="hd" data-h="n"></div><div class="hd" data-h="ne"></div>' +
 '<div class="hd" data-h="w"></div><div class="hd" data-h="e"></div>' +
 '<div class="hd" data-h="sw"></div><div class="hd" data-h="s"></div><div class="hd" data-h="se"></div>' +
@@ -478,13 +488,13 @@
     '<button class="b3 sm" id="bClr">&#10005;</button></div>' +
 '</div>' +
 '<div id="toast"></div>' +
-'<div id="md" class="pe"><div class="cd"><h3>วางต่อท้ายไฟล์ style.css แล้วอัปขึ้น GitHub</h3>' +
+'<div id="md" class="pe"><div class="cd"><h3>เอาไปวางทับไฟล์ custom.css แล้ว push — เพื่อนถึงจะเห็น</h3>' +
   '<textarea id="out" spellcheck="false"></textarea>' +
   '<div class="f2"><button class="b1" id="bCp">คัดลอกทั้งหมด</button><button class="b2" id="bDl">ดาวน์โหลด</button><button class="b2" id="bX">ปิด</button></div></div></div>';
 
   var $ = function (s) { return sr.querySelector(s); };
   var $$ = function (s) { return [].slice.call(sr.querySelectorAll(s)); };
-  var hl = $('#hl'), se = $('#se'), mv = $('#mv'), tip = $('#tip'), qb = $('#qb'), pn = $('#pn'), bd = $('#bd');
+  var hl = $('#hl'), se = $('#se'), grip = $('#grip'), tip = $('#tip'), qb = $('#qb'), pn = $('#pn'), bd = $('#bd');
 
   function toast(m) { var t = $('#toast'); t.textContent = m; t.style.opacity = '1'; clearTimeout(t._t); t._t = setTimeout(function () { t.style.opacity = '0'; }, 1400); }
   function E(t, c, h) { var d = document.createElement(t); if (c) d.className = c; if (h != null) d.innerHTML = h; return d; }
@@ -504,14 +514,15 @@
        ไม่งั้นมันจะไปกองอยู่มุมซ้ายบนแบบชี้ไปที่ความว่างเปล่า แล้วกดอะไรก็ไม่เห็นอะไรเกิดขึ้น */
     var vis = cur && (cur.offsetWidth || cur.offsetHeight || cur.getClientRects().length);
     if (!cur || !editing || paused || !vis) {
-      se.style.display = 'none'; mv.style.display = 'none';
+      se.style.display = 'none'; grip.style.display = 'none';
       $$('.hd').forEach(function (h) { h.style.display = 'none'; });
       qb.classList.remove('show');
       return;
     }
     var r = box(cur, se);
-    mv.style.left = r.left + 'px'; mv.style.top = r.top + 'px';
-    mv.style.width = r.width + 'px'; mv.style.height = r.height + 'px'; mv.style.display = 'block';
+    grip.style.left = Math.max(4, Math.min(r.left - 2, innerWidth - 36)) + 'px';
+    grip.style.top = Math.max(4, Math.min(r.top - 36, innerHeight - 36)) + 'px';
+    grip.style.display = 'flex';
     $$('.hd').forEach(function (h) {
       var q = HP[h.getAttribute('data-h')];
       h.style.left = (r.left + r.width * q[0] - 6) + 'px';
@@ -683,7 +694,7 @@
       make(e);
     });
   }
-  grab(mv, function (e) {
+  grab(grip, function (e) {
     var s0 = xy(), sx = e.clientX, sy = e.clientY, moved = false;
     drag = function (ev) { moved = true; setXY(s0[0] + ev.clientX - sx, s0[1] + ev.clientY - sy); frame(); };
     drag.end = function () { if (moved) commit('ย้ายตำแหน่ง'); };
@@ -766,7 +777,15 @@
     };
     var mo = E('button', 'ic', '&#9776;'); mo.title = 'ปรับละเอียด';
     mo.onclick = function () { tab = 'el'; openPanel(true); paint(); };
-    h.appendChild(up); h.appendChild(dn); h.appendChild(nm);
+    /* "ลบ" ในเครื่องมือแก้ดีไซน์ = ซ่อนชิ้นนั้น ไม่ใช่ลบ DOM ทิ้ง
+       เพราะแอปวาดหน้าใหม่เมื่อไหร่ ชิ้นที่ลบทิ้งก็กลับมาอยู่ดี ซ่อนด้วย CSS ถึงจะอยู่ถาวร */
+    var del = E('button', 'ic', '&#128465;'); del.title = 'ซ่อนชิ้นนี้';
+    del.onclick = function () {
+      setP('display', 'none');
+      commit('ซ่อน ' + (clsOf(cur) || cur.tagName.toLowerCase()));
+      frame(); toast('ซ่อนแล้ว · เอากลับได้ในแท็บประวัติ');
+    };
+    h.appendChild(up); h.appendChild(dn); h.appendChild(nm); h.appendChild(del);
     /* ดับเบิลแตะบนมือถือแทบไม่ติด (โดนซูมแทน) — ให้ปุ่มไปเลยตรง ๆ */
     if (!leafText(cur)) h.appendChild(rs);
     else {
@@ -1301,7 +1320,9 @@
 
   function exportCSS() {
     var out = '/* ==========================================================\n   StudentOS — Visual Edits\n   ' + new Date().toLocaleString('th-TH') +
-      '\n   วางต่อท้าย style.css\n   ========================================================== */\n\n';
+      '\n   วางทับไฟล์ alt/custom.css ทั้งไฟล์ (ไม่ใช่แปะต่อท้าย)\n' +
+      '   แล้ว: python sync-to-root.py → git commit → git push\n' +
+      '   ========================================================== */\n\n';
     S.fonts.forEach(function (f) {
       out += "@import url('https://fonts.googleapis.com/css2?family=" + f.replace(/ /g, '+') + ":wght@200;300;400;500;600;700;800&display=swap');\n";
     });
