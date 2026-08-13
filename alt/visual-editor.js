@@ -161,6 +161,142 @@
   }
   (function () { var f = S.fonts.slice(); S.fonts = []; f.forEach(loadFont); })();
 
+  /* ==================== COLOR SCIENCE ==================== */
+  function h2r(h) {
+    h = String(h).replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    var n = parseInt(h, 16) || 0;
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function r2h(r, g, b) {
+    return '#' + [r, g, b].map(function (v) {
+      return ('0' + Math.round(Math.max(0, Math.min(255, v))).toString(16)).slice(-2);
+    }).join('');
+  }
+  function r2hsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    var mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, h = 0, s = 0, l = (mx + mn) / 2;
+    if (d) {
+      s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+      if (mx === r) h = (g - b) / d + (g < b ? 6 : 0);
+      else if (mx === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h *= 60;
+    }
+    return [h, s * 100, l * 100];
+  }
+  function hsl2h(h, s, l) {
+    h = ((h % 360) + 360) % 360; s = Math.max(0, Math.min(100, s)) / 100; l = Math.max(0, Math.min(100, l)) / 100;
+    var c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2, r, g, b;
+    if (h < 60) { r = c; g = x; b = 0; } else if (h < 120) { r = x; g = c; b = 0; }
+    else if (h < 180) { r = 0; g = c; b = x; } else if (h < 240) { r = 0; g = x; b = c; }
+    else if (h < 300) { r = x; g = 0; b = c; } else { r = c; g = 0; b = x; }
+    return r2h((r + m) * 255, (g + m) * 255, (b + m) * 255);
+  }
+  function hslOf(hx) { var c = h2r(hx); return r2hsl(c[0], c[1], c[2]); }
+  function lum(hx) {
+    var c = h2r(hx).map(function (v) { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+    return .2126 * c[0] + .7152 * c[1] + .0722 * c[2];
+  }
+  function ratio(a, b) {
+    var l1 = lum(a), l2 = lum(b);
+    if (l1 < l2) { var t = l1; l1 = l2; l2 = t; }
+    return (l1 + .05) / (l2 + .05);
+  }
+  function bestOn(bg) { return ratio('#FFFFFF', bg) >= ratio('#111111', bg) ? '#FFFFFF' : '#111111'; }
+  function rate(r) {
+    if (r >= 7) return { t: 'อ่านง่ายมาก (AAA)', ok: 1 };
+    if (r >= 4.5) return { t: 'อ่านง่าย (AA)', ok: 1 };
+    if (r >= 3) return { t: 'พอไหว — ใช้ได้กับตัวใหญ่เท่านั้น', ok: 0 };
+    return { t: 'อ่านยาก ควรแก้', ok: 0 };
+  }
+  /* หาสีตัวอักษรที่คงโทนเดิมไว้ แต่อ่านออกบนพื้นนี้ */
+  function fixOn(bg, fg) {
+    var h = hslOf(fg), dir = lum(bg) > .4 ? -1 : 1, l;
+    for (l = h[2]; l >= 0 && l <= 100; l += dir * 2) {
+      var c = hsl2h(h[0], h[1], l);
+      if (ratio(c, bg) >= 4.5) return c;
+    }
+    return bestOn(bg);
+  }
+  /* พื้นหลังจริงที่ตัวอักษรวางอยู่ (ไล่ขึ้นไปหาชิ้นแม่ที่มีสีจริง) */
+  function effBg(el) {
+    var n = el;
+    while (n && n !== document.documentElement) {
+      var b = getComputedStyle(n).backgroundColor;
+      if (b && alph(b) > .05 && b !== 'transparent') return hex(b);
+      n = n.parentElement;
+    }
+    return '#FFFFFF';
+  }
+  /* สีที่เข้ากันตามหลักวงล้อสี */
+  function harmony(seed) {
+    var s = hslOf(seed), H = s[0], S = s[1], L = s[2];
+    return [
+      { n: 'สีข้างเคียง — กลมกลืน สบายตา', c: [hsl2h(H - 30, S, L), hsl2h(H - 15, S, L), seed, hsl2h(H + 15, S, L), hsl2h(H + 30, S, L)] },
+      { n: 'สีตรงข้าม — ตัดกันชัด เด่นมาก', c: [seed, hsl2h(H + 180, S, L), hsl2h(H + 180, S * .6, L + 18), hsl2h(H, S * .5, L + 22)] },
+      { n: 'สามเหลี่ยม — สดใส มีชีวิตชีวา', c: [seed, hsl2h(H + 120, S, L), hsl2h(H + 240, S, L)] },
+      { n: 'ไล่เฉดสีเดียว — เรียบหรู ดูแพง', c: [hsl2h(H, S, 92), hsl2h(H, S, 74), hsl2h(H, S, L), hsl2h(H, S, Math.max(16, L - 18)), hsl2h(H, S, Math.max(10, L - 32))] }
+    ];
+  }
+  /* สร้างชุดสีทั้งธีมจากสีหลักสีเดียว */
+  function genTheme(seed, nh, warm) {
+    var s = hslOf(seed), H = s[0], S = s[1], L = s[2];
+    var N = (nh === undefined || nh === null) ? H : nh;
+    var ws = warm ? 1 : 0;
+    var light = {
+      '--scr': hsl2h(N, 12 + ws * 10, 97), '--card': hsl2h(N, 6 + ws * 14, 99.5),
+      '--card2': hsl2h(N, 10 + ws * 10, 94.5), '--surface': hsl2h(N, 9 + ws * 9, 98),
+      '--ink': hsl2h(N, 14, 13), '--muted': hsl2h(N, 9, 45), '--line': 'rgba(0,0,0,.09)',
+      '--blue': seed, '--blue-soft': hsl2h(H, Math.min(S, 72), 93),
+      '--blue-deep': hsl2h(H, Math.min(S + 6, 100), Math.max(18, L - 16)), '--on-accent': bestOn(seed)
+    };
+    var ds = hsl2h(H, Math.min(S, 74), Math.max(52, Math.min(68, L + 14)));
+    var dark = {
+      '--scr': hsl2h(N, 16, 7), '--card': hsl2h(N, 15, 11.5), '--card2': hsl2h(N, 14, 16),
+      '--surface': hsl2h(N, 15, 9), '--ink': hsl2h(N, 8, 96), '--muted': hsl2h(N, 7, 62),
+      '--line': 'rgba(255,255,255,.10)', '--blue': ds, '--blue-soft': hsl2h(H, 30, 22),
+      '--blue-deep': hsl2h(H, Math.min(S, 70), 38), '--on-accent': bestOn(ds)
+    };
+    return { light: light, dark: dark };
+  }
+  function isDarkTheme() {
+    var v = getComputedStyle(document.documentElement).getPropertyValue('--scr').trim();
+    try { return lum(hex(v || '#ffffff')) < .35; } catch (e) { return false; }
+  }
+  function applyTheme(set, label) {
+    S.tokens.light = S.tokens.light || {}; S.tokens.dark = S.tokens.dark || {};
+    var k;
+    for (k in set.light) S.tokens.light[k] = set.light[k];
+    for (k in set.dark) S.tokens.dark[k] = set.dark[k];
+    var th = theme();
+    if (th !== 'light' && th !== 'dark') {
+      var v = isDarkTheme() ? set.dark : set.light;
+      S.tokens[th] = S.tokens[th] || {};
+      for (k in v) S.tokens[th][k] = v[k];
+    }
+    applyTokens(); commit(label); paint(); toast(label);
+  }
+
+  var PALETTES = [
+    { n: 'สดใสวัยเรียน', m: 'ฟ้าสด อ่านง่าย ดูน่าเชื่อถือ', s: '#2563EB', h: 222 },
+    { n: 'อบอุ่นมินิมอล', m: 'โทนครีม–น้ำตาล เรียบ สบายตา', s: '#C2703D', h: 30, w: 1 },
+    { n: 'เขียวสงบ', m: 'ธรรมชาติ ผ่อนคลาย ดูสะอาด', s: '#12855F', h: 150 },
+    { n: 'ม่วงครีเอทีฟ', m: 'ทันสมัย มีความเป็นแบรนด์', s: '#7C3AED', h: 265 },
+    { n: 'ชมพูหวาน', m: 'อ่อนโยน เป็นมิตร เข้าถึงง่าย', s: '#DB2777', h: 330, w: 1 },
+    { n: 'ส้มพลังงาน', m: 'กระตือรือร้น เหมาะกับแอปงาน', s: '#EA580C', h: 25, w: 1 },
+    { n: 'ฟ้าน้ำทะเล', m: 'สดชื่น โปร่ง โมเดิร์น', s: '#0891B2', h: 192 },
+    { n: 'แดงเข้มพรีเมียม', m: 'เข้ม มั่นใจ ดูมีระดับ', s: '#B91C1C', h: 6 },
+    { n: 'เหลืองทองอบอุ่น', m: 'สว่าง เป็นกันเอง', s: '#CA8A04', h: 45, w: 1 },
+    { n: 'เทาโมโนคลาสสิก', m: 'สุขุม เรียบร้อย ไม่ฉูดฉาด', s: '#475569', h: 220 },
+    { n: 'ครามอินดิโก', m: 'ลึก จริงจัง เหมาะงานวิชาการ', s: '#4338CA', h: 245 },
+    { n: 'มิ้นต์สดชื่น', m: 'เบา สบาย ดูเป็นมิตร', s: '#059669', h: 165 }
+  ];
+  function palColors(p) {
+    var t = genTheme(p.s, p.h, p.w);
+    return [t.light['--scr'], t.light['--card2'], p.s, t.light['--blue-deep'], t.light['--ink']];
+  }
+
   /* ==================== SHELL ==================== */
   var host = document.createElement('div');
   host.id = 'sos-ve-host';
@@ -245,6 +381,30 @@
 '.n{flex:0 0 44px;text-align:right;font:700 10.5px ui-monospace,monospace;color:#FBBF24}' +
 '.x{border:0;background:none;color:#4E5A72;cursor:pointer;font-size:12px;padding:0 1px}.x:hover{color:#F59E0B}' +
 '.hint{padding:12px 14px;color:#6E7B92;font-size:11.5px;line-height:1.8}' +
+'.sec{padding:11px 13px 3px;font-weight:800;font-size:11.5px;color:#93A3BD}' +
+'.pcard{display:flex;align-items:center;gap:9px;padding:7px;margin:0 13px 7px;border-radius:11px;background:#131B27;border:1px solid #1F2A3B;cursor:pointer}' +
+'.pcard:hover{border-color:#F59E0B;background:#18212F}' +
+'.strip{display:flex;border-radius:7px;overflow:hidden;flex:0 0 76px;height:28px;border:1px solid rgba(255,255,255,.10)}' +
+'.strip i{flex:1;display:block}' +
+'.pi{flex:1;min-width:0}' +
+'.pi b{display:block;font-size:11.5px;color:#DCE4F2;font-weight:800}' +
+'.pi span{display:block;font-size:10px;color:#6E7B92;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+'.seedrow{display:flex;gap:7px;align-items:center;padding:4px 13px 10px}' +
+'.seedrow input[type=color]{width:46px;height:36px;flex:0 0 auto}' +
+'.seedrow button{flex:1;padding:11px;border:0;border-radius:10px;background:#F59E0B;color:#111;font-weight:800;font-size:11.5px;cursor:pointer}' +
+'.harm{padding:0 13px 9px}' +
+'.harm .hn{font-size:10.5px;color:#8B98AF;margin-bottom:5px}' +
+'.harm .hs{display:flex;gap:4px}' +
+'.harm .hs i{flex:1;height:32px;border-radius:8px;cursor:pointer;border:2px solid rgba(255,255,255,.10);display:block}' +
+'.harm .hs i:hover{border-color:#F59E0B}' +
+'.badge{display:flex;align-items:center;gap:7px;margin:0 13px 8px;padding:9px 10px;border-radius:10px;font-size:11px;font-weight:700;line-height:1.45}' +
+'.badge.ok{background:#0F2318;color:#7EE2A8}' +
+'.badge.no{background:#2A1518;color:#F9B3B3}' +
+'.badge button{margin-left:auto;flex:0 0 auto;padding:6px 10px;border:0;border-radius:7px;background:#F59E0B;color:#111;font-weight:800;font-size:10.5px;cursor:pointer}' +
+'.qbadge{display:flex;align-items:center;gap:6px;margin-top:8px;padding:8px 9px;border-radius:10px;font-size:10.5px;font-weight:700}' +
+'.qbadge.ok{background:#0F2318;color:#7EE2A8}' +
+'.qbadge.no{background:#2A1518;color:#F9B3B3}' +
+'.qbadge button{margin-left:auto;padding:5px 9px;border:0;border-radius:7px;background:#F59E0B;color:#111;font-weight:800;font-size:10px;cursor:pointer}' +
 '.kb{background:#182130;border-radius:4px;padding:1px 5px;font:700 10px ui-monospace,monospace;color:#B9C4D6}' +
 '.ft{position:absolute;bottom:0;left:0;right:0;padding:9px 12px;background:#0B1018;border-top:1px solid #1D2634;display:flex;gap:6px}' +
 '.ft button{padding:10px 6px;border-radius:10px;border:0;font-weight:800;font-size:11.5px;cursor:pointer;flex:1}' +
@@ -278,7 +438,7 @@
     '<button class="ic" id="pClose" title="ปิด">&#10005;</button></div>' +
   '<div class="tabs">' +
     '<button data-t="hist" class="a">ประวัติ</button><button data-t="el">ละเอียด</button>' +
-    '<button data-t="th">โทนสี</button><button data-t="css">CSS</button></div>' +
+    '<button data-t="th">สี &#10024;</button><button data-t="css">CSS</button></div>' +
   '<div class="bd" id="bd"></div>' +
   '<div class="ft">' +
     '<button class="b1" id="bEx">&#8681; เอาโค้ดออก</button>' +
@@ -521,6 +681,28 @@
     tg.appendChild(bB); tg.appendChild(bC); tg.appendChild(bS);
     qb.appendChild(tg);
 
+    /* contrast advisor — เตือนทันทีถ้าสีอ่านไม่ออก */
+    var txt = (cur.textContent || '').trim();
+    if (txt && txt.length < 400) {
+      try {
+        var fg = hex(val('color')), bg = effBg(cur);
+        var rr = ratio(fg, bg), vv = rate(rr);
+        var big = num(val('font-size')) >= 24 || num(val('font-weight')) >= 700;
+        var pass = vv.ok || (big && rr >= 3);
+        var qb2 = E('div', 'qbadge ' + (pass ? 'ok' : 'no'));
+        qb2.appendChild(E('div', '', (pass ? '\u2713 อ่านง่าย ' : '\u26a0 สีตัวอักษรกลืนพื้นหลัง ') + rr.toFixed(1) + ':1'));
+        if (!pass) {
+          var fx = E('button', '', 'แก้ให้');
+          fx.onclick = function () {
+            setP('color', fixOn(bg, fg));
+            commit('แก้สีตัวอักษรให้อ่านง่าย'); bar(); frame();
+          };
+          qb2.appendChild(fx);
+        }
+        qb.appendChild(qb2);
+      } catch (e) {}
+    }
+
     /* twins chip */
     var n = twins(cur);
     if (n > 1) {
@@ -752,7 +934,82 @@
 
   function paintTok() {
     var cs = getComputedStyle(document.documentElement);
-    bd.appendChild(E('div', 'hint', 'เปลี่ยนตรงนี้ = เปลี่ยน<b>ทั้งแอปทุกหน้า</b>พร้อมกัน<br>ธีมตอนนี้: <b>' + theme() + '</b>'));
+    function tok(n) { return (S.tokens[theme()] || {})[n] || cs.getPropertyValue(n).trim() || FB[n]; }
+    var seed = hex(tok('--blue'));
+
+    /* ---- 1. สร้างธีมจากสีเดียว ---- */
+    bd.appendChild(E('div', 'sec', '\ud83e\ude84 สร้างชุดสีทั้งแอปจากสีเดียว'));
+    bd.appendChild(E('div', 'hint', 'เลือกสีที่ชอบมา 1 สี เดี๋ยวคำนวณสีพื้น สีการ์ด สีตัวอักษร ให้เข้ากันทั้งหมดเอง'));
+    var sro = E('div', 'seedrow');
+    var sc = E('input'); sc.type = 'color'; sc.value = seed;
+    var sb = E('button', '', 'สร้างชุดสีให้เลย');
+    sb.onclick = function () { applyTheme(genTheme(sc.value, null, false), 'สร้างชุดสีจาก ' + sc.value); };
+    sro.appendChild(sc); sro.appendChild(sb);
+    bd.appendChild(sro);
+
+    /* ---- 2. ตรวจว่าสีที่ใช้อยู่อ่านออกไหม ---- */
+    bd.appendChild(E('div', 'sec', '\ud83d\udc41\ufe0f ตรวจว่าสีอ่านออกไหม'));
+    var CHECK = [
+      { a: '--ink', b: '--card', l: 'ตัวอักษรหลัก บนการ์ด' },
+      { a: '--muted', b: '--card', l: 'ตัวอักษรจาง บนการ์ด' },
+      { a: '--ink', b: '--scr', l: 'ตัวอักษรหลัก บนพื้นจอ' },
+      { a: '--on-accent', b: '--blue', l: 'ตัวอักษร บนปุ่มสีแบรนด์' }
+    ];
+    var bad = 0;
+    CHECK.forEach(function (c) {
+      var fg = hex(tok(c.a)), bg = hex(tok(c.b));
+      var r = ratio(fg, bg), v = rate(r);
+      if (!v.ok) bad++;
+      var d = E('div', 'badge ' + (v.ok ? 'ok' : 'no'));
+      d.appendChild(E('div', '', (v.ok ? '\u2713 ' : '\u26a0 ') + c.l + '<br>' + r.toFixed(1) + ' : 1 — ' + v.t));
+      if (!v.ok) {
+        var f = E('button', '', 'แก้ให้');
+        f.onclick = function () {
+          setTok(c.a, fixOn(bg, fg));
+          commit('แก้สีให้อ่านง่าย: ' + c.l);
+          paint();
+        };
+        d.appendChild(f);
+      }
+      bd.appendChild(d);
+    });
+    if (!bad) bd.appendChild(E('div', 'hint', 'สีที่ใช้อยู่ผ่านมาตรฐานการอ่าน (WCAG AA) ทุกคู่ \u2014 ดีมาก'));
+
+    /* ---- 3. พาเลตต์สำเร็จรูป ---- */
+    bd.appendChild(E('div', 'sec', '\ud83c\udfa8 พาเลตต์สำเร็จรูป — กดทีเดียวเปลี่ยนทั้งแอป'));
+    PALETTES.forEach(function (p) {
+      var card = E('div', 'pcard');
+      var st = E('div', 'strip');
+      palColors(p).forEach(function (c) { var i = E('i'); i.style.background = c; st.appendChild(i); });
+      var info = E('div', 'pi');
+      info.appendChild(E('b', '', p.n));
+      info.appendChild(E('span', '', p.m));
+      card.appendChild(st); card.appendChild(info);
+      card.onclick = function () { applyTheme(genTheme(p.s, p.h, p.w), 'ใช้พาเลตต์ "' + p.n + '"'); };
+      bd.appendChild(card);
+    });
+
+    /* ---- 4. สีที่เข้ากับสีแบรนด์ ---- */
+    bd.appendChild(E('div', 'sec', '\ud83e\uddee สีที่เข้ากับสีแบรนด์ตอนนี้'));
+    bd.appendChild(E('div', 'hint', 'กดสีเพื่อใช้กับชิ้นที่เลือกอยู่ (ถ้ายังไม่ได้เลือก จะตั้งเป็นสีแบรนด์ใหม่)'));
+    harmony(seed).forEach(function (h) {
+      var w = E('div', 'harm');
+      w.appendChild(E('div', 'hn', h.n));
+      var hs = E('div', 'hs');
+      h.c.forEach(function (c) {
+        var i = E('i'); i.style.background = c; i.title = c;
+        i.onclick = function () {
+          if (cur) { setP(TPROP[target], c); commit('ใช้สีที่เข้ากัน ' + c); bar(); }
+          else { setTok('--blue', c); setTok('--on-accent', bestOn(c)); commit('เปลี่ยนสีแบรนด์เป็น ' + c); paint(); }
+        };
+        hs.appendChild(i);
+      });
+      w.appendChild(hs); bd.appendChild(w);
+    });
+
+    /* ---- 5. ปรับเอง ---- */
+    bd.appendChild(E('div', 'sec', '\u2699\ufe0f ปรับเองทีละสี'));
+    bd.appendChild(E('div', 'hint', 'เปลี่ยนตรงนี้ = เปลี่ยน<b>ทั้งแอปทุกหน้า</b>พร้อมกัน · ธีมตอนนี้: <b>' + theme() + '</b>'));
     TOKS.forEach(function (t) {
       var v = (S.tokens[theme()] || {})[t[0]] || cs.getPropertyValue(t[0]).trim() || FB[t[0]];
       if (!v) return;
