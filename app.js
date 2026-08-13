@@ -11,7 +11,6 @@ const APP_VERSION = '1A7V';                // สายเลข ALT ของ�
 const APP_CODENAME = 'Modern';             // ชื่อรุ่นของอัปเดตนี้
 const APP_CHANNEL = 'AI';                  // ป้ายกำกับรุ่น — โชว์ทั้งบนแอปและในหน้า "ฉัน"
 const STORE_KEY = 'studentos.alt.v1';      // ALT: แยกที่เก็บข้อมูลจากตัวจริง ('studentos.v1')
-const APP_T0 = performance.now(); // ใช้คุมเวลาโชว์ splash ขั้นต่ำ
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
 let editingId = null; // null = เพิ่มใหม่, ไม่ null = แก้ไขงานเดิม
@@ -4279,90 +4278,34 @@ function stopFunFacts(el) {
   if (el) { el.hidden = true; el.textContent = ''; }
 }
 
-// ---------- ALT: ฉากเปิดแอป + เปอร์เซ็นต์จริง ----------
-// เปอร์เซ็นต์ที่โชว์ = min(งานที่เสร็จจริง, เวลาที่ผ่านไป/เวลาขั้นต่ำ)
-//   - ไม่โกหกว่าเสร็จ ทั้งที่ยังโหลดไม่เสร็จ (ติดเพดานที่งานจริง)
-//   - ไม่กระโดดถึง 100 ใน 0.2 วิ แล้วค้างเฉย ๆ (ติดเพดานที่เวลา)
-// เน็ตช้า → ตัวเลขจะค้างรอจริง ๆ ตรงขั้นที่ช้า และป้ายด้านล่างบอกว่าติดอยู่ขั้นไหน
-const SPLASH_MIN = 3600;
-const SPLASH_STEPS = [
-  ['boot',  'เตรียมหน้าจอ'],
-  ['data',  'อ่านข้อมูลในเครื่อง'],
-  ['theme', 'เตรียมธีมและฟอนต์'],
-  ['cloud', 'เชื่อมบัญชี'],
-  ['notif', 'ตรวจการแจ้งเตือน'],
-  ['plan',  'จัดลำดับงาน'],
-];
-const splashDone = new Set();
-let splashShown = 0; // ตัวเลขที่โชว์อยู่ — ห้ามเดินถอยหลัง
+// ---------- จอแรกที่ผู้ใช้เห็น ----------
+// เคยมีฉากเปิดแอป (โลโก้ + แถบเปอร์เซ็นต์ + เกร็ดความรู้) คั่นอยู่ 3.6 วินาทีขั้นต่ำ
+// เอาออกแล้ว เพราะมันคือเวลาที่ผู้ใช้ต้องนั่งมองทุกครั้งที่เปิดแอป โดยไม่ได้อะไรกลับไป
+// นอกจากรู้ว่าแอปกำลังโหลด — ซึ่งหน้าบัญชีก็บอกได้เหมือนกัน แถมกดต่อได้ทันที
+//
+// ปัญหาที่ต้องแก้พร้อมกันตอนเอาออก: routeStart() ของเดิมถูกเรียก "หลัง" await สองตัว
+// (รอฟอนต์ 2.5 วิ + เชื่อมบัญชี 6 วิ) ซึ่งไม่เป็นไรตอนมีฉากเปิดบังอยู่ แต่พอไม่มีแล้ว
+// ผู้ใช้จะจ้องจอเปล่า ๆ ได้นานถึง 8 วินาทีกว่าจอแรกจะโผล่ จอแรกจึงต้องถูกเลือก
+// ตั้งแต่บรรทัดแรกของ initApp โดยใช้ข้อมูลในเครื่องล้วน ห้ามรอเน็ต
 
-function splashStep(key) {
-  splashDone.add(key);
-  const s = SPLASH_STEPS.find(x => x[0] === key);
-  const el = document.getElementById('spStep');
-  if (el && s) el.textContent = s[1] + '…';
-}
-
-function splashPct() {
-  const real = splashDone.size / SPLASH_STEPS.length;
-  const time = (performance.now() - APP_T0) / SPLASH_MIN;
-  return Math.floor(Math.max(0, Math.min(real, time, 1)) * 100);
-}
-
-let splashTimer = null, splashAfter = null, splashReady = false;
-
-// เริ่มนับตั้งแต่บรรทัดแรกของ initApp — ไม่งั้นถ้าเน็ตช้า ผู้ใช้จะเห็น 0% ค้างอยู่เฉย ๆ
-function startSplashMeter() {
-  const splash = document.getElementById('splash');
-  if (!splash || splashTimer) return;
-  const pctEl = document.getElementById('spPct');
-  const fill = document.getElementById('spFill');
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  const tick = () => {
-    splashShown = Math.max(splashShown, splashPct()); // ห้ามเดินถอยหลัง
-    if (pctEl) pctEl.textContent = splashShown;
-    if (fill) fill.style.width = splashShown + '%';
-    if (splashShown < 100 || !splashReady) return;
-
-    clearInterval(splashTimer);
-    stopFunFacts();
-    const step = document.getElementById('spStep');
-    if (step) step.textContent = 'พร้อมแล้ว';
-    // บิลด์ทดลอง: ทิ้งเวลาบูตไว้ใน console จะได้รู้ว่าเปอร์เซ็นต์ไปติดที่เวลาหรือที่งานจริง
-    console.debug('[ALT] splash ' + Math.round(performance.now() - APP_T0) + 'ms · ขั้นที่เสร็จ '
-      + splashDone.size + '/' + SPLASH_STEPS.length);
-    setTimeout(() => {
-      splash.classList.add('hide');
-      setTimeout(() => splash.classList.add('gone'), 600);
-      if (splashAfter) splashAfter();
-    }, reduced ? 0 : 260);
-  };
-  splashTimer = setInterval(tick, 60);
-  tick();
-  startFunFacts(document.getElementById('spFact'));
-
-  // ตาข่ายกันตาย: ไม่ว่าขั้นตอนไหนของ initApp จะค้างหรือพัง 12 วินาทีแล้วต้องเข้าแอปให้ได้
-  // เหตุผลที่ต้องมี: ทุกอย่างใน initApp คือ await เรียงกัน ใครค้างคนเดียวจอเปิดแอปก็ค้างถาวร
-  // แล้วผู้ใช้เจอ "แอปเปิดไม่ได้" ทั้งที่ข้อมูลในเครื่องพร้อมใช้ตั้งแต่วินาทีแรก
-  // ยอมเข้าแอปแบบฟีเจอร์คลาวด์ไม่ครบ ดีกว่ามองจอค้างแล้วกดอะไรไม่ได้เลย
-  setTimeout(() => {
-    if (splash.classList.contains('hide') || splash.classList.contains('gone')) return;
-    console.warn('[ALT] splash ตัดจบด้วยตาข่ายกันตาย — ขั้นที่เสร็จ '
-      + splashDone.size + '/' + SPLASH_STEPS.length);
-    clearInterval(splashTimer);
-    stopFunFacts();
-    if (!splashReady) { try { routeStart(); } catch (e) { console.error('[ALT] routeStart', e); } }
-    splash.classList.add('hide');
-    setTimeout(() => splash.classList.add('gone'), 600);
-    if (splashAfter) splashAfter();
-  }, 12_000);
-}
-
-// เรียกตอนงานเปิดแอปเสร็จครบ — ตัวนับจะปิดฉากให้เองเมื่อถึง 100
-function endSplashWhenReady(after) {
-  splashAfter = after;
-  splashReady = true;
+// "คนนี้เคยล็อกอินค้างไว้ไหม" — ตอบจาก localStorage ตรง ๆ ไม่ต้องรอ Supabase ตอบกลับ
+// supabase-js เก็บ session ไว้ที่คีย์ sb-<project-ref>-auth-token เสมอ
+// จำเป็นเพราะถ้าไม่รู้ล่วงหน้า คนที่ล็อกอินค้างอยู่จะเห็นหน้า "เข้าสู่ระบบ" แวบหนึ่ง
+// ทุกครั้งที่เปิดแอป ทั้งที่เขาล็อกอินอยู่แล้ว ซึ่งน่ารำคาญกว่าฉากเปิดแอปที่เพิ่งเอาออกอีก
+//
+// อ่านแค่ว่า "มีโทเคนที่ยังไม่หมดอายุอยู่ไหม" ไม่ได้เอาไปใช้ยืนยันตัวตน
+// การยืนยันจริงยังเป็นหน้าที่ของ initCloud() เหมือนเดิม
+function hasStoredSession() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !/^sb-.*-auth-token$/.test(k)) continue;
+      const v = JSON.parse(localStorage.getItem(k) || 'null');
+      const exp = v && (v.expires_at || (v.currentSession && v.currentSession.expires_at));
+      if (exp && exp * 1000 > Date.now()) return true;
+    }
+  } catch (_) {}
+  return false;
 }
 
 // ---------- ALT: ทำความรู้จักผู้ใช้ (ครั้งแรกที่เปิด) ----------
@@ -4388,8 +4331,14 @@ function shortcutTarget() {
 }
 
 // เลือกจอแรกหลังเปิดแอป: บัญชี → ทำความรู้จัก → เข้าแอป
+//
+// ถูกเรียกสองครั้งโดยตั้งใจ:
+//   1. ตอนเปิดแอปทันที — ยังไม่รู้ว่า session ใช้ได้จริงไหม จึงเดาจาก hasStoredSession()
+//   2. หลัง initCloud() ตอบกลับ — ตอนนั้นรู้ของจริงแล้ว ถ้าเดาผิดค่อยแก้จอให้ถูก
+// เรียกซ้ำแล้วผลเหมือนเดิมเสมอถ้าคำตอบไม่เปลี่ยน จึงเรียกกี่ครั้งก็ปลอดภัย
 function routeStart() {
-  if (cloudConfigured() && !currentUser && !localStorage.getItem('studentos.alt.skipLogin')) {
+  const signedIn = currentUser || hasStoredSession();
+  if (cloudConfigured() && !signedIn && !localStorage.getItem('studentos.alt.skipLogin')) {
     go('scr-login'); // มีระบบบัญชี + ยังไม่เคยเลือก → ให้เลือกก่อน
   } else if (needsOnboard()) {
     openOnboard();
@@ -4521,18 +4470,12 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 }
 
 (async function initApp() {
-  startSplashMeter();
-  splashStep('boot');
   load();
   purgeOldTrash(); // ของในถังขยะที่เกิน 30 วัน ทิ้งถาวรตอนเปิดแอป
-  splashStep('data');
 
   // ป้ายมุมจอบอกเลขเวอร์ชัน — ดึงจาก APP_VERSION ที่เดียว ขึ้นรุ่นใหม่ไม่ต้องไล่แก้ HTML
   const badge = document.getElementById('altBadge');
   if (badge) badge.textContent = APP_VERSION;
-  // ป้ายรุ่นบนฉากเปิดแอป — เคยพิมพ์เลขรุ่นไว้ตรง ๆ ใน HTML แล้วลืมแก้ตอนขึ้นรุ่น
-  const spv = document.getElementById('spVer');
-  if (spv) spv.textContent = APP_CHANNEL + ' · VERSION ' + APP_VERSION + ' “' + APP_CODENAME + '”';
 
   applyDeepUnlock();     // ALT: ปุ่มธีมลับจะโผล่เฉพาะคนที่ปลดล็อกแล้ว
   applyGenesisUnlock();
@@ -4543,12 +4486,18 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   fillSubjectSelect();
   initHomeSwipe(); // ALT: ปัดการ์ดในหน้าแรก (เกาะที่ #homeBody ครั้งเดียว อยู่รอดทุกการ render)
   initCrop();      // ALT: ลากกรอบในหน้าครอบภาพ
+
+  // วาดจอแรกตรงนี้ ก่อน await ทุกตัวข้างล่าง — นี่คือบรรทัดที่ทำให้เอาฉากเปิดแอปออกได้
+  // ทุกอย่างที่จำเป็นต่อการวาดจอ (ธีม ฟอนต์สเกล พื้นหลัง เมนู) ถูกตั้งครบไปแล้วข้างบน
+  // ที่เหลือ (ฟอนต์จาก CDN · บัญชี · การแจ้งเตือน) เติมเข้ามาทีหลังได้โดยไม่ต้องให้ใครรอ
+  const guessedSignedIn = hasStoredSession();
+  routeStart();
+
   // ฟอนต์ไทยมาจาก CDN — รอให้พร้อมก่อน ไม่งั้นจอแรกกระตุกตอนฟอนต์สลับ
   // ถ้าเน็ตช้าหรือโหลดไม่ขึ้น ไม่รอเกิน 2.5 วิ แล้วไปต่อด้วยฟอนต์ระบบ
   if (document.fonts && document.fonts.ready) {
     await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 2500))]).catch(() => {});
   }
-  splashStep('theme');
 
   tickClock();
   setInterval(tickClock, 30_000);
@@ -4559,21 +4508,23 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   checkReminders();
 
   await initCloud();
-  splashStep('cloud');
+  // ตรวจคำเดาเมื่อกี้ว่าถูกไหม — แก้จอเฉพาะตอนเดาผิด ไม่ใช่วาดใหม่ทุกครั้ง
+  // เดาผิดได้ทางเดียว: มีโทเคนค้างอยู่ใน localStorage แต่ใช้จริงไม่ได้แล้ว
+  // (ถูกเพิกถอน · เปลี่ยนรหัส · หมดอายุระหว่างที่ปิดแอปไว้)
+  if (guessedSignedIn && !currentUser && cloudConfigured() &&
+      !localStorage.getItem('studentos.alt.skipLogin')) {
+    routeStart();
+  }
   await refreshPushState();
   // เคยกดอนุญาตไว้แล้ว + ล็อกอินอยู่ → ต่อ push ให้อัตโนมัติ (เผื่อ subscription หลุด)
   if ('Notification' in window && Notification.permission === 'granted' && currentUser) {
     subscribePush().then(() => renderProfile()).catch(() => {});
   }
-  splashStep('notif');
-
-  routeStart();
-  splashStep('plan');
 
   // หน้าต่างเช็คอินเด้งเองเมื่อถึงวันใหม่ (6 โมงเช้าไทย) และยังไม่ได้กดรับ
-  // รอให้ฉากเปิดแอปปิดไปก่อน ไม่งั้นจะไปเด้งซ้อนอยู่หลังจอโหลด
+  // หน่วงไว้หน่อยเพื่อไม่ให้เด้งใส่หน้าทันทีที่แอปเพิ่งเปิด (เดิมหน่วงเพราะรอฉากเปิดแอปปิด)
   // ไม่แจกให้เองโดยไม่ถาม — ให้ผู้ใช้เห็นตารางแล้วกดรับเอง จะได้รู้ว่าตัวเองอยู่วันที่เท่าไหร่ของรอบ
-  setTimeout(() => openDailyCheck(true), 4200);
+  setTimeout(() => openDailyCheck(true), 2500);
 
   // ถึง 6 โมงเช้าระหว่างที่แอปเปิดค้างอยู่ ก็เด้งให้เลย ไม่ต้องรอปิดเปิดใหม่
   setInterval(() => { if (dailyPending()) openDailyCheck(true); }, 60_000);
@@ -4581,14 +4532,14 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     if (!document.hidden && dailyPending()) openDailyCheck(true);
   });
 
-  // ปิดฉากเปิดแอปเมื่อเปอร์เซ็นต์ถึง 100 (= งานเสร็จจริง + ครบเวลาขั้นต่ำ)
-  endSplashWhenReady(() => {
-    // หลัง splash หาย ค่อยเด้ง toast เตือนงานด่วน (ถ้าอยู่ในแอปแล้ว ไม่ใช่หน้า login/ทำความรู้จัก)
+  // ของสองอย่างที่เคยรอฉากเปิดแอปปิดก่อนถึงจะเด้ง — ตอนนี้รอให้ผู้ใช้ตั้งตัวแทน
+  // toast เตือนงานด่วนขึ้นเฉพาะตอนที่เขาอยู่ในแอปจริงแล้ว ไม่ใช่ตอนยังค้างหน้าบัญชี
+  setTimeout(() => {
     if (!document.getElementById('scr-login').classList.contains('on') &&
         !document.getElementById('scr-onboard').classList.contains('on')) openNudge();
     // iPhone + Safari (ยังไม่ติดตั้ง) → เด้งแนะนำวิธีติดตั้งอัตโนมัติครั้งเดียว กันลืม/กันงง
     if (isIOS() && !isStandalone() && !localStorage.getItem('studentos.alt.installGuideDismissed')) {
       setTimeout(showInstallGuide, 1400);
     }
-  });
+  }, 900);
 })();

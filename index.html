@@ -850,26 +850,10 @@
         <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-profile-f"/></svg><span>ฉัน</span></button>
     </div>
 
-    <!-- ============ SPLASH: ฉากเปิดแอป ============ -->
-    <div id="splash">
-      <div class="sp-glow"></div>
-      <!-- โลโก้วางบนแผ่นรองสีอ่อน — ตัวโลโก้เป็นน้ำเงินเข้มบนพื้นใส
-           ถ้าวางลงบนพื้นกรมท่าของฉากเปิดตรง ๆ จะจมหายไปทั้งอัน
-           ชื่อแอปกับป้ายเลขรุ่นถูกตัดออกจากจอนี้ — เหลือแค่โลโก้กับคำโปรย
-           (เลขรุ่นยังอยู่ที่ป้ายมุมบนของจอ ไม่ได้หายไปไหน) -->
-      <div class="sp-plate"><img class="sp-logo brand-light" src="logo-splash.png" alt="students OS"><img class="sp-logo brand-dark" src="logo-splash-light.png" alt=""></div>
-      <div class="sp-tag">รู้ว่าต้องทำอะไรก่อน เสมอ</div>
-      <!-- ALT: เปอร์เซ็นต์จริง — เดินตามงานที่โหลดเสร็จจริง ไม่ใช่แถบหลอกตา -->
-      <div class="sp-load">
-        <div class="sp-bar"><i id="spFill"></i></div>
-        <div class="sp-meta">
-          <span class="sp-step" id="spStep">กำลังเริ่ม…</span>
-          <span class="sp-pct"><b id="spPct">0</b>%</span>
-        </div>
-      </div>
-      <!-- ALT: เกร็ดเล็กเกร็ดน้อยระหว่างรอ — ทำให้เวลารอไม่รู้สึกเป็นเวลาที่เสียเปล่า -->
-      <p class="sp-fact" id="spFact"></p>
-    </div>
+    <!-- ฉากเปิดแอปถูกเอาออกแล้ว — จอแรกที่ผู้ใช้เห็นคือหน้าบัญชี (#scr-login)
+         มันบอกเลขรุ่นกับโลโก้ครบอยู่แล้ว และเป็นจอที่ "กดต่อได้ทันที"
+         ไม่ใช่จอที่บังคับให้มองแถบเปอร์เซ็นต์เดินจนจบ
+         ตัวเลือกจอแรกอยู่ที่ routeStart() ใน app.js -->
   </div>
 
   <p class="stage-note">

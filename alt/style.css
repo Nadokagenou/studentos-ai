@@ -306,25 +306,12 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 @keyframes shimmer{0%{background-position:-220px 0} 100%{background-position:220px 0}}
 @media (prefers-reduced-motion: reduce){ }
 
-/* ---------- splash: ฉากเปิดแอป ---------- */
-#splash{position:absolute; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
-  background:radial-gradient(110% 70% at 50% 38%,#1F3F96 0%,#132A64 45%,#08122E 100%); transition:opacity .55s ease}
-#splash.hide{opacity:0; pointer-events:none}
-#splash.gone{display:none}
-.sp-glow{position:absolute; width:280px; height:280px; border-radius:50%;
-  background:radial-gradient(circle, rgba(124,152,232,.42), transparent 68%); animation:sp-glow 3.2s ease-in-out infinite}
-.sp-logo{width:118px; height:118px; border-radius:30px; box-shadow:0 22px 50px rgba(0,0,0,.55); animation:sp-pop .7s cubic-bezier(.2,.8,.3,1.25) both; position:relative}
-.sp-word{font-size:26px; font-weight:700; color:#fff; letter-spacing:-.034em; animation:sp-up .6s .28s ease both; position:relative}
-.sp-word span, .ai-blue{color:#A9BCF0}
-.sp-tag{font-size:13px; color:rgba(199,210,254,.72); animation:sp-up .6s .5s ease both; position:relative}
+/* ฉากเปิดแอปถูกเอาออกแล้ว — จอแรกคือหน้าบัญชี (#scr-login) ที่กดต่อได้ทันที
+   เหลือไว้สองอย่างที่ของอื่นยังใช้: ประกายบนโลโก้ (.sp-star1) และสีฟ้าของคำว่า AI */
+.ai-blue{color:#A9BCF0}
 .sp-star1{transform-box:fill-box; transform-origin:center; animation:sp-spark .5s .55s cubic-bezier(.2,.8,.3,1.4) both}
-@keyframes sp-pop{from{opacity:0; transform:scale(.55)} 62%{transform:scale(1.06)} to{opacity:1; transform:scale(1)}}
 @keyframes sp-spark{from{opacity:0; transform:scale(0) rotate(-90deg)} 70%{transform:scale(1.25) rotate(8deg)} to{opacity:1; transform:scale(1) rotate(0)}}
-@keyframes sp-up{from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none}}
-@keyframes sp-glow{0%,100%{opacity:.5; transform:scale(1)} 50%{opacity:.95; transform:scale(1.1)}}
-@media (prefers-reduced-motion: reduce){
-  .sp-logo,.sp-word,.sp-tag,.sp-star1,.sp-star2,.sp-glow{animation:none}
-}
+@media (prefers-reduced-motion: reduce){ .sp-star1{animation:none} }
 
 /* ---------- login (ธีมเข้มต่อเนื่องจาก splash) ---------- */
 #scr-login{background:radial-gradient(120% 80% at 50% 0%,#1E3A8A 0%,#122A63 40%,#08122E 100%)}

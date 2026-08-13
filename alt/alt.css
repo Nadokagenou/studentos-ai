@@ -74,15 +74,6 @@
 }
 .alt-note b { color: var(--warn, #B5730E); letter-spacing: .04em; }
 
-/* คำว่า ALT บนฉากเปิดแอป */
-.sp-alt {
-  margin: 6px 0 2px;
-  font: 700 11px/1 'Space Mono', ui-monospace, monospace;
-  letter-spacing: .22em;
-  color: #FACC15;
-  opacity: .9;
-}
-
 /* ============================================================
    ปัดการ์ดงานในหน้าแรก (ฟีเจอร์เฉพาะ ALT)
    ปัดขวา = ทำเสร็จ · ปัดซ้าย = เลื่อนไปพรุ่งนี้
@@ -235,52 +226,8 @@
   .swipe .rank-card, .sw-act, .sw-act .sw-ic { transition: none; }
 }
 
-/* ============================================================
-   ฉากเปิดแอป: แถบ + เปอร์เซ็นต์จริง
-   ============================================================ */
-.sp-load {
-  width: 224px;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  margin-top: 10px;
-  position: relative;
-  animation: sp-up .6s .62s ease both;
-}
-.sp-bar {
-  height: 4px;
-  border-radius: 99px;
-  background: rgba(255, 255, 255, .15);
-  overflow: hidden;
-}
-.sp-bar i {
-  display: block;
-  height: 100%;
-  width: 0;
-  border-radius: 99px;
-  background: linear-gradient(90deg, #60A5FA, #22D3EE);
-  transition: width .18s linear;
-}
-.sp-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 11px;
-  color: rgba(199, 210, 254, .62);
-}
-.sp-step { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* เกร็ดความรู้ระหว่างรอ */
-.sp-fact {
-  max-width: 280px;
-  margin: 16px auto 0;
-  text-align: center;
-  font-size: 12px;
-  line-height: 1.7;
-  color: rgba(199, 210, 254, .68);
-  min-height: 40px;
-}
-.sp-fact.in { animation: fact-in .5s ease both; }
+/* เกร็ดความรู้ระหว่างรอ — เหลือที่เดียวคือระหว่าง OCR อ่านรูป
+   (ฉากเปิดแอปที่เคยใช้ร่วมกันถูกเอาออกแล้ว จอแรกคือหน้าบัญชี) */
 .scan-fact {
   margin: 10px 2px 0;
   text-align: center;
@@ -297,7 +244,7 @@
 }
 @keyframes fact-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .sp-fact.in, .scan-fact.in { animation: none; }
+  .scan-fact.in { animation: none; }
 }
 .sp-pct {
   flex: none;
@@ -424,8 +371,8 @@
 .obw-p { margin: 8px 0 0; max-width: 280px; font-size: 13.5px; line-height: 1.7; color: var(--muted); }
 
 @media (prefers-reduced-motion: reduce) {
-  .sp-load, .ob-welcome.on .obw-ring, .ob-card input[type=text].bad { animation: none; }
-  .sp-bar i, .ob-welcome { transition: none; }
+  .ob-welcome.on .obw-ring, .ob-card input[type=text].bad { animation: none; }
+  .ob-welcome { transition: none; }
 }
 
 /* ============================================================
@@ -2671,7 +2618,7 @@ body { line-height: 1.7; letter-spacing: 0; }
    (ของเดิมใส่ 'IBM Plex Sans Thai' ซึ่งมีตัวไทยอยู่ด้วย ตัวไทยเลยไม่มีหัวทั้งหน้า) */
 .page-title, .sh-title, .big-title, .fm-h, .ob-h, .obw-name, .empty-h,
 .wg-title, .wg-time, .mt-lb, .pe-tx b, .st-hero .v, .fr-nm, .bg-nm,
-.sec-label, .eyebrow, .sp-word {
+.sec-label, .eyebrow {
   font-family: 'IBM Plex Sans', 'Sarabun', 'Leelawadee UI', sans-serif;
 }
 
@@ -3316,84 +3263,6 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 }
 
 /* ============================================================
-   ALT: ฉากเปิดแอป — จัดองค์ประกอบใหม่ (ตามที่รีวิวมาว่าให้ปรับหน้าแรก)
-   ปัญหาเดิม: โลโก้ถูกบังคับเป็นสี่เหลี่ยมมนวางลอยบนพื้นกรมท่า อ่านเป็นก้อนสีทึบ ๆ
-   เลขรุ่นเป็นตัวเล็กเว้นห่างจนกลืนไปกับคำโปรย ลำดับสายตาเลยแบนทั้งจอ
-
-   ของใหม่: โลโก้มีแผ่นรองสีอ่อน · เลขรุ่นเป็นป้ายกลม · ไล่จังหวะเข้าทีละชิ้นจากบนลงล่าง
-   คุมไม่ให้รกตามที่รีวิวมาอีกข้อ — ไม่เพิ่มของใหม่บนจอนี้เลย แค่จัดของเดิมให้อ่านง่ายขึ้น
-   ============================================================ */
-#splash { gap: 0; }
-
-/* แผ่นรองโลโก้ — โลโก้ตัวใหม่เป็นน้ำเงินเข้มบนพื้นใส ต้องมีพื้นอ่อนรองถึงจะเห็น */
-.sp-plate {
-  position: relative;
-  width: 132px;
-  height: 132px;
-  border-radius: 34px;
-  background: linear-gradient(160deg, #FFFFFF, #EAF1FF);
-  box-shadow: 0 24px 54px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: sp-pop .7s cubic-bezier(.2,.8,.3,1.25) both;
-}
-/* รูปโลโก้อยู่ในแผ่น ไม่ต้องมีเงา/ขอบมนของตัวเองอีก */
-.sp-logo {
-  width: 100px;
-  height: 100px;
-  border-radius: 0;
-  box-shadow: none;
-  object-fit: contain;
-  animation: none;
-}
-/* ถ้าวันไหนเปลี่ยนไปใช้โลโก้เต็มชุด (มีตัวหนังสือ students OS อยู่ในรูปแล้ว)
-   ใส่คลาส full ที่ #splash — แผ่นรองจะกว้างขึ้นเป็นแนวตั้ง และซ่อนตัวหนังสือที่เป็น CSS ทิ้ง */
-#splash.full .sp-plate { width: 168px; height: 196px; border-radius: 30px; }
-#splash.full .sp-logo { width: 138px; height: 168px; }
-#splash.full .sp-word { display: none; }
-
-.sp-word {
-  margin-top: 20px;
-  font-size: 27px;
-  letter-spacing: -.036em;
-}
-
-/* เลขรุ่นเป็นป้ายกลม แยกตัวออกจากคำโปรยชัดเจน ไม่ใช่ตัวเล็กลอย ๆ อีกแถว */
-.sp-alt {
-  margin-top: 11px;
-  padding: 4px 12px 5px;
-  border-radius: 999px;
-  background: rgba(169,188,240,.16);
-  border: 1px solid rgba(169,188,240,.3);
-  color: rgba(214,226,255,.92);
-  font-family: 'Space Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: .06em;
-  animation: sp-up .6s .4s ease both;
-  position: relative;
-}
-
-/* คำโปรยขึ้นมาต่อจากโลโก้ตรง ๆ แล้ว (ชื่อแอปกับป้ายเลขรุ่นถูกตัดออกจากจอนี้)
-   13px ที่เคยใช้ตอนมีสองบรรทัดคั่นอยู่ เลยแคบเกินไป */
-.sp-tag {
-  margin-top: 24px;
-  font-size: 13.5px;
-  animation-delay: .3s;
-}
-
-.sp-load { margin-top: 26px; }
-.sp-fact { margin-top: 18px; }
-
-/* วงแสงหลังโลโก้ให้ใหญ่ขึ้นนิด เพื่อรับกับแผ่นรองที่โตขึ้น */
-.sp-glow { width: 320px; height: 320px; }
-
-@media (prefers-reduced-motion: reduce) {
-  .sp-plate, .sp-alt { animation: none; }
-}
-
-/* ============================================================
    ตรามาร์คแบรนด์แทนไอคอนดาว (1A6M4)
    ------------------------------------------------------------
    ตัวมาร์คเป็นหนังสือน้ำเงินเข้ม + ฟ้า บนพื้นใส วางบนพื้นกรมท่าตรง ๆ แล้วจมหาย
@@ -3485,8 +3354,8 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
   box-shadow: none;
   padding: 0;
 }
-/* ฉากเปิดแอป · หน้าล็อกอิน — แผ่นรองขาวไม่ต้องมีแล้ว ตราสว่างอ่านออกเองบนพื้นกรมท่า */
-.sp-plate, .login-plate {
+/* หน้าล็อกอิน — แผ่นรองขาวไม่ต้องมีแล้ว ตราสว่างอ่านออกเองบนพื้นกรมท่า */
+.login-plate {
   background: none;
   box-shadow: none;
   border: none;
