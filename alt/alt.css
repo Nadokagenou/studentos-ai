@@ -4497,3 +4497,129 @@ body.deep-scr .top-friends { display: none; }
    (ชิปในลิสต์ยาว ๆ เช่นแถวตั้งค่า ยังเป็นพื้นจางเหมือนเดิม ไม่งั้นสีเน้นจะเกินโควตา
    ทันทีที่ลิสต์ยาวขึ้น — กฎคือ "ทางเข้า" ได้พื้นทึบ ส่วน "รายการ" ไม่ได้) */
 :root[data-theme="dark"] .scan-tile .tile { background: var(--fill); color: var(--on-fill); }
+
+/* ============================================================
+   จอ "บริบทของฉัน"
+   ------------------------------------------------------------
+   ลำดับบนจอตั้งใจกลับหัวกับฟอร์มทั่วไป: ผลลัพธ์อยู่บนสุด ฟอร์มอยู่ล่าง
+   เพราะสิ่งที่ต้องขายให้ผู้ใช้เชื่อคือ "กรอกแล้วได้อะไร" ไม่ใช่ "กรอกยังไง"
+   แก้เวลาไหนก็ตาม การ์ดบนสุดขยับให้เห็นทันทีในจังหวะเดียวกัน
+   ============================================================ */
+.ctx-sum {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow);
+  padding: 15px 16px 14px;
+  margin-bottom: 4px;
+}
+.ctx-sum-h {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--muted);
+}
+.ctx-sum-h svg {
+  box-sizing: content-box;
+  width: 13px; height: 13px; padding: 5px;
+  border-radius: 7px; background: var(--fill); color: var(--on-fill);
+}
+.ctx-sum-v { margin-top: 9px; font-size: 27px; font-weight: 700; letter-spacing: -.03em; }
+.ctx-slots { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ctx-slot {
+  padding: 5px 10px; border-radius: 999px;
+  background: var(--card2); color: var(--ink);
+  font-size: 11.5px; font-weight: 700;
+}
+.ctx-none { font-size: 12px; color: var(--muted); }
+.ctx-sum-p { margin-top: 11px; font-size: 11px; line-height: 1.7; color: var(--faint); }
+
+.ctx-list { display: flex; flex-direction: column; gap: 7px; }
+.ctx-item {
+  display: flex; align-items: center; gap: 11px;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r-tile); padding: 10px 11px;
+}
+.ctx-ic {
+  width: 32px; height: 32px; flex: none; border-radius: 10px;
+  background: var(--card2); color: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+}
+.ctx-ic svg { width: 16px; height: 16px; }
+.ctx-bd { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.ctx-bd b { font-size: 13.5px; font-weight: 600; letter-spacing: -.015em; }
+.ctx-bd i { font-size: 11px; font-style: normal; color: var(--muted); }
+.ctx-del {
+  flex: none; width: 32px; height: 32px; border-radius: 50%;
+  border: none; background: transparent; color: var(--faint); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.ctx-del svg { width: 15px; height: 15px; }
+.ctx-del:active { color: var(--alert); background: var(--alert-soft); }
+.ctx-empty { font-size: 11.5px; line-height: 1.7; color: var(--faint); padding: 2px 2px 4px; }
+
+.ctx-add {
+  min-height: 42px; border-radius: var(--r-tile);
+  border: 1.5px dashed var(--line); background: transparent;
+  color: var(--blue); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.ctx-add:active { transform: scale(.99); background: var(--card2); }
+
+.ctx-form {
+  display: flex; flex-direction: column; gap: 9px;
+  background: var(--card2); border-radius: var(--r-tile); padding: 12px;
+}
+.ctx-form input[type=text] {
+  width: 100%; min-height: 42px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--card); color: var(--ink);
+  font-family: inherit; font-size: 14px;
+}
+/* ปุ่มวันเรียงเจ็ดช่องเท่ากัน — แตะพลาดวันข้าง ๆ แล้วตารางทั้งสัปดาห์เพี้ยน
+   จึงต้องกว้างพอและมีระยะห่างจริง ไม่ใช่ตัวหนังสือเจ็ดตัวชิดกัน */
+.ctx-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.ctx-day {
+  min-height: 38px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--card);
+  color: var(--muted); font-family: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;
+}
+.ctx-day.on { background: var(--fill); color: var(--on-fill); border-color: transparent; }
+.ctx-kinds { display: flex; flex-wrap: wrap; gap: 5px; }
+.ctx-kind {
+  padding: 6px 11px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--card);
+  color: var(--muted); font-family: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;
+}
+.ctx-kind.on { background: var(--fill); color: var(--on-fill); border-color: transparent; }
+.ctx-times { display: flex; align-items: center; gap: 9px; }
+.ctx-times input[type=time] {
+  flex: 1; min-height: 42px; padding: 0 10px;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--card); color: var(--ink);
+  font-family: 'Space Mono', ui-monospace, monospace; font-size: 14px;
+}
+.ctx-times span { font-size: 12px; color: var(--muted); }
+.ctx-form-act { display: flex; gap: 8px; }
+.ctx-form-act .btn { flex: 1; }
+.ctx-err { font-size: 11.5px; color: var(--alert); }
+.ctx-err[hidden] { display: none; }
+
+.ctx-wipe {
+  margin-top: 18px; min-height: 44px; width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px solid var(--line); border-radius: var(--r-tile);
+  background: transparent; color: var(--alert);
+  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.ctx-wipe svg { width: 15px; height: 15px; }
+.ctx-wipe:active { background: var(--alert-soft); }
+.ctx-note { margin: 10px 2px 0; font-size: 11px; line-height: 1.75; color: var(--faint); }
+
+/* ช่องเวลาในแถวตั้งค่า — ของเดิมกว้าง 80px ซึ่งพอดีเป๊ะกับ "06:00" แบบ 24 ชั่วโมง
+   แต่เครื่องที่ตั้งภาษาอังกฤษเรนเดอร์เป็น "06:00 AM" พร้อมไอคอนนาฬิกา แล้วตัวเลขโดนตัด
+   รูปแบบเวลาเป็นของระบบ บังคับไม่ได้ จึงต้องเผื่อความกว้างไว้ให้พอทั้งสองแบบ */
+.pf-row input[type=time] { width: 132px; text-align: left; padding: 0 8px; }
+
+/* ตัวเลขสรุปเวลาว่าง — เป็นตัวไทยปนตัวเลข ใช้ Space Mono ทั้งก้อนไม่ได้
+   (ตัวไทยในฟอนต์ mono จะกลายเป็นแบบไม่มีหัวและถ่างจนอ่านยาก — กฎข้อ 9 ของโปรเจกต์)
+   เอาเฉพาะคุณสมบัติที่ต้องการจริงคือความกว้างตัวเลขเท่ากันทุกตัว */
+.ctx-sum-v { font-family: inherit; font-variant-numeric: tabular-nums; }

@@ -554,6 +554,13 @@
               <span class="pe-tx"><b>เพื่อน</b><i id="peFriendCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
+            <!-- บริบทของฉัน — ที่เดียวที่แอปรู้ว่า "คนนี้ว่างตอนไหนจริง ๆ"
+                 อยู่เหนือตั้งค่า เพราะมันคือข้อมูลที่ทำให้การจัดตารางแม่น ไม่ใช่ของแต่งหน้าตา -->
+            <button class="pe" onclick="go('scr-context')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
+              <span class="pe-tx"><b>บริบทของฉัน</b><i id="peCtxCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
             <button class="pe" onclick="go('scr-settings')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-contrast"/></svg></span>
               <span class="pe-tx"><b>ตั้งค่า</b><i>ธีม · ตัวอักษร · วิดเจ็ต · แจ้งเตือน</i></span>
@@ -561,6 +568,24 @@
             </button>
           </div>
           <p class="app-ver" id="appVer"></p>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: บริบทของฉัน ============
+           จอนี้ตอบคำถามเดียว: "วันหนึ่งของคนนี้ว่างตอนไหนบ้าง"
+           ทุกอย่างในจอวาดจาก context.js ผ่าน renderContext() — ไม่มี markup ตายตัว
+           เพราะรายการเรียนกับกิจวัตรมีกี่แถวก็ได้ -->
+      <div class="screen flush" id="scr-context">
+        <div class="scr-body pf-body">
+          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+            <div>
+              <h2 class="sh-title">บริบทของฉัน</h2>
+              <p class="sh-sub">AI ใช้ข้อมูลนี้หาว่าคุณว่างตอนไหนจริง ๆ</p>
+            </div>
+            <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <div id="ctxBody"></div>
         </div>
       </div>
 
@@ -865,6 +890,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
 <script src="engine.js"></script>
+<!-- context.js ต้องมาก่อน app.js — app.js เรียก freeSlots() ตอนวาดจอ -->
+<script src="context.js"></script>
 <!-- ต้องมาก่อน app.js: app.js เรียก renderInbox/renderSources ใน renderAll
      และเรียก loadLineLinks/pullInbox ตอนซิงก์ -->
 <script src="brain.js"></script>

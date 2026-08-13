@@ -668,6 +668,10 @@ async function syncFromCloud() {
       state.tasks = Object.values(byId);
       state.settings = Object.assign({}, state.settings, remote.settings || {});
       localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      // บริบท (ตารางเรียน/กิจวัตร) ยังอยู่ใน user_state ก้อนเดียวกันไปก่อน
+      // ฝั่ง cloud ชนะทั้งก้อน ไม่ merge รายตัว เพราะมันคือ "ตารางของสัปดาห์นี้"
+      // ที่ต้องสอดคล้องกันทั้งชุด ไม่ใช่รายการงานที่เพิ่มทีละใบจากหลายเครื่อง
+      if (remote.ctx && typeof ctxImport === 'function') ctxImport(remote.ctx);
     }
     await pushToCloud(true);
     // ของที่บอท LINE หย่อนไว้ตอนแอปปิดอยู่ — ดึงมาทีเดียวตอนเปิด
@@ -684,7 +688,8 @@ function pushToCloud(immediate) {
     try {
       const { error } = await sb.from('user_state').upsert({
         id: currentUser.id,
-        data: { tasks: state.tasks, settings: state.settings },
+        data: { tasks: state.tasks, settings: state.settings,
+          ctx: typeof ctxExport === 'function' ? ctxExport() : undefined },
         updated_at: new Date().toISOString(),
       });
       if (error) throw error;
@@ -1817,6 +1822,217 @@ function renderFriends() {
       แล้วขอรหัสของเขามาวางตรงช่องด้านบน · สถานะเป็นภาพนิ่ง ณ เวลาที่แลกรหัสกัน ไม่ได้อัปเดตเอง</p>`}`;
 }
 
+// ---------- บริบทของฉัน (ตารางเรียน · กิจวัตร · เวลานอน) ----------
+// จอนี้มีหน้าที่เดียว: ทำให้ "ว่างวันละ 2 ชม." ที่ผู้ใช้เคยเดาเอง กลายเป็นช่วงเวลาจริง
+// การ์ดบนสุดจึงเป็นผลลัพธ์ ไม่ใช่ฟอร์ม — แก้อะไรก็เห็นผลเลื่อนทันทีในการ์ดนั้น
+// ถ้าไม่โชว์ผล ผู้ใช้จะไม่มีทางรู้ว่ากรอกไปแล้วแอปเอาไปทำอะไร แล้วก็จะไม่กรอก
+
+const WD_SHORT = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+const CTX_KINDS = {
+  meal:     { name: 'กินข้าว',   icon: 'clock' },
+  travel:   { name: 'เดินทาง',   icon: 'pin' },
+  activity: { name: 'กิจกรรม',   icon: 'flag' },
+  study:    { name: 'เรียนพิเศษ', icon: 'book' },
+  other:    { name: 'อื่น ๆ',    icon: 'clock' },
+};
+
+// วันที่กำลังแก้อยู่ในฟอร์มเพิ่มรายการ — null = ฟอร์มปิดอยู่
+let ctxEditing = null;
+
+function ctxDayLabel(item) {
+  if (item.weekday == null) return 'ทุกวัน';
+  const list = Array.isArray(item.weekday) ? item.weekday : [item.weekday];
+  if (list.length === 7) return 'ทุกวัน';
+  if (list.length === 5 && [1,2,3,4,5].every(d => list.includes(d))) return 'จ–ศ';
+  if (list.length === 2 && list.includes(0) && list.includes(6)) return 'ส–อา';
+  return list.slice().sort().map(d => WD_SHORT[d]).join(' ');
+}
+
+function ctxHours(min) {
+  if (min <= 0) return '0 นาที';
+  const h = Math.floor(min / 60), m = min % 60;
+  return (h ? h + ' ชม.' : '') + (h && m ? ' ' : '') + (m ? m + ' นาที' : '');
+}
+
+function renderContext() {
+  const body = document.getElementById('ctxBody');
+  if (!body || typeof freeSlots !== 'function') return;
+  const now = new Date();
+  const p = ctxPrefs();
+  const slots = freeSlots(now, now);
+  const total = slots.reduce((s, x) => s + x.min, 0);
+
+  // ป้ายในหน้าโปรไฟล์ — บอกว่ากรอกไปแล้วแค่ไหน ไม่ต้องเข้ามาดูก็รู้
+  const ct = document.getElementById('peCtxCt');
+  if (ct) {
+    ct.textContent = ctxIsEmpty()
+      ? 'ยังไม่ได้ตั้ง — AI ยังเดาเวลาว่างอยู่'
+      : ctxClasses().length + ' คาบเรียน · ' + ctxRoutines().length + ' กิจวัตร';
+  }
+
+  body.innerHTML = `
+    <!-- ผลลัพธ์มาก่อนฟอร์มเสมอ -->
+    <section class="ctx-sum">
+      <div class="ctx-sum-h">${icon('clock')}<span>เหลือเวลาว่างวันนี้</span></div>
+      <div class="ctx-sum-v">${esc(ctxHours(total))}</div>
+      <div class="ctx-slots">
+        ${slots.length
+          ? slots.map(s => `<span class="ctx-slot mono">${s.fromHm}–${s.toHm}</span>`).join('')
+          : `<span class="ctx-none">วันนี้ไม่เหลือช่องว่างแล้ว — พรุ่งนี้เริ่มใหม่</span>`}
+      </div>
+      <p class="ctx-sum-p">นับจากตอนนี้ถึง ${esc(p.noWorkAfter)} น. หักเวลาเรียนกับกิจวัตรออกแล้ว
+        ช่องที่สั้นกว่า ${p.minBlockMin} นาทีไม่ถูกนับ</p>
+    </section>
+
+    <div class="sec-label">เวลาประจำวัน</div>
+    <div class="pf-list">
+      <div class="pf-row">
+        <span class="tile">${icon('clock')}</span>
+        <span class="bd"><span class="lb">ตื่น</span></span>
+        <input type="time" value="${esc(p.wake)}" onchange="ctxSavePref('wake', this.value)">
+      </div>
+      <div class="pf-row">
+        <span class="tile">${icon('clock')}</span>
+        <span class="bd"><span class="lb">เข้านอน</span></span>
+        <input type="time" value="${esc(p.sleep)}" onchange="ctxSavePref('sleep', this.value)">
+      </div>
+      <div class="pf-row">
+        <span class="tile">${icon('lock')}</span>
+        <span class="bd"><span class="lb">ห้ามวางงานหลัง</span>
+          <span class="sb">ช่วงก่อนนอนเป็นเวลาของคุณ ไม่ใช่เวลาที่เหลือให้แอปใช้</span></span>
+        <input type="time" value="${esc(p.noWorkAfter)}" onchange="ctxSavePref('noWorkAfter', this.value)">
+      </div>
+    </div>
+
+    <div class="sec-label">ตารางเรียน</div>
+    ${ctxListHtml('class')}
+
+    <div class="sec-label">กิจวัตรและกิจกรรม</div>
+    ${ctxListHtml('routine')}
+
+    <button class="ctx-wipe" onclick="ctxWipe()">${icon('trash')}ลบบริบททั้งหมด</button>
+    <p class="ctx-note">ข้อมูลชุดนี้อยู่คนละที่กับงานของคุณ ลบทิ้งได้โดยงานไม่หายสักใบ ·
+      การจัดตารางคำนวณในเครื่อง ไม่มีการส่งตารางชีวิตของคุณออกไปไหน</p>`;
+}
+
+function ctxListHtml(kind) {
+  const list = kind === 'class' ? ctxClasses() : ctxRoutines();
+  const sorted = [...list].sort((a, b) => (hm2min(a.start) || 0) - (hm2min(b.start) || 0));
+  const open = ctxEditing && ctxEditing.kind === kind;
+  return `<div class="ctx-list">
+    ${sorted.map(x => `<div class="ctx-item">
+      <span class="ctx-ic">${icon(kind === 'class' ? 'calendar' : (CTX_KINDS[x.kind] || CTX_KINDS.other).icon)}</span>
+      <span class="ctx-bd">
+        <b>${esc(kind === 'class' ? (x.subject || 'เรียน') : (x.title || 'กิจวัตร'))}</b>
+        <i class="mono">${esc(ctxDayLabel(x))} · ${esc(x.start)}–${esc(x.end)}</i>
+      </span>
+      <button class="ctx-del" onclick="ctxDelete('${kind}','${x.id}')" aria-label="ลบ">${icon('trash')}</button>
+    </div>`).join('')}
+    ${sorted.length ? '' : `<p class="ctx-empty">${kind === 'class'
+      ? 'ยังไม่ได้ใส่ตารางเรียน — ใส่แล้ว AI จะเลิกวางงานทับเวลาเรียน'
+      : 'ยังไม่ได้ใส่กิจวัตร — กินข้าว เดินทาง ซ้อมกีฬา เรียนพิเศษ ใส่ตรงนี้'}</p>`}
+    ${open ? ctxFormHtml(kind) : `<button class="ctx-add" onclick="ctxOpenForm('${kind}')">
+      + เพิ่ม${kind === 'class' ? 'คาบเรียน' : 'กิจวัตร'}</button>`}
+  </div>`;
+}
+
+// ฟอร์มเพิ่มรายการ — อยู่ในหน้าเดียวกัน ไม่เด้งจอใหม่
+// เพิ่มตารางเรียนหนึ่งสัปดาห์คือการกรอกซ้ำ ๆ หลายรอบ เด้งจอทุกรอบแล้วเลิกกรอกกลางคัน
+function ctxFormHtml(kind) {
+  const d = ctxEditing.draft;
+  return `<div class="ctx-form">
+    <input type="text" id="ctxName" placeholder="${kind === 'class' ? 'ชื่อวิชา เช่น คณิตศาสตร์' : 'เช่น ซ้อมฟุตบอล'}"
+      value="${esc(d.name)}" oninput="ctxEditing.draft.name=this.value">
+    ${kind === 'routine' ? `<div class="ctx-kinds">
+      ${Object.entries(CTX_KINDS).map(([k, v]) => `<button type="button"
+        class="ctx-kind${d.kind === k ? ' on' : ''}" onclick="ctxSetKind('${k}')">${esc(v.name)}</button>`).join('')}
+    </div>` : ''}
+    <div class="ctx-days">
+      ${WD_SHORT.map((lb, i) => `<button type="button" class="ctx-day${d.days.includes(i) ? ' on' : ''}"
+        onclick="ctxToggleDay(${i})">${lb}</button>`).join('')}
+    </div>
+    <div class="ctx-times">
+      <input type="time" value="${esc(d.start)}" onchange="ctxEditing.draft.start=this.value">
+      <span>ถึง</span>
+      <input type="time" value="${esc(d.end)}" onchange="ctxEditing.draft.end=this.value">
+    </div>
+    <div class="ctx-form-act">
+      <button class="btn ghost sm" onclick="ctxCloseForm()">ยกเลิก</button>
+      <button class="btn sm" onclick="ctxSubmit()">เพิ่ม</button>
+    </div>
+    <p class="ctx-err" id="ctxErr" hidden></p>
+  </div>`;
+}
+
+function ctxOpenForm(kind) {
+  ctxEditing = { kind, draft: {
+    name: '', kind: 'other',
+    days: kind === 'class' ? [1, 2, 3, 4, 5] : [],  // คาบเรียนส่วนใหญ่เป็นวันธรรมดา เดาให้ก่อน
+    start: kind === 'class' ? '08:00' : '18:00',
+    end: kind === 'class' ? '09:00' : '19:00',
+  } };
+  renderContext();
+  const el = document.getElementById('ctxName');
+  if (el) el.focus();
+  // เลื่อนทั้งฟอร์มเข้ามาให้เห็น ไม่ใช่แค่ช่องที่โฟกัส — ไม่งั้นปุ่ม "เพิ่ม" ที่อยู่ท้ายฟอร์ม
+  // ไปนอนอยู่ใต้แถบเมนูล่าง แล้วผู้ใช้กรอกเสร็จก็ไม่เห็นปุ่มที่ต้องกดต่อ
+  const form = document.querySelector('.ctx-form');
+  if (form && form.scrollIntoView) form.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+function ctxCloseForm() { ctxEditing = null; renderContext(); }
+function ctxSetKind(k) { if (ctxEditing) { ctxEditing.draft.kind = k; renderContext(); } }
+function ctxToggleDay(i) {
+  if (!ctxEditing) return;
+  const d = ctxEditing.draft.days;
+  const at = d.indexOf(i);
+  if (at >= 0) d.splice(at, 1); else d.push(i);
+  renderContext();
+}
+
+function ctxSubmit() {
+  if (!ctxEditing) return;
+  const { kind, draft } = ctxEditing;
+  const err = document.getElementById('ctxErr');
+  const fail = msg => { if (err) { err.textContent = msg; err.hidden = false; } };
+
+  const a = hm2min(draft.start), b = hm2min(draft.end);
+  if (!draft.name.trim()) return fail('ยังไม่ได้ใส่ชื่อ');
+  if (a == null || b == null) return fail('เวลาไม่ถูกต้อง');
+  // ข้ามเที่ยงคืนยังไม่รองรับ — บอกตรง ๆ ดีกว่าเก็บข้อมูลที่คำนวณไม่ได้แล้วเงียบ
+  if (b <= a) return fail('เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม (ยังไม่รองรับกิจกรรมข้ามเที่ยงคืน)');
+
+  const days = draft.days.slice().sort();
+  const rec = {
+    weekday: days.length === 0 || days.length === 7 ? null : days,
+    start: draft.start, end: draft.end,
+  };
+  if (kind === 'class') rec.subject = draft.name.trim();
+  else { rec.title = draft.name.trim(); rec.kind = draft.kind; }
+
+  ctxUpsert(kind, rec);
+  ctxEditing = null;
+  renderAll();     // การ์ดสรุปด้านบนต้องขยับทันที ไม่งั้นไม่รู้ว่ากรอกแล้วได้อะไร
+}
+
+function ctxDelete(kind, id) {
+  ctxRemove(kind, id);
+  renderAll();
+}
+
+function ctxSavePref(key, val) {
+  if (hm2min(val) == null) return;
+  ctxSetPrefs({ [key]: val });
+  renderAll();
+}
+
+function ctxWipe() {
+  if (!confirm('ลบตารางเรียน กิจวัตร และเวลาประจำวันทั้งหมด? (งานของคุณไม่หาย)')) return;
+  ctxClear();
+  ctxEditing = null;
+  renderAll();
+  showToast({ title: 'ลบบริบทแล้ว', body: 'AI กลับไปใช้เวลาว่างแบบเดาเหมือนเดิม' });
+}
+
 // ---------- ALT 1A6M3: เหรียญตรา ----------
 // เงื่อนไขคำนวณสด ๆ จาก state — ไม่ต้องเก็บสถานะ "ได้แล้ว" ให้หลุดกันเอง
 // เก็บแค่ว่า "เคยเห็นแล้วหรือยัง" ไว้เด้งฉลองครั้งแรกครั้งเดียว
@@ -2613,7 +2829,7 @@ function renderStats() {
 function renderAll() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline();
   renderProfile(); renderStats(); renderPlan(); renderFriends(); renderBadges();
-  renderShop(); renderWheel(); renderInstallCard(); renderTabBadges();
+  renderShop(); renderWheel(); renderInstallCard(); renderTabBadges(); renderContext();
   // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น
   // (กันแอปพังทั้งจอถ้าไฟล์ inbox.js/linelink.js โหลดไม่ขึ้น)
   if (typeof renderInbox === 'function') renderInbox();
@@ -3938,6 +4154,9 @@ function loadSample() {
 function clearAll() {
   if (confirm('ลบข้อมูลทุกอย่าง (งานทั้งหมด + การตั้งค่า) แน่ใจนะ?')) {
     localStorage.removeItem(STORE_KEY);
+    // บริบทเป็นข้อมูลชีวิตประจำวัน (เรียนกี่โมง นอนกี่โมง ซ้อมบอลวันไหน)
+    // "ล้างข้อมูลทุกอย่าง" ที่ไม่ล้างของพวกนี้ด้วยคือคำโกหก — และเป็นข้อมูลที่อ่อนไหวที่สุดที่แอปเก็บ
+    if (typeof ctxClear === 'function') ctxClear();
     // ธีมลับกลับไปล็อกด้วย — ล้างข้อมูลแล้วต้องได้แอปเหมือนเปิดครั้งแรกจริง ๆ
     for (const s of Object.values(SECRETS)) { try { localStorage.removeItem(s.store); } catch (_) {} }
     // รวมถึงธงที่โค้ดในตั้งค่าเปิดเหรียญไว้ ไม่งั้นล้างแล้วเหรียญยังครบอยู่
