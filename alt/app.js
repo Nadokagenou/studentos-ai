@@ -3938,6 +3938,7 @@ async function confirmCrop(whole) {
 
   if (mode === 'widget') { saveWidgetPhoto(c); return; }
   go('scr-scan');
+  rememberScan(c);          // เก็บไว้ให้ปุ่ม "อ่านให้แม่นขึ้น" ใช้ซ้ำ ผู้ใช้จะได้ไม่ต้องถ่ายใหม่
   await runOcrOn(c, whole ? 'ทั้งรูป' : 'ครอบกรอบ');
 }
 
@@ -4206,6 +4207,7 @@ async function runOcrOn(source, how) {
       showToast({ title: 'อ่านได้ แต่ไม่ค่อยมั่นใจ 🤔',
         body: 'ความมั่นใจ ' + conf + '% — ช่วยตรวจให้ดีก่อนกดบันทึกนะ' });
     }
+    renderCloudOcr();     // อ่านในเครื่องจบแล้ว ค่อยเสนอทางเลือกที่แม่นกว่า
     runParsing(text, 'ocr');
   } catch (e) {
     ocrProgress = null;
@@ -4214,6 +4216,125 @@ async function runOcrOn(source, how) {
     st.textContent = ''; barWrap.hidden = true;
     console.error('[OCR]', e);
     alert('อ่านรูปไม่สำเร็จ: ' + e.message + '\n\nใช้วิธี "แปะข้อความจาก LINE" แทนได้เลย — เร็วกว่าและแม่นกว่าด้วย');
+  }
+}
+
+// ============================================================
+// ALT 1A7V: อ่านให้แม่นขึ้นด้วย AI บนเซิร์ฟเวอร์ (ผู้ใช้เลือกเอง)
+// ------------------------------------------------------------
+// Tesseract ในเครื่องอ่านลายมือไทยไม่ได้เลย — นั่นคือเพดานที่ปรับภาพเท่าไหร่ก็ไม่ผ่าน
+// ทางเดียวคือส่งรูปไปให้โมเดลบนเซิร์ฟเวอร์อ่าน
+//
+// **ต้องเป็นปุ่มที่ผู้ใช้กดเอง ห้ามเป็นค่าเริ่มต้นเด็ดขาด** เพราะแลกกับสามอย่าง:
+//   ต้องมีเน็ต · มีค่าใช้จ่ายต่อภาพ · และรูปออกจากเครื่องไป
+// การอ่านในเครื่องได้แบบออฟไลน์และรูปไม่ออกจากเครื่องเป็นจุดเด่นของแอปนี้ ห้ามทิ้ง
+//
+// คีย์ของผู้ให้บริการอยู่ใน secret ของ Supabase เท่านั้น — repo นี้เป็นสาธารณะ
+// ฝั่งนี้รู้จักแค่ชื่อฟังก์ชัน `ocr-assist` กับรูปคำตอบ ไม่รู้ว่าเบื้องหลังเป็นเจ้าไหน
+// เปลี่ยนผู้ให้บริการทีหลังจึงไม่ต้องแก้อะไรในไฟล์นี้เลย
+// ============================================================
+const CLOUD_OCR_OK_KEY = 'studentos.alt.cloudocr.ok';   // ผู้ใช้รับทราบเงื่อนไขแล้วหรือยัง
+const CLOUD_OCR_LONG = 1600;   // ย่อก่อนส่งขึ้นเน็ต — ใหญ่กว่านี้เปลืองเน็ตโดยไม่ได้แม่นขึ้น
+
+let lastScanJpeg = null;       // รูปล่าสุดที่สแกน เก็บเป็น JPEG พร้อมส่ง (ไม่ถือ canvas ไว้ทั้งใบ)
+
+// เก็บรูปที่เพิ่งสแกนไว้ให้ปุ่ม "อ่านให้แม่นขึ้น" ใช้ซ้ำได้ โดยไม่ต้องให้ผู้ใช้ถ่ายใหม่
+function rememberScan(canvas) {
+  try {
+    const scale = Math.min(1, CLOUD_OCR_LONG / Math.max(canvas.width, canvas.height));
+    const out = document.createElement('canvas');
+    out.width = Math.max(1, Math.round(canvas.width * scale));
+    out.height = Math.max(1, Math.round(canvas.height * scale));
+    out.getContext('2d').drawImage(canvas, 0, 0, out.width, out.height);
+    lastScanJpeg = out.toDataURL('image/jpeg', 0.85);
+  } catch (_) { lastScanJpeg = null; }
+}
+
+// สถานะของปุ่ม — แยก "ยังไม่เปิดใช้" ออกจาก "เน็ตหลุด" และ "ยังไม่ล็อกอิน"
+// ให้ข้อความบอกสาเหตุที่แก้ได้จริง แทนที่จะขึ้นว่า "ผิดพลาด" เฉย ๆ
+function cloudOcrState() {
+  if (!lastScanJpeg) return 'no-image';
+  if (!cloudConfigured() || !sb) return 'no-cloud';
+  if (!currentUser) return 'need-login';
+  if (navigator.onLine === false) return 'offline';
+  return 'ready';
+}
+
+const CLOUD_OCR_WHY = {
+  'no-image': 'ยังไม่มีรูปที่สแกนไว้',
+  'no-cloud': 'รุ่นนี้ยังไม่ได้เปิดใช้การอ่านด้วย AI บนเซิร์ฟเวอร์',
+  'need-login': 'ต้องเข้าสู่ระบบก่อนถึงจะใช้ได้',
+  'offline': 'ตอนนี้ไม่ได้ต่อเน็ต — วิธีนี้ต้องใช้เน็ต',
+};
+
+function renderCloudOcr() {
+  const box = document.getElementById('cloudOcrBox');
+  if (!box) return;
+  const st = cloudOcrState();
+  box.hidden = (st === 'no-image');     // ยังไม่ได้สแกน = ไม่ต้องโชว์อะไรเลย
+  const btn = document.getElementById('cloudOcrBtn');
+  const why = document.getElementById('cloudOcrWhy');
+  if (!btn || !why) return;
+  btn.disabled = (st !== 'ready');
+  why.textContent = CLOUD_OCR_WHY[st] || '';
+  why.hidden = (st === 'ready');
+}
+
+async function cloudOcrRetry() {
+  const st = cloudOcrState();
+  if (st !== 'ready') { renderCloudOcr(); return; }
+
+  // ขอความยินยอมแบบเต็มครั้งแรกครั้งเดียว — บอกให้ครบว่าเกิดอะไรขึ้นกับรูป
+  // ครั้งต่อ ๆ ไปการกดปุ่มเองคือการยินยอมอยู่แล้ว ไม่ต้องถามซ้ำจนน่ารำคาญ
+  let seen = false;
+  try { seen = localStorage.getItem(CLOUD_OCR_OK_KEY) === '1'; } catch (_) {}
+  if (!seen) {
+    const ok = confirm(
+      'ส่งรูปนี้ให้ AI บนเซิร์ฟเวอร์ช่วยอ่าน?\n\n'
+      + '• รูปจะถูกส่งออกจากเครื่องไปประมวลผลบนเซิร์ฟเวอร์\n'
+      + '• ต้องใช้อินเทอร์เน็ต\n'
+      + '• อ่านลายมือได้ และแม่นกว่าการอ่านในเครื่องมาก\n\n'
+      + 'การอ่านในเครื่อง (ค่าเริ่มต้น) ไม่ส่งรูปออกไปไหนเลย');
+    if (!ok) return;
+    try { localStorage.setItem(CLOUD_OCR_OK_KEY, '1'); } catch (_) {}
+  }
+
+  const st2 = document.getElementById('ocrStatus');
+  const btn = document.getElementById('cloudOcrBtn');
+  if (btn) btn.disabled = true;
+  if (st2) st2.textContent = '☁️ กำลังให้ AI บนเซิร์ฟเวอร์อ่าน…';
+  try {
+    const b64 = lastScanJpeg.replace(/^data:[^,]+,/, '');
+    const { data, error } = await withTimeout(
+      sb.functions.invoke('ocr-assist', { body: { image: b64, mime: 'image/jpeg' } }),
+      60_000, 'อ่านด้วย AI บนเซิร์ฟเวอร์');
+
+    // supabase-js คืน error สำหรับสถานะที่ไม่ใช่ 2xx โดยเนื้อความจริงอยู่ใน context
+    // ต้องแกะออกมา ไม่งั้นผู้ใช้จะเห็นแค่ "Edge Function returned a non-2xx status code"
+    let payload = data;
+    if (error) {
+      try { payload = await error.context.json(); } catch (_) { payload = null; }
+    }
+    if (!payload || payload.ok !== true) {
+      alert(payload?.message || 'อ่านด้วย AI บนเซิร์ฟเวอร์ไม่สำเร็จ — ลองใหม่อีกครั้ง');
+      return;
+    }
+    const text = normalizeOcrText(payload.text || '');
+    if (text.trim().length < 5) {
+      alert('เซิร์ฟเวอร์อ่านรูปนี้ไม่ออกเหมือนกัน — ลองถ่ายใหม่ให้ชัดขึ้น');
+      return;
+    }
+    console.debug(`[ALT OCR/cloud] provider=${payload.provider} conf=${payload.conf}% `
+      + `ms=${payload.ms} chars=${text.length}`);
+    lastOcrConfidence = payload.conf ?? null;
+    lastOcrLowWords = [];       // ฝั่งเซิร์ฟเวอร์ไม่ได้ให้คะแนนรายคำ อย่าเอาของรอบก่อนมาปน
+    runParsing(text, 'ocr');
+  } catch (e) {
+    console.error('[ALT OCR/cloud]', e);
+    alert('อ่านด้วย AI บนเซิร์ฟเวอร์ไม่สำเร็จ: ' + e.message);
+  } finally {
+    if (st2) st2.textContent = '';
+    renderCloudOcr();
   }
 }
 

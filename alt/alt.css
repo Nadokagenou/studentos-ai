@@ -4623,3 +4623,28 @@ body.deep-scr .top-friends { display: none; }
    (ตัวไทยในฟอนต์ mono จะกลายเป็นแบบไม่มีหัวและถ่างจนอ่านยาก — กฎข้อ 9 ของโปรเจกต์)
    เอาเฉพาะคุณสมบัติที่ต้องการจริงคือความกว้างตัวเลขเท่ากันทุกตัว */
 .ctx-sum-v { font-family: inherit; font-variant-numeric: tabular-nums; }
+
+/* ---------- ALT 1A7V: ปุ่มอ่านให้แม่นขึ้นด้วยเซิร์ฟเวอร์ ----------
+   จงใจให้ดูเป็น "ทางเลือกที่สอง" ไม่ใช่ปุ่มหลัก — พื้นจาง ขอบบาง ไม่มีสีเน้น
+   เพราะการอ่านในเครื่องต้องเป็นค่าเริ่มต้นที่คนใช้ก่อนเสมอ */
+.cloud-ocr {
+  margin: 14px 2px 0; padding: 14px;
+  border: 1px solid var(--line); border-radius: var(--r-tile);
+  background: var(--card-soft, transparent);
+}
+.cloud-ocr[hidden] { display: none; }
+.cloud-ocr .co-h { margin: 0; font-size: 13.5px; font-weight: 700; }
+.cloud-ocr .co-s { margin: 4px 0 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
+.cloud-ocr .co-btn {
+  margin-top: 11px; min-height: 44px; width: 100%;
+  border: 1px solid var(--line); border-radius: var(--r-tile);
+  background: transparent; color: inherit;
+  font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.cloud-ocr .co-btn:active:not(:disabled) { background: var(--alert-soft, rgba(0,0,0,.05)); }
+.cloud-ocr .co-btn:disabled { opacity: .45; cursor: default; }
+.cloud-ocr .co-why { margin: 8px 0 0; font-size: 11.5px; color: var(--alert); }
+.cloud-ocr .co-why[hidden] { display: none; }
+/* คำเตือนเรื่องรูปออกจากเครื่อง — ต้องอ่านออกเสมอ ห้ามจางจนมองข้าม
+   ผู้ใช้ตัดสินใจเรื่องความเป็นส่วนตัวจากบรรทัดนี้บรรทัดเดียว */
+.cloud-ocr .co-warn { margin: 9px 0 0; font-size: 11px; line-height: 1.7; color: var(--muted); }
