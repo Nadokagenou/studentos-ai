@@ -589,6 +589,9 @@ function navDirection(from, to) {
 
 let enterTimer = null;
 
+// จอทั้งห้าที่มีปุ่มของตัวเองอยู่บนแถบล่าง — ที่เหลือถือเป็นจอชั้นใน
+const TABBED_SCREENS = ['scr-menu', 'scr-home', 'scr-scan', 'scr-timeline', 'scr-profile'];
+
 function go2(id){ return go(id); }
 function go(id) {
   const dir = navDirection(curScreen, id);
@@ -607,6 +610,10 @@ function go(id) {
   enterTimer = setTimeout(() => scr.classList.remove('just-in'), 520);
   // ซ่อนแถบล่างในจอที่ยังไม่ได้เข้าแอปจริง (บัญชี / ทำความรู้จัก)
   document.body.classList.toggle('login-mode', id === 'scr-login' || id === 'scr-onboard');
+  // จอที่ไม่ได้อยู่บนแถบล่าง (แผนวันนี้ · ร้าน · สุ่มสกิน ฯลฯ) มีปุ่มย้อนกลับของตัวเอง
+  // อยู่มุมขวาบนตรงตำแหน่งเดียวกับปุ่มเพื่อนพอดี สองปุ่มจึงทับกันจนกดผิดตัวได้
+  // จอพวกนี้เข้ามาจากทางอื่นอยู่แล้ว ปุ่มเพื่อนจึงหลบให้ปุ่มย้อนกลับไปก่อน
+  document.body.classList.toggle('deep-scr', !TABBED_SCREENS.includes(id));
   document.querySelectorAll('.tab[data-scr]').forEach(b =>
     b.classList.toggle('active', b.dataset.scr === id));
   renderAll();
@@ -849,16 +856,43 @@ function widgetHtml(now) {
     </section>`;
   }
   const info = priorityInfo(top, now);
-  const why = (info.reasons[0] || '').replace(/^★ /, '');
-  const bits = [fmtDue(top.due, now, top), '~' + top.estMin + ' นาที',
-    top.scorePct != null ? 'คะแนน ' + top.scorePct + '%' : null].filter(Boolean);
   return `<section class="wg wg-urgent ${priorityTone(info.stars)}">
     <div class="wg-head">${icon('flag')}<span>ควรทำก่อน</span>
       <span class="wg-pill">${esc(priorityLabel(info.stars))}</span></div>
     <div class="wg-title">${taskTitle(top)}</div>
-    <div class="wg-meta">${esc(bits.join(' · '))} · ${esc(why)}</div>
+    ${dueChips(top, now)}
     <button class="wg-cta" onclick="openForm('${top.id}')">${icon('chevron')}เปิดงานนี้</button>
   </section>`;
+}
+
+// ชิปสถานะของงานหนึ่งใบ — กำหนดส่งมาก่อนเสมอเพราะเป็นข้อมูลที่ตัดสินใจแทนได้จริง
+// ที่เหลือ (เวลาที่ใช้ · คะแนนเก็บ) เป็นสีกลาง เพราะมันไม่ใช่ข่าวร้ายในตัวเอง
+//
+// เดิมบรรทัดนี้เอา fmtDue มาต่อกับ info.reasons[0] ซึ่งพอเลยกำหนดแล้วทั้งสองตัว
+// พูดเรื่องเดียวกัน ได้ข้อความว่า "⚠ เลยกำหนด (พ. 12 ส.ค.) · ~90 นาที · คะแนน 10% ·
+// ⚠ เลยกำหน…" คือซ้ำแล้วยังยาวจนโดนตัด — เหตุผลจึงถูกตัดทิ้ง ไม่เอามาแสดงซ้ำอีก
+function dueChips(t, now) {
+  const chips = [];
+  if (t.due) {
+    const due = new Date(t.due);
+    const late = due < now;
+    const soon = !late && (due - now) <= 24 * 3.6e6;
+    chips.push(`<span class="wg-chip ${late ? 'late' : soon ? 'soon' : ''}">${icon(late ? 'flame' : 'calendar')}${
+      esc(late ? 'เลยกำหนด ' + overdueFor(now - due) : fmtDue(t.due, now, t))}</span>`);
+  }
+  if (t.estMin) chips.push(`<span class="wg-chip">${icon('clock')}~${t.estMin} นาที</span>`);
+  if (t.scorePct != null) chips.push(`<span class="wg-chip">${icon('medal')}คะแนน ${t.scorePct}%</span>`);
+  return `<div class="wg-chips">${chips.join('')}</div>`;
+}
+
+// "เลยกำหนดมานานแค่ไหน" — ตอบเป็นระยะเวลา ไม่ใช่วันที่
+// วันที่ในวงเล็บ (พ. 12 ส.ค.) บังคับให้ผู้ใช้คำนวณเองว่ามันคือกี่วันที่แล้ว
+function overdueFor(ms) {
+  const min = Math.round(ms / 60000);
+  if (min < 60) return Math.max(1, min) + ' นาที';
+  const h = Math.floor(min / 60);
+  if (h < 24) return h + ' ชม.';
+  return Math.round(h / 24) + ' วัน';
 }
 
 // ไทล์กล่องเข้า — วางกว้างเต็มแถวใต้ปุ่มเพิ่มงาน เพราะเป็นจอเดียวที่บอกว่า
@@ -940,7 +974,7 @@ function rankCard(t, n, now) {
     <div class="sw-act done" aria-hidden="true"><span class="sw-ic">${icon('check')}</span>ทำเสร็จแล้ว</div>
     <div class="sw-act snooze" aria-hidden="true">เลื่อนไปพรุ่งนี้<span class="sw-ic">${icon('clock')}</span></div>
     <div class="rank-card sw-card" data-id="${t.id}" onclick="openForm('${t.id}')">
-      <span class="rank ${tone}">${n}</span>
+      <span class="rank ${tone}${n === 1 ? ' first' : ''}">${n}</span>
       <div class="rc-body">
         <div class="rc-tags"><span class="tag ${tone}">${esc(priorityLabel(info.stars))}</span>${snoozeBadge(t)}</div>
         <div class="rc-title">${taskTitle(t)}</div>
@@ -1366,9 +1400,15 @@ function renderTimeline() {
 
   const span = end - start;
   const days = Math.max(1, Math.round(span / 8.64e7));
-  const width = days * JR_DAY_W;
-  const xOf = d => ((d - start) / span) * width;
-  const meX = Math.max(0, Math.min(width, xOf(now)));
+  const roadW = days * JR_DAY_W;
+  // ป้ายจอดวางกึ่งกลางบนหมุด ป้ายใบแรกจึงยื่นออกไปทางซ้ายของถนนราวครึ่งใบ
+  // ถ้าถนนเริ่มที่ 0 พอดี ป้ายใบนั้นจะโดนขอบกล่องเลื่อนตัดหายไปครึ่งหนึ่ง
+  // (เห็นชัดสุดตอนมีงานเลยกำหนด เพราะจุดเริ่มถนนถูกถอยไปหาวันนั้นพอดี)
+  // เว้นช่องว่างหัวท้ายถนนไว้เท่าครึ่งป้าย แล้วเลื่อนทุกอย่างเข้ามาเท่ากันหมด
+  const JR_GUT = 72;
+  const width = roadW + JR_GUT * 2;
+  const xOf = d => JR_GUT + ((d - start) / span) * roadW;
+  const meX = Math.max(JR_GUT, Math.min(JR_GUT + roadW, xOf(now)));
 
   // ---- หลักวัน ----
   let ticks = '';
@@ -1443,12 +1483,12 @@ function renderTimeline() {
 
   el.innerHTML = head + nextCard + legend + `
     <div class="jr" id="jrScroll">
-      <div class="jr-track" id="jrTrack" data-start="${+start}" data-span="${span}" data-w="${width}"
-        style="width:${width}px">
-        <div class="jr-road"></div>
-        <div class="jr-road done" id="jrDone" style="width:${meX}px"></div>
+      <div class="jr-track" id="jrTrack" data-start="${+start}" data-span="${span}" data-w="${roadW}"
+        data-gut="${JR_GUT}" style="width:${width}px">
+        <div class="jr-road" style="left:${JR_GUT}px;right:${JR_GUT}px"></div>
+        <div class="jr-road done" id="jrDone" style="left:${JR_GUT}px;width:${meX - JR_GUT}px"></div>
         ${ticks}
-        <div class="jr-finish" style="left:${width}px">${icon('flag')}</div>
+        <div class="jr-finish" style="left:${JR_GUT + roadW}px">${icon('flag')}</div>
         ${stops}
         <div class="jr-me" id="jrMe" style="left:${meX}px">
           <span class="me-dot"></span><span class="me-lb mono">ตอนนี้ ${fmtClock(now)}</span>
@@ -1469,7 +1509,9 @@ function syncJourneyNow() {
   if (!track) return;
   const start = +track.dataset.start, span = +track.dataset.span, w = +track.dataset.w;
   if (!span) return;
-  const x = Math.max(0, Math.min(1, (Date.now() - start) / span)) * w;
+  // gut = ช่องว่างหัวถนน ต้องบวกกลับเข้าไปเหมือนตอนวาด ไม่งั้นหมุด "ตอนนี้" จะเพี้ยนไปทางซ้าย
+  const gut = +track.dataset.gut || 0;
+  const x = gut + Math.max(0, Math.min(1, (Date.now() - start) / span)) * w;
   const me = document.getElementById('jrMe');
   if (me) {
     me.style.left = x + 'px';
@@ -1477,7 +1519,7 @@ function syncJourneyNow() {
     if (lb) lb.textContent = 'ตอนนี้ ' + fmtClock(new Date());
   }
   const done = document.getElementById('jrDone');
-  if (done) done.style.width = x + 'px';
+  if (done) done.style.width = (x - gut) + 'px';
   track.querySelectorAll('.jr-stop').forEach(s => s.classList.toggle('passed', +s.dataset.x <= x));
 }
 
@@ -2542,7 +2584,7 @@ function renderStats() {
     <div class="st-card">
       <div class="st-h">งานที่ติ๊กเสร็จ 7 วันล่าสุด</div>
       <div class="st-bars">
-        ${days.map(d => `<div class="st-bar${d.today ? ' now' : ''}">
+        ${days.map(d => `<div class="st-bar${d.today ? ' now' : ''}${d.n ? ' has' : ''}">
           <span class="bar" style="height:${Math.round(d.n / peak * 100)}%"></span>
           <span class="n mono">${d.n || ''}</span>
           <span class="d">${d.label}</span>
