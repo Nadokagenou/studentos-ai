@@ -3289,13 +3289,18 @@ async function ocrLoadBitmap(file) {
   } finally { setTimeout(() => URL.revokeObjectURL(url), 5000); }
 }
 
-// เทา + ยืด contrast ด้วยเปอร์เซ็นไทล์ (ตัดหัวท้าย 2% กันจุดสว่าง/จุดดำหลุด ๆ ลากค่าไปทั้งภาพ)
-function ocrToGray(img) {
-  const long = Math.max(img.width, img.height);
-  // __OCR_MIN_OVERRIDE เป็นช่องให้เครื่องมือวัดผลทดลองค่าอื่นได้โดยไม่ต้องแก้โค้ด
-  // แอปจริงไม่เคยตั้งค่านี้ จึงใช้ OCR_MIN_LONG ตามปกติเสมอ (null = ไม่ขยายเลย)
-  const minLong = (typeof window !== 'undefined' && window.__OCR_MIN_OVERRIDE !== undefined)
+// __OCR_MIN_OVERRIDE / __OCR_MAX_OVERRIDE เป็นช่องให้เครื่องมือวัดผลทดลองค่าอื่นได้
+// แอปจริงไม่เคยตั้งค่าพวกนี้ จึงใช้ OCR_MIN_LONG / OCR_MAX_LONG ตามปกติเสมอ
+function ocrMinLong() {
+  return (typeof window !== 'undefined' && window.__OCR_MIN_OVERRIDE !== undefined)
     ? window.__OCR_MIN_OVERRIDE : OCR_MIN_LONG;
+}
+
+// เทา + ยืด contrast ด้วยเปอร์เซ็นไทล์ (ตัดหัวท้าย 2% กันจุดสว่าง/จุดดำหลุด ๆ ลากค่าไปทั้งภาพ)
+// minLongArg: ระบุเองได้ (0 หรือ null = ไม่ขยายภาพเล็ก) ไม่ระบุ = ใช้ค่าของแอป
+function ocrToGray(img, minLongArg) {
+  const long = Math.max(img.width, img.height);
+  const minLong = minLongArg !== undefined ? minLongArg : ocrMinLong();
   const maxLong = (typeof window !== 'undefined' && window.__OCR_MAX_OVERRIDE)
     ? window.__OCR_MAX_OVERRIDE : OCR_MAX_LONG;
   const scale = long > maxLong ? maxLong / long
@@ -3334,14 +3339,24 @@ function ocrToGray(img) {
   return { canvas: c, ctx, id, gray, w, h };
 }
 
+// **ต้องสร้าง canvas ใบใหม่ทุกครั้ง ห้ามวาดทับใบที่มากับ prep**
+// เหตุผล: ocrBinarize คืน { ...prep, gray: out } ซึ่ง spread ก๊อป *ตัวอ้างอิง* ของ
+// canvas/ctx/id มาด้วย — ภาพเทากับภาพไบนารีของรอบเดียวกันจึงใช้ canvas ใบเดียวกัน
+// ของเดิมวาดทับใบนั้นแล้วคืนมัน ผลคือพอเรียกครั้งที่สองด้วยภาพอีกแบบ
+// ใบที่คืนไปครั้งแรกก็เปลี่ยนเนื้อตามไปด้วย (เป็นวัตถุตัวเดียวกัน)
+// รอบสำรองที่ 2 ใน runOcrOn จึงอ่าน "ภาพสำรอง + PSM 6" ทั้งที่ตั้งใจให้เป็น "ภาพหลัก + PSM 6"
 function ocrGrayToCanvas(prep) {
-  const { ctx, id, gray, w, h } = prep;
+  const { gray, w, h } = prep;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  const id = ctx.createImageData(w, h);
   for (let g = 0, i = 0; g < gray.length; g++, i += 4) {
     id.data[i] = id.data[i + 1] = id.data[i + 2] = gray[g];
     id.data[i + 3] = 255;
   }
   ctx.putImageData(id, 0, 0);
-  return prep.canvas;
+  return c;
 }
 
 // Sauvola: threshold ของแต่ละจุด = mean * (1 + k * (sd / 128 - 1))
@@ -3398,7 +3413,10 @@ function ocrBinarize(prep) {
 const DESKEW_MAX = 30;
 const DESKEW_STEP = 0.5;     // หยาบ ๆ ก่อน แล้วค่อยละเอียดรอบสอง
 const DESKEW_MIN = 0.35;     // เอียงน้อยกว่านี้ไม่ต้องหมุน หมุนแล้วเสียรายละเอียดเปล่า
-const DESKEW_WORK = 640;     // ขนาดภาพที่ใช้หามุม
+// ขนาดภาพที่ใช้หามุม — 640 เล็กเกินไปสำหรับใบงานที่ข้อความแน่น
+// วัดจริง: ที่ 640 ชิ้นส่วนของ RP-3 ยังพอเป็นตัวอักษร (สูงมัธยฐาน 17px) แต่หามุมไม่เจอ (คืน 0°)
+// ที่ 900 เจอ −2.6° ซึ่งตรงกับที่ตาเห็น และคืนวลีที่หายไปกลับมาได้
+const DESKEW_WORK = 900;
 
 // หาชิ้นส่วนที่เชื่อมกัน (connected components) แล้วคัดเฉพาะชิ้นที่ "ขนาดเหมือนตัวอักษร"
 // เหตุผล: วิธีเดิมนับหมึกทุกจุดในภาพ ซึ่งพังทันทีเมื่อรูปมีสิ่งที่ตรงกับแกนภาพอยู่แล้ว
@@ -3406,17 +3424,31 @@ const DESKEW_WORK = 640;     // ขนาดภาพที่ใช้หาม
 //   ของพวกนี้ตรง 0° อยู่แล้ว โปรไฟล์เลยพีคที่ 0° อย่างมั่นใจ ทั้งที่ข้อความเอียง 7°
 //   (วัดจริง: ภาพ hard เอียง 7° แต่คะแนนที่ 0° ชนะที่ 7° ถึง 2.7 เท่า)
 // ตัวอักษรมีขนาดใกล้เคียงกันทั้งหน้า ส่วนสิ่งรบกวนไม่ใช่ — คัดด้วยขนาดจึงแยกออกได้
-// ย่อภาพไบนารีลงมาให้หามุมได้เร็ว — หามุมไม่ต้องใช้ความละเอียดเต็ม
-function skewShrink(bin, w, h, target) {
+// ย่อลงมาให้หามุมได้เร็ว — หามุมไม่ต้องใช้ความละเอียดเต็ม
+//
+// **ต้องย่อภาพเทาแล้วค่อยไบนารี ห้ามย่อภาพไบนารี**
+// ของเดิมย่อภาพไบนารีด้วยการสุ่มจุด (nearest-neighbour) ซึ่งพังกับเส้นตัวอักษร:
+// เส้นกว้าง 2–3px ที่อัตราย่อ ~2.8 เท่า เหลือไม่ถึงพิกเซล การสุ่มจุดจึงเก็บบ้างทิ้งบ้าง
+// ตัวอักษรแตกเป็นเศษ วัดจริงกับรูปถ่ายทั้ง 3 ใบ: ความสูงมัธยฐานของชิ้นส่วนเหลือ 2px ทุกใบ
+// ตัวกรองใน skewBaselines (h ≤ med×3.2 = 6.4px) จึงเก็บ "เศษจุดรบกวน" ไว้
+// แล้วโยน "ตัวอักษรจริง" ทิ้ง — ตรงข้ามกับที่ตั้งใจไว้ทั้งหมด
+//
+// ย่อผ่าน canvas ได้การกรองจริง (เฉลี่ยพื้นที่) เส้นบางกลายเป็นสีเทาอ่อนแทนที่จะหายไป
+// แล้วให้ Sauvola ที่ขนาดเล็กตัดสินอีกที — หน้าต่างของมันคิดตามสัดส่วนภาพอยู่แล้ว
+function skewSmallBin(grayPrep, target) {
+  const { w, h } = grayPrep;
   const scale = Math.min(1, target / Math.max(w, h));
-  if (scale >= 1) return { bin, w, h };
+  if (scale >= 1) return ocrBinarize(grayPrep);
   const nw = Math.max(1, Math.round(w * scale)), nh = Math.max(1, Math.round(h * scale));
-  const out = new Uint8ClampedArray(nw * nh);
-  for (let y = 0; y < nh; y++) {
-    const sy = (y / scale) | 0;
-    for (let x = 0; x < nw; x++) out[y * nw + x] = bin[sy * w + ((x / scale) | 0)];
-  }
-  return { bin: out, w: nw, h: nh };
+  const c = document.createElement('canvas');
+  c.width = nw; c.height = nh;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(ocrGrayToCanvas(grayPrep), 0, 0, nw, nh);
+  const id = ctx.getImageData(0, 0, nw, nh);
+  const gray = new Uint8ClampedArray(nw * nh);
+  for (let g = 0, i = 0; g < gray.length; g++, i += 4) gray[g] = id.data[i];
+  return ocrBinarize({ canvas: c, ctx, id, gray, w: nw, h: nh });
 }
 
 function skewComponents(bin, w, h) {
@@ -3483,10 +3515,11 @@ function skewScorePts(pts, tan, h) {
 }
 
 // คืนมุมเอียงเป็นองศา (บวก = ภาพเอียงตามเข็ม ต้องหมุนทวนเข็มเพื่อแก้)
-// คืน null เมื่อหาไม่ได้อย่างมั่นใจ — ดีกว่าเดามั่วแล้วหมุนผิดทาง
-function ocrFindSkew(binPrep) {
-  const s = skewShrink(binPrep.gray, binPrep.w, binPrep.h, DESKEW_WORK);
-  const base = skewBaselines(s.bin, s.w, s.h);
+// คืน 0 เมื่อหาไม่ได้อย่างมั่นใจ — ดีกว่าเดามั่วแล้วหมุนผิดทาง
+// **รับภาพเทา ไม่ใช่ภาพไบนารี** (เปลี่ยนตอนซ่อม skewSmallBin — ต้องไบนารีหลังย่อ)
+function ocrFindSkew(grayPrep) {
+  const s = skewSmallBin(grayPrep, DESKEW_WORK);
+  const base = skewBaselines(s.gray, s.w, s.h);
   if (!base) return 0;
   const scan = (from, to, step) => {
     let bestA = 0, bestS = -1;
@@ -3541,10 +3574,13 @@ function ocrRotateGray(prep, deg) {
 // ทั้งชุด: หามุมจากภาพไบนารี → ถ้าเอียงพอ หมุนภาพเทาแล้วไบนารีใหม่
 // คืน { gray, bin, deg } เพื่อให้ผู้เรียกใช้ต่อได้ทั้งสองแบบ
 function ocrDeskew(grayPrep) {
-  const bin0 = ocrBinarize(grayPrep);
   let deg = 0;
-  try { deg = ocrFindSkew(bin0); } catch (_) { deg = 0; }
-  if (!isFinite(deg) || Math.abs(deg) < DESKEW_MIN) return { gray: grayPrep, bin: bin0, deg: 0 };
+  // หามุมจากภาพย่อ ไม่ต้องไบนารีความละเอียดเต็มก่อนอีกแล้ว —
+  // ของเดิมไบนารีเต็มขนาดทิ้งไว้ก้อนหนึ่งซึ่งถูกโยนทิ้งทันทีเมื่อต้องหมุน (เสียเปล่า ~250ms)
+  try { deg = ocrFindSkew(grayPrep); } catch (_) { deg = 0; }
+  if (!isFinite(deg) || Math.abs(deg) < DESKEW_MIN) {
+    return { gray: grayPrep, bin: ocrBinarize(grayPrep), deg: 0 };
+  }
   const rot = ocrRotateGray(grayPrep, deg);
   return { gray: rot, bin: ocrBinarize(rot), deg };
 }
@@ -3568,9 +3604,144 @@ function ocrIsDigital(prep) {
   return n ? (same / n * 100) >= OCR_FLAT_CUT : false;
 }
 
+// ============================================================
+// ALT 1A7V: หาบล็อกข้อความ เพื่ออ่านทีละบล็อกแทนการยัดทั้งหน้า
+// ------------------------------------------------------------
+// ที่มา: การทดลองตัดเฉพาะหัวกระดาษออกมาอ่านเดี่ยว ๆ ได้ conf 88–92 ทั้งที่บริเวณเดียวกัน
+// ตอนอยู่ในหน้าเต็มได้แค่ 9–39 — ตัวอักษรคุณภาพดีพอมาตลอด ความละเอียดพอ โหมดถูกแล้ว
+// สิ่งเดียวที่เหลือคือการยัดทั้งหน้าเข้าไปพร้อมกันในครั้งเดียว
+//
+// วิธี RLSA (ละเลงหมึกแล้วหาชิ้นส่วนที่เชื่อมกัน): ถมช่องว่างสั้น ๆ ระหว่างหมึกให้ทึบ
+// ชิ้นส่วนที่ได้จึงเป็น "ก้อนข้อความ" ไม่ใช่ตัวอักษร
+// จงใจใช้จุดอ่อนของภาพให้เป็นประโยชน์ — ตัวอักษรไทยที่เชื่อมติดกันจนหาตัวอักษรไม่ได้
+// กลับเป็นข้อดีตอนหาบล็อก เพราะเราอยากได้ก้อนอยู่แล้ว
+// ============================================================
+
+// ขนาดตัวอักษรโดยประมาณ — ใช้ "มัธยฐานถ่วงน้ำหนักด้วยปริมาณหมึก"
+// ห้ามใช้มัธยฐานความสูงเฉย ๆ: วัดจริงกับรูปถ่าย 3 ใบได้ 2–3px ทั้งหมด
+// เพราะเศษจุดรบกวนมีจำนวนมากกว่าตัวอักษรจริงเสมอ แต่กินหมึกรวมกันน้อยมาก
+function ocrTextScale(comps) {
+  if (!comps.length) return 10;
+  const total = comps.reduce((a, c) => a + c.n, 0);
+  const sorted = comps.slice().sort((a, b) => a.h - b.h);
+  let acc = 0;
+  for (const c of sorted) { acc += c.n; if (acc >= total / 2) return Math.max(3, c.h); }
+  return Math.max(3, sorted[sorted.length >> 1].h);
+}
+
+// ละเลงหมึก: ถมช่องว่างที่สั้นกว่าเกณฑ์ทั้งแนวนอนและแนวตั้ง (0 = หมึก)
+function ocrSmear(bin, w, h, hGap, vGap) {
+  const m = new Uint8ClampedArray(bin);
+  for (let y = 0; y < h; y++) {
+    const r = y * w;
+    let last = -1;
+    for (let x = 0; x < w; x++) {
+      if (m[r + x] === 0) {
+        if (last >= 0 && x - last <= hGap) for (let i = last + 1; i < x; i++) m[r + i] = 0;
+        last = x;
+      }
+    }
+  }
+  for (let x = 0; x < w; x++) {
+    let last = -1;
+    for (let y = 0; y < h; y++) {
+      if (m[y * w + x] === 0) {
+        if (last >= 0 && y - last <= vGap) for (let i = last + 1; i < y; i++) m[i * w + x] = 0;
+        last = y;
+      }
+    }
+  }
+  return m;
+}
+
+const BLOCK_WORK = 900;    // ขนาดภาพที่ใช้หาบล็อก — ไม่ต้องละเอียดเท่าตอนอ่านจริง
+const BLOCK_MAX = 14;      // อ่านมากกว่านี้ไม่คุ้มเวลา เอาเฉพาะก้อนที่หมึกเยอะสุด
+
+// คืนกรอบบล็อกเป็น "สัดส่วน 0–1 ของภาพ" เพื่อให้เอาไปครอบภาพขนาดไหนก็ได้
+function ocrFindBlocks(grayPrep, opt = {}) {
+  const small = skewSmallBin(grayPrep, opt.work || BLOCK_WORK);
+  const comps = skewComponents(small.gray, small.w, small.h);
+  if (comps.length < 4) return [];
+  const med = ocrTextScale(comps);
+  const hGap = Math.max(2, Math.round((opt.hGap != null ? opt.hGap : 1.4) * med));
+  const vGap = Math.max(1, Math.round((opt.vGap != null ? opt.vGap : 0.7) * med));
+  const mask = ocrSmear(small.gray, small.w, small.h, hGap, vGap);
+
+  const page = small.w * small.h;
+  let blocks = skewComponents(mask, small.w, small.h).filter(b =>
+    b.n >= med * med * 1.5 &&            // ก้อนจิ๋วไม่คุ้มค่าเรียก OCR หนึ่งรอบ
+    b.h >= med * 0.8 &&
+    b.n <= page * 0.6 &&                 // เกือบทั้งหน้า = ละเลงเกินจนเหลือก้อนเดียว ไม่ได้ช่วยอะไร
+    // **ความทึบของกรอบ** — กรอบใบงาน ขอบกระดาษ และเส้นตารางเป็นชิ้นส่วนเส้นยาวที่คดไปทั่วหน้า
+    // กรอบครอบของมันจึงใหญ่เกือบเท่าหน้ากระดาษทั้งที่มีหมึกนิดเดียว (วัดจริง RP-1 ได้ก้อน 85×98%)
+    // ครอบตามนั้นก็เท่ากับอ่านทั้งหน้าเหมือนเดิม ไม่ได้แก้อะไรเลย
+    b.n >= b.w * b.h * 0.35);
+  if (!blocks.length) return [];
+  blocks.sort((a, b) => b.n - a.n);
+  // ก้อนที่จมอยู่ในก้อนอื่นทั้งใบ = อ่านซ้ำเปล่า ๆ ตัดทิ้ง (ไล่จากก้อนใหญ่ไปเล็ก)
+  const kept = [];
+  for (const b of blocks) {
+    if (kept.some(k => b.x0 >= k.x0 && b.x1 <= k.x1 && b.y0 >= k.y0 && b.y1 <= k.y1)) continue;
+    kept.push(b);
+    if (kept.length >= (opt.max || BLOCK_MAX)) break;
+  }
+  blocks = kept;
+
+  // ลำดับการอ่าน: แบ่งเป็นแถบตามความสูงตัวอักษรก่อน แล้วในแถบเดียวกันค่อยเรียงซ้าย→ขวา
+  // ถ้าเรียงด้วย y ดิบ ๆ บล็อกสองอันที่อยู่ระดับเดียวกันแต่ต่างกัน 3px จะสลับกันมั่ว
+  const band = Math.max(1, med * 2);
+  blocks.sort((a, b) => {
+    const ba = (a.y0 / band) | 0, bb = (b.y0 / band) | 0;
+    return ba !== bb ? ba - bb : a.x0 - b.x0;
+  });
+
+  // เผื่อขอบรอบกรอบ — ตัดชิดตัวอักษรเกินไปทำให้ตัวบนล่าง (สระ/วรรณยุกต์ไทย) ขาด
+  const pad = Math.max(2, med * 0.6);
+  return blocks.map(b => ({
+    x: Math.max(0, (b.x0 - pad) / small.w),
+    y: Math.max(0, (b.y0 - pad) / small.h),
+    w: Math.min(1, (b.x1 + pad) / small.w) - Math.max(0, (b.x0 - pad) / small.w),
+    h: Math.min(1, (b.y1 + pad) / small.h) - Math.max(0, (b.y0 - pad) / small.h),
+    ink: b.n,
+  }));
+}
+
+// ---------- เตรียมภาพทั้งชุด (ที่เดียว ใช้ทั้งแอปและเครื่องมือวัดผล) ----------
+// ลำดับมีเหตุผล: ตัดสินว่าเป็นภาพดิจิทัลหรือรูปถ่าย **ก่อน** ตัดสินใจขยาย
+//
+// ทำไมต้องตัดสินก่อน: วัดกับรูปจริงแล้วพบว่าการขยายภาพเล็กทำให้ภาพดิจิทัลแย่ลงชัดเจน
+//   DP-1 (763×673 ของเดิม) : ไม่ขยาย 4/4 conf 91 · ขยาย 1000 → 3/4 · ขยาย 1200 → 1/4 · 1500 → 1/4
+//   DP-3 (443×61 ของเดิม)  : ไม่ขยาย 1/2 conf 77 · ขยาย 1200 → 0/2 conf 0 (อ่านไม่ออกเลย)
+//   รวมภาพดิจิทัลทั้งชุด    : ไม่ขยาย 13/14 · ขยาย 1200 9/14
+// ตัวอักษรบนจอคมอยู่แล้ว การขยายมีแต่เพิ่มความเบลอจากการเกลี่ยพิกเซล ไม่ได้เพิ่มรายละเอียด
+// ส่วนรูปถ่ายผลก้ำกึ่ง (ย่อ RP-1/RP-2 ให้เล็กแล้ววัด: ขยาย 6/11 · ไม่ขยาย 5/11) จึงไม่แตะ
+//
+// อีกเหตุผลหนึ่ง: ของเดิมตัดสินจากภาพ *หลังแก้เอียง* ซึ่งถ้าภาพถูกหมุน พิกเซลจะถูกเกลี่ยใหม่หมด
+// ความ "เรียบ" ที่ ocrIsDigital วัดจึงหายไปกับการหมุน — ภาพดิจิทัลที่เอียงจะถูกตัดสินผิดเป็นรูปถ่าย
+function ocrPrepare(source, opt = {}) {
+  const gray0 = ocrToGray(source, 0);               // ยังไม่ขยาย ไว้ตัดสินก่อน
+  const digital = opt.digital !== undefined ? opt.digital : ocrIsDigital(gray0);
+  const min = opt.minLong !== undefined ? opt.minLong : ocrMinLong();
+  const grayIn = (!digital && min && Math.max(gray0.w, gray0.h) < min)
+    ? ocrToGray(source, min)                        // รูปถ่ายที่เล็กเกินไปเท่านั้นที่ขยาย
+    : gray0;
+  const sk = opt.deskew === false
+    ? { gray: grayIn, bin: ocrBinarize(grayIn), deg: 0 }
+    : ocrDeskew(grayIn);
+  // ภาพดิจิทัลส่งภาพเทาเข้าไปตรง ๆ — คมอยู่แล้ว แยกขาวดำมีแต่ทำให้เส้นบวมและขอบแตก
+  // วัดกับรูปจริง: ภาพดิจิทัลดีขึ้น 86%→93% ส่วนรูปถ่ายถ้าไม่แยกขาวดำจะร่วง 77%→73%
+  const useBin = opt.bin !== undefined ? opt.bin : !digital;
+  return { gray: sk.gray, bin: sk.bin, deg: sk.deg, digital, useBin };
+}
+
 // ---------- worker ใช้ซ้ำ ----------
 // เดิมสร้าง worker ใหม่แล้วทิ้งทุกครั้งที่สแกน — สแกนติดกันหลายใบเสียเวลา init ซ้ำทุกใบ
+// **worker ตัวเดียวถูกใช้ซ้ำทั้งอายุแอป** ใครเปลี่ยน parameter ต้องคืนค่าเองเสมอ
+// ไม่งั้นการสแกนใบถัดไปจะได้ค่าที่ค้างมาจากใบก่อน
 let ocrWorker = null, ocrProgress = null;
+
+const OCR_PSM_MAIN = '11';   // "ข้อความกระจาย" — ค่าปกติของแอป
+const OCR_PSM_BLOCK = '6';   // "มองทั้งรูปเป็นบล็อกเดียว" — ใช้เฉพาะรอบสำรองที่ 2
 
 async function getOcrWorker() {
   if (ocrWorker) return ocrWorker;
@@ -3589,7 +3760,7 @@ async function getOcrWorker() {
   // วัดกับรูปจริง 6 ใบ: PSM 6 ได้ 25/36 · PSM 11 ได้ 29/36 — ดีขึ้นทั้งรูปถ่ายและภาพดิจิทัล
   // (เคยลอง PSM 7 "บรรทัดเดียว" ด้วย ได้ 0/36 พังทุกใบ — อย่ากลับไปใช้)
   await w.setParameters({
-    tessedit_pageseg_mode: '11',
+    tessedit_pageseg_mode: OCR_PSM_MAIN,
     preserve_interword_spaces: '1',
   });
   ocrWorker = w;
@@ -3831,28 +4002,171 @@ function saveWidgetPhoto(canvas) {
   showToast({ title: 'ตั้งภาพวิดเจ็ตแล้ว 🖼', body: 'เปลี่ยนหรือเอาออกได้ที่แท็บ “ฉัน”' });
 }
 
+// ============================================================
+// ALT 1A7V: ท่ออ่านภาพ — แยกออกจาก UI เพื่อให้เครื่องมือวัดผลเรียกสายเดียวกันได้
+// ------------------------------------------------------------
+// เดิมตรรกะทั้งหมดฝังอยู่ใน runOcrOn ซึ่งแตะ DOM ตั้งแต่บรรทัดแรก เครื่องมือวัดผลจึงเรียกไม่ได้
+// ต้องไปเขียนสายของตัวเองขึ้นมาใหม่ใน ocrbench.js แล้วสองสายก็ค่อย ๆ เพี้ยนจากกัน
+// (benchOnce ยังไบนารีทุกภาพอยู่เลย ทั้งที่แอปเลิกทำแบบนั้นตั้งแต่มีตัวแยกภาพดิจิทัลแล้ว
+//  และไม่เคยตั้ง PSM เองเลยสักครั้ง — วัดอะไรอยู่ขึ้นกับว่าใครเรียกก่อนหน้า)
+// ตอนนี้ทั้งแอปและ bench เรียกฟังก์ชันนี้ตัวเดียวกัน จะเพี้ยนจากกันอีกไม่ได้
+//
+// ไม่แตะ DOM เลย — รายงานความคืบหน้าผ่าน onStage(ชื่อขั้น) ให้ผู้เรียกไปทำ UI เอง
+// ============================================================
+async function ocrReadCanvas(source, onStage) {
+  const t0 = performance.now();
+  const say = onStage || (() => {});
+
+  say('prep');
+  const p = ocrPrepare(source);
+  const digital = p.digital;
+  const mainCanvas = ocrGrayToCanvas(p.useBin ? p.bin : p.gray);
+  const altCanvas = () => ocrGrayToCanvas(p.useBin ? p.gray : p.bin);
+
+  say('model');
+  const worker = await getOcrWorker();
+
+  let passes = 1;
+  say('read');
+  let { data } = await withTimeout(worker.recognize(mainCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
+  let pass = digital ? 'digital' : 'photo';
+
+  // รอบสำรอง 1: สลับไปเตรียมภาพอีกแบบ — เผื่อตัวแยกประเภทภาพตัดสินผิด
+  // (เช่นแคปหน้าจอที่มีรูปถ่ายเต็มจอ หรือรูปถ่ายกระดาษขาวจัดที่เรียบผิดปกติ)
+  if ((data.confidence || 0) < OCR_CONF_OK) {
+    say('alt');
+    passes++;
+    const soft = await withTimeout(worker.recognize(altCanvas(), {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
+    if ((soft.data.confidence || 0) > (data.confidence || 0)) { data = soft.data; pass += '+alt'; }
+  }
+  // รอบสำรอง 2: ยังต่ำอยู่ → กลับไปมองเป็นบล็อกข้อความก้อนเดียว (PSM 6)
+  // ใบงานที่เป็นย่อหน้ายาว ๆ ต่อเนื่องบางทีอ่านแบบนี้ดีกว่าแบบ "ข้อความกระจาย"
+  if ((data.confidence || 0) < OCR_CONF_OK) {
+    say('psm6');
+    passes++;
+    await worker.setParameters({ tessedit_pageseg_mode: OCR_PSM_BLOCK });
+    try {
+      // ต้องเป็น mainCanvas ตัวเดิม — รอบนี้ทดสอบ "โหมดมองหน้ากระดาษ" ไม่ใช่ "การเตรียมภาพ"
+      const alt = await withTimeout(worker.recognize(mainCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
+      if ((alt.data.confidence || 0) > (data.confidence || 0)) { data = alt.data; pass += '+psm6'; }
+    } finally {
+      // ต้องคืนค่าแม้รอบนี้จะพัง — worker ตัวนี้ถูกใช้ซ้ำกับการสแกนใบถัดไป
+      // ของเดิมคืนค่านอก try ถ้ารอบนี้ timeout ทุกใบหลังจากนั้นจะติด PSM 6 ค้างไปตลอด
+      await worker.setParameters({ tessedit_pageseg_mode: OCR_PSM_MAIN });
+    }
+  }
+
+  // ---------- รอบเก็บตก: อ่านเฉพาะก้อนตัวหนังสือ ----------
+  // หัวกระดาษกับบรรทัดคำชี้แจงคือสิ่งที่แอปอยากได้ที่สุด (มันบอกว่า "ใบงานอะไร")
+  // แต่เป็นจุดที่การอ่านทั้งหน้าพลาดประจำ วัดจริง: RP-1 5/7 → 7/7 · RP-3 10/11 → 11/11
+  // รวมทั้งชุด 30/36 → 33/36 แลกกับเวลา 2.96 → 4.06 วินาทีต่อใบ
+  // ภาพดิจิทัลแทบไม่เสียเวลาเลยเพราะแบ่งบล็อกไม่ได้ (ข้ามรอบนี้ไป)
+  //
+  // ต่อ "ท้าย" ข้อความหน้าเต็มเสมอ ห้ามเอาไปแทน — ลำดับที่ parseAssignment เห็นก่อน
+  // ยังเป็นลำดับเดิมของหน้ากระดาษ ความเสี่ยงเรื่องแกะช่องผิดลำดับจึงไม่เพิ่ม
+  let blockText = '', blocks = 0;
+  try {
+    const boxes = ocrFindBlocks(p.gray);
+    if (boxes.length >= 2) {
+      say('blocks');
+      blocks = boxes.length;
+      passes++;
+      // ภาพที่เรียงบล็อกแล้วเป็นคอลัมน์เดียวเรียบร้อย จึงใช้ PSM 6 (บล็อกเดียว) ไม่ใช่ 11
+      // วัดแล้วต่างกันจริง: บล็อก psm6 ได้ 33/36 · บล็อก psm11 ได้ 32/36
+      await worker.setParameters({ tessedit_pageseg_mode: OCR_PSM_BLOCK });
+      try {
+        const st = await withTimeout(
+          worker.recognize(ocrStackBlocks(p, boxes), {}, { text: true }), 90_000, 'อ่านรูปภาพ');
+        blockText = normalizeOcrText(st.data.text).trim();
+      } finally {
+        await worker.setParameters({ tessedit_pageseg_mode: OCR_PSM_MAIN });
+      }
+      if (blockText) pass += '+บล็อก' + blocks;
+    }
+  } catch (e) {
+    // รอบนี้เป็นของแถม พังแล้วต้องไม่ทำให้ผลอ่านทั้งหน้าที่ได้มาแล้วหายไปด้วย
+    console.warn('[ALT OCR] รอบอ่านทีละบล็อกไม่สำเร็จ', e);
+  }
+
+  const pageText = normalizeOcrText(data.text);   // OCR ไทยเว้นวรรคทีละตัวอักษร ต้องยุบก่อนแกะ
+  return {
+    data,
+    text: blockText ? pageText + '\n' + blockText : pageText,
+    conf: Math.round(data.confidence || 0),
+    lowWords: collectLowWords(data),
+    pass, passes, blocks, digital, deg: p.deg,
+    w: p.gray.w, h: p.gray.h,
+    ms: Math.round(performance.now() - t0),
+  };
+}
+
+// เอาบล็อกมาเรียงต่อกันเป็นคอลัมน์เดียวในภาพใหม่ แล้วอ่าน "รอบเดียว"
+// เหตุผล: อ่านทีละบล็อกได้ผลดี (RP-1 5/7→7/7 · RP-3 10/11→11/11) แต่จ่ายไป 14 รอบต่อใบ
+// เวลาต่อใบพุ่งจาก 2.8 เป็น 8.4 วินาที ซึ่งแพงเกินกว่าจะปล่อยให้ผู้ใช้เจอ
+// การเรียงต่อกันได้ประโยชน์หลักอันเดียวกัน — ตัดพื้นที่ว่าง ภาพประกอบ และกรอบออกจากหน้า
+// เหลือแต่ก้อนตัวหนังสือชิดกันเป็นคอลัมน์เดียว — โดยจ่ายเพิ่มแค่รอบเดียว
+function ocrStackBlocks(prep, boxes) {
+  const src = ocrGrayToCanvas(prep.useBin ? prep.bin : prep.gray);
+  const rects = boxes.map(b => ({
+    sx: Math.round(b.x * src.width), sy: Math.round(b.y * src.height),
+    sw: Math.max(8, Math.round(b.w * src.width)), sh: Math.max(8, Math.round(b.h * src.height)),
+  }));
+  const gap = Math.max(10, Math.round(src.height * 0.012));
+  const w = Math.max(...rects.map(r => r.sw)) + gap * 2;
+  const h = rects.reduce((a, r) => a + r.sh + gap, gap);
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.fillStyle = '#fff';                 // ช่องว่างระหว่างก้อนต้องเป็นขาว ไม่ใช่ดำ
+  ctx.fillRect(0, 0, w, h);
+  let y = gap;
+  for (const r of rects) {
+    ctx.drawImage(src, r.sx, r.sy, r.sw, r.sh, gap, y, r.sw, r.sh);
+    y += r.sh + gap;
+  }
+  return c;
+}
+
+// อ่านทีละบล็อกแล้วต่อกันตามลำดับการอ่าน
+// คืน null เมื่อแบ่งบล็อกไม่ได้ผล (0–1 ก้อน) — ผู้เรียกใช้ผลอ่านทั้งหน้าต่อไปตามเดิม
+async function ocrReadBlocks(prep, worker, opt = {}) {
+  const boxes = ocrFindBlocks(prep.gray, opt);
+  if (boxes.length < 2) return null;
+  const src = ocrGrayToCanvas(prep.useBin ? prep.bin : prep.gray);
+  const parts = [];
+  let confSum = 0, confN = 0;
+  const c = document.createElement('canvas');
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  for (const b of boxes) {
+    const sx = Math.round(b.x * src.width), sy = Math.round(b.y * src.height);
+    const sw = Math.max(8, Math.round(b.w * src.width));
+    const sh = Math.max(8, Math.round(b.h * src.height));
+    c.width = sw; c.height = sh;
+    ctx.drawImage(src, sx, sy, sw, sh, 0, 0, sw, sh);
+    const { data } = await worker.recognize(c, {}, { text: true });
+    const t = normalizeOcrText(data.text).trim();
+    if (t) { parts.push(t); confSum += (data.confidence || 0); confN++; }
+  }
+  if (!parts.length) return null;
+  return { text: parts.join('\n'), conf: confN ? Math.round(confSum / confN) : 0, blocks: boxes.length };
+}
+
+const OCR_STAGE_TEXT = {
+  prep: '🖼 กำลังปรับภาพให้อ่านง่ายขึ้น…',
+  model: '⏳ กำลังเตรียมโมเดล OCR… (ครั้งแรกอาจรอนานหน่อย)',
+  read: '📖 AI กำลังอ่านใบงาน…',
+  alt: '🔁 ลองอ่านอีกแบบให้ชัดขึ้น…',
+  psm6: '🔁 ลองมองหน้ากระดาษอีกแบบ…',
+  blocks: '🔎 กำลังเก็บตกหัวข้อกับคำชี้แจง…',
+};
+
 async function runOcrOn(source, how) {
   const st = document.getElementById('ocrStatus');
   const barWrap = document.getElementById('ocrBarWrap');
   const bar = document.getElementById('ocrBar');
-  const t0 = performance.now();
   try {
     barWrap.hidden = false; bar.style.width = '4%';
-    st.textContent = '🖼 กำลังปรับภาพให้อ่านง่ายขึ้น…';
     startFunFacts(document.getElementById('scanFact')); // มีอะไรให้อ่านระหว่างรอ OCR
-    // ปรับภาพก่อน แล้วค่อยโหลดโมเดล — ผู้ใช้จะได้เห็นความคืบหน้าตั้งแต่วินาทีแรก
-    const gray0 = ocrToGray(source);
-    // แก้ภาพเอียงก่อน แล้วค่อยใช้ผลที่ตรงแล้วไปทุก pass ที่เหลือ
-    const sk = ocrDeskew(gray0);
-    const gray = sk.gray;
-    // ภาพดิจิทัลส่งภาพเทาเข้าไปตรง ๆ — คมอยู่แล้ว แยกขาวดำมีแต่ทำให้แย่ลง
-    // วัดกับรูปจริง: ภาพดิจิทัลดีขึ้น 86%→93% ส่วนรูปถ่ายถ้าไม่แยกขาวดำจะร่วง 77%→73%
-    const digital = ocrIsDigital(gray);
-    const binCanvas = ocrGrayToCanvas(digital ? gray : sk.bin);
-    const altCanvas = () => ocrGrayToCanvas(digital ? sk.bin : gray);
-    bar.style.width = '12%';
-
-    st.textContent = '⏳ กำลังเตรียมโมเดล OCR… (ครั้งแรกอาจรอนานหน่อย)';
     ocrProgress = m => {
       if (m.status === 'recognizing text') {
         const p = 15 + Math.round(m.progress * 80);
@@ -3862,40 +4176,24 @@ async function runOcrOn(source, how) {
         st.textContent = '⏳ ' + m.status + '…';
       }
     };
-    const worker = await getOcrWorker();
-
-    let { data } = await withTimeout(worker.recognize(binCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
-    let pass = digital ? 'digital' : 'photo';
-
-    // รอบสำรอง 1: สลับไปเตรียมภาพอีกแบบ — เผื่อตัวแยกประเภทภาพตัดสินผิด
-    // (เช่นแคปหน้าจอที่มีรูปถ่ายเต็มจอ หรือรูปถ่ายกระดาษขาวจัดที่เรียบผิดปกติ)
-    if ((data.confidence || 0) < OCR_CONF_OK) {
-      st.textContent = '🔁 ลองอ่านอีกแบบให้ชัดขึ้น…';
-      const soft = await withTimeout(worker.recognize(altCanvas(), {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
-      if ((soft.data.confidence || 0) > (data.confidence || 0)) { data = soft.data; pass += '+alt'; }
-    }
-    // รอบสำรอง 2: ยังต่ำอยู่ → กลับไปมองเป็นบล็อกข้อความก้อนเดียว (PSM 6)
-    // ใบงานที่เป็นย่อหน้ายาว ๆ ต่อเนื่องบางทีอ่านแบบนี้ดีกว่าแบบ "ข้อความกระจาย"
-    if ((data.confidence || 0) < OCR_CONF_OK) {
-      st.textContent = '🔁 ลองมองหน้ากระดาษอีกแบบ…';
-      await worker.setParameters({ tessedit_pageseg_mode: '6' });
-      const alt = await withTimeout(worker.recognize(binCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
-      await worker.setParameters({ tessedit_pageseg_mode: '11' });
-      if ((alt.data.confidence || 0) > (data.confidence || 0)) { data = alt.data; pass += '+psm6'; }
-    }
+    // ปรับภาพก่อน แล้วค่อยโหลดโมเดล — ผู้ใช้จะได้เห็นความคืบหน้าตั้งแต่วินาทีแรก
+    const r = await ocrReadCanvas(source, stage => {
+      st.textContent = OCR_STAGE_TEXT[stage] || '';
+      if (stage === 'model') bar.style.width = '12%';
+    });
 
     ocrProgress = null;
     stopFunFacts(document.getElementById('scanFact'));
     st.textContent = ''; barWrap.hidden = true;
 
-    const text = normalizeOcrText(data.text); // OCR ไทยเว้นวรรคทีละตัวอักษร ต้องยุบก่อนแกะ
-    const conf = Math.round(data.confidence || 0);
+    const text = r.text;
+    const conf = r.conf;
     lastOcrConfidence = conf;
-    lastOcrLowWords = collectLowWords(data);
+    lastOcrLowWords = r.lowWords;
     // บรรทัดเดียวก๊อปไปทำตารางวัดผลได้เลย (รอบวัดผลกับรูปจริง)
-    console.debug(`[ALT OCR] conf=${conf}% pass=${pass} how=${how || '-'} chars=${text.length} `
-      + `lowWords=${lastOcrLowWords.length} ms=${Math.round(performance.now() - t0)} size=${gray.w}×${gray.h} `
-      + `skew=${sk.deg}°`);
+    console.debug(`[ALT OCR] conf=${conf}% pass=${r.pass} รอบ=${r.passes} บล็อก=${r.blocks} `
+      + `how=${how || '-'} chars=${text.length} lowWords=${r.lowWords.length} ms=${r.ms} `
+      + `size=${r.w}×${r.h} skew=${r.deg}°`);
 
     if (text.length < 5 || conf < OCR_CONF_MIN) {
       lastOcrConfidence = null;
@@ -4761,4 +5059,4 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
       setTimeout(showInstallGuide, 1400);
     }
   }, 900);
-})();
+})();

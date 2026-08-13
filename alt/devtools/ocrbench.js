@@ -2,6 +2,10 @@
 //  จะโยน SyntaxError ทั้งไฟล์ ซึ่งเคยทำให้ console เต็มไปด้วย error ตอนทดสอบหลายรอบ)
 (function () {
 if (window.__ocrbench) { console.log('[ocrbench] โหลดไว้อยู่แล้ว'); return; }
+
+// ค่าปกติของแอป — ต้องคืนค่านี้ทุกครั้งหลังเปลี่ยน PSM ไม่ใช่ '6'
+// (worker ตัวเดียวถูกใช้ซ้ำทั้งอายุหน้า ใครไม่คืนค่า การวัดครั้งถัดไปกินค่าที่ค้างมา)
+const PSM_MAIN = (typeof OCR_PSM_MAIN !== 'undefined') ? OCR_PSM_MAIN : '11';
 // ============================================================
 // StudentOS ALT — เครื่องมือวัดผล OCR (เครื่องมือนักพัฒนา)
 //
@@ -98,7 +102,7 @@ async function benchSkew(angles) {
       const canvas = benchRender(sheet, a);
       const t0 = performance.now();
       const gray = ocrToGray(canvas);
-      const found = ocrFindSkew(ocrBinarize(gray));
+      const found = ocrFindSkew(gray);   // รับภาพเทาแล้ว ไม่ใช่ภาพไบนารี
       rows.push({
         sheet: sheet.id,
         เอียงจริง: a,
@@ -134,15 +138,13 @@ function benchCompare(got, expect) {
   return { ได้: hit.length, จาก: fields.length, พลาด: fields.filter(f => !hit.includes(f)) };
 }
 
-// ยิงภาพเข้า Tesseract ตรง ๆ ตามสายจริง แต่เลือกได้ว่าจะแก้เอียงไหม
+// ยิงภาพเข้า Tesseract หนึ่งรอบตามการเตรียมภาพแบบเดียวกับแอป แต่เลือกได้ว่าจะแก้เอียงไหม
+// (คำถามของ benchOcr/benchHard คือ "ตัวแก้เอียงช่วยไหม" จึงต้องปิดได้ ใช้สายเต็มไม่ได้)
+// **ต้องส่ง adaptive กับ psm ให้ตรงกับแอปเสมอ** — ของเดิมไบนารีทุกภาพและไม่เคยตั้ง PSM เลย
+// ทำให้ตั้งแต่มีตัวแยกภาพดิจิทัล benchOcr/benchHard ก็ไม่ได้วัดสายที่ปล่อยจริงอีกต่อไป
 async function benchOnce(canvas, deskewOn) {
-  const gray0 = ocrToGray(canvas);
-  const sk = deskewOn ? ocrDeskew(gray0) : { gray: gray0, bin: ocrBinarize(gray0), deg: 0 };
-  const worker = await getOcrWorker();
-  const { data } = await worker.recognize(ocrGrayToCanvas(sk.bin), {}, { text: true });
-  const text = normalizeOcrText(data.text);
-  return { text, conf: Math.round(data.confidence || 0), deg: sk.deg,
-    parsed: parseAssignment(text, new Date(), { fuzzy: true }) };
+  const r = await runVariant(canvas, { deskew: deskewOn !== false, adaptive: true, psm: PSM_MAIN });
+  return { ...r, parsed: parseAssignment(r.text, new Date(), { fuzzy: true }) };
 }
 
 async function benchOcr(cases, angles) {
@@ -363,7 +365,9 @@ const SAMPLES = [
     keys: ['Max Framerate', 'VSync'] },
 ];
 
-async function loadSample(s) {
+// **ห้ามตั้งชื่อว่า loadSample** — แอปมี loadSample() ของตัวเอง (โหลดงานตัวอย่าง 4 งาน)
+// ที่คู่มือบอกให้ใช้ทดสอบ พอไฟล์นี้ export ทับ มันก็หายไปจนกว่าจะรีโหลดหน้า
+async function benchLoadSample(s) {
   const bmp = await createImageBitmap(await (await fetch(s.file)).blob());
   const cv = document.createElement('canvas');
   cv.width = bmp.width; cv.height = bmp.height;
@@ -383,43 +387,109 @@ function scoreKeys(text, keys) {
 }
 
 // รันภาพหนึ่งใบด้วยสูตรที่เลือก
+//   opt.full   : รันสายจริงทั้งเส้นรวมรอบสำรอง (ตัวเดียวกับที่แอปเรียก) — ใช้เป็นฐานเทียบ
 //   opt.bin    : ไบนารีไหม (false = ส่งภาพเทาเข้าไปตรง ๆ)
+//   opt.adaptive: ให้ ocrIsDigital ตัดสินเองว่าจะไบนารีไหม (เหมือนแอป)
 //   opt.psm    : โหมดมองหน้ากระดาษ
 //   opt.deskew : แก้เอียงไหม
-//   opt.minLong: ขนาดด้านยาวขั้นต่ำ (null = ไม่ขยาย)
+//   opt.minLong / opt.maxLong : ขนาดด้านยาวต่ำสุด/สูงสุด (minLong null = ไม่ขยาย)
 async function runVariant(cv, opt = {}) {
-  const saveMin = window.__OCR_MIN_OVERRIDE;
-  window.__OCR_MIN_OVERRIDE = opt.minLong === undefined ? null : opt.minLong;
-  const gray0 = ocrToGray(cv);
-  const sk = opt.deskew === false ? { gray: gray0, bin: ocrBinarize(gray0), deg: 0 } : ocrDeskew(gray0);
-  // adaptive = ทำตามสายงานจริง คือให้ ocrIsDigital ตัดสินเองว่าจะไบนารีไหม
-  const useBin = opt.adaptive ? !ocrIsDigital(sk.gray) : (opt.bin !== false);
-  const src = useBin ? ocrGrayToCanvas(sk.bin) : ocrGrayToCanvas(sk.gray);
-  const worker = await getOcrWorker();
-  if (opt.psm) await worker.setParameters({ tessedit_pageseg_mode: String(opt.psm) });
-  const t0 = performance.now();
-  const { data } = await worker.recognize(src, {}, { text: true });
-  const ms = Math.round(performance.now() - t0);
-  if (opt.psm) await worker.setParameters({ tessedit_pageseg_mode: '6' });
-  window.__OCR_MIN_OVERRIDE = saveMin;
-  return { text: normalizeOcrText(data.text), conf: Math.round(data.confidence || 0), deg: sk.deg, ms,
-    size: sk.gray.w + '×' + sk.gray.h };
+  // สายจริงทั้งเส้น — เรียก ocrReadCanvas ตัวเดียวกับแอป ไม่ประกอบท่อเองอีกแล้ว
+  // นี่คือทางเดียวที่รับประกันได้ว่า "ฐาน" ที่วัดคือสิ่งที่ผู้ใช้เจอจริง รวมรอบสำรองด้วย
+  if (opt.full) {
+    const r = await ocrReadCanvas(cv);
+    return { text: r.text, conf: r.conf, deg: r.deg, ms: r.ms, รอบ: r.passes,
+      ทาง: r.pass, size: r.w + '×' + r.h };
+  }
+  // อ่านทีละบล็อก — blocks:'only' อ่านเฉพาะบล็อก · blocks:'plus' อ่านทั้งหน้าแล้วต่อท้ายด้วยบล็อก
+  if (opt.blocks) {
+    const t0 = performance.now();
+    const p = ocrPrepare(cv, { minLong: opt.minLong });
+    const worker = await getOcrWorker();
+    if (opt.psm) await worker.setParameters({ tessedit_pageseg_mode: String(opt.psm) });
+    try {
+      let text = '', conf = 0, n = 0, nb = 0;
+      if (opt.blocks !== 'only') {
+        const whole = await worker.recognize(ocrGrayToCanvas(p.useBin ? p.bin : p.gray), {}, { text: true });
+        text = normalizeOcrText(whole.data.text);
+        conf += whole.data.confidence || 0; n++;
+      }
+      if (opt.blocks === 'stack') {
+        // เรียงบล็อกต่อกันแล้วอ่านรอบเดียว — ตั้ง PSM แยกได้ เพราะภาพที่เรียงแล้ว
+        // เป็นคอลัมน์เดียวเรียบร้อย ซึ่งเป็นคนละโจทย์กับหน้ากระดาษเต็มที่ข้อความกระจาย
+        const boxes = ocrFindBlocks(p.gray, opt);
+        nb = boxes.length;
+        if (boxes.length >= 2) {
+          if (opt.stackPsm) await worker.setParameters({ tessedit_pageseg_mode: String(opt.stackPsm) });
+          const st = await worker.recognize(ocrStackBlocks(p, boxes), {}, { text: true });
+          if (opt.stackPsm) await worker.setParameters({ tessedit_pageseg_mode: String(opt.psm || PSM_MAIN) });
+          text += '\n' + normalizeOcrText(st.data.text);
+          conf += st.data.confidence || 0; n++;
+        }
+      } else {
+        const b = await ocrReadBlocks(p, worker, opt);
+        if (b) { nb = b.blocks; text = (text ? text + '\n' : '') + b.text; conf += b.conf; n++; }
+      }
+      return { text, conf: n ? Math.round(conf / n) : 0, deg: p.deg, รอบ: n + (opt.blocks === 'stack' ? 0 : Math.max(0, nb - 1)),
+        ทาง: nb >= 2 ? 'บล็อก×' + nb : 'บล็อก(แบ่งไม่ได้)',
+        ms: Math.round(performance.now() - t0), size: p.gray.w + '×' + p.gray.h };
+    } finally {
+      if (opt.psm) await worker.setParameters({ tessedit_pageseg_mode: PSM_MAIN });
+    }
+  }
+  const saveMin = window.__OCR_MIN_OVERRIDE, saveMax = window.__OCR_MAX_OVERRIDE;
+  // ไม่ระบุ = ใช้ค่าของแอป (OCR_MIN_LONG/OCR_MAX_LONG) — สูตร "ปัจจุบัน" ต้องเป็นของจริง
+  // ของเดิมตั้งเป็น null เมื่อไม่ระบุ ซึ่งแปลว่า "ไม่ขยายภาพเล็ก" — bench จึงไม่เคยขยายภาพเลย
+  // ทั้งที่แอปขยายทุกใบ วัดกับ DP-1 ต่างกันถึง 1/4 กับ 4/4 · ระบุ null เองถ้าอยากปิดการขยาย
+  if (opt.minLong !== undefined) window.__OCR_MIN_OVERRIDE = opt.minLong;
+  if (opt.maxLong !== undefined) window.__OCR_MAX_OVERRIDE = opt.maxLong;
+  try {
+    // ใช้ ocrPrepare ตัวเดียวกับแอป — ห้ามประกอบท่อเองอีก ไม่งั้นเพี้ยนจากแอปอีกรอบ
+    // adaptive = ปล่อยให้ ocrPrepare ตัดสินเองว่าจะไบนารีไหม (เหมือนแอป)
+    const sk = ocrPrepare(cv, {
+      deskew: opt.deskew,
+      minLong: opt.minLong,
+      bin: opt.adaptive ? undefined : (opt.bin !== false),
+    });
+    const useBin = sk.useBin;
+    const src = ocrGrayToCanvas(useBin ? sk.bin : sk.gray);
+    const worker = await getOcrWorker();
+    if (opt.psm) await worker.setParameters({ tessedit_pageseg_mode: String(opt.psm) });
+    const t0 = performance.now();
+    try {
+      const { data } = await worker.recognize(src, {}, { text: true });
+      return { text: normalizeOcrText(data.text), conf: Math.round(data.confidence || 0),
+        deg: sk.deg, ms: Math.round(performance.now() - t0), รอบ: 1,
+        ทาง: (useBin ? 'bin' : 'gray') + '/psm' + (opt.psm || PSM_MAIN),
+        size: sk.gray.w + '×' + sk.gray.h };
+    } finally {
+      // คืนเป็นค่าปกติของแอป — ของเดิมคืนเป็น '6' ทำให้สูตรที่ไม่ระบุ psm
+      // ในรายการเดียวกันถูกวัดด้วย PSM 6 เงียบ ๆ ทั้งที่ตารางเขียนว่า "ปัจจุบัน"
+      if (opt.psm) await worker.setParameters({ tessedit_pageseg_mode: PSM_MAIN });
+    }
+  } finally {
+    window.__OCR_MIN_OVERRIDE = saveMin;
+    window.__OCR_MAX_OVERRIDE = saveMax;
+  }
 }
 
 // วัดสูตรเดียวกับที่แอปใช้อยู่ตอนนี้ ให้เห็นฐานก่อน
+// ฐานปริยายคือ **สายจริงทั้งเส้น** (opt.full) ไม่ใช่รอบเดียว —
+// รูปถ่ายจริงได้ conf ต่ำกว่า 70 แทบทุกใบ แปลว่ารอบสำรองยิงจริงเสมอ
+// ถ้าวัดแค่รอบเดียวจะรายงานเวลาน้อยกว่าที่ผู้ใช้เจอจริงเป็นเท่าตัว
 async function benchReal(variants) {
-  const vs = variants || [{ ชื่อ: 'ปัจจุบัน', opt: {} }];
+  const vs = variants || [{ ชื่อ: 'ปัจจุบัน', opt: { full: true } }];
   await getOcrWorker();
   const rows = [];
   for (const s of SAMPLES) {
-    const cv = await loadSample(s);
+    const cv = await benchLoadSample(s);
     for (const v of vs) {
       const r = await runVariant(cv, v.opt);
       const sc = scoreKeys(r.text, s.keys);
       rows.push({ id: s.id, kind: s.kind, สูตร: v.ชื่อ, ได้: sc.ได้, จาก: sc.จาก,
-        conf: r.conf, มุม: r.deg, ขนาด: r.size, ms: r.ms,
+        conf: r.conf, รอบ: r.รอบ, ทาง: r.ทาง, มุม: r.deg, ขนาด: r.size, ms: r.ms,
         พลาด: sc.พลาด.join(' | ') || '-', text: r.text });
-      console.log(`[real] ${s.id} ${v.ชื่อ} → ${sc.ได้}/${sc.จาก} conf=${r.conf} ${r.ms}ms`);
+      console.log(`[real] ${s.id} ${v.ชื่อ} → ${sc.ได้}/${sc.จาก} conf=${r.conf} ${r.รอบ}รอบ ${r.ms}ms`);
     }
   }
   const byV = vs.map(v => {
@@ -428,11 +498,13 @@ async function benchReal(variants) {
     const rp = r.filter(x=>x.kind==='RP'), dp = r.filter(x=>x.kind==='DP');
     const sum = a => [a.reduce((x,y)=>x+y.ได้,0), a.reduce((x,y)=>x+y.จาก,0)];
     const [rg,rt] = sum(rp), [dg,dt] = sum(dp);
+    const msAll = r.reduce((a,x)=>a+x.ms,0);
     return { สูตร: v.ชื่อ, รวม: `${g}/${t} (${(g/t*100).toFixed(0)}%)`,
       รูปถ่าย: `${rg}/${rt} (${(rg/rt*100).toFixed(0)}%)`,
       ภาพดิจิทัล: `${dg}/${dt} (${(dg/dt*100).toFixed(0)}%)`,
       conf: Math.round(r.reduce((a,x)=>a+x.conf,0)/r.length),
-      msรวม: r.reduce((a,x)=>a+x.ms,0) };
+      รอบรวม: r.reduce((a,x)=>a+(x.รอบ||1),0),
+      msรวม: msAll, msเฉลี่ยต่อใบ: Math.round(msAll / r.length) };
   });
   console.table(rows.map(({text, ...k}) => k));
   console.table(byV);
@@ -443,7 +515,7 @@ Object.assign(window, {
   BENCH_SHEETS, benchRender, benchSkew, benchCompare, benchOnce, benchOcr,
   REAL_CASES, loadRealCases, degShadow, degPerspective, degBlur, degDownscale,
   degJpeg, benchMakeHard, benchHard,
-  SAMPLES, loadSample, hasKey, scoreKeys, runVariant, benchReal,
+  SAMPLES, benchLoadSample, hasKey, scoreKeys, runVariant, benchReal,
 });
 window.__ocrbench = true;
 console.log('[ocrbench] พร้อมแล้ว — await benchSkew() · await benchOcr() · await benchHard()');
