@@ -1,9 +1,11 @@
 /* ================================================================
    StudentOS — Visual Editor  v3  "ง่ายที่สุด"
    ----------------------------------------------------------------
-   • คลิกชิ้นไหน → แถบเครื่องมือเด้งมาข้าง ๆ ชิ้นนั้นเลย ไม่ต้องเลื่อนหา
+   • แตะชิ้นไหน → แถบเครื่องมือเด้งมาข้าง ๆ ชิ้นนั้นเลย ไม่ต้องเลื่อนหา
+   • ใช้ได้ทั้งเมาส์และนิ้ว — ตอนแก้อยู่ก็ยังเลื่อนจอได้ตามปกติ
+   • ปุ่ม ✋ = พักการแก้ชั่วคราว ไปกดใช้แอปจริง (เปลี่ยนหน้า/เปิดเมนู) แล้วกลับมาแก้ต่อ
    • ปุ่มใหญ่ กดทีเดียวเห็นผล  (ใหญ่ขึ้น / มนขึ้น / ห่างขึ้น / สี)
-   • ประวัติทุกก้าว ย้อนกลับไปจุดไหนก็ได้ (Time Travel)
+   • ประวัติทุกก้าว ย้อนกลับไปจุดไหนก็ได้ (Time Travel) — ปิดแท็บแล้วเปิดใหม่ก็ยังอยู่
    • กดค้างดู "ก่อน–หลัง" เทียบได้ทันที
    • บันทึกเป็นเวอร์ชันไว้เทียบหลายแบบ
    • โหมดละเอียด สำหรับปรับครบทุก property
@@ -23,21 +25,34 @@
     if (raw) { var o = JSON.parse(raw); for (var k in o) S[k] = o[k]; }
   } catch (e) {}
 
-  var hist = [], hIdx = -1;
+  /* ประวัติเก็บลง localStorage ด้วย — ปิดแท็บแล้วกลับมา ยังย้อนได้เหมือนเดิม */
+  var hist = (S.hist && S.hist.length) ? S.hist : [];
+  var hIdx = (typeof S.hIdx === 'number') ? S.hIdx : -1;
+  if (hIdx < 0 || hIdx >= hist.length) hIdx = hist.length - 1;
+
   var cur = null, sel = null, pstate = '', groupMode = false;
-  var editing = false, pro = false, tab = 'hist', drag = null, target = 'bg';
+  var editing = false, paused = false, tab = 'hist', drag = null, target = 'bg';
 
   function ck() { return sel ? sel + pstate : null; }
   function theme() { return document.documentElement.getAttribute('data-theme') || 'light'; }
-  function saveLS() { try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} }
   function core() { return JSON.stringify({ rules: S.rules, tokens: S.tokens, texts: S.texts }); }
+  function saveLS() {
+    S.hist = hist; S.hIdx = hIdx;
+    try { localStorage.setItem(LS, JSON.stringify(S)); return; } catch (e) {}
+    /* เต็มโควตา — ตัดประวัติเก่าทิ้งแล้วลองใหม่ ดีกว่าเงียบแล้วหายทั้งงาน */
+    try {
+      hist = hist.slice(-10); hIdx = hist.length - 1;
+      S.hist = hist; S.hIdx = hIdx;
+      localStorage.setItem(LS, JSON.stringify(S));
+    } catch (x) {}
+  }
 
   function commit(label) {
     var snap = core();
     if (hIdx >= 0 && hist[hIdx] && hist[hIdx].s === snap) return;
     hist = hist.slice(0, hIdx + 1);
     hist.push({ l: label, s: snap, t: Date.now() });
-    if (hist.length > 100) hist.shift();
+    if (hist.length > 40) hist.shift();
     hIdx = hist.length - 1;
     saveLS();
     if (tab === 'hist') paint();
@@ -78,7 +93,13 @@
   function applyTexts() {
     if (muted) return;
     for (var s in S.texts) {
-      try { var e = document.querySelector(s); if (e && e.textContent !== S.texts[s]) e.textContent = S.texts[s]; } catch (x) {}
+      try {
+        var e = document.querySelector(s);
+        if (!e) continue;
+        /* ชิ้นที่มีลูกเป็นอิลิเมนต์ ห้ามเขียนทับ — ไม่งั้นลูกหายทั้งกิ่ง */
+        if ([].some.call(e.childNodes, function (n) { return n.nodeType === 1; })) continue;
+        if (e.textContent !== S.texts[s]) e.textContent = S.texts[s];
+      } catch (x) {}
     }
   }
   function applyAll() { applyRules(); applyTokens(); applyTexts(); }
@@ -110,8 +131,13 @@
     return parts.join(' > ');
   }
   function grpOf(el) { var c = clsOf(el); return c ? el.tagName.toLowerCase() + c : el.tagName.toLowerCase(); }
-  function selFor(el) { return groupMode ? grpOf(el) : pathOf(el); }
-  function twins(el) { try { return document.querySelectorAll(grpOf(el)).length; } catch (e) { return 1; } }
+  /* "แก้พร้อมกัน" ใช้ได้เฉพาะชิ้นที่มีคลาสจริง ๆ — ไม่งั้น div เปล่า 1 ชิ้น
+     จะลากทุก div ในแอปไปด้วย ซึ่งไม่มีทางเป็นสิ่งที่คนกดตั้งใจ */
+  function selFor(el) { return (groupMode && clsOf(el)) ? grpOf(el) : pathOf(el); }
+  function twins(el) {
+    if (!clsOf(el)) return 1;
+    try { return document.querySelectorAll(grpOf(el)).length; } catch (e) { return 1; }
+  }
 
   /* ==================== MUTATE ==================== */
   function setP(p, v, quiet) {
@@ -310,13 +336,17 @@
 '.pe{pointer-events:auto}' +
 '#hl{position:fixed;pointer-events:none;outline:2px dashed #6FA8FF;background:rgba(111,168,255,.13);border-radius:4px;display:none}' +
 '#se{position:fixed;pointer-events:none;outline:2.5px solid #F59E0B;border-radius:4px;display:none}' +
-'#mv{position:fixed;pointer-events:auto;display:none;cursor:move}' +
-'.hd{position:fixed;width:12px;height:12px;background:#F59E0B;border:2.5px solid #0B0F17;border-radius:50%;pointer-events:auto;display:none;z-index:6}' +
+'#mv{position:fixed;pointer-events:auto;display:none;cursor:move;touch-action:none}' +
+'.hd{position:fixed;width:12px;height:12px;background:#F59E0B;border:2.5px solid #0B0F17;border-radius:50%;pointer-events:auto;display:none;z-index:6;touch-action:none}' +
 '#tip{position:fixed;font:600 11px ui-monospace,monospace;background:#0B0F17;color:#fff;padding:3px 8px;border-radius:7px;pointer-events:none;white-space:nowrap;display:none}' +
 
 /* FAB */
-'#fab{position:fixed;top:14px;right:14px;height:44px;padding:0 16px;border-radius:14px;border:0;background:#0B0F17;color:#fff;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 10px 26px rgba(0,0,0,.45);display:flex;align-items:center;gap:7px;transition:.2s}' +
+'#fabs{position:fixed;top:14px;right:14px;display:flex;gap:8px;align-items:center;z-index:9}' +
+'#fab{height:44px;padding:0 16px;border-radius:14px;border:0;background:#0B0F17;color:#fff;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 10px 26px rgba(0,0,0,.45);display:flex;align-items:center;gap:7px;transition:.2s}' +
 '#fab.on{background:#F59E0B;color:#111}' +
+'#pauseB{display:none;width:44px;height:44px;border-radius:14px;border:0;background:#0B0F17;color:#fff;font-size:17px;cursor:pointer;box-shadow:0 10px 26px rgba(0,0,0,.45)}' +
+'#pauseB.show{display:block}' +
+'#pauseB.on{background:#22C55E;color:#052E16}' +
 
 /* QUICK BAR */
 '#qb{position:fixed;display:none;background:#0F1521;border:1px solid #2B364B;border-radius:16px;padding:9px;box-shadow:0 18px 50px rgba(0,0,0,.6);pointer-events:auto;width:322px;max-width:94vw}' +
@@ -428,7 +458,9 @@
 '<div class="hd" data-h="nw"></div><div class="hd" data-h="n"></div><div class="hd" data-h="ne"></div>' +
 '<div class="hd" data-h="w"></div><div class="hd" data-h="e"></div>' +
 '<div class="hd" data-h="sw"></div><div class="hd" data-h="s"></div><div class="hd" data-h="se"></div>' +
-'<button id="fab" class="pe"><span>&#9998;</span><span id="fabT">แก้ดีไซน์</span></button>' +
+'<div id="fabs" class="pe">' +
+  '<button id="pauseB" title="พักการแก้ ไปกดใช้แอปตามปกติ">&#9995;</button>' +
+  '<button id="fab"><span>&#9998;</span><span id="fabT">แก้ดีไซน์</span></button></div>' +
 '<div id="coach" class="pe"></div>' +
 '<div id="qb" class="pe"></div>' +
 '<div id="pn" class="pe">' +
@@ -465,8 +497,13 @@
 
   /* ==================== FRAME ==================== */
   var HP = { nw: [0, 0], n: [.5, 0], ne: [1, 0], w: [0, .5], e: [1, .5], sw: [0, 1], s: [.5, 1], se: [1, 1] };
+  function wide() { return innerWidth > 720; }
+  function panelOpen() { return pn.classList.contains('open'); }
   function frame() {
-    if (!cur || !editing) {
+    /* ชิ้นที่เลือกไว้อาจถูกซ่อน (สลับหน้าจอ) — ยังไม่ปล่อยการเลือก แต่ต้องเก็บกรอบกับแถบเครื่องมือ
+       ไม่งั้นมันจะไปกองอยู่มุมซ้ายบนแบบชี้ไปที่ความว่างเปล่า แล้วกดอะไรก็ไม่เห็นอะไรเกิดขึ้น */
+    var vis = cur && (cur.offsetWidth || cur.offsetHeight || cur.getClientRects().length);
+    if (!cur || !editing || paused || !vis) {
       se.style.display = 'none'; mv.style.display = 'none';
       $$('.hd').forEach(function (h) { h.style.display = 'none'; });
       qb.classList.remove('show');
@@ -481,36 +518,47 @@
       h.style.top = (r.top + r.height * q[1] - 6) + 'px';
       h.style.display = 'block'; h.style.cursor = h.getAttribute('data-h') + '-resize';
     });
+    /* จอแคบ + แผงเปิดอยู่ = แผงบังทั้งจอ แถบเครื่องมือจะโผล่ใต้แผงแบบกดไม่ได้ ซ่อนไปเลยดีกว่า */
+    if (panelOpen() && !wide()) { qb.classList.remove('show'); return; }
     var qh = qb.offsetHeight || 250, qw = qb.offsetWidth || 322;
     var top = r.bottom + 12;
     if (top + qh > innerHeight - 8) top = Math.max(8, r.top - qh - 12);
     if (top + qh > innerHeight - 8) top = Math.max(8, innerHeight - qh - 8);
     var left = r.left + r.width / 2 - qw / 2;
     left = Math.max(8, Math.min(left, innerWidth - qw - 8));
-    if (pn.classList.contains('open')) left = Math.min(left, innerWidth - qw - 342);
+    if (panelOpen() && wide()) left = Math.min(left, innerWidth - qw - 342);
     qb.style.left = Math.max(8, left) + 'px'; qb.style.top = top + 'px';
     qb.classList.add('show');
   }
-  window.addEventListener('scroll', frame, true);
-  window.addEventListener('resize', frame);
+  /* ใช้ timer ไม่ใช่ requestAnimationFrame — rAF จะหยุดเดินเมื่อแท็บไม่ได้วาดภาพอยู่
+     พอกลับมาดูอีกที กรอบจะค้างผิดที่โดยไม่มีอะไรมาปลุกให้คำนวณใหม่ */
+  var fq = 0;
+  function frameSoon() {
+    if (fq) return;
+    fq = setTimeout(function () { fq = 0; frame(); }, 16);
+  }
+  window.addEventListener('scroll', frameSoon, true);
+  window.addEventListener('resize', frameSoon);
 
   /* ==================== PICK ==================== */
+  /* เอาชิ้นบนสุดตรงจุดที่กด = ได้ชิ้นที่ตาเห็นจริง ๆ (ขึ้นไปหาชิ้นแม่ด้วยปุ่ม ↑ ได้) */
   function deepAt(x, y) {
     var list = [];
     try { list = document.elementsFromPoint(x, y); } catch (e) { return null; }
     list = list.filter(function (e) { return e !== host && !host.contains(e) && e !== document.body && e !== document.documentElement; });
     if (!list.length) return null;
-    var best = list[0], ba = Infinity;
-    list.forEach(function (e) {
-      var r = e.getBoundingClientRect(), a = r.width * r.height;
-      if (a > 4 && a < ba) { ba = a; best = e; }
-    });
-    return best;
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i].getBoundingClientRect();
+      if (r.width * r.height > 16) return list[i];
+    }
+    return list[0];
   }
   function inHost(e) { return e.composedPath && e.composedPath().indexOf(host) > -1; }
+  function inText(t) { try { return !!(t && t.closest && t.closest('[contenteditable]')); } catch (e) { return false; } }
+  function off(e) { return !editing || paused || inHost(e) || inText(e.target); }
 
   document.addEventListener('mousemove', function (e) {
-    if (!editing || inHost(e) || drag) { hl.style.display = 'none'; tip.style.display = 'none'; return; }
+    if (off(e) || drag) { hl.style.display = 'none'; tip.style.display = 'none'; return; }
     var el = deepAt(e.clientX, e.clientY); if (!el) return;
     var r = box(el, hl);
     tip.textContent = el.tagName.toLowerCase() + clsOf(el);
@@ -519,26 +567,86 @@
     tip.style.display = 'block';
   }, true);
 
-  ['mousedown', 'mouseup', 'click', 'touchstart', 'touchend', 'pointerdown', 'dblclick'].forEach(function (ev) {
+  /* กันไม่ให้แอปทำงานตอนกำลังแก้ดีไซน์ — แต่ห้าม preventDefault ที่ touch/pointer
+     ไม่งั้นบนมือถือจะเลื่อนจอไม่ได้เลย ปิดแค่ไม่ให้อีเวนต์ไหลไปถึงแอปก็พอ */
+  ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'change'].forEach(function (ev) {
     document.addEventListener(ev, function (e) {
-      if (!editing || inHost(e)) return;
-      if (e.target && e.target.getAttribute && e.target.getAttribute('contenteditable')) return;
-      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-      if (ev === 'click') { var el = deepAt(e.clientX, e.clientY); if (el) pick(el); }
-      if (ev === 'dblclick') editText();
+      if (off(e)) return;
+      e.stopPropagation(); e.stopImmediatePropagation();
+      /* นิ้วไม่มี hover — ถ้าไม่ขึ้นกรอบให้ตอนแตะ จะไม่มีทางรู้เลยว่ากำลังจะเลือกชิ้นไหน */
+      if (ev === 'pointerdown') {
+        var el = deepAt(e.clientX, e.clientY);
+        if (el) {
+          var r = box(el, hl);
+          tip.textContent = el.tagName.toLowerCase() + clsOf(el);
+          tip.style.left = Math.max(4, r.left) + 'px';
+          tip.style.top = (r.top > 26 ? r.top - 23 : r.bottom + 4) + 'px';
+          tip.style.display = 'block';
+        }
+      }
     }, true);
   });
+  /* ฟอร์มต้องกัน default ด้วย ไม่งั้นหน้าเด้งทิ้งงานที่แก้ค้างไว้ */
+  document.addEventListener('submit', function (e) {
+    if (off(e)) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+  }, true);
+  document.addEventListener('click', function (e) {
+    if (off(e)) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    var el = deepAt(e.clientX, e.clientY); if (el) pick(el);
+  }, true);
+  document.addEventListener('dblclick', function (e) {
+    if (off(e)) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    editText();
+  }, true);
+
+  /* แอปนี้วาดหน้าจอใหม่ตลอด ชิ้นที่เลือกไว้จะถูกแทนที่ด้วยชิ้นใหม่หน้าตาเหมือนกันเป๊ะ
+     ถ้าไม่ตามให้ กรอบส้มจะค้างอยู่ที่เดิม แล้วทุกค่าที่อ่านจากชิ้นที่หลุดไปแล้วจะกลายเป็น 0
+     — นี่คือต้นเหตุที่กดอะไรก็เหมือนไม่ตรงใจ */
+  function relink() {
+    if (!cur || document.contains(cur)) return true;
+    var n = null;
+    try { n = document.querySelector(sel); } catch (e) {}
+    if (n) { cur = n; return true; }
+    cur = null;
+    return false;
+  }
+  var mq = 0, barT = 0;
+  function sync() {
+    if (!editing || paused || drag) return;
+    var had = cur;
+    if (!relink()) {
+      qb.classList.remove('show'); frame();
+      if (tab === 'el' || tab === 'css') paint();
+      return;
+    }
+    frame();
+    if (cur !== had) { clearTimeout(barT); barT = setTimeout(function () { bar(); frame(); }, 180); }
+  }
+  new MutationObserver(function () {
+    if (mq) return;
+    mq = setTimeout(function () { mq = 0; sync(); }, 60);
+  }).observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
 
   function pick(el) {
     if (!el || el === document.body) return;
     cur = el; sel = selFor(el); pstate = '';
-    bar(); frame(); if (tab === 'el') paint();
+    hl.style.display = 'none'; tip.style.display = 'none';
+    /* จอแคบ: แผงบังทั้งจอ พอเลือกชิ้นใหม่ก็ปิดแผงให้ จะได้เห็นแถบเครื่องมือของชิ้นนั้น */
+    if (panelOpen() && !wide()) openPanel(false);
+    bar(); frame(); if (tab === 'el' || tab === 'css') paint();
   }
 
   /* ==================== TEXT ==================== */
+  function leafText(el) {
+    if (!el || !(el.textContent || '').trim()) return false;
+    return ![].some.call(el.childNodes, function (n) { return n.nodeType === 1; });
+  }
   function editText() {
     if (!cur) return;
-    if ([].some.call(cur.childNodes, function (n) { return n.nodeType === 1; })) { toast('ดับเบิลคลิกตรงตัวอักษรโดยตรง'); return; }
+    if (!leafText(cur)) { toast('แตะตรงตัวอักษรโดยตรงก่อน แล้วค่อยกดแก้ข้อความ'); return; }
     var el = cur, old = el.textContent;
     el.setAttribute('contenteditable', 'true');
     el.style.outline = '2px solid #22C55E'; el.focus();
@@ -567,39 +675,68 @@
     var t = (getP('transform') || '').replace(/translate\([^)]*\)\s*/, '').trim();
     setP('transform', ('translate(' + Math.round(x) + 'px, ' + Math.round(y) + 'px) ' + t).trim(), true);
   }
-  mv.addEventListener('mousedown', function (e) {
-    if (!cur) return; e.preventDefault(); e.stopPropagation();
+  function grab(el, make) {
+    el.addEventListener('pointerdown', function (e) {
+      if (!cur) return;
+      e.preventDefault(); e.stopPropagation();
+      try { el.setPointerCapture(e.pointerId); } catch (x) {}
+      make(e);
+    });
+  }
+  grab(mv, function (e) {
     var s0 = xy(), sx = e.clientX, sy = e.clientY, moved = false;
     drag = function (ev) { moved = true; setXY(s0[0] + ev.clientX - sx, s0[1] + ev.clientY - sy); frame(); };
     drag.end = function () { if (moved) commit('ย้ายตำแหน่ง'); };
   });
   $$('.hd').forEach(function (h) {
-    h.addEventListener('mousedown', function (e) {
-      if (!cur) return; e.preventDefault(); e.stopPropagation();
+    grab(h, function (e) {
       var d = h.getAttribute('data-h'), r = cur.getBoundingClientRect();
-      var sx = e.clientX, sy = e.clientY, w0 = r.width, h0 = r.height, moved = false;
+      var sx = e.clientX, sy = e.clientY, w0 = r.width, h0 = r.height;
+      var t0 = xy(), moved = false;
+      var west = d.indexOf('w') > -1, north = d.indexOf('n') > -1;
       drag = function (ev) {
         moved = true;
         var dx = ev.clientX - sx, dy = ev.clientY - sy;
         if (d.indexOf('e') > -1) setP('width', Math.max(8, Math.round(w0 + dx)) + 'px', true);
-        if (d.indexOf('w') > -1) setP('width', Math.max(8, Math.round(w0 - dx)) + 'px', true);
         if (d.indexOf('s') > -1) setP('height', Math.max(8, Math.round(h0 + dy)) + 'px', true);
-        if (d.indexOf('n') > -1) setP('height', Math.max(8, Math.round(h0 - dy)) + 'px', true);
+        if (west) setP('width', Math.max(8, Math.round(w0 - dx)) + 'px', true);
+        if (north) setP('height', Math.max(8, Math.round(h0 - dy)) + 'px', true);
+        /* ลากขอบซ้าย/บน: ขอบอีกฝั่งต้องอยู่ที่เดิม ไม่งั้นชิ้นงานจะวิ่งสวนมือ
+           วัดจากของจริงหลังจัดหน้าใหม่ เพราะชิ้นที่จัดกึ่งกลางจะขยับเองอีกครึ่งหนึ่ง */
+        if (west || north) {
+          setXY(t0[0], t0[1]);
+          var n2 = cur.getBoundingClientRect();
+          setXY(t0[0] + (west ? r.right - n2.right : 0), t0[1] + (north ? r.bottom - n2.bottom : 0));
+        }
         frame();
       };
       drag.end = function () { if (moved) commit('ปรับขนาด'); };
     });
   });
-  window.addEventListener('mousemove', function (e) { if (drag) { e.preventDefault(); drag(e); } }, true);
-  window.addEventListener('mouseup', function () { if (drag) { if (drag.end) drag.end(); drag = null; bar(); } }, true);
+  window.addEventListener('pointermove', function (e) { if (drag) { e.preventDefault(); drag(e); } }, true);
+  function dragDone() { if (drag) { if (drag.end) drag.end(); drag = null; bar(); } }
+  window.addEventListener('pointerup', dragDone, true);
+  window.addEventListener('pointercancel', dragDone, true);
 
   /* ==================== QUICK BAR ==================== */
   var SWATCH = ['var(--blue)', 'var(--blue-deep)', 'var(--blue-soft)', 'var(--good)', 'var(--warn)', 'var(--alert)',
     'var(--card)', 'var(--card2)', 'var(--ink)', 'var(--muted)', '#FFFFFF', 'transparent'];
   var TPROP = { bg: 'background-color', tx: 'color', bd: 'border-color' };
+  /* ตัวย่อ var(--x) ที่ธีมนี้ไม่มีค่า จะกลายเป็นช่องสีใส กดแล้วไม่เกิดอะไร — คัดออกก่อน */
+  function hasTok(c) {
+    if (String(c).slice(0, 4) !== 'var(') return true;
+    var n = String(c).slice(4, -1).trim();
+    return !!getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  }
+  function weight(v) {
+    v = String(v == null ? '' : v).trim();
+    if (v === 'bold' || v === 'bolder') return 700;
+    if (v === 'normal' || v === 'lighter') return 400;
+    return num(v);
+  }
 
-  function step(prop, delta, unit, min, max, label) {
-    var v = num(val(prop)) + delta;
+  function step(prop, delta, unit, min, max, label, read) {
+    var v = num(val(read || prop)) + delta;
     if (min !== undefined) v = Math.max(min, v);
     if (max !== undefined) v = Math.min(max, v);
     if (prop === 'border-width') setP('border-style', 'solid', true);
@@ -609,7 +746,7 @@
   }
 
   function bar() {
-    if (!cur || !editing) { qb.classList.remove('show'); return; }
+    if (!cur || !editing || paused) { qb.classList.remove('show'); return; }
     qb.innerHTML = '';
 
     /* header */
@@ -620,10 +757,24 @@
     dn.onclick = function () { if (cur.firstElementChild) pick(cur.firstElementChild); };
     var nm = E('div', 'nm', cur.tagName.toLowerCase() + (clsOf(cur).split('.')[1] ? '.' + clsOf(cur).split('.')[1] : ''));
     var rs = E('button', 'ic', '&#8630;'); rs.title = 'คืนค่าชิ้นนี้';
-    rs.onclick = function () { delete S.rules[ck()]; applyRules(); commit('คืนค่าชิ้นนี้'); bar(); frame(); };
+    rs.onclick = function () {
+      /* คืนค่าให้ครบทุกสถานะของชิ้นนี้ (ปกติ / เมื่อชี้ / เมื่อกด) ไม่ใช่แค่สถานะที่เปิดค้างอยู่ */
+      Object.keys(S.rules).forEach(function (k) {
+        if (k === sel || k.indexOf(sel + ':') === 0) delete S.rules[k];
+      });
+      applyRules(); commit('คืนค่าชิ้นนี้'); bar(); frame();
+    };
     var mo = E('button', 'ic', '&#9776;'); mo.title = 'ปรับละเอียด';
     mo.onclick = function () { tab = 'el'; openPanel(true); paint(); };
-    h.appendChild(up); h.appendChild(dn); h.appendChild(nm); h.appendChild(rs); h.appendChild(mo);
+    h.appendChild(up); h.appendChild(dn); h.appendChild(nm);
+    /* ดับเบิลแตะบนมือถือแทบไม่ติด (โดนซูมแทน) — ให้ปุ่มไปเลยตรง ๆ */
+    if (!leafText(cur)) h.appendChild(rs);
+    else {
+      var tx = E('button', 'ic', '&#9998;'); tx.title = 'แก้ข้อความ';
+      tx.onclick = function () { editText(); };
+      h.appendChild(tx); h.appendChild(rs);
+    }
+    h.appendChild(mo);
     qb.appendChild(h);
 
     /* target segment */
@@ -637,7 +788,7 @@
 
     /* swatches */
     var sw = E('div', 'sw');
-    SWATCH.forEach(function (c) {
+    SWATCH.filter(hasTok).forEach(function (c) {
       var i = E('i'); i.style.background = c === 'transparent' ? 'repeating-conic-gradient(#555 0 25%,#333 0 50%) 50%/8px 8px' : c;
       i.title = c;
       i.onclick = function () {
@@ -657,27 +808,34 @@
 
     /* steppers */
     var st = E('div', 'stp');
-    [['ตัวอักษร', 'font-size', 1, 6, 90], ['ความมน', 'border-radius', 2, 0, 200],
-     ['ระยะใน', 'padding', 2, 0, 120], ['ระยะนอก', 'margin', 2, -60, 160]].forEach(function (s) {
+    /* ช่องท้าย = property ที่ใช้ "อ่าน" ค่าปัจจุบัน — ตัวย่ออย่าง padding อ่านค่ารวมไม่ตรง
+       ("8px 16px" จะถูกอ่านเป็น 8 แล้วกดทีเดียวกลายเป็น 10px รอบด้าน) */
+    [['ตัวอักษร', 'font-size', 1, 6, 90, 'font-size'],
+     ['ความมน', 'border-radius', 2, 0, 200, 'border-top-left-radius'],
+     ['ระยะใน', 'padding', 2, 0, 120, 'padding-top'],
+     ['ระยะนอก', 'margin', 2, -60, 160, 'margin-top']].forEach(function (s) {
       var w = E('div', 'st');
-      var m = E('button', '', '\u2212'), b = E('b', '', Math.round(num(val(s[1]))) + 'px'), p = E('button', '', '+');
-      m.onclick = function () { step(s[1], -s[2], 'px', s[3], s[4], s[0]); };
-      p.onclick = function () { step(s[1], s[2], 'px', s[3], s[4], s[0]); };
+      var m = E('button', '', '\u2212'), b = E('b', '', Math.round(num(val(s[5]))) + 'px'), p = E('button', '', '+');
+      m.onclick = function () { step(s[1], -s[2], 'px', s[3], s[4], s[0], s[5]); };
+      p.onclick = function () { step(s[1], s[2], 'px', s[3], s[4], s[0], s[5]); };
       w.appendChild(m); w.appendChild(b); w.appendChild(p); st.appendChild(w);
     });
     qb.appendChild(st);
 
     /* toggles */
     var tg = E('div', 'tg');
-    var isB = num(val('font-weight')) >= 700;
+    /* ปิด = เขียนค่าตรงข้ามลงไปจริง ๆ ไม่ใช่แค่ลบค่าที่เราตั้ง
+       (ถ้าแค่ลบ ชิ้นที่ CSS เดิมของแอปตั้งไว้อยู่แล้ว จะกดปิดไม่ลงสักที) */
+    var isB = weight(val('font-weight')) >= 600;
     var bB = E('button', isB ? 'a' : '', 'หนา');
-    bB.onclick = function () { setP('font-weight', isB ? null : '700'); commit(isB ? 'ยกเลิกตัวหนา' : 'ทำตัวหนา'); bar(); };
+    bB.onclick = function () { setP('font-weight', isB ? '400' : '700'); commit(isB ? 'ยกเลิกตัวหนา' : 'ทำตัวหนา'); bar(); frame(); };
     var isC = (val('text-align') || '').indexOf('center') > -1;
     var bC = E('button', isC ? 'a' : '', 'กึ่งกลาง');
-    bC.onclick = function () { setP('text-align', isC ? null : 'center'); commit(isC ? 'ยกเลิกกึ่งกลาง' : 'จัดกึ่งกลาง'); bar(); };
-    var isS = !!getP('box-shadow');
+    bC.onclick = function () { setP('text-align', isC ? 'left' : 'center'); commit(isC ? 'ยกเลิกกึ่งกลาง' : 'จัดกึ่งกลาง'); bar(); frame(); };
+    var sh = val('box-shadow');
+    var isS = !!sh && String(sh).indexOf('none') !== 0;
     var bS = E('button', isS ? 'a' : '', 'เงา');
-    bS.onclick = function () { setP('box-shadow', isS ? null : '0 10px 28px -8px rgba(0,0,0,.28)'); commit(isS ? 'เอาเงาออก' : 'ใส่เงา'); bar(); frame(); };
+    bS.onclick = function () { setP('box-shadow', isS ? 'none' : '0 10px 28px -8px rgba(0,0,0,.28)'); commit(isS ? 'เอาเงาออก' : 'ใส่เงา'); bar(); frame(); };
     tg.appendChild(bB); tg.appendChild(bC); tg.appendChild(bS);
     qb.appendChild(tg);
 
@@ -687,7 +845,7 @@
       try {
         var fg = hex(val('color')), bg = effBg(cur);
         var rr = ratio(fg, bg), vv = rate(rr);
-        var big = num(val('font-size')) >= 24 || num(val('font-weight')) >= 700;
+        var big = num(val('font-size')) >= 24 || weight(val('font-weight')) >= 700;
         var pass = vv.ok || (big && rr >= 3);
         var qb2 = E('div', 'qbadge ' + (pass ? 'ok' : 'no'));
         qb2.appendChild(E('div', '', (pass ? '\u2713 อ่านง่าย ' : '\u26a0 สีตัวอักษรกลืนพื้นหลัง ') + rr.toFixed(1) + ':1'));
@@ -866,8 +1024,13 @@
     var bb = E('button', 'b2', 'ทำซ้ำ &#8631;'); bb.style.cssText = ba.style.cssText; bb.onclick = redo;
     var bc = E('button', '', '&#128065;'); bc.title = 'กดค้างเพื่อดูดีไซน์เดิม';
     bc.style.cssText = 'flex:0 0 44px;padding:10px;border:0;border-radius:10px;font-weight:800;cursor:pointer;background:#18212F;color:#B9C4D6';
-    bc.onmousedown = function () { muted = true; applyAll(); toast('นี่คือดีไซน์เดิม'); };
-    bc.onmouseup = bc.onmouseleave = function () { if (muted) { muted = false; applyAll(); } };
+    bc.onpointerdown = function (e) {
+      try { bc.setPointerCapture(e.pointerId); } catch (x) {}
+      muted = true; applyAll(); toast('นี่คือดีไซน์เดิม');
+    };
+    bc.onpointerup = bc.onpointercancel = bc.onpointerleave = function () {
+      if (muted) { muted = false; applyAll(); }
+    };
     top.appendChild(ba); top.appendChild(bb); top.appendChild(bc);
     bd.appendChild(top);
 
@@ -1064,7 +1227,7 @@
 
   /* ==================== KEYBOARD ==================== */
   document.addEventListener('keydown', function (e) {
-    if (!editing) return;
+    if (!editing || paused) return;
     var t = e.target;
     if (t && /INPUT|TEXTAREA|SELECT/.test(t.tagName)) return;
     if (t && t.getAttribute && t.getAttribute('contenteditable')) return;
@@ -1088,22 +1251,36 @@
   /* ==================== BUTTONS ==================== */
   function openPanel(o) {
     pn.classList.toggle('open', o);
-    $('#fab').style.right = o ? '344px' : '14px';
+    /* จอกว้าง: ขยับปุ่มมาซ้ายของแผง · จอแคบ: แผงกินทั้งจอ ซ่อนปุ่มไปเลย (ปิดแผงด้วยกากบาทในแผง) */
+    var f = $('#fabs');
+    f.style.right = (o && wide()) ? '344px' : '14px';
+    f.style.display = (o && !wide()) ? 'none' : 'flex';
     frame();
   }
   $('#fab').onclick = function () {
     editing = !editing;
+    paused = false;
     $('#fab').classList.toggle('on', editing);
+    $('#pauseB').classList.toggle('show', editing);
+    $('#pauseB').classList.remove('on');
     $('#fabT').textContent = editing ? 'เสร็จแล้ว' : 'แก้ดีไซน์';
     if (editing) {
       openPanel(true); paint();
       if (!S.seen) { showCoach(); }
-      toast('คลิกอะไรก็ได้บนหน้าจอเพื่อเริ่มแก้');
+      toast('แตะอะไรก็ได้บนหน้าจอเพื่อเริ่มแก้');
     } else {
       cur = null; openPanel(false); hl.style.display = 'none'; tip.style.display = 'none';
       toast('ใช้แอปได้ตามปกติ');
     }
     frame();
+  };
+  /* พักการแก้ชั่วคราว — กดใช้แอปจริง ๆ ได้ (เปลี่ยนหน้า เปิดเมนู) โดยไม่เสียงานที่แก้ไว้ */
+  $('#pauseB').onclick = function () {
+    paused = !paused;
+    $('#pauseB').classList.toggle('on', paused);
+    hl.style.display = 'none'; tip.style.display = 'none';
+    frame();
+    toast(paused ? 'กดใช้แอปได้ตามปกติ · กด ✋ อีกครั้งเพื่อกลับมาแก้' : 'กลับมาโหมดแก้ดีไซน์แล้ว');
   };
   $('#pClose').onclick = function () { openPanel(false); };
   $('#pUndo').onclick = undo;
@@ -1161,7 +1338,8 @@
   /* ==================== COACH ==================== */
   function showCoach() {
     var c = $('#coach');
-    c.innerHTML = 'คลิกการ์ด ปุ่ม หรือตัวอักษรอะไรก็ได้บนจอ<br>แถบเครื่องมือจะเด้งมาให้ปรับทันที<br><br>' +
+    c.innerHTML = 'แตะการ์ด ปุ่ม หรือตัวอักษรอะไรก็ได้บนจอ<br>แถบเครื่องมือจะเด้งมาให้ปรับทันที<br><br>' +
+      'อยากกดใช้แอปจริง ๆ กด <b>✋</b> ข้างปุ่มนี้<br>' +
       'ทุกอย่างที่แก้ ย้อนกลับได้หมดในแท็บ <b>ประวัติ</b>' +
       '<button id="cOK">เข้าใจแล้ว</button>';
     c.classList.add('show');
@@ -1176,11 +1354,15 @@
   setTimeout(applyTexts, 900);
   setInterval(function () { if (Object.keys(S.texts).length) applyTexts(); }, 2500);
 
-  hist = [{ l: 'ดีไซน์เดิม', s: JSON.stringify({ rules: {}, tokens: {}, texts: {} }), t: Date.now() }];
-  hIdx = 0;
-  if (Object.keys(S.rules).length || Object.keys(S.tokens).length || Object.keys(S.texts).length) {
+  if (!hist.length) {
+    hist = [{ l: 'ดีไซน์เดิม', s: JSON.stringify({ rules: {}, tokens: {}, texts: {} }), t: Date.now() }];
+    hIdx = 0;
+  }
+  /* ถ้าสิ่งที่อยู่บนจอไม่ตรงกับหมุดล่าสุดในประวัติ (เช่นประวัติเคยถูกตัดทิ้ง) ปักหมุดใหม่ให้ตรงกัน */
+  if (!hist[hIdx] || hist[hIdx].s !== core()) {
+    hist = hist.slice(0, hIdx + 1);
     hist.push({ l: 'งานที่บันทึกไว้ก่อนหน้า', s: core(), t: Date.now() });
-    hIdx = 1;
+    hIdx = hist.length - 1;
   }
 
   console.log('%cVisual Editor v3 พร้อมใช้ — กดปุ่ม "แก้ดีไซน์" มุมขวาบน', 'background:#F59E0B;color:#111;padding:4px 10px;border-radius:6px;font-weight:700');
