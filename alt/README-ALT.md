@@ -1,7 +1,7 @@
-# StudentOS AI — Version 2A7V2 “Verbessert”
+# StudentOS AI — Version 1A7V2 “Verbessert”
 
 > สายนี้เคยเป็นบิลด์ทดลอง (ALT) ที่แยกออกมาเพื่อลองฟีเจอร์ใหม่โดยไม่กระทบตัวจริง
-> **ตั้งแต่รุ่น 2A7V2 มันถูกยกขึ้นเป็นตัวหลักแล้ว** ป้าย ALT ทุกจุดที่ผู้ใช้เห็นถูกเอาออก
+> **ตั้งแต่รุ่น 1A7V2 มันถูกยกขึ้นเป็นตัวหลักแล้ว** ป้าย ALT ทุกจุดที่ผู้ใช้เห็นถูกเอาออก
 
 โฟลเดอร์นี้คือแอปตัวเต็มที่รวมไฟล์ทั้งชุดมาไว้ที่เดียว
 (`index.html` + `style.css` + `engine.js` + `app.js` + `config.js` + `sw.js` + `manifest.json` + ไอคอน)
@@ -28,20 +28,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "serve-alt.ps1"
 เครื่องนี้ไม่มี node/python จึงเสิร์ฟด้วย `System.Net.HttpListener` ของ .NET แทน —
 ต้องเปิดผ่าน http เท่านั้น เพราะ OCR (Tesseract) และ service worker ใช้ `file://` ไม่ได้
 
-## ต่างจากตัวจริงตรงไหน
+## ค่าที่ระบุตัวบิลด์นี้
 
-| จุด | ตัวจริง | ALT |
-|---|---|---|
-| `APP_VERSION` (app.js) | `v35` | `1A7` + `APP_CHANNEL = 'ALT'` (สายเลขของตัวเอง) |
-| ข้อมูลใน localStorage | `studentos.v1` | `studentos.alt.v1` |
-| ธีม / skipLogin / installGuide | `studentos.*` | `studentos.alt.*` |
-| service worker cache (sw.js) | `studentos-v35` | `studentos-alt-1a6m3` (ขึ้นเลขทุกครั้งที่ปล่อย) |
-| ชื่อใน manifest.json | StudentOS AI | StudentOS AI · ALT |
-| `<title>` + meta | ปกติ | + `robots: noindex` (กันโดน index ปนตัวจริง) |
-| ป้ายบนหน้าจอ | — | ป้ายเลขเวอร์ชันมุมขวาบน (ดึงจาก `APP_VERSION`) · บรรทัดบอกรุ่นในหน้า login · คำว่า ALT บน splash · หมายเหตุใต้เครื่อง |
+| จุด | ค่า |
+|---|---|
+| `APP_VERSION` (app.js) | `1A7V2` · `APP_CODENAME = 'Verbessert'` |
+| ข้อมูลใน localStorage | `studentos.alt.v1` (ชื่อเดิม — ดูหัวข้อข้างบนว่าทำไมห้ามเปลี่ยน) |
+| ธีม / skipLogin / จอที่ค้างไว้ | `studentos.alt.*` |
+| service worker cache (sw.js) | `studentos-1a7v2-a` (ขึ้นเลขทุกครั้งที่ปล่อย) |
+| ชื่อใน manifest.json | StudentOS AI |
+| ป้ายบนหน้าจอ | ป้ายเลขรุ่นกลางบนจอ (ดึงจาก `APP_VERSION` อัตโนมัติ) |
 
-**สำคัญ:** คีย์ localStorage แยกกันหมด → เล่นฟีเจอร์ใน ALT ยังไงก็ไม่กระทบข้อมูลของตัวจริง
-(กลับกัน ALT ก็ไม่เห็นงานที่เคยเพิ่มไว้ในตัวจริง — กด "โหลดข้อมูลตัวอย่าง" ในแท็บ **ฉัน** ได้)
+> ก่อนรุ่น 1A7V2 บิลด์นี้แยกอยู่ต่างหากจากตัวจริง จึงใช้คีย์ `studentos.alt.*` คนละชุด
+> ตอนนี้มันคือตัวหลักแล้ว แต่คีย์ยังชื่อเดิมเพื่อไม่ให้ข้อมูลของคนที่ใช้อยู่หาย
 
 ## ฟีเจอร์ทดลองที่มีเฉพาะใน ALT
 

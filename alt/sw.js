@@ -1,8 +1,8 @@
 // StudentOS AI — Service Worker
 // กลยุทธ์: network-first (ได้เวอร์ชันใหม่เสมอเมื่อมีเน็ต) + cache fallback (เปิด offline ได้)
 // ชื่อ cache ผูกกับเลขรุ่น — ปล่อยรุ่นใหม่แล้วของเก่าถูกลบทิ้งตอน activate
-// สายนี้เคยเป็นบิลด์ทดลอง (ALT) และถูกยกขึ้นเป็นตัวหลักตั้งแต่ 2A7V2 · ชื่อ cache เลยเปลี่ยนตาม
-const CACHE = 'studentos-2a7v2-a';   // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
+// สายนี้เคยเป็นบิลด์ทดลอง (ALT) และถูกยกขึ้นเป็นตัวหลักตั้งแต่ 1A7V2 · ชื่อ cache เลยเปลี่ยนตาม
+const CACHE = 'studentos-1a7v2-a';   // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
 const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'custom.css',
   'engine.js', 'context.js', 'brain.js', 'inbox.js', 'linelink.js', 'app.js', 'config.js', 'manifest.json',
   'icon-192.png', 'icon-512.png',
