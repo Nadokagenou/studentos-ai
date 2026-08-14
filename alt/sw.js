@@ -2,8 +2,9 @@
 // กลยุทธ์: network-first (ได้เวอร์ชันใหม่เสมอเมื่อมีเน็ต) + cache fallback (เปิด offline ได้)
 // ALT ใช้ชื่อ cache คนละตัวกับตัวจริง — สลับไปมาระหว่างสองรุ่นแล้วไฟล์ไม่ปนกัน
 // รวมสองสาย: ไฟล์ของระบบ LINE (inbox/brain/linelink) + เลขรุ่น 1A6M3 ของฝั่งหน้าตา
-const CACHE = 'studentos-alt-1a7v-k';   // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
-const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css',
+// -l = รวมสองสาย: custom.css ของฝั่ง visual editor + งาน OCR/parser ของฝั่งเรา
+const CACHE = 'studentos-alt-1a7v-l';   // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
+const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'custom.css',
   'engine.js', 'context.js', 'brain.js', 'inbox.js', 'linelink.js', 'app.js', 'config.js', 'manifest.json',
   'icon-alt-192.png', 'icon-alt-512.png', 'icon-192.png', 'icon-512.png',
   'logo-mark.png', 'logo-splash.png', 'logo-splash-light.png'];
