@@ -186,8 +186,13 @@ function parseAssignment(text, now = new Date(), opts = {}) {
   const detected = {};
 
   // วิชา
+  // ตัด "กับดัก" ออกก่อนค้นหา — คำที่มีคำค้นของวิชาฝังอยู่แต่ไม่ได้หมายถึงวิชานั้น
+  // "เลขที่ 5" คือลำดับนักเรียน ไม่ใช่วิชาคณิตศาสตร์ (คำค้น 'เลข' ไปจับเข้าเต็ม ๆ)
+  // ตัดออกทั้งข้อความก่อนค้น จึงกันได้ทุกตำแหน่ง ไม่ใช่แค่ตำแหน่งแรกที่เจอ
+  const SUBJECT_TRAPS = /เลขที่/g;
   let subject = 'อื่น ๆ', subjKey = '';
-  const low = t.toLowerCase();
+  const tSubj = t.replace(SUBJECT_TRAPS, ' ');
+  const low = tSubj.toLowerCase();
   outer:
   for (const s of SUBJECTS) {
     for (const k of s.keys) {
@@ -202,7 +207,7 @@ function parseAssignment(text, now = new Date(), opts = {}) {
     let best = null;
     for (const s of SUBJECTS) {
       for (const k of s.keys) {
-        const d = fuzzyDistance(t, k);
+        const d = fuzzyDistance(tSubj, k);
         if (d == null) continue;
         if (!best || d < best.d) best = { d, name: s.name };
       }
@@ -218,17 +223,40 @@ function parseAssignment(text, now = new Date(), opts = {}) {
   // รวมชั้นเรียนไว้ด้วย (ม.5/2 · ป.6 · ห้อง · ชั้น) — ใบงานมักพิมพ์ชื่อครูติดชั้นเรียนเลย
   // และภาษาไทยไม่การันตีว่าจะมีช่องว่างคั่น ถ้ารอแต่ช่องว่างจะจับชื่อครูไม่ได้ทั้งท่อน
   // (วัดจริงเจอ "ครูสมชายม.5/2" แล้วหลุดทั้งช่อง ทั้งที่ OCR อ่านถูกทุกตัว)
-  const nameEnd = 'สั่ง|ให้|บอก|แจ้ง|มอบหมาย|นัด|ทำ|อ่าน|เขียน|สรุป|ท่อง|เตรียม|วาด|ส่ง|สอบ|แบบฝึกหัด|แบบ|บทที่|บท|ข้อ|หน้า|ใบงาน|คะแนน|ภายใน|เวลา|วันที่|วันนี้|พรุ่งนี้|มะรืน|สัปดาห์'
+  const nameEnd = 'สั่ง|ให้|บอก|แจ้ง|มอบหมาย|นัด|ฝาก|ทำ|อ่าน|เขียน|สรุป|ท่อง|เตรียม|วาด|ส่ง|สอบ|แบบฝึกหัด|แบบ|บทที่|บท|ข้อ|หน้า|ใบงาน|คะแนน|ภายใน|เวลา|วันที่|วันนี้|พรุ่งนี้|มะรืน|สัปดาห์'
     + '|ม\\.\\s?\\d|ป\\.\\s?\\d|มัธยม|ประถม|ชั้น|ห้อง';
-  const mT = t.match(new RegExp('(?:ครู|อาจารย์|อ\\.)\\s?([ก-๙A-Za-z]{2,20}?)(?=\\s|' + nameEnd + '|$)'));
+  // คำที่ตามหลัง "ครู" แล้วแปลว่า **ไม่มีชื่อครูอยู่ตรงนี้** — ต้องกันตั้งแต่ก่อนเริ่มจับ
+  // "ส่งครูวันศุกร์" แปลว่าส่งให้ครูภายในวันศุกร์ ไม่ใช่ครูที่ชื่อ "วันศุกร์"
+  // กันด้วย nameEnd ไม่ได้ เพราะ nameEnd เป็นตัวบอกว่า "ชื่อจบตรงไหน" —
+  // ต่อให้ใส่ชื่อวันลงไป มันก็จะได้ "ครูวัน" มาแทน ซึ่งยังผิดอยู่ดี
+  const notName = 'วัน|พรุ่ง|มะรืน|สัปดาห์|ที่|ใหญ่|ประจำ|ผู้|ทุก|และ|กับ';
+  const mT = t.match(new RegExp(
+    '(?:ครู|อาจารย์|อ\\.)\\s?(?!' + notName + ')([ก-๙A-Za-z]{2,20}?)(?=\\s|' + nameEnd + '|$)'));
   if (mT) { teacher = 'ครู' + mT[1].replace(/^ครู/, ''); detected.teacher = true; }
 
   // คะแนน
-  let scorePct = null;
-  // รับทั้ง "20%" · "คะแนนเก็บ 20" · และ "10 คะแนน" (เลขมาก่อนคำ)
-  const mS = t.match(/(\d{1,3})\s*(?:%|เปอร์เซ็นต์)/) || t.match(/คะแนน(?:เก็บ)?\s*(\d{1,3})/)
-    || t.match(/(\d{1,3})\s*คะแนน/);
-  if (mS) { scorePct = Math.min(100, parseInt(mS[1], 10)); detected.score = true; }
+  // รับทั้ง "20%" · "รวม 20 คะแนน" · "คะแนนเก็บ 20" · และ "10 คะแนน" (เลขมาก่อนคำ)
+  //
+  // ลำดับสำคัญ: ข้อความจริงมักบอกทั้งคะแนนต่อข้อและคะแนนรวมในประโยคเดียว
+  // "ทำ 10 ข้อ ข้อละ 2 คะแนน รวม 20 คะแนน" — เลขที่ผู้ใช้หมายถึงคือ 20 ไม่ใช่ 2
+  // ของเดิมหยิบตัวแรกที่เจอจึงได้ 2 มาตลอด
+  let scorePct = null, scoreText = '';
+  const mPct = t.match(/(\d{1,3})\s*(?:%|เปอร์เซ็นต์)/);
+  const mTotal = t.match(/(?:รวม|ทั้งหมด|เต็ม)\s*(\d{1,3})\s*คะแนน/);
+  const mKeep = t.match(/คะแนน(?:เก็บ)?\s*(\d{1,3})/);
+  if (mPct) { scorePct = +mPct[1]; scoreText = mPct[0]; }
+  else if (mTotal) { scorePct = +mTotal[1]; scoreText = mTotal[0]; }
+  else if (mKeep) { scorePct = +mKeep[1]; scoreText = mKeep[0]; }
+  else {
+    // ไม่มีคำบอกว่าอันไหนคือคะแนนรวม → เอาเลขที่มากที่สุด
+    // คะแนนรวมมากกว่าคะแนนต่อข้อเสมอ จึงเป็นการเดาที่ปลอดภัยกว่าหยิบตัวแรก
+    const all = [...t.matchAll(/(\d{1,3})\s*คะแนน/g)];
+    if (all.length) {
+      const best = all.reduce((a, b) => (+b[1] > +a[1] ? b : a));
+      scorePct = +best[1]; scoreText = best[0];
+    }
+  }
+  if (scorePct != null) { scorePct = Math.min(100, scorePct); detected.score = true; }
 
   // เวลา (16:00 / 16.00 น. / เที่ยง)
   let hh = 23, mm = 59, hasTime = false, timeText = '';
@@ -309,7 +337,10 @@ function parseAssignment(text, now = new Date(), opts = {}) {
   // ประเภท: เดาจากคำที่นักเรียนใช้จริง (ตรวจสอบก่อน เพราะกิจกรรมบางอย่างมีคำว่า "สอบ" ปนไม่ได้)
   let type = 'homework';
   if (/สอบ(?!ถาม)|quiz|test|มิดเทอม|ไฟนอล|กลางภาค|ปลายภาค/i.test(t)) type = 'exam';
-  else if (/กิจกรรม|ประชุม|ซ้อม|แข่ง|เข้าค่าย|ค่าย|ทัศนศึกษา|ตักบาตร|เข้าแถว|พิธี|งานวัด|ชมรม|บำเพ็ญ|จิตอาสา|อบรม|สัมมนา|ไปงาน|นัด/i.test(t)) type = 'activity';
+  // "นัด" ต้องไม่ตามด้วย "ส่ง" — "ครูนัดส่งงานวันศุกร์" คือการบ้าน ไม่ใช่กิจกรรม
+  // (กิจกรรมคือเหตุการณ์ที่ต้องไปอยู่ตรงนั้น ส่วนการนัดส่งงานยังเป็นงานที่ต้องนั่งทำ
+  //  แยกผิดแล้วกระทบจริง: กิจกรรมไม่ถูกจัดเวลาให้ในแผนของวัน)
+  else if (/กิจกรรม|ประชุม|ซ้อม|แข่ง|เข้าค่าย|ค่าย|ทัศนศึกษา|ตักบาตร|เข้าแถว|พิธี|งานวัด|ชมรม|บำเพ็ญ|จิตอาสา|อบรม|สัมมนา|ไปงาน|นัด(?!ส่ง|หมายส่ง)/i.test(t)) type = 'activity';
   else if (/เตือน|อย่าลืม|จำไว้|ติดต่อ|จ่ายเงิน|จ่ายค่า|ส่งเงิน/i.test(t) && !/การบ้าน|ทำ|เขียน|อ่าน/.test(t)) type = 'reminder';
   if (type !== 'homework') detected.type = true;
   const isExam = type === 'exam'; // เก็บไว้เพื่อความเข้ากันได้กับข้อมูลเก่า
@@ -320,7 +351,7 @@ function parseAssignment(text, now = new Date(), opts = {}) {
   // วิธีใหม่: เอาข้อความทั้งก้อน แล้ว "หักเฉพาะส่วนที่ถูกแยกไปช่องอื่นแล้ว" ออก
   // ที่เหลือคือสิ่งที่ผู้ใช้เขียนจริง ๆ และไม่มีอะไรหายไประหว่างทาง
   const escRe = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const cutOut = [dueText, mT && mT[0], mS && mS[0], mMin && mMin[0], mHr && mHr[0]].filter(Boolean);
+  const cutOut = [dueText, mT && mT[0], scoreText, mMin && mMin[0], mHr && mHr[0]].filter(Boolean);
   if (timeText && !(dueText && dueText.includes(timeText))) cutOut.push(timeText);
 
   let rest = t;

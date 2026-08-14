@@ -1,0 +1,210 @@
+// (ห่อด้วย IIFE เหมือน ocrbench เพื่อให้ฉีดซ้ำได้โดยไม่พัง)
+(function () {
+if (window.__parsebench) { console.log('[parsebench] โหลดไว้อยู่แล้ว'); return; }
+// ============================================================
+// StudentOS ALT — เครื่องมือวัดผล parseAssignment (เครื่องมือนักพัฒนา)
+//
+// **ไฟล์นี้ไม่ถูกโหลดโดยแอป** — ไม่อยู่ใน index.html และไม่อยู่ใน SHELL ของ sw.js
+//
+// ทำไมต้องมี: `parseAssignment` คือสมองจริงของแอป — งานของแอปไม่ใช่ "อ่านตัวหนังสือออก"
+// แต่คือ "กรอกช่อง วิชา/ครู/กำหนดส่ง/คะแนน ให้ถูก" แต่ที่ผ่านมาไม่เคยมีเครื่องมือวัดตรงนี้เลย
+// (`ocrbench` วัดแค่ว่าอ่านวลีเจอไหม ส่วนช่องที่แกะได้วัดเฉพาะกับใบงานที่วาดขึ้นเอง
+//  ซึ่งง่ายเกินจริงจนได้ 100% ทุกครั้ง — วัดแล้วไม่เห็นความต่าง)
+//
+// ตัวนี้ทดสอบด้วย **ข้อความล้วน** จึงไม่ต้องมีรูป ไม่ต้องโหลด Tesseract ไม่ต้องมีเน็ต
+// รันจบในไม่ถึงวินาที เขียนเคสเพิ่มได้เรื่อย ๆ ทุกครั้งที่เจอข้อความที่แกะพลาด
+//
+// วิธีใช้ — ฉีดเป็น script tag แล้วเรียกจาก console:
+//   benchParse()            → รันทุกเคส สรุปผล
+//   benchParse('teacher')   → รันเฉพาะกลุ่มที่สนใจ
+//   benchParse(null, true)  → โชว์ทุกเคสรวมที่ผ่าน (ปกติโชว์เฉพาะที่ตก)
+// ============================================================
+
+// ตรึงเวลาไว้ ไม่งั้นเคสที่เกี่ยวกับวันจะให้ผลต่างกันทุกวันที่รัน
+// พุธ 12 ส.ค. 2569 09:00 — เลือกวันพุธเพราะอยู่กลางสัปดาห์ ทดสอบวันย้อนหลัง/ล่วงหน้าได้ทั้งสองทาง
+const NOW = new Date(2026, 7, 12, 9, 0, 0);
+
+// ---------- ตัวช่วยเขียนเฉลยวันที่ ----------
+// เขียนเป็น "ห่างจากวันนี้กี่วัน" แทนวันที่ตายตัว เฉลยจะได้ไม่ต้องแก้ถ้าเปลี่ยน NOW
+const D = (days, h = 23, m = 59) => {
+  const d = new Date(NOW);
+  d.setDate(d.getDate() + days);
+  d.setHours(h, m, 0, 0);
+  return d;
+};
+// วันในสัปดาห์ถัดไป (0=อาทิตย์) — ถ้าตรงกับวันนี้พอดีให้เป็นสัปดาห์หน้า ตามที่แอปตั้งใจไว้
+const DOW = (dow, h = 23, m = 59) => {
+  let diff = (dow - NOW.getDay() + 7) % 7;
+  if (diff === 0) diff = 7;
+  return D(diff, h, m);
+};
+
+// ============================================================
+// ชุดทดสอบ — เขียนจาก "สิ่งที่คนอ่านแล้วเข้าใจ" ไม่ใช่จากสิ่งที่โค้ดทำอยู่
+//
+// **สำคัญ: เฉลยต้องเขียนตามความคาดหวังของมนุษย์เท่านั้น**
+// ถ้าเขียนเฉลยตามพฤติกรรมโค้ดปัจจุบัน ทุกเคสจะผ่านหมดและเครื่องมือนี้จะไร้ประโยชน์ทันที
+// เคสที่ตก = จุดที่ต้องแก้ ไม่ใช่เฉลยที่เขียนผิด
+//
+// ระบุเฉพาะช่องที่สนใจในแต่ละเคสได้ ช่องที่ไม่ระบุจะไม่ถูกตรวจ
+// ============================================================
+const PARSE_CASES = [
+  // ---------- พื้นฐาน: ครบทุกช่อง ----------
+  { g: 'basic', id: 'ครบทุกช่อง',
+    text: 'การบ้านฟิสิกส์ ครูสมชาย ทำโจทย์บทที่ 4 ข้อ 1-10 ส่งพรุ่งนี้ 16:00 คะแนนเก็บ 20%',
+    want: { subject: 'ฟิสิกส์', teacher: 'ครูสมชาย', scorePct: 20, type: 'homework', due: D(1, 16, 0) } },
+  { g: 'basic', id: 'ไม่มีครู',
+    text: 'ส่งงานเคมี บทที่ 3 ภายในวันศุกร์',
+    want: { subject: 'เคมี', teacher: '', type: 'homework', due: DOW(5) } },
+  { g: 'basic', id: 'สั้นมาก',
+    text: 'การบ้านเลข',
+    want: { subject: 'คณิตศาสตร์', type: 'homework', due: null } },
+  { g: 'basic', id: 'ไม่มีวิชาที่รู้จัก',
+    text: 'ทำใบงานส่งพรุ่งนี้',
+    want: { subject: 'อื่น ๆ', type: 'homework', due: D(1) } },
+
+  // ---------- วิชา ----------
+  { g: 'subject', id: 'อังกฤษ', text: 'อ่าน essay ภาษาอังกฤษ ส่งวันจันทร์', want: { subject: 'ภาษาอังกฤษ' } },
+  { g: 'subject', id: 'ชีวะย่อ', text: 'ชีวะ บทที่ 2 ส่งพรุ่งนี้', want: { subject: 'ชีววิทยา' } },
+  { g: 'subject', id: 'สังคม', text: 'สังคมศึกษา สรุปบทที่ 5', want: { subject: 'สังคมศึกษา' } },
+  { g: 'subject', id: 'คอม', text: 'เขียนโปรแกรมส่งศุกร์นี้', want: { subject: 'วิทยาการคำนวณ' } },
+  // "เลข" เป็นคำค้นของคณิตศาสตร์ แต่ "เลขที่" คือลำดับนักเรียน ไม่ใช่วิชา
+  { g: 'subject', id: 'เลขที่ ไม่ใช่วิชาเลข',
+    text: 'นักเรียนเลขที่ 1-10 มาพบครูที่ห้องพักครู',
+    want: { subject: 'อื่น ๆ' } },
+  // "essay" อยู่ในคำค้นของภาษาอังกฤษ และถูกตรวจก่อนภาษาไทยตามลำดับในตาราง
+  { g: 'subject', id: 'เรียงความไทย ไม่ใช่อังกฤษ',
+    text: 'เขียนเรียงความภาษาไทย 1 หน้า ส่งพรุ่งนี้',
+    want: { subject: 'ภาษาไทย' } },
+
+  // ---------- ครู ----------
+  { g: 'teacher', id: 'ชื่อติดคำถัดไป', text: 'ครูมาลีสั่งงานเคมีบทที่ 3', want: { teacher: 'ครูมาลี' } },
+  { g: 'teacher', id: 'ชื่อติดชั้นเรียน', text: 'ครูสมชายม.5/2 สั่งการบ้านฟิสิกส์', want: { teacher: 'ครูสมชาย' } },
+  { g: 'teacher', id: 'อ.ย่อ', text: 'อ.สมศรี ให้ทำแบบฝึกหัดหน้า 42', want: { teacher: 'ครูสมศรี' } },
+  { g: 'teacher', id: 'อาจารย์เต็ม', text: 'อาจารย์วิภา นัดสอบย่อยวันพุธหน้า', want: { teacher: 'ครูวิภา' } },
+  { g: 'teacher', id: 'ครูขึ้นต้นซ้ำ', text: 'ส่งครูอนันต์ภายในวันศุกร์', want: { teacher: 'ครูอนันต์' } },
+  // "ส่งครูวันศุกร์" = ส่งให้ครู ภายในวันศุกร์ — "วันศุกร์" ไม่ใช่ชื่อครู
+  { g: 'teacher', id: 'ครู+วันในสัปดาห์',
+    text: 'การบ้านเลข ส่งครูวันศุกร์',
+    want: { teacher: '', due: DOW(5) } },
+  { g: 'teacher', id: 'ไม่มีคำว่าครู', text: 'ส่งงานเคมีพรุ่งนี้', want: { teacher: '' } },
+
+  // ---------- กำหนดส่ง ----------
+  { g: 'due', id: 'วันนี้', text: 'ส่งใบงานวันนี้', want: { due: D(0) } },
+  { g: 'due', id: 'พรุ่งนี้+เวลา', text: 'ส่งพรุ่งนี้ 16:00', want: { due: D(1, 16, 0) } },
+  { g: 'due', id: 'พรุ่งนี้+เวลาจุด', text: 'ส่งพรุ่งนี้ 16.30 น.', want: { due: D(1, 16, 30) } },
+  { g: 'due', id: 'มะรืน', text: 'ส่งมะรืนนี้', want: { due: D(2) } },
+  { g: 'due', id: 'เที่ยง', text: 'ส่งพรุ่งนี้เที่ยง', want: { due: D(1, 12, 0) } },
+  { g: 'due', id: 'วันในสัปดาห์', text: 'ส่งวันศุกร์', want: { due: DOW(5) } },
+  { g: 'due', id: 'สัปดาห์หน้า', text: 'ส่งสัปดาห์หน้า', want: { due: D(7) } },
+  { g: 'due', id: 'ภายใน N วัน', text: 'ส่งภายใน 3 วัน', want: { due: D(3) } },
+  { g: 'due', id: 'วันที่+เดือนไทย', text: 'ส่งวันที่ 25 ส.ค.', want: { due: new Date(2026, 7, 25, 23, 59, 0, 0) } },
+  { g: 'due', id: 'เดือนเต็ม', text: 'ส่ง 3 กันยายน', want: { due: new Date(2026, 8, 3, 23, 59, 0, 0) } },
+  { g: 'due', id: 'ไม่ระบุ', text: 'ทำแบบฝึกหัดบทที่ 3', want: { due: null } },
+  // เดือนที่ผ่านไปแล้วในปีนี้ ต้องเป็นปีหน้า
+  { g: 'due', id: 'เดือนที่ผ่านมาแล้ว', text: 'ส่งวันที่ 5 ม.ค.', want: { due: new Date(2027, 0, 5, 23, 59, 0, 0) } },
+
+  // ---------- คะแนน ----------
+  { g: 'score', id: 'เปอร์เซ็นต์', text: 'คะแนนเก็บ 20%', want: { scorePct: 20 } },
+  { g: 'score', id: 'คะแนนเก็บ+เลข', text: 'คะแนนเก็บ 15 ส่งพรุ่งนี้', want: { scorePct: 15 } },
+  { g: 'score', id: 'เลขมาก่อน', text: 'ทำใบงาน 10 คะแนน', want: { scorePct: 10 } },
+  { g: 'score', id: 'ไม่มีคะแนน', text: 'อ่านหนังสือบทที่ 4', want: { scorePct: null } },
+  // "ข้อละ 2 คะแนน รวม 20" — เลขที่ควรเก็บคือคะแนนรวม ไม่ใช่คะแนนต่อข้อ
+  { g: 'score', id: 'คะแนนต่อข้อ vs รวม',
+    text: 'ทำ 10 ข้อ ข้อละ 2 คะแนน รวม 20 คะแนน',
+    want: { scorePct: 20 } },
+
+  // ---------- ประเภทงาน ----------
+  { g: 'type', id: 'สอบ', text: 'สอบกลางภาควิชาเคมีวันจันทร์', want: { type: 'exam' } },
+  { g: 'type', id: 'quiz', text: 'มี quiz อังกฤษพรุ่งนี้', want: { type: 'exam' } },
+  { g: 'type', id: 'กิจกรรม', text: 'ซ้อมกีฬาสีวันพฤหัส 15:00', want: { type: 'activity' } },
+  { g: 'type', id: 'ประชุม', text: 'ประชุมชมรมวันอังคาร', want: { type: 'activity' } },
+  { g: 'type', id: 'เตือนจ่ายเงิน', text: 'อย่าลืมจ่ายค่าชุดพละวันศุกร์', want: { type: 'reminder' } },
+  { g: 'type', id: 'การบ้านธรรมดา', text: 'ทำแบบฝึกหัดหน้า 20 ส่งพรุ่งนี้', want: { type: 'homework' } },
+  // "สอบถาม" ไม่ใช่การสอบ — โค้ดกัน (?!ถาม) ไว้แล้ว เคสนี้ยืนยันว่ายังกันอยู่
+  { g: 'type', id: 'สอบถาม ไม่ใช่สอบ',
+    text: 'ใครสงสัยสอบถามครูได้ที่ห้องพักครู',
+    want: { type: 'homework' } },
+  // "ครูนัดส่งงาน" = การบ้าน ไม่ใช่กิจกรรม — คำว่า "นัด" อยู่ในรายการกิจกรรม
+  { g: 'type', id: 'นัดส่งงาน ไม่ใช่กิจกรรม',
+    text: 'ครูนัดส่งงานเคมีวันศุกร์',
+    want: { type: 'homework' } },
+
+  // ---------- เวลาที่ใช้ทำ ----------
+  { g: 'est', id: 'นาที', text: 'ทำใบงาน ใช้เวลาประมาณ 30 นาที', want: { estMin: 30 } },
+  { g: 'est', id: 'ชั่วโมง', text: 'อ่านหนังสือ 2 ชั่วโมง', want: { estMin: 120 } },
+  { g: 'est', id: 'ชม.ย่อ', text: 'ทำรายงาน 1.5 ชม.', want: { estMin: 90 } },
+  { g: 'est', id: 'ช่วงข้อ', text: 'ทำข้อ 1-10', want: { estMin: 40 } },
+  { g: 'est', id: 'ค่าปริยายการบ้าน', text: 'ส่งงานพรุ่งนี้', want: { estMin: 30 } },
+
+  // ---------- ข้อความยาวแบบที่แปะจาก LINE จริง ----------
+  { g: 'long', id: 'ข้อความครูในกลุ่ม',
+    text: 'สวัสดีค่ะนักเรียน ครูวิภาฝากบอกว่าการบ้านภาษาอังกฤษ '
+        + 'ให้ทำแบบฝึกหัดหน้า 45-48 ส่งวันศุกร์นี้นะคะ คะแนนเก็บ 10 คะแนน',
+    want: { subject: 'ภาษาอังกฤษ', teacher: 'ครูวิภา', scorePct: 10, type: 'homework', due: DOW(5) } },
+  { g: 'long', id: 'ประกาศสอบ',
+    text: 'แจ้งกำหนดสอบกลางภาค วิชาคณิตศาสตร์ สอบวันจันทร์ที่ 24 ส.ค. เวลา 09:00 '
+        + 'เนื้อหาบทที่ 1-4 อ.อนันต์',
+    want: { subject: 'คณิตศาสตร์', type: 'exam', teacher: 'ครูอนันต์' } },
+];
+
+// ---------- ตัวเทียบ ----------
+function sameDue(got, want) {
+  if (want === null) return got === null;
+  if (got === null) return false;
+  return new Date(got).getTime() === want.getTime();
+}
+
+function checkOne(c) {
+  const got = parseAssignment(c.text, NOW);
+  const bad = [];
+  for (const [k, want] of Object.entries(c.want)) {
+    if (k === 'due') {
+      if (!sameDue(got.due, want)) {
+        bad.push(`due: ได้ ${got.due ? new Date(got.due).toLocaleString('th-TH') : 'null'} · ควรเป็น ${want ? want.toLocaleString('th-TH') : 'null'}`);
+      }
+    } else if (got[k] !== want) {
+      bad.push(`${k}: ได้ ${JSON.stringify(got[k])} · ควรเป็น ${JSON.stringify(want)}`);
+    }
+  }
+  return { got, bad };
+}
+
+function benchParse(group, showPass) {
+  const cases = group ? PARSE_CASES.filter(c => c.g === group) : PARSE_CASES;
+  if (!cases.length) {
+    console.warn('[parsebench] ไม่มีเคสในกลุ่ม', group,
+      '· กลุ่มที่มี:', [...new Set(PARSE_CASES.map(c => c.g))].join(', '));
+    return null;
+  }
+  const t0 = performance.now();
+  const rows = [], fails = [];
+  for (const c of cases) {
+    const { got, bad } = checkOne(c);
+    const row = { กลุ่ม: c.g, เคส: c.id, ผล: bad.length ? '✗' : '✓',
+      ที่ผิด: bad.join(' | ') || '-', ข้อความ: c.text.slice(0, 46) };
+    rows.push(row);
+    if (bad.length) fails.push({ ...row, got });
+  }
+  const ms = Math.round(performance.now() - t0);
+
+  // สรุปรายกลุ่ม — ช่วยชี้ว่าจุดอ่อนกระจุกอยู่ตรงไหน แทนที่จะดูแค่คะแนนรวม
+  const groups = [...new Set(cases.map(c => c.g))];
+  const byGroup = groups.map(g => {
+    const inG = rows.filter(r => r.กลุ่ม === g);
+    const pass = inG.filter(r => r.ผล === '✓').length;
+    return { กลุ่ม: g, ผ่าน: `${pass}/${inG.length}`,
+      คิดเป็น: Math.round(pass / inG.length * 100) + '%' };
+  });
+
+  const pass = rows.filter(r => r.ผล === '✓').length;
+  console.table(showPass ? rows : (fails.length ? fails.map(({ got, ...r }) => r) : rows));
+  console.table(byGroup);
+  console.log(`[parsebench] ผ่าน ${pass}/${rows.length} (${Math.round(pass / rows.length * 100)}%) · ${ms}ms`);
+  return { rows, fails, byGroup, pass, total: rows.length, ms };
+}
+
+Object.assign(window, { NOW_PARSE: NOW, PARSE_CASES, benchParse, checkOne });
+window.__parsebench = true;
+console.log('[parsebench] พร้อมแล้ว — benchParse() · benchParse(\'teacher\') · benchParse(null, true)');
+})();
