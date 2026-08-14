@@ -1,4 +1,4 @@
-# StudentOS **ALT** Version 1A7 “Modern” (Sandbox)
+# StudentOS **ALT** Version 1A7V2 “Modern” (Sandbox)
 
 > บิลด์นี้ **ไม่ใช่ตัวที่ปล่อยจริง** — เป็นรุ่นไว้ทดลองฟีเจอร์ใหม่
 > ตัวจริงอยู่ที่ https://nadokagenou.github.io/studentos-ai/

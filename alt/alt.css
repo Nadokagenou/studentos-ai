@@ -2535,6 +2535,7 @@
   font-weight: 700;
 }
 .fld.unsure input[type=text],
+.fld.unsure textarea,
 .fld.unsure select {
   box-shadow: inset 0 0 0 1.5px var(--warn);
   background: var(--warn-soft);
@@ -2887,13 +2888,33 @@ body { line-height: 1.7; letter-spacing: 0; }
 .fm-card input[type=number],
 .fm-card input[type=date],
 .fm-card input[type=time],
+.fm-card textarea,
 .fm-card select {
   min-height: 48px;
   border-radius: 14px;
   box-shadow: inset 0 0 0 1px var(--line);
   font-size: 15px;
 }
-.fm-card input:focus, .fm-card select:focus { box-shadow: none; }
+.fm-card input:focus, .fm-card textarea:focus, .fm-card select:focus { box-shadow: none; }
+
+/* ช่อง "งานที่ต้องทำ" — ยืดลงล่างแทนที่จะเลื่อนออกข้าง
+   style.css จัดหน้าตาให้เฉพาะ input/select (แก้ไม่ได้) จึงต้องเขียนของ textarea เองทั้งชุด
+   ตัวเลข padding/มุม/ขนาดตัวอักษร ลอกจากช่องอื่นให้เท่ากันเป๊ะ ไม่งั้นฟอร์มจะดูไม่เป็นชุดเดียวกัน */
+.fm-card textarea {
+  background: var(--card2);
+  border: none;
+  padding: 12px 13px;
+  font-family: inherit;
+  font-weight: 500;
+  color: var(--ink);
+  width: 100%;
+  line-height: 1.65;
+  display: block;                /* ไม่งั้น inline-block ทิ้งช่องว่างใต้กล่องจากเส้นฐานตัวอักษร */
+  resize: none;                  /* ความสูงคุมด้วย autoGrow() — ที่จับลากมุมจะขัดกัน */
+  overflow: hidden;              /* ไม่มีแถบเลื่อนใน เพราะกล่องสูงเท่าเนื้อหาอยู่แล้ว */
+  -webkit-appearance: none; appearance: none;
+}
+.fm-card textarea:focus { outline: 2px solid var(--blue); outline-offset: -2px; }
 /* ปุ่มเลือกประเภท: ให้ตัวที่เลือกอยู่เด่นชัดกว่าเดิมมาก */
 .type-pick { gap: 10px; }
 .tp { min-height: 50px; border-radius: 15px; font-size: 14px; box-shadow: inset 0 0 0 1px var(--line); }

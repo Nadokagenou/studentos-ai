@@ -7,7 +7,7 @@
 //   - service worker ใช้ cache คนละชื่อ
 // ============================================================
 
-const APP_VERSION = '1A7V';                // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
+const APP_VERSION = '1A7V2';                // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
 const APP_CODENAME = 'Modern';             // ชื่อรุ่นของอัปเดตนี้
 const APP_CHANNEL = 'ALT';                  // ป้ายกำกับรุ่น — โชว์ทั้งบนแอปและในหน้า "ฉัน"
 const STORE_KEY = 'studentos.alt.v1';      // ALT: แยกที่เก็บข้อมูลจากตัวจริง ('studentos.v1')
@@ -2960,6 +2960,19 @@ function fillSubjectSelect() {
     SUBJECTS.map(s => `<option>${s.name}</option>`).join('');
 }
 
+// ---------- ALT 1A7V2: ช่องข้อความที่ยืดตามเนื้อหา ----------
+// ต้องรีเซ็ตเป็น auto ก่อนอ่าน scrollHeight ทุกครั้ง ไม่งั้นกล่องจะโตอย่างเดียวไม่หดกลับ
+// (scrollHeight ของกล่องที่ถูกตรึงความสูงไว้แล้ว จะไม่มีทางน้อยกว่าความสูงที่ตรึงไว้)
+// เพดาน 40% ของความสูงจอ — ข้อความยาวมากยังต้องเห็นปุ่มบันทึกโดยไม่ต้องเลื่อนทั้งฟอร์ม
+function autoGrow(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  const cap = Math.round(window.innerHeight * 0.4);
+  const need = el.scrollHeight;
+  el.style.height = Math.min(need, cap) + 'px';
+  el.style.overflowY = need > cap ? 'auto' : 'hidden';
+}
+
 // จอที่ควรกลับไปหลังบันทึก/ยกเลิก — แก้งานจากรายการไหน ก็เด้งกลับรายการนั้น
 let formReturn = 'scr-home';
 
@@ -3043,6 +3056,8 @@ function openForm(id, parsed) {
 
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
   document.getElementById('scr-form').classList.add('on');
+  // ต้องยืดหลังจอถูกแสดงแล้ว — วัด scrollHeight ตอนจอยัง display:none ได้ 0 ทุกครั้ง
+  autoGrow(f.detail);
 }
 
 function saveForm() {
@@ -5124,6 +5139,9 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   fillSubjectSelect();
   initHomeSwipe(); // ALT: ปัดการ์ดในหน้าแรก (เกาะที่ #homeBody ครั้งเดียว อยู่รอดทุกการ render)
   initCrop();      // ALT: ลากกรอบในหน้าครอบภาพ
+  // ช่อง "งานที่ต้องทำ" ยืดตามที่พิมพ์ · เกาะครั้งเดียวตอนบูต เพราะฟอร์มไม่ได้ถูกสร้างใหม่ทุกครั้ง
+  const fd = document.getElementById('fDetail');
+  if (fd) fd.addEventListener('input', () => autoGrow(fd));
 
   // วาดจอแรกตรงนี้ ก่อน await ทุกตัวข้างล่าง — นี่คือบรรทัดที่ทำให้เอาฉากเปิดแอปออกได้
   // ทุกอย่างที่จำเป็นต่อการวาดจอ (ธีม ฟอนต์สเกล พื้นหลัง เมนู) ถูกตั้งครบไปแล้วข้างบน
