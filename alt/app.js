@@ -1,16 +1,19 @@
 // ============================================================
-// StudentOS AI — App (UI + state)  ·  *** เวอร์ชัน ALT (SANDBOX) ***
+// StudentOS AI — App (UI + state)
 // ข้อมูลจริง เก็บใน localStorage · ทุกจอ render จาก state
 // ------------------------------------------------------------
-// ALT = รุ่นทดลองฟีเจอร์ แยกขาดจากตัวจริง:
-//   - localStorage ใช้ prefix 'studentos.alt.*' → เล่นยังไงก็ไม่แตะข้อมูลตัวจริง
-//   - service worker ใช้ cache คนละชื่อ
+// สายนี้เคยเป็นบิลด์ทดลอง (ALT) และถูกยกขึ้นเป็นตัวหลักตั้งแต่รุ่น 2A7V2
+//
+// **คีย์ใน localStorage ยังใช้ prefix 'studentos.alt.*' ต่อไป — ห้ามเปลี่ยน**
+// ไม่ใช่เพราะลืมแก้ แต่เพราะคีย์คือที่อยู่ของข้อมูลที่ผู้ใช้มีอยู่แล้ว:
+// งานทั้งหมด · ธีม · โทเคน · สกินที่สะสมไว้ · ธีมลับที่ปลดล็อกแล้ว
+// เปลี่ยนชื่อคีย์เมื่อไหร่ = ทุกเครื่องที่ใช้อยู่กลายเป็นแอปเปล่าทันที โดยไม่มีทางกู้กลับ
+// ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A7V2';                // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
-const APP_CODENAME = 'Modern';             // ชื่อรุ่นของอัปเดตนี้
-const APP_CHANNEL = 'ALT';                  // ป้ายกำกับรุ่น — โชว์ทั้งบนแอปและในหน้า "ฉัน"
-const STORE_KEY = 'studentos.alt.v1';      // ALT: แยกที่เก็บข้อมูลจากตัวจริง ('studentos.v1')
+const APP_VERSION = '2A7V2';                // สายเลขของแอป
+const APP_CODENAME = 'Verbessert';          // ชื่อรุ่นของอัปเดตนี้
+const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
 let editingId = null; // null = เพิ่มใหม่, ไม่ null = แก้ไขงานเดิม
@@ -591,6 +594,36 @@ let enterTimer = null;
 // จอทั้งห้าที่มีปุ่มของตัวเองอยู่บนแถบล่าง — ที่เหลือถือเป็นจอชั้นใน
 const TABBED_SCREENS = ['scr-menu', 'scr-home', 'scr-scan', 'scr-timeline', 'scr-profile'];
 
+// ---------- 2A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
+// บนมือถือ การสลับไปแอปอื่นแล้วกลับมามักทำให้ระบบโหลดหน้าใหม่ทั้งหน้า
+// ห้ามไม่ได้ แต่ทำให้ "ไม่รู้สึกว่าโดนรีเซ็ต" ได้ ด้วยการจำจอที่ค้างไว้แล้วกลับไปที่เดิม
+//
+// จอที่ห้ามจำ — เพราะสถานะของมันอยู่ในหน่วยความจำ ไม่ได้อยู่ใน localStorage
+// กลับมาแล้วจะเจอจอเปล่า ๆ ที่กดอะไรไม่ได้ ซึ่งแย่กว่าการเด้งกลับเมนูเสียอีก:
+//   scr-crop     — รูปที่กำลังครอบอยู่หายไปกับการโหลดใหม่
+//   scr-parsing  — จอรอระหว่าง AI อ่าน ไม่มีอะไรให้กลับไปดู
+//   scr-form     — สิ่งที่พิมพ์ค้างไว้หายไป กลับมาเจอฟอร์มเปล่าน่าสับสนกว่า
+//   scr-login / scr-onboard — มีด่านของตัวเองตัดสินอยู่แล้ว
+const NO_RESUME = ['scr-crop', 'scr-parsing', 'scr-form', 'scr-login', 'scr-onboard'];
+const LAST_SCR_KEY = 'studentos.alt.lastScreen';
+// เกิน 30 นาทีถือว่าเป็นการเปิดใหม่ ไม่ใช่การกลับเข้ามาต่อ — เริ่มที่เมนูตามปกติ
+// (กลับมาวันรุ่งขึ้นแล้วเจอจอสุ่มสกินค้างอยู่ ไม่ใช่สิ่งที่ใครคาดหวัง)
+const RESUME_WINDOW = 30 * 60 * 1000;
+
+function rememberScreen(id) {
+  if (NO_RESUME.includes(id)) return;
+  try { localStorage.setItem(LAST_SCR_KEY, JSON.stringify({ id, t: Date.now() })); } catch (_) {}
+}
+
+function resumeScreen() {
+  try {
+    const s = JSON.parse(localStorage.getItem(LAST_SCR_KEY) || 'null');
+    if (!s || !s.id || Date.now() - s.t > RESUME_WINDOW) return null;
+    // จอต้องมีอยู่จริงในหน้านี้ — กันกรณีอัปเดตแล้วจอเดิมถูกเอาออกไป
+    return document.getElementById(s.id) ? s.id : null;
+  } catch (_) { return null; }
+}
+
 function go2(id){ return go(id); }
 function go(id) {
   const dir = navDirection(curScreen, id);
@@ -615,6 +648,7 @@ function go(id) {
   document.body.classList.toggle('deep-scr', !TABBED_SCREENS.includes(id));
   document.querySelectorAll('.tab[data-scr]').forEach(b =>
     b.classList.toggle('active', b.dataset.scr === id));
+  rememberScreen(id);   // ไว้กลับมาที่เดิมถ้าระบบโหลดหน้าใหม่ตอนสลับแอป
   renderAll();
 }
 
@@ -1655,8 +1689,7 @@ function renderProfile() {
       + (st > 1 ? ' · เปิดติดกัน ' + st + ' วัน' : '');
   }
   const ver = document.getElementById('appVer');
-  if (ver) ver.textContent = 'StudentOS ' + APP_CHANNEL + ' Version ' + APP_VERSION
-    + ' “' + APP_CODENAME + '” · รุ่นทดลองฟีเจอร์';
+  if (ver) ver.textContent = 'StudentOS Version ' + APP_VERSION + ' “' + APP_CODENAME + '”';
   const pn = document.getElementById('pName'); if (pn) pn.value = state.settings.name || '';
   const pf = document.getElementById('pFree'); if (pf) pf.value = state.settings.freeHours || 2;
 
@@ -4620,10 +4653,11 @@ function relockSecrets() {
 }
 
 // ---------- ALT 1A6M3: ช่องใส่โค้ดในหน้าตั้งค่า ----------
-// โค้ดชุดนี้ผูกกับรุ่น 1A6M3 เท่านั้น: ถ้า APP_VERSION ขยับไปรุ่นอื่นเมื่อไหร่
+// โค้ดชุดนี้ผูกกับรุ่นเดียว: ถ้า APP_VERSION ขยับไปรุ่นอื่นเมื่อไหร่
 // ช่องใส่โค้ดจะหายไปเองและโค้ดจะหมดอายุทันที ไม่ต้องไล่ลบทีละจุด
 // จะให้รุ่นถัดไปใช้ได้ต้องตั้งใจแก้บรรทัดล่างนี้เอง
-const CODE_VERSION = '1A7V';
+// ตอนนี้ผูกกับ 2A7V (ชื่อใหม่ของรุ่นก่อนหน้า) ส่วน APP_VERSION เป็น 2A7V2 → โค้ดจึงหมดอายุอยู่
+const CODE_VERSION = '2A7V';
 function codesLive() { return APP_VERSION === CODE_VERSION; }
 
 // เก็บเป็นลายนิ้วมือ SHA-256 ไม่ใช่ตัวโค้ด — เปิดซอร์สอ่านก็ยังไม่รู้ว่าต้องพิมพ์อะไร
@@ -4996,7 +5030,8 @@ function routeStart() {
   } else if (needsOnboard()) {
     openOnboard();
   } else {
-    go(shortcutTarget() || 'scr-menu'); // ALT: เข้าแอปมาเจอเมนูหลักก่อนเสมอ (ยกเว้นมาจากปุ่มลัด)
+    // ปุ่มลัดมาก่อนเสมอ — ผู้ใช้เพิ่งกดบอกว่าจะไปไหน ชนะจอที่ค้างไว้จากรอบก่อน
+    go(shortcutTarget() || resumeScreen() || 'scr-menu');
   }
 }
 
@@ -5127,7 +5162,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   purgeOldTrash(); // ของในถังขยะที่เกิน 30 วัน ทิ้งถาวรตอนเปิดแอป
 
   // ป้ายมุมจอบอกเลขเวอร์ชัน — ดึงจาก APP_VERSION ที่เดียว ขึ้นรุ่นใหม่ไม่ต้องไล่แก้ HTML
-  const badge = document.getElementById('altBadge');
+  const badge = document.getElementById('verBadge');
   if (badge) badge.textContent = APP_VERSION;
 
   applyDeepUnlock();     // ALT: ปุ่มธีมลับจะโผล่เฉพาะคนที่ปลดล็อกแล้ว

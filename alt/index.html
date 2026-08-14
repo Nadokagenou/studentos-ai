@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="google-site-verification" content="EL8HSk9rzF6WS9GYcfkFaYwxf00p2PzEKganiKXzDh0" />
-  <title>StudentOS ALT — รุ่นทดลองฟีเจอร์ (Sandbox)</title>
+  <title>StudentOS AI — ผู้ช่วยจัดลำดับงานสำหรับนักเรียน</title>
   <meta name="description" content="students OS คือ AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงานหรือแปะข้อความจาก LINE แล้ว AI จัดลำดับความสำคัญพร้อมเหตุผล ไม่ต้องเดาว่าจะทำอะไรก่อน">
   <link rel="canonical" href="https://nadokagenou.github.io/studentos-ai/">
 
@@ -41,7 +41,7 @@
   <link rel="apple-touch-icon" href="icon-alt-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="StudentOS ALT">
+  <meta name="apple-mobile-web-app-title" content="StudentOS">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Space Mono ใช้เฉพาะวันที่/เวลา/ตัวเลข ให้ตัวเลขเรียงตรงคอลัมน์และอ่านเป็นข้อมูล -->
@@ -52,7 +52,7 @@
        Space Mono = ตัวเลข · Orbitron / Cinzel / Cinzel Decorative = ชื่อเหรียญพิเศษ -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Orbitron:wght@600;800&family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&display=swap">
   <link rel="stylesheet" href="style.css">
-  <!-- ALT เท่านั้น: ป้ายกำกับรุ่นทดลอง แยกไฟล์ไว้ ไม่แตะ style.css เดิม จะสลับ stylesheet ทีหลังก็ได้ -->
+  <!-- ทุกอย่างที่สายนี้เพิ่มขึ้นมาอยู่ในไฟล์นี้ไฟล์เดียว — style.css ยังดึงจากต้นทางมาทับได้ตลอด -->
   <link rel="stylesheet" href="alt.css">
   <!-- ชั้นกล่องเข้า + เชื่อม LINE — ชั้นใหม่ทั้งชั้น แยกไฟล์ไว้ให้ถอดออกได้ทั้งก้อน -->
   <link rel="stylesheet" href="inbox.css">
@@ -186,8 +186,8 @@
     <!-- ALT: พื้นหลังภาพของผู้ใช้เอง (ตั้งในแท็บ "ฉัน") — ม่านหรี่ทับให้ตัวหนังสืออ่านออก -->
     <div class="userbg" id="userBg" aria-hidden="true"><span class="ub-veil"></span></div>
     <div class="statusbar"><span id="clock">--:--</span><span>📶 🔋</span></div>
-    <!-- ALT: ป้ายบอกรุ่น — อยู่กลางบนจอ (app.js เขียนทับจาก APP_VERSION ตอนเปิด) -->
-    <div class="alt-badge" id="altBadge" title="students OS · เลขรุ่นที่ใช้อยู่">1A6M3</div>
+    <!-- ป้ายบอกรุ่น — อยู่กลางบนจอ (app.js เขียนทับจาก APP_VERSION ตอนเปิด) -->
+    <div class="ver-badge" id="verBadge" title="StudentOS · เลขรุ่นที่ใช้อยู่">2A7V2</div>
     <!-- ALT 1A6M3: ทางเข้าระบบเพื่อน — มุมขวาบน ไม่กินช่องในเมนูหลัก -->
     <button class="top-friends" onclick="go('scr-friends')" aria-label="เพื่อน">
       <svg viewBox="0 0 24 24"><use href="#lu-users"/></svg>

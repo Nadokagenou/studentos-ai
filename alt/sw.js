@@ -1,11 +1,11 @@
-// StudentOS AI — Service Worker  ·  *** เวอร์ชัน ALT (SANDBOX) ***
+// StudentOS AI — Service Worker
 // กลยุทธ์: network-first (ได้เวอร์ชันใหม่เสมอเมื่อมีเน็ต) + cache fallback (เปิด offline ได้)
-// ALT ใช้ชื่อ cache คนละตัวกับตัวจริง — สลับไปมาระหว่างสองรุ่นแล้วไฟล์ไม่ปนกัน
-// รวมสองสาย: ไฟล์ของระบบ LINE (inbox/brain/linelink) + เลขรุ่น 1A6M3 ของฝั่งหน้าตา
-const CACHE = 'studentos-alt-1a7v2-a';   // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
+// ชื่อ cache ผูกกับเลขรุ่น — ปล่อยรุ่นใหม่แล้วของเก่าถูกลบทิ้งตอน activate
+// สายนี้เคยเป็นบิลด์ทดลอง (ALT) และถูกยกขึ้นเป็นตัวหลักตั้งแต่ 2A7V2 · ชื่อ cache เลยเปลี่ยนตาม
+const CACHE = 'studentos-2a7v2-a';   // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
 const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'custom.css',
   'engine.js', 'context.js', 'brain.js', 'inbox.js', 'linelink.js', 'app.js', 'config.js', 'manifest.json',
-  'icon-alt-192.png', 'icon-alt-512.png', 'icon-192.png', 'icon-512.png',
+  'icon-192.png', 'icon-512.png',
   'logo-mark.png', 'logo-splash.png', 'logo-splash-light.png'];
 
 self.addEventListener('install', e => {

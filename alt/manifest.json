@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "StudentOS ALT Version 1A7V2",
-  "short_name": "StudentOS ALT",
-  "description": "StudentOS ALT Version 1A7V2 — บิลด์ทดลองฟีเจอร์ใหม่ ข้อมูลแยกจากตัวจริง",
+  "name": "StudentOS AI",
+  "short_name": "StudentOS",
+  "description": "AI Decision Assistant สำหรับนักเรียนมัธยม — สแกนใบงานหรือแปะข้อความจาก LINE แล้ว AI จัดลำดับว่าควรทำอะไรก่อน พร้อมเหตุผลกำกับทุกงาน",
   "lang": "th",
   "start_url": ".",
   "scope": ".",
@@ -11,12 +11,12 @@
   "theme_color": "#0D1220",
   "background_color": "#0D1220",
   "icons": [
-    { "src": "icon-alt-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-alt-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-alt-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "เพิ่มงานใหม่", "url": "./?go=scan", "icons": [{ "src": "icon-alt-192.png", "sizes": "192x192" }] },
-    { "name": "ตารางงาน", "url": "./?go=home", "icons": [{ "src": "icon-alt-192.png", "sizes": "192x192" }] }
+    { "name": "เพิ่มงานใหม่", "url": "./?go=scan", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "ตารางงาน", "url": "./?go=home", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] }
   ]
 }
