@@ -1995,6 +1995,15 @@ function renderContext() {
         ช่องที่สั้นกว่า ${p.minBlockMin} นาทีไม่ถูกนับ</p>
     </section>
 
+    <!-- กรอกตารางเรียนทีละคาบคือการพิมพ์ 30–40 ครั้ง ซึ่งเกือบไม่มีใครทำจนจบ
+         ทางลัดจึงต้องอยู่เหนือฟอร์ม ไม่ใช่ซ่อนไว้ท้ายจอหลังของที่มันมาแทน -->
+    <button class="ctx-scan" onclick="openTtScan()">
+      <span class="cs-ic">${icon('camera')}</span>
+      <span class="cs-tx"><b>ถ่ายรูปตารางเรียน แล้วให้ AI กรอกให้</b>
+        <span>อ่านทั้งสัปดาห์ในทีเดียว — ตรวจแก้ได้ก่อนบันทึกทุกคาบ</span></span>
+      <span class="cs-go">${icon('chevron')}</span>
+    </button>
+
     <div class="sec-label">เวลาประจำวัน</div>
     <div class="pf-list">
       <div class="pf-row">
@@ -3033,6 +3042,151 @@ function renderAll() {
   // (กันแอปพังทั้งจอถ้าไฟล์ inbox.js/linelink.js โหลดไม่ขึ้น)
   if (typeof renderInbox === 'function') renderInbox();
   if (typeof renderSources === 'function') renderSources();
+}
+
+// ---------- สแกนตารางเรียนจากรูป ----------
+// ท่อ: เลือกรูป → ย่อในเครื่อง → Edge Function (Gemini อ่าน) → หน้าตรวจ → เขียนลงบริบท
+//
+// ขั้น "ตรวจ" ตัดออกไม่ได้เด็ดขาด แม้โมเดลจะแม่นแค่ไหน — คาบเรียนที่ผิดหนึ่งคาบ
+// จะกลายเป็น "เวลาที่ไม่ว่าง" ในแผนของเขาไปทุกสัปดาห์ โดยไม่มีอะไรบอกว่ามันมาจากไหน
+// รูปแบบเดียวกับหน้า "ตรวจก่อนบันทึก" ของใบงาน: AI เสนอ คนเป็นคนเคาะ
+const TT_MAX_LONG = 1600;   // ตัวอักษรในตารางเล็กกว่าใบงาน ย่อมากกว่านี้แล้วอ่านไม่ออก
+const TT_DAYS = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+
+let ttState = { phase: 'pick', rows: [], note: '', error: '' };
+
+function openTtScan() {
+  ttState = { phase: 'pick', rows: [], note: '', error: '' };
+  renderTtScan();
+  go('scr-ttscan');
+}
+
+// ย่อก่อนส่งเสมอ — รูปจากกล้องมือถือ 4 MB ที่ส่งดิบ ๆ คือเน็ตมือถือของเด็กหนึ่งก้อน
+// และโควตาที่จ่ายไปโดยไม่ได้ความแม่นเพิ่มขึ้นเลย
+async function ttShrink(file) {
+  const img = await ocrLoadBitmap(file);
+  const long = Math.max(img.width, img.height);
+  const k = long > TT_MAX_LONG ? TT_MAX_LONG / long : 1;
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.width * k);
+  c.height = Math.round(img.height * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  // 0.85 เพราะเส้นตารางกับตัวเลขบาง ๆ แตกง่ายกว่าตัวหนังสือบนใบงาน
+  return c.toDataURL('image/jpeg', 0.85).split(',')[1];
+}
+
+async function ttPick(input) {
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file) return;
+  if (!currentUser) {
+    ttState = { phase: 'pick', rows: [], note: '',
+      error: 'ตัวอ่านตารางทำงานบนเซิร์ฟเวอร์ ต้องล็อกอินก่อนถึงจะใช้ได้ — กรอกเองในหน้าบริบทได้ตามปกติ' };
+    return renderTtScan();
+  }
+  ttState = { phase: 'reading', rows: [], note: '', error: '' };
+  renderTtScan();
+  try {
+    const image = await ttShrink(file);
+    const { data, error } = await sb.functions.invoke('read-timetable', { body: { image, mime: 'image/jpeg' } });
+    if (error) throw new Error(error.message || 'เรียกตัวอ่านไม่สำเร็จ');
+    if (data && data.error) throw new Error(data.error);
+    const rows = (data && data.classes || []).map(r => ({ ...r, on: true }));
+    ttState = { phase: rows.length ? 'review' : 'pick', rows,
+      note: (data && data.note) || '',
+      error: rows.length ? '' : ((data && data.note) || 'อ่านตารางจากรูปนี้ไม่ได้ — ลองถ่ายให้ตรงและชัดขึ้น') };
+  } catch (e) {
+    ttState = { phase: 'pick', rows: [], note: '', error: e.message };
+  }
+  renderTtScan();
+}
+
+function ttSet(i, key, val) {
+  const r = ttState.rows[i];
+  if (!r) return;
+  r[key] = key === 'day' ? +val : val;
+  if (key !== 'on') r.on = true;    // แก้แถวไหน = ตั้งใจเก็บแถวนั้น
+  renderTtScan();
+}
+function ttToggle(i) {
+  const r = ttState.rows[i];
+  if (r) { r.on = !r.on; renderTtScan(); }
+}
+
+// เขียนลงบริบท — เพิ่มเข้าไป ไม่ล้างของเดิม
+// คนที่สแกนซ้ำเพราะเทอมใหม่ควรได้ลบของเก่าเองด้วยปุ่มที่เขียนว่าลบ ไม่ใช่โดนลบเพราะกดสแกน
+function ttSave() {
+  const keep = ttState.rows.filter(r => r.on && hm2min(r.start) != null &&
+    hm2min(r.end) != null && hm2min(r.end) > hm2min(r.start));
+  if (!keep.length) return;
+  for (const r of keep) {
+    ctxUpsert('class', { subject: r.subject.trim() || 'เรียน', start: r.start, end: r.end,
+      weekday: [r.day] });
+  }
+  haptic('done');
+  renderAll();
+  go('scr-context');
+  showToast({ title: `บันทึก ${keep.length} คาบเรียนแล้ว`,
+    body: 'แผนวันนี้จะเลี่ยงเวลาเรียนให้เองตั้งแต่ตอนนี้' });
+}
+
+function renderTtScan() {
+  const body = document.getElementById('ttBody');
+  if (!body) return;
+  const { phase, rows, error } = ttState;
+
+  if (phase === 'reading') {
+    body.innerHTML = `<div class="tt-wait">
+      <div class="tt-spin"></div>
+      <b>กำลังอ่านตาราง…</b>
+      <span>ปกติใช้เวลาไม่เกิน 10 วินาที</span>
+    </div>`;
+    return;
+  }
+
+  if (phase === 'pick') {
+    body.innerHTML = `
+      ${error ? `<div class="tt-err">${icon('clock')}<span>${esc(error)}</span></div>` : ''}
+      <div class="tt-intro">
+        <div class="tt-ring">${icon('camera')}</div>
+        <b>ถ่ายรูปตารางเรียนให้เห็นทั้งสัปดาห์</b>
+        <p>วางให้ตรง ไม่เอียง เห็นทั้งชื่อวันและเวลาแต่ละคาบ — AI จะอ่านให้
+          แล้วคุณตรวจแก้ได้ทุกคาบก่อนบันทึก</p>
+      </div>
+      <button class="tt-cta" onclick="document.getElementById('ttFile').click()">
+        ${icon('camera')}เลือกรูปตารางเรียน</button>
+      <p class="tt-foot">รูปถูกส่งไปให้ Gemini อ่านครั้งเดียวแล้วทิ้ง ไม่ได้ถูกเก็บไว้ที่ไหน
+        · ส่วนอื่นของบริบทยังคำนวณในเครื่องเหมือนเดิม</p>`;
+    return;
+  }
+
+  const on = rows.filter(r => r.on).length;
+  body.innerHTML = `
+    <div class="tt-sum">อ่านได้ <b>${rows.length}</b> คาบ — เลือกไว้ ${on} คาบ
+      ${ttState.note ? `<span class="tt-note">${esc(ttState.note)}</span>` : ''}</div>
+    <p class="tt-hint">ตรวจให้ครบก่อนบันทึก โดยเฉพาะเวลาเริ่ม–เลิก คาบที่ผิดจะไปกินเวลาว่างในแผนทุกสัปดาห์</p>
+    <div class="tt-list">
+      ${rows.map((r, i) => `<div class="tt-row${r.on ? '' : ' off'}">
+        <button class="tt-ck${r.on ? ' on' : ''}" onclick="ttToggle(${i})"
+          aria-label="${r.on ? 'ไม่เอาคาบนี้' : 'เอาคาบนี้'}">${icon('check')}</button>
+        <div class="tt-fields">
+          <input class="tt-sub" type="text" value="${esc(r.subject)}" maxlength="40"
+            oninput="ttSet(${i},'subject',this.value)">
+          <div class="tt-when">
+            <select onchange="ttSet(${i},'day',this.value)">
+              ${TT_DAYS.map((d, n) => `<option value="${n}"${n === r.day ? ' selected' : ''}>${d}</option>`).join('')}
+            </select>
+            <input type="time" value="${esc(r.start)}" onchange="ttSet(${i},'start',this.value)">
+            <span class="tt-dash">–</span>
+            <input type="time" value="${esc(r.end)}" onchange="ttSet(${i},'end',this.value)">
+          </div>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div class="tt-act">
+      <button class="fm-save" onclick="ttSave()" ${on ? '' : 'disabled'}>บันทึก ${on} คาบเข้าบริบท</button>
+      <button class="fm-cancel" onclick="openTtScan()">ถ่ายใหม่</button>
+    </div>`;
 }
 
 // ---------- เวลาทำงานจริง ----------

@@ -640,6 +640,24 @@
         </div>
       </div>
 
+      <!-- ============ SCREEN: สแกนตารางเรียน ============
+           สามสถานะในจอเดียว: เลือกรูป → กำลังอ่าน → ตรวจก่อนบันทึก
+           วาดทั้งหมดจาก renderTtScan() เพราะจำนวนคาบที่อ่านได้ไม่แน่นอน -->
+      <div class="screen flush" id="scr-ttscan">
+        <div class="scr-body pf-body">
+          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+            <div>
+              <h2 class="sh-title">สแกนตารางเรียน</h2>
+              <p class="sh-sub">ถ่ายรูปตารางมา แล้วตรวจก่อนบันทึก</p>
+            </div>
+            <button class="sh-btn" onclick="go('scr-context')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <input type="file" id="ttFile" accept="image/*" hidden onchange="ttPick(this)">
+          <div id="ttBody"></div>
+        </div>
+      </div>
+
       <!-- ============ SCREEN: ร้านค้า (ALT 1A6M3 — ยังสร้างไม่เสร็จ) ============ -->
       <div class="screen flush" id="scr-shop">
         <div class="scr-body pf-body">

@@ -567,6 +567,64 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
   padding:12px 14px; margin-bottom:16px; font-size:12.5px; color:var(--ink); line-height:1.5}
 .pctx-note svg{width:15px; height:15px; flex:none; color:var(--warn)}
 
+/* ---------- สแกนตารางเรียน ---------- */
+.ctx-scan{display:flex; align-items:center; gap:12px; width:100%; text-align:left; margin-top:14px;
+  padding:13px 14px; border-radius:18px; background:var(--blue-soft);
+  border:1px dashed var(--blue); cursor:pointer}
+.ctx-scan:active{transform:scale(.985)}
+.ctx-scan .cs-ic{flex:none; width:34px; height:34px; border-radius:12px; background:var(--blue);
+  color:var(--on-accent); display:flex; align-items:center; justify-content:center}
+.ctx-scan .cs-ic svg{width:18px; height:18px}
+.ctx-scan .cs-tx{flex:1; display:flex; flex-direction:column; gap:3px; min-width:0}
+.ctx-scan .cs-tx b{font-size:13.5px; font-weight:650; letter-spacing:-.01em; color:var(--ink)}
+.ctx-scan .cs-tx span{font-size:12px; color:var(--muted); line-height:1.5}
+.ctx-scan .cs-go{flex:none; color:var(--faint)} .ctx-scan .cs-go svg{width:16px; height:16px}
+
+.tt-intro{display:flex; flex-direction:column; align-items:center; text-align:center; gap:9px;
+  padding:26px 18px 20px}
+.tt-ring{width:62px; height:62px; border-radius:22px; background:var(--blue-soft); color:var(--blue);
+  display:flex; align-items:center; justify-content:center}
+.tt-ring svg{width:28px; height:28px}
+.tt-intro b{font-size:15.5px; font-weight:700; letter-spacing:-.015em}
+.tt-intro p{font-size:12.5px; color:var(--muted); line-height:1.6; max-width:30ch}
+.tt-cta{display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:14px;
+  border-radius:16px; background:var(--blue); color:var(--on-accent); font-size:14px; font-weight:700;
+  letter-spacing:-.01em; cursor:pointer}
+.tt-cta svg{width:17px; height:17px}
+.tt-cta:active{transform:scale(.985)}
+.tt-foot{font-size:11.5px; color:var(--faint); line-height:1.6; margin-top:14px; text-align:center}
+.tt-err{display:flex; align-items:flex-start; gap:8px; background:var(--alert-soft); border-radius:16px;
+  padding:12px 14px; margin-bottom:6px; font-size:12.5px; color:var(--ink); line-height:1.5}
+.tt-err svg{width:15px; height:15px; flex:none; margin-top:2px; color:var(--alert)}
+
+.tt-wait{display:flex; flex-direction:column; align-items:center; gap:11px; padding:56px 20px; text-align:center}
+.tt-wait b{font-size:14.5px; font-weight:650} .tt-wait span{font-size:12px; color:var(--muted)}
+.tt-spin{width:34px; height:34px; border-radius:50%; border:3px solid var(--card2);
+  border-top-color:var(--blue); animation:ttSpin .9s linear infinite}
+@keyframes ttSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.tt-spin{animation-duration:2.4s}}
+
+.tt-sum{font-size:13.5px; color:var(--ink); margin-bottom:5px}
+.tt-sum .tt-note{display:block; font-size:12px; color:var(--muted); margin-top:4px}
+.tt-hint{font-size:12px; color:var(--muted); line-height:1.55; margin-bottom:13px}
+.tt-list{display:flex; flex-direction:column; gap:8px}
+.tt-row{display:flex; align-items:center; gap:10px; background:var(--card); border-radius:16px;
+  padding:11px 12px; box-shadow:var(--shadow)}
+.tt-row.off{opacity:.45}
+.tt-ck{flex:none; width:26px; height:26px; border-radius:9px; background:var(--card2); color:transparent;
+  display:flex; align-items:center; justify-content:center; cursor:pointer}
+.tt-ck svg{width:15px; height:15px}
+.tt-ck.on{background:var(--good); color:#fff}
+.tt-fields{flex:1; display:flex; flex-direction:column; gap:6px; min-width:0}
+.tt-sub{width:100%; font-size:13.5px; font-weight:600; letter-spacing:-.01em; color:var(--ink);
+  background:none; border:none; padding:0; font-family:inherit}
+.tt-when{display:flex; align-items:center; gap:6px}
+.tt-when select, .tt-when input{font-size:12px; padding:5px 7px; border-radius:9px; background:var(--card2);
+  color:var(--ink); border:none; font-family:inherit; font-variant-numeric:tabular-nums}
+.tt-when select{flex:none; width:58px}
+.tt-dash{color:var(--faint); font-size:12px}
+.tt-act{display:flex; flex-direction:column; gap:8px; margin-top:18px}
+
 /* ---------- ทำความรู้จัก ขั้น 2: รูปร่างของวันธรรมดา ---------- */
 .ob-chips{display:flex; flex-wrap:wrap; gap:7px; margin-top:9px}
 .ob-chip{padding:9px 14px; border-radius:13px; background:var(--card2); color:var(--ink);
