@@ -766,6 +766,12 @@ function taskTitle(t) {
   const subj = t.subject && t.subject !== 'อื่น ๆ' ? esc(t.subject) + ' · ' : '';
   return subj + esc(t.detail);
 }
+// ชื่อเดียวกันแบบข้อความล้วน — สำหรับที่ที่เขียนด้วย textContent (toast, การแจ้งเตือนของระบบ)
+// เอา taskTitle ไปใส่ตรงนั้นตรง ๆ ไม่ได้ เพราะ &amp; จะโผล่ให้ผู้ใช้เห็นดิบ ๆ
+function taskTitleText(t) {
+  const subj = t.subject && t.subject !== 'อื่น ๆ' ? t.subject + ' · ' : '';
+  return subj + (t.detail || '');
+}
 // ไอคอน Lucide — เรียกใช้ซ้ำได้จาก <defs> ใน index.html
 function icon(name, cls) {
   return `<svg viewBox="0 0 24 24"${cls ? ` class="${cls}"` : ''} aria-hidden="true"><use href="#lu-${name}"/></svg>`;
@@ -982,9 +988,12 @@ function renderMenu() {
 function briefCard(pending, now) {
   const top = pending[0];
   const raw = aiGreeting(pending, state.settings, now);
-  // เน้นชื่อวิชากับจำนวนชั่วโมง เพราะเป็นสองคำที่สายตาต้องจับให้ได้ก่อน
-  let msg = esc(raw).replace(/~([\d.]+) ชม\./g, '<b>~$1 ชม.</b>');
-  if (top && top.subject) msg = msg.replace(esc(top.subject), '<b>' + esc(top.subject) + '</b>');
+  // เน้นสามอย่างที่สายตาต้องจับให้ได้ก่อน: ทำอะไร · เริ่มกี่โมง · กี่ชั่วโมง
+  let msg = esc(raw).replace(/~([\d.]+) ชม\./g, '<b>~$1 ชม.</b>')
+    .replace(/(\d{2}:\d{2}–\d{2}:\d{2})/g, '<b>$1</b>');
+  // ชื่อที่ AI ใช้เรียกงานอาจเป็นชื่อวิชาหรือชื่องาน แล้วแต่ว่าใบนั้นมีวิชาไหม
+  const label = typeof taskLabel === 'function' && top ? taskLabel(top) : (top && top.subject);
+  if (label) msg = msg.replace(esc(label), '<b>' + esc(label) + '</b>');
   return `<div class="brief">
     <div class="brief-head"><span class="brief-mark">${icon('brand')}</span><b>STUDENTOS AI</b></div>
     <p class="brief-body">${msg}</p>
@@ -1034,11 +1043,19 @@ function renderHome() {
   const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนค่ำ';
   const name = state.settings.name || 'นักเรียน';
 
+  // "เวลาว่างวันนี้" ต้องเป็นเวลาที่ยังเหลือจริงนับจากนาทีนี้ ไม่ใช่ตัวเลขที่กรอกไว้ตอนสมัคร
+  // ตัวเลขที่ไม่ลดลงตามเวลาที่ผ่านไปคือตัวเลขที่ผู้ใช้เลิกอ่านภายในสองวัน
+  const win = dayWindows(state.settings, now);
+  const leftH = Math.round(win.budgetMin / 60 * 10) / 10;
+  const freeTx = win.mode === 'none' ? 'วันนี้หมดเวลาแล้ว'
+    : win.mode === 'late' ? `เหลือก่อนนอน ~${leftH} ชม.`
+    : `ว่างอีก ~${leftH} ชม.`;
+
   const head = `<div class="page-head">
     <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
     <h1 class="page-title">ตารางงาน</h1>
     <p class="page-sub">งานค้าง <b>${pending.length}</b> · เสร็จแล้ว ${doneCount}
-      · เวลาว่างวันนี้ ~${state.settings.freeHours || 2} ชม.</p>
+      · ${esc(freeTx)}</p>
   </div>`;
 
   if (!pending.length) { body.innerHTML = head + emptyDay(doneCount, now); return; }
@@ -1581,16 +1598,54 @@ function renderPlan() {
     return;
   }
   const plan = buildDayPlan(pending, state.settings, now);
-  sub.textContent = `เวลาว่าง ${state.settings.freeHours || 2} ชม. · ใช้จริง ${Math.round(plan.usedMin / 6) / 10} ชม.`;
+  const win = plan.windows;
+  const h = m => Math.round(m / 6) / 10;
+  sub.textContent = win.mode === 'none'
+    ? 'วันนี้หมดเวลาแล้ว — แผนนี้กันไว้ให้พรุ่งนี้เช้า'
+    : `ว่างอีก ${h(win.windowMin)} ชม.` +
+      (win.capped ? ` · ตั้งเพดานไว้ ${h(win.capMin)} ชม.` : '') +
+      ` · จัดให้แล้ว ${h(plan.usedMin)} ชม.`;
 
   let html = '';
+
+  // ยังไม่รู้จักตารางของเขา = แผนทุกใบข้างล่างนี้ตั้งอยู่บนการเดา ต้องบอกให้รู้ตัว
+  // และบอกตรงจุดที่เขากำลังมองแผนอยู่พอดี ไม่ใช่ซ่อนไว้ในหน้าตั้งค่าที่ไม่มีใครเปิด
+  if (win.mode === 'default') {
+    html += `<button class="pctx-nudge" onclick="go('scr-context')">
+      <span class="pn-ic">${icon('clock')}</span>
+      <span class="pn-tx">
+        <b>ตอนนี้ AI เดาว่าคุณเริ่มทำการบ้าน 19:00</b>
+        <span>บอกตารางเรียนกับกิจวัตรสักครั้ง แล้วแผนจะวางลงช่องว่างจริงของคุณ — ว่างบ่ายก็ได้เริ่มบ่าย</span>
+      </span>
+      <span class="pn-go">${icon('chevron')}</span>
+    </button>`;
+  } else if (win.mode === 'late') {
+    html += `<div class="pctx-note">${icon('clock')}เลย ${esc(ctxPrefs().noWorkAfter)} น. มาแล้ว —
+      นี่คือเวลาที่ยืมมาจากการนอน ทำเท่าที่จำเป็นพอ</div>`;
+  }
+
   for (const e of plan.events) {
     html += `<div class="pslot">
       <div class="ptime"><span class="s">${fmtClock(new Date(e.due))}</span></div>
       <div class="brk">${icon('calendar')}${esc(taskTitle(e))}</div>
     </div>`;
   }
+  // หัวช่วง: บอกว่าก้อนงานข้างล่างนี้อยู่ในช่องว่างไหนของวัน
+  // มีมากกว่าหนึ่งช่วงเมื่อไหร่ ผู้ใช้ต้องเห็นทันทีว่าอะไรทำก่อนเลิกเรียน อะไรทำหลังกินข้าว
+  const multi = win.slots.length > 1;
+  let wi = -1;
   for (const s of plan.slots) {
+    if (multi) {
+      const inWin = win.slots.findIndex(w =>
+        s.start.getHours() * 60 + s.start.getMinutes() >= w.from &&
+        s.start.getHours() * 60 + s.start.getMinutes() < w.to);
+      if (inWin !== -1 && inWin !== wi) {
+        wi = inWin;
+        const w = win.slots[inWin];
+        html += `<div class="pwin"><span class="mono">${w.fromHm}–${w.toHm}</span>
+          <i></i><span class="pw-min">ว่าง ${w.min} นาที</span></div>`;
+      }
+    }
     if (s.break) {
       html += `<div class="pslot">
         <div class="ptime"><span class="s">${fmtClock(s.start)}</span></div>
@@ -1622,7 +1677,11 @@ function renderPlan() {
     </div>`;
   }
   if (!plan.slots.length && !plan.events.length) {
-    html += `<div class="card empty">วันนี้ไม่มีอะไรต้องนั่งทำ — พักได้เต็มที่ 🎉</div>`;
+    // มีงานค้างอยู่แต่วางไม่ลง ≠ ไม่มีอะไรต้องทำ — สองอย่างนี้พูดสลับกันไม่ได้เด็ดขาด
+    html += plan.overflow.length
+      ? `<div class="card empty">วันนี้ไม่เหลือช่องว่างให้วางงานแล้ว —
+           งานข้างบนถูกกันไว้ให้พรุ่งนี้เช้าเรียบร้อย</div>`
+      : `<div class="card empty">วันนี้ไม่มีอะไรต้องนั่งทำ — พักได้เต็มที่ 🎉</div>`;
   }
   list.innerHTML = html;
 }
@@ -2441,6 +2500,9 @@ function dailyGrid(activeDay, claimedUpTo) {
   }).join('');
 }
 
+// กันเช็คอินเด้งทับฉากต้อนรับ — ตั้งเป็นเวลาที่ "ห้ามเด้งจนกว่าจะถึง"
+let checkinHoldUntil = 0;
+
 function openDailyCheck(auto) {
   const wrap = document.getElementById('checkin');
   if (!wrap) return;
@@ -2448,6 +2510,10 @@ function openDailyCheck(auto) {
   // ยังไม่ได้เข้าแอปจริง (จอบัญชี / จอทำความรู้จัก) ห้ามเด้ง —
   // ของรางวัลรายวันเป็นของคนที่เข้ามาใช้แอปแล้ว ไม่ใช่ของที่โผล่ทับหน้าล็อกอิน
   if (auto && document.body.classList.contains('login-mode')) return;
+  // เพิ่งผ่านฉาก "ยินดีที่ได้รู้จัก" มาหมาด ๆ — วินาทีแรกของคนใช้ครั้งแรก
+  // ถ้าปล่อยให้เช็คอินเด้งตรงนี้ เขาจะเจอ toast ต้อนรับ + แผ่นของรางวัล + จอที่ยังว่างเปล่า
+  // พร้อมกันสามชั้น ทั้งที่ยังไม่ทันได้เห็นว่าแอปนี้ทำอะไรได้เลยสักอย่าง
+  if (auto && Date.now() < checkinHoldUntil) return;
   const day = pendingCycleDay();
   const claimed = dailyPending() ? day - 1 : (tokenState().cycleDay || 0);
   const prize = DAILY_PLAN[day - 1];
@@ -4479,7 +4545,9 @@ function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
 // ยังไม่ได้บอกชื่อ (กดข้าม) → ตัดคำเรียกทิ้ง ประโยคยังอ่านรู้เรื่องเหมือนเดิม
 function reminderCopy(t, now) {
   const h = t.due ? (new Date(t.due) - now) / 3.6e6 : null;
-  const s = t.subject;
+  // งานที่ไม่ได้เลือกวิชาจะมี subject = 'อื่น ๆ' ติดมา ซึ่งเอามาแทนชื่องานในประโยคไม่ได้
+  // ("อื่น ๆ เลยเวลาส่งไปแล้วน้า" ไม่ได้บอกว่างานไหน) → ถอยไปใช้ชื่องานแทน
+  const s = taskLabel(t);
   const hr = h != null ? Math.max(1, Math.round(h)) : 0;
   const nm = who();
   const call = nm ? nm : 'คุณ';           // ใช้แทนคำเรียกกลางประโยค
@@ -4499,7 +4567,7 @@ function reminderCopy(t, now) {
     `${hey}แอบเตือนเรื่อง ${s} หน่อย~ เริ่มเลยดีกว่า จะได้พักแบบไม่มีห่วง`,
     `${s} ยังรอ${call}อยู่นะ เริ่มจากนิดเดียวก็ได้ เดี๋ยวก็เสร็จ!`,
   ]) };
-  return { title: 'มีงานรออยู่นะ ✨', body: `${s} — ${t.detail} (${fmtDue(t.due, now, t)})` };
+  return { title: 'มีงานรออยู่นะ ✨', body: `${taskTitleText(t)} (${fmtDue(t.due, now, t)})` };
 }
 
 function celebrateCopy(allDone) {
@@ -5089,6 +5157,9 @@ function skipOnboard() {
 
 // ฉาก "ยินดีที่ได้รู้จัก ___" — จังหวะเดียวที่แอปได้ทักผู้ใช้ด้วยชื่อเขาเป็นครั้งแรก
 function showWelcome(name) {
+  // กันของรางวัลรายวันไว้ก่อน แล้วค่อยปล่อยให้เด้งหลังคนใช้ตั้งตัวได้แล้ว
+  checkinHoldUntil = Date.now() + 9000;
+  setTimeout(() => { if (dailyPending()) openDailyCheck(true); }, 9500);
   const w = document.getElementById('obWelcome');
   document.getElementById('obwName').textContent = name;
   document.getElementById('obwSub').textContent =

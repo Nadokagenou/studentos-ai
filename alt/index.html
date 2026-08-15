@@ -229,7 +229,7 @@
 
             <div class="fld">
               <div class="fld-head">
-                <label for="obFree">วันหนึ่งว่างทำงานกี่ชั่วโมง</label>
+                <label for="obFree">วันหนึ่งนั่งทำงานไหวกี่ชั่วโมง</label>
                 <span class="val" id="obFreeVal">2 ชม.</span>
               </div>
               <input type="range" id="obFree" min="0.5" max="8" step="0.5" value="2"
@@ -240,7 +240,8 @@
                 <button type="button" onclick="setObFree(3,true)">3 ชม.</button>
                 <button type="button" onclick="setObFree(4,true)">4 ชม.</button>
               </div>
-              <p class="ob-note">ใช้คำนวณว่างานที่ค้างอยู่ทำทันไหม — แก้ทีหลังได้ในแท็บ “ฉัน”</p>
+              <p class="ob-note">เป็นเพดานต่อวัน ไม่ใช่เวลาที่ต้องนั่งครบ — เดี๋ยวบอกตารางเรียนเพิ่มได้
+                แล้ว AI จะรู้เองว่าคุณว่างช่วงไหนจริง ๆ · แก้ทีหลังได้ในแท็บ “ฉัน”</p>
             </div>
           </div>
 
@@ -541,7 +542,7 @@
             <div class="pf-stats">
               <div><div class="v" id="pfDone">0</div><div class="k">ทำเสร็จแล้ว</div></div>
               <div class="sep"></div>
-              <div><div class="v" id="pfFree">2 ชม.</div><div class="k">เวลาว่าง/วัน</div></div>
+              <div><div class="v" id="pfFree">2 ชม.</div><div class="k">เพดานงาน/วัน</div></div>
               <div class="sep"></div>
               <div><div class="v" id="pfPending">0</div><div class="k">งานค้าง</div></div>
             </div>
@@ -666,7 +667,8 @@
             </div>
             <div class="pf-row">
               <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
-              <span class="bd"><span class="lb">เวลาว่างต่อวัน</span></span>
+              <span class="bd"><span class="lb">นั่งทำงานไหวต่อวัน</span>
+                <span class="sb">เพดานที่ AI จะไม่วางงานเกิน</span></span>
               <input type="number" id="pFree" min="0.5" step="0.5" value="2" onchange="saveProfile()">
             </div>
             <div class="pf-row col">

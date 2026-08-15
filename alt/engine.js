@@ -450,6 +450,25 @@ function sortByPriority(tasks, now = new Date()) {
 }
 
 // ---------- 3) ประโยคของ AI ----------
+// ชื่อที่ใช้เรียกงานในประโยคพูด — ไม่ใช่ทุกงานที่มีวิชา
+// งานที่ผู้ใช้ไม่ได้เลือกวิชาจะได้ค่า 'อื่น ๆ' ติดมา ซึ่งพอเอาไปต่อประโยคแล้วกลายเป็น
+// "เริ่มที่อื่น ๆ ก่อน" — ประโยคที่ไม่ได้บอกอะไรเลยทั้งที่ตัวงานมีชื่อของมันอยู่แล้ว
+// จึงถอยไปใช้ชื่องานแทน และตัดให้สั้นพอที่จะยังเป็นประโยคพูด ไม่ใช่ย่อหน้า
+function taskLabel(t, max = 24) {
+  const subj = (t.subject || '').trim();
+  if (subj && subj !== 'อื่น ๆ') return subj;
+  const d = (t.detail || '').trim();
+  if (!d) return 'งานที่ค้างอยู่';
+  return d.length > max ? d.slice(0, max - 1).trim() + '…' : d;
+}
+
+// ภาษาไทยไม่เว้นวรรคระหว่างคำ "เริ่มที่ฟิสิกส์ก่อน" จึงถูก แต่พอเป็นชื่องานยาว ๆ
+// "เริ่มที่ทำโจทย์บทที่ 4ก่อน" อ่านไม่ออกว่าตรงไหนคือชื่องาน — ใส่อัญประกาศคั่นแทนการเว้นวรรค
+function taskPhrase(t) {
+  const subj = (t.subject || '').trim();
+  return (subj && subj !== 'อื่น ๆ') ? subj : '“' + taskLabel(t) + '”';
+}
+
 function aiGreeting(pending, settings, now = new Date()) {
   // ALT: เรียกชื่อที่ผู้ใช้บอกไว้ตอนทำความรู้จัก — ประโยคของ AI จะได้พูดกับ "คนคนนี้"
   const nm = (settings.name || '').trim();
@@ -459,19 +478,34 @@ function aiGreeting(pending, settings, now = new Date()) {
   const sorted = sortByPriority(pending, now);
   const top = sorted[0];
   const info = priorityInfo(top, now);
+  const label = taskPhrase(top);
   const totalMin = pending.reduce((s, t) => s + (t.estMin || 30), 0);
   const totalH = Math.round(totalMin / 60 * 10) / 10;
-  const freeH = settings.freeHours || 2;
+
+  // เวลาว่างที่พูดถึงต้องเป็นเวลาว่าง "ที่เหลือจริงวันนี้" ไม่ใช่ตัวเลขที่เขากรอกไว้เมื่อเดือนก่อน
+  // ประโยค "งานรวม 3 ชม. เวลาว่างพอสบาย" ตอนสามทุ่มครึ่งคือประโยคที่ทำให้คนเลิกเชื่อแอป
+  const win = dayWindows(settings, now);
+  const freeH = Math.round(win.budgetMin / 60 * 10) / 10;
 
   // สั้นเสมอ: 1 ประโยคบอกว่าทำอะไรก่อน + 1 วลีบอกว่าเวลาพอไหม
   // "nado ภาษาอังกฤษเลยกำหนดแล้ว" อ่านแล้วสะดุด เพราะชื่อวิชาไปชนชื่อคนพอดี
   // เติมคำว่า "งาน" คั่นไว้ ประโยคจึงมีประธานชัดว่ากำลังพูดถึงงาน ไม่ใช่ตัววิชา
-  if (info.urgency === 'over') return hey + 'งาน' + top.subject + 'เลยกำหนดแล้ว รีบเคลียร์ก่อนเลย';
+  if (info.urgency === 'over') return hey + 'งาน' + label + 'เลยกำหนดแล้ว รีบเคลียร์ก่อนเลย';
+
   const why = (info.reasons[0] || '').replace(/^★ /, '');
+  const first = win.slots[0];
+  // จุดที่แอปนี้ตอบได้แต่ to-do list อื่นตอบไม่ได้: "เริ่มกี่โมง" ไม่ใช่แค่ "ทำอะไรก่อน"
+  const span = first ? first.fromHm + '–' + first.toHm : '';
+  const when = !first ? 'วันนี้ไม่เหลือช่องแล้ว — กันไว้พรุ่งนี้เช้า'
+    : win.mode !== 'late' ? 'ช่องว่างถัดไป ' + span
+    : win.slots.length === 1 ? 'เหลือช่องสุดท้าย ' + span + ' ก่อนนอน'
+    : 'เลยเวลาปกติแล้ว เหลือ ' + span;
   const fit = totalH > freeH
-    ? 'งานรวม ~' + totalH + ' ชม. เกินเวลาว่าง เลือกทำเฉพาะงานด่วน'
-    : 'งานรวม ~' + totalH + ' ชม. เวลาว่างพอสบาย';
-  return hey + 'เริ่มที่' + top.subject + 'ก่อน — ' + why + ' · ' + fit;
+    ? 'งานรวม ~' + totalH + ' ชม. เกินเวลาว่างที่เหลือ (~' + freeH + ' ชม.) เลือกทำเฉพาะงานด่วน'
+    : win.mode === 'late'
+      ? 'งานรวม ~' + totalH + ' ชม. · เหลือถึงเวลานอน ~' + freeH + ' ชม.'
+      : 'งานรวม ~' + totalH + ' ชม. · ว่าง ~' + freeH + ' ชม. พอสบาย';
+  return hey + 'เริ่มที่' + label + 'ก่อน — ' + why + ' · ' + when + ' · ' + fit;
 }
 
 function timelineInsight(pending, now = new Date()) {
@@ -488,15 +522,36 @@ function timelineInsight(pending, now = new Date()) {
       const d = addDays(now, +diff);
       const dayName = +diff === 0 ? 'วันนี้' : +diff === 1 ? 'พรุ่งนี้' : 'วัน' + THAI_DAY[d.getDay()];
       const biggest = list.reduce((a, b) => (a.estMin > b.estMin ? a : b));
-      return dayName + 'มีงานชน ' + list.length + ' งาน — แนะนำเริ่ม ' + biggest.subject + ' (งานใหญ่สุด) ล่วงหน้าตั้งแต่วันนี้';
+      return dayName + 'มีงานชน ' + list.length + ' งาน — แนะนำเริ่ม ' + taskPhrase(biggest) + ' (งานใหญ่สุด) ล่วงหน้าตั้งแต่วันนี้';
     }
   }
   return null;
 }
 
 // ---------- 4) AI Planner: จัดงานลงช่วงเวลาว่างของวันนี้ ----------
-// หลัก: เรียงตาม priority → หั่นลงเวลาว่าง (จาก settings.freeHours)
-// งานใหญ่เกิน 50 นาทีแทรกพัก 10 นาที · เวลาไม่พอ → บอกตรง ๆ ว่างานไหนต้องย้ายวัน
+// หลัก: เรียงตาม priority → วางลง "ช่องว่างจริง" ของวันนี้ที่ context.js คำนวณให้
+// งานยาวเกิน maxRun แทรกพัก · เวลาไม่พอ → บอกตรง ๆ ว่างานไหนต้องย้ายวัน
+//
+// เดิมตัวจัดแผนเริ่มที่ 19:00 ตายตัวและใช้ freeHours เป็นก้อนเดียวยาว ๆ
+// แปลว่าคนที่ว่างบ่ายสามถึงห้าโมงไม่เคยได้แผนของช่วงนั้นเลย และคนที่ซ้อมบอลถึงสองทุ่ม
+// ได้แผนที่ทับเวลาซ้อมทุกวัน — ตารางที่ทำตามไม่ได้ก็คือตารางที่ถูกเลิกเปิดภายในสัปดาห์เดียว
+
+// ตัวห่อ context.js — ถ้าไฟล์บริบทไม่ถูกโหลด (หรือถูกถอดออกในบิลด์ไหนก็ตาม)
+// ตัวจัดแผนต้องยังทำงานได้ ไม่ใช่พังทั้งจอ จึงถอยกลับไปเป็นหน้าต่างเย็นก้อนเดียวแบบเดิม
+function dayWindows(settings = {}, now = new Date()) {
+  if (typeof planWindows === 'function') return planWindows(settings, now);
+  const capMin = Math.round(Math.max(0.5, +settings.freeHours || 2) * 60);
+  const nowMin = Math.ceil((now.getHours() * 60 + now.getMinutes()) / 5) * 5;
+  const from = Math.max(nowMin, 19 * 60);
+  const to = Math.max(from, Math.min(22 * 60 + 30, from + capMin));
+  const hm = v => String(Math.floor(v / 60)).padStart(2, '0') + ':' + String(v % 60).padStart(2, '0');
+  const slots = to - from >= 10
+    ? [{ from, to, min: to - from, fromHm: hm(from), toHm: hm(to) }] : [];
+  const windowMin = slots.reduce((s, x) => s + x.min, 0);
+  return { slots, mode: 'default', windowMin, capMin, budgetMin: Math.min(windowMin, capMin),
+    capped: windowMin > capMin, breakMin: 10, maxRunMin: 50 };
+}
+
 function buildDayPlan(pending, settings, now = new Date()) {
   // กิจกรรม/เตือนความจำ = เหตุการณ์ตามเวลา ไม่ต้องเจียดเวลานั่งทำ
   // แยกออกมาแสดงเป็นหมุดเวลาแทน ไม่เอาไปกินเวลาอ่านหนังสือ
@@ -518,42 +573,80 @@ function buildDayPlan(pending, settings, now = new Date()) {
     .filter(t => t.due && new Date(t.due) >= now && new Date(t.due) <= endOfDay)
     .sort((a, b) => new Date(a.due) - new Date(b.due));
   const sorted = [...dueToday, ...byPriority.filter(t => !dueToday.includes(t))];
-  const freeMin = Math.round((settings.freeHours || 2) * 60);
 
-  // เริ่มแผน: ถ้ายังไม่ถึงเวลาทำการบ้านปกติ (19:00) ให้เริ่ม 19:00, ถ้าเลยแล้วเริ่มตอนนี้
-  let cursor = new Date(now);
-  const evening = atTime(now, 19, 0);
-  if (cursor < evening) cursor = evening;
-  cursor.setMinutes(Math.ceil(cursor.getMinutes() / 5) * 5, 0, 0);
+  const win = dayWindows(settings, now);
+  const midnight = atTime(now, 0, 0);
+  const at = min => new Date(midnight.getTime() + min * 60000);
+
+  // คิวงาน: แต่ละใบพก "เหลืออีกกี่นาที" ติดตัว เพราะงานหนึ่งใบอาจถูกหั่นข้ามช่วงได้
+  // (ว่างบ่าย 40 นาที แล้วว่างอีกทีตอนค่ำ — งานชิ้นใหญ่ควรได้เริ่มตั้งแต่ช่วงบ่าย ไม่ใช่รอ)
+  const queue = sorted.map(t => ({
+    task: t,
+    need: Math.max(10, Math.round((t.estMin || 30) * (1 - (t.progress || 0) / 100))),
+  }));
 
   const slots = [], overflow = [];
-  let remaining = freeMin, sinceBreak = 0;
+  const freeMin = win.budgetMin;
+  let remaining = freeMin;
+  const MIN_CHUNK = 10;   // นั่งลงต่ำกว่าสิบนาทียังไม่ทันเข้าที่ก็หมดเวลาแล้ว
 
-  for (const t of sorted) {
-    // เหลืองานจริงเท่าไหร่ตาม progress ที่ทำไปแล้ว
-    const need = Math.max(10, Math.round((t.estMin || 30) * (1 - (t.progress || 0) / 100)));
-    if (remaining < 10) { overflow.push({ task: t, need }); continue; }
+  for (const w of win.slots) {
+    if (remaining < MIN_CHUNK) break;
+    let cursor = at(w.from);
+    const wEnd = at(w.to);
+    // ข้ามช่วงหมายถึงได้พักไปแล้วจริง ๆ (เดินทาง กินข้าว เข้าคาบ) นับพักใหม่ทุกช่วง
+    let sinceBreak = 0;
 
-    const use = Math.min(need, remaining);
-    const start = new Date(cursor);
-    cursor = new Date(cursor.getTime() + use * 60000);
-    slots.push({
-      task: t, start, end: new Date(cursor), min: use,
-      partial: use < need,
-      note: use < need ? 'ทำบางส่วน (' + use + '/' + need + ' นาที) ที่เหลือย้ายพรุ่งนี้'
-        : (t.progress ? 'ต่อจากที่ทำไว้ ' + t.progress + '%' : null),
-    });
-    remaining -= use;
-    sinceBreak += use;
+    while (queue.length && remaining >= MIN_CHUNK) {
+      const left = Math.round((wEnd - cursor) / 60000);
+      if (left < MIN_CHUNK) break;
 
-    if (sinceBreak >= 50 && remaining >= 15) {
-      const bs = new Date(cursor);
-      cursor = new Date(cursor.getTime() + 10 * 60000);
-      slots.push({ break: true, start: bs, end: new Date(cursor), min: 10 });
-      sinceBreak = 0;
+      const item = queue[0];
+      // งานหนึ่งใบถูกหั่นได้ก็ต่อเมื่อ "ที่ไม่พอ" เท่านั้น — ช่วงหมด หรือเพดานของวันหมด
+      // เคยลองหั่นทุก 50 นาทีเพื่อแทรกพักด้วย ผลคือแผนเต็มไปด้วยเศษ 10 นาที
+      // และบรรทัด "ทำต่อช่วง 17:50" ที่ชี้ไปยังเวลาถัดจากตัวเองหนึ่งวินาที — อ่านแล้วงงกว่าเดิม
+      // พักจึงคั่นระหว่างงาน ไม่ใช่กลางงาน
+      const use = Math.min(item.need, remaining, left);
+      const start = new Date(cursor);
+      cursor = new Date(cursor.getTime() + use * 60000);
+      slots.push({
+        task: item.task, start, end: new Date(cursor), min: use,
+        partial: use < item.need,
+        note: item.task.progress ? 'ต่อจากที่ทำไว้ ' + item.task.progress + '%' : null,
+      });
+      remaining -= use;
+      item.need -= use;
+      sinceBreak += use;
+      if (item.need <= 0) queue.shift();
+
+      // พักคั่นเฉพาะตอนที่ยังมีงานต่อ และช่วงนี้ยังเหลือที่พอให้พักแล้วทำต่อได้จริง
+      const roomAfterBreak = Math.round((wEnd - cursor) / 60000) - win.breakMin;
+      if (sinceBreak >= win.maxRunMin && queue.length && remaining >= MIN_CHUNK &&
+          roomAfterBreak >= MIN_CHUNK && win.breakMin > 0) {
+        const bs = new Date(cursor);
+        cursor = new Date(cursor.getTime() + win.breakMin * 60000);
+        slots.push({ break: true, start: bs, end: new Date(cursor), min: win.breakMin });
+        sinceBreak = 0;
+      }
     }
   }
-  return { slots, overflow, events, freeMin, usedMin: freeMin - remaining };
+
+  // งานที่ยังเหลือ = ไม่มีที่ให้วางในวันนี้จริง ๆ
+  for (const item of queue) overflow.push({ task: item.task, need: item.need });
+
+  // ชิ้นที่ถูกหั่นแล้วได้ไปต่อในช่วงถัดไป กับชิ้นที่ถูกหั่นแล้วจบแค่นั้น เป็นคนละข่าวกัน
+  // อันแรกคือ "เดี๋ยวทำต่อตอนสองทุ่ม" อันหลังคือ "ที่เหลือย้ายวัน" — เขียนรวมกันไม่ได้
+  for (let i = 0; i < slots.length; i++) {
+    const s = slots[i];
+    if (s.break || !s.partial) continue;
+    const next = slots.slice(i + 1).find(x => !x.break && x.task === s.task);
+    s.note = next
+      ? 'ทำต่อช่วง ' + fmtClock(next.start) + ' อีก ' + next.min + ' นาที'
+      : 'ทำบางส่วน (' + s.min + '/' + (s.min + (overflow.find(o => o.task === s.task) || { need: 0 }).need)
+        + ' นาที) ที่เหลือย้ายพรุ่งนี้';
+  }
+
+  return { slots, overflow, events, freeMin, usedMin: freeMin - remaining, windows: win };
 }
 
 function fmtClock(d) {

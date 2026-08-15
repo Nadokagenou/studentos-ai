@@ -542,6 +542,31 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .povf .it .tt{font-size:14px; font-weight:600; letter-spacing:-.01em; color:var(--ink)}
 .povf .it .ln{font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums}
 
+/* หัวช่วงเวลา — คั่นก้อนงานตามช่องว่างจริงของวัน (ว่างบ่าย / ว่างหลังกินข้าว)
+   เส้นคั่นกินพื้นที่ที่เหลือทั้งแถว สายตาจึงอ่านเป็น "ช่วงใหม่" ไม่ใช่การ์ดอีกใบ */
+.pwin{display:flex; align-items:center; gap:10px; padding:4px 0 12px 2px}
+.pwin .mono{font-size:11.5px; font-weight:700; letter-spacing:.04em; color:var(--blue);
+  font-variant-numeric:tabular-nums}
+.pwin i{flex:1; height:1px; background:var(--line)}
+.pwin .pw-min{font-size:11px; color:var(--faint); font-variant-numeric:tabular-nums}
+
+/* ชวนกรอกบริบท — วางบนสุดของแผน เพราะเป็นคำเตือนว่าทุกบรรทัดข้างล่างมาจากการเดา */
+.pctx-nudge{display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+  background:var(--blue-soft); border:1px dashed var(--blue); border-radius:18px;
+  padding:13px 14px; margin-bottom:16px; cursor:pointer}
+.pctx-nudge:active{transform:scale(.985)}
+.pctx-nudge .pn-ic{flex:none; width:32px; height:32px; border-radius:11px; background:var(--blue);
+  color:var(--on-accent); display:flex; align-items:center; justify-content:center}
+.pctx-nudge .pn-ic svg{width:17px; height:17px}
+.pctx-nudge .pn-tx{flex:1; display:flex; flex-direction:column; gap:3px; min-width:0}
+.pctx-nudge .pn-tx b{font-size:13.5px; font-weight:650; letter-spacing:-.01em; color:var(--ink)}
+.pctx-nudge .pn-tx span{font-size:12px; color:var(--muted); line-height:1.5}
+.pctx-nudge .pn-go{flex:none; color:var(--faint)}
+.pctx-nudge .pn-go svg{width:16px; height:16px}
+.pctx-note{display:flex; align-items:center; gap:8px; background:var(--warn-soft); border-radius:16px;
+  padding:12px 14px; margin-bottom:16px; font-size:12.5px; color:var(--ink); line-height:1.5}
+.pctx-note svg{width:15px; height:15px; flex:none; color:var(--warn)}
+
 /* ---------- ฉัน (โปรไฟล์) ---------- */
 .pf-body{padding-top:16px; gap:22px}
 .pf-hero{border-radius:26px; padding:22px 20px; position:relative; overflow:hidden; box-shadow:var(--shadow-brand);
