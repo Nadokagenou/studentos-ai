@@ -430,7 +430,7 @@ function navMode() {
 
 function applyNav() {
   document.documentElement.dataset.nav = navMode();
-  syncJourneyNow(); // ความกว้างจอเปลี่ยน → หมุดบนเส้นทางต้องคำนวณใหม่
+  syncTimelineNow(); // ความกว้างจอเปลี่ยน → หมุด "ตอนนี้" ต้องคำนวณใหม่
 }
 
 function setNav(p) {
@@ -1403,17 +1403,17 @@ function purgeOldTrash() {
   if (state.tasks.length !== before) save();
 }
 
-// ---------- เส้นเวลา ----------
-// จัดกลุ่มตามวันจริง เรียงตามเวลาในวัน และบอกเวลาส่งไว้ริมเส้น
-// ---------- ALT: เส้นเวลาแบบ "การเดินทาง" (แนวนอน) ----------
-// อ่านเป็นเส้นทางที่กำลังเดินอยู่จริง: ถนนพาดซ้าย→ขวาตามเวลา · ป้ายจอด = งานที่ตั้งไว้
-// หมุด "ตอนนี้" ซิงก์กับเวลาจริง ขยับเองทุก 30 วินาทีพร้อมนาฬิกาบนแถบสถานะ
-// เลือกแนวนอนเพราะเวลาเป็นเส้นตรง — ระยะห่างระหว่างป้ายบอก "ว่างกี่วัน" ได้ในตาเดียว
-const JR_DAY_W = 132;      // ความกว้างของ 1 วันบนถนน (px)
-const JR_MAX_DAYS = 21;    // ไกลกว่านี้ไม่วาด ยาวเกินจนเลื่อนหาไม่เจอ
-const JR_GAP = 78;         // ป้ายในเลนเดียวกันต้องห่างกันอย่างน้อยเท่านี้
-
-const JR_PIN_ICON = { homework: 'type', exam: 'book', activity: 'calendar', reminder: 'clock' };
+// ---------- เส้นเวลา (แกนตั้ง) ----------
+// เดิมเป็นถนนแนวนอนที่ต้องเลื่อนซ้าย-ขวา ซึ่งบนมือถืออ่านยากกว่าที่คิด:
+// นิ้วเลื่อนแนวตั้งเป็นสัญชาตญาณ พอต้องเลื่อนแนวนอนคนจึงไม่รู้ว่ายังมีของอยู่ทางขวา
+// แกนตั้งไหลลงเหมือนอ่านหนังสือ เห็นครบ 7 วันด้วยการเลื่อนแบบเดียวกับทั้งแอป
+//
+// ที่สำคัญกว่ารูปทรงคือสิ่งที่เอามาซ้อน: เดิมเส้นเวลารู้แค่ "งานส่งวันไหน"
+// ซึ่งตอบไม่ได้เลยว่าจะทำทันไหม — คำถามจริงของนักเรียนคือ "ก่อนถึงวันนั้นฉันมีเวลาเท่าไหร่"
+// ตอนนี้แต่ละวันวาดจาก context: แถบรูปร่างของวัน (เรียน/กิจวัตร/ช่องว่าง) + เวลาว่างรวม
+// แล้วเทียบกับงานที่ต้องส่งวันนั้น สะสมมาตั้งแต่วันนี้ วันไหนเวลาไม่พอจะติดป้ายเตือน
+const TL_DAYS = 7;
+const TL_PIN_ICON = { homework: 'type', exam: 'book', activity: 'calendar', reminder: 'clock' };
 
 function humanLeft(ms) {
   if (ms < 0) return 'เลยมาแล้ว';
@@ -1422,6 +1422,90 @@ function humanLeft(ms) {
   const h = Math.floor(min / 60);
   if (h < 24) return 'อีก ' + h + ' ชม.' + (min % 60 ? ' ' + (min % 60) + ' นาที' : '');
   return 'อีก ' + Math.round(h / 24) + ' วัน';
+}
+
+function tlHours(min) {
+  if (min <= 0) return '0';
+  return String(Math.round(min / 6) / 10);
+}
+
+// นาทีจากเที่ยงคืนของเวลาที่กำหนดส่ง — 23:59 คือ "ไม่ได้ระบุเวลา" (ทั้งวัน)
+function tlDueMin(t) {
+  const d = new Date(t.due);
+  return d.getHours() * 60 + d.getMinutes();
+}
+function tlAllDay(t) {
+  const d = new Date(t.due);
+  return d.getHours() === 23 && d.getMinutes() === 59;
+}
+
+// เก็บข้อมูลของแต่ละวันไว้ก้อนเดียว แล้วค่อยเอาไปวาด — ตรรกะกับ markup แยกกันชัด
+//
+// "เวลาว่างที่ใช้ได้จริงก่อนกำหนดส่ง" ไม่ใช่เวลาว่างทั้งวัน:
+// งานที่ส่ง 08:00 ใช้ช่องว่างตอนเย็นของวันเดียวกันไม่ได้ ต้องนับเฉพาะช่องที่จบก่อนเวลาส่ง
+// ถ้านับรวมทั้งวันจะได้คำตอบที่ดูดีแต่ผิด แล้วคนเชื่อจนพลาดส่งจริง
+function tlBuildDays(dated, now) {
+  const out = [];
+  let capAcc = 0, needAcc = 0;
+  // เพดานเดียวกับที่ตัวจัดแผนใช้ — วันอาทิตย์ที่ไม่มีคาบเรียนมีช่องว่าง 15 ชั่วโมงก็จริง
+  // แต่ไม่มีนักเรียนคนไหนนั่งทำการบ้าน 15 ชั่วโมง ตัวเลขนั้นเลยทั้งไม่จริงและไม่มีประโยชน์
+  // และถ้าเส้นเวลาบอก 15 ชม. ขณะที่หน้าแผนบอก 2 ชม. สองจอก็โกหกคนคนเดียวกันคนละแบบ
+  const capMin = Math.round(Math.max(0.5, +state.settings.freeHours || 2) * 60);
+
+  for (let i = 0; i < TL_DAYS; i++) {
+    const day = addDays(now, i);
+    const isToday = i === 0;
+    const slots = typeof freeSlots === 'function' ? freeSlots(day, isToday ? now : null) : [];
+    const busy = (typeof busyBlocks === 'function' && typeof mergeRanges === 'function')
+      ? mergeRanges(busyBlocks(day)) : [];
+    const freeMin = slots.reduce((a, s) => a + s.min, 0);
+
+    const due = dated.filter(t => new Date(t.due).toDateString() === day.toDateString())
+      .sort((a, b) => new Date(a.due) - new Date(b.due));
+    const needMin = due.reduce((a, t) => {
+      if (!TASK_TYPES[taskType(t)].schedulable) return a;   // กิจกรรมไม่กินเวลานั่งทำ
+      const left = Math.max(0, Math.round((t.estMin || 30) * (1 - (t.progress || 0) / 100)));
+      return a + left;
+    }, 0);
+
+    // ช่องว่างของวันนี้ที่ยังทันงานที่ส่งเช้าวันนี้ = ช่องที่จบก่อนเวลาส่งที่เร็วที่สุด
+    const firstDue = due.length ? Math.min(...due.map(tlDueMin)) : 24 * 60;
+    const rawUsable = slots.reduce((a, s) => a + Math.max(0, Math.min(s.to, firstDue) - s.from), 0);
+
+    // เวลาที่ "ทำได้จริง" ของวันนั้น = ช่องว่างที่มี แต่ไม่เกินเพดานต่อวัน
+    const budget = Math.min(freeMin, capMin);
+    const usable = Math.min(rawUsable, budget);
+
+    capAcc += usable;
+    needAcc += needMin;
+    const tight = needMin > 0 && needAcc > capAcc;
+    capAcc += budget - usable;   // ที่เหลือของวันตกไปเป็นทุนของวันถัดไป
+
+    out.push({ day, isToday, slots, busy, freeMin, budget, due, needMin, tight,
+      capped: freeMin > capMin, shortMin: Math.max(0, needAcc - capAcc) });
+  }
+
+  // หนี้เวลาไหลต่อไปข้างหน้าเรื่อย ๆ พอวันหนึ่งไม่พอ วันถัด ๆ ไปก็ไม่พอตามไปด้วยทั้งแถว
+  // ติดป้ายเตือนเต็มทุกใบจะได้ข้อความเดียวกันสามสี่รอบ ซึ่งอ่านแล้วเลิกอ่าน
+  // วันที่ทำอะไรได้จริงคือวันแรกที่เริ่มไม่พอ — วันที่เหลือแค่บอกว่ายังตามไม่ทัน
+  const first = out.findIndex(d => d.tight);
+  if (first >= 0) {
+    for (let i = first + 1; i < out.length; i++) {
+      if (out[i].tight) { out[i].tight = false; out[i].carry = true; }
+    }
+  }
+  return out;
+}
+
+// หน้าต่างของแถบ — ใช้ค่าเดียวกันทุกวัน ไม่งั้นแถบแต่ละวันเทียบกันด้วยสายตาไม่ได้
+function tlWindow(days) {
+  const p = typeof ctxPrefs === 'function' ? ctxPrefs() : {};
+  let from = Math.min(6 * 60, hm2min(p.wake) ?? 6 * 60);
+  let to = Math.max(22 * 60, hm2min(p.sleep) || 22 * 60);
+  for (const d of days) {
+    for (const b of d.busy) { from = Math.min(from, b.from); to = Math.max(to, b.to); }
+  }
+  return { from, to: Math.max(to, from + 60) };
 }
 
 function renderTimeline() {
@@ -1434,107 +1518,118 @@ function renderTimeline() {
 
   const head = `<div class="page-head">
       <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
-      <h1 class="page-title">เส้นทาง${who() ? 'ของ' + esc(who()) : 'ของวันนี้'}</h1>
-      <p class="page-sub">ป้ายจอด <b>${dated.length}</b> งาน</p>
+      <h1 class="page-title">เส้นเวลา${who() ? 'ของ' + esc(who()) : ''}</h1>
+      <p class="page-sub">7 วันข้างหน้า · มีกำหนดส่ง <b>${dated.length}</b> งาน</p>
     </div>`;
 
-  if (!dated.length) {
+  if (!dated.length && !undated.length) {
     el.innerHTML = head + `<section class="empty-wrap">
       <div class="empty-ring">${icon('flag')}</div>
-      <h3 class="empty-h">เส้นทางยังโล่ง</h3>
-      <p class="empty-p">${undated.length
-        ? 'มีงานอยู่ ' + undated.length + ' งานแต่ยังไม่ได้ใส่วัน — ใส่กำหนดส่งแล้วจะขึ้นมาเป็นป้ายบนเส้นทางทันที'
-        : 'ยังไม่มีงานที่มีกำหนดส่ง เพิ่มงานแล้วจะเห็นเป็นป้ายจอดเรียงตามเวลา'}</p>
+      <h3 class="empty-h">เส้นเวลายังว่าง</h3>
+      <p class="empty-p">ยังไม่มีงานที่มีกำหนดส่ง เพิ่มงานแล้วจะเห็นว่าแต่ละวันเหลือเวลาพอทำไหม</p>
       <button class="empty-cta" onclick="go('scr-scan')">${icon('camera')}เพิ่มงานใหม่</button>
     </section>`;
     return;
   }
 
-  // ---- ขอบเขตของถนน ----
-  const dayStart = atTime(now, 0, 0);
-  let start = dayStart;
-  let end = addDays(dayStart, 7);
-  const firstDue = new Date(dated[0].due);
-  if (firstDue < start) start = atTime(firstDue, 0, 0);       // มีงานเลยกำหนด → ถอยจุดเริ่มไปหามัน
-  const lastDue = new Date(dated[dated.length - 1].due);
-  if (atTime(lastDue, 0, 0) >= end) end = addDays(atTime(lastDue, 0, 0), 1);
-  const hardEnd = addDays(start, JR_MAX_DAYS);
-  let beyond = [];
-  if (end > hardEnd) { end = hardEnd; beyond = dated.filter(t => new Date(t.due) >= end); }
+  const days = tlBuildDays(dated, now);
+  const win = tlWindow(days);
+  const span = win.to - win.from;
+  const pct = m => Math.max(0, Math.min(100, ((m - win.from) / span) * 100));
 
-  const span = end - start;
-  const days = Math.max(1, Math.round(span / 8.64e7));
-  const roadW = days * JR_DAY_W;
-  // ป้ายจอดวางกึ่งกลางบนหมุด ป้ายใบแรกจึงยื่นออกไปทางซ้ายของถนนราวครึ่งใบ
-  // ถ้าถนนเริ่มที่ 0 พอดี ป้ายใบนั้นจะโดนขอบกล่องเลื่อนตัดหายไปครึ่งหนึ่ง
-  // (เห็นชัดสุดตอนมีงานเลยกำหนด เพราะจุดเริ่มถนนถูกถอยไปหาวันนั้นพอดี)
-  // เว้นช่องว่างหัวท้ายถนนไว้เท่าครึ่งป้าย แล้วเลื่อนทุกอย่างเข้ามาเท่ากันหมด
-  const JR_GUT = 72;
-  const width = roadW + JR_GUT * 2;
-  const xOf = d => JR_GUT + ((d - start) / span) * roadW;
-  const meX = Math.max(JR_GUT, Math.min(JR_GUT + roadW, xOf(now)));
-
-  // ---- หลักวัน ----
-  let ticks = '';
-  for (let i = 0; i < days; i++) {
-    const d = addDays(start, i);
-    const diff = Math.round((atTime(d, 0, 0) - dayStart) / 8.64e7);
-    const label = diff === 0 ? 'วันนี้' : diff === 1 ? 'พรุ่งนี้' : diff === -1 ? 'เมื่อวาน'
-      : WEEKDAY_SHORT[d.getDay()] + ' ' + d.getDate();
-    ticks += `<div class="jr-day${diff === 0 ? ' today' : ''}${diff < 0 ? ' past' : ''}"
-      style="left:${xOf(d)}px"><i></i><span>${esc(label)}</span></div>`;
-  }
-
-  // ---- ป้ายจอด: สลับ 4 เลน (บน/ล่าง) กันป้ายทับกันเวลางานอยู่ใกล้กัน ----
-  const laneX = [-9e9, -9e9, -9e9, -9e9];
-  let stops = '';
-  for (const t of dated) {
-    const due = new Date(t.due);
-    if (due >= end) continue;
-    const x = xOf(due);
-    let lane = laneX.findIndex(lx => x - lx > JR_GAP);
-    if (lane < 0) lane = laneX.indexOf(Math.min(...laneX));
-    laneX[lane] = x;
-    const info = priorityInfo(t, now);
-    const tone = priorityTone(info.stars);
-    const type = taskType(t);
-    const name = t.subject && t.subject !== 'อื่น ๆ' ? t.subject : t.detail;
-    stops += `<button class="jr-stop lane${lane} ${tone}${due < now ? ' over' : ''}"
-      data-x="${Math.round(x)}" style="left:${x}px" onclick="openForm('${t.id}')"
-      aria-label="${esc(taskTitle(t))} ${esc(fmtDue(t.due, now, t))}">
-      <span class="jr-bub"><b>${esc(name)}</b><i class="mono">${esc(dueClock(t))}</i></span>
-      <span class="jr-leg"></span>
-      <span class="jr-pin">${icon(JR_PIN_ICON[type] || 'pin')}</span>
-    </button>`;
-  }
-
-  // ---- การ์ดบอกว่าป้ายถัดไปคืออะไร ----
+  // งานที่อยู่ไกลกว่าช่วงที่วาด — บอกให้รู้ว่ามีอยู่ ไม่ใช่หายไปเฉย ๆ
+  const lastDay = addDays(atTime(now, 0, 0), TL_DAYS);
+  const beyond = dated.filter(t => new Date(t.due) >= lastDay);
   const late = dated.filter(t => new Date(t.due) < now);
   const next = dated.find(t => new Date(t.due) >= now);
-  const nextCard = `<div class="jr-next${late.length ? ' late' : ''}">
+
+  const nextCard = `<div class="tl-next${late.length ? ' late' : ''}">
     <span class="tile">${icon(late.length ? 'clock' : 'pin')}</span>
     <div class="bd">
-      <div class="lb">${late.length ? 'เลยป้ายมาแล้ว ' + late.length + ' งาน' : 'ป้ายถัดไป'}</div>
+      <div class="lb">${late.length ? 'เลยกำหนดแล้ว ' + late.length + ' งาน' : 'งานถัดไป'}</div>
       <div class="tx">${next
-        ? esc(taskTitle(next)) + ' · <b>' + esc(humanLeft(new Date(next.due) - now)) + '</b>'
-        : 'ผ่านป้ายสุดท้ายของช่วงนี้แล้ว'}</div>
+        ? taskTitle(next) + ' · <b>' + esc(humanLeft(new Date(next.due) - now)) + '</b>'
+        : 'ไม่มีงานที่รอส่งในช่วงนี้'}</div>
     </div>
     ${next ? `<button class="go" onclick="openForm('${next.id}')" aria-label="เปิดงานนี้">${icon('chevron')}</button>` : ''}
   </div>`;
 
-  const legend = `<div class="jr-legend">
-    <span><i class="d red"></i>ด่วนมาก</span>
-    <span><i class="d yellow"></i>สำคัญ–ปานกลาง</span>
-    <span><i class="d green"></i>รอได้</span>
-    <span><i class="d me"></i>ตำแหน่งตอนนี้</span>
+  // ยังไม่รู้ตารางของเขา = แถบทุกวันจะโล่งเท่ากันหมด ซึ่งดูเหมือนข้อมูล แต่ไม่ใช่
+  const ctxNudge = (typeof ctxIsEmpty === 'function' && ctxIsEmpty())
+    ? `<button class="tl-nudge" onclick="go('scr-context')">
+        <span class="pn-ic">${icon('clock')}</span>
+        <span class="pn-tx"><b>ยังไม่รู้ตารางเรียนของคุณ</b>
+          <span>แถบเวลาว่างข้างล่างจึงยังว่างทั้งวัน — บอกตารางแล้วจะเห็นของจริง</span></span>
+        <span class="pn-go">${icon('chevron')}</span>
+      </button>` : '';
+
+  const rows = days.map((d, i) => {
+    const label = i === 0 ? 'วันนี้' : i === 1 ? 'พรุ่งนี้' : 'วัน' + THAI_DAY[d.day.getDay()];
+    const date = d.day.getDate() + ' ' + MONTH_SHORT[d.day.getMonth()];
+
+    // แถบรูปร่างของวัน: พื้นเทา = เวลาที่ใช้ไม่ได้ · ก้อนสี = ช่องว่างจริง · หมุด = กำหนดส่ง
+    //
+    // วาด "ช่องที่ว่าง" ไม่ใช่ "ช่องที่ไม่ว่าง" — กลับด้านกันแล้วอ่านง่ายกว่ามาก
+    // เพราะสิ่งที่คนมองหาบนจอนี้คือ "ฉันมีที่ว่างตรงไหน" ไม่ใช่ "ฉันติดอะไรบ้าง"
+    // และช่องว่างของวันนี้เริ่มนับจากตอนนี้อยู่แล้ว เวลาที่ผ่านไปจึงเป็นพื้นเทาเองโดยไม่ต้องวาดทับ
+    const freeBars = d.slots.map(s =>
+      `<i class="f" style="left:${pct(s.from)}%;width:${Math.max(0.8, pct(s.to) - pct(s.from))}%"></i>`).join('');
+    // หมุดที่ตกขอบพอดี (งาน "ทั้งวัน" = 23:59) จะโดนขอบแถบตัดหายไปครึ่งเส้น
+    // รั้งเข้ามาหน่อยให้เห็นเต็มเส้น — คลาดจากตำแหน่งจริงไม่ถึงสิบนาทีบนสเกลนี้
+    const pins = d.due.map(t => {
+      const tone = priorityTone(priorityInfo(t, now).stars);
+      const at = Math.min(98.6, Math.max(0.4, pct(tlAllDay(t) ? win.to : tlDueMin(t))));
+      return `<i class="p ${tone}" style="left:${at}%"></i>`;
+    }).join('');
+    const nowMark = d.isToday ? `<i class="now" id="tlNow"
+      style="left:${pct(now.getHours() * 60 + now.getMinutes())}%"></i>` : '';
+
+    const tasks = d.due.map(t => {
+      const info = priorityInfo(t, now);
+      const tone = priorityTone(info.stars);
+      const over = new Date(t.due) < now;
+      return `<button class="tl-task ${tone}${over ? ' over' : ''}" onclick="openForm('${t.id}')">
+        <span class="tt-time mono">${esc(tlAllDay(t) ? 'ทั้งวัน' : fmtClock(new Date(t.due)))}</span>
+        <span class="tt-ic">${icon(TL_PIN_ICON[taskType(t)] || 'pin')}</span>
+        <span class="tt-bd">
+          <span class="tt-nm">${taskTitle(t)}</span>
+          <span class="tt-sub">${esc(priorityLabel(info.stars))}${
+            TASK_TYPES[taskType(t)].schedulable ? ' · ~' + (t.estMin || 30) + ' นาที' : ''}</span>
+        </span>
+      </button>`;
+    }).join('');
+
+    return `<section class="tl-day${d.isToday ? ' today' : ''}${d.due.length ? '' : ' quiet'}">
+      <span class="tl-dot"></span>
+      <header class="tl-head">
+        <b>${esc(label)}</b><span class="tl-date mono">${esc(date)}</span>
+        <span class="tl-free${d.freeMin < 90 ? ' low' : ''}">ว่าง ${tlHours(d.freeMin)} ชม.</span>
+      </header>
+      <div class="tl-bar" title="แถบเขียว = ช่วงที่ว่างจริง">
+        ${freeBars}${pins}${nowMark}
+      </div>
+      ${d.tight ? `<div class="tl-warn">${icon('clock')}
+        <span>เวลาว่างก่อนถึงกำหนดขาดไปราว <b>${tlHours(d.shortMin)} ชม.</b> —
+          เริ่มงานของวันนี้ตั้งแต่วันก่อนหน้าจะทันกว่า</span></div>`
+      : d.carry ? `<div class="tl-warn soft">${icon('clock')}
+        <span>ยังตามไม่ทันจากที่ค้างมา</span></div>` : ''}
+      ${tasks || `<div class="tl-none">ไม่มีกำหนดส่ง</div>`}
+    </section>`;
+  }).join('');
+
+  const legend = `<div class="tl-legend">
+    <span><i class="k free"></i>ช่วงที่ว่าง</span>
+    <span><i class="k busy"></i>ติดเรียน/กิจวัตร</span>
+    <span><i class="k red"></i>กำหนดส่งด่วน</span>
+    <span><i class="k green"></i>กำหนดส่งรอได้</span>
   </div>`;
 
-  const extras = (undated.length ? `<div class="jr-un">
-      <div class="lb">ยังไม่ได้ใส่วัน — ยังไม่ขึ้นเส้นทาง</div>
+  const extras = (undated.length ? `<div class="tl-un">
+      <div class="lb">ยังไม่ได้ใส่วัน — ยังไม่ขึ้นเส้นเวลา</div>
       <div class="chips">${undated.map(t =>
-        `<button onclick="openForm('${t.id}')">${esc(taskTitle(t))}</button>`).join('')}</div>
+        `<button onclick="openForm('${t.id}')">${taskTitle(t)}</button>`).join('')}</div>
     </div>` : '')
-    + (beyond.length ? `<p class="jr-far">อีก ${beyond.length} งานอยู่ไกลกว่า ${JR_MAX_DAYS} วัน — ดูได้ในแท็บ “งาน”</p>` : '');
+    + (beyond.length ? `<p class="tl-far">อีก ${beyond.length} งานอยู่ไกลกว่า ${TL_DAYS} วัน — ดูได้ในแท็บ “งาน”</p>` : '');
 
   const insight = timelineInsight(pending, now);
   const note = insight ? `<div class="tl-note">
@@ -1545,46 +1640,30 @@ function renderTimeline() {
     </div>
   </div>` : '';
 
-  el.innerHTML = head + nextCard + legend + `
-    <div class="jr" id="jrScroll">
-      <div class="jr-track" id="jrTrack" data-start="${+start}" data-span="${span}" data-w="${roadW}"
-        data-gut="${JR_GUT}" style="width:${width}px">
-        <div class="jr-road" style="left:${JR_GUT}px;right:${JR_GUT}px"></div>
-        <div class="jr-road done" id="jrDone" style="left:${JR_GUT}px;width:${meX - JR_GUT}px"></div>
-        ${ticks}
-        <div class="jr-finish" style="left:${JR_GUT + roadW}px">${icon('flag')}</div>
-        ${stops}
-        <div class="jr-me" id="jrMe" style="left:${meX}px">
-          <span class="me-dot"></span><span class="me-lb mono">ตอนนี้ ${fmtClock(now)}</span>
-        </div>
-      </div>
-    </div>`
-    + extras + note;
+  // ป้ายรายวันบอก "ช่องว่างมีเท่าไหร่" ซึ่งต่างกันทุกวันและเป็นข้อมูลจริง
+  // ส่วนเพดานต่อวันเป็นค่าเดียวทั้งสัปดาห์ ถ้าเอาไปแปะซ้ำทุกแถวจะได้เลขเดิม 7 รอบ
+  // ที่ไม่บอกอะไรเลย — พูดครั้งเดียวตรงนี้ แล้วคำเตือน "เวลาไม่พอ" ข้างล่างคิดจากเพดานนี้
+  const capH = Math.round(Math.max(0.5, +state.settings.freeHours || 2) * 10) / 10;
+  const capLine = `<p class="tl-cap">${icon('clock')}คำเตือนเรื่องเวลาข้างล่างคิดจากเพดาน
+    <b>${capH} ชม./วัน</b> ที่ตั้งไว้ ไม่ใช่ช่องว่างทั้งหมด — แก้ได้ในแท็บ “ฉัน”</p>`;
 
-  syncJourneyNow();
-  // เลื่อนให้เห็นตำแหน่งปัจจุบันก่อนเสมอ (ไม่ใช่ต้นเส้นทางที่อาจเลยไปแล้ว)
-  const sc = document.getElementById('jrScroll');
-  if (sc) setTimeout(() => { sc.scrollLeft = Math.max(0, meX - sc.clientWidth * 0.34); }, 0);
+  el.innerHTML = head + nextCard + ctxNudge + note
+    + `<div class="tl">${rows}</div>` + capLine + legend + extras;
 }
 
-// ขยับหมุด "ตอนนี้" ตามเวลาจริง โดยไม่ต้องวาดเส้นทางใหม่ทั้งเส้น
-function syncJourneyNow() {
-  const track = document.getElementById('jrTrack');
-  if (!track) return;
-  const start = +track.dataset.start, span = +track.dataset.span, w = +track.dataset.w;
-  if (!span) return;
-  // gut = ช่องว่างหัวถนน ต้องบวกกลับเข้าไปเหมือนตอนวาด ไม่งั้นหมุด "ตอนนี้" จะเพี้ยนไปทางซ้าย
-  const gut = +track.dataset.gut || 0;
-  const x = gut + Math.max(0, Math.min(1, (Date.now() - start) / span)) * w;
-  const me = document.getElementById('jrMe');
-  if (me) {
-    me.style.left = x + 'px';
-    const lb = me.querySelector('.me-lb');
-    if (lb) lb.textContent = 'ตอนนี้ ' + fmtClock(new Date());
-  }
-  const done = document.getElementById('jrDone');
-  if (done) done.style.width = (x - gut) + 'px';
-  track.querySelectorAll('.jr-stop').forEach(s => s.classList.toggle('passed', +s.dataset.x <= x));
+// ขยับหมุด "ตอนนี้" ตามเวลาจริง โดยไม่ต้องวาดทั้งจอใหม่
+// (เรียกจาก tickClock ทุก 30 วินาที)
+function syncTimelineNow() {
+  const mark = document.getElementById('tlNow');
+  if (!mark) return;
+  const bar = mark.parentElement;
+  const gone = bar && bar.querySelector('.gone');
+  const win = tlWindow([]);
+  const now = new Date();
+  const m = now.getHours() * 60 + now.getMinutes();
+  const p = Math.max(0, Math.min(100, ((m - win.from) / (win.to - win.from)) * 100));
+  mark.style.left = p + '%';
+  if (gone) gone.style.width = p + '%';
 }
 
 // เวลาส่งสำหรับริมเส้น — 23:59 คือ "ไม่ได้ระบุเวลา" จึงเขียนว่าทั้งวัน
@@ -5656,7 +5735,7 @@ function tickClock() {
   const n = new Date();
   document.getElementById('clock').textContent =
     String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
-  syncJourneyNow(); // ALT: หมุดบนเส้นทางเดินตามเวลาจริงไปพร้อมนาฬิกา
+  syncTimelineNow(); // ALT: หมุด "ตอนนี้" เดินตามเวลาจริงไปพร้อมนาฬิกา
   navRecheck();     // ALT: กันเลย์เอาต์ค้างผิดโหมด ถ้า event เรื่องขนาดจอพลาดไปสักตัว
   // วิดเจ็ตนาฬิกาบนหน้าแรกเดินตามไปด้วย (ไม่ต้องวาดหน้าใหม่ทั้งหน้า)
   const wc = document.getElementById('wgClock');
@@ -5790,4 +5869,4 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
       setTimeout(showInstallGuide, 1400);
     }
   }, 900);
-})();
+})();
