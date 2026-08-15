@@ -235,7 +235,10 @@ function planWindows(settings = {}, now = new Date()) {
   const capMin = Math.round(Math.max(0.5, +settings.freeHours || 2) * 60);
   const nowMin = Math.ceil((now.getHours() * 60 + now.getMinutes()) / 5) * 5;
   const hardEnd = hm2min(p.noWorkAfter) ?? 21 * 60 + 30;
-  const sleep = hm2min(p.sleep) ?? 22 * 60 + 30;
+  // เข้านอนเที่ยงคืนถูกเก็บเป็น '00:00' = 0 นาที ซึ่งถ้าใช้ตรง ๆ จะแปลว่า "ปลายวันอยู่ก่อนตอนนี้เสมอ"
+  // แล้วคนที่นอนเที่ยงคืนจะไม่เคยได้ช่วงยืมเวลาก่อนนอนเลยสักครั้ง — นับเป็นปลายวันแทน
+  const sleepRaw = hm2min(p.sleep);
+  const sleep = (sleepRaw == null || sleepRaw === 0) ? 24 * 60 : sleepRaw;
 
   let mode = 'context';
   let slots;

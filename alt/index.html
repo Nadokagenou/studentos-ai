@@ -209,10 +209,13 @@
       </div>
 
       <!-- ============ SCREEN: ONBOARD (ALT) ============ -->
-      <!-- ถามแค่ 2 อย่างที่ AI ต้องใช้จริง: เรียกว่าอะไร + วันหนึ่งว่างกี่ชั่วโมง
-           จบในหน้าเดียว ไม่มีขั้นตอนถัดไป — ยิ่งถามน้อย ยิ่งมีคนตอบจนจบ -->
+      <!-- สองขั้น ขั้นละไม่กี่วินาที:
+           1) เรียกว่าอะไร + วันหนึ่งนั่งทำงานไหวกี่ชั่วโมง (พิมพ์ชื่ออย่างเดียว)
+           2) รูปร่างของวันธรรมดา — เลิกเรียน · เดินทาง · เข้านอน (กดล้วน ไม่ต้องพิมพ์)
+           ขั้นสองข้ามได้ แต่คนที่ตอบจะได้แผนที่ลงช่องว่างจริงตั้งแต่วันแรก
+           แทนที่จะต้องไปเจอเองว่ามีหน้า "บริบทของฉัน" ซ่อนอยู่ในแท็บฉัน -->
       <div class="screen flush" id="scr-onboard">
-        <div class="scr-body ob-body">
+        <div class="scr-body ob-body" id="obStep1">
           <div class="ob-head">
             <img class="ob-mark brand-light" src="logo-splash.png" alt=""><img class="ob-mark brand-dark" src="logo-splash-light.png" alt="">
             <h2 class="ob-h">ขอรู้จักกันหน่อย</h2>
@@ -246,8 +249,40 @@
           </div>
 
           <div class="ob-act">
-            <button class="fm-save" onclick="finishOnboard()">เริ่มใช้งาน</button>
+            <button class="fm-save" onclick="obNext()">ถัดไป</button>
             <button class="fm-cancel" onclick="skipOnboard()">ข้ามไปก่อน</button>
+          </div>
+        </div>
+
+        <!-- ขั้น 2: รูปร่างของวันธรรมดา — ทุกคำถามตอบด้วยการกดปุ่มเดียว
+             ไม่มีช่องให้พิมพ์เลยแม้แต่ช่องเดียว เพราะทุกช่องที่ต้องพิมพ์คือคนหายไปอีกกลุ่ม -->
+        <div class="scr-body ob-body" id="obStep2" hidden>
+          <div class="ob-head">
+            <h2 class="ob-h">วันธรรมดาของคุณเป็นยังไง</h2>
+            <p class="ob-p">ตอบ 3 ข้อ แล้ว AI จะรู้เองว่าคุณว่างช่วงไหนจริง ๆ ไม่ต้องเดาให้</p>
+          </div>
+
+          <div class="ob-card">
+            <div class="fld">
+              <label>ปกติเลิกเรียนกี่โมง</label>
+              <div class="ob-chips" id="obOut"></div>
+            </div>
+            <div class="fld">
+              <label>จากโรงเรียนถึงบ้าน ใช้เวลาเท่าไหร่</label>
+              <div class="ob-chips" id="obTrip"></div>
+            </div>
+            <div class="fld">
+              <label>ปกติเข้านอนกี่โมง</label>
+              <div class="ob-chips" id="obBed"></div>
+            </div>
+          </div>
+
+          <!-- ผลลัพธ์ขยับตามที่กดทันที — จังหวะเดียวที่พิสูจน์ว่าถามไปแล้วได้อะไรกลับมา -->
+          <div class="ob-peek" id="obPeek"></div>
+
+          <div class="ob-act">
+            <button class="fm-save" onclick="finishOnboard()">เริ่มใช้งาน</button>
+            <button class="fm-cancel" onclick="finishOnboard(true)">ยังไม่บอกตอนนี้</button>
           </div>
         </div>
 

@@ -5326,7 +5326,106 @@ function openOnboard() {
   if (f) setObFree(state.settings.freeHours || 2, true);
   const w = document.getElementById('obWelcome');
   if (w) { w.hidden = true; w.classList.remove('on'); }
+  obShowStep(1);
   go('scr-onboard');
+}
+
+// ---------- ขั้น 2: รูปร่างของวันธรรมดา ----------
+// สามคำถามนี้ถูกเลือกมาเพราะให้ "ช่องว่างจริง" ต่อการกดหนึ่งครั้งมากที่สุด
+// เลิกเรียนกับเดินทางเป็นตัวกำหนดว่าบ่ายเริ่มได้เมื่อไหร่ (คือช่วงที่แผนเดิมมองไม่เห็นเลย)
+// ส่วนเวลานอนเป็นตัวกำหนดปลายวัน — ที่เหลือคำนวณเอาได้หมด ไม่ต้องถามเพิ่ม
+//
+// ที่ไม่ถามคือ "เข้าเรียนกี่โมง" เพราะเช้าของเด็กมัธยมไทยแทบไม่มีใครว่างอยู่แล้ว
+// ตอบไปก็ไม่เปลี่ยนแผนสักบรรทัด — คำถามที่ไม่เปลี่ยนคำตอบคือคำถามที่ควรตัดทิ้ง
+const OB_SCHOOL_START = '08:00';
+const OB_OUT = ['15:00', '15:30', '16:00', '16:30', '17:00'];
+const OB_TRIP = [[0, 'ถึงเลย'], [30, '30 นาที'], [60, '1 ชม.'], [90, '1 ชม. ครึ่ง']];
+const OB_BED = [['21:00', '3 ทุ่ม'], ['22:00', '4 ทุ่ม'], ['23:00', '5 ทุ่ม'], ['00:00', 'เที่ยงคืน']];
+
+let obDay = { out: '16:00', trip: 30, bed: '22:00' };
+
+function obShowStep(n) {
+  const s1 = document.getElementById('obStep1');
+  const s2 = document.getElementById('obStep2');
+  if (s1) s1.hidden = n !== 1;
+  if (s2) s2.hidden = n !== 2;
+}
+
+// ขั้นแรกต้องมีชื่อก่อนถึงจะไปต่อ — ทั้งแอปเรียกชื่อนี้ ปล่อยผ่านไม่ได้
+function obNext() {
+  const input = document.getElementById('obName');
+  const name = (input.value || '').trim();
+  const err = document.getElementById('obErr');
+  if (!name) {
+    err.hidden = false;
+    input.classList.add('bad');
+    input.focus();
+    setTimeout(() => input.classList.remove('bad'), 500);
+    return;
+  }
+  err.hidden = true;
+  obShowStep(2);
+  renderObDay();
+  haptic('tap');
+}
+
+function obPick(key, val) {
+  obDay[key] = val;
+  haptic('tap');
+  renderObDay();
+}
+
+function renderObDay() {
+  const chips = (id, list, key) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = list.map(([v, label]) => `<button type="button"
+      class="ob-chip${obDay[key] === v ? ' on' : ''}"
+      onclick="obPick('${key}', ${typeof v === 'number' ? v : `'${v}'`})">${esc(label)}</button>`).join('');
+  };
+  chips('obOut', OB_OUT.map(v => [v, v]), 'out');
+  chips('obTrip', OB_TRIP, 'trip');
+  chips('obBed', OB_BED, 'bed');
+
+  // คำนวณจากคำตอบตรง ๆ ไม่ต้องเขียนลงบริบทก่อน — เขายังไม่ได้กดยืนยันสักหน่อย
+  const home = min2hm(hm2min(obDay.out) + obDay.trip);
+  const bed = hm2min(obDay.bed) || 22 * 60;
+  const stop = (bed === 0 ? 24 * 60 : bed) - 60;      // เที่ยงคืนคือ 0 ต้องคิดเป็นปลายวัน
+  const free = Math.max(0, stop - hm2min(home));
+  const peek = document.getElementById('obPeek');
+  if (!peek) return;
+  peek.innerHTML = free < 30
+    ? `<span class="obp-h">${icon('clock')}วันธรรมดาแทบไม่เหลือเวลาเลย</span>
+       <span class="obp-p">ไม่เป็นไร — AI จะกันงานหนักไว้เสาร์อาทิตย์ให้แทน</span>`
+    : `<span class="obp-h">${icon('clock')}วันธรรมดาคุณว่าง
+         <b>${esc(home)}–${esc(min2hm(stop))}</b></span>
+       <span class="obp-p">ประมาณ ${Math.round(free / 6) / 10} ชม. — AI จะวางงานลงช่วงนี้
+         และเว้นชั่วโมงสุดท้ายก่อนนอนไว้ให้</span>`;
+}
+
+// เขียนคำตอบลงบริบทจริง — คาบเรียนหนึ่งก้อน จ–ศ + เวลาเดินทาง + เส้นเวลานอน
+// ไม่ทับของเดิมเด็ดขาด: คนที่ล็อกอินแล้วดึงตารางจาก cloud มาไม่ควรโดนคำตอบหยาบ ๆ
+// จากหน้าทำความรู้จักลบตารางที่เขาอุตส่าห์กรอกไว้ทั้งชุด
+function obApplyDay() {
+  if (typeof ctxUpsert !== 'function' || !ctxIsEmpty()) return false;
+  const WEEKDAYS = [1, 2, 3, 4, 5];
+  // เช้าก่อนเข้าเรียนต้องถูกกันไว้ด้วย ไม่งั้นช่วงตื่น–เข้าแถวจะถูกนับเป็นเวลาว่างวันละ 2 ชม.
+  // ตัวเลขที่เกินจริงทุกวันธรรมดาคือตัวเลขที่ทำให้ทั้งหน้าจอเชื่อถือไม่ได้
+  // ใครที่อ่านหนังสือตอนเช้าจริง ๆ ลบก้อนนี้ทิ้งได้ในหน้าบริบท — แต่ให้เป็นค่าตั้งต้นที่ปลอดภัยไว้ก่อน
+  const wake = ctxPrefs().wake || '06:00';
+  if (hm2min(wake) < hm2min(OB_SCHOOL_START)) {
+    ctxUpsert('routine', { title: 'ตื่น เตรียมตัว ไปโรงเรียน', kind: 'routine',
+      start: wake, end: OB_SCHOOL_START, weekday: WEEKDAYS });
+  }
+  ctxUpsert('class', { subject: 'เรียนที่โรงเรียน', start: OB_SCHOOL_START,
+    end: obDay.out, weekday: WEEKDAYS });
+  if (obDay.trip > 0) {
+    ctxUpsert('routine', { title: 'เดินทางกลับบ้าน', kind: 'travel',
+      start: obDay.out, end: min2hm(hm2min(obDay.out) + obDay.trip), weekday: WEEKDAYS });
+  }
+  const bed = hm2min(obDay.bed) || 24 * 60;
+  ctxSetPrefs({ sleep: obDay.bed, noWorkAfter: min2hm(bed - 60) });
+  return true;
 }
 
 function setObFree(v, moveSlider) {
@@ -5339,11 +5438,12 @@ function setObFree(v, moveSlider) {
     b.classList.toggle('on', parseFloat(b.textContent) === val));
 }
 
-function finishOnboard() {
+function finishOnboard(skipDay) {
   const input = document.getElementById('obName');
   const name = (input.value || '').trim().slice(0, 24);
   const err = document.getElementById('obErr');
   if (!name) {
+    obShowStep(1);
     // ชื่อคือสิ่งเดียวที่ข้ามไม่ได้ในหน้านี้ เพราะทั้งแอปเรียกชื่อนี้ต่อ
     err.hidden = false;
     input.classList.add('bad');
@@ -5357,7 +5457,8 @@ function finishOnboard() {
   save();
   localStorage.removeItem(ONBOARD_SKIP_KEY);
   haptic('done');
-  showWelcome(name);
+  // skipDay = กด "ยังไม่บอกตอนนี้" — บริบทว่างไว้ แผนจะกลับไปเดา 19:00 พร้อมการ์ดชวนกรอก
+  showWelcome(name, skipDay ? false : obApplyDay());
 }
 
 function skipOnboard() {
@@ -5366,23 +5467,32 @@ function skipOnboard() {
 }
 
 // ฉาก "ยินดีที่ได้รู้จัก ___" — จังหวะเดียวที่แอปได้ทักผู้ใช้ด้วยชื่อเขาเป็นครั้งแรก
-function showWelcome(name) {
+// gotDay = เขาตอบเรื่องรูปร่างของวันมาด้วยไหม
+function showWelcome(name, gotDay) {
   // กันของรางวัลรายวันไว้ก่อน แล้วค่อยปล่อยให้เด้งหลังคนใช้ตั้งตัวได้แล้ว
   checkinHoldUntil = Date.now() + 9000;
   setTimeout(() => { if (dailyPending()) openDailyCheck(true); }, 9500);
   const w = document.getElementById('obWelcome');
   document.getElementById('obwName').textContent = name;
-  document.getElementById('obwSub').textContent =
-    'จากนี้ ' + name + ' แค่บอกว่าครูสั่งอะไรมา เดี๋ยวจัดลำดับให้เองว่าต้องทำอะไรก่อน';
+  // คนที่อุตส่าห์ตอบเรื่องตารางมา ต้องได้ยินทันทีว่าคำตอบนั้นถูกใช้ทำอะไร
+  // ไม่งั้นการถามสามคำถามก็เป็นแค่ด่านที่ต้องผ่านก่อนเข้าแอป
+  document.getElementById('obwSub').textContent = gotDay
+    ? 'รู้ตารางของ ' + name + ' แล้ว — จากนี้แค่บอกว่าครูสั่งอะไรมา เดี๋ยวจัดลงช่วงที่ว่างจริงให้เอง'
+    : 'จากนี้ ' + name + ' แค่บอกว่าครูสั่งอะไรมา เดี๋ยวจัดลำดับให้เองว่าต้องทำอะไรก่อน';
   w.hidden = false;
   setTimeout(() => w.classList.add('on'), 20);
   setTimeout(() => {
     w.classList.remove('on');
     go('scr-menu');
     setTimeout(() => { w.hidden = true; }, 300);
+    // ตัวเลขในข้อความนี้คำนวณสดจากบริบทที่เพิ่งเขียนไป ไม่ใช่ค่าที่พิมพ์ทิ้งไว้
+    const win = typeof dayWindows === 'function' ? dayWindows(state.settings, new Date()) : null;
+    const slot = win && win.slots[0];
     showToast({
       title: 'ยินดีที่ได้รู้จัก ' + name + ' 👋',
-      body: 'ตั้งค่าเรียบร้อย — เพิ่มงานแรกได้เลย เดี๋ยวช่วยจัดลำดับให้',
+      body: gotDay && slot
+        ? `ช่วงว่างถัดไปของคุณคือ ${slot.fromHm}–${slot.toHm} — เพิ่มงานแรกได้เลย`
+        : 'ตั้งค่าเรียบร้อย — เพิ่มงานแรกได้เลย เดี๋ยวช่วยจัดลำดับให้',
     });
   }, 2300);
 }

@@ -567,6 +567,21 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
   padding:12px 14px; margin-bottom:16px; font-size:12.5px; color:var(--ink); line-height:1.5}
 .pctx-note svg{width:15px; height:15px; flex:none; color:var(--warn)}
 
+/* ---------- ทำความรู้จัก ขั้น 2: รูปร่างของวันธรรมดา ---------- */
+.ob-chips{display:flex; flex-wrap:wrap; gap:7px; margin-top:9px}
+.ob-chip{padding:9px 14px; border-radius:13px; background:var(--card2); color:var(--ink);
+  font-size:13px; font-weight:600; letter-spacing:-.01em; cursor:pointer; border:1px solid transparent;
+  font-variant-numeric:tabular-nums; transition:all .14s ease}
+.ob-chip.on{background:var(--blue); color:var(--on-accent); border-color:var(--blue)}
+.ob-chip:active{transform:scale(.96)}
+.ob-peek{display:flex; flex-direction:column; gap:5px; margin-top:16px; padding:14px 15px;
+  border-radius:18px; background:var(--blue-soft); border:1px solid var(--glass-line)}
+.ob-peek .obp-h{display:flex; align-items:center; gap:7px; font-size:13.5px; font-weight:650;
+  letter-spacing:-.01em; color:var(--ink)}
+.ob-peek .obp-h svg{width:15px; height:15px; flex:none; color:var(--blue)}
+.ob-peek .obp-h b{font-variant-numeric:tabular-nums}
+.ob-peek .obp-p{font-size:12px; color:var(--muted); line-height:1.55}
+
 /* ---------- จับเวลาทำงานจริง ---------- */
 .pslot .work.running{border-left-color:var(--good); background:var(--good-soft)}
 .wk-go{display:flex; align-items:center; justify-content:center; gap:6px; width:100%; margin-top:11px;
