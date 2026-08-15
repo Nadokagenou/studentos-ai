@@ -272,6 +272,63 @@ function planWindows(settings = {}, now = new Date()) {
   };
 }
 
+// ---------- โอกาสสุดท้าย: ยังเหลือเวลาทำก่อนเส้นตายไหม ----------
+// จุดที่แผนเคยพลาดหนักที่สุด: มันรู้ว่า "วันนี้เวลาไม่พอ" แล้วตอบว่า "ย้ายไปพรุ่งนี้"
+// โดยไม่เคยถามว่าพรุ่งนี้เริ่มว่างกี่โมง — งานที่ส่ง 08:00 ถูกย้ายไปวางไว้ 16:30
+// ซึ่งเป็นเวลาที่เส้นตายผ่านไปแล้วแปดชั่วโมงครึ่ง
+//
+// สามฟังก์ชันข้างล่างตอบคำถามเดียว: "ก่อนถึงเวลานี้ เขายังมีเวลานั่งทำอีกกี่นาที"
+// แยกออกมาจาก freeSlots เพราะ freeSlots ตอบแค่ "วันนี้ว่างตรงไหน" ไม่รู้จักเส้นตาย
+
+// ช่องว่างของวัน `date` ที่ยังปิดก่อนเวลา `due` — ช่วงที่คร่อมเส้นตายจะถูกตัดให้จบตรงเส้น
+function slotsBefore(due, date = new Date(), now = null, opts = {}) {
+  const d = due instanceof Date ? due : new Date(due);
+  if (isNaN(d)) return [];
+  const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0);
+  if (dayStart >= d) return [];                       // ทั้งวันอยู่หลังเส้นตายแล้ว
+  const minBlock = Math.max(5, +(opts.minBlock ?? ctxPrefs().minBlockMin) || 20);
+  // เส้นตายอยู่คนละวัน = ทั้งวันใช้ได้ · อยู่วันเดียวกัน = ใช้ได้ถึงนาทีนั้น
+  const cut = d.toDateString() === date.toDateString()
+    ? d.getHours() * 60 + d.getMinutes() : 24 * 60;
+
+  const out = [];
+  for (const s of freeSlots(date, now, opts)) {
+    if (s.from >= cut) break;
+    out.push(s.to <= cut ? s : fmtSlot(s.from, cut));
+  }
+  // ตัดแล้วเหลือเศษสั้นกว่าที่นั่งทำไหว ก็ไม่นับว่าเป็นเวลาทำงาน
+  return out.filter(s => s.min >= minBlock);
+}
+
+// เวลาว่างรวมที่ยังใช้ได้ก่อนถึง `due` (นาที)
+//   skipToday — ไม่นับวันนี้ ใช้ตอบว่า "ถ้าไม่ทำวันนี้ ยังทันไหม"
+//   stopAt    — พอรวมได้ถึงเท่านี้ก็หยุดไล่ ไม่ต้องนับให้ครบ (ผู้เรียกแค่อยากรู้ว่าพอไหม)
+function freeMinutesBefore(due, now = new Date(), opts = {}) {
+  const d = due instanceof Date ? due : new Date(due);
+  if (isNaN(d) || d <= now) return 0;
+  const maxDays = opts.maxDays ?? 14;
+  let total = 0;
+  for (let i = (opts.skipToday ? 1 : 0); i <= maxDays; i++) {
+    const day = new Date(now); day.setDate(day.getDate() + i);
+    const dayStart = new Date(day); dayStart.setHours(0, 0, 0, 0);
+    if (dayStart >= d) break;                         // ไล่พ้นเส้นตายไปแล้ว
+    total += slotsBefore(d, day, i === 0 ? now : null, opts)
+      .reduce((a, s) => a + s.min, 0);
+    if (opts.stopAt != null && total >= opts.stopAt) break;
+  }
+  return total;
+}
+
+// ช่องว่างก้อนแรกที่ไม่ใช่ของวันนี้ — ไว้บอกตรง ๆ ว่า "พรุ่งนี้กว่าจะว่างก็ 16:30 แล้ว"
+function nextFreeSlotAfterToday(now = new Date(), maxDays = 7) {
+  for (let i = 1; i <= maxDays; i++) {
+    const day = new Date(now); day.setDate(day.getDate() + i);
+    const s = freeSlots(day)[0];
+    if (s) return { dayOffset: i, date: day, fromHm: s.fromHm, toHm: s.toHm, min: s.min };
+  }
+  return null;
+}
+
 // ---------- ให้ตัวซิงก์คลาวด์เรียกใช้ ----------
 // เก็บใน user_state ก้อนเดียวกับงานไปก่อน (คีย์ `ctx`) จนกว่าตาราง Supabase จะพร้อม
 // พอแตกตารางแล้วให้แก้แค่สองฟังก์ชันนี้ ที่เหลือทั้งไฟล์ไม่ต้องแตะ
@@ -289,5 +346,6 @@ function ctxImport(data) {
 // เปิดให้ node เรียกไปทดสอบได้ โดยไม่กระทบการโหลดในเบราว์เซอร์
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { hm2min, min2hm, busyBlocks, mergeRanges, freeSlots, freeMinutes,
+    slotsBefore, freeMinutesBefore, nextFreeSlotAfterToday,
     ctxLoad, ctxUpsert, ctxSetPrefs, ctxClear, CTX_DEFAULT };
 }

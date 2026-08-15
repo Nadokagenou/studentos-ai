@@ -1765,21 +1765,49 @@ function renderPlan() {
       </div>`;
     }
   }
-  if (plan.overflow.length) {
-    html += `<div class="povf">
-      <div class="povf-head">${icon('clock')}<span>เวลาวันนี้ไม่พอ — ย้ายไปพรุ่งนี้</span></div>
-      ${plan.overflow.map(o => `<div class="it">
+  // "วางไม่ลงวันนี้" มีสองความหมายที่ต่างกันคนละเรื่อง และเคยถูกเขียนรวมเป็นก้อนเดียว
+  //   ย้ายได้จริง  — พรุ่งนี้ยังมีเวลาพอ ไม่ต้องตกใจ
+  //   ย้ายไม่ได้   — ไม่มีช่องว่างวันไหนเหลือก่อนกำหนดส่งแล้ว นี่คือการพลาดส่ง ต้องตะโกน
+  // เขียนรวมกันคือการบอกข่าวร้ายด้วยน้ำเสียงของข่าวธรรมดา
+  const missed = plan.overflow.filter(o => o.missed);
+  const movable = plan.overflow.filter(o => !o.missed);
+
+  if (missed.length) {
+    const nf = plan.nextFree;
+    // เขียนให้เป็นข้อเท็จจริงเรียบ ๆ ว่าช่องว่างถัดไปอยู่ตรงไหน แล้วปล่อยให้ตัวเลขพูดเอง
+    // ช่องว่างถัดไปอาจเป็นหกโมงเช้าหรือสี่โมงเย็นก็ได้ สำนวนที่แปลว่า "สายไปแล้ว" จึงใช้ไม่ได้ทุกกรณี
+    const when = nf
+      ? 'ช่องว่างถัดไปคือ' +
+        (nf.dayOffset === 1 ? 'พรุ่งนี้ ' : 'วัน' + THAI_DAY[nf.date.getDay()] + ' ') + nf.fromHm
+      : 'ไม่เหลือช่องว่างก่อนกำหนดส่งอีกแล้ว';
+    html += `<div class="povf danger">
+      <div class="povf-head">${icon('clock')}<span>ทำไม่ทันถ้าไม่ทำวันนี้</span></div>
+      <div class="povf-why">${esc(when)} — ${missed.length > 1 ? 'งานพวกนี้' : 'งานนี้'}เลยกำหนดส่งไปก่อนถึงตอนนั้น</div>
+      ${missed.map(o => `<div class="it">
         <div class="tt">${taskTitle(o.task)}</div>
-        <div class="ln">ต้องใช้ ~${o.need} นาที · ${fmtDue(o.task.due, now, o.task)}</div>
+        <div class="ln">ยังต้องใช้ ~${o.need} นาที · ${esc(fmtDue(o.task.due, now, o.task))}</div>
+      </div>`).join('')}
+      <div class="povf-tip">ทำเท่าที่ทำได้คืนนี้ · ขยับเวลานอนในแท็บ “ฉัน” · หรือบอกครูตั้งแต่ตอนนี้</div>
+    </div>`;
+  }
+  if (movable.length) {
+    html += `<div class="povf">
+      <div class="povf-head">${icon('clock')}<span>เวลาวันนี้ไม่พอ — ย้ายไปวันหลังได้</span></div>
+      ${movable.map(o => `<div class="it">
+        <div class="tt">${taskTitle(o.task)}</div>
+        <div class="ln">ต้องใช้ ~${o.need} นาที · ${esc(fmtDue(o.task.due, now, o.task))}</div>
       </div>`).join('')}
     </div>`;
   }
   if (!plan.slots.length && !plan.events.length) {
     // มีงานค้างอยู่แต่วางไม่ลง ≠ ไม่มีอะไรต้องทำ — สองอย่างนี้พูดสลับกันไม่ได้เด็ดขาด
-    html += plan.overflow.length
+    html += missed.length
       ? `<div class="card empty">วันนี้ไม่เหลือช่องว่างให้วางงานแล้ว —
-           งานข้างบนถูกกันไว้ให้พรุ่งนี้เช้าเรียบร้อย</div>`
-      : `<div class="card empty">วันนี้ไม่มีอะไรต้องนั่งทำ — พักได้เต็มที่ 🎉</div>`;
+           แต่งานข้างบนรอถึงพรุ่งนี้ไม่ได้ ดูว่าพอยืมเวลาจากตรงไหนได้บ้าง</div>`
+      : plan.overflow.length
+        ? `<div class="card empty">วันนี้ไม่เหลือช่องว่างให้วางงานแล้ว —
+             งานข้างบนถูกกันไว้ให้พรุ่งนี้เช้าเรียบร้อย</div>`
+        : `<div class="card empty">วันนี้ไม่มีอะไรต้องนั่งทำ — พักได้เต็มที่ 🎉</div>`;
   }
   list.innerHTML = html;
 }
