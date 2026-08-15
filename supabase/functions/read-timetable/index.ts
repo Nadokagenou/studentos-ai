@@ -24,7 +24,18 @@
 // ============================================================
 
 const API_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
-const MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.5-flash';
+
+// ชื่อรุ่นของ Gemini เปลี่ยนบ่อยกว่าที่ควรจะเป็น และรุ่นที่หายไปตอบกลับมาเป็น 404
+// ซึ่งหน้าตาเหมือน "ต่อไม่ติด" ทั้งที่จริงคือ "เรียกชื่อผิด" — เสียเวลาหาสาเหตุมาแล้วหนึ่งรอบ
+// จึงไล่ลองตามลำดับแทนที่จะผูกกับชื่อเดียว ตัวไหนติดก็จำไว้ใช้ต่อทั้งรอบชีวิตของ instance
+// ตั้ง GEMINI_MODEL ไว้ = บังคับใช้ตัวนั้นตัวเดียว ไม่ต้องเดา
+const MODEL_ENV = Deno.env.get('GEMINI_MODEL') ?? '';
+const MODEL_CANDIDATES = MODEL_ENV ? [MODEL_ENV] : [
+  'gemini-flash-latest',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+];
+let workingModel = '';
 
 // รูปจากกล้องมือถือปัจจุบันอยู่ราว 2–5 MB ฝั่งแอปย่อให้เหลือหลักร้อย KB ก่อนส่งอยู่แล้ว
 // เพดานนี้จึงไม่ได้ไว้กันผู้ใช้ปกติ แต่กันคนที่ยิงไฟล์ใหญ่ ๆ ใส่เพื่อเผาโควตา
@@ -117,43 +128,74 @@ Deno.serve(async (req) => {
   // และถ้าไม่บอก มันจะพังเป็น 500 เปล่า ๆ ที่ไม่ได้ชี้ว่าต้องไปแก้ตรงไหน
   if (!API_KEY) return json({ error: 'ยังไม่ได้ตั้ง secret ชื่อ GEMINI_API_KEY' }, 500);
 
-  let image = '', mime = 'image/jpeg';
+  let image = '', mime = 'image/jpeg', probe = false;
   try {
     const body = await req.json();
     image = String(body?.image ?? '');
     if (body?.mime) mime = String(body.mime);
+    probe = body?.probe === 'models';
   } catch { return json({ error: 'อ่าน body ไม่ได้' }, 400); }
+
+  // โหมดสำรวจ: บอกว่ากุญแจดอกนี้เรียกรุ่นไหนได้บ้าง ไม่ต้องเดาชื่อรุ่นเองตอนติดตั้ง
+  // ไม่ส่งรูป ไม่กินโควตาการอ่าน และไม่เคยพ่นค่ากุญแจออกมา
+  if (probe) {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
+      headers: { 'x-goog-api-key': API_KEY },
+    });
+    if (!r.ok) return json({ error: 'ถามรายชื่อรุ่นไม่สำเร็จ (' + r.status + ')' }, 502);
+    const d = await r.json();
+    const models = (d?.models ?? [])
+      .filter((m: { supportedGenerationMethods?: string[] }) =>
+        (m.supportedGenerationMethods ?? []).includes('generateContent'))
+      .map((m: { name?: string }) => String(m.name ?? '').replace(/^models\//, ''));
+    return json({ models, tried: MODEL_CANDIDATES });
+  }
 
   if (!image) return json({ error: 'ไม่มีรูปมาด้วย' }, 400);
   if (image.length > MAX_B64) return json({ error: 'รูปใหญ่เกินไป' }, 413);
   if (!/^image\/(jpeg|png|webp)$/.test(mime)) return json({ error: 'รองรับเฉพาะ JPEG/PNG/WebP' }, 415);
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': API_KEY },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: PROMPT }, { inline_data: { mime_type: mime, data: image } }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema: SCHEMA,
-          temperature: 0,          // งานอ่านตาราง ไม่ใช่งานแต่งเรื่อง
-        },
-      }),
-    });
-  } catch (e) {
-    return json({ error: 'ต่อ Gemini ไม่ได้: ' + (e as Error).message }, 502);
+  const payload = JSON.stringify({
+    contents: [{ parts: [{ text: PROMPT }, { inline_data: { mime_type: mime, data: image } }] }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: SCHEMA,
+      temperature: 0,          // งานอ่านตาราง ไม่ใช่งานแต่งเรื่อง
+    },
+  });
+
+  // ไล่ลองชื่อรุ่นจนกว่าจะเจอตัวที่มีอยู่จริง — 404 แปลว่า "ไม่มีรุ่นนี้" เท่านั้น
+  // error อย่างอื่น (โควตาเต็ม รูปใหญ่ กุญแจผิด) ไม่ใช่เรื่องชื่อรุ่น ต้องหยุดแล้วรายงานทันที
+  // ไม่งั้นคำขอเดียวจะกลายเป็นการยิงซ้ำสามรอบโดยเปล่าประโยชน์
+  const order = workingModel ? [workingModel, ...MODEL_CANDIDATES.filter(m => m !== workingModel)]
+    : MODEL_CANDIDATES;
+  let res: Response | null = null;
+  let lastStatus = 0, lastDetail = '';
+
+  for (const model of order) {
+    try {
+      res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': API_KEY }, body: payload },
+      );
+    } catch (e) {
+      return json({ error: 'ต่อ Gemini ไม่ได้: ' + (e as Error).message }, 502);
+    }
+    if (res.ok) { workingModel = model; break; }
+    lastStatus = res.status;
+    // ข้อความจากฝั่ง Google อาจมีรายละเอียดของโปรเจกต์ปนมา ตัดให้สั้นและไม่ส่งทั้งก้อนกลับ
+    lastDetail = (await res.text()).slice(0, 200);
+    console.warn('[read-timetable] gemini error', model, res.status, lastDetail);
+    if (res.status !== 404) break;
+    res = null;
   }
 
-  if (!res.ok) {
-    // ข้อความจากฝั่ง Google อาจมีรายละเอียดของโปรเจกต์ปนมา ตัดให้สั้นและไม่ส่งทั้งก้อนกลับ
-    const detail = (await res.text()).slice(0, 200);
-    console.warn('[read-timetable] gemini error', res.status, detail);
-    return json({ error: res.status === 429
+  if (!res || !res.ok) {
+    return json({ error: lastStatus === 429
       ? 'โควตา Gemini เต็มชั่วคราว ลองใหม่อีกสักครู่'
-      : 'Gemini ตอบกลับมาเป็นข้อผิดพลาด (' + res.status + ')' }, 502);
+      : lastStatus === 404
+      ? 'ไม่พบรุ่นโมเดลที่เรียก — ลองเรียกฟังก์ชันนี้ด้วย {"probe":"models"} เพื่อดูรายชื่อรุ่นที่ใช้ได้'
+      : 'Gemini ตอบกลับมาเป็นข้อผิดพลาด (' + lastStatus + ')' }, 502);
   }
 
   let parsed: { classes?: unknown; note?: unknown } = {};
