@@ -701,6 +701,14 @@ async function syncFromCloud() {
       for (const t of (remote.tasks || [])) byId[t.id] = t;
       state.tasks = Object.values(byId);
       state.settings = Object.assign({}, state.settings, remote.settings || {});
+      // รอบจับเวลารวมตาม id เหมือนงาน — แต่ละรอบเกิดบนเครื่องเดียวและไม่เคยถูกแก้ทีหลัง
+      // เครื่องไหนบันทึกไว้ก็ของจริงทั้งคู่ เอามารวมกันแล้วเรียงตามเวลาเริ่ม
+      const sById = {};
+      for (const s of (state.sessions || [])) sById[s.id] = s;
+      for (const s of (remote.sessions || [])) sById[s.id] = s;
+      state.sessions = Object.values(sById)
+        .sort((a, b) => (a.start || '').localeCompare(b.start || ''))
+        .slice(-SESSION_CAP);
       localStorage.setItem(STORE_KEY, JSON.stringify(state));
       // บริบท (ตารางเรียน/กิจวัตร) ยังอยู่ใน user_state ก้อนเดียวกันไปก่อน
       // ฝั่ง cloud ชนะทั้งก้อน ไม่ merge รายตัว เพราะมันคือ "ตารางของสัปดาห์นี้"
@@ -723,6 +731,7 @@ function pushToCloud(immediate) {
       const { error } = await sb.from('user_state').upsert({
         id: currentUser.id,
         data: { tasks: state.tasks, settings: state.settings,
+          sessions: state.sessions || [],
           ctx: typeof ctxExport === 'function' ? ctxExport() : undefined },
         updated_at: new Date().toISOString(),
       });
@@ -1654,15 +1663,25 @@ function renderPlan() {
     } else {
       const info = priorityInfo(s.task, now);
       const lv = info.stars >= 5 ? 'lv5' : info.stars >= 4 ? 'lv4' : '';
+      // แผนบอกว่า "ควรใช้กี่นาที" — บรรทัดนี้บอกว่า "ใช้ไปจริงแล้วกี่นาที"
+      // สองตัวเลขอยู่ติดกันคือทั้งหมดที่ต้องมี ไม่ต้องอธิบายอะไรเพิ่ม
+      const did = workedMin(s.task.id);
+      const run = runningWork();
+      const mine = run && run.taskId === s.task.id;
+      const busy = run && !mine;
       html += `<div class="pslot">
         <div class="ptime"><span class="s">${fmtClock(s.start)}</span><span class="e">${fmtClock(s.end)}</span></div>
-        <div class="work ${lv}">
+        <div class="work ${lv}${mine ? ' running' : ''}">
           <div class="tm">
             <span class="nbadge ${lv}">${esc(priorityLabel(info.stars))}</span>
-            <span class="ndue">${s.min} นาที</span>
+            <span class="ndue">${s.min} นาที${did ? ` · ทำไปแล้ว ${did}` : ''}</span>
           </div>
           <div class="tt">${taskTitle(s.task)}</div>
           ${s.note ? `<div class="nt">${esc(s.note)}</div>` : ''}
+          <button class="wk-go${mine ? ' on' : ''}" ${busy ? 'disabled' : ''}
+            onclick="${mine ? 'stopWork()' : `startWork('${s.task.id}')`}">
+            ${icon(mine ? 'check' : 'clock')}${mine ? 'หยุดจับเวลา' : busy ? 'จับเวลางานอื่นอยู่' : 'เริ่มจับเวลา'}
+          </button>
         </div>
       </div>`;
     }
@@ -2922,6 +2941,86 @@ function renderStats() {
         <span class="nm">${esc(name)}</span>
         <span class="ct mono">${v.n} งาน · ${Math.round(v.min / 6) / 10} ชม.</span>
       </div>`).join('')}
+    </div>` : ''}
+    ${workStatsHtml(now)}`;
+}
+
+// ---------- ประสิทธิภาพ: อ่านจากรอบจับเวลาจริงเท่านั้น ----------
+// ทุกตัวเลขในบล็อกนี้มาจากที่เขากดเริ่ม–หยุดเอง ไม่มีอันไหนเดา
+// และไม่โผล่มาก่อนจะมีข้อมูลพอ — สถิติจากสามรอบแรกคือการเดาที่ใส่กราฟให้ดูน่าเชื่อ
+const WORK_MIN_SESSIONS = 5;
+const HOUR_BANDS = [
+  { from: 5,  to: 12, name: 'ช่วงเช้า' },
+  { from: 12, to: 17, name: 'ช่วงบ่าย' },
+  { from: 17, to: 21, name: 'ช่วงหัวค่ำ' },
+  { from: 21, to: 29, name: 'ช่วงดึก' },   // 29 = ตี 5 ของวันถัดไป
+];
+
+function bandOf(hour) {
+  const h = hour < 5 ? hour + 24 : hour;
+  return HOUR_BANDS.find(b => h >= b.from && h < b.to) || HOUR_BANDS[3];
+}
+
+function workStatsHtml(now) {
+  const all = sessions();
+  if (all.length < WORK_MIN_SESSIONS) {
+    return `<div class="st-card soft">
+      <div class="st-line">${icon('clock')}กดเริ่มจับเวลาในหน้าแผนอีก
+        <b>${WORK_MIN_SESSIONS - all.length}</b> รอบ แล้วจะเริ่มบอกได้ว่าคุณทำงานได้ดีที่สุดช่วงไหน</div>
+    </div>`;
+  }
+
+  const week = all.filter(s => (now - new Date(s.start)) < 7 * 8.64e7);
+  const weekH = Math.round(week.reduce((a, s) => a + s.min, 0) / 6) / 10;
+
+  // ช่วงที่ทำได้เยอะสุด — วัดด้วยนาทีรวม ไม่ใช่จำนวนรอบ
+  // นับเป็นรอบจะทำให้การกดเริ่ม–หยุดถี่ ๆ ตอนใจลอยชนะการนั่งยาวหนึ่งรอบ
+  const byBand = {};
+  for (const s of all) {
+    const b = bandOf(new Date(s.start).getHours()).name;
+    byBand[b] = (byBand[b] || 0) + s.min;
+  }
+  const bands = Object.entries(byBand).sort((a, b) => b[1] - a[1]);
+  const topBand = bands[0];
+  const bandTotal = bands.reduce((a, b) => a + b[1], 0);
+
+  // ความแม่นของการประเมินเวลา — เทียบเฉพาะงานที่ทำเสร็จแล้วและมีทั้งสองตัวเลข
+  // งานที่ยังทำค้างอยู่เอามาเทียบไม่ได้ เพราะเวลาที่ลงไปยังไม่ใช่เวลาทั้งหมดของมัน
+  const rows = [];
+  for (const t of liveTasks()) {
+    if (!t.done || !t.estMin) continue;
+    const did = workedMin(t.id);
+    if (did >= 1) rows.push({ est: t.estMin, did });
+  }
+  // งานเดียวบอกอะไรไม่ได้ — วันที่ไม่มีสมาธิวันเดียวก็ทำให้ตัวเลขเพี้ยนไป 80% ได้แล้ว
+  // พูดว่า "คุณประเมินพลาด 83%" จากตัวอย่างเดียวคือการโกหกที่ใส่เปอร์เซ็นต์ให้ดูน่าเชื่อ
+  const estSum = rows.reduce((a, r) => a + r.est, 0);
+  const didSum = rows.reduce((a, r) => a + r.did, 0);
+  const ratio = (rows.length >= 3 && estSum) ? didSum / estSum : null;
+
+  return `<div class="st-card">
+      <div class="st-h">เวลาที่ลงมือจริง</div>
+      <div class="st-line">7 วันล่าสุด <b>${weekH} ชม.</b> · ทั้งหมด ${all.length} รอบ</div>
+      ${topBand ? `<div class="st-bands">
+        ${bands.map(([nm, min]) => `<div class="st-band">
+          <span class="nm">${esc(nm)}</span>
+          <span class="tr"><i style="width:${Math.round(min / bandTotal * 100)}%"></i></span>
+          <span class="ct mono">${Math.round(min / 6) / 10} ชม.</span>
+        </div>`).join('')}
+      </div>
+      <div class="st-line soft">ลงมือได้มากที่สุด<b>${esc(topBand[0])}</b> —
+        ถ้าเลือกได้ กันงานหนักไว้ช่วงนั้น</div>` : ''}
+    </div>
+    ${ratio ? `<div class="st-card">
+      <div class="st-h">ประเมินเวลาแม่นแค่ไหน</div>
+      <div class="st-line">${ratio > 1.15
+        ? `ใช้จริงมากกว่าที่ประเมินไว้ <b>${Math.round((ratio - 1) * 100)}%</b> —
+           เผื่อเวลาเพิ่มอีกหน่อยตอนกรอกงานใหม่ แผนจะได้ไม่พังกลางทาง`
+        : ratio < 0.85
+        ? `ใช้จริงน้อยกว่าที่ประเมินไว้ <b>${Math.round((1 - ratio) * 100)}%</b> —
+           ประเมินเผื่อไว้เยอะ กล้าใส่งานเพิ่มในวันเดียวกันได้`
+        : `ประเมินได้ใกล้เคียงของจริงมาก (คลาดเคลื่อนไม่ถึง 15%) — เชื่อตัวเลขตัวเองได้เลย`}
+        <span class="soft">· จาก ${rows.length} งานที่จับเวลาไว้</span></div>
     </div>` : ''}`;
 }
 
@@ -2929,10 +3028,117 @@ function renderAll() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline();
   renderProfile(); renderStats(); renderPlan(); renderFriends(); renderBadges();
   renderShop(); renderWheel(); renderInstallCard(); renderTabBadges(); renderContext();
+  renderRunBar();
   // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น
   // (กันแอปพังทั้งจอถ้าไฟล์ inbox.js/linelink.js โหลดไม่ขึ้น)
   if (typeof renderInbox === 'function') renderInbox();
   if (typeof renderSources === 'function') renderSources();
+}
+
+// ---------- เวลาทำงานจริง ----------
+// จนถึงตอนนี้แอปรู้แค่ "ประเมินไว้กี่นาที" กับ "กดเสร็จตอนกี่โมง" ซึ่งไม่พอจะพูดได้เลยว่า
+// เขาทำงานได้ดีตอนไหน หรือประเมินเวลาแม่นแค่ไหน — สองอย่างนั้นต้องรู้ว่า
+// "นั่งทำจริงตั้งแต่กี่โมงถึงกี่โมง" ซึ่งไม่มีทางเดาจากข้อมูลเดิมได้
+//
+// เก็บเป็นรายการรอบ ไม่ใช่ยอดรวมในตัวงาน เพราะคำถามที่อยากตอบคือคำถามเรื่องเวลา
+// ("ช่วงไหนของวันทำได้เยอะสุด") ยอดรวมตอบไม่ได้ ต้องมีหัวท้ายของแต่ละรอบ
+//
+// state.running อยู่ใน state ที่เซฟลงเครื่อง ไม่ใช่ตัวแปรลอย ๆ — เด็กกดเริ่มแล้ววางมือถือ
+// หน้าจอดับ เบราว์เซอร์ทิ้งแท็บ กลับมาอีกทีต้องยังจับเวลาอยู่ ไม่ใช่เริ่มนับหนึ่งใหม่
+const SESSION_CAP = 400;        // เก็บย้อนหลังเท่านี้พอ ก้อนที่ซิงก์ขึ้น cloud จะได้ไม่บวม
+const SESSION_STALE_H = 4;      // เกินเท่านี้ = ลืมกดหยุด ไม่ใช่การนั่งทำจริง
+
+function sessions() {
+  if (!Array.isArray(state.sessions)) state.sessions = [];
+  return state.sessions;
+}
+function runningWork() { return state.running || null; }
+
+// รอบที่ค้างมาจากการเปิดแอปครั้งก่อน — ถ้านานเกินจริงให้ทิ้ง ไม่ใช่บันทึกไว้
+// ข้อมูลมั่ว ๆ อันเดียวทำให้ "ช่วงที่ทำได้ดีที่สุด" เพี้ยนไปทั้งสัปดาห์
+// และคนใช้จะเลิกเชื่อตัวเลขนั้นทันทีที่เห็นว่ามันไม่ตรงกับที่ตัวเองจำได้
+function reapStaleWork() {
+  const r = runningWork();
+  if (!r) return null;
+  const h = (Date.now() - new Date(r.start)) / 3.6e6;
+  if (h <= SESSION_STALE_H) return null;
+  state.running = null;
+  save();
+  return r;
+}
+
+function startWork(taskId) {
+  const t = state.tasks.find(x => x.id === taskId);
+  if (!t) return;
+  const r = runningWork();
+  if (r && r.taskId === taskId) return;
+  if (r) stopWork(true);                       // สลับงาน = ปิดรอบเดิมให้เอง ไม่ทิ้งค้าง
+  state.running = { taskId, start: new Date().toISOString() };
+  save();
+  haptic('tap');
+  renderAll();
+}
+
+// quiet = สลับงานอัตโนมัติ ไม่ต้องเด้ง toast ซ้อนกับรอบใหม่ที่กำลังจะเริ่ม
+function stopWork(quiet) {
+  const r = runningWork();
+  if (!r) return;
+  const start = new Date(r.start);
+  const min = Math.round((Date.now() - start) / 60000);
+  state.running = null;
+  // ต่ำกว่าหนึ่งนาทีคือกดพลาด ไม่ใช่การทำงาน — บันทึกไปก็มีแต่ทำให้ค่าเฉลี่ยเพี้ยน
+  if (min >= 1) {
+    sessions().push({ id: uid(), taskId: r.taskId, start: r.start,
+      end: new Date().toISOString(), min });
+    if (sessions().length > SESSION_CAP) state.sessions = sessions().slice(-SESSION_CAP);
+  }
+  save();
+  if (!quiet && min >= 1) {
+    const t = state.tasks.find(x => x.id === r.taskId);
+    const total = workedMin(r.taskId);
+    const est = t && t.estMin;
+    // เทียบกับที่ประเมินไว้ทุกครั้ง — คนจะได้ค่อย ๆ รู้จักความเร็วของตัวเอง
+    // โดยไม่ต้องเปิดหน้าสถิติ ซึ่งเป็นหน้าที่คนส่วนใหญ่ไม่เคยเปิด
+    const cmp = est ? (total > est ? ` · เกินที่ประเมินไว้ ${total - est} นาที`
+      : ` · ยังเหลือโควตาอีก ${est - total} นาที`) : '';
+    showToast({ title: `จับเวลาไว้ ${min} นาที`,
+      body: (t ? taskTitleText(t) : 'งานนี้') + ` — รวมทำไปแล้ว ${total} นาที${cmp}` });
+  }
+  haptic('tap');
+  renderAll();
+}
+
+function workedMin(taskId) {
+  return sessions().filter(s => s.taskId === taskId).reduce((a, s) => a + s.min, 0);
+}
+
+function fmtElapsed(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(s / 60), h = Math.floor(m / 60);
+  const two = v => String(v).padStart(2, '0');
+  return h ? h + ':' + two(m % 60) + ':' + two(s % 60) : m + ':' + two(s % 60);
+}
+
+// แถบจับเวลา — วาดโครงครั้งเดียวแล้วขยับแค่ตัวเลข
+// วาดใหม่ทุกวินาทีจะทำให้ปุ่มหยุดถูกสร้างใหม่ใต้นิ้วที่กำลังกดอยู่พอดี แล้วกดไม่ติด
+function renderRunBar() {
+  const bar = document.getElementById('runBar');
+  if (!bar) return;
+  const r = runningWork();
+  // ล้าง dataset.for ทุกครั้งที่เก็บแถบ ไม่งั้นพอเริ่มจับเวลา "งานใบเดิม" อีกรอบ
+  // เงื่อนไขข้างล่างจะคิดว่าโครงยังอยู่ทั้งที่ innerHTML ถูกล้างไปแล้ว แล้ว .rb-el เป็น null
+  if (!r) { bar.hidden = true; bar.innerHTML = ''; delete bar.dataset.for; return; }
+  const t = state.tasks.find(x => x.id === r.taskId);
+  if (!t) { state.running = null; save(); bar.hidden = true; bar.innerHTML = ''; delete bar.dataset.for; return; }
+  if (bar.dataset.for !== r.taskId) {
+    bar.dataset.for = r.taskId;
+    bar.innerHTML = `<span class="rb-dot"></span>
+      <span class="rb-tx"><b class="rb-tt"></b><span class="rb-el mono"></span></span>
+      <button class="rb-stop" onclick="stopWork()">หยุด</button>`;
+    bar.querySelector('.rb-tt').textContent = taskTitleText(t);
+  }
+  bar.hidden = false;
+  bar.querySelector('.rb-el').textContent = fmtElapsed(Date.now() - new Date(r.start));
 }
 
 // ---------- task actions ----------
@@ -2941,6 +3147,10 @@ function toggleDone(id, el) {
   const t = state.tasks.find(x => x.id === id);
   if (!t) return;
   const wasDone = t.done;
+  // ติ๊กเสร็จทั้งที่ยังจับเวลางานใบนี้อยู่ = จบรอบพอดี ปิดให้เลย
+  // ไม่ปิดให้แล้วนาฬิกาจะเดินต่อไปทั้งคืนกับงานที่เสร็จไปแล้ว
+  const r = runningWork();
+  if (!t.done && r && r.taskId === id) stopWork(true);
   t.done = !t.done;
   t.progress = t.done ? 100 : (t.progress === 100 ? 0 : t.progress);
   t.doneAt = t.done ? new Date().toISOString() : null;
@@ -5263,6 +5473,18 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 
   tickClock();
   setInterval(tickClock, 30_000);
+  // นาฬิกาจับเวลาเดินทุกวินาที — ขยับแค่ตัวเลขในแถบ ไม่ได้วาดจอใหม่
+  setInterval(renderRunBar, 1000);
+  // รอบที่ค้างข้ามคืนเพราะลืมกดหยุด — บอกให้รู้ว่าทิ้งไปแล้ว ไม่ใช่หายเงียบ ๆ
+  const stale = reapStaleWork();
+  if (stale) {
+    const st = state.tasks.find(x => x.id === stale.taskId);
+    setTimeout(() => showToast({
+      title: 'มีการจับเวลาค้างไว้',
+      body: (st ? taskTitleText(st) : 'งานหนึ่ง') + ' เริ่มไว้ตั้งแต่ ' +
+        fmtClock(new Date(stale.start)) + ' แต่ไม่ได้กดหยุด — รอบนั้นไม่ถูกบันทึก',
+    }), 3200);
+  }
   // เช็คบ่อยขึ้น (นาทีละครั้ง) + เช็คทุกครั้งที่กลับมาที่แอป
   // เวลาที่มือถือพักหน้าจอ timer จะถูกหยุด การกลับมาแล้วเช็คทันทีคือสิ่งที่ทำให้เตือนไม่หลุด
   setInterval(checkReminders, 60_000);
