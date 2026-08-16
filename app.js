@@ -592,7 +592,7 @@ function navDirection(from, to) {
 let enterTimer = null;
 
 // จอทั้งห้าที่มีปุ่มของตัวเองอยู่บนแถบล่าง — ที่เหลือถือเป็นจอชั้นใน
-const TABBED_SCREENS = ['scr-menu', 'scr-home', 'scr-scan', 'scr-timeline', 'scr-profile'];
+const TABBED_SCREENS = ['scr-menu', 'scr-tasks', 'scr-scan', 'scr-timeline', 'scr-profile'];
 
 // ---------- 1A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
 // บนมือถือ การสลับไปแอปอื่นแล้วกลับมามักทำให้ระบบโหลดหน้าใหม่ทั้งหน้า
@@ -625,7 +625,12 @@ function resumeScreen() {
 }
 
 function go2(id){ return go(id); }
+// scr-home กับ scr-tasks เป็นรายการงานสองจอที่ตอบคำถามเดียวกัน
+// แท็บ "ตารางงาน" ชี้มาที่ scr-tasks แล้ว — ทางเข้าเก่าที่ยังเรียก scr-home อยู่
+// (จอที่ค้างไว้ตอนสลับแอป · ปุ่มลัดของระบบ · ปุ่มเก่าที่ยังหลงเหลือ) ต้องมาที่เดียวกัน
+// ไม่งั้นผู้ใช้จะเจอรายการงานคนละหน้าตาสองแบบแล้วแต่ว่าเข้ามาทางไหน
 function go(id) {
+  if (id === 'scr-home') id = 'scr-tasks';
   const dir = navDirection(curScreen, id);
   // ออกจากจอสุ่มเมื่อไหร่ ทิ้งผลรอบเดิม กลับเข้ามาจะได้เริ่มใหม่สะอาด ๆ
   if (id !== 'scr-wheel') { drawResults = []; drawOpen = []; }
@@ -1694,19 +1699,19 @@ function renderTimeline() {
     const left = plan.freeMin - plan.usedMin;
     if (missed.length) {
       const nf = plan.nextFree;
-      verdict = `<div class="tlv bad">
-        <div class="tlv-h">${tkChip('ไม่ทัน', 'hot')}<b>ต้องทำวันนี้ ไม่งั้นเลยกำหนด</b></div>
+      verdict = `<div class="dayvd bad">
+        <div class="dayvd-h">${tkChip('ไม่ทัน', 'hot')}<b>ต้องทำวันนี้ ไม่งั้นเลยกำหนด</b></div>
         <p>${esc(missed.map(t => taskTitleText(t)).join(' · '))}${nf
           ? ' — ช่องว่างถัดไปคือ' + (nf.dayOffset === 1 ? 'พรุ่งนี้ ' : 'วัน' + THAI_DAY[nf.date.getDay()] + ' ') + nf.fromHm
           : ''}</p></div>`;
     } else if (plan.overflow.length || left < 30) {
-      verdict = `<div class="tlv warn">
-        <div class="tlv-h">${tkChip('แน่น', 'warm')}<b>ทันหมด แต่ไม่มีที่ให้พลาด</b></div>
+      verdict = `<div class="dayvd warn">
+        <div class="dayvd-h">${tkChip('แน่น', 'warm')}<b>ทันหมด แต่ไม่มีที่ให้พลาด</b></div>
         <p>เหลือช่องว่าง ${humanMin(Math.max(0, left))} ทั้งวัน${plan.overflow.length
           ? ' · อีก ' + plan.overflow.length + ' งานย้ายไปวันหลัง' : ''}</p></div>`;
     } else {
-      verdict = `<div class="tlv ok">
-        <div class="tlv-h">${tkChip('สบาย', 'ok')}<b>วันนี้ทันสบาย</b></div>
+      verdict = `<div class="dayvd ok">
+        <div class="dayvd-h">${tkChip('สบาย', 'ok')}<b>วันนี้ทันสบาย</b></div>
         <p>จัดงานลงครบแล้ว เหลือช่องว่างอีก ${humanMin(Math.max(0, left))}</p></div>`;
     }
   }
@@ -1720,33 +1725,33 @@ function renderTimeline() {
       const mine = run && run.taskId === it.task.id;
       const focus = !past && !document.tlFocusUsed;
       if (focus) document.tlFocusUsed = 1;
-      return `<div class="tlr${past ? ' past' : ''}" data-i="${i}" onclick="tlOpen(${i})">
-        <span class="tlr-t mono">${hm}</span>
-        <span class="tlr-dot${focus ? ' on' : ''}"></span>
-        <div class="tk${focus ? ' tk-focus' : ''} tlr-card">
+      return `<div class="dayrow${past ? ' past' : ''}" data-i="${i}" onclick="tlOpen(${i})">
+        <span class="dayrow-t mono">${hm}</span>
+        <span class="dayrow-dot${focus ? ' on' : ''}"></span>
+        <div class="tk${focus ? ' tk-focus' : ''} dayrow-card">
           ${it.task.subject && it.task.subject !== 'อื่น ๆ' ? `<div class="tk-sub">${esc(it.task.subject)}</div>` : ''}
           <div class="tk-ttl">${esc(it.task.detail || '')}</div>
           <div class="tk-meta">${tkChip(humanMin(it.mins), '')}
             ${it.note ? tkChip(it.note.replace(/^⚠ /, ''), 'hot') : ''}
             <span class="tk-sp"></span></div>
-          ${focus ? `<button class="tlr-go" onclick="event.stopPropagation();${mine
+          ${focus ? `<button class="dayrow-go" onclick="event.stopPropagation();${mine
             ? 'stopWork()' : `startWork('${it.task.id}')`}">${icon('clock')}${
             mine ? 'หยุดจับเวลา' : 'เริ่มจับเวลา'}</button>` : ''}
         </div></div>`;
     }
 
     if (it.kind === 'due') {
-      return `<div class="tlr${past ? ' past' : ''}" data-i="${i}" onclick="tlOpen(${i})">
-        <span class="tlr-t mono">${hm}</span>
-        <span class="tlr-dot flag"></span>
-        <span class="tlr-due">${icon('flag')}ถึงกำหนด · ${esc(taskTitleText(it.task))}</span></div>`;
+      return `<div class="dayrow${past ? ' past' : ''}" data-i="${i}" onclick="tlOpen(${i})">
+        <span class="dayrow-t mono">${hm}</span>
+        <span class="dayrow-dot flag"></span>
+        <span class="dayrow-due">${icon('flag')}ถึงกำหนด · ${esc(taskTitleText(it.task))}</span></div>`;
     }
 
     const extra = it.kind === 'busy' ? min2hm(it.from) + '–' + min2hm(it.to) : '';
-    return `<div class="tlr quiet${past ? ' past' : ''}" data-i="${i}" onclick="tlOpen(${i})">
-      <span class="tlr-t mono">${hm}</span>
-      <span class="tlr-dot"></span>
-      <span class="tlr-l">${esc(it.label)}${extra ? `<i>${extra}</i>` : ''}</span></div>`;
+    return `<div class="dayrow quiet${past ? ' past' : ''}" data-i="${i}" onclick="tlOpen(${i})">
+      <span class="dayrow-t mono">${hm}</span>
+      <span class="dayrow-dot"></span>
+      <span class="dayrow-l">${esc(it.label)}${extra ? `<i>${extra}</i>` : ''}</span></div>`;
   }).join('');
   document.tlFocusUsed = 0;
 
@@ -1771,7 +1776,7 @@ function renderTimeline() {
     ? `<p class="tl-far">แผนรายชั่วโมงมีเฉพาะวันนี้ — วันอื่นแสดงตารางเรียนกับกำหนดส่งไว้ก่อน</p>` : '';
 
   el.innerHTML = head + ctxNudge + verdict
-    + (items.length ? `<div class="tlrail">${rows}</div>` : `<div class="card empty">วันนี้ยังไม่มีอะไรในตาราง</div>`)
+    + (items.length ? `<div class="dayrail">${rows}</div>` : `<div class="card empty">วันนี้ยังไม่มีอะไรในตาราง</div>`)
     + future;
 }
 
@@ -1803,7 +1808,7 @@ function tlOpen(i) {
       [humanMin(remainingMin(t)), ''],
       t.scorePct != null ? ['คะแนน ' + t.scorePct + '%', ''] : null].filter(Boolean);
     why = info.reasons.length ? ['ทำไมอันดับนี้', info.reasons.slice(0, 3).join(' · ')] : '';
-    cta = `<button class="tls-go" onclick="tlClose();openForm('${t.id}')">${icon('pencil')}เปิดงานนี้</button>`;
+    cta = `<button class="daysheet-go" onclick="tlClose();openForm('${t.id}')">${icon('pencil')}เปิดงานนี้</button>`;
   } else if (it.kind === 'busy') {
     tag = it.ck === 'class' ? 'ตารางเรียน' : 'กิจวัตร';
     h = it.label;
@@ -1813,7 +1818,7 @@ function tlOpen(i) {
     why = rel.length
       ? ['งานจากวิชานี้', rel.map(t => taskTitleText(t) + ' · ' + fmtDue(t.due, now, t)).join('\n')]
       : ['ทำไมไม่มีงานตรงนี้', 'ช่วงนี้ถูกกันไว้เป็นเวลาที่ทำงานไม่ได้ ระบบจะไม่วางงานทับ'];
-    cta = `<button class="tls-go ghost" onclick="tlClose();go('scr-context')">${icon('clock')}แก้ตารางนี้</button>`;
+    cta = `<button class="daysheet-go ghost" onclick="tlClose();go('scr-context')">${icon('clock')}แก้ตารางนี้</button>`;
   } else if (it.kind === 'break') {
     tag = 'พักอัตโนมัติ'; h = it.label;
     chips = [[humanMin(it.mins), '']];
@@ -1825,18 +1830,18 @@ function tlOpen(i) {
     why = it.kind === 'stop'
       ? ['ทำไมต้องหยุด', 'ชั่วโมงก่อนนอนถูกกันไว้เป็นเวลาของคุณ ระบบจะไม่วางงานทับ']
       : ['ตั้งค่าที่ไหน', 'แก้เวลาตื่นกับเวลานอนได้ในแท็บ “ฉัน” → ตารางเรียนและเวลาว่าง'];
-    cta = `<button class="tls-go ghost" onclick="tlClose();go('scr-context')">${icon('clock')}แก้เวลา</button>`;
+    cta = `<button class="daysheet-go ghost" onclick="tlClose();go('scr-context')">${icon('clock')}แก้เวลา</button>`;
   }
 
-  wrap.innerHTML = `<div class="tls-back" onclick="tlClose()"></div>
-    <div class="tls">
-      <span class="tls-grip"></span>
-      <div class="tls-tag">${esc(tag)}</div>
-      <div class="tls-h">${esc(h)}</div>
-      <div class="tls-chips">${chips.map(c => tkChip(c[0], c[1])).join('')}</div>
-      ${why ? `<div class="tls-why"><b>${esc(why[0])}</b><p>${esc(why[1])}</p></div>` : ''}
-      <div class="tls-act">${cta}
-        <button class="tls-go ghost" onclick="tlClose()">ปิด</button></div>
+  wrap.innerHTML = `<div class="daysheet-back" onclick="tlClose()"></div>
+    <div class="daysheet">
+      <span class="daysheet-grip"></span>
+      <div class="daysheet-tag">${esc(tag)}</div>
+      <div class="daysheet-h">${esc(h)}</div>
+      <div class="daysheet-chips">${chips.map(c => tkChip(c[0], c[1])).join('')}</div>
+      ${why ? `<div class="daysheet-why"><b>${esc(why[0])}</b><p>${esc(why[1])}</p></div>` : ''}
+      <div class="daysheet-act">${cta}
+        <button class="daysheet-go ghost" onclick="tlClose()">ปิด</button></div>
     </div>`;
   wrap.hidden = false;
 }
