@@ -1277,27 +1277,73 @@ function snoozeToTomorrow(id) {
 // 3 แท็บเท่านั้น: ค้างอยู่ · เสร็จแล้ว · ทั้งหมด
 // ของที่ลบไม่หายทันที แต่ไปนอนในถังขยะที่ซ่อนไว้ท้ายหน้า กดเปิดเองได้
 let taskFilter = 'pending'; // pending | done | all | bin
+let taskDay = null;         // null = ทุกวัน · 'YYYY-M-D' = เฉพาะวันนั้น
 function setFilter(f) {
   taskFilter = f;
   renderTasks();
   const s = document.getElementById('scr-tasks');
   if (s) s.scrollTop = 0;
 }
+function setTaskDay(k) {
+  taskDay = (taskDay === k) ? null : k;   // กดวันเดิมซ้ำ = เลิกกรอง
+  renderTasks();
+}
 
-function taskRow(t, now) {
-  const info = priorityInfo(t, now);
-  const tone = priorityTone(info.stars);
-  const hot = info.urgency === 'over' || info.urgency === 'hot';
-  return `<div class="arow ${t.done ? 'done' : ''}">
-    <button class="chk ${t.done ? 'on' : ''}" onclick="toggleDone('${t.id}',this)"
-      aria-label="${t.done ? 'ทำเสร็จแล้ว' : 'ทำเสร็จ'}">${icon('check')}</button>
-    <div class="ab" onclick="openForm('${t.id}')">
-      <div class="at">${taskTitle(t)}</div>
-      <div class="am">${t.done
-        ? '<span>เสร็จแล้ว</span>'
-        : `<span class="tag ${tone}">${esc(priorityLabel(info.stars))}</span>${snoozeBadge(t)}
-           <span class="mono ${hot ? 'hot' : ''}">${esc(fmtDue(t.due, now, t))}</span>`}</div>
-    </div>
+// ---------- ชิปสถานะ ----------
+// สีในจอนี้ทำงานสองหน้าที่ที่ห้ามปนกัน:
+//   ฟ้า (--fill) = "กดได้" — ปุ่ม แท็บที่เลือก แถบของงานที่ต้องทำตอนนี้
+//   แดง/ส้ม/เขียว = "สถานะ" — อยู่ในชิปกลมเล็กเท่านั้น ไม่เคยเป็นพื้นที่ใหญ่
+// ปนกันเมื่อไหร่ สีแดงจะแปลว่า "กดตรงนี้" ไปด้วย แล้วความด่วนก็หมดความหมาย
+//
+// เกณฑ์เวลาต้องชันพอให้สีแดงยังมีค่าตอนที่มันสำคัญจริง
+// ถ้าติดแดงตั้งแต่เหลือ 4 วัน พอเหลือ 4 ชั่วโมงก็ไม่เหลือสีไหนแรงกว่าให้ใช้แล้ว
+function dueTone(t, now) {
+  if (t.done) return 'ok';
+  if (!t.due) return '';
+  const h = (new Date(t.due) - now) / 3.6e6;
+  if (h <= 12) return 'hot';      // เลยกำหนด หรือเหลือไม่ถึงครึ่งวัน
+  if (h <= 48) return 'warm';     // ภายในสองวัน
+  return '';
+}
+
+function tkChip(text, tone) {
+  return `<span class="tk-chip${tone ? ' ' + tone : ''}">${esc(text)}</span>`;
+}
+
+// การ์ดงาน — ลำดับการอ่านจากบนลงล่างทางเดียว ไม่มีเลขลอยชิดขวาให้ตาวิ่งไปมา
+//   วิชา (ป้ายเล็ก) → สิ่งที่ต้องทำ (ตัวใหญ่สุด) → สถานะ + เวลาที่ใช้
+// ของเดิมเอาชื่อวิชาเป็นตัวใหญ่สุด ทั้งที่นักเรียนรู้อยู่แล้วว่าฟิสิกส์คืออะไร
+// สิ่งที่เขาไม่รู้คือ "ต้องทำอะไร" ซึ่งเคยถูกลดชั้นเป็นตัวเทาเล็ก
+function taskCard(t, now, focus) {
+  const subj = (t.subject || '').trim();
+  const tone = dueTone(t, now);
+  const ti = TASK_TYPES[taskType(t)];
+
+  if (t.done) {
+    return `<div class="tk tk-done" onclick="openForm('${t.id}')">
+      <button class="tk-tick on" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
+        aria-label="เอาออกจากที่เสร็จแล้ว">${icon('check')}</button>
+      <div class="tk-bd">
+        ${subj && subj !== 'อื่น ๆ' ? `<div class="tk-sub">${esc(subj)}</div>` : ''}
+        <div class="tk-ttl">${esc(t.detail || '')}</div>
+      </div>
+      ${icon('chevron', 'tk-go')}
+    </div>`;
+  }
+
+  const chips = [
+    t.due ? tkChip(fmtDue(t.due, now, t), tone) : tkChip('ยังไม่ระบุกำหนด', ''),
+    t.scorePct != null ? tkChip('คะแนน ' + t.scorePct + '%', '') : '',
+    snoozeBadge(t) ? tkChip('เลื่อนมา ' + (t.snoozeCount || 1) + ' ครั้ง', '') : '',
+  ].filter(Boolean).join('');
+
+  return `<div class="tk${focus ? ' tk-focus' : ''}" onclick="openForm('${t.id}')">
+    <button class="tk-tick" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
+      aria-label="ทำเสร็จ">${icon('check')}</button>
+    ${subj && subj !== 'อื่น ๆ' ? `<div class="tk-sub">${esc(subj)}</div>` : ''}
+    <div class="tk-ttl">${esc(t.detail || '')}</div>
+    <div class="tk-meta">${chips}<span class="tk-sp"></span>
+      ${ti.schedulable ? `<span class="tk-min">~${remainingMin(t)} นาที</span>` : ''}</div>
   </div>`;
 }
 
@@ -1314,9 +1360,31 @@ function renderTasks() {
 
   if (taskFilter === 'bin') { el.innerHTML = binView(bin); return; }
 
+  const rows0 = taskFilter === 'done' ? done
+    : taskFilter === 'all' ? pending.concat(done) : pending;
+
+  // แถบเลือกวัน — ตอบคำถาม "วันนี้อะไรสำคัญ แล้ววันอื่นต่อ" โดยไม่ต้องเปิดอีกจอ
+  // ค่าเริ่มต้นคือ "ทุกวัน" เพื่อให้จอนี้ยังเป็นรายการงานทั้งหมดเหมือนเดิม
+  // จุดใต้เลขวันคือจำนวนงาน สีของจุดคือใบที่ด่วนที่สุดของวันนั้น
+  const dayKey = d => d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = addDays(now, i);
+    const k = dayKey(d);
+    const on = rows0.filter(t => t.due && dayKey(new Date(t.due)) === k);
+    const tone = on.reduce((a, t) => a === 'hot' ? a : (dueTone(t, now) || a), '');
+    // WEEKDAY_SHORT มีจุดต่อท้าย ('จ.') — ในช่องแคบ ๆ จุดกินที่โดยไม่ได้บอกอะไร
+    return { d, k, n: on.length, tone,
+      label: i === 0 ? 'วันนี้' : WEEKDAY_SHORT[d.getDay()].replace('.', '') };
+  });
+
+  const rows = taskDay
+    ? rows0.filter(t => t.due && dayKey(new Date(t.due)) === taskDay)
+    : rows0;
+
   const tab = (key, label, n) =>
     `<button class="${taskFilter === key ? 'active' : ''}" onclick="setFilter('${key}')">
       ${label}<span class="ct">${n}</span></button>`;
+
   const head = `<div class="page-head">
       <div class="eyebrow">รายการงาน</div>
       <h1 class="page-title">งานทั้งหมด</h1>
@@ -1325,16 +1393,30 @@ function renderTasks() {
       ${tab('pending', 'ค้างอยู่', pending.length)}
       ${tab('done', 'เสร็จแล้ว', done.length)}
       ${tab('all', 'ทั้งหมด', live.length)}
-    </div>`;
+    </div>
+    <div class="daystrip">
+      ${days.map(x => `<button class="ds${taskDay === x.k ? ' on' : ''}" onclick="setTaskDay('${x.k}')">
+        <i class="ds-d">${esc(x.label)}</i><b class="ds-n">${x.d.getDate()}</b>
+        ${x.n ? `<u class="ds-dot${x.tone ? ' ' + x.tone : ''}"></u>` : '<u class="ds-dot off"></u>'}
+      </button>`).join('')}
+    </div>
+    ${taskDay ? `<button class="dayclear" onclick="setTaskDay(null)">
+      ${icon('calendar')}เฉพาะ${esc(fmtThaiDate(days.find(x => x.k === taskDay).d))}
+      <span>ดูทุกวัน</span></button>` : ''}`;
 
-  const rows = taskFilter === 'done' ? done
-    : taskFilter === 'all' ? pending.concat(done) : pending;
-  const empty = taskFilter === 'done' ? 'ยังไม่มีงานที่ทำเสร็จ'
+  const empty = taskDay ? 'วันนี้ไม่มีงานที่ถึงกำหนด'
+    : taskFilter === 'done' ? 'ยังไม่มีงานที่ทำเสร็จ'
     : taskFilter === 'all' ? 'ยังไม่มีงาน — กดปุ่มกลางแถบล่างเพื่อเพิ่ม'
     : 'ไม่มีงานค้างเลย — เคลียร์หมดแล้ว';
 
+  // ใบแรกของรายการที่ยังไม่เสร็จได้แถบฟ้า = "ใบนี้คือใบที่ควรลงมือ"
+  // ให้ทุกใบมีแถบก็เท่ากับไม่มีใบไหนมีแถบ
+  const firstPending = rows.find(t => !t.done);
+
   el.innerHTML = head
-    + (rows.length ? rows.map(t => taskRow(t, now)).join('') : `<div class="card empty">${empty}</div>`)
+    + (rows.length
+        ? rows.map(t => taskCard(t, now, t === firstPending)).join('')
+        : `<div class="card empty">${empty}</div>`)
     + (bin.length ? `<button class="bin-btn" onclick="setFilter('bin')">
         ${icon('trash')}ถังขยะ · ${bin.length} รายการ</button>` : '');
 }

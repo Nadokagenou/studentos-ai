@@ -4659,3 +4659,95 @@ body.deep-scr .top-friends { display: none; }
 /* คำเตือนเรื่องรูปออกจากเครื่อง — ต้องอ่านออกเสมอ ห้ามจางจนมองข้าม
    ผู้ใช้ตัดสินใจเรื่องความเป็นส่วนตัวจากบรรทัดนี้บรรทัดเดียว */
 .cloud-ocr .co-warn { margin: 9px 0 0; font-size: 11px; line-height: 1.7; color: var(--muted); }
+
+/* ══════════════════════════════════════════════════════════════════
+   จอ "งานทั้งหมด" — การ์ดงาน · ชิปสถานะ · แถบเลือกวัน
+   ------------------------------------------------------------------
+   60 พื้นจอ (--scr) · 30 การ์ด (--card) · 10 ฟ้า (--fill) เฉพาะของที่กดได้
+   สีความหมาย (แดง/ส้ม/เขียว) อยู่ในชิปกลมเล็กเท่านั้น ห้ามกินพื้นที่ใหญ่
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ---- แถบเลือกวัน ---- */
+.daystrip {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  gap: 5px; margin: 0 0 14px;
+}
+.ds {
+  border: none; background: var(--card); border-radius: 12px;
+  padding: 8px 2px 7px; font-family: inherit; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  transition: background .16s ease;
+}
+.ds .ds-d { font-style: normal; font-size: 10.5px; color: var(--muted); }
+.ds .ds-n { font-size: 14px; font-weight: 600; color: var(--ink); letter-spacing: -.01em; }
+.ds .ds-dot { height: 4px; width: 4px; border-radius: 999px; background: var(--muted); margin-top: 1px; }
+.ds .ds-dot.hot  { background: var(--alert); }
+.ds .ds-dot.warm { background: var(--warn); }
+.ds .ds-dot.off  { background: transparent; }
+.ds:active { transform: scale(.96); }
+/* วันที่เลือกอยู่ = ของที่กดได้และกำลังทำงาน จึงได้สีเน้นก้อนเดียวของแถบนี้ */
+.ds.on { background: var(--fill); }
+.ds.on .ds-d { color: rgba(255,255,255,.72); }
+.ds.on .ds-n { color: #fff; }
+.ds.on .ds-dot { background: rgba(255,255,255,.9); }
+
+/* ---- การ์ดงาน ---- */
+.tk {
+  position: relative; background: var(--card); border-radius: 14px;
+  padding: 14px 46px 14px 15px; margin-bottom: 9px; cursor: pointer;
+  transition: transform .14s ease;
+}
+.tk:active { transform: scale(.99); }
+/* แถบฟ้าได้ใบเดียว — ใบที่ควรลงมือ ให้ทุกใบมีก็เท่ากับไม่มีใบไหนมี */
+.tk-focus { border-left: 3px solid var(--fill); padding-left: 12px; }
+
+.tk-sub { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+.tk-ttl {
+  font-size: 15px; font-weight: 600; line-height: 1.45;
+  letter-spacing: -.01em; color: var(--ink);
+}
+.tk-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.tk-sp { flex: 1; }
+.tk-min { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ชิปสถานะ — กลมเล็ก พื้นจาง ตัวอักษรสีเดียวกับความหมาย */
+.tk-chip {
+  font-size: 11px; line-height: 1.5; padding: 4px 9px; border-radius: 999px;
+  background: var(--card2); color: var(--muted); white-space: nowrap;
+}
+.tk-chip.hot  { background: var(--alert-soft); color: var(--alert); }
+.tk-chip.warm { background: var(--warn-soft);  color: var(--warn); }
+.tk-chip.ok   { background: var(--good-soft);  color: var(--good); }
+
+/* ปุ่มติ๊กเสร็จ — มุมขวาบน ไม่แทรกกลางกองข้อความ
+   เอาไว้ซ้ายแบบ to-do list ทั่วไปไม่ได้ เพราะจะดันชื่องานเข้าไปข้างในจนอ่านยาก */
+.tk-tick {
+  position: absolute; top: 12px; right: 12px;
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 1.5px solid var(--line); background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; padding: 0; transition: all .16s ease;
+}
+.tk-tick svg { width: 13px; height: 13px; color: transparent; }
+.tk-tick:active { transform: scale(.9); }
+.tk-tick.on { border-color: transparent; background: var(--good-soft); }
+.tk-tick.on svg { color: var(--good); }
+
+/* งานที่เสร็จแล้ว = บันทึก ไม่ใช่สิ่งที่ต้องตัดสินใจ จึงจมลงไปกับพื้น */
+.tk-done { display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 15px; opacity: .6; }
+.tk-done .tk-tick { position: static; flex: none; }
+.tk-done .tk-bd { flex: 1; min-width: 0; }
+.tk-done .tk-sub { margin-bottom: 2px; }
+.tk-done .tk-ttl { font-size: 14px; }
+.tk-done .tk-go { width: 15px; height: 15px; color: var(--faint); flex: none; }
+
+/* ปุ่มล้างตัวกรองวัน — โผล่เฉพาะตอนกรองอยู่ เพื่อให้แถบวันไม่ต้องเสียช่องให้ปุ่ม "ทุกวัน" */
+.dayclear {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: var(--fill-soft, var(--card2)); border: none; border-radius: 12px;
+  padding: 10px 12px; margin: -4px 0 14px; cursor: pointer;
+  font-family: inherit; font-size: 12.5px; color: var(--ink); text-align: left;
+}
+.dayclear span { margin-left: auto; color: var(--muted); font-size: 11.5px; }
+.dayclear svg { width: 14px; height: 14px; color: var(--muted); flex: none; }
+.dayclear:active { transform: scale(.99); }

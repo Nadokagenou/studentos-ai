@@ -62,13 +62,13 @@
    เหลือสีเน้นไว้เฉพาะของที่กดได้จริง — ดูบล็อก "60/30/10" ท้าย alt.css */
 :root[data-theme="dark"]{
   color-scheme:dark;
-  --scr:#0B1120; --card:#18233C; --card2:#22304F; --surface:#22304F;
+  --scr:#0B1020; --card:#151C2E; --card2:#1E2740; --surface:#1E2740;
   --ink:#E9EDF5; --muted:#96A1B9; --faint:#8A94AB;
   --line:rgba(255,255,255,.07);
   --blue:#6FA8FF; --blue-soft:rgba(111,168,255,.15); --blue-deep:#A9C8FF; --on-accent:#0A1120;
   /* สีเน้นแบบพื้นทึบ — เข้มกว่า --blue เพราะต้องวางตัวอักษร/ไอคอนสีขาวทับ
      (--blue ยังใช้เป็น "สีตัวอักษรบนพื้นเข้ม" เหมือนเดิม สองบทบาทนี้ใช้ค่าเดียวกันไม่ได้) */
-  --fill:#2E6BFF; --on-fill:#FFFFFF;
+  --fill:#2563EB; --on-fill:#FFFFFF;
   --neon:#6FA8FF;
   --alert:#FF8A80; --alert-soft:rgba(255,138,128,.14);
   --warn:#E9B76B;  --warn-soft:rgba(233,183,107,.14);
