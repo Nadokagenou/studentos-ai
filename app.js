@@ -1683,9 +1683,17 @@ function tlDayItems(day, isToday, now) {
   }
 
   if (stop != null) out.push({ min: stop, kind: 'stop', label: 'หยุดทำงาน' });
-  if (sleep != null) out.push({ min: sleep === 0 ? 24 * 60 - 1 : sleep, kind: 'sleep', label: 'เข้านอน' });
+  if (sleep != null) out.push({ min: sleep, kind: 'sleep', label: 'เข้านอน' });
 
-  out.sort((a, b) => a.min - b.min || (a.kind === 'work' ? -1 : 1));
+  // คนที่นอนหลังเที่ยงคืนเก็บเวลานอนเป็น '01:00' = 60 นาที ซึ่งน้อยกว่าเวลาตื่น
+  // เรียงตรง ๆ แล้ว "เข้านอน" จะไปโผล่บนสุดของวัน ก่อนตื่นด้วยซ้ำ
+  // ปลายวันที่ตกก่อนเวลาตื่น = ของคืนถัดไป ให้บวก 24 ชม. เฉพาะตอนเรียง ส่วนที่แสดงยังเป็นเวลาจริง
+  for (const it of out) {
+    it.sort = (it.min < wake && (it.kind === 'sleep' || it.kind === 'stop'))
+      ? it.min + 24 * 60 : it.min;
+  }
+
+  out.sort((a, b) => a.sort - b.sort || (a.kind === 'work' ? -1 : 1));
   return { items: out, plan };
 }
 
