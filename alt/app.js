@@ -1003,43 +1003,39 @@ function widgetHtml(now) {
     </section>`;
   }
   const info = priorityInfo(top, now);
-  // ใบแรกได้ชิปครบ (กำหนดส่ง · เวลาที่ใช้ · คะแนน) เพราะเป็นใบที่ต้องตัดสินใจจริง
-  // ใบที่ 2–3 เหลือแค่ชื่อกับกำหนดส่ง — หน้าที่ของมันคือบอกว่า "ยังมีอะไรรออยู่อีก"
-  // ไม่ใช่ให้อ่านครบทุกช่อง ถ้าให้ข้อมูลเท่ากันหมด สายตาจะไม่รู้ว่าควรเริ่มจากใบไหน
-  const rest = pending.slice(1, 3);
+  // งานทั้งสามใบหน้าตาเท่ากัน — ใบไหนด่วนกว่าบอกด้วย "สีของกำหนดส่ง" ไม่ใช่ด้วยขนาด
+  // เดิมใบแรกเป็นก้อนใหญ่มีชิปสามอัน อีกสองใบเป็นแถวผอม ๆ ซึ่งอ่านออกมาว่า
+  // "ใบแรกสำคัญ อีกสองใบเป็นของแถม" ทั้งที่ทั้งสามใบก็ต้องส่งเหมือนกัน
+  // แถวเท่ากันหมดยังทำให้กวาดตาหาวันที่ได้ในคอลัมน์เดียว แทนที่จะไล่หาทีละก้อน
   return `<section class="wg wg-urgent ${priorityTone(info.stars)}">
     <div class="wg-head">${icon('flag')}<span>ควรทำก่อน</span>
-      <span class="wg-pill">${esc(priorityLabel(info.stars))}</span></div>
-    <div class="wg-row lead">
-      ${wgTick(top)}
-      <div class="wg-row-tx">
-        <div class="wg-title">${taskTitle(top)}</div>
-        ${dueChips(top, now)}
-      </div>
+      <span class="wg-pill ${priorityTone(info.stars)}">${esc(priorityLabel(info.stars))}</span></div>
+    <div class="wg-list">
+      ${pending.slice(0, 3).map(t => `<div class="wg-item" onclick="openForm('${t.id}')">
+        ${wgTick(t)}
+        <div class="wg-item-tx">
+          <div class="wg-item-ttl">${taskTitle(t)}</div>
+          ${t.due ? `<div class="wg-item-due ${wgDueTone(t, now)}">${esc(fmtDue(t.due, now, t))}</div>` : ''}
+        </div>
+        ${t.estMin ? `<span class="wg-item-est">~${t.estMin} นาที</span>` : ''}
+        <span class="wg-item-go">${icon('chevron')}</span>
+      </div>`).join('')}
     </div>
-    ${rest.map(t => `<div class="wg-row" onclick="openForm('${t.id}')">
-      ${wgTick(t)}
-      <div class="wg-row-tx"><div class="wg-row-ttl">${taskTitle(t)}</div></div>
-      ${t.due ? `<span class="wg-when ${dueTone(t, now)}">${esc(fmtDue(t.due, now, t))}</span>` : ''}
-    </div>`).join('')}
-    <button class="wg-cta" onclick="openForm('${top.id}')">${icon('chevron')}เปิดงานนี้</button>
   </section>`;
 }
 
-// วงกลมติ๊กเสร็จ — ใช้ทั้งใบแรกและใบรอง เพราะ "เห็นแล้วทำอะไรได้เลย" คือเหตุผลที่ลิสต์นี้มีอยู่
+// วงกลมติ๊กเสร็จ — ทุกใบในลิสต์มี เพราะ "เห็นแล้วทำอะไรได้เลย" คือเหตุผลที่ลิสต์นี้มีอยู่
 // stopPropagation กันไม่ให้การกดติ๊กกลายเป็นการเปิดหน้าแก้ไขงานไปด้วย
 function wgTick(t) {
   return `<button class="wg-tick" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
     aria-label="ทำเสร็จ: ${esc(taskTitleText(t))}">${icon('check')}</button>`;
 }
 
-// สีของกำหนดส่งในแถวรอง — เลยกำหนดแดง, ภายใน 24 ชม. เหลือง, ที่เหลือสีกลาง
-// ชิปเต็มใบใหญ่เกินไปสำหรับแถวรอง แต่ "อีกนานแค่ไหน" เป็นข้อมูลที่ขาดไม่ได้
-function dueTone(t, now) {
-  if (!t.due) return '';
-  const d = new Date(t.due) - now;
-  return d < 0 ? 'late' : d <= 24 * 3.6e6 ? 'soon' : '';
-}
+// สีของกำหนดส่ง — ตัวเดียวในลิสต์ที่บอกความเร่ง เพราะทุกแถวขนาดเท่ากันหมด
+// ใช้ dueTone() ตัวเดียวกับหน้ารายการงาน (hot/warm) ไม่ตั้งเกณฑ์ใหม่ของตัวเอง —
+// สองจอนี้พูดถึงงานใบเดียวกัน ถ้าเกณฑ์ต่างกัน ใบเดียวจะแดงจอหนึ่งเหลืองอีกจอหนึ่ง
+// ที่เพิ่มคือ 'far' แทนค่าว่าง เพื่อให้ "ยังมีเวลา" เป็นสีเขียวได้ ไม่ใช่เทากลืนกับข้อความอื่น
+function wgDueTone(t, now) { return dueTone(t, now) || 'far'; }
 
 // ชิปสถานะของงานหนึ่งใบ — กำหนดส่งมาก่อนเสมอเพราะเป็นข้อมูลที่ตัดสินใจแทนได้จริง
 // ที่เหลือ (เวลาที่ใช้ · คะแนนเก็บ) เป็นสีกลาง เพราะมันไม่ใช่ข่าวร้ายในตัวเอง
@@ -1100,9 +1096,9 @@ function renderMenu() {
     </div>
     ${widgetHtml(now)}
     <div class="menu-grid">
-      ${menuTile('hero', 'camera', 'เพิ่มงานใหม่', 'ถ่ายรูป · พูด · แปะข้อความ', null, 'scr-scan')}
       ${inboxTile()}
-      ${menuTile('wide tone-tasks', 'check-circle', 'งานทั้งหมด', 'ค้าง · เสร็จ · ถังขยะ', live.length, 'scr-tasks')}
+      ${menuTile('tone-tasks', 'check-circle', 'งานทั้งหมด', 'ค้าง · เสร็จ · ถังขยะ', live.length, 'scr-tasks')}
+      ${menuTile('hero half', 'camera', 'เพิ่มงานใหม่', 'ถ่ายรูป · พูด · แปะข้อความ', null, 'scr-scan')}
     </div>`;
 }
 

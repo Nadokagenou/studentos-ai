@@ -1991,6 +1991,22 @@
   box-shadow: 0 0 0 2px rgba(0,0,0,.14), 0 3px 8px rgba(0,0,0,.26);
 }
 /* ไทล์เด่น: เพิ่มงานใหม่ — กว้างเต็มแถวและใช้สีแบรนด์ */
+/* ไทล์เด่นครึ่งแถว — วางคู่กับ "งานทั้งหมด" ให้ปุ่มที่ต้องกดบ่อยที่สุดได้สีเน้น
+   ส่วนปุ่มที่แค่พาไปดูของเก่าอยู่ข้าง ๆ ด้วยสีกลาง ขนาดเท่ากันแต่น้ำหนักไม่เท่ากัน
+   ธีมมืดลด --grad-hero ลงเป็นสีการ์ดทั้งแอป (กฎ 60/30/10 ท้ายไฟล์) ซึ่งถูกสำหรับ
+   "กล่องใหญ่ที่แค่แสดงผล" แต่ใบนี้คือปุ่มลงมือของทั้งหน้า มันต้องเป็นสีเน้นจริง ๆ
+   จึงบังคับ --fill กลับมาเฉพาะใบนี้ใบเดียว ไม่แตะ .mtile.hero ใบอื่น */
+.mtile.hero.half {
+  grid-column: span 1;
+  min-height: 108px;
+  font-size: var(--fs-body);
+  background: var(--fill);
+  color: var(--on-fill);
+}
+.mtile.hero.half .mt-ic { background: rgba(255,255,255,.22); color: var(--on-fill); }
+.mtile.hero.half .mt-sub { color: rgba(255,255,255,.78); }
+.mtile.hero.half .mt-go { top: 12px; right: 12px; bottom: auto; color: var(--on-fill); opacity: .8; }
+
 .mtile.hero {
   grid-column: span 2;
   min-height: 78px;
@@ -2162,29 +2178,45 @@
 .wg-chip.late { background: var(--pri-red-soft); color: var(--pri-red-text); }
 .wg-chip.soon { background: var(--pri-yellow-soft); color: var(--pri-yellow-text); }
 
-/* ---------- แถวงานในการ์ด "ควรทำก่อน" ----------
+/* ---------- ลิสต์งานในการ์ด "ควรทำก่อน" ----------
    เดิมการ์ดนี้โชว์งานใบเดียว และทำอะไรกับมันจากหน้าแรกไม่ได้เลยนอกจากกดเข้าไปอีกจอ
-   คนเปิดแอปมาเพราะอยากรู้ว่า "เหลืออะไรอีกบ้าง" แล้วได้คำตอบแค่ใบเดียวจึงยังต้องกดต่ออยู่ดี
-   ตอนนี้เป็นลิสต์ 3 ใบที่ติ๊กเสร็จได้ในที่ ระยะห่างระหว่างแถว 12px ตามไฟล์ดีไซน์ */
-.wg-row { display: flex; align-items: flex-start; gap: 11px; }
-.wg-row + .wg-row,
-.wg-row.lead + .wg-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
-.wg-row.lead { margin-top: 8px; }
-.wg-row:not(.lead) { align-items: center; cursor: pointer; }
-.wg-row-tx { flex: 1; min-width: 0; }
-.wg-row .wg-title { margin-top: 0; }
-.wg-row-ttl {
+   ตอนนี้เป็นลิสต์ 3 ใบที่ติ๊กเสร็จได้ในที่ — และทั้งสามใบเป็นการ์ดของตัวเองขนาดเท่ากัน
+   ความด่วนบอกด้วยสีของกำหนดส่งอย่างเดียว ไม่ใช่ด้วยขนาดของก้อน
+   ระยะห่าง 12px · มุมโค้ง 12px ตามไฟล์ดีไซน์ */
+.wg-list { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+.wg-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card2);
+  cursor: pointer;
+  transition: transform .14s ease, border-color .14s ease;
+}
+.wg-item:active { transform: scale(.985); }
+.wg-item-tx { flex: 1; min-width: 0; }
+.wg-item-ttl {
   font-size: var(--fs-body);
-  font-weight: 600;
-  line-height: 1.4;
+  font-weight: 700;
+  line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* กำหนดส่งของแถวรอง — ข้อความสั้นแทนชิปเต็มใบ ให้ใบแรกเด่นกว่าเสมอ */
-.wg-when { flex: none; font-size: var(--fs-meta); font-weight: 600; color: var(--muted); }
-.wg-when.late { color: var(--pri-red-text); }
-.wg-when.soon { color: var(--pri-yellow-text); }
+/* กำหนดส่งคือตัวเดียวในแถวที่มีสี — ทุกอย่างที่เหลือเป็นสีกลางเพื่อให้มันเด่นได้จริง */
+.wg-item-due { margin-top: 2px; font-size: var(--fs-meta); font-weight: 600; color: var(--muted); }
+.wg-item-due.hot  { color: var(--pri-red-text); }
+.wg-item-due.warm { color: var(--pri-yellow-text); }
+.wg-item-due.far  { color: var(--pri-green-text); }
+.wg-item-est { flex: none; font-size: var(--fs-meta); font-weight: 500; color: var(--muted); }
+.wg-item-go { flex: none; display: flex; color: var(--muted); opacity: .55; }
+.wg-item-go svg { width: 15px; height: 15px; }
+
+/* ป้ายความด่วนบนหัวการ์ด — แดงจริงเมื่อด่วนจริง ป้ายสีเทาทุกระดับก็ไม่ต้องมีก็ได้ */
+.wg-pill.red    { background: var(--pri-red);    color: #fff; font-weight: 700; }
+.wg-pill.yellow { background: var(--pri-yellow); color: #2A1D02; font-weight: 700; }
 
 /* วงกลมติ๊ก — 28px แต่กรอบกดจริง 44px ตามขนาดนิ้วขั้นต่ำของ iOS/Android
    (ปุ่ม "เปิดงานนี้" เดิมสูง 34px ซึ่งต่ำกว่าเกณฑ์ ดู .wg-cta ข้างล่าง) */
@@ -2194,7 +2226,9 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 2px solid var(--line-strong, var(--line));
+  /* --line เป็นเส้นแบ่งจาง ๆ (ขาว 7%) ซึ่งจางเกินไปสำหรับของที่ต้อง "เห็นแล้วรู้ว่ากดได้"
+     วงกลมนี้คือปุ่มหลักของทั้งลิสต์ มันต้องดูเหมือนปุ่มตั้งแต่ยังไม่ได้กด */
+  border: 2px solid var(--muted);
   background: transparent;
   color: transparent;
   display: grid;
