@@ -159,11 +159,15 @@ function mergeRanges(list) {
 // ถ้าวันนี้เลยเวลาตื่นมาแล้ว ให้เริ่มนับจากตอนนี้ — ช่องว่างที่ผ่านไปแล้วไม่ใช่เวลาว่าง
 //
 // ปัดขึ้นเป็นช่วง 5 นาทีให้ตรงกับที่คนอ่านนาฬิกาจริง ("เริ่ม 19:23" ไม่มีใครทำตาม)
-function freeSlots(date = new Date(), now = null) {
+//
+// opts เอาไว้ให้ผู้เรียกขยับเส้นได้ในกรณีพิเศษ (ดู planWindows) โดยไม่ต้องไปแก้ prefs ของผู้ใช้:
+//   hardEnd  — เส้นท้ายวันเป็นนาที (แทน noWorkAfter)
+//   minBlock — ช่องสั้นสุดที่ยังนับว่าทำงานได้
+function freeSlots(date = new Date(), now = null, opts = {}) {
   const p = ctxPrefs();
   const wake = hm2min(p.wake) ?? 6 * 60;
-  const hardEnd = hm2min(p.noWorkAfter) ?? hm2min(p.sleep) ?? 22 * 60;
-  const minBlock = Math.max(5, +p.minBlockMin || 20);
+  const hardEnd = opts.hardEnd ?? hm2min(p.noWorkAfter) ?? hm2min(p.sleep) ?? 22 * 60;
+  const minBlock = Math.max(5, +(opts.minBlock ?? p.minBlockMin) || 20);
 
   let start = wake;
   const sameDay = now && now.toDateString() === date.toDateString();
@@ -203,6 +207,128 @@ function ctxIsEmpty() {
   return !c.classes.length && !c.routines.length;
 }
 
+// ---------- หน้าต่างที่ตัวจัดแผนวางงานลงได้จริง ----------
+// นี่คือจุดเดียวในแอปที่ตอบคำถาม "วันนี้เหลือเวลาตรงไหนบ้าง และวางได้เท่าไหร่"
+// ทั้งประโยคของ AI · หัวจอตารางงาน · แผนรายชั่วโมง ต้องอ่านจากที่เดียวกันนี้
+// ไม่งั้นสามจอจะพูดเลขคนละตัวกับผู้ใช้คนเดียวกัน ซึ่งเคยเป็นแบบนั้นมาก่อน
+//
+// freeSlots บอกช่องว่างดิบ แต่ตัวจัดแผนต้องการมากกว่านั้นสองอย่าง:
+//
+//   1) ยังไม่รู้จักตารางของเขาเลย → ห้ามเดาว่าเขาว่างตั้งแต่ตอนนี้ยันหัวค่ำ
+//      เด็กที่ยังนั่งอยู่ในคาบตอนบ่ายสองจะได้แผนที่เริ่มบ่ายสอง ซึ่งทำตามไม่ได้สักบรรทัด
+//      กรณีนี้ถอยไปใช้ธรรมเนียม "การบ้านเริ่มหลังมื้อเย็น" ก่อน แล้วค่อยชวนเขามาบอกตารางจริง
+//
+//   2) เลยเส้นห้ามวางงานแล้วแต่ยังไม่ถึงเวลานอน → ห้ามตอบว่า "หมดเวลาแล้ว"
+//      คนที่เปิดแอปสี่ทุ่มเพราะพรุ่งนี้ต้องส่ง ต้องการแผน ไม่ใช่คำเทศนาเรื่องเวลานอน
+//      แต่ต้องบอกตรง ๆ ว่านี่คือเวลาที่ยืมมาจากการนอน (mode = 'late')
+//
+// budgetMin ≠ windowMin โดยตั้งใจ: ช่องว่างคือ "เวลาที่มี" ส่วน freeHours คือ "แรงที่ไหว"
+// ว่าง 6 ชั่วโมงไม่ได้แปลว่านั่งทำได้ 6 ชั่วโมง แผนที่ยัดเต็มช่องว่างคือแผนที่ไม่มีใครทำตาม
+const EVENING_START = 19 * 60;   // ใช้เฉพาะตอนยังไม่รู้จักตารางเขาเท่านั้น
+
+function fmtSlot(from, to) {
+  return { from, to, min: to - from, fromHm: min2hm(from), toHm: min2hm(to) };
+}
+
+function planWindows(settings = {}, now = new Date()) {
+  const p = ctxPrefs();
+  const capMin = Math.round(Math.max(0.5, +settings.freeHours || 2) * 60);
+  const nowMin = Math.ceil((now.getHours() * 60 + now.getMinutes()) / 5) * 5;
+  const hardEnd = hm2min(p.noWorkAfter) ?? 21 * 60 + 30;
+  // เข้านอนเที่ยงคืนถูกเก็บเป็น '00:00' = 0 นาที ซึ่งถ้าใช้ตรง ๆ จะแปลว่า "ปลายวันอยู่ก่อนตอนนี้เสมอ"
+  // แล้วคนที่นอนเที่ยงคืนจะไม่เคยได้ช่วงยืมเวลาก่อนนอนเลยสักครั้ง — นับเป็นปลายวันแทน
+  const sleepRaw = hm2min(p.sleep);
+  const sleep = (sleepRaw == null || sleepRaw === 0) ? 24 * 60 : sleepRaw;
+
+  let mode = 'context';
+  let slots;
+
+  if (ctxIsEmpty()) {
+    mode = 'default';
+    const from = Math.max(nowMin, EVENING_START);
+    slots = from + 10 <= hardEnd ? [fmtSlot(from, hardEnd)] : [];
+  } else {
+    slots = freeSlots(now, now);
+  }
+
+  // ไม่เหลือช่องในกรอบปกติแล้ว — ยืมเวลาก่อนนอนมาให้ พร้อมป้ายบอกว่ายืมมา
+  if (!slots.length && nowMin + 10 <= sleep) {
+    mode = 'late';
+    slots = ctxIsEmpty()
+      ? [fmtSlot(nowMin, sleep)]
+      : freeSlots(now, now, { hardEnd: sleep, minBlock: 10 });
+    if (!slots.length) mode = 'none';
+  } else if (!slots.length) {
+    mode = 'none';
+  }
+
+  const windowMin = slots.reduce((s, x) => s + x.min, 0);
+  return {
+    slots, mode, windowMin, capMin,
+    budgetMin: Math.min(windowMin, capMin),
+    capped: windowMin > capMin,        // เวลามีเหลือ แต่แรงหมดก่อน
+    breakMin: Math.max(0, +p.breakMin || 10),
+    maxRunMin: Math.max(20, +p.maxRunMin || 50),
+  };
+}
+
+// ---------- โอกาสสุดท้าย: ยังเหลือเวลาทำก่อนเส้นตายไหม ----------
+// จุดที่แผนเคยพลาดหนักที่สุด: มันรู้ว่า "วันนี้เวลาไม่พอ" แล้วตอบว่า "ย้ายไปพรุ่งนี้"
+// โดยไม่เคยถามว่าพรุ่งนี้เริ่มว่างกี่โมง — งานที่ส่ง 08:00 ถูกย้ายไปวางไว้ 16:30
+// ซึ่งเป็นเวลาที่เส้นตายผ่านไปแล้วแปดชั่วโมงครึ่ง
+//
+// สามฟังก์ชันข้างล่างตอบคำถามเดียว: "ก่อนถึงเวลานี้ เขายังมีเวลานั่งทำอีกกี่นาที"
+// แยกออกมาจาก freeSlots เพราะ freeSlots ตอบแค่ "วันนี้ว่างตรงไหน" ไม่รู้จักเส้นตาย
+
+// ช่องว่างของวัน `date` ที่ยังปิดก่อนเวลา `due` — ช่วงที่คร่อมเส้นตายจะถูกตัดให้จบตรงเส้น
+function slotsBefore(due, date = new Date(), now = null, opts = {}) {
+  const d = due instanceof Date ? due : new Date(due);
+  if (isNaN(d)) return [];
+  const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0);
+  if (dayStart >= d) return [];                       // ทั้งวันอยู่หลังเส้นตายแล้ว
+  const minBlock = Math.max(5, +(opts.minBlock ?? ctxPrefs().minBlockMin) || 20);
+  // เส้นตายอยู่คนละวัน = ทั้งวันใช้ได้ · อยู่วันเดียวกัน = ใช้ได้ถึงนาทีนั้น
+  const cut = d.toDateString() === date.toDateString()
+    ? d.getHours() * 60 + d.getMinutes() : 24 * 60;
+
+  const out = [];
+  for (const s of freeSlots(date, now, opts)) {
+    if (s.from >= cut) break;
+    out.push(s.to <= cut ? s : fmtSlot(s.from, cut));
+  }
+  // ตัดแล้วเหลือเศษสั้นกว่าที่นั่งทำไหว ก็ไม่นับว่าเป็นเวลาทำงาน
+  return out.filter(s => s.min >= minBlock);
+}
+
+// เวลาว่างรวมที่ยังใช้ได้ก่อนถึง `due` (นาที)
+//   skipToday — ไม่นับวันนี้ ใช้ตอบว่า "ถ้าไม่ทำวันนี้ ยังทันไหม"
+//   stopAt    — พอรวมได้ถึงเท่านี้ก็หยุดไล่ ไม่ต้องนับให้ครบ (ผู้เรียกแค่อยากรู้ว่าพอไหม)
+function freeMinutesBefore(due, now = new Date(), opts = {}) {
+  const d = due instanceof Date ? due : new Date(due);
+  if (isNaN(d) || d <= now) return 0;
+  const maxDays = opts.maxDays ?? 14;
+  let total = 0;
+  for (let i = (opts.skipToday ? 1 : 0); i <= maxDays; i++) {
+    const day = new Date(now); day.setDate(day.getDate() + i);
+    const dayStart = new Date(day); dayStart.setHours(0, 0, 0, 0);
+    if (dayStart >= d) break;                         // ไล่พ้นเส้นตายไปแล้ว
+    total += slotsBefore(d, day, i === 0 ? now : null, opts)
+      .reduce((a, s) => a + s.min, 0);
+    if (opts.stopAt != null && total >= opts.stopAt) break;
+  }
+  return total;
+}
+
+// ช่องว่างก้อนแรกที่ไม่ใช่ของวันนี้ — ไว้บอกตรง ๆ ว่า "พรุ่งนี้กว่าจะว่างก็ 16:30 แล้ว"
+function nextFreeSlotAfterToday(now = new Date(), maxDays = 7) {
+  for (let i = 1; i <= maxDays; i++) {
+    const day = new Date(now); day.setDate(day.getDate() + i);
+    const s = freeSlots(day)[0];
+    if (s) return { dayOffset: i, date: day, fromHm: s.fromHm, toHm: s.toHm, min: s.min };
+  }
+  return null;
+}
+
 // ---------- ให้ตัวซิงก์คลาวด์เรียกใช้ ----------
 // เก็บใน user_state ก้อนเดียวกับงานไปก่อน (คีย์ `ctx`) จนกว่าตาราง Supabase จะพร้อม
 // พอแตกตารางแล้วให้แก้แค่สองฟังก์ชันนี้ ที่เหลือทั้งไฟล์ไม่ต้องแตะ
@@ -220,5 +346,6 @@ function ctxImport(data) {
 // เปิดให้ node เรียกไปทดสอบได้ โดยไม่กระทบการโหลดในเบราว์เซอร์
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { hm2min, min2hm, busyBlocks, mergeRanges, freeSlots, freeMinutes,
+    slotsBefore, freeMinutesBefore, nextFreeSlotAfterToday,
     ctxLoad, ctxUpsert, ctxSetPrefs, ctxClear, CTX_DEFAULT };
 }

@@ -186,8 +186,13 @@ function parseAssignment(text, now = new Date(), opts = {}) {
   const detected = {};
 
   // วิชา
+  // ตัด "กับดัก" ออกก่อนค้นหา — คำที่มีคำค้นของวิชาฝังอยู่แต่ไม่ได้หมายถึงวิชานั้น
+  // "เลขที่ 5" คือลำดับนักเรียน ไม่ใช่วิชาคณิตศาสตร์ (คำค้น 'เลข' ไปจับเข้าเต็ม ๆ)
+  // ตัดออกทั้งข้อความก่อนค้น จึงกันได้ทุกตำแหน่ง ไม่ใช่แค่ตำแหน่งแรกที่เจอ
+  const SUBJECT_TRAPS = /เลขที่/g;
   let subject = 'อื่น ๆ', subjKey = '';
-  const low = t.toLowerCase();
+  const tSubj = t.replace(SUBJECT_TRAPS, ' ');
+  const low = tSubj.toLowerCase();
   outer:
   for (const s of SUBJECTS) {
     for (const k of s.keys) {
@@ -202,7 +207,7 @@ function parseAssignment(text, now = new Date(), opts = {}) {
     let best = null;
     for (const s of SUBJECTS) {
       for (const k of s.keys) {
-        const d = fuzzyDistance(t, k);
+        const d = fuzzyDistance(tSubj, k);
         if (d == null) continue;
         if (!best || d < best.d) best = { d, name: s.name };
       }
@@ -218,17 +223,40 @@ function parseAssignment(text, now = new Date(), opts = {}) {
   // รวมชั้นเรียนไว้ด้วย (ม.5/2 · ป.6 · ห้อง · ชั้น) — ใบงานมักพิมพ์ชื่อครูติดชั้นเรียนเลย
   // และภาษาไทยไม่การันตีว่าจะมีช่องว่างคั่น ถ้ารอแต่ช่องว่างจะจับชื่อครูไม่ได้ทั้งท่อน
   // (วัดจริงเจอ "ครูสมชายม.5/2" แล้วหลุดทั้งช่อง ทั้งที่ OCR อ่านถูกทุกตัว)
-  const nameEnd = 'สั่ง|ให้|บอก|แจ้ง|มอบหมาย|นัด|ทำ|อ่าน|เขียน|สรุป|ท่อง|เตรียม|วาด|ส่ง|สอบ|แบบฝึกหัด|แบบ|บทที่|บท|ข้อ|หน้า|ใบงาน|คะแนน|ภายใน|เวลา|วันที่|วันนี้|พรุ่งนี้|มะรืน|สัปดาห์'
+  const nameEnd = 'สั่ง|ให้|บอก|แจ้ง|มอบหมาย|นัด|ฝาก|ทำ|อ่าน|เขียน|สรุป|ท่อง|เตรียม|วาด|ส่ง|สอบ|แบบฝึกหัด|แบบ|บทที่|บท|ข้อ|หน้า|ใบงาน|คะแนน|ภายใน|เวลา|วันที่|วันนี้|พรุ่งนี้|มะรืน|สัปดาห์'
     + '|ม\\.\\s?\\d|ป\\.\\s?\\d|มัธยม|ประถม|ชั้น|ห้อง';
-  const mT = t.match(new RegExp('(?:ครู|อาจารย์|อ\\.)\\s?([ก-๙A-Za-z]{2,20}?)(?=\\s|' + nameEnd + '|$)'));
+  // คำที่ตามหลัง "ครู" แล้วแปลว่า **ไม่มีชื่อครูอยู่ตรงนี้** — ต้องกันตั้งแต่ก่อนเริ่มจับ
+  // "ส่งครูวันศุกร์" แปลว่าส่งให้ครูภายในวันศุกร์ ไม่ใช่ครูที่ชื่อ "วันศุกร์"
+  // กันด้วย nameEnd ไม่ได้ เพราะ nameEnd เป็นตัวบอกว่า "ชื่อจบตรงไหน" —
+  // ต่อให้ใส่ชื่อวันลงไป มันก็จะได้ "ครูวัน" มาแทน ซึ่งยังผิดอยู่ดี
+  const notName = 'วัน|พรุ่ง|มะรืน|สัปดาห์|ที่|ใหญ่|ประจำ|ผู้|ทุก|และ|กับ';
+  const mT = t.match(new RegExp(
+    '(?:ครู|อาจารย์|อ\\.)\\s?(?!' + notName + ')([ก-๙A-Za-z]{2,20}?)(?=\\s|' + nameEnd + '|$)'));
   if (mT) { teacher = 'ครู' + mT[1].replace(/^ครู/, ''); detected.teacher = true; }
 
   // คะแนน
-  let scorePct = null;
-  // รับทั้ง "20%" · "คะแนนเก็บ 20" · และ "10 คะแนน" (เลขมาก่อนคำ)
-  const mS = t.match(/(\d{1,3})\s*(?:%|เปอร์เซ็นต์)/) || t.match(/คะแนน(?:เก็บ)?\s*(\d{1,3})/)
-    || t.match(/(\d{1,3})\s*คะแนน/);
-  if (mS) { scorePct = Math.min(100, parseInt(mS[1], 10)); detected.score = true; }
+  // รับทั้ง "20%" · "รวม 20 คะแนน" · "คะแนนเก็บ 20" · และ "10 คะแนน" (เลขมาก่อนคำ)
+  //
+  // ลำดับสำคัญ: ข้อความจริงมักบอกทั้งคะแนนต่อข้อและคะแนนรวมในประโยคเดียว
+  // "ทำ 10 ข้อ ข้อละ 2 คะแนน รวม 20 คะแนน" — เลขที่ผู้ใช้หมายถึงคือ 20 ไม่ใช่ 2
+  // ของเดิมหยิบตัวแรกที่เจอจึงได้ 2 มาตลอด
+  let scorePct = null, scoreText = '';
+  const mPct = t.match(/(\d{1,3})\s*(?:%|เปอร์เซ็นต์)/);
+  const mTotal = t.match(/(?:รวม|ทั้งหมด|เต็ม)\s*(\d{1,3})\s*คะแนน/);
+  const mKeep = t.match(/คะแนน(?:เก็บ)?\s*(\d{1,3})/);
+  if (mPct) { scorePct = +mPct[1]; scoreText = mPct[0]; }
+  else if (mTotal) { scorePct = +mTotal[1]; scoreText = mTotal[0]; }
+  else if (mKeep) { scorePct = +mKeep[1]; scoreText = mKeep[0]; }
+  else {
+    // ไม่มีคำบอกว่าอันไหนคือคะแนนรวม → เอาเลขที่มากที่สุด
+    // คะแนนรวมมากกว่าคะแนนต่อข้อเสมอ จึงเป็นการเดาที่ปลอดภัยกว่าหยิบตัวแรก
+    const all = [...t.matchAll(/(\d{1,3})\s*คะแนน/g)];
+    if (all.length) {
+      const best = all.reduce((a, b) => (+b[1] > +a[1] ? b : a));
+      scorePct = +best[1]; scoreText = best[0];
+    }
+  }
+  if (scorePct != null) { scorePct = Math.min(100, scorePct); detected.score = true; }
 
   // เวลา (16:00 / 16.00 น. / เที่ยง)
   let hh = 23, mm = 59, hasTime = false, timeText = '';
@@ -309,7 +337,10 @@ function parseAssignment(text, now = new Date(), opts = {}) {
   // ประเภท: เดาจากคำที่นักเรียนใช้จริง (ตรวจสอบก่อน เพราะกิจกรรมบางอย่างมีคำว่า "สอบ" ปนไม่ได้)
   let type = 'homework';
   if (/สอบ(?!ถาม)|quiz|test|มิดเทอม|ไฟนอล|กลางภาค|ปลายภาค/i.test(t)) type = 'exam';
-  else if (/กิจกรรม|ประชุม|ซ้อม|แข่ง|เข้าค่าย|ค่าย|ทัศนศึกษา|ตักบาตร|เข้าแถว|พิธี|งานวัด|ชมรม|บำเพ็ญ|จิตอาสา|อบรม|สัมมนา|ไปงาน|นัด/i.test(t)) type = 'activity';
+  // "นัด" ต้องไม่ตามด้วย "ส่ง" — "ครูนัดส่งงานวันศุกร์" คือการบ้าน ไม่ใช่กิจกรรม
+  // (กิจกรรมคือเหตุการณ์ที่ต้องไปอยู่ตรงนั้น ส่วนการนัดส่งงานยังเป็นงานที่ต้องนั่งทำ
+  //  แยกผิดแล้วกระทบจริง: กิจกรรมไม่ถูกจัดเวลาให้ในแผนของวัน)
+  else if (/กิจกรรม|ประชุม|ซ้อม|แข่ง|เข้าค่าย|ค่าย|ทัศนศึกษา|ตักบาตร|เข้าแถว|พิธี|งานวัด|ชมรม|บำเพ็ญ|จิตอาสา|อบรม|สัมมนา|ไปงาน|นัด(?!ส่ง|หมายส่ง)/i.test(t)) type = 'activity';
   else if (/เตือน|อย่าลืม|จำไว้|ติดต่อ|จ่ายเงิน|จ่ายค่า|ส่งเงิน/i.test(t) && !/การบ้าน|ทำ|เขียน|อ่าน/.test(t)) type = 'reminder';
   if (type !== 'homework') detected.type = true;
   const isExam = type === 'exam'; // เก็บไว้เพื่อความเข้ากันได้กับข้อมูลเก่า
@@ -320,7 +351,7 @@ function parseAssignment(text, now = new Date(), opts = {}) {
   // วิธีใหม่: เอาข้อความทั้งก้อน แล้ว "หักเฉพาะส่วนที่ถูกแยกไปช่องอื่นแล้ว" ออก
   // ที่เหลือคือสิ่งที่ผู้ใช้เขียนจริง ๆ และไม่มีอะไรหายไประหว่างทาง
   const escRe = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const cutOut = [dueText, mT && mT[0], mS && mS[0], mMin && mMin[0], mHr && mHr[0]].filter(Boolean);
+  const cutOut = [dueText, mT && mT[0], scoreText, mMin && mMin[0], mHr && mHr[0]].filter(Boolean);
   if (timeText && !(dueText && dueText.includes(timeText))) cutOut.push(timeText);
 
   let rest = t;
@@ -352,6 +383,26 @@ function parseAssignment(text, now = new Date(), opts = {}) {
 }
 
 // ---------- 2) ลำดับความสำคัญ + เหตุผล ----------
+
+// เวลาที่ยังต้องนั่งทำอีก — งานที่ทำไปครึ่งใบแล้วไม่ควรถูกกันเวลาไว้เต็ม
+// ทั้งคะแนนความสำคัญและตัวจัดแผนต้องอ่านตัวเลขเดียวกัน ไม่งั้นแผนกับป้ายบนการ์ดจะไม่ตรงกัน
+function remainingMin(t) {
+  return Math.max(10, Math.round((t.estMin || 30) * (1 - (t.progress || 0) / 100)));
+}
+
+// ความด่วนเป็นเส้นโค้งต่อเนื่อง ไม่ใช่บันได
+//
+// ของเดิมเป็นบันได 6 ขั้น (+50 / +40 / +28 / +14 / +5) ซึ่งพังสองทาง:
+// งานที่เหลือ 5.9 ชม. กับ 6.1 ชม. ห่างกัน 10 คะแนนทั้งที่ต่างกันสิบสองนาที
+// และช่วง "ส่งใน 5 ชม." กับ "ส่งใน 30 ชม." ก็ห่างกันแค่ 10 คะแนน — น้อยกว่าโบนัสสอบ
+// ผลคือสอบอีกสามวันแซงการบ้านที่ส่งคืนนี้ ซึ่งเป็นความผิดที่แพงที่สุดที่แอปนี้ทำได้
+//
+// เส้นโค้งนี้ให้ 60 ที่เส้นตายพอดี ดิ่งเร็วในวันแรก แล้วค่อย ๆ แบนออกไป
+//   เหลือ 1 ชม. → 53 · 5 ชม. → 42 · 1 วัน → 28 · 3 วัน → 17 · 1 สัปดาห์ → 8
+function urgencyScore(effHours) {
+  return Math.max(2, Math.round(60 - 7 * Math.log2(1 + Math.max(0, effHours))));
+}
+
 function priorityInfo(task, now = new Date()) {
   const reasons = [];
   let score = 0;
@@ -361,8 +412,10 @@ function priorityInfo(task, now = new Date()) {
   const type = taskType(task);
   const ti = TASK_TYPES[type];
 
-  // สอบต้องเริ่มอ่านล่วงหน้า จึงนับ "เวลาที่เหลือจริง" ให้เร็วขึ้นตาม prepHours
-  const effHours = hoursLeft == null ? null : hoursLeft - ti.prepHours;
+  // สอบต้องเริ่มอ่านล่วงหน้า จึงให้เวลาที่เหลือ "เดินเร็วกว่าจริง" ตาม prepHours
+  // เดิมใช้การลบ (hoursLeft − 48) ซึ่งพอใกล้วันสอบจะติดลบ ต้องมีสาขาพิเศษมารับ
+  // และทำให้สอบอีก 47 ชม. ได้คะแนนเท่างานที่ส่งในอีกนาทีเดียว — หารแทน เส้นจึงต่อเนื่องตลอด
+  const effHours = hoursLeft == null ? null : hoursLeft / (1 + ti.prepHours / 24);
 
   if (due) {
     if (type === 'activity' || type === 'reminder') {
@@ -372,32 +425,57 @@ function priorityInfo(task, now = new Date()) {
       else if (hoursLeft <= 14) { score += 38; reasons.push('ถึงเวลาวันนี้'); }
       else if (hoursLeft <= 30) { score += 24; reasons.push('ถึงเวลาพรุ่งนี้'); }
       else                      { score += 6;  reasons.push('ยังอีกหลายวัน'); }
-    } else if (effHours < 0 && hoursLeft >= 0) {
-      // ถึงเวลาที่ควรเริ่มเตรียมตัวแล้ว (ใช้กับสอบเป็นหลัก)
-      score += 46;
-      reasons.push(type === 'exam' ? 'สอบใน ' + Math.max(1, Math.round(hoursLeft / 24)) + ' วัน — ควรเริ่มอ่านแล้ว' : 'ควรเริ่มได้แล้ว');
-    } else if (hoursLeft < 0)        { score += 60; reasons.push('⚠ เลยกำหนดแล้ว'); }
-    else if (effHours <= 6)  { score += 50; reasons.push(ti.verb + 'ภายใน ' + Math.max(1, Math.round(hoursLeft)) + ' ชม.'); }
-    else if (effHours <= 30) { score += 40; reasons.push('ใกล้กำหนด' + (type === 'exam' ? 'สอบ' : 'ส่ง')); }
-    else if (effHours <= 54) { score += 28; reasons.push(ti.verb + 'ใน 2 วัน'); }
-    else if (effHours <= 24 * 7) { score += 14; reasons.push(ti.verb + 'ภายในสัปดาห์นี้'); }
-    else                      { score += 5;  reasons.push('ยังพอมีเวลา'); }
-  } else { score += 10; reasons.push('ยังไม่ระบุกำหนด'); }
+    } else if (hoursLeft < 0) {
+      // เลยกำหนดต้องอยู่เหนือสุดของเส้นโค้ง (60) เสมอ ไม่งั้นงานที่พลาดไปแล้วจะหล่นหาย
+      score += 65; reasons.push('⚠ เลยกำหนดแล้ว');
+    } else {
+      score += urgencyScore(effHours);
+      // คะแนนมาจากเส้นโค้ง แต่ข้อความยังแบ่งเป็นช่วงที่คนพูดกันจริง
+      if (hoursLeft <= 6) { reasons.push(ti.verb + 'ภายใน ' + Math.max(1, Math.round(hoursLeft)) + ' ชม.'); }
+      else if (type === 'exam' && hoursLeft <= ti.prepHours) {
+        reasons.push('สอบใน ' + Math.max(1, Math.round(hoursLeft / 24)) + ' วัน — ควรเริ่มอ่านแล้ว');
+      }
+      else if (hoursLeft <= 30) { reasons.push('ใกล้กำหนด' + (type === 'exam' ? 'สอบ' : 'ส่ง')); }
+      else if (hoursLeft <= 54) { reasons.push(ti.verb + 'ใน 2 วัน'); }
+      else if (hoursLeft <= 24 * 7) { reasons.push(ti.verb + 'ภายในสัปดาห์นี้'); }
+      else                      { reasons.push('ยังพอมีเวลา'); }
+    }
+  } else { score += 14; reasons.push('ยังไม่ระบุกำหนด'); }
 
+  // คะแนนเก็บบอก "เสียหายแค่ไหนถ้าไม่ทำ" ซึ่งไม่ใช่เรื่องเดียวกับความด่วน จึงต้องเบากว่าเสมอ
+  // ของเดิมให้ได้ถึง 30 = เท่ากับความต่างของแถบความด่วนทั้งแถบ และให้ค่าว่าง = 0
+  // แปลว่า "ครูไม่ได้บอกว่ากี่คะแนน" ถูกอ่านเป็น "ไม่สำคัญ" — ซึ่งเป็นกรณีปกติของนักเรียน
   if (task.scorePct != null) {
-    score += Math.min(30, task.scorePct);
+    score += Math.min(15, Math.round(task.scorePct / 2));
     reasons.push('คะแนน ' + task.scorePct + '%');
+  } else {
+    score += 6;   // ค่ากลาง ≈ งาน 12% · ไม่รู้ ≠ ไม่สำคัญ (ไม่ต้องมีเหตุผลกำกับ ไม่มีอะไรจะบอก)
   }
-  if (type === 'exam') { score += 12; reasons.push('เป็นการสอบ'); }
 
   // เวลาที่ใช้ทำมีความหมายเฉพาะงานที่ต้องนั่งทำ — กิจกรรมไม่ต้องเจียดเวลา
   if (ti.schedulable) {
-    if (task.estMin >= 90)      { score += 15; reasons.push((type === 'exam' ? 'อ่าน' : 'งานใหญ่') + ' ~' + Math.round(task.estMin / 60 * 10) / 10 + ' ชม. — ควรเริ่มก่อน'); }
-    else if (task.estMin >= 45) { score += 9;  reasons.push('ใช้เวลา ~' + task.estMin + ' นาที'); }
-    else                        { score += 4;  reasons.push('~' + task.estMin + ' นาที'); }
+    const need = remainingMin(task);
+    if (need >= 90)      { score += 15; reasons.push((type === 'exam' ? 'อ่าน' : 'งานใหญ่') + ' ~' + Math.round(need / 60 * 10) / 10 + ' ชม. — ควรเริ่มก่อน'); }
+    else if (need >= 45) { score += 9;  reasons.push('ใช้เวลา ~' + need + ' นาที'); }
+    else                 { score += 4;  reasons.push('~' + need + ' นาที'); }
   }
 
-  let stars = score >= 70 ? 5 : score >= 55 ? 4 : score >= 40 ? 3 : score >= 25 ? 2 : 1;
+  // ชั้นที่สอง: ความสำคัญบอกว่า "งานไหนใหญ่กว่า" แต่ไม่ได้บอกว่า "งานไหนหมดโอกาสก่อน"
+  //
+  // สอบกลางภาค 30% สองชั่วโมง สำคัญกว่าใบงาน 10% หนึ่งชั่วโมงจริง — แต่สอบยังมีวันพรุ่งนี้
+  // ส่วนใบงานที่ส่งพรุ่งนี้เช้าไม่มีวันพรุ่งนี้ให้แล้ว งานที่หมดโอกาสก่อนต้องได้ทำก่อน
+  //
+  // ตรรกะนี้ต้องอยู่ในคะแนน ไม่ใช่อยู่แค่ในตัวจัดแผน ไม่งั้นการ์ด "ควรทำก่อน" บนหน้าแรก
+  // จะชี้ไปคนละงานกับที่หน้าแผนบอก — แอปที่เถียงกันเองคือแอปที่ไม่มีใครเชื่อ
+  const lastChance = isLastChanceToday(task, now);
+  if (lastChance) {
+    score += 18;
+    reasons.unshift('วันนี้เป็นโอกาสสุดท้ายที่จะทำทัน');
+  }
+
+  // เพดานใหม่ ≈ 95 (เลยกำหนด 65 + คะแนน 15 + งานใหญ่ 15) — ขีดแบ่งดาวจึงต้องเลื่อนตาม
+  // ป้าย "ด่วนมาก" ที่ติดครึ่งรายการคือป้ายที่ไม่ได้บอกอะไรเลย
+  let stars = score >= 52 ? 5 : score >= 44 ? 4 : score >= 32 ? 3 : score >= 22 ? 2 : 1;
 
   // ผู้ใช้กำหนดความสำคัญเอง → เคารพการตัดสินใจของเขา (override AI)
   // ลำดับภายในดาวเท่ากัน: ใกล้ deadline กว่ามาก่อน
@@ -411,14 +489,38 @@ function priorityInfo(task, now = new Date()) {
     : (hoursLeft != null && hoursLeft <= 30) ? 'hot'
     : (hoursLeft != null && hoursLeft <= 54) ? 'mid' : 'norm';
 
-  return { score, stars, reasons, hoursLeft, urgency, type, typeInfo: ti };
+  return { score, stars, reasons, hoursLeft, urgency, lastChance, type, typeInfo: ti };
 }
 
+// คิดคะแนนใบละครั้งแล้วค่อยเรียง — ของเดิมเรียกซ้ำในตัวเปรียบเทียบ กลายเป็น 2·n·log n ครั้ง
+// ตอนที่คะแนนยังเป็นเลขคณิตล้วนก็พอทน แต่ตอนนี้มันต้องไปไล่ช่องว่างของอาทิตย์หน้าด้วย
 function sortByPriority(tasks, now = new Date()) {
-  return [...tasks].sort((a, b) => priorityInfo(b, now).score - priorityInfo(a, now).score);
+  return tasks
+    .map(t => ({ t, s: priorityInfo(t, now).score }))
+    .sort((a, b) => b.s - a.s)
+    .map(x => x.t);
 }
 
 // ---------- 3) ประโยคของ AI ----------
+// ชื่อที่ใช้เรียกงานในประโยคพูด — ไม่ใช่ทุกงานที่มีวิชา
+// งานที่ผู้ใช้ไม่ได้เลือกวิชาจะได้ค่า 'อื่น ๆ' ติดมา ซึ่งพอเอาไปต่อประโยคแล้วกลายเป็น
+// "เริ่มที่อื่น ๆ ก่อน" — ประโยคที่ไม่ได้บอกอะไรเลยทั้งที่ตัวงานมีชื่อของมันอยู่แล้ว
+// จึงถอยไปใช้ชื่องานแทน และตัดให้สั้นพอที่จะยังเป็นประโยคพูด ไม่ใช่ย่อหน้า
+function taskLabel(t, max = 24) {
+  const subj = (t.subject || '').trim();
+  if (subj && subj !== 'อื่น ๆ') return subj;
+  const d = (t.detail || '').trim();
+  if (!d) return 'งานที่ค้างอยู่';
+  return d.length > max ? d.slice(0, max - 1).trim() + '…' : d;
+}
+
+// ภาษาไทยไม่เว้นวรรคระหว่างคำ "เริ่มที่ฟิสิกส์ก่อน" จึงถูก แต่พอเป็นชื่องานยาว ๆ
+// "เริ่มที่ทำโจทย์บทที่ 4ก่อน" อ่านไม่ออกว่าตรงไหนคือชื่องาน — ใส่อัญประกาศคั่นแทนการเว้นวรรค
+function taskPhrase(t) {
+  const subj = (t.subject || '').trim();
+  return (subj && subj !== 'อื่น ๆ') ? subj : '“' + taskLabel(t) + '”';
+}
+
 function aiGreeting(pending, settings, now = new Date()) {
   // ALT: เรียกชื่อที่ผู้ใช้บอกไว้ตอนทำความรู้จัก — ประโยคของ AI จะได้พูดกับ "คนคนนี้"
   const nm = (settings.name || '').trim();
@@ -428,19 +530,34 @@ function aiGreeting(pending, settings, now = new Date()) {
   const sorted = sortByPriority(pending, now);
   const top = sorted[0];
   const info = priorityInfo(top, now);
+  const label = taskPhrase(top);
   const totalMin = pending.reduce((s, t) => s + (t.estMin || 30), 0);
   const totalH = Math.round(totalMin / 60 * 10) / 10;
-  const freeH = settings.freeHours || 2;
+
+  // เวลาว่างที่พูดถึงต้องเป็นเวลาว่าง "ที่เหลือจริงวันนี้" ไม่ใช่ตัวเลขที่เขากรอกไว้เมื่อเดือนก่อน
+  // ประโยค "งานรวม 3 ชม. เวลาว่างพอสบาย" ตอนสามทุ่มครึ่งคือประโยคที่ทำให้คนเลิกเชื่อแอป
+  const win = dayWindows(settings, now);
+  const freeH = Math.round(win.budgetMin / 60 * 10) / 10;
 
   // สั้นเสมอ: 1 ประโยคบอกว่าทำอะไรก่อน + 1 วลีบอกว่าเวลาพอไหม
   // "nado ภาษาอังกฤษเลยกำหนดแล้ว" อ่านแล้วสะดุด เพราะชื่อวิชาไปชนชื่อคนพอดี
   // เติมคำว่า "งาน" คั่นไว้ ประโยคจึงมีประธานชัดว่ากำลังพูดถึงงาน ไม่ใช่ตัววิชา
-  if (info.urgency === 'over') return hey + 'งาน' + top.subject + 'เลยกำหนดแล้ว รีบเคลียร์ก่อนเลย';
+  if (info.urgency === 'over') return hey + 'งาน' + label + 'เลยกำหนดแล้ว รีบเคลียร์ก่อนเลย';
+
   const why = (info.reasons[0] || '').replace(/^★ /, '');
+  const first = win.slots[0];
+  // จุดที่แอปนี้ตอบได้แต่ to-do list อื่นตอบไม่ได้: "เริ่มกี่โมง" ไม่ใช่แค่ "ทำอะไรก่อน"
+  const span = first ? first.fromHm + '–' + first.toHm : '';
+  const when = !first ? 'วันนี้ไม่เหลือช่องแล้ว — กันไว้พรุ่งนี้เช้า'
+    : win.mode !== 'late' ? 'ช่องว่างถัดไป ' + span
+    : win.slots.length === 1 ? 'เหลือช่องสุดท้าย ' + span + ' ก่อนนอน'
+    : 'เลยเวลาปกติแล้ว เหลือ ' + span;
   const fit = totalH > freeH
-    ? 'งานรวม ~' + totalH + ' ชม. เกินเวลาว่าง เลือกทำเฉพาะงานด่วน'
-    : 'งานรวม ~' + totalH + ' ชม. เวลาว่างพอสบาย';
-  return hey + 'เริ่มที่' + top.subject + 'ก่อน — ' + why + ' · ' + fit;
+    ? 'งานรวม ~' + totalH + ' ชม. เกินเวลาว่างที่เหลือ (~' + freeH + ' ชม.) เลือกทำเฉพาะงานด่วน'
+    : win.mode === 'late'
+      ? 'งานรวม ~' + totalH + ' ชม. · เหลือถึงเวลานอน ~' + freeH + ' ชม.'
+      : 'งานรวม ~' + totalH + ' ชม. · ว่าง ~' + freeH + ' ชม. พอสบาย';
+  return hey + 'เริ่มที่' + label + 'ก่อน — ' + why + ' · ' + when + ' · ' + fit;
 }
 
 function timelineInsight(pending, now = new Date()) {
@@ -457,15 +574,56 @@ function timelineInsight(pending, now = new Date()) {
       const d = addDays(now, +diff);
       const dayName = +diff === 0 ? 'วันนี้' : +diff === 1 ? 'พรุ่งนี้' : 'วัน' + THAI_DAY[d.getDay()];
       const biggest = list.reduce((a, b) => (a.estMin > b.estMin ? a : b));
-      return dayName + 'มีงานชน ' + list.length + ' งาน — แนะนำเริ่ม ' + biggest.subject + ' (งานใหญ่สุด) ล่วงหน้าตั้งแต่วันนี้';
+      return dayName + 'มีงานชน ' + list.length + ' งาน — แนะนำเริ่ม ' + taskPhrase(biggest) + ' (งานใหญ่สุด) ล่วงหน้าตั้งแต่วันนี้';
     }
   }
   return null;
 }
 
 // ---------- 4) AI Planner: จัดงานลงช่วงเวลาว่างของวันนี้ ----------
-// หลัก: เรียงตาม priority → หั่นลงเวลาว่าง (จาก settings.freeHours)
-// งานใหญ่เกิน 50 นาทีแทรกพัก 10 นาที · เวลาไม่พอ → บอกตรง ๆ ว่างานไหนต้องย้ายวัน
+// หลัก: เรียงตาม priority → วางลง "ช่องว่างจริง" ของวันนี้ที่ context.js คำนวณให้
+// งานยาวเกิน maxRun แทรกพัก · เวลาไม่พอ → บอกตรง ๆ ว่างานไหนต้องย้ายวัน
+//
+// เดิมตัวจัดแผนเริ่มที่ 19:00 ตายตัวและใช้ freeHours เป็นก้อนเดียวยาว ๆ
+// แปลว่าคนที่ว่างบ่ายสามถึงห้าโมงไม่เคยได้แผนของช่วงนั้นเลย และคนที่ซ้อมบอลถึงสองทุ่ม
+// ได้แผนที่ทับเวลาซ้อมทุกวัน — ตารางที่ทำตามไม่ได้ก็คือตารางที่ถูกเลิกเปิดภายในสัปดาห์เดียว
+
+// ตัวห่อ context.js — ถ้าไฟล์บริบทไม่ถูกโหลด (หรือถูกถอดออกในบิลด์ไหนก็ตาม)
+// ตัวจัดแผนต้องยังทำงานได้ ไม่ใช่พังทั้งจอ จึงถอยกลับไปเป็นหน้าต่างเย็นก้อนเดียวแบบเดิม
+function dayWindows(settings = {}, now = new Date()) {
+  if (typeof planWindows === 'function') return planWindows(settings, now);
+  const capMin = Math.round(Math.max(0.5, +settings.freeHours || 2) * 60);
+  const nowMin = Math.ceil((now.getHours() * 60 + now.getMinutes()) / 5) * 5;
+  const from = Math.max(nowMin, 19 * 60);
+  const to = Math.max(from, Math.min(22 * 60 + 30, from + capMin));
+  const hm = v => String(Math.floor(v / 60)).padStart(2, '0') + ':' + String(v % 60).padStart(2, '0');
+  const slots = to - from >= 10
+    ? [{ from, to, min: to - from, fromHm: hm(from), toHm: hm(to) }] : [];
+  const windowMin = slots.reduce((s, x) => s + x.min, 0);
+  return { slots, mode: 'default', windowMin, capMin, budgetMin: Math.min(windowMin, capMin),
+    capped: windowMin > capMin, breakMin: 10, maxRunMin: 50 };
+}
+
+// ตัวห่อ context.js แบบเดียวกับ dayWindows — ไฟล์บริบทหายไปต้องไม่พังทั้งจอ
+// ถอยไปตอบว่า "ยังมีโอกาสวันหลัง" เพราะเดาว่าทันไว้ก่อน ปลอดภัยกว่าขึ้นเตือนสีแดงผิด ๆ ทุกใบ
+function laterFreeMinutes(due, now, need) {
+  if (typeof freeMinutesBefore !== 'function') return Infinity;
+  return freeMinutesBefore(due, now, { skipToday: true, stopAt: need });
+}
+
+// วันนี้คือโอกาสสุดท้ายที่จะทำงานใบนี้ให้เสร็จทันไหม
+//
+// นี่คือคำถามที่ตัวจัดแผนไม่เคยถาม และเป็นสาเหตุของบั๊กที่แพงที่สุด:
+// ใบงานส่งพรุ่งนี้ 08:00 ถูกโยนลง "ย้ายไปพรุ่งนี้" ทั้งที่พรุ่งนี้เด็กเริ่มว่าง 16:30
+// ทำตามแผนแล้วได้ศูนย์ — แผนที่พาไปพลาดส่งแย่กว่าไม่มีแผนเลย
+function isLastChanceToday(task, now = new Date()) {
+  if (!task || !task.due) return false;
+  const due = new Date(task.due);
+  if (isNaN(due) || due <= now) return false;
+  const need = remainingMin(task);
+  return laterFreeMinutes(due, now, need) < need;
+}
+
 function buildDayPlan(pending, settings, now = new Date()) {
   // กิจกรรม/เตือนความจำ = เหตุการณ์ตามเวลา ไม่ต้องเจียดเวลานั่งทำ
   // แยกออกมาแสดงเป็นหมุดเวลาแทน ไม่เอาไปกินเวลาอ่านหนังสือ
@@ -481,48 +639,119 @@ function buildDayPlan(pending, settings, now = new Date()) {
   // แผนของวันนี้จึงต้องกันที่ให้งานที่เส้นตายอยู่ในวันนี้ก่อน (เรียงตามเวลาส่ง)
   // ความเสียหายที่ยังกันได้ มาก่อนความเสียหายที่เกิดไปแล้ว
   // ที่เหลือ (รวมงานที่เลยกำหนด) ต่อท้ายตามลำดับความสำคัญเดิมไม่เปลี่ยน
+  //
+  // "เส้นตายอยู่ในวันนี้" อย่างเดียวยังไม่พอ — เที่ยงคืนไม่ใช่เส้นแบ่งของชีวิตใคร
+  // งานที่ส่งพรุ่งนี้เช้าก็คือ "ต้องทำวันนี้" เหมือนกัน เพราะพรุ่งนี้กว่าจะว่างก็เลยเวลาส่งแล้ว
+  // isLastChanceToday ถามคำถามที่ถูกต้องแทน: "ถ้าไม่ทำวันนี้ วันหลังยังมีเวลาพอไหม"
   const byPriority = sortByPriority(schedulable, now);
   const endOfDay = atTime(now, 23, 59);
-  const dueToday = byPriority
-    .filter(t => t.due && new Date(t.due) >= now && new Date(t.due) <= endOfDay)
+  const mustToday = byPriority
+    .filter(t => t.due && new Date(t.due) >= now &&
+      (new Date(t.due) <= endOfDay || isLastChanceToday(t, now)))
     .sort((a, b) => new Date(a.due) - new Date(b.due));
-  const sorted = [...dueToday, ...byPriority.filter(t => !dueToday.includes(t))];
-  const freeMin = Math.round((settings.freeHours || 2) * 60);
+  const sorted = [...mustToday, ...byPriority.filter(t => !mustToday.includes(t))];
 
-  // เริ่มแผน: ถ้ายังไม่ถึงเวลาทำการบ้านปกติ (19:00) ให้เริ่ม 19:00, ถ้าเลยแล้วเริ่มตอนนี้
-  let cursor = new Date(now);
-  const evening = atTime(now, 19, 0);
-  if (cursor < evening) cursor = evening;
-  cursor.setMinutes(Math.ceil(cursor.getMinutes() / 5) * 5, 0, 0);
+  const win = dayWindows(settings, now);
+  const midnight = atTime(now, 0, 0);
+  const at = min => new Date(midnight.getTime() + min * 60000);
+
+  // คิวงาน: แต่ละใบพก "เหลืออีกกี่นาที" ติดตัว เพราะงานหนึ่งใบอาจถูกหั่นข้ามช่วงได้
+  // (ว่างบ่าย 40 นาที แล้วว่างอีกทีตอนค่ำ — งานชิ้นใหญ่ควรได้เริ่มตั้งแต่ช่วงบ่าย ไม่ใช่รอ)
+  const queue = sorted.map(t => ({
+    task: t,
+    need: remainingMin(t),
+    locked: mustToday.includes(t),   // ห้ามโดนข้ามคิว วันนี้เป็นโอกาสสุดท้ายของมัน
+  }));
 
   const slots = [], overflow = [];
-  let remaining = freeMin, sinceBreak = 0;
+  const freeMin = win.budgetMin;
+  let remaining = freeMin;
+  const MIN_CHUNK = 10;   // นั่งลงต่ำกว่าสิบนาทียังไม่ทันเข้าที่ก็หมดเวลาแล้ว
 
-  for (const t of sorted) {
-    // เหลืองานจริงเท่าไหร่ตาม progress ที่ทำไปแล้ว
-    const need = Math.max(10, Math.round((t.estMin || 30) * (1 - (t.progress || 0) / 100)));
-    if (remaining < 10) { overflow.push({ task: t, need }); continue; }
+  for (const w of win.slots) {
+    if (remaining < MIN_CHUNK) break;
+    let cursor = at(w.from);
+    const wEnd = at(w.to);
+    // ข้ามช่วงหมายถึงได้พักไปแล้วจริง ๆ (เดินทาง กินข้าว เข้าคาบ) นับพักใหม่ทุกช่วง
+    let sinceBreak = 0;
 
-    const use = Math.min(need, remaining);
-    const start = new Date(cursor);
-    cursor = new Date(cursor.getTime() + use * 60000);
-    slots.push({
-      task: t, start, end: new Date(cursor), min: use,
-      partial: use < need,
-      note: use < need ? 'ทำบางส่วน (' + use + '/' + need + ' นาที) ที่เหลือย้ายพรุ่งนี้'
-        : (t.progress ? 'ต่อจากที่ทำไว้ ' + t.progress + '%' : null),
-    });
-    remaining -= use;
-    sinceBreak += use;
+    while (queue.length && remaining >= MIN_CHUNK) {
+      const left = Math.round((wEnd - cursor) / 60000);
+      if (left < MIN_CHUNK) break;
 
-    if (sinceBreak >= 50 && remaining >= 15) {
-      const bs = new Date(cursor);
-      cursor = new Date(cursor.getTime() + 10 * 60000);
-      slots.push({ break: true, start: bs, end: new Date(cursor), min: 10 });
-      sinceBreak = 0;
+      // เศษเวลาท้ายวันควรได้งานที่ "ทำจบได้" ไม่ใช่เศษของงานที่ยังไงก็ไม่จบในวันนี้
+      // เหลือ 25 นาที แล้วเอาไปเริ่ม essay 2 ชั่วโมง = ได้ความรู้สึกว่าทำไม่เสร็จสักอย่าง
+      // เอาไปปิดงาน 20 นาทีให้จบ = ได้งานเสร็จหนึ่งใบจริง ๆ
+      // แต่ห้ามข้ามงานที่วันนี้เป็นโอกาสสุดท้าย ถึงจะได้แค่บางส่วนก็ต้องได้ที่ก่อน
+      const room = Math.min(remaining, left);
+      let qi = 0;
+      if (!queue[0].locked && queue[0].need > room) {
+        const fit = queue.findIndex(x => x.need <= room);
+        if (fit > 0 && !queue.slice(0, fit).some(x => x.locked)) qi = fit;
+      }
+      const item = queue[qi];
+      // งานหนึ่งใบถูกหั่นได้ก็ต่อเมื่อ "ที่ไม่พอ" เท่านั้น — ช่วงหมด หรือเพดานของวันหมด
+      // เคยลองหั่นทุก 50 นาทีเพื่อแทรกพักด้วย ผลคือแผนเต็มไปด้วยเศษ 10 นาที
+      // และบรรทัด "ทำต่อช่วง 17:50" ที่ชี้ไปยังเวลาถัดจากตัวเองหนึ่งวินาที — อ่านแล้วงงกว่าเดิม
+      // พักจึงคั่นระหว่างงาน ไม่ใช่กลางงาน
+      const use = Math.min(item.need, room);
+      const start = new Date(cursor);
+      cursor = new Date(cursor.getTime() + use * 60000);
+      slots.push({
+        task: item.task, start, end: new Date(cursor), min: use,
+        partial: use < item.need,
+        note: item.task.progress ? 'ต่อจากที่ทำไว้ ' + item.task.progress + '%' : null,
+      });
+      remaining -= use;
+      item.need -= use;
+      sinceBreak += use;
+      if (item.need <= 0) queue.splice(qi, 1);
+
+      // พักคั่นเฉพาะตอนที่ยังมีงานต่อ และช่วงนี้ยังเหลือที่พอให้พักแล้วทำต่อได้จริง
+      const roomAfterBreak = Math.round((wEnd - cursor) / 60000) - win.breakMin;
+      if (sinceBreak >= win.maxRunMin && queue.length && remaining >= MIN_CHUNK &&
+          roomAfterBreak >= MIN_CHUNK && win.breakMin > 0) {
+        const bs = new Date(cursor);
+        cursor = new Date(cursor.getTime() + win.breakMin * 60000);
+        slots.push({ break: true, start: bs, end: new Date(cursor), min: win.breakMin });
+        sinceBreak = 0;
+      }
     }
   }
-  return { slots, overflow, events, freeMin, usedMin: freeMin - remaining };
+
+  // งานที่ยังเหลือ = ไม่มีที่ให้วางในวันนี้จริง ๆ
+  //
+  // "ย้ายไปพรุ่งนี้" เป็นคำที่ใช้ได้ก็ต่อเมื่อพรุ่งนี้มีเวลาให้จริง
+  // ถ้าเวลาว่างของวันหลัง ๆ ไม่พอทำให้เสร็จก่อนกำหนดส่ง นั่นไม่ใช่การเลื่อน — นั่นคือการพลาดส่ง
+  // และผู้ใช้ต้องรู้ตั้งแต่ตอนนี้ ตอนที่ยังเลือกได้ว่าจะยืมเวลาจากอะไร
+  for (const item of queue) {
+    const t = item.task;
+    const due = t.due ? new Date(t.due) : null;
+    const missed = !!due && due >= now && laterFreeMinutes(due, now, item.need) < item.need;
+    overflow.push({ task: t, need: item.need, missed });
+  }
+
+  // ชิ้นที่ถูกหั่นแล้วได้ไปต่อในช่วงถัดไป กับชิ้นที่ถูกหั่นแล้วจบแค่นั้น เป็นคนละข่าวกัน
+  // อันแรกคือ "เดี๋ยวทำต่อตอนสองทุ่ม" อันหลังคือ "ที่เหลือย้ายวัน" — เขียนรวมกันไม่ได้
+  // และถ้าที่เหลือไม่มีวันไหนให้ย้ายไปอีกแล้ว ก็ต้องเขียนเป็นข่าวที่สาม
+  for (let i = 0; i < slots.length; i++) {
+    const s = slots[i];
+    if (s.break || !s.partial) continue;
+    const next = slots.slice(i + 1).find(x => !x.break && x.task === s.task);
+    const rest = overflow.find(o => o.task === s.task);
+    s.note = next
+      ? 'ทำต่อช่วง ' + fmtClock(next.start) + ' อีก ' + next.min + ' นาที'
+      : rest && rest.missed
+        ? '⚠ วันนี้ทำได้ ' + s.min + ' จาก ' + (s.min + rest.need) + ' นาที — ที่เหลือไม่มีเวลาว่างก่อนกำหนดแล้ว'
+        : 'ทำบางส่วน (' + s.min + '/' + (s.min + (rest || { need: 0 }).need)
+          + ' นาที) ที่เหลือย้ายพรุ่งนี้';
+  }
+
+  // ช่องว่างก้อนแรกของวันหลัง — จอแผนเอาไปบอกตรง ๆ ว่า "กว่าจะว่างอีกทีก็ 16:30 พรุ่งนี้"
+  const nextFree = overflow.some(o => o.missed) && typeof nextFreeSlotAfterToday === 'function'
+    ? nextFreeSlotAfterToday(now) : null;
+
+  return { slots, overflow, events, nextFree, freeMin, usedMin: freeMin - remaining, windows: win };
 }
 
 function fmtClock(d) {

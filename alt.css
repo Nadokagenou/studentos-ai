@@ -6,7 +6,7 @@
    ============================================================ */
 
 /* ป้ายเลขรุ่น — กลางบนจอ (1A6M2) ลอยเหนือทุกจอ แต่ไม่รับคลิก */
-.alt-badge {
+.ver-badge {
   position: absolute;
   top: 10px;
   left: 50%;
@@ -1567,207 +1567,173 @@
 .bg-note { margin: 0; font-size: 11.5px; line-height: 1.6; color: var(--faint); }
 
 /* ============================================================
-   เส้นเวลาแบบ "การเดินทาง" (แนวนอน)
-   ถนนพาดซ้าย→ขวาตามเวลา · ป้ายจอด = งาน · หมุด "ตอนนี้" ขยับตามเวลาจริง
+   เส้นเวลา (แกนตั้ง)
+   วันไหลลงตามแกน Y · แต่ละวันมีแถบรูปร่างของวันจาก context
+   แถบ = พื้นว่าง + ก้อนทึบคือเวลาที่ติดเรียน/กิจวัตร + หมุดคือกำหนดส่ง
    ============================================================ */
-.jr {
-  margin: 4px -20px 0;
-  padding: 0 20px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
-}
-.jr::-webkit-scrollbar { display: none; }
-.jr-track { position: relative; height: 250px; }
-
-/* ถนน */
-.jr-road {
-  position: absolute;
-  left: 0; right: 0; top: 50%;
-  height: 8px;
-  margin-top: -4px;
-  border-radius: 99px;
-  background: var(--card2);
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-/* ช่วงที่เดินผ่านมาแล้ว */
-.jr-road.done {
-  right: auto;
-  background: var(--blue);
-  box-shadow: 0 0 16px -3px var(--blue);
-  transition: width .6s ease;
+.tl { position: relative; margin-top: 18px; padding-left: 26px; }
+/* เส้นแกนตั้ง — ลากผ่านจุดกึ่งกลางของหัวข้อวันทุกใบ */
+.tl::before {
+  content: ''; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--blue) 0%, var(--line) 42%, var(--line) 100%);
+  opacity: .5;
 }
 
-/* หลักวัน */
-.jr-day { position: absolute; top: 0; bottom: 0; transform: translateX(-50%); pointer-events: none; }
-.jr-day i {
-  position: absolute; top: 26px; bottom: 26px; left: 50%;
-  width: 1px; margin-left: -.5px;
-  background: repeating-linear-gradient(180deg, var(--line) 0 5px, transparent 5px 11px);
+.tl-day { position: relative; padding-bottom: 22px; }
+.tl-day:last-child { padding-bottom: 0; }
+.tl-dot {
+  position: absolute; left: -26px; top: 5px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--scr); border: 2px solid var(--line); box-sizing: border-box;
 }
-.jr-day span {
-  position: absolute; top: 0; left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  font-family: 'Space Mono', ui-monospace, monospace;
-  font-size: 10px; font-weight: 700; letter-spacing: .02em;
-  color: var(--faint);
+.tl-day.today .tl-dot {
+  border-color: var(--blue); background: var(--blue);
+  box-shadow: 0 0 0 4px var(--blue-soft);
 }
-.jr-day.today span { color: var(--blue); }
-.jr-day.today i { background: repeating-linear-gradient(180deg, var(--blue) 0 5px, transparent 5px 11px); opacity: .5; }
-.jr-day.past span, .jr-day.past i { opacity: .45; }
+.tl-day.quiet .tl-dot { opacity: .55; }
 
-/* ธงปลายทาง */
-.jr-finish {
-  position: absolute; top: 50%; transform: translate(-50%, -50%);
-  width: 30px; height: 30px; border-radius: 50%;
-  background: var(--card2); color: var(--muted);
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: inset 0 0 0 1.5px var(--line);
+.tl-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 9px; }
+.tl-head b { font-size: 14.5px; font-weight: 700; letter-spacing: -.015em; color: var(--ink); }
+.tl-day.today .tl-head b { color: var(--blue); }
+.tl-date { font-size: 11.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.tl-free {
+  margin-left: auto; font-size: 11px; font-weight: 650; color: var(--good);
+  background: var(--good-soft); padding: 3px 9px; border-radius: 99px;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
 }
-.jr-finish svg { width: 15px; height: 15px; }
+.tl-free.low { color: var(--warn); background: var(--warn-soft); }
 
-/* ป้ายจอด */
-.jr-stop {
-  position: absolute; top: 50%;
-  width: 0; height: 0;
-  padding: 0; border: none; background: none;
-  cursor: pointer;
-  z-index: 2;
+/* ---- แถบรูปร่างของวัน ---- */
+/* พื้นแถบ = เวลาที่ใช้ไม่ได้ (ติดเรียน กิจวัตร หรือผ่านไปแล้ว) */
+.tl-bar {
+  position: relative; height: 22px; border-radius: 8px; overflow: hidden;
+  background: var(--card2); margin-bottom: 9px;
 }
-.jr-pin {
-  position: absolute; left: -14px; top: -14px;
-  width: 28px; height: 28px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,.25), 0 0 0 3px var(--scr);
-  transition: transform .16s ease;
+/* ก้อนสี = ช่องว่างจริง — สิ่งเดียวบนแถบนี้ที่คนมองหา จึงเป็นสิ่งเดียวที่มีสี */
+.tl-bar .f {
+  position: absolute; top: 0; bottom: 0; background: var(--good); opacity: .55;
 }
-.jr-pin svg { width: 14px; height: 14px; }
-.jr-stop:active .jr-pin { transform: scale(.88); }
-.jr-stop.red .jr-pin { background: var(--pri-red); }
-.jr-stop.yellow .jr-pin { background: var(--pri-yellow); color: var(--pri-yellow-text); }
-.jr-stop.green .jr-pin { background: var(--pri-green); }
-.jr-stop.over .jr-pin { box-shadow: 0 2px 8px rgba(0,0,0,.25), 0 0 0 3px var(--scr), 0 0 0 5px var(--alert); }
-.jr-stop.passed .jr-bub { opacity: .55; }
+/* หมุดกำหนดส่ง — เส้นตั้งเต็มความสูงของแถบ เห็นชัดว่าตกตรงไหนของวัน */
+.tl-bar .p {
+  position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; border-radius: 2px;
+}
+.tl-bar .p.red { background: var(--pri-red); }
+.tl-bar .p.yellow { background: var(--pri-yellow); }
+.tl-bar .p.green { background: var(--pri-green); }
+.tl-bar .now {
+  position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px;
+  background: var(--blue); box-shadow: 0 0 0 1.5px var(--scr);
+  transition: left .4s ease;
+}
 
-.jr-leg { position: absolute; left: -1px; width: 2px; background: var(--line); }
-.jr-bub {
-  position: absolute; left: 0;
-  transform: translateX(-50%);
-  width: 108px;
-  display: flex; flex-direction: column; gap: 1px;
-  padding: 7px 9px;
-  border-radius: 11px;
-  background: var(--card);
-  box-shadow: var(--shadow);
-  text-align: left;
+.tl-warn {
+  display: flex; align-items: flex-start; gap: 7px; background: var(--warn-soft);
+  border-radius: 12px; padding: 9px 11px; margin-bottom: 9px;
+  font-size: 12px; line-height: 1.55; color: var(--ink);
 }
-.jr-bub b {
-  font-family: inherit; font-size: 11.5px; font-weight: 600; line-height: 1.35; color: var(--ink);
+.tl-warn svg { width: 14px; height: 14px; flex: none; margin-top: 2px; color: var(--warn); }
+/* วันที่ตามมา — หนี้ก้อนเดียวกัน ไม่ต้องตะโกนซ้ำ */
+.tl-warn.soft { background: none; padding: 2px 2px 7px; color: var(--muted); font-size: 11.5px; }
+.tl-warn.soft svg { color: var(--faint); }
+
+/* ---- การ์ดงานใต้แถบ ---- */
+.tl-task {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: var(--card); border-radius: 14px; padding: 10px 12px; margin-bottom: 7px;
+  box-shadow: var(--shadow); cursor: pointer; border-left: 3px solid transparent;
+}
+.tl-task.red { border-left-color: var(--pri-red); }
+.tl-task.yellow { border-left-color: var(--pri-yellow); }
+.tl-task.green { border-left-color: var(--pri-green); }
+.tl-task.over { background: var(--alert-soft); }
+.tl-task:active { transform: scale(.985); }
+.tt-time {
+  flex: none; width: 42px; font-size: 11.5px; font-weight: 650; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.tt-ic {
+  flex: none; width: 26px; height: 26px; border-radius: 9px; background: var(--card2);
+  color: var(--muted); display: flex; align-items: center; justify-content: center;
+}
+.tt-ic svg { width: 14px; height: 14px; }
+.tt-bd { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tt-nm {
+  font-size: 13.5px; font-weight: 600; letter-spacing: -.01em; color: var(--ink);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.jr-bub i { font-style: normal; font-size: 10px; font-weight: 700; color: var(--muted); }
-.jr-stop.over .jr-bub i { color: var(--alert); }
+.tt-sub { font-size: 11.5px; color: var(--faint); }
+.tl-none { font-size: 12px; color: var(--faint); padding: 1px 2px 2px; }
 
-.jr-stop.lane0 .jr-bub { bottom: 26px; } .jr-stop.lane0 .jr-leg { bottom: 14px; height: 12px; }
-.jr-stop.lane2 .jr-bub { bottom: 76px; } .jr-stop.lane2 .jr-leg { bottom: 14px; height: 62px; }
-.jr-stop.lane1 .jr-bub { top: 26px; }    .jr-stop.lane1 .jr-leg { top: 14px; height: 12px; }
-.jr-stop.lane3 .jr-bub { top: 76px; }    .jr-stop.lane3 .jr-leg { top: 14px; height: 62px; }
-
-/* หมุด "ตอนนี้" */
-.jr-me { position: absolute; top: 50%; transform: translate(-50%, -50%); z-index: 6; pointer-events: none;
-  transition: left .6s ease; }
-.me-dot {
-  position: relative; display: block;
-  width: 16px; height: 16px; border-radius: 50%;
-  background: var(--blue);
-  box-shadow: 0 0 0 4px var(--scr), 0 0 0 6px var(--blue), 0 0 18px -2px var(--blue);
+/* ---- การ์ดงานถัดไป (บนสุด) ---- */
+.tl-next {
+  display: flex; align-items: center; gap: 12px; background: var(--card);
+  border-radius: 20px; padding: 14px 15px; box-shadow: var(--shadow); margin-top: 4px;
 }
-.me-dot::after {
-  content: ''; position: absolute; inset: -6px;
-  border-radius: 50%; border: 2px solid var(--blue);
-  animation: jr-ping 2.4s ease-out infinite;
+.tl-next.late { background: var(--alert-soft); }
+.tl-next .tile {
+  width: 36px; height: 36px; flex: none; border-radius: 12px; background: var(--blue-soft);
+  color: var(--blue); display: flex; align-items: center; justify-content: center;
 }
-@keyframes jr-ping {
-  0% { transform: scale(.7); opacity: .85; }
-  70%, 100% { transform: scale(2.1); opacity: 0; }
+.tl-next.late .tile { background: var(--alert); color: #fff; }
+.tl-next .tile svg { width: 18px; height: 18px; }
+.tl-next .bd { flex: 1; min-width: 0; }
+.tl-next .lb {
+  font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin-bottom: 3px;
 }
-.me-lb {
-  position: absolute; left: 50%; top: 26px;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  padding: 3px 8px; border-radius: 99px;
-  background: var(--blue); color: var(--on-accent);
-  font-size: 10px; font-weight: 700;
-  box-shadow: var(--shadow);
-}
-
-/* การ์ดบอกป้ายถัดไป */
-.jr-next {
-  display: flex; align-items: center; gap: 12px;
-  margin-top: 4px; padding: 13px 14px;
-  background: var(--card); border-radius: var(--r-card);
-  box-shadow: var(--shadow);
-}
-.jr-next .tile {
-  width: 34px; height: 34px; flex: none; border-radius: 12px;
-  background: var(--blue-soft); color: var(--blue);
-  display: flex; align-items: center; justify-content: center;
-}
-.jr-next.late .tile { background: var(--alert-soft); color: var(--alert); }
-.jr-next .tile svg { width: 16px; height: 16px; }
-.jr-next .bd { flex: 1; min-width: 0; }
-.jr-next .lb {
-  font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
-  color: var(--blue);
-}
-.jr-next.late .lb { color: var(--alert); }
-.jr-next .tx { font-size: 13.5px; line-height: 1.5; color: var(--ink); margin-top: 2px;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.jr-next .go {
-  flex: none; width: 32px; height: 32px; border-radius: 50%;
-  border: none; background: var(--card2); color: var(--muted);
-  display: flex; align-items: center; justify-content: center; cursor: pointer;
-}
-.jr-next .go svg { width: 15px; height: 15px; }
-
-.jr-legend {
-  display: flex; flex-wrap: wrap; gap: 6px 14px;
-  margin: 14px 2px 0;
-  font-size: 11px; font-weight: 500; color: var(--muted);
-}
-.jr-legend span { display: flex; align-items: center; gap: 6px; }
-.jr-legend .d { width: 8px; height: 8px; border-radius: 50%; flex: none; }
-.jr-legend .d.red { background: var(--pri-red); }
-.jr-legend .d.yellow { background: var(--pri-yellow); }
-.jr-legend .d.green { background: var(--pri-green); }
-.jr-legend .d.me { background: var(--blue); box-shadow: 0 0 0 2px var(--blue-soft); }
-
-.jr-hint { margin: 6px 2px 0; font-size: 11.5px; color: var(--faint); line-height: 1.6; }
-
-.jr-un { margin-top: 20px; }
-.jr-un .lb {
-  font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
-  color: var(--faint); margin: 0 2px 8px;
-}
-.jr-un .chips { display: flex; flex-wrap: wrap; gap: 7px; }
-.jr-un .chips button {
-  max-width: 100%;
-  border: 1.5px dashed var(--line); border-radius: 99px;
-  background: transparent; color: var(--muted);
-  padding: 7px 13px; min-height: 36px;
-  font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+.tl-next.late .lb { color: var(--alert); }
+.tl-next .tx {
+  font-size: 13.5px; line-height: 1.5; color: var(--ink);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.jr-un .chips button:active { transform: scale(.97); color: var(--blue); border-color: var(--blue); }
-.jr-far { margin: 14px 2px 0; font-size: 12px; color: var(--faint); }
+.tl-next .go {
+  flex: none; width: 30px; height: 30px; border-radius: 10px; background: var(--card2);
+  color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.tl-next .go svg { width: 15px; height: 15px; }
+
+/* ชวนกรอกบริบท — โครงเดียวกับการ์ดในหน้าแผน */
+.tl-nudge {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  background: var(--blue-soft); border: 1px dashed var(--blue); border-radius: 18px;
+  padding: 13px 14px; margin-top: 12px; cursor: pointer;
+}
+.tl-nudge:active { transform: scale(.985); }
+
+.tl-cap {
+  display: flex; align-items: flex-start; gap: 7px; margin: 16px 0 0;
+  font-size: 11.5px; line-height: 1.6; color: var(--muted);
+}
+.tl-cap svg { width: 13px; height: 13px; flex: none; margin-top: 3px; color: var(--faint); }
+.tl-cap b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.tl-legend {
+  display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; padding: 0 2px;
+  font-size: 11px; color: var(--faint);
+}
+.tl-legend span { display: flex; align-items: center; gap: 6px; }
+.tl-legend .k { width: 12px; height: 8px; border-radius: 3px; flex: none; }
+.tl-legend .k.free { background: var(--good); opacity: .55; }
+.tl-legend .k.busy { background: var(--card2); box-shadow: inset 0 0 0 1px var(--line); }
+.tl-legend .k.red { background: var(--pri-red); width: 3px; }
+.tl-legend .k.green { background: var(--pri-green); width: 3px; }
+
+.tl-un { margin-top: 20px; }
+.tl-un .lb {
+  font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--faint); margin-bottom: 9px;
+}
+.tl-un .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.tl-un .chips button {
+  font-size: 12.5px; padding: 8px 12px; border-radius: 12px; background: var(--card);
+  border: 1px solid var(--line); color: var(--ink); cursor: pointer; font-family: inherit;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tl-un .chips button:active { transform: scale(.97); color: var(--blue); border-color: var(--blue); }
+.tl-far { margin: 14px 2px 0; font-size: 12px; color: var(--faint); }
 
 @media (prefers-reduced-motion: reduce) {
-  .me-dot::after { animation: none; }
-  .jr-road.done, .jr-me { transition: none; }
+  .tl-bar .now { transition: none; }
 }
 
 /* ============================================================
@@ -1810,23 +1776,35 @@
 
    ค่าเริ่มต้นตรงนี้คือ --blue ล้วน ๆ เท่ากับหน้าตาเดิมเป๊ะ
    ธีมไหนไม่ได้กำหนดทับข้างล่าง ก็ไม่มีอะไรเปลี่ยน ไม่ต้องไล่แก้ทั้ง 12 ธีม */
+/* ค่าตั้งต้นต้องเป็นกลาง = สีเน้นของธีมนั้นเอง
+   ถ้าใส่สีตายตัวตรงนี้ ธีมที่ไม่ได้ตั้งใจแตะ (ทะเลลึก · หวาน · โลก) จะได้ชิปสีน้ำเงินติดมาด้วย
+   ทั้งที่ทั้งธีมเป็นเขียวหรือม่วง — ธีมไหนอยากแยกสีไทล์ ค่อยประกาศทับเอง */
 :root {
-  --tile-plan:  var(--blue); --tile-plan-soft:  var(--blue-soft);
-  --tile-tasks: var(--blue); --tile-tasks-soft: var(--blue-soft);
-  --tile-route: var(--blue); --tile-route-soft: var(--blue-soft);
-  --tile-me:    var(--blue); --tile-me-soft:    var(--blue-soft);
+  --tile-plan:  var(--fill); --tile-plan-soft:  var(--blue-soft);
+  --tile-tasks: var(--fill); --tile-tasks-soft: var(--blue-soft);
+  --tile-route: var(--fill); --tile-route-soft: var(--blue-soft);
+  --tile-me:    var(--fill); --tile-me-soft:    var(--blue-soft);
+  --tile-on:    var(--on-fill);
+}
+/* ขาวน้ำเงิน — ชิปวางบนการ์ดสีขาว จึงต้องเข้มพอให้ไอคอนขาวอ่านออก */
+:root[data-theme="light"] {
+  --tile-plan:  #1566CE; --tile-tasks: #0E7C86;
+  --tile-route: #5B4BC4; --tile-me:    #1A6FA8;
+  --tile-on:    #FFFFFF;
 }
 /* ดำน้ำเงิน — ไล่จากน้ำเงินหลักไปฟ้าและคราม ห่างกันพอให้แยกออกด้วยหางตา
    ทุกค่าต้องสว่างพอ เพราะป้ายตัวเลขใช้สีนี้เป็นพื้นแล้ววางตัวอักษรสีเข้ม (--on-accent) ทับ */
-/* ธีมมืดเคยแยกสีไทล์เป็น 4 เฉด (ฟ้า/ฟ้าอมเขียว/ม่วง/ฟ้าอ่อน) เพื่อให้จำตำแหน่งด้วยสีได้
-   ผลจริงคือหน้าแรกมีสีเน้นสี่สีพร้อมกัน บวกกับปุ่มสแกนและไทล์เด่นอีกสองสี = หกสี
-   กฎ 60/30/10 อนุญาตให้มีสีเน้น "สีเดียว" และต้องน้อยด้วย จึงยุบกลับมาเหลือสีเดียว
-   หน้าที่ "แยกไทล์ออกจากกัน" ย้ายไปอยู่กับไอคอนและตำแหน่งแทน ซึ่งจำได้เร็วกว่าสีอยู่แล้ว */
+/* ธีมมืดเคยยุบสีไทล์ทั้งสี่ให้เหลือฟ้าเดียวตามกฎ 60/30/10 (สีเน้นควรมีสีเดียว)
+   ผลข้างเคียงคือชิปไอคอนหกใบบนหน้าแรกกลายเป็นสี่เหลี่ยมสีเดียวกันเรียงกัน
+   ตาเลยไม่มีอะไรให้เกาะ ต้องอ่านตัวหนังสือทุกใบก่อนถึงจะรู้ว่าใบไหนคืออะไร
+   ซึ่งแพงกว่าที่กฎสีช่วยประหยัดไว้ — คืนสีให้ทั้งสี่ใบ แต่คุมให้อยู่ในตระกูลน้ำเงินเหมือนเดิม
+   (น้ำเงิน → ฟ้าอมเขียว → ม่วงคราม → ฟ้า) ห่างกันพอให้แยกออกด้วยหางตาโดยไม่หลุดโทนแอป */
 :root[data-theme="dark"] {
-  --tile-plan:  var(--blue); --tile-plan-soft:  var(--blue-soft);
-  --tile-tasks: var(--blue); --tile-tasks-soft: var(--blue-soft);
-  --tile-route: var(--blue); --tile-route-soft: var(--blue-soft);
-  --tile-me:    var(--blue); --tile-me-soft:    var(--blue-soft);
+  --tile-plan:  #2E6BFF; --tile-plan-soft:  var(--blue-soft);
+  --tile-tasks: #0E9AA0; --tile-tasks-soft: var(--blue-soft);
+  --tile-route: #6D5CE0; --tile-route-soft: var(--blue-soft);
+  --tile-me:    #1D86BF; --tile-me-soft:    var(--blue-soft);
+  --tile-on:    #FFFFFF;
 }
 /* ขาวน้ำเงิน — กลับกัน ต้องเข้มพอเพราะเป็นไอคอนบนพื้นขาว และป้ายตัวเลขวางตัวอักษรขาวทับ */
 :root[data-theme="ocean"] {
@@ -1834,6 +1812,7 @@
   --tile-tasks: #0E8AA8; --tile-tasks-soft: #D3EFF7;
   --tile-route: #4B57C4; --tile-route-soft: #E1E4FB;
   --tile-me:    #1667BF; --tile-me-soft:    #DCEAFA;
+  --tile-on:    #FFFFFF;
 }
 
 /* หน้าแรกต้องจบในจอเดียว ไม่ต้องเลื่อน — ทุกระยะในหน้านี้จึงถูกบีบกว่าจอทั่วไป */
@@ -1849,11 +1828,14 @@
 }
 /* --mt-a / --mt-s = สีของไทล์ใบนี้ (เข้ม/อ่อน) — ทุกชิ้นข้างในอ่านจากสองตัวนี้ตัวเดียว
    เปลี่ยนสีไทล์ทั้งใบจึงแก้ที่บรรทัดเดียว ไม่ต้องไล่แก้ไอคอน ป้ายเลข และวงแสงทีละอัน */
-.mtile { --mt-a: var(--blue); --mt-s: var(--blue-soft); }
-.mtile.tone-plan  { --mt-a: var(--tile-plan);  --mt-s: var(--tile-plan-soft); }
-.mtile.tone-tasks { --mt-a: var(--tile-tasks); --mt-s: var(--tile-tasks-soft); }
-.mtile.tone-route { --mt-a: var(--tile-route); --mt-s: var(--tile-route-soft); }
-.mtile.tone-me    { --mt-a: var(--tile-me);    --mt-s: var(--tile-me-soft); }
+/* --mt-on คู่มากับ --mt-a เสมอ เพราะไอคอนวางทับพื้นสีนั้นโดยตรง
+   ธีมที่ไม่ได้กำหนด --tile-* ไว้ (ทะเลลึก · หวาน · โลก · เจเนซิส) จะตกมาที่ค่าตั้งต้น
+   ซึ่งคือ --fill/--on-fill ของธีมนั้นเอง = หน้าตาเดิมเป๊ะ ไม่ต้องไล่แก้ทีละธีม */
+.mtile { --mt-a: var(--fill); --mt-s: var(--blue-soft); --mt-on: var(--on-fill); }
+.mtile.tone-plan  { --mt-a: var(--tile-plan);  --mt-s: var(--tile-plan-soft);  --mt-on: var(--tile-on, var(--on-fill)); }
+.mtile.tone-tasks { --mt-a: var(--tile-tasks); --mt-s: var(--tile-tasks-soft); --mt-on: var(--tile-on, var(--on-fill)); }
+.mtile.tone-route { --mt-a: var(--tile-route); --mt-s: var(--tile-route-soft); --mt-on: var(--tile-on, var(--on-fill)); }
+.mtile.tone-me    { --mt-a: var(--tile-me);    --mt-s: var(--tile-me-soft);    --mt-on: var(--tile-on, var(--on-fill)); }
 .mtile {
   position: relative;
   display: flex;
@@ -1897,11 +1879,13 @@
      พื้นจางบนการ์ดสีเข้มแทบไม่ต่างจากตัวการ์ด ไอคอนเลยลอยอยู่เฉย ๆ ไม่มีขอบเขต
      ก้อนทึบทำให้ตาจับ "จุดเริ่มของไทล์" ได้ก่อนอ่านตัวหนังสือ และเป็นตัวเดียวกับ
      ที่กฎ 60/30/10 กันไว้ให้เป็นสีเน้น 10% */
-  background: var(--fill);
-  color: var(--on-fill);
+  /* ใช้สีของไทล์ใบนั้น ไม่ใช่ --fill ก้อนเดียวทั้งหน้า
+     --mt-a ถูกประกาศไว้ตั้งแต่แรกแต่ไม่เคยมีใครอ่าน ชิปทุกใบเลยฟ้าเหมือนกันหมด */
+  background: var(--mt-a, var(--fill));
+  color: var(--mt-on, var(--on-fill));
   position: relative;
 }
-.mt-ic svg { width: 18px; height: 18px; }
+.mt-ic svg { width: 18px; height: 18px; stroke-width: 2.1; }
 .mt-tx { position: relative; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .mt-lb { position: relative; }
 /* คำอธิบายใต้ชื่อไทล์ต้องอยู่บรรทัดเดียวเสมอ — ตกบรรทัดเมื่อไหร่หน้าแรกก็ต้องเลื่อนทันที */
@@ -2535,6 +2519,7 @@
   font-weight: 700;
 }
 .fld.unsure input[type=text],
+.fld.unsure textarea,
 .fld.unsure select {
   box-shadow: inset 0 0 0 1.5px var(--warn);
   background: var(--warn-soft);
@@ -2653,13 +2638,19 @@ body { line-height: 1.7; letter-spacing: 0; }
   transition: transform .16s ease;
 }
 .pe:active { transform: scale(.985); }
+/* ไอคอนเป็นพื้นทึบสีฟ้า ไม่ใช่พื้นจาง 15%
+   ของเดิมใช้ var(--blue-soft) ซึ่งบนธีมมืดคือฟ้าที่ opacity .15 บนพื้นการ์ดเข้ม —
+   ออกมาเป็นเทาอมฟ้าที่แทบแยกไม่ออกจากพื้น ทั้งแถวเลยดูเป็นสี่เหลี่ยมเทาเรียงกัน
+   ใช้คู่สีเดียวกับปุ่มที่ถูกเลือกบนแถบล่าง (--fill / --on-fill) แถวนี้จะได้พูดภาษาเดียวกับ
+   แถบเมนู: ฟ้าทึบ = ของที่กดได้และกำลังชี้ไปหา */
 .pe-ic {
   width: 40px; height: 40px; flex: none;
   border-radius: 14px;
-  background: var(--blue-soft);
-  color: var(--blue);
+  background: var(--fill);
+  color: var(--on-fill);
   display: flex; align-items: center; justify-content: center;
 }
+.pe-ic svg { stroke-width: 2.1; }
 .pe-ic svg { width: 19px; height: 19px; }
 .pe-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .pe-tx b { font-size: 15.5px; font-weight: 600; letter-spacing: -.015em; }
@@ -2887,13 +2878,33 @@ body { line-height: 1.7; letter-spacing: 0; }
 .fm-card input[type=number],
 .fm-card input[type=date],
 .fm-card input[type=time],
+.fm-card textarea,
 .fm-card select {
   min-height: 48px;
   border-radius: 14px;
   box-shadow: inset 0 0 0 1px var(--line);
   font-size: 15px;
 }
-.fm-card input:focus, .fm-card select:focus { box-shadow: none; }
+.fm-card input:focus, .fm-card textarea:focus, .fm-card select:focus { box-shadow: none; }
+
+/* ช่อง "งานที่ต้องทำ" — ยืดลงล่างแทนที่จะเลื่อนออกข้าง
+   style.css จัดหน้าตาให้เฉพาะ input/select (แก้ไม่ได้) จึงต้องเขียนของ textarea เองทั้งชุด
+   ตัวเลข padding/มุม/ขนาดตัวอักษร ลอกจากช่องอื่นให้เท่ากันเป๊ะ ไม่งั้นฟอร์มจะดูไม่เป็นชุดเดียวกัน */
+.fm-card textarea {
+  background: var(--card2);
+  border: none;
+  padding: 12px 13px;
+  font-family: inherit;
+  font-weight: 500;
+  color: var(--ink);
+  width: 100%;
+  line-height: 1.65;
+  display: block;                /* ไม่งั้น inline-block ทิ้งช่องว่างใต้กล่องจากเส้นฐานตัวอักษร */
+  resize: none;                  /* ความสูงคุมด้วย autoGrow() — ที่จับลากมุมจะขัดกัน */
+  overflow: hidden;              /* ไม่มีแถบเลื่อนใน เพราะกล่องสูงเท่าเนื้อหาอยู่แล้ว */
+  -webkit-appearance: none; appearance: none;
+}
+.fm-card textarea:focus { outline: 2px solid var(--blue); outline-offset: -2px; }
 /* ปุ่มเลือกประเภท: ให้ตัวที่เลือกอยู่เด่นชัดกว่าเดิมมาก */
 .type-pick { gap: 10px; }
 .tp { min-height: 50px; border-radius: 15px; font-size: 14px; box-shadow: inset 0 0 0 1px var(--line); }
@@ -3048,11 +3059,11 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 
 /* ---------- จังหวะตอนกด ----------
    กดแล้วยุบลงทันที ปล่อยแล้วเด้งกลับ — บอกว่าแอปรับคำสั่งแล้วก่อนจอจะเปลี่ยน */
-.mtile, .pe, .pf-row, .jr-stop, .rank-card, .bg-pick, .empty-cta {
+.mtile, .pe, .pf-row, .tl-task, .rank-card, .bg-pick, .empty-cta {
   transition: transform .13s cubic-bezier(.3,.8,.4,1), box-shadow .13s ease;
 }
 .pe:active, .pf-row:active, .rank-card:active { transform: scale(.982); }
-.jr-stop:active { transform: scale(.94); }
+.tl-task:active { transform: scale(.97); }
 .empty-cta:active { transform: scale(.96); }
 
 /* ปุ่มบนแถบเมนู: ไอคอนเด้งขึ้นตอนกลายเป็นแท็บที่เลือกอยู่ */
@@ -3071,7 +3082,7 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
   .screen.on.just-in .bg-row,
   .screen.on.just-in .pf-list > .pf-row,
   .tab.active .ic { animation: none; }
-  .mtile, .pe, .pf-row, .jr-stop, .rank-card, .bg-pick, .empty-cta { transition: none; }
+  .mtile, .pe, .pf-row, .tl-task, .rank-card, .bg-pick, .empty-cta { transition: none; }
 }
 
 /* ---------- ALT: รูปโปรไฟล์ตั้งเองได้ ---------- */
@@ -4623,3 +4634,120 @@ body.deep-scr .top-friends { display: none; }
    (ตัวไทยในฟอนต์ mono จะกลายเป็นแบบไม่มีหัวและถ่างจนอ่านยาก — กฎข้อ 9 ของโปรเจกต์)
    เอาเฉพาะคุณสมบัติที่ต้องการจริงคือความกว้างตัวเลขเท่ากันทุกตัว */
 .ctx-sum-v { font-family: inherit; font-variant-numeric: tabular-nums; }
+
+/* ---------- ALT 1A7V: ปุ่มอ่านให้แม่นขึ้นด้วยเซิร์ฟเวอร์ ----------
+   จงใจให้ดูเป็น "ทางเลือกที่สอง" ไม่ใช่ปุ่มหลัก — พื้นจาง ขอบบาง ไม่มีสีเน้น
+   เพราะการอ่านในเครื่องต้องเป็นค่าเริ่มต้นที่คนใช้ก่อนเสมอ */
+.cloud-ocr {
+  margin: 14px 2px 0; padding: 14px;
+  border: 1px solid var(--line); border-radius: var(--r-tile);
+  background: var(--card-soft, transparent);
+}
+.cloud-ocr[hidden] { display: none; }
+.cloud-ocr .co-h { margin: 0; font-size: 13.5px; font-weight: 700; }
+.cloud-ocr .co-s { margin: 4px 0 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
+.cloud-ocr .co-btn {
+  margin-top: 11px; min-height: 44px; width: 100%;
+  border: 1px solid var(--line); border-radius: var(--r-tile);
+  background: transparent; color: inherit;
+  font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.cloud-ocr .co-btn:active:not(:disabled) { background: var(--alert-soft, rgba(0,0,0,.05)); }
+.cloud-ocr .co-btn:disabled { opacity: .45; cursor: default; }
+.cloud-ocr .co-why { margin: 8px 0 0; font-size: 11.5px; color: var(--alert); }
+.cloud-ocr .co-why[hidden] { display: none; }
+/* คำเตือนเรื่องรูปออกจากเครื่อง — ต้องอ่านออกเสมอ ห้ามจางจนมองข้าม
+   ผู้ใช้ตัดสินใจเรื่องความเป็นส่วนตัวจากบรรทัดนี้บรรทัดเดียว */
+.cloud-ocr .co-warn { margin: 9px 0 0; font-size: 11px; line-height: 1.7; color: var(--muted); }
+
+/* ══════════════════════════════════════════════════════════════════
+   จอ "งานทั้งหมด" — การ์ดงาน · ชิปสถานะ · แถบเลือกวัน
+   ------------------------------------------------------------------
+   60 พื้นจอ (--scr) · 30 การ์ด (--card) · 10 ฟ้า (--fill) เฉพาะของที่กดได้
+   สีความหมาย (แดง/ส้ม/เขียว) อยู่ในชิปกลมเล็กเท่านั้น ห้ามกินพื้นที่ใหญ่
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ---- แถบเลือกวัน ---- */
+.daystrip {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  gap: 5px; margin: 0 0 14px;
+}
+.ds {
+  border: none; background: var(--card); border-radius: 12px;
+  padding: 8px 2px 7px; font-family: inherit; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  transition: background .16s ease;
+}
+.ds .ds-d { font-style: normal; font-size: 10.5px; color: var(--muted); }
+.ds .ds-n { font-size: 14px; font-weight: 600; color: var(--ink); letter-spacing: -.01em; }
+.ds .ds-dot { height: 4px; width: 4px; border-radius: 999px; background: var(--muted); margin-top: 1px; }
+.ds .ds-dot.hot  { background: var(--alert); }
+.ds .ds-dot.warm { background: var(--warn); }
+.ds .ds-dot.off  { background: transparent; }
+.ds:active { transform: scale(.96); }
+/* วันที่เลือกอยู่ = ของที่กดได้และกำลังทำงาน จึงได้สีเน้นก้อนเดียวของแถบนี้ */
+.ds.on { background: var(--fill); }
+.ds.on .ds-d { color: rgba(255,255,255,.72); }
+.ds.on .ds-n { color: #fff; }
+.ds.on .ds-dot { background: rgba(255,255,255,.9); }
+
+/* ---- การ์ดงาน ---- */
+.tk {
+  position: relative; background: var(--card); border-radius: 14px;
+  padding: 14px 46px 14px 15px; margin-bottom: 9px; cursor: pointer;
+  transition: transform .14s ease;
+}
+.tk:active { transform: scale(.99); }
+/* แถบฟ้าได้ใบเดียว — ใบที่ควรลงมือ ให้ทุกใบมีก็เท่ากับไม่มีใบไหนมี */
+.tk-focus { border-left: 3px solid var(--fill); padding-left: 12px; }
+
+.tk-sub { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+.tk-ttl {
+  font-size: 15px; font-weight: 600; line-height: 1.45;
+  letter-spacing: -.01em; color: var(--ink);
+}
+.tk-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.tk-sp { flex: 1; }
+.tk-min { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ชิปสถานะ — กลมเล็ก พื้นจาง ตัวอักษรสีเดียวกับความหมาย */
+.tk-chip {
+  font-size: 11px; line-height: 1.5; padding: 4px 9px; border-radius: 999px;
+  background: var(--card2); color: var(--muted); white-space: nowrap;
+}
+.tk-chip.hot  { background: var(--alert-soft); color: var(--alert); }
+.tk-chip.warm { background: var(--warn-soft);  color: var(--warn); }
+.tk-chip.ok   { background: var(--good-soft);  color: var(--good); }
+
+/* ปุ่มติ๊กเสร็จ — มุมขวาบน ไม่แทรกกลางกองข้อความ
+   เอาไว้ซ้ายแบบ to-do list ทั่วไปไม่ได้ เพราะจะดันชื่องานเข้าไปข้างในจนอ่านยาก */
+.tk-tick {
+  position: absolute; top: 12px; right: 12px;
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 1.5px solid var(--line); background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; padding: 0; transition: all .16s ease;
+}
+.tk-tick svg { width: 13px; height: 13px; color: transparent; }
+.tk-tick:active { transform: scale(.9); }
+.tk-tick.on { border-color: transparent; background: var(--good-soft); }
+.tk-tick.on svg { color: var(--good); }
+
+/* งานที่เสร็จแล้ว = บันทึก ไม่ใช่สิ่งที่ต้องตัดสินใจ จึงจมลงไปกับพื้น */
+.tk-done { display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 15px; opacity: .6; }
+.tk-done .tk-tick { position: static; flex: none; }
+.tk-done .tk-bd { flex: 1; min-width: 0; }
+.tk-done .tk-sub { margin-bottom: 2px; }
+.tk-done .tk-ttl { font-size: 14px; }
+.tk-done .tk-go { width: 15px; height: 15px; color: var(--faint); flex: none; }
+
+/* ปุ่มล้างตัวกรองวัน — โผล่เฉพาะตอนกรองอยู่ เพื่อให้แถบวันไม่ต้องเสียช่องให้ปุ่ม "ทุกวัน" */
+.dayclear {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: var(--fill-soft, var(--card2)); border: none; border-radius: 12px;
+  padding: 10px 12px; margin: -4px 0 14px; cursor: pointer;
+  font-family: inherit; font-size: 12.5px; color: var(--ink); text-align: left;
+}
+.dayclear span { margin-left: auto; color: var(--muted); font-size: 11.5px; }
+.dayclear svg { width: 14px; height: 14px; color: var(--muted); flex: none; }
+.dayclear:active { transform: scale(.99); }

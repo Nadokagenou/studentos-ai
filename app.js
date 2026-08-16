@@ -1,16 +1,19 @@
 // ============================================================
-// StudentOS AI — App (UI + state)  ·  *** เวอร์ชัน ALT (SANDBOX) ***
+// StudentOS AI — App (UI + state)
 // ข้อมูลจริง เก็บใน localStorage · ทุกจอ render จาก state
 // ------------------------------------------------------------
-// ALT = รุ่นทดลองฟีเจอร์ แยกขาดจากตัวจริง:
-//   - localStorage ใช้ prefix 'studentos.alt.*' → เล่นยังไงก็ไม่แตะข้อมูลตัวจริง
-//   - service worker ใช้ cache คนละชื่อ
+// สายนี้เคยเป็นบิลด์ทดลอง (ALT) และถูกยกขึ้นเป็นตัวหลักตั้งแต่รุ่น 1A7V2
+//
+// **คีย์ใน localStorage ยังใช้ prefix 'studentos.alt.*' ต่อไป — ห้ามเปลี่ยน**
+// ไม่ใช่เพราะลืมแก้ แต่เพราะคีย์คือที่อยู่ของข้อมูลที่ผู้ใช้มีอยู่แล้ว:
+// งานทั้งหมด · ธีม · โทเคน · สกินที่สะสมไว้ · ธีมลับที่ปลดล็อกแล้ว
+// เปลี่ยนชื่อคีย์เมื่อไหร่ = ทุกเครื่องที่ใช้อยู่กลายเป็นแอปเปล่าทันที โดยไม่มีทางกู้กลับ
+// ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A7V';                // สายเลข ALT ของตัวเอง ไม่ผูกกับ v35 ของตัวจริงแล้ว
-const APP_CODENAME = 'Modern';             // ชื่อรุ่นของอัปเดตนี้
-const APP_CHANNEL = 'AI';                  // ป้ายกำกับรุ่น — โชว์ทั้งบนแอปและในหน้า "ฉัน"
-const STORE_KEY = 'studentos.alt.v1';      // ALT: แยกที่เก็บข้อมูลจากตัวจริง ('studentos.v1')
+const APP_VERSION = '1A7V2';                // สายเลขของแอป
+const APP_CODENAME = 'Verbessert';          // ชื่อรุ่นของอัปเดตนี้
+const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
 let editingId = null; // null = เพิ่มใหม่, ไม่ null = แก้ไขงานเดิม
@@ -427,7 +430,7 @@ function navMode() {
 
 function applyNav() {
   document.documentElement.dataset.nav = navMode();
-  syncJourneyNow(); // ความกว้างจอเปลี่ยน → หมุดบนเส้นทางต้องคำนวณใหม่
+  syncTimelineNow(); // ความกว้างจอเปลี่ยน → หมุด "ตอนนี้" ต้องคำนวณใหม่
 }
 
 function setNav(p) {
@@ -591,6 +594,36 @@ let enterTimer = null;
 // จอทั้งห้าที่มีปุ่มของตัวเองอยู่บนแถบล่าง — ที่เหลือถือเป็นจอชั้นใน
 const TABBED_SCREENS = ['scr-menu', 'scr-home', 'scr-scan', 'scr-timeline', 'scr-profile'];
 
+// ---------- 1A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
+// บนมือถือ การสลับไปแอปอื่นแล้วกลับมามักทำให้ระบบโหลดหน้าใหม่ทั้งหน้า
+// ห้ามไม่ได้ แต่ทำให้ "ไม่รู้สึกว่าโดนรีเซ็ต" ได้ ด้วยการจำจอที่ค้างไว้แล้วกลับไปที่เดิม
+//
+// จอที่ห้ามจำ — เพราะสถานะของมันอยู่ในหน่วยความจำ ไม่ได้อยู่ใน localStorage
+// กลับมาแล้วจะเจอจอเปล่า ๆ ที่กดอะไรไม่ได้ ซึ่งแย่กว่าการเด้งกลับเมนูเสียอีก:
+//   scr-crop     — รูปที่กำลังครอบอยู่หายไปกับการโหลดใหม่
+//   scr-parsing  — จอรอระหว่าง AI อ่าน ไม่มีอะไรให้กลับไปดู
+//   scr-form     — สิ่งที่พิมพ์ค้างไว้หายไป กลับมาเจอฟอร์มเปล่าน่าสับสนกว่า
+//   scr-login / scr-onboard — มีด่านของตัวเองตัดสินอยู่แล้ว
+const NO_RESUME = ['scr-crop', 'scr-parsing', 'scr-form', 'scr-login', 'scr-onboard'];
+const LAST_SCR_KEY = 'studentos.alt.lastScreen';
+// เกิน 30 นาทีถือว่าเป็นการเปิดใหม่ ไม่ใช่การกลับเข้ามาต่อ — เริ่มที่เมนูตามปกติ
+// (กลับมาวันรุ่งขึ้นแล้วเจอจอสุ่มสกินค้างอยู่ ไม่ใช่สิ่งที่ใครคาดหวัง)
+const RESUME_WINDOW = 30 * 60 * 1000;
+
+function rememberScreen(id) {
+  if (NO_RESUME.includes(id)) return;
+  try { localStorage.setItem(LAST_SCR_KEY, JSON.stringify({ id, t: Date.now() })); } catch (_) {}
+}
+
+function resumeScreen() {
+  try {
+    const s = JSON.parse(localStorage.getItem(LAST_SCR_KEY) || 'null');
+    if (!s || !s.id || Date.now() - s.t > RESUME_WINDOW) return null;
+    // จอต้องมีอยู่จริงในหน้านี้ — กันกรณีอัปเดตแล้วจอเดิมถูกเอาออกไป
+    return document.getElementById(s.id) ? s.id : null;
+  } catch (_) { return null; }
+}
+
 function go2(id){ return go(id); }
 function go(id) {
   const dir = navDirection(curScreen, id);
@@ -615,6 +648,7 @@ function go(id) {
   document.body.classList.toggle('deep-scr', !TABBED_SCREENS.includes(id));
   document.querySelectorAll('.tab[data-scr]').forEach(b =>
     b.classList.toggle('active', b.dataset.scr === id));
+  rememberScreen(id);   // ไว้กลับมาที่เดิมถ้าระบบโหลดหน้าใหม่ตอนสลับแอป
   renderAll();
 }
 
@@ -667,6 +701,14 @@ async function syncFromCloud() {
       for (const t of (remote.tasks || [])) byId[t.id] = t;
       state.tasks = Object.values(byId);
       state.settings = Object.assign({}, state.settings, remote.settings || {});
+      // รอบจับเวลารวมตาม id เหมือนงาน — แต่ละรอบเกิดบนเครื่องเดียวและไม่เคยถูกแก้ทีหลัง
+      // เครื่องไหนบันทึกไว้ก็ของจริงทั้งคู่ เอามารวมกันแล้วเรียงตามเวลาเริ่ม
+      const sById = {};
+      for (const s of (state.sessions || [])) sById[s.id] = s;
+      for (const s of (remote.sessions || [])) sById[s.id] = s;
+      state.sessions = Object.values(sById)
+        .sort((a, b) => (a.start || '').localeCompare(b.start || ''))
+        .slice(-SESSION_CAP);
       localStorage.setItem(STORE_KEY, JSON.stringify(state));
       // บริบท (ตารางเรียน/กิจวัตร) ยังอยู่ใน user_state ก้อนเดียวกันไปก่อน
       // ฝั่ง cloud ชนะทั้งก้อน ไม่ merge รายตัว เพราะมันคือ "ตารางของสัปดาห์นี้"
@@ -689,6 +731,7 @@ function pushToCloud(immediate) {
       const { error } = await sb.from('user_state').upsert({
         id: currentUser.id,
         data: { tasks: state.tasks, settings: state.settings,
+          sessions: state.sessions || [],
           ctx: typeof ctxExport === 'function' ? ctxExport() : undefined },
         updated_at: new Date().toISOString(),
       });
@@ -731,6 +774,12 @@ function esc(s) {
 function taskTitle(t) {
   const subj = t.subject && t.subject !== 'อื่น ๆ' ? esc(t.subject) + ' · ' : '';
   return subj + esc(t.detail);
+}
+// ชื่อเดียวกันแบบข้อความล้วน — สำหรับที่ที่เขียนด้วย textContent (toast, การแจ้งเตือนของระบบ)
+// เอา taskTitle ไปใส่ตรงนั้นตรง ๆ ไม่ได้ เพราะ &amp; จะโผล่ให้ผู้ใช้เห็นดิบ ๆ
+function taskTitleText(t) {
+  const subj = t.subject && t.subject !== 'อื่น ๆ' ? t.subject + ' · ' : '';
+  return subj + (t.detail || '');
 }
 // ไอคอน Lucide — เรียกใช้ซ้ำได้จาก <defs> ใน index.html
 function icon(name, cls) {
@@ -948,9 +997,12 @@ function renderMenu() {
 function briefCard(pending, now) {
   const top = pending[0];
   const raw = aiGreeting(pending, state.settings, now);
-  // เน้นชื่อวิชากับจำนวนชั่วโมง เพราะเป็นสองคำที่สายตาต้องจับให้ได้ก่อน
-  let msg = esc(raw).replace(/~([\d.]+) ชม\./g, '<b>~$1 ชม.</b>');
-  if (top && top.subject) msg = msg.replace(esc(top.subject), '<b>' + esc(top.subject) + '</b>');
+  // เน้นสามอย่างที่สายตาต้องจับให้ได้ก่อน: ทำอะไร · เริ่มกี่โมง · กี่ชั่วโมง
+  let msg = esc(raw).replace(/~([\d.]+) ชม\./g, '<b>~$1 ชม.</b>')
+    .replace(/(\d{2}:\d{2}–\d{2}:\d{2})/g, '<b>$1</b>');
+  // ชื่อที่ AI ใช้เรียกงานอาจเป็นชื่อวิชาหรือชื่องาน แล้วแต่ว่าใบนั้นมีวิชาไหม
+  const label = typeof taskLabel === 'function' && top ? taskLabel(top) : (top && top.subject);
+  if (label) msg = msg.replace(esc(label), '<b>' + esc(label) + '</b>');
   return `<div class="brief">
     <div class="brief-head"><span class="brief-mark">${icon('brand')}</span><b>STUDENTOS AI</b></div>
     <p class="brief-body">${msg}</p>
@@ -1000,11 +1052,19 @@ function renderHome() {
   const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนค่ำ';
   const name = state.settings.name || 'นักเรียน';
 
+  // "เวลาว่างวันนี้" ต้องเป็นเวลาที่ยังเหลือจริงนับจากนาทีนี้ ไม่ใช่ตัวเลขที่กรอกไว้ตอนสมัคร
+  // ตัวเลขที่ไม่ลดลงตามเวลาที่ผ่านไปคือตัวเลขที่ผู้ใช้เลิกอ่านภายในสองวัน
+  const win = dayWindows(state.settings, now);
+  const leftH = Math.round(win.budgetMin / 60 * 10) / 10;
+  const freeTx = win.mode === 'none' ? 'วันนี้หมดเวลาแล้ว'
+    : win.mode === 'late' ? `เหลือก่อนนอน ~${leftH} ชม.`
+    : `ว่างอีก ~${leftH} ชม.`;
+
   const head = `<div class="page-head">
     <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
     <h1 class="page-title">ตารางงาน</h1>
     <p class="page-sub">งานค้าง <b>${pending.length}</b> · เสร็จแล้ว ${doneCount}
-      · เวลาว่างวันนี้ ~${state.settings.freeHours || 2} ชม.</p>
+      · ${esc(freeTx)}</p>
   </div>`;
 
   if (!pending.length) { body.innerHTML = head + emptyDay(doneCount, now); return; }
@@ -1217,27 +1277,73 @@ function snoozeToTomorrow(id) {
 // 3 แท็บเท่านั้น: ค้างอยู่ · เสร็จแล้ว · ทั้งหมด
 // ของที่ลบไม่หายทันที แต่ไปนอนในถังขยะที่ซ่อนไว้ท้ายหน้า กดเปิดเองได้
 let taskFilter = 'pending'; // pending | done | all | bin
+let taskDay = null;         // null = ทุกวัน · 'YYYY-M-D' = เฉพาะวันนั้น
 function setFilter(f) {
   taskFilter = f;
   renderTasks();
   const s = document.getElementById('scr-tasks');
   if (s) s.scrollTop = 0;
 }
+function setTaskDay(k) {
+  taskDay = (taskDay === k) ? null : k;   // กดวันเดิมซ้ำ = เลิกกรอง
+  renderTasks();
+}
 
-function taskRow(t, now) {
-  const info = priorityInfo(t, now);
-  const tone = priorityTone(info.stars);
-  const hot = info.urgency === 'over' || info.urgency === 'hot';
-  return `<div class="arow ${t.done ? 'done' : ''}">
-    <button class="chk ${t.done ? 'on' : ''}" onclick="toggleDone('${t.id}',this)"
-      aria-label="${t.done ? 'ทำเสร็จแล้ว' : 'ทำเสร็จ'}">${icon('check')}</button>
-    <div class="ab" onclick="openForm('${t.id}')">
-      <div class="at">${taskTitle(t)}</div>
-      <div class="am">${t.done
-        ? '<span>เสร็จแล้ว</span>'
-        : `<span class="tag ${tone}">${esc(priorityLabel(info.stars))}</span>${snoozeBadge(t)}
-           <span class="mono ${hot ? 'hot' : ''}">${esc(fmtDue(t.due, now, t))}</span>`}</div>
-    </div>
+// ---------- ชิปสถานะ ----------
+// สีในจอนี้ทำงานสองหน้าที่ที่ห้ามปนกัน:
+//   ฟ้า (--fill) = "กดได้" — ปุ่ม แท็บที่เลือก แถบของงานที่ต้องทำตอนนี้
+//   แดง/ส้ม/เขียว = "สถานะ" — อยู่ในชิปกลมเล็กเท่านั้น ไม่เคยเป็นพื้นที่ใหญ่
+// ปนกันเมื่อไหร่ สีแดงจะแปลว่า "กดตรงนี้" ไปด้วย แล้วความด่วนก็หมดความหมาย
+//
+// เกณฑ์เวลาต้องชันพอให้สีแดงยังมีค่าตอนที่มันสำคัญจริง
+// ถ้าติดแดงตั้งแต่เหลือ 4 วัน พอเหลือ 4 ชั่วโมงก็ไม่เหลือสีไหนแรงกว่าให้ใช้แล้ว
+function dueTone(t, now) {
+  if (t.done) return 'ok';
+  if (!t.due) return '';
+  const h = (new Date(t.due) - now) / 3.6e6;
+  if (h <= 12) return 'hot';      // เลยกำหนด หรือเหลือไม่ถึงครึ่งวัน
+  if (h <= 48) return 'warm';     // ภายในสองวัน
+  return '';
+}
+
+function tkChip(text, tone) {
+  return `<span class="tk-chip${tone ? ' ' + tone : ''}">${esc(text)}</span>`;
+}
+
+// การ์ดงาน — ลำดับการอ่านจากบนลงล่างทางเดียว ไม่มีเลขลอยชิดขวาให้ตาวิ่งไปมา
+//   วิชา (ป้ายเล็ก) → สิ่งที่ต้องทำ (ตัวใหญ่สุด) → สถานะ + เวลาที่ใช้
+// ของเดิมเอาชื่อวิชาเป็นตัวใหญ่สุด ทั้งที่นักเรียนรู้อยู่แล้วว่าฟิสิกส์คืออะไร
+// สิ่งที่เขาไม่รู้คือ "ต้องทำอะไร" ซึ่งเคยถูกลดชั้นเป็นตัวเทาเล็ก
+function taskCard(t, now, focus) {
+  const subj = (t.subject || '').trim();
+  const tone = dueTone(t, now);
+  const ti = TASK_TYPES[taskType(t)];
+
+  if (t.done) {
+    return `<div class="tk tk-done" onclick="openForm('${t.id}')">
+      <button class="tk-tick on" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
+        aria-label="เอาออกจากที่เสร็จแล้ว">${icon('check')}</button>
+      <div class="tk-bd">
+        ${subj && subj !== 'อื่น ๆ' ? `<div class="tk-sub">${esc(subj)}</div>` : ''}
+        <div class="tk-ttl">${esc(t.detail || '')}</div>
+      </div>
+      ${icon('chevron', 'tk-go')}
+    </div>`;
+  }
+
+  const chips = [
+    t.due ? tkChip(fmtDue(t.due, now, t), tone) : tkChip('ยังไม่ระบุกำหนด', ''),
+    t.scorePct != null ? tkChip('คะแนน ' + t.scorePct + '%', '') : '',
+    snoozeBadge(t) ? tkChip('เลื่อนมา ' + (t.snoozeCount || 1) + ' ครั้ง', '') : '',
+  ].filter(Boolean).join('');
+
+  return `<div class="tk${focus ? ' tk-focus' : ''}" onclick="openForm('${t.id}')">
+    <button class="tk-tick" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
+      aria-label="ทำเสร็จ">${icon('check')}</button>
+    ${subj && subj !== 'อื่น ๆ' ? `<div class="tk-sub">${esc(subj)}</div>` : ''}
+    <div class="tk-ttl">${esc(t.detail || '')}</div>
+    <div class="tk-meta">${chips}<span class="tk-sp"></span>
+      ${ti.schedulable ? `<span class="tk-min">~${remainingMin(t)} นาที</span>` : ''}</div>
   </div>`;
 }
 
@@ -1254,9 +1360,31 @@ function renderTasks() {
 
   if (taskFilter === 'bin') { el.innerHTML = binView(bin); return; }
 
+  const rows0 = taskFilter === 'done' ? done
+    : taskFilter === 'all' ? pending.concat(done) : pending;
+
+  // แถบเลือกวัน — ตอบคำถาม "วันนี้อะไรสำคัญ แล้ววันอื่นต่อ" โดยไม่ต้องเปิดอีกจอ
+  // ค่าเริ่มต้นคือ "ทุกวัน" เพื่อให้จอนี้ยังเป็นรายการงานทั้งหมดเหมือนเดิม
+  // จุดใต้เลขวันคือจำนวนงาน สีของจุดคือใบที่ด่วนที่สุดของวันนั้น
+  const dayKey = d => d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = addDays(now, i);
+    const k = dayKey(d);
+    const on = rows0.filter(t => t.due && dayKey(new Date(t.due)) === k);
+    const tone = on.reduce((a, t) => a === 'hot' ? a : (dueTone(t, now) || a), '');
+    // WEEKDAY_SHORT มีจุดต่อท้าย ('จ.') — ในช่องแคบ ๆ จุดกินที่โดยไม่ได้บอกอะไร
+    return { d, k, n: on.length, tone,
+      label: i === 0 ? 'วันนี้' : WEEKDAY_SHORT[d.getDay()].replace('.', '') };
+  });
+
+  const rows = taskDay
+    ? rows0.filter(t => t.due && dayKey(new Date(t.due)) === taskDay)
+    : rows0;
+
   const tab = (key, label, n) =>
     `<button class="${taskFilter === key ? 'active' : ''}" onclick="setFilter('${key}')">
       ${label}<span class="ct">${n}</span></button>`;
+
   const head = `<div class="page-head">
       <div class="eyebrow">รายการงาน</div>
       <h1 class="page-title">งานทั้งหมด</h1>
@@ -1265,16 +1393,30 @@ function renderTasks() {
       ${tab('pending', 'ค้างอยู่', pending.length)}
       ${tab('done', 'เสร็จแล้ว', done.length)}
       ${tab('all', 'ทั้งหมด', live.length)}
-    </div>`;
+    </div>
+    <div class="daystrip">
+      ${days.map(x => `<button class="ds${taskDay === x.k ? ' on' : ''}" onclick="setTaskDay('${x.k}')">
+        <i class="ds-d">${esc(x.label)}</i><b class="ds-n">${x.d.getDate()}</b>
+        ${x.n ? `<u class="ds-dot${x.tone ? ' ' + x.tone : ''}"></u>` : '<u class="ds-dot off"></u>'}
+      </button>`).join('')}
+    </div>
+    ${taskDay ? `<button class="dayclear" onclick="setTaskDay(null)">
+      ${icon('calendar')}เฉพาะ${esc(fmtThaiDate(days.find(x => x.k === taskDay).d))}
+      <span>ดูทุกวัน</span></button>` : ''}`;
 
-  const rows = taskFilter === 'done' ? done
-    : taskFilter === 'all' ? pending.concat(done) : pending;
-  const empty = taskFilter === 'done' ? 'ยังไม่มีงานที่ทำเสร็จ'
+  const empty = taskDay ? 'วันนี้ไม่มีงานที่ถึงกำหนด'
+    : taskFilter === 'done' ? 'ยังไม่มีงานที่ทำเสร็จ'
     : taskFilter === 'all' ? 'ยังไม่มีงาน — กดปุ่มกลางแถบล่างเพื่อเพิ่ม'
     : 'ไม่มีงานค้างเลย — เคลียร์หมดแล้ว';
 
+  // ใบแรกของรายการที่ยังไม่เสร็จได้แถบฟ้า = "ใบนี้คือใบที่ควรลงมือ"
+  // ให้ทุกใบมีแถบก็เท่ากับไม่มีใบไหนมีแถบ
+  const firstPending = rows.find(t => !t.done);
+
   el.innerHTML = head
-    + (rows.length ? rows.map(t => taskRow(t, now)).join('') : `<div class="card empty">${empty}</div>`)
+    + (rows.length
+        ? rows.map(t => taskCard(t, now, t === firstPending)).join('')
+        : `<div class="card empty">${empty}</div>`)
     + (bin.length ? `<button class="bin-btn" onclick="setFilter('bin')">
         ${icon('trash')}ถังขยะ · ${bin.length} รายการ</button>` : '');
 }
@@ -1343,17 +1485,17 @@ function purgeOldTrash() {
   if (state.tasks.length !== before) save();
 }
 
-// ---------- เส้นเวลา ----------
-// จัดกลุ่มตามวันจริง เรียงตามเวลาในวัน และบอกเวลาส่งไว้ริมเส้น
-// ---------- ALT: เส้นเวลาแบบ "การเดินทาง" (แนวนอน) ----------
-// อ่านเป็นเส้นทางที่กำลังเดินอยู่จริง: ถนนพาดซ้าย→ขวาตามเวลา · ป้ายจอด = งานที่ตั้งไว้
-// หมุด "ตอนนี้" ซิงก์กับเวลาจริง ขยับเองทุก 30 วินาทีพร้อมนาฬิกาบนแถบสถานะ
-// เลือกแนวนอนเพราะเวลาเป็นเส้นตรง — ระยะห่างระหว่างป้ายบอก "ว่างกี่วัน" ได้ในตาเดียว
-const JR_DAY_W = 132;      // ความกว้างของ 1 วันบนถนน (px)
-const JR_MAX_DAYS = 21;    // ไกลกว่านี้ไม่วาด ยาวเกินจนเลื่อนหาไม่เจอ
-const JR_GAP = 78;         // ป้ายในเลนเดียวกันต้องห่างกันอย่างน้อยเท่านี้
-
-const JR_PIN_ICON = { homework: 'type', exam: 'book', activity: 'calendar', reminder: 'clock' };
+// ---------- เส้นเวลา (แกนตั้ง) ----------
+// เดิมเป็นถนนแนวนอนที่ต้องเลื่อนซ้าย-ขวา ซึ่งบนมือถืออ่านยากกว่าที่คิด:
+// นิ้วเลื่อนแนวตั้งเป็นสัญชาตญาณ พอต้องเลื่อนแนวนอนคนจึงไม่รู้ว่ายังมีของอยู่ทางขวา
+// แกนตั้งไหลลงเหมือนอ่านหนังสือ เห็นครบ 7 วันด้วยการเลื่อนแบบเดียวกับทั้งแอป
+//
+// ที่สำคัญกว่ารูปทรงคือสิ่งที่เอามาซ้อน: เดิมเส้นเวลารู้แค่ "งานส่งวันไหน"
+// ซึ่งตอบไม่ได้เลยว่าจะทำทันไหม — คำถามจริงของนักเรียนคือ "ก่อนถึงวันนั้นฉันมีเวลาเท่าไหร่"
+// ตอนนี้แต่ละวันวาดจาก context: แถบรูปร่างของวัน (เรียน/กิจวัตร/ช่องว่าง) + เวลาว่างรวม
+// แล้วเทียบกับงานที่ต้องส่งวันนั้น สะสมมาตั้งแต่วันนี้ วันไหนเวลาไม่พอจะติดป้ายเตือน
+const TL_DAYS = 7;
+const TL_PIN_ICON = { homework: 'type', exam: 'book', activity: 'calendar', reminder: 'clock' };
 
 function humanLeft(ms) {
   if (ms < 0) return 'เลยมาแล้ว';
@@ -1362,6 +1504,90 @@ function humanLeft(ms) {
   const h = Math.floor(min / 60);
   if (h < 24) return 'อีก ' + h + ' ชม.' + (min % 60 ? ' ' + (min % 60) + ' นาที' : '');
   return 'อีก ' + Math.round(h / 24) + ' วัน';
+}
+
+function tlHours(min) {
+  if (min <= 0) return '0';
+  return String(Math.round(min / 6) / 10);
+}
+
+// นาทีจากเที่ยงคืนของเวลาที่กำหนดส่ง — 23:59 คือ "ไม่ได้ระบุเวลา" (ทั้งวัน)
+function tlDueMin(t) {
+  const d = new Date(t.due);
+  return d.getHours() * 60 + d.getMinutes();
+}
+function tlAllDay(t) {
+  const d = new Date(t.due);
+  return d.getHours() === 23 && d.getMinutes() === 59;
+}
+
+// เก็บข้อมูลของแต่ละวันไว้ก้อนเดียว แล้วค่อยเอาไปวาด — ตรรกะกับ markup แยกกันชัด
+//
+// "เวลาว่างที่ใช้ได้จริงก่อนกำหนดส่ง" ไม่ใช่เวลาว่างทั้งวัน:
+// งานที่ส่ง 08:00 ใช้ช่องว่างตอนเย็นของวันเดียวกันไม่ได้ ต้องนับเฉพาะช่องที่จบก่อนเวลาส่ง
+// ถ้านับรวมทั้งวันจะได้คำตอบที่ดูดีแต่ผิด แล้วคนเชื่อจนพลาดส่งจริง
+function tlBuildDays(dated, now) {
+  const out = [];
+  let capAcc = 0, needAcc = 0;
+  // เพดานเดียวกับที่ตัวจัดแผนใช้ — วันอาทิตย์ที่ไม่มีคาบเรียนมีช่องว่าง 15 ชั่วโมงก็จริง
+  // แต่ไม่มีนักเรียนคนไหนนั่งทำการบ้าน 15 ชั่วโมง ตัวเลขนั้นเลยทั้งไม่จริงและไม่มีประโยชน์
+  // และถ้าเส้นเวลาบอก 15 ชม. ขณะที่หน้าแผนบอก 2 ชม. สองจอก็โกหกคนคนเดียวกันคนละแบบ
+  const capMin = Math.round(Math.max(0.5, +state.settings.freeHours || 2) * 60);
+
+  for (let i = 0; i < TL_DAYS; i++) {
+    const day = addDays(now, i);
+    const isToday = i === 0;
+    const slots = typeof freeSlots === 'function' ? freeSlots(day, isToday ? now : null) : [];
+    const busy = (typeof busyBlocks === 'function' && typeof mergeRanges === 'function')
+      ? mergeRanges(busyBlocks(day)) : [];
+    const freeMin = slots.reduce((a, s) => a + s.min, 0);
+
+    const due = dated.filter(t => new Date(t.due).toDateString() === day.toDateString())
+      .sort((a, b) => new Date(a.due) - new Date(b.due));
+    const needMin = due.reduce((a, t) => {
+      if (!TASK_TYPES[taskType(t)].schedulable) return a;   // กิจกรรมไม่กินเวลานั่งทำ
+      const left = Math.max(0, Math.round((t.estMin || 30) * (1 - (t.progress || 0) / 100)));
+      return a + left;
+    }, 0);
+
+    // ช่องว่างของวันนี้ที่ยังทันงานที่ส่งเช้าวันนี้ = ช่องที่จบก่อนเวลาส่งที่เร็วที่สุด
+    const firstDue = due.length ? Math.min(...due.map(tlDueMin)) : 24 * 60;
+    const rawUsable = slots.reduce((a, s) => a + Math.max(0, Math.min(s.to, firstDue) - s.from), 0);
+
+    // เวลาที่ "ทำได้จริง" ของวันนั้น = ช่องว่างที่มี แต่ไม่เกินเพดานต่อวัน
+    const budget = Math.min(freeMin, capMin);
+    const usable = Math.min(rawUsable, budget);
+
+    capAcc += usable;
+    needAcc += needMin;
+    const tight = needMin > 0 && needAcc > capAcc;
+    capAcc += budget - usable;   // ที่เหลือของวันตกไปเป็นทุนของวันถัดไป
+
+    out.push({ day, isToday, slots, busy, freeMin, budget, due, needMin, tight,
+      capped: freeMin > capMin, shortMin: Math.max(0, needAcc - capAcc) });
+  }
+
+  // หนี้เวลาไหลต่อไปข้างหน้าเรื่อย ๆ พอวันหนึ่งไม่พอ วันถัด ๆ ไปก็ไม่พอตามไปด้วยทั้งแถว
+  // ติดป้ายเตือนเต็มทุกใบจะได้ข้อความเดียวกันสามสี่รอบ ซึ่งอ่านแล้วเลิกอ่าน
+  // วันที่ทำอะไรได้จริงคือวันแรกที่เริ่มไม่พอ — วันที่เหลือแค่บอกว่ายังตามไม่ทัน
+  const first = out.findIndex(d => d.tight);
+  if (first >= 0) {
+    for (let i = first + 1; i < out.length; i++) {
+      if (out[i].tight) { out[i].tight = false; out[i].carry = true; }
+    }
+  }
+  return out;
+}
+
+// หน้าต่างของแถบ — ใช้ค่าเดียวกันทุกวัน ไม่งั้นแถบแต่ละวันเทียบกันด้วยสายตาไม่ได้
+function tlWindow(days) {
+  const p = typeof ctxPrefs === 'function' ? ctxPrefs() : {};
+  let from = Math.min(6 * 60, hm2min(p.wake) ?? 6 * 60);
+  let to = Math.max(22 * 60, hm2min(p.sleep) || 22 * 60);
+  for (const d of days) {
+    for (const b of d.busy) { from = Math.min(from, b.from); to = Math.max(to, b.to); }
+  }
+  return { from, to: Math.max(to, from + 60) };
 }
 
 function renderTimeline() {
@@ -1374,107 +1600,118 @@ function renderTimeline() {
 
   const head = `<div class="page-head">
       <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
-      <h1 class="page-title">เส้นทาง${who() ? 'ของ' + esc(who()) : 'ของวันนี้'}</h1>
-      <p class="page-sub">ป้ายจอด <b>${dated.length}</b> งาน</p>
+      <h1 class="page-title">เส้นเวลา${who() ? 'ของ' + esc(who()) : ''}</h1>
+      <p class="page-sub">7 วันข้างหน้า · มีกำหนดส่ง <b>${dated.length}</b> งาน</p>
     </div>`;
 
-  if (!dated.length) {
+  if (!dated.length && !undated.length) {
     el.innerHTML = head + `<section class="empty-wrap">
       <div class="empty-ring">${icon('flag')}</div>
-      <h3 class="empty-h">เส้นทางยังโล่ง</h3>
-      <p class="empty-p">${undated.length
-        ? 'มีงานอยู่ ' + undated.length + ' งานแต่ยังไม่ได้ใส่วัน — ใส่กำหนดส่งแล้วจะขึ้นมาเป็นป้ายบนเส้นทางทันที'
-        : 'ยังไม่มีงานที่มีกำหนดส่ง เพิ่มงานแล้วจะเห็นเป็นป้ายจอดเรียงตามเวลา'}</p>
+      <h3 class="empty-h">เส้นเวลายังว่าง</h3>
+      <p class="empty-p">ยังไม่มีงานที่มีกำหนดส่ง เพิ่มงานแล้วจะเห็นว่าแต่ละวันเหลือเวลาพอทำไหม</p>
       <button class="empty-cta" onclick="go('scr-scan')">${icon('camera')}เพิ่มงานใหม่</button>
     </section>`;
     return;
   }
 
-  // ---- ขอบเขตของถนน ----
-  const dayStart = atTime(now, 0, 0);
-  let start = dayStart;
-  let end = addDays(dayStart, 7);
-  const firstDue = new Date(dated[0].due);
-  if (firstDue < start) start = atTime(firstDue, 0, 0);       // มีงานเลยกำหนด → ถอยจุดเริ่มไปหามัน
-  const lastDue = new Date(dated[dated.length - 1].due);
-  if (atTime(lastDue, 0, 0) >= end) end = addDays(atTime(lastDue, 0, 0), 1);
-  const hardEnd = addDays(start, JR_MAX_DAYS);
-  let beyond = [];
-  if (end > hardEnd) { end = hardEnd; beyond = dated.filter(t => new Date(t.due) >= end); }
+  const days = tlBuildDays(dated, now);
+  const win = tlWindow(days);
+  const span = win.to - win.from;
+  const pct = m => Math.max(0, Math.min(100, ((m - win.from) / span) * 100));
 
-  const span = end - start;
-  const days = Math.max(1, Math.round(span / 8.64e7));
-  const roadW = days * JR_DAY_W;
-  // ป้ายจอดวางกึ่งกลางบนหมุด ป้ายใบแรกจึงยื่นออกไปทางซ้ายของถนนราวครึ่งใบ
-  // ถ้าถนนเริ่มที่ 0 พอดี ป้ายใบนั้นจะโดนขอบกล่องเลื่อนตัดหายไปครึ่งหนึ่ง
-  // (เห็นชัดสุดตอนมีงานเลยกำหนด เพราะจุดเริ่มถนนถูกถอยไปหาวันนั้นพอดี)
-  // เว้นช่องว่างหัวท้ายถนนไว้เท่าครึ่งป้าย แล้วเลื่อนทุกอย่างเข้ามาเท่ากันหมด
-  const JR_GUT = 72;
-  const width = roadW + JR_GUT * 2;
-  const xOf = d => JR_GUT + ((d - start) / span) * roadW;
-  const meX = Math.max(JR_GUT, Math.min(JR_GUT + roadW, xOf(now)));
-
-  // ---- หลักวัน ----
-  let ticks = '';
-  for (let i = 0; i < days; i++) {
-    const d = addDays(start, i);
-    const diff = Math.round((atTime(d, 0, 0) - dayStart) / 8.64e7);
-    const label = diff === 0 ? 'วันนี้' : diff === 1 ? 'พรุ่งนี้' : diff === -1 ? 'เมื่อวาน'
-      : WEEKDAY_SHORT[d.getDay()] + ' ' + d.getDate();
-    ticks += `<div class="jr-day${diff === 0 ? ' today' : ''}${diff < 0 ? ' past' : ''}"
-      style="left:${xOf(d)}px"><i></i><span>${esc(label)}</span></div>`;
-  }
-
-  // ---- ป้ายจอด: สลับ 4 เลน (บน/ล่าง) กันป้ายทับกันเวลางานอยู่ใกล้กัน ----
-  const laneX = [-9e9, -9e9, -9e9, -9e9];
-  let stops = '';
-  for (const t of dated) {
-    const due = new Date(t.due);
-    if (due >= end) continue;
-    const x = xOf(due);
-    let lane = laneX.findIndex(lx => x - lx > JR_GAP);
-    if (lane < 0) lane = laneX.indexOf(Math.min(...laneX));
-    laneX[lane] = x;
-    const info = priorityInfo(t, now);
-    const tone = priorityTone(info.stars);
-    const type = taskType(t);
-    const name = t.subject && t.subject !== 'อื่น ๆ' ? t.subject : t.detail;
-    stops += `<button class="jr-stop lane${lane} ${tone}${due < now ? ' over' : ''}"
-      data-x="${Math.round(x)}" style="left:${x}px" onclick="openForm('${t.id}')"
-      aria-label="${esc(taskTitle(t))} ${esc(fmtDue(t.due, now, t))}">
-      <span class="jr-bub"><b>${esc(name)}</b><i class="mono">${esc(dueClock(t))}</i></span>
-      <span class="jr-leg"></span>
-      <span class="jr-pin">${icon(JR_PIN_ICON[type] || 'pin')}</span>
-    </button>`;
-  }
-
-  // ---- การ์ดบอกว่าป้ายถัดไปคืออะไร ----
+  // งานที่อยู่ไกลกว่าช่วงที่วาด — บอกให้รู้ว่ามีอยู่ ไม่ใช่หายไปเฉย ๆ
+  const lastDay = addDays(atTime(now, 0, 0), TL_DAYS);
+  const beyond = dated.filter(t => new Date(t.due) >= lastDay);
   const late = dated.filter(t => new Date(t.due) < now);
   const next = dated.find(t => new Date(t.due) >= now);
-  const nextCard = `<div class="jr-next${late.length ? ' late' : ''}">
+
+  const nextCard = `<div class="tl-next${late.length ? ' late' : ''}">
     <span class="tile">${icon(late.length ? 'clock' : 'pin')}</span>
     <div class="bd">
-      <div class="lb">${late.length ? 'เลยป้ายมาแล้ว ' + late.length + ' งาน' : 'ป้ายถัดไป'}</div>
+      <div class="lb">${late.length ? 'เลยกำหนดแล้ว ' + late.length + ' งาน' : 'งานถัดไป'}</div>
       <div class="tx">${next
-        ? esc(taskTitle(next)) + ' · <b>' + esc(humanLeft(new Date(next.due) - now)) + '</b>'
-        : 'ผ่านป้ายสุดท้ายของช่วงนี้แล้ว'}</div>
+        ? taskTitle(next) + ' · <b>' + esc(humanLeft(new Date(next.due) - now)) + '</b>'
+        : 'ไม่มีงานที่รอส่งในช่วงนี้'}</div>
     </div>
     ${next ? `<button class="go" onclick="openForm('${next.id}')" aria-label="เปิดงานนี้">${icon('chevron')}</button>` : ''}
   </div>`;
 
-  const legend = `<div class="jr-legend">
-    <span><i class="d red"></i>ด่วนมาก</span>
-    <span><i class="d yellow"></i>สำคัญ–ปานกลาง</span>
-    <span><i class="d green"></i>รอได้</span>
-    <span><i class="d me"></i>ตำแหน่งตอนนี้</span>
+  // ยังไม่รู้ตารางของเขา = แถบทุกวันจะโล่งเท่ากันหมด ซึ่งดูเหมือนข้อมูล แต่ไม่ใช่
+  const ctxNudge = (typeof ctxIsEmpty === 'function' && ctxIsEmpty())
+    ? `<button class="tl-nudge" onclick="go('scr-context')">
+        <span class="pn-ic">${icon('clock')}</span>
+        <span class="pn-tx"><b>ยังไม่รู้ตารางเรียนของคุณ</b>
+          <span>แถบเวลาว่างข้างล่างจึงยังว่างทั้งวัน — บอกตารางแล้วจะเห็นของจริง</span></span>
+        <span class="pn-go">${icon('chevron')}</span>
+      </button>` : '';
+
+  const rows = days.map((d, i) => {
+    const label = i === 0 ? 'วันนี้' : i === 1 ? 'พรุ่งนี้' : 'วัน' + THAI_DAY[d.day.getDay()];
+    const date = d.day.getDate() + ' ' + MONTH_SHORT[d.day.getMonth()];
+
+    // แถบรูปร่างของวัน: พื้นเทา = เวลาที่ใช้ไม่ได้ · ก้อนสี = ช่องว่างจริง · หมุด = กำหนดส่ง
+    //
+    // วาด "ช่องที่ว่าง" ไม่ใช่ "ช่องที่ไม่ว่าง" — กลับด้านกันแล้วอ่านง่ายกว่ามาก
+    // เพราะสิ่งที่คนมองหาบนจอนี้คือ "ฉันมีที่ว่างตรงไหน" ไม่ใช่ "ฉันติดอะไรบ้าง"
+    // และช่องว่างของวันนี้เริ่มนับจากตอนนี้อยู่แล้ว เวลาที่ผ่านไปจึงเป็นพื้นเทาเองโดยไม่ต้องวาดทับ
+    const freeBars = d.slots.map(s =>
+      `<i class="f" style="left:${pct(s.from)}%;width:${Math.max(0.8, pct(s.to) - pct(s.from))}%"></i>`).join('');
+    // หมุดที่ตกขอบพอดี (งาน "ทั้งวัน" = 23:59) จะโดนขอบแถบตัดหายไปครึ่งเส้น
+    // รั้งเข้ามาหน่อยให้เห็นเต็มเส้น — คลาดจากตำแหน่งจริงไม่ถึงสิบนาทีบนสเกลนี้
+    const pins = d.due.map(t => {
+      const tone = priorityTone(priorityInfo(t, now).stars);
+      const at = Math.min(98.6, Math.max(0.4, pct(tlAllDay(t) ? win.to : tlDueMin(t))));
+      return `<i class="p ${tone}" style="left:${at}%"></i>`;
+    }).join('');
+    const nowMark = d.isToday ? `<i class="now" id="tlNow"
+      style="left:${pct(now.getHours() * 60 + now.getMinutes())}%"></i>` : '';
+
+    const tasks = d.due.map(t => {
+      const info = priorityInfo(t, now);
+      const tone = priorityTone(info.stars);
+      const over = new Date(t.due) < now;
+      return `<button class="tl-task ${tone}${over ? ' over' : ''}" onclick="openForm('${t.id}')">
+        <span class="tt-time mono">${esc(tlAllDay(t) ? 'ทั้งวัน' : fmtClock(new Date(t.due)))}</span>
+        <span class="tt-ic">${icon(TL_PIN_ICON[taskType(t)] || 'pin')}</span>
+        <span class="tt-bd">
+          <span class="tt-nm">${taskTitle(t)}</span>
+          <span class="tt-sub">${esc(priorityLabel(info.stars))}${
+            TASK_TYPES[taskType(t)].schedulable ? ' · ~' + (t.estMin || 30) + ' นาที' : ''}</span>
+        </span>
+      </button>`;
+    }).join('');
+
+    return `<section class="tl-day${d.isToday ? ' today' : ''}${d.due.length ? '' : ' quiet'}">
+      <span class="tl-dot"></span>
+      <header class="tl-head">
+        <b>${esc(label)}</b><span class="tl-date mono">${esc(date)}</span>
+        <span class="tl-free${d.freeMin < 90 ? ' low' : ''}">ว่าง ${tlHours(d.freeMin)} ชม.</span>
+      </header>
+      <div class="tl-bar" title="แถบเขียว = ช่วงที่ว่างจริง">
+        ${freeBars}${pins}${nowMark}
+      </div>
+      ${d.tight ? `<div class="tl-warn">${icon('clock')}
+        <span>เวลาว่างก่อนถึงกำหนดขาดไปราว <b>${tlHours(d.shortMin)} ชม.</b> —
+          เริ่มงานของวันนี้ตั้งแต่วันก่อนหน้าจะทันกว่า</span></div>`
+      : d.carry ? `<div class="tl-warn soft">${icon('clock')}
+        <span>ยังตามไม่ทันจากที่ค้างมา</span></div>` : ''}
+      ${tasks || `<div class="tl-none">ไม่มีกำหนดส่ง</div>`}
+    </section>`;
+  }).join('');
+
+  const legend = `<div class="tl-legend">
+    <span><i class="k free"></i>ช่วงที่ว่าง</span>
+    <span><i class="k busy"></i>ติดเรียน/กิจวัตร</span>
+    <span><i class="k red"></i>กำหนดส่งด่วน</span>
+    <span><i class="k green"></i>กำหนดส่งรอได้</span>
   </div>`;
 
-  const extras = (undated.length ? `<div class="jr-un">
-      <div class="lb">ยังไม่ได้ใส่วัน — ยังไม่ขึ้นเส้นทาง</div>
+  const extras = (undated.length ? `<div class="tl-un">
+      <div class="lb">ยังไม่ได้ใส่วัน — ยังไม่ขึ้นเส้นเวลา</div>
       <div class="chips">${undated.map(t =>
-        `<button onclick="openForm('${t.id}')">${esc(taskTitle(t))}</button>`).join('')}</div>
+        `<button onclick="openForm('${t.id}')">${taskTitle(t)}</button>`).join('')}</div>
     </div>` : '')
-    + (beyond.length ? `<p class="jr-far">อีก ${beyond.length} งานอยู่ไกลกว่า ${JR_MAX_DAYS} วัน — ดูได้ในแท็บ “งาน”</p>` : '');
+    + (beyond.length ? `<p class="tl-far">อีก ${beyond.length} งานอยู่ไกลกว่า ${TL_DAYS} วัน — ดูได้ในแท็บ “งาน”</p>` : '');
 
   const insight = timelineInsight(pending, now);
   const note = insight ? `<div class="tl-note">
@@ -1485,46 +1722,30 @@ function renderTimeline() {
     </div>
   </div>` : '';
 
-  el.innerHTML = head + nextCard + legend + `
-    <div class="jr" id="jrScroll">
-      <div class="jr-track" id="jrTrack" data-start="${+start}" data-span="${span}" data-w="${roadW}"
-        data-gut="${JR_GUT}" style="width:${width}px">
-        <div class="jr-road" style="left:${JR_GUT}px;right:${JR_GUT}px"></div>
-        <div class="jr-road done" id="jrDone" style="left:${JR_GUT}px;width:${meX - JR_GUT}px"></div>
-        ${ticks}
-        <div class="jr-finish" style="left:${JR_GUT + roadW}px">${icon('flag')}</div>
-        ${stops}
-        <div class="jr-me" id="jrMe" style="left:${meX}px">
-          <span class="me-dot"></span><span class="me-lb mono">ตอนนี้ ${fmtClock(now)}</span>
-        </div>
-      </div>
-    </div>`
-    + extras + note;
+  // ป้ายรายวันบอก "ช่องว่างมีเท่าไหร่" ซึ่งต่างกันทุกวันและเป็นข้อมูลจริง
+  // ส่วนเพดานต่อวันเป็นค่าเดียวทั้งสัปดาห์ ถ้าเอาไปแปะซ้ำทุกแถวจะได้เลขเดิม 7 รอบ
+  // ที่ไม่บอกอะไรเลย — พูดครั้งเดียวตรงนี้ แล้วคำเตือน "เวลาไม่พอ" ข้างล่างคิดจากเพดานนี้
+  const capH = Math.round(Math.max(0.5, +state.settings.freeHours || 2) * 10) / 10;
+  const capLine = `<p class="tl-cap">${icon('clock')}คำเตือนเรื่องเวลาข้างล่างคิดจากเพดาน
+    <b>${capH} ชม./วัน</b> ที่ตั้งไว้ ไม่ใช่ช่องว่างทั้งหมด — แก้ได้ในแท็บ “ฉัน”</p>`;
 
-  syncJourneyNow();
-  // เลื่อนให้เห็นตำแหน่งปัจจุบันก่อนเสมอ (ไม่ใช่ต้นเส้นทางที่อาจเลยไปแล้ว)
-  const sc = document.getElementById('jrScroll');
-  if (sc) setTimeout(() => { sc.scrollLeft = Math.max(0, meX - sc.clientWidth * 0.34); }, 0);
+  el.innerHTML = head + nextCard + ctxNudge + note
+    + `<div class="tl">${rows}</div>` + capLine + legend + extras;
 }
 
-// ขยับหมุด "ตอนนี้" ตามเวลาจริง โดยไม่ต้องวาดเส้นทางใหม่ทั้งเส้น
-function syncJourneyNow() {
-  const track = document.getElementById('jrTrack');
-  if (!track) return;
-  const start = +track.dataset.start, span = +track.dataset.span, w = +track.dataset.w;
-  if (!span) return;
-  // gut = ช่องว่างหัวถนน ต้องบวกกลับเข้าไปเหมือนตอนวาด ไม่งั้นหมุด "ตอนนี้" จะเพี้ยนไปทางซ้าย
-  const gut = +track.dataset.gut || 0;
-  const x = gut + Math.max(0, Math.min(1, (Date.now() - start) / span)) * w;
-  const me = document.getElementById('jrMe');
-  if (me) {
-    me.style.left = x + 'px';
-    const lb = me.querySelector('.me-lb');
-    if (lb) lb.textContent = 'ตอนนี้ ' + fmtClock(new Date());
-  }
-  const done = document.getElementById('jrDone');
-  if (done) done.style.width = (x - gut) + 'px';
-  track.querySelectorAll('.jr-stop').forEach(s => s.classList.toggle('passed', +s.dataset.x <= x));
+// ขยับหมุด "ตอนนี้" ตามเวลาจริง โดยไม่ต้องวาดทั้งจอใหม่
+// (เรียกจาก tickClock ทุก 30 วินาที)
+function syncTimelineNow() {
+  const mark = document.getElementById('tlNow');
+  if (!mark) return;
+  const bar = mark.parentElement;
+  const gone = bar && bar.querySelector('.gone');
+  const win = tlWindow([]);
+  const now = new Date();
+  const m = now.getHours() * 60 + now.getMinutes();
+  const p = Math.max(0, Math.min(100, ((m - win.from) / (win.to - win.from)) * 100));
+  mark.style.left = p + '%';
+  if (gone) gone.style.width = p + '%';
 }
 
 // เวลาส่งสำหรับริมเส้น — 23:59 คือ "ไม่ได้ระบุเวลา" จึงเขียนว่าทั้งวัน
@@ -1547,16 +1768,54 @@ function renderPlan() {
     return;
   }
   const plan = buildDayPlan(pending, state.settings, now);
-  sub.textContent = `เวลาว่าง ${state.settings.freeHours || 2} ชม. · ใช้จริง ${Math.round(plan.usedMin / 6) / 10} ชม.`;
+  const win = plan.windows;
+  const h = m => Math.round(m / 6) / 10;
+  sub.textContent = win.mode === 'none'
+    ? 'วันนี้หมดเวลาแล้ว — แผนนี้กันไว้ให้พรุ่งนี้เช้า'
+    : `ว่างอีก ${h(win.windowMin)} ชม.` +
+      (win.capped ? ` · ตั้งเพดานไว้ ${h(win.capMin)} ชม.` : '') +
+      ` · จัดให้แล้ว ${h(plan.usedMin)} ชม.`;
 
   let html = '';
+
+  // ยังไม่รู้จักตารางของเขา = แผนทุกใบข้างล่างนี้ตั้งอยู่บนการเดา ต้องบอกให้รู้ตัว
+  // และบอกตรงจุดที่เขากำลังมองแผนอยู่พอดี ไม่ใช่ซ่อนไว้ในหน้าตั้งค่าที่ไม่มีใครเปิด
+  if (win.mode === 'default') {
+    html += `<button class="pctx-nudge" onclick="go('scr-context')">
+      <span class="pn-ic">${icon('clock')}</span>
+      <span class="pn-tx">
+        <b>ตอนนี้ AI เดาว่าคุณเริ่มทำการบ้าน 19:00</b>
+        <span>บอกตารางเรียนกับกิจวัตรสักครั้ง แล้วแผนจะวางลงช่องว่างจริงของคุณ — ว่างบ่ายก็ได้เริ่มบ่าย</span>
+      </span>
+      <span class="pn-go">${icon('chevron')}</span>
+    </button>`;
+  } else if (win.mode === 'late') {
+    html += `<div class="pctx-note">${icon('clock')}เลย ${esc(ctxPrefs().noWorkAfter)} น. มาแล้ว —
+      นี่คือเวลาที่ยืมมาจากการนอน ทำเท่าที่จำเป็นพอ</div>`;
+  }
+
   for (const e of plan.events) {
     html += `<div class="pslot">
       <div class="ptime"><span class="s">${fmtClock(new Date(e.due))}</span></div>
       <div class="brk">${icon('calendar')}${esc(taskTitle(e))}</div>
     </div>`;
   }
+  // หัวช่วง: บอกว่าก้อนงานข้างล่างนี้อยู่ในช่องว่างไหนของวัน
+  // มีมากกว่าหนึ่งช่วงเมื่อไหร่ ผู้ใช้ต้องเห็นทันทีว่าอะไรทำก่อนเลิกเรียน อะไรทำหลังกินข้าว
+  const multi = win.slots.length > 1;
+  let wi = -1;
   for (const s of plan.slots) {
+    if (multi) {
+      const inWin = win.slots.findIndex(w =>
+        s.start.getHours() * 60 + s.start.getMinutes() >= w.from &&
+        s.start.getHours() * 60 + s.start.getMinutes() < w.to);
+      if (inWin !== -1 && inWin !== wi) {
+        wi = inWin;
+        const w = win.slots[inWin];
+        html += `<div class="pwin"><span class="mono">${w.fromHm}–${w.toHm}</span>
+          <i></i><span class="pw-min">ว่าง ${w.min} นาที</span></div>`;
+      }
+    }
     if (s.break) {
       html += `<div class="pslot">
         <div class="ptime"><span class="s">${fmtClock(s.start)}</span></div>
@@ -1565,30 +1824,72 @@ function renderPlan() {
     } else {
       const info = priorityInfo(s.task, now);
       const lv = info.stars >= 5 ? 'lv5' : info.stars >= 4 ? 'lv4' : '';
+      // แผนบอกว่า "ควรใช้กี่นาที" — บรรทัดนี้บอกว่า "ใช้ไปจริงแล้วกี่นาที"
+      // สองตัวเลขอยู่ติดกันคือทั้งหมดที่ต้องมี ไม่ต้องอธิบายอะไรเพิ่ม
+      const did = workedMin(s.task.id);
+      const run = runningWork();
+      const mine = run && run.taskId === s.task.id;
+      const busy = run && !mine;
       html += `<div class="pslot">
         <div class="ptime"><span class="s">${fmtClock(s.start)}</span><span class="e">${fmtClock(s.end)}</span></div>
-        <div class="work ${lv}">
+        <div class="work ${lv}${mine ? ' running' : ''}">
           <div class="tm">
             <span class="nbadge ${lv}">${esc(priorityLabel(info.stars))}</span>
-            <span class="ndue">${s.min} นาที</span>
+            <span class="ndue">${s.min} นาที${did ? ` · ทำไปแล้ว ${did}` : ''}</span>
           </div>
           <div class="tt">${taskTitle(s.task)}</div>
           ${s.note ? `<div class="nt">${esc(s.note)}</div>` : ''}
+          <button class="wk-go${mine ? ' on' : ''}" ${busy ? 'disabled' : ''}
+            onclick="${mine ? 'stopWork()' : `startWork('${s.task.id}')`}">
+            ${icon(mine ? 'check' : 'clock')}${mine ? 'หยุดจับเวลา' : busy ? 'จับเวลางานอื่นอยู่' : 'เริ่มจับเวลา'}
+          </button>
         </div>
       </div>`;
     }
   }
-  if (plan.overflow.length) {
-    html += `<div class="povf">
-      <div class="povf-head">${icon('clock')}<span>เวลาวันนี้ไม่พอ — ย้ายไปพรุ่งนี้</span></div>
-      ${plan.overflow.map(o => `<div class="it">
+  // "วางไม่ลงวันนี้" มีสองความหมายที่ต่างกันคนละเรื่อง และเคยถูกเขียนรวมเป็นก้อนเดียว
+  //   ย้ายได้จริง  — พรุ่งนี้ยังมีเวลาพอ ไม่ต้องตกใจ
+  //   ย้ายไม่ได้   — ไม่มีช่องว่างวันไหนเหลือก่อนกำหนดส่งแล้ว นี่คือการพลาดส่ง ต้องตะโกน
+  // เขียนรวมกันคือการบอกข่าวร้ายด้วยน้ำเสียงของข่าวธรรมดา
+  const missed = plan.overflow.filter(o => o.missed);
+  const movable = plan.overflow.filter(o => !o.missed);
+
+  if (missed.length) {
+    const nf = plan.nextFree;
+    // เขียนให้เป็นข้อเท็จจริงเรียบ ๆ ว่าช่องว่างถัดไปอยู่ตรงไหน แล้วปล่อยให้ตัวเลขพูดเอง
+    // ช่องว่างถัดไปอาจเป็นหกโมงเช้าหรือสี่โมงเย็นก็ได้ สำนวนที่แปลว่า "สายไปแล้ว" จึงใช้ไม่ได้ทุกกรณี
+    const when = nf
+      ? 'ช่องว่างถัดไปคือ' +
+        (nf.dayOffset === 1 ? 'พรุ่งนี้ ' : 'วัน' + THAI_DAY[nf.date.getDay()] + ' ') + nf.fromHm
+      : 'ไม่เหลือช่องว่างก่อนกำหนดส่งอีกแล้ว';
+    html += `<div class="povf danger">
+      <div class="povf-head">${icon('clock')}<span>ทำไม่ทันถ้าไม่ทำวันนี้</span></div>
+      <div class="povf-why">${esc(when)} — ${missed.length > 1 ? 'งานพวกนี้' : 'งานนี้'}เลยกำหนดส่งไปก่อนถึงตอนนั้น</div>
+      ${missed.map(o => `<div class="it">
         <div class="tt">${taskTitle(o.task)}</div>
-        <div class="ln">ต้องใช้ ~${o.need} นาที · ${fmtDue(o.task.due, now, o.task)}</div>
+        <div class="ln">ยังต้องใช้ ~${o.need} นาที · ${esc(fmtDue(o.task.due, now, o.task))}</div>
+      </div>`).join('')}
+      <div class="povf-tip">ทำเท่าที่ทำได้คืนนี้ · ขยับเวลานอนในแท็บ “ฉัน” · หรือบอกครูตั้งแต่ตอนนี้</div>
+    </div>`;
+  }
+  if (movable.length) {
+    html += `<div class="povf">
+      <div class="povf-head">${icon('clock')}<span>เวลาวันนี้ไม่พอ — ย้ายไปวันหลังได้</span></div>
+      ${movable.map(o => `<div class="it">
+        <div class="tt">${taskTitle(o.task)}</div>
+        <div class="ln">ต้องใช้ ~${o.need} นาที · ${esc(fmtDue(o.task.due, now, o.task))}</div>
       </div>`).join('')}
     </div>`;
   }
   if (!plan.slots.length && !plan.events.length) {
-    html += `<div class="card empty">วันนี้ไม่มีอะไรต้องนั่งทำ — พักได้เต็มที่ 🎉</div>`;
+    // มีงานค้างอยู่แต่วางไม่ลง ≠ ไม่มีอะไรต้องทำ — สองอย่างนี้พูดสลับกันไม่ได้เด็ดขาด
+    html += missed.length
+      ? `<div class="card empty">วันนี้ไม่เหลือช่องว่างให้วางงานแล้ว —
+           แต่งานข้างบนรอถึงพรุ่งนี้ไม่ได้ ดูว่าพอยืมเวลาจากตรงไหนได้บ้าง</div>`
+      : plan.overflow.length
+        ? `<div class="card empty">วันนี้ไม่เหลือช่องว่างให้วางงานแล้ว —
+             งานข้างบนถูกกันไว้ให้พรุ่งนี้เช้าเรียบร้อย</div>`
+        : `<div class="card empty">วันนี้ไม่มีอะไรต้องนั่งทำ — พักได้เต็มที่ 🎉</div>`;
   }
   list.innerHTML = html;
 }
@@ -1655,8 +1956,7 @@ function renderProfile() {
       + (st > 1 ? ' · เปิดติดกัน ' + st + ' วัน' : '');
   }
   const ver = document.getElementById('appVer');
-  if (ver) ver.textContent = 'StudentOS ' + APP_CHANNEL + ' Version ' + APP_VERSION
-    + ' “' + APP_CODENAME + '”';
+  if (ver) ver.textContent = 'StudentOS Version ' + APP_VERSION + ' “' + APP_CODENAME + '”';
   const pn = document.getElementById('pName'); if (pn) pn.value = state.settings.name || '';
   const pf = document.getElementById('pFree'); if (pf) pf.value = state.settings.freeHours || 2;
 
@@ -1883,6 +2183,15 @@ function renderContext() {
       <p class="ctx-sum-p">นับจากตอนนี้ถึง ${esc(p.noWorkAfter)} น. หักเวลาเรียนกับกิจวัตรออกแล้ว
         ช่องที่สั้นกว่า ${p.minBlockMin} นาทีไม่ถูกนับ</p>
     </section>
+
+    <!-- กรอกตารางเรียนทีละคาบคือการพิมพ์ 30–40 ครั้ง ซึ่งเกือบไม่มีใครทำจนจบ
+         ทางลัดจึงต้องอยู่เหนือฟอร์ม ไม่ใช่ซ่อนไว้ท้ายจอหลังของที่มันมาแทน -->
+    <button class="ctx-scan" onclick="openTtScan()">
+      <span class="cs-ic">${icon('camera')}</span>
+      <span class="cs-tx"><b>ถ่ายรูปตารางเรียน แล้วให้ AI กรอกให้</b>
+        <span>อ่านทั้งสัปดาห์ในทีเดียว — ตรวจแก้ได้ก่อนบันทึกทุกคาบ</span></span>
+      <span class="cs-go">${icon('chevron')}</span>
+    </button>
 
     <div class="sec-label">เวลาประจำวัน</div>
     <div class="pf-list">
@@ -2408,6 +2717,9 @@ function dailyGrid(activeDay, claimedUpTo) {
   }).join('');
 }
 
+// กันเช็คอินเด้งทับฉากต้อนรับ — ตั้งเป็นเวลาที่ "ห้ามเด้งจนกว่าจะถึง"
+let checkinHoldUntil = 0;
+
 function openDailyCheck(auto) {
   const wrap = document.getElementById('checkin');
   if (!wrap) return;
@@ -2415,6 +2727,10 @@ function openDailyCheck(auto) {
   // ยังไม่ได้เข้าแอปจริง (จอบัญชี / จอทำความรู้จัก) ห้ามเด้ง —
   // ของรางวัลรายวันเป็นของคนที่เข้ามาใช้แอปแล้ว ไม่ใช่ของที่โผล่ทับหน้าล็อกอิน
   if (auto && document.body.classList.contains('login-mode')) return;
+  // เพิ่งผ่านฉาก "ยินดีที่ได้รู้จัก" มาหมาด ๆ — วินาทีแรกของคนใช้ครั้งแรก
+  // ถ้าปล่อยให้เช็คอินเด้งตรงนี้ เขาจะเจอ toast ต้อนรับ + แผ่นของรางวัล + จอที่ยังว่างเปล่า
+  // พร้อมกันสามชั้น ทั้งที่ยังไม่ทันได้เห็นว่าแอปนี้ทำอะไรได้เลยสักอย่าง
+  if (auto && Date.now() < checkinHoldUntil) return;
   const day = pendingCycleDay();
   const claimed = dailyPending() ? day - 1 : (tokenState().cycleDay || 0);
   const prize = DAILY_PLAN[day - 1];
@@ -2823,6 +3139,86 @@ function renderStats() {
         <span class="nm">${esc(name)}</span>
         <span class="ct mono">${v.n} งาน · ${Math.round(v.min / 6) / 10} ชม.</span>
       </div>`).join('')}
+    </div>` : ''}
+    ${workStatsHtml(now)}`;
+}
+
+// ---------- ประสิทธิภาพ: อ่านจากรอบจับเวลาจริงเท่านั้น ----------
+// ทุกตัวเลขในบล็อกนี้มาจากที่เขากดเริ่ม–หยุดเอง ไม่มีอันไหนเดา
+// และไม่โผล่มาก่อนจะมีข้อมูลพอ — สถิติจากสามรอบแรกคือการเดาที่ใส่กราฟให้ดูน่าเชื่อ
+const WORK_MIN_SESSIONS = 5;
+const HOUR_BANDS = [
+  { from: 5,  to: 12, name: 'ช่วงเช้า' },
+  { from: 12, to: 17, name: 'ช่วงบ่าย' },
+  { from: 17, to: 21, name: 'ช่วงหัวค่ำ' },
+  { from: 21, to: 29, name: 'ช่วงดึก' },   // 29 = ตี 5 ของวันถัดไป
+];
+
+function bandOf(hour) {
+  const h = hour < 5 ? hour + 24 : hour;
+  return HOUR_BANDS.find(b => h >= b.from && h < b.to) || HOUR_BANDS[3];
+}
+
+function workStatsHtml(now) {
+  const all = sessions();
+  if (all.length < WORK_MIN_SESSIONS) {
+    return `<div class="st-card soft">
+      <div class="st-line">${icon('clock')}กดเริ่มจับเวลาในหน้าแผนอีก
+        <b>${WORK_MIN_SESSIONS - all.length}</b> รอบ แล้วจะเริ่มบอกได้ว่าคุณทำงานได้ดีที่สุดช่วงไหน</div>
+    </div>`;
+  }
+
+  const week = all.filter(s => (now - new Date(s.start)) < 7 * 8.64e7);
+  const weekH = Math.round(week.reduce((a, s) => a + s.min, 0) / 6) / 10;
+
+  // ช่วงที่ทำได้เยอะสุด — วัดด้วยนาทีรวม ไม่ใช่จำนวนรอบ
+  // นับเป็นรอบจะทำให้การกดเริ่ม–หยุดถี่ ๆ ตอนใจลอยชนะการนั่งยาวหนึ่งรอบ
+  const byBand = {};
+  for (const s of all) {
+    const b = bandOf(new Date(s.start).getHours()).name;
+    byBand[b] = (byBand[b] || 0) + s.min;
+  }
+  const bands = Object.entries(byBand).sort((a, b) => b[1] - a[1]);
+  const topBand = bands[0];
+  const bandTotal = bands.reduce((a, b) => a + b[1], 0);
+
+  // ความแม่นของการประเมินเวลา — เทียบเฉพาะงานที่ทำเสร็จแล้วและมีทั้งสองตัวเลข
+  // งานที่ยังทำค้างอยู่เอามาเทียบไม่ได้ เพราะเวลาที่ลงไปยังไม่ใช่เวลาทั้งหมดของมัน
+  const rows = [];
+  for (const t of liveTasks()) {
+    if (!t.done || !t.estMin) continue;
+    const did = workedMin(t.id);
+    if (did >= 1) rows.push({ est: t.estMin, did });
+  }
+  // งานเดียวบอกอะไรไม่ได้ — วันที่ไม่มีสมาธิวันเดียวก็ทำให้ตัวเลขเพี้ยนไป 80% ได้แล้ว
+  // พูดว่า "คุณประเมินพลาด 83%" จากตัวอย่างเดียวคือการโกหกที่ใส่เปอร์เซ็นต์ให้ดูน่าเชื่อ
+  const estSum = rows.reduce((a, r) => a + r.est, 0);
+  const didSum = rows.reduce((a, r) => a + r.did, 0);
+  const ratio = (rows.length >= 3 && estSum) ? didSum / estSum : null;
+
+  return `<div class="st-card">
+      <div class="st-h">เวลาที่ลงมือจริง</div>
+      <div class="st-line">7 วันล่าสุด <b>${weekH} ชม.</b> · ทั้งหมด ${all.length} รอบ</div>
+      ${topBand ? `<div class="st-bands">
+        ${bands.map(([nm, min]) => `<div class="st-band">
+          <span class="nm">${esc(nm)}</span>
+          <span class="tr"><i style="width:${Math.round(min / bandTotal * 100)}%"></i></span>
+          <span class="ct mono">${Math.round(min / 6) / 10} ชม.</span>
+        </div>`).join('')}
+      </div>
+      <div class="st-line soft">ลงมือได้มากที่สุด<b>${esc(topBand[0])}</b> —
+        ถ้าเลือกได้ กันงานหนักไว้ช่วงนั้น</div>` : ''}
+    </div>
+    ${ratio ? `<div class="st-card">
+      <div class="st-h">ประเมินเวลาแม่นแค่ไหน</div>
+      <div class="st-line">${ratio > 1.15
+        ? `ใช้จริงมากกว่าที่ประเมินไว้ <b>${Math.round((ratio - 1) * 100)}%</b> —
+           เผื่อเวลาเพิ่มอีกหน่อยตอนกรอกงานใหม่ แผนจะได้ไม่พังกลางทาง`
+        : ratio < 0.85
+        ? `ใช้จริงน้อยกว่าที่ประเมินไว้ <b>${Math.round((1 - ratio) * 100)}%</b> —
+           ประเมินเผื่อไว้เยอะ กล้าใส่งานเพิ่มในวันเดียวกันได้`
+        : `ประเมินได้ใกล้เคียงของจริงมาก (คลาดเคลื่อนไม่ถึง 15%) — เชื่อตัวเลขตัวเองได้เลย`}
+        <span class="soft">· จาก ${rows.length} งานที่จับเวลาไว้</span></div>
     </div>` : ''}`;
 }
 
@@ -2830,10 +3226,262 @@ function renderAll() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline();
   renderProfile(); renderStats(); renderPlan(); renderFriends(); renderBadges();
   renderShop(); renderWheel(); renderInstallCard(); renderTabBadges(); renderContext();
+  renderRunBar();
   // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น
   // (กันแอปพังทั้งจอถ้าไฟล์ inbox.js/linelink.js โหลดไม่ขึ้น)
   if (typeof renderInbox === 'function') renderInbox();
   if (typeof renderSources === 'function') renderSources();
+}
+
+// ---------- สแกนตารางเรียนจากรูป ----------
+// ท่อ: เลือกรูป → ย่อในเครื่อง → Edge Function (Gemini อ่าน) → หน้าตรวจ → เขียนลงบริบท
+//
+// ขั้น "ตรวจ" ตัดออกไม่ได้เด็ดขาด แม้โมเดลจะแม่นแค่ไหน — คาบเรียนที่ผิดหนึ่งคาบ
+// จะกลายเป็น "เวลาที่ไม่ว่าง" ในแผนของเขาไปทุกสัปดาห์ โดยไม่มีอะไรบอกว่ามันมาจากไหน
+// รูปแบบเดียวกับหน้า "ตรวจก่อนบันทึก" ของใบงาน: AI เสนอ คนเป็นคนเคาะ
+const TT_MAX_LONG = 1600;   // ตัวอักษรในตารางเล็กกว่าใบงาน ย่อมากกว่านี้แล้วอ่านไม่ออก
+const TT_DAYS = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+
+let ttState = { phase: 'pick', rows: [], note: '', error: '' };
+
+function openTtScan() {
+  ttState = { phase: 'pick', rows: [], note: '', error: '' };
+  renderTtScan();
+  go('scr-ttscan');
+}
+
+// ย่อก่อนส่งเสมอ — รูปจากกล้องมือถือ 4 MB ที่ส่งดิบ ๆ คือเน็ตมือถือของเด็กหนึ่งก้อน
+// และโควตาที่จ่ายไปโดยไม่ได้ความแม่นเพิ่มขึ้นเลย
+async function ttShrink(file) {
+  const img = await ocrLoadBitmap(file);
+  const long = Math.max(img.width, img.height);
+  const k = long > TT_MAX_LONG ? TT_MAX_LONG / long : 1;
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.width * k);
+  c.height = Math.round(img.height * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  // 0.85 เพราะเส้นตารางกับตัวเลขบาง ๆ แตกง่ายกว่าตัวหนังสือบนใบงาน
+  return c.toDataURL('image/jpeg', 0.85).split(',')[1];
+}
+
+async function ttPick(input) {
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file) return;
+  if (!currentUser) {
+    ttState = { phase: 'pick', rows: [], note: '',
+      error: 'ตัวอ่านตารางทำงานบนเซิร์ฟเวอร์ ต้องล็อกอินก่อนถึงจะใช้ได้ — กรอกเองในหน้าบริบทได้ตามปกติ' };
+    return renderTtScan();
+  }
+  ttState = { phase: 'reading', rows: [], note: '', error: '' };
+  renderTtScan();
+  try {
+    const image = await ttShrink(file);
+    const { data, error } = await sb.functions.invoke('read-timetable', { body: { image, mime: 'image/jpeg' } });
+    if (error) throw new Error(error.message || 'เรียกตัวอ่านไม่สำเร็จ');
+    if (data && data.error) throw new Error(data.error);
+    const rows = (data && data.classes || []).map(r => ({ ...r, on: true }));
+    ttState = { phase: rows.length ? 'review' : 'pick', rows,
+      note: (data && data.note) || '',
+      error: rows.length ? '' : ((data && data.note) || 'อ่านตารางจากรูปนี้ไม่ได้ — ลองถ่ายให้ตรงและชัดขึ้น') };
+  } catch (e) {
+    ttState = { phase: 'pick', rows: [], note: '', error: e.message };
+  }
+  renderTtScan();
+}
+
+function ttSet(i, key, val) {
+  const r = ttState.rows[i];
+  if (!r) return;
+  r[key] = key === 'day' ? +val : val;
+  if (key !== 'on') r.on = true;    // แก้แถวไหน = ตั้งใจเก็บแถวนั้น
+  renderTtScan();
+}
+function ttToggle(i) {
+  const r = ttState.rows[i];
+  if (r) { r.on = !r.on; renderTtScan(); }
+}
+
+// เขียนลงบริบท — เพิ่มเข้าไป ไม่ล้างของเดิม
+// คนที่สแกนซ้ำเพราะเทอมใหม่ควรได้ลบของเก่าเองด้วยปุ่มที่เขียนว่าลบ ไม่ใช่โดนลบเพราะกดสแกน
+function ttSave() {
+  const keep = ttState.rows.filter(r => r.on && hm2min(r.start) != null &&
+    hm2min(r.end) != null && hm2min(r.end) > hm2min(r.start));
+  if (!keep.length) return;
+  for (const r of keep) {
+    ctxUpsert('class', { subject: r.subject.trim() || 'เรียน', start: r.start, end: r.end,
+      weekday: [r.day] });
+  }
+  haptic('done');
+  renderAll();
+  go('scr-context');
+  showToast({ title: `บันทึก ${keep.length} คาบเรียนแล้ว`,
+    body: 'แผนวันนี้จะเลี่ยงเวลาเรียนให้เองตั้งแต่ตอนนี้' });
+}
+
+function renderTtScan() {
+  const body = document.getElementById('ttBody');
+  if (!body) return;
+  const { phase, rows, error } = ttState;
+
+  if (phase === 'reading') {
+    body.innerHTML = `<div class="tt-wait">
+      <div class="tt-spin"></div>
+      <b>กำลังอ่านตาราง…</b>
+      <span>ปกติใช้เวลาไม่เกิน 10 วินาที</span>
+    </div>`;
+    return;
+  }
+
+  if (phase === 'pick') {
+    body.innerHTML = `
+      ${error ? `<div class="tt-err">${icon('clock')}<span>${esc(error)}</span></div>` : ''}
+      <div class="tt-intro">
+        <div class="tt-ring">${icon('camera')}</div>
+        <b>ถ่ายรูปตารางเรียนให้เห็นทั้งสัปดาห์</b>
+        <p>วางให้ตรง ไม่เอียง เห็นทั้งชื่อวันและเวลาแต่ละคาบ — AI จะอ่านให้
+          แล้วคุณตรวจแก้ได้ทุกคาบก่อนบันทึก</p>
+      </div>
+      <button class="tt-cta" onclick="document.getElementById('ttFile').click()">
+        ${icon('camera')}เลือกรูปตารางเรียน</button>
+      <p class="tt-foot">รูปถูกส่งไปให้ Gemini อ่านครั้งเดียวแล้วทิ้ง ไม่ได้ถูกเก็บไว้ที่ไหน
+        · ส่วนอื่นของบริบทยังคำนวณในเครื่องเหมือนเดิม</p>`;
+    return;
+  }
+
+  const on = rows.filter(r => r.on).length;
+  body.innerHTML = `
+    <div class="tt-sum">อ่านได้ <b>${rows.length}</b> คาบ — เลือกไว้ ${on} คาบ
+      ${ttState.note ? `<span class="tt-note">${esc(ttState.note)}</span>` : ''}</div>
+    <p class="tt-hint">ตรวจให้ครบก่อนบันทึก โดยเฉพาะเวลาเริ่ม–เลิก คาบที่ผิดจะไปกินเวลาว่างในแผนทุกสัปดาห์</p>
+    <div class="tt-list">
+      ${rows.map((r, i) => `<div class="tt-row${r.on ? '' : ' off'}">
+        <button class="tt-ck${r.on ? ' on' : ''}" onclick="ttToggle(${i})"
+          aria-label="${r.on ? 'ไม่เอาคาบนี้' : 'เอาคาบนี้'}">${icon('check')}</button>
+        <div class="tt-fields">
+          <input class="tt-sub" type="text" value="${esc(r.subject)}" maxlength="40"
+            oninput="ttSet(${i},'subject',this.value)">
+          <div class="tt-when">
+            <select onchange="ttSet(${i},'day',this.value)">
+              ${TT_DAYS.map((d, n) => `<option value="${n}"${n === r.day ? ' selected' : ''}>${d}</option>`).join('')}
+            </select>
+            <input type="time" value="${esc(r.start)}" onchange="ttSet(${i},'start',this.value)">
+            <span class="tt-dash">–</span>
+            <input type="time" value="${esc(r.end)}" onchange="ttSet(${i},'end',this.value)">
+          </div>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div class="tt-act">
+      <button class="fm-save" onclick="ttSave()" ${on ? '' : 'disabled'}>บันทึก ${on} คาบเข้าบริบท</button>
+      <button class="fm-cancel" onclick="openTtScan()">ถ่ายใหม่</button>
+    </div>`;
+}
+
+// ---------- เวลาทำงานจริง ----------
+// จนถึงตอนนี้แอปรู้แค่ "ประเมินไว้กี่นาที" กับ "กดเสร็จตอนกี่โมง" ซึ่งไม่พอจะพูดได้เลยว่า
+// เขาทำงานได้ดีตอนไหน หรือประเมินเวลาแม่นแค่ไหน — สองอย่างนั้นต้องรู้ว่า
+// "นั่งทำจริงตั้งแต่กี่โมงถึงกี่โมง" ซึ่งไม่มีทางเดาจากข้อมูลเดิมได้
+//
+// เก็บเป็นรายการรอบ ไม่ใช่ยอดรวมในตัวงาน เพราะคำถามที่อยากตอบคือคำถามเรื่องเวลา
+// ("ช่วงไหนของวันทำได้เยอะสุด") ยอดรวมตอบไม่ได้ ต้องมีหัวท้ายของแต่ละรอบ
+//
+// state.running อยู่ใน state ที่เซฟลงเครื่อง ไม่ใช่ตัวแปรลอย ๆ — เด็กกดเริ่มแล้ววางมือถือ
+// หน้าจอดับ เบราว์เซอร์ทิ้งแท็บ กลับมาอีกทีต้องยังจับเวลาอยู่ ไม่ใช่เริ่มนับหนึ่งใหม่
+const SESSION_CAP = 400;        // เก็บย้อนหลังเท่านี้พอ ก้อนที่ซิงก์ขึ้น cloud จะได้ไม่บวม
+const SESSION_STALE_H = 4;      // เกินเท่านี้ = ลืมกดหยุด ไม่ใช่การนั่งทำจริง
+
+function sessions() {
+  if (!Array.isArray(state.sessions)) state.sessions = [];
+  return state.sessions;
+}
+function runningWork() { return state.running || null; }
+
+// รอบที่ค้างมาจากการเปิดแอปครั้งก่อน — ถ้านานเกินจริงให้ทิ้ง ไม่ใช่บันทึกไว้
+// ข้อมูลมั่ว ๆ อันเดียวทำให้ "ช่วงที่ทำได้ดีที่สุด" เพี้ยนไปทั้งสัปดาห์
+// และคนใช้จะเลิกเชื่อตัวเลขนั้นทันทีที่เห็นว่ามันไม่ตรงกับที่ตัวเองจำได้
+function reapStaleWork() {
+  const r = runningWork();
+  if (!r) return null;
+  const h = (Date.now() - new Date(r.start)) / 3.6e6;
+  if (h <= SESSION_STALE_H) return null;
+  state.running = null;
+  save();
+  return r;
+}
+
+function startWork(taskId) {
+  const t = state.tasks.find(x => x.id === taskId);
+  if (!t) return;
+  const r = runningWork();
+  if (r && r.taskId === taskId) return;
+  if (r) stopWork(true);                       // สลับงาน = ปิดรอบเดิมให้เอง ไม่ทิ้งค้าง
+  state.running = { taskId, start: new Date().toISOString() };
+  save();
+  haptic('tap');
+  renderAll();
+}
+
+// quiet = สลับงานอัตโนมัติ ไม่ต้องเด้ง toast ซ้อนกับรอบใหม่ที่กำลังจะเริ่ม
+function stopWork(quiet) {
+  const r = runningWork();
+  if (!r) return;
+  const start = new Date(r.start);
+  const min = Math.round((Date.now() - start) / 60000);
+  state.running = null;
+  // ต่ำกว่าหนึ่งนาทีคือกดพลาด ไม่ใช่การทำงาน — บันทึกไปก็มีแต่ทำให้ค่าเฉลี่ยเพี้ยน
+  if (min >= 1) {
+    sessions().push({ id: uid(), taskId: r.taskId, start: r.start,
+      end: new Date().toISOString(), min });
+    if (sessions().length > SESSION_CAP) state.sessions = sessions().slice(-SESSION_CAP);
+  }
+  save();
+  if (!quiet && min >= 1) {
+    const t = state.tasks.find(x => x.id === r.taskId);
+    const total = workedMin(r.taskId);
+    const est = t && t.estMin;
+    // เทียบกับที่ประเมินไว้ทุกครั้ง — คนจะได้ค่อย ๆ รู้จักความเร็วของตัวเอง
+    // โดยไม่ต้องเปิดหน้าสถิติ ซึ่งเป็นหน้าที่คนส่วนใหญ่ไม่เคยเปิด
+    const cmp = est ? (total > est ? ` · เกินที่ประเมินไว้ ${total - est} นาที`
+      : ` · ยังเหลือโควตาอีก ${est - total} นาที`) : '';
+    showToast({ title: `จับเวลาไว้ ${min} นาที`,
+      body: (t ? taskTitleText(t) : 'งานนี้') + ` — รวมทำไปแล้ว ${total} นาที${cmp}` });
+  }
+  haptic('tap');
+  renderAll();
+}
+
+function workedMin(taskId) {
+  return sessions().filter(s => s.taskId === taskId).reduce((a, s) => a + s.min, 0);
+}
+
+function fmtElapsed(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(s / 60), h = Math.floor(m / 60);
+  const two = v => String(v).padStart(2, '0');
+  return h ? h + ':' + two(m % 60) + ':' + two(s % 60) : m + ':' + two(s % 60);
+}
+
+// แถบจับเวลา — วาดโครงครั้งเดียวแล้วขยับแค่ตัวเลข
+// วาดใหม่ทุกวินาทีจะทำให้ปุ่มหยุดถูกสร้างใหม่ใต้นิ้วที่กำลังกดอยู่พอดี แล้วกดไม่ติด
+function renderRunBar() {
+  const bar = document.getElementById('runBar');
+  if (!bar) return;
+  const r = runningWork();
+  // ล้าง dataset.for ทุกครั้งที่เก็บแถบ ไม่งั้นพอเริ่มจับเวลา "งานใบเดิม" อีกรอบ
+  // เงื่อนไขข้างล่างจะคิดว่าโครงยังอยู่ทั้งที่ innerHTML ถูกล้างไปแล้ว แล้ว .rb-el เป็น null
+  if (!r) { bar.hidden = true; bar.innerHTML = ''; delete bar.dataset.for; return; }
+  const t = state.tasks.find(x => x.id === r.taskId);
+  if (!t) { state.running = null; save(); bar.hidden = true; bar.innerHTML = ''; delete bar.dataset.for; return; }
+  if (bar.dataset.for !== r.taskId) {
+    bar.dataset.for = r.taskId;
+    bar.innerHTML = `<span class="rb-dot"></span>
+      <span class="rb-tx"><b class="rb-tt"></b><span class="rb-el mono"></span></span>
+      <button class="rb-stop" onclick="stopWork()">หยุด</button>`;
+    bar.querySelector('.rb-tt').textContent = taskTitleText(t);
+  }
+  bar.hidden = false;
+  bar.querySelector('.rb-el').textContent = fmtElapsed(Date.now() - new Date(r.start));
 }
 
 // ---------- task actions ----------
@@ -2842,6 +3490,10 @@ function toggleDone(id, el) {
   const t = state.tasks.find(x => x.id === id);
   if (!t) return;
   const wasDone = t.done;
+  // ติ๊กเสร็จทั้งที่ยังจับเวลางานใบนี้อยู่ = จบรอบพอดี ปิดให้เลย
+  // ไม่ปิดให้แล้วนาฬิกาจะเดินต่อไปทั้งคืนกับงานที่เสร็จไปแล้ว
+  const r = runningWork();
+  if (!t.done && r && r.taskId === id) stopWork(true);
   t.done = !t.done;
   t.progress = t.done ? 100 : (t.progress === 100 ? 0 : t.progress);
   t.doneAt = t.done ? new Date().toISOString() : null;
@@ -2960,6 +3612,19 @@ function fillSubjectSelect() {
     SUBJECTS.map(s => `<option>${s.name}</option>`).join('');
 }
 
+// ---------- ALT 1A7V2: ช่องข้อความที่ยืดตามเนื้อหา ----------
+// ต้องรีเซ็ตเป็น auto ก่อนอ่าน scrollHeight ทุกครั้ง ไม่งั้นกล่องจะโตอย่างเดียวไม่หดกลับ
+// (scrollHeight ของกล่องที่ถูกตรึงความสูงไว้แล้ว จะไม่มีทางน้อยกว่าความสูงที่ตรึงไว้)
+// เพดาน 40% ของความสูงจอ — ข้อความยาวมากยังต้องเห็นปุ่มบันทึกโดยไม่ต้องเลื่อนทั้งฟอร์ม
+function autoGrow(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  const cap = Math.round(window.innerHeight * 0.4);
+  const need = el.scrollHeight;
+  el.style.height = Math.min(need, cap) + 'px';
+  el.style.overflowY = need > cap ? 'auto' : 'hidden';
+}
+
 // จอที่ควรกลับไปหลังบันทึก/ยกเลิก — แก้งานจากรายการไหน ก็เด้งกลับรายการนั้น
 let formReturn = 'scr-home';
 
@@ -3043,6 +3708,8 @@ function openForm(id, parsed) {
 
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
   document.getElementById('scr-form').classList.add('on');
+  // ต้องยืดหลังจอถูกแสดงแล้ว — วัด scrollHeight ตอนจอยัง display:none ได้ 0 ทุกครั้ง
+  autoGrow(f.detail);
 }
 
 function saveForm() {
@@ -3289,13 +3956,18 @@ async function ocrLoadBitmap(file) {
   } finally { setTimeout(() => URL.revokeObjectURL(url), 5000); }
 }
 
-// เทา + ยืด contrast ด้วยเปอร์เซ็นไทล์ (ตัดหัวท้าย 2% กันจุดสว่าง/จุดดำหลุด ๆ ลากค่าไปทั้งภาพ)
-function ocrToGray(img) {
-  const long = Math.max(img.width, img.height);
-  // __OCR_MIN_OVERRIDE เป็นช่องให้เครื่องมือวัดผลทดลองค่าอื่นได้โดยไม่ต้องแก้โค้ด
-  // แอปจริงไม่เคยตั้งค่านี้ จึงใช้ OCR_MIN_LONG ตามปกติเสมอ (null = ไม่ขยายเลย)
-  const minLong = (typeof window !== 'undefined' && window.__OCR_MIN_OVERRIDE !== undefined)
+// __OCR_MIN_OVERRIDE / __OCR_MAX_OVERRIDE เป็นช่องให้เครื่องมือวัดผลทดลองค่าอื่นได้
+// แอปจริงไม่เคยตั้งค่าพวกนี้ จึงใช้ OCR_MIN_LONG / OCR_MAX_LONG ตามปกติเสมอ
+function ocrMinLong() {
+  return (typeof window !== 'undefined' && window.__OCR_MIN_OVERRIDE !== undefined)
     ? window.__OCR_MIN_OVERRIDE : OCR_MIN_LONG;
+}
+
+// เทา + ยืด contrast ด้วยเปอร์เซ็นไทล์ (ตัดหัวท้าย 2% กันจุดสว่าง/จุดดำหลุด ๆ ลากค่าไปทั้งภาพ)
+// minLongArg: ระบุเองได้ (0 หรือ null = ไม่ขยายภาพเล็ก) ไม่ระบุ = ใช้ค่าของแอป
+function ocrToGray(img, minLongArg) {
+  const long = Math.max(img.width, img.height);
+  const minLong = minLongArg !== undefined ? minLongArg : ocrMinLong();
   const maxLong = (typeof window !== 'undefined' && window.__OCR_MAX_OVERRIDE)
     ? window.__OCR_MAX_OVERRIDE : OCR_MAX_LONG;
   const scale = long > maxLong ? maxLong / long
@@ -3334,14 +4006,24 @@ function ocrToGray(img) {
   return { canvas: c, ctx, id, gray, w, h };
 }
 
+// **ต้องสร้าง canvas ใบใหม่ทุกครั้ง ห้ามวาดทับใบที่มากับ prep**
+// เหตุผล: ocrBinarize คืน { ...prep, gray: out } ซึ่ง spread ก๊อป *ตัวอ้างอิง* ของ
+// canvas/ctx/id มาด้วย — ภาพเทากับภาพไบนารีของรอบเดียวกันจึงใช้ canvas ใบเดียวกัน
+// ของเดิมวาดทับใบนั้นแล้วคืนมัน ผลคือพอเรียกครั้งที่สองด้วยภาพอีกแบบ
+// ใบที่คืนไปครั้งแรกก็เปลี่ยนเนื้อตามไปด้วย (เป็นวัตถุตัวเดียวกัน)
+// รอบสำรองที่ 2 ใน runOcrOn จึงอ่าน "ภาพสำรอง + PSM 6" ทั้งที่ตั้งใจให้เป็น "ภาพหลัก + PSM 6"
 function ocrGrayToCanvas(prep) {
-  const { ctx, id, gray, w, h } = prep;
+  const { gray, w, h } = prep;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  const id = ctx.createImageData(w, h);
   for (let g = 0, i = 0; g < gray.length; g++, i += 4) {
     id.data[i] = id.data[i + 1] = id.data[i + 2] = gray[g];
     id.data[i + 3] = 255;
   }
   ctx.putImageData(id, 0, 0);
-  return prep.canvas;
+  return c;
 }
 
 // Sauvola: threshold ของแต่ละจุด = mean * (1 + k * (sd / 128 - 1))
@@ -3398,7 +4080,10 @@ function ocrBinarize(prep) {
 const DESKEW_MAX = 30;
 const DESKEW_STEP = 0.5;     // หยาบ ๆ ก่อน แล้วค่อยละเอียดรอบสอง
 const DESKEW_MIN = 0.35;     // เอียงน้อยกว่านี้ไม่ต้องหมุน หมุนแล้วเสียรายละเอียดเปล่า
-const DESKEW_WORK = 640;     // ขนาดภาพที่ใช้หามุม
+// ขนาดภาพที่ใช้หามุม — 640 เล็กเกินไปสำหรับใบงานที่ข้อความแน่น
+// วัดจริง: ที่ 640 ชิ้นส่วนของ RP-3 ยังพอเป็นตัวอักษร (สูงมัธยฐาน 17px) แต่หามุมไม่เจอ (คืน 0°)
+// ที่ 900 เจอ −2.6° ซึ่งตรงกับที่ตาเห็น และคืนวลีที่หายไปกลับมาได้
+const DESKEW_WORK = 900;
 
 // หาชิ้นส่วนที่เชื่อมกัน (connected components) แล้วคัดเฉพาะชิ้นที่ "ขนาดเหมือนตัวอักษร"
 // เหตุผล: วิธีเดิมนับหมึกทุกจุดในภาพ ซึ่งพังทันทีเมื่อรูปมีสิ่งที่ตรงกับแกนภาพอยู่แล้ว
@@ -3406,17 +4091,31 @@ const DESKEW_WORK = 640;     // ขนาดภาพที่ใช้หาม
 //   ของพวกนี้ตรง 0° อยู่แล้ว โปรไฟล์เลยพีคที่ 0° อย่างมั่นใจ ทั้งที่ข้อความเอียง 7°
 //   (วัดจริง: ภาพ hard เอียง 7° แต่คะแนนที่ 0° ชนะที่ 7° ถึง 2.7 เท่า)
 // ตัวอักษรมีขนาดใกล้เคียงกันทั้งหน้า ส่วนสิ่งรบกวนไม่ใช่ — คัดด้วยขนาดจึงแยกออกได้
-// ย่อภาพไบนารีลงมาให้หามุมได้เร็ว — หามุมไม่ต้องใช้ความละเอียดเต็ม
-function skewShrink(bin, w, h, target) {
+// ย่อลงมาให้หามุมได้เร็ว — หามุมไม่ต้องใช้ความละเอียดเต็ม
+//
+// **ต้องย่อภาพเทาแล้วค่อยไบนารี ห้ามย่อภาพไบนารี**
+// ของเดิมย่อภาพไบนารีด้วยการสุ่มจุด (nearest-neighbour) ซึ่งพังกับเส้นตัวอักษร:
+// เส้นกว้าง 2–3px ที่อัตราย่อ ~2.8 เท่า เหลือไม่ถึงพิกเซล การสุ่มจุดจึงเก็บบ้างทิ้งบ้าง
+// ตัวอักษรแตกเป็นเศษ วัดจริงกับรูปถ่ายทั้ง 3 ใบ: ความสูงมัธยฐานของชิ้นส่วนเหลือ 2px ทุกใบ
+// ตัวกรองใน skewBaselines (h ≤ med×3.2 = 6.4px) จึงเก็บ "เศษจุดรบกวน" ไว้
+// แล้วโยน "ตัวอักษรจริง" ทิ้ง — ตรงข้ามกับที่ตั้งใจไว้ทั้งหมด
+//
+// ย่อผ่าน canvas ได้การกรองจริง (เฉลี่ยพื้นที่) เส้นบางกลายเป็นสีเทาอ่อนแทนที่จะหายไป
+// แล้วให้ Sauvola ที่ขนาดเล็กตัดสินอีกที — หน้าต่างของมันคิดตามสัดส่วนภาพอยู่แล้ว
+function skewSmallBin(grayPrep, target) {
+  const { w, h } = grayPrep;
   const scale = Math.min(1, target / Math.max(w, h));
-  if (scale >= 1) return { bin, w, h };
+  if (scale >= 1) return ocrBinarize(grayPrep);
   const nw = Math.max(1, Math.round(w * scale)), nh = Math.max(1, Math.round(h * scale));
-  const out = new Uint8ClampedArray(nw * nh);
-  for (let y = 0; y < nh; y++) {
-    const sy = (y / scale) | 0;
-    for (let x = 0; x < nw; x++) out[y * nw + x] = bin[sy * w + ((x / scale) | 0)];
-  }
-  return { bin: out, w: nw, h: nh };
+  const c = document.createElement('canvas');
+  c.width = nw; c.height = nh;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(ocrGrayToCanvas(grayPrep), 0, 0, nw, nh);
+  const id = ctx.getImageData(0, 0, nw, nh);
+  const gray = new Uint8ClampedArray(nw * nh);
+  for (let g = 0, i = 0; g < gray.length; g++, i += 4) gray[g] = id.data[i];
+  return ocrBinarize({ canvas: c, ctx, id, gray, w: nw, h: nh });
 }
 
 function skewComponents(bin, w, h) {
@@ -3483,10 +4182,11 @@ function skewScorePts(pts, tan, h) {
 }
 
 // คืนมุมเอียงเป็นองศา (บวก = ภาพเอียงตามเข็ม ต้องหมุนทวนเข็มเพื่อแก้)
-// คืน null เมื่อหาไม่ได้อย่างมั่นใจ — ดีกว่าเดามั่วแล้วหมุนผิดทาง
-function ocrFindSkew(binPrep) {
-  const s = skewShrink(binPrep.gray, binPrep.w, binPrep.h, DESKEW_WORK);
-  const base = skewBaselines(s.bin, s.w, s.h);
+// คืน 0 เมื่อหาไม่ได้อย่างมั่นใจ — ดีกว่าเดามั่วแล้วหมุนผิดทาง
+// **รับภาพเทา ไม่ใช่ภาพไบนารี** (เปลี่ยนตอนซ่อม skewSmallBin — ต้องไบนารีหลังย่อ)
+function ocrFindSkew(grayPrep) {
+  const s = skewSmallBin(grayPrep, DESKEW_WORK);
+  const base = skewBaselines(s.gray, s.w, s.h);
   if (!base) return 0;
   const scan = (from, to, step) => {
     let bestA = 0, bestS = -1;
@@ -3541,10 +4241,13 @@ function ocrRotateGray(prep, deg) {
 // ทั้งชุด: หามุมจากภาพไบนารี → ถ้าเอียงพอ หมุนภาพเทาแล้วไบนารีใหม่
 // คืน { gray, bin, deg } เพื่อให้ผู้เรียกใช้ต่อได้ทั้งสองแบบ
 function ocrDeskew(grayPrep) {
-  const bin0 = ocrBinarize(grayPrep);
   let deg = 0;
-  try { deg = ocrFindSkew(bin0); } catch (_) { deg = 0; }
-  if (!isFinite(deg) || Math.abs(deg) < DESKEW_MIN) return { gray: grayPrep, bin: bin0, deg: 0 };
+  // หามุมจากภาพย่อ ไม่ต้องไบนารีความละเอียดเต็มก่อนอีกแล้ว —
+  // ของเดิมไบนารีเต็มขนาดทิ้งไว้ก้อนหนึ่งซึ่งถูกโยนทิ้งทันทีเมื่อต้องหมุน (เสียเปล่า ~250ms)
+  try { deg = ocrFindSkew(grayPrep); } catch (_) { deg = 0; }
+  if (!isFinite(deg) || Math.abs(deg) < DESKEW_MIN) {
+    return { gray: grayPrep, bin: ocrBinarize(grayPrep), deg: 0 };
+  }
   const rot = ocrRotateGray(grayPrep, deg);
   return { gray: rot, bin: ocrBinarize(rot), deg };
 }
@@ -3568,9 +4271,144 @@ function ocrIsDigital(prep) {
   return n ? (same / n * 100) >= OCR_FLAT_CUT : false;
 }
 
+// ============================================================
+// ALT 1A7V: หาบล็อกข้อความ เพื่ออ่านทีละบล็อกแทนการยัดทั้งหน้า
+// ------------------------------------------------------------
+// ที่มา: การทดลองตัดเฉพาะหัวกระดาษออกมาอ่านเดี่ยว ๆ ได้ conf 88–92 ทั้งที่บริเวณเดียวกัน
+// ตอนอยู่ในหน้าเต็มได้แค่ 9–39 — ตัวอักษรคุณภาพดีพอมาตลอด ความละเอียดพอ โหมดถูกแล้ว
+// สิ่งเดียวที่เหลือคือการยัดทั้งหน้าเข้าไปพร้อมกันในครั้งเดียว
+//
+// วิธี RLSA (ละเลงหมึกแล้วหาชิ้นส่วนที่เชื่อมกัน): ถมช่องว่างสั้น ๆ ระหว่างหมึกให้ทึบ
+// ชิ้นส่วนที่ได้จึงเป็น "ก้อนข้อความ" ไม่ใช่ตัวอักษร
+// จงใจใช้จุดอ่อนของภาพให้เป็นประโยชน์ — ตัวอักษรไทยที่เชื่อมติดกันจนหาตัวอักษรไม่ได้
+// กลับเป็นข้อดีตอนหาบล็อก เพราะเราอยากได้ก้อนอยู่แล้ว
+// ============================================================
+
+// ขนาดตัวอักษรโดยประมาณ — ใช้ "มัธยฐานถ่วงน้ำหนักด้วยปริมาณหมึก"
+// ห้ามใช้มัธยฐานความสูงเฉย ๆ: วัดจริงกับรูปถ่าย 3 ใบได้ 2–3px ทั้งหมด
+// เพราะเศษจุดรบกวนมีจำนวนมากกว่าตัวอักษรจริงเสมอ แต่กินหมึกรวมกันน้อยมาก
+function ocrTextScale(comps) {
+  if (!comps.length) return 10;
+  const total = comps.reduce((a, c) => a + c.n, 0);
+  const sorted = comps.slice().sort((a, b) => a.h - b.h);
+  let acc = 0;
+  for (const c of sorted) { acc += c.n; if (acc >= total / 2) return Math.max(3, c.h); }
+  return Math.max(3, sorted[sorted.length >> 1].h);
+}
+
+// ละเลงหมึก: ถมช่องว่างที่สั้นกว่าเกณฑ์ทั้งแนวนอนและแนวตั้ง (0 = หมึก)
+function ocrSmear(bin, w, h, hGap, vGap) {
+  const m = new Uint8ClampedArray(bin);
+  for (let y = 0; y < h; y++) {
+    const r = y * w;
+    let last = -1;
+    for (let x = 0; x < w; x++) {
+      if (m[r + x] === 0) {
+        if (last >= 0 && x - last <= hGap) for (let i = last + 1; i < x; i++) m[r + i] = 0;
+        last = x;
+      }
+    }
+  }
+  for (let x = 0; x < w; x++) {
+    let last = -1;
+    for (let y = 0; y < h; y++) {
+      if (m[y * w + x] === 0) {
+        if (last >= 0 && y - last <= vGap) for (let i = last + 1; i < y; i++) m[i * w + x] = 0;
+        last = y;
+      }
+    }
+  }
+  return m;
+}
+
+const BLOCK_WORK = 900;    // ขนาดภาพที่ใช้หาบล็อก — ไม่ต้องละเอียดเท่าตอนอ่านจริง
+const BLOCK_MAX = 14;      // อ่านมากกว่านี้ไม่คุ้มเวลา เอาเฉพาะก้อนที่หมึกเยอะสุด
+
+// คืนกรอบบล็อกเป็น "สัดส่วน 0–1 ของภาพ" เพื่อให้เอาไปครอบภาพขนาดไหนก็ได้
+function ocrFindBlocks(grayPrep, opt = {}) {
+  const small = skewSmallBin(grayPrep, opt.work || BLOCK_WORK);
+  const comps = skewComponents(small.gray, small.w, small.h);
+  if (comps.length < 4) return [];
+  const med = ocrTextScale(comps);
+  const hGap = Math.max(2, Math.round((opt.hGap != null ? opt.hGap : 1.4) * med));
+  const vGap = Math.max(1, Math.round((opt.vGap != null ? opt.vGap : 0.7) * med));
+  const mask = ocrSmear(small.gray, small.w, small.h, hGap, vGap);
+
+  const page = small.w * small.h;
+  let blocks = skewComponents(mask, small.w, small.h).filter(b =>
+    b.n >= med * med * 1.5 &&            // ก้อนจิ๋วไม่คุ้มค่าเรียก OCR หนึ่งรอบ
+    b.h >= med * 0.8 &&
+    b.n <= page * 0.6 &&                 // เกือบทั้งหน้า = ละเลงเกินจนเหลือก้อนเดียว ไม่ได้ช่วยอะไร
+    // **ความทึบของกรอบ** — กรอบใบงาน ขอบกระดาษ และเส้นตารางเป็นชิ้นส่วนเส้นยาวที่คดไปทั่วหน้า
+    // กรอบครอบของมันจึงใหญ่เกือบเท่าหน้ากระดาษทั้งที่มีหมึกนิดเดียว (วัดจริง RP-1 ได้ก้อน 85×98%)
+    // ครอบตามนั้นก็เท่ากับอ่านทั้งหน้าเหมือนเดิม ไม่ได้แก้อะไรเลย
+    b.n >= b.w * b.h * 0.35);
+  if (!blocks.length) return [];
+  blocks.sort((a, b) => b.n - a.n);
+  // ก้อนที่จมอยู่ในก้อนอื่นทั้งใบ = อ่านซ้ำเปล่า ๆ ตัดทิ้ง (ไล่จากก้อนใหญ่ไปเล็ก)
+  const kept = [];
+  for (const b of blocks) {
+    if (kept.some(k => b.x0 >= k.x0 && b.x1 <= k.x1 && b.y0 >= k.y0 && b.y1 <= k.y1)) continue;
+    kept.push(b);
+    if (kept.length >= (opt.max || BLOCK_MAX)) break;
+  }
+  blocks = kept;
+
+  // ลำดับการอ่าน: แบ่งเป็นแถบตามความสูงตัวอักษรก่อน แล้วในแถบเดียวกันค่อยเรียงซ้าย→ขวา
+  // ถ้าเรียงด้วย y ดิบ ๆ บล็อกสองอันที่อยู่ระดับเดียวกันแต่ต่างกัน 3px จะสลับกันมั่ว
+  const band = Math.max(1, med * 2);
+  blocks.sort((a, b) => {
+    const ba = (a.y0 / band) | 0, bb = (b.y0 / band) | 0;
+    return ba !== bb ? ba - bb : a.x0 - b.x0;
+  });
+
+  // เผื่อขอบรอบกรอบ — ตัดชิดตัวอักษรเกินไปทำให้ตัวบนล่าง (สระ/วรรณยุกต์ไทย) ขาด
+  const pad = Math.max(2, med * 0.6);
+  return blocks.map(b => ({
+    x: Math.max(0, (b.x0 - pad) / small.w),
+    y: Math.max(0, (b.y0 - pad) / small.h),
+    w: Math.min(1, (b.x1 + pad) / small.w) - Math.max(0, (b.x0 - pad) / small.w),
+    h: Math.min(1, (b.y1 + pad) / small.h) - Math.max(0, (b.y0 - pad) / small.h),
+    ink: b.n,
+  }));
+}
+
+// ---------- เตรียมภาพทั้งชุด (ที่เดียว ใช้ทั้งแอปและเครื่องมือวัดผล) ----------
+// ลำดับมีเหตุผล: ตัดสินว่าเป็นภาพดิจิทัลหรือรูปถ่าย **ก่อน** ตัดสินใจขยาย
+//
+// ทำไมต้องตัดสินก่อน: วัดกับรูปจริงแล้วพบว่าการขยายภาพเล็กทำให้ภาพดิจิทัลแย่ลงชัดเจน
+//   DP-1 (763×673 ของเดิม) : ไม่ขยาย 4/4 conf 91 · ขยาย 1000 → 3/4 · ขยาย 1200 → 1/4 · 1500 → 1/4
+//   DP-3 (443×61 ของเดิม)  : ไม่ขยาย 1/2 conf 77 · ขยาย 1200 → 0/2 conf 0 (อ่านไม่ออกเลย)
+//   รวมภาพดิจิทัลทั้งชุด    : ไม่ขยาย 13/14 · ขยาย 1200 9/14
+// ตัวอักษรบนจอคมอยู่แล้ว การขยายมีแต่เพิ่มความเบลอจากการเกลี่ยพิกเซล ไม่ได้เพิ่มรายละเอียด
+// ส่วนรูปถ่ายผลก้ำกึ่ง (ย่อ RP-1/RP-2 ให้เล็กแล้ววัด: ขยาย 6/11 · ไม่ขยาย 5/11) จึงไม่แตะ
+//
+// อีกเหตุผลหนึ่ง: ของเดิมตัดสินจากภาพ *หลังแก้เอียง* ซึ่งถ้าภาพถูกหมุน พิกเซลจะถูกเกลี่ยใหม่หมด
+// ความ "เรียบ" ที่ ocrIsDigital วัดจึงหายไปกับการหมุน — ภาพดิจิทัลที่เอียงจะถูกตัดสินผิดเป็นรูปถ่าย
+function ocrPrepare(source, opt = {}) {
+  const gray0 = ocrToGray(source, 0);               // ยังไม่ขยาย ไว้ตัดสินก่อน
+  const digital = opt.digital !== undefined ? opt.digital : ocrIsDigital(gray0);
+  const min = opt.minLong !== undefined ? opt.minLong : ocrMinLong();
+  const grayIn = (!digital && min && Math.max(gray0.w, gray0.h) < min)
+    ? ocrToGray(source, min)                        // รูปถ่ายที่เล็กเกินไปเท่านั้นที่ขยาย
+    : gray0;
+  const sk = opt.deskew === false
+    ? { gray: grayIn, bin: ocrBinarize(grayIn), deg: 0 }
+    : ocrDeskew(grayIn);
+  // ภาพดิจิทัลส่งภาพเทาเข้าไปตรง ๆ — คมอยู่แล้ว แยกขาวดำมีแต่ทำให้เส้นบวมและขอบแตก
+  // วัดกับรูปจริง: ภาพดิจิทัลดีขึ้น 86%→93% ส่วนรูปถ่ายถ้าไม่แยกขาวดำจะร่วง 77%→73%
+  const useBin = opt.bin !== undefined ? opt.bin : !digital;
+  return { gray: sk.gray, bin: sk.bin, deg: sk.deg, digital, useBin };
+}
+
 // ---------- worker ใช้ซ้ำ ----------
 // เดิมสร้าง worker ใหม่แล้วทิ้งทุกครั้งที่สแกน — สแกนติดกันหลายใบเสียเวลา init ซ้ำทุกใบ
+// **worker ตัวเดียวถูกใช้ซ้ำทั้งอายุแอป** ใครเปลี่ยน parameter ต้องคืนค่าเองเสมอ
+// ไม่งั้นการสแกนใบถัดไปจะได้ค่าที่ค้างมาจากใบก่อน
 let ocrWorker = null, ocrProgress = null;
+
+const OCR_PSM_MAIN = '11';   // "ข้อความกระจาย" — ค่าปกติของแอป
+const OCR_PSM_BLOCK = '6';   // "มองทั้งรูปเป็นบล็อกเดียว" — ใช้เฉพาะรอบสำรองที่ 2
 
 async function getOcrWorker() {
   if (ocrWorker) return ocrWorker;
@@ -3589,7 +4427,7 @@ async function getOcrWorker() {
   // วัดกับรูปจริง 6 ใบ: PSM 6 ได้ 25/36 · PSM 11 ได้ 29/36 — ดีขึ้นทั้งรูปถ่ายและภาพดิจิทัล
   // (เคยลอง PSM 7 "บรรทัดเดียว" ด้วย ได้ 0/36 พังทุกใบ — อย่ากลับไปใช้)
   await w.setParameters({
-    tessedit_pageseg_mode: '11',
+    tessedit_pageseg_mode: OCR_PSM_MAIN,
     preserve_interword_spaces: '1',
   });
   ocrWorker = w;
@@ -3767,6 +4605,7 @@ async function confirmCrop(whole) {
 
   if (mode === 'widget') { saveWidgetPhoto(c); return; }
   go('scr-scan');
+  rememberScan(c);          // เก็บไว้ให้ปุ่ม "อ่านให้แม่นขึ้น" ใช้ซ้ำ ผู้ใช้จะได้ไม่ต้องถ่ายใหม่
   await runOcrOn(c, whole ? 'ทั้งรูป' : 'ครอบกรอบ');
 }
 
@@ -3831,28 +4670,171 @@ function saveWidgetPhoto(canvas) {
   showToast({ title: 'ตั้งภาพวิดเจ็ตแล้ว 🖼', body: 'เปลี่ยนหรือเอาออกได้ที่แท็บ “ฉัน”' });
 }
 
+// ============================================================
+// ALT 1A7V: ท่ออ่านภาพ — แยกออกจาก UI เพื่อให้เครื่องมือวัดผลเรียกสายเดียวกันได้
+// ------------------------------------------------------------
+// เดิมตรรกะทั้งหมดฝังอยู่ใน runOcrOn ซึ่งแตะ DOM ตั้งแต่บรรทัดแรก เครื่องมือวัดผลจึงเรียกไม่ได้
+// ต้องไปเขียนสายของตัวเองขึ้นมาใหม่ใน ocrbench.js แล้วสองสายก็ค่อย ๆ เพี้ยนจากกัน
+// (benchOnce ยังไบนารีทุกภาพอยู่เลย ทั้งที่แอปเลิกทำแบบนั้นตั้งแต่มีตัวแยกภาพดิจิทัลแล้ว
+//  และไม่เคยตั้ง PSM เองเลยสักครั้ง — วัดอะไรอยู่ขึ้นกับว่าใครเรียกก่อนหน้า)
+// ตอนนี้ทั้งแอปและ bench เรียกฟังก์ชันนี้ตัวเดียวกัน จะเพี้ยนจากกันอีกไม่ได้
+//
+// ไม่แตะ DOM เลย — รายงานความคืบหน้าผ่าน onStage(ชื่อขั้น) ให้ผู้เรียกไปทำ UI เอง
+// ============================================================
+async function ocrReadCanvas(source, onStage) {
+  const t0 = performance.now();
+  const say = onStage || (() => {});
+
+  say('prep');
+  const p = ocrPrepare(source);
+  const digital = p.digital;
+  const mainCanvas = ocrGrayToCanvas(p.useBin ? p.bin : p.gray);
+  const altCanvas = () => ocrGrayToCanvas(p.useBin ? p.gray : p.bin);
+
+  say('model');
+  const worker = await getOcrWorker();
+
+  let passes = 1;
+  say('read');
+  let { data } = await withTimeout(worker.recognize(mainCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
+  let pass = digital ? 'digital' : 'photo';
+
+  // รอบสำรอง 1: สลับไปเตรียมภาพอีกแบบ — เผื่อตัวแยกประเภทภาพตัดสินผิด
+  // (เช่นแคปหน้าจอที่มีรูปถ่ายเต็มจอ หรือรูปถ่ายกระดาษขาวจัดที่เรียบผิดปกติ)
+  if ((data.confidence || 0) < OCR_CONF_OK) {
+    say('alt');
+    passes++;
+    const soft = await withTimeout(worker.recognize(altCanvas(), {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
+    if ((soft.data.confidence || 0) > (data.confidence || 0)) { data = soft.data; pass += '+alt'; }
+  }
+  // รอบสำรอง 2: ยังต่ำอยู่ → กลับไปมองเป็นบล็อกข้อความก้อนเดียว (PSM 6)
+  // ใบงานที่เป็นย่อหน้ายาว ๆ ต่อเนื่องบางทีอ่านแบบนี้ดีกว่าแบบ "ข้อความกระจาย"
+  if ((data.confidence || 0) < OCR_CONF_OK) {
+    say('psm6');
+    passes++;
+    await worker.setParameters({ tessedit_pageseg_mode: OCR_PSM_BLOCK });
+    try {
+      // ต้องเป็น mainCanvas ตัวเดิม — รอบนี้ทดสอบ "โหมดมองหน้ากระดาษ" ไม่ใช่ "การเตรียมภาพ"
+      const alt = await withTimeout(worker.recognize(mainCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
+      if ((alt.data.confidence || 0) > (data.confidence || 0)) { data = alt.data; pass += '+psm6'; }
+    } finally {
+      // ต้องคืนค่าแม้รอบนี้จะพัง — worker ตัวนี้ถูกใช้ซ้ำกับการสแกนใบถัดไป
+      // ของเดิมคืนค่านอก try ถ้ารอบนี้ timeout ทุกใบหลังจากนั้นจะติด PSM 6 ค้างไปตลอด
+      await worker.setParameters({ tessedit_pageseg_mode: OCR_PSM_MAIN });
+    }
+  }
+
+  // ---------- รอบเก็บตก: อ่านเฉพาะก้อนตัวหนังสือ ----------
+  // หัวกระดาษกับบรรทัดคำชี้แจงคือสิ่งที่แอปอยากได้ที่สุด (มันบอกว่า "ใบงานอะไร")
+  // แต่เป็นจุดที่การอ่านทั้งหน้าพลาดประจำ วัดจริง: RP-1 5/7 → 7/7 · RP-3 10/11 → 11/11
+  // รวมทั้งชุด 30/36 → 33/36 แลกกับเวลา 2.96 → 4.06 วินาทีต่อใบ
+  // ภาพดิจิทัลแทบไม่เสียเวลาเลยเพราะแบ่งบล็อกไม่ได้ (ข้ามรอบนี้ไป)
+  //
+  // ต่อ "ท้าย" ข้อความหน้าเต็มเสมอ ห้ามเอาไปแทน — ลำดับที่ parseAssignment เห็นก่อน
+  // ยังเป็นลำดับเดิมของหน้ากระดาษ ความเสี่ยงเรื่องแกะช่องผิดลำดับจึงไม่เพิ่ม
+  let blockText = '', blocks = 0;
+  try {
+    const boxes = ocrFindBlocks(p.gray);
+    if (boxes.length >= 2) {
+      say('blocks');
+      blocks = boxes.length;
+      passes++;
+      // ภาพที่เรียงบล็อกแล้วเป็นคอลัมน์เดียวเรียบร้อย จึงใช้ PSM 6 (บล็อกเดียว) ไม่ใช่ 11
+      // วัดแล้วต่างกันจริง: บล็อก psm6 ได้ 33/36 · บล็อก psm11 ได้ 32/36
+      await worker.setParameters({ tessedit_pageseg_mode: OCR_PSM_BLOCK });
+      try {
+        const st = await withTimeout(
+          worker.recognize(ocrStackBlocks(p, boxes), {}, { text: true }), 90_000, 'อ่านรูปภาพ');
+        blockText = normalizeOcrText(st.data.text).trim();
+      } finally {
+        await worker.setParameters({ tessedit_pageseg_mode: OCR_PSM_MAIN });
+      }
+      if (blockText) pass += '+บล็อก' + blocks;
+    }
+  } catch (e) {
+    // รอบนี้เป็นของแถม พังแล้วต้องไม่ทำให้ผลอ่านทั้งหน้าที่ได้มาแล้วหายไปด้วย
+    console.warn('[ALT OCR] รอบอ่านทีละบล็อกไม่สำเร็จ', e);
+  }
+
+  const pageText = normalizeOcrText(data.text);   // OCR ไทยเว้นวรรคทีละตัวอักษร ต้องยุบก่อนแกะ
+  return {
+    data,
+    text: blockText ? pageText + '\n' + blockText : pageText,
+    conf: Math.round(data.confidence || 0),
+    lowWords: collectLowWords(data),
+    pass, passes, blocks, digital, deg: p.deg,
+    w: p.gray.w, h: p.gray.h,
+    ms: Math.round(performance.now() - t0),
+  };
+}
+
+// เอาบล็อกมาเรียงต่อกันเป็นคอลัมน์เดียวในภาพใหม่ แล้วอ่าน "รอบเดียว"
+// เหตุผล: อ่านทีละบล็อกได้ผลดี (RP-1 5/7→7/7 · RP-3 10/11→11/11) แต่จ่ายไป 14 รอบต่อใบ
+// เวลาต่อใบพุ่งจาก 2.8 เป็น 8.4 วินาที ซึ่งแพงเกินกว่าจะปล่อยให้ผู้ใช้เจอ
+// การเรียงต่อกันได้ประโยชน์หลักอันเดียวกัน — ตัดพื้นที่ว่าง ภาพประกอบ และกรอบออกจากหน้า
+// เหลือแต่ก้อนตัวหนังสือชิดกันเป็นคอลัมน์เดียว — โดยจ่ายเพิ่มแค่รอบเดียว
+function ocrStackBlocks(prep, boxes) {
+  const src = ocrGrayToCanvas(prep.useBin ? prep.bin : prep.gray);
+  const rects = boxes.map(b => ({
+    sx: Math.round(b.x * src.width), sy: Math.round(b.y * src.height),
+    sw: Math.max(8, Math.round(b.w * src.width)), sh: Math.max(8, Math.round(b.h * src.height)),
+  }));
+  const gap = Math.max(10, Math.round(src.height * 0.012));
+  const w = Math.max(...rects.map(r => r.sw)) + gap * 2;
+  const h = rects.reduce((a, r) => a + r.sh + gap, gap);
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.fillStyle = '#fff';                 // ช่องว่างระหว่างก้อนต้องเป็นขาว ไม่ใช่ดำ
+  ctx.fillRect(0, 0, w, h);
+  let y = gap;
+  for (const r of rects) {
+    ctx.drawImage(src, r.sx, r.sy, r.sw, r.sh, gap, y, r.sw, r.sh);
+    y += r.sh + gap;
+  }
+  return c;
+}
+
+// อ่านทีละบล็อกแล้วต่อกันตามลำดับการอ่าน
+// คืน null เมื่อแบ่งบล็อกไม่ได้ผล (0–1 ก้อน) — ผู้เรียกใช้ผลอ่านทั้งหน้าต่อไปตามเดิม
+async function ocrReadBlocks(prep, worker, opt = {}) {
+  const boxes = ocrFindBlocks(prep.gray, opt);
+  if (boxes.length < 2) return null;
+  const src = ocrGrayToCanvas(prep.useBin ? prep.bin : prep.gray);
+  const parts = [];
+  let confSum = 0, confN = 0;
+  const c = document.createElement('canvas');
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  for (const b of boxes) {
+    const sx = Math.round(b.x * src.width), sy = Math.round(b.y * src.height);
+    const sw = Math.max(8, Math.round(b.w * src.width));
+    const sh = Math.max(8, Math.round(b.h * src.height));
+    c.width = sw; c.height = sh;
+    ctx.drawImage(src, sx, sy, sw, sh, 0, 0, sw, sh);
+    const { data } = await worker.recognize(c, {}, { text: true });
+    const t = normalizeOcrText(data.text).trim();
+    if (t) { parts.push(t); confSum += (data.confidence || 0); confN++; }
+  }
+  if (!parts.length) return null;
+  return { text: parts.join('\n'), conf: confN ? Math.round(confSum / confN) : 0, blocks: boxes.length };
+}
+
+const OCR_STAGE_TEXT = {
+  prep: '🖼 กำลังปรับภาพให้อ่านง่ายขึ้น…',
+  model: '⏳ กำลังเตรียมโมเดล OCR… (ครั้งแรกอาจรอนานหน่อย)',
+  read: '📖 AI กำลังอ่านใบงาน…',
+  alt: '🔁 ลองอ่านอีกแบบให้ชัดขึ้น…',
+  psm6: '🔁 ลองมองหน้ากระดาษอีกแบบ…',
+  blocks: '🔎 กำลังเก็บตกหัวข้อกับคำชี้แจง…',
+};
+
 async function runOcrOn(source, how) {
   const st = document.getElementById('ocrStatus');
   const barWrap = document.getElementById('ocrBarWrap');
   const bar = document.getElementById('ocrBar');
-  const t0 = performance.now();
   try {
     barWrap.hidden = false; bar.style.width = '4%';
-    st.textContent = '🖼 กำลังปรับภาพให้อ่านง่ายขึ้น…';
     startFunFacts(document.getElementById('scanFact')); // มีอะไรให้อ่านระหว่างรอ OCR
-    // ปรับภาพก่อน แล้วค่อยโหลดโมเดล — ผู้ใช้จะได้เห็นความคืบหน้าตั้งแต่วินาทีแรก
-    const gray0 = ocrToGray(source);
-    // แก้ภาพเอียงก่อน แล้วค่อยใช้ผลที่ตรงแล้วไปทุก pass ที่เหลือ
-    const sk = ocrDeskew(gray0);
-    const gray = sk.gray;
-    // ภาพดิจิทัลส่งภาพเทาเข้าไปตรง ๆ — คมอยู่แล้ว แยกขาวดำมีแต่ทำให้แย่ลง
-    // วัดกับรูปจริง: ภาพดิจิทัลดีขึ้น 86%→93% ส่วนรูปถ่ายถ้าไม่แยกขาวดำจะร่วง 77%→73%
-    const digital = ocrIsDigital(gray);
-    const binCanvas = ocrGrayToCanvas(digital ? gray : sk.bin);
-    const altCanvas = () => ocrGrayToCanvas(digital ? sk.bin : gray);
-    bar.style.width = '12%';
-
-    st.textContent = '⏳ กำลังเตรียมโมเดล OCR… (ครั้งแรกอาจรอนานหน่อย)';
     ocrProgress = m => {
       if (m.status === 'recognizing text') {
         const p = 15 + Math.round(m.progress * 80);
@@ -3862,40 +4844,24 @@ async function runOcrOn(source, how) {
         st.textContent = '⏳ ' + m.status + '…';
       }
     };
-    const worker = await getOcrWorker();
-
-    let { data } = await withTimeout(worker.recognize(binCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
-    let pass = digital ? 'digital' : 'photo';
-
-    // รอบสำรอง 1: สลับไปเตรียมภาพอีกแบบ — เผื่อตัวแยกประเภทภาพตัดสินผิด
-    // (เช่นแคปหน้าจอที่มีรูปถ่ายเต็มจอ หรือรูปถ่ายกระดาษขาวจัดที่เรียบผิดปกติ)
-    if ((data.confidence || 0) < OCR_CONF_OK) {
-      st.textContent = '🔁 ลองอ่านอีกแบบให้ชัดขึ้น…';
-      const soft = await withTimeout(worker.recognize(altCanvas(), {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
-      if ((soft.data.confidence || 0) > (data.confidence || 0)) { data = soft.data; pass += '+alt'; }
-    }
-    // รอบสำรอง 2: ยังต่ำอยู่ → กลับไปมองเป็นบล็อกข้อความก้อนเดียว (PSM 6)
-    // ใบงานที่เป็นย่อหน้ายาว ๆ ต่อเนื่องบางทีอ่านแบบนี้ดีกว่าแบบ "ข้อความกระจาย"
-    if ((data.confidence || 0) < OCR_CONF_OK) {
-      st.textContent = '🔁 ลองมองหน้ากระดาษอีกแบบ…';
-      await worker.setParameters({ tessedit_pageseg_mode: '6' });
-      const alt = await withTimeout(worker.recognize(binCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
-      await worker.setParameters({ tessedit_pageseg_mode: '11' });
-      if ((alt.data.confidence || 0) > (data.confidence || 0)) { data = alt.data; pass += '+psm6'; }
-    }
+    // ปรับภาพก่อน แล้วค่อยโหลดโมเดล — ผู้ใช้จะได้เห็นความคืบหน้าตั้งแต่วินาทีแรก
+    const r = await ocrReadCanvas(source, stage => {
+      st.textContent = OCR_STAGE_TEXT[stage] || '';
+      if (stage === 'model') bar.style.width = '12%';
+    });
 
     ocrProgress = null;
     stopFunFacts(document.getElementById('scanFact'));
     st.textContent = ''; barWrap.hidden = true;
 
-    const text = normalizeOcrText(data.text); // OCR ไทยเว้นวรรคทีละตัวอักษร ต้องยุบก่อนแกะ
-    const conf = Math.round(data.confidence || 0);
+    const text = r.text;
+    const conf = r.conf;
     lastOcrConfidence = conf;
-    lastOcrLowWords = collectLowWords(data);
+    lastOcrLowWords = r.lowWords;
     // บรรทัดเดียวก๊อปไปทำตารางวัดผลได้เลย (รอบวัดผลกับรูปจริง)
-    console.debug(`[ALT OCR] conf=${conf}% pass=${pass} how=${how || '-'} chars=${text.length} `
-      + `lowWords=${lastOcrLowWords.length} ms=${Math.round(performance.now() - t0)} size=${gray.w}×${gray.h} `
-      + `skew=${sk.deg}°`);
+    console.debug(`[ALT OCR] conf=${conf}% pass=${r.pass} รอบ=${r.passes} บล็อก=${r.blocks} `
+      + `how=${how || '-'} chars=${text.length} lowWords=${r.lowWords.length} ms=${r.ms} `
+      + `size=${r.w}×${r.h} skew=${r.deg}°`);
 
     if (text.length < 5 || conf < OCR_CONF_MIN) {
       lastOcrConfidence = null;
@@ -3908,6 +4874,7 @@ async function runOcrOn(source, how) {
       showToast({ title: 'อ่านได้ แต่ไม่ค่อยมั่นใจ 🤔',
         body: 'ความมั่นใจ ' + conf + '% — ช่วยตรวจให้ดีก่อนกดบันทึกนะ' });
     }
+    renderCloudOcr();     // อ่านในเครื่องจบแล้ว ค่อยเสนอทางเลือกที่แม่นกว่า
     runParsing(text, 'ocr');
   } catch (e) {
     ocrProgress = null;
@@ -3916,6 +4883,125 @@ async function runOcrOn(source, how) {
     st.textContent = ''; barWrap.hidden = true;
     console.error('[OCR]', e);
     alert('อ่านรูปไม่สำเร็จ: ' + e.message + '\n\nใช้วิธี "แปะข้อความจาก LINE" แทนได้เลย — เร็วกว่าและแม่นกว่าด้วย');
+  }
+}
+
+// ============================================================
+// ALT 1A7V: อ่านให้แม่นขึ้นด้วย AI บนเซิร์ฟเวอร์ (ผู้ใช้เลือกเอง)
+// ------------------------------------------------------------
+// Tesseract ในเครื่องอ่านลายมือไทยไม่ได้เลย — นั่นคือเพดานที่ปรับภาพเท่าไหร่ก็ไม่ผ่าน
+// ทางเดียวคือส่งรูปไปให้โมเดลบนเซิร์ฟเวอร์อ่าน
+//
+// **ต้องเป็นปุ่มที่ผู้ใช้กดเอง ห้ามเป็นค่าเริ่มต้นเด็ดขาด** เพราะแลกกับสามอย่าง:
+//   ต้องมีเน็ต · มีค่าใช้จ่ายต่อภาพ · และรูปออกจากเครื่องไป
+// การอ่านในเครื่องได้แบบออฟไลน์และรูปไม่ออกจากเครื่องเป็นจุดเด่นของแอปนี้ ห้ามทิ้ง
+//
+// คีย์ของผู้ให้บริการอยู่ใน secret ของ Supabase เท่านั้น — repo นี้เป็นสาธารณะ
+// ฝั่งนี้รู้จักแค่ชื่อฟังก์ชัน `ocr-assist` กับรูปคำตอบ ไม่รู้ว่าเบื้องหลังเป็นเจ้าไหน
+// เปลี่ยนผู้ให้บริการทีหลังจึงไม่ต้องแก้อะไรในไฟล์นี้เลย
+// ============================================================
+const CLOUD_OCR_OK_KEY = 'studentos.alt.cloudocr.ok';   // ผู้ใช้รับทราบเงื่อนไขแล้วหรือยัง
+const CLOUD_OCR_LONG = 1600;   // ย่อก่อนส่งขึ้นเน็ต — ใหญ่กว่านี้เปลืองเน็ตโดยไม่ได้แม่นขึ้น
+
+let lastScanJpeg = null;       // รูปล่าสุดที่สแกน เก็บเป็น JPEG พร้อมส่ง (ไม่ถือ canvas ไว้ทั้งใบ)
+
+// เก็บรูปที่เพิ่งสแกนไว้ให้ปุ่ม "อ่านให้แม่นขึ้น" ใช้ซ้ำได้ โดยไม่ต้องให้ผู้ใช้ถ่ายใหม่
+function rememberScan(canvas) {
+  try {
+    const scale = Math.min(1, CLOUD_OCR_LONG / Math.max(canvas.width, canvas.height));
+    const out = document.createElement('canvas');
+    out.width = Math.max(1, Math.round(canvas.width * scale));
+    out.height = Math.max(1, Math.round(canvas.height * scale));
+    out.getContext('2d').drawImage(canvas, 0, 0, out.width, out.height);
+    lastScanJpeg = out.toDataURL('image/jpeg', 0.85);
+  } catch (_) { lastScanJpeg = null; }
+}
+
+// สถานะของปุ่ม — แยก "ยังไม่เปิดใช้" ออกจาก "เน็ตหลุด" และ "ยังไม่ล็อกอิน"
+// ให้ข้อความบอกสาเหตุที่แก้ได้จริง แทนที่จะขึ้นว่า "ผิดพลาด" เฉย ๆ
+function cloudOcrState() {
+  if (!lastScanJpeg) return 'no-image';
+  if (!cloudConfigured() || !sb) return 'no-cloud';
+  if (!currentUser) return 'need-login';
+  if (navigator.onLine === false) return 'offline';
+  return 'ready';
+}
+
+const CLOUD_OCR_WHY = {
+  'no-image': 'ยังไม่มีรูปที่สแกนไว้',
+  'no-cloud': 'รุ่นนี้ยังไม่ได้เปิดใช้การอ่านด้วย AI บนเซิร์ฟเวอร์',
+  'need-login': 'ต้องเข้าสู่ระบบก่อนถึงจะใช้ได้',
+  'offline': 'ตอนนี้ไม่ได้ต่อเน็ต — วิธีนี้ต้องใช้เน็ต',
+};
+
+function renderCloudOcr() {
+  const box = document.getElementById('cloudOcrBox');
+  if (!box) return;
+  const st = cloudOcrState();
+  box.hidden = (st === 'no-image');     // ยังไม่ได้สแกน = ไม่ต้องโชว์อะไรเลย
+  const btn = document.getElementById('cloudOcrBtn');
+  const why = document.getElementById('cloudOcrWhy');
+  if (!btn || !why) return;
+  btn.disabled = (st !== 'ready');
+  why.textContent = CLOUD_OCR_WHY[st] || '';
+  why.hidden = (st === 'ready');
+}
+
+async function cloudOcrRetry() {
+  const st = cloudOcrState();
+  if (st !== 'ready') { renderCloudOcr(); return; }
+
+  // ขอความยินยอมแบบเต็มครั้งแรกครั้งเดียว — บอกให้ครบว่าเกิดอะไรขึ้นกับรูป
+  // ครั้งต่อ ๆ ไปการกดปุ่มเองคือการยินยอมอยู่แล้ว ไม่ต้องถามซ้ำจนน่ารำคาญ
+  let seen = false;
+  try { seen = localStorage.getItem(CLOUD_OCR_OK_KEY) === '1'; } catch (_) {}
+  if (!seen) {
+    const ok = confirm(
+      'ส่งรูปนี้ให้ AI บนเซิร์ฟเวอร์ช่วยอ่าน?\n\n'
+      + '• รูปจะถูกส่งออกจากเครื่องไปประมวลผลบนเซิร์ฟเวอร์\n'
+      + '• ต้องใช้อินเทอร์เน็ต\n'
+      + '• อ่านลายมือได้ และแม่นกว่าการอ่านในเครื่องมาก\n\n'
+      + 'การอ่านในเครื่อง (ค่าเริ่มต้น) ไม่ส่งรูปออกไปไหนเลย');
+    if (!ok) return;
+    try { localStorage.setItem(CLOUD_OCR_OK_KEY, '1'); } catch (_) {}
+  }
+
+  const st2 = document.getElementById('ocrStatus');
+  const btn = document.getElementById('cloudOcrBtn');
+  if (btn) btn.disabled = true;
+  if (st2) st2.textContent = '☁️ กำลังให้ AI บนเซิร์ฟเวอร์อ่าน…';
+  try {
+    const b64 = lastScanJpeg.replace(/^data:[^,]+,/, '');
+    const { data, error } = await withTimeout(
+      sb.functions.invoke('ocr-assist', { body: { image: b64, mime: 'image/jpeg' } }),
+      60_000, 'อ่านด้วย AI บนเซิร์ฟเวอร์');
+
+    // supabase-js คืน error สำหรับสถานะที่ไม่ใช่ 2xx โดยเนื้อความจริงอยู่ใน context
+    // ต้องแกะออกมา ไม่งั้นผู้ใช้จะเห็นแค่ "Edge Function returned a non-2xx status code"
+    let payload = data;
+    if (error) {
+      try { payload = await error.context.json(); } catch (_) { payload = null; }
+    }
+    if (!payload || payload.ok !== true) {
+      alert(payload?.message || 'อ่านด้วย AI บนเซิร์ฟเวอร์ไม่สำเร็จ — ลองใหม่อีกครั้ง');
+      return;
+    }
+    const text = normalizeOcrText(payload.text || '');
+    if (text.trim().length < 5) {
+      alert('เซิร์ฟเวอร์อ่านรูปนี้ไม่ออกเหมือนกัน — ลองถ่ายใหม่ให้ชัดขึ้น');
+      return;
+    }
+    console.debug(`[ALT OCR/cloud] provider=${payload.provider} conf=${payload.conf}% `
+      + `ms=${payload.ms} chars=${text.length}`);
+    lastOcrConfidence = payload.conf ?? null;
+    lastOcrLowWords = [];       // ฝั่งเซิร์ฟเวอร์ไม่ได้ให้คะแนนรายคำ อย่าเอาของรอบก่อนมาปน
+    runParsing(text, 'ocr');
+  } catch (e) {
+    console.error('[ALT OCR/cloud]', e);
+    alert('อ่านด้วย AI บนเซิร์ฟเวอร์ไม่สำเร็จ: ' + e.message);
+  } finally {
+    if (st2) st2.textContent = '';
+    renderCloudOcr();
   }
 }
 
@@ -4012,7 +5098,9 @@ function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
 // ยังไม่ได้บอกชื่อ (กดข้าม) → ตัดคำเรียกทิ้ง ประโยคยังอ่านรู้เรื่องเหมือนเดิม
 function reminderCopy(t, now) {
   const h = t.due ? (new Date(t.due) - now) / 3.6e6 : null;
-  const s = t.subject;
+  // งานที่ไม่ได้เลือกวิชาจะมี subject = 'อื่น ๆ' ติดมา ซึ่งเอามาแทนชื่องานในประโยคไม่ได้
+  // ("อื่น ๆ เลยเวลาส่งไปแล้วน้า" ไม่ได้บอกว่างานไหน) → ถอยไปใช้ชื่องานแทน
+  const s = taskLabel(t);
   const hr = h != null ? Math.max(1, Math.round(h)) : 0;
   const nm = who();
   const call = nm ? nm : 'คุณ';           // ใช้แทนคำเรียกกลางประโยค
@@ -4032,7 +5120,7 @@ function reminderCopy(t, now) {
     `${hey}แอบเตือนเรื่อง ${s} หน่อย~ เริ่มเลยดีกว่า จะได้พักแบบไม่มีห่วง`,
     `${s} ยังรอ${call}อยู่นะ เริ่มจากนิดเดียวก็ได้ เดี๋ยวก็เสร็จ!`,
   ]) };
-  return { title: 'มีงานรออยู่นะ ✨', body: `${s} — ${t.detail} (${fmtDue(t.due, now, t)})` };
+  return { title: 'มีงานรออยู่นะ ✨', body: `${taskTitleText(t)} (${fmtDue(t.due, now, t)})` };
 }
 
 function celebrateCopy(allDone) {
@@ -4186,9 +5274,10 @@ function relockSecrets() {
 }
 
 // ---------- ALT 1A6M3: ช่องใส่โค้ดในหน้าตั้งค่า ----------
-// โค้ดชุดนี้ผูกกับรุ่น 1A6M3 เท่านั้น: ถ้า APP_VERSION ขยับไปรุ่นอื่นเมื่อไหร่
+// โค้ดชุดนี้ผูกกับรุ่นเดียว: ถ้า APP_VERSION ขยับไปรุ่นอื่นเมื่อไหร่
 // ช่องใส่โค้ดจะหายไปเองและโค้ดจะหมดอายุทันที ไม่ต้องไล่ลบทีละจุด
 // จะให้รุ่นถัดไปใช้ได้ต้องตั้งใจแก้บรรทัดล่างนี้เอง
+// ตอนนี้ผูกกับ 1A7V (ชื่อใหม่ของรุ่นก่อนหน้า) ส่วน APP_VERSION เป็น 1A7V2 → โค้ดจึงหมดอายุอยู่
 const CODE_VERSION = '1A7V';
 function codesLive() { return APP_VERSION === CODE_VERSION; }
 
@@ -4562,7 +5651,8 @@ function routeStart() {
   } else if (needsOnboard()) {
     openOnboard();
   } else {
-    go(shortcutTarget() || 'scr-menu'); // ALT: เข้าแอปมาเจอเมนูหลักก่อนเสมอ (ยกเว้นมาจากปุ่มลัด)
+    // ปุ่มลัดมาก่อนเสมอ — ผู้ใช้เพิ่งกดบอกว่าจะไปไหน ชนะจอที่ค้างไว้จากรอบก่อน
+    go(shortcutTarget() || resumeScreen() || 'scr-menu');
   }
 }
 
@@ -4579,7 +5669,106 @@ function openOnboard() {
   if (f) setObFree(state.settings.freeHours || 2, true);
   const w = document.getElementById('obWelcome');
   if (w) { w.hidden = true; w.classList.remove('on'); }
+  obShowStep(1);
   go('scr-onboard');
+}
+
+// ---------- ขั้น 2: รูปร่างของวันธรรมดา ----------
+// สามคำถามนี้ถูกเลือกมาเพราะให้ "ช่องว่างจริง" ต่อการกดหนึ่งครั้งมากที่สุด
+// เลิกเรียนกับเดินทางเป็นตัวกำหนดว่าบ่ายเริ่มได้เมื่อไหร่ (คือช่วงที่แผนเดิมมองไม่เห็นเลย)
+// ส่วนเวลานอนเป็นตัวกำหนดปลายวัน — ที่เหลือคำนวณเอาได้หมด ไม่ต้องถามเพิ่ม
+//
+// ที่ไม่ถามคือ "เข้าเรียนกี่โมง" เพราะเช้าของเด็กมัธยมไทยแทบไม่มีใครว่างอยู่แล้ว
+// ตอบไปก็ไม่เปลี่ยนแผนสักบรรทัด — คำถามที่ไม่เปลี่ยนคำตอบคือคำถามที่ควรตัดทิ้ง
+const OB_SCHOOL_START = '08:00';
+const OB_OUT = ['15:00', '15:30', '16:00', '16:30', '17:00'];
+const OB_TRIP = [[0, 'ถึงเลย'], [30, '30 นาที'], [60, '1 ชม.'], [90, '1 ชม. ครึ่ง']];
+const OB_BED = [['21:00', '3 ทุ่ม'], ['22:00', '4 ทุ่ม'], ['23:00', '5 ทุ่ม'], ['00:00', 'เที่ยงคืน']];
+
+let obDay = { out: '16:00', trip: 30, bed: '22:00' };
+
+function obShowStep(n) {
+  const s1 = document.getElementById('obStep1');
+  const s2 = document.getElementById('obStep2');
+  if (s1) s1.hidden = n !== 1;
+  if (s2) s2.hidden = n !== 2;
+}
+
+// ขั้นแรกต้องมีชื่อก่อนถึงจะไปต่อ — ทั้งแอปเรียกชื่อนี้ ปล่อยผ่านไม่ได้
+function obNext() {
+  const input = document.getElementById('obName');
+  const name = (input.value || '').trim();
+  const err = document.getElementById('obErr');
+  if (!name) {
+    err.hidden = false;
+    input.classList.add('bad');
+    input.focus();
+    setTimeout(() => input.classList.remove('bad'), 500);
+    return;
+  }
+  err.hidden = true;
+  obShowStep(2);
+  renderObDay();
+  haptic('tap');
+}
+
+function obPick(key, val) {
+  obDay[key] = val;
+  haptic('tap');
+  renderObDay();
+}
+
+function renderObDay() {
+  const chips = (id, list, key) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = list.map(([v, label]) => `<button type="button"
+      class="ob-chip${obDay[key] === v ? ' on' : ''}"
+      onclick="obPick('${key}', ${typeof v === 'number' ? v : `'${v}'`})">${esc(label)}</button>`).join('');
+  };
+  chips('obOut', OB_OUT.map(v => [v, v]), 'out');
+  chips('obTrip', OB_TRIP, 'trip');
+  chips('obBed', OB_BED, 'bed');
+
+  // คำนวณจากคำตอบตรง ๆ ไม่ต้องเขียนลงบริบทก่อน — เขายังไม่ได้กดยืนยันสักหน่อย
+  const home = min2hm(hm2min(obDay.out) + obDay.trip);
+  const bed = hm2min(obDay.bed) || 22 * 60;
+  const stop = (bed === 0 ? 24 * 60 : bed) - 60;      // เที่ยงคืนคือ 0 ต้องคิดเป็นปลายวัน
+  const free = Math.max(0, stop - hm2min(home));
+  const peek = document.getElementById('obPeek');
+  if (!peek) return;
+  peek.innerHTML = free < 30
+    ? `<span class="obp-h">${icon('clock')}วันธรรมดาแทบไม่เหลือเวลาเลย</span>
+       <span class="obp-p">ไม่เป็นไร — AI จะกันงานหนักไว้เสาร์อาทิตย์ให้แทน</span>`
+    : `<span class="obp-h">${icon('clock')}วันธรรมดาคุณว่าง
+         <b>${esc(home)}–${esc(min2hm(stop))}</b></span>
+       <span class="obp-p">ประมาณ ${Math.round(free / 6) / 10} ชม. — AI จะวางงานลงช่วงนี้
+         และเว้นชั่วโมงสุดท้ายก่อนนอนไว้ให้</span>`;
+}
+
+// เขียนคำตอบลงบริบทจริง — คาบเรียนหนึ่งก้อน จ–ศ + เวลาเดินทาง + เส้นเวลานอน
+// ไม่ทับของเดิมเด็ดขาด: คนที่ล็อกอินแล้วดึงตารางจาก cloud มาไม่ควรโดนคำตอบหยาบ ๆ
+// จากหน้าทำความรู้จักลบตารางที่เขาอุตส่าห์กรอกไว้ทั้งชุด
+function obApplyDay() {
+  if (typeof ctxUpsert !== 'function' || !ctxIsEmpty()) return false;
+  const WEEKDAYS = [1, 2, 3, 4, 5];
+  // เช้าก่อนเข้าเรียนต้องถูกกันไว้ด้วย ไม่งั้นช่วงตื่น–เข้าแถวจะถูกนับเป็นเวลาว่างวันละ 2 ชม.
+  // ตัวเลขที่เกินจริงทุกวันธรรมดาคือตัวเลขที่ทำให้ทั้งหน้าจอเชื่อถือไม่ได้
+  // ใครที่อ่านหนังสือตอนเช้าจริง ๆ ลบก้อนนี้ทิ้งได้ในหน้าบริบท — แต่ให้เป็นค่าตั้งต้นที่ปลอดภัยไว้ก่อน
+  const wake = ctxPrefs().wake || '06:00';
+  if (hm2min(wake) < hm2min(OB_SCHOOL_START)) {
+    ctxUpsert('routine', { title: 'ตื่น เตรียมตัว ไปโรงเรียน', kind: 'routine',
+      start: wake, end: OB_SCHOOL_START, weekday: WEEKDAYS });
+  }
+  ctxUpsert('class', { subject: 'เรียนที่โรงเรียน', start: OB_SCHOOL_START,
+    end: obDay.out, weekday: WEEKDAYS });
+  if (obDay.trip > 0) {
+    ctxUpsert('routine', { title: 'เดินทางกลับบ้าน', kind: 'travel',
+      start: obDay.out, end: min2hm(hm2min(obDay.out) + obDay.trip), weekday: WEEKDAYS });
+  }
+  const bed = hm2min(obDay.bed) || 24 * 60;
+  ctxSetPrefs({ sleep: obDay.bed, noWorkAfter: min2hm(bed - 60) });
+  return true;
 }
 
 function setObFree(v, moveSlider) {
@@ -4592,11 +5781,12 @@ function setObFree(v, moveSlider) {
     b.classList.toggle('on', parseFloat(b.textContent) === val));
 }
 
-function finishOnboard() {
+function finishOnboard(skipDay) {
   const input = document.getElementById('obName');
   const name = (input.value || '').trim().slice(0, 24);
   const err = document.getElementById('obErr');
   if (!name) {
+    obShowStep(1);
     // ชื่อคือสิ่งเดียวที่ข้ามไม่ได้ในหน้านี้ เพราะทั้งแอปเรียกชื่อนี้ต่อ
     err.hidden = false;
     input.classList.add('bad');
@@ -4610,7 +5800,8 @@ function finishOnboard() {
   save();
   localStorage.removeItem(ONBOARD_SKIP_KEY);
   haptic('done');
-  showWelcome(name);
+  // skipDay = กด "ยังไม่บอกตอนนี้" — บริบทว่างไว้ แผนจะกลับไปเดา 19:00 พร้อมการ์ดชวนกรอก
+  showWelcome(name, skipDay ? false : obApplyDay());
 }
 
 function skipOnboard() {
@@ -4619,20 +5810,32 @@ function skipOnboard() {
 }
 
 // ฉาก "ยินดีที่ได้รู้จัก ___" — จังหวะเดียวที่แอปได้ทักผู้ใช้ด้วยชื่อเขาเป็นครั้งแรก
-function showWelcome(name) {
+// gotDay = เขาตอบเรื่องรูปร่างของวันมาด้วยไหม
+function showWelcome(name, gotDay) {
+  // กันของรางวัลรายวันไว้ก่อน แล้วค่อยปล่อยให้เด้งหลังคนใช้ตั้งตัวได้แล้ว
+  checkinHoldUntil = Date.now() + 9000;
+  setTimeout(() => { if (dailyPending()) openDailyCheck(true); }, 9500);
   const w = document.getElementById('obWelcome');
   document.getElementById('obwName').textContent = name;
-  document.getElementById('obwSub').textContent =
-    'จากนี้ ' + name + ' แค่บอกว่าครูสั่งอะไรมา เดี๋ยวจัดลำดับให้เองว่าต้องทำอะไรก่อน';
+  // คนที่อุตส่าห์ตอบเรื่องตารางมา ต้องได้ยินทันทีว่าคำตอบนั้นถูกใช้ทำอะไร
+  // ไม่งั้นการถามสามคำถามก็เป็นแค่ด่านที่ต้องผ่านก่อนเข้าแอป
+  document.getElementById('obwSub').textContent = gotDay
+    ? 'รู้ตารางของ ' + name + ' แล้ว — จากนี้แค่บอกว่าครูสั่งอะไรมา เดี๋ยวจัดลงช่วงที่ว่างจริงให้เอง'
+    : 'จากนี้ ' + name + ' แค่บอกว่าครูสั่งอะไรมา เดี๋ยวจัดลำดับให้เองว่าต้องทำอะไรก่อน';
   w.hidden = false;
   setTimeout(() => w.classList.add('on'), 20);
   setTimeout(() => {
     w.classList.remove('on');
     go('scr-menu');
     setTimeout(() => { w.hidden = true; }, 300);
+    // ตัวเลขในข้อความนี้คำนวณสดจากบริบทที่เพิ่งเขียนไป ไม่ใช่ค่าที่พิมพ์ทิ้งไว้
+    const win = typeof dayWindows === 'function' ? dayWindows(state.settings, new Date()) : null;
+    const slot = win && win.slots[0];
     showToast({
       title: 'ยินดีที่ได้รู้จัก ' + name + ' 👋',
-      body: 'ตั้งค่าเรียบร้อย — เพิ่มงานแรกได้เลย เดี๋ยวช่วยจัดลำดับให้',
+      body: gotDay && slot
+        ? `ช่วงว่างถัดไปของคุณคือ ${slot.fromHm}–${slot.toHm} — เพิ่มงานแรกได้เลย`
+        : 'ตั้งค่าเรียบร้อย — เพิ่มงานแรกได้เลย เดี๋ยวช่วยจัดลำดับให้',
     });
   }, 2300);
 }
@@ -4642,7 +5845,7 @@ function tickClock() {
   const n = new Date();
   document.getElementById('clock').textContent =
     String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
-  syncJourneyNow(); // ALT: หมุดบนเส้นทางเดินตามเวลาจริงไปพร้อมนาฬิกา
+  syncTimelineNow(); // ALT: หมุด "ตอนนี้" เดินตามเวลาจริงไปพร้อมนาฬิกา
   navRecheck();     // ALT: กันเลย์เอาต์ค้างผิดโหมด ถ้า event เรื่องขนาดจอพลาดไปสักตัว
   // วิดเจ็ตนาฬิกาบนหน้าแรกเดินตามไปด้วย (ไม่ต้องวาดหน้าใหม่ทั้งหน้า)
   const wc = document.getElementById('wgClock');
@@ -4693,7 +5896,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   purgeOldTrash(); // ของในถังขยะที่เกิน 30 วัน ทิ้งถาวรตอนเปิดแอป
 
   // ป้ายมุมจอบอกเลขเวอร์ชัน — ดึงจาก APP_VERSION ที่เดียว ขึ้นรุ่นใหม่ไม่ต้องไล่แก้ HTML
-  const badge = document.getElementById('altBadge');
+  const badge = document.getElementById('verBadge');
   if (badge) badge.textContent = APP_VERSION;
 
   applyDeepUnlock();     // ALT: ปุ่มธีมลับจะโผล่เฉพาะคนที่ปลดล็อกแล้ว
@@ -4705,6 +5908,9 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   fillSubjectSelect();
   initHomeSwipe(); // ALT: ปัดการ์ดในหน้าแรก (เกาะที่ #homeBody ครั้งเดียว อยู่รอดทุกการ render)
   initCrop();      // ALT: ลากกรอบในหน้าครอบภาพ
+  // ช่อง "งานที่ต้องทำ" ยืดตามที่พิมพ์ · เกาะครั้งเดียวตอนบูต เพราะฟอร์มไม่ได้ถูกสร้างใหม่ทุกครั้ง
+  const fd = document.getElementById('fDetail');
+  if (fd) fd.addEventListener('input', () => autoGrow(fd));
 
   // วาดจอแรกตรงนี้ ก่อน await ทุกตัวข้างล่าง — นี่คือบรรทัดที่ทำให้เอาฉากเปิดแอปออกได้
   // ทุกอย่างที่จำเป็นต่อการวาดจอ (ธีม ฟอนต์สเกล พื้นหลัง เมนู) ถูกตั้งครบไปแล้วข้างบน
@@ -4720,6 +5926,18 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 
   tickClock();
   setInterval(tickClock, 30_000);
+  // นาฬิกาจับเวลาเดินทุกวินาที — ขยับแค่ตัวเลขในแถบ ไม่ได้วาดจอใหม่
+  setInterval(renderRunBar, 1000);
+  // รอบที่ค้างข้ามคืนเพราะลืมกดหยุด — บอกให้รู้ว่าทิ้งไปแล้ว ไม่ใช่หายเงียบ ๆ
+  const stale = reapStaleWork();
+  if (stale) {
+    const st = state.tasks.find(x => x.id === stale.taskId);
+    setTimeout(() => showToast({
+      title: 'มีการจับเวลาค้างไว้',
+      body: (st ? taskTitleText(st) : 'งานหนึ่ง') + ' เริ่มไว้ตั้งแต่ ' +
+        fmtClock(new Date(stale.start)) + ' แต่ไม่ได้กดหยุด — รอบนั้นไม่ถูกบันทึก',
+    }), 3200);
+  }
   // เช็คบ่อยขึ้น (นาทีละครั้ง) + เช็คทุกครั้งที่กลับมาที่แอป
   // เวลาที่มือถือพักหน้าจอ timer จะถูกหยุด การกลับมาแล้วเช็คทันทีคือสิ่งที่ทำให้เตือนไม่หลุด
   setInterval(checkReminders, 60_000);
