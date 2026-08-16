@@ -4751,3 +4751,91 @@ body.deep-scr .top-friends { display: none; }
 .dayclear span { margin-left: auto; color: var(--muted); font-size: 11.5px; }
 .dayclear svg { width: 14px; height: 14px; color: var(--muted); flex: none; }
 .dayclear:active { transform: scale(.99); }
+
+/* ══════════════════════════════════════════════════════════════════
+   เส้นเวลา: ตื่นจนหลับ
+   เส้นแนวตั้งเส้นเดียว คอลัมน์เวลากว้างคงที่ จุดตรงกันทุกแถว
+   ของเดิมแต่ละแถวโครงสร้างต่างกัน คอลัมน์เวลาเลยขยับขึ้นลงตามความสูงของแถว
+   ตาต้องไล่หาใหม่ทุกบรรทัด ซึ่งเป็นสาเหตุหลักที่มันอ่านยาก
+   ══════════════════════════════════════════════════════════════════ */
+.tlrail { position: relative; padding-left: 68px; margin-top: 4px; }
+.tlrail::before {
+  content: ''; position: absolute; left: 50px; top: 8px; bottom: 8px;
+  width: 1px; background: var(--line);
+}
+.tlr { position: relative; margin-bottom: 18px; min-height: 20px; cursor: pointer; }
+.tlr:last-child { margin-bottom: 0; }
+.tlr-t {
+  position: absolute; left: -68px; top: 0; width: 38px; text-align: right;
+  font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.tlr-dot {
+  position: absolute; left: -19px; top: 6px; width: 7px; height: 7px;
+  border-radius: 50%; background: var(--card2);
+}
+/* จุดสีเน้นมีจุดเดียวทั้งเส้น = งานถัดไปที่ต้องลงมือ */
+.tlr-dot.on { left: -20px; top: 20px; width: 9px; height: 9px; background: var(--fill); }
+.tlr-dot.flag { background: var(--alert); }
+.tlr-l { font-size: 13px; color: var(--muted); }
+.tlr-l i { font-style: normal; margin-left: 8px; color: var(--faint); font-size: 11.5px; }
+.tlr-due {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12.5px; color: var(--alert);
+}
+.tlr-due svg { width: 13px; height: 13px; }
+/* เวลาที่ผ่านไปแล้วยังอยู่ครบ แต่จางลง — ลบทิ้งแล้วเส้นจะสั้นลงเรื่อย ๆ จนหาที่ยืนไม่เจอ */
+.tlr.past { opacity: .42; }
+
+.tlr-card { margin: 0; }
+.tlr .tlr-t { top: 0; }
+.tlr:has(.tlr-card) .tlr-t { top: 16px; }
+.tlr-go {
+  width: 100%; margin-top: 12px; border: none; border-radius: 10px;
+  background: var(--fill); color: var(--on-fill);
+  font-family: inherit; font-size: 13px; font-weight: 600; padding: 11px;
+  display: flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer;
+}
+.tlr-go svg { width: 15px; height: 15px; }
+.tlr-go:active { transform: scale(.98); }
+
+/* ---- คำตัดสินบนสุด ---- */
+.tlv { background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 18px; }
+.tlv-h { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.tlv-h b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.tlv p { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--muted); }
+/* ข่าวร้ายเท่านั้นที่ได้พื้นสี — ถ้าทุกสถานะมีสี ก็ไม่มีสถานะไหนสะดุดตา */
+.tlv.bad { background: var(--alert-soft); }
+.tlv.bad p { color: var(--ink); }
+
+/* ---- แผ่นรายละเอียด ---- */
+#tlSheet { position: absolute; inset: 0; z-index: 72; }
+#tlSheet[hidden] { display: none; }
+.tls-back { position: absolute; inset: 0; background: rgba(6,10,22,.62); }
+.tls {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: var(--card); border-radius: 20px 20px 0 0; padding: 12px 16px 18px;
+  box-shadow: 0 -8px 32px rgba(0,0,0,.55);
+  animation: tls-up .22s cubic-bezier(.2,.9,.3,1);
+}
+@keyframes tls-up { from { transform: translateY(18px); opacity: .4; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tls { animation: none; } }
+.tls-grip {
+  display: block; width: 36px; height: 4px; border-radius: 2px;
+  background: var(--line); margin: 0 auto 14px;
+}
+.tls-tag { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+.tls-h { font-size: 19px; font-weight: 600; line-height: 1.4; letter-spacing: -.015em; }
+.tls-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.tls-why { background: var(--scr); border-radius: 12px; padding: 12px; margin-top: 14px; }
+.tls-why b { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.tls-why p { margin: 0; font-size: 13px; line-height: 1.65; white-space: pre-line; }
+.tls-act { display: flex; gap: 8px; margin-top: 14px; }
+.tls-go {
+  flex: 1; min-height: 46px; border: none; border-radius: 12px;
+  background: var(--fill); color: var(--on-fill);
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer;
+}
+.tls-go svg { width: 15px; height: 15px; }
+.tls-go.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); flex: 0 0 88px; }
+.tls-go:active { transform: scale(.98); }

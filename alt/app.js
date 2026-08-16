@@ -1590,147 +1590,255 @@ function tlWindow(days) {
   return { from, to: Math.max(to, from + 60) };
 }
 
+// นาทีที่อ่านแล้วเห็นภาพทันที — "0.4 ชม." ไม่มีใครแปลงในหัวได้ทัน แต่ "25 นาที" เห็นเลย
+// ทุกจอที่พูดถึงเวลาต้องใช้ตัวนี้ตัวเดียว ไม่งั้นสองบรรทัดในจอเดียวกันใช้คนละหน่วย
+function humanMin(m) {
+  m = Math.max(0, Math.round(m));
+  if (m < 60) return m + ' นาที';
+  const h = Math.floor(m / 60), r = m % 60;
+  return r ? h + ' ชม. ' + r + ' นาที' : h + ' ชม.';
+}
+
+// ---------- เส้นเวลา: ตื่นจนหลับ ----------
+// จอนี้เคยเป็นรายการ 7 วันที่บอกแค่ "วันไหนส่งอะไร" กับ "วันนั้นว่างกี่ชั่วโมง"
+// ซึ่งเป็นครึ่งเดียวของคำถาม — ว่าง 8 ชั่วโมงเป็นข่าวดีหรือร้าย ขึ้นกับว่ามีงานรออยู่เท่าไหร่
+// และมันไม่เคยบอกว่า "แล้วกี่โมงต้องทำอะไร" ทั้งที่แอปคำนวณไว้หมดแล้ว
+//
+// ตอนนี้เป็นเส้นเดียวตั้งแต่ตื่นถึงนอน ถักจากทุกส่วนที่แอปรู้:
+//   context.js  ตื่น · นอน · ห้ามวางงานหลัง        → หัวและท้ายเส้น
+//   context.js  busyBlocks() คาบเรียน + กิจวัตร     → บล็อกสีกลาง
+//   engine.js   buildDayPlan() งานที่จัดลง + เวลาพัก → บล็อกงาน (วันนี้เท่านั้น)
+//   งานที่ถึงกำหนดวันนั้น                            → หมุดเส้นตาย
+let tlDayOffset = 0;   // 0 = วันนี้ · 1..6 = วันถัดไป
+
+function setTlDay(i) { tlDayOffset = i; renderTimeline(); const s = document.getElementById('scr-timeline'); if (s) s.scrollTop = 0; }
+
+// รายการทุกอย่างที่เกิดขึ้นในวันนั้น เรียงตามนาทีของวัน
+function tlDayItems(day, isToday, now) {
+  const p = typeof ctxPrefs === 'function' ? ctxPrefs() : {};
+  const out = [];
+  const wake = hm2min(p.wake), sleep = hm2min(p.sleep), stop = hm2min(p.noWorkAfter);
+
+  // คาบเรียนกับกิจวัตรของวันนั้น — busyBlocks คืนชื่อมาด้วย จึงบอกได้ว่าติดอะไรอยู่
+  const busy = typeof busyBlocks === 'function' ? busyBlocks(day) : [];
+
+  // คนส่วนใหญ่มีกิจวัตร "ตื่น เตรียมตัว" ที่เริ่มพร้อมเวลาตื่นพอดี
+  // ขึ้นสองแถวเวลาเดียวกันคือการบอกเรื่องเดียวกันสองรอบ — ให้กิจวัตรพูดแทน เพราะมีชื่อของมันเอง
+  if (wake != null && !busy.some(b => Math.abs(b.from - wake) <= 5)) {
+    out.push({ min: wake, kind: 'wake', label: 'ตื่นนอน' });
+  }
+  for (const b of busy) {
+    out.push({ min: b.from, kind: 'busy', label: b.title, from: b.from, to: b.to, ck: b.kind, id: b.id });
+  }
+
+  // แผนของวันนี้เท่านั้น — buildDayPlan วางงานลงช่องว่างที่เหลือ "นับจากตอนนี้"
+  // วันอื่นจึงยังไม่มีแผน มีแต่เส้นตายกับตารางชีวิต ซึ่งเป็นความจริงที่ควรบอกตรง ๆ
+  let plan = null;
+  if (isToday) {
+    plan = buildDayPlan(pendingTasks(), state.settings, now);
+    for (const s of plan.slots) {
+      const m = s.start.getHours() * 60 + s.start.getMinutes();
+      if (s.break) out.push({ min: m, kind: 'break', label: 'พัก ' + s.min + ' นาที', mins: s.min });
+      else out.push({ min: m, kind: 'work', task: s.task, mins: s.min, note: s.note, end: s.end,
+        label: taskTitle(s.task) });
+    }
+  }
+
+  // หมุดเส้นตายของวันนั้น — งานที่ครบกำหนดวันนี้ ไม่ว่าจะมีที่ให้ทำหรือไม่
+  for (const t of pendingTasks()) {
+    if (!t.due) continue;
+    const d = new Date(t.due);
+    if (d.toDateString() !== day.toDateString()) continue;
+    out.push({ min: tlDueMin(t), kind: 'due', task: t, label: taskTitle(t) });
+  }
+
+  if (stop != null) out.push({ min: stop, kind: 'stop', label: 'หยุดทำงาน' });
+  if (sleep != null) out.push({ min: sleep === 0 ? 24 * 60 - 1 : sleep, kind: 'sleep', label: 'เข้านอน' });
+
+  out.sort((a, b) => a.min - b.min || (a.kind === 'work' ? -1 : 1));
+  return { items: out, plan };
+}
+
 function renderTimeline() {
   const el = document.getElementById('timeline');
   if (!el) return;
   const now = new Date();
-  const pending = pendingTasks();
-  const dated = pending.filter(t => t.due).sort((a, b) => new Date(a.due) - new Date(b.due));
-  const undated = pending.filter(t => !t.due);
+  const day = addDays(now, tlDayOffset);
+  const isToday = tlDayOffset === 0;
+  const { items, plan } = tlDayItems(day, isToday, now);
+  const run = runningWork();
 
-  const head = `<div class="page-head">
-      <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
-      <h1 class="page-title">เส้นเวลา${who() ? 'ของ' + esc(who()) : ''}</h1>
-      <p class="page-sub">7 วันข้างหน้า · มีกำหนดส่ง <b>${dated.length}</b> งาน</p>
-    </div>`;
+  // แถบเลือกวัน — จุดใต้เลขคือจำนวนงานที่ถึงกำหนดวันนั้น สีตามใบที่ด่วนที่สุด
+  const strip = Array.from({ length: 7 }, (_, i) => {
+    const d = addDays(now, i);
+    const due = pendingTasks().filter(t => t.due && new Date(t.due).toDateString() === d.toDateString());
+    const tone = due.reduce((a, t) => a === 'hot' ? a : (dueTone(t, now) || a), '');
+    const lb = i === 0 ? 'วันนี้' : WEEKDAY_SHORT[d.getDay()].replace('.', '');
+    return `<button class="ds${i === tlDayOffset ? ' on' : ''}" onclick="setTlDay(${i})">
+      <i class="ds-d">${esc(lb)}</i><b class="ds-n">${d.getDate()}</b>
+      ${due.length ? `<u class="ds-dot${tone ? ' ' + tone : ''}"></u>` : '<u class="ds-dot off"></u>'}
+    </button>`;
+  }).join('');
 
-  if (!dated.length && !undated.length) {
-    el.innerHTML = head + `<section class="empty-wrap">
-      <div class="empty-ring">${icon('flag')}</div>
-      <h3 class="empty-h">เส้นเวลายังว่าง</h3>
-      <p class="empty-p">ยังไม่มีงานที่มีกำหนดส่ง เพิ่มงานแล้วจะเห็นว่าแต่ละวันเหลือเวลาพอทำไหม</p>
-      <button class="empty-cta" onclick="go('scr-scan')">${icon('camera')}เพิ่มงานใหม่</button>
-    </section>`;
-    return;
+  // คำตัดสินบนสุด — สามสถานะ และสีเน้นเก็บไว้ให้เฉพาะตอนไม่ทันจริง
+  let verdict = '';
+  if (isToday && plan) {
+    // งานที่ล้นออกจากวันนี้ไปเลย
+    const missed = plan.overflow.filter(o => o.missed).map(o => o.task);
+    // งานที่ "มีที่ในแผน" แต่ช่องที่ได้อยู่หลังเวลาส่งของตัวเอง — พลาดเหมือนกัน
+    // เห็นได้เฉพาะตอนวางงานลงนาฬิกาจริง ซึ่งจอเก่าไม่เคยทำ เลยไม่เคยจับเคสนี้ได้
+    for (const s of plan.slots) {
+      if (s.break || !s.task.due) continue;
+      if (s.end > new Date(s.task.due) && !missed.includes(s.task)) missed.push(s.task);
+    }
+    const left = plan.freeMin - plan.usedMin;
+    if (missed.length) {
+      const nf = plan.nextFree;
+      verdict = `<div class="tlv bad">
+        <div class="tlv-h">${tkChip('ไม่ทัน', 'hot')}<b>ต้องทำวันนี้ ไม่งั้นเลยกำหนด</b></div>
+        <p>${esc(missed.map(t => taskTitleText(t)).join(' · '))}${nf
+          ? ' — ช่องว่างถัดไปคือ' + (nf.dayOffset === 1 ? 'พรุ่งนี้ ' : 'วัน' + THAI_DAY[nf.date.getDay()] + ' ') + nf.fromHm
+          : ''}</p></div>`;
+    } else if (plan.overflow.length || left < 30) {
+      verdict = `<div class="tlv warn">
+        <div class="tlv-h">${tkChip('แน่น', 'warm')}<b>ทันหมด แต่ไม่มีที่ให้พลาด</b></div>
+        <p>เหลือช่องว่าง ${humanMin(Math.max(0, left))} ทั้งวัน${plan.overflow.length
+          ? ' · อีก ' + plan.overflow.length + ' งานย้ายไปวันหลัง' : ''}</p></div>`;
+    } else {
+      verdict = `<div class="tlv ok">
+        <div class="tlv-h">${tkChip('สบาย', 'ok')}<b>วันนี้ทันสบาย</b></div>
+        <p>จัดงานลงครบแล้ว เหลือช่องว่างอีก ${humanMin(Math.max(0, left))}</p></div>`;
+    }
   }
 
-  const days = tlBuildDays(dated, now);
-  const win = tlWindow(days);
-  const span = win.to - win.from;
-  const pct = m => Math.max(0, Math.min(100, ((m - win.from) / span) * 100));
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const rows = items.map((it, i) => {
+    const past = isToday && it.min < nowMin - 5;
+    const hm = min2hm(it.min);
 
-  // งานที่อยู่ไกลกว่าช่วงที่วาด — บอกให้รู้ว่ามีอยู่ ไม่ใช่หายไปเฉย ๆ
-  const lastDay = addDays(atTime(now, 0, 0), TL_DAYS);
-  const beyond = dated.filter(t => new Date(t.due) >= lastDay);
-  const late = dated.filter(t => new Date(t.due) < now);
-  const next = dated.find(t => new Date(t.due) >= now);
+    if (it.kind === 'work') {
+      const mine = run && run.taskId === it.task.id;
+      const focus = !past && !document.tlFocusUsed;
+      if (focus) document.tlFocusUsed = 1;
+      return `<div class="tlr${past ? ' past' : ''}" data-i="${i}" onclick="tlOpen(${i})">
+        <span class="tlr-t mono">${hm}</span>
+        <span class="tlr-dot${focus ? ' on' : ''}"></span>
+        <div class="tk${focus ? ' tk-focus' : ''} tlr-card">
+          ${it.task.subject && it.task.subject !== 'อื่น ๆ' ? `<div class="tk-sub">${esc(it.task.subject)}</div>` : ''}
+          <div class="tk-ttl">${esc(it.task.detail || '')}</div>
+          <div class="tk-meta">${tkChip(humanMin(it.mins), '')}
+            ${it.note ? tkChip(it.note.replace(/^⚠ /, ''), 'hot') : ''}
+            <span class="tk-sp"></span></div>
+          ${focus ? `<button class="tlr-go" onclick="event.stopPropagation();${mine
+            ? 'stopWork()' : `startWork('${it.task.id}')`}">${icon('clock')}${
+            mine ? 'หยุดจับเวลา' : 'เริ่มจับเวลา'}</button>` : ''}
+        </div></div>`;
+    }
 
-  const nextCard = `<div class="tl-next${late.length ? ' late' : ''}">
-    <span class="tile">${icon(late.length ? 'clock' : 'pin')}</span>
-    <div class="bd">
-      <div class="lb">${late.length ? 'เลยกำหนดแล้ว ' + late.length + ' งาน' : 'งานถัดไป'}</div>
-      <div class="tx">${next
-        ? taskTitle(next) + ' · <b>' + esc(humanLeft(new Date(next.due) - now)) + '</b>'
-        : 'ไม่มีงานที่รอส่งในช่วงนี้'}</div>
+    if (it.kind === 'due') {
+      return `<div class="tlr${past ? ' past' : ''}" data-i="${i}" onclick="tlOpen(${i})">
+        <span class="tlr-t mono">${hm}</span>
+        <span class="tlr-dot flag"></span>
+        <span class="tlr-due">${icon('flag')}ถึงกำหนด · ${esc(taskTitleText(it.task))}</span></div>`;
+    }
+
+    const extra = it.kind === 'busy' ? min2hm(it.from) + '–' + min2hm(it.to) : '';
+    return `<div class="tlr quiet${past ? ' past' : ''}" data-i="${i}" onclick="tlOpen(${i})">
+      <span class="tlr-t mono">${hm}</span>
+      <span class="tlr-dot"></span>
+      <span class="tlr-l">${esc(it.label)}${extra ? `<i>${extra}</i>` : ''}</span></div>`;
+  }).join('');
+  document.tlFocusUsed = 0;
+
+  tlItems = items;
+
+  const head = `<div class="page-head">
+      <div class="eyebrow mono">${esc(fmtThaiDate(day))}</div>
+      <h1 class="page-title">${isToday ? 'วันนี้' : 'วัน' + THAI_DAY[day.getDay()]}</h1>
+      <p class="page-sub">${items.length ? esc(tlDaySub(day, isToday, now, plan)) : ''}</p>
     </div>
-    ${next ? `<button class="go" onclick="openForm('${next.id}')" aria-label="เปิดงานนี้">${icon('chevron')}</button>` : ''}
-  </div>`;
+    <div class="daystrip">${strip}</div>`;
 
-  // ยังไม่รู้ตารางของเขา = แถบทุกวันจะโล่งเท่ากันหมด ซึ่งดูเหมือนข้อมูล แต่ไม่ใช่
   const ctxNudge = (typeof ctxIsEmpty === 'function' && ctxIsEmpty())
     ? `<button class="tl-nudge" onclick="go('scr-context')">
         <span class="pn-ic">${icon('clock')}</span>
         <span class="pn-tx"><b>ยังไม่รู้ตารางเรียนของคุณ</b>
-          <span>แถบเวลาว่างข้างล่างจึงยังว่างทั้งวัน — บอกตารางแล้วจะเห็นของจริง</span></span>
+          <span>เส้นเวลานี้จึงยังเป็นการเดา — บอกตารางแล้วจะตรงกับวันจริงของคุณ</span></span>
         <span class="pn-go">${icon('chevron')}</span>
       </button>` : '';
 
-  const rows = days.map((d, i) => {
-    const label = i === 0 ? 'วันนี้' : i === 1 ? 'พรุ่งนี้' : 'วัน' + THAI_DAY[d.day.getDay()];
-    const date = d.day.getDate() + ' ' + MONTH_SHORT[d.day.getMonth()];
+  const future = !isToday
+    ? `<p class="tl-far">แผนรายชั่วโมงมีเฉพาะวันนี้ — วันอื่นแสดงตารางเรียนกับกำหนดส่งไว้ก่อน</p>` : '';
 
-    // แถบรูปร่างของวัน: พื้นเทา = เวลาที่ใช้ไม่ได้ · ก้อนสี = ช่องว่างจริง · หมุด = กำหนดส่ง
-    //
-    // วาด "ช่องที่ว่าง" ไม่ใช่ "ช่องที่ไม่ว่าง" — กลับด้านกันแล้วอ่านง่ายกว่ามาก
-    // เพราะสิ่งที่คนมองหาบนจอนี้คือ "ฉันมีที่ว่างตรงไหน" ไม่ใช่ "ฉันติดอะไรบ้าง"
-    // และช่องว่างของวันนี้เริ่มนับจากตอนนี้อยู่แล้ว เวลาที่ผ่านไปจึงเป็นพื้นเทาเองโดยไม่ต้องวาดทับ
-    const freeBars = d.slots.map(s =>
-      `<i class="f" style="left:${pct(s.from)}%;width:${Math.max(0.8, pct(s.to) - pct(s.from))}%"></i>`).join('');
-    // หมุดที่ตกขอบพอดี (งาน "ทั้งวัน" = 23:59) จะโดนขอบแถบตัดหายไปครึ่งเส้น
-    // รั้งเข้ามาหน่อยให้เห็นเต็มเส้น — คลาดจากตำแหน่งจริงไม่ถึงสิบนาทีบนสเกลนี้
-    const pins = d.due.map(t => {
-      const tone = priorityTone(priorityInfo(t, now).stars);
-      const at = Math.min(98.6, Math.max(0.4, pct(tlAllDay(t) ? win.to : tlDueMin(t))));
-      return `<i class="p ${tone}" style="left:${at}%"></i>`;
-    }).join('');
-    const nowMark = d.isToday ? `<i class="now" id="tlNow"
-      style="left:${pct(now.getHours() * 60 + now.getMinutes())}%"></i>` : '';
+  el.innerHTML = head + ctxNudge + verdict
+    + (items.length ? `<div class="tlrail">${rows}</div>` : `<div class="card empty">วันนี้ยังไม่มีอะไรในตาราง</div>`)
+    + future;
+}
 
-    const tasks = d.due.map(t => {
-      const info = priorityInfo(t, now);
-      const tone = priorityTone(info.stars);
-      const over = new Date(t.due) < now;
-      return `<button class="tl-task ${tone}${over ? ' over' : ''}" onclick="openForm('${t.id}')">
-        <span class="tt-time mono">${esc(tlAllDay(t) ? 'ทั้งวัน' : fmtClock(new Date(t.due)))}</span>
-        <span class="tt-ic">${icon(TL_PIN_ICON[taskType(t)] || 'pin')}</span>
-        <span class="tt-bd">
-          <span class="tt-nm">${taskTitle(t)}</span>
-          <span class="tt-sub">${esc(priorityLabel(info.stars))}${
-            TASK_TYPES[taskType(t)].schedulable ? ' · ~' + (t.estMin || 30) + ' นาที' : ''}</span>
-        </span>
-      </button>`;
-    }).join('');
+function tlDaySub(day, isToday, now, plan) {
+  const p = typeof ctxPrefs === 'function' ? ctxPrefs() : {};
+  const free = typeof freeMinutes === 'function' ? freeMinutes(day, isToday ? now : null) : 0;
+  const bits = ['ตื่น ' + (p.wake || '—'), 'นอน ' + (p.sleep || '—')];
+  bits.push(isToday ? 'ว่างอีก ' + humanMin(free) : 'ว่าง ' + humanMin(free));
+  return bits.join(' · ');
+}
 
-    return `<section class="tl-day${d.isToday ? ' today' : ''}${d.due.length ? '' : ' quiet'}">
-      <span class="tl-dot"></span>
-      <header class="tl-head">
-        <b>${esc(label)}</b><span class="tl-date mono">${esc(date)}</span>
-        <span class="tl-free${d.freeMin < 90 ? ' low' : ''}">ว่าง ${tlHours(d.freeMin)} ชม.</span>
-      </header>
-      <div class="tl-bar" title="แถบเขียว = ช่วงที่ว่างจริง">
-        ${freeBars}${pins}${nowMark}
-      </div>
-      ${d.tight ? `<div class="tl-warn">${icon('clock')}
-        <span>เวลาว่างก่อนถึงกำหนดขาดไปราว <b>${tlHours(d.shortMin)} ชม.</b> —
-          เริ่มงานของวันนี้ตั้งแต่วันก่อนหน้าจะทันกว่า</span></div>`
-      : d.carry ? `<div class="tl-warn soft">${icon('clock')}
-        <span>ยังตามไม่ทันจากที่ค้างมา</span></div>` : ''}
-      ${tasks || `<div class="tl-none">ไม่มีกำหนดส่ง</div>`}
-    </section>`;
-  }).join('');
+// ---------- แผ่นรายละเอียด ----------
+let tlItems = [];
+function tlClose() { const s = document.getElementById('tlSheet'); if (s) { s.hidden = true; s.innerHTML = ''; } }
 
-  const legend = `<div class="tl-legend">
-    <span><i class="k free"></i>ช่วงที่ว่าง</span>
-    <span><i class="k busy"></i>ติดเรียน/กิจวัตร</span>
-    <span><i class="k red"></i>กำหนดส่งด่วน</span>
-    <span><i class="k green"></i>กำหนดส่งรอได้</span>
-  </div>`;
+function tlOpen(i) {
+  const it = tlItems[i];
+  const wrap = document.getElementById('tlSheet');
+  if (!it || !wrap) return;
+  const now = new Date();
+  let tag = '', h = '', chips = [], why = '', cta = '';
 
-  const extras = (undated.length ? `<div class="tl-un">
-      <div class="lb">ยังไม่ได้ใส่วัน — ยังไม่ขึ้นเส้นเวลา</div>
-      <div class="chips">${undated.map(t =>
-        `<button onclick="openForm('${t.id}')">${taskTitle(t)}</button>`).join('')}</div>
-    </div>` : '')
-    + (beyond.length ? `<p class="tl-far">อีก ${beyond.length} งานอยู่ไกลกว่า ${TL_DAYS} วัน — ดูได้ในแท็บ “งาน”</p>` : '');
+  if (it.kind === 'work' || it.kind === 'due') {
+    const t = it.task, info = priorityInfo(t, now);
+    tag = (t.subject && t.subject !== 'อื่น ๆ' ? t.subject : TASK_TYPES[taskType(t)].name)
+      + (t.teacher ? ' · ' + t.teacher : '');
+    h = t.detail || '';
+    chips = [[fmtDue(t.due, now, t), dueTone(t, now)],
+      [humanMin(remainingMin(t)), ''],
+      t.scorePct != null ? ['คะแนน ' + t.scorePct + '%', ''] : null].filter(Boolean);
+    why = info.reasons.length ? ['ทำไมอันดับนี้', info.reasons.slice(0, 3).join(' · ')] : '';
+    cta = `<button class="tls-go" onclick="tlClose();openForm('${t.id}')">${icon('pencil')}เปิดงานนี้</button>`;
+  } else if (it.kind === 'busy') {
+    tag = it.ck === 'class' ? 'ตารางเรียน' : 'กิจวัตร';
+    h = it.label;
+    chips = [[min2hm(it.from) + '–' + min2hm(it.to), ''], [humanMin(it.to - it.from), '']];
+    // งานที่เกิดจากวิชานี้ — โยงคาบเรียนกลับไปหางานที่ครูสั่งในคาบนั้น
+    const rel = pendingTasks().filter(t => t.subject && it.label && t.subject === it.label);
+    why = rel.length
+      ? ['งานจากวิชานี้', rel.map(t => taskTitleText(t) + ' · ' + fmtDue(t.due, now, t)).join('\n')]
+      : ['ทำไมไม่มีงานตรงนี้', 'ช่วงนี้ถูกกันไว้เป็นเวลาที่ทำงานไม่ได้ ระบบจะไม่วางงานทับ'];
+    cta = `<button class="tls-go ghost" onclick="tlClose();go('scr-context')">${icon('clock')}แก้ตารางนี้</button>`;
+  } else if (it.kind === 'break') {
+    tag = 'พักอัตโนมัติ'; h = it.label;
+    chips = [[humanMin(it.mins), '']];
+    why = ['ทำไมมีช่วงนี้', 'ทำติดกันเกิน ' + (ctxPrefs().maxRunMin || 50) + ' นาที ระบบแทรกพักให้เอง'];
+  } else {
+    const p = ctxPrefs();
+    tag = 'เวลาประจำวัน'; h = it.label;
+    chips = [[min2hm(it.min), '']];
+    why = it.kind === 'stop'
+      ? ['ทำไมต้องหยุด', 'ชั่วโมงก่อนนอนถูกกันไว้เป็นเวลาของคุณ ระบบจะไม่วางงานทับ']
+      : ['ตั้งค่าที่ไหน', 'แก้เวลาตื่นกับเวลานอนได้ในแท็บ “ฉัน” → ตารางเรียนและเวลาว่าง'];
+    cta = `<button class="tls-go ghost" onclick="tlClose();go('scr-context')">${icon('clock')}แก้เวลา</button>`;
+  }
 
-  const insight = timelineInsight(pending, now);
-  const note = insight ? `<div class="tl-note">
-    <span class="tile">${icon('brand')}</span>
-    <div style="flex:1;min-width:0">
-      <div class="lb">วันงานชน</div>
-      <div class="tx">${esc(insight)}</div>
-    </div>
-  </div>` : '';
-
-  // ป้ายรายวันบอก "ช่องว่างมีเท่าไหร่" ซึ่งต่างกันทุกวันและเป็นข้อมูลจริง
-  // ส่วนเพดานต่อวันเป็นค่าเดียวทั้งสัปดาห์ ถ้าเอาไปแปะซ้ำทุกแถวจะได้เลขเดิม 7 รอบ
-  // ที่ไม่บอกอะไรเลย — พูดครั้งเดียวตรงนี้ แล้วคำเตือน "เวลาไม่พอ" ข้างล่างคิดจากเพดานนี้
-  const capH = Math.round(Math.max(0.5, +state.settings.freeHours || 2) * 10) / 10;
-  const capLine = `<p class="tl-cap">${icon('clock')}คำเตือนเรื่องเวลาข้างล่างคิดจากเพดาน
-    <b>${capH} ชม./วัน</b> ที่ตั้งไว้ ไม่ใช่ช่องว่างทั้งหมด — แก้ได้ในแท็บ “ฉัน”</p>`;
-
-  el.innerHTML = head + nextCard + ctxNudge + note
-    + `<div class="tl">${rows}</div>` + capLine + legend + extras;
+  wrap.innerHTML = `<div class="tls-back" onclick="tlClose()"></div>
+    <div class="tls">
+      <span class="tls-grip"></span>
+      <div class="tls-tag">${esc(tag)}</div>
+      <div class="tls-h">${esc(h)}</div>
+      <div class="tls-chips">${chips.map(c => tkChip(c[0], c[1])).join('')}</div>
+      ${why ? `<div class="tls-why"><b>${esc(why[0])}</b><p>${esc(why[1])}</p></div>` : ''}
+      <div class="tls-act">${cta}
+        <button class="tls-go ghost" onclick="tlClose()">ปิด</button></div>
+    </div>`;
+  wrap.hidden = false;
 }
 
 // ขยับหมุด "ตอนนี้" ตามเวลาจริง โดยไม่ต้องวาดทั้งจอใหม่
