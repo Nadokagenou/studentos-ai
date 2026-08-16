@@ -1776,23 +1776,35 @@
 
    ค่าเริ่มต้นตรงนี้คือ --blue ล้วน ๆ เท่ากับหน้าตาเดิมเป๊ะ
    ธีมไหนไม่ได้กำหนดทับข้างล่าง ก็ไม่มีอะไรเปลี่ยน ไม่ต้องไล่แก้ทั้ง 12 ธีม */
+/* ค่าตั้งต้นต้องเป็นกลาง = สีเน้นของธีมนั้นเอง
+   ถ้าใส่สีตายตัวตรงนี้ ธีมที่ไม่ได้ตั้งใจแตะ (ทะเลลึก · หวาน · โลก) จะได้ชิปสีน้ำเงินติดมาด้วย
+   ทั้งที่ทั้งธีมเป็นเขียวหรือม่วง — ธีมไหนอยากแยกสีไทล์ ค่อยประกาศทับเอง */
 :root {
-  --tile-plan:  var(--blue); --tile-plan-soft:  var(--blue-soft);
-  --tile-tasks: var(--blue); --tile-tasks-soft: var(--blue-soft);
-  --tile-route: var(--blue); --tile-route-soft: var(--blue-soft);
-  --tile-me:    var(--blue); --tile-me-soft:    var(--blue-soft);
+  --tile-plan:  var(--fill); --tile-plan-soft:  var(--blue-soft);
+  --tile-tasks: var(--fill); --tile-tasks-soft: var(--blue-soft);
+  --tile-route: var(--fill); --tile-route-soft: var(--blue-soft);
+  --tile-me:    var(--fill); --tile-me-soft:    var(--blue-soft);
+  --tile-on:    var(--on-fill);
+}
+/* ขาวน้ำเงิน — ชิปวางบนการ์ดสีขาว จึงต้องเข้มพอให้ไอคอนขาวอ่านออก */
+:root[data-theme="light"] {
+  --tile-plan:  #1566CE; --tile-tasks: #0E7C86;
+  --tile-route: #5B4BC4; --tile-me:    #1A6FA8;
+  --tile-on:    #FFFFFF;
 }
 /* ดำน้ำเงิน — ไล่จากน้ำเงินหลักไปฟ้าและคราม ห่างกันพอให้แยกออกด้วยหางตา
    ทุกค่าต้องสว่างพอ เพราะป้ายตัวเลขใช้สีนี้เป็นพื้นแล้ววางตัวอักษรสีเข้ม (--on-accent) ทับ */
-/* ธีมมืดเคยแยกสีไทล์เป็น 4 เฉด (ฟ้า/ฟ้าอมเขียว/ม่วง/ฟ้าอ่อน) เพื่อให้จำตำแหน่งด้วยสีได้
-   ผลจริงคือหน้าแรกมีสีเน้นสี่สีพร้อมกัน บวกกับปุ่มสแกนและไทล์เด่นอีกสองสี = หกสี
-   กฎ 60/30/10 อนุญาตให้มีสีเน้น "สีเดียว" และต้องน้อยด้วย จึงยุบกลับมาเหลือสีเดียว
-   หน้าที่ "แยกไทล์ออกจากกัน" ย้ายไปอยู่กับไอคอนและตำแหน่งแทน ซึ่งจำได้เร็วกว่าสีอยู่แล้ว */
+/* ธีมมืดเคยยุบสีไทล์ทั้งสี่ให้เหลือฟ้าเดียวตามกฎ 60/30/10 (สีเน้นควรมีสีเดียว)
+   ผลข้างเคียงคือชิปไอคอนหกใบบนหน้าแรกกลายเป็นสี่เหลี่ยมสีเดียวกันเรียงกัน
+   ตาเลยไม่มีอะไรให้เกาะ ต้องอ่านตัวหนังสือทุกใบก่อนถึงจะรู้ว่าใบไหนคืออะไร
+   ซึ่งแพงกว่าที่กฎสีช่วยประหยัดไว้ — คืนสีให้ทั้งสี่ใบ แต่คุมให้อยู่ในตระกูลน้ำเงินเหมือนเดิม
+   (น้ำเงิน → ฟ้าอมเขียว → ม่วงคราม → ฟ้า) ห่างกันพอให้แยกออกด้วยหางตาโดยไม่หลุดโทนแอป */
 :root[data-theme="dark"] {
-  --tile-plan:  var(--blue); --tile-plan-soft:  var(--blue-soft);
-  --tile-tasks: var(--blue); --tile-tasks-soft: var(--blue-soft);
-  --tile-route: var(--blue); --tile-route-soft: var(--blue-soft);
-  --tile-me:    var(--blue); --tile-me-soft:    var(--blue-soft);
+  --tile-plan:  #2E6BFF; --tile-plan-soft:  var(--blue-soft);
+  --tile-tasks: #0E9AA0; --tile-tasks-soft: var(--blue-soft);
+  --tile-route: #6D5CE0; --tile-route-soft: var(--blue-soft);
+  --tile-me:    #1D86BF; --tile-me-soft:    var(--blue-soft);
+  --tile-on:    #FFFFFF;
 }
 /* ขาวน้ำเงิน — กลับกัน ต้องเข้มพอเพราะเป็นไอคอนบนพื้นขาว และป้ายตัวเลขวางตัวอักษรขาวทับ */
 :root[data-theme="ocean"] {
@@ -1800,6 +1812,7 @@
   --tile-tasks: #0E8AA8; --tile-tasks-soft: #D3EFF7;
   --tile-route: #4B57C4; --tile-route-soft: #E1E4FB;
   --tile-me:    #1667BF; --tile-me-soft:    #DCEAFA;
+  --tile-on:    #FFFFFF;
 }
 
 /* หน้าแรกต้องจบในจอเดียว ไม่ต้องเลื่อน — ทุกระยะในหน้านี้จึงถูกบีบกว่าจอทั่วไป */
@@ -1815,11 +1828,14 @@
 }
 /* --mt-a / --mt-s = สีของไทล์ใบนี้ (เข้ม/อ่อน) — ทุกชิ้นข้างในอ่านจากสองตัวนี้ตัวเดียว
    เปลี่ยนสีไทล์ทั้งใบจึงแก้ที่บรรทัดเดียว ไม่ต้องไล่แก้ไอคอน ป้ายเลข และวงแสงทีละอัน */
-.mtile { --mt-a: var(--blue); --mt-s: var(--blue-soft); }
-.mtile.tone-plan  { --mt-a: var(--tile-plan);  --mt-s: var(--tile-plan-soft); }
-.mtile.tone-tasks { --mt-a: var(--tile-tasks); --mt-s: var(--tile-tasks-soft); }
-.mtile.tone-route { --mt-a: var(--tile-route); --mt-s: var(--tile-route-soft); }
-.mtile.tone-me    { --mt-a: var(--tile-me);    --mt-s: var(--tile-me-soft); }
+/* --mt-on คู่มากับ --mt-a เสมอ เพราะไอคอนวางทับพื้นสีนั้นโดยตรง
+   ธีมที่ไม่ได้กำหนด --tile-* ไว้ (ทะเลลึก · หวาน · โลก · เจเนซิส) จะตกมาที่ค่าตั้งต้น
+   ซึ่งคือ --fill/--on-fill ของธีมนั้นเอง = หน้าตาเดิมเป๊ะ ไม่ต้องไล่แก้ทีละธีม */
+.mtile { --mt-a: var(--fill); --mt-s: var(--blue-soft); --mt-on: var(--on-fill); }
+.mtile.tone-plan  { --mt-a: var(--tile-plan);  --mt-s: var(--tile-plan-soft);  --mt-on: var(--tile-on, var(--on-fill)); }
+.mtile.tone-tasks { --mt-a: var(--tile-tasks); --mt-s: var(--tile-tasks-soft); --mt-on: var(--tile-on, var(--on-fill)); }
+.mtile.tone-route { --mt-a: var(--tile-route); --mt-s: var(--tile-route-soft); --mt-on: var(--tile-on, var(--on-fill)); }
+.mtile.tone-me    { --mt-a: var(--tile-me);    --mt-s: var(--tile-me-soft);    --mt-on: var(--tile-on, var(--on-fill)); }
 .mtile {
   position: relative;
   display: flex;
@@ -1863,11 +1879,13 @@
      พื้นจางบนการ์ดสีเข้มแทบไม่ต่างจากตัวการ์ด ไอคอนเลยลอยอยู่เฉย ๆ ไม่มีขอบเขต
      ก้อนทึบทำให้ตาจับ "จุดเริ่มของไทล์" ได้ก่อนอ่านตัวหนังสือ และเป็นตัวเดียวกับ
      ที่กฎ 60/30/10 กันไว้ให้เป็นสีเน้น 10% */
-  background: var(--fill);
-  color: var(--on-fill);
+  /* ใช้สีของไทล์ใบนั้น ไม่ใช่ --fill ก้อนเดียวทั้งหน้า
+     --mt-a ถูกประกาศไว้ตั้งแต่แรกแต่ไม่เคยมีใครอ่าน ชิปทุกใบเลยฟ้าเหมือนกันหมด */
+  background: var(--mt-a, var(--fill));
+  color: var(--mt-on, var(--on-fill));
   position: relative;
 }
-.mt-ic svg { width: 18px; height: 18px; }
+.mt-ic svg { width: 18px; height: 18px; stroke-width: 2.1; }
 .mt-tx { position: relative; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .mt-lb { position: relative; }
 /* คำอธิบายใต้ชื่อไทล์ต้องอยู่บรรทัดเดียวเสมอ — ตกบรรทัดเมื่อไหร่หน้าแรกก็ต้องเลื่อนทันที */
