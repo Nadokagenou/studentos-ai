@@ -592,7 +592,12 @@ function navDirection(from, to) {
 let enterTimer = null;
 
 // จอทั้งห้าที่มีปุ่มของตัวเองอยู่บนแถบล่าง — ที่เหลือถือเป็นจอชั้นใน
-const TABBED_SCREENS = ['scr-menu', 'scr-tasks', 'scr-scan', 'scr-timeline', 'scr-profile'];
+const TABBED_SCREENS = ['scr-menu', 'scr-ai', 'scr-tasks', 'scr-scan', 'scr-timeline', 'scr-profile'];
+
+// จอที่ไม่มีปุ่มของตัวเองบนแถบล่าง แต่เป็นส่วนหนึ่งของแท็บอื่น
+// รายการงานย้ายเข้าไปเป็นโหมดที่สามของแท็บ "ตาราง" — ปุ่มแท็บนั้นจึงต้องติดไฟด้วย
+// ไม่งั้นผู้ใช้อยู่ในแอปแต่ไม่มีแท็บไหนสว่างเลย ซึ่งอ่านว่า "หลงอยู่ที่ไหนไม่รู้"
+const TAB_OWNER = { 'scr-tasks': 'scr-timeline' };
 
 // ---------- 1A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
 // บนมือถือ การสลับไปแอปอื่นแล้วกลับมามักทำให้ระบบโหลดหน้าใหม่ทั้งหน้า
@@ -651,8 +656,9 @@ function go(id) {
   // อยู่มุมขวาบนตรงตำแหน่งเดียวกับปุ่มเพื่อนพอดี สองปุ่มจึงทับกันจนกดผิดตัวได้
   // จอพวกนี้เข้ามาจากทางอื่นอยู่แล้ว ปุ่มเพื่อนจึงหลบให้ปุ่มย้อนกลับไปก่อน
   document.body.classList.toggle('deep-scr', !TABBED_SCREENS.includes(id));
+  const tabId = TAB_OWNER[id] || id;
   document.querySelectorAll('.tab[data-scr]').forEach(b =>
-    b.classList.toggle('active', b.dataset.scr === id));
+    b.classList.toggle('active', b.dataset.scr === tabId));
   rememberScreen(id);   // ไว้กลับมาที่เดิมถ้าระบบโหลดหน้าใหม่ตอนสลับแอป
   renderAll();
 }
@@ -714,6 +720,11 @@ async function syncFromCloud() {
       state.sessions = Object.values(sById)
         .sort((a, b) => (a.start || '').localeCompare(b.start || ''))
         .slice(-SESSION_CAP);
+      // หมุดปฏิทินรวมตาม id เหมือนงาน — ปักจากเครื่องไหนก็เป็นของจริงทั้งคู่
+      const mById = {};
+      for (const m of (state.marks || [])) mById[m.id] = m;
+      for (const m of (remote.marks || [])) mById[m.id] = m;
+      state.marks = Object.values(mById);
       localStorage.setItem(STORE_KEY, JSON.stringify(state));
       // บริบท (ตารางเรียน/กิจวัตร) ยังอยู่ใน user_state ก้อนเดียวกันไปก่อน
       // ฝั่ง cloud ชนะทั้งก้อน ไม่ merge รายตัว เพราะมันคือ "ตารางของสัปดาห์นี้"
@@ -737,6 +748,7 @@ function pushToCloud(immediate) {
         id: currentUser.id,
         data: { tasks: state.tasks, settings: state.settings,
           sessions: state.sessions || [],
+          marks: state.marks || [],
           ctx: typeof ctxExport === 'function' ? ctxExport() : undefined },
         updated_at: new Date().toISOString(),
       });
@@ -786,6 +798,83 @@ function taskTitleText(t) {
   const subj = t.subject && t.subject !== 'อื่น ๆ' ? t.subject + ' · ' : '';
   return subj + (t.detail || '');
 }
+// ---------- สีประจำวิชา ----------
+// วิชาเดียวกันต้องได้สีเดิมทุกจอและทุกเครื่อง จึงคำนวณจากชื่อ ไม่ใช่จากลำดับที่เจอ
+// (เรียงตามลำดับที่เจอแล้ว สีจะสลับกันทันทีที่ลบวิชาใดวิชาหนึ่งทิ้ง)
+//
+// สีชุดนี้เป็น "ป้ายชื่อ" ไม่ใช่ "ระดับความด่วน" — สีความหมาย (แดง/ส้ม/เขียว) ยังสงวนไว้
+// ให้ชิปสถานะเหมือนเดิม ห้ามเอาสองระบบนี้มาปนกันในองค์ประกอบเดียว ไม่งั้นผู้ใช้
+// จะอ่านสีแดงของวิชา "คณิตศาสตร์" เป็น "ด่วนมาก"
+const MONTH_FULL = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+
+// แจกสีจาก "รายชื่อวิชาที่ผู้ใช้มีจริง" ไม่ใช่จากการแฮชชื่อ
+//
+// ลองแฮชมาแล้วสองรุ่น ทั้งคู่แพ้ด้วยเหตุผลเดียวกัน: แฮชรับประกันได้แค่ว่าชื่อเดิมได้สีเดิม
+// รับประกันไม่ได้ว่าวิชาที่อยู่ในวันเดียวกันจะไม่ซ้ำสี — วันจันทร์ 7 คาบลง 12 สี
+// ยังไงก็ชนตามหลักวันเกิด และการชนในจอเดียวคือสิ่งเดียวที่ผู้ใช้มองเห็น
+//
+// เรียงตามชื่อแล้วไล่แจกจึงตรงกับสิ่งที่ต้องการจริง: ถ้ามีไม่เกิน 12 วิชา ไม่มีทางซ้ำเลย
+// แลกกับการที่เพิ่ม/ลบวิชาแล้วสีของวิชาอื่นขยับได้ ซึ่งรับได้เพราะตารางเรียนกรอกครั้งเดียว
+// (สแกนรูปทีเดียวได้ทั้งสัปดาห์) ไม่ใช่ของที่แก้ทุกวัน
+const SUBJ_COLORS = 12;
+let subjMap = null, subjMapKey = '';
+
+function subjIndex() {
+  // วันที่แต่ละวิชาไปโผล่ — สองวิชาที่อยู่วันเดียวกันคือคู่ที่ห้ามสีซ้ำ
+  const days = {};
+  const names = new Set();
+  if (typeof ctxClasses === 'function') {
+    for (const c of ctxClasses()) {
+      if (!c.subject) continue;
+      names.add(c.subject);
+      const wd = c.weekday == null ? [0, 1, 2, 3, 4, 5, 6]
+        : (Array.isArray(c.weekday) ? c.weekday : [c.weekday]);
+      days[c.subject] = days[c.subject] || new Set();
+      for (const d of wd) days[c.subject].add(d);
+    }
+  }
+  for (const t of (state.tasks || [])) if (t.subject) names.add(t.subject);
+
+  const list = [...names].filter(s => s !== 'อื่น ๆ').sort((a, b) => a.localeCompare(b, 'th'));
+  const key = list.map(s => s + ':' + [...(days[s] || [])].sort().join('')).join('|');
+  if (subjMap && subjMapKey === key) return subjMap;   // วาดจอหนึ่งครั้งเรียกหลายสิบรอบ
+
+  // ระบายสีแบบละโมบบนกราฟ "อยู่วันเดียวกัน" — วิชาหนึ่งชนกับวิชาอื่นในวันได้มากสุด ~7 ตัว
+  // มี 12 สีจึงหาสีว่างเจอเสมอ ผลคือวันจันทร์ 7 คาบได้ 7 สีคนละสีจริง ๆ
+  // (เรียงตามชื่อก่อน เพื่อให้ผลลัพธ์เหมือนเดิมทุกครั้งที่ชุดวิชาเท่าเดิม)
+  subjMap = {};
+  const used = new Array(SUBJ_COLORS + 1).fill(0);
+  for (const s of list) {
+    const mine = days[s];
+    const taken = new Set();
+    if (mine) {
+      for (const other of list) {
+        if (other === s || subjMap[other] == null) continue;
+        const od = days[other];
+        if (od && [...mine].some(d => od.has(d))) taken.add(subjMap[other]);
+      }
+    }
+    // เลือกสีที่ยังไม่ชน และในบรรดานั้นเอาสีที่ถูกใช้ไปน้อยที่สุด — สีจะได้กระจาย
+    let pick = 1, best = Infinity;
+    for (let c = 1; c <= SUBJ_COLORS; c++) {
+      if (taken.has(c)) continue;
+      if (used[c] < best) { best = used[c]; pick = c; }
+    }
+    subjMap[s] = pick;
+    used[pick]++;
+  }
+  subjMapKey = key;
+  return subjMap;
+}
+
+function subjColor(name) {
+  const s = String(name || '').trim();
+  if (!s || s === 'อื่น ๆ') return 0;      // 0 = เทากลาง สำหรับของที่ไม่มีวิชา
+  return subjIndex()[s] || 0;
+}
+function subjClass(name) { return 'sj-' + subjColor(name); }
+
 // ไอคอน Lucide — เรียกใช้ซ้ำได้จาก <defs> ใน index.html
 function icon(name, cls) {
   return `<svg viewBox="0 0 24 24"${cls ? ` class="${cls}"` : ''} aria-hidden="true"><use href="#lu-${name}"/></svg>`;
@@ -914,13 +1003,42 @@ function widgetHtml(now) {
     </section>`;
   }
   const info = priorityInfo(top, now);
+  // ใบแรกได้ชิปครบ (กำหนดส่ง · เวลาที่ใช้ · คะแนน) เพราะเป็นใบที่ต้องตัดสินใจจริง
+  // ใบที่ 2–3 เหลือแค่ชื่อกับกำหนดส่ง — หน้าที่ของมันคือบอกว่า "ยังมีอะไรรออยู่อีก"
+  // ไม่ใช่ให้อ่านครบทุกช่อง ถ้าให้ข้อมูลเท่ากันหมด สายตาจะไม่รู้ว่าควรเริ่มจากใบไหน
+  const rest = pending.slice(1, 3);
   return `<section class="wg wg-urgent ${priorityTone(info.stars)}">
     <div class="wg-head">${icon('flag')}<span>ควรทำก่อน</span>
       <span class="wg-pill">${esc(priorityLabel(info.stars))}</span></div>
-    <div class="wg-title">${taskTitle(top)}</div>
-    ${dueChips(top, now)}
+    <div class="wg-row lead">
+      ${wgTick(top)}
+      <div class="wg-row-tx">
+        <div class="wg-title">${taskTitle(top)}</div>
+        ${dueChips(top, now)}
+      </div>
+    </div>
+    ${rest.map(t => `<div class="wg-row" onclick="openForm('${t.id}')">
+      ${wgTick(t)}
+      <div class="wg-row-tx"><div class="wg-row-ttl">${taskTitle(t)}</div></div>
+      ${t.due ? `<span class="wg-when ${dueTone(t, now)}">${esc(fmtDue(t.due, now, t))}</span>` : ''}
+    </div>`).join('')}
     <button class="wg-cta" onclick="openForm('${top.id}')">${icon('chevron')}เปิดงานนี้</button>
   </section>`;
+}
+
+// วงกลมติ๊กเสร็จ — ใช้ทั้งใบแรกและใบรอง เพราะ "เห็นแล้วทำอะไรได้เลย" คือเหตุผลที่ลิสต์นี้มีอยู่
+// stopPropagation กันไม่ให้การกดติ๊กกลายเป็นการเปิดหน้าแก้ไขงานไปด้วย
+function wgTick(t) {
+  return `<button class="wg-tick" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
+    aria-label="ทำเสร็จ: ${esc(taskTitleText(t))}">${icon('check')}</button>`;
+}
+
+// สีของกำหนดส่งในแถวรอง — เลยกำหนดแดง, ภายใน 24 ชม. เหลือง, ที่เหลือสีกลาง
+// ชิปเต็มใบใหญ่เกินไปสำหรับแถวรอง แต่ "อีกนานแค่ไหน" เป็นข้อมูลที่ขาดไม่ได้
+function dueTone(t, now) {
+  if (!t.due) return '';
+  const d = new Date(t.due) - now;
+  return d < 0 ? 'late' : d <= 24 * 3.6e6 ? 'soon' : '';
 }
 
 // ชิปสถานะของงานหนึ่งใบ — กำหนดส่งมาก่อนเสมอเพราะเป็นข้อมูลที่ตัดสินใจแทนได้จริง
@@ -970,14 +1088,9 @@ function renderMenu() {
   const body = document.getElementById('menuBody');
   if (!body) return;
   const now = new Date();
-  const pending = pendingTasks();
   const live = liveTasks();
-  const dated = pending.filter(t => t.due).length;
   const h = now.getHours();
   const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนค่ำ';
-
-  const doneWeek = liveTasks().filter(t => t.done && t.doneAt &&
-    (now - new Date(t.doneAt)) < 7 * 8.64e7).length;
 
   // ชื่อผู้ใช้เน้นสี — ทั้งจอมีคำที่เป็น "ของเขาคนเดียว" อยู่คำเดียวคือชื่อตัวเอง
   // ปล่อยให้กลืนไปกับคำทักทายก็เสียโอกาสที่จอนี้จะรู้สึกเป็นของเขาไปฟรี ๆ
@@ -989,10 +1102,7 @@ function renderMenu() {
     <div class="menu-grid">
       ${menuTile('hero', 'camera', 'เพิ่มงานใหม่', 'ถ่ายรูป · พูด · แปะข้อความ', null, 'scr-scan')}
       ${inboxTile()}
-      ${menuTile('tone-plan', 'calendar', 'ตารางงาน', 'ลำดับที่ AI แนะนำ', pending.length, 'scr-home')}
-      ${menuTile('tone-tasks', 'check-circle', 'งานทั้งหมด', 'ค้าง · เสร็จ · ถังขยะ', live.length, 'scr-tasks')}
-      ${menuTile('tone-route', 'pin', 'เส้นทาง', 'ไทม์ไลน์ถึงกำหนดส่ง', dated, 'scr-timeline')}
-      ${menuTile('tone-me', 'user', 'ฉัน', 'ผลของฉัน · ธีม · ตั้งค่า', doneWeek ? doneWeek : null, 'scr-profile')}
+      ${menuTile('wide tone-tasks', 'check-circle', 'งานทั้งหมด', 'ค้าง · เสร็จ · ถังขยะ', live.length, 'scr-tasks')}
     </div>`;
 }
 
@@ -1183,7 +1293,8 @@ function swFlyOut(d, dir) {
 function swDown(e) {
   if (e.pointerType === 'mouse' && e.button !== 0) return;
   const card = e.target.closest && e.target.closest('.sw-card');
-  if (!card || e.target.closest('.rc-check')) return; // ปุ่มติ๊กเสร็จยังกดได้ตามปกติ
+  // ปุ่มติ๊กเสร็จยังกดได้ตามปกติ (หน้าแรกใช้ .rc-check · ตารางงานใช้ .tk-tick)
+  if (!card || e.target.closest('.rc-check, .tk-tick')) return;
   swDrag = { card, wrap: card.parentElement, id: card.dataset.id, pid: e.pointerId,
     x0: e.clientX, y0: e.clientY, dx: 0, on: false, armed: 0 };
   card.style.transition = 'none';
@@ -1215,7 +1326,7 @@ function swUp() {
   if (Math.abs(d.dx) < SW_TRIGGER) { swReset(d); return; }  // ปัดไม่ถึง = ดีดกลับ
   if (d.dx > 0) {
     swFlyOut(d, 1);
-    toggleDone(d.id, d.card.querySelector('.rc-check')); // มีฉลอง + toast + วาดใหม่ให้แล้ว
+    toggleDone(d.id, d.card.querySelector('.rc-check, .tk-tick')); // มีฉลอง + toast + วาดใหม่ให้แล้ว
   } else {
     swFlyOut(d, -1);
     snoozeToTomorrow(d.id);
@@ -1232,19 +1343,23 @@ function swCancel() {
 }
 
 function initHomeSwipe() {
-  const root = document.getElementById('homeBody');
-  if (!root || !window.PointerEvent) return;
-  root.addEventListener('pointerdown', swDown);
-  root.addEventListener('pointermove', swMove, { passive: true });
-  root.addEventListener('pointerup', swUp);
-  root.addEventListener('pointercancel', swCancel);
-  // เมาส์จะยิง click ตามหลังการปัดเสมอ — กินทิ้งเฉพาะที่เกิดขึ้นติด ๆ กับการปัดที่เพิ่งจบ
-  root.addEventListener('click', e => {
-    if (performance.now() - swDoneAt > SW_CLICK_GUARD) return;
-    swDoneAt = 0;
-    e.stopPropagation();
-    e.preventDefault();
-  }, true);
+  if (!window.PointerEvent) return;
+  // เกาะที่กล่องนอกของทั้งสองจอ ไม่ใช่ที่การ์ด เพราะทั้งคู่เขียนทับ innerHTML ทุกครั้งที่วาดใหม่
+  for (const id of ['homeBody', 'taskList']) {
+    const root = document.getElementById(id);
+    if (!root) continue;
+    root.addEventListener('pointerdown', swDown);
+    root.addEventListener('pointermove', swMove, { passive: true });
+    root.addEventListener('pointerup', swUp);
+    root.addEventListener('pointercancel', swCancel);
+    // เมาส์จะยิง click ตามหลังการปัดเสมอ — กินทิ้งเฉพาะที่เกิดขึ้นติด ๆ กับการปัดที่เพิ่งจบ
+    root.addEventListener('click', e => {
+      if (performance.now() - swDoneAt > SW_CLICK_GUARD) return;
+      swDoneAt = 0;
+      e.stopPropagation();
+      e.preventDefault();
+    }, true);
+  }
 }
 
 // เลื่อนกำหนดส่งไปพรุ่งนี้ (คงเวลาเดิมของวัน)
@@ -1278,30 +1393,6 @@ function snoozeToTomorrow(id) {
   }, 200);
 }
 
-// ---------- หน้างาน ----------
-// 3 แท็บเท่านั้น: ค้างอยู่ · เสร็จแล้ว · ทั้งหมด
-// ของที่ลบไม่หายทันที แต่ไปนอนในถังขยะที่ซ่อนไว้ท้ายหน้า กดเปิดเองได้
-let taskFilter = 'pending'; // pending | done | all | bin
-let taskDay = null;         // null = ทุกวัน · 'YYYY-M-D' = เฉพาะวันนั้น
-function setFilter(f) {
-  taskFilter = f;
-  renderTasks();
-  const s = document.getElementById('scr-tasks');
-  if (s) s.scrollTop = 0;
-}
-function setTaskDay(k) {
-  taskDay = (taskDay === k) ? null : k;   // กดวันเดิมซ้ำ = เลิกกรอง
-  renderTasks();
-}
-
-// ---------- ชิปสถานะ ----------
-// สีในจอนี้ทำงานสองหน้าที่ที่ห้ามปนกัน:
-//   ฟ้า (--fill) = "กดได้" — ปุ่ม แท็บที่เลือก แถบของงานที่ต้องทำตอนนี้
-//   แดง/ส้ม/เขียว = "สถานะ" — อยู่ในชิปกลมเล็กเท่านั้น ไม่เคยเป็นพื้นที่ใหญ่
-// ปนกันเมื่อไหร่ สีแดงจะแปลว่า "กดตรงนี้" ไปด้วย แล้วความด่วนก็หมดความหมาย
-//
-// เกณฑ์เวลาต้องชันพอให้สีแดงยังมีค่าตอนที่มันสำคัญจริง
-// ถ้าติดแดงตั้งแต่เหลือ 4 วัน พอเหลือ 4 ชั่วโมงก็ไม่เหลือสีไหนแรงกว่าให้ใช้แล้ว
 function dueTone(t, now) {
   if (t.done) return 'ok';
   if (!t.due) return '';
@@ -1342,14 +1433,90 @@ function taskCard(t, now, focus) {
     snoozeBadge(t) ? tkChip('เลื่อนมา ' + (t.snoozeCount || 1) + ' ครั้ง', '') : '',
   ].filter(Boolean).join('');
 
-  return `<div class="tk${focus ? ' tk-focus' : ''}" onclick="openForm('${t.id}')">
-    <button class="tk-tick" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
-      aria-label="ทำเสร็จ">${icon('check')}</button>
-    ${subj && subj !== 'อื่น ๆ' ? `<div class="tk-sub">${esc(subj)}</div>` : ''}
-    <div class="tk-ttl">${esc(t.detail || '')}</div>
-    <div class="tk-meta">${chips}<span class="tk-sp"></span>
-      ${ti.schedulable ? `<span class="tk-min">~${remainingMin(t)} นาที</span>` : ''}</div>
+  // ปัดขวา = เสร็จ · ปัดซ้าย = เลื่อนไปพรุ่งนี้ — โครงเดียวกับการ์ดหน้าแรกทุกประการ
+  // สองท่านี้เคยมีเฉพาะหน้าแรก แต่แท็บที่คนเปิดมาจัดการงานจริง ๆ คือแท็บนี้
+  // พอมันหายไปเฉพาะที่นี่ ผู้ใช้จึงรายงานว่า "ปุ่มเลื่อน/ติ๊กเสร็จหายไป" — มันไม่เคยมาถึงตรงนี้ต่างหาก
+  return `<div class="swipe">
+    <div class="sw-act done" aria-hidden="true"><span class="sw-ic">${icon('check')}</span>ทำเสร็จแล้ว</div>
+    <div class="sw-act snooze" aria-hidden="true">เลื่อนไปพรุ่งนี้<span class="sw-ic">${icon('clock')}</span></div>
+    <div class="tk sw-card${focus ? ' tk-focus' : ''}" data-id="${t.id}" onclick="openForm('${t.id}')">
+      <button class="tk-tick" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
+        aria-label="ทำเสร็จ">${icon('check')}</button>
+      ${subj && subj !== 'อื่น ๆ' ? `<div class="tk-sub">${esc(subj)}</div>` : ''}
+      <div class="tk-ttl">${esc(t.detail || '')}</div>
+      <div class="tk-meta">${chips}<span class="tk-sp"></span>
+        ${ti.schedulable ? `<span class="tk-min">~${remainingMin(t)} นาที</span>` : ''}</div>
+    </div>
   </div>`;
+}
+
+// ---------- หน้างาน ----------
+// 3 แท็บเท่านั้น: ค้างอยู่ · เสร็จแล้ว · ทั้งหมด
+// ของที่ลบไม่หายทันที แต่ไปนอนในถังขยะที่ซ่อนไว้ท้ายหน้า กดเปิดเองได้
+let taskFilter = 'pending'; // pending | done | all | bin
+let taskDay = null;         // null = ทุกวัน · 'YYYY-M-D' = เฉพาะวันนั้น
+function setFilter(f) {
+  taskFilter = f;
+  renderTasks();
+  const s = document.getElementById('scr-tasks');
+  if (s) s.scrollTop = 0;
+}
+function setTaskDay(k) {
+  taskDay = (taskDay === k) ? null : k;   // กดวันเดิมซ้ำ = เลิกกรอง
+  renderTasks();
+}
+
+// ---------- ถามน้องไซ ----------
+// รอบนี้ยังไม่มีแชทจริง จอนี้จึงมีหน้าที่เดียว: ประกาศว่ามันคืออะไร และ "จะไม่ทำอะไร"
+//
+// เส้นที่ขีดไว้ตั้งแต่ยังไม่เขียนโค้ดคือเส้นที่ไม่ถูกเถียงทีหลัง —
+// แอปที่ทำการบ้านให้เด็กเป็นแอปที่โรงเรียนแบน และเป็นจุดที่กรรมการสับได้ทันที
+// ส่วนแอปที่อธิบายจนเข้าใจแล้วให้ทำเอง ต่อยอดจากแกนเดิมของแอปพอดี
+// (ทุกอันดับที่จัดให้ มีเหตุผลกำกับเสมอ — ตรงนี้ก็คือเหตุผลกำกับ แต่เป็นของเนื้อหาวิชา)
+function renderAi() {
+  const el = document.getElementById('aiBody');
+  if (!el) return;
+  const subj = [...new Set(pendingTasks().map(t => t.subject).filter(s => s && s !== 'อื่น ๆ'))];
+  el.innerHTML = `<div class="page-head">
+      <div class="eyebrow">ผู้ช่วยของฉัน</div>
+      <h1 class="page-title">ถามน้องไซ</h1>
+      <p class="page-sub">ติดตรงไหนถามได้ — น้องไซอธิบายให้เข้าใจ แล้วให้คุณทำเอง</p>
+    </div>
+
+    <div class="ai-soon">
+      <span class="ai-soon-ic">${icon('sparkles')}</span>
+      <b>กำลังทำอยู่</b>
+      <p>รุ่นนี้ยังเป็นโครงของจอ ยังคุยไม่ได้ — รอบหน้าถึงจะต่อกับ AI จริง</p>
+    </div>
+
+    <div class="sec-label">น้องไซจะทำอะไรให้</div>
+    <div class="ai-list">
+      <div class="ai-row"><span class="ai-ic ok">${icon('check')}</span>
+        <span class="ai-bd"><b>อธิบายจนเข้าใจ</b>
+          <span>ถามกลับทีละขั้นว่าติดตรงไหน แล้วใบ้ให้ไปต่อเอง</span></span></div>
+      <div class="ai-row"><span class="ai-ic ok">${icon('check')}</span>
+        <span class="ai-bd"><b>ตรวจว่าคิดถูกไหม</b>
+          <span>ทำมาแล้วส่งให้ดู น้องไซบอกว่าพลาดตรงไหนและเพราะอะไร</span></span></div>
+      <div class="ai-row"><span class="ai-ic ok">${icon('check')}</span>
+        <span class="ai-bd"><b>รู้จักงานของคุณอยู่แล้ว</b>
+          <span>${subj.length
+            ? 'ตอนนี้มีงานค้างวิชา ' + esc(subj.slice(0, 3).join(' · '))
+              + (subj.length > 3 ? ' และอีก ' + (subj.length - 3) + ' วิชา' : '')
+            : 'ถามถึงงานที่ค้างอยู่ได้เลย ไม่ต้องอธิบายใหม่'}</span></span></div>
+    </div>
+
+    <div class="sec-label">สิ่งที่น้องไซจะไม่ทำ</div>
+    <div class="ai-list">
+      <div class="ai-row"><span class="ai-ic no">${icon('lock')}</span>
+        <span class="ai-bd"><b>ไม่เฉลยให้ลอก</b>
+          <span>ขอคำตอบตรง ๆ น้องไซจะพาย้อนกลับไปที่วิธีคิดแทน — เพราะคะแนนที่ได้จากการลอกไม่ได้อยู่กับคุณตอนสอบ</span></span></div>
+      <div class="ai-row"><span class="ai-ic no">${icon('lock')}</span>
+        <span class="ai-bd"><b>ไม่เขียนงานส่งให้</b>
+          <span>เรียงความ รายงาน สรุปส่งครู — ช่วยวางโครงกับติชมได้ แต่ไม่เขียนแทน</span></span></div>
+    </div>
+
+    <p class="ai-note">ข้อความที่ถามจะถูกส่งไปประมวลผลบนเซิร์ฟเวอร์ ไม่ได้อยู่ในเครื่องเหมือนการจัดตาราง —
+      รอบหน้าที่เปิดใช้จริงจะมีคำอธิบายเรื่องนี้ก่อนพิมพ์ข้อความแรกเสมอ</p>`;
 }
 
 function renderTasks() {
@@ -1389,19 +1556,21 @@ function renderTasks() {
     ? rows0.filter(t => t.due && dayKey(new Date(t.due)) === taskDay)
     : rows0;
 
-  const head = `<div class="page-head">
+  const pageHead = `<div class="page-head">
       <div class="eyebrow">รายการงาน</div>
       <h1 class="page-title">ตารางงาน</h1>
       <p class="page-sub">ค้างอยู่ <b>${pending.length}</b>${
         done.length ? ' · เสร็จแล้ว ' + done.length : ''}</p>
-    </div>
+    </div>`;
+
+  const head = pageHead + `${tlModeTabs()}
     <div class="daystrip">
       ${days.map(x => `<button class="ds${taskDay === x.k ? ' on' : ''}" onclick="setTaskDay('${x.k}')">
         <i class="ds-d">${esc(x.label)}</i><b class="ds-n">${x.d.getDate()}</b>
         ${x.n ? `<u class="ds-dot${x.tone ? ' ' + x.tone : ''}"></u>` : '<u class="ds-dot off"></u>'}
       </button>`).join('')}
     </div>
-    ${taskDay ? `<button class="dayclear" onclick="setTaskDay(null)">
+    ${taskDay && days.some(x => x.k === taskDay) ? `<button class="dayclear" onclick="setTaskDay(null)">
       ${icon('calendar')}เฉพาะ${esc(fmtThaiDate(days.find(x => x.k === taskDay).d))}
       <span>ดูทุกวัน</span></button>` : ''}`;
 
@@ -1629,6 +1798,15 @@ function humanMin(m) {
   return r ? h + ' ชม. ' + r + ' นาที' : h + ' ชม.';
 }
 
+// รุ่นสั้นสำหรับที่ที่ต้องอยู่บรรทัดเดียวกับของอื่น — "6ช 35น" แทน "6 ชม. 35 นาที"
+// ใช้เฉพาะในจอภาพรวมที่ตัวเลขเป็นของประกอบ ไม่ใช่ของที่ต้องอ่านละเอียด
+function shortMin(m) {
+  m = Math.max(0, Math.round(m));
+  const h = Math.floor(m / 60), r = m % 60;
+  if (!h) return r + 'น';
+  return h + 'ช' + (r ? ' ' + r + 'น' : '');
+}
+
 // ---------- เส้นเวลา: ตื่นจนหลับ ----------
 // จอนี้เคยเป็นรายการ 7 วันที่บอกแค่ "วันไหนส่งอะไร" กับ "วันนั้นว่างกี่ชั่วโมง"
 // ซึ่งเป็นครึ่งเดียวของคำถาม — ว่าง 8 ชั่วโมงเป็นข่าวดีหรือร้าย ขึ้นกับว่ามีงานรออยู่เท่าไหร่
@@ -1640,8 +1818,38 @@ function humanMin(m) {
 //   engine.js   buildDayPlan() งานที่จัดลง + เวลาพัก → บล็อกงาน (วันนี้เท่านั้น)
 //   งานที่ถึงกำหนดวันนั้น                            → หมุดเส้นตาย
 let tlDayOffset = 0;   // 0 = วันนี้ · 1..6 = วันถัดไป
+let tlMode = 'day';    // 'day' = ไล่ทีละชั่วโมงของวันเดียว · 'cal' = ปฏิทินเดือน
 
-function setTlDay(i) { tlDayOffset = i; renderTimeline(); const s = document.getElementById('scr-timeline'); if (s) s.scrollTop = 0; }
+function setTlDay(i) {
+  tlDayOffset = i; tlMode = 'day';
+  renderTimeline(); const s = document.getElementById('scr-timeline'); if (s) s.scrollTop = 0;
+}
+function setTlMode(m) {
+  tlMode = m;
+  renderTimeline(); const s = document.getElementById('scr-timeline'); if (s) s.scrollTop = 0;
+}
+
+// วันเรียนหนึ่งวันมี 7–8 คาบต่อกันแทบไม่ขาด ถ้าขึ้นเป็นคนละแถวหมด เส้นเวลาของวันธรรมดา
+// กลายเป็นแถวเทาหน้าตาเหมือนกันแปดแถวรวด แล้วของที่ต้องตัดสินใจจริง ๆ — งานที่จัดลง
+// กับหมุดเส้นตาย — จมหายไปกลางกอง ผู้ทดสอบเรียกจอนี้ว่า "ยาวเป็นหางว่าว"
+//
+// ความจริงของวันนั้นคือเรื่องเดียว: "เช้าถึงบ่ายติดเรียน" ไม่ใช่แปดเรื่อง
+// จึงยุบคาบที่ต่อกันเป็นก้อนเดียว แล้วเก็บรายคาบไว้ในแผ่นรายละเอียด — ย่อ ไม่ใช่ตัดทิ้ง
+const TL_CLASS_GAP = 30;   // พักคาบ 10–20 นาทียังอยู่ที่โรงเรียน ไม่ใช่ช่องว่างของวัน
+
+function tlMergeClasses(busy) {
+  const out = [];
+  for (const b of busy) {
+    const last = out[out.length - 1];
+    if (b.kind === 'class' && last && last.kind === 'class' && b.from - last.to <= TL_CLASS_GAP) {
+      last.to = Math.max(last.to, b.to);
+      last.parts.push(b);
+      continue;
+    }
+    out.push(b.kind === 'class' ? Object.assign({}, b, { parts: [b] }) : Object.assign({}, b));
+  }
+  return out;
+}
 
 // รายการทุกอย่างที่เกิดขึ้นในวันนั้น เรียงตามนาทีของวัน
 function tlDayItems(day, isToday, now) {
@@ -1650,7 +1858,7 @@ function tlDayItems(day, isToday, now) {
   const wake = hm2min(p.wake), sleep = hm2min(p.sleep), stop = hm2min(p.noWorkAfter);
 
   // คาบเรียนกับกิจวัตรของวันนั้น — busyBlocks คืนชื่อมาด้วย จึงบอกได้ว่าติดอะไรอยู่
-  const busy = typeof busyBlocks === 'function' ? busyBlocks(day) : [];
+  const busy = tlMergeClasses(typeof busyBlocks === 'function' ? busyBlocks(day) : []);
 
   // คนส่วนใหญ่มีกิจวัตร "ตื่น เตรียมตัว" ที่เริ่มพร้อมเวลาตื่นพอดี
   // ขึ้นสองแถวเวลาเดียวกันคือการบอกเรื่องเดียวกันสองรอบ — ให้กิจวัตรพูดแทน เพราะมีชื่อของมันเอง
@@ -1658,7 +1866,10 @@ function tlDayItems(day, isToday, now) {
     out.push({ min: wake, kind: 'wake', label: 'ตื่นนอน' });
   }
   for (const b of busy) {
-    out.push({ min: b.from, kind: 'busy', label: b.title, from: b.from, to: b.to, ck: b.kind, id: b.id });
+    out.push(b.parts && b.parts.length > 1
+      ? { min: b.from, kind: 'classes', label: 'เรียน ' + b.parts.length + ' คาบ',
+          from: b.from, to: b.to, parts: b.parts }
+      : { min: b.from, kind: 'busy', label: b.title, from: b.from, to: b.to, ck: b.kind, id: b.id });
   }
 
   // แผนของวันนี้เท่านั้น — buildDayPlan วางงานลงช่องว่างที่เหลือ "นับจากตอนนี้"
@@ -1697,10 +1908,252 @@ function tlDayItems(day, isToday, now) {
   return { items: out, plan };
 }
 
+// สวิตช์ตัวเดียวกันโผล่ทั้งสองจอ เพราะสามโหมดนี้เป็นของแท็บ "ตาราง" เดียวกัน
+// รายวันกับปฏิทินอยู่ในจอเส้นเวลา ส่วนรายการงานเป็นอีกจอ (มีฟิลเตอร์/ถังขยะของตัวเอง)
+// ผู้ใช้ไม่ต้องรู้ว่ามันคนละจอ — เห็นแค่สวิตช์ที่อยู่ที่เดิมและทำงานเหมือนกัน
+function tlModeTabs() {
+  const onList = curScreen === 'scr-tasks';
+  return `<div class="tlmode">
+    <button class="tlm${!onList && tlMode === 'day' ? ' on' : ''}" onclick="goTlMode('day')">รายวัน</button>
+    <button class="tlm${!onList && tlMode === 'cal' ? ' on' : ''}" onclick="goTlMode('cal')">ปฏิทิน</button>
+    <button class="tlm${onList ? ' on' : ''}" onclick="goTlMode('list')">รายการงาน</button>
+  </div>`;
+}
+
+function goTlMode(m) {
+  if (m === 'list') { go('scr-tasks'); return; }
+  tlMode = m;
+  if (curScreen === 'scr-timeline') { renderTimeline(); const s = document.getElementById('scr-timeline'); if (s) s.scrollTop = 0; }
+  else go('scr-timeline');
+}
+
+// ---------- ปฏิทิน ----------
+// โหมดที่สองของเส้นเวลาผ่านมาสองรอบแล้ว: กริดชั่วโมงที่ต้องปัดห้ารอบต่อวัน
+// แล้วเป็นแถบวันละเส้นซึ่งสั้นลงจริงแต่ยังเห็นแค่เจ็ดวัน
+//
+// สิ่งที่นักเรียนวางแผนจริง ๆ ไม่ได้จบใน 7 วัน — สอบกลางภาคอยู่อีกสามสัปดาห์
+// งานกลุ่มส่งสิ้นเดือน ปฏิทินเดือนจึงเป็นภาชนะที่ถูกกับคำถาม "เดือนนี้มีอะไรรออยู่"
+// และมันใช้งานได้ตั้งแต่ยังไม่กรอกตารางเรียน เพราะเส้นตายมาจากงานที่สแกนเข้ามาอยู่แล้ว
+let calMonth = 0;    // 0 = เดือนนี้ · -1/+1 = ถอย/เดิน
+let calPick = null;  // 'YYYY-M-D' ของวันที่เลือกอยู่ · null = วันนี้
+
+function calShift(n) { calMonth += n; calPick = null; calEdit = null; renderTimeline(); }
+function calSelect(k) { calPick = k; calEdit = null; renderTimeline(); }
+function calKey(d) { return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+
+// ---------- หมุดปฏิทิน ----------
+// ปฏิทินเดิมอ่านอย่างเดียว — มันบอกได้แค่สิ่งที่ระบบรู้ (เส้นตายกับคาบเรียน)
+// แต่เรื่องที่ต้องวางแผนล่วงหน้าจริง ๆ มักเป็นเรื่องที่ยังไม่มีใบงาน:
+// สอบกลางภาคอีกสามสัปดาห์ · วันกีฬาสี · ปิดเทอม · วันส่งใบสมัคร
+//
+// หมุดจึงไม่ใช่ "งาน" — ไม่มีเวลาที่ต้องใช้ ไม่มีสถานะเสร็จ ไม่เข้าไปในแผนรายชั่วโมง
+// มันคือหลักไมล์ที่เอาไว้เล็งว่า "เหลืออีกกี่วัน" ซึ่งเป็นคนละคำถามกับ "วันนี้ทำอะไรก่อน"
+// ถ้ายัดมันเป็นงาน ตัวจัดอันดับจะพยายามเจียดเวลาให้ "ปิดเทอม" ซึ่งไม่มีความหมาย
+function marks() {
+  if (!Array.isArray(state.marks)) state.marks = [];
+  return state.marks;
+}
+function marksOn(k) { return marks().filter(m => m.date === k); }
+
+let calEdit = null;   // { id, date, title, color, big } · null = ฟอร์มปิดอยู่
+
+function calAddMark(k) {
+  // เลือกวันไปด้วยเสมอ — ฟอร์มขึ้นเฉพาะในแผ่นของวันที่เลือกอยู่
+  // ปกติปุ่มอยู่ในแผ่นนั้นพอดี แต่ถ้าเรียกจากที่อื่นแล้วไม่เลือกให้ ฟอร์มจะไม่โผล่เลย
+  calPick = k;
+  calEdit = { id: null, date: k, title: '', color: 1, big: false };
+  renderTimeline();
+  const el = document.getElementById('calMarkName');
+  if (el) el.focus();
+}
+function calEditMark(id) {
+  const m = marks().find(x => x.id === id);
+  if (!m) return;
+  calPick = m.date;
+  calEdit = { id: m.id, date: m.date, title: m.title, color: m.color, big: !!m.big };
+  renderTimeline();
+}
+function calCancelMark() { calEdit = null; renderTimeline(); }
+function calSetColor(c) { if (calEdit) { calEdit.color = c; renderTimeline(); } }
+function calToggleBig() { if (calEdit) { calEdit.big = !calEdit.big; renderTimeline(); } }
+
+function calSaveMark() {
+  if (!calEdit) return;
+  const name = (calEdit.title || '').trim();
+  const err = document.getElementById('calMarkErr');
+  if (!name) { if (err) { err.textContent = 'ยังไม่ได้ใส่ชื่อ'; err.hidden = false; } return; }
+  if (calEdit.id) {
+    const m = marks().find(x => x.id === calEdit.id);
+    if (m) Object.assign(m, { title: name, color: calEdit.color, big: calEdit.big });
+  } else {
+    marks().push({ id: uid(), date: calEdit.date, title: name,
+      color: calEdit.color, big: calEdit.big, createdAt: new Date().toISOString() });
+  }
+  calEdit = null;
+  save();
+  renderAll();
+}
+
+function calDeleteMark(id) {
+  state.marks = marks().filter(m => m.id !== id);
+  calEdit = null;
+  save();
+  renderAll();
+}
+
+// "อีกกี่วัน" คือเหตุผลทั้งหมดที่หมุดมีอยู่ — ถ้าไม่บอก มันก็เป็นแค่ข้อความติดปฏิทิน
+function calCountdown(k, now) {
+  const n = calOffset(k);
+  if (n === 0) return 'วันนี้';
+  if (n === 1) return 'พรุ่งนี้';
+  if (n > 0) return 'อีก ' + n + ' วัน';
+  return 'ผ่านมาแล้ว ' + (-n) + ' วัน';
+}
+
+// จำนวนวันจากวันนี้ — ลบ = อดีต
+function calOffset(k) {
+  const [y, m, dd] = k.split('-').map(Number);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return Math.round((new Date(y, m - 1, dd) - today) / 864e5);
+}
+
+// เส้นเวลารายวันมีข้อมูลจริงเฉพาะ 7 วันข้างหน้า วันที่ไกลกว่านั้นจึงไม่มีปุ่มให้กด
+// (แผ่นข้างล่างแสดงงานของวันนั้นครบอยู่แล้ว — ปุ่มที่พาไปเจอจอเปล่าแย่กว่าไม่มีปุ่ม)
+function calOpen(k) {
+  const off = calOffset(k);
+  if (off >= 0 && off <= 6) setTlDay(off);
+}
+
+function calHtml(now) {
+  const base = new Date(now.getFullYear(), now.getMonth() + calMonth, 1);
+  const y = base.getFullYear(), m = base.getMonth();
+  const first = new Date(y, m, 1).getDay();          // 0 = อาทิตย์
+  const len = new Date(y, m + 1, 0).getDate();
+  const todayK = calKey(now);
+  const pick = calPick || todayK;
+
+  // จัดงานลงวันของมันครั้งเดียว แล้วค่อยวาด — กรองซ้ำ 35 รอบต่อการวาดหนึ่งครั้งไม่คุ้ม
+  const byDay = {};
+  for (const t of pendingTasks()) {
+    if (!t.due) continue;
+    const k = calKey(new Date(t.due));
+    (byDay[k] = byDay[k] || []).push(t);
+  }
+
+  let cells = '';
+  for (let i = 0; i < first; i++) cells += '<span class="cal-c off"></span>';
+  for (let dd = 1; dd <= len; dd++) {
+    const d = new Date(y, m, dd);
+    const k = calKey(d);
+    const list = (byDay[k] || []).sort((a, b) => new Date(a.due) - new Date(b.due));
+    const hot = list.some(t => dueTone(t, now) === 'hot');
+    const nCls = typeof busyBlocks === 'function'
+      ? busyBlocks(d).filter(b => b.kind === 'class').length : 0;
+    // จุดสามจุดพอ — เกินนั้นตาอ่านไม่ทันอยู่ดี ที่เหลือบอกเป็นเลขในแผ่นข้างล่าง
+    const dots = list.slice(0, 3).map(t =>
+      `<i class="sjdot ${subjClass(t.subject)}"></i>`).join('');
+    // หมุดของผู้ใช้อยู่เหนือเลขวัน เป็นแถบสีเต็มความกว้างช่อง — ต่างจากจุดเส้นตายชัดเจน
+    // อันที่ติดธง "สำคัญมาก" ระบายทั้งช่อง เพราะจุดประสงค์ของมันคือถูกเห็นตั้งแต่ยังไม่ตั้งใจมอง
+    const md = marksOn(k);
+    const bigOne = md.find(m => m.big);
+    cells += `<button class="cal-c${k === todayK ? ' today' : ''}${k === pick ? ' on' : ''}${
+      hot ? ' hot' : ''}${bigOne ? ' big sj-' + bigOne.color : ''}" onclick="calSelect('${k}')">
+      ${md.length ? `<span class="cal-marks">${md.slice(0, 2).map(m =>
+        `<i class="sj-${m.color}"></i>`).join('')}</span>` : ''}
+      <b>${dd}</b>
+      <span class="cal-dots">${dots}${list.length > 3 ? '<i class="cal-more">+</i>' : ''}</span>
+      ${nCls ? '<span class="cal-sch"></span>' : ''}
+    </button>`;
+  }
+  const rows = Math.ceil((first + len) / 7) * 7;
+  for (let i = first + len; i < rows; i++) cells += '<span class="cal-c off"></span>';
+
+  // แผ่นรายละเอียดของวันที่เลือก — ปฏิทินที่กดวันแล้วไม่มีอะไรขึ้นคือปฏิทินที่อ่านอย่างเดียว
+  const [py, pm, pd] = pick.split('-').map(Number);
+  const pDate = new Date(py, pm - 1, pd);
+  const pList = (byDay[pick] || []).sort((a, b) => new Date(a.due) - new Date(b.due));
+  const pBusy = tlMergeClasses(typeof busyBlocks === 'function' ? busyBlocks(pDate) : []);
+  const pCls = pBusy.filter(b => b.kind === 'class');
+  const nCls = pCls.reduce((a, b) => a + (b.parts ? b.parts.length : 1), 0);
+  const isPast = pDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const pFree = !isPast && typeof freeMinutes === 'function'
+    ? freeMinutes(pDate, pick === todayK ? now : null) : null;
+
+  const pMarks = marksOn(pick);
+  const markHtml = pMarks.map(m => `<button class="cal-m sj-${m.color}${m.big ? ' big' : ''}"
+      onclick="calEditMark('${m.id}')">
+      <span class="cal-m-bar"></span>
+      <span class="cal-m-b"><b>${esc(m.title)}</b>
+        <i>${esc(calCountdown(pick, now))}${m.big ? ' · สำคัญมาก' : ''}</i></span>
+      ${icon('pencil')}
+    </button>`).join('');
+
+  const form = calEdit && calEdit.date === pick ? `<div class="cal-form">
+      <input type="text" id="calMarkName" placeholder="เช่น สอบกลางภาค · วันกีฬาสี"
+        value="${esc(calEdit.title)}" oninput="calEdit.title=this.value">
+      <div class="cal-sw">${Array.from({ length: SUBJ_COLORS }, (_, i) => i + 1).map(c =>
+        `<button type="button" class="sj-${c}${calEdit.color === c ? ' on' : ''}"
+          onclick="calSetColor(${c})" aria-label="สี ${c}"></button>`).join('')}</div>
+      <button type="button" class="cal-big${calEdit.big ? ' on' : ''}" onclick="calToggleBig()">
+        ${icon('flag')}<span>สำคัญมาก — ระบายทั้งช่องในปฏิทิน</span>
+        <i class="cal-big-x">${calEdit.big ? icon('check') : ''}</i></button>
+      <p class="ctx-err" id="calMarkErr" hidden></p>
+      <div class="cal-form-a">
+        ${calEdit.id ? `<button class="btn ghost sm" onclick="calDeleteMark('${calEdit.id}')">ลบ</button>` : ''}
+        <span style="flex:1"></span>
+        <button class="btn ghost sm" onclick="calCancelMark()">ยกเลิก</button>
+        <button class="btn sm" onclick="calSaveMark()">${calEdit.id ? 'บันทึก' : 'ปัก'}</button>
+      </div>
+    </div>` : `<button class="cal-add" onclick="calAddMark('${pick}')">+ ปักหมุดวันนี้</button>`;
+
+  const detail = `<div class="cal-day">
+      <div class="cal-day-h">
+        <b>${pick === todayK ? 'วันนี้' : 'วัน' + THAI_DAY[pDate.getDay()]}</b>
+        <i class="mono">${pDate.getDate()} ${MONTH_SHORT[pDate.getMonth()]}</i>
+        ${pFree != null ? `<u>ว่าง ${esc(shortMin(pFree))}</u>` : ''}
+      </div>
+      ${markHtml}${form}
+      ${nCls ? `<div class="cal-day-cls">${icon('calendar')}เรียน ${
+        min2hm(Math.min(...pCls.map(b => b.from)))}–${min2hm(Math.max(...pCls.map(b => b.to)))
+        } · ${nCls} คาบ</div>` : ''}
+      ${pList.length ? pList.map(t => `<button class="cal-t" onclick="openForm('${t.id}')">
+          <span class="sjbar ${subjClass(t.subject)}"></span>
+          <span class="cal-t-b"><b>${taskTitle(t)}</b>
+            <i>${esc(dueClock(t))} · ${esc(TASK_TYPES[taskType(t)].name)}</i></span>
+          ${tkChip(fmtDue(t.due, now, t), dueTone(t, now))}
+        </button>`).join('')
+        : `<p class="cal-day-0">${isPast ? 'วันนี้ผ่านไปแล้ว'
+          : nCls ? 'ไม่มีงานถึงกำหนดวันนี้' : 'ว่าง ไม่มีอะไรถึงกำหนด'}</p>`}
+      ${calOffset(pick) >= 0 && calOffset(pick) <= 6
+        ? `<button class="cal-go" onclick="calOpen('${pick}')">${icon('clock')}ดูรายชั่วโมง</button>` : ''}
+    </div>`;
+
+  const hint = (typeof ctxIsEmpty === 'function' && ctxIsEmpty())
+    ? `<button class="tl-hint" onclick="go('scr-context')">
+        ${icon('clock')}<span>ยังไม่รู้ตารางเรียน — เวลาว่างเป็นค่าเริ่มต้น</span>
+        <b>บอกตาราง</b>${icon('chevron')}
+      </button>` : '';
+
+  return `<div class="page-head tight">
+      <h1 class="page-title">ปฏิทิน</h1>
+    </div>
+    ${tlModeTabs()}${hint}
+    <div class="calbar">
+      <button onclick="calShift(-1)" aria-label="เดือนก่อน">${icon('chevron')}</button>
+      <b>${MONTH_FULL[m]} ${y + 543}</b>
+      <button onclick="calShift(1)" aria-label="เดือนถัดไป">${icon('chevron')}</button>
+    </div>
+    <div class="calwd">${['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
+      .map(x => `<span>${x}</span>`).join('')}</div>
+    <div class="calgrid">${cells}</div>
+    ${detail}`;
+}
+
 function renderTimeline() {
   const el = document.getElementById('timeline');
   if (!el) return;
   const now = new Date();
+  if (tlMode === 'cal') { tlItems = []; el.innerHTML = calHtml(now); return; }
   const day = addDays(now, tlDayOffset);
   const isToday = tlDayOffset === 0;
   const { items, plan } = tlDayItems(day, isToday, now);
@@ -1732,8 +2185,10 @@ function renderTimeline() {
     const left = plan.freeMin - plan.usedMin;
     if (missed.length) {
       const nf = plan.nextFree;
+      // หัวบรรทัดบอก "กี่ใบ" ส่วนชื่องานเป็นรายละเอียดที่ตัดท้ายได้ — ของเดิมเอาชื่อทุกใบ
+      // มาต่อกันเป็นย่อหน้า การ์ดเลยสูงจนดันเส้นเวลาตกจอไปทั้งเส้น ทั้งที่เส้นเวลาคือของหลักของจอนี้
       verdict = `<div class="dayvd bad">
-        <div class="dayvd-h">${tkChip('ไม่ทัน', 'hot')}<b>ต้องทำวันนี้ ไม่งั้นเลยกำหนด</b></div>
+        <div class="dayvd-h">${tkChip('ไม่ทัน', 'hot')}<b>${missed.length} งานเสี่ยงเลยกำหนดวันนี้</b></div>
         <p>${esc(missed.map(t => taskTitleText(t)).join(' · '))}${nf
           ? ' — ช่องว่างถัดไปคือ' + (nf.dayOffset === 1 ? 'พรุ่งนี้ ' : 'วัน' + THAI_DAY[nf.date.getDay()] + ' ') + nf.fromHm
           : ''}</p></div>`;
@@ -1751,8 +2206,23 @@ function renderTimeline() {
 
   const nowMin = now.getHours() * 60 + now.getMinutes();
   const rows = items.map((it, i) => {
-    const past = isToday && it.min < nowMin - 5;
+    // ช่วงที่ยังไม่จบยังไม่ใช่อดีต — ถ้าวัดจากเวลาเริ่มอย่างเดียว ก้อนคาบเรียนทั้งวัน
+    // จะจางทั้งก้อนตั้งแต่ 08:35 ทั้งที่ยังนั่งเรียนอยู่อีกหกชั่วโมง
+    const past = isToday && (it.to != null ? it.to : it.min) < nowMin - 5;
     const hm = min2hm(it.min);
+
+    if (it.kind === 'classes') {
+      const names = [...new Set(it.parts.map(p => p.title))];
+      return `<div class="dayrow${past ? ' past' : ''}" data-i="${i}" onclick="tlOpen(${i})">
+        <span class="dayrow-t mono">${hm}</span>
+        <span class="dayrow-dot"></span>
+        <div class="dayblk">
+          <div class="dayblk-h"><b>${esc(it.label)}</b>
+            <span class="mono">ถึง ${min2hm(it.to)}</span></div>
+          <p class="dayblk-p">${names.map(s =>
+            `<span class="ctx-chip ${subjClass(s)}">${esc(s)}</span>`).join('')}</p>
+        </div></div>`;
+    }
 
     if (it.kind === 'work') {
       const mine = run && run.taskId === it.task.id;
@@ -1780,11 +2250,17 @@ function renderTimeline() {
         <span class="dayrow-due">${icon('flag')}ถึงกำหนด · ${esc(taskTitleText(it.task))}</span></div>`;
     }
 
-    const extra = it.kind === 'busy' ? min2hm(it.from) + '–' + min2hm(it.to) : '';
-    return `<div class="dayrow quiet${past ? ' past' : ''}" data-i="${i}" onclick="tlOpen(${i})">
+    // เวลาเริ่มอยู่ในคอลัมน์ซ้ายแล้ว เขียนซ้ำในป้ายอีกรอบ ("18:00 กินข้าวเย็น 18:00–18:45")
+    // คือตัวเลขสี่ก้อนในบรรทัดเดียวที่บอกเรื่องเดียว — เหลือไว้แค่ "แล้วเลิกกี่โมง"
+    //
+    // และของสองชนิดในเส้นนี้ไม่เท่ากัน: ธุระที่กินเวลาจริง (เรียน กิน เดินทาง) กับ
+    // หมุดบอกช่วงวัน (ตื่น หยุดทำงาน เข้านอน) — ให้อย่างแรกเข้มกว่า ตาจะได้เกาะอะไรได้
+    const solid = it.kind === 'busy';
+    const extra = solid ? 'ถึง ' + min2hm(it.to) : '';
+    return `<div class="dayrow${past ? ' past' : ''}" data-i="${i}" onclick="tlOpen(${i})">
       <span class="dayrow-t mono">${hm}</span>
       <span class="dayrow-dot"></span>
-      <span class="dayrow-l">${esc(it.label)}${extra ? `<i>${extra}</i>` : ''}</span></div>`;
+      <span class="dayrow-l${solid ? ' solid' : ''}">${esc(it.label)}${extra ? `<i>${extra}</i>` : ''}</span></div>`;
   }).join('');
   document.tlFocusUsed = 0;
 
@@ -1795,20 +2271,28 @@ function renderTimeline() {
       <h1 class="page-title">${isToday ? 'วันนี้' : 'วัน' + THAI_DAY[day.getDay()]}</h1>
       <p class="page-sub">${items.length ? esc(tlDaySub(day, isToday, now, plan)) : ''}</p>
     </div>
+    ${tlModeTabs()}
     <div class="daystrip">${strip}</div>`;
 
+  // คำชวนให้กรอกตารางเป็นข้อมูลประกอบ ไม่ใช่สิ่งที่ต้องทำตอนนี้ — เดิมเป็นการ์ดกรอบฟ้าสามบรรทัด
+  // ยืนแข่งกับคำตัดสินของวันอยู่เหนือเส้นเวลา สองก้อนรวมกันกินจอจนไม่เหลือที่ให้เส้นเวลาเลย
+  // ย่อเป็นบรรทัดเดียวใต้คำตัดสิน: ยังกดได้ ยังบอกครบ แต่ไม่แย่งสายตา
   const ctxNudge = (typeof ctxIsEmpty === 'function' && ctxIsEmpty())
-    ? `<button class="tl-nudge" onclick="go('scr-context')">
-        <span class="pn-ic">${icon('clock')}</span>
-        <span class="pn-tx"><b>ยังไม่รู้ตารางเรียนของคุณ</b>
-          <span>เส้นเวลานี้จึงยังเป็นการเดา — บอกตารางแล้วจะตรงกับวันจริงของคุณ</span></span>
-        <span class="pn-go">${icon('chevron')}</span>
+    ? `<button class="tl-hint" onclick="go('scr-context')">
+        ${icon('clock')}<span>ยังไม่รู้ตารางเรียน — เวลานี้ยังเป็นการเดา</span>
+        <b>บอกตาราง</b>${icon('chevron')}
       </button>` : '';
 
   const future = !isToday
     ? `<p class="tl-far">แผนรายชั่วโมงมีเฉพาะวันนี้ — วันอื่นแสดงตารางเรียนกับกำหนดส่งไว้ก่อน</p>` : '';
 
-  el.innerHTML = head + ctxNudge + verdict
+  // หมุดของวันนั้นอยู่เหนือเส้น ไม่ใช่ในเส้น เพราะมันไม่มีเวลาของตัวเอง
+  // ยัดลงเส้นต้องสมมติเวลาให้มัน ซึ่งเป็นการโกหกว่า "สอบกลางภาค 08:00"
+  const dayMarks = marksOn(calKey(day)).map(m => `<div class="tl-mark sj-${m.color}${m.big ? ' big' : ''}">
+      <span class="cal-m-bar"></span><b>${esc(m.title)}</b>
+      <i>${esc(calCountdown(calKey(day), now))}</i></div>`).join('');
+
+  el.innerHTML = head + dayMarks + verdict + ctxNudge
     + (items.length ? `<div class="dayrail">${rows}</div>` : `<div class="card empty">วันนี้ยังไม่มีอะไรในตาราง</div>`)
     + future;
 }
@@ -1851,6 +2335,14 @@ function tlOpen(i) {
     why = rel.length
       ? ['งานจากวิชานี้', rel.map(t => taskTitleText(t) + ' · ' + fmtDue(t.due, now, t)).join('\n')]
       : ['ทำไมไม่มีงานตรงนี้', 'ช่วงนี้ถูกกันไว้เป็นเวลาที่ทำงานไม่ได้ ระบบจะไม่วางงานทับ'];
+    cta = `<button class="daysheet-go ghost" onclick="tlClose();go('scr-context')">${icon('clock')}แก้ตารางนี้</button>`;
+  } else if (it.kind === 'classes') {
+    // ก้อนนี้ย่อคาบเรียนทั้งวันไว้แถวเดียว รายคาบจึงต้องกางครบตรงนี้ ไม่งั้นคือการซ่อน
+    tag = 'ตารางเรียน';
+    h = it.label;
+    chips = [[min2hm(it.from) + '–' + min2hm(it.to), ''], [humanMin(it.to - it.from), '']];
+    why = ['คาบในช่วงนี้',
+      it.parts.map(b => min2hm(b.from) + '–' + min2hm(b.to) + '  ' + b.title).join('\n')];
     cta = `<button class="daysheet-go ghost" onclick="tlClose();go('scr-context')">${icon('clock')}แก้ตารางนี้</button>`;
   } else if (it.kind === 'break') {
     tag = 'พักอัตโนมัติ'; h = it.label;
@@ -2360,7 +2852,7 @@ function renderContext() {
     </div>
 
     <div class="sec-label">ตารางเรียน</div>
-    ${ctxListHtml('class')}
+    ${ctxWeekHtml()}
 
     <div class="sec-label">กิจวัตรและกิจกรรม</div>
     ${ctxListHtml('routine')}
@@ -2368,6 +2860,76 @@ function renderContext() {
     <button class="ctx-wipe" onclick="ctxWipe()">${icon('trash')}ลบบริบททั้งหมด</button>
     <p class="ctx-note">ข้อมูลชุดนี้อยู่คนละที่กับงานของคุณ ลบทิ้งได้โดยงานไม่หายสักใบ ·
       การจัดตารางคำนวณในเครื่อง ไม่มีการส่งตารางชีวิตของคุณออกไปไหน</p>`;
+}
+
+// วันที่กางอยู่ในตารางเรียน — null = พับหมด (ค่าเริ่มต้น เพราะภาพรวมมาก่อนรายละเอียด)
+let ctxOpenDay = null;
+function ctxToggleWeekDay(d) { ctxOpenDay = ctxOpenDay === d ? null : d; renderContext(); }
+
+function ctxDayCount(x) {
+  if (x.weekday == null) return 7;
+  return Array.isArray(x.weekday) ? x.weekday.length : 1;
+}
+
+// ตารางเรียนทั้งสัปดาห์เคยเป็นรายการเดียวเรียงตามเวลา แปลว่า 08:30 ของวันจันทร์
+// ไปนอนติดกับ 08:30 ของวันศุกร์ ต่างกันแค่ตัวอักษรเล็ก ๆ ข้างเวลา — สามสิบห้าแถวแบบนั้น
+// ตอบไม่ได้ว่า "วันจันทร์เรียนอะไรบ้าง" ซึ่งเป็นคำถามเดียวที่คนเปิดตารางเรียนมาถาม
+//
+// จึงพับเป็นวันละแถว: สภาพพับอยู่คือภาพรวมทั้งสัปดาห์ในจอเดียว
+// กดวันไหนถึงกางคาบของวันนั้นออกมาให้แก้ — ย่อ ไม่ใช่ตัดทิ้ง
+function ctxWeekHtml() {
+  const all = ctxClasses();
+  const open = ctxEditing && ctxEditing.kind === 'class';
+  const form = open ? ctxFormHtml('class')
+    : `<button class="ctx-add" onclick="ctxOpenForm('class')">+ เพิ่มคาบเรียน</button>`;
+
+  if (!all.length) {
+    return `<div class="ctx-list">
+      <p class="ctx-empty">ยังไม่ได้ใส่ตารางเรียน — ใส่แล้ว AI จะเลิกวางงานทับเวลาเรียน</p>
+      ${form}</div>`;
+  }
+
+  // เริ่มที่วันจันทร์เพราะสัปดาห์ของโรงเรียนเริ่มตรงนั้น เสาร์อาทิตย์ไปต่อท้าย
+  // วันที่ไม่มีคาบไม่ขึ้นเลย — แถวว่างของเสาร์อาทิตย์ไม่ได้บอกอะไรที่คนยังไม่รู้
+  const days = [1, 2, 3, 4, 5, 6, 0]
+    .map(d => ({ d, list: all.filter(x => onDay(x, d))
+      .sort((a, b) => (hm2min(a.start) || 0) - (hm2min(b.start) || 0)) }))
+    .filter(x => x.list.length);
+
+  const blocks = days.map(({ d, list }) => {
+    const on = ctxOpenDay === d;
+    const to = list.reduce((m, x) => Math.max(m, hm2min(x.end) || 0), 0);
+    const body = on
+      ? `<div class="ctx-pers">${list.map((x, n) => {
+          const name = x.subject || 'เรียน';
+          return `<div class="ctx-per ${subjClass(name)}">
+            <span class="ctx-per-n">${n + 1}</span>
+            <i class="mono">${esc(x.start)}–${esc(x.end)}</i>
+            <b>${esc(name)}</b>
+            ${ctxDayCount(x) > 1 ? `<u>${esc(ctxDayLabel(x))}</u>` : ''}
+            <button class="ctx-del" onclick="ctxDelete('class','${x.id}')"
+              aria-label="ลบ ${esc(name)}">${icon('trash')}</button>
+          </div>`;
+        }).join('')}</div>`
+      : `<p class="ctx-daysum">${[...new Set(list.map(x => x.subject || 'เรียน'))]
+          .map(s => `<span class="ctx-chip ${subjClass(s)}">${esc(s)}</span>`).join('')}</p>`;
+
+    return `<div class="ctx-dayblk${on ? ' on' : ''}">
+      <button class="ctx-dayh" onclick="ctxToggleWeekDay(${d})" aria-expanded="${on}">
+        <b>วัน${THAI_DAY[d]}</b>
+        <i class="mono">${esc(list[0].start)}–${esc(min2hm(to))}</i>
+        <u>${list.length} คาบ</u>
+        <span class="ctx-dayx">${icon('chevron')}</span>
+      </button>
+      ${body}
+    </div>`;
+  }).join('');
+
+  // คาบซ้ำ ๆ ที่กระจายอยู่หลายวันนับหัวยาก บอกยอดรวมไว้ให้เห็นว่าใส่ครบหรือยัง
+  const total = all.reduce((s, x) => s + ctxDayCount(x), 0);
+  return `<div class="ctx-week">
+    <p class="ctx-weeksum">${days.length} วันเรียน · ${total} คาบต่อสัปดาห์ — แตะวันเพื่อดูรายคาบ</p>
+    ${blocks}${form}</div>`;
 }
 
 function ctxListHtml(kind) {
@@ -3199,6 +3761,15 @@ function renderTabBadges() {
   el.textContent = urgent > 9 ? '9+' : urgent;
   el.setAttribute('aria-label', urgent ? 'งานด่วนมาก ' + urgent + ' งาน' : '');
 
+  // จุดแดงบนแท็บ "ฉัน" — ของรางวัลรายวันที่ยังไม่ได้กดรับ
+  // ไม่มีตัวเลข เพราะมันคือของชิ้นเดียวต่อวัน ตัวเลขจะกลายเป็นการบอกว่า "1" ซึ่งไม่ได้บอกอะไรเพิ่ม
+  const dot = document.getElementById('dotMe');
+  if (dot) {
+    const waiting = typeof dailyPending === 'function' && dailyPending();
+    dot.hidden = !waiting;
+    dot.setAttribute('aria-label', waiting ? 'มีของรางวัลรายวันรอรับ' : '');
+  }
+
   // ปุ่มเพื่อนมุมขวาบน — ขึ้นจำนวนเพื่อนที่มีในรายการ
   const fb = document.getElementById('friendsBadge');
   if (fb) {
@@ -3369,7 +3940,7 @@ function workStatsHtml(now) {
 }
 
 function renderAll() {
-  renderMenu(); renderHome(); renderTasks(); renderTimeline();
+  renderMenu(); renderHome(); renderTasks(); renderTimeline(); renderAi();
   renderProfile(); renderStats(); renderPlan(); renderFriends(); renderBadges();
   renderShop(); renderWheel(); renderInstallCard(); renderTabBadges(); renderContext();
   renderRunBar();
@@ -5958,9 +6529,9 @@ function skipOnboard() {
 // ฉาก "ยินดีที่ได้รู้จัก ___" — จังหวะเดียวที่แอปได้ทักผู้ใช้ด้วยชื่อเขาเป็นครั้งแรก
 // gotDay = เขาตอบเรื่องรูปร่างของวันมาด้วยไหม
 function showWelcome(name, gotDay) {
-  // กันของรางวัลรายวันไว้ก่อน แล้วค่อยปล่อยให้เด้งหลังคนใช้ตั้งตัวได้แล้ว
+  // ของรางวัลรายวันไม่เด้งใส่คนใช้ครั้งแรกอีกแล้ว — จุดแดงบนแท็บ "ฉัน" รออยู่ตรงนั้นเอง
+  // (ตัวแปรกันเด้งยังอยู่เพราะ openDailyCheck(true) ยังอ่านมันอยู่ เผื่อวันไหนเอาการเด้งกลับมา)
   checkinHoldUntil = Date.now() + 9000;
-  setTimeout(() => { if (dailyPending()) openDailyCheck(true); }, 9500);
   const w = document.getElementById('obWelcome');
   document.getElementById('obwName').textContent = name;
   // คนที่อุตส่าห์ตอบเรื่องตารางมา ต้องได้ยินทันทีว่าคำตอบนั้นถูกใช้ทำอะไร
@@ -6041,7 +6612,8 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   load();
   purgeOldTrash(); // ของในถังขยะที่เกิน 30 วัน ทิ้งถาวรตอนเปิดแอป
 
-  // ป้ายมุมจอบอกเลขเวอร์ชัน — ดึงจาก APP_VERSION ที่เดียว ขึ้นรุ่นใหม่ไม่ต้องไล่แก้ HTML
+  // ป้ายเลขรุ่นกลางหัวจอถูกเอาออกจาก index.html แล้ว — บรรทัดนี้จึงไม่เจอ #verBadge
+  // เก็บไว้เฉย ๆ เผื่อวันไหนเอาป้ายกลับมา จะได้ไม่ต้องมาไล่ต่อสายให้ APP_VERSION ใหม่
   const badge = document.getElementById('verBadge');
   if (badge) badge.textContent = APP_VERSION;
 
@@ -6104,15 +6676,16 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     subscribePush().then(() => renderProfile()).catch(() => {});
   }
 
-  // หน้าต่างเช็คอินเด้งเองเมื่อถึงวันใหม่ (6 โมงเช้าไทย) และยังไม่ได้กดรับ
-  // หน่วงไว้หน่อยเพื่อไม่ให้เด้งใส่หน้าทันทีที่แอปเพิ่งเปิด (เดิมหน่วงเพราะรอฉากเปิดแอปปิด)
-  // ไม่แจกให้เองโดยไม่ถาม — ให้ผู้ใช้เห็นตารางแล้วกดรับเอง จะได้รู้ว่าตัวเองอยู่วันที่เท่าไหร่ของรอบ
-  setTimeout(() => openDailyCheck(true), 2500);
-
-  // ถึง 6 โมงเช้าระหว่างที่แอปเปิดค้างอยู่ ก็เด้งให้เลย ไม่ต้องรอปิดเปิดใหม่
-  setInterval(() => { if (dailyPending()) openDailyCheck(true); }, 60_000);
+  // หน้าต่างเช็คอินไม่เด้งเองอีกแล้ว
+  // ของรางวัลรายวันเคยเป็นสิ่งแรกที่ผู้ใช้เห็นตอนเปิดแอป — แผ่นเต็มจอทับหน้าแรกไว้ทั้งใบ
+  // พร้อม toast เตือนงานซ้อนอยู่ข้างบนอีกชั้น คนที่เปิดแอปมาเพราะกลัวลืมส่งงาน
+  // จึงต้องปัดของแจกทิ้งก่อนถึงจะได้เห็นงานของตัวเอง
+  // ตอนนี้เหลือจุดแดงบนแท็บ "ฉัน" แทน (ดู renderTabBadges) — เห็นว่ามีของรอ
+  // แต่เป็นคนเลือกเองว่าจะไปรับตอนไหน ส่วนตารางรอบ 7 วันยังกดดูได้ที่ร้านค้าเหมือนเดิม
+  // ถึง 6 โมงเช้าระหว่างแอปเปิดค้าง จุดแดงก็ต้องขึ้นเอง ไม่ต้องรอปิดเปิดใหม่
+  setInterval(renderTabBadges, 60_000);
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && dailyPending()) openDailyCheck(true);
+    if (!document.hidden) renderTabBadges();
   });
 
   // ของสองอย่างที่เคยรอฉากเปิดแอปปิดก่อนถึงจะเด้ง — ตอนนี้รอให้ผู้ใช้ตั้งตัวแทน
