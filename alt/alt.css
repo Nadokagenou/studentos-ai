@@ -1859,7 +1859,7 @@
 }
 
 /* หน้าแรกต้องจบในจอเดียว ไม่ต้องเลื่อน — ทุกระยะในหน้านี้จึงถูกบีบกว่าจอทั่วไป */
-.menu-body { gap: 11px; padding-top: 14px; padding-bottom: calc(80px + var(--tabgap)); }
+.menu-body { gap: 9px; padding-top: 10px; padding-bottom: calc(80px + var(--tabgap)); }
 .menu-head .page-title { margin-top: 2px; }
 .menu-head .page-sub { display: none; }
 /* ชื่อผู้ใช้ในคำทักทาย — คำเดียวบนจอที่เป็นของเขาคนเดียว ให้มันมีสี */
@@ -2005,8 +2005,10 @@
 }
 /* กรอบไอคอนเดิมเป็นขาว 22% + ไอคอนขาว บนพื้นน้ำเงิน = ขาวจาง ๆ บนน้ำเงิน แล้วขาวทึบบนขาวจาง
    สองชั้นนั้นต่างกันน้อยเกินกว่าจะเห็นเป็นรูปกล้อง มันเลยละลายหายไปกับพื้น
-   สลับขั้วแทน: กรอบขาวทึบ ไอคอนเป็นสีน้ำเงินของพื้น — คอนทราสต์สูงสุดที่หาได้จากสองสีที่มีอยู่แล้ว */
-.mtile.hero.half .mt-ic { background: #fff; color: var(--fill); }
+   ทางออกคือทำกรอบให้ "เข้มกว่า" พื้นแทนที่จะสว่างกว่า ไอคอนขาวจึงลอยขึ้นมาชัด
+   ใช้ดำโปร่งไม่ใช่สีน้ำเงินเจาะจง เพราะไทล์นี้เปลี่ยนสีตามธีมทั้ง 15 ตัว
+   ดำโปร่งทำให้มันเข้มกว่าพื้นเสมอไม่ว่าพื้นจะเป็นสีอะไร */
+.mtile.hero.half .mt-ic { background: rgba(0,0,0,.22); color: #fff; }
 .mtile.hero.half .mt-sub { color: rgba(255,255,255,.78); }
 .mtile.hero.half .mt-go { top: 12px; right: 12px; bottom: auto; color: var(--on-fill); opacity: .8; }
 
@@ -2231,8 +2233,8 @@
   justify-content: center;
   gap: 5px;
   width: 100%;
-  margin-top: 10px;
-  min-height: 40px;
+  margin-top: 8px;
+  min-height: 34px;
   border: none;
   border-radius: 12px;
   background: transparent;
@@ -2321,11 +2323,13 @@
 }
 
 /* 4) ภาพของฉัน */
+/* 158px กินพื้นที่เกือบเท่างานหนึ่งใบครึ่ง บนจอที่ต้องใส่ลิสต์งาน + ทางเข้าอีกสามอัน
+   ให้พอดีจอเดียว รูปยังเป็นแถบกว้างที่เห็นเนื้อภาพครบ แค่เตี้ยลง */
 .wg-photo {
   background-size: cover;
   background-position: center;
   justify-content: flex-end;
-  min-height: 158px;
+  min-height: 120px;
   color: #fff;
 }
 .wg-photo .wg-shade {
@@ -4633,9 +4637,9 @@ body[data-godir] :root[data-theme="meta"] .screen.on { animation-duration: .24s;
 :root[data-theme="dark"] .brief-mark svg { color: var(--on-fill); }
 :root[data-theme="dark"] .mtile.hero .mt-ct { background: var(--fill); color: var(--on-fill); }
 /* ...ยกเว้นไทล์ครึ่งแถว ซึ่งพื้นเป็น --fill อยู่แล้ว กฎข้างบนจึงให้ไอคอนสีเดียวกับพื้นเป๊ะ
-   = กล้องหายไปกับพื้นทั้งดวง กรอบขาวทึบกับไอคอนสีน้ำเงินคือคู่ที่ต่างกันมากที่สุดที่มีอยู่แล้ว
+   = กล้องหายไปกับพื้นทั้งดวง กรอบต้องเข้มกว่าพื้น ไอคอนขาวถึงจะลอยขึ้นมา
    (กฎนี้ต้องอยู่หลังกฎข้างบน — น้ำหนักตัวเลือกเท่ากัน ตัวที่มาทีหลังจึงชนะ) */
-:root[data-theme="dark"] .mtile.hero.half .mt-ic { background: #fff; color: var(--fill); }
+:root[data-theme="dark"] .mtile.hero.half .mt-ic { background: rgba(0,0,0,.22); color: #fff; }
 :root[data-theme="dark"] .mtile.hero.half .mt-go { color: var(--on-fill); opacity: .8; }
 :root[data-theme="dark"] .mtile.hero .mt-go { color: var(--blue); opacity: .85; }
 /* ปุ่มในการ์ด AI: เดิมเป็นพื้นขาวเต็มความกว้าง = ของที่สว่างที่สุดบนจอตารางงาน
@@ -4662,7 +4666,10 @@ body[data-godir] :root[data-theme="meta"] .screen.on { animation-duration: .24s;
    ปุ่มสแกนกลม ๆ ลอยขึ้นเหนือแถบ 34px แต่ padding ล่างของทุกจอเผื่อไว้แค่ความสูงแถบ
    ปุ่มสุดท้ายของหน้า (เช่น "ดูงานที่เหลืออีก 2 งาน") จึงถูกปุ่มสแกนทับจนกดไม่ได้ */
 .home-body, .scr-body { padding-bottom: calc(118px + var(--tabgap)); }
-.menu-body { padding-bottom: calc(108px + var(--tabgap)); }
+/* หน้าแรกเผื่อน้อยกว่าจอ์อื่น 20px — วัดจากของจริง: ปุ่มสแกนเริ่มที่ 756px จากขอบบน
+   เผื่อ 88 + 5 = 93 ทำให้เนื้อหาจบที่ 751 ซึ่งพ้นปุ่มสแกนพอดีโดยไม่เหลือที่ว่างเปล่า
+   20px ที่ประหยัดได้คือส่วนหนึ่งของ 72px ที่ทำให้หน้าแรกล้นจอ */
+.menu-body { padding-bottom: calc(88px + var(--tabgap)); }
 
 /* ---------- ระยะปลอดภัยใต้แถบบน ----------
    ป้ายเลขรุ่นกับปุ่มเพื่อนลอยอยู่เหนือทุกจอ จอที่ขึ้นต้นด้วยการ์ดเต็มความกว้าง
