@@ -2214,6 +2214,28 @@
 .wg-item-go { flex: none; display: flex; color: var(--muted); opacity: .55; }
 .wg-item-go svg { width: 15px; height: 15px; }
 
+/* ทางไปงานที่เหลือ — คนที่มีงานค้าง 28 ใบต้องรู้ว่าลิสต์นี้แสดงแค่ 3 ใบแรก
+   ไม่งั้น "ควรทำก่อน" จะอ่านได้ว่า "มีอยู่แค่นี้" ซึ่งเป็นคำโกหกที่ทำให้วางแผนผิด */
+.wg-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  margin-top: 10px;
+  min-height: 40px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  cursor: pointer;
+}
+.wg-more svg { width: 14px; height: 14px; }
+.wg-more:active { background: var(--card2); }
+
 /* ป้ายความด่วนบนหัวการ์ด — แดงจริงเมื่อด่วนจริง ป้ายสีเทาทุกระดับก็ไม่ต้องมีก็ได้ */
 .wg-pill.red    { background: var(--pri-red);    color: #fff; font-weight: 700; }
 .wg-pill.yellow { background: var(--pri-yellow); color: #2A1D02; font-weight: 700; }

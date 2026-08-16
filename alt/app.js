@@ -915,7 +915,9 @@ function menuTile(cls, ic, label, sub, count, target) {
 const WG_KEY = 'studentos.alt.widget';
 const WG_NOTE_KEY = 'studentos.alt.widgetNote';
 const WG_PHOTO_KEY = 'studentos.alt.widgetPhoto';
-const WG_NAME = { urgent: 'งานด่วนที่สุด', note: 'โน้ตของฉัน', clock: 'เวลา', photo: 'ภาพของฉัน' };
+// 'urgent' ไม่ใช่ลิสต์งานอีกแล้ว — ลิสต์ขึ้นเสมอ (ดู urgentCard) ค่านี้จึงแปลว่า "ไม่ใช้ช่องนี้"
+// ชื่อคีย์ยังเป็น 'urgent' เหมือนเดิม เพราะมันคือค่าที่อยู่ในเครื่องคนที่ใช้อยู่แล้ว
+const WG_NAME = { urgent: 'ไม่ใช้ช่องนี้', note: 'โน้ตของฉัน', clock: 'เวลา', photo: 'ภาพของฉัน' };
 
 function widgetPref() {
   let v = null;
@@ -956,6 +958,8 @@ function clearWidgetPhoto() {
   showToast({ title: 'เอาภาพออกแล้ว', body: 'เลือกภาพใหม่ได้ทุกเมื่อ' });
 }
 
+// ช่องบนสุดที่ผู้ใช้เลือกเอง — รูป/โน้ต/นาฬิกา
+// **ไม่รวมลิสต์งานอยู่ในนี้อีกแล้ว** ดู urgentCard() ข้างล่างว่าทำไม
 function widgetHtml(now) {
   const kind = widgetPref();
 
@@ -992,7 +996,16 @@ function widgetHtml(now) {
     </section>`;
   }
 
-  // urgent (ค่าเริ่มต้น)
+  return '';
+}
+
+// ---------- ลิสต์ "ควรทำก่อน" ----------
+// การ์ดนี้เคยเป็นแค่ "ตัวเลือกหนึ่ง" ของช่องวิดเจ็ต แปลว่าใครเลือกรูปหรือโน้ต
+// ก็เสียลิสต์งานไปทั้งใบ — เปิดแอปมาเจอรูปสวย ๆ ทั้งที่มีงานค้าง 28 ใบ
+// และไม่มีอะไรบอกว่าเสียอะไรไป เพราะตอนเลือกรูปมันไม่ได้พูดถึงงานเลย
+// "รู้ว่าต้องทำอะไรก่อน" คือสิ่งเดียวที่แอปนี้สัญญาไว้ มันจึงเป็นตัวเลือกไม่ได้
+// ตอนนี้ขึ้นเสมอ ส่วนวิดเจ็ตที่เลือกเองไปอยู่ข้างบนเป็นของเพิ่ม ไม่ใช่ของแทนที่
+function urgentCard(now) {
   const pending = sortByPriority(pendingTasks(), now);
   const top = pending[0];
   if (!top) {
@@ -1021,6 +1034,8 @@ function widgetHtml(now) {
         <span class="wg-item-go">${icon('chevron')}</span>
       </div>`).join('')}
     </div>
+    ${pending.length > 3 ? `<button class="wg-more" onclick="go('scr-tasks')">
+      ยังมีอีก ${pending.length - 3} งาน${icon('chevron')}</button>` : ''}
   </section>`;
 }
 
@@ -1095,6 +1110,7 @@ function renderMenu() {
       <h1 class="page-title">${greet}${who() ? ', <b class="pt-me">' + esc(who()) + '</b>' : ''}</h1>
     </div>
     ${widgetHtml(now)}
+    ${urgentCard(now)}
     <div class="menu-grid">
       ${inboxTile()}
       ${menuTile('tone-tasks', 'check-circle', 'งานทั้งหมด', 'ค้าง · เสร็จ · ถังขยะ', live.length, 'scr-tasks')}

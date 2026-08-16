@@ -789,8 +789,11 @@
                 <span class="bd"><span class="lb">วิดเจ็ตหน้าแรก</span><span class="sb" id="wgNow"></span></span>
               </span>
               <div class="fs-grid wg-grid" id="wgPick">
+                <!-- ตัวเลือก "งานด่วน" ถูกถอดออก — ลิสต์งานขึ้นเสมอแล้ว ไม่ต้องเลือก
+                     ค่านี้ยังชื่อ 'urgent' ในที่เก็บข้อมูล จึงแปลว่า "ไม่ใช้ช่องนี้"
+                     คนที่เคยเลือกไว้อยู่แล้วจึงไม่ต้องมาตั้งใหม่ -->
                 <button type="button" data-wg="urgent" onclick="setWidget('urgent')">
-                  <svg viewBox="0 0 24 24"><use href="#lu-flag"/></svg>งานด่วน</button>
+                  <svg viewBox="0 0 24 24"><use href="#lu-flag"/></svg>ไม่ใช้</button>
                 <button type="button" data-wg="note" onclick="setWidget('note')">
                   <svg viewBox="0 0 24 24"><use href="#lu-pencil"/></svg>โน้ต</button>
                 <button type="button" data-wg="clock" onclick="setWidget('clock')">
