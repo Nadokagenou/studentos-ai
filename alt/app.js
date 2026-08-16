@@ -1363,10 +1363,13 @@ function renderTasks() {
     .sort((a, b) => (b.doneAt || b.due || '').localeCompare(a.doneAt || a.due || ''));
   const bin = state.tasks.filter(t => t.deleted);
 
+  // งานที่เสร็จแล้วกับงานที่ลบไปเป็น "ของที่เก็บไว้ดูย้อนหลัง" เหมือนกัน
+  // ทั้งคู่จึงอยู่หลังปุ่มท้ายหน้า ไม่ใช่แท็บบนหัวจอที่ยืนแข่งกับรายการงานจริง
+  // รายการหลักเหลืองานค้างอย่างเดียว — จอนี้มีหน้าที่บอกว่า "ยังเหลืออะไร" ไม่ใช่ "เคยทำอะไรไปบ้าง"
   if (taskFilter === 'bin') { el.innerHTML = binView(bin); return; }
+  if (taskFilter === 'done') { el.innerHTML = doneView(done); return; }
 
-  const rows0 = taskFilter === 'done' ? done
-    : taskFilter === 'all' ? pending.concat(done) : pending;
+  const rows0 = pending;
 
   // แถบเลือกวัน — ตอบคำถาม "วันนี้อะไรสำคัญ แล้ววันอื่นต่อ" โดยไม่ต้องเปิดอีกจอ
   // ค่าเริ่มต้นคือ "ทุกวัน" เพื่อให้จอนี้ยังเป็นรายการงานทั้งหมดเหมือนเดิม
@@ -1386,18 +1389,11 @@ function renderTasks() {
     ? rows0.filter(t => t.due && dayKey(new Date(t.due)) === taskDay)
     : rows0;
 
-  const tab = (key, label, n) =>
-    `<button class="${taskFilter === key ? 'active' : ''}" onclick="setFilter('${key}')">
-      ${label}<span class="ct">${n}</span></button>`;
-
   const head = `<div class="page-head">
       <div class="eyebrow">รายการงาน</div>
-      <h1 class="page-title">งานทั้งหมด</h1>
-    </div>
-    <div class="seg3">
-      ${tab('pending', 'ค้างอยู่', pending.length)}
-      ${tab('done', 'เสร็จแล้ว', done.length)}
-      ${tab('all', 'ทั้งหมด', live.length)}
+      <h1 class="page-title">ตารางงาน</h1>
+      <p class="page-sub">ค้างอยู่ <b>${pending.length}</b>${
+        done.length ? ' · เสร็จแล้ว ' + done.length : ''}</p>
     </div>
     <div class="daystrip">
       ${days.map(x => `<button class="ds${taskDay === x.k ? ' on' : ''}" onclick="setTaskDay('${x.k}')">
@@ -1410,8 +1406,6 @@ function renderTasks() {
       <span>ดูทุกวัน</span></button>` : ''}`;
 
   const empty = taskDay ? 'วันนี้ไม่มีงานที่ถึงกำหนด'
-    : taskFilter === 'done' ? 'ยังไม่มีงานที่ทำเสร็จ'
-    : taskFilter === 'all' ? 'ยังไม่มีงาน — กดปุ่มกลางแถบล่างเพื่อเพิ่ม'
     : 'ไม่มีงานค้างเลย — เคลียร์หมดแล้ว';
 
   // ใบแรกของรายการที่ยังไม่เสร็จได้แถบฟ้า = "ใบนี้คือใบที่ควรลงมือ"
@@ -1422,8 +1416,39 @@ function renderTasks() {
     + (rows.length
         ? rows.map(t => taskCard(t, now, t === firstPending)).join('')
         : `<div class="card empty">${empty}</div>`)
+    + (done.length ? `<button class="bin-btn" onclick="setFilter('done')">
+        ${icon('check-circle')}เสร็จแล้ว · ${done.length} งาน</button>` : '')
     + (bin.length ? `<button class="bin-btn" onclick="setFilter('bin')">
         ${icon('trash')}ถังขยะ · ${bin.length} รายการ</button>` : '');
+}
+
+// ---------- ที่เก็บงานที่ทำเสร็จ ----------
+// โครงเดียวกับถังขยะ เพราะเป็นของประเภทเดียวกัน — ของที่เก็บไว้ดูย้อนหลัง
+// ต่างกันที่ถังขยะมีวันหมดอายุ ส่วนงานที่เสร็จอยู่ถาวร (สถิติกับเหรียญนับจากตรงนี้)
+function doneView(done) {
+  const head = `<div class="bin-head">
+      <button class="back" onclick="setFilter('pending')" aria-label="กลับ">${icon('chevron')}</button>
+      <div style="flex:1;min-width:0">
+        <div class="eyebrow">ที่เก็บงานที่ทำเสร็จ</div>
+        <div class="page-title" style="font-size:21px;margin-top:2px">เสร็จแล้ว</div>
+      </div>
+    </div>`;
+  if (!done.length) return head + `<div class="card empty">ยังไม่มีงานที่ทำเสร็จ</div>`;
+
+  const now = new Date();
+  // จัดกลุ่มตามวันที่ทำเสร็จ — "เสร็จไปแล้วกี่ใบ" อ่านง่ายกว่าตอนเห็นเป็นวัน ๆ ไป
+  const groups = {};
+  for (const t of done) {
+    const k = t.doneAt ? fmtThaiDate(new Date(t.doneAt)) : 'ไม่รู้วันที่';
+    (groups[k] = groups[k] || []).push(t);
+  }
+  const body = Object.entries(groups).map(([k, list]) =>
+    `<div class="sec-label soft">${icon('check')}${esc(k)} · ${list.length} งาน</div>`
+    + list.map(t => taskCard(t, now, false)).join('')).join('');
+
+  return head + body
+    + `<p class="bin-note">งานที่เสร็จไม่หายไปไหน — สถิติกับเหรียญตรานับจากรายการนี้
+        · แตะใบไหนเพื่อเอากลับมาเป็นงานค้าง</p>`;
 }
 
 // ---------- ถังขยะ ----------
