@@ -1020,17 +1020,21 @@ function urgentCard(now) {
   // เดิมใบแรกเป็นก้อนใหญ่มีชิปสามอัน อีกสองใบเป็นแถวผอม ๆ ซึ่งอ่านออกมาว่า
   // "ใบแรกสำคัญ อีกสองใบเป็นของแถม" ทั้งที่ทั้งสามใบก็ต้องส่งเหมือนกัน
   // แถวเท่ากันหมดยังทำให้กวาดตาหาวันที่ได้ในคอลัมน์เดียว แทนที่จะไล่หาทีละก้อน
-  return `<section class="wg wg-urgent ${priorityTone(info.stars)}">
+  const tone = priorityTone(info.stars);
+  return `<section class="wg wg-urgent ${tone}">
     <div class="wg-head">${icon('flag')}<span>ควรทำก่อน</span>
-      <span class="wg-pill ${priorityTone(info.stars)}">${esc(priorityLabel(info.stars))}</span></div>
+      ${tone === 'red' ? `<span class="wg-pill red">${esc(priorityLabel(info.stars))}</span>` : ''}</div>
     <div class="wg-list">
-      ${pending.slice(0, 3).map(t => `<div class="wg-item" onclick="openForm('${t.id}')">
+      ${pending.slice(0, 3).map(t => `<div class="wg-item ${subjClass(t.subject)}" onclick="openForm('${t.id}')">
         ${wgTick(t)}
+        <span class="wg-item-bar" aria-hidden="true"></span>
         <div class="wg-item-tx">
           <div class="wg-item-ttl">${taskTitle(t)}</div>
-          ${t.due ? `<div class="wg-item-due ${wgDueTone(t, now)}">${esc(fmtDue(t.due, now, t))}</div>` : ''}
+          <div class="wg-item-meta">
+            <span class="wg-item-due ${wgDueTone(t, now)}">${esc(wgDueText(t, now))}</span>${
+              t.estMin ? ` · ~${t.estMin} นาที` : ''}
+          </div>
         </div>
-        ${t.estMin ? `<span class="wg-item-est">~${t.estMin} นาที</span>` : ''}
         <span class="wg-item-go">${icon('chevron')}</span>
       </div>`).join('')}
     </div>
@@ -1050,7 +1054,21 @@ function wgTick(t) {
 // ใช้ dueTone() ตัวเดียวกับหน้ารายการงาน (hot/warm) ไม่ตั้งเกณฑ์ใหม่ของตัวเอง —
 // สองจอนี้พูดถึงงานใบเดียวกัน ถ้าเกณฑ์ต่างกัน ใบเดียวจะแดงจอหนึ่งเหลืองอีกจอหนึ่ง
 // ที่เพิ่มคือ 'far' แทนค่าว่าง เพื่อให้ "ยังมีเวลา" เป็นสีเขียวได้ ไม่ใช่เทากลืนกับข้อความอื่น
-function wgDueTone(t, now) { return dueTone(t, now) || 'far'; }
+// งานที่ยังไม่ได้ตั้งกำหนดต้องไม่ได้สีเขียว — เขียวแปลว่า "ยังมีเวลา" ซึ่งเป็นคำตอบ
+// ที่เราไม่มีสิทธิ์ให้ ในเมื่อไม่รู้ว่าส่งวันไหน มันจึงเป็นสีกลางเหมือนข้อความอื่นในบรรทัด
+function wgDueTone(t, now) { return t.due ? (dueTone(t, now) || 'far') : ''; }
+
+// ข้อความกำหนดส่งของแถว — ขึ้นทุกแถวเสมอ ต่อให้ยังไม่ได้ตั้งกำหนด
+// เดิมแถวที่ไม่มีกำหนดจะไม่มีบรรทัดนี้เลย เหลือชื่องานลอยกลางกล่องที่สูงเท่าแถวอื่น
+// สองแถวติดกันจึงสูงเท่ากันแต่มีเนื้อไม่เท่ากัน ซึ่งอ่านออกมาเป็น "แถวนี้เสีย" ไม่ใช่ "แถวนี้ไม่มีกำหนด"
+// fmtDue ตอบ 'ยังไม่ระบุกำหนด' ให้อยู่แล้วเมื่อไม่มีวันที่ — แค่ต้องเรียกมันทุกครั้ง
+//
+// ตัด ⚠ ที่ fmtDue แปะมาหน้าคำว่า "เลยกำหนด" ออกเฉพาะที่นี่
+// ตัวหนังสือทั้งบรรทัดเป็นสีแดงอยู่แล้ว สัญลักษณ์เตือนจึงพูดซ้ำสิ่งที่สีพูดไปแล้ว
+// และมันเป็นอิโมจิตัวเดียวในจอที่เหลือใช้ไอคอนเส้นล้วน — จออื่นยังได้ ⚠ เหมือนเดิม
+function wgDueText(t, now) {
+  return fmtDue(t.due, now, t).replace(/^⚠\s*/, '');
+}
 
 // ชิปสถานะของงานหนึ่งใบ — กำหนดส่งมาก่อนเสมอเพราะเป็นข้อมูลที่ตัดสินใจแทนได้จริง
 // ที่เหลือ (เวลาที่ใช้ · คะแนนเก็บ) เป็นสีกลาง เพราะมันไม่ใช่ข่าวร้ายในตัวเอง

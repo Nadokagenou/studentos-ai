@@ -2003,7 +2003,10 @@
   background: var(--fill);
   color: var(--on-fill);
 }
-.mtile.hero.half .mt-ic { background: rgba(255,255,255,.22); color: var(--on-fill); }
+/* กรอบไอคอนเดิมเป็นขาว 22% + ไอคอนขาว บนพื้นน้ำเงิน = ขาวจาง ๆ บนน้ำเงิน แล้วขาวทึบบนขาวจาง
+   สองชั้นนั้นต่างกันน้อยเกินกว่าจะเห็นเป็นรูปกล้อง มันเลยละลายหายไปกับพื้น
+   สลับขั้วแทน: กรอบขาวทึบ ไอคอนเป็นสีน้ำเงินของพื้น — คอนทราสต์สูงสุดที่หาได้จากสองสีที่มีอยู่แล้ว */
+.mtile.hero.half .mt-ic { background: #fff; color: var(--fill); }
 .mtile.hero.half .mt-sub { color: rgba(255,255,255,.78); }
 .mtile.hero.half .mt-go { top: 12px; right: 12px; bottom: auto; color: var(--on-fill); opacity: .8; }
 
@@ -2186,8 +2189,8 @@
 .wg-list { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
 .wg-item {
   display: flex;
-  align-items: center;
-  gap: 11px;
+  align-items: flex-start;
+  gap: 10px;
   padding: 11px 12px;
   border-radius: 12px;
   border: 1px solid var(--line);
@@ -2196,22 +2199,28 @@
   transition: transform .14s ease, border-color .14s ease;
 }
 .wg-item:active { transform: scale(.985); }
+/* แถบสีวิชา — ใช้ --sj จากคลาส sj-* ชุดเดียวกับที่หน้ารายการงานใช้อยู่
+   งานคณิตสองใบจึงเป็นสีเดียวกันเสมอ แยกจากวิชาอื่นได้โดยไม่ต้องอ่านชื่อ */
+.wg-item-bar { flex: none; width: 3px; align-self: stretch; border-radius: 2px; background: var(--sj, var(--muted)); }
 .wg-item-tx { flex: 1; min-width: 0; }
+/* ชื่องานได้สองบรรทัด — เดิมล็อกไว้บรรทัดเดียว "คณิตศาสตร์ · 2 ข้อ ส่ง…" จึงตัด
+   ส่วนที่บอกว่าเป็นงานอะไรทิ้งไปหมด งานคนละใบเลยเหลือข้อความเหมือนกันเป๊ะ */
 .wg-item-ttl {
   font-size: var(--fs-body);
   font-weight: 700;
-  line-height: 1.35;
+  line-height: 1.4;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
-/* กำหนดส่งคือตัวเดียวในแถวที่มีสี — ทุกอย่างที่เหลือเป็นสีกลางเพื่อให้มันเด่นได้จริง */
-.wg-item-due { margin-top: 2px; font-size: var(--fs-meta); font-weight: 600; color: var(--muted); }
+/* กำหนดส่งคือตัวเดียวในแถวที่มีสี — เวลาที่ใช้ต่อท้ายด้วยสีกลาง
+   เดิม "~30 นาที" นั่งคอลัมน์ขวาถาวร บีบความกว้างของชื่องานทั้งที่สำคัญน้อยกว่า */
+.wg-item-meta { margin-top: 3px; font-size: var(--fs-meta); font-weight: 600; color: var(--muted); }
 .wg-item-due.hot  { color: var(--pri-red-text); }
 .wg-item-due.warm { color: var(--pri-yellow-text); }
 .wg-item-due.far  { color: var(--pri-green-text); }
-.wg-item-est { flex: none; font-size: var(--fs-meta); font-weight: 500; color: var(--muted); }
-.wg-item-go { flex: none; display: flex; color: var(--muted); opacity: .55; }
+.wg-item-go { flex: none; display: flex; margin-top: 3px; color: var(--muted); opacity: .55; }
 .wg-item-go svg { width: 15px; height: 15px; }
 
 /* ทางไปงานที่เหลือ — คนที่มีงานค้าง 28 ใบต้องรู้ว่าลิสต์นี้แสดงแค่ 3 ใบแรก
@@ -4623,6 +4632,11 @@ body[data-godir] :root[data-theme="meta"] .screen.on { animation-duration: .24s;
 }
 :root[data-theme="dark"] .brief-mark svg { color: var(--on-fill); }
 :root[data-theme="dark"] .mtile.hero .mt-ct { background: var(--fill); color: var(--on-fill); }
+/* ...ยกเว้นไทล์ครึ่งแถว ซึ่งพื้นเป็น --fill อยู่แล้ว กฎข้างบนจึงให้ไอคอนสีเดียวกับพื้นเป๊ะ
+   = กล้องหายไปกับพื้นทั้งดวง กรอบขาวทึบกับไอคอนสีน้ำเงินคือคู่ที่ต่างกันมากที่สุดที่มีอยู่แล้ว
+   (กฎนี้ต้องอยู่หลังกฎข้างบน — น้ำหนักตัวเลือกเท่ากัน ตัวที่มาทีหลังจึงชนะ) */
+:root[data-theme="dark"] .mtile.hero.half .mt-ic { background: #fff; color: var(--fill); }
+:root[data-theme="dark"] .mtile.hero.half .mt-go { color: var(--on-fill); opacity: .8; }
 :root[data-theme="dark"] .mtile.hero .mt-go { color: var(--blue); opacity: .85; }
 /* ปุ่มในการ์ด AI: เดิมเป็นพื้นขาวเต็มความกว้าง = ของที่สว่างที่สุดบนจอตารางงาน
    ทั้งที่มันเป็นทางเลือกเสริม ส่วนการ์ดงานจริงที่ต้องอ่านกลับหม่นกว่า
