@@ -5061,9 +5061,93 @@ body.deep-scr .top-friends { display: none; }
 /* ══════════════════════════════════════════════════════════════════
    ถามน้องไซ
    ------------------------------------------------------------------
-   จอนี้ยังไม่มีแชท หน้าที่ตอนนี้คือประกาศขอบเขต — ทำอะไรให้ และจะไม่ทำอะไร
-   สองรายการจึงต้องหนักเท่ากัน ไม่ใช่รายการดี ๆ ยาว ๆ แล้วต่อท้ายด้วยตัวหนังสือจาง
+   จอนี้มีแชทจริงแล้ว แต่ยังคงสองรายการท้ายจอไว้ — ทำอะไรให้ และจะไม่ทำอะไร
+   สองรายการหนักเท่ากัน ไม่ใช่รายการดี ๆ ยาว ๆ แล้วต่อท้ายด้วยตัวหนังสือจาง
    ══════════════════════════════════════════════════════════════════ */
+
+/* แถบบอกว่าน้องไซเห็นอะไร — กดได้ ไม่ใช่ข้อความประดับ
+   คำสัญญาเรื่องข้อมูลที่ตรวจสอบไม่ได้ ก็ไม่ต่างจากไม่ได้สัญญา
+   ปุ่มนี้เปิดข้อความก้อนจริงที่ถูกส่งขึ้นเซิร์ฟเวอร์ ให้เทียบกับที่เขียนไว้ได้เอง */
+.ai-priv {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  background: var(--blue-soft); border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px 12px; margin-top: 4px; cursor: pointer;
+  font-family: inherit; color: var(--ink);
+}
+.ai-priv-ic { display: flex; color: var(--blue); flex: none; }
+.ai-priv-ic svg { width: 15px; height: 15px; }
+.ai-priv-tx { flex: 1; min-width: 0; font-size: var(--fs-meta); line-height: 1.45; }
+.ai-priv-go { flex: none; font-size: var(--fs-meta); font-weight: 700; color: var(--blue); }
+
+.ai-thread { display: flex; flex-direction: column; gap: 9px; margin-top: 12px; }
+.ai-thread.empty {
+  align-items: flex-start; gap: 3px;
+  background: var(--card); border: 1px dashed var(--line); border-radius: 14px; padding: 14px 15px;
+}
+.ai-thread.empty b { font-size: var(--fs-body); font-weight: 700; }
+.ai-thread.empty p { margin: 0; font-size: var(--fs-meta); line-height: 1.6; color: var(--muted); }
+
+.ai-msg { display: flex; gap: 8px; align-items: flex-end; }
+.ai-msg.me { justify-content: flex-end; }
+.ai-av {
+  flex: none; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--fill); color: var(--on-fill);
+  display: grid; place-items: center; margin-bottom: 2px;
+}
+.ai-av svg { width: 14px; height: 14px; }
+.ai-bub {
+  max-width: 84%; padding: 9px 12px; font-size: var(--fs-body); line-height: 1.6;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.ai-msg.me .ai-bub {
+  background: var(--fill); color: var(--on-fill); border-radius: 14px 14px 4px 14px;
+}
+.ai-msg.sai .ai-bub {
+  background: var(--card2); border: 1px solid var(--line); border-radius: 14px 14px 14px 4px;
+}
+/* ข้อความที่เป็นความผิดพลาดต้องหน้าตาไม่เหมือนคำตอบ ไม่งั้นผู้ใช้จะอ่านว่าน้องไซพูดอย่างนั้นจริง */
+.ai-msg.sai .ai-bub.err {
+  background: var(--pri-red-soft); border-color: transparent; color: var(--pri-red-text);
+}
+.ai-typing { display: flex; gap: 5px; align-items: center; }
+.ai-typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: ai-blink 1.1s infinite; }
+.ai-typing i:nth-child(2) { animation-delay: .18s; }
+.ai-typing i:nth-child(3) { animation-delay: .36s; }
+@keyframes ai-blink { 0%, 60%, 100% { opacity: .28; } 30% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ai-typing i { animation: none; opacity: .6; } }
+
+/* คำถามสำเร็จรูป — ขึ้นเฉพาะตอนยังไม่เคยคุย
+   ช่องพิมพ์เปล่าบนจอเปล่าคือจุดที่คนส่วนใหญ่ปิดทิ้ง เพราะไม่รู้ว่าถามอะไรได้ */
+.ai-seeds { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+.ai-seeds button {
+  border: 1px solid var(--blue); background: transparent; color: var(--blue);
+  border-radius: 999px; padding: 7px 12px; min-height: 34px;
+  font-family: inherit; font-size: var(--fs-meta); font-weight: 600; cursor: pointer;
+}
+.ai-seeds button:active { transform: scale(.97); }
+
+.ai-bar { display: flex; align-items: flex-end; gap: 8px; margin-top: 11px; }
+.ai-in {
+  flex: 1; min-height: 44px; max-height: 140px; resize: none;
+  background: var(--card2); border: 1px solid var(--line); border-radius: 14px;
+  padding: 12px 13px; font-family: inherit; font-size: var(--fs-body); line-height: 1.5;
+  color: var(--ink);
+}
+.ai-in:focus { outline: 2px solid var(--blue); outline-offset: -2px; }
+.ai-in:disabled { opacity: .55; }
+.ai-send {
+  flex: none; width: 44px; height: 44px; border-radius: 50%; border: none;
+  background: var(--fill); color: var(--on-fill);
+  display: grid; place-items: center; cursor: pointer;
+}
+.ai-send svg { width: 18px; height: 18px; transform: rotate(-90deg); }
+.ai-send:disabled { opacity: .5; }
+.ai-send:active { transform: scale(.94); }
+.ai-foot { margin: 9px 0 0; font-size: var(--fs-meta); line-height: 1.6; color: var(--muted); text-align: center; }
+.ai-wipe {
+  border: none; background: none; padding: 0; cursor: pointer;
+  font-family: inherit; font-size: inherit; color: var(--blue); font-weight: 600;
+}
 .ai-soon {
   display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
   background: var(--card); border: 1px dashed var(--line); border-radius: 14px;

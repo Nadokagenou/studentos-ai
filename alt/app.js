@@ -1634,21 +1634,115 @@ async function askSai(question, history) {
 // แอปที่ทำการบ้านให้เด็กเป็นแอปที่โรงเรียนแบน และเป็นจุดที่กรรมการสับได้ทันที
 // ส่วนแอปที่อธิบายจนเข้าใจแล้วให้ทำเอง ต่อยอดจากแกนเดิมของแอปพอดี
 // (ทุกอันดับที่จัดให้ มีเหตุผลกำกับเสมอ — ตรงนี้ก็คือเหตุผลกำกับ แต่เป็นของเนื้อหาวิชา)
+// ---------- ประวัติแชท ----------
+// เก็บในเครื่องเหมือนทุกอย่างในแอปนี้ — คนที่ถามเรื่องเดิมต่อพรุ่งนี้ต้องไม่ต้องเล่าใหม่
+// ตัดที่ 40 ข้อความ เพราะที่เก็บใน localStorage มีเพดาน และเกินนั้นก็ไม่มีใครเลื่อนขึ้นไปอ่าน
+const AI_LOG_KEY = 'studentos.alt.aiLog';
+const AI_LOG_CAP = 40;
+let aiBusy = false;
+
+function aiLog() {
+  try { return JSON.parse(localStorage.getItem(AI_LOG_KEY) || '[]'); } catch (_) { return []; }
+}
+function aiLogSave(list) {
+  try { localStorage.setItem(AI_LOG_KEY, JSON.stringify(list.slice(-AI_LOG_CAP))); } catch (_) {}
+}
+function aiClear() {
+  if (!confirm('ล้างประวัติการคุยกับน้องไซ?')) return;
+  try { localStorage.removeItem(AI_LOG_KEY); } catch (_) {}
+  renderAi();
+}
+
+function aiAsk(preset) {
+  const box = document.getElementById('aiInput');
+  const q = (preset || (box ? box.value : '') || '').trim();
+  if (!q || aiBusy) return;
+  const log = aiLog();
+  log.push({ role: 'user', text: q });
+  aiLogSave(log);
+  if (box) box.value = '';
+  aiBusy = true;
+  renderAi();
+
+  // ประวัติที่ส่งไปคือทุกอย่าง "ก่อน" คำถามล่าสุด — ฝั่งเซิร์ฟเวอร์ต่อคำถามเองเป็นข้อความสุดท้าย
+  const hist = log.slice(0, -1).map(m => ({ role: m.role, text: m.text }));
+  askSai(q, hist).then(r => {
+    const l2 = aiLog();
+    l2.push(r.ok ? { role: 'model', text: r.answer }
+      : { role: 'model', text: r.message, err: true });
+    aiLogSave(l2);
+    aiBusy = false;
+    renderAi();
+  });
+}
+
+// เปิดให้ดูว่าส่งอะไรไปจริง ๆ — ไม่ใช่คำอธิบายว่า "เราเก็บข้อมูลเท่าที่จำเป็น"
+// แต่เป็นตัวข้อความก้อนเดียวกันกับที่ถูกส่ง คนอ่านแล้วตรวจได้เองว่าตรงกับที่บอกไหม
+function aiShowContext() {
+  alert('นี่คือข้อความที่ถูกส่งไปพร้อมคำถามของคุณ:\n\n' + aiContext());
+}
+
 function renderAi() {
   const el = document.getElementById('aiBody');
   if (!el) return;
+  const now = new Date();
+  const log = aiLog();
+  const nPend = pendingTasks().length;
+  const nCls = typeof ctxClasses === 'function' ? ctxClasses().length : 0;
   const subj = [...new Set(pendingTasks().map(t => t.subject).filter(s => s && s !== 'อื่น ๆ'))];
+
+  const bubbles = log.map(m => m.role === 'user'
+    ? `<div class="ai-msg me"><div class="ai-bub">${esc(m.text)}</div></div>`
+    : `<div class="ai-msg sai">
+         <span class="ai-av">${icon('sparkles')}</span>
+         <div class="ai-bub${m.err ? ' err' : ''}">${esc(m.text)}</div>
+       </div>`).join('');
+
+  const typing = aiBusy ? `<div class="ai-msg sai">
+      <span class="ai-av">${icon('sparkles')}</span>
+      <div class="ai-bub ai-typing"><i></i><i></i><i></i></div>
+    </div>` : '';
+
+  // ปุ่มคำถามสำเร็จรูปขึ้นเฉพาะตอนยังไม่เคยคุย — จอเปล่ากับช่องพิมพ์เปล่า
+  // คือจุดที่คนส่วนใหญ่ปิดทิ้ง เพราะไม่รู้ว่าถามอะไรได้
+  const seeds = log.length ? '' : `<div class="ai-seeds">
+      ${['คืนนี้ควรทำอะไรก่อน', 'ช่วยอธิบายงานที่ค้างอยู่', 'ประเมินเวลาของฉันแม่นไหม']
+        .map(s => `<button onclick="aiAsk('${s}')">${s}</button>`).join('')}
+    </div>`;
+
   el.innerHTML = `<div class="page-head">
       <div class="eyebrow">ผู้ช่วยของฉัน</div>
       <h1 class="page-title">ถามน้องไซ</h1>
       <p class="page-sub">ติดตรงไหนถามได้ — น้องไซอธิบายให้เข้าใจ แล้วให้คุณทำเอง</p>
     </div>
 
-    <div class="ai-soon">
+    <button class="ai-priv" onclick="aiShowContext()">
+      <span class="ai-priv-ic">${icon('lock')}</span>
+      <span class="ai-priv-tx">น้องไซเห็นงาน ${nPend} ใบ${
+        nCls ? ' · ตารางเรียน ' + nCls + ' คาบ' : ''} · เวลาว่างของคุณ</span>
+      <span class="ai-priv-go">ดูว่าเห็นอะไร</span>
+    </button>
+
+    ${log.length ? `<div class="ai-thread">${bubbles}${typing}</div>` : `<div class="ai-thread empty">
       <span class="ai-soon-ic">${icon('sparkles')}</span>
-      <b>กำลังทำอยู่</b>
-      <p>รุ่นนี้ยังเป็นโครงของจอ ยังคุยไม่ได้ — รอบหน้าถึงจะต่อกับ AI จริง</p>
+      <b>ถามได้เลย</b>
+      <p>${subj.length
+        ? 'น้องไซรู้จักงานวิชา ' + esc(subj.slice(0, 3).join(' · ')) + ' ของคุณอยู่แล้ว'
+        : 'ยังไม่มีงานค้าง — ถามเรื่องเรียนอะไรก็ได้'}</p>
+    </div>${typing}`}
+
+    ${seeds}
+
+    <div class="ai-bar">
+      <textarea id="aiInput" class="ai-in" rows="1" maxlength="2000"
+        placeholder="พิมพ์คำถาม…" ${aiBusy ? 'disabled' : ''}
+        oninput="autoGrow(this)"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiAsk();}"></textarea>
+      <button class="ai-send" onclick="aiAsk()" ${aiBusy ? 'disabled' : ''}
+        aria-label="ส่งคำถาม">${icon('chevron')}</button>
     </div>
+    <p class="ai-foot">น้องไซไม่ทำการบ้านให้ — อธิบายให้เข้าใจแล้วให้คุณทำเอง${
+      log.length ? ` · <button class="ai-wipe" onclick="aiClear()">ล้างประวัติ</button>` : ''}</p>
 
     <div class="sec-label">น้องไซจะทำอะไรให้</div>
     <div class="ai-list">
@@ -1676,8 +1770,9 @@ function renderAi() {
           <span>เรียงความ รายงาน สรุปส่งครู — ช่วยวางโครงกับติชมได้ แต่ไม่เขียนแทน</span></span></div>
     </div>
 
-    <p class="ai-note">ข้อความที่ถามจะถูกส่งไปประมวลผลบนเซิร์ฟเวอร์ ไม่ได้อยู่ในเครื่องเหมือนการจัดตาราง —
-      รอบหน้าที่เปิดใช้จริงจะมีคำอธิบายเรื่องนี้ก่อนพิมพ์ข้อความแรกเสมอ</p>`;
+    <p class="ai-note">คำถามกับข้อมูลงานของคุณถูกส่งไปประมวลผลบนเซิร์ฟเวอร์ ไม่ได้อยู่ในเครื่องเหมือนการจัดตาราง —
+      กด “ดูว่าเห็นอะไร” ข้างบนเพื่ออ่านข้อความก้อนจริงที่ถูกส่งไป
+      ส่วนรายชื่อเพื่อนไม่ถูกส่งไปด้วย เพราะเป็นข้อมูลของคนอื่น</p>`;
 }
 
 function renderTasks() {
