@@ -826,17 +826,22 @@ function subjIndex() {
   const names = new Set();
   if (typeof ctxClasses === 'function') {
     for (const c of ctxClasses()) {
-      if (!c.subject) continue;
-      names.add(c.subject);
+      const s = (c.subject || '').trim();
+      if (!s) continue;
+      names.add(s);
       const wd = c.weekday == null ? [0, 1, 2, 3, 4, 5, 6]
         : (Array.isArray(c.weekday) ? c.weekday : [c.weekday]);
-      days[c.subject] = days[c.subject] || new Set();
-      for (const d of wd) days[c.subject].add(d);
+      days[s] = days[s] || new Set();
+      for (const d of wd) days[s].add(d);
     }
   }
-  for (const t of (state.tasks || [])) if (t.subject) names.add(t.subject);
+  // ตัดช่องว่างหัวท้ายตอนสร้างสารบัญด้วย — subjColor() ค้นด้วยชื่อที่ trim แล้ว
+  // วิชาที่ถูกพิมพ์มาพร้อมช่องว่างท้ายชื่อ (พิมพ์เองก็ได้ OCR อ่านมาก็ได้) จึงหาไม่เจอ
+  // แล้วตกไปเป็นสี 0 = เทา ทั้งที่มันมีชื่อวิชาชัดเจน จุดบนปฏิทินของวิชานั้นจึงเทาอยู่ดวงเดียว
+  for (const t of (state.tasks || [])) if (t.subject && t.subject.trim()) names.add(t.subject.trim());
 
-  const list = [...names].filter(s => s !== 'อื่น ๆ').sort((a, b) => a.localeCompare(b, 'th'));
+  const list = [...names].map(s => s.trim())
+    .filter(s => s && s !== 'อื่น ๆ').sort((a, b) => a.localeCompare(b, 'th'));
   const key = list.map(s => s + ':' + [...(days[s] || [])].sort().join('')).join('|');
   if (subjMap && subjMapKey === key) return subjMap;   // วาดจอหนึ่งครั้งเรียกหลายสิบรอบ
 
@@ -2365,7 +2370,7 @@ function tlOpen(i) {
     why = rel.length
       ? ['งานจากวิชานี้', rel.map(t => taskTitleText(t) + ' · ' + fmtDue(t.due, now, t)).join('\n')]
       : ['ทำไมไม่มีงานตรงนี้', 'ช่วงนี้ถูกกันไว้เป็นเวลาที่ทำงานไม่ได้ ระบบจะไม่วางงานทับ'];
-    cta = `<button class="daysheet-go ghost" onclick="tlClose();go('scr-context')">${icon('clock')}แก้ตารางนี้</button>`;
+    cta = `<button class="daysheet-go" onclick="tlClose();go('scr-context')">${icon('clock')}แก้ตารางนี้</button>`;
   } else if (it.kind === 'classes') {
     // ก้อนนี้ย่อคาบเรียนทั้งวันไว้แถวเดียว รายคาบจึงต้องกางครบตรงนี้ ไม่งั้นคือการซ่อน
     tag = 'ตารางเรียน';
@@ -2373,7 +2378,7 @@ function tlOpen(i) {
     chips = [[min2hm(it.from) + '–' + min2hm(it.to), ''], [humanMin(it.to - it.from), '']];
     why = ['คาบในช่วงนี้',
       it.parts.map(b => min2hm(b.from) + '–' + min2hm(b.to) + '  ' + b.title).join('\n')];
-    cta = `<button class="daysheet-go ghost" onclick="tlClose();go('scr-context')">${icon('clock')}แก้ตารางนี้</button>`;
+    cta = `<button class="daysheet-go" onclick="tlClose();go('scr-context')">${icon('clock')}แก้ตารางนี้</button>`;
   } else if (it.kind === 'break') {
     tag = 'พักอัตโนมัติ'; h = it.label;
     chips = [[humanMin(it.mins), '']];
@@ -2385,7 +2390,7 @@ function tlOpen(i) {
     why = it.kind === 'stop'
       ? ['ทำไมต้องหยุด', 'ชั่วโมงก่อนนอนถูกกันไว้เป็นเวลาของคุณ ระบบจะไม่วางงานทับ']
       : ['ตั้งค่าที่ไหน', 'แก้เวลาตื่นกับเวลานอนได้ในแท็บ “ฉัน” → ตารางเรียนและเวลาว่าง'];
-    cta = `<button class="daysheet-go ghost" onclick="tlClose();go('scr-context')">${icon('clock')}แก้เวลา</button>`;
+    cta = `<button class="daysheet-go" onclick="tlClose();go('scr-context')">${icon('clock')}แก้เวลา</button>`;
   }
 
   wrap.innerHTML = `<div class="daysheet-back" onclick="tlClose()"></div>

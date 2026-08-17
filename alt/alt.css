@@ -5110,8 +5110,13 @@ body.deep-scr .top-friends { display: none; }
 .calwd span { text-align: center; font-size: 10.5px; color: var(--faint); }
 
 .calgrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+/* aspect-ratio: 1 ทำให้ช่องสูงเท่าความกว้างเสมอ — บนจอแคบได้ 48px ซึ่งพอดี
+   แต่บนจอกว้าง คอลัมน์กว้างขึ้นช่องก็สูงตามไปถึง 100px+ ทั้งที่ในช่องมีแค่เลขวัน
+   ผลคือขีดคาบเรียน (.cal-sch ที่เกาะขอบล่าง) กับแถบหมุด (.cal-marks ที่เกาะขอบบน)
+   ลอยห่างจากเลขวันของตัวเองไปคนละมุมช่อง จนอ่านเหมือนเป็นของวันที่อยู่แถวถัดไป
+   คุมเพดานไว้ ช่องจึงยังเป็นจัตุรัสบนมือถือ และไม่ยืดจนเสียความหมายบนจอกว้าง */
 .cal-c {
-  position: relative; aspect-ratio: 1; border: none; background: transparent;
+  position: relative; aspect-ratio: 1; max-height: 58px; border: none; background: transparent;
   border-radius: 10px; font-family: inherit; cursor: pointer; padding: 4px 0 0;
   display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--ink);
 }
@@ -5285,15 +5290,27 @@ body.deep-scr .top-friends { display: none; }
 }
 @keyframes tls-up { from { transform: translateY(18px); opacity: .4; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .daysheet { animation: none; } }
+/* ---------- แผ่นนี้เคยเป็นสีเทาทั้งใบ ----------
+   ป้ายหมวดเทา · ชิปเทา · กล่องเหตุผลใช้สีพื้นจอซึ่งเข้มกว่าตัวแผ่น จึงอ่านเป็น "รูโหว่"
+   และปุ่มทั้งสองใบเป็น .ghost ทั้งคู่ — ไม่มีปุ่มไหนเป็นสีเน้นเลย ทั้งแผ่นจึงไม่มีสีสักจุด
+   แก้สามที่: ป้ายหมวดได้สีน้ำเงิน · กล่องเหตุผลเป็นพื้นน้ำเงินจางแบบยกขึ้น (ไม่ใช่จมลง)
+   · ปุ่มหลักกลับไปเป็นปุ่มทึบตามที่ .daysheet-go ตั้งใจไว้แต่แรก เหลือ "ปิด" เป็น ghost ใบเดียว */
 .daysheet-grip {
   display: block; width: 36px; height: 4px; border-radius: 2px;
-  background: var(--line); margin: 0 auto 14px;
+  background: var(--muted); opacity: .45; margin: 0 auto 14px;
 }
-.daysheet-tag { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+.daysheet-tag {
+  font-size: 11px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--blue); margin-bottom: 5px;
+}
 .daysheet-h { font-size: 19px; font-weight: 600; line-height: 1.4; letter-spacing: -.015em; }
 .daysheet-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
-.daysheet-why { background: var(--scr); border-radius: 12px; padding: 12px; margin-top: 14px; }
-.daysheet-why b { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.daysheet-why {
+  background: var(--blue-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px; margin-top: 14px;
+}
+.daysheet-why b { display: block; font-size: 11px; font-weight: 700; color: var(--blue); margin-bottom: 4px; }
 .daysheet-why p { margin: 0; font-size: 13px; line-height: 1.65; white-space: pre-line; }
 .daysheet-act { display: flex; gap: 8px; margin-top: 14px; }
 .daysheet-go {
