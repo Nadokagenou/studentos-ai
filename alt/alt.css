@@ -5059,6 +5059,58 @@ body.deep-scr .top-friends { display: none; }
 .tlm.on { background: var(--fill); color: var(--on-fill); }
 
 /* ══════════════════════════════════════════════════════════════════
+   แผนราคา (ยังไม่เปิดขาย)
+   ------------------------------------------------------------------
+   การ์ดสองใบเลือกได้จริง เพราะรายการของแต่ละแผนเปลี่ยนตามที่เลือก —
+   ถ้าโชว์รายการรวมของทั้งสองแผนไว้ก้อนเดียว คนอ่านจะไม่รู้ว่าจ่าย 49 ได้อะไรบ้าง
+   ══════════════════════════════════════════════════════════════════ */
+.pro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 6px; }
+.pro-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  padding: 12px 13px; text-align: left; cursor: pointer;
+  font-family: inherit; color: var(--ink);
+  transition: border-color .16s ease, background .16s ease;
+}
+/* ใบที่เลือกได้ขอบสีเน้น 2px — เป็นข้อยกเว้นเดียวของกฎเส้น 1px ในไฟล์นี้
+   เพราะมันคือสถานะ "เลือกอยู่" ที่ต้องเห็นจากระยะกวาดตา ไม่ใช่ตอนจ้อง */
+.pro-card.on { border: 2px solid var(--blue); background: var(--blue-soft); padding: 11px 12px; }
+.pro-top { display: flex; align-items: center; gap: 6px; width: 100%; }
+.pro-name {
+  font-size: var(--fs-meta); font-weight: 700; letter-spacing: .04em;
+  background: var(--card2); color: var(--muted); border-radius: 999px; padding: 3px 9px;
+}
+.pro-card.on .pro-name { background: var(--fill); color: var(--on-fill); }
+.pro-tag {
+  margin-left: auto; font-size: 10.5px; font-weight: 700;
+  background: var(--good); color: #04180C; border-radius: 999px; padding: 3px 8px;
+}
+.pro-price { display: flex; align-items: baseline; gap: 4px; }
+.pro-price b { font-size: 23px; font-weight: 700; letter-spacing: -.03em; }
+.pro-price i { font-style: normal; font-size: var(--fs-meta); color: var(--muted); }
+.pro-line { font-size: var(--fs-meta); line-height: 1.45; color: var(--muted); }
+
+.pro-feats { display: flex; flex-direction: column; gap: 2px; margin-top: 14px; }
+.pro-f {
+  display: flex; align-items: flex-start; gap: 9px; padding: 10px 0;
+  border-top: 1px solid var(--line); font-size: var(--fs-body); line-height: 1.5;
+}
+.pro-f:first-child { border-top: none; }
+.pro-f svg { width: 15px; height: 15px; flex: none; margin-top: 3px; color: var(--good); }
+
+.pro-cta {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; min-height: 50px; margin-top: 16px;
+  border: none; border-radius: 14px; background: var(--fill); color: var(--on-fill);
+  font-family: inherit; font-size: var(--fs-body); font-weight: 700; cursor: pointer;
+}
+.pro-cta svg { width: 17px; height: 17px; }
+.pro-cta:active { transform: scale(.98); }
+.pro-cta.done { background: var(--card2); color: var(--muted); }
+.pro-note { margin: 12px 0 0; font-size: var(--fs-meta); line-height: 1.7; color: var(--muted); }
+.pro-note b { color: var(--ink); }
+
+/* ══════════════════════════════════════════════════════════════════
    ถามน้องไซ
    ------------------------------------------------------------------
    จอนี้มีแชทจริงแล้ว แต่ยังคงสองรายการท้ายจอไว้ — ทำอะไรให้ และจะไม่ทำอะไร

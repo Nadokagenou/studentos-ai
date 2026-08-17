@@ -3921,6 +3921,80 @@ async function doSpin(n) {
   drawing = false;
 }
 
+// ---------- แผนราคา (ยังไม่เปิดขาย) ----------
+// จอนี้ไม่รับเงิน ไม่มีช่องกรอก ไม่เก็บอะไรลงเครื่องนอกจากธงว่า "อยากให้เตือนตอนเปิด"
+//
+// ของที่อยู่ในแผนถูกเลือกจาก "อะไรมีค่าใช้จ่ายจริงต่อการใช้หนึ่งครั้ง" ไม่ใช่สุ่มเอาของดี ๆ
+// ไปขังไว้: น้องไซกับการอ่านรูป/ตารางเรียนเรียก Gemini ทุกครั้ง ส่วนการจัดลำดับงาน
+// คำนวณในเครื่อง ต้นทุนเป็นศูนย์ — ของฟรีที่ต้นทุนศูนย์ก็ควรฟรีต่อไป
+//
+// **ป้าย "ยังไม่เปิดขาย" อยู่ทั้งบนปุ่มทางเข้าและบนหัวจอ** และบรรทัดล่างบอกตรง ๆ ว่า
+// ตอนนี้ทุกอย่างยังใช้ได้ฟรีหมด — หน้าราคาที่ทำให้คนคิดว่าของถูกล็อกอยู่แล้วทั้งที่ยังไม่ล็อก
+// คือการโกหกที่เนียนที่สุดแบบหนึ่ง และเป็นจุดที่กรรมการถามได้ตรง ๆ ว่าขายอะไรอยู่
+const PRO_NOTIFY_KEY = 'studentos.alt.proNotify';
+const PRO_PLANS = [
+  {
+    id: 'pro', name: 'Pro', price: 49, tag: '',
+    line: 'พอสำหรับคนที่ถามน้องไซทุกวัน',
+    feats: ['ถามน้องไซได้ 100 คำถาม/เดือน', 'สแกนใบงานด้วย AI ไม่จำกัด', 'ธีมในร้านค้าทั้งหมด'],
+  },
+  {
+    id: 'max', name: 'Pro Max', price: 67, tag: 'แนะนำ',
+    line: 'ไม่ต้องนับว่าเหลือกี่คำถาม',
+    feats: ['ถามน้องไซไม่จำกัด', 'อ่านตารางเรียนจากรูปด้วย AI', 'สำรองข้อมูลข้ามเครื่อง',
+      'ธีมลับทั้งหมด ไม่ต้องสุ่ม'],
+  },
+];
+let proPick = 'max';
+
+function proSelect(id) { proPick = id; renderPro(); }
+
+function proNotify() {
+  try { localStorage.setItem(PRO_NOTIFY_KEY, '1'); } catch (_) {}
+  haptic('done');
+  renderPro();
+  showToast({ title: 'จดไว้แล้ว', body: 'เปิดขายเมื่อไหร่จะบอกก่อน — ตอนนี้ใช้ฟรีได้ทุกอย่างเหมือนเดิม' });
+}
+
+function renderPro() {
+  const box = document.getElementById('proBody');
+  if (!box) return;
+  let want = false;
+  try { want = localStorage.getItem(PRO_NOTIFY_KEY) === '1'; } catch (_) {}
+
+  box.innerHTML = `<div class="page-head">
+      <div class="eyebrow">แผนราคา <span class="pe-wip">ยังไม่เปิดขาย</span></div>
+      <h1 class="page-title">StudentOS Pro</h1>
+      <p class="page-sub">ถ้าวันหนึ่งมีของขาย จะขายแค่ของที่มีค่าใช้จ่ายจริงต่อการใช้ —
+        การจัดลำดับงานคำนวณในเครื่อง ต้นทุนเป็นศูนย์ อันนั้นฟรีตลอดไป</p>
+    </div>
+
+    <div class="pro-grid">
+      ${PRO_PLANS.map(p => `<button class="pro-card${proPick === p.id ? ' on' : ''}"
+        onclick="proSelect('${p.id}')" aria-pressed="${proPick === p.id}">
+        <span class="pro-top">
+          <span class="pro-name">${p.name}</span>
+          ${p.tag ? `<span class="pro-tag">${p.tag}</span>` : ''}
+        </span>
+        <span class="pro-price"><b>฿${p.price}</b><i>/ เดือน</i></span>
+        <span class="pro-line">${p.line}</span>
+      </button>`).join('')}
+    </div>
+
+    <div class="pro-feats">
+      ${(PRO_PLANS.find(p => p.id === proPick) || PRO_PLANS[0]).feats
+        .map(f => `<div class="pro-f">${icon('check')}<span>${f}</span></div>`).join('')}
+    </div>
+
+    <button class="pro-cta${want ? ' done' : ''}" onclick="proNotify()" ${want ? 'disabled' : ''}>
+      ${icon(want ? 'check' : 'sparkles')}${want ? 'จะบอกเมื่อเปิดขาย' : 'บอกฉันเมื่อเปิดขาย'}
+    </button>
+
+    <p class="pro-note">ตอนนี้ยังไม่เปิดขาย และ<b>ทุกฟีเจอร์ในแอปใช้ได้ฟรีทั้งหมด</b> —
+      ไม่มีอะไรถูกล็อกอยู่จริงในรุ่นนี้ จอนี้มีไว้บอกแผนล่วงหน้าเท่านั้น
+      ไม่มีการเก็บเงิน ไม่มีการขอเลขบัตร และไม่มีการต่ออายุอัตโนมัติ</p>`;
+}
+
 // ---------- ร้านค้า ----------
 function renderShop() {
   const box = document.getElementById('shopBody');
@@ -4198,7 +4272,7 @@ function workStatsHtml(now) {
 function renderAll() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline(); renderAi();
   renderProfile(); renderStats(); renderPlan(); renderFriends(); renderBadges();
-  renderShop(); renderWheel(); renderInstallCard(); renderTabBadges(); renderContext();
+  renderShop(); renderPro(); renderWheel(); renderInstallCard(); renderTabBadges(); renderContext();
   renderRunBar();
   // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น
   // (กันแอปพังทั้งจอถ้าไฟล์ inbox.js/linelink.js โหลดไม่ขึ้น)

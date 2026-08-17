@@ -607,6 +607,14 @@
               <span class="pe-tx"><b>ร้านค้า <span class="pe-wip">กำลังทำ</span></b><i id="peShopCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
+            <!-- แผนราคา — ยังไม่เปิดขาย ปุ่มจึงพาไปดูแผนอย่างเดียว ไม่ได้พาไปจ่ายเงิน
+                 ป้าย "ยังไม่เปิดขาย" อยู่บนปุ่มตั้งแต่ก่อนกด ไม่ใช่ไปเซอร์ไพรส์ข้างใน -->
+            <button class="pe pe-pro" onclick="go('scr-pro')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+              <span class="pe-tx"><b>StudentOS Pro <span class="pe-wip">ยังไม่เปิดขาย</span></b>
+                <i>ดูว่าจะมีอะไรเพิ่ม</i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
             <button class="pe" onclick="go('scr-badges')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-medal"/></svg></span>
               <span class="pe-tx"><b>เหรียญตรา</b><i id="peBadgeCt"></i></span>
@@ -679,6 +687,20 @@
               <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
           </div>
           <div id="shopBody"></div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: แผนราคา (ยังไม่เปิดขาย) ============
+           จอนี้ไม่รับเงินและไม่มีช่องกรอกอะไรทั้งนั้น มันมีหน้าที่เดียว: บอกว่าถ้าวันหนึ่ง
+           มีของขาย จะขายอะไรในราคาเท่าไหร่ ปุ่มล่างจึงเป็น "แจ้งเตือนเมื่อเปิด" ไม่ใช่ "จ่ายเงิน" -->
+      <div class="screen flush" id="scr-pro">
+        <div class="scr-body pf-body">
+          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+            <div></div>
+            <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <div id="proBody"></div>
         </div>
       </div>
 
