@@ -1501,6 +1501,132 @@ function setTaskDay(k) {
   renderTasks();
 }
 
+// ---------- บริบทที่น้องไซได้เห็น ----------
+// ประกอบเป็นข้อความล้วนแทน JSON เพราะโมเดลอ่านรายการที่มีหัวข้อไทยได้ตรงกว่า
+// และเวลาต้องไปนั่งดูว่า "ทำไมมันตอบอย่างนี้" เราอ่าน log ออกด้วยตาเปล่าได้เลย
+//
+// **ข้อมูลที่ตั้งใจไม่ส่ง แม้ผู้ใช้จะสั่งว่า "ให้รู้ทุกอย่าง":**
+//   รายชื่อเพื่อนกับรหัสเพื่อน — นั่นคือข้อมูลของนักเรียนคนอื่นที่ไม่ได้อยู่ในห้องสนทนานี้
+//   เจ้าของแอปยินยอมให้ส่งข้อมูลของตัวเองได้ แต่ยินยอมแทนเพื่อนไม่ได้
+//   รูปวิดเจ็ตก็ไม่ส่ง — เป็นไฟล์ภาพ ไม่ได้ช่วยให้ตอบเรื่องการบ้านได้ดีขึ้นเลย
+function aiContext(now = new Date()) {
+  const L = [];
+  const p = typeof ctxPrefs === 'function' ? ctxPrefs() : {};
+  const pend = sortByPriority(pendingTasks(), now);
+  const live = liveTasks();
+
+  L.push('## ตัวผู้ใช้');
+  L.push('- ชื่อที่ใช้เรียก: ' + (who() || 'ยังไม่ได้บอกชื่อ'));
+  L.push('- วันนี้: ' + fmtThaiDate(now) + ' เวลา ' + fmtClock(now));
+
+  L.push('## เวลาประจำวัน');
+  L.push('- ตื่น ' + (p.wake || '—') + ' · เข้านอน ' + (p.sleep || '—')
+    + ' · ไม่วางงานหลัง ' + (p.noWorkAfter || '—'));
+  L.push('- ทำติดกันได้ ' + (p.maxRunMin || '—') + ' นาที แล้วพัก ' + (p.breakMin || '—') + ' นาที');
+  if (typeof freeMinutes === 'function') {
+    L.push('- เวลาว่างที่เหลือวันนี้: ' + humanMin(freeMinutes(now, now)));
+  }
+
+  const cls = typeof ctxClasses === 'function' ? ctxClasses() : [];
+  L.push('## ตารางเรียน (' + cls.length + ' คาบ)');
+  if (!cls.length) L.push('- ยังไม่ได้บอกตารางเรียน — เวลาว่างข้างบนเป็นค่าเดา ไม่ใช่ของจริง');
+  for (const c of cls) {
+    const wd = c.weekday == null ? 'ทุกวัน'
+      : (Array.isArray(c.weekday) ? c.weekday : [c.weekday]).map(d => WEEKDAY_SHORT[d]).join(',');
+    L.push('- ' + wd + ' ' + c.start + '–' + c.end + ' ' + (c.subject || 'เรียน'));
+  }
+
+  const rt = typeof ctxRoutines === 'function' ? ctxRoutines() : [];
+  if (rt.length) {
+    L.push('## กิจวัตร (' + rt.length + ')');
+    for (const r of rt) {
+      const wd = r.weekday == null ? 'ทุกวัน'
+        : (Array.isArray(r.weekday) ? r.weekday : [r.weekday]).map(d => WEEKDAY_SHORT[d]).join(',');
+      L.push('- ' + wd + ' ' + r.start + '–' + r.end + ' ' + (r.subject || r.title || 'กิจวัตร'));
+    }
+  }
+
+  L.push('## งานที่ยังไม่เสร็จ (' + pend.length + ' ใบ · เรียงตามที่ควรทำก่อน)');
+  if (!pend.length) L.push('- ไม่มีงานค้าง');
+  pend.forEach((t, i) => {
+    const info = priorityInfo(t, now);
+    const bits = [
+      (i + 1) + '. ' + taskTitleText(t),
+      'กำหนด: ' + (t.due ? fmtDue(t.due, now, t).replace(/^⚠\s*/, '') : 'ยังไม่ระบุ'),
+      'ประเมิน ' + (t.estMin || '—') + ' นาที',
+    ];
+    if (t.scorePct != null) bits.push('คะแนนเก็บ ' + t.scorePct + '%');
+    if (t.teacher) bits.push('ครู ' + t.teacher);
+    if (t.progress) bits.push('ทำไปแล้ว ' + t.progress + '%');
+    const worked = typeof workedMin === 'function' ? workedMin(t.id) : 0;
+    if (worked) bits.push('จับเวลาไปแล้ว ' + worked + ' นาที');
+    bits.push('ระดับที่ระบบจัด: ' + priorityLabel(info.stars));
+    if (t.snoozeCount) bits.push('เลื่อนมาแล้ว ' + t.snoozeCount + ' ครั้ง');
+    L.push('- ' + bits.join(' · '));
+  });
+
+  // งานที่เสร็จแล้วมีประโยชน์สองอย่าง: รู้ว่าเขาถนัดวิชาไหน และรู้ว่าเขาประเมินเวลาแม่นแค่ไหน
+  const doneRecent = live.filter(t => t.done && t.doneAt &&
+    (now - new Date(t.doneAt)) < 14 * 8.64e7);
+  L.push('## งานที่ทำเสร็จใน 14 วัน (' + doneRecent.length + ' ใบ)');
+  for (const t of doneRecent.slice(0, 20)) {
+    const worked = typeof workedMin === 'function' ? workedMin(t.id) : 0;
+    L.push('- ' + taskTitleText(t)
+      + (t.estMin ? ' · ประเมิน ' + t.estMin + ' นาที' : '')
+      + (worked ? ' · ใช้จริง ' + worked + ' นาที' : ''));
+  }
+
+  const ss = typeof sessions === 'function' ? sessions() : [];
+  const week = ss.filter(s => (now - new Date(s.end || s.start)) < 7 * 8.64e7);
+  L.push('## สถิติการทำงาน');
+  L.push('- 7 วันนี้: จับเวลา ' + week.length + ' รอบ รวม '
+    + humanMin(week.reduce((a, s) => a + (s.min || 0), 0)));
+
+  const mk = typeof marks === 'function' ? marks() : [];
+  const future = mk.filter(m => m.date >= calKey(now));
+  if (future.length) {
+    L.push('## หมุดที่ผู้ใช้ปักไว้ในปฏิทิน');
+    for (const m of future.slice(0, 20)) {
+      L.push('- ' + m.date + ' ' + m.title + (m.big ? ' (ทำเครื่องหมายว่าสำคัญมาก)' : ''));
+    }
+  }
+
+  const note = typeof widgetNote === 'function' ? widgetNote() : '';
+  if (note.trim()) {
+    L.push('## โน้ตที่ผู้ใช้จดไว้เอง');
+    L.push('- ' + note.trim().replace(/\n/g, ' / '));
+  }
+
+  return L.join('\n');
+}
+
+// ---------- เรียกน้องไซ ----------
+// คืน { ok, answer } หรือ { ok: false, message } — ข้อความเป็นไทยพร้อมโชว์
+// ทุก error path ต้องได้ message ที่ผู้ใช้อ่านรู้เรื่อง เพราะจอนี้ไม่มีทางอื่นให้เขาเดาเอง
+async function askSai(question, history) {
+  if (!sb) return { ok: false, message: 'ยังต่อเซิร์ฟเวอร์ไม่ได้ — เช็คอินเทอร์เน็ตแล้วลองใหม่' };
+  try {
+    const { data, error } = await withTimeout(
+      sb.functions.invoke('ask-sai', {
+        body: { question, context: aiContext(), history: history || [] },
+      }),
+      45_000, 'ถามน้องไซ');
+
+    // supabase-js คืน error สำหรับทุกสถานะที่ไม่ใช่ 2xx โดยเนื้อความจริงอยู่ใน context
+    // ไม่แกะออกมา ผู้ใช้จะเห็นแค่ "Edge Function returned a non-2xx status code"
+    let payload = data;
+    if (error) {
+      try { payload = await error.context.json(); } catch (_) { payload = null; }
+    }
+    if (!payload || payload.ok !== true) {
+      return { ok: false, message: payload?.message || 'น้องไซตอบไม่ได้ตอนนี้ ลองใหม่อีกครั้ง' };
+    }
+    return { ok: true, answer: String(payload.answer || '').trim() };
+  } catch (e) {
+    return { ok: false, message: (e && e.message) || 'ต่อไม่ติด ลองใหม่อีกครั้ง' };
+  }
+}
+
 // ---------- ถามน้องไซ ----------
 // รอบนี้ยังไม่มีแชทจริง จอนี้จึงมีหน้าที่เดียว: ประกาศว่ามันคืออะไร และ "จะไม่ทำอะไร"
 //
