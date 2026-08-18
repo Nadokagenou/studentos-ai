@@ -350,6 +350,7 @@ function applyTheme() {
   if (typeof applyThemeLocks === 'function') applyThemeLocks();
   const now = document.getElementById('themeNow');
   if (now) now.textContent = pref === 'system' ? `ตามระบบ · ตอนนี้โทน${THEME_NAME[theme]}` : '';
+  if (typeof syncSetVals === 'function') syncSetVals();
 }
 
 function setTheme(pref) {
@@ -527,6 +528,56 @@ function clearUserBg() {
   showToast({ title: 'เอาพื้นหลังออกแล้ว', body: 'กลับไปใช้พื้นหลังของธีมตามเดิม' });
 }
 
+
+// ---------- ตั้งค่า: หน้าย่อยที่ใช้ซ้ำจอเดียว ----------
+// ตัวเลือกทั้งห้าชุดเคยกางอยู่ในจอตั้งค่าพร้อมกัน — ธีม 16 อันเรียงเป็นตาราง
+// บวกวิดเจ็ต ตัวอักษร แถบเมนู พื้นหลัง จอเลื่อนยาวจนหาของที่ตั้งใจมาแก้ไม่เจอ
+//
+// บล็อกพวกนี้ถูก "ย้าย" ไปมาระหว่างที่พัก (#setStashList) กับหน้าย่อย ไม่ได้ถูกคัดลอก
+// ถ้าคัดลอกจะมี id ซ้ำสองชุดในหน้าเดียว แล้ว renderAppearance() กับ applyTheme()
+// จะไปเขียนใส่ตัวที่ไม่ได้อยู่บนจอ — ค่าบนจอจึงค้างอยู่ที่เดิมโดยไม่มี error ให้เห็น
+const SETOPT = {
+  theme:  { title: 'ธีมสี', blk: 'setBlkTheme' },
+  widget: { title: 'วิดเจ็ตหน้าแรก', blk: 'setBlkWidget' },
+  font:   { title: 'ขนาดตัวอักษร', blk: 'setBlkFont' },
+  nav:    { title: 'ตำแหน่งแถบเมนู', blk: 'setBlkNav' },
+  bg:     { title: 'พื้นหลังภาพ', blk: 'setBlkBg' },
+};
+
+function openSetOpt(key) {
+  const item = SETOPT[key];
+  if (!item) return;
+  stashSetOpt();                       // เผื่อยังมีของค้างจากรอบก่อน
+  const body = document.getElementById('setoptBody');
+  const blk = document.getElementById(item.blk);
+  if (!body || !blk) return;
+  body.appendChild(blk);
+  const t = document.getElementById('setoptTitle');
+  if (t) t.textContent = item.title;
+  go('scr-setopt');
+}
+
+function stashSetOpt() {
+  const body = document.getElementById('setoptBody');
+  const stash = document.getElementById('setStashList');
+  if (!body || !stash) return;
+  while (body.firstChild) stash.appendChild(body.firstChild);
+}
+
+// ค่าปัจจุบันที่โชว์ท้ายแถวในจอตั้งค่า — จอหลักบอกได้ว่าตอนนี้ตั้งอะไรไว้
+// โดยไม่ต้องกดเข้าไปดูทีละหัวข้อ
+function syncSetVals() {
+  const put = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  const th = themePref();
+  put('setValTheme', th === 'system'
+    ? 'ตามระบบ · ' + THEME_NAME[systemDark() ? 'dark' : 'light']
+    : (THEME_NAME[th] || ''));
+  put('setValWidget', WG_NAME[widgetPref()] || '');
+  put('setValFont', FONT_NAME[fontPref()] || '');
+  const nav = navPref();
+  put('setValNav', nav === 'auto' ? 'อัตโนมัติ · ' + NAV_NAME[navMode()] : (NAV_NAME[nav] || ''));
+  put('setValBg', localStorage.getItem(BG_KEY) ? 'ใช้ภาพของคุณ' : 'ยังไม่ได้ตั้ง');
+}
 // ปุ่ม/ป้ายในแท็บ "ฉัน" ที่เกี่ยวกับหน้าตา — เรียกหลังเปลี่ยนค่าใด ๆ
 function renderAppearance() {
   // วิดเจ็ตหน้าแรก
@@ -571,6 +622,7 @@ function renderAppearance() {
   if (pickLabel) pickLabel.textContent = has ? 'เปลี่ยนภาพ' : 'เลือกภาพ';
   const dim = document.getElementById('bgDim');
   if (dim) { dim.value = bgDim(); const l = document.getElementById('bgDimVal'); if (l) l.textContent = bgDim() + '%'; }
+  syncSetVals();
 }
 
 // ---------- navigation ----------
@@ -597,7 +649,8 @@ const TABBED_SCREENS = ['scr-menu', 'scr-ai', 'scr-tasks', 'scr-scan', 'scr-time
 // จอที่ไม่มีปุ่มของตัวเองบนแถบล่าง แต่เป็นส่วนหนึ่งของแท็บอื่น
 // รายการงานย้ายเข้าไปเป็นโหมดที่สามของแท็บ "ตาราง" — ปุ่มแท็บนั้นจึงต้องติดไฟด้วย
 // ไม่งั้นผู้ใช้อยู่ในแอปแต่ไม่มีแท็บไหนสว่างเลย ซึ่งอ่านว่า "หลงอยู่ที่ไหนไม่รู้"
-const TAB_OWNER = { 'scr-tasks': 'scr-timeline' };
+const TAB_OWNER = { 'scr-tasks': 'scr-timeline',
+  'scr-settings': 'scr-profile', 'scr-setopt': 'scr-profile' };
 
 // ---------- 1A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
 // บนมือถือ การสลับไปแอปอื่นแล้วกลับมามักทำให้ระบบโหลดหน้าใหม่ทั้งหน้า
@@ -609,7 +662,7 @@ const TAB_OWNER = { 'scr-tasks': 'scr-timeline' };
 //   scr-parsing  — จอรอระหว่าง AI อ่าน ไม่มีอะไรให้กลับไปดู
 //   scr-form     — สิ่งที่พิมพ์ค้างไว้หายไป กลับมาเจอฟอร์มเปล่าน่าสับสนกว่า
 //   scr-login / scr-onboard — มีด่านของตัวเองตัดสินอยู่แล้ว
-const NO_RESUME = ['scr-crop', 'scr-parsing', 'scr-form', 'scr-login', 'scr-onboard'];
+const NO_RESUME = ['scr-crop', 'scr-parsing', 'scr-form', 'scr-login', 'scr-onboard', 'scr-setopt'];
 const LAST_SCR_KEY = 'studentos.alt.lastScreen';
 // เกิน 30 นาทีถือว่าเป็นการเปิดใหม่ ไม่ใช่การกลับเข้ามาต่อ — เริ่มที่เมนูตามปกติ
 // (กลับมาวันรุ่งขึ้นแล้วเจอจอสุ่มสกินค้างอยู่ ไม่ใช่สิ่งที่ใครคาดหวัง)
@@ -636,6 +689,9 @@ function go2(id){ return go(id); }
 // ไม่งั้นผู้ใช้จะเจอรายการงานคนละหน้าตาสองแบบแล้วแต่ว่าเข้ามาทางไหน
 function go(id) {
   if (id === 'scr-home') id = 'scr-tasks';
+  // คืนบล็อกตัวเลือกกลับที่พักก่อนออกจากหน้าย่อยของตั้งค่า — ทางออกมีหลายทาง
+  // (ปุ่มกลับ · แท็บล่าง · ปุ่มย้อนของเครื่อง) ตกทางใดทางหนึ่งแล้วบล็อกหาย
+  if (curScreen === 'scr-setopt' && id !== 'scr-setopt') stashSetOpt();
   const dir = navDirection(curScreen, id);
   // ออกจากจอสุ่มเมื่อไหร่ ทิ้งผลรอบเดิม กลับเข้ามาจะได้เริ่มใหม่สะอาด ๆ
   if (id !== 'scr-wheel') { drawResults = []; drawOpen = []; }

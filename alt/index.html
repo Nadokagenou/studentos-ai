@@ -731,34 +731,148 @@
             <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
               <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
           </div>
-          <div class="pf-list">
-            <div class="pf-row">
-              <span class="tile"><svg viewBox="0 0 24 24"><use href="#ic-profile"/></svg></span>
-              <span class="bd"><span class="lb">ชื่อเล่น</span></span>
+
+          <!-- ทางลัดสี่ช่อง — จอที่คนเข้าบ่อยที่สุด ไม่ต้องเลื่อนหา
+               "เพื่อน" ย้ายมาอยู่ตรงนี้แทนแถวเดิม จำนวนเพื่อนยังนับให้ที่หน้า “ฉัน” เหมือนเดิม -->
+          <div class="set-quick">
+            <button type="button" onclick="go('scr-shop')">
+              <svg viewBox="0 0 24 24"><use href="#lu-bag"/></svg><span>ร้านค้า</span></button>
+            <button type="button" onclick="go('scr-badges')">
+              <svg viewBox="0 0 24 24"><use href="#lu-medal"/></svg><span>เหรียญตรา</span></button>
+            <button type="button" onclick="go('scr-friends')">
+              <svg viewBox="0 0 24 24"><use href="#lu-users"/></svg><span>เพื่อน</span></button>
+            <button type="button" onclick="go('scr-pro')">
+              <svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg><span>Pro</span></button>
+          </div>
+
+          <div class="set-grp">บัญชีของฉัน</div>
+          <div class="set-card">
+            <div class="set-row">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#ic-profile"/></svg></span>
+              <span class="set-lb">ชื่อเล่น</span>
               <input type="text" id="pName" placeholder="เช่น Nado" onchange="saveProfile()">
             </div>
-
+            <div class="set-row">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
+              <span class="set-lb">นั่งทำงานไหวต่อวัน<i>เพดานที่ AI จะไม่วางงานเกิน</i></span>
+              <input type="number" id="pFree" min="0.5" step="0.5" value="2" onchange="saveProfile()">
+            </div>
             <!-- ALT: รูปโปรไฟล์ของตัวเอง — เก็บในเครื่อง ไม่ต้องมีบัญชี -->
-            <div class="pf-row col">
-              <span class="hd">
-                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
-                <span class="bd"><span class="lb">รูปโปรไฟล์</span>
-                  <span class="sb">แตะที่รูปในหน้า “ฉัน” ก็เปลี่ยนได้เหมือนกัน</span></span>
-              </span>
-              <div class="bg-tools">
+            <div class="set-row">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
+              <span class="set-lb">รูปโปรไฟล์<i>แตะที่รูปในหน้า “ฉัน” ก็เปลี่ยนได้เหมือนกัน</i></span>
+              <span class="bg-tools">
                 <button type="button" class="bg-pick" onclick="document.getElementById('avInput').click()">
                   <svg viewBox="0 0 24 24"><use href="#lu-image"/></svg><span id="avPickLabel">เลือกรูป</span></button>
                 <button type="button" class="bg-del" id="avDel" onclick="clearAvatar()" hidden>
                   <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg></button>
+              </span>
+            </div>
+          </div>
+
+          <!-- หน้าตาแอป — แต่ละแถวพาไปหน้าย่อยที่มีตัวเลือกจริง
+               ของพวกนี้เคยกางอยู่ในจอเดียวกันหมด ธีม 16 อันเรียงเป็นตาราง บวกวิดเจ็ต
+               ตัวอักษร แถบเมนู พื้นหลัง — จอเลื่อนยาวจนหาของที่ตั้งใจจะมาแก้ไม่เจอ -->
+          <div class="set-grp">หน้าตาแอป</div>
+          <div class="set-card">
+            <button type="button" class="set-row go" onclick="openSetOpt('theme')">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-contrast"/></svg></span>
+              <span class="set-lb">ธีมสี</span>
+              <span class="set-val" id="setValTheme"></span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <button type="button" class="set-row go" onclick="openSetOpt('widget')">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-tasks-alt"/></svg></span>
+              <span class="set-lb">วิดเจ็ตหน้าแรก</span>
+              <span class="set-val" id="setValWidget"></span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <button type="button" class="set-row go" onclick="openSetOpt('font')">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-type"/></svg></span>
+              <span class="set-lb">ขนาดตัวอักษร</span>
+              <span class="set-val" id="setValFont"></span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <button type="button" class="set-row go" onclick="openSetOpt('nav')">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-flag"/></svg></span>
+              <span class="set-lb">ตำแหน่งแถบเมนู</span>
+              <span class="set-val" id="setValNav"></span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <button type="button" class="set-row go" onclick="openSetOpt('bg')">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
+              <span class="set-lb">พื้นหลังภาพ</span>
+              <span class="set-val" id="setValBg"></span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+
+          <div class="set-grp">การแจ้งเตือนและแอป</div>
+          <div class="set-card">
+            <div class="set-row" id="notifRow">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg></span>
+              <span class="set-lb">การแจ้งเตือน<i id="notifStatus">ยังไม่ได้เปิด</i></span>
+              <button class="btn secondary sm" id="notifTest" style="width:auto;min-height:34px;padding:0 12px;display:none"
+                onclick="testNotify()">ทดสอบ</button>
+              <button class="btn secondary sm" id="notifBtn" style="width:auto;min-height:34px;padding:0 14px" onclick="enableNotif()">เปิด</button>
+            </div>
+            <div class="set-row" id="installCard" hidden>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-check-circle"/></svg></span>
+              <span class="set-lb">ติดตั้งเป็นแอป<i id="installHint"></i></span>
+              <button class="btn primary sm" id="installBtn" style="width:auto;min-height:34px;padding:0 14px" onclick="handleInstallClick()">ติดตั้ง</button>
+            </div>
+            <!-- ALT 1A6M3: ช่องใส่โค้ด
+                 ห้ามใบ้ว่ามีโค้ดอะไรอยู่บ้างหรือทำอะไรได้ ไม่ว่าจะใน placeholder หรือคำบรรยาย
+                 คนที่ได้โค้ดมาเท่านั้นถึงจะรู้ว่าต้องพิมพ์อะไร -->
+            <div class="set-row col" id="codeRow" hidden>
+              <span class="set-hd">
+                <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
+                <span class="set-lb">ใส่โค้ด<i>ถ้ามีโค้ดอยู่ในมือ พิมพ์ลงช่องนี้ได้เลย</i></span>
+              </span>
+              <div class="code-tools">
+                <input type="text" id="codeInput" placeholder="พิมพ์โค้ด" maxlength="64"
+                  autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault();redeemCode();}">
+                <button type="button" class="btn primary sm" onclick="redeemCode()">ใช้</button>
               </div>
+              <p class="bg-note code-msg" id="codeMsg" hidden></p>
             </div>
-            <div class="pf-row">
-              <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
-              <span class="bd"><span class="lb">นั่งทำงานไหวต่อวัน</span>
-                <span class="sb">เพดานที่ AI จะไม่วางงานเกิน</span></span>
-              <input type="number" id="pFree" min="0.5" step="0.5" value="2" onchange="saveProfile()">
+          </div>
+
+          <div class="set-grp">ข้อมูลของฉัน</div>
+          <div id="accountCard"></div>
+          <div class="set-card">
+            <button type="button" class="set-row go" onclick="loadSample()">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-book"/></svg></span>
+              <span class="set-lb">โหลดข้อมูลตัวอย่าง</span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <!-- ALT 1A6M3: ล็อกธีมลับกลับ ไว้ลองอีสเตอร์เอกก์ใหม่ -->
+            <button type="button" class="set-row go" id="relockBtn" hidden onclick="relockSecrets()">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
+              <span class="set-lb">ล็อกธีมลับกลับ</span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <button type="button" class="set-row go danger" onclick="clearAll()">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg></span>
+              <span class="set-lb">ล้างข้อมูลทั้งหมด</span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- หน้าย่อยของตั้งค่า — ใช้จอเดียวซ้ำกับทุกหัวข้อ
+           บล็อกข้างในคือ DOM ชุดเดิมที่ถูกย้ายเข้ามา ไม่ใช่สำเนา — ถ้าคัดลอกจะมี id
+           ซ้ำสองชุด แล้ว renderAppearance() จะไปเขียนใส่ตัวที่ไม่ได้อยู่บนจอ -->
+      <div class="screen flush" id="scr-setopt">
+        <div class="scr-body pf-body">
+          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+            <div>
+              <h2 class="sh-title" id="setoptTitle">ตั้งค่า</h2>
             </div>
-            <div class="pf-row col">
+            <button class="sh-btn" onclick="go('scr-settings')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <div class="pf-list" id="setoptBody"></div>
+        </div>
+      </div>
+
+      <!-- ที่พักของบล็อกตัวเลือกตอนยังไม่ได้เปิดหน้าย่อย -->
+      <div id="setStash" hidden><div class="pf-list" id="setStashList">
+            <div class="pf-row col" id="setBlkTheme">
               <span class="hd">
                 <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-contrast"/></svg></span>
                 <span class="bd"><span class="lb">ธีมสี</span><span class="sb" id="themeNow"></span></span>
@@ -805,7 +919,7 @@
             </div>
 
             <!-- ALT 1A6M3: วิดเจ็ตบนหน้าแรก -->
-            <div class="pf-row col">
+            <div class="pf-row col" id="setBlkWidget">
               <span class="hd">
                 <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-tasks-alt"/></svg></span>
                 <span class="bd"><span class="lb">วิดเจ็ตหน้าแรก</span><span class="sb" id="wgNow"></span></span>
@@ -840,7 +954,7 @@
             </div>
 
             <!-- ALT: ตำแหน่งแถบเมนู (จอกว้างย้ายไปด้านซ้าย) -->
-            <div class="pf-row col">
+            <div class="pf-row col" id="setBlkNav">
               <span class="hd">
                 <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-tasks-alt"/></svg></span>
                 <span class="bd"><span class="lb">ตำแหน่งแถบเมนู</span><span class="sb" id="navNow"></span></span>
@@ -854,7 +968,7 @@
             </div>
 
             <!-- ALT: ขนาดตัวอักษร -->
-            <div class="pf-row col">
+            <div class="pf-row col" id="setBlkFont">
               <span class="hd">
                 <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-type"/></svg></span>
                 <span class="bd"><span class="lb">ขนาดตัวอักษร</span><span class="sb" id="fontNow"></span></span>
@@ -868,7 +982,7 @@
             </div>
 
             <!-- ALT: พื้นหลังภาพของตัวเอง -->
-            <div class="pf-row col">
+            <div class="pf-row col" id="setBlkBg">
               <span class="hd">
                 <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
                 <span class="bd"><span class="lb">พื้นหลังภาพของตัวเอง</span>
@@ -889,59 +1003,7 @@
                 <p class="bg-note">จางมาก = อ่านง่ายขึ้น · จางน้อย = เห็นภาพชัดขึ้น</p>
               </div>
             </div>
-            <!-- ALT 1A6M3: ระบบเพื่อน — เปิดใช้ได้แล้ว (เฟสแรก) -->
-            <div class="pf-row" id="friendsRow" onclick="go('scr-friends')" style="cursor:pointer">
-              <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
-              <span class="bd">
-                <span class="lb">เพื่อน</span>
-                <span class="sb" id="friendsSub">ดูสถานะและผลของเพื่อน</span>
-              </span>
-              <span class="pf-go"><svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></span>
-            </div>
-
-            <div class="pf-row" id="notifRow">
-              <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg></span>
-              <span class="bd"><span class="lb">การแจ้งเตือน</span><span class="sb" id="notifStatus">ยังไม่ได้เปิด</span></span>
-              <button class="btn secondary sm" id="notifTest" style="width:auto;min-height:38px;padding:0 12px;display:none"
-                onclick="testNotify()">ทดสอบ</button>
-              <button class="btn secondary sm" id="notifBtn" style="width:auto;min-height:38px;padding:0 14px" onclick="enableNotif()">เปิด</button>
-            </div>
-            <div class="pf-row" id="installCard" hidden>
-              <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-check-circle"/></svg></span>
-              <span class="bd"><span class="lb">ติดตั้งเป็นแอป</span><span class="sb" id="installHint"></span></span>
-              <button class="btn primary sm" id="installBtn" style="width:auto;min-height:38px;padding:0 14px" onclick="handleInstallClick()">ติดตั้ง</button>
-            </div>
-
-            <!-- ALT 1A6M3: ช่องใส่โค้ด
-                 ห้ามใบ้ว่ามีโค้ดอะไรอยู่บ้างหรือทำอะไรได้ ไม่ว่าจะใน placeholder หรือคำบรรยาย
-                 คนที่ได้โค้ดมาเท่านั้นถึงจะรู้ว่าต้องพิมพ์อะไร -->
-            <div class="pf-row col" id="codeRow" hidden>
-              <span class="hd">
-                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
-                <span class="bd"><span class="lb">ใส่โค้ด</span>
-                  <span class="sb">ถ้ามีโค้ดอยู่ในมือ พิมพ์ลงช่องนี้ได้เลย</span></span>
-              </span>
-              <div class="code-tools">
-                <input type="text" id="codeInput" placeholder="พิมพ์โค้ด" maxlength="64"
-                  autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false"
-                  onkeydown="if(event.key==='Enter'){event.preventDefault();redeemCode();}">
-                <button type="button" class="btn primary sm" onclick="redeemCode()">ใช้</button>
-              </div>
-              <p class="bg-note code-msg" id="codeMsg" hidden></p>
-            </div>
-          </div>
-
-          <div id="accountCard"></div>
-
-          <div style="display:flex;flex-direction:column;gap:2px">
-            <button class="pf-quiet" onclick="loadSample()"><svg viewBox="0 0 24 24"><use href="#lu-book"/></svg>โหลดข้อมูลตัวอย่าง</button>
-            <!-- ALT 1A6M3: ล็อกธีมลับกลับ ไว้ลองอีสเตอร์เอกก์ใหม่ -->
-            <button class="pf-quiet" id="relockBtn" onclick="relockSecrets()" hidden>
-              <svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg>ล็อกธีมลับกลับ</button>
-            <button class="pf-quiet danger" onclick="clearAll()"><svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg>ล้างข้อมูลทั้งหมด</button>
-          </div>
-        </div>
-      </div>
+      </div></div>
 
     </div>
 

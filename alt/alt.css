@@ -5458,3 +5458,134 @@ body.deep-scr .top-friends { display: none; }
 .daysheet-go svg { width: 15px; height: 15px; }
 .daysheet-go.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); flex: 0 0 88px; }
 .daysheet-go:active { transform: scale(.98); }
+
+/* ============================================================
+   จอตั้งค่า — ทางลัดสี่ช่อง + การ์ดแยกกลุ่ม
+   ------------------------------------------------------------
+   ทุกค่าสีมาจากตัวแปรของธีมล้วน ๆ (--card --card2 --line --ink --muted)
+   ห้ามใส่สีตรง ๆ ที่นี่ — ธีมในแอปมี 16 อัน ตัวไหนพลาดจะพังเฉพาะบางธีม
+   ซึ่งเป็นบั๊กที่หาเจอยากที่สุด เพราะสองธีมแรกที่เปิดดูมักจะดูปกติ
+   ============================================================ */
+.set-quick {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.set-quick button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 13px 4px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-tile);
+  background: var(--card);
+  color: var(--ink);
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform .16s ease;
+}
+.set-quick button:active { transform: scale(.96); }
+.set-quick svg { width: 21px; height: 21px; stroke-width: 2.1; color: var(--blue); }
+.set-quick span { font-size: 11px; font-weight: 600; letter-spacing: -.01em; text-align: center; }
+
+/* หัวข้อกลุ่ม — อยู่นอกการ์ด ไม่ใช่ในแถวแรกของการ์ด
+   คนกวาดตาหาหัวข้อก่อนอ่านรายการ หัวข้อที่จมอยู่ในกรอบเดียวกับรายการจะถูกอ่านข้าม */
+.set-grp {
+  margin: 0 4px 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: -.005em;
+  color: var(--muted);
+}
+.set-card {
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-family: inherit;
+  text-align: left;
+}
+.set-row + .set-row { border-top: 1px solid var(--line); }
+.set-row.go { cursor: pointer; transition: background .14s ease; }
+.set-row.go:active { background: var(--card2); }
+.set-row[hidden] { display: none; }
+
+/* ชิปไอคอน — พื้นเรียบ ไม่ใช่สีเน้นทึบแบบ .pe-ic
+   จอนี้มีสิบกว่าแถว ถ้าทุกแถวมีชิปสีเน้น สายตาจะไม่รู้ว่าควรมองอันไหนก่อน */
+.set-ic {
+  width: 34px; height: 34px; flex: none;
+  border-radius: 11px;
+  background: var(--card2);
+  color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+}
+.set-ic svg { width: 18px; height: 18px; stroke-width: 2.1; }
+.set-lb {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  font-size: 15px; font-weight: 600; letter-spacing: -.015em;
+}
+.set-lb i {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.set-val {
+  flex: none;
+  max-width: 42%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 13px; font-weight: 500;
+  color: var(--muted);
+}
+.set-go { width: 16px; height: 16px; flex: none; color: var(--faint); }
+.set-row.danger .set-lb { color: var(--alert); }
+.set-row.danger .set-ic { background: var(--alert-soft); color: var(--alert); }
+
+/* ช่องกรอกในแถว — ยกหน้าตาเดิมจาก .pf-row input มาทั้งชุด
+   ไม่งั้นช่องพวกนี้จะกลายเป็น input เปล่าของเบราว์เซอร์ที่ไม่เข้ากับธีมไหนเลย */
+.set-row input[type=text], .set-row input[type=number] {
+  flex: none;
+  width: 116px;
+  text-align: right;
+  border: none;
+  border-radius: 10px;
+  background: var(--card2);
+  color: var(--ink);
+  padding: 8px 10px;
+  min-height: 36px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+.set-row input[type=number] { width: 78px; }
+.set-row input:focus { outline: 2px solid var(--blue); outline-offset: -2px; }
+
+/* ปุ่มเลือก/ลบรูป — ของเดิมสูง 44px และกินพื้นที่เต็มแถว เพราะเคยอยู่ในแถวแบบ col
+   ที่มันได้อยู่คนเดียวทั้งบรรทัด ตอนนี้มันมาแชร์บรรทัดกับป้ายชื่อแล้ว */
+.set-row .bg-tools { flex: none; margin: 0; gap: 6px; }
+.set-row .bg-pick { flex: none; min-height: 36px; padding: 0 12px; font-size: 12.5px; border-radius: 10px; }
+.set-row .bg-del { width: 36px; min-height: 36px; border-radius: 10px; }
+.set-row .bg-pick svg, .set-row .bg-del svg { width: 15px; height: 15px; }
+
+/* แถวที่ของข้างในวางเรียงลงล่าง (ช่องใส่โค้ด) */
+.set-row.col { flex-direction: column; align-items: stretch; gap: 10px; }
+.set-hd { display: flex; align-items: center; gap: 12px; }
+
+/* หน้าย่อยของตั้งค่า — บล็อกที่ย้ายเข้ามาเป็นการ์ดเดี่ยวอยู่แล้ว
+   จอนี้จึงไม่ต้องมีกรอบซ้อนอีกชั้น */
+#scr-setopt .pf-list { padding-top: 4px; }
