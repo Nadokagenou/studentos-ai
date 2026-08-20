@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A8';                  // สายเลขของแอป
+const APP_VERSION = '1A8b';                 // สายเลขของแอป
 const APP_CODENAME = 'Weiterplan';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -650,12 +650,15 @@ function navDirection(from, to) {
 let enterTimer = null;
 
 // จอทั้งห้าที่มีปุ่มของตัวเองอยู่บนแถบล่าง — ที่เหลือถือเป็นจอชั้นใน
+// แถบล่างเหลือ 4 แท็บ + ปุ่มเพิ่ม: วันนี้ · ปฏิทิน · + · งาน · ฉัน
+// scr-ai ออกจากแถบล่างแล้ว (มีปุ่มย้อนกลับของตัวเองใน renderAi) และ scr-scan
+// เข้าจากแผ่นปุ่ม + แทน — ทั้งคู่ยังนับเป็นจอในแอป จึงยังไม่ต้องซ่อนปุ่มเพื่อนบนหัวจอ
 const TABBED_SCREENS = ['scr-menu', 'scr-ai', 'scr-tasks', 'scr-scan', 'scr-timeline', 'scr-profile'];
 
 // จอที่ไม่มีปุ่มของตัวเองบนแถบล่าง แต่เป็นส่วนหนึ่งของแท็บอื่น
 // รายการงานย้ายเข้าไปเป็นโหมดที่สามของแท็บ "ตาราง" — ปุ่มแท็บนั้นจึงต้องติดไฟด้วย
 // ไม่งั้นผู้ใช้อยู่ในแอปแต่ไม่มีแท็บไหนสว่างเลย ซึ่งอ่านว่า "หลงอยู่ที่ไหนไม่รู้"
-const TAB_OWNER = { 'scr-tasks': 'scr-timeline',
+const TAB_OWNER = { 'scr-ai': 'scr-profile',
   'scr-settings': 'scr-profile', 'scr-setopt': 'scr-profile' };
 
 // ---------- 1A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
@@ -1230,7 +1233,104 @@ function dismissReplan(lostMin) {
   renderAll();
 }
 
-// การ์ด NOW — ของชิ้นเดียวที่ใหญ่ที่สุดบนจอ อ่านออกจากระยะแขน
+// การ์ด NOW — ของชิ้นเดียวที่ใหญ่ที่สุดบนจอ อ่านออกจากระยะแขน// ============================================================
+// จอ "วันนี้" — ลำดับสายตาเป็นเส้นเดียว ไม่มีของขนาดเท่ากันสองชิ้น
+// ============================================================
+// การ์ดขนาดเท่ากันเรียงลงมาคือ dashboard · dashboard แปลว่า "อ่านเองนะว่าอันไหนสำคัญ"
+// ซึ่งเป็นงานที่แอปนี้รับปากว่าจะทำแทน · ขนาดตัวอักษรจึงต้องต่างกันจริง ไม่ใช่ต่างกันเล็กน้อย
+//
+//   NOW      ชื่องาน 26px   — ของชิ้นเดียวที่อ่านออกจากระยะแขน
+//   NEXT     ชื่องาน 15px   — รู้ว่ามีอะไรรออยู่ก็พอ
+//   LATER    ชื่องาน 13px   — เป็นบันทึก ไม่ใช่สิ่งที่ต้องตัดสินใจตอนนี้
+//   แผน/AI   12px           — ของประกอบ ไม่ใช่คำตอบ
+//
+// ทุกอย่างที่ไม่ได้ตอบห้าคำถามนี้ ถูกย้ายออกไปแท็บอื่นแล้ว:
+//   ตอนนี้ทำอะไร · ทำไมอันนี้ · นานแค่ไหน · แล้วอะไรต่อ · วันนี้ทันไหม
+
+// ---------- หัวจอ: ทักทาย + ตัวเลขสามตัวที่ตอบว่า "วันนี้หนักไหม" ----------
+function todayHead(sp, now) {
+  const h = now.getHours();
+  const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนเย็น';
+  const win = sp.plan.windows;
+  const pend = pendingTasks();
+  // "ใกล้กำหนด" = ภายใน 48 ชม. · เป็นตัวเลขที่เปลี่ยนพฤติกรรมได้จริง ต่างจากยอดรวมเฉย ๆ
+  const soon = pend.filter(t => t.due && (new Date(t.due) - now) / 3.6e6 <= 48).length;
+  const hasPlan = sp.plan.slots.length > 0;
+
+  return `<header class="td-head">
+    <div class="th-top">
+      <div>
+        <h1 class="th-greet">${greet}${who() ? ' ' + esc(who()) : ''}</h1>
+        <p class="th-sub">${hasPlan ? 'จัดแผนวันนี้ให้แล้ว — เริ่มจากงานข้างล่างได้เลย'
+          : 'ยังไม่มีอะไรต้องทำ'}</p>
+      </div>
+      <button class="th-me" onclick="go('scr-profile')" aria-label="หน้าของฉัน">${
+        who() ? esc(who().trim().charAt(0).toUpperCase()) : icon('user')}</button>
+    </div>
+    <p class="th-stats">
+      <b>${esc(humanMin(win.budgetMin))}</b> ว่างวันนี้<i class="msep"></i><b>${pend.length}</b> งานค้าง${
+        soon ? `<i class="msep"></i><b class="hot">${soon}</b> งานใกล้กำหนด` : ''}
+    </p>
+  </header>`;
+}
+
+// ---------- AI พูดเองก่อนถูกถาม ----------
+// ช่องนี้ห้ามเป็น "มีอะไรให้ช่วยไหม" เด็ดขาด — คำถามนั้นโยนงานคิดกลับให้ผู้ใช้อีกรอบ
+// มันขึ้นเฉพาะตอนที่มีอะไรจะบอกจริง ๆ และทุกบรรทัดมาจากตัวเลขที่คำนวณได้ ไม่ใช่ข้อความสำเร็จรูป
+// ไม่มีอะไรจะบอก = ไม่ต้องขึ้น · กล่องที่ขึ้นทุกวันคือกล่องที่ถูกมองข้ามทุกวัน
+function aiInsight(sp, now) {
+  const bits = [];
+
+  if (sp.hasReplan) {
+    const m = sp.misses;
+    const hm = v => String(Math.floor(v / 60)).padStart(2, '0') + ':' + String(v % 60).padStart(2, '0');
+    bits.push({
+      tone: 'blue', ic: 'clock',
+      text: `คุณพลาดช่วง ${hm(m.since)} ไป ${humanMin(m.lostMin)} — ผมจัดเวลาที่เหลือของวันนี้ใหม่ให้แล้ว`,
+      cta: { label: 'เข้าใจแล้ว', fn: `dismissReplan(${m.lostMin})` },
+    });
+  }
+
+  for (const w of sp.warnings) {
+    if (w.kind === 'missed') {
+      bits.push({ tone: 'red', ic: 'flame',
+        text: `${esc(w.tasks.map(t => taskTitleText(t)).join(' · '))} — เวลาว่างก่อนกำหนดส่งไม่พอแล้ว ทางที่เหลือคือยืมเวลาจากอย่างอื่นคืนนี้ หรือคุยกับครูตั้งแต่ตอนนี้` });
+    } else if (w.kind === 'stuck') {
+      bits.push({ tone: 'red', ic: 'flame',
+        text: `${esc(taskTitleText(w.tasks[0]))} พักไว้ได้ แต่เลื่อนข้ามวันไม่ได้ — พรุ่งนี้ไม่มีช่องว่างก่อนกำหนดส่งแล้ว`,
+        cta: { label: 'เอากลับขึ้นมาทำ', fn: `unpause('${w.tasks[0].id}')` } });
+    } else if (w.kind === 'overload') {
+      const d = w.day;
+      const when = d.dayOffset === 0 ? 'วันนี้' : d.dayOffset === 1 ? 'พรุ่งนี้' : THAI_DAY[d.date.getDay()] + 'นี้';
+      const advice = w.move
+        ? `ผมแนะนำให้ขยับ "${esc(taskTitleText(w.move))}"${w.to ? ' ไป' + (w.to.dayOffset === 1 ? 'พรุ่งนี้' : THAI_DAY[w.to.date.getDay()]) : ''} — ยังทันกำหนดส่ง`
+        : w.start ? `เลื่อนอะไรไม่ได้แล้ว เริ่ม "${esc(taskTitleText(w.start))}" ตั้งแต่คืนนี้จะได้ไม่ไปกองวันสุดท้าย` : '';
+      bits.push({ tone: 'amber', ic: 'clock',
+        text: `งานที่ต้องส่งภายใน${when}รวม ${humanMin(d.needMin)} แต่เวลาว่างถึงตอนนั้นมี ${humanMin(d.capAcc)} — ขาด ${humanMin(d.overMin)} · ${advice}` });
+    }
+  }
+
+  // ไม่มีข่าวร้าย แต่แผนแน่นพอดี — บอกว่ากันเวลาเผื่อไว้แล้วเท่าไหร่ ก็ยังเป็นข้อมูลที่ใช้ตัดสินใจได้
+  if (!bits.length && sp.plan.slots.length && sp.plan.bufferMin >= 10) {
+    bits.push({ tone: 'blue', ic: 'sparkles',
+      text: `จัดงานลงเวลาว่างครบแล้ว ${humanMin(sp.plan.usedMin)} และกันไว้เผื่อเรื่องไม่คาดคิดอีก ${sp.plan.bufferMin} นาที` });
+  }
+  if (!bits.length) return '';
+
+  // ท้ายกล่องมีทางไปคุยต่อเสมอ — ข้อสังเกตตอบได้แค่สิ่งที่ระบบคำนวณเอง
+  // คำถามที่ตามมา ("ทำไมงานนี้นานจัง" · "ขอลดงานคืนนี้ได้ไหม") ต้องมีที่ให้ถาม
+  return `<section class="td-ai">
+    ${bits.slice(0, 2).map(b => `<div class="ta-row ${b.tone}">
+      <span class="ta-ic">${icon(b.ic)}</span>
+      <p>${b.text}</p>
+      ${b.cta ? `<button class="ta-cta" onclick="${b.cta.fn}">${esc(b.cta.label)}</button>` : ''}
+    </div>`).join('')}
+    <button class="ta-ask" onclick="go('scr-ai')">${icon('sparkles')}ถามน้องไซเพิ่ม${icon('chevron')}</button>
+  </section>`;
+}
+
+// ---------- NOW ----------
+// ของชิ้นเดียวบนจอที่มีสิทธิ์ใหญ่ · ถ้ามีอย่างอื่นใหญ่เท่านี้ แปลว่ายังไม่ได้ตัดสินใจแทนผู้ใช้
 function nowCard(sp, now) {
   const n = sp.now;
   if (!n) return '';
@@ -1240,161 +1340,119 @@ function nowCard(sp, now) {
   const run = runningWork();
   const running = run && run.taskId === t.id;
   const prog = Math.max(0, Math.min(100, t.progress || 0));
+  const subj = t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '';
 
-  // เวลาสองตัวบนบรรทัดเดียวต้องไม่ขัดกัน: "ช่วงนี้ 40 นาที" กับ "ทั้งงาน ~80 นาที"
-  // เขียนแค่ "~80 นาที" ข้างช่วง 17:30–18:10 คือการบอกสองเรื่องด้วยตัวเลขที่ดูเหมือนเรื่องเดียว
-  const bits = [fmtDue(t.due, now, t)];
-  if (slot) {
-    bits.push(fmtClock(slot.start) + '–' + fmtClock(slot.end));
-    bits.push(slot.partial ? 'ช่วงนี้ ' + slot.min + ' จากทั้งหมด ' + (t.estMin || 30) + ' นาที'
-                           : slot.min + ' นาที');
-  } else if (TASK_TYPES[taskType(t)].schedulable) {
-    bits.push('~' + (t.estMin || 30) + ' นาที');
+  // ข้อเท็จจริงสามอย่างบนบรรทัดเดียว — ตอบ "นานแค่ไหน" กับ "คุ้มไหม" โดยไม่ต้องมีหัวข้อกำกับ
+  const facts = [fmtDue(t.due, now, t)];
+  if (t.scorePct != null) facts.push('คะแนน ' + t.scorePct + '%');
+  if (TASK_TYPES[taskType(t)].schedulable) {
+    facts.push(slot && slot.partial ? slot.min + ' จาก ' + (t.estMin || 30) + ' นาที'
+      : (slot ? slot.min : (t.estMin || 30)) + ' นาที');
   }
 
+  // เหตุผลข้อเดียวที่ "เปลี่ยนการตัดสินใจ" ขึ้นเป็นป้ายบนสุด ที่เหลือเป็นข้อเท็จจริงในบรรทัดข้างล่าง
+  // สามบูลเล็ตใต้หัวข้อ "ทำไมตอนนี้?" อ่านเหมือนแบบฟอร์ม — ประโยคเดียวที่ตรงจุดหนักแน่นกว่า
+  const why = topReason(info);
+
   return `<section class="td-now ${tone}${running ? ' running' : ''}">
-    <div class="tn-head">
-      <span class="tn-eyebrow">${icon('flag')}ทำสิ่งนี้ก่อน</span>
-      <span class="tn-tag ${tone}">${esc(priorityLabel(info.stars))}</span>
+    <div class="tn-flag ${tone}">
+      <span class="tn-dot"></span>${esc(why)}
     </div>
 
-    <h2 class="tn-title">${taskTitle(t)}</h2>
-    <div class="tn-meta">${bits.map(b => `<span>${esc(b)}</span>`).join('<i class="msep"></i>')}</div>
-    ${prog > 0 && prog < 100 ? `<div class="tn-prog"><span style="width:${prog}%"></span></div>
-      <div class="tn-prog-tx">ทำไปแล้ว ${prog}%</div>` : ''}
+    ${subj ? `<div class="tn-subj">${esc(subj)}</div>` : ''}
+    <h2 class="tn-title">${esc(t.detail || 'งานนี้')}</h2>
+    <div class="tn-facts">${facts.map(esc).join(' · ')}</div>
 
-    ${n.step ? `<div class="tn-step">
-      <span class="ts-lb">เริ่มตรงนี้</span>
-      <b>${esc(n.step.title)}</b>
-      <span class="ts-min">~${n.step.min} นาที</span>
-    </div>` : ''}
-
-    <div class="tn-why">
-      <div class="tw-lb">ทำไมต้องเป็นงานนี้?</div>
-      <ul>${whyList(info).map(r =>
-        `<li><span class="tw-ic">${reasonIcon(r)}</span>${esc(r)}</li>`).join('')}</ul>
-    </div>
+    ${prog > 0 && prog < 100 ? `<div class="tn-prog"><span style="width:${prog}%"></span></div>` : ''}
 
     <button class="tn-cta" onclick="startFocus('${t.id}')">
-      ${icon(running ? 'clock' : 'play')}${running ? 'กลับเข้าโหมดโฟกัส' : 'เริ่มทำเลย'}</button>
+      <span class="tc-main">${icon(running ? 'clock' : 'play')}${
+        running ? 'กลับเข้าโหมดโฟกัส' : (n.step ? 'เริ่ม ' + n.step.min + ' นาทีแรก' : 'เริ่มทำเลย')}</span>
+      ${n.step && !running ? `<span class="tc-sub">${esc(n.step.title)}</span>` : ''}
+    </button>
     <div class="tn-alt">
-      <button onclick="toggleDone('${t.id}',this)">ทำเสร็จแล้ว</button>
-      <button onclick="notNow('${t.id}')">ยังไม่ไหวตอนนี้</button>
+      <button onclick="toggleDone('${t.id}',this)">${icon('check')}เสร็จแล้ว</button>
+      <button onclick="notNow('${t.id}')">ยังไม่ไหว</button>
     </div>
   </section>`;
 }
 
-// NEXT — บรรทัดเดียว เล็กกว่า NOW มาก เพราะมันไม่ใช่สิ่งที่ต้องตัดสินใจตอนนี้
-// แต่ต้องมีชื่ออยู่จริง: "ไปต่องานถัดไปกันเลย!" โดยไม่บอกว่างานไหน คือประโยคที่ไม่มีข้อมูล
-function nextLine(sp, now) {
-  if (!sp.next) return '';
-  const t = sp.next.task, s = sp.next.slot;
-  return `<button class="td-next" onclick="openForm('${t.id}')">
-    <span class="tx-lb">ถัดไป</span>
-    <span class="tx-tt">${taskTitle(t)}</span>
-    <span class="tx-meta mono">${fmtClock(s.start)} · ${s.min} นาที</span>
-    <span class="tx-go">${icon('chevron')}</span>
-  </button>`;
+// ---------- NEXT / LATER ----------
+// ทั้งสองบล็อกนี้ตอบคำถามเดียว: "แล้วอะไรต่อ" — ต่างกันแค่ความเร่ง จึงต้องหน้าตาต่างกันตามนั้น
+// เดิม NEXT เป็นแถบเดี่ยวที่พูดซ้ำกับแถวที่สองของแผนพอดี ตอนนี้แผนติดป้าย "ถัดไป" ให้แทน
+function upNext(sp, now) {
+  const rows = [];
+  if (sp.next) rows.push({ t: sp.next.task, lb: 'ถัดไป', slot: sp.next.slot, big: true });
+  for (const t of sp.later.slice(0, 2)) rows.push({ t, lb: null, slot: null, big: false });
+  if (!rows.length) return '';
+
+  const later = rows.filter(r => !r.big);
+  return `<section class="td-up">
+    ${sp.next ? `<div class="tu-lb">ถัดไป</div>
+      <button class="tu-row big ${subjClass(sp.next.task.subject)}" onclick="startFocus('${sp.next.task.id}')">
+        <span class="tu-bar"></span>
+        <span class="tu-tx">
+          <b>${esc(sp.next.task.detail || sp.next.task.subject)}</b>
+          <span>${esc([sp.next.task.subject !== 'อื่น ๆ' ? sp.next.task.subject : '',
+            sp.next.slot.min + ' นาที', fmtDue(sp.next.task.due, now, sp.next.task)].filter(Boolean).join(' · '))}</span>
+        </span>
+        <span class="tu-go">${icon('play')}</span>
+      </button>` : ''}
+
+    ${later.length ? `<div class="tu-lb">ไว้ทีหลัง</div>
+      ${later.map(r => `<button class="tu-row ${subjClass(r.t.subject)}" onclick="openForm('${r.t.id}')">
+        <span class="tu-bar"></span>
+        <span class="tu-tx">
+          <b>${esc(r.t.detail || r.t.subject)}</b>
+          <span>${esc([r.t.subject !== 'อื่น ๆ' ? r.t.subject : '',
+            (r.t.estMin || 30) + ' นาที', fmtDue(r.t.due, now, r.t)].filter(Boolean).join(' · '))}</span>
+        </span>
+        <span class="tu-go quiet">${icon('chevron')}</span>
+      </button>`).join('')}` : ''}
+
+    ${sp.later.length > 2 ? `<button class="tu-more" onclick="go('scr-tasks')">
+      ดูงานที่เหลืออีก ${sp.later.length - 2} งาน${icon('chevron')}</button>` : ''}
+  </section>`;
 }
 
-// คำเตือนเรื่องภาระ — ต้องมาพร้อมสิ่งที่ทำตามได้ ไม่ใช่แค่บอกว่าหนัก
-// "งานเยอะนะ" ไม่ใช่คำแนะนำ · "เลื่อนรายงานวิทย์ไปเสาร์" คือคำแนะนำ
-function warnBlocks(sp, now) {
-  let html = '';
-  for (const w of sp.warnings) {
-    if (w.kind === 'missed') {
-      const names = w.tasks.map(t => taskTitleText(t)).join(' · ');
-      html += `<div class="td-warn red">
-        <b>${icon('flame')}ทำไม่ทันถ้าไม่ทำวันนี้</b>
-        <p>${esc(names)} — เวลาว่างที่เหลือก่อนกำหนดส่งไม่พอแล้ว${
-          w.nextFree ? ` (ว่างอีกทีก็ ${esc(w.nextFree.fromHm)} ${w.nextFree.dayOffset === 1 ? 'พรุ่งนี้' : 'อีก ' + w.nextFree.dayOffset + ' วัน'})` : ''}</p>
-        <p class="tdw-do">ทางที่เหลือคือยืมเวลาจากอย่างอื่นคืนนี้ หรือคุยกับครูตั้งแต่ตอนนี้</p>
-      </div>`;
-    } else if (w.kind === 'stuck') {
-      // ผู้ใช้กด "ยังไม่ไหวตอนนี้" หรือปัดเลื่อนงานที่วันนี้เป็นวันสุดท้าย
-      // เราเคารพการกด (มันไม่ขึ้นเป็นการ์ดใบใหญ่แล้ว) แต่ปิดปากเรื่องเส้นตายไม่ได้
-      html += `<div class="td-warn red">
-        <b>${icon('flame')}พักไว้ได้ แต่เลื่อนข้ามวันไม่ได้</b>
-        <p>${esc(w.tasks.map(t => taskTitleText(t)).join(' · '))} —
-          ยังกันเวลาไว้ให้ในแผนวันนี้ เพราะพรุ่งนี้ไม่มีช่องว่างก่อนกำหนดส่งแล้ว</p>
-        <p class="tdw-do"><button class="tdw-btn" onclick="unpause('${w.tasks[0].id}')">เอากลับขึ้นมาทำเลย</button></p>
-      </div>`;
-    } else if (w.kind === 'overload') {
-      const d = w.day;
-      const when = d.dayOffset === 0 ? 'วันนี้' : d.dayOffset === 1 ? 'พรุ่งนี้'
-        : THAI_DAY[d.date.getDay()] + 'นี้';
-      // ตัวเลขเป็นแบบสะสม จึงต้องเขียนให้ชัดว่า "ถึงวันนั้น" ไม่ใช่ "ในวันนั้นวันเดียว"
-      // ไม่งั้นผู้ใช้จะอ่านว่าพรุ่งนี้ต้องนั่งสี่ชั่วโมงรวด ทั้งที่คืนนี้ก็แบ่งมาทำได้
-      html += `<div class="td-warn amber">
-        <b>${icon('clock')}งานที่ต้องส่งภายใน${when} เกินเวลาที่มี</b>
-        <p>ต้องทำรวม ${humanMin(d.needMin)} · เวลาว่างตั้งแต่ตอนนี้ถึง${when}มี ${humanMin(d.capAcc)}
-          — ขาดอยู่ ${humanMin(d.overMin)}</p>
-        ${w.move ? `<p class="tdw-do">แนะนำ: ขยับ "${esc(taskTitleText(w.move))}"${
-            w.to ? ' ไป' + (w.to.dayOffset === 1 ? 'พรุ่งนี้' : THAI_DAY[w.to.date.getDay()]) : ' ไปวันที่ว่างกว่า'} — ยังทันกำหนดส่ง</p>`
-          : w.start ? `<p class="tdw-do">เลื่อนอะไรไม่ได้แล้ว — เริ่ม "${esc(taskTitleText(w.start))}" ตั้งแต่คืนนี้ จะได้ไม่ไปกองวันสุดท้าย</p>`
-          : ''}
-      </div>`;
-    }
-  }
-  return html;
-}
-
-// แผนของวันนี้ ตั้งแต่ตอนนี้ถึงเวลานอน — ยกขึ้นมาไว้บนหน้าแรก
-// เดิมจอนี้ (scr-plan) เป็นจอเดียวที่ตอบว่า "20:40–21:00 ทำอะไร" แต่มีทางเข้าเดียวในทั้งแอป
-// คือปุ่มเล็ก ๆ ในกล่องข้อความ AI ของอีกจอหนึ่ง
+// ---------- แผนวันนี้ (ของประกอบ ไม่ใช่คำตอบ) ----------
+// รางเวลาไม่มีกรอบการ์ด — ใช้ระยะห่างแทนเส้น เพื่อให้มันอ่านเป็น "ข้อมูลประกอบ" ไม่ใช่ "อีกคำตอบหนึ่ง"
 function planStrip(sp, now) {
   const p = sp.plan;
   if (!p.slots.length) return '';
-  const win = p.windows;
-  const sub = `จัดให้แล้ว ${humanMin(p.usedMin)} จาก ${humanMin(win.budgetMin)}`
-    + (p.bufferMin ? ` · เผื่อไว้ ${p.bufferMin} นาที` : '');
+  const nextTask = sp.next && sp.next.task;
   return `<section class="td-plan">
-    <div class="tp-head">
-      <b>${icon('calendar')}แผนวันนี้</b>
-      <span class="tp-sub">${esc(sub)}</span>
+    <div class="tp-lb">แผนวันนี้<span>${humanMin(p.usedMin)} · เผื่อไว้ ${p.bufferMin} นาที</span></div>
+    <div class="tp-rail">
+      ${p.slots.map(s => {
+        if (s.break) return `<div class="tp-row brk"><span class="mono">${fmtClock(s.start)}</span>
+          <span class="tp-tx">พัก ${s.min} นาที</span></div>`;
+        const isNext = nextTask && s.task === nextTask;
+        return `<div class="tp-row ${subjClass(s.task.subject)}" onclick="startFocus('${s.task.id}')">
+          <span class="mono">${fmtClock(s.start)}</span>
+          <span class="tp-tx">
+            <b>${esc(s.task.detail || s.task.subject)}</b>
+            <span>${s.min} นาที${s.partial ? ' · จาก ' + remainingMin(s.task) + ' นาที' : ''}</span>
+          </span>
+          ${isNext ? '<span class="tp-pill">ถัดไป</span>' : ''}
+          <span class="tp-go">${icon('chevron')}</span>
+        </div>`;
+      }).join('')}
     </div>
-    <div class="tp-list">
-      ${p.slots.map(s => s.break
-        ? `<div class="tp-row brk"><span class="mono">${fmtClock(s.start)}</span>
-             <span class="tp-tx">พัก ${s.min} นาที</span></div>`
-        : `<div class="tp-row ${subjClass(s.task.subject)}" onclick="startFocus('${s.task.id}')">
-             <span class="mono">${fmtClock(s.start)}</span>
-             <span class="tp-tx"><b>${taskTitle(s.task)}</b>
-               <span class="tp-min">${s.min} นาที${s.note ? ' · ' + esc(s.note) : ''}</span></span>
-             <span class="tp-go">${icon('play')}</span>
-           </div>`).join('')}
-    </div>
-    ${p.bufferMin ? `<p class="tp-buf">กันไว้ ${p.bufferMin} นาทีสำหรับเรื่องที่ไม่ได้วางแผน —
-      ตารางที่เต็มทุกนาทีคือตารางที่พังตั้งแต่เรื่องแรกที่แทรกเข้ามา</p>` : ''}
+    <button class="tp-all" onclick="go('scr-timeline')">ดูตารางทั้งหมด${icon('chevron')}</button>
   </section>`;
 }
 
-// LATER — พับไว้เสมอ · รายการทั้งหมดมีที่อยู่ของมันแล้วในแท็บ "ตาราง"
-function laterFold(sp, now) {
-  if (!sp.later.length) return '';
-  return `<details class="td-later">
-    <summary>อีก ${sp.later.length} งาน — ยังไม่ต้องคิดตอนนี้</summary>
-    <div class="tl-list">
-      ${sp.later.map(t => `<button class="tl-row" onclick="openForm('${t.id}')">
-        <span class="tl-tt">${taskTitle(t)}</span>
-        <span class="tl-due mono ${wgDueTone(t, now)}">${esc(wgDueText(t, now))}</span>
-      </button>`).join('')}
-    </div>
-  </details>`;
-}
-
-// ไม่มีงานค้าง — ต้องไม่ใช่จอว่าง ๆ และต้องไม่แกล้งชมทั้งที่ยังไม่ได้ทำอะไร
+// ---------- ยังไม่มีงาน ----------
 function todayEmpty(now) {
   const doneToday = liveTasks().filter(t => t.done && t.doneAt &&
     new Date(t.doneAt).toDateString() === now.toDateString()).length;
-  const free = typeof freeMinutes === 'function' ? freeMinutes(now, now) : 0;
   return `<section class="td-clear">
     <span class="tc-ic">${icon('check-circle')}</span>
     <b>${doneToday ? 'เคลียร์หมดแล้ววันนี้' : 'ยังไม่มีงานในระบบ'}</b>
-    <p>${doneToday
-      ? 'ทำเสร็จไป ' + doneToday + ' งาน' + (free > 20 ? ' · เหลือเวลาว่าง ' + humanMin(free) + ' เอาไปพักได้เต็มที่' : '')
-      : 'ถ่ายรูปใบงาน หรือแปะข้อความที่ครูสั่งมา แล้วจะได้แผนแรกภายในไม่กี่วินาที'}</p>
-    <button class="tc-cta" onclick="go('scr-scan')">${icon('camera')}เพิ่มงานแรก</button>
+    <p>${doneToday ? 'ทำเสร็จไป ' + doneToday + ' งาน — วันนี้พักได้เต็มที่'
+      : 'ถ่ายรูปใบงานที่ครูสั่ง แล้วจะได้แผนแรกภายในไม่กี่วินาที'}</p>
+    <button class="tc-cta" onclick="openAddSheet()">${icon('camera')}เพิ่มงานแรก</button>
   </section>`;
 }
 
@@ -1402,34 +1460,12 @@ function renderMenu() {
   const body = document.getElementById('menuBody');
   if (!body) return;
   const now = new Date();
-  const h = now.getHours();
-  const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนค่ำ';
   const sp = todayPlan(now);
-  const win = sp.plan.windows;
 
-  // บรรทัดเวลา: ตัวเลขเดียวที่ทำให้คำว่า "ตอนนี้" มีความหมาย
-  // ต่ำกว่าหนึ่งชั่วโมงต้องเป็นนาที — "ว่างอีก 0.3 ชม." ไม่มีใครแปลงในหัวทัน
-  const lastSlot = win.slots[win.slots.length - 1];
-  const timeLine = win.mode === 'none'
-    ? 'วันนี้หมดเวลาแล้ว — แผนข้างล่างกันไว้ให้พรุ่งนี้'
-    : `เหลือเวลาว่าง ${humanMin(win.budgetMin)}` + (lastSlot ? ` · ถึง ${lastSlot.toHm}` : '');
-
-  body.innerHTML = `<div class="menu-head">
-      <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
-      <h1 class="page-title">${greet}${who() ? ', <b class="pt-me">' + esc(who()) + '</b>' : ''}</h1>
-      <p class="td-time">${esc(timeLine)}</p>
-    </div>
-    ${replanBanner(sp, now)}
-    ${sp.now ? nowCard(sp, now) + nextLine(sp, now) : todayEmpty(now)}
-    ${warnBlocks(sp, now)}
-    ${planStrip(sp, now)}
-    ${laterFold(sp, now)}
-    ${ctxNudge(win)}
-    ${widgetHtml(now)}
-    <div class="menu-grid">
-      ${inboxTile()}
-      ${menuTile('hero half', 'camera', 'เพิ่มงานใหม่', 'ถ่ายรูป · พูด · แปะข้อความ', null, 'scr-scan')}
-    </div>`;
+  body.innerHTML = todayHead(sp, now)
+    + (sp.now ? aiInsight(sp, now) + nowCard(sp, now) + upNext(sp, now) + planStrip(sp, now)
+              : todayEmpty(now))
+    + ctxNudge(sp.plan.windows);
 
   // จำแผนที่เพิ่งแสดงไป เพื่อให้รอบหน้ารู้ว่าผู้ใช้พลาดช่วงไหน
   // ต้องบันทึกหลังวาด ไม่ใช่ก่อน — ไม่งั้นแผนที่ยังไม่มีใครเห็นจะถูกนับว่า "เคยบอกไปแล้ว"
@@ -1437,17 +1473,55 @@ function renderMenu() {
 }
 
 // ยังไม่รู้จักตารางเรียนของเขา = ทุกตัวเลขบนจอนี้ตั้งอยู่บนการเดา ต้องบอกให้รู้ตัว
-// และบอกตรงจุดที่เขากำลังมองแผนอยู่พอดี ไม่ใช่ซ่อนไว้ในหน้าตั้งค่าที่ไม่มีใครเปิด
+// แต่บอกด้วยบรรทัดเดียวท้ายจอ ไม่ใช่การ์ดเต็มใบที่แย่งที่กับคำตอบ
 function ctxNudge(win) {
   if (win.mode !== 'default') return '';
-  return `<button class="pctx-nudge" onclick="go('scr-context')">
-    <span class="pn-ic">${icon('clock')}</span>
-    <span class="pn-tx">
-      <b>ตอนนี้ AI เดาว่าคุณเริ่มทำการบ้าน 19:00</b>
-      <span>บอกตารางเรียนสักครั้ง แล้วแผนจะวางลงช่องว่างจริงของคุณ — ว่างบ่ายก็ได้เริ่มบ่าย</span>
-    </span>
-    <span class="pn-go">${icon('chevron')}</span>
+  return `<button class="td-nudge" onclick="go('scr-context')">
+    ${icon('clock')}เวลาว่างข้างบนมาจากการเดา — บอกตารางเรียนสักครั้งให้แผนตรงกับชีวิตจริง${icon('chevron')}
   </button>`;
+}
+
+// ---------- ปุ่ม + : ทางเข้าที่เร็วที่สุดของการเพิ่มงาน ----------
+// เพิ่มงานคือสิ่งที่ทำบ่อยที่สุดรองจากการดูว่าต้องทำอะไร มันจึงต้องอยู่ห่างจากนิ้วหนึ่งครั้งกด
+// แต่ต้องไม่แย่งสายตาจากคำตอบ — จึงเป็นปุ่มบนแถบล่าง ไม่ใช่การ์ดบนหน้าแรก
+const ADD_ACTIONS = [
+  ['camera', 'ถ่ายรูปใบงาน', 'AI อ่านให้ทั้งใบ', "go('scr-scan');setTimeout(()=>document.getElementById('fileInput')&&document.getElementById('fileInput').click(),150)"],
+  ['mic', 'พูดเพิ่มงาน', 'เร็วที่สุด — 5 วินาที', "go('scr-scan');setTimeout(()=>typeof startVoice==='function'&&startVoice(),150)"],
+  ['type', 'แปะข้อความจากครู', 'วางแล้วให้ AI แกะ', "go('scr-scan')"],
+  ['pencil', 'พิมพ์เองทีละช่อง', 'งานที่ไม่มีข้อความต้นทาง', "openForm(null)"],
+  ['book', 'เพิ่มวันสอบ', 'แล้วผมแบ่งรอบอ่านให้', "openForm(null);setTimeout(()=>typeof setFormType==='function'&&setFormType('exam'),60)"],
+];
+
+function openAddSheet() {
+  const el = document.getElementById('addSheet');
+  if (!el) { go('scr-scan'); return; }
+  el.innerHTML = `<div class="as-scrim" onclick="closeAddSheet()"></div>
+    <div class="as-card" role="dialog" aria-label="เพิ่มงานใหม่">
+      <div class="as-grip"></div>
+      <div class="as-h">เพิ่มอะไร?</div>
+      ${ADD_ACTIONS.map(a => `<button class="as-row" onclick="closeAddSheet();${a[3]}">
+        <span class="as-ic">${icon(a[0])}</span>
+        <span class="as-tx"><b>${esc(a[1])}</b><span>${esc(a[2])}</span></span>
+        <span class="as-go">${icon('chevron')}</span>
+      </button>`).join('')}
+    </div>`;
+  el.hidden = false;
+  // ใช้ setTimeout ไม่ใช่ requestAnimationFrame
+  //
+  // rAF ไม่ทำงานเลยถ้าหน้าไม่ได้ถูกวาดจริง (แท็บพื้นหลัง · เบราว์เซอร์ในเครื่องมือทดสอบ ·
+  // เครื่องที่ประหยัดแบตแล้วหยุดวาด) แล้วคลาส on จะไม่เคยถูกใส่ —
+  // แผ่นค้างอยู่ใต้จอแบบถาวร กดปุ่ม + แล้วไม่มีอะไรขึ้น โดยไม่มี error อะไรเลย
+  // ตัวจับเวลาทำงานเสมอ · และถ้า transition ไม่เล่น อย่างแย่ที่สุดคือแผ่นเด้งขึ้นมาทันที
+  // ซึ่งยังใช้งานได้ ต่างจากแผ่นที่ไม่โผล่เลย
+  setTimeout(() => el.classList.add('on'), 16);
+  haptic('tap');
+}
+
+function closeAddSheet() {
+  const el = document.getElementById('addSheet');
+  if (!el) return;
+  el.classList.remove('on');
+  setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
 }
 
 // ---------- ตารางงาน (เดิมคือหน้าแรก) ----------
@@ -2060,7 +2134,10 @@ function renderAi() {
         .map(s => `<button onclick="aiAsk('${s}')">${s}</button>`).join('')}
     </div>`;
 
+  // ปุ่มย้อนกลับต้องมี เพราะจอนี้ไม่ได้อยู่บนแถบล่างแล้วตั้งแต่ 1A8b
+  // จอที่เข้าได้แต่ออกไม่ได้ คือจอที่ผู้ใช้ต้องปิดแอปเพื่อออก
   el.innerHTML = `<div class="page-head">
+      <button class="back" onclick="go('scr-menu')" aria-label="กลับหน้าวันนี้">${icon('chevron')}</button>
       <div class="eyebrow">ผู้ช่วยของฉัน</div>
       <h1 class="page-title">ถามน้องไซ</h1>
       <p class="page-sub">ติดตรงไหนถามได้ — น้องไซอธิบายให้เข้าใจ แล้วให้คุณทำเอง</p>

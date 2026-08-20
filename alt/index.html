@@ -608,6 +608,14 @@
 
           <!-- ALT 1A6M3: ทางเข้าใหญ่ 3 ทาง — ตั้งค่าทั้งหมดย้ายไปอยู่หลังปุ่ม -->
           <div class="pf-entry">
+            <!-- ถามน้องไซ — ย้ายมาจากแถบล่างตอน 1A8b
+                 AI ที่ดีพูดก่อนถูกถาม ข้อสังเกตของมันจึงไปอยู่บนหน้า "วันนี้" แทน
+                 แต่ช่องแชทยังต้องมีทางเข้าอยู่จริง ไม่งั้นฟีเจอร์ทั้งตัวหายไปเงียบ ๆ -->
+            <button class="pe" onclick="go('scr-ai')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+              <span class="pe-tx"><b>ถามน้องไซ</b><i>ติดตรงไหนถามได้ — รู้ทุกงานที่ค้างอยู่</i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
             <!-- ALT 1A6M3: ร้านค้า — อยู่เหนือเหรียญตรา · ติดป้าย "กำลังทำ" เพราะของในร้านยังไม่เปิด
                  แต่โทเคนสะสมจริงตั้งแต่ตอนนี้ ปุ่มจึงกดเข้าไปดูยอดได้ ไม่ใช่ปุ่มตาย -->
             <button class="pe pe-shop" onclick="go('scr-shop')">
@@ -1045,20 +1053,28 @@
          "ไปหน้าอื่น" ไม่ใช่สิ่งที่เราอยากให้ทำได้ง่าย · เนื้อในวาดจาก renderFocus() -->
     <div class="focus-wrap" id="focusWrap" hidden></div>
 
+    <!-- แผ่นเลือกวิธีเพิ่มงาน (ปุ่ม + บนแถบล่าง) — วาดจาก openAddSheet()
+         เป็นแผ่นเลื่อนขึ้น ไม่ใช่จอใหม่ เพราะการเพิ่มงานควรจบโดยไม่ต้องออกจากคำตอบที่กำลังดูอยู่ -->
+    <div class="add-sheet" id="addSheet" hidden></div>
+
     <!-- ============ TAB BAR ============ -->
     <div class="tabbar">
+      <!-- แถบล่าง: วันนี้ · ปฏิทิน · + · งาน · ฉัน
+           "ถามน้องไซ" ถูกถอดออกจากแถบล่างตั้งแต่ 1A8b — ไม่ได้ถูกลบ
+           AI ที่ดีต้องพูดก่อนถูกถาม จึงย้ายไปอยู่ในกล่องข้อสังเกตบนหน้า "วันนี้"
+           ส่วนช่องแชทเต็ม ๆ เข้าได้จากปุ่มในกล่องนั้นและจากแท็บ "ฉัน" -->
       <button class="tab" data-scr="scr-menu" onclick="go('scr-menu')">
         <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-home"/></svg>
-        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-home-f"/></svg><span>หน้าแรก</span></button>
-      <button class="tab" data-scr="scr-ai" onclick="go('scr-ai')">
-        <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-ai"/></svg>
-        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-ai-f"/></svg><span>ถามน้องไซ</span></button>
-      <button class="tab scan" data-scr="scr-scan" onclick="go('scr-scan')">
-        <span class="scan-dot"><svg viewBox="0 0 24 24"><use href="#tb-scan"/></svg></span><span>เพิ่ม</span></button>
-      <button class="tab" data-scr="scr-timeline" onclick="go('scr-timeline')">
+        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-home-f"/></svg><span>วันนี้</span></button>
+      <button class="tab" data-scr="scr-timeline" onclick="goTlMode('cal')">
         <span class="ic-wrap"><svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-timeline"/></svg>
           <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-timeline-f"/></svg>
-          <span class="tab-badge" id="badgeHome" hidden></span></span><span>ตาราง</span></button>
+          <span class="tab-badge" id="badgeHome" hidden></span></span><span>ปฏิทิน</span></button>
+      <button class="tab scan" onclick="openAddSheet()" aria-label="เพิ่มงานใหม่">
+        <span class="scan-dot"><svg viewBox="0 0 24 24"><use href="#tb-scan"/></svg></span><span>เพิ่ม</span></button>
+      <button class="tab" data-scr="scr-tasks" onclick="go('scr-tasks')">
+        <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-tasks"/></svg>
+        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-tasks-f"/></svg><span>งาน</span></button>
       <button class="tab" data-scr="scr-profile" onclick="go('scr-profile')">
         <span class="ic-wrap"><svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-profile"/></svg>
           <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-profile-f"/></svg>
