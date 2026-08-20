@@ -241,6 +241,15 @@
   background: var(--scr); display: flex; flex-direction: column;
   animation: fcIn .22s ease-out;
 }
+/* ต้องมาหลัง .focus-wrap และห้ามลบเด็ดขาด
+   —————————————————————————————————————————————————————————
+   `hidden` เป็น attribute ที่ซ่อนของด้วย `display:none` จาก stylesheet ของเบราว์เซอร์เอง
+   ซึ่งมีน้ำหนักต่ำกว่า `display:flex` ที่เราเขียนในไฟล์นี้ — พอเขียนทับ มันก็ไม่ซ่อนอีกต่อไป
+   ผลคือกล่องเปล่าพื้นทึบกางเต็มจอทับทั้งแอปตั้งแต่วินาทีแรกที่เปิด และกินทุกการกด
+   เปิดมาเจอจอดำสนิท ไม่มี error ใน console สักบรรทัด เพราะ DOM ถูกต้องทุกอย่าง
+   (หลุดขึ้นเว็บจริงมาแล้วหนึ่งรอบ — 20 ส.ค. 2569)
+   ใครก็ตามที่จะตั้ง display ให้ของที่ซ่อนด้วย `hidden` ต้องเขียนบรรทัดคู่แบบนี้เสมอ */
+.focus-wrap[hidden] { display: none; }
 @keyframes fcIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .focus-wrap { animation: none; } }
 
