@@ -383,6 +383,19 @@ function overloadWarning(tasks, settings, now = new Date(), stats = null) {
   return { day: hit, move, to, start: move ? null : biggest };
 }
 
+// ---------- 5.5) งานที่เลยกำหนดมานานเกินกว่าจะเดาแทน ----------
+// สามวันคือเส้นที่เลือกจากพฤติกรรมจริง: เลยมาวันสองวันยังเป็น "รีบทำให้เสร็จ"
+// เลยมาเป็นสัปดาห์มักแปลว่าเรื่องมันจบไปแล้วทางใดทางหนึ่ง และมีแต่ผู้ใช้ที่รู้ว่าทางไหน
+//
+// triagedAt = ผู้ใช้ตอบแล้วว่ายังต้องส่ง · ตอบครั้งเดียวพอ ไม่ต้องถามซ้ำทุกวัน
+const STALE_DAYS = 3;
+
+function staleOverdue(task, now = new Date()) {
+  if (!task || !task.due || task.done || task.deleted) return false;
+  if (task.triagedAt) return false;
+  return (now - new Date(task.due)) > STALE_DAYS * 864e5;
+}
+
 // ---------- 6) แผนของวันนี้ (ตัวหลักที่ทุกจอเรียก) ----------
 // คืนคำตอบชุดเดียวให้ทั้งแอป: ทำอะไรตอนนี้ · ต่อไปคืออะไร · ที่เหลือรอได้ · มีอะไรต้องรู้ไหม
 function studyPlan(state, now = new Date()) {
@@ -407,7 +420,17 @@ function studyPlan(state, now = new Date()) {
     (t.plannedFor && new Date(t.plannedFor) > endOfToday);
   const stuck = pending.filter(t => paused(t) && isLastChanceToday(t, now));
 
-  const live = pending.filter(t => !paused(t) || stuck.includes(t));
+  // งานที่เลยกำหนดมานานแล้ว ต้องถามก่อน ไม่ใช่จัดลงแผนเงียบ ๆ
+  //
+  // เอนจินให้คะแนน "เลยกำหนดแล้ว" สูงสุด (65) ซึ่งถูกสำหรับงานที่เพิ่งเลยมาไม่กี่ชั่วโมง
+  // แต่พอเลยมาหลายวัน ตรรกะเดียวกันกลับให้ผลที่ผิด: การบ้านที่เลยมาหกวันขึ้นเป็นงานอันดับหนึ่ง
+  // เบียดงานที่พรุ่งนี้ต้องส่งและยังส่งทัน — ซึ่งเป็นการเอาความเสียหายที่เกิดไปแล้ว
+  // มาทับความเสียหายที่ยังกันได้
+  //
+  // และเราไม่รู้จริง ๆ ว่ามันยังต้องส่งอยู่ไหม · ครูอาจปิดรับไปแล้ว หรืออาจให้ส่งช้าได้
+  // คนที่รู้คือผู้ใช้ ถามหนึ่งครั้งแล้วจำคำตอบไว้ ดีกว่าเดาแล้วจัดตารางผิดทุกวัน
+  const stale = pending.filter(t => staleOverdue(t, now));
+  const live = pending.filter(t => !stale.includes(t) && (!paused(t) || stuck.includes(t)));
 
   const misses = dayMisses(state, now);
   const bufferOf = budget => Math.min(BUFFER_MAX, Math.round(budget * BUFFER_PCT));
@@ -446,6 +469,9 @@ function studyPlan(state, now = new Date()) {
   }
   // งานที่ถูกกดพักไว้ทั้งที่เลื่อนไม่ได้ — ต้องพูดออกมา ไม่ใช่ปล่อยให้หายไปเงียบ ๆ
   if (stuck.length) warnings.push({ kind: 'stuck', tasks: stuck });
+
+  // ถามทีละใบ — ถามพร้อมกันห้าใบคือแบบสอบถาม ไม่ใช่การช่วยตัดสินใจ
+  if (stale.length) warnings.push({ kind: 'stale', task: stale[0], more: stale.length - 1 });
 
   const over = overloadWarning(live, settings, now, stats);
   if (over) warnings.push({ kind: 'overload', ...over });

@@ -56,8 +56,8 @@
   <link rel="stylesheet" href="alt.css">
   <!-- ชั้นกล่องเข้า + เชื่อม LINE — ชั้นใหม่ทั้งชั้น แยกไฟล์ไว้ให้ถอดออกได้ทั้งก้อน -->
   <link rel="stylesheet" href="inbox.css">
-  <!-- โหมดโฟกัส · แผ่นเพิ่มงาน · สรุปประจำสัปดาห์ — สามอย่างที่เพิ่มมาทีหลัง
-       อยู่แยกไฟล์เพื่อให้ถอดออกได้ทั้งชุดด้วยการเอาบรรทัดนี้ออก -->
+  <!-- จอ "วันนี้" กับโหมดโฟกัส — ของใหม่ทั้งก้อน จึงอยู่แยกไฟล์
+       ถอยกลับหน้าแรกแบบเก่า = เอาบรรทัดนี้ออก ไม่ต้องคุ้ย alt.css ที่ยาว 250 KB -->
   <link rel="stylesheet" href="today.css">
   <!-- ดีไซน์ที่ปรับด้วยตัวแก้ดีไซน์ ต้องอยู่ท้ายสุดถึงจะทับของเดิมได้
        ว่างอยู่ = ยังไม่มีใครปรับอะไร ไม่มีผลกับหน้าตาเดิมเลย -->
@@ -1069,7 +1069,7 @@
            ส่วนช่องแชทเต็ม ๆ เข้าได้จากปุ่มในกล่องนั้นและจากแท็บ "ฉัน" -->
       <button class="tab" data-scr="scr-menu" onclick="go('scr-menu')">
         <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-home"/></svg>
-        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-home-f"/></svg><span>หน้าแรก</span></button>
+        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-home-f"/></svg><span>วันนี้</span></button>
       <button class="tab" data-scr="scr-timeline" onclick="goTlMode('cal')">
         <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-timeline"/></svg>
         <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-timeline-f"/></svg><span>ปฏิทิน</span></button>
