@@ -157,6 +157,10 @@
     <g id="tb-home" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></g>
     <g id="tb-tasks" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5h8"></path><path d="M13 12h8"></path><path d="M13 19h8"></path><path d="m3 17 2 2 4-4"></path><path d="m3 7 2 2 4-4"></path></g>
     <g id="tb-scan" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M7 12h10"></path></g>
+    <!-- ปุ่มกลางแถบล่างเปิดแผ่นที่มีห้าทาง (สแกน · พูด · แปะข้อความ · พิมพ์เอง · เพิ่มสอบ)
+         ไอคอนจึงต้องเป็นเครื่องหมายบวก ไม่ใช่กรอบสแกน — กรอบสแกนสัญญาว่ากดแล้วกล้องเปิด
+         ซึ่งเป็นแค่หนึ่งในห้าทางที่จะได้ -->
+    <g id="tb-plus" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></g>
     <g id="tb-timeline" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path></g>
     <g id="tb-profile" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"></circle><path d="M20 21a8 8 0 0 0-16 0"></path></g>
 
@@ -1067,14 +1071,16 @@
         <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-home"/></svg>
         <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-home-f"/></svg><span>วันนี้</span></button>
       <button class="tab" data-scr="scr-timeline" onclick="goTlMode('cal')">
-        <span class="ic-wrap"><svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-timeline"/></svg>
-          <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-timeline-f"/></svg>
-          <span class="tab-badge" id="badgeHome" hidden></span></span><span>ปฏิทิน</span></button>
+        <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-timeline"/></svg>
+        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-timeline-f"/></svg><span>ปฏิทิน</span></button>
       <button class="tab scan" onclick="openAddSheet()" aria-label="เพิ่มงานใหม่">
-        <span class="scan-dot"><svg viewBox="0 0 24 24"><use href="#tb-scan"/></svg></span><span>เพิ่ม</span></button>
+        <span class="scan-dot"><svg viewBox="0 0 24 24"><use href="#tb-plus"/></svg></span><span>เพิ่ม</span></button>
+      <!-- แบดจ์ย้ายมาอยู่บนแท็บ "งาน" — มันเคยติดอยู่บน "ปฏิทิน" ตั้งแต่ตอนเปลี่ยนชื่อแท็บ
+           ซึ่งชี้ไปผิดที่ · เลขบนแท็บต้องพาไปยังที่ที่ลงมือแก้เรื่องนั้นได้จริง -->
       <button class="tab" data-scr="scr-tasks" onclick="go('scr-tasks')">
-        <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-tasks"/></svg>
-        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-tasks-f"/></svg><span>งาน</span></button>
+        <span class="ic-wrap"><svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-tasks"/></svg>
+          <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-tasks-f"/></svg>
+          <span class="tab-badge" id="badgeHome" hidden></span></span><span>งาน</span></button>
       <button class="tab" data-scr="scr-profile" onclick="go('scr-profile')">
         <span class="ic-wrap"><svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-profile"/></svg>
           <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-profile-f"/></svg>

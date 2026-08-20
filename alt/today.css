@@ -9,17 +9,21 @@
    ขนาดคือวิธีที่จอบอกว่าอะไรสำคัญกว่า — การ์ดเท่ากันเรียงลงมาคือ dashboard
    และ dashboard แปลว่า "อ่านเองนะว่าอันไหนสำคัญ" ซึ่งเป็นงานที่แอปนี้รับปากว่าจะทำแทน
 
-     NOW    ชื่องาน 26px     สีเน้น + ปุ่มทึบ
-     NEXT   ชื่องาน 15px     พื้นอ่อน ไม่มีปุ่มทึบ
-     LATER  ชื่องาน 13px     ไม่มีพื้น
-     แผน    12px             เส้นบาง ๆ ไม่มีกรอบการ์ด
+     NOW    ชื่องาน 26px     การ์ดใบเดียวในจอ + ปุ่มทึบสีเน้นปุ่มเดียวในจอ
+     NEXT   ชื่องาน 13px     แถวเปล่า มีแค่เส้นสีวิชา
+     LATER  ชื่องาน 13px     แถวเดียวกัน ต่างที่หัวข้อกำกับ
+     แผน    12.5px           รางเวลาเส้นบาง ไม่มีกรอบการ์ด
+     แจ้งเตือน 12.5px        พื้นเรียบ ไม่มีสี — เป็นการรายงาน ไม่ใช่คำตอบ
    ============================================================ */
 
 /* ---------- หัวจอ ---------- */
 .td-head { padding-top: 4px; }
 .th-top { display: flex; align-items: flex-start; gap: 12px; }
+/* คำทักทายต้องเล็กกว่าชื่องานอย่างเห็นได้ชัด
+   24px ข้าง 26px คืออ่านเป็นสองหัวข้อที่สำคัญเท่ากัน — แต่คำทักทายไม่ใช่ข้อมูล
+   มันคือมารยาท · ของที่ใหญ่ที่สุดในจอต้องเป็นคำตอบเสมอ */
 .th-greet {
-  margin: 0; font-size: 24px; line-height: 1.25; font-weight: 700; color: var(--ink);
+  margin: 0; font-size: 19px; line-height: 1.3; font-weight: 700; color: var(--ink);
 }
 .th-sub { margin: 4px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
 .th-me {
@@ -50,6 +54,19 @@
 }
 .ta-row.red   { background: var(--alert-soft); border-color: var(--alert); }
 .ta-row.amber { background: var(--warn-soft); }
+/* แบบกะทัดรัด — ใช้กับ "แผนเปลี่ยนแล้ว" ซึ่งเป็นการแจ้งให้ทราบ ไม่ใช่เรื่องหลักของจอ
+   พื้นเรียบ ไม่มีสี ตัวเล็กลง และปุ่มอยู่ในบรรทัดเดียวกัน ไม่ตกลงไปเป็นบรรทัดใหม่ */
+.ta-row.note {
+  grid-template-columns: auto 1fr auto; align-items: center;
+  gap: 8px; padding: 9px 12px; background: var(--card2);
+}
+.ta-row.note .ta-ic { color: var(--muted); }
+.ta-row.note .ta-ic svg { width: 15px; height: 15px; }
+.ta-row.note p { font-size: 12.5px; color: var(--muted); }
+.ta-row.note .ta-cta {
+  grid-column: auto; margin: 0; padding: 6px 11px;
+  background: none; color: var(--blue); font-size: 12px;
+}
 .ta-ic { display: flex; color: var(--blue); }
 .ta-row.red .ta-ic { color: var(--pri-red-text); }
 .ta-row.amber .ta-ic { color: var(--pri-yellow); }
@@ -61,16 +78,6 @@
   background: var(--fill); color: var(--on-fill);
   font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
 }
-/* ทางไปคุยต่อ — เงียบมาก เพราะการถามเป็นทางเลือก ไม่ใช่สิ่งที่จอนี้อยากให้ทำ
-   จอนี้อยากให้กด "เริ่มทำ" · ถ้าปุ่มถามเด่นเท่ากัน แปลว่าเราไม่มั่นใจในคำตอบของตัวเอง */
-.ta-ask {
-  display: flex; align-items: center; gap: 7px; width: 100%;
-  padding: 9px 2px 0; border: 0; background: none;
-  color: var(--faint); font: inherit; font-size: 12px; cursor: pointer;
-}
-.ta-ask svg { width: 14px; height: 14px; }
-.ta-ask svg:last-child { margin-left: auto; }
-
 /* ---------- NOW ---------- */
 .td-now {
   margin-top: 18px; padding: 18px 16px 16px;
@@ -130,6 +137,16 @@
 .tn-alt svg { width: 15px; height: 15px; }
 .tn-alt button:active { color: var(--ink); }
 
+/* ขอข้อมูลที่ขาด แทนที่จะเดาแทน — งานที่ไม่มีกำหนดส่งได้ปุ่มนี้แทนป้ายสีแดง */
+.tn-ask {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  margin-top: 12px; padding: 10px 0 0; border: 0; border-top: 1px solid var(--line);
+  background: none; color: var(--blue); font: inherit; font-size: 12.5px;
+  text-align: left; cursor: pointer;
+}
+.tn-ask svg { width: 15px; height: 15px; flex: none; }
+.tn-ask svg:last-child { margin-left: auto; color: var(--faint); }
+
 /* ---------- NEXT / LATER ---------- */
 .td-up { margin-top: 26px; }
 .tu-lb {
@@ -142,8 +159,8 @@
   padding: 12px 12px 12px 0; border: 0; border-radius: 12px;
   background: none; font: inherit; text-align: left; cursor: pointer;
 }
-.tu-row.big { background: var(--card2); padding-right: 12px; }
 .tu-row + .tu-row { margin-top: 2px; }
+.tu-row:active { background: var(--surface); }
 /* เส้นสีวิชา — ป้ายชื่อวิชา ไม่ใช่ระดับความด่วน (สีความด่วนสงวนไว้ให้ NOW เท่านั้น) */
 .tu-bar {
   flex: none; width: 3px; align-self: stretch; min-height: 30px;
@@ -154,7 +171,6 @@
   display: block; font-size: 13px; font-weight: 600; color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.tu-row.big .tu-tx b { font-size: 15px; }
 .tu-tx span { display: block; margin-top: 2px; font-size: 11.5px; color: var(--muted); }
 .tu-go { flex: none; display: flex; color: var(--blue); }
 .tu-go.quiet { color: var(--faint); }
@@ -203,10 +219,17 @@
 }
 .tp-tx span { display: block; font-size: 11px; color: var(--faint); }
 .tp-row.brk .tp-tx { font-size: 12px; color: var(--faint); }
+/* ป้ายที่เย็บการ์ดใหญ่เข้ากับรางเวลา — บอกว่างานบนการ์ดคือช่องไหนในแผน
+   ไม่มีป้าย ผู้ใช้จะอ่านว่ามีงานสองใบชื่อเหมือนกัน */
 .tp-pill {
   flex: none; padding: 2px 8px; border-radius: 999px;
-  border: 1px solid var(--blue); color: var(--blue); font-size: 10px; font-weight: 600;
+  font-size: 10px; font-weight: 700; white-space: nowrap;
 }
+.tp-pill.now  { background: var(--fill); color: var(--on-fill); }
+.tp-pill.next { border: 1px solid var(--line); color: var(--muted); }
+/* ช่องที่กำลังเป็น "ตอนนี้" — พื้นจาง ๆ ให้ตาจับได้ว่าเรากำลังอยู่ตรงไหนของวัน */
+.tp-row.cur { background: var(--card2); border-radius: 10px; padding-left: 8px; margin-left: -8px; }
+.tp-row.cur::before { left: -6px; }
 /* ลูกศรจาง ๆ ท้ายแถว — รางที่ไม่มีกรอบดูไม่ออกว่าแตะได้ ต้องมีสัญญาณอย่างน้อยหนึ่งอย่าง */
 .tp-go { flex: none; display: flex; color: var(--faint); }
 .tp-go svg { width: 14px; height: 14px; }
@@ -226,6 +249,16 @@
 }
 .td-nudge svg { width: 14px; height: 14px; flex: none; }
 .td-nudge svg:last-child { margin-left: auto; }
+
+/* วันนี้หมดเวลาแล้ว — พื้นเรียบ ไม่ใช่สีเตือน เพราะมันไม่ใช่ความผิดของใคร
+   เป็นแค่ข้อเท็จจริงเรื่องเวลาที่ต้องบอกให้รู้ว่าทำไมข้างล่างถึงว่าง */
+.td-note {
+  margin-top: 26px; padding: 14px; border-radius: 14px; background: var(--card2);
+}
+.td-note b { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); }
+.td-note b svg { width: 16px; height: 16px; color: var(--muted); }
+.td-note p { margin: 6px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
+.td-note .tn-ask { margin-top: 10px; }
 
 /* ---------- ยังไม่มีงาน ---------- */
 .td-clear { margin-top: 40px; text-align: center; }
@@ -286,7 +319,7 @@
 /* ไม่ยืดเนื้อหาเต็มความกว้าง — บรรทัดยาวเกิน ~70 ตัวอักษรอ่านยากขึ้นไม่ใช่ง่ายขึ้น
    ที่ว่างที่เหลือปล่อยว่างไว้ ดีกว่าเอา widget มาถมให้เต็ม */
 @media (min-width: 720px) {
-  .th-greet { font-size: 27px; }
+  .th-greet { font-size: 21px; }
   .tn-title { font-size: 29px; }
   .td-now, .td-up, .td-plan, .td-head, .td-ai { max-width: 620px; }
 }
