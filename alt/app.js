@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A8c';                 // สายเลขของแอป
+const APP_VERSION = '1A8d';                 // สายเลขของแอป
 const APP_CODENAME = 'Weiterplan';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -1227,6 +1227,43 @@ function replanBanner(sp, now) {
   </section>`;
 }
 
+// "ยังต้องส่ง" — จำคำตอบไว้ แล้วปล่อยให้มันกลับเข้าลำดับปกติ
+// ไม่ถามซ้ำอีก เพราะถามซ้ำทุกวันคือการทำให้คำตอบของผู้ใช้ไม่มีความหมาย
+function keepStale(id) {
+  const t = state.tasks.find(x => x.id === id);
+  if (!t) return;
+  t.triagedAt = new Date().toISOString();
+  save();
+  _planCache = null;
+  renderAll();
+  haptic('tap');
+  const sp = todayPlan(new Date());
+  showToast({
+    title: 'เอากลับเข้าแผนแล้ว',
+    body: sp.now && sp.now.task.id === id
+      ? 'ขึ้นเป็นงานที่ต้องทำก่อนเลย เพราะเลยกำหนดมานานที่สุด'
+      : 'จัดลงเวลาว่างให้แล้ว — ดูในแผนข้างล่าง',
+  });
+}
+
+// "ไม่ต้องแล้ว" — ลงถังขยะ ไม่ใช่ลบจริง · กดผิดแล้วต้องกู้คืนได้
+function dropStale(id) {
+  const t = state.tasks.find(x => x.id === id);
+  if (!t) return;
+  const prev = { deleted: t.deleted, deletedAt: t.deletedAt };
+  t.deleted = true;
+  t.deletedAt = new Date().toISOString();
+  save();
+  _planCache = null;
+  renderAll();
+  haptic('tap');
+  showToast({
+    title: 'เอาออกจากรายการแล้ว',
+    body: (t.subject && t.subject !== 'อื่น ๆ' ? t.subject + ' — ' : '') + 'อยู่ในถังขยะ กู้คืนได้ที่แท็บ "งาน"',
+    undo: () => { Object.assign(t, prev); save(); _planCache = null; renderAll(); },
+  });
+}
+
 function dismissReplan(lostMin) {
   markReplanTold(new Date(), lostMin || 0);
   _planCache = null;
@@ -1301,6 +1338,17 @@ function aiInsight(sp, now) {
       bits.push({ tone: 'red', ic: 'flame',
         text: `${esc(taskTitleText(w.tasks[0]))} พักไว้ได้ แต่เลื่อนข้ามวันไม่ได้ — พรุ่งนี้ไม่มีช่องว่างก่อนกำหนดส่งแล้ว`,
         cta: { label: 'เอากลับขึ้นมาทำ', fn: `unpause('${w.tasks[0].id}')` } });
+    } else if (w.kind === 'stale') {
+      // ถามด้วยคำถามที่ตอบได้จริงสองทาง ไม่ใช่ "รับทราบ" ที่ไม่ได้เปลี่ยนอะไร
+      const t = w.task;
+      const days = Math.round((now - new Date(t.due)) / 864e5);
+      bits.push({ tone: 'amber', ic: 'flame',
+        text: `"${esc(taskTitleText(t))}" เลยกำหนดมา ${days} วันแล้ว — ยังต้องส่งอยู่ไหม?`
+          + (w.more ? ` <span class="ta-more">(อีก ${w.more} งานรอถามอยู่)</span>` : ''),
+        ctas: [
+          { label: 'ยังต้องส่ง', fn: `keepStale('${t.id}')`, primary: true },
+          { label: 'ไม่ต้องแล้ว', fn: `dropStale('${t.id}')` },
+        ] });
     } else if (w.kind === 'overload') {
       const d = w.day;
       const when = d.dayOffset === 0 ? 'วันนี้' : d.dayOffset === 1 ? 'พรุ่งนี้' : THAI_DAY[d.date.getDay()] + 'นี้';
@@ -1329,6 +1377,8 @@ function aiInsight(sp, now) {
       <span class="ta-ic">${icon(b.ic)}</span>
       <p>${b.text}</p>
       ${b.cta ? `<button class="ta-cta" onclick="${b.cta.fn}">${esc(b.cta.label)}</button>` : ''}
+      ${b.ctas ? `<div class="ta-ctas">${b.ctas.map(c =>
+        `<button class="ta-cta${c.primary ? '' : ' ghost'}" onclick="${c.fn}">${esc(c.label)}</button>`).join('')}</div>` : ''}
     </div>`).join('')}
   </section>`;
 }
@@ -1346,26 +1396,33 @@ function nowCard(sp, now) {
   const prog = Math.max(0, Math.min(100, t.progress || 0));
   const subj = t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '';
 
-  // ข้อเท็จจริงสามอย่างบนบรรทัดเดียว — ตอบ "นานแค่ไหน" กับ "คุ้มไหม" โดยไม่ต้องมีหัวข้อกำกับ
-  const facts = [fmtDue(t.due, now, t)];
+  // งานที่ยังไม่มีกำหนดส่งต้องไม่ถูกแต่งให้ดูด่วน — เราไม่รู้ว่ามันด่วนไหม
+  //
+  // แต่ก็ห้ามพูดเรื่องที่ไม่รู้ซ้ำสามรอบในการ์ดใบเดียว ซึ่งเคยเป็นแบบนั้นจริง:
+  //   ป้ายบนสุด  "ยังไม่รู้กำหนดส่ง — เลือกให้จากงานที่เหลือค้างนานที่สุด"
+  //   บรรทัดล่าง "ยังไม่ระบุกำหนด · 17 จาก 30 นาที"
+  //   ปุ่มท้าย   "ครูสั่งส่งวันไหน? บอกแล้วผมจัดแผนได้แม่นขึ้น"
+  // สามบรรทัดบอกเรื่องเดียวกันคือความรกที่ไม่ได้เพิ่มข้อมูลเลยสักตัว
+  // เหลือที่เดียว: ป้ายบนสุดที่กดได้ ซึ่งเป็นทั้งคำอธิบายและทางแก้ในตัวเดียว
+  const noDue = !t.due;
+  const why = noDue ? 'ยังไม่รู้วันส่ง — แตะเพื่อบอก' : topReason(info);
+
+  // ข้อเท็จจริงบนบรรทัดเดียว — เอาเฉพาะที่ยังไม่ได้พูดไปแล้วข้างบน
+  const facts = [];
+  if (!noDue) facts.push(fmtDue(t.due, now, t));
   if (t.scorePct != null) facts.push('คะแนน ' + t.scorePct + '%');
   if (TASK_TYPES[taskType(t)].schedulable) {
     facts.push(slot && slot.partial ? slot.min + ' จาก ' + (t.estMin || 30) + ' นาที'
       : (slot ? slot.min : (t.estMin || 30)) + ' นาที');
   }
-
-  // เหตุผลข้อเดียวที่ "เปลี่ยนการตัดสินใจ" ขึ้นเป็นป้ายบนสุด ที่เหลือเป็นข้อเท็จจริงในบรรทัดข้างล่าง
-  // สามบูลเล็ตใต้หัวข้อ "ทำไมตอนนี้?" อ่านเหมือนแบบฟอร์ม — ประโยคเดียวที่ตรงจุดหนักแน่นกว่า
-  //
-  // งานที่ยังไม่มีกำหนดส่งต้องไม่ถูกแต่งให้ดูด่วน — เราไม่รู้ว่ามันด่วนไหม และการเดาแทน
-  // คือการสร้างข้อมูลขึ้นมาเอง · พูดตรง ๆ ว่าไม่รู้ แล้วขอข้อมูลที่ขาดไป มีประโยชน์กว่า
-  const noDue = !t.due;
-  const why = noDue ? 'ยังไม่รู้กำหนดส่ง — เลือกให้จากงานที่เหลือค้างนานที่สุด' : topReason(info);
+  // เวลาเริ่มอยู่บนการ์ดเลย — รางเวลาข้างล่างจะได้ไม่ต้องมีอยู่เพื่อบอกเรื่องนี้อย่างเดียว
+  if (slot) facts.push('เริ่ม ' + fmtClock(slot.start));
 
   return `<section class="td-now ${noDue ? 'green' : tone}${running ? ' running' : ''}">
-    <div class="tn-flag ${noDue ? 'green' : tone}">
-      <span class="tn-dot"></span>${esc(why)}
-    </div>
+    ${noDue
+      ? `<button class="tn-flag ask green" onclick="openForm('${t.id}')">
+           <span class="tn-dot"></span>${esc(why)}${icon('chevron')}</button>`
+      : `<div class="tn-flag ${tone}"><span class="tn-dot"></span>${esc(why)}</div>`}
 
     ${subj ? `<div class="tn-subj">${esc(subj)}</div>` : ''}
     <h2 class="tn-title">${esc(t.detail || 'งานนี้')}</h2>
@@ -1382,9 +1439,6 @@ function nowCard(sp, now) {
       <button onclick="toggleDone('${t.id}',this)">${icon('check')}เสร็จแล้ว</button>
       <button onclick="notNow('${t.id}')">ยังไม่ไหว</button>
     </div>
-    ${noDue ? `<button class="tn-ask" onclick="openForm('${t.id}')">
-      ${icon('calendar')}ครูสั่งส่งวันไหน? บอกแล้วผมจัดแผนได้แม่นขึ้น${icon('chevron')}
-    </button>` : ''}
   </section>`;
 }
 
@@ -1392,37 +1446,43 @@ function nowCard(sp, now) {
 // ทั้งสองบล็อกนี้ตอบคำถามเดียว: "แล้วอะไรต่อ" — ต่างกันแค่ความเร่ง จึงต้องหน้าตาต่างกันตามนั้น
 // เดิม NEXT เป็นแถบเดี่ยวที่พูดซ้ำกับแถวที่สองของแผนพอดี ตอนนี้แผนติดป้าย "ถัดไป" ให้แทน
 function upNext(sp, now) {
-  const later = sp.later.slice(0, 2).map(t => ({ t }));
-  if (!sp.next && !later.length) return '';
+  // งานที่เลยกำหนดไปแล้ว ไม่ใช่ "ไว้ทีหลัง"
+  //
+  // ก่อนหน้านี้มันตกลงไปกองรวมกับงานที่ยังไม่ถึงคิว เพราะทั้งคู่มีคุณสมบัติเดียวกันคือ
+  // "ไม่ได้อยู่ในแผนของวันนี้" — แต่เหตุผลคนละเรื่องกันคนละขั้ว
+  // อันหนึ่งคือยังไม่ต้องคิด อีกอันคือเสียหายไปแล้วและต้องตัดสินใจว่าจะเอายังไงต่อ
+  // หัวข้อ "ไว้ทีหลัง" ที่ครอบงานเลยกำหนดอยู่ คือแอปกำลังบอกให้ปล่อยผ่านสิ่งที่ปล่อยไม่ได้
+  const overdue = sp.later.filter(t => t.due && new Date(t.due) < now);
+  const rest = sp.later.filter(t => !overdue.includes(t)).slice(0, 2);
+  if (!sp.next && !overdue.length && !rest.length) return '';
 
-  // ทั้งสองกลุ่มเป็น "แถว" ไม่ใช่ "การ์ด" — ไม่มีพื้น ไม่มีกรอบ มีแค่เส้นสีวิชากับสองบรรทัด
+  // ทุกกลุ่มเป็น "แถว" ไม่ใช่ "การ์ด" — ไม่มีพื้น ไม่มีกรอบ มีแค่เส้นสีวิชากับสองบรรทัด
   // การ์ดคือของที่บอกว่า "ตัดสินใจกับฉันสิ" ซึ่งจอนี้อนุญาตให้มีได้ใบเดียวคือ NOW
-  const meta = (t, min) => esc([t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '',
-    min + ' นาที', fmtDue(t.due, now, t)].filter(Boolean).join(' · '));
+  // เวลาเริ่มอยู่บนแถวเลย รางเวลาข้างล่างจะได้ไม่ต้องมีอยู่เพื่อบอกเรื่องนี้อย่างเดียว
+  const meta = (t, min, when) => esc([t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '',
+    min + ' นาที', when || fmtDue(t.due, now, t).replace(/^⚠\s*/, '')].filter(Boolean).join(' · '));
+  const row = (t, min, cls, act, ic, when) => `<button class="tu-row ${cls}" onclick="${act}">
+      <span class="tu-bar"></span>
+      <span class="tu-tx"><b>${esc(t.detail || t.subject)}</b><span>${meta(t, min, when)}</span></span>
+      <span class="tu-go${ic === 'chevron' ? ' quiet' : ''}">${icon(ic)}</span>
+    </button>`;
+  const moreCount = sp.later.length - overdue.length - rest.length;
 
   return `<section class="td-up">
     ${sp.next ? `<div class="tu-lb">ถัดไป</div>
-      <button class="tu-row ${subjClass(sp.next.task.subject)}" onclick="startFocus('${sp.next.task.id}')">
-        <span class="tu-bar"></span>
-        <span class="tu-tx">
-          <b>${esc(sp.next.task.detail || sp.next.task.subject)}</b>
-          <span>${meta(sp.next.task, sp.next.slot.min)}</span>
-        </span>
-        <span class="tu-go">${icon('play')}</span>
-      </button>` : ''}
+      ${row(sp.next.task, sp.next.slot.min, subjClass(sp.next.task.subject),
+        `startFocus('${sp.next.task.id}')`, 'play', 'เริ่ม ' + fmtClock(sp.next.slot.start))}` : ''}
 
-    ${later.length ? `<div class="tu-lb">ไว้ทีหลัง</div>
-      ${later.map(r => `<button class="tu-row ${subjClass(r.t.subject)}" onclick="openForm('${r.t.id}')">
-        <span class="tu-bar"></span>
-        <span class="tu-tx">
-          <b>${esc(r.t.detail || r.t.subject)}</b>
-          <span>${meta(r.t, r.t.estMin || 30)}</span>
-        </span>
-        <span class="tu-go quiet">${icon('chevron')}</span>
-      </button>`).join('')}` : ''}
+    ${overdue.length ? `<div class="tu-lb hot">เลยกำหนดแล้ว</div>
+      ${overdue.slice(0, 2).map(t => row(t, t.estMin || 30, 'late',
+        `startFocus('${t.id}')`, 'play')).join('')}` : ''}
 
-    ${sp.later.length > 2 ? `<button class="tu-more" onclick="go('scr-tasks')">
-      ดูงานที่เหลืออีก ${sp.later.length - 2} งาน${icon('chevron')}</button>` : ''}
+    ${rest.length ? `<div class="tu-lb">ไว้ทีหลัง</div>
+      ${rest.map(t => row(t, t.estMin || 30, subjClass(t.subject),
+        `openForm('${t.id}')`, 'chevron')).join('')}` : ''}
+
+    ${moreCount > 0 ? `<button class="tu-more" onclick="go('scr-tasks')">
+      ดูงานที่เหลืออีก ${moreCount} งาน${icon('chevron')}</button>` : ''}
   </section>`;
 }
 
@@ -1437,13 +1497,25 @@ function upNext(sp, now) {
 function planStrip(sp, now) {
   const p = sp.plan;
   if (!p.slots.length) return '';
+
+  // รางเวลาขึ้นเฉพาะตอนที่มันบอกอะไรที่ข้างบนยังไม่ได้บอก
+  //
+  // การ์ด NOW บอกงานที่หนึ่งพร้อมเวลาเริ่ม · แถว "ถัดไป" บอกงานที่สองพร้อมเวลาเริ่ม
+  // ถ้าทั้งวันมีสองก้อน รางเวลาก็คือการอ่านสองบรรทัดเดิมซ้ำอีกรอบในขนาดเล็กลง
+  // ซึ่งเป็นสิ่งที่ทำให้จอรก: ไม่ใช่เพราะมีของเยอะ แต่เพราะของเดิมถูกพูดสองครั้ง
+  //
+  // ตั้งแต่ก้อนที่สามขึ้นไปมันถึงจะมีเนื้อของตัวเอง — คือ "รูปร่างของทั้งเย็น"
+  // ที่การ์ดสองใบข้างบนแสดงไม่ได้ · ต่ำกว่านั้นเงียบไว้ดีกว่า
+  const work = p.slots.filter(s => !s.break);
+  if (work.length < 3) return '';
+
   const nowTask = sp.now && sp.now.task;
   const nextTask = sp.next && sp.next.task;
   let markedNow = false, markedNext = false;
 
   return `<section class="td-plan">
     <div class="tp-lb">เวลาที่เหลือวันนี้<span>${humanMin(p.usedMin)}${
-      p.bufferMin ? ' · เผื่อไว้ ' + p.bufferMin + ' นาที' : ''}</span></div>
+      p.bufferMin >= 10 ? ' · เผื่อไว้ ' + p.bufferMin + ' นาที' : ''}</span></div>
     <div class="tp-rail">
       ${p.slots.map(s => {
         if (s.break) return `<div class="tp-row brk"><span class="mono">${fmtClock(s.start)}</span>
