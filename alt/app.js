@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A7V2';                // สายเลขของแอป
-const APP_CODENAME = 'Verbessert';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1A8';                  // สายเลขของแอป
+const APP_CODENAME = 'Weiterplan';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -66,7 +66,13 @@ function migrateLegacyStore(hadNewData) {
     save();
   } catch (e) { /* ข้อมูลเก่าอ่านไม่ออก ข้ามไปเฉย ๆ ไม่กระทบข้อมูลปัจจุบัน */ }
 }
+// นับว่าข้อมูลถูกแก้ไปแล้วกี่ครั้ง — แผนของวันถูกคิดใหม่เมื่อเลขนี้ขยับหรือเมื่อข้ามนาที
+// (renderAll วาดสิบกว่าจอต่อหนึ่งการกด · ให้ทุกจอไปคิดแผนเองซ้ำคือการคิดเรื่องเดิมสิบรอบ
+//  และเสี่ยงที่จอสองจอจะคิดคนละนาทีแล้วแสดงคนละคำตอบ)
+let stateRev = 0;
+
 function save() {
+  stateRev++;
   localStorage.setItem(STORE_KEY, JSON.stringify(state));
   pushToCloud(); // ซิงก์ขึ้น cloud อัตโนมัติ (ถ้าล็อกอินอยู่)
 }
@@ -1019,8 +1025,12 @@ function clearWidgetPhoto() {
   showToast({ title: 'เอาภาพออกแล้ว', body: 'เลือกภาพใหม่ได้ทุกเมื่อ' });
 }
 
-// ช่องบนสุดที่ผู้ใช้เลือกเอง — รูป/โน้ต/นาฬิกา
-// **ไม่รวมลิสต์งานอยู่ในนี้อีกแล้ว** ดู urgentCard() ข้างล่างว่าทำไม
+// ช่องที่ผู้ใช้เลือกเอง — รูป/โน้ต/นาฬิกา
+//
+// ตั้งแต่ 1A8 ย้ายลงไปอยู่ **ท้ายหน้าแรก** ไม่ใช่บนสุด
+// ไม่ได้ลดความสำคัญของมัน แต่ของบนสุดของจอนี้ถูกจองไว้ให้คำตอบของคำถามเดียวที่แอปนี้สัญญาไว้
+// รูปแมวสวย ๆ ที่บังคำว่า "ทำสิ่งนี้ก่อน" คือรูปที่ทำให้แอปเสียหน้าที่ของตัวเองไป
+// ค่าตั้งต้น 'urgent' คืนค่าว่างอยู่แล้ว คนที่ไม่เคยตั้งอะไรจึงไม่เห็นความต่าง
 function widgetHtml(now) {
   const kind = widgetPref();
 
@@ -1060,49 +1070,12 @@ function widgetHtml(now) {
   return '';
 }
 
-// ---------- ลิสต์ "ควรทำก่อน" ----------
-// การ์ดนี้เคยเป็นแค่ "ตัวเลือกหนึ่ง" ของช่องวิดเจ็ต แปลว่าใครเลือกรูปหรือโน้ต
-// ก็เสียลิสต์งานไปทั้งใบ — เปิดแอปมาเจอรูปสวย ๆ ทั้งที่มีงานค้าง 28 ใบ
-// และไม่มีอะไรบอกว่าเสียอะไรไป เพราะตอนเลือกรูปมันไม่ได้พูดถึงงานเลย
-// "รู้ว่าต้องทำอะไรก่อน" คือสิ่งเดียวที่แอปนี้สัญญาไว้ มันจึงเป็นตัวเลือกไม่ได้
-// ตอนนี้ขึ้นเสมอ ส่วนวิดเจ็ตที่เลือกเองไปอยู่ข้างบนเป็นของเพิ่ม ไม่ใช่ของแทนที่
-function urgentCard(now) {
-  const pending = sortByPriority(pendingTasks(), now);
-  const top = pending[0];
-  if (!top) {
-    return `<section class="wg wg-urgent clear">
-      <div class="wg-head">${icon('check-circle')}<span>ไม่มีงานด่วน</span></div>
-      <div class="wg-title">เคลียร์หมดแล้ว</div>
-      <button class="wg-cta" onclick="go('scr-scan')">${icon('camera')}เพิ่มงานใหม่</button>
-    </section>`;
-  }
-  const info = priorityInfo(top, now);
-  // งานทั้งสามใบหน้าตาเท่ากัน — ใบไหนด่วนกว่าบอกด้วย "สีของกำหนดส่ง" ไม่ใช่ด้วยขนาด
-  // เดิมใบแรกเป็นก้อนใหญ่มีชิปสามอัน อีกสองใบเป็นแถวผอม ๆ ซึ่งอ่านออกมาว่า
-  // "ใบแรกสำคัญ อีกสองใบเป็นของแถม" ทั้งที่ทั้งสามใบก็ต้องส่งเหมือนกัน
-  // แถวเท่ากันหมดยังทำให้กวาดตาหาวันที่ได้ในคอลัมน์เดียว แทนที่จะไล่หาทีละก้อน
-  const tone = priorityTone(info.stars);
-  return `<section class="wg wg-urgent ${tone}">
-    <div class="wg-head">${icon('flag')}<span>ควรทำก่อน</span>
-      ${tone === 'red' ? `<span class="wg-pill red">${esc(priorityLabel(info.stars))}</span>` : ''}</div>
-    <div class="wg-list">
-      ${pending.slice(0, 3).map(t => `<div class="wg-item ${subjClass(t.subject)}" onclick="openForm('${t.id}')">
-        ${wgTick(t)}
-        <span class="wg-item-bar" aria-hidden="true"></span>
-        <div class="wg-item-tx">
-          <div class="wg-item-ttl">${taskTitle(t)}</div>
-          <div class="wg-item-meta">
-            <span class="wg-item-due ${wgDueTone(t, now)}">${esc(wgDueText(t, now))}</span>${
-              t.estMin ? ` · ~${t.estMin} นาที` : ''}
-          </div>
-        </div>
-        <span class="wg-item-go">${icon('chevron')}</span>
-      </div>`).join('')}
-    </div>
-    ${pending.length > 3 ? `<button class="wg-more" onclick="go('scr-tasks')">
-      ยังมีอีก ${pending.length - 3} งาน${icon('chevron')}</button>` : ''}
-  </section>`;
-}
+// ---------- ลิสต์ "ควรทำก่อน" (ถอดออกแล้วใน 1A8) ----------
+// การ์ดสามใบที่หน้าตาเท่ากันหมด ถูกแทนด้วย nowCard() ที่ให้คำตอบใบเดียวพร้อมเหตุผล
+//
+// เหตุผลที่ถอด: สามตัวเลือกที่ดูเท่ากัน = ยังต้องตัดสินใจเองอยู่ดี ซึ่งเป็นสิ่งเดียวที่แอปนี้
+// รับปากว่าจะทำแทน · ลิสต์แบบเดิมยังอยู่ครบในแท็บ "ตาราง" → มุมมอง "รายการงาน"
+// (`wgTick` / `wgDueTone` / `wgDueText` ข้างล่างยังถูกใช้อยู่ — กล่อง LATER เรียกสองตัวหลัง)
 
 // วงกลมติ๊กเสร็จ — ทุกใบในลิสต์มี เพราะ "เห็นแล้วทำอะไรได้เลย" คือเหตุผลที่ลิสต์นี้มีอยู่
 // stopPropagation กันไม่ให้การกดติ๊กกลายเป็นการเปิดหน้าแก้ไขงานไปด้วย
@@ -1174,27 +1147,307 @@ function inboxTile() {
   </button>`;
 }
 
+// ============================================================
+// หน้าแรก = "วันนี้" · จอเดียวที่ตอบคำถามเดียวของโปรดักต์
+// ============================================================
+// เดิมหน้าแรกเป็นตารางทางลัด 5 ใบ + ลิสต์งาน 3 บรรทัด ซึ่งอ่านออกมาว่า
+// "เลือกเองสิว่าจะไปหน้าไหน แล้วเลือกเองว่าจะทำงานไหน" — คือการโยนการตัดสินใจกลับสองรอบซ้อน
+// ทั้งที่คำถามที่พาผู้ใช้มาเปิดแอปมีข้อเดียว: ตอนนี้ควรทำอะไร
+//
+// โครงใหม่ตอบเป็นลำดับเดียวจากบนลงล่าง ไม่มีทางแยก:
+//   เวลาที่มีจริง → NOW หนึ่งใบ + ทำไมถึงใบนี้ → ถัดไปคืออะไร → แผนทั้งวัน → ที่เหลือพับไว้
+//
+// สิ่งที่หายไปโดยตั้งใจ: ตารางทางลัด (แถบล่างทำหน้าที่นั้นอยู่แล้ว)
+// และการ์ด "ควรทำก่อน" ที่แสดงสามใบเท่า ๆ กัน — สามตัวเลือกที่ดูเท่ากันคือการไม่ตัดสินใจ
+
+let _planCache = null;
+
+// แผนของวันนี้ที่ทุกจอใช้ร่วมกัน — คิดใหม่เมื่อข้ามนาทีหรือข้อมูลเปลี่ยนเท่านั้น
+function todayPlan(now = new Date()) {
+  const key = Math.floor(now.getTime() / 60000) + ':' + stateRev;
+  if (_planCache && _planCache.key === key) return _planCache.val;
+  const val = studyPlan(state, now);
+  _planCache = { key, val };
+  return val;
+}
+
+// เหตุผลบนการ์ด NOW มาจาก priorityInfo().reasons ที่เอนจินคำนวณไว้อยู่แล้ว
+// ห้ามเขียนข้อความให้กำลังใจแทน — "สู้ ๆ นะ" ไม่ได้บอกว่าทำไมงานใบนี้ถึงมาก่อนใบอื่น
+// ไอคอนเลือกจากเนื้อของเหตุผลเอง เพื่อให้กวาดตาแล้วแยกออกว่าอันไหนคือเรื่องเวลา อันไหนคือคะแนน
+// เหตุผลข้อเดียวที่จะเอาไปแปะข้างชื่องาน — ต้องเป็นข้อที่บอกอะไรจริง ๆ
+// reasons[0] เป็นข้อความเรื่องเวลาเสมอ ซึ่งบางทีเป็นคำเติมอย่าง "ยังพอมีเวลา"
+// แล้วได้บรรทัดที่ขัดกันเอง: "งานถัดไป: อ่านสอบ · ยังพอมีเวลา" — ถ้ายังพอมีเวลาแล้วจะทำทำไม
+const REASON_FILLER = /ยังพอมีเวลา|ยังอีกหลายวัน|ยังไม่ระบุกำหนด/;
+
+function topReason(info) {
+  return info.reasons.find(r => !REASON_FILLER.test(r)) || info.reasons[0] || '';
+}
+
+// สามข้อที่จะขึ้นใต้หัวข้อ "ทำไมต้องเป็นงานนี้?"
+//
+// คำเติมอย่าง "ยังพอมีเวลา" ต้องไม่โผล่ตรงนี้เด็ดขาด — มันเถียงกับหัวการ์ดที่เขียนว่า
+// "ทำสิ่งนี้ก่อน" อยู่สองบรรทัดข้างบนพอดี · งานที่ยังไกลแต่ขึ้นมาเป็นอันดับหนึ่ง
+// มักขึ้นมาด้วยเหตุผลอื่น (งานใหญ่ · คะแนนเยอะ) ซึ่งอยู่ในรายการอยู่แล้ว
+// เหลือศูนย์ข้อเมื่อไหร่ค่อยถอยไปใช้ของเดิม — ไม่มีเหตุผลเลยแย่กว่ามีเหตุผลที่อ่อน
+function whyList(info) {
+  const strong = info.reasons.filter(r => !REASON_FILLER.test(r));
+  return (strong.length ? strong : info.reasons).slice(0, 3);
+}
+
+function reasonIcon(text) {
+  if (/โอกาสสุดท้าย|เลยกำหนด|เลยเวลา/.test(text)) return '🔴';
+  if (/คะแนน/.test(text)) return '💯';
+  if (/ควรเริ่มอ่าน|สอบใน/.test(text)) return '📖';
+  if (/นาที|ชม\.|งานใหญ่/.test(text)) return '⏱';
+  if (/ส่ง|ใกล้กำหนด|ถึงเวลา|วัน|สัปดาห์|เวลา/.test(text)) return '⏰';
+  if (/★/.test(text)) return '★';
+  return '📌';
+}
+
+// แถบ "จัดแผนใหม่ให้แล้ว" — จังหวะที่ทำให้แอปนี้ไม่ใช่ to-do list
+//
+// buildDayPlan คิดใหม่ทุกครั้งที่วาดจออยู่แล้ว สิ่งที่ขาดมาตลอดคือการบอกผู้ใช้ว่ามันคิดใหม่แล้ว
+// ผู้ใช้ที่หายไปสองชั่วโมงแล้วกลับมาเจอตารางที่เปลี่ยนไปเงียบ ๆ จะไม่รู้ว่าแอปรู้เรื่องเขา
+// ประโยคต้องไม่ตำหนิ — พลาดแล้วโดนบ่นคือเหตุผลอันดับหนึ่งที่คนเลิกใช้แอปวางแผน
+function replanBanner(sp, now) {
+  if (!sp.hasReplan) return '';
+  const m = sp.misses;
+  const hm = v => String(Math.floor(v / 60)).padStart(2, '0') + ':' + String(v % 60).padStart(2, '0');
+  const names = m.tasks.slice(0, 2).map(t => taskTitleText(t)).join(' · ');
+  const still = sp.plan.slots.some(s => !s.break && m.tasks.includes(s.task));
+  return `<section class="td-replan">
+    <div class="tr-head">${icon('clock')}<b>จัดแผนที่เหลือใหม่ให้แล้ว</b></div>
+    <p class="tr-body">ช่วง ${hm(m.since)} ที่วางไว้ผ่านไปแล้ว ${humanMin(m.lostMin)}
+      — ${esc(names)}${m.tasks.length > 2 ? ' และอีก ' + (m.tasks.length - 2) + ' งาน' : ''}
+      ${still ? 'ถูกย้ายลงเวลาที่เหลือของวันนี้แล้ว' : 'ไม่มีเวลาเหลือในวันนี้แล้ว — ดูตรงกล่องสีแดงข้างล่าง'}</p>
+    <button class="tr-ok" onclick="dismissReplan(${m.lostMin})">เข้าใจแล้ว</button>
+  </section>`;
+}
+
+function dismissReplan(lostMin) {
+  markReplanTold(new Date(), lostMin || 0);
+  _planCache = null;
+  renderAll();
+}
+
+// การ์ด NOW — ของชิ้นเดียวที่ใหญ่ที่สุดบนจอ อ่านออกจากระยะแขน
+function nowCard(sp, now) {
+  const n = sp.now;
+  if (!n) return '';
+  const t = n.task, info = n.info;
+  const tone = priorityTone(info.stars);
+  const slot = n.slot;
+  const run = runningWork();
+  const running = run && run.taskId === t.id;
+  const prog = Math.max(0, Math.min(100, t.progress || 0));
+
+  // เวลาสองตัวบนบรรทัดเดียวต้องไม่ขัดกัน: "ช่วงนี้ 40 นาที" กับ "ทั้งงาน ~80 นาที"
+  // เขียนแค่ "~80 นาที" ข้างช่วง 17:30–18:10 คือการบอกสองเรื่องด้วยตัวเลขที่ดูเหมือนเรื่องเดียว
+  const bits = [fmtDue(t.due, now, t)];
+  if (slot) {
+    bits.push(fmtClock(slot.start) + '–' + fmtClock(slot.end));
+    bits.push(slot.partial ? 'ช่วงนี้ ' + slot.min + ' จากทั้งหมด ' + (t.estMin || 30) + ' นาที'
+                           : slot.min + ' นาที');
+  } else if (TASK_TYPES[taskType(t)].schedulable) {
+    bits.push('~' + (t.estMin || 30) + ' นาที');
+  }
+
+  return `<section class="td-now ${tone}${running ? ' running' : ''}">
+    <div class="tn-head">
+      <span class="tn-eyebrow">${icon('flag')}ทำสิ่งนี้ก่อน</span>
+      <span class="tn-tag ${tone}">${esc(priorityLabel(info.stars))}</span>
+    </div>
+
+    <h2 class="tn-title">${taskTitle(t)}</h2>
+    <div class="tn-meta">${bits.map(b => `<span>${esc(b)}</span>`).join('<i class="msep"></i>')}</div>
+    ${prog > 0 && prog < 100 ? `<div class="tn-prog"><span style="width:${prog}%"></span></div>
+      <div class="tn-prog-tx">ทำไปแล้ว ${prog}%</div>` : ''}
+
+    ${n.step ? `<div class="tn-step">
+      <span class="ts-lb">เริ่มตรงนี้</span>
+      <b>${esc(n.step.title)}</b>
+      <span class="ts-min">~${n.step.min} นาที</span>
+    </div>` : ''}
+
+    <div class="tn-why">
+      <div class="tw-lb">ทำไมต้องเป็นงานนี้?</div>
+      <ul>${whyList(info).map(r =>
+        `<li><span class="tw-ic">${reasonIcon(r)}</span>${esc(r)}</li>`).join('')}</ul>
+    </div>
+
+    <button class="tn-cta" onclick="startFocus('${t.id}')">
+      ${icon(running ? 'clock' : 'play')}${running ? 'กลับเข้าโหมดโฟกัส' : 'เริ่มทำเลย'}</button>
+    <div class="tn-alt">
+      <button onclick="toggleDone('${t.id}',this)">ทำเสร็จแล้ว</button>
+      <button onclick="notNow('${t.id}')">ยังไม่ไหวตอนนี้</button>
+    </div>
+  </section>`;
+}
+
+// NEXT — บรรทัดเดียว เล็กกว่า NOW มาก เพราะมันไม่ใช่สิ่งที่ต้องตัดสินใจตอนนี้
+// แต่ต้องมีชื่ออยู่จริง: "ไปต่องานถัดไปกันเลย!" โดยไม่บอกว่างานไหน คือประโยคที่ไม่มีข้อมูล
+function nextLine(sp, now) {
+  if (!sp.next) return '';
+  const t = sp.next.task, s = sp.next.slot;
+  return `<button class="td-next" onclick="openForm('${t.id}')">
+    <span class="tx-lb">ถัดไป</span>
+    <span class="tx-tt">${taskTitle(t)}</span>
+    <span class="tx-meta mono">${fmtClock(s.start)} · ${s.min} นาที</span>
+    <span class="tx-go">${icon('chevron')}</span>
+  </button>`;
+}
+
+// คำเตือนเรื่องภาระ — ต้องมาพร้อมสิ่งที่ทำตามได้ ไม่ใช่แค่บอกว่าหนัก
+// "งานเยอะนะ" ไม่ใช่คำแนะนำ · "เลื่อนรายงานวิทย์ไปเสาร์" คือคำแนะนำ
+function warnBlocks(sp, now) {
+  let html = '';
+  for (const w of sp.warnings) {
+    if (w.kind === 'missed') {
+      const names = w.tasks.map(t => taskTitleText(t)).join(' · ');
+      html += `<div class="td-warn red">
+        <b>${icon('flame')}ทำไม่ทันถ้าไม่ทำวันนี้</b>
+        <p>${esc(names)} — เวลาว่างที่เหลือก่อนกำหนดส่งไม่พอแล้ว${
+          w.nextFree ? ` (ว่างอีกทีก็ ${esc(w.nextFree.fromHm)} ${w.nextFree.dayOffset === 1 ? 'พรุ่งนี้' : 'อีก ' + w.nextFree.dayOffset + ' วัน'})` : ''}</p>
+        <p class="tdw-do">ทางที่เหลือคือยืมเวลาจากอย่างอื่นคืนนี้ หรือคุยกับครูตั้งแต่ตอนนี้</p>
+      </div>`;
+    } else if (w.kind === 'stuck') {
+      // ผู้ใช้กด "ยังไม่ไหวตอนนี้" หรือปัดเลื่อนงานที่วันนี้เป็นวันสุดท้าย
+      // เราเคารพการกด (มันไม่ขึ้นเป็นการ์ดใบใหญ่แล้ว) แต่ปิดปากเรื่องเส้นตายไม่ได้
+      html += `<div class="td-warn red">
+        <b>${icon('flame')}พักไว้ได้ แต่เลื่อนข้ามวันไม่ได้</b>
+        <p>${esc(w.tasks.map(t => taskTitleText(t)).join(' · '))} —
+          ยังกันเวลาไว้ให้ในแผนวันนี้ เพราะพรุ่งนี้ไม่มีช่องว่างก่อนกำหนดส่งแล้ว</p>
+        <p class="tdw-do"><button class="tdw-btn" onclick="unpause('${w.tasks[0].id}')">เอากลับขึ้นมาทำเลย</button></p>
+      </div>`;
+    } else if (w.kind === 'overload') {
+      const d = w.day;
+      const when = d.dayOffset === 0 ? 'วันนี้' : d.dayOffset === 1 ? 'พรุ่งนี้'
+        : THAI_DAY[d.date.getDay()] + 'นี้';
+      // ตัวเลขเป็นแบบสะสม จึงต้องเขียนให้ชัดว่า "ถึงวันนั้น" ไม่ใช่ "ในวันนั้นวันเดียว"
+      // ไม่งั้นผู้ใช้จะอ่านว่าพรุ่งนี้ต้องนั่งสี่ชั่วโมงรวด ทั้งที่คืนนี้ก็แบ่งมาทำได้
+      html += `<div class="td-warn amber">
+        <b>${icon('clock')}งานที่ต้องส่งภายใน${when} เกินเวลาที่มี</b>
+        <p>ต้องทำรวม ${humanMin(d.needMin)} · เวลาว่างตั้งแต่ตอนนี้ถึง${when}มี ${humanMin(d.capAcc)}
+          — ขาดอยู่ ${humanMin(d.overMin)}</p>
+        ${w.move ? `<p class="tdw-do">แนะนำ: ขยับ "${esc(taskTitleText(w.move))}"${
+            w.to ? ' ไป' + (w.to.dayOffset === 1 ? 'พรุ่งนี้' : THAI_DAY[w.to.date.getDay()]) : ' ไปวันที่ว่างกว่า'} — ยังทันกำหนดส่ง</p>`
+          : w.start ? `<p class="tdw-do">เลื่อนอะไรไม่ได้แล้ว — เริ่ม "${esc(taskTitleText(w.start))}" ตั้งแต่คืนนี้ จะได้ไม่ไปกองวันสุดท้าย</p>`
+          : ''}
+      </div>`;
+    }
+  }
+  return html;
+}
+
+// แผนของวันนี้ ตั้งแต่ตอนนี้ถึงเวลานอน — ยกขึ้นมาไว้บนหน้าแรก
+// เดิมจอนี้ (scr-plan) เป็นจอเดียวที่ตอบว่า "20:40–21:00 ทำอะไร" แต่มีทางเข้าเดียวในทั้งแอป
+// คือปุ่มเล็ก ๆ ในกล่องข้อความ AI ของอีกจอหนึ่ง
+function planStrip(sp, now) {
+  const p = sp.plan;
+  if (!p.slots.length) return '';
+  const win = p.windows;
+  const sub = `จัดให้แล้ว ${humanMin(p.usedMin)} จาก ${humanMin(win.budgetMin)}`
+    + (p.bufferMin ? ` · เผื่อไว้ ${p.bufferMin} นาที` : '');
+  return `<section class="td-plan">
+    <div class="tp-head">
+      <b>${icon('calendar')}แผนวันนี้</b>
+      <span class="tp-sub">${esc(sub)}</span>
+    </div>
+    <div class="tp-list">
+      ${p.slots.map(s => s.break
+        ? `<div class="tp-row brk"><span class="mono">${fmtClock(s.start)}</span>
+             <span class="tp-tx">พัก ${s.min} นาที</span></div>`
+        : `<div class="tp-row ${subjClass(s.task.subject)}" onclick="startFocus('${s.task.id}')">
+             <span class="mono">${fmtClock(s.start)}</span>
+             <span class="tp-tx"><b>${taskTitle(s.task)}</b>
+               <span class="tp-min">${s.min} นาที${s.note ? ' · ' + esc(s.note) : ''}</span></span>
+             <span class="tp-go">${icon('play')}</span>
+           </div>`).join('')}
+    </div>
+    ${p.bufferMin ? `<p class="tp-buf">กันไว้ ${p.bufferMin} นาทีสำหรับเรื่องที่ไม่ได้วางแผน —
+      ตารางที่เต็มทุกนาทีคือตารางที่พังตั้งแต่เรื่องแรกที่แทรกเข้ามา</p>` : ''}
+  </section>`;
+}
+
+// LATER — พับไว้เสมอ · รายการทั้งหมดมีที่อยู่ของมันแล้วในแท็บ "ตาราง"
+function laterFold(sp, now) {
+  if (!sp.later.length) return '';
+  return `<details class="td-later">
+    <summary>อีก ${sp.later.length} งาน — ยังไม่ต้องคิดตอนนี้</summary>
+    <div class="tl-list">
+      ${sp.later.map(t => `<button class="tl-row" onclick="openForm('${t.id}')">
+        <span class="tl-tt">${taskTitle(t)}</span>
+        <span class="tl-due mono ${wgDueTone(t, now)}">${esc(wgDueText(t, now))}</span>
+      </button>`).join('')}
+    </div>
+  </details>`;
+}
+
+// ไม่มีงานค้าง — ต้องไม่ใช่จอว่าง ๆ และต้องไม่แกล้งชมทั้งที่ยังไม่ได้ทำอะไร
+function todayEmpty(now) {
+  const doneToday = liveTasks().filter(t => t.done && t.doneAt &&
+    new Date(t.doneAt).toDateString() === now.toDateString()).length;
+  const free = typeof freeMinutes === 'function' ? freeMinutes(now, now) : 0;
+  return `<section class="td-clear">
+    <span class="tc-ic">${icon('check-circle')}</span>
+    <b>${doneToday ? 'เคลียร์หมดแล้ววันนี้' : 'ยังไม่มีงานในระบบ'}</b>
+    <p>${doneToday
+      ? 'ทำเสร็จไป ' + doneToday + ' งาน' + (free > 20 ? ' · เหลือเวลาว่าง ' + humanMin(free) + ' เอาไปพักได้เต็มที่' : '')
+      : 'ถ่ายรูปใบงาน หรือแปะข้อความที่ครูสั่งมา แล้วจะได้แผนแรกภายในไม่กี่วินาที'}</p>
+    <button class="tc-cta" onclick="go('scr-scan')">${icon('camera')}เพิ่มงานแรก</button>
+  </section>`;
+}
+
 function renderMenu() {
   const body = document.getElementById('menuBody');
   if (!body) return;
   const now = new Date();
-  const live = liveTasks();
   const h = now.getHours();
   const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนค่ำ';
+  const sp = todayPlan(now);
+  const win = sp.plan.windows;
 
-  // ชื่อผู้ใช้เน้นสี — ทั้งจอมีคำที่เป็น "ของเขาคนเดียว" อยู่คำเดียวคือชื่อตัวเอง
-  // ปล่อยให้กลืนไปกับคำทักทายก็เสียโอกาสที่จอนี้จะรู้สึกเป็นของเขาไปฟรี ๆ
+  // บรรทัดเวลา: ตัวเลขเดียวที่ทำให้คำว่า "ตอนนี้" มีความหมาย
+  // ต่ำกว่าหนึ่งชั่วโมงต้องเป็นนาที — "ว่างอีก 0.3 ชม." ไม่มีใครแปลงในหัวทัน
+  const lastSlot = win.slots[win.slots.length - 1];
+  const timeLine = win.mode === 'none'
+    ? 'วันนี้หมดเวลาแล้ว — แผนข้างล่างกันไว้ให้พรุ่งนี้'
+    : `เหลือเวลาว่าง ${humanMin(win.budgetMin)}` + (lastSlot ? ` · ถึง ${lastSlot.toHm}` : '');
+
   body.innerHTML = `<div class="menu-head">
       <div class="eyebrow mono">${esc(fmtThaiDate(now))}</div>
       <h1 class="page-title">${greet}${who() ? ', <b class="pt-me">' + esc(who()) + '</b>' : ''}</h1>
+      <p class="td-time">${esc(timeLine)}</p>
     </div>
+    ${replanBanner(sp, now)}
+    ${sp.now ? nowCard(sp, now) + nextLine(sp, now) : todayEmpty(now)}
+    ${warnBlocks(sp, now)}
+    ${planStrip(sp, now)}
+    ${laterFold(sp, now)}
+    ${ctxNudge(win)}
     ${widgetHtml(now)}
-    ${urgentCard(now)}
     <div class="menu-grid">
       ${inboxTile()}
-      ${menuTile('tone-tasks', 'check-circle', 'งานทั้งหมด', 'ค้าง · เสร็จ · ถังขยะ', live.length, 'scr-tasks')}
       ${menuTile('hero half', 'camera', 'เพิ่มงานใหม่', 'ถ่ายรูป · พูด · แปะข้อความ', null, 'scr-scan')}
     </div>`;
+
+  // จำแผนที่เพิ่งแสดงไป เพื่อให้รอบหน้ารู้ว่าผู้ใช้พลาดช่วงไหน
+  // ต้องบันทึกหลังวาด ไม่ใช่ก่อน — ไม่งั้นแผนที่ยังไม่มีใครเห็นจะถูกนับว่า "เคยบอกไปแล้ว"
+  if (sp.plan.slots.length) commitPlan(sp.plan, state, now);
+}
+
+// ยังไม่รู้จักตารางเรียนของเขา = ทุกตัวเลขบนจอนี้ตั้งอยู่บนการเดา ต้องบอกให้รู้ตัว
+// และบอกตรงจุดที่เขากำลังมองแผนอยู่พอดี ไม่ใช่ซ่อนไว้ในหน้าตั้งค่าที่ไม่มีใครเปิด
+function ctxNudge(win) {
+  if (win.mode !== 'default') return '';
+  return `<button class="pctx-nudge" onclick="go('scr-context')">
+    <span class="pn-ic">${icon('clock')}</span>
+    <span class="pn-tx">
+      <b>ตอนนี้ AI เดาว่าคุณเริ่มทำการบ้าน 19:00</b>
+      <span>บอกตารางเรียนสักครั้ง แล้วแผนจะวางลงช่องว่างจริงของคุณ — ว่างบ่ายก็ได้เริ่มบ่าย</span>
+    </span>
+    <span class="pn-go">${icon('chevron')}</span>
+  </button>`;
 }
 
 // ---------- ตารางงาน (เดิมคือหน้าแรก) ----------
@@ -1456,32 +1709,73 @@ function initHomeSwipe() {
 // เลื่อนกำหนดส่งไปพรุ่งนี้ (คงเวลาเดิมของวัน)
 // งานที่กำหนดส่งเลยพรุ่งนี้ไปแล้ว การตั้งเป็น "พรุ่งนี้" จะกลายเป็นเร่งให้เร็วขึ้น
 // จึงเลื่อนออกไปอีก 1 วันจากกำหนดเดิมแทน — ปัดซ้ายจึงแปลว่า "ขอเวลาอีกวัน" เสมอ
+// "เลื่อนไปพรุ่งนี้" = เลื่อนแผนของฉัน ไม่ใช่เลื่อนเส้นตายของครู
+//
+// ของเดิมเขียนทับ t.due ตรง ๆ ซึ่งพังสองชั้นพร้อมกัน:
+//   1. due คือความจริงข้อเดียวที่เอนจินทั้งตัวยืนอยู่บนนั้น ปัดทีเดียวก็หายไป
+//   2. หน้า "ฉัน" ยังรายงาน "ส่งทันกำหนด 100%" ต่อ เพราะเส้นตายถูกขยับตามไปแล้ว
+//      แอปที่ปลอบใจตัวเองแบบนี้คือแอปที่พาไปส่งงานสาย
+//
+// ตอนนี้เลื่อนได้เฉพาะ plannedFor ซึ่งเป็นของผู้ใช้ · due ยังเป็นของครูเหมือนเดิม
+// และงานที่ "วันนี้เป็นโอกาสสุดท้าย" จะถูกดึงกลับเข้าแผนเองใน planner.js
+// เพราะการยอมให้เลื่อนงานที่เลื่อนไม่ได้ คือการช่วยให้พลาดส่งอย่างสุภาพ
 function snoozeToTomorrow(id) {
   const t = state.tasks.find(x => x.id === id);
   if (!t) return;
-  const prev = { due: t.due, snoozedAt: t.snoozedAt, snoozeCount: t.snoozeCount };
-  const base = t.due ? new Date(t.due) : null;
+  const prev = { plannedFor: t.plannedFor, snoozedAt: t.snoozedAt, snoozeCount: t.snoozeCount };
   const tmr = new Date();
   tmr.setDate(tmr.getDate() + 1);
-  if (base) tmr.setHours(base.getHours(), base.getMinutes(), 0, 0);
-  else tmr.setHours(23, 59, 0, 0);
-  const next = (base && base > tmr) ? new Date(base.getTime() + 864e5) : tmr;
-  t.due = next.toISOString();
-  t.remindedAt = null; t.remindedStage = null;  // กำหนดใหม่แล้ว ต้องเตือนใหม่ได้อีกครั้ง
+  tmr.setHours(0, 0, 0, 0);
+  t.plannedFor = tmr.toISOString();
   t.snoozedAt = new Date().toISOString();
   t.snoozeCount = (t.snoozeCount || 0) + 1;
   save();
   haptic('snooze');
 
+  const locked = typeof isLastChanceToday === 'function' && isLastChanceToday(t, new Date());
   setTimeout(() => {
     renderAll();
     showToast({
-      title: 'เลื่อนให้แล้ว — ยังอยู่ในแผน 🕓',
+      title: locked ? 'เลื่อนไม่ได้ — วันนี้เป็นวันสุดท้าย ⚠' : 'ย้ายไปแผนพรุ่งนี้แล้ว 🕓',
       body: (t.subject && t.subject !== 'อื่น ๆ' ? t.subject + ' — ' : '') +
-        'กำหนดใหม่ ' + fmtDue(t.due, new Date(), t),
+        (locked
+          ? 'ถ้าไม่ทำวันนี้จะไม่มีเวลาว่างพอก่อน' + fmtDue(t.due, new Date(), t) + ' อีกแล้ว'
+          : 'กำหนดส่งยังเป็น ' + fmtDue(t.due, new Date(), t) + ' เหมือนเดิม'),
       undo: () => { Object.assign(t, prev); save(); renderAll(); },
     });
   }, 200);
+}
+
+// "ยังไม่ไหวตอนนี้" — เขี่ยงานนี้ออกจากการ์ด NOW สามชั่วโมง แล้วเลื่อนอันดับสองขึ้นมาแทน
+// ไม่ใช่การเลื่อนเส้นตาย ไม่ใช่การลบ และไม่ต้องอธิบายเหตุผลกับใคร
+// ปุ่มนี้มีไว้เพื่อให้คำตอบของแอปยัง "ทำตามได้" ในวันที่คำตอบที่ถูกที่สุดทำไม่ไหวจริง ๆ
+// ยกเลิกการพัก — ทางกลับต้องมีเสมอ ไม่งั้น "ยังไม่ไหวตอนนี้" กลายเป็นปุ่มที่กดแล้วย้อนไม่ได้
+// จนกว่าจะครบสามชั่วโมง ซึ่งไม่ใช่สิ่งที่คนเข้าใจตอนกด
+function unpause(id) {
+  const t = state.tasks.find(x => x.id === id);
+  if (!t) return;
+  t.notNowAt = null;
+  t.plannedFor = null;
+  save();
+  renderAll();
+  haptic('tap');
+}
+
+function notNow(id) {
+  const t = state.tasks.find(x => x.id === id);
+  if (!t) return;
+  const prev = { notNowAt: t.notNowAt };
+  t.notNowAt = new Date().toISOString();
+  save();
+  haptic('snooze');
+  renderAll();
+  const sp = todayPlan(new Date());
+  showToast({
+    title: 'พักงานนี้ไว้ก่อน 3 ชม.',
+    body: sp.now ? 'เลื่อน "' + taskTitleText(sp.now.task) + '" ขึ้นมาแทนแล้ว'
+      : 'กำหนดส่งยังเป็นเหมือนเดิม — เจอกันอีกทีตอนเย็น',
+    undo: () => { Object.assign(t, prev); save(); renderAll(); },
+  });
 }
 
 function dueTone(t, now) {
@@ -2717,14 +3011,18 @@ function renderPlan() {
     list.innerHTML = `<div class="card empty">ไม่มีงานค้าง — วันนี้พักได้เต็มที่ 🎉</div>`;
     return;
   }
-  const plan = buildDayPlan(pending, state.settings, now);
+  // อ่านแผนก้อนเดียวกับหน้าแรก — ห้ามเรียก buildDayPlan เองที่นี่
+  // สองจอนี้พูดถึงเย็นวันเดียวกัน ถ้าคิดคนละรอบก็มีสิทธิ์ได้คนละคำตอบ (เผื่อเวลา · โควตาต่อวัน
+  // · งานที่ถูกพักไว้ ล้วนอยู่ในชั้น planner ไม่ใช่ใน buildDayPlan)
+  const plan = todayPlan(now).plan;
   const win = plan.windows;
-  const h = m => Math.round(m / 6) / 10;
+  // หน่วยต้องเป็นนาทีเมื่อต่ำกว่าหนึ่งชั่วโมง — "ว่างอีก 0.3 ชม." ไม่มีใครแปลงในหัวทัน
+  // และ 1.8 ชม. ก็ไม่ได้ช่วยกว่า "1 ชม. 48 นาที" สักเท่าไหร่ (humanMin ทำให้แล้วทั้งสองแบบ)
   sub.textContent = win.mode === 'none'
     ? 'วันนี้หมดเวลาแล้ว — แผนนี้กันไว้ให้พรุ่งนี้เช้า'
-    : `ว่างอีก ${h(win.windowMin)} ชม.` +
-      (win.capped ? ` · ตั้งเพดานไว้ ${h(win.capMin)} ชม.` : '') +
-      ` · จัดให้แล้ว ${h(plan.usedMin)} ชม.`;
+    : `ว่างอีก ${humanMin(win.windowMin)}` +
+      (win.capped ? ` · ตั้งเพดานไว้ ${humanMin(win.capMin)}` : '') +
+      ` · จัดให้แล้ว ${humanMin(plan.usedMin)}`;
 
   let html = '';
 
@@ -4173,6 +4471,32 @@ function renderTabBadges() {
 // ---------- ALT 1A6M3: ผลของฉัน ----------
 // ใช้เฉพาะข้อมูลที่แอปมีจริง — จำนวนงานที่เสร็จ เวลาที่ "ประเมินไว้" และการส่งทันกำหนด
 // ไม่มีการจับเวลานั่งทำจริง จึงไม่เขียนว่าเป็นเวลาที่นั่งทำ (จะกลายเป็นตัวเลขที่แต่งขึ้น)
+// สรุปประจำสัปดาห์ — "ระบบเห็นอะไรในตัวคุณ" ไม่ใช่หน้าสถิติอีกหน้า
+//
+// ทุกบรรทัดต้องมาจากข้อมูลจริง (รอบจับเวลา · เวลาที่ประเมินเทียบกับที่ใช้จริง · จำนวนครั้งที่เลื่อน)
+// ข้อมูลยังไม่พอเมื่อไหร่ก็ไม่ต้องขึ้นการ์ดเลย — การเดาแล้วพูดให้ดูฉลาดคือวิธีที่เร็วที่สุด
+// ที่จะทำให้ผู้ใช้เลิกเชื่อทุกตัวเลขที่เหลือในแอป
+//
+// และข้อสังเกตพวกนี้ไม่ได้จบที่การอ่าน — durationStats ตัวเดียวกันนี้ถูกป้อนกลับเข้าตัวจัดแผน
+// ผ่าน plannedMin() แปลว่า "ใช้เวลามากกว่าที่ประเมินไว้ 1.4 เท่า" ทำให้แผนสัปดาห์หน้ากันเวลาให้จริง
+function weekReviewCard(now) {
+  if (typeof weeklyReview !== 'function') return '';
+  const r = weeklyReview(state, now);
+  if (!r.enough) return '';
+  return `<div class="st-card wk">
+    <div class="st-h">${icon('sparkles')}สัปดาห์นี้</div>
+    <div class="wk-nums">
+      <span><b>${r.doneCount}</b> งานเสร็จ</span>
+      <span><b>${humanMin(r.workedMin)}</b> ที่จับเวลาไว้</span>
+      ${r.snoozeCount ? `<span><b>${r.snoozeCount}</b> งานถูกเลื่อน</span>` : ''}
+    </div>
+    ${r.insights.length ? `<div class="wk-lb">สิ่งที่ระบบเรียนรู้เกี่ยวกับคุณ</div>
+      <ul class="wk-list">${r.insights.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
+      <p class="wk-note">ข้อสังเกตพวกนี้ถูกใช้กันเวลาในแผนของสัปดาห์หน้าให้เองแล้ว</p>`
+      : `<p class="wk-note">จับเวลาอีกสัก 2–3 งาน แล้วระบบจะเริ่มบอกได้ว่าคุณใช้เวลาจริงต่างจากที่ประเมินไว้แค่ไหน</p>`}
+  </div>`;
+}
+
 function renderStats() {
   const box = document.getElementById('statsBox');
   if (!box) return;
@@ -4207,6 +4531,7 @@ function renderStats() {
   const subjRows = Object.entries(bySubject).sort((a, b) => b[1].n - a[1].n).slice(0, 5);
 
   box.innerHTML = `<div class="sec-label">ผลของฉัน</div>
+    ${weekReviewCard(now)}
     <div class="st-hero">
       <div><div class="v">${done.length}</div><div class="k">งานที่เสร็จ</div></div>
       <div class="sep"></div>
@@ -4537,6 +4862,7 @@ function stopWork(quiet) {
     sessions().push({ id: uid(), taskId: r.taskId, start: r.start,
       end: new Date().toISOString(), min });
     if (sessions().length > SESSION_CAP) state.sessions = sessions().slice(-SESSION_CAP);
+    syncProgress(r.taskId);
   }
   save();
   if (!quiet && min >= 1) {
@@ -4556,6 +4882,25 @@ function stopWork(quiet) {
 
 function workedMin(taskId) {
   return sessions().filter(s => s.taskId === taskId).reduce((a, s) => a + s.min, 0);
+}
+
+// เวลาที่จับได้ต้องไหลกลับเข้าแผน
+//
+// เดิมนาฬิกาเดินแล้วก็จบแค่นั้น: นั่งทำงาน 40 นาทีไป 70 นาที แต่ t.progress ไม่ถูกแตะเลย
+// buildDayPlan คิดเวลาที่เหลือจาก estMin × (1 − progress/100) แผนพรุ่งนี้จึงยังกันเวลา
+// ให้งานใบนั้นเต็ม 40 นาทีเหมือนไม่เคยทำอะไรไป — แล้วผู้ใช้ก็เห็นว่าแผนไม่รู้เรื่องตัวเอง
+//
+// เพดาน 95 ไม่ใช่ 100 โดยตั้งใจ: "เสร็จ" เป็นคำที่คนเป็นคนพูด ไม่ใช่นาฬิกา
+// งานที่นั่งครบเวลาแล้วแต่ยังไม่พอใจกับมัน ยังไม่เสร็จ
+function syncProgress(taskId) {
+  const t = state.tasks.find(x => x.id === taskId);
+  if (!t || t.done || !TASK_TYPES[taskType(t)].schedulable) return;
+  // งานที่แตกขั้นตอนไว้แล้ว ความคืบหน้ามาจากขั้นที่ติ๊ก ไม่ใช่จากเวลาที่ผ่านไป
+  // (นั่งอยู่หน้าจอหนึ่งชั่วโมงโดยยังไม่ได้เริ่มขั้นแรก เป็นเรื่องที่เกิดขึ้นจริง)
+  const byStep = typeof stepProgress === 'function' ? stepProgress(t) : null;
+  if (byStep != null) { t.progress = byStep; return; }
+  const est = t.estMin || 30;
+  t.progress = Math.max(t.progress || 0, Math.min(95, Math.round(workedMin(taskId) / est * 100)));
 }
 
 function fmtElapsed(ms) {
@@ -4587,6 +4932,178 @@ function renderRunBar() {
   bar.querySelector('.rb-el').textContent = fmtElapsed(Date.now() - new Date(r.start));
 }
 
+// ============================================================
+// โหมดโฟกัส — จอที่เหลือแค่ "งานที่กำลังทำ" กับ "เวลาที่เดินอยู่"
+// ============================================================
+// ลูกโซ่ของโปรดักต์คือ เลือกให้ → เริ่มทำ → ทำเสร็จ → บอกงานถัดไป
+// ก่อนหน้านี้ขาดตรงกลางทั้งท่อน: กด "เริ่มจับเวลา" แล้วยังอยู่ในจอเดิมที่มีงานอีกสิบใบ
+// ปุ่มอีกยี่สิบปุ่ม และแถบเมนูล่างชวนไปที่อื่น — คือการเลือกงานให้แล้วปล่อยให้หลุดเอง
+//
+// จอนี้ไม่มีทางออกอื่นนอกจากสามปุ่ม: เสร็จ · พัก · ออก
+// และตอนกดเสร็จ มันบอกชื่องานถัดไปทันที ไม่ใช่แค่คำชมแล้วโยนกลับหน้าแรก
+
+let focusId = null;
+let focusTimer = null;
+
+function startFocus(taskId) {
+  const t = state.tasks.find(x => x.id === taskId);
+  const wrap = document.getElementById('focusWrap');
+  // เครื่องที่ยังเสิร์ฟ index.html เก่าจากแคช service worker จะไม่มีกล่องนี้
+  // ถอยไปจับเวลาแบบเดิมดีกว่าโยน error ทิ้งไว้แล้วปุ่มกดไม่ติดโดยไม่มีอะไรอธิบาย
+  if (!t) return;
+  if (!wrap) { startWork(taskId); return; }
+  focusId = taskId;
+  if (typeof ensureSteps === 'function') { ensureSteps(t); save(); }
+  const r = runningWork();
+  if (!r || r.taskId !== taskId) startWork(taskId);   // startWork เรียก renderAll ให้เอง
+  renderFocus();
+  wrap.hidden = false;
+  document.body.classList.add('focus-on');
+  clearInterval(focusTimer);
+  focusTimer = setInterval(tickFocus, 1000);
+  haptic('arm');
+}
+
+// Esc ออกจากโหมดโฟกัส — คนที่ใช้บนคอมคาดหวังปุ่มนี้กับทุกอย่างที่ทับเต็มจอ
+// ไม่มีให้แล้วต้องไปเล็งกากบาทเล็ก ๆ มุมซ้ายบน ซึ่งเป็นการเพิ่มแรงเสียดทานให้ทางออก
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && focusId) closeFocus();
+});
+
+function closeFocus(keepRunning) {
+  clearInterval(focusTimer); focusTimer = null;
+  const wrap = document.getElementById('focusWrap');
+  if (wrap) { wrap.hidden = true; wrap.innerHTML = ''; }
+  document.body.classList.remove('focus-on');
+  focusId = null;
+  if (!keepRunning) stopWork();
+  else renderAll();
+}
+
+// นาฬิกาเดินทุกวินาที แต่วาดใหม่แค่ตัวเลข — วาดทั้งจอทุกวินาทีจะสร้างปุ่มใหม่ใต้นิ้วที่กำลังกดอยู่
+function tickFocus() {
+  const r = runningWork();
+  const el = document.getElementById('fcElapsed');
+  if (!el) return;
+  if (!r) { el.textContent = 'หยุดอยู่'; return; }
+  el.textContent = fmtElapsed(Date.now() - new Date(r.start));
+
+  // เลยเวลาที่ตั้งใจไว้ = ข้อมูล ไม่ใช่คำตำหนิ · ใช้บอกให้พักหรือปิดงานตรงนี้ก่อน
+  const t = state.tasks.find(x => x.id === focusId);
+  const cap = document.getElementById('fcOver');
+  if (t && cap) {
+    const target = (focusStep(t) || {}).min || t.estMin || 30;
+    const spent = Math.round((Date.now() - new Date(r.start)) / 60000);
+    cap.hidden = spent <= target;
+    if (spent > target) cap.textContent = `เลยที่ตั้งใจไว้ ${spent - target} นาที — พักสักหน่อยหรือปิดตรงนี้ก่อนก็ได้`;
+  }
+}
+
+function focusStep(t) {
+  return typeof nextStep === 'function' ? nextStep(t) : null;
+}
+
+// ติ๊กขั้นตอน = ความคืบหน้าจริง ไม่ใช่แถบเลื่อนที่ผู้ใช้ลากเอาเอง
+// ความคืบหน้าตัวนี้ไหลกลับเข้าแผนทันที (buildDayPlan กันเวลาให้เท่าที่เหลือจริง)
+function toggleStep(stepId) {
+  const t = state.tasks.find(x => x.id === focusId);
+  if (!t || !t.steps) return;
+  const s = t.steps.find(x => x.id === stepId);
+  if (!s) return;
+  s.done = !s.done;
+  syncProgress(t.id);
+  save();
+  _planCache = null;
+  renderFocus();
+  haptic('tap');
+  // ขั้นสุดท้ายถูกติ๊ก = งานเสร็จจริง ไม่ต้องให้กดซ้ำอีกปุ่ม
+  if (t.steps.every(x => x.done)) setTimeout(() => finishFocus(), 350);
+}
+
+function renderFocus() {
+  const wrap = document.getElementById('focusWrap');
+  const t = state.tasks.find(x => x.id === focusId);
+  if (!wrap || !t) return;
+  const step = focusStep(t);
+  const steps = t.steps || [];
+  const target = (step || {}).min || t.estMin || 30;
+
+  wrap.innerHTML = `<div class="fc-sheet">
+    <div class="fc-top">
+      <button class="fc-x" onclick="closeFocus()" aria-label="ออกจากโหมดโฟกัส">${icon('x')}</button>
+      <span class="fc-sub">${esc(fmtDue(t.due, new Date(), t))}</span>
+    </div>
+
+    <div class="fc-head">
+      ${t.subject && t.subject !== 'อื่น ๆ' ? `<div class="fc-subj">${esc(t.subject)}</div>` : ''}
+      <h2 class="fc-title">${esc(t.detail || 'งานนี้')}</h2>
+    </div>
+
+    <div class="fc-clock">
+      <div class="fc-el mono" id="fcElapsed">0:00</div>
+      <div class="fc-target">ตั้งใจไว้ ~${target} นาที</div>
+    </div>
+    <div class="fc-over" id="fcOver" hidden></div>
+
+    ${step ? `<div class="fc-now">
+      <span class="fn-lb">ตอนนี้ทำ</span>
+      <b>${esc(step.title)}</b>
+    </div>` : ''}
+
+    ${steps.length ? `<div class="fc-steps">
+      ${steps.map(s => `<button class="fs-row${s.done ? ' done' : ''}${s === step ? ' cur' : ''}"
+        onclick="toggleStep('${s.id}')">
+        <span class="fs-tick">${icon('check')}</span>
+        <span class="fs-tx">${esc(s.title)}</span>
+        <span class="fs-min mono">${s.min}น</span>
+      </button>`).join('')}
+    </div>` : ''}
+
+    <div class="fc-act">
+      <button class="fc-done" onclick="finishFocus()">${icon('check')}ทำเสร็จแล้ว</button>
+      <button class="fc-pause" onclick="closeFocus(false)">${icon('pause')}พักก่อน</button>
+    </div>
+  </div>`;
+  tickFocus();
+}
+
+// เสร็จแล้วต้องรู้ทันทีว่าอะไรต่อ — นี่คือข้อต่อสุดท้ายของลูกโซ่ ที่ขาดมาตลอด
+function finishFocus() {
+  const t = state.tasks.find(x => x.id === focusId);
+  if (!t) { closeFocus(); return; }
+  stopWork(true);
+  t.done = true;
+  t.progress = 100;
+  t.doneAt = new Date().toISOString();
+  save();
+  _planCache = null;
+  haptic('done');
+
+  const sp = todayPlan(new Date());
+  const nxt = sp.now;
+  clearInterval(focusTimer); focusTimer = null;
+
+  const wrap = document.getElementById('focusWrap');
+  wrap.innerHTML = `<div class="fc-sheet done">
+    <div class="fc-win">${icon('check-circle')}</div>
+    <h2 class="fc-wt">เสร็จแล้ว</h2>
+    <p class="fc-wp">${esc(taskTitleText(t))}</p>
+    ${nxt ? `<div class="fc-next">
+      <span class="fn-lb">งานถัดไป</span>
+      <b>${taskTitle(nxt.task)}</b>
+      <span class="fn-min">~${nxt.task.estMin || 30} นาที · ${esc(topReason(nxt.info))}</span>
+      <button class="fc-go" onclick="startFocus('${nxt.task.id}')">${icon('play')}ทำต่อเลย</button>
+      <button class="fc-later" onclick="closeFocus(true)">พอแค่นี้ก่อน</button>
+    </div>` : `<div class="fc-next">
+      <b>ไม่เหลืองานค้างแล้ว</b>
+      <span class="fn-min">วันนี้พักได้เต็มที่</span>
+      <button class="fc-later" onclick="closeFocus(true)">กลับหน้าแรก</button>
+    </div>`}
+  </div>`;
+  celebrate(document.querySelector('.fc-win'));
+  setTimeout(checkBadges, 1800);
+}
+
 // ---------- task actions ----------
 // el = ปุ่มที่กด (ถ้ามี) ใช้เป็นจุดกำเนิดของเอฟเฟกต์ฉลอง
 function toggleDone(id, el) {
@@ -4610,7 +5127,13 @@ function toggleDone(id, el) {
     const cleared = pendingTasks().length === 0;
     setTimeout(() => {
       renderAll();
-      showToast(celebrateCopy(cleared));
+      // คำชมที่ไม่บอกว่างานถัดไปคืออะไร คือคำชมที่ทำให้ต้องกลับไปนั่งเลือกใหม่เอง
+      // ลูกโซ่ เริ่ม → เสร็จ → ต่อ ขาดตรงนี้มาตลอด ทั้งที่ตัวจัดแผนรู้คำตอบอยู่แล้ว
+      const sp = todayPlan(new Date());
+      showToast(cleared || !sp.now ? celebrateCopy(true) : {
+        title: 'เยี่ยม! เสร็จอีกงาน 💪',
+        body: 'ต่อไป: ' + taskTitleText(sp.now.task) + ' · ~' + (sp.now.task.estMin || 30) + ' นาที',
+      });
       // เหรียญใหม่ (ถ้ามี) เด้งตามหลังคำชม ไม่ให้ทับกัน
       setTimeout(checkBadges, 2600);
     }, 430);
@@ -4675,6 +5198,7 @@ function celebrate(el) {
 // ---------- form (เพิ่ม/แก้/ยืนยันผล AI) ----------
 let formUserStars = 0; // 0 = ให้ AI จัดให้
 let formType = 'homework';
+let formFromScan = false;  // งานใบที่กำลังกรอกอยู่ มาจาก AI อ่านให้หรือพิมพ์เอง (ดู openForm)
 
 // เลือกประเภท → ฟอร์มปรับหน้าตาตามธรรมชาติของสิ่งนั้น
 // (กิจกรรมไม่มีคะแนน/ครูผู้สั่ง · สอบเรียกว่า "วันสอบ" ไม่ใช่ "ส่งวันที่")
@@ -4733,6 +5257,13 @@ let formReturn = 'scr-home';
 
 function openForm(id, parsed) {
   editingId = id;
+  // งานใบนี้มาจาก "AI อ่านให้" หรือ "พิมพ์เองทีละช่อง"
+  //
+  // ตัวเลขนี้คือ capture rate — สัดส่วนงานที่เข้าระบบโดยผู้ใช้ไม่ต้องพิมพ์
+  // ซึ่งเป็นตัวชี้เป็นชี้ตายของโปรดักต์ ("ไม่ต้องพิมพ์" คือคำสัญญาทั้งหมดของหน้าเพิ่มงาน)
+  // เดิม saveForm เขียน fromScan: !!data._scan โดยที่ไม่มีใครใส่ _scan ให้เลย — ได้ false ทุกใบ
+  // แปลว่าตัวเลขที่สำคัญที่สุดของโปรเจกต์วัดไม่ได้มาตลอด
+  formFromScan = !!(parsed && parsed._src && parsed._src !== 'manual');
   const from = document.querySelector('.screen.on');
   formReturn = (from && !['scr-form', 'scr-parsing', 'scr-scan', 'scr-login'].includes(from.id))
     ? from.id : 'scr-home';
@@ -4847,7 +5378,7 @@ function saveForm() {
     }
     Object.assign(target, data);
   } else {
-    state.tasks.push(Object.assign({ id: uid(), done: false, createdAt: new Date().toISOString(), fromScan: !!data._scan }, data));
+    state.tasks.push(Object.assign({ id: uid(), done: false, createdAt: new Date().toISOString(), fromScan: formFromScan }, data));
   }
   const back = formReturn;
   editingId = null;
@@ -4878,6 +5409,7 @@ let parsedPending = null;
 function runParsing(text, source) {
   // เฉพาะข้อความจากรูปเท่านั้นที่ให้ parser เดาคำที่เพี้ยน — ที่พิมพ์เองถือว่าถูกอยู่แล้ว
   parsedPending = parseAssignment(text, new Date(), { fuzzy: source === 'ocr' });
+  parsedPending._src = source;   // 'ocr' · 'paste' · 'voice' — ใช้วัด capture rate (ดู openForm)
   if (source !== 'ocr') lastOcrLowWords = [];
   parsedPending._low = source === 'ocr' ? fieldsToDoubleCheck(parsedPending) : [];
   const p = parsedPending.detected || {};

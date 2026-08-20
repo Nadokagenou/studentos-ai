@@ -56,6 +56,9 @@
   <link rel="stylesheet" href="alt.css">
   <!-- ชั้นกล่องเข้า + เชื่อม LINE — ชั้นใหม่ทั้งชั้น แยกไฟล์ไว้ให้ถอดออกได้ทั้งก้อน -->
   <link rel="stylesheet" href="inbox.css">
+  <!-- จอ "วันนี้" กับโหมดโฟกัส — ของใหม่ทั้งก้อน จึงอยู่แยกไฟล์
+       ถอยกลับหน้าแรกแบบเก่า = เอาบรรทัดนี้ออก ไม่ต้องคุ้ย alt.css ที่ยาว 250 KB -->
+  <link rel="stylesheet" href="today.css">
   <!-- ดีไซน์ที่ปรับด้วยตัวแก้ดีไซน์ ต้องอยู่ท้ายสุดถึงจะทับของเดิมได้
        ว่างอยู่ = ยังไม่มีใครปรับอะไร ไม่มีผลกับหน้าตาเดิมเลย -->
   <link rel="stylesheet" href="custom.css">
@@ -141,6 +144,11 @@
     <g id="lu-medal" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"></path><path d="M11 12 5.12 2.2"></path><path d="m13 12 5.88-9.8"></path><path d="M8 7h8"></path><circle cx="12" cy="17" r="5"></circle><path d="M12 18v-2h-.5"></path></g>
     <g id="lu-pin" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></g>
     <g id="lu-flag" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><path d="M4 22v-7"></path></g>
+    <!-- เริ่ม/หยุด — ปุ่มลงมือทำของการ์ด "ทำสิ่งนี้ก่อน" และของทุกบล็อกในแผน
+         ทึบทั้งตัว (ไม่ใช่เส้น) เพราะเป็นปุ่มเดียวในจอที่อยากให้นิ้วไปโดนก่อนปุ่มอื่น -->
+    <g id="lu-play" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.72-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14z"/></g>
+    <g id="lu-pause" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1.2"/><rect x="14" y="4" width="4" height="16" rx="1.2"/></g>
+    <g id="lu-x" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></g>
     <!-- กลุ่มแชท — ใช้แทน LINE ทั้งในกล่องเข้าและจอแหล่งข้อมูล -->
     <g id="lu-chat" fill="currentColor">
       <path opacity=".34" d="M2.6 7.8A4.2 4.2 0 0 1 6.8 3.6h10.4a4.2 4.2 0 0 1 4.2 4.2v5.6a4.2 4.2 0 0 1-4.2 4.2H9.4l-4.5 3.4a1 1 0 0 1-1.6-.8v-2.9a4.2 4.2 0 0 1-.7-2.3z"/>
@@ -1033,6 +1041,10 @@
          ถ้าปุ่มหยุดอยู่แต่ในหน้าแผน คนจะลืมกดหยุดทุกครั้งที่เดินออกจากหน้านั้น -->
     <div class="runbar" id="runBar" hidden></div>
 
+    <!-- โหมดโฟกัส — ทับทุกอย่างรวมถึงแถบล่าง เพราะระหว่างทำงานอยู่
+         "ไปหน้าอื่น" ไม่ใช่สิ่งที่เราอยากให้ทำได้ง่าย · เนื้อในวาดจาก renderFocus() -->
+    <div class="focus-wrap" id="focusWrap" hidden></div>
+
     <!-- ============ TAB BAR ============ -->
     <div class="tabbar">
       <button class="tab" data-scr="scr-menu" onclick="go('scr-menu')">
@@ -1071,6 +1083,10 @@
 <script src="engine.js"></script>
 <!-- context.js ต้องมาก่อน app.js — app.js เรียก freeSlots() ตอนวาดจอ -->
 <script src="context.js"></script>
+<!-- planner.js ต้องอยู่หลัง engine.js กับ context.js และก่อน app.js —
+     มันเรียก buildDayPlan/freeSlots ตอนคิดแผน และ app.js เรียก studyPlan() ตอนวาดจอ
+     ทุกจอที่พูดเรื่อง "ควรทำอะไร" อ่านคำตอบจากไฟล์นี้ก้อนเดียว ห้ามคิดเองซ้ำ -->
+<script src="planner.js"></script>
 <!-- ต้องมาก่อน app.js: app.js เรียก renderInbox/renderSources ใน renderAll
      และเรียก loadLineLinks/pullInbox ตอนซิงก์ -->
 <script src="brain.js"></script>
