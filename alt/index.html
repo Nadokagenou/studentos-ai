@@ -119,6 +119,7 @@
       <path d="M8.6 8V6.4a3.4 3.4 0 0 1 6.8 0V8"/>
     </g>
     <g id="lu-sparkles" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path></g>
+    <g id="lu-cog" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></g>
     <g id="lu-bell" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.27 21a2 2 0 0 0 3.46 0"></path><path d="M3.26 15.33A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.67C19.41 13.96 18 12.5 18 8A6 6 0 0 0 6 8c0 4.5-1.41 5.96-2.74 7.33"></path></g>
     <g id="lu-target" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1.4"></circle></g>
     <g id="lu-check" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></g>
@@ -207,6 +208,15 @@
          เลขรุ่นเป็นข้อมูลของคนทำแอป ไม่ใช่ของนักเรียน และมันนั่งทับตำแหน่งที่มีค่าที่สุดของจอ
          คนที่อยากรู้เลขรุ่นยังดูได้ที่แท็บ "ฉัน" (#appVer) ซึ่งบอกครบกว่าเดิมอยู่แล้ว -->
     <!-- ALT 1A6M3: ทางเข้าระบบเพื่อน — มุมขวาบน ไม่กินช่องในเมนูหลัก -->
+    <!-- ตั้งค่าเป็นไอคอนมุมขวาบนของหน้า "ฉัน" (1A9d)
+         เดิมเป็นแถวสุดท้ายในลิสต์ทางเข้า ซึ่งแปลว่าต้องเลื่อนผ่านทุกอย่างก่อนถึงมัน
+         ทั้งที่เป็นของที่คนกลับมาหาบ่อยที่สุดในจอนี้ · มุมขวาบนคือที่ที่มือถือทุกเครื่อง
+         สอนคนไว้แล้วว่าเฟืองอยู่ตรงนั้น
+         นั่งตำแหน่งเดียวกับปุ่มเพื่อน และสลับกัน — ปุ่มเพื่อนหลบในหน้า "ฉัน"
+         เพราะแถว "เพื่อน" อยู่ในลิสต์ข้างล่างอยู่แล้ว สองทางเข้าไปที่เดียวกันคือของซ้ำ -->
+    <button class="top-set" onclick="go('scr-settings')" aria-label="ตั้งค่า">
+      <svg viewBox="0 0 24 24"><use href="#lu-cog"/></svg>
+    </button>
     <button class="top-friends" onclick="go('scr-friends')" aria-label="เพื่อน">
       <svg viewBox="0 0 24 24"><use href="#lu-users"/></svg>
       <span class="tf-badge" id="friendsBadge" hidden></span>
@@ -654,13 +664,24 @@
               <span class="pe-tx"><b>บริบทของฉัน</b><i id="peCtxCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button class="pe" onclick="go('scr-settings')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-contrast"/></svg></span>
-              <span class="pe-tx"><b>ตั้งค่า</b><i>ธีม · ตัวอักษร · วิดเจ็ต · แจ้งเตือน</i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
           </div>
           <p class="app-ver" id="appVer"></p>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: ผลของฉัน (ฉบับเต็ม) ============
+           หน้า "ฉัน" เหลือแค่ตัวเลขสรุปกับกราฟ 7 วัน · รายละเอียดที่ต้อง "อ่าน"
+           (ส่งทันกำหนด · แยกตามวิชา · ช่วงเวลาที่ทำงานได้ดี) ย้ายมาอยู่ที่นี่
+           เพราะมันเป็นของที่คนเข้ามาดูตอนอยากรู้ ไม่ใช่ของที่ต้องเลื่อนผ่านทุกครั้ง
+           วาดจาก renderStatFull() -->
+      <div class="screen flush" id="scr-stats">
+        <div class="scr-body pf-body">
+          <div class="set-top">
+            <button class="set-back" onclick="go('scr-profile')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <h2 class="set-title">ผลของฉัน</h2>
+          </div>
+          <div id="statFull"></div>
         </div>
       </div>
 
@@ -746,13 +767,24 @@
       <!-- ============ SCREEN: ตั้งค่า (ALT 1A6M3) ============ -->
       <div class="screen flush" id="scr-settings">
         <div class="scr-body pf-body">
-          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
-            <div>
-              <h2 class="sh-title">ตั้งค่า</h2>
-            </div>
-            <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
+          <!-- หัวจอกึ่งกลาง + ปุ่มย้อนกลับซ้าย — แบบเดียวกับหน้าตั้งค่าของระบบปฏิบัติการ
+               ซึ่งเป็นแบบที่คนอ่านออกโดยไม่ต้องเรียนรู้อะไรใหม่ -->
+          <div class="set-top">
+            <button class="set-back" onclick="go('scr-profile')" aria-label="กลับ">
               <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <h2 class="set-title">ตั้งค่า</h2>
           </div>
+
+          <!-- การ์ดตัวตนบนสุด — ก่อนจะตั้งค่าอะไร ต้องรู้ก่อนว่ากำลังตั้งให้ใคร
+               และมันคือทางเข้าเดียวที่บอกว่า "ล็อกอินอยู่หรือเปล่า" โดยไม่ต้องอ่านคำอธิบาย -->
+          <button type="button" class="set-me" onclick="go('scr-profile')">
+            <span class="set-me-av" id="setAv">N</span>
+            <span class="set-me-tx">
+              <b id="setNm">นักเรียน</b>
+              <i id="setSb"></i>
+            </span>
+            <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+          </button>
 
           <!-- ทางลัดสี่ช่อง — จอที่คนเข้าบ่อยที่สุด ไม่ต้องเลื่อนหา
                "เพื่อน" ย้ายมาอยู่ตรงนี้แทนแถวเดิม จำนวนเพื่อนยังนับให้ที่หน้า “ฉัน” เหมือนเดิม -->

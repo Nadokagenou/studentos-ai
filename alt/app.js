@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A9c';                 // สายเลขของแอป
+const APP_VERSION = '1A9d';                 // สายเลขของแอป
 const APP_CODENAME = 'Klarheit';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -662,7 +662,7 @@ const TABBED_SCREENS = ['scr-menu', 'scr-ai', 'scr-tasks', 'scr-scan', 'scr-time
 // ส่วน "ปฏิทิน" เสียปุ่มไป — มันเป็นมุมมองที่สองของแท็บ "งาน" อยู่แล้ว (ดู tlModeTabs)
 // ถ้าไม่ยกให้แท็บนั้นติดไฟ ผู้ใช้จะอยู่ในปฏิทินโดยไม่มีแท็บไหนสว่างเลย = "หลงอยู่ที่ไหนไม่รู้"
 const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
-  'scr-settings': 'scr-profile', 'scr-setopt': 'scr-profile' };
+  'scr-settings': 'scr-profile', 'scr-setopt': 'scr-profile', 'scr-stats': 'scr-profile' };
 
 // ---------- 1A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
 // บนมือถือ การสลับไปแอปอื่นแล้วกลับมามักทำให้ระบบโหลดหน้าใหม่ทั้งหน้า
@@ -727,6 +727,9 @@ function go(id) {
   // ปุ่มเพื่อนลอยมุมขวาบนต้องหลบหน้า "วันนี้" — มันนั่งทับกระดิ่งกล่องเข้าพอดี
   // และเพื่อนไม่ใช่คำตอบของ "ตอนนี้ควรทำอะไร" · ทางเข้ายังอยู่ครบสองที่ในแท็บ "ฉัน"
   document.body.classList.toggle('home-scr', id === 'scr-menu');
+  // หน้า "ฉัน" สลับปุ่มมุมขวาบนจาก "เพื่อน" เป็น "ตั้งค่า" — เพื่อนมีแถวของตัวเองในลิสต์
+  // ข้างล่างอยู่แล้ว ส่วนตั้งค่าไม่มีแล้ว (ถอดออกใน 1A9d) มุมขวาบนคือทางเข้าเดียวของมัน
+  document.body.classList.toggle('me-scr', id === 'scr-profile');
   const tabId = TAB_OWNER[id] || id;
   document.querySelectorAll('.tab[data-scr]').forEach(b =>
     b.classList.toggle('active', b.dataset.scr === tabId));
@@ -3620,8 +3623,16 @@ function renderProfile() {
   const avLabel = document.getElementById('avPickLabel');
   if (avLabel) avLabel.textContent = mine ? 'เปลี่ยนรูป' : 'เลือกรูป';
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const sub = currentUser ? (currentUser.email || 'ซิงก์ข้ามเครื่องอยู่') : 'ยังไม่ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้';
   set('pfNm', name);
-  set('pfSb', currentUser ? (currentUser.email || 'ซิงก์ข้ามเครื่องอยู่') : 'ยังไม่ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้');
+  set('pfSb', sub);
+  // การ์ดตัวตนบนหัวจอตั้งค่า — ข้อมูลชุดเดียวกับหน้า "ฉัน" ต้องไม่มีทางขัดกันเอง
+  set('setNm', name);
+  set('setSb', sub);
+  const sav = document.getElementById('setAv');
+  if (sav) sav.innerHTML = (mine || pic)
+    ? `<img src="${esc(mine || pic)}" alt="">`
+    : esc(name.trim().charAt(0).toUpperCase() || 'N');
   set('pfDone', done);
   set('pfFree', (state.settings.freeHours || 2) + ' ชม.');
   set('pfPending', pending.length);
@@ -4994,7 +5005,16 @@ function renderStats() {
   }
   const subjRows = Object.entries(bySubject).sort((a, b) => b[1].n - a[1].n).slice(0, 5);
 
-  box.innerHTML = `<div class="sec-label">ผลของฉัน</div>
+  // ---- หน้า "ฉัน" เหลือแค่ตัวเลขสรุป + กราฟ ----
+  // ที่เหลือ (ส่งทันกำหนด · เลื่อนงาน · แยกตามวิชา · ช่วงที่ทำงานได้ดี) ย้ายไป scr-stats
+  //
+  // สามก้อนนั้นเป็นของที่ต้อง "อ่าน" ไม่ใช่ของที่กวาดตาแล้วได้อะไรกลับมา
+  // มันเลยดันทางเข้าอื่น (ถามน้องไซ · เหรียญตรา · บริบทของฉัน) ตกลงไปใต้จอ
+  // ทั้งที่คนเข้าหน้านี้มาเพื่อกดเข้าไปที่ใดที่หนึ่ง ไม่ได้มาอ่านสถิติ
+  box.innerHTML = `<button class="st-open" onclick="go('scr-stats')">
+      <span class="sec-label">ผลของฉัน</span>
+      <span class="st-open-go">ดูทั้งหมด${icon('chevron')}</span>
+    </button>
     ${weekReviewCard(now)}
     <div class="st-hero">
       <div><div class="v">${done.length}</div><div class="k">งานที่เสร็จ</div></div>
@@ -5015,24 +5035,43 @@ function renderStats() {
       </div>
     </div>
 
-    ${onTimePct != null ? `<div class="st-card">
+    <button class="st-more" onclick="go('scr-stats')">
+      ${icon('medal')}ส่งทันกำหนด · แยกตามวิชา · ช่วงที่ทำงานได้ดี${icon('chevron')}
+    </button>`;
+
+  renderStatFull(now, { onTimePct, onTime, rated, snoozes, subjRows });
+}
+
+// ---------- ผลของฉัน ฉบับเต็ม ----------
+// รับตัวเลขที่ renderStats คำนวณไว้แล้วมาใช้ต่อ ไม่คำนวณซ้ำ —
+// สองจอที่นับงานเดียวกันคนละรอบ คือสองจอที่มีโอกาสตอบไม่ตรงกัน
+function renderStatFull(now, d) {
+  const box = document.getElementById('statFull');
+  if (!box) return;
+  box.innerHTML = `
+    ${d.onTimePct != null ? `<div class="st-card">
       <div class="st-h">ส่งทันกำหนด</div>
-      <div class="st-line"><b>${onTimePct}%</b> ของงานที่มีกำหนดส่ง (${onTime}/${rated} งาน)</div>
-      <div class="st-track"><i style="width:${onTimePct}%"></i></div>
+      <div class="st-line"><b>${d.onTimePct}%</b> ของงานที่มีกำหนดส่ง (${d.onTime}/${d.rated} งาน)</div>
+      <div class="st-track"><i style="width:${d.onTimePct}%"></i></div>
     </div>` : ''}
 
-    ${snoozes ? `<div class="st-card soft">
-      <div class="st-line">${icon('clock')}เลื่อนงานไปแล้วรวม <b>${snoozes}</b> ครั้ง</div>
+    ${d.snoozes ? `<div class="st-card soft">
+      <div class="st-line">${icon('clock')}เลื่อนงานไปแล้วรวม <b>${d.snoozes}</b> ครั้ง</div>
     </div>` : ''}
 
-    ${subjRows.length ? `<div class="st-card">
+    ${d.subjRows.length ? `<div class="st-card">
       <div class="st-h">แยกตามวิชา</div>
-      ${subjRows.map(([name, v]) => `<div class="st-row">
+      ${d.subjRows.map(([name, v]) => `<div class="st-row">
         <span class="nm">${esc(name)}</span>
         <span class="ct mono">${v.n} งาน · ${Math.round(v.min / 6) / 10} ชม.</span>
       </div>`).join('')}
     </div>` : ''}
-    ${workStatsHtml(now)}`;
+    ${workStatsHtml(now)}
+
+    ${d.onTimePct == null && !d.subjRows.length ? `<div class="st-card soft">
+      <div class="st-line">${icon('check-circle')}ยังไม่มีงานที่ทำเสร็จพร้อมกำหนดส่ง —
+        ติ๊กงานให้เสร็จสักสองสามใบ แล้วหน้านี้จะเริ่มมีอะไรให้ดู</div>
+    </div>` : ''}`;
 }
 
 // ---------- ประสิทธิภาพ: อ่านจากรอบจับเวลาจริงเท่านั้น ----------

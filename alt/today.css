@@ -753,7 +753,7 @@
   flex: 1; min-height: 0; gap: 0;
   /* บนสุดกัน notch เอง — จอนี้ตั้ง padding แบบย่อ ซึ่งทับกฎ safe-area ใน alt.css ทิ้ง
      ล่างสุดต้องพ้นแถบล่างที่ติดขอบจอแล้ว: 40 (ปุ่ม) + 12 (padding) + safe-area + ช่องว่าง */
-  padding: calc(10px + env(safe-area-inset-top)) 20px calc(74px + env(safe-area-inset-bottom));
+  padding: calc(10px + env(safe-area-inset-top)) 20px 74px;
 }
 /* บทสนทนาคือส่วนเดียวที่ยืดได้ · min-height:0 จำเป็นจริง ไม่ใช่ของประดับ —
    ไม่มีมันแล้ว flex item จะไม่ยอมหดต่ำกว่าเนื้อหาตัวเอง กล่องเลยดันช่องพิมพ์ตกจอ */

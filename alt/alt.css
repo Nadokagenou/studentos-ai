@@ -5603,8 +5603,16 @@ body.deep-scr .top-friends { display: none; }
   .tabbar {
     left: 0; right: 0; bottom: 0;
     border-radius: 0; border-width: 1px 0 0;
-    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
-    box-shadow: 0 -8px 24px -14px rgba(0, 0, 0, .5);
+    /* padding ล่าง 8px เท่านั้น ไม่บวก env(safe-area-inset-bottom)
+       เคยบวกไว้ แล้วบนเครื่องจริงมันกลายเป็นแผ่นกระจกเปล่า ~40pt ใต้ตัวหนังสือ
+       ซึ่งอ่านออกมาว่า "แถบยังไม่ถึงขอบ" ทั้งที่ตำแหน่งมันถึงขอบแล้ว
+       ระยะปลอดภัยของเส้น home indicator มาจากตัวแถบเองที่สูงพอ ไม่ต้องเว้นซ้ำ */
+    padding: 6px 6px 8px;
+    /* พื้นทึบ ไม่ใช่กระจกเบลอ — แถบที่ติดขอบจอไม่มีอะไรอยู่ใต้ให้เบลอ
+       เหลือแค่ผลข้างเคียงคือขอบบนดูฟุ้งจนไม่รู้ว่าแถบเริ่มตรงไหน */
+    background: var(--scr);
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+    box-shadow: 0 -1px 0 var(--line);
   }
   /* ปุ่ม + ยังเป็นก้อนลอยเหนือแถบ แต่ลดระยะที่มันโผล่ขึ้นไปทับเนื้อหา
      เดิมโผล่ขึ้น 34px ซึ่งพอแถบติดขอบจอแล้ว มันไปนั่งทับการ์ดใบล่างสุดพอดี */
@@ -5618,3 +5626,82 @@ body.deep-scr .top-friends { display: none; }
   .menu-body { padding-top: calc(10px + env(safe-area-inset-top)); }
   .screen.flush > .sticky-head { padding-top: calc(12px + env(safe-area-inset-top)); }
 }
+
+/* ---------- ปุ่มเฟืองมุมขวาบนของหน้า "ฉัน" (1A9d) ---------- */
+/* ใช้กรอบเดียวกับปุ่มเพื่อนเป๊ะ ๆ เพราะมันคือปุ่มตำแหน่งเดียวกัน แค่สลับกันโผล่ตามจอ */
+.top-set {
+  position: absolute; top: 8px; right: 10px; z-index: 91;
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--card); color: var(--blue);
+  box-shadow: var(--shadow);
+  display: none; align-items: center; justify-content: center; cursor: pointer;
+}
+.top-set svg { width: 17px; height: 17px; }
+.top-set:active { transform: scale(.9); }
+.me-scr .top-set { display: flex; }
+.me-scr .top-friends { display: none; }
+.login-mode .top-set { display: none; }
+
+/* ---------- หัวจอตั้งค่า + การ์ดตัวตน (1A9d) ---------- */
+.set-top {
+  position: relative; display: flex; align-items: center;
+  min-height: 40px; margin-bottom: 14px;
+}
+.set-back {
+  position: absolute; left: -8px; width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border: 0; border-radius: 50%; background: none; color: var(--ink); cursor: pointer;
+}
+.set-back svg { width: 20px; height: 20px; transform: rotate(180deg); }
+.set-back:active { background: var(--card2); }
+.set-title {
+  flex: 1; margin: 0; text-align: center;
+  font-size: 17px; font-weight: 700; color: var(--ink);
+}
+.set-me {
+  display: flex; align-items: center; gap: 13px; width: 100%;
+  padding: 14px; margin-bottom: 20px;
+  border: 1px solid var(--line); border-radius: var(--r-card);
+  background: var(--card); box-shadow: var(--shadow);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.set-me:active { background: var(--card2); }
+.set-me-av {
+  flex: none; width: 48px; height: 48px; display: grid; place-items: center;
+  border-radius: 50%; background: var(--blue-soft); color: var(--blue);
+  font-size: 19px; font-weight: 700; overflow: hidden;
+}
+.set-me-av img { width: 100%; height: 100%; object-fit: cover; }
+.set-me-tx { flex: 1; min-width: 0; }
+.set-me-tx b {
+  display: block; font-size: 16px; font-weight: 700; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.set-me-tx i {
+  display: block; margin-top: 2px; font-style: normal; font-size: 12.5px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.set-me .set-go { flex: none; width: 17px; height: 17px; color: var(--faint); }
+
+/* ---------- ผลของฉัน: หัวข้อกดได้ + ทางเข้าฉบับเต็ม (1A9d) ---------- */
+.st-open {
+  display: flex; align-items: baseline; gap: 8px; width: 100%;
+  padding: 0; border: 0; background: none; font: inherit; text-align: left; cursor: pointer;
+}
+.st-open .sec-label { flex: 1; margin-top: 0; }
+.st-open-go {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: 12px; font-weight: 600; color: var(--blue);
+}
+.st-open-go svg { width: 14px; height: 14px; }
+/* แถวท้ายบล็อก — บอกว่าอะไรอยู่ข้างใน ไม่ใช่แค่ลูกศรลอย ๆ
+   ทางเข้าที่ไม่บอกว่าข้างในมีอะไร คือทางเข้าที่ไม่มีใครกด */
+.st-more {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  margin-top: 10px; padding: 12px 13px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--card2);
+  color: var(--muted); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer;
+}
+.st-more svg { width: 15px; height: 15px; flex: none; }
+.st-more svg:last-child { margin-left: auto; color: var(--faint); }
+.st-more:active { background: var(--surface); }
