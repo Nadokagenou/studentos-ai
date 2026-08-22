@@ -119,6 +119,8 @@
       <path d="M8.6 8V6.4a3.4 3.4 0 0 1 6.8 0V8"/>
     </g>
     <g id="lu-sparkles" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path></g>
+    <g id="lu-bell" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.27 21a2 2 0 0 0 3.46 0"></path><path d="M3.26 15.33A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.67C19.41 13.96 18 12.5 18 8A6 6 0 0 0 6 8c0 4.5-1.41 5.96-2.74 7.33"></path></g>
+    <g id="lu-target" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1.4"></circle></g>
     <g id="lu-check" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></g>
     <g id="lu-chevron" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></g>
     <g id="lu-flame" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"></path></g>
@@ -1063,24 +1065,24 @@
 
     <!-- ============ TAB BAR ============ -->
     <div class="tabbar">
-      <!-- แถบล่าง: วันนี้ · ปฏิทิน · + · งาน · ฉัน
-           "ถามน้องไซ" ถูกถอดออกจากแถบล่างตั้งแต่ 1A8b — ไม่ได้ถูกลบ
-           AI ที่ดีต้องพูดก่อนถูกถาม จึงย้ายไปอยู่ในกล่องข้อสังเกตบนหน้า "วันนี้"
-           ส่วนช่องแชทเต็ม ๆ เข้าได้จากปุ่มในกล่องนั้นและจากแท็บ "ฉัน" -->
+      <!-- แถบล่าง: วันนี้ · งาน · ＋ · น้องไซ · ฉัน
+           "ปฏิทิน" ถูกถอดออกจากแถบล่างใน 1A9 — ไม่ได้ถูกลบ มันเป็นมุมมองที่สองของแท็บ "งาน"
+           อยู่แล้ว (แถบ รายวัน/ปฏิทิน/รายการงาน บนหัวจอนั้น) การมีปุ่มของตัวเองบนแถบล่างด้วย
+           แปลว่าคำถาม "อาทิตย์นี้วันไหนหนัก" มีสองทางเข้าที่ไปที่เดียวกัน
+           ที่ที่ว่างจึงคืนให้ "น้องไซ" ซึ่งเป็นจอที่ตอบคำถามที่ไม่มีจออื่นตอบได้ -->
       <button class="tab" data-scr="scr-menu" onclick="go('scr-menu')">
         <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-home"/></svg>
         <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-home-f"/></svg><span>วันนี้</span></button>
-      <button class="tab" data-scr="scr-timeline" onclick="goTlMode('cal')">
-        <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-timeline"/></svg>
-        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-timeline-f"/></svg><span>ปฏิทิน</span></button>
-      <button class="tab scan" onclick="openAddSheet()" aria-label="เพิ่มงานใหม่">
-        <span class="scan-dot"><svg viewBox="0 0 24 24"><use href="#tb-plus"/></svg></span><span>เพิ่ม</span></button>
-      <!-- แบดจ์ย้ายมาอยู่บนแท็บ "งาน" — มันเคยติดอยู่บน "ปฏิทิน" ตั้งแต่ตอนเปลี่ยนชื่อแท็บ
-           ซึ่งชี้ไปผิดที่ · เลขบนแท็บต้องพาไปยังที่ที่ลงมือแก้เรื่องนั้นได้จริง -->
+      <!-- แบดจ์อยู่บนแท็บ "งาน" — เลขบนแท็บต้องพาไปยังที่ที่ลงมือแก้เรื่องนั้นได้จริง -->
       <button class="tab" data-scr="scr-tasks" onclick="go('scr-tasks')">
         <span class="ic-wrap"><svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-tasks"/></svg>
           <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-tasks-f"/></svg>
           <span class="tab-badge" id="badgeHome" hidden></span></span><span>งาน</span></button>
+      <button class="tab scan" onclick="openAddSheet()" aria-label="เพิ่มงานใหม่">
+        <span class="scan-dot"><svg viewBox="0 0 24 24"><use href="#tb-plus"/></svg></span><span>เพิ่ม</span></button>
+      <button class="tab" data-scr="scr-ai" onclick="go('scr-ai')">
+        <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-ai"/></svg>
+        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-ai-f"/></svg><span>น้องไซ</span></button>
       <button class="tab" data-scr="scr-profile" onclick="go('scr-profile')">
         <span class="ic-wrap"><svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-profile"/></svg>
           <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-profile-f"/></svg>

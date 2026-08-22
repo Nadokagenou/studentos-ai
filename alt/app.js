@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A8g';                 // สายเลขของแอป
-const APP_CODENAME = 'Weiterplan';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1A9';                 // สายเลขของแอป
+const APP_CODENAME = 'Klarheit';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -658,7 +658,10 @@ const TABBED_SCREENS = ['scr-menu', 'scr-ai', 'scr-tasks', 'scr-scan', 'scr-time
 // จอที่ไม่มีปุ่มของตัวเองบนแถบล่าง แต่เป็นส่วนหนึ่งของแท็บอื่น
 // รายการงานย้ายเข้าไปเป็นโหมดที่สามของแท็บ "ตาราง" — ปุ่มแท็บนั้นจึงต้องติดไฟด้วย
 // ไม่งั้นผู้ใช้อยู่ในแอปแต่ไม่มีแท็บไหนสว่างเลย ซึ่งอ่านว่า "หลงอยู่ที่ไหนไม่รู้"
-const TAB_OWNER = { 'scr-ai': 'scr-profile',
+// 1A9: "น้องไซ" มีปุ่มของตัวเองบนแถบล่างแล้ว จึงไม่ต้องยืมไฟจากแท็บ "ฉัน" อีก
+// ส่วน "ปฏิทิน" เสียปุ่มไป — มันเป็นมุมมองที่สองของแท็บ "งาน" อยู่แล้ว (ดู tlModeTabs)
+// ถ้าไม่ยกให้แท็บนั้นติดไฟ ผู้ใช้จะอยู่ในปฏิทินโดยไม่มีแท็บไหนสว่างเลย = "หลงอยู่ที่ไหนไม่รู้"
+const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
   'scr-settings': 'scr-profile', 'scr-setopt': 'scr-profile' };
 
 // ---------- 1A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
@@ -721,6 +724,9 @@ function go(id) {
   // อยู่มุมขวาบนตรงตำแหน่งเดียวกับปุ่มเพื่อนพอดี สองปุ่มจึงทับกันจนกดผิดตัวได้
   // จอพวกนี้เข้ามาจากทางอื่นอยู่แล้ว ปุ่มเพื่อนจึงหลบให้ปุ่มย้อนกลับไปก่อน
   document.body.classList.toggle('deep-scr', !TABBED_SCREENS.includes(id));
+  // ปุ่มเพื่อนลอยมุมขวาบนต้องหลบหน้า "วันนี้" — มันนั่งทับกระดิ่งกล่องเข้าพอดี
+  // และเพื่อนไม่ใช่คำตอบของ "ตอนนี้ควรทำอะไร" · ทางเข้ายังอยู่ครบสองที่ในแท็บ "ฉัน"
+  document.body.classList.toggle('home-scr', id === 'scr-menu');
   const tabId = TAB_OWNER[id] || id;
   document.querySelectorAll('.tab[data-scr]').forEach(b =>
     b.classList.toggle('active', b.dataset.scr === tabId));
@@ -1078,7 +1084,9 @@ function widgetHtml(now) {
 //
 // เหตุผลที่ถอด: สามตัวเลือกที่ดูเท่ากัน = ยังต้องตัดสินใจเองอยู่ดี ซึ่งเป็นสิ่งเดียวที่แอปนี้
 // รับปากว่าจะทำแทน · ลิสต์แบบเดิมยังอยู่ครบในแท็บ "ตาราง" → มุมมอง "รายการงาน"
-// (`wgTick` / `wgDueTone` / `wgDueText` ข้างล่างยังถูกใช้อยู่ — กล่อง LATER เรียกสองตัวหลัง)
+// (`wgTick` / `wgDueTone` / `wgDueText` ข้างล่างไม่มีใครเรียกแล้วตั้งแต่ 1A9 —
+//  กล่อง LATER ที่เคยเรียกสองตัวหลังถูกยุบเป็นบรรทัด "ยังเหลืออีก N งาน"
+//  ยังไม่ลบทิ้งเพราะเป็นตัวช่วยเล็ก ๆ ที่ลิสต์งานแบบอื่นหยิบไปใช้ได้ทันที)
 
 // วงกลมติ๊กเสร็จ — ทุกใบในลิสต์มี เพราะ "เห็นแล้วทำอะไรได้เลย" คือเหตุผลที่ลิสต์นี้มีอยู่
 // stopPropagation กันไม่ให้การกดติ๊กกลายเป็นการเปิดหน้าแก้ไขงานไปด้วย
@@ -1253,198 +1261,273 @@ function todayHead(sp, now) {
   const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนเย็น';
   const win = sp.plan.windows;
   const pend = pendingTasks();
-  // "ใกล้กำหนด" = ภายใน 48 ชม. · เป็นตัวเลขที่เปลี่ยนพฤติกรรมได้จริง ต่างจากยอดรวมเฉย ๆ
-  const soon = pend.filter(t => t.due && (new Date(t.due) - now) / 3.6e6 <= 48).length;
-  const hasPlan = sp.plan.slots.length > 0;
+  const name = who();
+  // กระดิ่งชี้ไปกล่องเข้า ไม่ใช่ศูนย์แจ้งเตือนใบใหม่ — ของที่ "เข้ามาเองระหว่างที่ไม่ได้เปิดแอป"
+  // มีที่เดียวคือกล่องเข้า · สร้างที่เก็บแจ้งเตือนอีกที่คือสร้างของค้างชุดที่สองให้ต้องเคลียร์
+  const wait = typeof inboxPending === 'function' ? inboxPending().length : 0;
+
+  // บรรทัดรองต้องเป็นตัวเลขที่เปลี่ยนพฤติกรรมได้ ไม่ใช่คำทักทายรอบสอง
+  // "เหลือเวลาว่างเท่าไหร่" คือข้อมูลที่ทำให้การ์ดข้างล่างมีความหมาย — 40 นาทีในสามชั่วโมง
+  // กับ 40 นาทีในห้าสิบนาที เป็นคนละสถานการณ์กันคนละเรื่อง
+  const sub = sp.now
+    ? `เหลือเวลาว่าง ${esc(humanMin(win.budgetMin))} · ${pend.length} งานค้าง`
+    : pend.length ? `${pend.length} รายการรออยู่ — ไม่มีงานที่ต้องเจียดเวลา`
+    : 'ไม่มีอะไรค้าง — วันนี้พักได้';
 
   return `<header class="td-head">
-    <div class="th-top">
-      <div>
-        <h1 class="th-greet">${greet}${who() ? ' ' + esc(who()) : ''}</h1>
-        <p class="th-sub">${hasPlan ? 'จัดแผนวันนี้ให้แล้ว — เริ่มจากงานข้างล่างได้เลย'
-          : 'ยังไม่มีอะไรต้องทำ'}</p>
-      </div>
-      <button class="th-me" onclick="go('scr-profile')" aria-label="หน้าของฉัน">${
-        who() ? esc(who().trim().charAt(0).toUpperCase()) : icon('user')}</button>
+    <button class="th-me" onclick="go('scr-profile')" aria-label="หน้าของฉัน">${
+      name ? esc(name.trim().charAt(0).toUpperCase()) : icon('user')}</button>
+    <div class="th-tx">
+      <h1 class="th-greet">${greet}${name ? ' ' + esc(name) : ''}</h1>
+      <p class="th-sub">${sub}</p>
     </div>
-    <p class="th-stats">
-      <b>${esc(humanMin(win.budgetMin))}</b> ว่างวันนี้<i class="msep"></i><b>${pend.length}</b> งานค้าง${
-        soon ? `<i class="msep"></i><b class="hot">${soon}</b> งานใกล้กำหนด` : ''}
-    </p>
+    <button class="th-bell" onclick="go('scr-inbox')"
+      aria-label="${wait ? 'กล่องเข้า — รอตรวจ ' + wait + ' รายการ' : 'กล่องเข้า'}">
+      ${icon('bell')}${wait ? '<span class="th-dot"></span>' : ''}
+    </button>
   </header>`;
 }
 
-// ---------- AI พูดเองก่อนถูกถาม ----------
-// ช่องนี้ห้ามเป็น "มีอะไรให้ช่วยไหม" เด็ดขาด — คำถามนั้นโยนงานคิดกลับให้ผู้ใช้อีกรอบ
-// มันขึ้นเฉพาะตอนที่มีอะไรจะบอกจริง ๆ และทุกบรรทัดมาจากตัวเลขที่คำนวณได้ ไม่ใช่ข้อความสำเร็จรูป
-// ไม่มีอะไรจะบอก = ไม่ต้องขึ้น · กล่องที่ขึ้นทุกวันคือกล่องที่ถูกมองข้ามทุกวัน
-function aiInsight(sp, now) {
-  const bits = [];
-
-  // แถบ "จัดแผนใหม่" เป็นการแจ้งให้ทราบ ไม่ใช่เรื่องหลักของจอ
-  // ของเดิมยาวสามบรรทัดพร้อมปุ่ม ซึ่งใหญ่พอ ๆ กับคำตอบที่มันมาแทรก — แย่งความสนใจจากงานที่ต้องทำ
-  // บรรทัดเดียวก็พอ รายละเอียดว่าพลาดช่วงไหนอยู่ในเส้นเวลาให้ไปดูได้อยู่แล้ว
-  if (sp.hasReplan) {
-    const m = sp.misses;
-    bits.push({
-      tone: 'note', ic: 'clock', compact: true,
-      text: `แผนเปลี่ยนแล้ว — คุณพลาดไป ${humanMin(m.lostMin)} ผมจัดเวลาที่เหลือใหม่ให้`,
-      cta: { label: 'รับทราบ', fn: `dismissReplan(${m.lostMin})` },
-    });
-  }
-
-  for (const w of sp.warnings) {
-    if (w.kind === 'missed') {
-      bits.push({ tone: 'red', ic: 'flame',
-        text: `${esc(w.tasks.map(t => taskTitleText(t)).join(' · '))} — เวลาว่างก่อนกำหนดส่งไม่พอแล้ว ทางที่เหลือคือยืมเวลาจากอย่างอื่นคืนนี้ หรือคุยกับครูตั้งแต่ตอนนี้` });
-    } else if (w.kind === 'stuck') {
-      bits.push({ tone: 'red', ic: 'flame',
-        text: `${esc(taskTitleText(w.tasks[0]))} พักไว้ได้ แต่เลื่อนข้ามวันไม่ได้ — พรุ่งนี้ไม่มีช่องว่างก่อนกำหนดส่งแล้ว`,
-        cta: { label: 'เอากลับขึ้นมาทำ', fn: `unpause('${w.tasks[0].id}')` } });
-    } else if (w.kind === 'overload') {
-      const d = w.day;
-      const when = d.dayOffset === 0 ? 'วันนี้' : d.dayOffset === 1 ? 'พรุ่งนี้' : THAI_DAY[d.date.getDay()] + 'นี้';
-      const advice = w.move
-        ? `ผมแนะนำให้ขยับ "${esc(taskTitleText(w.move))}"${w.to ? ' ไป' + (w.to.dayOffset === 1 ? 'พรุ่งนี้' : THAI_DAY[w.to.date.getDay()]) : ''} — ยังทันกำหนดส่ง`
-        : w.start ? `เลื่อนอะไรไม่ได้แล้ว เริ่ม "${esc(taskTitleText(w.start))}" ตั้งแต่คืนนี้จะได้ไม่ไปกองวันสุดท้าย` : '';
-      bits.push({ tone: 'amber', ic: 'clock',
-        text: `งานที่ต้องส่งภายใน${when}รวม ${humanMin(d.needMin)} แต่เวลาว่างถึงตอนนั้นมี ${humanMin(d.capAcc)} — ขาด ${humanMin(d.overMin)} · ${advice}` });
-    }
-  }
-
-  // ไม่มีข่าวร้าย แต่แผนแน่นพอดี — บอกว่ากันเวลาเผื่อไว้แล้วเท่าไหร่ ก็ยังเป็นข้อมูลที่ใช้ตัดสินใจได้
-  if (!bits.length && sp.plan.slots.length && sp.plan.bufferMin >= 10) {
-    bits.push({ tone: 'blue', ic: 'sparkles',
-      text: `จัดงานลงเวลาว่างครบแล้ว ${humanMin(sp.plan.usedMin)} และกันไว้เผื่อเรื่องไม่คาดคิดอีก ${sp.plan.bufferMin} นาที` });
-  }
-  if (!bits.length) return '';
-
-  // ไม่มีปุ่ม "ถามน้องไซ" ตรงนี้แล้ว
-  //
-  // ปุ่มชวนแชทบนหน้าแรกคือการโฆษณาว่า "แอปนี้มี AI นะ" ซึ่งไม่ได้ช่วยใครตัดสินใจอะไร
-  // AI พิสูจน์ตัวเองด้วยประโยคในกล่องนี้ — ที่บอกได้ว่าพลาดไปกี่นาที วันไหนงานล้น
-  // และขยับอะไรให้แล้วบ้าง · ถ้าประโยคพวกนี้มีค่า ผู้ใช้จะไปหาช่องแชทเองที่แท็บ "ฉัน"
-  return `<section class="td-ai">
-    ${bits.slice(0, 2).map(b => `<div class="ta-row ${b.tone}${b.compact ? ' compact' : ''}">
-      <span class="ta-ic">${icon(b.ic)}</span>
-      <p>${b.text}</p>
-      ${b.cta ? `<button class="ta-cta" onclick="${b.cta.fn}">${esc(b.cta.label)}</button>` : ''}
-    </div>`).join('')}
-  </section>`;
-}
+// ---------- กล่องข้อสังเกตของ AI — ถอดออกแล้วใน 1A9 ----------
+// เคยอยู่เหนือการ์ดโฟกัส คอยพูดเรื่องงานล้น · พลาดส่ง · จัดแผนใหม่ · งานที่พักไว้แต่เลื่อนไม่ได้
+//
+// ปัญหาไม่ใช่ว่ามันพูดผิด — ทุกบรรทัดมาจากตัวเลขจริง · ปัญหาคือ **ตำแหน่ง**
+// มันเป็นย่อหน้าสี่บรรทัดที่ยืนขวางระหว่างคำทักทายกับคำตอบ ผู้ใช้ต้องอ่านคำอธิบายจนจบ
+// ก่อนถึงสิ่งที่เปิดแอปมาหา ทั้งที่ประโยคยาวที่สุดในกล่อง ("ขาด 40 นาที · เลื่อนอะไรไม่ได้แล้ว
+// เริ่ม X ตั้งแต่คืนนี้จะได้ไม่ไปกองวันสุดท้าย") จบลงด้วยการบอกให้ทำงานที่การ์ดข้างล่างชี้อยู่แล้ว
+//
+// สัญญาว่า "เปิดแอป → รู้ว่าต้องทำอะไร → ลงมือ ภายใน 3 วินาที" กับย่อหน้าที่ต้องอ่านก่อน
+// อยู่ด้วยกันไม่ได้ · กล่องนี้จึงหายไปทั้งก้อน ไม่ได้ย้ายไปไหน
+//
+// ของที่หายไปกับมัน — ถ้าจะเอากลับ ต้องหาที่อยู่ใหม่ที่ไม่ขวางคำตอบ:
+//   • คำเตือน missed (เวลาว่างก่อนกำหนดส่งไม่พอแล้ว) — อันเดียวที่เป็นข่าวร้ายจริง
+//   • คำเตือน stuck + ปุ่ม unpause() — ทางกลับของงานที่กด "ยังไม่ไหว" แล้วเลื่อนไม่ได้
+//   • คำเตือน overload (วันไหนงานล้น) — ซ้ำกับมุมมอง 7 วันในแท็บ "งาน"
+//   • แถบ "จัดแผนใหม่ให้แล้ว" + dismissReplan()
+// สามอย่างแรกยังมีฟังก์ชันรออยู่ในไฟล์นี้ ตัวคำนวณอยู่ใน planner.js (studyPlan().warnings) ครบ
 
 // ---------- NOW ----------
 // ของชิ้นเดียวบนจอที่มีสิทธิ์ใหญ่ · ถ้ามีอย่างอื่นใหญ่เท่านี้ แปลว่ายังไม่ได้ตัดสินใจแทนผู้ใช้
+//
+// 1A9 ยกมันขึ้นเป็นการ์ดพื้นสีอ่อนใบเดียวในจอ (ที่เหลือเป็นแถวไม่มีพื้น) เพราะ "ตัวใหญ่กว่า"
+// อย่างเดียวยังแพ้การกวาดตาเร็ว ๆ — พื้นที่ต่างจากพื้นจอ คือสิ่งที่สายตาจับได้ก่อนขนาดตัวอักษร
 function nowCard(sp, now) {
   const n = sp.now;
   if (!n) return '';
   const t = n.task, info = n.info;
-  const tone = priorityTone(info.stars);
   const slot = n.slot;
   const run = runningWork();
   const running = run && run.taskId === t.id;
   const prog = Math.max(0, Math.min(100, t.progress || 0));
   const subj = t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '';
 
-  // ข้อเท็จจริงสามอย่างบนบรรทัดเดียว — ตอบ "นานแค่ไหน" กับ "คุ้มไหม" โดยไม่ต้องมีหัวข้อกำกับ
-  const facts = [fmtDue(t.due, now, t)];
-  if (t.scorePct != null) facts.push('คะแนน ' + t.scorePct + '%');
-  if (TASK_TYPES[taskType(t)].schedulable) {
-    facts.push(slot && slot.partial ? slot.min + ' จาก ' + (t.estMin || 30) + ' นาที'
-      : (slot ? slot.min : (t.estMin || 30)) + ' นาที');
-  }
-
-  // เหตุผลข้อเดียวที่ "เปลี่ยนการตัดสินใจ" ขึ้นเป็นป้ายบนสุด ที่เหลือเป็นข้อเท็จจริงในบรรทัดข้างล่าง
-  // สามบูลเล็ตใต้หัวข้อ "ทำไมตอนนี้?" อ่านเหมือนแบบฟอร์ม — ประโยคเดียวที่ตรงจุดหนักแน่นกว่า
-  //
   // งานที่ยังไม่มีกำหนดส่งต้องไม่ถูกแต่งให้ดูด่วน — เราไม่รู้ว่ามันด่วนไหม และการเดาแทน
   // คือการสร้างข้อมูลขึ้นมาเอง · พูดตรง ๆ ว่าไม่รู้ แล้วขอข้อมูลที่ขาดไป มีประโยชน์กว่า
   const noDue = !t.due;
-  const why = noDue ? 'ยังไม่รู้กำหนดส่ง — เลือกให้จากงานที่เหลือค้างนานที่สุด' : topReason(info);
+  const tone = noDue ? 'green' : priorityTone(info.stars);
 
-  return `<section class="td-now ${noDue ? 'green' : tone}${running ? ' running' : ''}">
-    <div class="tn-flag ${noDue ? 'green' : tone}">
-      <span class="tn-dot"></span>${esc(why)}
+  // ---- แถวบน: ไอคอนซ้าย · คำตัดสินขวา ----
+  // เดิมไอคอนเป้าเป็นก้อน 40px ยืนเดี่ยวอยู่มุมซ้ายบน = ของที่หนักที่สุดในตำแหน่งที่ตาแวะก่อน
+  // แต่ไม่ได้บอกอะไรเลย · จับมันมานั่งแถวเดียวกับป้ายคำตัดสิน แถวบนเลยกลายเป็นข้อมูลทั้งแถว
+  // และมุมขวาที่เคยว่างเปล่าได้ทำงาน
+  const pillIc = tone === 'red' ? 'flame' : tone === 'yellow' ? 'clock' : '';
+  const pillTx = noDue ? 'ยังไม่รู้กำหนด' : priorityLabel(info.stars);
+
+  // ---- บรรทัดเดียวใต้ชื่องาน: ทำไมใบนี้ + คะแนนเก็บ ----
+  // เดิมเป็นสองบรรทัด (เหตุผล แล้วก็รายการข้อเท็จจริง) ซึ่งพูดคำว่า "เลยกำหนด" ซ้ำกันเอง
+  // เพราะ topReason() กับ fmtDue() ต่างคนต่างรายงานเรื่องเส้นตายอันเดียวกัน
+  // ตอนนี้เส้นตายถูกพูดที่นี่ที่เดียว และพูดเป็นระยะเวลาเมื่อเลยมาแล้ว ("เลยกำหนดมา 4 วัน")
+  // เพราะวันที่ในวงเล็บบังคับให้ผู้ใช้คำนวณเองว่ามันคือกี่วันที่แล้ว
+  const late = t.due && new Date(t.due) < now;
+  const why = noDue ? 'ยังไม่รู้กำหนดส่ง — เลือกให้จากงานที่ค้างนานที่สุด'
+    : late ? 'เลยกำหนดมา ' + overdueFor(now - new Date(t.due))
+    : topReason(info);
+  const whyBits = [why];
+  // เหตุผลอันดับหนึ่งของงานที่ยังไม่ด่วนมักเป็น "คะแนน 30%" อยู่แล้ว — ต่อท้ายอีกรอบ
+  // ได้บรรทัดว่า "คะแนน 30% · คะแนน 30%" · เช็คก่อนต่อ ไม่ใช่ต่อแล้วค่อยหวังว่าจะไม่ชน
+  if (t.scorePct != null && !why.includes('คะแนน')) whyBits.push('คะแนน ' + t.scorePct + '%');
+
+  // ---- สองช่องข้อมูล: เริ่มเมื่อไหร่ · ใช้เวลาเท่าไหร่ ----
+  // สองคำถามที่เหลืออยู่หลังรู้แล้วว่าจะทำอะไร · ตอบด้วยตัวเลขล้วน ไม่มีประโยค
+  const goalMin = t.estMin || 30;
+  const startTx = slot ? fmtClock(slot.start) : 'ยังไม่มีคิว';
+
+  // ---- วงแหวนความคืบหน้า ----
+  // ขึ้นเฉพาะตอนมีความคืบหน้าจริง · งานที่ยังไม่เริ่มไม่ควรได้วงแหวน 0% เพราะวงกลมเปล่า
+  // กินที่เท่ากับวงกลมที่มีข้อมูล แล้วบอกสิ่งที่ปุ่ม "เริ่มทำเลย" ข้างบนบอกไปแล้ว
+  const CIRC = 113.1; // 2πr เมื่อ r = 18 ในกรอบ 44×44
+  const hasProg = prog > 0 && prog < 100;
+  const ring = !hasProg ? '' : `<div class="tn-prog">
+      <span class="tp-ring">
+        <svg viewBox="0 0 44 44" aria-hidden="true">
+          <circle class="tr-bg" cx="22" cy="22" r="18"></circle>
+          <circle class="tr-fg" cx="22" cy="22" r="18"
+            stroke-dasharray="${CIRC}" stroke-dashoffset="${(CIRC * (1 - prog / 100)).toFixed(1)}"></circle>
+        </svg><b>${prog}%</b>
+      </span>
+      <span class="tp-tx"><i>ความคืบหน้า</i><b>${Math.round(goalMin * prog / 100)} / ${goalMin} นาที</b></span>
+    </div>`;
+
+  return `<section class="td-now ${tone}${running ? ' running' : ''}">
+    <div class="tn-top">
+      <span class="tn-mark">${icon('target')}</span>
+      <span class="tn-pill ${tone}">${pillIc ? icon(pillIc) : ''}${esc(pillTx)}</span>
     </div>
 
-    ${subj ? `<div class="tn-subj">${esc(subj)}</div>` : ''}
+    <div class="tn-eyebrow">โฟกัสวันนี้${subj ? ' · ' + esc(subj) : ''}</div>
     <h2 class="tn-title">${esc(t.detail || 'งานนี้')}</h2>
-    <div class="tn-facts">${facts.map(esc).join(' · ')}</div>
+    <div class="tn-why ${tone}">${esc(whyBits.join(' · '))}</div>
 
-    ${prog > 0 && prog < 100 ? `<div class="tn-prog"><span style="width:${prog}%"></span></div>` : ''}
+    <div class="tn-stats">
+      <div class="tn-stat">
+        <span class="ts-ic">${icon('clock')}</span>
+        <span class="ts-tx"><i>เวลาเริ่ม</i><b>${esc(startTx)}</b></span>
+      </div>
+      <div class="tn-stat">
+        <span class="ts-ic">${icon('target')}</span>
+        <span class="ts-tx"><i>เป้าหมาย</i><b>${goalMin} นาที</b></span>
+      </div>
+    </div>
 
     <button class="tn-cta" onclick="startFocus('${t.id}')">
       <span class="tc-main">${icon(running ? 'clock' : 'play')}${
         running ? 'กลับเข้าโหมดโฟกัส' : (n.step ? 'เริ่ม ' + n.step.min + ' นาทีแรก' : 'เริ่มทำเลย')}</span>
       ${n.step && !running ? `<span class="tc-sub">${esc(n.step.title)}</span>` : ''}
     </button>
-    <div class="tn-alt">
-      <button onclick="toggleDone('${t.id}',this)">${icon('check')}เสร็จแล้ว</button>
-      <button onclick="notNow('${t.id}')">ยังไม่ไหว</button>
+
+    <div class="tn-foot${hasProg ? '' : ' noprog'}">
+      ${ring}
+      <div class="tn-acts">
+        <button class="ta-done" onclick="toggleDone('${t.id}',this)">${icon('check')}เสร็จแล้ว</button>
+        <button onclick="notNow('${t.id}')">ยังไม่ไหว</button>
+      </div>
     </div>
+
     ${noDue ? `<button class="tn-ask" onclick="openForm('${t.id}')">
       ${icon('calendar')}ครูสั่งส่งวันไหน? บอกแล้วผมจัดแผนได้แม่นขึ้น${icon('chevron')}
     </button>` : ''}
   </section>`;
 }
 
-// ---------- NEXT / LATER ----------
-// ทั้งสองบล็อกนี้ตอบคำถามเดียว: "แล้วอะไรต่อ" — ต่างกันแค่ความเร่ง จึงต้องหน้าตาต่างกันตามนั้น
-// เดิม NEXT เป็นแถบเดี่ยวที่พูดซ้ำกับแถวที่สองของแผนพอดี ตอนนี้แผนติดป้าย "ถัดไป" ให้แทน
-function upNext(sp, now) {
-  const later = sp.later.slice(0, 2).map(t => ({ t }));
-  if (!sp.next && !later.length) return '';
+// ---------- แยกของที่เหลือออกเป็นสองกอง ----------
+// "กิจกรรม" กับ "อื่น ๆ" ไม่ต้องเจียดเวลาให้ (schedulable: false) มันจึงไม่เคยได้ช่องในแผน
+// แล้วตกลงมากอง later ทุกใบ ปนกับงานที่แค่ยังไม่ถึงคิววันนี้ — ซึ่งเป็นคนละเรื่องกันสิ้นเชิง
+//
+//   งานที่ยังไม่ถึงคิว   = "ไว้ค่อยทำ" · ตัดสินใจได้ว่าจะทำวันไหน
+//   กิจกรรม/เตือนความจำ = "ถึงเวลาแล้วต้องไป" · ตัดสินใจอะไรไม่ได้ ต้องจำอย่างเดียว
+//
+// ของที่จำอย่างเดียวไม่ควรอยู่ลิสต์เดียวกับของที่ต้องตัดสินใจ — มันทำให้ลิสต์ยาวขึ้น
+// โดยไม่ได้เพิ่มทางเลือกให้เลย · จึงแยกออกเป็นกอง "เตือนความจำ" ของตัวเอง
+const REMIND_WINDOW_H = 48;
 
-  // ทั้งสองกลุ่มเป็น "แถว" ไม่ใช่ "การ์ด" — ไม่มีพื้น ไม่มีกรอบ มีแค่เส้นสีวิชากับสองบรรทัด
-  // การ์ดคือของที่บอกว่า "ตัดสินใจกับฉันสิ" ซึ่งจอนี้อนุญาตให้มีได้ใบเดียวคือ NOW
-  const meta = (t, min) => esc([t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '',
-    min + ' นาที', fmtDue(t.due, now, t)].filter(Boolean).join(' · '));
+function isRemindKind(t) { return !TASK_TYPES[taskType(t)].schedulable; }
+
+function homeSplit(sp, now) {
+  const rem = [], rest = [];
+  // การ์ดโฟกัสไม่ได้อยู่ในแผนเสมอไป — ตอนไม่มีช่องว่างเหลือ ตัวจัดแผนเลือกจากคะแนนล้วน
+  // แล้วงานใบนั้นยังค้างอยู่ใน later ด้วย · ปล่อยไว้คือใบเดียวกันโผล่สองที่บนจอเดียว
+  const shown = sp.now ? sp.now.task : null;
+  for (const t of sp.later) {
+    if (t === shown) continue;
+    // เลยกำหนดแล้วก็เข้าเงื่อนไข (ผลลบย่อมน้อยกว่า 48) ซึ่งถูก — กิจกรรมที่เลยเวลาแล้ว
+    // ต้องขึ้นให้เห็นมากกว่าอันที่ยังไม่ถึง ไม่ใช่หายไปเงียบ ๆ
+    const near = t.due && (new Date(t.due) - now) / 3.6e6 <= REMIND_WINDOW_H;
+    if (isRemindKind(t) && near) rem.push(t); else rest.push(t);
+  }
+  rem.sort((a, b) => new Date(a.due) - new Date(b.due));
+  // เกินสามใบล้นกลับไปกอง "ที่เหลือ" — สามคือจำนวนที่กวาดตาจบโดยไม่ต้องอ่านทีละบรรทัด
+  return { reminders: rem.slice(0, 3), rest: rest.concat(rem.slice(3)) };
+}
+
+// ---------- NEXT ----------
+// ตอบคำถามเดียว: "แล้วอะไรต่อ" — ใบเดียวพอ
+//
+// ของเดิมมีกอง "ไว้ทีหลัง" อีกสองแถวต่อท้าย ซึ่งเป็นการเอางานอันดับ 3 กับ 4 มาวางไว้ใต้จมูก
+// ทั้งที่จอนี้เพิ่งบอกไปสองบรรทัดข้างบนว่าให้ทำอันดับ 1 · รายการเต็มอยู่ในแท็บ "งาน" อยู่แล้ว
+// บรรทัดเดียวว่า "ยังเหลืออีก N งาน" ให้ข้อมูลเท่ากันในหนึ่งในสิบของพื้นที่
+//
+// เคยต่อท้ายว่า "— ยังไม่ถึงคิววันนี้" ซึ่งเป็นคำอธิบายที่ไม่มีใครต้องการ:
+// จอนี้ทั้งจอพูดเรื่องคิวของวันนี้อยู่แล้ว ของที่ไม่ได้อยู่ในนั้นก็คือของที่ไม่ได้อยู่ในนั้น
+function upNext(sp, split, now) {
+  const rest = split.rest.length;
+  if (!sp.next && !rest) return '';
+  if (!sp.next) {
+    return `<button class="tu-more solo" onclick="go('scr-tasks')">
+      ยังเหลืออีก ${rest} งาน${icon('chevron')}</button>`;
+  }
+
+  const t = sp.next.task, slot = sp.next.slot;
+  const end = new Date(slot.start.getTime() + slot.min * 60000);
+  const meta = [t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '',
+    slot.min + ' นาที'].filter(Boolean).join(' · ');
 
   return `<section class="td-up">
-    ${sp.next ? `<div class="tu-lb">ถัดไป</div>
-      <button class="tu-row ${subjClass(sp.next.task.subject)}" onclick="startFocus('${sp.next.task.id}')">
-        <span class="tu-bar"></span>
-        <span class="tu-tx">
-          <b>${esc(sp.next.task.detail || sp.next.task.subject)}</b>
-          <span>${meta(sp.next.task, sp.next.slot.min)}</span>
-        </span>
-        <span class="tu-go">${icon('play')}</span>
-      </button>` : ''}
-
-    ${later.length ? `<div class="tu-lb">ไว้ทีหลัง</div>
-      ${later.map(r => `<button class="tu-row ${subjClass(r.t.subject)}" onclick="openForm('${r.t.id}')">
-        <span class="tu-bar"></span>
-        <span class="tu-tx">
-          <b>${esc(r.t.detail || r.t.subject)}</b>
-          <span>${meta(r.t, r.t.estMin || 30)}</span>
-        </span>
-        <span class="tu-go quiet">${icon('chevron')}</span>
-      </button>`).join('')}` : ''}
-
-    ${sp.later.length > 2 ? `<button class="tu-more" onclick="go('scr-tasks')">
-      ดูงานที่เหลืออีก ${sp.later.length - 2} งาน${icon('chevron')}</button>` : ''}
+    <div class="tu-lb">ถัดไป</div>
+    <button class="tu-row ${subjClass(t.subject)}" onclick="startFocus('${t.id}')">
+      <span class="tu-ic">${icon('calendar')}</span>
+      <span class="tu-tx">
+        <span class="tu-when">${fmtClock(slot.start)} – ${fmtClock(end)}</span>
+        <b>${esc(t.detail || t.subject || 'งานถัดไป')}</b>
+        <span class="tu-meta">${esc(meta)}</span>
+      </span>
+      <span class="tu-go">${icon('chevron')}</span>
+    </button>
+    ${rest ? `<button class="tu-more" onclick="go('scr-tasks')">
+      ยังเหลืออีก ${rest} งาน${icon('chevron')}</button>` : ''}
   </section>`;
 }
 
-// ---------- แผนวันนี้ (ของประกอบ ไม่ใช่คำตอบ) ----------
-// รางเวลาไม่มีกรอบการ์ด — ใช้ระยะห่างแทนเส้น เพื่อให้มันอ่านเป็น "ข้อมูลประกอบ" ไม่ใช่ "อีกคำตอบหนึ่ง"
-// แผนของ "เวลาที่เหลือ" ไม่ใช่ของทั้งวัน
+// ---------- เตือนความจำ ----------
+// สองบรรทัดต่อใบ ไม่มีปุ่มลงมือ เพราะไม่มีอะไรให้ลงมือ — มันคือของที่ต้องไปให้ทันเวลาเท่านั้น
+// สีมาจากเวลาอย่างเดียว (เลยแล้ว / ภายใน 12 ชม. / ที่เหลือ) ไม่ใช่จากคะแนนความสำคัญ
+// ความสำคัญเป็นเรื่องของการจัดคิว และของพวกนี้ไม่ได้เข้าคิว
+function remindersBlock(list, now) {
+  if (!list.length) return '';
+  return `<section class="td-rem">
+    <div class="tu-lb">เตือนความจำ</div>
+    ${list.map(t => {
+      const due = new Date(t.due);
+      const late = due < now;
+      const soon = !late && (due - now) <= 12 * 3.6e6;
+      const tone = late ? 'late' : soon ? 'soon' : '';
+      return `<button class="tm-row" onclick="openForm('${t.id}')">
+        <span class="tm-ic ${tone}">${icon(taskType(t) === 'activity' ? 'flag' : 'pin')}</span>
+        <span class="tm-tx">
+          <b>${esc(t.detail || t.subject || typeInfo(t).name)}</b>
+          <span class="${tone}">${esc(late ? 'เลยกำหนดมา ' + overdueFor(now - due)
+            : fmtDue(t.due, now, t))}</span>
+        </span>
+        <span class="tm-go">${icon('chevron')}</span>
+      </button>`;
+    }).join('')}
+  </section>`;
+}
+
+// ---------- แผนวันนี้ (ของประกอบ ไม่ใช่คำตอบ — จึงพับไว้) ----------
+// รางเวลาเคยกางอยู่ตลอด แล้วดันหน้าแรกยาวเกินหนึ่งจอทันทีที่มีสามงานขึ้นไป
+// ซึ่งแลกไม่คุ้ม: สองบรรทัดแรกของรางพูดเรื่องเดียวกับการ์ด NOW กับแถว "ถัดไป" ที่อ่านไปแล้ว
+// สิ่งที่รางมีของตัวเองจริง ๆ คือ "รูปร่างของทั้งเย็น" ซึ่งเป็นของที่คนอยากดูตอนวางแผน
+// ไม่ใช่ตอนเปิดแอปมาถามว่าทำอะไรก่อน — หัวข้อที่กดกางจึงตรงกับจังหวะที่คนอยากได้มันจริง ๆ
 //
-// งานใบเดียวกันโผล่ทั้งบนการ์ด NOW และในราง — ซึ่งถูกต้อง เพราะมันคือแผนเดียวกัน
-// แต่ถ้าไม่มีอะไรบอก มันจะอ่านเหมือนมีงานสองใบชื่อเหมือนกัน
-// ป้าย "ตอนนี้" กับ "ถัดไป" จึงเป็นตัวเย็บให้สามส่วนบนจอกลับมาเป็นเรื่องเดียว:
-//   การ์ดใหญ่ = งานที่ป้าย "ตอนนี้" ชี้อยู่ · บรรทัดถัดไป = งานที่ป้าย "ถัดไป" ชี้อยู่
+// สถานะกาง/พับอยู่ในตัวแปรธรรมดา ไม่ได้เขียนลง localStorage โดยตั้งใจ:
+// มันเป็นความสนใจของ "รอบนี้" ไม่ใช่การตั้งค่า · เปิดแอปใหม่ควรกลับมาที่คำตอบสั้นที่สุดเสมอ
+let planOpen = false;
+
+function togglePlan() {
+  planOpen = !planOpen;
+  haptic('tap');
+  renderMenu();
+}
+
 function planStrip(sp, now) {
   const p = sp.plan;
   if (!p.slots.length) return '';
   const nowTask = sp.now && sp.now.task;
   const nextTask = sp.next && sp.next.task;
   let markedNow = false, markedNext = false;
+  const work = p.slots.filter(s => !s.break).length;
 
-  return `<section class="td-plan">
-    <div class="tp-lb">เวลาที่เหลือวันนี้<span>${humanMin(p.usedMin)}${
-      p.bufferMin ? ' · เผื่อไว้ ' + p.bufferMin + ' นาที' : ''}</span></div>
-    <div class="tp-rail">
+  const rail = !planOpen ? '' : `<div class="tp-rail">
       ${p.slots.map(s => {
         if (s.break) return `<div class="tp-row brk"><span class="mono">${fmtClock(s.start)}</span>
           <span class="tp-tx">พัก ${s.min} นาที</span></div>`;
@@ -1464,22 +1547,64 @@ function planStrip(sp, now) {
         </div>`;
       }).join('')}
     </div>
-    <button class="tp-all" onclick="go('scr-timeline')">ดูตารางทั้งวัน${icon('chevron')}</button>
+    <button class="tp-all" onclick="go('scr-timeline')">ดูตารางทั้งวัน${icon('chevron')}</button>`;
+
+  return `<section class="td-plan${planOpen ? ' open' : ''}">
+    <button class="tp-fold" onclick="togglePlan()" aria-expanded="${planOpen}">
+      <span class="tp-fic">${icon('calendar')}</span>
+      <span class="tp-ftx"><b>แผนวันนี้</b><span>${work} ช่วง · ${esc(humanMin(p.usedMin))}${
+        p.bufferMin ? ' · เผื่อไว้ ' + p.bufferMin + ' นาที' : ''}</span></span>
+      <span class="tp-fgo">${icon('chevron')}</span>
+    </button>
+    ${rail}
   </section>`;
+}
+
+// ---------- ช่องถามน้องไซ ----------
+// อยู่ท้ายเนื้อหา ไม่ใช่บนหัวจอ — ตำแหน่งนี้คือคำสารภาพว่าจอข้างบนตอบไม่ครบทุกกรณี
+// คนที่อ่านลงมาถึงตรงนี้แล้วยังไม่ได้คำตอบ คือคนที่มีคำถามจริงที่แผนตอบให้ไม่ได้
+// ("พรุ่งนี้สอบฟิสิกส์ ช่วยจัดเวลาให้หน่อย") ส่วนคนที่ได้คำตอบแล้วกดปุ่มเริ่มไปตั้งแต่ครึ่งจอบน
+//
+// ช่องนี้ไม่ใช่แชทซ้อน — พิมพ์แล้วส่งจะพาไปที่จอน้องไซพร้อมคำถามนั้น
+// ให้บทสนทนามีที่อยู่ที่เดียว ไม่ใช่สองที่ที่จำคนละเรื่อง
+function askBar() {
+  return `<section class="td-ask">
+    <span class="tk-ic">${icon('sparkles')}</span>
+    <input id="hmAsk" class="tk-in" type="text" maxlength="500" enterkeyhint="send"
+      placeholder="ถามน้องไซ…"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();homeAsk();}">
+    <button class="tk-go" onclick="homeAsk()" aria-label="ส่งคำถาม">${icon('chevron')}</button>
+  </section>`;
+}
+
+function homeAsk() {
+  const box = document.getElementById('hmAsk');
+  const q = (box ? box.value : '').trim();
+  // ล้างช่องก่อนเปลี่ยนจอ — go() เรียก renderAll() ซึ่งวาดหน้าแรกใหม่ทั้งก้อน
+  // ถ้าไม่ล้าง ตัวคืนค่าใน renderMenu จะเอาคำถามที่ส่งไปแล้วกลับมาแปะไว้ในช่องอีกรอบ
+  if (box) box.value = '';
+  go('scr-ai');
+  if (q) { aiAsk(q); return; }
+  const t = document.getElementById('aiInput');
+  if (t) t.focus();
 }
 
 // ---------- ยังไม่มีงาน ----------
 // จอว่างมีสองแบบ และต้องพูดคนละอย่าง
 //   เคลียร์หมดแล้ว = ข่าวดี ต้องฉลองสั้น ๆ แล้วปล่อยเขาไป
 //   ยังไม่เคยมีงาน  = ยังไม่รู้ว่าแอปนี้ทำอะไรได้ ต้องชี้ทางแรกให้ชัด (ถ่ายรูปคือทางที่เร็วที่สุด)
-function todayEmpty(now) {
+// hasRem = ยังมีกิจกรรม/เตือนความจำรออยู่ข้างล่าง — ถ้าไม่บอกให้ตรง จอจะเขียนว่า
+// "ไม่มีงานค้าง" แล้วมีลิสต์ของที่ค้างอยู่ต่อท้ายทันที ซึ่งอ่านออกมาว่าแอปนับของตัวเองไม่ถูก
+function todayEmpty(now, hasRem) {
   const doneToday = liveTasks().filter(t => t.done && t.doneAt &&
     new Date(t.doneAt).toDateString() === now.toDateString()).length;
   const everHad = liveTasks().length > 0;
   return `<section class="td-clear">
     <span class="tc-ic">${icon('check-circle')}</span>
-    <b>${doneToday ? 'เคลียร์หมดแล้ววันนี้' : everHad ? 'ไม่มีงานค้าง' : 'วันนี้ยังไม่มีงาน'}</b>
+    <b>${doneToday ? 'เคลียร์หมดแล้ววันนี้'
+      : hasRem ? 'ไม่มีงานที่ต้องนั่งทำ' : everHad ? 'ไม่มีงานค้าง' : 'วันนี้ยังไม่มีงาน'}</b>
     <p>${doneToday ? 'ทำเสร็จไป ' + doneToday + ' งาน — วันนี้พักได้เต็มที่'
+      : hasRem ? 'เหลือแต่ของที่ถึงเวลาแล้วต้องไป — อยู่ข้างล่างนี้'
       : everHad ? 'ครูสั่งอะไรมาใหม่ก็โยนเข้ามาได้เลย'
       : 'ถ่ายรูปใบงานที่ครูสั่ง แล้วจะได้แผนแรกภายในไม่กี่วินาที'}</p>
     <button class="tc-cta" onclick="openAddSheet()">${icon('camera')}${
@@ -1521,25 +1646,59 @@ function minuteTick() {
   // แผ่นเพิ่มงานเปิดค้างอยู่ = ผู้ใช้กำลังจะกดอะไรสักอย่าง อย่าเพิ่งขยับพื้นหลัง
   const sheet = document.getElementById('addSheet');
   if (sheet && !sheet.hidden) return;
+  // กำลังพิมพ์คำถามค้างอยู่ — renderMenu คืนค่าในช่องให้ก็จริง แต่การ focus() ใหม่บนมือถือ
+  // ทำให้คีย์บอร์ดยุบแล้วเด้งขึ้นใหม่ · หน้าจอที่กระตุกเองตอนพิมพ์แย่กว่านาฬิกาช้าไปหนึ่งนาที
+  const ask = document.getElementById('hmAsk');
+  if (ask && document.activeElement === ask) return;
   // วาดใหม่เฉพาะจอที่พูดเรื่องเวลา — จออื่นวาดใหม่ก็เปลืองเปล่า
   if (!['scr-menu', 'scr-plan', 'scr-timeline'].includes(curScreen)) return;
   _planCache = null;
   renderMenu(); renderPlan(); renderTimeline();
 }
 
+// ลำดับบนจอเป็นเส้นเดียวจากบนลงล่าง ไม่มีทางแยก:
+//   ทักทาย + เวลาที่มีจริง → โฟกัสหนึ่งใบ + ทำไมใบนี้ → ถัดไปคืออะไร
+//   → เตือนความจำ → แผนทั้งวัน (พับ) → ถามน้องไซ
 function renderMenu() {
   const body = document.getElementById('menuBody');
   if (!body) return;
   const now = new Date();
-  const sp = todayPlan(now);
+  const raw = todayPlan(now);
+
+  // การ์ดโฟกัสต้องเป็นงานที่ "ลงมือทำ" ได้จริง
+  //
+  // ตอนไม่มีช่องว่างเหลือในวันนี้ studyPlan เลือก now จากคะแนนล้วน ซึ่งหยิบกิจกรรมอย่าง
+  // "ประชุมชมรม" ขึ้นมาเป็นการ์ดใบใหญ่พร้อมปุ่ม "เริ่มทำเลย" ได้ — ปุ่มที่กดแล้วเข้าโหมด
+  // จับเวลาการประชุมของคนอื่น · ของพวกนี้ตัดสินใจอะไรไม่ได้ มันมีที่ของตัวเองคือกอง
+  // "เตือนความจำ" ข้างล่าง · คัดออกที่นี่ ไม่ไปแก้ planner เพราะจออื่นใช้ก้อนเดียวกันอยู่
+  // (สำเนาตื้น ๆ ไม่แตะ _planCache ที่จออื่นถืออยู่)
+  const sp = raw.now && isRemindKind(raw.now.task) ? Object.assign({}, raw, { now: null }) : raw;
+  const split = homeSplit(sp, now);
+
+  // สิ่งที่พิมพ์ค้างไว้ในช่องถามน้องไซต้องรอดจากการวาดใหม่
+  // renderMenu ถูกเรียกทุกนาที (minuteTick) และทุกครั้งที่ข้อมูลเปลี่ยน (ติ๊กเสร็จ · ซิงก์ cloud)
+  // ถ้าไม่คืนค่ากลับ ประโยคที่พิมพ์ค้างจะหายไปกลางคันโดยที่ผู้ใช้ไม่ได้แตะอะไรเลย
+  const askBox = document.getElementById('hmAsk');
+  const askKeep = askBox ? askBox.value : '';
+  const askFocus = !!askBox && document.activeElement === askBox;
 
   // มีงานแต่ไม่มีเวลา ≠ ไม่มีงาน — สองอย่างนี้ต้องพูดคนละแบบ
   const outOfTime = sp.now && !sp.plan.slots.length;
   body.innerHTML = todayHead(sp, now)
-    + (sp.now ? aiInsight(sp, now) + nowCard(sp, now) + upNext(sp, now)
+    + (sp.now ? nowCard(sp, now) + upNext(sp, split, now)
+                + remindersBlock(split.reminders, now)
                 + (outOfTime ? noTimeLeft(sp, now) : planStrip(sp, now))
-              : todayEmpty(now))
+              : todayEmpty(now, split.reminders.length > 0) + remindersBlock(split.reminders, now))
+    + askBar()
     + ctxNudge(sp.plan.windows);
+
+  if (askKeep || askFocus) {
+    const b2 = document.getElementById('hmAsk');
+    if (b2) {
+      b2.value = askKeep;
+      if (askFocus) { b2.focus(); b2.setSelectionRange(askKeep.length, askKeep.length); }
+    }
+  }
 
   // จำแผนที่เพิ่งแสดงไป เพื่อให้รอบหน้ารู้ว่าผู้ใช้พลาดช่วงไหน
   // ต้องบันทึกหลังวาด ไม่ใช่ก่อน — ไม่งั้นแผนที่ยังไม่มีใครเห็นจะถูกนับว่า "เคยบอกไปแล้ว"
@@ -2210,8 +2369,9 @@ function renderAi() {
 
   // ปุ่มย้อนกลับต้องมี เพราะจอนี้ไม่ได้อยู่บนแถบล่างแล้วตั้งแต่ 1A8b
   // จอที่เข้าได้แต่ออกไม่ได้ คือจอที่ผู้ใช้ต้องปิดแอปเพื่อออก
+  // ปุ่มย้อนกลับถูกถอดออกใน 1A9 — จอนี้มีปุ่มของตัวเองบนแถบล่างแล้ว
+  // ปุ่มย้อนกลับบนจอที่เป็นแท็บ อ่านว่า "จอนี้เป็นจอซ้อนที่ต้องออก" ซึ่งไม่จริงอีกต่อไป
   el.innerHTML = `<div class="page-head">
-      <button class="back" onclick="go('scr-menu')" aria-label="กลับหน้าวันนี้">${icon('chevron')}</button>
       <div class="eyebrow">ผู้ช่วยของฉัน</div>
       <h1 class="page-title">ถามน้องไซ</h1>
       <p class="page-sub">ติดตรงไหนถามได้ — น้องไซอธิบายให้เข้าใจ แล้วให้คุณทำเอง</p>
