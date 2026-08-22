@@ -22,22 +22,22 @@
    ซ้ายสุดคือที่ที่สายตาเริ่มอ่านอยู่แล้ว วางรูปไว้ตรงนั้นจึงได้จุดแวะเดียว
    และเหลือมุมขวาว่างให้กระดิ่งซึ่งเป็นของที่ "มีก็ต่อเมื่อมีอะไรเข้ามา" */
 .td-head {
-  display: flex; align-items: center; gap: 12px; padding-top: 6px;
+  display: flex; align-items: center; gap: 11px; padding-top: 2px;
 }
 .th-me {
-  flex: none; width: 42px; height: 42px;
+  flex: none; width: 38px; height: 38px;
   display: grid; place-items: center;
   border: 1px solid var(--line); border-radius: 50%;
   background: var(--blue-soft); color: var(--blue);
   font: inherit; font-size: 17px; font-weight: 700; cursor: pointer;
 }
-.th-me svg { width: 19px; height: 19px; }
+.th-me svg { width: 17px; height: 17px; }
 .th-tx { flex: 1; min-width: 0; }
 /* คำทักทายต้องเล็กกว่าชื่องานอย่างเห็นได้ชัด
    24px ข้าง 26px คืออ่านเป็นสองหัวข้อที่สำคัญเท่ากัน — แต่คำทักทายไม่ใช่ข้อมูล
    มันคือมารยาท · ของที่ใหญ่ที่สุดในจอต้องเป็นคำตอบเสมอ */
 .th-greet {
-  margin: 0; font-size: 17.5px; line-height: 1.3; font-weight: 700; color: var(--ink);
+  margin: 0; font-size: 16.5px; line-height: 1.3; font-weight: 700; color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 /* บรรทัดรองคือตัวเลข ไม่ใช่คำพูด — "เหลือเวลาว่าง 2 ชม. 30 นาที · 5 งานค้าง"
@@ -78,7 +78,7 @@
      5  ท้ายการ์ด   ความคืบหน้า + ทางเลือกรอง
    ============================================================ */
 .td-now {
-  position: relative; margin-top: 18px; padding: 16px 16px 14px;
+  position: relative; margin-top: 14px; padding: 14px 14px 12px;
   border: 1px solid var(--line); border-radius: calc(var(--r-card) + 6px);
   background: linear-gradient(158deg, var(--blue-soft) 0%, transparent 62%), var(--card);
   box-shadow: var(--shadow-lg);
@@ -90,17 +90,17 @@
 /* ชิปไอคอนเป้า — บอกว่าก้อนนี้คือ "สิ่งที่เลือกมาให้แล้ว" ไม่ใช่งานใบแรกของลิสต์
    เล็กลงจาก 40 เหลือ 34 เพราะตอนนี้มันไม่ได้ยืนเดี่ยวแล้ว มีป้ายอีกฝั่งช่วยถือน้ำหนักแถว */
 .tn-mark {
-  flex: none; display: grid; place-items: center; width: 34px; height: 34px;
-  border-radius: 11px; background: var(--card); color: var(--blue);
+  flex: none; display: grid; place-items: center; width: 30px; height: 30px;
+  border-radius: 10px; background: var(--card); color: var(--blue);
   box-shadow: var(--shadow);
 }
-.tn-mark svg { width: 18px; height: 18px; }
+.tn-mark svg { width: 16px; height: 16px; }
 /* ป้ายคำตัดสินของเอนจิน — สองคำ อยู่มุมที่เคยว่างเปล่า
    สีมาจาก priorityTone() ชุดเดียวกับทั้งแอป ไม่ได้ตั้งเกณฑ์สีใหม่ของตัวเอง */
 .tn-pill {
   margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 11px; border-radius: 999px;
-  font-size: 11.5px; font-weight: 700; white-space: nowrap;
+  padding: 4px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; white-space: nowrap;
   background: var(--card2); color: var(--muted);
 }
 .tn-pill svg { width: 13px; height: 13px; }
@@ -110,19 +110,19 @@
 
 /* ---- 2 · ชื่องาน ---- */
 .tn-eyebrow {
-  margin-top: 14px; font-size: 11.5px; font-weight: 700;
+  margin-top: 11px; font-size: 11px; font-weight: 700;
   letter-spacing: .06em; color: var(--blue);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 /* ตัวหนังสือที่ใหญ่ที่สุดในแอป — ต้องอ่านออกตอนวางมือถือไว้ข้างสมุด ไม่ใช่ตอนถือใกล้ตา
    ไม่มีวงแหวนมาเบียดข้าง ๆ อีกแล้ว (ย้ายลงท้ายการ์ด) ชื่องานจึงได้ความกว้างเต็มใบ */
 .tn-title {
-  margin: 5px 0 0; font-size: 23px; line-height: 1.28; font-weight: 700;
+  margin: 4px 0 0; font-size: 20px; line-height: 1.26; font-weight: 700;
   color: var(--ink); letter-spacing: -.01em; word-break: break-word;
 }
 /* ทำไมใบนี้ + คะแนนเก็บ — บรรทัดเดียว ห้ามพูดเรื่องเส้นตายซ้ำกับที่อื่นในการ์ด */
 .tn-why {
-  margin-top: 8px; font-size: 12.5px; line-height: 1.45;
+  margin-top: 7px; font-size: 12px; line-height: 1.4;
   font-weight: 600; color: var(--pri-yellow-text);
 }
 .tn-why.red { color: var(--pri-red-text); }
@@ -133,35 +133,35 @@
    ตัวเลขจึงถูกอ่านทีละตัว ไม่ใช่กวาดผ่านเป็นแถบข้อความยาว ๆ เหมือนบรรทัดข้อเท็จจริงแบบเดิม */
 .tn-stats {
   display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-  margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line);
+  margin-top: 11px; padding-top: 11px; border-top: 1px solid var(--line);
 }
 .tn-stat { display: flex; align-items: center; gap: 9px; min-width: 0; }
 .tn-stat + .tn-stat { padding-left: 12px; border-left: 1px solid var(--line); }
 .ts-ic {
-  flex: none; display: grid; place-items: center; width: 32px; height: 32px;
+  flex: none; display: grid; place-items: center; width: 28px; height: 28px;
   border: 1px solid var(--line); border-radius: 50%; color: var(--muted);
 }
-.ts-ic svg { width: 15px; height: 15px; }
+.ts-ic svg { width: 14px; height: 14px; }
 .ts-tx { min-width: 0; }
 .ts-tx i {
   display: block; font-style: normal; font-size: 10.5px; color: var(--faint);
 }
 .ts-tx b {
-  display: block; margin-top: 1px; font-size: 15px; font-weight: 700; color: var(--ink);
+  display: block; margin-top: 1px; font-size: 14px; font-weight: 700; color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 /* ---- 4 · ปุ่ม ---- */
 /* ปุ่มเดียวบนจอที่เป็นพื้นทึบสีเน้น — กฎ 60/30/10 ข้อ 10% ทั้งหมดถูกใช้ตรงนี้ที่เดียว */
 .tn-cta {
-  display: block; width: 100%; margin-top: 14px; padding: 13px 16px;
+  display: block; width: 100%; margin-top: 12px; padding: 11px 16px;
   border: 0; border-radius: 16px; background: var(--fill); color: var(--on-fill);
   font: inherit; text-align: center; cursor: pointer; box-shadow: var(--shadow-brand);
 }
 .tn-cta:active { transform: scale(.985); }
 .tc-main {
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  font-size: 16px; font-weight: 700;
+  font-size: 15px; font-weight: 700;
 }
 .tc-main svg { width: 17px; height: 17px; }
 .tc-sub {
@@ -172,7 +172,7 @@
 /* ---- 5 · ท้ายการ์ด: ความคืบหน้า + ทางเลือกรอง ---- */
 .tn-foot {
   display: flex; align-items: center; gap: 10px;
-  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line);
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line);
 }
 /* ยังไม่เริ่มทำ = ไม่มีวงแหวน · ทางเลือกรองเลื่อนมาอยู่กลางแทน ไม่ทิ้งช่องว่างค้างไว้ */
 .tn-foot.noprog { justify-content: center; }
@@ -198,8 +198,8 @@
 .tn-foot.noprog .tn-acts { margin-left: 0; gap: 24px; }
 .tn-acts button {
   display: inline-flex; align-items: center; gap: 5px;
-  min-height: 40px; padding: 0 2px; border: 0; background: none;
-  color: var(--muted); font: inherit; font-size: 13px; white-space: nowrap; cursor: pointer;
+  min-height: 36px; padding: 0 2px; border: 0; background: none;
+  color: var(--muted); font: inherit; font-size: 12.5px; white-space: nowrap; cursor: pointer;
 }
 .tn-acts svg { width: 15px; height: 15px; }
 .tn-acts button:active { color: var(--ink); }
@@ -217,29 +217,29 @@
 
 /* ---------- หัวข้อกำกับกลุ่ม ---------- */
 .tu-lb {
-  margin-bottom: 9px; font-size: 11.5px; font-weight: 700;
+  margin-bottom: 7px; font-size: 11px; font-weight: 700;
   letter-spacing: .06em; color: var(--faint);
 }
 
 /* ---------- NEXT ---------- */
 /* ใบเดียว มีกรอบบาง ๆ แต่ไม่มีพื้นสี — "มีอยู่จริงและกดได้" โดยไม่แข่งกับการ์ดโฟกัส
    ช่วงเวลาขึ้นก่อนชื่องาน เพราะคำถามของบล็อกนี้คือ "แล้วอะไรต่อ" ซึ่งคำตอบเริ่มที่เวลา */
-.td-up { margin-top: 24px; }
+.td-up { margin-top: 18px; }
 .tu-row {
   display: flex; align-items: center; gap: 12px; width: 100%;
-  padding: 12px; border: 1px solid var(--line); border-radius: 16px;
+  padding: 10px; border: 1px solid var(--line); border-radius: 15px;
   background: var(--card); font: inherit; text-align: left; cursor: pointer;
 }
 .tu-row:active { background: var(--card2); }
 .tu-ic {
-  flex: none; display: grid; place-items: center; width: 38px; height: 38px;
-  border-radius: 12px; background: var(--blue-soft); color: var(--sj, var(--blue));
+  flex: none; display: grid; place-items: center; width: 34px; height: 34px;
+  border-radius: 11px; background: var(--blue-soft); color: var(--sj, var(--blue));
 }
 .tu-ic svg { width: 18px; height: 18px; }
 .tu-tx { flex: 1; min-width: 0; }
 .tu-when { display: block; font-size: 11.5px; font-weight: 600; color: var(--blue); }
 .tu-tx b {
-  display: block; margin-top: 1px; font-size: 14px; font-weight: 600; color: var(--ink);
+  display: block; margin-top: 1px; font-size: 13.5px; font-weight: 600; color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .tu-meta { display: block; margin-top: 1px; font-size: 11.5px; color: var(--muted); }
@@ -248,25 +248,25 @@
 /* ทางไปรายการเต็ม — บรรทัดเดียว ไม่ใช่การ์ด เพราะมันไม่ใช่งาน มันคือประตู */
 .tu-more {
   display: flex; align-items: center; gap: 4px; width: 100%;
-  margin-top: 8px; padding: 10px 0; border: 0; background: none;
+  margin-top: 6px; padding: 8px 0; border: 0; background: none;
   color: var(--muted); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer;
 }
-.tu-more.solo { margin-top: 20px; }
+.tu-more.solo { margin-top: 16px; }
 .tu-more svg { width: 14px; height: 14px; }
 
 /* ---------- เตือนความจำ ---------- */
 /* แถวเตี้ยกว่าแถว "ถัดไป" ชัดเจน — ของพวกนี้ไม่มีอะไรให้ตัดสินใจ มีแค่ให้จำ
    ถ้าทำให้สูงเท่ากัน จอจะอ่านเป็น "นี่คือทางเลือกอีกสองสามอัน" ซึ่งไม่จริง */
-.td-rem { margin-top: 24px; }
+.td-rem { margin-top: 18px; }
 .tm-row {
   display: flex; align-items: center; gap: 11px; width: 100%;
-  padding: 9px 10px; border: 0; border-radius: 13px;
+  padding: 8px 10px; border: 0; border-radius: 12px;
   background: none; font: inherit; text-align: left; cursor: pointer;
 }
 .tm-row + .tm-row { margin-top: 2px; }
 .tm-row:active { background: var(--card2); }
 .tm-ic {
-  flex: none; display: grid; place-items: center; width: 32px; height: 32px;
+  flex: none; display: grid; place-items: center; width: 30px; height: 30px;
   border-radius: 10px; background: var(--card2); color: var(--muted);
 }
 .tm-ic.soon { background: var(--pri-yellow-soft); color: var(--pri-yellow-text); }
@@ -284,12 +284,12 @@
 .tm-go svg { width: 16px; height: 16px; }
 
 /* ---------- แผนวันนี้ — ของประกอบ จึงพับไว้ ---------- */
-.td-plan { margin-top: 22px; }
+.td-plan { margin-top: 16px; }
 /* หัวข้อที่กดกาง = บรรทัดเดียวที่บอกรูปร่างของทั้งเย็นไว้ก่อน (3 ช่วง · 2 ชม.)
    คนที่พอใจกับตัวเลขนั้นไม่ต้องกาง คนที่อยากเห็นรายละเอียดกดครั้งเดียวได้ทั้งหมด */
 .tp-fold {
   display: flex; align-items: center; gap: 11px; width: 100%;
-  padding: 11px 12px; border: 1px solid var(--line); border-radius: 14px;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 13px;
   background: var(--card2); font: inherit; text-align: left; cursor: pointer;
 }
 .tp-fold:active { background: var(--surface); }
@@ -355,7 +355,7 @@
    ไม่ใช่ปุ่มที่สองที่มาแข่งกับปุ่มเริ่มทำงาน */
 .td-ask {
   display: flex; align-items: center; gap: 9px;
-  margin-top: 26px; padding: 6px 6px 6px 14px;
+  margin-top: 18px; padding: 5px 5px 5px 14px;
   border: 1px solid var(--line); border-radius: 999px;
   background: var(--card); box-shadow: var(--shadow);
 }
@@ -380,7 +380,7 @@
 /* ---------- บรรทัดเตือนเรื่องตารางเรียน ---------- */
 .td-nudge {
   display: flex; align-items: center; gap: 8px; width: 100%;
-  margin-top: 22px; padding: 12px 0 0; border: 0; border-top: 1px solid var(--line);
+  margin-top: 16px; padding: 11px 0 0; border: 0; border-top: 1px solid var(--line);
   background: none; color: var(--faint); font: inherit; font-size: 11.5px;
   line-height: 1.5; text-align: left; cursor: pointer;
 }
@@ -751,7 +751,9 @@
 #scr-ai.screen.on { display: flex; flex-direction: column; }
 #aiBody.scr-body {
   flex: 1; min-height: 0; gap: 0;
-  padding: 10px 20px calc(72px + var(--tabgap));
+  /* บนสุดกัน notch เอง — จอนี้ตั้ง padding แบบย่อ ซึ่งทับกฎ safe-area ใน alt.css ทิ้ง
+     ล่างสุดต้องพ้นแถบล่างที่ติดขอบจอแล้ว: 40 (ปุ่ม) + 12 (padding) + safe-area + ช่องว่าง */
+  padding: calc(10px + env(safe-area-inset-top)) 20px calc(74px + env(safe-area-inset-bottom));
 }
 /* บทสนทนาคือส่วนเดียวที่ยืดได้ · min-height:0 จำเป็นจริง ไม่ใช่ของประดับ —
    ไม่มีมันแล้ว flex item จะไม่ยอมหดต่ำกว่าเนื้อหาตัวเอง กล่องเลยดันช่องพิมพ์ตกจอ */

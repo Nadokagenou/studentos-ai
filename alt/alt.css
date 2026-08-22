@@ -5589,3 +5589,32 @@ body.deep-scr .top-friends { display: none; }
 /* หน้าย่อยของตั้งค่า — บล็อกที่ย้ายเข้ามาเป็นการ์ดเดี่ยวอยู่แล้ว
    จอนี้จึงไม่ต้องมีกรอบซ้อนอีกชั้น */
 #scr-setopt .pf-list { padding-top: 4px; }
+
+/* ============================================================
+   1A9c — แถบล่างติดขอบจอ · หัวจอพ้นนาฬิกาเครื่อง (เฉพาะมือถือจริง)
+   ============================================================
+   เจอตอนเปิดบนเครื่องจริง ไม่ใช่ในกรอบจำลองบนจอคอม กรอบจำลองมีขอบดำรอบด้าน
+   ปัญหาสองข้อล่างจึงมองไม่เห็นเลยจนกว่าจะเปิดบนมือถือ */
+@media (max-width: 768px) {
+  /* 1 · แถบล่างเคยเป็นแคปซูลลอย (left/right 14px · bottom var(--tabgap))
+     บนกรอบจำลองมันดูเป็นของลอยสวย ๆ · บนเครื่องจริงมันคือแถบที่ "ยังไม่ถึงขอบ"
+     แล้วเหลือแถบสีพื้นจอคาอยู่ใต้มันเหนือเส้น home indicator ซึ่งอ่านว่าเลย์เอาต์หลุด
+     ติดขอบไปเลย แล้วให้ env(safe-area-inset-bottom) เป็นตัวเว้นระยะให้เส้น home indicator */
+  .tabbar {
+    left: 0; right: 0; bottom: 0;
+    border-radius: 0; border-width: 1px 0 0;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 24px -14px rgba(0, 0, 0, .5);
+  }
+  /* ปุ่ม + ยังเป็นก้อนลอยเหนือแถบ แต่ลดระยะที่มันโผล่ขึ้นไปทับเนื้อหา
+     เดิมโผล่ขึ้น 34px ซึ่งพอแถบติดขอบจอแล้ว มันไปนั่งทับการ์ดใบล่างสุดพอดี */
+  .tab.scan .scan-dot { width: 50px; height: 50px; margin-top: -26px; outline-width: 3px; }
+  .tab.scan .scan-dot svg { width: 23px; height: 23px; }
+
+  /* 2 · จอที่เป็น flush คุม padding เอง จึงไม่ได้รับ padding-top ที่กัน notch
+     ไว้ให้ใน .screen — หัวจอเลยไปนั่งใต้นาฬิกากับแบตของเครื่อง
+     กันที่ตรงนี้ทีเดียว ครอบทุกจอที่วาดหัวของตัวเอง */
+  /* #aiBody ตั้ง padding เองใน today.css แบบย่อ (ทับกฎนี้) — safe-area ของมันอยู่ที่นั่น */
+  .menu-body { padding-top: calc(10px + env(safe-area-inset-top)); }
+  .screen.flush > .sticky-head { padding-top: calc(12px + env(safe-area-inset-top)); }
+}
