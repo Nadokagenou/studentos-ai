@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A9';                 // สายเลขของแอป
+const APP_VERSION = '1A9b';                 // สายเลขของแอป
 const APP_CODENAME = 'Klarheit';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -1182,6 +1182,22 @@ function todayPlan(now = new Date()) {
   return val;
 }
 
+// แผนเดียวกัน แต่ตัด now ที่ "ลงมือทำไม่ได้" ออก — ทุกจอที่วาดการ์ดโฟกัสต้องเรียกตัวนี้
+//
+// ตอนไม่มีช่องว่างเหลือในวันนี้ studyPlan เลือก now จากคะแนนล้วน ซึ่งหยิบกิจกรรมอย่าง
+// "ประชุมชมรม" ขึ้นมาเป็นการ์ดใบใหญ่พร้อมปุ่ม "เริ่มทำเลย" ได้ — ปุ่มที่กดแล้วเข้าโหมด
+// จับเวลาการประชุมของคนอื่น · ของพวกนี้ตัดสินใจอะไรไม่ได้ มันมีที่ของตัวเองคือกอง
+// "เตือนความจำ" บนหน้าแรก
+//
+// เคยแก้ไว้ในหน้าแรกที่เดียว แล้วบั๊กเดิมโผล่ซ้ำทันทีที่จอน้องไซวาดการ์ดโฟกัสของตัวเอง —
+// กฎที่เขียนไว้ในจอเดียวคือกฎที่จอถัดไปไม่รู้ว่ามีอยู่ · จึงต้องเป็นฟังก์ชันกลาง
+// ไม่ไปแก้ planner.js เพราะจออื่น (เส้นเวลา · แผนวันนี้) ยังต้องเห็นของครบทุกใบ
+// (สำเนาตื้น ๆ ไม่แตะ _planCache ที่จออื่นถืออยู่)
+function focusPlan(now = new Date()) {
+  const raw = todayPlan(now);
+  return raw.now && isRemindKind(raw.now.task) ? Object.assign({}, raw, { now: null }) : raw;
+}
+
 // เหตุผลบนการ์ด NOW มาจาก priorityInfo().reasons ที่เอนจินคำนวณไว้อยู่แล้ว
 // ห้ามเขียนข้อความให้กำลังใจแทน — "สู้ ๆ นะ" ไม่ได้บอกว่าทำไมงานใบนี้ถึงมาก่อนใบอื่น
 // ไอคอนเลือกจากเนื้อของเหตุผลเอง เพื่อให้กวาดตาแล้วแยกออกว่าอันไหนคือเรื่องเวลา อันไหนคือคะแนน
@@ -1663,16 +1679,7 @@ function renderMenu() {
   const body = document.getElementById('menuBody');
   if (!body) return;
   const now = new Date();
-  const raw = todayPlan(now);
-
-  // การ์ดโฟกัสต้องเป็นงานที่ "ลงมือทำ" ได้จริง
-  //
-  // ตอนไม่มีช่องว่างเหลือในวันนี้ studyPlan เลือก now จากคะแนนล้วน ซึ่งหยิบกิจกรรมอย่าง
-  // "ประชุมชมรม" ขึ้นมาเป็นการ์ดใบใหญ่พร้อมปุ่ม "เริ่มทำเลย" ได้ — ปุ่มที่กดแล้วเข้าโหมด
-  // จับเวลาการประชุมของคนอื่น · ของพวกนี้ตัดสินใจอะไรไม่ได้ มันมีที่ของตัวเองคือกอง
-  // "เตือนความจำ" ข้างล่าง · คัดออกที่นี่ ไม่ไปแก้ planner เพราะจออื่นใช้ก้อนเดียวกันอยู่
-  // (สำเนาตื้น ๆ ไม่แตะ _planCache ที่จออื่นถืออยู่)
-  const sp = raw.now && isRemindKind(raw.now.task) ? Object.assign({}, raw, { now: null }) : raw;
+  const sp = focusPlan(now);   // การ์ดโฟกัสต้องเป็นงานที่ลงมือทำได้จริง — ดู focusPlan()
   const split = homeSplit(sp, now);
 
   // สิ่งที่พิมพ์ค้างไว้ในช่องถามน้องไซต้องรอดจากการวาดใหม่
@@ -2320,6 +2327,7 @@ function aiAsk(preset) {
   if (box) box.value = '';
   aiBusy = true;
   renderAi();
+  aiScrollDown();
 
   // ประวัติที่ส่งไปคือทุกอย่าง "ก่อน" คำถามล่าสุด — ฝั่งเซิร์ฟเวอร์ต่อคำถามเองเป็นข้อความสุดท้าย
   const hist = log.slice(0, -1).map(m => ({ role: m.role, text: m.text }));
@@ -2330,6 +2338,7 @@ function aiAsk(preset) {
     aiLogSave(l2);
     aiBusy = false;
     renderAi();
+    aiScrollDown();
   });
 }
 
@@ -2339,15 +2348,119 @@ function aiShowContext() {
   alert('นี่คือข้อความที่ถูกส่งไปพร้อมคำถามของคุณ:\n\n' + aiContext());
 }
 
+// ---------- ปุ่มทางลัด 4 ปุ่ม ----------
+// คำถามที่ส่งจริงยาวกว่าป้ายบนปุ่ม เพราะป้ายมีหน้าที่ให้กวาดตาเจอ ส่วนคำถามมีหน้าที่ให้ AI ตอบตรง
+// ป้ายว่า "สรุปเนื้อหา" อ่านง่ายกว่า "ช่วยสรุปเนื้อหาที่ต้องอ่านสำหรับสอบให้หน่อย"
+// แต่ถ้าส่งคำสั้นไปจริง ๆ จะได้คำตอบกว้าง ๆ ที่ไม่รู้ว่าพูดถึงวิชาไหน
+const AI_QUICK = [
+  ['sparkles', 'ช่วยวางแผนวันนี้', 'วันนี้ควรทำอะไรก่อน แล้วเรียงลำดับยังไงดี'],
+  ['book',     'อธิบายการบ้าน',    'อธิบายการบ้านที่ค้างอยู่ให้เข้าใจหน่อย ผมยังไม่รู้จะเริ่มตรงไหน'],
+  ['type',     'สรุปเนื้อหา',      'ช่วยสรุปเนื้อหาที่ต้องอ่านสำหรับสอบให้หน่อย'],
+  ['clock',    'จัดเวลาให้ฉัน',    'ช่วยแบ่งเวลาอ่านหนังสือให้ทันสอบหน่อย'],
+];
+
+// ---------- ประโยคเปิดของน้องไซ ----------
+// ไม่ได้เก็บลงประวัติ และไม่ได้ยิงไปเซิร์ฟเวอร์ — มันคือ "จอว่าง" ที่พูดได้
+// ทุกคำมาจาก studyPlan() ก้อนเดียวกับหน้าแรก ห้ามเป็นข้อความสำเร็จรูปที่ทักทายอย่างเดียว
+// เพราะประโยคแรกคือที่ที่ผู้ช่วยพิสูจน์ว่ามันรู้จักวันของเราจริงหรือแค่ทักทายเป็น
+function aiOpener(sp) {
+  const name = who();
+  const hi = 'สวัสดี' + (name ? ' ' + name : '') + ' 👋';
+  if (!sp.now) {
+    return hi + ' ตอนนี้ไม่มีงานค้างที่ต้องเจียดเวลาให้ — ติดเรื่องเรียนอะไรถามได้เลย';
+  }
+  const t = sp.now.task;
+  const why = topReason(sp.now.info);
+  // ใช้ชื่องานล้วน ไม่ใช่ taskTitleText() ที่เอาชื่อวิชามาต่อหน้าให้ —
+  // ในเครื่องหมายคำพูด "ภาษาอังกฤษ · Essay" อ่านเหมือนชื่องานมีจุดกลางอยู่จริง
+  return hi + ' วันนี้ผมแนะนำให้เริ่ม "' + (t.detail || t.subject || 'งานที่ค้างอยู่') + '" ก่อน'
+    + (why ? ' เพราะ' + why.replace(/^⚠\s*/, '') : '');
+}
+
 function renderAi() {
   const el = document.getElementById('aiBody');
   if (!el) return;
   const now = new Date();
   const log = aiLog();
-  const nPend = pendingTasks().length;
+  const sp = focusPlan(now);   // การ์ด "งานที่ควรทำก่อน" ต้องไม่หยิบกิจกรรมมาแปะปุ่มเริ่มทำ
+  const pend = pendingTasks();
   const nCls = typeof ctxClasses === 'function' ? ctxClasses().length : 0;
-  const subj = [...new Set(pendingTasks().map(t => t.subject).filter(s => s && s !== 'อื่น ๆ'))];
+  const subj = [...new Set(pend.map(t => t.subject).filter(s => s && s !== 'อื่น ๆ'))];
+  const fresh = !log.length;   // ยังไม่เคยคุย = จอนี้ต้องอธิบายตัวเองให้ครบ
 
+  // ---- 1 · หัวจอ ----
+  const name = who();
+  const head = `<header class="sai-head">
+    <div class="sh-id">
+      <h1 class="sh-name">น้องไซ<span class="sh-badge">AI</span></h1>
+      <p class="sh-role">ผู้ช่วยของคุณ</p>
+    </div>
+    ${log.length ? `<button class="sh-wipe" onclick="aiClear()" aria-label="ล้างประวัติการคุย">${
+      icon('trash')}</button>` : ''}
+    <button class="sh-me" onclick="go('scr-profile')" aria-label="หน้าของฉัน">${
+      name ? esc(name.trim().charAt(0).toUpperCase()) : icon('user')}</button>
+  </header>`;
+
+  // ---- 2 + 3 · ภาพรวมวันนี้ + งานที่ควรทำก่อน ----
+  // สองอย่างนี้อยู่ในการ์ดใบเดียวกัน เพราะ "วันนี้มีเท่าไหร่" กับ "แล้วเริ่มใบไหน"
+  // เป็นคำถามเดียวที่ถูกถามต่อกันเสมอ · แยกเป็นสองการ์ดคือบังคับให้สายตาเชื่อมเอง
+  const planTasks = new Set(sp.plan.slots.filter(s => !s.break).map(s => s.task.id));
+  const sum = sp.plan.slots.length
+    ? planTasks.size + ' งาน · ' + humanMin(sp.plan.usedMin)
+    : pend.length ? pend.length + ' งานค้าง · ยังไม่มีคิววันนี้' : 'ไม่มีงานค้าง';
+
+  let taskBox;
+  if (sp.now) {
+    const t = sp.now.task, info = sp.now.info;
+    const tone = t.due ? priorityTone(info.stars) : 'green';
+    const prog = Math.max(0, Math.min(100, t.progress || 0));
+    const left = typeof remainingMin === 'function' ? remainingMin(t) : (t.estMin || 30);
+    const CIRC = 113.1; // 2πr เมื่อ r = 18 ในกรอบ 44×44
+    taskBox = `<div class="sd-task">
+      <div class="st-lb ${tone}">${icon(tone === 'red' ? 'flame' : 'target')}งานที่ควรทำก่อน</div>
+      <div class="st-mid">
+        <span class="st-tx">
+          <b>${esc(t.detail || t.subject || 'งานนี้')}</b>
+          <span>${esc(fmtDue(t.due, now, t).replace(/^⚠\s*/, ''))} · เหลือ ${left} นาที</span>
+        </span>
+        ${prog > 0 && prog < 100 ? `<span class="tp-ring">
+          <svg viewBox="0 0 44 44" aria-hidden="true">
+            <circle class="tr-bg" cx="22" cy="22" r="18"></circle>
+            <circle class="tr-fg" cx="22" cy="22" r="18"
+              stroke-dasharray="${CIRC}" stroke-dashoffset="${(CIRC * (1 - prog / 100)).toFixed(1)}"></circle>
+          </svg><b>${prog}%</b></span>` : ''}
+      </div>
+      <button class="st-go" onclick="startFocus('${t.id}')">${icon('play')}เริ่มทำ</button>
+    </div>`;
+  } else {
+    // บรรทัดบนของการ์ดพูดว่า "ไม่มีงานค้าง" ไปแล้ว — ช่องนี้จึงต้องไม่พูดซ้ำ
+    // แต่ต้องเสนอสิ่งที่ทำต่อได้ · ไม่มีงานเลยกับมีแต่กิจกรรมเป็นคนละสถานการณ์กัน
+    taskBox = pend.length
+      ? `<div class="sd-task empty">${icon('pin')}
+          <b>เหลือแต่ของที่ถึงเวลาแล้วต้องไป</b></div>`
+      : `<button class="sd-task empty tap" onclick="openAddSheet()">${icon('camera')}
+          <b>เพิ่มงานแรก</b>${icon('chevron')}</button>`;
+  }
+
+  const dayCard = `<section class="sai-day">
+    <div class="sd-head">
+      <span class="sd-tx"><b>ภาพรวมวันนี้</b><span>${esc(sum)}</span></span>
+      <button class="sd-all" onclick="go('scr-menu')">ดูทั้งหมด${icon('chevron')}</button>
+    </div>
+    ${taskBox}
+  </section>`;
+
+  // ---- แถบความโปร่งใส ----
+  // ไม่ใช่คำอธิบายว่า "เราเก็บข้อมูลเท่าที่จำเป็น" แต่เป็นปุ่มที่เปิดดูข้อความก้อนจริงที่ถูกส่งไป
+  // นี่คือจุดที่แอปตอบคำถาม "AI เห็นอะไรของฉันบ้าง" ด้วยของจริง ไม่ใช่ด้วยคำสัญญา
+  const priv = `<button class="ai-priv" onclick="aiShowContext()">
+    <span class="ai-priv-ic">${icon('lock')}</span>
+    <span class="ai-priv-tx">น้องไซเห็นงาน ${pend.length} ใบ${
+      nCls ? ' · ตารางเรียน ' + nCls + ' คาบ' : ''} · เวลาว่างของคุณ</span>
+    <span class="ai-priv-go">ดูว่าเห็นอะไร</span>
+  </button>`;
+
+  // ---- 4 · พื้นที่สนทนา ----
   const bubbles = log.map(m => m.role === 'user'
     ? `<div class="ai-msg me"><div class="ai-bub">${esc(m.text)}</div></div>`
     : `<div class="ai-msg sai">
@@ -2360,80 +2473,112 @@ function renderAi() {
       <div class="ai-bub ai-typing"><i></i><i></i><i></i></div>
     </div>` : '';
 
-  // ปุ่มคำถามสำเร็จรูปขึ้นเฉพาะตอนยังไม่เคยคุย — จอเปล่ากับช่องพิมพ์เปล่า
-  // คือจุดที่คนส่วนใหญ่ปิดทิ้ง เพราะไม่รู้ว่าถามอะไรได้
-  const seeds = log.length ? '' : `<div class="ai-seeds">
-      ${['คืนนี้ควรทำอะไรก่อน', 'ช่วยอธิบายงานที่ค้างอยู่', 'ประเมินเวลาของฉันแม่นไหม']
-        .map(s => `<button onclick="aiAsk('${s}')">${s}</button>`).join('')}
-    </div>`;
+  const opener = fresh ? `<div class="ai-msg sai">
+      <span class="ai-av">${icon('sparkles')}</span>
+      <div class="ai-bub">${esc(aiOpener(sp))}</div>
+    </div>` : '';
 
-  // ปุ่มย้อนกลับต้องมี เพราะจอนี้ไม่ได้อยู่บนแถบล่างแล้วตั้งแต่ 1A8b
-  // จอที่เข้าได้แต่ออกไม่ได้ คือจอที่ผู้ใช้ต้องปิดแอปเพื่อออก
-  // ปุ่มย้อนกลับถูกถอดออกใน 1A9 — จอนี้มีปุ่มของตัวเองบนแถบล่างแล้ว
-  // ปุ่มย้อนกลับบนจอที่เป็นแท็บ อ่านว่า "จอนี้เป็นจอซ้อนที่ต้องออก" ซึ่งไม่จริงอีกต่อไป
-  el.innerHTML = `<div class="page-head">
-      <div class="eyebrow">ผู้ช่วยของฉัน</div>
-      <h1 class="page-title">ถามน้องไซ</h1>
-      <p class="page-sub">ติดตรงไหนถามได้ — น้องไซอธิบายให้เข้าใจ แล้วให้คุณทำเอง</p>
-    </div>
+  // กล่องในต้องมีจริง — ดัน .at-in ด้วย margin-top:auto แทน justify-content:flex-end
+  // เพราะ flex-end บนกล่องที่ scroll ได้ ทำให้เนื้อหาส่วนบนเลื่อนไปหาไม่เจอเมื่อล้น
+  const thread = `<div class="ai-thread"><div class="at-in">${opener}${bubbles}${typing}</div></div>`;
 
-    <button class="ai-priv" onclick="aiShowContext()">
-      <span class="ai-priv-ic">${icon('lock')}</span>
-      <span class="ai-priv-tx">น้องไซเห็นงาน ${nPend} ใบ${
-        nCls ? ' · ตารางเรียน ' + nCls + ' คาบ' : ''} · เวลาว่างของคุณ</span>
-      <span class="ai-priv-go">ดูว่าเห็นอะไร</span>
-    </button>
+  // ---- 5 · ปุ่มทางลัด ----
+  // อยู่เหนือช่องพิมพ์เสมอ ไม่ใช่เฉพาะตอนจอว่าง — จอเปล่ากับช่องพิมพ์เปล่า
+  // คือจุดที่คนส่วนใหญ่ปิดทิ้งเพราะไม่รู้ว่าถามอะไรได้ และความไม่รู้นั้นไม่ได้หายไปหลังถามครั้งแรก
+  const quick = `<div class="sai-qa">
+    ${AI_QUICK.map(q => `<button onclick="aiAsk('${esc(q[2]).replace(/'/g, "\\'")}')"${
+      aiBusy ? ' disabled' : ''}>${icon(q[0])}${esc(q[1])}</button>`).join('')}
+  </div>`;
 
-    ${log.length ? `<div class="ai-thread">${bubbles}${typing}</div>` : `<div class="ai-thread empty">
-      <span class="ai-soon-ic">${icon('sparkles')}</span>
-      <b>ถามได้เลย</b>
-      <p>${subj.length
-        ? 'น้องไซรู้จักงานวิชา ' + esc(subj.slice(0, 3).join(' · ')) + ' ของคุณอยู่แล้ว'
-        : 'ยังไม่มีงานค้าง — ถามเรื่องเรียนอะไรก็ได้'}</p>
-    </div>${typing}`}
+  // ---- 6 · ช่องพิมพ์ ----
+  const bar = `<div class="sai-bar">
+    <textarea id="aiInput" class="ai-in" rows="1" maxlength="2000"
+      placeholder="ถามน้องไซ…" ${aiBusy ? 'disabled' : ''}
+      oninput="autoGrow(this)"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiAsk();}"></textarea>
+    <button class="sb-mic${aiVoiceOn ? ' rec' : ''}" onclick="aiVoice()" ${aiBusy ? 'disabled' : ''}
+      aria-label="${aiVoiceOn ? 'หยุดฟัง' : 'พูดแทนพิมพ์'}">${icon('mic')}</button>
+    <button class="sb-send" onclick="aiAsk()" ${aiBusy ? 'disabled' : ''}
+      aria-label="ส่งคำถาม">${icon('chevron')}</button>
+  </div>`;
 
-    ${seeds}
+  // ---- ท้ายจอเคยมีอะไรอยู่ ----
+  // รายการ "น้องไซจะทำอะไรให้ / สิ่งที่น้องไซจะไม่ทำ" กับย่อหน้าความเป็นส่วนตัว
+  // ถูกถอดออกใน 1A9c — จอนี้เป็นห้องสนทนา ไม่ใช่หน้าแนะนำผลิตภัณฑ์
+  // ของที่ต้องอ่านครั้งเดียวไม่ควรกินความสูงถาวรในจอที่ต้องเลื่อนทุกครั้งที่คุย
+  //
+  // ขอบเขต ("ไม่เฉลยให้ลอก") ไม่ได้หายไปจากตัวระบบ — มันอยู่ใน system prompt ฝั่ง Edge Function
+  // ซึ่งเป็นที่ที่บังคับใช้ได้จริง ต่างจากข้อความบนจอที่เป็นแค่คำประกาศ
+  // ส่วนความโปร่งใสยังอยู่ที่ปุ่ม "ดูว่าเห็นอะไร" เหนือบทสนทนา ซึ่งเปิดดูของจริงได้
 
-    <div class="ai-bar">
-      <textarea id="aiInput" class="ai-in" rows="1" maxlength="2000"
-        placeholder="พิมพ์คำถาม…" ${aiBusy ? 'disabled' : ''}
-        oninput="autoGrow(this)"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiAsk();}"></textarea>
-      <button class="ai-send" onclick="aiAsk()" ${aiBusy ? 'disabled' : ''}
-        aria-label="ส่งคำถาม">${icon('chevron')}</button>
-    </div>
-    <p class="ai-foot">น้องไซไม่ทำการบ้านให้ — อธิบายให้เข้าใจแล้วให้คุณทำเอง${
-      log.length ? ` · <button class="ai-wipe" onclick="aiClear()">ล้างประวัติ</button>` : ''}</p>
+  el.innerHTML = head + dayCard + priv + thread + quick + bar;
+}
 
-    <div class="sec-label">น้องไซจะทำอะไรให้</div>
-    <div class="ai-list">
-      <div class="ai-row"><span class="ai-ic ok">${icon('check')}</span>
-        <span class="ai-bd"><b>อธิบายจนเข้าใจ</b>
-          <span>ถามกลับทีละขั้นว่าติดตรงไหน แล้วใบ้ให้ไปต่อเอง</span></span></div>
-      <div class="ai-row"><span class="ai-ic ok">${icon('check')}</span>
-        <span class="ai-bd"><b>ตรวจว่าคิดถูกไหม</b>
-          <span>ทำมาแล้วส่งให้ดู น้องไซบอกว่าพลาดตรงไหนและเพราะอะไร</span></span></div>
-      <div class="ai-row"><span class="ai-ic ok">${icon('check')}</span>
-        <span class="ai-bd"><b>รู้จักงานของคุณอยู่แล้ว</b>
-          <span>${subj.length
-            ? 'ตอนนี้มีงานค้างวิชา ' + esc(subj.slice(0, 3).join(' · '))
-              + (subj.length > 3 ? ' และอีก ' + (subj.length - 3) + ' วิชา' : '')
-            : 'ถามถึงงานที่ค้างอยู่ได้เลย ไม่ต้องอธิบายใหม่'}</span></span></div>
-    </div>
+// เลื่อนลงล่างสุดหลังส่งคำถาม — บทสนทนาที่ตอบแล้วแต่ต้องเลื่อนหาเอง อ่านเหมือนไม่ได้ตอบ
+function aiScrollDown() {
+  const th = document.querySelector('#aiBody .ai-thread');
+  if (th) th.scrollTop = th.scrollHeight;
+}
 
-    <div class="sec-label">สิ่งที่น้องไซจะไม่ทำ</div>
-    <div class="ai-list">
-      <div class="ai-row"><span class="ai-ic no">${icon('lock')}</span>
-        <span class="ai-bd"><b>ไม่เฉลยให้ลอก</b>
-          <span>ขอคำตอบตรง ๆ น้องไซจะพาย้อนกลับไปที่วิธีคิดแทน — เพราะคะแนนที่ได้จากการลอกไม่ได้อยู่กับคุณตอนสอบ</span></span></div>
-      <div class="ai-row"><span class="ai-ic no">${icon('lock')}</span>
-        <span class="ai-bd"><b>ไม่เขียนงานส่งให้</b>
-          <span>เรียงความ รายงาน สรุปส่งครู — ช่วยวางโครงกับติชมได้ แต่ไม่เขียนแทน</span></span></div>
-    </div>
+// ---------- พูดแทนพิมพ์ในช่องแชท ----------
+// ตัวจับเสียงของหน้าสแกน (toggleVoice) ผูกกับ #voiceBtn/#voiceBox แล้วจบด้วย runParsing()
+// ซึ่งเป็นคนละงานกันคนละเรื่อง — ตรงนี้ต้องการแค่ข้อความลงช่องพิมพ์ จึงมีตัวของตัวเอง
+// ไม่แปลงเลขคำอ่านไทย (normalizeSpokenText) ด้วย เพราะนั่นมีไว้ให้ตัวแกะงานอ่าน ไม่ใช่ให้คนอ่าน
+let aiRecog = null, aiVoiceOn = false;
 
-    <p class="ai-note">คำถามกับข้อมูลงานของคุณถูกส่งไปประมวลผลบนเซิร์ฟเวอร์ ไม่ได้อยู่ในเครื่องเหมือนการจัดตาราง —
-      กด “ดูว่าเห็นอะไร” ข้างบนเพื่ออ่านข้อความก้อนจริงที่ถูกส่งไป
-      ส่วนรายชื่อเพื่อนไม่ถูกส่งไปด้วย เพราะเป็นข้อมูลของคนอื่น</p>`;
+function aiVoice() {
+  if (aiVoiceOn) { try { aiRecog.stop(); } catch (_) {} return; }
+  if (!speechSupported()) {
+    showToast({ title: 'เบราว์เซอร์นี้ยังพูดใส่ไม่ได้',
+      body: 'ลองใช้ Chrome (Android) หรือ Safari (iPhone) · ระหว่างนี้พิมพ์เอาได้เลย' });
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  aiRecog = new SR();
+  aiRecog.lang = 'th-TH';
+  aiRecog.interimResults = true;
+  aiRecog.continuous = false;
+
+  const box = () => document.getElementById('aiInput');
+  const before = (box() ? box().value : '').trim();
+  let finalText = '';
+
+  aiRecog.onstart = () => {
+    aiVoiceOn = true;
+    const b = document.querySelector('.sb-mic');
+    if (b) b.classList.add('rec');
+    haptic('arm');
+  };
+  aiRecog.onresult = e => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const r = e.results[i];
+      if (r.isFinal) finalText += r[0].transcript; else interim += r[0].transcript;
+    }
+    const b = box();
+    if (b) { b.value = (before + ' ' + finalText + interim).trim(); autoGrow(b); }
+  };
+  aiRecog.onerror = e => {
+    aiVoiceOn = false;
+    const msg = {
+      'not-allowed': 'ยังไม่ได้อนุญาตให้ใช้ไมค์ — เปิดสิทธิ์ไมโครโฟนให้เว็บนี้ก่อนนะ',
+      'service-not-allowed': 'ยังไม่ได้อนุญาตให้ใช้ไมค์ — เปิดสิทธิ์ไมโครโฟนให้เว็บนี้ก่อนนะ',
+      'no-speech': 'ไม่ได้ยินเสียงเลย ลองพูดใหม่อีกครั้ง',
+      'audio-capture': 'หาไมโครโฟนไม่เจอ',
+      'network': 'ต้องต่อเน็ตเพื่อแปลงเสียงเป็นข้อความ',
+    }[e.error] || ('เกิดข้อผิดพลาด: ' + e.error);
+    showToast({ title: 'พูดไม่สำเร็จ', body: msg });
+  };
+  // วาดใหม่ทั้งจอตอนจบไม่ได้ — มันจะล้างสิ่งที่เพิ่งถอดเสียงมาในช่องพิมพ์ทิ้ง
+  // เอาแค่คลาส rec ออกจากปุ่มพอ
+  aiRecog.onend = () => {
+    aiVoiceOn = false;
+    const b = document.querySelector('.sb-mic');
+    if (b) b.classList.remove('rec');
+    const t = box();
+    if (t) t.focus();
+  };
+  try { aiRecog.start(); } catch (_) { aiVoiceOn = false; }
 }
 
 function renderTasks() {

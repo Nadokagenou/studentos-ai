@@ -591,3 +591,195 @@
    สองเหตุผล: มันนั่งทับกระดิ่งกล่องเข้าพอดีจนกดผิดตัวได้ · และ "เพื่อนออนไลน์กี่คน"
    ไม่ใช่คำตอบของคำถามที่พาคนมาเปิดแอป · ทางเข้ายังอยู่ครบสองที่ในแท็บ "ฉัน" */
 .home-scr .top-friends { display: none; }
+
+/* ============================================================
+   จอ "น้องไซ" — ผู้ช่วย ไม่ใช่ช่องแชทเปล่า
+   ============================================================
+   ช่องแชทเปล่ากับเคอร์เซอร์กะพริบ คือจอที่โยนคำถามกลับให้ผู้ใช้ว่า "จะถามอะไรล่ะ"
+   ซึ่งเป็นงานเดียวกับที่หน้าแรกรับปากว่าจะทำแทน · จอนี้จึงพูดก่อนเสมอ และพูดจากข้อมูลจริง
+
+   ลำดับจากบนลงล่าง:
+     หัวจอ → ภาพรวมวันนี้ + งานที่ควรทำก่อน → ความโปร่งใส → บทสนทนา → ทางลัด → ช่องพิมพ์
+
+   ห้ามใส่ hex ตรง ๆ — จอนี้ใช้ token ชุดเดียวกับทั้งแอป ธีมม่วง/ส้มต้องได้สีของตัวเอง
+   ============================================================ */
+
+/* ---------- 1 · หัวจอ ---------- */
+.sai-head { display: flex; align-items: center; gap: 12px; padding-top: 6px; }
+.sh-id { flex: 1; min-width: 0; }
+.sh-name {
+  margin: 0; display: flex; align-items: center; gap: 8px;
+  font-size: 21px; line-height: 1.2; font-weight: 700; color: var(--ink);
+}
+/* ป้าย AI — บอกตรง ๆ ว่าอีกฝั่งไม่ใช่คน · เป็นเรื่องที่ต้องบอก ไม่ใช่เรื่องที่ต้องเดา */
+.sh-badge {
+  padding: 2px 7px; border-radius: 6px;
+  background: var(--blue-soft); color: var(--blue);
+  font-size: 10px; font-weight: 700; letter-spacing: .06em;
+}
+.sh-role { margin: 3px 0 0; font-size: 12.5px; color: var(--muted); }
+.sh-me {
+  flex: none; width: 40px; height: 40px; display: grid; place-items: center;
+  border: 1px solid var(--line); border-radius: 50%;
+  background: var(--blue-soft); color: var(--blue);
+  font: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+}
+.sh-me svg { width: 18px; height: 18px; }
+
+/* ---------- 2 + 3 · ภาพรวมวันนี้ + งานที่ควรทำก่อน ---------- */
+/* การ์ดใบเดียว สองชั้น — ชั้นนอกคือ "วันนี้มีเท่าไหร่" ชั้นในคือ "แล้วเริ่มใบไหน"
+   สองคำถามนี้ถูกถามต่อกันเสมอ แยกเป็นสองการ์ดคือบังคับให้สายตาเชื่อมเอง */
+.sai-day {
+  margin-top: 16px; padding: 13px;
+  border: 1px solid var(--line); border-radius: var(--r-card);
+  background: linear-gradient(158deg, var(--blue-soft) 0%, transparent 70%), var(--card);
+  box-shadow: var(--shadow);
+}
+.sd-head { display: flex; align-items: center; gap: 10px; }
+.sd-tx { flex: 1; min-width: 0; }
+.sd-tx b { display: block; font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.sd-tx > span { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+.sd-all {
+  flex: none; display: inline-flex; align-items: center; gap: 2px;
+  padding: 6px 2px 6px 8px; border: 0; background: none;
+  color: var(--blue); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.sd-all svg { width: 14px; height: 14px; }
+
+/* ชั้นใน — พื้นทึบกว่าชั้นนอกหนึ่งขั้น ให้อ่านเป็น "ของที่อยู่ในนั้น" ไม่ใช่การ์ดที่วางซ้อน */
+.sd-task {
+  margin-top: 11px; padding: 12px;
+  border: 1px solid var(--line); border-radius: 15px; background: var(--card2);
+}
+.sd-task.empty {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13px; color: var(--muted);
+}
+.sd-task.empty svg { width: 17px; height: 17px; color: var(--pri-green); flex: none; }
+.sd-task.empty b { font-size: 13px; font-weight: 600; color: var(--ink); }
+.st-lb {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--muted);
+}
+.st-lb svg { width: 13px; height: 13px; }
+.st-lb.red { color: var(--pri-red-text); }
+.st-lb.yellow { color: var(--pri-yellow-text); }
+.st-lb.green { color: var(--pri-green-text); }
+.st-mid { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.st-tx { flex: 1; min-width: 0; }
+.st-tx b {
+  display: block; font-size: 16px; font-weight: 700; line-height: 1.3; color: var(--ink);
+  word-break: break-word;
+}
+.st-tx > span { display: block; margin-top: 3px; font-size: 12px; color: var(--muted); }
+/* ปุ่มเดียวในจอนี้ที่เป็นพื้นทึบสีเน้น — ช่องพิมพ์กับปุ่มส่งเป็นของประจำจอ ไม่ใช่การตัดสินใจ
+   สิ่งเดียวที่จอนี้อยากให้กดคือ "ไปลงมือทำ" ซึ่งแปลว่าออกจากจอนี้ไป */
+.st-go {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  width: 100%; margin-top: 12px; padding: 11px;
+  border: 0; border-radius: 13px; background: var(--fill); color: var(--on-fill);
+  font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer;
+  box-shadow: var(--shadow-brand);
+}
+.st-go svg { width: 16px; height: 16px; }
+.st-go:active { transform: scale(.985); }
+
+/* ---------- 5 · ปุ่มทางลัด ---------- */
+/* อยู่เหนือช่องพิมพ์เสมอ ไม่ใช่เฉพาะตอนจอว่าง — "ไม่รู้ว่าถามอะไรได้"
+   ไม่ได้หายไปหลังถามคำถามแรก · เลื่อนแนวนอนได้เพราะสี่ปุ่มไทยไม่มีทางลงสองแถวสวย */
+.sai-qa {
+  display: flex; gap: 7px; margin-top: 12px;
+  overflow-x: auto; scrollbar-width: none;
+  padding-bottom: 2px; scroll-padding: 0 20px;
+}
+.sai-qa::-webkit-scrollbar { display: none; }
+.sai-qa button {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 13px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--card); color: var(--ink);
+  font: inherit; font-size: 12.5px; white-space: nowrap; cursor: pointer;
+}
+.sai-qa button svg { width: 14px; height: 14px; color: var(--blue); }
+.sai-qa button:active { background: var(--card2); transform: scale(.97); }
+.sai-qa button:disabled { opacity: .5; }
+
+/* ---------- 6 · ช่องพิมพ์ ---------- */
+.sai-bar {
+  display: flex; align-items: flex-end; gap: 6px; margin-top: 10px;
+  padding: 5px 5px 5px 14px;
+  border: 1px solid var(--line); border-radius: 24px;
+  background: var(--card); box-shadow: var(--shadow);
+}
+.sai-bar:focus-within { border-color: var(--blue); }
+.sai-bar .ai-in {
+  flex: 1; min-width: 0; max-height: 120px; padding: 9px 0;
+  border: 0; background: none; color: var(--ink);
+  font: inherit; font-size: 14px; line-height: 1.45; resize: none; outline: none;
+}
+.sai-bar .ai-in::placeholder { color: var(--faint); }
+.sai-bar .ai-in:disabled { opacity: .55; }
+.sb-mic, .sb-send {
+  flex: none; display: grid; place-items: center; width: 36px; height: 36px;
+  border: 0; border-radius: 50%; cursor: pointer;
+}
+.sb-mic { background: none; color: var(--muted); }
+.sb-mic svg { width: 18px; height: 18px; }
+.sb-mic:active { background: var(--card2); }
+/* กำลังฟังอยู่ — ต้องเห็นจากหางตาว่าไมค์เปิดค้าง ไม่งั้นมันคือไมค์ที่แอบฟัง */
+.sb-mic.rec { background: var(--pri-red-soft); color: var(--pri-red-text); }
+.sb-mic.rec svg { animation: sb-pulse 1.1s ease-in-out infinite; }
+@keyframes sb-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .sb-mic.rec svg { animation: none; } }
+.sb-send { background: var(--fill); color: var(--on-fill); }
+.sb-send svg { width: 17px; height: 17px; transform: rotate(-90deg); }
+.sb-send:disabled { opacity: .45; }
+.sb-send:active { transform: scale(.94); }
+
+/* บทสนทนาต้องมีที่หายใจระหว่างการ์ดข้างบนกับปุ่มทางลัดข้างล่าง */
+#aiBody .ai-thread { margin-top: 14px; }
+#aiBody .ai-priv { margin-top: 12px; }
+.sd-task.empty.tap { width: 100%; text-align: left; font: inherit; cursor: pointer; }
+.sd-task.empty.tap svg:last-child { margin-left: auto; color: var(--faint); }
+.sd-task.empty.tap svg:first-child { color: var(--blue); }
+
+/* ---------- จอน้องไซเต็มจอ ---------- */
+/* จอนี้เป็นห้องสนทนา ไม่ใช่หน้าเอกสารที่เลื่อนอ่านยาว ๆ
+   ห้องสนทนามีรูปทรงตายตัว: หัวจออยู่บน ช่องพิมพ์อยู่ล่าง และบทสนทนากินที่ที่เหลือทั้งหมด
+   ถ้าปล่อยให้ทั้งจอเลื่อนตามปกติ ช่องพิมพ์จะไหลตามเนื้อหาลงไปเรื่อย ๆ จนต้องเลื่อนหา
+   ซึ่งเป็นสิ่งเดียวที่ห้ามเกิดในจอที่มีไว้พิมพ์ */
+#scr-ai.screen { padding: 0; overflow: hidden; }
+#scr-ai.screen.on { display: flex; flex-direction: column; }
+#aiBody.scr-body {
+  flex: 1; min-height: 0; gap: 0;
+  padding: 10px 20px calc(72px + var(--tabgap));
+}
+/* บทสนทนาคือส่วนเดียวที่ยืดได้ · min-height:0 จำเป็นจริง ไม่ใช่ของประดับ —
+   ไม่มีมันแล้ว flex item จะไม่ยอมหดต่ำกว่าเนื้อหาตัวเอง กล่องเลยดันช่องพิมพ์ตกจอ */
+#aiBody .ai-thread {
+  flex: 1; min-height: 0; overflow-y: auto;
+  margin-top: 14px; display: flex; flex-direction: column;
+  scrollbar-width: none;
+}
+#aiBody .ai-thread::-webkit-scrollbar { display: none; }
+/* ดันฟองแชทลงชิดล่างด้วย margin-top:auto ไม่ใช่ justify-content:flex-end
+   เพราะ flex-end บนกล่องที่ scroll ได้ ทำให้เนื้อหาส่วนบนเลื่อนขึ้นไปหาไม่เจอเมื่อล้น */
+.at-in { margin-top: auto; display: flex; flex-direction: column; gap: 9px; }
+
+/* ปุ่มล้างประวัติ — ย้ายจากบรรทัดใต้ช่องพิมพ์ (ที่ถูกถอดออก) มาเป็นไอคอนบนหัวจอ
+   ขึ้นเฉพาะตอนมีอะไรให้ล้าง · ปุ่มลบที่อยู่ตลอดเวลาคือปุ่มที่รอวันโดนกดพลาด */
+.sh-wipe {
+  flex: none; width: 36px; height: 36px; display: grid; place-items: center;
+  border: 0; border-radius: 50%; background: none; color: var(--faint); cursor: pointer;
+}
+.sh-wipe svg { width: 17px; height: 17px; }
+.sh-wipe:active { background: var(--card2); color: var(--pri-red-text); }
+
+/* จอเตี้ย = คีย์บอร์ดเปิดอยู่ (Android ย่อ viewport จริงตอนคีย์บอร์ดขึ้น)
+   ตอนกำลังพิมพ์ ไม่มีใครอ่านการ์ดสรุปวัน — สิ่งที่ต้องเห็นคือสิ่งที่เพิ่งพิมพ์กับคำตอบล่าสุด
+   ถ้าไม่ยุบ บทสนทนาจะเหลือ ~30px แล้วห้องแชทกลายเป็นช่องมองแคบ ๆ
+   iOS ไม่ย่อ viewport จึงไม่โดนกฎนี้ และไม่ต้องโดน เพราะมันเลื่อนช่องพิมพ์ให้เอง */
+@media (max-height: 620px) {
+  #aiBody .sai-day, #aiBody .ai-priv { display: none; }
+  .sai-head { padding-top: 2px; }
+  .sh-role { display: none; }
+}
