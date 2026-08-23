@@ -128,6 +128,11 @@ def main():
         # addAll ล้มทั้งก้อนถ้ามีตัวใดตัวหนึ่ง 404 แล้วแอปจะไม่มีแคชเลยโดยไม่มี error โผล่
         if not os.path.exists(os.path.join(ROOT, f)):
             problems.append('index.html ของตัวจริงอ้าง %s แต่ไฟล์ไม่มีอยู่ที่ราก' % f)
+        elif f.startswith('splash-'):
+            # จอคั่นเป็นข้อยกเว้นเดียวที่ไม่ต้องอยู่ใน SHELL: iOS โหลดไฟล์พวกนี้ตอน
+            # ติดตั้งแอป ไม่ได้โหลดผ่านหน้าเว็บ และเครื่องหนึ่งใช้แค่ไฟล์เดียวจากสิบเอ็ดไฟล์
+            # เอาเข้า SHELL = ดาวน์โหลด 700KB ทิ้งทุกเครื่องเพื่อใช้จริง 70KB
+            continue
         elif f not in listed:
             problems.append('%s ไม่อยู่ใน SHELL ของ sw.js — ออฟไลน์แล้วไฟล์นี้จะหายไปเงียบ ๆ' % f)
     for bad in re.findall(r'icon-alt-[\w.]+', root_html):

@@ -397,9 +397,13 @@ function ctxKnow() {
 //
 // ทุกก้อนที่คืนไปคือ "ข้อเสนอ" ยังไม่ได้เขียนลงบริบท — ผู้ใช้ต้องกดยืนยันก่อนเสมอ
 // เดาแล้วเขียนเงียบ ๆ คือการใส่ตารางชีวิตปลอมให้คนอื่นโดยเขาไม่รู้ตัว
-function ctxGuessRoutines() {
-  const span = ctxSchoolSpan();
-  if (!span) return [];
+//
+// รับ span จากผู้เรียกได้ เพราะตัวช่วยต้องเดาจากคำตอบที่เขาเพิ่งกดในจอก่อนหน้า
+// ซึ่งยังไม่ได้เขียนลงบริบท — คนที่เพิ่งลงแอปไม่มีคาบเรียนสักคาบ ถ้าอ่านจากบริบทอย่างเดียว
+// จอ "วันธรรมดาของคุณประมาณนี้ไหม" จะว่างเปล่าสำหรับคนที่ต้องการมันที่สุด
+function ctxGuessRoutines(spanIn) {
+  const span = spanIn || ctxSchoolSpan();
+  if (!span || span.from == null || span.to == null || span.to <= span.from) return [];
   const p = ctxPrefs();
   const wake = hm2min(p.wake) ?? 6 * 60;
   const WD = [1, 2, 3, 4, 5];

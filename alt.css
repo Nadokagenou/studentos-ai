@@ -5969,9 +5969,9 @@ body.deep-scr .top-friends { display: none; }
 
 .wz-list { display: flex; flex-direction: column; gap: 8px; }
 .wz-rt {
-  display: flex; align-items: center; gap: 8px;
-  padding: 9px 10px; border: 1px solid var(--line); border-radius: var(--r-tile); background: var(--card);
+  padding: 10px 11px; border: 1px solid var(--line); border-radius: var(--r-tile); background: var(--card);
 }
+.wz-rt-h { display: flex; align-items: center; gap: 9px; }
 .wz-rt.off { opacity: .42; }
 .wz-ic {
   width: 28px; height: 28px; flex: none; border-radius: 9px;
@@ -5980,8 +5980,8 @@ body.deep-scr .top-friends { display: none; }
 }
 .wz-ic svg { width: 15px; height: 15px; }
 .wz-tx { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--ink); }
-.wz-rt input[type=time], .wz-times input[type=time] {
-  flex: none; width: 74px; padding: 5px 6px;
+.wz-times input[type=time] {
+  flex: 1; min-width: 0; max-width: 110px; padding: 6px;
   border: 1px solid var(--line); border-radius: 8px;
   background: var(--card2); color: var(--ink); font: inherit; font-size: 11.5px;
 }
