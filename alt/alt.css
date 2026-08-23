@@ -5616,19 +5616,36 @@ body.deep-scr .top-friends { display: none; }
     border-radius: 0; border-width: 1px 0 0;
     /* max() ไม่ใช่ + : ถ้าเครื่องมีแถบ home indicator ก็ใช้ระยะของมัน ถ้าไม่มีก็ 8px
        บวกกันคือที่มาของ "แผ่นเปล่าซ้อนสองชั้น" ที่เห็นในรุ่นก่อน */
-    padding: 6px 6px max(8px, env(safe-area-inset-bottom));
-    /* พื้นทึบ ไม่ใช่กระจกเบลอ — แถบที่ติดขอบจอไม่มีอะไรอยู่ใต้ให้เบลอ */
-    background: var(--scr);
+    /* 1A9f · ความสูงแถบ = 49px + safe area เท่าแถบล่างของ iOS เป๊ะ
+       (1 ขอบ + 4 padding + 44 ปุ่ม) ของเดิม 6 + 48 = 55 ซึ่งเกินมา 6px
+       44 คือขนาดปุ่มขั้นต่ำที่นิ้วกดติด จึงลดต่ำกว่านี้ไม่ได้ */
+    padding: 4px 6px max(8px, env(safe-area-inset-bottom));
+    /* พื้นเป็นสีการ์ด ไม่ใช่สีพื้นจอ — สีเดียวกับพื้นจอทำให้แถบไม่มีขอบบน
+       สายตาจึงอ่านที่ว่างทั้งก้อนล่างจอเป็นแถบเดียวกัน แล้วรู้สึกว่าแถบสูงกว่าจริง */
+    background: var(--card);
     backdrop-filter: none; -webkit-backdrop-filter: none;
     box-shadow: 0 -1px 0 var(--line);
   }
+  /* ทุกปุ่มสูง 44px เท่ากัน (22 ไอคอน + 3 ช่อง + 13 ตัวหนังสือ + 6 padding)
+     ของเดิม padding 4px ทำให้เป็น 46 ซึ่งดันแถบให้สูงเกินโดยไม่ได้อะไรกลับมา */
+  .tab { min-height: 44px; padding: 3px 2px; }
   /* กันไว้อีกชั้น: ถ้ามีอะไรโผล่ใต้ .phone ขึ้นมาอีก มันต้องเป็นสีเดียวกับพื้นแอป
      ไม่ใช่สีเพจสีดำที่อ่านออกมาว่า "แอปจบตรงนี้แล้ว" */
   html, body { background: var(--scr); }
   /* ปุ่ม + ยังเป็นก้อนลอยเหนือแถบ แต่ลดระยะที่มันโผล่ขึ้นไปทับเนื้อหา
      เดิมโผล่ขึ้น 34px ซึ่งพอแถบติดขอบจอแล้ว มันไปนั่งทับการ์ดใบล่างสุดพอดี */
-  .tab.scan .scan-dot { width: 50px; height: 50px; margin-top: -26px; outline-width: 3px; }
-  .tab.scan .scan-dot svg { width: 23px; height: 23px; }
+  /* 46 − 24 = 22 เท่าไอคอนปุ่มอื่นเป๊ะ — ปุ่มนี้จึงไม่ดันแถบให้สูงกว่าปุ่มอื่น
+     ส่วนที่โผล่เหนือแถบเหลือ 16px (เดิม 30px) — แถบกับปุ่มรวมกันจึงสูง 102px ไม่ใช่ 119px
+     วงแหวนต้องเป็นสีพื้นแถบ (--card) ไม่ใช่สีพื้นจอ ไม่งั้นจะเห็นเป็นวงสีต่างรอบปุ่ม */
+  .tab.scan .scan-dot { width: 46px; height: 46px; margin-top: -24px;
+    outline: 3px solid var(--card); }
+  .tab.scan .scan-dot svg { width: 22px; height: 22px; }
+
+  /* ระยะเผื่อท้ายหน้า — แถบ 83 + ปุ่มโผล่ 19 = 102 จึงเผื่อ 84 + safe area
+     ตัวเลขชุดเดิมอิงกับแถบที่สูง 89 จึงเหลือที่ว่างเปล่าคาอยู่ใต้การ์ดใบล่างสุดตอนเลื่อนสุด */
+  .screen, .home-body, .scr-body, .menu-body {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
 
   /* 2 · จอที่เป็น flush คุม padding เอง จึงไม่ได้รับ padding-top ที่กัน notch
      ไว้ให้ใน .screen — หัวจอเลยไปนั่งใต้นาฬิกากับแบตของเครื่อง
