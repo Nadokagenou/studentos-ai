@@ -5760,6 +5760,12 @@ body.deep-scr .top-friends { display: none; }
   /* #aiBody ตั้ง padding เองใน today.css แบบย่อ (ทับกฎนี้) — safe-area ของมันอยู่ที่นั่น */
   .menu-body { padding-top: calc(10px + env(safe-area-inset-top)); }
   .screen.flush > .sticky-head { padding-top: calc(12px + env(safe-area-inset-top)); }
+
+  /* ปุ่มเพื่อนลอยมุมขวาบนก็โดนอาการเดียวกับปุ่มเฟืองใน 1A9e — top: 8px วัดจากขอบจอ
+     บนเครื่องจริงขอบจอคือขอบบนของนาฬิกากับแบต ปุ่มจึงไปนั่งทับแบตพอดี (บนคอมไม่เห็น)
+     กันนอตช์ด้วย safe-area แล้วบวก 26 ให้ตัวปุ่มเสมอกับบรรทัดหัวเรื่องของหน้าจอ
+     ไม่ใช่แค่ "พ้นแบต" เฉย ๆ — ของที่ลอยต้องเกาะบรรทัดใดบรรทัดหนึ่งถึงจะดูตั้งใจ */
+  .top-friends { top: calc(26px + env(safe-area-inset-top)); }
 }
 
 /* ---------- ปุ่มเฟืองในการ์ดโปรไฟล์ (1A9e) ---------- */
