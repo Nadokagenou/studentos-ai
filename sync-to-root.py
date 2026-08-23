@@ -22,7 +22,18 @@ ALT = os.path.join(ROOT, 'alt')
 # แต่ละสายมีของตัวเอง — ห้ามก๊อปทับ
 PER_CHANNEL = {'manifest.json', 'config.js', 'sw.js'}
 # มีเฉพาะบิลด์ทดลอง — ตัวจริงไม่มีไฟล์ (ก๊อปขึ้นไปก็ได้ปุ่มลอย "แก้ดีไซน์" ติดมาด้วย)
-ALT_ONLY = {'visual-editor.js'}
+# icon-alt-* คือไอคอนที่มีแถบ ALT คาด — ตัวจริงต้องได้ icon-*.png ธรรมดาแทน
+# (index.html ถูกแก้กลับให้อ้าง icon-192.png อยู่แล้วในตาราง IDENTITY ข้างล่าง)
+ALT_ONLY = {'visual-editor.js', 'icon-alt-192.png', 'icon-alt-512.png'}
+
+# ⚠️ บทเรียนจากรอบ ca2694b (โลโก้ใหม่ขึ้นแต่ alt/ ตัวจริงค้างโลโก้เก่า 6 วัน):
+#    สคริปต์เคยก๊อปแค่ .js กับ .css รูปจึงไม่เคยตามขึ้นไป — และรูปเป็นของที่
+#    "ชื่อไฟล์เดิมทุกไฟล์" เวลาเปลี่ยน จึงไม่มีอะไรบนหน้าจอบอกว่ามันค้าง
+#    ตอนนี้รูปที่หน้าเรียกใช้ถูกก๊อปตามอัตโนมัติแล้ว ส่วนสองตัวข้างล่างต้องระบุเอง
+#    เพราะตัวจริงอ้างถึงมันผ่าน IDENTITY เท่านั้น (ฝั่ง alt เขียนว่า icon-alt-*)
+#    logo-mark.png ก็เช่นกัน — ไม่มีหน้าไหนอ้างถึงแล้ว แต่ยังอยู่ใน SHELL ของ sw.js
+#    ทั้งสองสาย มันจึงถูกโหลดลงแคชจริง ปล่อยค้างไว้ = เสิร์ฟไฟล์เก่าโดยไม่มีใครเห็น
+ALWAYS = ['icon-192.png', 'icon-512.png', 'logo-mark.png']
 
 # (ไฟล์, ข้อความในเวอร์ชัน alt, ข้อความที่ตัวจริงต้องได้)
 # ที่เหลืออยู่มีแค่ไอคอน — <title>, ชื่อแอปบนจอโฮม, APP_CHANNEL และคำว่า
@@ -37,15 +48,19 @@ IDENTITY = [
 ]
 
 
+# นามสกุลที่ถือว่าเป็น "ของที่หน้าเรียกใช้" — รูปอยู่ในนี้ด้วย ไม่ใช่แค่โค้ด
+ASSETS = ('.js', '.css', '.png', '.svg', '.webp', '.ico', '.jpg', '.jpeg')
+
+
 def local_refs(html):
-    """ชื่อไฟล์ .js / .css ในโฟลเดอร์เดียวกันที่หน้านี้เรียกใช้จริง (ไม่นับที่คอมเมนต์ทิ้ง)"""
+    """ชื่อไฟล์ในโฟลเดอร์เดียวกันที่หน้านี้เรียกใช้จริง (ไม่นับที่คอมเมนต์ทิ้ง)"""
     live = re.sub(r'<!--.*?-->', '', html, flags=re.S)
     out = []
     for m in re.finditer(r'(?:src|href)="([^"]+)"', live):
         v = m.group(1)
         if '/' in v or v.startswith(('http', '#', 'data:')):
             continue
-        if v.endswith(('.js', '.css')):
+        if v.endswith(ASSETS):
             out.append(v)
     return out
 
@@ -58,8 +73,8 @@ def main():
         pass
 
     alt_html = io.open(os.path.join(ALT, 'index.html'), encoding='utf-8', newline='').read()
-    files = ['index.html'] + [f for f in local_refs(alt_html)
-                              if f not in PER_CHANNEL and f not in ALT_ONLY]
+    files = ['index.html'] + ALWAYS + [f for f in local_refs(alt_html)
+                                       if f not in PER_CHANNEL and f not in ALT_ONLY]
 
     copied, added = [], []
     for name in dict.fromkeys(files):          # กันชื่อซ้ำ แต่คงลำดับไว้

@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A9g';                 // สายเลขของแอป
+const APP_VERSION = '1A9h';                 // สายเลขของแอป
 const APP_CODENAME = 'Klarheit';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -674,7 +674,7 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
 //   scr-parsing  — จอรอระหว่าง AI อ่าน ไม่มีอะไรให้กลับไปดู
 //   scr-form     — สิ่งที่พิมพ์ค้างไว้หายไป กลับมาเจอฟอร์มเปล่าน่าสับสนกว่า
 //   scr-login / scr-onboard — มีด่านของตัวเองตัดสินอยู่แล้ว
-const NO_RESUME = ['scr-crop', 'scr-parsing', 'scr-form', 'scr-login', 'scr-onboard', 'scr-setopt'];
+const NO_RESUME = ['scr-crop', 'scr-parsing', 'scr-form', 'scr-login', 'scr-onboard', 'scr-setopt', 'scr-ctxwiz'];
 const LAST_SCR_KEY = 'studentos.alt.lastScreen';
 // เกิน 30 นาทีถือว่าเป็นการเปิดใหม่ ไม่ใช่การกลับเข้ามาต่อ — เริ่มที่เมนูตามปกติ
 // (กลับมาวันรุ่งขึ้นแล้วเจอจอสุ่มสกินค้างอยู่ ไม่ใช่สิ่งที่ใครคาดหวัง)
@@ -3884,27 +3884,52 @@ function renderContext() {
   //
   // ใช้ .tl-hint ตัวเดียวกับที่เส้นเวลาใช้ — ไม่มีกรอบ ไม่มีพื้นสี สูงแค่บรรทัดเดียว
   // ของหลักในจอนี้คือกราฟกับตัวเลข คำชวนที่ดังกว่าของหลัก คือคำชวนที่แย่งที่ของเขา
-  const empty = ctxIsEmpty();
+  // เกณฑ์คือ "รู้จักครบหรือยัง" ไม่ใช่ "ว่างเปล่าไหม" (1A9h)
+  // หน้าทำความรู้จักตอนสมัครใส่วันหยาบ ๆ ให้อยู่แล้ว ctxIsEmpty() จึงเป็นเท็จตั้งแต่วันแรก
+  // ใช้เกณฑ์เดิมคำชวนก็แทบไม่เคยขึ้น ทั้งที่แอปยังไม่รู้อะไรเกี่ยวกับเขาเลย
+  const know = ctxKnow();
   const hero = document.getElementById('ctxHero');
   const row  = document.getElementById('peCtx');
   const ct   = document.getElementById('peCtxCt');
 
   if (ct) {
-    ct.textContent = empty
-      ? 'ยังไม่ได้ตั้ง — AI ยังเดาเวลาว่างอยู่'
-      : ctxClasses().length + ' คาบเรียน · ' + ctxRoutines().length + ' กิจวัตร';
+    ct.textContent = know >= 100
+      ? ctxClasses().length + ' คาบเรียน · ' + ctxRoutines().length + ' กิจวัตร'
+      : 'รู้จักคุณแล้ว ' + know + '% — ตอบเพิ่มได้';
   }
-  if (row) row.hidden = empty;
+  if (row) row.hidden = false;
   if (hero) {
-    hero.innerHTML = empty ? `<button class="tl-hint pf-hint" onclick="go('scr-context')">
-      ${icon('clock')}<span>ยังไม่รู้ตารางชีวิต — AI เดาเวลาว่างอยู่</span>
-      <b>ตั้งเลย</b>${icon('chevron')}
-    </button>` : '';
+    hero.innerHTML = know >= 100 ? '' : `<button class="tl-hint pf-hint" onclick="wizOpen()">
+      ${icon('clock')}<span>${know ? 'รู้จักคุณแล้ว ' + know + '%' : 'ยังไม่รู้ตารางชีวิต'} — AI เดาเวลาว่างอยู่</span>
+      <b>${know ? 'ตอบต่อ' : 'ตั้งเลย'}</b>${icon('chevron')}
+    </button>`;
   }
 
+  const gaps = ctxGaps();
+  const missing = gaps.filter(g => !g.done);
+
   body.innerHTML = `
-    <!-- ผลลัพธ์มาก่อนฟอร์มเสมอ -->
-    <section class="ctx-sum">
+    <!-- ผลลัพธ์มาก่อนฟอร์มเสมอ — และผลลัพธ์ที่อ่านง่ายที่สุดคือรูปวันของเขาเอง (1A9h)
+         ตัวเลข "ว่าง 2 ชม." ตอบไม่ได้ว่าสองชั่วโมงนั้นอยู่ก่อนหรือหลังข้าวเย็น -->
+    ${ctxBarHtml(ctxBarDay)}
+
+    <!-- แถบรู้จัก — จอนี้เคยเปิดมาเจอฟอร์มเปล่าที่ไม่บอกว่าต้องกรอกอะไรถึงจะพอ
+         ตอนนี้บอกตรง ๆ ว่ายังไม่รู้อะไร และรู้แล้วจะเอาไปทำอะไร -->
+    <section class="ctx-know">
+      <div class="ck-h"><span>รู้จักคุณแล้ว ${ctxKnow()}%</span>
+        <b class="mono">${gaps.length - missing.length}/${gaps.length}</b></div>
+      <div class="ck-bar"><span style="width:${ctxKnow()}%"></span></div>
+      ${missing.length ? `<div class="ck-list">${missing.map(g => `<div class="ck-gap">
+        <span class="ck-dot"></span>
+        <span class="ck-tx"><b>${esc(g.label)}</b><i>${esc(g.why)}</i></span>
+      </div>`).join('')}</div>
+      <button class="btn sm ck-go" onclick="wizOpen()">${icon('sparkles')}ตอบให้ครบใน 1 นาที</button>`
+      : `<p class="ck-done">${icon('check')}ครบแล้ว — ตารางที่ AI วางให้อ้างจากวันจริงของคุณทั้งหมด</p>`}
+    </section>
+
+    ${ctxLearnHtml()}
+
+    <div class="ctx-sum">
       <div class="ctx-sum-h">${icon('clock')}<span>เหลือเวลาว่างวันนี้</span></div>
       <div class="ctx-sum-v">${esc(ctxHours(total))}</div>
       <div class="ctx-slots">
@@ -3914,7 +3939,7 @@ function renderContext() {
       </div>
       <p class="ctx-sum-p">นับจากตอนนี้ถึง ${esc(p.noWorkAfter)} น. หักเวลาเรียนกับกิจวัตรออกแล้ว
         ช่องที่สั้นกว่า ${p.minBlockMin} นาทีไม่ถูกนับ</p>
-    </section>
+    </div>
 
     <!-- กรอกตารางเรียนทีละคาบคือการพิมพ์ 30–40 ครั้ง ซึ่งเกือบไม่มีใครทำจนจบ
          ทางลัดจึงต้องอยู่เหนือฟอร์ม ไม่ใช่ซ่อนไว้ท้ายจอหลังของที่มันมาแทน -->
@@ -3973,7 +3998,11 @@ function ctxBarHtml(weekday, opts = {}) {
   const seg = bar.blocks.map(b => {
     const pct = b.min / span * 100;
     const txt = pct >= 9 ? (b.kind === 'busy' ? esc(b.title) : ctxHours(b.min)) : '';
-    return `<i class="cb-${b.kind}" style="flex:${b.min}" title="${esc(min2hm(b.from))}–${esc(min2hm(b.to))}">${txt}</i>`;
+    // ก้อนส่วนใหญ่แคบเกินกว่าจะใส่ตัวหนังสือ สีจึงต้องเป็นตัวบอกแทนว่าอะไรอยู่ตรงไหน
+    // ไม่งั้นแท่งจะเป็นแถวสี่เหลี่ยมเทาเปล่า ๆ ที่ไม่ได้บอกอะไรมากกว่าตัวเลขบรรทัดล่าง
+    const of = b.kind === 'busy' ? ` cb-of-${b.of === 'class' ? 'class' : (CTX_KINDS[b.of] ? b.of : 'other')}` : '';
+    return `<i class="cb-${b.kind}${of}" style="flex:${b.min}"
+      title="${esc(min2hm(b.from))}–${esc(min2hm(b.to))} ${esc(b.title || '')}">${txt}</i>`;
   }).join('');
 
   const first = bar.blocks.find(b => b.kind === 'free');
@@ -4003,15 +4032,17 @@ const WIZ_LAST = 5;
 const WIZ_OUT = ['15:00', '15:30', '16:00', '16:30', '17:00', '18:00'];
 // ของที่พบบ่อยพอจะขึ้นเป็นชิป — ที่เหลือผู้ใช้พิมพ์เองได้ในจอบริบท
 // เดาเวลาให้ทุกอันแล้ว เพราะชิปที่เลือกแล้วต้องกรอกเวลาต่อ คือชิปที่ไม่ได้ช่วยอะไร
+// slot บอกว่ากิจกรรมนั้นเกาะอยู่กับหมุดไหนของวัน — ซ้อมกีฬาต่อท้ายคาบเรียนเลย
+// ส่วนดูซีรีส์อยู่หลังข้าวเย็น สองอย่างนี้วางที่เดียวกันไม่ได้
 const WIZ_CHIPS = [
-  { key: 'tutor', title: 'เรียนพิเศษ',      kind: 'study',    after: 30, min: 90 },
-  { key: 'sport', title: 'ซ้อมกีฬา',        kind: 'activity', after: 0,  min: 90 },
-  { key: 'screen', title: 'ดูซีรีส์ เล่นเกม', kind: 'other',    after: 120, min: 60 },
-  { key: 'friend', title: 'ติวกับเพื่อน',    kind: 'study',    after: 60, min: 60 },
-  { key: 'music', title: 'ดนตรี',           kind: 'activity', after: 60, min: 60 },
-  { key: 'work',  title: 'ทำงานพิเศษ',      kind: 'activity', after: 30, min: 120 },
-  { key: 'family', title: 'ช่วยงานบ้าน ดูแลน้อง', kind: 'other', after: 0, min: 45 },
-  { key: 'gym',   title: 'ออกกำลังกาย',     kind: 'activity', after: 90, min: 45 },
+  { key: 'sport', title: 'ซ้อมกีฬา',        kind: 'activity', slot: 'school',  min: 90 },
+  { key: 'tutor', title: 'เรียนพิเศษ',      kind: 'study',    slot: 'school',  min: 90 },
+  { key: 'family', title: 'ช่วยงานบ้าน ดูแลน้อง', kind: 'other', slot: 'evening', min: 45 },
+  { key: 'friend', title: 'ติวกับเพื่อน',    kind: 'study',    slot: 'evening', min: 60 },
+  { key: 'music', title: 'ดนตรี',           kind: 'activity', slot: 'evening', min: 60 },
+  { key: 'gym',   title: 'ออกกำลังกาย',     kind: 'activity', slot: 'evening', min: 45 },
+  { key: 'work',  title: 'ทำงานพิเศษ',      kind: 'activity', slot: 'evening', min: 120 },
+  { key: 'screen', title: 'ดูซีรีส์ เล่นเกม', kind: 'other',    slot: 'evening', min: 60 },
 ];
 
 let wiz = null;
@@ -4059,13 +4090,60 @@ function wizEditTime(key, which, v) {
   renderCtxWiz();
 }
 
+// ช่วงที่มีของจองไว้แล้วในวันธรรมดา ณ ตอนนี้ — กิจวัตรที่เดาไว้และยังไม่ถูกปัดทิ้ง
+// บวกกับชิปที่เพิ่งเลือกไปก่อนหน้า ตัวหลังสำคัญไม่แพ้ตัวแรก:
+// เลือกสามอย่างติดกันแล้วทั้งสามลงเวลาเดียวกัน คือสิ่งที่ผู้ใช้ต้องมานั่งแก้เองทั้งหมด
+function wizTaken() {
+  const out = [];
+  const span = ctxSchoolSpan();
+  if (span) out.push({ from: span.from, to: span.to });
+  for (const g of ctxGuessRoutines()) {
+    if (wiz.drop[g.key]) continue;
+    const e = wiz.edit[g.key] || {};
+    out.push({ from: hm2min(e.start || g.start), to: hm2min(e.end || g.end) });
+  }
+  for (const v of Object.values(wiz.picks)) out.push({ from: hm2min(v.start), to: hm2min(v.end) });
+  return out.filter(r => r.from != null && r.to != null).sort((a, b) => a.from - b.from);
+}
+
+// เลื่อนลงไปเรื่อย ๆ จนเจอช่องที่ยาวพอ — ถ้าชนขอบเส้นห้ามวางงานก็ยอมวางทับ
+// แล้วให้ขั้นถัดไปเตือน ดีกว่าวางเงียบ ๆ ตอนตีสองซึ่งไม่มีทางเป็นของจริง
+function wizFreeAt(pref, min) {
+  const taken = wizTaken();
+  const last = (hm2min(ctxPrefs().sleep) || 22 * 60);
+  let at = pref;
+  for (let i = 0; i < 24; i++) {
+    const hit = taken.find(r => r.from < at + min && r.to > at);
+    if (!hit) break;
+    at = hit.to;
+    if (at + min > last) return pref;
+  }
+  return at;
+}
+
 function wizChip(key) {
   if (!wiz) return;
   if (wiz.picks[key]) delete wiz.picks[key];
   else {
     const c = WIZ_CHIPS.find(x => x.key === key);
-    const base = (hm2min(wiz.outHm) || 16 * 60) + 60 + c.after;   // หลังกลับถึงบ้านคร่าว ๆ
-    wiz.picks[key] = { start: min2hm(base), end: min2hm(base + c.min), days: [1, 2, 3, 4, 5] };
+    const span = ctxSchoolSpan();
+    const out = span ? span.to : (hm2min(wiz.outHm) || 16 * 60);
+    let at;
+    if (c.slot === 'school') {
+      // ซ้อมกีฬา/เรียนพิเศษ เกิดที่โรงเรียนต่อจากคาบสุดท้าย ไม่ใช่หลังข้าวเย็น
+      // มันทับ "เดินทางกลับบ้าน" ที่เดาไว้แน่นอน — แต่นั่นคือความจริงของวันที่มีซ้อม
+      // (กลับบ้านช้าลงจริง) ปล่อยให้ทับแล้วให้ขั้นถัดไปเตือน ดีกว่าดันไปโผล่ตอนหกโมงเย็น
+      const sameSlot = Object.keys(wiz.picks)
+        .filter(k => (WIZ_CHIPS.find(x => x.key === k) || {}).slot === 'school')
+        .map(k => hm2min(wiz.picks[k].end) || 0);
+      at = Math.max(out, ...sameSlot);
+    } else {
+      // ที่เหลือเริ่มหลังของที่เดาไว้ทั้งหมดจบแล้ว (ปกติคือหลังข้าวเย็น)
+      const evening = Math.max(...[out, ...ctxGuessRoutines()
+        .filter(g => !wiz.drop[g.key]).map(g => hm2min(g.end) || 0)]);
+      at = wizFreeAt(evening, c.min);
+    }
+    wiz.picks[key] = { start: min2hm(at), end: min2hm(at + c.min), days: [1, 2, 3, 4, 5] };
   }
   renderCtxWiz();
   haptic('tap');
@@ -4113,6 +4191,28 @@ function wizApply() {
   }
   ctxBarDay = 1;
   renderAll();
+}
+
+// ชิปนี้ทับกับอะไร — คืนชื่อของก้อนแรกที่ทับ หรือ '' ถ้าไม่ทับใคร
+function wizClashOf(key) {
+  if (!wiz || !wiz.picks[key]) return '';
+  const v = wiz.picks[key];
+  const a = hm2min(v.start), b = hm2min(v.end);
+  if (a == null || b == null) return '';
+  const span = ctxSchoolSpan();
+  if (span && span.from < b && span.to > a) return 'เวลาเรียน';
+  for (const g of ctxGuessRoutines()) {
+    if (wiz.drop[g.key]) continue;
+    const e = wiz.edit[g.key] || {};
+    if ((hm2min(e.start || g.start) ?? 0) < b && (hm2min(e.end || g.end) ?? 0) > a) return g.title;
+  }
+  for (const [k2, v2] of Object.entries(wiz.picks)) {
+    if (k2 === key) continue;
+    if ((hm2min(v2.start) ?? 0) < b && (hm2min(v2.end) ?? 0) > a) {
+      return (WIZ_CHIPS.find(x => x.key === k2) || {}).title || '';
+    }
+  }
+  return '';
 }
 
 function wizDayChips(key, days) {
@@ -4183,6 +4283,9 @@ function renderCtxWiz() {
       <div class="wz-list">${keys.map(k => {
         const c = WIZ_CHIPS.find(x => x.key === k), v = wiz.picks[k];
         const bad = hm2min(v.end) <= hm2min(v.start);
+        // ทับของอื่นไม่ใช่ความผิด — คนเราทำสองอย่างพร้อมกันได้จริง (กินข้าวไปดูซีรีส์ไป)
+        // แต่ต้องบอกให้เห็น เพราะเวลาที่ถูกจองซ้อนกันจะถูกนับเป็นช่วงว่างน้อยลงกว่าที่เขาคิด
+        const clash = !bad && wizClashOf(k);
         return `<div class="wz-slot">
           <div class="wz-slot-h"><b>${esc(c.title)}</b>
             <button class="wz-x" onclick="wizChip('${k}')" aria-label="เอาออก">${icon('x')}</button></div>
@@ -4193,6 +4296,7 @@ function renderCtxWiz() {
             <input type="time" value="${esc(v.end)}" onchange="wizPickTime('${k}','end',this.value)">
           </div>
           ${bad ? '<p class="wz-bad">เวลาจบต้องอยู่หลังเวลาเริ่ม — อันนี้จะยังไม่ถูกบันทึก</p>' : ''}
+          ${clash ? `<p class="wz-warn">${icon('clock')}ทับกับ "${esc(clash)}" อยู่ — ตั้งใจแบบนี้ก็ได้ ไม่ได้ก็ขยับเวลา</p>` : ''}
         </div>`;
       }).join('')}</div>`;
   }
@@ -4242,8 +4346,21 @@ function ctxLearn() {
   // ชั่วโมงที่ชนะแบบเฉียดฉิวไม่ใช่รูปแบบ — ต้องกินสัดส่วนจริงถึงจะพูดได้
   if (topN < Math.max(3, done.length * 0.3)) return null;
 
+  // เทียบกับตารางของ "วันที่เขาทำงานจริง" ไม่ใช่ของวันนี้
+  // ใช้วันนี้แล้วผลจะเปลี่ยนไปมาตามว่าเปิดจอตอนวันไหน — วันเสาร์ไม่มีคาบเรียน
+  // ข้อสังเกตเดียวกันจึงหายไปทุกสุดสัปดาห์ แล้วโผล่กลับมาวันจันทร์ ซึ่งอธิบายไม่ได้
+  const byDay = {};
+  for (const t of done) {
+    const d = new Date(t.doneAt);
+    if (d.getHours() !== hour) continue;
+    byDay[d.getDay()] = (byDay[d.getDay()] || 0) + 1;
+  }
+  const topDay = +Object.entries(byDay).sort((a, b) => b[1] - a[1])[0][0];
+  const ref = new Date();
+  ref.setDate(ref.getDate() + ((topDay - ref.getDay()) + 7) % 7);
+
   const from = hour * 60, to = from + 60;
-  const busy = busyBlocks(new Date()).filter(b => b.from < to && b.to > from && b.kind !== 'class');
+  const busy = busyBlocks(ref).filter(b => b.from < to && b.to > from && b.kind !== 'class');
   if (busy.length) {
     return { type: 'clash', hour, n: topN, block: busy[0],
       msg: `คุณติ๊กงานเสร็จช่วง ${min2hm(from)}–${min2hm(to)} อยู่บ่อย (${topN} จาก ${done.length} งาน)
@@ -4278,6 +4395,10 @@ function ctxLearnHtml() {
 function ctxLearnApply() {
   const hit = ctxLearn();
   if (!hit) return;
+  // ปิดข้อสังเกตของชั่วโมงนี้ไว้หลังลงมือแล้ว — ขยับกิจวัตรหนึ่งอันมักเปิดโปงอันถัดไปทันที
+  // ถ้าไม่ปิด การ์ดใบใหม่จะเด้งขึ้นมาแทนที่ใบเดิมในวินาทีเดียวกัน กลายเป็นเกมตีตัวตุ่น
+  // ที่เหลือรอรอบหน้าค่อยว่ากัน — เขาเพิ่งตอบไปหนึ่งคำถาม ไม่ได้ขอให้จัดตารางใหม่ทั้งเย็น
+  try { localStorage.setItem(CTX_LEARN_DISMISS, hit.type + hit.hour); } catch (_) {}
   if (hit.type === 'clash') {
     // ขยับกิจวัตรที่ทับให้เริ่มหลังชั่วโมงที่เขาทำงานจริง โดยรักษาความยาวเดิมไว้
     const r = ctxRoutines().find(x => x.id === hit.block.id);

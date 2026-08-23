@@ -437,24 +437,28 @@ function ctxDayBar(weekday) {
   const minBlock = Math.max(5, +p.minBlockMin || 20);
   const ref = new Date();
   ref.setDate(ref.getDate() + ((weekday - ref.getDay()) + 7) % 7);
-  const busy = mergeRanges(busyBlocks(ref).filter(b => b.to > from && b.from < to))
-    .map(b => ({ from: Math.max(b.from, from), to: Math.min(b.to, to) }));
 
-  // ชื่อของก้อนที่ถูกรวมแล้ว — เอาของก้อนแรกที่ทับมัน พอสำหรับป้ายบนแท่ง
-  const label = r => {
-    const hit = busyBlocks(ref).filter(b => b.from < r.to && b.to > r.from);
-    return hit.length ? hit[0].title : 'ติดธุระ';
-  };
+  // ไม่รวมก้อนที่ติดกันเข้าด้วยกันเหมือน freeSlots — ที่นั่นสนใจแค่ "ว่างหรือไม่ว่าง"
+  // แต่แท่งนี้ต้องตอบว่า "วันนึงหน้าตายังไง" · เรียน–ซ้อม–เดินทาง–กินข้าวที่ต่อกันสนิท
+  // ถ้ารวมเป็นก้อนเดียวจะได้แท่งเทายาวสิบสี่ชั่วโมงชื่อ "เรียนที่โรงเรียน" ซึ่งไม่บอกอะไรเลย
+  //
+  // ช่วงที่ซ้อนกันตัดให้ตัวที่มาก่อนถือครอง (คนเราทำสองอย่างพร้อมกันได้ แต่แท่งวาดซ้อนไม่ได้)
+  // ตัวที่ถูกกลืนจนไม่เหลือเวลาก็ไม่ต้องขึ้นแท่ง — ก้อนกว้างศูนย์ไม่มีอะไรให้ดู
+  const raw = busyBlocks(ref)
+    .filter(b => b.to > from && b.from < to)
+    .map(b => ({ from: Math.max(b.from, from), to: Math.min(b.to, to), title: b.title, of: b.kind }));
 
   const blocks = [];
   let cur = from, freeMin = 0;
-  for (const b of busy) {
-    if (b.from > cur) {
-      const min = b.from - cur;
-      blocks.push({ from: cur, to: b.from, min, kind: min >= minBlock ? 'free' : 'gap' });
+  for (const b of raw) {
+    const start = Math.max(b.from, cur);
+    if (b.to <= start) continue;                     // ถูกก้อนก่อนหน้ากลืนไปหมดแล้ว
+    if (start > cur) {
+      const min = start - cur;
+      blocks.push({ from: cur, to: start, min, kind: min >= minBlock ? 'free' : 'gap' });
       if (min >= minBlock) freeMin += min;
     }
-    blocks.push({ from: b.from, to: b.to, min: b.to - b.from, kind: 'busy', title: label(b) });
+    blocks.push({ from: start, to: b.to, min: b.to - start, kind: 'busy', title: b.title, of: b.of });
     cur = b.to;
   }
   if (cur < to) {
