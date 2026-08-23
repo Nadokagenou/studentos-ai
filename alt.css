@@ -5667,13 +5667,19 @@ body.deep-scr .top-friends { display: none; }
   :root:not([data-nav="side"]) .tabbar {
     position: static;
     flex: none;
-    border-radius: 0; border-width: 1px 0 0;
+    /* 1A9o · กลับมาเป็นแคปซูลลอยตามที่เลือก — แต่คราวนี้เป็นแคปซูลที่ "อยู่ในผัง"
+       ระยะห่างจากขอบจอมาจาก margin ไม่ใช่ bottom/left/right ของของลอย
+       ต่างกันตรงที่ margin ไม่ต้องรู้ว่าขอบจออยู่ไหน มันแค่เว้นจากก้นกล่องพ่อ
+       ซึ่งเป็นเหตุผลเดียวกับที่ทิ้ง fixed ไปใน 1A9n — ไม่มีตัวแปรที่ iOS ตีความต่างได้
+       margin ล่างใช้ max() กับ safe area: มีแถบ home indicator ก็เว้นเท่ามัน ไม่มีก็ 8px */
+    margin: 0 12px max(8px, env(safe-area-inset-bottom));
+    border-radius: 20px; border-width: 1px;
     /* max() ไม่ใช่ + : ถ้าเครื่องมีแถบ home indicator ก็ใช้ระยะของมัน ถ้าไม่มีก็ 8px
        บวกกันคือที่มาของ "แผ่นเปล่าซ้อนสองชั้น" ที่เห็นในรุ่นก่อน */
     /* 1A9f · ความสูงแถบ = 49px + safe area เท่าแถบล่างของ iOS เป๊ะ
        (1 ขอบ + 4 padding + 44 ปุ่ม) ของเดิม 6 + 48 = 55 ซึ่งเกินมา 6px
        44 คือขนาดปุ่มขั้นต่ำที่นิ้วกดติด จึงลดต่ำกว่านี้ไม่ได้ */
-    padding: 6px 4px max(8px, env(safe-area-inset-bottom));
+    padding: 5px 4px;
     /* พื้นเป็นสีการ์ด ไม่ใช่สีพื้นจอ — สีเดียวกับพื้นจอทำให้แถบไม่มีขอบบน
        สายตาจึงอ่านที่ว่างทั้งก้อนล่างจอเป็นแถบเดียวกัน แล้วรู้สึกว่าแถบสูงกว่าจริง */
     background: var(--card);
@@ -5699,20 +5705,24 @@ body.deep-scr .top-friends { display: none; }
   /* กันชั้นสุดท้าย: ถ้า .phone สูงไม่ถึงขอบจอจริงบนเครื่องไหน แถบสีที่โผล่ใต้มัน
      ต้องเป็นสีเดียวกับพื้นแถบ ไม่ใช่สีพื้นจอ — สีพื้นจออ่านออกมาว่า "เลย์เอาต์หลุด"
      สีเดียวกับแถบอ่านออกมาว่า "แถบมันสูงเท่านี้" ซึ่งไม่มีใครสงสัย */
-  html, body { background: var(--card); }
+  html, body { background: var(--scr); }
   /* 1A9k · ปุ่ม + ไม่ลอยเหนือแถบอีกแล้ว
      ก้อนกลมสีแบรนด์ที่โผล่ขึ้นมาพร้อมวงแหวนสีพื้นแถบ คือของที่ต้องกินพื้นที่นอกแถบ
      พอแถบมาติดขอบจอจริง (1A9c) ส่วนที่โผล่ขึ้นไปก็ไปนั่งทับการ์ดใบล่างสุดตลอดเวลา
      และวงแหวนรอบปุ่มก็อ่านเป็น "รอยขาดบนแถบ" ไม่ใช่ปุ่มลอย
      ปุ่มนี้จึงกลายเป็นแท็บธรรมดาแท็บที่สาม เท่าอีกสี่ปุ่มเป๊ะ — แถบล่างมีของชนิดเดียว
      (การเพิ่มงานยังเข้าถึงได้จากปุ่มในหน้า "งาน" และแผ่นเลื่อนขึ้นตัวเดิมทุกประการ) */
-  :root:not([data-nav="side"]) .tab.scan .scan-dot { width: 23px; height: 23px; margin: 0;
-    border-radius: 0; background: none; color: inherit;
-    box-shadow: none; outline: none; }
-  .tab.scan .scan-dot svg { width: 23px; height: 23px; stroke-width: 2; }
-  .tab.scan { color: var(--muted); }
-  .tab.scan.active { color: var(--blue); }
-  .tab.scan:active .scan-dot { transform: scale(.88); }
+  /* 1A9o · ปุ่ม + กลับมาเป็นก้อนกลมลอยเหนือแถบ
+     46 − 24 = 22 เท่าไอคอนปุ่มอื่นเป๊ะ แถบจึงไม่สูงขึ้นเพราะปุ่มนี้ ส่วนที่เกินคือการล้น
+     ออกนอกผัง ไม่ดันอะไรทั้งนั้น · วงแหวนต้องเป็นสีพื้นแคปซูล ไม่ใช่สีพื้นจอ */
+  :root:not([data-nav="side"]) .tab.scan .scan-dot {
+    width: 46px; height: 46px; margin-top: -24px;
+    border-radius: 50%; background: var(--grad-brand); color: #fff;
+    outline: 3px solid var(--card);
+    box-shadow: var(--glow-scan), 0 8px 20px -8px rgba(0, 0, 0, .45); }
+  .tab.scan .scan-dot svg { width: 22px; height: 22px; stroke-width: 2.1; }
+  .tab.scan { color: var(--blue-deep); }
+  .tab.scan:active .scan-dot { transform: scale(.9); }
 
   /* ระยะเผื่อท้ายหน้า — 1A9k แถบสูง 6 + 44 + safe = 50 + safe แล้วไม่มีปุ่มโผล่เหนือแถบอีก
      เผื่อ 62 = ความสูงแถบ + ช่องหายใจ 12px ใต้การ์ดใบล่างสุด
@@ -5721,7 +5731,7 @@ body.deep-scr .top-friends { display: none; }
      ตัวเลขชุดเดิม (62 + safe) กลายเป็นที่ว่างเปล่าคาอยู่ใต้การ์ดใบล่างสุดทันทีที่แถบเป็น static */
   :root:not([data-nav="side"]) .screen, :root:not([data-nav="side"]) .home-body,
   :root:not([data-nav="side"]) .scr-body, :root:not([data-nav="side"]) .menu-body {
-    padding-bottom: 18px;
+    padding-bottom: 34px;
   }
 
   /* แถบจับเวลาต้องลอยเหนือแถบล่างเสมอ — ของเดิมวัดจาก .phone ด้วย bottom คงที่ 77px
