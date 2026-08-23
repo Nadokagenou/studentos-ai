@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A9d';                 // สายเลขของแอป
+const APP_VERSION = '1A9e';                 // สายเลขของแอป
 const APP_CODENAME = 'Klarheit';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -4954,6 +4954,11 @@ function renderTabBadges() {
 //
 // และข้อสังเกตพวกนี้ไม่ได้จบที่การอ่าน — durationStats ตัวเดียวกันนี้ถูกป้อนกลับเข้าตัวจัดแผน
 // ผ่าน plannedMin() แปลว่า "ใช้เวลามากกว่าที่ประเมินไว้ 1.4 เท่า" ทำให้แผนสัปดาห์หน้ากันเวลาให้จริง
+// ถูกแทนด้วยกล่อง "น้องไซวิเคราะห์" (.an-ai) ในจอวิเคราะห์ตั้งแต่ 1A9e
+// ทั้งสองอันอ่าน weeklyReview().insights ชุดเดียวกัน ต่างกันแค่หน้าตา — เก็บอันที่ใหม่กว่าไว้
+// ตัวเลขสามตัวที่การ์ดนี้เคยพก (งานเสร็จ · ที่จับเวลาไว้ · งานถูกเลื่อน)
+// อยู่ในไทล์บนสุด กราฟ 7 วัน และการ์ด "เลื่อนงาน" ของจอนั้นครบแล้ว
+// ยังไม่ลบทิ้งเพราะเป็นก้อนที่พร้อมใช้ ถ้าจะเอา "สรุปสัปดาห์" กลับมาเป็นการ์ดของตัวเอง
 function weekReviewCard(now) {
   if (typeof weeklyReview !== 'function') return '';
   const r = weeklyReview(state, now);
@@ -5015,7 +5020,6 @@ function renderStats() {
       <span class="sec-label">ผลของฉัน</span>
       <span class="st-open-go">ดูทั้งหมด${icon('chevron')}</span>
     </button>
-    ${weekReviewCard(now)}
     <div class="st-hero">
       <div><div class="v">${done.length}</div><div class="k">งานที่เสร็จ</div></div>
       <div class="sep"></div>
@@ -5042,35 +5046,172 @@ function renderStats() {
   renderStatFull(now, { onTimePct, onTime, rated, snoozes, subjRows });
 }
 
-// ---------- ผลของฉัน ฉบับเต็ม ----------
+// ---------- ผลของฉัน ฉบับเต็ม — จอวิเคราะห์ ----------
 // รับตัวเลขที่ renderStats คำนวณไว้แล้วมาใช้ต่อ ไม่คำนวณซ้ำ —
 // สองจอที่นับงานเดียวกันคนละรอบ คือสองจอที่มีโอกาสตอบไม่ตรงกัน
+//
+// กฎเดียวที่คุมทั้งจอนี้: **ทุกตัวเลขต้องมีที่มาจริง**
+// จอสรุปผลคือจอที่โกหกง่ายที่สุด เพราะกราฟสวย ๆ ทำให้ตัวเลขที่เดามาดูน่าเชื่อ
+// อะไรที่แอปยังไม่มีข้อมูลพอ ก็ไม่ต้องขึ้นการ์ดนั้นเลย ดีกว่าขึ้นแล้วใส่เลขปลอม
+// (จึงไม่มีระบบ XP / เลเวล / "ดีขึ้น 18%" ลอย ๆ — พวกนั้นต้องมีฐานข้อมูลที่เรายังไม่ได้เก็บ)
+//
+// สีทองใช้ได้เฉพาะของที่ "ทำสำเร็จแล้ว" เท่านั้น (สถิติต่อเนื่อง · เหรียญที่ได้)
+// ถ้าทองไปโผล่บนของที่ยังไม่ได้ทำ มันก็เลิกแปลว่าสำเร็จทันที
 function renderStatFull(now, d) {
   const box = document.getElementById('statFull');
   if (!box) return;
+
+  const live = liveTasks();
+  const done = live.filter(t => t.done);
+  const DAY = 8.64e7;
+  const streak = typeof loginStreak === 'function' ? loginStreak() : 0;
+
+  // ---- เทียบกับสัปดาห์ก่อน ----
+  // ไม่มีสัปดาห์ก่อนให้เทียบ = ไม่มีเปอร์เซ็นต์ · "ดีขึ้น 100%" จากศูนย์เป็นหนึ่งไม่ได้แปลว่าอะไร
+  const inRange = (t, a, b) => t.doneAt && (now - new Date(t.doneAt)) >= a && (now - new Date(t.doneAt)) < b;
+  const thisWk = done.filter(t => inRange(t, 0, 7 * DAY)).length;
+  const prevWk = done.filter(t => inRange(t, 7 * DAY, 14 * DAY)).length;
+  // ฐานเล็กทำให้เปอร์เซ็นต์ไร้ความหมาย — จาก 1 ใบเป็น 3 ใบ ได้ "+200%" ซึ่งฟังดูใหญ่มาก
+  // ทั้งที่แปลว่าทำเพิ่มสองใบ · ต่ำกว่า 3 ใบจึงรายงานเป็นจำนวนใบตรง ๆ ไม่ใช่เปอร์เซ็นต์
+  const delta = prevWk >= 3 ? Math.round((thisWk - prevWk) / prevWk * 100) : null;
+  const deltaAbs = (delta == null && thisWk !== prevWk) ? thisWk - prevWk : null;
+
+  // ---- สามตัวเลขบนสุด ----
+  const tiles = [];
+  if (streak > 0) tiles.push({ gold: true, ic: 'flame', v: streak, u: 'วัน',
+    k: 'เปิดแอปต่อเนื่อง' });
+  if (d.onTimePct != null) tiles.push({ ic: 'check-circle', v: d.onTimePct, u: '%',
+    k: 'ส่งทันกำหนด · ' + d.onTime + '/' + d.rated + ' งาน' });
+  if (delta != null) tiles.push({ ic: delta >= 0 ? 'medal' : 'clock',
+    v: (delta >= 0 ? '+' : '') + delta, u: '%', k: 'เทียบสัปดาห์ก่อน',
+    tone: delta >= 0 ? 'up' : 'down' });
+  else if (deltaAbs != null) tiles.push({ ic: deltaAbs > 0 ? 'medal' : 'clock',
+    v: (deltaAbs > 0 ? '+' : '') + deltaAbs, u: 'งาน', k: 'เทียบสัปดาห์ก่อน',
+    tone: deltaAbs > 0 ? 'up' : 'down' });
+
+  // ---- ชั่วโมงที่จับเวลาไว้ 7 วัน ----
+  // คนละกราฟกับ "งานที่ติ๊กเสร็จ" ในหน้า "ฉัน" โดยตั้งใจ — อันนั้นนับใบ อันนี้นับนาทีที่นั่งจริง
+  // ติ๊กเสร็จสิบใบใน 20 นาที กับนั่งสองชั่วโมงได้ใบเดียว เป็นคนละเรื่องที่ต้องเห็นแยกกัน
+  const sess7 = sessions().filter(s => (now - new Date(s.start)) < 7 * DAY);
+  const hourDays = [];
+  for (let i = 6; i >= 0; i--) {
+    const dd = addDays(now, -i);
+    const min = sess7.filter(s => new Date(s.start).toDateString() === dd.toDateString())
+      .reduce((a, s) => a + s.min, 0);
+    hourDays.push({ min, label: WEEKDAY_SHORT[dd.getDay()], today: i === 0 });
+  }
+  const totalMin7 = hourDays.reduce((a, x) => a + x.min, 0);
+  const peakMin = Math.max(1, ...hourDays.map(x => x.min));
+
+  // ---- แยกตามวิชา ----
+  // ใช้เวลาที่จับไว้จริงถ้ามีมากพอ · ไม่พอก็ใช้เวลาที่ประเมินไว้ แล้ว**บอกให้รู้ว่าอันไหน**
+  // สองอย่างนี้ต่างกันมาก และการเอามาปนกันโดยไม่บอก คือการรายงานเลขที่ไม่มีใครตรวจได้
+  const realBySubj = {};
+  for (const s of sessions()) {
+    const t = state.tasks.find(x => x.id === s.taskId);
+    const k = (t && t.subject) || 'อื่น ๆ';
+    realBySubj[k] = (realBySubj[k] || 0) + s.min;
+  }
+  const realTotal = Object.values(realBySubj).reduce((a, b) => a + b, 0);
+  const useReal = realTotal >= 30;   // ต่ำกว่าครึ่งชั่วโมงยังเรียกว่าสัดส่วนไม่ได้
+  const subjRows = useReal
+    ? Object.entries(realBySubj).map(([k, v]) => [k, v]).sort((a, b) => b[1] - a[1]).slice(0, 5)
+    : d.subjRows.map(([k, v]) => [k, v.min]).filter(r => r[1] > 0);
+  const subjTotal = subjRows.reduce((a, r) => a + r[1], 0);
+
+  // โดนัท — เส้นรอบวงของ r=38 คือ 238.8 · แต่ละชิ้นกินความยาวตามสัดส่วนของตัวเอง
+  const CIRC = 238.8;
+  let acc = 0;
+  const arcs = subjRows.map(([name, min]) => {
+    const len = subjTotal ? min / subjTotal * CIRC : 0;
+    const a = `<circle class="${subjClass(name)}" cx="48" cy="48" r="38"
+      stroke-dasharray="${len.toFixed(1)} ${(CIRC - len).toFixed(1)}"
+      stroke-dashoffset="${(-acc).toFixed(1)}"></circle>`;
+    acc += len;
+    return a;
+  }).join('');
+
+  // ---- น้องไซวิเคราะห์ ----
+  const wr = typeof weeklyReview === 'function' ? weeklyReview(state, now) : { insights: [] };
+
+  // ---- เหรียญ ----
+  // เรียงเหรียญที่ได้แล้วขึ้นก่อน แล้วต่อด้วยใบถัดไปที่ยังไม่ได้ ให้เห็นว่าเป้าต่อไปคืออะไร
+  const earned = BADGES.filter(badgeEarned);
+  const nextUp = BADGES.filter(b => !badgeEarned(b)).slice(0, Math.max(0, 4 - earned.length));
+  const badgeCells = earned.slice(-4).concat(nextUp);
+
   box.innerHTML = `
-    ${d.onTimePct != null ? `<div class="st-card">
-      <div class="st-h">ส่งทันกำหนด</div>
-      <div class="st-line"><b>${d.onTimePct}%</b> ของงานที่มีกำหนดส่ง (${d.onTime}/${d.rated} งาน)</div>
-      <div class="st-track"><i style="width:${d.onTimePct}%"></i></div>
+    ${tiles.length ? `<div class="an-tiles">
+      ${tiles.map(t => `<div class="an-tile${t.gold ? ' gold' : ''}${t.tone ? ' ' + t.tone : ''}">
+        <span class="at-ic">${icon(t.ic)}</span>
+        <span class="at-v">${t.v}<i>${t.u}</i></span>
+        <span class="at-k">${esc(t.k)}</span>
+      </div>`).join('')}
+    </div>` : ''}
+
+    ${totalMin7 ? `<div class="st-card">
+      <div class="st-h">เวลาที่จับไว้ 7 วันล่าสุด<span class="st-h-v">${esc(humanMin(totalMin7))}</span></div>
+      <div class="st-bars">
+        ${hourDays.map(x => `<div class="st-bar${x.today ? ' now' : ''}${x.min ? ' has' : ''}">
+          <span class="bar" style="height:${Math.round(x.min / peakMin * 100)}%"></span>
+          <span class="n mono">${x.min ? (Math.round(x.min / 6) / 10) : ''}</span>
+          <span class="d">${x.label}</span>
+        </div>`).join('')}
+      </div>
+      <p class="st-foot">ชั่วโมงที่กดจับเวลาไว้จริง ไม่ใช่เวลาที่ประเมิน</p>
+    </div>` : ''}
+
+    ${subjRows.length ? `<div class="st-card">
+      <div class="st-h">${useReal ? 'เวลาที่จับไว้จริง' : 'เวลาที่ประเมินไว้'} แยกตามวิชา</div>
+      <p class="st-foot" style="margin:0 0 10px">${useReal ? 'จากทุกรอบที่จับเวลาไว้ ไม่ใช่แค่ 7 วันล่าสุด'
+        : 'ยังจับเวลาไม่พอจะแยกตามวิชาได้ — นี่คือเวลาที่กรอกไว้ตอนเพิ่มงาน'}</p>
+      <div class="an-split">
+        <div class="an-legend">
+          ${subjRows.map(([name, min]) => {
+            const pct = subjTotal ? Math.round(min / subjTotal * 100) : 0;
+            return `<div class="an-lg ${subjClass(name)}">
+              <span class="lg-dot"></span>
+              <span class="lg-nm">${esc(name)}</span>
+              <span class="lg-bar"><i style="width:${pct}%"></i></span>
+              <span class="lg-pct mono">${pct}%</span>
+            </div>`;
+          }).join('')}
+        </div>
+        <div class="an-donut">
+          <svg viewBox="0 0 96 96" aria-hidden="true">
+            <circle class="dn-bg" cx="48" cy="48" r="38"></circle>${arcs}
+          </svg>
+          <span class="dn-mid"><i>รวม</i><b>${Math.round(subjTotal / 6) / 10}</b><i>ชม.</i></span>
+        </div>
+      </div>
     </div>` : ''}
 
     ${d.snoozes ? `<div class="st-card soft">
       <div class="st-line">${icon('clock')}เลื่อนงานไปแล้วรวม <b>${d.snoozes}</b> ครั้ง</div>
     </div>` : ''}
 
-    ${d.subjRows.length ? `<div class="st-card">
-      <div class="st-h">แยกตามวิชา</div>
-      ${d.subjRows.map(([name, v]) => `<div class="st-row">
-        <span class="nm">${esc(name)}</span>
-        <span class="ct mono">${v.n} งาน · ${Math.round(v.min / 6) / 10} ชม.</span>
-      </div>`).join('')}
+    ${wr.insights.length ? `<div class="an-ai">
+      <div class="an-ai-h">${icon('sparkles')}น้องไซวิเคราะห์</div>
+      <ul>${wr.insights.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
+      <p class="an-ai-note">ข้อสังเกตพวกนี้ถูกใช้กันเวลาในแผนของสัปดาห์หน้าให้เองแล้ว</p>
     </div>` : ''}
+
     ${workStatsHtml(now)}
 
-    ${d.onTimePct == null && !d.subjRows.length ? `<div class="st-card soft">
-      <div class="st-line">${icon('check-circle')}ยังไม่มีงานที่ทำเสร็จพร้อมกำหนดส่ง —
-        ติ๊กงานให้เสร็จสักสองสามใบ แล้วหน้านี้จะเริ่มมีอะไรให้ดู</div>
+    ${badgeCells.length ? `<div class="an-grp">ความสำเร็จ<button onclick="go('scr-badges')">ดูทั้งหมด${icon('chevron')}</button></div>
+    <div class="an-badges">
+      ${badgeCells.map(b => { const got = badgeEarned(b);
+        return `<div class="an-bd${got ? ' got' : ''}">
+          <span class="ab-mark">${got ? esc(b.mark) : icon('lock')}</span>
+          <span class="ab-nm">${esc(b.name)}</span>
+          <span class="ab-ds">${got ? 'ได้แล้ว' : 'ทำให้ครบ ' + b.goal + ' งาน'}</span>
+        </div>`;
+      }).join('')}
+    </div>` : ''}
+
+    ${d.onTimePct == null && !subjRows.length && !totalMin7 ? `<div class="st-card soft">
+      <div class="st-line">${icon('check-circle')}ยังไม่มีอะไรให้วิเคราะห์ —
+        ติ๊กงานให้เสร็จสักสองสามใบ แล้วกดจับเวลาตอนนั่งทำ หน้านี้จะเริ่มมีของ</div>
     </div>` : ''}`;
 }
 
@@ -5128,8 +5269,10 @@ function workStatsHtml(now) {
   const ratio = (rows.length >= 3 && estSum) ? didSum / estSum : null;
 
   return `<div class="st-card">
-      <div class="st-h">เวลาที่ลงมือจริง</div>
-      <div class="st-line">7 วันล่าสุด <b>${weekH} ชม.</b> · ทั้งหมด ${all.length} รอบ</div>
+      <div class="st-h">ช่วงเวลาที่ทำงานได้ดี</div>
+      <!-- เลิกรายงาน "7 วันล่าสุด X ชม." ตรงนี้แล้ว — กราฟแท่งเหนือการ์ดนี้บอกตัวเลขเดียวกัน
+           ของที่การ์ดนี้มีของตัวเองจริงคือการแยกตามช่วงเวลา กับความแม่นของการประเมิน -->
+      <div class="st-line">จาก ${all.length} รอบที่จับเวลาไว้</div>
       ${topBand ? `<div class="st-bands">
         ${bands.map(([nm, min]) => `<div class="st-band">
           <span class="nm">${esc(nm)}</span>

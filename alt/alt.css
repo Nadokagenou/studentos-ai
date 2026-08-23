@@ -2504,28 +2504,32 @@
 /* ============================================================
    ผลของฉัน (แท็บ "ฉัน")
    ============================================================ */
+/* การ์ดสรุปผลเป็นทอง — มันคือ "สิ่งที่ทำสำเร็จไปแล้ว" ซึ่งเป็นความหมายเดียวกับ
+   ไทล์ทองกับเหรียญในจอวิเคราะห์ · ของที่หมายความเหมือนกันต้องหน้าตาเหมือนกัน
+   ไม่ใช้ --grad-hero เพราะธีมมืดแบนมันเป็นสีเดียว การ์ดนี้เลยกลายเป็นการ์ดธรรมดา
+   ทองเป็นความหมาย ไม่ใช่รสนิยม จึงคงที่ทุกธีมเหมือน --pri-* */
 .st-hero {
   display: flex;
   align-items: stretch;
-  background: var(--grad-hero);
-  color: #fff;
+  background: var(--grad-gold);
+  color: var(--on-gold);
   border-radius: var(--r-card);
-  padding: 16px 10px;
-  box-shadow: var(--shadow);
+  padding: 14px 10px;
+  box-shadow: var(--shadow-gold);
 }
 .st-hero > div { flex: 1; text-align: center; }
-.st-hero .sep { flex: none; width: 1px; background: rgba(255,255,255,.18); }
+.st-hero .sep { flex: none; width: 1px; background: rgba(92,65,4,.22); }
 .st-hero .v { font-family: 'Space Mono', ui-monospace, monospace; font-size: 23px; font-weight: 700; }
 .st-hero .v .u { font-size: 12px; margin-left: 2px; opacity: .8; }
-.st-hero .k { margin-top: 3px; font-size: 11px; opacity: .78; }
+.st-hero .k { margin-top: 3px; font-size: 11px; opacity: .78; font-weight: 600; }
 
 .st-card {
-  margin-top: 10px;
+  margin-top: 8px;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--r-card);
   box-shadow: var(--shadow);
-  padding: 15px 15px 14px;
+  padding: 13px 13px 12px;
 }
 .st-card.soft { box-shadow: none; background: var(--card2); border: none; }
 .st-h {
@@ -2548,7 +2552,7 @@
 }
 .st-track i { display: block; height: 100%; border-radius: 999px; background: var(--grad-brand); }
 
-.st-bars { display: flex; align-items: flex-end; gap: 7px; height: 104px; }
+.st-bars { display: flex; align-items: flex-end; gap: 7px; height: 88px; }
 .st-bar {
   flex: 1;
   display: flex;
@@ -5600,20 +5604,27 @@ body.deep-scr .top-friends { display: none; }
      บนกรอบจำลองมันดูเป็นของลอยสวย ๆ · บนเครื่องจริงมันคือแถบที่ "ยังไม่ถึงขอบ"
      แล้วเหลือแถบสีพื้นจอคาอยู่ใต้มันเหนือเส้น home indicator ซึ่งอ่านว่าเลย์เอาต์หลุด
      ติดขอบไปเลย แล้วให้ env(safe-area-inset-bottom) เป็นตัวเว้นระยะให้เส้น home indicator */
+  /* ต้นเหตุจริงของช่องว่างใต้แถบ: `position: absolute` วัดจาก .phone ไม่ใช่จากจอ
+     .phone สูง 100dvh ซึ่งบนเครื่องจริงจบเหนือแถบ home indicator — แถบเลยไปนั่งที่ขอบล่าง
+     ของ .phone ซึ่งไม่ใช่ขอบล่างของจอ · เหลือพื้นสีเพจ (--pg) คาอยู่ใต้มันประมาณ 34pt
+     สองรุ่นก่อนหน้าไล่ลด padding ซึ่งแก้ผิดที่ เพราะ padding ไม่เคยเป็นต้นเหตุ
+     `position: fixed` วัดจาก viewport ตรง ๆ — แถบจึงถึงขอบล่างจริงเสมอ
+     (.phone มี overflow:hidden แต่ไม่มี transform จึงไม่ตัด fixed ทิ้ง) */
   .tabbar {
+    position: fixed;
     left: 0; right: 0; bottom: 0;
     border-radius: 0; border-width: 1px 0 0;
-    /* padding ล่าง 8px เท่านั้น ไม่บวก env(safe-area-inset-bottom)
-       เคยบวกไว้ แล้วบนเครื่องจริงมันกลายเป็นแผ่นกระจกเปล่า ~40pt ใต้ตัวหนังสือ
-       ซึ่งอ่านออกมาว่า "แถบยังไม่ถึงขอบ" ทั้งที่ตำแหน่งมันถึงขอบแล้ว
-       ระยะปลอดภัยของเส้น home indicator มาจากตัวแถบเองที่สูงพอ ไม่ต้องเว้นซ้ำ */
-    padding: 6px 6px 8px;
-    /* พื้นทึบ ไม่ใช่กระจกเบลอ — แถบที่ติดขอบจอไม่มีอะไรอยู่ใต้ให้เบลอ
-       เหลือแค่ผลข้างเคียงคือขอบบนดูฟุ้งจนไม่รู้ว่าแถบเริ่มตรงไหน */
+    /* max() ไม่ใช่ + : ถ้าเครื่องมีแถบ home indicator ก็ใช้ระยะของมัน ถ้าไม่มีก็ 8px
+       บวกกันคือที่มาของ "แผ่นเปล่าซ้อนสองชั้น" ที่เห็นในรุ่นก่อน */
+    padding: 6px 6px max(8px, env(safe-area-inset-bottom));
+    /* พื้นทึบ ไม่ใช่กระจกเบลอ — แถบที่ติดขอบจอไม่มีอะไรอยู่ใต้ให้เบลอ */
     background: var(--scr);
     backdrop-filter: none; -webkit-backdrop-filter: none;
     box-shadow: 0 -1px 0 var(--line);
   }
+  /* กันไว้อีกชั้น: ถ้ามีอะไรโผล่ใต้ .phone ขึ้นมาอีก มันต้องเป็นสีเดียวกับพื้นแอป
+     ไม่ใช่สีเพจสีดำที่อ่านออกมาว่า "แอปจบตรงนี้แล้ว" */
+  html, body { background: var(--scr); }
   /* ปุ่ม + ยังเป็นก้อนลอยเหนือแถบ แต่ลดระยะที่มันโผล่ขึ้นไปทับเนื้อหา
      เดิมโผล่ขึ้น 34px ซึ่งพอแถบติดขอบจอแล้ว มันไปนั่งทับการ์ดใบล่างสุดพอดี */
   .tab.scan .scan-dot { width: 50px; height: 50px; margin-top: -26px; outline-width: 3px; }
@@ -5627,20 +5638,21 @@ body.deep-scr .top-friends { display: none; }
   .screen.flush > .sticky-head { padding-top: calc(12px + env(safe-area-inset-top)); }
 }
 
-/* ---------- ปุ่มเฟืองมุมขวาบนของหน้า "ฉัน" (1A9d) ---------- */
-/* ใช้กรอบเดียวกับปุ่มเพื่อนเป๊ะ ๆ เพราะมันคือปุ่มตำแหน่งเดียวกัน แค่สลับกันโผล่ตามจอ */
-.top-set {
-  position: absolute; top: 8px; right: 10px; z-index: 91;
-  width: 34px; height: 34px; border-radius: 50%;
-  border: 1px solid var(--line); background: var(--card); color: var(--blue);
-  box-shadow: var(--shadow);
-  display: none; align-items: center; justify-content: center; cursor: pointer;
+/* ---------- ปุ่มเฟืองในการ์ดโปรไฟล์ (1A9e) ---------- */
+/* เคยลอยอยู่มุมขวาบนของจอ แล้วไปทับนาฬิกากับแบตของเครื่องพอดี (เห็นบนเครื่องจริงเท่านั้น)
+   ย้ายเข้ามาอยู่ในการ์ด ฝั่งขวาของแถวชื่อ — มันเป็นของของโปรไฟล์นี้อยู่แล้ว
+   พื้นโปร่งขาวจาง ๆ เพราะการ์ดเป็นพื้นสีเน้น ปุ่มพื้นทึบจะกลายเป็นรูบนการ์ด */
+.pf-set {
+  flex: none; align-self: flex-start;
+  width: 36px; height: 36px; display: grid; place-items: center;
+  border: 0; border-radius: 50%;
+  background: rgba(255, 255, 255, .16); color: #fff;
+  cursor: pointer;
 }
-.top-set svg { width: 17px; height: 17px; }
-.top-set:active { transform: scale(.9); }
-.me-scr .top-set { display: flex; }
+.pf-set svg { width: 18px; height: 18px; }
+.pf-set:active { background: rgba(255, 255, 255, .28); transform: scale(.92); }
+/* ปุ่มเพื่อนยังหลบหน้า "ฉัน" เหมือนเดิม — แถว "เพื่อน" อยู่ในลิสต์ข้างล่างอยู่แล้ว */
 .me-scr .top-friends { display: none; }
-.login-mode .top-set { display: none; }
 
 /* ---------- หัวจอตั้งค่า + การ์ดตัวตน (1A9d) ---------- */
 .set-top {
@@ -5698,10 +5710,119 @@ body.deep-scr .top-friends { display: none; }
    ทางเข้าที่ไม่บอกว่าข้างในมีอะไร คือทางเข้าที่ไม่มีใครกด */
 .st-more {
   display: flex; align-items: center; gap: 8px; width: 100%;
-  margin-top: 10px; padding: 12px 13px;
+  margin-top: 8px; padding: 11px 13px;
   border: 1px solid var(--line); border-radius: 14px; background: var(--card2);
   color: var(--muted); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer;
 }
 .st-more svg { width: 15px; height: 15px; flex: none; }
 .st-more svg:last-child { margin-left: auto; color: var(--faint); }
 .st-more:active { background: var(--surface); }
+
+/* ============================================================
+   จอ "ผลของฉัน" ฉบับวิเคราะห์ (1A9e)
+   ============================================================
+   สีทองใช้ได้เฉพาะของที่ทำสำเร็จแล้วเท่านั้น — สถิติต่อเนื่องกับเหรียญที่ได้
+   ประมาณ 10% ของจอ · ถ้าทองไปโผล่บนของที่ยังไม่ได้ทำ มันก็เลิกแปลว่าสำเร็จ */
+.an-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.an-tile {
+  padding: 12px 10px; border: 1px solid var(--line); border-radius: 15px;
+  background: var(--card); text-align: center;
+}
+.at-ic { display: block; color: var(--muted); }
+.at-ic svg { width: 18px; height: 18px; }
+.at-v {
+  display: block; margin-top: 6px; font-size: 21px; font-weight: 700;
+  line-height: 1.1; color: var(--ink);
+}
+.at-v i { font-style: normal; font-size: 12px; font-weight: 600; margin-left: 1px; }
+.at-k { display: block; margin-top: 3px; font-size: 10.5px; line-height: 1.35; color: var(--muted); }
+/* ทอง — ของที่ทำสำเร็จแล้วเท่านั้น */
+.an-tile.gold { border-color: var(--gold); background: var(--gold-soft); }
+.an-tile.gold .at-ic, .an-tile.gold .at-v { color: var(--gold-text); }
+.an-tile.gold .at-k { color: var(--gold-text); opacity: .85; }
+.an-tile.up .at-ic, .an-tile.up .at-v { color: var(--pri-green-text); }
+.an-tile.down .at-ic { color: var(--muted); }
+
+/* หัวการ์ดที่มีตัวเลขรวมชิดขวา */
+.st-h-v { float: right; font-weight: 700; color: var(--ink); }
+.st-foot { margin: 8px 0 0; font-size: 11px; color: var(--faint); }
+
+/* แยกตามวิชา: แถบซ้าย + โดนัทขวา */
+.an-split { display: flex; align-items: center; gap: 14px; }
+.an-legend { flex: 1; min-width: 0; display: grid; gap: 9px; }
+.an-lg { display: grid; grid-template-columns: 9px 1fr 46px 30px; align-items: center; gap: 7px; }
+.lg-dot { width: 9px; height: 9px; border-radius: 3px; background: var(--sj, var(--muted)); }
+.lg-nm {
+  font-size: 12.5px; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lg-bar { height: 5px; border-radius: 999px; background: var(--surface); overflow: hidden; }
+.lg-bar i { display: block; height: 100%; border-radius: 999px; background: var(--sj, var(--blue)); }
+.lg-pct { font-size: 11.5px; color: var(--muted); text-align: right; }
+.an-donut { position: relative; flex: none; width: 96px; height: 96px; }
+.an-donut svg { width: 96px; height: 96px; transform: rotate(-90deg); }
+.an-donut circle { fill: none; stroke-width: 11; }
+.dn-bg { stroke: var(--surface); }
+.an-donut circle:not(.dn-bg) { stroke: var(--sj, var(--blue)); }
+.dn-mid {
+  position: absolute; inset: 0; display: grid; place-content: center; text-align: center;
+}
+.dn-mid i { display: block; font-style: normal; font-size: 9.5px; color: var(--faint); }
+.dn-mid b { display: block; font-size: 17px; font-weight: 700; color: var(--ink); line-height: 1.15; }
+
+/* น้องไซวิเคราะห์ */
+.an-ai {
+  margin-top: 12px; padding: 14px;
+  border: 1px solid var(--line); border-radius: var(--r-card);
+  background: linear-gradient(158deg, var(--blue-soft) 0%, transparent 70%), var(--card);
+}
+.an-ai-h {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 700; color: var(--blue);
+}
+.an-ai-h svg { width: 16px; height: 16px; }
+.an-ai ul { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 7px; }
+.an-ai li { font-size: 12.5px; line-height: 1.55; color: var(--ink); }
+.an-ai-note { margin: 10px 0 0; font-size: 11px; line-height: 1.5; color: var(--faint); }
+
+/* เหรียญ */
+.an-grp {
+  display: flex; align-items: baseline; gap: 8px; margin: 20px 0 9px;
+  font-size: 11.5px; font-weight: 700; letter-spacing: .06em; color: var(--muted);
+}
+.an-grp button {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 2px;
+  border: 0; background: none; color: var(--blue);
+  font: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0; cursor: pointer;
+}
+.an-grp button svg { width: 14px; height: 14px; }
+.an-badges { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.an-bd {
+  padding: 11px 6px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--card); text-align: center;
+}
+.ab-mark {
+  display: grid; place-items: center; width: 34px; height: 34px; margin: 0 auto;
+  border-radius: 11px; background: var(--surface); color: var(--faint);
+  font-size: 15px; font-weight: 700;
+}
+.ab-mark svg { width: 15px; height: 15px; }
+.ab-nm {
+  display: block; margin-top: 7px; font-size: 10.5px; font-weight: 600; line-height: 1.3;
+  color: var(--muted); overflow: hidden; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.ab-ds { display: block; margin-top: 2px; font-size: 9.5px; color: var(--faint); }
+/* ได้แล้ว = ทอง · ยังไม่ได้ = เทา ไม่มีข้อยกเว้น */
+.an-bd.got { border-color: var(--gold); background: var(--gold-soft); }
+.an-bd.got .ab-mark { background: var(--gold); color: var(--on-gold); }
+.an-bd.got .ab-nm { color: var(--gold-text); }
+.an-bd.got .ab-ds { color: var(--gold-text); opacity: .8; }
+
+/* หัวข้อ "ผลของฉัน" บนหน้า "ฉัน" ได้ทองจาง ๆ ที่ลูกศร ให้รู้ว่าข้างในมีของ */
+.st-open-go { color: var(--gold-text); }
+
+/* ธีมมืดแบน --grad-hero เป็นสีเดียวไว้ (ดูบล็อก :root[data-theme="dark"])
+   แต่การ์ดทองใช้ token ของตัวเอง จึงไม่โดนแบนไปด้วย — เขียนกำกับไว้กันแก้ผิดที่ */
+:root[data-theme="dark"] .st-hero,
+:root[data-theme="space"] .st-hero { background: var(--grad-gold); border-color: transparent; }
