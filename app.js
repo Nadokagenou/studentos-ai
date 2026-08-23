@@ -8403,8 +8403,20 @@ const ONBOARD_SKIP_KEY = 'studentos.alt.onboardSkipped';
 // ชื่อที่ผู้ใช้อยากให้เรียก — ใช้ทั่วแอป ทั้งคำชม คำเตือน และหน้าไม่มีงาน
 function who() { return (state.settings.name || '').trim(); }
 
+// หน้าทำความรู้จักขึ้นครั้งเดียวในชีวิตของเครื่องนั้น และขึ้นเฉพาะตอนที่ยังไม่มีอะไรเลย (1A9n)
+//
+// เดิมเช็คแค่ "ยังไม่รู้ชื่อ" ซึ่งพอในกรณีปกติ แต่ชื่อเป็นข้อมูลชิ้นเดียวที่หายได้
+// โดยที่ของอื่นยังอยู่ครบ — ล้างชื่อในแท็บ "ฉัน" หรือ sync จาก cloud ที่ยังไม่มีฟิลด์นี้
+// แล้วคนที่ใช้มาสามเดือนพร้อมงานสามสิบชิ้นจะโดนถามใหม่ทั้งชุดเหมือนเพิ่งลงแอป
+//
+// จึงถามหลักฐานทุกชิ้นที่แปลว่า "เครื่องนี้เคยถูกใช้มาแล้ว" ไม่ใช่แค่ชิ้นเดียว
+// ผิดพลาดไปทางไม่ถามดีกว่าถามซ้ำ — คนที่ยังไม่ได้ตอบยังเจอการ์ดชวนกรอกในแท็บ "ฉัน" อยู่
 function needsOnboard() {
-  return !who() && !localStorage.getItem(ONBOARD_SKIP_KEY);
+  if (localStorage.getItem(ONBOARD_SKIP_KEY)) return false;              // เคยผ่านหน้านี้แล้ว
+  if (who()) return false;                                               // รู้จักชื่อแล้ว
+  if (state.tasks && state.tasks.length) return false;                   // มีงานอยู่ = เคยใช้มาก่อน
+  if (typeof ctxIsEmpty === 'function' && !ctxIsEmpty()) return false;    // มีตารางเรียนแล้ว
+  return true;
 }
 
 // ปุ่มลัดจากไอคอนแอป (manifest shortcuts) ส่ง ?go=... มา — ต้องพาไปจอนั้นจริง ไม่งั้นปุ่มลัดโกหก
@@ -8620,7 +8632,10 @@ function finishOnboard(skipDay) {
   if (obMeta.hear) state.settings.hearFrom = obMeta.hear;
   if (obMeta.grade) state.settings.grade = obMeta.grade;
   save();
-  localStorage.removeItem(ONBOARD_SKIP_KEY);
+  // ปักหมุดว่าผ่านหน้านี้แล้ว — เดิมบรรทัดนี้ "ลบ" หมุดทิ้ง แล้วไปพึ่งชื่อเป็นตัวจำแทน
+  // ซึ่งแปลว่าวันไหนชื่อหาย หน้านี้ก็กลับมาถามใหม่ ทั้งที่เจ้าของเครื่องตอบไปหมดแล้ว
+  // (ชื่อคีย์เดิมห้ามเปลี่ยน — เปลี่ยนเมื่อไหร่ทุกคนที่เคยกดข้ามจะโดนถามใหม่ทันที)
+  localStorage.setItem(ONBOARD_SKIP_KEY, '1');
   haptic('done');
   // skipDay = กด "ยังไม่บอกตอนนี้" — บริบทว่างไว้ แผนจะกลับไปเดา 19:00 พร้อมการ์ดชวนกรอก
   showWelcome(name, skipDay ? false : obApplyDay());
