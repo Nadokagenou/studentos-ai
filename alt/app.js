@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A9s';                 // สายเลขของแอป
+const APP_VERSION = '1A9t';                 // สายเลขของแอป
 const APP_CODENAME = 'Klarheit';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -154,6 +154,7 @@ function checkGenesisUnlock() {
   const others = BADGES.filter(b => !b.genesis && !b.postGenesis);
   if (others.some(b => !badgeEarned(b))) return false;
   try { localStorage.setItem(GENESIS_KEY, '1'); } catch (_) {}
+  vaultTouch();
   document.documentElement.dataset.genesis = 'on';
   haptic('done');
   splashBurst(24, 'egg-star');
@@ -808,6 +809,9 @@ async function syncFromCloud() {
       // ฝั่ง cloud ชนะทั้งก้อน ไม่ merge รายตัว เพราะมันคือ "ตารางของสัปดาห์นี้"
       // ที่ต้องสอดคล้องกันทั้งชุด ไม่ใช่รายการงานที่เพิ่มทีละใบจากหลายเครื่อง
       if (remote.ctx && typeof ctxImport === 'function') ctxImport(remote.ctx);
+      // ของสะสมรวมทีหลัง ctx เพราะมันไม่เกี่ยวกัน แต่ต้องมาก่อน renderAll() ข้างล่าง
+      // ไม่งั้นหน้าจอวาดยอดโทเคนเก่าไปแล้วค่อยเปลี่ยนเลขต่อหน้าต่อตา
+      if (typeof vaultImport === 'function') vaultImport(remote.vault);
     }
     await pushToCloud(true);
     // ของที่บอท LINE หย่อนไว้ตอนแอปปิดอยู่ — ดึงมาทีเดียวตอนเปิด
@@ -827,7 +831,8 @@ function pushToCloud(immediate) {
         data: { tasks: state.tasks, settings: state.settings,
           sessions: state.sessions || [],
           marks: state.marks || [],
-          ctx: typeof ctxExport === 'function' ? ctxExport() : undefined },
+          ctx: typeof ctxExport === 'function' ? ctxExport() : undefined,
+          vault: typeof vaultExport === 'function' ? vaultExport() : undefined },
         updated_at: new Date().toISOString(),
       });
       if (error) throw error;
@@ -4935,11 +4940,82 @@ function prevDayKey(key) {
 // ชื่อเดิมที่โค้ดส่วนอื่นเรียกอยู่
 function dayKey(d = new Date()) { return rewardDayKey(d); }
 
+// ============================================================
+// ของสะสม — ซิงก์ขึ้น cloud (1A9t)
+// ------------------------------------------------------------
+// ของพวกนี้เคยอยู่ใน localStorage อย่างเดียว แปลว่าลบแอปแล้วติดตั้งใหม่ = หายหมด
+// ซึ่งเป็นเรื่องใหญ่กว่าที่เห็น เพราะ "ลบแล้วติดตั้งใหม่" คือวิธีมาตรฐานของโปรเจกต์นี้
+// เวลาเปลี่ยนไอคอนแอป (iOS แช่ไอคอนไว้ตั้งแต่ตอนติดตั้ง แก้ทางอื่นไม่ได้)
+//
+// ไม่ทำตารางใหม่ — user_state.data เป็น JSON อยู่แล้ว เพิ่มคีย์เข้าไปพอ
+//
+// สิ่งที่ "ไม่" ซิงก์และเป็นการตัดสินใจ ไม่ใช่การลืม:
+//   ภาพพื้นหลัง · ภาพวิดเจ็ต   เป็น JPEG เต็มจอ ใหญ่ได้เป็นหลายร้อย KB
+//                              ยัดลงก้อน sync = ทุกครั้งที่ติ๊กงานเสร็จต้องอัปโหลดใหม่ทั้งก้อน
+//   ธีม · ขนาดฟอนต์ · แถบล่าง   ตั้งใหม่ใช้เวลาสิบวินาที และควรต่างกันได้ตามเครื่อง
+//                              (จอคอมกับจอมือถือไม่จำเป็นต้องใช้ขนาดฟอนต์เดียวกัน)
+//   ประวัติถามน้องไซ            เป็นบันทึกของเครื่อง ไม่ใช่ของที่ได้มา
+// ============================================================
+const VAULT_AT_KEY = 'studentos.alt.vaultAt';   // ของสะสมชุดนี้ถูกแก้ครั้งล่าสุดเมื่อไหร่
+
+// เรียกทุกครั้งที่ของสะสมเปลี่ยนโดยไม่ผ่าน saveTokenState (ธงปลดล็อก · รูปโปรไฟล์)
+// ลืมเรียกที่ไหน ของตรงนั้นจะไม่ขึ้น cloud โดยไม่มีอะไรฟ้อง — เป็นบั๊กที่เห็นตอนย้ายเครื่องเท่านั้น
+function vaultTouch() {
+  try { localStorage.setItem(VAULT_AT_KEY, String(Date.now())); } catch (_) {}
+  if (typeof pushToCloud === 'function') pushToCloud();
+}
+
+function vaultExport() {
+  const av = typeof userAvatar === 'function' ? userAvatar() : '';
+  return {
+    at: +(localStorage.getItem(VAULT_AT_KEY) || 0),
+    tokens: tokenState(),
+    allBadges: localStorage.getItem(ALLBADGE_KEY) === '1',
+    luck: localStorage.getItem(LUCK_KEY) === '1',
+    genesis: localStorage.getItem(GENESIS_KEY) === '1',
+    // รูปโปรไฟล์ย่อเป็นจัตุรัส 256px คุณภาพ .82 มาแล้ว ราว 20KB — เล็กพอจะพกไปด้วย
+    avatar: av || undefined,
+  };
+}
+
+// รวมของจาก cloud เข้ากับของในเครื่อง — สองแบบ ไม่ใช่แบบเดียว
+function vaultImport(r) {
+  if (!r) return;
+  const localAt = +(localStorage.getItem(VAULT_AT_KEY) || 0);
+  const remoteAt = +r.at || 0;
+  const remoteNewer = remoteAt > localAt;
+
+  // ธงปลดล็อก: ปลดแล้วปลดเลย ไม่มีทางย้อนกลับ จึงรวมแบบ "เครื่องไหนเคยได้ ถือว่าได้"
+  try {
+    if (r.allBadges) localStorage.setItem(ALLBADGE_KEY, '1');
+    if (r.luck) localStorage.setItem(LUCK_KEY, '1');
+    if (r.genesis) localStorage.setItem(GENESIS_KEY, '1');
+  } catch (_) {}
+
+  const local = tokenState();
+  const remote = r.tokens || {};
+  // สกินที่เคยได้เป็น "เซ็ต" ของที่ได้มาแล้วไม่เคยหาย รวมกันเสมอ ไม่มีทางเสียของ
+  const skins = Object.assign({}, remote.skins || {}, local.skins || {});
+  // ยอดโทเคนกับสตรีคเป็นตัวเลขที่ "ใช้แล้วลด" เอามากที่สุดไม่ได้ —
+  // ใช้จนเหลือ 20 ที่เครื่องหนึ่ง แล้วเปิดอีกเครื่องที่ยังค้าง 100 ก็จะได้ 100 คืนทุกครั้ง
+  // ซึ่งกลายเป็นวิธีปั๊มโทเคนแบบไม่จำกัด จึงตัดสินด้วยเวลาแทน: ฝั่งที่แก้ทีหลังชนะ
+  saveTokenState(Object.assign({}, remoteNewer ? remote : local, { skins }), true);
+
+  if (remoteNewer) {
+    if (r.avatar) { try { localStorage.setItem(AV_KEY, r.avatar); } catch (_) {} }
+    try { localStorage.setItem(VAULT_AT_KEY, String(remoteAt)); } catch (_) {}
+  }
+}
+
 function tokenState() {
   try { return JSON.parse(localStorage.getItem(TOKEN_KEY)) || {}; } catch (_) { return {}; }
 }
-function saveTokenState(s) {
+function saveTokenState(s, quiet) {
   try { localStorage.setItem(TOKEN_KEY, JSON.stringify(s)); } catch (_) {}
+  // quiet = กำลังเขียนของที่เพิ่งดึงลงมาจาก cloud ห้ามประทับเวลาใหม่
+  // ไม่งั้นเครื่องที่แค่ "รับ" ของมา จะกลายเป็นเครื่องที่มีของใหม่ที่สุดทันที
+  if (!quiet) { try { localStorage.setItem(VAULT_AT_KEY, String(Date.now())); } catch (_) {} }
+  if (!quiet && typeof pushToCloud === 'function') pushToCloud();
 }
 function tokenBalance() { return tokenState().bal || 0; }
 function loginStreak() { return tokenState().streak || 0; }
@@ -7419,12 +7495,14 @@ async function pickAvatar(file) {
     return;
   }
   haptic('done');
+  vaultTouch();
   renderProfile();
   showToast({ title: 'เปลี่ยนรูปโปรไฟล์แล้ว 🖼', body: 'เอาออกได้ที่จอตั้งค่า' });
 }
 
 function clearAvatar() {
   try { localStorage.removeItem(AV_KEY); } catch (_) {}
+  vaultTouch();
   renderProfile();
   showToast({ title: 'เอารูปโปรไฟล์ออกแล้ว', body: 'กลับไปใช้ตัวอักษรแรกของชื่อเหมือนเดิม' });
 }
@@ -8117,6 +8195,7 @@ async function redeemCode() {
 // เปิด/ปิดโชคเพิ่ม — เก็บเป็นธงในเครื่อง ไม่ผูกกับยอดโทเคน
 function codeSetLuck(on) {
   try { on ? localStorage.setItem(LUCK_KEY, '1') : localStorage.removeItem(LUCK_KEY); } catch (_) {}
+  vaultTouch();
   haptic('done');
   if (on) splashBurst(20, 'egg-star');
   renderAll();
@@ -8158,6 +8237,7 @@ function codeGrantTokens() {
 // โค้ดที่ 1 — เปิดทุกอย่างในแอปให้เลย: เหรียญครบทุกอัน + ธีมลับครบทุกโทน
 function codeGrantAll() {
   try { localStorage.setItem(ALLBADGE_KEY, '1'); } catch (_) {}
+  vaultTouch();
   // ธีมที่ต้องสุ่ม/ซื้อ ก็เปิดให้ด้วย ไม่งั้น "ปลดล็อกทุกอย่าง" ก็ยังใช้ธีมไม่ได้ครึ่งหนึ่ง
   // **ยกเว้นระดับลับ** — โค้ดใบนี้ไม่แจกให้ ต้องอีกใบเท่านั้น
   grantThemes(false);
