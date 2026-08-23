@@ -3591,6 +3591,29 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 .ig-icon img { border-radius: 20px; padding: 7px; }
 .toast .tav { width: 44px; height: 44px; border-radius: 14px; padding: 5px; }
 
+
+/* ---------- แถบความคืบหน้าหน้าต้อนรับ (1A9L) ----------
+   สี่ขั้นแล้วไม่บอกว่าอยู่ขั้นไหน = คนไม่รู้ว่าอีกนานแค่ไหนถึงจะได้ใช้แอป
+   ซึ่งเป็นความไม่รู้ที่ทำให้คนกดข้ามทั้งที่เหลืออีกข้อเดียว
+   แถบนี้เขียนตายตัวในแต่ละขั้น ไม่ต้องมี JS มาคอยอัปเดต — ขั้นไหนก็ขีดของขั้นนั้น */
+.ob-prog { display: flex; gap: 5px; width: 100%; max-width: 300px; margin: 0 auto; }
+.ob-prog i {
+  flex: 1; height: 3px; border-radius: 2px;
+  background: var(--line);
+  transition: background .2s ease;
+}
+.ob-prog i.on { background: var(--fill); }
+
+/* ตัวเลือกที่มีแต่คำสั้น ๆ — เรียงเป็นตารางสองคอลัมน์ให้กดโดนง่ายกว่าชิปลอยเรียงกัน
+   (.ob-chips เดิมเป็น flex-wrap ซึ่งเหมาะกับคำยาวไม่เท่ากันอย่างเวลาเลิกเรียน) */
+.ob-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 0;
+}
+.ob-grid .ob-chip { padding: 13px 8px; text-align: center; }
+
 /* ============================================================
    ALT 1A7: เช็คอินรายวัน + วงล้อสุ่มสกิน
    ============================================================ */
@@ -5614,8 +5637,17 @@ body.deep-scr .top-friends { display: none; }
    1A9c — แถบล่างติดขอบจอ · หัวจอพ้นนาฬิกาเครื่อง (เฉพาะมือถือจริง)
    ============================================================
    เจอตอนเปิดบนเครื่องจริง ไม่ใช่ในกรอบจำลองบนจอคอม กรอบจำลองมีขอบดำรอบด้าน
-   ปัญหาสองข้อล่างจึงมองไม่เห็นเลยจนกว่าจะเปิดบนมือถือ */
-@media (max-width: 768px) {
+   ปัญหาสองข้อล่างจึงมองไม่เห็นเลยจนกว่าจะเปิดบนมือถือ
+
+   1A9l · เพิ่มขาที่สอง (display-mode: standalone) — นี่คือตัวแก้อาการ "บางรอบก็ดี บางรอบไม่"
+   ถ้าบล็อกนี้ไม่ทำงาน แถบจะตกกลับไปใช้กฎฐานใน style.css ซึ่งเป็นแคปซูลลอย
+   (position:absolute · เว้นซ้ายขวา 14px · มุมมน 20px) = อาการ "ไม่อยู่ขอบจอ" ทุกด้าน
+   ไม่ใช่แค่ด้านล่าง · เงื่อนไขเดิมมีขาเดียวคือความกว้าง ซึ่งบนแอปที่ติดตั้งแล้ว
+   iOS รายงานผิดได้ตอนเปิดเย็น (คืนค่า viewport เริ่มต้น 980px ก่อนอ่าน meta viewport)
+   รอบไหนที่มันรายงานผิด รอบนั้นได้แคปซูล — จึงเป็นอาการที่มาบ้างไม่มาบ้าง
+   "ติดตั้งเป็นแอปแล้ว" เป็นข้อเท็จจริงที่ไม่ขึ้นกับความกว้างที่รายงานมา
+   ขาไหนจริงก็พอ แถบจึงติดขอบเสมอไม่ว่าความกว้างจะเพี้ยนหรือไม่ */
+@media (max-width: 768px), (display-mode: standalone) {
   /* 1 · แถบล่างเคยเป็นแคปซูลลอย (left/right 14px · bottom var(--tabgap))
      บนกรอบจำลองมันดูเป็นของลอยสวย ๆ · บนเครื่องจริงมันคือแถบที่ "ยังไม่ถึงขอบ"
      แล้วเหลือแถบสีพื้นจอคาอยู่ใต้มันเหนือเส้น home indicator ซึ่งอ่านว่าเลย์เอาต์หลุด
@@ -5626,7 +5658,7 @@ body.deep-scr .top-friends { display: none; }
      สองรุ่นก่อนหน้าไล่ลด padding ซึ่งแก้ผิดที่ เพราะ padding ไม่เคยเป็นต้นเหตุ
      `position: fixed` วัดจาก viewport ตรง ๆ — แถบจึงถึงขอบล่างจริงเสมอ
      (.phone มี overflow:hidden แต่ไม่มี transform จึงไม่ตัด fixed ทิ้ง) */
-  .tabbar {
+  :root:not([data-nav="side"]) .tabbar {
     position: fixed;
     left: 0; right: 0; bottom: 0;
     border-radius: 0; border-width: 1px 0 0;
@@ -5646,14 +5678,14 @@ body.deep-scr .top-friends { display: none; }
   }
   /* ทุกปุ่มสูง 44px เท่ากัน (22 ไอคอน + 3 ช่อง + 13 ตัวหนังสือ + 6 padding)
      ของเดิม padding 4px ทำให้เป็น 46 ซึ่งดันแถบให้สูงเกินโดยไม่ได้อะไรกลับมา */
-  .tab { min-height: 44px; padding: 3px 2px; gap: 4px; }
+  :root:not([data-nav="side"]) .tab { min-height: 44px; padding: 3px 2px; gap: 4px; }
 
   /* 1A9k · แท็บที่เลือกอยู่ = เปลี่ยนสี ไม่ใช่ก้อนสีทึบ
      ก้อนทึบทำให้ปุ่มห้าปุ่มไม่ใช่ของชนิดเดียวกันอีกต่อไป — หนึ่งในนั้นกลายเป็นการ์ด
      แถบล่างของแอปที่คนใช้ทุกวัน (Grab/LINE/iOS) ไม่มีอันไหนทำแบบนั้นเลย
      สีกับไอคอนทึบบอก "อยู่หน้านี้" ได้ครบอยู่แล้ว โดยไม่ต้องเพิ่มรูปทรงใหม่เข้ามาในแถบ */
-  .tab.active { background: none; color: var(--blue); }
-  .tab .ic { width: 23px; height: 23px; }
+  :root:not([data-nav="side"]) .tab.active { background: none; color: var(--blue); }
+  :root:not([data-nav="side"]) .tab .ic { width: 23px; height: 23px; }
   /* วงแหวนรอบแบดจ์ต้องเป็นสีพื้นแถบจริง — บนมือถือแถบไม่ใช่ glass แล้วตั้งแต่ 1A9c */
   .tab-badge, .tab-dot { box-shadow: 0 0 0 2px var(--card); }
   /* กันไว้อีกชั้น: ถ้ามีอะไรโผล่ใต้ .phone ขึ้นมาอีก มันต้องเป็นสีเดียวกับพื้นแอป
@@ -5665,7 +5697,7 @@ body.deep-scr .top-friends { display: none; }
      และวงแหวนรอบปุ่มก็อ่านเป็น "รอยขาดบนแถบ" ไม่ใช่ปุ่มลอย
      ปุ่มนี้จึงกลายเป็นแท็บธรรมดาแท็บที่สาม เท่าอีกสี่ปุ่มเป๊ะ — แถบล่างมีของชนิดเดียว
      (การเพิ่มงานยังเข้าถึงได้จากปุ่มในหน้า "งาน" และแผ่นเลื่อนขึ้นตัวเดิมทุกประการ) */
-  .tab.scan .scan-dot { width: 23px; height: 23px; margin: 0;
+  :root:not([data-nav="side"]) .tab.scan .scan-dot { width: 23px; height: 23px; margin: 0;
     border-radius: 0; background: none; color: inherit;
     box-shadow: none; outline: none; }
   .tab.scan .scan-dot svg { width: 23px; height: 23px; stroke-width: 2; }
@@ -5676,14 +5708,15 @@ body.deep-scr .top-friends { display: none; }
   /* ระยะเผื่อท้ายหน้า — 1A9k แถบสูง 6 + 44 + safe = 50 + safe แล้วไม่มีปุ่มโผล่เหนือแถบอีก
      เผื่อ 62 = ความสูงแถบ + ช่องหายใจ 12px ใต้การ์ดใบล่างสุด
      ตัวเลข 84 ของเดิมอิงกับปุ่ม + ที่โผล่ขึ้นมา 19px ซึ่งไม่มีแล้ว */
-  .screen, .home-body, .scr-body, .menu-body {
+  :root:not([data-nav="side"]) .screen, :root:not([data-nav="side"]) .home-body,
+  :root:not([data-nav="side"]) .scr-body, :root:not([data-nav="side"]) .menu-body {
     padding-bottom: calc(62px + env(safe-area-inset-bottom));
   }
 
   /* แถบจับเวลาต้องลอยเหนือแถบล่างเสมอ — ของเดิมวัดจาก .phone ด้วย bottom คงที่ 77px
      ซึ่งเคยพอดีกับแถบทรงเก่า พอแถบเป็น fixed + safe-area มันจะไปนั่งใต้แถบแล้วหายไป
      วัดจาก viewport เหมือนแถบล่าง แล้วบวกความสูงแถบจริง (50 + safe) + ช่อง 8px */
-  .runbar {
+  :root:not([data-nav="side"]) .runbar {
     position: fixed;
     left: 10px; right: 10px;
     bottom: calc(58px + env(safe-area-inset-bottom));
