@@ -294,6 +294,14 @@
   padding-top: 26px;
   gap: 22px;
 }
+/* 1A9r · กฎ [hidden] ของเบราว์เซอร์คือ display:none ซึ่งอยู่ในชั้น UA — แพ้กฎของเราเอง
+   ที่ตั้ง display:flex ให้ .scr-body ไว้ใน style.css เสมอ ต่อให้ไม่มี !important
+   ผลคือ el.hidden = true ไม่ทำอะไรเลยกับกล่องพวกนี้
+   โผล่ตอน 1A9m ที่หน้าต้อนรับกลายเป็นสี่ขั้นแล้วสลับขั้นด้วย .hidden:
+   กด "ถัดไป" แล้วค่า hidden เปลี่ยนจริง แต่จอไม่ขยับ เพราะทุกขั้นถูกวาดพร้อมกันอยู่แล้ว
+   บั๊กชนิดเดียวกันเคยเจอกับ .th-grid button มาแล้ว (ดูหมายเหตุแถว ๆ บรรทัด 4100)
+   ทุกครั้งที่ตั้ง display ให้คลาสที่มีโอกาสถูกซ่อนด้วย hidden ต้องคืนกฎนี้ให้มันด้วย */
+.scr-body[hidden], .home-body[hidden], .menu-body[hidden] { display: none; }
 .ob-head {
   display: flex;
   flex-direction: column;
