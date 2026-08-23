@@ -232,10 +232,15 @@
       <div class="screen" id="scr-login">
         <div class="login-wrap">
           <!-- โลโก้ต้องมีแผ่นรองขาวเหมือนฉากเปิดแอป — ตัวมาร์คเป็นน้ำเงินเข้มพื้นใส
-               วางบนพื้นกรมท่าตรง ๆ แล้วจมหายไปครึ่งอัน -->
-          <div class="login-plate"><img class="login-mark brand-light" src="logo-splash.png" alt="students OS"><img class="login-mark brand-dark" src="logo-splash-light.png" alt=""></div>
-          <div class="big-title" style="margin:0">StudentOS <span class="ai-blue">AI</span></div>
-          <p class="sub" style="margin:0 0 16px">รู้ว่าต้องทำอะไรก่อน เสมอ</p>
+               วางบนพื้นกรมท่าตรง ๆ แล้วจมหายไปครึ่งอัน
+               1A9j: เหลือรูปเดียว ไม่ต้องสลับตามธีมอีก — แผ่นรองเป็นสีขาวทุกธีม
+               ตราเข้มจึงอ่านออกเสมอ ส่วนตราคู่ธีมสว่างเป็นโลโก้เต็มที่มีตัวหนังสือ
+               ย่อลงกรอบ 86px แล้วคำว่า students OS เล็กจนอ่านไม่ออกอยู่ดี -->
+          <div class="login-plate"><img class="login-mark" src="logo-splash-light.png" alt="students OS"></div>
+          <!-- 1A9j: ตัดสร้อย "รู้ว่าต้องทำอะไรก่อน เสมอ" ออก
+               หน้านี้มีงานเดียวคือให้กดเข้าระบบ คำโปรยขายของตรงนี้ไม่ได้ช่วยให้ใครกด
+               มันแค่ดันปุ่มลงไป และคนที่เปิดแอปมาก็รู้อยู่แล้วว่าแอปนี้ทำอะไร -->
+          <div class="big-title" style="margin:0 0 14px">StudentOS <span class="ai-blue">AI</span></div>
           <button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>
           <button class="btn ghost" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>
         </div>
