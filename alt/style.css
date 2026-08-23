@@ -409,11 +409,18 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .btn.danger{background:transparent; color:var(--alert); font-weight:500; min-height:46px}
 
 /* มือถือ/แท็บเล็ตจริง: เต็มจอเหมือนแอป — กรอบมือถือจำลองแสดงเฉพาะจอคอม */
-@media (max-width:768px){
+/* 1A9p · ขา (display-mode: standalone) ต้องมีที่นี่ด้วย ไม่ใช่แค่ในบล็อกของ alt.css
+   1A9l เพิ่มให้ alt.css ข้างเดียว ซึ่งทำให้สองบล็อกที่พูดถึงเงื่อนไขเดียวกัน
+   ("นี่คือมือถือจริง") ตัดสินใจไม่ตรงกันได้ · ผลคือแถบล่างได้ทรงใหม่จาก alt.css
+   แต่ .phone ยังสูง 780px และ .stage ยังมี padding ล่าง 64px จากกฎเดสก์ท็อป
+   → ใต้แคปซูลเหลือช่องว่างใหญ่กว่าที่ margin ของมันตั้งไว้มาก ซึ่งคืออาการที่เห็น
+   สองบล็อกนี้ต้องมีเงื่อนไขเดียวกันเป๊ะเสมอ แก้ที่ไหนต้องแก้อีกที่ด้วยทุกครั้ง */
+@media (max-width:768px), (display-mode: standalone){
   html, body{height:100%; overscroll-behavior:none}
   .stage{padding:0; gap:0; max-width:none}
   .phone{
     width:100%; max-width:none; height:100vh; height:100dvh;
+    min-height:100dvh;
     border-radius:0; border:none; box-shadow:none;
   }
   .demo-bar, .stage-note, .statusbar{display:none}
