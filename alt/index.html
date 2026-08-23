@@ -253,11 +253,43 @@
            ขั้นสองข้ามได้ แต่คนที่ตอบจะได้แผนที่ลงช่องว่างจริงตั้งแต่วันแรก
            แทนที่จะต้องไปเจอเองว่ามีหน้า "บริบทของฉัน" ซ่อนอยู่ในแท็บฉัน -->
       <div class="screen flush" id="scr-onboard">
-        <div class="scr-body ob-body" id="obStep1">
+
+        <!-- ขั้น 1–2 เพิ่มเข้ามาใน 1A9m — ทั้งสองข้อกดเดียวจบ และข้ามได้ทั้งคู่
+             เดิมหน้านี้เปิดมาเจอช่องพิมพ์ชื่อเป็นอย่างแรก ซึ่งคือการขอแรงก่อนขอความไว้ใจ
+             คำถามที่กดปุ่มเดียวจบวางไว้ข้างหน้า คนจึงผ่านข้อแรกไปได้โดยไม่ต้องคิด
+             แล้วข้อที่ต้องพิมพ์จริง ๆ ก็มาทีหลังตอนที่เขาลงแรงไปแล้วสองจังหวะ -->
+        <div class="scr-body ob-body" id="obStepHear">
+          <div class="ob-prog"><i class="on"></i><i></i><i></i><i></i></div>
           <div class="ob-head">
             <img class="ob-mark" src="logo-splash-light.png" alt="">
-            <h2 class="ob-h">ขอรู้จักกันหน่อย</h2>
-            <p class="ob-p">บอกแค่ 2 อย่าง แล้ว AI จะจัดแผนให้ตรงกับเวลาที่มีจริง</p>
+            <h2 class="ob-h">รู้จักเราได้ยังไง</h2>
+            <p class="ob-p">ข้อนี้ข้ามได้ ถามไว้ปรับปรุงแอปเฉย ๆ</p>
+          </div>
+          <div class="ob-card"><div class="ob-chips ob-grid" id="obHear"></div></div>
+          <div class="ob-act">
+            <button class="fm-save" onclick="obStepNext(2)">ถัดไป</button>
+            <button class="fm-cancel" onclick="skipOnboard()">ข้ามไปก่อน</button>
+          </div>
+        </div>
+
+        <div class="scr-body ob-body" id="obStepGrade" hidden>
+          <div class="ob-prog"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+          <div class="ob-head">
+            <h2 class="ob-h">อยู่ชั้นไหน</h2>
+            <p class="ob-p">AI จะได้รู้ว่างานแบบไหนที่ควรเตือนล่วงหน้านานกว่าปกติ</p>
+          </div>
+          <div class="ob-card"><div class="ob-chips ob-grid" id="obGrade"></div></div>
+          <div class="ob-act">
+            <button class="fm-save" onclick="obStepNext(3)">ถัดไป</button>
+            <button class="fm-cancel" onclick="obStepNext(3)">ข้ามข้อนี้</button>
+          </div>
+        </div>
+
+        <div class="scr-body ob-body" id="obStep1" hidden>
+          <div class="ob-prog"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
+          <div class="ob-head">
+            <h2 class="ob-h">เรียกคุณว่าอะไรดี</h2>
+            <p class="ob-p">ทั้งแอปจะเรียกชื่อนี้ — ข้อนี้ข้อเดียวที่ข้ามไม่ได้</p>
           </div>
 
           <div class="ob-card">
@@ -295,6 +327,7 @@
         <!-- ขั้น 2: รูปร่างของวันธรรมดา — ทุกคำถามตอบด้วยการกดปุ่มเดียว
              ไม่มีช่องให้พิมพ์เลยแม้แต่ช่องเดียว เพราะทุกช่องที่ต้องพิมพ์คือคนหายไปอีกกลุ่ม -->
         <div class="scr-body ob-body" id="obStep2" hidden>
+          <div class="ob-prog"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
           <div class="ob-head">
             <h2 class="ob-h">วันธรรมดาของคุณเป็นยังไง</h2>
             <p class="ob-p">ตอบ 3 ข้อ แล้ว AI จะรู้เองว่าคุณว่างช่วงไหนจริง ๆ ไม่ต้องเดาให้</p>

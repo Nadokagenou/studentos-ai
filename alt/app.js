@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A9l';                 // สายเลขของแอป
+const APP_VERSION = '1A9m';                 // สายเลขของแอป
 const APP_CODENAME = 'Klarheit';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -8450,6 +8450,8 @@ function openOnboard() {
   if (f) setObFree(state.settings.freeHours || 2, true);
   const w = document.getElementById('obWelcome');
   if (w) { w.hidden = true; w.classList.remove('on'); }
+  obMeta = { hear: state.settings.hearFrom || '', grade: state.settings.grade || '' };
+  renderObMeta();
   obShowStep(1);
   go('scr-onboard');
 }
@@ -8468,11 +8470,47 @@ const OB_BED = [['21:00', '3 ทุ่ม'], ['22:00', '4 ทุ่ม'], ['23:0
 
 let obDay = { out: '16:00', trip: 30, bed: '22:00' };
 
+// ---------- ขั้น 1–2: คำถามที่กดปุ่มเดียวจบ (1A9m) ----------
+// ทั้งสองข้อไม่ได้เอาไปคำนวณอะไรในแผน มันมีไว้เพื่อสองอย่าง:
+//   1) เก็บไว้ดูว่าคนมาจากทางไหน (hear) — ข้อมูลที่ไม่มีทางรู้ถ้าไม่ถามตอนนี้
+//   2) เปิดหน้าด้วยคำถามที่ตอบง่ายกว่าการพิมพ์ชื่อ
+// ข้อสองไม่ใช่ของแถม: ช่องพิมพ์เป็นอย่างแรกที่เห็นคือเหตุผลที่คนกดข้ามทั้งหน้า
+const OB_HEAR = [['friend', 'เพื่อนแนะนำ'], ['social', 'TikTok · IG'],
+                 ['school', 'ครู · โรงเรียน'], ['search', 'หาเจอเอง']];
+const OB_GRADE = ['ม.1', 'ม.2', 'ม.3', 'ม.4', 'ม.5', 'ม.6'];
+
+let obMeta = { hear: '', grade: '' };
+
+const OB_STEPS = ['obStepHear', 'obStepGrade', 'obStep1', 'obStep2'];
+
 function obShowStep(n) {
-  const s1 = document.getElementById('obStep1');
-  const s2 = document.getElementById('obStep2');
-  if (s1) s1.hidden = n !== 1;
-  if (s2) s2.hidden = n !== 2;
+  OB_STEPS.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = (i + 1) !== n;
+  });
+}
+
+function obStepNext(n) {
+  obShowStep(n);
+  haptic('tap');
+}
+
+function obMetaPick(key, val) {
+  // กดซ้ำที่อันเดิม = ยกเลิกคำตอบ ทั้งสองข้อข้ามได้ ไม่ควรมีทางเลือกที่กดแล้วถอนไม่ได้
+  obMeta[key] = obMeta[key] === val ? '' : val;
+  haptic('tap');
+  renderObMeta();
+}
+
+function renderObMeta() {
+  const hear = document.getElementById('obHear');
+  if (hear) hear.innerHTML = OB_HEAR.map(([v, label]) => `<button type="button"
+    class="ob-chip${obMeta.hear === v ? ' on' : ''}"
+    onclick="obMetaPick('hear', '${v}')">${esc(label)}</button>`).join('');
+  const grade = document.getElementById('obGrade');
+  if (grade) grade.innerHTML = OB_GRADE.map(v => `<button type="button"
+    class="ob-chip${obMeta.grade === v ? ' on' : ''}"
+    onclick="obMetaPick('grade', '${v}')">${esc(v)}</button>`).join('');
 }
 
 // ขั้นแรกต้องมีชื่อก่อนถึงจะไปต่อ — ทั้งแอปเรียกชื่อนี้ ปล่อยผ่านไม่ได้
@@ -8488,7 +8526,7 @@ function obNext() {
     return;
   }
   err.hidden = true;
-  obShowStep(2);
+  obShowStep(4);
   renderObDay();
   haptic('tap');
 }
@@ -8567,7 +8605,7 @@ function finishOnboard(skipDay) {
   const name = (input.value || '').trim().slice(0, 24);
   const err = document.getElementById('obErr');
   if (!name) {
-    obShowStep(1);
+    obShowStep(3);
     // ชื่อคือสิ่งเดียวที่ข้ามไม่ได้ในหน้านี้ เพราะทั้งแอปเรียกชื่อนี้ต่อ
     err.hidden = false;
     input.classList.add('bad');
@@ -8578,6 +8616,9 @@ function finishOnboard(skipDay) {
   err.hidden = true;
   state.settings.name = name;
   state.settings.freeHours = Math.max(0.5, +document.getElementById('obFree').value || 2);
+  // สองข้อนี้ข้ามได้ ค่าว่างจึงเป็นคำตอบที่ถูกต้อง — เขียนทับเฉพาะตอนที่มีคำตอบจริง
+  if (obMeta.hear) state.settings.hearFrom = obMeta.hear;
+  if (obMeta.grade) state.settings.grade = obMeta.grade;
   save();
   localStorage.removeItem(ONBOARD_SKIP_KEY);
   haptic('done');
