@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A9e';                 // สายเลขของแอป
+const APP_VERSION = '1A9g';                 // สายเลขของแอป
 const APP_CODENAME = 'Klarheit';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -3877,12 +3877,29 @@ function renderContext() {
   const slots = freeSlots(now, now);
   const total = slots.reduce((s, x) => s + x.min, 0);
 
-  // ป้ายในหน้าโปรไฟล์ — บอกว่ากรอกไปแล้วแค่ไหน ไม่ต้องเข้ามาดูก็รู้
-  const ct = document.getElementById('peCtxCt');
+  // ทางเข้าบริบทในหน้าโปรไฟล์ — มีสองหน้าตา ตามว่ากรอกไปหรือยัง (1A9g)
+  //
+  // กรอกแล้ว  → แถวแรกของรายการ พร้อมป้ายว่ากรอกอะไรไปบ้าง
+  // ยังไม่กรอก → ซ่อนแถวนั้น แล้วขึ้นคำชวนหนึ่งบรรทัดเหนือบล็อกผลของฉัน
+  //
+  // ใช้ .tl-hint ตัวเดียวกับที่เส้นเวลาใช้ — ไม่มีกรอบ ไม่มีพื้นสี สูงแค่บรรทัดเดียว
+  // ของหลักในจอนี้คือกราฟกับตัวเลข คำชวนที่ดังกว่าของหลัก คือคำชวนที่แย่งที่ของเขา
+  const empty = ctxIsEmpty();
+  const hero = document.getElementById('ctxHero');
+  const row  = document.getElementById('peCtx');
+  const ct   = document.getElementById('peCtxCt');
+
   if (ct) {
-    ct.textContent = ctxIsEmpty()
+    ct.textContent = empty
       ? 'ยังไม่ได้ตั้ง — AI ยังเดาเวลาว่างอยู่'
       : ctxClasses().length + ' คาบเรียน · ' + ctxRoutines().length + ' กิจวัตร';
+  }
+  if (row) row.hidden = empty;
+  if (hero) {
+    hero.innerHTML = empty ? `<button class="tl-hint pf-hint" onclick="go('scr-context')">
+      ${icon('clock')}<span>ยังไม่รู้ตารางชีวิต — AI เดาเวลาว่างอยู่</span>
+      <b>ตั้งเลย</b>${icon('chevron')}
+    </button>` : '';
   }
 
   body.innerHTML = `
@@ -3937,6 +3954,350 @@ function renderContext() {
     <button class="ctx-wipe" onclick="ctxWipe()">${icon('trash')}ลบบริบททั้งหมด</button>
     <p class="ctx-note">ข้อมูลชุดนี้อยู่คนละที่กับงานของคุณ ลบทิ้งได้โดยงานไม่หายสักใบ ·
       การจัดตารางคำนวณในเครื่อง ไม่มีการส่งตารางชีวิตของคุณออกไปไหน</p>`;
+}
+
+// ---------- แท่ง "วันของคุณ" ----------
+// ตัวเลข "ว่าง 2 ชม. 10 นาที" ไม่บอกว่าสองชั่วโมงนั้นอยู่ตรงไหนของวัน
+// คนที่เห็นแค่ตัวเลขจึงยังวางแผนไม่ได้ ต้องเห็นว่ามันอยู่ก่อนหรือหลังข้าวเย็น
+//
+// นี่คือของที่เขาได้กลับไปจากการกรอก — ไม่ใช่คำว่า "บันทึกแล้ว"
+// จอที่ขอข้อมูลแล้วไม่คืนอะไรให้ดู คือจอที่คนกรอกครั้งเดียวแล้วไม่กลับมาอีก
+const WD_FULL = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
+
+function ctxBarHtml(weekday, opts = {}) {
+  const bar = ctxDayBar(weekday);
+  const span = Math.max(1, bar.to - bar.from);
+  if (!bar.blocks.length) return '';
+
+  // ก้อนที่แคบกว่า ~9% ของแท่งใส่ตัวหนังสือไม่ลง — ปล่อยว่างดีกว่าโชว์ตัวอักษรครึ่งตัว
+  const seg = bar.blocks.map(b => {
+    const pct = b.min / span * 100;
+    const txt = pct >= 9 ? (b.kind === 'busy' ? esc(b.title) : ctxHours(b.min)) : '';
+    return `<i class="cb-${b.kind}" style="flex:${b.min}" title="${esc(min2hm(b.from))}–${esc(min2hm(b.to))}">${txt}</i>`;
+  }).join('');
+
+  const first = bar.blocks.find(b => b.kind === 'free');
+  return `<section class="ctx-bar">
+    <div class="cb-h">${icon('clock')}<span>วัน${WD_FULL[weekday]}ของคุณ</span>
+      ${opts.pick === false ? '' : `<select class="cb-pick" onchange="ctxPickDay(this.value)">
+        ${[1, 2, 3, 4, 5, 6, 0].map(d => `<option value="${d}"${d === weekday ? ' selected' : ''}>วัน${WD_FULL[d]}</option>`).join('')}
+      </select>`}
+    </div>
+    <div class="cb-bar">${seg}</div>
+    <div class="cb-axis mono"><span>${esc(min2hm(bar.from))}</span><span>${esc(min2hm(bar.to))}</span></div>
+    <p class="cb-p">${bar.freeMin
+      ? `เหลือ <b>${esc(ctxHours(bar.freeMin))}</b> ที่วางงานได้จริง${first
+          ? ` · เริ่มได้ตั้งแต่ ${esc(min2hm(first.from))}` : ''}`
+      : 'วันนี้เต็มทั้งวัน — งานจะถูกย้ายไปวันอื่นให้'}</p>
+  </section>`;
+}
+
+// วันที่แท่งกำลังโชว์อยู่ — เริ่มที่วันนี้ เพราะคนเปิดมาถามถึงวันนี้ก่อนเสมอ
+let ctxBarDay = new Date().getDay();
+function ctxPickDay(d) { ctxBarDay = +d; renderContext(); }
+
+// ---------- ตัวช่วยทำความรู้จักวันของเขา ----------
+// ห้าขั้น แต่ละขั้นตอบด้วยการแตะ ไม่ต้องพิมพ์สักตัวจนถึงขั้นสุดท้าย
+// การพิมพ์บนมือถือคือจุดที่คนเลิกกลางคัน — ทุกอย่างที่เดาแทนได้ต้องเดาไปก่อน
+const WIZ_LAST = 5;
+const WIZ_OUT = ['15:00', '15:30', '16:00', '16:30', '17:00', '18:00'];
+// ของที่พบบ่อยพอจะขึ้นเป็นชิป — ที่เหลือผู้ใช้พิมพ์เองได้ในจอบริบท
+// เดาเวลาให้ทุกอันแล้ว เพราะชิปที่เลือกแล้วต้องกรอกเวลาต่อ คือชิปที่ไม่ได้ช่วยอะไร
+const WIZ_CHIPS = [
+  { key: 'tutor', title: 'เรียนพิเศษ',      kind: 'study',    after: 30, min: 90 },
+  { key: 'sport', title: 'ซ้อมกีฬา',        kind: 'activity', after: 0,  min: 90 },
+  { key: 'screen', title: 'ดูซีรีส์ เล่นเกม', kind: 'other',    after: 120, min: 60 },
+  { key: 'friend', title: 'ติวกับเพื่อน',    kind: 'study',    after: 60, min: 60 },
+  { key: 'music', title: 'ดนตรี',           kind: 'activity', after: 60, min: 60 },
+  { key: 'work',  title: 'ทำงานพิเศษ',      kind: 'activity', after: 30, min: 120 },
+  { key: 'family', title: 'ช่วยงานบ้าน ดูแลน้อง', kind: 'other', after: 0, min: 45 },
+  { key: 'gym',   title: 'ออกกำลังกาย',     kind: 'activity', after: 90, min: 45 },
+];
+
+let wiz = null;
+
+function wizOpen() {
+  const span = ctxSchoolSpan();
+  wiz = {
+    step: 1,
+    // ถ้ามีตารางเรียนอยู่แล้ว เอาเวลาจริงมาตั้งต้น ไม่ต้องให้เขาตอบซ้ำของที่บอกไปแล้ว
+    inHm: span ? span.fromHm : '08:00',
+    outHm: span ? span.toHm : '16:00',
+    drop: {},        // กิจวัตรที่เดามาแล้วเขาบอกว่าไม่ใช่
+    edit: {},        // เวลาที่เขาแก้จากที่เดาไว้
+    picks: {},       // ชิปที่เลือกเพิ่ม → { start, end, days }
+  };
+  go('scr-ctxwiz');
+  renderCtxWiz();
+}
+
+function wizClose() { wiz = null; go('scr-context'); }
+
+function wizGo(n) {
+  if (!wiz) return;
+  // ข้ามขั้น "เวลาของที่เลือกเพิ่ม" ถ้าไม่ได้เลือกอะไรเลย — จอเปล่าที่ต้องกดผ่านคือจอที่ไม่ควรมี
+  if (n === 4 && !Object.keys(wiz.picks).length) n = wiz.step < 4 ? 5 : 3;
+  wiz.step = Math.max(1, Math.min(WIZ_LAST, n));
+  if (wiz.step === WIZ_LAST) wizApply();
+  renderCtxWiz();
+  const b = document.getElementById('wizBody');
+  if (b && b.scrollTo) b.scrollTo({ top: 0, behavior: 'smooth' });
+  haptic('tap');
+}
+
+function wizSetOut(v) { if (wiz) { wiz.outHm = v; renderCtxWiz(); haptic('tap'); } }
+function wizSetIn(v) { if (wiz) { wiz.inHm = v; renderCtxWiz(); } }
+function wizDrop(key) {
+  if (!wiz) return;
+  wiz.drop[key] = !wiz.drop[key];
+  renderCtxWiz();
+  haptic('tap');
+}
+function wizEditTime(key, which, v) {
+  if (!wiz) return;
+  wiz.edit[key] = Object.assign({}, wiz.edit[key], { [which]: v });
+  renderCtxWiz();
+}
+
+function wizChip(key) {
+  if (!wiz) return;
+  if (wiz.picks[key]) delete wiz.picks[key];
+  else {
+    const c = WIZ_CHIPS.find(x => x.key === key);
+    const base = (hm2min(wiz.outHm) || 16 * 60) + 60 + c.after;   // หลังกลับถึงบ้านคร่าว ๆ
+    wiz.picks[key] = { start: min2hm(base), end: min2hm(base + c.min), days: [1, 2, 3, 4, 5] };
+  }
+  renderCtxWiz();
+  haptic('tap');
+}
+function wizPickTime(key, which, v) {
+  if (wiz && wiz.picks[key]) { wiz.picks[key][which] = v; renderCtxWiz(); }
+}
+function wizPickDay(key, d) {
+  if (!wiz || !wiz.picks[key]) return;
+  const days = wiz.picks[key].days;
+  const at = days.indexOf(d);
+  if (at >= 0) days.splice(at, 1); else days.push(d);
+  renderCtxWiz();
+  haptic('tap');
+}
+
+// เขียนคำตอบทั้งหมดลงบริบทจริง — เรียกตอนเข้าขั้นสุดท้าย เพื่อให้แท่งวันในขั้นนั้นเป็นของจริง
+// ไม่ใช่ภาพจำลอง: ถ้าแท่งที่เขาเห็นตอนจบไม่ตรงกับที่บันทึก เขาจะเจอวันคนละแบบตอนกลับเข้าแอป
+function wizApply() {
+  if (!wiz) return;
+  const WD = [1, 2, 3, 4, 5];
+  const span = ctxSchoolSpan();
+
+  // เวลาเรียน: มีคาบจริงอยู่แล้วไม่แตะ — ตารางที่เขาสแกนมาละเอียดกว่าคำตอบหยาบจากจอนี้
+  if (!ctxHasRealTimetable()) {
+    for (const c of ctxClasses()) ctxRemove('class', c.id);
+    ctxUpsert('class', { subject: 'เรียนที่โรงเรียน', start: wiz.inHm, end: wiz.outHm, weekday: WD });
+  } else if (span && span.toHm !== wiz.outHm) {
+    // มีตารางจริงแล้วแต่เขาแก้เวลาเลิก — ต่อคาบสุดท้ายให้ยาวถึงเวลาใหม่ ไม่ลบตารางเขาทิ้ง
+    const last = ctxClasses().filter(c => hm2min(c.end) === span.to);
+    for (const c of last) ctxUpsert('class', Object.assign({}, c, { end: wiz.outHm }));
+  }
+
+  for (const g of ctxGuessRoutines()) {
+    if (wiz.drop[g.key]) continue;
+    const e = wiz.edit[g.key] || {};
+    ctxUpsert('routine', { title: g.title, kind: g.kind, weekday: g.weekday,
+      start: e.start || g.start, end: e.end || g.end });
+  }
+  for (const [key, v] of Object.entries(wiz.picks)) {
+    const c = WIZ_CHIPS.find(x => x.key === key);
+    if (!c || hm2min(v.end) <= hm2min(v.start)) continue;
+    ctxUpsert('routine', { title: c.title, kind: c.kind, start: v.start, end: v.end,
+      weekday: v.days.length && v.days.length < 7 ? v.days.slice().sort() : null });
+  }
+  ctxBarDay = 1;
+  renderAll();
+}
+
+function wizDayChips(key, days) {
+  return `<div class="wz-days">${WD_SHORT.map((lb, i) => `<button type="button"
+    class="wz-day${days.includes(i) ? ' on' : ''}" onclick="wizPickDay('${key}', ${i})">${lb}</button>`).join('')}</div>`;
+}
+
+function renderCtxWiz() {
+  const b = document.getElementById('wizBody');
+  if (!b || !wiz) return;
+  const head = `<div class="wz-top">
+    <button class="set-back" onclick="wizClose()" aria-label="ปิด">${icon('x')}</button>
+    <div class="wz-dots">${Array.from({ length: WIZ_LAST }, (_, i) =>
+      `<span class="${i + 1 === wiz.step ? 'on' : (i + 1 < wiz.step ? 'past' : '')}"></span>`).join('')}</div>
+  </div>`;
+
+  const step = wiz.step;
+  let body = '';
+
+  if (step === 1) {
+    const real = ctxHasRealTimetable();
+    body = `<h2 class="wz-q">เลิกเรียนกี่โมง</h2>
+      <p class="wz-sb">${real
+        ? 'อ่านจากตารางเรียนที่คุณใส่ไว้ — ไม่ตรงก็แก้ได้'
+        : 'ทุกอย่างหลังจากนี้เดาจากเวลานี้ ตอบให้ใกล้ของจริงที่สุด'}</p>
+      <div class="wz-chips">${WIZ_OUT.map(v => `<button type="button"
+        class="wz-chip${wiz.outHm === v ? ' on' : ''}" onclick="wizSetOut('${v}')">${v}</button>`).join('')}</div>
+      <div class="wz-row">
+        <span class="wz-lb">เข้าเรียน</span>
+        <input type="time" value="${esc(wiz.inHm)}" onchange="wizSetIn(this.value)"${real ? ' disabled' : ''}>
+      </div>
+      ${real ? `<p class="wz-note">${icon('check')}มีตารางเรียนรายวิชาอยู่แล้ว เวลาเข้าเรียนจึงอ่านจากตารางนั้น</p>` : ''}`;
+  }
+
+  if (step === 2) {
+    const guess = ctxGuessRoutines();
+    body = `<h2 class="wz-q">วันธรรมดาของคุณประมาณนี้ไหม</h2>
+      <p class="wz-sb">เดาจากเวลาเรียนของคุณ — อันไหนไม่ใช่ แตะกากบาททิ้งได้ เวลาแก้ได้ตรงนั้น</p>
+      <div class="wz-list">${guess.map(g => {
+        const e = wiz.edit[g.key] || {};
+        const off = !!wiz.drop[g.key];
+        return `<div class="wz-rt${off ? ' off' : ''}">
+          <span class="wz-ic">${icon((CTX_KINDS[g.kind] || CTX_KINDS.other).icon)}</span>
+          <span class="wz-tx">${esc(g.title)}</span>
+          <input type="time" value="${esc(e.start || g.start)}" ${off ? 'disabled' : ''}
+            onchange="wizEditTime('${g.key}','start',this.value)">
+          <input type="time" value="${esc(e.end || g.end)}" ${off ? 'disabled' : ''}
+            onchange="wizEditTime('${g.key}','end',this.value)">
+          <button class="wz-x" onclick="wizDrop('${g.key}')" aria-label="${off ? 'เอากลับมา' : 'ไม่ใช่'}">
+            ${icon(off ? 'check' : 'x')}</button>
+        </div>`;
+      }).join('')}</div>
+      ${guess.length ? '' : '<p class="wz-note">ยังเดาไม่ได้ — ย้อนกลับไปใส่เวลาเรียนก่อน</p>'}`;
+  }
+
+  if (step === 3) {
+    body = `<h2 class="wz-q">มีอะไรที่ทำประจำอีกไหม</h2>
+      <p class="wz-sb">แตะเลือกได้หลายอัน — เวลาเดาให้แล้ว ไปแก้ในหน้าถัดไป</p>
+      <div class="wz-chips wrap">${WIZ_CHIPS.map(c => `<button type="button"
+        class="wz-chip${wiz.picks[c.key] ? ' on' : ''}" onclick="wizChip('${c.key}')">${esc(c.title)}</button>`).join('')}</div>
+      <p class="wz-note">${icon('clock')}ไม่มีก็ข้ามได้ — เพิ่มทีหลังในหน้าบริบทได้ตลอด</p>`;
+  }
+
+  if (step === 4) {
+    const keys = Object.keys(wiz.picks);
+    body = `<h2 class="wz-q">อันละกี่โมง</h2>
+      <p class="wz-sb">เดาไว้ว่าอยู่ช่วงหลังกลับบ้าน จ–ศ — แก้วันกับเวลาได้ตามจริง</p>
+      <div class="wz-list">${keys.map(k => {
+        const c = WIZ_CHIPS.find(x => x.key === k), v = wiz.picks[k];
+        const bad = hm2min(v.end) <= hm2min(v.start);
+        return `<div class="wz-slot">
+          <div class="wz-slot-h"><b>${esc(c.title)}</b>
+            <button class="wz-x" onclick="wizChip('${k}')" aria-label="เอาออก">${icon('x')}</button></div>
+          ${wizDayChips(k, v.days)}
+          <div class="wz-times">
+            <input type="time" value="${esc(v.start)}" onchange="wizPickTime('${k}','start',this.value)">
+            <span>ถึง</span>
+            <input type="time" value="${esc(v.end)}" onchange="wizPickTime('${k}','end',this.value)">
+          </div>
+          ${bad ? '<p class="wz-bad">เวลาจบต้องอยู่หลังเวลาเริ่ม — อันนี้จะยังไม่ถูกบันทึก</p>' : ''}
+        </div>`;
+      }).join('')}</div>`;
+  }
+
+  if (step === WIZ_LAST) {
+    body = `<h2 class="wz-q">นี่คือวันจันทร์ของคุณ</h2>
+      <p class="wz-sb">บันทึกให้แล้ว — แก้ได้ตลอดในหน้าบริบท</p>
+      ${ctxBarHtml(1, { pick: false })}
+      <p class="wz-note">${icon('sparkles')}จากนี้ AI จะวางงานลงเฉพาะช่องสีทอง
+        ไม่ใช่ "ว่างวันละ 2 ชั่วโมง" ที่เดาเอาเองอีกต่อไป</p>`;
+  }
+
+  const back = step > 1 && step < WIZ_LAST
+    ? `<button class="btn ghost" onclick="wizGo(${step - 1})">ย้อนกลับ</button>` : '';
+  const next = step === WIZ_LAST
+    ? `<button class="btn" onclick="wizClose()">เสร็จแล้ว</button>`
+    : `<button class="btn" onclick="wizGo(${step + 1})">ถัดไป</button>`;
+
+  b.innerHTML = `${head}<div class="wz-main">${body}</div>
+    <div class="wz-act">${back}${next}</div>`;
+}
+
+// ---------- แอปเดาจากพฤติกรรมจริง แล้วขอยืนยัน ----------
+// กิจวัตรที่กรอกไว้ตอนแรกคือ "วันที่เขาคิดว่าตัวเองใช้ชีวิต" ซึ่งมักไม่ตรงกับวันจริง
+// เวลาที่ติ๊กงานเสร็จคือหลักฐานว่าจริง ๆ แล้วเขานั่งทำงานตอนไหน
+//
+// สองกฎที่คุมส่วนนี้:
+//   1. เสนอเมื่อมีหลักฐานพอเท่านั้น — ต่ำกว่า 6 งานคือเสียงรบกวน ไม่ใช่รูปแบบ
+//   2. ไม่แก้อะไรเองสักอย่าง ทุกข้อเสนอต้องผ่านปุ่มยืนยันของเขาก่อน
+const CTX_LEARN_MIN = 6;
+const CTX_LEARN_DISMISS = 'studentos.alt.ctxLearnOff';
+
+function ctxLearn() {
+  const now = new Date();
+  const done = (typeof liveTasks === 'function' ? liveTasks() : []).filter(t =>
+    t.done && t.doneAt && (now - new Date(t.doneAt)) < 28 * 8.64e7);
+  if (done.length < CTX_LEARN_MIN) return null;
+
+  // นับเป็นช่วงชั่วโมง แล้วหาชั่วโมงที่ติ๊กเสร็จเยอะสุด
+  const byHour = {};
+  for (const t of done) {
+    const h = new Date(t.doneAt).getHours();
+    byHour[h] = (byHour[h] || 0) + 1;
+  }
+  const [topH, topN] = Object.entries(byHour).sort((a, b) => b[1] - a[1])[0];
+  const hour = +topH;
+  // ชั่วโมงที่ชนะแบบเฉียดฉิวไม่ใช่รูปแบบ — ต้องกินสัดส่วนจริงถึงจะพูดได้
+  if (topN < Math.max(3, done.length * 0.3)) return null;
+
+  const from = hour * 60, to = from + 60;
+  const busy = busyBlocks(new Date()).filter(b => b.from < to && b.to > from && b.kind !== 'class');
+  if (busy.length) {
+    return { type: 'clash', hour, n: topN, block: busy[0],
+      msg: `คุณติ๊กงานเสร็จช่วง ${min2hm(from)}–${min2hm(to)} อยู่บ่อย (${topN} จาก ${done.length} งาน)
+            แต่บริบทบอกว่าช่วงนั้นคือ "${busy[0].title}"` };
+  }
+  const p = ctxPrefs();
+  const stop = hm2min(p.noWorkAfter) ?? 21 * 60;
+  if (from >= stop) {
+    return { type: 'late', hour, n: topN,
+      msg: `คุณติ๊กงานเสร็จหลัง ${p.noWorkAfter} น. อยู่บ่อย (${topN} จาก ${done.length} งาน)
+            แต่ตอนนี้แอปไม่วางงานหลังเวลานั้นให้เลย` };
+  }
+  return null;
+}
+
+function ctxLearnHtml() {
+  let hit = null;
+  try { hit = ctxLearn(); } catch (_) { hit = null; }
+  if (!hit) return '';
+  try { if (localStorage.getItem(CTX_LEARN_DISMISS) === hit.type + hit.hour) return ''; } catch (_) {}
+  const act = hit.type === 'clash'
+    ? `<button class="btn sm" onclick="ctxLearnApply()">ขยับ${esc(hit.block.title)}ให้</button>`
+    : `<button class="btn sm" onclick="ctxLearnApply()">ขยายถึง ${esc(min2hm((hit.hour + 1) * 60))}</button>`;
+  return `<section class="ctx-learn">
+    <div class="cl-h">${icon('sparkles')}<span>แอปสังเกตเห็นอย่างหนึ่ง</span></div>
+    <p class="cl-p">${esc(hit.msg)}</p>
+    <div class="cl-act">${act}
+      <button class="btn ghost sm" onclick="ctxLearnNo()">ไม่ต้อง</button></div>
+  </section>`;
+}
+
+function ctxLearnApply() {
+  const hit = ctxLearn();
+  if (!hit) return;
+  if (hit.type === 'clash') {
+    // ขยับกิจวัตรที่ทับให้เริ่มหลังชั่วโมงที่เขาทำงานจริง โดยรักษาความยาวเดิมไว้
+    const r = ctxRoutines().find(x => x.id === hit.block.id);
+    if (r) {
+      const len = (hm2min(r.end) || 0) - (hm2min(r.start) || 0);
+      const start = (hit.hour + 1) * 60;
+      ctxUpsert('routine', Object.assign({}, r, {
+        start: min2hm(start), end: min2hm(Math.min(24 * 60 - 1, start + len)) }));
+    }
+  } else {
+    ctxSetPrefs({ noWorkAfter: min2hm((hit.hour + 1) * 60) });
+  }
+  haptic('done');
+  renderAll();
+}
+
+function ctxLearnNo() {
+  const hit = ctxLearn();
+  if (hit) { try { localStorage.setItem(CTX_LEARN_DISMISS, hit.type + hit.hour); } catch (_) {} }
+  renderContext();
 }
 
 // วันที่กางอยู่ในตารางเรียน — null = พับหมด (ค่าเริ่มต้น เพราะภาพรวมมาก่อนรายละเอียด)
@@ -5014,8 +5375,11 @@ function renderStats() {
   // ที่เหลือ (ส่งทันกำหนด · เลื่อนงาน · แยกตามวิชา · ช่วงที่ทำงานได้ดี) ย้ายไป scr-stats
   //
   // สามก้อนนั้นเป็นของที่ต้อง "อ่าน" ไม่ใช่ของที่กวาดตาแล้วได้อะไรกลับมา
-  // มันเลยดันทางเข้าอื่น (ถามน้องไซ · เหรียญตรา · บริบทของฉัน) ตกลงไปใต้จอ
+  // มันเลยดันทางเข้าอื่น (ร้านค้า · เหรียญตรา · บริบทของฉัน) ตกลงไปใต้จอ
   // ทั้งที่คนเข้าหน้านี้มาเพื่อกดเข้าไปที่ใดที่หนึ่ง ไม่ได้มาอ่านสถิติ
+  //
+  // 1A9g: ทางเข้า scr-stats เหลือปุ่ม "ดูทั้งหมด" ข้างบนอย่างเดียว
+  // แถวท้ายบล็อกเคยพาไปจอเดียวกัน — สองปุ่มต่อจอเดียวคือความสับสน ไม่ใช่ทางเลือก
   box.innerHTML = `<button class="st-open" onclick="go('scr-stats')">
       <span class="sec-label">ผลของฉัน</span>
       <span class="st-open-go">ดูทั้งหมด${icon('chevron')}</span>
@@ -5037,11 +5401,7 @@ function renderStats() {
           <span class="d">${d.label}</span>
         </div>`).join('')}
       </div>
-    </div>
-
-    <button class="st-more" onclick="go('scr-stats')">
-      ${icon('medal')}ส่งทันกำหนด · แยกตามวิชา · ช่วงที่ทำงานได้ดี${icon('chevron')}
-    </button>`;
+    </div>`;
 
   renderStatFull(now, { onTimePct, onTime, rated, snoozes, subjRows });
 }

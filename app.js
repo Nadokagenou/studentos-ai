@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A9f';                 // สายเลขของแอป
+const APP_VERSION = '1A9g';                 // สายเลขของแอป
 const APP_CODENAME = 'Klarheit';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -3877,12 +3877,29 @@ function renderContext() {
   const slots = freeSlots(now, now);
   const total = slots.reduce((s, x) => s + x.min, 0);
 
-  // ป้ายในหน้าโปรไฟล์ — บอกว่ากรอกไปแล้วแค่ไหน ไม่ต้องเข้ามาดูก็รู้
-  const ct = document.getElementById('peCtxCt');
+  // ทางเข้าบริบทในหน้าโปรไฟล์ — มีสองหน้าตา ตามว่ากรอกไปหรือยัง (1A9g)
+  //
+  // กรอกแล้ว  → แถวแรกของรายการ พร้อมป้ายว่ากรอกอะไรไปบ้าง
+  // ยังไม่กรอก → ซ่อนแถวนั้น แล้วขึ้นคำชวนหนึ่งบรรทัดเหนือบล็อกผลของฉัน
+  //
+  // ใช้ .tl-hint ตัวเดียวกับที่เส้นเวลาใช้ — ไม่มีกรอบ ไม่มีพื้นสี สูงแค่บรรทัดเดียว
+  // ของหลักในจอนี้คือกราฟกับตัวเลข คำชวนที่ดังกว่าของหลัก คือคำชวนที่แย่งที่ของเขา
+  const empty = ctxIsEmpty();
+  const hero = document.getElementById('ctxHero');
+  const row  = document.getElementById('peCtx');
+  const ct   = document.getElementById('peCtxCt');
+
   if (ct) {
-    ct.textContent = ctxIsEmpty()
+    ct.textContent = empty
       ? 'ยังไม่ได้ตั้ง — AI ยังเดาเวลาว่างอยู่'
       : ctxClasses().length + ' คาบเรียน · ' + ctxRoutines().length + ' กิจวัตร';
+  }
+  if (row) row.hidden = empty;
+  if (hero) {
+    hero.innerHTML = empty ? `<button class="tl-hint pf-hint" onclick="go('scr-context')">
+      ${icon('clock')}<span>ยังไม่รู้ตารางชีวิต — AI เดาเวลาว่างอยู่</span>
+      <b>ตั้งเลย</b>${icon('chevron')}
+    </button>` : '';
   }
 
   body.innerHTML = `
@@ -5014,8 +5031,11 @@ function renderStats() {
   // ที่เหลือ (ส่งทันกำหนด · เลื่อนงาน · แยกตามวิชา · ช่วงที่ทำงานได้ดี) ย้ายไป scr-stats
   //
   // สามก้อนนั้นเป็นของที่ต้อง "อ่าน" ไม่ใช่ของที่กวาดตาแล้วได้อะไรกลับมา
-  // มันเลยดันทางเข้าอื่น (ถามน้องไซ · เหรียญตรา · บริบทของฉัน) ตกลงไปใต้จอ
+  // มันเลยดันทางเข้าอื่น (ร้านค้า · เหรียญตรา · บริบทของฉัน) ตกลงไปใต้จอ
   // ทั้งที่คนเข้าหน้านี้มาเพื่อกดเข้าไปที่ใดที่หนึ่ง ไม่ได้มาอ่านสถิติ
+  //
+  // 1A9g: ทางเข้า scr-stats เหลือปุ่ม "ดูทั้งหมด" ข้างบนอย่างเดียว
+  // แถวท้ายบล็อกเคยพาไปจอเดียวกัน — สองปุ่มต่อจอเดียวคือความสับสน ไม่ใช่ทางเลือก
   box.innerHTML = `<button class="st-open" onclick="go('scr-stats')">
       <span class="sec-label">ผลของฉัน</span>
       <span class="st-open-go">ดูทั้งหมด${icon('chevron')}</span>
@@ -5037,11 +5057,7 @@ function renderStats() {
           <span class="d">${d.label}</span>
         </div>`).join('')}
       </div>
-    </div>
-
-    <button class="st-more" onclick="go('scr-stats')">
-      ${icon('medal')}ส่งทันกำหนด · แยกตามวิชา · ช่วงที่ทำงานได้ดี${icon('chevron')}
-    </button>`;
+    </div>`;
 
   renderStatFull(now, { onTimePct, onTime, rated, snoozes, subjRows });
 }

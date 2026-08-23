@@ -329,6 +329,142 @@ function nextFreeSlotAfterToday(now = new Date(), maxDays = 7) {
   return null;
 }
 
+// ---------- แอปรู้จักเจ้าของเครื่องแค่ไหนแล้ว ----------
+// คำนวณจากข้อมูลจริงทุกครั้ง ไม่เก็บธง "ตอบแล้ว" ไว้ที่ไหน
+// ธงที่เก็บแยกจะเพี้ยนทันทีที่ผู้ใช้ลบข้อมูลทิ้ง แล้วแถบจะรายงานว่า "รู้แล้ว 80%"
+// ทั้งที่ในเครื่องไม่เหลืออะไรเลย — ตัวเลขที่โกหกได้คือตัวเลขที่ไม่ควรมี
+//
+// แต่ละช่องต้องผ่านสองด่าน: มีข้อมูลจริงไหม (done) และรู้แล้วเอาไปทำอะไร (why)
+// ช่องที่ตอบ why ไม่ได้ แปลว่าเราถามเพราะอยากรู้ ไม่ใช่เพราะจำเป็น — ตัดทิ้ง
+const CTX_SCHOOL_NAMES = ['เรียนที่โรงเรียน', 'เรียน'];
+
+// คาบเรียนก้อนหยาบที่หน้าทำความรู้จักใส่ให้ตอนสมัคร ไม่นับว่า "รู้ตารางเรียน"
+// มันคือค่าเริ่มต้นที่แอปเดาเอง ไม่ใช่สิ่งที่ผู้ใช้บอก
+function ctxHasRealTimetable() {
+  return ctxClasses().some(c => c.subject && !CTX_SCHOOL_NAMES.includes(c.subject.trim()));
+}
+
+// ขอบเขตเวลาเรียนของวันธรรมดา — ใช้เป็นหลักหมุดในการเดากิจวัตรรอบ ๆ
+// คืน null เมื่อยังไม่มีคาบเรียนเลย เพราะเดาจากอากาศแล้วจะได้กิจวัตรที่ไม่เกี่ยวกับใครเลย
+function ctxSchoolSpan() {
+  const list = ctxClasses().filter(c => onDay(c, 1) || onDay(c, 2) || onDay(c, 3));
+  let from = null, to = null;
+  for (const c of list) {
+    const a = hm2min(c.start), b = hm2min(c.end);
+    if (a == null || b == null || b <= a) continue;
+    from = from == null ? a : Math.min(from, a);
+    to = to == null ? b : Math.max(to, b);
+  }
+  return from == null ? null : { from, to, fromHm: min2hm(from), toHm: min2hm(to) };
+}
+
+function ctxRoutineOfKind(kind) { return ctxRoutines().filter(r => r.kind === kind); }
+
+// ช่องที่แอปอยากรู้ เรียงตามผลที่ได้ต่อการตอบหนึ่งครั้ง
+// ที่ไม่มีในรายการนี้คือของที่ตอบไปแล้วแผนไม่เปลี่ยนสักบรรทัด
+function ctxGaps() {
+  const span = ctxSchoolSpan();
+  const rs = ctxRoutines();
+  const after = span ? rs.filter(r => (hm2min(r.start) ?? 0) >= span.to) : [];
+  const before = span ? rs.filter(r => (hm2min(r.end) ?? 0) <= span.from) : [];
+  return [
+    { key: 'timetable', label: 'ตารางเรียนรายวิชา',
+      why: 'จะได้ไม่วางงานทับคาบเรียน และรู้ว่าวันไหนเลิกดึก',
+      done: ctxHasRealTimetable() },
+    { key: 'travel', label: 'เวลาเดินทางไป–กลับ',
+      why: 'เวลาที่หายไปจริงทุกวัน แต่แทบไม่มีใครนึกถึงตอนวางแผน',
+      done: ctxRoutineOfKind('travel').length > 0 },
+    { key: 'meal', label: 'เวลากินข้าว อาบน้ำ',
+      why: 'กันไม่ให้งานไปลงทับช่วงที่ลุกจากโต๊ะอยู่แล้ว',
+      done: ctxRoutineOfKind('meal').length > 0 },
+    { key: 'after', label: 'หลังเลิกเรียนทำอะไรต่อ',
+      why: 'ช่วงบ่ายแก่ถึงค่ำคือที่ที่งานจะไปลง ต้องรู้ว่าว่างจริงแค่ไหน',
+      done: after.length > 0 },
+    { key: 'morning', label: 'ตอนเช้าก่อนไปเรียน',
+      why: 'บางคนอ่านหนังสือได้ตอนเช้า บางคนแทบไม่ทันไปโรงเรียน',
+      done: before.length > 0 },
+  ];
+}
+
+function ctxKnow() {
+  const g = ctxGaps();
+  return Math.round(g.filter(x => x.done).length / g.length * 100);
+}
+
+// ---------- เดากิจวัตรจากตารางเรียนของเขาเอง ----------
+// เดาจากเวลาเข้า–เลิกเรียนจริง ไม่ใช่ค่าคงที่ของ "เด็กไทยทั่วไป"
+// คนเลิกบ่ายสามกับคนเลิกห้าโมงมีเย็นคนละแบบสิ้นเชิง ชุดเดียวกันใช้กับสองคนนี้ไม่ได้
+//
+// ทุกก้อนที่คืนไปคือ "ข้อเสนอ" ยังไม่ได้เขียนลงบริบท — ผู้ใช้ต้องกดยืนยันก่อนเสมอ
+// เดาแล้วเขียนเงียบ ๆ คือการใส่ตารางชีวิตปลอมให้คนอื่นโดยเขาไม่รู้ตัว
+function ctxGuessRoutines() {
+  const span = ctxSchoolSpan();
+  if (!span) return [];
+  const p = ctxPrefs();
+  const wake = hm2min(p.wake) ?? 6 * 60;
+  const WD = [1, 2, 3, 4, 5];
+  const out = [];
+
+  // เช้า: ตื่นถึงเข้าเรียน หักครึ่งชั่วโมงสุดท้ายไว้เป็นเวลาเดินทาง
+  const trip = Math.min(60, Math.max(20, Math.round((span.from - wake) / 3 / 5) * 5));
+  if (span.from - wake > trip + 10) {
+    out.push({ key: 'wake', kind: 'other', title: 'ตื่น อาบน้ำ กินข้าวเช้า',
+      start: min2hm(wake), end: min2hm(span.from - trip), weekday: WD });
+  }
+  if (span.from - wake > 10) {
+    out.push({ key: 'go', kind: 'travel', title: 'เดินทางไปโรงเรียน',
+      start: min2hm(Math.max(wake, span.from - trip)), end: min2hm(span.from), weekday: WD });
+  }
+  // เย็น: เลิกเรียน → เดินทางกลับ → กินข้าวอาบน้ำ
+  out.push({ key: 'back', kind: 'travel', title: 'เดินทางกลับบ้าน',
+    start: min2hm(span.to), end: min2hm(span.to + trip), weekday: WD });
+  const dinner = span.to + trip + 30;
+  out.push({ key: 'dinner', kind: 'meal', title: 'อาบน้ำ กินข้าวเย็น',
+    start: min2hm(dinner), end: min2hm(dinner + 60), weekday: WD });
+  return out;
+}
+
+// ---------- วันหนึ่งเป็นแท่งเดียว ----------
+// คืนทุกช่วงของวันเรียงต่อกันตั้งแต่ตื่นถึงเส้นห้ามวางงาน ไม่มีรู
+// ช่องที่ไม่มีอะไรจองคือช่องว่าง — แต่ช่องว่างที่สั้นกว่า minBlockMin ไม่นับเป็นที่ทำงาน
+// จึงติดป้ายแยก (kind 'gap') ไม่ใช่ 'free' ไม่งั้นแท่งจะสัญญาเวลาที่วางงานจริงไม่ได้
+function ctxDayBar(weekday) {
+  const p = ctxPrefs();
+  const from = hm2min(p.wake) ?? 6 * 60;
+  const to = hm2min(p.noWorkAfter) ?? hm2min(p.sleep) ?? 22 * 60;
+  if (to <= from) return { from, to: from, blocks: [], freeMin: 0 };
+
+  const minBlock = Math.max(5, +p.minBlockMin || 20);
+  const ref = new Date();
+  ref.setDate(ref.getDate() + ((weekday - ref.getDay()) + 7) % 7);
+  const busy = mergeRanges(busyBlocks(ref).filter(b => b.to > from && b.from < to))
+    .map(b => ({ from: Math.max(b.from, from), to: Math.min(b.to, to) }));
+
+  // ชื่อของก้อนที่ถูกรวมแล้ว — เอาของก้อนแรกที่ทับมัน พอสำหรับป้ายบนแท่ง
+  const label = r => {
+    const hit = busyBlocks(ref).filter(b => b.from < r.to && b.to > r.from);
+    return hit.length ? hit[0].title : 'ติดธุระ';
+  };
+
+  const blocks = [];
+  let cur = from, freeMin = 0;
+  for (const b of busy) {
+    if (b.from > cur) {
+      const min = b.from - cur;
+      blocks.push({ from: cur, to: b.from, min, kind: min >= minBlock ? 'free' : 'gap' });
+      if (min >= minBlock) freeMin += min;
+    }
+    blocks.push({ from: b.from, to: b.to, min: b.to - b.from, kind: 'busy', title: label(b) });
+    cur = b.to;
+  }
+  if (cur < to) {
+    const min = to - cur;
+    blocks.push({ from: cur, to, min, kind: min >= minBlock ? 'free' : 'gap' });
+    if (min >= minBlock) freeMin += min;
+  }
+  return { from, to, blocks, freeMin };
+}
+
 // ---------- ให้ตัวซิงก์คลาวด์เรียกใช้ ----------
 // เก็บใน user_state ก้อนเดียวกับงานไปก่อน (คีย์ `ctx`) จนกว่าตาราง Supabase จะพร้อม
 // พอแตกตารางแล้วให้แก้แค่สองฟังก์ชันนี้ ที่เหลือทั้งไฟล์ไม่ต้องแตะ
@@ -347,5 +483,6 @@ function ctxImport(data) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { hm2min, min2hm, busyBlocks, mergeRanges, freeSlots, freeMinutes,
     slotsBefore, freeMinutesBefore, nextFreeSlotAfterToday,
+    ctxGaps, ctxKnow, ctxSchoolSpan, ctxGuessRoutines, ctxDayBar, ctxHasRealTimetable,
     ctxLoad, ctxUpsert, ctxSetPrefs, ctxClear, CTX_DEFAULT };
 }

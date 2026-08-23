@@ -366,10 +366,10 @@
             <div class="rule"><span></span>หรือแปะข้อความ<span></span></div>
             <div class="paste-card">
               <textarea id="pasteText" rows="4"
-                placeholder="วางข้อความจากกลุ่ม LINE เช่น การบ้านฟิสิกส์ ครูสมชาย ทำโจทย์บทที่ 4 ข้อ 1-10 ส่งพรุ่งนี้ 16:00 คะแนนเก็บ 20%"></textarea>
+                placeholder="วางข้อความ"></textarea>
               <div class="pc-act">
                 <button class="ai-read" onclick="scanFromText()">
-                  <svg viewBox="0 0 24 24"><use href="#lu-brand"/></svg>ให้ AI อ่าน</button>
+                  <svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg>ให้ AI อ่าน</button>
               </div>
             </div>
             <button class="manual" onclick="openForm(null)">
@@ -616,19 +616,28 @@
             </div>
           </div>
 
+          <!-- 1A9g: การ์ดชวนตั้งบริบท — ขึ้นเฉพาะตอนที่ยังไม่มีข้อมูล (วาดใน renderContext)
+               บริบทคือข้อมูลที่ทำให้การจัดตารางแม่น ถ้าผู้ใช้ยังไม่กรอก ทั้งแอปก็เดาเอา
+               มันจึงต้องดังกว่าแถวอื่น — แต่ดังตอนที่ยังจำเป็นเท่านั้น กรอกแล้วก็เงียบลง -->
+          <div id="ctxHero"></div>
+
           <!-- ALT 1A6M3: ผลของฉัน — สรุปจากข้อมูลที่แอปมีจริง วาดใน renderStats -->
           <div id="statsBox"></div>
 
           <!-- ALT 1A6M3: ทางเข้าใหญ่ 3 ทาง — ตั้งค่าทั้งหมดย้ายไปอยู่หลังปุ่ม -->
           <div class="pf-entry">
-            <!-- ถามน้องไซ — ย้ายมาจากแถบล่างตอน 1A8b
-                 AI ที่ดีพูดก่อนถูกถาม ข้อสังเกตของมันจึงไปอยู่บนหน้า "วันนี้" แทน
-                 แต่ช่องแชทยังต้องมีทางเข้าอยู่จริง ไม่งั้นฟีเจอร์ทั้งตัวหายไปเงียบ ๆ -->
-            <button class="pe" onclick="go('scr-ai')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
-              <span class="pe-tx"><b>ถามน้องไซ</b><i>ติดตรงไหนถามได้ — รู้ทุกงานที่ค้างอยู่</i></span>
+            <!-- บริบทของฉัน — ที่เดียวที่แอปรู้ว่า "คนนี้ว่างตอนไหนจริง ๆ"
+                 1A9g: ย้ายมาเป็นแถวแรกของรายการ — มันคือข้อมูลที่ทำให้การจัดตารางแม่น
+                 ไม่ใช่ของแต่งหน้าตา จึงไม่ควรอยู่ท้ายสุดต่อจากของเล่น
+                 ตอนยังไม่กรอก แถวนี้จะถูกซ่อน แล้วไปโผล่เป็นการ์ดใหญ่ #ctxHero ด้านบนแทน -->
+            <button class="pe" id="peCtx" onclick="go('scr-context')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
+              <span class="pe-tx"><b>บริบทของฉัน</b><i id="peCtxCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
+            <!-- 1A9g: การ์ด "ถามน้องไซ" ถูกถอดออกจากตรงนี้
+                 มันซ้ำกับแท็บ "น้องไซ" ที่อยู่บนแถบล่างตลอดเวลา — ทางเข้าสองทางไปที่เดียวกัน
+                 เอาออกแล้วรายการข้างล่างขยับขึ้นมาอยู่ในจอเดียวครบ ไม่ต้องเลื่อนหา -->
             <!-- ALT 1A6M3: ร้านค้า — อยู่เหนือเหรียญตรา · ติดป้าย "กำลังทำ" เพราะของในร้านยังไม่เปิด
                  แต่โทเคนสะสมจริงตั้งแต่ตอนนี้ ปุ่มจึงกดเข้าไปดูยอดได้ ไม่ใช่ปุ่มตาย -->
             <button class="pe pe-shop" onclick="go('scr-shop')">
@@ -654,13 +663,6 @@
               <span class="pe-tx"><b>เพื่อน</b><i id="peFriendCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <!-- บริบทของฉัน — ที่เดียวที่แอปรู้ว่า "คนนี้ว่างตอนไหนจริง ๆ"
-                 อยู่เหนือตั้งค่า เพราะมันคือข้อมูลที่ทำให้การจัดตารางแม่น ไม่ใช่ของแต่งหน้าตา -->
-            <button class="pe" onclick="go('scr-context')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
-              <span class="pe-tx"><b>บริบทของฉัน</b><i id="peCtxCt"></i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
           </div>
           <p class="app-ver" id="appVer"></p>
         </div>
@@ -680,6 +682,15 @@
           </div>
           <div id="statFull"></div>
         </div>
+      </div>
+
+      <!-- ============ SCREEN: ทำความรู้จักวันของคุณ (1A9h) ============
+           จอบริบทเดิมเป็นฟอร์มเปล่า: อยากได้กิจวัตรครบต้องกดเพิ่ม–กรอก–บันทึก 8 รอบ
+           ซึ่งเกือบไม่มีใครทำจนจบ แล้วแอปก็ไม่เคยรู้จักเจ้าของเครื่องจริงสักที
+           จอนี้กลับด้าน: แอปเดาวันของเขามาก่อนจากตารางเรียนที่มีอยู่ เขาแค่แก้ที่ผิด
+           ทั้งจอวาดจาก renderCtxWiz() — จำนวนคำถามกับกิจวัตรที่เดาได้ไม่คงที่ -->
+      <div class="screen flush" id="scr-ctxwiz">
+        <div class="scr-body wiz-body" id="wizBody"></div>
       </div>
 
       <!-- ============ SCREEN: บริบทของฉัน ============
