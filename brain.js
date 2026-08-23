@@ -148,7 +148,7 @@ function brainCard() {
     : `ยังไม่ออกความเห็น — ${waiting || `อีก ${BRAIN_MIN_EXAMPLES - n} ครั้ง`}`;
 
   return `<div class="brain">
-    <div class="brain-hd">${icon('brand')}<span>เรียนรู้จากคุณ</span></div>
+    <div class="brain-hd">${icon('sparkles')}<span>เรียนรู้จากคุณ</span></div>
     <p class="brain-p">${esc(state_)}</p>
     <p class="brain-sub">ทุกครั้งที่กด “ไม่ใช่งาน” หรือ “เพิ่มเข้าแผน” คือการสอนหนึ่งครั้ง
       · ข้อความทั้งหมดอยู่ในเครื่องคุณ ไม่ได้ส่งไปให้ใครวิเคราะห์</p>

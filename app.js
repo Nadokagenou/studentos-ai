@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A9j';                 // สายเลขของแอป
+const APP_VERSION = '1A9k';                 // สายเลขของแอป
 const APP_CODENAME = 'Klarheit';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -1780,7 +1780,7 @@ function briefCard(pending, now) {
   const label = typeof taskLabel === 'function' && top ? taskLabel(top) : (top && top.subject);
   if (label) msg = msg.replace(esc(label), '<b>' + esc(label) + '</b>');
   return `<div class="brief">
-    <div class="brief-head"><span class="brief-mark">${icon('brand')}</span><b>STUDENTOS AI</b></div>
+    <div class="brief-head"><span class="brief-mark">${icon('sparkles')}</span><b>STUDENTOS AI</b></div>
     <p class="brief-body">${msg}</p>
     <button class="brief-cta" onclick="go('scr-plan')">${icon('calendar')}ให้ AI วางแผนเวลาวันนี้</button>
   </div>`;
@@ -7926,7 +7926,7 @@ function showToast(copy) {
     el = document.createElement('div');
     el.id = 'appToast'; el.className = 'toast';
     // ALT: มีปุ่ม "เลิกทำ" เพิ่มมา — ปัดพลาดแล้วต้องย้อนได้ในที่เดียวกับที่แจ้งผล
-    el.innerHTML = `<img class="tav brand-light" src="logo-splash.png" alt=""><img class="tav brand-dark" src="logo-splash-light.png" alt=""><div class="tc"><div class="tt"></div><div class="tb"></div></div><button class="tu" type="button" hidden>เลิกทำ</button>`;
+    el.innerHTML = `<img class="tav" src="logo-splash-light.png" alt=""><div class="tc"><div class="tt"></div><div class="tb"></div></div><button class="tu" type="button" hidden>เลิกทำ</button>`;
     el.onclick = e => { if (!e.target.closest('.tu')) el.classList.remove('show'); };
     phone.appendChild(el);
   }
