@@ -3,46 +3,51 @@
 # ------------------------------------------------------------
 # สองบิลด์นี้ต่างกันแค่ชื่อกับไอคอน ไม่ได้ต่างกันที่ฟีเจอร์ การซิงก์จึงเป็นการ
 # ก๊อปทับแล้วแก้กลับไม่กี่จุด — แต่ "ไม่กี่จุด" นั้นพลาดแล้วเจ็บทุกจุด
-# โดยเฉพาะแท็ก visual-editor.js ที่รากไม่มีไฟล์ (404) และปุ่มลอย "แก้ดีไซน์"
-# ของมันไม่ควรไปโผล่หน้าคนที่เปิดแอปมาทำการบ้านจริง
 #
-# ไฟล์ที่ไม่ยุ่ง: sw.js (ชื่อ cache + SHELL คนละชุด) · manifest.json · config.js
+# ⚠️ บทเรียนจากรอบ 1A7V2 → 1A9f (ตัวจริงค้างอยู่ 8 รุ่น โดยไม่มีอะไรบอก):
+#    รายชื่อไฟล์เคยเขียนตายตัวไว้ในสคริปต์ พอ alt/ มีไฟล์ใหม่ (today.css, planner.js)
+#    รายชื่อก็ไม่ตามไปด้วย · ซิงก์แล้วตัวจริงจะได้ index.html ที่อ้างไฟล์ที่ไม่มีอยู่
+#    ตอนนี้จึงอ่านรายชื่อจาก <script src> / <link href> ใน alt/index.html เอาเอง
+#    ไฟล์ใหม่ที่หน้าเรียกใช้ ถูกก๊อปตามอัตโนมัติโดยไม่ต้องมาแก้สคริปต์อีก
+#
+# ไฟล์ที่ไม่ยุ่ง: manifest.json · config.js (แต่ละสายมีตัวตน/คีย์ของตัวเอง)
+#                sw.js ก๊อปไม่ได้ (SHELL คนละชุด) แต่สคริปต์ขึ้นเลข cache ให้
 # วิธีใช้:  python sync-to-root.py
 # ============================================================
-import io, os, sys
+import io, os, re, sys
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-FILES = ['app.js', 'engine.js', 'style.css', 'alt.css', 'custom.css', 'index.html', 'context.js']
+ALT = os.path.join(ROOT, 'alt')
+
+# แต่ละสายมีของตัวเอง — ห้ามก๊อปทับ
+PER_CHANNEL = {'manifest.json', 'config.js', 'sw.js'}
+# มีเฉพาะบิลด์ทดลอง — ตัวจริงไม่มีไฟล์ (ก๊อปขึ้นไปก็ได้ปุ่มลอย "แก้ดีไซน์" ติดมาด้วย)
+ALT_ONLY = {'visual-editor.js'}
 
 # (ไฟล์, ข้อความในเวอร์ชัน alt, ข้อความที่ตัวจริงต้องได้)
+# ที่เหลืออยู่มีแค่ไอคอน — <title>, ชื่อแอปบนจอโฮม, APP_CHANNEL และคำว่า
+# "รุ่นทดลองฟีเจอร์" ตรงกันสองสายแล้วตั้งแต่ 1A7V2 จึงไม่ต้องแก้กลับอีก
 IDENTITY = [
-    ('app.js',
-     "const APP_CHANNEL = 'ALT';",
-     "const APP_CHANNEL = 'AI';"),
-    ('app.js',
-     "+ ' “' + APP_CODENAME + '” · รุ่นทดลองฟีเจอร์';",
-     "+ ' “' + APP_CODENAME + '”';"),
-    ('index.html',
-     '<title>StudentOS ALT — รุ่นทดลองฟีเจอร์ (Sandbox)</title>',
-     '<title>students OS — รู้ว่าต้องทำอะไรก่อน เสมอ</title>'),
     ('index.html',
      '<link rel="icon" href="icon-alt-192.png">',
      '<link rel="icon" href="icon-192.png">'),
     ('index.html',
      '<link rel="apple-touch-icon" href="icon-alt-192.png">',
      '<link rel="apple-touch-icon" href="icon-192.png">'),
-    ('index.html',
-     '<meta name="apple-mobile-web-app-title" content="StudentOS ALT">',
-     '<meta name="apple-mobile-web-app-title" content="students OS">'),
-    ('index.html',
-     '''<!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────
-     ลบ 1 บรรทัดข้างล่างนี้เมื่อทำดีไซน์เสร็จ แล้วจะไม่เหลือร่องรอยใด ๆ
-     ไฟล์นี้ไม่แก้ style.css / app.js เดิมเลย -->
-<script src="visual-editor.js"></script>''',
-     '''<!-- ตัวแก้ดีไซน์ (visual-editor.js) อยู่เฉพาะในบิลด์ทดลองที่ /alt/ เท่านั้น
-     ตัวจริงไม่โหลด — ไฟล์ไม่มีอยู่ที่นี่ (จะได้ 404) และปุ่มลอย "แก้ดีไซน์"
-     ของมันไม่ควรไปโผล่หน้าคนที่ใช้แอปจริง -->'''),
 ]
+
+
+def local_refs(html):
+    """ชื่อไฟล์ .js / .css ในโฟลเดอร์เดียวกันที่หน้านี้เรียกใช้จริง (ไม่นับที่คอมเมนต์ทิ้ง)"""
+    live = re.sub(r'<!--.*?-->', '', html, flags=re.S)
+    out = []
+    for m in re.finditer(r'(?:src|href)="([^"]+)"', live):
+        v = m.group(1)
+        if '/' in v or v.startswith(('http', '#', 'data:')):
+            continue
+        if v.endswith(('.js', '.css')):
+            out.append(v)
+    return out
 
 
 def main():
@@ -51,16 +56,23 @@ def main():
         sys.stdout.reconfigure(encoding='utf-8', errors='replace')
     except Exception:
         pass
-    copied = []
-    for name in FILES:
-        src = os.path.join(ROOT, 'alt', name)
+
+    alt_html = io.open(os.path.join(ALT, 'index.html'), encoding='utf-8', newline='').read()
+    files = ['index.html'] + [f for f in local_refs(alt_html)
+                              if f not in PER_CHANNEL and f not in ALT_ONLY]
+
+    copied, added = [], []
+    for name in dict.fromkeys(files):          # กันชื่อซ้ำ แต่คงลำดับไว้
+        src = os.path.join(ALT, name)
         if not os.path.exists(src):
-            continue                      # ไฟล์ที่ยังไม่ได้ทำ (เช่น context.js ตอนยังไม่เสร็จ)
-        data = open(src, 'rb').read()
-        open(os.path.join(ROOT, name), 'wb').write(data)
+            continue
+        dst = os.path.join(ROOT, name)
+        if not os.path.exists(dst):
+            added.append(name)
+        open(dst, 'wb').write(open(src, 'rb').read())
         copied.append(name)
 
-    missing = []
+    problems = []
     for name, alt_text, root_text in IDENTITY:
         if name not in copied:
             continue
@@ -74,15 +86,45 @@ def main():
         if alt_text not in s:
             # ของที่หาไม่เจอแปลว่าไฟล์ฝั่ง alt เปลี่ยนหน้าตาไปแล้ว — ต้องรู้ทันที
             # ไม่ใช่ปล่อยผ่านเงียบ ๆ แล้วไปเจอตอนตัวจริงขึ้นชื่อว่า ALT บนเว็บ
-            missing.append((name, alt_text[:60]))
+            problems.append('index.html ยังหาข้อความที่ต้องแก้กลับไม่เจอ: ' + alt_text[:60])
             continue
         io.open(p, 'w', encoding='utf-8', newline='').write(s.replace(alt_text, root_text))
 
+    # ---------- sw.js: ขึ้นเลข cache + SHELL ต้องครบ ----------
+    # ก๊อปไฟล์ทับแล้วแต่ไม่ขึ้นเลข cache = เครื่องที่ติดตั้งแอปไว้แล้วเสิร์ฟของเก่าต่อไป
+    # เงียบ ๆ ซึ่งคือ "แก้แล้วแต่บนมือถือเหมือนเดิม" ที่หาสาเหตุยากที่สุดในโปรเจกต์นี้
+    app = io.open(os.path.join(ROOT, 'app.js'), encoding='utf-8', newline='').read()
+    ver = re.search(r"APP_VERSION\s*=\s*'([^']+)'", app)
+    code = re.search(r"APP_CODENAME\s*=\s*'([^']+)'", app)
+    swp = os.path.join(ROOT, 'sw.js')
+    sw = io.open(swp, encoding='utf-8', newline='').read()
+    if ver and code:
+        want = 'studentos-%s-%s' % (ver.group(1).lower(), code.group(1).lower())
+        sw2 = re.sub(r"(const CACHE = ')[^']+(')", lambda m: m.group(1) + want + m.group(2), sw, count=1)
+        if sw2 != sw:
+            io.open(swp, 'w', encoding='utf-8', newline='').write(sw2)
+            sw = sw2
+        print('cache ของตัวจริง: ' + want)
+
+    root_html = io.open(os.path.join(ROOT, 'index.html'), encoding='utf-8', newline='').read()
+    shell = re.search(r'const SHELL = \[(.*?)\];', sw, flags=re.S)
+    listed = set(re.findall(r"'([^']+)'", shell.group(1))) if shell else set()
+    for f in local_refs(root_html):
+        # addAll ล้มทั้งก้อนถ้ามีตัวใดตัวหนึ่ง 404 แล้วแอปจะไม่มีแคชเลยโดยไม่มี error โผล่
+        if not os.path.exists(os.path.join(ROOT, f)):
+            problems.append('index.html ของตัวจริงอ้าง %s แต่ไฟล์ไม่มีอยู่ที่ราก' % f)
+        elif f not in listed:
+            problems.append('%s ไม่อยู่ใน SHELL ของ sw.js — ออฟไลน์แล้วไฟล์นี้จะหายไปเงียบ ๆ' % f)
+    for bad in re.findall(r'icon-alt-[\w.]+', root_html):
+        problems.append('index.html ของตัวจริงยังอ้าง %s ซึ่งเป็นไอคอนของบิลด์ทดลอง' % bad)
+
     print('ก๊อปแล้ว: ' + ', '.join(copied))
-    if missing:
-        print('\n!! หาข้อความที่ต้องแก้กลับไม่เจอ — ตัวจริงอาจยังมีร่องรอยของ ALT ติดอยู่:')
-        for name, frag in missing:
-            print('   ' + name + ' : ' + frag)
+    if added:
+        print('ไฟล์ใหม่ที่เพิ่งขึ้นราก: ' + ', '.join(added) + '  (git add ด้วย)')
+    if problems:
+        print('\n!! ยังไม่เรียบร้อย:')
+        for x in problems:
+            print('   - ' + x)
         sys.exit(1)
     print('คืนตัวตนของตัวจริงครบทุกจุดแล้ว')
 

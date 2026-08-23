@@ -56,6 +56,9 @@
   <link rel="stylesheet" href="alt.css">
   <!-- ชั้นกล่องเข้า + เชื่อม LINE — ชั้นใหม่ทั้งชั้น แยกไฟล์ไว้ให้ถอดออกได้ทั้งก้อน -->
   <link rel="stylesheet" href="inbox.css">
+  <!-- จอ "วันนี้" กับโหมดโฟกัส — ของใหม่ทั้งก้อน จึงอยู่แยกไฟล์
+       ถอยกลับหน้าแรกแบบเก่า = เอาบรรทัดนี้ออก ไม่ต้องคุ้ย alt.css ที่ยาว 250 KB -->
+  <link rel="stylesheet" href="today.css">
   <!-- ดีไซน์ที่ปรับด้วยตัวแก้ดีไซน์ ต้องอยู่ท้ายสุดถึงจะทับของเดิมได้
        ว่างอยู่ = ยังไม่มีใครปรับอะไร ไม่มีผลกับหน้าตาเดิมเลย -->
   <link rel="stylesheet" href="custom.css">
@@ -116,6 +119,9 @@
       <path d="M8.6 8V6.4a3.4 3.4 0 0 1 6.8 0V8"/>
     </g>
     <g id="lu-sparkles" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path></g>
+    <g id="lu-cog" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></g>
+    <g id="lu-bell" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.27 21a2 2 0 0 0 3.46 0"></path><path d="M3.26 15.33A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.67C19.41 13.96 18 12.5 18 8A6 6 0 0 0 6 8c0 4.5-1.41 5.96-2.74 7.33"></path></g>
+    <g id="lu-target" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1.4"></circle></g>
     <g id="lu-check" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></g>
     <g id="lu-chevron" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></g>
     <g id="lu-flame" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"></path></g>
@@ -141,6 +147,11 @@
     <g id="lu-medal" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"></path><path d="M11 12 5.12 2.2"></path><path d="m13 12 5.88-9.8"></path><path d="M8 7h8"></path><circle cx="12" cy="17" r="5"></circle><path d="M12 18v-2h-.5"></path></g>
     <g id="lu-pin" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></g>
     <g id="lu-flag" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><path d="M4 22v-7"></path></g>
+    <!-- เริ่ม/หยุด — ปุ่มลงมือทำของการ์ด "ทำสิ่งนี้ก่อน" และของทุกบล็อกในแผน
+         ทึบทั้งตัว (ไม่ใช่เส้น) เพราะเป็นปุ่มเดียวในจอที่อยากให้นิ้วไปโดนก่อนปุ่มอื่น -->
+    <g id="lu-play" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.72-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14z"/></g>
+    <g id="lu-pause" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1.2"/><rect x="14" y="4" width="4" height="16" rx="1.2"/></g>
+    <g id="lu-x" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></g>
     <!-- กลุ่มแชท — ใช้แทน LINE ทั้งในกล่องเข้าและจอแหล่งข้อมูล -->
     <g id="lu-chat" fill="currentColor">
       <path opacity=".34" d="M2.6 7.8A4.2 4.2 0 0 1 6.8 3.6h10.4a4.2 4.2 0 0 1 4.2 4.2v5.6a4.2 4.2 0 0 1-4.2 4.2H9.4l-4.5 3.4a1 1 0 0 1-1.6-.8v-2.9a4.2 4.2 0 0 1-.7-2.3z"/>
@@ -149,6 +160,10 @@
     <g id="tb-home" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></g>
     <g id="tb-tasks" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5h8"></path><path d="M13 12h8"></path><path d="M13 19h8"></path><path d="m3 17 2 2 4-4"></path><path d="m3 7 2 2 4-4"></path></g>
     <g id="tb-scan" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M7 12h10"></path></g>
+    <!-- ปุ่มกลางแถบล่างเปิดแผ่นที่มีห้าทาง (สแกน · พูด · แปะข้อความ · พิมพ์เอง · เพิ่มสอบ)
+         ไอคอนจึงต้องเป็นเครื่องหมายบวก ไม่ใช่กรอบสแกน — กรอบสแกนสัญญาว่ากดแล้วกล้องเปิด
+         ซึ่งเป็นแค่หนึ่งในห้าทางที่จะได้ -->
+    <g id="tb-plus" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></g>
     <g id="tb-timeline" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path></g>
     <g id="tb-profile" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"></circle><path d="M20 21a8 8 0 0 0-16 0"></path></g>
 
@@ -161,6 +176,9 @@
          (สีพื้นของแท็บเปลี่ยนตามธีม จะวาดทับด้วยสีตายตัวไม่ได้) -->
     <g id="tb-timeline-f"><path fill="currentColor" fill-rule="evenodd" d="M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm2.6 10.1a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3zm4.4 0a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3zm4.4 0a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M8 2v3M16 2v3"/></g>
     <g id="tb-profile-f" fill="currentColor"><circle cx="12" cy="7.8" r="4.6"/><path d="M12 14.2c-4.4 0-8 2.9-8 6.3 0 .28.22.5.5.5h15a.5.5 0 0 0 .5-.5c0-3.4-3.6-6.3-8-6.3z"/></g>
+    <!-- แท็บถามน้องไซ: ลูกโป่งคำพูด + ประกาย เพื่อบอกว่าอีกฝั่งเป็น AI ไม่ใช่คน -->
+    <g id="tb-ai" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H8l-3.6 2.7A.6.6 0 0 1 3.5 21v-3.4A7.5 7.5 0 0 1 12.5 4h.2"/><path d="M18.2 2.5 19 4.8l2.3.8-2.3.8-.8 2.3-.8-2.3-2.3-.8 2.3-.8z"/></g>
+    <g id="tb-ai-f"><path fill="currentColor" d="M12.5 4.4a7.6 7.6 0 0 1 7.6 7.6 7.6 7.6 0 0 1-7.6 7.6H8.2l-3.7 2.8a.62.62 0 0 1-1-.5v-3.5A7.6 7.6 0 0 1 12.5 4.4z"/><path fill="currentColor" d="M18.4 1.6 19.3 4l2.4.9-2.4.9-.9 2.4-.9-2.4-2.4-.9 2.4-.9z"/></g>
 
     <g id="ic-arrow" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M5 12h13M12.5 6l6 6-6 6"/>
@@ -186,8 +204,9 @@
     <!-- ALT: พื้นหลังภาพของผู้ใช้เอง (ตั้งในแท็บ "ฉัน") — ม่านหรี่ทับให้ตัวหนังสืออ่านออก -->
     <div class="userbg" id="userBg" aria-hidden="true"><span class="ub-veil"></span></div>
     <div class="statusbar"><span id="clock">--:--</span><span>📶 🔋</span></div>
-    <!-- ป้ายบอกรุ่น — อยู่กลางบนจอ (app.js เขียนทับจาก APP_VERSION ตอนเปิด) -->
-    <div class="ver-badge" id="verBadge" title="StudentOS · เลขรุ่นที่ใช้อยู่">1A7V2</div>
+    <!-- ป้ายบอกรุ่นเคยอยู่ตรงนี้ (กลางบนจอ) — เอาออกแล้ว
+         เลขรุ่นเป็นข้อมูลของคนทำแอป ไม่ใช่ของนักเรียน และมันนั่งทับตำแหน่งที่มีค่าที่สุดของจอ
+         คนที่อยากรู้เลขรุ่นยังดูได้ที่แท็บ "ฉัน" (#appVer) ซึ่งบอกครบกว่าเดิมอยู่แล้ว -->
     <!-- ALT 1A6M3: ทางเข้าระบบเพื่อน — มุมขวาบน ไม่กินช่องในเมนูหลัก -->
     <button class="top-friends" onclick="go('scr-friends')" aria-label="เพื่อน">
       <svg viewBox="0 0 24 24"><use href="#lu-users"/></svg>
@@ -517,6 +536,14 @@
         <div id="taskList"></div>
       </div>
 
+      <!-- ============ SCREEN: ถามน้องไซ ============
+           รอบนี้ยังไม่มีแชทจริง — จอนี้ทำหน้าที่ประกาศว่ามันคืออะไรและ "จะไม่ทำอะไร"
+           เพราะเส้นที่ขีดไว้ตั้งแต่ยังไม่เขียนโค้ดคือเส้นที่ไม่ถูกเถียงทีหลัง
+           วาดจาก renderAi() ใน app.js -->
+      <div class="screen" id="scr-ai">
+        <div class="scr-body" id="aiBody"></div>
+      </div>
+
       <!-- ============ SCREEN: TIMELINE ============ -->
       <div class="screen" id="scr-timeline">
         <div id="timeline"></div>
@@ -573,6 +600,12 @@
                 <div class="pf-nm" id="pfNm">นักเรียน</div>
                 <div class="pf-sb" id="pfSb"></div>
               </div>
+              <!-- เฟืองอยู่ในการ์ด ไม่ใช่ลอยมุมขวาบนของจอ (1A9e)
+                   ตำแหน่งลอยไปชนแถบสถานะของเครื่อง — นาฬิกากับแบตอยู่แถวนั้นพอดี
+                   และมันเป็นของของ "โปรไฟล์นี้" อยู่แล้ว จึงควรอยู่ในกล่องเดียวกับชื่อ -->
+              <button class="pf-set" onclick="go('scr-settings')" aria-label="ตั้งค่า">
+                <svg viewBox="0 0 24 24"><use href="#lu-cog"/></svg>
+              </button>
             </div>
             <div class="pf-stats">
               <div><div class="v" id="pfDone">0</div><div class="k">ทำเสร็จแล้ว</div></div>
@@ -588,11 +621,27 @@
 
           <!-- ALT 1A6M3: ทางเข้าใหญ่ 3 ทาง — ตั้งค่าทั้งหมดย้ายไปอยู่หลังปุ่ม -->
           <div class="pf-entry">
+            <!-- ถามน้องไซ — ย้ายมาจากแถบล่างตอน 1A8b
+                 AI ที่ดีพูดก่อนถูกถาม ข้อสังเกตของมันจึงไปอยู่บนหน้า "วันนี้" แทน
+                 แต่ช่องแชทยังต้องมีทางเข้าอยู่จริง ไม่งั้นฟีเจอร์ทั้งตัวหายไปเงียบ ๆ -->
+            <button class="pe" onclick="go('scr-ai')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+              <span class="pe-tx"><b>ถามน้องไซ</b><i>ติดตรงไหนถามได้ — รู้ทุกงานที่ค้างอยู่</i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
             <!-- ALT 1A6M3: ร้านค้า — อยู่เหนือเหรียญตรา · ติดป้าย "กำลังทำ" เพราะของในร้านยังไม่เปิด
                  แต่โทเคนสะสมจริงตั้งแต่ตอนนี้ ปุ่มจึงกดเข้าไปดูยอดได้ ไม่ใช่ปุ่มตาย -->
             <button class="pe pe-shop" onclick="go('scr-shop')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-bag"/></svg></span>
               <span class="pe-tx"><b>ร้านค้า <span class="pe-wip">กำลังทำ</span></b><i id="peShopCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <!-- แผนราคา — ยังไม่เปิดขาย ปุ่มจึงพาไปดูแผนอย่างเดียว ไม่ได้พาไปจ่ายเงิน
+                 ป้าย "ยังไม่เปิดขาย" อยู่บนปุ่มตั้งแต่ก่อนกด ไม่ใช่ไปเซอร์ไพรส์ข้างใน -->
+            <button class="pe pe-pro" onclick="go('scr-pro')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+              <span class="pe-tx"><b>StudentOS Pro <span class="pe-wip">ยังไม่เปิดขาย</span></b>
+                <i>ดูว่าจะมีอะไรเพิ่ม</i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
             <button class="pe" onclick="go('scr-badges')">
@@ -612,13 +661,24 @@
               <span class="pe-tx"><b>บริบทของฉัน</b><i id="peCtxCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button class="pe" onclick="go('scr-settings')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-contrast"/></svg></span>
-              <span class="pe-tx"><b>ตั้งค่า</b><i>ธีม · ตัวอักษร · วิดเจ็ต · แจ้งเตือน</i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
           </div>
           <p class="app-ver" id="appVer"></p>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: ผลของฉัน (ฉบับเต็ม) ============
+           หน้า "ฉัน" เหลือแค่ตัวเลขสรุปกับกราฟ 7 วัน · รายละเอียดที่ต้อง "อ่าน"
+           (ส่งทันกำหนด · แยกตามวิชา · ช่วงเวลาที่ทำงานได้ดี) ย้ายมาอยู่ที่นี่
+           เพราะมันเป็นของที่คนเข้ามาดูตอนอยากรู้ ไม่ใช่ของที่ต้องเลื่อนผ่านทุกครั้ง
+           วาดจาก renderStatFull() -->
+      <div class="screen flush" id="scr-stats">
+        <div class="scr-body pf-body">
+          <div class="set-top">
+            <button class="set-back" onclick="go('scr-profile')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <h2 class="set-title">ผลของฉัน</h2>
+          </div>
+          <div id="statFull"></div>
         </div>
       </div>
 
@@ -670,6 +730,20 @@
         </div>
       </div>
 
+      <!-- ============ SCREEN: แผนราคา (ยังไม่เปิดขาย) ============
+           จอนี้ไม่รับเงินและไม่มีช่องกรอกอะไรทั้งนั้น มันมีหน้าที่เดียว: บอกว่าถ้าวันหนึ่ง
+           มีของขาย จะขายอะไรในราคาเท่าไหร่ ปุ่มล่างจึงเป็น "แจ้งเตือนเมื่อเปิด" ไม่ใช่ "จ่ายเงิน" -->
+      <div class="screen flush" id="scr-pro">
+        <div class="scr-body pf-body">
+          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+            <div></div>
+            <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <div id="proBody"></div>
+        </div>
+      </div>
+
       <!-- ============ SCREEN: สุ่มสกิน — การ์ด 3D (ALT 1A7) ============ -->
       <div class="screen flush" id="scr-wheel">
         <div class="scr-body pf-body">
@@ -690,41 +764,166 @@
       <!-- ============ SCREEN: ตั้งค่า (ALT 1A6M3) ============ -->
       <div class="screen flush" id="scr-settings">
         <div class="scr-body pf-body">
-          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
-            <div>
-              <h2 class="sh-title">ตั้งค่า</h2>
-            </div>
-            <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
+          <!-- หัวจอกึ่งกลาง + ปุ่มย้อนกลับซ้าย — แบบเดียวกับหน้าตั้งค่าของระบบปฏิบัติการ
+               ซึ่งเป็นแบบที่คนอ่านออกโดยไม่ต้องเรียนรู้อะไรใหม่ -->
+          <div class="set-top">
+            <button class="set-back" onclick="go('scr-profile')" aria-label="กลับ">
               <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <h2 class="set-title">ตั้งค่า</h2>
           </div>
-          <div class="pf-list">
-            <div class="pf-row">
-              <span class="tile"><svg viewBox="0 0 24 24"><use href="#ic-profile"/></svg></span>
-              <span class="bd"><span class="lb">ชื่อเล่น</span></span>
+
+          <!-- การ์ดตัวตนบนสุด — ก่อนจะตั้งค่าอะไร ต้องรู้ก่อนว่ากำลังตั้งให้ใคร
+               และมันคือทางเข้าเดียวที่บอกว่า "ล็อกอินอยู่หรือเปล่า" โดยไม่ต้องอ่านคำอธิบาย -->
+          <button type="button" class="set-me" onclick="go('scr-profile')">
+            <span class="set-me-av" id="setAv">N</span>
+            <span class="set-me-tx">
+              <b id="setNm">นักเรียน</b>
+              <i id="setSb"></i>
+            </span>
+            <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+          </button>
+
+          <!-- ทางลัดสี่ช่อง — จอที่คนเข้าบ่อยที่สุด ไม่ต้องเลื่อนหา
+               "เพื่อน" ย้ายมาอยู่ตรงนี้แทนแถวเดิม จำนวนเพื่อนยังนับให้ที่หน้า “ฉัน” เหมือนเดิม -->
+          <div class="set-quick">
+            <button type="button" onclick="go('scr-shop')">
+              <svg viewBox="0 0 24 24"><use href="#lu-bag"/></svg><span>ร้านค้า</span></button>
+            <button type="button" onclick="go('scr-badges')">
+              <svg viewBox="0 0 24 24"><use href="#lu-medal"/></svg><span>เหรียญตรา</span></button>
+            <button type="button" onclick="go('scr-friends')">
+              <svg viewBox="0 0 24 24"><use href="#lu-users"/></svg><span>เพื่อน</span></button>
+            <button type="button" onclick="go('scr-pro')">
+              <svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg><span>Pro</span></button>
+          </div>
+
+          <div class="set-grp">บัญชีของฉัน</div>
+          <div class="set-card">
+            <div class="set-row">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#ic-profile"/></svg></span>
+              <span class="set-lb">ชื่อเล่น</span>
               <input type="text" id="pName" placeholder="เช่น Nado" onchange="saveProfile()">
             </div>
-
+            <div class="set-row">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
+              <span class="set-lb">นั่งทำงานไหวต่อวัน<i>เพดานที่ AI จะไม่วางงานเกิน</i></span>
+              <input type="number" id="pFree" min="0.5" step="0.5" value="2" onchange="saveProfile()">
+            </div>
             <!-- ALT: รูปโปรไฟล์ของตัวเอง — เก็บในเครื่อง ไม่ต้องมีบัญชี -->
-            <div class="pf-row col">
-              <span class="hd">
-                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
-                <span class="bd"><span class="lb">รูปโปรไฟล์</span>
-                  <span class="sb">แตะที่รูปในหน้า “ฉัน” ก็เปลี่ยนได้เหมือนกัน</span></span>
-              </span>
-              <div class="bg-tools">
+            <div class="set-row">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
+              <span class="set-lb">รูปโปรไฟล์<i>แตะที่รูปในหน้า “ฉัน” ก็เปลี่ยนได้เหมือนกัน</i></span>
+              <span class="bg-tools">
                 <button type="button" class="bg-pick" onclick="document.getElementById('avInput').click()">
                   <svg viewBox="0 0 24 24"><use href="#lu-image"/></svg><span id="avPickLabel">เลือกรูป</span></button>
                 <button type="button" class="bg-del" id="avDel" onclick="clearAvatar()" hidden>
                   <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg></button>
+              </span>
+            </div>
+          </div>
+
+          <!-- หน้าตาแอป — แต่ละแถวพาไปหน้าย่อยที่มีตัวเลือกจริง
+               ของพวกนี้เคยกางอยู่ในจอเดียวกันหมด ธีม 16 อันเรียงเป็นตาราง บวกวิดเจ็ต
+               ตัวอักษร แถบเมนู พื้นหลัง — จอเลื่อนยาวจนหาของที่ตั้งใจจะมาแก้ไม่เจอ -->
+          <div class="set-grp">หน้าตาแอป</div>
+          <div class="set-card">
+            <button type="button" class="set-row go" onclick="openSetOpt('theme')">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-contrast"/></svg></span>
+              <span class="set-lb">ธีมสี</span>
+              <span class="set-val" id="setValTheme"></span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <button type="button" class="set-row go" onclick="openSetOpt('widget')">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-tasks-alt"/></svg></span>
+              <span class="set-lb">วิดเจ็ตหน้าแรก</span>
+              <span class="set-val" id="setValWidget"></span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <button type="button" class="set-row go" onclick="openSetOpt('font')">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-type"/></svg></span>
+              <span class="set-lb">ขนาดตัวอักษร</span>
+              <span class="set-val" id="setValFont"></span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <button type="button" class="set-row go" onclick="openSetOpt('nav')">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-flag"/></svg></span>
+              <span class="set-lb">ตำแหน่งแถบเมนู</span>
+              <span class="set-val" id="setValNav"></span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <button type="button" class="set-row go" onclick="openSetOpt('bg')">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
+              <span class="set-lb">พื้นหลังภาพ</span>
+              <span class="set-val" id="setValBg"></span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+
+          <div class="set-grp">การแจ้งเตือนและแอป</div>
+          <div class="set-card">
+            <div class="set-row" id="notifRow">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg></span>
+              <span class="set-lb">การแจ้งเตือน<i id="notifStatus">ยังไม่ได้เปิด</i></span>
+              <button class="btn secondary sm" id="notifTest" style="width:auto;min-height:34px;padding:0 12px;display:none"
+                onclick="testNotify()">ทดสอบ</button>
+              <button class="btn secondary sm" id="notifBtn" style="width:auto;min-height:34px;padding:0 14px" onclick="enableNotif()">เปิด</button>
+            </div>
+            <div class="set-row" id="installCard" hidden>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-check-circle"/></svg></span>
+              <span class="set-lb">ติดตั้งเป็นแอป<i id="installHint"></i></span>
+              <button class="btn primary sm" id="installBtn" style="width:auto;min-height:34px;padding:0 14px" onclick="handleInstallClick()">ติดตั้ง</button>
+            </div>
+            <!-- ALT 1A6M3: ช่องใส่โค้ด
+                 ห้ามใบ้ว่ามีโค้ดอะไรอยู่บ้างหรือทำอะไรได้ ไม่ว่าจะใน placeholder หรือคำบรรยาย
+                 คนที่ได้โค้ดมาเท่านั้นถึงจะรู้ว่าต้องพิมพ์อะไร -->
+            <div class="set-row col" id="codeRow" hidden>
+              <span class="set-hd">
+                <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
+                <span class="set-lb">ใส่โค้ด<i>ถ้ามีโค้ดอยู่ในมือ พิมพ์ลงช่องนี้ได้เลย</i></span>
+              </span>
+              <div class="code-tools">
+                <input type="text" id="codeInput" placeholder="พิมพ์โค้ด" maxlength="64"
+                  autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault();redeemCode();}">
+                <button type="button" class="btn primary sm" onclick="redeemCode()">ใช้</button>
               </div>
+              <p class="bg-note code-msg" id="codeMsg" hidden></p>
             </div>
-            <div class="pf-row">
-              <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
-              <span class="bd"><span class="lb">นั่งทำงานไหวต่อวัน</span>
-                <span class="sb">เพดานที่ AI จะไม่วางงานเกิน</span></span>
-              <input type="number" id="pFree" min="0.5" step="0.5" value="2" onchange="saveProfile()">
+          </div>
+
+          <div class="set-grp">ข้อมูลของฉัน</div>
+          <div id="accountCard"></div>
+          <div class="set-card">
+            <button type="button" class="set-row go" onclick="loadSample()">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-book"/></svg></span>
+              <span class="set-lb">โหลดข้อมูลตัวอย่าง</span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <!-- ALT 1A6M3: ล็อกธีมลับกลับ ไว้ลองอีสเตอร์เอกก์ใหม่ -->
+            <button type="button" class="set-row go" id="relockBtn" hidden onclick="relockSecrets()">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
+              <span class="set-lb">ล็อกธีมลับกลับ</span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <button type="button" class="set-row go danger" onclick="clearAll()">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg></span>
+              <span class="set-lb">ล้างข้อมูลทั้งหมด</span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- หน้าย่อยของตั้งค่า — ใช้จอเดียวซ้ำกับทุกหัวข้อ
+           บล็อกข้างในคือ DOM ชุดเดิมที่ถูกย้ายเข้ามา ไม่ใช่สำเนา — ถ้าคัดลอกจะมี id
+           ซ้ำสองชุด แล้ว renderAppearance() จะไปเขียนใส่ตัวที่ไม่ได้อยู่บนจอ -->
+      <div class="screen flush" id="scr-setopt">
+        <div class="scr-body pf-body">
+          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+            <div>
+              <h2 class="sh-title" id="setoptTitle">ตั้งค่า</h2>
             </div>
-            <div class="pf-row col">
+            <button class="sh-btn" onclick="go('scr-settings')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <div class="pf-list" id="setoptBody"></div>
+        </div>
+      </div>
+
+      <!-- ที่พักของบล็อกตัวเลือกตอนยังไม่ได้เปิดหน้าย่อย -->
+      <div id="setStash" hidden><div class="pf-list" id="setStashList">
+            <div class="pf-row col" id="setBlkTheme">
               <span class="hd">
                 <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-contrast"/></svg></span>
                 <span class="bd"><span class="lb">ธีมสี</span><span class="sb" id="themeNow"></span></span>
@@ -771,14 +970,17 @@
             </div>
 
             <!-- ALT 1A6M3: วิดเจ็ตบนหน้าแรก -->
-            <div class="pf-row col">
+            <div class="pf-row col" id="setBlkWidget">
               <span class="hd">
                 <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-tasks-alt"/></svg></span>
                 <span class="bd"><span class="lb">วิดเจ็ตหน้าแรก</span><span class="sb" id="wgNow"></span></span>
               </span>
               <div class="fs-grid wg-grid" id="wgPick">
+                <!-- ตัวเลือก "งานด่วน" ถูกถอดออก — ลิสต์งานขึ้นเสมอแล้ว ไม่ต้องเลือก
+                     ค่านี้ยังชื่อ 'urgent' ในที่เก็บข้อมูล จึงแปลว่า "ไม่ใช้ช่องนี้"
+                     คนที่เคยเลือกไว้อยู่แล้วจึงไม่ต้องมาตั้งใหม่ -->
                 <button type="button" data-wg="urgent" onclick="setWidget('urgent')">
-                  <svg viewBox="0 0 24 24"><use href="#lu-flag"/></svg>งานด่วน</button>
+                  <svg viewBox="0 0 24 24"><use href="#lu-flag"/></svg>ไม่ใช้</button>
                 <button type="button" data-wg="note" onclick="setWidget('note')">
                   <svg viewBox="0 0 24 24"><use href="#lu-pencil"/></svg>โน้ต</button>
                 <button type="button" data-wg="clock" onclick="setWidget('clock')">
@@ -803,7 +1005,7 @@
             </div>
 
             <!-- ALT: ตำแหน่งแถบเมนู (จอกว้างย้ายไปด้านซ้าย) -->
-            <div class="pf-row col">
+            <div class="pf-row col" id="setBlkNav">
               <span class="hd">
                 <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-tasks-alt"/></svg></span>
                 <span class="bd"><span class="lb">ตำแหน่งแถบเมนู</span><span class="sb" id="navNow"></span></span>
@@ -817,7 +1019,7 @@
             </div>
 
             <!-- ALT: ขนาดตัวอักษร -->
-            <div class="pf-row col">
+            <div class="pf-row col" id="setBlkFont">
               <span class="hd">
                 <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-type"/></svg></span>
                 <span class="bd"><span class="lb">ขนาดตัวอักษร</span><span class="sb" id="fontNow"></span></span>
@@ -831,7 +1033,7 @@
             </div>
 
             <!-- ALT: พื้นหลังภาพของตัวเอง -->
-            <div class="pf-row col">
+            <div class="pf-row col" id="setBlkBg">
               <span class="hd">
                 <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
                 <span class="bd"><span class="lb">พื้นหลังภาพของตัวเอง</span>
@@ -852,59 +1054,7 @@
                 <p class="bg-note">จางมาก = อ่านง่ายขึ้น · จางน้อย = เห็นภาพชัดขึ้น</p>
               </div>
             </div>
-            <!-- ALT 1A6M3: ระบบเพื่อน — เปิดใช้ได้แล้ว (เฟสแรก) -->
-            <div class="pf-row" id="friendsRow" onclick="go('scr-friends')" style="cursor:pointer">
-              <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
-              <span class="bd">
-                <span class="lb">เพื่อน</span>
-                <span class="sb" id="friendsSub">ดูสถานะและผลของเพื่อน</span>
-              </span>
-              <span class="pf-go"><svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></span>
-            </div>
-
-            <div class="pf-row" id="notifRow">
-              <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg></span>
-              <span class="bd"><span class="lb">การแจ้งเตือน</span><span class="sb" id="notifStatus">ยังไม่ได้เปิด</span></span>
-              <button class="btn secondary sm" id="notifTest" style="width:auto;min-height:38px;padding:0 12px;display:none"
-                onclick="testNotify()">ทดสอบ</button>
-              <button class="btn secondary sm" id="notifBtn" style="width:auto;min-height:38px;padding:0 14px" onclick="enableNotif()">เปิด</button>
-            </div>
-            <div class="pf-row" id="installCard" hidden>
-              <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-check-circle"/></svg></span>
-              <span class="bd"><span class="lb">ติดตั้งเป็นแอป</span><span class="sb" id="installHint"></span></span>
-              <button class="btn primary sm" id="installBtn" style="width:auto;min-height:38px;padding:0 14px" onclick="handleInstallClick()">ติดตั้ง</button>
-            </div>
-
-            <!-- ALT 1A6M3: ช่องใส่โค้ด
-                 ห้ามใบ้ว่ามีโค้ดอะไรอยู่บ้างหรือทำอะไรได้ ไม่ว่าจะใน placeholder หรือคำบรรยาย
-                 คนที่ได้โค้ดมาเท่านั้นถึงจะรู้ว่าต้องพิมพ์อะไร -->
-            <div class="pf-row col" id="codeRow" hidden>
-              <span class="hd">
-                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
-                <span class="bd"><span class="lb">ใส่โค้ด</span>
-                  <span class="sb">ถ้ามีโค้ดอยู่ในมือ พิมพ์ลงช่องนี้ได้เลย</span></span>
-              </span>
-              <div class="code-tools">
-                <input type="text" id="codeInput" placeholder="พิมพ์โค้ด" maxlength="64"
-                  autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false"
-                  onkeydown="if(event.key==='Enter'){event.preventDefault();redeemCode();}">
-                <button type="button" class="btn primary sm" onclick="redeemCode()">ใช้</button>
-              </div>
-              <p class="bg-note code-msg" id="codeMsg" hidden></p>
-            </div>
-          </div>
-
-          <div id="accountCard"></div>
-
-          <div style="display:flex;flex-direction:column;gap:2px">
-            <button class="pf-quiet" onclick="loadSample()"><svg viewBox="0 0 24 24"><use href="#lu-book"/></svg>โหลดข้อมูลตัวอย่าง</button>
-            <!-- ALT 1A6M3: ล็อกธีมลับกลับ ไว้ลองอีสเตอร์เอกก์ใหม่ -->
-            <button class="pf-quiet" id="relockBtn" onclick="relockSecrets()" hidden>
-              <svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg>ล็อกธีมลับกลับ</button>
-            <button class="pf-quiet danger" onclick="clearAll()"><svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg>ล้างข้อมูลทั้งหมด</button>
-          </div>
-        </div>
-      </div>
+      </div></div>
 
     </div>
 
@@ -934,23 +1084,39 @@
          ถ้าปุ่มหยุดอยู่แต่ในหน้าแผน คนจะลืมกดหยุดทุกครั้งที่เดินออกจากหน้านั้น -->
     <div class="runbar" id="runBar" hidden></div>
 
+    <!-- โหมดโฟกัส — ทับทุกอย่างรวมถึงแถบล่าง เพราะระหว่างทำงานอยู่
+         "ไปหน้าอื่น" ไม่ใช่สิ่งที่เราอยากให้ทำได้ง่าย · เนื้อในวาดจาก renderFocus() -->
+    <div class="focus-wrap" id="focusWrap" hidden></div>
+
+    <!-- แผ่นเลือกวิธีเพิ่มงาน (ปุ่ม + บนแถบล่าง) — วาดจาก openAddSheet()
+         เป็นแผ่นเลื่อนขึ้น ไม่ใช่จอใหม่ เพราะการเพิ่มงานควรจบโดยไม่ต้องออกจากคำตอบที่กำลังดูอยู่ -->
+    <div class="add-sheet" id="addSheet" hidden></div>
+
     <!-- ============ TAB BAR ============ -->
     <div class="tabbar">
+      <!-- แถบล่าง: วันนี้ · งาน · ＋ · น้องไซ · ฉัน
+           "ปฏิทิน" ถูกถอดออกจากแถบล่างใน 1A9 — ไม่ได้ถูกลบ มันเป็นมุมมองที่สองของแท็บ "งาน"
+           อยู่แล้ว (แถบ รายวัน/ปฏิทิน/รายการงาน บนหัวจอนั้น) การมีปุ่มของตัวเองบนแถบล่างด้วย
+           แปลว่าคำถาม "อาทิตย์นี้วันไหนหนัก" มีสองทางเข้าที่ไปที่เดียวกัน
+           ที่ที่ว่างจึงคืนให้ "น้องไซ" ซึ่งเป็นจอที่ตอบคำถามที่ไม่มีจออื่นตอบได้ -->
       <button class="tab" data-scr="scr-menu" onclick="go('scr-menu')">
         <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-home"/></svg>
-        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-home-f"/></svg><span>หน้าแรก</span></button>
+        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-home-f"/></svg><span>วันนี้</span></button>
+      <!-- แบดจ์อยู่บนแท็บ "งาน" — เลขบนแท็บต้องพาไปยังที่ที่ลงมือแก้เรื่องนั้นได้จริง -->
       <button class="tab" data-scr="scr-tasks" onclick="go('scr-tasks')">
         <span class="ic-wrap"><svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-tasks"/></svg>
           <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-tasks-f"/></svg>
-          <span class="tab-badge" id="badgeHome" hidden></span></span><span>ตารางงาน</span></button>
-      <button class="tab scan" data-scr="scr-scan" onclick="go('scr-scan')">
-        <span class="scan-dot"><svg viewBox="0 0 24 24"><use href="#tb-scan"/></svg></span><span>เพิ่ม</span></button>
-      <button class="tab" data-scr="scr-timeline" onclick="go('scr-timeline')">
-        <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-timeline"/></svg>
-        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-timeline-f"/></svg><span>เส้นเวลา</span></button>
+          <span class="tab-badge" id="badgeHome" hidden></span></span><span>งาน</span></button>
+      <button class="tab scan" onclick="openAddSheet()" aria-label="เพิ่มงานใหม่">
+        <span class="scan-dot"><svg viewBox="0 0 24 24"><use href="#tb-plus"/></svg></span><span>เพิ่ม</span></button>
+      <button class="tab" data-scr="scr-ai" onclick="go('scr-ai')">
+        <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-ai"/></svg>
+        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-ai-f"/></svg><span>น้องไซ</span></button>
       <button class="tab" data-scr="scr-profile" onclick="go('scr-profile')">
-        <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-profile"/></svg>
-        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-profile-f"/></svg><span>ฉัน</span></button>
+        <span class="ic-wrap"><svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-profile"/></svg>
+          <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-profile-f"/></svg>
+          <!-- จุดแดงแทนหน้าต่างเช็คอินที่เคยเด้งทับหน้าแรก — บอกว่ามีของรออยู่ ไม่ขวางทาง -->
+          <span class="tab-dot" id="dotMe" hidden></span></span><span>ฉัน</span></button>
     </div>
 
     <!-- ฉากเปิดแอปถูกเอาออกแล้ว — จอแรกที่ผู้ใช้เห็นคือหน้าบัญชี (#scr-login)
@@ -970,6 +1136,10 @@
 <script src="engine.js"></script>
 <!-- context.js ต้องมาก่อน app.js — app.js เรียก freeSlots() ตอนวาดจอ -->
 <script src="context.js"></script>
+<!-- planner.js ต้องอยู่หลัง engine.js กับ context.js และก่อน app.js —
+     มันเรียก buildDayPlan/freeSlots ตอนคิดแผน และ app.js เรียก studyPlan() ตอนวาดจอ
+     ทุกจอที่พูดเรื่อง "ควรทำอะไร" อ่านคำตอบจากไฟล์นี้ก้อนเดียว ห้ามคิดเองซ้ำ -->
+<script src="planner.js"></script>
 <!-- ต้องมาก่อน app.js: app.js เรียก renderInbox/renderSources ใน renderAll
      และเรียก loadLineLinks/pullInbox ตอนซิงก์ -->
 <script src="brain.js"></script>
@@ -977,8 +1147,10 @@
 <script src="linelink.js"></script>
 <script src="app.js"></script>
 
-<!-- ตัวแก้ดีไซน์ (visual-editor.js) อยู่เฉพาะในบิลด์ทดลองที่ /alt/ เท่านั้น
-     ตัวจริงไม่โหลด — ไฟล์ไม่มีอยู่ที่นี่ (จะได้ 404) และปุ่มลอย "แก้ดีไซน์"
-     ของมันไม่ควรไปโผล่หน้าคนที่ใช้แอปจริง -->
+<!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────
+     ปิดไปแล้ว — ปุ่ม "แก้ดีไซน์" ลอยทับชื่อผู้ใช้บนหัวจอของทุกคนที่เปิดแอป
+     ไฟล์ visual-editor.js ยังอยู่ครบ เอากลับมาใช้ได้ด้วยการปลดคอมเมนต์บรรทัดล่าง
+     (แล้วอย่าลืมคอมเมนต์กลับก่อน push ขึ้นบิลด์จริง) -->
+<!-- <script src="visual-editor.js"></script> -->
 </body>
 </html>

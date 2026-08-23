@@ -5,6 +5,33 @@
    ไม่แตะ layout เดิมเลย เพื่อให้สลับ/อัปเดต style.css ได้อิสระ
    ============================================================ */
 
+/* ══════════════════════════════════════════════════════════════════
+   สีประจำวิชา
+   ------------------------------------------------------------------
+   ชุดนี้เป็น "ป้ายชื่อ" ไม่ใช่ "ระดับความด่วน" — ใช้บอกว่าอันไหนวิชาเดียวกัน
+   สีความหมาย (แดง=ด่วน · เหลือง=ใกล้ · เขียว=สบาย) ยังสงวนไว้ให้ชิปสถานะ
+   ห้ามให้องค์ประกอบเดียวใส่ทั้งสองระบบ ไม่งั้นสีแดงของวิชาคณิตจะถูกอ่านว่า "ด่วนมาก"
+   ค่าเดียวกันทั้งธีมสว่างและมืด เพราะเป็นสีทึบที่คุมคอนทราสต์กับตัวหนังสือของตัวเองอยู่แล้ว
+   ══════════════════════════════════════════════════════════════════ */
+.sj-0 { --sj: #8593AB; --sj-on: #FFFFFF; }
+.sj-1 { --sj: #E8474B; --sj-on: #FFFFFF; }
+.sj-2 { --sj: #EE7F38; --sj-on: #FFFFFF; }
+.sj-3 { --sj: #E5B93B; --sj-on: #3F2D00; }
+.sj-4 { --sj: #2FB86B; --sj-on: #FFFFFF; }
+.sj-5 { --sj: #23A0CE; --sj-on: #FFFFFF; }
+.sj-6 { --sj: #3E72E0; --sj-on: #FFFFFF; }
+.sj-7 { --sj: #A85AD6; --sj-on: #FFFFFF; }
+.sj-8 { --sj: #E0609E; --sj-on: #FFFFFF; }
+.sj-9  { --sj: #14A38B; --sj-on: #FFFFFF; }
+.sj-10 { --sj: #6E67D6; --sj-on: #FFFFFF; }
+.sj-11 { --sj: #C4553C; --sj-on: #FFFFFF; }
+.sj-12 { --sj: #5E8C2E; --sj-on: #FFFFFF; }
+
+/* จุดกลม — ใช้ในปฏิทินและรายการที่ต้องบอกแค่ว่า "วิชาไหน" */
+.sjdot { width: 6px; height: 6px; border-radius: 50%; background: var(--sj); flex: none; }
+/* แถบซ้าย — ใช้ในแถวคาบเรียน ให้รูปทรงเดียวกับตารางเรียนที่โรงเรียนแจก */
+.sjbar { width: 3px; border-radius: 2px; background: var(--sj); flex: none; align-self: stretch; }
+
 /* ป้ายเลขรุ่น — กลางบนจอ (1A6M2) ลอยเหนือทุกจอ แต่ไม่รับคลิก */
 .ver-badge {
   position: absolute;
@@ -119,8 +146,9 @@
 /* ปัดถึงระยะที่ปล่อยแล้วทำงานจริง — เด้งไอคอนให้รู้ตัวโดยไม่ต้องอ่าน */
 .swipe.armed .sw-act .sw-ic { transform: scale(1.22); }
 
-/* การ์ดที่ปัดได้ */
-.swipe .rank-card {
+/* การ์ดที่ปัดได้ — เกาะที่ .sw-card ไม่ใช่ชื่อการ์ดของจอใดจอหนึ่ง
+   เพราะท่านี้ใช้ทั้งการ์ดหน้าแรก (.rank-card) และการ์ดในตารางงาน (.tk) */
+.swipe .sw-card {
   position: relative;
   z-index: 1;
   margin-bottom: 0;
@@ -129,11 +157,14 @@
   transition: transform .26s cubic-bezier(.2, .9, .3, 1.1);
 }
 /* ระหว่างนิ้วยังจับอยู่ ต้องไม่มี transition ไม่งั้นการ์ดตามนิ้วไม่ทัน */
-.swipe.sw-live .rank-card { transition: none; }
-.swipe.sw-live .rank-card:active { transform: none; }
+.swipe.sw-live .sw-card { transition: none; }
+.swipe.sw-live .sw-card:active { transform: none; }
 /* ปัดสำเร็จ — การ์ดไหลออกนอกจอแล้วจางหาย */
 .swipe.sw-out { opacity: 0; transition: opacity .22s ease .04s; }
-.swipe.sw-out .rank-card { transition: transform .22s cubic-bezier(.4, 0, 1, 1); }
+.swipe.sw-out .sw-card { transition: transform .22s cubic-bezier(.4, 0, 1, 1); }
+/* การ์ดตารางงานมนน้อยกว่าการ์ดหน้าแรก ชั้นปุ่มที่อยู่ข้างล่างจึงต้องมนเท่ากัน
+   ไม่งั้นตอนปัดจะเห็นมุมสีเขียว/เหลืองโผล่พ้นมุมการ์ด */
+.swipe:has(.tk) { border-radius: 14px; }
 
 /* ---------- ป้าย "เลื่อน" ข้างป้ายความสำคัญ ---------- */
 .rc-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -1700,6 +1731,18 @@
 }
 .tl-nudge:active { transform: scale(.985); }
 
+/* รุ่นบรรทัดเดียวของคำชวนข้างบน — ใช้ในเส้นเวลา ซึ่งของหลักคือเส้น ไม่ใช่คำชวน
+   ไม่มีกรอบ ไม่มีพื้นสี เพราะกรอบประให้ความรู้สึกว่า "มีอะไรผิด" ทั้งที่แค่ยังไม่ได้กรอก */
+.tl-hint {
+  display: flex; align-items: center; gap: 7px; width: 100%; text-align: left;
+  background: transparent; border: none; padding: 2px 2px 0; margin-bottom: 14px;
+  font-family: inherit; font-size: 11.5px; color: var(--muted); cursor: pointer;
+}
+.tl-hint span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl-hint b { flex: none; font-weight: 600; color: var(--fill); }
+.tl-hint svg { width: 13px; height: 13px; flex: none; color: var(--faint); }
+.tl-hint:active { opacity: .6; }
+
 .tl-cap {
   display: flex; align-items: flex-start; gap: 7px; margin: 16px 0 0;
   font-size: 11.5px; line-height: 1.6; color: var(--muted);
@@ -1816,8 +1859,8 @@
 }
 
 /* หน้าแรกต้องจบในจอเดียว ไม่ต้องเลื่อน — ทุกระยะในหน้านี้จึงถูกบีบกว่าจอทั่วไป */
-.menu-body { gap: 11px; padding-top: 14px; padding-bottom: calc(80px + var(--tabgap)); }
-.menu-head .page-title { margin-top: 2px; font-size: 24px; }
+.menu-body { gap: 9px; padding-top: 10px; padding-bottom: calc(80px + var(--tabgap)); }
+.menu-head .page-title { margin-top: 2px; }
 .menu-head .page-sub { display: none; }
 /* ชื่อผู้ใช้ในคำทักทาย — คำเดียวบนจอที่เป็นของเขาคนเดียว ให้มันมีสี */
 .menu-head .page-title .pt-me { color: var(--blue); font-weight: 700; }
@@ -1851,7 +1894,7 @@
   box-shadow: var(--shadow);
   color: var(--ink);
   font-family: inherit;
-  font-size: 15px;
+  font-size: var(--fs-body);
   font-weight: 600;
   letter-spacing: -.015em;
   text-align: left;
@@ -1890,7 +1933,7 @@
 .mt-lb { position: relative; }
 /* คำอธิบายใต้ชื่อไทล์ต้องอยู่บรรทัดเดียวเสมอ — ตกบรรทัดเมื่อไหร่หน้าแรกก็ต้องเลื่อนทันที */
 .mt-sub {
-  font-size: 10.5px;
+  font-size: var(--fs-meta);
   font-weight: 500;
   line-height: 1.4;
   color: var(--muted);
@@ -1916,7 +1959,7 @@
   background: var(--card2);
   color: var(--ink);
   font-family: 'Space Mono', ui-monospace, monospace;
-  font-size: 12.5px;
+  font-size: var(--fs-meta);
   font-weight: 700;
   line-height: 1.15;
   text-align: center;
@@ -1948,6 +1991,27 @@
   box-shadow: 0 0 0 2px rgba(0,0,0,.14), 0 3px 8px rgba(0,0,0,.26);
 }
 /* ไทล์เด่น: เพิ่มงานใหม่ — กว้างเต็มแถวและใช้สีแบรนด์ */
+/* ไทล์เด่นครึ่งแถว — วางคู่กับ "งานทั้งหมด" ให้ปุ่มที่ต้องกดบ่อยที่สุดได้สีเน้น
+   ส่วนปุ่มที่แค่พาไปดูของเก่าอยู่ข้าง ๆ ด้วยสีกลาง ขนาดเท่ากันแต่น้ำหนักไม่เท่ากัน
+   ธีมมืดลด --grad-hero ลงเป็นสีการ์ดทั้งแอป (กฎ 60/30/10 ท้ายไฟล์) ซึ่งถูกสำหรับ
+   "กล่องใหญ่ที่แค่แสดงผล" แต่ใบนี้คือปุ่มลงมือของทั้งหน้า มันต้องเป็นสีเน้นจริง ๆ
+   จึงบังคับ --fill กลับมาเฉพาะใบนี้ใบเดียว ไม่แตะ .mtile.hero ใบอื่น */
+.mtile.hero.half {
+  grid-column: span 1;
+  min-height: 108px;
+  font-size: var(--fs-body);
+  background: var(--fill);
+  color: var(--on-fill);
+}
+/* กรอบไอคอนเดิมเป็นขาว 22% + ไอคอนขาว บนพื้นน้ำเงิน = ขาวจาง ๆ บนน้ำเงิน แล้วขาวทึบบนขาวจาง
+   สองชั้นนั้นต่างกันน้อยเกินกว่าจะเห็นเป็นรูปกล้อง มันเลยละลายหายไปกับพื้น
+   ทางออกคือทำกรอบให้ "เข้มกว่า" พื้นแทนที่จะสว่างกว่า ไอคอนขาวจึงลอยขึ้นมาชัด
+   ใช้ดำโปร่งไม่ใช่สีน้ำเงินเจาะจง เพราะไทล์นี้เปลี่ยนสีตามธีมทั้ง 15 ตัว
+   ดำโปร่งทำให้มันเข้มกว่าพื้นเสมอไม่ว่าพื้นจะเป็นสีอะไร */
+.mtile.hero.half .mt-ic { background: rgba(0,0,0,.22); color: #fff; }
+.mtile.hero.half .mt-sub { color: rgba(255,255,255,.78); }
+.mtile.hero.half .mt-go { top: 12px; right: 12px; bottom: auto; color: var(--on-fill); opacity: .8; }
+
 .mtile.hero {
   grid-column: span 2;
   min-height: 78px;
@@ -2017,7 +2081,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 11px;
+  font-size: var(--fs-meta);
   font-weight: 700;
   letter-spacing: .07em;
   text-transform: uppercase;
@@ -2029,13 +2093,13 @@
   padding: 3px 9px 4px;
   border-radius: 999px;
   background: rgba(255,255,255,.18);
-  font-size: 10.5px;
+  font-size: var(--fs-meta);
   letter-spacing: 0;
   text-transform: none;
 }
 .wg-title {
   margin-top: 6px;
-  font-size: 17px;
+  font-size: var(--fs-title);
   font-weight: 700;
   line-height: 1.32;
   letter-spacing: -.028em;
@@ -2061,14 +2125,15 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 34px;
-  padding: 0 14px;
+  /* 44px คือขนาดนิ้วขั้นต่ำที่ทั้ง iOS และ Android กำหนด — เดิม 34px ทำให้กดพลาดบนมือถือจริง */
+  min-height: 44px;
+  padding: 0 16px;
   border: none;
   border-radius: 999px;
   background: rgba(255,255,255,.95);
   color: #10233A;
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--fs-body);
   font-weight: 700;
   cursor: pointer;
 }
@@ -2109,7 +2174,7 @@
   border-radius: 999px;
   background: var(--card2);
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--fs-meta);
   font-weight: 600;
   letter-spacing: 0;
   white-space: nowrap;
@@ -2117,6 +2182,106 @@
 .wg-chip svg { width: 13px; height: 13px; }
 .wg-chip.late { background: var(--pri-red-soft); color: var(--pri-red-text); }
 .wg-chip.soon { background: var(--pri-yellow-soft); color: var(--pri-yellow-text); }
+
+/* ---------- ลิสต์งานในการ์ด "ควรทำก่อน" ----------
+   เดิมการ์ดนี้โชว์งานใบเดียว และทำอะไรกับมันจากหน้าแรกไม่ได้เลยนอกจากกดเข้าไปอีกจอ
+   ตอนนี้เป็นลิสต์ 3 ใบที่ติ๊กเสร็จได้ในที่ — และทั้งสามใบเป็นการ์ดของตัวเองขนาดเท่ากัน
+   ความด่วนบอกด้วยสีของกำหนดส่งอย่างเดียว ไม่ใช่ด้วยขนาดของก้อน
+   ระยะห่าง 12px · มุมโค้ง 12px ตามไฟล์ดีไซน์ */
+.wg-list { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+.wg-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card2);
+  cursor: pointer;
+  transition: transform .14s ease, border-color .14s ease;
+}
+.wg-item:active { transform: scale(.985); }
+/* แถบสีวิชา — ใช้ --sj จากคลาส sj-* ชุดเดียวกับที่หน้ารายการงานใช้อยู่
+   งานคณิตสองใบจึงเป็นสีเดียวกันเสมอ แยกจากวิชาอื่นได้โดยไม่ต้องอ่านชื่อ */
+.wg-item-bar { flex: none; width: 3px; align-self: stretch; border-radius: 2px; background: var(--sj, var(--muted)); }
+.wg-item-tx { flex: 1; min-width: 0; }
+/* ชื่องานได้สองบรรทัด — เดิมล็อกไว้บรรทัดเดียว "คณิตศาสตร์ · 2 ข้อ ส่ง…" จึงตัด
+   ส่วนที่บอกว่าเป็นงานอะไรทิ้งไปหมด งานคนละใบเลยเหลือข้อความเหมือนกันเป๊ะ */
+.wg-item-ttl {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+/* กำหนดส่งคือตัวเดียวในแถวที่มีสี — เวลาที่ใช้ต่อท้ายด้วยสีกลาง
+   เดิม "~30 นาที" นั่งคอลัมน์ขวาถาวร บีบความกว้างของชื่องานทั้งที่สำคัญน้อยกว่า */
+.wg-item-meta { margin-top: 3px; font-size: var(--fs-meta); font-weight: 600; color: var(--muted); }
+.wg-item-due.hot  { color: var(--pri-red-text); }
+.wg-item-due.warm { color: var(--pri-yellow-text); }
+.wg-item-due.far  { color: var(--pri-green-text); }
+.wg-item-go { flex: none; display: flex; margin-top: 3px; color: var(--muted); opacity: .55; }
+.wg-item-go svg { width: 15px; height: 15px; }
+
+/* ทางไปงานที่เหลือ — คนที่มีงานค้าง 28 ใบต้องรู้ว่าลิสต์นี้แสดงแค่ 3 ใบแรก
+   ไม่งั้น "ควรทำก่อน" จะอ่านได้ว่า "มีอยู่แค่นี้" ซึ่งเป็นคำโกหกที่ทำให้วางแผนผิด */
+.wg-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  margin-top: 8px;
+  min-height: 34px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  cursor: pointer;
+}
+.wg-more svg { width: 14px; height: 14px; }
+.wg-more:active { background: var(--card2); }
+
+/* ป้ายความด่วนบนหัวการ์ด — แดงจริงเมื่อด่วนจริง ป้ายสีเทาทุกระดับก็ไม่ต้องมีก็ได้ */
+.wg-pill.red    { background: var(--pri-red);    color: #fff; font-weight: 700; }
+.wg-pill.yellow { background: var(--pri-yellow); color: #2A1D02; font-weight: 700; }
+
+/* วงกลมติ๊ก — 28px แต่กรอบกดจริง 44px ตามขนาดนิ้วขั้นต่ำของ iOS/Android
+   (ปุ่ม "เปิดงานนี้" เดิมสูง 34px ซึ่งต่ำกว่าเกณฑ์ ดู .wg-cta ข้างล่าง) */
+.wg-tick {
+  flex: none;
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  /* --line เป็นเส้นแบ่งจาง ๆ (ขาว 7%) ซึ่งจางเกินไปสำหรับของที่ต้อง "เห็นแล้วรู้ว่ากดได้"
+     วงกลมนี้คือปุ่มหลักของทั้งลิสต์ มันต้องดูเหมือนปุ่มตั้งแต่ยังไม่ได้กด */
+  border: 2px solid var(--muted);
+  background: transparent;
+  color: transparent;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  transition: background .16s, border-color .16s, color .16s, transform .12s;
+}
+.wg-tick::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+.wg-tick svg { width: 16px; height: 16px; }
+.wg-tick:active { transform: scale(.9); }
+.wg-tick.on {
+  background: var(--fill);
+  border-color: var(--fill);
+  color: var(--on-fill);
+}
 
 /* 2) โน้ต */
 .wg-note { background: var(--card); border: 1px solid var(--line); color: var(--ink); }
@@ -2158,11 +2323,13 @@
 }
 
 /* 4) ภาพของฉัน */
+/* 158px กินพื้นที่เกือบเท่างานหนึ่งใบครึ่ง บนจอที่ต้องใส่ลิสต์งาน + ทางเข้าอีกสามอัน
+   ให้พอดีจอเดียว รูปยังเป็นแถบกว้างที่เห็นเนื้อภาพครบ แค่เตี้ยลง */
 .wg-photo {
   background-size: cover;
   background-position: center;
   justify-content: flex-end;
-  min-height: 158px;
+  min-height: 120px;
   color: #fff;
 }
 .wg-photo .wg-shade {
@@ -2319,31 +2486,50 @@
 .tab-badge[hidden] { display: none; }
 @keyframes badge-pop { from { transform: scale(.4); } to { transform: none; } }
 
+/* จุดแดงไม่มีตัวเลข — ใช้กับของที่มีได้แค่ชิ้นเดียว (ของรางวัลรายวันบนแท็บ "ฉัน")
+   ตัวเลข "1" บนป้ายแบบนั้นไม่ได้บอกอะไรเพิ่มจากการที่ป้ายมันโผล่ขึ้นมาเฉย ๆ */
+.tab-dot {
+  position: absolute;
+  top: -3px;
+  right: -5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--pri-red);
+  box-shadow: 0 0 0 2px var(--glass);
+  animation: badge-pop .28s cubic-bezier(.2,.9,.3,1.5);
+}
+.tab-dot[hidden] { display: none; }
+
 /* ============================================================
    ผลของฉัน (แท็บ "ฉัน")
    ============================================================ */
+/* การ์ดสรุปผลเป็นทอง — มันคือ "สิ่งที่ทำสำเร็จไปแล้ว" ซึ่งเป็นความหมายเดียวกับ
+   ไทล์ทองกับเหรียญในจอวิเคราะห์ · ของที่หมายความเหมือนกันต้องหน้าตาเหมือนกัน
+   ไม่ใช้ --grad-hero เพราะธีมมืดแบนมันเป็นสีเดียว การ์ดนี้เลยกลายเป็นการ์ดธรรมดา
+   ทองเป็นความหมาย ไม่ใช่รสนิยม จึงคงที่ทุกธีมเหมือน --pri-* */
 .st-hero {
   display: flex;
   align-items: stretch;
-  background: var(--grad-hero);
-  color: #fff;
+  background: var(--grad-gold);
+  color: var(--on-gold);
   border-radius: var(--r-card);
-  padding: 16px 10px;
-  box-shadow: var(--shadow);
+  padding: 14px 10px;
+  box-shadow: var(--shadow-gold);
 }
 .st-hero > div { flex: 1; text-align: center; }
-.st-hero .sep { flex: none; width: 1px; background: rgba(255,255,255,.18); }
+.st-hero .sep { flex: none; width: 1px; background: rgba(92,65,4,.22); }
 .st-hero .v { font-family: 'Space Mono', ui-monospace, monospace; font-size: 23px; font-weight: 700; }
 .st-hero .v .u { font-size: 12px; margin-left: 2px; opacity: .8; }
-.st-hero .k { margin-top: 3px; font-size: 11px; opacity: .78; }
+.st-hero .k { margin-top: 3px; font-size: 11px; opacity: .78; font-weight: 600; }
 
 .st-card {
-  margin-top: 10px;
+  margin-top: 8px;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--r-card);
   box-shadow: var(--shadow);
-  padding: 15px 15px 14px;
+  padding: 13px 13px 12px;
 }
 .st-card.soft { box-shadow: none; background: var(--card2); border: none; }
 .st-h {
@@ -2366,7 +2552,7 @@
 }
 .st-track i { display: block; height: 100%; border-radius: 999px; background: var(--grad-brand); }
 
-.st-bars { display: flex; align-items: flex-end; gap: 7px; height: 104px; }
+.st-bars { display: flex; align-items: flex-end; gap: 7px; height: 88px; }
 .st-bar {
   flex: 1;
   display: flex;
@@ -2607,11 +2793,24 @@ body { line-height: 1.7; letter-spacing: 0; }
   font-family: 'IBM Plex Sans', 'Sarabun', 'Leelawadee UI', sans-serif;
 }
 
-.page-title { font-size: 25px; line-height: 1.24; letter-spacing: -.034em; }
+/* ---------- สเกลตัวอักษร ----------
+   หน้าแรกเคยมีตัวอักษร 8 ขนาดในจอเดียว: 10.5 · 11 · 12.5 · 13 · 15 · 16 · 17 · 24
+   คู่ที่ห่างกันครึ่งพิกเซล (10.5 กับ 11) หรือสองพิกเซล (15/16/17) ตาแยกไม่ออกอยู่แล้ว
+   แต่มันทำให้จังหวะการอ่านสะดุด เพราะไม่มีขนาดไหนแปลว่าอะไรแน่นอนสักขนาด
+   เหลือ 4 ขั้น แต่ละขั้นมีหน้าที่ของตัวเอง — ขนาดกลายเป็นข้อมูล ไม่ใช่การตกแต่ง
+   (ยังไม่ได้ไล่ทั้งแอป — จอแผน/จอรายการงานยังมีสเกลของตัวเองอยู่ ดู .sh-title .rc-title) */
+:root {
+  --fs-meta:  12px;   /* วันที่ · ชิป · คำอธิบายใต้ชื่อ · ตัวเลขบนไทล์ */
+  --fs-body:  14px;   /* ชื่อไทล์ · งานใบรอง · ปุ่มในการ์ด */
+  --fs-title: 17px;   /* ชื่องานใบแรก — ของชิ้นเดียวบนจอที่ต้องอ่านก่อนเพื่อน */
+  --fs-page:  24px;   /* คำทักทาย */
+}
+
+.page-title { font-size: var(--fs-page); line-height: 1.24; letter-spacing: -.034em; }
 .page-sub { font-size: 13px; line-height: 1.65; color: var(--muted); }
 .sh-title { font-size: 21px; letter-spacing: -.03em; }
 .sec-label { font-size: 11.5px; letter-spacing: .09em; color: var(--muted); margin-top: 20px; }
-.eyebrow { font-size: 11px; letter-spacing: .04em; }
+.eyebrow { font-size: var(--fs-meta); letter-spacing: .04em; }
 /* ตัวหนังสือรองเดิมจางจนอ่านยากบนธีมสว่าง — ยกน้ำหนักขึ้นนิดหนึ่ง */
 .rc-meta, .am, .mt-sub, .st-row .ct, .fr-st { font-weight: 500; }
 .rc-title, .at { font-size: 15.5px; line-height: 1.45; }
@@ -4441,6 +4640,11 @@ body[data-godir] :root[data-theme="meta"] .screen.on { animation-duration: .24s;
 }
 :root[data-theme="dark"] .brief-mark svg { color: var(--on-fill); }
 :root[data-theme="dark"] .mtile.hero .mt-ct { background: var(--fill); color: var(--on-fill); }
+/* ...ยกเว้นไทล์ครึ่งแถว ซึ่งพื้นเป็น --fill อยู่แล้ว กฎข้างบนจึงให้ไอคอนสีเดียวกับพื้นเป๊ะ
+   = กล้องหายไปกับพื้นทั้งดวง กรอบต้องเข้มกว่าพื้น ไอคอนขาวถึงจะลอยขึ้นมา
+   (กฎนี้ต้องอยู่หลังกฎข้างบน — น้ำหนักตัวเลือกเท่ากัน ตัวที่มาทีหลังจึงชนะ) */
+:root[data-theme="dark"] .mtile.hero.half .mt-ic { background: rgba(0,0,0,.22); color: #fff; }
+:root[data-theme="dark"] .mtile.hero.half .mt-go { color: var(--on-fill); opacity: .8; }
 :root[data-theme="dark"] .mtile.hero .mt-go { color: var(--blue); opacity: .85; }
 /* ปุ่มในการ์ด AI: เดิมเป็นพื้นขาวเต็มความกว้าง = ของที่สว่างที่สุดบนจอตารางงาน
    ทั้งที่มันเป็นทางเลือกเสริม ส่วนการ์ดงานจริงที่ต้องอ่านกลับหม่นกว่า
@@ -4466,7 +4670,10 @@ body[data-godir] :root[data-theme="meta"] .screen.on { animation-duration: .24s;
    ปุ่มสแกนกลม ๆ ลอยขึ้นเหนือแถบ 34px แต่ padding ล่างของทุกจอเผื่อไว้แค่ความสูงแถบ
    ปุ่มสุดท้ายของหน้า (เช่น "ดูงานที่เหลืออีก 2 งาน") จึงถูกปุ่มสแกนทับจนกดไม่ได้ */
 .home-body, .scr-body { padding-bottom: calc(118px + var(--tabgap)); }
-.menu-body { padding-bottom: calc(108px + var(--tabgap)); }
+/* หน้าแรกเผื่อน้อยกว่าจอ์อื่น 20px — วัดจากของจริง: ปุ่มสแกนเริ่มที่ 756px จากขอบบน
+   เผื่อ 88 + 5 = 93 ทำให้เนื้อหาจบที่ 751 ซึ่งพ้นปุ่มสแกนพอดีโดยไม่เหลือที่ว่างเปล่า
+   20px ที่ประหยัดได้คือส่วนหนึ่งของ 72px ที่ทำให้หน้าแรกล้นจอ */
+.menu-body { padding-bottom: calc(88px + var(--tabgap)); }
 
 /* ---------- ระยะปลอดภัยใต้แถบบน ----------
    ป้ายเลขรุ่นกับปุ่มเพื่อนลอยอยู่เหนือทุกจอ จอที่ขึ้นต้นด้วยการ์ดเต็มความกว้าง
@@ -4567,6 +4774,53 @@ body.deep-scr .top-friends { display: none; }
 .ctx-del svg { width: 15px; height: 15px; }
 .ctx-del:active { color: var(--alert); background: var(--alert-soft); }
 .ctx-empty { font-size: 11.5px; line-height: 1.7; color: var(--faint); padding: 2px 2px 4px; }
+
+/* ---- ตารางเรียนพับเป็นวันละแถว ----
+   ของเดิมเรียงคาบทั้งสัปดาห์ตามเวลาในรายการเดียว จันทร์กับศุกร์เลยนอนติดกัน
+   ต่างกันแค่ "จ." กับ "ศ." ตัวจิ๋วข้างเวลา — สามสิบห้าแถวที่ตอบไม่ได้ว่าวันไหนเรียนอะไร */
+.ctx-week { display: flex; flex-direction: column; gap: 7px; }
+.ctx-weeksum { margin: 0 2px 1px; font-size: 11px; color: var(--faint); }
+.ctx-dayblk {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r-tile); overflow: hidden;
+}
+.ctx-dayblk.on { border-color: var(--fill); }
+.ctx-dayh {
+  display: flex; align-items: baseline; gap: 8px; width: 100%;
+  border: none; background: transparent; padding: 11px 11px 9px;
+  font-family: inherit; text-align: left; cursor: pointer; color: var(--ink);
+}
+.ctx-dayh b { flex: 1; font-size: 13.5px; font-weight: 600; letter-spacing: -.015em; color: var(--ink); }
+.ctx-dayh i { font-style: normal; font-size: 11px; color: var(--muted); }
+.ctx-dayh u { text-decoration: none; font-size: 11px; color: var(--faint); white-space: nowrap; }
+.ctx-dayx { flex: none; align-self: center; display: flex; color: var(--faint); }
+.ctx-dayx svg { width: 15px; height: 15px; transform: rotate(90deg); transition: transform .18s ease; }
+.ctx-dayblk.on .ctx-dayx svg { transform: rotate(-90deg); }
+/* พับอยู่ = ชื่อวิชาเรียงเดียว บอกว่าวันนั้นหน้าตายังไงโดยไม่ต้องกาง */
+.ctx-daysum { margin: 0; padding: 2px 11px 8px; line-height: 1.5; }
+/* ชิปชื่อวิชา — ใช้ทั้งในสรุปวันที่พับอยู่และในก้อนคาบเรียนของเส้นเวลา
+   สีมาจากชื่อวิชา วิชาเดียวกันจึงเป็นสีเดียวกันทุกจอ */
+.ctx-chip {
+  display: inline-block; margin: 0 4px 4px 0; padding: 3px 8px; border-radius: 6px;
+  background: var(--sj); color: var(--sj-on); font-size: 11px; font-weight: 600;
+}
+.ctx-pers { border-top: 1px solid var(--line); padding: 3px 5px 5px 11px; }
+.ctx-per { display: flex; align-items: center; gap: 10px; min-height: 38px; }
+.ctx-per + .ctx-per { border-top: 1px solid var(--line); }
+.ctx-per i { flex: none; font-style: normal; font-size: 11px; color: var(--muted); }
+/* เลขคาบ — ตารางเรียนที่โรงเรียนแจกนับคาบเสมอ คนจึงพูดกันว่า "คาบ 5" ไม่ใช่ "13:00" */
+.ctx-per-n {
+  flex: none; width: 20px; height: 20px; border-radius: 6px;
+  background: var(--sj); color: var(--sj-on);
+  font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+}
+.ctx-per b { flex: 1; min-width: 0; font-size: 13px; font-weight: 500; letter-spacing: -.01em; }
+/* คาบที่เรียนหลายวันเป็นรายการเดียว ลบทีเดียวหายทุกวัน — ป้ายนี้คือคำเตือนก่อนกดถังขยะ */
+.ctx-per u {
+  flex: none; text-decoration: none; font-size: 10px; color: var(--faint);
+  background: var(--card2); border-radius: 999px; padding: 3px 7px;
+}
+.ctx-per .ctx-del { width: 30px; height: 30px; }
 
 .ctx-add {
   min-height: 42px; border-radius: var(--r-tile);
@@ -4778,6 +5032,358 @@ body.deep-scr .top-friends { display: none; }
 .dayrow-dot.flag { background: var(--alert); }
 .dayrow-l { font-size: 13px; color: var(--muted); }
 .dayrow-l i { font-style: normal; margin-left: 8px; color: var(--faint); font-size: 11.5px; }
+/* ธุระที่กินเวลาจริงเข้มกว่าหมุดบอกช่วงวัน — เส้นที่ทุกแถวสีเดียวกันคือเส้นที่ตาไม่รู้จะเกาะตรงไหน */
+.dayrow-l.solid { color: var(--ink); font-weight: 500; }
+
+/* ---- ก้อนคาบเรียนที่ยุบรวม ----
+   หนึ่งก้อน = ครึ่งวันที่ติดเรียน แทนแถวเทาแปดแถวที่หน้าตาเหมือนกันหมด
+   รายคาบไม่ได้หายไป — อยู่ในแผ่นรายละเอียดที่กดแล้วขึ้น */
+.dayblk { background: var(--card); border-radius: 12px; padding: 10px 12px; }
+.dayblk-h { display: flex; align-items: baseline; gap: 8px; }
+.dayblk-h b { flex: 1; font-size: 13.5px; font-weight: 600; letter-spacing: -.01em; color: var(--ink); }
+.dayblk-h span { flex: none; font-size: 11px; color: var(--muted); }
+/* ชื่อวิชาเป็นบริบท ไม่ใช่ของที่ต้องอ่านครบ — สองบรรทัดพอ ที่เหลือรอตอนกด */
+.dayblk-p {
+  margin: 7px 0 -4px; line-height: 1.5;
+  max-height: 48px; overflow: hidden;
+}
+
+/* ---- สลับ รายวัน / ทั้งสัปดาห์ ---- */
+/* จำนวนช่องต้องตามจำนวนปุ่มเอง — ตอนเพิ่มโหมดที่สามเข้ามา ค่าเดิมที่ตรึงไว้ 2 ช่อง
+   ทำให้ปุ่มที่สามตกไปห้อยบรรทัดล่างเป็นแท่งยาวเต็มความกว้าง */
+.tlmode {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px;
+  background: var(--card); border-radius: 12px; padding: 3px; margin: 0 0 12px;
+}
+.tlm {
+  border: none; background: transparent; border-radius: 9px; padding: 8px 4px;
+  font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer;
+  transition: background .16s ease, color .16s ease;
+}
+.tlm.on { background: var(--fill); color: var(--on-fill); }
+
+/* ══════════════════════════════════════════════════════════════════
+   แผนราคา (ยังไม่เปิดขาย)
+   ------------------------------------------------------------------
+   การ์ดสองใบเลือกได้จริง เพราะรายการของแต่ละแผนเปลี่ยนตามที่เลือก —
+   ถ้าโชว์รายการรวมของทั้งสองแผนไว้ก้อนเดียว คนอ่านจะไม่รู้ว่าจ่าย 49 ได้อะไรบ้าง
+   ══════════════════════════════════════════════════════════════════ */
+.pro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 6px; }
+.pro-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  padding: 12px 13px; text-align: left; cursor: pointer;
+  font-family: inherit; color: var(--ink);
+  transition: border-color .16s ease, background .16s ease;
+}
+/* ใบที่เลือกได้ขอบสีเน้น 2px — เป็นข้อยกเว้นเดียวของกฎเส้น 1px ในไฟล์นี้
+   เพราะมันคือสถานะ "เลือกอยู่" ที่ต้องเห็นจากระยะกวาดตา ไม่ใช่ตอนจ้อง */
+.pro-card.on { border: 2px solid var(--blue); background: var(--blue-soft); padding: 11px 12px; }
+.pro-top { display: flex; align-items: center; gap: 6px; width: 100%; }
+.pro-name {
+  font-size: var(--fs-meta); font-weight: 700; letter-spacing: .04em;
+  background: var(--card2); color: var(--muted); border-radius: 999px; padding: 3px 9px;
+}
+.pro-card.on .pro-name { background: var(--fill); color: var(--on-fill); }
+.pro-tag {
+  margin-left: auto; font-size: 10.5px; font-weight: 700;
+  background: var(--good); color: #04180C; border-radius: 999px; padding: 3px 8px;
+}
+.pro-price { display: flex; align-items: baseline; gap: 4px; }
+.pro-price b { font-size: 23px; font-weight: 700; letter-spacing: -.03em; }
+.pro-price i { font-style: normal; font-size: var(--fs-meta); color: var(--muted); }
+.pro-line { font-size: var(--fs-meta); line-height: 1.45; color: var(--muted); }
+
+.pro-feats { display: flex; flex-direction: column; gap: 2px; margin-top: 14px; }
+.pro-f {
+  display: flex; align-items: flex-start; gap: 9px; padding: 10px 0;
+  border-top: 1px solid var(--line); font-size: var(--fs-body); line-height: 1.5;
+}
+.pro-f:first-child { border-top: none; }
+.pro-f svg { width: 15px; height: 15px; flex: none; margin-top: 3px; color: var(--good); }
+
+.pro-cta {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; min-height: 50px; margin-top: 16px;
+  border: none; border-radius: 14px; background: var(--fill); color: var(--on-fill);
+  font-family: inherit; font-size: var(--fs-body); font-weight: 700; cursor: pointer;
+}
+.pro-cta svg { width: 17px; height: 17px; }
+.pro-cta:active { transform: scale(.98); }
+.pro-cta.done { background: var(--card2); color: var(--muted); }
+.pro-note { margin: 12px 0 0; font-size: var(--fs-meta); line-height: 1.7; color: var(--muted); }
+.pro-note b { color: var(--ink); }
+
+/* ══════════════════════════════════════════════════════════════════
+   ถามน้องไซ
+   ------------------------------------------------------------------
+   จอนี้มีแชทจริงแล้ว แต่ยังคงสองรายการท้ายจอไว้ — ทำอะไรให้ และจะไม่ทำอะไร
+   สองรายการหนักเท่ากัน ไม่ใช่รายการดี ๆ ยาว ๆ แล้วต่อท้ายด้วยตัวหนังสือจาง
+   ══════════════════════════════════════════════════════════════════ */
+
+/* แถบบอกว่าน้องไซเห็นอะไร — กดได้ ไม่ใช่ข้อความประดับ
+   คำสัญญาเรื่องข้อมูลที่ตรวจสอบไม่ได้ ก็ไม่ต่างจากไม่ได้สัญญา
+   ปุ่มนี้เปิดข้อความก้อนจริงที่ถูกส่งขึ้นเซิร์ฟเวอร์ ให้เทียบกับที่เขียนไว้ได้เอง */
+.ai-priv {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  background: var(--blue-soft); border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px 12px; margin-top: 4px; cursor: pointer;
+  font-family: inherit; color: var(--ink);
+}
+.ai-priv-ic { display: flex; color: var(--blue); flex: none; }
+.ai-priv-ic svg { width: 15px; height: 15px; }
+.ai-priv-tx { flex: 1; min-width: 0; font-size: var(--fs-meta); line-height: 1.45; }
+.ai-priv-go { flex: none; font-size: var(--fs-meta); font-weight: 700; color: var(--blue); }
+
+.ai-thread { display: flex; flex-direction: column; gap: 9px; margin-top: 12px; }
+.ai-thread.empty {
+  align-items: flex-start; gap: 3px;
+  background: var(--card); border: 1px dashed var(--line); border-radius: 14px; padding: 14px 15px;
+}
+.ai-thread.empty b { font-size: var(--fs-body); font-weight: 700; }
+.ai-thread.empty p { margin: 0; font-size: var(--fs-meta); line-height: 1.6; color: var(--muted); }
+
+.ai-msg { display: flex; gap: 8px; align-items: flex-end; }
+.ai-msg.me { justify-content: flex-end; }
+.ai-av {
+  flex: none; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--fill); color: var(--on-fill);
+  display: grid; place-items: center; margin-bottom: 2px;
+}
+.ai-av svg { width: 14px; height: 14px; }
+.ai-bub {
+  max-width: 84%; padding: 9px 12px; font-size: var(--fs-body); line-height: 1.6;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.ai-msg.me .ai-bub {
+  background: var(--fill); color: var(--on-fill); border-radius: 14px 14px 4px 14px;
+}
+.ai-msg.sai .ai-bub {
+  background: var(--card2); border: 1px solid var(--line); border-radius: 14px 14px 14px 4px;
+}
+/* ข้อความที่เป็นความผิดพลาดต้องหน้าตาไม่เหมือนคำตอบ ไม่งั้นผู้ใช้จะอ่านว่าน้องไซพูดอย่างนั้นจริง */
+.ai-msg.sai .ai-bub.err {
+  background: var(--pri-red-soft); border-color: transparent; color: var(--pri-red-text);
+}
+.ai-typing { display: flex; gap: 5px; align-items: center; }
+.ai-typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: ai-blink 1.1s infinite; }
+.ai-typing i:nth-child(2) { animation-delay: .18s; }
+.ai-typing i:nth-child(3) { animation-delay: .36s; }
+@keyframes ai-blink { 0%, 60%, 100% { opacity: .28; } 30% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ai-typing i { animation: none; opacity: .6; } }
+
+/* คำถามสำเร็จรูป — ขึ้นเฉพาะตอนยังไม่เคยคุย
+   ช่องพิมพ์เปล่าบนจอเปล่าคือจุดที่คนส่วนใหญ่ปิดทิ้ง เพราะไม่รู้ว่าถามอะไรได้ */
+.ai-seeds { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+.ai-seeds button {
+  border: 1px solid var(--blue); background: transparent; color: var(--blue);
+  border-radius: 999px; padding: 7px 12px; min-height: 34px;
+  font-family: inherit; font-size: var(--fs-meta); font-weight: 600; cursor: pointer;
+}
+.ai-seeds button:active { transform: scale(.97); }
+
+.ai-bar { display: flex; align-items: flex-end; gap: 8px; margin-top: 11px; }
+.ai-in {
+  flex: 1; min-height: 44px; max-height: 140px; resize: none;
+  background: var(--card2); border: 1px solid var(--line); border-radius: 14px;
+  padding: 12px 13px; font-family: inherit; font-size: var(--fs-body); line-height: 1.5;
+  color: var(--ink);
+}
+.ai-in:focus { outline: 2px solid var(--blue); outline-offset: -2px; }
+.ai-in:disabled { opacity: .55; }
+.ai-send {
+  flex: none; width: 44px; height: 44px; border-radius: 50%; border: none;
+  background: var(--fill); color: var(--on-fill);
+  display: grid; place-items: center; cursor: pointer;
+}
+.ai-send svg { width: 18px; height: 18px; transform: rotate(-90deg); }
+.ai-send:disabled { opacity: .5; }
+.ai-send:active { transform: scale(.94); }
+.ai-foot { margin: 9px 0 0; font-size: var(--fs-meta); line-height: 1.6; color: var(--muted); text-align: center; }
+.ai-wipe {
+  border: none; background: none; padding: 0; cursor: pointer;
+  font-family: inherit; font-size: inherit; color: var(--blue); font-weight: 600;
+}
+.ai-soon {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  background: var(--card); border: 1px dashed var(--line); border-radius: 14px;
+  padding: 14px 15px; margin-top: 4px;
+}
+.ai-soon-ic {
+  display: flex; width: 30px; height: 30px; border-radius: 9px; margin-bottom: 5px;
+  background: var(--fill); color: var(--on-fill); align-items: center; justify-content: center;
+}
+.ai-soon-ic svg { width: 16px; height: 16px; }
+.ai-soon b { font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+.ai-soon p { margin: 0; font-size: 12px; line-height: 1.6; color: var(--muted); }
+
+.ai-list { display: flex; flex-direction: column; gap: 2px; }
+.ai-row { display: flex; gap: 11px; padding: 10px 0; border-top: 1px solid var(--line); }
+.ai-row:first-child { border-top: none; }
+.ai-ic {
+  flex: none; width: 24px; height: 24px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+.ai-ic svg { width: 13px; height: 13px; }
+.ai-ic.ok { background: var(--good-soft); color: var(--good); }
+.ai-ic.no { background: var(--alert-soft); color: var(--alert); }
+.ai-bd { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ai-bd b { font-size: 13.5px; font-weight: 600; letter-spacing: -.01em; }
+.ai-bd span { font-size: 11.5px; line-height: 1.6; color: var(--muted); }
+.ai-note { margin: 18px 2px 0; font-size: 11px; line-height: 1.7; color: var(--faint); }
+
+/* ---- ปฏิทินเดือน ----
+   ภาชนะที่ถูกกับคำถาม "เดือนนี้มีอะไรรออยู่" — สอบกลางภาคไม่ได้อยู่ใน 7 วันข้างหน้า
+   และมันใช้ได้ตั้งแต่ยังไม่กรอกตารางเรียน เพราะเส้นตายมาจากงานที่สแกนเข้ามาแล้ว */
+.calbar { display: flex; align-items: center; gap: 8px; margin: 2px 0 10px; }
+.calbar b { flex: 1; text-align: center; font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.calbar button {
+  width: 34px; height: 34px; border: none; border-radius: 50%;
+  background: var(--card); color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.calbar button svg { width: 16px; height: 16px; }
+.calbar button:first-child svg { transform: rotate(180deg); }
+.calbar button:active { background: var(--card2); }
+
+.calwd { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
+.calwd span { text-align: center; font-size: 10.5px; color: var(--faint); }
+
+.calgrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+/* aspect-ratio: 1 ทำให้ช่องสูงเท่าความกว้างเสมอ — บนจอแคบได้ 48px ซึ่งพอดี
+   แต่บนจอกว้าง คอลัมน์กว้างขึ้นช่องก็สูงตามไปถึง 100px+ ทั้งที่ในช่องมีแค่เลขวัน
+   ผลคือขีดคาบเรียน (.cal-sch ที่เกาะขอบล่าง) กับแถบหมุด (.cal-marks ที่เกาะขอบบน)
+   ลอยห่างจากเลขวันของตัวเองไปคนละมุมช่อง จนอ่านเหมือนเป็นของวันที่อยู่แถวถัดไป
+   คุมเพดานไว้ ช่องจึงยังเป็นจัตุรัสบนมือถือ และไม่ยืดจนเสียความหมายบนจอกว้าง */
+.cal-c {
+  position: relative; aspect-ratio: 1; max-height: 58px; border: none; background: transparent;
+  border-radius: 10px; font-family: inherit; cursor: pointer; padding: 4px 0 0;
+  display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--ink);
+}
+.cal-c.off { pointer-events: none; }
+.cal-c b { font-size: 13px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+/* วันนี้ได้วงกลม ส่วนวันที่เลือกได้พื้น — สองสถานะนี้เกิดพร้อมกันได้ จึงต้องแยกกันคนละที่ */
+.cal-c.today b {
+  background: var(--fill); color: var(--on-fill);
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.cal-c.on { background: var(--card); }
+.cal-c.on b { font-weight: 700; }
+.cal-c.hot b { color: var(--alert); }
+.cal-c.today.hot b { color: var(--on-fill); }
+.cal-dots { display: flex; align-items: center; justify-content: center; gap: 2px; min-height: 6px; }
+.cal-more { font-style: normal; font-size: 9px; line-height: 1; color: var(--faint); }
+/* ขีดบางใต้วัน = วันนั้นมีคาบเรียน · บางพอที่จะไม่แย่งจุดเส้นตาย */
+.cal-sch {
+  position: absolute; left: 50%; bottom: 5px; transform: translateX(-50%);
+  width: 12px; height: 2px; border-radius: 1px; background: var(--line);
+}
+.cal-c.on .cal-sch { background: var(--muted); opacity: .5; }
+
+/* แผ่นของวันที่เลือก — ปฏิทินที่กดวันแล้วไม่มีอะไรขึ้นคือปฏิทินที่อ่านได้อย่างเดียว */
+.cal-day { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+.cal-day-h { display: flex; align-items: baseline; gap: 8px; margin-bottom: 9px; }
+.cal-day-h b { font-size: 15px; font-weight: 600; letter-spacing: -.015em; }
+.cal-day-h i { font-style: normal; font-size: 11.5px; color: var(--faint); }
+.cal-day-h u { margin-left: auto; text-decoration: none; font-size: 11.5px; color: var(--muted); }
+.cal-day-cls {
+  display: flex; align-items: center; gap: 7px; margin-bottom: 9px;
+  font-size: 12px; color: var(--muted);
+}
+.cal-day-cls svg { width: 13px; height: 13px; flex: none; }
+.cal-day-0 { margin: 0; font-size: 12px; color: var(--faint); }
+
+.cal-t {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  border: none; background: var(--card); border-radius: 12px;
+  padding: 9px 11px; margin-bottom: 6px; font-family: inherit; color: var(--ink); cursor: pointer;
+}
+.cal-t:active { transform: scale(.995); }
+.cal-t-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cal-t-b b {
+  font-size: 13px; font-weight: 600; letter-spacing: -.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cal-t-b i { font-style: normal; font-size: 11px; color: var(--muted); }
+
+/* ---- หมุดปฏิทิน ----
+   ของที่ผู้ใช้ปักเอง ต่างจากเส้นตายที่ระบบรู้มาจากใบงาน — จึงเป็นแถบสี ไม่ใช่จุด
+   "สำคัญมาก" ระบายทั้งช่องในปฏิทิน เพราะหน้าที่ของมันคือถูกเห็นตั้งแต่ยังไม่ตั้งใจมอง */
+.cal-marks { display: flex; gap: 2px; width: 100%; padding: 0 5px; }
+.cal-marks i { flex: 1; height: 3px; border-radius: 2px; background: var(--sj); }
+.cal-c.big { background: color-mix(in srgb, var(--sj) 22%, transparent); }
+.cal-c.big .cal-marks i { background: var(--sj); }
+
+.cal-m {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  border: none; background: var(--card); border-radius: 12px;
+  padding: 9px 11px; margin-bottom: 6px; font-family: inherit; color: var(--ink); cursor: pointer;
+}
+.cal-m.big { background: color-mix(in srgb, var(--sj) 16%, var(--card)); }
+.cal-m-bar { width: 3px; align-self: stretch; border-radius: 2px; background: var(--sj); flex: none; }
+.cal-m-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cal-m-b b {
+  font-size: 13px; font-weight: 600; letter-spacing: -.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cal-m-b i { font-style: normal; font-size: 11px; color: var(--muted); }
+.cal-m svg { width: 14px; height: 14px; color: var(--faint); flex: none; }
+.cal-m:active { transform: scale(.995); }
+
+.cal-add {
+  width: 100%; min-height: 40px; border-radius: 12px;
+  border: 1.5px dashed var(--line); background: transparent;
+  color: var(--blue); font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+}
+.cal-add:active { background: var(--card2); }
+
+.cal-form {
+  display: flex; flex-direction: column; gap: 9px;
+  background: var(--card2); border-radius: 12px; padding: 12px;
+}
+.cal-form input[type=text] {
+  width: 100%; min-height: 42px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--card); color: var(--ink); font-family: inherit; font-size: 14px;
+}
+/* จานสีสองแถว ปุ่มละ 28px — เล็กกว่านี้แตะพลาดสีข้าง ๆ แล้วต้องแก้ใหม่ */
+.cal-sw { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.cal-sw button {
+  height: 28px; border-radius: 8px; border: 2px solid transparent;
+  background: var(--sj); cursor: pointer; padding: 0;
+}
+.cal-sw button.on { border-color: var(--ink); }
+.cal-big {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--card);
+  padding: 9px 11px; font-family: inherit; font-size: 12px; color: var(--ink);
+  text-align: left; cursor: pointer;
+}
+.cal-big span { flex: 1; }
+.cal-big svg { width: 14px; height: 14px; flex: none; color: var(--muted); }
+.cal-big.on { border-color: var(--alert); color: var(--alert); }
+.cal-big.on svg { color: var(--alert); }
+.cal-big-x { display: flex; }
+.cal-form-a { display: flex; align-items: center; gap: 8px; }
+
+/* หมุดในจอรายวัน — อยู่เหนือเส้น ไม่ใช่ในเส้น เพราะหมุดไม่มีเวลาของตัวเอง */
+.tl-mark {
+  display: flex; align-items: center; gap: 9px;
+  background: var(--card); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px;
+}
+.tl-mark.big { background: color-mix(in srgb, var(--sj) 16%, var(--card)); }
+.tl-mark b { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; letter-spacing: -.01em; }
+.tl-mark i { font-style: normal; font-size: 11px; color: var(--muted); flex: none; }
+
+.cal-go {
+  display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%;
+  min-height: 42px; margin-top: 10px; border: 1px solid var(--line); border-radius: 12px;
+  background: transparent; font-family: inherit; font-size: 13px; font-weight: 600;
+  color: var(--ink); cursor: pointer;
+}
+.cal-go svg { width: 15px; height: 15px; color: var(--muted); }
+.cal-go:active { background: var(--card2); }
 .dayrow-due {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 12.5px; color: var(--alert);
@@ -4798,11 +5404,16 @@ body.deep-scr .top-friends { display: none; }
 .dayrow-go svg { width: 15px; height: 15px; }
 .dayrow-go:active { transform: scale(.98); }
 
-/* ---- คำตัดสินบนสุด ---- */
-.dayvd { background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 18px; }
-.dayvd-h { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
-.dayvd-h b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
-.dayvd p { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--muted); }
+/* ---- คำตัดสินบนสุด ----
+   การ์ดนี้อยู่เหนือเส้นเวลา ทุกพิกเซลที่มันสูงขึ้นคือพิกเซลที่เส้นเวลาหายไปจากจอแรก
+   หัวบรรทัดจึงต้องพอตัดสินใจได้เอง ส่วนบรรทัดล่างเป็นรายละเอียดที่ตัดท้ายได้ */
+.dayvd { background: var(--card); border-radius: 14px; padding: 11px 13px; margin-bottom: 12px; }
+.dayvd-h { display: flex; align-items: center; gap: 8px; }
+.dayvd-h b { font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+.dayvd p {
+  margin: 3px 0 0; font-size: 12px; line-height: 1.55; color: var(--muted);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 /* ข่าวร้ายเท่านั้นที่ได้พื้นสี — ถ้าทุกสถานะมีสี ก็ไม่มีสถานะไหนสะดุดตา */
 .dayvd.bad { background: var(--alert-soft); }
 .dayvd.bad p { color: var(--ink); }
@@ -4819,15 +5430,27 @@ body.deep-scr .top-friends { display: none; }
 }
 @keyframes tls-up { from { transform: translateY(18px); opacity: .4; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .daysheet { animation: none; } }
+/* ---------- แผ่นนี้เคยเป็นสีเทาทั้งใบ ----------
+   ป้ายหมวดเทา · ชิปเทา · กล่องเหตุผลใช้สีพื้นจอซึ่งเข้มกว่าตัวแผ่น จึงอ่านเป็น "รูโหว่"
+   และปุ่มทั้งสองใบเป็น .ghost ทั้งคู่ — ไม่มีปุ่มไหนเป็นสีเน้นเลย ทั้งแผ่นจึงไม่มีสีสักจุด
+   แก้สามที่: ป้ายหมวดได้สีน้ำเงิน · กล่องเหตุผลเป็นพื้นน้ำเงินจางแบบยกขึ้น (ไม่ใช่จมลง)
+   · ปุ่มหลักกลับไปเป็นปุ่มทึบตามที่ .daysheet-go ตั้งใจไว้แต่แรก เหลือ "ปิด" เป็น ghost ใบเดียว */
 .daysheet-grip {
   display: block; width: 36px; height: 4px; border-radius: 2px;
-  background: var(--line); margin: 0 auto 14px;
+  background: var(--muted); opacity: .45; margin: 0 auto 14px;
 }
-.daysheet-tag { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+.daysheet-tag {
+  font-size: 11px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--blue); margin-bottom: 5px;
+}
 .daysheet-h { font-size: 19px; font-weight: 600; line-height: 1.4; letter-spacing: -.015em; }
 .daysheet-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
-.daysheet-why { background: var(--scr); border-radius: 12px; padding: 12px; margin-top: 14px; }
-.daysheet-why b { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.daysheet-why {
+  background: var(--blue-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px; margin-top: 14px;
+}
+.daysheet-why b { display: block; font-size: 11px; font-weight: 700; color: var(--blue); margin-bottom: 4px; }
 .daysheet-why p { margin: 0; font-size: 13px; line-height: 1.65; white-space: pre-line; }
 .daysheet-act { display: flex; gap: 8px; margin-top: 14px; }
 .daysheet-go {
@@ -4839,3 +5462,384 @@ body.deep-scr .top-friends { display: none; }
 .daysheet-go svg { width: 15px; height: 15px; }
 .daysheet-go.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); flex: 0 0 88px; }
 .daysheet-go:active { transform: scale(.98); }
+
+/* ============================================================
+   จอตั้งค่า — ทางลัดสี่ช่อง + การ์ดแยกกลุ่ม
+   ------------------------------------------------------------
+   ทุกค่าสีมาจากตัวแปรของธีมล้วน ๆ (--card --card2 --line --ink --muted)
+   ห้ามใส่สีตรง ๆ ที่นี่ — ธีมในแอปมี 16 อัน ตัวไหนพลาดจะพังเฉพาะบางธีม
+   ซึ่งเป็นบั๊กที่หาเจอยากที่สุด เพราะสองธีมแรกที่เปิดดูมักจะดูปกติ
+   ============================================================ */
+.set-quick {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.set-quick button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 13px 4px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-tile);
+  background: var(--card);
+  color: var(--ink);
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform .16s ease;
+}
+.set-quick button:active { transform: scale(.96); }
+.set-quick svg { width: 21px; height: 21px; stroke-width: 2.1; color: var(--blue); }
+.set-quick span { font-size: 11px; font-weight: 600; letter-spacing: -.01em; text-align: center; }
+
+/* หัวข้อกลุ่ม — อยู่นอกการ์ด ไม่ใช่ในแถวแรกของการ์ด
+   คนกวาดตาหาหัวข้อก่อนอ่านรายการ หัวข้อที่จมอยู่ในกรอบเดียวกับรายการจะถูกอ่านข้าม */
+.set-grp {
+  margin: 0 4px 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: -.005em;
+  color: var(--muted);
+}
+.set-card {
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-family: inherit;
+  text-align: left;
+}
+.set-row + .set-row { border-top: 1px solid var(--line); }
+.set-row.go { cursor: pointer; transition: background .14s ease; }
+.set-row.go:active { background: var(--card2); }
+.set-row[hidden] { display: none; }
+
+/* ชิปไอคอน — พื้นเรียบ ไม่ใช่สีเน้นทึบแบบ .pe-ic
+   จอนี้มีสิบกว่าแถว ถ้าทุกแถวมีชิปสีเน้น สายตาจะไม่รู้ว่าควรมองอันไหนก่อน */
+.set-ic {
+  width: 34px; height: 34px; flex: none;
+  border-radius: 11px;
+  background: var(--card2);
+  color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+}
+.set-ic svg { width: 18px; height: 18px; stroke-width: 2.1; }
+.set-lb {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  font-size: 15px; font-weight: 600; letter-spacing: -.015em;
+}
+.set-lb i {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.set-val {
+  flex: none;
+  max-width: 42%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 13px; font-weight: 500;
+  color: var(--muted);
+}
+.set-go { width: 16px; height: 16px; flex: none; color: var(--faint); }
+.set-row.danger .set-lb { color: var(--alert); }
+.set-row.danger .set-ic { background: var(--alert-soft); color: var(--alert); }
+
+/* ช่องกรอกในแถว — ยกหน้าตาเดิมจาก .pf-row input มาทั้งชุด
+   ไม่งั้นช่องพวกนี้จะกลายเป็น input เปล่าของเบราว์เซอร์ที่ไม่เข้ากับธีมไหนเลย */
+.set-row input[type=text], .set-row input[type=number] {
+  flex: none;
+  width: 116px;
+  text-align: right;
+  border: none;
+  border-radius: 10px;
+  background: var(--card2);
+  color: var(--ink);
+  padding: 8px 10px;
+  min-height: 36px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+.set-row input[type=number] { width: 78px; }
+.set-row input:focus { outline: 2px solid var(--blue); outline-offset: -2px; }
+
+/* ปุ่มเลือก/ลบรูป — ของเดิมสูง 44px และกินพื้นที่เต็มแถว เพราะเคยอยู่ในแถวแบบ col
+   ที่มันได้อยู่คนเดียวทั้งบรรทัด ตอนนี้มันมาแชร์บรรทัดกับป้ายชื่อแล้ว */
+.set-row .bg-tools { flex: none; margin: 0; gap: 6px; }
+.set-row .bg-pick { flex: none; min-height: 36px; padding: 0 12px; font-size: 12.5px; border-radius: 10px; }
+.set-row .bg-del { width: 36px; min-height: 36px; border-radius: 10px; }
+.set-row .bg-pick svg, .set-row .bg-del svg { width: 15px; height: 15px; }
+
+/* แถวที่ของข้างในวางเรียงลงล่าง (ช่องใส่โค้ด) */
+.set-row.col { flex-direction: column; align-items: stretch; gap: 10px; }
+.set-hd { display: flex; align-items: center; gap: 12px; }
+
+/* หน้าย่อยของตั้งค่า — บล็อกที่ย้ายเข้ามาเป็นการ์ดเดี่ยวอยู่แล้ว
+   จอนี้จึงไม่ต้องมีกรอบซ้อนอีกชั้น */
+#scr-setopt .pf-list { padding-top: 4px; }
+
+/* ============================================================
+   1A9c — แถบล่างติดขอบจอ · หัวจอพ้นนาฬิกาเครื่อง (เฉพาะมือถือจริง)
+   ============================================================
+   เจอตอนเปิดบนเครื่องจริง ไม่ใช่ในกรอบจำลองบนจอคอม กรอบจำลองมีขอบดำรอบด้าน
+   ปัญหาสองข้อล่างจึงมองไม่เห็นเลยจนกว่าจะเปิดบนมือถือ */
+@media (max-width: 768px) {
+  /* 1 · แถบล่างเคยเป็นแคปซูลลอย (left/right 14px · bottom var(--tabgap))
+     บนกรอบจำลองมันดูเป็นของลอยสวย ๆ · บนเครื่องจริงมันคือแถบที่ "ยังไม่ถึงขอบ"
+     แล้วเหลือแถบสีพื้นจอคาอยู่ใต้มันเหนือเส้น home indicator ซึ่งอ่านว่าเลย์เอาต์หลุด
+     ติดขอบไปเลย แล้วให้ env(safe-area-inset-bottom) เป็นตัวเว้นระยะให้เส้น home indicator */
+  /* ต้นเหตุจริงของช่องว่างใต้แถบ: `position: absolute` วัดจาก .phone ไม่ใช่จากจอ
+     .phone สูง 100dvh ซึ่งบนเครื่องจริงจบเหนือแถบ home indicator — แถบเลยไปนั่งที่ขอบล่าง
+     ของ .phone ซึ่งไม่ใช่ขอบล่างของจอ · เหลือพื้นสีเพจ (--pg) คาอยู่ใต้มันประมาณ 34pt
+     สองรุ่นก่อนหน้าไล่ลด padding ซึ่งแก้ผิดที่ เพราะ padding ไม่เคยเป็นต้นเหตุ
+     `position: fixed` วัดจาก viewport ตรง ๆ — แถบจึงถึงขอบล่างจริงเสมอ
+     (.phone มี overflow:hidden แต่ไม่มี transform จึงไม่ตัด fixed ทิ้ง) */
+  .tabbar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    border-radius: 0; border-width: 1px 0 0;
+    /* max() ไม่ใช่ + : ถ้าเครื่องมีแถบ home indicator ก็ใช้ระยะของมัน ถ้าไม่มีก็ 8px
+       บวกกันคือที่มาของ "แผ่นเปล่าซ้อนสองชั้น" ที่เห็นในรุ่นก่อน */
+    /* 1A9f · ความสูงแถบ = 49px + safe area เท่าแถบล่างของ iOS เป๊ะ
+       (1 ขอบ + 4 padding + 44 ปุ่ม) ของเดิม 6 + 48 = 55 ซึ่งเกินมา 6px
+       44 คือขนาดปุ่มขั้นต่ำที่นิ้วกดติด จึงลดต่ำกว่านี้ไม่ได้ */
+    padding: 4px 6px max(8px, env(safe-area-inset-bottom));
+    /* พื้นเป็นสีการ์ด ไม่ใช่สีพื้นจอ — สีเดียวกับพื้นจอทำให้แถบไม่มีขอบบน
+       สายตาจึงอ่านที่ว่างทั้งก้อนล่างจอเป็นแถบเดียวกัน แล้วรู้สึกว่าแถบสูงกว่าจริง */
+    background: var(--card);
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+    box-shadow: 0 -1px 0 var(--line);
+  }
+  /* ทุกปุ่มสูง 44px เท่ากัน (22 ไอคอน + 3 ช่อง + 13 ตัวหนังสือ + 6 padding)
+     ของเดิม padding 4px ทำให้เป็น 46 ซึ่งดันแถบให้สูงเกินโดยไม่ได้อะไรกลับมา */
+  .tab { min-height: 44px; padding: 3px 2px; }
+  /* กันไว้อีกชั้น: ถ้ามีอะไรโผล่ใต้ .phone ขึ้นมาอีก มันต้องเป็นสีเดียวกับพื้นแอป
+     ไม่ใช่สีเพจสีดำที่อ่านออกมาว่า "แอปจบตรงนี้แล้ว" */
+  html, body { background: var(--scr); }
+  /* ปุ่ม + ยังเป็นก้อนลอยเหนือแถบ แต่ลดระยะที่มันโผล่ขึ้นไปทับเนื้อหา
+     เดิมโผล่ขึ้น 34px ซึ่งพอแถบติดขอบจอแล้ว มันไปนั่งทับการ์ดใบล่างสุดพอดี */
+  /* 46 − 24 = 22 เท่าไอคอนปุ่มอื่นเป๊ะ — ปุ่มนี้จึงไม่ดันแถบให้สูงกว่าปุ่มอื่น
+     ส่วนที่โผล่เหนือแถบเหลือ 16px (เดิม 30px) — แถบกับปุ่มรวมกันจึงสูง 102px ไม่ใช่ 119px
+     วงแหวนต้องเป็นสีพื้นแถบ (--card) ไม่ใช่สีพื้นจอ ไม่งั้นจะเห็นเป็นวงสีต่างรอบปุ่ม */
+  .tab.scan .scan-dot { width: 46px; height: 46px; margin-top: -24px;
+    outline: 3px solid var(--card); }
+  .tab.scan .scan-dot svg { width: 22px; height: 22px; }
+
+  /* ระยะเผื่อท้ายหน้า — แถบ 83 + ปุ่มโผล่ 19 = 102 จึงเผื่อ 84 + safe area
+     ตัวเลขชุดเดิมอิงกับแถบที่สูง 89 จึงเหลือที่ว่างเปล่าคาอยู่ใต้การ์ดใบล่างสุดตอนเลื่อนสุด */
+  .screen, .home-body, .scr-body, .menu-body {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+
+  /* 2 · จอที่เป็น flush คุม padding เอง จึงไม่ได้รับ padding-top ที่กัน notch
+     ไว้ให้ใน .screen — หัวจอเลยไปนั่งใต้นาฬิกากับแบตของเครื่อง
+     กันที่ตรงนี้ทีเดียว ครอบทุกจอที่วาดหัวของตัวเอง */
+  /* #aiBody ตั้ง padding เองใน today.css แบบย่อ (ทับกฎนี้) — safe-area ของมันอยู่ที่นั่น */
+  .menu-body { padding-top: calc(10px + env(safe-area-inset-top)); }
+  .screen.flush > .sticky-head { padding-top: calc(12px + env(safe-area-inset-top)); }
+}
+
+/* ---------- ปุ่มเฟืองในการ์ดโปรไฟล์ (1A9e) ---------- */
+/* เคยลอยอยู่มุมขวาบนของจอ แล้วไปทับนาฬิกากับแบตของเครื่องพอดี (เห็นบนเครื่องจริงเท่านั้น)
+   ย้ายเข้ามาอยู่ในการ์ด ฝั่งขวาของแถวชื่อ — มันเป็นของของโปรไฟล์นี้อยู่แล้ว
+   พื้นโปร่งขาวจาง ๆ เพราะการ์ดเป็นพื้นสีเน้น ปุ่มพื้นทึบจะกลายเป็นรูบนการ์ด */
+.pf-set {
+  flex: none; align-self: flex-start;
+  width: 36px; height: 36px; display: grid; place-items: center;
+  border: 0; border-radius: 50%;
+  background: rgba(255, 255, 255, .16); color: #fff;
+  cursor: pointer;
+}
+.pf-set svg { width: 18px; height: 18px; }
+.pf-set:active { background: rgba(255, 255, 255, .28); transform: scale(.92); }
+/* ปุ่มเพื่อนยังหลบหน้า "ฉัน" เหมือนเดิม — แถว "เพื่อน" อยู่ในลิสต์ข้างล่างอยู่แล้ว */
+.me-scr .top-friends { display: none; }
+
+/* ---------- หัวจอตั้งค่า + การ์ดตัวตน (1A9d) ---------- */
+.set-top {
+  position: relative; display: flex; align-items: center;
+  min-height: 40px; margin-bottom: 14px;
+}
+.set-back {
+  position: absolute; left: -8px; width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border: 0; border-radius: 50%; background: none; color: var(--ink); cursor: pointer;
+}
+.set-back svg { width: 20px; height: 20px; transform: rotate(180deg); }
+.set-back:active { background: var(--card2); }
+.set-title {
+  flex: 1; margin: 0; text-align: center;
+  font-size: 17px; font-weight: 700; color: var(--ink);
+}
+.set-me {
+  display: flex; align-items: center; gap: 13px; width: 100%;
+  padding: 14px; margin-bottom: 20px;
+  border: 1px solid var(--line); border-radius: var(--r-card);
+  background: var(--card); box-shadow: var(--shadow);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.set-me:active { background: var(--card2); }
+.set-me-av {
+  flex: none; width: 48px; height: 48px; display: grid; place-items: center;
+  border-radius: 50%; background: var(--blue-soft); color: var(--blue);
+  font-size: 19px; font-weight: 700; overflow: hidden;
+}
+.set-me-av img { width: 100%; height: 100%; object-fit: cover; }
+.set-me-tx { flex: 1; min-width: 0; }
+.set-me-tx b {
+  display: block; font-size: 16px; font-weight: 700; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.set-me-tx i {
+  display: block; margin-top: 2px; font-style: normal; font-size: 12.5px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.set-me .set-go { flex: none; width: 17px; height: 17px; color: var(--faint); }
+
+/* ---------- ผลของฉัน: หัวข้อกดได้ + ทางเข้าฉบับเต็ม (1A9d) ---------- */
+.st-open {
+  display: flex; align-items: baseline; gap: 8px; width: 100%;
+  padding: 0; border: 0; background: none; font: inherit; text-align: left; cursor: pointer;
+}
+.st-open .sec-label { flex: 1; margin-top: 0; }
+.st-open-go {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: 12px; font-weight: 600; color: var(--blue);
+}
+.st-open-go svg { width: 14px; height: 14px; }
+/* แถวท้ายบล็อก — บอกว่าอะไรอยู่ข้างใน ไม่ใช่แค่ลูกศรลอย ๆ
+   ทางเข้าที่ไม่บอกว่าข้างในมีอะไร คือทางเข้าที่ไม่มีใครกด */
+.st-more {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  margin-top: 8px; padding: 11px 13px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--card2);
+  color: var(--muted); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer;
+}
+.st-more svg { width: 15px; height: 15px; flex: none; }
+.st-more svg:last-child { margin-left: auto; color: var(--faint); }
+.st-more:active { background: var(--surface); }
+
+/* ============================================================
+   จอ "ผลของฉัน" ฉบับวิเคราะห์ (1A9e)
+   ============================================================
+   สีทองใช้ได้เฉพาะของที่ทำสำเร็จแล้วเท่านั้น — สถิติต่อเนื่องกับเหรียญที่ได้
+   ประมาณ 10% ของจอ · ถ้าทองไปโผล่บนของที่ยังไม่ได้ทำ มันก็เลิกแปลว่าสำเร็จ */
+.an-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.an-tile {
+  padding: 12px 10px; border: 1px solid var(--line); border-radius: 15px;
+  background: var(--card); text-align: center;
+}
+.at-ic { display: block; color: var(--muted); }
+.at-ic svg { width: 18px; height: 18px; }
+.at-v {
+  display: block; margin-top: 6px; font-size: 21px; font-weight: 700;
+  line-height: 1.1; color: var(--ink);
+}
+.at-v i { font-style: normal; font-size: 12px; font-weight: 600; margin-left: 1px; }
+.at-k { display: block; margin-top: 3px; font-size: 10.5px; line-height: 1.35; color: var(--muted); }
+/* ทอง — ของที่ทำสำเร็จแล้วเท่านั้น */
+.an-tile.gold { border-color: var(--gold); background: var(--gold-soft); }
+.an-tile.gold .at-ic, .an-tile.gold .at-v { color: var(--gold-text); }
+.an-tile.gold .at-k { color: var(--gold-text); opacity: .85; }
+.an-tile.up .at-ic, .an-tile.up .at-v { color: var(--pri-green-text); }
+.an-tile.down .at-ic { color: var(--muted); }
+
+/* หัวการ์ดที่มีตัวเลขรวมชิดขวา */
+.st-h-v { float: right; font-weight: 700; color: var(--ink); }
+.st-foot { margin: 8px 0 0; font-size: 11px; color: var(--faint); }
+
+/* แยกตามวิชา: แถบซ้าย + โดนัทขวา */
+.an-split { display: flex; align-items: center; gap: 14px; }
+.an-legend { flex: 1; min-width: 0; display: grid; gap: 9px; }
+.an-lg { display: grid; grid-template-columns: 9px 1fr 46px 30px; align-items: center; gap: 7px; }
+.lg-dot { width: 9px; height: 9px; border-radius: 3px; background: var(--sj, var(--muted)); }
+.lg-nm {
+  font-size: 12.5px; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lg-bar { height: 5px; border-radius: 999px; background: var(--surface); overflow: hidden; }
+.lg-bar i { display: block; height: 100%; border-radius: 999px; background: var(--sj, var(--blue)); }
+.lg-pct { font-size: 11.5px; color: var(--muted); text-align: right; }
+.an-donut { position: relative; flex: none; width: 96px; height: 96px; }
+.an-donut svg { width: 96px; height: 96px; transform: rotate(-90deg); }
+.an-donut circle { fill: none; stroke-width: 11; }
+.dn-bg { stroke: var(--surface); }
+.an-donut circle:not(.dn-bg) { stroke: var(--sj, var(--blue)); }
+.dn-mid {
+  position: absolute; inset: 0; display: grid; place-content: center; text-align: center;
+}
+.dn-mid i { display: block; font-style: normal; font-size: 9.5px; color: var(--faint); }
+.dn-mid b { display: block; font-size: 17px; font-weight: 700; color: var(--ink); line-height: 1.15; }
+
+/* น้องไซวิเคราะห์ */
+.an-ai {
+  margin-top: 12px; padding: 14px;
+  border: 1px solid var(--line); border-radius: var(--r-card);
+  background: linear-gradient(158deg, var(--blue-soft) 0%, transparent 70%), var(--card);
+}
+.an-ai-h {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 700; color: var(--blue);
+}
+.an-ai-h svg { width: 16px; height: 16px; }
+.an-ai ul { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 7px; }
+.an-ai li { font-size: 12.5px; line-height: 1.55; color: var(--ink); }
+.an-ai-note { margin: 10px 0 0; font-size: 11px; line-height: 1.5; color: var(--faint); }
+
+/* เหรียญ */
+.an-grp {
+  display: flex; align-items: baseline; gap: 8px; margin: 20px 0 9px;
+  font-size: 11.5px; font-weight: 700; letter-spacing: .06em; color: var(--muted);
+}
+.an-grp button {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 2px;
+  border: 0; background: none; color: var(--blue);
+  font: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0; cursor: pointer;
+}
+.an-grp button svg { width: 14px; height: 14px; }
+.an-badges { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.an-bd {
+  padding: 11px 6px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--card); text-align: center;
+}
+.ab-mark {
+  display: grid; place-items: center; width: 34px; height: 34px; margin: 0 auto;
+  border-radius: 11px; background: var(--surface); color: var(--faint);
+  font-size: 15px; font-weight: 700;
+}
+.ab-mark svg { width: 15px; height: 15px; }
+.ab-nm {
+  display: block; margin-top: 7px; font-size: 10.5px; font-weight: 600; line-height: 1.3;
+  color: var(--muted); overflow: hidden; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.ab-ds { display: block; margin-top: 2px; font-size: 9.5px; color: var(--faint); }
+/* ได้แล้ว = ทอง · ยังไม่ได้ = เทา ไม่มีข้อยกเว้น */
+.an-bd.got { border-color: var(--gold); background: var(--gold-soft); }
+.an-bd.got .ab-mark { background: var(--gold); color: var(--on-gold); }
+.an-bd.got .ab-nm { color: var(--gold-text); }
+.an-bd.got .ab-ds { color: var(--gold-text); opacity: .8; }
+
+/* หัวข้อ "ผลของฉัน" บนหน้า "ฉัน" ได้ทองจาง ๆ ที่ลูกศร ให้รู้ว่าข้างในมีของ */
+.st-open-go { color: var(--gold-text); }
+
+/* ธีมมืดแบน --grad-hero เป็นสีเดียวไว้ (ดูบล็อก :root[data-theme="dark"])
+   แต่การ์ดทองใช้ token ของตัวเอง จึงไม่โดนแบนไปด้วย — เขียนกำกับไว้กันแก้ผิดที่ */
+:root[data-theme="dark"] .st-hero,
+:root[data-theme="space"] .st-hero { background: var(--grad-gold); border-color: transparent; }
