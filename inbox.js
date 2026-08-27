@@ -212,6 +212,9 @@ function inboxToTask(item) {
     sourceId: item.source, sourceText: item.raw, fromInbox: item.id,
   };
   state.tasks.push(t);
+  // typeof กันไว้เพราะ inbox.js ถูกโหลดก่อน app.js — ตอนไฟล์นี้ถูกอ่านยังไม่มีฟังก์ชันนี้
+  // (ตอนถูกเรียกจริงมีแล้ว แต่ลำดับโหลดห้ามสลับ จึงไม่พึ่งลำดับ)
+  if (typeof funnelTask === 'function') funnelTask(item.source === 'line' ? 'line' : 'inbox');
   return t;
 }
 

@@ -45,6 +45,12 @@ IDENTITY = [
     ('index.html',
      '<link rel="apple-touch-icon" href="icon-alt-192.png">',
      '<link rel="apple-touch-icon" href="icon-192.png">'),
+    # ไอคอนบนซองแจ้งเตือน — ค้างเป็น icon-alt-* มาตั้งแต่ก่อน 1A9w
+    # ตัวจริงไม่มีไฟล์นั้น (อยู่ใน ALT_ONLY) การแจ้งเตือนจึงขอไฟล์ที่ไม่มีอยู่มาตลอด
+    # ไม่เคยมีอะไรฟ้อง เพราะเบราว์เซอร์เงียบ ๆ ใช้ไอคอนสำรองแทนให้
+    ('app.js',
+     "icon: 'icon-alt-192.png', badge: 'icon-alt-192.png',",
+     "icon: 'icon-192.png', badge: 'icon-192.png',"),
 ]
 
 

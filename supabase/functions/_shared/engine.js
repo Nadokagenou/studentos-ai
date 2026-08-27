@@ -1,3 +1,9 @@
+// ====== ไฟล์นี้ถูกสร้างโดย sync-engine.py — ห้ามแก้ด้วยมือ ======
+// ต้นทาง: alt/engine.js  ·  แก้ที่นั่นแล้วรัน  python sync-engine.py
+// มีไว้ให้ supabase/functions/line-webhook ใช้ตัวแกะภาษาไทยตัวเดียวกับที่แอปใช้
+// ถ้าสองไฟล์นี้ไม่ตรงกันเมื่อไหร่ บอทจะแกะงานคนละอย่างกับที่แอปแสดง
+// ================================================================
+
 // ============================================================
 // StudentOS AI — Engine
 // 1) parseAssignment: แกะ วิชา/ครู/deadline/คะแนน/รายละเอียด จากข้อความไทย
@@ -938,3 +944,5 @@ function fmtDue(iso, now = new Date(), task) {
 function fmtThaiDate(d = new Date()) {
   return WEEKDAY_SHORT[d.getDay()] + ' ' + d.getDate() + ' ' + MONTH_SHORT[d.getMonth()] + ' ' + (d.getFullYear() + 543);
 }
+
+export { parseAssignment };

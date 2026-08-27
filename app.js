@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A9v';                 // สายเลขของแอป
-const APP_CODENAME = 'Klarheit';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1A9w';                 // สายเลขของแอป
+const APP_CODENAME = 'Messung';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -119,6 +119,112 @@ function save() {
   pushToCloud(); // ซิงก์ขึ้น cloud อัตโนมัติ (ถ้าล็อกอินอยู่)
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+// ---------- ตัวนับกรวย ----------
+// ก้อนนี้มีไว้ตอบคำถามเดียว: คนที่ล็อกอินแล้วไม่ได้ใช้ต่อ เขาหยุดตรงไหน
+//
+// เก็บใน state ก้อนเดิมโดยตั้งใจ — มันจึงขึ้น cloud ตามไปเองผ่าน pushToCloud()
+// แล้วอ่านรวมทุกคนได้ด้วย SQL ที่ user_state.data->'funnel' โดยไม่ต้องมีบริการวัดผลข้างนอก
+// (ไม่มี Analytics ไม่มี Posthog — ข้อมูลนักเรียนไม่ควรออกจากระบบเรา และเราขายเรื่องนี้กับโรงเรียนด้วย)
+//
+// กติกาสองข้อ:
+//   1. เขียนให้น้อยครั้งที่สุด เพราะทุกการเขียนผ่าน save() ลาก pushToCloud() ตามไปด้วย
+//   2. ตัวนับสะสมห้ามลดลง — ลบงานทิ้งแล้วเลข "เคยสร้างงาน" ต้องไม่หายตาม
+//      ไม่งั้นเราแยกไม่ออกระหว่าง "ไม่เคยสร้างงานเลย" กับ "สร้างแล้วลบทิ้ง"
+//      ซึ่งเป็นคนละอาการและแก้คนละทาง
+function funnel() {
+  if (!state.funnel) state.funnel = {};
+  return state.funnel;
+}
+
+// วันแบบเวลาท้องถิ่น — ห้ามใช้ toISOString() ตรง ๆ เพราะไทยเป็น UTC+7
+// วันของ UTC จะเปลี่ยนตอนเจ็ดโมงเช้าบ้านเรา คนที่เปิดแอปตอนตีหนึ่งกับสิบโมงจะถูกนับคนละวัน
+function funnelDay(d = new Date()) {
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+
+// เขียนครั้งแรกครั้งเดียวตลอดชีพของบัญชี · คืน true ถ้าเพิ่งเขียนจริง
+function funnelMark(key, val) {
+  const f = funnel();
+  if (f[key] != null) return false;
+  f[key] = val === undefined ? new Date().toISOString() : val;
+  return true;
+}
+
+function funnelBump(key, n = 1) {
+  const f = funnel();
+  f[key] = (f[key] || 0) + n;
+}
+
+// งานที่ "เคยสร้าง" แยกตามทางที่มันเข้ามา — ตัวเลขนี้ตอบว่าทางไหนใช้ได้จริง
+// (พิมพ์เอง · กล่องเข้าจาก LINE · สแกน) และควรลงแรงต่อตรงไหน
+function funnelTask(via) {
+  const f = funnel();
+  funnelMark('firstTask');
+  funnelBump('tasksEver');
+  f.via = f.via || {};
+  f.via[via] = (f.via[via] || 0) + 1;
+}
+
+function funnelDone() {
+  funnelMark('firstDone');
+  funnelBump('doneEver');
+}
+
+// จอที่ "เคยเปิด" — เขียนครั้งเดียวต่อจอ จึงถูกพอที่จะเรียกจากทุกการเปลี่ยนจอได้
+// ใช้แยก "ไม่เคยหาเจอ" ออกจาก "เจอแล้วไม่ใช้" ซึ่งเป็นคนละปัญหาและแก้คนละแบบ
+function funnelScreen(id) {
+  const f = funnel();
+  f.screens = f.screens || {};
+  if (f.screens[id]) return;
+  f.screens[id] = funnelDay();
+  persistState();   // ไม่เรียก save() — ไม่ต้องลาก cloud ทุกครั้งที่เจอจอใหม่
+}
+
+// เรียกครั้งเดียวตอนบูต
+// เติมย้อนหลังให้คนที่ใช้แอปมาก่อนรุ่นนี้ — ทำครั้งเดียวตอนเจอก้อน funnel เปล่า
+//
+// ไม่ทำ = คนที่มีงานอยู่แล้ว 30 ชิ้นจะขึ้น tasksEver = 0 แล้วตารางสรุปจะบอกว่า
+// "ไม่มีใครเคยสร้างงานเลย" ทั้งที่ไม่จริง · เครื่องวัดที่โกหกแย่กว่าไม่มีเครื่องวัด
+//
+// ปัก backfilled ไว้ด้วยเพราะตัวเลขชุดนี้เป็นการ "นับของที่เหลืออยู่" ไม่ใช่ "ที่สังเกตเห็นจริง"
+// งานที่เคยสร้างแล้วลบทิ้งไปก่อนอัปเดตนับไม่ได้ ตัวเลขจึงต่ำกว่าความจริงเสมอ
+// ใครอ่านตารางต้องแยกสองอย่างนี้ออก ไม่งั้นเอาไปเทียบกับคนใหม่แล้วสรุปผิด
+function funnelBackfill(f) {
+  const tasks = (state.tasks || []).filter(t => !t.deleted);
+  if (!tasks.length) return;
+
+  const iso = t => t && typeof t === 'string' ? t : null;
+  const earliest = (list, key) => list
+    .map(t => iso(t[key])).filter(Boolean).sort()[0] || null;
+
+  f.backfilled = new Date().toISOString();
+  f.tasksEver = tasks.length;
+  f.doneEver = tasks.filter(t => t.done).length;
+  f.via = { ก่อนวัด: tasks.length };
+  const ft = earliest(tasks, 'createdAt');
+  if (ft) f.firstTask = ft;
+  const fd = earliest(tasks.filter(t => t.done), 'doneAt');
+  if (fd) f.firstDone = fd;
+}
+
+function funnelOpen() {
+  const f = funnel();
+  const now = new Date();
+  const day = funnelDay(now);
+  // ต้องเช็คก่อน funnelMark('firstOpen') — หลังจากนั้นแยกไม่ออกแล้วว่าเป็นคนเก่าหรือคนใหม่
+  if (f.firstOpen == null) funnelBackfill(f);
+  funnelMark('firstOpen');
+  funnelMark('firstVer', APP_VERSION);
+  funnelBump('opens');
+  // นับ "จำนวนวันที่เปิด" ไม่ใช่ "จำนวนครั้ง" — สลับแอปไปมาสิบรอบใน 5 นาทีไม่ใช่สิบวัน
+  // ตัวเลขที่เราต้องตอบให้ได้คือ "มีกี่คนเปิดแอป 7 วันติด" ซึ่งต้องนับเป็นวันเท่านั้น
+  if (f.lastDay !== day) { funnelBump('days'); f.lastDay = day; }
+  f.lastOpen = now.toISOString();
+  f.ver = APP_VERSION;
+  save();
+}
 
 // งานที่ยังอยู่จริง — ของในถังขยะไม่นับในทุกจอ ทุกการนับ และการเตือน
 function liveTasks() { return state.tasks.filter(t => !t.deleted); }
@@ -754,6 +860,7 @@ function go(id) {
   // ออกจากจอสุ่มเมื่อไหร่ ทิ้งผลรอบเดิม กลับเข้ามาจะได้เริ่มใหม่สะอาด ๆ
   if (id !== 'scr-wheel') { drawResults = []; drawOpen = []; }
   curScreen = id;
+  funnelScreen(id);   // จอนี้เคยถูกเปิดหรือยัง — เขียนครั้งเดียวต่อจอ
   document.body.dataset.godir = dir;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on', 'just-in'));
   const scr = document.getElementById(id);
@@ -6443,6 +6550,7 @@ function toggleDone(id, el) {
   t.done = !t.done;
   t.progress = t.done ? 100 : (t.progress === 100 ? 0 : t.progress);
   t.doneAt = t.done ? new Date().toISOString() : null;
+  if (!wasDone && t.done) funnelDone();   // ต้องอยู่ก่อน save() จะได้เขียนลงไปในรอบเดียวกัน
   save();
 
   if (!wasDone && t.done) {
@@ -6705,6 +6813,7 @@ function saveForm() {
     Object.assign(target, data);
   } else {
     state.tasks.push(Object.assign({ id: uid(), done: false, createdAt: new Date().toISOString(), fromScan: formFromScan }, data));
+    funnelTask(formFromScan ? 'scan' : 'manual');
   }
   const back = formReturn;
   editingId = null;
@@ -8035,6 +8144,11 @@ async function enableNotif() {
     return;
   }
   const perm = await Notification.requestPermission();
+  // จุดร่วงที่ใหญ่ที่สุดจุดหนึ่ง — คนที่กดปฏิเสธตรงนี้จะไม่ได้รับการเตือนอีกเลย
+  // และกล่องโต้ตอบของเบราว์เซอร์ขอซ้ำไม่ได้ ถ้าไม่บันทึกไว้เราจะไม่มีทางรู้ว่าเขาเคยมาถึงตรงนี้
+  funnelMark('notifAskedAt');
+  funnel().notif = perm;
+  save();
   if (perm !== 'granted') { renderProfile(); return; }
   // ยิงของจริงทันทีหนึ่งดอก — ผู้ใช้จะได้เห็นกับตาว่ามันทำงาน ไม่ใช่แค่ปุ่มเปลี่ยนสี
   await notify('เปิดแจ้งเตือนแล้ว 🔔',
@@ -8133,7 +8247,7 @@ async function notify(title, body, tag) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return false;
   const opt = {
     body, tag: tag || 'studentos-alt',
-    icon: 'icon-alt-192.png', badge: 'icon-alt-192.png',
+    icon: 'icon-192.png', badge: 'icon-192.png',
     renotify: true, data: { url: location.pathname },
   };
   try {
@@ -8915,6 +9029,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 (async function initApp() {
   load();
   purgeOldTrash(); // ของในถังขยะที่เกิน 30 วัน ทิ้งถาวรตอนเปิดแอป
+  funnelOpen();    // นับการเปิดแอป — ต้องอยู่หลัง load() ไม่งั้นนับทับก้อนเปล่า
 
   // ป้ายเลขรุ่นกลางหัวจอถูกเอาออกจาก index.html แล้ว — บรรทัดนี้จึงไม่เจอ #verBadge
   // เก็บไว้เฉย ๆ เผื่อวันไหนเอาป้ายกลับมา จะได้ไม่ต้องมาไล่ต่อสายให้ APP_VERSION ใหม่

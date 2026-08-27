@@ -57,6 +57,8 @@ async function checkLineLinked() {
   renderAll();
 
   if (lineLinks.length > before) {
+    // ขั้นที่ลึกที่สุดของกรวย — คนที่มาถึงตรงนี้คือคนที่แอปทำงานให้ได้จริงโดยเขาไม่ต้องพิมพ์
+    if (typeof funnelMark === 'function') { funnelMark('lineLinkedAt'); save(); }
     showToast({ title: 'เชื่อมกลุ่ม LINE สำเร็จ 🎉',
       body: 'งานที่ครูสั่งในกลุ่มนั้นจะไหลเข้ากล่องเข้าให้เอง ไม่ต้องพิมพ์อีกแล้ว' });
     pullInbox();

@@ -1,0 +1,313 @@
+<title>ต้นทุน LINE ต่อห้องเรียน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#FAFAF8; --card:#FFFFFF; --ink:#21242B; --muted:#6B7080; --line:#DDDFE4;
+  --accent:#2B50C8; --accent-soft:#EDF1FC; --hl:#FFE9A3;
+  --bad:#B4372F; --bad-soft:#FBEDEC; --good:#1F7A4D; --good-soft:#E9F4EE;
+  --field:#F2F3F6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16181D; --card:#1E2128; --ink:#E8E9EC; --muted:#9AA0AD; --line:#2E323B;
+    --accent:#8CA3F2; --accent-soft:#232A42; --hl:rgba(255,224,102,.16);
+    --bad:#E0776F; --bad-soft:#332322; --good:#5FBF8F; --good-soft:#1C2B25;
+    --field:#262A32;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16181D; --card:#1E2128; --ink:#E8E9EC; --muted:#9AA0AD; --line:#2E323B;
+  --accent:#8CA3F2; --accent-soft:#232A42; --hl:rgba(255,224,102,.16);
+  --bad:#E0776F; --bad-soft:#332322; --good:#5FBF8F; --good-soft:#1C2B25;
+  --field:#262A32;
+}
+
+*{box-sizing:border-box}
+body{
+  font-family:"Leelawadee UI","Segoe UI","Noto Sans Thai",-apple-system,sans-serif;
+  color:var(--ink); background:var(--bg); line-height:1.75; font-size:16px; margin:0;
+}
+.wrap{max-width:880px; margin:0 auto; padding:48px 24px 96px; display:flex; flex-direction:column; gap:0}
+.mono{font-family:"IBM Plex Mono",Consolas,"Cascadia Mono",monospace; font-variant-numeric:tabular-nums}
+.eyebrow{font-family:"IBM Plex Mono",Consolas,monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:8px}
+h1{font-size:34px; line-height:1.25; font-weight:700; text-wrap:balance; margin:4px 0 10px}
+h2{font-size:24px; font-weight:700; margin:0 0 4px; text-wrap:balance}
+h3{font-size:17px; font-weight:700; margin:0 0 6px}
+p{margin:0 0 14px; max-width:70ch}
+.sub{color:var(--muted); font-size:15px; max-width:70ch}
+section{margin-top:64px; border-top:1px solid var(--line); padding-top:36px}
+ul{margin:0 0 16px; padding-left:22px}
+li{margin-bottom:6px; max-width:70ch}
+.hl{background:var(--hl); padding:0 4px; border-radius:2px}
+b{font-weight:700}
+
+.callout{border-left:3px solid var(--accent); background:var(--accent-soft); border-radius:0 8px 8px 0; padding:16px 20px; margin:18px 0}
+.callout.warn{border-left-color:var(--bad); background:var(--bad-soft)}
+.callout.good{border-left-color:var(--good); background:var(--good-soft)}
+.callout p:last-child{margin-bottom:0}
+
+/* ---------- ตัวเลขชิ้นเอก ---------- */
+.headline-fig{
+  background:var(--card); border:1px solid var(--line); border-left:3px solid var(--bad);
+  border-radius:0 8px 8px 0; padding:22px 26px; margin:22px 0;
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:0 14px;
+}
+.headline-fig .n{font-family:"IBM Plex Mono",Consolas,monospace; font-size:44px; font-weight:600; color:var(--bad); line-height:1.1; font-variant-numeric:tabular-nums}
+.headline-fig .t{font-size:16px; color:var(--ink)}
+.headline-fig .t span{color:var(--muted); display:block; font-size:14px}
+
+/* ---------- เครื่องคิดเลข ---------- */
+.calc{background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; margin:24px 0}
+.calc-in{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:20px; padding:24px; border-bottom:1px solid var(--line)}
+.f{display:flex; flex-direction:column; gap:6px}
+.f label{font-family:"IBM Plex Mono",Consolas,monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600}
+.f input{
+  font-family:"IBM Plex Mono",Consolas,monospace; font-variant-numeric:tabular-nums;
+  font-size:19px; font-weight:500; color:var(--ink); background:var(--field);
+  border:1px solid var(--line); border-radius:6px; padding:9px 12px; width:100%;
+}
+.f input:focus-visible{outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent)}
+.f .hint{font-size:12.5px; color:var(--muted); line-height:1.5}
+
+.calc-out{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1px; background:var(--line)}
+.o{background:var(--card); padding:20px 24px; display:flex; flex-direction:column; gap:3px}
+.o .k{font-family:"IBM Plex Mono",Consolas,monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600}
+.o .v{font-family:"IBM Plex Mono",Consolas,monospace; font-variant-numeric:tabular-nums; font-size:26px; font-weight:600; line-height:1.25}
+.o .u{font-size:12.5px; color:var(--muted)}
+.o.alarm .v{color:var(--bad)}
+.o.ok .v{color:var(--good)}
+
+.verdict{padding:16px 24px; background:var(--accent-soft); border-top:1px solid var(--line); font-size:15px}
+.verdict b{color:var(--accent)}
+
+/* ---------- ตาราง ---------- */
+.tblwrap{overflow-x:auto; margin:16px 0 8px}
+table{border-collapse:collapse; width:100%; font-size:14.5px; min-width:560px}
+th{text-align:left; font-family:"IBM Plex Mono",Consolas,monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600; padding:8px 12px; border-bottom:2px solid var(--ink)}
+td{padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+td.num{font-family:"IBM Plex Mono",Consolas,monospace; font-variant-numeric:tabular-nums; white-space:nowrap; text-align:right}
+tr.emph td{background:var(--accent-soft)}
+.pill{display:inline-block; font-family:"IBM Plex Mono",Consolas,monospace; font-size:11px; letter-spacing:.05em; padding:2px 8px; border-radius:3px; border:1px solid currentColor; white-space:nowrap}
+.pill.free{color:var(--good)}
+.pill.paid{color:var(--bad)}
+
+.footer{margin-top:72px; padding-top:24px; border-top:1px solid var(--line); font-size:13px; color:var(--muted); font-family:"IBM Plex Mono",Consolas,monospace; line-height:1.9}
+a{color:var(--accent)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+
+<div class="wrap">
+
+<div class="eyebrow">StudentOS AI · Unit Economics · v0.1</div>
+<h1>ต้นทุน LINE ต่อห้องเรียน</h1>
+<p class="sub">ก่อนจะยิงข้อความแรก — LINE คิดเงินยังไง ค่าใช้จ่ายโตตามอะไร และตรงไหนที่ยังฟรีอยู่<br>จัดทำ 27 ส.ค. 2569 · ประกอบการตัดสินใจสถาปัตยกรรมของบอทกลุ่มห้องเรียน</p>
+
+<div class="callout warn">
+<p><b>ข้อเท็จจริงที่พลิกสมมติฐานเดิม</b></p>
+<p>สมมติฐานตอนออกแบบคือ “ส่งเข้ากลุ่มทีเดียว ถึงนักเรียน 40 คน = 1 ข้อความ” — <b>ผิด</b></p>
+<p>เอกสาร LINE Messaging API ระบุว่านับตาม<b>จำนวนผู้รับ</b> ไม่ใช่จำนวนครั้งที่ยิง และยกตัวอย่างไว้เองว่า push เข้าห้องแชทที่มีสมาชิก 5 คน จะถูกนับเป็น 5 ข้อความ</p>
+</div>
+
+<div class="headline-fig">
+  <div class="n">×40</div>
+  <div class="t"><b>สรุปประจำวัน 1 ครั้ง เข้ากลุ่มห้อง 40 คน = 40 ข้อความ</b>
+  <span>1 ห้อง ส่งทุกวัน 30 วัน = 1,200 ข้อความ/เดือน — แพ็กเกจฟรี (300) หมดตั้งแต่วันที่ 8</span></div>
+</div>
+
+<section>
+<h2>เครื่องคิดเลข</h2>
+<p class="sub">ปรับตัวเลขได้ทุกช่อง ระบบจะเลือกแพ็กเกจที่ถูกที่สุดที่ส่งได้ครบให้อัตโนมัติ</p>
+
+<div class="calc">
+  <div class="calc-in">
+    <div class="f">
+      <label for="i-rooms">จำนวนห้องเรียน</label>
+      <input id="i-rooms" type="number" min="0" step="1" value="10" inputmode="numeric">
+      <div class="hint">หน่วยการเติบโตจริงของเรา</div>
+    </div>
+    <div class="f">
+      <label for="i-size">สมาชิกต่อกลุ่ม</label>
+      <input id="i-size" type="number" min="1" step="1" value="40" inputmode="numeric">
+      <div class="hint">นับทุกคนในกลุ่ม รวมคนที่ยังไม่ได้ใช้แอป</div>
+    </div>
+    <div class="f">
+      <label for="i-msg">Push ต่อห้องต่อวัน</label>
+      <input id="i-msg" type="number" min="0" step="0.5" value="1" inputmode="decimal">
+      <div class="hint">ใส่ 0.25 = สัปดาห์ละ ~2 ครั้ง</div>
+    </div>
+    <div class="f">
+      <label for="i-adopt">เชื่อมบัญชีจริง (%)</label>
+      <input id="i-adopt" type="number" min="1" max="100" step="1" value="25" inputmode="numeric">
+      <div class="hint">จ่ายเต็มห้อง แต่ได้ค่าเฉพาะคนที่เชื่อม</div>
+    </div>
+  </div>
+
+  <div class="calc-out">
+    <div class="o"><div class="k">ข้อความ / เดือน</div><div class="v" id="o-msgs">—</div><div class="u" id="o-plan">—</div></div>
+    <div class="o alarm"><div class="k">ค่าใช้จ่าย / เดือน</div><div class="v" id="o-cost">—</div><div class="u">รวม VAT 7%</div></div>
+    <div class="o"><div class="k">ต่อคนในกลุ่ม</div><div class="v" id="o-per">—</div><div class="u">บาท / เดือน</div></div>
+    <div class="o alarm"><div class="k">ต่อผู้ใช้จริง</div><div class="v" id="o-peractive">—</div><div class="u" id="o-activen">บาท / เดือน</div></div>
+  </div>
+  <div class="verdict" id="o-verdict">—</div>
+</div>
+
+<div class="callout">
+<p><b>ตัวเลขที่ต้องจ้องคือช่องขวาสุด</b> — เราจ่ายตาม<b>ขนาดกลุ่ม</b> แต่ได้ประโยชน์ตาม<b>อัตราการเชื่อมบัญชี</b> สองอย่างนี้ไม่ได้โตพร้อมกัน วันแรกที่บอทเข้าห้อง เราจ่ายค่าคน 40 คนทันทีทั้งที่อาจมีคนเชื่อมแค่ 3 คน</p>
+</div>
+</section>
+
+<section>
+<h2>ต้นทุนที่แต่ละขนาด</h2>
+<p class="sub">สมมติกลุ่มละ 40 คน · สรุปวันละ 1 ครั้ง · 30 วัน</p>
+<div class="tblwrap">
+<table>
+<thead><tr>
+  <th>ขนาด</th><th>นักเรียน</th><th>ข้อความ/เดือน</th><th>แพ็กเกจ</th><th>บาท/เดือน</th><th>ต่อคน</th>
+</tr></thead>
+<tbody>
+  <tr><td>1 ห้อง</td><td class="num">40</td><td class="num">1,200</td><td>Basic</td><td class="num">1,370</td><td class="num">34.24</td></tr>
+  <tr class="emph"><td>10 ห้อง</td><td class="num">400</td><td class="num">12,000</td><td>Basic</td><td class="num">1,370</td><td class="num">3.42</td></tr>
+  <tr><td>100 ห้อง</td><td class="num">4,000</td><td class="num">120,000</td><td>Pro + ส่วนเกิน</td><td class="num">7,362</td><td class="num">1.84</td></tr>
+  <tr><td>1,000 ห้อง</td><td class="num">40,000</td><td class="num">1,200,000</td><td>Pro + ส่วนเกิน</td><td class="num">76,698</td><td class="num">1.92</td></tr>
+</tbody>
+</table>
+</div>
+<p class="sub">รูปทรงของต้นทุนอ่านได้สองอย่าง: ช่วงเล็กเจ็บเพราะ<b>ค่าแพ็กเกจขั้นต่ำ</b> (1 ห้องจ่ายเท่ากับ 10 ห้อง) ส่วนช่วงใหญ่ต้นทุนต่อคนนิ่งอยู่ที่ราว <b class="hl">1.9 บาท/คน/เดือน</b> ซึ่งคือ 0.06 × 30 นั่นเอง — ไม่มีการประหยัดต่อขนาด <b>ยิ่งโต ยิ่งจ่ายเป็นเส้นตรง</b></p>
+<p class="sub">ที่ 1,000 ห้อง นี่คือค่าใช้จ่าย <b>ราว 920,000 บาท/ปี</b> สำหรับข้อความที่นักเรียนอาจไม่ได้อ่านด้วยซ้ำ</p>
+</section>
+
+<section>
+<h2>ตรงไหนฟรี ตรงไหนเสียเงิน</h2>
+<p class="sub">LINE ไม่ได้คิดเงินทุกอย่าง — และเส้นแบ่งอยู่ตรงที่ออกแบบรอบได้</p>
+<div class="tblwrap">
+<table>
+<thead><tr><th>วิธีส่ง</th><th>คิดเงิน</th><th>ใช้ทำอะไรได้</th></tr></thead>
+<tbody>
+  <tr><td class="mono">Reply API</td><td><span class="pill free">ฟรี ไม่จำกัด</span></td><td>ตอบกลับข้อความที่เพิ่งเข้ามา ภายในอายุของ reply token</td></tr>
+  <tr><td class="mono">Auto-reply / Greeting</td><td><span class="pill free">ฟรี</span></td><td>ข้อความต้อนรับตอนบอทเข้ากลุ่ม</td></tr>
+  <tr><td class="mono">Push / Multicast</td><td><span class="pill paid">นับต่อผู้รับ</span></td><td>ส่งเองตามเวลาที่เรากำหนด — สรุปประจำวันอยู่กลุ่มนี้</td></tr>
+  <tr><td class="mono">Broadcast / Narrowcast</td><td><span class="pill paid">นับต่อผู้รับ</span></td><td>ส่งหาทุกคนที่เป็นเพื่อนกับ OA</td></tr>
+  <tr><td class="mono">Web Push (ของเราเอง)</td><td><span class="pill free">ฟรีตลอด</span></td><td>เตือนรายคนผ่านเบราว์เซอร์ — <span class="mono">send-reminders</span> ทำไว้แล้ว</td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout good">
+<p><b>ของเดิมยังไม่เสียเงินสักบาท</b> — <span class="mono">line-webhook/index.ts</span> ตอนนี้เรียกแค่ <span class="mono">/message/reply</span> จุดเดียว ทั้งไฟล์ไม่มี push/multicast เลย ต้นทุน LINE ปัจจุบัน = 0</p>
+</div>
+</section>
+
+<section>
+<h2>ข้อสรุปเชิงสถาปัตยกรรม</h2>
+<p>ถ้าต้นทุนต่อผู้ใช้จริงต้องเข้าใกล้ศูนย์ (ซึ่งต้องเป็น เพราะรายได้ยังเป็นศูนย์) เส้นแบ่งหน้าที่ต้องเป็นแบบนี้:</p>
+
+<div class="callout">
+<p><b>LINE = ชั้นรับงานเข้า · ห้ามเป็นชั้นแจ้งเตือน</b></p>
+<p>ครูโพสต์การบ้านในกลุ่ม → บอท <b>reply</b> ต่อข้อความนั้นทันที (“บันทึกแล้ว: ใบงานเคมี · ส่งพฤหัส”) — <b>ฟรี ไม่จำกัด</b> และดีกว่าเดิมด้วย เพราะมันมาถูกจังหวะ ตอนที่ทุกคนยังมองจอกลุ่มอยู่</p>
+<p><b>Web Push = ชั้นแจ้งเตือนรายคน</b> — “เย็นนี้ควรทำอะไร” ส่งผ่าน <span class="mono">send-reminders</span> ที่มีอยู่แล้ว ฟรีทุกจำนวนผู้ใช้</p>
+</div>
+
+<p>พอแบ่งแบบนี้ สรุปประจำวันตอน 19:00 ทาง LINE ก็แทบไม่จำเป็น เพราะหน้าที่ของมันถูกแบ่งไปหมดแล้ว — การยืนยันว่าเก็บงานแล้วเกิดขึ้นทันทีที่ครูสั่ง ส่วนการตัดสินใจว่าคืนนี้ทำอะไรก่อนเป็นเรื่องของแต่ละคน ไม่ใช่เรื่องที่ต้องประกาศกลางกลุ่ม</p>
+
+<h3>ถ้ายังอยากได้ข้อความในกลุ่มจริง ๆ</h3>
+<ul>
+  <li><b>ให้นักเรียนเรียกเอง</b> — พิมพ์ “งาน” ในกลุ่ม บอทตอบด้วย reply = ฟรี และได้สัญญาณว่าใครสนใจจริงเป็นของแถม</li>
+  <li><b>ส่งเมื่อมีเหตุ ไม่ใช่ส่งตามเวลา</b> — push เฉพาะตอนมีงานใหม่ที่ใกล้กำหนดจริง อาจเหลือสัปดาห์ละ 1–2 ครั้ง ลดต้นทุนลง 4–7 เท่าทันที</li>
+  <li><b>อย่าส่งเข้ากลุ่มที่คนเชื่อมบัญชีน้อย</b> — ตั้งเกณฑ์ เช่น ต้องมีคนเชื่อม ≥ 30% ของห้องก่อนถึงจะเปิด push ให้ห้องนั้น</li>
+</ul>
+</section>
+
+<section>
+<h2>ก่อนเชื่อตัวเลขในหน้านี้</h2>
+<p class="sub">สามอย่างที่ต้องยืนยันด้วยตาตัวเองก่อนตัดสินใจผูกพัน</p>
+<ul>
+  <li><b>ราคาแพ็กเกจ</b> — แหล่งที่ค้นเจอไม่ตรงกัน บางที่ว่า Free 200 บางที่ว่า 300 บางที่เรียกชื่อแพ็กเกจต่างกัน (Light/Standard vs Basic/Pro) หน้านี้ใช้ Free 300 · Basic 1,280฿/15,000 · Pro 1,780฿/35,000 · ส่วนเกิน 0.10 และ 0.06 บาท ให้เปิดหน้าราคาทางการยืนยัน</li>
+  <li><b>การนับในกลุ่ม</b> — ยืนยันด้วยการทดลองจริง: สร้างกลุ่มทดสอบใส่คน 3 คน ยิง push 1 ครั้ง แล้วดูตัวเลขที่ LINE OA Manager ว่าขึ้น 1 หรือ 3</li>
+  <li><b>ค่าอื่นที่ยังไม่ได้รวม</b> — หน้านี้คิดเฉพาะค่าข้อความ LINE ยังไม่รวม Supabase, ค่า OCR/AI ต่อครั้ง ซึ่งจะกลายเป็นก้อนใหญ่ถ้าเปิด cloud OCR เป็นค่าเริ่มต้น (อีกเหตุผลที่มันไม่ควรเป็นค่าเริ่มต้น)</li>
+</ul>
+</section>
+
+<div class="footer">StudentOS AI · LINE Unit Economics v0.1 · 27 AUG 2026<br>ราคาอ้างอิงจากแหล่งสาธารณะ — ยังไม่ได้ยืนยันกับ LINE โดยตรง ทุกตัวเลขคือประมาณการ</div>
+</div>
+
+<script>
+(function(){
+  var PLANS = [
+    { name:'Free',  fee:0,    quota:300,   extra:null },
+    { name:'Basic', fee:1280, quota:15000, extra:0.10 },
+    { name:'Pro',   fee:1780, quota:35000, extra:0.06 }
+  ];
+  var VAT = 1.07;
+
+  function pick(msgs){
+    var best = null;
+    for (var i=0;i<PLANS.length;i++){
+      var p = PLANS[i], over = msgs - p.quota, cost;
+      if (over > 0){
+        if (p.extra === null) continue;      // Free ส่งเกินโควตาไม่ได้เลย
+        cost = p.fee + over * p.extra;
+      } else {
+        cost = p.fee;
+      }
+      if (best === null || cost < best.cost) best = { plan:p.name, cost:cost, over:Math.max(0,over) };
+    }
+    return best;
+  }
+
+  function baht(n){
+    return n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function whole(n){
+    return Math.round(n).toLocaleString('en-US');
+  }
+  function num(id){
+    var v = parseFloat(document.getElementById(id).value);
+    return isFinite(v) ? v : 0;
+  }
+  function set(id, txt){ document.getElementById(id).textContent = txt; }
+
+  function render(){
+    var rooms  = Math.max(0, num('i-rooms'));
+    var size   = Math.max(0, num('i-size'));
+    var perDay = Math.max(0, num('i-msg'));
+    var adopt  = Math.min(100, Math.max(1, num('i-adopt'))) / 100;
+
+    var msgs    = Math.round(rooms * size * perDay * 30);
+    var members = rooms * size;
+    var active  = members * adopt;
+    var r       = pick(msgs);
+
+    set('o-msgs', whole(msgs));
+
+    if (!r){
+      set('o-plan', 'เกินโควตาทุกแพ็กเกจ');
+      set('o-cost', '—'); set('o-per','—'); set('o-peractive','—');
+      set('o-verdict', 'ปริมาณนี้ส่งไม่ได้ด้วยแพ็กเกจมาตรฐาน');
+      return;
+    }
+
+    var total = r.cost * VAT;
+    set('o-plan', r.plan + (r.over > 0 ? ' + เกิน ' + whole(r.over) : ''));
+    set('o-cost', whole(total));
+    set('o-per',       members ? baht(total/members) : '—');
+    set('o-peractive', active  ? baht(total/active)  : '—');
+    set('o-activen', 'บาท / เดือน · ผู้ใช้ ' + whole(active) + ' คน');
+
+    var msg;
+    if (msgs === 0){
+      msg = 'ไม่ยิง push เลย = <b>0 บาท</b> — นี่คือสถานะปัจจุบันของโค้ด และเป็นสถานะที่ควรอยู่ให้นานที่สุด';
+    } else if (msgs <= 300){
+      msg = 'ยังอยู่ในแพ็กเกจฟรี แต่เพดาน 300 ข้อความ = <b>1 ห้องได้แค่ ' + (300/(size*perDay||1)).toFixed(1) + ' วัน</b> — ฟรีไม่ใช่แผนที่ใช้ได้จริง';
+    } else {
+      msg = 'ปีละ <b>' + whole(total*12) + ' บาท</b> · ถ้าย้ายการเตือนรายวันไปที่ Web Push ตัวเลขนี้กลายเป็น <b>0</b>';
+    }
+    document.getElementById('o-verdict').innerHTML = msg;
+  }
+
+  ['i-rooms','i-size','i-msg','i-adopt'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', render);
+  });
+  render();
+})();
+</script>
