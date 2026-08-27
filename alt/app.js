@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A9y';                 // สายเลขของแอป
-const APP_CODENAME = 'Regler';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1A9z';                 // สายเลขของแอป
+const APP_CODENAME = 'Eingang';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -918,7 +918,9 @@ async function initCloud() {
       if ('Notification' in window && Notification.permission === 'granted') {
         subscribePush().catch(() => {}); // ผูก push กับบัญชีที่เพิ่งล็อกอิน
       }
-      syncFromCloud().then(() => routeAfterLogin());
+      // token จากลิงก์กลุ่มถูกเก็บไว้ตั้งแต่ก่อนล็อกอิน — จังหวะนี้คือจังหวะที่ใช้ได้แล้ว
+      // (ทางกลับจาก Google เป็นการโหลดหน้าใหม่ ตัว initApp ก็เรียกให้อีกทาง เรียกซ้ำได้ปลอดภัย)
+      syncFromCloud().then(() => { routeAfterLogin(); return applyJoinToken(); });
     } else {
       renderAll();
     }
@@ -8749,6 +8751,79 @@ function needsOnboard() {
   return true;
 }
 
+// ---------- ทางเข้าจาก URL ----------
+// อ่านคิวรีเก็บไว้ตั้งแต่ตอนสคริปต์ถูกโหลด เพราะมีหลายที่ที่ล้าง URL ทิ้งหลังใช้เสร็จ
+// ใครอ่านทีหลังจะเจอ URL เปล่า แล้วฟีเจอร์ที่มาทีหลังก็เงียบไปโดยไม่มีใครรู้ว่าทำไม
+const BOOT_Q = (() => {
+  try { return new URLSearchParams(location.search); } catch (_) { return new URLSearchParams(); }
+})();
+
+// ---------- ลิงก์เข้าร่วมห้องจาก LINE (?join=XXXXXX) ----------
+// เก็บ token ไว้ก่อน ไม่ใช้ทันที — คนที่กดลิงก์มาจากกลุ่มส่วนใหญ่ยังไม่ได้ล็อกอิน
+// ถ้าใช้ตอนเปิดเลย จะพลาดทุกคนที่มาครั้งแรก ซึ่งคือเกือบทั้งหมดของคนที่ลิงก์นี้มีไว้เพื่อ
+const JOIN_KEY = 'studentos.alt.joinToken';
+
+function stashJoinToken() {
+  try {
+    const t = BOOT_Q.get('join');
+    if (!t) return;
+    localStorage.setItem(JOIN_KEY, t.trim().toUpperCase().slice(0, 12));
+  } catch (_) { /* ที่เก็บเต็มหรือถูกปิด — ปล่อยผ่าน ไม่ใช่เรื่องที่ต้องหยุดทั้งแอป */ }
+}
+
+// เรียกได้หลายครั้ง ปลอดภัยเสมอ — ไม่มี token หรือยังไม่ล็อกอินก็แค่ออก
+async function applyJoinToken() {
+  let t = null;
+  try { t = localStorage.getItem(JOIN_KEY); } catch (_) { return; }
+  if (!t || !(sb && currentUser)) return;
+  try {
+    const { data, error } = await sb.rpc('join_line_room', { p_token: t });
+    if (error) throw error;
+    try { localStorage.removeItem(JOIN_KEY); } catch (_) {}
+    if (!data) {
+      showToast({ title: 'ลิงก์นี้ใช้ไม่ได้แล้ว',
+        body: 'ขอลิงก์ใหม่ได้โดยพิมพ์ “ลิงก์” ในกลุ่มห้อง' });
+      return;
+    }
+    if (typeof funnelMark === 'function') { funnelMark('lineLinkedAt'); save(); }
+    showToast({ title: 'เข้าร่วมห้องแล้ว 🎉',
+      body: 'งานที่ครูสั่งในกลุ่มนั้นจะเข้ามาให้เอง ไม่ต้องพิมพ์เอง' });
+    if (typeof loadLineLinks === 'function') await loadLineLinks();
+    if (typeof pullInbox === 'function') await pullInbox();
+  } catch (e) {
+    // ไม่ลบ token ทิ้ง — เน็ตหลุดกลางทางแล้วต้องได้ลองใหม่รอบหน้า
+    console.warn('[join] เข้าร่วมห้องไม่สำเร็จ:', (e && e.message) || e);
+  }
+}
+
+// ---------- ข้อความที่แชร์เข้ามา (Web Share Target) ----------
+// เมนูแชร์ของ Android ส่ง title/text/url มาทางคิวรี · รวมเป็นก้อนเดียวแล้วโยนเข้ากล่องเข้า
+//
+// นี่คือทางที่ใช้ได้กับทุกแอปโดยไม่ต้องต่อ API กับใคร — Messenger, Discord, Classroom
+// หรือแม้แต่โน้ตของตัวเอง ต่างจากบอทที่ต้องทำใหม่ทีละแพลตฟอร์มและส่วนใหญ่ก็ปิดประตูไปแล้ว
+// (iOS ไม่รองรับ Share Target สำหรับ PWA — บน iPhone ยังต้องก๊อปมาแปะเหมือนเดิม)
+// เก็บลงเครื่องก่อน แล้วค่อยหยิบไปใช้ — ไม่อ่านจาก BOOT_Q ตรง ๆ
+// เพราะตอนติดตั้งครั้งแรก service worker ตัวใหม่เข้าคุมแล้วสั่ง location.reload()
+// รอบที่สอง URL ถูกล้างไปแล้ว ข้อความที่เขาอุตส่าห์แชร์มาจะหายเงียบ ๆ ในการลองครั้งแรกพอดี
+// ซึ่งเป็นครั้งที่แพงที่สุด — คนที่ลองแล้วไม่เกิดอะไรจะไม่ลองอีก
+const SHARE_KEY = 'studentos.alt.sharedText';
+
+function stashSharedText() {
+  const s = ['title', 'text', 'url'].map(k => BOOT_Q.get(k)).filter(Boolean).join(' ').trim();
+  if (!s) return;
+  try { localStorage.setItem(SHARE_KEY, s.slice(0, 2000)); } catch (_) {}
+}
+
+// หยิบแล้วลบทิ้งทันที — กันไม่ให้รีเฟรชอีกทีแล้วเพิ่มงานซ้ำ
+function takeSharedText() {
+  let s = null;
+  try {
+    s = localStorage.getItem(SHARE_KEY);
+    if (s) localStorage.removeItem(SHARE_KEY);
+  } catch (_) { return null; }
+  return s || null;
+}
+
 // ปุ่มลัดจากไอคอนแอป (manifest shortcuts) ส่ง ?go=... มา — ต้องพาไปจอนั้นจริง ไม่งั้นปุ่มลัดโกหก
 const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-timeline' };
 function shortcutTarget() {
@@ -9062,6 +9137,11 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   load();
   purgeOldTrash(); // ของในถังขยะที่เกิน 30 วัน ทิ้งถาวรตอนเปิดแอป
   funnelOpen();    // นับการเปิดแอป — ต้องอยู่หลัง load() ไม่งั้นนับทับก้อนเปล่า
+  stashJoinToken();  // เก็บ token จากลิงก์กลุ่มไว้ก่อน ใช้จริงหลังล็อกอิน
+  stashSharedText(); // ข้อความที่แชร์มาก็เก็บก่อนเหมือนกัน กันหายตอน sw สั่งรีโหลด
+  // ล้างคิวรีออกจาก URL ครั้งเดียวตรงนี้ — ค่าที่ต้องใช้ถูกอ่านเก็บไว้ใน BOOT_Q แล้ว
+  // ปล่อยค้างไว้ = รีเฟรชทีไรก็เข้าร่วมซ้ำ/เพิ่มงานซ้ำทุกที
+  try { if (location.search) history.replaceState(null, '', location.pathname); } catch (_) {}
 
   // ป้ายเลขรุ่นกลางหัวจอถูกเอาออกจาก index.html แล้ว — บรรทัดนี้จึงไม่เจอ #verBadge
   // เก็บไว้เฉย ๆ เผื่อวันไหนเอาป้ายกลับมา จะได้ไม่ต้องมาไล่ต่อสายให้ APP_VERSION ใหม่
@@ -9086,6 +9166,17 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   // ที่เหลือ (ฟอนต์จาก CDN · บัญชี · การแจ้งเตือน) เติมเข้ามาทีหลังได้โดยไม่ต้องให้ใครรอ
   const guessedSignedIn = hasStoredSession();
   routeStart();
+
+  // ข้อความที่แชร์เข้ามาจากแอปอื่น — ทำหลังวาดจอแรก จะได้เห็นผลทันทีว่ามันเข้าแล้ว
+  // ไม่ต้องรอล็อกอิน เพราะกล่องเข้าอยู่ในเครื่อง คนที่แค่อยากลองจึงลองได้เลย
+  const shared = takeSharedText();
+  if (shared && typeof inboxAdd === 'function') {
+    const r = inboxAdd(shared, 'text', { via: 'share' });
+    go('scr-inbox');
+    setTimeout(() => showToast(r && r.status === 'noise'
+      ? { title: 'เก็บไว้ในบันทึกแล้ว', body: 'อ่านแล้วไม่เหมือนงานที่ครูสั่ง เลยไม่เอาขึ้นเป็นคำถาม' }
+      : { title: 'รับข้อความแล้ว 📥', body: 'ดูในกล่องเข้าได้เลยว่าแกะออกมาเป็นงานอะไร' }), 700);
+  }
 
   // ฟอนต์ไทยมาจาก CDN — รอให้พร้อมก่อน ไม่งั้นจอแรกกระตุกตอนฟอนต์สลับ
   // ถ้าเน็ตช้าหรือโหลดไม่ขึ้น ไม่รอเกิน 2.5 วิ แล้วไปต่อด้วยฟอนต์ระบบ
@@ -9126,6 +9217,8 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
       !localStorage.getItem('studentos.alt.skipLogin')) {
     routeStart();
   }
+  // ตอนนี้รู้แล้วว่าล็อกอินสำเร็จจริงไหม — ถ้ามี token ค้างจากลิงก์กลุ่ม ใช้ตรงนี้
+  await applyJoinToken();
   await refreshPushState();
   // เคยกดอนุญาตไว้แล้ว + ล็อกอินอยู่ → ต่อ push ให้อัตโนมัติ (เผื่อ subscription หลุด)
   if ('Notification' in window && Notification.permission === 'granted' && currentUser) {

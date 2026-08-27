@@ -78,6 +78,55 @@ async function reply(replyToken: string, text: string) {
 }
 
 // ============================================================
+// ลิงก์เข้าร่วมห้อง — แทนการพิมพ์รหัสในกลุ่ม
+// ------------------------------------------------------------
+// ของเดิมทำงานกลับทาง: แอปสร้างรหัสรายคน → คนเอาไปพิมพ์ในกลุ่มให้เพื่อนเห็น
+// นับขั้นตอนจริงได้เจ็ดขั้น สลับแอปสองรอบ ต่อนักเรียนหนึ่งคน
+//
+// ทางนี้กลับด้าน: กลุ่มมีลิงก์ประจำตัวเส้นเดียว ใครกดก็เชื่อมกับกลุ่มนั้น
+// เหลือ กดลิงก์ → ล็อกอิน → จบ · และลิงก์เดียวใช้ได้ทั้งห้อง ไม่ต้องขอทีละคน
+//
+// ของเดิมไม่ถูกถอด — คนที่คุ้นกับรหัส SOS- ยังใช้ได้เหมือนเดิมทุกอย่าง
+// ============================================================
+const APP_URL = Deno.env.get('APP_URL') ?? 'https://nadokagenou.github.io/studentos-ai/';
+const TOKEN_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';  // ไม่มี 0/O และ 1/I — คนอ่านออกเสียงต่อกันได้
+
+function makeToken(n = 6): string {
+  const b = new Uint8Array(n);
+  crypto.getRandomValues(b);   // ไม่ใช้ Math.random — token นี้คือกุญแจเข้าห้อง
+  let s = '';
+  for (const x of b) s += TOKEN_ABC[x % TOKEN_ABC.length];
+  return s;
+}
+
+// token ประจำกลุ่ม — มีแล้วใช้ตัวเดิมเสมอ
+// ออกใหม่ทุกครั้งที่ถูกเรียก = ลิงก์เก่าที่ยังค้างอยู่ในแชทจะใช้ไม่ได้เงียบ ๆ
+// ซึ่งเป็นอาการที่หาสาเหตุยากมากสำหรับคนที่กดแล้วไม่เกิดอะไร
+async function roomToken(roomId: string): Promise<string | null> {
+  const { data } = await db.from('line_rooms').select('token').eq('room_id', roomId).maybeSingle();
+  if (data?.token) return String(data.token);
+
+  for (let i = 0; i < 5; i++) {
+    const token = makeToken();
+    const { error } = await db.from('line_rooms').insert({ token, room_id: roomId });
+    if (!error) return token;
+    // ชนได้สองแบบ: token ซ้ำ (สุ่มใหม่) หรือ room_id ซ้ำ เพราะมีอีกสายสร้างพร้อมกัน
+    // แบบหลังไม่ใช่ความผิดพลาด — อ่านของที่เขาสร้างไว้มาใช้ต่อ
+    const { data: again } = await db.from('line_rooms')
+      .select('token').eq('room_id', roomId).maybeSingle();
+    if (again?.token) return String(again.token);
+  }
+  console.error('[join] ออก token ให้ห้องนี้ไม่สำเร็จ:', roomId);
+  return null;
+}
+
+function joinText(token: string): string {
+  return 'ห้องนี้ใช้ students OS เก็บการบ้านให้อัตโนมัติแล้ว 🎒\n' +
+    'กดลิงก์นี้ทีเดียว งานที่ครูสั่งในกลุ่มจะเข้าแอปให้เอง ไม่ต้องพิมพ์เอง\n' +
+    APP_URL + '?join=' + token;
+}
+
+// ============================================================
 // ยืนยันในกลุ่มเมื่อแกะงานได้แน่
 // ------------------------------------------------------------
 // เกณฑ์ตรงนี้เข้มกว่าเกณฑ์เก็บเข้ากล่องโดยตั้งใจ เพราะราคาของการผิดไม่เท่ากัน:
@@ -377,6 +426,18 @@ Deno.serve(async (req) => {
   try { payload = JSON.parse(body); } catch { return new Response('ok'); }
 
   for (const ev of payload.events ?? []) {
+    // ---------- 0) บอทเพิ่งถูกเชิญเข้ากลุ่ม ----------
+    // วางลิงก์ไว้ตั้งแต่วินาทีแรก ไม่ต้องให้ใครรู้ว่าต้องพิมพ์อะไรถึงจะได้มา
+    // นี่คือจังหวะที่ทั้งห้องกำลังมองอยู่พอดี — จังหวะเดียวที่ได้ความสนใจฟรี
+    if (ev.type === 'join') {
+      const rid = ev.source?.groupId ?? ev.source?.roomId ?? '';
+      if (rid && ev.replyToken) {
+        const token = await roomToken(rid);
+        if (token) await reply(ev.replyToken, joinText(token));
+      }
+      continue;
+    }
+
     if (ev.type !== 'message' || ev.message?.type !== 'text') continue;
 
     const text: string = (ev.message.text ?? '').trim();
@@ -404,6 +465,20 @@ Deno.serve(async (req) => {
       if (ev.replyToken) {
         await reply(ev.replyToken,
           'เชื่อมกับ students OS แล้ว ✅\nต่อจากนี้งานที่ครูสั่งในกลุ่มนี้จะเข้าแอปให้อัตโนมัติ ไม่ต้องพิมพ์เอง');
+      }
+      continue;
+    }
+
+    // ---------- 1.5) ขอลิงก์อีกที ----------
+    // ในกลุ่มที่คุยกันเยอะ ลิงก์ตอนบอทเข้ามาจะเลื่อนหายไปภายในวันเดียว
+    // ต้องมีวิธีเรียกกลับมาที่สั้นพอจะจำได้ และต้องอยู่ก่อนขั้นเรียกน้องไซ
+    // ไม่งั้น "ลิงก์" กลายเป็นคำถามที่ส่งไปให้ Gemini ตอบ ซึ่งมันไม่รู้ token
+    if (/^(ลิงก์|ลิงค์|ลิ้งค์|ลิ้ง|link|เข้าร่วม|join)$/i.test(text)) {
+      const token = await roomToken(roomId);
+      if (ev.replyToken) {
+        await reply(ev.replyToken, token
+          ? joinText(token)
+          : 'ตอนนี้ออกลิงก์ให้ไม่ได้ ลองใหม่อีกทีนะ');
       }
       continue;
     }

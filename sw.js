@@ -5,7 +5,7 @@
 // ⚠️ ทุกชื่อในลิสต์นี้ต้องมีไฟล์อยู่จริง — addAll จะล้มทั้งก้อนถ้ามีตัวใดตัวหนึ่ง 404
 //    แล้วแอปจะไม่มีแคชเลย (เปิดออฟไลน์ไม่ได้) โดยไม่มี error โผล่ให้เห็นที่หน้าจอ
 //    เคยพลาดมาแล้วตอนคัดลอกไฟล์จาก alt/ ขึ้นมา: ลิสต์ยังมี icon-alt-* ซึ่ง root ไม่มี
-const CACHE = 'studentos-1a9y-regler';   // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
+const CACHE = 'studentos-1a9z-eingang';   // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
 const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'custom.css',
   'engine.js', 'context.js', 'planner.js', 'brain.js', 'inbox.js', 'linelink.js', 'app.js', 'config.js', 'manifest.json',
   'icon-192.png', 'icon-512.png', 'logo-mark.png', 'logo-splash.png', 'logo-splash-light.png'];
