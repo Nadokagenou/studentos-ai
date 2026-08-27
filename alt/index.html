@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="google-site-verification" content="EL8HSk9rzF6WS9GYcfkFaYwxf00p2PzEKganiKXzDh0" />
-  <title>StudentOS AI — ผู้ช่วยจัดลำดับงานสำหรับนักเรียน</title>
-  <meta name="description" content="students OS คือ AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงานหรือแปะข้อความจาก LINE แล้ว AI จัดลำดับความสำคัญพร้อมเหตุผล ไม่ต้องเดาว่าจะทำอะไรก่อน">
+  <title>Student OS — ผู้ช่วยจัดลำดับงานสำหรับนักเรียน</title>
+  <meta name="description" content="Student OS คือ AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงานหรือแปะข้อความจาก LINE แล้ว AI จัดลำดับความสำคัญพร้อมเหตุผล ไม่ต้องเดาว่าจะทำอะไรก่อน">
   <link rel="canonical" href="https://nadokagenou.github.io/studentos-ai/">
 
   <meta property="og:type" content="website">
-  <meta property="og:title" content="students OS — รู้ว่าต้องทำอะไรก่อน เสมอ">
+  <meta property="og:title" content="Student OS — รู้ว่าต้องทำอะไรก่อน เสมอ">
   <meta property="og:description" content="AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงาน จัดลำดับความสำคัญพร้อมเหตุผล">
   <meta property="og:url" content="https://nadokagenou.github.io/studentos-ai/">
   <meta property="og:image" content="https://nadokagenou.github.io/studentos-ai/icon-512.png">
@@ -41,7 +41,7 @@
   <link rel="apple-touch-icon" href="icon-alt-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="StudentOS">
+  <meta name="apple-mobile-web-app-title" content="Student OS">
   <!-- จอคั่นตอนเปิดแอปบน iOS — ไม่มีชุดนี้ = จอเปล่าสีพื้นจนกว่าหน้าเว็บจะโหลดเสร็จ
        ขนาดต้องตรงกับเครื่องเป๊ะทั้งสามค่า ไม่งั้น iOS ข้ามไปใช้จอเปล่าเหมือนเดิม
        สร้างด้วย python make-splash.py — อย่าแก้บล็อกนี้ด้วยมือ -->
@@ -235,8 +235,8 @@
                วางบนพื้นกรมท่าตรง ๆ แล้วจมหายไปครึ่งอัน
                1A9j: เหลือรูปเดียว ไม่ต้องสลับตามธีมอีก — แผ่นรองเป็นสีขาวทุกธีม
                ตราเข้มจึงอ่านออกเสมอ ส่วนตราคู่ธีมสว่างเป็นโลโก้เต็มที่มีตัวหนังสือ
-               ย่อลงกรอบ 86px แล้วคำว่า students OS เล็กจนอ่านไม่ออกอยู่ดี -->
-          <div class="login-plate"><img class="login-mark" src="logo-splash-light.png" alt="students OS"></div>
+               ย่อลงกรอบ 86px แล้วคำว่า Student OS เล็กจนอ่านไม่ออกอยู่ดี -->
+          <div class="login-plate"><img class="login-mark" src="logo-splash-light.png" alt="Student OS"></div>
           <!-- 1A9j: ตัดสร้อย "รู้ว่าต้องทำอะไรก่อน เสมอ" ออก
                หน้านี้มีงานเดียวคือให้กดเข้าระบบ คำโปรยขายของตรงนี้ไม่ได้ช่วยให้ใครกด
                มันแค่ดันปุ่มลงไป และคนที่เปิดแอปมาก็รู้อยู่แล้วว่าแอปนี้ทำอะไร -->
@@ -1149,7 +1149,7 @@
     <div id="installGuide" hidden>
       <div class="ig-sheet">
         <div class="ig-icon"><img src="logo-splash-light.png" alt=""></div>
-        <div class="ig-title">ติดตั้ง StudentOS AI</div>
+        <div class="ig-title">ติดตั้ง Student OS</div>
         <p class="ig-sub">ติดตั้งเป็นแอปเพื่อเปิดเต็มจอและรับการแจ้งเตือนได้ — ใช้เวลาแค่ 10 วินาที</p>
         <div class="ig-step"><span class="ig-num">1</span>แตะปุ่ม <b>แชร์</b> <span class="ig-share">⬆️</span> ที่แถบด้านล่างจอ Safari</div>
         <div class="ig-step"><span class="ig-num">2</span>เลื่อนหาแล้วแตะ <b>“เพิ่มไปยังหน้าจอโฮม”</b></div>
@@ -1205,7 +1205,7 @@
   </div>
 
   <p class="stage-note">
-    students OS — ข้อมูลเก็บในเครื่อง (localStorage) · Scan รูปใช้ OCR ในเบราว์เซอร์ ·
+    Student OS — ข้อมูลเก็บในเครื่อง (localStorage) · Scan รูปใช้ OCR ในเบราว์เซอร์ ·
     การจัดลำดับคำนวณจาก deadline × คะแนน × ขนาดงาน พร้อมเหตุผลกำกับทุกงาน
   </p>
 </div>

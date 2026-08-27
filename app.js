@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A9z';                 // สายเลขของแอป
-const APP_CODENAME = 'Eingang';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1B0';                 // สายเลขของแอป
+const APP_CODENAME = 'Klasse';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -8114,10 +8114,40 @@ async function refreshPushState() {
   } catch (_) { pushState = 'off'; }
 }
 
+// กุญแจของ subscription ที่มีอยู่ ตรงกับกุญแจที่แอปถืออยู่ตอนนี้ไหม
+// คืน true เมื่อ "เทียบไม่ได้" ด้วย — เบราว์เซอร์บางตัวไม่เปิด options ให้อ่าน
+// การเดาว่าไม่ตรงแล้วสั่งสมัครใหม่ทุกครั้งที่เปิดแอป แย่กว่าการปล่อยไว้เฉย ๆ
+function subKeyMatches(sub) {
+  try {
+    const raw = sub.options && sub.options.applicationServerKey;
+    if (!raw) return true;
+    const bytes = new Uint8Array(raw);
+    let s = '';
+    for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    const b64 = btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return b64 === String(window.VAPID_PUBLIC_KEY || '').replace(/=+$/, '');
+  } catch (_) { return true; }
+}
+
 async function subscribePush() {
   if (!pushSupported()) return false;
   const reg = await navigator.serviceWorker.ready;
   let sub = await reg.pushManager.getSubscription();
+
+  // subscription ที่สร้างไว้ด้วยกุญแจ VAPID คนละดอกกับที่เซิร์ฟเวอร์ถืออยู่ จะถูกปฏิเสธ 403
+  // ทุกครั้งที่ส่ง และมันไม่หายเอง — เบราว์เซอร์คืนตัวเดิมให้ตลอดจนกว่าจะสั่งเลิกเอง
+  // ผลคือคนคนนั้นไม่ได้รับการเตือนอีกเลยตลอดกาล โดยไม่มีอะไรบนจอบอกสักตัว
+  // (เกิดขึ้นจริงกับผู้ใช้หนึ่งคน 3 เครื่อง หลังเปลี่ยน VAPID_PUBLIC_KEY เมื่อ 23 ส.ค.)
+  if (sub && !subKeyMatches(sub)) {
+    console.warn('[push] กุญแจ VAPID ไม่ตรง — สมัครใหม่');
+    try { await sub.unsubscribe(); } catch (_) {}
+    // ลบแถวเก่าออกจาก cloud ด้วย ไม่งั้นค้างเป็นขยะที่ถูกยิงพลาดทุกครึ่งชั่วโมง
+    if (sb && currentUser) {
+      try { await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); } catch (_) {}
+    }
+    sub = null;
+  }
+
   if (!sub) {
     sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
@@ -8277,8 +8307,13 @@ function showToast(copy) {
 // ---------- ALT: ยิงแจ้งเตือนของจริง ----------
 // เดิมใช้ new Notification() ตรง ๆ ซึ่ง "บน Chrome มือถือใช้ไม่ได้เลย" — มันโยน error ทิ้ง
 // ทางที่ใช้ได้ทุกที่คือให้ service worker เป็นคนแสดงแทน (และแตะแล้วเปิดแอปกลับมาได้ด้วย)
+// ชื่อแอปขึ้นบนสุดของการ์ดเสมอ — ใส่ที่นี่ที่เดียว ผู้เรียกทุกที่จึงส่งแค่หัวข้อจริงมา
+// (ต้องตรงกับ APP_NAME ใน sw.js ที่ทำแบบเดียวกันกับ push จากเซิร์ฟเวอร์)
+const NOTIF_BRAND = 'Student OS';
+
 async function notify(title, body, tag) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return false;
+  title = title ? NOTIF_BRAND + ' · ' + title : NOTIF_BRAND;
   const opt = {
     body, tag: tag || 'studentos-alt',
     icon: 'icon-192.png', badge: 'icon-192.png',

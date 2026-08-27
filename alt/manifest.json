@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "StudentOS AI",
-  "short_name": "StudentOS",
+  "name": "Student OS",
+  "short_name": "Student OS",
   "description": "AI Decision Assistant สำหรับนักเรียนมัธยม — สแกนใบงานหรือแปะข้อความจาก LINE แล้ว AI จัดลำดับว่าควรทำอะไรก่อน พร้อมเหตุผลกำกับทุกงาน",
   "lang": "th",
   "start_url": ".",

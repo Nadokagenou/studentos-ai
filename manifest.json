@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "students OS",
-  "short_name": "students OS",
+  "name": "Student OS",
+  "short_name": "Student OS",
   "description": "AI Decision Assistant สำหรับนักเรียนมัธยม — รู้ว่าต้องทำอะไรก่อน เสมอ",
   "lang": "th",
   "start_url": ".",

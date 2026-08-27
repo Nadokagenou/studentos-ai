@@ -1,10 +1,10 @@
-// StudentOS AI — Service Worker
+// Student OS — Service Worker
 // กลยุทธ์: network-first (ได้เวอร์ชันใหม่เสมอเมื่อมีเน็ต) + cache fallback (เปิด offline ได้)
 // ชื่อ cache ผูกกับเลขรุ่น — ปล่อยรุ่นใหม่แล้วของเก่าถูกลบทิ้งตอน activate
 // สายนี้เคยเป็นบิลด์ทดลอง (ALT) และถูกยกขึ้นเป็นตัวหลักตั้งแต่ 1A7V2 · ชื่อ cache เลยเปลี่ยนตาม
 // -m: เปลี่ยนโลโก้ทั้งชุด — ชื่อไฟล์เดิมทุกไฟล์ ถ้าไม่ขึ้นเลขรุ่น เครื่องที่ติดตั้งไว้แล้ว
 // จะเสิร์ฟโลโก้เก่าจากแคชต่อไปโดยไม่มีอะไรบอกว่ามีของใหม่
-const CACHE = 'studentos-1a9z-eingang'; // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
+const CACHE = 'studentos-1b0-klasse'; // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
 // ทุกไฟล์ที่ index.html อ้างถึงต้องอยู่ในรายการนี้ — ไฟล์ที่หน้าเรียกแต่ไม่ได้แคชไว้
 // จะหายไปเงียบ ๆ ตอนออฟไลน์ โดยไม่มีอะไรบอกว่าหายไปไหน (visual-editor.js กับไอคอน icon-alt-*
 // เป็นสองอย่างที่หน้ายังอ้างถึงอยู่จริง)
@@ -26,10 +26,14 @@ self.addEventListener('activate', e => {
 });
 
 // ---------- Web Push: เตือนได้แม้ปิดแอป ----------
+// ชื่อแอปต้องอยู่บนสุดของการ์ดเสมอ — บนเครื่องที่ยังไม่ได้ติดตั้งเป็นแอป
+// เบราว์เซอร์จะขึ้นชื่อโดเมนดิบ ๆ แทน ซึ่งไม่มีใครรู้ว่าคืออะไร
+// ใส่ที่นี่ที่เดียว ข้อความทุกอันฝั่งเซิร์ฟเวอร์จึงไม่ต้องพกชื่อแอปติดตัวไปด้วย
+const APP_NAME = 'Student OS';
 self.addEventListener('push', e => {
   let d = {};
-  try { d = e.data ? e.data.json() : {}; } catch (_) { d = { title: 'StudentOS AI', body: e.data ? e.data.text() : '' }; }
-  const title = d.title || 'StudentOS AI';
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : '' }; }
+  const title = d.title ? APP_NAME + ' · ' + d.title : APP_NAME;
   e.waitUntil(self.registration.showNotification(title, {
     body: d.body || '',
     icon: 'icon-192.png',
