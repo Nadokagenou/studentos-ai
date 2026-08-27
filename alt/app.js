@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1A9x';                 // สายเลขของแอป
-const APP_CODENAME = 'Feinschliff';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1A9y';                 // สายเลขของแอป
+const APP_CODENAME = 'Regler';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -3901,6 +3901,7 @@ function renderProfile() {
   // ปุ่มทดสอบโผล่เฉพาะตอนอนุญาตแล้ว — ให้กดพิสูจน์ได้ว่าเด้งจริงบนเครื่องนี้
   if (ntest) ntest.style.display =
     ('Notification' in window && Notification.permission === 'granted') ? 'block' : 'none';
+  renderNotifPrefs();
   if (!st) return;
   if (!('Notification' in window)) {
     if (isIOS() && !isStandalone()) {
@@ -8136,6 +8137,37 @@ async function subscribePush() {
   }
   pushState = 'on';
   return true;
+}
+
+// ---------- เลือกชนิดการแจ้งเตือน ----------
+// ค่าเริ่มต้นเป็น "เปิด" ทั้งคู่ — คนที่อุตส่าห์กดอนุญาตแจ้งเตือนไว้ แปลว่าเขาอยากได้
+// เก็บใน state.settings จึงขึ้น cloud เองผ่าน pushToCloud() แล้ว send-reminders อ่านได้ทันที
+// ไม่ต้องมีตารางใหม่ ไม่ต้องมีทางซิงก์เส้นที่สอง
+function notifPref(key) { return state.settings[key] !== false; }
+
+function toggleNotifPref(key) {
+  const on = !notifPref(key);
+  state.settings[key] = on;
+  save();
+  renderProfile();
+  const name = key === 'notifDue' ? 'การเตือนงานใกล้ถึงกำหนด' : 'การทักเมื่อหายไปหลายวัน';
+  showToast(on
+    ? { title: 'เปิดแล้ว 🔔', body: name + ' จะกลับมาทำงานตามปกติ' }
+    : { title: 'ปิดแล้ว', body: name + ' จะไม่ถูกส่งอีก — เปิดกลับได้ตรงนี้ทุกเมื่อ' });
+}
+
+// เอาไปโชว์บนปุ่มและซ่อน/แสดงแถว · เรียกจาก renderProfile
+function renderNotifPrefs() {
+  const granted = ('Notification' in window) && Notification.permission === 'granted';
+  for (const [key, row, btn] of [
+    ['notifDue', 'prefDueRow', 'prefDueBtn'],
+    ['notifNudge', 'prefNudgeRow', 'prefNudgeBtn'],
+  ]) {
+    const r = document.getElementById(row), b = document.getElementById(btn);
+    // ยังไม่อนุญาตแจ้งเตือน = สวิตช์พวกนี้ไม่มีความหมาย ซ่อนไว้ดีกว่าโชว์ของที่กดแล้วไม่เกิดอะไร
+    if (r) r.hidden = !granted;
+    if (b) b.textContent = notifPref(key) ? 'เปิดอยู่' : 'ปิดอยู่';
+  }
 }
 
 async function enableNotif() {

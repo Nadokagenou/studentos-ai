@@ -925,6 +925,22 @@
                 onclick="testNotify()">ทดสอบ</button>
               <button class="btn secondary sm" id="notifBtn" style="width:auto;min-height:34px;padding:0 14px" onclick="enableNotif()">เปิด</button>
             </div>
+            <!-- เลือกได้ว่าจะรับแบบไหน — โผล่เฉพาะตอนอนุญาตแจ้งเตือนแล้ว
+                 มีอยู่เพื่อกันไม่ให้คนที่รำคาญอย่างเดียว ไปปิดการแจ้งเตือนที่เบราว์เซอร์
+                 ซึ่งปิดแล้วปิดเลย เบราว์เซอร์ไม่ถามซ้ำ แล้วเขาจะไม่ได้รับของด่วนไปด้วยตลอดกาล
+                 สวิตช์ที่ย้อนกลับได้ตรงนี้ ถูกกว่าการเสียคนหนึ่งคนไปถาวรมาก -->
+            <div class="set-row" id="prefDueRow" hidden>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-bell"/></svg></span>
+              <span class="set-lb">เตือนงานใกล้ถึงกำหนด<i>เย็นก่อนวันส่ง และวันที่ต้องส่ง</i></span>
+              <button class="btn secondary sm" id="prefDueBtn" style="width:auto;min-height:34px;padding:0 14px"
+                onclick="toggleNotifPref('notifDue')">เปิดอยู่</button>
+            </div>
+            <div class="set-row" id="prefNudgeRow" hidden>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-chat"/></svg></span>
+              <span class="set-lb">ทักเมื่อไม่ได้เปิดหลายวัน<i>ไม่เกินสัปดาห์ละครั้ง</i></span>
+              <button class="btn secondary sm" id="prefNudgeBtn" style="width:auto;min-height:34px;padding:0 14px"
+                onclick="toggleNotifPref('notifNudge')">เปิดอยู่</button>
+            </div>
             <div class="set-row" id="installCard" hidden>
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-check-circle"/></svg></span>
               <span class="set-lb">ติดตั้งเป็นแอป<i id="installHint"></i></span>

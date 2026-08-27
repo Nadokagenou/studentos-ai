@@ -271,13 +271,18 @@ Deno.serve(async () => {
       const tasksByUser = new Map<string, any[]>();
       // funnel เล็กมาก (ไม่กี่ร้อยไบต์) แต่บอกสิ่งที่ tasks บอกไม่ได้: เขายังเปิดแอปอยู่ไหม
       const funnelByUser = new Map<string, any>();
+      // settings ก็เล็กเท่ากัน และเป็นที่เดียวที่บอกว่าเขาอยากได้การเตือนแบบไหน
+      const prefsByUser = new Map<string, any>();
       for (const ids of chunk(userIds, ID_CHUNK)) {
         const { data: rows, error: stErr } = await db
-          .from('user_state').select('id, tasks:data->tasks, funnel:data->funnel').in('id', ids);
+          .from('user_state')
+          .select('id, tasks:data->tasks, funnel:data->funnel, settings:data->settings')
+          .in('id', ids);
         if (stErr) throw new Error('user_state: ' + stErr.message);
         for (const r of rows ?? []) {
           tasksByUser.set((r as any).id, (r as any).tasks ?? []);
           funnelByUser.set((r as any).id, (r as any).funnel ?? null);
+          prefsByUser.set((r as any).id, (r as any).settings ?? null);
         }
       }
 
@@ -298,13 +303,20 @@ Deno.serve(async () => {
         const tasks = tasksByUser.get(sub.user_id) ?? [];
         const pending = tasks.filter((t: any) => !t.done && !t.deleted);
 
+        // ค่าเริ่มต้นคือเปิด — คนที่กดอนุญาตแจ้งเตือนไว้แปลว่าเขาอยากได้
+        // เทียบกับ false ตรง ๆ ไม่ใช่เช็คว่ามีค่าไหม เพราะคนที่ยังไม่ได้อัปเดตแอป
+        // จะไม่มีคีย์นี้เลย และเขาต้องได้รับการเตือนเหมือนเดิม ไม่ใช่เงียบไปเฉย ๆ
+        const prefs = prefsByUser.get(sub.user_id) ?? {};
+        const wantDue = prefs?.notifDue !== false;
+        const wantNudge = prefs?.notifNudge !== false;
+
         // ---- กลุ่มที่ 1: มีงานใกล้กำหนด ----
         // สองจังหวะต่องาน ไม่ใช่จังหวะเดียว:
         //   plan — เย็นก่อนวันส่ง ไว้ "วางแผน" ตอนที่ยังมีเวลาทำจริง
         //   soon — วันที่ต้องส่ง ไว้ "ลงมือ"
         // จังหวะเดียวไม่พอสำหรับเป้าหมายว่าห้ามลืม เตือนล่วงหน้าอย่างเดียวแล้วเงียบ
         // ในวันจริง คือการฝากความจำไว้กับคนที่เรารู้อยู่แล้วว่าเขาลืม
-        const candidates = pending
+        const candidates = (wantDue ? pending : [])
           .filter((t: any) => t.due)
           .map((t: any) => {
             const h = (Date.parse(t.due) - now) / 3.6e6;
@@ -330,7 +342,7 @@ Deno.serve(async () => {
 
         // ---- กลุ่มที่ 2: หายไปนานแล้ว ----
         // ทักได้แค่ช่วงเย็น และไม่เกินสัปดาห์ละครั้ง — ไม่ด่วน จึงไม่มีสิทธิ์รบกวนเท่างานจริง
-        if (!evening || sentKeys.has(`${sub.user_id}::${weekKey}`)) continue;
+        if (!wantNudge || !evening || sentKeys.has(`${sub.user_id}::${weekKey}`)) continue;
 
         const f = funnelByUser.get(sub.user_id);
         // ไม่มี funnel = ยังไม่ได้อัปเดตแอป เราไม่รู้ว่าเขาหายไปจริงไหม → เงียบไว้
