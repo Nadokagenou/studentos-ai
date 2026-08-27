@@ -150,6 +150,28 @@ const TH_MON = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.'
 // (กำหนดส่งของจริงยังถูกคิดใหม่ฝั่งแอปซึ่งอยู่โซนเวลาถูกอยู่แล้ว ตรงนี้มีไว้แสดงผลเท่านั้น)
 function thaiNow(): Date { return new Date(Date.now() + TH_OFFSET); }
 
+// "ตอนนี้" ในกรอบเวลาเดียวกับค่า due ที่เก็บไว้
+// ค่า due ถูกคิดจาก thaiNow() จึงมีเวลาบนหน้าปัดเป็นเวลาไทยแต่ถูกบันทึกเสมือนเป็น UTC
+// เอา Date.now() จริงไปเทียบตรง ๆ = ป้าย "เลยกำหนด" ขึ้นช้าไป 7 ชั่วโมงทุกใบ
+// สองค่านี้ต้องอยู่กรอบเดียวกันเสมอ ไม่งั้นผิดแบบที่ดูเผิน ๆ เหมือนถูก
+function thaiNowMs(): number { return Date.now() + TH_OFFSET; }
+
+const TH_DAY_FULL = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
+
+// "วันนี้ / พรุ่งนี้ / วันศุกร์" — คนพูดกันแบบนี้ ไม่มีใครพูดว่า "อีก 31 ชั่วโมง"
+// รับ nowTh ที่เลื่อนแล้ว และอ่านทุกอย่างด้วยเมธอด UTC เพื่อให้อยู่กรอบเดียวกันตลอด
+function dueLabel(iso: string, nowTh: number): string {
+  const d = new Date(iso), n = new Date(nowTh);
+  const day = (x: Date) => Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate());
+  const diff = Math.round((day(d) - day(n)) / 86400000);
+  if (diff < 0) return 'เมื่อวาน';
+  if (diff === 0) return 'วันนี้';
+  if (diff === 1) return 'พรุ่งนี้';
+  if (diff === 2) return 'มะรืนนี้';
+  if (diff <= 6) return 'วัน' + TH_DAY_FULL[d.getUTCDay()];
+  return 'วัน' + TH_DAY_FULL[d.getUTCDay()] + 'ที่ ' + d.getUTCDate() + ' ' + TH_MON[d.getUTCMonth()];
+}
+
 function thaiDue(iso: string): string {
   const d = new Date(iso);
   const h = d.getUTCHours(), m = d.getUTCMinutes();
@@ -169,6 +191,84 @@ function clip(s: string, max = 60): string {
   return (sp > max * 0.5 ? cut.slice(0, sp) : cut).trim() + '…';
 }
 
+// ============================================================
+// งานระดับห้อง — ตอบ "มีงานอะไรบ้าง" ให้ทั้งห้องโดยไม่ต้องมีใครมีบัญชี
+// ------------------------------------------------------------
+// ทุกกลุ่มห้องเรียนมีข้อความนี้ทุกสัปดาห์ และตอนนี้มีคนต้องเลื่อนหาย้อนหลังแล้วพิมพ์ตอบเอง
+//
+// นี่คือฟีเจอร์ที่ตรงกับหลัก "ไม่ต้องทำอะไรแต่ได้ของ" มากที่สุดเท่าที่ทำได้ในกลุ่ม:
+// ไม่ต้องติดตั้ง ไม่ต้องล็อกอิน ไม่ต้องกดลิงก์ และฟรีเพราะเป็น Reply API
+// ============================================================
+const ASK_TASKS = /^(งาน|การบ้าน|งานค้าง|todo|มีงานอะไร(บ้าง)?|งานอะไรบ้าง|มีการบ้านอะไร(บ้าง)?|เหลืองานอะไร(บ้าง)?)[ ?？!]*$/i;
+const LIST_MAX = 8;
+const HINT_EVERY_MS = 20 * 3.6e6;   // แปะลิงก์ชวนไม่ถี่กว่านี้ ต่อหนึ่งห้อง
+
+async function rememberRoomTask(roomId: string, msgId: string, p: any) {
+  try {
+    await db.from('room_tasks').upsert({
+      msg_id: msgId,
+      room_id: roomId,
+      subject: String(p.subject || 'งาน'),
+      detail: clip(String(p.detail || ''), 80),
+      due: p.due,
+      kind: String(p.type || 'homework'),
+    }, { onConflict: 'msg_id' });
+  } catch (e) {
+    // เก็บไม่ได้ไม่ใช่เรื่องที่ต้องทำให้ทั้ง webhook พัง — งานยังเข้ากล่องเข้าของแต่ละคนตามปกติ
+    console.error('[room_tasks] เก็บไม่สำเร็จ:', (e as Error)?.message);
+  }
+}
+
+// แปะลิงก์ชวนท้ายรายการ แต่ไม่เกินวันละครั้งต่อห้อง
+// ชวนทุกครั้งที่มีคนถาม = บอทที่ขายของทุกประโยค ซึ่งโดนเตะออกเร็วกว่าบอทที่เงียบ
+async function joinHint(roomId: string, nowMs: number): Promise<string> {
+  try {
+    const { data } = await db.from('line_rooms')
+      .select('token, hint_at').eq('room_id', roomId).maybeSingle();
+    if (!data?.token) return '';
+    const last = data.hint_at ? Date.parse(String(data.hint_at)) : 0;
+    if (nowMs - last < HINT_EVERY_MS) return '';
+    await db.from('line_rooms')
+      .update({ hint_at: new Date(nowMs).toISOString() }).eq('room_id', roomId);
+    return '\n\nอยากให้เตือนเฉพาะงานของเธอ กดที่นี่\n' + APP_URL + '?join=' + data.token;
+  } catch { return ''; }
+}
+
+async function roomTaskReply(roomId: string, nowTh: number): Promise<string> {
+  // เลยกำหนดไม่เกินหนึ่งวันยังโชว์อยู่ — คนที่ยังไม่ได้ส่งต้องเห็นว่ามันค้าง ไม่ใช่หายไปเฉย ๆ
+  const since = new Date(nowTh - 24 * 3.6e6).toISOString();
+  const { data, error } = await db.from('room_tasks')
+    .select('subject, detail, due, kind')
+    .eq('room_id', roomId)
+    .gte('due', since)
+    .order('due', { ascending: true })
+    .limit(LIST_MAX + 1);
+
+  if (error) {
+    console.error('[room_tasks] อ่านไม่สำเร็จ:', error.message);
+    return 'ตอนนี้ดูรายการงานให้ไม่ได้ ลองใหม่อีกทีนะ';
+  }
+
+  const rows = data ?? [];
+  if (!rows.length) {
+    return 'ตอนนี้ยังไม่มีงานค้างในห้องนี้เลย 🎉\n' +
+      'ครูสั่งงานในกลุ่มเมื่อไหร่ เราเก็บให้เองอัตโนมัติ';
+  }
+
+  const shown = rows.slice(0, LIST_MAX);
+  const lines = shown.map((r: any) => {
+    const s = String(r.subject || 'งาน');
+    const d = String(r.detail || '').trim();
+    const name = d && !d.includes(s) ? s + ' ' + d : (d || s);
+    const overdue = r.due && Date.parse(r.due) < nowTh;
+    return '· ' + clip(name, 44) + ' — ' + (overdue ? '⚠ เลยกำหนด' : dueLabel(r.due, nowTh));
+  });
+
+  let out = 'ห้องนี้เหลือ ' + rows.length + ' งาน\n' + lines.join('\n');
+  if (rows.length > LIST_MAX) out += '\n(แสดง ' + LIST_MAX + ' อันที่ใกล้สุด)';
+  return out + await joinHint(roomId, Date.now());
+}
+
 async function confirmInGroup(ev: any, text: string, linked: number) {
   // ถูกใช้ไปแล้วตอนตอบน้องไซ หรือไม่มีมาแต่แรก — reply token ใช้ได้ครั้งเดียว
   if (!ev.replyToken) return;
@@ -181,6 +281,11 @@ async function confirmInGroup(ev: any, text: string, linked: number) {
     return;
   }
   if (!p?.detected?.due || !p?.detected?.subject || !p?.due) return;
+
+  // เก็บเข้ารายการของห้องด้วย — ใช้ประตูเดียวกับที่ตัดสินใจว่าจะพูดหรือไม่พูด
+  // ตั้งใจให้เข้มเท่ากัน เพราะรายการที่มีของมั่วปนอยู่ แย่กว่ารายการที่ขาดไปหนึ่งใบ
+  const rid = ev.source?.groupId ?? ev.source?.roomId ?? ev.source?.userId ?? '';
+  if (rid && ev.message?.id) await rememberRoomTask(rid, String(ev.message.id), p);
 
   // ตัดคำกริยาที่ค้างอยู่หน้ารายละเอียด ไม่งั้นได้ "ส่งใบงานเคมี ... ส่ง พฤ. 10 ก.ย."
   const what = clip(String(p.detail || '').trim().replace(/^(?:ส่ง|สอบ)\s*/, ''));
@@ -480,6 +585,14 @@ Deno.serve(async (req) => {
           ? joinText(token)
           : 'ตอนนี้ออกลิงก์ให้ไม่ได้ ลองใหม่อีกทีนะ');
       }
+      continue;
+    }
+
+    // ---------- 1.7) ถามว่าห้องนี้มีงานอะไรบ้าง ----------
+    // ต้องอยู่ก่อนขั้นเรียกน้องไซ ไม่งั้นคำว่า "งาน" ถูกส่งไปให้ Gemini ตอบ
+    // ซึ่งมันจะแต่งการบ้านขึ้นมาเอง — ผิดกฎข้อที่สำคัญที่สุดในบุคลิกของน้องไซ
+    if (ASK_TASKS.test(text)) {
+      if (ev.replyToken) await reply(ev.replyToken, await roomTaskReply(roomId, thaiNowMs()));
       continue;
     }
 
