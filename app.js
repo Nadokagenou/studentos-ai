@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B0';                 // สายเลขของแอป
+const APP_VERSION = '1B1';                 // สายเลขของแอป
 const APP_CODENAME = 'Klasse';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -2515,19 +2515,96 @@ async function askSai(question, history) {
   }
 }
 
-// ---------- ถามน้องไซ ----------
-// รอบนี้ยังไม่มีแชทจริง จอนี้จึงมีหน้าที่เดียว: ประกาศว่ามันคืออะไร และ "จะไม่ทำอะไร"
+// ---------- เรียกน้องไซแบบไหลทีละคำ ----------
+// ทำไมไม่ใช้ sb.functions.invoke: มันอ่าน response จนจบก่อนถึงจะคืนค่า
+// ซึ่งลบข้อดีทั้งหมดของการสตรีมทิ้ง — ต้องใช้ fetch เองเพื่อแตะ body.getReader()
 //
-// เส้นที่ขีดไว้ตั้งแต่ยังไม่เขียนโค้ดคือเส้นที่ไม่ถูกเถียงทีหลัง —
-// แอปที่ทำการบ้านให้เด็กเป็นแอปที่โรงเรียนแบน และเป็นจุดที่กรรมการสับได้ทันที
-// ส่วนแอปที่อธิบายจนเข้าใจแล้วให้ทำเอง ต่อยอดจากแกนเดิมของแอปพอดี
-// (ทุกอันดับที่จัดให้ มีเหตุผลกำกับเสมอ — ตรงนี้ก็คือเหตุผลกำกับ แต่เป็นของเนื้อหาวิชา)
+// เซิร์ฟเวอร์คืน NDJSON บรรทัดละหนึ่งเหตุการณ์: {"t":...} ชิ้นข้อความ ·
+// {"done":true} จบ · {"error":...} พังกลางทาง (มาในสตรีมเพราะสถานะ HTTP ส่งไปแล้ว)
+//
+// onChunk ถูกเรียกทุกครั้งที่มีข้อความเพิ่ม — ฝั่งจอเอาไปต่อท้ายฟองแชทได้เลย
+async function askSaiStream(question, history, onChunk) {
+  if (!sb) return { ok: false, message: 'ยังต่อเซิร์ฟเวอร์ไม่ได้ — เช็คอินเทอร์เน็ตแล้วลองใหม่' };
+
+  const cfg = window.SUPABASE_CONFIG || {};
+  if (!cfg.url || !cfg.anonKey) return await askSai(question, history);
+
+  // ผู้ใช้ที่ล็อกอินแล้วต้องส่ง JWT ของตัวเอง ไม่ใช่กุญแจสาธารณะเฉย ๆ
+  // (verify_jwt เปิดอยู่ที่ฟังก์ชันนี้ — ดู supabase/config.toml)
+  let token = cfg.anonKey;
+  try {
+    const { data } = await sb.auth.getSession();
+    if (data?.session?.access_token) token = data.session.access_token;
+  } catch (_) {}
+
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 45_000);
+
+  try {
+    const res = await fetch(cfg.url + '/functions/v1/ask-sai', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'apikey': cfg.anonKey,
+        'authorization': 'Bearer ' + token,
+      },
+      signal: ctl.signal,
+      body: JSON.stringify({
+        question, context: aiContext(), history: history || [], stream: true,
+      }),
+    });
+
+    // ยังไม่เริ่มสตรีม = ยังเปลี่ยนไปใช้ทางเดิมได้ทัน · เซิร์ฟเวอร์รุ่นเก่าที่ยังไม่รู้จัก
+    // stream:true จะตอบเป็น JSON ก้อนเดียวตามปกติ ซึ่งทางเดิมอ่านได้อยู่แล้ว
+    const ctype = res.headers.get('content-type') || '';
+    if (!res.ok || !res.body || !ctype.includes('ndjson')) {
+      clearTimeout(timer);
+      return await askSai(question, history);
+    }
+
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '', text = '', failed = null;
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+
+      const lines = buf.split('\n');
+      buf = lines.pop() || '';
+      for (const ln of lines) {
+        if (!ln.trim()) continue;
+        let ev;
+        try { ev = JSON.parse(ln); } catch (_) { continue; }
+        if (ev.error) { failed = ev.error; continue; }
+        if (typeof ev.t === 'string' && ev.t) {
+          text += ev.t;
+          if (onChunk) onChunk(text);
+        }
+      }
+    }
+
+    if (failed) return { ok: false, message: failed };
+    if (!text.trim()) return { ok: false, message: 'น้องไซตอบไม่ได้ตอนนี้ ลองใหม่อีกครั้ง' };
+    return { ok: true, answer: text.trim() };
+  } catch (e) {
+    // ยกเลิกเพราะหมดเวลา กับเน็ตหลุด ผู้ใช้ทำอย่างเดียวกันคือลองใหม่ ข้อความจึงก้อนเดียวพอ
+    return { ok: false, message: 'ต่อไม่ติด ลองใหม่อีกครั้ง' };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ---------- ประวัติแชท ----------
 // เก็บในเครื่องเหมือนทุกอย่างในแอปนี้ — คนที่ถามเรื่องเดิมต่อพรุ่งนี้ต้องไม่ต้องเล่าใหม่
 // ตัดที่ 40 ข้อความ เพราะที่เก็บใน localStorage มีเพดาน และเกินนั้นก็ไม่มีใครเลื่อนขึ้นไปอ่าน
 const AI_LOG_KEY = 'studentos.alt.aiLog';
 const AI_LOG_CAP = 40;
 let aiBusy = false;
+// คำตอบที่กำลังไหลเข้ามาอยู่ — เก็บนอก log เพราะยังไม่จบ ยังไม่ควรถูกบันทึก
+// ถ้าเน็ตหลุดกลางคัน ประวัติต้องไม่มีคำตอบครึ่งใบค้างไว้ให้อ่านวันหลัง
+let aiPartial = '';
 
 function aiLog() {
   try { return JSON.parse(localStorage.getItem(AI_LOG_KEY) || '[]'); } catch (_) { return []; }
@@ -2555,12 +2632,24 @@ function aiAsk(preset) {
 
   // ประวัติที่ส่งไปคือทุกอย่าง "ก่อน" คำถามล่าสุด — ฝั่งเซิร์ฟเวอร์ต่อคำถามเองเป็นข้อความสุดท้าย
   const hist = log.slice(0, -1).map(m => ({ role: m.role, text: m.text }));
-  askSai(q, hist).then(r => {
+  // วาดใหม่ทุกชิ้นที่ไหลเข้ามาจะกระตุกและทำให้คนกำลังอ่านเสียตำแหน่ง —
+  // ต่อข้อความลงฟองที่มีอยู่แล้วโดยตรง แล้วค่อย renderAi() ทีเดียวตอนจบ
+  aiPartial = '';
+  askSaiStream(q, hist, (sofar) => {
+    aiPartial = sofar;
+    const bub = document.querySelector('.ai-bub.ai-live');
+    if (!bub) { renderAi(); return; }
+    // ชิ้นแรกมาถึง = เลิกเป็นจุดสามจุด กลายเป็นฟองข้อความจริง
+    bub.classList.remove('ai-typing');
+    bub.textContent = sofar;
+    aiScrollDown();
+  }).then(r => {
     const l2 = aiLog();
     l2.push(r.ok ? { role: 'model', text: r.answer }
       : { role: 'model', text: r.message, err: true });
     aiLogSave(l2);
     aiBusy = false;
+    aiPartial = '';
     renderAi();
     aiScrollDown();
   });
@@ -2617,7 +2706,9 @@ function renderAi() {
   const head = `<header class="sai-head">
     <div class="sh-id">
       <h1 class="sh-name">น้องไซ<span class="sh-badge">AI</span></h1>
-      <p class="sh-role">ผู้ช่วยของคุณ</p>
+      <p class="sh-role">${fresh ? 'ผู้ช่วยของคุณ' : esc(
+        (pend.length ? 'เห็นงาน ' + pend.length + ' ใบ' : 'ยังไม่เห็นงานค้าง')
+        + (nCls ? ' · ตาราง ' + nCls + ' คาบ' : ''))}</p>
     </div>
     ${log.length ? `<button class="sh-wipe" onclick="aiClear()" aria-label="ล้างประวัติการคุย">${
       icon('trash')}</button>` : ''}
@@ -2694,7 +2785,9 @@ function renderAi() {
 
   const typing = aiBusy ? `<div class="ai-msg sai">
       <span class="ai-av">${icon('sparkles')}</span>
-      <div class="ai-bub ai-typing"><i></i><i></i><i></i></div>
+      ${aiPartial
+        ? `<div class="ai-bub ai-live">${esc(aiPartial)}</div>`
+        : `<div class="ai-bub ai-live ai-typing"><i></i><i></i><i></i></div>`}
     </div>` : '';
 
   const opener = fresh ? `<div class="ai-msg sai">
@@ -2710,6 +2803,8 @@ function renderAi() {
   // อยู่เหนือช่องพิมพ์เสมอ ไม่ใช่เฉพาะตอนจอว่าง — จอเปล่ากับช่องพิมพ์เปล่า
   // คือจุดที่คนส่วนใหญ่ปิดทิ้งเพราะไม่รู้ว่าถามอะไรได้ และความไม่รู้นั้นไม่ได้หายไปหลังถามครั้งแรก
   const quick = `<div class="sai-qa">
+    ${fresh ? '' : `<button class="qa-priv" onclick="aiShowContext()">${
+      icon('lock')}น้องไซเห็นอะไร</button>`}
     ${AI_QUICK.map(q => `<button onclick="aiAsk('${esc(q[2]).replace(/'/g, "\\'")}')"${
       aiBusy ? ' disabled' : ''}>${icon(q[0])}${esc(q[1])}</button>`).join('')}
   </div>`;
@@ -2735,7 +2830,7 @@ function renderAi() {
   // ซึ่งเป็นที่ที่บังคับใช้ได้จริง ต่างจากข้อความบนจอที่เป็นแค่คำประกาศ
   // ส่วนความโปร่งใสยังอยู่ที่ปุ่ม "ดูว่าเห็นอะไร" เหนือบทสนทนา ซึ่งเปิดดูของจริงได้
 
-  el.innerHTML = head + dayCard + priv + thread + quick + bar;
+  el.innerHTML = head + (fresh ? dayCard + priv : '') + thread + quick + bar;
 }
 
 // เลื่อนลงล่างสุดหลังส่งคำถาม — บทสนทนาที่ตอบแล้วแต่ต้องเลื่อนหาเอง อ่านเหมือนไม่ได้ตอบ

@@ -28,6 +28,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 // ตัวแกะภาษาไทยตัวเดียวกับที่แอปใช้ — ไฟล์นี้ถูกสร้างจาก alt/engine.js
 // ห้ามแก้ปลายทาง แก้ที่ alt/engine.js แล้วรัน  python sync-engine.py  ก่อน deploy ทุกครั้ง
 import { parseAssignment } from '../_shared/engine.js';
+import { chat, llmReady, type ChatMsg } from '../_shared/llm.ts';
 
 const CHANNEL_SECRET = Deno.env.get('LINE_CHANNEL_SECRET') ?? '';
 const ACCESS_TOKEN = Deno.env.get('LINE_ACCESS_TOKEN') ?? '';
@@ -449,6 +450,37 @@ function forLine(s: string): string {
     .slice(0, 900);   // กันข้อความยาวจนท่วมจอในกลุ่ม
 }
 
+// gateway ที่พูดภาษา OpenAI — ใช้เมื่อตั้ง LLM_* ครบ (ดู _shared/llm.ts)
+// บุคลิกย้ายไปเป็น message ตัวแรก และฝั่งบอทเรียกตัวเองว่า 'assistant' ไม่ใช่ 'model'
+async function askGateway(q: string, history: any[]): Promise<string> {
+  try {
+    const out = await chat({
+      messages: [
+        { role: 'system', content: PERSONA },
+        ...history.map((h): ChatMsg => ({
+          role: h.role === 'bot' ? 'assistant' : 'user',
+          content: String(h.text ?? ''),
+        })),
+        { role: 'user', content: q },
+      ],
+      temperature: 0.8,
+      maxTokens: 700,
+      // LINE รอ webhook ไม่นาน ยอมแพ้เองดีกว่าให้ LINE มองว่า webhook เรามีปัญหา
+      timeoutMs: 8000,
+    });
+    return forLine(out) || 'เราคิดไม่ออกเลยแฮะ ถามใหม่อีกแบบได้ไหม';
+  } catch (e) {
+    console.error('[gateway]', (e as Error).message);
+    return 'ตอนนี้สมองเราติดขัดนิดหน่อย เดี๋ยวลองใหม่อีกทีนะ';
+  }
+}
+
+// เลือกสมองให้อัตโนมัติ: ตั้ง LLM_* ครบเมื่อไหร่ใช้เจ้านั้น ไม่งั้นถอยไปใช้ Gemini
+// ไม่ต้องมีสวิตช์ให้ตั้งเพิ่ม เพราะ "ตั้ง secret ครบ" คือเจตนาที่ชัดพออยู่แล้ว
+async function askSai(q: string, history: any[]): Promise<string> {
+  return llmReady() ? await askGateway(q, history) : await askGemini(q, history);
+}
+
 async function askGemini(q: string, history: any[]): Promise<string> {
   const contents = [
     ...history.map((h) => ({
@@ -504,9 +536,9 @@ async function askGemini(q: string, history: any[]): Promise<string> {
 async function handleChat(ev: any, text: string, roomId: string): Promise<boolean> {
   if (!ev.replyToken) return false;
 
-  if (!GEMINI_KEY) {
+  if (!GEMINI_KEY && !llmReady()) {
     await reply(ev.replyToken,
-      'เรียกเราเหรอ 🙌 ตอนนี้ยังคิดเองไม่ได้นะ ต้องให้คนดูแลใส่ GEMINI_API_KEY ใน Supabase ก่อน');
+      'เรียกเราเหรอ 🙌 ตอนนี้ยังคิดเองไม่ได้นะ ต้องให้คนดูแลใส่กุญแจ AI ใน Supabase ก่อน');
     return true;
   }
 
@@ -514,7 +546,7 @@ async function handleChat(ev: any, text: string, roomId: string): Promise<boolea
   // ตำแหน่งของชื่อในประโยคคือเบาะแสหลักว่ากำลังเรียกหรือแค่พูดถึง
   // "น้องไซ ช่วยหน่อย" กับ "เมื่อวานน้องไซตอบตลกมาก" ต่างกันตรงนี้ล้วน ๆ
   const q = text.trim().slice(0, 400);
-  const answer = await askGemini(q, await recentChat(roomId));
+  const answer = await askSai(q, await recentChat(roomId));
 
   if (/^\[?\s*SKIP\s*\]?/i.test(answer)) {
     console.log('[chat] แค่พูดถึง ไม่ได้เรียก — เงียบไว้');

@@ -692,18 +692,22 @@
 /* อยู่เหนือช่องพิมพ์เสมอ ไม่ใช่เฉพาะตอนจอว่าง — "ไม่รู้ว่าถามอะไรได้"
    ไม่ได้หายไปหลังถามคำถามแรก · เลื่อนแนวนอนได้เพราะสี่ปุ่มไทยไม่มีทางลงสองแถวสวย */
 .sai-qa {
-  display: flex; gap: 7px; margin-top: 12px;
+  display: flex; gap: 7px; margin-top: 9px;
   overflow-x: auto; scrollbar-width: none;
   padding-bottom: 2px; scroll-padding: 0 20px;
 }
 .sai-qa::-webkit-scrollbar { display: none; }
 .sai-qa button {
   flex: none; display: inline-flex; align-items: center; gap: 6px;
-  padding: 9px 13px; border: 1px solid var(--line); border-radius: 999px;
+  padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px;
   background: var(--card); color: var(--ink);
-  font: inherit; font-size: 12.5px; white-space: nowrap; cursor: pointer;
+  font: inherit; font-size: 12px; white-space: nowrap; cursor: pointer;
 }
-.sai-qa button svg { width: 14px; height: 14px; color: var(--blue); }
+.sai-qa button svg { width: 13px; height: 13px; color: var(--blue); }
+/* ปุ่มความโปร่งใส — อยู่ในแถวเดียวกับปุ่มทางลัดแต่ไม่ใช่คำถาม จึงต้องอ่านออกว่าคนละชนิด
+   พื้นจางกว่าและตัวหนังสือเบากว่า: หยิบได้ตลอดโดยไม่แย่งสายตาไปจากคำถามที่ถามได้จริง */
+.sai-qa .qa-priv { background: transparent; color: var(--muted); border-style: dashed; }
+.sai-qa .qa-priv svg { color: var(--muted); }
 .sai-qa button:active { background: var(--card2); transform: scale(.97); }
 .sai-qa button:disabled { opacity: .5; }
 
@@ -756,8 +760,8 @@
 #aiBody.scr-body {
   flex: 1; min-height: 0; gap: 0;
   /* บนสุดกัน notch เอง — จอนี้ตั้ง padding แบบย่อ ซึ่งทับกฎ safe-area ใน alt.css ทิ้ง
-     ล่างสุดต้องพ้นแถบล่างที่ติดขอบจอแล้ว: 40 (ปุ่ม) + 12 (padding) + safe-area + ช่องว่าง */
-  padding: calc(10px + env(safe-area-inset-top)) 20px 74px;
+     ล่างสุดต้องพ้นแถบล่างที่ติดขอบจอแล้ว: 44 (ปุ่ม) + 6 (padding) + safe-area + ช่องว่าง */
+  padding: calc(8px + env(safe-area-inset-top)) 20px 66px;
 }
 /* บทสนทนาคือส่วนเดียวที่ยืดได้ · min-height:0 จำเป็นจริง ไม่ใช่ของประดับ —
    ไม่มีมันแล้ว flex item จะไม่ยอมหดต่ำกว่าเนื้อหาตัวเอง กล่องเลยดันช่องพิมพ์ตกจอ */
