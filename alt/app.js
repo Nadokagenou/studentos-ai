@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B6';                 // สายเลขของแอป
+const APP_VERSION = '1B8';                 // สายเลขของแอป
 const APP_CODENAME = 'Klasse';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -805,7 +805,7 @@ let enterTimer = null;
 // แถบล่างเหลือ 4 แท็บ + ปุ่มเพิ่ม: วันนี้ · ปฏิทิน · + · งาน · ฉัน
 // scr-ai ออกจากแถบล่างแล้ว (มีปุ่มย้อนกลับของตัวเองใน renderAi) และ scr-scan
 // เข้าจากแผ่นปุ่ม + แทน — ทั้งคู่ยังนับเป็นจอในแอป จึงยังไม่ต้องซ่อนปุ่มเพื่อนบนหัวจอ
-const TABBED_SCREENS = ['scr-menu', 'scr-ai', 'scr-tasks', 'scr-scan', 'scr-timeline', 'scr-profile'];
+const TABBED_SCREENS = ['scr-menu', 'scr-ai', 'scr-tasks', 'scr-scan', 'scr-timeline', 'scr-profile', 'scr-mates'];
 
 // จอที่ไม่มีปุ่มของตัวเองบนแถบล่าง แต่เป็นส่วนหนึ่งของแท็บอื่น
 // รายการงานย้ายเข้าไปเป็นโหมดที่สามของแท็บ "ตาราง" — ปุ่มแท็บนั้นจึงต้องติดไฟด้วย
@@ -814,7 +814,10 @@ const TABBED_SCREENS = ['scr-menu', 'scr-ai', 'scr-tasks', 'scr-scan', 'scr-time
 // ส่วน "ปฏิทิน" เสียปุ่มไป — มันเป็นมุมมองที่สองของแท็บ "งาน" อยู่แล้ว (ดู tlModeTabs)
 // ถ้าไม่ยกให้แท็บนั้นติดไฟ ผู้ใช้จะอยู่ในปฏิทินโดยไม่มีแท็บไหนสว่างเลย = "หลงอยู่ที่ไหนไม่รู้"
 const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
-  'scr-settings': 'scr-profile', 'scr-setopt': 'scr-profile', 'scr-stats': 'scr-profile' };
+  'scr-settings': 'scr-profile', 'scr-setopt': 'scr-profile', 'scr-stats': 'scr-profile',
+  // จอแชทซ่อนแถบล่างอยู่แล้ว แต่ต้องผูกเจ้าของไว้ด้วย — ไม่งั้นตอนกดย้อนกลับ
+  // ออกมา จะไม่มีแท็บไหนติดไฟสักอัน ซึ่งอ่านว่า "หลงอยู่ที่ไหนไม่รู้"
+  'scr-chat': 'scr-mates' };
 
 // ---------- 1A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
 // บนมือถือ การสลับไปแอปอื่นแล้วกลับมามักทำให้ระบบโหลดหน้าใหม่ทั้งหน้า
@@ -853,6 +856,9 @@ function go2(id){ return go(id); }
 // ไม่งั้นผู้ใช้จะเจอรายการงานคนละหน้าตาสองแบบแล้วแต่ว่าเข้ามาทางไหน
 function go(id) {
   if (id === 'scr-home') id = 'scr-tasks';
+  // ออกจากจอแชทเมื่อไหร่ ปิดช่องรับข้อความสดทันที — ช่องที่เปิดค้างกินโควตา realtime
+  // ซึ่งนับจำนวนช่องที่เปิดพร้อมกัน ไม่ใช่จำนวนข้อความ · เปิดค้างสิบห้องแล้วเงียบไปเลย
+  if (curScreen === 'scr-chat' && id !== 'scr-chat' && typeof closeChat === 'function') closeChat();
   // คืนบล็อกตัวเลือกกลับที่พักก่อนออกจากหน้าย่อยของตั้งค่า — ทางออกมีหลายทาง
   // (ปุ่มกลับ · แท็บล่าง · ปุ่มย้อนของเครื่อง) ตกทางใดทางหนึ่งแล้วบล็อกหาย
   if (curScreen === 'scr-setopt' && id !== 'scr-setopt') stashSetOpt();
@@ -873,6 +879,9 @@ function go(id) {
   enterTimer = setTimeout(() => scr.classList.remove('just-in'), 520);
   // ซ่อนแถบล่างในจอที่ยังไม่ได้เข้าแอปจริง (บัญชี / ทำความรู้จัก)
   document.body.classList.toggle('login-mode', id === 'scr-login' || id === 'scr-onboard');
+  // จอแชทซ่อนแถบล่างเหมือนจอล็อกอิน — ช่องพิมพ์ต้องติดก้นจอจริง ๆ
+  // ไม่ใช่ลอยอยู่หลังแถบล่างจนกดไม่โดน · ออกจากจอนี้ได้ทางปุ่มย้อนกลับในหัวจอ
+  document.body.classList.toggle('chat-mode', id === 'scr-chat');
   // จอที่ไม่ได้อยู่บนแถบล่าง (แผนวันนี้ · ร้าน · สุ่มสกิน ฯลฯ) มีปุ่มย้อนกลับของตัวเอง
   // อยู่มุมขวาบนตรงตำแหน่งเดียวกับปุ่มเพื่อนพอดี สองปุ่มจึงทับกันจนกดผิดตัวได้
   // จอพวกนี้เข้ามาจากทางอื่นอยู่แล้ว ปุ่มเพื่อนจึงหลบให้ปุ่มย้อนกลับไปก่อน
@@ -4044,6 +4053,13 @@ function renderProfile() {
   if (pb) pb.textContent = badgesEarned().length + ' จาก ' + BADGES.length + ' เหรียญ';
   const pf2 = document.getElementById('peFriendCt');
   if (pf2) pf2.textContent = friends().length ? friends().length + ' คนในรายการ' : 'ยังไม่มีใครในรายการ';
+  // ห้องของฉัน — บอกว่ามีของวางอยู่กี่ชิ้นแล้ว ห้องเปล่ากับห้องที่แต่งแล้วต้องอ่านต่างกัน
+  const pr = document.getElementById('peRoomCt');
+  if (pr && typeof roomState === 'function') {
+    const rs = roomState();
+    const put = Object.keys(rs.on).filter(k => rs.on[k] && rs.on[k] !== 'none').length;
+    pr.textContent = rs.name || (put ? 'วางของไว้ ' + put + ' ชิ้น' : 'ยังไม่ได้แต่งเลย');
+  }
   const ps = document.getElementById('peShopCt');
   if (ps) {
     const st = loginStreak();
@@ -6254,6 +6270,8 @@ function renderAll() {
   // (กันแอปพังทั้งจอถ้าไฟล์ inbox.js/linelink.js โหลดไม่ขึ้น)
   if (typeof renderInbox === 'function') renderInbox();
   if (typeof renderSources === 'function') renderSources();
+  if (typeof renderRoom === 'function') renderRoom();
+  if (typeof renderMates === 'function') renderMates();
 }
 
 // ---------- สแกนตารางเรียนจากรูป ----------
@@ -9030,6 +9048,21 @@ function shortcutTarget() {
   } catch (_) { return null; }
 }
 
+// หน้าแนะนำ (land.html) ส่ง ?start=google|guest มา — คนกดเลือกไปแล้วที่หน้านั้น
+// จอบัญชีจึงไม่ควรถามซ้ำ ไม่งั้นปุ่มบนหน้าขายของก็แค่พาไปเจอคำถามเดิม
+//
+// อ่านครั้งเดียวตอนโหลดไฟล์แล้วล้าง query ทิ้งทันที เพราะ routeStart()
+// ถูกเรียกสองรอบโดยตั้งใจ — ถ้าอ่านสดทุกรอบจะยิง OAuth ซ้ำสองครั้ง
+const LANDING_START = (() => {
+  try {
+    const s = new URLSearchParams(location.search).get('start');
+    if (s !== 'google' && s !== 'guest') return null;
+    history.replaceState(null, '', location.pathname);
+    return s;
+  } catch (_) { return null; }
+})();
+let landingUsed = false;
+
 // เลือกจอแรกหลังเปิดแอป: บัญชี → ทำความรู้จัก → เข้าแอป
 //
 // ถูกเรียกสองครั้งโดยตั้งใจ:
@@ -9038,6 +9071,16 @@ function shortcutTarget() {
 // เรียกซ้ำแล้วผลเหมือนเดิมเสมอถ้าคำตอบไม่เปลี่ยน จึงเรียกกี่ครั้งก็ปลอดภัย
 function routeStart() {
   const signedIn = currentUser || hasStoredSession();
+
+  // เพิ่งกดปุ่มมาจากหน้าแนะนำ — ทำตามที่เขากดเลย ไม่ต้องแวะจอบัญชี
+  // (คนที่ล็อกอินค้างอยู่แล้วไม่โดน — ปุ่มพวกนี้มีไว้สำหรับคนที่ยังไม่มีบัญชี)
+  if (LANDING_START && !landingUsed && !signedIn) {
+    landingUsed = true;
+    if (LANDING_START === 'guest') { skipLogin(); return; }
+    if (cloudConfigured()) { go('scr-login'); loginGoogle(); return; }
+    skipLogin(); return; // ไม่มีระบบบัญชีให้สมัคร ก็อย่าปล่อยให้ค้างหน้าเปล่า
+  }
+
   if (cloudConfigured() && !signedIn && !localStorage.getItem('studentos.alt.skipLogin')) {
     go('scr-login'); // มีระบบบัญชี + ยังไม่เคยเลือก → ให้เลือกก่อน
   } else if (needsOnboard()) {
