@@ -27,7 +27,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 // ตัวแกะภาษาไทยตัวเดียวกับที่แอปใช้ — ไฟล์นี้ถูกสร้างจาก alt/engine.js
 // ห้ามแก้ปลายทาง แก้ที่ alt/engine.js แล้วรัน  python sync-engine.py  ก่อน deploy ทุกครั้ง
-import { parseAssignment } from '../_shared/engine.js';
+import { parseAssignment, splitAssignments } from '../_shared/engine.js';
 import { chat, llmReady, type ChatMsg } from '../_shared/llm.ts';
 
 const CHANNEL_SECRET = Deno.env.get('LINE_CHANNEL_SECRET') ?? '';
@@ -283,9 +283,60 @@ async function roomTaskReply(roomId: string, nowTh: number): Promise<string> {
   return out + await joinHint(roomId, Date.now());
 }
 
+// ---------- ใบสั่งงานทั้งสัปดาห์ในข้อความเดียว ----------
+// เก็บทีละบรรทัดเข้ารายการของห้อง แล้วตอบเป็นสรุปสั้น ๆ ครั้งเดียว
+// ห้ามตอบทีละงาน — reply token ใช้ได้ครั้งเดียว และบอทที่พิมพ์สิบเอ็ดข้อความรวดโดนเตะออกทันที
+async function confirmListInGroup(ev: any, cut: any, rid: string, mid: string, linked: number) {
+  const now = thaiNow();
+  const kept: any[] = [];
+  for (const seg of cut.segments) {
+    try {
+      const p = parseAssignment(seg, now);
+      // เกณฑ์เดียวกับข้อความเดี่ยว — รายการของห้องเป็นของสาธารณะ มีของมั่วปนไม่ได้
+      if (p?.detected?.due && p?.detected?.subject && p?.due) kept.push(p);
+    } catch (_) { /* บรรทัดเดียวแกะไม่ออก ไม่ควรทำให้ทั้งใบสั่งงานตกไปด้วย */ }
+  }
+  if (!kept.length) return;
+
+  // msg_id เป็นคีย์กันซ้ำ (ครูส่งข้อความเดิมซ้ำ = แถวเดิม ไม่ใช่แถวใหม่)
+  // หนึ่งข้อความมีหลายงาน จึงต้องต่อลำดับเข้าไปให้แต่ละงานมีคีย์ของตัวเอง
+  if (rid && mid) {
+    for (let i = 0; i < kept.length; i++) await rememberRoomTask(rid, mid + '#' + i, kept[i]);
+  }
+
+  const lines = kept.slice(0, 5).map((p: any) => {
+    const what = clip(String(p.detail || '').trim().replace(/^(?:ส่ง|สอบ)\s*/, ''), 32);
+    const subj = p.subject && p.subject !== 'อื่น ๆ' ? p.subject : '';
+    return '· ' + (subj && !what.includes(subj) ? subj + ' ' + what : (what || subj))
+      + ' — ' + thaiDue(p.due);
+  });
+  let msg = 'เก็บให้แล้ว ' + kept.length + ' งาน 📎\n' + lines.join('\n');
+  if (kept.length > lines.length) msg += '\n(อีก ' + (kept.length - lines.length) + ' งานดูในแอปได้เลย)';
+  if (linked >= 2) msg += '\nห้องนี้มี ' + linked + ' คนได้เข้าแอปอัตโนมัติ';
+  await reply(ev.replyToken, msg);
+}
+
 async function confirmInGroup(ev: any, text: string, linked: number) {
   // ถูกใช้ไปแล้วตอนตอบน้องไซ หรือไม่มีมาแต่แรก — reply token ใช้ได้ครั้งเดียว
   if (!ev.replyToken) return;
+
+  const rid = ev.source?.groupId ?? ev.source?.roomId ?? ev.source?.userId ?? '';
+  const mid = ev.message?.id ? String(ev.message.id) : '';
+
+  // ครูสั่งงานทั้งสัปดาห์ในข้อความเดียว — ต้องตัดเป็นงาน ๆ ก่อน ไม่งั้นรายการของห้อง
+  // ได้แถวเดียวที่มีทุกวิชาปนกันและไม่มีกำหนดส่ง (ตัวตัดตัวเดียวกับที่ฝั่งแอปใช้)
+  let cut: any;
+  try {
+    cut = splitAssignments(text);
+  } catch (e) {
+    console.error('[confirm] ตัดก้อนไม่ผ่าน:', (e as Error)?.message);
+    return;
+  }
+
+  if (cut.multi) {
+    await confirmListInGroup(ev, cut, rid, mid, linked);
+    return;
+  }
 
   let p: any;
   try {
@@ -298,8 +349,7 @@ async function confirmInGroup(ev: any, text: string, linked: number) {
 
   // เก็บเข้ารายการของห้องด้วย — ใช้ประตูเดียวกับที่ตัดสินใจว่าจะพูดหรือไม่พูด
   // ตั้งใจให้เข้มเท่ากัน เพราะรายการที่มีของมั่วปนอยู่ แย่กว่ารายการที่ขาดไปหนึ่งใบ
-  const rid = ev.source?.groupId ?? ev.source?.roomId ?? ev.source?.userId ?? '';
-  if (rid && ev.message?.id) await rememberRoomTask(rid, String(ev.message.id), p);
+  if (rid && mid) await rememberRoomTask(rid, mid, p);
 
   // ตัดคำกริยาที่ค้างอยู่หน้ารายละเอียด ไม่งั้นได้ "ส่งใบงานเคมี ... ส่ง พฤ. 10 ก.ย."
   const what = clip(String(p.detail || '').trim().replace(/^(?:ส่ง|สอบ)\s*/, ''));

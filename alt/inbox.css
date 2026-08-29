@@ -153,3 +153,57 @@
    และต้องใหญ่กว่าไอคอนเส้นนิดหน่อยถึงจะเห็นว่าเป็นรูปหนังสือ ไม่ใช่ก้อนสีมั่ว ๆ */
 .brain-hd svg[data-brand], .brain-hd > svg:first-child{
   width:20px; height:20px; padding:2px; border-radius:6px; background:#fff}
+
+/* ---------- ข้อความเดียว หลายงาน ---------- */
+/* ครูสั่งงานทั้งสัปดาห์ทีเดียวเป็นเรื่องปกติ ไม่ใช่ข้อยกเว้น
+   การ์ดนี้จึงหน้าตาเป็น "เช็คลิสต์ที่ติ๊กมาให้แล้ว" ไม่ใช่ "คำถามสิบเอ็ดข้อ" —
+   สิ่งที่ผู้ใช้ต้องทำเหลือแค่ปลดติ๊กอันที่ไม่เอา ซึ่งส่วนใหญ่ไม่ต้องทำอะไรเลย */
+.ib-batch-n{display:inline-flex; align-items:center; gap:5px; padding:4px 9px 5px;
+  border-radius:999px; background:var(--blue-soft, var(--card2)); color:var(--blue);
+  font-size:11px; font-weight:700; white-space:nowrap}
+.ib-batch-n svg{width:12px; height:12px}
+
+.ib-rows{margin-top:10px; border-radius:12px; overflow:hidden;
+  border:1px solid var(--line); background:var(--card2)}
+.ibr{display:flex; align-items:center; gap:10px; padding:9px 11px;
+  border-bottom:1px solid var(--line)}
+.ibr:last-child{border-bottom:0}
+
+/* ช่องติ๊ก — เป้ากดต้องใหญ่กว่ากล่องที่เห็น เพราะรายการยาวสิบกว่าบรรทัดบนจอมือถือ
+   กดพลาดหนึ่งครั้งแปลว่าเผลอเอางานที่ไม่ได้ตั้งใจเข้าแผน */
+.ibr-ck{width:22px; height:22px; flex:none; padding:0; cursor:pointer;
+  border-radius:7px; border:1.5px solid var(--line-strong, var(--line));
+  background:var(--card); color:var(--on-accent);
+  display:inline-flex; align-items:center; justify-content:center;
+  transition:transform .14s ease}
+.ibr-ck svg{width:14px; height:14px}
+.ibr-ck:active{transform:scale(.9)}
+.ibr.on .ibr-ck{background:var(--blue); border-color:var(--blue)}
+
+.ibr-bd{flex:1; min-width:0; display:flex; flex-direction:column; cursor:pointer}
+.ibr-bd .t{font-size:12.5px; font-weight:600; color:var(--ink); line-height:1.45;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.ibr-bd .s{font-size:11px; color:var(--muted); margin-top:1px}
+.ibr-bd .s.miss{color:var(--warn); font-weight:600}
+.ibr-bd .s.flag{color:var(--muted); font-style:italic}
+
+.ibr-ed{width:30px; height:30px; flex:none; padding:0; cursor:pointer;
+  border:0; border-radius:9px; background:transparent; color:var(--muted);
+  display:inline-flex; align-items:center; justify-content:center}
+.ibr-ed svg{width:14px; height:14px}
+.ibr-ed:active{transform:scale(.9)}
+
+/* บรรทัดที่ถูกตัดออก ยังอ่านได้อยู่ ไม่ได้หายไป — ต้องเห็นว่าเราคิดอะไรถึงตัดมันออก
+   ไม่งั้น "จับซ้ำได้" กลายเป็น "งานหายไปเฉย ๆ" ในสายตาคนใช้ */
+.ibr.off{opacity:.5}
+.ibr.off .ibr-bd .t{text-decoration:line-through; text-decoration-color:var(--muted)}
+.ibr.accepted .ibr-ck{background:var(--good); border-color:var(--good)}
+
+.ib-more{width:100%; min-height:36px; margin-top:8px; cursor:pointer;
+  border:0; border-radius:10px; background:transparent; color:var(--muted);
+  font-family:inherit; font-size:12px; font-weight:600;
+  display:inline-flex; align-items:center; justify-content:center; gap:5px}
+.ib-more svg{width:13px; height:13px; transform:rotate(90deg)}
+.ib-more:active{color:var(--blue)}
+
+.ib-act .ib-go[disabled]{opacity:.45; cursor:default}

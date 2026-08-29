@@ -25,7 +25,7 @@ DST = os.path.join(DST_DIR, 'engine.js')
 
 # สิ่งที่ฝั่งเซิร์ฟเวอร์ได้ใช้จริง — ตั้งใจให้สั้น
 # ยิ่งเปิดออกไปน้อย ยิ่งรู้ชัดว่าถ้าแก้ engine.js แล้วอะไรฝั่งเซิร์ฟเวอร์จะกระเทือน
-EXPORTS = ['parseAssignment']
+EXPORTS = ['parseAssignment', 'splitAssignments']
 
 HEADER = (
     '// ====== ไฟล์นี้ถูกสร้างโดย sync-engine.py — ห้ามแก้ด้วยมือ ======\n'

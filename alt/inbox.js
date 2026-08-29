@@ -115,6 +115,21 @@ function taskGate(text, parsed) {
   return learned >= BRAIN_FLIP ? { pass: true, why: 'learned' } : { pass: false, why: 'rule' };
 }
 
+// ---------- ก้อนนี้คือ "ใบสั่งงาน" หรือ "คนคุยกัน" ----------
+// ตัดสินจากทั้งก้อน ไม่ใช่ทีละบรรทัด แล้วเอาคำตอบไปใช้สองที่:
+//   1. ตัดสินว่าข้อความหลายบรรทัดที่ไม่มีขีดนำหน้า ควรถูกตัดเป็นหลายงานไหม
+//   2. ตัดสินว่าบรรทัดที่ดูจืดในรายการ ควรถูกคัดทิ้งเป็นขยะไหม (ไม่ควร ถ้าเพื่อนบ้านเป็นงานหมด)
+// ต้องเป็นเกณฑ์เดียวกันทั้งสองที่ ไม่งั้นแอปจะตัดข้อความเป็นรายการแล้วทิ้งครึ่งรายการทันที
+const TASK_LIST_MIN_STRONG = 2;
+function isTaskListByEvidence(strongN, total) {
+  return strongN >= TASK_LIST_MIN_STRONG && strongN * 2 >= total;
+}
+function looksLikeTaskList(segments) {
+  let n = 0;
+  for (const s of segments) if (taskEvidence(s, parseAssignment(s)) === 'strong') n++;
+  return isTaskListByEvidence(n, segments.length);
+}
+
 // แหล่งที่ข้อมูลไหลเข้ามาเองโดยไม่มีใครสั่ง — พวกนี้ต้องผ่านประตูแรกก่อน
 // ส่วนสแกน/พูด/แปะเอง ไม่ต้องกรอง เพราะนักเรียนตั้งใจส่งเข้ามาเองอยู่แล้ว
 // ถ้าไปกรองของที่เขาตั้งใจส่ง จะกลายเป็นแอปที่เถียงกับผู้ใช้
@@ -126,19 +141,58 @@ const PASSIVE_SOURCES = ['line', 'classroom'];
 function normText(s) {
   return String(s || '').toLowerCase().replace(/[\s\-–—.,()"']/g, '');
 }
-function findDuplicate(parsed) {
-  const key = normText(parsed.detail);
-  if (!key) return null;
-  const due = parsed.due ? new Date(parsed.due) : null;
-  return liveTasks().find(t => {
-    if (t.subject !== parsed.subject) return false;
-    const a = normText(t.detail);
-    if (!a || !key) return false;
-    const same = a === key || a.includes(key) || key.includes(a);
-    if (!same) return false;
-    if (!due || !t.due) return true;
-    return Math.abs(new Date(t.due) - due) < 12 * 3.6e6; // กำหนดส่งห่างกันไม่เกินครึ่งวัน = งานเดียวกัน
-  }) || null;
+
+// ข้อความสั้น ๆ ที่บังเอิญเป็นส่วนหนึ่งของกันและกัน ไม่ได้แปลว่าเป็นงานเดียวกัน
+// "ทำชีท" อยู่ใน "ทำชีทคณิต" ก็จริง แต่ถ้าครูสั่งชีทสองใบในวิชาเดียวกันคนละสัปดาห์
+// ใบที่สองจะถูกกลืนหายไปเงียบ ๆ — ซึ่งเป็นความผิดพลาดที่ไม่มีใครสังเกตจนถึงวันส่ง
+// ตรงตัวเป๊ะยอมได้เสมอ · ส่วนแบบ "อยู่ในกันและกัน" ต้องยาวพอที่จะไม่ใช่ความบังเอิญ
+const DUP_CONTAIN_MIN = 8;
+
+// เทียบสองงานว่าเป็นใบเดียวกันไหม — ใช้ทั้งกับงานที่รับเข้าแผนแล้วและของที่ยังค้างในกล่อง
+function sameAssignment(a, b) {
+  if (!a || !b) return false;
+  if ((a.subject || '') !== (b.subject || '')) return false;
+  const x = normText(a.detail), y = normText(b.detail);
+  if (!x || !y) return false;
+  const same = x === y
+    || (x.includes(y) && y.length >= DUP_CONTAIN_MIN)
+    || (y.includes(x) && x.length >= DUP_CONTAIN_MIN);
+  if (!same) return false;
+  // ข้อความเหมือนกันแต่คนละกำหนดส่ง = ครูสั่งงานแบบเดิมรอบใหม่ ไม่ใช่ของซ้ำ
+  if (!a.due || !b.due) return true;
+  return Math.abs(new Date(a.due) - new Date(b.due)) < 12 * 3.6e6;
+}
+
+// หาว่างานนี้มีอยู่แล้วไหม — ดูสามที่ ไม่ใช่ที่เดียวเหมือนเดิม:
+//   1. งานที่อยู่ในแผนแล้ว
+//   2. ของที่ยังค้างรอตรวจอยู่ในกล่องเข้า  ← เดิมไม่ได้ดู ครูส่งซ้ำสองรอบก่อนกดรับ = ได้สองใบ
+//   3. รายการอื่นในข้อความก้อนเดียวกัน (ส่งผ่าน extra) ← ครูมักเขียนงานเดิมซ้ำท้ายรายการ
+//
+// คืนค่าเป็น { kind, id, subject, detail, due } เพื่อให้ผู้เรียกบอกผู้ใช้ได้ว่าซ้ำกับ "อะไร"
+// การบอกแค่ว่า "ซ้ำ" โดยไม่บอกว่าซ้ำกับใบไหน ทำให้คนไม่กล้าเชื่อว่ามันจับถูกจริง
+function findDuplicate(parsed, extra = []) {
+  if (!normText(parsed.detail)) return null;
+
+  for (const t of liveTasks()) {
+    if (sameAssignment(t, parsed)) return { kind: 'task', id: t.id, subject: t.subject, detail: t.detail, due: t.due };
+  }
+  for (const it of inboxPending()) {
+    for (const c of inboxUnits(it)) {
+      if (c.status === 'new' && sameAssignment(c.parsed, parsed)) {
+        return { kind: 'inbox', id: it.id, subject: c.parsed.subject, detail: c.parsed.detail, due: c.parsed.due };
+      }
+    }
+  }
+  for (const p of extra) {
+    if (sameAssignment(p, parsed)) return { kind: 'batch', id: null, subject: p.subject, detail: p.detail, due: p.due };
+  }
+  return null;
+}
+
+// รายการในกล่องเข้าหนึ่งชิ้น อาจเป็นงานเดียว หรือเป็นก้อนที่มีหลายงานอยู่ข้างใน
+// ฟังก์ชันนี้ทำให้โค้ดที่เหลือไม่ต้องรู้ว่าเป็นแบบไหน — วนอ่านได้เหมือนกันทั้งสองแบบ
+function inboxUnits(item) {
+  return item && item.kind === 'batch' ? (item.children || []) : [item];
 }
 
 // ---------- ประตูเข้าหลัก ----------
@@ -147,6 +201,20 @@ function findDuplicate(parsed) {
 function inboxAdd(rawText, sourceId = 'text', meta = {}) {
   const text = String(rawText || '').trim();
   if (!text) return { status: 'empty' };
+
+  // ครูสั่งงานทั้งสัปดาห์ในข้อความเดียวเป็นเรื่องปกติ ไม่ใช่ข้อยกเว้น
+  // ต้องตัดเป็นงาน ๆ ก่อนเสมอ ไม่งั้นได้งานเดียวที่มีทุกวิชาปนกันแล้วไม่มีกำหนดส่ง
+  const cut = typeof splitAssignments === 'function'
+    ? splitAssignments(text) : { multi: false, reason: 'single', segments: [text], header: '' };
+
+  // ครูเขียนเป็นรายการโดยไม่ใส่ขีดและไม่มีหัวเรื่อง — ตัวตัดไม่กล้าตัดให้เอง
+  // (ถูกแล้ว: บทสนทนาสามบรรทัดในกลุ่มก็หน้าตาแบบนี้เป๊ะ)
+  // ชั้นนี้ตัดสินต่อได้ เพราะเรามี parseAssignment ที่ engine ไม่มีสิทธิ์เรียกในจังหวะนั้น:
+  // ถ้าเกินครึ่งของบรรทัดเป็นงานชัด ๆ ในตัวเอง แปลว่ามันคือรายการงานจริง
+  if (!cut.multi && cut.reason === 'lines' && cut.segments.length >= 2 && looksLikeTaskList(cut.segments)) {
+    cut.multi = true;
+  }
+  if (cut.multi) return inboxAddBatch(text, cut, sourceId, meta);
 
   const parsed = parseAssignment(text);
   const conf = inboxConfidence(parsed);
@@ -177,10 +245,11 @@ function inboxAdd(rawText, sourceId = 'text', meta = {}) {
   if (dup) {
     // ไม่ทิ้งเงียบ ๆ — บันทึกไว้ว่าเจอซ้ำ เพื่อให้ตอบได้ว่า "ทำไมงานนี้ไม่ขึ้น"
     item.status = 'duplicate';
-    item.taskId = dup.id;
+    item.taskId = dup.kind === 'task' ? dup.id : null;
+    item.dupOf = dup;
     state.inbox.unshift(item);
     save();
-    return { status: 'duplicate', item, task: dup };
+    return { status: 'duplicate', item, dup };
   }
 
   if (conf >= AUTO_ACCEPT && state.settings.autoAccept !== false) {
@@ -195,6 +264,149 @@ function inboxAdd(rawText, sourceId = 'text', meta = {}) {
   state.inbox.unshift(item);
   save();
   return { status: 'pending', item };
+}
+
+// ---------- ข้อความเดียว หลายงาน ----------
+// ทั้งก้อนอยู่รวมกันเป็นรายการเดียวในกล่องเข้า มีเช็คลิสต์อยู่ข้างใน
+// เหตุผลที่ไม่แตกเป็น 11 การ์ด: ในสายตาผู้ใช้มันคือ "ข้อความจากครูหนึ่งข้อความ"
+// การเห็นสิบเอ็ดการ์ดที่ไม่รู้ว่ามาจากที่เดียวกัน แล้วต้องกดสิบเอ็ดครั้ง
+// คือการย้ายงานกรอกข้อมูลจากคีย์บอร์ดไปไว้ที่นิ้วโป้ง ไม่ได้แก้ปัญหาอะไรเลย
+function inboxAddBatch(text, cut, sourceId, meta) {
+  const parts = cut.segments.map(seg => ({ seg, parsed: parseAssignment(seg) }));
+
+  // ---- บริบทของทั้งก้อนมาก่อนการตัดสินทีละบรรทัด ----
+  // ประตูคัดขยะถูกออกแบบมาสำหรับข้อความเดี่ยว ๆ ที่ลอยมาในกลุ่ม จึงต้องการหลักฐานในตัวมันเอง
+  // แต่บรรทัดที่อยู่ในรายการการบ้าน มีหลักฐานอยู่ที่ "เพื่อนบ้าน" ของมัน ไม่ใช่ในตัวมันเอง
+  //
+  // ของจริงที่วัดมา: ในรายการ 11 บรรทัดของครู มี 3 บรรทัดถูกคัดทิ้งเป็นขยะ —
+  //   "ทำอินโฟของประวัติศาสตร์และหน้าที่" · "งานชิ้นที่ 6 Blockly ซ้ำ"
+  //   "ทำพอร์ตหน้าประวัติการศึกษาให้เสร็จ"
+  // ทั้งสามคือการบ้านจริง แค่เขียนสั้นจนไม่มีคำว่าส่ง ไม่มีวันที่ ไม่มีคะแนน
+  // เมื่ออีกแปดบรรทัดรอบตัวมันเป็นงานชัด ๆ การเถียงว่าบรรทัดพวกนี้ไม่ใช่งานคือการดื้อกับบริบท
+  //
+  // เกณฑ์: เกินครึ่งของรายการเป็นงานชัด → ทั้งก้อนคือใบสั่งงาน ทุกบรรทัดผ่าน
+  // (ยังปลดติ๊กรายบรรทัดได้ ของที่หลุดเข้ามาผิดจึงเสียแค่หนึ่งแตะ
+  //  ส่วนของที่ถูกทิ้งไปเงียบ ๆ ไม่มีใครรู้ว่าเคยมี — ราคาไม่เท่ากัน)
+  const strongN = parts.filter(p => taskEvidence(p.seg, p.parsed) === 'strong').length;
+  const isTaskList = isTaskListByEvidence(strongN, parts.length);
+
+  const seen = [];   // งานที่รับไปแล้วในก้อนนี้ — ใช้จับซ้ำกันเองภายในข้อความเดียว
+  const children = parts.map(({ seg, parsed }) => {
+    const c = {
+      id: uid(), raw: seg, parsed,
+      confidence: inboxConfidence(parsed),
+      status: 'new', pick: true, taskId: null, dupOf: null,
+    };
+
+    // ประตูคัดขยะทำงานทีละบรรทัด ไม่ใช่ทั้งก้อน — บรรทัด "อย่าลืมเอาเงินมาจ่ายค่าเสื้อ"
+    // ที่ปนอยู่กลางรายการงาน ต้องถูกคัดออกได้โดยไม่ทำให้ทั้งก้อนตกไปด้วย
+    if (PASSIVE_SOURCES.includes(sourceId) && !isTaskList && !taskGate(seg, parsed).pass) {
+      c.status = 'noise'; c.pick = false;
+      return c;
+    }
+    if (isTaskList) c.why = 'list';
+    const dup = findDuplicate(parsed, seen);
+    if (dup) {
+      c.status = 'duplicate'; c.pick = false; c.dupOf = dup;
+      if (dup.kind === 'task') c.taskId = dup.id;
+      return c;
+    }
+    seen.push(parsed);
+    return c;
+  });
+
+  const fresh = children.filter(c => c.status === 'new');
+  const item = {
+    id: uid(), source: sourceId, kind: 'batch', raw: text, header: cut.header,
+    at: new Date().toISOString(), children, meta,
+    parsed: (fresh[0] || children[0]).parsed,   // ให้โค้ดเก่าที่อ่าน .parsed ยังทำงานได้
+    confidence: fresh.length ? Math.min(...fresh.map(c => c.confidence)) : 0,
+    status: 'new', taskId: null,
+  };
+
+  state.inbox = state.inbox || [];
+  if (state.inbox.length > 150) state.inbox.length = 150;
+
+  // ทั้งก้อนไม่เหลืออะไรใหม่เลย — ซ้ำหมดหรือไม่ใช่งานหมด ไม่ต้องไปกวนให้กดทิ้ง
+  if (!fresh.length) {
+    item.status = children.some(c => c.status === 'duplicate') ? 'duplicate' : 'noise';
+    state.inbox.unshift(item);
+    save();
+    return { status: item.status, item };
+  }
+
+  // เข้าแผนเองได้ก็ต่อเมื่อ **ทุก** ใบในก้อนมั่นใจถึงเกณฑ์
+  // ก้อนหนึ่งคือคำตอบเดียวที่ครอบสิบเอ็ดงาน — ปล่อยผ่านทั้งที่มีใบเดียวไม่แน่ใจ
+  // คือการเดาแทนผู้ใช้สิบเอ็ดครั้งจากการตัดสินใจครั้งเดียว ราคาของการผิดจึงสูงกว่ากันมาก
+  if (fresh.every(c => c.confidence >= AUTO_ACCEPT) && state.settings.autoAccept !== false) {
+    for (const c of fresh) { c.taskId = inboxToTask(childShim(item, c)).id; c.status = 'accepted'; }
+    item.status = 'accepted';
+    state.inbox.unshift(item);
+    save();
+    return { status: 'accepted', item, count: fresh.length };
+  }
+
+  state.inbox.unshift(item);
+  save();
+  return { status: 'pending', item, count: fresh.length };
+}
+
+// ให้ลูกในก้อนหน้าตาเหมือนรายการเดี่ยว เพื่อใช้ inboxToTask ตัวเดิมได้โดยไม่ต้องแยกทาง
+function childShim(item, c) {
+  return { id: c.id, parsed: c.parsed, source: item.source, raw: c.raw };
+}
+
+// ติ๊กเลือก/ไม่เลือกทีละบรรทัด
+function inboxPick(itemId, childId) {
+  const item = (state.inbox || []).find(i => i.id === itemId);
+  const c = item && (item.children || []).find(x => x.id === childId);
+  if (!c || c.status === 'accepted') return;
+  c.pick = !c.pick;
+  // เคยถูกตัดออกเพราะคิดว่าซ้ำ/ไม่ใช่งาน แล้วผู้ใช้ติ๊กกลับ = เราคิดผิด ต้องยอมรับเข้ามา
+  if (c.pick && c.status !== 'new') { c.status = 'new'; c.dupOf = null; c.taskId = null; }
+  save(); renderInbox();
+}
+
+function inboxExpand(itemId) {
+  const item = (state.inbox || []).find(i => i.id === itemId);
+  if (!item) return;
+  item.expanded = true;
+  save(); renderInbox();
+}
+
+function inboxAcceptBatch(itemId) {
+  const item = (state.inbox || []).find(i => i.id === itemId);
+  if (!item || item.status !== 'new') return;
+  const take = (item.children || []).filter(c => c.pick && c.status === 'new');
+  for (const c of take) { c.taskId = inboxToTask(childShim(item, c)).id; c.status = 'accepted'; }
+  item.status = 'accepted';
+  // สอนจากบรรทัดที่ "คน" เลือกจริง ไม่ใช่จากทั้งก้อน — ก้อนเดียวมีทั้งงานจริงและของที่ไม่ใช่
+  for (const c of item.children || []) {
+    if (c.status === 'accepted') brainLearn(c.raw, true);
+    else if (!c.pick && c.status === 'new') brainLearn(c.raw, false);
+  }
+  save(); renderAll();
+  showToast({ title: `เพิ่มเข้าแผนแล้ว ${take.length} งาน`,
+    body: take.length ? take.slice(0, 3).map(c => c.parsed.subject).join(' · ') + (take.length > 3 ? ' …' : '') : '' });
+}
+
+function inboxIgnoreBatch(itemId) {
+  const item = (state.inbox || []).find(i => i.id === itemId);
+  if (!item) return;
+  item.status = 'ignored';
+  for (const c of item.children || []) if (c.status === 'new') brainLearn(c.raw, false);
+  save(); renderAll();
+}
+
+// แก้บรรทัดเดียวก่อนรับ — ที่เหลือในก้อนยังค้างรอต่อไป
+function inboxEditChild(itemId, childId) {
+  const item = (state.inbox || []).find(i => i.id === itemId);
+  const c = item && (item.children || []).find(x => x.id === childId);
+  if (!c) return;
+  c.status = 'ignored'; c.pick = false;   // ฟอร์มจะสร้างงานใหม่ให้เอง
+  brainLearn(c.raw, true);
+  save();
+  openForm(null, c.parsed);
 }
 
 // แปลงรายการในกล่องเข้าเป็นงานจริง
@@ -267,11 +479,16 @@ function renderInbox() {
   const wait = inboxPending();
   const recent = all.filter(i => i.status !== 'new').slice(0, 8);
 
+  // นับเป็น "จำนวนงาน" ไม่ใช่ "จำนวนข้อความ" — ข้อความเดียวของครูมีสิบเอ็ดงานได้
+  // ตัวเลขที่บอกว่ารอตรวจ 1 ทั้งที่ข้างในมีสิบเอ็ดใบ ทำให้คนไม่กดเข้าไปดู
+  const countUnits = (list, ok) => list.reduce((n, i) => n + inboxUnits(i).filter(ok).length, 0);
+  const waitN = countUnits(wait, c => c.status === 'new');
+
   const sub = document.getElementById('inboxSub');
   if (sub) {
-    const auto = all.filter(i => i.status === 'accepted').length;
-    sub.textContent = wait.length
-      ? `รอตรวจ ${wait.length} · เข้าแผนเองแล้ว ${auto}`
+    const auto = countUnits(all.filter(i => i.status === 'accepted'), c => c.status === 'accepted');
+    sub.textContent = waitN
+      ? `รอตรวจ ${waitN} · เข้าแผนเองแล้ว ${auto}`
       : `เข้าแผนเองแล้ว ${auto} รายการ`;
   }
 
@@ -282,7 +499,55 @@ function renderInbox() {
       — ที่เหลือเข้าแผนให้เองโดยไม่ต้องกด</p>
   </div>`;
 
+  // ---- การ์ดของก้อนที่มีหลายงาน ----
+  // หน้าตาเป็นเช็คลิสต์ ไม่ใช่คำถาม — ของที่แกะได้ครบติ๊กมาให้แล้ว
+  // สิ่งที่ผู้ใช้ต้องทำจึงเหลือแค่ "ปลดติ๊กอันที่ไม่เอา" ซึ่งส่วนใหญ่ไม่ต้องทำอะไรเลย
+  const CHILD_PREVIEW = 6;
+  const childRow = (it, c) => {
+    const p = c.parsed;
+    const why = c.status === 'duplicate'
+      ? 'ซ้ำกับ' + (c.dupOf && c.dupOf.kind === 'inbox' ? 'ที่รออยู่ในกล่อง' : 'งานที่มีอยู่แล้ว')
+      : c.status === 'noise' ? 'อ่านแล้วไม่เหมือนงานที่ครูสั่ง'
+      : c.status === 'accepted' ? 'เข้าแผนแล้ว'
+      : p.due ? fmtDue(p.due, new Date(), p) : 'ไม่เจอกำหนดส่ง';
+    const subj = p.subject && p.subject !== 'อื่น ๆ' ? esc(p.subject) + ' · ' : '';
+    return `<div class="ibr ${c.pick ? 'on' : 'off'} ${c.status}">
+      <button class="ibr-ck" onclick="inboxPick('${it.id}','${c.id}')"
+        aria-pressed="${c.pick}" aria-label="เลือกงานนี้">${c.pick ? icon('check') : ''}</button>
+      <span class="ibr-bd" onclick="inboxPick('${it.id}','${c.id}')">
+        <span class="t">${subj}${esc(p.detail || c.raw)}</span>
+        <span class="s ${c.status !== 'new' ? 'flag' : (p.due ? '' : 'miss')}">${esc(why)}</span>
+      </span>
+      ${c.status === 'accepted' ? ''
+        : `<button class="ibr-ed" onclick="inboxEditChild('${it.id}','${c.id}')"
+             aria-label="แก้ก่อนรับ">${icon('pencil')}</button>`}
+    </div>`;
+  };
+
+  const batchCard = it => {
+    const s = sourceById(it.source);
+    const kids = it.children || [];
+    const picked = kids.filter(c => c.pick && c.status === 'new').length;
+    const shown = it.expanded ? kids : kids.slice(0, CHILD_PREVIEW);
+    const more = kids.length - shown.length;
+    return `<article class="ib ib-batch">
+      <div class="ib-top">
+        <span class="ib-src">${icon(s.icon)}${esc(s.name)}</span>
+        <span class="ib-batch-n">${icon('sparkles')}เจอ ${kids.length} งานในข้อความเดียว</span>
+      </div>
+      <div class="ib-title">${esc(it.header || it.raw.split('\n')[0].slice(0, 60))}</div>
+      <div class="ib-rows">${shown.map(c => childRow(it, c)).join('')}</div>
+      ${more > 0 ? `<button class="ib-more" onclick="inboxExpand('${it.id}')">${icon('chevron')}ดูอีก ${more} รายการ</button>` : ''}
+      <div class="ib-act">
+        <button class="ib-go" ${picked ? '' : 'disabled'} onclick="inboxAcceptBatch('${it.id}')">
+          ${icon('check')}${picked ? `เพิ่มทั้งหมด ${picked} งาน` : 'ยังไม่ได้เลือกอะไร'}</button>
+        <button class="warn" onclick="inboxIgnoreBatch('${it.id}')">ทิ้งทั้งก้อน</button>
+      </div>
+    </article>`;
+  };
+
   const card = it => {
+    if (it.kind === 'batch') return batchCard(it);
     const p = it.parsed, s = sourceById(it.source);
     const pct = Math.round(it.confidence * 100);
     return `<article class="ib">
@@ -313,6 +578,23 @@ function renderInbox() {
       : it.status === 'noise' ? (it.why === 'learned'
           ? 'ไม่ใช่งาน — จำได้จากที่คุณเคยลบ' : 'ไม่ใช่งาน — ข้ามให้เอง')
       : 'ข้ามไป';
+
+    // ก้อนที่จบไปแล้ว บอกเป็นตัวเลขว่าเข้าไปกี่ใบ ข้ามกี่ใบ
+    // ("เข้าแผนเอง · การบ้านประจำสัปดาห์" ไม่ได้บอกอะไรเลยว่าเกิดอะไรขึ้นกับสิบเอ็ดบรรทัดนั้น)
+    if (it.kind === 'batch') {
+      const kids = it.children || [];
+      const took = kids.filter(c => c.status === 'accepted').length;
+      const dup = kids.filter(c => c.status === 'duplicate').length;
+      const skip = kids.length - took - dup;
+      const parts = [took ? `เข้าแผน ${took}` : '', dup ? `ซ้ำ ${dup}` : '', skip ? `ข้าม ${skip}` : ''];
+      return `<div class="ib-log ${it.status}">
+        <span class="ib-log-ic">${icon(s.icon)}</span>
+        <span class="ib-log-bd">
+          <span class="t">${esc(it.header || it.raw.split('\n')[0].slice(0, 40))} · ${kids.length} งาน</span>
+          <span class="s">${esc(parts.filter(Boolean).join(' · '))} · ${esc(s.name)}</span>
+        </span>
+      </div>`;
+    }
     return `<div class="ib-log ${it.status}">
       <span class="ib-log-ic">${icon(s.icon)}</span>
       <span class="ib-log-bd">
@@ -324,7 +606,7 @@ function renderInbox() {
 
   body.innerHTML = head
     + (wait.length
-      ? `<div class="sec-title">รอคุณตัดสินใจ ${wait.length} รายการ</div>` + wait.map(card).join('')
+      ? `<div class="sec-title">รอคุณตัดสินใจ ${waitN} รายการ</div>` + wait.map(card).join('')
       : `<div class="ib-empty">
           <div class="ib-empty-ic">${icon('check-circle')}</div>
           <div class="ib-empty-t">ไม่มีอะไรค้างให้ตรวจ</div>
