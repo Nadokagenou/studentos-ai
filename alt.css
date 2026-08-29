@@ -6119,3 +6119,27 @@ body.deep-scr .top-friends { display: none; }
   margin-top: 22px; background: linear-gradient(to top, var(--scr) 72%, transparent);
 }
 .wz-act .btn { flex: 1; }
+
+/* ---------- หน้าน้องไซบนฟองแชท ---------- */
+/* รูปกับไอคอนสำรองถูกวาดซ้อนกันไว้ทั้งคู่ · onerror เป็นคนตัดรูปทิ้งถ้าโหลดไม่ขึ้น
+   แล้วคลาส no-face เป็นตัวเปิดไอคอนสำรองแทน — ฟองแชทจึงไม่มีวันว่างเป็นวงกลมเปล่า */
+.ai-av { overflow: hidden; position: relative; }
+.ai-av img {
+  width: 100%; height: 100%; object-fit: cover;
+  display: block; border-radius: inherit;
+}
+/* วงแหวนบาง ๆ กันหน้าจมหายไปกับพื้นหลังตอนธีมมืด — รูปนี้ขอบบนเป็นสีเข้มเกือบดำ */
+.ai-av::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--glass-line); pointer-events: none;
+}
+.ai-av .ai-av-fb { display: none; }
+.ai-av.no-face { background: var(--fill); color: var(--on-fill); }
+.ai-av.no-face .ai-av-fb { display: grid; place-items: center; width: 100%; height: 100%; }
+
+/* หน้าใหญ่บนหัวจอ — ที่นี่คือที่เดียวที่ตัวละครได้พื้นที่พอให้เห็นว่าเป็นใคร
+   ฟองแชทเล็กเกินกว่าจะอ่านหน้าออก มันทำหน้าที่แค่บอกว่า "ฝั่งนี้คือน้องไซ" */
+.ai-av.big {
+  width: 46px; height: 46px; border-radius: 15px; margin-bottom: 0;
+}
+.ai-av.big .ai-av-fb svg { width: 22px; height: 22px; }

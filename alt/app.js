@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B4';                 // สายเลขของแอป
+const APP_VERSION = '1B5';                 // สายเลขของแอป
 const APP_CODENAME = 'Klasse';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -1178,6 +1178,22 @@ function subjClass(name) { return 'sj-' + subjColor(name); }
 // ไอคอน Lucide — เรียกใช้ซ้ำได้จาก <defs> ใน index.html
 function icon(name, cls) {
   return `<svg viewBox="0 0 24 24"${cls ? ` class="${cls}"` : ''} aria-hidden="true"><use href="#lu-${name}"/></svg>`;
+}
+
+// ---------- หน้าน้องไซ ----------
+// มาสคอตมีตัวตนจริง (Synara) — ฟองแชทที่ขึ้นด้วยไอคอนประกายเฉย ๆ ทำให้มันกลับไปเป็น
+// "กล่องข้อความของระบบ" ทั้งที่ทั้งแอปพยายามทำให้มันเป็นใครสักคนที่นักเรียนคุยด้วย
+//
+// วาดทั้งรูปและไอคอนสำรองซ้อนกันไว้ แล้วให้ onerror เป็นคนตัดสิน —
+// เช็คด้วย JS ก่อนวาดไม่ได้ เพราะรูปยังโหลดไม่เสร็จตอนวาดจอครั้งแรก
+// และถ้ารอให้โหลดเสร็จก่อนค่อยวาด ฟองแชทจะกระพริบทุกครั้งที่พิมพ์
+const SAI_FACE = 'sai-avatar.png';
+function saiFace(cls) {
+  return `<span class="ai-av${cls ? ' ' + cls : ''}">
+    <img src="${SAI_FACE}" alt="น้องไซ" loading="lazy" decoding="async"
+      onerror="this.parentNode.classList.add('no-face');this.remove()">
+    <i class="ai-av-fb">${icon('sparkles')}</i>
+  </span>`;
 }
 
 // ---------- ALT: สั่นตอบมือ ----------
@@ -2751,6 +2767,7 @@ function renderAi() {
   // ---- 1 · หัวจอ ----
   const name = who();
   const head = `<header class="sai-head">
+    ${saiFace('big')}
     <div class="sh-id">
       <h1 class="sh-name">น้องไซ<span class="sh-badge">AI</span></h1>
       <p class="sh-role">${fresh ? 'ผู้ช่วยของคุณ' : esc(
@@ -2826,19 +2843,19 @@ function renderAi() {
   const bubbles = log.map(m => m.role === 'user'
     ? `<div class="ai-msg me"><div class="ai-bub">${esc(m.text)}</div></div>`
     : `<div class="ai-msg sai">
-         <span class="ai-av">${icon('sparkles')}</span>
+         ${saiFace()}
          <div class="ai-bub${m.err ? ' err' : ''}">${esc(m.text)}</div>
        </div>`).join('');
 
   const typing = aiBusy ? `<div class="ai-msg sai">
-      <span class="ai-av">${icon('sparkles')}</span>
+      ${saiFace()}
       ${aiPartial
         ? `<div class="ai-bub ai-live">${esc(aiPartial)}</div>`
         : `<div class="ai-bub ai-live ai-typing"><i></i><i></i><i></i></div>`}
     </div>` : '';
 
   const opener = fresh ? `<div class="ai-msg sai">
-      <span class="ai-av">${icon('sparkles')}</span>
+      ${saiFace()}
       <div class="ai-bub">${esc(aiOpener(sp))}</div>
     </div>` : '';
 
