@@ -109,6 +109,10 @@ async function unlinkLineRoom(roomId) {
 // เรียกตอนเปิดแอปและทุกครั้งที่ซิงก์ — ของที่อ่านแล้วมาร์ค consumed กันดึงซ้ำ
 async function pullInbox() {
   if (!lineReady()) return 0;
+  // ปิดตัวเชื่อมไว้ = ไม่ดึงเลย ไม่ใช่ดึงมาแล้วทิ้ง
+  // ถ้าดึงมาแล้วทิ้ง แถวฝั่งเซิร์ฟเวอร์จะถูกทำเครื่องหมายว่าใช้แล้ว
+  // แล้วของช่วงที่ปิดไว้จะหายถาวร ต่อให้เปิดกลับมาทีหลังก็ไม่ได้คืน
+  if (typeof srcEnabled === 'function' && !srcEnabled('line')) return 0;
   const { data, error } = await sb.from('inbox_items')
     .select('id, source, raw, meta, created_at')
     .eq('consumed', false)
@@ -158,7 +162,7 @@ document.addEventListener('visibilitychange', () => {
 
 startInboxPolling();
 
-// ---------- ส่วนที่แสดงในจอ "แหล่งข้อมูล" ----------
+// ---------- ส่วนที่แสดงในจอ "ตัวเชื่อม" ----------
 function lineLinkPanel() {
   if (!cloudConfigured()) {
     return `<div class="src-need">${icon('lock')}ยังไม่ได้ตั้งค่า Supabase — เชื่อม LINE ไม่ได้</div>`;

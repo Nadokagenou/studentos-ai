@@ -14,26 +14,75 @@
 // เราแค่เลิกถามในเรื่องที่ไม่ต้องถาม
 // ============================================================
 
-// ---------- ทะเบียนแหล่งข้อมูล ----------
-// เพิ่มแหล่งใหม่ = เติมอีก 1 บรรทัด แล้วเขียนฟังก์ชัน pull ให้มัน
-//   live      = เชื่อมได้จริงแล้วหรือยัง
+// ---------- ทะเบียนตัวเชื่อม ----------
+// เพิ่มตัวใหม่ = เติมอีก 1 บรรทัด แล้วเขียนฟังก์ชัน pull ให้มัน
+//
+//   kind      = 'connector' แอปอื่นส่งงานเข้ามาให้ · 'manual' ทางที่ผู้ใช้ส่งเข้ามาเอง
+//   state     = 'live'   ต่อได้แล้ว
+//               'setup'  โค้ดพร้อม แต่ยังต้องตั้งค่าฝั่งผู้พัฒนาก่อน
+//               'noapi'  เจ้าของแอปไม่เปิดให้ใครต่อเลย — ไม่ใช่ล็อกที่รอปลด
+//   toggle    = ปิดได้ไหม · ปิดได้เฉพาะตัวที่ไหลเข้ามาเองโดยไม่มีใครสั่ง
+//               ทางที่ผู้ใช้กดเองไม่ควรมีสวิตช์ เพราะสวิตช์ที่ปิดสิ่งที่ผู้ใช้เพิ่งกดคือสวิตช์ที่โกหก
 //   viaInbox  = ไหลผ่านกล่องเข้าไหม (ถ้าไม่ = เข้าฟอร์มตรง ๆ ตัวเลขนับจึงไม่ต้องโชว์)
-//   needs     = สิ่งที่ต้องมีก่อนถึงจะเปิดใช้ได้ (เขียนไว้ให้ผู้ใช้เห็นตรง ๆ)
+//   blocker   = ติดอะไรอยู่ · เขียนให้ผู้ใช้อ่านรู้เรื่อง ไม่ใช่ศัพท์ภายใน
 const SOURCES = [
-  { id: 'scan',      name: 'สแกน/ถ่ายรูป',    icon: 'camera', live: true,
-    desc: 'ใบงาน ตารางเรียนที่จด ประกาศหน้าห้อง' },
-  { id: 'voice',     name: 'พูดใส่ไมค์',       icon: 'mic',    live: true,
-    desc: 'พูด 5 วินาที ได้งานหนึ่งชิ้น' },
-  { id: 'text',      name: 'แปะข้อความ',       icon: 'type',   live: true,
-    desc: 'ก๊อปจากกลุ่ม LINE มาแปะ' },
-  { id: 'line',      name: 'LINE (บอทในกลุ่มห้อง)', icon: 'chat', live: true, link: 'line', viaInbox: true,
+  { id: 'line', name: 'LINE (บอทในกลุ่มห้อง)', icon: 'chat',
+    kind: 'connector', state: 'live', toggle: true, link: 'line', viaInbox: true,
     desc: 'ครูสั่งงานในกลุ่มครั้งเดียว เข้าระบบให้ทุกคนที่เชื่อมไว้พร้อมกัน',
     note: 'LINE ไม่เปิดให้อ่านแชทส่วนตัวของใครทั้งนั้น — บอทเห็นเฉพาะข้อความในกลุ่มที่ถูกเชิญเข้าไปเท่านั้น' },
-  { id: 'classroom', name: 'Google Classroom', icon: 'book',   live: false,
+
+  // ตัวเชื่อมที่ครอบทุกแอปที่ไม่มี API ให้ต่อ — และเป็นตัวเดียวที่ใช้ได้ "วันนี้" โดยไม่ต้องรออนุมัติใคร
+  // ของนี้ทำงานอยู่แล้วตั้งแต่มี share_target ใน manifest แต่ไม่เคยถูกโชว์ว่ามีอยู่
+  // ผลคือไม่มีใครรู้ว่ากดแชร์จากโน้ตหรือ Classroom เข้าแอปนี้ได้ ทั้งที่มันได้มาตลอด
+  { id: 'share', name: 'แชร์จากแอปอื่น', icon: 'share',
+    kind: 'connector', state: 'live', toggle: true, viaInbox: true,
+    desc: 'โน้ต · Classroom · Gmail · เว็บ · แชทไหนก็ได้',
+    how: ['เปิดแอปที่มีงานอยู่ แล้วเลือกข้อความ', 'กดปุ่มแชร์ของเครื่อง', 'เลือก Student OS'] },
+
+  { id: 'classroom', name: 'Google Classroom', icon: 'book',
+    kind: 'connector', state: 'setup', viaInbox: true,
     desc: 'ดึงงานที่ครูมอบหมายและกำหนดส่งมาเอง',
-    needs: 'ต้องมี Google Cloud project + OAuth consent screen (โหมด test user ใช้ได้เลย)' },
+    blocker: 'ติดที่การเปิดบัญชีนักพัฒนา ไม่ได้ติดที่โค้ด — ต้องมี Google Cloud project + OAuth consent screen (โหมด test user ใช้ได้เลย)' },
+
+  { id: 'gcal', name: 'Google Calendar', icon: 'calendar',
+    kind: 'connector', state: 'setup', viaInbox: true,
+    desc: 'วันสอบและกิจกรรมที่โรงเรียนลงปฏิทินไว้',
+    blocker: 'ใช้ OAuth ดอกเดียวกับ Classroom — เปิดพร้อมกันได้ ไม่ต้องตั้งเพิ่ม' },
+
+  // เขียนไว้ให้ชัดว่า "ไม่ใช่ยังไม่ทำ" แต่ "ทำไม่ได้" — คนที่รอฟีเจอร์นี้จะได้ไม่รอเปล่า
+  { id: 'notes', name: 'โน้ต (Apple · Samsung · Keep)', icon: 'pencil',
+    kind: 'connector', state: 'noapi',
+    desc: 'จดงานไว้ในโน้ตแล้วอยากให้เข้าแอปเอง',
+    blocker: 'Apple · Samsung · Google ไม่เปิด API ให้ใครอ่านโน้ตของผู้ใช้เลยสักเจ้า — ไม่ใช่ข้อจำกัดของเรา',
+    insteadOf: 'share' },
+
+  { id: 'scan',  name: 'สแกน/ถ่ายรูป', icon: 'camera', kind: 'manual', state: 'live',
+    desc: 'ใบงาน ตารางเรียนที่จด ประกาศหน้าห้อง' },
+  { id: 'voice', name: 'พูดใส่ไมค์',    icon: 'mic',    kind: 'manual', state: 'live',
+    desc: 'พูด 5 วินาที ได้งานหนึ่งชิ้น' },
+  { id: 'text',  name: 'แปะข้อความ',    icon: 'type',   kind: 'manual', state: 'live',
+    desc: 'ก๊อปมาจากที่ไหนก็ได้ แล้ววาง' },
 ];
 const sourceById = id => SOURCES.find(s => s.id === id) || SOURCES[0];
+
+// ---------- สวิตช์เปิด/ปิดตัวเชื่อม ----------
+// เก็บเฉพาะตัวที่ "ถูกปิด" ไม่ใช่เก็บทั้งหมด — ตัวเชื่อมที่เพิ่มมาทีหลังจะได้เปิดอยู่โดยปริยาย
+// ถ้าเก็บกลับด้าน ทุกตัวที่เพิ่มใหม่จะเงียบสนิทในเครื่องของคนที่ใช้อยู่แล้ว โดยไม่มีอะไรบอก
+function srcEnabled(id) {
+  const off = (state.settings && state.settings.srcOff) || {};
+  return !off[id];
+}
+function srcToggle(id) {
+  const s = sourceById(id);
+  if (!s || !s.toggle) return;
+  state.settings.srcOff = state.settings.srcOff || {};
+  if (state.settings.srcOff[id]) delete state.settings.srcOff[id];
+  else state.settings.srcOff[id] = true;
+  save(); renderSources();
+  showToast(srcEnabled(id)
+    ? { title: 'เปิด ' + s.name + ' แล้ว', body: 'ของใหม่จากทางนี้จะเข้ากล่องเข้าตามปกติ' }
+    : { title: 'ปิด ' + s.name + ' แล้ว', body: 'ของที่เข้าแผนไปแล้วยังอยู่ครบ — ปิดแค่ของใหม่ที่จะเข้ามา' });
+}
 
 // ---------- ความมั่นใจ ----------
 // คิดจาก "เจอข้อมูลที่จำเป็นครบแค่ไหน" ไม่ใช่ตัวเลขลอย ๆ
@@ -201,6 +250,10 @@ function inboxUnits(item) {
 function inboxAdd(rawText, sourceId = 'text', meta = {}) {
   const text = String(rawText || '').trim();
   if (!text) return { status: 'empty' };
+
+  // ผู้ใช้ปิดตัวเชื่อมนี้ไว้ — ไม่เก็บ ไม่ถาม ไม่บันทึกด้วย
+  // (บันทึกไว้จะกลายเป็นการเก็บของจากทางที่เขาเพิ่งบอกว่าไม่อยากให้เก็บ)
+  if (!srcEnabled(sourceId)) return { status: 'off' };
 
   // ครูสั่งงานทั้งสัปดาห์ในข้อความเดียวเป็นเรื่องปกติ ไม่ใช่ข้อยกเว้น
   // ต้องตัดเป็นงาน ๆ ก่อนเสมอ ไม่งั้นได้งานเดียวที่มีทุกวิชาปนกันแล้วไม่มีกำหนดส่ง
@@ -614,40 +667,113 @@ function renderInbox() {
         </div>`)
     + (recent.length ? `<div class="sec-title">ที่ผ่านมา</div>` + recent.map(logRow).join('') : '')
     + brainCard()
-    + `<button class="ib-wide" onclick="go('scr-sources')">${icon('chevron')}จัดการแหล่งข้อมูล</button>`;
+    + `<button class="ib-wide" onclick="go('scr-sources')">${icon('chevron')}จัดการตัวเชื่อม</button>`;
 }
 
-// ---------- จอ "แหล่งข้อมูล" ----------
+// ---------- จอ "ตัวเชื่อม" ----------
 // บอกตรง ๆ ว่าอันไหนต่อได้แล้ว อันไหนยัง และติดอะไรอยู่
 // ไม่เขียนว่า "เร็ว ๆ นี้" ลอย ๆ เพราะมันไม่ได้บอกอะไรกับใครเลย
 function renderSources() {
   const body = document.getElementById('srcBody');
   if (!body) return;
+
+  // นับเป็น "จำนวนงาน" ไม่ใช่ "จำนวนข้อความ" — ให้ตรงกับตัวเลขในกล่องเข้า
+  // ข้อความเดียวของครูมีสิบเอ็ดงานได้ ตัวเลข 1 ตรงนี้จะดูเหมือนตัวเชื่อมแทบไม่ทำงาน
   const counts = {};
-  for (const i of state.inbox || []) counts[i.source] = (counts[i.source] || 0) + 1;
+  for (const i of state.inbox || []) {
+    counts[i.source] = (counts[i.source] || 0) + inboxUnits(i).filter(c => c.status !== 'noise').length;
+  }
+
+  // แอปต้องถูกติดตั้งลงจอโฮมก่อน ปุ่มแชร์ของเครื่องถึงจะเห็นชื่อ Student OS
+  // และ iOS ไม่รองรับเลยสักรุ่น — บอกตรง ๆ ดีกว่าให้เขากดแชร์แล้วหาไม่เจอแล้วคิดว่าแอปพัง
+  const installed = (() => {
+    try {
+      return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    } catch (_) { return false; }
+  })();
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || '')
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  // ---------- สวิตช์ ----------
+  const sw = s => {
+    if (!s.toggle) return '';
+    const on = srcEnabled(s.id);
+    return `<button class="tg ${on ? 'on' : ''}" role="switch" aria-checked="${on}"
+      aria-label="${on ? 'ปิด' : 'เปิด'} ${esc(s.name)}"
+      onclick="srcToggle('${s.id}')"><span class="tg-k"></span></button>`;
+  };
+
+  // ---------- ตัวเชื่อมที่ใช้ได้แล้ว ----------
+  const liveRow = s => {
+    const on = srcEnabled(s.id);
+    // คำเตือนของ "แชร์จากแอปอื่น" ต่างกันตามเครื่อง เพราะข้อจำกัดคนละเรื่องกัน
+    const warn = s.id !== 'share' ? ''
+      : isIOS ? 'iOS ยังไม่รองรับปุ่มแชร์เข้าเว็บแอป — ใช้ "แปะข้อความ" แทนไปก่อน'
+      : !installed ? 'ต้องติดตั้งแอปลงจอโฮมก่อน ปุ่มแชร์ของเครื่องถึงจะเห็นชื่อ Student OS'
+      : '';
+    return `<div class="src ${on ? 'on' : 'muted'}">
+      <span class="src-ic">${icon(s.icon)}</span>
+      <span class="src-bd">
+        <span class="t">${esc(s.name)}</span>
+        <span class="s">${esc(s.desc)}</span>
+        ${s.how && on ? `<span class="src-how">${s.how.map((h, i) =>
+          `<span><b>${i + 1}</b>${esc(h)}</span>`).join('')}</span>` : ''}
+        ${warn && on ? `<span class="src-warn">${icon('flag')}${esc(warn)}</span>` : ''}
+        ${s.note ? `<span class="src-note">${esc(s.note)}</span>` : ''}
+        ${s.link === 'line' && on ? lineLinkPanel() : ''}
+      </span>
+      ${s.viaInbox && counts[s.id] ? `<span class="src-n">${counts[s.id]}</span>` : ''}
+      ${sw(s)}
+    </div>`;
+  };
+
+  // ---------- ตัวเชื่อมที่ยังต่อไม่ได้ ----------
+  // แยกสองเหตุผลออกจากกัน เพราะมันไม่เหมือนกันเลยสำหรับคนที่รอ:
+  //   setup = รอเราไปตั้งค่า · noapi = เจ้าของแอปไม่เปิดให้ใครต่อ รอไปก็ไม่มีวันได้
+  const deadRow = s => {
+    const alt = s.insteadOf && sourceById(s.insteadOf);
+    return `<div class="src off">
+      <span class="src-ic off">${icon(s.icon)}</span>
+      <span class="src-bd">
+        <span class="t">${esc(s.name)}</span>
+        <span class="s">${esc(s.desc)}</span>
+        <span class="src-need">${icon(s.state === 'noapi' ? 'unplug' : 'lock')}${esc(s.blocker)}</span>
+        ${alt ? `<span class="src-alt">${icon(alt.icon)}ใช้ "${esc(alt.name)}" แทนได้เลย —
+          ได้ผลเหมือนกันทุกอย่าง ต่างแค่กดแชร์เอง</span>` : ''}
+      </span>
+      <span class="src-tag ${s.state}">${s.state === 'noapi' ? 'ต่อไม่ได้' : 'รอตั้งค่า'}</span>
+    </div>`;
+  };
+
+  const conn = SOURCES.filter(s => s.kind === 'connector');
+  const live = conn.filter(s => s.state === 'live');
+  const dead = conn.filter(s => s.state !== 'live');
+  const manual = SOURCES.filter(s => s.kind === 'manual');
+  const onN = live.filter(s => srcEnabled(s.id)).length;
 
   body.innerHTML = `<div class="page-head">
-      <div class="eyebrow">ทางที่ข้อมูลไหลเข้า</div>
-      <h1 class="page-title">แหล่งข้อมูล</h1>
-      <p class="page-sub">ยิ่งเชื่อมได้มาก นักเรียนยิ่งไม่ต้องพิมพ์อะไรเลย</p>
+      <div class="eyebrow">แอปที่ส่งงานเข้ามาให้เอง</div>
+      <h1 class="page-title">ตัวเชื่อม</h1>
+      <p class="page-sub">เชื่อมครั้งเดียว แล้วไม่ต้องพิมพ์อะไรอีกเลย —
+        งานที่ครูสั่งไหลเข้ามาเอง แอปอ่านให้ก่อน แล้วถามเฉพาะตอนที่ไม่มั่นใจ</p>
     </div>
-    <div class="sec-title">ใช้ได้แล้ว</div>
-    ${SOURCES.filter(s => s.live).map(s => `<div class="src on">
-      <span class="src-ic">${icon(s.icon)}</span>
-      <span class="src-bd"><span class="t">${esc(s.name)}</span><span class="s">${esc(s.desc)}</span>
-        ${s.note ? `<span class="src-note">${esc(s.note)}</span>` : ''}
-        ${s.link === 'line' ? lineLinkPanel() : ''}</span>
-      ${s.viaInbox ? `<span class="src-n">${counts[s.id] || 0}</span>` : ''}
-    </div>`).join('')}
+
+    <div class="sec-title">ใช้งานอยู่ ${onN}/${live.length}</div>
+    ${live.map(liveRow).join('')}
 
     <div class="sec-title">ยังต่อไม่ได้</div>
-    ${SOURCES.filter(s => !s.live).map(s => `<div class="src">
-      <span class="src-ic off">${icon(s.icon)}</span>
-      <span class="src-bd"><span class="t">${esc(s.name)}</span><span class="s">${esc(s.desc)}</span>
-        <span class="src-need">${icon('lock')}${esc(s.needs)}</span>
-        ${s.note ? `<span class="src-note">${esc(s.note)}</span>` : ''}</span>
+    ${dead.map(deadRow).join('')}
+
+    <div class="sec-title">ทางที่คุณส่งเข้ามาเอง</div>
+    <p class="src-sub">ไม่ต้องเชื่อมอะไร ใช้ได้เลยทุกเครื่อง</p>
+    ${manual.map(s => `<div class="src on">
+      <span class="src-ic">${icon(s.icon)}</span>
+      <span class="src-bd"><span class="t">${esc(s.name)}</span><span class="s">${esc(s.desc)}</span></span>
+      ${counts[s.id] ? `<span class="src-n">${counts[s.id]}</span>` : ''}
     </div>`).join('')}
 
-    <p class="src-foot">ที่ยังต่อไม่ได้ ติดที่การเปิดบัญชีนักพัฒนา ไม่ได้ติดที่โค้ด —
-      เปิดได้เมื่อไหร่ เสียบเข้ากล่องเข้าได้ทันทีโดยไม่ต้องแก้ส่วนอื่นของแอป</p>`;
+    <p class="src-foot">ที่ขึ้นว่า <b>รอตั้งค่า</b> ติดที่การเปิดบัญชีนักพัฒนา ไม่ได้ติดที่โค้ด —
+      เปิดได้เมื่อไหร่ เสียบเข้ากล่องเข้าได้ทันทีโดยไม่ต้องแก้ส่วนอื่นของแอป<br>
+      ที่ขึ้นว่า <b>ต่อไม่ได้</b> คือเจ้าของแอปนั้นไม่เปิดให้ใครต่อเลย รอไปก็ไม่ได้ —
+      แต่ทุกตัวในนั้นส่งเข้ามาได้ด้วยปุ่มแชร์ของเครื่องอยู่แล้ว</p>`;
 }

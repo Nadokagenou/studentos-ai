@@ -166,6 +166,16 @@
     <g id="lu-play" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.72-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14z"/></g>
     <g id="lu-pause" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1.2"/><rect x="14" y="4" width="4" height="16" rx="1.2"/></g>
     <g id="lu-x" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></g>
+    <!-- ปุ่มแชร์ของระบบ — ตัวเชื่อมที่ครอบทุกแอปที่ไม่มี API ให้ต่อ (โน้ต Classroom Gmail เว็บ)
+         รูปเป็นกล่องที่มีลูกศรพุ่งออกทางบน = "ส่งของจากแอปอื่นเข้ามาที่นี่" -->
+    <g id="lu-share" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path>
+      <path d="M12 3v13"></path><path d="m8 7 4-4 4 4"></path>
+    </g>
+    <!-- ต่อไม่ได้เพราะเจ้าของแอปไม่เปิดให้ใครต่อ — ไม่ใช่ล็อกที่รอปลด จึงไม่ใช้รูปกุญแจ -->
+    <g id="lu-unplug" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 5 5 19"></path><path d="M9 5.5 5.5 9l3 3 3.5-3.5z"></path><path d="M15.5 12l3 3L15 18.5l-3-3z"></path>
+    </g>
     <!-- กลุ่มแชท — ใช้แทน LINE ทั้งในกล่องเข้าและจอแหล่งข้อมูล -->
     <g id="lu-chat" fill="currentColor">
       <path opacity=".34" d="M2.6 7.8A4.2 4.2 0 0 1 6.8 3.6h10.4a4.2 4.2 0 0 1 4.2 4.2v5.6a4.2 4.2 0 0 1-4.2 4.2H9.4l-4.5 3.4a1 1 0 0 1-1.6-.8v-2.9a4.2 4.2 0 0 1-.7-2.3z"/>
@@ -615,13 +625,14 @@
         <div class="scr-body" id="inboxBody"></div>
       </div>
 
-      <!-- ============ SCREEN: แหล่งข้อมูล ============ -->
-      <!-- บอกตรง ๆ ว่าแหล่งไหนต่อได้แล้ว แหล่งไหนติดอะไรอยู่ -->
+      <!-- ============ SCREEN: ตัวเชื่อม ============ -->
+      <!-- บอกตรง ๆ ว่าตัวไหนต่อได้แล้ว ตัวไหนติดอะไรอยู่
+           และตัวไหนที่เจ้าของแอปนั้นไม่เปิดให้ใครต่อเลย -->
       <div class="screen flush" id="scr-sources">
         <div class="sticky-head row">
           <div>
-            <h2 class="sh-title">แหล่งข้อมูล</h2>
-            <p class="sh-sub">ทางที่งานไหลเข้าแอปโดยไม่ต้องพิมพ์</p>
+            <h2 class="sh-title">ตัวเชื่อม</h2>
+            <p class="sh-sub">แอปที่ส่งงานเข้ามาให้เอง โดยที่ไม่ต้องพิมพ์</p>
           </div>
           <button class="sh-btn" onclick="go('scr-inbox')" aria-label="กลับกล่องเข้า">
             <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>

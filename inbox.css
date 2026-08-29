@@ -207,3 +207,58 @@
 .ib-more:active{color:var(--blue)}
 
 .ib-act .ib-go[disabled]{opacity:.45; cursor:default}
+
+/* ---------- แผงตัวเชื่อม ---------- */
+/* สวิตช์เปิด/ปิด — มีเฉพาะตัวเชื่อมที่ไหลเข้ามาเองโดยไม่มีใครสั่ง
+   ทางที่ผู้ใช้กดเองไม่มีสวิตช์ เพราะสวิตช์ที่ปิดสิ่งที่ผู้ใช้เพิ่งกดคือสวิตช์ที่โกหก */
+.tg{flex:none; width:42px; height:25px; padding:2px; margin-top:6px; cursor:pointer;
+  border:0; border-radius:999px; background:var(--line);
+  display:inline-flex; align-items:center;
+  transition:background .18s ease}
+.tg-k{width:21px; height:21px; border-radius:50%; background:var(--card);
+  box-shadow:0 1px 3px rgba(0,0,0,.28);
+  transition:transform .18s cubic-bezier(.32,.72,0,1)}
+.tg.on{background:var(--blue)}
+.tg.on .tg-k{transform:translateX(17px)}
+.tg:active .tg-k{transform:scale(.92)}
+.tg.on:active .tg-k{transform:translateX(17px) scale(.92)}
+
+/* ปิดอยู่ = ยังอ่านได้ ไม่ได้หายไป — ต้องเห็นว่ามันมีอยู่ถึงจะนึกออกว่าเปิดกลับได้ */
+.src.muted{box-shadow:none}
+.src.muted .src-ic{background:var(--card2); color:var(--faint)}
+.src.muted .src-bd .t{color:var(--muted)}
+.src.off{opacity:.82}
+
+/* วิธีใช้แบบนับขั้น — ใช้กับ "แชร์จากแอปอื่น" ที่คนไม่รู้ว่ามีอยู่
+   ขั้นตอนต้องอยู่ตรงนี้ ไม่ใช่ในหน้าช่วยเหลือ เพราะที่นี่คือที่เดียวที่เขาจะมาหามัน */
+.src-how{display:flex; flex-direction:column; gap:5px; margin-top:9px;
+  padding:9px 11px; border-radius:11px; background:var(--card2)}
+.src-how span{display:flex; align-items:center; gap:8px;
+  font-size:11.5px; line-height:1.5; color:var(--muted)}
+.src-how b{width:17px; height:17px; flex:none; border-radius:50%;
+  background:var(--blue-soft); color:var(--blue);
+  font-size:10px; font-weight:800;
+  display:inline-flex; align-items:center; justify-content:center}
+
+/* ข้อจำกัดของ "เครื่องนี้" ไม่ใช่ของแอป — เช่น iOS ไม่รองรับปุ่มแชร์เข้าเว็บแอป
+   ต้องเด่นกว่า .src-note เพราะถ้าไม่เห็น เขาจะกดแชร์แล้วหาไม่เจอแล้วคิดว่าแอปพัง */
+.src-warn{display:flex; gap:7px; margin-top:7px; padding:8px 10px; border-radius:10px;
+  background:var(--warn-soft); color:var(--warn);
+  font-size:11.5px; font-weight:600; line-height:1.5}
+.src-warn svg{width:13px; height:13px; flex:none; margin-top:2px}
+
+/* ทางเลือกแทนตัวที่ต่อไม่ได้ — บอกทางออกในที่เดียวกับที่บอกว่าตัน
+   ไม่งั้นหน้านี้กลายเป็นรายการของที่ใช้ไม่ได้ ซึ่งอ่านแล้วรู้สึกว่าแอปทำอะไรไม่ได้เลย */
+.src-alt{display:flex; align-items:flex-start; gap:7px; margin-top:7px;
+  padding:8px 10px; border-radius:10px; background:var(--good-soft); color:var(--good);
+  font-size:11.5px; font-weight:600; line-height:1.5}
+.src-alt svg{width:13px; height:13px; flex:none; margin-top:2px}
+
+/* ป้ายเหตุผล — "รอตั้งค่า" กับ "ต่อไม่ได้" ต่างกันคนละเรื่องสำหรับคนที่รอ
+   อันแรกรอแล้วได้ อันหลังรอไปก็ไม่มีวันได้ สีจึงต้องไม่เหมือนกัน */
+.src-tag{flex:none; margin-top:6px; padding:4px 9px 5px; border-radius:999px;
+  font-size:10.5px; font-weight:700; white-space:nowrap}
+.src-tag.setup{background:var(--warn-soft); color:var(--warn)}
+.src-tag.noapi{background:var(--card2); color:var(--faint)}
+
+.src-sub{margin:-4px 2px 9px; font-size:11.5px; color:var(--faint); line-height:1.6}
