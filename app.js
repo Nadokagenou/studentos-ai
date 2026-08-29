@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B3';                 // สายเลขของแอป
+const APP_VERSION = '1B4';                 // สายเลขของแอป
 const APP_CODENAME = 'Klasse';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -1956,19 +1956,65 @@ const ADD_ACTIONS = [
   ['book', 'เพิ่มวันสอบ', 'แล้วผมแบ่งรอบอ่านให้', "openForm(null);setTimeout(()=>typeof setFormType==='function'&&setFormType('exam'),60)"],
 ];
 
-function openAddSheet() {
+// เมนู + มีสองหน้า: หน้าหลัก กับ หน้าตัวเชื่อม
+// สลับในแผ่นเดิม ไม่ปิดแล้วเปิดใหม่ — ปิดแล้วเปิดใหม่ผู้ใช้จะรู้สึกว่าโดนพาไปที่อื่น
+// ทั้งที่ยังอยู่ในเมนูเดิม แล้วจะไม่กล้ากดกลับ
+let addSheetView = 'root';
+
+function addSheetHTML() {
+  if (addSheetView === 'connectors') {
+    const c = typeof connectorCount === 'function' ? connectorCount() : { on: 0, all: 0 };
+    return `<div class="as-grip"></div>
+      <div class="as-h as-back" onclick="openAddSheet('root')">
+        <span class="as-bk">${icon('chevron')}</span>ตัวเชื่อม
+        <span class="as-cnt">เปิดอยู่ ${c.on}/${c.all}</span>
+      </div>
+      <p class="as-sub">เปิดไว้แล้วงานไหลเข้าเอง ไม่ต้องพิมพ์ ไม่ต้องกดอะไรอีก</p>
+      ${typeof connectorMenuRows === 'function' ? connectorMenuRows() : ''}
+      <button class="as-row as-more" onclick="closeAddSheet();go('scr-sources')">
+        <span class="as-ic dim">${icon('cog')}</span>
+        <span class="as-tx"><b>ดูตัวเชื่อมทั้งหมด</b><span>Classroom · ปฏิทิน · โน้ต · วิธีเชื่อม</span></span>
+        <span class="as-go">${icon('chevron')}</span>
+      </button>`;
+  }
+  const c = typeof connectorCount === 'function' ? connectorCount() : null;
+  return `<div class="as-grip"></div>
+    <div class="as-h">เพิ่มอะไร?</div>
+    ${ADD_ACTIONS.map(a => `<button class="as-row" onclick="closeAddSheet();${a[3]}">
+      <span class="as-ic">${icon(a[0])}</span>
+      <span class="as-tx"><b>${esc(a[1])}</b><span>${esc(a[2])}</span></span>
+      <span class="as-go">${icon('chevron')}</span>
+    </button>`).join('')}
+    <button class="as-row as-conn" onclick="openAddSheet('connectors')">
+      <span class="as-ic">${icon('share')}</span>
+      <span class="as-tx"><b>ตัวเชื่อม</b><span>ให้แอปอื่นส่งงานเข้ามาเอง — ไม่ต้องเพิ่มทีละอัน</span></span>
+      ${c && c.all ? `<span class="as-cnt sm">${c.on}/${c.all}</span>` : ''}
+      <span class="as-go">${icon('chevron')}</span>
+    </button>`;
+}
+
+// วาดใหม่โดยไม่แตะแอนิเมชัน — ใช้ตอนกดสวิตช์ในเมนู ให้สวิตช์ขยับทันทีโดยแผ่นไม่กระพริบ
+function refreshAddSheet() {
+  const el = document.getElementById('addSheet');
+  if (!el || el.hidden) return;
+  const card = el.querySelector('.as-card');
+  if (card) card.innerHTML = addSheetHTML();
+}
+
+function openAddSheet(view) {
   const el = document.getElementById('addSheet');
   if (!el) { go('scr-scan'); return; }
+  addSheetView = view === 'connectors' ? 'connectors' : 'root';
+
+  // เปิดอยู่แล้ว = แค่สลับหน้าในแผ่นเดิม ห้ามวาดใหม่ทั้งก้อน ไม่งั้นแผ่นเลื่อนลงแล้วขึ้นใหม่
+  if (!el.hidden) {
+    refreshAddSheet();
+    haptic('tap');
+    return;
+  }
+
   el.innerHTML = `<div class="as-scrim" onclick="closeAddSheet()"></div>
-    <div class="as-card" role="dialog" aria-label="เพิ่มงานใหม่">
-      <div class="as-grip"></div>
-      <div class="as-h">เพิ่มอะไร?</div>
-      ${ADD_ACTIONS.map(a => `<button class="as-row" onclick="closeAddSheet();${a[3]}">
-        <span class="as-ic">${icon(a[0])}</span>
-        <span class="as-tx"><b>${esc(a[1])}</b><span>${esc(a[2])}</span></span>
-        <span class="as-go">${icon('chevron')}</span>
-      </button>`).join('')}
-    </div>`;
+    <div class="as-card" role="dialog" aria-label="เพิ่มงานใหม่">${addSheetHTML()}</div>`;
   el.hidden = false;
   // ใช้ setTimeout ไม่ใช่ requestAnimationFrame
   //
@@ -1985,6 +2031,7 @@ function closeAddSheet() {
   const el = document.getElementById('addSheet');
   if (!el) return;
   el.classList.remove('on');
+  addSheetView = 'root';   // เปิดครั้งหน้าต้องเริ่มที่หน้าหลักเสมอ ไม่ใช่ค้างอยู่หน้าตัวเชื่อม
   setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
 }
 

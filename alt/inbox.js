@@ -72,16 +72,48 @@ function srcEnabled(id) {
   const off = (state.settings && state.settings.srcOff) || {};
   return !off[id];
 }
-function srcToggle(id) {
+// quiet = กดจากในเมนู + ซึ่งอยู่เหนือ toast (z-index 95 vs 70) — เด้ง toast ไปก็ไม่มีใครเห็น
+// และไม่จำเป็นด้วย เพราะสวิตช์ที่เพิ่งขยับคือคำตอบที่ชัดกว่าข้อความอยู่แล้ว
+function srcToggle(id, quiet) {
   const s = sourceById(id);
   if (!s || !s.toggle) return;
   state.settings.srcOff = state.settings.srcOff || {};
   if (state.settings.srcOff[id]) delete state.settings.srcOff[id];
   else state.settings.srcOff[id] = true;
-  save(); renderSources();
+  save();
+  renderSources();
+  // เมนู + วาดสวิตช์ชุดเดียวกัน ต้องอัปเดตด้วย ไม่งั้นกดแล้วสวิตช์ไม่ขยับ
+  if (typeof refreshAddSheet === 'function') refreshAddSheet();
+  if (typeof haptic === 'function') haptic('tap');
+  if (quiet) return;
   showToast(srcEnabled(id)
     ? { title: 'เปิด ' + s.name + ' แล้ว', body: 'ของใหม่จากทางนี้จะเข้ากล่องเข้าตามปกติ' }
     : { title: 'ปิด ' + s.name + ' แล้ว', body: 'ของที่เข้าแผนไปแล้วยังอยู่ครบ — ปิดแค่ของใหม่ที่จะเข้ามา' });
+}
+
+// ---------- แถวตัวเชื่อมในเมนู + ----------
+// ทำไมต้องอยู่ในเมนู + ด้วย ทั้งที่มีหน้าเต็มอยู่แล้ว:
+// หน้าเต็มอยู่ลึกสองชั้น (กล่องเข้า → เลื่อนลงสุด → ปุ่ม) ซึ่งแปลว่าไม่มีใครหาเจอ
+// ส่วนปุ่ม + อยู่บนแถบล่างของทุกหน้า = ห่างจากนิ้วหนึ่งครั้งกดเสมอ
+// ตัวเชื่อมเป็นของที่ตั้งครั้งเดียวก็จริง แต่ "ครั้งเดียว" นั้นจะไม่เกิดขึ้นเลยถ้าหาไม่เจอ
+function connectorMenuRows() {
+  const list = SOURCES.filter(s => s.kind === 'connector' && s.state === 'live');
+  return list.map(s => {
+    const on = srcEnabled(s.id);
+    return `<div class="as-row as-tgl ${on ? '' : 'off'}" onclick="srcToggle('${s.id}', true)">
+      <span class="as-ic">${icon(s.icon)}</span>
+      <span class="as-tx"><b>${esc(s.name)}</b><span>${esc(s.desc)}</span></span>
+      <button class="tg ${on ? 'on' : ''}" role="switch" aria-checked="${on}"
+        aria-label="${on ? 'ปิด' : 'เปิด'} ${esc(s.name)}"
+        onclick="event.stopPropagation();srcToggle('${s.id}', true)"><span class="tg-k"></span></button>
+    </div>`;
+  }).join('');
+}
+
+// จำนวนตัวเชื่อมที่เปิดอยู่ / ทั้งหมด — โชว์บนแถวหลัก ให้รู้สถานะโดยไม่ต้องกดเข้าไปดู
+function connectorCount() {
+  const live = SOURCES.filter(s => s.kind === 'connector' && s.state === 'live');
+  return { on: live.filter(s => srcEnabled(s.id)).length, all: live.length };
 }
 
 // ---------- ความมั่นใจ ----------

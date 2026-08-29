@@ -793,3 +793,31 @@
   .sai-head { padding-top: 2px; }
   .sh-role { display: none; }
 }
+
+/* ---------- ตัวเชื่อมในเมนู + ---------- */
+/* หน้าเต็มอยู่ลึกสองชั้นซึ่งแปลว่าไม่มีใครหาเจอ · ปุ่ม + อยู่บนแถบล่างของทุกหน้า
+   ตัวเชื่อมเป็นของที่ตั้งครั้งเดียวก็จริง แต่ "ครั้งเดียว" นั้นจะไม่เกิดถ้าหาไม่เจอ */
+.as-conn .as-ic { background: var(--good-soft); color: var(--good); }
+
+/* หัวข้อที่กดกลับได้ — ลูกศรหันซ้าย ต่างจาก .as-go ที่หันขวา */
+.as-back { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 2px 0 0; }
+.as-bk { display: flex; color: var(--muted); transform: rotate(180deg); }
+.as-bk svg { width: 17px; height: 17px; }
+.as-back:active .as-bk { color: var(--blue); }
+.as-sub { margin: 2px 0 6px; font-size: 12px; line-height: 1.55; color: var(--muted); }
+
+.as-cnt {
+  margin-left: auto; padding: 3px 9px 4px; border-radius: 999px;
+  background: var(--blue-soft); color: var(--blue);
+  font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+.as-cnt.sm { margin-left: 0; }
+
+/* แถวสวิตช์ — ทั้งแถวกดสลับได้ ไม่ใช่เฉพาะตัวสวิตช์
+   บนมือถือเป้ากดกว้าง 42px กลางแถวยาว ๆ คือเป้าที่พลาดง่ายที่สุดเป้าหนึ่ง */
+.as-tgl { cursor: pointer; }
+.as-tgl.off .as-ic { background: var(--card2); color: var(--faint); }
+.as-tgl.off .as-tx b { color: var(--muted); }
+.as-tgl .tg { margin-top: 0; }
+
+.as-more .as-ic.dim { background: var(--card2); color: var(--muted); }
