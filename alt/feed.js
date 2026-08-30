@@ -183,7 +183,7 @@ function renderOnline() {
       const av = u.avatar
         ? `<img src="${esc(u.avatar)}" alt="">`
         : `<span>${esc((u.name || '?').slice(0, 1))}</span>`;
-      return `<div class="fd-on${busy ? ' busy' : ''}">
+      return `<div class="fd-on${busy ? ' busy' : ''}" onclick="openUser('${esc(u.id)}')" role="link" tabindex="0">
         <div class="fd-on-ring"${u.avatar ? '' : ` style="${avOf(u.name)}"`}>${av}</div>
         <div class="fd-on-nm">${esc(u.name || 'นักเรียน')}</div>
         <div class="fd-on-sub">${busy ? esc(u.subject) : 'ออนไลน์'}</div>
@@ -247,9 +247,11 @@ function postCard(p) {
     : `<div class="fd-av${anon ? ' anon' : ''}"${anon ? '' : ` style="${avOf(name)}"`}>${
         anon ? '?' : esc((name || '?').slice(0, 1))}</div>`;
 
+  const tapHead = !anon && p.author;
   return `<article class="fd-post${p.for_me ? ' for-me' : ''}" onclick="openPost('${esc(p.id)}')">
     ${p.for_me ? `<div class="fd-flag">${icon('sparkles')}เขาถามวิชาที่เธอเก่ง</div>` : ''}
-    <div class="fd-head">
+    <div class="fd-head${tapHead ? ' tap' : ''}"${!tapHead ? '' :
+      ` onclick="event.stopPropagation();openUser('${esc(p.author)}')" role="link" tabindex="0"`}>
       ${av}
       <div class="fd-who">
         <b>${esc(name)}${p.mine ? '<span class="fd-mine">คุณ</span>' : ''}</b>
@@ -480,7 +482,8 @@ function renderThread() {
       <div class="th-lb">${theReplies.length ? theReplies.length + ' คำตอบ' : 'ยังไม่มีใครตอบ — เป็นคนแรกก็ได้'}</div>
       ${theReplies.map(r => {
         const ra = !r.display_name;
-        return `<div class="th-reply">
+        return `<div class="th-reply"${ra || !r.author ? '' :
+          ` onclick="openUser('${esc(r.author)}')" role="link" tabindex="0"`}>
           <div class="fd-av sm${ra ? ' anon' : ''}"${ra ? '' : ` style="${avOf(r.display_name)}"`}>${
             ra ? '?' : esc((r.display_name || '?').slice(0, 1))}</div>
           <div class="th-bd">
@@ -529,4 +532,127 @@ function openFeed() {
   loadFeed();
   watchFeed();
   watchPresence();
+}
+
+// ============================================================
+// หน้าของคนคนหนึ่ง
+// ------------------------------------------------------------
+// ครึ่งหนึ่งของเวลาที่คนเปิด IG คือไปส่องคน ไม่ใช่อ่านฟีด
+// ฟีดที่แตะรูปใครแล้วไม่มีอะไรเกิดขึ้น จึงอ่านเป็น "รายการข้อความ" ไม่ใช่ "ที่ที่มีคนอยู่"
+// ============================================================
+let theUser = null;
+let theUserPosts = [];
+let userBusy = false;
+
+async function openUser(id) {
+  if (!id || !sb || !currentUser) return;
+  theUser = null; theUserPosts = []; userBusy = true;
+  go('scr-user');
+  renderUser();
+  const [c, p] = await Promise.all([
+    sb.rpc('user_card', { p_user: id }),
+    sb.rpc('user_posts', { p_user: id, p_limit: 20 }),
+  ]);
+  userBusy = false;
+  theUser = (c.data && c.data[0]) || null;
+  theUserPosts = p.data || [];
+  if (!theUser && c.error) showToast({ title: 'เปิดหน้านี้ไม่ได้', body: c.error.message });
+  renderUser();
+}
+
+// คนที่กำลังนั่งทำงานอยู่ตอนนี้ — อ่านจากแถวออนไลน์ที่ presence ส่งมาแล้ว
+// ไม่ต้องถามเซิร์ฟเวอร์ซ้ำ เพราะข้อมูลอยู่ในเครื่องอยู่แล้ว
+function onlineOf(id) {
+  return (onlineNow || []).find(u => u.id === id) || null;
+}
+
+function renderUser() {
+  const box = document.getElementById('userBody');
+  if (!box) return;
+
+  if (userBusy && !theUser) {
+    box.innerHTML = `<div class="cp-top"><button class="cp-x" onclick="go('scr-mates')">${icon('chevron')}</button>
+      <b>โปรไฟล์</b><span></span></div><p class="so-hint" style="padding:0 14px">กำลังเปิด…</p>`;
+    return;
+  }
+  if (!theUser) {
+    box.innerHTML = `<div class="cp-top"><button class="cp-x" onclick="go('scr-mates')">${icon('chevron')}</button>
+      <b>โปรไฟล์</b><span></span></div>
+      <div class="so-empty" style="margin:14px">
+        <p class="so-empty-h">เปิดหน้านี้ไม่ได้</p>
+        <p class="so-empty-p">เห็นโปรไฟล์ได้เฉพาะคนที่อยู่ห้องเรียนเดียวกัน</p>
+      </div>`;
+    return;
+  }
+
+  const u = theUser;
+  const on = onlineOf(u.id);
+  const name = u.display_name || 'นักเรียน';
+
+  box.innerHTML = `
+    <div class="cp-top">
+      <button class="cp-x" onclick="go('scr-mates')">${icon('chevron')}</button>
+      <b>${esc(name)}</b><span></span>
+    </div>
+    <div class="us-scroll">
+      <div class="us-hero">
+        ${u.avatar
+          ? `<img class="us-av" src="${esc(u.avatar)}" alt="">`
+          : `<div class="us-av" style="${avOf(name)}">${esc(name.slice(0, 1))}</div>`}
+        <div class="us-nm">${esc(name)}${u.mine ? '<span class="fd-mine">คุณ</span>' : ''}</div>
+        ${on
+          ? `<div class="us-live${on.subject ? ' busy' : ''}">
+               <span class="rm-dot"></span>${on.subject
+                 ? 'กำลังติว' + esc(on.subject) + 'อยู่' : 'ออนไลน์อยู่'}</div>`
+          : ''}
+        ${u.bio ? `<p class="us-bio">${esc(u.bio)}</p>` : ''}
+      </div>
+
+      ${(u.match && u.match.length) || (u.give && u.give.length) ? `<div class="us-why">
+        ${u.match && u.match.length
+          ? `<p class="so-why good">เก่ง<b>${esc(u.match.join(' · '))}</b> ซึ่งเป็นวิชาที่คุณกำลังจม</p>` : ''}
+        ${u.give && u.give.length
+          ? `<p class="so-why give">กำลังจม<b>${esc(u.give.join(' · '))}</b> ซึ่งคุณช่วยได้</p>` : ''}
+      </div>` : ''}
+
+      <div class="us-subs">
+        <div class="us-col">
+          <span class="us-lb">ช่วยเพื่อนได้</span>
+          <div class="so-chips">${(u.strong || []).length
+            ? u.strong.map(x => `<span class="so-chip good on">${esc(x)}</span>`).join('')
+            : '<span class="so-none">ยังไม่ได้ระบุ</span>'}</div>
+        </div>
+        <div class="us-col">
+          <span class="us-lb">อยากให้ช่วย</span>
+          <div class="so-chips">${(u.weak || []).length
+            ? u.weak.map(x => `<span class="so-chip need on">${esc(x)}</span>`).join('')
+            : '<span class="so-none">ยังไม่ได้ระบุ</span>'}</div>
+        </div>
+      </div>
+
+      ${u.mine ? '' : `<button class="us-poke" onclick="pokeUser()">
+        ${icon('chat')}ทัก${esc(name)}</button>`}
+
+      <div class="us-lb us-postlb">${u.post_count ? 'โพสต์ ' + u.post_count + ' ใบ' : 'ยังไม่เคยโพสต์'}</div>
+      ${theUserPosts.length
+        ? theUserPosts.map(p => postCard(Object.assign({}, p, {
+            display_name: p.anon ? null : name, avatar: u.avatar, author: u.id, for_me: false,
+          }))).join('')
+        : `<p class="so-hint">${u.mine
+            ? 'โพสต์ของคุณจะมาอยู่ตรงนี้'
+            : 'เขายังไม่เคยโพสต์อะไรที่คุณเห็นได้'}</p>`}
+    </div>`;
+}
+
+// ทักจากหน้าโปรไฟล์ — ใช้ท่อเดียวกับที่ทักจากรายชื่อ
+function pokeUser() {
+  if (!theUser) return;
+  const topic = (theUser.match && theUser.match[0]) || (theUser.give && theUser.give[0]) || '';
+  if (typeof pokeMate === 'function') {
+    // pokeMate อ่านชื่อจาก mates — ยัดใบนี้เข้าไปก่อนถ้ายังไม่มี
+    if (!(mates || []).some(m => m.id === theUser.id)) {
+      mates = (mates || []).concat([{ id: theUser.id, display_name: theUser.display_name }]);
+    }
+    pokeMate(theUser.id, topic);
+  }
 }

@@ -349,3 +349,66 @@
   font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
   padding: 4px;
 }
+
+/* ============================================================
+   หน้าของคนคนหนึ่ง
+   ============================================================ */
+#scr-user .scr-body { display: flex; flex-direction: column; position: absolute; inset: 0; padding: 0; }
+#userBody { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.us-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 14px 28px; }
+:root[data-nav="side"] .us-scroll > * { max-width: 560px; margin-left: auto; margin-right: auto; }
+
+/* รูป/ชื่อในฟีดกดได้ — ต้องมีสัญญาณว่ากดได้ ไม่งั้นไม่มีใครลองกด */
+.fd-head.tap { cursor: pointer; border-radius: 10px; margin: -4px; padding: 4px; }
+.fd-head.tap:active { background: var(--card2); }
+.fd-on { cursor: pointer; }
+.th-reply[role="link"] { cursor: pointer; }
+
+.us-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; }
+.us-av {
+  width: 92px; height: 92px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 38px; font-weight: 700;
+  object-fit: cover;
+  background: var(--card2); color: var(--muted);
+}
+.us-nm { font-size: 21px; font-weight: 800; letter-spacing: -.02em; }
+.us-live {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 600; color: var(--muted);
+  background: var(--card2); border-radius: 999px; padding: 4px 12px;
+}
+.us-live.busy { color: var(--good); background: var(--good-soft); }
+.us-live .rm-dot { background: currentColor; }
+.us-bio {
+  margin: 4px 0 0; font-size: 14px; line-height: 1.65; color: var(--muted);
+  max-width: 34ch;
+}
+
+.us-why {
+  margin-top: 18px; padding: 13px 15px;
+  background: var(--card2); border: 1px solid var(--line); border-radius: var(--r-card);
+  display: flex; flex-direction: column; gap: 5px;
+}
+
+.us-subs { display: flex; gap: 12px; margin-top: 18px; }
+.us-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.us-lb {
+  font-size: 11.5px; font-weight: 600; letter-spacing: .05em; color: var(--muted);
+}
+/* ชิปบนหน้านี้เป็นป้ายอ่านอย่างเดียว ไม่ใช่ปุ่มให้กด — ตัดสัญญาณว่ากดได้ออก */
+.us-subs .so-chip { cursor: default; }
+
+.us-poke {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  width: 100%; margin-top: 20px;
+  border: 0; border-radius: 999px;
+  background: var(--blue); color: var(--on-accent);
+  padding: 13px;
+  font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+  box-shadow: var(--shadow-brand);
+}
+.us-poke svg { width: 18px; height: 18px; }
+.us-poke:active { transform: scale(.98); }
+
+.us-postlb { margin-top: 26px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }

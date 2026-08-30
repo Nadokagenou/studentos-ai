@@ -818,7 +818,7 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
   // จอแชทซ่อนแถบล่างอยู่แล้ว แต่ต้องผูกเจ้าของไว้ด้วย — ไม่งั้นตอนกดย้อนกลับ
   // ออกมา จะไม่มีแท็บไหนติดไฟสักอัน ซึ่งอ่านว่า "หลงอยู่ที่ไหนไม่รู้"
   'scr-chat': 'scr-mates', 'scr-people': 'scr-mates',
-  'scr-compose': 'scr-mates', 'scr-post': 'scr-mates' };
+  'scr-compose': 'scr-mates', 'scr-post': 'scr-mates', 'scr-user': 'scr-mates' };
 
 // ---------- 1A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
 // บนมือถือ การสลับไปแอปอื่นแล้วกลับมามักทำให้ระบบโหลดหน้าใหม่ทั้งหน้า
@@ -884,10 +884,10 @@ function go(id) {
   // ไม่ใช่ลอยอยู่หลังแถบล่างจนกดไม่โดน · ออกจากจอนี้ได้ทางปุ่มย้อนกลับในหัวจอ
   document.body.classList.toggle('chat-mode', id === 'scr-chat');
   document.body.classList.toggle('compose-mode',
-    id === 'scr-compose' || id === 'scr-post');
+    id === 'scr-compose' || id === 'scr-post' || id === 'scr-user');
   // ออกจากฟีดเมื่อไหร่ ปิดช่องรับโพสต์สดกับ presence — ทั้งคู่กินโควตา realtime
   // ซึ่งนับจำนวนช่องที่เปิดพร้อมกัน · จอลูกของฟีดยังนับว่าอยู่ในฟีด ไม่ต้องปิด
-  if (!['scr-mates', 'scr-post', 'scr-compose', 'scr-people'].includes(id)) {
+  if (!['scr-mates', 'scr-post', 'scr-compose', 'scr-people', 'scr-user'].includes(id)) {
     if (typeof unwatchFeed === 'function') unwatchFeed();
     if (typeof unwatchPresence === 'function') unwatchPresence();
   }
