@@ -13,7 +13,7 @@
 
    วิธีใช้: เปิดหน้านี้ → กดอัดหน้าจอ → กด Space → ปล่อยให้มันวิ่งจนจบ
      Space  เริ่มเล่น (มีฉากรอให้อาร์มโปรแกรมอัดก่อน ไม่เล่นเองทันที)
-     R      เล่นใหม่        F  เต็มจอ        L  สลับแนวตั้ง/แนวนอน
+     R  เล่นใหม่   F  เต็มจอ   L  สลับแนวตั้ง/แนวนอน   T  โหมดหมุน
    หรือใส่ ?landscape ท้าย URL เพื่อเปิดเป็นแนวนอนตั้งแต่แรก
 
    ── หลักที่ยึดตอนทำ ─────────────────────────────────────────
@@ -59,6 +59,15 @@ img{display:block; max-width:100%}
 #stage{
   position:relative; width:1080px; height:1920px;
   background:var(--scr); overflow:hidden;
+}
+/* โหมดหมุน — วางเนื้อหาแนวตั้งนอนลงไปในจอแนวนอน
+   ด้าน 1920 ของคลิปไปตามความกว้างจอ 1920 · ด้าน 1080 ไปตามความสูงจอ 1080
+   พอดีทั้งสองด้าน ไม่ต้องย่อเลยแม้แต่นิดเดียว = คมทุกพิกเซล
+   ต้องออกจาก grid มาจัดกลางเองด้วย translate เพราะ transform ไม่กินที่ในผัง
+   ตัว grid จะยังคิดว่ากล่องนี้สูง 1920 อยู่แล้วดันมันล้นจอ */
+#stage.rot{
+  position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%) rotate(90deg);
 }
 #stage.landscape{width:1920px; height:1080px}
 
@@ -771,7 +780,7 @@ img{display:block; max-width:100%}
         <button class="gb" id="btnPlay">เล่นเฉย ๆ (Space)</button>
       </div>
       <div class="gout" id="gOut"></div>
-      <div class="hint">R เล่นใหม่ · F เต็มจอ · L สลับแนวตั้ง/แนวนอน</div>
+      <div class="hint">R เล่นใหม่ · F เต็มจอ · L แนวตั้ง/แนวนอน · T โหมดหมุน (คมสุด)</div>
     </div>
   </div>
 </div></div>
@@ -781,13 +790,19 @@ img{display:block; max-width:100%}
    เวทีเป็นพิกเซลจริงของวิดีโอเสมอ (1080×1920) เราแค่ย่อภาพที่เห็นบนจอ
    ตอนอัดให้เปิดเต็มจอ จะได้อัตราส่วนเต็มโดยไม่มีขอบดำเกินจำเป็น */
 const stage = document.getElementById('stage');
+// ขนาดที่เวทีกินพื้นที่จริงบนจอ — โหมดหมุนสลับด้านกว้างกับสูง
+function footprint(){
+  const land = stage.classList.contains('landscape');
+  const rot = stage.classList.contains('rot');
+  const w = land ? 1920 : 1080, h = land ? 1080 : 1920;
+  return rot ? [h, w] : [w, h];
+}
 function fit(){
-  const w = stage.classList.contains('landscape') ? 1920 : 1080;
-  const h = stage.classList.contains('landscape') ? 1080 : 1920;
   // innerWidth/innerHeight เป็น 0 ได้จริง — หน้าต่างที่ยังไม่ถูกจัดผัง หรือแท็บที่ถูกซ่อน
   // ปล่อยผ่านแล้ว zoom กลายเป็น 0 ทั้งหน้าหายไปเฉย ๆ โดยไม่มี error อะไรโผล่
   if (innerWidth < 50 || innerHeight < 50){ requestAnimationFrame(fit); return; }
-  stage.style.zoom = Math.min(innerWidth / w, innerHeight / h);
+  const [fw, fh] = footprint();
+  stage.style.zoom = Math.min(innerWidth / fw, innerHeight / fh);
 }
 // ความละเอียดจริงที่จะได้จากการอัด = ขนาดเวทีหลัง zoom คูณความหนาแน่นจอ
 // ใช้บอกผู้ใช้ตรง ๆ ว่าเทคนี้จะได้กี่พิกเซล ไม่ต้องอัดเสร็จแล้วค่อยมาผิดหวัง
@@ -967,11 +982,14 @@ function showOut(){
   if (!w){ el.className = 'gout'; el.textContent = ''; requestAnimationFrame(showOut); return; }
   const short = Math.min(w, h);
   const ok = short >= 1000;
+  const rot = stage.classList.contains('rot');
   el.className = 'gout' + (ok ? '' : ' warn');
   el.innerHTML = 'เทคนี้จะได้ <b>' + w + '\u00D7' + h + '</b>'
-    + (ok ? ' — คมพอสำหรับลงจริง'
-          : '<br>ด้านสั้นต่ำกว่า 1000px จะไม่คมพอ — กด <b>F</b> เต็มจอก่อน'
-            + (stage.classList.contains('landscape') ? '' : ' หรือกด <b>L</b> สลับเป็นแนวนอน'));
+    + (rot ? ' <b>(โหมดหมุน)</b>' : '')
+    + (ok
+        ? ' — คมพอสำหรับลงจริง' + (rot ? '<br>ไฟล์จะออกมาตะแคง หมุนกลับ 90° ในโปรแกรมตัดต่อทีเดียวจบ' : '')
+        : '<br>ด้านสั้นต่ำกว่า 1000px จะไม่คมพอ — กด <b>F</b> เต็มจอก่อน'
+          + (stage.classList.contains('landscape') ? '' : ' แล้วกด <b>T</b> อัดแบบหมุน'));
 }
 
 /* ── อัดคลิปในหน้าเลย ──
@@ -1042,6 +1060,9 @@ addEventListener('keydown', e => {
   }
   if (e.key === 'l' || e.key === 'L'){
     stage.classList.toggle('landscape'); fit(); showOut();
+  }
+  if (e.key === 't' || e.key === 'T'){
+    stage.classList.toggle('rot'); fit(); showOut();
   }
 });
 $('btnRec').addEventListener('click', e => { e.stopPropagation(); record(); });
