@@ -1,0 +1,248 @@
+/* ============================================================
+   เพื่อนร่วมห้อง + ช่องคุย
+   ทุกสีมาจาก token ของธีมที่ผู้ใช้เลือก ไม่มีสีตายตัว
+   ============================================================ */
+
+/* ---------- การ์ดตั้งค่าวิชา ---------- */
+.so-card {
+  margin-top: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 8px;
+  box-shadow: var(--shadow);
+}
+.so-card-h { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.so-card-h b { font-size: 16px; font-weight: 700; }
+.so-guess {
+  font-size: 11px; color: var(--warn);
+  background: var(--warn-soft); border-radius: 999px; padding: 2px 9px;
+}
+.so-lb {
+  margin: 6px 0 0;
+  font-size: 11.5px; font-weight: 600; letter-spacing: .05em; color: var(--muted);
+}
+
+.so-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.so-chip {
+  border: 1.5px solid var(--line);
+  background: var(--card2);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+.so-chip:active { transform: scale(.96); }
+/* สองแถวใช้สีต่างกันโดยตั้งใจ — "ช่วยได้" กับ "อยากให้ช่วย" อ่านสลับกันแล้วพัง
+   และมันคือสองด้านของคนคนเดียวกัน จึงต้องแยกออกจากกันด้วยตาทันที */
+.so-chip.good.on { border-color: var(--good); background: var(--good-soft); color: var(--good); }
+.so-chip.need.on { border-color: var(--alert); background: var(--alert-soft); color: var(--alert); }
+.so-none { font-size: 12.5px; color: var(--faint); }
+
+.so-fld { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+.so-fld > span { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.so-fld input {
+  width: 100%;
+  background: var(--card2);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-tile);
+  padding: 10px 12px;
+  color: var(--ink);
+  font-family: inherit; font-size: 14.5px; font-weight: 500;
+}
+.so-fld input:focus { outline: none; border-color: var(--blue); background: var(--card); }
+.so-fld input::placeholder { color: var(--faint); font-weight: 400; }
+
+.so-pub {
+  margin-top: 8px;
+  width: 100%;
+  border: 0; border-radius: var(--r-tile);
+  background: var(--blue); color: var(--on-accent);
+  padding: 12px;
+  font-family: inherit; font-size: 14.5px; font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-brand);
+}
+.so-pub:active { transform: scale(.98); }
+.so-fine { margin: 0; font-size: 11.5px; line-height: 1.6; color: var(--faint); }
+
+/* ---------- การ์ดคนหนึ่งคน ---------- */
+.so-mate {
+  display: flex; align-items: flex-start; gap: 11px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  padding: 13px 14px;
+  margin-top: 8px;
+}
+.so-av {
+  width: 42px; height: 42px; border-radius: 50%; flex: none;
+  background: var(--blue-soft); color: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 700;
+  object-fit: cover;
+}
+.so-bd { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.so-nm { font-size: 15px; font-weight: 700; }
+
+/* เหตุผลที่ควรทัก — บรรทัดที่สำคัญที่สุดบนการ์ด
+   สิ่งที่ทำให้กล้ากดทักคือ "รู้ว่าจะทักไปว่าอะไร" ไม่ใช่ "รู้ว่าเขาชื่ออะไร" */
+.so-why { margin: 0; font-size: 13px; line-height: 1.55; color: var(--muted); }
+.so-why b { font-weight: 700; }
+.so-why.good b { color: var(--good); }
+.so-why.give b { color: var(--blue); }
+.so-bio { margin: 2px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--faint); }
+.so-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.so-tag {
+  font-size: 10.5px; font-weight: 600;
+  background: var(--card2); color: var(--muted);
+  border-radius: 999px; padding: 2px 8px;
+}
+.so-poke {
+  flex: none;
+  width: 38px; height: 38px; border-radius: 12px;
+  border: 0; background: var(--blue-soft); color: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.so-poke svg { width: 18px; height: 18px; }
+.so-poke:active { transform: scale(.94); }
+
+/* ---------- สถานะว่าง / ข้อความบอกสถานะ ---------- */
+.so-empty {
+  margin-top: 14px;
+  background: var(--card2);
+  border: 1px dashed var(--line-hard, var(--line));
+  border-radius: var(--r-card);
+  padding: 22px 18px;
+  display: flex; flex-direction: column; gap: 7px; align-items: flex-start;
+}
+.so-empty-h { margin: 0; font-size: 15.5px; font-weight: 700; }
+.so-empty-p { margin: 0; font-size: 13px; line-height: 1.65; color: var(--muted); }
+.so-empty .btn, .so-empty .so-retry { margin-top: 8px; }
+
+.so-hint {
+  margin: 12px 0 0;
+  font-size: 13px; line-height: 1.65; color: var(--muted);
+}
+.so-hint.err { color: var(--alert); }
+.so-retry {
+  border: 1.5px solid var(--line); background: var(--card);
+  color: var(--ink); border-radius: 999px; padding: 6px 14px;
+  font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  margin-left: 6px;
+}
+
+/* ============================================================
+   ช่องคุย
+   ============================================================ */
+/* แถบล่างถูกซ่อนตอนอยู่จอนี้ (ดู chat-mode ใน go()) — ช่องพิมพ์จึงติดก้นจอได้จริง
+   ถ้าไม่ซ่อน ช่องพิมพ์จะไปนั่งอยู่หลังแถบล่างสูง 54px แล้วกดไม่โดน
+   ทางออกจากจอนี้คือปุ่มย้อนกลับในหัวจอ ซึ่งอยู่ในตำแหน่งเดียวกับที่ LINE กับ Discord วางไว้ */
+.chat-mode .tabbar { display: none; }
+
+#scr-chat .scr-body {
+  display: flex; flex-direction: column;
+  position: absolute; inset: 0;
+  padding: 0;
+}
+#chatBody { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+/* กันช่องพิมพ์ชนขอบล่างของเครื่องที่มีแถบบ้าน (iPhone) */
+.ch-bar { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+
+.ch-top {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+}
+.ch-back {
+  width: 34px; height: 34px; flex: none;
+  border: 0; border-radius: 11px;
+  background: var(--card2); color: var(--ink);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.ch-back svg { width: 18px; height: 18px; transform: rotate(180deg); }
+.ch-who { min-width: 0; display: flex; flex-direction: column; line-height: 1.35; }
+.ch-who b { font-size: 15.5px; font-weight: 700; }
+.ch-who i { font-style: normal; font-size: 11.5px; color: var(--muted); }
+
+.ch-list {
+  flex: 1; min-height: 0; overflow-y: auto;
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 7px;
+}
+/* ดันข้อความไปกองที่ก้นจอเหมือนแอปแชททุกตัว — ห้องที่มีสามข้อความต้องอ่านว่า
+   "เพิ่งเริ่มคุยกัน" ไม่ใช่ "ข้อความค้างอยู่บนหัวจอแล้วข้างล่างว่างเปล่า"
+   ใช้ ::before กินที่ว่างแทน justify-content:flex-end เพราะอันนั้นทำให้
+   ข้อความบนสุดถูกตัดหายเมื่อรายการยาวเกินจอในบางเบราว์เซอร์ */
+.ch-list::before { content: ''; margin-top: auto; }
+.ch-msg { display: flex; }
+.ch-msg.me { justify-content: flex-end; }
+.ch-bub {
+  max-width: 76%;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px 16px 16px 5px;
+  padding: 9px 13px;
+  font-size: 14px; line-height: 1.55;
+  word-break: break-word;
+}
+.ch-msg.me .ch-bub {
+  background: var(--blue); color: var(--on-accent);
+  border-color: transparent;
+  border-radius: 16px 16px 5px 16px;
+}
+.ch-first {
+  margin: auto 0; text-align: center;
+  font-size: 13px; line-height: 1.7; color: var(--faint);
+}
+
+.ch-bar {
+  display: flex; gap: 8px; align-items: center;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--card);
+}
+.ch-bar input {
+  flex: 1; min-width: 0;
+  background: var(--card2);
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  padding: 11px 16px;
+  color: var(--ink);
+  font-family: inherit; font-size: 14.5px;
+}
+.ch-bar input:focus { outline: none; border-color: var(--blue); }
+.ch-send {
+  width: 42px; height: 42px; flex: none;
+  border: 0; border-radius: 50%;
+  background: var(--blue); color: var(--on-accent);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: var(--shadow-brand);
+}
+.ch-send svg { width: 19px; height: 19px; }
+.ch-send:active { transform: scale(.94); }
+
+/* ---------- ใบตัวอย่างตอนยังไม่ล็อกอิน ---------- */
+/* ต้องอ่านออกทันทีว่าไม่ใช่คนจริง — จางลง เส้นประ และมีป้ายกำกับ
+   ถ้าดูเหมือนของจริง คนจะพยายามกดทักแล้วคิดว่าแอปพัง */
+.so-demo { opacity: .72; }
+.so-mate.demo { border-style: dashed; background: var(--card2); }
+.so-egtag {
+  margin-left: 7px;
+  font-size: 10px; font-weight: 700; letter-spacing: .05em;
+  color: var(--muted); background: var(--card);
+  border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px;
+  vertical-align: middle;
+}
+.so-poke.off {
+  flex: none;
+  width: 38px; height: 38px; border-radius: 12px;
+  background: var(--card); color: var(--faint);
+  display: flex; align-items: center; justify-content: center;
+}
+.so-poke.off svg { width: 18px; height: 18px; }

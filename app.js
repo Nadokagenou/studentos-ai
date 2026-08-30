@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B9';                 // สายเลขของแอป
+const APP_VERSION = '1B12';                 // สายเลขของแอป
 const APP_CODENAME = 'Klasse';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -1207,6 +1207,15 @@ function subjClass(name) { return 'sj-' + subjColor(name); }
 // ไอคอน Lucide — เรียกใช้ซ้ำได้จาก <defs> ใน index.html
 function icon(name, cls) {
   return `<svg viewBox="0 0 24 24"${cls ? ` class="${cls}"` : ''} aria-hidden="true"><use href="#lu-${name}"/></svg>`;
+}
+
+// เหรียญโทเคน — ต้องบอกขนาดเป็น px เสมอ เพราะรายละเอียดในเหรียญไม่ได้ย่อตามสัดส่วน:
+// ขอบหยัก (dash 1.6px) กับแสงวาบ (เส้น 2.4px) ต่ำกว่า ~20px จะเละเป็นรอยเปื้อน
+// ขนาดนั้นจึงต้องสลับไปใช้ตัวแบนที่มีแค่วงกลมกับดาว ไม่ใช่แค่ย่อตัวเดิมลง
+function coin(px, cls) {
+  const id = px < 20 ? 'tok-flat' : 'tok-coin';
+  return `<svg class="tok${cls ? ' ' + cls : ''}" width="${px}" height="${px}"
+    viewBox="0 0 48 48" aria-hidden="true"><use href="#${id}"/></svg>`;
 }
 
 // ---------- หน้าน้องไซ ----------
@@ -4052,7 +4061,12 @@ function renderProfile() {
     if (!cloudConfigured()) {
       acc.innerHTML = '';
     } else if (currentUser) {
-      acc.innerHTML = `<button class="pf-quiet" onclick="logout()">${icon('chevron')}ออกจากระบบ</button>`;
+      // ออกจากระบบ · อ่านว่าเราเก็บอะไร · ลบบัญชีถาวร
+      // สามอย่างนี้ต้องอยู่ด้วยกัน เพราะเป็นชุดเดียวกันในหัวคน: "ฉันจะถอนตัวยังไง"
+      // และการซ่อนปุ่มลบไว้ลึก ๆ คือการทำให้สิทธิ์ที่กฎหมายให้ไว้ใช้ไม่ได้จริง
+      acc.innerHTML = `<button class="pf-quiet" onclick="logout()">${icon('chevron')}ออกจากระบบ</button>
+        <button class="pf-quiet" onclick="go('scr-privacy'); renderPrivacy()">${icon('lock')}เราเก็บอะไรของคุณบ้าง</button>
+        <button class="pf-quiet pf-danger" onclick="deleteAccount()">${icon('trash')}ลบบัญชีและข้อมูลทั้งหมด</button>`;
     } else {
       acc.innerHTML = `<button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span>เข้าสู่ระบบเพื่อซิงก์ข้ามเครื่อง</button>`;
     }
@@ -5812,27 +5826,52 @@ function renderShop() {
   // ตู้สะสม: ระดับลับไม่โผล่จนกว่าจะได้จริง — เห็นช่องว่างรออยู่ก็เท่ากับบอกว่ามีอยู่
   const gacha = SPIN_TABLE.filter(p => p.kind === 'skin'
     && (p.rarity !== 'secret' || (skins[p.id] || 0) > 0));
+  // ---------- การ์ดยอด ----------
+  // จอนี้เคยมีจุดสว่างสามจุดแย่งตากัน (แผ่นน้ำเงินเต็มความกว้าง · ไทล์สุ่ม · ไทล์เช็คอิน)
+  // ตอนนี้เหลือจุดเดียว: เหรียญกับตัวเลข · ที่เหลือเป็นพื้นการ์ดปกติตามกฎ 60/30/10 ของธีมมืด
+  //
+  // ชิปข้าง "โทเคน" มีได้ทีละอันเท่านั้น เรียงตามว่าอันไหนทำให้ผู้ใช้ลงมือได้เดี๋ยวนี้:
+  // สิทธิ์เปิดฟรี (กดใช้ได้เลย) มาก่อนของที่รับไปแล้ววันนี้ (เป็นแค่รายงาน)
+  const claimedToday = !dailyPending() && s.cycleDay ? DAILY_PLAN[s.cycleDay - 1] : null;
+  const pill = (s.freeSpins || 0)
+    ? `<span class="tk-pill free">เปิดฟรี ${s.freeSpins} ใบ</span>`
+    : (typeof claimedToday === 'number'
+        ? `<span class="tk-pill up">+${claimedToday} วันนี้</span>` : '');
+  // แถบวัดระยะถึง "สุ่ม 10 ใบ" — ยอดโทเคนลอย ๆ ไม่ได้บอกว่ามันพอทำอะไรหรือยัง
+  const rich = (s.bal || 0) >= SPIN_COST_10;
+  const pct = Math.max(3, Math.min(100, ((s.bal || 0) / SPIN_COST_10) * 100));
+
   box.innerHTML = `<div class="page-head">
       <div class="eyebrow mono">เช็คอินต่อเนื่อง ${s.streak || 0} วัน</div>
       <h1 class="page-title">ร้านค้า</h1>
     </div>
     <div class="tk-hero">
-      <div class="tk-coin">${icon('medal')}</div>
-      <div class="tk-bd">
-        <div class="tk-bal mono">${fmtTok(s.bal)}</div>
-        <div class="tk-unit">โทเคน${(s.freeSpins || 0) ? ' · เปิดฟรี ' + s.freeSpins + ' ใบ' : ''}</div>
+      <span class="tk-aura"></span><span class="tk-glint"></span>
+      <div class="tk-top">
+        ${coin(52)}
+        <div class="tk-bd">
+          <div class="tk-bal mono">${fmtTok(s.bal)}</div>
+          <div class="tk-unit">โทเคน${pill}</div>
+        </div>
       </div>
+      <div class="tk-track"><i style="width:${pct}%"></i></div>
+      <div class="tk-note">${rich
+        ? 'สุ่ม 10 ใบได้แล้ว'
+        : 'อีก <b>' + fmtTok(SPIN_COST_10 - (s.bal || 0)) + ' โทเคน</b> ถึงสุ่ม 10 ใบ'}</div>
     </div>
-    <button class="tk-cta" onclick="go('scr-wheel')">
-      <span class="tile">${icon('sparkles')}</span>
-      <span class="bd"><b>สุ่มสกิน</b><i>สุ่ม 1 ใบ ${SPIN_COST_1} โทเคน · 10 ใบ ${SPIN_COST_10} โทเคน</i></span>
-      ${icon('chevron')}
-    </button>
-    <button class="tk-cta ghost" onclick="openDailyCheck(false)">
-      <span class="tile">${icon('calendar')}</span>
+    <!-- เช็คอินขึ้นก่อนสุ่ม: มันคือของฟรีที่กดรับได้เดี๋ยวนี้ ส่วนสุ่มคือของที่ต้องจ่าย
+         ของที่ทำได้ทันทีควรอยู่เหนือของที่ต้องแลก และจุดแดงจะได้ไม่มีอะไรมาแข่งสายตา -->
+    <button class="tk-cta${dailyPending() ? ' live' : ''}" onclick="openDailyCheck(false)">
+      <span class="tile cal">${icon('calendar')}</span>
       <span class="bd"><b>เช็คอินรายวัน</b><i>${dailyPending()
-        ? 'วันที่ ' + day + ' ของรอบ — ยังไม่ได้รับ'
+        ? 'วันที่ ' + day + ' ของรอบ · ได้ ' + (DAILY_PLAN[day - 1] === 'spin'
+            ? 'สุ่มฟรี 1 ใบ' : DAILY_PLAN[day - 1] + ' โทเคน')
         : 'รับของวันนี้แล้ว · พรุ่งนี้ 6 โมงเช้า'}</i></span>
+      ${dailyPending() ? '<span class="tk-live">รับเลย</span>' : icon('chevron')}
+    </button>
+    <button class="tk-cta" onclick="go('scr-wheel')">
+      <span class="tile deck"><i></i><i></i><i></i></span>
+      <span class="bd"><b>สุ่มสกิน</b><i>1 ใบ ${SPIN_COST_1} · 10 ใบ ${SPIN_COST_10} โทเคน</i></span>
       ${icon('chevron')}
     </button>
 

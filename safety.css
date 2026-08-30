@@ -1,0 +1,128 @@
+/* ============================================================
+   ชุดความปลอดภัย — รายงาน · ยินยอม · นโยบาย
+   ============================================================ */
+
+/* ---------- ปุ่มรายงานบนโพสต์/คำตอบ ----------
+   ต้องหาเจอเมื่อต้องการ แต่ต้องไม่เด่นจนคนกดเล่น — จาง ๆ อยู่มุมขวา
+   แล้วชัดขึ้นตอนแตะ · ปุ่มรายงานที่เด่นเกินไปทำให้ฟีดอ่านเหมือนที่ที่มีปัญหา */
+.fd-flagbtn {
+  margin-left: auto; flex: none;
+  width: 28px; height: 28px; border-radius: 8px;
+  border: 0; background: none; color: var(--faint);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; opacity: .55;
+}
+.fd-flagbtn svg { width: 14px; height: 14px; }
+.fd-flagbtn:active { opacity: 1; background: var(--card2); }
+.fd-wait + .fd-flagbtn { margin-left: 8px; }
+.th-reply .fd-flagbtn { align-self: flex-start; }
+
+/* ---------- แผ่นรายงาน ---------- */
+.rp-sheet { position: absolute; inset: 0; z-index: 60; display: flex; align-items: flex-end; }
+.rp-back { position: absolute; inset: 0; background: rgba(6, 9, 18, .55); }
+.rp-card {
+  position: relative; width: 100%;
+  background: var(--card);
+  border-radius: 22px 22px 0 0;
+  padding: 18px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  box-shadow: var(--shadow-lg);
+  display: flex; flex-direction: column; gap: 7px;
+  animation: rp-up .22s cubic-bezier(.2, .9, .3, 1) both;
+}
+@keyframes rp-up { from { transform: translateY(18px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .rp-card { animation: none; } }
+.rp-h { font-size: 17px; font-weight: 700; }
+.rp-p { margin: 0 0 6px; font-size: 12.5px; line-height: 1.65; color: var(--muted); }
+.rp-op {
+  width: 100%; text-align: left;
+  border: 1px solid var(--line); border-radius: var(--r-tile);
+  background: var(--card2); color: var(--ink);
+  padding: 13px 15px;
+  font-family: inherit; font-size: 14.5px; font-weight: 600; cursor: pointer;
+}
+.rp-op:active { background: var(--alert-soft); border-color: var(--alert); color: var(--alert); }
+.rp-cancel {
+  margin-top: 6px; border: 0; background: none; color: var(--muted);
+  padding: 12px; font-family: inherit; font-size: 14.5px; font-weight: 600; cursor: pointer;
+}
+
+/* ============================================================
+   ก่อนเข้าไปเจอเพื่อน
+   ============================================================ */
+#scr-consent .scr-body, #scr-privacy .scr-body {
+  display: flex; flex-direction: column; position: absolute; inset: 0; padding: 0;
+}
+#consentBody, #privacyBody { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+.cs-wrap { flex: 1; min-height: 0; overflow-y: auto; padding: 32px 20px 28px; }
+:root[data-nav="side"] .cs-wrap > * { max-width: 520px; margin-left: auto; margin-right: auto; }
+.cs-ic {
+  width: 52px; height: 52px; border-radius: 16px;
+  background: var(--blue-soft); color: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.cs-ic svg { width: 24px; height: 24px; }
+.cs-h { margin: 0 0 6px; font-size: 24px; font-weight: 800; letter-spacing: -.03em; }
+.cs-p { margin: 0 0 18px; font-size: 14.5px; line-height: 1.7; color: var(--muted); }
+
+.cs-box {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r-card); overflow: hidden;
+}
+.cs-row {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 13px 15px; border-top: 1px solid var(--line);
+}
+.cs-row:first-child { border-top: 0; }
+.cs-row b { font-size: 14px; font-weight: 700; }
+.cs-row span { font-size: 13px; line-height: 1.6; color: var(--muted); }
+
+.cs-q { margin: 24px 0 9px; font-size: 16px; font-weight: 700; }
+.cs-ages { display: flex; gap: 9px; }
+.cs-age {
+  flex: 1 1 0;
+  border: 1.5px solid var(--line); border-radius: var(--r-tile);
+  background: var(--card); color: var(--ink);
+  padding: 15px 10px;
+  font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.cs-age:active { border-color: var(--blue); background: var(--blue-soft); }
+.cs-fine { margin: 12px 0 0; font-size: 12px; line-height: 1.7; color: var(--faint); }
+.cs-read {
+  margin-top: 18px; width: 100%;
+  border: 0; background: none; color: var(--blue);
+  padding: 10px; font-family: inherit; font-size: 13.5px; font-weight: 600;
+  cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+}
+
+/* ============================================================
+   หน้าเราเก็บอะไร
+   ============================================================ */
+.pv-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 16px 32px; }
+:root[data-nav="side"] .pv-scroll > * { max-width: 560px; margin-left: auto; margin-right: auto; }
+.pv-lead {
+  margin: 0 0 6px; font-size: 13.5px; line-height: 1.7; color: var(--muted);
+  background: var(--card2); border-radius: var(--r-tile); padding: 12px 14px;
+}
+.pv-h {
+  margin: 22px 0 7px; font-size: 15.5px; font-weight: 700;
+  padding-bottom: 6px; border-bottom: 1px solid var(--line);
+}
+.pv-ul { margin: 0; padding-left: 20px; }
+.pv-ul li { font-size: 14px; line-height: 1.75; color: var(--muted); margin: 4px 0; }
+.pv-ul li b { color: var(--ink); font-weight: 700; }
+.pv-p { margin: 0; font-size: 14px; line-height: 1.75; color: var(--muted); }
+.pv-p b { color: var(--ink); font-weight: 700; }
+.pv-foot {
+  margin: 26px 0 0; font-size: 12.5px; line-height: 1.7; color: var(--faint);
+  border-top: 1px solid var(--line); padding-top: 14px;
+}
+
+/* ---------- แถวลบบัญชีในหน้าตั้งค่า ---------- */
+/* สีเตือนตั้งแต่ก่อนกด — ปุ่มที่ลบของถาวรไม่ควรหน้าตาเหมือนปุ่มอื่นในรายการ */
+.pe.pe-danger .pe-ic { background: var(--alert-soft); color: var(--alert); }
+.pe.pe-danger .pe-tx b { color: var(--alert); }
+
+/* ปุ่มลบบัญชีในกล่องบัญชี — แดงตั้งแต่ก่อนกด */
+.pf-quiet.pf-danger { color: var(--alert); }
