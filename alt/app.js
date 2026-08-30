@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B8';                 // สายเลขของแอป
+const APP_VERSION = '1B9';                 // สายเลขของแอป
 const APP_CODENAME = 'Klasse';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -817,7 +817,8 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
   'scr-settings': 'scr-profile', 'scr-setopt': 'scr-profile', 'scr-stats': 'scr-profile',
   // จอแชทซ่อนแถบล่างอยู่แล้ว แต่ต้องผูกเจ้าของไว้ด้วย — ไม่งั้นตอนกดย้อนกลับ
   // ออกมา จะไม่มีแท็บไหนติดไฟสักอัน ซึ่งอ่านว่า "หลงอยู่ที่ไหนไม่รู้"
-  'scr-chat': 'scr-mates' };
+  'scr-chat': 'scr-mates', 'scr-people': 'scr-mates',
+  'scr-compose': 'scr-mates', 'scr-post': 'scr-mates' };
 
 // ---------- 1A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
 // บนมือถือ การสลับไปแอปอื่นแล้วกลับมามักทำให้ระบบโหลดหน้าใหม่ทั้งหน้า
@@ -882,6 +883,14 @@ function go(id) {
   // จอแชทซ่อนแถบล่างเหมือนจอล็อกอิน — ช่องพิมพ์ต้องติดก้นจอจริง ๆ
   // ไม่ใช่ลอยอยู่หลังแถบล่างจนกดไม่โดน · ออกจากจอนี้ได้ทางปุ่มย้อนกลับในหัวจอ
   document.body.classList.toggle('chat-mode', id === 'scr-chat');
+  document.body.classList.toggle('compose-mode',
+    id === 'scr-compose' || id === 'scr-post');
+  // ออกจากฟีดเมื่อไหร่ ปิดช่องรับโพสต์สดกับ presence — ทั้งคู่กินโควตา realtime
+  // ซึ่งนับจำนวนช่องที่เปิดพร้อมกัน · จอลูกของฟีดยังนับว่าอยู่ในฟีด ไม่ต้องปิด
+  if (!['scr-mates', 'scr-post', 'scr-compose', 'scr-people'].includes(id)) {
+    if (typeof unwatchFeed === 'function') unwatchFeed();
+    if (typeof unwatchPresence === 'function') unwatchPresence();
+  }
   // จอที่ไม่ได้อยู่บนแถบล่าง (แผนวันนี้ · ร้าน · สุ่มสกิน ฯลฯ) มีปุ่มย้อนกลับของตัวเอง
   // อยู่มุมขวาบนตรงตำแหน่งเดียวกับปุ่มเพื่อนพอดี สองปุ่มจึงทับกันจนกดผิดตัวได้
   // จอพวกนี้เข้ามาจากทางอื่นอยู่แล้ว ปุ่มเพื่อนจึงหลบให้ปุ่มย้อนกลับไปก่อน
@@ -890,6 +899,9 @@ function go(id) {
   // และเพื่อนไม่ใช่คำตอบของ "ตอนนี้ควรทำอะไร" · ทางเข้ายังอยู่ครบสองที่ในแท็บ "ฉัน"
   document.body.classList.toggle('home-scr', id === 'scr-menu');
   document.body.classList.toggle('ai-scr', id === 'scr-ai');
+  // ฟีดมีปุ่มของตัวเองบนหัวจอแล้ว — ปุ่มเพื่อนลอยมุมขวาบนของแอปจึงต้องหลบ
+  // ไม่งั้นสองปุ่มนั่งทับกันพอดี แล้วกดโดนตัวที่ไม่ได้ตั้งใจ
+  document.body.classList.toggle('mates-scr', id === 'scr-mates');
   // หน้า "ฉัน" สลับปุ่มมุมขวาบนจาก "เพื่อน" เป็น "ตั้งค่า" — เพื่อนมีแถวของตัวเองในลิสต์
   // ข้างล่างอยู่แล้ว ส่วนตั้งค่าไม่มีแล้ว (ถอดออกใน 1A9d) มุมขวาบนคือทางเข้าเดียวของมัน
   document.body.classList.toggle('me-scr', id === 'scr-profile');
@@ -6272,6 +6284,7 @@ function renderAll() {
   if (typeof renderSources === 'function') renderSources();
   if (typeof renderRoom === 'function') renderRoom();
   if (typeof renderMates === 'function') renderMates();
+  if (typeof renderFeed === 'function') renderFeed();
 }
 
 // ---------- สแกนตารางเรียนจากรูป ----------
@@ -9099,8 +9112,7 @@ function routeAfterLogin() {
   // (ธงถูกลบทิ้งตอนอ่าน จึงมีผลครั้งเดียวต่อการล็อกอินหนึ่งครั้ง)
   const back = typeof takeAfterLogin === 'function' ? takeAfterLogin() : null;
   if (back === 'scr-mates') {
-    go('scr-mates');
-    if (typeof loadMates === 'function') loadMates();
+    if (typeof openFeed === 'function') openFeed();
     return;
   }
   go('scr-menu');

@@ -1,0 +1,257 @@
+/* ============================================================
+   ฟีด — โพสต์ · แถวคนออนไลน์ · เธรด
+   ทุกสีมาจาก token ของธีมที่ผู้ใช้เลือก
+   ============================================================ */
+
+/* ---------- หัวจอ ---------- */
+.fd-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 4px 0 2px;
+}
+.fd-title { font-size: var(--fs-page); font-weight: 800; letter-spacing: -.034em; margin: 0; }
+.fd-people {
+  width: 38px; height: 38px; flex: none;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--card); color: var(--ink);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.fd-people svg { width: 19px; height: 19px; }
+.fd-people:active { transform: scale(.94); }
+
+/* ---------- แถบขอบเขต ---------- */
+.fd-scopes { display: flex; gap: 6px; margin-top: 10px; }
+.fd-scope {
+  flex: 1 1 0;
+  border: 1.5px solid var(--line); background: var(--card); color: var(--muted);
+  border-radius: 999px; padding: 7px 6px;
+  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+.fd-scope:active { transform: scale(.97); }
+.fd-scope.on { border-color: var(--blue); background: var(--blue-soft); color: var(--ink); }
+
+/* ---------- แถวคนออนไลน์ ---------- */
+/* วงกลมแบบสตอรี่ แต่ข้างในเป็นคนที่เปิดแอปอยู่จริงตอนนี้ ไม่ใช่รูปที่โพสต์ค้างไว้
+   วงแหวนเรืองแสง = กำลังนั่งทำงานอยู่ (มาจาก runningWork ของเครื่องเขา) */
+.fd-online {
+  display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none;
+  margin-top: 14px; padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+.fd-online::-webkit-scrollbar { display: none; }
+.fd-on { flex: none; width: 60px; text-align: center; }
+.fd-on-ring {
+  width: 54px; height: 54px; border-radius: 50%; margin: 0 auto 5px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--card2); color: var(--muted);
+  font-size: 20px; font-weight: 700;
+  border: 2px solid var(--line);
+  overflow: hidden;
+}
+.fd-on-ring img { width: 100%; height: 100%; object-fit: cover; }
+.fd-on.busy .fd-on-ring {
+  border-color: var(--good);
+  box-shadow: 0 0 0 3px var(--good-soft), 0 0 14px -2px var(--good);
+}
+.fd-on-nm {
+  font-size: 11px; font-weight: 600; line-height: 1.25;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fd-on-sub {
+  font-size: 9.5px; color: var(--faint); line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fd-on.busy .fd-on-sub { color: var(--good); font-weight: 600; }
+
+/* ---------- ช่องเปิดเขียนโพสต์ ---------- */
+.fd-ask {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  margin-top: 14px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--card); padding: 9px 12px;
+  font-family: inherit; cursor: pointer; text-align: left;
+}
+.fd-ask:active { transform: scale(.99); }
+.fd-ask-av {
+  width: 30px; height: 30px; border-radius: 50%; flex: none;
+  background: var(--blue-soft); color: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700;
+}
+.fd-ask-tx { flex: 1; min-width: 0; color: var(--faint); font-size: 14px; }
+.fd-ask-cam { color: var(--blue); display: flex; }
+.fd-ask-cam svg { width: 19px; height: 19px; }
+
+/* ---------- ปุ่มมีโพสต์ใหม่ ---------- */
+/* โพสต์ใหม่ไม่แทรกเข้ากลางหน้าที่กำลังอ่าน — ของที่ขยับเองใต้นิ้วคือของน่ารำคาญ */
+.fd-fresh {
+  display: flex; align-items: center; gap: 6px; margin: 12px auto 0;
+  border: 0; border-radius: 999px;
+  background: var(--blue); color: var(--on-accent);
+  padding: 8px 16px;
+  font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  box-shadow: var(--shadow-brand);
+}
+.fd-fresh svg { width: 15px; height: 15px; }
+
+/* ---------- การ์ดโพสต์ ---------- */
+.fd-post {
+  margin-top: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  padding: 14px;
+  cursor: pointer;
+}
+.fd-post:active { transform: scale(.995); }
+/* โพสต์ที่ถามวิชาที่เราเก่ง — นี่คือจุดที่ฟีดต่างจาก IG
+   IG เรียงตามความนิยม เราเรียงตามว่าใครช่วยได้ และบอกเหตุผลไว้บนการ์ดเลย */
+.fd-post.for-me { border-color: var(--good); background: var(--good-soft); }
+.fd-flag {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 700; color: var(--good);
+  margin-bottom: 9px;
+}
+.fd-flag svg { width: 14px; height: 14px; }
+
+.fd-head { display: flex; align-items: center; gap: 10px; }
+.fd-av {
+  width: 36px; height: 36px; border-radius: 50%; flex: none;
+  background: var(--blue-soft); color: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700;
+  object-fit: cover;
+}
+.fd-av.sm { width: 30px; height: 30px; font-size: 13px; }
+.fd-av.anon { background: var(--card2); color: var(--faint); }
+.fd-who { min-width: 0; display: flex; flex-direction: column; line-height: 1.35; }
+.fd-who b { font-size: 14.5px; font-weight: 700; }
+.fd-who i {
+  font-style: normal; font-size: 11.5px; color: var(--faint);
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+}
+.fd-mine {
+  margin-left: 6px; font-size: 10px; font-weight: 700;
+  color: var(--blue); background: var(--blue-soft);
+  border-radius: 999px; padding: 1px 7px;
+}
+.fd-subj { color: var(--blue); font-weight: 700; }
+
+.fd-body {
+  margin: 10px 0 0; font-size: 14.5px; line-height: 1.65;
+  white-space: pre-wrap; word-break: break-word;
+}
+.fd-img {
+  width: 100%; margin-top: 10px; border-radius: var(--r-tile);
+  border: 1px solid var(--line); display: block;
+  max-height: 380px; object-fit: cover;
+}
+.fd-foot {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 11px; padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.fd-reply {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 600; color: var(--muted);
+}
+.fd-reply svg { width: 15px; height: 15px; }
+.fd-wait {
+  margin-left: auto;
+  font-size: 10.5px; font-weight: 700; color: var(--warn);
+  background: var(--warn-soft); border-radius: 999px; padding: 2px 9px;
+}
+
+/* ============================================================
+   จอเขียนโพสต์ + จอเธรด
+   ============================================================ */
+#scr-compose .scr-body, #scr-post .scr-body {
+  display: flex; flex-direction: column;
+  position: absolute; inset: 0; padding: 0;
+}
+#composeBody, #postBody { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.compose-mode .tabbar { display: none; }
+
+.cp-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--card);
+}
+.cp-top > b { font-size: 15.5px; font-weight: 700; }
+.cp-x, .cp-send {
+  border: 0; background: none; font-family: inherit; font-size: 14px; cursor: pointer;
+  padding: 6px 2px;
+}
+.cp-x { color: var(--muted); display: flex; align-items: center; }
+.cp-x svg { width: 20px; height: 20px; transform: rotate(180deg); }
+.cp-send { color: var(--blue); font-weight: 700; }
+.cp-send:disabled { color: var(--faint); }
+
+.cp-body { flex: 1; min-height: 0; overflow-y: auto; padding: 14px; }
+.cp-body textarea {
+  width: 100%; background: var(--card2);
+  border: 1.5px solid var(--line); border-radius: var(--r-tile);
+  padding: 12px; color: var(--ink);
+  font-family: inherit; font-size: 15px; line-height: 1.65; resize: vertical;
+}
+.cp-body textarea:focus { outline: none; border-color: var(--blue); background: var(--card); }
+.cp-body textarea::placeholder { color: var(--faint); }
+
+.cp-img { position: relative; margin-top: 10px; }
+.cp-img img {
+  width: 100%; border-radius: var(--r-tile); border: 1px solid var(--line); display: block;
+}
+.cp-img-x {
+  position: absolute; top: 8px; right: 8px;
+  width: 30px; height: 30px; border-radius: 50%; border: 0;
+  background: rgba(10, 14, 26, .7); color: #fff;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.cp-img-x svg { width: 15px; height: 15px; }
+
+.cp-add {
+  display: flex; align-items: center; gap: 7px; margin-top: 10px;
+  border: 1.5px dashed var(--line); border-radius: var(--r-tile);
+  background: none; color: var(--muted);
+  padding: 10px 14px; width: 100%;
+  font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.cp-add svg { width: 17px; height: 17px; }
+
+.cp-lb {
+  margin: 16px 0 7px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: .05em; color: var(--muted);
+}
+.cp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cp-chip {
+  border: 1.5px solid var(--line); background: var(--card2); color: var(--muted);
+  border-radius: 999px; padding: 6px 13px;
+  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.cp-chip.on { border-color: var(--blue); background: var(--blue-soft); color: var(--ink); }
+
+.cp-anon {
+  display: flex; align-items: flex-start; gap: 10px; margin-top: 18px;
+  background: var(--card2); border: 1px solid var(--line);
+  border-radius: var(--r-tile); padding: 12px 14px; cursor: pointer;
+}
+.cp-anon input { width: 20px; height: 20px; flex: none; margin-top: 1px; accent-color: var(--blue); }
+.cp-anon span { display: flex; flex-direction: column; line-height: 1.45; }
+.cp-anon b { font-size: 14px; font-weight: 700; }
+.cp-anon i { font-style: normal; font-size: 12px; color: var(--muted); }
+
+/* ---------- เธรด ---------- */
+.th-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 14px; }
+.th-scroll .fd-post { cursor: default; margin-top: 0; }
+.th-lb {
+  margin: 18px 0 10px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: .05em; color: var(--muted);
+}
+.th-reply { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.th-bd { flex: 1; min-width: 0; }
+.th-bd b { font-size: 13.5px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.th-bd b i { font-style: normal; font-size: 11px; font-weight: 400; color: var(--faint); }
+.th-bd p { margin: 3px 0 0; font-size: 14px; line-height: 1.6; word-break: break-word; }
+
+/* ปุ่มเพื่อนลอยมุมขวาบนของแอป (.top-friends) นั่งทับปุ่มบนหัวฟีดพอดี
+   ฟีดมีทางเข้า "คนในห้อง" ของตัวเองอยู่แล้ว ปุ่มลอยจึงไม่ต้องมีในจอนี้ */
+.mates-scr .top-friends { display: none; }

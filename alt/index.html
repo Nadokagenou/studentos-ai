@@ -77,6 +77,8 @@
   <link rel="stylesheet" href="room.css">
   <!-- เพื่อนร่วมห้อง + ช่องคุย -->
   <link rel="stylesheet" href="social.css">
+  <!-- ฟีด: โพสต์ · เธรด · ใครออนไลน์ -->
+  <link rel="stylesheet" href="feed.css">
   <!-- ดีไซน์ที่ปรับด้วยตัวแก้ดีไซน์ ต้องอยู่ท้ายสุดถึงจะทับของเดิมได้
        ว่างอยู่ = ยังไม่มีใครปรับอะไร ไม่มีผลกับหน้าตาเดิมเลย -->
   <link rel="stylesheet" href="custom.css">
@@ -712,7 +714,7 @@
             <!-- เพื่อนร่วมห้อง — แถวแรกสุดของรายการโดยตั้งใจ
                  เพื่อนคือเหตุผลหลักที่กลุ่มเป้าหมายจะเปิดแอปนี้ค้างไว้ ของอื่นในรายการ
                  เป็นของที่ทำคนเดียวได้ทั้งหมด แถวนี้แถวเดียวที่ต้องมีคนอื่น -->
-            <button class="pe" onclick="go('scr-mates'); loadMates()">
+            <button class="pe" onclick="openFeed()">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
               <span class="pe-tx"><b>เพื่อนร่วมห้อง</b><i id="peMateCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
@@ -822,13 +824,31 @@
            ต้องล็อกอิน เพราะห้องเรียนต้องรู้ว่าใครเป็นใคร -->
       <div class="screen flush" id="scr-mates">
         <div class="scr-body pf-body">
+          <div id="feedBody"></div>
+        </div>
+      </div>
+
+      <!-- วิชาของฉัน + คนในห้อง — ย้ายออกจากแท็บหลักมาอยู่หลังปุ่มบนหัวฟีด
+           มันเป็นของที่ตั้งครั้งเดียวแล้วแทบไม่กลับมาแก้ ต่างจากฟีดที่เปิดทุกวัน -->
+      <div class="screen flush" id="scr-people">
+        <div class="scr-body pf-body">
           <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
             <div></div>
-            <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
+            <button class="sh-btn" onclick="go('scr-mates')" aria-label="กลับ">
               <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
           </div>
           <div id="matesBody"></div>
         </div>
+      </div>
+
+      <!-- ============ SCREEN: เขียนโพสต์ ============ -->
+      <div class="screen flush" id="scr-compose">
+        <div class="scr-body"><div id="composeBody"></div></div>
+      </div>
+
+      <!-- ============ SCREEN: เธรดใต้โพสต์ ============ -->
+      <div class="screen flush" id="scr-post">
+        <div class="scr-body"><div id="postBody"></div></div>
       </div>
 
       <!-- ============ SCREEN: ช่องคุย ============
@@ -1262,7 +1282,7 @@
         <span class="scan-dot"><svg viewBox="0 0 24 24"><use href="#tb-plus"/></svg></span><span>เพิ่ม</span></button>
       <!-- เพื่อนร่วมห้อง — วางถัดจากปุ่มเพิ่มทันที เป็นตำแหน่งที่นิ้วโป้งถึงง่ายที่สุดรองจากปุ่มกลาง
            เพราะเพื่อนคือเหตุผลหลักที่กลุ่มเป้าหมายจะเปิดแอปนี้ค้างไว้ ไม่ใช่ของที่ซ่อนอยู่ในแท็บ "ฉัน" -->
-      <button class="tab" data-scr="scr-mates" onclick="go('scr-mates'); loadMates()">
+      <button class="tab" data-scr="scr-mates" onclick="openFeed()">
         <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-mates"/></svg>
         <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-mates-f"/></svg><span>เพื่อน</span></button>
       <button class="tab" data-scr="scr-ai" onclick="go('scr-ai')">
@@ -1305,6 +1325,7 @@
      และ room.js ใช้ fmtThaiDate จาก engine.js ซึ่งโหลดไปแล้วข้างบน -->
 <script src="room.js"></script>
 <script src="social.js"></script>
+<script src="feed.js"></script>
 <script src="app.js"></script>
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────
