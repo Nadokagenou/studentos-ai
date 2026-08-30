@@ -9087,11 +9087,18 @@ function routeStart() {
 
   // เพิ่งกดปุ่มมาจากหน้าแนะนำ — ทำตามที่เขากดเลย ไม่ต้องแวะจอบัญชี
   // (คนที่ล็อกอินค้างอยู่แล้วไม่โดน — ปุ่มพวกนี้มีไว้สำหรับคนที่ยังไม่มีบัญชี)
+  //
+  // 'guest' ยิงได้ทันที skipLogin() ไม่พึ่งอะไรนอกจาก localStorage
+  // 'google' ยิงตอนนี้ไม่ได้ — routeStart() รอบแรกถูกเรียกก่อน initCloud()
+  // เริ่มทำงานด้วยซ้ำ ตอนนั้น sb (ไคลเอนต์ Supabase) ยังเป็น null เสมอ ไม่ว่า
+  // ระบบบัญชีจะตั้งค่าไว้ถูกหรือเปล่า — loginGoogle() เจอ sb เป็น null เลย
+  // เข้าใจผิดว่า "ยังไม่เปิดใช้งาน" ทั้งที่จริงแค่ยังโหลดไม่ทัน (เจอบ่อยในเบราว์เซอร์
+  // ในแอปอย่าง Instagram ที่โหลดสคริปต์ช้ากว่า Safari ปกติ)
+  // จึงพักไว้แค่ไปจอบัญชีก่อน แล้วยิงจริงหลัง initCloud() เสร็จ ที่ตำแหน่ง LANDING_START_AFTER_CLOUD
   if (LANDING_START && !landingUsed && !signedIn) {
-    landingUsed = true;
-    if (LANDING_START === 'guest') { skipLogin(); return; }
-    if (cloudConfigured()) { go('scr-login'); loginGoogle(); return; }
-    skipLogin(); return; // ไม่มีระบบบัญชีให้สมัคร ก็อย่าปล่อยให้ค้างหน้าเปล่า
+    if (LANDING_START === 'guest') { landingUsed = true; skipLogin(); return; }
+    go('scr-login');
+    return;
   }
 
   if (cloudConfigured() && !signedIn && !localStorage.getItem('studentos.alt.skipLogin')) {
@@ -9473,6 +9480,15 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   checkReminders();
 
   await initCloud();
+
+  // LANDING_START_AFTER_CLOUD — sb พร้อมแล้วตอนนี้ (ถ้า cloudConfigured() เป็นจริง)
+  // จุดเดียวที่ปลอดภัยจะยิง OAuth จริงสำหรับปุ่ม ?start=google จากหน้าแนะนำ
+  if (LANDING_START === 'google' && !landingUsed && !currentUser) {
+    landingUsed = true;
+    if (sb) loginGoogle();
+    else skipLogin(); // เชื่อมต่อจริง ๆ ไม่ได้ (ไม่ใช่แค่โหลดช้า) — อย่าปล่อยค้างหน้าเปล่า
+  }
+
   // ตรวจคำเดาเมื่อกี้ว่าถูกไหม — แก้จอเฉพาะตอนเดาผิด ไม่ใช่วาดใหม่ทุกครั้ง
   // เดาผิดได้ทางเดียว: มีโทเคนค้างอยู่ใน localStorage แต่ใช้จริงไม่ได้แล้ว
   // (ถูกเพิกถอน · เปลี่ยนรหัส · หมดอายุระหว่างที่ปิดแอปไว้)
