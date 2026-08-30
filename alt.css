@@ -3386,35 +3386,89 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 }
 .pe-shop .pe-ic { background: var(--pri-yellow); color: var(--pri-yellow-text); }
 
-/* ---------- ยอดโทเคน ---------- */
+/* ---------- เหรียญโทเคน ----------
+   ขนาดมาจาก width/height ใน coin() ไม่ใช่จาก CSS — เหรียญที่ 16px กับ 52px
+   ใช้ symbol คนละตัว การปล่อยให้ CSS ยืดตัวเดียวจะได้ขอบหยักที่กลายเป็นรอยเปื้อน */
+.tok { display: block; flex: none; }
+
+/* ---------- ยอดโทเคน ----------
+   เดิมเป็นแผ่นไล่สีน้ำเงินเต็มความกว้าง ซึ่งทำให้ "กล่องยอด" เป็นของสว่างที่สุดในจอ
+   ทั้งที่มันเป็นแค่ตัวเลข · ตอนนี้พื้นเป็นสีการ์ดปกติ แล้วปล่อยให้ **เหรียญ** เป็น
+   ของสว่างชิ้นเดียว — ตาจะได้ไปหยุดที่ของสะสม ไม่ใช่ที่พื้นหลัง */
 .tk-hero {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 18px 18px 19px;
+  position: relative;
+  overflow: hidden;
+  padding: 18px 17px 15px;
   border-radius: var(--r-card);
-  background: linear-gradient(135deg, var(--blue-deep), var(--blue));
-  box-shadow: var(--shadow-lg);
-  color: #fff;
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
   margin-bottom: 11px;
 }
-.tk-coin {
-  width: 50px; height: 50px;
-  flex: none;
+/* แสงทองใต้เหรียญ — ให้เหรียญดูเหมือนวางอยู่บนการ์ด ไม่ใช่ถูกแปะทับลงไป */
+.tk-aura {
+  position: absolute;
+  left: -34px; top: -66px;
+  width: 220px; height: 220px;
   border-radius: 50%;
-  background: rgba(255,255,255,.2);
-  border: 1px solid rgba(255,255,255,.4);
-  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle, rgba(233,169,60,.26), rgba(233,169,60,0) 62%);
+  pointer-events: none;
 }
-.tk-coin svg { width: 23px; height: 23px; }
+.tk-glint {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(115deg, rgba(255,255,255,.02) 0 1px, transparent 1px 10px);
+  pointer-events: none;
+}
+.tk-top { position: relative; display: flex; align-items: center; gap: 15px; }
+.tk-top .tok { flex: none; }
 .tk-bal {
-  font-size: 34px;
+  font-size: 40px;
   font-weight: 700;
   line-height: 1;
-  letter-spacing: -.03em;
+  letter-spacing: -.038em;
+  color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
-.tk-unit { font-size: 12.5px; opacity: .85; margin-top: 4px; }
+.tk-unit {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; color: var(--muted); margin-top: 6px;
+}
+/* ชิปเดียวต่อการ์ด — สองชิปเมื่อไหร่ ตาจะเริ่มไล่อ่านแทนที่จะเห็นยอดก่อน */
+.tk-pill {
+  font-size: 10.5px; font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 99px;
+}
+.tk-pill.up   { background: var(--good-soft); color: var(--good); }
+.tk-pill.free { background: rgba(233,169,60,.16); color: #E9A93C; }
+/* แถบระยะถึง "สุ่ม 10 ใบ" — ยอดลอย ๆ ไม่ได้บอกว่ามันพอทำอะไรหรือยัง */
+.tk-track {
+  position: relative;
+  height: 5px;
+  margin-top: 15px;
+  border-radius: 99px;
+  background: var(--skel);
+  overflow: hidden;
+}
+.tk-track i {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #C8850F, #FFD87A);
+}
+.tk-goal { position: relative; margin-top: 8px; font-size: 11px; color: var(--muted); }
+.tk-goal b { color: #E9A93C; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ชิปยอดมุมขวาบนของจอสุ่ม */
+.tk-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  flex: none;
+  padding: 7px 11px;
+  border-radius: 99px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  font-size: 13px; font-weight: 700;
+}
+.tk-chip b { font-variant-numeric: tabular-nums; }
 
 /* ---------- สถิติการเปิดแอป ---------- */
 .tk-stats {
@@ -3658,65 +3712,89 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 }
 .ck-ttl { font-size: 19px; font-weight: 700; letter-spacing: -.02em; }
 .ck-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
-.ck-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 7px;
-  margin: 16px 0 14px;
-}
-.ck-cell {
-  position: relative;
-  padding: 10px 4px 9px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--card2);
+/* ---------- เส้นทาง 6 วัน ----------
+   ตาราง 3×3 เดิมทุกช่องหน้าตาเท่ากันหมด มันอ่านว่า "ตารางของรางวัล"
+   ทั้งที่สิ่งที่ต้องสื่อคือ "รอบที่เดินหน้าไปทีละวัน" — เส้นเชื่อมทำให้เห็นความต่อเนื่อง
+   ที่ตัวเลขในตารางไม่เคยบอกได้ */
+.ck-track {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
+  margin: 16px 2px 0;
 }
-/* วันที่ 7 กินเต็มแถวสุดท้าย — เป็นรางวัลใหญ่ของรอบ ควรเด่นกว่าช่องอื่น */
-.ck-cell.big {
-  grid-column: span 3;
-  background: linear-gradient(135deg, var(--blue-deep), var(--blue));
-  border-color: transparent;
-  color: #fff;
+.ck-node {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 5px;
 }
-.ck-d { font-size: 10px; color: var(--muted); font-weight: 600; }
-.ck-cell.big .ck-d { color: rgba(255,255,255,.8); }
-.ck-cell b { font-size: 19px; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.ck-u { font-size: 9.5px; color: var(--faint); }
-.ck-cell.big .ck-u { color: rgba(255,255,255,.85); }
-.ck-spin svg { width: 22px; height: 22px; }
-/* วันที่รับไปแล้ว — จางลงและมีเครื่องหมายถูกทับ */
-.ck-cell.done { opacity: .5; }
-.ck-tick {
-  position: absolute;
-  inset: 0;
+.ck-bub {
+  width: 33px; height: 33px;
+  border-radius: 11px;
+  background: var(--card2);
+  border: 1px solid var(--line);
   display: flex; align-items: center; justify-content: center;
-  background: rgba(34,197,94,.18);
-  border-radius: 13px;
-  color: #16A34A;
+  color: var(--faint);
 }
-.ck-tick svg { width: 20px; height: 20px; }
-/* วันนี้ — ขอบเน้นและเต้นเบา ๆ ให้รู้ว่าต้องกดตรงไหน */
-.ck-cell.now {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 2px var(--blue-soft);
-  animation: ck-beat 1.6s ease-in-out infinite;
+.ck-bub b { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ck-bub svg { width: 17px; height: 17px; }
+.ck-node em { font-style: normal; font-size: 9px; color: var(--faint); }
+.ck-node.done .ck-bub {
+  background: var(--good-soft);
+  border-color: color-mix(in srgb, var(--good) 32%, transparent);
+  color: var(--good);
 }
+/* วันนี้ — ทองทึบ ไม่มีเงาเรือง · เงาเรืองมีได้ก้อนเดียวต่อแผ่นและมันเป็นของปุ่มรับ */
+.ck-node.now .ck-bub {
+  background: #FFD87A;
+  border-color: #FFE9A8;
+  color: #4A2E02;
+}
+.ck-node.now em { color: #E9A93C; font-weight: 700; }
+.ck-line {
+  flex: 0 0 9px;
+  height: 2px;
+  margin-bottom: 16px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.ck-line.on { background: color-mix(in srgb, var(--good) 38%, transparent); }
+/* ของวันนี้ได้เท่าไหร่ — เดิมต้องไปไล่หาช่องที่เรืองอยู่ในตารางแล้วอ่านเลขในนั้นเอง */
+.ck-today {
+  display: flex; align-items: center; justify-content: center;
+  gap: 9px;
+  margin-top: 16px;
+}
+.ck-today b { font-size: 30px; font-weight: 700; line-height: 1; letter-spacing: -.03em; }
+.ck-today span { font-size: 12.5px; color: var(--muted); align-self: flex-end; padding-bottom: 3px; }
+.ck-tspin { width: 28px; height: 28px; color: #E9A93C; }
+/* วันที่ 7 — เคยเป็นแผ่นสีเน้นเต็มแถวที่ดังกว่าปุ่มรับ ทั้งที่ยังกดไม่ได้ */
+.ck-d7 {
+  display: flex; align-items: center; gap: 9px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  text-align: left;
+  opacity: .62;
+}
+.ck-d7 .tok.off { filter: grayscale(1); opacity: .55; }
+.ck-d7b { flex: 1; min-width: 0; }
+.ck-d7b b { display: block; font-size: 12px; font-weight: 700; }
+.ck-d7b i { font-style: normal; font-size: 10.5px; color: var(--faint); }
+.ck-rem { flex: none; font-size: 10.5px; font-weight: 700; color: var(--faint); }
+/* ปุ่มรับเป็นก้อนทองที่เรืองก้อนเดียวของแผ่นนี้ — ช่องวันนี้ในแถวข้างบนจึงเป็นทองทึบ
+   ไม่มีเงา ทองสองก้อนที่เรืองพร้อมกันแปลว่าไม่มีก้อนไหนเรียกสายตาได้จริง */
 .ck-cta {
   width: 100%;
-  min-height: 50px;
+  min-height: 52px;
+  margin-top: 13px;
   border: none;
   border-radius: 16px;
-  background: linear-gradient(135deg, var(--blue-deep), var(--blue));
-  color: #fff;
+  background: linear-gradient(135deg, #C8850F, #FFD87A);
+  color: #3A2404;
   font-family: inherit;
-  font-size: 15px;
+  font-size: 15.5px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: var(--shadow-brand);
+  box-shadow: 0 13px 30px -10px rgba(233,169,60,.8);
 }
 .ck-cta:active { transform: scale(.98); }
 .ck-done { font-size: 12.5px; color: var(--muted); margin: 6px 0 2px; }
@@ -3734,7 +3812,6 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 }
 @keyframes ck-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ck-rise { from { opacity: 0; transform: translateY(18px) scale(.96); } to { opacity: 1; transform: none; } }
-@keyframes ck-beat { 0%,100% { box-shadow: 0 0 0 2px var(--blue-soft); } 50% { box-shadow: 0 0 0 5px var(--blue-soft); } }
 
 /* ============================================================
    ALT 1A7: การ์ดสุ่มสกิน 3D (แทนวงล้อเดิม)
@@ -3742,24 +3819,81 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
    JS อ่าน scrollLeft แล้วเซ็ต --ry/--tz/--sc ให้แต่ละใบตามระยะห่างจากกึ่งกลาง
    การ์ดจึงหันตามนิ้วจริง ๆ ไม่ใช่เล่นท่าเดิมซ้ำรอบเดียว
    ============================================================ */
-.gc-odds {
+/* ---------- ตารางอัตรา ----------
+   ย้ายลงมาอยู่ใต้ปุ่มแล้ว: มันเป็นข้อมูลอ้างอิง ไม่ใช่ของที่ต้องอ่านก่อนกด
+   แถบสัดส่วนบอก "Common กินเกือบทั้งแถบ" ได้ในพริบตา ซึ่งตัวเลข 83% ไม่เคยทำได้ */
+.gc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.gc-odds { margin-top: 14px; }
+.gc-obar {
   display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-bottom: 6px;
-  font-size: 11px;
-  font-weight: 700;
+  gap: 2px;
+  height: 4px;
+  border-radius: 99px;
+  overflow: hidden;
 }
-.gc-odds .r-legendary, .r-legendary { color: var(--r-legend); }
-.gc-odds .r-rare, .r-rare { color: var(--r-rare); }
-.gc-odds .r-common, .r-common { color: var(--r-common); }
+.gc-obar i { display: block; }
+.gc-obar .r-legendary { background: var(--r-legend); }
+.gc-obar .r-rare      { background: var(--r-rare); }
+.gc-obar .r-common    { background: var(--r-common); flex: 1; opacity: .5; }
+.gc-olb {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  opacity: .75;
+}
+.r-legendary { color: var(--r-legend); }
+.r-rare { color: var(--r-rare); }
+.r-common { color: var(--r-common); }
 
-/* ที่ว่างก่อนสุ่มครั้งแรก — สูงเท่าแถบการ์ดจริง จอจะได้ไม่กระโดดตอนการ์ดโผล่ */
+/* ---------- สำรับก่อนสุ่มครั้งแรก ----------
+   เดิมตรงนี้เป็นที่ว่างที่มีประกายจาง ๆ กับข้อความบอกให้ไปกดปุ่มข้างล่าง —
+   จอที่ควรน่าตื่นเต้นที่สุดในแอปกลับเป็นจอที่ไม่มีอะไรให้อยากแตะเลย
+   สูงเท่าแถบการ์ดจริงเหมือนเดิม จอจะได้ไม่กระโดดตอนการ์ดโผล่ */
 .gc-empty { min-height: 250px; display: flex; align-items: center; justify-content: center; }
-.gc-ph { text-align: center; color: var(--faint); }
-.gc-ph i { display: block; }
-.gc-ph svg { width: 34px; height: 34px; opacity: .5; }
-.gc-ph p { font-size: 12.5px; margin-top: 8px; }
+.gc-fan {
+  position: relative;
+  width: 154px; height: 206px;
+  padding: 0; border: none; background: none;
+  cursor: pointer;
+  animation: gc-float 4.5s ease-in-out infinite;
+}
+.gc-fc {
+  position: absolute;
+  left: 20px; top: 8px;
+  width: 114px; height: 166px;
+  border-radius: 15px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 7px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,.038) 0 2px, transparent 2px 7px),
+    linear-gradient(150deg, var(--blue), var(--blue-deep));
+  border: 1.5px solid rgba(255,255,255,.16);
+  box-shadow: 0 16px 30px -12px rgba(0,0,0,.55);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+:root[data-theme="dark"] .gc-fc {
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 7px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,.038) 0 2px, transparent 2px 7px),
+    linear-gradient(150deg, #3E63AE, #1A2748);
+}
+/* ลายรัศมีบนหลังการ์ด — ลายทแยงเดิมอ่านว่า "พื้นผิวเปล่า" ไม่ใช่ "หลังการ์ด" */
+.gc-fc .tok { position: relative; z-index: 2; }
+.gc-fc.a { transform: rotate(-13deg) translate(-31px, 10px) scale(.94); opacity: .55; }
+.gc-fc.b { transform: rotate(13deg) translate(31px, 10px) scale(.94); opacity: .55; }
+.gc-fh {
+  position: absolute;
+  bottom: -6px; left: 0; right: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.gc-fan:active { transform: scale(.97); }
+@keyframes gc-float {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-6px); }
+}
 
 /* ---------- แถบการ์ด ---------- */
 .gc-strip {
@@ -3821,22 +3955,44 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
   justify-content: center;
   overflow: hidden;
 }
-/* หลังการ์ด — ลายทแยงกับตราตรงกลาง ให้ดูเป็นการ์ดคว่ำจริง ไม่ใช่กล่องเปล่า */
+/* ---------- หลังการ์ด ----------
+   หน้าตาต้องเป็นใบเดียวกับสำรับที่แผ่อยู่ก่อนกด (.gc-fc) — ลายกับสีต่างกันเมื่อไหร่
+   มันอ่านว่าการ์ดถูกสลับไปแล้วระหว่างทาง ไม่ใช่ใบเดิมที่เพิ่งหยิบขึ้นมา
+
+   **อย่าพึ่ง backface-visibility กับกล่องที่มีพื้นลาย** — พื้นแบบ repeating-gradient
+   (ทั้ง linear และ conic) ถูกเบราว์เซอร์ยกไปวาดเป็นเลเยอร์ของตัวเอง เลเยอร์นั้นไม่โดน
+   backface-visibility ของกล่องแม่ ผลคือ *หงายการ์ดแล้วยังเห็นหลังการ์ดทับหน้าอยู่*
+   ของเดิมใช้ลายทแยง repeating-linear-gradient จึงมีอาการนี้มาตั้งแต่ก่อนแก้รอบนี้
+   ทางที่เชื่อถือได้คือบังด้วย opacity ตรง ๆ (ดู .gc.open .gc-back ข้างล่าง) */
 .gc-back {
   background:
-    repeating-linear-gradient(45deg, rgba(255,255,255,.06) 0 6px, transparent 6px 12px),
-    linear-gradient(150deg, var(--blue-deep), var(--blue));
-  box-shadow: inset 0 0 0 2px rgba(255,255,255,.18), 0 12px 26px -10px rgba(0,0,0,.6);
+    repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 7px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,.038) 0 2px, transparent 2px 7px),
+    linear-gradient(150deg, var(--blue), var(--blue-deep));
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.16), 0 12px 26px -10px rgba(0,0,0,.6);
   color: rgba(255,255,255,.9);
+  /* หน่วงเท่าครึ่งหนึ่งของเวลาพลิก (.72s) — หลังการ์ดหายตอนการ์ดหันข้างพอดี
+     ถ้าหายทันทีจะเห็นหน้าการ์ดกลับด้านตั้งแต่ยังไม่ทันหมุน */
+  transition: opacity 0s linear .36s;
 }
+.gc.open .gc-back { opacity: 0; }
+:root[data-theme="dark"] .gc-back {
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 7px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,.038) 0 2px, transparent 2px 7px),
+    linear-gradient(150deg, #3E63AE, #1A2748);
+}
+
+/* เหรียญวางบนหลังการ์ดตรง ๆ — จานขาวรอบเหรียญทำให้มันดูเป็นไอคอนที่ถูกแปะทับ
+   ไม่ใช่ตราที่ปั๊มอยู่บนการ์ด */
 .gc-mark {
-  width: 52px; height: 52px;
-  border-radius: 50%;
-  background: rgba(255,255,255,.14);
-  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.3);
+  position: relative;
+  z-index: 2;
   display: flex; align-items: center; justify-content: center;
 }
 .gc-mark svg { width: 24px; height: 24px; }
+.gc-mark .tok { width: 44px; height: 44px; }
+.gc-face .gc-tok { margin-bottom: 2px; }
 
 /* หน้าการ์ด — พลิกไว้ 180 องศาตั้งแต่ต้น พอ .open พลิกทั้งใบมันจึงหันมาพอดี */
 .gc-face {
@@ -3899,20 +4055,28 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 .gc-sum b { color: var(--ink); font-variant-numeric: tabular-nums; }
 
 .gc-btns { display: flex; gap: 9px; }
+/* ปุ่มนำ = ปุ่มที่คุ้มที่สุด "ตอนนี้" ไม่ใช่ปุ่มที่แพงที่สุดเสมอ —
+   เดิมปุ่ม 10 ใบเป็นทองตายตัว ทั้งที่บางทีสิทธิ์ฟรีนอนอยู่ในมือแล้ว
+   ตอนนี้ทองย้ายตามปุ่มที่ควรกดก่อน (ดู refreshDrawHead) และมีได้ปุ่มเดียว */
 .gc-go {
   flex: 1;
-  min-height: 58px;
-  border: none;
-  border-radius: 17px;
-  background: linear-gradient(135deg, var(--blue-deep), var(--blue));
-  color: #fff;
+  min-height: 62px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card2);
+  color: var(--muted);
   font-family: inherit;
   cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  box-shadow: var(--shadow-brand);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   transition: transform .13s ease;
 }
-.gc-go.alt { background: linear-gradient(135deg, #B45309, #F59E0B); box-shadow: 0 10px 24px -8px rgba(245,158,11,.6); }
+.gc-go.lead {
+  background: linear-gradient(135deg, #C8850F, #FFD87A);
+  border-color: transparent;
+  color: #3A2404;
+  box-shadow: 0 13px 30px -10px rgba(233,169,60,.8);
+}
+.gc-go.lead i { color: #5C3A05; opacity: 1; }
 .gc-go b { font-size: 14.5px; font-weight: 700; }
 .gc-go i { font-size: 11px; font-style: normal; opacity: .85; }
 .gc-go:active { transform: scale(.97); }
@@ -3922,6 +4086,7 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
   .gc { animation: none; }
   .gc-in { transition: none; }
   .gc-face.r-legendary { animation: none; }
+  .gc-fan { animation: none; }
 }
 
 /* ---------- ปุ่มใหญ่ในร้าน + ตู้สกิน ---------- */
@@ -3944,12 +4109,55 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 }
 .tk-cta:active { transform: scale(.985); }
 .tk-cta .tile {
-  width: 38px; height: 38px; flex: none;
-  border-radius: 12px;
+  width: 42px; height: 42px; flex: none;
+  border-radius: 13px;
   background: var(--pri-yellow); color: var(--pri-yellow-text);
   display: flex; align-items: center; justify-content: center;
+  position: relative;
 }
-.tk-cta.ghost .tile { background: var(--blue-soft); color: var(--blue); }
+/* ---------- ไทล์เช็คอินที่ยังไม่ได้กดรับ ----------
+   สีแดงในจอนี้มีที่เดียว: ของที่รอให้กดอยู่ตอนนี้
+   ถ้าไทล์อื่นได้สีเน้นด้วย จุดแดงจะกลายเป็นแค่สีอีกสีในกอง */
+.tk-cta.live { border-color: color-mix(in srgb, var(--alert) 30%, transparent); }
+.tk-cta.live .tile.cal {
+  background: var(--alert-soft);
+  color: var(--alert);
+}
+.tk-cta .tile.cal { background: var(--blue-soft); color: var(--blue); }
+.tk-live {
+  flex: none;
+  font-size: 10.5px; font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 99px;
+  background: var(--alert);
+  color: var(--on-accent);
+}
+/* สำรับย่อบนไทล์สุ่ม — ไอคอนประกายเดิมบอกได้แค่ "มีอะไรวิบวับ"
+   สามใบซ้อนบอกว่าข้างในเป็นการ์ดที่เปิดได้ ซึ่งตรงกับสิ่งที่เจอเมื่อกดเข้าไป */
+.tk-cta .tile.deck { background: none; }
+.tk-cta .tile.deck i {
+  position: absolute;
+  left: 8px; top: 3px;
+  width: 25px; height: 35px;
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,.2);
+  background: linear-gradient(150deg, var(--blue), var(--blue-deep));
+}
+:root[data-theme="dark"] .tk-cta .tile.deck i { background: linear-gradient(150deg, #3E63AE, #20305C); }
+.tk-cta .tile.deck i:nth-child(1) { transform: rotate(-16deg) translateX(-5px); opacity: .5; }
+.tk-cta .tile.deck i:nth-child(2) { transform: rotate(9deg) translateX(5px); opacity: .72; }
+.tk-cta .tile.deck i:nth-child(3) {
+  transform: none;
+  box-shadow: 0 4px 12px -4px rgba(0,0,0,.55);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.09) 0 3px, transparent 3px 6px),
+    linear-gradient(150deg, var(--blue), var(--blue-deep));
+}
+:root[data-theme="dark"] .tk-cta .tile.deck i:nth-child(3) {
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.09) 0 3px, transparent 3px 6px),
+    linear-gradient(150deg, #3E63AE, #20305C);
+}
 .tk-cta .tile svg { width: 18px; height: 18px; }
 .tk-cta .bd { flex: 1; min-width: 0; }
 .tk-cta b { display: block; font-size: 14.5px; font-weight: 700; }

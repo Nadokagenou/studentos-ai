@@ -5608,7 +5608,7 @@ function drawCardsHtml() {
         <button class="gc" data-i="${i}" onclick="flipCard(${i})"
           aria-label="แตะเพื่อเปิดการ์ด">
           <span class="gc-in">
-            <span class="gc-back"><i class="gc-mark">${icon('sparkles')}</i><i class="gc-shine"></i></span>
+            <span class="gc-back"><i class="gc-mark">${coin(44)}</i><i class="gc-shine"></i></span>
             <span class="gc-face r-${r.rarity}${r.rarity === 'secret' ? ' p-' + r.id : ''}"></span>
           </span>
         </button>`).join('')}
@@ -5752,6 +5752,10 @@ function refreshDrawHead() {
   const g10 = document.getElementById('gcGo10');
   if (g1) g1.classList.toggle('lead', !!free);
   if (g10) g10.classList.toggle('lead', !free);
+  // หัวจอเขียนว่ามีสิทธิ์ฟรีกี่ใบ — ใช้ไปแล้วต้องเปลี่ยนทันที ไม่ใช่รอจนกวาดการ์ดทิ้ง
+  // (renderWheel ไม่วาดทับตอนการ์ดยังอยู่บนจอ ตัวเลขนี้จึงค้างเป็นคำโกหกได้ทั้งรอบ)
+  const ttl = document.querySelector('.gc-title');
+  if (ttl) ttl.textContent = free ? 'เปิดฟรี ' + free + ' ใบ' : 'แตะสำรับเพื่อเปิด';
 }
 
 async function doSpin(n) {
@@ -5901,7 +5905,7 @@ function renderShop() {
         </div>
       </div>
       <div class="tk-track"><i style="width:${pct}%"></i></div>
-      <div class="tk-note">${rich
+      <div class="tk-goal">${rich
         ? 'สุ่ม 10 ใบได้แล้ว'
         : 'อีก <b>' + fmtTok(SPIN_COST_10 - (s.bal || 0)) + ' โทเคน</b> ถึงสุ่ม 10 ใบ'}</div>
     </div>

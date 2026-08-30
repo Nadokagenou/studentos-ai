@@ -5485,20 +5485,20 @@ function claimDaily() {
 
 // ---------- หน้าต่างเช็คอินรายวัน ----------
 // เด้งเองเมื่อถึงวันใหม่ (6 โมงเช้าไทย) และยังไม่ได้กดรับ
-function dailyGrid(activeDay, claimedUpTo) {
-  return DAILY_PLAN.map((p, i) => {
+// ตาราง 3×3 เดิมทุกช่องหน้าตาเหมือนกันหมด อ่านไม่ออกว่ากำลัง "ต่อเนื่อง" อยู่ —
+// มันคือรอบที่เดินหน้าไปทีละวัน ไม่ใช่ตารางของรางวัล จึงวาดเป็นเส้นทางที่มีเส้นเชื่อม
+// วันที่ 7 ถูกดึงออกจากแถวนี้ไปอยู่บรรทัดของตัวเอง (ดู openDailyCheck)
+function dailyTrack(activeDay, claimedUpTo) {
+  return DAILY_PLAN.slice(0, 6).map((p, i) => {
     const d = i + 1;
     const done = d <= claimedUpTo;
     const now = d === activeDay;
-    const face = p === 'spin'
-      ? '<span class="ck-spin">' + icon('sparkles') + '</span>'
-      : '<b class="mono">' + p + '</b>';
-    return `<div class="ck-cell${done ? ' done' : ''}${now ? ' now' : ''}${p === 'spin' ? ' big' : ''}">
-      <span class="ck-d">วันที่ ${d}</span>
-      ${face}
-      <span class="ck-u">${p === 'spin' ? 'หมุนฟรี' : 'โทเคน'}</span>
-      ${done ? '<span class="ck-tick">' + icon('check') + '</span>' : ''}
-    </div>`;
+    const link = i < 5
+      ? `<span class="ck-line${d <= claimedUpTo ? ' on' : ''}"></span>` : '';
+    return `<div class="ck-node${done ? ' done' : ''}${now ? ' now' : ''}">
+        <span class="ck-bub">${done ? icon('check') : '<b class="mono">' + p + '</b>'}</span>
+        <em>${now ? 'วันนี้' : d}</em>
+      </div>${link}`;
   }).join('');
 }
 
@@ -5520,16 +5520,29 @@ function openDailyCheck(auto) {
   const claimed = dailyPending() ? day - 1 : (tokenState().cycleDay || 0);
   const prize = DAILY_PLAN[day - 1];
   wrap.hidden = false;
+  const spinDay = prize === 'spin';
   wrap.innerHTML = `<div class="ck-sheet">
       <div class="ck-head">
         <div class="ck-ttl">เช็คอินรายวัน</div>
         <div class="ck-sub">วันของรางวัลเปลี่ยนตอน 6 โมงเช้า</div>
       </div>
-      <div class="ck-grid">${dailyGrid(day, claimed)}</div>
+      <div class="ck-track">${dailyTrack(day, claimed)}</div>
+      <!-- ของวันนี้ได้เท่าไหร่ ต้องอ่านได้โดยไม่ต้องไปไล่หาช่องที่เรืองอยู่ในแถว -->
+      <div class="ck-today">
+        ${spinDay ? icon('sparkles', 'ck-tspin') : coin(30)}
+        <b class="mono">${spinDay ? '1' : prize}</b>
+        <span>${spinDay ? 'สิทธิ์สุ่มฟรีวันนี้' : 'โทเคนวันนี้'}</span>
+      </div>
       ${dailyPending()
-        ? `<button class="ck-cta" onclick="claimDailyFromSheet()">
-             ${prize === 'spin' ? 'รับสิทธิ์สุ่มฟรี' : 'รับ ' + prize + ' โทเคน'}</button>`
+        ? `<button class="ck-cta" onclick="claimDailyFromSheet()">รับเลย</button>`
         : `<p class="ck-done">รับของวันนี้ไปแล้ว — กลับมาใหม่พรุ่งนี้ 6 โมงเช้า</p>`}
+      <!-- วันที่ 7 เคยเป็นแผ่นสีเน้นเต็มแถวที่ดังกว่าปุ่มรับ ทั้งที่ยังกดไม่ได้
+           ของที่ล็อกอยู่ไม่ควรดังกว่าของที่กดได้ตอนนี้ -->
+      ${day < 7 ? `<div class="ck-d7">
+        ${coin(22, 'off')}
+        <span class="ck-d7b"><b>วันที่ 7 · หมุนฟรี 1 ใบ</b><i>รางวัลใหญ่ของรอบ</i></span>
+        <span class="ck-rem">อีก ${7 - day} วัน</span>
+      </div>` : ''}
       <button class="ck-close" onclick="closeDailyCheck()">ปิด</button>
     </div>`;
 }
@@ -5583,7 +5596,7 @@ function applyDrawLock() {
 
 function cardFace(r) {
   const body = r.kind === 'token'
-    ? `<b class="mono">+${fmtTok(r.amount)}</b><span>โทเคน</span>`
+    ? `${coin(30, 'gc-tok')}<b class="mono">+${fmtTok(r.amount)}</b><span>โทเคน</span>`
     : `<b>${esc(r.label)}</b><span>${r.duplicate ? 'ซ้ำ · คืน ' + fmtTok(r.amount) + ' โทเคน' : 'ธีมใหม่!'}</span>`;
   return `<span class="gc-rar">${RARITY_NAME[r.rarity]}</span>${body}`;
 }
@@ -5595,7 +5608,7 @@ function drawCardsHtml() {
         <button class="gc" data-i="${i}" onclick="flipCard(${i})"
           aria-label="แตะเพื่อเปิดการ์ด">
           <span class="gc-in">
-            <span class="gc-back"><i class="gc-mark">${icon('sparkles')}</i><i class="gc-shine"></i></span>
+            <span class="gc-back"><i class="gc-mark">${coin(44)}</i><i class="gc-shine"></i></span>
             <span class="gc-face r-${r.rarity}${r.rarity === 'secret' ? ' p-' + r.id : ''}"></span>
           </span>
         </button>`).join('')}
@@ -5676,36 +5689,73 @@ function renderWheel() {
   if (drawResults.length && curScreen === 'scr-wheel') return;  // กำลังโชว์การ์ดอยู่ ห้ามวาดทับ
   const s = tokenState();
   const free = s.freeSpins || 0;
-  box.innerHTML = `<div class="page-head">
-      <div class="eyebrow mono" id="gcBal">${fmtTok(s.bal)} โทเคน${free ? ' · เปิดฟรี ' + free : ''}</div>
-      <h1 class="page-title gc-title">สุ่มสกิน</h1>
-      <p class="page-sub">แตะการ์ดเพื่อหงายทีละใบ · ลากซ้ายขวาเพื่อดูใบอื่น</p>
+  box.innerHTML = `<div class="page-head gc-head">
+      <div>
+        <div class="eyebrow">สุ่มสกิน</div>
+        <h1 class="page-title gc-title">${free ? 'เปิดฟรี ' + free + ' ใบ' : 'แตะสำรับเพื่อเปิด'}</h1>
+      </div>
+      <span class="tk-chip" id="gcBal">${coin(15)}<b class="mono">${fmtTok(s.bal)}</b></span>
     </div>
-    <div class="gc-odds${luckOn() ? ' lucky' : ''}">
-      <span class="r-legendary">Legendary ${oddsText('legendary')}</span>
-      <span class="r-rare">Rare ${oddsText('rare')}</span>
-      <span class="r-common">Common ${oddsText('common')}</span>
-      ${luckOn() ? '<span class="gc-luck">โชค ×' + LUCK_MULT + '</span>' : ''}
-    </div>
+    <!-- ที่ว่างเดิมมีแค่ประกายจาง ๆ กับข้อความบอกให้ไปกดปุ่มข้างล่าง = ไม่มีอะไรให้อยากแตะ
+         วางสำรับคว่ำแผ่ไว้ตั้งแต่ยังไม่กด ของมันอยู่ตรงนี้ ไม่ต้องบอกว่าอยู่ตรงไหน -->
     <div id="gcArea" class="gc-empty">
       <div class="gc-stage idle"></div>
-      <div class="gc-ph"><i>${icon('sparkles')}</i><p>กดปุ่มด้านล่างเพื่อสุ่ม</p></div>
+      <button class="gc-fan" onclick="doSpin(1)" aria-label="สุ่มสกิน">
+        <span class="gc-fc a"></span><span class="gc-fc b"></span>
+        <span class="gc-fc">${coin(48)}</span>
+        <span class="gc-fh">แตะสำรับเพื่อเปิด</span>
+      </button>
     </div>
     <div id="gcFoot"></div>
+    <!-- ปุ่มไหน "คุ้มที่สุดตอนนี้" ปุ่มนั้นเป็นตัวนำ — มีสิทธิ์ฟรีค้างอยู่ก็ต้องใช้ก่อนจ่าย
+         เดิมปุ่ม 10 ใบเด่นตลอด ทั้งที่บางทีของฟรีนอนอยู่ในมือแล้ว -->
     <div class="gc-btns">
-      <button class="gc-go" id="gcGo1" onclick="doSpin(1)">
-        <b>สุ่ม 1 ใบ</b><i>${free ? 'ใช้สิทธิ์ฟรี' : SPIN_COST_1 + ' โทเคน'}</i></button>
-      <button class="gc-go alt" id="gcGo10" onclick="doSpin(10)">
-        <b>สุ่ม 10 ใบ</b><i>${SPIN_COST_10} โทเคน</i></button>
+      <button class="gc-go${free ? ' lead' : ''}" id="gcGo1" onclick="doSpin(1)">
+        <b>สุ่ม 1 ใบ</b><i id="gcGo1s">${free ? 'ใช้สิทธิ์ฟรี' : SPIN_COST_1 + ' โทเคน'}</i></button>
+      <button class="gc-go${free ? '' : ' lead'}" id="gcGo10" onclick="doSpin(10)">
+        <b>สุ่ม 10 ใบ</b><i>${SPIN_COST_10} โทเคน · ประหยัด ${SPIN_COST_1 * 10 - SPIN_COST_10}</i></button>
+    </div>
+    <!-- อัตราเป็นข้อมูลอ้างอิง ไม่ใช่ของที่ต้องอ่านก่อนตัดสินใจ — เดิมมันขวางอยู่ระหว่าง
+         หัวจอกับการ์ด ทำให้ของชิ้นเอกของจอนี้ถูกดันลงไปอยู่กลางจอ -->
+    <div class="gc-odds${luckOn() ? ' lucky' : ''}">
+      <div class="gc-obar">
+        <i class="r-legendary" style="width:${oddsPct('legendary')}%"></i>
+        <i class="r-rare" style="width:${oddsPct('rare')}%"></i>
+        <i class="r-common"></i>
+      </div>
+      <div class="gc-olb">
+        <span class="r-legendary">Legendary ${oddsText('legendary')}</span>
+        <span class="r-rare">Rare ${oddsText('rare')}</span>
+        <span class="r-common">Common ${oddsText('common')}</span>
+        ${luckOn() ? '<span class="gc-luck">โชค ×' + LUCK_MULT + '</span>' : ''}
+      </div>
     </div>`;
+}
+
+// ความกว้างของแถบอัตรา — ต่างจาก oddsText ตรงที่ต้องเป็นตัวเลขล้วนและมีพื้นขั้นต่ำ
+// Legendary 1% กว้าง 1% คือเส้นบางกว่า 2px บนจอมือถือ = มองไม่เห็นว่ามีอยู่
+function oddsPct(rarity) {
+  const od = currentOdds();
+  return Math.max(2.5, od[rarity] || 0);
 }
 
 function refreshDrawHead() {
   const s = tokenState();
-  const bal = document.getElementById('gcBal');
-  if (bal) bal.textContent = fmtTok(s.bal) + ' โทเคน' + ((s.freeSpins || 0) ? ' · เปิดฟรี ' + s.freeSpins : '');
-  const b1 = document.querySelector('#gcGo1 i');
-  if (b1) b1.textContent = (s.freeSpins || 0) ? 'ใช้สิทธิ์ฟรี' : SPIN_COST_1 + ' โทเคน';
+  const free = s.freeSpins || 0;
+  // เขียนทับเฉพาะตัวเลขในชิป — ไม่ใช่ทั้งชิป ไม่งั้นเหรียญข้าง ๆ หายไปด้วย
+  const bal = document.querySelector('#gcBal b');
+  if (bal) bal.textContent = fmtTok(s.bal);
+  const b1 = document.getElementById('gcGo1s');
+  if (b1) b1.textContent = free ? 'ใช้สิทธิ์ฟรี' : SPIN_COST_1 + ' โทเคน';
+  // สิทธิ์ฟรีหมดเมื่อไหร่ ปุ่มนำต้องย้ายไปอยู่ที่ปุ่ม 10 ใบทันที
+  const g1 = document.getElementById('gcGo1');
+  const g10 = document.getElementById('gcGo10');
+  if (g1) g1.classList.toggle('lead', !!free);
+  if (g10) g10.classList.toggle('lead', !free);
+  // หัวจอเขียนว่ามีสิทธิ์ฟรีกี่ใบ — ใช้ไปแล้วต้องเปลี่ยนทันที ไม่ใช่รอจนกวาดการ์ดทิ้ง
+  // (renderWheel ไม่วาดทับตอนการ์ดยังอยู่บนจอ ตัวเลขนี้จึงค้างเป็นคำโกหกได้ทั้งรอบ)
+  const ttl = document.querySelector('.gc-title');
+  if (ttl) ttl.textContent = free ? 'เปิดฟรี ' + free + ' ใบ' : 'แตะสำรับเพื่อเปิด';
 }
 
 async function doSpin(n) {
@@ -5855,7 +5905,7 @@ function renderShop() {
         </div>
       </div>
       <div class="tk-track"><i style="width:${pct}%"></i></div>
-      <div class="tk-note">${rich
+      <div class="tk-goal">${rich
         ? 'สุ่ม 10 ใบได้แล้ว'
         : 'อีก <b>' + fmtTok(SPIN_COST_10 - (s.bal || 0)) + ' โทเคน</b> ถึงสุ่ม 10 ใบ'}</div>
     </div>

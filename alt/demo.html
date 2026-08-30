@@ -269,6 +269,111 @@ img{display:block; max-width:100%}
 .typing i:nth-child(3){animation-delay:.3s}
 @keyframes bounce{ 0%,60%,100%{transform:translateY(0);opacity:.45} 30%{transform:translateY(-9px);opacity:1} }
 
+/* ── ฉาก "เพิ่มงานยังไงก็ได้": สี่ทางเข้า ── */
+.ways{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+.way{
+  background:var(--p-card); border-radius:26px; padding:24px 20px;
+  border:2px solid rgba(255,255,255,.08); text-align:center;
+  opacity:0; transform:translateY(26px) scale(.96);
+  transition:opacity .44s ease, transform .68s var(--ez);
+  transition-delay:calc(var(--i) * 110ms);
+}
+.view.on .way{opacity:1; transform:none}
+.way .em{font-size:44px; line-height:1; margin-bottom:14px}
+.way b{display:block; font-size:23px; color:var(--p-ink); font-weight:900; margin-bottom:6px}
+.way small{font-size:18px; color:var(--p-muted); font-weight:600; line-height:1.4}
+
+/* ── ฉากตัวเชื่อม LINE ── */
+.conn{
+  display:flex; align-items:center; gap:18px;
+  background:var(--p-card); border-radius:26px; padding:24px;
+  border:2px solid rgba(255,255,255,.08); margin-bottom:20px;
+  opacity:0; transform:translateY(24px);
+  transition:opacity .44s ease, transform .66s var(--ez);
+  transition-delay:calc(var(--i) * 150ms);
+}
+.view.on .conn{opacity:1; transform:none}
+.conn .em{font-size:38px; flex:none}
+.conn .tx{flex:1}
+.conn b{display:block; font-size:24px; color:var(--p-ink); font-weight:900; margin-bottom:5px}
+.conn small{font-size:19px; color:var(--p-muted); font-weight:600; line-height:1.45}
+/* สวิตช์ที่ "ติด" ตอนฉากขึ้น — บอกว่าเปิดใช้อยู่จริง ไม่ใช่แค่มีรายการ */
+.sw{
+  width:76px; height:44px; border-radius:99px; flex:none; position:relative;
+  background:rgba(255,255,255,.16); transition:background .5s var(--ez) .55s;
+}
+.sw::after{
+  content:''; position:absolute; top:5px; left:5px; width:34px; height:34px;
+  border-radius:50%; background:#fff; transition:transform .5s var(--ez) .55s;
+}
+.view.on .sw{background:#1E9E4A}
+.view.on .sw::after{transform:translateX(32px)}
+.conn-note{
+  font-size:18px; color:var(--p-muted); font-weight:600; line-height:1.55;
+  background:rgba(255,255,255,.05); border-radius:20px; padding:18px 20px;
+  opacity:0; transition:opacity .5s ease .75s;
+}
+.view.on .conn-note{opacity:1}
+
+/* ── ฉากไทม์ไลน์ + วันงานชน ── */
+.clash{
+  background:#7A2318; border:2px solid #C44635; border-radius:24px;
+  padding:20px 22px; margin-bottom:22px; color:#FFE2DD;
+  font-size:22px; font-weight:800; line-height:1.45;
+  opacity:0; transform:scale(.96);
+  transition:opacity .44s ease, transform .6s var(--ez);
+}
+.view.on .clash{opacity:1; transform:none}
+.tl{
+  display:flex; gap:16px; align-items:flex-start; margin-bottom:18px;
+  opacity:0; transform:translateX(-24px);
+  transition:opacity .42s ease, transform .6s var(--ez);
+  transition-delay:calc(var(--i) * 140ms + 200ms);
+}
+.view.on .tl{opacity:1; transform:none}
+.tl .day{
+  width:120px; flex:none; font-size:20px; font-weight:900; color:var(--p-muted);
+  padding-top:4px;
+}
+.tl .items{flex:1}
+.tl .it{
+  background:var(--p-card); border-radius:18px; padding:14px 18px; margin-bottom:10px;
+  font-size:21px; color:var(--p-ink); font-weight:700;
+  border:2px solid rgba(255,255,255,.07);
+}
+.tl .it.warn{border-color:#C44635}
+
+/* ── ฉากวันสอบ → แบ่งรอบอ่าน ── */
+.exam{
+  background:var(--acc); border-radius:26px; padding:24px; margin-bottom:22px;
+  border:2px solid rgba(255,255,255,.28);
+  opacity:0; transform:translateY(24px);
+  transition:opacity .44s ease, transform .66s var(--ez);
+}
+.view.on .exam{opacity:1; transform:none}
+.exam b{display:block; font-size:27px; font-weight:900; color:#fff; margin-bottom:6px}
+.exam small{font-size:20px; color:rgba(255,255,255,.85); font-weight:600}
+.arrow{
+  text-align:center; font-size:30px; color:var(--p-muted); margin-bottom:18px;
+  opacity:0; transition:opacity .5s ease .35s;
+}
+.view.on .arrow{opacity:1}
+.round{
+  display:flex; align-items:center; gap:16px;
+  background:var(--p-card); border-radius:20px; padding:18px 20px; margin-bottom:12px;
+  border:2px solid rgba(255,255,255,.07);
+  opacity:0; transform:translateY(20px);
+  transition:opacity .42s ease, transform .6s var(--ez);
+  transition-delay:calc(var(--i) * 130ms + 500ms);
+}
+.view.on .round{opacity:1; transform:none}
+.round .d{
+  width:56px; height:56px; flex:none; border-radius:16px; background:var(--acc);
+  display:grid; place-items:center; font-size:21px; font-weight:900; color:#fff;
+}
+.round .t{font-size:22px; color:var(--p-ink); font-weight:800}
+.round .t span{display:block; font-size:18px; color:var(--p-muted); font-weight:600; margin-top:3px}
+
 /* ── ฉากเปิด / ฉากปิด ── */
 .card-full{
   position:absolute; inset:0; display:grid; place-items:center; text-align:center;
@@ -397,6 +502,63 @@ img{display:block; max-width:100%}
           </div>
         </div>
 
+        <!-- 5. เพิ่มงานยังไงก็ได้ — สี่ทางเข้าที่ทำงานได้จริงวันนี้ -->
+        <div class="view" id="v5">
+          <div class="ways">
+            <div class="way" style="--i:0"><div class="em">📷</div><b>ถ่ายรูปใบงาน</b><small>AI อ่านให้ทั้งใบ</small></div>
+            <div class="way" style="--i:1"><div class="em">🎤</div><b>พูดเพิ่มงาน</b><small>เร็วที่สุด — 5 วินาที</small></div>
+            <div class="way" style="--i:2"><div class="em">⌨️</div><b>แปะข้อความ</b><small>วางแล้วให้ AI แกะ</small></div>
+            <div class="way" style="--i:3"><div class="em">📤</div><b>แชร์จากแอปอื่น</b><small>โน้ต · Gmail · เว็บ · แชท</small></div>
+          </div>
+        </div>
+
+        <!-- 6. ตัวเชื่อม — เปิดครั้งเดียวแล้วงานไหลเข้าเอง -->
+        <div class="view" id="v6">
+          <div class="conn" style="--i:0">
+            <span class="em">💬</span>
+            <span class="tx"><b>LINE</b><small>บอทในกลุ่มห้อง</small></span>
+            <span class="sw"></span>
+          </div>
+          <div class="conn" style="--i:1">
+            <span class="em">📤</span>
+            <span class="tx"><b>แชร์จากแอปอื่น</b><small>กดแชร์ในแอปไหนก็ส่งเข้ามาได้</small></span>
+            <span class="sw"></span>
+          </div>
+          <div class="conn-note">
+            ครูสั่งงานในกลุ่มครั้งเดียว เข้าระบบให้ทุกคนที่เชื่อมไว้พร้อมกัน<br><br>
+            บอทเห็นเฉพาะข้อความในกลุ่มที่ถูกเชิญเข้าไป — ไม่มีใครอ่านแชทส่วนตัวได้
+          </div>
+        </div>
+
+        <!-- 7. ไทม์ไลน์ + เตือนวันที่งานชนกัน -->
+        <div class="view" id="v7">
+          <div class="clash">⚠️ ศุกร์นี้มีงานส่งสองอันวันเดียวกัน — เริ่มอันหนึ่งตั้งแต่วันพุธดีกว่า</div>
+          <div class="tl" style="--i:0">
+            <span class="day">พรุ่งนี้</span>
+            <span class="items"><span class="it">ฟิสิกส์ · โจทย์บทที่ 4</span></span>
+          </div>
+          <div class="tl" style="--i:1">
+            <span class="day">ศุกร์</span>
+            <span class="items">
+              <span class="it warn">อังกฤษ · เรียงความ</span>
+              <span class="it warn">เคมี · รายงานกลุ่ม</span>
+            </span>
+          </div>
+          <div class="tl" style="--i:2">
+            <span class="day">สัปดาห์หน้า</span>
+            <span class="items"><span class="it">ชีวะ · สอบบทที่ 5-7</span></span>
+          </div>
+        </div>
+
+        <!-- 8. เพิ่มวันสอบ แล้วแอปแบ่งรอบอ่านให้ -->
+        <div class="view" id="v8">
+          <div class="exam"><b>สอบชีวะ บทที่ 5-7</b><small>อีก 6 วัน</small></div>
+          <div class="arrow">↓</div>
+          <div class="round" style="--i:0"><span class="d">จ.</span><span class="t">อ่านบทที่ 5<span>40 นาที</span></span></div>
+          <div class="round" style="--i:1"><span class="d">พ.</span><span class="t">อ่านบทที่ 6-7<span>50 นาที</span></span></div>
+          <div class="round" style="--i:2"><span class="d">ศ.</span><span class="t">ทบทวนทั้งหมด<span>30 นาที</span></span></div>
+        </div>
+
         <!-- 4. ถามน้องไซ -->
         <div class="view" id="v4">
           <div class="msg me" style="--i:0">เหลือเวลาแค่ 40 นาที ทำอะไรดี</div>
@@ -427,7 +589,7 @@ img{display:block; max-width:100%}
       <h1>คลิปนำเสนอ StudentOS AI</h1>
       <p>
         เริ่มอัดหน้าจอก่อน แล้วค่อยกด <kbd>Space</kbd><br>
-        ความยาวประมาณ 30 วินาที
+        ความยาวประมาณ 48 วินาที (ใส่ ?short ท้าย URL เหลือ ~30 วิ)
       </p>
       <div class="hint">R เล่นใหม่ · F เต็มจอ · L สลับแนวตั้ง/แนวนอน</div>
     </div>
@@ -447,6 +609,7 @@ function fit(){
 }
 addEventListener('resize', fit);
 if (location.search.includes('landscape')) stage.classList.add('landscape');
+const SHORT = location.search.includes('short');   // ?short = ตัดฉากเสริมออก เหลือ ~30 วิ
 fit();
 
 /* ── นาฬิกาของคลิป ──
@@ -568,7 +731,28 @@ async function play(){
   await view('v3');
   await wait(5400);
 
-  /* ฉาก 5 — ถามน้องไซ (28.5 → 35s) */
+  /* ─── ฉากเสริม: ความสามารถที่เหลือ ───
+     ข้ามทั้งชุดได้ด้วย ?short สำหรับตัดเป็น Reel สั้น — เนื้อเรื่องหลัก
+     (ปัญหา → AI แกะ → รู้ว่าทำอะไรก่อน) ยังครบโดยไม่ต้องแก้บท */
+  if (!SHORT) {
+    say('เพิ่มงานยังไงก็ได้', 'ถ่ายรูป พูด แปะข้อความ หรือแชร์มาจากแอปอื่น');
+    await view('v5');
+    await wait(4000);
+
+    say('เปิดครั้งเดียว งานไหลเข้าเอง', 'ครูสั่งในกลุ่มครั้งเดียว เข้าให้ทุกคนที่เชื่อมไว้พร้อมกัน');
+    await view('v6');
+    await wait(4600);
+
+    say('เห็นวันที่งานชนล่วงหน้า', 'ไม่ใช่มารู้เอาตอนเช้าวันส่ง');
+    await view('v7');
+    await wait(4400);
+
+    say('เพิ่มวันสอบ แล้วแบ่งรอบอ่านให้', 'ไม่ต้องมานั่งคิดเองว่าจะอ่านวันไหนบ้าง');
+    await view('v8');
+    await wait(4400);
+  }
+
+  /* ฉาก 5 — ถามน้องไซ */
   say('ถามน้องไซได้ทุกเรื่อง', 'เธอเห็นรายการงานจริงของคุณ ไม่ใช่คำแนะนำสำเร็จรูป');
   await view('v4');
   await wait(4800);
