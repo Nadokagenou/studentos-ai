@@ -73,6 +73,12 @@
   <!-- จอ "วันนี้" กับโหมดโฟกัส — ของใหม่ทั้งก้อน จึงอยู่แยกไฟล์
        ถอยกลับหน้าแรกแบบเก่า = เอาบรรทัดนี้ออก ไม่ต้องคุ้ย alt.css ที่ยาว 250 KB -->
   <link rel="stylesheet" href="today.css">
+  <!-- ห้องของฉัน — พื้นที่ส่วนตัวที่แต่งเองได้ ชั้นใหม่ทั้งชั้น แยกไฟล์ไว้ให้ถอดออกได้ทั้งก้อน -->
+  <link rel="stylesheet" href="room.css">
+  <!-- เพื่อนร่วมห้อง + ช่องคุย -->
+  <link rel="stylesheet" href="social.css">
+  <!-- ฟีด: โพสต์ · เธรด · ใครออนไลน์ -->
+  <link rel="stylesheet" href="feed.css">
   <!-- ดีไซน์ที่ปรับด้วยตัวแก้ดีไซน์ ต้องอยู่ท้ายสุดถึงจะทับของเดิมได้
        ว่างอยู่ = ยังไม่มีใครปรับอะไร ไม่มีผลกับหน้าตาเดิมเลย -->
   <link rel="stylesheet" href="custom.css">
@@ -201,6 +207,10 @@
     <g id="tb-timeline-f"><path fill="currentColor" fill-rule="evenodd" d="M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm2.6 10.1a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3zm4.4 0a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3zm4.4 0a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M8 2v3M16 2v3"/></g>
     <g id="tb-profile-f" fill="currentColor"><circle cx="12" cy="7.8" r="4.6"/><path d="M12 14.2c-4.4 0-8 2.9-8 6.3 0 .28.22.5.5.5h15a.5.5 0 0 0 .5-.5c0-3.4-3.6-6.3-8-6.3z"/></g>
     <!-- แท็บถามน้องไซ: ลูกโป่งคำพูด + ประกาย เพื่อบอกว่าอีกฝั่งเป็น AI ไม่ใช่คน -->
+    <!-- แท็บเพื่อนร่วมห้อง: สองคน — ต้องต่างจาก tb-profile (คนเดียว) ให้พอแยกออกด้วยหางตา
+         เพราะสองแท็บนี้อยู่ติดกันบนแถบ และทั้งคู่เป็นรูปคน -->
+    <g id="tb-mates" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"></circle><path d="M15.6 4.3a4 4 0 0 1 0 7.4"></path><path d="M16 21a7 7 0 0 0-14 0"></path><path d="M22 21a7 7 0 0 0-3.7-6.2"></path></g>
+    <g id="tb-mates-f" fill="currentColor"><circle cx="9" cy="8" r="4.2"/><path d="M9 13.6c-3.9 0-7 2.6-7 5.7 0 .4.3.7.7.7h12.6c.4 0 .7-.3.7-.7 0-3.1-3.1-5.7-7-5.7z"/><path d="M16.4 4.2a3.9 3.9 0 0 1 0 7.6 5.4 5.4 0 0 0 0-7.6z" opacity=".9"/><path d="M17.6 13.9c2.6.9 4.4 2.9 4.4 5.4 0 .4-.3.7-.7.7h-3.6c0-2.4-.9-4.5-2.4-6a9.6 9.6 0 0 1 2.3-.1z"/></g>
     <g id="tb-ai" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H8l-3.6 2.7A.6.6 0 0 1 3.5 21v-3.4A7.5 7.5 0 0 1 12.5 4h.2"/><path d="M18.2 2.5 19 4.8l2.3.8-2.3.8-.8 2.3-.8-2.3-2.3-.8 2.3-.8z"/></g>
     <g id="tb-ai-f"><path fill="currentColor" d="M12.5 4.4a7.6 7.6 0 0 1 7.6 7.6 7.6 7.6 0 0 1-7.6 7.6H8.2l-3.7 2.8a.62.62 0 0 1-1-.5v-3.5A7.6 7.6 0 0 1 12.5 4.4z"/><path fill="currentColor" d="M18.4 1.6 19.3 4l2.4.9-2.4.9-.9 2.4-.9-2.4-2.4-.9 2.4-.9z"/></g>
 
@@ -253,6 +263,10 @@
           <div class="big-title" style="margin:0 0 14px">StudentOS <span class="ai-blue">AI</span></div>
           <button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>
           <button class="btn ghost" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>
+          <!-- คนที่เพิ่งเปิดลิงก์มาครั้งแรกเจอจอนี้เป็นอย่างแรก แล้วจอนี้
+               ไม่ได้บอกเลยว่าแอปทำอะไร — มีแต่ปุ่มให้ยอมมอบบัญชี
+               ทางออกที่ถูกที่สุดคือให้มีทางไปอ่านก่อน แล้วค่อยกลับมากด -->
+          <a class="login-what" href="land.html">แอปนี้คืออะไร →</a>
         </div>
       </div>
 
@@ -701,6 +715,22 @@
             <!-- 1A9g: การ์ด "ถามน้องไซ" ถูกถอดออกจากตรงนี้
                  มันซ้ำกับแท็บ "น้องไซ" ที่อยู่บนแถบล่างตลอดเวลา — ทางเข้าสองทางไปที่เดียวกัน
                  เอาออกแล้วรายการข้างล่างขยับขึ้นมาอยู่ในจอเดียวครบ ไม่ต้องเลื่อนหา -->
+            <!-- เพื่อนร่วมห้อง — แถวแรกสุดของรายการโดยตั้งใจ
+                 เพื่อนคือเหตุผลหลักที่กลุ่มเป้าหมายจะเปิดแอปนี้ค้างไว้ ของอื่นในรายการ
+                 เป็นของที่ทำคนเดียวได้ทั้งหมด แถวนี้แถวเดียวที่ต้องมีคนอื่น -->
+            <button class="pe" onclick="openFeed()">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
+              <span class="pe-tx"><b>เพื่อนร่วมห้อง</b><i id="peMateCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <!-- ห้องของฉัน — ทางเข้าพื้นที่ส่วนตัว วางไว้เหนือร้านค้าโดยตั้งใจ
+                 เพราะร้านค้ามีไว้ซื้อของ "ไปวางในห้อง" — ปลายทางต้องมาก่อนทางผ่าน
+                 ไม่งั้นคนกดเข้าร้านแล้วไม่เข้าใจว่าซื้อไปทำไม ซึ่งเป็นปัญหาเดิมของร้าน -->
+            <button class="pe" onclick="go('scr-room')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
+              <span class="pe-tx"><b>ห้องของฉัน</b><i id="peRoomCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
             <!-- ALT 1A6M3: ร้านค้า — อยู่เหนือเหรียญตรา · ติดป้าย "กำลังทำ" เพราะของในร้านยังไม่เปิด
                  แต่โทเคนสะสมจริงตั้งแต่ตอนนี้ ปุ่มจึงกดเข้าไปดูยอดได้ ไม่ใช่ปุ่มตาย -->
             <button class="pe pe-shop" onclick="go('scr-shop')">
@@ -793,6 +823,68 @@
       </div>
 
       <!-- ============ SCREEN: ร้านค้า (ALT 1A6M3 — ยังสร้างไม่เสร็จ) ============ -->
+      <!-- ============ SCREEN: เพื่อนร่วมห้อง ============
+           หัวใจของชั้นสังคม — ใครในห้องช่วยเรื่องอะไรได้ พร้อมเหตุผลบนการ์ด
+           ต้องล็อกอิน เพราะห้องเรียนต้องรู้ว่าใครเป็นใคร -->
+      <div class="screen flush" id="scr-mates">
+        <div class="scr-body pf-body">
+          <div id="feedBody"></div>
+        </div>
+      </div>
+
+      <!-- วิชาของฉัน + คนในห้อง — ย้ายออกจากแท็บหลักมาอยู่หลังปุ่มบนหัวฟีด
+           มันเป็นของที่ตั้งครั้งเดียวแล้วแทบไม่กลับมาแก้ ต่างจากฟีดที่เปิดทุกวัน -->
+      <div class="screen flush" id="scr-people">
+        <div class="scr-body pf-body">
+          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+            <div></div>
+            <button class="sh-btn" onclick="go('scr-mates')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <div id="matesBody"></div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: เขียนโพสต์ ============ -->
+      <div class="screen flush" id="scr-compose">
+        <div class="scr-body"><div id="composeBody"></div></div>
+      </div>
+
+      <!-- ============ SCREEN: หน้าของคนคนหนึ่ง ============
+           เข้ามาจากการแตะรูป/ชื่อในฟีด · เธรด · หรือแถวคนออนไลน์
+           นี่คือ "พื้นที่แสดงตัวตน" ที่เป็นคำขอตั้งต้นของทั้งฟีเจอร์ -->
+      <div class="screen flush" id="scr-user">
+        <div class="scr-body"><div id="userBody"></div></div>
+      </div>
+
+      <!-- ============ SCREEN: เธรดใต้โพสต์ ============ -->
+      <div class="screen flush" id="scr-post">
+        <div class="scr-body"><div id="postBody"></div></div>
+      </div>
+
+      <!-- ============ SCREEN: ช่องคุย ============
+           จอนี้กินเต็มความสูงและมีปุ่มกลับของตัวเองในหัวจอ ไม่ใช้ sticky-head แบบจออื่น
+           เพราะช่องพิมพ์ต้องติดก้นจอ และรายการข้อความต้องเลื่อนอยู่ตรงกลางเท่านั้น -->
+      <div class="screen flush" id="scr-chat">
+        <div class="scr-body">
+          <div id="chatBody"></div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: ห้องของฉัน ============
+           พื้นที่ส่วนตัวที่แต่งเองได้ — ทางเข้าอยู่ในแท็บ "ฉัน" แถวบนสุดของรายการ
+           จอนี้ไม่ต้องมีเน็ต ทุกอย่างอ่าน/เขียนกับ state ในเครื่องแล้วซิงก์ตามก้อนเดิม -->
+      <div class="screen flush" id="scr-room">
+        <div class="scr-body pf-body">
+          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+            <div></div>
+            <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <div id="roomBody"></div>
+        </div>
+      </div>
+
       <div class="screen flush" id="scr-shop">
         <div class="scr-body pf-body">
           <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
@@ -1199,6 +1291,11 @@
           <span class="tab-badge" id="badgeHome" hidden></span></span><span>งาน</span></button>
       <button class="tab scan" onclick="openAddSheet()" aria-label="เพิ่มงานใหม่">
         <span class="scan-dot"><svg viewBox="0 0 24 24"><use href="#tb-plus"/></svg></span><span>เพิ่ม</span></button>
+      <!-- เพื่อนร่วมห้อง — วางถัดจากปุ่มเพิ่มทันที เป็นตำแหน่งที่นิ้วโป้งถึงง่ายที่สุดรองจากปุ่มกลาง
+           เพราะเพื่อนคือเหตุผลหลักที่กลุ่มเป้าหมายจะเปิดแอปนี้ค้างไว้ ไม่ใช่ของที่ซ่อนอยู่ในแท็บ "ฉัน" -->
+      <button class="tab" data-scr="scr-mates" onclick="openFeed()">
+        <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-mates"/></svg>
+        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-mates-f"/></svg><span>เพื่อน</span></button>
       <button class="tab" data-scr="scr-ai" onclick="go('scr-ai')">
         <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-ai"/></svg>
         <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-ai-f"/></svg><span>น้องไซ</span></button>
@@ -1235,6 +1332,11 @@
 <script src="brain.js"></script>
 <script src="inbox.js"></script>
 <script src="linelink.js"></script>
+<!-- ต้องมาก่อน app.js: app.js เรียก renderRoom() ใน renderAll
+     และ room.js ใช้ fmtThaiDate จาก engine.js ซึ่งโหลดไปแล้วข้างบน -->
+<script src="room.js"></script>
+<script src="social.js"></script>
+<script src="feed.js"></script>
 <script src="app.js"></script>
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────

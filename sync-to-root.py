@@ -71,6 +71,15 @@ def local_refs(html):
     return out
 
 
+# หน้าเว็บอื่นที่ index.html ลิงก์ถึง (ตอนนี้คือหน้าแนะนำ land.html)
+# ต้องขึ้นรากตามด้วย ไม่งั้นลิงก์ "แอปนี้คืออะไร" บนจอล็อกอินของตัวจริงจะพาไป 404
+# — ซึ่งเป็นความพลาดพันธุ์เดียวกับที่สคริปต์นี้เคยเจ็บมาแล้วสองรอบ: หน้าอ้างของ
+# ที่ไม่ได้ถูกก๊อปตามขึ้นไป แล้วไม่มีอะไรบอกจนกว่าจะมีคนกดจริง
+def linked_pages(html):
+    live = re.sub(r'<!--.*?-->', '', html, flags=re.S)
+    return [m.group(1) for m in re.finditer(r'href="([^"/#]+\.html)"', live)]
+
+
 def main():
     # คอนโซล Windows ไทยเป็น cp874 พิมพ์คอมเมนต์ที่มีอักขระนอกตารางแล้วสคริปต์ตายกลางทาง
     try:
@@ -81,6 +90,16 @@ def main():
     alt_html = io.open(os.path.join(ALT, 'index.html'), encoding='utf-8', newline='').read()
     files = ['index.html'] + ALWAYS + [f for f in local_refs(alt_html)
                                        if f not in PER_CHANNEL and f not in ALT_ONLY]
+
+    # หน้าที่ถูกลิงก์ + ของที่หน้านั้นเรียกใช้เอง (เช่น land.html ใช้ logo-lockup.svg
+    # ซึ่ง index.html ไม่ได้อ้างถึงเลย จึงไม่เคยถูกก๊อปตามขึ้นไป)
+    for pg in linked_pages(alt_html):
+        src = os.path.join(ALT, pg)
+        if not os.path.exists(src):
+            continue
+        files.append(pg)
+        files += [f for f in local_refs(io.open(src, encoding='utf-8').read())
+                  if f not in PER_CHANNEL and f not in ALT_ONLY]
 
     copied, added = [], []
     for name in dict.fromkeys(files):          # กันชื่อซ้ำ แต่คงลำดับไว้
