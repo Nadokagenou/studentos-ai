@@ -263,6 +263,8 @@ function postCard(p) {
     <div class="fd-foot">
       <span class="fd-reply">${icon('chat')}${p.reply_count ? p.reply_count + ' คำตอบ' : 'ยังไม่มีใครตอบ'}</span>
       ${p.kind === 'help' && !p.reply_count ? '<span class="fd-wait">รออยู่</span>' : ''}
+      ${p.mine ? '' : `<button class="fd-flagbtn" aria-label="รายงานโพสต์นี้"
+        onclick="event.stopPropagation();openReport('post','${esc(p.id)}')">${icon('flag')}</button>`}
     </div>
   </article>`;
 }
@@ -289,8 +291,10 @@ function renderCompose() {
   const box = document.getElementById('composeBody');
   if (!box) return;
   const subs = typeof knownSubjects === 'function' ? knownSubjects() : [];
-  const scopes = FEED_SCOPES.filter(s => s.id !== 'all')
-    .concat([{ id: 'all', name: 'ทุกคนในแอป' }]);
+  // ไม่มี 'ทุกคนในแอป' อีกแล้ว — การกระจายเสียงหาคนทั้งแอปคือช่องที่คนแปลกหน้า
+  // เข้าถึงเด็กได้ ซึ่งเป็นเส้นเดียวที่ทำให้แอปแบบนี้อันตรายจริง
+  // (แท็บ "ทั้งหมด" ในฟีดยังอยู่ มันคือมุมมองรวมของสิ่งที่เราเห็นได้ คนละเรื่องกัน)
+  const scopes = FEED_SCOPES.filter(s => s.id !== 'all');
 
   box.innerHTML = `
     <div class="cp-top">
@@ -491,6 +495,8 @@ function renderThread() {
               <i>${esc(ago(r.created_at))}</i></b>
             <p>${esc(r.body)}</p>
           </div>
+          ${r.mine ? '' : `<button class="fd-flagbtn" aria-label="รายงานคำตอบนี้"
+            onclick="event.stopPropagation();openReport('reply','${esc(r.id)}')">${icon('flag')}</button>`}
         </div>`;
       }).join('')}
     </div>
@@ -527,6 +533,12 @@ async function sendReply() {
 // ถ้ากระจายไปเรียกตามปุ่มต่าง ๆ วันหนึ่งจะมีทางเข้าที่ลืมเรียกอันใดอันหนึ่ง
 // แล้วฟีดจะนิ่งเงียบเฉพาะตอนเข้าทางนั้น ซึ่งเป็นบั๊กที่หาสาเหตุยากมาก
 function openFeed() {
+  // ครั้งแรกต้องรู้ก่อนว่าอะไรเป็นอะไร แล้วค่อยเข้าไปเจอคน
+  if (currentUser && typeof needsConsent === 'function' && needsConsent()) {
+    go('scr-consent');
+    renderConsent();
+    return;
+  }
   go('scr-mates');
   renderFeed();
   loadFeed();

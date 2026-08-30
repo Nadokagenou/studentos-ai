@@ -79,6 +79,8 @@
   <link rel="stylesheet" href="social.css">
   <!-- ฟีด: โพสต์ · เธรด · ใครออนไลน์ -->
   <link rel="stylesheet" href="feed.css">
+  <!-- ชุดความปลอดภัย: รายงาน · ยินยอม · นโยบาย -->
+  <link rel="stylesheet" href="safety.css">
   <!-- ดีไซน์ที่ปรับด้วยตัวแก้ดีไซน์ ต้องอยู่ท้ายสุดถึงจะทับของเดิมได้
        ว่างอยู่ = ยังไม่มีใครปรับอะไร ไม่มีผลกับหน้าตาเดิมเลย -->
   <link rel="stylesheet" href="custom.css">
@@ -850,6 +852,17 @@
         <div class="scr-body"><div id="composeBody"></div></div>
       </div>
 
+      <!-- ============ SCREEN: ก่อนเข้าไปเจอเพื่อน ============
+           ขึ้นครั้งเดียวก่อนใช้ชั้นสังคมครั้งแรก — บอกว่าใครเห็นอะไร แล้วถามช่วงอายุ -->
+      <div class="screen flush" id="scr-consent">
+        <div class="scr-body"><div id="consentBody"></div></div>
+      </div>
+
+      <!-- ============ SCREEN: เราเก็บอะไรของคุณบ้าง ============ -->
+      <div class="screen flush" id="scr-privacy">
+        <div class="scr-body"><div id="privacyBody"></div></div>
+      </div>
+
       <!-- ============ SCREEN: หน้าของคนคนหนึ่ง ============
            เข้ามาจากการแตะรูป/ชื่อในฟีด · เธรด · หรือแถวคนออนไลน์
            นี่คือ "พื้นที่แสดงตัวตน" ที่เป็นคำขอตั้งต้นของทั้งฟีเจอร์ -->
@@ -1275,6 +1288,9 @@
     <div class="add-sheet" id="addSheet" hidden></div>
 
     <!-- ============ TAB BAR ============ -->
+    <!-- แผ่นรายงาน — ลอยทับได้ทุกจอ จึงอยู่นอกกองจอ -->
+    <div id="reportSheet" class="rp-sheet" hidden></div>
+
     <div class="tabbar">
       <!-- แถบล่าง: วันนี้ · งาน · ＋ · น้องไซ · ฉัน
            "ปฏิทิน" ถูกถอดออกจากแถบล่างใน 1A9 — ไม่ได้ถูกลบ มันเป็นมุมมองที่สองของแท็บ "งาน"
@@ -1337,6 +1353,7 @@
 <script src="room.js"></script>
 <script src="social.js"></script>
 <script src="feed.js"></script>
+<script src="safety.js"></script>
 <script src="app.js"></script>
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────

@@ -56,6 +56,8 @@ function socialState() {
     bio:    typeof s.bio === 'string' ? s.bio : '',
     open:   s.open !== false,
     pubAt:  s.pubAt || null,
+    ageBand: s.ageBand || null,
+    agreedAt: s.agreedAt || null,
   };
 }
 function saveSocial(s) {

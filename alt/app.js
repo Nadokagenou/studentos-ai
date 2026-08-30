@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B11';                 // สายเลขของแอป
+const APP_VERSION = '1B12';                 // สายเลขของแอป
 const APP_CODENAME = 'Klasse';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -4052,7 +4052,12 @@ function renderProfile() {
     if (!cloudConfigured()) {
       acc.innerHTML = '';
     } else if (currentUser) {
-      acc.innerHTML = `<button class="pf-quiet" onclick="logout()">${icon('chevron')}ออกจากระบบ</button>`;
+      // ออกจากระบบ · อ่านว่าเราเก็บอะไร · ลบบัญชีถาวร
+      // สามอย่างนี้ต้องอยู่ด้วยกัน เพราะเป็นชุดเดียวกันในหัวคน: "ฉันจะถอนตัวยังไง"
+      // และการซ่อนปุ่มลบไว้ลึก ๆ คือการทำให้สิทธิ์ที่กฎหมายให้ไว้ใช้ไม่ได้จริง
+      acc.innerHTML = `<button class="pf-quiet" onclick="logout()">${icon('chevron')}ออกจากระบบ</button>
+        <button class="pf-quiet" onclick="go('scr-privacy'); renderPrivacy()">${icon('lock')}เราเก็บอะไรของคุณบ้าง</button>
+        <button class="pf-quiet pf-danger" onclick="deleteAccount()">${icon('trash')}ลบบัญชีและข้อมูลทั้งหมด</button>`;
     } else {
       acc.innerHTML = `<button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span>เข้าสู่ระบบเพื่อซิงก์ข้ามเครื่อง</button>`;
     }
