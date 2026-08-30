@@ -9093,8 +9093,17 @@ function routeStart() {
 
 // ใช้หลังผ่านหน้าบัญชีแล้ว (ล็อกอินสำเร็จ หรือกดใช้แบบไม่ล็อกอิน)
 function routeAfterLogin() {
-  if (needsOnboard()) openOnboard();
-  else go('scr-menu');
+  if (needsOnboard()) return openOnboard();
+  // กลับไปที่จอที่กดล็อกอินมา ถ้ามีธงค้างไว้ — คนที่กดล็อกอินจากหน้าเพื่อน
+  // แล้วถูกส่งกลับมาที่หน้าแรก ส่วนใหญ่ไม่เดินกลับไปหน้าเพื่อนเองอีก
+  // (ธงถูกลบทิ้งตอนอ่าน จึงมีผลครั้งเดียวต่อการล็อกอินหนึ่งครั้ง)
+  const back = typeof takeAfterLogin === 'function' ? takeAfterLogin() : null;
+  if (back === 'scr-mates') {
+    go('scr-mates');
+    if (typeof loadMates === 'function') loadMates();
+    return;
+  }
+  go('scr-menu');
 }
 
 function openOnboard() {

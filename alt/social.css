@@ -226,3 +226,23 @@
 }
 .ch-send svg { width: 19px; height: 19px; }
 .ch-send:active { transform: scale(.94); }
+
+/* ---------- ใบตัวอย่างตอนยังไม่ล็อกอิน ---------- */
+/* ต้องอ่านออกทันทีว่าไม่ใช่คนจริง — จางลง เส้นประ และมีป้ายกำกับ
+   ถ้าดูเหมือนของจริง คนจะพยายามกดทักแล้วคิดว่าแอปพัง */
+.so-demo { opacity: .72; }
+.so-mate.demo { border-style: dashed; background: var(--card2); }
+.so-egtag {
+  margin-left: 7px;
+  font-size: 10px; font-weight: 700; letter-spacing: .05em;
+  color: var(--muted); background: var(--card);
+  border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px;
+  vertical-align: middle;
+}
+.so-poke.off {
+  flex: none;
+  width: 38px; height: 38px; border-radius: 12px;
+  background: var(--card); color: var(--faint);
+  display: flex; align-items: center; justify-content: center;
+}
+.so-poke.off svg { width: 18px; height: 18px; }

@@ -128,20 +128,13 @@ function renderMates() {
   const s = socialState();
   const known = knownSubjects();
 
-  // ---- ยังไม่ล็อกอิน: จอนี้ทำอะไรไม่ได้เลย บอกตรง ๆ แล้วให้ทางออกทางเดียว ----
-  if (!currentUser) {
-    box.innerHTML = `${matesHead()}
-      <div class="so-empty">
-        <p class="so-empty-h">ต้องล็อกอินก่อน</p>
-        <p class="so-empty-p">เพื่อนร่วมห้องต้องรู้ว่าใครเป็นใคร — ตรงนี้จึงใช้แบบไม่ล็อกอินไม่ได้
-          ส่วนงานของคุณที่อยู่ในเครื่องตอนนี้จะยังอยู่ครบเหมือนเดิม</p>
-        <button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span>
-          เข้าสู่ระบบด้วย Google</button>
-      </div>`;
-    return;
-  }
-
   // ---- ยังไม่ได้ยืนยันวิชา: ต้องทำอันนี้ก่อนถึงจะจับคู่ได้ ----
+  //
+  // จอนี้เคยเป็นกำแพงล็อกอินทึบ ๆ ที่ไม่มีอะไรให้ดูเลยนอกจากปุ่มเข้าสู่ระบบ
+  // ซึ่งผิดสองชั้น: คนตัดสินใจไม่ได้ว่าจะล็อกอินไปทำไม เพราะไม่เคยเห็นว่าข้างในคืออะไร
+  // และครึ่งบนของจอนี้ (เลือกวิชา) ทำงานได้ครบโดยไม่ต้องต่อเน็ตสักนิดอยู่แล้ว
+  // ตอนนี้จึงเห็นและกดได้ทั้งหมด · ล็อกอินไปขอตอนที่มันจำเป็นจริง ๆ เท่านั้น
+  // คือตอนจะเผยแพร่ให้คนอื่นเห็น กับตอนจะเปิดรายชื่อคนในห้อง
   const chip = (name, kind, on) => `<button class="so-chip ${kind}${on ? ' on' : ''}"
     onclick="toggleSubj('${kind}','${esc(name).replace(/'/g, "\\'")}')">${esc(name)}</button>`;
 
@@ -174,7 +167,29 @@ function renderMates() {
 
   // ---- รายชื่อ ----
   let list = '';
-  if (!s.pubAt) {
+  if (!currentUser) {
+    // ตัวอย่างสองใบ ติดป้ายชัดว่าเป็นตัวอย่าง — คนต้องเห็นว่า "ข้างในหน้าตาแบบนี้"
+    // ก่อนจะตัดสินใจว่าจะล็อกอินไหม · ชื่อในตัวอย่างเป็นชื่อสมมติ ไม่ใช่คนจริงในระบบ
+    const eg = [
+      { id: '', display_name: 'เพื่อนในห้องเธอ', avatar: null, bio: '',
+        strong: c.weak.length ? [c.weak[0]] : ['เลข'], weak: [],
+        match: c.weak.length ? [c.weak[0]] : ['เลข'], give: [] },
+      { id: '', display_name: 'อีกคนในห้องเธอ', avatar: null, bio: '',
+        strong: [], weak: c.strong.length ? [c.strong[0]] : ['เคมี'],
+        match: [], give: c.strong.length ? [c.strong[0]] : ['เคมี'] },
+    ];
+    list = `<div class="sec-label">หน้าตาเวลามีเพื่อนแล้ว</div>
+      <div class="so-demo">
+        ${eg.map(m => mateCard(m, true)).join('')}
+      </div>
+      <div class="so-empty">
+        <p class="so-empty-h">ล็อกอินเพื่อเจอคนจริง</p>
+        <p class="so-empty-p">ห้องเรียนต้องรู้ว่าใครเป็นใคร ตรงนี้จึงต้องมีบัญชี ·
+          วิชาที่เลือกไว้ข้างบนถูกเก็บในเครื่องแล้ว ล็อกอินเสร็จจะกลับมาที่หน้านี้เอง</p>
+        <button class="btn google" onclick="loginFromMates()"><span class="g-badge">G</span>
+          เข้าสู่ระบบด้วย Google</button>
+      </div>`;
+  } else if (!s.pubAt) {
     list = `<p class="so-hint">เผยแพร่โปรไฟล์ก่อน แล้วจะเห็นว่าใครในห้องช่วยเรื่องอะไรได้บ้าง</p>`;
   } else if (matesBusy) {
     list = `<p class="so-hint">กำลังดูว่าใครอยู่ห้องเดียวกับคุณ…</p>`;
@@ -206,7 +221,7 @@ function matesHead() {
 
 // การ์ดคนหนึ่งคน — เหตุผลต้องอยู่บนการ์ด ไม่ใช่ซ่อนอยู่ข้างใน
 // เพราะสิ่งที่ทำให้กล้ากดทักคือ "รู้ว่าจะทักไปว่าอะไร" ไม่ใช่ "รู้ว่าเขาชื่ออะไร"
-function mateCard(m) {
+function mateCard(m, demo) {
   const match = m.match || [];
   const give = m.give || [];
   const av = m.avatar
@@ -223,6 +238,17 @@ function mateCard(m) {
   }
 
   const topic = match[0] || give[0] || '';
+  // ใบตัวอย่างกดทักไม่ได้ — ปุ่มที่กดแล้วไม่เกิดอะไรคือปุ่มที่ทำให้คนคิดว่าแอปพัง
+  if (demo) {
+    return `<div class="so-mate demo">
+      ${av}
+      <div class="so-bd">
+        <div class="so-nm">${esc(m.display_name)}<span class="so-egtag">ตัวอย่าง</span></div>
+        ${why}
+      </div>
+      <span class="so-poke off" aria-hidden="true">${icon('chat')}</span>
+    </div>`;
+  }
   return `<div class="so-mate">
     ${av}
     <div class="so-bd">
@@ -264,6 +290,9 @@ function socialSetBio(v) {
 }
 
 async function doPublish() {
+  // ยังไม่ล็อกอินก็กดปุ่มนี้ได้ — มันคือจุดที่บัญชีเริ่มจำเป็นจริง ๆ
+  // พาไปล็อกอินเลยดีกว่าขึ้น error บอกว่า "ยังไม่ได้ล็อกอิน" ซึ่งไม่ได้ช่วยอะไร
+  if (!currentUser) return loginFromMates();
   const r = await publishProfile();
   if (r.error) {
     haptic('snooze');
@@ -379,4 +408,19 @@ async function sendChat() {
   }
   chatMsgs.push(data);
   renderChat();
+}
+
+// ---------- ล็อกอินแล้วต้องกลับมาที่หน้านี้ ----------
+// ของเดิม routeAfterLogin() พาไป scr-menu เสมอ · คนที่กดล็อกอินจากหน้าเพื่อน
+// จะถูกส่งกลับมาที่หน้าแรกแล้วต้องเดินมาเองใหม่ ซึ่งคนส่วนใหญ่ไม่เดินกลับมา
+// เก็บธงไว้ก่อนออกไป OAuth แล้ว routeAfterLogin() มาอ่านตอนกลับ (ธงใช้ครั้งเดียวแล้วลบ)
+const MATES_RETURN_KEY = 'studentos.alt.afterLogin';
+function loginFromMates() {
+  try { localStorage.setItem(MATES_RETURN_KEY, 'scr-mates'); } catch (_) {}
+  loginGoogle();
+}
+function takeAfterLogin() {
+  let v = null;
+  try { v = localStorage.getItem(MATES_RETURN_KEY); localStorage.removeItem(MATES_RETURN_KEY); } catch (_) {}
+  return v;
 }
