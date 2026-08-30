@@ -1078,8 +1078,16 @@ function pushToCloud(immediate) {
   syncTimer = setTimeout(doPush, 1500);
 }
 
-function loginGoogle() {
-  if (!sb) { alert('ระบบบัญชียังไม่เปิดใช้งาน — ใช้แบบไม่ล็อกอินไปก่อนได้เลย'); return; }
+function loginGoogle(retriesLeft = 15) {
+  // sb (ไคลเอนต์ Supabase) ตั้งค่าเสร็จใน initCloud() ซึ่งทำงานหลังจอแรก
+  // วาดเสร็จไปแล้ว — กดปุ่มนี้เร็วมากตอนเพิ่งเปิดแอปจึงมีช่วงสั้น ๆ ที่ sb
+  // ยังเป็น null อยู่ ทั้งที่ระบบบัญชีตั้งค่าไว้ถูกต้อง เคยขึ้น error หลอกผู้ใช้
+  // ตรงนี้ว่า "ยังไม่เปิดใช้งาน" ทั้งที่ไม่จริง — ตอนนี้แค่รอเงียบ ๆ แล้วลองใหม่เอง
+  // (เพดาน 15 ครั้ง × 200ms = 3 วิ กันไว้เผื่อจริง ๆ ไม่มีระบบบัญชี จะได้ไม่ค้างรอตลอดกาล)
+  if (!sb) {
+    if (cloudConfigured() && retriesLeft > 0) setTimeout(() => loginGoogle(retriesLeft - 1), 200);
+    return;
+  }
   sb.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: location.origin + location.pathname },
