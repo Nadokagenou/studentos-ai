@@ -532,6 +532,7 @@ function openFeed() {
   loadFeed();
   watchFeed();
   watchPresence();
+  loadFriendInbox();   // จุดแดงบนปุ่มคนต้องขึ้นตั้งแต่เปิดฟีด ไม่ใช่ตอนกดเข้าไปดู
 }
 
 // ============================================================
@@ -552,6 +553,7 @@ async function openUser(id) {
   const [c, p] = await Promise.all([
     sb.rpc('user_card', { p_user: id }),
     sb.rpc('user_posts', { p_user: id, p_limit: 20 }),
+    loadFriendState(id),
   ]);
   userBusy = false;
   theUser = (c.data && c.data[0]) || null;
@@ -630,8 +632,15 @@ function renderUser() {
         </div>
       </div>
 
-      ${u.mine ? '' : `<button class="us-poke" onclick="pokeUser()">
-        ${icon('chat')}ทัก${esc(name)}</button>`}
+      ${u.mine ? '' : (() => {
+        const f = FRIEND_BTN[friendState] || FRIEND_BTN.none;
+        return `<div class="us-acts">
+          <button class="us-friend ${f.cls}" onclick="${f.act}">
+            ${icon(friendState === 'friends' ? 'check' : 'users')}${f.t}</button>
+          <button class="us-poke" onclick="pokeUser()">
+            ${icon('chat')}ทัก</button>
+        </div>`;
+      })()}
 
       <div class="us-lb us-postlb">${u.post_count ? 'โพสต์ ' + u.post_count + ' ใบ' : 'ยังไม่เคยโพสต์'}</div>
       ${theUserPosts.length
@@ -655,4 +664,99 @@ function pokeUser() {
     }
     pokeMate(theUser.id, topic);
   }
+}
+
+// ============================================================
+// เพิ่มเพื่อน
+// ------------------------------------------------------------
+// "เพื่อนร่วมห้อง" (ใครก็ตามที่อยู่ห้องเดียวกัน) กับ "เพื่อน" ไม่ใช่อย่างเดียวกัน
+// แอปที่มีแต่อย่างแรกอ่านแปลก ๆ: เห็นคนทั้งห้อง ทักได้ทุกคน
+// แต่ไม่มีใครเป็นใครของใครเลย ไม่มีความสัมพันธ์สักเส้นในแอปทั้งแอป
+// ============================================================
+let friendState = 'none';   // สถานะกับคนที่กำลังเปิดหน้าอยู่
+let friendInbox = [];       // คำขอที่รอเราตอบ
+
+const FRIEND_BTN = {
+  none:     { t: 'เพิ่มเพื่อน',     cls: 'go',   act: 'askFriend()' },
+  sent:     { t: 'ส่งคำขอแล้ว',    cls: 'wait', act: 'dropFriend()' },
+  incoming: { t: 'ตอบรับคำขอ',     cls: 'go',   act: 'askFriend()' },
+  friends:  { t: 'เพื่อนกันแล้ว',  cls: 'done', act: 'dropFriend()' },
+};
+
+async function loadFriendState(id) {
+  friendState = 'none';
+  if (!sb || !currentUser || !id) return;
+  const { data } = await sb.rpc('friend_state', { p_other: id });
+  friendState = data || 'none';
+}
+
+async function askFriend() {
+  if (!theUser) return;
+  const { data, error } = await sb.rpc('ask_friend', { p_other: theUser.id });
+  if (error) { haptic('snooze'); showToast({ title: 'เพิ่มไม่สำเร็จ', body: error.message }); return; }
+  friendState = data || 'sent';
+  haptic('done');
+  showToast(friendState === 'friends'
+    ? { title: 'เป็นเพื่อนกันแล้ว', body: 'ทักหากันได้เลย' }
+    : { title: 'ส่งคำขอแล้ว', body: 'รอ' + (theUser.display_name || 'เขา') + 'กดรับ' });
+  renderUser();
+  loadFriendInbox();
+}
+
+// ยกเลิกคำขอ · ปฏิเสธ · เลิกเป็นเพื่อน — สามคำ การกระทำเดียว
+// เลิกเป็นเพื่อนต้องถามก่อน เพราะกดพลาดแล้วกู้ไม่ได้ ต้องไปขอใหม่และอีกฝ่ายจะเห็น
+async function dropFriend() {
+  if (!theUser) return;
+  if (friendState === 'friends' &&
+      !confirm('เลิกเป็นเพื่อนกับ' + (theUser.display_name || 'คนนี้') + '?')) return;
+  const { error } = await sb.rpc('drop_friend', { p_other: theUser.id });
+  if (error) { showToast({ title: 'ทำไม่สำเร็จ', body: error.message }); return; }
+  friendState = 'none';
+  renderUser();
+  loadFriendInbox();
+}
+
+async function loadFriendInbox() {
+  if (!sb || !currentUser) { friendInbox = []; return; }
+  const { data } = await sb.rpc('friend_inbox');
+  friendInbox = data || [];
+  renderFriendDot();
+}
+
+// จุดแดงบนปุ่มคนในหัวฟีด — คำขอที่ไม่มีใครเห็นคือคำขอที่ไม่มีใครตอบ
+function renderFriendDot() {
+  const b = document.querySelector('.fd-people');
+  if (!b) return;
+  b.classList.toggle('has-req', friendInbox.length > 0);
+  b.dataset.n = friendInbox.length > 9 ? '9+' : String(friendInbox.length || '');
+}
+
+// ---------- คำขอที่รอตอบ วาดไว้บนสุดของหน้า "คนในห้อง" ----------
+function friendInboxHTML() {
+  if (!friendInbox.length) return '';
+  return `<div class="fi-box">
+    <div class="fi-h">${icon('users')}คำขอเป็นเพื่อน ${friendInbox.length}</div>
+    ${friendInbox.map(u => `<div class="fi-row">
+      ${u.avatar
+        ? `<img class="fd-av" src="${esc(u.avatar)}" alt="">`
+        : `<div class="fd-av" style="${avOf(u.display_name)}">${
+            esc((u.display_name || '?').slice(0, 1))}</div>`}
+      <div class="fi-bd">
+        <b>${esc(u.display_name || 'นักเรียน')}</b>
+        ${u.strong && u.strong.length
+          ? `<i>เก่ง${esc(u.strong.slice(0, 2).join(' · '))}</i>` : ''}
+      </div>
+      <button class="fi-yes" onclick="inboxAnswer('${esc(u.id)}',true)">รับ</button>
+      <button class="fi-no" onclick="inboxAnswer('${esc(u.id)}',false)"
+        aria-label="ปฏิเสธ">${icon('x')}</button>
+    </div>`).join('')}
+  </div>`;
+}
+
+async function inboxAnswer(id, yes) {
+  const { error } = await sb.rpc(yes ? 'ask_friend' : 'drop_friend', { p_other: id });
+  if (error) { showToast({ title: 'ทำไม่สำเร็จ', body: error.message }); return; }
+  haptic(yes ? 'done' : 'arm');
+  await loadFriendInbox();
+  if (typeof renderMates === 'function') renderMates();
 }

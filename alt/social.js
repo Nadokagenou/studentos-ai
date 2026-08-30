@@ -207,7 +207,9 @@ function renderMates() {
     list = mates.map(m => mateCard(m)).join('');
   }
 
-  box.innerHTML = matesHead() + setup
+  // คำขอเป็นเพื่อนขึ้นก่อนทุกอย่าง — ของที่รอคนตอบต้องไม่อยู่ใต้ของที่ตั้งครั้งเดียวจบ
+  const inbox = typeof friendInboxHTML === 'function' ? friendInboxHTML() : '';
+  box.innerHTML = matesHead() + inbox + setup
     + (s.pubAt ? '<div class="sec-label">คนในห้องของคุณ</div>' : '') + list;
 }
 
