@@ -255,3 +255,97 @@
 /* ปุ่มเพื่อนลอยมุมขวาบนของแอป (.top-friends) นั่งทับปุ่มบนหัวฟีดพอดี
    ฟีดมีทางเข้า "คนในห้อง" ของตัวเองอยู่แล้ว ปุ่มลอยจึงไม่ต้องมีในจอนี้ */
 .mates-scr .top-friends { display: none; }
+
+/* ============================================================
+   ปรับรอบสอง — ให้อ่านเป็นโซเชียล ไม่ใช่แอปงาน
+   ============================================================ */
+
+/* ---------- จอกว้าง: ฟีดต้องเป็นคอลัมน์กลาง ไม่ใช่ยืดเต็มจอ ----------
+   โหมดแถบซ้าย (iPad/PC) ทำให้กรอบแอปกว้างถึง 1080px · ฟีดที่ยืดเต็มความกว้างนั้น
+   ทำให้บรรทัดยาวจนอ่านยาก และการ์ดแบน ๆ ใบใหญ่ ๆ อ่านเป็นตารางข้อมูล ไม่ใช่โพสต์
+   ทุกแอปโซเชียลบนเดสก์ท็อปจึงบีบฟีดเป็นคอลัมน์แคบตรงกลางเหมือนกันหมด */
+:root[data-nav="side"] #feedBody,
+:root[data-nav="side"] #matesBody { max-width: 560px; margin: 0 auto; }
+:root[data-nav="side"] .th-scroll > *,
+:root[data-nav="side"] .cp-body > * { max-width: 560px; margin-left: auto; margin-right: auto; }
+
+/* ---------- แถบขอบเขต: จากปุ่มเต็มความกว้าง เป็นแถบขีดใต้ ----------
+   ปุ่มแคปซูลสามอันเรียงเต็มความกว้างอ่านเป็น "ตัวกรอง" ของแอปทำงาน
+   แถบขีดใต้แบบ Threads อ่านเป็น "มุมมองของฟีด" ซึ่งคือสิ่งที่มันเป็นจริง ๆ */
+.fd-scopes {
+  gap: 0;
+  margin-top: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.fd-scope {
+  flex: 1 1 0;
+  border: 0; border-radius: 0;
+  background: none;
+  padding: 11px 4px 10px;
+  font-size: 14px; font-weight: 600;
+  position: relative;
+  transition: color .15s ease;
+}
+.fd-scope::after {
+  content: ''; position: absolute; left: 12%; right: 12%; bottom: -1px; height: 2.5px;
+  border-radius: 2px 2px 0 0; background: transparent;
+  transition: background .18s ease;
+}
+.fd-scope.on { background: none; color: var(--ink); font-weight: 700; }
+.fd-scope.on::after { background: var(--ink); }
+.fd-scope:active { transform: none; opacity: .6; }
+
+/* ---------- หัวจอกระชับ ---------- */
+.fd-title { font-size: 22px; font-weight: 800; }
+
+/* ---------- การ์ดโพสต์: เส้นคั่นแทนกล่องลอย ----------
+   กล่องมีขอบ+เงาเรียงต่อกันอ่านเป็นรายการการ์ด · ฟีดโซเชียลใช้เส้นคั่นบาง ๆ
+   เพื่อให้ตาไหลลงเรื่อย ๆ ไม่ใช่หยุดอ่านทีละกล่อง */
+.fd-post {
+  margin-top: 0;
+  border: 0; border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  padding: 16px 2px;
+}
+.fd-post:active { transform: none; background: var(--card2); }
+/* ยกเว้นใบที่ "เราช่วยได้" — ใบนี้ต้องเด้งออกจากฟีด เพราะมันคือของที่ต้องการเรา */
+.fd-post.for-me {
+  border: 1.5px solid var(--good);
+  border-radius: var(--r-card);
+  background: var(--good-soft);
+  padding: 14px;
+  margin: 10px 0;
+}
+.fd-body { font-size: 15px; }
+
+/* ---------- สถานะว่างที่ชวนลงมือ ---------- */
+.fd-blank {
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
+  padding: 48px 24px 32px; text-align: center;
+}
+.fd-blank-ic {
+  width: 58px; height: 58px; border-radius: 50%;
+  background: var(--blue-soft); color: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 4px;
+}
+.fd-blank-ic svg { width: 26px; height: 26px; }
+.fd-blank-h { margin: 0; font-size: 17px; font-weight: 700; }
+.fd-blank-p {
+  margin: 0; font-size: 13.5px; line-height: 1.7; color: var(--muted);
+  max-width: 30ch;
+}
+.fd-blank-go {
+  margin-top: 8px;
+  border: 0; border-radius: 999px;
+  background: var(--blue); color: var(--on-accent);
+  padding: 11px 26px;
+  font-family: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer;
+  box-shadow: var(--shadow-brand);
+}
+.fd-blank-alt {
+  border: 0; background: none; color: var(--muted);
+  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  padding: 4px;
+}

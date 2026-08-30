@@ -36,6 +36,33 @@ function ago(iso) {
   return fmtThaiDate(new Date(iso));
 }
 
+
+// ---------- สีประจำตัวจากชื่อ ----------
+// ฟีดที่ทุกวงกลมสีเดียวกันหมดอ่านเป็น "ตาราง" ไม่ใช่ "คน"
+// IG ดูมีชีวิตส่วนหนึ่งเพราะหน้าคนไม่ซ้ำกัน เราไม่มีรูปหน้าทุกคน จึงใช้สีแทน
+// สีมาจากชื่อ แปลว่าคนเดิมได้สีเดิมทุกที่ในแอป ไม่ใช่สุ่มใหม่ทุกครั้งที่วาด
+function hueOf(name) {
+  let h = 0;
+  const s = String(name || '?');
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+  return h;
+}
+function avStyle(name) {
+  const h = hueOf(name);
+  return `background:hsl(${h} 62% 88%);color:hsl(${h} 58% 30%)`;
+}
+function avStyleDark(name) {
+  const h = hueOf(name);
+  return `background:hsl(${h} 38% 26%);color:hsl(${h} 70% 82%)`;
+}
+// ธีมมืดต้องใช้อีกชุด ไม่งั้นตัวหนังสือเข้มบนพื้นอ่อนจะแสบตากลางฟีดสีดำ
+function avOf(name) {
+  const dark = getComputedStyle(document.documentElement)
+    .getPropertyValue('color-scheme').trim() === 'dark'
+    || matchMedia('(prefers-color-scheme: dark)').matches;
+  return dark ? avStyleDark(name) : avStyle(name);
+}
+
 // ============================================================
 // โหลดฟีด
 // ============================================================
@@ -157,7 +184,7 @@ function renderOnline() {
         ? `<img src="${esc(u.avatar)}" alt="">`
         : `<span>${esc((u.name || '?').slice(0, 1))}</span>`;
       return `<div class="fd-on${busy ? ' busy' : ''}">
-        <div class="fd-on-ring">${av}</div>
+        <div class="fd-on-ring"${u.avatar ? '' : ` style="${avOf(u.name)}"`}>${av}</div>
         <div class="fd-on-nm">${esc(u.name || 'นักเรียน')}</div>
         <div class="fd-on-sub">${busy ? esc(u.subject) : 'ออนไลน์'}</div>
       </div>`;
@@ -196,12 +223,16 @@ function feedListHTML() {
   if (feedErr) return `<p class="so-hint err">เปิดฟีดไม่ได้ — ${esc(feedErr)}
     <button class="so-retry" onclick="loadFeed()">ลองใหม่</button></p>`;
   if (feedRows && !feedRows.length) {
-    const s = FEED_SCOPES.find(x => x.id === feedScope);
-    return `<div class="so-empty">
-      <p class="so-empty-h">ยังไม่มีโพสต์ใน${esc(s ? s.name : 'ฟีด')}</p>
-      <p class="so-empty-p">${feedScope === 'room'
-        ? 'ห้องนี้ยังไม่มีใครโพสต์ — ลองสลับไปแท็บ "ทั้งหมด" ก่อนก็ได้ หรือเป็นคนแรกเลย'
-        : 'เป็นคนแรกที่โพสต์ก็ได้ · โพสต์แรกของห้องมักเป็นตัวที่ทำให้คนอื่นกล้าโพสต์ตาม'}</p>
+    // สถานะว่างที่บอกแค่ "ไม่มีข้อมูล" ทำให้คนปิดแอป · อันนี้ต้องชวนให้ลงมือ
+    // เพราะฟีดที่ว่างแก้ได้ด้วยการที่คนอ่านกลายเป็นคนโพสต์ ซึ่งเป็นสิ่งเดียวที่แก้ได้จริง
+    return `<div class="fd-blank">
+      <div class="fd-blank-ic">${icon('chat')}</div>
+      <p class="fd-blank-h">${feedScope === 'room' ? 'ห้องนี้ยังเงียบอยู่' : 'ยังไม่มีใครโพสต์'}</p>
+      <p class="fd-blank-p">โพสต์แรกมักเป็นตัวที่ทำให้คนอื่นกล้าโพสต์ตาม —
+        ถามอะไรที่ติดอยู่จริง ๆ ก็ได้ ไม่ต้องคิดนาน</p>
+      <button class="fd-blank-go" onclick="openCompose()">เขียนโพสต์แรก</button>
+      ${feedScope !== 'all'
+        ? `<button class="fd-blank-alt" onclick="loadFeed('all')">หรือดูของทั้งหมดก่อน</button>` : ''}
     </div>`;
   }
   return (feedRows || []).map(postCard).join('');
@@ -213,7 +244,8 @@ function postCard(p) {
   const name = anon ? 'ไม่ระบุชื่อ' : p.display_name;
   const av = (!anon && p.avatar)
     ? `<img class="fd-av" src="${esc(p.avatar)}" alt="">`
-    : `<div class="fd-av${anon ? ' anon' : ''}">${anon ? '?' : esc((name || '?').slice(0, 1))}</div>`;
+    : `<div class="fd-av${anon ? ' anon' : ''}"${anon ? '' : ` style="${avOf(name)}"`}>${
+        anon ? '?' : esc((name || '?').slice(0, 1))}</div>`;
 
   return `<article class="fd-post${p.for_me ? ' for-me' : ''}" onclick="openPost('${esc(p.id)}')">
     ${p.for_me ? `<div class="fd-flag">${icon('sparkles')}เขาถามวิชาที่เธอเก่ง</div>` : ''}
@@ -449,7 +481,8 @@ function renderThread() {
       ${theReplies.map(r => {
         const ra = !r.display_name;
         return `<div class="th-reply">
-          <div class="fd-av sm${ra ? ' anon' : ''}">${ra ? '?' : esc((r.display_name || '?').slice(0, 1))}</div>
+          <div class="fd-av sm${ra ? ' anon' : ''}"${ra ? '' : ` style="${avOf(r.display_name)}"`}>${
+            ra ? '?' : esc((r.display_name || '?').slice(0, 1))}</div>
           <div class="th-bd">
             <b>${ra ? 'ไม่ระบุชื่อ' : esc(r.display_name)}${r.mine ? '<span class="fd-mine">คุณ</span>' : ''}
               <i>${esc(ago(r.created_at))}</i></b>
