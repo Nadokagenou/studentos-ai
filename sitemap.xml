@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- หน้ารวมลิงก์ — ประตูหน้าสุด อันที่เอาไปแปะใน bio -->
+  <!-- หน้ารวมลิงก์ — ประตูหน้าสุด อันที่เอาไปแปะใน bio / QR -->
   <url>
-    <loc>https://nadokagenou.github.io/studentos-ai/alt/hub.html</loc>
+    <loc>https://nadokagenou.github.io/studentos-ai/hub.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <!-- หน้าแนะนำ — หน้าที่อธิบายว่าแอปทำอะไร อันนี้คือหน้าที่อยากให้ติดการค้นหา -->
   <url>
-    <loc>https://nadokagenou.github.io/studentos-ai/alt/land.html</loc>
+    <loc>https://nadokagenou.github.io/studentos-ai/land.html</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
-  <!-- ตัวแอปเอง — ให้ priority ต่ำกว่าหน้าแนะนำโดยตั้งใจ
+  <!-- ตัวแอปเอง — priority ต่ำกว่าหน้าแนะนำโดยตั้งใจ
        คนที่มาจากการค้นหาควรตกที่หน้าที่อธิบายก่อน ไม่ใช่ตกใส่จอล็อกอิน -->
   <url>
     <loc>https://nadokagenou.github.io/studentos-ai/</loc>
