@@ -45,14 +45,17 @@ body{
 }
 img{display:block; max-width:100%}
 
-/* ── เวที ── */
-/* จัดกลางด้วย fixed + translate(-50%,-50%) เพราะเวทีใหญ่กว่าหน้าต่างเสมอ
-   ถ้าใช้ grid/flex จัดกลาง ของที่ใหญ่กว่าคอนเทนเนอร์จะถูกดันไปชนขอบบนซ้าย
-   แล้วครึ่งบนถูกตัดหาย (เจอมาแล้วรอบแรก) */
+/* ── เวที ──
+   ย่อด้วย zoom ไม่ใช่ transform:scale()
+   scale() บอกเบราว์เซอร์ว่า "วาดที่ 1080px แล้วเอาภาพนั้นไปย่อ" — Chrome จึง
+   แรสเตอร์เลเยอร์ที่ขนาดเดิมก่อนแล้วค่อยหด ตัวอักษรเลยฟุ้งทั้งจอเวลาอัดออกมา
+   zoom บอกว่า "คำนวณผังใหม่ที่ขนาดนี้ไปเลย" ทุกตัวอักษรถูกวาดที่ความละเอียด
+   ปลายทางจริง — คมเท่าที่จอจะให้ได้ · แลกกับการที่ทุกระยะต้องเป็น px คงที่
+   ซึ่งไฟล์นี้เป็นอยู่แล้วทั้งไฟล์ */
+#fit{position:fixed; inset:0; display:grid; place-items:center; overflow:hidden}
 #stage{
-  position:fixed; left:50%; top:50%;
-  width:1080px; height:1920px;
-  background:var(--scr); overflow:hidden; transform-origin:center;
+  position:relative; width:1080px; height:1920px;
+  background:var(--scr); overflow:hidden;
 }
 #stage.landscape{width:1920px; height:1080px}
 
@@ -336,7 +339,11 @@ img{display:block; max-width:100%}
   padding-top:4px;
 }
 .tl .items{flex:1}
+/* ต้องประกาศ display:block เอง — <span> เป็น inline โดยธรรมชาติ
+   วันศุกร์มีสองใบ ถ้าไม่ตั้ง มันจะไหลต่อกันในบรรทัดเดียวแล้วซ้อนทับกันมั่ว
+   (padding/margin บน inline ไม่ดันบรรทัดให้ห่างกันด้วย) */
 .tl .it{
+  display:block;
   background:var(--p-card); border-radius:18px; padding:14px 18px; margin-bottom:10px;
   font-size:21px; color:var(--p-ink); font-weight:700;
   border:2px solid rgba(255,255,255,.07);
@@ -430,12 +437,26 @@ img{display:block; max-width:100%}
   background:#fff; color:#05091A; border-radius:12px; padding:4px 14px;
   font-family:'Nunito',sans-serif; font-weight:900; font-size:28px;
 }
-#gate .hint{margin-top:40px; font-size:24px; color:rgba(255,255,255,.4)}
+#gate code{background:rgba(255,255,255,.14); border-radius:8px; padding:2px 10px; font-size:26px}
+.gbtns{display:flex; gap:18px; justify-content:center; margin-top:44px; flex-wrap:wrap}
+.gb{
+  font:inherit; font-size:30px; font-weight:900; cursor:pointer;
+  padding:20px 38px; border-radius:20px; border:3px solid rgba(255,255,255,.28);
+  background:transparent; color:#fff; transition:transform .1s ease, background .2s ease;
+}
+.gb:hover{background:rgba(255,255,255,.1)}
+.gb:active{transform:translateY(3px)}
+.gb.main{background:var(--acc); border-color:transparent}
+/* บอกความละเอียดที่จะได้จริงก่อนกดอัด — ไม่ใช่ให้ไปรู้ตอนได้ไฟล์มาแล้วว่าเล็ก */
+.gout{margin-top:28px; font-size:23px; color:rgba(255,255,255,.5); line-height:1.6; min-height:70px}
+.gout b{color:#6FA6FF}
+.gout.warn b{color:#FFB35C}
+#gate .hint{margin-top:34px; font-size:24px; color:rgba(255,255,255,.4)}
 </style>
 </head>
 <body>
 
-<div id="stage">
+<div id="fit"><div id="stage">
   <div class="bg"><i></i><i></i><i></i></div>
   <div class="grid"></div>
 
@@ -587,14 +608,16 @@ img{display:block; max-width:100%}
   <div id="gate">
     <div>
       <h1>คลิปนำเสนอ StudentOS AI</h1>
-      <p>
-        เริ่มอัดหน้าจอก่อน แล้วค่อยกด <kbd>Space</kbd><br>
-        ความยาวประมาณ 48 วินาที (ใส่ ?short ท้าย URL เหลือ ~30 วิ)
-      </p>
+      <p>ความยาวประมาณ 48 วินาที · ใส่ <code>?short</code> ท้าย URL เหลือ ~30 วิ</p>
+      <div class="gbtns">
+        <button class="gb main" id="btnRec">🔴 อัดคลิปให้เลย</button>
+        <button class="gb" id="btnPlay">เล่นเฉย ๆ (Space)</button>
+      </div>
+      <div class="gout" id="gOut"></div>
       <div class="hint">R เล่นใหม่ · F เต็มจอ · L สลับแนวตั้ง/แนวนอน</div>
     </div>
   </div>
-</div>
+</div></div>
 
 <script>
 /* ── ย่อเวทีให้พอดีหน้าต่าง ──
@@ -604,8 +627,21 @@ const stage = document.getElementById('stage');
 function fit(){
   const w = stage.classList.contains('landscape') ? 1920 : 1080;
   const h = stage.classList.contains('landscape') ? 1080 : 1920;
-  const s = Math.min(innerWidth / w, innerHeight / h);
-  stage.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
+  // innerWidth/innerHeight เป็น 0 ได้จริง — หน้าต่างที่ยังไม่ถูกจัดผัง หรือแท็บที่ถูกซ่อน
+  // ปล่อยผ่านแล้ว zoom กลายเป็น 0 ทั้งหน้าหายไปเฉย ๆ โดยไม่มี error อะไรโผล่
+  if (innerWidth < 50 || innerHeight < 50){ requestAnimationFrame(fit); return; }
+  stage.style.zoom = Math.min(innerWidth / w, innerHeight / h);
+}
+// ความละเอียดจริงที่จะได้จากการอัด = ขนาดเวทีหลัง zoom คูณความหนาแน่นจอ
+// ใช้บอกผู้ใช้ตรง ๆ ว่าเทคนี้จะได้กี่พิกเซล ไม่ต้องอัดเสร็จแล้วค่อยมาผิดหวัง
+function outSize(){
+  const land = stage.classList.contains('landscape');
+  // ห้ามใช้ || 1 ตรงนี้ — zoom เป็น 0 ได้ แล้ว 0 เป็น falsy
+  // มันจะเด้งไปเป็น 1 แล้วรายงานว่าได้ 1080×1920 ทั้งที่จริงไม่ได้อะไรเลย
+  const z = parseFloat(stage.style.zoom);
+  if (!(z > 0)) return [0, 0];
+  const d = window.devicePixelRatio || 1;
+  return [Math.round((land ? 1920 : 1080) * z * d), Math.round((land ? 1080 : 1920) * z * d)];
 }
 addEventListener('resize', fit);
 if (location.search.includes('landscape')) stage.classList.add('landscape');
@@ -764,10 +800,79 @@ async function play(){
   ender.classList.add('on');
 }
 
+/* ── บอกความละเอียดที่จะได้ ──
+   ความคมของคลิปถูกจำกัดด้วยจำนวนพิกเซลจริงบนจอ ไม่ใช่ด้วยขนาดเวที
+   จอ 1920×1080 อัดคลิปแนวตั้งได้กว้างจริงแค่ ~600px เท่านั้น — บอกไว้ก่อน
+   ดีกว่าปล่อยให้อัดเสร็จแล้วมาเจอว่าภาพแตกตอนอัปขึ้น Reels */
+function showOut(){
+  const [w, h] = outSize();
+  const el = $('gOut');
+  if (!w){ el.className = 'gout'; el.textContent = ''; requestAnimationFrame(showOut); return; }
+  const short = Math.min(w, h);
+  const ok = short >= 1000;
+  el.className = 'gout' + (ok ? '' : ' warn');
+  el.innerHTML = 'เทคนี้จะได้ <b>' + w + '\u00D7' + h + '</b>'
+    + (ok ? ' — คมพอสำหรับลงจริง'
+          : '<br>ด้านสั้นต่ำกว่า 1000px จะไม่คมพอ — กด <b>F</b> เต็มจอก่อน'
+            + (stage.classList.contains('landscape') ? '' : ' หรือกด <b>L</b> สลับเป็นแนวนอน'));
+}
+
+/* ── อัดคลิปในหน้าเลย ──
+   getDisplayMedia + MediaRecorder ทำให้ไม่ต้องมี OBS ไม่ต้องกะเวลาเริ่ม/หยุด
+   และไม่ต้องครอบตัดขอบเบราว์เซอร์ทิ้ง — เลือก "แท็บนี้" แล้วได้เฉพาะเนื้อหน้า
+   preferCurrentTab ทำให้แท็บนี้เป็นตัวเลือกตั้งต้นในกล่องที่เบราว์เซอร์เด้งมา */
+let recording = false;
+async function record(){
+  if (recording || started) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia){
+    $('gOut').innerHTML = 'เบราว์เซอร์นี้อัดในหน้าไม่ได้ — ใช้ปุ่ม "เล่นเฉย ๆ" แล้วอัดด้วยโปรแกรมอื่น';
+    return;
+  }
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: { ideal: 60 } }, audio: false,
+      preferCurrentTab: true, selfBrowserSurface: 'include', surfaceSwitching: 'exclude',
+    });
+  } catch (e) { return; }          // กดยกเลิกในกล่องเลือก — ไม่ใช่ข้อผิดพลาด
+
+  // mp4 อัปขึ้น IG/TikTok ได้ตรง ๆ ส่วน webm ต้องแปลงก่อน จึงเลือก mp4 ถ้าเบราว์เซอร์ทำได้
+  const MIME = ['video/mp4;codecs=avc1.42E01E', 'video/webm;codecs=vp9', 'video/webm']
+    .find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+  const rec = new MediaRecorder(stream, MIME
+    ? { mimeType: MIME, videoBitsPerSecond: 16000000 } : { videoBitsPerSecond: 16000000 });
+  const chunks = [];
+  rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  rec.onstop = () => {
+    stream.getTracks().forEach(t => t.stop());
+    const ext = MIME.startsWith('video/mp4') ? 'mp4' : 'webm';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(chunks, { type: MIME || 'video/webm' }));
+    a.download = 'studentos-demo.' + ext;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 20000);
+  };
+
+  // ผู้ใช้กดหยุดแชร์เองกลางคัน — ต้องปิดตัวอัดให้เรียบร้อย ไม่ใช่ค้างแล้วไม่ได้ไฟล์
+  stream.getVideoTracks()[0].addEventListener('ended', () => {
+    if (rec.state !== 'inactive') rec.stop();
+  });
+
+  recording = true;
+  $('gate').classList.add('hide');
+  await wait(700);                 // ให้ฉากรอจางหมดก่อน ไม่ให้ติดเฟรมแรก
+  rec.start();
+  await wait(500);                 // หัวคลิปเป็นจอเปล่านิดหน่อย ตัดทิ้งง่ายกว่าตัดเนื้อหาหาย
+  await play();
+  await wait(2200);                // ค้างฉากปิดไว้ให้คนอ่าน URL กับสแกน QR ทัน
+  if (rec.state !== 'inactive') rec.stop();
+  recording = false;
+}
+
 /* ── ปุ่มควบคุม ── */
 let started = false;
 function start(){
-  if (started) return;
+  if (started || recording) return;
   started = true;
   $('gate').classList.add('hide');
   setTimeout(play, 420);           // รอฉากรอจางหายก่อน ไม่ให้ติดไปในเฟรมแรก
@@ -779,10 +884,14 @@ addEventListener('keydown', e => {
     document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
   }
   if (e.key === 'l' || e.key === 'L'){
-    stage.classList.toggle('landscape'); fit();
+    stage.classList.toggle('landscape'); fit(); showOut();
   }
 });
-addEventListener('click', start);
+$('btnRec').addEventListener('click', e => { e.stopPropagation(); record(); });
+$('btnPlay').addEventListener('click', e => { e.stopPropagation(); start(); });
+addEventListener('resize', showOut);
+document.addEventListener('fullscreenchange', () => setTimeout(showOut, 120));
+showOut();
 </script>
 </body>
 </html>
