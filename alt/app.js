@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B12';                 // สายเลขของแอป
-const APP_CODENAME = 'Klasse';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1B14';                 // สายเลขของแอป
+const APP_CODENAME = 'Linse';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -868,6 +868,9 @@ function go(id) {
   if (id !== 'scr-wheel') { drawResults = []; drawOpen = []; }
   curScreen = id;
   funnelScreen(id);   // จอนี้เคยถูกเปิดหรือยัง — เขียนครั้งเดียวต่อจอ
+  // เปิดจอสแกน = เริ่มโหลดโมเดลอ่านภาษาไว้เลย ระหว่างที่ผู้ใช้ยังเล็งกล้องอยู่
+  // (เงียบ ๆ ล้มก็ไม่เป็นไร ตอนกดอ่านจริงจะลองใหม่เอง — ดู warmOcr)
+  if (id === 'scr-scan' && typeof warmOcr === 'function') warmOcr();
   document.body.dataset.godir = dir;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on', 'just-in'));
   const scr = document.getElementById(id);
@@ -7041,7 +7044,9 @@ function openForm(id, parsed) {
 
   // ALT: ช่องที่ค่ามาจากคำที่ OCR ไม่มั่นใจ ตีกรอบเตือนไว้ให้ตรวจก่อนบันทึก
   document.querySelectorAll('#scr-form .fld.unsure').forEach(el => el.classList.remove('unsure'));
-  const unsureIds = { subject: 'fSubject', teacher: 'fTeacher', detail: 'fDetail' };
+  // due อยู่ในนี้ด้วยเพราะกำหนดส่งที่กู้มาจากเดือนย่อที่อ่านเพี้ยน (detected.dueFuzzy)
+  // เป็นค่าที่ "เดามาให้" ไม่ใช่ค่าที่อ่านได้ชัด ๆ — ต้องให้ผู้ใช้เห็นว่าควรตรวจตรงไหน
+  const unsureIds = { subject: 'fSubject', teacher: 'fTeacher', detail: 'fDetail', due: 'fDate' };
   for (const key of (parsed && parsed._low) || []) {
     const el = document.getElementById(unsureIds[key]);
     const fld = el && el.closest('.fld');
@@ -7262,21 +7267,150 @@ function scanFromText() {
 // ตัวไลบรารีกับ core/worker/lang ที่โหลดตามมา ซึ่งเป็นสาเหตุ OCR ค้าง/พังเงียบบนมือถือ
 const TESSERACT_VER = '5.1.1';
 const TESSERACT_BASE = `https://cdn.jsdelivr.net/npm/tesseract.js@${TESSERACT_VER}/dist/`;
-// โมเดลภาษามี 3 ระดับ: _fast (เล็ก/เร็ว) · 4.0.0 (มาตรฐาน) · _best (float LSTM แม่นสุด/ไฟล์ใหญ่สุด)
-// ALT ตั้งเป็น _best เพราะภาษาไทยต่างกันชัด — โหลดครั้งแรกนานขึ้น แล้วเบราว์เซอร์แคชไว้
-// สลับกลับเป็น '.../4.0.0' ได้ทันทีถ้าวัดแล้วไม่คุ้มกับเวลาที่เสียไป
-const TESSERACT_LANG = 'https://tessdata.projectnaptha.com/4.0.0_best';
+
+// ============================================================
+// ALT 1B14: โหลดโมเดลเอง แทนที่จะปล่อยให้ Tesseract ไปโหลดเองเงียบ ๆ
+// ------------------------------------------------------------
+// นี่คือสาเหตุหลักของอาการ "สแกนไม่นิ่ง" ที่วัดได้จริง ไม่ใช่การเดา:
+//
+// ของเดิมตั้ง langPath = 4.0.0_best แล้วสั่ง 'tha+eng' ซึ่งแปลว่า **ครั้งแรกต้องโหลด 20 MB**
+//   tha _best 7.2 MB + eng _best 12.8 MB  (วัดจาก content-length ของ tessdata 1 ก.ย. 69)
+// ทั้งหมดนั้นเกิดขึ้น *ข้างใน* worker ตอนผู้ใช้กดสแกนแล้ว โดยมีเพดานเวลา 60 วินาทีคลุมไว้
+// เน็ตมือถือที่ไม่ถึง 2.7 Mbps จึงโหลดไม่ทันเพดาน = ล้มทุกครั้ง หลังจากให้ผู้ใช้รอครบนาทีแล้ว
+// และเพราะมันล้มกลางทาง ไฟล์ที่โหลดมาครึ่งหนึ่งก็ไม่ถูกเก็บ ลองใหม่คือเริ่มนับหนึ่งใหม่ทั้ง 20 MB
+//
+// สามอย่างที่เปลี่ยน:
+//   1) eng ใช้ระดับ _fast (1.98 MB แทน 12.8 MB) ส่วน tha ยังเป็น _best เหมือนเดิม
+//      ตัวที่ต้องแม่นคือไทย ส่วนอังกฤษในใบงานไทยมีแค่หัวข้อวิชากับตัวเลข _fast พอเหลือเฟือ
+//      รวมแล้วเหลือ 9.2 MB จาก 20 MB — ครั้งแรกเร็วขึ้นเท่าตัวกว่าโดยไม่แตะความแม่นภาษาไทย
+//   2) โหลดเองด้วย fetch แล้วเก็บใน Cache Storage ของเราเอง → รู้ความคืบหน้าเป็นเมกะไบต์จริง
+//      บอกผู้ใช้ได้ว่าเหลืออีกเท่าไหร่ · ลองใหม่ได้ทีละไฟล์ · และครั้งต่อไปทำงานออฟไลน์ได้
+//   3) โหลดล่วงหน้าตั้งแต่ผู้ใช้ "เปิดจอสแกน" (ดู warmOcr) ไม่ใช่ตอนกดอ่าน
+//      เวลาที่ต้องรอย้ายไปอยู่ช่วงที่ผู้ใช้กำลังเล็งกล้อง แทนที่จะไปกองตอนที่เขารอผลอยู่
+// ============================================================
+// **ไม่ตั้ง langPath อีกต่อไป** — ค่าเริ่มต้นของ Tesseract คือดึงทีละภาษาจากแพ็กเกจของภาษานั้น
+// และเพราะเราสั่ง oem 1 (LSTM อย่างเดียว) มันเลือกชั้น 4.0.0_best_int ให้เอง
+// ซึ่งคือโมเดล _best ตัวเดิมที่ถูกแปลงเป็นจำนวนเต็ม — ตระกูลเดียวกับที่วัดไว้ว่าดีกับภาษาไทย
+// แต่เล็กกว่ากันคนละโลก (วัด content-length จาก jsDelivr 1 ก.ย. 69):
+//     tha  _best 7.23 MB → _best_int 0.90 MB
+//     eng  _best 12.8 MB → _best_int 2.95 MB
+//     รวม  20.0 MB       → 3.85 MB
+// ผู้ใช้เน็ต 3G ที่เดิม "ต้องโหลด 20 MB ให้จบใน 60 วินาที" (คือ 2.7 Mbps ขึ้นไป ไม่งั้นล้มแน่นอน)
+// ตอนนี้เหลือ 0.5 Mbps ก็ผ่าน — นี่คือการแก้ที่ตรงจุดที่สุดของอาการ "สแกนไม่นิ่ง"
+//
+// อยากได้ float _best กลับมา: ใส่ langPath: 'https://tessdata.projectnaptha.com/4.0.0_best'
+// กลับเข้าไปใน createWorker แล้ววัดเทียบกับชุดรูปจริงก่อนตัดสินใจ (ดู devtools/ocrbench.js)
+const OCR_LANG_BASE = 'https://cdn.jsdelivr.net/npm/@tesseract.js-data';
+const OCR_LANG_TIER = '4.0.0_best_int';
+const OCR_LANGS = [
+  { code: 'tha', bytes: 896631 },
+  { code: 'eng', bytes: 2952873 },
+].map(l => ({ ...l, url: `${OCR_LANG_BASE}/${l.code}/${OCR_LANG_TIER}/${l.code}.traineddata.gz` }));
+const OCR_TOTAL_BYTES = OCR_LANGS.reduce((a, l) => a + l.bytes, 0);
+
 let tesseractReady = null;
 function loadTesseract() {
   if (tesseractReady) return tesseractReady;
-  tesseractReady = new Promise((res, rej) => {
+  const p = new Promise((res, rej) => {
     const s = document.createElement('script');
     s.src = TESSERACT_BASE + 'tesseract.min.js';
     s.onload = res;
-    s.onerror = () => { tesseractReady = null; rej(new Error('โหลดไลบรารี OCR ไม่ได้ — เช็คอินเทอร์เน็ตแล้วลองใหม่')); };
+    s.onerror = () => rej(new Error('โหลดไลบรารี OCR ไม่ได้ — เช็คอินเทอร์เน็ตแล้วลองใหม่'));
     document.head.appendChild(s);
   });
+  // **ต้องล้างทิ้งเมื่อล้ม** — ของเดิมล้างเฉพาะตอน onerror แต่ตัวที่ล้มบ่อยกว่าคือหมดเวลา
+  // ซึ่งไม่ผ่าน onerror เลย ผลคือ promise ที่ค้างอยู่ถูกส่งกลับไปให้ทุกครั้งที่ลองใหม่
+  // ผู้ใช้จึงต้องปิดแอปเปิดใหม่ถึงจะสแกนได้อีก
+  tesseractReady = p.catch(e => { tesseractReady = null; throw e; });
   return tesseractReady;
+}
+
+// ---------- ดึงไฟล์โมเดลมาวางไว้ในแคชของเบราว์เซอร์ก่อน ----------
+// **ตั้งใจโหลดทิ้ง** — เราไม่ได้เอาไบต์ไปใช้เอง เป้าหมายคือให้มันไปนอนอยู่ใน HTTP cache
+// พอ Tesseract ยิง fetch ไปที่ URL เดียวกันข้างใน worker มันจะได้ของจากแคชทันที
+// (jsDelivr ส่ง Cache-Control: public, max-age=604800 มาให้ = เก็บได้เจ็ดวัน)
+//
+// ทำไมต้องอ้อมแบบนี้แทนที่จะยื่นไบต์ให้ Tesseract ตรง ๆ:
+// createWorker รับ lang เป็นก้อนข้อมูลได้ก็จริง แต่ **ขั้น initialize ของ tesseract.js
+// เอา .data (ตัวไบต์) ไปต่อเป็นชื่อภาษาแทนที่จะเป็น .code** — วัดจากซอร์สของ 5.1.1, 6.0.1
+// และ 7.0.0 เหมือนกันทั้งสามรุ่น เป็นบั๊กของไลบรารีที่ยังไม่ถูกแก้
+// เดินทางอ้อมผ่านแคชได้ผลเหมือนกันโดยไม่ต้องพึ่งทางที่พัง
+//
+// ของแถมที่สำคัญพอกัน: เรารู้ความคืบหน้าเป็นเมกะไบต์จริง และรู้ว่าเน็ตตายตั้งแต่ก่อน
+// จะไปสร้าง worker — ต่างจากของเดิมที่ทุกอย่างเกิดข้างใน worker แบบมองไม่เห็นอะไรเลย
+async function ocrWarmLang(lang, onBytes) {
+  const res = await fetch(lang.url, { cache: 'force-cache' });
+  if (!res.ok) throw new Error(`โหลดโมเดลภาษา ${lang.code} ไม่สำเร็จ (${res.status})`);
+
+  // อ่านทีละก้อนเพื่อรายงานความคืบหน้า — และเพราะ "ไม่มีก้อนใหม่มา 25 วินาที"
+  // เป็นสัญญาณของเน็ตที่ตายแล้ว ที่แม่นกว่าเพดานเวลารวมมาก
+  if (res.body && res.body.getReader) {
+    const reader = res.body.getReader();
+    let got = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      got += value.length;
+      onBytes && onBytes(got);
+    }
+  } else {
+    const b = await res.arrayBuffer();
+    onBytes && onBytes(b.byteLength);
+  }
+}
+
+// โหลดโมเดลทุกภาษาพร้อมรายงานความคืบหน้ารวมเป็นเปอร์เซ็นต์ของเมกะไบต์จริง
+async function ocrWarmLangs(onProgress) {
+  const doneBytes = new Array(OCR_LANGS.length).fill(0);
+  const report = () => {
+    if (!onProgress) return;
+    const got = doneBytes.reduce((a, b) => a + b, 0);
+    onProgress(Math.min(1, got / OCR_TOTAL_BYTES), got, OCR_TOTAL_BYTES);
+  };
+  for (let i = 0; i < OCR_LANGS.length; i++) {
+    const lang = OCR_LANGS[i];
+    await ocrWarmLang(lang, n => { doneBytes[i] = Math.min(n, lang.bytes); report(); });
+    doneBytes[i] = lang.bytes;
+    report();
+  }
+}
+
+// ---------- บอกความคืบหน้าเป็นเมกะไบต์จริง ----------
+// "กำลังเตรียมโมเดล…" ที่นิ่งอยู่ 40 วินาทีคือจุดที่ผู้ใช้สรุปว่าแอปค้างแล้วปิดทิ้ง
+// ตัวเลขที่ขยับบอกว่ามันยังทำงานอยู่ และบอกด้วยว่าเหลืออีกเท่าไหร่ ซึ่งต่างกันมาก
+const mb = n => (n / 1048576).toFixed(1);
+function ocrLangProgress(p, got, total) {
+  const st = document.getElementById('ocrStatus');
+  const bar = document.getElementById('ocrBar');
+  const wrap = document.getElementById('ocrBarWrap');
+  if (bar && wrap && !wrap.hidden) bar.style.width = Math.round(4 + p * 8) + '%';  // 4-12% คือช่วงโหลดโมเดล
+  if (st) {
+    st.textContent = `📦 โหลดโมเดลอ่านภาษาไทย ${mb(got)}/${mb(total)} MB (ครั้งแรกครั้งเดียว)`;
+  }
+}
+
+// ---------- โหลดล่วงหน้าตอนเปิดจอสแกน ----------
+// เวลาที่ต้องรอมีอยู่จริงและหนีไม่พ้น — แต่เลือกได้ว่าจะให้ผู้ใช้รอ *ตอนไหน*
+// ตอนเขาเพิ่งเปิดจอแล้วกำลังเล็งกล้อง เขาไม่ได้รออะไรอยู่ · ตอนกดอ่านแล้ว เขารออยู่
+// จึงย้ายมาเริ่มตั้งแต่เปิดจอ เงียบ ๆ ไม่มี UI ไม่มี alert ล้มก็ปล่อยไป เดี๋ยวตอนกดอ่านลองใหม่เอง
+let ocrWarmed = false;
+function warmOcr() {
+  if (ocrWarmed || ocrWorker || ocrWorkerPending) return;
+  if (navigator.onLine === false) return;
+  // ผู้ใช้ที่บอกเบราว์เซอร์ว่า "ประหยัดเน็ต" ไม่ควรโดนดูด 9 MB โดยไม่ได้สั่ง
+  if (navigator.connection && navigator.connection.saveData) return;
+  ocrWarmed = true;
+  const start = () => {
+    getOcrWorker()
+      .catch(() => { ocrWarmed = false; })
+      .finally(() => {
+        // เก็บกวาดข้อความของตัวเอง — ห้ามทิ้งบรรทัด "กำลังโหลด" ค้างไว้บนจอ
+        const st = document.getElementById('ocrStatus');
+        if (st && st.textContent.startsWith('📦')) st.textContent = '';
+      });
+  };
+  if (window.requestIdleCallback) requestIdleCallback(start, { timeout: 3000 });
+  else setTimeout(start, 1200);
 }
 
 function withTimeout(promise, ms, label) {
@@ -7284,6 +7418,29 @@ function withTimeout(promise, ms, label) {
     promise,
     new Promise((_, rej) => setTimeout(() => rej(new Error(label + ' ใช้เวลานานเกินไป — เน็ตอาจช้าหรือหลุด')), ms)),
   ]);
+}
+
+// ---------- เพดานแบบ "เงียบไปนานแค่ไหน" ไม่ใช่ "ใช้เวลาทั้งหมดเท่าไหร่" ----------
+// เพดานเวลารวมเป็นตัวเลือกที่ผิดสำหรับงานที่ความยาวขึ้นกับเน็ตของแต่ละคน:
+// ตั้งสั้นก็ตัดคนเน็ตช้าทิ้งทั้งที่เขากำลังโหลดอยู่จริง ๆ · ตั้งยาวก็ปล่อยให้คนเน็ตหลุดนั่งรอเปล่า
+// สิ่งที่แยกสองกรณีนี้ออกจากกันคือ "ยังมีความคืบหน้าอยู่ไหม" ไม่ใช่ "ผ่านไปกี่วินาที"
+const OCR_STALL_MS = 25_000;
+
+// ห่อ promise ที่รายงานความคืบหน้าเป็นระยะ — ล้มเมื่อเงียบเกิน stallMs เท่านั้น
+// ผู้เรียกต้องเรียก ping() ทุกครั้งที่มีความคืบหน้า
+function withStallGuard(run, stallMs, label) {
+  let last = Date.now();
+  const ping = () => { last = Date.now(); };
+  let timer = null;
+  const watch = new Promise((_, rej) => {
+    const tick = () => {
+      const idle = Date.now() - last;
+      if (idle >= stallMs) { rej(new Error(label + ' หยุดค้าง — เน็ตอาจหลุด ลองใหม่อีกครั้ง')); return; }
+      timer = setTimeout(tick, Math.max(500, stallMs - idle));
+    };
+    timer = setTimeout(tick, stallMs);
+  });
+  return Promise.race([run(ping), watch]).finally(() => clearTimeout(timer));
 }
 
 // ============================================================
@@ -7393,7 +7550,14 @@ function ocrBinarize(prep) {
   const win = Math.max(15, ((Math.max(w, h) / 28) | 0) | 1); // เลขคี่เสมอ ~1/28 ของด้านยาว
   const r = win >> 1, k = 0.3, R = 128;
 
-  const sum = new Float64Array((w + 1) * (h + 1));
+  // ผลรวมค่าเทาเก็บเป็น Uint32 ได้ ไม่ต้อง Float64: ค่าสูงสุดคือ 255 × 1800 × 1800 ≈ 826 ล้าน
+  // ซึ่งยังไม่ถึงครึ่งของเพดาน Uint32 (4,290 ล้าน) — ประหยัดไปครึ่งหนึ่งของตารางนี้
+  // (ส่วน sqs ต้องเป็น Float64 จริง ๆ เพราะผลรวมกำลังสองแตะ 2 แสนล้าน ล้น Uint32 แน่)
+  //
+  // ทำไมถึงสำคัญ: ภาพ 1800×1350 ทำให้สองตารางนี้กินรวมกัน ~39 MB ในจังหวะเดียว
+  // บนมือถือรุ่นเล็กนั่นคือจังหวะที่แท็บโดนระบบเก็บทิ้งกลางคัน — ผู้ใช้เห็นเป็น "แอปเด้งออกเอง"
+  // ตอนกดสแกน ซึ่งเป็นหนึ่งในอาการ "ไม่นิ่ง" ที่หาสาเหตุยากที่สุดเพราะไม่มี error ทิ้งไว้เลย
+  const sum = new Uint32Array((w + 1) * (h + 1));
   const sqs = new Float64Array((w + 1) * (h + 1));
   for (let y = 1; y <= h; y++) {
     let rs = 0, rq = 0;
@@ -7770,18 +7934,60 @@ let ocrWorker = null, ocrProgress = null;
 const OCR_PSM_MAIN = '11';   // "ข้อความกระจาย" — ค่าปกติของแอป
 const OCR_PSM_BLOCK = '6';   // "มองทั้งรูปเป็นบล็อกเดียว" — ใช้เฉพาะรอบสำรองที่ 2
 
-async function getOcrWorker() {
+// เตรียม worker หนึ่งครั้งแล้วใช้ซ้ำ — แต่ "หนึ่งครั้ง" ต้องหมายถึงหนึ่งครั้ง *ที่สำเร็จ*
+// ของเดิมไม่มีทางกู้เลยเมื่อ worker ตาย (หน่วยความจำเต็มบนมือถือรุ่นเล็กเป็นเรื่องปกติ):
+// ตัวแปรยังชี้ไป worker ศพอยู่ การสแกนใบต่อ ๆ ไปจึงล้มทั้งหมดจนกว่าจะปิดแอปเปิดใหม่
+let ocrWorkerPending = null;
+function dropOcrWorker() {
+  const w = ocrWorker;
+  ocrWorker = null;
+  ocrWorkerPending = null;
+  if (w) { try { w.terminate(); } catch (_) {} }
+}
+
+async function getOcrWorker(onStage) {
   if (ocrWorker) return ocrWorker;
+  // เรียกซ้อนกันสองที่ (เช่นโหลดล่วงหน้ายังไม่จบ แล้วผู้ใช้กดสแกน) ต้องได้ตัวเดียวกัน
+  // ไม่ใช่สร้าง worker สองตัวแล้วแย่งหน่วยความจำกันเอง
+  if (ocrWorkerPending) return ocrWorkerPending;
+  ocrWorkerPending = buildOcrWorker(onStage).catch(e => { ocrWorkerPending = null; throw e; });
+  return ocrWorkerPending;
+}
+
+async function buildOcrWorker(onStage) {
+  const say = onStage || (() => {});
   await withTimeout(loadTesseract(), 30_000, 'โหลดไลบรารี OCR');
-  const w = await withTimeout(
-    Tesseract.createWorker('tha+eng', 1, {   // 1 = LSTM อย่างเดียว
-      workerPath: TESSERACT_BASE + 'worker.min.js',
-      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd.wasm.js',
-      langPath: TESSERACT_LANG,
-      logger: m => { if (ocrProgress) ocrProgress(m); },
-    }),
-    60_000, 'เตรียมเครื่องมือ OCR'
-  );
+
+  // ดึงโมเดลเข้าแคชก่อน พร้อมบอกความคืบหน้าเป็นเมกะไบต์ — ล้มตรงนี้ยังไม่เป็นไร
+  // (แคชเก่ายังอาจใช้ได้ หรือ Tesseract โหลดเองสำเร็จก็ได้) จึงไม่โยน error ต่อ
+  say('lang');
+  try {
+    await withStallGuard(
+      ping => ocrWarmLangs((p, got, total) => { ping(); ocrLangProgress(p, got, total); }),
+      OCR_STALL_MS, 'โหลดโมเดลภาษา');
+  } catch (e) {
+    console.warn('[ALT OCR] ดึงโมเดลล่วงหน้าไม่สำเร็จ ปล่อยให้ Tesseract ลองเอง', e);
+  }
+
+  say('model');
+  const w = await withStallGuard(
+    ping => {
+      const t = setInterval(ping, 3000);   // ช่วงคอมไพล์ wasm ไม่มีเหตุการณ์รายงานออกมา
+      // ไม่ตั้ง langPath = ให้มันไปเอาจากแพ็กเกจรายภาษา ชั้น _best_int (ดูหัวเรื่อง OCR_LANGS)
+      // และ **ไม่ตั้ง cacheMethod** = ปล่อยให้มันเก็บ traineddata ลง IndexedDB ตามปกติ
+      // ซึ่งเป็นตัวที่ทำให้การสแกนครั้งต่อ ๆ ไปทำงานได้แม้ไม่มีเน็ตเลย
+      return Tesseract.createWorker('tha+eng', 1, {   // 1 = LSTM อย่างเดียว
+        workerPath: TESSERACT_BASE + 'worker.min.js',
+        // **ชี้ที่โฟลเดอร์ ไม่ใช่ไฟล์** — ของเดิมล็อกไว้ที่ tesseract-core-simd.wasm.js ตายตัว
+        // ซึ่งบังคับให้ต้องมี SIMD: เครื่องที่ไม่มี (iOS ก่อน 16.4 และ Android รุ่นเล็ก)
+        // จะพังตรงนี้ทุกครั้งโดยไม่มีข้อความบอกสาเหตุ
+        // ชี้ที่โฟลเดอร์แล้ว Tesseract เลือกเองว่าจะเอา simd หรือไม่ และเลือกตัว -lstm
+        // ที่เล็กกว่าให้ด้วย เพราะเราสั่ง oem 1 (LSTM อย่างเดียว) อยู่แล้ว
+        corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5',
+        logger: m => { ping(); if (ocrProgress) ocrProgress(m); },
+      }).finally(() => clearInterval(t));
+    },
+    OCR_STALL_MS, 'เตรียมเครื่องมือ OCR');
   // PSM 11 = "ข้อความกระจาย" หาตัวหนังสือให้เจอมากที่สุดโดยไม่พยายามเดาโครงหน้ากระดาษ
   // เดิมใช้ PSM 6 (มองทั้งรูปเป็นบล็อกเดียว) ซึ่งเดาโครงผิดบ่อยกับภาพที่ข้อความไม่ได้เรียงเป็นย่อหน้า
   // วัดกับรูปจริง 6 ใบ: PSM 6 ได้ 25/36 · PSM 11 ได้ 29/36 — ดีขึ้นทั้งรูปถ่ายและภาพดิจิทัล
@@ -7791,6 +7997,7 @@ async function getOcrWorker() {
     preserve_interword_spaces: '1',
   });
   ocrWorker = w;
+  ocrWorkerPending = null;
   return w;
 }
 
@@ -7826,8 +8033,10 @@ function collectLowWords(data) {
 function fieldsToDoubleCheck(p) {
   const low = lastOcrLowWords;
   if (lastOcrConfidence != null && lastOcrConfidence < OCR_CONF_OK) {
-    return ['subject', 'teacher', 'detail'].filter(k =>
+    const all = ['subject', 'teacher', 'detail'].filter(k =>
       k === 'detail' ? p.detail : k === 'teacher' ? p.teacher : p.detected.subject);
+    if (p.detected.dueFuzzy) all.push('due');
+    return all;
   }
   const out = [];
   const hit = v => {
@@ -7835,6 +8044,7 @@ function fieldsToDoubleCheck(p) {
     const kv = ocrKey(v);
     return low.some(w => { const kw = ocrKey(w); return kw.length > 1 && (kv.includes(kw) || kw.includes(kv)); });
   };
+  if (p.detected.dueFuzzy) out.push('due');   // เดือนถูกกู้มาจากตัวย่อที่อ่านเพี้ยน
   if (p.detected.subjectFuzzy || hit(p.subject)) out.push('subject');
   if (hit(p.teacher)) out.push('teacher');
   if (hit(p.detail)) out.push('detail');
@@ -8043,6 +8253,68 @@ function saveWidgetPhoto(canvas) {
 //
 // ไม่แตะ DOM เลย — รายงานความคืบหน้าผ่าน onStage(ชื่อขั้น) ให้ผู้เรียกไปทำ UI เอง
 // ============================================================
+// ============================================================
+// ALT 1B14: เลือกผลอ่านด้วย "แกะออกมาได้กี่ช่อง" ไม่ใช่ด้วยคะแนนความมั่นใจของ Tesseract
+// ------------------------------------------------------------
+// ของเดิมรอบสำรองแต่ละรอบเทียบกันด้วย data.confidence อย่างเดียว ซึ่งมีปัญหาที่เขียนไว้เอง
+// ตรงหัว fieldsToDoubleCheck ว่า "Tesseract ให้คะแนนความมั่นใจสูงเกินจริงบ่อย —
+// อ่าน 'ครูมาลี' เป็น 'ครูบาลี' ยังได้ 93%" กล่าวคือเลขนี้ไม่ได้บอกว่าข้อความ *ถูก*
+// มันบอกว่าโมเดล *มั่นใจ* ซึ่งไม่ใช่เรื่องเดียวกัน
+//
+// สิ่งที่แอปนี้ต้องการจากรูปหนึ่งใบมีชัดเจนอยู่แล้ว: วิชา · กำหนดส่ง · ครู · คะแนน · เวลา
+// เอา parseAssignment (ตัวเดียวกับที่จะใช้จริงในขั้นถัดไป) มาลองแกะผลของแต่ละรอบ
+// แล้วเลือกอันที่ให้ของที่ใช้ได้จริงมากที่สุด — วัดสิ่งที่เราต้องการตรง ๆ ไม่ต้องผ่านตัวแทน
+//
+// ผลข้างเคียงที่ตั้งใจ: อาการ "รูปเดิมอ่านสองครั้งได้คนละอย่าง" ลดลง เพราะเกณฑ์ตัดสิน
+// ไม่ได้แกว่งตามเลขความมั่นใจที่ขยับ 2-3% ทุกครั้งอีกต่อไป
+const OCR_FIELD_W = { subject: 3, due: 3, teacher: 2, detail: 1, scorePct: 1, estMin: 1 };
+
+function ocrTextScore(text, conf) {
+  const t = (text || '').trim();
+  if (t.length < 5) return { score: -1, fields: 0 };
+  let score = 0, fields = 0;
+  try {
+    const p = parseAssignment(t, new Date(), { fuzzy: true });
+    if (p.detected.subject) { score += OCR_FIELD_W.subject; fields++; }
+    if (p.due) { score += OCR_FIELD_W.due; fields++; }
+    if (p.teacher) { score += OCR_FIELD_W.teacher; fields++; }
+    if (p.detail && p.detail.length >= 6) { score += OCR_FIELD_W.detail; fields++; }
+    if (p.scorePct) { score += OCR_FIELD_W.scorePct; fields++; }
+    if (p.detected.estMin) { score += OCR_FIELD_W.estMin; fields++; }
+  } catch (_) {}
+
+  // ความสะอาดของข้อความ: สัดส่วนตัวอักษรไทย/ละติน/ตัวเลข เทียบกับขยะที่ OCR ชอบพ่นออกมา
+  // (~ | ° ¢ § เป็นต้น) — ข้อความที่แกะไม่ได้เลยแต่ "สะอาด" ยังดีกว่าข้อความที่เป็นขยะล้วน
+  const good = (t.match(/[฀-๿a-zA-Z0-9]/g) || []).length;
+  score += (good / t.length) * 2;
+  // ยาวกว่าแปลว่าเก็บได้ครบกว่า แต่ให้น้ำหนักน้อย ๆ กันการเอาข้อความขยะยาว ๆ ชนะ
+  score += Math.min(1, t.length / 400);
+  // ความมั่นใจของโมเดลยังมีค่าอยู่ แค่ไม่ใช่เสียงเดียวที่ตัดสินอีกต่อไป
+  score += ((conf || 0) / 100) * 1.5;
+  return { score, fields };
+}
+
+// ---------- ต่อผลอ่านทั้งหน้ากับผลอ่านทีละบล็อก โดยไม่เอาของซ้ำมาต่อ ----------
+// รอบเก็บตกอ่าน "ก้อนตัวหนังสือ" ซึ่งส่วนใหญ่คือของเดิมที่รอบทั้งหน้าอ่านได้อยู่แล้ว
+// ต่อดิบ ๆ แบบเดิมจึงได้ข้อความเดียวกันสองรอบ แล้วมันไปโผล่เต็ม ๆ ในช่อง "งานที่ต้องทำ"
+// ของหน้าตรวจก่อนบันทึก — ผู้ใช้เห็นประโยคเดิมซ้ำสองครั้งแล้วต้องมานั่งลบเอง
+// (เห็นกับตาในรอบทดสอบ: ช่องรายละเอียดยาวเป็นสองเท่าโดยไม่มีข้อมูลใหม่เลยสักคำ)
+//
+// เก็บเฉพาะบรรทัดที่ "เพิ่มของใหม่จริง" — เทียบด้วย ocrKey เพราะสองรอบอ่านตัวเดียวกัน
+// มักได้สระ/วรรณยุกต์ไม่เท่ากัน ถ้าเทียบตรงตัวจะนับว่าไม่ซ้ำทั้งที่ซ้ำ
+function ocrMergeText(pageText, blockText) {
+  if (!blockText) return pageText;
+  if (!pageText) return blockText;
+  // ตัดช่องว่างทิ้งก่อนทำคีย์ทั้งสองฝั่ง — สองรอบอ่านตัดคำไม่เหมือนกันเป็นปกติ
+  // ("ครูสมชาย ม.5/2" กับ "ครูสมชายม.5/2" คือบรรทัดเดียวกัน ต้องนับว่าซ้ำ)
+  const flat = s => ocrKey(String(s).replace(/\s+/g, ''));
+  const pageKey = flat(pageText);
+  const extra = blockText.split('\n')
+    .map(s => s.trim())
+    .filter(s => s.length > 2 && !pageKey.includes(flat(s)));
+  return extra.length ? pageText + '\n' + extra.join('\n') : pageText;
+}
+
 async function ocrReadCanvas(source, onStage) {
   const t0 = performance.now();
   const say = onStage || (() => {});
@@ -8054,31 +8326,41 @@ async function ocrReadCanvas(source, onStage) {
   const altCanvas = () => ocrGrayToCanvas(p.useBin ? p.gray : p.bin);
 
   say('model');
-  const worker = await getOcrWorker();
+  const worker = await getOcrWorker(say);
 
   let passes = 1;
   say('read');
   let { data } = await withTimeout(worker.recognize(mainCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
   let pass = digital ? 'digital' : 'photo';
+  // คะแนนของรอบที่ถืออยู่ตอนนี้ — คิดจากข้อความที่ยุบวรรคแล้ว (ตัวเดียวกับที่ parseAssignment จะเห็น)
+  let best = ocrTextScore(normalizeOcrText(data.text), data.confidence);
+  const keepIfBetter = (cand, tag) => {
+    const s = ocrTextScore(normalizeOcrText(cand.text), cand.confidence);
+    if (s.score > best.score) { data = cand; best = s; pass += tag; return true; }
+    return false;
+  };
 
   // รอบสำรอง 1: สลับไปเตรียมภาพอีกแบบ — เผื่อตัวแยกประเภทภาพตัดสินผิด
   // (เช่นแคปหน้าจอที่มีรูปถ่ายเต็มจอ หรือรูปถ่ายกระดาษขาวจัดที่เรียบผิดปกติ)
-  if ((data.confidence || 0) < OCR_CONF_OK) {
+  if ((data.confidence || 0) < OCR_CONF_OK || best.fields < 2) {
     say('alt');
     passes++;
     const soft = await withTimeout(worker.recognize(altCanvas(), {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
-    if ((soft.data.confidence || 0) > (data.confidence || 0)) { data = soft.data; pass += '+alt'; }
+    keepIfBetter(soft.data, '+alt');
   }
-  // รอบสำรอง 2: ยังต่ำอยู่ → กลับไปมองเป็นบล็อกข้อความก้อนเดียว (PSM 6)
+  // รอบสำรอง 2: ยังไม่ดีพอ → กลับไปมองเป็นบล็อกข้อความก้อนเดียว (PSM 6)
   // ใบงานที่เป็นย่อหน้ายาว ๆ ต่อเนื่องบางทีอ่านแบบนี้ดีกว่าแบบ "ข้อความกระจาย"
-  if ((data.confidence || 0) < OCR_CONF_OK) {
+  //
+  // เงื่อนไข "แกะได้ไม่ถึงสองช่อง" สำคัญพอ ๆ กับเงื่อนไขความมั่นใจ:
+  // รูปที่ conf 80 แต่แกะไม่ได้สักช่อง คือรูปที่ผู้ใช้จะต้องพิมพ์เองทั้งใบ — ยังควรลองรอบต่อไป
+  if ((data.confidence || 0) < OCR_CONF_OK || best.fields < 2) {
     say('psm6');
     passes++;
     await worker.setParameters({ tessedit_pageseg_mode: OCR_PSM_BLOCK });
     try {
       // ต้องเป็น mainCanvas ตัวเดิม — รอบนี้ทดสอบ "โหมดมองหน้ากระดาษ" ไม่ใช่ "การเตรียมภาพ"
       const alt = await withTimeout(worker.recognize(mainCanvas, {}, OCR_OUTPUT), 90_000, 'อ่านรูปภาพ');
-      if ((alt.data.confidence || 0) > (data.confidence || 0)) { data = alt.data; pass += '+psm6'; }
+      keepIfBetter(alt.data, '+psm6');
     } finally {
       // ต้องคืนค่าแม้รอบนี้จะพัง — worker ตัวนี้ถูกใช้ซ้ำกับการสแกนใบถัดไป
       // ของเดิมคืนค่านอก try ถ้ารอบนี้ timeout ทุกใบหลังจากนั้นจะติด PSM 6 ค้างไปตลอด
@@ -8121,10 +8403,13 @@ async function ocrReadCanvas(source, onStage) {
   const pageText = normalizeOcrText(data.text);   // OCR ไทยเว้นวรรคทีละตัวอักษร ต้องยุบก่อนแกะ
   return {
     data,
-    text: blockText ? pageText + '\n' + blockText : pageText,
+    text: ocrMergeText(pageText, blockText),
     conf: Math.round(data.confidence || 0),
     lowWords: collectLowWords(data),
     pass, passes, blocks, digital, deg: p.deg,
+    // fields = แกะออกมาได้กี่ช่องจากข้อความรอบที่ชนะ — ตัวเลขที่บอก "รูปนี้ใช้ได้แค่ไหน"
+    // ตรงกว่า conf มาก และเป็นตัวที่ควรดูตอนไล่หาสาเหตุว่าทำไมใบนี้ผู้ใช้ต้องพิมพ์เองทั้งใบ
+    fields: best.fields, score: +best.score.toFixed(2),
     w: p.gray.w, h: p.gray.h,
     ms: Math.round(performance.now() - t0),
   };
@@ -8183,6 +8468,9 @@ async function ocrReadBlocks(prep, worker, opt = {}) {
 
 const OCR_STAGE_TEXT = {
   prep: '🖼 กำลังปรับภาพให้อ่านง่ายขึ้น…',
+  // ข้อความของขั้น lang ถูกเขียนทับด้วยตัวเลขเมกะไบต์จริงจาก ocrLangProgress ทันที
+  // ที่ต้องมีไว้เพราะจังหวะแรกสุด (ตอนเปิดแคชอยู่) ยังไม่มีตัวเลขให้โชว์
+  lang: '📦 กำลังเตรียมโมเดลอ่านภาษาไทย…',
   model: '⏳ กำลังเตรียมโมเดล OCR… (ครั้งแรกอาจรอนานหน่อย)',
   read: '📖 AI กำลังอ่านใบงาน…',
   alt: '🔁 ลองอ่านอีกแบบให้ชัดขึ้น…',
@@ -8190,10 +8478,22 @@ const OCR_STAGE_TEXT = {
   blocks: '🔎 กำลังเก็บตกหัวข้อกับคำชี้แจง…',
 };
 
+// สแกนได้ทีละใบเท่านั้น
+// ไม่ใช่เรื่องความสวยงามของโค้ด แต่เป็นบั๊กจริง: worker ตัวเดียวถูกใช้ซ้ำทั้งแอป
+// และรอบสำรองของการอ่านหนึ่งใบ *เปลี่ยนค่า PSM ของ worker ทั้งตัว* ชั่วคราว
+// ถ้าผู้ใช้เลือกรูปใบที่สองระหว่างที่ใบแรกยังอ่านไม่จบ ใบที่สองจะถูกอ่านด้วยโหมดที่ใบแรกตั้งค้างไว้
+// ผลคือ "รูปเดิม อ่านสองครั้งได้คนละอย่าง" ซึ่งตรงกับอาการ "ไม่นิ่ง" ที่รายงานมาพอดี
+let ocrRunning = false;
+
 async function runOcrOn(source, how) {
   const st = document.getElementById('ocrStatus');
   const barWrap = document.getElementById('ocrBarWrap');
   const bar = document.getElementById('ocrBar');
+  if (ocrRunning) {
+    showToast({ title: 'กำลังอ่านใบก่อนหน้าอยู่ ⏳', body: 'รออีกนิดเดียว เดี๋ยวถึงคิวใบนี้' });
+    return;
+  }
+  ocrRunning = true;
   try {
     barWrap.hidden = false; bar.style.width = '4%';
     startFunFacts(document.getElementById('scanFact')); // มีอะไรให้อ่านระหว่างรอ OCR
@@ -8221,20 +8521,30 @@ async function runOcrOn(source, how) {
     lastOcrConfidence = conf;
     lastOcrLowWords = r.lowWords;
     // บรรทัดเดียวก๊อปไปทำตารางวัดผลได้เลย (รอบวัดผลกับรูปจริง)
-    console.debug(`[ALT OCR] conf=${conf}% pass=${r.pass} รอบ=${r.passes} บล็อก=${r.blocks} `
+    console.debug(`[ALT OCR] conf=${conf}% ช่อง=${r.fields} คะแนน=${r.score} pass=${r.pass} รอบ=${r.passes} บล็อก=${r.blocks} `
       + `how=${how || '-'} chars=${text.length} lowWords=${r.lowWords.length} ms=${r.ms} `
       + `size=${r.w}×${r.h} skew=${r.deg}°`);
 
-    if (text.length < 5 || conf < OCR_CONF_MIN) {
+    // ---------- ตัดสินว่า "ใช้ได้ไหม" ด้วยของที่แกะได้ ไม่ใช่ด้วยเลขความมั่นใจอย่างเดียว ----------
+    // ของเดิมโยนผลทิ้งทันทีเมื่อ conf < 45 ซึ่งทิ้งรูปที่ใช้ได้จริงไปเยอะ:
+    // ใบงานลายมือผสมพิมพ์มักได้ conf ต่ำทั้งใบ แต่แกะ "วิชา + กำหนดส่ง" ออกมาได้ครบ
+    // ซึ่งคือ 80% ของงานที่ผู้ใช้ต้องกรอกเอง — ทิ้งไปแล้วเขาต้องพิมพ์ใหม่ทั้งใบเปล่า ๆ
+    // ทิ้งเฉพาะตอนที่ "ทั้งมั่นใจต่ำ และแกะไม่ได้สักช่อง" เท่านั้น นั่นคืออ่านมั่วจริง
+    if (text.length < 5 || (conf < OCR_CONF_MIN && !r.fields)) {
       lastOcrConfidence = null;
+      renderCloudOcr();     // รูปยังอยู่ — ทางที่อ่านลายมือได้ยังเปิดอยู่ ให้เห็นปุ่มไว้
       alert('อ่านตัวหนังสือจากรูปนี้ไม่ค่อยออก (ความมั่นใจ ' + conf + '%)\n\n'
         + 'ลองอีกที: ถ่ายให้เห็นเฉพาะส่วนที่เป็นโจทย์ · วางกล้องขนานกับกระดาษ · เลี่ยงเงามือทับตัวหนังสือ\n'
+        + 'ถ้าเป็นลายมือ ให้กดปุ่ม "อ่านให้แม่นขึ้น" — การอ่านในเครื่องอ่านลายมือไทยไม่ได้\n'
         + 'หรือใช้ "แปะข้อความ" แทน — เร็วกว่าและแม่นกว่า');
       return;
     }
     if (conf < OCR_CONF_OK) {
-      showToast({ title: 'อ่านได้ แต่ไม่ค่อยมั่นใจ 🤔',
-        body: 'ความมั่นใจ ' + conf + '% — ช่วยตรวจให้ดีก่อนกดบันทึกนะ' });
+      showToast(r.fields
+        ? { title: 'อ่านได้บางส่วน 🤔',
+            body: `แกะได้ ${r.fields} ช่อง แต่ความมั่นใจ ${conf}% — ช่วยตรวจก่อนกดบันทึกนะ` }
+        : { title: 'อ่านได้ แต่ไม่ค่อยมั่นใจ 🤔',
+            body: 'ความมั่นใจ ' + conf + '% — ช่วยตรวจให้ดีก่อนกดบันทึกนะ' });
     }
     renderCloudOcr();     // อ่านในเครื่องจบแล้ว ค่อยเสนอทางเลือกที่แม่นกว่า
     runParsing(text, 'ocr');
@@ -8244,7 +8554,17 @@ async function runOcrOn(source, how) {
     stopFunFacts(document.getElementById('scanFact'));
     st.textContent = ''; barWrap.hidden = true;
     console.error('[OCR]', e);
-    alert('อ่านรูปไม่สำเร็จ: ' + e.message + '\n\nใช้วิธี "แปะข้อความจาก LINE" แทนได้เลย — เร็วกว่าและแม่นกว่าด้วย');
+    // **ทิ้ง worker ทุกครั้งที่ล้ม** — เราไม่มีทางรู้ว่ามันตายไปแล้วหรือแค่ช้า
+    // และ worker ที่ตายแล้วแต่ยังถูกถือไว้ = ทุกใบต่อจากนี้ล้มตามกันหมดจนกว่าจะปิดแอป
+    // สร้างใหม่แพงแค่ครั้งเดียว (โมเดลอยู่ในแคชแล้ว) ถูกกว่าปล่อยให้ผู้ใช้เจอทางตัน
+    dropOcrWorker();
+    // รูปยังอยู่ในมือ — เสนอทางที่ยังเดินต่อได้ แทนที่จะบอกแค่ว่าพัง
+    renderCloudOcr();
+    alert('อ่านรูปไม่สำเร็จ: ' + e.message
+      + '\n\nลองใหม่อีกครั้งได้เลย (เตรียมเครื่องมือใหม่ให้แล้ว)'
+      + '\nหรือใช้ปุ่ม "อ่านให้แม่นขึ้น" / "แปะข้อความ" แทนก็ได้');
+  } finally {
+    ocrRunning = false;
   }
 }
 

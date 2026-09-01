@@ -22,32 +22,20 @@
 // ============================================================
 
 import { chat, chatStream, listModels, llmReady, LLM_MODEL, LLM_BASE_URL, LLM_API_KEY, type ChatMsg } from '../_shared/llm.ts';
+import {
+  GEMINI_MODELS, geminiBody, geminiGenerate, geminiOrder, geminiPickText,
+  geminiRemember, geminiThinkingRetry, RETRY_NEXT_MODEL,
+} from '../_shared/gemini.ts';
 
 const PROVIDER = Deno.env.get('ASK_PROVIDER') ?? 'none';
 const API_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
 
 // ชื่อรุ่นของ Gemini เปลี่ยนบ่อยกว่าที่ควร รุ่นที่หายไปตอบ 404 ซึ่งหน้าตาเหมือน "ต่อไม่ติด"
-// ไล่ลองตามลำดับเหมือน read-timetable แล้วจำตัวที่ติดไว้ใช้ต่อทั้งรอบชีวิตของ instance
-const MODEL_ENV = Deno.env.get('GEMINI_MODEL') ?? '';
-// เรียงจากดีสุดลงมา · ตัวสุดท้ายเป็นรุ่นเก่าที่นิ่งที่สุดไว้เป็นตาข่ายรับ
-// (วัดจริง 29 ส.ค. 69: gemini-2.0-flash ถูกปลดระวางแล้ว ตอบ 404 พร้อมข้อความบอกให้ย้ายไป 3.6
-//  ซึ่งเป็นสาเหตุที่สายสำรอง Gemini ล้มเงียบ ๆ ทั้งที่กุญแจใช้ได้ปกติ —
-//  ยิงรายชื่อรุ่นดูก่อนด้วย probe:'net' ทุกครั้งที่สงสัยว่าเป็นเรื่องชื่อรุ่น)
-// รายชื่อนี้คือ "บันไดถอย" ไม่ใช่แค่กันชื่อรุ่นเปลี่ยน — free tier ของ Google
-// นับโควตาแยกต่อรุ่น พอรุ่นบนหมดโควตา (429) มันจะไถลลงมาใช้รุ่นล่างเองโดยผู้ใช้ไม่รู้สึกอะไร
-//
-// วัดจริง 29 ส.ค. 69 ด้วย probe:'models2' (ยิงคำขอจริงทีละรุ่น):
-//   3.6-flash / 3.7-flash / flash-latest → 429 โควตาหมด
-//   2.5-flash                            → 404 ปิดรับโปรเจกต์ใหม่แล้ว ตัดออกจากรายชื่อ
-//   3.5-flash / 3-flash-preview          → 200 และเร็วกว่าด้วย (1.2-1.5 วิ)
-// บทเรียน: "โผล่ในรายชื่อ /models" ไม่ได้แปลว่า "เรียกได้จริง" — ต้องยิงของจริงถึงจะรู้
-const MODEL_CANDIDATES = MODEL_ENV ? [MODEL_ENV] : [
-  'gemini-3.6-flash',        // เก่งสุดที่กุญแจนี้แตะได้ ลองก่อนเสมอ
-  'gemini-3.5-flash',        // เร็วกว่า โควตาคนละก้อน
-  'gemini-3-flash-preview',
-  'gemini-flash-latest',     // ตาข่ายรับสุดท้าย ชื่อนี้ Google ชี้ไปรุ่นใหม่ให้เอง
-];
-let workingModel = '';
+// รายชื่อรุ่น · บันไดถอย · การจำรุ่นที่ใช้ได้ · การอ่านคำตอบให้ครบทุก part
+// ย้ายไปอยู่ที่ _shared/gemini.ts ที่เดียวแล้ว
+// (ocr-assist กับ read-timetable เคยมีรายชื่อของตัวเองที่ตายไปแล้วทั้งคู่ —
+//  "รายชื่อเดียว ที่เดียว" คือเหตุผลที่ย้าย ไม่ใช่ความสวยงามของโค้ด)
+const MODEL_CANDIDATES = GEMINI_MODELS;
 
 // ---------- เพดานของคำขอหนึ่งครั้ง ----------
 // free tier มีโควตาจำกัด และคำขอเดียวที่ยัดบริบทมาเป็นเมกะไบต์เผาโควตาได้ทั้งวันในทีเดียว
@@ -55,7 +43,12 @@ let workingModel = '';
 const MAX_QUESTION = 2_000;      // ตัวอักษร
 const MAX_CONTEXT = 20_000;      // ตัวอักษร (งาน 28 ใบ + ตารางเรียนเต็มสัปดาห์ ยังไม่ถึงครึ่ง)
 const MAX_HISTORY = 12;          // ข้อความย้อนหลัง — เกินนั้นค่าโทเคนโตเร็วกว่าประโยชน์ที่ได้
-const MAX_OUTPUT_TOKENS = 1500;
+// **เพดานนี้นับ "ความคิด" ของรุ่น 3.x รวมด้วย ไม่ใช่นับแต่คำตอบ**
+// ของเดิมตั้ง 1500 ซึ่งเป็นสาเหตุตรง ๆ ของอาการ "น้องไซตอบไม่ครบ":
+// คิดไป 900-1300 โทเคน เหลือให้เขียนคำตอบไม่กี่บรรทัดแล้วโดนตัดกลางประโยค
+// (finishReason = MAX_TOKENS ซึ่งของเดิมไม่ได้ดูเลย จึงส่งคำตอบครึ่งใบออกไปเหมือนไม่มีอะไรเกิดขึ้น)
+// ความยาวคำตอบจริงคุมด้วยข้อ 5 ใน SYSTEM ไม่ได้คุมด้วยเพดานนี้ — ตั้งสูงไว้จึงไม่ได้แปลว่าคำตอบจะยาวขึ้น
+const MAX_OUTPUT_TOKENS = 4096;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -188,25 +181,24 @@ TCAS 4 รอบ: Portfolio · โควตา · Admission · รับตร�
 //   500 / 429 = ฝั่งโน้นสะดุด หรือโควตารุ่นนั้นเต็ม
 // ของเดิมเลิกลองทันทีที่ไม่ใช่ 404 ผลคือ 503 จากรุ่นแรกทำให้ทั้งสายล้ม
 // ทั้งที่รุ่นสำรองอีกสองตัวว่างอยู่ — วัดจริงแล้วเป็นสาเหตุที่พบบ่อยที่สุด
-const RETRY_NEXT_MODEL = new Set([404, 429, 500, 502, 503, 504]);
+// (ตัวชุดนี้ย้ายไป _shared/gemini.ts แล้ว ที่นี่ใช้ตัวเดียวกันผ่าน import)
 
 type Msg = { role: 'user' | 'model'; text: string };
 
 // รูปคำขอของ Gemini — ใช้ร่วมกันทั้งสายตอบทีเดียวและสายไหลทีละคำ
 // แยกไว้เพราะสองสายนั้นต้องเห็นบุคลิกและบริบทชุดเดียวกันเป๊ะ ๆ
 // ถ้าปล่อยให้ต่างคนต่างประกอบ วันหนึ่งจะได้บอทที่นิสัยไม่เหมือนกันแล้วแต่ว่าสตรีมหรือไม่
-function geminiPayload(question: string, context: string, history: Msg[]) {
-  return JSON.stringify({
-    systemInstruction: { parts: [{ text: SYSTEM }] },
+function geminiOpts(question: string, context: string, history: Msg[]) {
+  return {
+    system: SYSTEM,
     contents: [
       ...history.map(m => ({ role: m.role, parts: [{ text: m.text }] })),
       { role: 'user', parts: [{ text: `ข้อมูลของผู้ใช้ (ณ ตอนนี้):\n${context}\n\nคำถาม:\n${question}` }] },
     ],
-    generationConfig: {
-      temperature: 0.6,        // ต้องอธิบายให้เข้าใจ ไม่ใช่อ่านตำรา — แต่ไม่ถึงกับแต่งเรื่อง
-      maxOutputTokens: MAX_OUTPUT_TOKENS,
-    },
-  });
+    temperature: 0.6,        // ต้องอธิบายให้เข้าใจ ไม่ใช่อ่านตำรา — แต่ไม่ถึงกับแต่งเรื่อง
+    maxOutputTokens: MAX_OUTPUT_TOKENS,
+    think: 'low' as const,   // คำถามนักเรียนส่วนใหญ่ตรงไปตรงมา คิดนานไม่ได้ทำให้ตอบดีขึ้น มีแต่ช้าลง
+  };
 }
 
 // ---------- Gemini แบบไหลทีละคำ ----------
@@ -222,25 +214,30 @@ async function* geminiStream(question: string, context: string, history: Msg[], 
 
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), budgetMs);
-  const payload = geminiPayload(question, context, history);
-  const order = workingModel
-    ? [workingModel, ...MODEL_CANDIDATES.filter(m => m !== workingModel)]
-    : MODEL_CANDIDATES;
+  const opts = geminiOpts(question, context, history);
+  const order = geminiOrder(MODEL_CANDIDATES);
 
   try {
     let res: Response | null = null;
     let lastStatus = 0;
     for (const model of order) {
-      res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`,
-        { method: 'POST',
-          headers: { 'content-type': 'application/json', 'x-goog-api-key': API_KEY },
-          body: payload, signal: ctl.signal });
-      if (res.ok) { workingModel = model; break; }
-      lastStatus = res.status;
-      console.warn('[ask-sai:gemini-stream]', model, res.status, (await res.text()).slice(0, 200));
-      if (!RETRY_NEXT_MODEL.has(res.status)) break;
-      res = null;
+      // ยิงซ้ำรุ่นเดิมได้ถ้า 400 มาจากช่องคุมการคิดที่รุ่นนี้ไม่รู้จัก (ดู _shared/gemini.ts)
+      for (let attempt = 0; attempt < 3; attempt++) {
+        res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`,
+          { method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-goog-api-key': API_KEY },
+            body: geminiBody(model, opts), signal: ctl.signal });
+        if (res.ok) break;
+        lastStatus = res.status;
+        const body = (await res.text()).slice(0, 300);
+        console.warn('[ask-sai:gemini-stream]', model, res.status, body);
+        res = null;
+        if (lastStatus === 400 && geminiThinkingRetry(model, body, 'low')) continue;
+        break;
+      }
+      if (res && res.ok) { geminiRemember(model); break; }
+      if (!RETRY_NEXT_MODEL.has(lastStatus)) break;
     }
     if (!res || !res.ok || !res.body) {
       const e = new Error('gemini ' + lastStatus) as Error & { status?: number };
@@ -263,10 +260,20 @@ async function* geminiStream(question: string, context: string, history: Msg[], 
         if (!t.startsWith('data:')) continue;
         const raw = t.slice(5).trim();
         if (!raw || raw === '[DONE]') continue;
+        // **ต้องต่อทุก part ที่ไม่ใช่ความคิด ไม่ใช่ parts[0] ตัวเดียว**
+        // รุ่น 3.x คิดก่อนตอบเป็นค่าเริ่มต้น ชิ้นที่ไหลมาจึงมีทั้ง part ความคิด (thought: true)
+        // และ part คำตอบปนกัน การอ่านตัวแรกตัวเดียวจึงทิ้งคำตอบครึ่งหนึ่งไปเงียบ ๆ
+        // — นี่คืออาการ "ตอบไม่ครบ ดูรวน ๆ" ฝั่งที่สตรีม
         let piece = '';
-        try { piece = JSON.parse(raw)?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''; }
-        catch { continue; }
+        let fin = '';
+        try {
+          const j = JSON.parse(raw);
+          piece = geminiPickText(j);
+          fin = j?.candidates?.[0]?.finishReason ?? '';
+        } catch { continue; }
         if (piece) { sent = true; yield piece; }
+        // โทเคนหมดกลางประโยค — บอกให้รู้ ดีกว่าจบเงียบ ๆ แล้วปล่อยให้อ่านคำตอบครึ่งใบ
+        if (fin === 'MAX_TOKENS') yield '\n\n(ตอบยาวเกินโควตาหนึ่งครั้ง — ถามต่อได้เลยว่า "เล่าต่อ")';
       }
     }
     if (!sent) throw new Error('คำตอบว่าง');
@@ -282,55 +289,13 @@ async function* geminiStream(question: string, context: string, history: Msg[], 
 async function askGemini(question: string, context: string, history: Msg[], budgetMs = 30000) {
   if (!API_KEY) throw new Error('GEMINI_API_KEY ยังไม่ได้ตั้ง');
 
-  const payload = geminiPayload(question, context, history);
-  const order = workingModel
-    ? [workingModel, ...MODEL_CANDIDATES.filter(m => m !== workingModel)]
-    : MODEL_CANDIDATES;
-
-  const deadline = Date.now() + budgetMs;
-  let lastStatus = 0;
-
-  for (const model of order) {
-    const left = deadline - Date.now();
-    if (left < 4000) break;              // เหลือน้อยกว่านี้ ยิงไปก็ไม่ทันตอบจบ
-    const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), left);
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-        {
-          method: 'POST',
-          headers: { 'content-type': 'application/json', 'x-goog-api-key': API_KEY },
-          body: payload,
-          signal: ctl.signal,
-        },
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-        if (text.trim()) { workingModel = model; return text.trim(); }
-        // ตอบ 200 แต่ไม่มีเนื้อ = โดนตัวกรองความปลอดภัย หรือโทเคนหมดกลางทาง
-        // ลองรุ่นถัดไปดีกว่าคืนช่องว่างให้ผู้ใช้
-        console.warn('[ask-sai] gemini', model, 'คำตอบว่าง', JSON.stringify(data).slice(0, 200));
-        lastStatus = 204;
-        continue;
-      }
-      lastStatus = res.status;
-      // ข้อความจากฝั่ง Google มีรายละเอียดของโปรเจกต์ปนมาได้ เก็บไว้ใน log ไม่ส่งกลับหน้าเว็บ
-      console.warn('[ask-sai] gemini', model, res.status, (await res.text()).slice(0, 200));
-      if (!RETRY_NEXT_MODEL.has(res.status)) break;   // 400/401/403 = ปัญหาที่กุญแจหรือคำขอ ลองรุ่นอื่นก็ไม่ช่วย
-    } catch (e) {
-      // รุ่นนี้ค้างจนหมดเวลา — ยังเหลือเวลาก็ลองรุ่นถัดไปต่อ
-      console.warn('[ask-sai] gemini', model, (e as Error)?.message ?? e);
-      lastStatus = lastStatus || 0;
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
-  const e = new Error('gemini ' + lastStatus) as Error & { status?: number };
-  e.status = lastStatus;
-  throw e;
+  // ไล่รุ่น · ถอยขั้นการคิด · อ่านคำตอบให้ครบทุก part · จับ MAX_TOKENS
+  // ทั้งหมดอยู่ใน _shared/gemini.ts แล้ว ที่นี่เหลือแค่บอกว่าจะถามอะไรและมีเวลาเท่าไหร่
+  const r = await geminiGenerate({ ...geminiOpts(question, context, history), budgetMs });
+  // โดนตัดกลางประโยคเพราะโทเคนหมด — เติมท้ายให้รู้ตัว ดีกว่าส่งคำตอบครึ่งใบไปเฉย ๆ
+  return r.truncated
+    ? r.text + '\n\n(ตอบยาวเกินโควตาหนึ่งครั้ง — ถามต่อได้เลยว่า "เล่าต่อ")'
+    : r.text;
 }
 
 // ---------- gateway ที่พูดภาษา OpenAI ----------

@@ -23,19 +23,17 @@
 // รูปเข้ามา → ส่งต่อ → คืนผล → จบ ผู้ใช้ต้องกดยืนยันในแอปเองก่อนถึงจะถูกบันทึก
 // ============================================================
 
+import { GEMINI_MODELS, geminiGenerate } from '../_shared/gemini.ts';
+
 const API_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
 
 // ชื่อรุ่นของ Gemini เปลี่ยนบ่อยกว่าที่ควรจะเป็น และรุ่นที่หายไปตอบกลับมาเป็น 404
-// ซึ่งหน้าตาเหมือน "ต่อไม่ติด" ทั้งที่จริงคือ "เรียกชื่อผิด" — เสียเวลาหาสาเหตุมาแล้วหนึ่งรอบ
-// จึงไล่ลองตามลำดับแทนที่จะผูกกับชื่อเดียว ตัวไหนติดก็จำไว้ใช้ต่อทั้งรอบชีวิตของ instance
-// ตั้ง GEMINI_MODEL ไว้ = บังคับใช้ตัวนั้นตัวเดียว ไม่ต้องเดา
-const MODEL_ENV = Deno.env.get('GEMINI_MODEL') ?? '';
-const MODEL_CANDIDATES = MODEL_ENV ? [MODEL_ENV] : [
-  'gemini-flash-latest',
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-];
-let workingModel = '';
+// ซึ่งหน้าตาเหมือน "ต่อไม่ติด" ทั้งที่จริงคือ "เรียกชื่อผิด"
+// รายชื่อรุ่นย้ายไปอยู่ที่ _shared/gemini.ts ที่เดียวแล้ว —
+// **รายชื่อเดิมของไฟล์นี้ (flash-latest / 2.5-flash / 2.0-flash) ตายไปสองตัวจากสามตัว**
+// เหลือรอดตัวเดียวคือ flash-latest ซึ่งวัดจริงแล้วคืน 503 บ่อยเพราะคนแน่น
+// = การอ่านตารางเรียนล้มเป็นระยะโดยไม่มีใครรู้ว่าเพราะอะไร
+const MODEL_CANDIDATES = GEMINI_MODELS;
 
 // รูปจากกล้องมือถือปัจจุบันอยู่ราว 2–5 MB ฝั่งแอปย่อให้เหลือหลักร้อย KB ก่อนส่งอยู่แล้ว
 // เพดานนี้จึงไม่ได้ไว้กันผู้ใช้ปกติ แต่กันคนที่ยิงไฟล์ใหญ่ ๆ ใส่เพื่อเผาโควตา
@@ -155,56 +153,29 @@ Deno.serve(async (req) => {
   if (image.length > MAX_B64) return json({ error: 'รูปใหญ่เกินไป' }, 413);
   if (!/^image\/(jpeg|png|webp)$/.test(mime)) return json({ error: 'รองรับเฉพาะ JPEG/PNG/WebP' }, 415);
 
-  const payload = JSON.stringify({
-    contents: [{ parts: [{ text: PROMPT }, { inline_data: { mime_type: mime, data: image } }] }],
-    generationConfig: {
-      responseMimeType: 'application/json',
-      responseSchema: SCHEMA,
-      temperature: 0,          // งานอ่านตาราง ไม่ใช่งานแต่งเรื่อง
-    },
-  });
-
-  // ไล่ลองชื่อรุ่นจนกว่าจะเจอตัวที่มีอยู่จริง — 404 แปลว่า "ไม่มีรุ่นนี้" เท่านั้น
-  // error อย่างอื่น (โควตาเต็ม รูปใหญ่ กุญแจผิด) ไม่ใช่เรื่องชื่อรุ่น ต้องหยุดแล้วรายงานทันที
-  // ไม่งั้นคำขอเดียวจะกลายเป็นการยิงซ้ำสามรอบโดยเปล่าประโยชน์
-  const order = workingModel ? [workingModel, ...MODEL_CANDIDATES.filter(m => m !== workingModel)]
-    : MODEL_CANDIDATES;
-  let res: Response | null = null;
-  let lastStatus = 0, lastDetail = '';
-
-  for (const model of order) {
-    try {
-      res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': API_KEY }, body: payload },
-      );
-    } catch (e) {
-      return json({ error: 'ต่อ Gemini ไม่ได้: ' + (e as Error).message }, 502);
-    }
-    if (res.ok) { workingModel = model; break; }
-    lastStatus = res.status;
-    // ข้อความจากฝั่ง Google อาจมีรายละเอียดของโปรเจกต์ปนมา ตัดให้สั้นและไม่ส่งทั้งก้อนกลับ
-    lastDetail = (await res.text()).slice(0, 200);
-    console.warn('[read-timetable] gemini error', model, res.status, lastDetail);
-    if (res.status !== 404) break;
-    res = null;
-  }
-
-  if (!res || !res.ok) {
-    return json({ error: lastStatus === 429
-      ? 'โควตา Gemini เต็มชั่วคราว ลองใหม่อีกสักครู่'
-      : lastStatus === 404
-      ? 'ไม่พบรุ่นโมเดลที่เรียก — ลองเรียกฟังก์ชันนี้ด้วย {"probe":"models"} เพื่อดูรายชื่อรุ่นที่ใช้ได้'
-      : 'Gemini ตอบกลับมาเป็นข้อผิดพลาด (' + lastStatus + ')' }, 502);
-  }
-
+  // ไล่ลองรุ่น · ถอยขั้นการคิด · อ่านคำตอบให้ครบทุก part อยู่ใน _shared/gemini.ts แล้ว
+  // ของเดิมยอมลองรุ่นถัดไปเฉพาะตอน 404 เท่านั้น — 429 (โควตารุ่นนั้นเต็ม) กับ 503 (คนแน่น)
+  // ทำให้ทั้งคำขอล้มทันที ทั้งที่รุ่นสำรองว่างอยู่ ซึ่งเป็นเหตุผลที่การอ่านตารางล้มแบบสุ่ม ๆ
   let parsed: { classes?: unknown; note?: unknown } = {};
   try {
-    const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
-    parsed = JSON.parse(text);
+    const r = await geminiGenerate({
+      parts: [{ text: PROMPT }, { inline_data: { mime_type: mime, data: image } }],
+      temperature: 0,          // งานอ่านตาราง ไม่ใช่งานแต่งเรื่อง
+      think: 'off',            // อ่านตารางที่เห็นแล้วคืน JSON — ไม่ใช่โจทย์ที่ต้องคิด
+      json: true,
+      responseSchema: SCHEMA,
+      maxOutputTokens: 4096,
+      budgetMs: 45_000,
+    });
+    parsed = JSON.parse(r.text);
   } catch (e) {
-    console.warn('[read-timetable] parse failed', (e as Error).message);
+    const status = (e as { status?: number }).status ?? 0;
+    console.warn('[read-timetable] gemini', status, (e as Error).message);
+    if (status === 429) return json({ error: 'โควตา Gemini เต็มชั่วคราว ลองใหม่อีกสักครู่' }, 502);
+    if (status === 404) {
+      return json({ error: 'ไม่พบรุ่นโมเดลที่เรียก — ลองเรียกฟังก์ชันนี้ด้วย {"probe":"models"} เพื่อดูรายชื่อรุ่นที่ใช้ได้' }, 502);
+    }
+    if (status) return json({ error: 'Gemini ตอบกลับมาเป็นข้อผิดพลาด (' + status + ')' }, 502);
     return json({ error: 'อ่านคำตอบของ Gemini ไม่ออก ลองถ่ายใหม่ให้ชัดขึ้น' }, 502);
   }
 

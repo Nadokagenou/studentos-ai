@@ -23,6 +23,7 @@
 // ============================================================
 
 import { chat, dataUri } from '../_shared/llm.ts';
+import { geminiGenerate } from '../_shared/gemini.ts';
 
 const PROVIDER = Deno.env.get('OCR_PROVIDER') ?? 'none';
 const MAX_BYTES = Number(Deno.env.get('OCR_MAX_BYTES') ?? 6_000_000);  // ~6MB หลังถอด base64
@@ -66,8 +67,7 @@ const OCR_PROMPT = [
   '- ห้ามสรุป ห้ามแปล ห้ามเติมคำที่ไม่ได้อยู่ในรูป',
   '- ตรงไหนอ่านไม่ออกให้ข้ามไป ไม่ต้องเดา และไม่ต้องเขียนอธิบายว่าอ่านไม่ออก',
   '- ถ้าไม่มีข้อความในรูปเลย ให้คืนข้อความว่าง',
-].join('
-');
+].join('\n');
 
 const ADAPTERS: Record<string, OcrAdapter> = {
   // ตัวทดสอบสายไฟ: ไม่ยิงออกนอก ไม่เสียเงิน ใช้ยืนยันว่าฝั่งแอป → Edge Function → กลับ ทำงานครบ
@@ -84,38 +84,27 @@ const ADAPTERS: Record<string, OcrAdapter> = {
   //
   // ตั้ง OCR_PROVIDER=gemini แล้วปุ่มในแอปทำงานทันที ไม่ต้องแก้ฝั่งแอปสักบรรทัด
   gemini: async (img) => {
-    // รับได้ทั้งสองชื่อ: GEMINI_API_KEY (ชื่อที่ตั้งไว้ให้ read-timetable แล้ว)
-    // และ OCR_API_KEY ตามที่ TODO เดิมเขียนไว้ — จะได้ไม่ต้องตั้ง secret ซ้ำสองดอก
-    const key = Deno.env.get('GEMINI_API_KEY') ?? Deno.env.get('OCR_API_KEY') ?? '';
-    if (!key) throw new Error('ยังไม่ได้ตั้ง secret GEMINI_API_KEY');
-    const model = Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.5-flash';
-
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: OCR_PROMPT }, { inline_data: { mime_type: img.mime, data: img.b64 } }] }],
-          generationConfig: { temperature: 0 },   // งานถอดข้อความ ไม่ใช่งานแต่งเรื่อง
-        }),
-      },
-    );
-    if (!r.ok) throw new Error(`${r.status} ${(await r.text()).slice(0, 200)}`);
-
-    const d = await r.json();
-    const text = (d?.candidates?.[0]?.content?.parts ?? [])
-      .map((p: { text?: string }) => p.text ?? '').join('').trim();
+    // รายชื่อรุ่น · บันไดถอย · การอ่านคำตอบให้ครบทุก part อยู่ใน _shared/gemini.ts
+    //
+    // **ของเดิมตั้งรุ่นตายตัวเป็น gemini-2.5-flash ซึ่งตอบ 404 กับโปรเจกต์นี้ไปแล้ว**
+    // (Google ปิดรับโปรเจกต์ใหม่กับรุ่นนั้น — วัดจริงด้วย probe:'models2' ของ ask-sai)
+    // ผลคือปุ่ม "อ่านให้แม่นขึ้น" ในแอปคืน 502 ทุกครั้ง ทั้งที่กุญแจกับสายไฟดีหมด
+    // และฝั่งแอปไม่มีทางรู้เลยว่าที่พังคือ "ชื่อรุ่น" เพราะข้อความ error ถูกกลืนไว้ในนี้
+    // ใช้รายชื่อกลางแล้วปัญหานี้แก้ที่เดียวจบทั้งสามฟังก์ชัน
+    const r = await geminiGenerate({
+      parts: [{ text: OCR_PROMPT }, { inline_data: { mime_type: img.mime, data: img.b64 } }],
+      temperature: 0,        // งานถอดข้อความ ไม่ใช่งานแต่งเรื่อง
+      think: 'off',          // ถอดตัวอักษรที่เห็น ไม่ต้องคิด — คิดแล้วเปลืองโทเคนจนคำตอบโดนตัด
+      maxOutputTokens: 4096, // ใบงานเต็มหน้ากินโทเคนเยอะ ตัดกลางคัน = ได้ข้อความไม่ครบ
+      budgetMs: 45_000,
+    });
 
     // Gemini ไม่คืนคะแนนความมั่นใจมาให้ ต่างจาก Tesseract ที่มีให้เป็นตัวเลขจริง
     // จะกรอก 99 ไปเฉย ๆ ก็ได้ แต่นั่นคือการโกหกฝั่งแอปที่เอาเลขนี้ไปเตือนผู้ใช้
     // ว่า "อ่านมาไม่ค่อยชัด ตรวจหน่อย" — ตัวเลขที่แต่งขึ้นจะปิดคำเตือนนั้นทิ้งทั้งหมด
     //
-    // สิ่งที่พอวัดได้จริงคือ finishReason: จบครบ (STOP) ต่างจากโดนตัดกลางคัน
-    // หรือโดนบล็อก ซึ่งแปลว่าข้อความที่ได้ไม่ครบแน่ ๆ
-    const finish = d?.candidates?.[0]?.finishReason;
-    const conf = !text ? 0 : finish === 'STOP' ? 90 : 55;
-    return { text, conf };
+    // สิ่งที่พอวัดได้จริงคือจบครบหรือโดนตัดกลางคัน ซึ่งแปลว่าข้อความที่ได้ไม่ครบแน่ ๆ
+    return { text: r.text, conf: !r.text ? 0 : r.truncated ? 55 : 90 };
   },
 
   // ---------- gateway ที่พูดภาษา OpenAI ----------
