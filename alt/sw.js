@@ -4,12 +4,12 @@
 // สายนี้เคยเป็นบิลด์ทดลอง (ALT) และถูกยกขึ้นเป็นตัวหลักตั้งแต่ 1A7V2 · ชื่อ cache เลยเปลี่ยนตาม
 // -m: เปลี่ยนโลโก้ทั้งชุด — ชื่อไฟล์เดิมทุกไฟล์ ถ้าไม่ขึ้นเลขรุ่น เครื่องที่ติดตั้งไว้แล้ว
 // จะเสิร์ฟโลโก้เก่าจากแคชต่อไปโดยไม่มีอะไรบอกว่ามีของใหม่
-const CACHE = 'studentos-1b15-linse'; // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
+const CACHE = 'studentos-1b16-hwroom'; // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
 // ทุกไฟล์ที่ index.html อ้างถึงต้องอยู่ในรายการนี้ — ไฟล์ที่หน้าเรียกแต่ไม่ได้แคชไว้
 // จะหายไปเงียบ ๆ ตอนออฟไลน์ โดยไม่มีอะไรบอกว่าหายไปไหน (visual-editor.js กับไอคอน icon-alt-*
 // เป็นสองอย่างที่หน้ายังอ้างถึงอยู่จริง)
-const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'room.css', 'social.css', 'feed.css', 'safety.css', 'custom.css',
-  'engine.js', 'context.js', 'planner.js', 'brain.js', 'inbox.js', 'linelink.js', 'room.js', 'social.js', 'feed.js', 'safety.js', 'app.js', 'config.js',
+const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'room.css', 'social.css', 'feed.css', 'safety.css', 'hw.css', 'custom.css',
+  'engine.js', 'context.js', 'planner.js', 'brain.js', 'inbox.js', 'linelink.js', 'room.js', 'social.js', 'feed.js', 'hw.js', 'safety.js', 'app.js', 'config.js',
   'visual-editor.js', 'manifest.json',
   'icon-alt-192.png', 'icon-alt-512.png', 'icon-192.png', 'icon-512.png',
   'logo-mark.png', 'logo-splash.png', 'logo-splash-light.png',

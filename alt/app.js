@@ -818,6 +818,8 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
   // จอแชทซ่อนแถบล่างอยู่แล้ว แต่ต้องผูกเจ้าของไว้ด้วย — ไม่งั้นตอนกดย้อนกลับ
   // ออกมา จะไม่มีแท็บไหนติดไฟสักอัน ซึ่งอ่านว่า "หลงอยู่ที่ไหนไม่รู้"
   'scr-chat': 'scr-mates', 'scr-people': 'scr-mates',
+  // ห้องการบ้านเข้าจากรายการงาน จึงคืนไฟให้แท็บนั้น ไม่ใช่แท็บเพื่อน
+  'scr-hw': 'scr-tasks',
   'scr-compose': 'scr-mates', 'scr-post': 'scr-mates', 'scr-user': 'scr-mates' };
 
 // ---------- 1A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
@@ -860,6 +862,9 @@ function go(id) {
   // ออกจากจอแชทเมื่อไหร่ ปิดช่องรับข้อความสดทันที — ช่องที่เปิดค้างกินโควตา realtime
   // ซึ่งนับจำนวนช่องที่เปิดพร้อมกัน ไม่ใช่จำนวนข้อความ · เปิดค้างสิบห้องแล้วเงียบไปเลย
   if (curScreen === 'scr-chat' && id !== 'scr-chat' && typeof closeChat === 'function') closeChat();
+  // เหตุผลเดียวกันกับจอแชท · และต้องประกาศออกไปด้วยว่าเราไม่ได้อยู่ในห้องนั้นแล้ว
+  // ไม่งั้นการ์ดของเพื่อนจะขึ้นว่า "กำลังทำอยู่ตอนนี้" ค้างไว้จนกว่าเราจะปิดแอป
+  if (curScreen === 'scr-hw' && id !== 'scr-hw' && typeof closeHwRoom === 'function') closeHwRoom();
   // คืนบล็อกตัวเลือกกลับที่พักก่อนออกจากหน้าย่อยของตั้งค่า — ทางออกมีหลายทาง
   // (ปุ่มกลับ · แท็บล่าง · ปุ่มย้อนของเครื่อง) ตกทางใดทางหนึ่งแล้วบล็อกหาย
   if (curScreen === 'scr-setopt' && id !== 'scr-setopt') stashSetOpt();
@@ -885,7 +890,7 @@ function go(id) {
   document.body.classList.toggle('login-mode', id === 'scr-login' || id === 'scr-onboard');
   // จอแชทซ่อนแถบล่างเหมือนจอล็อกอิน — ช่องพิมพ์ต้องติดก้นจอจริง ๆ
   // ไม่ใช่ลอยอยู่หลังแถบล่างจนกดไม่โดน · ออกจากจอนี้ได้ทางปุ่มย้อนกลับในหัวจอ
-  document.body.classList.toggle('chat-mode', id === 'scr-chat');
+  document.body.classList.toggle('chat-mode', id === 'scr-chat' || id === 'scr-hw');
   document.body.classList.toggle('compose-mode',
     id === 'scr-compose' || id === 'scr-post' || id === 'scr-user');
   // ออกจากฟีดเมื่อไหร่ ปิดช่องรับโพสต์สดกับ presence — ทั้งคู่กินโควตา realtime
@@ -2473,6 +2478,7 @@ function taskCard(t, now, focus) {
       <div class="tk-ttl">${esc(t.detail || '')}</div>
       <div class="tk-meta">${chips}<span class="tk-sp"></span>
         ${ti.schedulable ? `<span class="tk-min">~${remainingMin(t)} นาที</span>` : ''}</div>
+      ${typeof hwStrip === 'function' ? hwStrip(t) : ''}
     </div>
   </div>`;
 }
@@ -6385,6 +6391,10 @@ function renderAll() {
   if (typeof renderRoom === 'function') renderRoom();
   if (typeof renderMates === 'function') renderMates();
   if (typeof renderFeed === 'function') renderFeed();
+  // ห้องการบ้าน — ลงชื่อว่ามีงานชิ้นไหนบ้างแล้วรับตัวเลขกลับมา
+  // เรียกจากที่นี่เพราะรายการงานเปลี่ยนได้จากสิบทาง (เพิ่ม · ติ๊กเสร็จ · เลื่อน · ซิงก์จาก cloud)
+  // ตัว hwSync หน่วงและกันยิงถี่ไว้เองแล้ว จึงเรียกบ่อยได้โดยไม่กินเน็ต
+  if (typeof hwSync === 'function') hwSync();
 }
 
 // ---------- สแกนตารางเรียนจากรูป ----------
