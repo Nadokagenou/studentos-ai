@@ -23,7 +23,7 @@
 // รูปเข้ามา → ส่งต่อ → คืนผล → จบ ผู้ใช้ต้องกดยืนยันในแอปเองก่อนถึงจะถูกบันทึก
 // ============================================================
 
-import { GEMINI_MODELS, geminiGenerate } from '../_shared/gemini.ts';
+import { GEMINI_MODELS, geminiGenerate, geminiTrailLine, type GeminiError } from '../_shared/gemini.ts';
 
 const API_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
 
@@ -126,12 +126,13 @@ Deno.serve(async (req) => {
   // และถ้าไม่บอก มันจะพังเป็น 500 เปล่า ๆ ที่ไม่ได้ชี้ว่าต้องไปแก้ตรงไหน
   if (!API_KEY) return json({ error: 'ยังไม่ได้ตั้ง secret ชื่อ GEMINI_API_KEY' }, 500);
 
-  let image = '', mime = 'image/jpeg', probe = false;
+  let image = '', mime = 'image/jpeg', probe = false, debug = false;
   try {
     const body = await req.json();
     image = String(body?.image ?? '');
     if (body?.mime) mime = String(body.mime);
     probe = body?.probe === 'models';
+    debug = body?.debug === true;
   } catch { return json({ error: 'อ่าน body ไม่ได้' }, 400); }
 
   // โหมดสำรวจ: บอกว่ากุญแจดอกนี้เรียกรุ่นไหนได้บ้าง ไม่ต้องเดาชื่อรุ่นเองตอนติดตั้ง
@@ -169,14 +170,21 @@ Deno.serve(async (req) => {
     });
     parsed = JSON.parse(r.text);
   } catch (e) {
-    const status = (e as { status?: number }).status ?? 0;
-    console.warn('[read-timetable] gemini', status, (e as Error).message);
-    if (status === 429) return json({ error: 'โควตา Gemini เต็มชั่วคราว ลองใหม่อีกสักครู่' }, 502);
+    const err = e as GeminiError;
+    const status = err.status ?? 0;
+    console.warn('[read-timetable] gemini', status, err.message, geminiTrailLine(err.trail));
+
+    // ส่งรายละเอียดกลับ **เฉพาะตอนถูกขอมาด้วย debug: true** — ข้อความของ Google
+    // มีชื่อโปรเจกต์/ชื่อช่องปนมาได้ ผู้ใช้ทั่วไปจึงไม่ควรเห็น แต่ถ้าไม่มีทางเห็นเลย
+    // ก็แก้บั๊กแบบนี้ไม่ได้ถ้าเปิด log ของ Supabase ไม่ได้ (ซึ่งเป็นเรื่องปกติเวลารีบ)
+    const dbg = debug ? { detail: err.detail ?? '', trail: err.trail ?? [] } : {};
+
+    if (status === 429) return json({ error: 'โควตา Gemini เต็มชั่วคราว ลองใหม่อีกสักครู่', ...dbg }, 502);
     if (status === 404) {
-      return json({ error: 'ไม่พบรุ่นโมเดลที่เรียก — ลองเรียกฟังก์ชันนี้ด้วย {"probe":"models"} เพื่อดูรายชื่อรุ่นที่ใช้ได้' }, 502);
+      return json({ error: 'ไม่พบรุ่นโมเดลที่เรียก — ลองเรียกฟังก์ชันนี้ด้วย {"probe":"models"} เพื่อดูรายชื่อรุ่นที่ใช้ได้', ...dbg }, 502);
     }
-    if (status) return json({ error: 'Gemini ตอบกลับมาเป็นข้อผิดพลาด (' + status + ')' }, 502);
-    return json({ error: 'อ่านคำตอบของ Gemini ไม่ออก ลองถ่ายใหม่ให้ชัดขึ้น' }, 502);
+    if (status) return json({ error: 'Gemini ตอบกลับมาเป็นข้อผิดพลาด (' + status + ')', ...dbg }, 502);
+    return json({ error: 'อ่านคำตอบของ Gemini ไม่ออก ลองถ่ายใหม่ให้ชัดขึ้น', ...dbg }, 502);
   }
 
   const classes = clean(parsed.classes);
