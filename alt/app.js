@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B14';                 // สายเลขของแอป
+const APP_VERSION = '1B14a';                 // สายเลขของแอป
 const APP_CODENAME = 'Linse';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -7958,10 +7958,16 @@ async function buildOcrWorker(onStage) {
   const say = onStage || (() => {});
   await withTimeout(loadTesseract(), 30_000, 'โหลดไลบรารี OCR');
 
+  // __OCR_LANGPATH เป็นช่องให้เครื่องมือวัดผลลองโมเดลชั้นอื่นได้ (เช่น 4.0.0_best ตัว float)
+  // แอปจริงไม่เคยตั้งค่านี้ จึงใช้ค่าเริ่มต้น (_best_int รายภาษา) เสมอ
+  // ตั้งแล้วข้ามการดึงล่วงหน้าไปด้วย เพราะไฟล์ที่จะดึงเป็นคนละชุดกับที่ worker จะใช้
+  const langPath = (typeof window !== 'undefined' && window.__OCR_LANGPATH) || null;
+
   // ดึงโมเดลเข้าแคชก่อน พร้อมบอกความคืบหน้าเป็นเมกะไบต์ — ล้มตรงนี้ยังไม่เป็นไร
   // (แคชเก่ายังอาจใช้ได้ หรือ Tesseract โหลดเองสำเร็จก็ได้) จึงไม่โยน error ต่อ
   say('lang');
   try {
+    if (langPath) throw new Error('ข้ามการดึงล่วงหน้า: ถูกสั่งให้ใช้ langPath อื่น');
     await withStallGuard(
       ping => ocrWarmLangs((p, got, total) => { ping(); ocrLangProgress(p, got, total); }),
       OCR_STALL_MS, 'โหลดโมเดลภาษา');
@@ -7978,6 +7984,7 @@ async function buildOcrWorker(onStage) {
       // ซึ่งเป็นตัวที่ทำให้การสแกนครั้งต่อ ๆ ไปทำงานได้แม้ไม่มีเน็ตเลย
       return Tesseract.createWorker('tha+eng', 1, {   // 1 = LSTM อย่างเดียว
         workerPath: TESSERACT_BASE + 'worker.min.js',
+        ...(langPath ? { langPath } : {}),   // ปกติไม่ตั้ง — เครื่องมือวัดผลเท่านั้นที่ตั้ง
         // **ชี้ที่โฟลเดอร์ ไม่ใช่ไฟล์** — ของเดิมล็อกไว้ที่ tesseract-core-simd.wasm.js ตายตัว
         // ซึ่งบังคับให้ต้องมี SIMD: เครื่องที่ไม่มี (iOS ก่อน 16.4 และ Android รุ่นเล็ก)
         // จะพังตรงนี้ทุกครั้งโดยไม่มีข้อความบอกสาเหตุ
