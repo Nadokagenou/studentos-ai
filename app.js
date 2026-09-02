@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B14a';                 // สายเลขของแอป
+const APP_VERSION = '1B15';                 // สายเลขของแอป
 const APP_CODENAME = 'Linse';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -7545,9 +7545,13 @@ function ocrGrayToCanvas(prep) {
 
 // Sauvola: threshold ของแต่ละจุด = mean * (1 + k * (sd / 128 - 1))
 // ใช้ integral image เพื่อคิด mean/sd ของหน้าต่างในเวลาคงที่ ไม่งั้นภาพ 1800px ค้างเป็นวินาที
-function ocrBinarize(prep) {
+// winOverride: ขนาดหน้าต่างที่บังคับเอง — ใช้ตอนแยกขาวดำ "ชิ้นส่วนของหน้า" (ดู ocrBlockCanvas)
+// เพราะหน้าต่างควรผูกกับขนาดตัวอักษร ซึ่งเป็นสมบัติของทั้งหน้า ไม่ใช่ของชิ้นที่บังเอิญตัดมา
+// ตัดบล็อกสูง 140px มาแล้วคิดหน้าต่างจาก 140 ได้หน้าต่าง 15 ซึ่งเล็กกว่าของหน้าจริงหลายเท่า
+// = คนละเกณฑ์กับที่วัดผลไว้ทั้งหมด (เจอจริงตอนทำ 1B15 — RP-3 ร่วงทันทีที่บล็อกถูกไบนารีด้วยตัวเอง)
+function ocrBinarize(prep, winOverride) {
   const { gray, w, h } = prep;
-  const win = Math.max(15, ((Math.max(w, h) / 28) | 0) | 1); // เลขคี่เสมอ ~1/28 ของด้านยาว
+  const win = winOverride || Math.max(15, ((Math.max(w, h) / 28) | 0) | 1); // เลขคี่เสมอ ~1/28 ของด้านยาว
   const r = win >> 1, k = 0.3, R = 128;
 
   // ผลรวมค่าเทาเก็บเป็น Uint32 ได้ ไม่ต้อง Float64: ค่าสูงสุดคือ 255 × 1800 × 1800 ≈ 826 ล้าน
@@ -7859,17 +7863,37 @@ function ocrFindBlocks(grayPrep, opt = {}) {
   const mask = ocrSmear(small.gray, small.w, small.h, hGap, vGap);
 
   const page = small.w * small.h;
-  let blocks = skewComponents(mask, small.w, small.h).filter(b =>
+  const raw = skewComponents(mask, small.w, small.h);
+  // หมึกทั้งหน้า *หลังละเลงแล้ว* — ต้องนับจากภาพเดียวกับที่ก้อนถูกวัดมา ไม่ใช่จากภาพก่อนละเลง
+  const maskInk = raw.reduce((a, b) => a + b.n, 0) || 1;
+
+  let blocks = raw.filter(b =>
     b.n >= med * med * 1.5 &&            // ก้อนจิ๋วไม่คุ้มค่าเรียก OCR หนึ่งรอบ
     b.h >= med * 0.8 &&
     b.n <= page * 0.6 &&                 // เกือบทั้งหน้า = ละเลงเกินจนเหลือก้อนเดียว ไม่ได้ช่วยอะไร
     // **ความทึบของกรอบ** — กรอบใบงาน ขอบกระดาษ และเส้นตารางเป็นชิ้นส่วนเส้นยาวที่คดไปทั่วหน้า
     // กรอบครอบของมันจึงใหญ่เกือบเท่าหน้ากระดาษทั้งที่มีหมึกนิดเดียว (วัดจริง RP-1 ได้ก้อน 85×98%)
     // ครอบตามนั้นก็เท่ากับอ่านทั้งหน้าเหมือนเดิม ไม่ได้แก้อะไรเลย
-    b.n >= b.w * b.h * 0.35);
+    //
+    // ...แต่เกณฑ์ความทึบอย่างเดียวตัดของจริงทิ้งด้วย: วัดกับ RP-2 (รูปถ่ายหนังสือกางอยู่)
+    // ก้อนตัวหนังสือหลักทั้งย่อหน้า — 30% ของหน้า และถือหมึกไว้ **53% ของทั้งหน้า** —
+    // ได้ความทึบ 0.33 ตกเกณฑ์ไปแบบเฉียดฉิว เหลือแต่เงาบนหัวรูป (0.67) กับมุมขวาบน (0.85) ที่ผ่าน
+    // รอบเก็บตกจึงไปอ่านเงากับขอบกระดาษ แทนที่จะอ่านย่อหน้าที่เราต้องการจริง ๆ
+    //
+    // ทางออก: ก้อนที่ถือหมึกไว้เป็นสัดส่วนมากของทั้งหน้า **คือตัวหนังสือตามนิยาม**
+    // กรอบไม่มีทางถือหมึกได้มากขนาดนั้น (ของ RP-2 กรอบจุดไข่ปลาถือไว้ 16%)
+    // ยังคงคุมด้วยขนาดกรอบครอบไว้ กันก้อนที่กินเกือบทั้งหน้าเล็ดลอดเข้ามาทางนี้
+    (b.n >= b.w * b.h * 0.35 ||
+     (inkBranchOn() && b.n >= maskInk * 0.25 && b.w * b.h <= page * 0.6)));
   if (!blocks.length) return [];
+
   blocks.sort((a, b) => b.n - a.n);
   // ก้อนที่จมอยู่ในก้อนอื่นทั้งใบ = อ่านซ้ำเปล่า ๆ ตัดทิ้ง (ไล่จากก้อนใหญ่ไปเล็ก)
+  //
+  // เคยลองกลับด้านเป็น "ไล่จากเล็กไปใหญ่ แล้วทิ้งร่มที่คลุมก้อนย่อยหลายก้อน" ด้วยเหตุผลว่า
+  // ก้อนย่อยครอบชิดข้อความกว่า — **วัดแล้วแย่ลง** RP-3 ร่วงจาก 11/11 เหลือ 10/11
+  // และ RP-2 ก็ไม่ได้ดีขึ้นจากมันเลย (ที่ทำให้ RP-2 ดีขึ้นคือเกณฑ์หมึกข้างบน ไม่ใช่ลำดับนี้)
+  // เก็บบันทึกไว้กันคนถัดไปคิดแบบเดียวกันแล้วลองซ้ำ
   const kept = [];
   for (const b of blocks) {
     if (kept.some(k => b.x0 >= k.x0 && b.x1 <= k.x1 && b.y0 >= k.y0 && b.y1 <= k.y1)) continue;
@@ -8427,24 +8451,95 @@ async function ocrReadCanvas(source, onStage) {
 // เวลาต่อใบพุ่งจาก 2.8 เป็น 8.4 วินาที ซึ่งแพงเกินกว่าจะปล่อยให้ผู้ใช้เจอ
 // การเรียงต่อกันได้ประโยชน์หลักอันเดียวกัน — ตัดพื้นที่ว่าง ภาพประกอบ และกรอบออกจากหน้า
 // เหลือแต่ก้อนตัวหนังสือชิดกันเป็นคอลัมน์เดียว — โดยจ่ายเพิ่มแค่รอบเดียว
+// ดึงค่าเทาออกจาก canvas ที่เป็นภาพเทาอยู่แล้ว — คืนโครงเดียวกับ ocrToGray
+// **ไม่ยืด contrast ซ้ำ** ต่างจาก ocrToGray ตรงนี้ตั้งใจ: บล็อกถูกตัดมาจากภาพที่ยืดแล้ว
+// ยืดซ้ำอีกรอบต่อบล็อกเป็นการเปลี่ยนพฤติกรรมคนละเรื่องกับที่กำลังทดสอบอยู่
+function ocrCanvasToGray(c) {
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  const id = ctx.getImageData(0, 0, c.width, c.height);
+  const gray = new Uint8ClampedArray(c.width * c.height);
+  for (let g = 0, i = 0; g < gray.length; g++, i += 4) gray[g] = id.data[i];
+  return { canvas: c, ctx, id, gray, w: c.width, h: c.height };
+}
+
+// ============================================================
+// ALT 1B15: แก้เอียง "ทีละบล็อก" ไม่ใช่ทั้งหน้าครั้งเดียว
+// ------------------------------------------------------------
+// ที่มา: ใบงาน RP-2 เป็นรูปถ่ายหนังสือที่กางอยู่ หน้ากระดาษจึงโค้ง
+// วัดมุมจริงของแต่ละบล็อกในใบนั้นได้ **−6° · 0° · +5.2°** ในหน้าเดียวกัน
+// ส่วนตัวแก้เอียงทั้งหน้าคืน 0° — ถูกแล้วตามตรรกะของมัน เพราะไม่มีมุมเดียวที่ใช้ได้กับทั้งหน้า
+// (หมุนไป 5° บล็อกล่างตรงขึ้น บล็อกบนก็เอียงเป็น 11° แทน)
+//
+// ผลคือบรรทัดที่โค้งถูกตัดเป็นท่อน ๆ คนละ baseline วลียาวจึงขาดกลาง:
+// "คำขี้แจง : จงเขียนแผนภาพแทนการดำเนินการี" กับ "การดำเนินการของเซตฉ่ง," แยกกันคนละที่
+//
+// แต่ในระดับ "บล็อก" กระดาษที่โค้งยังนับว่าเกือบตรงได้ มุมเดียวต่อบล็อกจึงพอ —
+// ซึ่งเป็นสิ่งที่การแก้ทั้งหน้าทำไม่ได้ตามนิยามของมันเอง
+// **หมุนภาพเทาแล้วค่อยไบนารีใหม่เสมอ** (กฎเดียวกับ ocrDeskew ทั้งหน้า)
+// ============================================================
+// ช่องเปิด/ปิดกฎ "ก้อนที่ถือหมึกไว้มาก = ตัวหนังสือ" ไว้ให้เครื่องมือวัดผลเทียบสองทาง
+// แอปจริงไม่เคยตั้งค่านี้
+function inkBranchOn() {
+  return (typeof window !== 'undefined' && window.__OCR_INK_BRANCH !== undefined)
+    ? !!window.__OCR_INK_BRANCH : true;
+}
+
+function ocrBlockDeskewOn() {
+  return (typeof window !== 'undefined' && window.__OCR_BLOCK_DESKEW !== undefined)
+    ? !!window.__OCR_BLOCK_DESKEW : true;
+}
+
+// ตัดบล็อกหนึ่งก้อนออกมาเป็น canvas พร้อมอ่าน (แก้เอียงเฉพาะก้อนนี้ถ้าเอียงจริง)
+//
+// **ก้อนที่ไม่ต้องหมุน ต้องตัดจากภาพที่เตรียมไว้แล้วของทั้งหน้า ห้ามเตรียมใหม่เอง**
+// ตอนแรกเขียนให้ตัดจากภาพเทาแล้วไบนารีใหม่ทุกก้อนเหมือนกันหมด ซึ่งดูสมมาตรดี
+// แต่วัดแล้ว RP-3 ร่วงจาก 11/11 เหลือ 10/11 ทันที เพราะหน้าต่างของ Sauvola
+// คิดจากขนาดภาพที่ส่งเข้าไป — ก้อนเล็กจึงได้หน้าต่างเล็กกว่าของทั้งหน้ามาก = คนละเกณฑ์กัน
+// ก้อนที่ไม่ได้หมุนจึงต้องได้พิกเซลชุดเดิมเป๊ะ ๆ ไม่มีข้อยกเว้น
+function ocrBlockCanvas(prep, grayCanvas, binCanvas, pageWin, box) {
+  const W = grayCanvas.width, H = grayCanvas.height;
+  const sx = Math.round(box.x * W), sy = Math.round(box.y * H);
+  const sw = Math.max(8, Math.round(box.w * W)), sh = Math.max(8, Math.round(box.h * H));
+
+  const cut = (from) => {
+    const c = document.createElement('canvas');
+    c.width = sw; c.height = sh;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, sw, sh);
+    ctx.drawImage(from, sx, sy, sw, sh, 0, 0, sw, sh);
+    return c;
+  };
+
+  let deg = 0;
+  if (ocrBlockDeskewOn()) {
+    try { deg = ocrFindSkew(ocrCanvasToGray(cut(grayCanvas))); } catch (_) { deg = 0; }
+  }
+  // เกณฑ์เดียวกับทั้งหน้า — เอียงน้อยกว่านี้หมุนแล้วเสียรายละเอียดเปล่า
+  if (!isFinite(deg) || Math.abs(deg) < DESKEW_MIN) return cut(binCanvas);
+
+  // เอียงจริง → หมุน **ภาพเทา** แล้วค่อยไบนารีใหม่ โดยใช้หน้าต่างของทั้งหน้า ไม่ใช่ของก้อน
+  const rot = ocrRotateGray(ocrCanvasToGray(cut(grayCanvas)), deg);
+  return ocrGrayToCanvas(prep.useBin ? ocrBinarize(rot, pageWin) : rot);
+}
+
 function ocrStackBlocks(prep, boxes) {
-  const src = ocrGrayToCanvas(prep.useBin ? prep.bin : prep.gray);
-  const rects = boxes.map(b => ({
-    sx: Math.round(b.x * src.width), sy: Math.round(b.y * src.height),
-    sw: Math.max(8, Math.round(b.w * src.width)), sh: Math.max(8, Math.round(b.h * src.height)),
-  }));
-  const gap = Math.max(10, Math.round(src.height * 0.012));
-  const w = Math.max(...rects.map(r => r.sw)) + gap * 2;
-  const h = rects.reduce((a, r) => a + r.sh + gap, gap);
+  const grayCanvas = ocrGrayToCanvas(prep.gray);                       // ไว้หามุมและหมุน
+  const binCanvas = ocrGrayToCanvas(prep.useBin ? prep.bin : prep.gray); // ไว้ตัดตรง ๆ แบบเดิม
+  const pageWin = Math.max(15, ((Math.max(prep.gray.w, prep.gray.h) / 28) | 0) | 1);
+  const parts = boxes.map(b => ocrBlockCanvas(prep, grayCanvas, binCanvas, pageWin, b));
+  const gap = Math.max(10, Math.round(prep.gray.h * 0.012));
+  const w = Math.max(...parts.map(p => p.width)) + gap * 2;
+  const h = parts.reduce((a, p) => a + p.height + gap, gap);
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
   const ctx = c.getContext('2d', { willReadFrequently: true });
   ctx.fillStyle = '#fff';                 // ช่องว่างระหว่างก้อนต้องเป็นขาว ไม่ใช่ดำ
   ctx.fillRect(0, 0, w, h);
   let y = gap;
-  for (const r of rects) {
-    ctx.drawImage(src, r.sx, r.sy, r.sw, r.sh, gap, y, r.sw, r.sh);
-    y += r.sh + gap;
+  for (const p of parts) {
+    ctx.drawImage(p, gap, y);
+    y += p.height + gap;
   }
   return c;
 }
