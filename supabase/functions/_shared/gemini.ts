@@ -41,8 +41,14 @@ export const GEMINI_MODELS = MODEL_ENV ? [MODEL_ENV] : [
   'gemini-flash-latest',      // ตาข่ายรับสุดท้าย ชื่อนี้ Google ชี้ไปรุ่นใหม่ให้เอง
 ];
 
-// สถานะที่ "ลองรุ่นถัดไปแล้วอาจรอด" — 400/401/403 คือปัญหาที่กุญแจหรือคำขอ ลองรุ่นอื่นก็เหมือนเดิม
-export const RETRY_NEXT_MODEL = new Set([404, 429, 500, 502, 503, 504]);
+// สถานะที่ "ลองรุ่นถัดไปแล้วอาจรอด" — 401/403 คือปัญหาที่กุญแจ ลองรุ่นอื่นก็เหมือนเดิม
+// **400 อยู่ในนี้ด้วยตั้งแต่ 2 ก.ย. 69**: ช่องอย่าง responseSchema หรือ thinkingLevel
+// รุ่นหนึ่งรับ อีกรุ่นตอบ 400 ทิ้ง — ถือว่าเป็น "คำขอเสียทั้งใบ" แล้วหยุดที่รุ่นแรก
+// คือสาเหตุที่ทั้ง read-timetable และ ocr-assist ล้มทุกครั้งโดยไม่เคยแตะรุ่นสำรองเลย
+export const RETRY_NEXT_MODEL = new Set([400, 404, 429, 500, 502, 503, 504]);
+
+// เพดานเวลาต่อการยิงหนึ่งครั้ง — ตั้งให้ต่ำกว่า budgetMs เสมอ เพื่อให้เหลือเวลาถอยไปรุ่นถัดไป
+const ATTEMPT_MS = 22_000;
 
 // ---------- คิดก่อนตอบ: สั่งเท่าที่รุ่นนั้นยอมรับ ----------
 // รุ่น 3.x คิดก่อนตอบเป็นค่าเริ่มต้น ซึ่งดีกับคำถามยาก แต่แพงและช้ากับงานถอดข้อความ
@@ -57,11 +63,24 @@ const thinkStep: Record<string, number> = {};
 
 const thinkKey = (model: string, want: 'low' | 'off') => model + ':' + want;
 
-/** ค่า generationConfig ส่วนที่คุมการคิด สำหรับรุ่นนี้ ณ ขั้นบันไดปัจจุบัน */
+/** ค่า generationConfig ส่วนที่คุมการคิด สำหรับรุ่นนี้ ณ ขั้นบันไดปัจจุบัน
+ *
+ *  **ทั้งสองช่องอยู่ใต้ thinkingConfig ไม่ใช่ระดับบนของ generationConfig**
+ *  วางผิดชั้นมาตลอด Google จึงตอบกลับมาว่า (วัดจริง 2 ก.ย. 69):
+ *    Unknown name "thinkingLevel" at 'generation_config': Cannot find field.
+ *    Unknown name "thinkingBudget" at 'generation_config': Cannot find field.
+ *  = ทั้งสองขั้นแรกของบันไดเผาตัวเองทิ้งทุกคำขอ เหลือขั้น 'none' ที่ไม่สั่งอะไรเลย
+ *  แล้วรุ่น 3.x ก็คิดยาวตามค่าเริ่มต้นจนกินงบเวลาหมด — นี่คือ 45 วินาทีที่หายไป */
 function thinkingConfig(model: string, want: 'low' | 'off') {
   const step = THINK_LADDER[thinkStep[thinkKey(model, want)] ?? 0];
-  if (step === 'level') return { thinkingLevel: 'low' };
-  if (step === 'budget') return { thinkingBudget: want === 'off' ? 0 : 512 };
+  // want 'off' เคยได้ 'low' เท่ากับ want 'low' เป๊ะ ๆ — ช่อง want จึงไม่เคยมีความหมาย
+  // ในขั้นนี้เลย และงานถอดข้อความก็ยังนั่งคิดอยู่ดี (วัดจริง: ocr-assist 35–39 วิ
+  // ขณะที่ read-timetable ซึ่งคืน JSON สั้น ๆ ใช้ 9.3 วิ ด้วยรุ่นเดียวกัน)
+  // 'minimal' รุ่นไหนไม่รู้จักจะตอบ 400 ที่มีคำว่า thinking — บันไดถอยรับไว้เองอยู่แล้ว
+  if (step === 'level') {
+    return { thinkingConfig: { thinkingLevel: want === 'off' ? 'minimal' : 'low' } };
+  }
+  if (step === 'budget') return { thinkingConfig: { thinkingBudget: want === 'off' ? 0 : 512 } };
   return null;                       // ขั้นสุดท้าย: ไม่สั่งอะไรเลย ปล่อยตามค่าเริ่มต้นของรุ่น
 }
 
@@ -111,6 +130,8 @@ export type GeminiOpts = {
   /** เพดานนี้ **นับความคิดรวมด้วย** — ตั้งต่ำเมื่อไหร่ ได้คำตอบขาดกลางประโยคเมื่อนั้น */
   maxOutputTokens?: number;
   budgetMs?: number;
+  /** เพดานเวลาของ **การยิงหนึ่งครั้ง** (ไม่ใช่ทั้งคำขอ) — กันครั้งที่ค้างไม่ให้กินงบหมด */
+  attemptMs?: number;
   /** 'off' = งานถอดข้อความ/คืน JSON ไม่ต้องคิด · 'low' = ตอบคำถามคน คิดนิดเดียวพอ */
   think?: 'low' | 'off';
   models?: string[];
@@ -119,6 +140,11 @@ export type GeminiOpts = {
   /** โครง JSON ที่ต้องการ (ใช้คู่กับ json: true) — Gemini จะคืนตามโครงนี้เป๊ะ ๆ */
   responseSchema?: unknown;
 };
+
+/** ขั้นของบันไดการคิดที่รุ่นนี้ยืนอยู่ตอนนี้ */
+export function geminiThinkStep(model: string, want: 'low' | 'off' = 'low'): ThinkStep {
+  return THINK_LADDER[thinkStep[thinkKey(model, want)] ?? 0];
+}
 
 export function geminiBody(model: string, o: GeminiOpts): string {
   const think = thinkingConfig(model, o.think ?? 'low');
@@ -148,7 +174,38 @@ export type GeminiResult = {
   /** คำตอบโดนตัดกลางคันเพราะโทเคนหมด — ผู้เรียกควรบอกผู้ใช้ ไม่ใช่ทำเป็นว่าจบแล้ว */
   truncated: boolean;
   ms: number;
+  /** ขั้นของบันไดการคิดที่คำขอนี้ใช้จริง — 'none' แปลว่าถอยจนไม่ได้คุมการคิดแล้ว */
+  think: ThinkStep;
 };
+
+// ---------- ร่องรอยของคำขอที่ล้ม ----------
+// เดิมทีเวลาล้ม ผู้เรียกได้แค่ `new Error('gemini 400')` แล้วส่งเลข 400 ต่อไปหน้าเว็บ
+// ซึ่งตอบไม่ได้เลยว่า Google บ่นเรื่องอะไร ลองไปกี่รุ่น และเวลา 45 วินาทีหมดไปกับอะไร
+// ข้อความจาก Google อยู่ใน console.warn มาตลอด แต่ถ้าเปิด log ของ Supabase ไม่ได้
+// ก็เท่ากับไม่มี — จึงแนบติดตัว error มาด้วย ให้ผู้เรียกเลือกเองว่าจะเปิดให้ใครเห็น
+export type GeminiAttempt = {
+  model: string;
+  /** สถานะ HTTP · 0 = ยิงไม่ถึง/หมดเวลา · 204 = ตอบ 200 แต่ไม่มีเนื้อ */
+  status: number;
+  ms: number;
+  /** ข้อความจาก Google (ตัดแล้ว) หรือเหตุผลที่ยิงไม่ถึง */
+  note?: string;
+};
+
+export type GeminiError = Error & {
+  status?: number;
+  /** ข้อความดิบจาก Google ของครั้งสุดท้ายที่ล้ม — **ห้ามส่งให้ผู้ใช้ทั่วไปเห็น** */
+  detail?: string;
+  /** ทุกครั้งที่ยิง เรียงตามลำดับ — ใช้ตอบว่าเวลาหมดไปกับรุ่นไหน */
+  trail?: GeminiAttempt[];
+};
+
+/** ย่อ trail ให้อ่านได้ในบรรทัดเดียว: `3.6-flash 400 1.2s · 3.5-flash 400 0.9s` */
+export function geminiTrailLine(trail: GeminiAttempt[] = []) {
+  return trail
+    .map((a) => `${a.model.replace(/^gemini-/, '')} ${a.status} ${(a.ms / 1000).toFixed(1)}s`)
+    .join(' · ');
+}
 
 /** ยิงจริง ไล่รุ่นตามบันไดถอย + ถอยขั้นการคิดเองเมื่อโดน 400 เรื่องช่องที่ไม่รู้จัก */
 export async function geminiGenerate(opts: GeminiOpts): Promise<GeminiResult> {
@@ -160,15 +217,22 @@ export async function geminiGenerate(opts: GeminiOpts): Promise<GeminiResult> {
   const t0 = Date.now();
   let o = opts;
   let lastStatus = 0;
-  let fatal = false;                 // 400/401/403 = ลองรุ่นอื่นก็เหมือนเดิม หยุดเลย
+  let lastDetail = '';
+  const trail: GeminiAttempt[] = [];
+  let fatal = false;                 // 401/403 = ลองรุ่นอื่นก็เหมือนเดิม หยุดเลย
 
   for (const model of models) {
     // ลองซ้ำกับรุ่นเดิมได้ไม่เกินจำนวนขั้นของบันไดการคิด (ถอยขั้นแล้วยิงใหม่)
     for (let attempt = 0; attempt < THINK_LADDER.length; attempt++) {
       const left = deadline - Date.now();
       if (left < 4000) break;                    // เหลือน้อยกว่านี้ ยิงไปก็ไม่ทันตอบจบ
+      // ให้เวลาต่อหนึ่งครั้งไม่เกิน ATTEMPT_MS — ของเดิมยกงบที่เหลือให้ครั้งเดียวทั้งก้อน
+      // ครั้งที่ค้างจึงกลืนงบหมดแล้วบันไดถอยไม่มีเวลาเหลือให้ลองรุ่นสำรองเลยสักรุ่น
+      // (วัดจริง: ยิงพลาดสองครั้งแรกใช้ไป 0.2 วิ ครั้งที่สามค้าง 44.8 วิ แล้วจบเห่อ)
+      const span = Math.min(left, opts.attemptMs ?? ATTEMPT_MS);
       const ctl = new AbortController();
-      const timer = setTimeout(() => ctl.abort(), left);
+      const timer = setTimeout(() => ctl.abort(), span);
+      const a0 = Date.now();
       try {
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
@@ -185,8 +249,14 @@ export async function geminiGenerate(opts: GeminiOpts): Promise<GeminiResult> {
           const finish = geminiFinish(data);
           if (text) {
             geminiRemember(model);
-            return { text, model, finish, truncated: finish === 'MAX_TOKENS', ms: Date.now() - t0 };
+            return {
+              text, model, finish,
+              truncated: finish === 'MAX_TOKENS',
+              ms: Date.now() - t0,
+              think: geminiThinkStep(model, want),
+            };
           }
+          trail.push({ model, status: 204, ms: Date.now() - a0, note: 'คำตอบว่าง finish=' + finish });
           // ตอบ 200 แต่ไม่มีเนื้อ — สองสาเหตุที่ต้องแยกกัน:
           //   MAX_TOKENS = คิดจนโทเคนหมดก่อนได้เขียนคำตอบ → เลิกคิด เพิ่มเพดาน แล้วลองรุ่นเดิมอีกที
           //   อย่างอื่น   = โดนตัวกรองความปลอดภัย → ลองรุ่นถัดไป
@@ -200,15 +270,25 @@ export async function geminiGenerate(opts: GeminiOpts): Promise<GeminiResult> {
           break;
         }
         lastStatus = res.status;
-        const body = (await res.text()).slice(0, 300);
+        const body = (await res.text()).slice(0, 500);
+        lastDetail = body;
+        trail.push({ model, status: res.status, ms: Date.now() - a0, note: body.slice(0, 200) });
         // ข้อความจากฝั่ง Google มีรายละเอียดของโปรเจกต์ปนมาได้ เก็บไว้ใน log ไม่ส่งกลับหน้าเว็บ
         console.warn('[gemini]', model, res.status, body);
         // 400 ที่บ่นเรื่องช่องคุมการคิด = เราสั่งด้วยชื่อช่องที่รุ่นนี้ไม่รู้จัก ไม่ใช่คำขอเสีย
         if (res.status === 400 && geminiThinkingRetry(model, body, want)) continue;
-        fatal = !RETRY_NEXT_MODEL.has(res.status);
+        // 400 ที่เหลือ **ไม่ใช่เรื่องตายตัวของทั้งคำขออีกต่อไป** — ของเดิมถือว่าเป็น
+        // "คำขอเสีย ลองรุ่นอื่นก็เหมือนเดิม" แล้วหยุดที่รุ่นแรกทันที ซึ่งผิดกับความจริงที่ว่า
+        // ช่องอย่าง responseSchema / thinkingLevel รุ่นหนึ่งรับ อีกรุ่นตอบ 400 ทิ้ง
+        // (อาการที่เจอจริง 2 ก.ย. 69: อ่านตารางเรียนกับ OCR ล้ม 400 ทุกครั้งโดยไม่เคยลองรุ่นที่สอง)
+        // ปล่อยให้ไถลลงรุ่นถัดไปได้ · ยังคุมด้วย budgetMs เหมือนเดิมจึงไม่บานปลาย
+        fatal = res.status === 401 || res.status === 403;
         break;
       } catch (e) {
-        console.warn('[gemini]', model, (e as Error)?.message ?? e);
+        const msg = (e as Error)?.message ?? String(e);
+        trail.push({ model, status: 0, ms: Date.now() - a0, note: msg.slice(0, 200) });
+        if (!lastDetail) lastDetail = msg;
+        console.warn('[gemini]', model, msg);
         break;                                   // รุ่นนี้ค้างจนหมดเวลา ไปรุ่นถัดไป
       } finally {
         clearTimeout(timer);
@@ -217,7 +297,9 @@ export async function geminiGenerate(opts: GeminiOpts): Promise<GeminiResult> {
     if (fatal) break;
   }
 
-  const e = new Error('gemini ' + lastStatus) as Error & { status?: number };
+  const e = new Error('gemini ' + lastStatus) as GeminiError;
   e.status = lastStatus;
+  e.detail = lastDetail;
+  e.trail = trail;
   throw e;
 }

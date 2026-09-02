@@ -23,9 +23,13 @@
 // ============================================================
 
 import { chat, dataUri } from '../_shared/llm.ts';
-import { geminiGenerate } from '../_shared/gemini.ts';
+import { geminiGenerate, geminiTrailLine, type GeminiError } from '../_shared/gemini.ts';
 
 const PROVIDER = Deno.env.get('OCR_PROVIDER') ?? 'none';
+
+// รุ่น/ขั้นการคิดของคำขอล่าสุด — โผล่ในคำตอบเฉพาะตอนขอด้วย debug: true
+// มีไว้ตอบคำถามเดียว: ที่ช้าอยู่นี่เพราะยังคิดอยู่ หรือเพราะรุ่นมันช้าเอง
+let lastShot: { model: string; think: string; ms: number } | null = null;
 const MAX_BYTES = Number(Deno.env.get('OCR_MAX_BYTES') ?? 6_000_000);  // ~6MB หลังถอด base64
 
 const CORS = {
@@ -104,6 +108,7 @@ const ADAPTERS: Record<string, OcrAdapter> = {
     // ว่า "อ่านมาไม่ค่อยชัด ตรวจหน่อย" — ตัวเลขที่แต่งขึ้นจะปิดคำเตือนนั้นทิ้งทั้งหมด
     //
     // สิ่งที่พอวัดได้จริงคือจบครบหรือโดนตัดกลางคัน ซึ่งแปลว่าข้อความที่ได้ไม่ครบแน่ ๆ
+    lastShot = { model: r.model, think: r.think, ms: r.ms };
     return { text: r.text, conf: !r.text ? 0 : r.truncated ? 55 : 90 };
   },
 
@@ -145,7 +150,7 @@ Deno.serve(async (req) => {
     }, 501);
   }
 
-  let body: { image?: string; mime?: string };
+  let body: { image?: string; mime?: string; debug?: boolean };
   try { body = await req.json(); }
   catch { return json({ ok: false, code: 'bad_json', message: 'ข้อมูลที่ส่งมาไม่ถูกรูปแบบ' }, 400); }
 
@@ -170,12 +175,22 @@ Deno.serve(async (req) => {
       conf: Math.max(0, Math.min(100, Math.round(r.conf ?? 0))),
       provider: PROVIDER,
       ms: Date.now() - t0,
+      ...(body.debug === true && lastShot ? { shot: lastShot } : {}),
     });
   } catch (e) {
     // รายละเอียดจริงเก็บไว้ใน log ฝั่งเซิร์ฟเวอร์ ไม่ส่งกลับไปหน้าเว็บ
     // (ข้อความ error ของผู้ให้บริการบางเจ้ามีชิ้นส่วนของ key หรือ endpoint ติดมาด้วย)
-    console.error('[ocr-assist]', PROVIDER, e);
+    //
+    // ...ยกเว้นตอนถูกขอมาด้วย debug: true — ถ้าเปิด log ของ Supabase ไม่ได้
+    // 'provider_failed' เปล่า ๆ คือทางตัน ไล่ต่อไม่ได้เลยว่าล้มที่รุ่นไหน เพราะอะไร
+    const err = e as GeminiError;
+    console.error('[ocr-assist]', PROVIDER, err?.status ?? '', err?.message ?? e,
+      geminiTrailLine(err?.trail));
+    const dbg = body.debug === true
+      ? { status: err?.status ?? 0, detail: err?.detail ?? String(err?.message ?? e), trail: err?.trail ?? [] }
+      : {};
     return json({
+      ...dbg,
       ok: false, code: 'provider_failed',
       message: 'เซิร์ฟเวอร์อ่านรูปไม่สำเร็จ ลองใหม่อีกครั้ง',
     }, 502);
