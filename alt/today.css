@@ -828,39 +828,47 @@
    แทน .td-up + .td-rem + .td-plan ที่เคยเป็นสามก้อนแยกกัน
    เส้นแกนตั้งเป็น ::before ของราง ไม่ใช่ border ของแต่ละแถว — แถวจึงเว้นระยะกันได้
    โดยที่เส้นยังต่อเนื่อง และจุดของแต่ละแถวทับเส้นพอดีเพราะอ้างพิกัดเดียวกัน */
-.td-rail { position: relative; margin-top: 16px; padding-left: 15px; }
+/* 1B24: รางเป็นการ์ดจริง ไม่ใช่ข้อความลอยบนพื้นจอ
+   เดิมมันโปร่งใสทั้งก้อน จึงไม่มีขอบให้สายตาจับว่า "ตรงนี้คือของชิ้นเดียวกัน" —
+   อ่านออกมาเป็นบรรทัดหลวม ๆ ห้าบรรทัดที่บังเอิญอยู่ใกล้กัน แล้วดูลีบเพราะไม่มีน้ำหนัก
+   พื้นการ์ดคือส่วน 60% ของกฎ 60/30/10 ที่หน้านี้ไม่เคยมี */
+.td-rail { position: relative; margin-top: 16px;
+  background: var(--card); border-radius: 20px; box-shadow: var(--shadow);
+  padding: 14px 14px 10px 30px; }
+/* แกนเวลาอ้างพิกัดจากขอบการ์ด: padding-left 30 → แกนที่ 19 คือกึ่งกลางช่องว่างซ้าย */
 .td-rail::before {
-  content: ''; position: absolute; left: 4px; top: 26px; bottom: 12px;
+  content: ''; position: absolute; left: 19px; top: 46px; bottom: 26px;
   width: 2px; border-radius: 1px; background: var(--line);
 }
 .dr-lb { font-size: 12.5px; font-weight: 700; color: var(--muted);
-  letter-spacing: .01em; margin: 0 0 8px 1px; }
+  letter-spacing: .01em; margin: 0 0 10px -16px; }
 
 .dr-row { position: relative; display: flex; align-items: center; gap: 10px;
   width: 100%; text-align: left; background: none; border: none;
-  padding: 9px 4px 9px 11px; color: var(--ink); }
-/* จุดบนเส้น — วางด้วย left ติดลบให้ทับแกนที่ padding-left ของรางเว้นไว้ */
+  padding: 10px 2px; color: var(--ink); }
+/* จุดบนเส้น — left ติดลบให้ศูนย์กลางจุดตรงกับแกนที่ 19 พอดี (30 − 14 + 3.5 ≈ 19.5) */
 .dr-row::before {
-  content: ''; position: absolute; left: -12px; top: 50%; margin-top: -3.5px;
+  content: ''; position: absolute; left: -14px; top: 50%; margin-top: -3.5px;
   width: 7px; height: 7px; border-radius: 50%;
-  background: var(--line-strong, var(--line)); box-shadow: 0 0 0 3px var(--bg);
+  background: var(--line-strong, var(--line)); box-shadow: 0 0 0 3px var(--card);
 }
-.dr-t { flex: none; width: 42px; font-size: 12px; color: var(--muted); font-weight: 600; }
-.dr-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.dr-b b { font-size: 14.5px; font-weight: 600; letter-spacing: -.01em;
+.dr-t { flex: none; width: 44px; font-size: 12.5px; color: var(--muted); font-weight: 700; }
+.dr-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dr-b b { font-size: 15px; font-weight: 600; letter-spacing: -.01em;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dr-m { font-size: 12px; color: var(--muted); }
 .dr-go { flex: none; color: var(--muted); opacity: .5; display: flex; }
 .dr-go svg { width: 15px; height: 15px; }
 .dr-row:active { background: var(--press, rgba(127,127,127,.09)); border-radius: 12px; }
+.dr-row.brk, .dr-row.end { pointer-events: none; }
 
 /* ช่วงพักไม่ใช่ของที่กดได้ และไม่ควรแย่งน้ำหนักกับงาน */
 .dr-row.brk { color: var(--muted); font-size: 12.5px; padding-top: 5px; padding-bottom: 5px; }
-.dr-row.brk::before { width: 5px; height: 5px; margin-top: -2.5px; left: -11px; opacity: .6; }
+.dr-row.brk::before { width: 5px; height: 5px; margin-top: -2.5px; left: -13px; opacity: .6; }
 .dr-row.end { color: var(--muted); font-size: 12.5px; }
 .dr-row.end::before { background: none; box-shadow: none;
   border: 2px solid var(--line-strong, var(--line)); width: 8px; height: 8px;
-  margin-top: -4px; left: -13px; }
+  margin-top: -4px; left: -14.5px; }
 /* ของที่ "ถึงเวลาแล้วต้องไป" ต่างจากงานที่เลือกเวลาเองได้ — จุดจึงเป็นสีเตือน ไม่ใช่สีวิชา */
 .dr-row.rem::before { background: var(--amber, #D97706); }
 .dr-row.rem.late::before { background: var(--red, #DC2626); }
@@ -868,7 +876,17 @@
 
 
 /* ---- การ์ดโฟกัสรุ่นบีบ (1B21) ---- */
-.tn-facts { font-size: 12.5px; color: var(--muted); margin-top: 6px; font-weight: 600; }
+/* 1B24: บรรทัดเดียว สีเดียว — เหตุผลกับตัวเลขไม่ใช่ข้อมูลคนละชั้น
+   สีแดงถูกถอดออกจากบรรทัดนี้ทั้งหมด แล้วยกให้ป้ายมุมขวาบนถือคนเดียว
+   สองก้อนแดงในกรอบเดียวไม่ได้เร่งความรู้สึกเป็นสองเท่า มันหักล้างกันเอง
+   แล้วตาก็ไม่รู้ว่าจะลงตรงไหน ซึ่งเป็นอาการที่ผู้ใช้บอกตรง ๆ ว่า "ไม่รู้จะโฟกัสตรงไหนดี" */
+.tn-meta { font-size: 12.5px; line-height: 1.45; color: var(--muted);
+  margin-top: 7px; font-weight: 600; }
+/* คำว่า "ตอนนี้ · ฟิสิกส์" เคยเป็นน้ำเงิน ซึ่งแย่งความเป็นสีเน้นกับปุ่มข้างล่าง
+   น้ำเงินทึบต้องมีที่เดียวบนจอ คือปุ่มที่ต้องกด */
+.td-now .tn-eyebrow { color: var(--muted); font-weight: 700; letter-spacing: .04em; }
+/* ชื่องานคือจุดโฟกัสจุดเดียวของการ์ด — ต้องใหญ่พอที่ตาลงตรงนี้ก่อนอย่างอื่นเสมอ */
+.td-now .tn-title { font-size: 22px; line-height: 1.24; margin-top: 6px; }
 .tn-bar { height: 4px; border-radius: 2px; background: var(--line); margin-top: 8px; overflow: hidden; }
 .tn-bar i { display: block; height: 100%; border-radius: 2px; background: var(--blue); }
 .tn-row { display: flex; align-items: stretch; gap: 8px; margin-top: 12px; }
@@ -898,8 +916,7 @@
 /* กรอบไอคอนเป็นสี่เหลี่ยมมนไม่ใช่วงกลม — ทั้งแอปใช้สี่เหลี่ยมมนเป็นภาษาเดียว
    (การ์ด · ปุ่ม · ชิป) วงกลมจะอ่านเป็นรูปโปรไฟล์ซึ่งมีความหมายอื่นอยู่แล้ว */
 .tg-ic { position: relative; width: 100%; aspect-ratio: 1; border-radius: 18px;
-  display: grid; place-items: center; background: var(--tg-bg);
-  color: var(--tg-fg); box-shadow: var(--shadow); }
+  display: grid; place-items: center; color: var(--tg-fg); }
 .tg-ic svg { width: 23px; height: 23px; stroke-width: 2.05; }
 /* ป้ายยาวไม่เท่ากัน (2 พยางค์ ถึง "สแกนตารางเรียน") — กันความสูงไว้สองบรรทัดเท่ากันทุกใบ
    ไม่งั้นใบที่ป้ายสั้นจะลอยขึ้น แล้วแถวอ่านเป็นฟันปลาแทนที่จะเป็นตาราง */
@@ -932,10 +949,23 @@
    แล้วหลุดกรอบทุกธีมที่เหลือ · ธีมพื้นฐานตั้งใจให้อยู่ในตระกูลฟ้าทั้งหมด ไทล์จึงต่างกัน
    ด้วยน้ำหนักสีไม่ใช่คนละวงล้อสี ซึ่งเป็นสิ่งที่ตั้งใจ ไม่ใช่ข้อจำกัด
    พื้นชิปใช้ตัวเดียวกันหมดเพื่อให้แถวอ่านเป็นชุดเดียว สีจึงอยู่ที่ไอคอนอย่างเดียว */
-.tg-t { --tg-bg: var(--tile-plan-soft, var(--blue-soft, rgba(59,130,246,.14))); }
-.tg-t.tone-in   { --tg-fg: var(--tile-plan,  var(--blue, #3B82F6)); }
-.tg-t.tone-time { --tg-fg: var(--tile-route, #6D5CE0); }
-.tg-t.tone-me   { --tg-fg: var(--tile-tasks, #0E9AA0); }
+/* 1B24: กรอบสัญลักษณ์เป็นน้ำเงินทุกใบ
+   เคยแบ่งเป็นสามโทน (น้ำเงิน/ม่วง/เขียวน้ำทะเล) เพื่อจับกลุ่มตามหน้าที่ ซึ่งล้มเพราะ
+   สองโทนหลังในธีมมืดจางจนเกือบเป็นสีพื้น — กลายเป็นไทล์ที่มองไม่เห็นครึ่งกริด
+   การจับกลุ่มด้วยสีจึงไม่คุ้มกับการที่ของหายไปจากสายตา ลำดับซ้าย-ขวาทำหน้าที่นั้นแทนได้
+
+   พื้นกรอบ = ทับฟ้าจาง ๆ สองชั้นบนสีการ์ด (≈28%) ไม่ใช่ฟ้าทึบ:
+   ทึบแปดใบจะกลายเป็นสีเน้น 8 ก้อนแข่งกับปุ่ม "เริ่มทำเลย" ซึ่งผิดกฎ 60/30/10 อีกทางหนึ่ง
+   สองชั้นนี้อ่านออกชัดว่าเป็นน้ำเงิน แต่ยังเบากว่าปุ่มอยู่หนึ่งระดับเสมอทุกธีม
+   (ใช้ linear-gradient ซ้อนแทน color-mix เพราะ color-mix ต้องการ Safari 16.4 ขึ้นไป) */
+.tg-t { --tg-bg: var(--blue-soft, rgba(59,130,246,.15));
+        --tg-fg: var(--blue, #3B82F6); }
+.tg-ic {
+  background-color: var(--card);
+  background-image: linear-gradient(var(--tg-bg), var(--tg-bg)),
+                    linear-gradient(var(--tg-bg), var(--tg-bg));
+  box-shadow: inset 0 0 0 1px var(--tg-bg), var(--shadow);
+}
 
 /* จอกว้างขึ้นแล้วห้ามคลี่เป็นแถวเดียวแปดช่อง
    เคยตั้งไว้ repeat(8,1fr) ที่ 620px ซึ่งพังสองชั้นพร้อมกัน: ป้ายไทยยาว ๆ อย่าง
@@ -948,3 +978,17 @@
   .tg-grid { gap: 16px 12px; }
   .tg-ic { border-radius: 22px; }
 }
+
+/* ---------- 1B24: สัญลักษณ์ "เวลาที่แสดงมาจากการเดา" ---------- */
+/* นั่งซ้ายกระดิ่ง ในแถวเดียวกับตัวเลข "เหลือเวลาว่าง 2 ชม." ที่มันกำกับอยู่
+   ไม่มีข้อความ เพราะนาฬิกาที่มีจุดเตือนและกดได้ บอกครบแล้วว่า "ตัวเลขเวลายังไม่แน่น"
+   คนที่อยากรู้ว่าทำไมจะกด ส่วนคนที่ไม่สนใจก็ไม่ต้องอ่านสองบรรทัดทุกครั้งที่เปิดแอป */
+.th-guess { flex: none; display: grid; place-items: center; position: relative;
+  width: 32px; height: 32px; border-radius: 11px; border: none;
+  background: none; color: var(--muted); margin-right: -4px; }
+.th-guess svg { width: 19px; height: 19px; }
+/* บรรทัดตัวเลขห้ามตกสองบรรทัด — ตัดท้ายด้วย … ถ้าจอแคบจริง ๆ ยังอ่านตัวเลขแรกได้
+   ซึ่งเป็นตัวที่สำคัญกว่า (เวลาว่างที่เหลือ) */
+.td-head .th-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.th-guess:active { background: var(--press, rgba(127,127,127,.10)); }
+.th-dot.warn { background: var(--pri-yellow-text, #D97706); }
