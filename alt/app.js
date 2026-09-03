@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B27';                 // สายเลขของแอป
-const APP_CODENAME = 'Boarding Pass';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1B28';                 // สายเลขของแอป
+const APP_CODENAME = 'Top Billing';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -1868,48 +1868,54 @@ function nowCard(sp, now) {
   //   แถวตัวเลข  = ของที่กวาดตาหา ไม่ได้อ่านเป็นประโยค · ทุกตัวมีป้ายกำกับของตัวเอง
   // ป้ายกำกับคือสิ่งที่ทำให้ "19:00" กลายเป็น "เริ่ม 19:00" โดยไม่ต้องเปลืองคำในค่า
 
-  // ช่องที่สามยืดหยุ่นตามงาน — งานที่ไม่มีคะแนนเก็บไม่ควรได้ช่องว่างเปล่า
-  // ลำดับความน่าสนใจ: คะแนนเก็บ > ความคืบหน้าที่ทำไว้แล้ว > ไม่ต้องมีช่องที่สาม
-  const third = t.scorePct != null ? { lb: 'คะแนนเก็บ', v: t.scorePct + '%' }
-    : hasProg ? { lb: 'ทำไปแล้ว', v: prog + '%' } : null;
-  const cells = [
-    { lb: 'เริ่ม', v: startTx === 'ยังไม่มีคิว' ? 'เมื่อไหร่ก็ได้' : startTx },
-    { lb: 'ใช้เวลา', v: goalMin + ' นาที' },
-  ].concat(third ? [third] : []);
-
-  // เหตุผลเหลือประโยคเดียว — คะแนนย้ายไปอยู่ในแถวตัวเลขแล้ว ไม่ต้องพูดซ้ำในแถบ
-  const why1 = whyBits[0] || '';
+  // ---- 1B28: การ์ดใบนี้คือตั๋ว ส่วนรางข้างล่างเป็นแค่รายการต่อเครื่อง ----
+  //
+  // 1B27 ยกโครงตั๋วไปให้ราง แล้วรางก็ได้บล็อกสีทึบที่ใหญ่ที่สุดบนจอไปครอง
+  // ผลคือตาลงที่ของอันดับสองก่อนอันดับหนึ่ง — ปัญหาไม่ใช่การ์ดบนเบาไป
+  // แต่คือของอันดับสองดังเกินตำแหน่งตัวเอง
+  //
+  // กฎที่ยึดจากนี้ไป: **บล็อกสีทึบมีได้ก้อนเดียวบนจอ และต้องเป็นของการ์ดบน**
+  // รางยังเป็นตั๋วเหมือนเดิมทุกอย่าง (สองหมุด · รอยปรุ · จุดแวะสี) แต่หัวของมัน
+  // ใช้พื้นการ์ดกับตัวหนังสือสีปกติ — โครงเหมือนกัน น้ำหนักต่างกัน ซึ่งพอดีกับลำดับ
+  //
+  // เส้นทางบนหัวตั๋วของการ์ดคือ "ช่วงนี้" ของงานใบนี้เอง (17:50 → 18:30)
+  // ไม่ใช่ทั้งวัน — งานที่ถูกหั่นเป็นสองช่วงต้องเห็นเฉพาะช่วงที่กำลังจะลงมือ
+  // จึงใช้ slot.min ไม่ใช่ estMin ของทั้งใบ
+  const sMin = slot ? slot.min : goalMin;
+  const route = slot
+    ? `<span class="tk-t mono">${fmtClock(slot.start)}</span>
+       <span class="tk-line"><i>${sMin} นาที</i></span>
+       <span class="tk-t mono">${fmtClock(slot.end)}</span>`
+    : `<span class="tk-solo">ยังไม่มีคิว · ใช้เวลา ${goalMin} นาที</span>`;
 
   return `<section class="td-now ${tone}${running ? ' running' : ''}">
-    <div class="tn-top">
-      <span class="tn-eyebrow">${running ? 'กำลังทำอยู่' : 'ตอนนี้'}${subj ? ' · ' + esc(subj) : ''}</span>
-      <span class="tn-pill ${tone}">${pillIc ? icon(pillIc) : ''}${esc(pillTx)}</span>
+    <div class="tn-head">
+      <div class="tn-top">
+        <span class="tn-eyebrow">${running ? 'กำลังทำอยู่' : 'ตอนนี้'}${subj ? ' · ' + esc(subj) : ''}</span>
+        <span class="tn-pill ${tone}">${pillIc ? icon(pillIc) : ''}${esc(pillTx)}</span>
+      </div>
+      <h2 class="tn-title">${esc(t.detail || 'งานนี้')}</h2>
+      <div class="tn-route">${route}</div>
+      ${whyBits.length ? `<div class="tn-why2">${esc(whyBits.join(' · '))}</div>` : ''}
     </div>
 
-    <h2 class="tn-title">${esc(t.detail || 'งานนี้')}</h2>
+    <div class="tn-body">
+      ${hasProg ? `<div class="tn-bar"><i style="width:${prog}%"></i></div>` : ''}
+      <div class="tn-row">
+        <button class="tn-cta" onclick="startFocus('${t.id}')">
+          <span class="tc-main">${icon(running ? 'clock' : 'play')}${
+            running ? 'กลับเข้าโหมดโฟกัส' : (n.step ? 'เริ่ม ' + n.step.min + ' นาทีแรก' : 'เริ่มทำเลย')}</span>
+        </button>
+        <button class="tn-ib done" onclick="toggleDone('${t.id}',this)"
+          aria-label="ทำเสร็จแล้ว">${icon('check')}</button>
+        <button class="tn-ib" onclick="notNow('${t.id}')"
+          aria-label="ยังไม่ไหว เลื่อนไปก่อน">${icon('clock')}</button>
+      </div>
 
-    ${why1 ? `<div class="tn-band ${tone}">${
-      tone === 'green' ? '' : icon('flag')}${esc(why1)}</div>` : ''}
-
-    <div class="tn-cells">
-      ${cells.map(c => `<div class="tn-cell"><i>${esc(c.lb)}</i><b>${esc(c.v)}</b></div>`).join('')}
+      ${noDue ? `<button class="tn-ask" onclick="openForm('${t.id}')">
+        ${icon('calendar')}ครูสั่งส่งวันไหน? บอกแล้วผมจัดแผนได้แม่นขึ้น${icon('chevron')}
+      </button>` : ''}
     </div>
-    ${hasProg ? `<div class="tn-bar"><i style="width:${prog}%"></i></div>` : ''}
-
-    <div class="tn-row">
-      <button class="tn-cta" onclick="startFocus('${t.id}')">
-        <span class="tc-main">${icon(running ? 'clock' : 'play')}${
-          running ? 'กลับเข้าโหมดโฟกัส' : (n.step ? 'เริ่ม ' + n.step.min + ' นาทีแรก' : 'เริ่มทำเลย')}</span>
-      </button>
-      <button class="tn-ib done" onclick="toggleDone('${t.id}',this)"
-        aria-label="ทำเสร็จแล้ว">${icon('check')}</button>
-      <button class="tn-ib" onclick="notNow('${t.id}')"
-        aria-label="ยังไม่ไหว เลื่อนไปก่อน">${icon('clock')}</button>
-    </div>
-
-    ${noDue ? `<button class="tn-ask" onclick="openForm('${t.id}')">
-      ${icon('calendar')}ครูสั่งส่งวันไหน? บอกแล้วผมจัดแผนได้แม่นขึ้น${icon('chevron')}
-    </button>` : ''}
   </section>`;
 }
 

@@ -78,12 +78,44 @@
      5  ท้ายการ์ด   ความคืบหน้า + ทางเลือกรอง
    ============================================================ */
 .td-now {
-  position: relative; margin-top: 14px; padding: 14px 14px 12px;
+  position: relative; margin-top: 14px; padding: 0; overflow: hidden;
   border: 1px solid var(--line); border-radius: calc(var(--r-card) + 6px);
-  background: linear-gradient(158deg, var(--blue-soft) 0%, transparent 62%), var(--card);
-  box-shadow: var(--shadow-lg);
+  background: var(--card); box-shadow: var(--shadow-lg);
 }
 .td-now.running { border-color: var(--blue); }
+
+/* ---- 1B28: หัวตั๋วสีทึบ — ก้อนสีเดียวของทั้งจอ ---- */
+.tn-head { background: var(--fill); color: var(--on-fill); padding: 13px 15px 15px; }
+.tn-body { padding: 12px 14px 13px; }
+/* ทุกอย่างในหัวสืบสีจาก --on-fill ไม่ใช่ --ink · ถ้าลืมตัวใดตัวหนึ่งจะได้ตัวหนังสือ
+   สีเข้มบนพื้นน้ำเงินเข้ม ซึ่งอ่านไม่ออกเฉพาะบางธีมและมองข้ามได้ง่ายมากตอนเทส */
+.td-now .tn-eyebrow { color: var(--on-fill); opacity: .78; font-weight: 700;
+  letter-spacing: .04em; margin-top: 0; flex: 1; min-width: 0; }
+.td-now .tn-title { color: var(--on-fill); font-size: 22px; line-height: 1.24;
+  margin: 5px 0 0; }
+/* ป้ายความด่วนบนพื้นทึบต้องเป็นพื้นขาวตัวอักษรสี — พื้นอ่อนเดิม (--pri-red-soft)
+   ถูกออกแบบมาให้วางบนการ์ด พอมาอยู่บนน้ำเงินมันขุ่นจนอ่านไม่ออก */
+.td-now .tn-head .tn-pill { background: #fff; }
+.td-now .tn-head .tn-pill.red    { color: var(--pri-red-text, #A32D2D); }
+.td-now .tn-head .tn-pill.yellow { color: var(--pri-yellow-text, #854F0B); }
+.td-now .tn-head .tn-pill.green  { color: var(--pri-green-text, #0F6E56); }
+
+/* ---- เส้นทางของช่วงนี้: เริ่ม ···N นาที··· จบ ---- */
+.tn-route { display: flex; align-items: center; gap: 10px; margin-top: 11px; }
+.tk-t { font-size: 21px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1; }
+.tk-line { position: relative; flex: 1; min-width: 0; height: 1px; align-self: center;
+  background: repeating-linear-gradient(to right,
+    currentColor 0 4px, transparent 4px 8px); opacity: .55; }
+/* ตัวเลขนาทีนั่งคร่อมเส้นประตรงกลาง มีพื้นสีหัวตั๋วคั่นเส้นให้ขาดพอดี
+   วิธีเดียวกับที่ตั๋วจริงวางไอคอนเครื่องบิน — และมันตอบ "ช่วงนี้ยาวเท่าไหร่"
+   โดยไม่ต้องมีบรรทัดของตัวเอง */
+.tk-line i { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  background: var(--fill); padding: 0 7px; font-style: normal;
+  font-size: 11px; font-weight: 700; opacity: 1; white-space: nowrap; }
+.tk-solo { font-size: 14px; font-weight: 700; opacity: .9; }
+
+.tn-why2 { margin-top: 9px; font-size: 12px; line-height: 1.4; font-weight: 600;
+  color: var(--on-fill); opacity: .85; }
 
 /* ---- 1 · แถวบน ---- */
 .tn-top { display: flex; align-items: center; gap: 10px; }
@@ -153,11 +185,20 @@
 
 /* ---- 4 · ปุ่ม ---- */
 /* ปุ่มเดียวบนจอที่เป็นพื้นทึบสีเน้น — กฎ 60/30/10 ข้อ 10% ทั้งหมดถูกใช้ตรงนี้ที่เดียว */
+/* 1B28: ปุ่มหลักเลิกเป็นพื้นทึบ — หัวตั๋วเหนือมันเป็นน้ำเงินทึบไปแล้ว
+   สองก้อนทึบสีเดียวกันในการ์ดใบเดียวหักล้างกันเอง ปุ่มจึงเป็นขอบหนา + พื้นฟ้าจาง
+   ซึ่งยังเป็นตัวเดียวในครึ่งล่างของการ์ดที่มีสี = ยังอ่านเป็นปุ่มหลักอยู่ */
+/* ใช้ --blue ไม่ใช่ --fill สำหรับตัวหนังสือกับขอบ
+   --fill (#2563EB) ถูกออกแบบมาให้เป็น "พื้น" ที่มีตัวหนังสือขาวทับ ไม่ใช่ให้เป็นตัวหนังสือเอง
+   วัดจริงบนการ์ดธีมมืดได้คอนทราสต์ 3.28:1 ซึ่งต่ำกว่าเกณฑ์ AA (4.5) — อ่านยากจริง ๆ ไม่ใช่แค่ทฤษฎี
+   --blue คือน้ำเงินที่แต่ละธีมกำหนดไว้ว่า "อ่านออกบนพื้นของธีมนี้" (มืด #6FA8FF · สว่าง #1566CE) */
 .tn-cta {
-  display: block; width: 100%; margin-top: 12px; padding: 11px 16px;
-  border: 0; border-radius: 16px; background: var(--fill); color: var(--on-fill);
-  font: inherit; text-align: center; cursor: pointer; box-shadow: var(--shadow-brand);
+  display: block; width: 100%; margin: 0; padding: 11px 16px;
+  border: 1.5px solid var(--blue); border-radius: 16px;
+  background: var(--blue-soft); color: var(--blue);
+  font: inherit; text-align: center; cursor: pointer;
 }
+.tn-cta:active { background: var(--fill); color: var(--on-fill); border-color: var(--fill); }
 .tn-cta:active { transform: scale(.985); }
 .tc-main {
   display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -848,27 +889,34 @@
 .td-rail.ticket .rl-head { border-radius: 20px 20px 0 0; }
 
 /* ---- หัวตั๋ว ---- */
+/* 1B28: หัวของรางเลิกเป็นพื้นทึบ — โครงเดิมทุกอย่าง (สองหมุด · เส้นประ · สรุป)
+   แต่ใช้พื้นการ์ดกับตัวหนังสือสีปกติ · ลำดับบนจอถูกตัดสินด้วย "พื้นที่ของสีทึบ"
+   มากกว่าขนาดตัวอักษร ก้อนนี้จึงต้องไม่มีพื้นสีเลยถึงจะยอมเป็นอันดับสองจริง ๆ */
 .rl-head { display: flex; align-items: flex-end; gap: 8px;
-  background: var(--fill); color: var(--on-fill); padding: 13px 15px 14px; }
+  background: none; color: var(--ink); padding: 14px 15px 13px; }
+.td-rail.ticket .rl-head { border-radius: 0; }
 .rl-anchor { flex: none; display: flex; flex-direction: column; gap: 1px; }
 .rl-anchor.to { text-align: right; }
 .rl-anchor i { font-style: normal; font-size: 10.5px; font-weight: 600;
-  letter-spacing: .04em; opacity: .72; }
+  letter-spacing: .04em; color: var(--muted); }
 /* ตัวเลขสองตัวนี้คือพระเอกของก้อนนี้ — ใหญ่กว่าทุกอย่างในราง แต่ยังเล็กกว่าชื่องาน
    บนการ์ดโฟกัส เพื่อให้ลำดับ "การ์ด → ราง" ยังอยู่ */
-.rl-anchor b { font-size: 21px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1; }
+/* เล็กกว่าเวลาบนหัวตั๋วของการ์ด (21px) หนึ่งขั้นเสมอ — ตัวเลขคู่นี้สำคัญ แต่ไม่เท่า */
+.rl-anchor b { font-size: 18px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1;
+  color: var(--ink); }
 
 .rl-mid { flex: 1; min-width: 0; display: flex; flex-direction: column;
   align-items: center; gap: 5px; padding-bottom: 3px; }
 /* เส้นประ + ลูกศรกลางเส้น = ทิศทางของเวลา · ลูกศรมีพื้นสีเดียวกับหัวตั๋วคั่นเส้นให้ขาด
    ตรงกลางพอดี ซึ่งเป็นวิธีเดียวกับที่ตั๋วจริงวางไอคอนเครื่องบิน */
 .rl-line { position: relative; display: block; width: 100%; height: 1px;
+  color: var(--muted);
   background: repeating-linear-gradient(to right,
-    currentColor 0 4px, transparent 4px 8px); opacity: .55; }
+    currentColor 0 4px, transparent 4px 8px); opacity: .5; }
 .rl-line svg { position: absolute; left: 50%; top: 50%;
   transform: translate(-50%, -50%); width: 13px; height: 13px;
-  background: var(--fill); padding: 0 3px; box-sizing: content-box; }
-.rl-sum { font-size: 10.5px; font-weight: 600; opacity: .85;
+  background: var(--card); padding: 0 3px; box-sizing: content-box; }
+.rl-sum { font-size: 10.5px; font-weight: 600; color: var(--muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
 /* ---- รอยปรุ ---- */
@@ -963,12 +1011,16 @@
   letter-spacing: -.015em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* คำว่า "ตอนนี้ · ฟิสิกส์" เคยเป็นน้ำเงิน ซึ่งแย่งความเป็นสีเน้นกับปุ่มข้างล่าง
    น้ำเงินทึบต้องมีที่เดียวบนจอ คือปุ่มที่ต้องกด */
-.td-now .tn-eyebrow { color: var(--muted); font-weight: 700; letter-spacing: .04em; }
+/* 1B28: กฎสีของ .tn-eyebrow / .tn-title ย้ายไปอยู่กับบล็อกหัวตั๋วข้างบนแล้ว (ราวบรรทัด 90)
+   เหลือไว้ตรงนี้จะชนะเพราะอยู่ท้ายไฟล์ แล้วคำว่า "ตอนนี้ · ฟิสิกส์" จะกลายเป็นเทา
+   บนพื้นน้ำเงิน — พออ่านได้ในธีมมืด แต่แทบมองไม่เห็นในธีมสว่าง
+   (กับดักเดิม: ทับกฎเดียวกันสองที่ในไฟล์เดียว แล้วเทสต์แค่ธีมเดียว) */
 /* ชื่องานคือจุดโฟกัสจุดเดียวของการ์ด — ต้องใหญ่พอที่ตาลงตรงนี้ก่อนอย่างอื่นเสมอ */
-.td-now .tn-title { font-size: 22px; line-height: 1.24; margin-top: 6px; }
-.tn-bar { height: 4px; border-radius: 2px; background: var(--line); margin-top: 11px; overflow: hidden; }
+
+.tn-bar { height: 4px; border-radius: 2px; background: var(--line);
+  margin: 0 0 11px; overflow: hidden; }
 .tn-bar i { display: block; height: 100%; border-radius: 2px; background: var(--blue); }
-.tn-row { display: flex; align-items: stretch; gap: 8px; margin-top: 12px; }
+.tn-row { display: flex; align-items: stretch; gap: 8px; }
 .tn-row .tn-cta { flex: 1; min-width: 0; margin: 0; }
 /* .tn-eyebrow เดิมอยู่บรรทัดของตัวเอง จึงมี margin-top ติดมา — ในแถวบนมันต้องไม่ดันแถว
    และต้องกินที่ที่เหลือทั้งหมดเพื่อผลักป้ายไปชิดขวา */
