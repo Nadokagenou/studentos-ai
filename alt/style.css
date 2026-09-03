@@ -397,12 +397,17 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .ig-share{margin-left:auto; font-size:16px; flex:none}
 
 /* ---------- toast แจ้งเตือนในแอป (กระจก) ---------- */
-.toast{position:absolute; top:calc(env(safe-area-inset-top) + 14px); left:14px; right:14px;
+/* ลอยขึ้นจากด้านล่าง ไม่ใช่ลงมาจากด้านบน — ของเดิมนั่งทับหัวจอพอดี
+   จนชื่อจอกับปุ่มมุมขวาบนอ่านไม่ออกทุกครั้งที่มีแจ้งเตือน
+   ล่างคือที่ที่ไม่มีอะไรสำคัญนอกจากแถบเมนู ซึ่งหลบให้ได้ */
+.toast{position:absolute; bottom:calc(88px + var(--tabgap)); left:14px; right:14px;
   background:var(--glass); backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%);
   border:1px solid var(--glass-line); border-radius:20px;
   box-shadow:var(--shadow-lg); padding:15px 16px; display:flex; gap:13px; align-items:center;
-  z-index:70; cursor:pointer; transform:translateY(-180%); transition:transform .55s cubic-bezier(.2,.9,.3,1.2)}
+  z-index:70; cursor:pointer; transform:translateY(180%); transition:transform .55s cubic-bezier(.2,.9,.3,1.2)}
 .toast.show{transform:none}
+/* จอที่ซ่อนแถบเมนู (บัญชี · แชท · ห้องการบ้าน) ไม่มีอะไรให้หลบ ลงไปติดขอบล่างได้เลย */
+.login-mode .toast, .chat-mode .toast{bottom:calc(14px + env(safe-area-inset-bottom))}
 .toast .tav{width:44px; height:44px; flex:none; border-radius:14px; background:var(--grad-brand); padding:4px}
 .toast .tc{flex:1; min-width:0}
 .toast .tt{font-weight:700; font-size:14.5px; line-height:1.3; letter-spacing:-.015em}

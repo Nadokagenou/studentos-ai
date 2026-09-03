@@ -2391,60 +2391,90 @@
    หน้าเพื่อน (1A6M2)
    ============================================================ */
 .fr-body { gap: 16px; padding-top: 22px; }
-.fr-me {
-  background: var(--grad-hero);
-  color: #fff;
-  border-radius: var(--r-card);
-  padding: 16px;
-  box-shadow: var(--shadow-brand);
+/* ---------- แถบค้นหา ----------
+   ทรงมาตรฐาน: แคปซูลมีแว่นขยายอยู่ข้างใน ไม่มีป้ายกำกับลอยข้างบน
+   ป้ายกำกับมีไว้สำหรับฟอร์มหลายช่อง ไม่ใช่ช่องเดียวบนสุดของจอ */
+.fr-search {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card2); border-radius: 999px; padding: 0 14px;
+  min-height: 46px;
 }
-.fr-me-h { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700;
-  letter-spacing: .06em; text-transform: uppercase; opacity: .9; }
-.fr-me-h svg { width: 15px; height: 15px; }
-.fr-me-p { margin: 8px 0 12px; font-size: 12.5px; line-height: 1.6; opacity: .82; }
-.fr-copy {
-  display: inline-flex; align-items: center; gap: 8px;
-  min-height: 40px; padding: 0 16px;
-  border: none; border-radius: 999px;
-  background: rgba(255,255,255,.95); color: #14321F;
-  font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+.fr-search > svg { width: 18px; height: 18px; flex: none; color: var(--faint); }
+.fr-search input {
+  flex: 1; min-width: 0; border: none; background: none; outline: none;
+  font-family: inherit; font-size: 15px; color: var(--ink);
 }
-.fr-copy svg { width: 15px; height: 15px; }
-.fr-copy:active { transform: scale(.97); }
-.fr-me-row { display: flex; align-items: center; gap: 6px; margin-top: 11px; }
-.fr-at { font-size: 17px; font-weight: 700; opacity: .7; }
-/* ช่องชื่อผู้ใช้อยู่บนการ์ดไล่สี จึงต้องเป็นพื้นโปร่งดำ ไม่ใช่ var(--card2) ที่หายไปกับพื้น */
-.fr-handle {
-  flex: 1; min-width: 0; border: none; border-radius: 10px;
-  background: rgba(0,0,0,.22); color: #fff; padding: 10px 12px;
-  font-family: inherit; font-size: 15px; font-weight: 600;
+.fr-search input::placeholder { color: var(--faint); }
+.fr-search:focus-within { outline: 2px solid var(--blue); outline-offset: -2px; }
+.fr-clear {
+  flex: none; width: 24px; height: 24px; border: none; border-radius: 50%;
+  background: var(--line); color: var(--ink); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
 }
-.fr-handle::placeholder { color: rgba(255,255,255,.55); font-weight: 400; }
-.fr-handle:focus { outline: 2px solid rgba(255,255,255,.7); outline-offset: -2px; }
-.fr-save {
-  flex: none; min-height: 40px; padding: 0 14px; border: none; border-radius: 999px;
-  background: rgba(255,255,255,.95); color: #14321F;
-  font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
-}
-.fr-save:active { transform: scale(.97); }
+.fr-clear svg { width: 13px; height: 13px; }
+.fr-clear[hidden] { display: none; }
 
-.fr-find { display: flex; flex-direction: column; gap: 8px; }
-.fr-find label { font-size: 11px; font-weight: 600; letter-spacing: .08em;
-  text-transform: uppercase; color: var(--faint); }
-.fr-q {
-  width: 100%; border: none; border-radius: 12px; background: var(--card2);
-  padding: 13px 14px; font-family: inherit; font-size: 15px; color: var(--ink);
+/* ---------- หัวข้อกลุ่ม ---------- */
+.fr-sec {
+  display: flex; align-items: center; gap: 7px;
+  margin: 4px 2px 9px; font-size: 11px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--faint);
 }
-.fr-q:focus { outline: 2px solid var(--blue); outline-offset: -2px; }
-/* ผลค้นหาเกาะติดช่องค้น — มันคือคำตอบของสิ่งที่เพิ่งพิมพ์ ไม่ใช่รายการอีกชุด */
-#frHits:not(:empty) { margin-top: 2px; }
+.fr-sec i { font-style: normal; opacity: .75; }
+
+/* ---------- แถวชื่อผู้ใช้ของฉัน — ล่างสุด ----------
+   ของที่ตั้งครั้งเดียวแล้วแทบไม่กลับมาแก้ ไม่ควรกินพื้นที่บนสุดของจอที่เปิดทุกวัน */
+.fr-me2 {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 14px; border-radius: var(--r-card);
+  background: var(--card2); font-size: 14px;
+}
+.fr-me2-lb { color: var(--faint); font-size: 12.5px; }
+.fr-me2 b { font-weight: 700; letter-spacing: -.01em; }
+.fr-me2 .fr-ic { margin-left: auto; }
+.fr-me2 .fr-ic + .fr-ic { margin-left: 0; }
+.fr-ic {
+  flex: none; width: 32px; height: 32px; border: none; border-radius: 50%;
+  background: transparent; color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.fr-ic svg { width: 16px; height: 16px; }
+.fr-ic:active { background: var(--line); }
+.fr-me2.edit { gap: 6px; }
+.fr-me2 .fr-at { font-size: 15px; font-weight: 700; color: var(--faint); }
+.fr-me2 input {
+  flex: 1; min-width: 0; border: none; border-radius: 9px;
+  background: var(--card); padding: 9px 11px;
+  font-family: inherit; font-size: 15px; font-weight: 600; color: var(--ink);
+}
+.fr-me2 input:focus { outline: 2px solid var(--blue); outline-offset: -2px; }
+.fr-fine { margin: 7px 4px 0; font-size: 11.5px; color: var(--faint); }
+
+/* ---------- จอว่าง ----------
+   ไอคอน + ประโยคเดียว + ปุ่มหนึ่งปุ่ม · ย่อหน้าสีเทาคือจอที่ไม่มีใครอ่านจบ
+   คนที่มาถึงจอว่างคือคนที่ยังไม่รู้ว่าต้องทำอะไรต่อ จึงต้องมีของให้กด */
+.fr-empty {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 8px; padding: 34px 22px;
+}
+.fr-empty > svg { width: 30px; height: 30px; color: var(--faint); opacity: .7; }
+.fr-empty b { font-size: 15.5px; font-weight: 700; }
+.fr-empty p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--muted); max-width: 28ch; }
+.fr-empty-go {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 6px; min-height: 40px; padding: 0 18px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--card); color: var(--ink);
+  font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.fr-empty-go svg { width: 15px; height: 15px; }
+.fr-empty-go:active { transform: scale(.97); }
 
 .fr-card {
   display: flex; align-items: center; gap: 12px;
   background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card);
   box-shadow: var(--shadow); padding: 13px 14px; margin-bottom: 9px;
 }
-.fr-card.me { border-color: var(--blue); background: var(--blue-soft); }
 .fr-av {
   width: 40px; height: 40px; flex: none; border-radius: 50%;
   background: var(--grad-brand); color: #fff;
@@ -2457,9 +2487,6 @@
   font-size: 9.5px; font-weight: 700; }
 .fr-st { margin-top: 3px; font-size: 12px; color: var(--muted); }
 .fr-st b { color: var(--ink); }
-.fr-bar { margin-top: 7px; height: 5px; border-radius: 999px; background: var(--card2); overflow: hidden; }
-.fr-bar i { display: block; height: 100%; border-radius: 999px; background: var(--grad-brand); }
-.fr-ago { margin-top: 5px; font-size: 10.5px; color: var(--faint); }
 .fr-del {
   flex: none; width: 34px; height: 34px; border-radius: 50%;
   border: none; background: transparent; color: var(--faint); cursor: pointer;
@@ -2468,7 +2495,6 @@
 .fr-del svg { width: 15px; height: 15px; }
 .fr-del:active { color: var(--alert); }
 .fr-note { margin: 4px 2px 0; font-size: 12px; line-height: 1.7; color: var(--faint); }
-.fr-lead { margin: 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
 /* ประตูล็อกอินของแท็บ "เพื่อนฉัน" — แทนที่ทั้งจอ ไม่ใช่แถบเตือนเหนือช่องที่กรอกไม่ได้
    ช่องที่กรอกได้แต่บันทึกไม่ได้ แย่กว่าไม่มีช่องเลย */
 .fr-gate {
@@ -2502,12 +2528,15 @@
 }
 .fr-go:active { transform: scale(.97); }
 /* ปุ่มปฏิเสธต้องอ่านออกว่าเป็นคนละน้ำหนักกับปุ่มรับ — สองปุ่มหน้าตาเท่ากันคือกดผิดตัว */
-.fr-no {
-  flex: none; min-height: 36px; padding: 0 13px; border: 1px solid var(--line);
-  border-radius: 999px; background: transparent; color: var(--muted);
-  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+/* ปฏิเสธเป็น ✕ เล็ก ไม่ใช่ปุ่มขนาดเท่า "รับ" — สองปุ่มน้ำหนักเท่ากันแปลว่าจอกำลัง
+   บอกว่าสองทางนี้มีค่าเท่ากัน ซึ่งไม่จริง คนกดเข้ามาที่นี่มาเพื่อกดรับ */
+.fr-x {
+  flex: none; width: 32px; height: 32px; border: none; border-radius: 50%;
+  background: transparent; color: var(--faint); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
 }
-.fr-no:active { transform: scale(.97); }
+.fr-x svg { width: 15px; height: 15px; }
+.fr-x:active { background: var(--line); color: var(--alert); }
 .pf-go { flex: none; color: var(--faint); display: flex; }
 .pf-go svg { width: 16px; height: 16px; }
 
@@ -4928,7 +4957,6 @@ body[data-godir] :root[data-theme="meta"] .screen.on { animation-duration: .24s;
 :root[data-theme="dark"] .brief,
 :root[data-theme="dark"] .pf-hero,
 :root[data-theme="dark"] .st-hero,
-:root[data-theme="dark"] .fr-me { border: 1px solid var(--line); }
 :root[data-theme="dark"] .mtile.hero .mt-ic,
 :root[data-theme="dark"] .brief-mark {
   background: var(--fill);

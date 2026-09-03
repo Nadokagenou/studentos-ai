@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B18';                 // สายเลขของแอป
-const APP_CODENAME = 'Handle';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1B19';                 // สายเลขของแอป
+const APP_CODENAME = 'Standard';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -4282,10 +4282,17 @@ async function removeFriend(id, name) {
   await loadFriends();
 }
 
-// ---------- วาดจอ ----------
-// แยกเป็นสองชั้นโดยตั้งใจ: โครงจอวาดครั้งเดียว ส่วนรายการวาดใหม่ได้ตลอด
-// เพราะ renderAll() ถูกเรียกทุกครั้งที่ข้อมูลเปลี่ยน ถ้าเขียน innerHTML ทั้งก้อนทุกรอบ
+// ---------- วาดจอ (1B19: จัดใหม่ตามธรรมเนียมแอปทั่วไป) ----------
+// ลำดับเดิมคือ ชื่อผู้ใช้ของฉัน → ค้นหา → คำขอ → เพื่อน ซึ่งเอาของที่ตั้งครั้งเดียว
+// ในชีวิตไว้บนสุด แล้วดันของที่ใช้ทุกครั้งลงไปข้างล่าง · ทุกแอปที่มีระบบเพื่อน
+// (Discord · IG · LINE) เอา handle ตัวเองไว้ในโปรไฟล์ และเริ่มหน้านี้ด้วยช่องค้นหา
+// ลำดับใหม่: ค้นหา → คำขอ → เพื่อน → ชื่อผู้ใช้ของฉัน (แถวเล็กล่างสุด)
+//
+// แยกสองชั้นเหมือนเดิม: โครงจอวาดครั้งเดียว รายการวาดใหม่ได้ตลอด
+// เพราะ renderAll() วิ่งทุกครั้งที่ข้อมูลเปลี่ยน ถ้าเขียน innerHTML ทั้งก้อนทุกรอบ
 // ช่องค้นหาจะโดนสร้างใหม่กลางคัน — คีย์บอร์ดปิด ตัวที่พิมพ์ค้างหาย ทุก ๆ ไม่กี่วินาที
+let frEditing = false;   // กำลังแก้ชื่อผู้ใช้อยู่หรือเปล่า
+
 function renderFriends(force) {
   const body = document.getElementById('friendsBody');
   if (!body) return;
@@ -4306,32 +4313,28 @@ function renderFriends(force) {
     return;
   }
 
-  // ไม่มีหัวจอของตัวเองแล้ว — จอนี้อยู่ใต้หัว "เพื่อนร่วมห้อง" ของฟีด
-  // สองหัวซ้อนกันคือสิ่งที่ทำให้จอที่ยุบมารวมกันอ่านเหมือนสองจอที่ถูกแปะติดกัน
-  body.innerHTML = `<p class="fr-lead">ค้นชื่อผู้ใช้ของเพื่อน แล้วส่งคำขอ — ไม่ต้องผูกกลุ่มไลน์ก่อน</p>
-
-    <div class="fr-me">
-      <div class="fr-me-h">${icon('user')}ชื่อผู้ใช้ของฉัน</div>
-      <div class="fr-me-row">
-        <span class="fr-at">@</span>
-        <input id="frHandle" class="fr-handle" maxlength="15" autocomplete="off"
-               autocapitalize="off" spellcheck="false" placeholder="ตั้งชื่อของคุณ">
-        <button class="fr-save" onclick="saveHandle()">บันทึก</button>
-      </div>
-      <p class="fr-me-p">บอกชื่อนี้ให้เพื่อน แล้วให้เขาพิมพ์ในช่องค้นหา · 3-15 ตัว ไทยหรืออังกฤษก็ได้</p>
-      <button class="fr-copy" onclick="copyHandle()">${icon('check')}ก๊อปชื่อผู้ใช้</button>
+  // ช่องค้นหาไม่มีป้ายกำกับลอยอยู่ข้างบน — แว่นขยายในช่องบอกหน้าที่ของมันครบแล้ว
+  // ป้ายกำกับมีไว้สำหรับฟอร์มที่ต้องกรอกหลายช่อง ไม่ใช่ช่องค้นหาช่องเดียวบนสุดของจอ
+  body.innerHTML = `
+    <div class="fr-search">
+      ${icon('search')}
+      <input id="frQ" autocomplete="off" autocapitalize="off" spellcheck="false"
+             placeholder="ค้นหาด้วยชื่อผู้ใช้" oninput="friendSearch(this.value)">
+      <button class="fr-clear" id="frClear" hidden onclick="clearFriendSearch()"
+        aria-label="ล้างคำค้น">${icon('x')}</button>
     </div>
-
-    <div class="fr-find">
-      <label for="frQ">ค้นหาเพื่อน</label>
-      <input id="frQ" class="fr-q" autocomplete="off" autocapitalize="off" spellcheck="false"
-             placeholder="พิมพ์ชื่อผู้ใช้ หรือชื่อที่เขาตั้งไว้" oninput="friendSearch(this.value)">
-      <div id="frHits"></div>
-    </div>
-
+    <div id="frHits"></div>
     <div id="frReqBox"></div>
-    <div id="frListBox"></div>`;
+    <div id="frListBox"></div>
+    <div id="frMeRow"></div>`;
   body.dataset.built = '1';
+  paintFriendParts();
+}
+
+function clearFriendSearch() {
+  const q = document.getElementById('frQ');
+  if (q) { q.value = ''; q.focus(); }
+  frHits = null;
   paintFriendParts();
 }
 
@@ -4345,11 +4348,16 @@ function frName(p) {
   return `<div class="fr-nm">${esc(p.display_name || 'นักเรียน')}</div>
     ${p.handle ? `<div class="fr-hd">@${esc(p.handle)}</div>` : ''}`;
 }
+// หัวข้อกลุ่ม — ใช้ทรงเดียวกันทุกกลุ่มในจอนี้ เพื่อให้ "คำขอ" กับ "เพื่อน" อ่านเป็นชั้นเดียวกัน
+function frSec(label, n) {
+  return `<div class="fr-sec">${esc(label)}${n ? `<i>${n}</i>` : ''}</div>`;
+}
 
 function paintFriendParts() {
-  const hi = document.getElementById('frHandle');
-  // ไม่ทับตอนกำลังพิมพ์อยู่ — renderAll() วิ่งผ่านตรงนี้ได้ทุกวินาที
-  if (hi && document.activeElement !== hi) hi.value = frHandle || '';
+  // ---------- ผลค้นหา ----------
+  const clr = document.getElementById('frClear');
+  const qEl = document.getElementById('frQ');
+  if (clr) clr.hidden = !(qEl && qEl.value.trim());
 
   const hits = document.getElementById('frHits');
   if (hits) {
@@ -4365,30 +4373,66 @@ function paintFriendParts() {
       </div>`).join('');
   }
 
+  // ---------- คำขอที่รอเราตอบ ----------
+  // ปุ่มปฏิเสธเป็น ✕ เล็ก ไม่ใช่ปุ่มขนาดเท่า "รับ" — สองปุ่มน้ำหนักเท่ากันแปลว่า
+  // จอกำลังบอกว่าสองทางนี้มีค่าเท่ากัน ซึ่งไม่จริง คนกดเข้ามาที่นี่มาเพื่อกดรับ
   const rq = document.getElementById('frReqBox');
   if (rq) {
-    rq.innerHTML = !frReqs.length ? '' : `<div class="sec-label">คำขอที่รอคุณตอบ · ${frReqs.length}</div>`
+    rq.innerHTML = !frReqs.length ? '' : frSec('คำขอ', frReqs.length)
       + frReqs.map(p => `<div class="fr-card req">
           ${frAv(p)}
           <div class="fr-bd">${frName(p)}</div>
           <button class="fr-go" onclick="answerReq('${esc(p.id)}', true)">รับ</button>
-          <button class="fr-no" onclick="answerReq('${esc(p.id)}', false)">ไม่</button>
+          <button class="fr-x" onclick="answerReq('${esc(p.id)}', false)"
+            aria-label="ปฏิเสธ">${icon('x')}</button>
         </div>`).join('');
   }
 
+  // ---------- รายชื่อเพื่อน ----------
   const lb = document.getElementById('frListBox');
-  if (!lb) return;
-  lb.innerHTML = `<div class="sec-label">เพื่อน${frList.length ? ' · ' + frList.length + ' คน' : ''}</div>`
-    + (frList.length ? frList.map(p => `<div class="fr-card">
-        ${frAv(p)}
-        <div class="fr-bd">${frName(p)}
-          ${p.strong && p.strong.length ? `<div class="fr-st">ถนัด ${esc(p.strong.slice(0, 3).join(' · '))}</div>` : ''}
-        </div>
-        <button class="fr-del" onclick="removeFriend('${esc(p.id)}', '${esc((p.display_name || '').replace(/'/g, ''))}')"
-          aria-label="เอาออก">${icon('trash')}</button>
-      </div>`).join('')
-      : `<p class="fr-note">ยังไม่มีเพื่อน — ส่งชื่อผู้ใช้ <b>@${esc(frHandle || '…')}</b> ให้เพื่อน
-         แล้วให้เขาค้นหาคุณ หรือค้นหาชื่อของเขาในช่องด้านบน</p>`);
+  if (lb) {
+    // จอว่างเป็นย่อหน้าสีเทาคือจอที่ไม่มีใครอ่านจบ · มาตรฐานคือ ไอคอน + ประโยคเดียว
+    // + ปุ่มให้กดหนึ่งปุ่ม เพราะคนที่มาถึงจอว่างคือคนที่ยังไม่รู้ว่าต้องทำอะไรต่อ
+    lb.innerHTML = frList.length
+      ? frSec('เพื่อน', frList.length) + frList.map(p => `<div class="fr-card">
+          ${frAv(p)}
+          <div class="fr-bd">${frName(p)}
+            ${p.strong && p.strong.length ? `<div class="fr-st">ถนัด ${esc(p.strong.slice(0, 3).join(' · '))}</div>` : ''}
+          </div>
+          <button class="fr-del" onclick="removeFriend('${esc(p.id)}', '${esc((p.display_name || '').replace(/'/g, ''))}')"
+            aria-label="เอาออก">${icon('trash')}</button>
+        </div>`).join('')
+      : `<div class="fr-empty">
+          ${icon('users')}
+          <b>ยังไม่มีเพื่อน</b>
+          <p>ส่งชื่อผู้ใช้ของคุณให้เพื่อน หรือค้นหาชื่อของเขาในช่องด้านบน</p>
+          <button class="fr-empty-go" onclick="copyHandle()">${icon('copy')}ก๊อป @${esc(frHandle || '…')}</button>
+        </div>`;
+  }
+
+  // ---------- ชื่อผู้ใช้ของฉัน — แถวเล็กล่างสุด ----------
+  // ของที่ตั้งครั้งเดียวแล้วแทบไม่กลับมาแก้ ไม่ควรกินพื้นที่บนสุดของจอที่เปิดทุกวัน
+  const me = document.getElementById('frMeRow');
+  if (!me) return;
+  const hi = document.getElementById('frHandle');
+  if (hi && document.activeElement === hi) return;   // กำลังพิมพ์อยู่ ห้ามวาดทับ
+
+  me.innerHTML = frEditing
+    ? `<div class="fr-me2 edit">
+        <span class="fr-at">@</span>
+        <input id="frHandle" maxlength="15" autocomplete="off" autocapitalize="off"
+               spellcheck="false" placeholder="ตั้งชื่อของคุณ" value="${esc(frHandle || '')}">
+        <button class="fr-go" onclick="saveHandle()">บันทึก</button>
+        <button class="fr-x" onclick="frEditing=false;paintFriendParts()" aria-label="ยกเลิก">${icon('x')}</button>
+      </div>
+      <p class="fr-fine">3-15 ตัว ใช้ได้ทั้งไทยและอังกฤษ · ห้ามเว้นวรรค</p>`
+    : `<div class="fr-me2">
+        <span class="fr-me2-lb">คุณคือ</span>
+        <b>@${esc(frHandle || '…')}</b>
+        <button class="fr-ic" onclick="copyHandle()" aria-label="ก๊อปชื่อผู้ใช้">${icon('copy')}</button>
+        <button class="fr-ic" onclick="frEditing=true;paintFriendParts();document.getElementById('frHandle').focus()"
+          aria-label="เปลี่ยนชื่อผู้ใช้">${icon('pencil')}</button>
+      </div>`;
 }
 
 // ---------- บริบทของฉัน (ตารางเรียน · กิจวัตร · เวลานอน) ----------
