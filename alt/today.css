@@ -921,7 +921,7 @@
 /* ป้ายยาวไม่เท่ากัน (2 พยางค์ ถึง "สแกนตารางเรียน") — กันความสูงไว้สองบรรทัดเท่ากันทุกใบ
    ไม่งั้นใบที่ป้ายสั้นจะลอยขึ้น แล้วแถวอ่านเป็นฟันปลาแทนที่จะเป็นตาราง */
 .tg-lb2 { font-size: 11px; font-weight: 600; line-height: 1.25; text-align: center;
-  color: var(--muted); letter-spacing: -.02em; min-height: 2.5em;
+  color: var(--ink); opacity: .78; letter-spacing: -.02em; min-height: 2.5em;
   display: flex; align-items: flex-start; justify-content: center; }
 .tg-t:active .tg-ic { transform: scale(.94); }
 .tg-t:active .tg-lb2 { color: var(--ink); }
@@ -958,14 +958,19 @@
    ทึบแปดใบจะกลายเป็นสีเน้น 8 ก้อนแข่งกับปุ่ม "เริ่มทำเลย" ซึ่งผิดกฎ 60/30/10 อีกทางหนึ่ง
    สองชั้นนี้อ่านออกชัดว่าเป็นน้ำเงิน แต่ยังเบากว่าปุ่มอยู่หนึ่งระดับเสมอทุกธีม
    (ใช้ linear-gradient ซ้อนแทน color-mix เพราะ color-mix ต้องการ Safari 16.4 ขึ้นไป) */
-.tg-t { --tg-bg: var(--blue-soft, rgba(59,130,246,.15));
-        --tg-fg: var(--blue, #3B82F6); }
-.tg-ic {
-  background-color: var(--card);
-  background-image: linear-gradient(var(--tg-bg), var(--tg-bg)),
-                    linear-gradient(var(--tg-bg), var(--tg-bg));
-  box-shadow: inset 0 0 0 1px var(--tg-bg), var(--shadow);
-}
+/* 1B25: กรอบทึบน้ำเงิน + สัญลักษณ์ขาว — ชุดสีเดียวกับปุ่มแท็บที่ถูกเลือกอยู่บนแถบล่าง
+   ฟ้าจางซ้อนสองชั้นของรอบก่อนยังอ่านเป็น "การ์ดสีเทาที่บังเอิญอมฟ้า" ไม่ใช่สีน้ำเงิน
+   เพราะบนพื้นมืด สีที่จางกว่าพื้นแค่ขั้นเดียวจะถูกตาอ่านเป็นพื้นผิว ไม่ใช่เป็นสี
+   ตัวเทียบที่ถูกต้องคือแท็บ "วันนี้" ที่กำลังทำงานอยู่: ทึบ --fill กับสัญลักษณ์ขาว */
+.tg-t { --tg-bg: var(--fill, #2563EB); --tg-fg: var(--on-fill, #fff); }
+.tg-ic { background: var(--tg-bg); box-shadow: var(--shadow); }
+/* เส้นหนาขึ้นนิดเดียว เพราะสัญลักษณ์ขาวบนพื้นทึบต้องการน้ำหนักมากกว่าบนพื้นจาง
+   จึงจะดูหนักเท่ากันด้วยตา (เส้นบางบนพื้นเข้มถูกอ่านว่าจางกว่าที่เป็นจริง) */
+.tg-ic svg { stroke-width: 2.15; }
+/* ป้ายบนกรอบทึบไม่ต้องมีวงแหวนสีพื้นจอ — ขอบของกรอบตัดมันออกจากพื้นให้อยู่แล้ว
+   วงแหวนสีพื้นจอบนกรอบทึบจะกลายเป็นรูเจาะที่มองทะลุเห็นพื้นหลังแทน */
+.tg-ct { box-shadow: 0 0 0 2.5px var(--card), var(--shadow); }
+.tg-t:active .tg-ic { filter: brightness(.88); }
 
 /* จอกว้างขึ้นแล้วห้ามคลี่เป็นแถวเดียวแปดช่อง
    เคยตั้งไว้ repeat(8,1fr) ที่ 620px ซึ่งพังสองชั้นพร้อมกัน: ป้ายไทยยาว ๆ อย่าง
@@ -979,16 +984,7 @@
   .tg-ic { border-radius: 22px; }
 }
 
-/* ---------- 1B24: สัญลักษณ์ "เวลาที่แสดงมาจากการเดา" ---------- */
-/* นั่งซ้ายกระดิ่ง ในแถวเดียวกับตัวเลข "เหลือเวลาว่าง 2 ชม." ที่มันกำกับอยู่
-   ไม่มีข้อความ เพราะนาฬิกาที่มีจุดเตือนและกดได้ บอกครบแล้วว่า "ตัวเลขเวลายังไม่แน่น"
-   คนที่อยากรู้ว่าทำไมจะกด ส่วนคนที่ไม่สนใจก็ไม่ต้องอ่านสองบรรทัดทุกครั้งที่เปิดแอป */
-.th-guess { flex: none; display: grid; place-items: center; position: relative;
-  width: 32px; height: 32px; border-radius: 11px; border: none;
-  background: none; color: var(--muted); margin-right: -4px; }
-.th-guess svg { width: 19px; height: 19px; }
-/* บรรทัดตัวเลขห้ามตกสองบรรทัด — ตัดท้ายด้วย … ถ้าจอแคบจริง ๆ ยังอ่านตัวเลขแรกได้
-   ซึ่งเป็นตัวที่สำคัญกว่า (เวลาว่างที่เหลือ) */
+/* .th-guess (นาฬิกา "เวลามาจากการเดา" บนหัวจอ) ถูกถอดออกใน 1B25 —
+   ย้ายลงไปอยู่ในกริดในรูปไทล์ "สแกนตารางเรียน" ที่ติดป้าย ! ซึ่งมีอยู่แล้ว
+   บรรทัดตัวเลขบนหัวจอยังต้องกันตกสองแถว จึงเก็บกฎ nowrap ไว้ */
 .td-head .th-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.th-guess:active { background: var(--press, rgba(127,127,127,.10)); }
-.th-dot.warn { background: var(--pri-yellow-text, #D97706); }
