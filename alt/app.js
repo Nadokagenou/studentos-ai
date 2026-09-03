@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B26';                 // สายเลขของแอป
-const APP_CODENAME = 'Spectrum';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1B27';                 // สายเลขของแอป
+const APP_CODENAME = 'Boarding Pass';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -2022,13 +2022,46 @@ function dayRail(sp, split, now) {
   // มันตอบคำถามที่จอนี้ไม่ได้ถาม · จอนี้ถามว่า "ตอนนี้ทำอะไร" ซึ่งรางตอบครบไปแล้ว
   // ส่วน "ค้างทั้งหมดกี่ใบ" เป็นคำถามของแท็บ "งาน" ที่มีเลขบนแบดจ์ของตัวเองอยู่แล้ว
   // และหัวจอบรรทัดที่สองก็เพิ่งบอกไปแล้วว่าค้างกี่งาน — พูดเป็นรอบที่สามในจอเดียว
-  return `<section class="td-rail">
-    <div class="dr-lb">ที่เหลือของวันนี้</div>
-    ${body}
-    ${endHm ? `<div class="dr-row end">
-      <span class="dr-t mono">${esc(endHm)}</span>
-      <span class="dr-b">หมดเวลาว่างของวันนี้</span>
-    </div>` : ''}
+  // ---- 1B27: หัวตั๋ว ----
+  //
+  // ยืมโครงจากตั๋วเครื่องบิน แต่เปลี่ยนสิ่งที่มันโฟกัส: ตั๋วโฟกัสสองหมุด (ต้นทาง→ปลายทาง)
+  // เพราะการบินมีแค่นั้น ส่วนเย็นของนักเรียนเป็นลำดับขั้น — แต่มันก็มีสองหมุดเหมือนกัน
+  // คือ "ตอนนี้กี่โมง" กับ "หมดเวลากี่โมง" ซึ่งเป็นกรอบที่ทำให้ทุกอย่างระหว่างกลางมีความหมาย
+  // (งานสามชิ้นในสามชั่วโมง กับงานสามชิ้นในสี่สิบนาที เป็นคนละสถานการณ์กันสิ้นเชิง)
+  // งานที่เหลือจึงกลายเป็น "จุดแวะ" ใต้รอยปรุ ซึ่งเป็นที่ของรายละเอียดบนตั๋วจริงพอดี
+  //
+  // หัวตั๋วขึ้นเฉพาะตอนรู้เวลาปิดวัน — ถ้าไม่รู้ปลายทาง การวาดกรอบ "จากตรงนี้ถึงตรงนั้น"
+  // ก็เป็นการเดาให้ผู้ใช้ดู · กรณีนั้นถอยไปเป็นรายการเปล่าเหมือนเดิม
+  const workRows = rows.filter(r => r.kind === 'work');
+  const workMin = workRows.reduce((a, r) => a + r.slot.min, 0);
+  const sumTx = workRows.length
+    ? workRows.length + ' ช่วง · ' + humanMin(workMin)
+    : rows.length + ' รายการ';
+
+  const head = !endHm ? `<div class="dr-lb">ที่เหลือของวันนี้</div>` : `
+    <div class="rl-head">
+      <div class="rl-anchor">
+        <i>ตอนนี้</i><b class="mono">${fmtClock(now)}</b>
+      </div>
+      <div class="rl-mid">
+        <span class="rl-line">${icon('chevron')}</span>
+        <span class="rl-sum">${esc(sumTx)}</span>
+      </div>
+      <div class="rl-anchor to">
+        <i>หมดเวลา</i><b class="mono">${esc(endHm)}</b>
+      </div>
+    </div>
+    <div class="rl-perf" aria-hidden="true"></div>`;
+
+  return `<section class="td-rail${endHm ? ' ticket' : ''}">
+    ${head}
+    <div class="rl-stops">
+      ${body}
+      ${endHm ? `<div class="dr-row end">
+        <span class="dr-t mono">${esc(endHm)}</span>
+        <span class="dr-b">หมดเวลาว่างของวันนี้</span>
+      </div>` : ''}
+    </div>
   </section>`;
 }
 

@@ -828,76 +828,104 @@
    แทน .td-up + .td-rem + .td-plan ที่เคยเป็นสามก้อนแยกกัน
    เส้นแกนตั้งเป็น ::before ของราง ไม่ใช่ border ของแต่ละแถว — แถวจึงเว้นระยะกันได้
    โดยที่เส้นยังต่อเนื่อง และจุดของแต่ละแถวทับเส้นพอดีเพราะอ้างพิกัดเดียวกัน */
-/* 1B24: รางเป็นการ์ดจริง ไม่ใช่ข้อความลอยบนพื้นจอ
-   เดิมมันโปร่งใสทั้งก้อน จึงไม่มีขอบให้สายตาจับว่า "ตรงนี้คือของชิ้นเดียวกัน" —
-   อ่านออกมาเป็นบรรทัดหลวม ๆ ห้าบรรทัดที่บังเอิญอยู่ใกล้กัน แล้วดูลีบเพราะไม่มีน้ำหนัก
-   พื้นการ์ดคือส่วน 60% ของกฎ 60/30/10 ที่หน้านี้ไม่เคยมี */
+/* ============================================================
+   1B27 — เส้นเวลาเป็น "ตั๋วของเย็นนี้"
+   ============================================================
+   รอบก่อนรางเป็นการ์ดที่มีเส้นสีวิชา ซึ่งอ่านได้แล้วแต่ยังเป็นแค่รายการ —
+   มันบอกว่ามีอะไรบ้าง แต่ไม่ได้บอกว่า "ทั้งหมดนี้ต้องจบภายในกี่โมง"
+   ซึ่งเป็นข้อมูลที่เปลี่ยนการตัดสินใจมากกว่าตัวรายการเสียอีก
+
+   ตั๋วเครื่องบินแก้ปัญหาเดียวกันด้วยการยกสองหมุดขึ้นมาเป็นพระเอก แล้วผลักรายละเอียด
+   ลงใต้รอยปรุ · ที่นี่สองหมุดคือ "ตอนนี้" กับ "หมดเวลา" ส่วนงานที่เหลือคือจุดแวะ */
 .td-rail { position: relative; margin-top: 16px;
   background: var(--card); border-radius: 20px; box-shadow: var(--shadow);
-  padding: 14px 14px 10px 30px; }
-/* แกนเวลาอ้างพิกัดจากขอบการ์ด: padding-left 30 → แกนที่ 19 คือกึ่งกลางช่องว่างซ้าย
-   เส้นนี้เหลือเป็น "ราง" สีจาง ๆ ที่รองอยู่ข้างหลัง ส่วนสีจริงมาจากแต่ละแถว (ดู .dr-row::after)
-   ต้องมีทั้งคู่: ถ้ามีแต่ท่อนสีของแถว ช่องว่างระหว่างหัวข้อกับแถวแรกจะขาดเป็นช่วง */
-.td-rail::before {
-  content: ''; position: absolute; left: 18.5px; top: 46px; bottom: 26px;
-  width: 2px; border-radius: 1px; background: var(--line);
+  padding: 14px; }
+/* โหมดตั๋ว: หัวสีทึบต้องชนขอบการ์ด จึงย้าย padding ไปไว้ที่ชิ้นข้างในแทน
+   ห้ามใช้ overflow:hidden ตัดมุมให้หัวสี — รูของรอยปรุตั้งใจให้ครึ่งวงอยู่ "นอก" การ์ด
+   overflow:hidden จะเล็มมันทิ้งทั้งคู่ แล้วรอยปรุก็เหลือแค่เส้นประธรรมดา
+   ให้หัวตั๋วมนมุมบนของตัวเองแทน (ล่างเหลี่ยม เพราะมันไปชนรอยปรุพอดี) */
+.td-rail.ticket { padding: 0; }
+.td-rail.ticket .rl-head { border-radius: 20px 20px 0 0; }
+
+/* ---- หัวตั๋ว ---- */
+.rl-head { display: flex; align-items: flex-end; gap: 8px;
+  background: var(--fill); color: var(--on-fill); padding: 13px 15px 14px; }
+.rl-anchor { flex: none; display: flex; flex-direction: column; gap: 1px; }
+.rl-anchor.to { text-align: right; }
+.rl-anchor i { font-style: normal; font-size: 10.5px; font-weight: 600;
+  letter-spacing: .04em; opacity: .72; }
+/* ตัวเลขสองตัวนี้คือพระเอกของก้อนนี้ — ใหญ่กว่าทุกอย่างในราง แต่ยังเล็กกว่าชื่องาน
+   บนการ์ดโฟกัส เพื่อให้ลำดับ "การ์ด → ราง" ยังอยู่ */
+.rl-anchor b { font-size: 21px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1; }
+
+.rl-mid { flex: 1; min-width: 0; display: flex; flex-direction: column;
+  align-items: center; gap: 5px; padding-bottom: 3px; }
+/* เส้นประ + ลูกศรกลางเส้น = ทิศทางของเวลา · ลูกศรมีพื้นสีเดียวกับหัวตั๋วคั่นเส้นให้ขาด
+   ตรงกลางพอดี ซึ่งเป็นวิธีเดียวกับที่ตั๋วจริงวางไอคอนเครื่องบิน */
+.rl-line { position: relative; display: block; width: 100%; height: 1px;
+  background: repeating-linear-gradient(to right,
+    currentColor 0 4px, transparent 4px 8px); opacity: .55; }
+.rl-line svg { position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%); width: 13px; height: 13px;
+  background: var(--fill); padding: 0 3px; box-sizing: content-box; }
+.rl-sum { font-size: 10.5px; font-weight: 600; opacity: .85;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+/* ---- รอยปรุ ---- */
+/* วงกลมสองข้างเป็นสีพื้นจอ ไม่ใช่สีการ์ด — มันต้องอ่านเป็น "รูที่เจาะทะลุ"
+   ตัวแปรพื้นจอของธีมชุดนี้ชื่อ --scr (ไม่ใช่ --bg ซึ่งไม่มีอยู่จริง — เขียนผิดแล้วรูจะใส
+   มองไม่เห็น โดยไม่มี error อะไรทั้งนั้น เพราะ var() ที่ไม่มีค่าคืน transparent)
+   ไม่ใช่จุดขาวที่วาดทับ · ตำแหน่ง left/right ติดลบครึ่งหนึ่งของขนาดเพื่อให้ครึ่งวงอยู่นอกการ์ด */
+/* เส้นประต้องเข้มกว่า --line ปกติ เพราะมันต้องอ่านออกว่าเป็น "รอยฉีก" ไม่ใช่เส้นคั่นเฉย ๆ */
+.rl-perf { position: relative; height: 0; margin: 0 9px;
+  border-top: 1.5px dashed var(--muted); opacity: .45; }
+.rl-perf::before, .rl-perf::after {
+  content: ''; position: absolute; top: -7px; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--scr);
 }
+.rl-perf::before { left: -16px; }
+.rl-perf::after { right: -16px; }
+
+.rl-stops { padding: 11px 14px 8px; }
+.td-rail:not(.ticket) .rl-stops { padding: 0; }
 .dr-lb { font-size: 12.5px; font-weight: 700; color: var(--muted);
-  letter-spacing: .01em; margin: 0 0 10px -16px; }
+  letter-spacing: .01em; margin: 0 0 10px 1px; }
 
-.dr-row { position: relative; display: flex; align-items: center; gap: 10px;
+/* ---- จุดแวะ ---- */
+/* แถบสีเต็มความสูงของแถวแทนจุดบนแกน — แกนกับจุดเป็นภาษาของ "เส้นเวลาต่อเนื่อง"
+   ซึ่งขัดกับหัวตั๋วที่เพิ่งบอกไปแล้วว่าช่วงเวลาทั้งหมดคือจากไหนถึงไหน
+   แถบต่อแถวเป็นภาษาของ "รายการจุดแวะ" ซึ่งตรงกับสิ่งที่ก้อนนี้เป็นจริง ๆ
+   และให้พื้นที่สีมากกว่าจุด 8px หลายเท่า — สีจึงอ่านออกตั้งแต่ยังไม่เพ่ง */
+.dr-row { position: relative; display: flex; align-items: center; gap: 11px;
   width: 100%; text-align: left; background: none; border: none;
-  padding: 10px 2px; color: var(--ink); }
-/* ---------- 1B26: แกนเวลาเป็นแถบสีวิชา ----------
-   เดิมทุกจุดเป็นสีเดียวกันหมด รางจึงบอกได้แค่ "มีของกี่ชิ้น" ซึ่งเป็นข้อมูลที่หัวจอ
-   บอกไปแล้วด้วยตัวเลข · สิ่งที่รางมีของตัวเองจริง ๆ คือ "เย็นนี้เป็นวิชาอะไรบ้าง
-   เรียงยังไง" ซึ่งอ่านด้วยตัวหนังสือต้องไล่ทีละบรรทัด แต่อ่านด้วยสีจบในการกวาดตาครั้งเดียว
-
-   --sj มาจากคลาส sj-N ที่ subjClass() ใส่ให้แต่ละแถวอยู่แล้ว (ชุดสีเดียวกับหน้ารายการงาน
-   และปฏิทิน) จึงไม่ได้สร้างระบบสีใหม่ วิชาเดียวกันได้สีเดิมทุกจอ
-
-   ท่อนสีเต็มความสูงแถวและไม่มีระยะห่างระหว่างแถว ท่อนจึงต่อกันเป็นแถบยาวท่อนเดียว
-   ที่เปลี่ยนสีตามวิชา — อ่านได้เหมือนแถบสัดส่วน ว่าเย็นนี้ให้เวลากับวิชาไหนมากที่สุด */
-.dr-row::after {
-  content: ''; position: absolute; left: -12.5px; top: 0; bottom: 0; width: 4px;
-  border-radius: 2px; background: var(--sj, transparent); opacity: .5;
-}
-/* จุดบนเส้น — left ติดลบให้ศูนย์กลางจุดตรงกับแกนที่ 19 พอดี (30 − 14.5 + 4 ≈ 19.5)
-   จุดทึบเต็มสีบนท่อนที่จางกว่า = อ่านเป็น "ลูกปัดบนเชือก" ไม่ใช่เส้นที่บวมขึ้นมาเฉย ๆ */
+  padding: 8px 2px; color: var(--ink); }
 .dr-row::before {
-  content: ''; position: absolute; z-index: 1; left: -14.5px; top: 50%; margin-top: -4px;
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--sj, var(--line)); box-shadow: 0 0 0 3px var(--card);
+  content: ''; position: absolute; left: 0; top: 5px; bottom: 5px; width: 4px;
+  border-radius: 2px; background: var(--sj, var(--line));
 }
+.dr-row { padding-left: 14px; }
 .dr-t { flex: none; width: 44px; font-size: 12.5px; color: var(--muted); font-weight: 700; }
 .dr-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .dr-b b { font-size: 15px; font-weight: 600; letter-spacing: -.01em;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dr-m { font-size: 12px; color: var(--muted); }
-/* คำเดียวในแถวที่ถือสีของวิชา — ตัวเชื่อมระหว่างสีบนแกนกับความหมายของมัน
-   ไม่ทาสีทั้งบรรทัด เพราะเวลากับ "ทำบางส่วน" ไม่ได้เป็นของวิชา และสีเยอะเกินก็อ่านยาก */
+/* คำเดียวในแถวที่ถือสีของวิชา — ตัวเชื่อมระหว่างแถบสีกับความหมายของมัน */
 .dr-sj { font-style: normal; font-weight: 700; color: var(--sj, var(--muted)); }
 .dr-go { flex: none; color: var(--muted); opacity: .5; display: flex; }
 .dr-go svg { width: 15px; height: 15px; }
-.dr-row:active { background: var(--press, rgba(127,127,127,.09)); border-radius: 12px; }
+.dr-row:active { background: var(--press, rgba(127,127,127,.09)); border-radius: 10px; }
+
+/* ช่วงพักไม่มีแถบสี — ช่องว่างระหว่างสองวิชาคือสิ่งที่ทำให้ "พัก" อ่านออกโดยไม่ต้องอ่านคำ */
+.dr-row.brk { color: var(--muted); font-size: 12.5px; padding-top: 4px; padding-bottom: 4px; }
+.dr-row.brk::before { background: none; }
+.dr-row.end { color: var(--muted); font-size: 12.5px; padding-top: 9px; }
+/* ปลายทางไม่ใช่จุดแวะ — แถบจึงจางลงครึ่งหนึ่ง ไม่ใช่หายไปเลย (ยังเป็นหมุดบนเส้นทางอยู่)
+   เคยลองเป็นเส้นประแนวตั้ง แล้วในความสูง 20px ได้จุดสามจุดซึ่งอ่านเป็นของเสีย */
+.dr-row.end::before { background: var(--line); opacity: .7; }
 .dr-row.brk, .dr-row.end { pointer-events: none; }
 
-/* ช่วงพักไม่ใช่ของที่กดได้ และไม่ควรแย่งน้ำหนักกับงาน
-   ท่อนสีของมันถูกปิด ไม่ใช่ทำให้จาง — ช่องว่างสีพื้นระหว่างสองวิชาคือสิ่งที่ทำให้
-   "พัก" อ่านออกจากแถบได้โดยไม่ต้องอ่านตัวหนังสือ */
-.dr-row.brk { color: var(--muted); font-size: 12.5px; padding-top: 6px; padding-bottom: 6px; }
-.dr-row.brk::after { background: none; }
-.dr-row.brk::before { width: 5px; height: 5px; margin-top: -2.5px; left: -13px;
-  background: var(--line); box-shadow: 0 0 0 3px var(--card); }
-
-.dr-row.end { color: var(--muted); font-size: 12.5px; }
-.dr-row.end::after { background: none; }
-.dr-row.end::before { background: var(--card); box-shadow: none;
-  border: 2px solid var(--line); width: 9px; height: 9px;
-  margin-top: -4.5px; left: -15px; }
-
-/* ของที่ "ถึงเวลาแล้วต้องไป" ไม่มีวิชาเป็นเจ้าของ — มันคือเหตุการณ์ตามเวลา
-   จึงยืม --sj มาเป็นสีเตือนแทน แล้วจุดกับท่อนก็ได้สีนั้นเองโดยไม่ต้องเขียนกฎซ้ำ */
+/* ของที่ "ถึงเวลาแล้วต้องไป" ไม่มีวิชาเป็นเจ้าของ — ยืม --sj มาเป็นสีเตือนแทน
+   แล้วแถบกับชื่อก็ได้สีนั้นเองโดยไม่ต้องเขียนกฎซ้ำ */
 .dr-row.rem { --sj: var(--pri-yellow-text, #D97706); }
 .dr-row.rem.late { --sj: var(--pri-red-text, #DC2626); }
 .dr-row.rem.late .dr-m { color: var(--pri-red-text, #DC2626); }
@@ -982,7 +1010,7 @@
   padding: 0 5px; border-radius: 10px; display: grid; place-items: center;
   font-size: 11px; font-weight: 700; font-style: normal; line-height: 1;
   background: var(--card); color: var(--ink);
-  box-shadow: 0 0 0 2.5px var(--bg), var(--shadow); }
+  box-shadow: 0 0 0 2.5px var(--scr), var(--shadow); }
 .tg-ct.hot { background: var(--pri-red-text, #DC2626); color: #fff; }
 /* จุดเปล่า ๆ (ของรางวัลรายวันที่ยังไม่ได้กดรับ) — มีชิ้นเดียวต่อวัน เลข "1" จึงไม่บอกอะไรเพิ่ม
    ต้องเป็นวงกลมทึบ ไม่ใช่แคปซูลว่าง ซึ่งอ่านเป็นแบดจ์ที่โหลดตัวเลขไม่สำเร็จ */
@@ -1020,7 +1048,9 @@
 .tg-ic svg { stroke-width: 2.15; }
 /* ป้ายบนกรอบทึบไม่ต้องมีวงแหวนสีพื้นจอ — ขอบของกรอบตัดมันออกจากพื้นให้อยู่แล้ว
    วงแหวนสีพื้นจอบนกรอบทึบจะกลายเป็นรูเจาะที่มองทะลุเห็นพื้นหลังแทน */
-.tg-ct { box-shadow: 0 0 0 2.5px var(--card), var(--shadow); }
+/* ไทล์วางอยู่บนพื้นจอตรง ๆ ไม่ได้อยู่ในการ์ด วงแหวนจึงต้องเป็นสีพื้นจอ (--scr)
+   ไม่ใช่ --card · และไม่ใช่ --bg ซึ่งไม่มีอยู่จริงในระบบธีมนี้ */
+.tg-ct { box-shadow: 0 0 0 2.5px var(--scr), var(--shadow); }
 .tg-t:active .tg-ic { filter: brightness(.88); }
 
 /* จอกว้างขึ้นแล้วห้ามคลี่เป็นแถวเดียวแปดช่อง
