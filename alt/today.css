@@ -93,12 +93,20 @@
   letter-spacing: .04em; margin-top: 0; flex: 1; min-width: 0; }
 .td-now .tn-title { color: var(--on-fill); font-size: 22px; line-height: 1.24;
   margin: 5px 0 0; }
-/* ป้ายความด่วนบนพื้นทึบต้องเป็นพื้นขาวตัวอักษรสี — พื้นอ่อนเดิม (--pri-red-soft)
-   ถูกออกแบบมาให้วางบนการ์ด พอมาอยู่บนน้ำเงินมันขุ่นจนอ่านไม่ออก */
-.td-now .tn-head .tn-pill { background: #fff; }
-.td-now .tn-head .tn-pill.red    { color: var(--pri-red-text, #A32D2D); }
-.td-now .tn-head .tn-pill.yellow { color: var(--pri-yellow-text, #854F0B); }
-.td-now .tn-head .tn-pill.green  { color: var(--pri-green-text, #0F6E56); }
+/* ---- ป้ายความด่วนบนหัวตั๋ว: พื้นทึบสีเต็ม ตัวอักษรขาว ----
+   เคยเป็นพื้นขาว + ตัวอักษรสีจาก --pri-*-text ซึ่งพังเงียบ ๆ:
+   ตัวแปรพวกนั้น "พลิกตามธีม" เพราะถูกออกแบบมาให้วางบนพื้นการ์ด — ธีมมืดมันคือ
+   #FF9AA6 (ชมพูอ่อนสำหรับพื้นเข้ม) เอามาวางบนพื้นขาวได้คอนทราสต์ 2.01:1
+   ซึ่งต่ำกว่าทุกเกณฑ์ · ป้ายเลยดูซีดจนแทบหายไปทั้งที่มันคือสัญญาณด่วนที่สุดบนจอ
+
+   กฎที่ได้จากบั๊กนี้: พื้นที่ "ไม่พลิกตามธีม" (หัวตั๋วเป็นน้ำเงินเดียวกันทุกธีม)
+   ต้องจับคู่กับสีตัวอักษรที่ไม่พลิกตามธีมด้วย — ผสมกันเมื่อไหร่คือพังธีมใดธีมหนึ่งเสมอ
+   สามสีนี้จึงเป็นค่าคงที่โดยตั้งใจ และเลือกให้ตัวอักษรขาวผ่าน AA ทั้งชุด
+   (ขาวบน #D92D20 = 4.6 · #B54708 = 5.9 · #0B6E3F = 6.0) */
+.td-now .tn-head .tn-pill { color: #fff; font-weight: 700; }
+.td-now .tn-head .tn-pill.red    { background: #D92D20; }
+.td-now .tn-head .tn-pill.yellow { background: #B54708; }
+.td-now .tn-head .tn-pill.green  { background: #0B6E3F; }
 
 /* ---- เส้นทางของช่วงนี้: เริ่ม ···N นาที··· จบ ---- */
 .tn-route { display: flex; align-items: center; gap: 10px; margin-top: 11px; }
