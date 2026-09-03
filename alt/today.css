@@ -835,9 +835,11 @@
 .td-rail { position: relative; margin-top: 16px;
   background: var(--card); border-radius: 20px; box-shadow: var(--shadow);
   padding: 14px 14px 10px 30px; }
-/* แกนเวลาอ้างพิกัดจากขอบการ์ด: padding-left 30 → แกนที่ 19 คือกึ่งกลางช่องว่างซ้าย */
+/* แกนเวลาอ้างพิกัดจากขอบการ์ด: padding-left 30 → แกนที่ 19 คือกึ่งกลางช่องว่างซ้าย
+   เส้นนี้เหลือเป็น "ราง" สีจาง ๆ ที่รองอยู่ข้างหลัง ส่วนสีจริงมาจากแต่ละแถว (ดู .dr-row::after)
+   ต้องมีทั้งคู่: ถ้ามีแต่ท่อนสีของแถว ช่องว่างระหว่างหัวข้อกับแถวแรกจะขาดเป็นช่วง */
 .td-rail::before {
-  content: ''; position: absolute; left: 19px; top: 46px; bottom: 26px;
+  content: ''; position: absolute; left: 18.5px; top: 46px; bottom: 26px;
   width: 2px; border-radius: 1px; background: var(--line);
 }
 .dr-lb { font-size: 12.5px; font-weight: 700; color: var(--muted);
@@ -846,48 +848,97 @@
 .dr-row { position: relative; display: flex; align-items: center; gap: 10px;
   width: 100%; text-align: left; background: none; border: none;
   padding: 10px 2px; color: var(--ink); }
-/* จุดบนเส้น — left ติดลบให้ศูนย์กลางจุดตรงกับแกนที่ 19 พอดี (30 − 14 + 3.5 ≈ 19.5) */
+/* ---------- 1B26: แกนเวลาเป็นแถบสีวิชา ----------
+   เดิมทุกจุดเป็นสีเดียวกันหมด รางจึงบอกได้แค่ "มีของกี่ชิ้น" ซึ่งเป็นข้อมูลที่หัวจอ
+   บอกไปแล้วด้วยตัวเลข · สิ่งที่รางมีของตัวเองจริง ๆ คือ "เย็นนี้เป็นวิชาอะไรบ้าง
+   เรียงยังไง" ซึ่งอ่านด้วยตัวหนังสือต้องไล่ทีละบรรทัด แต่อ่านด้วยสีจบในการกวาดตาครั้งเดียว
+
+   --sj มาจากคลาส sj-N ที่ subjClass() ใส่ให้แต่ละแถวอยู่แล้ว (ชุดสีเดียวกับหน้ารายการงาน
+   และปฏิทิน) จึงไม่ได้สร้างระบบสีใหม่ วิชาเดียวกันได้สีเดิมทุกจอ
+
+   ท่อนสีเต็มความสูงแถวและไม่มีระยะห่างระหว่างแถว ท่อนจึงต่อกันเป็นแถบยาวท่อนเดียว
+   ที่เปลี่ยนสีตามวิชา — อ่านได้เหมือนแถบสัดส่วน ว่าเย็นนี้ให้เวลากับวิชาไหนมากที่สุด */
+.dr-row::after {
+  content: ''; position: absolute; left: -12.5px; top: 0; bottom: 0; width: 4px;
+  border-radius: 2px; background: var(--sj, transparent); opacity: .5;
+}
+/* จุดบนเส้น — left ติดลบให้ศูนย์กลางจุดตรงกับแกนที่ 19 พอดี (30 − 14.5 + 4 ≈ 19.5)
+   จุดทึบเต็มสีบนท่อนที่จางกว่า = อ่านเป็น "ลูกปัดบนเชือก" ไม่ใช่เส้นที่บวมขึ้นมาเฉย ๆ */
 .dr-row::before {
-  content: ''; position: absolute; left: -14px; top: 50%; margin-top: -3.5px;
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--line-strong, var(--line)); box-shadow: 0 0 0 3px var(--card);
+  content: ''; position: absolute; z-index: 1; left: -14.5px; top: 50%; margin-top: -4px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--sj, var(--line)); box-shadow: 0 0 0 3px var(--card);
 }
 .dr-t { flex: none; width: 44px; font-size: 12.5px; color: var(--muted); font-weight: 700; }
 .dr-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .dr-b b { font-size: 15px; font-weight: 600; letter-spacing: -.01em;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dr-m { font-size: 12px; color: var(--muted); }
+/* คำเดียวในแถวที่ถือสีของวิชา — ตัวเชื่อมระหว่างสีบนแกนกับความหมายของมัน
+   ไม่ทาสีทั้งบรรทัด เพราะเวลากับ "ทำบางส่วน" ไม่ได้เป็นของวิชา และสีเยอะเกินก็อ่านยาก */
+.dr-sj { font-style: normal; font-weight: 700; color: var(--sj, var(--muted)); }
 .dr-go { flex: none; color: var(--muted); opacity: .5; display: flex; }
 .dr-go svg { width: 15px; height: 15px; }
 .dr-row:active { background: var(--press, rgba(127,127,127,.09)); border-radius: 12px; }
 .dr-row.brk, .dr-row.end { pointer-events: none; }
 
-/* ช่วงพักไม่ใช่ของที่กดได้ และไม่ควรแย่งน้ำหนักกับงาน */
-.dr-row.brk { color: var(--muted); font-size: 12.5px; padding-top: 5px; padding-bottom: 5px; }
-.dr-row.brk::before { width: 5px; height: 5px; margin-top: -2.5px; left: -13px; opacity: .6; }
+/* ช่วงพักไม่ใช่ของที่กดได้ และไม่ควรแย่งน้ำหนักกับงาน
+   ท่อนสีของมันถูกปิด ไม่ใช่ทำให้จาง — ช่องว่างสีพื้นระหว่างสองวิชาคือสิ่งที่ทำให้
+   "พัก" อ่านออกจากแถบได้โดยไม่ต้องอ่านตัวหนังสือ */
+.dr-row.brk { color: var(--muted); font-size: 12.5px; padding-top: 6px; padding-bottom: 6px; }
+.dr-row.brk::after { background: none; }
+.dr-row.brk::before { width: 5px; height: 5px; margin-top: -2.5px; left: -13px;
+  background: var(--line); box-shadow: 0 0 0 3px var(--card); }
+
 .dr-row.end { color: var(--muted); font-size: 12.5px; }
-.dr-row.end::before { background: none; box-shadow: none;
-  border: 2px solid var(--line-strong, var(--line)); width: 8px; height: 8px;
-  margin-top: -4px; left: -14.5px; }
-/* ของที่ "ถึงเวลาแล้วต้องไป" ต่างจากงานที่เลือกเวลาเองได้ — จุดจึงเป็นสีเตือน ไม่ใช่สีวิชา */
-.dr-row.rem::before { background: var(--amber, #D97706); }
-.dr-row.rem.late::before { background: var(--red, #DC2626); }
-.dr-row.rem.late .dr-m { color: var(--red, #DC2626); }
+.dr-row.end::after { background: none; }
+.dr-row.end::before { background: var(--card); box-shadow: none;
+  border: 2px solid var(--line); width: 9px; height: 9px;
+  margin-top: -4.5px; left: -15px; }
+
+/* ของที่ "ถึงเวลาแล้วต้องไป" ไม่มีวิชาเป็นเจ้าของ — มันคือเหตุการณ์ตามเวลา
+   จึงยืม --sj มาเป็นสีเตือนแทน แล้วจุดกับท่อนก็ได้สีนั้นเองโดยไม่ต้องเขียนกฎซ้ำ */
+.dr-row.rem { --sj: var(--pri-yellow-text, #D97706); }
+.dr-row.rem.late { --sj: var(--pri-red-text, #DC2626); }
+.dr-row.rem.late .dr-m { color: var(--pri-red-text, #DC2626); }
 
 
 /* ---- การ์ดโฟกัสรุ่นบีบ (1B21) ---- */
-/* 1B24: บรรทัดเดียว สีเดียว — เหตุผลกับตัวเลขไม่ใช่ข้อมูลคนละชั้น
-   สีแดงถูกถอดออกจากบรรทัดนี้ทั้งหมด แล้วยกให้ป้ายมุมขวาบนถือคนเดียว
-   สองก้อนแดงในกรอบเดียวไม่ได้เร่งความรู้สึกเป็นสองเท่า มันหักล้างกันเอง
-   แล้วตาก็ไม่รู้ว่าจะลงตรงไหน ซึ่งเป็นอาการที่ผู้ใช้บอกตรง ๆ ว่า "ไม่รู้จะโฟกัสตรงไหนดี" */
-.tn-meta { font-size: 12.5px; line-height: 1.45; color: var(--muted);
-  margin-top: 7px; font-weight: 600; }
+/* ---- 1B26: แถบเหตุผล ---- */
+/* ประโยคเดียว เต็มความกว้าง มีพื้นอ่อนของตัวเอง = อ่านครั้งเดียวแล้วสายตาเดินต่อได้
+   ตอนเป็นข้อความเปล่าปนอยู่กับตัวเลข มันไม่มีขอบเขต ตาจึงต้องอ่านทั้งบรรทัดทุกครั้ง
+   เพื่อหาว่าตรงไหนคือประโยคตรงไหนคือตัวเลข
+   สีมาจาก priorityTone() ชุดเดียวกับป้ายมุมขวาบน ไม่ได้ตั้งเกณฑ์สีใหม่ */
+.tn-band { display: flex; align-items: center; gap: 7px; margin-top: 10px;
+  padding: 8px 11px; border-radius: 12px; font-size: 12.5px; font-weight: 600;
+  line-height: 1.35; }
+.tn-band svg { width: 14px; height: 14px; flex: none; }
+.tn-band.red    { background: var(--pri-red-soft);    color: var(--pri-red-text); }
+.tn-band.yellow { background: var(--pri-yellow-soft); color: var(--pri-yellow-text); }
+/* งานที่ยังไม่ด่วนไม่ควรได้แถบสี — แถบสีแปลว่า "มีอะไรต้องรู้" ถ้าทุกงานมีแถบ แถบก็ไม่แปลว่าอะไร */
+.tn-band.green  { background: none; color: var(--muted); padding: 0; margin-top: 8px;
+  font-weight: 400; }
+
+/* ---- 1B26: แถวตัวเลขสามช่อง ---- */
+/* ของที่กวาดตาหา ไม่ใช่ของที่อ่านเป็นประโยค · เส้นคั่นตั้งทำให้มันอ่านเป็นตาราง
+   ป้ายกำกับตัวเล็กข้างบนคือสิ่งที่ทำให้ "19:00" มีความหมาย โดยไม่ต้องเปลืองคำในค่า
+   (เคยเขียนว่า "เริ่ม 19:00" ในบรรทัดยาว ซึ่งกินที่กว่าและยังอ่านเป็นประโยคอยู่ดี) */
+.tn-cells { display: flex; margin-top: 12px;
+  border-top: 1px solid var(--line); padding-top: 10px; }
+.tn-cell { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+  padding: 0 10px; border-left: 1px solid var(--line); }
+.tn-cell:first-child { padding-left: 0; border-left: 0; }
+.tn-cell:last-child { padding-right: 0; }
+.tn-cell i { font-style: normal; font-size: 10.5px; font-weight: 700;
+  letter-spacing: .03em; color: var(--muted); }
+.tn-cell b { font-size: 15px; font-weight: 700; color: var(--ink);
+  letter-spacing: -.015em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* คำว่า "ตอนนี้ · ฟิสิกส์" เคยเป็นน้ำเงิน ซึ่งแย่งความเป็นสีเน้นกับปุ่มข้างล่าง
    น้ำเงินทึบต้องมีที่เดียวบนจอ คือปุ่มที่ต้องกด */
 .td-now .tn-eyebrow { color: var(--muted); font-weight: 700; letter-spacing: .04em; }
 /* ชื่องานคือจุดโฟกัสจุดเดียวของการ์ด — ต้องใหญ่พอที่ตาลงตรงนี้ก่อนอย่างอื่นเสมอ */
 .td-now .tn-title { font-size: 22px; line-height: 1.24; margin-top: 6px; }
-.tn-bar { height: 4px; border-radius: 2px; background: var(--line); margin-top: 8px; overflow: hidden; }
+.tn-bar { height: 4px; border-radius: 2px; background: var(--line); margin-top: 11px; overflow: hidden; }
 .tn-bar i { display: block; height: 100%; border-radius: 2px; background: var(--blue); }
 .tn-row { display: flex; align-items: stretch; gap: 8px; margin-top: 12px; }
 .tn-row .tn-cta { flex: 1; min-width: 0; margin: 0; }

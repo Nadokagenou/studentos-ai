@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B25';                 // สายเลขของแอป
-const APP_CODENAME = 'Solid';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1B26';                 // สายเลขของแอป
+const APP_CODENAME = 'Spectrum';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -1856,10 +1856,29 @@ function nowCard(sp, now) {
   // นี่คือ 60/30/10 ที่แปลเป็นการ์ดใบนี้: 60 พื้นการ์ด · 30 ตัวหนังสือ · 10 ปุ่มกับป้าย
   // เหตุผลกับตัวเลขรวมเป็นบรรทัดเดียว เพราะสองบรรทัดสีเดียวกันติดกันอ่านเป็นย่อหน้า
   // แล้วย่อหน้าคือสิ่งที่คนข้ามเสมอบนจอที่มีปุ่มใหญ่อยู่ข้างล่าง
-  const metaBits = whyBits.concat([
-    startTx === 'ยังไม่มีคิว' ? startTx : startTx + ' · ' + goalMin + ' นาที',
-    hasProg ? 'ทำไป ' + prog + '%' : '',
-  ]).filter(Boolean);
+  // ---- 1B26: เหตุผลกับตัวเลขเป็นข้อมูลคนละชนิด ห้ามต่อกันด้วยจุดคั่นอันเดียวกัน ----
+  //
+  // บรรทัดรวมของ 1B24 อ่านออกมาว่า "วันนี้เป็นโอกาสสุดท้ายที่จะทำทัน · คะแนน 20% · 19:00
+  // · 40 นาที" ซึ่งพังสามชั้น: ประโยคภาษาไทยกับตัวเลขล้วนถูกคั่นด้วยจุดแบบเดียวกัน
+  // จนอ่านเป็นพรืดเดียว · "19:00" ลอยอยู่กลางแถวโดยไม่มีอะไรบอกว่าคือเวลาเริ่ม ·
+  // แล้วมันยาวจนตกสองบรรทัด โดยบรรทัดที่สองขึ้นต้นด้วยจุดคั่นลอย ๆ ("· 40 นาที")
+  //
+  // แยกเป็นสองชั้นตามชนิดของข้อมูล:
+  //   แถบเหตุผล  = ประโยค อ่านครั้งเดียวแล้วจบ · สีมาจากความด่วน
+  //   แถวตัวเลข  = ของที่กวาดตาหา ไม่ได้อ่านเป็นประโยค · ทุกตัวมีป้ายกำกับของตัวเอง
+  // ป้ายกำกับคือสิ่งที่ทำให้ "19:00" กลายเป็น "เริ่ม 19:00" โดยไม่ต้องเปลืองคำในค่า
+
+  // ช่องที่สามยืดหยุ่นตามงาน — งานที่ไม่มีคะแนนเก็บไม่ควรได้ช่องว่างเปล่า
+  // ลำดับความน่าสนใจ: คะแนนเก็บ > ความคืบหน้าที่ทำไว้แล้ว > ไม่ต้องมีช่องที่สาม
+  const third = t.scorePct != null ? { lb: 'คะแนนเก็บ', v: t.scorePct + '%' }
+    : hasProg ? { lb: 'ทำไปแล้ว', v: prog + '%' } : null;
+  const cells = [
+    { lb: 'เริ่ม', v: startTx === 'ยังไม่มีคิว' ? 'เมื่อไหร่ก็ได้' : startTx },
+    { lb: 'ใช้เวลา', v: goalMin + ' นาที' },
+  ].concat(third ? [third] : []);
+
+  // เหตุผลเหลือประโยคเดียว — คะแนนย้ายไปอยู่ในแถวตัวเลขแล้ว ไม่ต้องพูดซ้ำในแถบ
+  const why1 = whyBits[0] || '';
 
   return `<section class="td-now ${tone}${running ? ' running' : ''}">
     <div class="tn-top">
@@ -1868,7 +1887,13 @@ function nowCard(sp, now) {
     </div>
 
     <h2 class="tn-title">${esc(t.detail || 'งานนี้')}</h2>
-    <div class="tn-meta">${esc(metaBits.join(' · '))}</div>
+
+    ${why1 ? `<div class="tn-band ${tone}">${
+      tone === 'green' ? '' : icon('flag')}${esc(why1)}</div>` : ''}
+
+    <div class="tn-cells">
+      ${cells.map(c => `<div class="tn-cell"><i>${esc(c.lb)}</i><b>${esc(c.v)}</b></div>`).join('')}
+    </div>
     ${hasProg ? `<div class="tn-bar"><i style="width:${prog}%"></i></div>` : ''}
 
     <div class="tn-row">
@@ -1976,12 +2001,15 @@ function dayRail(sp, split, now) {
       </button>`;
     }
     const s = r.slot, t = s.task;
-    const meta = [t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '', s.min + ' นาที',
-      s.partial ? 'ทำบางส่วน' : ''].filter(Boolean).join(' · ');
+    // ชื่อวิชาถูกทาสีเดียวกับแกนเวลาของแถวนั้น — นี่คือสิ่งที่ทำให้สีบนแกนแปลว่าอะไร
+    // ถ้าสีอยู่บนแกนอย่างเดียวมันเป็นแค่ของประดับ ต้องมีคำที่ถือสีเดียวกันอยู่ในแถว
+    // ผู้ใช้ถึงจะเชื่อมได้เองภายในการกวาดตาครั้งเดียวว่า "ม่วง = ฟิสิกส์"
+    const subjTx = t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '';
+    const rest = [s.min + ' นาที', s.partial ? 'ทำบางส่วน' : ''].filter(Boolean).join(' · ');
     return `<button class="dr-row ${subjClass(t.subject)}" onclick="startFocus('${t.id}')">
       <span class="dr-t mono">${fmtClock(s.start)}</span>
       <span class="dr-b"><b>${esc(t.detail || t.subject || 'งาน')}</b>
-        <span class="dr-m">${esc(meta)}</span></span>
+        <span class="dr-m">${subjTx ? `<i class="dr-sj">${esc(subjTx)}</i> · ` : ''}${esc(rest)}</span></span>
       <span class="dr-go">${icon('chevron')}</span>
     </button>`;
   }).join('');
