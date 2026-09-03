@@ -210,7 +210,9 @@ function renderMates() {
   }
 
   // คำขอเป็นเพื่อนขึ้นก่อนทุกอย่าง — ของที่รอคนตอบต้องไม่อยู่ใต้ของที่ตั้งครั้งเดียวจบ
-  const inbox = typeof friendInboxHTML === 'function' ? friendInboxHTML() : '';
+  // คำขอเพื่อนย้ายไปอยู่แท็บ "เพื่อนฉัน" ของจอฟีดแล้ว (1B18) — เดิมมันโผล่สองที่
+  // ด้วยโค้ดคนละชุด ซึ่งแปลว่ากดรับที่หนึ่งแล้วอีกที่ยังค้างอยู่จนกว่าจะโหลดใหม่
+  const inbox = '';
   box.innerHTML = matesHead() + inbox + setup
     + (s.pubAt ? '<div class="sec-label">คนในห้องของคุณ</div>' : '') + list;
 }
@@ -421,6 +423,11 @@ async function sendChat() {
 const MATES_RETURN_KEY = 'studentos.alt.afterLogin';
 function loginFromMates() {
   try { localStorage.setItem(MATES_RETURN_KEY, 'scr-mates'); } catch (_) {}
+  loginGoogle();
+}
+// เหมือน loginFromMates แต่จำว่ามาจากแท็บ "เพื่อนฉัน" — คนละปลายทางกัน
+function loginFromFriends() {
+  try { localStorage.setItem(MATES_RETURN_KEY, 'scr-friends'); } catch (_) {}
   loginGoogle();
 }
 function takeAfterLogin() {

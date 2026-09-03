@@ -295,6 +295,25 @@
 .fd-scope.on::after { background: var(--ink); }
 .fd-scope:active { transform: none; opacity: .6; }
 
+/* ---------- แท็บที่สี่: "เพื่อนฉัน" ----------
+   สามอันแรกคือช่วงของฟีด อันนี้เป็นอีกมุมมองของจอ จึงคั่นด้วยเส้นตั้ง
+   ไม่ให้อ่านรวมเป็นตัวกรองชุดเดียวกัน · แคบกว่าเพราะไม่ได้มีน้ำหนักเท่ากัน */
+.fd-scope-fr {
+  flex: 0 0 auto; padding-left: 14px; padding-right: 2px;
+  margin-left: 10px; border-left: 1px solid var(--line);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+/* เลขคำขอที่รอตอบ — เดิมอยู่บนปุ่มที่พาไปหน้า "วิชาของฉัน" ซึ่งกดตอบไม่ได้ */
+.fd-scope-n {
+  min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px;
+  background: var(--alert); color: #fff;
+  font-size: 10px; font-weight: 700; line-height: 17px; text-align: center;
+}
+.fd-scope-n[hidden] { display: none; }
+
+/* หน้าเพื่อนตอนอยู่ในจอฟีด — .fr-body เคยพึ่ง flex ของ .scr-body ซึ่งไม่มีตรงนี้แล้ว */
+#friendsBody.fr-body { display: flex; flex-direction: column; gap: 16px; padding: 16px 0 0; }
+
 /* ---------- หัวจอกระชับ ---------- */
 .fd-title { font-size: 22px; font-weight: 800; }
 

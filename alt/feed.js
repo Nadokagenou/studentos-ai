@@ -15,6 +15,12 @@ const FEED_SCOPES = [
   { id: 'school', name: 'โรงเรียน' },
 ];
 
+// จอ "เพื่อนร่วมห้อง" มีสองโหมดในจอเดียวกัน — ฟีด กับ รายชื่อเพื่อน (1B18)
+// ก่อนหน้านี้แยกเป็นสองจอ แล้วคำว่า "เพื่อน" ไปโผล่สามที่ที่พาไปคนละหน้ากันหมด
+// (ปุ่มแถบล่าง → ฟีด · ปุ่มลอยมุมขวาบน → รายชื่อ · แถวในแท็บ "ฉัน" → รายชื่อ)
+// ผู้ใช้กดหารายชื่อเพื่อนไม่เจอสามรอบ ซึ่งเป็นหลักฐานพอแล้วว่าการแยกจอนี้ผิด
+// ในหัวนักเรียน "เพื่อนร่วมห้อง" กับ "เพื่อนของฉัน" ไม่ใช่คนละเรื่อง
+let feedView = 'feed';    // 'feed' | 'friends'
 let feedScope = 'all';
 let feedRows = null;      // null = ยังไม่เคยโหลด
 let feedErr = null;
@@ -67,7 +73,11 @@ function avOf(name) {
 // โหลดฟีด
 // ============================================================
 async function loadFeed(scope) {
+  // กดแท็บช่วงของฟีดเมื่อไหร่ = กลับมาโหมดฟีดเสมอ · ไม่งั้นกดแล้วจอไม่เปลี่ยน
+  const was = feedView;
+  feedView = 'feed';
   if (scope) feedScope = scope;
+  if (was !== 'feed') { renderFeed(); }
   if (!sb || !currentUser) { feedErr = 'ยังไม่ได้ล็อกอิน'; renderFeed(); return; }
   feedBusy = true; feedFresh = 0; renderFeed();
   const { data, error } = await sb.rpc('feed', { p_scope: feedScope, p_limit: 30 });
@@ -157,18 +167,39 @@ function renderFeed() {
     </div>
 
     <div class="fd-scopes" role="tablist">
-      ${FEED_SCOPES.map(s => `<button role="tab" class="fd-scope${s.id === feedScope ? ' on' : ''}"
-        aria-selected="${s.id === feedScope}"
+      ${FEED_SCOPES.map(s => `<button role="tab" class="fd-scope${
+        feedView === 'feed' && s.id === feedScope ? ' on' : ''}"
+        aria-selected="${feedView === 'feed' && s.id === feedScope}"
         onclick="loadFeed('${s.id}')">${esc(s.name)}</button>`).join('')}
+      <!-- แท็บที่สี่ไม่ใช่ "ช่วงของฟีด" แต่เป็นอีกมุมมองของจอเดียวกัน — คั่นด้วยเส้น
+           เพื่อไม่ให้อ่านว่าเป็นตัวกรองโพสต์อีกตัวหนึ่ง -->
+      <button role="tab" class="fd-scope fd-scope-fr${feedView === 'friends' ? ' on' : ''}"
+        aria-selected="${feedView === 'friends'}"
+        onclick="showFriendsTab()">เพื่อนฉัน<span class="fd-scope-n" id="frTabN" hidden></span></button>
     </div>
 
-    <div id="onlineRow"></div>
-    ${currentUser ? composerHTML() : ''}
-    <div id="freshPill"></div>
-    <div id="feedList">${feedListHTML()}</div>`;
+    ${feedView === 'friends' ? '<div id="friendsBody" class="fr-body"></div>' : `
+      <div id="onlineRow"></div>
+      ${currentUser ? composerHTML() : ''}
+      <div id="freshPill"></div>
+      <div id="feedList">${feedListHTML()}</div>`}`;
 
-  renderOnline();
-  renderFreshPill();
+  if (feedView === 'friends') {
+    // renderFriends อยู่ใน app.js — โครงจอถูกสร้างใหม่ทุกครั้งที่สลับโหมด
+    // จึงต้องบังคับวาดใหม่ ไม่ใช่ปล่อยให้มันคิดว่าโครงเดิมยังอยู่
+    if (typeof renderFriends === 'function') renderFriends(true);
+    if (typeof loadFriends === 'function') loadFriends();
+  } else {
+    renderOnline();
+    renderFreshPill();
+  }
+  renderFriendDot();
+}
+
+// สลับมาโหมดรายชื่อเพื่อน · ไม่ยิงโหลดฟีดซ้ำ เพราะฟีดที่โหลดไว้แล้วยังอยู่ครบ
+function showFriendsTab() {
+  feedView = 'friends';
+  renderFeed();
 }
 
 // ---------- แถวคนออนไลน์ ----------
@@ -532,13 +563,14 @@ async function sendReply() {
 // รวมสี่อย่างที่ต้องทำพร้อมกันไว้ที่เดียว: เปิดจอ · โหลด · ฟังโพสต์ใหม่ · บอกว่าเราออนไลน์
 // ถ้ากระจายไปเรียกตามปุ่มต่าง ๆ วันหนึ่งจะมีทางเข้าที่ลืมเรียกอันใดอันหนึ่ง
 // แล้วฟีดจะนิ่งเงียบเฉพาะตอนเข้าทางนั้น ซึ่งเป็นบั๊กที่หาสาเหตุยากมาก
-function openFeed() {
+function openFeed(view) {
   // ครั้งแรกต้องรู้ก่อนว่าอะไรเป็นอะไร แล้วค่อยเข้าไปเจอคน
   if (currentUser && typeof needsConsent === 'function' && needsConsent()) {
     go('scr-consent');
     renderConsent();
     return;
   }
+  feedView = view === 'friends' ? 'friends' : 'feed';
   go('scr-mates');
   renderFeed();
   loadFeed();
@@ -737,10 +769,11 @@ async function loadFriendInbox() {
 
 // จุดแดงบนปุ่มคนในหัวฟีด — คำขอที่ไม่มีใครเห็นคือคำขอที่ไม่มีใครตอบ
 function renderFriendDot() {
-  const b = document.querySelector('.fd-people');
-  if (!b) return;
-  b.classList.toggle('has-req', friendInbox.length > 0);
-  b.dataset.n = friendInbox.length > 9 ? '9+' : String(friendInbox.length || '');
+  // เลขต้องอยู่บนปุ่มที่พาไปยังที่ที่กดตอบคำขอได้จริง — เดิมมันอยู่บนปุ่มที่พาไป
+  // หน้า "วิชาของฉัน" ซึ่งไม่ใช่ที่ที่คำขออยู่อีกต่อไปแล้วหลังยุบสองจอเข้าด้วยกัน
+  const n = friendInbox.length;
+  const el = document.getElementById('frTabN');
+  if (el) { el.hidden = !n; el.textContent = n > 9 ? '9+' : String(n); }
 }
 
 // ---------- คำขอที่รอตอบ วาดไว้บนสุดของหน้า "คนในห้อง" ----------

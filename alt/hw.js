@@ -56,6 +56,10 @@ let hwRows = {};        // 'วิชา|วันที่' -> { key, others, t
 let hwBusy = false;
 let hwTimer = null;
 let hwLast = 0;         // ยิงจริงครั้งล่าสุดเมื่อไหร่
+// hw_sync คืนอะไรมาเลยถ้าบัญชีนี้ยังไม่ได้ผูกห้องเรียน (บรรทัดแรกของฟังก์ชัน return ทิ้ง)
+// ก่อนหน้านี้แปลว่าแถวใต้การ์ดเงียบสนิท — ผู้ใช้จึงเปิดสวิตช์ไปแล้วไม่เห็นอะไรเกิดขึ้นเลย
+// และไม่มีทางรู้เลยว่าตัวเองติดอยู่ตรงไหน — ฟีเจอร์ที่เงียบสนิทคือฟีเจอร์ที่ไม่มีอยู่
+let hwNoRoom = false;
 const HW_MIN_GAP = 20000;
 
 // ---------- ลงชื่อ + รับตัวเลข รอบเดียวจบ ----------
@@ -97,6 +101,9 @@ async function doHwSync(force) {
       { key: r.r_key, others: r.r_others || 0, talking: r.r_talking || 0 };
   }
   hwRows = next;
+  // ส่งงานขึ้นไปแล้วไม่มีแถวกลับมาเลยสักแถว = ยังไม่ได้ผูกห้องเรียน
+  // (ถ้าผูกแล้ว อย่างน้อยต้องมีแถวของตัวเองกลับมา เพราะฟังก์ชันลงชื่อเราเข้าห้องก่อนคืนค่า)
+  hwNoRoom = !(data || []).length;
   watchHw();
   if (typeof renderTasks === 'function') renderTasks();
   if (typeof renderHome === 'function') renderHome();
@@ -195,6 +202,17 @@ function hwStrip(t) {
     </div>`;
   }
   if (!hwOn()) return '';
+
+  // เปิดสวิตช์แล้วแต่ยังไม่ได้ผูกห้องเรียน — ก่อนหน้านี้แถวนี้เงียบสนิท
+  // ทำให้คนที่กด "เปิดใช้" ไปแล้วคิดว่าฟีเจอร์พัง ทั้งที่มันแค่ยังขาดขั้นตอนเดียว
+  // ขึ้นใบเดียวเหมือนกันกับคำถามข้างบน — ขึ้นทุกใบคือโฆษณา ไม่ใช่คำแนะนำ
+  if (hwNoRoom) {
+    if (t.id !== hwAskId()) return '';
+    return `<div class="hw hw-link" onclick="event.stopPropagation();go('scr-sources')">
+      <span class="hw-n">เพื่อนที่มีงานชิ้นเดียวกันคุยกันได้ที่นี่</span>
+      <span class="hw-go">เชื่อมห้องเรียน ${icon('chevron')}</span>
+    </div>`;
+  }
 
   const row = hwRows[tag];
   if (!row) return '';

@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B15';                 // สายเลขของแอป
-const APP_CODENAME = 'Linse';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1B18';                 // สายเลขของแอป
+const APP_CODENAME = 'Handle';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -949,6 +949,9 @@ async function initCloud() {
       }
       // token จากลิงก์กลุ่มถูกเก็บไว้ตั้งแต่ก่อนล็อกอิน — จังหวะนี้คือจังหวะที่ใช้ได้แล้ว
       // (ทางกลับจาก Google เป็นการโหลดหน้าใหม่ ตัว initApp ก็เรียกให้อีกทาง เรียกซ้ำได้ปลอดภัย)
+      // คำขอเป็นเพื่อนที่ค้างอยู่ต้องขึ้นจุดแดงได้โดยไม่ต้องรอให้คนเปิดหน้าเพื่อนก่อน
+      // ไม่งั้นคนส่งคำขอมาแล้วไม่มีอะไรบอก กว่าอีกฝั่งจะบังเอิญเปิดเข้าไปเอง
+      if (typeof loadFriends === 'function') loadFriends();
       syncFromCloud().then(() => { routeAfterLogin(); return applyJoinToken(); });
     } else {
       renderAll();
@@ -1110,6 +1113,10 @@ function skipLogin() {
 async function logout() {
   if (sb) await sb.auth.signOut();
   currentUser = null; lastSync = null;
+  // เพื่อนเป็นของบัญชี ไม่ใช่ของเครื่อง — ออกจากบัญชีแล้วต้องไม่เหลือค้างบนจอ
+  frHandle = null; frList = []; frReqs = []; frHits = null; frLoaded = false;
+  const fb0 = document.getElementById('friendsBody');
+  if (fb0) fb0.dataset.built = '';
   localStorage.removeItem('studentos.alt.skipLogin');
   go('scr-login');
 }
@@ -4095,7 +4102,11 @@ function renderProfile() {
   const pb = document.getElementById('peBadgeCt');
   if (pb) pb.textContent = badgesEarned().length + ' จาก ' + BADGES.length + ' เหรียญ';
   const pf2 = document.getElementById('peFriendCt');
-  if (pf2) pf2.textContent = friends().length ? friends().length + ' คนในรายการ' : 'ยังไม่มีใครในรายการ';
+  // รายชื่อเพื่อนโหลดตอนเข้าจอเพื่อน ไม่ใช่ตอนบูต — ก่อนโหลดจึงยังไม่รู้จำนวน
+  // ขึ้นว่า "0 คน" ไว้ก่อนคือการโกหก คนมีเพื่อนอยู่จะเห็นเลขผิดทุกครั้งที่เปิดหน้านี้
+  if (pf2) pf2.textContent = frLoaded
+    ? (frList.length ? frList.length + ' คน' : 'ยังไม่มีเพื่อน')
+    : 'ค้นหาและเพิ่มเพื่อน';
   // ห้องของฉัน — บอกว่ามีของวางอยู่กี่ชิ้นแล้ว ห้องเปล่ากับห้องที่แต่งแล้วต้องอ่านต่างกัน
   const pr = document.getElementById('peRoomCt');
   if (pr && typeof roomState === 'function') {
@@ -4145,136 +4156,239 @@ function renderProfile() {
   }
 }
 
-// ---------- ALT 1A6M3: ระบบเพื่อน (เฟสแรก) ----------
-// ยังไม่มีตารางฝั่งเซิร์ฟเวอร์สำหรับเพื่อน จึงทำให้ใช้งานได้จริงวันนี้ด้วยการ
-// "แลกรหัสสถานะ" กันตรง ๆ — ก๊อปรหัสของตัวเองส่งให้เพื่อน แล้ววางรหัสของเพื่อนกลับมา
-// ไม่ต้องรอ backend และไม่มีข้อมูลใครถูกส่งไปไหนโดยที่เจ้าตัวไม่ได้กดเอง
-function friends() {
-  state.settings = state.settings || {};
-  if (!Array.isArray(state.settings.friends)) state.settings.friends = [];
-  return state.settings.friends;
-}
+// ---------- ระบบเพื่อน (1B17) ----------
+// ของเดิมคือ "รหัสสถานะ" SOS1.xxxx ที่ก๊อปวางกันเอง แล้วเก็บลง state.settings.friends
+// ในเครื่องตัวเอง — ไม่เคยแตะเซิร์ฟเวอร์เลยสักครั้ง แปลว่าเพื่อนในรายการคือภาพถ่าย
+// ณ วินาทีที่เขาก๊อปรหัส ไม่อัปเดตอีกจนกว่าจะขอรหัสใหม่มาวาง (บรรทัด "ข้อมูล 3 ชม.ที่แล้ว"
+// ที่ไม่มีวันเปลี่ยน) มันอ่านเหมือนมีเพื่อน แต่ไม่มีใครอยู่ปลายทางจริงสักคน
+//
+// ของใหม่ต่อกับตาราง friendships ที่ deploy อยู่แล้ว และเติมสิ่งที่ขาดไปชิ้นเดียว:
+// ชื่อผู้ใช้ที่ "ค้นหาได้" — เพราะ ask_friend() เดิมบังคับว่าต้องอยู่ห้อง LINE เดียวกัน
+// จึงเพิ่มเพื่อนไม่ได้เลยถ้ายังไม่มีใครเอาบอทเข้ากลุ่มห้องเรียน (ดู migration 17)
+//
+// ไม่ใช้รหัสสุ่มให้ก๊อป เพราะรหัสที่ต้องก๊อปแปลว่าต้องมีช่องทางส่งรหัสอยู่ก่อนแล้ว
+// ซึ่งถ้ามีช่องทางนั้นก็คุยกันได้อยู่แล้ว · ชื่อที่พิมพ์ตามกันได้จึงเป็นด่านที่ต่ำกว่า
 
-// สถานะของเราแบบย่อ — เอาไปทำเป็นรหัสให้เพื่อน
-function myStatus() {
-  const now = new Date();
-  const live = liveTasks();
-  const done = live.filter(t => t.done);
-  return {
-    n: who() || 'เพื่อน',
-    p: live.filter(t => !t.done).length,
-    d7: done.filter(t => t.doneAt && (now - new Date(t.doneAt)) < 7 * 8.64e7).length,
-    d: done.length,
-    u: now.toISOString(),
-  };
-}
+let frHandle = null;      // ชื่อผู้ใช้ของเรา
+let frList = [];          // เพื่อนที่รับกันแล้ว
+let frReqs = [];          // คำขอที่รอเราตอบ
+let frHits = null;        // ผลค้นหา · null = ยังไม่ได้ค้น (ต่างจาก [] ที่แปลว่าค้นแล้วไม่เจอ)
+let frLoading = false;
+let frLoaded = false;   // โหลดสำเร็จอย่างน้อยหนึ่งครั้งหรือยัง — 0 ที่ยังไม่ได้โหลด กับ 0 จริง อ่านต่างกัน
+let frSearchTimer = null;
 
-function myShareCode() {
+// ปุ่มทางเข้าสองที่ในแท็บ "ฉัน" นับจำนวนจากฟังก์ชันนี้ จึงคงชื่อเดิมไว้
+function friends() { return frList; }
+
+async function loadFriends() {
+  // เศษของระบบเก่า — ลบทิ้งครั้งเดียวตอนเข้าหน้านี้ครั้งแรกหลังอัปเดต
+  // ปล่อยไว้ก็ไม่พัง แต่มันคือรายชื่อที่ไม่มีใครอ่านอีกแล้วซึ่งซิงก์ขึ้น cloud ทุกรอบ
+  if (state.settings && state.settings.friends) { delete state.settings.friends; save(); }
+
+  if (!sb || !currentUser) { frHandle = null; frList = []; frReqs = []; renderFriends(); return; }
+  if (frLoading) return;
+  frLoading = true;
   try {
-    const json = JSON.stringify(myStatus());
-    return 'SOS1.' + btoa(unescape(encodeURIComponent(json)));
-  } catch (_) { return ''; }
+    // ยิงพร้อมกันทั้งสามอัน — เรียงกันคือรอสามรอบเน็ตบนมือถือโรงเรียน
+    const [h, l, i] = await Promise.all([
+      sb.rpc('my_handle'), sb.rpc('friend_list'), sb.rpc('friend_inbox'),
+    ]);
+    if (!h.error) frHandle = h.data || null;
+    if (!l.error) frList = l.data || [];
+    if (!i.error) frReqs = i.data || [];
+  } catch (_) { /* ออฟไลน์ — วาดด้วยของที่ค้างอยู่ในตัวแปร ดีกว่าล้างจอเป็นหน้าว่าง */ }
+  frLoading = false;
+  frLoaded = true;
+  renderFriends();
+  if (typeof renderTabBadges === 'function') renderTabBadges();
 }
 
-function parseShareCode(code) {
-  const raw = String(code || '').trim();
-  if (!raw.startsWith('SOS1.')) return null;
-  try {
-    const json = decodeURIComponent(escape(atob(raw.slice(5))));
-    const o = JSON.parse(json);
-    if (!o || typeof o.n !== 'string') return null;
-    return o;
-  } catch (_) { return null; }
+// ---------- ค้นหา ----------
+// หน่วง 350ms ก่อนยิงจริง · พิมพ์ชื่อหกตัวคือหกคำขอถ้าไม่หน่วง
+// และผลของคำที่พิมพ์ไม่ครบมักกลับมาทีหลังผลของคำเต็ม แล้วทับผลที่ถูกต้อง
+function friendSearch(v) {
+  clearTimeout(frSearchTimer);
+  const q = String(v || '').trim();
+  // ตัวเดียวไม่ใช่การค้นหา มันคือการไล่ดูรายชื่อทั้งระบบ — ฝั่ง SQL ก็กันไว้อีกชั้น
+  if (q.length < 2) { frHits = null; paintFriendParts(); return; }
+  frSearchTimer = setTimeout(() => doFriendSearch(q), 350);
 }
-
-async function copyMyCode() {
-  const code = myShareCode();
-  try {
-    await navigator.clipboard.writeText(code);
-    haptic('arm');
-    showToast({ title: 'ก๊อปรหัสแล้ว 📋', body: 'ส่งให้เพื่อนวางในหน้า “เพื่อน” ของเขาได้เลย' });
-  } catch (_) {
-    // เบราว์เซอร์ไม่ให้ก๊อปอัตโนมัติ → โชว์ให้เลือกเอง
-    const box = document.getElementById('frMyCode');
-    if (box) { box.hidden = false; box.value = code; box.select(); }
-  }
-}
-
-function addFriendCode() {
-  const el = document.getElementById('frInput');
-  const o = parseShareCode(el && el.value);
-  if (!o) {
-    showToast({ title: 'รหัสไม่ถูกต้อง', body: 'ต้องเป็นรหัสที่ขึ้นต้นด้วย SOS1. ที่เพื่อนก๊อปมาให้' });
+async function doFriendSearch(q) {
+  if (!sb || !currentUser) {
+    showToast({ title: 'ต้องล็อกอินก่อน', body: 'เข้าบัญชีแล้วถึงจะค้นหาเพื่อนได้' });
     return;
   }
-  const list = friends();
-  const i = list.findIndex(f => f.n === o.n);
-  if (i >= 0) list[i] = o; else list.push(o);
-  save();
-  if (el) el.value = '';
+  const { data, error } = await sb.rpc('find_people', { p_q: q });
+  if (error) return;
+  frHits = data || [];
+  paintFriendParts();
+}
+
+// ---------- ตั้งชื่อผู้ใช้ ----------
+async function saveHandle() {
+  const el = document.getElementById('frHandle');
+  const v = ((el && el.value) || '').trim();
+  if (!sb || !currentUser) { showToast({ title: 'ต้องล็อกอินก่อน', body: 'ชื่อผู้ใช้เก็บอยู่กับบัญชี' }); return; }
+  const { data, error } = await sb.rpc('set_handle', { p_handle: v });
+  if (error) {
+    // ข้อความจาก raise ในฝั่ง SQL เขียนเป็นภาษาคนไว้แล้ว เอามาโชว์ตรง ๆ ได้เลย
+    showToast({ title: 'ใช้ชื่อนี้ไม่ได้', body: error.message || 'ลองชื่ออื่นดู' });
+    return;
+  }
+  frHandle = data;
   haptic('done');
-  renderFriends(); renderTabBadges();
-  showToast({ title: (i >= 0 ? 'อัปเดตสถานะของ ' : 'เพิ่มเพื่อนแล้ว: ') + o.n, body: 'เห็นงานค้างและผลของเขาในหน้าเพื่อนแล้ว' });
+  showToast({ title: 'ชื่อผู้ใช้คือ @' + data, body: 'บอกชื่อนี้ให้เพื่อน แล้วให้เขาค้นหาคุณ' });
+  paintFriendParts();
+}
+async function copyHandle() {
+  if (!frHandle) return;
+  try {
+    await navigator.clipboard.writeText('@' + frHandle);
+    haptic('arm');
+    showToast({ title: 'ก๊อปแล้ว 📋', body: 'ส่งให้เพื่อนไปค้นในหน้า “เพื่อน” ของเขา' });
+  } catch (_) {
+    const el = document.getElementById('frHandle');
+    if (el) { el.focus(); el.select(); }
+  }
 }
 
-function removeFriend(name) {
-  state.settings.friends = friends().filter(f => f.n !== name);
-  save();
-  renderFriends();
+// ---------- ส่งคำขอ / ตอบรับ / เอาออก ----------
+async function addPerson(id) {
+  if (!sb || !currentUser) return;
+  const { data, error } = await sb.rpc('ask_friend', { p_other: id });
+  if (error) { showToast({ title: 'ส่งคำขอไม่ได้', body: error.message || 'ลองใหม่อีกที' }); return; }
+  // แก้สถานะในผลค้นหาที่ถืออยู่ แทนที่จะยิงค้นใหม่ — ผลชุดเดิมยังถูกต้องทุกแถว
+  if (frHits) { const hit = frHits.find(x => x.id === id); if (hit) hit.rel = data; }
+  haptic('done');
+  if (data === 'friends') {
+    showToast({ title: 'เป็นเพื่อนกันแล้ว 🎉', body: 'เขาเคยส่งคำขอมาก่อน การกดของคุณคือการตอบรับ' });
+    loadFriends();
+  } else {
+    showToast({ title: 'ส่งคำขอแล้ว', body: 'รอเขากดรับ แล้วถึงจะเห็นกันในรายชื่อเพื่อน' });
+    paintFriendParts();
+  }
+}
+async function answerReq(id, yes) {
+  if (!sb || !currentUser) return;
+  const { error } = await sb.rpc(yes ? 'ask_friend' : 'drop_friend', { p_other: id });
+  if (error) { showToast({ title: 'ทำรายการไม่ได้', body: error.message || 'ลองใหม่อีกที' }); return; }
+  haptic(yes ? 'done' : 'tap');
+  await loadFriends();
+}
+async function removeFriend(id, name) {
+  if (!confirm('เอา ' + (name || 'คนนี้') + ' ออกจากรายชื่อเพื่อน?')) return;
+  const { error } = await sb.rpc('drop_friend', { p_other: id });
+  if (error) { showToast({ title: 'เอาออกไม่ได้', body: error.message || 'ลองใหม่อีกที' }); return; }
+  await loadFriends();
 }
 
-function friendAgo(iso) {
-  if (!iso) return 'ไม่รู้เวลา';
-  const m = Math.round((Date.now() - new Date(iso)) / 60000);
-  if (m < 2) return 'เมื่อครู่';
-  if (m < 60) return m + ' นาทีที่แล้ว';
-  const h = Math.round(m / 60);
-  if (h < 24) return h + ' ชม.ที่แล้ว';
-  return Math.round(h / 24) + ' วันที่แล้ว';
-}
-
-function renderFriends() {
+// ---------- วาดจอ ----------
+// แยกเป็นสองชั้นโดยตั้งใจ: โครงจอวาดครั้งเดียว ส่วนรายการวาดใหม่ได้ตลอด
+// เพราะ renderAll() ถูกเรียกทุกครั้งที่ข้อมูลเปลี่ยน ถ้าเขียน innerHTML ทั้งก้อนทุกรอบ
+// ช่องค้นหาจะโดนสร้างใหม่กลางคัน — คีย์บอร์ดปิด ตัวที่พิมพ์ค้างหาย ทุก ๆ ไม่กี่วินาที
+function renderFriends(force) {
   const body = document.getElementById('friendsBody');
   if (!body) return;
-  const me = myStatus();
-  const list = friends().slice().sort((a, b) => (b.d7 || 0) - (a.d7 || 0));
-  const board = [{ ...me, me: true }, ...list].sort((a, b) => (b.d7 || 0) - (a.d7 || 0));
-  const peak = Math.max(1, ...board.map(f => f.d7 || 0));
+  if (body.dataset.built === '1' && !force) { paintFriendParts(); return; }
 
-  body.innerHTML = `<div class="page-head">
-      <div class="eyebrow mono">${esc(fmtThaiDate(new Date()))}</div>
-      <h1 class="page-title">เพื่อน</h1>
-      <p class="page-sub">แลกรหัสสถานะกัน แล้วดูว่าใครเคลียร์งานไปถึงไหน</p>
-    </div>
+  // ยังไม่ได้ล็อกอิน = ยังทำอะไรตรงนี้ไม่ได้เลยสักอย่าง (ชื่อผู้ใช้ · ค้นหา · ส่งคำขอ
+  // ล้วนต้องรู้ว่าเป็นบัญชีไหน) จอจึงต้องบอกตั้งแต่แรก ไม่ใช่โชว์ช่องให้กรอกครบทุกช่อง
+  // แล้วค่อยไปบอกตอนกดบันทึก — ผู้ใช้พิมพ์ชื่อที่ตั้งใจไว้ทิ้งไปหนึ่งรอบฟรี ๆ
+  if (!sb || !currentUser) {
+    body.innerHTML = `<div class="fr-gate">
+        ${icon('lock')}
+        <b>เข้าบัญชีก่อนถึงจะเพิ่มเพื่อนได้</b>
+        <p>เพื่อนผูกอยู่กับบัญชี ไม่ใช่กับเครื่อง — เปลี่ยนเครื่องแล้วรายชื่อยังอยู่ครบ
+           และเพื่อนถึงจะค้นหาคุณเจอ</p>
+        <button class="fr-gate-go" onclick="loginFromFriends()">เข้าสู่ระบบ</button>
+      </div>`;
+    body.dataset.built = '';   // ล็อกอินเสร็จต้องวาดของจริงทับ ไม่ใช่คิดว่าโครงเดิมยังอยู่
+    return;
+  }
+
+  // ไม่มีหัวจอของตัวเองแล้ว — จอนี้อยู่ใต้หัว "เพื่อนร่วมห้อง" ของฟีด
+  // สองหัวซ้อนกันคือสิ่งที่ทำให้จอที่ยุบมารวมกันอ่านเหมือนสองจอที่ถูกแปะติดกัน
+  body.innerHTML = `<p class="fr-lead">ค้นชื่อผู้ใช้ของเพื่อน แล้วส่งคำขอ — ไม่ต้องผูกกลุ่มไลน์ก่อน</p>
 
     <div class="fr-me">
-      <div class="fr-me-h">${icon('user')}รหัสสถานะของฉัน</div>
-      <p class="fr-me-p">ก๊อปส่งให้เพื่อน — ในรหัสมีแค่ชื่อเล่น จำนวนงานค้าง และจำนวนงานที่เสร็จ</p>
-      <button class="fr-copy" onclick="copyMyCode()">${icon('check')}ก๊อปรหัสของฉัน</button>
-      <textarea class="fr-code" id="frMyCode" rows="2" readonly hidden></textarea>
-    </div>
-
-    <div class="fr-add">
-      <label for="frInput">วางรหัสของเพื่อน</label>
-      <textarea id="frInput" rows="2" placeholder="SOS1.…"></textarea>
-      <button class="fr-add-btn" onclick="addFriendCode()">${icon('users')}เพิ่ม / อัปเดตเพื่อน</button>
-    </div>
-
-    <div class="sec-label">กระดานเทียบผล 7 วัน</div>
-    ${board.map(f => `<div class="fr-card${f.me ? ' me' : ''}">
-      <div class="fr-av">${esc((f.n || '?').slice(0, 1))}</div>
-      <div class="fr-bd">
-        <div class="fr-nm">${esc(f.n)}${f.me ? '<span class="fr-tag">คุณ</span>' : ''}</div>
-        <div class="fr-st">งานค้าง <b>${f.p ?? '—'}</b> · เสร็จ 7 วัน <b>${f.d7 ?? '—'}</b> · รวม ${f.d ?? '—'}</div>
-        <div class="fr-bar"><i style="width:${Math.round((f.d7 || 0) / peak * 100)}%"></i></div>
-        <div class="fr-ago">${f.me ? 'อัปเดตสด' : 'ข้อมูล ' + esc(friendAgo(f.u))}</div>
+      <div class="fr-me-h">${icon('user')}ชื่อผู้ใช้ของฉัน</div>
+      <div class="fr-me-row">
+        <span class="fr-at">@</span>
+        <input id="frHandle" class="fr-handle" maxlength="15" autocomplete="off"
+               autocapitalize="off" spellcheck="false" placeholder="ตั้งชื่อของคุณ">
+        <button class="fr-save" onclick="saveHandle()">บันทึก</button>
       </div>
-      ${f.me ? '' : `<button class="fr-del" onclick="removeFriend('${esc(f.n).replace(/'/g, "\\'")}')"
-        aria-label="เอาออก">${icon('trash')}</button>`}
-    </div>`).join('')}
+      <p class="fr-me-p">บอกชื่อนี้ให้เพื่อน แล้วให้เขาพิมพ์ในช่องค้นหา · 3-15 ตัว ไทยหรืออังกฤษก็ได้</p>
+      <button class="fr-copy" onclick="copyHandle()">${icon('check')}ก๊อปชื่อผู้ใช้</button>
+    </div>
 
-    ${list.length ? '' : `<p class="fr-note">ยังไม่มีเพื่อนในรายการ — ส่งรหัสของคุณให้เพื่อนก่อน
-      แล้วขอรหัสของเขามาวางตรงช่องด้านบน · สถานะเป็นภาพนิ่ง ณ เวลาที่แลกรหัสกัน ไม่ได้อัปเดตเอง</p>`}`;
+    <div class="fr-find">
+      <label for="frQ">ค้นหาเพื่อน</label>
+      <input id="frQ" class="fr-q" autocomplete="off" autocapitalize="off" spellcheck="false"
+             placeholder="พิมพ์ชื่อผู้ใช้ หรือชื่อที่เขาตั้งไว้" oninput="friendSearch(this.value)">
+      <div id="frHits"></div>
+    </div>
+
+    <div id="frReqBox"></div>
+    <div id="frListBox"></div>`;
+  body.dataset.built = '1';
+  paintFriendParts();
+}
+
+function frAv(p) {
+  const nm = p.display_name || p.handle || '?';
+  return p.avatar
+    ? `<div class="fr-av"><img src="${esc(p.avatar)}" alt=""></div>`
+    : `<div class="fr-av" style="${typeof avOf === 'function' ? avOf(nm) : ''}">${esc(nm.slice(0, 1))}</div>`;
+}
+function frName(p) {
+  return `<div class="fr-nm">${esc(p.display_name || 'นักเรียน')}</div>
+    ${p.handle ? `<div class="fr-hd">@${esc(p.handle)}</div>` : ''}`;
+}
+
+function paintFriendParts() {
+  const hi = document.getElementById('frHandle');
+  // ไม่ทับตอนกำลังพิมพ์อยู่ — renderAll() วิ่งผ่านตรงนี้ได้ทุกวินาที
+  if (hi && document.activeElement !== hi) hi.value = frHandle || '';
+
+  const hits = document.getElementById('frHits');
+  if (hits) {
+    if (frHits === null) hits.innerHTML = '';
+    else if (!frHits.length) hits.innerHTML = `<p class="fr-note">ไม่เจอใครชื่อนี้ — ลองถามเพื่อนว่าชื่อผู้ใช้ของเขาสะกดยังไง</p>`;
+    else hits.innerHTML = frHits.map(p => `<div class="fr-card">
+        ${frAv(p)}
+        <div class="fr-bd">${frName(p)}</div>
+        ${p.rel === 'friends' ? '<span class="fr-tag">เพื่อนแล้ว</span>'
+          : p.rel === 'sent' ? '<span class="fr-tag wait">รอเขารับ</span>'
+          : `<button class="fr-go" onclick="addPerson('${esc(p.id)}')">${
+              p.rel === 'incoming' ? 'ตอบรับ' : 'เพิ่ม'}</button>`}
+      </div>`).join('');
+  }
+
+  const rq = document.getElementById('frReqBox');
+  if (rq) {
+    rq.innerHTML = !frReqs.length ? '' : `<div class="sec-label">คำขอที่รอคุณตอบ · ${frReqs.length}</div>`
+      + frReqs.map(p => `<div class="fr-card req">
+          ${frAv(p)}
+          <div class="fr-bd">${frName(p)}</div>
+          <button class="fr-go" onclick="answerReq('${esc(p.id)}', true)">รับ</button>
+          <button class="fr-no" onclick="answerReq('${esc(p.id)}', false)">ไม่</button>
+        </div>`).join('');
+  }
+
+  const lb = document.getElementById('frListBox');
+  if (!lb) return;
+  lb.innerHTML = `<div class="sec-label">เพื่อน${frList.length ? ' · ' + frList.length + ' คน' : ''}</div>`
+    + (frList.length ? frList.map(p => `<div class="fr-card">
+        ${frAv(p)}
+        <div class="fr-bd">${frName(p)}
+          ${p.strong && p.strong.length ? `<div class="fr-st">ถนัด ${esc(p.strong.slice(0, 3).join(' · '))}</div>` : ''}
+        </div>
+        <button class="fr-del" onclick="removeFriend('${esc(p.id)}', '${esc((p.display_name || '').replace(/'/g, ''))}')"
+          aria-label="เอาออก">${icon('trash')}</button>
+      </div>`).join('')
+      : `<p class="fr-note">ยังไม่มีเพื่อน — ส่งชื่อผู้ใช้ <b>@${esc(frHandle || '…')}</b> ให้เพื่อน
+         แล้วให้เขาค้นหาคุณ หรือค้นหาชื่อของเขาในช่องด้านบน</p>`);
 }
 
 // ---------- บริบทของฉัน (ตารางเรียน · กิจวัตร · เวลานอน) ----------
@@ -6013,17 +6127,13 @@ function renderTabBadges() {
     dot.setAttribute('aria-label', waiting ? 'มีของรางวัลรายวันรอรับ' : '');
   }
 
-  // ปุ่มเพื่อนมุมขวาบน — ขึ้นจำนวนเพื่อนที่มีในรายการ
+  // ปุ่มเพื่อนมุมขวาบน — ขึ้นจำนวนคำขอที่รอเราตอบ ไม่ใช่จำนวนเพื่อน
+  // เลขบนแบดจควรแปลว่า "มีอะไรรอให้กด" เสมอ · จำนวนเพื่อนไม่มีอะไรให้กด
   const fb = document.getElementById('friendsBadge');
   if (fb) {
-    const n = friends().length;
+    const n = frReqs.length;
     fb.hidden = !n;
     fb.textContent = n > 9 ? '9+' : n;
-  }
-  const fsub = document.getElementById('friendsSub');
-  if (fsub) {
-    const n = friends().length;
-    fsub.textContent = n ? n + ' คนในรายการ · ดูสถานะและผลของเพื่อน' : 'ดูสถานะและผลของเพื่อน';
   }
 }
 
@@ -9647,8 +9757,10 @@ function routeAfterLogin() {
   // แล้วถูกส่งกลับมาที่หน้าแรก ส่วนใหญ่ไม่เดินกลับไปหน้าเพื่อนเองอีก
   // (ธงถูกลบทิ้งตอนอ่าน จึงมีผลครั้งเดียวต่อการล็อกอินหนึ่งครั้ง)
   const back = typeof takeAfterLogin === 'function' ? takeAfterLogin() : null;
-  if (back === 'scr-mates') {
-    if (typeof openFeed === 'function') openFeed();
+  if (back === 'scr-mates' || back === 'scr-friends') {
+    // กดล็อกอินจากแท็บ "เพื่อนฉัน" ต้องกลับมาที่แท็บนั้น ไม่ใช่โผล่ที่ฟีด
+    // แล้วให้เขาหาทางกลับมาเอง — ซึ่งเป็นทางที่เขาหาไม่เจอมาแล้วสามรอบ
+    if (typeof openFeed === 'function') openFeed(back === 'scr-friends' ? 'friends' : 'feed');
     return;
   }
   go('scr-menu');

@@ -270,7 +270,7 @@
          เลขรุ่นเป็นข้อมูลของคนทำแอป ไม่ใช่ของนักเรียน และมันนั่งทับตำแหน่งที่มีค่าที่สุดของจอ
          คนที่อยากรู้เลขรุ่นยังดูได้ที่แท็บ "ฉัน" (#appVer) ซึ่งบอกครบกว่าเดิมอยู่แล้ว -->
     <!-- ALT 1A6M3: ทางเข้าระบบเพื่อน — มุมขวาบน ไม่กินช่องในเมนูหลัก -->
-    <button class="top-friends" onclick="go('scr-friends')" aria-label="เพื่อน">
+    <button class="top-friends" onclick="openFeed('friends')" aria-label="เพื่อน">
       <svg viewBox="0 0 24 24"><use href="#lu-users"/></svg>
       <span class="tf-badge" id="friendsBadge" hidden></span>
     </button>
@@ -684,9 +684,10 @@
 
       <!-- ============ SCREEN: เพื่อน (ALT 1A6M3) ============ -->
       <!-- ดูสถานะและผลของเพื่อน · วาดจาก state ใน renderFriends -->
-      <div class="screen flush" id="scr-friends">
-        <div class="scr-body fr-body" id="friendsBody"></div>
-      </div>
+      <!-- จอ "เพื่อน" ถูกยุบเข้าไปเป็นแท็บหนึ่งของ #scr-mates แล้วใน 1B18 —
+           #friendsBody ถูกสร้างโดย renderFeed() ตอนอยู่โหมด friends
+           ห้ามเอา div เปล่ากลับมาไว้ตรงนี้ เพราะ id ซ้ำสองที่แปลว่า renderFriends()
+           จะไปวาดใส่ตัวที่ซ่อนอยู่ แล้วจอที่ผู้ใช้มองอยู่ว่างเปล่าโดยไม่มี error -->
 
       <!-- ============ SCREEN: PROFILE ============ -->
       <div class="screen flush" id="scr-profile">
@@ -779,7 +780,7 @@
               <span class="pe-tx"><b>เหรียญตรา</b><i id="peBadgeCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button class="pe" onclick="go('scr-friends')">
+            <button class="pe" onclick="openFeed('friends')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
               <span class="pe-tx"><b>เพื่อน</b><i id="peFriendCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
@@ -1005,7 +1006,7 @@
               <svg viewBox="0 0 24 24"><use href="#lu-bag"/></svg><span>ร้านค้า</span></button>
             <button type="button" onclick="go('scr-badges')">
               <svg viewBox="0 0 24 24"><use href="#lu-medal"/></svg><span>เหรียญตรา</span></button>
-            <button type="button" onclick="go('scr-friends')">
+            <button type="button" onclick="openFeed('friends')">
               <svg viewBox="0 0 24 24"><use href="#lu-users"/></svg><span>เพื่อน</span></button>
             <button type="button" onclick="go('scr-pro')">
               <svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg><span>Pro</span></button>
