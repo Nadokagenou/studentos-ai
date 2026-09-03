@@ -19,6 +19,11 @@
 
 /* ---------- แผ่นรายงาน ---------- */
 .rp-sheet { position: absolute; inset: 0; z-index: 60; display: flex; align-items: flex-end; }
+/* display:flex ข้างบนชนะ display:none ที่มากับแอตทริบิวต์ hidden ของเบราว์เซอร์
+   ถ้าไม่มีบรรทัดนี้ แผ่นรายงานจะกางเต็มจอแบบใสสนิทตลอดเวลา (z-index 60 ทับทุกอย่าง)
+   แล้วกินการแตะทั้งแอปรวมถึงแถบล่าง โดยไม่มีอะไรบนจอบอกว่ามีของบังอยู่
+   แผ่นอื่นทุกใบ (#tlSheet · .add-sheet) มีบรรทัดคู่กันนี้อยู่แล้ว ใบนี้ตกไปใบเดียว */
+.rp-sheet[hidden] { display: none; }
 .rp-back { position: absolute; inset: 0; background: rgba(6, 9, 18, .55); }
 .rp-card {
   position: relative; width: 100%;
