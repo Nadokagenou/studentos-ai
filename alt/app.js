@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B20';                 // สายเลขของแอป
-const APP_CODENAME = 'Buckets';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1B21';                 // สายเลขของแอป
+const APP_CODENAME = 'Doorway';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -888,6 +888,9 @@ function go(id) {
   enterTimer = setTimeout(() => scr.classList.remove('just-in'), 520);
   // ซ่อนแถบล่างในจอที่ยังไม่ได้เข้าแอปจริง (บัญชี / ทำความรู้จัก)
   document.body.classList.toggle('login-mode', id === 'scr-login' || id === 'scr-onboard');
+  // ปุ่มช่องทางล็อกอินวาดด้วย JS (รายชื่อมาจาก config) และต้องรีเซ็ตกลับหน้าแรกของมัน
+  // ทุกครั้งที่กลับเข้าจอนี้ — ไม่ใช่ค้างอยู่ที่ช่องกรอกรหัสของรอบที่แล้ว
+  if (id === 'scr-login') { loginView = 'root'; renderLoginOpts(); loginNote(''); }
   // จอแชทซ่อนแถบล่างเหมือนจอล็อกอิน — ช่องพิมพ์ต้องติดก้นจอจริง ๆ
   // ไม่ใช่ลอยอยู่หลังแถบล่างจนกดไม่โดน · ออกจากจอนี้ได้ทางปุ่มย้อนกลับในหัวจอ
   document.body.classList.toggle('chat-mode', id === 'scr-chat' || id === 'scr-hw');
@@ -922,6 +925,9 @@ function go(id) {
 
 // ---------- cloud: Supabase auth + sync ----------
 let sb = null, currentUser = null, syncTimer = null, lastSync = null;
+// getSession() ตอบกลับมาแล้วหรือยัง — คนละเรื่องกับ "ตอบว่าไม่มี session"
+// เน็ตช้าจนหมดเวลา 6 วิ ไม่ใช่หลักฐานว่าเขาไม่ได้ล็อกอิน จึงห้ามเอาไปไล่คนไปจอบัญชี
+let sessionAnswered = false;
 
 function cloudConfigured() {
   const c = window.SUPABASE_CONFIG || {};
@@ -930,13 +936,24 @@ function cloudConfigured() {
 
 async function initCloud() {
   if (!cloudConfigured()) return;
-  sb = supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonKey);
+  // สามค่านี้เป็นค่าเริ่มต้นของไลบรารีอยู่แล้ว แต่เขียนไว้ให้เห็นกับตา เพราะทั้งสามตัว
+  // คือเงื่อนไขของ "ล็อกอินรอบเดียวพอ" — ถ้าตัวใดตัวหนึ่งถูกปิดโดยไม่ตั้งใจในอนาคต
+  // อาการที่ได้คือผู้ใช้ต้องล็อกอินใหม่เรื่อย ๆ ซึ่งเป็นอาการที่หาสาเหตุยากที่สุดแบบหนึ่ง
+  sb = supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonKey, {
+    auth: {
+      persistSession: true,      // เก็บ session ลง localStorage
+      autoRefreshToken: true,    // ต่ออายุ access token ให้เองก่อนหมด
+      detectSessionInUrl: true,  // รับ token ที่ผู้ให้บริการส่งกลับมาใน URL
+      storage: window.localStorage,
+    },
+  });
   // ไม่เคยมี try/catch หรือลิมิตเวลาตรงนี้ — เน็ตหลุดหรือ Supabase ตอบช้าตอนบูต
   // แปลว่า initApp โยน error ทิ้งค้างไว้โดยไม่มีใครจับ แล้วแอปค้างที่ฉากเปิดถาวร
   // ล้มแบบเงียบแล้วเข้าแอปในสถานะยังไม่ล็อกอิน ดีกว่าค้างจนใช้อะไรไม่ได้เลย
   let session = null;
   try {
     ({ data: { session } } = await withTimeout(sb.auth.getSession(), 6000, 'เชื่อมบัญชี'));
+    sessionAnswered = true;   // ได้คำตอบจริง — จะตอบว่ามีหรือไม่มีก็เชื่อได้ทั้งคู่
   } catch (e) { console.warn('[cloud] getSession failed:', e.message); }
   currentUser = session ? session.user : null;
   sb.auth.onAuthStateChange((event, sess) => {
@@ -1089,21 +1106,159 @@ function pushToCloud(immediate) {
   syncTimer = setTimeout(doPush, 1500);
 }
 
-function loginGoogle(retriesLeft = 15) {
+// ---------- ล็อกอินหลายช่องทาง ----------
+// ผู้ให้บริการที่ "โผล่เป็นปุ่ม" มาจาก config.js ไม่ได้ฮาร์ดโค้ดไว้ตรงนี้ เพราะการเปิดใช้
+// แต่ละเจ้าเป็นงานฝั่ง Supabase Dashboard (ใส่ Client ID/Secret) ที่โค้ดฝั่งนี้ทำแทนไม่ได้
+// ปุ่มที่กดแล้วขึ้น error ว่า "provider is not enabled" แย่กว่าปุ่มที่ไม่มี —
+// เพิ่มชื่อลง SUPABASE_CONFIG.providers หลังเปิดใช้ในแดชบอร์ดเสร็จแล้วเท่านั้น
+const OAUTH_META = {
+  google:   { name: 'Google',   badge: 'G',  cls: 'google' },
+  apple:    { name: 'Apple',    badge: '',  cls: 'apple' },
+  facebook: { name: 'Facebook', badge: 'f',  cls: 'facebook' },
+  azure:    { name: 'Microsoft', badge: '⊞', cls: 'ms' },
+};
+
+function loginProviders() {
+  const list = (window.SUPABASE_CONFIG || {}).providers;
+  return (Array.isArray(list) && list.length ? list : ['google']).filter(p => OAUTH_META[p]);
+}
+
+// เดิมชื่อ loginGoogle() และเรียกจากหลายที่ (ปุ่มบนจอ · ทางลัด ?start=google)
+// ชื่อเดิมยังใช้ได้อยู่ข้างล่าง จะได้ไม่ต้องไล่แก้ทุกจุดเรียกให้พลาดสักจุด
+function loginWith(provider, retriesLeft = 15) {
   // sb (ไคลเอนต์ Supabase) ตั้งค่าเสร็จใน initCloud() ซึ่งทำงานหลังจอแรก
   // วาดเสร็จไปแล้ว — กดปุ่มนี้เร็วมากตอนเพิ่งเปิดแอปจึงมีช่วงสั้น ๆ ที่ sb
   // ยังเป็น null อยู่ ทั้งที่ระบบบัญชีตั้งค่าไว้ถูกต้อง เคยขึ้น error หลอกผู้ใช้
   // ตรงนี้ว่า "ยังไม่เปิดใช้งาน" ทั้งที่ไม่จริง — ตอนนี้แค่รอเงียบ ๆ แล้วลองใหม่เอง
   // (เพดาน 15 ครั้ง × 200ms = 3 วิ กันไว้เผื่อจริง ๆ ไม่มีระบบบัญชี จะได้ไม่ค้างรอตลอดกาล)
   if (!sb) {
-    if (cloudConfigured() && retriesLeft > 0) setTimeout(() => loginGoogle(retriesLeft - 1), 200);
+    if (cloudConfigured() && retriesLeft > 0) setTimeout(() => loginWith(provider, retriesLeft - 1), 200);
     return;
   }
   sb.auth.signInWithOAuth({
-    provider: 'google',
+    provider,
     options: { redirectTo: location.origin + location.pathname },
   });
 }
+
+function loginGoogle(retriesLeft = 15) { loginWith('google', retriesLeft); }
+
+// ---------- ล็อกอินด้วยอีเมล (รหัส 6 หลัก) ----------
+// ช่องทางเดียวที่ไม่ต้องออกจากแอปไปเว็บของคนอื่นแล้วเดินทางกลับมา ซึ่งสำคัญกว่าที่คิด
+// สำหรับแอปที่ถูกติดตั้งบนหน้าจอโฮม: การเด้งออกไปเบราว์เซอร์คือจุดที่คนหลุดมากที่สุด
+// และเป็นทางสำรองเวลาที่บัญชี Google ของโรงเรียนถูกล็อกไม่ให้ล็อกอินแอปนอก
+let loginView = 'root';   // root | mail | code
+let mailAddr = '';
+let mailBusy = false;
+
+function setLoginView(v) {
+  loginView = v;
+  if (v === 'root') { mailAddr = ''; }
+  renderLoginOpts();
+  // โฟกัสช่องที่เพิ่งโผล่ ไม่งั้นผู้ใช้ต้องแตะอีกครั้งเพื่อเริ่มพิมพ์
+  setTimeout(() => {
+    const el = document.getElementById(v === 'mail' ? 'loginMail' : 'loginCode');
+    if (el) el.focus();
+  }, 60);
+}
+
+function loginNote(msg, bad) {
+  const n = document.getElementById('loginNote');
+  if (!n) return;
+  n.textContent = msg || '';
+  n.classList.toggle('bad', !!bad);
+}
+
+async function sendMailCode() {
+  const el = document.getElementById('loginMail');
+  const addr = (el ? el.value : '').trim();
+  // ตรวจแค่ว่า "มี @ และมีจุดหลัง @" — ไม่ต้องละเอียดกว่านี้ ตัวตัดสินจริงคือเมลที่ส่งถึงหรือไม่ถึง
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) {
+    loginNote('อีเมลยังไม่ถูกต้อง ลองดูอีกที', true); return;
+  }
+  if (!sb) { loginNote('ยังเชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง', true); return; }
+  if (mailBusy) return;
+  mailBusy = true; renderLoginOpts();
+  try {
+    // emailRedirectTo ต้องใส่ไว้เผื่อคนกดลิงก์ในเมลแทนการพิมพ์รหัส — Supabase ส่งมาให้ทั้งสองอย่าง
+    const { error } = await sb.auth.signInWithOtp({
+      email: addr,
+      options: { shouldCreateUser: true, emailRedirectTo: location.origin + location.pathname },
+    });
+    if (error) throw error;
+    mailAddr = addr;
+    mailBusy = false;
+    setLoginView('code');
+    loginNote('ส่งรหัส 6 หลักไปที่ ' + addr + ' แล้ว');
+  } catch (e) {
+    mailBusy = false; renderLoginOpts();
+    loginNote(e.message || 'ส่งรหัสไม่สำเร็จ ลองใหม่อีกครั้ง', true);
+  }
+}
+
+async function verifyMailCode() {
+  const el = document.getElementById('loginCode');
+  const code = (el ? el.value : '').replace(/\D/g, '');
+  if (code.length < 6) { loginNote('รหัสมี 6 หลัก', true); return; }
+  if (!sb || mailBusy) return;
+  mailBusy = true; renderLoginOpts();
+  try {
+    const { error } = await sb.auth.verifyOtp({ email: mailAddr, token: code, type: 'email' });
+    if (error) throw error;
+    // ไม่ต้องพาไปไหนเอง — onAuthStateChange รับช่วงต่อ (sync แล้วค่อย routeAfterLogin)
+    // เป็นทางเดียวกับที่ Google ใช้ ผลลัพธ์จึงเหมือนกันทุกช่องทาง
+    mailBusy = false;
+    loginView = 'root'; mailAddr = '';
+  } catch (e) {
+    mailBusy = false; renderLoginOpts();
+    loginNote(e.message || 'รหัสไม่ถูกต้องหรือหมดอายุแล้ว', true);
+  }
+}
+
+function renderLoginOpts() {
+  const el = document.getElementById('loginOpts');
+  if (!el) return;
+
+  if (loginView === 'mail') {
+    el.innerHTML = `<div class="lg-mail">
+      <label class="lg-lb" for="loginMail">อีเมลของคุณ</label>
+      <input class="lg-in" id="loginMail" type="email" inputmode="email"
+        autocomplete="email" placeholder="you@example.com" enterkeyhint="send"
+        onkeydown="if(event.key==='Enter')sendMailCode()">
+      <button class="btn google" onclick="sendMailCode()" ${mailBusy ? 'disabled' : ''}>
+        ${mailBusy ? 'กำลังส่ง…' : 'ส่งรหัส 6 หลัก'}</button>
+      <button class="lg-back" onclick="setLoginView('root')">← กลับไปเลือกช่องทางอื่น</button>
+    </div>`;
+    return;
+  }
+
+  if (loginView === 'code') {
+    el.innerHTML = `<div class="lg-mail">
+      <label class="lg-lb" for="loginCode">รหัสที่ส่งไปที่ ${esc(mailAddr)}</label>
+      <input class="lg-in code" id="loginCode" type="text" inputmode="numeric"
+        autocomplete="one-time-code" maxlength="6" placeholder="000000" enterkeyhint="go"
+        onkeydown="if(event.key==='Enter')verifyMailCode()">
+      <button class="btn google" onclick="verifyMailCode()" ${mailBusy ? 'disabled' : ''}>
+        ${mailBusy ? 'กำลังตรวจ…' : 'ยืนยันรหัส'}</button>
+      <button class="lg-back" onclick="sendMailCode()">ส่งรหัสใหม่อีกครั้ง</button>
+      <button class="lg-back" onclick="setLoginView('mail')">← ใช้อีเมลอื่น</button>
+    </div>`;
+    return;
+  }
+
+  const provs = loginProviders().map(p => {
+    const m = OAUTH_META[p];
+    return `<button class="btn ${m.cls}" onclick="loginWith('${p}')">
+      <span class="g-badge">${m.badge}</span> เข้าสู่ระบบด้วย ${m.name}</button>`;
+  }).join('');
+
+  el.innerHTML = provs
+    + `<button class="btn mail" onclick="setLoginView('mail')">
+        <span class="g-badge">@</span> เข้าสู่ระบบด้วยอีเมล</button>`
+    + `<div class="lg-or"><i></i>หรือ<i></i></div>`
+    + `<button class="btn ghost" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>`;
+}
+
 
 function skipLogin() {
   localStorage.setItem('studentos.alt.skipLogin', '1');
@@ -1664,52 +1819,43 @@ function nowCard(sp, now) {
   // ---- วงแหวนความคืบหน้า ----
   // ขึ้นเฉพาะตอนมีความคืบหน้าจริง · งานที่ยังไม่เริ่มไม่ควรได้วงแหวน 0% เพราะวงกลมเปล่า
   // กินที่เท่ากับวงกลมที่มีข้อมูล แล้วบอกสิ่งที่ปุ่ม "เริ่มทำเลย" ข้างบนบอกไปแล้ว
-  const CIRC = 113.1; // 2πr เมื่อ r = 18 ในกรอบ 44×44
+  // วงแหวน 44px กลายเป็นแถบสูง 4 พิกเซล — มันบอกอย่างเดียวกัน ("ทำไปกี่ %")
+  // แต่ไม่ต้องขอแถวของตัวเอง และตัวเลข % ยังอยู่ครบในบรรทัดข้อเท็จจริงข้างบนมัน
   const hasProg = prog > 0 && prog < 100;
-  const ring = !hasProg ? '' : `<div class="tn-prog">
-      <span class="tp-ring">
-        <svg viewBox="0 0 44 44" aria-hidden="true">
-          <circle class="tr-bg" cx="22" cy="22" r="18"></circle>
-          <circle class="tr-fg" cx="22" cy="22" r="18"
-            stroke-dasharray="${CIRC}" stroke-dashoffset="${(CIRC * (1 - prog / 100)).toFixed(1)}"></circle>
-        </svg><b>${prog}%</b>
-      </span>
-      <span class="tp-tx"><i>ความคืบหน้า</i><b>${Math.round(goalMin * prog / 100)} / ${goalMin} นาที</b></span>
-    </div>`;
+
+  // ---- 1B21: การ์ดใบนี้เป็นหัวของเส้นเวลา ไม่ใช่ทั้งจออีกต่อไป ----
+  //
+  // ของเดิมกินพื้นที่ราวครึ่งจอเพื่อบอกงานใบเดียว โดยเสียไปกับสิ่งที่ไม่ได้เปลี่ยนการตัดสินใจ:
+  // ไอคอนเป้า 40px ที่ยืนเดี่ยวบนแถวของตัวเอง · กล่องสองใบ "เวลาเริ่ม / เป้าหมาย" ที่ใส่
+  // ตัวเลขละห้าตัวอักษรลงในกรอบสูง 64px · แล้วแถวปุ่ม "เสร็จแล้ว / ยังไม่ไหว" อีกแถวเต็ม
+  // ผลคือคนที่มีงานค้าง 11 ใบเปิดแอปมาเห็นงานเดียวครึ่งจอ แล้วต้องเลื่อนถึงจะรู้ว่าเย็นนี้มีอะไร
+  //
+  // ตัวเลขสองตัวนั้นย้ายมาอยู่บรรทัดข้อเท็จจริงบรรทัดเดียว (ยาว ~20 ตัวอักษร)
+  // ปุ่มสองปุ่มกลายเป็นไอคอนที่นั่งข้างปุ่มหลักในแถวเดียวกัน · วงแหวนความคืบหน้ากลายเป็นแถบบาง
+  // ที่เหลือคือของที่ต้องอ่านจริง: ทำอะไร · ทำไมใบนี้ · กดเริ่มตรงไหน
+  const facts = [startTx === 'ยังไม่มีคิว' ? startTx : 'เริ่ม ' + startTx,
+    goalMin + ' นาที', hasProg ? 'ทำไป ' + prog + '%' : ''].filter(Boolean).join(' · ');
 
   return `<section class="td-now ${tone}${running ? ' running' : ''}">
     <div class="tn-top">
-      <span class="tn-mark">${icon('target')}</span>
+      <span class="tn-eyebrow">${running ? 'กำลังทำอยู่' : 'ตอนนี้'}${subj ? ' · ' + esc(subj) : ''}</span>
       <span class="tn-pill ${tone}">${pillIc ? icon(pillIc) : ''}${esc(pillTx)}</span>
     </div>
 
-    <div class="tn-eyebrow">โฟกัสวันนี้${subj ? ' · ' + esc(subj) : ''}</div>
     <h2 class="tn-title">${esc(t.detail || 'งานนี้')}</h2>
     <div class="tn-why ${tone}">${esc(whyBits.join(' · '))}</div>
+    <div class="tn-facts mono">${esc(facts)}</div>
+    ${hasProg ? `<div class="tn-bar"><i style="width:${prog}%"></i></div>` : ''}
 
-    <div class="tn-stats">
-      <div class="tn-stat">
-        <span class="ts-ic">${icon('clock')}</span>
-        <span class="ts-tx"><i>เวลาเริ่ม</i><b>${esc(startTx)}</b></span>
-      </div>
-      <div class="tn-stat">
-        <span class="ts-ic">${icon('target')}</span>
-        <span class="ts-tx"><i>เป้าหมาย</i><b>${goalMin} นาที</b></span>
-      </div>
-    </div>
-
-    <button class="tn-cta" onclick="startFocus('${t.id}')">
-      <span class="tc-main">${icon(running ? 'clock' : 'play')}${
-        running ? 'กลับเข้าโหมดโฟกัส' : (n.step ? 'เริ่ม ' + n.step.min + ' นาทีแรก' : 'เริ่มทำเลย')}</span>
-      ${n.step && !running ? `<span class="tc-sub">${esc(n.step.title)}</span>` : ''}
-    </button>
-
-    <div class="tn-foot${hasProg ? '' : ' noprog'}">
-      ${ring}
-      <div class="tn-acts">
-        <button class="ta-done" onclick="toggleDone('${t.id}',this)">${icon('check')}เสร็จแล้ว</button>
-        <button onclick="notNow('${t.id}')">ยังไม่ไหว</button>
-      </div>
+    <div class="tn-row">
+      <button class="tn-cta" onclick="startFocus('${t.id}')">
+        <span class="tc-main">${icon(running ? 'clock' : 'play')}${
+          running ? 'กลับเข้าโหมดโฟกัส' : (n.step ? 'เริ่ม ' + n.step.min + ' นาทีแรก' : 'เริ่มทำเลย')}</span>
+      </button>
+      <button class="tn-ib done" onclick="toggleDone('${t.id}',this)"
+        aria-label="ทำเสร็จแล้ว">${icon('check')}</button>
+      <button class="tn-ib" onclick="notNow('${t.id}')"
+        aria-label="ยังไม่ไหว เลื่อนไปก่อน">${icon('clock')}</button>
     </div>
 
     ${noDue ? `<button class="tn-ask" onclick="openForm('${t.id}')">
@@ -1748,126 +1894,98 @@ function homeSplit(sp, now) {
   return { reminders: rem.slice(0, 3), rest: rest.concat(rem.slice(3)) };
 }
 
-// ---------- NEXT ----------
-// ตอบคำถามเดียว: "แล้วอะไรต่อ" — ใบเดียวพอ
+// ============================================================
+// เส้นเวลาของวัน — ของเดิมสามก้อน ตอนนี้ก้อนเดียว
+// ============================================================
+// จอ "วันนี้" เคยตอบเป็นสามบล็อกที่ไม่รู้จักกัน: "ถัดไป" หนึ่งใบ · "เตือนความจำ" อีกกอง ·
+// แล้ว "แผนวันนี้" ที่พับไว้ข้างล่างสุด สามก้อนนี้พูดเรื่องเดียวกัน (เย็นนี้มีอะไรบ้าง)
+// ด้วยหัวข้อสามหัวข้อและกฎการเรียงคนละแบบ — ผู้ใช้จึงต้องประกอบวันของตัวเองในหัวเอง
+// จากของสามกองที่ไม่ได้เรียงตามเวลาร่วมกันเลย
 //
-// ของเดิมมีกอง "ไว้ทีหลัง" อีกสองแถวต่อท้าย ซึ่งเป็นการเอางานอันดับ 3 กับ 4 มาวางไว้ใต้จมูก
-// ทั้งที่จอนี้เพิ่งบอกไปสองบรรทัดข้างบนว่าให้ทำอันดับ 1 · รายการเต็มอยู่ในแท็บ "งาน" อยู่แล้ว
-// บรรทัดเดียวว่า "ยังเหลืออีก N งาน" ให้ข้อมูลเท่ากันในหนึ่งในสิบของพื้นที่
+// รางเดียวที่เรียงตามเวลาตอบได้ครบด้วยที่เท่าเดิม: งานที่จัดคิวไว้ · ช่วงพัก · กิจกรรม
+// ที่ถึงเวลาต้องไป · จนถึงเส้นปิดของวัน ทุกอย่างอยู่บนแกนเดียวกัน ไม่ต้องกดกางอะไรอีก
 //
-// เคยต่อท้ายว่า "— ยังไม่ถึงคิววันนี้" ซึ่งเป็นคำอธิบายที่ไม่มีใครต้องการ:
-// จอนี้ทั้งจอพูดเรื่องคิวของวันนี้อยู่แล้ว ของที่ไม่ได้อยู่ในนั้นก็คือของที่ไม่ได้อยู่ในนั้น
-function upNext(sp, split, now) {
-  const rest = split.rest.length;
-  if (!sp.next && !rest) return '';
-  if (!sp.next) {
-    return `<button class="tu-more solo" onclick="go('scr-tasks')">
-      ยังเหลืออีก ${rest} งาน${icon('chevron')}</button>`;
+// สิ่งที่หายไปโดยตั้งใจคือปุ่มพับ "แผนวันนี้" (planOpen/togglePlan) — เมื่อรางไม่ได้ยาว
+// จนดันจอแล้ว การซ่อนมันไว้หลังการกดหนึ่งครั้งไม่ได้ประหยัดอะไร นอกจากทำให้คนไม่เจอ
+function dayRail(sp, split, now) {
+  const rows = [];
+  const nowTask = sp.now ? sp.now.task : null;
+  let headSkipped = false;
+
+  for (const s of sp.plan.slots) {
+    // ช่องแรกของงานที่กำลังโชว์เป็นการ์ดหัวราง = การ์ดใบนั้นเอง ไม่ต้องมีแถวซ้ำ
+    // (ช่องที่สองของงานเดียวกันยังต้องขึ้น — มันคือ "กลับมาทำต่อสองทุ่ม" ซึ่งเป็นข้อมูลใหม่)
+    if (!s.break && nowTask && s.task === nowTask && !headSkipped) { headSkipped = true; continue; }
+    rows.push({ at: s.start, slot: s, kind: s.break ? 'brk' : 'work' });
   }
 
-  const t = sp.next.task, slot = sp.next.slot;
-  const end = new Date(slot.start.getTime() + slot.min * 60000);
-  const meta = [t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '',
-    slot.min + ' นาที'].filter(Boolean).join(' · ');
+  // กิจกรรมและของที่ต้องจำ — มาจาก homeSplit ซึ่งกันงานที่โชว์เป็นการ์ดหัวรางออกไปแล้ว
+  for (const t of split.reminders) rows.push({ at: new Date(t.due), task: t, kind: 'rem' });
 
-  return `<section class="td-up">
-    <div class="tu-lb">ถัดไป</div>
-    <button class="tu-row ${subjClass(t.subject)}" onclick="startFocus('${t.id}')">
-      <span class="tu-ic">${icon('calendar')}</span>
-      <span class="tu-tx">
-        <span class="tu-when">${fmtClock(slot.start)} – ${fmtClock(end)}</span>
-        <b>${esc(t.detail || t.subject || 'งานถัดไป')}</b>
-        <span class="tu-meta">${esc(meta)}</span>
-      </span>
-      <span class="tu-go">${icon('chevron')}</span>
-    </button>
-    ${rest ? `<button class="tu-more" onclick="go('scr-tasks')">
-      ยังเหลืออีก ${rest} งาน${icon('chevron')}</button>` : ''}
-  </section>`;
-}
+  rows.sort((a, b) => a.at - b.at);
 
-// ---------- เตือนความจำ ----------
-// สองบรรทัดต่อใบ ไม่มีปุ่มลงมือ เพราะไม่มีอะไรให้ลงมือ — มันคือของที่ต้องไปให้ทันเวลาเท่านั้น
-// สีมาจากเวลาอย่างเดียว (เลยแล้ว / ภายใน 12 ชม. / ที่เหลือ) ไม่ใช่จากคะแนนความสำคัญ
-// ความสำคัญเป็นเรื่องของการจัดคิว และของพวกนี้ไม่ได้เข้าคิว
-function remindersBlock(list, now) {
-  if (!list.length) return '';
-  return `<section class="td-rem">
-    <div class="tu-lb">เตือนความจำ</div>
-    ${list.map(t => {
-      const due = new Date(t.due);
-      const late = due < now;
-      const soon = !late && (due - now) <= 12 * 3.6e6;
-      const tone = late ? 'late' : soon ? 'soon' : '';
-      return `<button class="tm-row" onclick="openForm('${t.id}')">
-        <span class="tm-ic ${tone}">${icon(taskType(t) === 'activity' ? 'flag' : 'pin')}</span>
-        <span class="tm-tx">
-          <b>${esc(t.detail || t.subject || typeInfo(t).name)}</b>
-          <span class="${tone}">${esc(late ? 'เลยกำหนดมา ' + overdueFor(now - due)
-            : fmtDue(t.due, now, t))}</span>
-        </span>
-        <span class="tm-go">${icon('chevron')}</span>
+  // เส้นปิดของวัน — ปลายของช่วงว่างก้อนสุดท้ายที่ตัวจัดแผนยอมใช้
+  // ไม่ใช่ของประดับ: มันคือคำตอบของ "แล้วเหลือเวลาถึงกี่โมง" ซึ่งเป็นสิ่งที่ทำให้แถวข้างบน
+  // มีความหมาย — งานสี่ใบก่อนสามทุ่มกับงานสี่ใบก่อนเที่ยงคืนเป็นคนละสถานการณ์
+  const wslots = (sp.plan.windows && sp.plan.windows.slots) || [];
+  const endHm = wslots.length ? wslots[wslots.length - 1].toHm : '';
+
+  const dayTx = d => d.toDateString() === now.toDateString() ? fmtClock(d)
+    : (d - now) / 8.64e7 < 2 ? 'พรุ่งนี้' : fmtThaiDate(d);
+
+  const body = rows.map(r => {
+    if (r.kind === 'brk') {
+      return `<div class="dr-row brk">
+        <span class="dr-t mono">${fmtClock(r.at)}</span>
+        <span class="dr-b">พัก ${r.slot.min} นาที</span>
+      </div>`;
+    }
+    if (r.kind === 'rem') {
+      const t = r.task;
+      const late = r.at < now;
+      return `<button class="dr-row rem${late ? ' late' : ''}" onclick="openForm('${t.id}')">
+        <span class="dr-t mono">${esc(dayTx(r.at))}</span>
+        <span class="dr-b"><b>${esc(t.detail || t.subject || typeInfo(t).name)}</b>
+          <span class="dr-m">${esc(late ? 'เลยกำหนดมา ' + overdueFor(now - r.at)
+            : typeInfo(t).name)}</span></span>
+        <span class="dr-go">${icon('chevron')}</span>
       </button>`;
-    }).join('')}
-  </section>`;
+    }
+    const s = r.slot, t = s.task;
+    const meta = [t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '', s.min + ' นาที',
+      s.partial ? 'ทำบางส่วน' : ''].filter(Boolean).join(' · ');
+    return `<button class="dr-row ${subjClass(t.subject)}" onclick="startFocus('${t.id}')">
+      <span class="dr-t mono">${fmtClock(s.start)}</span>
+      <span class="dr-b"><b>${esc(t.detail || t.subject || 'งาน')}</b>
+        <span class="dr-m">${esc(meta)}</span></span>
+      <span class="dr-go">${icon('chevron')}</span>
+    </button>`;
+  }).join('');
+
+  const rest = split.rest.length;
+  // ไม่มีอะไรบนราง = ไม่ต้องมีราง · เส้นปิดวันเดี่ยว ๆ ใต้หัวข้อ "ที่เหลือของวันนี้"
+  // อ่านออกมาว่ามีอะไรอยู่แล้วต้องมองหา ทั้งที่ไม่มี — แย่กว่าไม่ขึ้นอะไรเลย
+  if (!rows.length) {
+    return rest ? `<button class="dr-more" onclick="go('scr-tasks')">
+      ยังเหลืออีก ${rest} งาน${icon('chevron')}</button>` : '';
+  }
+
+  return `<section class="td-rail">
+    <div class="dr-lb">ที่เหลือของวันนี้</div>
+    ${body}
+    ${endHm ? `<div class="dr-row end">
+      <span class="dr-t mono">${esc(endHm)}</span>
+      <span class="dr-b">หมดเวลาว่างของวันนี้</span>
+    </div>` : ''}
+  </section>
+  ${rest ? `<button class="dr-more" onclick="go('scr-tasks')">
+    ยังเหลืออีก ${rest} งาน — ยังไม่ได้ลงคิววันนี้${icon('chevron')}</button>` : ''}`;
 }
 
-// ---------- แผนวันนี้ (ของประกอบ ไม่ใช่คำตอบ — จึงพับไว้) ----------
-// รางเวลาเคยกางอยู่ตลอด แล้วดันหน้าแรกยาวเกินหนึ่งจอทันทีที่มีสามงานขึ้นไป
-// ซึ่งแลกไม่คุ้ม: สองบรรทัดแรกของรางพูดเรื่องเดียวกับการ์ด NOW กับแถว "ถัดไป" ที่อ่านไปแล้ว
-// สิ่งที่รางมีของตัวเองจริง ๆ คือ "รูปร่างของทั้งเย็น" ซึ่งเป็นของที่คนอยากดูตอนวางแผน
-// ไม่ใช่ตอนเปิดแอปมาถามว่าทำอะไรก่อน — หัวข้อที่กดกางจึงตรงกับจังหวะที่คนอยากได้มันจริง ๆ
-//
-// สถานะกาง/พับอยู่ในตัวแปรธรรมดา ไม่ได้เขียนลง localStorage โดยตั้งใจ:
-// มันเป็นความสนใจของ "รอบนี้" ไม่ใช่การตั้งค่า · เปิดแอปใหม่ควรกลับมาที่คำตอบสั้นที่สุดเสมอ
-let planOpen = false;
-
-function togglePlan() {
-  planOpen = !planOpen;
-  haptic('tap');
-  renderMenu();
-}
-
-function planStrip(sp, now) {
-  const p = sp.plan;
-  if (!p.slots.length) return '';
-  const nowTask = sp.now && sp.now.task;
-  const nextTask = sp.next && sp.next.task;
-  let markedNow = false, markedNext = false;
-  const work = p.slots.filter(s => !s.break).length;
-
-  const rail = !planOpen ? '' : `<div class="tp-rail">
-      ${p.slots.map(s => {
-        if (s.break) return `<div class="tp-row brk"><span class="mono">${fmtClock(s.start)}</span>
-          <span class="tp-tx">พัก ${s.min} นาที</span></div>`;
-        // ติดป้ายเฉพาะช่องแรกของงานนั้น — งานที่ถูกหั่นสองช่วงไม่ควรได้ป้าย "ตอนนี้" สองอัน
-        let pill = '';
-        if (nowTask && s.task === nowTask && !markedNow) { pill = 'now'; markedNow = true; }
-        else if (nextTask && s.task === nextTask && !markedNext) { pill = 'next'; markedNext = true; }
-        return `<div class="tp-row ${subjClass(s.task.subject)}${pill === 'now' ? ' cur' : ''}"
-            onclick="startFocus('${s.task.id}')">
-          <span class="mono">${fmtClock(s.start)}</span>
-          <span class="tp-tx">
-            <b>${esc(s.task.detail || s.task.subject)}</b>
-            <span>${s.min} นาที${s.partial ? ' · จาก ' + remainingMin(s.task) + ' นาที' : ''}</span>
-          </span>
-          ${pill ? `<span class="tp-pill ${pill}">${pill === 'now' ? 'ตอนนี้' : 'ถัดไป'}</span>` : ''}
-          <span class="tp-go">${icon('chevron')}</span>
-        </div>`;
-      }).join('')}
-    </div>
-    <button class="tp-all" onclick="go('scr-timeline')">ดูตารางทั้งวัน${icon('chevron')}</button>`;
-
-  return `<section class="td-plan${planOpen ? ' open' : ''}">
-    <button class="tp-fold" onclick="togglePlan()" aria-expanded="${planOpen}">
-      <span class="tp-fic">${icon('calendar')}</span>
-      <span class="tp-ftx"><b>แผนวันนี้</b><span>${work} ช่วง · ${esc(humanMin(p.usedMin))}${
-        p.bufferMin ? ' · เผื่อไว้ ' + p.bufferMin + ' นาที' : ''}</span></span>
-      <span class="tp-fgo">${icon('chevron')}</span>
-    </button>
-    ${rail}
-  </section>`;
-}
+// ---------- ของที่ถูกยุบเข้าไปใน dayRail() แล้วใน 1B21 ----------
+// upNext() · remindersBlock() · planStrip() + planOpen/togglePlan ถูกลบทิ้งทั้งหมด
+// ไม่ได้ย้ายไปไหน — งานของทั้งสามอย่างคือ "เย็นนี้มีอะไรบ้าง" ซึ่งรางเวลาตอบครบในก้อนเดียว
+// CSS ของเดิม (.td-up .td-rem .td-plan .tp-*) ยังอยู่ใน today.css เผื่อต้องถอยกลับ
 
 // ---------- ช่องถามน้องไซ ----------
 // อยู่ท้ายเนื้อหา ไม่ใช่บนหัวจอ — ตำแหน่งนี้คือคำสารภาพว่าจอข้างบนตอบไม่ครบทุกกรณี
@@ -1985,10 +2103,10 @@ function renderMenu() {
   // มีงานแต่ไม่มีเวลา ≠ ไม่มีงาน — สองอย่างนี้ต้องพูดคนละแบบ
   const outOfTime = sp.now && !sp.plan.slots.length;
   body.innerHTML = todayHead(sp, now)
-    + (sp.now ? nowCard(sp, now) + upNext(sp, split, now)
-                + remindersBlock(split.reminders, now)
-                + (outOfTime ? noTimeLeft(sp, now) : planStrip(sp, now))
-              : todayEmpty(now, split.reminders.length > 0) + remindersBlock(split.reminders, now))
+    + (sp.now ? nowCard(sp, now)
+                + (outOfTime ? noTimeLeft(sp, now) : '')
+                + dayRail(sp, split, now)
+              : todayEmpty(now, split.reminders.length > 0) + dayRail(sp, split, now))
     + askBar()
     + ctxNudge(sp.plan.windows);
 
@@ -3525,6 +3643,14 @@ function tlModeTabs() {
     <button class="tlm${onList ? ' on' : ''}" onclick="goTlMode('list')">รายการงาน</button>
   </div>`;
 }
+
+// แท็บ "งาน" บนแถบล่างเปิดที่ "รายวัน" เสมอ
+//
+// เดิมมันชี้ตรงไปที่ scr-tasks = โหมด "รายการงาน" ซึ่งเป็นตัวขวาสุดของสวิตช์สามช่อง
+// คนอ่านซ้ายไปขวา ตัวที่ถูกเลือกอยู่จึงควรเป็นตัวซ้ายสุด ไม่งั้นจอเปิดมาพร้อมความรู้สึกว่า
+// "ข้ามอะไรไปหรือเปล่า" · และคำถามแรกของคนเปิดแท็บงานคือ "วันนี้มีอะไร" ไม่ใช่ "ทั้งหมดมีกี่ใบ"
+// (รายการงานยังอยู่ที่เดิม ห่างไปหนึ่งแตะ)
+function goTasksTab() { goTlMode('day'); }
 
 function goTlMode(m) {
   if (m === 'list') { go('scr-tasks'); return; }
@@ -9731,14 +9857,25 @@ function stopFunFacts(el) {
 //
 // อ่านแค่ว่า "มีโทเคนที่ยังไม่หมดอายุอยู่ไหม" ไม่ได้เอาไปใช้ยืนยันตัวตน
 // การยืนยันจริงยังเป็นหน้าที่ของ initCloud() เหมือนเดิม
+// "เครื่องนี้เคยล็อกอินค้างไว้ไหม" — ตอบก่อนที่ Supabase จะตอบกลับมา ใช้เดาว่าจอแรกคือจออะไร
+//
+// เดิมเช็ค expires_at ว่ายังไม่หมดอายุ ซึ่งเป็นคำถามผิด: access token มีอายุแค่ 1 ชั่วโมง
+// แปลว่าทุกครั้งที่วางแอปไว้เกินหนึ่งชั่วโมงแล้วเปิดใหม่ คำตอบของบรรทัดนี้คือ "ไม่เคยล็อกอิน"
+// routeStart() จึงส่งคนที่ล็อกอินค้างอยู่ไปจอบัญชี ทั้งที่ refresh token ยังใช้ได้
+// และ initCloud() ต่ออายุให้สำเร็จอีกสองวินาทีถัดมา — แต่ไม่มีใครพาเขาออกจากจอนั้น
+// นี่คือสาเหตุจริงของ "ต้องล็อกอินใหม่ทุกครั้ง" ไม่ใช่ session ที่หายไปไหน
+//
+// ตัวที่ตอบคำถามนี้คือ refresh token: มันไม่หมดอายุตามเวลา (หมดได้จากการถูกเพิกถอน
+// หรือเปลี่ยนรหัสเท่านั้น) มีมันอยู่ = เครื่องนี้ล็อกอินค้างอยู่ จนกว่าจะพิสูจน์ได้ว่าใช้ไม่ได้จริง
+// ซึ่งมีตัวแก้จออยู่แล้วหลัง initCloud() เสร็จ
 function hasStoredSession() {
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (!k || !/^sb-.*-auth-token$/.test(k)) continue;
       const v = JSON.parse(localStorage.getItem(k) || 'null');
-      const exp = v && (v.expires_at || (v.currentSession && v.currentSession.expires_at));
-      if (exp && exp * 1000 > Date.now()) return true;
+      const sess = v && (v.currentSession || v);
+      if (sess && (sess.refresh_token || sess.access_token)) return true;
     }
   } catch (_) {}
   return false;
@@ -10284,8 +10421,17 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   // ตรวจคำเดาเมื่อกี้ว่าถูกไหม — แก้จอเฉพาะตอนเดาผิด ไม่ใช่วาดใหม่ทุกครั้ง
   // เดาผิดได้ทางเดียว: มีโทเคนค้างอยู่ใน localStorage แต่ใช้จริงไม่ได้แล้ว
   // (ถูกเพิกถอน · เปลี่ยนรหัส · หมดอายุระหว่างที่ปิดแอปไว้)
-  if (guessedSignedIn && !currentUser && cloudConfigured() &&
-      !localStorage.getItem('studentos.alt.skipLogin')) {
+  //
+  // เดาผิดได้สองทาง แต่ของเดิมแก้ให้ทางเดียว:
+  //   เดาว่า "เข้าอยู่" แต่จริง ๆ ออก → ต้องพาไปจอบัญชี (ของเดิมทำอยู่แล้ว)
+  //   เดาว่า "ออกแล้ว" แต่จริง ๆ เข้า → ต้องพาออกจากจอบัญชีเข้าแอป (ไม่เคยมีใครทำ)
+  // ทางที่สองคือทางที่ผู้ใช้เจอทุกวัน: access token หมดอายุใน 1 ชม. หน้าจอแรกจึงเดาว่า
+  // "ยังไม่ล็อกอิน" แล้วค้างอยู่ที่จอบัญชีต่อไปแม้ initCloud() จะต่ออายุสำเร็จไปแล้ว
+  //
+  // ขาที่พาไปจอบัญชีต้องรอ sessionAnswered ด้วย — เน็ตช้าจน getSession() หมดเวลา
+  // ไม่ใช่หลักฐานว่าเขาไม่ได้ล็อกอิน การเด้งไปจอบัญชีตอนนั้นคือการเตะคนที่ล็อกอินอยู่ออก
+  if (cloudConfigured() && !localStorage.getItem('studentos.alt.skipLogin') &&
+      guessedSignedIn !== !!currentUser && (currentUser || sessionAnswered)) {
     routeStart();
   }
   // ตอนนี้รู้แล้วว่าล็อกอินสำเร็จจริงไหม — ถ้ามี token ค้างจากลิงก์กลุ่ม ใช้ตรงนี้

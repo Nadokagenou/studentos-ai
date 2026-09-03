@@ -291,8 +291,12 @@
                หน้านี้มีงานเดียวคือให้กดเข้าระบบ คำโปรยขายของตรงนี้ไม่ได้ช่วยให้ใครกด
                มันแค่ดันปุ่มลงไป และคนที่เปิดแอปมาก็รู้อยู่แล้วว่าแอปนี้ทำอะไร -->
           <div class="big-title" style="margin:0 0 14px">StudentOS <span class="ai-blue">AI</span></div>
-          <button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>
-          <button class="btn ghost" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>
+          <!-- 1B21: ปุ่มช่องทางล็อกอินวาดจาก renderLoginOpts() ใน app.js ไม่ใช่จากตรงนี้
+               เพราะรายชื่อผู้ให้บริการมาจาก config.js (เปิดใช้เจ้าไหนไว้บ้าง) และช่องทาง
+               "อีเมล" มีสามสถานะในตัวมันเอง (เลือก → กรอกอีเมล → กรอกรหัส) ซึ่งเขียนเป็น
+               HTML นิ่ง ๆ ไม่ได้ · ห้ามเอาปุ่มกลับมาแปะไว้ตรงนี้ มันจะซ้ำกับที่ JS วาด -->
+          <div id="loginOpts" class="lg-opts"></div>
+          <p class="lg-note" id="loginNote"></p>
           <!-- คนที่เพิ่งเปิดลิงก์มาครั้งแรกเจอจอนี้เป็นอย่างแรก แล้วจอนี้
                ไม่ได้บอกเลยว่าแอปทำอะไร — มีแต่ปุ่มให้ยอมมอบบัญชี
                ทางออกที่ถูกที่สุดคือให้มีทางไปอ่านก่อน แล้วค่อยกลับมากด -->
@@ -1346,7 +1350,7 @@
         <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-home"/></svg>
         <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-home-f"/></svg><span>วันนี้</span></button>
       <!-- แบดจ์อยู่บนแท็บ "งาน" — เลขบนแท็บต้องพาไปยังที่ที่ลงมือแก้เรื่องนั้นได้จริง -->
-      <button class="tab" data-scr="scr-tasks" onclick="go('scr-tasks')">
+      <button class="tab" data-scr="scr-tasks" onclick="goTasksTab()">
         <span class="ic-wrap"><svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-tasks"/></svg>
           <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-tasks-f"/></svg>
           <span class="tab-badge" id="badgeHome" hidden></span></span><span>งาน</span></button>

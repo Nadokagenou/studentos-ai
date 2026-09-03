@@ -821,3 +821,68 @@
 .as-tgl .tg { margin-top: 0; }
 
 .as-more .as-ic.dim { background: var(--card2); color: var(--muted); }
+
+/* ============================================================
+   1B21 — เส้นเวลาของวัน (.td-rail)
+   ============================================================
+   แทน .td-up + .td-rem + .td-plan ที่เคยเป็นสามก้อนแยกกัน
+   เส้นแกนตั้งเป็น ::before ของราง ไม่ใช่ border ของแต่ละแถว — แถวจึงเว้นระยะกันได้
+   โดยที่เส้นยังต่อเนื่อง และจุดของแต่ละแถวทับเส้นพอดีเพราะอ้างพิกัดเดียวกัน */
+.td-rail { position: relative; margin-top: 16px; padding-left: 15px; }
+.td-rail::before {
+  content: ''; position: absolute; left: 4px; top: 26px; bottom: 12px;
+  width: 2px; border-radius: 1px; background: var(--line);
+}
+.dr-lb { font-size: 12.5px; font-weight: 700; color: var(--muted);
+  letter-spacing: .01em; margin: 0 0 8px 1px; }
+
+.dr-row { position: relative; display: flex; align-items: center; gap: 10px;
+  width: 100%; text-align: left; background: none; border: none;
+  padding: 9px 4px 9px 11px; color: var(--ink); }
+/* จุดบนเส้น — วางด้วย left ติดลบให้ทับแกนที่ padding-left ของรางเว้นไว้ */
+.dr-row::before {
+  content: ''; position: absolute; left: -12px; top: 50%; margin-top: -3.5px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--line-strong, var(--line)); box-shadow: 0 0 0 3px var(--bg);
+}
+.dr-t { flex: none; width: 42px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.dr-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.dr-b b { font-size: 14.5px; font-weight: 600; letter-spacing: -.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dr-m { font-size: 12px; color: var(--muted); }
+.dr-go { flex: none; color: var(--muted); opacity: .5; display: flex; }
+.dr-go svg { width: 15px; height: 15px; }
+.dr-row:active { background: var(--press, rgba(127,127,127,.09)); border-radius: 12px; }
+
+/* ช่วงพักไม่ใช่ของที่กดได้ และไม่ควรแย่งน้ำหนักกับงาน */
+.dr-row.brk { color: var(--muted); font-size: 12.5px; padding-top: 5px; padding-bottom: 5px; }
+.dr-row.brk::before { width: 5px; height: 5px; margin-top: -2.5px; left: -11px; opacity: .6; }
+.dr-row.end { color: var(--muted); font-size: 12.5px; }
+.dr-row.end::before { background: none; box-shadow: none;
+  border: 2px solid var(--line-strong, var(--line)); width: 8px; height: 8px;
+  margin-top: -4px; left: -13px; }
+/* ของที่ "ถึงเวลาแล้วต้องไป" ต่างจากงานที่เลือกเวลาเองได้ — จุดจึงเป็นสีเตือน ไม่ใช่สีวิชา */
+.dr-row.rem::before { background: var(--amber, #D97706); }
+.dr-row.rem.late::before { background: var(--red, #DC2626); }
+.dr-row.rem.late .dr-m { color: var(--red, #DC2626); }
+
+.dr-more { display: flex; align-items: center; justify-content: center; gap: 4px;
+  width: 100%; margin-top: 12px; padding: 12px; border: none; border-radius: 14px;
+  background: var(--card); color: var(--muted); font-size: 13.5px; font-weight: 600; }
+.dr-more svg { width: 15px; height: 15px; }
+
+/* ---- การ์ดโฟกัสรุ่นบีบ (1B21) ---- */
+.tn-facts { font-size: 12.5px; color: var(--muted); margin-top: 6px; font-weight: 600; }
+.tn-bar { height: 4px; border-radius: 2px; background: var(--line); margin-top: 8px; overflow: hidden; }
+.tn-bar i { display: block; height: 100%; border-radius: 2px; background: var(--blue); }
+.tn-row { display: flex; align-items: stretch; gap: 8px; margin-top: 12px; }
+.tn-row .tn-cta { flex: 1; min-width: 0; margin: 0; }
+/* .tn-eyebrow เดิมอยู่บรรทัดของตัวเอง จึงมี margin-top ติดมา — ในแถวบนมันต้องไม่ดันแถว
+   และต้องกินที่ที่เหลือทั้งหมดเพื่อผลักป้ายไปชิดขวา */
+.tn-top .tn-eyebrow { margin-top: 0; flex: 1; min-width: 0; }
+.tn-ib { flex: none; width: 48px; border-radius: 15px; display: flex;
+  align-items: center; justify-content: center;
+  background: var(--card-2, rgba(127,127,127,.10)); border: 1px solid var(--line); color: var(--muted); }
+.tn-ib svg { width: 19px; height: 19px; }
+.tn-ib.done { color: var(--green, #16A34A); }
+.tn-ib:active { transform: scale(.96); }
