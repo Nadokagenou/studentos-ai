@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B21';                 // สายเลขของแอป
-const APP_CODENAME = 'Doorway';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1B22';                 // สายเลขของแอป
+const APP_CODENAME = 'Foyer';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -1962,14 +1962,14 @@ function dayRail(sp, split, now) {
     </button>`;
   }).join('');
 
-  const rest = split.rest.length;
   // ไม่มีอะไรบนราง = ไม่ต้องมีราง · เส้นปิดวันเดี่ยว ๆ ใต้หัวข้อ "ที่เหลือของวันนี้"
   // อ่านออกมาว่ามีอะไรอยู่แล้วต้องมองหา ทั้งที่ไม่มี — แย่กว่าไม่ขึ้นอะไรเลย
-  if (!rows.length) {
-    return rest ? `<button class="dr-more" onclick="go('scr-tasks')">
-      ยังเหลืออีก ${rest} งาน${icon('chevron')}</button>` : '';
-  }
+  if (!rows.length) return '';
 
+  // 1B22: ถอดบรรทัด "ยังเหลืออีก N งาน — ยังไม่ได้ลงคิววันนี้" ที่เคยต่อท้ายรางออก
+  // มันตอบคำถามที่จอนี้ไม่ได้ถาม · จอนี้ถามว่า "ตอนนี้ทำอะไร" ซึ่งรางตอบครบไปแล้ว
+  // ส่วน "ค้างทั้งหมดกี่ใบ" เป็นคำถามของแท็บ "งาน" ที่มีเลขบนแบดจ์ของตัวเองอยู่แล้ว
+  // และหัวจอบรรทัดที่สองก็เพิ่งบอกไปแล้วว่าค้างกี่งาน — พูดเป็นรอบที่สามในจอเดียว
   return `<section class="td-rail">
     <div class="dr-lb">ที่เหลือของวันนี้</div>
     ${body}
@@ -1977,9 +1977,51 @@ function dayRail(sp, split, now) {
       <span class="dr-t mono">${esc(endHm)}</span>
       <span class="dr-b">หมดเวลาว่างของวันนี้</span>
     </div>` : ''}
-  </section>
-  ${rest ? `<button class="dr-more" onclick="go('scr-tasks')">
-    ยังเหลืออีก ${rest} งาน — ยังไม่ได้ลงคิววันนี้${icon('chevron')}</button>` : ''}`;
+  </section>`;
+}
+
+// ============================================================
+// กริดฟีเจอร์ท้ายจอ — ทางเข้าของทุกอย่างที่ไม่ได้อยู่บนแถบล่าง
+// ============================================================
+// จอ "วันนี้" ตอบคำถามของมันจบตั้งแต่ครึ่งจอบน แล้วก็จบดื้อ ๆ ตรงนั้น —
+// คนที่อ่านครบแล้วยังไม่อยากออกจากแอปจึงไม่มีอะไรให้ไปต่อ นอกจากเดาว่าของอยู่แท็บไหน
+//
+// ปัญหาที่แท้จริงไม่ใช่ที่ว่าง แต่คือฟีเจอร์ที่ไม่มีใครหาเจอ: สแกนใบงาน · ปฏิทินเดือน ·
+// ตารางเรียน · ตัวเชื่อม · สถิติ · ร้านค้า ทั้งหมดนี้ไม่มีที่บนแถบล่างห้าช่อง
+// ทางเข้าปัจจุบันคือซ่อนอยู่ในเมนู + หรือในแท็บ "ฉัน" ซึ่งคือที่ที่คนไม่เปิดถ้าไม่มีธุระ
+//
+// ตัวเลขบนไทล์มาจาก state จริงทุกตัว ไม่ใช่ของประดับ — ไทล์ที่ไม่มีอะไรรออยู่จะเงียบสนิท
+// (กฎเดียวกับแบดจ์บนแถบล่าง: เลขที่ขึ้นตลอดเวลาคือเลขที่ไม่มีใครมอง)
+function todayTiles() {
+  const wait = typeof inboxPending === 'function' ? inboxPending().length : 0;
+  const noCtx = typeof ctxIsEmpty === 'function' && ctxIsEmpty();
+  const gift = typeof dailyPending === 'function' && dailyPending();
+
+  // แบดจ์ต้องแปลว่า "มีอะไรรอให้กด" เท่านั้น — กฎเดียวกับแบดจ์บนแถบล่าง
+  // เคยใส่จำนวนตัวเชื่อมที่เปิดอยู่ด้วย แล้วมันคือเลขที่ขึ้นตลอดเวลาโดยไม่มีอะไรให้ทำ
+  // ซึ่งสอนให้คนเลิกมองแบดจ์ทั้งจอ · ตอนนี้เหลือสามตัวที่กดแล้วมีงานให้ทำจริง
+  //   [ไอคอน, ป้าย, กลุ่มสี, สิ่งที่ทำตอนกด, แบดจ์ ('' = เงียบ), เป็นจุดเตือนไหม]
+  const tiles = [
+    ['camera', 'สแกนใบงาน', 'in', "go('scr-scan')", '', false],
+    ['chat', 'กล่องเข้า', 'in', "go('scr-inbox')", wait || '', true],
+    ['unplug', 'ตัวเชื่อม', 'in', "go('scr-sources')", '', false],
+    ['sparkles', 'แผนวันนี้', 'time', "go('scr-plan')", '', false],
+    ['calendar', 'ปฏิทิน', 'time', "goTlMode('cal')", '', false],
+    ['book', 'ตารางเรียน', 'time', "go('scr-context')", noCtx ? '!' : '', true],
+    ['medal', 'สถิติ', 'me', "go('scr-stats')", '', false],
+    ['bag', 'ร้านค้า', 'me', "go('scr-shop')", gift ? ' ' : '', true],
+  ];
+
+  return `<section class="td-tiles">
+    <div class="tg-lb">ทำอย่างอื่นต่อ</div>
+    <div class="tg-grid">
+      ${tiles.map(([ic, lb, tone, act, ct, hot]) => `<button class="tg-t tone-${tone}" onclick="${act}">
+        <span class="tg-ic">${icon(ic)}${ct !== '' ? `<i class="tg-ct${hot ? ' hot' : ''}${
+          ct === ' ' ? ' dot' : ''}">${String(ct).trim()}</i>` : ''}</span>
+        <span class="tg-lb2">${lb}</span>
+      </button>`).join('')}
+    </div>
+  </section>`;
 }
 
 // ---------- ของที่ถูกยุบเข้าไปใน dayRail() แล้วใน 1B21 ----------
@@ -2107,6 +2149,7 @@ function renderMenu() {
                 + (outOfTime ? noTimeLeft(sp, now) : '')
                 + dayRail(sp, split, now)
               : todayEmpty(now, split.reminders.length > 0) + dayRail(sp, split, now))
+    + todayTiles()
     + askBar()
     + ctxNudge(sp.plan.windows);
 
