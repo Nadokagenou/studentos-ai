@@ -870,88 +870,34 @@
    เส้นแกนตั้งเป็น ::before ของราง ไม่ใช่ border ของแต่ละแถว — แถวจึงเว้นระยะกันได้
    โดยที่เส้นยังต่อเนื่อง และจุดของแต่ละแถวทับเส้นพอดีเพราะอ้างพิกัดเดียวกัน */
 /* ============================================================
-   1B27 — เส้นเวลาเป็น "ตั๋วของเย็นนี้"
+   1B29 — เส้นเวลา: รายการจุดแวะ ไม่ใช่ตั๋วใบที่สอง
    ============================================================
-   รอบก่อนรางเป็นการ์ดที่มีเส้นสีวิชา ซึ่งอ่านได้แล้วแต่ยังเป็นแค่รายการ —
-   มันบอกว่ามีอะไรบ้าง แต่ไม่ได้บอกว่า "ทั้งหมดนี้ต้องจบภายในกี่โมง"
-   ซึ่งเป็นข้อมูลที่เปลี่ยนการตัดสินใจมากกว่าตัวรายการเสียอีก
-
-   ตั๋วเครื่องบินแก้ปัญหาเดียวกันด้วยการยกสองหมุดขึ้นมาเป็นพระเอก แล้วผลักรายละเอียด
-   ลงใต้รอยปรุ · ที่นี่สองหมุดคือ "ตอนนี้" กับ "หมดเวลา" ส่วนงานที่เหลือคือจุดแวะ */
+   โครงตั๋ว (สองหมุด · เส้นประ · รอยปรุ) ย้ายไปอยู่ที่การ์ดบนใบเดียวใน 1B28 แล้ว
+   การให้รางมีโครงเดียวกันอีกใบทำให้จอมีของซ้ำกันทั้งชุด แล้วสายตาต้องอ่านสองรอบ
+   เพื่อแยกว่าตั๋วใบไหนพูดถึงอะไร · รางจึงเหลือหัวข้อบรรทัดเดียว แล้วให้แถบสีวิชา
+   ทำงานของมันไป ซึ่งเป็นสิ่งเดียวที่รางมีและการ์ดไม่มี */
 .td-rail { position: relative; margin-top: 16px;
   background: var(--card); border-radius: 20px; box-shadow: var(--shadow);
-  padding: 14px; }
-/* โหมดตั๋ว: หัวสีทึบต้องชนขอบการ์ด จึงย้าย padding ไปไว้ที่ชิ้นข้างในแทน
-   ห้ามใช้ overflow:hidden ตัดมุมให้หัวสี — รูของรอยปรุตั้งใจให้ครึ่งวงอยู่ "นอก" การ์ด
-   overflow:hidden จะเล็มมันทิ้งทั้งคู่ แล้วรอยปรุก็เหลือแค่เส้นประธรรมดา
-   ให้หัวตั๋วมนมุมบนของตัวเองแทน (ล่างเหลี่ยม เพราะมันไปชนรอยปรุพอดี) */
-.td-rail.ticket { padding: 0; }
-.td-rail.ticket .rl-head { border-radius: 20px 20px 0 0; }
+  padding: 13px 14px 11px; }
 
-/* ---- หัวตั๋ว ---- */
-/* 1B28: หัวของรางเลิกเป็นพื้นทึบ — โครงเดิมทุกอย่าง (สองหมุด · เส้นประ · สรุป)
-   แต่ใช้พื้นการ์ดกับตัวหนังสือสีปกติ · ลำดับบนจอถูกตัดสินด้วย "พื้นที่ของสีทึบ"
-   มากกว่าขนาดตัวอักษร ก้อนนี้จึงต้องไม่มีพื้นสีเลยถึงจะยอมเป็นอันดับสองจริง ๆ */
-.rl-head { display: flex; align-items: flex-end; gap: 8px;
-  background: none; color: var(--ink); padding: 14px 15px 13px; }
-.td-rail.ticket .rl-head { border-radius: 0; }
-.rl-anchor { flex: none; display: flex; flex-direction: column; gap: 1px; }
-.rl-anchor.to { text-align: right; }
-.rl-anchor i { font-style: normal; font-size: 10.5px; font-weight: 600;
-  letter-spacing: .04em; color: var(--muted); }
-/* ตัวเลขสองตัวนี้คือพระเอกของก้อนนี้ — ใหญ่กว่าทุกอย่างในราง แต่ยังเล็กกว่าชื่องาน
-   บนการ์ดโฟกัส เพื่อให้ลำดับ "การ์ด → ราง" ยังอยู่ */
-/* เล็กกว่าเวลาบนหัวตั๋วของการ์ด (21px) หนึ่งขั้นเสมอ — ตัวเลขคู่นี้สำคัญ แต่ไม่เท่า */
-.rl-anchor b { font-size: 18px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1;
-  color: var(--ink); }
-
-.rl-mid { flex: 1; min-width: 0; display: flex; flex-direction: column;
-  align-items: center; gap: 5px; padding-bottom: 3px; }
-/* เส้นประ + ลูกศรกลางเส้น = ทิศทางของเวลา · ลูกศรมีพื้นสีเดียวกับหัวตั๋วคั่นเส้นให้ขาด
-   ตรงกลางพอดี ซึ่งเป็นวิธีเดียวกับที่ตั๋วจริงวางไอคอนเครื่องบิน */
-.rl-line { position: relative; display: block; width: 100%; height: 1px;
-  color: var(--muted);
-  background: repeating-linear-gradient(to right,
-    currentColor 0 4px, transparent 4px 8px); opacity: .5; }
-.rl-line svg { position: absolute; left: 50%; top: 50%;
-  transform: translate(-50%, -50%); width: 13px; height: 13px;
-  background: var(--card); padding: 0 3px; box-sizing: content-box; }
-.rl-sum { font-size: 10.5px; font-weight: 600; color: var(--muted);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-
-/* ---- รอยปรุ ---- */
-/* วงกลมสองข้างเป็นสีพื้นจอ ไม่ใช่สีการ์ด — มันต้องอ่านเป็น "รูที่เจาะทะลุ"
-   ตัวแปรพื้นจอของธีมชุดนี้ชื่อ --scr (ไม่ใช่ --bg ซึ่งไม่มีอยู่จริง — เขียนผิดแล้วรูจะใส
-   มองไม่เห็น โดยไม่มี error อะไรทั้งนั้น เพราะ var() ที่ไม่มีค่าคืน transparent)
-   ไม่ใช่จุดขาวที่วาดทับ · ตำแหน่ง left/right ติดลบครึ่งหนึ่งของขนาดเพื่อให้ครึ่งวงอยู่นอกการ์ด */
-/* เส้นประต้องเข้มกว่า --line ปกติ เพราะมันต้องอ่านออกว่าเป็น "รอยฉีก" ไม่ใช่เส้นคั่นเฉย ๆ */
-.rl-perf { position: relative; height: 0; margin: 0 9px;
-  border-top: 1.5px dashed var(--muted); opacity: .45; }
-.rl-perf::before, .rl-perf::after {
-  content: ''; position: absolute; top: -7px; width: 14px; height: 14px;
-  border-radius: 50%; background: var(--scr);
-}
-.rl-perf::before { left: -16px; }
-.rl-perf::after { right: -16px; }
-
-.rl-stops { padding: 11px 14px 8px; }
-.td-rail:not(.ticket) .rl-stops { padding: 0; }
-.dr-lb { font-size: 12.5px; font-weight: 700; color: var(--muted);
-  letter-spacing: .01em; margin: 0 0 10px 1px; }
+/* หัวข้อกับตัวเลขสรุปอยู่บรรทัดเดียวกัน คนละฝั่ง — ซ้ายบอกว่านี่คืออะไร
+   ขวาบอกว่ามีเท่าไหร่ · ทั้งคู่เป็นตัวเล็กสีจาง เพราะของจริงคือแถวข้างล่าง */
+.rl-lb { display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; margin: 0 1px 9px; }
+.rl-lb b { font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .01em; }
+.rl-lb span { font-size: 11px; font-weight: 600; color: var(--muted); opacity: .8;
+  white-space: nowrap; }
 
 /* ---- จุดแวะ ---- */
-/* แถบสีเต็มความสูงของแถวแทนจุดบนแกน — แกนกับจุดเป็นภาษาของ "เส้นเวลาต่อเนื่อง"
-   ซึ่งขัดกับหัวตั๋วที่เพิ่งบอกไปแล้วว่าช่วงเวลาทั้งหมดคือจากไหนถึงไหน
-   แถบต่อแถวเป็นภาษาของ "รายการจุดแวะ" ซึ่งตรงกับสิ่งที่ก้อนนี้เป็นจริง ๆ
-   และให้พื้นที่สีมากกว่าจุด 8px หลายเท่า — สีจึงอ่านออกตั้งแต่ยังไม่เพ่ง */
+/* แถบสีเต็มความสูงของแถว ให้พื้นที่สีมากกว่าจุดเล็ก ๆ หลายเท่า สีจึงอ่านออก
+   ตั้งแต่ยังไม่เพ่ง และมันคือสิ่งเดียวบนจอที่บอกว่า "เย็นนี้เป็นวิชาอะไรบ้าง" */
 .dr-row { position: relative; display: flex; align-items: center; gap: 11px;
   width: 100%; text-align: left; background: none; border: none;
-  padding: 8px 2px; color: var(--ink); }
+  padding: 8px 2px 8px 14px; color: var(--ink); }
 .dr-row::before {
   content: ''; position: absolute; left: 0; top: 5px; bottom: 5px; width: 4px;
   border-radius: 2px; background: var(--sj, var(--line));
 }
-.dr-row { padding-left: 14px; }
 .dr-t { flex: none; width: 44px; font-size: 12.5px; color: var(--muted); font-weight: 700; }
 .dr-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .dr-b b { font-size: 15px; font-weight: 600; letter-spacing: -.01em;
@@ -966,9 +912,9 @@
 /* ช่วงพักไม่มีแถบสี — ช่องว่างระหว่างสองวิชาคือสิ่งที่ทำให้ "พัก" อ่านออกโดยไม่ต้องอ่านคำ */
 .dr-row.brk { color: var(--muted); font-size: 12.5px; padding-top: 4px; padding-bottom: 4px; }
 .dr-row.brk::before { background: none; }
+/* ปลายทางเป็นแถวสุดท้ายของแกน ไม่ใช่หัวข้อ — นี่คือที่ที่ "หมดเวลา 21:30" ควรอยู่
+   ตอนมันไปอยู่บนหัวตั๋วของราง มันซ้ำกับแถวนี้พอดีทั้งเลขและความหมาย */
 .dr-row.end { color: var(--muted); font-size: 12.5px; padding-top: 9px; }
-/* ปลายทางไม่ใช่จุดแวะ — แถบจึงจางลงครึ่งหนึ่ง ไม่ใช่หายไปเลย (ยังเป็นหมุดบนเส้นทางอยู่)
-   เคยลองเป็นเส้นประแนวตั้ง แล้วในความสูง 20px ได้จุดสามจุดซึ่งอ่านเป็นของเสีย */
 .dr-row.end::before { background: var(--line); opacity: .7; }
 .dr-row.brk, .dr-row.end { pointer-events: none; }
 
