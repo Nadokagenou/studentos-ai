@@ -1570,7 +1570,10 @@ function todayHead(sp, now) {
   const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนเย็น';
   const win = sp.plan.windows;
   const pend = pendingTasks();
-  const name = who();
+  // ชื่อที่กรอกเองมาก่อนเสมอ · ถ้ายังไม่เคยกรอก ใช้ชื่อจากบัญชีที่ล็อกอินมาแทน
+  // เดิมใช้แค่ who() ซึ่งอ่านจาก state.settings.name อย่างเดียว — คนที่ล็อกอิน Google
+  // แล้วข้ามหน้าทำความรู้จักไปจึงเจอ "สวัสดีตอนเย็น" ห้วน ๆ ทั้งที่แอปรู้ชื่อเขาอยู่แล้ว
+  const name = who() || accountName();
   // กระดิ่งชี้ไปกล่องเข้า ไม่ใช่ศูนย์แจ้งเตือนใบใหม่ — ของที่ "เข้ามาเองระหว่างที่ไม่ได้เปิดแอป"
   // มีที่เดียวคือกล่องเข้า · สร้างที่เก็บแจ้งเตือนอีกที่คือสร้างของค้างชุดที่สองให้ต้องเคลียร์
   const wait = typeof inboxPending === 'function' ? inboxPending().length : 0;
@@ -1585,7 +1588,10 @@ function todayHead(sp, now) {
 
   return `<header class="td-head">
     <button class="th-me" onclick="go('scr-profile')" aria-label="หน้าของฉัน">${
-      name ? esc(name.trim().charAt(0).toUpperCase()) : icon('user')}</button>
+      headFace()
+        ? `<img class="th-face" src="${esc(headFace())}" alt="">`
+        : `<img class="th-face th-brand" src="logo-splash-light.png" alt="Student OS">`
+    }</button>
     <div class="th-tx">
       <h1 class="th-greet">${greet}${name ? ' ' + esc(name) : ''}</h1>
       <p class="th-sub">${sub}</p>
@@ -9749,6 +9755,25 @@ const ONBOARD_SKIP_KEY = 'studentos.alt.onboardSkipped';
 
 // ชื่อที่ผู้ใช้อยากให้เรียก — ใช้ทั่วแอป ทั้งคำชม คำเตือน และหน้าไม่มีงาน
 function who() { return (state.settings.name || '').trim(); }
+
+// ---------- ชื่อจากบัญชีที่ล็อกอินมา ----------
+// ใช้เป็นตัวสำรองของ who() เท่านั้น ไม่เคยเขียนทับชื่อที่ผู้ใช้กรอกเอง
+// ตัดเหลือคำแรก — Google ส่งชื่อเต็มมา ("สมชาย ใจดี") ซึ่งยาวเกินไปสำหรับหัวจอ
+// ที่มีที่ให้บรรทัดเดียว และคำทักทายที่ยาวจนโดนตัดด้วย ellipsis อ่านแย่กว่าไม่มีชื่อ
+function accountName() {
+  const m = (currentUser && currentUser.user_metadata) || {};
+  const full = (m.full_name || m.name || '').trim();
+  return full ? full.split(/\s+/)[0] : '';
+}
+
+// ---------- รูปในวงกลมหัวจอ ----------
+// ลำดับ: รูปที่ตั้งเอง → รูปจากบัญชี Google → ตราแอป
+// ตัวสุดท้ายเคยเป็นไอคอนรูปคนสีน้ำเงิน ซึ่งไม่ได้บอกอะไรเลยนอกจาก "ยังไม่มีรูป"
+// ใช้ตราเดียวกับหน้าล็อกอินแทน เพราะมุมซ้ายบนคือที่ที่ทุกแอปวางตราของตัวเอง
+function headFace() {
+  const m = (currentUser && currentUser.user_metadata) || {};
+  return (state.settings.avatar || m.avatar_url || m.picture || '').trim();
+}
 
 // หน้าทำความรู้จักขึ้นครั้งเดียวในชีวิตของเครื่องนั้น และขึ้นเฉพาะตอนที่ยังไม่มีอะไรเลย (1A9n)
 //
