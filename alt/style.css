@@ -355,6 +355,48 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
   border:1px solid rgba(169,188,240,.28); color:#BFD0F5}
 .g-badge{width:22px; height:22px; border-radius:50%; background:#fff; border:none; box-shadow:0 0 0 1px rgba(15,23,42,.12);
   color:#4285F4; font-weight:700; font-size:12.5px; display:inline-flex; align-items:center; justify-content:center; flex:none}
+
+/* ---------- 1B21: ช่องทางล็อกอินหลายทาง ---------- */
+/* กองปุ่มถูกวาดจาก JS จึงต้องมีคอลัมน์ของตัวเอง — .login-wrap เป็น flex อยู่แล้ว
+   แต่ตัวลูกที่โผล่มาเป็นก้อนเดียวจะกินความกว้างไม่เท่ากับปุ่มที่เคยเป็นลูกตรง ๆ */
+.lg-opts{display:flex; flex-direction:column; align-items:center; gap:12px; width:100%}
+.lg-opts .btn{width:100%; max-width:300px; min-height:54px; border-radius:17px}
+/* Apple/Facebook/Microsoft ยังไม่ได้เปิดใช้ตามค่าเริ่มต้น — สีเตรียมไว้ให้ครบ
+   เพื่อที่การเปิดใช้จะเป็นการแก้ config.js บรรทัดเดียว ไม่ใช่งาน CSS อีกรอบ */
+.btn.apple{background:#000; color:#fff; border:none; display:flex; align-items:center; justify-content:center; gap:11px}
+.btn.apple .g-badge{background:transparent; box-shadow:none; color:#fff; font-size:17px}
+.btn.facebook{background:#1877F2; color:#fff; border:none; display:flex; align-items:center; justify-content:center; gap:11px}
+.btn.facebook .g-badge{background:#fff; box-shadow:none; color:#1877F2; font-size:14px}
+.btn.ms{background:#fff; color:#0B1220; border:none; display:flex; align-items:center; justify-content:center; gap:11px}
+.btn.ms .g-badge{background:#fff; color:#0078D4}
+/* อีเมลเป็นช่องทางรอง — โปร่งเหมือน .ghost แต่ยังเป็น "ปุ่มล็อกอิน" ไม่ใช่ปุ่มข้าม
+   จึงสว่างกว่าปุ่มข้ามหนึ่งขั้น และมีตราหน้าเหมือนช่องทางอื่นเพื่อให้อยู่ในแถวเดียวกันจริง */
+.btn.mail{background:rgba(255,255,255,.10); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(169,188,240,.34); color:#EAF0FF;
+  display:flex; align-items:center; justify-content:center; gap:11px}
+.btn.mail .g-badge{background:rgba(255,255,255,.16); box-shadow:none; color:#EAF0FF; font-size:14px}
+
+/* เส้นคั่น "หรือ" — แยกช่องทางล็อกอินออกจากทางข้าม ไม่ให้ปุ่มข้ามดูเป็นช่องทางที่ห้า */
+.lg-or{display:flex; align-items:center; gap:10px; width:100%; max-width:300px;
+  color:rgba(199,210,254,.45); font-size:12px; font-weight:600; margin:2px 0}
+.lg-or i{flex:1; height:1px; background:rgba(169,188,240,.20)}
+
+.lg-mail{display:flex; flex-direction:column; gap:10px; width:100%; max-width:300px; text-align:left}
+.lg-lb{font-size:12.5px; font-weight:600; color:rgba(199,210,254,.72); padding:0 2px}
+.lg-in{width:100%; min-height:52px; border-radius:16px; padding:0 16px; font-size:16px;
+  background:rgba(255,255,255,.07); border:1px solid rgba(169,188,240,.28); color:#fff;
+  -webkit-appearance:none; appearance:none}
+.lg-in::placeholder{color:rgba(199,210,254,.38)}
+.lg-in:focus{outline:none; border-color:rgba(169,188,240,.6); background:rgba(255,255,255,.11)}
+/* ช่องรหัสอ่านง่ายที่สุดเมื่อตัวเลขห่างกันและอยู่กลางช่อง — หกหลักที่ชิดกันอ่านผิดกันบ่อย */
+.lg-in.code{text-align:center; letter-spacing:.42em; font-size:22px; font-weight:700; padding-right:0}
+.lg-back{background:none; border:none; color:rgba(199,210,254,.62); font-size:13.5px; font-weight:600;
+  padding:8px; border-radius:12px; text-align:center}
+.lg-back:active{color:#fff; background:rgba(255,255,255,.07)}
+.lg-note{min-height:18px; margin:0; font-size:12.5px; line-height:1.6; max-width:300px;
+  color:rgba(199,210,254,.72)}
+.lg-note.bad{color:#FCA5A5}
+.lg-opts .btn[disabled]{opacity:.6}
 .login-mode .tabbar{display:none}
 /* จอล็อกอินเป็นพื้นเข้มทุกธีม — นาฬิกาบนสุดต้องสว่างตาม ไม่ใช่ตามสีตัวอักษรของธีม */
 .login-mode .statusbar{color:#E9EDF5}

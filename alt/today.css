@@ -85,12 +85,74 @@
      5  ท้ายการ์ด   ความคืบหน้า + ทางเลือกรอง
    ============================================================ */
 .td-now {
-  position: relative; margin-top: 14px; padding: 14px 14px 12px;
+  position: relative; margin-top: 14px; padding: 0; overflow: hidden;
   border: 1px solid var(--line); border-radius: calc(var(--r-card) + 6px);
-  background: linear-gradient(158deg, var(--blue-soft) 0%, transparent 62%), var(--card);
-  box-shadow: var(--shadow-lg);
+  background: var(--card); box-shadow: var(--shadow-lg);
 }
 .td-now.running { border-color: var(--blue); }
+
+/* ---- 1B28: หัวตั๋วสีทึบ — ก้อนสีเดียวของทั้งจอ ---- */
+.tn-head { background: var(--fill); color: var(--on-fill); padding: 13px 15px 15px; }
+.tn-body { padding: 12px 14px 13px; }
+/* ทุกอย่างในหัวสืบสีจาก --on-fill ไม่ใช่ --ink · ถ้าลืมตัวใดตัวหนึ่งจะได้ตัวหนังสือ
+   สีเข้มบนพื้นน้ำเงินเข้ม ซึ่งอ่านไม่ออกเฉพาะบางธีมและมองข้ามได้ง่ายมากตอนเทส */
+.td-now .tn-eyebrow { color: var(--on-fill); opacity: .78; font-weight: 700;
+  letter-spacing: .04em; margin-top: 0; flex: 1; min-width: 0; }
+.td-now .tn-title { color: var(--on-fill); font-size: 22px; line-height: 1.24;
+  margin: 5px 0 0; }
+/* ============================================================
+   โทเคนสัญญาณ (signal) — สีทึบที่ไม่พลิกตามธีม
+   ============================================================
+   ระบบสีของแอปมีสองตระกูลที่ห้ามเอามาปนกัน:
+
+     --pri-*-soft / --pri-*-text   พลิกตามธีม · ใช้คู่กันเสมอ (พื้นอ่อน + ตัวอักษรเข้ม)
+                                   สำหรับป้ายที่วางอยู่บน "พื้นการ์ด" ซึ่งพลิกตามธีมเหมือนกัน
+     --sig-*                       ไม่พลิกตามธีม · เป็นพื้นทึบที่มีตัวอักษรขาวทับเสมอ
+                                   สำหรับของที่วางบนพื้นซึ่งไม่พลิกตามธีม (หัวตั๋วน้ำเงิน)
+                                   หรือของที่ต้องดังเท่ากันทุกธีม (แบดจ์เตือน)
+
+   ปนกันเมื่อไหร่ = พังธีมใดธีมหนึ่งเสมอ และพังแบบไม่มี error ให้เห็น:
+   --pri-red-text ในธีมมืดคือ #FF9AA6 (ชมพูอ่อนสำหรับพื้นเข้ม) เอาไปเป็นพื้นของแบดจ์
+   ที่มีตัวอักษรขาว จะได้ชมพูซีดที่อ่านแทบไม่ออก — เคยเกิดสองที่ ทั้งป้ายด่วนบนหัวตั๋ว
+   (วัดได้ 2.01:1) และแบดจ์บนไทล์ · ทั้งคู่ต้องใช้ --sig-* เท่านั้น
+   ค่าที่เลือกไว้ให้ตัวอักษรขาวผ่าน AA ทั้งชุด: แดง 4.8 · ส้ม 5.9 · เขียว 6.3 */
+:root {
+  --sig-red:   #D92D20;
+  --sig-amber: #B54708;
+  --sig-green: #0B6E3F;
+}
+
+/* ---- ป้ายความด่วนบนหัวตั๋ว: พื้นทึบสีเต็ม ตัวอักษรขาว ----
+   เคยเป็นพื้นขาว + ตัวอักษรสีจาก --pri-*-text ซึ่งพังเงียบ ๆ:
+   ตัวแปรพวกนั้น "พลิกตามธีม" เพราะถูกออกแบบมาให้วางบนพื้นการ์ด — ธีมมืดมันคือ
+   #FF9AA6 (ชมพูอ่อนสำหรับพื้นเข้ม) เอามาวางบนพื้นขาวได้คอนทราสต์ 2.01:1
+   ซึ่งต่ำกว่าทุกเกณฑ์ · ป้ายเลยดูซีดจนแทบหายไปทั้งที่มันคือสัญญาณด่วนที่สุดบนจอ
+
+   กฎที่ได้จากบั๊กนี้: พื้นที่ "ไม่พลิกตามธีม" (หัวตั๋วเป็นน้ำเงินเดียวกันทุกธีม)
+   ต้องจับคู่กับสีตัวอักษรที่ไม่พลิกตามธีมด้วย — ผสมกันเมื่อไหร่คือพังธีมใดธีมหนึ่งเสมอ
+   สามสีนี้จึงเป็นค่าคงที่โดยตั้งใจ และเลือกให้ตัวอักษรขาวผ่าน AA ทั้งชุด
+   (ขาวบน #D92D20 = 4.6 · #B54708 = 5.9 · #0B6E3F = 6.0) */
+.td-now .tn-head .tn-pill { color: #fff; font-weight: 700; }
+.td-now .tn-head .tn-pill.red    { background: var(--sig-red); }
+.td-now .tn-head .tn-pill.yellow { background: var(--sig-amber); }
+.td-now .tn-head .tn-pill.green  { background: var(--sig-green); }
+
+/* ---- เส้นทางของช่วงนี้: เริ่ม ···N นาที··· จบ ---- */
+.tn-route { display: flex; align-items: center; gap: 10px; margin-top: 11px; }
+.tk-t { font-size: 21px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1; }
+.tk-line { position: relative; flex: 1; min-width: 0; height: 1px; align-self: center;
+  background: repeating-linear-gradient(to right,
+    currentColor 0 4px, transparent 4px 8px); opacity: .55; }
+/* ตัวเลขนาทีนั่งคร่อมเส้นประตรงกลาง มีพื้นสีหัวตั๋วคั่นเส้นให้ขาดพอดี
+   วิธีเดียวกับที่ตั๋วจริงวางไอคอนเครื่องบิน — และมันตอบ "ช่วงนี้ยาวเท่าไหร่"
+   โดยไม่ต้องมีบรรทัดของตัวเอง */
+.tk-line i { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  background: var(--fill); padding: 0 7px; font-style: normal;
+  font-size: 11px; font-weight: 700; opacity: 1; white-space: nowrap; }
+.tk-solo { font-size: 14px; font-weight: 700; opacity: .9; }
+
+.tn-why2 { margin-top: 9px; font-size: 12px; line-height: 1.4; font-weight: 600;
+  color: var(--on-fill); opacity: .85; }
 
 /* ---- 1 · แถวบน ---- */
 .tn-top { display: flex; align-items: center; gap: 10px; }
@@ -160,11 +222,20 @@
 
 /* ---- 4 · ปุ่ม ---- */
 /* ปุ่มเดียวบนจอที่เป็นพื้นทึบสีเน้น — กฎ 60/30/10 ข้อ 10% ทั้งหมดถูกใช้ตรงนี้ที่เดียว */
+/* 1B28: ปุ่มหลักเลิกเป็นพื้นทึบ — หัวตั๋วเหนือมันเป็นน้ำเงินทึบไปแล้ว
+   สองก้อนทึบสีเดียวกันในการ์ดใบเดียวหักล้างกันเอง ปุ่มจึงเป็นขอบหนา + พื้นฟ้าจาง
+   ซึ่งยังเป็นตัวเดียวในครึ่งล่างของการ์ดที่มีสี = ยังอ่านเป็นปุ่มหลักอยู่ */
+/* ใช้ --blue ไม่ใช่ --fill สำหรับตัวหนังสือกับขอบ
+   --fill (#2563EB) ถูกออกแบบมาให้เป็น "พื้น" ที่มีตัวหนังสือขาวทับ ไม่ใช่ให้เป็นตัวหนังสือเอง
+   วัดจริงบนการ์ดธีมมืดได้คอนทราสต์ 3.28:1 ซึ่งต่ำกว่าเกณฑ์ AA (4.5) — อ่านยากจริง ๆ ไม่ใช่แค่ทฤษฎี
+   --blue คือน้ำเงินที่แต่ละธีมกำหนดไว้ว่า "อ่านออกบนพื้นของธีมนี้" (มืด #6FA8FF · สว่าง #1566CE) */
 .tn-cta {
-  display: block; width: 100%; margin-top: 12px; padding: 11px 16px;
-  border: 0; border-radius: 16px; background: var(--fill); color: var(--on-fill);
-  font: inherit; text-align: center; cursor: pointer; box-shadow: var(--shadow-brand);
+  display: block; width: 100%; margin: 0; padding: 11px 16px;
+  border: 1.5px solid var(--blue); border-radius: 16px;
+  background: var(--blue-soft); color: var(--blue);
+  font: inherit; text-align: center; cursor: pointer;
 }
+.tn-cta:active { background: var(--fill); color: var(--on-fill); border-color: var(--fill); }
 .tn-cta:active { transform: scale(.985); }
 .tc-main {
   display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -828,3 +899,197 @@
 .as-tgl .tg { margin-top: 0; }
 
 .as-more .as-ic.dim { background: var(--card2); color: var(--muted); }
+
+/* ============================================================
+   1B21 — เส้นเวลาของวัน (.td-rail)
+   ============================================================
+   แทน .td-up + .td-rem + .td-plan ที่เคยเป็นสามก้อนแยกกัน
+   เส้นแกนตั้งเป็น ::before ของราง ไม่ใช่ border ของแต่ละแถว — แถวจึงเว้นระยะกันได้
+   โดยที่เส้นยังต่อเนื่อง และจุดของแต่ละแถวทับเส้นพอดีเพราะอ้างพิกัดเดียวกัน */
+/* ============================================================
+   1B29 — เส้นเวลา: รายการจุดแวะ ไม่ใช่ตั๋วใบที่สอง
+   ============================================================
+   โครงตั๋ว (สองหมุด · เส้นประ · รอยปรุ) ย้ายไปอยู่ที่การ์ดบนใบเดียวใน 1B28 แล้ว
+   การให้รางมีโครงเดียวกันอีกใบทำให้จอมีของซ้ำกันทั้งชุด แล้วสายตาต้องอ่านสองรอบ
+   เพื่อแยกว่าตั๋วใบไหนพูดถึงอะไร · รางจึงเหลือหัวข้อบรรทัดเดียว แล้วให้แถบสีวิชา
+   ทำงานของมันไป ซึ่งเป็นสิ่งเดียวที่รางมีและการ์ดไม่มี */
+.td-rail { position: relative; margin-top: 16px;
+  background: var(--card); border-radius: 20px; box-shadow: var(--shadow);
+  padding: 13px 14px 11px; }
+
+/* หัวข้อกับตัวเลขสรุปอยู่บรรทัดเดียวกัน คนละฝั่ง — ซ้ายบอกว่านี่คืออะไร
+   ขวาบอกว่ามีเท่าไหร่ · ทั้งคู่เป็นตัวเล็กสีจาง เพราะของจริงคือแถวข้างล่าง */
+.rl-lb { display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; margin: 0 1px 9px; }
+.rl-lb b { font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .01em; }
+.rl-lb span { font-size: 11px; font-weight: 600; color: var(--muted); opacity: .8;
+  white-space: nowrap; }
+
+/* ---- จุดแวะ ---- */
+/* แถบสีเต็มความสูงของแถว ให้พื้นที่สีมากกว่าจุดเล็ก ๆ หลายเท่า สีจึงอ่านออก
+   ตั้งแต่ยังไม่เพ่ง และมันคือสิ่งเดียวบนจอที่บอกว่า "เย็นนี้เป็นวิชาอะไรบ้าง" */
+.dr-row { position: relative; display: flex; align-items: center; gap: 11px;
+  width: 100%; text-align: left; background: none; border: none;
+  padding: 8px 2px 8px 14px; color: var(--ink); }
+.dr-row::before {
+  content: ''; position: absolute; left: 0; top: 5px; bottom: 5px; width: 4px;
+  border-radius: 2px; background: var(--sj, var(--line));
+}
+.dr-t { flex: none; width: 44px; font-size: 12.5px; color: var(--muted); font-weight: 700; }
+.dr-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dr-b b { font-size: 15px; font-weight: 600; letter-spacing: -.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dr-m { font-size: 12px; color: var(--muted); }
+/* คำเดียวในแถวที่ถือสีของวิชา — ตัวเชื่อมระหว่างแถบสีกับความหมายของมัน */
+.dr-sj { font-style: normal; font-weight: 700; color: var(--sj, var(--muted)); }
+.dr-go { flex: none; color: var(--muted); opacity: .5; display: flex; }
+.dr-go svg { width: 15px; height: 15px; }
+.dr-row:active { background: var(--press, rgba(127,127,127,.09)); border-radius: 10px; }
+
+/* ช่วงพักไม่มีแถบสี — ช่องว่างระหว่างสองวิชาคือสิ่งที่ทำให้ "พัก" อ่านออกโดยไม่ต้องอ่านคำ */
+.dr-row.brk { color: var(--muted); font-size: 12.5px; padding-top: 4px; padding-bottom: 4px; }
+.dr-row.brk::before { background: none; }
+/* ปลายทางเป็นแถวสุดท้ายของแกน ไม่ใช่หัวข้อ — นี่คือที่ที่ "หมดเวลา 21:30" ควรอยู่
+   ตอนมันไปอยู่บนหัวตั๋วของราง มันซ้ำกับแถวนี้พอดีทั้งเลขและความหมาย */
+.dr-row.end { color: var(--muted); font-size: 12.5px; padding-top: 9px; }
+.dr-row.end::before { background: var(--line); opacity: .7; }
+.dr-row.brk, .dr-row.end { pointer-events: none; }
+
+/* ของที่ "ถึงเวลาแล้วต้องไป" ไม่มีวิชาเป็นเจ้าของ — ยืม --sj มาเป็นสีเตือนแทน
+   แล้วแถบกับชื่อก็ได้สีนั้นเองโดยไม่ต้องเขียนกฎซ้ำ */
+.dr-row.rem { --sj: var(--pri-yellow-text, #D97706); }
+.dr-row.rem.late { --sj: var(--pri-red-text, #DC2626); }
+.dr-row.rem.late .dr-m { color: var(--pri-red-text, #DC2626); }
+
+
+/* ---- การ์ดโฟกัสรุ่นบีบ (1B21) ---- */
+/* .tn-band (แถบเหตุผล) ถูกถอดออกตั้งแต่ 1B28 — เหตุผลย้ายไปอยู่บนหัวตั๋วแล้ว */
+/* ---- 1B26: แถวตัวเลขสามช่อง ---- */
+/* ของที่กวาดตาหา ไม่ใช่ของที่อ่านเป็นประโยค · เส้นคั่นตั้งทำให้มันอ่านเป็นตาราง
+   ป้ายกำกับตัวเล็กข้างบนคือสิ่งที่ทำให้ "19:00" มีความหมาย โดยไม่ต้องเปลืองคำในค่า
+   (เคยเขียนว่า "เริ่ม 19:00" ในบรรทัดยาว ซึ่งกินที่กว่าและยังอ่านเป็นประโยคอยู่ดี) */
+.tn-cells { display: flex; margin-top: 12px;
+  border-top: 1px solid var(--line); padding-top: 10px; }
+.tn-cell { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+  padding: 0 10px; border-left: 1px solid var(--line); }
+.tn-cell:first-child { padding-left: 0; border-left: 0; }
+.tn-cell:last-child { padding-right: 0; }
+.tn-cell i { font-style: normal; font-size: 10.5px; font-weight: 700;
+  letter-spacing: .03em; color: var(--muted); }
+.tn-cell b { font-size: 15px; font-weight: 700; color: var(--ink);
+  letter-spacing: -.015em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* คำว่า "ตอนนี้ · ฟิสิกส์" เคยเป็นน้ำเงิน ซึ่งแย่งความเป็นสีเน้นกับปุ่มข้างล่าง
+   น้ำเงินทึบต้องมีที่เดียวบนจอ คือปุ่มที่ต้องกด */
+/* 1B28: กฎสีของ .tn-eyebrow / .tn-title ย้ายไปอยู่กับบล็อกหัวตั๋วข้างบนแล้ว (ราวบรรทัด 90)
+   เหลือไว้ตรงนี้จะชนะเพราะอยู่ท้ายไฟล์ แล้วคำว่า "ตอนนี้ · ฟิสิกส์" จะกลายเป็นเทา
+   บนพื้นน้ำเงิน — พออ่านได้ในธีมมืด แต่แทบมองไม่เห็นในธีมสว่าง
+   (กับดักเดิม: ทับกฎเดียวกันสองที่ในไฟล์เดียว แล้วเทสต์แค่ธีมเดียว) */
+/* ชื่องานคือจุดโฟกัสจุดเดียวของการ์ด — ต้องใหญ่พอที่ตาลงตรงนี้ก่อนอย่างอื่นเสมอ */
+
+.tn-bar { height: 4px; border-radius: 2px; background: var(--line);
+  margin: 0 0 11px; overflow: hidden; }
+.tn-bar i { display: block; height: 100%; border-radius: 2px; background: var(--blue); }
+.tn-row { display: flex; align-items: stretch; gap: 8px; }
+.tn-row .tn-cta { flex: 1; min-width: 0; margin: 0; }
+/* .tn-eyebrow เดิมอยู่บรรทัดของตัวเอง จึงมี margin-top ติดมา — ในแถวบนมันต้องไม่ดันแถว
+   และต้องกินที่ที่เหลือทั้งหมดเพื่อผลักป้ายไปชิดขวา */
+.tn-top .tn-eyebrow { margin-top: 0; flex: 1; min-width: 0; }
+.tn-ib { flex: none; width: 48px; border-radius: 15px; display: flex;
+  align-items: center; justify-content: center;
+  background: var(--card-2, rgba(127,127,127,.10)); border: 1px solid var(--line); color: var(--muted); }
+.tn-ib svg { width: 19px; height: 19px; }
+.tn-ib.done { color: var(--green, #16A34A); }
+.tn-ib:active { transform: scale(.96); }
+
+/* ============================================================
+   1B22 — กริดฟีเจอร์ท้ายจอ "วันนี้"
+   ============================================================
+   สี่ช่องต่อแถวคือความหนาแน่นที่พอดีบนจอ 375px: ไทล์กว้าง ~74px ซึ่งยังแตะไม่พลาด
+   และป้ายภาษาไทยยาวสุดที่ใช้ ("สแกนใบงาน") ยังลงได้ในบรรทัดเดียว
+   ห้าช่องขึ้นไปป้ายจะขึ้นบรรทัดที่สองไม่เท่ากันแต่ละใบ แล้วแถวจะเดี้ยงทั้งแถว */
+.td-tiles { margin-top: 22px; }
+.tg-lb { font-size: 12.5px; font-weight: 700; color: var(--muted); margin: 0 0 10px 1px; }
+.tg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 6px; }
+
+.tg-t { display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: none; border: none; padding: 0; color: var(--ink); }
+/* กรอบไอคอนเป็นสี่เหลี่ยมมนไม่ใช่วงกลม — ทั้งแอปใช้สี่เหลี่ยมมนเป็นภาษาเดียว
+   (การ์ด · ปุ่ม · ชิป) วงกลมจะอ่านเป็นรูปโปรไฟล์ซึ่งมีความหมายอื่นอยู่แล้ว */
+.tg-ic { position: relative; width: 100%; aspect-ratio: 1; border-radius: 18px;
+  display: grid; place-items: center; color: var(--tg-fg); }
+.tg-ic svg { width: 23px; height: 23px; stroke-width: 2.05; }
+/* ป้ายยาวไม่เท่ากัน (2 พยางค์ ถึง "สแกนตารางเรียน") — กันความสูงไว้สองบรรทัดเท่ากันทุกใบ
+   ไม่งั้นใบที่ป้ายสั้นจะลอยขึ้น แล้วแถวอ่านเป็นฟันปลาแทนที่จะเป็นตาราง */
+.tg-lb2 { font-size: 11px; font-weight: 600; line-height: 1.25; text-align: center;
+  color: var(--ink); opacity: .78; letter-spacing: -.02em; min-height: 2.5em;
+  display: flex; align-items: flex-start; justify-content: center; }
+.tg-t:active .tg-ic { transform: scale(.94); }
+.tg-t:active .tg-lb2 { color: var(--ink); }
+
+/* ตัวเลขมุมขวาบน — ขึ้นเฉพาะตอนมีอะไรรออยู่จริง ไทล์ที่ว่างต้องเงียบสนิท */
+.tg-ct { position: absolute; top: -5px; right: -5px; min-width: 19px; height: 19px;
+  padding: 0 5px; border-radius: 10px; display: grid; place-items: center;
+  font-size: 11px; font-weight: 700; font-style: normal; line-height: 1;
+  background: var(--card); color: var(--ink);
+  box-shadow: 0 0 0 2.5px var(--scr), var(--shadow); }
+/* บั๊กตัวเดียวกับป้ายบนหัวตั๋ว: --pri-red-text เป็นสีตัวอักษรที่พลิกตามธีม
+   ธีมมืดได้ #FF9AA6 มาเป็นพื้นของแบดจ์ที่มีตัวอักษรขาว = ชมพูซีดที่แทบไม่มีน้ำหนัก
+   ทั้งที่แบดจ์มีหน้าที่เดียวคือ "ดึงสายตา" · แบดจ์ต้องดังเท่ากันทุกธีม จึงใช้ --sig-red */
+.tg-ct.hot { background: var(--sig-red); color: #fff; }
+/* จุดเปล่า ๆ (ของรางวัลรายวันที่ยังไม่ได้กดรับ) — มีชิ้นเดียวต่อวัน เลข "1" จึงไม่บอกอะไรเพิ่ม
+   ต้องเป็นวงกลมทึบ ไม่ใช่แคปซูลว่าง ซึ่งอ่านเป็นแบดจ์ที่โหลดตัวเลขไม่สำเร็จ */
+.tg-ct.dot { min-width: 0; width: 11px; height: 11px; padding: 0; border-radius: 50%;
+  top: -3px; right: -3px; }
+
+/* โทนสีของไทล์: จับกลุ่มตามหน้าที่ ไม่ได้ไล่สีรุ้งทีละใบ
+     tone-in   = เอางานเข้าระบบ (สแกน · กล่องเข้า · ตัวเชื่อม)
+     tone-time = เวลาและแผน (แผนวันนี้ · ปฏิทิน · ตารางเรียน)
+     tone-me   = ของตัวเอง (สถิติ · ร้านค้า)
+   สามกลุ่มตรงกับสามคำถามที่คนเปิดแอปมาถาม จึงกวาดตาหาได้โดยไม่ต้องอ่านป้ายทุกใบ
+
+   ห้ามใส่สีดิบลงไปเอง — ต้องใช้ตัวแปร --tile-* ของธีม เพราะแอปมีธีมให้ซื้อ/คราฟต์
+   อีกหกชุด (warm · space · deepocean · sweet · earth2 …) สีที่ฮาร์ดโค้ดจะสวยธีมเดียว
+   แล้วหลุดกรอบทุกธีมที่เหลือ · ธีมพื้นฐานตั้งใจให้อยู่ในตระกูลฟ้าทั้งหมด ไทล์จึงต่างกัน
+   ด้วยน้ำหนักสีไม่ใช่คนละวงล้อสี ซึ่งเป็นสิ่งที่ตั้งใจ ไม่ใช่ข้อจำกัด
+   พื้นชิปใช้ตัวเดียวกันหมดเพื่อให้แถวอ่านเป็นชุดเดียว สีจึงอยู่ที่ไอคอนอย่างเดียว */
+/* 1B24: กรอบสัญลักษณ์เป็นน้ำเงินทุกใบ
+   เคยแบ่งเป็นสามโทน (น้ำเงิน/ม่วง/เขียวน้ำทะเล) เพื่อจับกลุ่มตามหน้าที่ ซึ่งล้มเพราะ
+   สองโทนหลังในธีมมืดจางจนเกือบเป็นสีพื้น — กลายเป็นไทล์ที่มองไม่เห็นครึ่งกริด
+   การจับกลุ่มด้วยสีจึงไม่คุ้มกับการที่ของหายไปจากสายตา ลำดับซ้าย-ขวาทำหน้าที่นั้นแทนได้
+
+   พื้นกรอบ = ทับฟ้าจาง ๆ สองชั้นบนสีการ์ด (≈28%) ไม่ใช่ฟ้าทึบ:
+   ทึบแปดใบจะกลายเป็นสีเน้น 8 ก้อนแข่งกับปุ่ม "เริ่มทำเลย" ซึ่งผิดกฎ 60/30/10 อีกทางหนึ่ง
+   สองชั้นนี้อ่านออกชัดว่าเป็นน้ำเงิน แต่ยังเบากว่าปุ่มอยู่หนึ่งระดับเสมอทุกธีม
+   (ใช้ linear-gradient ซ้อนแทน color-mix เพราะ color-mix ต้องการ Safari 16.4 ขึ้นไป) */
+/* 1B25: กรอบทึบน้ำเงิน + สัญลักษณ์ขาว — ชุดสีเดียวกับปุ่มแท็บที่ถูกเลือกอยู่บนแถบล่าง
+   ฟ้าจางซ้อนสองชั้นของรอบก่อนยังอ่านเป็น "การ์ดสีเทาที่บังเอิญอมฟ้า" ไม่ใช่สีน้ำเงิน
+   เพราะบนพื้นมืด สีที่จางกว่าพื้นแค่ขั้นเดียวจะถูกตาอ่านเป็นพื้นผิว ไม่ใช่เป็นสี
+   ตัวเทียบที่ถูกต้องคือแท็บ "วันนี้" ที่กำลังทำงานอยู่: ทึบ --fill กับสัญลักษณ์ขาว */
+.tg-t { --tg-bg: var(--fill, #2563EB); --tg-fg: var(--on-fill, #fff); }
+.tg-ic { background: var(--tg-bg); box-shadow: var(--shadow); }
+/* เส้นหนาขึ้นนิดเดียว เพราะสัญลักษณ์ขาวบนพื้นทึบต้องการน้ำหนักมากกว่าบนพื้นจาง
+   จึงจะดูหนักเท่ากันด้วยตา (เส้นบางบนพื้นเข้มถูกอ่านว่าจางกว่าที่เป็นจริง) */
+.tg-ic svg { stroke-width: 2.15; }
+/* ป้ายบนกรอบทึบไม่ต้องมีวงแหวนสีพื้นจอ — ขอบของกรอบตัดมันออกจากพื้นให้อยู่แล้ว
+   วงแหวนสีพื้นจอบนกรอบทึบจะกลายเป็นรูเจาะที่มองทะลุเห็นพื้นหลังแทน */
+/* ไทล์วางอยู่บนพื้นจอตรง ๆ ไม่ได้อยู่ในการ์ด วงแหวนจึงต้องเป็นสีพื้นจอ (--scr)
+   ไม่ใช่ --card · และไม่ใช่ --bg ซึ่งไม่มีอยู่จริงในระบบธีมนี้ */
+.tg-ct { box-shadow: 0 0 0 2.5px var(--scr), var(--shadow); }
+.tg-t:active .tg-ic { filter: brightness(.88); }
+
+/* จอกว้างขึ้นแล้วห้ามคลี่เป็นแถวเดียวแปดช่อง
+   เคยตั้งไว้ repeat(8,1fr) ที่ 620px ซึ่งพังสองชั้นพร้อมกัน: ป้ายไทยยาว ๆ อย่าง
+   "สแกนตารางเรียน" ถูกบีบจนขึ้นสามบรรทัดคนละความสูงกับเพื่อนบ้าน แถวเลยเป็นฟันปลา
+   และแถวเดียวยาว ๆ ทำลายลำดับสายตาที่ตั้งใจไว้ — กริดสองแถวสื่อว่า "แถวบนสำคัญกว่า"
+   ส่วนแถวเดียวสื่อว่าทุกใบเท่ากัน ซึ่งคือการไม่จัดลำดับให้เลย
+   สี่ช่องต่อแถวจึงคงที่ทุกความกว้าง · จอกว้างได้กรอบที่ใหญ่ขึ้นแทน ไม่ใช่ช่องที่มากขึ้น */
+@media (min-width: 620px) {
+  .td-tiles { max-width: 620px; }
+  .tg-grid { gap: 16px 12px; }
+  .tg-ic { border-radius: 22px; }
+}
+
+/* .th-guess (นาฬิกา "เวลามาจากการเดา" บนหัวจอ) ถูกถอดออกใน 1B25 —
+   ย้ายลงไปอยู่ในกริดในรูปไทล์ "สแกนตารางเรียน" ที่ติดป้าย ! ซึ่งมีอยู่แล้ว
+   บรรทัดตัวเลขบนหัวจอยังต้องกันตกสองแถว จึงเก็บกฎ nowrap ไว้ */
+.td-head .th-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
