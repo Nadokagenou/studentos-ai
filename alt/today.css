@@ -901,8 +901,11 @@
   display: grid; place-items: center; background: var(--tg-bg);
   color: var(--tg-fg); box-shadow: var(--shadow); }
 .tg-ic svg { width: 23px; height: 23px; stroke-width: 2.05; }
+/* ป้ายยาวไม่เท่ากัน (2 พยางค์ ถึง "สแกนตารางเรียน") — กันความสูงไว้สองบรรทัดเท่ากันทุกใบ
+   ไม่งั้นใบที่ป้ายสั้นจะลอยขึ้น แล้วแถวอ่านเป็นฟันปลาแทนที่จะเป็นตาราง */
 .tg-lb2 { font-size: 11px; font-weight: 600; line-height: 1.25; text-align: center;
-  color: var(--muted); letter-spacing: -.005em; }
+  color: var(--muted); letter-spacing: -.02em; min-height: 2.5em;
+  display: flex; align-items: flex-start; justify-content: center; }
 .tg-t:active .tg-ic { transform: scale(.94); }
 .tg-t:active .tg-lb2 { color: var(--ink); }
 
@@ -934,7 +937,14 @@
 .tg-t.tone-time { --tg-fg: var(--tile-route, #6D5CE0); }
 .tg-t.tone-me   { --tg-fg: var(--tile-tasks, #0E9AA0); }
 
+/* จอกว้างขึ้นแล้วห้ามคลี่เป็นแถวเดียวแปดช่อง
+   เคยตั้งไว้ repeat(8,1fr) ที่ 620px ซึ่งพังสองชั้นพร้อมกัน: ป้ายไทยยาว ๆ อย่าง
+   "สแกนตารางเรียน" ถูกบีบจนขึ้นสามบรรทัดคนละความสูงกับเพื่อนบ้าน แถวเลยเป็นฟันปลา
+   และแถวเดียวยาว ๆ ทำลายลำดับสายตาที่ตั้งใจไว้ — กริดสองแถวสื่อว่า "แถวบนสำคัญกว่า"
+   ส่วนแถวเดียวสื่อว่าทุกใบเท่ากัน ซึ่งคือการไม่จัดลำดับให้เลย
+   สี่ช่องต่อแถวจึงคงที่ทุกความกว้าง · จอกว้างได้กรอบที่ใหญ่ขึ้นแทน ไม่ใช่ช่องที่มากขึ้น */
 @media (min-width: 620px) {
   .td-tiles { max-width: 620px; }
-  .tg-grid { grid-template-columns: repeat(8, 1fr); }
+  .tg-grid { gap: 16px 12px; }
+  .tg-ic { border-radius: 22px; }
 }
