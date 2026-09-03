@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B19';                 // สายเลขของแอป
-const APP_CODENAME = 'Standard';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1B20';                 // สายเลขของแอป
+const APP_CODENAME = 'Buckets';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -3018,6 +3018,59 @@ function aiVoice() {
   try { aiRecog.start(); } catch (_) { aiVoiceOn = false; }
 }
 
+// ---------- ค้นหางาน (1B20) ----------
+// รายการงานที่ยาวเกินหนึ่งจอต้องมีช่องค้นหา — ทุกแอปจัดการงาน (Todoist · Things ·
+// Reminders) มีหมด · ที่นี่ไม่เคยมี ทั้งที่นักเรียนคนหนึ่งสะสมงานได้เป็นสิบใบภายในสัปดาห์เดียว
+// ค้นในเครื่องล้วน ไม่แตะเน็ต จึงไม่ต้องหน่วงเวลาเหมือนช่องค้นหาเพื่อน
+let taskQ = '';
+function taskSearch(v) {
+  taskQ = String(v || '');
+  renderTasks();
+  // วาดใหม่ทั้งจอแล้วช่องจะถูกสร้างใหม่ — คืนโฟกัสกับตำแหน่งเคอร์เซอร์ให้ตรงเดิม
+  // ไม่งั้นพิมพ์ได้ตัวเดียวแล้วคีย์บอร์ดปิดทุกครั้ง
+  const el = document.getElementById('tkQ');
+  if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+}
+function clearTaskSearch() {
+  taskQ = '';
+  renderTasks();
+  const el = document.getElementById('tkQ');
+  if (el) el.focus();
+}
+function matchTask(t, q) {
+  if (!q) return true;
+  const s = q.trim().toLowerCase();
+  if (!s) return true;
+  return [t.detail, t.subject, t.note, t.type].some(v =>
+    String(v || '').toLowerCase().includes(s));
+}
+
+// ---------- จัดกลุ่มตามกำหนดส่ง ----------
+// ของเดิมเป็นรายการแบนเรียงตามคะแนนความสำคัญ ซึ่งถูกต้องแต่ "อ่านไม่ออกว่าเหลือเวลาเท่าไหร่"
+// ต้องไล่อ่านวันที่ทีละใบเอง · ทุกแอปจัดการงานแบ่งเป็นถัง เลยกำหนด / วันนี้ / พรุ่งนี้ / …
+// เพราะคำถามแรกในหัวคนเปิดจอนี้คือ "มีอะไรไฟไหม้ไหม" ไม่ใช่ "อะไรได้คะแนนสูงสุด"
+// ในแต่ละถังยังเรียงตามคะแนนเดิมทุกประการ — การจัดกลุ่มไม่ได้แทนที่การจัดลำดับ
+const TASK_BUCKETS = [
+  { id: 'over',  name: 'เลยกำหนด' },
+  { id: 'today', name: 'วันนี้' },
+  { id: 'tmr',   name: 'พรุ่งนี้' },
+  { id: 'week',  name: 'ใน 7 วัน' },
+  { id: 'later', name: 'ต่อไป' },
+  { id: 'none',  name: 'ไม่มีกำหนดส่ง' },
+];
+function taskBucket(t, now) {
+  if (!t.due) return 'none';
+  const d = new Date(t.due);
+  if (isNaN(d)) return 'none';
+  const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+  const diff = Math.round((day(d) - day(now)) / 864e5);
+  if (d < now && diff <= 0) return 'over';   // เลยเวลาจริง ไม่ใช่แค่เลยวัน
+  if (diff <= 0) return 'today';
+  if (diff === 1) return 'tmr';
+  if (diff <= 7) return 'week';
+  return 'later';
+}
+
 function renderTasks() {
   const el = document.getElementById('taskList');
   if (!el) return;
@@ -3051,9 +3104,9 @@ function renderTasks() {
       label: i === 0 ? 'วันนี้' : WEEKDAY_SHORT[d.getDay()].replace('.', '') };
   });
 
-  const rows = taskDay
+  const rows = (taskDay
     ? rows0.filter(t => t.due && dayKey(new Date(t.due)) === taskDay)
-    : rows0;
+    : rows0).filter(t => matchTask(t, taskQ));
 
   const pageHead = `<div class="page-head">
       <div class="eyebrow">รายการงาน</div>
@@ -3062,7 +3115,20 @@ function renderTasks() {
         done.length ? ' · เสร็จแล้ว ' + done.length : ''}</p>
     </div>`;
 
-  const head = pageHead + `${tlModeTabs()}
+  // ช่องค้นหาโผล่เมื่อมีงานพอที่จะหาไม่เจอด้วยตาเปล่า — ต่ำกว่านั้นมันคือช่องว่าง
+  // ที่กินพื้นที่บนสุดของจอโดยไม่มีประโยชน์ (เกณฑ์เดียวกับที่แอปอื่นซ่อนช่องค้นหา
+  // ในลิสต์สั้น ๆ) · แต่ถ้ากำลังค้นอยู่ต้องอยู่ต่อเสมอ ไม่งั้นลบคำค้นแล้วช่องหายไปทั้งช่อง
+  const searchBox = (pending.length >= 6 || taskQ)
+    ? `<div class="fr-search tk-search">
+        ${icon('search')}
+        <input id="tkQ" autocomplete="off" spellcheck="false" placeholder="ค้นหางาน"
+               value="${esc(taskQ)}" oninput="taskSearch(this.value)">
+        <button class="fr-clear" ${taskQ ? '' : 'hidden'} onclick="clearTaskSearch()"
+          aria-label="ล้างคำค้น">${icon('x')}</button>
+      </div>` : '';
+
+  // แถบเลือกวันไม่มีความหมายตอนกำลังค้นหา — คำค้นข้ามวันอยู่แล้ว
+  const head = pageHead + searchBox + (taskQ ? '' : `${tlModeTabs()}
     <div class="daystrip">
       ${days.map(x => `<button class="ds${taskDay === x.k ? ' on' : ''}" onclick="setTaskDay('${x.k}')">
         <i class="ds-d">${esc(x.label)}</i><b class="ds-n">${x.d.getDate()}</b>
@@ -3071,23 +3137,64 @@ function renderTasks() {
     </div>
     ${taskDay && days.some(x => x.k === taskDay) ? `<button class="dayclear" onclick="setTaskDay(null)">
       ${icon('calendar')}เฉพาะ${esc(fmtThaiDate(days.find(x => x.k === taskDay).d))}
-      <span>ดูทุกวัน</span></button>` : ''}`;
-
-  const empty = taskDay ? 'วันนี้ไม่มีงานที่ถึงกำหนด'
-    : 'ไม่มีงานค้างเลย — เคลียร์หมดแล้ว';
+      <span>ดูทุกวัน</span></button>` : ''}`);
 
   // ใบแรกของรายการที่ยังไม่เสร็จได้แถบฟ้า = "ใบนี้คือใบที่ควรลงมือ"
   // ให้ทุกใบมีแถบก็เท่ากับไม่มีใบไหนมีแถบ
-  const firstPending = rows.find(t => !t.done);
+  const firstPending = rows[0];
+
+  // จัดกลุ่มเฉพาะตอนดูทุกวันและไม่ได้ค้นหา — กรองเหลือวันเดียวแล้วทุกใบอยู่ถังเดียวกัน
+  // หัวข้อกลุ่มอันเดียวคร่อมทั้งลิสต์จึงไม่ได้บอกอะไรเพิ่ม มีแต่กินที่
+  const grouped = !taskDay && !taskQ;
+  let listHTML;
+  if (!rows.length) {
+    listHTML = '';
+  } else if (!grouped) {
+    listHTML = rows.map(t => taskCard(t, now, t === firstPending)).join('');
+  } else {
+    const bucket = {};
+    for (const t of rows) (bucket[taskBucket(t, now)] = bucket[taskBucket(t, now)] || []).push(t);
+    listHTML = TASK_BUCKETS.filter(b => bucket[b.id] && bucket[b.id].length)
+      .map(b => `<div class="fr-sec${b.id === 'over' ? ' hot' : ''}">${esc(b.name)}<i>${
+        bucket[b.id].length}</i></div>`
+        + bucket[b.id].map(t => taskCard(t, now, t === firstPending)).join('')).join('');
+  }
 
   el.innerHTML = head
-    + (rows.length
-        ? rows.map(t => taskCard(t, now, t === firstPending)).join('')
-        : `<div class="card empty">${empty}</div>`)
+    + (rows.length ? listHTML : tasksEmpty(now, days))
     + (done.length ? `<button class="bin-btn" onclick="setFilter('done')">
         ${icon('check-circle')}เสร็จแล้ว · ${done.length} งาน</button>` : '')
     + (bin.length ? `<button class="bin-btn" onclick="setFilter('bin')">
         ${icon('trash')}ถังขยะ · ${bin.length} รายการ</button>` : '');
+}
+
+// ---------- จอว่าง ----------
+// ไอคอน + ประโยคเดียว + ปุ่มเดียว · ของเดิมเป็นการ์ดสีเทาที่บอกอย่างเดียวว่าไม่มีอะไร
+// แล้วปล่อยให้ผู้ใช้หาทางต่อเอง · จอว่างสามแบบต่างกันจริง ๆ จึงต้องพูดคนละเรื่อง
+function tasksEmpty(now, days) {
+  if (taskQ) {
+    return `<div class="fr-empty">
+      ${icon('search')}
+      <b>ไม่เจองานที่ตรงกับ “${esc(taskQ.trim())}”</b>
+      <p>ลองพิมพ์ชื่อวิชา หรือคำที่อยู่ในชื่องาน</p>
+      <button class="fr-empty-go" onclick="clearTaskSearch()">${icon('x')}ล้างคำค้น</button>
+    </div>`;
+  }
+  if (taskDay) {
+    const d = days.find(x => x.k === taskDay);
+    return `<div class="fr-empty">
+      ${icon('calendar')}
+      <b>${d ? esc(fmtThaiDate(d.d)) : 'วันนี้'}ไม่มีงานถึงกำหนด</b>
+      <p>วันอื่นอาจมีอยู่ — กดดูทุกวันได้</p>
+      <button class="fr-empty-go" onclick="setTaskDay(null)">${icon('calendar')}ดูทุกวัน</button>
+    </div>`;
+  }
+  return `<div class="fr-empty">
+    ${icon('check-circle')}
+    <b>ไม่มีงานค้างเลย</b>
+    <p>เคลียร์หมดแล้ว — เพิ่มงานใหม่ได้ด้วยการพูด ถ่ายรูป หรือพิมพ์เอง</p>
+    <button class="fr-empty-go" onclick="openAddSheet()">${icon('type')}เพิ่มงาน</button>
+  </div>`;
 }
 
 // ---------- ที่เก็บงานที่ทำเสร็จ ----------

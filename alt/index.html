@@ -733,48 +733,39 @@
           <div id="statsBox"></div>
 
           <!-- ALT 1A6M3: ทางเข้าใหญ่ 3 ทาง — ตั้งค่าทั้งหมดย้ายไปอยู่หลังปุ่ม -->
+          <!-- รายการทางเข้าถูกจัดกลุ่มใน 1B20 — ของเดิมเป็นรายการแบน 7 แถวเรียงกันรวด
+               โดยที่ "ร้านค้า (กำลังทำ)" กับ "Pro (ยังไม่เปิดขาย)" นั่งแทรกอยู่กลางของที่ใช้ได้จริง
+               จอที่เอาของยังไม่เสร็จมาวางปนกับของที่เสร็จแล้ว ทำให้ทั้งจออ่านเหมือนยังไม่เสร็จ -->
+          <div class="pf-sec">สังคม</div>
           <div class="pf-entry">
-            <!-- บริบทของฉัน — ที่เดียวที่แอปรู้ว่า "คนนี้ว่างตอนไหนจริง ๆ"
-                 1A9g: ย้ายมาเป็นแถวแรกของรายการ — มันคือข้อมูลที่ทำให้การจัดตารางแม่น
-                 ไม่ใช่ของแต่งหน้าตา จึงไม่ควรอยู่ท้ายสุดต่อจากของเล่น
-                 ตอนยังไม่กรอก แถวนี้จะถูกซ่อน แล้วไปโผล่เป็นการ์ดใหญ่ #ctxHero ด้านบนแทน -->
-            <button class="pe" id="peCtx" onclick="go('scr-context')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
-              <span class="pe-tx"><b>บริบทของฉัน</b><i id="peCtxCt"></i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <!-- 1A9g: การ์ด "ถามน้องไซ" ถูกถอดออกจากตรงนี้
-                 มันซ้ำกับแท็บ "น้องไซ" ที่อยู่บนแถบล่างตลอดเวลา — ทางเข้าสองทางไปที่เดียวกัน
-                 เอาออกแล้วรายการข้างล่างขยับขึ้นมาอยู่ในจอเดียวครบ ไม่ต้องเลื่อนหา -->
-            <!-- เพื่อนร่วมห้อง — แถวแรกสุดของรายการโดยตั้งใจ
-                 เพื่อนคือเหตุผลหลักที่กลุ่มเป้าหมายจะเปิดแอปนี้ค้างไว้ ของอื่นในรายการ
-                 เป็นของที่ทำคนเดียวได้ทั้งหมด แถวนี้แถวเดียวที่ต้องมีคนอื่น -->
+            <!-- เพื่อนคือเหตุผลหลักที่กลุ่มเป้าหมายจะเปิดแอปนี้ค้างไว้ ของอื่นในจอนี้
+                 ทำคนเดียวได้ทั้งหมด สองแถวนี้เท่านั้นที่ต้องมีคนอื่น จึงได้อยู่กลุ่มบนสุด
+                 ทั้งคู่ไปจอเดียวกันแต่คนละแท็บ (ฟีด / เพื่อนฉัน) หลังยุบสองจอเข้าด้วยกัน -->
             <button class="pe" onclick="openFeed()">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
               <span class="pe-tx"><b>เพื่อนร่วมห้อง</b><i id="peMateCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <!-- ห้องของฉัน — ทางเข้าพื้นที่ส่วนตัว วางไว้เหนือร้านค้าโดยตั้งใจ
-                 เพราะร้านค้ามีไว้ซื้อของ "ไปวางในห้อง" — ปลายทางต้องมาก่อนทางผ่าน
-                 ไม่งั้นคนกดเข้าร้านแล้วไม่เข้าใจว่าซื้อไปทำไม ซึ่งเป็นปัญหาเดิมของร้าน -->
+            <button class="pe" onclick="openFeed('friends')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-user"/></svg></span>
+              <span class="pe-tx"><b>เพื่อนของฉัน</b><i id="peFriendCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+          </div>
+
+          <div class="pf-sec">ของฉัน</div>
+          <div class="pf-entry">
+            <!-- บริบทของฉัน — ที่เดียวที่แอปรู้ว่า "คนนี้ว่างตอนไหนจริง ๆ" มันคือข้อมูลที่
+                 ทำให้การจัดตารางแม่น ไม่ใช่ของแต่งหน้าตา จึงอยู่แถวแรกของกลุ่มนี้
+                 ตอนยังไม่กรอก แถวนี้ถูกซ่อน แล้วไปโผล่เป็นการ์ดใหญ่ #ctxHero ด้านบนแทน -->
+            <button class="pe" id="peCtx" onclick="go('scr-context')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
+              <span class="pe-tx"><b>บริบทของฉัน</b><i id="peCtxCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
             <button class="pe" onclick="go('scr-room')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
               <span class="pe-tx"><b>ห้องของฉัน</b><i id="peRoomCt"></i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <!-- ALT 1A6M3: ร้านค้า — อยู่เหนือเหรียญตรา · ติดป้าย "กำลังทำ" เพราะของในร้านยังไม่เปิด
-                 แต่โทเคนสะสมจริงตั้งแต่ตอนนี้ ปุ่มจึงกดเข้าไปดูยอดได้ ไม่ใช่ปุ่มตาย -->
-            <button class="pe pe-shop" onclick="go('scr-shop')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-bag"/></svg></span>
-              <span class="pe-tx"><b>ร้านค้า <span class="pe-wip">กำลังทำ</span></b><i id="peShopCt"></i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <!-- แผนราคา — ยังไม่เปิดขาย ปุ่มจึงพาไปดูแผนอย่างเดียว ไม่ได้พาไปจ่ายเงิน
-                 ป้าย "ยังไม่เปิดขาย" อยู่บนปุ่มตั้งแต่ก่อนกด ไม่ใช่ไปเซอร์ไพรส์ข้างใน -->
-            <button class="pe pe-pro" onclick="go('scr-pro')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
-              <span class="pe-tx"><b>StudentOS Pro <span class="pe-wip">ยังไม่เปิดขาย</span></b>
-                <i>ดูว่าจะมีอะไรเพิ่ม</i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
             <button class="pe" onclick="go('scr-badges')">
@@ -782,9 +773,24 @@
               <span class="pe-tx"><b>เหรียญตรา</b><i id="peBadgeCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button class="pe" onclick="openFeed('friends')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
-              <span class="pe-tx"><b>เพื่อน</b><i id="peFriendCt"></i></span>
+          </div>
+
+          <!-- ของที่ยังไม่เสร็จอยู่กลุ่มของตัวเอง ล่างสุด — ป้ายบนปุ่มบอกอยู่แล้วว่ายังไม่เปิด
+               แต่ป้ายอย่างเดียวไม่พอถ้ามันยังนั่งปนอยู่กลางของที่ใช้ได้จริง -->
+          <div class="pf-sec">เร็ว ๆ นี้</div>
+          <div class="pf-entry">
+            <!-- ร้านค้า: ของในร้านยังไม่เปิด แต่โทเคนสะสมจริงตั้งแต่ตอนนี้
+                 ปุ่มจึงกดเข้าไปดูยอดได้ ไม่ใช่ปุ่มตาย -->
+            <button class="pe pe-shop" onclick="go('scr-shop')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-bag"/></svg></span>
+              <span class="pe-tx"><b>ร้านค้า <span class="pe-wip">กำลังทำ</span></b><i id="peShopCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <!-- ยังไม่เปิดขาย ปุ่มจึงพาไปดูแผนอย่างเดียว ไม่ได้พาไปจ่ายเงิน -->
+            <button class="pe pe-pro" onclick="go('scr-pro')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+              <span class="pe-tx"><b>StudentOS Pro <span class="pe-wip">ยังไม่เปิดขาย</span></b>
+                <i>ดูว่าจะมีอะไรเพิ่ม</i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
           </div>
