@@ -382,6 +382,29 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .btn.discord{background:#5865F2; color:#fff; border:none}
 .btn.discord .g-badge{background:#fff; box-shadow:none; color:#5865F2; font-size:13px; font-weight:800}
 
+/* ---------- ทางหลักใบใหญ่ ---------- */
+/* ใหญ่กว่าปุ่มอื่นทุกใบบนจอนี้อย่างเห็นได้ชัด ไม่ใช่ใหญ่กว่านิดเดียว
+   ต่างกันนิดเดียวคือ "ไม่ได้ตั้งใจ" ในสายตาคนอ่าน แล้วเขาก็ต้องอ่านทุกปุ่มอยู่ดี */
+.lg-opts .btn.lg-main{min-height:62px; border-radius:19px; font-size:16px; font-weight:700}
+.lg-main .g-badge{width:26px; height:26px; font-size:14px}
+
+/* ---------- ช่องทางรอง: วงกลมเรียงกัน ---------- */
+.lg-or2{display:flex; align-items:center; gap:10px; width:100%; max-width:300px;
+  color:rgba(199,210,254,.45); font-size:11.5px; font-weight:600; margin:4px 0 0}
+.lg-or2 i{flex:1; height:1px; background:rgba(169,188,240,.20)}
+.lg-ics{display:flex; gap:14px; justify-content:center}
+.lg-ic{width:54px; height:54px; border-radius:50%; border:none; cursor:pointer;
+  display:grid; place-items:center; font-family:inherit; font-size:20px; font-weight:800;
+  color:#fff; transition:transform .14s ease}
+.lg-ic:active{transform:scale(.93)}
+.lg-ic.discord{background:#5865F2}
+.lg-ic.facebook{background:#1877F2}
+.lg-ic.apple{background:#000}
+.lg-ic.ms{background:#0078D4}
+.lg-ic.google{background:#fff; color:#0B1220}
+/* ปุ่มไม่ล็อกอินแยกตัวออกจากกลุ่มช่องทางด้วยระยะ ไม่ใช่ด้วยเส้นคั่นอีกเส้น */
+.lg-opts .btn.lg-skip{margin-top:10px}
+
 /* อีเมลเป็นลิงก์ข้อความ ไม่ใช่ปุ่มแบรนด์ใบที่สี่ — ปุ่มที่สูงเท่ากัน กว้างเท่ากัน
    มีวงกลมไอคอนเหมือนกัน ต่างแค่สีพื้น สายตาอ่านว่าของอย่างเดียวกันหลายอัน */
 .lg-alt{background:none; border:none; color:rgba(199,210,254,.72); font-size:13.5px; font-weight:600;
