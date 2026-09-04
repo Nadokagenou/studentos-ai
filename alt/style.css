@@ -334,27 +334,31 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 @media (prefers-reduced-motion: reduce){ .sp-star1{animation:none} }
 
 /* ---------- login (ธีมเข้มต่อเนื่องจาก splash) ---------- */
-#scr-login{background:radial-gradient(120% 80% at 50% 0%,#1E3A8A 0%,#122A63 40%,#08122E 100%)}
+/* ไล่เฉดแนวตั้งจริง สว่างบน-เข้มล่าง ตามภาพอ้างอิง — ของเดิมเป็น radial ที่จุดสว่าง
+   อยู่กลางบนพอดี ทำให้จอแทบดูเป็นสีเรียบและตราแบรนด์จมหายไปกับพื้นหลัง */
+#scr-login{background:linear-gradient(176deg,#1B3C8F 0%,#16306F 32%,#0E1F4C 66%,#070F2A 100%)}
 #scr-login .big-title{color:#fff; font-size:30px; letter-spacing:-.036em}
 #scr-login .sub{color:rgba(199,210,254,.8); font-size:14px}
 #scr-login .hint{color:rgba(199,210,254,.5); font-size:11.5px; line-height:1.7}
 #scr-login.on{display:flex; align-items:center; justify-content:center;
   padding-top:calc(env(safe-area-inset-top) + 8px); padding-bottom:calc(env(safe-area-inset-bottom) + 8px)}
 /* ---------- 1B37: สามชั้น บน-กลาง-ล่าง ---------- */
-/* จอนี้กินเต็มความสูงแล้วแบ่งเป็นสามก้อน: ตราชิดบน คำทักลอยกลางด้วย margin:auto
-   ปุ่มตกลงมาอยู่ล่างในระยะที่นิ้วโป้งเอื้อมถึงจริง
-   ของเดิมจัดทุกอย่างกึ่งกลางแนวตั้งเป็นกองเดียว ปุ่มจึงไปนั่งกลางจอพอดี
-   ซึ่งเป็นตำแหน่งที่แย่ที่สุดบนมือถือ: ไกลนิ้วโป้ง และไม่มีอะไรถ่วงครึ่งล่างของจอเลย */
+/* สัดส่วนไล่ตามภาพอ้างอิง: ที่ว่างจริงเหนือตรา · ตราอยู่ราวหนึ่งในสี่บนของจอ ·
+   คำทักลอยกลางโดยมีที่ว่างก้อนใหญ่ทั้งบนและล่าง · ปุ่มกับไอคอนถูกดันไปติดก้นจอ
+   space-between + ตัวเว้นสองตัวทำงานแทนการเดาค่า margin เป็นตัวเลขตายตัว
+   ซึ่งจะเพี้ยนทันทีบนจอที่สูงไม่เท่ากัน */
 .login-wrap{display:flex; flex-direction:column; align-items:center; gap:0;
-  text-align:center; padding:8px 10px 4px; width:100%; min-height:100%}
-.lg-top{padding-top:14px}
-.login-mark{width:78px; height:78px; border-radius:22px; box-shadow:0 18px 44px rgba(0,0,0,.5)}
-.lg-brand{margin:10px 0 0; font-size:19px; letter-spacing:-.02em}
+  justify-content:space-between;
+  text-align:center; padding:0 10px 8px; width:100%; min-height:100%}
+.lg-top{padding-top:11vh}
+.login-mark{width:66px; height:66px; border-radius:20px; box-shadow:0 18px 44px rgba(0,0,0,.5)}
+/* ชื่อแบรนด์เป็นตัวเล็กกางตัวอักษร ไม่ใช่หัวข้อใหญ่ — ในภาพอ้างอิงชื่อแบรนด์เป็นป้ายกำกับ
+   ใต้ตรา ส่วนตัวใหญ่ที่สุดบนจอคือคำทักทาย ไม่ใช่ชื่อแอป */
+.lg-brand{margin:11px 0 0; font-size:13.5px; font-weight:700; letter-spacing:.16em;
+  text-transform:uppercase; opacity:.92}
 
-/* margin:auto ทั้งบนและล่าง = ก้อนนี้กินที่ว่างที่เหลือทั้งหมดแล้วลอยอยู่กลาง
-   โดยที่ก้อนบนกับก้อนล่างยังติดขอบของมันเอง */
-.lg-mid{margin:auto 0; max-width:280px}
-.lg-h{margin:0; font-size:25px; font-weight:700; letter-spacing:-.03em; color:#fff; line-height:1.28}
+.lg-mid{margin:0; max-width:290px; padding-bottom:6vh}
+.lg-h{margin:0; font-size:32px; font-weight:700; letter-spacing:-.03em; color:#fff; line-height:1.2}
 .lg-p{margin:9px 0 0; font-size:13px; line-height:1.7; color:rgba(199,210,254,.62)}
 /* แคปซูลตามภาพอ้างอิง · ทรงกลมสุดขั้วทำให้ปุ่มอ่านเป็น "ของกด" ชัดกว่าสี่เหลี่ยมมนที่
    ใช้ซ้ำกับการ์ดทั้งแอป — บนจอที่มีปุ่มเป็นพระเอก ทรงจึงควรต่างจากที่อื่น */
@@ -362,9 +366,10 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 /* ทางไปอ่านว่าแอปนี้คืออะไร — ตั้งใจให้เบากว่าปุ่มทั้งสอง
    คนที่รู้จักแอปอยู่แล้วต้องไม่สะดุดกับมัน มันมีไว้สำหรับคนที่เพิ่งกดลิงก์มา
    แล้วยังไม่รู้ว่าตัวเองกำลังจะล็อกอินเข้าอะไร */
+/* ลิงก์ท้ายสุด เงียบที่สุดบนจอ — มันคือทางออกไปอ่าน ไม่ใช่ทางเข้าใช้งาน */
 .login-what{
-  margin-top:4px; font-size:14px; font-weight:600; text-decoration:none;
-  color:rgba(255,255,255,.62); padding:8px 12px; border-radius:12px;
+  margin-top:2px; font-size:12.5px; font-weight:600; text-decoration:none;
+  color:rgba(255,255,255,.42); padding:6px 12px; border-radius:12px;
 }
 .login-what:active{color:#fff; background:rgba(255,255,255,.07)}
 .btn.google{background:#fff; color:#0B1220; border:none; display:flex; align-items:center; justify-content:center; gap:11px;
@@ -380,7 +385,10 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 /* ---------- 1B21: ช่องทางล็อกอินหลายทาง ---------- */
 /* กองปุ่มถูกวาดจาก JS จึงต้องมีคอลัมน์ของตัวเอง — .login-wrap เป็น flex อยู่แล้ว
    แต่ตัวลูกที่โผล่มาเป็นก้อนเดียวจะกินความกว้างไม่เท่ากับปุ่มที่เคยเป็นลูกตรง ๆ */
-.lg-opts{display:flex; flex-direction:column; align-items:center; gap:12px; width:100%}
+/* ก้อนล่างสุด — ปุ่ม คำกำกับ ไอคอน แล้วประโยคอีเมล เรียงลงไปจนติดขอบจอ
+   ตัวมันเองไม่ยืด (space-between ของตัวแม่เป็นคนดันมาไว้ล่างแล้ว) */
+.lg-opts{display:flex; flex-direction:column; align-items:center; gap:11px; width:100%;
+  padding-bottom:2px}
 .lg-opts .btn{width:100%; max-width:300px; min-height:54px; border-radius:17px}
 /* Apple/Facebook/Microsoft ยังไม่ได้เปิดใช้ตามค่าเริ่มต้น — สีเตรียมไว้ให้ครบ
    เพื่อที่การเปิดใช้จะเป็นการแก้ config.js บรรทัดเดียว ไม่ใช่งาน CSS อีกรอบ */
