@@ -13,7 +13,9 @@ window.SUPABASE_CONFIG = {
   // เพิ่มชื่อลงในลิสต์นี้ได้ "หลังจาก" เปิดใช้เจ้านั้นใน Supabase Dashboard →
   // Authentication → Providers (ใส่ Client ID / Secret) แล้วเท่านั้น
   // ปุ่มที่กดแล้วขึ้น "provider is not enabled" แย่กว่าปุ่มที่ไม่มี
-  // รองรับ: 'google' · 'apple' · 'facebook' · 'azure' (Microsoft)
+  // รองรับ: 'google' · 'discord' · 'apple' · 'facebook' · 'azure' (Microsoft)
+  // เพิ่ม 'discord' / 'facebook' ตรงนี้ได้ทันทีที่เปิดใช้เจ้านั้นในแดชบอร์ดเสร็จ
+  // ปุ่มสีแบรนด์ของทั้งสองเจ้าเตรียมไว้แล้วใน style.css กับ OAUTH_META
   providers: ['google'],
 
   // ล็อกอินด้วยอีเมล (รหัส 6 หลัก) เปิดอยู่เสมอ ไม่ต้องตั้งค่าผู้ให้บริการ

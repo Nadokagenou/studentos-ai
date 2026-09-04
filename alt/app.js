@@ -1113,6 +1113,7 @@ function pushToCloud(immediate) {
 // เพิ่มชื่อลง SUPABASE_CONFIG.providers หลังเปิดใช้ในแดชบอร์ดเสร็จแล้วเท่านั้น
 const OAUTH_META = {
   google:   { name: 'Google',   badge: 'G',  cls: 'google' },
+  discord:  { name: 'Discord',  badge: 'D',  cls: 'discord' },
   apple:    { name: 'Apple',    badge: '',  cls: 'apple' },
   facebook: { name: 'Facebook', badge: 'f',  cls: 'facebook' },
   azure:    { name: 'Microsoft', badge: '⊞', cls: 'ms' },
@@ -1252,9 +1253,14 @@ function renderLoginOpts() {
       <span class="g-badge">${m.badge}</span> เข้าสู่ระบบด้วย ${m.name}</button>`;
   }).join('');
 
+  // อีเมลถูกลดชั้นจากปุ่มเต็มความกว้างเป็นลิงก์ข้อความ (แบบ A ที่ผู้ใช้เลือก)
+  // เหตุผล: ปุ่มแบรนด์ทุกอันสูงเท่ากัน กว้างเท่ากัน มีวงกลมไอคอนเหมือนกัน ต่างแค่สีพื้น
+  // พอมีอีเมลเป็นปุ่มที่ห้าในชุดเดียวกัน สายตาอ่านว่า "ของอย่างเดียวกันห้าอัน"
+  // ไม่ใช่ "ช่องทางที่ต่างกัน" — ซึ่งเป็นอาการที่ผู้ใช้รายงานเองว่า "มันเหมือนซ้ำกัน"
+  // อีเมลยังอยู่ครบทุกความสามารถ แค่ไม่แย่งน้ำหนักกับช่องทางหลักอีกต่อไป
   el.innerHTML = provs
-    + `<button class="btn mail" onclick="setLoginView('mail')">
-        <span class="g-badge">@</span> เข้าสู่ระบบด้วยอีเมล</button>`
+    + `<button class="lg-alt" onclick="setLoginView('mail')">
+        ใช้อีเมลแทน</button>`
     + `<div class="lg-or"><i></i>หรือ<i></i></div>`
     + `<button class="btn ghost" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>`;
 }
@@ -1911,7 +1917,7 @@ function nowCard(sp, now) {
   return `<section class="td-now ${tone}${running ? ' running' : ''}">
     <div class="tn-head">
       <div class="tn-top">
-        <span class="tn-eyebrow">${esc(eyebrow)}</span>
+        <span class="tn-eyebrow"><i class="tn-mark">${icon('target')}</i>${esc(eyebrow)}</span>
         <span class="tn-pill ${tone}">${pillIc ? icon(pillIc) : ''}${esc(pillTx)}</span>
       </div>
       <h2 class="tn-title">${esc(t.detail || 'งานนี้')}</h2>

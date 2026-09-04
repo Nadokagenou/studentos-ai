@@ -377,6 +377,18 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .btn.mail .g-badge{background:rgba(255,255,255,.16); box-shadow:none; color:#EAF0FF; font-size:14px}
 
 /* เส้นคั่น "หรือ" — แยกช่องทางล็อกอินออกจากทางข้าม ไม่ให้ปุ่มข้ามดูเป็นช่องทางที่ห้า */
+/* Discord — สีแบรนด์ blurple ตราขาวบนพื้นม่วง เหมือน Facebook ที่มีอยู่แล้วข้างบน
+   ปุ่มจะโผล่ก็ต่อเมื่อใส่ 'discord' ลง SUPABASE_CONFIG.providers หลังเปิดใช้ในแดชบอร์ดแล้ว */
+.btn.discord{background:#5865F2; color:#fff; border:none}
+.btn.discord .g-badge{background:#fff; box-shadow:none; color:#5865F2; font-size:13px; font-weight:800}
+
+/* อีเมลเป็นลิงก์ข้อความ ไม่ใช่ปุ่มแบรนด์ใบที่สี่ — ปุ่มที่สูงเท่ากัน กว้างเท่ากัน
+   มีวงกลมไอคอนเหมือนกัน ต่างแค่สีพื้น สายตาอ่านว่าของอย่างเดียวกันหลายอัน */
+.lg-alt{background:none; border:none; color:rgba(199,210,254,.72); font-size:13.5px; font-weight:600;
+  padding:9px; border-radius:12px; text-decoration:underline; text-underline-offset:3px; cursor:pointer;
+  font-family:inherit}
+.lg-alt:active{color:#fff; background:rgba(255,255,255,.07)}
+
 .lg-or{display:flex; align-items:center; gap:10px; width:100%; max-width:300px;
   color:rgba(199,210,254,.45); font-size:12px; font-weight:600; margin:2px 0}
 .lg-or i{flex:1; height:1px; background:rgba(169,188,240,.20)}

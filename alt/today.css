@@ -96,8 +96,18 @@
 .tn-body { padding: 12px 14px 13px; }
 /* ทุกอย่างในหัวสืบสีจาก --on-fill ไม่ใช่ --ink · ถ้าลืมตัวใดตัวหนึ่งจะได้ตัวหนังสือ
    สีเข้มบนพื้นน้ำเงินเข้ม ซึ่งอ่านไม่ออกเฉพาะบางธีมและมองข้ามได้ง่ายมากตอนเทส */
-.td-now .tn-eyebrow { color: var(--on-fill); opacity: .78; font-weight: 700;
-  letter-spacing: .04em; margin-top: 0; flex: 1; min-width: 0; }
+/* ความจาง .78 ย้ายจาก opacity มาอยู่ในค่าสีแทน — opacity ตกทอดถึงลูกทุกตัวและลูกลบทิ้งไม่ได้
+   ตราวงกลมขาวที่อยู่ข้างในจึงกลายเป็นขาวขุ่น 78% ทั้งที่มันต้องทึบถึงจะเรียกว่า "จุดเด่น"
+   หัวตั๋วเป็นสีทึบพร้อมตัวหนังสือขาวเสมอทุกโทน ใช้ค่าขาวโปร่งตรง ๆ ได้ปลอดภัย */
+.td-now .tn-eyebrow { color: rgba(255,255,255,.8); opacity: 1; font-weight: 700;
+  letter-spacing: .04em; margin-top: 0; flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 8px; }
+/* ตราวงกลมขาวบนหัวตั๋ว — ของที่การ์ดใบเก่ามีแล้วหายไปตอนเปลี่ยนเป็นตั๋ว
+   หัวตั๋วเปลี่ยนสีตามความด่วน (แดง/เหลือง/เขียว) ไอคอนจึงเป็นกรมท่าคงที่ ไม่ใช่สีน้ำเงิน
+   ไม่งั้นบนหัวสีแดงจะได้ไอคอนน้ำเงินบนขาว ซึ่งเป็นสีที่ไม่เกี่ยวกับอะไรบนจอเลย */
+.td-now .tn-mark { flex: none; width: 24px; height: 24px; border-radius: 50%;
+  background: #fff; color: #16306B; display: grid; place-items: center; opacity: 1; }
+.td-now .tn-mark svg { width: 14px; height: 14px; stroke-width: 2.2; }
 .td-now .tn-title { color: var(--on-fill); font-size: 22px; line-height: 1.24;
   margin: 5px 0 0; }
 /* ============================================================
@@ -1017,7 +1027,13 @@
    (การ์ด · ปุ่ม · ชิป) วงกลมจะอ่านเป็นรูปโปรไฟล์ซึ่งมีความหมายอื่นอยู่แล้ว */
 .tg-ic { position: relative; width: 100%; aspect-ratio: 1; border-radius: 18px;
   display: grid; place-items: center; color: var(--tg-fg); }
-.tg-ic svg { width: 23px; height: 23px; stroke-width: 2.05; }
+/* ไอคอนนั่งบนแผ่นกลมขาวทึบ ไม่ใช่ลอยอยู่บนพื้นน้ำเงินเฉย ๆ
+   ของเดิมเป็นเส้นสีจางบนพื้นน้ำเงิน คอนทราสต์ต่ำจนทั้งกริดอ่านเป็นก้อนสีเดียวกันแปดก้อน
+   วงกลมขาวคือทรีตเมนต์เดียวกับตราบนปุ่ม Google ที่จอล็อกอิน — ทั้งแอปจึงพูดภาษาเดียวกัน
+   ระบายสีที่ตัว svg เลย ไม่ต้องเพิ่ม element ซ้อนใน markup ที่วนลูปวาดแปดใบ */
+.tg-ic svg { width: 23px; height: 23px; stroke-width: 2.05;
+  background: #fff; color: #16306B; border-radius: 50%; padding: 8px;
+  box-sizing: content-box; }
 /* ป้ายยาวไม่เท่ากัน (2 พยางค์ ถึง "สแกนตารางเรียน") — กันความสูงไว้สองบรรทัดเท่ากันทุกใบ
    ไม่งั้นใบที่ป้ายสั้นจะลอยขึ้น แล้วแถวอ่านเป็นฟันปลาแทนที่จะเป็นตาราง */
 .tg-lb2 { font-size: 11px; font-weight: 600; line-height: 1.25; text-align: center;
