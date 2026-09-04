@@ -4514,7 +4514,12 @@ function renderProfile() {
         <button class="pf-quiet" onclick="go('scr-privacy'); renderPrivacy()">${icon('lock')}เราเก็บอะไรของคุณบ้าง</button>
         <button class="pf-quiet pf-danger" onclick="deleteAccount()">${icon('trash')}ลบบัญชีและข้อมูลทั้งหมด</button>`;
     } else {
-      acc.innerHTML = `<button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span>เข้าสู่ระบบเพื่อซิงก์ข้ามเครื่อง</button>`;
+      // ปุ่มนี้เคยเรียก loginGoogle() ตรง ๆ ซึ่งยิงเข้า Google ทันทีโดยไม่ผ่านจอล็อกอิน
+      // ผลคือคนที่กด "ใช้แบบไม่ล็อกอินไปก่อน" ไปแล้ว ไม่มีทางกลับมาเห็นจอนั้นอีกเลยทั้งแอป
+      // ทั้งที่จอนั้นคือที่เดียวที่มีช่องทางอื่นให้เลือก — เปลี่ยนใจไปใช้ Discord ไม่ได้เลย
+      // และป้ายก็ไม่ได้เขียนว่า "ด้วย Google" ด้วย คนกดจึงไม่รู้ตัวว่ากำลังจะไปไหน
+      acc.innerHTML = `<button class="btn primary" onclick="setLoginView('root');go('scr-login')">
+        ${icon('user')}เข้าสู่ระบบเพื่อซิงก์ข้ามเครื่อง</button>`;
     }
   }
 

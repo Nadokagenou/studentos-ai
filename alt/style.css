@@ -241,6 +241,8 @@ body{
 .btn:active{transform:scale(.98)}
 
 .btn.primary{background:var(--blue); color:var(--on-accent); box-shadow:var(--shadow-brand)}
+/* ปุ่มที่มีไอคอนนำหน้าข้อความ — .btn เป็น display:block ไอคอนกับตัวหนังสือจึงไม่เรียงกันเอง */
+.btn.primary svg{width:18px; height:18px; vertical-align:-4px; margin-right:8px}
 .btn.secondary{background:var(--blue-soft); color:var(--blue-deep)}
 .btn.ghost{background:var(--card2); color:var(--ink); border:none}
 .btn.text{background:transparent; color:var(--muted); font-weight:500; min-height:44px}
