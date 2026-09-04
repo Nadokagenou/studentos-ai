@@ -340,17 +340,25 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 #scr-login .hint{color:rgba(199,210,254,.5); font-size:11.5px; line-height:1.7}
 #scr-login.on{display:flex; align-items:center; justify-content:center;
   padding-top:calc(env(safe-area-inset-top) + 8px); padding-bottom:calc(env(safe-area-inset-bottom) + 8px)}
-.login-wrap{display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; padding:20px 10px; width:100%}
-.login-mark{width:88px; height:88px; border-radius:24px; margin-bottom:6px; box-shadow:0 18px 44px rgba(0,0,0,.5)}
+/* ---------- 1B37: สามชั้น บน-กลาง-ล่าง ---------- */
+/* จอนี้กินเต็มความสูงแล้วแบ่งเป็นสามก้อน: ตราชิดบน คำทักลอยกลางด้วย margin:auto
+   ปุ่มตกลงมาอยู่ล่างในระยะที่นิ้วโป้งเอื้อมถึงจริง
+   ของเดิมจัดทุกอย่างกึ่งกลางแนวตั้งเป็นกองเดียว ปุ่มจึงไปนั่งกลางจอพอดี
+   ซึ่งเป็นตำแหน่งที่แย่ที่สุดบนมือถือ: ไกลนิ้วโป้ง และไม่มีอะไรถ่วงครึ่งล่างของจอเลย */
+.login-wrap{display:flex; flex-direction:column; align-items:center; gap:0;
+  text-align:center; padding:8px 10px 4px; width:100%; min-height:100%}
+.lg-top{padding-top:14px}
+.login-mark{width:78px; height:78px; border-radius:22px; box-shadow:0 18px 44px rgba(0,0,0,.5)}
+.lg-brand{margin:10px 0 0; font-size:19px; letter-spacing:-.02em}
 
-/* ---------- 1B36: หัวข้อของจอ ---------- */
-/* ตราแบรนด์เล็กลงหนึ่งขั้นเพื่อเปิดที่ให้ประโยค — ของเดิมตราใหญ่แล้วต่อด้วยปุ่มทันที
-   จอเลยอ่านเป็น "โลโก้กับปุ่ม" ไม่ใช่หน้าที่กำลังพูดกับใครสักคน */
-.lg-brand{margin:0 0 2px; font-size:23px}
-.lg-intro{width:100%; max-width:300px; text-align:left; margin:2px 0 6px}
-.lg-h{margin:0; font-size:19px; font-weight:700; letter-spacing:-.02em; color:#F2F6FF}
-.lg-p{margin:5px 0 0; font-size:12.5px; line-height:1.65; color:rgba(199,210,254,.62)}
-.login-wrap .btn{width:100%; max-width:300px; min-height:54px; border-radius:17px}
+/* margin:auto ทั้งบนและล่าง = ก้อนนี้กินที่ว่างที่เหลือทั้งหมดแล้วลอยอยู่กลาง
+   โดยที่ก้อนบนกับก้อนล่างยังติดขอบของมันเอง */
+.lg-mid{margin:auto 0; max-width:280px}
+.lg-h{margin:0; font-size:25px; font-weight:700; letter-spacing:-.03em; color:#fff; line-height:1.28}
+.lg-p{margin:9px 0 0; font-size:13px; line-height:1.7; color:rgba(199,210,254,.62)}
+/* แคปซูลตามภาพอ้างอิง · ทรงกลมสุดขั้วทำให้ปุ่มอ่านเป็น "ของกด" ชัดกว่าสี่เหลี่ยมมนที่
+   ใช้ซ้ำกับการ์ดทั้งแอป — บนจอที่มีปุ่มเป็นพระเอก ทรงจึงควรต่างจากที่อื่น */
+.login-wrap .btn{width:100%; max-width:300px; min-height:54px; border-radius:999px}
 /* ทางไปอ่านว่าแอปนี้คืออะไร — ตั้งใจให้เบากว่าปุ่มทั้งสอง
    คนที่รู้จักแอปอยู่แล้วต้องไม่สะดุดกับมัน มันมีไว้สำหรับคนที่เพิ่งกดลิงก์มา
    แล้วยังไม่รู้ว่าตัวเองกำลังจะล็อกอินเข้าอะไร */
@@ -361,8 +369,11 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .login-what:active{color:#fff; background:rgba(255,255,255,.07)}
 .btn.google{background:#fff; color:#0B1220; border:none; display:flex; align-items:center; justify-content:center; gap:11px;
   box-shadow:0 12px 30px -8px rgba(0,0,0,.28)}
-#scr-login .btn.ghost{background:rgba(255,255,255,.05); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-  border:1px solid rgba(169,188,240,.28); color:#BFD0F5}
+/* ขอบโปร่ง พื้นใส — ของเดิมเป็นก้อนเทาทึบที่หนักพอ ๆ กับปุ่มขาว สองใบเลยอ่านเป็น
+   ทางเลือกที่มีค่าเท่ากัน ทั้งที่ทางหลักคือ Google · น้ำหนักต้องต่างกันจริงถึงจะนำสายตาได้ */
+#scr-login .btn.ghost{background:transparent; backdrop-filter:none; -webkit-backdrop-filter:none;
+  border:1.5px solid rgba(255,255,255,.38); color:#EAF0FF; box-shadow:none}
+#scr-login .btn.ghost:active{background:rgba(255,255,255,.08)}
 .g-badge{width:22px; height:22px; border-radius:50%; background:#fff; border:none; box-shadow:0 0 0 1px rgba(15,23,42,.12);
   color:#4285F4; font-weight:700; font-size:12.5px; display:inline-flex; align-items:center; justify-content:center; flex:none}
 
@@ -400,36 +411,37 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 
 /* ---------- ช่องทางรอง: วงกลมเรียงกัน ---------- */
 /* ข้อความเปล่า ไม่มีเส้นขีดสองข้าง · เล็กและเงียบ เพราะมันเป็นป้ายบอกทาง ไม่ใช่หัวข้อ */
-.lg-or2{color:rgba(199,210,254,.42); font-size:11px; font-weight:600;
-  letter-spacing:.06em; margin:6px 0 -2px; text-align:center}
-.lg-ics{display:flex; gap:11px; justify-content:center}
+.lg-or2{color:rgba(199,210,254,.45); font-size:11px; font-weight:600;
+  letter-spacing:.06em; margin:16px 0 0; text-align:center}
+.lg-ics{display:flex; gap:12px; justify-content:center; margin-top:10px}
 /* 46px — เล็กกว่าปุ่มหลัก 70px ชัดเจน · ของเดิม 54px ใหญ่เกือบเท่าปุ่มจริง
    สองวงกลมขนาดนั้นลอยอยู่กลางที่ว่างเลยอ่านเป็นของหลุดมา ไม่ใช่แถวช่องทางรอง */
 /* วงกลมขาว ตราเป็นสีแบรนด์ — แบบเดียวกับภาพอ้างอิงที่ผู้ใช้ส่งมา
    วงกลมสีแบรนด์ทึบสองอันเรียงกันคือก้อนสีสองก้อนที่แข่งกันเองและแข่งกับปุ่มหลัก
    พอพื้นเป็นขาวเหมือนกันหมด แถวนี้อ่านเป็นของกลุ่มเดียวกัน แล้วสีไปอยู่ที่ตรา
    ซึ่งเป็นที่ที่สีควรอยู่ — มันคือสิ่งที่บอกว่าปุ่มนี้คือเจ้าไหน */
-.lg-ic{width:46px; height:46px; border-radius:50%; cursor:pointer;
-  display:grid; place-items:center; font-family:inherit; font-size:17px; font-weight:800;
-  background:#fff; border:none; box-shadow:0 6px 16px -6px rgba(0,0,0,.45);
-  transition:transform .14s ease, filter .16s}
-.lg-ic svg{width:22px; height:22px}
+/* วงกลมขอบโปร่ง ตราสีขาว — ชุดเดียวกับปุ่มรองข้างบน จอทั้งใบจึงมีวัสดุแค่สองอย่าง:
+   ขาวทึบ (ทางหลัก) กับ ขอบโปร่ง (ทางรอง) · วงกลมขาวทึบที่ลองก่อนหน้านี้กลายเป็น
+   ก้อนสว่างสามก้อนบนจอเดียว แล้วสายตาไม่รู้ว่าควรไปหยุดที่ไหน */
+.lg-ic{width:44px; height:44px; border-radius:50%; cursor:pointer;
+  display:grid; place-items:center; font-family:inherit; font-size:16px; font-weight:800;
+  background:transparent; border:1.4px solid rgba(255,255,255,.36); color:#fff;
+  transition:transform .14s ease, background .16s, border-color .16s}
+.lg-ic svg{width:20px; height:20px}
 .lg-ic:active{transform:scale(.92)}
-.lg-ic:hover{filter:brightness(.97)}
-.lg-ic.discord{color:#5865F2}
-.lg-ic.facebook{color:#1877F2}
-.lg-ic.apple{color:#000}
-.lg-ic.ms{color:#0078D4}
-.lg-ic.google{color:#0B1220}
+.lg-ic:hover{background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.6)}
 /* ปุ่มไม่ล็อกอินแยกตัวออกจากกลุ่มช่องทางด้วยระยะ ไม่ใช่ด้วยเส้นคั่นอีกเส้น */
 .lg-opts .btn.lg-skip{margin-top:10px}
 
 /* อีเมลเป็นลิงก์ข้อความ ไม่ใช่ปุ่มแบรนด์ใบที่สี่ — ปุ่มที่สูงเท่ากัน กว้างเท่ากัน
    มีวงกลมไอคอนเหมือนกัน ต่างแค่สีพื้น สายตาอ่านว่าของอย่างเดียวกันหลายอัน */
-.lg-alt{background:none; border:none; color:rgba(199,210,254,.72); font-size:13.5px; font-weight:600;
-  padding:9px; border-radius:12px; text-decoration:underline; text-underline-offset:3px; cursor:pointer;
-  font-family:inherit}
-.lg-alt:active{color:#fff; background:rgba(255,255,255,.07)}
+/* ประโยค ไม่ใช่ลิงก์ขีดเส้นใต้ — ขีดเส้นใต้บนพื้นเข้มอ่านเหมือนลิงก์เว็บดิบ ๆ
+   ตัวที่กดได้คือคำท้ายประโยคซึ่งเป็นตัวขาวหนา ส่วนคำถามข้างหน้าเป็นตัวจาง
+   รูปแบบเดียวกับ "Don't have an account? Sign up" ที่แอปทั่วไปวางไว้ก้นจอ */
+.lg-alt{background:none; border:none; color:rgba(199,210,254,.6); font-size:12.5px; font-weight:500;
+  padding:10px 6px 2px; cursor:pointer; font-family:inherit; line-height:1.6}
+.lg-alt b{color:#fff; font-weight:700; margin-left:3px}
+.lg-alt:active b{color:#BFD0F5}
 
 .lg-or{display:flex; align-items:center; gap:10px; width:100%; max-width:300px;
   color:rgba(199,210,254,.45); font-size:12px; font-weight:600; margin:2px 0}
