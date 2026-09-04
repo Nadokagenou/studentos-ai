@@ -340,6 +340,14 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
   padding-top:calc(env(safe-area-inset-top) + 8px); padding-bottom:calc(env(safe-area-inset-bottom) + 8px)}
 .login-wrap{display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; padding:20px 10px; width:100%}
 .login-mark{width:88px; height:88px; border-radius:24px; margin-bottom:6px; box-shadow:0 18px 44px rgba(0,0,0,.5)}
+
+/* ---------- 1B36: หัวข้อของจอ ---------- */
+/* ตราแบรนด์เล็กลงหนึ่งขั้นเพื่อเปิดที่ให้ประโยค — ของเดิมตราใหญ่แล้วต่อด้วยปุ่มทันที
+   จอเลยอ่านเป็น "โลโก้กับปุ่ม" ไม่ใช่หน้าที่กำลังพูดกับใครสักคน */
+.lg-brand{margin:0 0 2px; font-size:23px}
+.lg-intro{width:100%; max-width:300px; text-align:left; margin:2px 0 6px}
+.lg-h{margin:0; font-size:19px; font-weight:700; letter-spacing:-.02em; color:#F2F6FF}
+.lg-p{margin:5px 0 0; font-size:12.5px; line-height:1.65; color:rgba(199,210,254,.62)}
 .login-wrap .btn{width:100%; max-width:300px; min-height:54px; border-radius:17px}
 /* ทางไปอ่านว่าแอปนี้คืออะไร — ตั้งใจให้เบากว่าปุ่มทั้งสอง
    คนที่รู้จักแอปอยู่แล้วต้องไม่สะดุดกับมัน มันมีไว้สำหรับคนที่เพิ่งกดลิงก์มา
@@ -395,17 +403,22 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .lg-ics{display:flex; gap:11px; justify-content:center}
 /* 46px — เล็กกว่าปุ่มหลัก 70px ชัดเจน · ของเดิม 54px ใหญ่เกือบเท่าปุ่มจริง
    สองวงกลมขนาดนั้นลอยอยู่กลางที่ว่างเลยอ่านเป็นของหลุดมา ไม่ใช่แถวช่องทางรอง */
-.lg-ic{width:46px; height:46px; border-radius:50%; border:none; cursor:pointer;
+/* วงกลมขาว ตราเป็นสีแบรนด์ — แบบเดียวกับภาพอ้างอิงที่ผู้ใช้ส่งมา
+   วงกลมสีแบรนด์ทึบสองอันเรียงกันคือก้อนสีสองก้อนที่แข่งกันเองและแข่งกับปุ่มหลัก
+   พอพื้นเป็นขาวเหมือนกันหมด แถวนี้อ่านเป็นของกลุ่มเดียวกัน แล้วสีไปอยู่ที่ตรา
+   ซึ่งเป็นที่ที่สีควรอยู่ — มันคือสิ่งที่บอกว่าปุ่มนี้คือเจ้าไหน */
+.lg-ic{width:46px; height:46px; border-radius:50%; cursor:pointer;
   display:grid; place-items:center; font-family:inherit; font-size:17px; font-weight:800;
-  color:#fff; transition:transform .14s ease, filter .16s}
-.lg-ic svg{width:21px; height:21px}
+  background:#fff; border:none; box-shadow:0 6px 16px -6px rgba(0,0,0,.45);
+  transition:transform .14s ease, filter .16s}
+.lg-ic svg{width:22px; height:22px}
 .lg-ic:active{transform:scale(.92)}
-.lg-ic:hover{filter:brightness(1.08)}
-.lg-ic.discord{background:#5865F2}
-.lg-ic.facebook{background:#1877F2}
-.lg-ic.apple{background:#000}
-.lg-ic.ms{background:#0078D4}
-.lg-ic.google{background:#fff; color:#0B1220}
+.lg-ic:hover{filter:brightness(.97)}
+.lg-ic.discord{color:#5865F2}
+.lg-ic.facebook{color:#1877F2}
+.lg-ic.apple{color:#000}
+.lg-ic.ms{color:#0078D4}
+.lg-ic.google{color:#0B1220}
 /* ปุ่มไม่ล็อกอินแยกตัวออกจากกลุ่มช่องทางด้วยระยะ ไม่ใช่ด้วยเส้นคั่นอีกเส้น */
 .lg-opts .btn.lg-skip{margin-top:10px}
 
