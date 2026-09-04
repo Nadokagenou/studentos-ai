@@ -1112,10 +1112,11 @@ function pushToCloud(immediate) {
 // ปุ่มที่กดแล้วขึ้น error ว่า "provider is not enabled" แย่กว่าปุ่มที่ไม่มี —
 // เพิ่มชื่อลง SUPABASE_CONFIG.providers หลังเปิดใช้ในแดชบอร์ดเสร็จแล้วเท่านั้น
 const OAUTH_META = {
+  // mark = ชื่อตราในสไปรท์ (ถ้ามี) · badge = ตัวอักษรสำรองสำหรับเจ้าที่ยังไม่ได้วาดตรา
   google:   { name: 'Google',   badge: 'G',  cls: 'google' },
-  discord:  { name: 'Discord',  badge: 'D',  cls: 'discord' },
+  discord:  { name: 'Discord',  badge: 'D',  cls: 'discord',  mark: 'discord' },
   apple:    { name: 'Apple',    badge: '',  cls: 'apple' },
-  facebook: { name: 'Facebook', badge: 'f',  cls: 'facebook' },
+  facebook: { name: 'Facebook', badge: 'f',  cls: 'facebook', mark: 'facebook' },
   azure:    { name: 'Microsoft', badge: '⊞', cls: 'ms' },
 };
 
@@ -1261,11 +1262,16 @@ function renderLoginOpts() {
       <span class="g-badge">${m.badge}</span> เข้าสู่ระบบด้วย ${m.name}</button>`;
   })() : '';
   // ไม่มีเจ้าอื่นเปิดใช้ = ไม่ต้องมีหัวข้อ "หรือเข้าด้วย" กับแถวว่าง ๆ ใต้ปุ่ม
-  const restRow = rest.length ? `<div class="lg-or2"><i></i>หรือเข้าด้วย<i></i></div>
+  //
+  // หัวข้อเป็นข้อความเปล่า ไม่มีเส้นขีดสองข้าง — เส้นบาง ๆ กับตัวหนังสือจางบนพื้นเข้ม
+  // อ่านเป็นรอยเปื้อนมากกว่าตัวคั่น และการขีดเส้นแบ่งจอทั้งที่ของสองกลุ่มห่างกัน
+  // ด้วยระยะอยู่แล้ว คือการเพิ่มขีดโดยไม่ได้เพิ่มความชัด
+  const restRow = rest.length ? `<div class="lg-or2">หรือเข้าด้วย</div>
     <div class="lg-ics">${rest.map(p => {
       const m = OAUTH_META[p];
       return `<button class="lg-ic ${m.cls}" onclick="loginWith('${p}')"
-        aria-label="เข้าสู่ระบบด้วย ${m.name}" title="${m.name}">${m.badge}</button>`;
+        aria-label="เข้าสู่ระบบด้วย ${m.name}" title="${m.name}">${
+          m.mark ? icon(m.mark) : m.badge}</button>`;
     }).join('')}</div>` : '';
 
   // ---------- ทำไมลิงก์อีเมลถึงไม่ได้เขียนว่า "ใช้อีเมล" ----------

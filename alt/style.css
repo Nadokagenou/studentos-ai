@@ -389,14 +389,18 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .lg-main .g-badge{width:26px; height:26px; font-size:14px}
 
 /* ---------- ช่องทางรอง: วงกลมเรียงกัน ---------- */
-.lg-or2{display:flex; align-items:center; gap:10px; width:100%; max-width:300px;
-  color:rgba(199,210,254,.45); font-size:11.5px; font-weight:600; margin:4px 0 0}
-.lg-or2 i{flex:1; height:1px; background:rgba(169,188,240,.20)}
-.lg-ics{display:flex; gap:14px; justify-content:center}
-.lg-ic{width:54px; height:54px; border-radius:50%; border:none; cursor:pointer;
-  display:grid; place-items:center; font-family:inherit; font-size:20px; font-weight:800;
-  color:#fff; transition:transform .14s ease}
-.lg-ic:active{transform:scale(.93)}
+/* ข้อความเปล่า ไม่มีเส้นขีดสองข้าง · เล็กและเงียบ เพราะมันเป็นป้ายบอกทาง ไม่ใช่หัวข้อ */
+.lg-or2{color:rgba(199,210,254,.42); font-size:11px; font-weight:600;
+  letter-spacing:.06em; margin:6px 0 -2px; text-align:center}
+.lg-ics{display:flex; gap:11px; justify-content:center}
+/* 46px — เล็กกว่าปุ่มหลัก 70px ชัดเจน · ของเดิม 54px ใหญ่เกือบเท่าปุ่มจริง
+   สองวงกลมขนาดนั้นลอยอยู่กลางที่ว่างเลยอ่านเป็นของหลุดมา ไม่ใช่แถวช่องทางรอง */
+.lg-ic{width:46px; height:46px; border-radius:50%; border:none; cursor:pointer;
+  display:grid; place-items:center; font-family:inherit; font-size:17px; font-weight:800;
+  color:#fff; transition:transform .14s ease, filter .16s}
+.lg-ic svg{width:21px; height:21px}
+.lg-ic:active{transform:scale(.92)}
+.lg-ic:hover{filter:brightness(1.08)}
 .lg-ic.discord{background:#5865F2}
 .lg-ic.facebook{background:#1877F2}
 .lg-ic.apple{background:#000}
