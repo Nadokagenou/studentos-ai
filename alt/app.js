@@ -4926,9 +4926,20 @@ function renderProfile() {
   if (sav) sav.innerHTML = (mine || pic)
     ? `<img src="${esc(mine || pic)}" alt="">`
     : esc(name.trim().charAt(0).toUpperCase() || 'N');
+  // 1B55 · สี่ช่องที่โตได้ทุกช่อง — "เพดานงาน/วัน" ถูกถอดออกเพราะเป็นค่าที่ตั้งไว้
+  // ไม่ใช่สิ่งที่ทำได้ · มันย้ายไปอยู่จอตั้งค่าซึ่งเป็นที่ของมัน
+  const tk = typeof tokenState === 'function' ? tokenState() : {};
   set('pfDone', done);
-  set('pfFree', (state.settings.freeHours || 2) + ' ชม.');
-  set('pfPending', pending.length);
+  set('pfStreak', typeof loginStreak === 'function' ? loginStreak() : 0);
+  set('pfTok', tk.bal || 0);
+  set('pfFriends', (typeof frList !== 'undefined' && Array.isArray(frList)) ? frList.length : 0);
+  // ชื่อผู้ใช้ใต้ชื่อจริง — ขึ้นเฉพาะคนที่ตั้งไว้แล้ว
+  const atEl = document.getElementById('pfAt');
+  if (atEl) {
+    const h = (typeof frHandle !== 'undefined' && frHandle) ? frHandle : '';
+    atEl.textContent = h ? '@' + h : '';
+    atEl.hidden = !h;
+  }
 
   // บัญชี
   const acc = document.getElementById('accountCard');

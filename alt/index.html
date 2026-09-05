@@ -794,6 +794,9 @@
               <input type="file" id="avInput" accept="image/*" hidden>
               <div style="flex:1;min-width:0">
                 <div class="pf-nm" id="pfNm">นักเรียน</div>
+                <!-- 1B55 · ชื่อผู้ใช้ขึ้นใต้ชื่อจริง — เดิมมีที่เดียวคือจอเพื่อน
+                     ทั้งที่มันคือส่วนหนึ่งของตัวตน ไม่ใช่ของของจอนั้นจอเดียว -->
+                <div class="pf-at" id="pfAt" hidden></div>
                 <div class="pf-sb" id="pfSb"></div>
               </div>
               <!-- เฟืองอยู่ในการ์ด ไม่ใช่ลอยมุมขวาบนของจอ (1A9e)
@@ -803,12 +806,25 @@
                 <svg viewBox="0 0 24 24"><use href="#lu-cog"/></svg>
               </button>
             </div>
-            <div class="pf-stats">
-              <div><div class="v" id="pfDone">0</div><div class="k">ทำเสร็จแล้ว</div></div>
+            <!-- ============================================================
+                 1B55 · แถวสถิติต้องเป็นของที่โตขึ้นได้ทั้งแถว
+                 ============================================================
+                 ของเดิมมีสามช่อง แล้วช่องกลางคือ "เพดานงาน/วัน 2 ชม." ซึ่งเป็น
+                 "ค่าที่ตั้งไว้" ไม่ใช่ "สิ่งที่ทำได้" — มันนั่งอยู่ระหว่างตัวนับสองตัว
+                 ราวกับเป็นของชนิดเดียวกัน ทั้งที่มันไม่เคยขยับด้วยความพยายามของใคร
+                 แถวสถิติที่มีค่าคงที่ปนอยู่ คือแถวที่ดูแล้วไม่รู้ว่าควรภูมิใจกับอะไร
+                 (ค่านั้นย้ายไปอยู่จอตั้งค่าซึ่งเป็นที่ของมัน)
+
+                 สี่ช่องใหม่โตได้ทุกช่อง และโตด้วยการกระทำคนละแบบกัน:
+                 ทำงานเสร็จ · เปิดแอปต่อเนื่อง · สะสมโทเคน · เพิ่มเพื่อน -->
+            <div class="pf-stats four">
+              <div><div class="v" id="pfDone">0</div><div class="k">เสร็จแล้ว</div></div>
               <div class="sep"></div>
-              <div><div class="v" id="pfFree">2 ชม.</div><div class="k">เพดานงาน/วัน</div></div>
+              <div><div class="v" id="pfStreak">0</div><div class="k">ต่อเนื่อง</div></div>
               <div class="sep"></div>
-              <div><div class="v" id="pfPending">0</div><div class="k">งานค้าง</div></div>
+              <div><div class="v" id="pfTok">0</div><div class="k">โทเคน</div></div>
+              <div class="sep"></div>
+              <div><div class="v" id="pfFriends">0</div><div class="k">เพื่อน</div></div>
             </div>
           </div>
 
