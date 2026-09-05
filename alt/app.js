@@ -3647,11 +3647,29 @@ function renderTasks() {
     ? rows0.filter(t => t.due && dayKey(new Date(t.due)) === taskDay)
     : rows0).filter(t => matchTask(t, taskQ));
 
+  // 1B49 · หัวจอตามภาพร่าง — ชื่อจอบอกขอบเขตที่มองอยู่ ไม่ใช่ชื่อประเภทของข้อมูล
+  // "ตารางงาน" เป็นคำที่ใช้ได้กับทุกจอในแอป ส่วน "สัปดาห์นี้" บอกว่ากำลังดูอะไรอยู่
+  // บรรทัดรองเป็นช่วงวันกับเวลาว่างรวม ซึ่งเป็นตัวเลขที่ทำให้แถววันข้างล่างมีความหมาย
+  const wkEnd = addDays(now, 6);
+  let freeWk = 0;
+  if (typeof freeMinutes === 'function') {
+    for (let i = 0; i < 7; i++) {
+      const dd = addDays(now, i);
+      try { freeWk += freeMinutes(dd, i === 0 ? now : null); } catch (_) {}
+    }
+  }
+  // ช่วงวันเขียนแบบสั้น "5–11 ก.ย." ไม่ใช่ "5 ก.ย. 2569–11 ก.ย. 2569"
+  // เดือนกับปีซ้ำสองรอบในบรรทัดเดียวคือของที่อ่านผ่านแล้วไม่ได้อะไรเพิ่ม
+  // ข้ามเดือนเมื่อไหร่ค่อยเขียนเดือนทั้งสองฝั่ง
+  const sameMonth = now.getMonth() === wkEnd.getMonth();
+  const range = sameMonth
+    ? now.getDate() + '–' + wkEnd.getDate() + ' ' + MONTH_SHORT[wkEnd.getMonth()]
+    : now.getDate() + ' ' + MONTH_SHORT[now.getMonth()] + '–'
+      + wkEnd.getDate() + ' ' + MONTH_SHORT[wkEnd.getMonth()];
   const pageHead = `<div class="page-head">
-      <div class="eyebrow">รายการงาน</div>
-      <h1 class="page-title">ตารางงาน</h1>
-      <p class="page-sub">ค้างอยู่ <b>${pending.length}</b>${
-        done.length ? ' · เสร็จแล้ว ' + done.length : ''}</p>
+      <h1 class="page-title">สัปดาห์นี้</h1>
+      <p class="page-sub">${esc(range)}${
+        freeWk ? ' · ว่างรวม ' + humanMin(freeWk) : ''} · ค้าง ${pending.length}</p>
     </div>`;
 
   // ช่องค้นหาโผล่เมื่อมีงานพอที่จะหาไม่เจอด้วยตาเปล่า — ต่ำกว่านั้นมันคือช่องว่าง
@@ -3694,6 +3712,40 @@ function renderTasks() {
         ${icon('check-circle')}เสร็จแล้ว · ${done.length} งาน</button>` : '')
     + (bin.length ? `<button class="bin-btn" onclick="setFilter('bin')">
         ${icon('trash')}ถังขยะ · ${bin.length} รายการ</button>` : '');
+}
+
+// ============================================================
+// 1B49 · ชิปงานบรรทัดเดียว — ของที่ภาพร่างสัญญาไว้
+// ============================================================
+// 1B47 เอา taskCard() ตัวเดิมมาใช้ซ้ำในมุมมองสัปดาห์ ซึ่งเป็นการทิ้งเหตุผลทั้งหมด
+// ของแบบ A ไป: การ์ดเต็มใบสูง ~90px ต่อหนึ่งงาน เจ็ดวันจึงยาวกว่าสามจอ
+// แล้ว "เห็นทั้งสัปดาห์ในจอเดียว" ซึ่งเป็นข้อเดียวที่แบบนี้ชนะแบบอื่น ก็หายไป
+//
+// ชิปสูง ~34px · แถบสีวิชาซ้าย ชื่อกลาง เวลาขวา ปุ่มติ๊กท้ายสุด
+// ห้าวันจึงอยู่ในพื้นที่เท่าที่การ์ดเต็มใบใช้กับสองงาน
+//
+// สิ่งที่ต่างจากภาพร่างหนึ่งอย่าง: ภาพร่างไม่มีปุ่มติ๊ก
+// แต่ "ทำเสร็จ" คือสิ่งที่คนกดบ่อยที่สุดในจอนี้ ตัดออกแล้วต้องเปิดฟอร์มทุกครั้ง
+// จึงใส่กลับมาเป็นวงกลม 18px ท้ายชิป — กว้างขึ้นจากภาพร่างประมาณ 24px เท่านั้น
+function taskChip(t, now) {
+  const subj = (t.subject || '').trim();
+  const named = subj && subj !== 'อื่น ๆ';
+  const late = t.due && new Date(t.due) < now;
+  // ขวาสุดบอกของที่ต่างกันตามสถานะ: ค้างแล้วบอกว่ากี่วัน ยังไม่ถึงบอกว่ากินเวลาเท่าไหร่
+  // ตัวเลขสองชนิดนี้ไม่เคยมีความหมายพร้อมกัน — งานที่เลยกำหนดแล้ว "ใช้ 40 นาที" ไม่ช่วยอะไร
+  const meta = late
+    ? '−' + Math.max(1, Math.round((now - new Date(t.due)) / 864e5)) + 'ว.'
+    : (TASK_TYPES[taskType(t)].schedulable && t.estMin ? remainingMin(t) + 'น' : '');
+  const subs = Array.isArray(t.subs) && t.subs.length
+    ? t.subs.filter(x => x.done).length + '/' + t.subs.length : '';
+  return `<button class="wc ${named ? subjClass(subj) : ''}${late ? ' late' : ''}"
+      data-id="${t.id}" onclick="openForm('${t.id}')">
+    <b>${esc(t.detail || subj || 'งาน')}</b>
+    ${subs ? `<u>${subs}</u>` : ''}
+    ${meta ? `<i class="mono">${esc(meta)}</i>` : ''}
+    <span class="wc-tick" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
+      aria-label="ทำเสร็จ">${icon('check')}</span>
+  </button>`;
 }
 
 // ============================================================
@@ -3746,7 +3798,7 @@ function weekView(rows, now, firstPending) {
   const lateTop = late.slice(0, 3), lateRest = late.length - lateTop.length;
   const lateBlock = late.length ? `<div class="wk-late">
     <div class="wk-late-h">${icon('flame')}<b>เลยกำหนด</b><i>${late.length}</i></div>
-    ${lateTop.map(t => taskCard(t, now, t === firstPending)).join('')}
+    ${lateTop.map(t => taskChip(t, now)).join('')}
     ${lateRest ? `<button class="wk-more" onclick="setFilter('late')">
       ดูอีก ${lateRest} งานที่เลยกำหนด${icon('chevron')}</button>` : ''}
   </div>` : '';
@@ -3776,7 +3828,8 @@ function weekView(rows, now, firstPending) {
       html: `<div class="wk-row${isToday ? ' now' : ''}${list.length || mk.length ? '' : ' empty'}">
         <div class="wk-d"><b>${d.getDate()}</b><i>${esc(isToday ? 'วันนี้' : wd)}</i></div>
         <div class="wk-b">${mkHtml}${list.length
-          ? list.map(t => taskCard(t, now, t === firstPending)).join('')
+          ? list.map(t => taskChip(t, now)).join('')
+            + (isToday ? `<div class="wk-none">${esc(freeLabel(d, now))}</div>` : '')
           : (mk.length ? '' : `<div class="wk-none">${esc(freeLabel(d, now))}</div>`)}</div>
       </div>`,
     });
@@ -3784,7 +3837,7 @@ function weekView(rows, now, firstPending) {
 
   const undatedBlock = undated.length ? `<div class="wk-undated">
     <div class="wk-late-h"><b>ยังไม่ได้ตั้งกำหนดส่ง</b><i>${undated.length}</i></div>
-    ${undated.map(t => taskCard(t, now, t === firstPending)).join('')}
+    ${undated.map(t => taskChip(t, now)).join('')}
   </div>` : '';
 
   // 1B48 · วันว่างที่ติดกันตั้งแต่สองวันขึ้นไปยุบเป็นแถวเดียว
