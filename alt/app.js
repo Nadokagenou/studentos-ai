@@ -5122,6 +5122,66 @@ function ctxHours(min) {
   return (h ? h + ' ชม.' : '') + (h && m ? ' ' : '') + (m ? m + ' นาที' : '');
 }
 
+// ============================================================
+// 1B45 · F7 — ตารางสลับสัปดาห์ (A/B)
+// ============================================================
+// โผล่เป็นสวิตช์ปิดอยู่ตามค่าเริ่มต้น · โรงเรียนส่วนใหญ่ตารางซ้ำทุกสัปดาห์
+// คนกลุ่มนั้นต้องไม่ต้องอ่านอะไรเพิ่มเลย จึงเป็นแถวเดียวที่ปิดอยู่ ไม่ใช่คำถามที่ต้องตอบ
+//
+// เปิดแล้วต้องถามต่อทันทีว่า "สัปดาห์นี้คือ A หรือ B" — เพราะระบบเดาเองไม่ได้
+// และการเดาผิดแปลว่าตารางผิดทั้งเทอมโดยที่หน้าจอดูปกติทุกอย่าง
+// จุดยึดเก็บเป็นวันที่จริง ไม่ใช่ตัวนับ ดังนั้นเปิดแอปข้ามเดือนแล้วก็ยังคำนวณถูก
+function abBlock(p) {
+  const on = p.weekMode === 'ab';
+  const nowW = on && typeof ctxWeekOf === 'function' ? ctxWeekOf(new Date()) : null;
+  return `<div class="sec-label">ตารางสลับสัปดาห์</div>
+    <div class="pf-list">
+      <div class="pf-row">
+        <span class="tile">${icon('calendar')}</span>
+        <span class="bd"><span class="lb">ตารางไม่ซ้ำทุกสัปดาห์</span>
+          <span class="sb">โรงเรียนที่ใช้สัปดาห์ A / สัปดาห์ B</span></span>
+        <button class="ctx-sw${on ? ' on' : ''}" role="switch" aria-checked="${on}"
+          onclick="ctxToggleAb()" aria-label="ตารางสลับสัปดาห์"><i></i></button>
+      </div>
+      ${on ? `<div class="pf-row ab-pick">
+        <span class="bd"><span class="lb">สัปดาห์นี้คือ</span>
+          <span class="sb">ตั้งผิดแล้วตารางจะสลับกันทั้งเทอมโดยที่หน้าจอดูปกติ</span></span>
+        <div class="ab-btns">
+          <button class="ab${nowW === 'A' ? ' on' : ''}" onclick="ctxSetThisWeek('A')">A</button>
+          <button class="ab${nowW === 'B' ? ' on' : ''}" onclick="ctxSetThisWeek('B')">B</button>
+        </div>
+      </div>` : ''}
+    </div>`;
+}
+
+function ctxToggleAb() {
+  const p = ctxPrefs();
+  if (p.weekMode === 'ab') {
+    // ปิดแล้วไม่ล้าง week ของแต่ละคาบทิ้ง — เปิดกลับมาแล้วของเดิมต้องอยู่ครบ
+    // (onDay ข้ามด่านสัปดาห์เองอยู่แล้วเมื่อ weekMode ไม่ใช่ 'ab')
+    ctxSetPrefs({ weekMode: 'single' });
+  } else {
+    ctxSetPrefs({ weekMode: 'ab', weekAnchor: ctxPrefs().weekAnchor || ymdLocal(new Date()) });
+  }
+  renderContext(); renderAll();
+}
+
+// ตั้งว่า "สัปดาห์นี้" เป็น A หรือ B — เก็บเป็นจุดยึด ไม่ใช่ตัวนับ
+// เลือก B แปลว่าจุดยึด (สัปดาห์ A) คือสัปดาห์ก่อนหน้านี้หนึ่งสัปดาห์
+function ctxSetThisWeek(w) {
+  const d = new Date();
+  if (w === 'B') d.setDate(d.getDate() - 7);
+  ctxSetPrefs({ weekMode: 'ab', weekAnchor: ymdLocal(d) });
+  renderContext(); renderAll();
+  showToast({ title: 'สัปดาห์นี้คือสัปดาห์ ' + w,
+    body: 'คาบที่ตั้งไว้เฉพาะสัปดาห์อีกฝั่งจะไม่ขึ้นในเวลาว่างของสัปดาห์นี้' });
+}
+
+function ymdLocal(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+    + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 function renderContext() {
   const body = document.getElementById('ctxBody');
   if (!body || typeof freeSlots !== 'function') return;
@@ -5202,6 +5262,8 @@ function renderContext() {
         <span>อ่านทั้งสัปดาห์ในทีเดียว — ตรวจแก้ได้ก่อนบันทึกทุกคาบ</span></span>
       <span class="cs-go">${icon('chevron')}</span>
     </button>
+
+    ${abBlock(p)}
 
     <div class="sec-label">เวลาประจำวัน</div>
     <div class="pf-list">
@@ -5735,6 +5797,7 @@ function ctxWeekHtml() {
             <i class="mono">${esc(x.start)}–${esc(x.end)}</i>
             <b>${esc(name)}</b>
             ${ctxDayCount(x) > 1 ? `<u>${esc(ctxDayLabel(x))}</u>` : ''}
+            ${x.week ? `<u class="wk">สัปดาห์ ${esc(x.week)}</u>` : ''}
             <button class="ctx-del" onclick="ctxDelete('class','${x.id}')"
               aria-label="ลบ ${esc(name)}">${icon('trash')}</button>
           </div>`;
@@ -5801,6 +5864,11 @@ function ctxFormHtml(kind) {
       <span>ถึง</span>
       <input type="time" value="${esc(d.end)}" onchange="ctxEditing.draft.end=this.value">
     </div>
+    ${kind === 'class' && ctxPrefs().weekMode === 'ab' ? `<div class="ctx-days ctx-wks">
+      ${[['', 'ทุกสัปดาห์'], ['A', 'สัปดาห์ A'], ['B', 'สัปดาห์ B']].map(([v, lb]) =>
+        `<button type="button" class="ctx-day${(d.week || '') === v ? ' on' : ''}"
+          onclick="ctxSetWeek('${v}')">${lb}</button>`).join('')}
+    </div>` : ''}
     <div class="ctx-form-act">
       <button class="btn ghost sm" onclick="ctxCloseForm()">ยกเลิก</button>
       <button class="btn sm" onclick="ctxSubmit()">เพิ่ม</button>
@@ -5834,6 +5902,12 @@ function ctxToggleDay(i) {
   renderContext();
 }
 
+function ctxSetWeek(w) {
+  if (!ctxEditing) return;
+  ctxEditing.draft.week = w || '';
+  renderContext();
+}
+
 function ctxSubmit() {
   if (!ctxEditing) return;
   const { kind, draft } = ctxEditing;
@@ -5851,8 +5925,12 @@ function ctxSubmit() {
     weekday: days.length === 0 || days.length === 7 ? null : days,
     start: draft.start, end: draft.end,
   };
-  if (kind === 'class') rec.subject = draft.name.trim();
-  else { rec.title = draft.name.trim(); rec.kind = draft.kind; }
+  // 1B45 · เก็บ week เฉพาะเมื่อเลือกจริง · คาบที่ไม่ระบุ = เกิดทุกสัปดาห์
+  // ต้องเป็น undefined ไม่ใช่ '' เพราะ onDay เช็คด้วย truthiness
+  if (kind === 'class') {
+    rec.subject = draft.name.trim();
+    if (draft.week) rec.week = draft.week;
+  } else { rec.title = draft.name.trim(); rec.kind = draft.kind; }
 
   ctxUpsert(kind, rec);
   ctxEditing = null;

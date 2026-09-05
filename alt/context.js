@@ -33,6 +33,19 @@ const CTX_DEFAULT = {
     breakMin: 10,      // พักคั่นระหว่างงาน
     maxRunMin: 50,     // ทำติดกันได้นานสุดก่อนต้องพัก
     minBlockMin: 20,   // ช่องว่างสั้นกว่านี้ไม่นับเป็นที่ทำงาน — นั่งลงยังไม่ทันเข้าที่ก็หมดเวลาแล้ว
+    // ---------- 1B45 · F7 ตารางสลับสัปดาห์ ----------
+    // โรงเรียนจำนวนไม่น้อยใช้ตารางที่ไม่ซ้ำทุกสัปดาห์ (สัปดาห์ A / สัปดาห์ B)
+    // ก่อนหน้านี้แอปนี้ใช้กับโรงเรียนพวกนั้นไม่ได้เลย — ไม่ใช่ใช้ได้แบบไม่สะดวก
+    // แต่ตารางจะผิดครึ่งหนึ่งของทุกเทอม ซึ่งแปลว่าเวลาว่างที่คำนวณมาก็ผิดตามไปด้วย
+    //
+    // เก็บเป็นสองค่า ไม่ใช่ค่าเดียว:
+    //   weekMode   'single' = ตารางซ้ำทุกสัปดาห์ (ค่าเดิม ของเก่าทุกเครื่องได้ค่านี้)
+    //              'ab'     = สลับสองสัปดาห์
+    //   weekAnchor วันที่ที่ผู้ใช้ยืนยันว่า "สัปดาห์นั้นคือ A" · เก็บเป็น YYYY-MM-DD
+    //              คำนวณจากจุดยึดเสมอ ไม่ใช่นับจากต้นปี เพราะสัปดาห์แรกของเทอม
+    //              ไม่ได้ตรงกับสัปดาห์แรกของปฏิทินสากล และแต่ละโรงเรียนก็ไม่ตรงกันเอง
+    weekMode: 'single',
+    weekAnchor: null,
   },
   classes: [],
   routines: [],
@@ -114,9 +127,39 @@ function ctxClear() {
 }
 
 // ---------- ช่วงเวลาที่ถูกจองไว้ในวันหนึ่ง ----------
+// ---------- 1B45 · F7 · วันนี้เป็นสัปดาห์ไหน ----------
+// คืน 'A' · 'B' · หรือ null เมื่อยังไม่ได้เปิดโหมดสลับสัปดาห์
+// นับเป็น "จำนวนสัปดาห์เต็มจากจุดยึด" โดยตัดทั้งสองวันลงไปที่วันอาทิตย์ก่อนเสมอ
+// ถ้าไม่ตัด วันพุธเทียบกับจุดยึดวันศุกร์จะได้ผลต่างไม่ถึง 7 วัน แล้วสัปดาห์เดียวกัน
+// จะถูกนับเป็นคนละสัปดาห์กันตรงกลางสัปดาห์พอดี
+function ctxWeekStart(d) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() - x.getDay());
+  return x;
+}
+function ctxWeekOf(date = new Date()) {
+  const p = ctxPrefs();
+  if (p.weekMode !== 'ab' || !p.weekAnchor) return null;
+  const anchor = new Date(p.weekAnchor + 'T00:00:00');
+  if (isNaN(anchor)) return null;
+  const diff = ctxWeekStart(date) - ctxWeekStart(anchor);
+  const n = Math.round(diff / (7 * 864e5));
+  // ตัวหารลบต้องได้ผลบวก — สัปดาห์ก่อนจุดยึดก็ต้องบอกได้ว่าเป็น A หรือ B
+  return ((n % 2) + 2) % 2 === 0 ? 'A' : 'B';
+}
+
 // weekday ใช้เลขเดียวกับ Date.getDay() : 0 = อาทิตย์ … 6 = เสาร์
 // รายการที่ไม่มี weekday (หรือ weekday = null) ถือว่าเกิดทุกวัน — กินข้าวกับนอนเป็นแบบนั้น
-function onDay(item, weekday) {
+//
+// 1B45 · เพิ่มด่านที่สอง: สัปดาห์ · รายการที่ไม่ได้ระบุ week ถือว่าเกิดทุกสัปดาห์
+// ซึ่งทำให้ตารางเดิมของทุกคนทำงานเหมือนเดิมเป๊ะโดยไม่ต้องแก้อะไรสักคาบ
+// date เป็นอาร์กิวเมนต์ที่ใส่หรือไม่ใส่ก็ได้ — ผู้เรียกเก่าที่ส่งมาสองตัวยังถูกต้องอยู่
+// เพราะเมื่อไม่มี date ก็ไม่มีทางรู้สัปดาห์ จึงต้องปล่อยผ่าน ไม่ใช่ตัดทิ้ง
+function onDay(item, weekday, date) {
+  if (item.week && date) {
+    const w = ctxWeekOf(date);
+    if (w && item.week !== w) return false;
+  }
   if (item.weekday == null) return true;
   if (Array.isArray(item.weekday)) return item.weekday.includes(weekday);
   return +item.weekday === weekday;
@@ -132,7 +175,7 @@ function busyBlocks(date) {
 
   for (const k of c.classes) {
     const a = hm2min(k.start), b = hm2min(k.end);
-    if (a == null || b == null || b <= a || !onDay(k, wd)) continue;
+    if (a == null || b == null || b <= a || !onDay(k, wd, date)) continue;
     out.push({ from: a, to: b, kind: 'class', title: k.subject || 'เรียน', id: k.id });
   }
   for (const r of c.routines) {
