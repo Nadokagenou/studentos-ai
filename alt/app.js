@@ -2185,16 +2185,62 @@ function riskBlock(sp, now) {
   </section>`;
 }
 
-// ---------- 1B38: กริด "ทำอย่างอื่นต่อ" ย้ายไปแท็บ "ฉัน" ----------
-// todayTiles() ถูกลบทิ้ง ปลายทางทั้งแปดไปอยู่ในหมวด "เครื่องมือ" ของจอโปรไฟล์
-// (index.html — สี่ตัวที่ยังไม่มีแถวของตัวเองถูกเพิ่มเข้าไป ที่เหลือมีอยู่แล้ว)
+// ============================================================
+// 1B38b — กริดฟีเจอร์ย้ายไปอยู่จอของตัวเอง
+// ============================================================
+// 1B38 เอากริดออกจากหน้าแรกแล้วโยนปลายทางไปแทรกเป็นแถวในจอโปรไฟล์ ซึ่งผิดสองชั้น:
+// จอโปรไฟล์เป็นเรื่อง "ตัวฉัน" (บัญชี · รูป · เหรียญ · ตั้งค่า) ฟีเจอร์ของแอป
+// ไม่ใช่ของส่วนตัวของใคร · และการยุบกริดเป็นแถวรายการทำให้ของแปดอย่างที่เคย
+// กวาดตาเห็นพร้อมกันในสองแถว กลายเป็นลิสต์ที่ต้องอ่านทีละบรรทัดปนกับของอื่นอีกเจ็ดแถว
 //
-// เหตุผลไม่ใช่แค่ที่ว่าง: ไทล์แปดก้อนพื้นสีแบรนด์เต็มความกว้างสองแถว คือพื้นที่สีเน้น
-// ที่ใหญ่กว่าการ์ด "ตอนนี้" เสียอีก ทั้งที่ไม่มีก้อนไหนเป็นสิ่งที่ต้องทำตอนนี้เลยสักก้อน
-// กฎ 60/30/10 จึงกลับหัว: สายตาลงที่ปุ่มที่ไม่มีใครกด แทนที่จะลงที่คำตอบของจอ
-// บรรทัดเดียวปิดท้ายทำงานเท่ากันในเรื่องการหาของเจอ โดยไม่แย่งอะไรจากใคร
+// กริดกลับมาเหมือนเดิมทุกอย่าง แค่ย้ายไปอยู่จอ scr-tools ที่ไม่มีอะไรอื่นแย่งที่
+// เหตุผลที่มันต้องออกจากหน้าแรกยังเหมือนเดิม (ไทล์แปดก้อนพื้นสีแบรนด์กินพื้นที่สีเน้น
+// มากกว่าการ์ด "ตอนนี้" — กฎ 60/30/10 กลับหัว) แต่บนจอที่ไม่มีการ์ด "ตอนนี้"
+// ให้แย่ง มันเป็นของที่เด่นที่สุดบนจอโดยชอบธรรม เพราะมันคือเนื้อหาทั้งหมดของจอนั้น
+function renderTools() {
+  const body = document.getElementById('toolsBody');
+  if (!body) return;
+  body.innerHTML = toolsGrid();
+}
+
+function toolsGrid() {
+  const noCtx = typeof ctxIsEmpty === 'function' && ctxIsEmpty();
+  const gift = typeof dailyPending === 'function' && dailyPending();
+  const reqs = typeof frReqs !== 'undefined' && Array.isArray(frReqs) ? frReqs.length : 0;
+
+  // ---- ลำดับ: สำคัญมาก → น้อย ซ้ายไปขวา บนลงล่าง ----
+  // คนกวาดตาแบบอ่านหนังสือ ตำแหน่งบนซ้ายจึงแพงที่สุดในกริดและต้องได้ของที่แพงที่สุด
+  // แถวบน = ของที่ "เปลี่ยนสิ่งที่แอปทำให้ได้" (คน · ตารางเรียน · แผน · ปฏิทิน)
+  // แถวล่าง = ของที่ "เอาไว้ดู/ของตัวเอง" (สถิติ · ของสะสม · ร้านค้า · Pro)
+  //
+  // แบดจ์ต้องแปลว่า "มีอะไรรอให้กด" เท่านั้น — กฎเดียวกับแบดจ์บนแถบล่าง
+  //   [ไอคอน, ป้าย, กลุ่มสี, สิ่งที่ทำตอนกด, แบดจ์ ('' = เงียบ), เป็นสีเตือนไหม]
+  const tiles = [
+    ['users', 'เพื่อนฉัน', 'in', "openFeed('friends')", reqs || '', true],
+    ['book', 'สแกนตารางเรียน', 'in', "go('scr-ttscan')", noCtx ? '!' : '', true],
+    ['sparkles', 'แผนวันนี้', 'time', "go('scr-plan')", '', false],
+    ['calendar', 'ปฏิทินเดือน', 'time', "goTlMode('cal')", '', false],
+    ['flame', 'สถิติ', 'me', "go('scr-stats')", '', false],
+    ['medal', 'ของสะสม', 'me', "go('scr-badges')", '', false],
+    ['bag', 'ร้านค้า', 'me', "go('scr-shop')", gift ? ' ' : '', true],
+    ['lock', 'Pro', 'me', "go('scr-pro')", '', false],
+  ];
+
+  return `<section class="td-tiles">
+    <div class="tg-grid">
+      ${tiles.map(([ic, lb, tone, act, ct, hot]) => `<button class="tg-t tone-${tone}" onclick="${act}">
+        <span class="tg-ic">${icon(ic)}${ct !== '' ? `<i class="tg-ct${hot ? ' hot' : ''}${
+          ct === ' ' ? ' dot' : ''}">${String(ct).trim()}</i>` : ''}</span>
+        <span class="tg-lb2">${lb}</span>
+      </button>`).join('')}
+    </div>
+  </section>`;
+}
+
+// บรรทัดปิดท้ายหน้าแรก — เป็นตัวหนังสือสีจาง ไม่ใช่ปุ่ม เพราะมันไม่ใช่สิ่งที่จอนี้
+// อยากให้กด มันแค่ต้องมีอยู่ให้คนที่ตามหาของหาเจอ
 function toolsLink() {
-  return `<button class="td-more" onclick="go('scr-profile')">เครื่องมือทั้งหมด${icon('chevron')}</button>`;
+  return `<button class="td-more" onclick="go('scr-tools')">ฟีเจอร์อื่น ๆ${icon('chevron')}</button>`;
 }
 
 // ---------- ของที่ถูกยุบเข้าไปใน dayRail() แล้วใน 1B21 ----------
@@ -7005,7 +7051,7 @@ function workStatsHtml(now) {
 
 function renderAll() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline(); renderAi();
-  renderProfile(); renderStats(); renderPlan(); renderFriends(); renderBadges();
+  renderProfile(); renderStats(); renderPlan(); renderFriends(); renderBadges(); renderTools();
   renderShop(); renderPro(); renderWheel(); renderInstallCard(); renderTabBadges(); renderContext();
   renderRunBar();
   // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น

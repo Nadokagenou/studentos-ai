@@ -668,6 +668,21 @@
         <div id="timeline"></div>
       </div>
 
+      <!-- ============ SCREEN: ฟีเจอร์อื่น ๆ (1B38b) ============ -->
+      <!-- กริดแปดก้อนที่เคยอยู่ท้ายหน้าแรก · วาดจาก renderTools() ใน app.js
+           ทางเข้าเดียวคือบรรทัด "ฟีเจอร์อื่น ๆ" ที่ท้ายจอวันนี้ -->
+      <div class="screen flush" id="scr-tools">
+        <div class="sticky-head row">
+          <div>
+            <h2 class="sh-title">ฟีเจอร์อื่น ๆ</h2>
+            <p class="sh-sub">ของที่ไม่มีที่บนแถบล่างหกช่อง</p>
+          </div>
+          <button class="sh-btn" onclick="go('scr-menu')" aria-label="กลับหน้าแรก">
+            <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+        </div>
+        <div class="scr-body" id="toolsBody"></div>
+      </div>
+
       <!-- ============ SCREEN: กล่องเข้า ============ -->
       <!-- ของที่ไหลเข้ามาเองจากทุกแหล่ง — วาดจาก state.inbox ทั้งก้อนใน renderInbox -->
       <div class="screen flush" id="scr-inbox">
@@ -762,34 +777,6 @@
             <button class="pe" onclick="openFeed('friends')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-user"/></svg></span>
               <span class="pe-tx"><b>เพื่อนของฉัน</b><i id="peFriendCt"></i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-          </div>
-
-          <!-- 1B38 · กริด "ทำอย่างอื่นต่อ" ที่เคยอยู่ท้ายหน้าแรกมาอยู่ที่นี่
-               สี่แถวนี้คือปลายทางที่ยังไม่มีที่อยู่ในจอนี้ · อีกสี่ตัวในกริดเดิม
-               (เพื่อนฉัน · ของสะสม · ร้านค้า · Pro) มีแถวของตัวเองอยู่แล้วในหมวดอื่น
-               จึงไม่ทำซ้ำ — ทางเข้าซ้ำสองแถวในจอเดียวคือของที่ต้องอ่านสองรอบ -->
-          <div class="pf-sec">เครื่องมือ</div>
-          <div class="pf-entry">
-            <button class="pe" onclick="go('scr-ttscan')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-book"/></svg></span>
-              <span class="pe-tx"><b>สแกนตารางเรียน</b><i>ถ่ายรูปตารางทีเดียว ไม่ต้องกรอกทีละคาบ</i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <button class="pe" onclick="go('scr-plan')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
-              <span class="pe-tx"><b>แผนวันนี้</b><i>ทั้งวันเรียงเป็นช่วง ๆ</i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <button class="pe" onclick="goTlMode('cal')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg></span>
-              <span class="pe-tx"><b>ปฏิทินเดือน</b><i>ดูว่าเดือนนี้หนักตรงไหน</i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <button class="pe" onclick="go('scr-stats')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-flame"/></svg></span>
-              <span class="pe-tx"><b>สถิติ</b><i>ทำต่อเนื่องมากี่วันแล้ว</i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
           </div>
