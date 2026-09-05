@@ -5157,7 +5157,12 @@ function renderFriends(force) {
 
   // ช่องค้นหาไม่มีป้ายกำกับลอยอยู่ข้างบน — แว่นขยายในช่องบอกหน้าที่ของมันครบแล้ว
   // ป้ายกำกับมีไว้สำหรับฟอร์มที่ต้องกรอกหลายช่อง ไม่ใช่ช่องค้นหาช่องเดียวบนสุดของจอ
+  // 1B52 · ก้อนตัวตนขึ้นมาอยู่บนสุด
+  // ของเดิมอยู่ล่างสุดใต้รายชื่อเพื่อน ซึ่งทำให้มันอ่านเป็น "เพื่อนอีกคนที่ชื่อแปลก ๆ"
+  // ทั้งที่มันคือชื่อของเจ้าตัวเอง — ของที่ต้องส่งให้เพื่อนไปค้นหา จึงต้องหาเจอทันที
+  // ไม่ใช่ต้องเลื่อนผ่านรายชื่อทั้งหมดก่อน
   body.innerHTML = `
+    <div id="frMeRow"></div>
     <div class="fr-search">
       ${icon('search')}
       <input id="frQ" autocomplete="off" autocapitalize="off" spellcheck="false"
@@ -5167,8 +5172,7 @@ function renderFriends(force) {
     </div>
     <div id="frHits"></div>
     <div id="frReqBox"></div>
-    <div id="frListBox"></div>
-    <div id="frMeRow"></div>`;
+    <div id="frListBox"></div>`;
   body.dataset.built = '1';
   paintFriendParts();
 }
@@ -5190,6 +5194,53 @@ function frName(p) {
   return `<div class="fr-nm">${esc(p.display_name || 'นักเรียน')}</div>
     ${p.handle ? `<div class="fr-hd">@${esc(p.handle)}</div>` : ''}`;
 }
+// ============================================================
+// 1B52 · แถวเพื่อนต้องตอบว่า "ช่วยกันได้ตรงไหน"
+// ============================================================
+// ของเดิมมีแค่รูป ชื่อ @ชื่อผู้ใช้ แล้วจบ — ซึ่งเป็นข้อมูลที่ไม่ได้ทำอะไรเลย
+// คุณรู้จักเขาอยู่แล้วถึงได้เพิ่มเป็นเพื่อน การเห็นชื่อเขาอีกรอบไม่ได้บอกอะไรใหม่
+//
+// ข้อมูลที่มีอยู่แล้วแต่ไม่เคยถูกใช้: friend_list คืน strong[] weak[] bio since มาครบ
+// และ feed.js รู้ว่าใครกำลังเปิดแอปอยู่ตอนนี้ (onlineNow)
+//
+// เอามาจับคู่กับวิชาของเราเอง แล้วแถวนี้ตอบคำถามที่มีค่าที่สุดในจอนี้ได้:
+//   วิชาที่เขาถนัด ∩ วิชาที่เราอ่อน  →  "เขาช่วยเราได้"
+//   วิชาที่เราถนัด ∩ วิชาที่เขาอ่อน  →  "เราช่วยเขาได้"
+// ซึ่งตรงกับหลักของชั้นสังคมทั้งชั้น: ทุกคนเป็นทั้งติวเตอร์และนักเรียน แยกตามวิชา
+// ไม่มีใครเป็นฝ่ายให้หรือฝ่ายรับอย่างเดียว
+//
+// ไม่มีคู่ที่แมตช์กันก็ไม่ต้องแต่งเรื่อง — โชว์วิชาที่เขาถนัดเฉย ๆ หรือ bio ของเขา
+// แถวที่ขึ้นว่า "ไม่มีวิชาตรงกัน" ทุกใบคือแถวที่สอนให้คนเลิกอ่านตรงนั้น
+function frMatch(p) {
+  const me = typeof socialChips === 'function' ? socialChips() : null;
+  const myStrong = (me && me.strong) || [];
+  const myWeak = (me && me.weak) || [];
+  const their = { strong: p.strong || [], weak: p.weak || [] };
+  const norm = a => (a || []).map(x => String(x).trim()).filter(Boolean);
+  const inter = (a, b) => norm(a).filter(x => norm(b).includes(x));
+
+  const helpsMe = inter(their.strong, myWeak);
+  const iHelp = inter(myStrong, their.weak);
+  const rows = [];
+  if (helpsMe.length) rows.push(`<div class="fr-mt in">
+    <span class="fr-mt-ic">${icon('flag')}</span>เขาช่วยคุณได้ · <b>${esc(helpsMe.slice(0, 2).join(' · '))}</b></div>`);
+  if (iHelp.length) rows.push(`<div class="fr-mt out">
+    <span class="fr-mt-ic">${icon('users')}</span>คุณช่วยเขาได้ · <b>${esc(iHelp.slice(0, 2).join(' · '))}</b></div>`);
+  if (rows.length) return rows.join('');
+
+  // ไม่แมตช์ — บอกสิ่งที่เขาเป็นแทน เรียงจากของที่มีความหมายมากสุด
+  if (their.strong.length) return `<div class="fr-mt flat">ถนัด <b>${
+    esc(norm(their.strong).slice(0, 3).join(' · '))}</b></div>`;
+  if (p.bio) return `<div class="fr-mt flat">${esc(String(p.bio).slice(0, 60))}</div>`;
+  return '';
+}
+
+// เพื่อนคนนี้กำลังเปิดแอปอยู่ไหม — onlineNow มาจาก presence ของ feed.js
+function frOnline(p) {
+  if (typeof onlineNow === 'undefined' || !Array.isArray(onlineNow)) return null;
+  return onlineNow.find(u => u && u.id === p.id) || null;
+}
+
 // หัวข้อกลุ่ม — ใช้ทรงเดียวกันทุกกลุ่มในจอนี้ เพื่อให้ "คำขอ" กับ "เพื่อน" อ่านเป็นชั้นเดียวกัน
 function frSec(label, n) {
   return `<div class="fr-sec">${esc(label)}${n ? `<i>${n}</i>` : ''}</div>`;
@@ -5236,14 +5287,19 @@ function paintFriendParts() {
     // จอว่างเป็นย่อหน้าสีเทาคือจอที่ไม่มีใครอ่านจบ · มาตรฐานคือ ไอคอน + ประโยคเดียว
     // + ปุ่มให้กดหนึ่งปุ่ม เพราะคนที่มาถึงจอว่างคือคนที่ยังไม่รู้ว่าต้องทำอะไรต่อ
     lb.innerHTML = frList.length
-      ? frSec('เพื่อน', frList.length) + frList.map(p => `<div class="fr-card">
-          ${frAv(p)}
-          <div class="fr-bd">${frName(p)}
-            ${p.strong && p.strong.length ? `<div class="fr-st">ถนัด ${esc(p.strong.slice(0, 3).join(' · '))}</div>` : ''}
+      ? frSec('เพื่อน', frList.length) + frList.map(p => {
+          const on = frOnline(p);
+          return `<div class="fr-card big${on ? ' online' : ''}">
+          <div class="fr-top">
+            ${frAv(p)}
+            <div class="fr-bd">${frName(p)}</div>
+            ${on ? `<span class="fr-live">${on.subject
+                ? esc(on.subject) : 'ออนไลน์'}</span>` : ''}
+            <button class="fr-del" onclick="removeFriend('${esc(p.id)}', '${esc((p.display_name || '').replace(/'/g, ''))}')"
+              aria-label="เอาออก">${icon('trash')}</button>
           </div>
-          <button class="fr-del" onclick="removeFriend('${esc(p.id)}', '${esc((p.display_name || '').replace(/'/g, ''))}')"
-            aria-label="เอาออก">${icon('trash')}</button>
-        </div>`).join('')
+          ${frMatch(p)}
+        </div>`; }).join('')
       : `<div class="fr-empty">
           ${icon('users')}
           <b>ยังไม่มีเพื่อน</b>
@@ -5268,10 +5324,13 @@ function paintFriendParts() {
         <button class="fr-x" onclick="frEditing=false;paintFriendParts()" aria-label="ยกเลิก">${icon('x')}</button>
       </div>
       <p class="fr-fine">3-15 ตัว ใช้ได้ทั้งไทยและอังกฤษ · ห้ามเว้นวรรค</p>`
-    : `<div class="fr-me2">
-        <span class="fr-me2-lb">คุณคือ</span>
-        <b>@${esc(frHandle || '…')}</b>
-        <button class="fr-ic" onclick="copyHandle()" aria-label="ก๊อปชื่อผู้ใช้">${icon('copy')}</button>
+    : `<div class="fr-me-card">
+        <div class="fr-me-av">${esc(((state.settings.name || frHandle || 'น')).slice(0, 1))}</div>
+        <div class="fr-me-tx">
+          <i>ชื่อผู้ใช้ของคุณ — ส่งให้เพื่อนไปค้นหา</i>
+          <b>@${esc(frHandle || '…')}</b>
+        </div>
+        <button class="fr-me-btn" onclick="copyHandle()">${icon('copy')}ก๊อป</button>
         <button class="fr-ic" onclick="frEditing=true;paintFriendParts();document.getElementById('frHandle').focus()"
           aria-label="เปลี่ยนชื่อผู้ใช้">${icon('pencil')}</button>
       </div>`;

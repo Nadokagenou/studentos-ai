@@ -579,3 +579,71 @@
   background: linear-gradient(140deg, var(--blue), var(--fill));
   color: #fff; box-shadow: 0 8px 20px -8px rgba(37, 99, 235, .55);
 }
+
+/* ============================================================
+   1B52 · จอ "เพื่อนฉัน" — แถวที่บอกว่าช่วยกันได้ตรงไหน
+   ============================================================ */
+
+/* ---- การ์ดตัวตนบนสุด ---- */
+/* ของเดิมเป็นแถบเล็กล่างสุดใต้รายชื่อ ซึ่งอ่านเป็น "เพื่อนอีกคนที่ชื่อแปลก ๆ"
+   ทั้งที่มันคือชื่อของเจ้าตัว — ของที่ต้องส่งให้เพื่อนไปค้นหา ต้องหาเจอทันที */
+.fr-me-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 15px; margin-bottom: 16px; border-radius: 22px;
+  background: linear-gradient(140deg, var(--blue), var(--fill));
+  box-shadow: 0 12px 30px -12px rgba(37, 99, 235, .55);
+  color: #fff;
+}
+.fr-me-av {
+  width: 44px; height: 44px; border-radius: 16px; flex: none;
+  display: grid; place-items: center;
+  background: rgba(255, 255, 255, .22);
+  font-size: 19px; font-weight: 700;
+}
+.fr-me-tx { flex: 1; min-width: 0; line-height: 1.35; }
+.fr-me-tx i { font-style: normal; display: block; font-size: 11px; opacity: .82; }
+.fr-me-tx b {
+  display: block; font-size: 17px; font-weight: 700; letter-spacing: -.015em; margin-top: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fr-me-btn {
+  flex: none; display: inline-flex; align-items: center; gap: 5px;
+  border: none; border-radius: 12px; padding: 8px 12px; cursor: pointer;
+  background: #fff; color: var(--fill);
+  font-family: inherit; font-size: 12.5px; font-weight: 700;
+}
+.fr-me-btn svg { width: 14px; height: 14px; }
+.fr-me-card .fr-ic { color: rgba(255, 255, 255, .8); }
+
+/* ---- แถวเพื่อน ---- */
+.fr-card.big {
+  display: block; padding: 13px 14px; border: none; border-radius: 20px;
+  background: var(--soft-card); box-shadow: var(--soft-shadow);
+}
+.fr-top { display: flex; align-items: center; gap: 11px; }
+/* วงเขียวรอบรูปเมื่อคนนั้นเปิดแอปอยู่ตอนนี้ — box-shadow ไม่ใช่ border
+   ด้วยเหตุผลเดียวกับวงแหวนสตอรี่: renderFriends ใส่สีพื้นรูปมาเป็น inline style */
+.fr-card.online .fr-av {
+  box-shadow: 0 0 0 2px var(--scr), 0 0 0 4px var(--good);
+}
+.fr-live {
+  flex: none; font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+  background: var(--good-soft); color: var(--good);
+  max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ---- บรรทัดจับคู่วิชา ---- */
+/* สองทิศทางต้องแยกสีออกจากกัน — "เขาช่วยเราได้" กับ "เราช่วยเขาได้"
+   เป็นคนละเรื่องกันสิ้นเชิง สีเดียวกันแปลว่าต้องอ่านทุกครั้งถึงจะรู้ว่าอันไหนคืออันไหน */
+.fr-mt {
+  display: flex; align-items: center; gap: 7px;
+  margin-top: 9px; padding: 8px 10px; border-radius: 13px;
+  font-size: 12.5px; line-height: 1.4; color: var(--muted);
+}
+.fr-mt b { font-weight: 700; }
+.fr-mt-ic { display: flex; flex: none; }
+.fr-mt-ic svg { width: 14px; height: 14px; }
+.fr-mt.in { background: var(--good-soft); color: var(--good); }
+.fr-mt.out { background: var(--blue-soft); color: var(--blue); }
+.fr-mt.flat { background: var(--card2); padding: 7px 10px; }
+.fr-mt + .fr-mt { margin-top: 6px; }
