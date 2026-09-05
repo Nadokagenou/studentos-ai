@@ -6798,3 +6798,23 @@ body.deep-scr .top-friends { display: none; }
 /* ชิปในกองเลยกำหนด/ไม่มีวัน เว้นระยะกันเองเหมือนในแถววัน */
 .wk-late .wc, .wk-undated .wc { margin-bottom: 6px; }
 .wk-b .wc + .wc { margin-top: 0; }
+
+
+/* ============================================================
+   1B50 · แถววันตามภาพร่าง — คอลัมน์วันมีเส้นแบ่งของตัวเอง
+   ============================================================
+   ภาพร่างวาดคอลัมน์วันเป็นช่องซ้ายที่แยกออกจากงานด้วยเส้นตั้ง ไม่ใช่เลขลอย ๆ
+   เส้นตั้งคือสิ่งที่ทำให้ทั้งก้อนอ่านเป็น "ตาราง" ไม่ใช่ "ลิสต์ที่มีหัวข้อคั่น" */
+.wk-row { border-bottom: 1px solid var(--line); padding: 9px 0 10px; }
+.wk-b { border-left: 1px solid var(--line); padding-left: 11px; }
+.wk-row.now .wk-b { border-left-color: color-mix(in srgb, var(--blue) 45%, transparent); }
+
+/* บรรทัดใต้ชิป — เวลาเรียนกับเวลาว่างของวันนั้น
+   ภาพร่างมี "ว่าง 2 ชม. 20 นาที" และ "เรียน 07:40–15:10" ใต้ชิปของวันนั้น
+   สองอย่างนี้อธิบายกันเอง: เรียนถึงบ่ายสามจึงว่างแค่นี้ */
+.wk-sub { font-size: 11px; color: var(--faint); line-height: 1.5; padding-top: 2px; }
+.wk-row.empty .wk-sub { padding-top: 0; }
+.wk-row.empty { padding: 7px 0 8px; }
+
+/* ช่องค้นหาย้ายมาท้ายจอ — เบาลงเพราะไม่ใช่ของที่ต้องเห็นก่อน */
+#taskList .fr-search { margin-top: 18px; opacity: .85; }

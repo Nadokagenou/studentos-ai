@@ -3691,7 +3691,10 @@ function renderTasks() {
   // สองอย่างนั้นกินจอเกือบครึ่งก่อนถึงงานใบแรก และมันแก้ปัญหาเดียวกันสองรอบ:
   // "อยากเห็นงานของวันไหน" — ซึ่งมุมมองสัปดาห์ตอบด้วยการวางงานลงวันของมันเลย
   // ไม่ต้องมีตัวกรองแยกอีกชั้น
-  const head = pageHead + searchBox;
+  // ภาพร่างมีสองอย่าง: หัวจอกับสัปดาห์ · ช่องค้นหาไม่เคยอยู่ในนั้น
+  // มันย้ายไปท้ายจอแทน (ดู el.innerHTML ข้างล่าง) — คนที่จะค้นหาเลื่อนลงไปหาได้
+  // ส่วนคนที่เปิดมาดูว่าวันนี้มีอะไร ไม่ต้องเลื่อนผ่านช่องที่ตัวเองไม่ได้จะใช้
+  const head = pageHead;
 
   // ใบแรกของรายการที่ยังไม่เสร็จได้แถบฟ้า = "ใบนี้คือใบที่ควรลงมือ"
   // ให้ทุกใบมีแถบก็เท่ากับไม่มีใบไหนมีแถบ
@@ -3708,6 +3711,7 @@ function renderTasks() {
 
   el.innerHTML = head
     + (rows.length ? listHTML : tasksEmpty(now, days))
+    + (pending.length >= 6 || taskQ ? searchBox : '')
     + (done.length ? `<button class="bin-btn" onclick="setFilter('done')">
         ${icon('check-circle')}เสร็จแล้ว · ${done.length} งาน</button>` : '')
     + (bin.length ? `<button class="bin-btn" onclick="setFilter('bin')">
@@ -3771,16 +3775,30 @@ function weekView(rows, now, firstPending) {
   const key = d => d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const late = [], undated = [], byDay = {};
+  // ---- 1B50 · ทุกอย่างลงแถววัน ไม่มีกองแยก ----
+  // 1B47–1B49 ค่อย ๆ งอกกองขึ้นมาสามกอง (ค้นหา · เลยกำหนด · ยังไม่ตั้งวัน)
+  // จนสัปดาห์กลายเป็นของเล็ก ๆ ตรงกลางจอ ซึ่งไม่ใช่สิ่งที่ภาพร่างวาดไว้เลย
+  // ภาพร่างมีสองอย่าง: หัวจอ กับสัปดาห์ · และงานที่เลยกำหนดอยู่บนแถว "วันนี้" ตรง ๆ
+  //
+  // เหตุผลที่มันถูก: งานที่เลยกำหนดแล้วกับงานที่ยังไม่ตั้งวัน มีคำตอบเดียวกันคือ
+  // "ต้องทำวันนี้ถ้าจะทำ" — มันจึงเป็นของของวันนี้จริง ๆ ไม่ใช่หมวดหมู่ที่สาม
+  // กองแยกทำให้มันดูเหมือนที่เก็บของ ซึ่งเป็นที่ที่ของเข้าไปแล้วไม่ออกมา
+  const byDay = {};
+  const todayK = key(today);
+  byDay[todayK] = [];
   for (const t of rows) {
-    if (!t.due) { undated.push(t); continue; }
+    if (!t.due) { byDay[todayK].push(t); continue; }
     const d = new Date(t.due);
-    if (d < today) { late.push(t); continue; }
+    if (d < today) { byDay[todayK].push(t); continue; }
     (byDay[key(d)] = byDay[key(d)] || []).push(t);
   }
+  // เรียงในแถววันนี้: ค้างนานสุดก่อน แล้วค่อยของที่ถึงกำหนดวันนี้ แล้วของที่ไม่มีวัน
+  byDay[todayK].sort((a, b) => {
+    const av = a.due ? new Date(a.due).getTime() : Infinity;
+    const bv = b.due ? new Date(b.due).getTime() : Infinity;
+    return av - bv;
+  });
 
-  // แสดงกี่วัน: อย่างน้อยเจ็ด แต่ถ้ามีงานไกลกว่านั้นก็ยืดไปจนถึงใบสุดท้าย
-  // ตัดที่เจ็ดวันเป๊ะแล้วงานที่ส่งวันที่แปดจะหายไปจากจอโดยไม่มีอะไรบอก
   let span = 7;
   for (const t of rows) {
     if (!t.due) continue;
@@ -3788,76 +3806,42 @@ function weekView(rows, now, firstPending) {
     if (d < today) continue;
     span = Math.max(span, Math.round((d - today) / 864e5) + 1);
   }
-  span = Math.min(span, 60);   // เพดานกันลิสต์ยาวเป็นปีจากงานที่ตั้งวันผิด
+  span = Math.min(span, 60);
 
-  // 1B48 · เลยกำหนดโชว์สามใบ ที่เหลือพับ
-  // ของเดิมโชว์ครบทุกใบ ผู้ใช้ที่ค้างเก้าใบจึงต้องเลื่อนผ่านการ์ดแดงเก้าใบ
-  // ก่อนจะเจอสัปดาห์ — มุมมองสัปดาห์เลยแทบไม่ได้ทำงาน และกำแพงแดงยาว ๆ
-  // ก็เป็นสิ่งที่เจ้าของบอกไว้ตั้งแต่ 1B39 แล้วว่าอ่านแล้วไม่กล้าขยับ
-  // สามใบคือจำนวนที่กวาดตาจบ · เรียงจากค้างนานสุดเพราะใบที่เจ็บที่สุดต้องมาก่อน
-  const lateTop = late.slice(0, 3), lateRest = late.length - lateTop.length;
-  const lateBlock = late.length ? `<div class="wk-late">
-    <div class="wk-late-h">${icon('flame')}<b>เลยกำหนด</b><i>${late.length}</i></div>
-    ${lateTop.map(t => taskChip(t, now)).join('')}
-    ${lateRest ? `<button class="wk-more" onclick="setFilter('late')">
-      ดูอีก ${lateRest} งานที่เลยกำหนด${icon('chevron')}</button>` : ''}
-  </div>` : '';
-
-  const dayRows = [];
+  const out = [];
   for (let i = 0; i < span; i++) {
     const d = addDays(today, i);
-    const list = (byDay[key(d)] || []).sort((a, b) => new Date(a.due) - new Date(b.due));
-    // วันที่ไม่มีงานยังต้องขึ้น — ช่องว่างคือคำตอบของ "วันไหนพอมีที่ให้เริ่มงานใหญ่"
-    // ซึ่งเป็นคำถามที่ลิสต์แบบเรียงตามสถานะตอบไม่ได้เลย · แต่เกินสัปดาห์แรกไปแล้ว
-    // วันเปล่าไม่ได้บอกอะไรอีก มันแค่ทำให้ต้องเลื่อนนานขึ้น
-    const hasMark = (typeof marksOn === 'function' && typeof calKey === 'function')
-      && marksOn(calKey(d)).length;
-    if (!list.length && !hasMark && i >= 7) continue;
-    const isToday = i === 0;
-    const wd = WEEKDAY_SHORT[d.getDay()].replace('.', '');
-    // หมุดที่เคยปักไว้ในปฏิทินต้องยังเห็นได้ — จอปฏิทินถูกตัดทิ้งไปแล้ว
-    // ถ้าไม่ยกมาด้วย ของที่ผู้ใช้เคยปักไว้จะกลายเป็นข้อมูลที่มีอยู่แต่ไม่มีใครมองเห็น
-    // ซึ่งแย่กว่าลบทิ้ง เพราะเขาจะเชื่อว่ามันยังเตือนให้อยู่
+    const list = byDay[key(d)] || [];
     const mk = (typeof marksOn === 'function' && typeof calKey === 'function')
       ? marksOn(calKey(d)) : [];
-    const mkHtml = mk.length ? `<div class="wk-marks">${mk.map(m =>
-      `<span class="wk-mark sj-${esc(m.color || 'grey')}">${esc(m.title || 'หมุด')}</span>`).join('')}</div>` : '';
-    dayRows.push({
-      empty: !list.length && !mk.length,
-      d, isToday,
-      html: `<div class="wk-row${isToday ? ' now' : ''}${list.length || mk.length ? '' : ' empty'}">
-        <div class="wk-d"><b>${d.getDate()}</b><i>${esc(isToday ? 'วันนี้' : wd)}</i></div>
-        <div class="wk-b">${mkHtml}${list.length
-          ? list.map(t => taskChip(t, now)).join('')
-            + (isToday ? `<div class="wk-none">${esc(freeLabel(d, now))}</div>` : '')
-          : (mk.length ? '' : `<div class="wk-none">${esc(freeLabel(d, now))}</div>`)}</div>
-      </div>`,
-    });
-  }
-
-  const undatedBlock = undated.length ? `<div class="wk-undated">
-    <div class="wk-late-h"><b>ยังไม่ได้ตั้งกำหนดส่ง</b><i>${undated.length}</i></div>
-    ${undated.map(t => taskChip(t, now)).join('')}
-  </div>` : '';
-
-  // 1B48 · วันว่างที่ติดกันตั้งแต่สองวันขึ้นไปยุบเป็นแถวเดียว
-  // เจ็ดแถวที่เขียนว่า "ว่าง X ชม." เรียงกันไม่ได้บอกอะไรที่แถวเดียวบอกไม่ได้
-  // มันแค่ทำให้วันที่มีงานจริงถูกดันตกจอ · วันนี้ไม่เคยถูกยุบ แม้จะว่าง
-  const merged = [];
-  for (let i = 0; i < dayRows.length; i++) {
-    const r = dayRows[i];
-    if (!r.empty || r.isToday) { merged.push(r.html); continue; }
-    let j = i;
-    while (j + 1 < dayRows.length && dayRows[j + 1].empty && !dayRows[j + 1].isToday) j++;
-    if (j === i) { merged.push(r.html); continue; }
-    const a = dayRows[i].d, b = dayRows[j].d;
-    merged.push(`<div class="wk-row empty wk-span">
-      <div class="wk-d wk-d2"><b>${a.getDate()}–${b.getDate()}</b></div>
-      <div class="wk-b"><div class="wk-none">${j - i + 1} วันที่ไม่มีอะไรถึงกำหนด</div></div>
+    if (!list.length && !mk.length && i >= 7) continue;
+    const isToday = i === 0;
+    const wd = WEEKDAY_SHORT[d.getDay()].replace('.', '');
+    // เส้นเรียนของวันนั้น — ภาพร่างมีบรรทัด "เรียน 07:40–15:10" ใต้ชิป
+    // มันคือเหตุผลว่าทำไมวันนั้นถึงว่างน้อย ซึ่งอธิบายตัวเลขเวลาว่างให้ในตัว
+    let clsLine = '';
+    if (typeof busyBlocks === 'function') {
+      try {
+        const cls = busyBlocks(d).filter(b => b.kind === 'class');
+        if (cls.length) {
+          const a = cls[0], z = cls[cls.length - 1];
+          clsLine = 'เรียน ' + min2hm(a.from) + '–' + min2hm(z.to);
+        }
+      } catch (_) {}
+    }
+    const sub = [clsLine, freeLabel(d, now)].filter(Boolean).join(' · ');
+    out.push(`<div class="wk-row${isToday ? ' now' : ''}${list.length ? '' : ' empty'}">
+      <div class="wk-d"><b>${d.getDate()}</b><i>${esc(isToday ? 'วันนี้' : wd)}</i></div>
+      <div class="wk-b">
+        ${mk.map(m => `<span class="wk-mark sj-${esc(m.color || 'grey')}">${
+          esc(m.title || 'หมุด')}</span>`).join('')}
+        ${list.map(t => taskChip(t, now)).join('')}
+        <div class="wk-sub">${esc(sub)}</div>
+      </div>
     </div>`);
-    i = j;
   }
-  return lateBlock + `<div class="wk">${merged.join('')}</div>` + undatedBlock;
+
+  return `<div class="wk">${out.join('')}</div>`;
 }
 
 // ข้อความบนวันที่ไม่มีงาน — บอกเวลาว่างจริงถ้ารู้ ไม่งั้นบอกแค่ว่าไม่มีอะไรถึงกำหนด
