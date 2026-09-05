@@ -3622,6 +3622,10 @@ function renderTasks() {
   // รายการหลักเหลืองานค้างอย่างเดียว — จอนี้มีหน้าที่บอกว่า "ยังเหลืออะไร" ไม่ใช่ "เคยทำอะไรไปบ้าง"
   if (taskFilter === 'bin') { el.innerHTML = binView(bin); return; }
   if (taskFilter === 'done') { el.innerHTML = doneView(done); return; }
+  // 1B48 · จอ "เลยกำหนดทั้งหมด" — ปลายทางของปุ่ม "ดูอีก N งาน" ในมุมมองสัปดาห์
+  // แยกเป็นจอของตัวเองแทนที่จะกางในที่เดิม เพราะการกางเก้าใบตรงหัวสัปดาห์
+  // ก็คือกำแพงแดงเดิมที่เพิ่งแก้ไป แค่ต้องกดเพิ่มหนึ่งครั้ง
+  if (taskFilter === 'late') { el.innerHTML = lateView(pending, now); return; }
 
   const rows0 = pending;
 
@@ -3734,9 +3738,17 @@ function weekView(rows, now, firstPending) {
   }
   span = Math.min(span, 60);   // เพดานกันลิสต์ยาวเป็นปีจากงานที่ตั้งวันผิด
 
+  // 1B48 · เลยกำหนดโชว์สามใบ ที่เหลือพับ
+  // ของเดิมโชว์ครบทุกใบ ผู้ใช้ที่ค้างเก้าใบจึงต้องเลื่อนผ่านการ์ดแดงเก้าใบ
+  // ก่อนจะเจอสัปดาห์ — มุมมองสัปดาห์เลยแทบไม่ได้ทำงาน และกำแพงแดงยาว ๆ
+  // ก็เป็นสิ่งที่เจ้าของบอกไว้ตั้งแต่ 1B39 แล้วว่าอ่านแล้วไม่กล้าขยับ
+  // สามใบคือจำนวนที่กวาดตาจบ · เรียงจากค้างนานสุดเพราะใบที่เจ็บที่สุดต้องมาก่อน
+  const lateTop = late.slice(0, 3), lateRest = late.length - lateTop.length;
   const lateBlock = late.length ? `<div class="wk-late">
     <div class="wk-late-h">${icon('flame')}<b>เลยกำหนด</b><i>${late.length}</i></div>
-    ${late.map(t => taskCard(t, now, t === firstPending)).join('')}
+    ${lateTop.map(t => taskCard(t, now, t === firstPending)).join('')}
+    ${lateRest ? `<button class="wk-more" onclick="setFilter('late')">
+      ดูอีก ${lateRest} งานที่เลยกำหนด${icon('chevron')}</button>` : ''}
   </div>` : '';
 
   const dayRows = [];
@@ -3758,12 +3770,16 @@ function weekView(rows, now, firstPending) {
       ? marksOn(calKey(d)) : [];
     const mkHtml = mk.length ? `<div class="wk-marks">${mk.map(m =>
       `<span class="wk-mark sj-${esc(m.color || 'grey')}">${esc(m.title || 'หมุด')}</span>`).join('')}</div>` : '';
-    dayRows.push(`<div class="wk-row${isToday ? ' now' : ''}${list.length || mk.length ? '' : ' empty'}">
-      <div class="wk-d"><b>${d.getDate()}</b><i>${esc(isToday ? 'วันนี้' : wd)}</i></div>
-      <div class="wk-b">${mkHtml}${list.length
-        ? list.map(t => taskCard(t, now, t === firstPending)).join('')
-        : (mk.length ? '' : `<div class="wk-none">${esc(freeLabel(d))}</div>`)}</div>
-    </div>`);
+    dayRows.push({
+      empty: !list.length && !mk.length,
+      d, isToday,
+      html: `<div class="wk-row${isToday ? ' now' : ''}${list.length || mk.length ? '' : ' empty'}">
+        <div class="wk-d"><b>${d.getDate()}</b><i>${esc(isToday ? 'วันนี้' : wd)}</i></div>
+        <div class="wk-b">${mkHtml}${list.length
+          ? list.map(t => taskCard(t, now, t === firstPending)).join('')
+          : (mk.length ? '' : `<div class="wk-none">${esc(freeLabel(d, now))}</div>`)}</div>
+      </div>`,
+    });
   }
 
   const undatedBlock = undated.length ? `<div class="wk-undated">
@@ -3771,16 +3787,39 @@ function weekView(rows, now, firstPending) {
     ${undated.map(t => taskCard(t, now, t === firstPending)).join('')}
   </div>` : '';
 
-  return lateBlock + `<div class="wk">${dayRows.join('')}</div>` + undatedBlock;
+  // 1B48 · วันว่างที่ติดกันตั้งแต่สองวันขึ้นไปยุบเป็นแถวเดียว
+  // เจ็ดแถวที่เขียนว่า "ว่าง X ชม." เรียงกันไม่ได้บอกอะไรที่แถวเดียวบอกไม่ได้
+  // มันแค่ทำให้วันที่มีงานจริงถูกดันตกจอ · วันนี้ไม่เคยถูกยุบ แม้จะว่าง
+  const merged = [];
+  for (let i = 0; i < dayRows.length; i++) {
+    const r = dayRows[i];
+    if (!r.empty || r.isToday) { merged.push(r.html); continue; }
+    let j = i;
+    while (j + 1 < dayRows.length && dayRows[j + 1].empty && !dayRows[j + 1].isToday) j++;
+    if (j === i) { merged.push(r.html); continue; }
+    const a = dayRows[i].d, b = dayRows[j].d;
+    merged.push(`<div class="wk-row empty wk-span">
+      <div class="wk-d wk-d2"><b>${a.getDate()}–${b.getDate()}</b></div>
+      <div class="wk-b"><div class="wk-none">${j - i + 1} วันที่ไม่มีอะไรถึงกำหนด</div></div>
+    </div>`);
+    i = j;
+  }
+  return lateBlock + `<div class="wk">${merged.join('')}</div>` + undatedBlock;
 }
 
 // ข้อความบนวันที่ไม่มีงาน — บอกเวลาว่างจริงถ้ารู้ ไม่งั้นบอกแค่ว่าไม่มีอะไรถึงกำหนด
 // "ว่าง 4 ชม." มีประโยชน์กว่า "ไม่มีงาน" มาก เพราะมันคือคำตอบว่าจะยกงานใหญ่มาลงวันไหน
-function freeLabel(d) {
+// 1B48 · บั๊ก: วันนี้เคยขึ้น "ว่าง 14 ชม. 30 นาที" ตอนบ่ายห้า
+// freeMinutes(d, null) คิดช่องว่างทั้งวันตั้งแต่ตื่นจนนอน ซึ่งถูกสำหรับวันข้างหน้า
+// แต่ผิดสำหรับวันนี้ — เวลาที่ผ่านไปแล้วไม่ใช่เวลาว่าง
+// ต้องส่ง now เข้าไปด้วยเฉพาะวันนี้ ตัวมันเองจะตัดช่วงที่เลยมาแล้วออกให้
+function freeLabel(d, now) {
   if (typeof freeMinutes === 'function') {
     try {
-      const m = freeMinutes(d, null);
+      const isToday = now && d.toDateString() === now.toDateString();
+      const m = freeMinutes(d, isToday ? now : null);
       if (m > 0) return 'ว่าง ' + humanMin(m);
+      if (isToday) return 'หมดเวลาว่างของวันนี้แล้ว';
     } catch (_) {}
   }
   return 'ไม่มีอะไรถึงกำหนด';
@@ -3813,6 +3852,29 @@ function tasksEmpty(now, days) {
     <p>เคลียร์หมดแล้ว — เพิ่มงานใหม่ได้ด้วยการพูด ถ่ายรูป หรือพิมพ์เอง</p>
     <button class="fr-empty-go" onclick="openAddSheet()">${icon('type')}เพิ่มงาน</button>
   </div>`;
+}
+
+// 1B48 · จอรวมงานที่เลยกำหนด
+// โครงเดียวกับถังขยะกับงานที่เสร็จแล้ว — จอที่เปิดจากปุ่มท้ายรายการ มีทางกลับของตัวเอง
+function lateView(pending, now) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const late = pending.filter(t => t.due && new Date(t.due) < today)
+    .sort((a, b) => new Date(a.due) - new Date(b.due));
+  // ใช้โครงหัวจอเดียวกับถังขยะเป๊ะ — จอที่เปิดจากปุ่มท้ายรายการต้องหน้าตาเหมือนกันทุกใบ
+  const head = `<div class="bin-head">
+      <button class="back" onclick="setFilter('pending')" aria-label="กลับ">${icon('chevron')}</button>
+      <div style="flex:1;min-width:0">
+        <div class="eyebrow">ค้างนานสุด ${
+          late.length ? esc(overdueFor(now - new Date(late[0].due))) : '—'}</div>
+        <div class="page-title" style="font-size:21px;margin-top:2px">เลยกำหนด ${late.length}</div>
+      </div>
+    </div>`;
+  if (!late.length) {
+    return head + `<div class="fr-empty">${icon('check-circle')}
+      <b>ไม่มีงานเลยกำหนดแล้ว</b>
+      <p>เคลียร์หมดพอดี</p></div>`;
+  }
+  return head + late.map(t => taskCard(t, now, false)).join('');
 }
 
 // ---------- ที่เก็บงานที่ทำเสร็จ ----------

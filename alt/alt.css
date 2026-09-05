@@ -6741,3 +6741,15 @@ body.deep-scr .top-friends { display: none; }
   background: var(--card2); color: var(--sj, var(--muted));
   box-shadow: inset 0 0 0 1px var(--line);
 }
+/* ปุ่ม "ดูอีก N งานที่เลยกำหนด" ท้ายกล่องแดง — เป็นตัวหนังสือ ไม่ใช่ปุ่มทึบ
+   กล่องนี้ดังพอแล้วด้วยสีแดงกับตัวเลข ปุ่มทึบอีกใบคือการตะโกนซ้ำ */
+.wk-more {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  width: 100%; margin-top: 2px; padding: 10px 0; background: none; border: none;
+  cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 600;
+  color: var(--alert);
+}
+.wk-more svg { width: 14px; height: 14px; }
+/* แถววันที่ถูกยุบ — ช่วงวันแทนเลขวันเดียว ตัวเล็กลงเพราะมันคือ "ที่ว่าง" ไม่ใช่วัน */
+.wk-d2 b { font-size: 14px; letter-spacing: -.02em; }
+.wk-span .wk-d { padding-top: 6px; }
