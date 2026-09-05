@@ -6919,3 +6919,29 @@ body.deep-scr .top-friends { display: none; }
   color: rgba(255, 255, 255, .72); margin-top: 2px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* ---- 1B58 · สัปดาห์ทั้งก้อนอยู่ในการ์ดใบเดียว ----
+   แถวที่วางเปล่า ๆ บนพื้นจออ่านเป็น "รายการยาวที่ไม่รู้จบตรงไหน"
+   ก้อนที่มีขอบเขตชัดอ่านเป็น "ตารางหนึ่งใบ" ซึ่งเป็นสิ่งที่มันเป็นจริง ๆ */
+.wk-card {
+  background: var(--soft-card, var(--card));
+  border-radius: var(--r-card);
+  box-shadow: var(--soft-shadow, var(--shadow));
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  padding: 4px 14px;
+  margin-top: 14px;
+}
+/* ชิปในการ์ดไม่ต้องมีพื้นของตัวเองอีก — การ์ดซ้อนการ์ดคือสองขอบเขตทับกัน
+   เหลือแค่แถบสีวิชากับเส้นแบ่งแถว ซึ่งพอแล้วสำหรับการแยกงานออกจากกัน */
+.wk-card .wc { background: none; border-radius: 0; padding-right: 0; }
+.wk-card .wc:active { background: var(--press, rgba(127,127,127,.07)); border-radius: 10px; }
+.wk-card .wk-row:last-child { border-bottom: none; }
+/* กองเลยกำหนด/ไม่มีวัน ก็เป็นการ์ดใบของตัวเองเหมือนกัน ไม่ใช่แถวลอย */
+.wk-late, .wk-undated {
+  background: var(--soft-card, var(--card));
+  border-radius: var(--r-card);
+  box-shadow: var(--soft-shadow, var(--shadow));
+  padding: 12px 14px 6px;
+}
+.wk-late .wc, .wk-undated .wc { background: none; padding-right: 0; }

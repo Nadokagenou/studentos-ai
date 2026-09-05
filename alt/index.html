@@ -29,8 +29,13 @@
       var pref = null;
       try { pref = localStorage.getItem('studentos.alt.theme'); } catch (e) {} // ALT: คนละคีย์กับตัวจริง
       if (pref === 'library') pref = 'ocean'; // 1A6M3: ธีมห้องสมุดถูกแทนที่ด้วยมหาสมุทร
-      var t = BAR[pref] ? pref
-        : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      // 1B58 · ค่าเริ่มต้นเป็นโทนสว่าง ไม่ใช่ตามเครื่องอีกแล้ว
+      // ภาษาภาพใหม่ (พื้นไล่สี · การ์ดขาวโปร่ง · เงานุ่ม) ถูกออกแบบบนโทนสว่าง
+      // และภาพอ้างอิงที่เจ้าของเลือกก็เป็นโทนสว่างทั้งคู่ — เปิดมาครั้งแรกต้องเห็นอันนั้น
+      // "ตามระบบ" ยังเลือกเองได้ในจอตั้งค่า และคนที่เคยเลือกไว้แล้วไม่ถูกแตะ
+      var t = BAR[pref] ? pref : (pref === 'system'
+        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : 'light');
       document.documentElement.dataset.theme = t;
       var m = document.querySelector('meta[name=theme-color]');
       if (m) m.content = BAR[t];

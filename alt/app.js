@@ -485,7 +485,10 @@ function themePref() {
   let v = null;
   try { v = localStorage.getItem(THEME_KEY); } catch (_) {}
   if (v === 'library') v = 'ocean'; // 1A6M3: ธีมห้องสมุดถูกแทนที่ — คนที่เคยเลือกไว้ไม่ต้องมาตั้งใหม่
-  return THEMES.includes(v) ? v : 'system';
+  // 1B58 · ยังไม่เคยเลือก = โทนสว่าง ไม่ใช่ 'system'
+  // ภาษาภาพใหม่ถูกออกแบบบนโทนสว่าง เปิดมาครั้งแรกจึงต้องเห็นอันนั้น
+  // ต้องตรงกับสคริปต์ใน <head> ของ index.html เสมอ ไม่งั้นจอแรกกะพริบสลับโทน
+  return THEMES.includes(v) ? v : 'light';
 }
 function systemDark() { return matchMedia('(prefers-color-scheme: dark)').matches; }
 
@@ -3723,10 +3726,14 @@ function renderTasks() {
     ? now.getDate() + '–' + wkEnd.getDate() + ' ' + MONTH_SHORT[wkEnd.getMonth()]
     : now.getDate() + ' ' + MONTH_SHORT[now.getMonth()] + '–'
       + wkEnd.getDate() + ' ' + MONTH_SHORT[wkEnd.getMonth()];
+  // 1B58 · บรรทัดวันที่อยู่ "เหนือ" หัวข้อ ตามภาพร่าง
+  // ใช้คลาส .eyebrow ที่แอปมีอยู่แล้ว — จอสแกน กล่องเข้า ตัวเชื่อม ใช้ทรงนี้กันหมด
+  // บรรทัดบนบอกขอบเขต (ช่วงไหน มีเวลาเท่าไหร่) หัวข้อบอกว่ามันคืออะไร
+  // อ่านจบในลำดับเดียว: "ช่วง 5–11 ก.ย. ว่างรวม 46 ชม. — คือสัปดาห์นี้"
   const pageHead = `<div class="page-head">
+      <div class="eyebrow">${esc(range)}${
+        freeWk ? ' · ว่างรวม ' + humanMin(freeWk) : ''} · ค้าง ${pending.length}</div>
       <h1 class="page-title">สัปดาห์นี้</h1>
-      <p class="page-sub">${esc(range)}${
-        freeWk ? ' · ว่างรวม ' + humanMin(freeWk) : ''} · ค้าง ${pending.length}</p>
     </div>`;
 
   // ช่องค้นหาโผล่เมื่อมีงานพอที่จะหาไม่เจอด้วยตาเปล่า — ต่ำกว่านั้นมันคือช่องว่าง
@@ -3898,7 +3905,10 @@ function weekView(rows, now, firstPending) {
     </div>`);
   }
 
-  return `<div class="wk">${out.join('')}</div>`;
+  // 1B58 · ทั้งสัปดาห์อยู่ในการ์ดใบเดียว ตามภาพร่าง
+  // แถวที่วางเปล่า ๆ บนพื้นจออ่านเป็น "รายการยาวที่ไม่รู้จบตรงไหน"
+  // ก้อนที่มีขอบเขตชัดอ่านเป็น "ตารางหนึ่งใบ" ซึ่งเป็นสิ่งที่มันเป็นจริง ๆ
+  return `<div class="wk wk-card">${out.join('')}</div>`;
 }
 
 // ข้อความบนวันที่ไม่มีงาน — บอกเวลาว่างจริงถ้ารู้ ไม่งั้นบอกแค่ว่าไม่มีอะไรถึงกำหนด
