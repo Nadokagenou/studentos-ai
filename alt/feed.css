@@ -709,3 +709,14 @@
 .fd-scopes { margin-top: 12px; }
 .fr-me-line { padding: 7px 11px; margin-bottom: 12px; }
 .fr-me-at { font-size: 13.5px; }
+
+/* ---- 1B54 · แถวตัวกรองหลบตอนเลื่อนลง ----
+   ย่อความสูงลงศูนย์แทนการเลื่อนออกนอกจอ — เลื่อนออกจะทิ้งช่องว่างไว้ที่เดิม
+   แล้วเนื้อหาไม่ได้ขยับขึ้นมาแทน ซึ่งแปลว่าไม่ได้พื้นที่คืนเลย */
+.fd-scopes {
+  overflow: hidden;
+  transition: max-height .22s ease, opacity .18s ease, margin-top .22s ease;
+  max-height: 60px; opacity: 1;
+}
+.fd-tuck .fd-scopes { max-height: 0; opacity: 0; margin-top: 0; }
+@media (prefers-reduced-motion: reduce) { .fd-scopes { transition: none; } }

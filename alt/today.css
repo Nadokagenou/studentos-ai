@@ -1195,3 +1195,42 @@
 .ao-yes:active, .ao-no:active { transform: scale(.97); }
 /* ตอบไปแล้ว = เหลือไว้เป็นบันทึกว่าเคยถาม ไม่ใช่ปุ่มที่กดซ้ำได้ */
 .ai-offer.spent { border-color: var(--line); opacity: .72; }
+
+/* ============================================================
+   1B54 · แผ่นเพิ่มงาน — สองท่าที่ไม่ต้องพิมพ์อยู่บนสุดเป็นไทล์
+   ============================================================
+   คำสัญญาทั้งหมดของหน้าเพิ่มงานคือ "ไม่ต้องพิมพ์" แต่แผ่นเดิมวางท่าที่ไม่ต้องพิมพ์
+   ปนกับท่าที่ต้องพิมพ์ทีละช่อง โดยให้หน้าตาเท่ากันเป๊ะทั้งหกแถว
+   คนจึงกดแถวแรกที่ตาไปโดน ไม่ใช่แถวที่เร็วที่สุดสำหรับเขา */
+.as-heroes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 4px 0 2px; }
+.as-hero {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 15px 14px 14px; border: none; border-radius: 20px; cursor: pointer;
+  background: linear-gradient(145deg, var(--blue), var(--fill));
+  color: var(--on-fill); font-family: inherit; text-align: left;
+  box-shadow: 0 12px 26px -12px rgba(37, 99, 235, .6);
+  transition: transform .14s ease;
+}
+.as-hero:active { transform: scale(.97); }
+.as-hero-ic {
+  display: grid; place-items: center; width: 38px; height: 38px; margin-bottom: 8px;
+  border-radius: 14px; background: rgba(255, 255, 255, .22);
+}
+.as-hero-ic svg { width: 20px; height: 20px; }
+.as-hero b { font-size: 14.5px; font-weight: 700; letter-spacing: -.015em; line-height: 1.3; }
+.as-hero span { font-size: 11.5px; opacity: .85; line-height: 1.4; }
+
+/* คั่นก่อนรายการทางสำรอง — เส้นกับคำสั้น ๆ บอกว่าข้างล่างเป็นของอีกชนิด
+   ไม่ใช่ตัวเลือกที่ห้าหกเจ็ดของชุดเดียวกัน */
+.as-or {
+  display: flex; align-items: center; gap: 10px;
+  margin: 16px 2px 4px; font-size: 12px; font-weight: 600; color: var(--faint);
+}
+.as-or::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+
+/* ทางสำรองเตี้ยลง — มันคือรายการ ไม่ใช่ปุ่มหลัก */
+.as-row.slim { padding: 11px 2px; }
+.as-row.slim + .as-row.slim { border-top: 1px solid var(--line); }
+.as-row.slim .as-ic { width: 34px; height: 34px; }
+.as-row.slim .as-ic svg { width: 17px; height: 17px; }
+.as-row.slim .as-tx b { font-size: 14px; }

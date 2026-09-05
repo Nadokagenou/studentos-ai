@@ -154,6 +154,35 @@ function unwatchPresence() {
 // ============================================================
 // วาดฟีด
 // ============================================================
+// ============================================================
+// 1B54 · แถวตัวกรองหลบตอนเลื่อนลง
+// ============================================================
+// สี่ปุ่มนั้นกินสูง 45px ทุกจอตลอดเวลา ทั้งที่คนสลับช่วงฟีดวันละไม่กี่ครั้ง
+// แต่เลื่อนอ่านตลอด · IG กับ LINE ซ่อนแถบของตัวเองตอนเลื่อนลงด้วยเหตุผลเดียวกัน
+//
+// ซ่อนตอน "เลื่อนลง" ไม่ใช่ตอน "เลื่อนพ้นระยะหนึ่ง" — แบบหลังทำให้แถบหายไปเลย
+// เมื่ออ่านยาว ๆ แล้วต้องเลื่อนกลับขึ้นบนสุดถึงจะได้คืน
+// แบบนี้ปัดขึ้นนิดเดียวก็ได้คืนทันที ซึ่งเป็นท่าที่นิ้วทำอยู่แล้วเวลาจะกดอะไรข้างบน
+//
+// กันสั่น: ต้องเลื่อนเกิน 8px ถึงนับเป็นการเปลี่ยนทิศ · ต่ำกว่านั้นคือมือสั่นบนจอสัมผัส
+// และไม่ซ่อนเลยถ้าเนื้อหาสั้นกว่าหนึ่งจอ — ไม่มีอะไรให้เลื่อน ไม่ต้องมีอะไรให้หลบ
+let fdLastY = 0, fdHidden = false;
+function watchFeedScroll() {
+  const scr = document.getElementById('scr-mates');
+  if (!scr || scr.dataset.scrollHook === '1') return;
+  scr.dataset.scrollHook = '1';
+  scr.addEventListener('scroll', () => {
+    const y = scr.scrollTop;
+    const room = scr.scrollHeight - scr.clientHeight;
+    if (room < 120) { if (fdHidden) { fdHidden = false; scr.classList.remove('fd-tuck'); } fdLastY = y; return; }
+    const dy = y - fdLastY;
+    if (Math.abs(dy) < 8) return;
+    const down = dy > 0 && y > 40;
+    if (down !== fdHidden) { fdHidden = down; scr.classList.toggle('fd-tuck', down); }
+    fdLastY = y;
+  }, { passive: true });
+}
+
 function renderFeed() {
   const box = document.getElementById('feedBody');
   if (!box) return;
@@ -199,6 +228,7 @@ function renderFeed() {
     renderFreshPill();
   }
   renderFriendDot();
+  watchFeedScroll();
 }
 
 // สลับมาโหมดรายชื่อเพื่อน · ไม่ยิงโหลดฟีดซ้ำ เพราะฟีดที่โหลดไว้แล้วยังอยู่ครบ

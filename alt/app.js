@@ -2428,9 +2428,31 @@ function addSheetHTML() {
       </button>`;
   }
   const c = typeof connectorCount === 'function' ? connectorCount() : null;
+  // ============================================================
+  // 1B54 · หกแถวหน้าตาเหมือนกันหมด ทั้งที่ไม่เท่ากันเลย
+  // ============================================================
+  // คำสัญญาทั้งหมดของหน้าเพิ่มงานคือ "ไม่ต้องพิมพ์" (ดูหมายเหตุใน openForm ที่วัด
+  // capture rate ไว้เป็นตัวชี้เป็นชี้ตายของโปรดักต์) แต่แผ่นนี้วางท่าที่ไม่ต้องพิมพ์
+  // ไว้ปนกับท่าที่ต้องพิมพ์ทีละช่อง โดยให้หน้าตาเท่ากันเป๊ะทั้งหกแถว
+  // ผลคือคนกดแถวแรกที่ตาไปโดน ไม่ใช่แถวที่เร็วที่สุดสำหรับเขา
+  //
+  // สองท่าแรก (ถ่ายรูป · พูด) ขึ้นเป็นไทล์ใหญ่สองช่อง — ทั้งคู่ใช้เวลาไม่ถึงสิบวินาที
+  // และไม่ต้องพิมพ์สักตัว · ที่เหลือเป็นรายการเงียบ ๆ ข้างล่างเพราะมันคือทางสำรอง
+  // ไม่ใช่ทางหลัก · ตัวเชื่อมแยกไปอยู่ท้ายสุดเพราะมันไม่ใช่ "การเพิ่มงานตอนนี้"
+  // แต่คือ "ตั้งครั้งเดียวแล้วไม่ต้องเพิ่มอีก" ซึ่งเป็นคนละการตัดสินใจกัน
+  const hero = ADD_ACTIONS.slice(0, 2);
+  const rest = ADD_ACTIONS.slice(2);
   return `<div class="as-grip"></div>
     <div class="as-h">เพิ่มอะไร?</div>
-    ${ADD_ACTIONS.map(a => `<button class="as-row" onclick="closeAddSheet();${a[3]}">
+    <div class="as-heroes">
+      ${hero.map(a => `<button class="as-hero" onclick="closeAddSheet();${a[3]}">
+        <span class="as-hero-ic">${icon(a[0])}</span>
+        <b>${esc(a[1])}</b>
+        <span>${esc(a[2])}</span>
+      </button>`).join('')}
+    </div>
+    <div class="as-or">หรือใส่เอง</div>
+    ${rest.map(a => `<button class="as-row slim" onclick="closeAddSheet();${a[3]}">
       <span class="as-ic">${icon(a[0])}</span>
       <span class="as-tx"><b>${esc(a[1])}</b><span>${esc(a[2])}</span></span>
       <span class="as-go">${icon('chevron')}</span>
