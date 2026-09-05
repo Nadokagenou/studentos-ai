@@ -4089,6 +4089,12 @@ let calPick = null;  // 'YYYY-M-D' ของวันที่เลือกอ
 function calShift(n) { calMonth += n; calPick = null; calEdit = null; renderTimeline(); }
 function calSelect(k) { calPick = k; calEdit = null; renderTimeline(); }
 function calKey(d) { return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+// ทางกลับของ calKey — คีย์ไม่ได้เติมศูนย์หน้า จึงแปลงกลับด้วย new Date(str) ไม่ได้
+// ('2026-9-5' ไม่ใช่รูปแบบ ISO · เบราว์เซอร์บางตัวคืน Invalid Date บางตัวเดาให้)
+function calDate(k) {
+  const [y, m, d] = String(k).split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
 
 // ---------- หมุดปฏิทิน ----------
 // ปฏิทินเดิมอ่านอย่างเดียว — มันบอกได้แค่สิ่งที่ระบบรู้ (เส้นตายกับคาบเรียน)
@@ -4253,7 +4259,8 @@ function calHtml(now) {
         <button class="btn ghost sm" onclick="calCancelMark()">ยกเลิก</button>
         <button class="btn sm" onclick="calSaveMark()">${calEdit.id ? 'บันทึก' : 'ปัก'}</button>
       </div>
-    </div>` : `<button class="cal-add" onclick="calAddMark('${pick}')">+ ปักหมุดวันนี้</button>`;
+    </div>` : `<button class="cal-add" onclick="calAddMark('${pick}')">+ ปักหมุด ${
+      pick === calKey(new Date()) ? 'วันนี้' : esc(fmtThaiDate(calDate(pick)))}</button>`;
 
   const detail = `<div class="cal-day">
       <div class="cal-day-h">
@@ -4338,7 +4345,7 @@ function renderTimeline() {
       // มาต่อกันเป็นย่อหน้า การ์ดเลยสูงจนดันเส้นเวลาตกจอไปทั้งเส้น ทั้งที่เส้นเวลาคือของหลักของจอนี้
       verdict = `<div class="dayvd bad">
         <div class="dayvd-h">${tkChip('ไม่ทัน', 'hot')}<b>${missed.length} งานเสี่ยงเลยกำหนดวันนี้</b></div>
-        <p>${esc(missed.map(t => taskTitleText(t)).join(' · '))}${nf
+        <p>${missed.map(t => `<b class="vd-t">${esc(taskTitleText(t))}</b>`).join('<i class="vd-sep">·</i>')}${nf
           ? ' — ช่องว่างถัดไปคือ' + (nf.dayOffset === 1 ? 'พรุ่งนี้ ' : 'วัน' + THAI_DAY[nf.date.getDay()] + ' ') + nf.fromHm
           : ''}</p></div>`;
     } else if (plan.overflow.length || left < 30) {
