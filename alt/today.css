@@ -441,14 +441,20 @@
 /* ---------- ช่องถามน้องไซ ---------- */
 /* ทรงแคปซูลเหมือนปุ่มหลัก แต่พื้นโปร่ง — อ่านเป็น "ของตระกูลเดียวกันที่เบากว่า"
    ไม่ใช่ปุ่มที่สองที่มาแข่งกับปุ่มเริ่มทำงาน */
+/* 1B38 · ย้ายขึ้นไปอยู่ใต้คำทักทาย เหนือการ์ด "ตอนนี้"
+   ตำแหน่งใหม่อยู่เหนือของที่สำคัญกว่ามัน มันจึงต้องเบาลงเท่าที่ยังกดติด:
+   ทิ้งเงา · พื้นเป็นสีชั้นเดียวกับการ์ดรอง · ปุ่มส่งเป็นสีเทาจนกว่าจะโฟกัส
+   ของสีน้ำเงินทึบวางไว้เหนือการ์ดสีน้ำเงินทึบคือของสองชิ้นที่แย่งกันเอง */
 .td-ask {
   display: flex; align-items: center; gap: 9px;
-  margin-top: 18px; padding: 5px 5px 5px 14px;
+  margin: 14px 0 4px; padding: 4px 4px 4px 13px;
   border: 1px solid var(--line); border-radius: 999px;
-  background: var(--card); box-shadow: var(--shadow);
+  background: var(--card2);
 }
-.td-ask:focus-within { border-color: var(--blue); }
-.tk-ic { flex: none; display: flex; color: var(--blue); }
+.td-ask:focus-within { border-color: var(--blue); background: var(--card); }
+.td-ask:focus-within .tk-go { background: var(--fill); color: var(--on-fill); }
+.tk-ic { flex: none; display: flex; color: var(--muted); }
+.td-ask:focus-within .tk-ic { color: var(--blue); }
 .tk-ic svg { width: 17px; height: 17px; }
 .tk-in {
   flex: 1; min-width: 0; height: 36px; padding: 0;
@@ -457,9 +463,9 @@
 }
 .tk-in::placeholder { color: var(--faint); }
 .tk-go {
-  flex: none; display: grid; place-items: center; width: 36px; height: 36px;
-  border: 0; border-radius: 50%; background: var(--fill); color: var(--on-fill);
-  cursor: pointer;
+  flex: none; display: grid; place-items: center; width: 34px; height: 34px;
+  border: 0; border-radius: 50%; background: var(--card); color: var(--muted);
+  cursor: pointer; transition: background .16s ease, color .16s ease;
 }
 /* ลูกศรของชุดไอคอนชี้ขวา — ที่นี่ต้องการ "ส่งขึ้นไป" จึงหมุนเอา ไม่ต้องเพิ่มไอคอนใหม่ */
 .tk-go svg { width: 17px; height: 17px; transform: rotate(-90deg); }
@@ -923,17 +929,71 @@
    การให้รางมีโครงเดียวกันอีกใบทำให้จอมีของซ้ำกันทั้งชุด แล้วสายตาต้องอ่านสองรอบ
    เพื่อแยกว่าตั๋วใบไหนพูดถึงอะไร · รางจึงเหลือหัวข้อบรรทัดเดียว แล้วให้แถบสีวิชา
    ทำงานของมันไป ซึ่งเป็นสิ่งเดียวที่รางมีและการ์ดไม่มี */
-.td-rail { position: relative; margin-top: 16px;
+/* 1B38 · หัวข้อออกมายืนบนพื้นจอ การ์ดเหลือแต่แถว */
+.td-railwrap { margin-top: 22px; }
+.td-rail { position: relative;
   background: var(--card); border-radius: 20px; box-shadow: var(--shadow);
-  padding: 13px 14px 11px; }
+  padding: 6px 14px 8px; }
 
 /* หัวข้อกับตัวเลขสรุปอยู่บรรทัดเดียวกัน คนละฝั่ง — ซ้ายบอกว่านี่คืออะไร
-   ขวาบอกว่ามีเท่าไหร่ · ทั้งคู่เป็นตัวเล็กสีจาง เพราะของจริงคือแถวข้างล่าง */
+   ขวาบอกว่ามีเท่าไหร่
+   1B38: หัวข้อเคยเป็นตัวเล็กสีจาง 13px ด้วยเหตุผลว่า "ของจริงคือแถวข้างล่าง"
+   ซึ่งจริงแต่ไม่พอ — จอนี้มีของอยู่สามก้อนแล้ว (ตอนนี้ · เสี่ยงพัง · ที่เหลือ)
+   ก้อนที่ไม่มีหัวข้อให้เกาะจะถูกกวาดตาข้ามไปทั้งก้อน ไม่ใช่แค่ตัวหัวข้อ
+   17px/700 สีหมึกเต็ม = หัวข้อของส่วนหนึ่งในหน้า ยังเล็กกว่าชื่องานบนการ์ดฟ้า
+   ซึ่งเป็นลำดับที่ถูก: การ์ดฟ้าคือคำตอบ ก้อนนี้คือของที่เหลือหลังจากนั้น */
 .rl-lb { display: flex; align-items: baseline; justify-content: space-between;
-  gap: 10px; margin: 0 1px 9px; }
-.rl-lb b { font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .01em; }
-.rl-lb span { font-size: 11px; font-weight: 600; color: var(--muted); opacity: .8;
+  gap: 10px; margin: 0 3px 10px; }
+.rl-lb b { font-size: 17px; font-weight: 700; color: var(--ink); letter-spacing: -.015em; }
+.rl-lb span { font-size: 11.5px; font-weight: 600; color: var(--muted);
   white-space: nowrap; }
+
+/* ============================================================
+   1B38 — "เสี่ยงพัง"
+   ============================================================
+   พื้นเป็นการ์ดเหมือนราง ไม่ใช่แผ่นแดง · กฎ 60/30/10 ท้าย alt.css บอกว่าสีเตือน
+   ต้องเป็นของที่กินพื้นที่น้อยที่สุดบนจอ แผ่นแดงเต็มความกว้างจะแย่งสายตาไปจาก
+   การ์ด "ตอนนี้" ซึ่งเป็นที่ที่การตัดสินใจจบจริง ๆ
+   แดงจึงเหลืออยู่สองที่: ตัวเลขจำนวนวัน กับแถบ 4px ข้างแถว — เท่านี้อ่านออกแล้ว
+   ว่าก้อนนี้เป็นข่าวร้าย โดยไม่ต้องทาสีทั้งก้อน */
+.td-risk { margin-top: 16px; background: var(--card); border-radius: 20px;
+  box-shadow: var(--shadow); padding: 12px 14px 10px; }
+.rk-lb { display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; margin: 0 1px 6px; }
+.rk-lb b { font-size: 15px; font-weight: 700; color: var(--ink); letter-spacing: -.01em; }
+.rk-lb span { font-size: 11.5px; font-weight: 600; color: var(--pri-red-text, #DC2626);
+  white-space: nowrap; }
+
+.rk-row { position: relative; display: flex; align-items: center; gap: 11px;
+  width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+  padding: 8px 2px 8px 14px; color: var(--ink); font-family: inherit; }
+.rk-row::before {
+  content: ''; position: absolute; left: 0; top: 5px; bottom: 5px; width: 4px;
+  border-radius: 2px; background: var(--pri-red-text, #DC2626);
+}
+.rk-row:active { background: var(--press, rgba(127,127,127,.09)); border-radius: 10px; }
+/* ตัวเลขซ้อนหน่วย — ช่องกว้าง 44px เท่าช่องเวลาบนราง แถวสองก้อนจึงเรียงตรงกัน
+   แม้จะเป็นคนละก้อน · จำนวนวันคือสิ่งเดียวในแถวที่ต้องอ่านก่อนชื่องานด้วยซ้ำ */
+.rk-d { flex: none; width: 44px; display: flex; flex-direction: column;
+  align-items: flex-start; line-height: 1; color: var(--pri-red-text, #DC2626); }
+.rk-d b { font-size: 19px; font-weight: 700; letter-spacing: -.02em; }
+.rk-d i { font-style: normal; font-size: 10.5px; font-weight: 600; opacity: .85; margin-top: 2px; }
+
+.rk-more { display: flex; align-items: center; justify-content: center; gap: 4px;
+  width: 100%; margin-top: 4px; padding: 9px 0 5px; background: none; border: none;
+  cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 600;
+  color: var(--muted); }
+.rk-more svg { width: 14px; height: 14px; }
+
+/* ---------- บรรทัดปิดท้าย: ทางไปเครื่องมือทั้งหมด ----------
+   ของที่มาแทนกริดแปดก้อน · เป็นตัวหนังสือสีจางบรรทัดเดียว ไม่ใช่ปุ่ม
+   เพราะมันไม่ใช่สิ่งที่จอนี้อยากให้กด มันแค่ต้องมีอยู่ให้คนที่ตามหาของหาเจอ */
+.td-more { display: flex; align-items: center; justify-content: center; gap: 4px;
+  width: 100%; margin-top: 20px; padding: 10px 0; background: none; border: none;
+  cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 600;
+  color: var(--muted); }
+.td-more svg { width: 14px; height: 14px; }
+.td-more:active { color: var(--ink); }
 
 /* ---- จุดแวะ ---- */
 /* แถบสีเต็มความสูงของแถว ให้พื้นที่สีมากกว่าจุดเล็ก ๆ หลายเท่า สีจึงอ่านออก
@@ -1017,6 +1077,9 @@
    สี่ช่องต่อแถวคือความหนาแน่นที่พอดีบนจอ 375px: ไทล์กว้าง ~74px ซึ่งยังแตะไม่พลาด
    และป้ายภาษาไทยยาวสุดที่ใช้ ("สแกนใบงาน") ยังลงได้ในบรรทัดเดียว
    ห้าช่องขึ้นไปป้ายจะขึ้นบรรทัดที่สองไม่เท่ากันแต่ละใบ แล้วแถวจะเดี้ยงทั้งแถว */
+/* 1B38 · ตั้งแต่ todayTiles() ถูกลบ กฎชุด .td-tiles / .tg-* ไม่มีใครใช้แล้ว
+   เก็บไว้เผื่อต้องถอยกลับ (กฎเดียวกับ .td-up / .td-rem ที่ 1B21 ทิ้งไว้)
+   ถ้ารอบหน้ายังไม่มีใครเรียกใช้ ลบทั้งบล็อกได้เลย */
 .td-tiles { margin-top: 22px; }
 .tg-lb { font-size: 12.5px; font-weight: 700; color: var(--muted); margin: 0 0 10px 1px; }
 .tg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 6px; }
