@@ -500,3 +500,82 @@
   display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
 .fi-no svg { width: 14px; height: 14px; }
+
+/* ============================================================
+   1B51 "Soft" — ช่องเพื่อน
+   ============================================================
+   เจ้าของสั่งให้เน้นจอนี้เป็นพิเศษ · ภาพอ้างอิงเป็นแอปโซเชียลสามตัว
+   โครงของเราตรงกับเขาอยู่แล้วทุกชิ้น (แถวคนออนไลน์ · ช่องเขียน · การ์ดโพสต์)
+   ที่ขาดคือผิว — ของเราเป็นวงกลมเทากับกล่องขาวเส้นบาง ส่วนของเขามีวงแหวนไล่สี
+   การ์ดลอย และรูปที่กินพื้นที่จริง
+   ============================================================ */
+
+/* ---- แถวคนออนไลน์ = วงแหวนแบบสตอรี่ ---- */
+/* ภาพอ้างอิงทุกใบใช้วงแหวนไล่สีรอบรูป ไม่ใช่เส้นขอบสีเดียว
+   วงแหวนคือสิ่งที่ทำให้แถวนี้อ่านว่า "คนที่กดเข้าไปดูได้" ไม่ใช่ "รายชื่อ" */
+.fd-online { gap: 14px; margin-top: 18px; padding: 2px 0 4px; }
+.fd-on { width: 64px; }
+.fd-on-ring {
+  width: 58px; height: 58px; margin-bottom: 7px;
+  border: none; position: relative;
+  background: var(--card2);
+}
+/* วงแหวนวาดด้วย box-shadow สองชั้น ไม่ใช่ ::before หรือ border
+   ::before ใช้ไม่ได้เพราะ renderOnline ใส่สีพื้นของรูปมาเป็น inline style
+   ทับพื้นหลังของ ::before ที่อยู่ข้างหลังจนมองไม่เห็น (บั๊กรอบแรกของบล็อกนี้)
+   border ก็ใช้ไม่ได้เพราะมันกินพื้นที่รูปเข้าไป 3px ทุกด้าน
+   box-shadow วาดนอกกล่องล้วน: ชั้นแรกเป็นสีพื้นจอ (ช่องว่าง) ชั้นสองคือวง */
+.fd-on-ring {
+  box-shadow: 0 0 0 2px var(--scr), 0 0 0 4.5px var(--blue),
+              0 6px 16px -6px rgba(20, 45, 110, .3);
+}
+/* คนที่กำลังนั่งทำงานอยู่ได้วงเขียว — สีนี้แปลว่า "อยู่ตอนนี้จริง" ไม่ใช่ "เคยออนไลน์" */
+.fd-on.busy .fd-on-ring {
+  box-shadow: 0 0 0 2px var(--scr), 0 0 0 4.5px var(--good),
+              0 6px 18px -5px rgba(18, 169, 122, .45);
+}
+.fd-on-nm { font-size: 11.5px; font-weight: 600; }
+
+/* ---- ช่องเขียนโพสต์ ---- */
+/* ภาพอ้างอิงทำเป็นการ์ดสี่เหลี่ยมมนที่มีแถวปุ่มข้างล่าง ไม่ใช่แคปซูลบรรทัดเดียว
+   ของเรายังเป็นแคปซูลอยู่เพราะมันเปิดแผ่นเขียนเต็มจออยู่แล้ว การ์ดที่มีปุ่มปลอม
+   สี่ปุ่มซึ่งกดแล้วเปิดแผ่นเดียวกันหมด คือของที่ดูเยอะแต่ไม่ได้ทำอะไรเพิ่ม
+   แต่เอาความนุ่มมา: สูงขึ้น มุมมนขึ้น เงาแทนเส้นขอบ */
+.fd-ask {
+  margin-top: 16px; padding: 12px 14px; gap: 12px;
+  border: none; border-radius: 22px;
+}
+.fd-ask-av { width: 34px; height: 34px; font-size: 15px;
+  background: linear-gradient(145deg, var(--blue), var(--fill)); color: #fff; }
+.fd-ask-tx { font-size: 14.5px; }
+.fd-ask-cam {
+  width: 34px; height: 34px; border-radius: 12px; flex: none;
+  display: grid; place-items: center;
+  background: var(--blue-soft); color: var(--blue);
+}
+
+/* ---- การ์ดโพสต์ ---- */
+.fd-post { margin-top: 14px; padding: 16px; border: none; }
+/* โพสต์ที่ถามวิชาที่เราเก่ง — เดิมทาพื้นเขียวทั้งใบ ซึ่งกลบรูปกับตัวหนังสือ
+   เหลือแถบเขียวข้างเดียว: บอกได้เท่ากันโดยไม่แตะพื้นการ์ด */
+.fd-post.for-me {
+  background: var(--soft-card);
+  box-shadow: var(--soft-shadow), inset 3px 0 0 var(--good);
+}
+
+/* ---- แถบบนกับตัวกรอง ---- */
+.fd-top { padding-top: 4px; }
+.fd-people {
+  border-radius: 14px; border: none;
+  background: var(--soft-card); box-shadow: var(--soft-shadow);
+}
+.fd-scopes { gap: 8px; margin-top: 14px; }
+.fd-scope {
+  border: none; border-radius: 999px; padding: 8px 15px;
+  background: var(--soft-card); box-shadow: var(--soft-shadow);
+  font-weight: 600;
+}
+.fd-scope.on {
+  background: linear-gradient(140deg, var(--blue), var(--fill));
+  color: #fff; box-shadow: 0 8px 20px -8px rgba(37, 99, 235, .55);
+}

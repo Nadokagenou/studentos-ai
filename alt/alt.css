@@ -6818,3 +6818,78 @@ body.deep-scr .top-friends { display: none; }
 
 /* ช่องค้นหาย้ายมาท้ายจอ — เบาลงเพราะไม่ใช่ของที่ต้องเห็นก่อน */
 #taskList .fr-search { margin-top: 18px; opacity: .85; }
+
+/* ============================================================
+   1B51 "Soft" — ชั้นผิวใหม่ทั้งแอป
+   ============================================================
+   มาจากภาพอ้างอิงที่เจ้าของส่งมา (แอปเรียน/แอปโซเชียลสาย Dribbble)
+   สี่อย่างที่ทำให้ภาพพวกนั้นดูแพงกว่าของเรา และไม่มีข้อไหนเกี่ยวกับ "จัดของยังไง":
+
+     1 พื้นจอเป็นไล่สีหลายจุด ไม่ใช่สีเดียว
+     2 การ์ดโปร่งแสง + เบลอหลัง + เงานุ่มสองชั้น ไม่ใช่กล่องทึบเงาชั้นเดียว
+     3 มุมมนใหญ่ 22–26px
+     4 ตัวเลขใช้ฟอนต์คนละตัวกับตัวหนังสือ ตัวเลขจึงอ่านเป็น "ค่า" ไม่ใช่ "คำ"
+
+   ทั้งสี่ข้อเป็นเรื่องผิวล้วน ไม่แตะโครงจอหรือตรรกะสักบรรทัด
+   สีเน้นยังเป็นน้ำเงินของ StudentOS ตามที่เจ้าของสั่ง — ความนุ่มมาจากพื้นกับการ์ด
+   ไม่ได้มาจากสี (รอบแรกผมลองเป็นม่วงตามภาพอ้างอิง แล้วโดนสั่งกลับมาถูกต้องแล้ว)
+   ============================================================ */
+
+/* ---- 1 · พื้นจอไล่สีสามจุด ---- */
+/* ธีมสว่าง: ฟ้า/ฟ้าอมเขียว/น้ำเงินอ่อน วางเป็นวงกลมจาง ๆ สามวง
+   ต้องอยู่บน .phone ไม่ใช่ body — body อยู่หลังกรอบเครื่องบนจอคอม */
+:root[data-theme="light"] .phone,
+:root:not([data-theme]) .phone {
+  background:
+    radial-gradient(120% 80% at 8% 0%, #E6EFFF 0%, transparent 55%),
+    radial-gradient(110% 70% at 100% 12%, #E4F6FF 0%, transparent 52%),
+    radial-gradient(130% 90% at 50% 100%, #EEF1FF 0%, transparent 58%),
+    var(--scr);
+}
+/* ธีมมืดใช้วงเดียวกันแต่เป็นแสงจาง ๆ ไม่ใช่สีอ่อน — สีอ่อนบนพื้นเข้มกลายเป็นหมอกสีเทา */
+:root[data-theme="dark"] .phone {
+  background:
+    radial-gradient(120% 80% at 8% 0%, rgba(80,130,255,.13) 0%, transparent 55%),
+    radial-gradient(110% 70% at 100% 12%, rgba(60,190,255,.09) 0%, transparent 52%),
+    radial-gradient(130% 90% at 50% 100%, rgba(110,90,255,.10) 0%, transparent 58%),
+    var(--scr);
+}
+
+/* ---- 2 · การ์ดโปร่ง + เงานุ่มสองชั้น ---- */
+/* เงาสองชั้น: ชั้นบนสั้นและคม (ขอบวัตถุ) ชั้นล่างยาวและจาง (ระยะลอย)
+   เงาชั้นเดียวได้ขอบแข็งหรือฟุ้งอย่างใดอย่างหนึ่ง ไม่ได้ทั้งสองอย่าง */
+:root {
+  --soft-card: rgba(255, 255, 255, .78);
+  --soft-shadow: 0 2px 4px rgba(20, 45, 110, .05), 0 14px 34px -12px rgba(20, 45, 110, .18);
+  --soft-shadow-lg: 0 4px 10px rgba(20, 45, 110, .07), 0 30px 60px -18px rgba(20, 45, 110, .26);
+}
+:root[data-theme="dark"] {
+  --soft-card: rgba(30, 39, 64, .72);
+  --soft-shadow: 0 2px 4px rgba(0, 0, 0, .35), 0 14px 34px -12px rgba(0, 0, 0, .6);
+  --soft-shadow-lg: 0 4px 10px rgba(0, 0, 0, .4), 0 30px 60px -18px rgba(0, 0, 0, .7);
+}
+.card, .td-rail, .td-risk, .fd-post, .fd-ask, .tk, .st-card, .wg-urgent,
+.pf-list, .pf-entry, .mtile, .hw-now, .sd-task {
+  background: var(--soft-card);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: var(--soft-shadow);
+}
+
+/* ---- 3 · มุมมนใหญ่ขึ้น ---- */
+/* ต้องระบุ [data-theme] ให้ครบทุกค่า — style.css ประกาศไว้ที่ :root[data-theme="light"]
+   ซึ่งชนะ :root เปล่า ๆ ด้วยความจำเพาะ ต่อให้ไฟล์เราโหลดทีหลังก็ตาม */
+:root, :root[data-theme="light"], :root[data-theme="dark"],
+:root[data-theme="mono"], :root[data-theme="genesis"] { --r-card: 24px; --r-tile: 18px; }
+.card, .td-rail, .td-risk, .fd-post, .wg-urgent { border-radius: var(--r-card); }
+.tk { border-radius: 20px; }
+
+/* ---- 4 · ตัวเลขมีฟอนต์ของตัวเอง ---- */
+/* Outfit เป็นเรขาคณิตกลม ๆ ตัวเลขจึงอ่านเป็น "ค่า" แยกจากเนื้อความไทย
+   ใส่เฉพาะที่ที่ตัวเลขเป็นของหลักจริง ๆ ไม่ใช่ทุกที่ที่มีตัวเลขปน */
+.mono, .tk-min, .wc i, .st b, .dr-t, .rk-d b, .tn-title .num,
+.page-sub b, .fd-act b, .st-big, .wd b {
+  font-family: 'Outfit', 'Space Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em;
+}
