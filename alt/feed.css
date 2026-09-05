@@ -647,3 +647,65 @@
 .fr-mt.out { background: var(--blue-soft); color: var(--blue); }
 .fr-mt.flat { background: var(--card2); padding: 7px 10px; }
 .fr-mt + .fr-mt { margin-top: 6px; }
+
+/* ============================================================
+   1B53 · ลดกรอบ เพิ่มเนื้อหา
+   ============================================================
+   เทียบกับ Instagram: เขาถึงเนื้อหาจริงภายใน ~90px จอเรามีกรอบห้าชั้น ~400px
+   ก่อนเจอเพื่อนคนแรก — หัวจอ · ตัวกรองสี่ปุ่ม · การ์ดตัวตน · ช่องค้นหา · หัวข้อกลุ่ม
+   ช่องว่างเรื่อง "UI ระดับโลก" อยู่ตรงนี้ ไม่ได้อยู่ที่ความสวยของแต่ละชิ้น
+   ============================================================ */
+
+/* ---- ตัวตนเป็นบรรทัดเดียว ---- */
+/* 1B52 ทำเป็นการ์ดไล่สีใบใหญ่เพื่อแก้ปัญหา "หาไม่เจอ" ซึ่งแก้ถูกแต่แรงเกินไป
+   ของที่ดังที่สุดบนจอกลายเป็นก้อนที่พูดถึงตัวเจ้าของเอง ไม่ใช่เพื่อนซึ่งเป็นเนื้อหาของจอ */
+.fr-me-line {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  margin-bottom: 14px; padding: 9px 12px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: none; cursor: pointer; font-family: inherit; text-align: left;
+  color: var(--muted);
+}
+.fr-me-line:active { background: var(--card2); }
+.fr-me-at {
+  flex: none; font-size: 14px; font-weight: 700; color: var(--blue);
+  font-family: 'Outfit', ui-monospace, monospace;
+}
+.fr-me-hint {
+  flex: 1; min-width: 0; font-size: 11.5px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fr-me-line > svg { width: 15px; height: 15px; flex: none; opacity: .7; }
+.fr-me-edit { flex: none; display: flex; opacity: .7; padding: 2px; }
+.fr-me-edit svg { width: 15px; height: 15px; }
+
+/* ---- แถวเพื่อนแน่นขึ้น ---- */
+/* ของเดิม padding 13px รอบด้านสำหรับเนื้อหาบรรทัดเดียว = การ์ดสูง 70px ต่อเพื่อนหนึ่งคน
+   สิบคนก็สามจอ · Instagram ใช้ 56px ต่อแถวและใส่รูปใหญ่กว่าเราด้วยซ้ำ */
+.fr-card.big { padding: 11px 13px; border-radius: 18px; }
+.fr-card.big + .fr-card.big { margin-top: 8px; }
+.fr-top { gap: 10px; }
+.fr-card.big .fr-av { width: 42px; height: 42px; font-size: 17px; }
+/* บรรทัดจับคู่เยื้องเข้ามาเท่ารูป — อ่านว่า "เรื่องของคนคนนี้" ไม่ใช่แถวใหม่ */
+.fr-mt { margin-left: 52px; margin-top: 7px; padding: 6px 10px; font-size: 12px; }
+.fr-mt + .fr-mt { margin-top: 5px; }
+
+/* ---- หัวข้อกลุ่มเบาลง ---- */
+.fr-sec { font-size: 11.5px; margin: 16px 2px 9px; opacity: .75; }
+
+/* ---- ช่องค้นหาตอนกางออกมา ---- */
+.fr-search[hidden] { display: none; }
+.fr-search { margin-bottom: 4px; }
+
+/* ---- ปุ่มบนหัวจอเรียงกัน ---- */
+.fd-top { gap: 8px; }
+.fd-top .fd-people + .fd-people { margin-left: 0; }
+
+/* ---- 1B53b · บีบกรอบที่เหลือ ----
+   วัดจริงก่อนแก้: การ์ดเพื่อนใบแรกเริ่มที่ 315px จากขอบบน
+   แบ่งเป็น หัวจอ 44 · ตัวกรอง 53 · บรรทัดตัวตน 53 · หัวข้อกลุ่ม ~35 · ระยะห่าง
+   สามอย่างหลังบีบได้โดยไม่เสียอะไร ส่วนหัวจอกับตัวกรองเป็นของที่ต้องมี */
+.fd-scope { padding: 7px 14px; font-size: 12.5px; }
+.fd-scopes { margin-top: 12px; }
+.fr-me-line { padding: 7px 11px; margin-bottom: 12px; }
+.fr-me-at { font-size: 13.5px; }

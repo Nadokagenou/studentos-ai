@@ -161,6 +161,11 @@ function renderFeed() {
   box.innerHTML = `
     <div class="fd-top">
       <h1 class="fd-title">เพื่อนร่วมห้อง</h1>
+      <!-- 1B53 · แว่นขยายอยู่บนหัวจอ ไม่ใช่ช่องค้นหากางค้างอยู่กลางจอ
+           จอนี้เปิดมาเพื่อดูเพื่อน ไม่ใช่เพื่อค้นหา — ช่องที่กางค้างคือแถบสูง 46px
+           ที่กันคนส่วนใหญ่ออกจากเนื้อหาโดยไม่ได้ช่วยอะไรเขา -->
+      ${feedView === 'friends' ? `<button class="fd-people" onclick="toggleFriendSearch()"
+        aria-label="ค้นหาเพื่อน">${icon('search')}</button>` : ''}
       <button class="fd-people" onclick="go('scr-people'); renderMates()" aria-label="วิชาของฉันกับคนในห้อง">
         ${icon('users')}
       </button>

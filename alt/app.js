@@ -5161,9 +5161,14 @@ function renderFriends(force) {
   // ของเดิมอยู่ล่างสุดใต้รายชื่อเพื่อน ซึ่งทำให้มันอ่านเป็น "เพื่อนอีกคนที่ชื่อแปลก ๆ"
   // ทั้งที่มันคือชื่อของเจ้าตัวเอง — ของที่ต้องส่งให้เพื่อนไปค้นหา จึงต้องหาเจอทันที
   // ไม่ใช่ต้องเลื่อนผ่านรายชื่อทั้งหมดก่อน
+  // 1B53 · ช่องค้นหาพับไว้ตามค่าเริ่มต้น
+  // จอนี้เปิดมาเพื่อดูเพื่อน ไม่ใช่เพื่อค้นหา · ช่องค้นหาที่กางค้างไว้ตลอด
+  // คือแถบสูง 46px ที่กันคนส่วนใหญ่ออกจากเนื้อหาโดยไม่ได้ช่วยอะไรเขาเลย
+  // (Instagram · LINE · Messenger ทำเหมือนกันหมด: แว่นขยายก่อน ช่องทีหลัง)
+  // กางอัตโนมัติเมื่อยังไม่มีเพื่อนสักคน เพราะตอนนั้นการค้นหาคือสิ่งเดียวที่ทำได้
   body.innerHTML = `
     <div id="frMeRow"></div>
-    <div class="fr-search">
+    <div class="fr-search" id="frSearchBox"${frSearchOpen || !frList.length ? '' : ' hidden'}>
       ${icon('search')}
       <input id="frQ" autocomplete="off" autocapitalize="off" spellcheck="false"
              placeholder="ค้นหาด้วยชื่อผู้ใช้" oninput="friendSearch(this.value)">
@@ -5175,6 +5180,13 @@ function renderFriends(force) {
     <div id="frListBox"></div>`;
   body.dataset.built = '1';
   paintFriendParts();
+}
+
+let frSearchOpen = false;
+function toggleFriendSearch() {
+  frSearchOpen = !frSearchOpen;
+  renderFriends(true);
+  if (frSearchOpen) { const q = document.getElementById('frQ'); if (q) q.focus(); }
 }
 
 function clearFriendSearch() {
@@ -5287,7 +5299,10 @@ function paintFriendParts() {
     // จอว่างเป็นย่อหน้าสีเทาคือจอที่ไม่มีใครอ่านจบ · มาตรฐานคือ ไอคอน + ประโยคเดียว
     // + ปุ่มให้กดหนึ่งปุ่ม เพราะคนที่มาถึงจอว่างคือคนที่ยังไม่รู้ว่าต้องทำอะไรต่อ
     lb.innerHTML = frList.length
-      ? frSec('เพื่อน', frList.length) + frList.map(p => {
+      // 1B53 · หัวข้อ "เพื่อน N" ขึ้นเฉพาะตอนมีกลุ่มอื่นอยู่ด้วย (คำขอที่รอตอบ)
+      // ถ้ามีกลุ่มเดียวทั้งจอ หัวข้อนั้นไม่ได้แยกอะไรจากอะไร — และแท็บที่เพิ่งกดมา
+      // ก็ชื่อ "เพื่อนฉัน" อยู่แล้ว มันจึงพูดคำเดิมซ้ำโดยกินที่ 35px
+      ? (frReqs.length ? frSec('เพื่อน', frList.length) : '') + frList.map(p => {
           const on = frOnline(p);
           return `<div class="fr-card big${on ? ' online' : ''}">
           <div class="fr-top">
@@ -5324,16 +5339,17 @@ function paintFriendParts() {
         <button class="fr-x" onclick="frEditing=false;paintFriendParts()" aria-label="ยกเลิก">${icon('x')}</button>
       </div>
       <p class="fr-fine">3-15 ตัว ใช้ได้ทั้งไทยและอังกฤษ · ห้ามเว้นวรรค</p>`
-    : `<div class="fr-me-card">
-        <div class="fr-me-av">${esc(((state.settings.name || frHandle || 'น')).slice(0, 1))}</div>
-        <div class="fr-me-tx">
-          <i>ชื่อผู้ใช้ของคุณ — ส่งให้เพื่อนไปค้นหา</i>
-          <b>@${esc(frHandle || '…')}</b>
-        </div>
-        <button class="fr-me-btn" onclick="copyHandle()">${icon('copy')}ก๊อป</button>
-        <button class="fr-ic" onclick="frEditing=true;paintFriendParts();document.getElementById('frHandle').focus()"
-          aria-label="เปลี่ยนชื่อผู้ใช้">${icon('pencil')}</button>
-      </div>`;
+    // 1B53 · กลับมาเป็นบรรทัดเดียว ไม่ใช่แบนเนอร์ไล่สี
+    // 1B52 ทำให้มันเป็นการ์ดใหญ่เพื่อแก้ปัญหา "หาไม่เจอ" ซึ่งแก้ถูก แต่แก้แรงเกินไป:
+    // ของที่ดังที่สุดบนจอกลายเป็นก้อนที่พูดถึงตัวเจ้าของเอง ไม่ใช่เพื่อนซึ่งเป็นเนื้อหาของจอ
+    // อยู่บนสุดเหมือนเดิม (แก้เรื่องหาเจอ) แต่เบาลงเป็นบรรทัดเดียว (คืนที่ให้เนื้อหา)
+    : `<button class="fr-me-line" onclick="copyHandle()">
+        <span class="fr-me-at">@${esc(frHandle || '…')}</span>
+        <span class="fr-me-hint">ชื่อของคุณ · แตะเพื่อก๊อปส่งให้เพื่อน</span>
+        ${icon('copy')}
+        <i class="fr-me-edit" onclick="event.stopPropagation();frEditing=true;paintFriendParts();document.getElementById('frHandle').focus()"
+          role="button" aria-label="เปลี่ยนชื่อผู้ใช้">${icon('pencil')}</i>
+      </button>`;
 }
 
 // ---------- บริบทของฉัน (ตารางเรียน · กิจวัตร · เวลานอน) ----------
