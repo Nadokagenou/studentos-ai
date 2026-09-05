@@ -1234,3 +1234,60 @@
 .as-row.slim .as-ic { width: 34px; height: 34px; }
 .as-row.slim .as-ic svg { width: 17px; height: 17px; }
 .as-row.slim .as-tx b { font-size: 14px; }
+
+/* ============================================================
+   1B57 · แถวสถิติสามช่องบนจอวันนี้
+   ============================================================
+   สามช่องเท่ากันเป๊ะ · ไอคอนอยู่ในชิปสีจางด้านบน ตัวเลขใหญ่ ป้ายเล็ก
+   โครงนี้มาจากภาพอ้างอิงตรง ๆ (2h 45m Study Time / 5 Task / 12 Days Streak)
+   ต่างกันที่ตัวเลขของเราไม่มีหน่วยแทรกกลาง — หน่วยอยู่ในป้ายข้างล่าง
+   เพราะช่องที่มีเลขสองตัวจะดูไม่เป็นชุดเดียวกับช่องที่มีเลขตัวเดียว */
+.td-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 14px; }
+.ts {
+  background: var(--soft-card, var(--card)); border-radius: 19px; padding: 12px 11px;
+  box-shadow: var(--soft-shadow, var(--shadow));
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+}
+.ts-ic {
+  display: grid; place-items: center; width: 29px; height: 29px;
+  border-radius: 11px; margin-bottom: 8px;
+}
+.ts-ic svg { width: 15px; height: 15px; }
+.ts.v .ts-ic { background: var(--blue-soft); color: var(--blue); }
+.ts.w .ts-ic { background: var(--pri-yellow-soft, var(--warn-soft)); color: var(--pri-yellow-text, var(--warn)); }
+.ts.g .ts-ic { background: var(--good-soft); color: var(--good); }
+.ts b {
+  display: block; font-family: 'Outfit', ui-monospace, monospace;
+  font-size: 21px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1;
+  font-variant-numeric: tabular-nums; color: var(--ink);
+}
+.ts i {
+  font-style: normal; display: block; margin-top: 3px;
+  font-size: 10px; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ---- 1B57 · หัวการ์ดคำสั่งเป็นไล่สีพร้อมวงกลมซ้อนหลัง ----
+   ภาพร่างวาดไว้แบบนี้ · สีทึบสีเดียวอ่านเป็น "แถบสี" ส่วนไล่สีที่มีวงกลมจาง ๆ
+   ซ้อนอยู่หลังอ่านเป็น "วัตถุ" ซึ่งเป็นสิ่งที่ทำให้การ์ดใบนี้ดูเป็นของชิ้นเอก
+   ไม่ใช่บล็อกสีที่ใหญ่กว่าเพื่อน */
+.td-now .tn-head {
+  position: relative; overflow: hidden;
+  background: linear-gradient(140deg,
+    color-mix(in srgb, var(--fill) 78%, #fff) 0%,
+    var(--fill) 55%,
+    color-mix(in srgb, var(--fill) 78%, #000) 100%);
+}
+.td-now .tn-head::after {
+  content: ''; position: absolute; right: -44px; top: -54px;
+  width: 168px; height: 168px; border-radius: 50%;
+  background: rgba(255, 255, 255, .11); pointer-events: none;
+}
+.td-now .tn-head::before {
+  content: ''; position: absolute; right: 18px; bottom: -66px;
+  width: 124px; height: 124px; border-radius: 50%;
+  background: rgba(255, 255, 255, .07); pointer-events: none;
+}
+/* เนื้อหาต้องอยู่เหนือวงกลม ไม่งั้นวงกลมทับตัวหนังสือ */
+.td-now .tn-head > * { position: relative; z-index: 2; }
