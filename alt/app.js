@@ -2809,6 +2809,11 @@ function taskCard(t, now, focus) {
   const ti = TASK_TYPES[taskType(t)];
 
   if (t.done) {
+    // 1B43 · F5 — คะแนนที่ได้โชว์บนใบที่เสร็จแล้ว ไม่ใช่ใบที่ยังค้าง
+    // นี่คือที่เดียวที่ตัวเลขนี้มีความหมาย: ใบที่ยังไม่ส่งย่อมยังไม่มีผลกลับมา
+    // และเป็นที่ที่คนเปิดดูจริงตอนอยากรู้ว่าเทอมนี้ไปทางไหน
+    const gotDone = (t.got != null && t.gotMax)
+      ? `<span class="tk-got">${t.got}<i>/${t.gotMax}</i></span>` : '';
     return `<div class="tk tk-done" onclick="openForm('${t.id}')">
       <button class="tk-tick on" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
         aria-label="เอาออกจากที่เสร็จแล้ว">${icon('check')}</button>
@@ -2816,15 +2821,44 @@ function taskCard(t, now, focus) {
         ${subj && subj !== 'อื่น ๆ' ? `<div class="tk-sub">${esc(subj)}</div>` : ''}
         <div class="tk-ttl">${esc(t.detail || '')}</div>
       </div>
+      ${gotDone}
       ${icon('chevron', 'tk-go')}
     </div>`;
   }
 
+  // 1B43 · F4 — นับถอยหลังเฉพาะ "สอบ"
+  // การบ้านตอบด้วยวันที่ก็พอ (ส่งวันศุกร์ = รู้แล้วว่าต้องทำอะไร) แต่สอบไม่ใช่:
+  // "อีก 9 วัน" เป็นตัวเลขที่เปลี่ยนพฤติกรรมได้จริง เพราะมันคือจำนวนวันที่เหลือให้อ่าน
+  // ไม่ใช่เส้นตายที่ทำเสร็จแล้วจบ · ต่ำกว่าหนึ่งวันนับเป็นชั่วโมงเพราะ "อีก 0 วัน" ไม่ได้บอกอะไร
+  const examCd = (taskType(t) === 'exam' && t.due && new Date(t.due) > now)
+    ? (() => {
+        const ms = new Date(t.due) - now;
+        const d = Math.floor(ms / 8.64e7);
+        return d >= 1 ? 'อีก ' + d + ' วัน' : 'อีก ' + Math.max(1, Math.floor(ms / 3.6e6)) + ' ชม.';
+      })()
+    : '';
+  // 1B43 · F5 — คะแนนที่ได้จริง คนละชิปกับ "คะแนนเก็บ" ซึ่งเป็นน้ำหนัก
+  const gotTx = (t.got != null && t.gotMax) ? t.got + '/' + t.gotMax : '';
   const chips = [
+    examCd ? tkChip(examCd, tone || 'warn') : '',
     t.due ? tkChip(fmtDue(t.due, now, t), tone) : tkChip('ยังไม่ระบุกำหนด', ''),
     t.scorePct != null ? tkChip('คะแนน ' + t.scorePct + '%', '') : '',
+    gotTx ? tkChip('ได้ ' + gotTx, 'good') : '',
+    t.repeatDays ? tkChip(t.repeatDays === 7 ? 'ซ้ำทุกสัปดาห์'
+      : t.repeatDays === 14 ? 'ซ้ำทุกสองสัปดาห์'
+      : t.repeatDays === 1 ? 'ซ้ำทุกวัน' : 'ซ้ำทุก ' + t.repeatDays + ' วัน', '') : '',
     snoozeBadge(t) ? tkChip('เลื่อนมา ' + (t.snoozeCount || 1) + ' ครั้ง', '') : '',
   ].filter(Boolean).join('');
+
+  // 1B43 · F2 — งานย่อยติ๊กได้ในการ์ด ไม่ต้องเปิดฟอร์ม
+  // โผล่เฉพาะใบที่มีข้อย่อยจริง · กฎเดียวกับทุกแถวในแอปนี้: ไม่มีอะไรจะบอกก็ไม่ต้องโผล่
+  const subs = Array.isArray(t.subs) ? t.subs : [];
+  const subsHtml = subs.length ? `<div class="tk-subs">
+    ${subs.map((x, i) => `<button class="tk-sb${x.done ? ' on' : ''}" type="button"
+        onclick="event.stopPropagation();toggleSub('${t.id}',${i})">
+        <span class="sb-box">${icon('check')}</span><span class="sb-tx">${esc(x.text)}</span>
+      </button>`).join('')}
+  </div>` : '';
 
   // ปัดขวา = เสร็จ · ปัดซ้าย = เลื่อนไปพรุ่งนี้ — โครงเดียวกับการ์ดหน้าแรกทุกประการ
   // สองท่านี้เคยมีเฉพาะหน้าแรก แต่แท็บที่คนเปิดมาจัดการงานจริง ๆ คือแท็บนี้
@@ -2839,6 +2873,7 @@ function taskCard(t, now, focus) {
       <div class="tk-ttl">${esc(t.detail || '')}</div>
       <div class="tk-meta">${chips}<span class="tk-sp"></span>
         ${ti.schedulable ? `<span class="tk-min">~${remainingMin(t)} นาที</span>` : ''}</div>
+      ${subsHtml}
       ${typeof hwStrip === 'function' ? hwStrip(t) : ''}
     </div>
   </div>`;
@@ -7603,7 +7638,15 @@ function toggleDone(id, el) {
   t.done = !t.done;
   t.progress = t.done ? 100 : (t.progress === 100 ? 0 : t.progress);
   t.doneAt = t.done ? new Date().toISOString() : null;
+  // ข้อย่อยต้องตามสถานะใบใหญ่ — ติ๊กใบใหญ่เสร็จแล้วเหลือข้อย่อยค้างสามข้อ
+  // คือใบที่บอกสองอย่างขัดกันในการ์ดเดียว
+  if (Array.isArray(t.subs) && t.subs.length && t.done) t.subs.forEach(x => { x.done = true; });
   if (!wasDone && t.done) funnelDone();   // ต้องอยู่ก่อน save() จะได้เขียนลงไปในรอบเดียวกัน
+  // 1B43 · F3 — งานซ้ำสร้างใบถัดไปตรงนี้ ตอนที่ใบนี้เพิ่งถูกติ๊กเสร็จ
+  // ไม่ใช่ตอนถึงกำหนด (ดูเหตุผลใน spawnRepeat) · ยกเลิกติ๊กแล้วไม่ลบใบถัดไปทิ้ง
+  // เพราะกดพลาดแล้วกดคืนเป็นเรื่องปกติ ส่วนการลบงานที่ระบบสร้างให้เงียบ ๆ ไม่ใช่
+  let spawned = null;
+  if (!wasDone && t.done && t.repeatDays) spawned = spawnRepeat(t);
   save();
 
   if (!wasDone && t.done) {
@@ -7612,6 +7655,11 @@ function toggleDone(id, el) {
     celebrate(el);
     haptic('done'); // ALT: จังหวะคู่ ให้รู้สึกว่า "เช็คสำเร็จ" ไม่ใช่แค่ภาพเปลี่ยน
     const cleared = pendingTasks().length === 0;
+    // บอกด้วยว่ารอบถัดไปถูกตั้งให้แล้ว ไม่งั้นงานที่เพิ่ง "หายไป" จะดูเหมือนหายจริง
+    if (spawned) setTimeout(() => showToast({
+      title: 'ตั้งรอบถัดไปให้แล้ว 🔁',
+      body: taskTitle(spawned).replace(/<[^>]*>/g, '') + ' · ' + fmtThaiDate(new Date(spawned.due)),
+    }), 900);
     setTimeout(() => {
       renderAll();
       // คำชมที่ไม่บอกว่างานถัดไปคืออะไร คือคำชมที่ทำให้ต้องกลับไปนั่งเลือกใหม่เอง
@@ -7767,6 +7815,22 @@ function openForm(id, parsed) {
   let t = null;
   if (id) t = state.tasks.find(x => x.id === id);
 
+  // 1B43 · เติมสามช่องใหม่ · ต้องล้างทุกครั้งด้วย ไม่งั้นค่าของงานใบก่อนค้างมาที่ใบใหม่
+  const fSubs = document.getElementById('fSubs');
+  const fRepeat = document.getElementById('fRepeat');
+  const fGot = document.getElementById('fGot');
+  const fGotMax = document.getElementById('fGotMax');
+  const fGotWrap = document.getElementById('fGotWrap');
+  const tEdit = id ? state.tasks.find(x => x.id === id) : null;
+  if (fSubs) fSubs.value = (tEdit && Array.isArray(tEdit.subs))
+    ? tEdit.subs.map(x => x.text).join('\n') : '';
+  if (fRepeat) fRepeat.value = (tEdit && tEdit.repeatDays) ? String(tEdit.repeatDays) : '';
+  if (fGot) fGot.value = (tEdit && tEdit.got != null) ? tEdit.got : '';
+  if (fGotMax) fGotMax.value = (tEdit && tEdit.gotMax != null) ? tEdit.gotMax : '';
+  // ช่องคะแนนที่ได้โผล่เฉพาะงานที่มีอยู่แล้ว — งานที่เพิ่งเพิ่มยังไม่มีผลให้กรอก
+  if (fGotWrap) fGotWrap.hidden = !tEdit;
+  updateSubsCount();
+
   const okBadge = document.getElementById('fmOk');
   if (parsed) {
     title.textContent = 'ตรวจก่อนบันทึก';
@@ -7835,6 +7899,51 @@ function openForm(id, parsed) {
   autoGrow(f.detail);
 }
 
+// 1B43 · ป้ายนับข้อย่อยข้างหัวช่อง — บอกว่าพิมพ์ไปกี่ข้อแล้วโดยไม่ต้องนับเอง
+function updateSubsCount() {
+  const box = document.getElementById('fSubs');
+  const val = document.getElementById('fSubsVal');
+  if (!box || !val) return;
+  const n = box.value.split('\n').map(x => x.trim()).filter(Boolean).length;
+  val.textContent = n ? n + ' ข้อ' : 'ไม่มี';
+}
+
+// ---- 1B43 · F2 · ติ๊กข้อย่อยจากการ์ดงาน ----
+// ความคืบหน้าเป็นเปอร์เซ็นต์คิดจากข้อย่อยให้เอง — ช่อง progress เดิมยังใช้ได้เหมือนเดิม
+// สำหรับงานที่ไม่มีข้อย่อย · งานที่มีข้อย่อยไม่ควรต้องลากแถบเองอีก มันนับได้อยู่แล้ว
+function toggleSub(taskId, i) {
+  const t = state.tasks.find(x => x.id === taskId);
+  if (!t || !Array.isArray(t.subs) || !t.subs[i]) return;
+  t.subs[i].done = !t.subs[i].done;
+  const n = t.subs.length;
+  const hit = t.subs.filter(x => x.done).length;
+  t.progress = n ? Math.round(hit / n * 100) : (t.progress || 0);
+  save();
+  renderAll();
+}
+
+// ---- 1B43 · F3 · งานซ้ำ ----
+// สร้างใบถัดไปตอน "ติ๊กเสร็จ" ไม่ใช่ตอนถึงกำหนด — งานที่ยังไม่เสร็จแล้วมีใบถัดไป
+// โผล่มาซ้อน คือรายการที่ยาวขึ้นเรื่อย ๆ โดยไม่มีใครทำทัน แล้วคนก็เลิกเชื่อรายการนั้น
+//
+// ใบใหม่เริ่มที่ progress 0 และข้อย่อยถูกล้างเครื่องหมายถูกทั้งหมด — มันคือรอบใหม่
+// ไม่ใช่ใบเดิมที่ถูกเลื่อนวัน · ส่วนคะแนนที่ได้ไม่ตามไปด้วยเพราะเป็นผลของรอบที่แล้ว
+function spawnRepeat(t) {
+  if (!t || !t.repeatDays || !t.due) return null;
+  const next = new Date(new Date(t.due).getTime() + t.repeatDays * 864e5);
+  const copy = Object.assign({}, t, {
+    id: uid(),
+    done: false, doneAt: null, deleted: false,
+    progress: 0, got: null, gotMax: null,
+    snoozedAt: null, snoozeCount: 0, remindedAt: null, remindedStage: null,
+    createdAt: new Date().toISOString(),
+    due: next.toISOString(),
+    subs: Array.isArray(t.subs) ? t.subs.map(x => ({ text: x.text, done: false })) : [],
+  });
+  state.tasks.push(copy);
+  return copy;
+}
+
 function saveForm() {
   const detail = document.getElementById('fDetail').value.trim();
   if (!detail) { alert('ใส่ชื่องานก่อนนะ'); return; }
@@ -7856,6 +7965,27 @@ function saveForm() {
     progress: ti.schedulable ? (+document.getElementById('fProgress').value || 0) : 0,
     due: due ? due.toISOString() : null,
   };
+
+  // ---- 1B43 · F2 งานย่อย ----
+  // เก็บสถานะติ๊กของข้อเดิมไว้ถ้าข้อความยังเหมือนเดิม — คนที่เข้ามาแก้ชื่องานใหญ่
+  // ไม่ควรเสียเครื่องหมายถูกของข้อย่อยที่ทำไปแล้วสามข้อ
+  const oldSubs = (editingId && (state.tasks.find(x => x.id === editingId) || {}).subs) || [];
+  const subLines = (document.getElementById('fSubs').value || '')
+    .split('\n').map(x => x.trim()).filter(Boolean).slice(0, 20);
+  data.subs = subLines.map(text => {
+    const prev = oldSubs.find(o => o && o.text === text);
+    return { text, done: !!(prev && prev.done) };
+  });
+
+  // ---- 1B43 · F3 งานซ้ำ ----
+  const rep = +document.getElementById('fRepeat').value || 0;
+  data.repeatDays = rep || null;
+
+  // ---- 1B43 · F5 คะแนนที่ได้จริง ----
+  const gotV = document.getElementById('fGot').value;
+  const gotMaxV = document.getElementById('fGotMax').value;
+  data.got = gotV === '' ? null : +gotV;
+  data.gotMax = gotMaxV === '' ? null : Math.max(1, +gotMaxV);
   if (ti.schedulable && data.progress >= 100) data.done = true;
 
   const target = editingId ? state.tasks.find(x => x.id === editingId) : null;

@@ -6532,3 +6532,45 @@ body.deep-scr .top-friends { display: none; }
    มันมีอยู่เพราะ 1B39 เอาปุ่ม + ออกจากแถบล่าง พอปุ่มกลับมาอยู่กลางแถบแล้ว
    ปุ่มสองใบที่เปิดแผ่นเดียวกันห่างกันไม่ถึงนิ้ว คือของที่ต้องอ่านสองรอบเปล่า ๆ
    กฎ .tlrow / .ph-add ถูกลบทิ้ง สวิตช์กลับไปเต็มความกว้างเหมือนเดิม */
+
+/* ============================================================
+   1B43 · F2 งานย่อย · F4 นับถอยหลังสอบ · F5 คะแนนที่ได้
+   ============================================================ */
+/* ชิปสองโทนที่เพิ่มมา — ใช้โทเคนชุด --pri-* เดียวกับชิปเดิมทุกตัว
+   ห้ามใช้ --sig-* ตรงนี้ เพราะชิปเหล่านี้วางบนพื้นการ์ดที่พลิกตามธีม */
+.tk-chip.warn { background: var(--pri-yellow-soft); color: var(--pri-yellow-text); }
+.tk-chip.good { background: var(--good-soft); color: var(--good); }
+
+/* ---- งานย่อยในการ์ด ---- */
+/* เยื้องเข้ามาเท่าปุ่มติ๊กของใบใหญ่ เพื่อให้อ่านว่า "อยู่ใต้ใบนี้" ไม่ใช่ "อีกรายการหนึ่ง"
+   ไม่มีเส้นคั่นด้านบน — เส้นจะทำให้มันกลายเป็นอีกก้อนในการ์ดเดียว ซึ่งเป็นของที่
+   ต้องอ่านสองรอบ · ระยะห่างพอบอกได้แล้วว่าคนละชั้นกัน */
+.tk-subs { display: flex; flex-direction: column; gap: 2px; margin: 9px 0 0 34px; }
+.tk-sb {
+  display: flex; align-items: flex-start; gap: 9px; width: 100%;
+  padding: 5px 2px; background: none; border: none; cursor: pointer;
+  font-family: inherit; text-align: left; color: var(--ink);
+}
+.sb-box {
+  flex: none; width: 18px; height: 18px; margin-top: 1px; border-radius: 6px;
+  border: 1.5px solid var(--line); display: grid; place-items: center;
+  color: transparent; transition: background .14s ease, border-color .14s ease;
+}
+.sb-box svg { width: 12px; height: 12px; stroke-width: 3; }
+.sb-tx { font-size: 13px; line-height: 1.4; }
+.tk-sb.on .sb-box { background: var(--good); border-color: var(--good); color: #fff; }
+.tk-sb.on .sb-tx { color: var(--muted); text-decoration: line-through; }
+.tk-sb:active { opacity: .6; }
+
+/* ---- ช่องคู่ในฟอร์ม (คะแนนที่ได้ / เต็ม) ---- */
+.row-2 { display: flex; gap: 9px; }
+.row-2 > input { flex: 1; min-width: 0; }
+
+/* คะแนนที่ได้บนใบที่เสร็จแล้ว — ตัวเลขชิดขวา อ่านได้โดยไม่ต้องเข้าไปในใบ
+   ตัวเต็มเล็กกว่าและจางกว่า เพราะคนสแกนหาตัวหน้า ไม่ได้หาตัวหาร */
+.tk-got {
+  flex: none; margin-left: auto; padding-left: 8px;
+  font-size: 15px; font-weight: 700; color: var(--good);
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+}
+.tk-got i { font-style: normal; font-size: 11px; font-weight: 600; opacity: .7; }
