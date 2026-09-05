@@ -3089,11 +3089,95 @@ function aiClear() {
   renderAi();
 }
 
-function aiAsk(preset) {
+// ============================================================
+// 1B42 · F1 — น้องไซสร้างงานได้จริง ไม่ใช่แค่ตอบว่า "ได้เลยครับ"
+// ============================================================
+// ช่องว่างที่ใหญ่ที่สุดเมื่อเทียบกับคู่แข่ง: Scout ของ MyStudyLife รับประโยคเดียว
+// แล้วลงมือจัดให้จริง ส่วนน้องไซตอบเป็นตัวหนังสือแล้วจบ — คนอ่านจบต้องไปพิมพ์งานเองอยู่ดี
+// ประโยค "ตัดสินใจแทน" ที่เป็นเหตุผลของแอปนี้จึงยังไม่เป็นจริงในโค้ด
+//
+// ---- ทำไมไม่ต้องแตะเซิร์ฟเวอร์เลย ----
+// แอปมีตัวแกะข้อความไทยเป็นงานอยู่แล้ว (parseAssignment ใน engine.js) ซึ่งเป็นตัวเดียวกับ
+// ที่สแกนใบงาน · พูดเพิ่มงาน · แปะข้อความจากครู ใช้กันอยู่ทุกวัน และมีตัวตัดสินว่า
+// "ข้อความนี้เป็นงานหรือเป็นบทสนทนา" อยู่แล้วเหมือนกัน (taskEvidence ใน inbox.js)
+// เอาสองตัวนี้มาต่อกันตรงหน้าช่องแชท = ได้ความสามารถใหม่โดยไม่เพิ่มคำขอไปเซิร์ฟเวอร์
+// แม้แต่ครั้งเดียว และไม่กินโควตา AI ของผู้ใช้ด้วย
+//
+// ---- ทำไมยังต้องมีหน้ายืนยัน ----
+// กฎเดิมของแอปคือ "AI เสนอ คนเป็นคนเคาะ" (ดูหัวไฟล์ของ openTtScan) · งานที่ถูกเพิ่ม
+// โดยที่เจ้าตัวไม่ได้ดู คือกำหนดส่งที่ผิดได้โดยไม่มีใครรู้จนถึงวันส่ง
+// ปุ่ม "เพิ่มงานนี้" จึงพาไปที่ฟอร์มตรวจตัวเดียวกับที่สแกนใบงานใช้ ไม่ใช่บันทึกทันที
+//
+// ---- ราคาของการเดาผิด ----
+// เดาว่าเป็นงานแต่จริง ๆ เป็นคำถาม → เสียหนึ่งแตะ (กด "ไม่ใช่ ถามต่อ")
+// เดาว่าเป็นคำถามแต่จริง ๆ เป็นงาน → เหมือนเดิมทุกประการ ไม่มีอะไรแย่ลง
+// ราคาไม่เท่ากันแบบนี้แปลว่าเสนอไว้ก่อนคุ้มกว่าเงียบไว้ก่อน (ตรรกะเดียวกับ taskGate)
+function aiTaskOffer(text) {
+  if (typeof parseAssignment !== 'function' || typeof taskEvidence !== 'function') return null;
+  const t = String(text || '').trim();
+  if (t.length < 6) return null;
+  // ประโยคที่ลงท้ายด้วยการถามคือการถาม ไม่ใช่การสั่งงาน แม้จะมีวิชากับวันครบก็ตาม
+  // ("ส่งการบ้านคณิตวันศุกร์ยังไงดี" มีทั้งวิชาและวัน แต่เขากำลังขอวิธี ไม่ได้บอกงาน)
+  if (/[?？]\s*$|ยังไง|อย่างไร|ทำไม|เพราะอะไร|ช่วย|แนะนำ|ควร(?:จะ)?|ดีไหม|ไหมครับ|ไหมคะ/.test(t)) return null;
+  let parsed = null;
+  try { parsed = parseAssignment(t, new Date(), {}); } catch (_) { return null; }
+  if (!parsed) return null;
+  // เอาเฉพาะหลักฐานแน่น ๆ — 'weak' คือระดับที่กล่องเข้ายอมรับได้เพราะของไหลมาจากครู
+  // แต่ตรงนี้คือสิ่งที่ผู้ใช้เพิ่งพิมพ์เอง การ์ดที่เด้งผิดบ่อยจะถูกเลิกอ่านภายในสองวัน
+  if (taskEvidence(t, parsed) !== 'strong') return null;
+  return parsed;
+}
+
+// รับคำเสนอ → เข้าฟอร์มตรวจตัวเดียวกับสแกนใบงาน (ไม่ได้บันทึกทันที)
+function aiOfferAdd(i) {
+  const log = aiLog();
+  const m = log[i];
+  if (!m || m.role !== 'offer') return;
+  m.done = true; aiLogSave(log); renderAi();
+  // แกะใหม่จากข้อความเต็ม ไม่ใช้ m.parsed ที่เก็บไว้ — m.parsed เก็บแค่ฟิลด์ที่เอาไปโชว์
+  // บนการ์ด (subject/due/…) ส่วน openForm ต้องการก้อนเต็มที่มี detected อยู่ด้วย
+  // ไม่งั้นหน้า "ตรวจก่อนบันทึก" จะไม่รู้ว่าฟิลด์ไหนมาจากการอ่านและฟิลด์ไหนคนกรอกเอง
+  // (บั๊กรอบแรก: เรียก openForm() เปล่า ๆ ซึ่งแปลว่า "เพิ่มงานใหม่จากศูนย์"
+  //  ฟอร์มจึงเปิดมาว่างทั้งใบ ทั้งที่การ์ดเพิ่งโชว์ค่าที่แกะได้ครบไปเมื่อสองวินาทีก่อน)
+  let parsed = null;
+  try { parsed = parseAssignment(m.text, new Date(), {}); } catch (_) {}
+  if (!parsed) return;
+  parsed._src = 'ai';   // นับรวมใน capture rate ว่าใบนี้เข้าระบบโดยผู้ใช้ไม่ได้พิมพ์ทีละช่อง
+  parsed._low = [];
+  openForm(null, parsed);
+}
+
+// ปฏิเสธคำเสนอ → ส่งเป็นคำถามตามปกติ (ตอนเสนอเราไม่ได้ยิงไปเซิร์ฟเวอร์เลย)
+function aiOfferAsk(i) {
+  const log = aiLog();
+  const m = log[i];
+  if (!m || m.role !== 'offer') return;
+  m.done = 'asked'; aiLogSave(log); renderAi();
+  aiAsk(m.text, { force: true });
+}
+
+function aiAsk(preset, opts) {
   const box = document.getElementById('aiInput');
   const q = (preset || (box ? box.value : '') || '').trim();
   if (!q || aiBusy) return;
   const log = aiLog();
+  // 1B42 · ถ้าสิ่งที่พิมพ์มาเป็น "งาน" ไม่ใช่ "คำถาม" ให้เสนอเพิ่มงานก่อน แล้วหยุดตรงนี้
+  // ยังไม่ยิงไปเซิร์ฟเวอร์ — ถ้าเขากด "ไม่ใช่ ถามต่อ" ค่อยส่ง (aiOfferAsk เรียกกลับมา
+  // พร้อม force ซึ่งข้ามด่านนี้) · ปุ่มทางลัดสี่ปุ่มส่ง preset มาเอง ต้องไม่โดนดักด้วย
+  if (!(opts && opts.force) && !preset) {
+    const offer = aiTaskOffer(q);
+    if (offer) {
+      if (box) box.value = '';
+      log.push({ role: 'offer', text: q, parsed: {
+        subject: offer.subject, due: offer.due, type: offer.type,
+        estMin: offer.estMin, scorePct: offer.scorePct, detail: offer.detail,
+      } });
+      aiLogSave(log);
+      renderAi();
+      aiScrollDown();
+      return;
+    }
+  }
   log.push({ role: 'user', text: q });
   aiLogSave(log);
   if (box) box.value = '';
@@ -3102,7 +3186,11 @@ function aiAsk(preset) {
   aiScrollDown();
 
   // ประวัติที่ส่งไปคือทุกอย่าง "ก่อน" คำถามล่าสุด — ฝั่งเซิร์ฟเวอร์ต่อคำถามเองเป็นข้อความสุดท้าย
-  const hist = log.slice(0, -1).map(m => ({ role: m.role, text: m.text }));
+  // 1B42 · กรอง role 'offer' ออก — มันเป็นการ์ดของฝั่งแอป ไม่ใช่คำพูดของใคร
+  // ปล่อยไปเซิร์ฟเวอร์จะได้ประวัติที่มี role ที่โมเดลไม่รู้จัก แล้วคำตอบเพี้ยนโดยไม่มี error
+  const hist = log.slice(0, -1)
+    .filter(m => m.role === 'user' || m.role === 'model')
+    .map(m => ({ role: m.role, text: m.text }));
   // วาดใหม่ทุกชิ้นที่ไหลเข้ามาจะกระตุกและทำให้คนกำลังอ่านเสียตำแหน่ง —
   // ต่อข้อความลงฟองที่มีอยู่แล้วโดยตรง แล้วค่อย renderAi() ทีเดียวตอนจบ
   aiPartial = '';
@@ -3253,12 +3341,38 @@ function renderAi() {
   </button>`;
 
   // ---- 4 · พื้นที่สนทนา ----
-  const bubbles = log.map(m => m.role === 'user'
-    ? `<div class="ai-msg me"><div class="ai-bub">${esc(m.text)}</div></div>`
-    : `<div class="ai-msg sai">
+  const bubbles = log.map((m, i) => {
+    if (m.role === 'user') return `<div class="ai-msg me"><div class="ai-bub">${esc(m.text)}</div></div>`;
+    // 1B42 · การ์ดเสนอเพิ่มงาน — ฟองของน้องไซที่กดได้ ไม่ใช่ข้อความเปล่า
+    if (m.role === 'offer') {
+      const p = m.parsed || {};
+      const chips = [
+        p.subject && p.subject !== 'อื่น ๆ' ? p.subject : '',
+        p.due ? fmtThaiDate(new Date(p.due)) : '',
+        p.scorePct ? 'คะแนน ' + p.scorePct + '%' : '',
+        p.estMin ? humanMin(p.estMin) : '',
+      ].filter(Boolean);
+      return `<div class="ai-msg me"><div class="ai-bub">${esc(m.text)}</div></div>
+        <div class="ai-msg sai">
+          ${saiFace()}
+          <div class="ai-offer${m.done ? ' spent' : ''}">
+            <b class="ao-h">${m.done === 'asked' ? 'ได้ครับ ถามต่อเลย'
+              : m.done ? 'เปิดหน้าตรวจให้แล้ว' : 'อันนี้เป็นงานใหม่ใช่ไหม'}</b>
+            <div class="ao-t">${esc(p.detail || m.text)}</div>
+            ${chips.length ? `<div class="ao-chips">${
+              chips.map(c => `<span>${esc(c)}</span>`).join('')}</div>` : ''}
+            ${m.done ? '' : `<div class="ao-row">
+              <button class="ao-yes" onclick="aiOfferAdd(${i})">${icon('check')}เพิ่มงานนี้</button>
+              <button class="ao-no" onclick="aiOfferAsk(${i})">ไม่ใช่ ถามต่อ</button>
+            </div>`}
+          </div>
+        </div>`;
+    }
+    return `<div class="ai-msg sai">
          ${saiFace()}
          <div class="ai-bub${m.err ? ' err' : ''}">${esc(m.text)}</div>
-       </div>`).join('');
+       </div>`;
+  }).join('');
 
   const typing = aiBusy ? `<div class="ai-msg sai">
       ${saiFace()}

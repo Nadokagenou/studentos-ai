@@ -1158,3 +1158,40 @@
 }
 .sh-back svg { width: 20px; height: 20px; transform: rotate(180deg); }
 .sh-back:active { background: var(--card2); }
+
+/* ============================================================
+   1B42 · F1 — การ์ด "อันนี้เป็นงานใหม่ใช่ไหม" ในบทสนทนา
+   ============================================================
+   ทรงเป็นฟองของน้องไซที่กดได้ ไม่ใช่การ์ดชนิดใหม่ — มันอยู่ในสายสนทนา
+   จึงต้องอ่านเป็นสิ่งที่น้องไซพูด ไม่ใช่กล่องระบบที่โผล่ขึ้นมาขวาง */
+.ai-offer {
+  flex: 1; min-width: 0;
+  background: var(--card); border: 1px solid var(--blue);
+  border-radius: 4px 16px 16px 16px; padding: 12px 13px 11px;
+}
+.ao-h { display: block; font-size: 14px; font-weight: 700; letter-spacing: -.01em; }
+.ao-t {
+  margin-top: 4px; font-size: 13.5px; line-height: 1.45; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.ao-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ao-chips span {
+  font-size: 11.5px; font-weight: 600; color: var(--muted);
+  background: var(--card2); border-radius: 999px; padding: 3px 9px; white-space: nowrap;
+}
+.ao-row { display: flex; gap: 8px; margin-top: 11px; }
+.ao-yes {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: none; border-radius: 12px; padding: 10px 0; cursor: pointer;
+  background: var(--fill); color: var(--on-fill);
+  font-family: inherit; font-size: 13px; font-weight: 700;
+}
+.ao-yes svg { width: 15px; height: 15px; }
+.ao-no {
+  flex: none; border: 1px solid var(--line); border-radius: 12px; padding: 10px 13px;
+  cursor: pointer; background: none; color: var(--muted);
+  font-family: inherit; font-size: 13px; font-weight: 600;
+}
+.ao-yes:active, .ao-no:active { transform: scale(.97); }
+/* ตอบไปแล้ว = เหลือไว้เป็นบันทึกว่าเคยถาม ไม่ใช่ปุ่มที่กดซ้ำได้ */
+.ai-offer.spent { border-color: var(--line); opacity: .72; }
