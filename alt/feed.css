@@ -720,3 +720,17 @@
 }
 .fd-tuck .fd-scopes { max-height: 0; opacity: 0; margin-top: 0; }
 @media (prefers-reduced-motion: reduce) { .fd-scopes { transition: none; } }
+
+/* ---- 1B56 · การ์ดเพื่อนกดได้ ----
+   ถังขยะเคยเป็นของเดียวบนการ์ดที่กดได้ ซึ่งแปลว่าการกระทำเดียวที่จอนี้เสนอ
+   ให้ทำกับเพื่อน คือการลบเขาทิ้ง · ตอนนี้การ์ดทั้งใบเปิดโปรไฟล์
+   ถังขยะจึงต้องเบาลงจนไม่แย่งการกดหลัก แต่ยังหาเจอเมื่อตั้งใจหา */
+.fr-card.big { cursor: pointer; }
+.fr-card.big:active { transform: scale(.99); }
+.fr-go2 { flex: none; display: flex; color: var(--faint); opacity: .55; }
+.fr-go2 svg { width: 16px; height: 16px; }
+.fr-del { opacity: .35; transition: opacity .14s ease; }
+.fr-card.big:hover .fr-del, .fr-del:active { opacity: .9; }
+/* บรรทัด "ยังไม่ได้บอกว่าถนัดวิชาไหน" เบาที่สุดในสามแบบ — มันคือคำอธิบายว่าทำไมว่าง
+   ไม่ใช่ข้อมูลของคนคนนั้น */
+.fr-mt.dim { background: none; color: var(--faint); padding: 4px 0 0; font-size: 11.5px; }

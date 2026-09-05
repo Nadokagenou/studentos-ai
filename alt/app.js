@@ -5235,9 +5235,15 @@ function frAv(p) {
     ? `<div class="fr-av"><img src="${esc(p.avatar)}" alt=""></div>`
     : `<div class="fr-av" style="${typeof avOf === 'function' ? avOf(nm) : ''}">${esc(nm.slice(0, 1))}</div>`;
 }
+// 1B56 · คนที่ยังไม่ได้ตั้งชื่อ ไม่ควรถูกเรียกว่า "นักเรียน"
+// คำนั้นเป็นชื่อสามัญที่ใช้ได้กับทุกคนในแอป มันจึงอ่านเหมือนระบบหาชื่อไม่เจอ
+// ไม่ใช่เหมือนชื่อของใครสักคน · ถ้ามี @ชื่อผู้ใช้อยู่แล้ว ให้ใช้อันนั้นเป็นชื่อไปเลย
+// เพราะมันคือชื่อที่เจ้าตัวตั้งเอง และเป็นชื่อที่เพื่อนใช้เรียกกันจริงอยู่แล้ว
 function frName(p) {
-  return `<div class="fr-nm">${esc(p.display_name || 'นักเรียน')}</div>
-    ${p.handle ? `<div class="fr-hd">@${esc(p.handle)}</div>` : ''}`;
+  const nm = (p.display_name || '').trim();
+  const hd = (p.handle || '').trim();
+  return `<div class="fr-nm">${esc(nm || (hd ? '@' + hd : 'ยังไม่ได้ตั้งชื่อ'))}</div>
+    ${hd && nm ? `<div class="fr-hd">@${esc(hd)}</div>` : ''}`;
 }
 // ============================================================
 // 1B52 · แถวเพื่อนต้องตอบว่า "ช่วยกันได้ตรงไหน"
@@ -5277,7 +5283,10 @@ function frMatch(p) {
   if (their.strong.length) return `<div class="fr-mt flat">ถนัด <b>${
     esc(norm(their.strong).slice(0, 3).join(' · '))}</b></div>`;
   if (p.bio) return `<div class="fr-mt flat">${esc(String(p.bio).slice(0, 60))}</div>`;
-  return '';
+  // 1B56 · ไม่มีข้อมูลเลย บอกตรง ๆ ว่าทำไมแถวนี้ว่าง
+  // การ์ดที่มีแต่ชื่อกับ @ แล้วจบ อ่านเหมือนโหลดไม่ครบ ไม่ใช่เหมือนคนที่ยังไม่ได้กรอก
+  // และประโยคนี้บอกด้วยว่ากดเข้าไปแล้วเจออะไร ซึ่งเป็นเหตุผลให้กด
+  return `<div class="fr-mt flat dim">ยังไม่ได้บอกว่าถนัดวิชาไหน · แตะดูโปรไฟล์</div>`;
 }
 
 // เพื่อนคนนี้กำลังเปิดแอปอยู่ไหม — onlineNow มาจาก presence ของ feed.js
@@ -5337,13 +5346,19 @@ function paintFriendParts() {
       // ก็ชื่อ "เพื่อนฉัน" อยู่แล้ว มันจึงพูดคำเดิมซ้ำโดยกินที่ 35px
       ? (frReqs.length ? frSec('เพื่อน', frList.length) : '') + frList.map(p => {
           const on = frOnline(p);
-          return `<div class="fr-card big${on ? ' online' : ''}">
+          // 1B56 · การ์ดทั้งใบกดได้ → เปิดโปรไฟล์เพื่อน
+          // บั๊ก: จอโปรไฟล์เพื่อน (scr-user) กับ openUser() มีอยู่ครบมาตลอด
+          // แต่ไม่มีอะไรบนการ์ดเรียกมันเลย · ของเดียวที่กดได้คือถังขยะ
+          // ซึ่งแปลว่าการกระทำเดียวที่จอนี้เสนอให้ทำกับเพื่อน คือการลบเขาทิ้ง
+          return `<div class="fr-card big${on ? ' online' : ''}"
+              onclick="openUser('${esc(p.id)}')" role="button" tabindex="0">
           <div class="fr-top">
             ${frAv(p)}
             <div class="fr-bd">${frName(p)}</div>
             ${on ? `<span class="fr-live">${on.subject
                 ? esc(on.subject) : 'ออนไลน์'}</span>` : ''}
-            <button class="fr-del" onclick="removeFriend('${esc(p.id)}', '${esc((p.display_name || '').replace(/'/g, ''))}')"
+            <span class="fr-go2">${icon('chevron')}</span>
+            <button class="fr-del" onclick="event.stopPropagation();removeFriend('${esc(p.id)}', '${esc((p.display_name || '').replace(/'/g, ''))}')"
               aria-label="เอาออก">${icon('trash')}</button>
           </div>
           ${frMatch(p)}
