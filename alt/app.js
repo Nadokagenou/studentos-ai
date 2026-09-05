@@ -3881,6 +3881,19 @@ function weekView(rows, now, firstPending) {
     if (!list.length && !mk.length && i >= 7) continue;
     const isToday = i === 0;
     const wd = WEEKDAY_SHORT[d.getDay()].replace('.', '');
+    // ============================================================
+    // 1B59 · แถววันนี้มีเพดาน
+    // ============================================================
+    // 1B50 ย้ายงานเลยกำหนดกับงานไม่มีวันมาไว้แถว "วันนี้" ตามภาพร่าง ซึ่งถูก
+    // แต่ตอนนั้นภาพร่างมีงานค้างสองใบ พอของจริงมีสิบสองใบ แถววันนี้ยาวเต็มจอ
+    // แล้ววันที่ 6–11 ไม่มีวันได้โผล่เลย — มุมมองสัปดาห์จึงไม่เคยได้ทำงาน
+    // เป็นอาการเดียวกับกำแพงแดงที่แก้ไปแล้วใน 1B48 แค่ย้ายที่เกิด
+    //
+    // สี่ใบคือจำนวนที่ยังเหลือที่ให้วันอื่นได้โผล่ในจอเดียวกัน
+    // ที่เหลือยุบเป็นบรรทัดเดียวที่พาไปจอ "เลยกำหนดทั้งหมด" ซึ่งมีอยู่แล้ว
+    const CAP = 4;
+    const over = isToday && list.length > CAP ? list.length - CAP : 0;
+    const shown = over ? list.slice(0, CAP) : list;
     // เส้นเรียนของวันนั้น — ภาพร่างมีบรรทัด "เรียน 07:40–15:10" ใต้ชิป
     // มันคือเหตุผลว่าทำไมวันนั้นถึงว่างน้อย ซึ่งอธิบายตัวเลขเวลาว่างให้ในตัว
     let clsLine = '';
@@ -3899,7 +3912,9 @@ function weekView(rows, now, firstPending) {
       <div class="wk-b">
         ${mk.map(m => `<span class="wk-mark sj-${esc(m.color || 'grey')}">${
           esc(m.title || 'หมุด')}</span>`).join('')}
-        ${list.map(t => taskChip(t, now)).join('')}
+        ${shown.map(t => taskChip(t, now)).join('')}
+        ${over ? `<button class="wk-more" onclick="setFilter('late')">
+          อีก ${over} ใบที่ค้างอยู่${icon('chevron')}</button>` : ''}
         <div class="wk-sub">${esc(sub)}</div>
       </div>
     </div>`);

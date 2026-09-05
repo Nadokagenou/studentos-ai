@@ -6945,3 +6945,10 @@ body.deep-scr .top-friends { display: none; }
   padding: 12px 14px 6px;
 }
 .wk-late .wc, .wk-undated .wc { background: none; padding-right: 0; }
+/* 1B59 · บรรทัด "อีก N ใบที่ค้างอยู่" ในแถววันนี้
+   เยื้องเท่าชิป ไม่ใช่เต็มความกว้าง — มันเป็นของของวันนั้น ไม่ใช่ของทั้งสัปดาห์ */
+.wk-b .wk-more {
+  justify-content: flex-start; padding: 7px 0 4px; margin-top: 0;
+  color: var(--muted); font-size: 12px;
+}
+.wk-b .wk-more svg { opacity: .6; }
