@@ -1144,3 +1144,17 @@
    ย้ายลงไปอยู่ในกริดในรูปไทล์ "สแกนตารางเรียน" ที่ติดป้าย ! ซึ่งมีอยู่แล้ว
    บรรทัดตัวเลขบนหัวจอยังต้องกันตกสองแถว จึงเก็บกฎ nowrap ไว้ */
 .td-head .th-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 1B41 · ปุ่มย้อนกลับบนหัวจอน้องไซ
+   จอนี้เสียแท็บของตัวเองไปตอนคืนช่องกลางให้ปุ่ม + (แถบต้องมีช่องคี่ถึงจะมีกึ่งกลาง)
+   ทางเข้าหลักคือช่องถามน้องไซบนหน้าแรก ซึ่งเป็นการ "เข้าไป" ไม่ใช่การ "สลับแท็บ"
+   ของที่เข้าไปแล้วต้องมีทางออกที่เห็นได้ ไม่ใช่ให้เดาว่ากดแท็บไหนถึงจะกลับ */
+.sh-back {
+  flex: none; width: 34px; height: 34px; margin-left: -4px;
+  display: grid; place-items: center;
+  border: none; border-radius: 12px; cursor: pointer;
+  background: none; color: var(--muted);
+  transition: background .14s ease;
+}
+.sh-back svg { width: 20px; height: 20px; transform: rotate(180deg); }
+.sh-back:active { background: var(--card2); }

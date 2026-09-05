@@ -6461,16 +6461,12 @@ body.deep-scr .top-friends { display: none; }
    ============================================================ */
 .tabbar .tab { flex: 1 1 0; min-width: 0; }
 
-:root:not([data-nav="side"]) .tab.scan .scan-dot {
-  width: 38px;
-  height: 24px;
-  margin-top: 0;
-  border-radius: 9px;
-  outline: none;
-  box-shadow: var(--glow-scan);
-}
-:root:not([data-nav="side"]) .tab.scan .scan-dot svg { width: 17px; height: 17px; }
-:root:not([data-nav="side"]) .tab.scan.active .scan-dot { transform: none; }
+/* 1B41 · บล็อกนี้หมดอายุตามเงื่อนไขที่มันเขียนไว้เอง
+   ข้อความข้างบนบอกว่า "อยากได้ก้อนลอยกลับ ต้องยอมรับว่ามันจะเยื้องซ้ายครึ่งช่อง
+   ตราบใดที่แถบยังมีจำนวนช่องคู่" — ตอนนี้แถบเป็นห้าช่องแล้ว เงื่อนไขนั้นจึงหมดไป
+   ปุ่มเป็นช่องที่ 3 จาก 5 = กึ่งกลางเป๊ะ เหมือนตอน 1A9o ทุกประการ
+   กฎชุดที่ทำให้มันแบนถูกถอดออก ของเดิมที่บรรทัด ~5734 กลับมาทำงานเอง
+   แล้วบล็อก 1B41 ท้ายไฟล์ปรับสีให้เข้ากับแถบที่เงียบลงตั้งแต่ 1B39 */
 
 /* ป้ายบนแท็บห้ามตัดบรรทัด — หกช่องบนจอ 320px เหลือช่องละ ~46px
    "น้องไซ" กว้าง 28px ยังพอดี แต่ถ้าปล่อยให้ตัดบรรทัด แถบจะสูงขึ้นทั้งแถบ
@@ -6498,16 +6494,27 @@ body.deep-scr .top-friends { display: none; }
 :root:not([data-nav="side"]) .tab.active { background: none; color: var(--ink); }
 :root:not([data-nav="side"]) .tab { color: var(--faint); }
 
-/* ปุ่ม + : พื้นทินต์อ่อน ไอคอนสีเน้น — ไม่ใช่ก้อนไล่สีแบรนด์ + เงาเรืองอีกต่อไป
-   มันยังเป็นของชิ้นเดียวในแถบที่มีสี จึงยังหาเจอก่อนเพื่อนอยู่ดี ซึ่งพอแล้ว
-   สำหรับปุ่มที่ใช้บ่อยที่สุด · เงาเรืองเป็นของที่แข่งกับการ์ดฟ้าโดยตรง */
+/* ปุ่ม + : ก้อนกลมทึบลอยเหนือแถบ ตรงกึ่งกลางพอดี
+   1B39 เคยทำให้มันจางลงเป็นทินต์อ่อนตามหลัก 60/30/10 ซึ่งถูกในตอนนั้น
+   เพราะปุ่มไม่ได้อยู่กลาง มันจึงเป็นแค่ "แท็บที่สีต่างจากเพื่อน" ซึ่งไม่คุ้มที่จะเด่น
+   ตอนนี้มันอยู่กึ่งกลางแถบและเป็นของชนิดเดียวในแถบที่ไม่ใช่แท็บ (แท็บพาไปจอ
+   ปุ่มนี้เปิดแผ่น) — ของที่ทำงานคนละอย่างกับเพื่อนควรหน้าตาไม่เหมือนเพื่อน
+   สีเน้นในแถบล่างจึงมีที่เดียวคือก้อนนี้ ส่วนแท็บทั้งสี่ยังเงียบเหมือน 1B39
+   ทึบแต่ไม่มีเงาเรือง — glow เป็นของที่แข่งกับการ์ดคำสั่งบนหน้าแรกโดยตรง */
 :root:not([data-nav="side"]) .tab.scan .scan-dot {
-  background: var(--blue-soft);
-  color: var(--blue);
-  box-shadow: none;
+  width: 44px; height: 44px;
+  margin-top: -22px;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--on-fill);
+  outline: 3px solid var(--card);
+  box-shadow: 0 6px 16px -6px rgba(0, 0, 0, .5);
 }
+:root:not([data-nav="side"]) .tab.scan .scan-dot svg { width: 21px; height: 21px; stroke-width: 2.2; }
 :root:not([data-nav="side"]) .tab.scan { color: var(--faint); }
 :root:not([data-nav="side"]) .tab.scan.active { color: var(--ink); }
+:root:not([data-nav="side"]) .tab.scan.active .scan-dot { transform: none; }
+:root:not([data-nav="side"]) .tab.scan:active .scan-dot { transform: scale(.92); }
 
 /* แบดจ์ยังแดงอยู่ — มันคือสัญญาณจริง ไม่ใช่ของประดับ แต่เล็กลงและไม่มีวงแหวนหนา
    แถบไม่ได้เป็น glass แล้วบนมือถือ วงแหวนสี --glass จึงเป็นเส้นสีผิดมาตั้งแต่ 1A9c */
@@ -6521,16 +6528,7 @@ body.deep-scr .top-friends { display: none; }
    ย้ายมาจากช่องกลางของแถบล่างที่ถูกถอดออก · ขนาด 44px คือขนาดขั้นต่ำที่นิ้วกดติด
    สีเน้นทึบเพราะมันคือปุ่มเดียวบนหัวจอนี้ และเป็นของที่กดบ่อยที่สุดในจอนี้
    (จอ "วันนี้" ยังมีการ์ดสีเน้นของมันอยู่ใบเดียวเหมือนเดิม — คนละจอกัน ไม่ชนกฎ 60/30/10) */
-.tlrow { display: flex; align-items: stretch; gap: 8px; margin: 0 0 12px; }
-.tlrow .tlmode { flex: 1; min-width: 0; margin: 0; }
-/* 44px คือขนาดขั้นต่ำที่นิ้วกดติด — ตั้งที่นี่แล้วสวิตช์สามโหมดยืดตามไปด้วย
-   (.tlrow เป็น align-items: stretch) ซึ่งทำให้ปุ่มโหมดกดง่ายขึ้นเป็นของแถม */
-.ph-add {
-  flex: none; width: 48px; min-height: 44px;
-  display: grid; place-items: center;
-  border: none; border-radius: 12px; cursor: pointer;
-  background: var(--fill); color: var(--on-fill);
-  transition: transform .14s ease, filter .14s ease;
-}
-.ph-add svg { width: 22px; height: 22px; }
-.ph-add:active { transform: scale(.92); filter: brightness(.9); }
+/* 1B41 · .tlrow / .ph-add ถูกถอดออกพร้อมกับปุ่มเพิ่มข้างสวิตช์สามโหมด
+   มันมีอยู่เพราะ 1B39 เอาปุ่ม + ออกจากแถบล่าง พอปุ่มกลับมาอยู่กลางแถบแล้ว
+   ปุ่มสองใบที่เปิดแผ่นเดียวกันห่างกันไม่ถึงนิ้ว คือของที่ต้องอ่านสองรอบเปล่า ๆ
+   กฎ .tlrow / .ph-add ถูกลบทิ้ง สวิตช์กลับไปเต็มความกว้างเหมือนเดิม */

@@ -3174,7 +3174,12 @@ function renderAi() {
 
   // ---- 1 · หัวจอ ----
   const name = who();
+  // 1B41 · ปุ่มย้อนกลับ — จอนี้ไม่มีแท็บของตัวเองบนแถบล่างแล้ว (ช่องที่หกคืนให้ปุ่ม +
+  // ที่ต้องอยู่กึ่งกลาง) · แถบล่างยังโผล่อยู่ก็จริง แต่ไม่มีช่องไหนติดสถานะ "อยู่หน้านี้"
+  // จอที่ไม่มีแท็บติดสถานะต้องบอกทางกลับด้วยตัวเอง ไม่งั้นมันอ่านเป็นจอที่หลงมา
   const head = `<header class="sai-head">
+    <button class="sh-back" onclick="go('scr-menu')" aria-label="กลับหน้าแรก">
+      <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
     ${saiFace('big')}
     <div class="sh-id">
       <h1 class="sh-name">น้องไซ<span class="sh-badge">AI</span></h1>
@@ -3871,23 +3876,15 @@ function tlDayItems(day, isToday, now) {
 // สวิตช์ตัวเดียวกันโผล่ทั้งสองจอ เพราะสามโหมดนี้เป็นของแท็บ "ตาราง" เดียวกัน
 // รายวันกับปฏิทินอยู่ในจอเส้นเวลา ส่วนรายการงานเป็นอีกจอ (มีฟิลเตอร์/ถังขยะของตัวเอง)
 // ผู้ใช้ไม่ต้องรู้ว่ามันคนละจอ — เห็นแค่สวิตช์ที่อยู่ที่เดิมและทำงานเหมือนกัน
-// 1B39 · ปุ่มเพิ่มงานมาอยู่ข้างสวิตช์นี้ หลังถูกถอดออกจากแถบล่าง
-// ที่นี่คือที่เดียวที่โผล่ครบทั้งสามโหมดของแท็บ "งาน" (รายวัน · ปฏิทิน · รายการงาน)
-// โดยไม่ต้องแก้หัวจอสามที่ให้ตรงกันตลอดไป
-// มุมขวาบนใช้ไม่ได้ — ปุ่มเพื่อนลอยทับอยู่ตรงนั้นแล้วทุกจอ (.top-friends)
-// ตำแหน่งนี้ถูกกว่าแถบล่างด้วยซ้ำ: คนเพิ่มงานตอนที่กำลังคิดถึงงาน ซึ่งคือตอนที่อยู่แท็บนี้
-// ไม่ใช่ตอนอยู่จอไหนก็ได้ · และเลิกแย่งช่องกับแท็บที่เป็นคนละชนิดกัน
-// (แท็บพาไปจอ ปุ่มนี้เปิดแผ่นเลือกวิธี — ของสองชนิดที่ไม่ควรอยู่ในแถบเดียวกันตั้งแต่แรก)
+// 1B41 · ปุ่มเพิ่มงานที่ 1B39 แปะไว้ข้างสวิตช์นี้ถูกถอดออกแล้ว
+// มันมีอยู่เพราะตอนนั้นแถบล่างไม่มีปุ่ม + · พอปุ่มกลับไปอยู่กึ่งกลางแถบ
+// ปุ่มสองใบที่เปิดแผ่นเดียวกันห่างกันไม่ถึงนิ้วคือของที่ต้องอ่านสองรอบเปล่า ๆ
 function tlModeTabs() {
   const onList = curScreen === 'scr-tasks';
-  return `<div class="tlrow">
-    <div class="tlmode">
-      <button class="tlm${!onList && tlMode === 'day' ? ' on' : ''}" onclick="goTlMode('day')">รายวัน</button>
-      <button class="tlm${!onList && tlMode === 'cal' ? ' on' : ''}" onclick="goTlMode('cal')">ปฏิทิน</button>
-      <button class="tlm${onList ? ' on' : ''}" onclick="goTlMode('list')">รายการงาน</button>
-    </div>
-    <button class="ph-add" onclick="openAddSheet()" aria-label="เพิ่มงานใหม่">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#tb-plus"/></svg></button>
+  return `<div class="tlmode">
+    <button class="tlm${!onList && tlMode === 'day' ? ' on' : ''}" onclick="goTlMode('day')">รายวัน</button>
+    <button class="tlm${!onList && tlMode === 'cal' ? ' on' : ''}" onclick="goTlMode('cal')">ปฏิทิน</button>
+    <button class="tlm${onList ? ' on' : ''}" onclick="goTlMode('list')">รายการงาน</button>
   </div>`;
 }
 
