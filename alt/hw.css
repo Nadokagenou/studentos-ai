@@ -142,3 +142,45 @@
 /* แถวชวนเชื่อมห้องเรียน — หน้าตาเดียวกับแถวปกติ ต่างกันตรงที่มันเป็นคำชวน ไม่ใช่ตัวเลข
    จงใจไม่ทำให้เด่นกว่า — มันคือคำเชิญที่อยู่ใต้งาน ไม่ใช่การแจ้งเตือนเรื่องงาน */
 .hw.hw-link .hw-n { color: var(--muted); font-weight: 500; }
+
+/* ============================================================
+   1B40 — บล็อก "กำลังทำอยู่ตอนนี้" บนหน้าแรก
+   ============================================================
+   ก้อนอ่านอย่างเดียว ไม่ใช่การ์ดสีเน้น — จอ "วันนี้" มีของสีเน้นได้ชิ้นเดียว
+   คือการ์ดคำสั่ง (กฎ 60/30/10 ท้าย alt.css) ก้อนนี้จึงเป็นพื้นการ์ดธรรมดา
+   สีเขียวอยู่ที่จุดสถานะจุดเดียว ซึ่งเป็นสีของ "มีชีวิตอยู่ตอนนี้" ไม่ใช่สีของแบรนด์ */
+.hw-now {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  margin-top: 14px; padding: 12px 14px;
+  background: var(--card); border: none; border-radius: 18px;
+  box-shadow: var(--shadow);
+  font-family: inherit; text-align: left; color: var(--ink);
+}
+.hw-now.tap { cursor: pointer; transition: transform .14s ease; }
+.hw-now.tap:active { transform: scale(.985); }
+
+/* จุดสด — วงกระเพื่อมรอบจุดบอกว่านี่คือค่าที่เปลี่ยนเองได้ ไม่ใช่เลขที่ค้างมาจากเมื่อวาน */
+.hn-live { flex: none; position: relative; width: 10px; height: 10px; }
+.hn-live i {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: var(--good); box-shadow: 0 0 0 0 var(--good);
+  animation: hn-pulse 2.4s ease-out infinite;
+}
+@keyframes hn-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 9px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .hn-live i { animation: none; } }
+
+.hn-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.hn-tx b { font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+.hn-tx span {
+  font-size: 12px; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hn-go {
+  flex: none; display: inline-flex; align-items: center; gap: 2px;
+  font-size: 12px; font-weight: 600; color: var(--blue);
+}
+.hn-go svg { width: 14px; height: 14px; }
