@@ -6514,3 +6514,23 @@ body.deep-scr .top-friends { display: none; }
 .tab-badge { min-width: 15px; height: 15px; line-height: 15px; font-size: 9px;
   top: -4px; right: -7px; box-shadow: none; }
 .tab-dot { box-shadow: none; }
+
+/* ============================================================
+   1B39 — ปุ่มเพิ่มงานบนหัวจอ "งาน"
+   ============================================================
+   ย้ายมาจากช่องกลางของแถบล่างที่ถูกถอดออก · ขนาด 44px คือขนาดขั้นต่ำที่นิ้วกดติด
+   สีเน้นทึบเพราะมันคือปุ่มเดียวบนหัวจอนี้ และเป็นของที่กดบ่อยที่สุดในจอนี้
+   (จอ "วันนี้" ยังมีการ์ดสีเน้นของมันอยู่ใบเดียวเหมือนเดิม — คนละจอกัน ไม่ชนกฎ 60/30/10) */
+.tlrow { display: flex; align-items: stretch; gap: 8px; margin: 0 0 12px; }
+.tlrow .tlmode { flex: 1; min-width: 0; margin: 0; }
+/* 44px คือขนาดขั้นต่ำที่นิ้วกดติด — ตั้งที่นี่แล้วสวิตช์สามโหมดยืดตามไปด้วย
+   (.tlrow เป็น align-items: stretch) ซึ่งทำให้ปุ่มโหมดกดง่ายขึ้นเป็นของแถม */
+.ph-add {
+  flex: none; width: 48px; min-height: 44px;
+  display: grid; place-items: center;
+  border: none; border-radius: 12px; cursor: pointer;
+  background: var(--fill); color: var(--on-fill);
+  transition: transform .14s ease, filter .14s ease;
+}
+.ph-add svg { width: 22px; height: 22px; }
+.ph-add:active { transform: scale(.92); filter: brightness(.9); }

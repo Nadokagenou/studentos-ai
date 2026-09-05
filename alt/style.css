@@ -533,7 +533,10 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
   background:var(--glass); backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%);
   border:1px solid var(--glass-line); border-radius:20px;
   box-shadow:var(--shadow-lg); padding:15px 16px; display:flex; gap:13px; align-items:center;
-  z-index:70; cursor:pointer;
+  /* 1B39 · 70 → 95 · ตั้งแต่ toast ขึ้นมาอยู่ด้านบน มันซ้อนที่เดียวกับปุ่มเพื่อน
+     ที่ลอยอยู่มุมขวาบนทุกจอ (.top-friends z-index 91) ซึ่งเคยทะลุขึ้นมาทับ toast
+     การ์ดแจ้งเตือนต้องอยู่บนสุดเสมอตลอดหกวินาทีของมัน แล้วค่อยคืนจอให้ปุ่ม */
+  z-index:95; cursor:pointer;
   opacity:0; visibility:hidden; transform:translateY(-16px);
   transition:transform .45s cubic-bezier(.2,.9,.3,1.2), opacity .26s ease, visibility 0s .45s}
 .toast.show{opacity:1; visibility:visible; transform:none;
