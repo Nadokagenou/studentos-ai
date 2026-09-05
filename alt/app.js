@@ -2189,7 +2189,10 @@ function toolsGrid() {
     ['users', 'เพื่อนฉัน', 'in', "openFeed('friends')", reqs || '', true],
     ['book', 'สแกนตารางเรียน', 'in', "go('scr-ttscan')", noCtx ? '!' : '', true],
     ['sparkles', 'แผนวันนี้', 'time', "go('scr-plan')", '', false],
-    ['calendar', 'ปฏิทินเดือน', 'time', "goTlMode('cal')", '', false],
+    // 1B47 · ไทล์ "ปฏิทินเดือน" ถูกถอดออก — เจ้าของเลือก "ตัดปฏิทินได้เลย"
+    // ที่ว่างคืนให้ "กล่องเข้า" ซึ่งเป็นทางเข้าที่มีของรออยู่จริงและหายากกว่า
+    ['unplug', 'กล่องเข้า', 'time', "go('scr-inbox')",
+      (typeof inboxPending === 'function' ? inboxPending().length : 0) || '', true],
     ['flame', 'สถิติ', 'me', "go('scr-stats')", '', false],
     ['medal', 'ของสะสม', 'me', "go('scr-badges')", '', false],
     ['bag', 'ร้านค้า', 'me', "go('scr-shop')", gift ? ' ' : '', true],
@@ -3659,17 +3662,14 @@ function renderTasks() {
           aria-label="ล้างคำค้น">${icon('x')}</button>
       </div>` : '';
 
-  // แถบเลือกวันไม่มีความหมายตอนกำลังค้นหา — คำค้นข้ามวันอยู่แล้ว
-  const head = pageHead + searchBox + (taskQ ? '' : `${tlModeTabs()}
-    <div class="daystrip">
-      ${days.map(x => `<button class="ds${taskDay === x.k ? ' on' : ''}" onclick="setTaskDay('${x.k}')">
-        <i class="ds-d">${esc(x.label)}</i><b class="ds-n">${x.d.getDate()}</b>
-        ${x.n ? `<u class="ds-dot${x.tone ? ' ' + x.tone : ''}"></u>` : '<u class="ds-dot off"></u>'}
-      </button>`).join('')}
-    </div>
-    ${taskDay && days.some(x => x.k === taskDay) ? `<button class="dayclear" onclick="setTaskDay(null)">
-      ${icon('calendar')}เฉพาะ${esc(fmtThaiDate(days.find(x => x.k === taskDay).d))}
-      <span>ดูทุกวัน</span></button>` : ''}`);
+  // ============================================================
+  // 1B47 · หัวจอเหลือชื่อจอกับช่องค้นหา
+  // ============================================================
+  // สวิตช์ รายวัน/ปฏิทิน/รายการงาน กับแถบวันเจ็ดช่องถูกถอดออกทั้งคู่ (เจ้าของเลือกทิศทาง A)
+  // สองอย่างนั้นกินจอเกือบครึ่งก่อนถึงงานใบแรก และมันแก้ปัญหาเดียวกันสองรอบ:
+  // "อยากเห็นงานของวันไหน" — ซึ่งมุมมองสัปดาห์ตอบด้วยการวางงานลงวันของมันเลย
+  // ไม่ต้องมีตัวกรองแยกอีกชั้น
+  const head = pageHead + searchBox;
 
   // ใบแรกของรายการที่ยังไม่เสร็จได้แถบฟ้า = "ใบนี้คือใบที่ควรลงมือ"
   // ให้ทุกใบมีแถบก็เท่ากับไม่มีใบไหนมีแถบ
@@ -3677,20 +3677,12 @@ function renderTasks() {
 
   // จัดกลุ่มเฉพาะตอนดูทุกวันและไม่ได้ค้นหา — กรองเหลือวันเดียวแล้วทุกใบอยู่ถังเดียวกัน
   // หัวข้อกลุ่มอันเดียวคร่อมทั้งลิสต์จึงไม่ได้บอกอะไรเพิ่ม มีแต่กินที่
-  const grouped = !taskDay && !taskQ;
+  // ค้นหาอยู่ = แสดงเป็นรายการเรียบ ๆ · ผลค้นหาข้ามวันอยู่แล้ว การยัดกลับลงปฏิทิน
+  // สัปดาห์แปลว่าต้องเลื่อนหาเองว่าใบที่ค้นเจออยู่แถวไหน
   let listHTML;
-  if (!rows.length) {
-    listHTML = '';
-  } else if (!grouped) {
-    listHTML = rows.map(t => taskCard(t, now, t === firstPending)).join('');
-  } else {
-    const bucket = {};
-    for (const t of rows) (bucket[taskBucket(t, now)] = bucket[taskBucket(t, now)] || []).push(t);
-    listHTML = TASK_BUCKETS.filter(b => bucket[b.id] && bucket[b.id].length)
-      .map(b => `<div class="fr-sec${b.id === 'over' ? ' hot' : ''}">${esc(b.name)}<i>${
-        bucket[b.id].length}</i></div>`
-        + bucket[b.id].map(t => taskCard(t, now, t === firstPending)).join('')).join('');
-  }
+  if (!rows.length) listHTML = '';
+  else if (taskQ) listHTML = rows.map(t => taskCard(t, now, t === firstPending)).join('');
+  else listHTML = weekView(rows, now, firstPending);
 
   el.innerHTML = head
     + (rows.length ? listHTML : tasksEmpty(now, days))
@@ -3698,6 +3690,100 @@ function renderTasks() {
         ${icon('check-circle')}เสร็จแล้ว · ${done.length} งาน</button>` : '')
     + (bin.length ? `<button class="bin-btn" onclick="setFilter('bin')">
         ${icon('trash')}ถังขยะ · ${bin.length} รายการ</button>` : '');
+}
+
+// ============================================================
+// 1B47 · มุมมองสัปดาห์ — จอเดียวแทนสามโหมด
+// ============================================================
+// เจ้าของเลือกทิศทาง A จากสี่แบบ และเลือกให้ตัดปฏิทินเดือนทิ้งได้เลย
+//
+// ---- ทำไมสามโหมดถึงเป็นตัวปัญหาเอง ----
+// รายวัน · ปฏิทิน · รายการงาน คือข้อมูลชุดเดียวกันวาดสามแบบ แล้วสวิตช์สลับโหมด
+// ต้องอยู่บนทั้งสามจอ บวกแถบวันเจ็ดช่อง บวกช่องค้นหา — รวมแล้วกินจอเกือบครึ่ง
+// ก่อนเห็นงานใบแรก และกินเท่ากันทุกโหมด ปรับสีหรือระยะแก้เรื่องนี้ไม่ได้
+//
+// ---- ทำไมสัปดาห์ ไม่ใช่เดือนหรือวัน ----
+// เดือนกว้างเกินกว่าที่นักเรียนวางแผนจริง (ไม่มีใครตัดสินใจวันนี้จากงานอีกสามสัปดาห์)
+// ส่วนวันเดียวแคบเกินกว่าจะรู้ว่าควรเริ่มงานชิ้นไหนก่อน — งานที่ส่งวันพุธจะเริ่มวันไหน
+// ต้องมองเห็นวันจันทร์กับอังคารพร้อมกันถึงตอบได้
+//
+// ---- งานที่เลยกำหนดไปกองอยู่แถวไหน ----
+// ไม่มีวันของตัวเองบนสัปดาห์นี้แล้ว จึงยกมาไว้แถวแรกสุดเหนือทุกวัน ในกล่องของมันเอง
+// ยัดลงแถว "วันนี้" ไม่ได้ เพราะมันไม่ได้ถึงกำหนดวันนี้ — และการโกหกวันกำหนดส่ง
+// คือสิ่งเดียวที่แอปจัดตารางห้ามทำ
+function weekView(rows, now, firstPending) {
+  const key = d => d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const late = [], undated = [], byDay = {};
+  for (const t of rows) {
+    if (!t.due) { undated.push(t); continue; }
+    const d = new Date(t.due);
+    if (d < today) { late.push(t); continue; }
+    (byDay[key(d)] = byDay[key(d)] || []).push(t);
+  }
+
+  // แสดงกี่วัน: อย่างน้อยเจ็ด แต่ถ้ามีงานไกลกว่านั้นก็ยืดไปจนถึงใบสุดท้าย
+  // ตัดที่เจ็ดวันเป๊ะแล้วงานที่ส่งวันที่แปดจะหายไปจากจอโดยไม่มีอะไรบอก
+  let span = 7;
+  for (const t of rows) {
+    if (!t.due) continue;
+    const d = new Date(t.due);
+    if (d < today) continue;
+    span = Math.max(span, Math.round((d - today) / 864e5) + 1);
+  }
+  span = Math.min(span, 60);   // เพดานกันลิสต์ยาวเป็นปีจากงานที่ตั้งวันผิด
+
+  const lateBlock = late.length ? `<div class="wk-late">
+    <div class="wk-late-h">${icon('flame')}<b>เลยกำหนด</b><i>${late.length}</i></div>
+    ${late.map(t => taskCard(t, now, t === firstPending)).join('')}
+  </div>` : '';
+
+  const dayRows = [];
+  for (let i = 0; i < span; i++) {
+    const d = addDays(today, i);
+    const list = (byDay[key(d)] || []).sort((a, b) => new Date(a.due) - new Date(b.due));
+    // วันที่ไม่มีงานยังต้องขึ้น — ช่องว่างคือคำตอบของ "วันไหนพอมีที่ให้เริ่มงานใหญ่"
+    // ซึ่งเป็นคำถามที่ลิสต์แบบเรียงตามสถานะตอบไม่ได้เลย · แต่เกินสัปดาห์แรกไปแล้ว
+    // วันเปล่าไม่ได้บอกอะไรอีก มันแค่ทำให้ต้องเลื่อนนานขึ้น
+    const hasMark = (typeof marksOn === 'function' && typeof calKey === 'function')
+      && marksOn(calKey(d)).length;
+    if (!list.length && !hasMark && i >= 7) continue;
+    const isToday = i === 0;
+    const wd = WEEKDAY_SHORT[d.getDay()].replace('.', '');
+    // หมุดที่เคยปักไว้ในปฏิทินต้องยังเห็นได้ — จอปฏิทินถูกตัดทิ้งไปแล้ว
+    // ถ้าไม่ยกมาด้วย ของที่ผู้ใช้เคยปักไว้จะกลายเป็นข้อมูลที่มีอยู่แต่ไม่มีใครมองเห็น
+    // ซึ่งแย่กว่าลบทิ้ง เพราะเขาจะเชื่อว่ามันยังเตือนให้อยู่
+    const mk = (typeof marksOn === 'function' && typeof calKey === 'function')
+      ? marksOn(calKey(d)) : [];
+    const mkHtml = mk.length ? `<div class="wk-marks">${mk.map(m =>
+      `<span class="wk-mark sj-${esc(m.color || 'grey')}">${esc(m.title || 'หมุด')}</span>`).join('')}</div>` : '';
+    dayRows.push(`<div class="wk-row${isToday ? ' now' : ''}${list.length || mk.length ? '' : ' empty'}">
+      <div class="wk-d"><b>${d.getDate()}</b><i>${esc(isToday ? 'วันนี้' : wd)}</i></div>
+      <div class="wk-b">${mkHtml}${list.length
+        ? list.map(t => taskCard(t, now, t === firstPending)).join('')
+        : (mk.length ? '' : `<div class="wk-none">${esc(freeLabel(d))}</div>`)}</div>
+    </div>`);
+  }
+
+  const undatedBlock = undated.length ? `<div class="wk-undated">
+    <div class="wk-late-h"><b>ยังไม่ได้ตั้งกำหนดส่ง</b><i>${undated.length}</i></div>
+    ${undated.map(t => taskCard(t, now, t === firstPending)).join('')}
+  </div>` : '';
+
+  return lateBlock + `<div class="wk">${dayRows.join('')}</div>` + undatedBlock;
+}
+
+// ข้อความบนวันที่ไม่มีงาน — บอกเวลาว่างจริงถ้ารู้ ไม่งั้นบอกแค่ว่าไม่มีอะไรถึงกำหนด
+// "ว่าง 4 ชม." มีประโยชน์กว่า "ไม่มีงาน" มาก เพราะมันคือคำตอบว่าจะยกงานใหญ่มาลงวันไหน
+function freeLabel(d) {
+  if (typeof freeMinutes === 'function') {
+    try {
+      const m = freeMinutes(d, null);
+      if (m > 0) return 'ว่าง ' + humanMin(m);
+    } catch (_) {}
+  }
+  return 'ไม่มีอะไรถึงกำหนด';
 }
 
 // ---------- จอว่าง ----------
@@ -4049,17 +4135,11 @@ function tlDayItems(day, isToday, now) {
 // สวิตช์ตัวเดียวกันโผล่ทั้งสองจอ เพราะสามโหมดนี้เป็นของแท็บ "ตาราง" เดียวกัน
 // รายวันกับปฏิทินอยู่ในจอเส้นเวลา ส่วนรายการงานเป็นอีกจอ (มีฟิลเตอร์/ถังขยะของตัวเอง)
 // ผู้ใช้ไม่ต้องรู้ว่ามันคนละจอ — เห็นแค่สวิตช์ที่อยู่ที่เดิมและทำงานเหมือนกัน
-// 1B41 · ปุ่มเพิ่มงานที่ 1B39 แปะไว้ข้างสวิตช์นี้ถูกถอดออกแล้ว
-// มันมีอยู่เพราะตอนนั้นแถบล่างไม่มีปุ่ม + · พอปุ่มกลับไปอยู่กึ่งกลางแถบ
-// ปุ่มสองใบที่เปิดแผ่นเดียวกันห่างกันไม่ถึงนิ้วคือของที่ต้องอ่านสองรอบเปล่า ๆ
-function tlModeTabs() {
-  const onList = curScreen === 'scr-tasks';
-  return `<div class="tlmode">
-    <button class="tlm${!onList && tlMode === 'day' ? ' on' : ''}" onclick="goTlMode('day')">รายวัน</button>
-    <button class="tlm${!onList && tlMode === 'cal' ? ' on' : ''}" onclick="goTlMode('cal')">ปฏิทิน</button>
-    <button class="tlm${onList ? ' on' : ''}" onclick="goTlMode('list')">รายการงาน</button>
-  </div>`;
-}
+// 1B47 · สวิตช์สามโหมดถูกถอดออก — แท็บ "งาน" เหลือมุมมองเดียวคือสัปดาห์
+// ตัวฟังก์ชันยังอยู่และคืนค่าว่าง เพราะจอเส้นเวลากับปฏิทินยังเรียกมันอยู่
+// (สองจอนั้นไม่มีทางเข้าจากผังหลักแล้ว แต่โค้ดยังอยู่ครบเผื่อต้องถอยกลับ
+//  กฎเดียวกับที่ 1B21 ทำกับ .td-up / .td-rem)
+function tlModeTabs() { return ''; }
 
 // แท็บ "งาน" บนแถบล่างเปิดที่ "รายวัน" เสมอ
 //
@@ -4067,7 +4147,8 @@ function tlModeTabs() {
 // คนอ่านซ้ายไปขวา ตัวที่ถูกเลือกอยู่จึงควรเป็นตัวซ้ายสุด ไม่งั้นจอเปิดมาพร้อมความรู้สึกว่า
 // "ข้ามอะไรไปหรือเปล่า" · และคำถามแรกของคนเปิดแท็บงานคือ "วันนี้มีอะไร" ไม่ใช่ "ทั้งหมดมีกี่ใบ"
 // (รายการงานยังอยู่ที่เดิม ห่างไปหนึ่งแตะ)
-function goTasksTab() { goTlMode('day'); }
+// 1B47 · แท็บ "งาน" ไปที่มุมมองสัปดาห์ตรง ๆ — ไม่มีโหมดให้เลือกแล้ว
+function goTasksTab() { taskDay = null; taskFilter = 'pending'; go('scr-tasks'); }
 
 function goTlMode(m) {
   if (m === 'list') { go('scr-tasks'); return; }
@@ -10598,7 +10679,10 @@ function takeSharedText() {
 }
 
 // ปุ่มลัดจากไอคอนแอป (manifest shortcuts) ส่ง ?go=... มา — ต้องพาไปจอนั้นจริง ไม่งั้นปุ่มลัดโกหก
-const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-timeline' };
+// 1B47 · 'timeline' ชี้มาที่ scr-tasks แล้ว — จอเส้นเวลาไม่มีทางเข้าจากผังหลักอีก
+// ลิงก์เก่าจากหน้า land.html ที่ส่ง ?start=timeline มายังต้องพาไปที่ที่มีของให้ดู
+// ไม่ใช่จอที่ออกไปไหนไม่ได้นอกจากกดแถบล่าง
+const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-tasks' };
 function shortcutTarget() {
   try {
     const g = new URLSearchParams(location.search).get('go');

@@ -6679,3 +6679,65 @@ body.deep-scr .top-friends { display: none; }
 .dayvd p .vd-sep {
   font-style: normal; opacity: .45; padding: 0 7px; font-weight: 400;
 }
+
+/* ============================================================
+   1B47 · มุมมองสัปดาห์ — จอเดียวแทนสามโหมด
+   ============================================================
+   โครงคือสองคอลัมน์: เลขวันซ้าย งานขวา · เส้นแนวตั้งเส้นเดียวลากผ่านทั้งสัปดาห์
+   ทำให้อ่านเป็น "แกนเวลา" ไม่ใช่ "รายการที่มีหัวข้อคั่น" ซึ่งเป็นคนละความหมาย */
+.wk { display: flex; flex-direction: column; }
+.wk-row {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 10px 0 12px; border-bottom: 1px solid var(--line);
+}
+.wk-row:last-child { border-bottom: none; }
+
+/* คอลัมน์วัน — กว้างคงที่ทุกแถว ไม่งั้นเลขหลักเดียวกับสองหลักทำให้งานเยื้องกันทั้งสัปดาห์ */
+.wk-d {
+  flex: none; width: 46px; text-align: center; padding-top: 4px;
+  line-height: 1.05; border-radius: 12px;
+}
+.wk-d b { display: block; font-size: 19px; font-weight: 700; letter-spacing: -.03em; }
+.wk-d i { font-style: normal; display: block; margin-top: 3px; font-size: 10.5px; color: var(--muted); }
+/* วันนี้เป็นวันเดียวที่มีพื้น — ไม่ใช่สีที่ต่างกันเฉย ๆ เพราะสีอย่างเดียว
+   ในคอลัมน์ที่มีตัวเลขเรียงกันสิบกว่าตัวหาไม่เจอด้วยการกวาดตา */
+.wk-row.now .wk-d { background: var(--blue-soft); padding: 4px 0 6px; }
+.wk-row.now .wk-d b { color: var(--blue); }
+.wk-row.now .wk-d i { color: var(--blue); font-weight: 700; }
+
+.wk-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+/* วันที่ไม่มีงานต้องเบาที่สุดบนจอ — มันคือ "ที่ว่าง" ซึ่งเป็นข้อมูล ไม่ใช่ของที่ต้องอ่าน */
+.wk-row.empty { padding: 6px 0 7px; }
+.wk-none { font-size: 12.5px; color: var(--faint); padding-top: 6px; }
+
+/* การ์ดงานในมุมมองสัปดาห์แคบกว่าตอนอยู่ในลิสต์เต็มความกว้าง ต้องบีบระยะในตัวการ์ดตาม
+   ไม่งั้นชื่องานเหลือที่ไม่ถึงครึ่งการ์ด แล้วโดนตัดกลางคำแทบทุกใบ */
+.wk-b .tk { padding: 11px 12px; }
+.wk-b .tk-ttl { font-size: 14px; }
+.wk-b .swipe { margin: 0; }
+
+/* ---- กล่องเลยกำหนด อยู่เหนือสัปดาห์ ----
+   ไม่มีวันของตัวเองบนสัปดาห์นี้แล้ว จึงต้องมีที่ของมันเอง
+   ยัดลงแถว "วันนี้" ไม่ได้เพราะมันไม่ได้ถึงกำหนดวันนี้ */
+.wk-late, .wk-undated { margin-bottom: 14px; }
+.wk-late-h {
+  display: flex; align-items: center; gap: 7px; padding: 2px 2px 8px;
+  font-size: 13px; color: var(--muted);
+}
+.wk-late-h svg { width: 15px; height: 15px; color: var(--alert); }
+.wk-late-h b { font-weight: 700; color: var(--ink); }
+.wk-late-h i {
+  font-style: normal; margin-left: auto; font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+  background: var(--alert-soft); color: var(--alert);
+}
+.wk-undated .wk-late-h i { background: var(--card2); color: var(--muted); }
+.wk-late .tk, .wk-undated .tk { margin-bottom: 8px; }
+/* หมุดที่ยกมาจากปฏิทินที่ถูกตัดทิ้ง — ป้ายเล็กเหนืองานของวันนั้น
+   ไม่ใช่การ์ด เพราะมันไม่ใช่งานที่ต้องทำ มันคือคำกำกับของวัน */
+.wk-marks { display: flex; flex-wrap: wrap; gap: 5px; }
+.wk-mark {
+  font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+  background: var(--card2); color: var(--sj, var(--muted));
+  box-shadow: inset 0 0 0 1px var(--line);
+}
