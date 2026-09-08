@@ -209,16 +209,18 @@ function renderFeed() {
         aria-label="ค้นหาเพื่อน">${icon('search')}</button>` : ''}
       <!-- กล่องข้อความ · จำเป็นตั้งแต่วันที่การทักไม่ได้จำกัดอยู่แค่คนในห้องเรียนอีกต่อไป
            ข้อความจากคนที่ไม่ได้อยู่ในรายชื่อไหนเลยต้องมีที่ไปรวมกัน ไม่งั้นไม่มีทางถูกเห็น -->
-      ${currentUser ? `<button class="fd-people${
-        typeof dmPending === 'number' && dmPending ? ' has-req' : ''}"
-        onclick="openDmInbox()" aria-label="ข้อความ">${icon('chat')}</button>` : ''}
+      ${currentUser && typeof dmReady !== 'undefined' && dmReady
+        ? `<button class="fd-people${dmPending ? ' has-req' : ''}"
+            onclick="openDmInbox()" aria-label="ข้อความ">${icon('chat')}</button>` : ''}
       <button class="fd-people" onclick="go('scr-people'); renderMates()" aria-label="วิชาของฉันกับคนในห้อง">
         ${icon('users')}
       </button>
     </div>
 
     <div class="fd-scopes" role="tablist">
-      ${FEED_SCOPES.map(s => `<button role="tab" class="fd-scope${
+      ${FEED_SCOPES.filter(s => s.id !== 'country'
+          || (typeof cohortReady !== 'undefined' && cohortReady))
+        .map(s => `<button role="tab" class="fd-scope${
         feedView === 'feed' && s.id === feedScope ? ' on' : ''}"
         aria-selected="${feedView === 'feed' && s.id === feedScope}"
         onclick="loadFeed('${s.id}')">${esc(s.name)}</button>`).join('')}
@@ -378,7 +380,10 @@ function renderCompose() {
   // ไม่มี 'ทุกคนในแอป' อีกแล้ว — การกระจายเสียงหาคนทั้งแอปคือช่องที่คนแปลกหน้า
   // เข้าถึงเด็กได้ ซึ่งเป็นเส้นเดียวที่ทำให้แอปแบบนี้อันตรายจริง
   // (แท็บ "ทั้งหมด" ในฟีดยังอยู่ มันคือมุมมองรวมของสิ่งที่เราเห็นได้ คนละเรื่องกัน)
-  const scopes = FEED_SCOPES.filter(s => s.id !== 'all');
+  // ซ่อน 'ทั่วประเทศ' ด้วยถ้าหลังบ้านยังไม่พร้อม — เลือกได้แต่โพสต์ไม่ผ่าน policy
+  // คือปุ่มที่หลอกให้เสียเวลาพิมพ์ทั้งโพสต์แล้วค่อยบอกว่าไม่ได้
+  const scopes = FEED_SCOPES.filter(s => s.id !== 'all'
+    && (s.id !== 'country' || (typeof cohortReady !== 'undefined' && cohortReady)));
 
   box.innerHTML = `
     <div class="cp-top">
@@ -397,9 +402,10 @@ function renderCompose() {
         <!-- ทางเข้าที่สองของชั้นหัวข้อ (อีกทางคือแถวใต้การ์ดงาน) —
              รูปใบงานอยู่ในมือถือเด็กอยู่แล้ว แอปจึงไม่ต้องถามว่าเขาติดเรื่องอะไร
              นี่คือข้อที่ฟอรัมถาม-ตอบระดับโลกทุกเจ้าทำไม่ได้ เพราะต้องรอให้ผู้ใช้พิมพ์แท็กเอง -->
-        <button class="cp-add" id="cpTopic" onclick="topicFromCompose()">
-          ${icon('sparkles')}ถามคนทั้งโลกจากรูปนี้แทน
-        </button>` : ''}
+        ${typeof topicReady !== 'undefined' && topicReady
+          ? `<button class="cp-add" id="cpTopic" onclick="topicFromCompose()">
+              ${icon('sparkles')}ถามคนทั้งโลกจากรูปนี้แทน
+            </button>` : ''}` : ''}
 
       <button class="cp-add" onclick="document.getElementById('cpFile').click()">
         ${icon('camera')}${composeImg ? 'เปลี่ยนรูป' : 'แนบรูปโจทย์'}

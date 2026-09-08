@@ -124,6 +124,25 @@ async function loadMates() {
 // จอ "เพื่อนร่วมห้อง"
 // ============================================================
 // ============================================================
+// หลังบ้านยังไม่ได้ apply migration หรือยัง
+// ------------------------------------------------------------
+// หน้าเว็บกับฐานข้อมูลปล่อยคนละรอบเสมอ — โค้ดขึ้น GitHub Pages ทันทีที่ push
+// แต่ migration ต้องมีคนรัน `supabase db push` เอง ช่วงกลางระหว่างสองอย่างนี้
+// อาจยาวเป็นวัน และมีคนใช้แอปอยู่จริงตลอดช่วงนั้น
+//
+// PostgREST ตอบ PGRST202 เมื่อเรียกฟังก์ชันที่ยังไม่มี · จับตรงนี้แล้ว
+// **ซ่อนฟีเจอร์ที่ยังไม่พร้อม** แทนที่จะปล่อยให้ผู้ใช้กดแล้วเจอ error
+// ปุ่มที่กดแล้วขึ้น error อ่านเหมือนแอปพัง ส่วนปุ่มที่ยังไม่โผล่ไม่มีใครคิดถึง
+// และมันโผล่เองทันทีที่ apply migration เสร็จ ไม่ต้องปล่อยเว็บใหม่
+function rpcMissing(err) {
+  if (!err) return false;
+  const c = String(err.code || '');
+  const m = String(err.message || '');
+  return c === 'PGRST202' || c === '42883'
+    || /could not find the function|does not exist/i.test(m);
+}
+
+// ============================================================
 // ช่วงชั้น — กุญแจของสโคป "ทั่วประเทศ"
 // ------------------------------------------------------------
 // สามปุ่มเท่านั้น (ม.ต้น / ม.ปลาย / มหาลัย) ตามที่ผู้ใช้เคาะเมื่อ 8 ก.ย. 2569
@@ -136,18 +155,23 @@ async function loadMates() {
 const GRADE_BANDS = ['ม.ต้น', 'ม.ปลาย', 'มหาลัย'];
 let cohort = { country: 'TH', grade: null };
 let cohortLoaded = false;
+// false จนกว่าจะพิสูจน์ได้ว่าหลังบ้านมีของแล้ว — ไม่ใช่ true แล้วค่อยพัง
+let cohortReady = false;
 
 async function loadCohort() {
   if (!sb || !currentUser || cohortLoaded) return;
   cohortLoaded = true;
-  const { data } = await sb.rpc('my_cohort');
+  const { data, error } = await sb.rpc('my_cohort');
+  if (rpcMissing(error)) { cohortReady = false; renderMates(); return; }
+  cohortReady = true;
   const row = Array.isArray(data) ? data[0] : data;
   if (row) cohort = { country: row.country || 'TH', grade: row.grade || null };
   renderMates();
+  if (typeof renderFeed === 'function') renderFeed();
 }
 
 function cohortBlock() {
-  if (!currentUser) return '';
+  if (!currentUser || !cohortReady) return '';
   return `<p class="ch-lb">ตอนนี้เรียนอยู่ช่วงไหน</p>
     <div class="ch-row">
       ${GRADE_BANDS.map(g => `<button class="ch-chip${cohort.grade === g ? ' on' : ''}"
@@ -499,7 +523,17 @@ async function sendChat() {
   const body = el.value.trim();
   if (!body) return;
   el.value = '';
-  const { data, error } = await sb.rpc('dm_say', { p_thread: chatThread.id, p_body: body });
+  let { data, error } = await sb.rpc('dm_say', { p_thread: chatThread.id, p_body: body });
+  // ยังไม่ได้ apply migration 19 — ถอยไปเขียนตรงแบบเดิม
+  // ปลอดภัยเพราะถ้ายังไม่มี dm_say ก็แปลว่ายังไม่มีคอลัมน์ state ด้วย จึงไม่มีห้องคำขอ
+  // ให้ข้ามกติกาตั้งแต่แรก · ข้อสำคัญคือ **แชทเดิมต้องไม่พังระหว่างรอ migration**
+  if (rpcMissing(error)) {
+    const r = await sb.from('dm_messages')
+      .insert({ thread: chatThread.id, sender: currentUser.id, body })
+      .select('id, sender, body, created_at').single();
+    data = r.data ? [r.data] : null;
+    error = r.error;
+  }
   if (error) {
     el.value = body;                       // คืนข้อความให้ ไม่ใช่กลืนหายไปเฉย ๆ
     haptic('snooze');
@@ -530,6 +564,7 @@ async function sendChat() {
 let dmRows = [];
 let dmBusy = false;
 let dmPending = 0;        // จำนวนคำขอที่ยังไม่ได้ตอบ — ใช้ติดจุดแดงบนปุ่มในหัวฟีด
+let dmReady = false;      // กล่องข้อความโผล่ต่อเมื่อหลังบ้านมี dm_inbox แล้ว
 let dmDotAt = 0;
 
 // เช็คคำขอค้างแบบเบา ๆ · ไม่ยิงถี่กว่าทุกสองนาที เพราะจุดแดงเป็นของที่ช้าได้
@@ -539,7 +574,9 @@ async function loadDmDot(force) {
   if (!force && Date.now() - dmDotAt < 120000) return;
   dmDotAt = Date.now();
   const { data, error } = await sb.rpc('dm_inbox');
+  if (rpcMissing(error)) { dmReady = false; if (typeof renderFeed === 'function') renderFeed(); return; }
   if (error) return;
+  dmReady = true;
   dmRows = data || [];
   const n = dmRows.filter(r => r.is_request).length;
   if (n !== dmPending) { dmPending = n; if (typeof renderFeed === 'function') renderFeed(); }

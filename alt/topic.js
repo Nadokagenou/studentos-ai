@@ -43,6 +43,13 @@ function topicOn() {
   return typeof hwOn === 'function' ? hwOn() : false;
 }
 
+// ---------- หลังบ้านพร้อมหรือยัง ----------
+// false จนกว่า topic_news จะตอบกลับมาสำเร็จหนึ่งครั้ง — พิสูจน์ว่า migration 20 apply แล้ว
+// ตั้งเป็น false ไว้ก่อนโดยตั้งใจ เพราะโค้ดขึ้นเว็บทันทีที่ push แต่ migration
+// ต้องมีคนรันเอง · ช่วงกลางระหว่างสองอย่างนี้ผู้ใช้จะเห็นแถวที่กดแล้วขึ้น error
+// ซึ่งอ่านเหมือนแอปพัง แย่กว่าแถวที่ยังไม่โผล่ · โผล่เองทันทีที่ apply เสร็จ
+let topicReady = false;
+
 // ============================================================
 // แถวใต้การ์ดงาน
 // ------------------------------------------------------------
@@ -51,7 +58,7 @@ function topicOn() {
 // ส่วนแถวนี้ตอบว่า "ใครเคยผ่านเรื่องนี้มาแล้ว" — คนละกลุ่มคนกันคนละเรื่อง
 // ============================================================
 function topicStrip(t) {
-  if (!t || t.done || !sb || !currentUser || !topicOn()) return '';
+  if (!t || t.done || !sb || !currentUser || !topicOn() || !topicReady) return '';
   const subj = (t.subject || '').trim();
   if (!subj || subj === 'อื่น ๆ') return '';
   return `<div class="tp-strip" onclick="event.stopPropagation();openTopicForTask('${esc(t.id)}')">
@@ -78,7 +85,12 @@ async function loadTopicNews(force) {
   if (!force && Date.now() - topicNewsAt < 120000) return;   // เช็คอย่างมากทุก 2 นาที
   topicNewsAt = Date.now();
   const { data, error } = await sb.rpc('topic_news');
+  if (rpcMissing(error)) {                  // ยังไม่ได้ apply migration 20 — ซ่อนทั้งชั้นไว้ก่อน
+    if (topicReady) { topicReady = false; if (typeof renderTasks === 'function') renderTasks(); }
+    return;
+  }
   if (error) return;                        // เงียบ ๆ — แถวนี้เป็นของแถม ไม่ใช่ของหลัก
+  topicReady = true;
   topicNews = data || [];
   if (typeof renderTasks === 'function') renderTasks();
   if (typeof renderHome === 'function') renderHome();
