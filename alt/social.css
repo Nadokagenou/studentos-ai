@@ -246,3 +246,73 @@
   display: flex; align-items: center; justify-content: center;
 }
 .so-poke.off svg { width: 18px; height: 18px; }
+
+/* ============================================================
+   กล่องข้อความ + คำขอทัก  (1B61)
+   ------------------------------------------------------------
+   เกิดขึ้นเพราะการทักไม่ได้จำกัดอยู่แค่คนในห้องเรียนอีกต่อไป (migration 19)
+   ตอนที่ทักได้เฉพาะคนห้องเดียวกัน รายชื่อคนในห้องคือทางเข้าห้องคุย ซึ่งพอ —
+   พอเปิดให้ทักกันได้ทั่วไป ข้อความจากคนที่ไม่ได้อยู่ในรายชื่อไหนเลยต้องมีที่ไปรวมกัน
+   ============================================================ */
+#scr-dm .scr-body {
+  display: flex; flex-direction: column;
+  position: absolute; inset: 0; padding: 0;
+}
+#dmBody { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.dm-list { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 14px 24px; }
+.dm-fine { margin: 0 0 8px; font-size: 11.5px; line-height: 1.6; color: var(--faint); }
+
+.dm-row {
+  display: flex; align-items: center; gap: 11px;
+  padding: 11px 0; border-bottom: 1px solid var(--line); cursor: pointer;
+}
+.dm-av {
+  width: 40px; height: 40px; flex: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; object-fit: cover;
+  background: var(--card2); color: var(--muted);
+}
+.dm-bd { min-width: 0; flex: 1; }
+.dm-bd b { display: block; font-size: 14px; }
+/* ชื่อผู้ใช้ต้องโชว์คู่ชื่อจริงเสมอ — "บีม" สามคนในหน้าเดียวคือเรื่องปกติในโรงเรียนเดียว
+   (เหตุผลเดียวกับที่ friend_list คืน handle มาด้วยตั้งแต่ migration 17) */
+.dm-bd b span { margin-left: 6px; font-weight: 400; font-size: 11.5px; color: var(--faint); }
+.dm-bd i {
+  display: block; margin-top: 2px; font-style: normal;
+  font-size: 12px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dm-row:active { opacity: .7; }
+
+/* ---------- แบนเนอร์คำขอในจอแชท ---------- */
+/* อยู่ใต้หัวจอ ไม่ใช่ป๊อปอัป — คนรับต้องอ่านข้อความที่เขาส่งมาก่อนถึงจะตัดสินใจได้
+   ป๊อปอัปที่บังข้อความไว้แปลว่าต้องกดปิดก่อนถึงจะรู้ว่าจะรับดีไหม */
+.ch-req {
+  padding: 12px 14px; border-bottom: 1px solid var(--line);
+  background: var(--card2);
+}
+.ch-req p { margin: 0 0 10px; font-size: 12.5px; line-height: 1.6; color: var(--muted); }
+.ch-req-row { display: flex; gap: 8px; }
+.ch-req-row button {
+  flex: 1; border-radius: 10px; padding: 9px 0;
+  font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+.ch-req-no { border: 1.5px solid var(--line); background: var(--card); color: var(--muted); }
+.ch-req-block { border: 1.5px solid var(--line); background: var(--card); color: var(--bad, #d14343); }
+.ch-req-ok { border: 0; background: var(--blue); color: var(--on-accent); }
+.ch-req-row button:active { transform: scale(.97); }
+
+.ch-wait {
+  margin: 0; padding: 10px 14px;
+  border-bottom: 1px solid var(--line); background: var(--card2);
+  font-size: 12px; line-height: 1.6; color: var(--muted);
+}
+
+/* ปุ่มรายงาน/บล็อกต้องอยู่ในทุกจอที่มีคนแปลกหน้า — ไม่มีข้อยกเว้น
+   จอที่ลืมใส่คือจอที่คนโดนกวนแล้วไม่มีอะไรทำได้นอกจากปิดแอป */
+.ch-more {
+  margin-left: auto; width: 34px; height: 34px; flex: none;
+  border: 0; border-radius: 10px; background: var(--card2); color: var(--muted);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.ch-more svg { width: 16px; height: 16px; }
