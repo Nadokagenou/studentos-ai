@@ -9,10 +9,22 @@
 // รายชื่อเพื่อนกับตัวจับคู่ไม่ได้หายไป มันย้ายไปเป็นเครื่องยนต์ที่จัดลำดับฟีดแทน
 // ============================================================
 
+// ---------- บันไดสโคป ----------
+// เรียงจากใกล้ไปไกล และแต่ละขั้นแลกของสองอย่างกันตรง ๆ:
+// **ยิ่งใกล้ยิ่งมีคนรู้จักเรา ยิ่งไกลยิ่งมีคนว่างตอบ**
+//
+// 'country' คือขั้นที่เพิ่งเพิ่มเข้ามา (8 ก.ย. 2569) และมันมีเหตุผลชัดกว่าที่ดูเผิน ๆ:
+// ห้องเรียนคือกลุ่มคนที่ได้ใบงานเดียวกัน ส่งวันเดียวกัน จึง **ติดพร้อมกัน** —
+// คืนก่อนส่งคือเวลาที่ห้องเงียบที่สุด · คนระดับชั้นเดียวกันทั้งประเทศเรียนหลักสูตรเดียวกัน
+// แต่ปฏิทินโรงเรียนไม่ตรงกันเป๊ะ จึงมีคนที่ผ่านเรื่องนี้ไปแล้วและว่างอยู่เสมอ
+//
+// ขั้นที่ไกลกว่านี้ (หัวข้อทั่วโลก) ไม่ได้อยู่ในฟีด มันอยู่คนละจอด้วยเหตุผลที่เขียนไว้ใน topic.js —
+// ฟีดเรียงตามเวลา หน้าหัวข้อเรียงตามว่าคำตอบไหนช่วยได้จริง คนละตรรกะกันคนละเรื่อง
 const FEED_SCOPES = [
-  { id: 'all',    name: 'ทั้งหมด' },
-  { id: 'room',   name: 'ห้องฉัน' },
-  { id: 'school', name: 'โรงเรียน' },
+  { id: 'all',     name: 'ทั้งหมด' },
+  { id: 'room',    name: 'ห้องฉัน' },
+  { id: 'school',  name: 'โรงเรียน' },
+  { id: 'country', name: 'ทั่วประเทศ' },
 ];
 
 // จอ "เพื่อนร่วมห้อง" มีสองโหมดในจอเดียวกัน — ฟีด กับ รายชื่อเพื่อน (1B18)
@@ -195,13 +207,20 @@ function renderFeed() {
            ที่กันคนส่วนใหญ่ออกจากเนื้อหาโดยไม่ได้ช่วยอะไรเขา -->
       ${feedView === 'friends' ? `<button class="fd-people" onclick="toggleFriendSearch()"
         aria-label="ค้นหาเพื่อน">${icon('search')}</button>` : ''}
+      <!-- กล่องข้อความ · จำเป็นตั้งแต่วันที่การทักไม่ได้จำกัดอยู่แค่คนในห้องเรียนอีกต่อไป
+           ข้อความจากคนที่ไม่ได้อยู่ในรายชื่อไหนเลยต้องมีที่ไปรวมกัน ไม่งั้นไม่มีทางถูกเห็น -->
+      ${currentUser && typeof dmReady !== 'undefined' && dmReady
+        ? `<button class="fd-people${dmPending ? ' has-req' : ''}"
+            onclick="openDmInbox()" aria-label="ข้อความ">${icon('chat')}</button>` : ''}
       <button class="fd-people" onclick="go('scr-people'); renderMates()" aria-label="วิชาของฉันกับคนในห้อง">
         ${icon('users')}
       </button>
     </div>
 
     <div class="fd-scopes" role="tablist">
-      ${FEED_SCOPES.map(s => `<button role="tab" class="fd-scope${
+      ${FEED_SCOPES.filter(s => s.id !== 'country'
+          || (typeof cohortReady !== 'undefined' && cohortReady))
+        .map(s => `<button role="tab" class="fd-scope${
         feedView === 'feed' && s.id === feedScope ? ' on' : ''}"
         aria-selected="${feedView === 'feed' && s.id === feedScope}"
         onclick="loadFeed('${s.id}')">${esc(s.name)}</button>`).join('')}
@@ -228,6 +247,7 @@ function renderFeed() {
     renderFreshPill();
   }
   renderFriendDot();
+  if (typeof loadDmDot === 'function') loadDmDot();
   watchFeedScroll();
 }
 
@@ -360,7 +380,10 @@ function renderCompose() {
   // ไม่มี 'ทุกคนในแอป' อีกแล้ว — การกระจายเสียงหาคนทั้งแอปคือช่องที่คนแปลกหน้า
   // เข้าถึงเด็กได้ ซึ่งเป็นเส้นเดียวที่ทำให้แอปแบบนี้อันตรายจริง
   // (แท็บ "ทั้งหมด" ในฟีดยังอยู่ มันคือมุมมองรวมของสิ่งที่เราเห็นได้ คนละเรื่องกัน)
-  const scopes = FEED_SCOPES.filter(s => s.id !== 'all');
+  // ซ่อน 'ทั่วประเทศ' ด้วยถ้าหลังบ้านยังไม่พร้อม — เลือกได้แต่โพสต์ไม่ผ่าน policy
+  // คือปุ่มที่หลอกให้เสียเวลาพิมพ์ทั้งโพสต์แล้วค่อยบอกว่าไม่ได้
+  const scopes = FEED_SCOPES.filter(s => s.id !== 'all'
+    && (s.id !== 'country' || (typeof cohortReady !== 'undefined' && cohortReady)));
 
   box.innerHTML = `
     <div class="cp-top">
@@ -375,7 +398,14 @@ function renderCompose() {
       ${composeImg ? `<div class="cp-img">
           <img src="${esc(composeImg.url)}" alt="รูปที่จะแนบ">
           <button class="cp-img-x" onclick="dropComposeImg()" aria-label="เอารูปออก">${icon('x')}</button>
-        </div>` : ''}
+        </div>
+        <!-- ทางเข้าที่สองของชั้นหัวข้อ (อีกทางคือแถวใต้การ์ดงาน) —
+             รูปใบงานอยู่ในมือถือเด็กอยู่แล้ว แอปจึงไม่ต้องถามว่าเขาติดเรื่องอะไร
+             นี่คือข้อที่ฟอรัมถาม-ตอบระดับโลกทุกเจ้าทำไม่ได้ เพราะต้องรอให้ผู้ใช้พิมพ์แท็กเอง -->
+        ${typeof topicReady !== 'undefined' && topicReady
+          ? `<button class="cp-add" id="cpTopic" onclick="topicFromCompose()">
+              ${icon('sparkles')}ถามคนทั้งโลกจากรูปนี้แทน
+            </button>` : ''}` : ''}
 
       <button class="cp-add" onclick="document.getElementById('cpFile').click()">
         ${icon('camera')}${composeImg ? 'เปลี่ยนรูป' : 'แนบรูปโจทย์'}
@@ -489,6 +519,13 @@ async function submitPost() {
   // ขอบเขตต้องมีที่อยู่จริง ไม่งั้น policy ฝั่งเซิร์ฟเวอร์ปฏิเสธ
   if (scope === 'room') row.room_id = await myFirstRoom();
   if (scope === 'school') row.school = await mySchool();
+  // ประเทศ+ช่วงชั้นถ่ายสำเนาไว้ตอนโพสต์ ไม่ได้อ้างอิงโปรไฟล์ตอนอ่าน —
+  // ขึ้น ม.ปลายแล้วโพสต์เก่าต้องอยู่ในฟีดของ ม.ต้นต่อไป ไม่ใช่ย้ายตามเจ้าของขึ้นไปทั้งก้อน
+  if (scope === 'country') {
+    const c = await myCohort();
+    row.country = c.country || 'TH';
+    row.grade = c.grade || null;
+  }
 
   if (scope === 'room' && !row.room_id) {
     if (btn) { btn.disabled = false; btn.textContent = 'โพสต์'; }
@@ -499,6 +536,12 @@ async function submitPost() {
   if (scope === 'school' && !row.school) {
     if (btn) { btn.disabled = false; btn.textContent = 'โพสต์'; }
     showToast({ title: 'ยังไม่ได้กรอกโรงเรียน', body: 'กรอกได้ที่หน้า "วิชาของฉัน"' });
+    return;
+  }
+  if (scope === 'country' && !row.grade) {
+    if (btn) { btn.disabled = false; btn.textContent = 'โพสต์'; }
+    showToast({ title: 'ยังไม่ได้เลือกช่วงชั้น',
+      body: 'เลือกได้ที่หน้า "วิชาของฉัน" — แท็บทั่วประเทศใช้ช่วงชั้นเป็นตัวจับคู่' });
     return;
   }
 
@@ -514,6 +557,13 @@ async function submitPost() {
 async function myFirstRoom() {
   const { data } = await sb.from('line_links').select('room_id').limit(1);
   return (data && data[0] && data[0].room_id) || null;
+}
+// ประเทศ + ช่วงชั้นของตัวเอง · คืนเป็นก้อนเดียวเพราะสองค่านี้ใช้คู่กันเสมอ
+// (ประเทศอย่างเดียวไม่พอ ช่วงชั้นอย่างเดียวก็ไม่พอ — กุญแจของสโคปนี้คือทั้งคู่)
+async function myCohort() {
+  const { data } = await sb.from('profiles')
+    .select('country, grade').eq('id', currentUser.id).maybeSingle();
+  return { country: (data && data.country) || 'TH', grade: (data && data.grade) || null };
 }
 async function mySchool() {
   const { data } = await sb.from('profiles').select('school').eq('id', currentUser.id).maybeSingle();

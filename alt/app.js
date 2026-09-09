@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B32';                 // สายเลขของแอป
+const APP_VERSION = '1B61';                 // สายเลขของแอป
 const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -868,6 +868,8 @@ function go(id) {
   // เหตุผลเดียวกันกับจอแชท · และต้องประกาศออกไปด้วยว่าเราไม่ได้อยู่ในห้องนั้นแล้ว
   // ไม่งั้นการ์ดของเพื่อนจะขึ้นว่า "กำลังทำอยู่ตอนนี้" ค้างไว้จนกว่าเราจะปิดแอป
   if (curScreen === 'scr-hw' && id !== 'scr-hw' && typeof closeHwRoom === 'function') closeHwRoom();
+  // เหตุผลเดียวกันอีกที — เธรดหัวข้อก็เปิดช่อง realtime ไว้เหมือนกัน
+  if (curScreen === 'scr-tthread' && id !== 'scr-tthread' && typeof closeTThread === 'function') closeTThread();
   // คืนบล็อกตัวเลือกกลับที่พักก่อนออกจากหน้าย่อยของตั้งค่า — ทางออกมีหลายทาง
   // (ปุ่มกลับ · แท็บล่าง · ปุ่มย้อนของเครื่อง) ตกทางใดทางหนึ่งแล้วบล็อกหาย
   if (curScreen === 'scr-setopt' && id !== 'scr-setopt') stashSetOpt();
@@ -896,7 +898,9 @@ function go(id) {
   if (id === 'scr-login') { loginView = 'root'; renderLoginOpts(); loginNote(''); }
   // จอแชทซ่อนแถบล่างเหมือนจอล็อกอิน — ช่องพิมพ์ต้องติดก้นจอจริง ๆ
   // ไม่ใช่ลอยอยู่หลังแถบล่างจนกดไม่โดน · ออกจากจอนี้ได้ทางปุ่มย้อนกลับในหัวจอ
-  document.body.classList.toggle('chat-mode', id === 'scr-chat' || id === 'scr-hw');
+  document.body.classList.toggle('chat-mode',
+    id === 'scr-chat' || id === 'scr-hw' || id === 'scr-topic'
+    || id === 'scr-tthread' || id === 'scr-dm');
   document.body.classList.toggle('compose-mode',
     id === 'scr-compose' || id === 'scr-post' || id === 'scr-user');
   // ออกจากฟีดเมื่อไหร่ ปิดช่องรับโพสต์สดกับ presence — ทั้งคู่กินโควตา realtime
@@ -2962,6 +2966,7 @@ function taskCard(t, now, focus) {
         ${ti.schedulable ? `<span class="tk-min">~${remainingMin(t)} นาที</span>` : ''}</div>
       ${subsHtml}
       ${typeof hwStrip === 'function' ? hwStrip(t) : ''}
+      ${typeof topicStrip === 'function' ? topicStrip(t) : ''}
     </div>
   </div>`;
 }
@@ -3774,6 +3779,10 @@ function renderTasks() {
   else listHTML = weekView(rows, now, firstPending);
 
   el.innerHTML = head
+    // "มีคนตอบคำถามที่คุณถามไว้" — อยู่บนสุดของรายการงานเพราะจอนี้คือจอที่นักเรียน
+    // เปิดทุกวัน · ของที่อยู่ในจอที่ต้องเดินไปหา เท่ากับของที่ไม่มีอยู่
+    // (เตี้ยกว่าการ์ดงานหนึ่งใบเสมอ ไม่งั้นมันแย่งที่ของงานที่ใกล้ส่ง ซึ่งเป็นเหตุผลหลักที่คนเปิดแอป)
+    + (typeof topicNewsCard === 'function' ? topicNewsCard() : '')
     + (rows.length ? listHTML : tasksEmpty(now, days))
     + (pending.length >= 6 || taskQ ? searchBox : '')
     + (done.length ? `<button class="bin-btn" onclick="setFilter('done')">
@@ -7652,6 +7661,8 @@ function renderAll() {
   // เรียกจากที่นี่เพราะรายการงานเปลี่ยนได้จากสิบทาง (เพิ่ม · ติ๊กเสร็จ · เลื่อน · ซิงก์จาก cloud)
   // ตัว hwSync หน่วงและกันยิงถี่ไว้เองแล้ว จึงเรียกบ่อยได้โดยไม่กินเน็ต
   if (typeof hwSync === 'function') hwSync();
+  // เช็คว่ามีคำตอบใหม่ในเธรดหัวข้อที่เราถามไว้หรือยัง · หน่วงเองภายใน 2 นาที
+  if (typeof loadTopicNews === 'function') loadTopicNews();
 }
 
 // ---------- สแกนตารางเรียนจากรูป ----------

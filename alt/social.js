@@ -123,9 +123,84 @@ async function loadMates() {
 // ============================================================
 // จอ "เพื่อนร่วมห้อง"
 // ============================================================
+// ============================================================
+// หลังบ้านยังไม่ได้ apply migration หรือยัง
+// ------------------------------------------------------------
+// หน้าเว็บกับฐานข้อมูลปล่อยคนละรอบเสมอ — โค้ดขึ้น GitHub Pages ทันทีที่ push
+// แต่ migration ต้องมีคนรัน `supabase db push` เอง ช่วงกลางระหว่างสองอย่างนี้
+// อาจยาวเป็นวัน และมีคนใช้แอปอยู่จริงตลอดช่วงนั้น
+//
+// PostgREST ตอบ PGRST202 เมื่อเรียกฟังก์ชันที่ยังไม่มี · จับตรงนี้แล้ว
+// **ซ่อนฟีเจอร์ที่ยังไม่พร้อม** แทนที่จะปล่อยให้ผู้ใช้กดแล้วเจอ error
+// ปุ่มที่กดแล้วขึ้น error อ่านเหมือนแอปพัง ส่วนปุ่มที่ยังไม่โผล่ไม่มีใครคิดถึง
+// และมันโผล่เองทันทีที่ apply migration เสร็จ ไม่ต้องปล่อยเว็บใหม่
+function rpcMissing(err) {
+  if (!err) return false;
+  const c = String(err.code || '');
+  const m = String(err.message || '');
+  return c === 'PGRST202' || c === '42883'
+    || /could not find the function|does not exist/i.test(m);
+}
+
+// ============================================================
+// ช่วงชั้น — กุญแจของสโคป "ทั่วประเทศ"
+// ------------------------------------------------------------
+// สามปุ่มเท่านั้น (ม.ต้น / ม.ปลาย / มหาลัย) ตามที่ผู้ใช้เคาะเมื่อ 8 ก.ย. 2569
+// ไม่แยกเป็น ม.1 ถึง ม.6 ด้วยเหตุผลที่เขียนไว้ยาว ๆ ใน migration 20260908090000:
+// ผู้ชมต้องกว้างพอที่จะมีคนว่างตอบเสมอ · ม.4 อย่างเดียวคือหนึ่งในสามของ ม.ปลาย
+//
+// ช่องนี้ทำงานสองอย่างพร้อมกัน — เป็นตัวจับคู่ของฟีดทั่วประเทศ
+// และเป็นตัวบอกช่วงอายุแบบหยาบ ๆ สำหรับค่าเริ่มต้นด้านความปลอดภัย โดยไม่ต้องถามวันเกิด
+// ============================================================
+const GRADE_BANDS = ['ม.ต้น', 'ม.ปลาย', 'มหาลัย'];
+let cohort = { country: 'TH', grade: null };
+let cohortLoaded = false;
+// false จนกว่าจะพิสูจน์ได้ว่าหลังบ้านมีของแล้ว — ไม่ใช่ true แล้วค่อยพัง
+let cohortReady = false;
+
+async function loadCohort() {
+  if (!sb || !currentUser || cohortLoaded) return;
+  cohortLoaded = true;
+  const { data, error } = await sb.rpc('my_cohort');
+  if (rpcMissing(error)) { cohortReady = false; renderMates(); return; }
+  cohortReady = true;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (row) cohort = { country: row.country || 'TH', grade: row.grade || null };
+  renderMates();
+  if (typeof renderFeed === 'function') renderFeed();
+}
+
+function cohortBlock() {
+  if (!currentUser || !cohortReady) return '';
+  return `<p class="ch-lb">ตอนนี้เรียนอยู่ช่วงไหน</p>
+    <div class="ch-row">
+      ${GRADE_BANDS.map(g => `<button class="ch-chip${cohort.grade === g ? ' on' : ''}"
+        onclick="setCohort('${g}')">${g}</button>`).join('')}
+    </div>
+    <p class="ch-fine">${cohort.grade
+      ? 'ใช้จับคู่กับคนที่เรียนเรื่องเดียวกันทั้งประเทศ — แท็บ "ทั่วประเทศ" ในฟีด'
+      : 'ยังไม่ได้เลือก · แท็บ "ทั่วประเทศ" ในฟีดจะยังว่างอยู่จนกว่าจะเลือก'}</p>`;
+}
+
+async function setCohort(g) {
+  if (!sb || !currentUser) return loginFromMates();
+  const was = cohort.grade;
+  cohort.grade = (was === g) ? null : g;    // กดซ้ำ = ยกเลิก
+  renderMates();
+  const { error } = await sb.rpc('set_cohort', { p_grade: cohort.grade, p_track: null });
+  if (error) {
+    cohort.grade = was;
+    renderMates();
+    showToast({ title: 'บันทึกไม่สำเร็จ', body: error.message });
+    return;
+  }
+  if (typeof haptic === 'function') haptic('arm');
+}
+
 function renderMates() {
   const box = document.getElementById('matesBody');
   if (!box) return;
+  if (currentUser && !cohortLoaded) loadCohort();
   const c = socialChips();
   const s = socialState();
   const known = knownSubjects();
@@ -160,6 +235,7 @@ function renderMates() {
                placeholder="เช่น ติวเลขให้ได้ แลกกับโน้ตอังกฤษ"
                onchange="socialSetBio(this.value)">
       </label>
+      ${cohortBlock()}
       <button class="so-pub" onclick="doPublish()">
         ${s.pubAt ? 'อัปเดตโปรไฟล์' : 'เผยแพร่ให้เพื่อนร่วมห้องเห็น'}
       </button>
@@ -318,16 +394,21 @@ let chatThread = null;     // { id, name, subject }
 let chatMsgs = [];
 let chatSub = null;        // ช่องรับข้อความสด — ต้องปิดทุกครั้งที่ออกจากจอ
 
-async function pokeMate(id, topic) {
+async function pokeMate(id, topic, name) {
   if (!sb || !currentUser) return;
   const m = (mates || []).find(x => x.id === id);
   const { data, error } = await sb.rpc('open_dm', { p_other: id, p_subject: topic || null });
   if (error) {
     haptic('snooze');
-    showToast({ title: 'เปิดห้องคุยไม่ได้', body: error.message });
+    // ข้อความจาก dm_gate เป็นภาษาไทยที่เอาไปโชว์ได้ตรง ๆ อยู่แล้ว (โควตาเต็ม · ช่วงอายุ · ตั้งค่าปิด)
+    // จึงไม่ต้องแปลงอะไร — และห้ามเขียนทับด้วยข้อความกลาง ๆ เพราะเหตุผลคือสิ่งเดียวที่ช่วยเขาได้
+    showToast({ title: 'ทักไม่ได้', body: error.message });
     return;
   }
-  chatThread = { id: data, name: (m && m.display_name) || 'เพื่อนร่วมห้อง', subject: topic || '' };
+  chatThread = {
+    id: data, name: (m && m.display_name) || name || 'นักเรียน',
+    subject: topic || '', other: id,
+  };
   chatMsgs = [];
   go('scr-chat');
   openChat();
@@ -336,6 +417,18 @@ async function pokeMate(id, topic) {
 async function openChat() {
   if (!chatThread) return;
   renderChat();
+
+  // ---------- สถานะของห้อง ----------
+  // ต้องรู้ก่อนวาด ว่านี่คือห้องที่เปิดแล้ว หรือคำขอที่ยังไม่มีใครตอบรับ
+  // ไม่งั้นคนขอจะพิมพ์ข้อความที่สองแล้วเจอ error โดยไม่รู้ว่าทำไม
+  const { data: t } = await sb.from('dm_threads')
+    .select('state, opener').eq('id', chatThread.id).maybeSingle();
+  if (t) {
+    chatThread.state = t.state || 'open';
+    chatThread.mineReq = t.opener === currentUser.id;
+  }
+  renderChat();
+
   const { data, error } = await sb.from('dm_messages')
     .select('id, sender, body, created_at')
     .eq('thread', chatThread.id)
@@ -369,6 +462,15 @@ function renderChat() {
   if (!box || !chatThread) return;
   const me = currentUser && currentUser.id;
 
+  // ---------- คำขอทัก ----------
+  // ฝั่งคนขอ: บอกตรง ๆ ว่าส่งได้ข้อความเดียวจนกว่าจะมีคนตอบ · ถ้าไม่บอก เขาจะพิมพ์ต่อ
+  // แล้วเจอ error ที่อ่านเหมือนแอปพัง ทั้งที่มันคือกติกาที่ตั้งใจให้เป็นแบบนั้น
+  // ฝั่งคนรับ: ปุ่มรับ/ปฏิเสธอยู่บนสุด และ **ตอบกลับก็คือการรับ** ไม่ต้องกดปุ่มก่อนก็ได้
+  const pending = chatThread.state === 'pending';
+  const asked = pending && chatThread.mineReq;
+  const gotAsked = pending && !chatThread.mineReq;
+  const usedUp = asked && chatMsgs.some(m => m.sender === me);
+
   box.innerHTML = `
     <div class="ch-top">
       <button class="ch-back" onclick="go('scr-mates')" aria-label="กลับ">${icon('chevron')}</button>
@@ -376,7 +478,22 @@ function renderChat() {
         <b>${esc(chatThread.name)}</b>
         ${chatThread.subject ? `<i>เรื่อง${esc(chatThread.subject)}</i>` : ''}
       </div>
+      ${chatThread.other ? `<button class="ch-more" aria-label="รายงานหรือบล็อก"
+        onclick="openReport('user','${esc(chatThread.other)}')">${icon('flag')}</button>` : ''}
     </div>
+
+    ${gotAsked ? `<div class="ch-req">
+      <p>คนนี้ยังไม่ใช่เพื่อนของคุณ — เขาส่งคำขอทักมา</p>
+      <div class="ch-req-row">
+        <button class="ch-req-no" onclick="declineDm('${esc(chatThread.id)}', false)">ไม่รับ</button>
+        <button class="ch-req-block" onclick="declineDm('${esc(chatThread.id)}', true)">บล็อก</button>
+        <button class="ch-req-ok" onclick="acceptDm('${esc(chatThread.id)}')">รับ</button>
+      </div>
+    </div>` : ''}
+    ${asked ? `<p class="ch-wait">${usedUp
+        ? 'ส่งคำขอแล้ว — ส่งได้อีกครั้งเมื่อเขาตอบกลับ'
+        : 'คนนี้ยังไม่ใช่เพื่อนของคุณ ข้อความแรกจะไปอยู่ในกล่องคำขอของเขา'}</p>` : ''}
+
     <div class="ch-list" id="chatList">
       ${chatMsgs.length ? chatMsgs.map(m => `<div class="ch-msg${m.sender === me ? ' me' : ''}">
           <span class="ch-bub">${esc(m.body)}</span>
@@ -384,36 +501,169 @@ function renderChat() {
         : `<p class="ch-first">ยังไม่มีใครพิมพ์อะไร — ประโยคแรกยากที่สุดเสมอ
              ${chatThread.subject ? 'ลองใช้ที่ร่างไว้ให้ข้างล่างก็ได้' : ''}</p>`}
     </div>
-    <div class="ch-bar">
+    ${usedUp ? '' : `<div class="ch-bar">
       <input id="chatIn" type="text" maxlength="2000" placeholder="พิมพ์ข้อความ"
              value="${chatMsgs.length || !chatThread.subject ? ''
                      : esc(chatThread.subject + 'ขอถามหน่อยได้ป่ะ')}"
              onkeydown="if(event.key==='Enter')sendChat()">
       <button class="ch-send" onclick="sendChat()" aria-label="ส่ง">${icon('check')}</button>
-    </div>`;
+    </div>`}`;
 
   const list = document.getElementById('chatList');
   if (list) list.scrollTop = list.scrollHeight;
 }
 
+// ส่งผ่าน dm_say เสมอ ไม่ insert ตรงอีกแล้ว
+// policy ของ dm_messages ถูกบีบให้รับเฉพาะห้องที่เปิดแล้ว (migration 19) —
+// ห้องที่ยังเป็นคำขอจึงเข้าได้ทางฟังก์ชันนี้ทางเดียว ซึ่งเป็นที่ที่บังคับกติกา
+// "คนขอส่งได้ข้อความเดียว" กับ "ปลายทางตอบ = ห้องเปิด" ไว้ที่เดียว
 async function sendChat() {
   const el = document.getElementById('chatIn');
   if (!el || !chatThread) return;
   const body = el.value.trim();
   if (!body) return;
   el.value = '';
-  const { data, error } = await sb.from('dm_messages')
-    .insert({ thread: chatThread.id, sender: currentUser.id, body })
-    .select('id, sender, body, created_at')
-    .single();
+  let { data, error } = await sb.rpc('dm_say', { p_thread: chatThread.id, p_body: body });
+  // ยังไม่ได้ apply migration 19 — ถอยไปเขียนตรงแบบเดิม
+  // ปลอดภัยเพราะถ้ายังไม่มี dm_say ก็แปลว่ายังไม่มีคอลัมน์ state ด้วย จึงไม่มีห้องคำขอ
+  // ให้ข้ามกติกาตั้งแต่แรก · ข้อสำคัญคือ **แชทเดิมต้องไม่พังระหว่างรอ migration**
+  if (rpcMissing(error)) {
+    const r = await sb.from('dm_messages')
+      .insert({ thread: chatThread.id, sender: currentUser.id, body })
+      .select('id, sender, body, created_at').single();
+    data = r.data ? [r.data] : null;
+    error = r.error;
+  }
   if (error) {
     el.value = body;                       // คืนข้อความให้ ไม่ใช่กลืนหายไปเฉย ๆ
     haptic('snooze');
     showToast({ title: 'ส่งไม่สำเร็จ', body: error.message });
     return;
   }
-  chatMsgs.push(data);
+  const row = Array.isArray(data) ? data[0] : data;
+  chatMsgs.push({
+    id: (row && row.id) || Date.now(), sender: currentUser.id, body,
+    created_at: (row && row.created_at) || new Date().toISOString(),
+  });
+  // ปลายทางพิมพ์ตอบ = ห้องเปิดแล้วฝั่งเซิร์ฟเวอร์ · ฝั่งนี้ต้องตามให้ทัน
+  // ไม่งั้นแบนเนอร์ "คำขอ" ยังค้างอยู่ทั้งที่คุยกันได้แล้ว
+  if (chatThread.state === 'pending' && !chatThread.mineReq) chatThread.state = 'open';
   renderChat();
+}
+
+// ============================================================
+// กล่องข้อความ — ห้องที่เปิดแล้ว กับ คำขอทัก
+// ------------------------------------------------------------
+// จอนี้เกิดขึ้นเพราะการทักไม่ได้จำกัดอยู่แค่คนในห้องเรียนอีกต่อไป (migration 19)
+// ตอนที่ทักได้เฉพาะคนห้องเดียวกัน ทางเข้าห้องคุยคือรายชื่อคนในห้อง ซึ่งพอ
+// พอเปิดให้ทักกันได้ทั่วไป ต้องมีที่ที่ข้อความเข้ามารวมกัน ไม่งั้นข้อความจากคนที่
+// ไม่ได้อยู่ในรายชื่อไหนเลยจะไม่มีทางถูกเห็น
+//
+// คำขออยู่บนสุดเสมอและนับให้เห็นเป็นตัวเลข ส่วนห้องที่เปิดแล้วเรียงตามเวลาปกติ
+// ============================================================
+let dmRows = [];
+let dmBusy = false;
+let dmPending = 0;        // จำนวนคำขอที่ยังไม่ได้ตอบ — ใช้ติดจุดแดงบนปุ่มในหัวฟีด
+let dmReady = false;      // กล่องข้อความโผล่ต่อเมื่อหลังบ้านมี dm_inbox แล้ว
+let dmDotAt = 0;
+
+// เช็คคำขอค้างแบบเบา ๆ · ไม่ยิงถี่กว่าทุกสองนาที เพราะจุดแดงเป็นของที่ช้าได้
+// (บทเรียนเดียวกับ HW_MIN_GAP ใน hw.js — ยิงทุกเรนเดอร์คือเน็ตของเด็ก)
+async function loadDmDot(force) {
+  if (!sb || !currentUser) { dmPending = 0; return; }
+  if (!force && Date.now() - dmDotAt < 120000) return;
+  dmDotAt = Date.now();
+  const { data, error } = await sb.rpc('dm_inbox');
+  if (rpcMissing(error)) { dmReady = false; if (typeof renderFeed === 'function') renderFeed(); return; }
+  if (error) return;
+  dmReady = true;
+  dmRows = data || [];
+  const n = dmRows.filter(r => r.is_request).length;
+  if (n !== dmPending) { dmPending = n; if (typeof renderFeed === 'function') renderFeed(); }
+}
+
+async function openDmInbox() {
+  if (!sb || !currentUser) return loginFromMates();
+  go('scr-dm');
+  dmBusy = true;
+  renderDmInbox();
+  const { data, error } = await sb.rpc('dm_inbox');
+  dmBusy = false;
+  dmRows = error ? [] : (data || []);
+  renderDmInbox();
+}
+
+function dmPendingCount() {
+  return dmRows.filter(r => r.is_request).length;
+}
+
+function renderDmInbox() {
+  const box = document.getElementById('dmBody');
+  if (!box) return;
+  const reqs = dmRows.filter(r => r.is_request);
+  const open = dmRows.filter(r => !r.is_request);
+
+  const row = (r) => {
+    const av = r.avatar
+      ? `<img class="dm-av" src="${esc(r.avatar)}" alt="">`
+      : `<div class="dm-av" style="${typeof avOf === 'function' ? avOf(r.display_name) : ''}">${
+          esc((r.display_name || '?').slice(0, 1))}</div>`;
+    return `<div class="dm-row" onclick="openDmRow('${esc(r.id)}','${esc(r.other)}','${
+      esc(String(r.display_name || '').replace(/'/g, "\\'"))}')">
+      ${av}
+      <div class="dm-bd">
+        <b>${esc(r.display_name || 'นักเรียน')}${r.handle ? `<span>@${esc(r.handle)}</span>` : ''}</b>
+        <i>${r.last_body ? (r.mine_last ? 'คุณ: ' : '') + esc(String(r.last_body).slice(0, 60))
+                         : 'ยังไม่มีข้อความ'}</i>
+      </div>
+    </div>`;
+  };
+
+  box.innerHTML = `
+    <div class="ch-top">
+      <button class="ch-back" onclick="go('scr-mates')" aria-label="กลับ">${icon('chevron')}</button>
+      <div class="ch-who"><b>ข้อความ</b></div>
+    </div>
+    <div class="dm-list">
+      ${dmBusy && !dmRows.length ? '<p class="so-hint">กำลังโหลด…</p>' : ''}
+      ${reqs.length ? `<div class="sec-label">คำขอทัก ${reqs.length}</div>
+        <p class="dm-fine">คนที่ยังไม่ใช่เพื่อนส่งข้อความมาได้ข้อความเดียว
+          จนกว่าคุณจะตอบกลับ · ไม่ตอบก็ไม่เกิดอะไรขึ้น</p>
+        ${reqs.map(row).join('')}` : ''}
+      ${open.length ? `<div class="sec-label">${reqs.length ? 'ห้องที่คุยกันแล้ว' : 'ข้อความ'}</div>
+        ${open.map(row).join('')}` : ''}
+      ${!dmBusy && !dmRows.length
+        ? `<p class="so-hint">ยังไม่มีใครทักมา — และคุณยังไม่ได้ทักใคร<br>
+             ทักได้จากหน้าโปรไฟล์ของคนที่เจอในฟีดหรือในหัวข้อ</p>` : ''}
+    </div>`;
+}
+
+function openDmRow(id, other, name) {
+  chatThread = { id, other, name: name || 'นักเรียน', subject: '' };
+  chatMsgs = [];
+  go('scr-chat');
+  openChat();
+}
+
+async function acceptDm(id) {
+  const { error } = await sb.rpc('dm_accept', { p_thread: id });
+  if (error) { showToast({ title: 'ทำไม่สำเร็จ', body: error.message }); return; }
+  if (chatThread && chatThread.id === id) { chatThread.state = 'open'; renderChat(); }
+  dmRows = dmRows.map(r => (r.id === id ? { ...r, is_request: false, state: 'open' } : r));
+  renderDmInbox();
+}
+
+// ปฏิเสธ = ลบห้องทิ้งทั้งใบ ไม่ใช่แค่ซ่อน (เหตุผลอยู่ใน dm_decline ที่ migration 19)
+// ถ้าแค่ซ่อน คนขอจะยังส่งเข้ามาได้ในห้องที่เรามองไม่เห็น ซึ่งเป็นช่องที่แย่ที่สุดช่องหนึ่ง
+async function declineDm(id, block) {
+  const { error } = await sb.rpc('dm_decline', { p_thread: id, p_block: !!block });
+  if (error) { showToast({ title: 'ทำไม่สำเร็จ', body: error.message }); return; }
+  dmRows = dmRows.filter(r => r.id !== id);
+  chatThread = null;
+  go('scr-dm');
+  renderDmInbox();
+  showToast({ title: block ? 'บล็อกแล้ว' : 'ไม่รับคำขอแล้ว',
+    body: block ? 'เขาจะทักคุณไม่ได้อีก และไม่รู้ว่าถูกบล็อก' : 'เขาไม่ได้รับแจ้งอะไร' });
 }
 
 // ---------- ล็อกอินแล้วต้องกลับมาที่หน้านี้ ----------
