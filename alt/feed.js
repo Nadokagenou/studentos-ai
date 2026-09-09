@@ -24,7 +24,7 @@ const FEED_SCOPES = [
   { id: 'all',     name: 'ทั้งหมด' },
   { id: 'room',    name: 'ห้องฉัน' },
   { id: 'school',  name: 'โรงเรียน' },
-  { id: 'country', name: 'ทั่วประเทศ' },
+  { id: 'country', name: 'ประเทศ' },
 ];
 
 // จอ "เพื่อนร่วมห้อง" มีสองโหมดในจอเดียวกัน — ฟีด กับ รายชื่อเพื่อน (1B18)
@@ -248,7 +248,23 @@ function renderFeed() {
   }
   renderFriendDot();
   if (typeof loadDmDot === 'function') loadDmDot();
+  keepScopeInView();
   watchFeedScroll();
+}
+
+// ---------- ปุ่มที่เลือกอยู่ต้องมองเห็นเสมอ ----------
+// ห้าปุ่มยาวเกินจอ 320px แถวจึงเลื่อนได้ (ดู 1B61a ใน feed.css)
+// แต่แถวที่เลื่อนได้อย่างเดียวยังไม่พอ — กด "เพื่อนฉัน" แล้วจอวาดใหม่โดยเลื่อนกลับไปซ้ายสุด
+// ผู้ใช้จะเห็นว่าตัวเองอยู่แท็บที่มองไม่เห็น ซึ่งอ่านเหมือนกดแล้วไม่มีอะไรเกิดขึ้น
+function keepScopeInView() {
+  const row = document.querySelector('.fd-scopes');
+  const on = row && row.querySelector('.fd-scope.on');
+  if (!row || !on) return;
+  const pad = 12;
+  const left = on.offsetLeft - pad;
+  const right = on.offsetLeft + on.offsetWidth + pad;
+  if (left < row.scrollLeft) row.scrollLeft = Math.max(0, left);
+  else if (right > row.scrollLeft + row.clientWidth) row.scrollLeft = right - row.clientWidth;
 }
 
 // สลับมาโหมดรายชื่อเพื่อน · ไม่ยิงโหลดฟีดซ้ำ เพราะฟีดที่โหลดไว้แล้วยังอยู่ครบ
