@@ -316,3 +316,62 @@
   display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
 .ch-more svg { width: 16px; height: 16px; }
+
+/* ============================================================
+   เริ่มแชทใหม่ — โครงแบบ Telegram
+   ------------------------------------------------------------
+   ต่างจาก IG ที่ซ่อนช่องค้นหาไว้หลังปุ่มเขียนข้อความ: Telegram วางช่องค้นหา
+   ไว้บนสุดให้เห็นเสมอ แล้วมันค้นทั้งห้องที่คุยอยู่แล้วและคนที่ยังไม่เคยคุยในช่องเดียว
+   ซึ่งตรงกับสิ่งที่คนคิดในหัวจริง ๆ — เขาคิดถึง "คน" ไม่ได้คิดว่าคนนั้นอยู่รายการไหน
+   ส่วนปุ่มดินสอลอยมุมล่างมีไว้สำหรับคนที่ยังไม่รู้ว่าจะทักใคร จึงยังพิมพ์อะไรไม่ได้
+   ============================================================ */
+#dmBody { position: relative; }
+
+.dm-find { position: relative; padding: 10px 14px 6px; flex: none; }
+.dm-find input {
+  width: 100%; padding: 10px 36px 10px 38px; border-radius: 999px;
+  border: 1.5px solid var(--line); background: var(--card2); color: var(--ink);
+  font-family: inherit; font-size: 14px;
+}
+.dm-find input:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+.dm-find input::-webkit-search-cancel-button { display: none; }
+.dm-find-ic {
+  position: absolute; left: 26px; top: 50%; transform: translateY(-40%);
+  display: inline-flex; color: var(--faint); pointer-events: none;
+}
+.dm-find-ic svg { width: 16px; height: 16px; }
+.dm-find-x {
+  position: absolute; right: 22px; top: 50%; transform: translateY(-40%);
+  width: 24px; height: 24px; border: 0; border-radius: 50%;
+  background: var(--line); color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.dm-find-x svg { width: 12px; height: 12px; }
+
+/* ไอคอนท้ายแถวบอกว่าแตะแล้วจะได้คุย ไม่ใช่แค่เปิดโปรไฟล์ —
+   แถวหน้าตาเดียวกันสองความหมายคือที่มาของการกดผิดที่แก้ยากที่สุด */
+.dm-go { flex: none; display: inline-flex; color: var(--blue); }
+.dm-go svg { width: 17px; height: 17px; }
+
+/* ---------- ปุ่มดินสอลอย ---------- */
+/* อยู่มุมล่างขวาเหมือน Telegram · เว้นระยะจากขอบล่างของเครื่องที่มีแถบบ้าน */
+.dm-fab {
+  position: absolute; right: 16px;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  width: 52px; height: 52px; border: 0; border-radius: 50%;
+  background: var(--blue); color: var(--on-accent); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow-brand, 0 6px 18px rgba(0,0,0,.18));
+}
+.dm-fab svg { width: 21px; height: 21px; }
+.dm-fab:active { transform: scale(.94); }
+
+/* ---------- หน้าข้อความที่ยังว่าง ---------- */
+/* ของเดิมเป็นข้อความสองบรรทัดที่บอกให้ไปทำอย่างอื่นที่หน้าอื่น ซึ่งเป็นทางตัน
+   ตอนนี้ทางไปต่ออยู่บนจอเดียวกันแล้วทั้งสองทาง (ช่องค้นหาข้างบน · ปุ่มดินสอมุมล่าง)
+   ข้อความจึงมีหน้าที่แค่ชี้ไปที่สองอันนั้น ไม่ต้องมีปุ่มของตัวเองอีก */
+.dm-blank { padding: 40px 24px; text-align: center; }
+.dm-blank-ic { color: var(--faint); }
+.dm-blank-ic svg { width: 34px; height: 34px; }
+.dm-blank-h { margin: 12px 0 4px; font-size: 15px; font-weight: 700; color: var(--ink); }
+.dm-blank-p { margin: 0; font-size: 12.5px; line-height: 1.7; color: var(--muted); }

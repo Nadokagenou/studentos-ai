@@ -597,33 +597,172 @@ function dmPendingCount() {
   return dmRows.filter(r => r.is_request).length;
 }
 
+// ============================================================
+// เริ่มแชทใหม่ — เลือกคนจากหน้าข้อความได้เลย
+// ------------------------------------------------------------
+// ของเดิมทักได้ทางเดียวคือเดินไปหน้าโปรไฟล์ของคนคนนั้นก่อน ซึ่งแปลว่า
+// ต้องเจอเขาในฟีดหรือในหัวข้อเสียก่อน · คนที่เปิดหน้าข้อความมาเพราะ
+// "อยากทักเพื่อน" จึงเจอทางตัน แล้วข้อความว่างเปล่าที่บอกให้ไปหาที่อื่น
+// คือหน้าจอที่ทำให้คนปิดแอป ไม่ใช่หน้าจอที่พาเขาไปต่อ
+//
+// ทำแบบ IG: ปุ่มดินสอมุมขวาบน → รายชื่อเพื่อน + ช่องค้นหา @ชื่อผู้ใช้
+// เพื่อนขึ้นก่อนเสมอโดยไม่ต้องพิมพ์อะไร เพราะคนที่จะทักส่วนใหญ่คือเพื่อนอยู่แล้ว
+// ส่วนช่องค้นหามีไว้สำหรับคนที่ยังไม่ได้เป็นเพื่อน ซึ่งจะกลายเป็นคำขอทักตามกติกาเดิม
+// ============================================================
+let dmNew = false;          // true = กำลังอยู่ในโหมดเลือกคนที่จะทัก
+let dmFriends = null;       // null = ยังไม่เคยโหลด
+let dmFound = [];           // ผลค้นหา @ชื่อผู้ใช้
+let dmFindQ = '';
+let dmFindBusy = false;
+
+async function openDmNew() {
+  dmNew = true;
+  renderDmInbox();
+  if (dmFriends === null) {
+    const { data, error } = await sb.rpc('friend_list');
+    dmFriends = error ? [] : (data || []);
+    renderDmInbox();
+  }
+}
+function closeDmNew() { dmNew = false; renderDmInbox(); }
+
+// พิมพ์แล้วค่อยยิง — พิมพ์ทีละตัวอักษรแล้วยิงทุกตัวคือเน็ตของเด็ก
+let dmFindTimer = null;
+function dmFindSoon(v) {
+  dmFindQ = String(v || '');
+  clearTimeout(dmFindTimer);
+  dmFindTimer = setTimeout(dmFind, 350);
+}
+async function dmFind() {
+  const q = dmFindQ.trim();
+  if (q.length < 2) { dmFound = []; renderDmInbox(); return; }
+  dmFindBusy = true; renderDmInbox();
+  const { data, error } = await sb.rpc('find_people', { p_q: q });
+  dmFindBusy = false;
+  dmFound = error ? [] : (data || []);
+  renderDmInbox();
+}
+
+// เลือกคนแล้วเข้าห้องเลย · pokeMate เป็นประตูเดิมที่เรียก open_dm อยู่แล้ว
+// กติกาทั้งหมด (เพื่อน = เปิดห้องเลย · ไม่ใช่เพื่อน = เข้ากล่องคำขอ) อยู่ฝั่งเซิร์ฟเวอร์
+// ฝั่งนี้จึงไม่ต้องรู้ว่าใครเป็นเพื่อนใคร แค่ส่ง id ไปแล้วรับผลมา
+function dmStart(id, name) {
+  dmNew = false;
+  pokeMate(id, '', name);
+}
+
+// ---------- วาดใหม่โดยไม่ให้โฟกัสหลุดจากช่องค้นหา ----------
+// จอนี้วาดด้วย innerHTML ทั้งก้อน แปลว่า <input> ถูกสร้างใหม่ทุกครั้ง —
+// พิมพ์ตัวแรกแล้ว debounce ยิง render กลับมา คีย์บอร์ดจะเด้งปิดกลางคัน
+// และตัวที่พิมพ์ต่อไปหายเงียบ ๆ · เก็บสถานะโฟกัสไว้แล้วคืนให้หลังวาดเสร็จ
 function renderDmInbox() {
+  const was = document.activeElement && document.activeElement.id === 'dmQ';
+  renderDmInboxInner();
+  if (!was) return;
+  const el = document.getElementById('dmQ');
+  if (!el) return;
+  el.focus();
+  // เคอร์เซอร์ต้องกลับไปท้ายข้อความ ไม่ใช่ต้นบรรทัด ไม่งั้นตัวถัดไปโผล่หน้าคำที่พิมพ์ไว้
+  try { el.setSelectionRange(el.value.length, el.value.length); } catch (_) {}
+}
+
+function renderDmInboxInner() {
   const box = document.getElementById('dmBody');
   if (!box) return;
-  const reqs = dmRows.filter(r => r.is_request);
-  const open = dmRows.filter(r => !r.is_request);
+  const q = dmFindQ.trim().toLowerCase().replace(/^@/, '');
 
-  const row = (r) => {
-    const av = r.avatar
-      ? `<img class="dm-av" src="${esc(r.avatar)}" alt="">`
-      : `<div class="dm-av" style="${typeof avOf === 'function' ? avOf(r.display_name) : ''}">${
-          esc((r.display_name || '?').slice(0, 1))}</div>`;
-    return `<div class="dm-row" onclick="openDmRow('${esc(r.id)}','${esc(r.other)}','${
-      esc(String(r.display_name || '').replace(/'/g, "\\'"))}')">
-      ${av}
+  const avOfRow = (name, avatar) => avatar
+    ? `<img class="dm-av" src="${esc(avatar)}" alt="">`
+    : `<div class="dm-av" style="${typeof avOf === 'function' ? avOf(name) : ''}">${
+        esc((name || '?').slice(0, 1))}</div>`;
+
+  const row = (r) => `<div class="dm-row" onclick="openDmRow('${esc(r.id)}','${esc(r.other)}','${
+      esc(String(r.display_name || '').replace(/'/g, "\'"))}')">
+      ${avOfRow(r.display_name, r.avatar)}
       <div class="dm-bd">
         <b>${esc(r.display_name || 'นักเรียน')}${r.handle ? `<span>@${esc(r.handle)}</span>` : ''}</b>
         <i>${r.last_body ? (r.mine_last ? 'คุณ: ' : '') + esc(String(r.last_body).slice(0, 60))
                          : 'ยังไม่มีข้อความ'}</i>
       </div>
     </div>`;
-  };
 
-  box.innerHTML = `
+  // แถวของคนที่ยังไม่มีห้องคุยกัน — ไม่มีข้อความล่าสุดให้โชว์ จึงโชว์เหตุผลที่จะทักเขาแทน
+  const pickRow = (p, why) => `<div class="dm-row" onclick="dmStart('${esc(p.id)}','${
+      esc(String(p.display_name || '').replace(/'/g, "\'"))}')">
+      ${avOfRow(p.display_name, p.avatar)}
+      <div class="dm-bd">
+        <b>${esc(p.display_name || 'นักเรียน')}${p.handle ? `<span>@${esc(p.handle)}</span>` : ''}</b>
+        <i>${esc(why || '')}</i>
+      </div>
+      <span class="dm-go">${icon('chat')}</span>
+    </div>`;
+
+  // ---------- ช่องค้นหาอยู่บนสุดตลอดเวลา ----------
+  // ต่างจาก IG ที่ซ่อนช่องค้นหาไว้หลังปุ่มเขียนข้อความ · Telegram วางไว้ให้เห็นเสมอ
+  // แล้วมันค้นสองอย่างพร้อมกันในช่องเดียว: ห้องที่คุยกันอยู่แล้ว กับ คนที่ยังไม่เคยคุย
+  // ซึ่งตรงกับสิ่งที่คนคิดในหัวจริง ๆ — เขาคิดถึง "คน" ไม่ได้คิดว่าคนนั้นอยู่ในรายการไหน
+  const head = `
     <div class="ch-top">
       <button class="ch-back" onclick="go('scr-mates')" aria-label="กลับ">${icon('chevron')}</button>
       <div class="ch-who"><b>ข้อความ</b></div>
     </div>
+    <div class="dm-find">
+      <span class="dm-find-ic">${icon('search')}</span>
+      <input type="search" id="dmQ" value="${esc(dmFindQ)}" autocomplete="off"
+        placeholder="ค้นหาชื่อ หรือ @ชื่อผู้ใช้" oninput="dmFindSoon(this.value)">
+      ${dmFindQ ? `<button class="dm-find-x" onclick="dmClearFind()" aria-label="ล้าง">${icon('x')}</button>` : ''}
+    </div>`;
+
+  // ปุ่มดินสอลอยมุมล่างขวา — ทางเข้าสำหรับคนที่ยังไม่รู้ว่าจะทักใคร จึงยังพิมพ์อะไรไม่ได้
+  const fab = `<button class="dm-fab" onclick="openDmNew()" aria-label="เริ่มแชทใหม่">${icon('pencil')}</button>`;
+
+  // ---------- โหมดไล่ดูเพื่อน (มาจากปุ่มดินสอ) ----------
+  if (dmNew) {
+    const fr = dmFriends || [];
+    box.innerHTML = `
+      <div class="ch-top">
+        <button class="ch-back" onclick="closeDmNew()" aria-label="กลับ">${icon('chevron')}</button>
+        <div class="ch-who"><b>ทักใครดี</b></div>
+      </div>
+      <div class="dm-list">
+        ${fr.length ? `<div class="sec-label">เพื่อนของคุณ</div>
+          ${fr.map(p => pickRow(p, (p.strong && p.strong.length)
+            ? 'ช่วยได้เรื่อง' + esc(p.strong.slice(0, 2).join(' · '))
+            : (p.bio || 'แตะเพื่อเริ่มคุย'))).join('')}`
+          : (dmFriends === null ? '<p class="so-hint">กำลังโหลด…</p>'
+            : `<p class="so-hint">ยังไม่มีเพื่อน — ปิดหน้านี้แล้วพิมพ์ @ชื่อผู้ใช้ในช่องค้นหาด้านบน
+                 หรือส่ง @ชื่อผู้ใช้ของคุณให้เพื่อนที่หน้า "เพื่อนฉัน"</p>`)}
+      </div>`;
+    return;
+  }
+
+  // ---------- กำลังค้นหา ----------
+  if (q.length >= 1) {
+    const hit = (r) => (String(r.display_name || '').toLowerCase().includes(q)
+      || String(r.handle || '').toLowerCase().includes(q));
+    const chats = dmRows.filter(hit);
+    const known = new Set(dmRows.map(r => r.other));
+    const others = dmFound.filter(p => !known.has(p.id));
+
+    box.innerHTML = head + `
+      <div class="dm-list">
+        ${chats.length ? `<div class="sec-label">แชท</div>${chats.map(row).join('')}` : ''}
+        ${q.length >= 2 ? `
+          <div class="sec-label">คนอื่นในแอป</div>
+          ${dmFindBusy ? '<p class="so-hint">กำลังค้นหา…</p>' : ''}
+          ${others.length
+            ? others.map(p => pickRow(p, p.rel === 'friends' ? 'เพื่อนของคุณ'
+                : 'ยังไม่ใช่เพื่อน — ข้อความแรกจะไปอยู่ในกล่องคำขอของเขา')).join('')
+            : (dmFindBusy ? '' : '<p class="so-hint">ไม่เจอใครที่ตรงกับคำนี้</p>')}`
+          : '<p class="so-hint">พิมพ์อีกสักตัวเพื่อค้นหาคนทั้งแอป</p>'}
+      </div>` + fab;
+    return;
+  }
+
+  // ---------- รายการปกติ ----------
+  const reqs = dmRows.filter(r => r.is_request);
+  const open = dmRows.filter(r => !r.is_request);
+  box.innerHTML = head + `
     <div class="dm-list">
       ${dmBusy && !dmRows.length ? '<p class="so-hint">กำลังโหลด…</p>' : ''}
       ${reqs.length ? `<div class="sec-label">คำขอทัก ${reqs.length}</div>
@@ -633,9 +772,20 @@ function renderDmInbox() {
       ${open.length ? `<div class="sec-label">${reqs.length ? 'ห้องที่คุยกันแล้ว' : 'ข้อความ'}</div>
         ${open.map(row).join('')}` : ''}
       ${!dmBusy && !dmRows.length
-        ? `<p class="so-hint">ยังไม่มีใครทักมา — และคุณยังไม่ได้ทักใคร<br>
-             ทักได้จากหน้าโปรไฟล์ของคนที่เจอในฟีดหรือในหัวข้อ</p>` : ''}
-    </div>`;
+        ? `<div class="dm-blank">
+             <div class="dm-blank-ic">${icon('chat')}</div>
+             <p class="dm-blank-h">ยังไม่มีข้อความ</p>
+             <p class="dm-blank-p">พิมพ์ชื่อเพื่อนในช่องด้านบนเพื่อเริ่มคุย
+               หรือกดปุ่มดินสอเพื่อไล่ดูรายชื่อเพื่อน</p>
+           </div>` : ''}
+    </div>` + fab;
+}
+
+function dmClearFind() {
+  dmFindQ = ''; dmFound = [];
+  renderDmInbox();
+  const el = document.getElementById('dmQ');
+  if (el) el.focus();
 }
 
 function openDmRow(id, other, name) {
