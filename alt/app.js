@@ -5292,17 +5292,20 @@ function renderFriends(force) {
   // ของเดิมอยู่ล่างสุดใต้รายชื่อเพื่อน ซึ่งทำให้มันอ่านเป็น "เพื่อนอีกคนที่ชื่อแปลก ๆ"
   // ทั้งที่มันคือชื่อของเจ้าตัวเอง — ของที่ต้องส่งให้เพื่อนไปค้นหา จึงต้องหาเจอทันที
   // ไม่ใช่ต้องเลื่อนผ่านรายชื่อทั้งหมดก่อน
-  // 1B53 · ช่องค้นหาพับไว้ตามค่าเริ่มต้น
-  // จอนี้เปิดมาเพื่อดูเพื่อน ไม่ใช่เพื่อค้นหา · ช่องค้นหาที่กางค้างไว้ตลอด
-  // คือแถบสูง 46px ที่กันคนส่วนใหญ่ออกจากเนื้อหาโดยไม่ได้ช่วยอะไรเขาเลย
-  // (Instagram · LINE · Messenger ทำเหมือนกันหมด: แว่นขยายก่อน ช่องทีหลัง)
-  // กางอัตโนมัติเมื่อยังไม่มีเพื่อนสักคน เพราะตอนนั้นการค้นหาคือสิ่งเดียวที่ทำได้
+  // 1B64 · ช่องค้นหากางค้างไว้ตลอด — **ผู้ใช้สั่งกลับเองเมื่อ 9 ก.ย. 2569**
+  //
+  // 1B53 เคยพับมันไว้หลังแว่นขยายด้วยเหตุผลว่า "จอนี้เปิดมาเพื่อดูเพื่อน ไม่ใช่เพื่อค้นหา"
+  // และอ้างว่า Instagram · LINE · Messenger ทำเหมือนกัน — เหตุผลนั้นถูกสำหรับแอปที่
+  // **มีเพื่อนอยู่แล้ว** แต่แอปนี้ยังไม่มีใครมีเพื่อนสักคน จอนี้จึงเปิดมาเพื่อค้นหาล้วน ๆ
+  // ผู้ใช้บอกตรง ๆ ว่า "อยู่ด้านบนหาไม่เจอ ... ไม่ก็ทำให้มันเด่น"
+  //
+  // อย่าพับกลับอีกจนกว่าจะมีคนใช้จริงที่มีเพื่อนกันแล้วเป็นสิบคน
   body.innerHTML = `
     <div id="frMeRow"></div>
-    <div class="fr-search" id="frSearchBox"${frSearchOpen || !frList.length ? '' : ' hidden'}>
+    <div class="fr-search big" id="frSearchBox">
       ${icon('search')}
       <input id="frQ" autocomplete="off" autocapitalize="off" spellcheck="false"
-             placeholder="ค้นหาด้วยชื่อผู้ใช้" oninput="friendSearch(this.value)">
+             placeholder="พิมพ์ @ชื่อผู้ใช้ของเพื่อน" oninput="friendSearch(this.value)">
       <button class="fr-clear" id="frClear" hidden onclick="clearFriendSearch()"
         aria-label="ล้างคำค้น">${icon('x')}</button>
     </div>
@@ -5313,11 +5316,12 @@ function renderFriends(force) {
   paintFriendParts();
 }
 
-let frSearchOpen = false;
+// ช่องค้นหาไม่พับแล้ว (1B64) ปุ่มแว่นขยายจึงถูกถอดออกจากหัวจอ
+// ฟังก์ชันนี้ยังอยู่เพราะอาจมีที่อื่นเรียก — เปลี่ยนหน้าที่เป็น "พาไปที่ช่อง" แทน
+let frSearchOpen = true;
 function toggleFriendSearch() {
-  frSearchOpen = !frSearchOpen;
-  renderFriends(true);
-  if (frSearchOpen) { const q = document.getElementById('frQ'); if (q) q.focus(); }
+  const q = document.getElementById('frQ');
+  if (q) { q.focus(); q.scrollIntoView({ block: 'nearest' }); }
 }
 
 function clearFriendSearch() {
