@@ -693,6 +693,8 @@ let userBusy = false;
 async function openUser(id) {
   if (!id || !sb || !currentUser) return;
   theUser = null; theUserPosts = []; userBusy = true;
+  // เปิดหน้าใหม่ = รีเซ็ตแท็บกลับมาที่โพสต์เสมอ ไม่ใช่ค้างแท็บของคนก่อนหน้า
+  userTab = 'posts'; userAnswers = null; answersBusy = false;
   go('scr-user');
   renderUser();
   const [c, p] = await Promise.all([
@@ -713,6 +715,43 @@ function onlineOf(id) {
   return (onlineNow || []).find(u => u.id === id) || null;
 }
 
+// ============================================================
+// หน้าโปรไฟล์ — ทรงเดียวกับ Instagram (1B65)
+// ------------------------------------------------------------
+// ผู้ใช้ขอเองเมื่อ 9 ก.ย. 2569 พร้อมส่งหน้า IG ของตัวเองมาให้ดู
+//
+// ของเดิมวางแบบ "การ์ดแนะนำตัว" — รูปกลางจอ ชื่อใต้รูป แล้วสองคอลัมน์วิชา
+// ซึ่งกินครึ่งจอบนไปกับข้อมูลที่ตอบไม่ได้เลยว่า **คนนี้น่าเชื่อแค่ไหน**
+// และปุ่มทักตกไปอยู่ล่างสุดจนต้องเลื่อนหา
+//
+// ทรงของ IG แก้ทั้งสองข้อพร้อมกัน: รูปกับตัวเลขอยู่บรรทัดเดียวกัน
+// ตัวเลขตอบคำถามแรกที่คนดูโปรไฟล์คนแปลกหน้าถามเสมอ ("คนนี้มีตัวตนจริงไหม")
+// แล้วปุ่มอยู่เหนือพับจอเสมอ
+//
+// ตัวเลขที่เลือกมาสามตัว: โพสต์ · เพื่อน · **ช่วยแล้ว**
+// ตัวที่สามแทนที่ "ผู้ติดตาม" ของ IG โดยตั้งใจ — แอปนี้ไม่มีการติดตาม และ
+// บทเรียนเดิมที่ผู้ใช้เคยปฏิเสธไว้คือ "นักเรียนไม่ได้อยากอวดว่าทำงานเสร็จกี่ชิ้น"
+// ตัวเลขที่ควรอวดจึงต้องเป็นสิ่งที่เขาทำให้ **คนอื่น** ไม่ใช่สิ่งที่เขาทำให้ตัวเอง
+// ============================================================
+let userTab = 'posts';        // posts | answers
+let userAnswers = null;       // null = ยังไม่เคยโหลด
+let answersBusy = false;
+
+function switchUserTab(t) {
+  userTab = t;
+  renderUser();
+  if (t === 'answers' && userAnswers === null) loadUserAnswers();
+}
+
+async function loadUserAnswers() {
+  if (!theUser || !sb) return;
+  answersBusy = true; renderUser();
+  const { data, error } = await sb.rpc('user_answers', { p_user: theUser.id, p_limit: 20 });
+  answersBusy = false;
+  userAnswers = error ? [] : (data || []);
+  renderUser();
+}
+
 function renderUser() {
   const box = document.getElementById('userBody');
   if (!box) return;
@@ -727,7 +766,7 @@ function renderUser() {
       <b>โปรไฟล์</b><span></span></div>
       <div class="so-empty" style="margin:14px">
         <p class="so-empty-h">เปิดหน้านี้ไม่ได้</p>
-        <p class="so-empty-p">เห็นโปรไฟล์ได้เฉพาะคนที่อยู่ห้องเรียนเดียวกัน</p>
+        <p class="so-empty-p">อาจเป็นเพราะบัญชีนี้ถูกลบไปแล้ว หรือคุณกับเขาบล็อกกันอยู่</p>
       </div>`;
     return;
   }
@@ -735,70 +774,108 @@ function renderUser() {
   const u = theUser;
   const on = onlineOf(u.id);
   const name = u.display_name || 'นักเรียน';
+  const n = (v) => (v > 999 ? (v / 1000).toFixed(1).replace('.0', '') + 'k' : (v || 0));
+
+  // บรรทัดใต้ชื่อ — ช่วงชั้นกับโรงเรียน · โรงเรียนไม่โผล่ให้คนต่างประเทศเห็น
+  // (ฝั่งเซิร์ฟเวอร์คืน null มาให้เองแล้ว ฝั่งนี้จึงไม่ต้องรู้กติกาซ้ำอีกที่)
+  const where = [u.grade, u.school].filter(Boolean).join(' · ');
+
+  const chips = []
+    .concat((u.strong || []).map(x => `<span class="ig-chip good">ช่วยได้ · ${esc(x)}</span>`))
+    .concat((u.weak || []).map(x => `<span class="ig-chip need">อยากได้ · ${esc(x)}</span>`));
 
   box.innerHTML = `
     <div class="cp-top">
       <button class="cp-x" onclick="go('scr-mates')">${icon('chevron')}</button>
-      <b>${esc(name)}</b><span></span>
+      <b>${u.handle ? '@' + esc(u.handle) : esc(name)}</b>
+      ${u.mine ? '<span></span>' : `<button class="cp-flag" aria-label="รายงานหรือบล็อก"
+        onclick="openReport('user','${esc(u.id)}')">${icon('flag')}</button>`}
     </div>
+
     <div class="us-scroll">
-      <div class="us-hero">
+      <div class="ig-head">
         ${u.avatar
-          ? `<img class="us-av" src="${esc(u.avatar)}" alt="">`
-          : `<div class="us-av" style="${avOf(name)}">${esc(name.slice(0, 1))}</div>`}
-        <div class="us-nm">${esc(name)}${u.mine ? '<span class="fd-mine">คุณ</span>' : ''}</div>
-        ${on
-          ? `<div class="us-live${on.subject ? ' busy' : ''}">
-               <span class="rm-dot"></span>${on.subject
-                 ? 'กำลังติว' + esc(on.subject) + 'อยู่' : 'ออนไลน์อยู่'}</div>`
-          : ''}
-        ${u.bio ? `<p class="us-bio">${esc(u.bio)}</p>` : ''}
+          ? `<img class="ig-av" src="${esc(u.avatar)}" alt="">`
+          : `<div class="ig-av" style="${avOf(name)}">${esc(name.slice(0, 1))}</div>`}
+        <div class="ig-stats">
+          <button onclick="switchUserTab('posts')"><b>${n(u.post_count)}</b><span>โพสต์</span></button>
+          <div><b>${n(u.friend_count)}</b><span>เพื่อน</span></div>
+          <button onclick="switchUserTab('answers')"><b>${n(u.help_count)}</b><span>ช่วยแล้ว</span></button>
+        </div>
       </div>
 
-      ${(u.match && u.match.length) || (u.give && u.give.length) ? `<div class="us-why">
+      <div class="ig-id">
+        <b>${esc(name)}${u.mine ? '<span class="fd-mine">คุณ</span>' : ''}</b>
+        ${where ? `<i>${esc(where)}</i>` : ''}
+        ${on ? `<div class="us-live${on.subject ? ' busy' : ''}">
+            <span class="rm-dot"></span>${on.subject
+              ? 'กำลังติว' + esc(on.subject) + 'อยู่' : 'ออนไลน์อยู่'}</div>` : ''}
+      </div>
+      ${u.bio ? `<p class="ig-bio">${esc(u.bio)}</p>` : ''}
+
+      ${u.mine ? '' : (() => {
+        const f = FRIEND_BTN[friendState] || FRIEND_BTN.none;
+        return `<div class="ig-btns">
+          <button class="pri" onclick="pokeUser()">${icon('chat')}ทัก</button>
+          <button class="${f.cls}" onclick="${f.act}">
+            ${icon(friendState === 'friends' ? 'check' : 'users')}${f.t}</button>
+        </div>`;
+      })()}
+
+      <!-- เหตุผลที่ควรทักเขา — ของชิ้นเดียวบนหน้านี้ที่ IG ไม่มีและลอกไม่ได้
+           เพราะมันมาจากการที่แอปรู้ว่าใครจมวิชาไหน · ต้องอยู่เหนือแถบแท็บเสมอ -->
+      ${(u.match && u.match.length) || (u.give && u.give.length) ? `<div class="ig-why">
         ${u.match && u.match.length
           ? `<p class="so-why good">เก่ง<b>${esc(u.match.join(' · '))}</b> ซึ่งเป็นวิชาที่คุณกำลังจม</p>` : ''}
         ${u.give && u.give.length
           ? `<p class="so-why give">กำลังจม<b>${esc(u.give.join(' · '))}</b> ซึ่งคุณช่วยได้</p>` : ''}
       </div>` : ''}
 
-      <div class="us-subs">
-        <div class="us-col">
-          <span class="us-lb">ช่วยเพื่อนได้</span>
-          <div class="so-chips">${(u.strong || []).length
-            ? u.strong.map(x => `<span class="so-chip good on">${esc(x)}</span>`).join('')
-            : '<span class="so-none">ยังไม่ได้ระบุ</span>'}</div>
-        </div>
-        <div class="us-col">
-          <span class="us-lb">อยากให้ช่วย</span>
-          <div class="so-chips">${(u.weak || []).length
-            ? u.weak.map(x => `<span class="so-chip need on">${esc(x)}</span>`).join('')
-            : '<span class="so-none">ยังไม่ได้ระบุ</span>'}</div>
-        </div>
+      ${chips.length ? `<div class="ig-strip">${chips.join('')}</div>` : ''}
+
+      <div class="ig-tabs">
+        <button class="${userTab === 'posts' ? 'on' : ''}" onclick="switchUserTab('posts')">
+          ${icon('type')}โพสต์</button>
+        <button class="${userTab === 'answers' ? 'on' : ''}" onclick="switchUserTab('answers')">
+          ${icon('chat')}คำตอบ</button>
       </div>
 
-      ${u.mine ? '' : (() => {
-        const f = FRIEND_BTN[friendState] || FRIEND_BTN.none;
-        return `<div class="us-acts">
-          <button class="us-friend ${f.cls}" onclick="${f.act}">
-            ${icon(friendState === 'friends' ? 'check' : 'users')}${f.t}</button>
-          <button class="us-poke" onclick="pokeUser()">
-            ${icon('chat')}ทัก</button>
-        </div>`;
-      })()}
-
-      <div class="us-lb us-postlb">${u.post_count ? 'โพสต์ ' + u.post_count + ' ใบ' : 'ยังไม่เคยโพสต์'}</div>
-      ${theUserPosts.length
-        ? theUserPosts.map(p => postCard(Object.assign({}, p, {
-            display_name: p.anon ? null : name, avatar: u.avatar, author: u.id, for_me: false,
-          }))).join('')
-        : `<p class="so-hint">${u.mine
-            ? 'โพสต์ของคุณจะมาอยู่ตรงนี้'
-            : 'เขายังไม่เคยโพสต์อะไรที่คุณเห็นได้'}</p>`}
+      <div class="ig-tabbody">${userTab === 'posts' ? userPostsHTML(u, name) : userAnswersHTML(u)}</div>
     </div>`;
 }
 
-// ทักจากหน้าโปรไฟล์ — ใช้ท่อเดียวกับที่ทักจากรายชื่อ
+function userPostsHTML(u, name) {
+  if (theUserPosts.length) {
+    return theUserPosts.map(p => postCard(Object.assign({}, p, {
+      display_name: p.anon ? null : name, avatar: u.avatar, author: u.id, for_me: false,
+    }))).join('');
+  }
+  return `<p class="so-hint">${u.mine
+    ? 'โพสต์ของคุณจะมาอยู่ตรงนี้'
+    : 'เขายังไม่เคยโพสต์อะไรที่คุณเห็นได้'}</p>`;
+}
+
+// แท็บคำตอบทำให้ตัวเลข "ช่วยแล้ว" กดดูได้ ไม่ใช่เลขลอย ๆ
+// ตัวเลขที่กดไม่ได้คือตัวเลขที่ไม่มีใครเชื่อ
+function userAnswersHTML(u) {
+  if (answersBusy && userAnswers === null) return '<p class="so-hint">กำลังโหลด…</p>';
+  const rows = userAnswers || [];
+  if (!rows.length) {
+    return `<p class="so-hint">${u.mine
+      ? 'คำตอบที่คุณเขียนให้คนอื่นจะมาอยู่ตรงนี้'
+      : 'เขายังไม่เคยตอบใครในที่ที่คุณเห็นได้'}</p>`;
+  }
+  return rows.map(r => `<div class="ig-ans" onclick="${r.kind === 'topic'
+      ? `openTThread('${esc(r.ref)}')` : `openPost('${esc(r.ref)}')`}">
+    <div class="ig-ans-h">
+      <span class="ig-ans-tag">${r.kind === 'topic' ? 'ในหัวข้อ' : 'ใต้โพสต์'}</span>
+      ${r.topic || r.subject ? `<span>${esc(r.topic || r.subject)}</span>` : ''}
+      <i>${r.at && typeof ago === 'function' ? esc(ago(r.at)) : ''}</i>
+    </div>
+    <p>${esc(String(r.body || '').slice(0, 160))}</p>
+  </div>`).join('');
+}
+
 function pokeUser() {
   if (!theUser) return;
   const topic = (theUser.match && theUser.match[0]) || (theUser.give && theUser.give[0]) || '';

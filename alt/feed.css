@@ -780,3 +780,99 @@
 }
 .fr-search.big input { font-size: 15px; padding-top: 12px; padding-bottom: 12px; }
 .fr-search.big > svg { width: 19px; height: 19px; color: var(--blue); }
+
+/* ============================================================
+   1B65 · หน้าโปรไฟล์ทรง Instagram
+   ------------------------------------------------------------
+   ของเดิมวางรูปกลางจอแล้วชื่ออยู่ใต้รูป ซึ่งกินความสูงไปครึ่งจอบน
+   โดยยังตอบไม่ได้เลยว่าคนนี้น่าเชื่อแค่ไหน · ทรงของ IG เอารูปกับตัวเลข
+   มาไว้บรรทัดเดียวกัน ได้พื้นที่คืนพอที่ปุ่มทักจะอยู่เหนือพับจอเสมอ
+   ============================================================ */
+.ig-head { display: flex; align-items: center; gap: 18px; padding: 16px 16px 0; }
+.ig-av {
+  width: 74px; height: 74px; flex: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 700; object-fit: cover;
+}
+.ig-stats { display: flex; flex: 1; justify-content: space-around; min-width: 0; }
+/* ตัวเลขสองในสามกดได้ (พาไปแท็บที่ตรงกัน) จึงเป็น <button> — แต่ต้องหน้าตาเหมือน
+   ตัวที่กดไม่ได้เป๊ะ ไม่งั้นจะอ่านเป็นปุ่มสามปุ่มที่มีอันหนึ่งพัง */
+.ig-stats > * {
+  flex: 1; text-align: center; border: 0; background: none; padding: 4px 0;
+  font-family: inherit; color: inherit; cursor: pointer;
+}
+.ig-stats div { cursor: default; }
+.ig-stats b {
+  display: block; font-size: 17px; font-weight: 700; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.ig-stats span { font-size: 11px; color: var(--muted); }
+
+.ig-id { padding: 14px 16px 0; }
+.ig-id > b { font-size: 15px; color: var(--ink); }
+.ig-id > i {
+  display: block; margin-top: 2px; font-style: normal;
+  font-size: 12.5px; color: var(--muted);
+}
+.ig-bio { margin: 6px 0 0; padding: 0 16px; font-size: 13px; line-height: 1.65; color: var(--ink); }
+
+.ig-btns { display: flex; gap: 8px; padding: 14px 16px 0; }
+.ig-btns button {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 0; border-radius: 10px;
+  border: 1.5px solid var(--line); background: var(--card2); color: var(--ink);
+  font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.ig-btns button svg { width: 15px; height: 15px; }
+.ig-btns button.pri { border-color: var(--blue); background: var(--blue); color: var(--on-accent); }
+.ig-btns button.wait { color: var(--muted); }
+.ig-btns button:active { transform: scale(.98); }
+
+.ig-why { padding: 14px 16px 0; }
+.ig-why p { margin: 0 0 4px; }
+
+/* วิชาเหลือแถวเดียวเลื่อนได้ แทนสองคอลัมน์ที่กินความสูงเป็นสิบบรรทัด
+   ป้ายบอกความหมายย้ายเข้าไปอยู่ในชิปเลย ("ช่วยได้ · คณิต") จึงไม่ต้องมีหัวข้อกำกับอีกชั้น */
+.ig-strip {
+  display: flex; gap: 6px; padding: 14px 16px 2px;
+  overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.ig-strip::-webkit-scrollbar { display: none; }
+.ig-chip {
+  flex: none; padding: 5px 11px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 600; border: 1.5px solid;
+}
+.ig-chip.good { border-color: var(--good); color: var(--good); background: transparent; }
+.ig-chip.need { border-color: var(--warn, #d9822b); color: var(--warn, #d9822b); background: transparent; }
+
+.ig-tabs { display: flex; margin-top: 16px; border-bottom: 1px solid var(--line); }
+.ig-tabs button {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 11px 0; border: 0; background: none;
+  border-bottom: 2px solid transparent;
+  font-family: inherit; font-size: 12.5px; font-weight: 700; color: var(--muted); cursor: pointer;
+}
+.ig-tabs button svg { width: 14px; height: 14px; }
+.ig-tabs button.on { color: var(--ink); border-bottom-color: var(--ink); }
+.ig-tabbody { padding: 4px 16px 24px; }
+
+/* ---------- แถวคำตอบ ---------- */
+.ig-ans { padding: 12px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.ig-ans-h {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  font-size: 11.5px; color: var(--muted);
+}
+.ig-ans-tag {
+  padding: 2px 7px; border-radius: 6px;
+  background: var(--card2); color: var(--muted); font-size: 10px; font-weight: 700;
+}
+.ig-ans-h i { font-style: normal; margin-left: auto; color: var(--faint); }
+.ig-ans p { margin: 6px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--ink); }
+
+/* ปุ่มรายงานบนหัวหน้าโปรไฟล์ — ทุกจอที่มีคนแปลกหน้าต้องมี ไม่มีข้อยกเว้น */
+.cp-flag {
+  width: 32px; height: 32px; border: 0; border-radius: 9px;
+  background: var(--card2); color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.cp-flag svg { width: 15px; height: 15px; }
