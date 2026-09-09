@@ -375,3 +375,17 @@
 .dm-blank-ic svg { width: 34px; height: 34px; }
 .dm-blank-h { margin: 12px 0 4px; font-size: 15px; font-weight: 700; color: var(--ink); }
 .dm-blank-p { margin: 0; font-size: 12.5px; line-height: 1.7; color: var(--muted); }
+
+/* 1B65 · สองแถววิชาเป็นแถวเลื่อน ไม่ใช่ห่อลงบรรทัดใหม่ไปเรื่อย ๆ
+   ผู้ใช้บอกว่าจอนี้ "ข้อความเยอะๆแบบนั้นไม่ควร" — วิชา 11 ตัวสองชุดห่อลงมา
+   กินความสูงเกือบสิบบรรทัด ทั้งที่คนกดจริงแค่สองสามตัว
+   แถวเลื่อนคืนความสูงให้เกือบครึ่งจอ โดยยังกดครบทุกวิชาเหมือนเดิม */
+.so-chips.row {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.so-chips.row::-webkit-scrollbar { display: none; }
+.so-chips.row .so-chip { flex: none; white-space: nowrap; }

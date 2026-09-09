@@ -221,12 +221,12 @@ function renderMates() {
         ${c.confirmed ? '' : '<span class="so-guess">แอปเดาให้จากงานที่ผ่านมา — แก้ได้</span>'}
       </div>
       <p class="so-lb">วิชาที่ช่วยเพื่อนได้</p>
-      <div class="so-chips">
+      <div class="so-chips row">
         ${known.length ? known.map(n => chip(n, 'good', c.strong.includes(n))).join('')
                        : '<span class="so-none">ยังไม่มีวิชาให้เลือก — เพิ่มงานสักสองสามชิ้นก่อน</span>'}
       </div>
       <p class="so-lb">วิชาที่อยากให้ใครมาช่วย</p>
-      <div class="so-chips">
+      <div class="so-chips row">
         ${known.length ? known.map(n => chip(n, 'need', c.weak.includes(n))).join('') : ''}
       </div>
       <label class="so-fld">
@@ -239,8 +239,7 @@ function renderMates() {
       <button class="so-pub" onclick="doPublish()">
         ${s.pubAt ? 'อัปเดตโปรไฟล์' : 'เผยแพร่ให้เพื่อนร่วมห้องเห็น'}
       </button>
-      <p class="so-fine">เพื่อนเห็นได้แค่ชื่อ รูป คำแนะนำตัว และรายชื่อวิชาสองแถวนี้ ·
-        งานของคุณ ตารางเรียน และสถิติ ไม่ได้ถูกส่งขึ้นไปด้วย</p>
+      <p class="so-fine">เพื่อนเห็นแค่ชื่อ รูป และสองแถวนี้ — งานกับตารางเรียนไม่ได้ส่งขึ้นไป</p>
     </div>`;
 
   // ---- รายชื่อ ----
@@ -297,7 +296,7 @@ function matesHead() {
   return `<div class="page-head">
     <div class="eyebrow mono">${esc(fmtThaiDate(new Date()))}</div>
     <h1 class="page-title">เพื่อนร่วมห้อง</h1>
-    <p class="page-sub">ทุกคนเก่งคนละวิชา — ตรงนี้บอกว่าใครช่วยเรื่องอะไรได้ แล้วทักไปได้เลย</p>
+    <p class="page-sub">บอกว่าคุณช่วยเรื่องอะไรได้ แล้วแอปจะหาคนที่ตรงกันให้</p>
   </div>`;
 }
 
