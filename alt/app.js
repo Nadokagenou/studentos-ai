@@ -835,7 +835,27 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
 //   scr-parsing  — จอรอระหว่าง AI อ่าน ไม่มีอะไรให้กลับไปดู
 //   scr-form     — สิ่งที่พิมพ์ค้างไว้หายไป กลับมาเจอฟอร์มเปล่าน่าสับสนกว่า
 //   scr-login / scr-onboard — มีด่านของตัวเองตัดสินอยู่แล้ว
-const NO_RESUME = ['scr-crop', 'scr-parsing', 'scr-form', 'scr-login', 'scr-onboard', 'scr-setopt', 'scr-ctxwiz'];
+//   scr-chat / scr-hw / scr-dm / scr-topic / scr-tthread — เข้าข่ายข้อเดียวกันเป๊ะ
+//     ทั้งห้าจอวาดเนื้อในด้วย JS ทั้งใบ **รวมถึงปุ่มย้อนกลับของตัวเอง** กลับมาแล้วจึงไม่ใช่
+//     แค่จอเปล่า แต่เป็นจอเปล่าที่ออกไม่ได้เลย — ผู้ใช้เจอจริงเมื่อ 9 ก.ย. 2569
+//     (ปิดแอปค้างไว้ที่หน้าข้อความ เปิดใหม่แล้วได้จอขาวล้วน)
+const NO_RESUME = ['scr-crop', 'scr-parsing', 'scr-form', 'scr-login', 'scr-onboard',
+  'scr-setopt', 'scr-ctxwiz',
+  'scr-chat', 'scr-hw', 'scr-dm', 'scr-topic', 'scr-tthread'];
+
+// ---------- ตาข่ายรองรับชั้นที่สอง ----------
+// NO_RESUME กันทางที่เจอจริงไปแล้ว แต่ยังมีทางอื่นที่พาเข้าจอพวกนี้โดยไม่มีใครสั่งวาด
+// (ปุ่มย้อนกลับของเครื่อง · ลิงก์เก่า · โค้ดที่เรียก go() แล้วลืมเรียก renderX ต่อ)
+// จอที่ไม่มีแม้แต่ปุ่มย้อนกลับคือทางตันจริง ๆ ผู้ใช้ต้องปิดแอปทิ้งอย่างเดียว
+// จึงเช็คหลังวาดเสร็จหนึ่งจังหวะ ว่าเนื้อในมีอะไรหรือยัง ถ้าไม่มีให้พากลับจอที่ปลอดภัย
+// (ต้องเป็น setTimeout ไม่ใช่เช็คทันที เพราะผู้เรียกส่วนใหญ่ทำ go() แล้วค่อย renderX())
+const LIVE_ONLY = {
+  'scr-chat':    { body: 'chatBody',    back: 'scr-mates' },
+  'scr-dm':      { body: 'dmBody',      back: 'scr-mates' },
+  'scr-hw':      { body: 'hwBody',      back: 'scr-tasks' },
+  'scr-topic':   { body: 'topicBody',   back: 'scr-tasks' },
+  'scr-tthread': { body: 'tthreadBody', back: 'scr-tasks' },
+};
 const LAST_SCR_KEY = 'studentos.alt.lastScreen';
 // เกิน 30 นาทีถือว่าเป็นการเปิดใหม่ ไม่ใช่การกลับเข้ามาต่อ — เริ่มที่เมนูตามปกติ
 // (กลับมาวันรุ่งขึ้นแล้วเจอจอสุ่มสกินค้างอยู่ ไม่ใช่สิ่งที่ใครคาดหวัง)
@@ -850,6 +870,10 @@ function resumeScreen() {
   try {
     const s = JSON.parse(localStorage.getItem(LAST_SCR_KEY) || 'null');
     if (!s || !s.id || Date.now() - s.t > RESUME_WINDOW) return null;
+    // ต้องเช็ค NO_RESUME ตรงนี้ด้วย ไม่ใช่แค่ตอนเขียน — เครื่องที่บันทึกค่าเสียไปแล้ว
+    // ก่อนที่รายการนี้จะยาวขึ้น จะยังถูกพากลับไปที่เดิมอยู่ดีถ้าเช็คแค่ขาเขียน
+    // (นี่คือสิ่งที่เกิดขึ้นจริงกับ scr-dm เมื่อ 9 ก.ย. 2569)
+    if (NO_RESUME.includes(s.id)) return null;
     // จอต้องมีอยู่จริงในหน้านี้ — กันกรณีอัปเดตแล้วจอเดิมถูกเอาออกไป
     return document.getElementById(s.id) ? s.id : null;
   } catch (_) { return null; }
@@ -927,6 +951,11 @@ function go(id) {
   document.querySelectorAll('.tab[data-scr]').forEach(b =>
     b.classList.toggle('active', b.dataset.scr === tabId));
   rememberScreen(id);   // ไว้กลับมาที่เดิมถ้าระบบโหลดหน้าใหม่ตอนสลับแอป
+  const live = LIVE_ONLY[id];
+  if (live) setTimeout(() => {
+    const el = document.getElementById(live.body);
+    if (curScreen === id && (!el || !el.firstElementChild)) go(live.back);
+  }, 0);
   renderAll();
 }
 
