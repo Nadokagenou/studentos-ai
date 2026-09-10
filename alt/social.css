@@ -493,3 +493,110 @@
 .ch-send.on { transform: scale(1); opacity: 1; pointer-events: auto; }
 .ch-send svg { width: 17px; height: 17px; }
 @media (prefers-reduced-motion: reduce) { .ch-send { transition: none; } }
+
+/* ---------- เวลาใต้ฟองข้อความ (1B72) ---------- */
+/* ผู้ใช้ขอ "ให้บอกเวลาพิมพ์ด้วย" · โผล่ใต้ฟองสุดท้ายของแต่ละก้อนเท่านั้น
+   ทุกฟองมีเวลา = ตัวเลขเรียงลงมาสิบบรรทัดที่บอกเรื่องเดียวกัน */
+.ch-col { display: flex; flex-direction: column; max-width: 78%; min-width: 0; }
+.ch-msg.me .ch-col { align-items: flex-end; }
+.ch-col .ch-bub { max-width: 100%; }
+.ch-when {
+  margin: 3px 4px 0;
+  font-size: 10.5px; color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   1B72 · หน้าแก้ไขโปรไฟล์ — ทรง Edit profile ของ Instagram
+   ------------------------------------------------------------
+   ผู้ใช้บอกว่า "มันยังดูกากมากๆ ปรับ ux/ui เลย ลองดูของ ig เป็นตัวอย่าง"
+   สามอย่างที่ IG ทำแล้วเราไม่ได้ทำ:
+   รูป+ชื่ออยู่บนสุดพร้อมปุ่มเปลี่ยนรูป · ทุกช่องมีป้ายกำกับเรียงเป็นฟอร์มเดียว ·
+   ปุ่มบันทึกอันเดียวอยู่ล่างสุด
+   ============================================================ */
+.ep { display: flex; flex-direction: column; gap: 20px; padding-bottom: 8px; }
+
+/* ---------- แถวรูปบนสุด ---------- */
+.ep-face {
+  display: flex; align-items: center; gap: 13px;
+  padding: 14px; border-radius: 16px; background: var(--card2);
+}
+.ep-av {
+  width: 56px; height: 56px; flex: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 21px; font-weight: 700; object-fit: cover;
+  background: var(--card); color: var(--muted);
+}
+.ep-face-tx { flex: 1; min-width: 0; }
+.ep-face-tx b {
+  display: block; font-size: 14.5px; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ep-face-tx i {
+  display: block; font-style: normal; font-size: 12px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ep-face-go {
+  flex: none; padding: 8px 14px; border: 0; border-radius: 10px;
+  background: var(--blue); color: var(--on-accent);
+  font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+.ep-face-go:active { transform: scale(.96); }
+
+/* ---------- ช่องกรอก ---------- */
+/* ป้ายกำกับอยู่เหนือช่องเสมอ ไม่ใช่ข้างใน — ป้ายที่อยู่ข้างในหายไปตอนพิมพ์
+   แล้วคนที่กลับมาดูทีหลังจะไม่รู้ว่าช่องนี้คืออะไร */
+.ep-f { display: flex; flex-direction: column; gap: 7px; position: relative; }
+.ep-f > label {
+  font-size: 12px; font-weight: 700; color: var(--ink); letter-spacing: .01em;
+}
+.ep-f input[type="text"], .ep-f textarea {
+  width: 100%; padding: 12px 14px; border-radius: 12px;
+  border: 1.5px solid var(--line); background: var(--card2); color: var(--ink);
+  font-family: inherit; font-size: 14.5px; line-height: 1.5; resize: none;
+}
+.ep-f input:focus, .ep-f textarea:focus {
+  outline: none; border-color: var(--blue); background: var(--card);
+}
+.ep-hint { margin: 0; font-size: 11.5px; line-height: 1.55; color: var(--faint); }
+.ep-count {
+  position: absolute; right: 2px; top: 0;
+  font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums;
+}
+
+/* @ อยู่ในกรอบเดียวกับช่อง ไม่ใช่ข้อความนำหน้าที่ลอยอยู่ข้างนอก
+   เพราะมันเป็นส่วนหนึ่งของค่าที่กำลังกรอก ไม่ใช่คำอธิบาย */
+.ep-at {
+  display: flex; align-items: center; gap: 2px;
+  padding-left: 14px; border-radius: 12px;
+  border: 1.5px solid var(--line); background: var(--card2);
+}
+.ep-at:focus-within { border-color: var(--blue); background: var(--card); }
+.ep-at span { color: var(--faint); font-size: 14.5px; }
+.ep-at input {
+  flex: 1; min-width: 0; border: 0 !important; background: none !important;
+  padding-left: 2px !important;
+}
+
+.ep-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.ep-chip {
+  padding: 9px 16px; border-radius: 999px;
+  border: 1.5px solid var(--line); background: var(--card2); color: var(--muted);
+  font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.ep-chip.on { border-color: var(--blue); background: var(--blue); color: var(--on-accent); }
+.ep-chip:active { transform: scale(.97); }
+
+.ep-fine {
+  display: flex; align-items: flex-start; gap: 6px; margin: 0;
+  font-size: 11.5px; line-height: 1.6; color: var(--faint);
+}
+.ep-fine svg { width: 13px; height: 13px; flex: none; margin-top: 2px; }
+
+.ep-save {
+  width: 100%; padding: 14px 0; border: 0; border-radius: 14px;
+  background: var(--blue); color: var(--on-accent);
+  font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.ep-save:disabled { opacity: .55; cursor: default; }
+.ep-save:not(:disabled):active { transform: scale(.99); }
