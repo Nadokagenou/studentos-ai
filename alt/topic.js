@@ -522,7 +522,7 @@ async function sayTopic() {
   tthread.msgs = (tthread.msgs || []).concat([{
     id: (row && row.id) || Date.now(), body, lang: TOPIC_LANG, ai: false, mine: true,
     name: (state.settings.name || '').trim() || 'ฉัน',
-    avatar: state.settings.avatar || null,
+    avatar: typeof myFace === 'function' ? myFace() : null,
     at: (row && row.created_at) || new Date().toISOString(),
   }]);
   renderTThread();

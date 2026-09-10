@@ -940,3 +940,24 @@
   font-style: normal; font-size: 11px; font-weight: 700; line-height: 16px;
   display: flex; align-items: center; justify-content: center;
 }
+
+/* ---------- แตะรูปโปรไฟล์แล้วขยาย ---------- */
+/* วงกลม 74px บอกไม่ได้ว่าในรูปมีใครอยู่บ้าง ซึ่งเป็นข้อมูลที่คนอยากได้จริง
+   ตอนกำลังตัดสินใจว่าจะทักคนแปลกหน้าคนนี้ดีไหม */
+.ig-av.tap { cursor: pointer; }
+.ig-av.tap:active { transform: scale(.96); }
+.face-zoom {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, .82);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  animation: faceIn .16s ease;
+}
+.face-zoom img {
+  max-width: 100%; max-height: 100%;
+  border-radius: 50%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+}
+@keyframes faceIn { from { opacity: 0 } to { opacity: 1 } }
+@media (prefers-reduced-motion: reduce) { .face-zoom { animation: none } }

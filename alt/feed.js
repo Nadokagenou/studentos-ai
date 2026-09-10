@@ -153,7 +153,7 @@ function presenceCard() {
   return {
     id: currentUser.id,
     name: (state.settings.name || '').trim() || 'นักเรียน',
-    avatar: state.settings.avatar || null,
+    avatar: typeof myFace === 'function' ? myFace() : null,
     subject, since,
   };
 }
@@ -715,6 +715,30 @@ function openFeed(view) {
 // ฟีดที่แตะรูปใครแล้วไม่มีอะไรเกิดขึ้น จึงอ่านเป็น "รายการข้อความ" ไม่ใช่ "ที่ที่มีคนอยู่"
 // ============================================================
 let theUser = null;
+// ============================================================
+// แตะรูปโปรไฟล์แล้วขยาย (1B69)
+// ------------------------------------------------------------
+// ผู้ใช้ขอเอง "อยากให้กดรูปแล้วขยาย แบบ IG"
+// วงกลม 74px บอกไม่ได้ว่าในรูปมีใครอยู่บ้าง — ซึ่งเป็นข้อมูลที่คนอยากได้จริง
+// ตอนกำลังตัดสินใจว่าจะทักคนแปลกหน้าคนนี้ดีไหม
+//
+// สร้างชั้นซ้อนสด ๆ แล้วลบทิ้งเมื่อปิด ไม่ใช่ซ่อนไว้ในหน้าตลอดเวลา —
+// รูปเป็น data URL ขนาดหลายสิบ KB การถือ <img> ที่ซ่อนอยู่ไว้ทุกจอคือหน่วยความจำเปล่า
+function openFace(src, name) {
+  if (!src) return;
+  const box = document.createElement('div');
+  box.className = 'face-zoom';
+  box.setAttribute('role', 'dialog');
+  box.setAttribute('aria-label', 'รูปโปรไฟล์');
+  box.innerHTML = `<img src="${esc(src)}" alt="รูปโปรไฟล์ของ${esc(name || '')}">`;
+  // แตะที่ไหนก็ปิด · ปุ่มปิดแยกอีกอันคือของที่ต้องเล็งกดโดยไม่จำเป็น
+  box.onclick = () => box.remove();
+  document.addEventListener('keydown', function esc2(e) {
+    if (e.key === 'Escape') { box.remove(); document.removeEventListener('keydown', esc2); }
+  });
+  document.body.appendChild(box);
+}
+
 // ---------- ชื่อที่เอาไปโชว์จริง ----------
 // profiles.display_name มี default เป็น 'นักเรียน' อยู่ใน schema (migration 10)
 // แปลว่าคนที่ยังไม่เคยตั้งชื่อ **มีชื่อว่า "นักเรียน" จริง ๆ ในฐานข้อมูล** ไม่ใช่ค่าว่าง
@@ -840,7 +864,8 @@ function renderUser() {
     <div class="us-scroll">
       <div class="ig-head">
         ${u.avatar
-          ? `<img class="ig-av" src="${esc(u.avatar)}" alt="">`
+          ? `<img class="ig-av tap" src="${esc(u.avatar)}" alt="รูปโปรไฟล์"
+               onclick="openFace('${esc(u.avatar)}','${esc(name).replace(/'/g, "\'")}')">`
           : `<div class="ig-av" style="${avOf(name)}">${esc(name.slice(0, 1))}</div>`}
         <div class="ig-stats">
           <button onclick="switchUserTab('posts')"><b>${n(u.post_count)}</b><span>โพสต์</span></button>

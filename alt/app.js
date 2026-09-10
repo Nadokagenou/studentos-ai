@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B68';                 // สายเลขของแอป
+const APP_VERSION = '1B69';                 // สายเลขของแอป
 const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -992,6 +992,11 @@ async function initCloud() {
     sessionAnswered = true;   // ได้คำตอบจริง — จะตอบว่ามีหรือไม่มีก็เชื่อได้ทั้งคู่
   } catch (e) { console.warn('[cloud] getSession failed:', e.message); }
   currentUser = session ? session.user : null;
+  // ---------- ดันชื่อกับรูปขึ้นให้ตรงกับที่ตั้งไว้ในเครื่อง ----------
+  // จำเป็นสำหรับคนที่ตั้งรูปไว้ก่อนรุ่น 1B69 — รูปของเขาไม่เคยขึ้นไปถึงเพื่อนเลย
+  // เพราะ publishProfile อ่านผิดที่มาตลอด (ดู syncPublicFace ใน social.js)
+  // ยิงครั้งเดียวตอนเปิดแอป และกันซ้ำด้วยลายเซ็นอยู่แล้ว จึงไม่เปลืองเน็ต
+  if (currentUser && typeof syncPublicFace === 'function') syncPublicFace();
   sb.auth.onAuthStateChange((event, sess) => {
     const wasLoggedIn = !!currentUser;
     currentUser = sess ? sess.user : null;
@@ -1005,6 +1010,7 @@ async function initCloud() {
       // คำขอเป็นเพื่อนที่ค้างอยู่ต้องขึ้นจุดแดงได้โดยไม่ต้องรอให้คนเปิดหน้าเพื่อนก่อน
       // ไม่งั้นคนส่งคำขอมาแล้วไม่มีอะไรบอก กว่าอีกฝั่งจะบังเอิญเปิดเข้าไปเอง
       if (typeof loadFriends === 'function') loadFriends();
+      if (typeof syncPublicFace === 'function') syncPublicFace(true);
       syncFromCloud().then(() => { routeAfterLogin(); return applyJoinToken(); });
     } else {
       renderAll();
@@ -9646,13 +9652,16 @@ async function pickAvatar(file) {
   haptic('done');
   vaultTouch();
   renderProfile();
-  showToast({ title: 'เปลี่ยนรูปโปรไฟล์แล้ว 🖼', body: 'เอาออกได้ที่จอตั้งค่า' });
+  // ดันขึ้นให้เพื่อนเห็นทันที — ไม่มีใครเดาได้ว่าต้องเดินไปกดปุ่มเผยแพร่อีกรอบ
+  if (typeof syncPublicFace === 'function') syncPublicFace(true);
+  showToast({ title: 'เปลี่ยนรูปโปรไฟล์แล้ว 🖼', body: 'เพื่อนจะเห็นรูปใหม่นี้ด้วย' });
 }
 
 function clearAvatar() {
   try { localStorage.removeItem(AV_KEY); } catch (_) {}
   vaultTouch();
   renderProfile();
+  if (typeof syncPublicFace === 'function') syncPublicFace(true);
   showToast({ title: 'เอารูปโปรไฟล์ออกแล้ว', body: 'กลับไปใช้ตัวอักษรแรกของชื่อเหมือนเดิม' });
 }
 
@@ -10198,6 +10207,8 @@ async function cloudOcrRetry() {
 // ---------- profile ----------
 function saveProfile() {
   state.settings.name = document.getElementById('pName').value.trim();
+  // ชื่อก็เหมือนรูป — เปลี่ยนแล้วเพื่อนต้องเห็นชื่อใหม่โดยไม่ต้องไปกดเผยแพร่ซ้ำ
+  if (typeof syncPublicFace === 'function') syncPublicFace(true);
   state.settings.freeHours = Math.max(0.5, +document.getElementById('pFree').value || 2);
   save(); renderAll();
   alert('บันทึกแล้ว ✓');
