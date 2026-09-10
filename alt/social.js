@@ -437,7 +437,9 @@ async function openChat() {
     const { data: c } = await sb.rpc('user_card', { p_user: chatThread.other });
     const u = Array.isArray(c) ? c[0] : c;
     if (u) {
-      chatThread.name = u.display_name || chatThread.name;
+      // personName อยู่ใน feed.js — ถ้ายังไม่ได้ตั้งชื่อจะได้ @ชื่อผู้ใช้แทนคำว่า "นักเรียน"
+      chatThread.name = (typeof personName === 'function' ? personName(u) : u.display_name)
+        || chatThread.name;
       chatThread.avatar = u.avatar || null;
       renderChat();
     }
@@ -781,7 +783,7 @@ function renderDmInboxInner() {
       esc(String(r.display_name || '').replace(/'/g, "\'"))}','${esc(r.avatar || '')}')">
       ${avOfRow(r.display_name, r.avatar)}
       <div class="dm-bd">
-        <b>${esc(r.display_name || 'นักเรียน')}${r.handle ? `<span>@${esc(r.handle)}</span>` : ''}</b>
+        <b>${esc(typeof personName === 'function' ? personName(r) : (r.display_name || 'นักเรียน'))}${r.handle ? `<span>@${esc(r.handle)}</span>` : ''}</b>
         <i>${r.last_body ? (r.mine_last ? 'คุณ: ' : '') + esc(String(r.last_body).slice(0, 60))
                          : 'ยังไม่มีข้อความ'}</i>
       </div>
@@ -792,7 +794,7 @@ function renderDmInboxInner() {
       esc(String(p.display_name || '').replace(/'/g, "\'"))}')">
       ${avOfRow(p.display_name, p.avatar)}
       <div class="dm-bd">
-        <b>${esc(p.display_name || 'นักเรียน')}${p.handle ? `<span>@${esc(p.handle)}</span>` : ''}</b>
+        <b>${esc(typeof personName === 'function' ? personName(p) : (p.display_name || 'นักเรียน'))}${p.handle ? `<span>@${esc(p.handle)}</span>` : ''}</b>
         <i>${esc(why || '')}</i>
       </div>
       <span class="dm-go">${icon('chat')}</span>
