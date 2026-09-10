@@ -406,6 +406,7 @@ async function pokeMate(id, topic, name) {
   }
   chatThread = {
     id: data, name: (m && m.display_name) || name || 'นักเรียน',
+    avatar: (m && m.avatar) || null,
     subject: topic || '', other: id,
   };
   chatMsgs = [];
@@ -427,6 +428,20 @@ async function openChat() {
     chatThread.mineReq = t.opener === currentUser.id;
   }
   renderChat();
+
+  // ---------- ชื่อจริงกับรูปของอีกฝ่าย ----------
+  // ของเดิมพึ่งชื่อที่ผู้เรียกส่งมาอย่างเดียว ทางเข้าไหนที่ไม่ได้ส่งมาก็ตกไปเป็น "นักเรียน"
+  // ซึ่งผู้ใช้เจอจริง — หัวจอขึ้นคำว่า "นักเรียน" ทั้งที่คุยกับคนที่มีชื่อ
+  // ถามผ่าน user_card เพราะเป็นประตูเดียวกับหน้าโปรไฟล์ กติกาการมองเห็นจึงตรงกันเสมอ
+  if (chatThread.other) {
+    const { data: c } = await sb.rpc('user_card', { p_user: chatThread.other });
+    const u = Array.isArray(c) ? c[0] : c;
+    if (u) {
+      chatThread.name = u.display_name || chatThread.name;
+      chatThread.avatar = u.avatar || null;
+      renderChat();
+    }
+  }
 
   const { data, error } = await sb.from('dm_messages')
     .select('id, sender, body, created_at')
@@ -456,6 +471,49 @@ function closeChat() {
   if (chatSub) { try { sb.removeChannel(chatSub); } catch (_) {} chatSub = null; }
 }
 
+// ============================================================
+// จอแชท — ทรงเดียวกับ Instagram (1B67)
+// ------------------------------------------------------------
+// ผู้ใช้ส่งหน้า DM ของ IG มาให้ดูแล้วบอกว่า "ขอเหมือน ig เลย" (10 ก.ย. 2569)
+//
+// สามอย่างที่ทำให้ IG อ่านเป็นห้องแชท ไม่ใช่รายการข้อความ:
+//   1) หัวจอมีรูปคนคุยอยู่ด้วย และแตะแล้วไปโปรไฟล์ได้ — ของเดิมมีแต่ชื่อเป็นตัวหนังสือ
+//      ทำให้จอนี้ตัดขาดจากตัวตนของอีกฝ่ายโดยสิ้นเชิง
+//   2) ข้อความที่ส่งติด ๆ กันถูกจับเป็นก้อนเดียว รูปโผล่แค่ฟองสุดท้ายของก้อน
+//      ถ้าให้รูปโผล่ทุกฟอง สิบข้อความติดกันจะกลายเป็นสิบหน้าเรียงลงมา
+//   3) ช่องพิมพ์เป็นแคปซูลใบเดียว ปุ่มส่งโผล่ตอนมีตัวอักษรเท่านั้น
+//      ปุ่มส่งที่ค้างอยู่ตลอดเวลาทั้งที่กดไปก็ไม่เกิดอะไร คือปุ่มที่สอนให้คนเลิกเชื่อปุ่ม
+//
+// ที่ไม่ได้ทำตาม IG: ปุ่มโทร ปุ่มวิดีโอคอล และปุ่มกล้อง — สองอันแรกไม่มีในแอปนี้
+// และจะไม่มี (เส้นความปลอดภัยที่ขีดไว้ในเอกสารบันไดสโคป) ส่วนกล้องยังส่งรูปในแชทไม่ได้
+// ปุ่มที่กดแล้วไม่เกิดอะไรแย่กว่าปุ่มที่ยังไม่มี
+// ============================================================
+
+// หัวข้อความคั่นวัน — IG มี และมันจำเป็นจริงเมื่อห้องเริ่มมีข้อความข้ามวัน
+function chatDayLabel(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  const today = new Date();
+  const same = (a, b) => a.toDateString() === b.toDateString();
+  if (same(d, today)) return 'วันนี้';
+  const y = new Date(today); y.setDate(y.getDate() - 1);
+  if (same(d, y)) return 'เมื่อวาน';
+  return typeof fmtThaiDate === 'function' ? fmtThaiDate(d) : d.toLocaleDateString();
+}
+function chatTime(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+function chatAvatar() {
+  const nm = chatThread.name || 'นักเรียน';
+  return chatThread.avatar
+    ? `<img class="ch-face" src="${esc(chatThread.avatar)}" alt="">`
+    : `<span class="ch-face" style="${typeof avOf === 'function' ? avOf(nm) : ''}">${
+        esc(nm.slice(0, 1))}</span>`;
+}
+
 function renderChat() {
   const box = document.getElementById('chatBody');
   if (!box || !chatThread) return;
@@ -470,13 +528,42 @@ function renderChat() {
   const gotAsked = pending && !chatThread.mineReq;
   const usedUp = asked && chatMsgs.some(m => m.sender === me);
 
+  // ---------- จับข้อความติด ๆ กันเป็นก้อน ----------
+  // เกณฑ์: คนเดียวกัน และห่างกันไม่เกิน 5 นาที · เกินนั้นถือว่าเป็นคนละจังหวะการคุย
+  let lastDay = '';
+  const rows = chatMsgs.map((m, i) => {
+    const prev = chatMsgs[i - 1];
+    const next = chatMsgs[i + 1];
+    const mine = m.sender === me;
+    const gap = (x, y) => !x || !y
+      || Math.abs(new Date(y.created_at) - new Date(x.created_at)) > 5 * 60 * 1000;
+    const startsRun = !prev || prev.sender !== m.sender || gap(prev, m);
+    const endsRun = !next || next.sender !== m.sender || gap(m, next);
+
+    const day = chatDayLabel(m.created_at);
+    const dayHead = day && day !== lastDay ? `<div class="ch-day"><span>${esc(day)}</span></div>` : '';
+    lastDay = day || lastDay;
+
+    return dayHead + `<div class="ch-msg${mine ? ' me' : ''}${endsRun ? ' last' : ''}">
+      ${mine ? '' : (endsRun ? chatAvatar() : '<span class="ch-face ghost"></span>')}
+      <span class="ch-bub${startsRun ? ' first' : ''}${endsRun ? ' tail' : ''}"
+        title="${esc(chatTime(m.created_at))}">${esc(m.body)}</span>
+    </div>`;
+  }).join('');
+
   box.innerHTML = `
     <div class="ch-top">
       <button class="ch-back" onclick="go('scr-mates')" aria-label="กลับ">${icon('chevron')}</button>
-      <div class="ch-who">
-        <b>${esc(chatThread.name)}</b>
-        ${chatThread.subject ? `<i>เรื่อง${esc(chatThread.subject)}</i>` : ''}
-      </div>
+      <!-- รูป+ชื่อแตะแล้วไปโปรไฟล์ เหมือน IG · จอแชทที่ไม่มีทางไปหาตัวตนของอีกฝ่าย
+           คือจอที่คุยกับคนที่ตรวจสอบไม่ได้ ซึ่งเป็นสิ่งที่ต้องไม่เกิดหลังเปิดให้ทักทั้งแอป -->
+      <button class="ch-who${chatThread.other ? ' tap' : ''}"
+        ${chatThread.other ? `onclick="openUser('${esc(chatThread.other)}')"` : ''}>
+        ${chatAvatar()}
+        <span class="ch-who-tx">
+          <b>${esc(chatThread.name)}${chatThread.other ? icon('chevron') : ''}</b>
+          ${chatThread.subject ? `<i>เรื่อง${esc(chatThread.subject)}</i>` : ''}
+        </span>
+      </button>
       ${chatThread.other ? `<button class="ch-more" aria-label="รายงานหรือบล็อก"
         onclick="openReport('user','${esc(chatThread.other)}')">${icon('flag')}</button>` : ''}
     </div>
@@ -494,22 +581,37 @@ function renderChat() {
         : 'คนนี้ยังไม่ใช่เพื่อนของคุณ ข้อความแรกจะไปอยู่ในกล่องคำขอของเขา'}</p>` : ''}
 
     <div class="ch-list" id="chatList">
-      ${chatMsgs.length ? chatMsgs.map(m => `<div class="ch-msg${m.sender === me ? ' me' : ''}">
-          <span class="ch-bub">${esc(m.body)}</span>
-        </div>`).join('')
-        : `<p class="ch-first">ยังไม่มีใครพิมพ์อะไร — ประโยคแรกยากที่สุดเสมอ
-             ${chatThread.subject ? 'ลองใช้ที่ร่างไว้ให้ข้างล่างก็ได้' : ''}</p>`}
+      ${chatMsgs.length ? rows : `<div class="ch-blank">
+          ${chatAvatar()}
+          <b>${esc(chatThread.name)}</b>
+          <p>ยังไม่มีใครพิมพ์อะไร — ประโยคแรกยากที่สุดเสมอ</p>
+        </div>`}
     </div>
+
     ${usedUp ? '' : `<div class="ch-bar">
-      <input id="chatIn" type="text" maxlength="2000" placeholder="พิมพ์ข้อความ"
-             value="${chatMsgs.length || !chatThread.subject ? ''
-                     : esc(chatThread.subject + 'ขอถามหน่อยได้ป่ะ')}"
-             onkeydown="if(event.key==='Enter')sendChat()">
-      <button class="ch-send" onclick="sendChat()" aria-label="ส่ง">${icon('check')}</button>
+      <div class="ch-field">
+        <input id="chatIn" type="text" maxlength="2000" placeholder="ข้อความ…"
+               autocomplete="off"
+               value="${chatMsgs.length || !chatThread.subject ? ''
+                       : esc(chatThread.subject + 'ขอถามหน่อยได้ป่ะ')}"
+               oninput="chatTyping()"
+               onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="ch-send" id="chSend" onclick="sendChat()" aria-label="ส่ง">${icon('check')}</button>
+      </div>
     </div>`}`;
 
+  chatTyping();
   const list = document.getElementById('chatList');
   if (list) list.scrollTop = list.scrollHeight;
+}
+
+// ปุ่มส่งโผล่ตอนมีตัวอักษรเท่านั้น (เหมือน IG)
+// ปุ่มที่ค้างอยู่ตลอดทั้งที่กดไปก็ไม่เกิดอะไร คือปุ่มที่สอนให้คนเลิกเชื่อปุ่ม
+function chatTyping() {
+  const el = document.getElementById('chatIn');
+  const btn = document.getElementById('chSend');
+  if (!el || !btn) return;
+  btn.classList.toggle('on', !!el.value.trim());
 }
 
 // ส่งผ่าน dm_say เสมอ ไม่ insert ตรงอีกแล้ว
@@ -676,7 +778,7 @@ function renderDmInboxInner() {
         esc((name || '?').slice(0, 1))}</div>`;
 
   const row = (r) => `<div class="dm-row" onclick="openDmRow('${esc(r.id)}','${esc(r.other)}','${
-      esc(String(r.display_name || '').replace(/'/g, "\'"))}')">
+      esc(String(r.display_name || '').replace(/'/g, "\'"))}','${esc(r.avatar || '')}')">
       ${avOfRow(r.display_name, r.avatar)}
       <div class="dm-bd">
         <b>${esc(r.display_name || 'นักเรียน')}${r.handle ? `<span>@${esc(r.handle)}</span>` : ''}</b>
@@ -787,8 +889,8 @@ function dmClearFind() {
   if (el) el.focus();
 }
 
-function openDmRow(id, other, name) {
-  chatThread = { id, other, name: name || 'นักเรียน', subject: '' };
+function openDmRow(id, other, name, avatar) {
+  chatThread = { id, other, name: name || 'นักเรียน', avatar: avatar || null, subject: '' };
   chatMsgs = [];
   go('scr-chat');
   openChat();
