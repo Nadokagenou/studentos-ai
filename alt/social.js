@@ -713,11 +713,11 @@ function chatTime(iso) {
 }
 
 function chatAvatar() {
-  const nm = chatThread.name || 'นักเรียน';
   return chatThread.avatar
     ? `<img class="ch-face" src="${esc(chatThread.avatar)}" alt="">`
-    : `<span class="ch-face" style="${typeof avOf === 'function' ? avOf(nm) : ''}">${
-        esc(nm.slice(0, 1))}</span>`;
+    : `<span class="ch-face" style="${typeof faceTint === 'function' ? faceTint(chatThread) : ''}">${
+        esc(typeof faceLetter === 'function' ? faceLetter(chatThread)
+                                             : (chatThread.name || '?').slice(0, 1))}</span>`;
 }
 
 function renderChat() {
@@ -1055,16 +1055,28 @@ function renderDmInboxInner() {
   if (!box) return;
   const q = dmFindQ.trim().toLowerCase().replace(/^@/, '');
 
-  const avOfRow = (name, avatar) => avatar
-    ? `<img class="dm-av" src="${esc(avatar)}" alt="">`
-    : `<div class="dm-av" style="${typeof avOf === 'function' ? avOf(name) : ''}">${
-        esc((name || '?').slice(0, 1))}</div>`;
+  const avOfRow = (u) => u.avatar
+    ? `<img class="dm-av" src="${esc(u.avatar)}" alt="">`
+    : `<div class="dm-av" style="${typeof faceTint === 'function' ? faceTint(u) : ''}">${
+        esc(typeof faceLetter === 'function' ? faceLetter(u)
+                                            : String(u.display_name || '?').slice(0, 1))}</div>`;
+
+  // ชื่อกับ @ชื่อผู้ใช้ต้องไม่ซ้ำกันในบรรทัดเดียว
+  // คนที่ยังไม่ได้ตั้งชื่อจะได้ @ชื่อผู้ใช้มาเป็นชื่อ ถ้าโชว์ @ต่อท้ายอีกก็จะอ่านว่า
+  // "sos1048666 @sos1048666" ซึ่งดูเหมือนแอปพิมพ์ซ้ำ มากกว่าจะดูเหมือนข้อมูลสองชิ้น
+  const nameLine = (u) => {
+    const nm = typeof personName === 'function' ? personName(u)
+                                                : (u.display_name || 'นักเรียน');
+    const hd = String(u.handle || '').trim();
+    return `${esc(nm)}${hd && hd !== nm ? `<span>@${esc(hd)}</span>` : ''}`;
+  };
 
   const row = (r) => `<div class="dm-row" onclick="openDmRow('${esc(r.id)}','${esc(r.other)}','${
-      esc(String(r.display_name || '').replace(/'/g, "\'"))}','${esc(r.avatar || '')}')">
-      ${avOfRow(r.display_name, r.avatar)}
+      esc(String(typeof personName === 'function' ? personName(r) : (r.display_name || ''))
+            .replace(/'/g, "\'"))}','${esc(r.avatar || '')}','${esc(r.handle || '')}')">
+      ${avOfRow(r)}
       <div class="dm-bd">
-        <b>${esc(typeof personName === 'function' ? personName(r) : (r.display_name || 'นักเรียน'))}${r.handle ? `<span>@${esc(r.handle)}</span>` : ''}</b>
+        <b>${nameLine(r)}</b>
         <i>${r.last_body ? (r.mine_last ? 'คุณ: ' : '') + esc(String(r.last_body).slice(0, 60))
                          : 'ยังไม่มีข้อความ'}</i>
       </div>
@@ -1072,10 +1084,11 @@ function renderDmInboxInner() {
 
   // แถวของคนที่ยังไม่มีห้องคุยกัน — ไม่มีข้อความล่าสุดให้โชว์ จึงโชว์เหตุผลที่จะทักเขาแทน
   const pickRow = (p, why) => `<div class="dm-row" onclick="dmStart('${esc(p.id)}','${
-      esc(String(p.display_name || '').replace(/'/g, "\'"))}')">
-      ${avOfRow(p.display_name, p.avatar)}
+      esc(String(typeof personName === 'function' ? personName(p) : (p.display_name || ''))
+            .replace(/'/g, "\'"))}')">
+      ${avOfRow(p)}
       <div class="dm-bd">
-        <b>${esc(typeof personName === 'function' ? personName(p) : (p.display_name || 'นักเรียน'))}${p.handle ? `<span>@${esc(p.handle)}</span>` : ''}</b>
+        <b>${nameLine(p)}</b>
         <i>${esc(why || '')}</i>
       </div>
       <span class="dm-go">${icon('chat')}</span>
@@ -1172,8 +1185,9 @@ function dmClearFind() {
   if (el) el.focus();
 }
 
-function openDmRow(id, other, name, avatar) {
-  chatThread = { id, other, name: name || 'นักเรียน', avatar: avatar || null, subject: '' };
+function openDmRow(id, other, name, avatar, handle) {
+  chatThread = { id, other, name: name || '', handle: handle || '',
+                 avatar: avatar || null, subject: '' };
   chatMsgs = [];
   go('scr-chat');
   openChat();

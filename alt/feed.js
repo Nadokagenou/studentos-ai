@@ -305,10 +305,10 @@ function renderOnline() {
       const busy = !!u.subject;
       const av = u.avatar
         ? `<img src="${esc(u.avatar)}" alt="">`
-        : `<span>${esc((u.name || '?').slice(0, 1))}</span>`;
+        : `<span>${esc(faceLetter(u))}</span>`;
       return `<div class="fd-on${busy ? ' busy' : ''}" onclick="openUser('${esc(u.id)}')" role="link" tabindex="0">
-        <div class="fd-on-ring"${u.avatar ? '' : ` style="${avOf(u.name)}"`}>${av}</div>
-        <div class="fd-on-nm">${esc(u.name || 'นักเรียน')}</div>
+        <div class="fd-on-ring"${u.avatar ? '' : ` style="${faceTint(u)}"`}>${av}</div>
+        <div class="fd-on-nm">${esc(personName(u))}</div>
         <div class="fd-on-sub">${busy ? esc(u.subject) : 'ออนไลน์'}</div>
       </div>`;
     }).join('')}
@@ -364,11 +364,11 @@ function feedListHTML() {
 // ---------- การ์ดโพสต์ ----------
 function postCard(p) {
   const anon = !p.display_name;
-  const name = anon ? 'ไม่ระบุชื่อ' : p.display_name;
+  const name = anon ? 'ไม่ระบุชื่อ' : personName(p);
   const av = (!anon && p.avatar)
     ? `<img class="fd-av" src="${esc(p.avatar)}" alt="">`
-    : `<div class="fd-av${anon ? ' anon' : ''}"${anon ? '' : ` style="${avOf(name)}"`}>${
-        anon ? '?' : esc((name || '?').slice(0, 1))}</div>`;
+    : `<div class="fd-av${anon ? ' anon' : ''}"${anon ? '' : ` style="${faceTint(p)}"`}>${
+        anon ? '?' : esc(faceLetter(p))}</div>`;
 
   const tapHead = !anon && p.author;
   return `<article class="fd-post${p.for_me ? ' for-me' : ''}" onclick="openPost('${esc(p.id)}')">
@@ -670,10 +670,10 @@ function renderThread() {
         const ra = !r.display_name;
         return `<div class="th-reply"${ra || !r.author ? '' :
           ` onclick="openUser('${esc(r.author)}')" role="link" tabindex="0"`}>
-          <div class="fd-av sm${ra ? ' anon' : ''}"${ra ? '' : ` style="${avOf(r.display_name)}"`}>${
-            ra ? '?' : esc((r.display_name || '?').slice(0, 1))}</div>
+          <div class="fd-av sm${ra ? ' anon' : ''}"${ra ? '' : ` style="${faceTint(r)}"`}>${
+            ra ? '?' : esc(faceLetter(r))}</div>
           <div class="th-bd">
-            <b>${ra ? 'ไม่ระบุชื่อ' : esc(r.display_name)}${r.mine ? '<span class="fd-mine">คุณ</span>' : ''}
+            <b>${ra ? 'ไม่ระบุชื่อ' : esc(personName(r))}${r.mine ? '<span class="fd-mine">คุณ</span>' : ''}
               <i>${esc(ago(r.created_at))}</i></b>
             <p>${esc(r.body)}</p>
           </div>
@@ -763,7 +763,7 @@ function profileHeadHTML(u, opts) {
   const face = u.avatar
     ? `<img class="ig-av tap" src="${esc(u.avatar)}" alt="รูปโปรไฟล์"
          onclick="openFace('${esc(u.avatar)}','${esc(name).replace(/'/g, "\\'")}')">`
-    : `<div class="ig-av" style="${avOf(name)}">${esc(name.slice(0, 1))}</div>`;
+    : `<div class="ig-av" style="${faceTint(u)}">${esc(faceLetter(u))}</div>`;
 
   return `
     <div class="ig-head">
@@ -881,10 +881,32 @@ function openFace(src, name) {
 const NO_NAME = 'นักเรียน';
 function personName(u) {
   if (!u) return NO_NAME;
-  const n = String(u.display_name || '').trim();
+  // บางจอส่งฟิลด์ชื่อมาว่า name (แถวออนไลน์ · การ์ดในหัวข้อโลก) บางจอส่ง display_name
+  // รับทั้งสองอย่างตรงนี้ที่เดียว จะได้ไม่ต้องมีจอไหนคิดชื่อเองอีก
+  const raw = u.display_name != null ? u.display_name : u.name;
+  const n = String(raw || '').trim();
   if (n && n !== NO_NAME) return n;
   const h = String(u.handle || '').trim();
   return h || NO_NAME;
+}
+
+// ============================================================
+// วงกลมหน้าคน — แหล่งเดียวของทั้งแอป (1B75)
+// ------------------------------------------------------------
+// กติกามีข้อเดียว: **ตัวอักษรกับสีต้องมาจากชื่อที่คนเห็นบนจอเดียวกันนั้น**
+// ถ้าจอหนึ่งโชว์ชื่อว่า sos1048666 แต่วงกลมข้าง ๆ เอา "นักเรียน" ไปคิดสี
+// วงกลมนั้นก็ไม่ได้แทนใครเลย · และคนคนเดียวกันจะเปลี่ยนหน้าไปมาระหว่างจอ
+// ซึ่งอ่านเหมือนแอปจำคนผิด มากกว่าจะอ่านเป็นเรื่องสีสวยไม่สวย
+//
+// ตัวพิมพ์ใหญ่เฉพาะ a-z: ชื่อผู้ใช้ที่ระบบตั้งให้เป็นตัวเล็กหมด (sos1048666)
+// ตัวเล็กตัวเดียวกลางวงกลมใหญ่อ่านเหมือนตัวอักษรหลุดมา ไม่เหมือนหน้าคน
+// ภาษาไทยไม่มีตัวใหญ่ตัวเล็ก จึงไม่แตะ
+function faceLetter(u) {
+  const c = personName(u).trim().slice(0, 1);
+  return /[a-z]/.test(c) ? c.toUpperCase() : (c || '?');
+}
+function faceTint(u) {
+  return avOf(personName(u));
 }
 
 let theUserPosts = [];
@@ -1146,10 +1168,9 @@ function friendInboxHTML() {
     ${friendInbox.map(u => `<div class="fi-row">
       ${u.avatar
         ? `<img class="fd-av" src="${esc(u.avatar)}" alt="">`
-        : `<div class="fd-av" style="${avOf(u.display_name)}">${
-            esc((u.display_name || '?').slice(0, 1))}</div>`}
+        : `<div class="fd-av" style="${faceTint(u)}">${esc(faceLetter(u))}</div>`}
       <div class="fi-bd">
-        <b>${esc(u.display_name || 'นักเรียน')}</b>
+        <b>${esc(personName(u))}</b>
         ${u.strong && u.strong.length
           ? `<i>เก่ง${esc(u.strong.slice(0, 2).join(' · '))}</i>` : ''}
       </div>
