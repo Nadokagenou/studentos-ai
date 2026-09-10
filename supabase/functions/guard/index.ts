@@ -98,16 +98,6 @@ ok เมื่อเป็น: ถามการบ้าน บ่นเร�
 
 type Verdict = { verdict: string; reason?: string; note?: string };
 
-const SCHEMA = {
-  type: 'object',
-  properties: {
-    verdict: { type: 'string', enum: ['ok', 'block'] },
-    reason: { type: 'string' },
-    note: { type: 'string' },
-  },
-  required: ['verdict'],
-};
-
 // ข้อความที่เอาไปโชว์ผู้ใช้ได้เลย — ไม่บอกว่าโมเดลคิดยังไง เพราะนั่นคือคู่มือหลบด่าน
 const SAY: Record<string, string> = {
   csam: 'ส่งรูปนี้ไม่ได้',
@@ -189,14 +179,20 @@ Deno.serve(async (req) => {
         temperature: 0,
         think: 'off',
         json: true,
-        responseSchema: SCHEMA,
+        // ไม่ส่ง responseSchema แล้ว — trail ชี้ว่า flash-latest ตอบ 400 ทิ้งทุกครั้ง
+        // ซึ่งบันไดถอยนับเป็น "คำขอเสียทั้งใบ" ขั้นสุดท้ายของบันไดจึงตายมาตลอด
+        // คำสั่งในพรอมป์ต์บอกรูป JSON อยู่แล้ว และ readVerdict เจียดเอาวงเล็บปีกกา
+        // ออกมาจากข้อความได้เอง จึงไม่ได้พึ่ง schema ตั้งแต่แรก
         maxOutputTokens: VERDICT_TOKENS,
         // budgetMs คือเพดานของ **ทั้งคำขอ** ส่วน attemptMs คือของ **การยิงหนึ่งครั้ง**
         // เดิมตั้ง budgetMs 20 วิเฉย ๆ แล้วปล่อยให้ attemptMs เป็นค่าปริยาย 22 วิ
         // ซึ่งยาวกว่างบทั้งก้อน — พอรุ่นแรกอืด งบก็หมดตั้งแต่ยังไม่ได้ลองรุ่นสำรองสักตัว
         // บันไดถอยที่อุตส่าห์มีจึงไม่เคยถูกใช้เลย และผู้ใช้เห็นเป็น "ตรวจรูปไม่สำเร็จ"
-        // วัดจริง 10 ก.ย. 69: ยิง 6 ครั้งจากแอปจริง ล้ม 2 ครั้งด้วย guard_down
-        attemptMs: 12_000,
+        //
+        // **12 วิสั้นเกินไป** — trail รอบสองบอกว่า '3.6-flash 0 12.0s' คือเราไปตัดเอง
+        // ตอนที่โมเดลยังทำงานอยู่ แล้วเดินลงบันไดไปเจอตัวที่ช้ากว่าเดิม
+        // งานดูรูปกินเวลามากกว่างานข้อความล้วนอยู่แล้ว 25 วิจึงเป็นเพดานที่สมจริง
+        attemptMs: 25_000,
         budgetMs: 45_000,
       });
       const v = readVerdict(r.text ?? '');
@@ -254,10 +250,9 @@ Deno.serve(async (req) => {
         temperature: 0,
         think: 'off',
         json: true,
-        responseSchema: SCHEMA,
         maxOutputTokens: VERDICT_TOKENS,
-        attemptMs: 8_000,
-        budgetMs: 24_000,
+        attemptMs: 15_000,
+        budgetMs: 40_000,
       });
       const v = readVerdict(r.text ?? '');
       if (!v) throw Object.assign(new Error('อ่านคำตัดสินไม่ออก'),
