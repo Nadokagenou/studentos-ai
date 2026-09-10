@@ -961,3 +961,54 @@
 }
 @keyframes faceIn { from { opacity: 0 } to { opacity: 1 } }
 @media (prefers-reduced-motion: reduce) { .face-zoom { animation: none } }
+
+/* ============================================================
+   1B70 · หัวโปรไฟล์ตัวเดียวใช้สองจอ + ปุ่มข้อความที่อยู่นิ่ง
+   ============================================================ */
+
+/* ---------- ป้ายกล้องบนรูปตัวเอง ---------- */
+/* แตะรูป = ขยาย · แตะป้ายกล้อง = เปลี่ยนรูป (ทรงเดียวกับ IG)
+   ของเดิมแตะรูปแล้วเด้งไปเลือกไฟล์ทันที ซึ่งแปลว่าดูรูปตัวเองไม่ได้เลย */
+.ig-av-wrap { position: relative; flex: none; }
+.ig-av-cam {
+  position: absolute; right: -2px; bottom: -2px;
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2.5px solid var(--card); background: var(--blue); color: var(--on-accent);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.ig-av-cam svg { width: 13px; height: 13px; }
+.ig-av-cam:active { transform: scale(.92); }
+
+/* ---------- หัวโปรไฟล์ในแท็บ "ฉัน" ---------- */
+/* .pf-body มี padding ซ้ายขวาของตัวเองอยู่แล้ว (มาจาก .screen)
+   ถ้าปล่อยให้หัวใส่ padding ซ้ำ ขอบจะลึกกว่าจออื่นสองเท่าและอ่านเป็นคนละแอป */
+#pfHead .ig-head, #pfHead .ig-id, #pfHead .ig-bio,
+#pfHead .ig-btns, #pfHead .ig-strip { padding-left: 0; padding-right: 0; }
+#pfHead .ig-head { padding-top: 0; }
+
+/* ---------- ตัวเลขที่เห็นคนเดียว ---------- */
+/* เส้นประคือเส้นแบ่ง "ของสาธารณะ" กับ "ของส่วนตัว" — ต้องเห็นด้วยตาโดยไม่ต้องอ่าน
+   เพราะทั้งหน้านี้คือหน้าเดียวกับที่เพื่อนเปิดดู คนต้องรู้ทันทีว่าอะไรหลุดไปถึงเขาบ้าง */
+.pf-priv { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.pf-priv-lb {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted);
+}
+.pf-priv-lb svg { width: 12px; height: 12px; }
+.pf-priv-n { display: flex; gap: 8px; margin-top: 9px; }
+.pf-priv-n div {
+  flex: 1; padding: 10px 4px; border-radius: 12px; text-align: center;
+  background: var(--card2);
+}
+.pf-priv-n b {
+  display: block; font-size: 17px; font-weight: 700; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.pf-priv-n span { font-size: 10.5px; color: var(--muted); }
+
+/* ---------- ปุ่มข้อความลอย ---------- */
+/* อยู่นอกกองจอ เป็นพี่น้องกับ .tabbar จึงอิงกล่องเดียวกันและอยู่นิ่งตอนเลื่อน
+   (ของเดิมเป็นลูกของ .screen ซึ่ง overflow-y: auto — มันเลื่อนหนีตามเนื้อหา) */
+.fd-fab[hidden] { display: none; }
+.fd-fab { z-index: 6; }
