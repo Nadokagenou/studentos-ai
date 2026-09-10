@@ -90,14 +90,60 @@ let mates = null;          // ผลจับคู่ล่าสุด · null
 let matesErr = null;
 let matesBusy = false;
 
+// ============================================================
+// หน้าตาสาธารณะ — ชื่อกับรูปที่เพื่อนเห็น (1B69)
+// ------------------------------------------------------------
+// **บั๊กที่ผู้ใช้เจอเอง: "อยากให้รูปที่ขึ้นในโปรไฟล์เรา เป็นรูปที่เพื่อนเห็น"**
+//
+// รูปโปรไฟล์ของตัวเองเก็บใน localStorage คีย์ studentos.alt.avatar (ดู AV_KEY ใน app.js)
+// อ่านผ่าน userAvatar() · แต่ publishProfile อ่านจาก state.settings.avatar
+// ซึ่ง **ไม่มีโค้ดบรรทัดไหนในแอปเขียนค่าลงไปเลยสักที่** (ยืนยันด้วย grep: 0 แห่ง)
+// ผลคือทุกครั้งที่กดเผยแพร่ ระบบส่ง avatar: null ขึ้นไปทับของเดิม —
+// เพื่อนจึงไม่มีวันเห็นรูปเรา ไม่ว่าจะตั้งรูปไปแล้วกี่รอบ
+//
+// สองอย่างที่แก้พร้อมกัน ไม่ใช่อย่างเดียว:
+//   1) อ่านจากที่เดียวกับที่เขียน (userAvatar) — แก้แค่ข้อนี้ยังต้องรอผู้ใช้ไปกดเผยแพร่เอง
+//   2) เปลี่ยนรูปหรือชื่อเมื่อไหร่ ดันขึ้นทันที — เพราะไม่มีใครเดาได้ว่าต้องเดินไป
+//      หน้า "วิชาของฉัน" กดปุ่มเผยแพร่อีกรอบ ถึงจะให้เพื่อนเห็นรูปใหม่
+// ============================================================
+function myFace() {
+  return (typeof userAvatar === 'function' ? userAvatar() : '') || null;
+}
+function myName() {
+  return (state.settings.name || '').trim() || 'นักเรียน';
+}
+
+// ดันชื่อกับรูปขึ้นไปเงียบ ๆ · เรียกได้บ่อยโดยไม่เปลืองเน็ต เพราะกันซ้ำด้วยลายเซ็น
+// ไม่ upsert ทั้งแถวโดยตั้งใจ — update เฉพาะสองช่องนี้ เพื่อไม่ให้ไปทับ strong/weak/bio
+// ที่ผู้ใช้ตั้งไว้ตอนเผยแพร่ (upsert ทั้งแถวคือวิธีที่ทำให้ของหายโดยไม่มีใครรู้)
+let lastFaceSig = '';
+async function syncPublicFace(force) {
+  if (!sb || !currentUser) return;
+  const av = myFace();
+  const nm = myName();
+  const sig = nm + '|' + (av ? av.length + ':' + av.slice(-24) : 'none');
+  if (!force && sig === lastFaceSig) return;
+  lastFaceSig = sig;
+  const { error } = await sb.from('profiles')
+    .update({ display_name: nm, avatar: av, updated_at: new Date().toISOString() })
+    .eq('id', currentUser.id);
+  // ยังไม่มีแถวโปรไฟล์ (ยังไม่เคยกดเผยแพร่) — update จะไม่แตะอะไรเลยและไม่ error
+  // สร้างแถวขั้นต่ำให้ เพื่อให้เพื่อนที่ค้นเจอเห็นชื่อกับรูปได้ทันที
+  if (error) { lastFaceSig = ''; return; }
+  const { data } = await sb.from('profiles').select('id').eq('id', currentUser.id).maybeSingle();
+  if (!data) {
+    await sb.from('profiles').insert({ id: currentUser.id, display_name: nm, avatar: av });
+  }
+}
+
 async function publishProfile() {
   if (!sb || !currentUser) return { error: 'ยังไม่ได้ล็อกอิน' };
   const c = socialChips();
   const s = socialState();
   const row = {
     id: currentUser.id,
-    display_name: (state.settings.name || '').trim() || 'นักเรียน',
-    avatar: (state.settings.avatar || null),
+    display_name: myName(),
+    avatar: myFace(),
     bio: s.bio || null,
     strong: c.strong,
     weak: c.weak,

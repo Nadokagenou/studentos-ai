@@ -434,7 +434,8 @@ async function sendHw() {
   hwRoom.msgs.push({
     id: data && data.id, author: currentUser.id, ai: false, body,
     at: (data && data.at) || new Date().toISOString(),
-    name: (state.settings.name || '').trim() || 'ฉัน', avatar: state.settings.avatar || null,
+    name: (state.settings.name || '').trim() || 'ฉัน',
+    avatar: typeof myFace === 'function' ? myFace() : null,
   });
   renderHwRoom();
 }
