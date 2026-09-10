@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B70';                 // สายเลขของแอป
+const APP_VERSION = '1B71';                 // สายเลขของแอป
 const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -5022,12 +5022,20 @@ function renderProfile() {
   if (priv) {
     const tk = typeof tokenState === 'function' ? tokenState() : {};
     const st = typeof loginStreak === 'function' ? loginStreak() : 0;
+    const now2 = new Date();
+    const wk = liveTasks().filter(t => t.done && t.doneAt
+      && (now2 - new Date(t.doneAt)) < 7 * 8.64e7).length;
+    // สี่ช่องนี้คือ **ที่เดียว** ของตัวเลขส่วนตัวบนจอนี้
+    // ก่อนหน้านี้ "งานเสร็จ" โผล่สองรอบในจอเดียว (ที่นี่ กับในบล็อกผลของฉันสีเหลือง)
+    // ตัวเลขเดียวกันสองที่ในหน้าเดียว ทำให้คนไม่แน่ใจว่าอันไหนคือของจริง
+    // และเป็นสัญญาณว่าจอนี้ประกอบจากของสองยุคที่ไม่เคยถูกจัดให้เข้ากัน
     priv.innerHTML = `<div class="pf-priv">
       <div class="pf-priv-lb">${icon('lock')}เห็นคนเดียว</div>
-      <div class="pf-priv-n">
+      <div class="num-row four">
         <div><b>${done}</b><span>งานเสร็จ</span></div>
+        <div><b>${wk}</b><span>ใน 7 วัน</span></div>
         <div><b>${st}</b><span>ต่อเนื่อง</span></div>
-        <div><b>${tk.bal || 0}</b><span>โทเคน</span></div>
+        <div><b>${Math.round(tk.bal || 0)}</b><span>โทเคน</span></div>
       </div>
     </div>`;
   }
@@ -7414,13 +7422,12 @@ function renderStats() {
       <span class="sec-label">ผลของฉัน</span>
       <span class="st-open-go">ดูทั้งหมด${icon('chevron')}</span>
     </button>
-    <div class="st-hero">
-      <div><div class="v">${done.length}</div><div class="k">งานที่เสร็จ</div></div>
-      <div class="sep"></div>
-      <div><div class="v">${week.length}</div><div class="k">เสร็จใน 7 วัน</div></div>
-      <div class="sep"></div>
-      <div><div class="v">${estH}<span class="u">ชม.</span></div><div class="k">เวลาที่ประเมินไว้</div></div>
-    </div>
+    <!-- แถบเหลืองสามช่องถูกถอดออกใน 1B71 — สองในสามช่องซ้ำกับบล็อก "เห็นคนเดียว"
+         ที่อยู่เหนือขึ้นไปในจอเดียวกัน (งานที่เสร็จ · เสร็จใน 7 วัน)
+         และช่องที่สาม "เวลาที่ประเมินไว้ 31.1 ชม." ล้นกรอบจนตัวเลขทับหน่วย
+         เพราะเป็นช่องเดียวที่มีทศนิยม+หน่วยในความกว้างเท่ากับช่องที่มีเลขหลักเดียว
+         ตัวเลขนั้นยังอยู่ครบในจอ "ผลของฉัน" ฉบับเต็มหลังปุ่มดูทั้งหมด
+         สีเหลืองก็หลุดจากชุดสีของจอนี้ที่เหลือเป็นฟ้า-ขาวทั้งหมดด้วย -->
 
     <div class="st-card">
       <div class="st-h">งานที่ติ๊กเสร็จ 7 วันล่าสุด</div>

@@ -751,7 +751,7 @@ function profileHeadHTML(u, opts) {
         ${o.mine ? `<button class="ig-av-cam" aria-label="เปลี่ยนรูปโปรไฟล์"
           onclick="document.getElementById('avInput').click()">${icon('camera')}</button>` : ''}
       </div>
-      <div class="ig-stats">
+      <div class="ig-stats num-row">
         <button onclick="switchUserTab('posts')"><b>${n(u.post_count)}</b><span>โพสต์</span></button>
         <div><b>${n(u.friend_count)}</b><span>เพื่อน</span></div>
         <button onclick="switchUserTab('answers')"><b>${n(u.help_count)}</b><span>ช่วยแล้ว</span></button>
@@ -759,8 +759,7 @@ function profileHeadHTML(u, opts) {
     </div>
 
     <div class="ig-id">
-      <b>${esc(name)}<span class="ig-tick">${icon('check')}นักเรียน</span>${
-        o.mine ? '<span class="fd-mine">คุณ</span>' : ''}</b>
+      <b>${esc(name)}<span class="ig-tick">${icon('check')}นักเรียน</span></b>
       ${where ? `<i>${esc(where)}</i>` : ''}
       ${o.extra || ''}
     </div>
