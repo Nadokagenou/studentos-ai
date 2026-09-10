@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B74';                 // สายเลขของแอป
+const APP_VERSION = '1B75';                 // สายเลขของแอป
 const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -5351,7 +5351,8 @@ function frAv(p) {
   const nm = p.display_name || p.handle || '?';
   return p.avatar
     ? `<div class="fr-av"><img src="${esc(p.avatar)}" alt=""></div>`
-    : `<div class="fr-av" style="${typeof avOf === 'function' ? avOf(nm) : ''}">${esc(nm.slice(0, 1))}</div>`;
+    : `<div class="fr-av" style="${typeof faceTint === 'function' ? faceTint(p) : ''}">${
+        esc(typeof faceLetter === 'function' ? faceLetter(p) : nm.slice(0, 1))}</div>`;
 }
 // 1B56 · คนที่ยังไม่ได้ตั้งชื่อ ไม่ควรถูกเรียกว่า "นักเรียน"
 // คำนั้นเป็นชื่อสามัญที่ใช้ได้กับทุกคนในแอป มันจึงอ่านเหมือนระบบหาชื่อไม่เจอ

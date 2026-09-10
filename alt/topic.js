@@ -309,8 +309,9 @@ function topicThreadCard(x) {
   const foreign = x.lang && x.lang !== TOPIC_LANG;
   const av = x.avatar
     ? `<img class="tp-av" src="${esc(x.avatar)}" alt="">`
-    : `<div class="tp-av"${x.name ? ` style="${typeof avOf === 'function' ? avOf(x.name) : ''}"` : ''}>${
-        esc((x.name || '?').slice(0, 1))}</div>`;
+    : `<div class="tp-av"${x.name ? ` style="${typeof faceTint === 'function' ? faceTint(x) : ''}"` : ''}>${
+        esc(x.name && typeof faceLetter === 'function' ? faceLetter(x)
+                                                       : String(x.name || '?').slice(0, 1))}</div>`;
   return `<article class="tp-card${x.answers ? ' has' : ''}" onclick="openTThread('${esc(x.id)}')">
     <div class="tp-card-h">
       ${av}
