@@ -116,23 +116,38 @@ function myName() {
 // ดันชื่อกับรูปขึ้นไปเงียบ ๆ · เรียกได้บ่อยโดยไม่เปลืองเน็ต เพราะกันซ้ำด้วยลายเซ็น
 // ไม่ upsert ทั้งแถวโดยตั้งใจ — update เฉพาะสองช่องนี้ เพื่อไม่ให้ไปทับ strong/weak/bio
 // ที่ผู้ใช้ตั้งไว้ตอนเผยแพร่ (upsert ทั้งแถวคือวิธีที่ทำให้ของหายโดยไม่มีใครรู้)
+//
+// **กับดักที่ต้องระวังที่สุดของฟังก์ชันนี้ (เจอจริงภายในชั่วโมงเดียวหลังปล่อย 1B69):**
+// รูปเก็บใน localStorage = **เก็บแยกรายเครื่อง** ตั้งรูปในมือถือแล้วเปิดแอปในคอม
+// คอมจะเห็นว่าตัวเองไม่มีรูป แล้วส่ง avatar: null ขึ้นไป **ลบรูปที่มือถือเพิ่งส่งขึ้นไปทิ้ง**
+// ผู้ใช้จะเห็นรูปหายเองโดยไม่ได้ทำอะไรผิดเลย และหาสาเหตุไม่เจอแน่นอน
+//
+// กติกาจึงเป็น: **ส่งรูปขึ้นไปเฉพาะตอนที่เครื่องนี้มีรูปจริง**
+// การลบรูปเกิดได้ทางเดียวคือผู้ใช้กดปุ่มเอาออกเอง (clearAvatar ส่ง opts.clearFace มา)
 let lastFaceSig = '';
-async function syncPublicFace(force) {
+async function syncPublicFace(force, opts) {
   if (!sb || !currentUser) return;
+  const clearFace = !!(opts && opts.clearFace);
   const av = myFace();
   const nm = myName();
-  const sig = nm + '|' + (av ? av.length + ':' + av.slice(-24) : 'none');
+  const sig = nm + '|' + (av ? av.length + ':' + av.slice(-24) : 'none') + (clearFace ? '|clear' : '');
   if (!force && sig === lastFaceSig) return;
   lastFaceSig = sig;
+
+  const patch = { display_name: nm, updated_at: new Date().toISOString() };
+  if (av) patch.avatar = av;              // มีรูปในเครื่องนี้ → ส่งขึ้น
+  else if (clearFace) patch.avatar = null; // ผู้ใช้กดเอาออกเอง → ลบจริง
+  // ไม่มีรูปและไม่ได้กดเอาออก → **ไม่แตะช่องรูปเลย** ปล่อยของเดิมบนเซิร์ฟเวอร์ไว้
+
   const { error } = await sb.from('profiles')
-    .update({ display_name: nm, avatar: av, updated_at: new Date().toISOString() })
+    .update(patch)
     .eq('id', currentUser.id);
   // ยังไม่มีแถวโปรไฟล์ (ยังไม่เคยกดเผยแพร่) — update จะไม่แตะอะไรเลยและไม่ error
   // สร้างแถวขั้นต่ำให้ เพื่อให้เพื่อนที่ค้นเจอเห็นชื่อกับรูปได้ทันที
   if (error) { lastFaceSig = ''; return; }
   const { data } = await sb.from('profiles').select('id').eq('id', currentUser.id).maybeSingle();
   if (!data) {
-    await sb.from('profiles').insert({ id: currentUser.id, display_name: nm, avatar: av });
+    await sb.from('profiles').insert({ id: currentUser.id, display_name: nm, avatar: av || null });
   }
 }
 
@@ -143,13 +158,16 @@ async function publishProfile() {
   const row = {
     id: currentUser.id,
     display_name: myName(),
-    avatar: myFace(),
     bio: s.bio || null,
     strong: c.strong,
     weak: c.weak,
     open_to_help: s.open,
     updated_at: new Date().toISOString(),
   };
+  // ใส่รูปเฉพาะตอนที่เครื่องนี้มีจริง — กับดักเดียวกับ syncPublicFace
+  // ถ้าใส่ตลอด การกดเผยแพร่จากเครื่องที่ไม่มีรูปจะลบรูปที่ตั้งไว้จากอีกเครื่องทิ้ง
+  const face = myFace();
+  if (face) row.avatar = face;
   const { error } = await sb.from('profiles').upsert(row);
   if (error) return { error: error.message };
   saveSocial(Object.assign(s, { strong: c.strong, weak: c.weak, pubAt: Date.now() }));

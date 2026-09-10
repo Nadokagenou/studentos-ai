@@ -577,28 +577,29 @@ async function myFirstRoom() {
 // ประเทศ + ช่วงชั้นของตัวเอง · คืนเป็นก้อนเดียวเพราะสองค่านี้ใช้คู่กันเสมอ
 // (ประเทศอย่างเดียวไม่พอ ช่วงชั้นอย่างเดียวก็ไม่พอ — กุญแจของสโคปนี้คือทั้งคู่)
 // ============================================================
-// 1B68 · ปุ่มข้อความลอยมุมล่างขวา
+// ปุ่มข้อความลอย (1B68 · ย้ายออกนอกกองจอใน 1B70)
 // ------------------------------------------------------------
-// เดิมเป็นไอคอนเล็ก ๆ บนหัวจอ ปนอยู่กับปุ่มอื่นและไม่มีป้ายกำกับ
-// ผู้ใช้วาดลูกศรจากไอคอนนั้นชี้ลงมุมล่างขวาแล้วเขียนว่า "อยากให้เห็นชัดกว่านี้"
+// ผู้ใช้สั่งสองรอบ: รอบแรก "อยากให้เห็นชัดกว่านี้" (ย้ายลงมุมล่างขวา)
+// รอบสอง "อยากให้ติดขอบจอตลอด ไม่ว่าจะเปิดหน้าไหน เลื่อนลงเลื่อนขึ้น"
 //
-// วาดแยกจาก innerHTML ของฟีดโดยตั้งใจ — ฟีดวาดใหม่ทุกครั้งที่มีโพสต์เข้า
-// ปุ่มที่ถูกสร้างใหม่ทุกรอบจะกระพริบ และกดพลาดได้ถ้านิ้วลงตรงจังหวะที่กำลังวาด
-// ตัวนี้จึงสร้างครั้งเดียวแล้วแค่เปลี่ยนสถานะ
+// รอบแรกวางไว้ข้างใน #scr-mates ซึ่งผิด เพราะ .screen เป็น absolute + overflow-y:auto
+// ปุ่มจึงเป็นลูกของกล่องที่เลื่อนได้ แล้วเลื่อนหนีตามเนื้อหา และโผล่แค่จอเดียว
+// ตอนนี้ตัวปุ่มอยู่ใน index.html เป็นพี่น้องกับ .tabbar แล้ว (อิงกล่องเดียวกัน อยู่นิ่งเสมอ)
+// ฟังก์ชันนี้เหลือหน้าที่เดียวคือเปิด/ปิด และอัปเดตตัวเลข
+//
+// ซ่อนในจอที่ปุ่มจะไปทับของสำคัญ: จอล็อกอิน · จอที่มีช่องพิมพ์ติดก้นจอ
+// (แชท · ห้องการบ้าน · เธรดหัวข้อ · กล่องข้อความเอง ซึ่งมีปุ่มดินสอของตัวเองอยู่แล้ว)
+const FAB_HIDE = ['scr-login', 'scr-onboard', 'scr-chat', 'scr-hw',
+  'scr-topic', 'scr-tthread', 'scr-dm', 'scr-compose', 'scr-crop', 'scr-scan'];
+
 function paintFeedFab() {
-  const host = document.getElementById('scr-mates');
-  if (!host) return;
-  let fab = document.getElementById('feedFab');
-  const show = !!currentUser && typeof dmReady !== 'undefined' && dmReady;
-  if (!show) { if (fab) fab.remove(); return; }
-  if (!fab) {
-    fab = document.createElement('button');
-    fab.id = 'feedFab';
-    fab.className = 'fd-fab';
-    fab.setAttribute('aria-label', 'ข้อความ');
-    fab.onclick = () => openDmInbox();
-    host.appendChild(fab);
-  }
+  const fab = document.getElementById('feedFab');
+  if (!fab) return;
+  const ready = !!currentUser && typeof dmReady !== 'undefined' && dmReady;
+  const show = ready && !FAB_HIDE.includes(curScreen);
+  fab.hidden = !show;
+  if (!show) return;
+  if (!fab.onclick) fab.onclick = () => openDmInbox();
   const n = typeof dmPending === 'number' ? dmPending : 0;
   fab.innerHTML = icon('chat') + (n ? `<i>${n > 9 ? '9+' : n}</i>` : '');
   fab.classList.toggle('has-req', !!n);
@@ -715,6 +716,116 @@ function openFeed(view) {
 // ฟีดที่แตะรูปใครแล้วไม่มีอะไรเกิดขึ้น จึงอ่านเป็น "รายการข้อความ" ไม่ใช่ "ที่ที่มีคนอยู่"
 // ============================================================
 let theUser = null;
+// ============================================================
+// หัวโปรไฟล์ตัวกลาง — ใช้ทั้งหน้าเพื่อนและแท็บ "ฉัน" (1B70)
+// ------------------------------------------------------------
+// ผู้ใช้สั่งเอง: "ตรงโปรไฟล์ฉันอยากให้มันเป็นอันเดียวกัน ต้องเป็นอันเดียวกัน
+// ตอนเพื่อนเปิดดูของเราก็จะเป็นหน้านี้"
+//
+// เหตุผลที่ลึกกว่าความสวย: ถ้าหน้าตัวเองกับหน้าที่คนอื่นเห็นเป็นคนละหน้า
+// **ไม่มีใครรู้เลยว่าคนอื่นเห็นเราเป็นยังไง** — ซึ่งเป็นสิ่งที่คนแก้ให้ดีขึ้นไม่ได้
+// ถ้ามองไม่เห็น · IG แก้ข้อนี้ด้วยการใช้หน้าเดียวกัน ต่างแค่ปุ่ม
+//
+// ฟังก์ชันนี้จึงเป็น **แหล่งเดียว** ของหัวโปรไฟล์ทั้งแอป
+// วันไหนแก้ ต้องแก้ที่นี่ที่เดียว และทั้งสองจอเปลี่ยนพร้อมกันเสมอโดยอัตโนมัติ
+// ============================================================
+function profileHeadHTML(u, opts) {
+  const o = opts || {};
+  const name = personName(u);
+  const n = (v) => (v > 999 ? (v / 1000).toFixed(1).replace('.0', '') + 'k' : (v || 0));
+  const where = [u.grade, u.school].filter(Boolean).join(' · ');
+  const chips = []
+    .concat((u.strong || []).map(x => `<span class="ig-chip good">ช่วยได้ · ${esc(x)}</span>`))
+    .concat((u.weak || []).map(x => `<span class="ig-chip need">อยากได้ · ${esc(x)}</span>`));
+
+  // รูป: แตะแล้วขยายเสมอ · ของตัวเองมีป้ายกล้องมุมล่างขวาไว้เปลี่ยนรูป (ทรงเดียวกับ IG)
+  const face = u.avatar
+    ? `<img class="ig-av tap" src="${esc(u.avatar)}" alt="รูปโปรไฟล์"
+         onclick="openFace('${esc(u.avatar)}','${esc(name).replace(/'/g, "\\'")}')">`
+    : `<div class="ig-av" style="${avOf(name)}">${esc(name.slice(0, 1))}</div>`;
+
+  return `
+    <div class="ig-head">
+      <div class="ig-av-wrap">
+        ${face}
+        ${o.mine ? `<button class="ig-av-cam" aria-label="เปลี่ยนรูปโปรไฟล์"
+          onclick="document.getElementById('avInput').click()">${icon('camera')}</button>` : ''}
+      </div>
+      <div class="ig-stats">
+        <button onclick="switchUserTab('posts')"><b>${n(u.post_count)}</b><span>โพสต์</span></button>
+        <div><b>${n(u.friend_count)}</b><span>เพื่อน</span></div>
+        <button onclick="switchUserTab('answers')"><b>${n(u.help_count)}</b><span>ช่วยแล้ว</span></button>
+      </div>
+    </div>
+
+    <div class="ig-id">
+      <b>${esc(name)}<span class="ig-tick">${icon('check')}นักเรียน</span>${
+        o.mine ? '<span class="fd-mine">คุณ</span>' : ''}</b>
+      ${where ? `<i>${esc(where)}</i>` : ''}
+      ${o.extra || ''}
+    </div>
+    ${u.bio ? `<p class="ig-bio">${esc(u.bio)}</p>` : ''}
+    ${o.buttons || ''}
+    ${chips.length ? `<div class="ig-strip">${chips.join('')}</div>` : ''}`;
+}
+
+// ---------- ก้อนโปรไฟล์ของตัวเอง ----------
+// ถามผ่าน user_card ตัวเดียวกับหน้าเพื่อน — ตัวเลขจึงนับด้วยกติกาเดียวกันเป๊ะ
+// ถ้าคิดเองฝั่งแอป วันหนึ่งสองหน้าจะบอกเลขไม่ตรงกันโดยไม่มีใครรู้ว่าอันไหนถูก
+let myCard = null;
+let myCardAt = 0;
+async function loadMyCard(force) {
+  if (!sb || !currentUser) { myCard = null; return; }
+  if (!force && myCard && Date.now() - myCardAt < 60000) return;
+  myCardAt = Date.now();
+  const { data } = await sb.rpc('user_card', { p_user: currentUser.id });
+  myCard = (Array.isArray(data) ? data[0] : data) || null;
+  renderProfileHead();
+}
+
+// วาดหัวในแท็บ "ฉัน" · เรียกจาก renderProfile ใน app.js
+function renderProfileHead() {
+  const box = document.getElementById('pfHead');
+  if (!box) return;
+
+  // ยังไม่ได้ล็อกอิน = ไม่มีโปรไฟล์สาธารณะให้โชว์ · บอกตรง ๆ แล้วให้ทางไปต่อ
+  if (!currentUser) {
+    const nm = (state.settings.name || '').trim() || 'นักเรียน';
+    const pic = typeof userAvatar === 'function' ? userAvatar() : '';
+    box.innerHTML = profileHeadHTML(
+      { display_name: nm, avatar: pic || null, strong: [], weak: [],
+        post_count: 0, friend_count: 0, help_count: 0 },
+      { mine: true,
+        buttons: `<div class="ig-btns">
+          <button class="pri" onclick="setLoginView('root');go('scr-login')">${icon('user')}เข้าสู่ระบบ</button>
+        </div>`,
+        extra: '<i>ยังไม่ล็อกอิน — เพื่อนยังหาคุณไม่เจอ</i>' });
+    return;
+  }
+
+  // ระหว่างรอเซิร์ฟเวอร์ ใช้ของในเครื่องไปก่อน จอจะได้ไม่ว่างหนึ่งจังหวะ
+  const local = {
+    id: currentUser.id,
+    display_name: (state.settings.name || '').trim(),
+    handle: (typeof frHandle !== 'undefined' && frHandle) ? frHandle : '',
+    avatar: (typeof userAvatar === 'function' ? userAvatar() : '') || null,
+    strong: [], weak: [], post_count: 0, friend_count: 0, help_count: 0,
+  };
+  const u = Object.assign(local, myCard || {});
+  // รูปในเครื่องมาก่อนของเซิร์ฟเวอร์เสมอ — เครื่องนี้คือที่ที่เขาเพิ่งตั้งมัน
+  if (local.avatar) u.avatar = local.avatar;
+
+  box.innerHTML = profileHeadHTML(u, {
+    mine: true,
+    buttons: `<div class="ig-btns">
+      <button class="pri" onclick="go('scr-people'); renderMates()">${icon('pencil')}แก้ไขโปรไฟล์</button>
+      <!-- ปุ่มนี้คือหัวใจของการรวมสองหน้า — กดแล้วเห็นของจริงที่เพื่อนเห็น
+           ไม่ใช่ภาพจำลอง เพราะมันเปิดหน้าเดียวกับที่เพื่อนเปิดจริง ๆ -->
+      <button onclick="openUser(currentUser.id)">${icon('users')}ดูแบบที่เพื่อนเห็น</button>
+    </div>`,
+  });
+}
+
 // ============================================================
 // แตะรูปโปรไฟล์แล้วขยาย (1B69)
 // ------------------------------------------------------------
@@ -862,49 +973,29 @@ function renderUser() {
     </div>
 
     <div class="us-scroll">
-      <div class="ig-head">
-        ${u.avatar
-          ? `<img class="ig-av tap" src="${esc(u.avatar)}" alt="รูปโปรไฟล์"
-               onclick="openFace('${esc(u.avatar)}','${esc(name).replace(/'/g, "\'")}')">`
-          : `<div class="ig-av" style="${avOf(name)}">${esc(name.slice(0, 1))}</div>`}
-        <div class="ig-stats">
-          <button onclick="switchUserTab('posts')"><b>${n(u.post_count)}</b><span>โพสต์</span></button>
-          <div><b>${n(u.friend_count)}</b><span>เพื่อน</span></div>
-          <button onclick="switchUserTab('answers')"><b>${n(u.help_count)}</b><span>ช่วยแล้ว</span></button>
-        </div>
-      </div>
-
-      <div class="ig-id">
-        <b>${esc(name)}<!-- ป้ายติ๊กถูกแทนที่จะเอาคำว่า "นักเรียน" ไปเป็นชื่อ
-             ผู้ใช้เสนอเอง: "อาจจะเป็นชื่อเพื่อนก่อน แล้วค่อยติ๊กถูกว่าเป็นนักเรียน" -->
-          <span class="ig-tick">${icon('check')}นักเรียน</span>${
-          u.mine ? '<span class="fd-mine">คุณ</span>' : ''}</b>
-        ${where ? `<i>${esc(where)}</i>` : ''}
-        ${on ? `<div class="us-live${on.subject ? ' busy' : ''}">
+      ${profileHeadHTML(u, {
+        mine: false,
+        extra: on ? `<div class="us-live${on.subject ? ' busy' : ''}">
             <span class="rm-dot"></span>${on.subject
-              ? 'กำลังติว' + esc(on.subject) + 'อยู่' : 'ออนไลน์อยู่'}</div>` : ''}
-      </div>
-      ${u.bio ? `<p class="ig-bio">${esc(u.bio)}</p>` : ''}
-
-      ${u.mine ? '' : (() => {
-        const f = FRIEND_BTN[friendState] || FRIEND_BTN.none;
-        return `<div class="ig-btns">
-          <button class="pri" onclick="pokeUser()">${icon('chat')}ทัก</button>
-          <button class="${f.cls}" onclick="${f.act}">
-            ${icon(friendState === 'friends' ? 'check' : 'users')}${f.t}</button>
-        </div>`;
-      })()}
+              ? 'กำลังติว' + esc(on.subject) + 'อยู่' : 'ออนไลน์อยู่'}</div>` : '',
+        buttons: u.mine ? '' : (() => {
+          const f = FRIEND_BTN[friendState] || FRIEND_BTN.none;
+          return `<div class="ig-btns">
+            <button class="pri" onclick="pokeUser()">${icon('chat')}ทัก</button>
+            <button class="${f.cls}" onclick="${f.act}">
+              ${icon(friendState === 'friends' ? 'check' : 'users')}${f.t}</button>
+          </div>`;
+        })(),
+      })}
 
       <!-- เหตุผลที่ควรทักเขา — ของชิ้นเดียวบนหน้านี้ที่ IG ไม่มีและลอกไม่ได้
-           เพราะมันมาจากการที่แอปรู้ว่าใครจมวิชาไหน · ต้องอยู่เหนือแถบแท็บเสมอ -->
+           เพราะมันมาจากการที่แอปรู้ว่าใครจมวิชาไหน -->
       ${(u.match && u.match.length) || (u.give && u.give.length) ? `<div class="ig-why">
         ${u.match && u.match.length
           ? `<p class="so-why good">เก่ง<b>${esc(u.match.join(' · '))}</b> ซึ่งเป็นวิชาที่คุณกำลังจม</p>` : ''}
         ${u.give && u.give.length
           ? `<p class="so-why give">กำลังจม<b>${esc(u.give.join(' · '))}</b> ซึ่งคุณช่วยได้</p>` : ''}
       </div>` : ''}
-
-      ${chips.length ? `<div class="ig-strip">${chips.join('')}</div>` : ''}
 
       <div class="ig-tabs">
         <button class="${userTab === 'posts' ? 'on' : ''}" onclick="switchUserTab('posts')">

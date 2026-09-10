@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B69';                 // สายเลขของแอป
+const APP_VERSION = '1B70';                 // สายเลขของแอป
 const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -937,6 +937,9 @@ function go(id) {
   // อยู่มุมขวาบนตรงตำแหน่งเดียวกับปุ่มเพื่อนพอดี สองปุ่มจึงทับกันจนกดผิดตัวได้
   // จอพวกนี้เข้ามาจากทางอื่นอยู่แล้ว ปุ่มเพื่อนจึงหลบให้ปุ่มย้อนกลับไปก่อน
   document.body.classList.toggle('deep-scr', !TABBED_SCREENS.includes(id));
+  // ปุ่มข้อความลอยต้องอัปเดตทุกครั้งที่เปลี่ยนจอ — มันอยู่นอกกองจอ
+  // จึงไม่มีใครวาดใหม่ให้เองเหมือนของที่อยู่ในจอ (1B70)
+  if (typeof paintFeedFab === 'function') paintFeedFab();
   // ปุ่มเพื่อนลอยมุมขวาบนต้องหลบหน้า "วันนี้" — มันนั่งทับกระดิ่งกล่องเข้าพอดี
   // และเพื่อนไม่ใช่คำตอบของ "ตอนนี้ควรทำอะไร" · ทางเข้ายังอยู่ครบสองที่ในแท็บ "ฉัน"
   document.body.classList.toggle('home-scr', id === 'scr-menu');
@@ -5004,46 +5007,45 @@ function renderProfile() {
   const done = liveTasks().filter(t => t.done).length;
   const name = state.settings.name || (currentUser && currentUser.user_metadata && currentUser.user_metadata.full_name) || 'นักเรียน';
   const pic = currentUser && currentUser.user_metadata && (currentUser.user_metadata.avatar_url || currentUser.user_metadata.picture);
-
-  // รูปที่ตั้งเองมาก่อนรูปจากบัญชี Google — ผู้ใช้เลือกเองย่อมตั้งใจกว่า
   const mine = userAvatar();
-  const av = document.getElementById('pfAv');
-  if (av) {
-    av.innerHTML = (mine || pic)
-      ? `<img src="${esc(mine || pic)}" alt="">`
-      : esc(name.trim().charAt(0).toUpperCase() || 'N');
-    av.classList.toggle('has-img', !!(mine || pic));
+
+  // ---------- หัวโปรไฟล์ ----------
+  // 1B70 · วาดด้วย profileHeadHTML() ตัวเดียวกับหน้าที่เพื่อนเปิดดู (อยู่ใน feed.js)
+  // ของเดิมเป็นการ์ดสีน้ำเงินคนละทรงกับหน้าเพื่อน ทำให้ไม่มีใครรู้ว่าคนอื่นเห็นเราเป็นยังไง
+  if (typeof renderProfileHead === 'function') renderProfileHead();
+  if (typeof loadMyCard === 'function') loadMyCard();
+
+  // ---------- ตัวเลขที่เห็นคนเดียว ----------
+  // ย้ายลงมาใต้หัว ติดป้ายให้ชัดว่าไม่ใช่ของสาธารณะ
+  // เดิมมันนั่งอยู่บนการ์ดหัวจอ ปนกับชื่อและรูป ซึ่งอ่านเหมือนเป็นของที่เพื่อนเห็นด้วย
+  const priv = document.getElementById('pfPriv');
+  if (priv) {
+    const tk = typeof tokenState === 'function' ? tokenState() : {};
+    const st = typeof loginStreak === 'function' ? loginStreak() : 0;
+    priv.innerHTML = `<div class="pf-priv">
+      <div class="pf-priv-lb">${icon('lock')}เห็นคนเดียว</div>
+      <div class="pf-priv-n">
+        <div><b>${done}</b><span>งานเสร็จ</span></div>
+        <div><b>${st}</b><span>ต่อเนื่อง</span></div>
+        <div><b>${tk.bal || 0}</b><span>โทเคน</span></div>
+      </div>
+    </div>`;
   }
-  // ปุ่มเอารูปออก โผล่เฉพาะคนที่ตั้งรูปเองไว้ (รูปจากบัญชี Google เอาออกที่นี่ไม่ได้)
-  const avDel = document.getElementById('avDel');
-  if (avDel) avDel.hidden = !mine;
-  const avLabel = document.getElementById('avPickLabel');
-  if (avLabel) avLabel.textContent = mine ? 'เปลี่ยนรูป' : 'เลือกรูป';
-  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  const sub = currentUser ? (currentUser.email || 'ซิงก์ข้ามเครื่องอยู่') : 'ยังไม่ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้';
-  set('pfNm', name);
-  set('pfSb', sub);
+
   // การ์ดตัวตนบนหัวจอตั้งค่า — ข้อมูลชุดเดียวกับหน้า "ฉัน" ต้องไม่มีทางขัดกันเอง
+  const sub = currentUser ? (currentUser.email || 'ซิงก์ข้ามเครื่องอยู่') : 'ยังไม่ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้';
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
   set('setNm', name);
   set('setSb', sub);
   const sav = document.getElementById('setAv');
   if (sav) sav.innerHTML = (mine || pic)
     ? `<img src="${esc(mine || pic)}" alt="">`
     : esc(name.trim().charAt(0).toUpperCase() || 'N');
-  // 1B55 · สี่ช่องที่โตได้ทุกช่อง — "เพดานงาน/วัน" ถูกถอดออกเพราะเป็นค่าที่ตั้งไว้
-  // ไม่ใช่สิ่งที่ทำได้ · มันย้ายไปอยู่จอตั้งค่าซึ่งเป็นที่ของมัน
-  const tk = typeof tokenState === 'function' ? tokenState() : {};
-  set('pfDone', done);
-  set('pfStreak', typeof loginStreak === 'function' ? loginStreak() : 0);
-  set('pfTok', tk.bal || 0);
-  set('pfFriends', (typeof frList !== 'undefined' && Array.isArray(frList)) ? frList.length : 0);
-  // ชื่อผู้ใช้ใต้ชื่อจริง — ขึ้นเฉพาะคนที่ตั้งไว้แล้ว
-  const atEl = document.getElementById('pfAt');
-  if (atEl) {
-    const h = (typeof frHandle !== 'undefined' && frHandle) ? frHandle : '';
-    atEl.textContent = h ? '@' + h : '';
-    atEl.hidden = !h;
-  }
+  // ปุ่มเอารูปออกอยู่ในจอตั้งค่า โผล่เฉพาะคนที่ตั้งรูปเองไว้
+  const avDel = document.getElementById('avDel');
+  if (avDel) avDel.hidden = !mine;
+  const avLabel = document.getElementById('avPickLabel');
+  if (avLabel) avLabel.textContent = mine ? 'เปลี่ยนรูป' : 'เลือกรูป';
 
   // บัญชี
   const acc = document.getElementById('accountCard');
@@ -9661,7 +9663,8 @@ function clearAvatar() {
   try { localStorage.removeItem(AV_KEY); } catch (_) {}
   vaultTouch();
   renderProfile();
-  if (typeof syncPublicFace === 'function') syncPublicFace(true);
+  // ส่ง clearFace มาด้วย — นี่คือทางเดียวที่รูปบนเซิร์ฟเวอร์จะถูกลบ
+  if (typeof syncPublicFace === 'function') syncPublicFace(true, { clearFace: true });
   showToast({ title: 'เอารูปโปรไฟล์ออกแล้ว', body: 'กลับไปใช้ตัวอักษรแรกของชื่อเหมือนเดิม' });
 }
 
