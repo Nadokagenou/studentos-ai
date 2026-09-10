@@ -658,3 +658,30 @@
   cursor: pointer; object-fit: cover;
 }
 .ch-img + .ch-bub { margin-top: 4px; }
+
+/* ============================================================
+   1B76 · ลบข้อความที่ส่งไปแล้ว + รูปที่กำลังรอลิงก์ชั่วคราว
+   ------------------------------------------------------------
+   ปุ่มลบซ่อนอยู่ในบรรทัดเวลา ไม่ใช่ปุ่มลอยข้างฟอง — สองเหตุผล:
+   บรรทัดเวลาโผล่เฉพาะฟองสุดท้ายของก้อนอยู่แล้ว ปุ่มจึงไม่ซ้ำสิบรอบในก้อนเดียว
+   และปุ่มลอยข้างฟองต้องกันที่ว่างไว้ตลอดเวลา ซึ่งทำให้ฟองทุกใบแคบลงเพื่อของ
+   ที่แทบไม่มีใครกด
+   ============================================================ */
+.ch-del {
+  border: 0; background: none; padding: 0 2px;
+  font: inherit; font-size: 10.5px;
+  color: var(--faint); cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.ch-del:hover { color: var(--bad, #c0392b); }
+
+/* รูปใน bucket ปิดต้องรอลิงก์ชั่วคราวก่อนถึงจะโหลดได้ ระหว่างนั้นกันที่ไว้
+   ขนาดเท่ารูปจริง ไม่งั้นพอรูปมาถึง ข้อความทั้งหน้าจะกระโดดลงไปหนึ่งช่วง */
+.ch-img.wait {
+  display: block; width: 220px; height: 165px;
+  border-radius: 16px; border: 1px solid var(--line);
+  background: linear-gradient(100deg, var(--card) 30%, var(--line) 50%, var(--card) 70%)
+              0 0 / 300% 100%;
+  animation: chImgWait 1.1s linear infinite;
+}
+@keyframes chImgWait { to { background-position: -150% 0; } }

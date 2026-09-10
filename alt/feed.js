@@ -386,10 +386,127 @@ function postCard(p) {
     <div class="fd-foot">
       <span class="fd-reply">${icon('chat')}${p.reply_count ? p.reply_count + ' คำตอบ' : 'ยังไม่มีใครตอบ'}</span>
       ${p.kind === 'help' && !p.reply_count ? '<span class="fd-wait">รออยู่</span>' : ''}
-      ${p.mine ? '' : `<button class="fd-flagbtn" aria-label="รายงานโพสต์นี้"
-        onclick="event.stopPropagation();openReport('post','${esc(p.id)}')">${icon('flag')}</button>`}
+      ${p.mine
+        ? `<button class="fd-flagbtn" aria-label="ลบโพสต์นี้"
+            onclick="event.stopPropagation();delPost('${esc(p.id)}')">${icon('trash')}</button>`
+        : `<button class="fd-flagbtn" aria-label="รายงานโพสต์นี้"
+            onclick="event.stopPropagation();openReport('post','${esc(p.id)}')">${icon('flag')}</button>`}
     </div>
   </article>`;
+}
+
+// ============================================================
+// ตัวกรองเนื้อหา — ฝั่งแอป (1B76)
+// ------------------------------------------------------------
+// ผู้ใช้เคาะกติกาไว้: รูปกันก่อนส่ง · ข้อความปล่อยขึ้นก่อนแล้วสแกนตามหลัง
+// ฝั่งเซิร์ฟเวอร์อยู่ใน Edge Function ชื่อ guard (migration 27)
+//
+// **สามสถานะที่ต้องแยกให้ออก** ไม่ใช่สองอย่างที่คนมักเขียน (ผ่าน/ไม่ผ่าน):
+//   1) ตัวกรองบอกว่าไม่ผ่าน      -> ไม่ให้ส่ง บอกเหตุผลเป็นภาษาคน
+//   2) ตัวกรองล่ม/หมดโควตา      -> ไม่ให้ส่ง บอกให้ลองใหม่  (ล้มแบบปิด)
+//   3) ยังไม่ได้ deploy guard เลย -> ให้ส่ง
+//
+// ข้อ 3 คือข้อที่ต้องคิด: ถ้าเหมาว่า "เรียกไม่ได้ = ไม่ให้ส่ง" แอปจะส่งรูปไม่ได้เลย
+// ทั้งแอปจนกว่าจะมีคน deploy ซึ่งไม่ได้ทำให้ใครปลอดภัยขึ้น มีแต่ทำให้แอปพัง
+// และสภาพก่อนหน้านี้ก็คือไม่มีตัวกรองอยู่แล้ว จึงไม่ได้แย่ลงกว่าเดิม
+// แยกสองอย่างนี้ด้วยรหัสตอบกลับ: 404 = ยังไม่มีฟังก์ชัน · อย่างอื่น = มีแต่ล้ม
+let guardMissing = false;         // จำไว้ทั้งอายุแอป จะได้ไม่ยิงซ้ำทุกครั้งที่แนบรูป
+
+function blobToB64(blob) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).split(',')[1] || '');
+    r.onerror = () => rej(new Error('อ่านไฟล์ไม่ได้'));
+    r.readAsDataURL(blob);
+  });
+}
+
+// คืน { ok } เมื่อผ่าน · { ok:false, message } เมื่อไม่ผ่านหรือตรวจไม่ได้
+async function guardImage(blob) {
+  if (guardMissing || !sb || !currentUser) return { ok: true };
+  try {
+    const b64 = await blobToB64(blob);
+    const { data, error } = await sb.functions.invoke('guard', {
+      body: { mode: 'image', b64, mime: 'image/jpeg' },
+    });
+    if (error) {
+      // supabase-js ยัดสถานะไว้ใน error.context ตอนฟังก์ชันตอบไม่ใช่ 2xx
+      const st = (error.context && error.context.status) || 0;
+      if (st === 404) { guardMissing = true; return { ok: true }; }
+      // guard เองตอบ 503 พร้อมข้อความไทยตอนตรวจไม่สำเร็จ — เอามาโชว์ตรง ๆ
+      let msg = 'ตรวจรูปไม่สำเร็จ ลองส่งใหม่อีกครั้ง';
+      try { const b = await error.context.json(); if (b && b.message) msg = b.message; } catch (_) {}
+      return { ok: false, message: msg };
+    }
+    if (data && data.ok === false) return { ok: false, message: data.message || 'ส่งรูปนี้ไม่ได้' };
+    return { ok: true };
+  } catch (_) {
+    // ยิงไม่ถึงเลย (เน็ตหลุด) — ล้มแบบปิดเหมือนกัน
+    return { ok: false, message: 'ตรวจรูปไม่สำเร็จ ลองส่งใหม่อีกครั้ง' };
+  }
+}
+
+// ข้อความ: ยิงแล้วไม่รอ · ของขึ้นไปแล้ว การรอผลจึงไม่ได้กันอะไร มีแต่ทำให้ช้า
+// ถ้าตัวกรองตัดสินว่าไม่ผ่าน มันซ่อนของให้เองฝั่งเซิร์ฟเวอร์แล้ว
+function guardText(kind, target, text) {
+  if (guardMissing || !sb || !currentUser || !target || !String(text || '').trim()) return;
+  try {
+    sb.functions.invoke('guard', { body: { mode: 'text', kind, target: String(target), text } })
+      .then(({ error }) => {
+        if (error && (error.context && error.context.status) === 404) guardMissing = true;
+      })
+      .catch(() => {});
+  } catch (_) {}
+}
+
+
+// ============================================================
+// ลบของตัวเอง (1B76)
+// ------------------------------------------------------------
+// ผู้ใช้ทักมาว่า "แบบนี้ลบสิ่งที่โพสไม่ได้" ซึ่งถูก — ก่อน migration 26
+// ทั้งฐานข้อมูลไม่มีคำสั่งลบเลยสักตัว และ policy บน posts มีแค่ insert
+//
+// **RPC คืน path ของรูปมาให้ แล้วต้องลบไฟล์ต่อเสมอ** ลบแค่แถวในตาราง
+// แล้วทิ้งไฟล์ไว้ = รูปยังเปิดได้ด้วย URL เดิมทุกประการ ซึ่งไม่ใช่การลบ
+// เป็นแค่การเอาออกจากหน้าจอ · คนที่กดลบเพราะเผลอโพสต์รูปที่ไม่ควรโพสต์
+// จะเข้าใจว่ามันหายไปแล้ว ทั้งที่ยังอยู่
+function rpcGone(err) {
+  return !!err && (err.code === 'PGRST202' || err.code === '42883');
+}
+
+async function delPost(id) {
+  if (!sb || !currentUser) return;
+  if (!confirm('ลบโพสต์นี้ถาวร คำตอบใต้โพสต์หายไปด้วย แน่ใจนะ?')) return;
+  const { data, error } = await sb.rpc('post_delete', { p_post: id });
+  if (error) {
+    if (typeof haptic === 'function') haptic('snooze');
+    showToast({ title: 'ลบไม่สำเร็จ',
+      body: rpcGone(error) ? 'ยังไม่ได้อัปเดตฐานข้อมูล' : error.message });
+    return;
+  }
+  if (data) { try { await sb.storage.from('posts').remove([data]); } catch (_) {} }
+  feedRows = (typeof feedRows !== 'undefined' && Array.isArray(feedRows))
+    ? feedRows.filter(x => x.id !== id) : feedRows;
+  if (typeof thePost !== 'undefined' && thePost && thePost.id === id) { go('scr-feed'); }
+  if (typeof haptic === 'function') haptic('done');
+  renderFeed();
+  showToast({ title: 'ลบแล้ว' });
+}
+
+async function delReply(id) {
+  if (!sb || !currentUser) return;
+  if (!confirm('ลบคำตอบนี้ถาวร แน่ใจนะ?')) return;
+  const { error } = await sb.rpc('reply_delete', { p_reply: Number(id) });
+  if (error) {
+    if (typeof haptic === 'function') haptic('snooze');
+    showToast({ title: 'ลบไม่สำเร็จ',
+      body: rpcGone(error) ? 'ยังไม่ได้อัปเดตฐานข้อมูล' : error.message });
+    return;
+  }
+  theReplies = (theReplies || []).filter(x => String(x.id) !== String(id));
+  if (typeof haptic === 'function') haptic('done');
+  renderFeed();
+  showToast({ title: 'ลบแล้ว' });
 }
 
 function postImageUrl(path) {
@@ -537,6 +654,17 @@ async function submitPost() {
 
   let imagePath = null;
   if (composeImg) {
+    // ตรวจก่อนอัปโหลด ไม่ใช่หลังอัปโหลด — ตรวจทีหลังแปลว่ารูปขึ้นไปอยู่บน storage
+    // และมี URL ที่เปิดได้จริงแล้วตั้งแต่ก่อนรู้ผล
+    if (btn) btn.textContent = 'กำลังตรวจรูป…';
+    const g = await guardImage(composeImg.blob);
+    if (!g.ok) {
+      if (btn) { btn.disabled = false; btn.textContent = 'โพสต์'; }
+      if (typeof haptic === 'function') haptic('snooze');
+      showToast({ title: 'ส่งรูปนี้ไม่ได้', body: g.message });
+      return;
+    }
+    if (btn) btn.textContent = 'กำลังโพสต์…';
     const path = currentUser.id + '/' + Date.now() + '.jpg';
     const up = await sb.storage.from('posts').upload(path, composeImg.blob, { contentType: 'image/jpeg' });
     if (up.error) {
@@ -677,8 +805,11 @@ function renderThread() {
               <i>${esc(ago(r.created_at))}</i></b>
             <p>${esc(r.body)}</p>
           </div>
-          ${r.mine ? '' : `<button class="fd-flagbtn" aria-label="รายงานคำตอบนี้"
-            onclick="event.stopPropagation();openReport('reply','${esc(r.id)}')">${icon('flag')}</button>`}
+          ${r.mine
+            ? `<button class="fd-flagbtn" aria-label="ลบคำตอบนี้"
+                onclick="event.stopPropagation();delReply('${esc(r.id)}')">${icon('trash')}</button>`
+            : `<button class="fd-flagbtn" aria-label="รายงานคำตอบนี้"
+                onclick="event.stopPropagation();openReport('reply','${esc(r.id)}')">${icon('flag')}</button>`}
         </div>`;
       }).join('')}
     </div>
