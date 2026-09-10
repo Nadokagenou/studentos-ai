@@ -179,18 +179,39 @@ function unwatchPresence() {
 // กันสั่น: ต้องเลื่อนเกิน 8px ถึงนับเป็นการเปลี่ยนทิศ · ต่ำกว่านั้นคือมือสั่นบนจอสัมผัส
 // และไม่ซ่อนเลยถ้าเนื้อหาสั้นกว่าหนึ่งจอ — ไม่มีอะไรให้เลื่อน ไม่ต้องมีอะไรให้หลบ
 let fdLastY = 0, fdHidden = false;
+// กันวงจรป้อนกลับตอนแถบตัวกรองย่อ/กาง — เหตุผลเต็มอยู่ใน watchFeedScroll (1B72)
+let fdLockUntil = 0;
 function watchFeedScroll() {
   const scr = document.getElementById('scr-mates');
   if (!scr || scr.dataset.scrollHook === '1') return;
   scr.dataset.scrollHook = '1';
+  // ---------- บั๊กกระตุก (แก้ 1B72) ----------
+  // ผู้ใช้แจ้งว่า "เหมือนมันบัคกระตุกตรงช่องเพื่อน" — และมันกระตุกจริง
+  //
+  // ต้นเหตุเป็นวงจรป้อนกลับ: .fd-tuck ย่อแถบตัวกรองจนความสูงหายไป ~60px
+  // (ดู .fd-tuck .fd-scopes { max-height: 0 } ใน feed.css)
+  // ความสูงเนื้อหาลดลง เบราว์เซอร์ปรับ scrollTop ตาม แล้วยิง scroll event ใหม่
+  // รอบนั้นคำนวณ dy ได้ราว -60 ซึ่งเกินเกณฑ์ 8px → ตีความว่า "เลื่อนขึ้น" → กางคืน
+  // ความสูงกลับมา +60px → ยิง scroll อีก → ย่อ → กาง → วนไม่จบตราบใดที่ยังเลื่อนอยู่
+  //
+  // เกณฑ์ 8px กันได้แค่มือสั่น กันวงจรนี้ไม่ได้เลย เพราะการกระโดดมันใหญ่กว่ามาก
+  // แก้ด้วยการล็อกไม่ให้ตัดสินใจซ้ำระหว่างที่ความสูงกำลังเปลี่ยน (นานกว่า transition)
+  // และขยับเกณฑ์เป็น 16px เพราะ 8px ยังไวเกินไปสำหรับการเลื่อนด้วยนิ้วจริง
   scr.addEventListener('scroll', () => {
     const y = scr.scrollTop;
+    // ระหว่างล็อก แค่จำตำแหน่งไว้ ไม่ตัดสินใจอะไร — scroll ที่เกิดจากความสูงที่เราเปลี่ยนเอง
+    // จะได้ไม่ถูกนับเป็นเจตนาของผู้ใช้
+    if (Date.now() < fdLockUntil) { fdLastY = y; return; }
     const room = scr.scrollHeight - scr.clientHeight;
     if (room < 120) { if (fdHidden) { fdHidden = false; scr.classList.remove('fd-tuck'); } fdLastY = y; return; }
     const dy = y - fdLastY;
-    if (Math.abs(dy) < 8) return;
+    if (Math.abs(dy) < 16) return;
     const down = dy > 0 && y > 40;
-    if (down !== fdHidden) { fdHidden = down; scr.classList.toggle('fd-tuck', down); }
+    if (down !== fdHidden) {
+      fdHidden = down;
+      scr.classList.toggle('fd-tuck', down);
+      fdLockUntil = Date.now() + 340;   // .22s ของ transition + เผื่อเวลาจัดหน้าใหม่
+    }
     fdLastY = y;
   }, { passive: true });
 }

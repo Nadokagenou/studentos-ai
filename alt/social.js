@@ -279,31 +279,106 @@ function renderMates() {
   const chip = (name, kind, on) => `<button class="so-chip ${kind}${on ? ' on' : ''}"
     onclick="toggleSubj('${kind}','${esc(name).replace(/'/g, "\\'")}')">${esc(name)}</button>`;
 
-  const setup = `<div class="so-card">
-      <div class="so-card-h">
-        <b>วิชาของฉัน</b>
-        ${c.confirmed ? '' : '<span class="so-guess">แอปเดาให้จากงานที่ผ่านมา — แก้ได้</span>'}
+  // ============================================================
+  // หน้าแก้ไขโปรไฟล์ — ทรงเดียวกับ Edit profile ของ Instagram (1B72)
+  // ------------------------------------------------------------
+  // ผู้ใช้บอกตรง ๆ ว่า "หน้าแก้ไขโปรไฟล์ผมอยากให้มันดีกว่านี้ มันยังดูกากมากๆ
+  // ปรับ ux/ui เลย ลองดูของ ig เป็นตัวอย่าง" แล้วส่งหน้า Edit profile ของ IG มาให้ดู
+  //
+  // ของเดิมผิดตั้งแต่ชื่อ — การ์ดชื่อ "วิชาของฉัน" ที่มีช่องแนะนำตัวกับช่วงชั้นแอบอยู่ข้างใน
+  // คนที่กด "แก้ไขโปรไฟล์" มาแล้วเจอหัวข้อว่า "วิชาของฉัน" จะไม่รู้ว่ามาถูกที่หรือเปล่า
+  // และไม่มีทางเดาได้เลยว่าชื่อกับรูปแก้ที่ไหน (คำตอบคือคนละจอ ซึ่งไม่มีอะไรบอก)
+  //
+  // สิ่งที่ IG ทำแล้วเราไม่ได้ทำ สามข้อ:
+  //   1) รูปกับชื่ออยู่บนสุด พร้อมปุ่มเปลี่ยนรูปที่เห็นชัด — ไม่ต้องเดาว่าแก้ที่ไหน
+  //   2) ทุกช่องมีป้ายกำกับของตัวเอง เรียงลงมาเป็นฟอร์มเดียว ไม่ใช่การ์ดซ้อนการ์ด
+  //   3) ปุ่มบันทึกอันเดียวอยู่ล่างสุด ไม่ใช่ปุ่มที่เขียนว่า "เผยแพร่" ซึ่งฟังดูเหมือน
+  //      ทำอย่างอื่นที่ไม่ใช่การบันทึก
+  // ============================================================
+  const handle = (typeof frHandle !== 'undefined' && frHandle) ? frHandle : '';
+  const myName2 = (state.settings.name || '').trim();
+  const myPic = typeof userAvatar === 'function' ? userAvatar() : '';
+
+  const setup = `<div class="ep">
+      <!-- ---------- แถวรูป ---------- -->
+      <div class="ep-face">
+        ${myPic ? `<img class="ep-av" src="${esc(myPic)}" alt="รูปโปรไฟล์">`
+                : `<div class="ep-av" style="${typeof avOf === 'function' ? avOf(myName2 || handle || 'N') : ''}">${
+                    esc((myName2 || handle || 'N').slice(0, 1))}</div>`}
+        <div class="ep-face-tx">
+          <b>${esc(myName2 || handle || 'ยังไม่ได้ตั้งชื่อ')}</b>
+          <i>${handle ? '@' + esc(handle) : 'ยังไม่มีชื่อผู้ใช้'}</i>
+        </div>
+        <input type="file" id="epFile" accept="image/*" hidden onchange="pickAvatar(this.files[0])">
+        <button class="ep-face-go" onclick="document.getElementById('epFile').click()">
+          ${myPic ? 'เปลี่ยนรูป' : 'เลือกรูป'}
+        </button>
       </div>
-      <p class="so-lb">วิชาที่ช่วยเพื่อนได้</p>
-      <div class="so-chips row">
-        ${known.length ? known.map(n => chip(n, 'good', c.strong.includes(n))).join('')
-                       : '<span class="so-none">ยังไม่มีวิชาให้เลือก — เพิ่มงานสักสองสามชิ้นก่อน</span>'}
+
+      <!-- ---------- ชื่อที่แสดง ---------- -->
+      <div class="ep-f">
+        <label for="epName">ชื่อ</label>
+        <input id="epName" type="text" maxlength="40" value="${esc(myName2)}"
+               placeholder="ชื่อที่เพื่อนเรียกคุณ" oninput="epDirty()">
+        <p class="ep-hint">เพื่อนเห็นชื่อนี้ทุกที่ในแอป — เปลี่ยนได้ตลอด</p>
       </div>
-      <p class="so-lb">วิชาที่อยากให้ใครมาช่วย</p>
-      <div class="so-chips row">
-        ${known.length ? known.map(n => chip(n, 'need', c.weak.includes(n))).join('') : ''}
+
+      <!-- ---------- ชื่อผู้ใช้ ---------- -->
+      <div class="ep-f">
+        <label for="epHandle">ชื่อผู้ใช้</label>
+        <div class="ep-at">
+          <span>@</span>
+          <input id="epHandle" type="text" maxlength="20" value="${esc(handle)}"
+                 autocapitalize="off" spellcheck="false"
+                 placeholder="beam4_16" oninput="epDirty()">
+        </div>
+        <p class="ep-hint">นี่คือสิ่งที่เพื่อนใช้ค้นหาคุณ · ใช้ a-z 0-9 กับ _ ได้</p>
       </div>
-      <label class="so-fld">
-        <span>แนะนำตัวสั้น ๆ</span>
-        <input type="text" maxlength="80" value="${esc(s.bio)}"
-               placeholder="เช่น ติวเลขให้ได้ แลกกับโน้ตอังกฤษ"
-               onchange="socialSetBio(this.value)">
-      </label>
-      ${cohortBlock()}
-      <button class="so-pub" onclick="doPublish()">
-        ${s.pubAt ? 'อัปเดตโปรไฟล์' : 'เผยแพร่ให้เพื่อนร่วมห้องเห็น'}
-      </button>
-      <p class="so-fine">เพื่อนเห็นแค่ชื่อ รูป และสองแถวนี้ — งานกับตารางเรียนไม่ได้ส่งขึ้นไป</p>
+
+      <!-- ---------- แนะนำตัว ---------- -->
+      <div class="ep-f">
+        <label for="epBio">แนะนำตัว</label>
+        <textarea id="epBio" rows="2" maxlength="80"
+                  placeholder="เช่น ติวเลขให้ได้ แลกกับโน้ตอังกฤษ"
+                  oninput="epDirty(); epCount()">${esc(s.bio)}</textarea>
+        <span class="ep-count" id="epCount">${(s.bio || '').length} / 80</span>
+      </div>
+
+      <!-- ---------- ช่วงชั้น ---------- -->
+      <div class="ep-f">
+        <label>ตอนนี้เรียนอยู่ช่วงไหน</label>
+        ${currentUser && cohortReady ? `<div class="ep-chips">
+          ${GRADE_BANDS.map(g => `<button class="ep-chip${cohort.grade === g ? ' on' : ''}"
+            onclick="setCohort('${g}')">${g}</button>`).join('')}
+        </div>
+        <p class="ep-hint">${cohort.grade
+          ? 'ใช้จับคู่กับคนที่เรียนเรื่องเดียวกันทั้งประเทศ'
+          : 'ยังไม่ได้เลือก — แท็บ "ประเทศ" ในฟีดจะยังว่างอยู่'}</p>`
+        : '<p class="ep-hint">เข้าบัญชีก่อนถึงจะตั้งได้</p>'}
+      </div>
+
+      <!-- ---------- วิชา ---------- -->
+      <div class="ep-f">
+        <label>วิชาที่ช่วยเพื่อนได้</label>
+        <div class="so-chips row">
+          ${known.length ? known.map(n => chip(n, 'good', c.strong.includes(n))).join('')
+                         : '<span class="so-none">ยังไม่มีวิชาให้เลือก — เพิ่มงานสักสองสามชิ้นก่อน</span>'}
+        </div>
+      </div>
+      <div class="ep-f">
+        <label>วิชาที่อยากให้ใครมาช่วย</label>
+        <div class="so-chips row">
+          ${known.length ? known.map(n => chip(n, 'need', c.weak.includes(n))).join('') : ''}
+        </div>
+        ${c.confirmed ? '' : '<p class="ep-hint">แอปเดาให้จากงานที่ผ่านมา — แตะเพื่อแก้ได้</p>'}
+      </div>
+
+      <p class="ep-fine">${icon('lock')}เพื่อนเห็นแค่ชื่อ รูป และสองแถววิชานี้ —
+        งานกับตารางเรียนไม่ได้ส่งขึ้นไป</p>
+
+      <!-- ปุ่มเดียว เขียนว่า "บันทึก" ตรง ๆ · ของเดิมเขียนว่า "เผยแพร่"
+           ซึ่งฟังดูเหมือนทำอย่างอื่นที่ไม่ใช่การบันทึกสิ่งที่เพิ่งพิมพ์ไป -->
+      <button class="ep-save" id="epSave" onclick="saveProfileEdit()">บันทึก</button>
     </div>`;
 
   // ---- รายชื่อ ----
@@ -434,6 +509,71 @@ function socialSetBio(v) {
   saveSocial(s);
 }
 
+
+// ============================================================
+// บันทึกหน้าแก้ไขโปรไฟล์ (1B72)
+// ------------------------------------------------------------
+// ของเดิมกระจายอยู่สามที่: ชื่อแก้ในแท็บ "ฉัน" · ชื่อผู้ใช้แก้ในแท็บเพื่อน ·
+// แนะนำตัวกับวิชาแก้ในการ์ด "วิชาของฉัน" — ไม่มีทางรู้เลยว่าอันไหนอยู่ตรงไหน
+// ตอนนี้รวมมาที่เดียว แล้วปุ่มเดียวบันทึกทั้งหมด
+function epDirty() {
+  const b = document.getElementById('epSave');
+  if (b) { b.disabled = false; b.textContent = 'บันทึก'; }
+}
+function epCount() {
+  const t = document.getElementById('epBio');
+  const c = document.getElementById('epCount');
+  if (t && c) c.textContent = t.value.length + ' / 80';
+}
+
+async function saveProfileEdit() {
+  const btn = document.getElementById('epSave');
+  const nm = (document.getElementById('epName') || {}).value || '';
+  const hd = ((document.getElementById('epHandle') || {}).value || '').trim().replace(/^@/, '');
+  const bio = (document.getElementById('epBio') || {}).value || '';
+
+  if (btn) { btn.disabled = true; btn.textContent = 'กำลังบันทึก…'; }
+
+  // ชื่อกับแนะนำตัวเก็บในเครื่องก่อน แล้วค่อยดันขึ้น — ทำงานได้แม้ยังไม่ล็อกอิน
+  state.settings.name = nm.trim();
+  save();
+  socialSetBio(bio);
+
+  if (!currentUser) {
+    if (btn) { btn.disabled = false; btn.textContent = 'บันทึก'; }
+    if (typeof renderAll === 'function') renderAll();
+    showToast({ title: 'บันทึกในเครื่องแล้ว', body: 'เข้าบัญชีเพื่อให้เพื่อนเห็นด้วย' });
+    return;
+  }
+
+  // ชื่อผู้ใช้เปลี่ยนก็ต่อเมื่อพิมพ์มาไม่ตรงของเดิม — set_handle มีกติกาของมันเอง
+  // และคืน error เป็นภาษาไทยที่เอาไปโชว์ได้ตรง ๆ (ซ้ำกับคนอื่น · ตัวอักษรไม่ผ่าน)
+  if (hd && hd !== (frHandle || '')) {
+    const { data, error } = await sb.rpc('set_handle', { p_handle: hd });
+    if (error) {
+      if (btn) { btn.disabled = false; btn.textContent = 'บันทึก'; }
+      showToast({ title: 'ตั้งชื่อผู้ใช้ไม่สำเร็จ', body: error.message });
+      return;
+    }
+    frHandle = data;
+  }
+
+  const r = await publishProfile();
+  if (btn) { btn.disabled = false; }
+  if (r.error) {
+    if (btn) btn.textContent = 'บันทึก';
+    if (typeof haptic === 'function') haptic('snooze');
+    showToast({ title: 'บันทึกไม่สำเร็จ', body: r.error });
+    return;
+  }
+  if (typeof haptic === 'function') haptic('done');
+  if (btn) btn.textContent = 'บันทึกแล้ว';
+  if (typeof myCard !== 'undefined') { myCard = null; }
+  if (typeof loadMyCard === 'function') loadMyCard(true);
+  if (typeof renderAll === 'function') renderAll();
+  showToast({ title: 'บันทึกแล้ว', body: 'เพื่อนเห็นของใหม่ทันที' });
+}
+
 async function doPublish() {
   // ยังไม่ล็อกอินก็กดปุ่มนี้ได้ — มันคือจุดที่บัญชีเริ่มจำเป็นจริง ๆ
   // พาไปล็อกอินเลยดีกว่าขึ้น error บอกว่า "ยังไม่ได้ล็อกอิน" ซึ่งไม่ได้ช่วยอะไร
@@ -510,7 +650,7 @@ async function openChat() {
   }
 
   const { data, error } = await sb.from('dm_messages')
-    .select('id, sender, body, created_at')
+    .select('id, sender, body, image, created_at')
     .eq('thread', chatThread.id)
     .order('created_at', { ascending: true })
     .limit(200);
@@ -610,10 +750,20 @@ function renderChat() {
     const dayHead = day && day !== lastDay ? `<div class="ch-day"><span>${esc(day)}</span></div>` : '';
     lastDay = day || lastDay;
 
+    // เวลาโผล่ใต้ฟองสุดท้ายของก้อน ไม่ใช่ทุกฟอง (ผู้ใช้ขอ "ให้บอกเวลาพิมพ์ด้วย")
+    // ทุกฟองมีเวลา = ตัวเลขเรียงลงมาสิบบรรทัดที่บอกเรื่องเดียวกัน
+    // ก้อนหนึ่งคือหนึ่งจังหวะการพิมพ์อยู่แล้ว เวลาเดียวต่อก้อนจึงพอ
     return dayHead + `<div class="ch-msg${mine ? ' me' : ''}${endsRun ? ' last' : ''}">
       ${mine ? '' : (endsRun ? chatAvatar() : '<span class="ch-face ghost"></span>')}
-      <span class="ch-bub${startsRun ? ' first' : ''}${endsRun ? ' tail' : ''}"
-        title="${esc(chatTime(m.created_at))}">${esc(m.body)}</span>
+      <span class="ch-col">
+        ${m.image ? `<img class="ch-img" loading="lazy" alt="รูปที่ส่งมา"
+            src="${esc(typeof postImageUrl === 'function' ? postImageUrl(m.image) : m.image)}"
+            onclick="openFace('${esc(typeof postImageUrl === 'function' ? postImageUrl(m.image) : m.image)}','')">` : ''}
+        ${String(m.body || '').trim()
+          ? `<span class="ch-bub${startsRun ? ' first' : ''}${endsRun ? ' tail' : ''}">${esc(m.body)}</span>`
+          : ''}
+        ${endsRun ? `<span class="ch-when">${esc(chatTime(m.created_at))}</span>` : ''}
+      </span>
     </div>`;
   }).join('');
 
@@ -654,21 +804,75 @@ function renderChat() {
         </div>`}
     </div>
 
-    ${usedUp ? '' : `<div class="ch-bar">
-      <div class="ch-field">
-        <input id="chatIn" type="text" maxlength="2000" placeholder="ข้อความ…"
-               autocomplete="off"
-               value="${chatMsgs.length || !chatThread.subject ? ''
-                       : esc(chatThread.subject + 'ขอถามหน่อยได้ป่ะ')}"
-               oninput="chatTyping()"
-               onkeydown="if(event.key==='Enter')sendChat()">
-        <button class="ch-send" id="chSend" onclick="sendChat()" aria-label="ส่ง">${icon('check')}</button>
+    ${usedUp ? '' : `
+      <div class="ch-emo" id="chEmo" hidden>
+        ${CHAT_EMOJI.map(e => `<button onclick="addEmoji('${e}')" aria-label="ใส่ ${e}">${e}</button>`).join('')}
       </div>
-    </div>`}`;
+      <div class="ch-bar">
+        <input type="file" id="chFile" accept="image/*" hidden onchange="pickChatImage(this)">
+        <button class="ch-plus" onclick="document.getElementById('chFile').click()"
+          aria-label="ส่งรูป">${icon('image')}</button>
+        <div class="ch-field">
+          <input id="chatIn" type="text" maxlength="2000" placeholder="ข้อความ…"
+                 autocomplete="off"
+                 value="${chatMsgs.length || !chatThread.subject ? ''
+                         : esc(chatThread.subject + 'ขอถามหน่อยได้ป่ะ')}"
+                 oninput="chatTyping()"
+                 onkeydown="if(event.key==='Enter')sendChat()">
+          <button class="ch-emo-btn" onclick="toggleEmoji()" aria-label="อิโมจิ">${icon('sparkles')}</button>
+          <button class="ch-send" id="chSend" onclick="sendChat()" aria-label="ส่ง">${icon('check')}</button>
+        </div>
+      </div>`}`;
 
   chatTyping();
   const list = document.getElementById('chatList');
   if (list) list.scrollTop = list.scrollHeight;
+}
+
+
+// ============================================================
+// รูปกับอิโมจิในแชท (1B72)
+// ------------------------------------------------------------
+// ผู้ใช้ขอเอง: "สามารถส่งไฟล์ รูป หรืออิโมจิได้"
+//
+// อิโมจิไม่ต้องแก้อะไรฝั่งเซิร์ฟเวอร์เลย มันคือตัวอักษรธรรมดา —
+// ที่ต้องมีคือ **ทางเข้าที่ไม่ต้องพึ่งคีย์บอร์ดของเครื่อง** เพราะบนเว็บในมือถือบางรุ่น
+// ปุ่มอิโมจิของคีย์บอร์ดหาไม่เจอ และบนเดสก์ท็อปไม่มีเลย
+// ชุดนี้เลือกจากที่นักเรียนใช้จริงตอนถามการบ้าน ไม่ใช่ชุดยอดนิยมทั่วไป
+const CHAT_EMOJI = ['👍','🙏','😂','😭','🔥','✅','❓','💡','😅','🥲','👀','💯'];
+
+function toggleEmoji() {
+  const el = document.getElementById('chEmo');
+  if (el) el.hidden = !el.hidden;
+}
+function addEmoji(e) {
+  const el = document.getElementById('chatIn');
+  if (!el) return;
+  el.value += e;
+  el.focus();
+  chatTyping();
+}
+
+// รูปย่อในเครื่องก่อนเสมอ — รูปจากกล้องมือถือใบละ 3-5 MB
+// อัปโหลดดิบ ๆ บนเน็ตโรงเรียนคือรอเป็นนาที แล้วคนก็เลิกส่งไปเลย
+// (กติกาเดียวกับ shrinkImage ที่หน้าเขียนโพสต์ ใช้ตัวเดียวกันเลย)
+async function pickChatImage(input) {
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file || !chatThread) return;
+  const btn = document.querySelector('.ch-plus');
+  if (btn) btn.disabled = true;
+  try {
+    const blob = await shrinkImage(file, 1280, 0.72);
+    const path = 'dm/' + currentUser.id + '/' + Date.now() + '.jpg';
+    const up = await sb.storage.from('posts').upload(path, blob, { contentType: 'image/jpeg' });
+    if (up.error) throw new Error(up.error.message);
+    await sendChat(path);
+  } catch (e) {
+    if (typeof haptic === 'function') haptic('snooze');
+    showToast({ title: 'ส่งรูปไม่สำเร็จ', body: e.message || 'ลองรูปอื่นดู' });
+  }
+  if (btn) btn.disabled = false;
 }
 
 // ปุ่มส่งโผล่ตอนมีตัวอักษรเท่านั้น (เหมือน IG)
@@ -684,25 +888,37 @@ function chatTyping() {
 // policy ของ dm_messages ถูกบีบให้รับเฉพาะห้องที่เปิดแล้ว (migration 19) —
 // ห้องที่ยังเป็นคำขอจึงเข้าได้ทางฟังก์ชันนี้ทางเดียว ซึ่งเป็นที่ที่บังคับกติกา
 // "คนขอส่งได้ข้อความเดียว" กับ "ปลายทางตอบ = ห้องเปิด" ไว้ที่เดียว
-async function sendChat() {
+async function sendChat(imagePath) {
   const el = document.getElementById('chatIn');
-  if (!el || !chatThread) return;
-  const body = el.value.trim();
-  if (!body) return;
-  el.value = '';
-  let { data, error } = await sb.rpc('dm_say', { p_thread: chatThread.id, p_body: body });
+  if (!chatThread) return;
+  const body = el ? el.value.trim() : '';
+  if (!body && !imagePath) return;
+  if (el) el.value = '';
+  const emo = document.getElementById('chEmo');
+  if (emo) emo.hidden = true;
+  let { data, error } = await sb.rpc('dm_say',
+    { p_thread: chatThread.id, p_body: body, p_image: imagePath || null });
+  // ยังไม่ได้ apply migration 25 (dm_say ยังรับสองพารามิเตอร์) — ลองแบบเดิมอีกรอบ
+  // ส่งรูปจะไม่ได้ แต่ข้อความยังส่งได้ตามปกติ ซึ่งสำคัญกว่า
+  if (error && /p_image|function public\.dm_say/i.test(error.message || '')) {
+    ({ data, error } = await sb.rpc('dm_say', { p_thread: chatThread.id, p_body: body }));
+    if (!error && imagePath) {
+      showToast({ title: 'ส่งข้อความแล้ว', body: 'รูปยังส่งไม่ได้จนกว่าจะอัปเดตฐานข้อมูล' });
+    }
+  }
   // ยังไม่ได้ apply migration 19 — ถอยไปเขียนตรงแบบเดิม
   // ปลอดภัยเพราะถ้ายังไม่มี dm_say ก็แปลว่ายังไม่มีคอลัมน์ state ด้วย จึงไม่มีห้องคำขอ
   // ให้ข้ามกติกาตั้งแต่แรก · ข้อสำคัญคือ **แชทเดิมต้องไม่พังระหว่างรอ migration**
   if (rpcMissing(error)) {
     const r = await sb.from('dm_messages')
-      .insert({ thread: chatThread.id, sender: currentUser.id, body })
-      .select('id, sender, body, created_at').single();
+      .insert({ thread: chatThread.id, sender: currentUser.id, body,
+                image: imagePath || null })
+      .select('id, sender, body, image, created_at').single();
     data = r.data ? [r.data] : null;
     error = r.error;
   }
   if (error) {
-    el.value = body;                       // คืนข้อความให้ ไม่ใช่กลืนหายไปเฉย ๆ
+    if (el) el.value = body;               // คืนข้อความให้ ไม่ใช่กลืนหายไปเฉย ๆ
     haptic('snooze');
     showToast({ title: 'ส่งไม่สำเร็จ', body: error.message });
     return;
@@ -710,6 +926,7 @@ async function sendChat() {
   const row = Array.isArray(data) ? data[0] : data;
   chatMsgs.push({
     id: (row && row.id) || Date.now(), sender: currentUser.id, body,
+    image: imagePath || null,
     created_at: (row && row.created_at) || new Date().toISOString(),
   });
   // ปลายทางพิมพ์ตอบ = ห้องเปิดแล้วฝั่งเซิร์ฟเวอร์ · ฝั่งนี้ต้องตามให้ทัน
