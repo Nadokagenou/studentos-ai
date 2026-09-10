@@ -209,9 +209,8 @@ function renderFeed() {
            ปุ่มที่พาไปหาของที่มองเห็นอยู่แล้วคือปุ่มที่กินที่บนหัวจอเปล่า ๆ -->
       <!-- กล่องข้อความ · จำเป็นตั้งแต่วันที่การทักไม่ได้จำกัดอยู่แค่คนในห้องเรียนอีกต่อไป
            ข้อความจากคนที่ไม่ได้อยู่ในรายชื่อไหนเลยต้องมีที่ไปรวมกัน ไม่งั้นไม่มีทางถูกเห็น -->
-      ${currentUser && typeof dmReady !== 'undefined' && dmReady
-        ? `<button class="fd-people${dmPending ? ' has-req' : ''}"
-            onclick="openDmInbox()" aria-label="ข้อความ">${icon('chat')}</button>` : ''}
+      <!-- ปุ่มข้อความย้ายลงไปลอยมุมล่างขวาตั้งแต่ 1B68 (ดู feedFab)
+           ผู้ใช้วาดลูกศรจากไอคอนบนหัวจอชี้ลงมุมล่าง แล้วบอกว่า "อยากให้เห็นชัดกว่านี้" -->
       <button class="fd-people" onclick="go('scr-people'); renderMates()" aria-label="วิชาของฉันกับคนในห้อง">
         ${icon('users')}
       </button>
@@ -247,6 +246,7 @@ function renderFeed() {
     renderFreshPill();
   }
   renderFriendDot();
+  paintFeedFab();
   if (typeof loadDmDot === 'function') loadDmDot();
   keepScopeInView();
   watchFeedScroll();
@@ -576,6 +576,34 @@ async function myFirstRoom() {
 }
 // ประเทศ + ช่วงชั้นของตัวเอง · คืนเป็นก้อนเดียวเพราะสองค่านี้ใช้คู่กันเสมอ
 // (ประเทศอย่างเดียวไม่พอ ช่วงชั้นอย่างเดียวก็ไม่พอ — กุญแจของสโคปนี้คือทั้งคู่)
+// ============================================================
+// 1B68 · ปุ่มข้อความลอยมุมล่างขวา
+// ------------------------------------------------------------
+// เดิมเป็นไอคอนเล็ก ๆ บนหัวจอ ปนอยู่กับปุ่มอื่นและไม่มีป้ายกำกับ
+// ผู้ใช้วาดลูกศรจากไอคอนนั้นชี้ลงมุมล่างขวาแล้วเขียนว่า "อยากให้เห็นชัดกว่านี้"
+//
+// วาดแยกจาก innerHTML ของฟีดโดยตั้งใจ — ฟีดวาดใหม่ทุกครั้งที่มีโพสต์เข้า
+// ปุ่มที่ถูกสร้างใหม่ทุกรอบจะกระพริบ และกดพลาดได้ถ้านิ้วลงตรงจังหวะที่กำลังวาด
+// ตัวนี้จึงสร้างครั้งเดียวแล้วแค่เปลี่ยนสถานะ
+function paintFeedFab() {
+  const host = document.getElementById('scr-mates');
+  if (!host) return;
+  let fab = document.getElementById('feedFab');
+  const show = !!currentUser && typeof dmReady !== 'undefined' && dmReady;
+  if (!show) { if (fab) fab.remove(); return; }
+  if (!fab) {
+    fab = document.createElement('button');
+    fab.id = 'feedFab';
+    fab.className = 'fd-fab';
+    fab.setAttribute('aria-label', 'ข้อความ');
+    fab.onclick = () => openDmInbox();
+    host.appendChild(fab);
+  }
+  const n = typeof dmPending === 'number' ? dmPending : 0;
+  fab.innerHTML = icon('chat') + (n ? `<i>${n > 9 ? '9+' : n}</i>` : '');
+  fab.classList.toggle('has-req', !!n);
+}
+
 async function myCohort() {
   const { data } = await sb.from('profiles')
     .select('country, grade').eq('id', currentUser.id).maybeSingle();
@@ -687,6 +715,23 @@ function openFeed(view) {
 // ฟีดที่แตะรูปใครแล้วไม่มีอะไรเกิดขึ้น จึงอ่านเป็น "รายการข้อความ" ไม่ใช่ "ที่ที่มีคนอยู่"
 // ============================================================
 let theUser = null;
+// ---------- ชื่อที่เอาไปโชว์จริง ----------
+// profiles.display_name มี default เป็น 'นักเรียน' อยู่ใน schema (migration 10)
+// แปลว่าคนที่ยังไม่เคยตั้งชื่อ **มีชื่อว่า "นักเรียน" จริง ๆ ในฐานข้อมูล** ไม่ใช่ค่าว่าง
+// ทุกจอจึงขึ้นคำเดียวกันหมด และตัวอักษรแรกในวงกลมกลายเป็น "น" เหมือนกันทุกคน —
+// เปิดหน้าใครก็เหมือนเปิดหน้าเดิม ซึ่งผู้ใช้ทักมาเองเมื่อ 10 ก.ย. 2569
+//
+// ทางแก้: ถ้ายังไม่ได้ตั้งชื่อ ใช้ @ชื่อผู้ใช้แทน เพราะมันไม่ซ้ำกันและเป็นของเขาจริง
+// ส่วนคำว่า "นักเรียน" ย้ายไปเป็นป้ายติ๊กถูกข้างชื่อ ตามที่ผู้ใช้เสนอ
+const NO_NAME = 'นักเรียน';
+function personName(u) {
+  if (!u) return NO_NAME;
+  const n = String(u.display_name || '').trim();
+  if (n && n !== NO_NAME) return n;
+  const h = String(u.handle || '').trim();
+  return h || NO_NAME;
+}
+
 let theUserPosts = [];
 let userBusy = false;
 
@@ -773,7 +818,7 @@ function renderUser() {
 
   const u = theUser;
   const on = onlineOf(u.id);
-  const name = u.display_name || 'นักเรียน';
+  const name = personName(u);
   const n = (v) => (v > 999 ? (v / 1000).toFixed(1).replace('.0', '') + 'k' : (v || 0));
 
   // บรรทัดใต้ชื่อ — ช่วงชั้นกับโรงเรียน · โรงเรียนไม่โผล่ให้คนต่างประเทศเห็น
@@ -805,7 +850,10 @@ function renderUser() {
       </div>
 
       <div class="ig-id">
-        <b>${esc(name)}${u.mine ? '<span class="fd-mine">คุณ</span>' : ''}</b>
+        <b>${esc(name)}<!-- ป้ายติ๊กถูกแทนที่จะเอาคำว่า "นักเรียน" ไปเป็นชื่อ
+             ผู้ใช้เสนอเอง: "อาจจะเป็นชื่อเพื่อนก่อน แล้วค่อยติ๊กถูกว่าเป็นนักเรียน" -->
+          <span class="ig-tick">${icon('check')}นักเรียน</span>${
+          u.mine ? '<span class="fd-mine">คุณ</span>' : ''}</b>
         ${where ? `<i>${esc(where)}</i>` : ''}
         ${on ? `<div class="us-live${on.subject ? ' busy' : ''}">
             <span class="rm-dot"></span>${on.subject

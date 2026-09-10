@@ -876,3 +876,67 @@
   display: flex; align-items: center; justify-content: center;
 }
 .cp-flag svg { width: 15px; height: 15px; }
+
+/* ============================================================
+   1B68 · เก็บรายละเอียดหน้าโปรไฟล์ + ปุ่มข้อความลอย
+   ------------------------------------------------------------
+   ผู้ใช้ชี้มาสี่จุดพร้อมวงกลมในภาพ: รูป · ตัวเลข · ชื่อที่กลายเป็น "นักเรียน" ·
+   และปุ่มข้อความที่อยากให้เห็นชัดกว่านี้
+   ============================================================ */
+
+/* ---------- ตัวเลขสามช่อง ---------- */
+/* "เลขยังไม่สวย" — ของเดิมเลขกับป้ายขนาดใกล้กันเกินไป เลยอ่านเป็นข้อความสองบรรทัด
+   ไม่ใช่ตัวเลขที่มีป้ายกำกับ · ขยายเลขขึ้นสองขั้นแล้วบีบป้ายลง ระยะห่างระหว่างสองอันเหลือน้อย ๆ
+   จะได้อ่านเป็นก้อนเดียว และเพิ่มเส้นคั่นบาง ๆ ให้สามช่องแยกกันโดยไม่ต้องใช้ที่ว่างเยอะ */
+.ig-stats > * { padding: 2px 0; position: relative; }
+.ig-stats > * + *::before {
+  content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
+  width: 1px; background: var(--line);
+}
+.ig-stats b {
+  font-size: 20px; font-weight: 700; line-height: 1.15;
+  letter-spacing: -.02em;
+}
+.ig-stats span {
+  display: block; margin-top: 1px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .01em; color: var(--muted);
+}
+/* ช่องที่กดได้บอกด้วยสีตอนกด ไม่ใช่ตอนอยู่เฉย ๆ — ไม่งั้นสามช่องจะดูไม่เท่ากัน
+   ทั้งที่มันเป็นข้อมูลชุดเดียวกัน */
+.ig-stats button:active b { color: var(--blue); }
+
+/* ---------- ป้ายติ๊กถูก "นักเรียน" ---------- */
+/* คำว่า "นักเรียน" เคยไปนั่งเป็นชื่อคน เพราะเป็นค่าปริยายของ display_name ในฐานข้อมูล
+   ย้ายมาเป็นป้ายข้างชื่อแทน ตามที่ผู้ใช้เสนอ — บอกสถานะได้เหมือนเดิมโดยไม่กินที่ของชื่อจริง */
+.ig-tick {
+  display: inline-flex; align-items: center; gap: 3px;
+  margin-left: 6px; padding: 2px 7px 2px 5px; border-radius: 999px;
+  background: var(--blue-soft, var(--card2)); color: var(--blue);
+  font-size: 10.5px; font-weight: 700; vertical-align: 2px;
+}
+.ig-tick svg { width: 11px; height: 11px; }
+
+/* ---------- ปุ่มข้อความลอยมุมล่างขวา ---------- */
+/* position: absolute ตัวเดียวกับ .tabbar และ .runbar — ทั้งสามอิงกล่องเดียวกัน
+   จึงเรียงกันได้โดยไม่ต้องเดาความสูงของกันและกัน (ดู style.css บรรทัด 254) */
+.fd-fab {
+  position: absolute; right: 16px;
+  bottom: calc(var(--tabgap) + 78px);
+  width: 52px; height: 52px; border: 0; border-radius: 50%;
+  background: var(--blue); color: var(--on-accent); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow-lg);
+  z-index: 6;
+}
+.fd-fab svg { width: 22px; height: 22px; }
+.fd-fab:active { transform: scale(.94); }
+/* จำนวนคำขอที่ยังไม่ได้ตอบ — เป็นตัวเลขจริง ไม่ใช่จุดแดงเปล่า ๆ
+   เพราะ "มีคนทักมา 3 คน" กับ "มีคนทักมา" ทำให้คนกดต่างกันมาก */
+.fd-fab i {
+  position: absolute; top: -2px; right: -2px; min-width: 20px; height: 20px;
+  padding: 0 5px; border-radius: 999px;
+  background: var(--bad, #e5484d); color: #fff;
+  border: 2px solid var(--bg, #fff);
+  font-style: normal; font-size: 11px; font-weight: 700; line-height: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
