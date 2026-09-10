@@ -422,7 +422,21 @@ function blobToB64(blob) {
 }
 
 // คืน { ok } เมื่อผ่าน · { ok:false, message } เมื่อไม่ผ่านหรือตรวจไม่ได้
+//
+// **ลองซ้ำหนึ่งครั้งก่อนยอมแพ้** — วัดจริงกับแอปจริง 10 ก.ย. 69 ยิงไป 6 ครั้ง
+// ล้มไป 2 ครั้งด้วย guard_down (Gemini อืดหรือคนแน่น) ซึ่งไม่ใช่การบล็อกเนื้อหา
+// แต่ผู้ใช้เห็นเป็น "ส่งรูปไม่ได้" เหมือนกันหมด · รูปที่ส่งไม่ได้หนึ่งในสามครั้ง
+// จะทำให้คนเลิกแนบรูป แล้วด่านที่อุตส่าห์ทำก็ไม่มีอะไรให้ตรวจอีกเลย
+//
+// ลองซ้ำเฉพาะตอน guard_down เท่านั้น · คำตัดสินว่า "ไม่ผ่าน" ห้ามลองซ้ำเด็ดขาด
+// เพราะการยิงซ้ำจนกว่าจะผ่านคือวิธีหลบด่านที่ง่ายที่สุดเท่าที่มี
 async function guardImage(blob) {
+  const first = await guardImageOnce(blob);
+  if (first.ok || first.reason !== 'guard_down') return first;
+  return await guardImageOnce(blob);
+}
+
+async function guardImageOnce(blob) {
   if (guardMissing || !sb || !currentUser) return { ok: true };
   try {
     const b64 = await blobToB64(blob);
@@ -435,14 +449,23 @@ async function guardImage(blob) {
       if (st === 404) { guardMissing = true; return { ok: true }; }
       // guard เองตอบ 503 พร้อมข้อความไทยตอนตรวจไม่สำเร็จ — เอามาโชว์ตรง ๆ
       let msg = 'ตรวจรูปไม่สำเร็จ ลองส่งใหม่อีกครั้ง';
-      try { const b = await error.context.json(); if (b && b.message) msg = b.message; } catch (_) {}
-      return { ok: false, message: msg };
+      let why = 'guard_down';
+      try {
+        const b = await error.context.json();
+        if (b && b.message) msg = b.message;
+        if (b && b.reason) why = b.reason;
+      } catch (_) {}
+      return { ok: false, reason: why, message: msg };
     }
-    if (data && data.ok === false) return { ok: false, message: data.message || 'ส่งรูปนี้ไม่ได้' };
+    if (data && data.ok === false) {
+      return { ok: false, reason: data.reason || 'block',
+               message: data.message || 'ส่งรูปนี้ไม่ได้' };
+    }
     return { ok: true };
   } catch (_) {
     // ยิงไม่ถึงเลย (เน็ตหลุด) — ล้มแบบปิดเหมือนกัน
-    return { ok: false, message: 'ตรวจรูปไม่สำเร็จ ลองส่งใหม่อีกครั้ง' };
+    return { ok: false, reason: 'guard_down',
+             message: 'ตรวจรูปไม่สำเร็จ ลองส่งใหม่อีกครั้ง' };
   }
 }
 
