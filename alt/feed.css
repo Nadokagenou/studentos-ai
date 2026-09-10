@@ -1012,3 +1012,65 @@
    (ของเดิมเป็นลูกของ .screen ซึ่ง overflow-y: auto — มันเลื่อนหนีตามเนื้อหา) */
 .fd-fab[hidden] { display: none; }
 .fd-fab { z-index: 6; }
+
+/* ============================================================
+   1B71 · แถวตัวเลข — ภาษาเดียวทั้งจอ
+   ------------------------------------------------------------
+   ผู้ใช้บอกว่า "เลขก็ต้องเท่ากัน" ซึ่งถูก และปัญหาลึกกว่าที่เห็น:
+   จอ "ฉัน" ประกอบด้วยแถวตัวเลขสามแถวที่มาจากสามยุค เขียนคนละสไตล์กันหมด —
+   ตัวเลขสาธารณะ 20px ฟอนต์ปกติ · แถบเหลือง 23px ฟอนต์ Space Mono ·
+   บล็อกส่วนตัว 17px อีกแบบ · ไม่มีสองแถวไหนตรงกันเลยสักคู่
+
+   .num-row เป็นแถวตัวเลขแบบเดียวของทั้งจอตั้งแต่นี้ไป
+   ตัวเลขทุกตัวใช้ tabular-nums จึงกว้างเท่ากันทุกหลัก — "1" กับ "329"
+   ยืนคนละช่องแล้วยังตรงแนวกัน ซึ่งเป็นสิ่งที่ทำให้แถวตัวเลขอ่านเป็นตาราง ไม่ใช่ข้อความ
+   ============================================================ */
+.num-row { display: flex; align-items: stretch; }
+.num-row > * {
+  flex: 1 1 0; min-width: 0; position: relative;
+  padding: 2px 2px; text-align: center;
+  border: 0; background: none; font-family: inherit; color: inherit;
+}
+/* เส้นคั่นวาดด้วย ::before ไม่ใช่ <div class="sep"> — ช่องว่างที่เป็น element จริง
+   จะกินความกว้างไปจากช่องตัวเลข ทำให้สามช่องกว้างไม่เท่ากันเมื่อเลขยาวไม่เท่ากัน */
+.num-row > * + *::before {
+  content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
+  width: 1px; background: var(--line);
+}
+.num-row b {
+  display: block;
+  font-size: 20px; font-weight: 700; line-height: 1.15; letter-spacing: -.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.num-row span {
+  display: block; margin-top: 2px;
+  font-size: 10.5px; font-weight: 600; line-height: 1.3; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* ตัวเลข **ขนาดเดียวกันทุกแถว** ตามที่ผู้ใช้สั่ง ("เลขก็ต้องเท่ากัน")
+   ลดเฉพาะป้ายกำกับในแถวสี่ช่อง เพราะช่องแคบลงเหลือ ~84px แล้วคำอย่าง "ต่อเนื่อง" จะตัด
+   ตัวเลขไม่ต้องลด — "329" ที่ 20px กว้าง ~36px ยังเหลือที่ในช่อง 84px อีกเท่าตัว */
+.num-row.four span { font-size: 10px; }
+.num-row button { cursor: pointer; }
+.num-row button:active b { color: var(--blue); }
+
+/* ---------- บล็อกส่วนตัว ---------- */
+/* ไม่มีพื้นสีของตัวเองแล้ว — ใช้เส้นประกับป้ายบอกขอบเขตพอ
+   พื้นสีทำให้มันแข่งกับหัวโปรไฟล์ข้างบนทั้งที่เป็นข้อมูลรองกว่า */
+.pf-priv { margin-top: 20px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.pf-priv-lb {
+  display: flex; align-items: center; gap: 5px; margin-bottom: 10px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted);
+}
+.pf-priv-lb svg { width: 12px; height: 12px; }
+.pf-priv-n { display: none; }   /* ของเดิม — แทนที่ด้วย .num-row แล้ว */
+
+/* ---------- แถวชิปวิชา ---------- */
+/* เลื่อนได้อยู่แล้ว แต่ขอบขวาตัดกลางชิปพอดีจนดูเหมือนจอเพี้ยน
+   ไล่จางที่ขอบบอกว่า "ยังมีต่อ" โดยไม่ต้องใส่ปุ่มหรือลูกศรเพิ่ม */
+.ig-strip {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
