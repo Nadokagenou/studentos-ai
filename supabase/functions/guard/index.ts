@@ -127,6 +127,17 @@ const SAY: Record<string, string> = {
 };
 const saySomething = (r?: string) => SAY[r ?? ''] ?? 'เนื้อหานี้ส่งไม่ได้';
 
+// ---------- ทำไมเพดานโทเคนถึงต้องสูงทั้งที่คำตอบสั้นนิดเดียว ----------
+// _shared/gemini.ts เตือนไว้เองว่า "เพดานนี้**นับความคิดรวมด้วย**"
+// รุ่น 3.x คิดก่อนตอบเป็นค่าเริ่มต้น และ think:'off' เป็นแค่การ *ขอ* ซึ่งบางรุ่น
+// ไม่รับแล้วถอยลงมาเป็น 'none' คือคุมการคิดไม่ได้เลย
+// ตั้งไว้ 512 ความคิดจึงกินหมดก่อน เหลือให้เขียน JSON ไม่ครบวงเล็บ
+// ผลคือ readVerdict อ่านไม่ออก แล้วเรานับเป็น guard_down ทั้งที่ Gemini ตอบ 200 มาแล้ว
+// วัดจริง 10 ก.ย. 69: จาก 4 ครั้งที่ล้ม มี 3 ครั้งเป็น 'อ่านคำตัดสินไม่ออก'
+// มีครั้งเดียวที่เป็นปัญหาเครือข่ายจริง ('gemini 0')
+// คำตัดสินยาวไม่ถึง 100 โทเคน 2048 จึงไม่ได้แพงขึ้นจริงเพราะจ่ายตามที่ใช้จริง
+const VERDICT_TOKENS = 2048;
+
 function readVerdict(raw: string): Verdict | null {
   try {
     const m = raw.match(/\{[\s\S]*\}/);
@@ -179,7 +190,7 @@ Deno.serve(async (req) => {
         think: 'off',
         json: true,
         responseSchema: SCHEMA,
-        maxOutputTokens: 512,
+        maxOutputTokens: VERDICT_TOKENS,
         // budgetMs คือเพดานของ **ทั้งคำขอ** ส่วน attemptMs คือของ **การยิงหนึ่งครั้ง**
         // เดิมตั้ง budgetMs 20 วิเฉย ๆ แล้วปล่อยให้ attemptMs เป็นค่าปริยาย 22 วิ
         // ซึ่งยาวกว่างบทั้งก้อน — พอรุ่นแรกอืด งบก็หมดตั้งแต่ยังไม่ได้ลองรุ่นสำรองสักตัว
@@ -189,7 +200,8 @@ Deno.serve(async (req) => {
         budgetMs: 45_000,
       });
       const v = readVerdict(r.text ?? '');
-      if (!v) throw new Error('อ่านคำตัดสินไม่ออก');
+      if (!v) throw Object.assign(new Error('อ่านคำตัดสินไม่ออก'),
+        { raw: String(r.text ?? '').slice(0, 300), finish: r.finish, truncated: r.truncated });
 
       await db.rpc('mod_note', {
         p_kind: 'image', p_target: null, p_author: uid,
@@ -212,7 +224,10 @@ Deno.serve(async (req) => {
         // trail บอกว่าลองรุ่นไหนไปบ้าง แต่ละรุ่นตอบสถานะอะไร ใช้เวลาเท่าไร
         // เก็บแค่ e.message จะได้ 'gemini 503' ลอย ๆ ซึ่งตอบไม่ได้ว่าควรแก้ตรงไหน
         p_score: { error: String((e as Error).message ?? e),
-                   trail: geminiTrailLine((e as GeminiError).trail) },
+                   trail: geminiTrailLine((e as GeminiError).trail),
+                   raw: (e as { raw?: string }).raw ?? null,
+                   finish: (e as { finish?: string }).finish ?? null,
+                   truncated: (e as { truncated?: boolean }).truncated ?? null },
       });
       return json({
         ok: false, reason: 'guard_down',
@@ -240,12 +255,13 @@ Deno.serve(async (req) => {
         think: 'off',
         json: true,
         responseSchema: SCHEMA,
-        maxOutputTokens: 512,
+        maxOutputTokens: VERDICT_TOKENS,
         attemptMs: 8_000,
         budgetMs: 24_000,
       });
       const v = readVerdict(r.text ?? '');
-      if (!v) throw new Error('อ่านคำตัดสินไม่ออก');
+      if (!v) throw Object.assign(new Error('อ่านคำตัดสินไม่ออก'),
+        { raw: String(r.text ?? '').slice(0, 300), finish: r.finish, truncated: r.truncated });
 
       if (v.verdict === 'block' && target) {
         // mod_hide ซ่อนของ **แล้วเขียน mod_log ให้ในตัว** จึงไม่ต้องเรียก mod_note ซ้ำ
@@ -269,7 +285,10 @@ Deno.serve(async (req) => {
         p_kind: kind, p_target: target, p_author: uid,
         p_verdict: 'review', p_reason: 'guard_down',
         p_score: { error: String((e as Error).message ?? e),
-                   trail: geminiTrailLine((e as GeminiError).trail) },
+                   trail: geminiTrailLine((e as GeminiError).trail),
+                   raw: (e as { raw?: string }).raw ?? null,
+                   finish: (e as { finish?: string }).finish ?? null,
+                   truncated: (e as { truncated?: boolean }).truncated ?? null },
       });
       return json({ ok: true, unchecked: true });
     }
