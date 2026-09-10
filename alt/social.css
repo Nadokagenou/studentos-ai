@@ -600,3 +600,61 @@
 }
 .ep-save:disabled { opacity: .55; cursor: default; }
 .ep-save:not(:disabled):active { transform: scale(.99); }
+
+/* ============================================================
+   1B74 · ปุ่มแนบรูปกับอิโมจิในแถบพิมพ์
+   ------------------------------------------------------------
+   CSS ชุดนี้หายไปตั้งแต่ 1B72 — คำสั่งที่เขียนไฟล์ล้มไปครึ่งทางแล้วไม่ได้รันซ้ำ
+   ปุ่มจึงมีอยู่ใน DOM จริงแต่ไม่มีขนาด กลายเป็นสี่เหลี่ยม 4x21px ที่มองแทบไม่เห็น
+   ผู้ใช้เห็นเป็นเส้นบาง ๆ ข้างช่องพิมพ์ แล้วบอกว่า "เอามาไว้ฝั่งซ้ายให้มันชัดเจน"
+   — มันอยู่ซ้ายอยู่แล้ว แค่ไม่มีขนาด
+
+   บทเรียน: ปล่อย JS ที่อ้างคลาสใหม่โดยไม่ได้เช็คว่าคลาสนั้นมีจริงในไฟล์ CSS
+   = ฟีเจอร์ที่ "ทำงาน" แต่มองไม่เห็น ซึ่งหาสาเหตุยากกว่าฟีเจอร์ที่พังตรง ๆ
+   ============================================================ */
+.ch-bar { align-items: flex-end; gap: 8px; }
+
+/* ปุ่มแนบรูปอยู่ซ้ายสุด นอกแคปซูล — ตำแหน่งเดียวกับ IG และ Messenger
+   อยู่นอกแคปซูลเพราะมันทำคนละเรื่องกับการพิมพ์ ไม่ใช่เครื่องมือของช่องข้อความ */
+.ch-plus {
+  width: 42px; height: 42px; flex: none;
+  border: 0; border-radius: 50%;
+  background: var(--blue); color: var(--on-accent);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-brand);
+}
+.ch-plus svg { width: 20px; height: 20px; }
+.ch-plus:active { transform: scale(.94); }
+.ch-plus:disabled { opacity: .5; cursor: default; }
+
+/* อิโมจิอยู่ในแคปซูล ติดกับข้อความ เพราะมันคือการพิมพ์อีกแบบหนึ่ง */
+.ch-emo-btn {
+  width: 34px; height: 34px; flex: none;
+  border: 0; border-radius: 50%; background: none; color: var(--muted);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.ch-emo-btn svg { width: 18px; height: 18px; }
+.ch-emo-btn:active { transform: scale(.9); }
+
+/* แผงอิโมจิ — ทางเข้าที่ไม่ต้องพึ่งคีย์บอร์ดของเครื่อง
+   บนเว็บในมือถือบางรุ่นปุ่มอิโมจิของคีย์บอร์ดหาไม่เจอ และบนเดสก์ท็อปไม่มีเลย */
+.ch-emo {
+  display: flex; flex-wrap: wrap; gap: 5px; flex: none;
+  padding: 10px 12px 0;
+}
+.ch-emo[hidden] { display: none; }
+.ch-emo button {
+  width: 42px; height: 42px; border: 0; border-radius: 12px;
+  background: var(--card2); font-size: 22px; line-height: 1; cursor: pointer;
+}
+.ch-emo button:active { transform: scale(.9); }
+
+/* รูปในฟองข้อความ — ไม่มีกรอบฟองครอบ เพราะรูปเป็นเนื้อหาเองอยู่แล้ว
+   ฟองรอบรูปทำให้เห็นขอบสองชั้นโดยไม่ได้บอกอะไรเพิ่ม */
+.ch-img {
+  display: block; max-width: 100%; width: 220px;
+  border-radius: 16px; border: 1px solid var(--line);
+  cursor: pointer; object-fit: cover;
+}
+.ch-img + .ch-bub { margin-top: 4px; }
