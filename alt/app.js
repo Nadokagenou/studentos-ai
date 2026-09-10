@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B75';                 // สายเลขของแอป
+const APP_VERSION = '1B76';                 // สายเลขของแอป
 const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -2628,7 +2628,7 @@ function rankCard(t, n, now) {
     <div class="rank-card sw-card" data-id="${t.id}" onclick="openForm('${t.id}')">
       <span class="rank ${tone}${n === 1 ? ' first' : ''}">${n}</span>
       <div class="rc-body">
-        <div class="rc-tags"><span class="tag ${tone}">${esc(priorityLabel(info.stars))}</span>${snoozeBadge(t)}</div>
+        <div class="rc-tags"><span class="tag ${tone}">${esc(priorityLabel(info.stars))}</span>${riskChips(t, now)}${snoozeBadge(t)}</div>
         <div class="rc-title">${taskTitle(t)}</div>
         <div class="rc-meta">${bits.join('<i class="msep"></i>')}</div>
       </div>
@@ -2928,6 +2928,49 @@ function tkChip(text, tone) {
   return `<span class="tk-chip${tone ? ' ' + tone : ''}">${esc(text)}</span>`;
 }
 
+// ---------- 1B76 · นาฬิกา "เริ่มไม่ทันแล้ว" ----------
+// รายงานความเสี่ยงต้องคิดจาก "งานทั้งกอง" ครั้งเดียว แล้วให้ทุกการ์ดอ่านจากผลก้อนนั้น
+// ห้ามให้การ์ดแต่ละใบเรียก riskReport เอง — นอกจากจะช้า (n ใบ × ไล่ปฏิทิน 14 วัน)
+// มันยังผิดด้วย: การ์ดที่คิดเองจะไม่เห็นว่าใบอื่นจองเวลาไปแล้ว ซึ่งเป็นทั้งจุดของฟีเจอร์นี้
+//
+// คีย์ของแคชมีทั้งนาทีปัจจุบันและลายเซ็นของงาน — เวลาเดินไปหนึ่งนาทีคำตอบก็เปลี่ยนได้จริง
+// (นาฬิกานับถอยหลังอยู่) และแก้ estMin/progress/กำหนดส่งเมื่อไหร่ก็ต้องคิดใหม่ทันที
+let _riskMemo = { key: '', map: null };
+function riskFor(t, now) {
+  if (typeof riskReport !== 'function') return null;
+  const pend = pendingTasks();
+  const key = Math.floor(now.getTime() / 60000) + '|' +
+    pend.map(x => x.id + ':' + x.due + ':' + x.estMin + ':' + (x.progress || 0)).join(',');
+  if (_riskMemo.key !== key) {
+    const rep = riskReport(pend, now, { state });
+    _riskMemo = { key, map: new Map(rep.map(r => [r.task.id, r])) };
+  }
+  return (_riskMemo.map && _riskMemo.map.get(t.id)) || null;
+}
+
+// ชิปนาฬิกา + ชิปโอกาส · คืนสตริงว่างเมื่อ "ไม่มีอะไรจะบอก" ตามกฎเดียวกับทุกแถวในแอปนี้
+//
+// สองอย่างที่จงใจไม่พูด:
+//   1. งานที่สบายอยู่แล้วและจุดเริ่มยังอีกไกลกว่า 36 ชม. — ชิปที่ขึ้นทุกใบคือชิปที่ไม่มีใครอ่าน
+//      (บรรทัดกำหนดส่งเดิมยังอยู่ ข้อมูลไม่ได้หายไปไหน)
+//   2. เปอร์เซ็นต์ของงานที่ทันสบาย และของงานที่ไม่ทันแน่แล้ว
+//      "97%" ไม่เปลี่ยนพฤติกรรมใคร ส่วน "2%" ก็ซ้ำกับชิปที่บอกไปแล้วว่าเวลาไม่พอ
+//      เลขมีประโยชน์เฉพาะช่วงกลาง ที่การตัดสินใจยังพลิกได้
+const RISK_QUIET_H = 36;
+function riskChips(t, now) {
+  const r = riskFor(t, now);
+  if (!r || r.overdue) return '';          // เลยกำหนดมีชิปของตัวเองอยู่แล้ว ไม่ต้องพูดซ้ำ
+  if (r.verdict === 'safe' && (!r.pnr || (r.pnr - now) > RISK_QUIET_H * 3.6e6)) return '';
+
+  const tone = r.verdict === 'safe' ? 'ok' : r.verdict === 'tight' ? 'warm' : 'hot';
+  const clock = typeof pnrChip === 'function' ? pnrChip(r, now) : null;
+  const showOdds = r.verdict === 'tight' || r.verdict === 'critical';
+  return [
+    clock ? tkChip(clock, tone) : '',
+    showOdds ? tkChip('โอกาสเสร็จทัน ' + Math.round(r.odds * 100) + '%', '') : '',
+  ].filter(Boolean).join('');
+}
+
 // การ์ดงาน — ลำดับการอ่านจากบนลงล่างทางเดียว ไม่มีเลขลอยชิดขวาให้ตาวิ่งไปมา
 //   วิชา (ป้ายเล็ก) → สิ่งที่ต้องทำ (ตัวใหญ่สุด) → สถานะ + เวลาที่ใช้
 // ของเดิมเอาชื่อวิชาเป็นตัวใหญ่สุด ทั้งที่นักเรียนรู้อยู่แล้วว่าฟิสิกส์คืออะไร
@@ -2971,6 +3014,9 @@ function taskCard(t, now, focus) {
   const chips = [
     examCd ? tkChip(examCd, tone || 'warn') : '',
     t.due ? tkChip(fmtDue(t.due, now, t), tone) : tkChip('ยังไม่ระบุกำหนด', ''),
+    // 1B76 — มาหลังกำหนดส่งโดยตั้งใจ: กำหนดส่งคือข้อเท็จจริงที่ครูให้มา
+    // ส่วนนาฬิกานี้คือสิ่งที่แอปคำนวณให้ · เรียงตามลำดับนั้นเพื่อไม่ให้สับสนว่าอันไหนมาจากไหน
+    riskChips(t, now),
     t.scorePct != null ? tkChip('คะแนน ' + t.scorePct + '%', '') : '',
     gotTx ? tkChip('ได้ ' + gotTx, 'good') : '',
     t.repeatDays ? tkChip(t.repeatDays === 7 ? 'ซ้ำทุกสัปดาห์'
@@ -3848,16 +3894,29 @@ function taskChip(t, now) {
   const late = t.due && new Date(t.due) < now;
   // ขวาสุดบอกของที่ต่างกันตามสถานะ: ค้างแล้วบอกว่ากี่วัน ยังไม่ถึงบอกว่ากินเวลาเท่าไหร่
   // ตัวเลขสองชนิดนี้ไม่เคยมีความหมายพร้อมกัน — งานที่เลยกำหนดแล้ว "ใช้ 40 นาที" ไม่ช่วยอะไร
+  // 1B76 — ช่องขวาสุดนี้เคยบอกได้อย่างเดียวว่า "งานนี้กินเวลาเท่าไหร่"
+  // ซึ่งเป็นข้อมูลที่ไม่เปลี่ยนการตัดสินใจของใคร (รู้ว่า 90 นาที แล้วยังไงต่อ)
+  // สิ่งที่เปลี่ยนการตัดสินใจคือ "เหลือเวลาให้เริ่มอีกนานแค่ไหน" — ถ้ามีเรื่องด่วนจะบอก ใส่แทน
+  // ไม่มีก็ถอยกลับไปบอกจำนวนนาทีเหมือนเดิม ตามกฎ "ไม่มีอะไรจะบอกก็ไม่ต้องโผล่"
+  //
+  // เกณฑ์การพูดของจอนี้เข้มกว่าการ์ดหน้าแรกโดยตั้งใจ: ที่นี่พูดเฉพาะงานที่ยัง "ต้องตัดสินใจ"
+  // งานที่สบายอยู่แล้วเงียบไว้ ปล่อยให้บอกจำนวนนาทีตามเดิม
+  // ("เริ่มใน 34ชม." บนงานที่ทันสบายคือแรงกดดันปลอม และมันไปแย่งสายตากับสองใบที่ด่วนจริง)
+  const rk = late ? null : riskFor(t, now);
+  const rkShort = rk && rk.verdict !== 'safe' && typeof pnrShort === 'function'
+    ? pnrShort(rk, now) : null;
+  const rkTone = !rkShort ? '' : rk.verdict === 'tight' ? 'warm' : 'hot';
   const meta = late
     ? '−' + Math.max(1, Math.round((now - new Date(t.due)) / 864e5)) + 'ว.'
-    : (TASK_TYPES[taskType(t)].schedulable && t.estMin ? remainingMin(t) + 'น' : '');
+    : rkShort
+    || (TASK_TYPES[taskType(t)].schedulable && t.estMin ? remainingMin(t) + 'น' : '');
   const subs = Array.isArray(t.subs) && t.subs.length
     ? t.subs.filter(x => x.done).length + '/' + t.subs.length : '';
   return `<button class="wc ${named ? subjClass(subj) : ''}${late ? ' late' : ''}"
       data-id="${t.id}" onclick="openForm('${t.id}')">
     <b>${esc(t.detail || subj || 'งาน')}</b>
     ${subs ? `<u>${subs}</u>` : ''}
-    ${meta ? `<i class="mono">${esc(meta)}</i>` : ''}
+    ${meta ? `<i class="mono${rkTone ? ' ' + rkTone : ''}">${esc(meta)}</i>` : ''}
     <span class="wc-tick" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
       aria-label="ทำเสร็จ">${icon('check')}</span>
   </button>`;
