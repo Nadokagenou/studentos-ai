@@ -756,13 +756,18 @@ function renderChat() {
     return dayHead + `<div class="ch-msg${mine ? ' me' : ''}${endsRun ? ' last' : ''}">
       ${mine ? '' : (endsRun ? chatAvatar() : '<span class="ch-face ghost"></span>')}
       <span class="ch-col">
-        ${m.image ? `<img class="ch-img" loading="lazy" alt="รูปที่ส่งมา"
-            src="${esc(typeof postImageUrl === 'function' ? postImageUrl(m.image) : m.image)}"
-            onclick="openFace('${esc(typeof postImageUrl === 'function' ? postImageUrl(m.image) : m.image)}','')">` : ''}
+        ${m.image ? (() => {
+          const u = dmImageUrl(m.image);
+          return u ? `<img class="ch-img" loading="lazy" alt="รูปที่ส่งมา" src="${esc(u)}"
+                        onclick="openFace('${esc(u)}','')">`
+                   : '<span class="ch-img wait"></span>';
+        })() : ''}
         ${String(m.body || '').trim()
           ? `<span class="ch-bub${startsRun ? ' first' : ''}${endsRun ? ' tail' : ''}">${esc(m.body)}</span>`
           : ''}
-        ${endsRun ? `<span class="ch-when">${esc(chatTime(m.created_at))}</span>` : ''}
+        ${endsRun ? `<span class="ch-when">${esc(chatTime(m.created_at))}${
+          mine ? ` · <button class="ch-del" onclick="unsendChat('${esc(String(m.id))}')"
+                     aria-label="ลบข้อความนี้">ลบ</button>` : ''}</span>` : ''}
       </span>
     </div>`;
   }).join('');
@@ -864,8 +869,24 @@ async function pickChatImage(input) {
   if (btn) btn.disabled = true;
   try {
     const blob = await shrinkImage(file, 1280, 0.72);
-    const path = 'dm/' + currentUser.id + '/' + Date.now() + '.jpg';
-    const up = await sb.storage.from('posts').upload(path, blob, { contentType: 'image/jpeg' });
+
+    // ตรวจก่อนอัปโหลดเสมอ (ผู้ใช้เคาะเอง: รูปกันก่อนส่ง)
+    const g = typeof guardImage === 'function' ? await guardImage(blob) : { ok: true };
+    if (!g.ok) {
+      if (typeof haptic === 'function') haptic('snooze');
+      showToast({ title: 'ส่งรูปนี้ไม่ได้', body: g.message });
+      if (btn) btn.disabled = false;
+      return;
+    }
+
+    // bucket 'dm' ปิดอยู่ (public = false) ต่างจาก 'posts' ที่เปิดสาธารณะ
+    // รูปในแชทตัวต่อตัวเป็นของสองคน มันไม่ควรเปิดได้ด้วย URL เปล่า ๆ โดยไม่ต้องล็อกอิน
+    //
+    // path ต้องขึ้นต้นด้วย uid ตรง ๆ ไม่ใช่ 'dm/<uid>/' แบบเดิม
+    // เพราะ policy ดูโฟลเดอร์แรกว่าเป็น uid ของคนอัปโหลดหรือเปล่า
+    // ของเดิมโฟลเดอร์แรกเป็นคำว่า 'dm' จึงโดนปฏิเสธทุกครั้งตั้งแต่ 1B72
+    const path = currentUser.id + '/' + Date.now() + '.jpg';
+    const up = await sb.storage.from('dm').upload(path, blob, { contentType: 'image/jpeg' });
     if (up.error) throw new Error(up.error.message);
     await sendChat(path);
   } catch (e) {
@@ -873,6 +894,30 @@ async function pickChatImage(input) {
     showToast({ title: 'ส่งรูปไม่สำเร็จ', body: e.message || 'ลองรูปอื่นดู' });
   }
   if (btn) btn.disabled = false;
+}
+
+// ============================================================
+// รูปใน bucket ปิด ต้องขอ URL ชั่วคราวก่อนถึงจะแสดงได้ (1B76)
+// ------------------------------------------------------------
+// getPublicUrl ใช้กับ bucket ที่ปิดอยู่ไม่ได้ ต้องใช้ createSignedUrl ซึ่งเป็น async
+// แต่ตัววาดหน้าจอเป็น sync จึงต้องมีที่พักไว้ตรงกลาง:
+//   ยังไม่มีในที่พัก -> วาดฟองว่างไว้ก่อน แล้วไปขอมา พอได้แล้วค่อยวาดใหม่รอบเดียว
+// ลิงก์มีอายุหนึ่งชั่วโมง ซึ่งนานกว่าที่คนเปิดแชทค้างไว้รอบหนึ่ง
+const dmPic = {};        // path -> url
+const dmPicWait = {};    // path -> true ระหว่างที่กำลังขอ
+
+function dmImageUrl(path) {
+  if (!path) return '';
+  if (/^https?:/.test(path)) return path;
+  if (dmPic[path]) return dmPic[path];
+  if (!dmPicWait[path] && sb) {
+    dmPicWait[path] = true;
+    sb.storage.from('dm').createSignedUrl(path, 3600).then(({ data }) => {
+      dmPicWait[path] = false;
+      if (data && data.signedUrl) { dmPic[path] = data.signedUrl; renderChat(); }
+    }).catch(() => { dmPicWait[path] = false; });
+  }
+  return '';
 }
 
 // ปุ่มส่งโผล่ตอนมีตัวอักษรเท่านั้น (เหมือน IG)
@@ -888,6 +933,37 @@ function chatTyping() {
 // policy ของ dm_messages ถูกบีบให้รับเฉพาะห้องที่เปิดแล้ว (migration 19) —
 // ห้องที่ยังเป็นคำขอจึงเข้าได้ทางฟังก์ชันนี้ทางเดียว ซึ่งเป็นที่ที่บังคับกติกา
 // "คนขอส่งได้ข้อความเดียว" กับ "ปลายทางตอบ = ห้องเปิด" ไว้ที่เดียว
+
+// ---------- ลบข้อความที่ส่งไปแล้ว ----------
+// IG เรียก unsend และลบให้ทั้งสองฝั่ง ไม่ใช่ลบแค่ฝั่งตัวเอง
+// ลบแค่ฝั่งตัวเองคือคำสัญญาที่ผิด: คนกดเพราะอยากให้อีกฝ่ายไม่เห็น ไม่ใช่เพราะรกตา
+async function unsendChat(id) {
+  if (!sb || !currentUser) return;
+  if (!confirm('ลบข้อความนี้ อีกฝ่ายจะไม่เห็นด้วย แน่ใจนะ?')) return;
+  const { data, error } = await sb.rpc('dm_unsend', { p_msg: Number(id) });
+  if (error) {
+    if (typeof haptic === 'function') haptic('snooze');
+    showToast({ title: 'ลบไม่สำเร็จ',
+      body: rpcMissing(error) ? 'ยังไม่ได้อัปเดตฐานข้อมูล' : error.message });
+    return;
+  }
+  if (data) { try { await sb.storage.from('dm').remove([data]); } catch (_) {} }
+  chatMsgs = chatMsgs.filter(m => String(m.id) !== String(id));
+  if (typeof haptic === 'function') haptic('done');
+  renderChat();
+  refreshDmRows();
+}
+
+// รีเฟรชกล่องข้อความเงียบ ๆ โดยไม่พาคนออกจากห้องแชท
+// openDmInbox() ใช้ไม่ได้ตรงนี้เพราะมันเรียก go('scr-dm') เป็นอย่างแรก
+// ซึ่งจะเด้งออกจากห้องที่เพิ่งลบข้อความไป ทั้งที่คนยังอ่านค้างอยู่
+// ถ้าไม่รีเฟรช บรรทัดสรุปในกล่องจะยังโชว์ข้อความที่ถูกลบไปแล้วจนกว่าจะเปิดใหม่
+async function refreshDmRows() {
+  if (!sb || !currentUser) return;
+  const { data, error } = await sb.rpc('dm_inbox');
+  if (!error) { dmRows = data || []; if (curScreen === 'scr-dm') renderDmInbox(); }
+}
+
 async function sendChat(imagePath) {
   const el = document.getElementById('chatIn');
   if (!chatThread) return;
@@ -929,6 +1005,8 @@ async function sendChat(imagePath) {
     image: imagePath || null,
     created_at: (row && row.created_at) || new Date().toISOString(),
   });
+  // ข้อความขึ้นไปแล้ว สแกนตามหลังโดยไม่รอผล (กติกาที่ผู้ใช้เคาะไว้)
+  if (typeof guardText === 'function' && row && row.id) guardText('dm', row.id, body);
   // ปลายทางพิมพ์ตอบ = ห้องเปิดแล้วฝั่งเซิร์ฟเวอร์ · ฝั่งนี้ต้องตามให้ทัน
   // ไม่งั้นแบนเนอร์ "คำขอ" ยังค้างอยู่ทั้งที่คุยกันได้แล้ว
   if (chatThread.state === 'pending' && !chatThread.mineReq) chatThread.state = 'open';
