@@ -29,7 +29,7 @@
 // ============================================================
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { geminiGenerate } from '../_shared/gemini.ts';
+import { geminiGenerate, geminiTrailLine, type GeminiError } from '../_shared/gemini.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -180,7 +180,13 @@ Deno.serve(async (req) => {
         json: true,
         responseSchema: SCHEMA,
         maxOutputTokens: 512,
-        budgetMs: 20_000,
+        // budgetMs คือเพดานของ **ทั้งคำขอ** ส่วน attemptMs คือของ **การยิงหนึ่งครั้ง**
+        // เดิมตั้ง budgetMs 20 วิเฉย ๆ แล้วปล่อยให้ attemptMs เป็นค่าปริยาย 22 วิ
+        // ซึ่งยาวกว่างบทั้งก้อน — พอรุ่นแรกอืด งบก็หมดตั้งแต่ยังไม่ได้ลองรุ่นสำรองสักตัว
+        // บันไดถอยที่อุตส่าห์มีจึงไม่เคยถูกใช้เลย และผู้ใช้เห็นเป็น "ตรวจรูปไม่สำเร็จ"
+        // วัดจริง 10 ก.ย. 69: ยิง 6 ครั้งจากแอปจริง ล้ม 2 ครั้งด้วย guard_down
+        attemptMs: 12_000,
+        budgetMs: 45_000,
       });
       const v = readVerdict(r.text ?? '');
       if (!v) throw new Error('อ่านคำตัดสินไม่ออก');
@@ -203,7 +209,10 @@ Deno.serve(async (req) => {
       await db.rpc('mod_note', {
         p_kind: 'image', p_target: null, p_author: uid,
         p_verdict: 'review', p_reason: 'guard_down',
-        p_score: { error: String((e as Error).message ?? e) },
+        // trail บอกว่าลองรุ่นไหนไปบ้าง แต่ละรุ่นตอบสถานะอะไร ใช้เวลาเท่าไร
+        // เก็บแค่ e.message จะได้ 'gemini 503' ลอย ๆ ซึ่งตอบไม่ได้ว่าควรแก้ตรงไหน
+        p_score: { error: String((e as Error).message ?? e),
+                   trail: geminiTrailLine((e as GeminiError).trail) },
       });
       return json({
         ok: false, reason: 'guard_down',
@@ -232,7 +241,8 @@ Deno.serve(async (req) => {
         json: true,
         responseSchema: SCHEMA,
         maxOutputTokens: 512,
-        budgetMs: 15_000,
+        attemptMs: 8_000,
+        budgetMs: 24_000,
       });
       const v = readVerdict(r.text ?? '');
       if (!v) throw new Error('อ่านคำตัดสินไม่ออก');
@@ -258,7 +268,8 @@ Deno.serve(async (req) => {
       await db.rpc('mod_note', {
         p_kind: kind, p_target: target, p_author: uid,
         p_verdict: 'review', p_reason: 'guard_down',
-        p_score: { error: String((e as Error).message ?? e) },
+        p_score: { error: String((e as Error).message ?? e),
+                   trail: geminiTrailLine((e as GeminiError).trail) },
       });
       return json({ ok: true, unchecked: true });
     }
