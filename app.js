@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B79';                 // สายเลขของแอป
+const APP_VERSION = '1B80';                 // สายเลขของแอป
 const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -3092,6 +3092,15 @@ function renderWhy() {
 
   // เอนจินที่กล้าบอกให้ไปนอนคือเอนจินที่คนจะเชื่อตอนมันบอกให้ทำ
   // ขึ้นเฉพาะตอนที่การพักชนะจริงแบบมีนัยสำคัญ ไม่ใช่ชนะเพราะเศษทศนิยม
+  // ยอมทิ้งใบไหน — ขึ้นเหนือทุกอย่างเมื่อมันมี เพราะมันเปลี่ยนทั้งกรอบของการตัดสินใจ
+  // ไม่ใช่ "ทำอันไหนก่อน" แต่เป็น "ทำทุกอันไม่ได้แล้วนะ"
+  const sacTx = typeof sacrificeText === 'function' ? sacrificeText(d) : null;
+  const sac = sacTx ? `<div class="wy-sac">${icon('flame')}
+      <b>ต้องเลือกแล้ว</b><span>${esc(sacTx)}</span></div>` : '';
+
+  // ซ้อมรับมือ — เงียบเมื่อแผนทนได้
+  const fragTx = typeof fragileText === 'function' ? fragileText(d) : null;
+
   const rest = d.rest.wins ? `<div class="wy-rest">${icon('clock')}
       <b>คืนนี้พักได้</b>
       <span>เวลาว่างที่เหลือน้อยจนทำแล้วได้ไม่คุ้ม — พรุ่งนี้เช้าคุ้มกว่า</span>
@@ -3109,11 +3118,13 @@ function renderWhy() {
   ].filter(([, v]) => v >= 0.05)
     .map(([k, v]) => `<span><i>${esc(k)}</i>${Math.round(v * 10) / 10}</span>`).join('');
 
-  body.innerHTML = `<div class="wy-tiles">${tiles}</div>
+  body.innerHTML = `${sac}<div class="wy-tiles">${tiles}</div>
     <p class="wy-unit">ตัวเลข = <b>${WHY_UNIT}</b> จากคะแนนรวมทั้งเทอม · ต่ำกว่าดีกว่า</p>
     ${parts ? `<div class="wy-bd"><div class="wy-bd-h">${esc(d.best.sum.total < 1 ? 'ทางที่แนะนำ ประกอบจาก' : 'ตัวเลขของทางที่แนะนำ ประกอบจาก')}</div>${parts}</div>` : ''}
     ${rest}
     <div class="wy-rows">${rows}</div>
+    ${fragTx ? `<div class="wy-frag"><div class="wy-k">ถ้ามีอะไรผิดแผน</div>
+      <div class="wy-v">${esc(fragTx)}</div></div>` : ''}
     ${whySelfHTML(now)}
     <p class="wy-note">ทุกบรรทัดคำนวณจากการจำลองอนาคต 120 เส้น โดยสุ่มตามที่คนทำได้จริง
       ไม่ใช่ข้อความสำเร็จรูป · ตัวเลขเดิมเข้า ได้คำตอบเดิมออกเสมอ</p>`;
@@ -8629,6 +8640,19 @@ function openForm(id, parsed) {
   document.getElementById('fProgress').value = prog;
   document.getElementById('fProgressVal').textContent = prog + '%';
 
+  // ---- 1B80 · สองช่องของชั้น L0 ----
+  // ช่อง "ต้องทำอะไรก่อน" เติมรายชื่องานที่ยังค้างอยู่ ยกเว้นใบนี้เอง (กันวงกลมตั้งแต่หน้าจอ)
+  const lateSel = document.getElementById('fLate');
+  if (lateSel) lateSel.value = t?.latePolicy || '';
+  const blkSel = document.getElementById('fBlock');
+  if (blkSel) {
+    const cur = (t && Array.isArray(t.blockedBy) && t.blockedBy[0]) || '';
+    blkSel.innerHTML = '<option value="">ไม่ต้องรออะไร</option>' +
+      pendingTasks().filter(x => x.id !== (t && t.id))
+        .map(x => `<option value="${esc(x.id)}">${esc(taskTitleText(x).slice(0, 40))}</option>`).join('');
+    blkSel.value = cur;
+  }
+
   const due = t?.due ? new Date(t.due) : new Date(Date.now() + 8.64e7); // default พรุ่งนี้
   f.date.value = due.getFullYear() + '-' + String(due.getMonth() + 1).padStart(2, '0') + '-' + String(due.getDate()).padStart(2, '0');
   f.time.value = String(due.getHours()).padStart(2, '0') + ':' + String(due.getMinutes()).padStart(2, '0');
@@ -8702,6 +8726,10 @@ function saveForm() {
     estMin: Math.max(5, +document.getElementById('fEst').value || 30),
     isExam: formType === 'exam', // เก็บไว้เพื่อความเข้ากันได้กับข้อมูลเก่า
     userStars: formUserStars || null,
+    // 1B80 — ว่างไว้แปลว่า "ให้เดา" ไม่ใช่ "ไม่มี" · facts.js เป็นคนตอบเมื่อค่าเป็น null
+    latePolicy: (document.getElementById('fLate') || {}).value || null,
+    blockedBy: ((document.getElementById('fBlock') || {}).value || '')
+      ? [document.getElementById('fBlock').value] : [],
     progress: ti.schedulable ? (+document.getElementById('fProgress').value || 0) : 0,
     due: due ? due.toISOString() : null,
   };

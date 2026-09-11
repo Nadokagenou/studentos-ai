@@ -79,8 +79,21 @@ function scoreFraction(frac, type) {
   return type === 'exam' ? EXAM_FLOOR + (1 - EXAM_FLOOR) * f : f;
 }
 
+// ---------- ดาวที่ผู้ใช้ตั้งเอง = หลักฐาน ไม่ใช่คำสั่งทับ (W10) ----------
+// `priorityInfo()` ปฏิบัติกับ userStars แบบล้างสมการทั้งก้อนทิ้ง (score = stars × 20)
+// ซึ่งแปลว่าเราไม่เคย "เรียนรู้" อะไรจากมันเลย ครั้งหน้าก็เดาผิดแบบเดิม
+//
+// ที่นี่อ่านมันเป็นสิ่งที่มันเป็นจริง ๆ: **คำบอกเล่าเรื่องน้ำหนักของงาน**
+// เด็กที่ตั้งห้าดาวให้ใบงานที่ครูบอกว่า 5% กำลังบอกเราว่ามันสำคัญกว่าตัวเลขนั้น
+// (อาจเป็นคะแนนเก็บที่ครูไม่ได้ประกาศ หรือเป็นเงื่อนไขผ่านวิชา — เขารู้ เราไม่รู้)
+//
+// ถ่วงครึ่งต่อครึ่งกับที่ครูบอก เพราะทั้งสองฝั่งต่างก็มีข้อมูลที่อีกฝั่งไม่มี
+const STAR_WEIGHT = { 1: 3, 2: 6, 3: 10, 4: 18, 5: 30 };
+
 function weightOf(item) {
-  return item.scorePct != null ? item.scorePct : LOSS_DEFAULT_WEIGHT;
+  const star = STAR_WEIGHT[item.userStars];
+  if (item.scorePct == null) return star != null ? star : LOSS_DEFAULT_WEIGHT;
+  return star != null ? (item.scorePct + star) / 2 : item.scorePct;
 }
 
 // ---------- ตีราคาอนาคตหนึ่งเส้น ----------
@@ -95,8 +108,18 @@ function lossOf(prep, out) {
     const w = weightOf(it);
     const f = out.frac[i];
     const got = scoreFraction(f, it.type);
-    const g = w * (1 - got);
-    const d = isCumulative(it.subject) ? w * DEBT_RATE * (1 - f) : 0;
+
+    // ---- ส่งช้าได้ไหม เปลี่ยนราคาของ "ทำไม่ทัน" ทั้งหมด ----
+    // ของเดิมคิดว่าทุกอย่างที่ไม่เสร็จตอนถึงกำหนด = เสียคะแนนส่วนนั้นทั้งก้อน
+    // จริงกับข้อสอบ แต่ไม่จริงกับใบงานที่ครูหักสิบเปอร์เซ็นต์ต่อวัน —
+    // ผลคือเอนจินเตือนเรื่องใบงานแรงพอ ๆ กับเรื่องสอบ ซึ่งทำให้คำเตือนทั้งหมดจืดลง
+    const policy = it.facts ? it.facts.latePolicy : 'zero';
+    const keep = typeof latePolicyRecover === 'function' ? latePolicyRecover(policy) : 0;
+
+    const g = w * (1 - got) * (1 - keep);
+    // หนี้ความรู้ก็กู้คืนได้ตามกัน — ทำช้าก็ยังได้เรียนรู้ แค่ช้ากว่าที่ควร
+    const cum = it.facts ? it.facts.cumulative : isCumulative(it.subject);
+    const d = cum ? w * DEBT_RATE * (1 - f) * (1 - keep) : 0;
     grade += g;
     debt += d;
     perTask.push({ idx: i, frac: f, gradeLoss: g, debt: d, done: f >= 0.999 });

@@ -7064,3 +7064,24 @@ body.deep-scr .top-friends { display: none; }
 }
 .wy-self .wy-r { border-bottom-color: var(--line); }
 .wy-self .wy-r.soft .wy-v { color: var(--muted); }
+
+/* 1B80 · "ต้องเลือกแล้ว" — ขึ้นเหนือทุกอย่างเมื่อเวลาไม่พอสำหรับทุกใบจริง ๆ
+   เป็นก้อนเดียวบนจอนี้ที่ใช้สีเตือนเต็มพื้น เพราะมันเปลี่ยนกรอบของคำถามทั้งหมด
+   จาก "ทำอันไหนก่อน" เป็น "ทำทุกอันไม่ได้แล้ว" — ของแบบนี้ขึ้นนาน ๆ ครั้งถึงจะมีน้ำหนัก */
+.wy-sac {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-bottom: 14px; padding: 13px 15px; border-radius: 14px;
+  background: var(--alert-soft); color: var(--alert);
+}
+.wy-sac svg { width: 18px; height: 18px; flex: none; }
+.wy-sac b { font-size: 14px; }
+.wy-sac span { width: 100%; font-size: 12.5px; line-height: 1.6; opacity: .9; }
+
+/* ซ้อมรับมือ — แถวเดียวต่อท้ายหกเหตุผล ไม่ใช่กล่องของตัวเอง
+   มันเป็นข้อมูลประกอบ ไม่ใช่คำแนะนำ · ขึ้นเฉพาะตอนแผนเปราะจริง */
+.wy-frag {
+  margin-top: 12px; padding: 11px 14px; border-radius: 14px;
+  background: var(--warn-soft);
+}
+.wy-frag .wy-k { color: var(--warn); }
+.wy-frag .wy-v { color: var(--warn); font-size: 13px; }

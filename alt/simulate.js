@@ -185,11 +185,30 @@ function riskReport(tasks, now = new Date(), opts = {}) {
     return true;
   });
 
-  const queue = live
-    .map(t => ({ t, due: new Date(t.due), need: simNeedMin(t, stats) }))
+  let queue = live
+    .map(t => ({ t, due: new Date(t.due), need: simNeedMin(t, stats),
+      blockedBy: (typeof taskFacts === 'function' && taskFacts(t) ? taskFacts(t).blockedBy : []) }))
     .filter(x => !isNaN(x.due))
     // เส้นตายเท่ากันให้ใบที่สั้นกว่าไปก่อน — ได้จำนวนใบที่ทันมากกว่าเมื่อเวลาไม่พอ
     .sort((a, b) => (a.due - b.due) || (a.need - b.need));
+
+  // ---- ใบที่ต้องทำก่อน ต้องได้จองเวลาก่อนเสมอ (W5) ----
+  // ไม่ใช่เรื่องความสำคัญ แต่เป็นเรื่องความเป็นไปได้: "ทำแบบฝึกหัดบทที่ 4" เริ่มไม่ได้เลย
+  // จนกว่า "อ่านบทที่ 4" จะเสร็จ · ถ้าไม่ดันตัวที่ถูกรอขึ้นมาก่อน รันเวย์ของตัวที่รอ
+  // จะถูกคำนวณเกินจริง แล้วนาฬิกาจะบอกว่ายังเริ่มทันทั้งที่เริ่มไม่ได้ด้วยซ้ำ
+  const ordered = [];
+  const placed = new Set();
+  const place = (x, seen) => {
+    if (placed.has(x.t.id) || seen.has(x.t.id)) return;   // seen = กันวงกลม
+    seen.add(x.t.id);
+    for (const bid of x.blockedBy) {
+      const b = queue.find(y => y.t.id === bid);
+      if (b) place(b, seen);
+    }
+    if (!placed.has(x.t.id)) { placed.add(x.t.id); ordered.push(x); }
+  };
+  for (const x of queue) place(x, new Set());
+  queue = ordered;
 
   const out = [];
   for (const item of queue) {
@@ -465,6 +484,9 @@ function simPrep(tasks, now = new Date(), opts = {}) {
   const items = list.map(t => {
     const subject = (t.subject || 'อื่น ๆ').trim();
     const s = stats && stats[subject];
+    // ธรรมชาติของงานมาจาก facts.js ที่เดียว — ห้ามให้ไฟล์นี้เก็บรายชื่อวิชาของตัวเองอีก
+    // (เคยมีสองที่แล้วเพี้ยนคนละทาง: loss.js รู้จักวิชาสะสม ส่วน simulate.js รู้จักวิชาที่ต้องต่อความคิด)
+    const f = typeof taskFacts === 'function' ? taskFacts(t) : null;
     return {
       task: t,
       subject,
@@ -472,11 +494,27 @@ function simPrep(tasks, now = new Date(), opts = {}) {
       due: (new Date(t.due) - now) / 60000,           // นาทีจากตอนนี้ · ติดลบ = เลยกำหนด
       need: typeof remainingMin === 'function' ? remainingMin(t) : (t.estMin || 30),
       biasMean: s ? s.factor : 1,
-      deep: DEEP_SUBJECTS.includes(subject),
+      deep: f ? f.deep : DEEP_SUBJECTS.includes(subject),
+      facts: f,
       scorePct: t.scorePct,
+      userStars: t.userStars || 0,
       progress: t.progress || 0,
+      blocks: [],          // index ของงานที่ต้องเสร็จก่อนใบนี้ — เติมด้านล่าง
     };
   }).sort((a, b) => (a.due - b.due) || (a.need - b.need));
+
+  // ---- แปลง blockedBy จาก id เป็น index ----
+  // ทำหลังเรียงเสร็จแล้วเท่านั้น ไม่งั้น index ที่เก็บไว้จะชี้ผิดใบทั้งชุด
+  // ตัดวงกลมทิ้งด้วย (A รอ B, B รอ A) — ข้อมูลแบบนั้นทำให้ตัวจำลองไม่มีใครได้เริ่มเลยสักใบ
+  const byId = {};
+  items.forEach((it, i) => { byId[it.task.id] = i; });
+  items.forEach((it, i) => {
+    const ids = it.facts ? it.facts.blockedBy : [];
+    it.blocks = ids.map(id => byId[id]).filter(j => j != null && j !== i);
+  });
+  for (const it of items) {
+    it.blocks = it.blocks.filter(j => !(items[j].blocks || []).includes(items.indexOf(it)));
+  }
 
   // ความจุรายวัน - ใช้เป็นตัวหารของ StressCost ("วันนั้นแน่นแค่ไหน" ไม่ใช่ "ทำไปกี่นาที")
   const dayCap = {};
@@ -505,7 +543,12 @@ function simRollout(prep, seed, action) {
   // เวลาที่ต้องใช้จริงของแต่ละใบ - สุ่มครั้งเดียวต่อใบ ต่อหนึ่งเส้นอนาคต
   const need = new Array(n);
   for (let i = 0; i < n; i++) {
-    need[i] = prep.items[i].need * simBell(rnd, prep.items[i].biasMean, BIAS_SD, 0.6, 2.2);
+    // งานกลุ่มแกว่งกว่างานเดี่ยว เพราะมีคนอื่นอยู่ในสมการ — ค่ากลางเท่าเดิม แต่หางยาวกว่า
+    // สำคัญเพราะการเลือกด้วย mean + κ·sd จะหลบงานที่แกว่งเองโดยอัตโนมัติ
+    // (เริ่มงานกลุ่มเร็วกว่างานเดี่ยวที่เท่ากัน คือคำแนะนำที่ถูก และตอนนี้มันโผล่มาเอง)
+    const f = prep.items[i].facts;
+    const sd = f && f.partnerDependent ? BIAS_SD * 1.8 : BIAS_SD;
+    need[i] = prep.items[i].need * simBell(rnd, prep.items[i].biasMean, sd, 0.5, 2.6);
   }
   const left = need.slice();
   const dayLoad = {};
@@ -514,10 +557,22 @@ function simRollout(prep, seed, action) {
 
   const skipMin = action && action.kind === 'delay' ? action.skipMin : 0;
   const pinned = action && action.kind === 'do' ? action.idx : -1;
+  // ยอมทิ้งใบนี้ไปเลย — เวลาที่มันเคยกินจะตกเป็นของใบอื่นทันที
+  // ต้องแยกจาก "ทำเสร็จ" ให้ชัด: left = 0 เหมือนกัน แต่ตอนคิดคะแนนต้องนับเป็น 0%
+  const dropped = action && action.kind === 'drop' ? action.idx : -1;
+  if (dropped >= 0) left[dropped] = 0;
   let firstWorkingSlot = true;
+
+  // ---- ซ้อมรับมือ: ยัดเหตุร้ายเข้าไปดูว่าแผนทนได้แค่ไหน ----
+  // แผนที่ดีบนกระดาษกับแผนที่ทนความจริงได้ ไม่ใช่ของชิ้นเดียวกัน
+  // ตัวเลขที่ได้จากตรงนี้ตอบคำถามที่ไม่มีแอปไหนถาม: "ถ้าพรุ่งนี้ป่วย จะเหลืออะไร"
+  const shock = action && action.shock;
+  const sickDays = shock && shock.kind === 'sick' ? (shock.days || [1, 2]) : null;
+  const partnerStuckUntil = shock && shock.kind === 'partner' ? (shock.untilDay != null ? shock.untilDay : 2) : -1;
 
   for (const slot of prep.slots) {
     if (slot.to <= skipMin) continue;                     // ช่วงนี้ถูกข้ามไปทั้งก้อน
+    if (sickDays && sickDays.includes(slot.day)) continue;   // ป่วย = ทั้งวันหายไป
     const startAt = Math.max(slot.from, skipMin);
     // ค่ากลางของการสุ่มมาจากช่วงของวันที่ช่องนี้อยู่ ไม่ใช่ค่าเดียวทั้งสัปดาห์
     const mean = (prep.rates && prep.rates[slot.bucket] != null)
@@ -526,8 +581,13 @@ function simRollout(prep, seed, action) {
     if (room < 5) continue;
 
     // ลำดับในช่วงนี้: EDF ตามปกติ · ยกเว้นช่วงแรกที่ถูกตรึงด้วย action
+    // งานที่ยังติดใบอื่นอยู่ ทำไม่ได้ในรอบนี้ — ไม่ใช่ "ยังไม่อยากทำ" แต่คือ "ทำไม่ได้"
+    // (W5) ของเดิมไม่มีข้อนี้เลย แผนจึงสั่งให้ทำแบบฝึกหัดบทที่ 4 ก่อนอ่านบทที่ 4 ได้หน้าตาเฉย
+    const blocked = i => (prep.items[i].blocks || []).some(j => left[j] > 0);
     const order = [];
-    for (let i = 0; i < n; i++) if (left[i] > 0 && prep.items[i].due > startAt) order.push(i);
+    for (let i = 0; i < n; i++) {
+      if (left[i] > 0 && prep.items[i].due > startAt && !blocked(i)) order.push(i);
+    }
     if (!order.length) continue;
     if (firstWorkingSlot && pinned >= 0 && left[pinned] > 0) {
       const at = order.indexOf(pinned);
@@ -539,6 +599,9 @@ function simRollout(prep, seed, action) {
       if (room < 5) break;
       const it = prep.items[i];
       if (it.due <= startAt) continue;
+      // เพื่อนในกลุ่มยังไม่ส่งส่วนของตัวเอง — งานกลุ่มเดินต่อไม่ได้จนกว่าจะถึงวันนั้น
+      if (partnerStuckUntil >= 0 && slot.day <= partnerStuckUntil
+          && it.facts && it.facts.partnerDependent) continue;
       if (lastSubj !== null && lastSubj !== it.subject) {
         room -= it.deep ? RAMP_DEEP : RAMP_LIGHT;
         if (room < 5) break;
@@ -570,5 +633,6 @@ function simRollout(prep, seed, action) {
   // frac = ทำไปได้กี่ส่วนของงานทั้งใบ (0-1) · นี่คือสิ่งเดียวที่ loss.js ต้องรู้
   const frac = new Array(n);
   for (let i = 0; i < n; i++) frac[i] = need[i] <= 0 ? 1 : Math.max(0, 1 - left[i] / need[i]);
-  return { frac, dayLoad, pastBed };
+  if (dropped >= 0) frac[dropped] = prep.items[dropped].progress / 100;   // ได้แค่ที่ทำค้างไว้
+  return { frac, dayLoad, pastBed, dropped };
 }

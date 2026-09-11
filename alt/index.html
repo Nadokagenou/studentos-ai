@@ -616,6 +616,24 @@
                 <input type="number" id="fScore" min="0" max="100" placeholder="20"></div>
             </div>
 
+            <!-- 1B80 · สองอย่างที่เปลี่ยนคำตอบของเอนจินมากกว่าคะแนน แต่ไม่เคยถามมาก่อน
+                 ทั้งคู่มีค่าเริ่มต้นที่เดาให้แล้วจาก facts.js — ช่องนี้มีไว้ "แก้" ไม่ใช่ "กรอก"
+                 ว่างไว้ = ใช้ค่าที่เดา ซึ่งถูกสำหรับงานส่วนใหญ่ -->
+            <div class="fld">
+              <label>ส่งช้าได้ไหม</label>
+              <select id="fLate">
+                <option value="">ให้ AI เดาจากงาน</option>
+                <option value="penalty">ส่งช้าได้ แต่โดนหักคะแนน</option>
+                <option value="zero">ส่งช้าไม่ได้เลย</option>
+                <option value="ok">ส่งช้าได้ ไม่มีผล</option>
+              </select>
+            </div>
+
+            <div class="fld" id="fBlockWrap">
+              <label>ต้องทำอะไรให้เสร็จก่อน</label>
+              <select id="fBlock"><option value="">ไม่ต้องรออะไร</option></select>
+            </div>
+
             <div class="fld" id="fEstWrap">
               <div class="fld-head"><label id="fEstLabel">ใช้เวลา</label><span class="val" id="fEstVal">30 นาที</span></div>
               <input type="range" id="fEst" min="5" max="180" step="5" value="30"
@@ -1545,6 +1563,9 @@
      ตอบคำถามที่ priorityInfo() ตอบไม่ได้: "ยังเริ่มทันอยู่ไหม" — เฟส 1 ของเอนจินตัดสินใจ -->
 <!-- profile.js ต้องมาก่อน simulate.js — simulate เรียก studyProfile()/profileBucketOf()
      เพื่อเอาอัตราลงมือจริงของผู้ใช้มาใช้แทนค่ากลาง (เฟส 3) -->
+<!-- facts.js ต้องมาก่อนทุกชั้นของเอนจิน — ทั้ง simulate/loss/decide อ่าน taskFacts()
+     เพื่อรู้ว่างานใบนี้ติดใบอื่นไหม ส่งช้าได้ไหม ต้องต่อความคิดแค่ไหน (ชั้น L0) -->
+<script src="facts.js"></script>
 <script src="profile.js"></script>
 <script src="simulate.js"></script>
 <!-- calibrate.js เป็นอิสระ ไม่มีใครใน engine เรียกมัน — app.js เรียกฝ่ายเดียว (เฟส 4-5) -->

@@ -43,8 +43,17 @@ const TIE_MARGIN = 0.3;
 function pickCandidates(prep, state, now, opts) {
   const out = [];
   const seen = new Set();
+
+  // ---- งานที่ยังติดใบอื่นอยู่ ห้ามเสนอ (W5) ----
+  // ตัวจำลองข้ามมันถูกอยู่แล้ว การตรึงมันเป็น action จึงไม่เกิดผลอะไร คะแนนเลยดูปกติ
+  // แล้วเราก็เชียร์งานที่เจ้าตัวเปิดขึ้นมาแล้วเริ่มไม่ได้ — คำแนะนำที่ทำตามไม่ได้
+  // แย่กว่าไม่แนะนำอะไรเลย เพราะมันสอนให้คนเลิกเชื่อการ์ดใบนั้น
+  //
+  // prep.items มีแต่งานที่ยังไม่เสร็จ · blocks ที่ยังชี้ถึงใครอยู่ = ใบนั้นยังไม่เสร็จ
+  const ready = idx => idx != null && idx >= 0 && !(prep.items[idx].blocks || []).length;
+
   const add = (id, label, idx) => {
-    if (idx == null || idx < 0 || seen.has(idx)) return;
+    if (!ready(idx) || seen.has(idx)) return;
     seen.add(idx);
     out.push({ id, label, idx, action: { kind: 'do', idx }, task: prep.items[idx].task });
   };
@@ -158,6 +167,35 @@ function decide(state, now = new Date(), opts = {}) {
   const restMin = Math.max(delayMin + 1, todayEnd);
   const rest = evalAction(prep, { kind: 'delay', skipMin: restMin });
 
+  // ============================================================
+  // ยอมทิ้งใบไหนดี — คำแนะนำที่ task manager ไม่มีวันให้
+  // ============================================================
+  // เมื่อเวลาไม่พอจริง ๆ ที่ปรึกษาตัวจริงไม่ได้บอกว่า "พยายามเข้านะ" — เขาบอกว่าควรปล่อยอะไร
+  // ไม่มีแอปไหนกล้าแนะนำให้เลิกทำอะไร เพราะไม่มีแอปไหนมีหน่วยให้เทียบว่าอะไรแพงกว่ากัน
+  //
+  // เราตอบได้ เพราะทุกอย่างอยู่ในสกุลเดียวกันหมดแล้ว: ลองปล่อยใบนั้นดู
+  // ถ้าเวลาที่มันคืนมาช่วยใบอื่นได้มากกว่าที่มันเสียไปเอง — นั่นคือคำตอบ
+  //
+  // คัดเฉพาะใบที่ "เสี่ยงหลุดอยู่แล้ว" มาลอง ไม่ใช่ลองทุกใบ:
+  // การเสนอให้ทิ้งงานที่กำลังจะเสร็จอยู่แล้วเป็นคำแนะนำที่ผิดและน่าตกใจ
+  const baseScore0 = Math.min.apply(null, scen.map(x => x.score));
+  const baseSum = scen.reduce((a, x) => (x.score < a.score ? x : a), scen[0]).sum;
+  const atRisk = prep.items
+    .map((it, i) => ({ i, it, miss: baseSum.missP[i], w: it.scorePct == null ? 8 : it.scorePct }))
+    .filter(x => x.miss >= 0.5)
+    .sort((a, b) => (a.w - b.w) || (b.miss - a.miss))
+    .slice(0, 2);
+
+  let sacrifice = null;
+  for (const c of atRisk) {
+    const sum = evalAction(prep, { kind: 'drop', idx: c.i });
+    const sc = sum.total + KAPPA * sum.sd;
+    if (sc + TIE_MARGIN < baseScore0 && (!sacrifice || sc < sacrifice.score)) {
+      sacrifice = { task: c.it.task, idx: c.i, sum, score: sc,
+        saved: baseScore0 - sc, miss: c.miss };
+    }
+  }
+
   scen.sort((a, b) => a.score - b.score);
   const best = scen[0];
   const runnerUp = scen[1] || null;
@@ -270,14 +308,56 @@ function decide(state, now = new Date(), opts = {}) {
   // การจำลองไม่เห็นด้วยกับการ์ด และไม่เห็นด้วยแบบมีนัยสำคัญ — ต้องพูดออกมา ไม่ใช่กลบ
   const disagrees = !!focus && focus !== best && focus.regret >= TIE_MARGIN;
 
+  // ============================================================
+  // ซ้อมรับมือ — แผนนี้ทนความจริงได้แค่ไหน
+  // ============================================================
+  // รันทางที่แนะนำซ้ำ แต่ยัดเหตุร้ายเข้าไป · รายงานว่า "แพงขึ้นเท่าไหร่" ไม่ใช่แค่ "มีแผน"
+  // แผนที่พังทันทีที่มีอะไรผิดนิดเดียว ควรถูกบอกตั้งแต่วันนี้ ตอนที่ยังเลือกได้ว่าจะเผื่ออะไร
+  const hasPartner = prep.items.some(x => x.facts && x.facts.partnerDependent);
+  const sick = evalAction(prep, { ...best.action, shock: { kind: 'sick', days: [1, 2] } });
+  const partner = hasPartner
+    ? evalAction(prep, { ...best.action, shock: { kind: 'partner', untilDay: 2 } }) : null;
+  const fragile = {
+    sick: { sum: sick, extra: sick.total - best.sum.total },
+    partner: partner ? { sum: partner, extra: partner.total - best.sum.total } : null,
+  };
+
   return {
-    best, runnerUp, scenarios: scen, prep, tie, focus, disagrees,
+    best, runnerUp, scenarios: scen, prep, tie, focus, disagrees, sacrifice, fragile,
     delay: { sum: delay, score: delay.total + KAPPA * delay.sd, min: delayMin },
     rest: { sum: rest, score: restScore, wins: restWins, skipMin: restMin },
     why, risk,
     // เส้นฐานเพื่อให้เทียบกับเอนจินเดิมได้เสมอ — ทางที่ EDF เลือกอยู่อันดับที่เท่าไหร่
     edfRank: scen.findIndex(s => s.id === 'edf'),
   };
+}
+
+// ---------- ประโยคของ "ยอมทิ้งใบไหน" ----------
+// ต้องพูดให้ชัดว่านี่คือการเลือก ไม่ใช่การยอมแพ้ — และต้องบอกราคาของทั้งสองฝั่ง
+// ไม่ใช่บอกแค่ฝั่งที่เราเชียร์ · คนจะทำตามคำแนะนำแบบนี้ได้ก็ต่อเมื่อเห็นตัวเลขครบ
+function sacrificeText(d) {
+  if (!d || !d.sacrifice) return null;
+  const nm = t => (typeof taskPhrase === 'function' ? taskPhrase(t) : (t.subject || 'งานนี้'));
+  const s = d.sacrifice;
+  return 'เวลาที่เหลือไม่พอสำหรับทุกใบจริง ๆ — ถ้ายอมปล่อย' + nm(s.task)
+    + ' (โอกาสทำไม่ทันอยู่ที่ ' + Math.round(s.miss * 100) + '% อยู่แล้ว) '
+    + 'เวลาที่คืนมาจะช่วยใบที่เหลือได้ ' + (Math.round(s.saved * 10) / 10) + ' คะแนนของทั้งเทอม';
+}
+
+// ---------- ประโยคของ "ซ้อมรับมือ" ----------
+// เงียบเมื่อแผนทนได้ — คำเตือนที่ขึ้นทุกวันคือคำเตือนที่ไม่มีใครอ่าน
+function fragileText(d) {
+  if (!d || !d.fragile) return null;
+  const bits = [];
+  const f = d.fragile;
+  if (f.sick && f.sick.extra >= 1) {
+    bits.push('ถ้าป่วยสองวัน ความเสียหายขึ้นอีก ' + (Math.round(f.sick.extra * 10) / 10) + ' คะแนน');
+  }
+  if (f.partner && f.partner.extra >= 1) {
+    bits.push('ถ้าเพื่อนในกลุ่มส่งช้า ขึ้นอีก ' + (Math.round(f.partner.extra * 10) / 10) + ' คะแนน');
+  }
+  if (!bits.length) return null;
+  return bits.join(' · ') + ' — เผื่อเวลาไว้ก่อนดีกว่า';
 }
 
 // ---------- แปลงเป็นสามการ์ด A / B / C ----------
