@@ -2391,58 +2391,109 @@
    หน้าเพื่อน (1A6M2)
    ============================================================ */
 .fr-body { gap: 16px; padding-top: 22px; }
-.fr-me {
-  background: var(--grad-hero);
-  color: #fff;
-  border-radius: var(--r-card);
-  padding: 16px;
-  box-shadow: var(--shadow-brand);
+/* ---------- แถบค้นหา ----------
+   ทรงมาตรฐาน: แคปซูลมีแว่นขยายอยู่ข้างใน ไม่มีป้ายกำกับลอยข้างบน
+   ป้ายกำกับมีไว้สำหรับฟอร์มหลายช่อง ไม่ใช่ช่องเดียวบนสุดของจอ */
+.fr-search {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card2); border-radius: 999px; padding: 0 14px;
+  min-height: 46px;
 }
-.fr-me-h { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700;
-  letter-spacing: .06em; text-transform: uppercase; opacity: .9; }
-.fr-me-h svg { width: 15px; height: 15px; }
-.fr-me-p { margin: 8px 0 12px; font-size: 12.5px; line-height: 1.6; opacity: .82; }
-.fr-copy {
-  display: inline-flex; align-items: center; gap: 8px;
-  min-height: 40px; padding: 0 16px;
-  border: none; border-radius: 999px;
-  background: rgba(255,255,255,.95); color: #14321F;
-  font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+.fr-search > svg { width: 18px; height: 18px; flex: none; color: var(--faint); }
+.fr-search input {
+  flex: 1; min-width: 0; border: none; background: none; outline: none;
+  font-family: inherit; font-size: 15px; color: var(--ink);
 }
-.fr-copy svg { width: 15px; height: 15px; }
-.fr-copy:active { transform: scale(.97); }
-.fr-code {
-  width: 100%; margin-top: 10px; border: none; border-radius: 10px;
-  background: rgba(0,0,0,.25); color: #fff; padding: 8px 10px;
-  font-family: 'Space Mono', ui-monospace, monospace; font-size: 11px; resize: none;
+.fr-search input::placeholder { color: var(--faint); }
+.fr-search:focus-within { outline: 2px solid var(--blue); outline-offset: -2px; }
+.fr-clear {
+  flex: none; width: 24px; height: 24px; border: none; border-radius: 50%;
+  background: var(--line); color: var(--ink); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
 }
-.fr-code[hidden] { display: none; }
+.fr-clear svg { width: 13px; height: 13px; }
+.fr-clear[hidden] { display: none; }
 
-.fr-add { display: flex; flex-direction: column; gap: 8px; }
-.fr-add label { font-size: 11px; font-weight: 600; letter-spacing: .08em;
-  text-transform: uppercase; color: var(--faint); }
-.fr-add textarea {
-  width: 100%; border: none; border-radius: 12px; background: var(--card2);
-  padding: 11px 12px; font-family: 'Space Mono', ui-monospace, monospace;
-  font-size: 12px; line-height: 1.5; color: var(--ink); resize: vertical;
+/* ---------- หัวข้อกลุ่ม ---------- */
+.fr-sec {
+  display: flex; align-items: center; gap: 7px;
+  margin: 4px 2px 9px; font-size: 11px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--faint);
 }
-.fr-add textarea:focus { outline: 2px solid var(--blue); outline-offset: -2px; }
-.fr-add-btn {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 46px; border: none; border-radius: var(--r-tile);
-  background: var(--blue); color: var(--on-accent);
-  font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
-  box-shadow: var(--shadow-brand);
+.fr-sec i { font-style: normal; opacity: .75; }
+/* ถัง "เลยกำหนด" ต้องอ่านต่างจากถังอื่นตั้งแต่ยังไม่ทันอ่านคำ — มันคือถังเดียว
+   ในจอที่แปลว่า "สายแล้ว" ส่วนที่เหลือแปลว่า "ยังทัน" */
+.fr-sec.hot { color: var(--alert); }
+
+/* ช่องค้นหางาน — ทรงเดียวกับช่องค้นหาเพื่อนเป๊ะ ต่างแค่ระยะห่างรอบตัว
+   เพราะจอนี้มีหัวจอเต็มรูปแบบอยู่ข้างบน ส่วนจอเพื่อนไม่มี */
+.tk-search { margin: 14px 0 4px; }
+
+/* หัวข้อกลุ่มในแท็บ "ฉัน" — ทรงเดียวกับ .fr-sec แต่ต้องมีระยะบนของตัวเอง
+   เพราะมันคั่นระหว่างกล่องรายการ ไม่ได้อยู่ในกล่องเหมือนจอเพื่อน */
+.pf-sec {
+  margin: 22px 4px 9px; font-size: 11px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--faint);
 }
-.fr-add-btn svg { width: 16px; height: 16px; }
-.fr-add-btn:active { transform: scale(.98); }
+.pf-sec:first-of-type { margin-top: 4px; }
+/* หัวข้อจัดระยะบนให้แล้ว กล่องที่ตามมาจึงไม่ต้องเว้นซ้ำอีกชั้น */
+.pf-sec + .pf-entry { margin-top: 0; }
+
+
+
+/* ---------- แถวชื่อผู้ใช้ของฉัน — ล่างสุด ----------
+   ของที่ตั้งครั้งเดียวแล้วแทบไม่กลับมาแก้ ไม่ควรกินพื้นที่บนสุดของจอที่เปิดทุกวัน */
+.fr-me2 {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 14px; border-radius: var(--r-card);
+  background: var(--card2); font-size: 14px;
+}
+.fr-me2-lb { color: var(--faint); font-size: 12.5px; }
+.fr-me2 b { font-weight: 700; letter-spacing: -.01em; }
+.fr-me2 .fr-ic { margin-left: auto; }
+.fr-me2 .fr-ic + .fr-ic { margin-left: 0; }
+.fr-ic {
+  flex: none; width: 32px; height: 32px; border: none; border-radius: 50%;
+  background: transparent; color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.fr-ic svg { width: 16px; height: 16px; }
+.fr-ic:active { background: var(--line); }
+.fr-me2.edit { gap: 6px; }
+.fr-me2 .fr-at { font-size: 15px; font-weight: 700; color: var(--faint); }
+.fr-me2 input {
+  flex: 1; min-width: 0; border: none; border-radius: 9px;
+  background: var(--card); padding: 9px 11px;
+  font-family: inherit; font-size: 15px; font-weight: 600; color: var(--ink);
+}
+.fr-me2 input:focus { outline: 2px solid var(--blue); outline-offset: -2px; }
+.fr-fine { margin: 7px 4px 0; font-size: 11.5px; color: var(--faint); }
+
+/* ---------- จอว่าง ----------
+   ไอคอน + ประโยคเดียว + ปุ่มหนึ่งปุ่ม · ย่อหน้าสีเทาคือจอที่ไม่มีใครอ่านจบ
+   คนที่มาถึงจอว่างคือคนที่ยังไม่รู้ว่าต้องทำอะไรต่อ จึงต้องมีของให้กด */
+.fr-empty {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 8px; padding: 34px 22px;
+}
+.fr-empty > svg { width: 30px; height: 30px; color: var(--faint); opacity: .7; }
+.fr-empty b { font-size: 15.5px; font-weight: 700; }
+.fr-empty p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--muted); max-width: 28ch; }
+.fr-empty-go {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 6px; min-height: 40px; padding: 0 18px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--card); color: var(--ink);
+  font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.fr-empty-go svg { width: 15px; height: 15px; }
+.fr-empty-go:active { transform: scale(.97); }
 
 .fr-card {
   display: flex; align-items: center; gap: 12px;
   background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card);
   box-shadow: var(--shadow); padding: 13px 14px; margin-bottom: 9px;
 }
-.fr-card.me { border-color: var(--blue); background: var(--blue-soft); }
 .fr-av {
   width: 40px; height: 40px; flex: none; border-radius: 50%;
   background: var(--grad-brand); color: #fff;
@@ -2455,9 +2506,6 @@
   font-size: 9.5px; font-weight: 700; }
 .fr-st { margin-top: 3px; font-size: 12px; color: var(--muted); }
 .fr-st b { color: var(--ink); }
-.fr-bar { margin-top: 7px; height: 5px; border-radius: 999px; background: var(--card2); overflow: hidden; }
-.fr-bar i { display: block; height: 100%; border-radius: 999px; background: var(--grad-brand); }
-.fr-ago { margin-top: 5px; font-size: 10.5px; color: var(--faint); }
 .fr-del {
   flex: none; width: 34px; height: 34px; border-radius: 50%;
   border: none; background: transparent; color: var(--faint); cursor: pointer;
@@ -2466,6 +2514,48 @@
 .fr-del svg { width: 15px; height: 15px; }
 .fr-del:active { color: var(--alert); }
 .fr-note { margin: 4px 2px 0; font-size: 12px; line-height: 1.7; color: var(--faint); }
+/* ประตูล็อกอินของแท็บ "เพื่อนฉัน" — แทนที่ทั้งจอ ไม่ใช่แถบเตือนเหนือช่องที่กรอกไม่ได้
+   ช่องที่กรอกได้แต่บันทึกไม่ได้ แย่กว่าไม่มีช่องเลย */
+.fr-gate {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 10px; padding: 30px 22px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-card);
+}
+.fr-gate svg { width: 26px; height: 26px; color: var(--blue); }
+.fr-gate b { font-size: 16px; font-weight: 700; }
+.fr-gate p { margin: 0; font-size: 13px; line-height: 1.7; color: var(--muted); max-width: 30ch; }
+.fr-gate-go {
+  margin-top: 4px; min-height: 44px; padding: 0 26px; border: none; border-radius: 999px;
+  background: var(--blue); color: var(--on-accent);
+  font-family: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer;
+  box-shadow: var(--shadow-brand);
+}
+.fr-gate-go:active { transform: scale(.97); }
+.fr-card.req { border-color: var(--blue); background: var(--blue-soft); }
+.fr-av img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.fr-nm { flex-wrap: wrap; }
+.fr-hd { margin-top: 2px; font-size: 12px; color: var(--faint); }
+/* ป้ายสถานะในผลค้นหาต้องไม่หน้าตาเหมือนปุ่ม — พื้นน้ำเงินข้างปุ่ม "เพิ่ม" สีเดียวกัน
+   คือการสอนให้คนกด "เพื่อนแล้ว" แล้วงงว่าทำไมไม่มีอะไรเกิดขึ้น */
+#frHits .fr-tag { background: transparent; border: 1px solid var(--line); color: var(--faint);
+  min-height: 30px; display: inline-flex; align-items: center; padding: 0 11px; }
+.fr-tag.wait { background: var(--card2); color: var(--muted); }
+.fr-go {
+  flex: none; min-height: 36px; padding: 0 15px; border: none; border-radius: 999px;
+  background: var(--blue); color: var(--on-accent);
+  font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.fr-go:active { transform: scale(.97); }
+/* ปุ่มปฏิเสธต้องอ่านออกว่าเป็นคนละน้ำหนักกับปุ่มรับ — สองปุ่มหน้าตาเท่ากันคือกดผิดตัว */
+/* ปฏิเสธเป็น ✕ เล็ก ไม่ใช่ปุ่มขนาดเท่า "รับ" — สองปุ่มน้ำหนักเท่ากันแปลว่าจอกำลัง
+   บอกว่าสองทางนี้มีค่าเท่ากัน ซึ่งไม่จริง คนกดเข้ามาที่นี่มาเพื่อกดรับ */
+.fr-x {
+  flex: none; width: 32px; height: 32px; border: none; border-radius: 50%;
+  background: transparent; color: var(--faint); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.fr-x svg { width: 15px; height: 15px; }
+.fr-x:active { background: var(--line); color: var(--alert); }
 .pf-go { flex: none; color: var(--faint); display: flex; }
 .pf-go svg { width: 16px; height: 16px; }
 
@@ -4886,7 +4976,6 @@ body[data-godir] :root[data-theme="meta"] .screen.on { animation-duration: .24s;
 :root[data-theme="dark"] .brief,
 :root[data-theme="dark"] .pf-hero,
 :root[data-theme="dark"] .st-hero,
-:root[data-theme="dark"] .fr-me { border: 1px solid var(--line); }
 :root[data-theme="dark"] .mtile.hero .mt-ic,
 :root[data-theme="dark"] .brief-mark {
   background: var(--fill);
@@ -5948,6 +6037,9 @@ body.deep-scr .top-friends { display: none; }
   .tab.scan { color: var(--blue-deep); }
   .tab.scan:active .scan-dot { transform: scale(.9); }
 
+  /* 1B38b · กฎระยะหลบแถบล่างของ toast ถูกถอนออก — toast ขึ้นไปอยู่ด้านบนแล้ว
+     (ดูหมายเหตุยาวใน style.css) ด้านบนไม่มีของที่ขยับตำแหน่งได้ จึงไม่ต้องมีกฎที่นี่อีก */
+
   /* ระยะเผื่อท้ายหน้า — 1A9k แถบสูง 6 + 44 + safe = 50 + safe แล้วไม่มีปุ่มโผล่เหนือแถบอีก
      เผื่อ 62 = ความสูงแถบ + ช่องหายใจ 12px ใต้การ์ดใบล่างสุด
      ตัวเลข 84 ของเดิมอิงกับปุ่ม + ที่โผล่ขึ้นมา 19px ซึ่งไม่มีแล้ว */
@@ -6369,18 +6461,606 @@ body.deep-scr .top-friends { display: none; }
    ============================================================ */
 .tabbar .tab { flex: 1 1 0; min-width: 0; }
 
-:root:not([data-nav="side"]) .tab.scan .scan-dot {
-  width: 38px;
-  height: 24px;
-  margin-top: 0;
-  border-radius: 9px;
-  outline: none;
-  box-shadow: var(--glow-scan);
-}
-:root:not([data-nav="side"]) .tab.scan .scan-dot svg { width: 17px; height: 17px; }
-:root:not([data-nav="side"]) .tab.scan.active .scan-dot { transform: none; }
+/* 1B41 · บล็อกนี้หมดอายุตามเงื่อนไขที่มันเขียนไว้เอง
+   ข้อความข้างบนบอกว่า "อยากได้ก้อนลอยกลับ ต้องยอมรับว่ามันจะเยื้องซ้ายครึ่งช่อง
+   ตราบใดที่แถบยังมีจำนวนช่องคู่" — ตอนนี้แถบเป็นห้าช่องแล้ว เงื่อนไขนั้นจึงหมดไป
+   ปุ่มเป็นช่องที่ 3 จาก 5 = กึ่งกลางเป๊ะ เหมือนตอน 1A9o ทุกประการ
+   กฎชุดที่ทำให้มันแบนถูกถอดออก ของเดิมที่บรรทัด ~5734 กลับมาทำงานเอง
+   แล้วบล็อก 1B41 ท้ายไฟล์ปรับสีให้เข้ากับแถบที่เงียบลงตั้งแต่ 1B39 */
 
 /* ป้ายบนแท็บห้ามตัดบรรทัด — หกช่องบนจอ 320px เหลือช่องละ ~46px
    "น้องไซ" กว้าง 28px ยังพอดี แต่ถ้าปล่อยให้ตัดบรรทัด แถบจะสูงขึ้นทั้งแถบ
    เพราะช่องเดียวมีสองบรรทัดแล้วลากที่เหลือขึ้นตาม */
 .tabbar .tab > span:last-child { white-space: nowrap; }
+
+/* ============================================================
+   1B38 — แถบล่างเงียบลง · กฎ 60/30/10 กลับมาตั้งตรง
+   ============================================================
+   ก่อนหน้านี้จอ "วันนี้" มีของสีเน้นอยู่สี่ที่พร้อมกัน: การ์ด "ตอนนี้" (พื้นฟ้าทึบ) ·
+   ไทล์แปดก้อนพื้นแบรนด์สองแถว · แท็บที่เลือกเป็นสีฟ้า · ปุ่ม + พื้นไล่สีแบรนด์ + เงาเรือง
+   รวมกันแล้วสีเน้นกินพื้นที่มากกว่า 10% หลายเท่า ซึ่งแปลว่าไม่มีอะไรเน้นเลย —
+   สายตาไม่รู้จะลงที่ไหนก่อน จอเลยอ่านว่า "รก" ทั้งที่แต่ละชิ้นออกแบบมาดี
+
+   รอบนี้เหลือของสีเน้นชิ้นเดียวบนจอคือการ์ด "ตอนนี้" ซึ่งเป็นที่ที่การตัดสินใจจบ
+   ไทล์ถูกย้ายไปแท็บ "ฉัน" · ปุ่มส่งในช่องถามน้องไซเป็นสีเทาจนกว่าจะโฟกัส ·
+   และแถบล่างทั้งแถบไม่มีสีแบรนด์เต็มก้อนอีกแล้ว ตามข้างล่างนี้
+
+   สิ่งที่ไม่แตะ: พื้นแถบยังเป็น --card เหมือนเดิม (ชั้น 30% ของกฎ) — 1A9k เคยลอง
+   ใช้สีพื้นจอแล้วแถบไม่มีขอบบน สายตาอ่านที่ว่างทั้งก้อนล่างจอเป็นแถบเดียวกัน
+   ============================================================ */
+
+/* แท็บที่เลือก: หมึกเต็ม ไม่ใช่ฟ้า — บอก "อยู่หน้านี้" ได้เท่ากันด้วยน้ำหนักตัวอักษร
+   กับไอคอนทึบที่มีอยู่แล้ว โดยไม่ต้องยืมสีเน้นมาใช้เป็นครั้งที่สี่บนจอเดียว */
+:root:not([data-nav="side"]) .tab.active { background: none; color: var(--ink); }
+:root:not([data-nav="side"]) .tab { color: var(--faint); }
+
+/* ปุ่ม + : ก้อนกลมทึบลอยเหนือแถบ ตรงกึ่งกลางพอดี
+   1B39 เคยทำให้มันจางลงเป็นทินต์อ่อนตามหลัก 60/30/10 ซึ่งถูกในตอนนั้น
+   เพราะปุ่มไม่ได้อยู่กลาง มันจึงเป็นแค่ "แท็บที่สีต่างจากเพื่อน" ซึ่งไม่คุ้มที่จะเด่น
+   ตอนนี้มันอยู่กึ่งกลางแถบและเป็นของชนิดเดียวในแถบที่ไม่ใช่แท็บ (แท็บพาไปจอ
+   ปุ่มนี้เปิดแผ่น) — ของที่ทำงานคนละอย่างกับเพื่อนควรหน้าตาไม่เหมือนเพื่อน
+   สีเน้นในแถบล่างจึงมีที่เดียวคือก้อนนี้ ส่วนแท็บทั้งสี่ยังเงียบเหมือน 1B39
+   ทึบแต่ไม่มีเงาเรือง — glow เป็นของที่แข่งกับการ์ดคำสั่งบนหน้าแรกโดยตรง */
+:root:not([data-nav="side"]) .tab.scan .scan-dot {
+  width: 44px; height: 44px;
+  margin-top: -22px;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--on-fill);
+  outline: 3px solid var(--card);
+  box-shadow: 0 6px 16px -6px rgba(0, 0, 0, .5);
+}
+:root:not([data-nav="side"]) .tab.scan .scan-dot svg { width: 21px; height: 21px; stroke-width: 2.2; }
+:root:not([data-nav="side"]) .tab.scan { color: var(--faint); }
+:root:not([data-nav="side"]) .tab.scan.active { color: var(--ink); }
+:root:not([data-nav="side"]) .tab.scan.active .scan-dot { transform: none; }
+:root:not([data-nav="side"]) .tab.scan:active .scan-dot { transform: scale(.92); }
+
+/* แบดจ์ยังแดงอยู่ — มันคือสัญญาณจริง ไม่ใช่ของประดับ แต่เล็กลงและไม่มีวงแหวนหนา
+   แถบไม่ได้เป็น glass แล้วบนมือถือ วงแหวนสี --glass จึงเป็นเส้นสีผิดมาตั้งแต่ 1A9c */
+.tab-badge { min-width: 15px; height: 15px; line-height: 15px; font-size: 9px;
+  top: -4px; right: -7px; box-shadow: none; }
+.tab-dot { box-shadow: none; }
+
+/* ============================================================
+   1B39 — ปุ่มเพิ่มงานบนหัวจอ "งาน"
+   ============================================================
+   ย้ายมาจากช่องกลางของแถบล่างที่ถูกถอดออก · ขนาด 44px คือขนาดขั้นต่ำที่นิ้วกดติด
+   สีเน้นทึบเพราะมันคือปุ่มเดียวบนหัวจอนี้ และเป็นของที่กดบ่อยที่สุดในจอนี้
+   (จอ "วันนี้" ยังมีการ์ดสีเน้นของมันอยู่ใบเดียวเหมือนเดิม — คนละจอกัน ไม่ชนกฎ 60/30/10) */
+/* 1B41 · .tlrow / .ph-add ถูกถอดออกพร้อมกับปุ่มเพิ่มข้างสวิตช์สามโหมด
+   มันมีอยู่เพราะ 1B39 เอาปุ่ม + ออกจากแถบล่าง พอปุ่มกลับมาอยู่กลางแถบแล้ว
+   ปุ่มสองใบที่เปิดแผ่นเดียวกันห่างกันไม่ถึงนิ้ว คือของที่ต้องอ่านสองรอบเปล่า ๆ
+   กฎ .tlrow / .ph-add ถูกลบทิ้ง สวิตช์กลับไปเต็มความกว้างเหมือนเดิม */
+
+/* ============================================================
+   1B43 · F2 งานย่อย · F4 นับถอยหลังสอบ · F5 คะแนนที่ได้
+   ============================================================ */
+/* ชิปสองโทนที่เพิ่มมา — ใช้โทเคนชุด --pri-* เดียวกับชิปเดิมทุกตัว
+   ห้ามใช้ --sig-* ตรงนี้ เพราะชิปเหล่านี้วางบนพื้นการ์ดที่พลิกตามธีม */
+.tk-chip.warn { background: var(--pri-yellow-soft); color: var(--pri-yellow-text); }
+.tk-chip.good { background: var(--good-soft); color: var(--good); }
+
+/* ---- งานย่อยในการ์ด ---- */
+/* เยื้องเข้ามาเท่าปุ่มติ๊กของใบใหญ่ เพื่อให้อ่านว่า "อยู่ใต้ใบนี้" ไม่ใช่ "อีกรายการหนึ่ง"
+   ไม่มีเส้นคั่นด้านบน — เส้นจะทำให้มันกลายเป็นอีกก้อนในการ์ดเดียว ซึ่งเป็นของที่
+   ต้องอ่านสองรอบ · ระยะห่างพอบอกได้แล้วว่าคนละชั้นกัน */
+.tk-subs { display: flex; flex-direction: column; gap: 2px; margin: 9px 0 0 34px; }
+.tk-sb {
+  display: flex; align-items: flex-start; gap: 9px; width: 100%;
+  padding: 5px 2px; background: none; border: none; cursor: pointer;
+  font-family: inherit; text-align: left; color: var(--ink);
+}
+.sb-box {
+  flex: none; width: 18px; height: 18px; margin-top: 1px; border-radius: 6px;
+  border: 1.5px solid var(--line); display: grid; place-items: center;
+  color: transparent; transition: background .14s ease, border-color .14s ease;
+}
+.sb-box svg { width: 12px; height: 12px; stroke-width: 3; }
+.sb-tx { font-size: 13px; line-height: 1.4; }
+.tk-sb.on .sb-box { background: var(--good); border-color: var(--good); color: #fff; }
+.tk-sb.on .sb-tx { color: var(--muted); text-decoration: line-through; }
+.tk-sb:active { opacity: .6; }
+
+/* ---- ช่องคู่ในฟอร์ม (คะแนนที่ได้ / เต็ม) ---- */
+.row-2 { display: flex; gap: 9px; }
+.row-2 > input { flex: 1; min-width: 0; }
+
+/* คะแนนที่ได้บนใบที่เสร็จแล้ว — ตัวเลขชิดขวา อ่านได้โดยไม่ต้องเข้าไปในใบ
+   ตัวเต็มเล็กกว่าและจางกว่า เพราะคนสแกนหาตัวหน้า ไม่ได้หาตัวหาร */
+.tk-got {
+  flex: none; margin-left: auto; padding-left: 8px;
+  font-size: 15px; font-weight: 700; color: var(--good);
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+}
+.tk-got i { font-style: normal; font-size: 11px; font-weight: 600; opacity: .7; }
+
+/* ============================================================
+   1B44 · L1/L2 — แผ่นรับปุ่มบนจอล็อกอิน
+   ============================================================
+   ไอเดียมาจากคู่แข่ง: แบรนด์อยู่บนพื้นสี · ปุ่มอยู่บนแผ่น
+   สายตาจึงแยกออกทันทีว่าครึ่งบนคือ "เราเป็นใคร" ครึ่งล่างคือ "คุณต้องทำอะไร"
+   โดยไม่ต้องอ่านก่อนว่าอันไหนกดได้
+
+   ที่ไม่ก็อปมาทั้งดุ้นคือ "สีขาว" — ของเขาเป็นแผ่นขาวบนฟ้า ซึ่งเหมาะกับแบรนด์เขา
+   จอล็อกอินของเราเป็นกรมท่าเข้มตามที่เลือกไว้ใน 1B37 การเอาแผ่นขาวมาแปะ
+   คือการทิ้งตัวตนที่เพิ่งเลือกไปเพื่อให้เหมือนคนอื่น
+   แผ่นจึงเป็นชั้นที่ "สว่างกว่าพื้นเล็กน้อย" แทน — ได้การแยกชั้นเท่ากัน โดยยังเป็นจอของเรา */
+.lg-card {
+  /* กินความกว้างเต็มจอและจบที่ขอบล่างจริง — แผ่นที่ลอยไม่ถึงขอบอ่านเป็น
+     "การ์ดที่วางผิดที่" ไม่ใช่ "พื้นที่ล่างของหน้า"
+     ต้องหักขอบสองชั้นออก ไม่ใช่ชั้นเดียว: .screen เว้น 20px และ .login-wrap เว้นอีก 10px
+     (รอบแรกหักแค่ 10 แล้วแผ่นเหลือขอบสีพื้นข้างละ 20px ให้เห็น) */
+  width: calc(100% + 60px); margin: auto -30px 0;
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+  padding: 26px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-radius: 28px 28px 0 0;
+  background: rgba(255, 255, 255, .07);
+  border-top: 1px solid rgba(255, 255, 255, .12);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+/* คำทักทายอยู่ในแผ่นแล้ว จึงไม่ต้องเว้นที่ว่างก้อนใหญ่ใต้ตัวเองอีก
+   (ค่าเดิม padding-bottom 6vh มีไว้ตอนมันลอยอยู่กลางจอเปล่า ๆ) */
+.lg-card .lg-mid { padding-bottom: 20px; }
+.lg-card .lg-h { font-size: 27px; }
+.lg-card .lg-p { color: rgba(214, 224, 255, .72); }
+
+/* L2 · บรรทัดพิสูจน์ใต้ชื่อแบรนด์
+   เล็กกว่าชื่อแบรนด์และจางกว่า — มันเป็นเชิงอรรถ ไม่ใช่พาดหัว
+   แต่ต้องอ่านออกจริง ไม่ใช่จางจนกลายเป็นลายน้ำ */
+.lg-proof {
+  margin: 9px 0 0;
+  font-size: 12px; font-weight: 600; letter-spacing: .01em;
+  color: rgba(214, 224, 255, .66);
+}
+
+/* ตราขยับขึ้นเล็กน้อย — แผ่นล่างสูงกว่ากองปุ่มเดิม ถ้าไม่ลดที่ว่างด้านบน
+   ตราจะถูกดันจนชิดขอบบนบนจอเตี้ย */
+:root:not([data-nav="side"]) #scr-login .lg-top { padding-top: 7vh; }
+/* .login-wrap เว้นขอบล่าง 8px ไว้ตอนที่ปุ่มยังลอยอยู่บนพื้น — ตอนนี้แผ่นเป็นตัวจบหน้า
+   ระยะนั้นจึงกลายเป็นเส้นสีพื้นคาอยู่ใต้แผ่น */
+#scr-login .login-wrap { padding-bottom: 0; }
+/* .screen เว้นขอบล่าง 8px ให้ทุกจอ — บนจอนี้มันคือเส้นสีพื้นคาอยู่ใต้แผ่น */
+#scr-login.screen { padding-bottom: 0; }
+/* ลิงก์ท้ายอยู่ในแผ่นแล้ว จึงต้องเบากว่าของบนพื้นสีเดิมอีกขั้น ไม่งั้นมันแข่งกับปุ่ม */
+.lg-card .login-what { margin-top: 6px; color: rgba(255, 255, 255, .5); }
+
+/* ============================================================
+   1B45 · F7 — ตารางสลับสัปดาห์
+   ============================================================ */
+/* สวิตช์ · ชื่อคลาสมี ctx- นำหน้าเพราะ style.css มี .th-grid .sw อยู่แล้วคนละความหมาย
+   (อันนั้นคือช่องสีในตัวเลือกธีม) ชื่อชนกันเมื่อไหร่จะหาสาเหตุยากมาก */
+.ctx-sw {
+  flex: none; width: 46px; height: 28px; padding: 3px; cursor: pointer;
+  border: none; border-radius: 999px; background: var(--card2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: background .18s ease;
+}
+.ctx-sw i {
+  display: block; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--muted); transition: transform .18s cubic-bezier(.2,.9,.3,1.2), background .18s ease;
+}
+.ctx-sw.on { background: var(--fill); box-shadow: none; }
+.ctx-sw.on i { background: #fff; transform: translateX(18px); }
+@media (prefers-reduced-motion: reduce) { .ctx-sw i { transition: none; } }
+
+.ab-pick { align-items: flex-start; }
+.ab-btns { display: flex; gap: 7px; flex: none; margin-left: auto; }
+.ab-btns .ab {
+  width: 46px; min-height: 40px; border-radius: 12px; cursor: pointer;
+  border: 1.5px solid var(--line); background: var(--card2); color: var(--muted);
+  font-family: inherit; font-size: 15px; font-weight: 700; letter-spacing: .02em;
+  transition: background .14s ease, color .14s ease, border-color .14s ease;
+}
+.ab-btns .ab.on {
+  background: var(--fill); border-color: var(--fill); color: var(--on-fill);
+}
+.ab-btns .ab:active { transform: scale(.94); }
+/* คำอธิบายใต้ป้ายต้องขึ้นบรรทัดได้ — ประโยคเตือนยาวกว่าหนึ่งบรรทัดบนจอแคบ */
+.ab-pick .sb { white-space: normal; line-height: 1.45; }
+/* ตัวเลือกสัปดาห์ในฟอร์มคาบเรียน — สามช่องกว้างเท่ากัน ไม่ใช่เจ็ดช่องแคบ ๆ แบบเลือกวัน */
+.ctx-wks { grid-template-columns: repeat(3, 1fr); }
+.ctx-wks .ctx-day { font-size: 12.5px; }
+/* ป้ายสัปดาห์บนแถวคาบ — โทนเดียวกับป้ายวัน แต่ทำให้แยกออกว่าเป็นคนละมิติ */
+.ctx-per u.wk {
+  text-decoration: none; background: var(--blue-soft); color: var(--blue);
+  border-radius: 999px; padding: 1px 7px; font-size: 10.5px; font-weight: 700;
+}
+
+/* ============================================================
+   1B46 · กล่อง "ไม่ทัน" บนจอรายวัน — แยกชื่องานออกจากกัน
+   ============================================================
+   ของเดิมเอาชื่องานมาต่อกันด้วย " · " ทั้งที่ตัวชื่องานเองก็ใช้ " · "
+   คั่นวิชากับรายละเอียดอยู่แล้ว ("ภาษาอังกฤษ · เขียน Essay") ผลคือสองงาน
+   กลายเป็นสี่ท่อนที่คั่นเหมือนกันหมด แล้วอ่านไม่ออกว่างานไหนจบตรงไหน
+   ชื่องานจึงต้องหนากว่าตัวคั่น ตัวคั่นจึงต้องจางกว่าทุกอย่าง */
+.dayvd p .vd-t { font-weight: 700; }
+.dayvd p .vd-sep {
+  font-style: normal; opacity: .45; padding: 0 7px; font-weight: 400;
+}
+
+/* ============================================================
+   1B47 · มุมมองสัปดาห์ — จอเดียวแทนสามโหมด
+   ============================================================
+   โครงคือสองคอลัมน์: เลขวันซ้าย งานขวา · เส้นแนวตั้งเส้นเดียวลากผ่านทั้งสัปดาห์
+   ทำให้อ่านเป็น "แกนเวลา" ไม่ใช่ "รายการที่มีหัวข้อคั่น" ซึ่งเป็นคนละความหมาย */
+.wk { display: flex; flex-direction: column; }
+.wk-row {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 10px 0 12px; border-bottom: 1px solid var(--line);
+}
+.wk-row:last-child { border-bottom: none; }
+
+/* คอลัมน์วัน — กว้างคงที่ทุกแถว ไม่งั้นเลขหลักเดียวกับสองหลักทำให้งานเยื้องกันทั้งสัปดาห์ */
+.wk-d {
+  flex: none; width: 46px; text-align: center; padding-top: 4px;
+  line-height: 1.05; border-radius: 12px;
+}
+.wk-d b { display: block; font-size: 19px; font-weight: 700; letter-spacing: -.03em; }
+.wk-d i { font-style: normal; display: block; margin-top: 3px; font-size: 10.5px; color: var(--muted); }
+/* วันนี้เป็นวันเดียวที่มีพื้น — ไม่ใช่สีที่ต่างกันเฉย ๆ เพราะสีอย่างเดียว
+   ในคอลัมน์ที่มีตัวเลขเรียงกันสิบกว่าตัวหาไม่เจอด้วยการกวาดตา */
+.wk-row.now .wk-d { background: var(--blue-soft); padding: 4px 0 6px; }
+.wk-row.now .wk-d b { color: var(--blue); }
+.wk-row.now .wk-d i { color: var(--blue); font-weight: 700; }
+
+.wk-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+/* วันที่ไม่มีงานต้องเบาที่สุดบนจอ — มันคือ "ที่ว่าง" ซึ่งเป็นข้อมูล ไม่ใช่ของที่ต้องอ่าน */
+.wk-row.empty { padding: 6px 0 7px; }
+.wk-none { font-size: 12.5px; color: var(--faint); padding-top: 6px; }
+
+/* การ์ดงานในมุมมองสัปดาห์แคบกว่าตอนอยู่ในลิสต์เต็มความกว้าง ต้องบีบระยะในตัวการ์ดตาม
+   ไม่งั้นชื่องานเหลือที่ไม่ถึงครึ่งการ์ด แล้วโดนตัดกลางคำแทบทุกใบ */
+.wk-b .tk { padding: 11px 12px; }
+.wk-b .tk-ttl { font-size: 14px; }
+.wk-b .swipe { margin: 0; }
+
+/* ---- กล่องเลยกำหนด อยู่เหนือสัปดาห์ ----
+   ไม่มีวันของตัวเองบนสัปดาห์นี้แล้ว จึงต้องมีที่ของมันเอง
+   ยัดลงแถว "วันนี้" ไม่ได้เพราะมันไม่ได้ถึงกำหนดวันนี้ */
+.wk-late, .wk-undated { margin-bottom: 14px; }
+.wk-late-h {
+  display: flex; align-items: center; gap: 7px; padding: 2px 2px 8px;
+  font-size: 13px; color: var(--muted);
+}
+.wk-late-h svg { width: 15px; height: 15px; color: var(--alert); }
+.wk-late-h b { font-weight: 700; color: var(--ink); }
+.wk-late-h i {
+  font-style: normal; margin-left: auto; font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+  background: var(--alert-soft); color: var(--alert);
+}
+.wk-undated .wk-late-h i { background: var(--card2); color: var(--muted); }
+.wk-late .tk, .wk-undated .tk { margin-bottom: 8px; }
+/* หมุดที่ยกมาจากปฏิทินที่ถูกตัดทิ้ง — ป้ายเล็กเหนืองานของวันนั้น
+   ไม่ใช่การ์ด เพราะมันไม่ใช่งานที่ต้องทำ มันคือคำกำกับของวัน */
+.wk-marks { display: flex; flex-wrap: wrap; gap: 5px; }
+.wk-mark {
+  font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+  background: var(--card2); color: var(--sj, var(--muted));
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+/* ปุ่ม "ดูอีก N งานที่เลยกำหนด" ท้ายกล่องแดง — เป็นตัวหนังสือ ไม่ใช่ปุ่มทึบ
+   กล่องนี้ดังพอแล้วด้วยสีแดงกับตัวเลข ปุ่มทึบอีกใบคือการตะโกนซ้ำ */
+.wk-more {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  width: 100%; margin-top: 2px; padding: 10px 0; background: none; border: none;
+  cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 600;
+  color: var(--alert);
+}
+.wk-more svg { width: 14px; height: 14px; }
+/* แถววันที่ถูกยุบ — ช่วงวันแทนเลขวันเดียว ตัวเล็กลงเพราะมันคือ "ที่ว่าง" ไม่ใช่วัน */
+.wk-d2 b { font-size: 14px; letter-spacing: -.02em; }
+.wk-span .wk-d { padding-top: 6px; }
+
+/* ============================================================
+   1B49 · ชิปงานบรรทัดเดียวในมุมมองสัปดาห์
+   ============================================================
+   ~34px ต่อหนึ่งงาน แทนการ์ดเต็มใบที่ ~90px · ห้าวันจึงอยู่ในพื้นที่เท่ากับ
+   ที่การ์ดเต็มใบใช้กับสองงาน ซึ่งเป็นเหตุผลทั้งหมดของมุมมองสัปดาห์
+   แถบสีซ้ายคือสีวิชา (คลาส sj-* ชุดเดียวกับทั้งแอป) ไม่ใช่สีความด่วน */
+.wc {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 0 8px 0 0; min-height: 34px;
+  background: var(--card); border: none; border-radius: 9px;
+  border-left: 3px solid var(--sj, var(--muted));
+  cursor: pointer; font-family: inherit; color: var(--ink); text-align: left;
+  transition: background .14s ease;
+}
+.wc:active { background: var(--card2); }
+.wc b {
+  flex: 1; min-width: 0; padding-left: 9px;
+  font-size: 13px; font-weight: 600; line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* ตัวนับข้อย่อย — บอกว่างานใหญ่ใบนี้เดินไปถึงไหนโดยไม่ต้องกางออกมาดู */
+.wc u {
+  flex: none; text-decoration: none; font-size: 10px; font-weight: 700;
+  color: var(--muted); background: var(--card2); border-radius: 999px; padding: 2px 7px;
+}
+.wc i {
+  flex: none; font-style: normal; font-size: 11px; font-weight: 600; color: var(--muted);
+}
+/* 1B76 · นาฬิกา "เริ่มไม่ทันแล้ว" ในช่องตัวเลขขวาสุด
+   ย้อมแค่ตัวเลข ไม่ย้อมแถบสีวิชาและไม่ย้อมพื้นชิป — ตามกฎ 60/30/10 ข้างล่างนี้
+   ("สีเตือนควรเป็นของน้อยที่สุดบนจอ") · ตัวเลขสี่ตัวอักษรคือปริมาณสีที่พอดีสำหรับ 10% */
+.wc i.hot  { color: var(--alert); }
+.wc i.warm { color: var(--warn); }
+/* ============================================================
+   1B60 · กฎ 60/30/10 บนแถบสีของชิป
+   ============================================================
+   ของเดิม: งานที่เลยกำหนดได้แถบสีแดงเต็มความสูงชิป แทนที่สีวิชาของมัน
+   ผู้ใช้ที่ค้างสี่ใบจึงเห็นแถบแดงสี่แท่งเรียงกันในคอลัมน์เดียว
+   บวกตัวเลขแดงอีกสี่ตัว — สีเตือนกลายเป็นสีที่กินพื้นที่มากที่สุดบนจอ
+   ซึ่งกลับหัวกฎที่เขียนไว้เองท้ายไฟล์นี้ว่า "สีเตือนควรเป็นของน้อยที่สุดบนจอ"
+
+   แถบสีเป็น "ป้ายชื่อวิชา" ไม่ใช่ "ระดับความด่วน" — สองอย่างนี้แยกกันมาตั้งแต่
+   บล็อกสีประจำวิชาใน app.js ("สีชุดนี้เป็นป้ายชื่อ ไม่ใช่ระดับความด่วน")
+   งานที่เลยกำหนดก็ยังเป็นวิชานั้นอยู่ การเอาสีแดงไปทับจึงลบข้อมูลหนึ่งชิ้นทิ้ง
+   เพื่อบอกอีกชิ้นที่ตัวเลขข้าง ๆ บอกอยู่แล้ว
+
+   ความด่วนเหลืออยู่ที่ตัวเลข "−16ว." ตัวเดียว ซึ่งเล็กแต่ชัดเพราะเป็นสีเดียว
+   บนแถวที่เหลือเป็นสีกลางทั้งหมด — เห็นก่อนเพื่อนอยู่ดี */
+.wc.late i { color: var(--alert); font-weight: 700; }
+/* ปุ่มติ๊ก — วงกลมเปล่าจนกว่าจะกด · เล็กกว่าในการ์ดเต็มใบเพราะชิปทั้งใบก็เตี้ยกว่า
+   แต่กล่องกดจริงกินความสูงเต็มชิป (34px) ซึ่งยังพอให้นิ้วกดติด */
+.wc-tick {
+  flex: none; display: grid; place-items: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 1.5px solid var(--line); color: transparent;
+  transition: background .14s ease, border-color .14s ease;
+}
+.wc-tick svg { width: 12px; height: 12px; stroke-width: 3; }
+.wc-tick:active { background: var(--good); border-color: var(--good); color: #fff; }
+
+/* ชิปในกองเลยกำหนด/ไม่มีวัน เว้นระยะกันเองเหมือนในแถววัน */
+.wk-late .wc, .wk-undated .wc { margin-bottom: 6px; }
+.wk-b .wc + .wc { margin-top: 0; }
+
+
+/* ============================================================
+   1B50 · แถววันตามภาพร่าง — คอลัมน์วันมีเส้นแบ่งของตัวเอง
+   ============================================================
+   ภาพร่างวาดคอลัมน์วันเป็นช่องซ้ายที่แยกออกจากงานด้วยเส้นตั้ง ไม่ใช่เลขลอย ๆ
+   เส้นตั้งคือสิ่งที่ทำให้ทั้งก้อนอ่านเป็น "ตาราง" ไม่ใช่ "ลิสต์ที่มีหัวข้อคั่น" */
+.wk-row { border-bottom: 1px solid var(--line); padding: 9px 0 10px; }
+.wk-b { border-left: 1px solid var(--line); padding-left: 11px; }
+.wk-row.now .wk-b { border-left-color: color-mix(in srgb, var(--blue) 45%, transparent); }
+
+/* บรรทัดใต้ชิป — เวลาเรียนกับเวลาว่างของวันนั้น
+   ภาพร่างมี "ว่าง 2 ชม. 20 นาที" และ "เรียน 07:40–15:10" ใต้ชิปของวันนั้น
+   สองอย่างนี้อธิบายกันเอง: เรียนถึงบ่ายสามจึงว่างแค่นี้ */
+.wk-sub { font-size: 11px; color: var(--faint); line-height: 1.5; padding-top: 2px; }
+.wk-row.empty .wk-sub { padding-top: 0; }
+.wk-row.empty { padding: 7px 0 8px; }
+
+/* ช่องค้นหาย้ายมาท้ายจอ — เบาลงเพราะไม่ใช่ของที่ต้องเห็นก่อน */
+#taskList .fr-search { margin-top: 18px; opacity: .85; }
+
+/* ============================================================
+   1B51 "Soft" — ชั้นผิวใหม่ทั้งแอป
+   ============================================================
+   มาจากภาพอ้างอิงที่เจ้าของส่งมา (แอปเรียน/แอปโซเชียลสาย Dribbble)
+   สี่อย่างที่ทำให้ภาพพวกนั้นดูแพงกว่าของเรา และไม่มีข้อไหนเกี่ยวกับ "จัดของยังไง":
+
+     1 พื้นจอเป็นไล่สีหลายจุด ไม่ใช่สีเดียว
+     2 การ์ดโปร่งแสง + เบลอหลัง + เงานุ่มสองชั้น ไม่ใช่กล่องทึบเงาชั้นเดียว
+     3 มุมมนใหญ่ 22–26px
+     4 ตัวเลขใช้ฟอนต์คนละตัวกับตัวหนังสือ ตัวเลขจึงอ่านเป็น "ค่า" ไม่ใช่ "คำ"
+
+   ทั้งสี่ข้อเป็นเรื่องผิวล้วน ไม่แตะโครงจอหรือตรรกะสักบรรทัด
+   สีเน้นยังเป็นน้ำเงินของ StudentOS ตามที่เจ้าของสั่ง — ความนุ่มมาจากพื้นกับการ์ด
+   ไม่ได้มาจากสี (รอบแรกผมลองเป็นม่วงตามภาพอ้างอิง แล้วโดนสั่งกลับมาถูกต้องแล้ว)
+   ============================================================ */
+
+/* ---- 1 · พื้นจอไล่สีสามจุด ---- */
+/* ธีมสว่าง: ฟ้า/ฟ้าอมเขียว/น้ำเงินอ่อน วางเป็นวงกลมจาง ๆ สามวง
+   ต้องอยู่บน .phone ไม่ใช่ body — body อยู่หลังกรอบเครื่องบนจอคอม */
+:root[data-theme="light"] .phone,
+:root:not([data-theme]) .phone {
+  background:
+    radial-gradient(120% 80% at 8% 0%, #E6EFFF 0%, transparent 55%),
+    radial-gradient(110% 70% at 100% 12%, #E4F6FF 0%, transparent 52%),
+    radial-gradient(130% 90% at 50% 100%, #EEF1FF 0%, transparent 58%),
+    var(--scr);
+}
+/* ธีมมืดใช้วงเดียวกันแต่เป็นแสงจาง ๆ ไม่ใช่สีอ่อน — สีอ่อนบนพื้นเข้มกลายเป็นหมอกสีเทา */
+:root[data-theme="dark"] .phone {
+  background:
+    radial-gradient(120% 80% at 8% 0%, rgba(80,130,255,.13) 0%, transparent 55%),
+    radial-gradient(110% 70% at 100% 12%, rgba(60,190,255,.09) 0%, transparent 52%),
+    radial-gradient(130% 90% at 50% 100%, rgba(110,90,255,.10) 0%, transparent 58%),
+    var(--scr);
+}
+
+/* ---- 2 · การ์ดโปร่ง + เงานุ่มสองชั้น ---- */
+/* เงาสองชั้น: ชั้นบนสั้นและคม (ขอบวัตถุ) ชั้นล่างยาวและจาง (ระยะลอย)
+   เงาชั้นเดียวได้ขอบแข็งหรือฟุ้งอย่างใดอย่างหนึ่ง ไม่ได้ทั้งสองอย่าง */
+:root {
+  --soft-card: rgba(255, 255, 255, .78);
+  --soft-shadow: 0 2px 4px rgba(20, 45, 110, .05), 0 14px 34px -12px rgba(20, 45, 110, .18);
+  --soft-shadow-lg: 0 4px 10px rgba(20, 45, 110, .07), 0 30px 60px -18px rgba(20, 45, 110, .26);
+}
+:root[data-theme="dark"] {
+  --soft-card: rgba(30, 39, 64, .72);
+  --soft-shadow: 0 2px 4px rgba(0, 0, 0, .35), 0 14px 34px -12px rgba(0, 0, 0, .6);
+  --soft-shadow-lg: 0 4px 10px rgba(0, 0, 0, .4), 0 30px 60px -18px rgba(0, 0, 0, .7);
+}
+.card, .td-rail, .td-risk, .fd-post, .fd-ask, .tk, .st-card, .wg-urgent,
+.pf-list, .pf-entry, .mtile, .hw-now, .sd-task {
+  background: var(--soft-card);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: var(--soft-shadow);
+}
+
+/* ---- 3 · มุมมนใหญ่ขึ้น ---- */
+/* ต้องระบุ [data-theme] ให้ครบทุกค่า — style.css ประกาศไว้ที่ :root[data-theme="light"]
+   ซึ่งชนะ :root เปล่า ๆ ด้วยความจำเพาะ ต่อให้ไฟล์เราโหลดทีหลังก็ตาม */
+:root, :root[data-theme="light"], :root[data-theme="dark"],
+:root[data-theme="mono"], :root[data-theme="genesis"] { --r-card: 24px; --r-tile: 18px; }
+.card, .td-rail, .td-risk, .fd-post, .wg-urgent { border-radius: var(--r-card); }
+.tk { border-radius: 20px; }
+
+/* ---- 4 · ตัวเลขมีฟอนต์ของตัวเอง ---- */
+/* Outfit เป็นเรขาคณิตกลม ๆ ตัวเลขจึงอ่านเป็น "ค่า" แยกจากเนื้อความไทย
+   ใส่เฉพาะที่ที่ตัวเลขเป็นของหลักจริง ๆ ไม่ใช่ทุกที่ที่มีตัวเลขปน */
+.mono, .tk-min, .wc i, .st b, .dr-t, .rk-d b, .tn-title .num,
+.page-sub b, .fd-act b, .st-big, .wd b {
+  font-family: 'Outfit', 'Space Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em;
+}
+
+/* ============================================================
+   1B55 · จอ "ฉัน" — แถวสถิติสี่ช่อง
+   ============================================================
+   สี่ช่องบนความกว้าง 375px เหลือช่องละ ~80px · ระยะห่าง 22px ของสามช่องเดิม
+   จึงกว้างเกินไป ตัวเลขจะชิดขอบซ้ายแล้วช่องสุดท้ายล้น
+   เปลี่ยนเป็นแบ่งเท่ากันด้วย flex:1 แล้วเส้นคั่นเป็นตัวกำหนดระยะแทน */
+.pf-stats.four { gap: 0; justify-content: space-between; }
+.pf-stats.four > div:not(.sep) { flex: 1; min-width: 0; text-align: center; }
+.pf-stats.four .sep { flex: none; margin: 2px 0; }
+.pf-stats.four .v {
+  font-size: 21px; letter-spacing: -.03em;
+  font-family: 'Outfit', ui-monospace, monospace;
+}
+.pf-stats.four .k {
+  font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ชื่อผู้ใช้ใต้ชื่อจริง — เบากว่าชื่อ แต่ต้องอ่านออกจริง ไม่ใช่จางจนเป็นลายน้ำ
+   ใช้ฟอนต์ตัวเลขเพราะ @handle เป็นสตริงระบบ ไม่ใช่คำในภาษา */
+.pf-at {
+  font-family: 'Outfit', ui-monospace, monospace;
+  font-size: 12.5px; font-weight: 600;
+  color: rgba(255, 255, 255, .72); margin-top: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ---- 1B58 · สัปดาห์ทั้งก้อนอยู่ในการ์ดใบเดียว ----
+   แถวที่วางเปล่า ๆ บนพื้นจออ่านเป็น "รายการยาวที่ไม่รู้จบตรงไหน"
+   ก้อนที่มีขอบเขตชัดอ่านเป็น "ตารางหนึ่งใบ" ซึ่งเป็นสิ่งที่มันเป็นจริง ๆ */
+.wk-card {
+  background: var(--soft-card, var(--card));
+  border-radius: var(--r-card);
+  box-shadow: var(--soft-shadow, var(--shadow));
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  padding: 4px 14px;
+  margin-top: 14px;
+}
+/* ชิปในการ์ดไม่ต้องมีพื้นของตัวเองอีก — การ์ดซ้อนการ์ดคือสองขอบเขตทับกัน
+   เหลือแค่แถบสีวิชากับเส้นแบ่งแถว ซึ่งพอแล้วสำหรับการแยกงานออกจากกัน */
+.wk-card .wc { background: none; border-radius: 0; padding-right: 0; }
+.wk-card .wc:active { background: var(--press, rgba(127,127,127,.07)); border-radius: 10px; }
+.wk-card .wk-row:last-child { border-bottom: none; }
+/* กองเลยกำหนด/ไม่มีวัน ก็เป็นการ์ดใบของตัวเองเหมือนกัน ไม่ใช่แถวลอย */
+.wk-late, .wk-undated {
+  background: var(--soft-card, var(--card));
+  border-radius: var(--r-card);
+  box-shadow: var(--soft-shadow, var(--shadow));
+  padding: 12px 14px 6px;
+}
+.wk-late .wc, .wk-undated .wc { background: none; padding-right: 0; }
+/* 1B59 · บรรทัด "อีก N ใบที่ค้างอยู่" ในแถววันนี้
+   เยื้องเท่าชิป ไม่ใช่เต็มความกว้าง — มันเป็นของของวันนั้น ไม่ใช่ของทั้งสัปดาห์ */
+.wk-b .wk-more {
+  justify-content: flex-start; padding: 7px 0 4px; margin-top: 0;
+  color: var(--muted); font-size: 12px;
+}
+.wk-b .wk-more svg { opacity: .6; }
+
+/* ============================================================
+   1B77 · จอ "AI คิดยังไง" — การ์ดเทียบทางเลือก + คำอธิบายหกข้อ
+   ============================================================
+   จอนี้มีหน้าที่เดียว: ทำให้ตัวเลขสามตัวเทียบกันได้ด้วยตาในหนึ่งวินาที
+   แล้วค่อยให้เหตุผลกับคนที่อยากอ่านต่อ · ลำดับจึงเป็น ตัวเลข → หน่วย → เหตุผล
+   ไม่ใช่ เหตุผล → ตัวเลข ซึ่งบังคับให้อ่านก่อนถึงจะเทียบได้ */
+
+.wy-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+/* งานสองใบก็มีแค่การ์ด A กับ B — สองช่องต้องเต็มความกว้าง ไม่ใช่ทิ้งช่องว่างไว้ข้างขวา */
+.wy-tiles:has(.wy-t:nth-child(2):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.wy-t {
+  border-radius: 14px; padding: 12px 10px; text-align: center;
+  background: var(--card2); min-width: 0;
+}
+.wy-t.good { background: var(--good-soft); }
+.wy-t.warn { background: var(--warn-soft); }
+.wy-tag {
+  font-size: 10.5px; letter-spacing: .04em; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wy-t.good .wy-tag { color: var(--good); }
+.wy-t.warn .wy-tag { color: var(--warn); }
+/* ตัวเลขคือพระเอกของจอนี้ — ตัวเดียวที่ใหญ่กว่าตัวหนังสือปกติ */
+.wy-num { font-size: 26px; font-weight: 700; line-height: 1.25; margin: 2px 0; }
+.wy-t.good .wy-num { color: var(--good); }
+.wy-t.warn .wy-num { color: var(--warn); }
+.wy-act {
+  font-size: 11.5px; color: var(--muted); line-height: 1.4;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wy-unit { font-size: 12px; color: var(--faint); margin: 10px 2px 0; line-height: 1.6; }
+.wy-unit b { color: var(--muted); font-weight: 600; }
+
+/* แถบ "คืนนี้พักได้" — ขึ้นน้อยมากโดยตั้งใจ ของที่ขึ้นทุกวันไม่มีใครเชื่อ */
+.wy-rest {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 14px; padding: 12px 14px; border-radius: 14px;
+  background: var(--good-soft); color: var(--good);
+}
+.wy-rest svg { width: 18px; height: 18px; flex: none; }
+.wy-rest b { font-size: 14px; }
+.wy-rest span { font-size: 12.5px; opacity: .85; width: 100%; line-height: 1.5; }
+
+/* หกแถวเหตุผล — คำถามซ้าย คำตอบขวา ไม่มีการ์ดซ้อนการ์ด */
+.wy-rows {
+  margin-top: 16px; border: 1px solid var(--line); border-radius: 14px;
+  overflow: hidden; background: var(--card);
+}
+.wy-r { padding: 11px 14px; border-bottom: 1px solid var(--line); }
+.wy-r:last-child { border-bottom: 0; }
+.wy-k { font-size: 11.5px; color: var(--faint); margin-bottom: 3px; }
+.wy-v { font-size: 13.5px; line-height: 1.6; }
+.wy-note { font-size: 11.5px; color: var(--faint); line-height: 1.65; margin: 14px 2px 0; }
+
+/* ทางเข้าบนการ์ด "ตอนนี้" — บรรทัดเงียบ ไม่ใช่ปุ่มที่สอง
+   การ์ดใบนั้นมีจุดโฟกัสได้จุดเดียว และจุดนั้นคือ "เริ่มทำเลย" (ดู 1B24) */
+.tn-why-go {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  margin-top: 10px; padding: 9px 2px 0; border: 0; border-top: 1px solid var(--line);
+  background: none; color: var(--muted); font: inherit; font-size: 12.5px;
+  text-align: left; cursor: pointer;
+}
+.tn-why-go svg { width: 15px; height: 15px; flex: none; }
+.tn-why-go svg:last-child { margin-left: auto; opacity: .6; }
+.tn-why-go:active { opacity: .6; }
+
+/* ตัวเลขประกอบจากอะไร — ก้อนที่เป็นศูนย์ไม่ขึ้น (ดูหมายเหตุใน renderWhy) */
+.wy-bd {
+  margin-top: 12px; padding: 11px 14px; border-radius: 14px;
+  background: var(--card2); display: flex; flex-wrap: wrap; gap: 6px 16px;
+}
+.wy-bd-h { width: 100%; font-size: 11px; color: var(--faint); margin-bottom: 2px; }
+.wy-bd span {
+  font-size: 12.5px; font-weight: 600; color: var(--ink);
+  font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: 5px;
+}
+.wy-bd i { font-style: normal; font-weight: 400; color: var(--muted); font-size: 12px; }
+
+/* การ์ดที่ผลไม่ต่างจากทางที่แนะนำอย่างมีนัยสำคัญ — เป็นกลาง ไม่ใช่สีเตือน
+   สีเตือนบนตัวเลขที่เท่ากันคือการบอกข้อมูลผิดด้วยสี ทั้งที่ตัวเลขข้างบนบอกถูกอยู่แล้ว */
+.wy-t.flat { background: var(--card2); }
+.wy-t.flat .wy-num { color: var(--ink); }
+
+/* 1B78 · สองบรรทัดท้ายจอที่แอปพูดถึงตัวเอง — โปรไฟล์ที่เรียนมา + คะแนนคำทำนายของมันเอง
+   แยกกล่องจากหกแถวข้างบนโดยตั้งใจ: ข้างบนคือเรื่องของงาน ตรงนี้คือเรื่องของแอป */
+.wy-self {
+  margin-top: 14px; border: 1px solid var(--line); border-radius: 14px;
+  overflow: hidden; background: var(--card2);
+}
+.wy-self .wy-r { border-bottom-color: var(--line); }
+.wy-self .wy-r.soft .wy-v { color: var(--muted); }

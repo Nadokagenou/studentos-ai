@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B15';                 // สายเลขของแอป
-const APP_CODENAME = 'Linse';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1B79';                 // สายเลขของแอป
+const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -485,7 +485,10 @@ function themePref() {
   let v = null;
   try { v = localStorage.getItem(THEME_KEY); } catch (_) {}
   if (v === 'library') v = 'ocean'; // 1A6M3: ธีมห้องสมุดถูกแทนที่ — คนที่เคยเลือกไว้ไม่ต้องมาตั้งใหม่
-  return THEMES.includes(v) ? v : 'system';
+  // 1B58 · ยังไม่เคยเลือก = โทนสว่าง ไม่ใช่ 'system'
+  // ภาษาภาพใหม่ถูกออกแบบบนโทนสว่าง เปิดมาครั้งแรกจึงต้องเห็นอันนั้น
+  // ต้องตรงกับสคริปต์ใน <head> ของ index.html เสมอ ไม่งั้นจอแรกกะพริบสลับโทน
+  return THEMES.includes(v) ? v : 'light';
 }
 function systemDark() { return matchMedia('(prefers-color-scheme: dark)').matches; }
 
@@ -818,6 +821,8 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
   // จอแชทซ่อนแถบล่างอยู่แล้ว แต่ต้องผูกเจ้าของไว้ด้วย — ไม่งั้นตอนกดย้อนกลับ
   // ออกมา จะไม่มีแท็บไหนติดไฟสักอัน ซึ่งอ่านว่า "หลงอยู่ที่ไหนไม่รู้"
   'scr-chat': 'scr-mates', 'scr-people': 'scr-mates',
+  // ห้องการบ้านเข้าจากรายการงาน จึงคืนไฟให้แท็บนั้น ไม่ใช่แท็บเพื่อน
+  'scr-hw': 'scr-tasks',
   'scr-compose': 'scr-mates', 'scr-post': 'scr-mates', 'scr-user': 'scr-mates' };
 
 // ---------- 1A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
@@ -830,7 +835,27 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
 //   scr-parsing  — จอรอระหว่าง AI อ่าน ไม่มีอะไรให้กลับไปดู
 //   scr-form     — สิ่งที่พิมพ์ค้างไว้หายไป กลับมาเจอฟอร์มเปล่าน่าสับสนกว่า
 //   scr-login / scr-onboard — มีด่านของตัวเองตัดสินอยู่แล้ว
-const NO_RESUME = ['scr-crop', 'scr-parsing', 'scr-form', 'scr-login', 'scr-onboard', 'scr-setopt', 'scr-ctxwiz'];
+//   scr-chat / scr-hw / scr-dm / scr-topic / scr-tthread — เข้าข่ายข้อเดียวกันเป๊ะ
+//     ทั้งห้าจอวาดเนื้อในด้วย JS ทั้งใบ **รวมถึงปุ่มย้อนกลับของตัวเอง** กลับมาแล้วจึงไม่ใช่
+//     แค่จอเปล่า แต่เป็นจอเปล่าที่ออกไม่ได้เลย — ผู้ใช้เจอจริงเมื่อ 9 ก.ย. 2569
+//     (ปิดแอปค้างไว้ที่หน้าข้อความ เปิดใหม่แล้วได้จอขาวล้วน)
+const NO_RESUME = ['scr-crop', 'scr-parsing', 'scr-form', 'scr-login', 'scr-onboard',
+  'scr-setopt', 'scr-ctxwiz',
+  'scr-chat', 'scr-hw', 'scr-dm', 'scr-topic', 'scr-tthread'];
+
+// ---------- ตาข่ายรองรับชั้นที่สอง ----------
+// NO_RESUME กันทางที่เจอจริงไปแล้ว แต่ยังมีทางอื่นที่พาเข้าจอพวกนี้โดยไม่มีใครสั่งวาด
+// (ปุ่มย้อนกลับของเครื่อง · ลิงก์เก่า · โค้ดที่เรียก go() แล้วลืมเรียก renderX ต่อ)
+// จอที่ไม่มีแม้แต่ปุ่มย้อนกลับคือทางตันจริง ๆ ผู้ใช้ต้องปิดแอปทิ้งอย่างเดียว
+// จึงเช็คหลังวาดเสร็จหนึ่งจังหวะ ว่าเนื้อในมีอะไรหรือยัง ถ้าไม่มีให้พากลับจอที่ปลอดภัย
+// (ต้องเป็น setTimeout ไม่ใช่เช็คทันที เพราะผู้เรียกส่วนใหญ่ทำ go() แล้วค่อย renderX())
+const LIVE_ONLY = {
+  'scr-chat':    { body: 'chatBody',    back: 'scr-mates' },
+  'scr-dm':      { body: 'dmBody',      back: 'scr-mates' },
+  'scr-hw':      { body: 'hwBody',      back: 'scr-tasks' },
+  'scr-topic':   { body: 'topicBody',   back: 'scr-tasks' },
+  'scr-tthread': { body: 'tthreadBody', back: 'scr-tasks' },
+};
 const LAST_SCR_KEY = 'studentos.alt.lastScreen';
 // เกิน 30 นาทีถือว่าเป็นการเปิดใหม่ ไม่ใช่การกลับเข้ามาต่อ — เริ่มที่เมนูตามปกติ
 // (กลับมาวันรุ่งขึ้นแล้วเจอจอสุ่มสกินค้างอยู่ ไม่ใช่สิ่งที่ใครคาดหวัง)
@@ -845,6 +870,10 @@ function resumeScreen() {
   try {
     const s = JSON.parse(localStorage.getItem(LAST_SCR_KEY) || 'null');
     if (!s || !s.id || Date.now() - s.t > RESUME_WINDOW) return null;
+    // ต้องเช็ค NO_RESUME ตรงนี้ด้วย ไม่ใช่แค่ตอนเขียน — เครื่องที่บันทึกค่าเสียไปแล้ว
+    // ก่อนที่รายการนี้จะยาวขึ้น จะยังถูกพากลับไปที่เดิมอยู่ดีถ้าเช็คแค่ขาเขียน
+    // (นี่คือสิ่งที่เกิดขึ้นจริงกับ scr-dm เมื่อ 9 ก.ย. 2569)
+    if (NO_RESUME.includes(s.id)) return null;
     // จอต้องมีอยู่จริงในหน้านี้ — กันกรณีอัปเดตแล้วจอเดิมถูกเอาออกไป
     return document.getElementById(s.id) ? s.id : null;
   } catch (_) { return null; }
@@ -860,6 +889,11 @@ function go(id) {
   // ออกจากจอแชทเมื่อไหร่ ปิดช่องรับข้อความสดทันที — ช่องที่เปิดค้างกินโควตา realtime
   // ซึ่งนับจำนวนช่องที่เปิดพร้อมกัน ไม่ใช่จำนวนข้อความ · เปิดค้างสิบห้องแล้วเงียบไปเลย
   if (curScreen === 'scr-chat' && id !== 'scr-chat' && typeof closeChat === 'function') closeChat();
+  // เหตุผลเดียวกันกับจอแชท · และต้องประกาศออกไปด้วยว่าเราไม่ได้อยู่ในห้องนั้นแล้ว
+  // ไม่งั้นการ์ดของเพื่อนจะขึ้นว่า "กำลังทำอยู่ตอนนี้" ค้างไว้จนกว่าเราจะปิดแอป
+  if (curScreen === 'scr-hw' && id !== 'scr-hw' && typeof closeHwRoom === 'function') closeHwRoom();
+  // เหตุผลเดียวกันอีกที — เธรดหัวข้อก็เปิดช่อง realtime ไว้เหมือนกัน
+  if (curScreen === 'scr-tthread' && id !== 'scr-tthread' && typeof closeTThread === 'function') closeTThread();
   // คืนบล็อกตัวเลือกกลับที่พักก่อนออกจากหน้าย่อยของตั้งค่า — ทางออกมีหลายทาง
   // (ปุ่มกลับ · แท็บล่าง · ปุ่มย้อนของเครื่อง) ตกทางใดทางหนึ่งแล้วบล็อกหาย
   if (curScreen === 'scr-setopt' && id !== 'scr-setopt') stashSetOpt();
@@ -883,9 +917,14 @@ function go(id) {
   enterTimer = setTimeout(() => scr.classList.remove('just-in'), 520);
   // ซ่อนแถบล่างในจอที่ยังไม่ได้เข้าแอปจริง (บัญชี / ทำความรู้จัก)
   document.body.classList.toggle('login-mode', id === 'scr-login' || id === 'scr-onboard');
+  // ปุ่มช่องทางล็อกอินวาดด้วย JS (รายชื่อมาจาก config) และต้องรีเซ็ตกลับหน้าแรกของมัน
+  // ทุกครั้งที่กลับเข้าจอนี้ — ไม่ใช่ค้างอยู่ที่ช่องกรอกรหัสของรอบที่แล้ว
+  if (id === 'scr-login') { loginView = 'root'; renderLoginOpts(); loginNote(''); }
   // จอแชทซ่อนแถบล่างเหมือนจอล็อกอิน — ช่องพิมพ์ต้องติดก้นจอจริง ๆ
   // ไม่ใช่ลอยอยู่หลังแถบล่างจนกดไม่โดน · ออกจากจอนี้ได้ทางปุ่มย้อนกลับในหัวจอ
-  document.body.classList.toggle('chat-mode', id === 'scr-chat');
+  document.body.classList.toggle('chat-mode',
+    id === 'scr-chat' || id === 'scr-hw' || id === 'scr-topic'
+    || id === 'scr-tthread' || id === 'scr-dm');
   document.body.classList.toggle('compose-mode',
     id === 'scr-compose' || id === 'scr-post' || id === 'scr-user');
   // ออกจากฟีดเมื่อไหร่ ปิดช่องรับโพสต์สดกับ presence — ทั้งคู่กินโควตา realtime
@@ -898,6 +937,9 @@ function go(id) {
   // อยู่มุมขวาบนตรงตำแหน่งเดียวกับปุ่มเพื่อนพอดี สองปุ่มจึงทับกันจนกดผิดตัวได้
   // จอพวกนี้เข้ามาจากทางอื่นอยู่แล้ว ปุ่มเพื่อนจึงหลบให้ปุ่มย้อนกลับไปก่อน
   document.body.classList.toggle('deep-scr', !TABBED_SCREENS.includes(id));
+  // ปุ่มข้อความลอยต้องอัปเดตทุกครั้งที่เปลี่ยนจอ — มันอยู่นอกกองจอ
+  // จึงไม่มีใครวาดใหม่ให้เองเหมือนของที่อยู่ในจอ (1B70)
+  if (typeof paintFeedFab === 'function') paintFeedFab();
   // ปุ่มเพื่อนลอยมุมขวาบนต้องหลบหน้า "วันนี้" — มันนั่งทับกระดิ่งกล่องเข้าพอดี
   // และเพื่อนไม่ใช่คำตอบของ "ตอนนี้ควรทำอะไร" · ทางเข้ายังอยู่ครบสองที่ในแท็บ "ฉัน"
   document.body.classList.toggle('home-scr', id === 'scr-menu');
@@ -912,11 +954,19 @@ function go(id) {
   document.querySelectorAll('.tab[data-scr]').forEach(b =>
     b.classList.toggle('active', b.dataset.scr === tabId));
   rememberScreen(id);   // ไว้กลับมาที่เดิมถ้าระบบโหลดหน้าใหม่ตอนสลับแอป
+  const live = LIVE_ONLY[id];
+  if (live) setTimeout(() => {
+    const el = document.getElementById(live.body);
+    if (curScreen === id && (!el || !el.firstElementChild)) go(live.back);
+  }, 0);
   renderAll();
 }
 
 // ---------- cloud: Supabase auth + sync ----------
 let sb = null, currentUser = null, syncTimer = null, lastSync = null;
+// getSession() ตอบกลับมาแล้วหรือยัง — คนละเรื่องกับ "ตอบว่าไม่มี session"
+// เน็ตช้าจนหมดเวลา 6 วิ ไม่ใช่หลักฐานว่าเขาไม่ได้ล็อกอิน จึงห้ามเอาไปไล่คนไปจอบัญชี
+let sessionAnswered = false;
 
 function cloudConfigured() {
   const c = window.SUPABASE_CONFIG || {};
@@ -925,15 +975,31 @@ function cloudConfigured() {
 
 async function initCloud() {
   if (!cloudConfigured()) return;
-  sb = supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonKey);
+  // สามค่านี้เป็นค่าเริ่มต้นของไลบรารีอยู่แล้ว แต่เขียนไว้ให้เห็นกับตา เพราะทั้งสามตัว
+  // คือเงื่อนไขของ "ล็อกอินรอบเดียวพอ" — ถ้าตัวใดตัวหนึ่งถูกปิดโดยไม่ตั้งใจในอนาคต
+  // อาการที่ได้คือผู้ใช้ต้องล็อกอินใหม่เรื่อย ๆ ซึ่งเป็นอาการที่หาสาเหตุยากที่สุดแบบหนึ่ง
+  sb = supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonKey, {
+    auth: {
+      persistSession: true,      // เก็บ session ลง localStorage
+      autoRefreshToken: true,    // ต่ออายุ access token ให้เองก่อนหมด
+      detectSessionInUrl: true,  // รับ token ที่ผู้ให้บริการส่งกลับมาใน URL
+      storage: window.localStorage,
+    },
+  });
   // ไม่เคยมี try/catch หรือลิมิตเวลาตรงนี้ — เน็ตหลุดหรือ Supabase ตอบช้าตอนบูต
   // แปลว่า initApp โยน error ทิ้งค้างไว้โดยไม่มีใครจับ แล้วแอปค้างที่ฉากเปิดถาวร
   // ล้มแบบเงียบแล้วเข้าแอปในสถานะยังไม่ล็อกอิน ดีกว่าค้างจนใช้อะไรไม่ได้เลย
   let session = null;
   try {
     ({ data: { session } } = await withTimeout(sb.auth.getSession(), 6000, 'เชื่อมบัญชี'));
+    sessionAnswered = true;   // ได้คำตอบจริง — จะตอบว่ามีหรือไม่มีก็เชื่อได้ทั้งคู่
   } catch (e) { console.warn('[cloud] getSession failed:', e.message); }
   currentUser = session ? session.user : null;
+  // ---------- ดันชื่อกับรูปขึ้นให้ตรงกับที่ตั้งไว้ในเครื่อง ----------
+  // จำเป็นสำหรับคนที่ตั้งรูปไว้ก่อนรุ่น 1B69 — รูปของเขาไม่เคยขึ้นไปถึงเพื่อนเลย
+  // เพราะ publishProfile อ่านผิดที่มาตลอด (ดู syncPublicFace ใน social.js)
+  // ยิงครั้งเดียวตอนเปิดแอป และกันซ้ำด้วยลายเซ็นอยู่แล้ว จึงไม่เปลืองเน็ต
+  if (currentUser && typeof syncPublicFace === 'function') syncPublicFace();
   sb.auth.onAuthStateChange((event, sess) => {
     const wasLoggedIn = !!currentUser;
     currentUser = sess ? sess.user : null;
@@ -944,6 +1010,10 @@ async function initCloud() {
       }
       // token จากลิงก์กลุ่มถูกเก็บไว้ตั้งแต่ก่อนล็อกอิน — จังหวะนี้คือจังหวะที่ใช้ได้แล้ว
       // (ทางกลับจาก Google เป็นการโหลดหน้าใหม่ ตัว initApp ก็เรียกให้อีกทาง เรียกซ้ำได้ปลอดภัย)
+      // คำขอเป็นเพื่อนที่ค้างอยู่ต้องขึ้นจุดแดงได้โดยไม่ต้องรอให้คนเปิดหน้าเพื่อนก่อน
+      // ไม่งั้นคนส่งคำขอมาแล้วไม่มีอะไรบอก กว่าอีกฝั่งจะบังเอิญเปิดเข้าไปเอง
+      if (typeof loadFriends === 'function') loadFriends();
+      if (typeof syncPublicFace === 'function') syncPublicFace(true);
       syncFromCloud().then(() => { routeAfterLogin(); return applyJoinToken(); });
     } else {
       renderAll();
@@ -1081,21 +1151,217 @@ function pushToCloud(immediate) {
   syncTimer = setTimeout(doPush, 1500);
 }
 
-function loginGoogle(retriesLeft = 15) {
+// ---------- ล็อกอินหลายช่องทาง ----------
+// ผู้ให้บริการที่ "โผล่เป็นปุ่ม" มาจาก config.js ไม่ได้ฮาร์ดโค้ดไว้ตรงนี้ เพราะการเปิดใช้
+// แต่ละเจ้าเป็นงานฝั่ง Supabase Dashboard (ใส่ Client ID/Secret) ที่โค้ดฝั่งนี้ทำแทนไม่ได้
+// ปุ่มที่กดแล้วขึ้น error ว่า "provider is not enabled" แย่กว่าปุ่มที่ไม่มี —
+// เพิ่มชื่อลง SUPABASE_CONFIG.providers หลังเปิดใช้ในแดชบอร์ดเสร็จแล้วเท่านั้น
+const OAUTH_META = {
+  // mark = ชื่อตราในสไปรท์ (ถ้ามี) · badge = ตัวอักษรสำรองสำหรับเจ้าที่ยังไม่ได้วาดตรา
+  google:   { name: 'Google',   badge: 'G',  cls: 'google' },
+  discord:  { name: 'Discord',  badge: 'D',  cls: 'discord',  mark: 'discord' },
+  apple:    { name: 'Apple',    badge: '',  cls: 'apple' },
+  facebook: { name: 'Facebook', badge: 'f',  cls: 'facebook', mark: 'facebook' },
+  azure:    { name: 'Microsoft', badge: '⊞', cls: 'ms' },
+};
+
+function loginProviders() {
+  const list = (window.SUPABASE_CONFIG || {}).providers;
+  return (Array.isArray(list) && list.length ? list : ['google']).filter(p => OAUTH_META[p]);
+}
+
+// เดิมชื่อ loginGoogle() และเรียกจากหลายที่ (ปุ่มบนจอ · ทางลัด ?start=google)
+// ชื่อเดิมยังใช้ได้อยู่ข้างล่าง จะได้ไม่ต้องไล่แก้ทุกจุดเรียกให้พลาดสักจุด
+function loginWith(provider, retriesLeft = 15) {
   // sb (ไคลเอนต์ Supabase) ตั้งค่าเสร็จใน initCloud() ซึ่งทำงานหลังจอแรก
   // วาดเสร็จไปแล้ว — กดปุ่มนี้เร็วมากตอนเพิ่งเปิดแอปจึงมีช่วงสั้น ๆ ที่ sb
   // ยังเป็น null อยู่ ทั้งที่ระบบบัญชีตั้งค่าไว้ถูกต้อง เคยขึ้น error หลอกผู้ใช้
   // ตรงนี้ว่า "ยังไม่เปิดใช้งาน" ทั้งที่ไม่จริง — ตอนนี้แค่รอเงียบ ๆ แล้วลองใหม่เอง
   // (เพดาน 15 ครั้ง × 200ms = 3 วิ กันไว้เผื่อจริง ๆ ไม่มีระบบบัญชี จะได้ไม่ค้างรอตลอดกาล)
   if (!sb) {
-    if (cloudConfigured() && retriesLeft > 0) setTimeout(() => loginGoogle(retriesLeft - 1), 200);
+    if (cloudConfigured() && retriesLeft > 0) setTimeout(() => loginWith(provider, retriesLeft - 1), 200);
     return;
   }
   sb.auth.signInWithOAuth({
-    provider: 'google',
+    provider,
     options: { redirectTo: location.origin + location.pathname },
   });
 }
+
+function loginGoogle(retriesLeft = 15) { loginWith('google', retriesLeft); }
+
+// ---------- ล็อกอินด้วยอีเมล (รหัส 6 หลัก) ----------
+// ช่องทางเดียวที่ไม่ต้องออกจากแอปไปเว็บของคนอื่นแล้วเดินทางกลับมา ซึ่งสำคัญกว่าที่คิด
+// สำหรับแอปที่ถูกติดตั้งบนหน้าจอโฮม: การเด้งออกไปเบราว์เซอร์คือจุดที่คนหลุดมากที่สุด
+// และเป็นทางสำรองเวลาที่บัญชี Google ของโรงเรียนถูกล็อกไม่ให้ล็อกอินแอปนอก
+let loginView = 'root';   // root | mail | code
+let mailAddr = '';
+let mailBusy = false;
+
+function setLoginView(v) {
+  loginView = v;
+  if (v === 'root') { mailAddr = ''; }
+  renderLoginOpts();
+  // โฟกัสช่องที่เพิ่งโผล่ ไม่งั้นผู้ใช้ต้องแตะอีกครั้งเพื่อเริ่มพิมพ์
+  setTimeout(() => {
+    const el = document.getElementById(v === 'mail' ? 'loginMail' : 'loginCode');
+    if (el) el.focus();
+  }, 60);
+}
+
+function loginNote(msg, bad) {
+  const n = document.getElementById('loginNote');
+  if (!n) return;
+  n.textContent = msg || '';
+  n.classList.toggle('bad', !!bad);
+}
+
+async function sendMailCode() {
+  const el = document.getElementById('loginMail');
+  const addr = (el ? el.value : '').trim();
+  // ตรวจแค่ว่า "มี @ และมีจุดหลัง @" — ไม่ต้องละเอียดกว่านี้ ตัวตัดสินจริงคือเมลที่ส่งถึงหรือไม่ถึง
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) {
+    loginNote('อีเมลยังไม่ถูกต้อง ลองดูอีกที', true); return;
+  }
+  if (!sb) { loginNote('ยังเชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง', true); return; }
+  if (mailBusy) return;
+  mailBusy = true; renderLoginOpts();
+  try {
+    // emailRedirectTo ต้องใส่ไว้เผื่อคนกดลิงก์ในเมลแทนการพิมพ์รหัส — Supabase ส่งมาให้ทั้งสองอย่าง
+    const { error } = await sb.auth.signInWithOtp({
+      email: addr,
+      options: { shouldCreateUser: true, emailRedirectTo: location.origin + location.pathname },
+    });
+    if (error) throw error;
+    mailAddr = addr;
+    mailBusy = false;
+    setLoginView('code');
+    loginNote('ส่งรหัส 6 หลักไปที่ ' + addr + ' แล้ว');
+  } catch (e) {
+    mailBusy = false; renderLoginOpts();
+    loginNote(e.message || 'ส่งรหัสไม่สำเร็จ ลองใหม่อีกครั้ง', true);
+  }
+}
+
+async function verifyMailCode() {
+  const el = document.getElementById('loginCode');
+  const code = (el ? el.value : '').replace(/\D/g, '');
+  if (code.length < 6) { loginNote('รหัสมี 6 หลัก', true); return; }
+  if (!sb || mailBusy) return;
+  mailBusy = true; renderLoginOpts();
+  try {
+    const { error } = await sb.auth.verifyOtp({ email: mailAddr, token: code, type: 'email' });
+    if (error) throw error;
+    // ไม่ต้องพาไปไหนเอง — onAuthStateChange รับช่วงต่อ (sync แล้วค่อย routeAfterLogin)
+    // เป็นทางเดียวกับที่ Google ใช้ ผลลัพธ์จึงเหมือนกันทุกช่องทาง
+    mailBusy = false;
+    loginView = 'root'; mailAddr = '';
+  } catch (e) {
+    mailBusy = false; renderLoginOpts();
+    loginNote(e.message || 'รหัสไม่ถูกต้องหรือหมดอายุแล้ว', true);
+  }
+}
+
+// ============================================================
+// 1B44 · L3 — คำทักทายบนจอล็อกอินมีสองชุด
+// ============================================================
+// คนที่เคยใช้แล้วกับคนที่เพิ่งเปิดครั้งแรกไม่ได้ต้องการคำเดียวกัน:
+//   คนเก่า  ต้องการคำยืนยันว่า "ของยังอยู่" — เขาไม่ได้มาทำความรู้จักแอปใหม่
+//   คนใหม่  ต้องการรู้ว่าจะได้อะไร — คำว่า "กลับมา" กับคนที่ไม่เคยมาคืออ่านไม่รู้เรื่อง
+//
+// เกณฑ์ "เคยใช้แล้ว" ใช้ของที่พิสูจน์ได้จากเครื่องนี้เท่านั้น: มีงานเก็บไว้ หรือเคยกรอกชื่อ
+// ไม่ใช้ธงว่า "เคยล็อกอิน" เพราะคนที่ล็อกเอาต์แล้วข้อมูลถูกล้าง จะได้ประโยคที่โกหกเขา
+// ว่างานยังอยู่ ทั้งที่ไม่มีอะไรเหลือ · ประโยคนี้ต้องจริงเสมอ ไม่งั้นมันคือคำสัญญาที่ผิด
+function renderLoginCopy() {
+  const h = document.getElementById('lgHead');
+  const p = document.getElementById('lgSub');
+  if (!h || !p) return;
+  const hasWork = (state.tasks || []).some(t => !t.deleted);
+  const known = (state.settings && state.settings.name) || '';
+  const back = hasWork || !!known;
+  h.textContent = back ? (known ? 'ยินดีต้อนรับกลับมา' : 'กลับมาแล้ว') : 'ยินดีต้อนรับ';
+  p.textContent = back
+    ? 'งานกับตารางของคุณอยู่ที่เดิม ล็อกอินแล้วมันตามไปทุกเครื่อง'
+    : 'ล็อกอินแล้วงานกับตารางตามไปทุกเครื่อง';
+}
+
+function renderLoginOpts() {
+  const el = document.getElementById('loginOpts');
+  if (!el) return;
+  renderLoginCopy();   // 1B44 · วาดพร้อมกันเสมอ ทั้งคู่เป็นเนื้อหาของจอเดียวกัน
+
+  if (loginView === 'mail') {
+    el.innerHTML = `<div class="lg-mail">
+      <label class="lg-lb" for="loginMail">อีเมลของคุณ</label>
+      <input class="lg-in" id="loginMail" type="email" inputmode="email"
+        autocomplete="email" placeholder="you@example.com" enterkeyhint="send"
+        onkeydown="if(event.key==='Enter')sendMailCode()">
+      <button class="btn google" onclick="sendMailCode()" ${mailBusy ? 'disabled' : ''}>
+        ${mailBusy ? 'กำลังส่ง…' : 'ส่งรหัส 6 หลัก'}</button>
+      <button class="lg-back" onclick="setLoginView('root')">← กลับไปเลือกช่องทางอื่น</button>
+    </div>`;
+    return;
+  }
+
+  if (loginView === 'code') {
+    el.innerHTML = `<div class="lg-mail">
+      <label class="lg-lb" for="loginCode">รหัสที่ส่งไปที่ ${esc(mailAddr)}</label>
+      <input class="lg-in code" id="loginCode" type="text" inputmode="numeric"
+        autocomplete="one-time-code" maxlength="6" placeholder="000000" enterkeyhint="go"
+        onkeydown="if(event.key==='Enter')verifyMailCode()">
+      <button class="btn google" onclick="verifyMailCode()" ${mailBusy ? 'disabled' : ''}>
+        ${mailBusy ? 'กำลังตรวจ…' : 'ยืนยันรหัส'}</button>
+      <button class="lg-back" onclick="sendMailCode()">ส่งรหัสใหม่อีกครั้ง</button>
+      <button class="lg-back" onclick="setLoginView('mail')">← ใช้อีเมลอื่น</button>
+    </div>`;
+    return;
+  }
+
+  // ---------- ทางหลักหนึ่งทาง ที่เหลือเป็นวงกลม ----------
+  // แพตเทิร์นเดียวกับที่แอปทั่วไปใช้กันหมด: ปุ่มใหญ่ใบเดียว แล้วตามด้วยไอคอนวงกลมเรียงกัน
+  // เหตุผลไม่ใช่เรื่องสวย — จอล็อกอินมีหน้าที่เดียวคือ "ทำให้คนกดผ่านไปได้เร็วที่สุด"
+  // ปุ่มขนาดเท่ากันหลายใบบังคับให้ทุกคนต้องอ่านทุกใบก่อนตัดสินใจ ทั้งที่ 90% กด Google
+  // ตัวใหญ่จึงตอบให้เลยว่าควรกดอันไหน ส่วนอีกสองทางยังอยู่ครบสำหรับคนที่ต้องการ
+  const provs = loginProviders();
+  const first = provs[0];
+  const rest = provs.slice(1);
+  const mainBtn = first ? (() => {
+    const m = OAUTH_META[first];
+    return `<button class="btn ${m.cls} lg-main" onclick="loginWith('${first}')">
+      <span class="g-badge">${m.badge}</span> เข้าสู่ระบบด้วย ${m.name}</button>`;
+  })() : '';
+  // ไม่มีเจ้าอื่นเปิดใช้ = ไม่ต้องมีหัวข้อ "หรือเข้าด้วย" กับแถวว่าง ๆ ใต้ปุ่ม
+  //
+  // หัวข้อเป็นข้อความเปล่า ไม่มีเส้นขีดสองข้าง — เส้นบาง ๆ กับตัวหนังสือจางบนพื้นเข้ม
+  // อ่านเป็นรอยเปื้อนมากกว่าตัวคั่น และการขีดเส้นแบ่งจอทั้งที่ของสองกลุ่มห่างกัน
+  // ด้วยระยะอยู่แล้ว คือการเพิ่มขีดโดยไม่ได้เพิ่มความชัด
+  const restRow = rest.length ? `<div class="lg-or2">หรือเข้าด้วย</div>
+    <div class="lg-ics">${rest.map(p => {
+      const m = OAUTH_META[p];
+      return `<button class="lg-ic ${m.cls}" onclick="loginWith('${p}')"
+        aria-label="เข้าสู่ระบบด้วย ${m.name}" title="${m.name}">${
+          m.mark ? icon(m.mark) : m.badge}</button>`;
+    }).join('')}</div>` : '';
+
+  // ---------- ทำไมลิงก์อีเมลถึงไม่ได้เขียนว่า "ใช้อีเมล" ----------
+  // ผู้ใช้ทักเองว่า "ไอเชื่อมกับอีเมลมันมีแล้วก็คือ google ไง" ซึ่งถูกต้องในมุมของคนกด:
+  // บัญชี Google ก็คืออีเมล ปุ่มสองอันจึงอ่านเป็นเรื่องเดียวกัน
+  // ของจริงต่างกันที่กลไก (OAuth เด้งออกไปเว็บ Google / รับรหัส 6 หลักในแอป) แต่กลไก
+  // ไม่ใช่สิ่งที่คนอ่านอยากรู้ เขาอยากรู้ว่า "แล้วฉันควรกดอันไหน"
+  // ป้ายจึงเปลี่ยนไปตอบคำถามนั้นตรง ๆ ว่ามีไว้ให้ใคร แทนที่จะบอกว่ามันทำงานยังไง
+  // (คนที่บัญชีโรงเรียนถูกล็อกไม่ให้ล็อกอินแอปนอก คือคนที่ต้องใช้ทางนี้จริง ๆ)
+  // เส้นคั่นเหลือเส้นเดียว — "หรือเข้าด้วย" กับ "หรือ" สองเส้นห่างกันสามบรรทัด
+  // อ่านเป็นการแบ่งจอสามท่อนทั้งที่มีของอยู่แค่สองกลุ่ม · ปุ่มไม่ล็อกอินแยกตัวด้วยระยะพอแล้ว
+  // ลำดับ: ทางหลัก → ทางที่ไม่ต้องมีบัญชี → ช่องทางรอง → ทางสำรองสุดท้าย
+  // ปุ่มสองใบบนสุดจงใจให้คนละทรง (ขาวทึบ / ขอบโปร่ง) ไม่ใช่สองใบสีต่างกันขนาดเท่ากัน
+  // ซึ่งเป็นอาการที่ผู้ใช้รายงานซ้ำสองรอบว่า "มันเหมือนซ้ำกัน"
+  el.innerHTML = mainBtn
+    + `<button class="btn ghost lg-skip" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>`
+    + restRow
+    + `<button class="lg-alt" onclick="setLoginView('mail')">
+        ใช้บัญชีพวกนี้ไม่ได้? <b>รับรหัสทางอีเมล</b></button>`;
+}
+
 
 function skipLogin() {
   localStorage.setItem('studentos.alt.skipLogin', '1');
@@ -1105,6 +1371,10 @@ function skipLogin() {
 async function logout() {
   if (sb) await sb.auth.signOut();
   currentUser = null; lastSync = null;
+  // เพื่อนเป็นของบัญชี ไม่ใช่ของเครื่อง — ออกจากบัญชีแล้วต้องไม่เหลือค้างบนจอ
+  frHandle = null; frList = []; frReqs = []; frHits = null; frLoaded = false;
+  const fb0 = document.getElementById('friendsBody');
+  if (fb0) fb0.dataset.built = '';
   localStorage.removeItem('studentos.alt.skipLogin');
   go('scr-login');
 }
@@ -1558,7 +1828,10 @@ function todayHead(sp, now) {
   const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนเย็น';
   const win = sp.plan.windows;
   const pend = pendingTasks();
-  const name = who();
+  // ชื่อที่กรอกเองมาก่อนเสมอ · ถ้ายังไม่เคยกรอก ใช้ชื่อจากบัญชีที่ล็อกอินมาแทน
+  // เดิมใช้แค่ who() ซึ่งอ่านจาก state.settings.name อย่างเดียว — คนที่ล็อกอิน Google
+  // แล้วข้ามหน้าทำความรู้จักไปจึงเจอ "สวัสดีตอนเย็น" ห้วน ๆ ทั้งที่แอปรู้ชื่อเขาอยู่แล้ว
+  const name = who() || accountName();
   // กระดิ่งชี้ไปกล่องเข้า ไม่ใช่ศูนย์แจ้งเตือนใบใหม่ — ของที่ "เข้ามาเองระหว่างที่ไม่ได้เปิดแอป"
   // มีที่เดียวคือกล่องเข้า · สร้างที่เก็บแจ้งเตือนอีกที่คือสร้างของค้างชุดที่สองให้ต้องเคลียร์
   const wait = typeof inboxPending === 'function' ? inboxPending().length : 0;
@@ -1566,18 +1839,29 @@ function todayHead(sp, now) {
   // บรรทัดรองต้องเป็นตัวเลขที่เปลี่ยนพฤติกรรมได้ ไม่ใช่คำทักทายรอบสอง
   // "เหลือเวลาว่างเท่าไหร่" คือข้อมูลที่ทำให้การ์ดข้างล่างมีความหมาย — 40 นาทีในสามชั่วโมง
   // กับ 40 นาทีในห้าสิบนาที เป็นคนละสถานการณ์กันคนละเรื่อง
+  // สั้นลงใน 1B24 — หัวจอมีปุ่มมุมขวาสองปุ่มแล้ว (นาฬิกา "เวลามาจากการเดา" + กระดิ่ง)
+  // บรรทัดนี้จึงเหลือความกว้างน้อยลง แล้วคำว่า "เหลือเวลาว่าง" ที่ยาวห้าตัวอักษร
+  // ดันให้ทั้งบรรทัดตกไปสองบรรทัด ทั้งที่ตัวเลขคือของชิ้นเดียวที่ต้องอ่าน
   const sub = sp.now
-    ? `เหลือเวลาว่าง ${esc(humanMin(win.budgetMin))} · ${pend.length} งานค้าง`
+    ? `ว่าง ${esc(humanMin(win.budgetMin))} · ค้าง ${pend.length} งาน`
     : pend.length ? `${pend.length} รายการรออยู่ — ไม่มีงานที่ต้องเจียดเวลา`
     : 'ไม่มีอะไรค้าง — วันนี้พักได้';
 
   return `<header class="td-head">
     <button class="th-me" onclick="go('scr-profile')" aria-label="หน้าของฉัน">${
-      name ? esc(name.trim().charAt(0).toUpperCase()) : icon('user')}</button>
+      headFace()
+        ? `<img class="th-face" src="${esc(headFace())}" alt="">`
+        : `<img class="th-face th-brand" src="logo-splash-light.png" alt="Student OS">`
+    }</button>
     <div class="th-tx">
       <h1 class="th-greet">${greet}${name ? ' ' + esc(name) : ''}</h1>
       <p class="th-sub">${sub}</p>
     </div>
+    <!-- 1B25: นาฬิกา "เวลามาจากการเดา" ย้ายลงไปอยู่ในกริดข้างล่างแล้ว
+         มันเคยขึ้นมาอยู่ตรงนี้เพื่อให้ติดกับตัวเลขที่มันกำกับ แต่กลายเป็นปุ่มที่สองมุมขวาบน
+         แล้วหัวจอที่มีปุ่มสองปุ่มก็บีบบรรทัดตัวเลขจนตกสองแถว — แลกไม่คุ้ม
+         ของชิ้นเดียวกันนี้อยู่ในกริดอยู่แล้วในรูปไทล์ "สแกนตารางเรียน" ที่ติดป้าย !
+         ซึ่งเป็นทางที่เร็วกว่าด้วย (ถ่ายรูปตารางทีเดียวจบ แทนการกรอกทีละคาบ) -->
     <button class="th-bell" onclick="go('scr-inbox')"
       aria-label="${wait ? 'กล่องเข้า — รอตรวจ ' + wait + ' รายการ' : 'กล่องเข้า'}">
       ${icon('bell')}${wait ? '<span class="th-dot"></span>' : ''}
@@ -1652,57 +1936,117 @@ function nowCard(sp, now) {
   // ---- วงแหวนความคืบหน้า ----
   // ขึ้นเฉพาะตอนมีความคืบหน้าจริง · งานที่ยังไม่เริ่มไม่ควรได้วงแหวน 0% เพราะวงกลมเปล่า
   // กินที่เท่ากับวงกลมที่มีข้อมูล แล้วบอกสิ่งที่ปุ่ม "เริ่มทำเลย" ข้างบนบอกไปแล้ว
-  const CIRC = 113.1; // 2πr เมื่อ r = 18 ในกรอบ 44×44
+  // วงแหวน 44px กลายเป็นแถบสูง 4 พิกเซล — มันบอกอย่างเดียวกัน ("ทำไปกี่ %")
+  // แต่ไม่ต้องขอแถวของตัวเอง และตัวเลข % ยังอยู่ครบในบรรทัดข้อเท็จจริงข้างบนมัน
   const hasProg = prog > 0 && prog < 100;
-  const ring = !hasProg ? '' : `<div class="tn-prog">
-      <span class="tp-ring">
-        <svg viewBox="0 0 44 44" aria-hidden="true">
-          <circle class="tr-bg" cx="22" cy="22" r="18"></circle>
-          <circle class="tr-fg" cx="22" cy="22" r="18"
-            stroke-dasharray="${CIRC}" stroke-dashoffset="${(CIRC * (1 - prog / 100)).toFixed(1)}"></circle>
-        </svg><b>${prog}%</b>
-      </span>
-      <span class="tp-tx"><i>ความคืบหน้า</i><b>${Math.round(goalMin * prog / 100)} / ${goalMin} นาที</b></span>
-    </div>`;
+
+  // ---- 1B21: การ์ดใบนี้เป็นหัวของเส้นเวลา ไม่ใช่ทั้งจออีกต่อไป ----
+  //
+  // ของเดิมกินพื้นที่ราวครึ่งจอเพื่อบอกงานใบเดียว โดยเสียไปกับสิ่งที่ไม่ได้เปลี่ยนการตัดสินใจ:
+  // ไอคอนเป้า 40px ที่ยืนเดี่ยวบนแถวของตัวเอง · กล่องสองใบ "เวลาเริ่ม / เป้าหมาย" ที่ใส่
+  // ตัวเลขละห้าตัวอักษรลงในกรอบสูง 64px · แล้วแถวปุ่ม "เสร็จแล้ว / ยังไม่ไหว" อีกแถวเต็ม
+  // ผลคือคนที่มีงานค้าง 11 ใบเปิดแอปมาเห็นงานเดียวครึ่งจอ แล้วต้องเลื่อนถึงจะรู้ว่าเย็นนี้มีอะไร
+  //
+  // ตัวเลขสองตัวนั้นย้ายมาอยู่บรรทัดข้อเท็จจริงบรรทัดเดียว (ยาว ~20 ตัวอักษร)
+  // ปุ่มสองปุ่มกลายเป็นไอคอนที่นั่งข้างปุ่มหลักในแถวเดียวกัน · วงแหวนความคืบหน้ากลายเป็นแถบบาง
+  // ที่เหลือคือของที่ต้องอ่านจริง: ทำอะไร · ทำไมใบนี้ · กดเริ่มตรงไหน
+  // ---- 1B24: การ์ดนี้มีจุดโฟกัสได้จุดเดียว ----
+  //
+  // ของเดิมมีสี่อย่างแย่งกันเป็นพระเอกในกรอบเดียว: ป้าย "ด่วนมาก" แดง · คำว่า "ตอนนี้"
+  // ที่เป็นน้ำเงินตัวพิมพ์ใหญ่ · ชื่องานตัวใหญ่สีขาว · แล้วบรรทัด "วันนี้เป็นโอกาสสุดท้าย"
+  // สีแดงอีกบรรทัด · ตาจึงไม่มีที่ให้ลง แล้วก็เด้งไปมาระหว่างแดงสองก้อนที่พูดเรื่องเดียวกัน
+  // (ป้าย "ด่วนมาก" กับ "โอกาสสุดท้าย" คือข้อมูลชิ้นเดียวกันที่เอนจินคำนวณครั้งเดียว)
+  //
+  // ลำดับใหม่ในการ์ด บนลงล่าง มีอย่างละหนึ่ง:
+  //   ป้ายแดงเล็ก (ด่วนแค่ไหน) → ชื่องานตัวใหญ่ (จุดโฟกัสจริง) → เหตุผล+ตัวเลขบรรทัดเดียว
+  //   สีจาง → ปุ่มน้ำเงินทึบ (สิ่งเดียวที่ต้องกด)
+  //
+  // แดงเหลือที่เดียวคือป้าย · น้ำเงินเหลือที่เดียวคือปุ่ม · ที่เหลือเป็นขาวกับเทา
+  // นี่คือ 60/30/10 ที่แปลเป็นการ์ดใบนี้: 60 พื้นการ์ด · 30 ตัวหนังสือ · 10 ปุ่มกับป้าย
+  // เหตุผลกับตัวเลขรวมเป็นบรรทัดเดียว เพราะสองบรรทัดสีเดียวกันติดกันอ่านเป็นย่อหน้า
+  // แล้วย่อหน้าคือสิ่งที่คนข้ามเสมอบนจอที่มีปุ่มใหญ่อยู่ข้างล่าง
+  // ---- 1B26: เหตุผลกับตัวเลขเป็นข้อมูลคนละชนิด ห้ามต่อกันด้วยจุดคั่นอันเดียวกัน ----
+  //
+  // บรรทัดรวมของ 1B24 อ่านออกมาว่า "วันนี้เป็นโอกาสสุดท้ายที่จะทำทัน · คะแนน 20% · 19:00
+  // · 40 นาที" ซึ่งพังสามชั้น: ประโยคภาษาไทยกับตัวเลขล้วนถูกคั่นด้วยจุดแบบเดียวกัน
+  // จนอ่านเป็นพรืดเดียว · "19:00" ลอยอยู่กลางแถวโดยไม่มีอะไรบอกว่าคือเวลาเริ่ม ·
+  // แล้วมันยาวจนตกสองบรรทัด โดยบรรทัดที่สองขึ้นต้นด้วยจุดคั่นลอย ๆ ("· 40 นาที")
+  //
+  // แยกเป็นสองชั้นตามชนิดของข้อมูล:
+  //   แถบเหตุผล  = ประโยค อ่านครั้งเดียวแล้วจบ · สีมาจากความด่วน
+  //   แถวตัวเลข  = ของที่กวาดตาหา ไม่ได้อ่านเป็นประโยค · ทุกตัวมีป้ายกำกับของตัวเอง
+  // ป้ายกำกับคือสิ่งที่ทำให้ "19:00" กลายเป็น "เริ่ม 19:00" โดยไม่ต้องเปลืองคำในค่า
+
+  // ---- 1B28: การ์ดใบนี้คือตั๋ว ส่วนรางข้างล่างเป็นแค่รายการต่อเครื่อง ----
+  //
+  // 1B27 ยกโครงตั๋วไปให้ราง แล้วรางก็ได้บล็อกสีทึบที่ใหญ่ที่สุดบนจอไปครอง
+  // ผลคือตาลงที่ของอันดับสองก่อนอันดับหนึ่ง — ปัญหาไม่ใช่การ์ดบนเบาไป
+  // แต่คือของอันดับสองดังเกินตำแหน่งตัวเอง
+  //
+  // กฎที่ยึดจากนี้ไป: **บล็อกสีทึบมีได้ก้อนเดียวบนจอ และต้องเป็นของการ์ดบน**
+  // รางยังเป็นตั๋วเหมือนเดิมทุกอย่าง (สองหมุด · รอยปรุ · จุดแวะสี) แต่หัวของมัน
+  // ใช้พื้นการ์ดกับตัวหนังสือสีปกติ — โครงเหมือนกัน น้ำหนักต่างกัน ซึ่งพอดีกับลำดับ
+  //
+  // เส้นทางบนหัวตั๋วของการ์ดคือ "ช่วงนี้" ของงานใบนี้เอง (17:50 → 18:30)
+  // ไม่ใช่ทั้งวัน — งานที่ถูกหั่นเป็นสองช่วงต้องเห็นเฉพาะช่วงที่กำลังจะลงมือ
+  // จึงใช้ slot.min ไม่ใช่ estMin ของทั้งใบ
+  // ---- 1B30: ตัดตัวหนังสือที่พูดเรื่องเดียวกันสองรอบ ----
+  //
+  // ป้ายมุมขวาบนบอกความด่วนด้วยสองคำ ("ด่วนมาก") แล้วบรรทัดใต้เส้นทางก็บอกความด่วน
+  // อีกรอบด้วยประโยคเต็ม ("วันนี้เป็นโอกาสสุดท้ายที่จะทำทัน") — ข้อมูลชิ้นเดียวกัน
+  // ที่เอนจินคำนวณครั้งเดียว แต่ถูกพิมพ์สองรอบในกรอบเดียว
+  // whyBits[0] คือประโยคนั้นเสมอ จึงตัดทิ้งเมื่อป้ายทำงานแทนได้แล้ว
+  // เหลือไว้เฉพาะตอนป้ายเป็นเขียว เพราะ "รอได้" ไม่ได้บอกเหตุผลอะไรเลยสักอย่าง
+  const metaBits = tone === 'green' ? whyBits : whyBits.slice(1);
+
+  // คำว่า "ตอนนี้" ไม่ต้องเขียน — การ์ดใบนี้อยู่บนสุด เป็นก้อนสีเดียวของจอ และมีปุ่ม
+  // "เริ่มทำเลย" อยู่ในตัว ทั้งสามอย่างบอกไปแล้วว่านี่คือของที่ต้องทำตอนนี้
+  // ที่ยังต้องเขียนคือชื่อวิชา ซึ่งเป็นข้อมูลที่เดาจากตำแหน่งไม่ได้
+  const eyebrow = running ? 'กำลังทำอยู่' + (subj ? ' · ' + subj : '') : (subj || 'ตอนนี้');
+
+  const sMin = slot ? slot.min : goalMin;
+  const route = slot
+    ? `<span class="tk-t mono">${fmtClock(slot.start)}</span>
+       <span class="tk-line"><i>${sMin} นาที</i></span>
+       <span class="tk-t mono">${fmtClock(slot.end)}</span>`
+    : `<span class="tk-solo">ยังไม่มีคิว · ใช้เวลา ${goalMin} นาที</span>`;
 
   return `<section class="td-now ${tone}${running ? ' running' : ''}">
-    <div class="tn-top">
-      <span class="tn-mark">${icon('target')}</span>
-      <span class="tn-pill ${tone}">${pillIc ? icon(pillIc) : ''}${esc(pillTx)}</span>
+    <div class="tn-head">
+      <div class="tn-top">
+        <span class="tn-eyebrow"><i class="tn-mark">${icon('target')}</i>${esc(eyebrow)}</span>
+        <span class="tn-pill ${tone}">${pillIc ? icon(pillIc) : ''}${esc(pillTx)}</span>
+      </div>
+      <h2 class="tn-title">${esc(t.detail || 'งานนี้')}</h2>
+      <div class="tn-route">${route}</div>
+      ${metaBits.length ? `<div class="tn-why2">${esc(metaBits.join(' · '))}</div>` : ''}
     </div>
 
-    <div class="tn-eyebrow">โฟกัสวันนี้${subj ? ' · ' + esc(subj) : ''}</div>
-    <h2 class="tn-title">${esc(t.detail || 'งานนี้')}</h2>
-    <div class="tn-why ${tone}">${esc(whyBits.join(' · '))}</div>
+    <div class="tn-body">
+      ${hasProg ? `<div class="tn-bar"><i style="width:${prog}%"></i></div>` : ''}
+      <div class="tn-row">
+        <button class="tn-cta" onclick="startFocus('${t.id}')">
+          <span class="tc-main">${icon(running ? 'clock' : 'play')}${
+            running ? 'กลับเข้าโหมดโฟกัส' : (n.step ? 'เริ่ม ' + n.step.min + ' นาทีแรก' : 'เริ่มทำเลย')}</span>
+        </button>
+        <button class="tn-ib done" onclick="toggleDone('${t.id}',this)"
+          aria-label="ทำเสร็จแล้ว">${icon('check')}</button>
+        <button class="tn-ib" onclick="notNow('${t.id}')"
+          aria-label="ยังไม่ไหว เลื่อนไปก่อน">${icon('clock')}</button>
+      </div>
 
-    <div class="tn-stats">
-      <div class="tn-stat">
-        <span class="ts-ic">${icon('clock')}</span>
-        <span class="ts-tx"><i>เวลาเริ่ม</i><b>${esc(startTx)}</b></span>
-      </div>
-      <div class="tn-stat">
-        <span class="ts-ic">${icon('target')}</span>
-        <span class="ts-tx"><i>เป้าหมาย</i><b>${goalMin} นาที</b></span>
-      </div>
+      ${noDue ? `<button class="tn-ask" onclick="openForm('${t.id}')">
+        ${icon('calendar')}ครูสั่งส่งวันไหน? บอกแล้วผมจัดแผนได้แม่นขึ้น${icon('chevron')}
+      </button>` : ''}
+
+      ${/* 1B77 — ทางเข้าเดียวของจอเทียบทางเลือก
+            เป็นบรรทัดเงียบ ๆ ไม่ใช่ปุ่ม เพราะการ์ดใบนี้มีจุดโฟกัสได้จุดเดียว (ดู 1B24 ข้างบน)
+            และจุดนั้นคือปุ่ม "เริ่มทำเลย" · คนที่ไม่สงสัยไม่ต้องเห็นอะไรเพิ่ม
+            คนที่สงสัยว่า "ทำไมใบนี้" จะหาเจอตรงที่คำถามเกิดพอดี */''}
+      <button class="tn-why-go" onclick="go('scr-why')">
+        ${icon('sparkles')}ทำไมถึงเป็นใบนี้ — ดูทางเลือกอื่นที่เทียบแล้ว${icon('chevron')}
+      </button>
     </div>
-
-    <button class="tn-cta" onclick="startFocus('${t.id}')">
-      <span class="tc-main">${icon(running ? 'clock' : 'play')}${
-        running ? 'กลับเข้าโหมดโฟกัส' : (n.step ? 'เริ่ม ' + n.step.min + ' นาทีแรก' : 'เริ่มทำเลย')}</span>
-      ${n.step && !running ? `<span class="tc-sub">${esc(n.step.title)}</span>` : ''}
-    </button>
-
-    <div class="tn-foot${hasProg ? '' : ' noprog'}">
-      ${ring}
-      <div class="tn-acts">
-        <button class="ta-done" onclick="toggleDone('${t.id}',this)">${icon('check')}เสร็จแล้ว</button>
-        <button onclick="notNow('${t.id}')">ยังไม่ไหว</button>
-      </div>
-    </div>
-
-    ${noDue ? `<button class="tn-ask" onclick="openForm('${t.id}')">
-      ${icon('calendar')}ครูสั่งส่งวันไหน? บอกแล้วผมจัดแผนได้แม่นขึ้น${icon('chevron')}
-    </button>` : ''}
   </section>`;
 }
 
@@ -1736,131 +2080,209 @@ function homeSplit(sp, now) {
   return { reminders: rem.slice(0, 3), rest: rest.concat(rem.slice(3)) };
 }
 
-// ---------- NEXT ----------
-// ตอบคำถามเดียว: "แล้วอะไรต่อ" — ใบเดียวพอ
+// ============================================================
+// เส้นเวลาของวัน — ของเดิมสามก้อน ตอนนี้ก้อนเดียว
+// ============================================================
+// จอ "วันนี้" เคยตอบเป็นสามบล็อกที่ไม่รู้จักกัน: "ถัดไป" หนึ่งใบ · "เตือนความจำ" อีกกอง ·
+// แล้ว "แผนวันนี้" ที่พับไว้ข้างล่างสุด สามก้อนนี้พูดเรื่องเดียวกัน (เย็นนี้มีอะไรบ้าง)
+// ด้วยหัวข้อสามหัวข้อและกฎการเรียงคนละแบบ — ผู้ใช้จึงต้องประกอบวันของตัวเองในหัวเอง
+// จากของสามกองที่ไม่ได้เรียงตามเวลาร่วมกันเลย
 //
-// ของเดิมมีกอง "ไว้ทีหลัง" อีกสองแถวต่อท้าย ซึ่งเป็นการเอางานอันดับ 3 กับ 4 มาวางไว้ใต้จมูก
-// ทั้งที่จอนี้เพิ่งบอกไปสองบรรทัดข้างบนว่าให้ทำอันดับ 1 · รายการเต็มอยู่ในแท็บ "งาน" อยู่แล้ว
-// บรรทัดเดียวว่า "ยังเหลืออีก N งาน" ให้ข้อมูลเท่ากันในหนึ่งในสิบของพื้นที่
+// รางเดียวที่เรียงตามเวลาตอบได้ครบด้วยที่เท่าเดิม: งานที่จัดคิวไว้ · ช่วงพัก · กิจกรรม
+// ที่ถึงเวลาต้องไป · จนถึงเส้นปิดของวัน ทุกอย่างอยู่บนแกนเดียวกัน ไม่ต้องกดกางอะไรอีก
 //
-// เคยต่อท้ายว่า "— ยังไม่ถึงคิววันนี้" ซึ่งเป็นคำอธิบายที่ไม่มีใครต้องการ:
-// จอนี้ทั้งจอพูดเรื่องคิวของวันนี้อยู่แล้ว ของที่ไม่ได้อยู่ในนั้นก็คือของที่ไม่ได้อยู่ในนั้น
-function upNext(sp, split, now) {
-  const rest = split.rest.length;
-  if (!sp.next && !rest) return '';
-  if (!sp.next) {
-    return `<button class="tu-more solo" onclick="go('scr-tasks')">
-      ยังเหลืออีก ${rest} งาน${icon('chevron')}</button>`;
+// สิ่งที่หายไปโดยตั้งใจคือปุ่มพับ "แผนวันนี้" (planOpen/togglePlan) — เมื่อรางไม่ได้ยาว
+// จนดันจอแล้ว การซ่อนมันไว้หลังการกดหนึ่งครั้งไม่ได้ประหยัดอะไร นอกจากทำให้คนไม่เจอ
+function dayRail(sp, split, now) {
+  const rows = [];
+  const nowTask = sp.now ? sp.now.task : null;
+  let headSkipped = false;
+
+  for (const s of sp.plan.slots) {
+    // ช่องแรกของงานที่กำลังโชว์เป็นการ์ดหัวราง = การ์ดใบนั้นเอง ไม่ต้องมีแถวซ้ำ
+    // (ช่องที่สองของงานเดียวกันยังต้องขึ้น — มันคือ "กลับมาทำต่อสองทุ่ม" ซึ่งเป็นข้อมูลใหม่)
+    if (!s.break && nowTask && s.task === nowTask && !headSkipped) { headSkipped = true; continue; }
+    rows.push({ at: s.start, slot: s, kind: s.break ? 'brk' : 'work' });
   }
 
-  const t = sp.next.task, slot = sp.next.slot;
-  const end = new Date(slot.start.getTime() + slot.min * 60000);
-  const meta = [t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '',
-    slot.min + ' นาที'].filter(Boolean).join(' · ');
+  // กิจกรรมและของที่ต้องจำ — มาจาก homeSplit ซึ่งกันงานที่โชว์เป็นการ์ดหัวรางออกไปแล้ว
+  // 1B38: ของที่เลยกำหนดไปแล้วไม่อยู่บนรางอีก — รางคือ "เวลาที่ยังไม่มาถึง" ทั้งเส้น
+  // ของที่เลยมาแล้วไม่มีตำแหน่งบนแกนนั้นจริง ๆ มันจึงไปกองอยู่หัวรางแล้วดันของจริงลงไป
+  // 1B39: ปลายทางของมันคือแท็บ "งาน" ไม่ใช่ก้อนบนหน้าแรก (ดูหมายเหตุใน renderMenu)
+  for (const t of split.reminders) {
+    const at = new Date(t.due);
+    if (at < now) continue;
+    rows.push({ at, task: t, kind: 'rem' });
+  }
 
-  return `<section class="td-up">
-    <div class="tu-lb">ถัดไป</div>
-    <button class="tu-row ${subjClass(t.subject)}" onclick="startFocus('${t.id}')">
-      <span class="tu-ic">${icon('calendar')}</span>
-      <span class="tu-tx">
-        <span class="tu-when">${fmtClock(slot.start)} – ${fmtClock(end)}</span>
-        <b>${esc(t.detail || t.subject || 'งานถัดไป')}</b>
-        <span class="tu-meta">${esc(meta)}</span>
-      </span>
-      <span class="tu-go">${icon('chevron')}</span>
-    </button>
-    ${rest ? `<button class="tu-more" onclick="go('scr-tasks')">
-      ยังเหลืออีก ${rest} งาน${icon('chevron')}</button>` : ''}
-  </section>`;
-}
+  rows.sort((a, b) => a.at - b.at);
 
-// ---------- เตือนความจำ ----------
-// สองบรรทัดต่อใบ ไม่มีปุ่มลงมือ เพราะไม่มีอะไรให้ลงมือ — มันคือของที่ต้องไปให้ทันเวลาเท่านั้น
-// สีมาจากเวลาอย่างเดียว (เลยแล้ว / ภายใน 12 ชม. / ที่เหลือ) ไม่ใช่จากคะแนนความสำคัญ
-// ความสำคัญเป็นเรื่องของการจัดคิว และของพวกนี้ไม่ได้เข้าคิว
-function remindersBlock(list, now) {
-  if (!list.length) return '';
-  return `<section class="td-rem">
-    <div class="tu-lb">เตือนความจำ</div>
-    ${list.map(t => {
-      const due = new Date(t.due);
-      const late = due < now;
-      const soon = !late && (due - now) <= 12 * 3.6e6;
-      const tone = late ? 'late' : soon ? 'soon' : '';
-      return `<button class="tm-row" onclick="openForm('${t.id}')">
-        <span class="tm-ic ${tone}">${icon(taskType(t) === 'activity' ? 'flag' : 'pin')}</span>
-        <span class="tm-tx">
-          <b>${esc(t.detail || t.subject || typeInfo(t).name)}</b>
-          <span class="${tone}">${esc(late ? 'เลยกำหนดมา ' + overdueFor(now - due)
-            : fmtDue(t.due, now, t))}</span>
-        </span>
-        <span class="tm-go">${icon('chevron')}</span>
+  // เส้นปิดของวัน — ปลายของช่วงว่างก้อนสุดท้ายที่ตัวจัดแผนยอมใช้
+  // ไม่ใช่ของประดับ: มันคือคำตอบของ "แล้วเหลือเวลาถึงกี่โมง" ซึ่งเป็นสิ่งที่ทำให้แถวข้างบน
+  // มีความหมาย — งานสี่ใบก่อนสามทุ่มกับงานสี่ใบก่อนเที่ยงคืนเป็นคนละสถานการณ์
+  const wslots = (sp.plan.windows && sp.plan.windows.slots) || [];
+  const endHm = wslots.length ? wslots[wslots.length - 1].toHm : '';
+
+  // 1B38 · เงื่อนไข "< 2 วัน" เป็นจริงกับทุกวันที่ผ่านมาแล้วด้วย (ผลลบย่อมน้อยกว่า 2)
+  // งานที่เลยกำหนดมา 10 วันจึงได้ค่า −10 แล้วขึ้นคำว่า "พรุ่งนี้" ในช่องเวลา
+  // ขัดกับบรรทัดใต้มันเองที่เขียนว่า "เลยกำหนดมา 10 วัน" · ยิ่งค้างนานยิ่งเข้าเงื่อนไขแน่น
+  // ต้องกันขาล่างด้วย ไม่ใช่กันแต่ขาบน
+  const dayTx = d => d.toDateString() === now.toDateString() ? fmtClock(d)
+    : (d - now) >= 0 && (d - now) / 8.64e7 < 2 ? 'พรุ่งนี้' : fmtThaiDate(d);
+
+  const body = rows.map(r => {
+    if (r.kind === 'brk') {
+      return `<div class="dr-row brk">
+        <span class="dr-t mono">${fmtClock(r.at)}</span>
+        <span class="dr-b">พัก ${r.slot.min} นาที</span>
+      </div>`;
+    }
+    if (r.kind === 'rem') {
+      const t = r.task;
+      const late = r.at < now;
+      return `<button class="dr-row rem${late ? ' late' : ''}" onclick="openForm('${t.id}')">
+        <span class="dr-t mono">${esc(dayTx(r.at))}</span>
+        <span class="dr-b"><b>${esc(t.detail || t.subject || typeInfo(t).name)}</b>
+          <span class="dr-m">${esc(late ? 'เลยกำหนดมา ' + overdueFor(now - r.at)
+            : typeInfo(t).name)}</span></span>
+        <span class="dr-go">${icon('chevron')}</span>
       </button>`;
-    }).join('')}
-  </section>`;
-}
+    }
+    const s = r.slot, t = s.task;
+    // ชื่อวิชาถูกทาสีเดียวกับแกนเวลาของแถวนั้น — นี่คือสิ่งที่ทำให้สีบนแกนแปลว่าอะไร
+    // ถ้าสีอยู่บนแกนอย่างเดียวมันเป็นแค่ของประดับ ต้องมีคำที่ถือสีเดียวกันอยู่ในแถว
+    // ผู้ใช้ถึงจะเชื่อมได้เองภายในการกวาดตาครั้งเดียวว่า "ม่วง = ฟิสิกส์"
+    const subjTx = t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '';
+    // "ทำบางส่วน" ถูกตัดออกใน 1B30 — มันเป็นรายละเอียดของงาน ไม่ใช่ของช่วงเวลานี้
+    // และแถวนี้มีสามข้อความอยู่แล้ว (เวลา · ชื่องาน · วิชา) ข้อที่สี่คือข้อที่ทำให้รก
+    // คนที่อยากรู้ว่าเหลืออีกเท่าไหร่กดเข้าไปดูได้ในใบงาน ซึ่งเขียนไว้ครบกว่านี้
+    const rest = s.min + ' นาที';
+    return `<button class="dr-row ${subjClass(t.subject)}" onclick="startFocus('${t.id}')">
+      <span class="dr-t mono">${fmtClock(s.start)}</span>
+      <span class="dr-b"><b>${esc(t.detail || t.subject || 'งาน')}</b>
+        <span class="dr-m">${subjTx ? `<i class="dr-sj">${esc(subjTx)}</i> · ` : ''}${esc(rest)}</span></span>
+      <span class="dr-go">${icon('chevron')}</span>
+    </button>`;
+  }).join('');
 
-// ---------- แผนวันนี้ (ของประกอบ ไม่ใช่คำตอบ — จึงพับไว้) ----------
-// รางเวลาเคยกางอยู่ตลอด แล้วดันหน้าแรกยาวเกินหนึ่งจอทันทีที่มีสามงานขึ้นไป
-// ซึ่งแลกไม่คุ้ม: สองบรรทัดแรกของรางพูดเรื่องเดียวกับการ์ด NOW กับแถว "ถัดไป" ที่อ่านไปแล้ว
-// สิ่งที่รางมีของตัวเองจริง ๆ คือ "รูปร่างของทั้งเย็น" ซึ่งเป็นของที่คนอยากดูตอนวางแผน
-// ไม่ใช่ตอนเปิดแอปมาถามว่าทำอะไรก่อน — หัวข้อที่กดกางจึงตรงกับจังหวะที่คนอยากได้มันจริง ๆ
-//
-// สถานะกาง/พับอยู่ในตัวแปรธรรมดา ไม่ได้เขียนลง localStorage โดยตั้งใจ:
-// มันเป็นความสนใจของ "รอบนี้" ไม่ใช่การตั้งค่า · เปิดแอปใหม่ควรกลับมาที่คำตอบสั้นที่สุดเสมอ
-let planOpen = false;
+  // ไม่มีอะไรบนราง = ไม่ต้องมีราง · เส้นปิดวันเดี่ยว ๆ ใต้หัวข้อ "ที่เหลือของวันนี้"
+  // อ่านออกมาว่ามีอะไรอยู่แล้วต้องมองหา ทั้งที่ไม่มี — แย่กว่าไม่ขึ้นอะไรเลย
+  if (!rows.length) return '';
 
-function togglePlan() {
-  planOpen = !planOpen;
-  haptic('tap');
-  renderMenu();
-}
+  // 1B22: ถอดบรรทัด "ยังเหลืออีก N งาน — ยังไม่ได้ลงคิววันนี้" ที่เคยต่อท้ายรางออก
+  // มันตอบคำถามที่จอนี้ไม่ได้ถาม · จอนี้ถามว่า "ตอนนี้ทำอะไร" ซึ่งรางตอบครบไปแล้ว
+  // ส่วน "ค้างทั้งหมดกี่ใบ" เป็นคำถามของแท็บ "งาน" ที่มีเลขบนแบดจ์ของตัวเองอยู่แล้ว
+  // และหัวจอบรรทัดที่สองก็เพิ่งบอกไปแล้วว่าค้างกี่งาน — พูดเป็นรอบที่สามในจอเดียว
+  // ---- 1B29: ตั๋วมีได้ใบเดียวต่อจอ ----
+  //
+  // 1B27 ทำหัวตั๋วให้ราง แล้ว 1B28 ก็ทำหัวตั๋วให้การ์ดบนด้วย ผลคือจอเดียวมีตั๋วสองใบ
+  // ที่มีโครงเหมือนกันเป๊ะ (สองหมุด · เส้นประ · รอยปรุ) วางซ้อนกันคนละสี — นับของที่ซ้ำได้
+  // เวลาตัวใหญ่สี่ตัว · เส้นประสามเส้น · และคำว่า "ตอนนี้" โผล่สองที่ในความหมายคนละอย่าง
+  // (บนการ์ด = "งานที่ทำตอนนี้" · บนราง = "นาฬิกาตอนนี้") ซึ่งเป็นความรกที่แพงที่สุด
+  // เพราะมันไม่ได้แค่กินที่ แต่ทำให้ต้องอ่านสองรอบเพื่อรู้ว่าอันไหนหมายถึงอะไร
+  //
+  // โครงตั๋วอยู่ที่การ์ดบนที่เดียว รางกลับไปเป็นรายการเงียบ ๆ ที่มีหัวข้อบรรทัดเดียว
+  // ตัวเลข "หมดเวลา 21:30" ไม่ได้หายไป — มันยังเป็นแถวสุดท้ายบนแกนอยู่แล้ว
+  // ซึ่งเป็นที่ที่ถูกกว่า เพราะปลายทางเป็นของที่อยู่ "ท้ายเส้น" ไม่ใช่ "บนหัว"
+  const workRows = rows.filter(r => r.kind === 'work');
+  const workMin = workRows.reduce((a, r) => a + r.slot.min, 0);
+  // "3 ช่วง" ถูกตัดออก — แถวข้างล่างนับเองได้ด้วยตาในหนึ่งวินาที
+  // ตัวเลขที่นับเองไม่ได้คือเวลารวม ซึ่งเป็นตัวเดียวที่ควรเขียน
+  const sumTx = workRows.length ? humanMin(workMin) : rows.length + ' รายการ';
 
-function planStrip(sp, now) {
-  const p = sp.plan;
-  if (!p.slots.length) return '';
-  const nowTask = sp.now && sp.now.task;
-  const nextTask = sp.next && sp.next.task;
-  let markedNow = false, markedNext = false;
-  const work = p.slots.filter(s => !s.break).length;
-
-  const rail = !planOpen ? '' : `<div class="tp-rail">
-      ${p.slots.map(s => {
-        if (s.break) return `<div class="tp-row brk"><span class="mono">${fmtClock(s.start)}</span>
-          <span class="tp-tx">พัก ${s.min} นาที</span></div>`;
-        // ติดป้ายเฉพาะช่องแรกของงานนั้น — งานที่ถูกหั่นสองช่วงไม่ควรได้ป้าย "ตอนนี้" สองอัน
-        let pill = '';
-        if (nowTask && s.task === nowTask && !markedNow) { pill = 'now'; markedNow = true; }
-        else if (nextTask && s.task === nextTask && !markedNext) { pill = 'next'; markedNext = true; }
-        return `<div class="tp-row ${subjClass(s.task.subject)}${pill === 'now' ? ' cur' : ''}"
-            onclick="startFocus('${s.task.id}')">
-          <span class="mono">${fmtClock(s.start)}</span>
-          <span class="tp-tx">
-            <b>${esc(s.task.detail || s.task.subject)}</b>
-            <span>${s.min} นาที${s.partial ? ' · จาก ' + remainingMin(s.task) + ' นาที' : ''}</span>
-          </span>
-          ${pill ? `<span class="tp-pill ${pill}">${pill === 'now' ? 'ตอนนี้' : 'ถัดไป'}</span>` : ''}
-          <span class="tp-go">${icon('chevron')}</span>
-        </div>`;
-      }).join('')}
+  // 1B38 · หัวข้อออกมาอยู่นอกการ์ด บนพื้นจอ
+  // ตอนมันอยู่ในการ์ด มันเป็น "ป้ายกำกับของกล่อง" ซึ่งอ่านเป็นของชิ้นเดียวกับแถวข้างล่าง
+  // พอออกมายืนบนพื้นจอ มันกลายเป็นหัวข้อของส่วนหนึ่งในหน้า = ฮีโร่รองจริง ๆ
+  // ขนาดจึงขึ้นตามหน้าที่ได้โดยไม่ต้องแข่งกับอะไร (การ์ดฟ้ายังใหญ่กว่าและมีสี)
+  return `<section class="td-railwrap">
+    <div class="rl-lb">
+      <b>ที่เหลือของวันนี้</b><span>${esc(sumTx)}</span>
     </div>
-    <button class="tp-all" onclick="go('scr-timeline')">ดูตารางทั้งวัน${icon('chevron')}</button>`;
-
-  return `<section class="td-plan${planOpen ? ' open' : ''}">
-    <button class="tp-fold" onclick="togglePlan()" aria-expanded="${planOpen}">
-      <span class="tp-fic">${icon('calendar')}</span>
-      <span class="tp-ftx"><b>แผนวันนี้</b><span>${work} ช่วง · ${esc(humanMin(p.usedMin))}${
-        p.bufferMin ? ' · เผื่อไว้ ' + p.bufferMin + ' นาที' : ''}</span></span>
-      <span class="tp-fgo">${icon('chevron')}</span>
-    </button>
-    ${rail}
+    <div class="td-rail">
+    ${body}
+    ${endHm ? `<div class="dr-row end">
+      <span class="dr-t mono">${esc(endHm)}</span>
+      <span class="dr-b">หมดเวลาว่าง</span>
+    </div>` : ''}
+    </div>
   </section>`;
 }
+
+// ============================================================
+// 1B38b — กริดฟีเจอร์ย้ายไปอยู่จอของตัวเอง
+// ============================================================
+// 1B38 เอากริดออกจากหน้าแรกแล้วโยนปลายทางไปแทรกเป็นแถวในจอโปรไฟล์ ซึ่งผิดสองชั้น:
+// จอโปรไฟล์เป็นเรื่อง "ตัวฉัน" (บัญชี · รูป · เหรียญ · ตั้งค่า) ฟีเจอร์ของแอป
+// ไม่ใช่ของส่วนตัวของใคร · และการยุบกริดเป็นแถวรายการทำให้ของแปดอย่างที่เคย
+// กวาดตาเห็นพร้อมกันในสองแถว กลายเป็นลิสต์ที่ต้องอ่านทีละบรรทัดปนกับของอื่นอีกเจ็ดแถว
+//
+// กริดกลับมาเหมือนเดิมทุกอย่าง แค่ย้ายไปอยู่จอ scr-tools ที่ไม่มีอะไรอื่นแย่งที่
+// เหตุผลที่มันต้องออกจากหน้าแรกยังเหมือนเดิม (ไทล์แปดก้อนพื้นสีแบรนด์กินพื้นที่สีเน้น
+// มากกว่าการ์ด "ตอนนี้" — กฎ 60/30/10 กลับหัว) แต่บนจอที่ไม่มีการ์ด "ตอนนี้"
+// ให้แย่ง มันเป็นของที่เด่นที่สุดบนจอโดยชอบธรรม เพราะมันคือเนื้อหาทั้งหมดของจอนั้น
+function renderTools() {
+  const body = document.getElementById('toolsBody');
+  if (!body) return;
+  body.innerHTML = toolsGrid();
+}
+
+function toolsGrid() {
+  const noCtx = typeof ctxIsEmpty === 'function' && ctxIsEmpty();
+  const gift = typeof dailyPending === 'function' && dailyPending();
+  const reqs = typeof frReqs !== 'undefined' && Array.isArray(frReqs) ? frReqs.length : 0;
+
+  // ---- ลำดับ: สำคัญมาก → น้อย ซ้ายไปขวา บนลงล่าง ----
+  // คนกวาดตาแบบอ่านหนังสือ ตำแหน่งบนซ้ายจึงแพงที่สุดในกริดและต้องได้ของที่แพงที่สุด
+  // แถวบน = ของที่ "เปลี่ยนสิ่งที่แอปทำให้ได้" (คน · ตารางเรียน · แผน · ปฏิทิน)
+  // แถวล่าง = ของที่ "เอาไว้ดู/ของตัวเอง" (สถิติ · ของสะสม · ร้านค้า · Pro)
+  //
+  // แบดจ์ต้องแปลว่า "มีอะไรรอให้กด" เท่านั้น — กฎเดียวกับแบดจ์บนแถบล่าง
+  //   [ไอคอน, ป้าย, กลุ่มสี, สิ่งที่ทำตอนกด, แบดจ์ ('' = เงียบ), เป็นสีเตือนไหม]
+  const tiles = [
+    ['users', 'เพื่อนฉัน', 'in', "openFeed('friends')", reqs || '', true],
+    ['book', 'สแกนตารางเรียน', 'in', "go('scr-ttscan')", noCtx ? '!' : '', true],
+    ['sparkles', 'แผนวันนี้', 'time', "go('scr-plan')", '', false],
+    // 1B47 · ไทล์ "ปฏิทินเดือน" ถูกถอดออก — เจ้าของเลือก "ตัดปฏิทินได้เลย"
+    // ที่ว่างคืนให้ "กล่องเข้า" ซึ่งเป็นทางเข้าที่มีของรออยู่จริงและหายากกว่า
+    ['unplug', 'กล่องเข้า', 'time', "go('scr-inbox')",
+      (typeof inboxPending === 'function' ? inboxPending().length : 0) || '', true],
+    ['flame', 'สถิติ', 'me', "go('scr-stats')", '', false],
+    ['medal', 'ของสะสม', 'me', "go('scr-badges')", '', false],
+    ['bag', 'ร้านค้า', 'me', "go('scr-shop')", gift ? ' ' : '', true],
+    ['lock', 'Pro', 'me', "go('scr-pro')", '', false],
+  ];
+
+  return `<section class="td-tiles">
+    <div class="tg-grid">
+      ${tiles.map(([ic, lb, tone, act, ct, hot]) => `<button class="tg-t tone-${tone}" onclick="${act}">
+        <span class="tg-ic">${icon(ic)}${ct !== '' ? `<i class="tg-ct${hot ? ' hot' : ''}${
+          ct === ' ' ? ' dot' : ''}">${String(ct).trim()}</i>` : ''}</span>
+        <span class="tg-lb2">${lb}</span>
+      </button>`).join('')}
+    </div>
+  </section>`;
+}
+
+// บรรทัดปิดท้ายหน้าแรก — เป็นตัวหนังสือสีจาง ไม่ใช่ปุ่ม เพราะมันไม่ใช่สิ่งที่จอนี้
+// อยากให้กด มันแค่ต้องมีอยู่ให้คนที่ตามหาของหาเจอ
+function toolsLink() {
+  return `<button class="td-more" onclick="go('scr-tools')">ฟีเจอร์อื่น ๆ${icon('chevron')}</button>`;
+}
+
+// ---------- ของที่ถูกยุบเข้าไปใน dayRail() แล้วใน 1B21 ----------
+// upNext() · remindersBlock() · planStrip() + planOpen/togglePlan ถูกลบทิ้งทั้งหมด
+// ไม่ได้ย้ายไปไหน — งานของทั้งสามอย่างคือ "เย็นนี้มีอะไรบ้าง" ซึ่งรางเวลาตอบครบในก้อนเดียว
+// CSS ของเดิม (.td-up .td-rem .td-plan .tp-*) ยังอยู่ใน today.css เผื่อต้องถอยกลับ
 
 // ---------- ช่องถามน้องไซ ----------
-// อยู่ท้ายเนื้อหา ไม่ใช่บนหัวจอ — ตำแหน่งนี้คือคำสารภาพว่าจอข้างบนตอบไม่ครบทุกกรณี
-// คนที่อ่านลงมาถึงตรงนี้แล้วยังไม่ได้คำตอบ คือคนที่มีคำถามจริงที่แผนตอบให้ไม่ได้
-// ("พรุ่งนี้สอบฟิสิกส์ ช่วยจัดเวลาให้หน่อย") ส่วนคนที่ได้คำตอบแล้วกดปุ่มเริ่มไปตั้งแต่ครึ่งจอบน
+// 1B38: ย้ายขึ้นมาอยู่ใต้คำทักทาย จากเดิมที่อยู่ล่างสุดของจอใต้กริดอีกที
+// เหตุผลเดิมคือ "ตำแหน่งท้ายจอเป็นคำสารภาพว่าข้างบนตอบไม่ครบ" ซึ่งฟังขึ้นถ้าทุกคน
+// อ่านจอจากบนลงล่างเสมอ · แต่คนที่เปิดแอปมาพร้อมคำถามในหัวอยู่แล้ว
+// ("พรุ่งนี้สอบฟิสิกส์ ช่วยจัดเวลาให้หน่อย") ไม่ได้มาอ่านอะไรเลย เขามาพิมพ์
+// แล้วเราบังคับให้เขาเลื่อนผ่านคำตอบทั้งจอไปหาช่องพิมพ์ที่ก้นหน้า
+//
+// ช่องนี้เบากว่าการ์ด "ตอนนี้" ที่อยู่ใต้มันชัดเจน (พื้นโปร่ง · ไม่มีเงา · ปุ่มส่งสีเทา
+// จนกว่าจะโฟกัส) มันจึงไม่แย่งการตัดสินใจ แค่ยืนรออยู่ตรงที่ที่หาเจอ
 //
 // ช่องนี้ไม่ใช่แชทซ้อน — พิมพ์แล้วส่งจะพาไปที่จอน้องไซพร้อมคำถามนั้น
 // ให้บทสนทนามีที่อยู่ที่เดียว ไม่ใช่สองที่ที่จำคนละเรื่อง
@@ -1956,6 +2378,40 @@ function minuteTick() {
 // ลำดับบนจอเป็นเส้นเดียวจากบนลงล่าง ไม่มีทางแยก:
 //   ทักทาย + เวลาที่มีจริง → โฟกัสหนึ่งใบ + ทำไมใบนี้ → ถัดไปคืออะไร
 //   → เตือนความจำ → แผนทั้งวัน (พับ) → ถามน้องไซ
+// ============================================================
+// 1B57 · แถวสถิติสามช่องบนจอวันนี้ — ของที่ภาพร่างสัญญาไว้
+// ============================================================
+// 1B51 ลงชั้นผิวทั่วทั้งแอป (พื้นไล่สี · การ์ดโปร่ง · มุมมน · ฟอนต์ตัวเลข)
+// แต่ไม่ได้สร้างสองชิ้นที่อยู่ในภาพร่างจริง ๆ คือแถวสถิติกับการ์ดไล่สี
+// ซึ่งเป็นความผิดแบบเดียวกับ 1B49 เป๊ะ: เอาผิวมาแต่ไม่สร้างของที่วาดไว้
+//
+// สามช่องนี้ตอบคำถามคนละข้อกัน และทุกข้อเปลี่ยนการตัดสินใจของวันนี้ได้จริง:
+//   ว่างเท่าไหร่   → จะเริ่มงานใหญ่ได้ไหม
+//   ค้างกี่ใบ      → หนี้ที่สะสมอยู่มีแค่ไหน
+//   ต่อเนื่องกี่วัน  → เหตุผลที่จะไม่ทำให้ขาดวันนี้
+// ตัวเลขทั้งสามมาจาก state จริง ไม่มีตัวไหนเป็นเลขตกแต่ง
+function todayStats(sp, now) {
+  const pend = pendingTasks().length;
+  const streak = typeof loginStreak === 'function' ? loginStreak() : 0;
+  const free = (sp.plan.windows && sp.plan.windows.budgetMin) || 0;
+  // เวลาว่างเขียนเป็น 2:20 ไม่ใช่ "2 ชม. 20 นาที" — สามช่องต้องกว้างเท่ากัน
+  // ข้อความยาวช่องเดียวทำให้ทั้งแถวดูไม่เป็นชุดเดียวกัน (บทเรียนจากภาพร่างรอบแรก)
+  const h = Math.floor(free / 60), m = Math.round(free % 60);
+  const freeTx = free > 0 ? h + ':' + String(m).padStart(2, '0') : '0:00';
+  const cells = [
+    ['clock', 'v', freeTx, 'ชั่วโมงที่ว่าง'],
+    ['target', 'w', String(pend), 'งานค้าง'],
+    ['flame', 'g', String(streak), 'วันต่อเนื่อง'],
+  ];
+  return `<div class="td-stats">
+    ${cells.map(([ic, tone, val, lb]) => `<div class="ts ${tone}">
+      <span class="ts-ic">${icon(ic)}</span>
+      <b>${esc(val)}</b>
+      <i>${esc(lb)}</i>
+    </div>`).join('')}
+  </div>`;
+}
+
 function renderMenu() {
   const body = document.getElementById('menuBody');
   if (!body) return;
@@ -1972,13 +2428,41 @@ function renderMenu() {
 
   // มีงานแต่ไม่มีเวลา ≠ ไม่มีงาน — สองอย่างนี้ต้องพูดคนละแบบ
   const outOfTime = sp.now && !sp.plan.slots.length;
+  // ---- ลำดับสายตา บนลงล่าง (1B38) ----
+  //   1 หัวจอ         เหลือเวลาเท่าไหร่ · ค้างกี่งาน
+  //   2 ถามน้องไซ      ทางลัดออกจากทุกอย่างข้างล่าง ถ้ารู้อยู่แล้วว่าจะถามอะไร
+  //   3 การ์ด "ตอนนี้"  ทำอะไรก่อน — จุดที่การตัดสินใจจบ
+  //   4 ราง            เย็นนี้เหลืออะไร ถึงกี่โมง
+  //   5 กำลังทำอยู่     ไม่ได้นั่งทำอยู่คนเดียว (โผล่เฉพาะตอนมีคนอยู่จริง)
+  //   6 ฟีเจอร์อื่น ๆ   บรรทัดเดียวปิดท้าย
+  //
+  // 1B39 · ก้อน "เสี่ยงพัง" ถูกถอดออกทั้งก้อน (เจ้าของเลือกเอง)
+  // 1B38 ใส่มันเข้ามาเพื่อแก้ปัญหา "งานเลยกำหนดถูกซ่อนอยู่กลางราง" ซึ่งแก้ถูก
+  // แต่วิธีผิด: สามบรรทัดที่บอกว่า "สายไปแล้ว" โดยไม่มีปุ่มให้กดสักปุ่ม ไม่ได้ทำให้ใครขยับ
+  // มันทำให้จอมีสามกองที่หนักพอ ๆ กัน แล้วสายตาต้องเลือกเองว่าจะเชื่อกองไหน
+  // ซึ่งคือการโยนการตัดสินใจกลับไปให้ผู้ใช้ ทั้งที่นั่นคือสิ่งเดียวที่จอนี้รับปากว่าจะทำแทน
+  //
+  // งานเลยกำหนดไม่ได้หายไป มันอยู่ในแท็บ "งาน" ซึ่งมีทั้งลิสต์ครบและปุ่มลงมือจริง
+  // และมีเลขบนแบดจ์ของตัวเองอยู่แล้ว · จอนี้เหลือคำสั่งล้วน
+  //
+  // ข้อ 2 เคยอยู่ล่างสุดของจอ ใต้กริดอีกที — คนที่มีคำถามในหัวตั้งแต่เปิดแอป
+  // ต้องเลื่อนผ่านคำตอบทั้งจอไปหาช่องพิมพ์ ทั้งที่เขาไม่ได้อยากอ่านอะไรเลย
+  // ขึ้นมาอยู่ใต้ชื่อตัวเองแล้วมันกลายเป็น "พูดกับแอป" ซึ่งเป็นสิ่งที่แอปนี้ขายจริง ๆ
+  //
+  // ที่กริดเคยอยู่ตอนนี้ไม่มีอะไรเลย ซึ่งถูกแล้ว: ของที่เคยคิดจะใส่แทน (งานถัดไป ·
+  // คำแนะนำ AI) อยู่บนจอแล้วทั้งคู่ — การ์ดฟ้าคือคำแนะนำ ส่วนรางคืองานถัดไป
   body.innerHTML = todayHead(sp, now)
-    + (sp.now ? nowCard(sp, now) + upNext(sp, split, now)
-                + remindersBlock(split.reminders, now)
-                + (outOfTime ? noTimeLeft(sp, now) : planStrip(sp, now))
-              : todayEmpty(now, split.reminders.length > 0) + remindersBlock(split.reminders, now))
+    + todayStats(sp, now)
     + askBar()
-    + ctxNudge(sp.plan.windows);
+    + (sp.now ? nowCard(sp, now)
+                + (outOfTime ? noTimeLeft(sp, now) : '')
+              : todayEmpty(now, split.reminders.length > 0))
+    + dayRail(sp, split, now)
+    // 1B40 · ของที่มาเติมครึ่งล่างที่ว่างลงหลัง 1B39 (เจ้าของเลือกเอง: "เพื่อนกำลังทำอะไรอยู่"
+    // วางใต้ "ที่เหลือของวันนี้") · ไฟล์ hw.js อาจโหลดไม่ขึ้น จึงต้องเช็คก่อนเรียกเสมอ
+    // ตัวมันเองคืนค่าว่างเมื่อไม่มีใครอยู่ — จอจึงกลับไปเป็นแบบ 1B39 เป๊ะตอนไม่มีข่าว
+    + (typeof hwNowBlock === 'function' ? hwNowBlock() : '')
+    + toolsLink();
 
   if (askKeep || askFocus) {
     const b2 = document.getElementById('hmAsk');
@@ -1993,14 +2477,11 @@ function renderMenu() {
   if (sp.plan.slots.length) commitPlan(sp.plan, state, now);
 }
 
-// ยังไม่รู้จักตารางเรียนของเขา = ทุกตัวเลขบนจอนี้ตั้งอยู่บนการเดา ต้องบอกให้รู้ตัว
-// แต่บอกด้วยบรรทัดเดียวท้ายจอ ไม่ใช่การ์ดเต็มใบที่แย่งที่กับคำตอบ
-function ctxNudge(win) {
-  if (win.mode !== 'default') return '';
-  return `<button class="td-nudge" onclick="go('scr-context')">
-    ${icon('clock')}เวลาว่างข้างบนมาจากการเดา — บอกตารางเรียนสักครั้งให้แผนตรงกับชีวิตจริง${icon('chevron')}
-  </button>`;
-}
+// ---------- 1B24: คำเตือน "เวลามาจากการเดา" ย้ายไปเป็นสัญลักษณ์บนหัวจอ ----------
+// เคยเป็นแถบข้อความสองบรรทัดเต็มความกว้าง ซึ่งกินที่เท่ากับงานหนึ่งใบบนราง
+// เพื่อพูดสิ่งที่ไม่ต้องพูดเป็นประโยค: นาฬิกามีจุดเตือน + กดได้ = "ตัวเลขเวลายังไม่แน่น"
+// อยู่แถวเดียวกับตัวเลขที่มันอธิบายด้วย ซึ่งใกล้กว่าตอนอยู่ท้ายจออีกสี่บล็อก
+// (1B25: ไอคอนบนหัวจอถูกถอดออกอีกที — ของชิ้นนี้อยู่ในกริดในรูปไทล์ "สแกนตารางเรียน")
 
 // ---------- ปุ่ม + : ทางเข้าที่เร็วที่สุดของการเพิ่มงาน ----------
 // เพิ่มงานคือสิ่งที่ทำบ่อยที่สุดรองจากการดูว่าต้องทำอะไร มันจึงต้องอยู่ห่างจากนิ้วหนึ่งครั้งกด
@@ -2035,9 +2516,31 @@ function addSheetHTML() {
       </button>`;
   }
   const c = typeof connectorCount === 'function' ? connectorCount() : null;
+  // ============================================================
+  // 1B54 · หกแถวหน้าตาเหมือนกันหมด ทั้งที่ไม่เท่ากันเลย
+  // ============================================================
+  // คำสัญญาทั้งหมดของหน้าเพิ่มงานคือ "ไม่ต้องพิมพ์" (ดูหมายเหตุใน openForm ที่วัด
+  // capture rate ไว้เป็นตัวชี้เป็นชี้ตายของโปรดักต์) แต่แผ่นนี้วางท่าที่ไม่ต้องพิมพ์
+  // ไว้ปนกับท่าที่ต้องพิมพ์ทีละช่อง โดยให้หน้าตาเท่ากันเป๊ะทั้งหกแถว
+  // ผลคือคนกดแถวแรกที่ตาไปโดน ไม่ใช่แถวที่เร็วที่สุดสำหรับเขา
+  //
+  // สองท่าแรก (ถ่ายรูป · พูด) ขึ้นเป็นไทล์ใหญ่สองช่อง — ทั้งคู่ใช้เวลาไม่ถึงสิบวินาที
+  // และไม่ต้องพิมพ์สักตัว · ที่เหลือเป็นรายการเงียบ ๆ ข้างล่างเพราะมันคือทางสำรอง
+  // ไม่ใช่ทางหลัก · ตัวเชื่อมแยกไปอยู่ท้ายสุดเพราะมันไม่ใช่ "การเพิ่มงานตอนนี้"
+  // แต่คือ "ตั้งครั้งเดียวแล้วไม่ต้องเพิ่มอีก" ซึ่งเป็นคนละการตัดสินใจกัน
+  const hero = ADD_ACTIONS.slice(0, 2);
+  const rest = ADD_ACTIONS.slice(2);
   return `<div class="as-grip"></div>
     <div class="as-h">เพิ่มอะไร?</div>
-    ${ADD_ACTIONS.map(a => `<button class="as-row" onclick="closeAddSheet();${a[3]}">
+    <div class="as-heroes">
+      ${hero.map(a => `<button class="as-hero" onclick="closeAddSheet();${a[3]}">
+        <span class="as-hero-ic">${icon(a[0])}</span>
+        <b>${esc(a[1])}</b>
+        <span>${esc(a[2])}</span>
+      </button>`).join('')}
+    </div>
+    <div class="as-or">หรือใส่เอง</div>
+    ${rest.map(a => `<button class="as-row slim" onclick="closeAddSheet();${a[3]}">
       <span class="as-ic">${icon(a[0])}</span>
       <span class="as-tx"><b>${esc(a[1])}</b><span>${esc(a[2])}</span></span>
       <span class="as-go">${icon('chevron')}</span>
@@ -2133,7 +2636,7 @@ function rankCard(t, n, now) {
     <div class="rank-card sw-card" data-id="${t.id}" onclick="openForm('${t.id}')">
       <span class="rank ${tone}${n === 1 ? ' first' : ''}">${n}</span>
       <div class="rc-body">
-        <div class="rc-tags"><span class="tag ${tone}">${esc(priorityLabel(info.stars))}</span>${snoozeBadge(t)}</div>
+        <div class="rc-tags"><span class="tag ${tone}">${esc(priorityLabel(info.stars))}</span>${riskChips(t, now)}${snoozeBadge(t)}</div>
         <div class="rc-title">${taskTitle(t)}</div>
         <div class="rc-meta">${bits.join('<i class="msep"></i>')}</div>
       </div>
@@ -2433,6 +2936,189 @@ function tkChip(text, tone) {
   return `<span class="tk-chip${tone ? ' ' + tone : ''}">${esc(text)}</span>`;
 }
 
+// ---------- 1B76 · นาฬิกา "เริ่มไม่ทันแล้ว" ----------
+// รายงานความเสี่ยงต้องคิดจาก "งานทั้งกอง" ครั้งเดียว แล้วให้ทุกการ์ดอ่านจากผลก้อนนั้น
+// ห้ามให้การ์ดแต่ละใบเรียก riskReport เอง — นอกจากจะช้า (n ใบ × ไล่ปฏิทิน 14 วัน)
+// มันยังผิดด้วย: การ์ดที่คิดเองจะไม่เห็นว่าใบอื่นจองเวลาไปแล้ว ซึ่งเป็นทั้งจุดของฟีเจอร์นี้
+//
+// คีย์ของแคชมีทั้งนาทีปัจจุบันและลายเซ็นของงาน — เวลาเดินไปหนึ่งนาทีคำตอบก็เปลี่ยนได้จริง
+// (นาฬิกานับถอยหลังอยู่) และแก้ estMin/progress/กำหนดส่งเมื่อไหร่ก็ต้องคิดใหม่ทันที
+let _riskMemo = { key: '', map: null };
+function riskFor(t, now) {
+  if (typeof riskReport !== 'function') return null;
+  const pend = pendingTasks();
+  const key = Math.floor(now.getTime() / 60000) + '|' +
+    pend.map(x => x.id + ':' + x.due + ':' + x.estMin + ':' + (x.progress || 0)).join(',');
+  if (_riskMemo.key !== key) {
+    const rep = riskReport(pend, now, { state });
+    _riskMemo = { key, map: new Map(rep.map(r => [r.task.id, r])) };
+
+    // 1B78 — ปิดวงจร: จดคำทำนายไว้ แล้วเก็บผลจริงของอันที่ถึงกำหนดแล้ว
+    // ทำตรงนี้เพราะเป็นจุดเดียวที่ "ความเสี่ยงของทั้งกอง" ถูกคิดใหม่จริง ๆ (นาทีละครั้ง)
+    // calibLog กันซ้ำเองวันละครั้งต่องานหนึ่งใบ จึงไม่บวมและไม่ save ถี่
+    if (typeof calibLog === 'function') {
+      let dirty = false;
+      for (const r of rep) if (calibLog(state, r, now)) dirty = true;
+      if (calibResolve(state, now)) dirty = true;
+      if (dirty) save();
+    }
+  }
+  return (_riskMemo.map && _riskMemo.map.get(t.id)) || null;
+}
+
+// ชิปนาฬิกา + ชิปโอกาส · คืนสตริงว่างเมื่อ "ไม่มีอะไรจะบอก" ตามกฎเดียวกับทุกแถวในแอปนี้
+//
+// สองอย่างที่จงใจไม่พูด:
+//   1. งานที่สบายอยู่แล้วและจุดเริ่มยังอีกไกลกว่า 36 ชม. — ชิปที่ขึ้นทุกใบคือชิปที่ไม่มีใครอ่าน
+//      (บรรทัดกำหนดส่งเดิมยังอยู่ ข้อมูลไม่ได้หายไปไหน)
+//   2. เปอร์เซ็นต์ของงานที่ทันสบาย และของงานที่ไม่ทันแน่แล้ว
+//      "97%" ไม่เปลี่ยนพฤติกรรมใคร ส่วน "2%" ก็ซ้ำกับชิปที่บอกไปแล้วว่าเวลาไม่พอ
+//      เลขมีประโยชน์เฉพาะช่วงกลาง ที่การตัดสินใจยังพลิกได้
+const RISK_QUIET_H = 36;
+function riskChips(t, now) {
+  const r = riskFor(t, now);
+  if (!r || r.overdue) return '';          // เลยกำหนดมีชิปของตัวเองอยู่แล้ว ไม่ต้องพูดซ้ำ
+  if (r.verdict === 'safe' && (!r.pnr || (r.pnr - now) > RISK_QUIET_H * 3.6e6)) return '';
+
+  const tone = r.verdict === 'safe' ? 'ok' : r.verdict === 'tight' ? 'warm' : 'hot';
+  const clock = typeof pnrChip === 'function' ? pnrChip(r, now) : null;
+  const showOdds = r.verdict === 'tight' || r.verdict === 'critical';
+  return [
+    clock ? tkChip(clock, tone) : '',
+    showOdds ? tkChip('โอกาสเสร็จทัน ' + Math.round(r.odds * 100) + '%', '') : '',
+  ].filter(Boolean).join('');
+}
+
+// ---------- 1B77 · จอ "AI คิดยังไง" ----------
+// decide() เดินอนาคต 120 เส้น × ทางเลือกห้าถึงหกทาง = หลักหมื่นก้าว ราว 15–25 มิลลิวินาที
+// เร็วพอสำหรับการกดเข้าจอหนึ่งครั้ง แต่ไม่เร็วพอจะเรียกซ้ำทุกครั้งที่ renderAll ทำงาน
+// (renderAll ถูกเรียกทุกนาทีจาก minuteTick) — จึงแคชด้วยคีย์เดียวกับ riskFor
+// **ห้ามเรียก focusPlan() ในนี้เด็ดขาด** — ตั้งแต่ 1B79 studyPlan() เรียก decideFor()
+// เพื่อเลือกใบที่จะขึ้นการ์ด "ตอนนี้" · เรียกกลับไปเมื่อไหร่ได้วงกลมทันที
+// (studyPlan → decideFor → focusPlan → studyPlan) แล้วแอปค้างตั้งแต่วาดจอแรก
+//
+// ผู้เรียกที่อยากได้มุมของ "ใบที่อยู่บนการ์ด" ต้องส่ง focusId มาเอง — มีที่เดียวคือ renderWhy()
+// ซึ่งไม่ได้ถูกเรียกจากในแผน จึงไม่มีทางเกิดวงกลม
+const _decideMemo = new Map();
+function decideFor(now, focusId) {
+  if (typeof decide !== 'function') return null;
+  const pend = pendingTasks();
+  const key = Math.floor(now.getTime() / 60000) + '|' + (focusId || '') + '|' +
+    pend.map(x => x.id + ':' + x.due + ':' + x.estMin + ':' + (x.progress || 0)).join(',');
+  if (!_decideMemo.has(key)) {
+    // เก็บไม่กี่ชิ้นพอ — คีย์มีนาทีอยู่ด้วย ของเก่าจึงไม่มีวันถูกใช้ซ้ำอยู่แล้ว
+    if (_decideMemo.size >= 4) _decideMemo.clear();
+    _decideMemo.set(key, decide(state, now, focusId ? { focusId } : {}));
+  }
+  return _decideMemo.get(key);
+}
+
+// หน่วยของตัวเลขต้องอธิบายด้วยคำที่นักเรียนเข้าใจทันที
+// "expected loss" หรือ "คะแนนคาดหวังที่สูญเสีย" เป็นภาษาที่ถูกแต่ไม่มีใครอ่านจบ
+const WHY_UNIT = 'คะแนนที่เสี่ยงจะเสีย';
+
+// ---------- 1B78 · สองบรรทัดที่แอปพูดถึงตัวเอง ----------
+// บนสุดของจอเป็นเรื่องของงาน ล่างสุดเป็นเรื่องของ "แอปรู้จักคุณแค่ไหน และมันแม่นแค่ไหน"
+// สองอย่างนี้คือสิ่งที่ทำให้ตัวเลขข้างบนน่าเชื่อหรือไม่น่าเชื่อ — ซ่อนไว้ไม่ได้
+// และถ้ายังไม่รู้จริงก็ไม่ต้องขึ้น ตามกติกาเดียวกับ brain.js
+function whySelfHTML(now) {
+  const rows = [];
+  if (typeof studyProfile === 'function' && typeof profileText === 'function') {
+    const tx = profileText(studyProfile(state, now));
+    if (tx) rows.push(['ที่แอปเรียนรู้จากคุณ', tx, '']);
+    else rows.push(['ที่แอปเรียนรู้จากคุณ',
+      'ยังใช้ค่ากลางอยู่ — จับเวลาตอนทำงานสักสองสามวัน แล้วตัวเลขทั้งจอนี้จะเป็นของคุณจริง ๆ', 'soft']);
+  }
+  if (typeof calibText === 'function') {
+    const tx = calibText(state);
+    if (tx) {
+      const s = calibSummary(state);
+      rows.push(['คำทำนายที่ผ่านมาแม่นแค่ไหน',
+        tx + ' · ' + calibGrade(s.brier) + ' (Brier ' + (Math.round(s.brier * 100) / 100) + ')', '']);
+    } else {
+      const s = calibSummary(state);
+      rows.push(['คำทำนายที่ผ่านมาแม่นแค่ไหน',
+        'ยังตรวจไม่ได้ — ต้องรอผลจริงของงานอีก ' + (s.need || CALIB_MIN_SCORED) + ' ใบก่อน', 'soft']);
+    }
+  }
+  if (!rows.length) return '';
+  return `<div class="wy-self">
+    ${rows.map(([k, v, c]) => `<div class="wy-r${c ? ' ' + c : ''}">
+      <div class="wy-k">${esc(k)}</div><div class="wy-v">${esc(v)}</div></div>`).join('')}
+  </div>`;
+}
+
+function renderWhy() {
+  const body = document.getElementById('whyBody');
+  if (!body) return;
+  // คิดเฉพาะตอนที่จอนี้ถูกเปิดอยู่จริง — จออื่นไม่ต้องจ่ายค่าคำนวณของจอนี้
+  if (typeof curScreen === 'string' && curScreen !== 'scr-why') return;
+
+  const now = new Date();
+  // ส่งใบที่อยู่บนการ์ดหน้าแรกเข้าไป เพื่อให้จอนี้อธิบาย "ใบนั้น" เสมอ
+  // ปกติตั้งแต่ 1B79 มันจะเป็นใบเดียวกับที่ decide() เลือกอยู่แล้ว (แผนตามเอนจินไปแล้ว)
+  // แต่ยังต่างกันได้เมื่อใบที่เอนจินชอบไม่มีคิวในวันนี้ — กรณีนั้นต้องพูดออกมา ไม่ใช่กลบ
+  let focusId = null;
+  try {
+    const sp = typeof focusPlan === 'function' ? focusPlan(now) : null;
+    focusId = sp && sp.now ? sp.now.task.id : null;
+  } catch (e) { focusId = null; }
+  const d = decideFor(now, focusId);
+  const sub = document.getElementById('whySub');
+
+  if (!d) {
+    if (sub) sub.textContent = '';
+    body.innerHTML = `<div class="card empty">ยังไม่มีงานที่ต้องตัดสินใจตอนนี้ 🎉</div>`;
+    return;
+  }
+  if (sub) sub.textContent = 'เทียบ ' + d.scenarios.length + ' ทาง จากอนาคต 120 เส้น';
+
+  const cards = typeof scenarioCards === 'function' ? scenarioCards(d) : [];
+  const tiles = cards.map(c => `<div class="wy-t ${c.tone}">
+      <div class="wy-tag">${esc(c.id)} · ${esc(c.tag)}</div>
+      <div class="wy-num mono">${c.loss}</div>
+      <div class="wy-act">${esc(c.act)}</div>
+    </div>`).join('');
+
+  const rows = [
+    ['ทำไมงานนี้', d.why.task],
+    ['ทำไมตอนนี้', d.why.now],
+    ['ถ้าเลื่อน', d.why.delayed],
+    ['ปัญหาที่หลบ', d.why.avoided],
+    ['โอกาสที่เปิด', d.why.opened],
+    ['ถ้าเลือกอีกใบ', d.why.instead],
+  ].map(([k, v]) => `<div class="wy-r"><div class="wy-k">${esc(k)}</div>
+      <div class="wy-v">${esc(v)}</div></div>`).join('');
+
+  // เอนจินที่กล้าบอกให้ไปนอนคือเอนจินที่คนจะเชื่อตอนมันบอกให้ทำ
+  // ขึ้นเฉพาะตอนที่การพักชนะจริงแบบมีนัยสำคัญ ไม่ใช่ชนะเพราะเศษทศนิยม
+  const rest = d.rest.wins ? `<div class="wy-rest">${icon('clock')}
+      <b>คืนนี้พักได้</b>
+      <span>เวลาว่างที่เหลือน้อยจนทำแล้วได้ไม่คุ้ม — พรุ่งนี้เช้าคุ้มกว่า</span>
+    </div>` : '';
+
+  // ตัวเลขก้อนเดียวบอกไม่ได้ว่ามันประกอบจากอะไร แล้วคนก็ตีความเอาเองผิด ๆ
+  // "2.2 คะแนน" ที่มาจากความแน่นของตารางล้วน ๆ เป็นคนละข่าวกับ 2.2 ที่มาจากงานที่จะพลาดจริง
+  // โชว์เฉพาะก้อนที่มีน้ำหนักพอจะเปลี่ยนการตัดสินใจ — ก้อนที่เป็นศูนย์ไม่ต้องขึ้นให้รก
+  const bs = d.best.sum;
+  const parts = [
+    ['งานที่จะพลาด', bs.grade],
+    ['หนี้ความรู้วิชาสะสม', bs.debt],
+    ['ความแน่นของตาราง', bs.stress],
+    ['เวลานอนที่ต้องยืม', bs.sleep],
+  ].filter(([, v]) => v >= 0.05)
+    .map(([k, v]) => `<span><i>${esc(k)}</i>${Math.round(v * 10) / 10}</span>`).join('');
+
+  body.innerHTML = `<div class="wy-tiles">${tiles}</div>
+    <p class="wy-unit">ตัวเลข = <b>${WHY_UNIT}</b> จากคะแนนรวมทั้งเทอม · ต่ำกว่าดีกว่า</p>
+    ${parts ? `<div class="wy-bd"><div class="wy-bd-h">${esc(d.best.sum.total < 1 ? 'ทางที่แนะนำ ประกอบจาก' : 'ตัวเลขของทางที่แนะนำ ประกอบจาก')}</div>${parts}</div>` : ''}
+    ${rest}
+    <div class="wy-rows">${rows}</div>
+    ${whySelfHTML(now)}
+    <p class="wy-note">ทุกบรรทัดคำนวณจากการจำลองอนาคต 120 เส้น โดยสุ่มตามที่คนทำได้จริง
+      ไม่ใช่ข้อความสำเร็จรูป · ตัวเลขเดิมเข้า ได้คำตอบเดิมออกเสมอ</p>`;
+}
+
 // การ์ดงาน — ลำดับการอ่านจากบนลงล่างทางเดียว ไม่มีเลขลอยชิดขวาให้ตาวิ่งไปมา
 //   วิชา (ป้ายเล็ก) → สิ่งที่ต้องทำ (ตัวใหญ่สุด) → สถานะ + เวลาที่ใช้
 // ของเดิมเอาชื่อวิชาเป็นตัวใหญ่สุด ทั้งที่นักเรียนรู้อยู่แล้วว่าฟิสิกส์คืออะไร
@@ -2443,6 +3129,11 @@ function taskCard(t, now, focus) {
   const ti = TASK_TYPES[taskType(t)];
 
   if (t.done) {
+    // 1B43 · F5 — คะแนนที่ได้โชว์บนใบที่เสร็จแล้ว ไม่ใช่ใบที่ยังค้าง
+    // นี่คือที่เดียวที่ตัวเลขนี้มีความหมาย: ใบที่ยังไม่ส่งย่อมยังไม่มีผลกลับมา
+    // และเป็นที่ที่คนเปิดดูจริงตอนอยากรู้ว่าเทอมนี้ไปทางไหน
+    const gotDone = (t.got != null && t.gotMax)
+      ? `<span class="tk-got">${t.got}<i>/${t.gotMax}</i></span>` : '';
     return `<div class="tk tk-done" onclick="openForm('${t.id}')">
       <button class="tk-tick on" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
         aria-label="เอาออกจากที่เสร็จแล้ว">${icon('check')}</button>
@@ -2450,15 +3141,47 @@ function taskCard(t, now, focus) {
         ${subj && subj !== 'อื่น ๆ' ? `<div class="tk-sub">${esc(subj)}</div>` : ''}
         <div class="tk-ttl">${esc(t.detail || '')}</div>
       </div>
+      ${gotDone}
       ${icon('chevron', 'tk-go')}
     </div>`;
   }
 
+  // 1B43 · F4 — นับถอยหลังเฉพาะ "สอบ"
+  // การบ้านตอบด้วยวันที่ก็พอ (ส่งวันศุกร์ = รู้แล้วว่าต้องทำอะไร) แต่สอบไม่ใช่:
+  // "อีก 9 วัน" เป็นตัวเลขที่เปลี่ยนพฤติกรรมได้จริง เพราะมันคือจำนวนวันที่เหลือให้อ่าน
+  // ไม่ใช่เส้นตายที่ทำเสร็จแล้วจบ · ต่ำกว่าหนึ่งวันนับเป็นชั่วโมงเพราะ "อีก 0 วัน" ไม่ได้บอกอะไร
+  const examCd = (taskType(t) === 'exam' && t.due && new Date(t.due) > now)
+    ? (() => {
+        const ms = new Date(t.due) - now;
+        const d = Math.floor(ms / 8.64e7);
+        return d >= 1 ? 'อีก ' + d + ' วัน' : 'อีก ' + Math.max(1, Math.floor(ms / 3.6e6)) + ' ชม.';
+      })()
+    : '';
+  // 1B43 · F5 — คะแนนที่ได้จริง คนละชิปกับ "คะแนนเก็บ" ซึ่งเป็นน้ำหนัก
+  const gotTx = (t.got != null && t.gotMax) ? t.got + '/' + t.gotMax : '';
   const chips = [
+    examCd ? tkChip(examCd, tone || 'warn') : '',
     t.due ? tkChip(fmtDue(t.due, now, t), tone) : tkChip('ยังไม่ระบุกำหนด', ''),
+    // 1B76 — มาหลังกำหนดส่งโดยตั้งใจ: กำหนดส่งคือข้อเท็จจริงที่ครูให้มา
+    // ส่วนนาฬิกานี้คือสิ่งที่แอปคำนวณให้ · เรียงตามลำดับนั้นเพื่อไม่ให้สับสนว่าอันไหนมาจากไหน
+    riskChips(t, now),
     t.scorePct != null ? tkChip('คะแนน ' + t.scorePct + '%', '') : '',
+    gotTx ? tkChip('ได้ ' + gotTx, 'good') : '',
+    t.repeatDays ? tkChip(t.repeatDays === 7 ? 'ซ้ำทุกสัปดาห์'
+      : t.repeatDays === 14 ? 'ซ้ำทุกสองสัปดาห์'
+      : t.repeatDays === 1 ? 'ซ้ำทุกวัน' : 'ซ้ำทุก ' + t.repeatDays + ' วัน', '') : '',
     snoozeBadge(t) ? tkChip('เลื่อนมา ' + (t.snoozeCount || 1) + ' ครั้ง', '') : '',
   ].filter(Boolean).join('');
+
+  // 1B43 · F2 — งานย่อยติ๊กได้ในการ์ด ไม่ต้องเปิดฟอร์ม
+  // โผล่เฉพาะใบที่มีข้อย่อยจริง · กฎเดียวกับทุกแถวในแอปนี้: ไม่มีอะไรจะบอกก็ไม่ต้องโผล่
+  const subs = Array.isArray(t.subs) ? t.subs : [];
+  const subsHtml = subs.length ? `<div class="tk-subs">
+    ${subs.map((x, i) => `<button class="tk-sb${x.done ? ' on' : ''}" type="button"
+        onclick="event.stopPropagation();toggleSub('${t.id}',${i})">
+        <span class="sb-box">${icon('check')}</span><span class="sb-tx">${esc(x.text)}</span>
+      </button>`).join('')}
+  </div>` : '';
 
   // ปัดขวา = เสร็จ · ปัดซ้าย = เลื่อนไปพรุ่งนี้ — โครงเดียวกับการ์ดหน้าแรกทุกประการ
   // สองท่านี้เคยมีเฉพาะหน้าแรก แต่แท็บที่คนเปิดมาจัดการงานจริง ๆ คือแท็บนี้
@@ -2473,6 +3196,9 @@ function taskCard(t, now, focus) {
       <div class="tk-ttl">${esc(t.detail || '')}</div>
       <div class="tk-meta">${chips}<span class="tk-sp"></span>
         ${ti.schedulable ? `<span class="tk-min">~${remainingMin(t)} นาที</span>` : ''}</div>
+      ${subsHtml}
+      ${typeof hwStrip === 'function' ? hwStrip(t) : ''}
+      ${typeof topicStrip === 'function' ? topicStrip(t) : ''}
     </div>
   </div>`;
 }
@@ -2722,11 +3448,95 @@ function aiClear() {
   renderAi();
 }
 
-function aiAsk(preset) {
+// ============================================================
+// 1B42 · F1 — น้องไซสร้างงานได้จริง ไม่ใช่แค่ตอบว่า "ได้เลยครับ"
+// ============================================================
+// ช่องว่างที่ใหญ่ที่สุดเมื่อเทียบกับคู่แข่ง: Scout ของ MyStudyLife รับประโยคเดียว
+// แล้วลงมือจัดให้จริง ส่วนน้องไซตอบเป็นตัวหนังสือแล้วจบ — คนอ่านจบต้องไปพิมพ์งานเองอยู่ดี
+// ประโยค "ตัดสินใจแทน" ที่เป็นเหตุผลของแอปนี้จึงยังไม่เป็นจริงในโค้ด
+//
+// ---- ทำไมไม่ต้องแตะเซิร์ฟเวอร์เลย ----
+// แอปมีตัวแกะข้อความไทยเป็นงานอยู่แล้ว (parseAssignment ใน engine.js) ซึ่งเป็นตัวเดียวกับ
+// ที่สแกนใบงาน · พูดเพิ่มงาน · แปะข้อความจากครู ใช้กันอยู่ทุกวัน และมีตัวตัดสินว่า
+// "ข้อความนี้เป็นงานหรือเป็นบทสนทนา" อยู่แล้วเหมือนกัน (taskEvidence ใน inbox.js)
+// เอาสองตัวนี้มาต่อกันตรงหน้าช่องแชท = ได้ความสามารถใหม่โดยไม่เพิ่มคำขอไปเซิร์ฟเวอร์
+// แม้แต่ครั้งเดียว และไม่กินโควตา AI ของผู้ใช้ด้วย
+//
+// ---- ทำไมยังต้องมีหน้ายืนยัน ----
+// กฎเดิมของแอปคือ "AI เสนอ คนเป็นคนเคาะ" (ดูหัวไฟล์ของ openTtScan) · งานที่ถูกเพิ่ม
+// โดยที่เจ้าตัวไม่ได้ดู คือกำหนดส่งที่ผิดได้โดยไม่มีใครรู้จนถึงวันส่ง
+// ปุ่ม "เพิ่มงานนี้" จึงพาไปที่ฟอร์มตรวจตัวเดียวกับที่สแกนใบงานใช้ ไม่ใช่บันทึกทันที
+//
+// ---- ราคาของการเดาผิด ----
+// เดาว่าเป็นงานแต่จริง ๆ เป็นคำถาม → เสียหนึ่งแตะ (กด "ไม่ใช่ ถามต่อ")
+// เดาว่าเป็นคำถามแต่จริง ๆ เป็นงาน → เหมือนเดิมทุกประการ ไม่มีอะไรแย่ลง
+// ราคาไม่เท่ากันแบบนี้แปลว่าเสนอไว้ก่อนคุ้มกว่าเงียบไว้ก่อน (ตรรกะเดียวกับ taskGate)
+function aiTaskOffer(text) {
+  if (typeof parseAssignment !== 'function' || typeof taskEvidence !== 'function') return null;
+  const t = String(text || '').trim();
+  if (t.length < 6) return null;
+  // ประโยคที่ลงท้ายด้วยการถามคือการถาม ไม่ใช่การสั่งงาน แม้จะมีวิชากับวันครบก็ตาม
+  // ("ส่งการบ้านคณิตวันศุกร์ยังไงดี" มีทั้งวิชาและวัน แต่เขากำลังขอวิธี ไม่ได้บอกงาน)
+  if (/[?？]\s*$|ยังไง|อย่างไร|ทำไม|เพราะอะไร|ช่วย|แนะนำ|ควร(?:จะ)?|ดีไหม|ไหมครับ|ไหมคะ/.test(t)) return null;
+  let parsed = null;
+  try { parsed = parseAssignment(t, new Date(), {}); } catch (_) { return null; }
+  if (!parsed) return null;
+  // เอาเฉพาะหลักฐานแน่น ๆ — 'weak' คือระดับที่กล่องเข้ายอมรับได้เพราะของไหลมาจากครู
+  // แต่ตรงนี้คือสิ่งที่ผู้ใช้เพิ่งพิมพ์เอง การ์ดที่เด้งผิดบ่อยจะถูกเลิกอ่านภายในสองวัน
+  if (taskEvidence(t, parsed) !== 'strong') return null;
+  return parsed;
+}
+
+// รับคำเสนอ → เข้าฟอร์มตรวจตัวเดียวกับสแกนใบงาน (ไม่ได้บันทึกทันที)
+function aiOfferAdd(i) {
+  const log = aiLog();
+  const m = log[i];
+  if (!m || m.role !== 'offer') return;
+  m.done = true; aiLogSave(log); renderAi();
+  // แกะใหม่จากข้อความเต็ม ไม่ใช้ m.parsed ที่เก็บไว้ — m.parsed เก็บแค่ฟิลด์ที่เอาไปโชว์
+  // บนการ์ด (subject/due/…) ส่วน openForm ต้องการก้อนเต็มที่มี detected อยู่ด้วย
+  // ไม่งั้นหน้า "ตรวจก่อนบันทึก" จะไม่รู้ว่าฟิลด์ไหนมาจากการอ่านและฟิลด์ไหนคนกรอกเอง
+  // (บั๊กรอบแรก: เรียก openForm() เปล่า ๆ ซึ่งแปลว่า "เพิ่มงานใหม่จากศูนย์"
+  //  ฟอร์มจึงเปิดมาว่างทั้งใบ ทั้งที่การ์ดเพิ่งโชว์ค่าที่แกะได้ครบไปเมื่อสองวินาทีก่อน)
+  let parsed = null;
+  try { parsed = parseAssignment(m.text, new Date(), {}); } catch (_) {}
+  if (!parsed) return;
+  parsed._src = 'ai';   // นับรวมใน capture rate ว่าใบนี้เข้าระบบโดยผู้ใช้ไม่ได้พิมพ์ทีละช่อง
+  parsed._low = [];
+  openForm(null, parsed);
+}
+
+// ปฏิเสธคำเสนอ → ส่งเป็นคำถามตามปกติ (ตอนเสนอเราไม่ได้ยิงไปเซิร์ฟเวอร์เลย)
+function aiOfferAsk(i) {
+  const log = aiLog();
+  const m = log[i];
+  if (!m || m.role !== 'offer') return;
+  m.done = 'asked'; aiLogSave(log); renderAi();
+  aiAsk(m.text, { force: true });
+}
+
+function aiAsk(preset, opts) {
   const box = document.getElementById('aiInput');
   const q = (preset || (box ? box.value : '') || '').trim();
   if (!q || aiBusy) return;
   const log = aiLog();
+  // 1B42 · ถ้าสิ่งที่พิมพ์มาเป็น "งาน" ไม่ใช่ "คำถาม" ให้เสนอเพิ่มงานก่อน แล้วหยุดตรงนี้
+  // ยังไม่ยิงไปเซิร์ฟเวอร์ — ถ้าเขากด "ไม่ใช่ ถามต่อ" ค่อยส่ง (aiOfferAsk เรียกกลับมา
+  // พร้อม force ซึ่งข้ามด่านนี้) · ปุ่มทางลัดสี่ปุ่มส่ง preset มาเอง ต้องไม่โดนดักด้วย
+  if (!(opts && opts.force) && !preset) {
+    const offer = aiTaskOffer(q);
+    if (offer) {
+      if (box) box.value = '';
+      log.push({ role: 'offer', text: q, parsed: {
+        subject: offer.subject, due: offer.due, type: offer.type,
+        estMin: offer.estMin, scorePct: offer.scorePct, detail: offer.detail,
+      } });
+      aiLogSave(log);
+      renderAi();
+      aiScrollDown();
+      return;
+    }
+  }
   log.push({ role: 'user', text: q });
   aiLogSave(log);
   if (box) box.value = '';
@@ -2735,7 +3545,11 @@ function aiAsk(preset) {
   aiScrollDown();
 
   // ประวัติที่ส่งไปคือทุกอย่าง "ก่อน" คำถามล่าสุด — ฝั่งเซิร์ฟเวอร์ต่อคำถามเองเป็นข้อความสุดท้าย
-  const hist = log.slice(0, -1).map(m => ({ role: m.role, text: m.text }));
+  // 1B42 · กรอง role 'offer' ออก — มันเป็นการ์ดของฝั่งแอป ไม่ใช่คำพูดของใคร
+  // ปล่อยไปเซิร์ฟเวอร์จะได้ประวัติที่มี role ที่โมเดลไม่รู้จัก แล้วคำตอบเพี้ยนโดยไม่มี error
+  const hist = log.slice(0, -1)
+    .filter(m => m.role === 'user' || m.role === 'model')
+    .map(m => ({ role: m.role, text: m.text }));
   // วาดใหม่ทุกชิ้นที่ไหลเข้ามาจะกระตุกและทำให้คนกำลังอ่านเสียตำแหน่ง —
   // ต่อข้อความลงฟองที่มีอยู่แล้วโดยตรง แล้วค่อย renderAi() ทีเดียวตอนจบ
   aiPartial = '';
@@ -2807,7 +3621,12 @@ function renderAi() {
 
   // ---- 1 · หัวจอ ----
   const name = who();
+  // 1B41 · ปุ่มย้อนกลับ — จอนี้ไม่มีแท็บของตัวเองบนแถบล่างแล้ว (ช่องที่หกคืนให้ปุ่ม +
+  // ที่ต้องอยู่กึ่งกลาง) · แถบล่างยังโผล่อยู่ก็จริง แต่ไม่มีช่องไหนติดสถานะ "อยู่หน้านี้"
+  // จอที่ไม่มีแท็บติดสถานะต้องบอกทางกลับด้วยตัวเอง ไม่งั้นมันอ่านเป็นจอที่หลงมา
   const head = `<header class="sai-head">
+    <button class="sh-back" onclick="go('scr-menu')" aria-label="กลับหน้าแรก">
+      <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
     ${saiFace('big')}
     <div class="sh-id">
       <h1 class="sh-name">น้องไซ<span class="sh-badge">AI</span></h1>
@@ -2881,12 +3700,38 @@ function renderAi() {
   </button>`;
 
   // ---- 4 · พื้นที่สนทนา ----
-  const bubbles = log.map(m => m.role === 'user'
-    ? `<div class="ai-msg me"><div class="ai-bub">${esc(m.text)}</div></div>`
-    : `<div class="ai-msg sai">
+  const bubbles = log.map((m, i) => {
+    if (m.role === 'user') return `<div class="ai-msg me"><div class="ai-bub">${esc(m.text)}</div></div>`;
+    // 1B42 · การ์ดเสนอเพิ่มงาน — ฟองของน้องไซที่กดได้ ไม่ใช่ข้อความเปล่า
+    if (m.role === 'offer') {
+      const p = m.parsed || {};
+      const chips = [
+        p.subject && p.subject !== 'อื่น ๆ' ? p.subject : '',
+        p.due ? fmtThaiDate(new Date(p.due)) : '',
+        p.scorePct ? 'คะแนน ' + p.scorePct + '%' : '',
+        p.estMin ? humanMin(p.estMin) : '',
+      ].filter(Boolean);
+      return `<div class="ai-msg me"><div class="ai-bub">${esc(m.text)}</div></div>
+        <div class="ai-msg sai">
+          ${saiFace()}
+          <div class="ai-offer${m.done ? ' spent' : ''}">
+            <b class="ao-h">${m.done === 'asked' ? 'ได้ครับ ถามต่อเลย'
+              : m.done ? 'เปิดหน้าตรวจให้แล้ว' : 'อันนี้เป็นงานใหม่ใช่ไหม'}</b>
+            <div class="ao-t">${esc(p.detail || m.text)}</div>
+            ${chips.length ? `<div class="ao-chips">${
+              chips.map(c => `<span>${esc(c)}</span>`).join('')}</div>` : ''}
+            ${m.done ? '' : `<div class="ao-row">
+              <button class="ao-yes" onclick="aiOfferAdd(${i})">${icon('check')}เพิ่มงานนี้</button>
+              <button class="ao-no" onclick="aiOfferAsk(${i})">ไม่ใช่ ถามต่อ</button>
+            </div>`}
+          </div>
+        </div>`;
+    }
+    return `<div class="ai-msg sai">
          ${saiFace()}
          <div class="ai-bub${m.err ? ' err' : ''}">${esc(m.text)}</div>
-       </div>`).join('');
+       </div>`;
+  }).join('');
 
   const typing = aiBusy ? `<div class="ai-msg sai">
       ${saiFace()}
@@ -3005,6 +3850,59 @@ function aiVoice() {
   try { aiRecog.start(); } catch (_) { aiVoiceOn = false; }
 }
 
+// ---------- ค้นหางาน (1B20) ----------
+// รายการงานที่ยาวเกินหนึ่งจอต้องมีช่องค้นหา — ทุกแอปจัดการงาน (Todoist · Things ·
+// Reminders) มีหมด · ที่นี่ไม่เคยมี ทั้งที่นักเรียนคนหนึ่งสะสมงานได้เป็นสิบใบภายในสัปดาห์เดียว
+// ค้นในเครื่องล้วน ไม่แตะเน็ต จึงไม่ต้องหน่วงเวลาเหมือนช่องค้นหาเพื่อน
+let taskQ = '';
+function taskSearch(v) {
+  taskQ = String(v || '');
+  renderTasks();
+  // วาดใหม่ทั้งจอแล้วช่องจะถูกสร้างใหม่ — คืนโฟกัสกับตำแหน่งเคอร์เซอร์ให้ตรงเดิม
+  // ไม่งั้นพิมพ์ได้ตัวเดียวแล้วคีย์บอร์ดปิดทุกครั้ง
+  const el = document.getElementById('tkQ');
+  if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+}
+function clearTaskSearch() {
+  taskQ = '';
+  renderTasks();
+  const el = document.getElementById('tkQ');
+  if (el) el.focus();
+}
+function matchTask(t, q) {
+  if (!q) return true;
+  const s = q.trim().toLowerCase();
+  if (!s) return true;
+  return [t.detail, t.subject, t.note, t.type].some(v =>
+    String(v || '').toLowerCase().includes(s));
+}
+
+// ---------- จัดกลุ่มตามกำหนดส่ง ----------
+// ของเดิมเป็นรายการแบนเรียงตามคะแนนความสำคัญ ซึ่งถูกต้องแต่ "อ่านไม่ออกว่าเหลือเวลาเท่าไหร่"
+// ต้องไล่อ่านวันที่ทีละใบเอง · ทุกแอปจัดการงานแบ่งเป็นถัง เลยกำหนด / วันนี้ / พรุ่งนี้ / …
+// เพราะคำถามแรกในหัวคนเปิดจอนี้คือ "มีอะไรไฟไหม้ไหม" ไม่ใช่ "อะไรได้คะแนนสูงสุด"
+// ในแต่ละถังยังเรียงตามคะแนนเดิมทุกประการ — การจัดกลุ่มไม่ได้แทนที่การจัดลำดับ
+const TASK_BUCKETS = [
+  { id: 'over',  name: 'เลยกำหนด' },
+  { id: 'today', name: 'วันนี้' },
+  { id: 'tmr',   name: 'พรุ่งนี้' },
+  { id: 'week',  name: 'ใน 7 วัน' },
+  { id: 'later', name: 'ต่อไป' },
+  { id: 'none',  name: 'ไม่มีกำหนดส่ง' },
+];
+function taskBucket(t, now) {
+  if (!t.due) return 'none';
+  const d = new Date(t.due);
+  if (isNaN(d)) return 'none';
+  const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+  const diff = Math.round((day(d) - day(now)) / 864e5);
+  if (d < now && diff <= 0) return 'over';   // เลยเวลาจริง ไม่ใช่แค่เลยวัน
+  if (diff <= 0) return 'today';
+  if (diff === 1) return 'tmr';
+  if (diff <= 7) return 'week';
+  return 'later';
+}
+
 function renderTasks() {
   const el = document.getElementById('taskList');
   if (!el) return;
@@ -3021,6 +3919,10 @@ function renderTasks() {
   // รายการหลักเหลืองานค้างอย่างเดียว — จอนี้มีหน้าที่บอกว่า "ยังเหลืออะไร" ไม่ใช่ "เคยทำอะไรไปบ้าง"
   if (taskFilter === 'bin') { el.innerHTML = binView(bin); return; }
   if (taskFilter === 'done') { el.innerHTML = doneView(done); return; }
+  // 1B48 · จอ "เลยกำหนดทั้งหมด" — ปลายทางของปุ่ม "ดูอีก N งาน" ในมุมมองสัปดาห์
+  // แยกเป็นจอของตัวเองแทนที่จะกางในที่เดิม เพราะการกางเก้าใบตรงหัวสัปดาห์
+  // ก็คือกำแพงแดงเดิมที่เพิ่งแก้ไป แค่ต้องกดเพิ่มหนึ่งครั้ง
+  if (taskFilter === 'late') { el.innerHTML = lateView(pending, now); return; }
 
   const rows0 = pending;
 
@@ -3038,43 +3940,314 @@ function renderTasks() {
       label: i === 0 ? 'วันนี้' : WEEKDAY_SHORT[d.getDay()].replace('.', '') };
   });
 
-  const rows = taskDay
+  const rows = (taskDay
     ? rows0.filter(t => t.due && dayKey(new Date(t.due)) === taskDay)
-    : rows0;
+    : rows0).filter(t => matchTask(t, taskQ));
 
+  // 1B49 · หัวจอตามภาพร่าง — ชื่อจอบอกขอบเขตที่มองอยู่ ไม่ใช่ชื่อประเภทของข้อมูล
+  // "ตารางงาน" เป็นคำที่ใช้ได้กับทุกจอในแอป ส่วน "สัปดาห์นี้" บอกว่ากำลังดูอะไรอยู่
+  // บรรทัดรองเป็นช่วงวันกับเวลาว่างรวม ซึ่งเป็นตัวเลขที่ทำให้แถววันข้างล่างมีความหมาย
+  const wkEnd = addDays(now, 6);
+  let freeWk = 0;
+  if (typeof freeMinutes === 'function') {
+    for (let i = 0; i < 7; i++) {
+      const dd = addDays(now, i);
+      try { freeWk += freeMinutes(dd, i === 0 ? now : null); } catch (_) {}
+    }
+  }
+  // ช่วงวันเขียนแบบสั้น "5–11 ก.ย." ไม่ใช่ "5 ก.ย. 2569–11 ก.ย. 2569"
+  // เดือนกับปีซ้ำสองรอบในบรรทัดเดียวคือของที่อ่านผ่านแล้วไม่ได้อะไรเพิ่ม
+  // ข้ามเดือนเมื่อไหร่ค่อยเขียนเดือนทั้งสองฝั่ง
+  const sameMonth = now.getMonth() === wkEnd.getMonth();
+  const range = sameMonth
+    ? now.getDate() + '–' + wkEnd.getDate() + ' ' + MONTH_SHORT[wkEnd.getMonth()]
+    : now.getDate() + ' ' + MONTH_SHORT[now.getMonth()] + '–'
+      + wkEnd.getDate() + ' ' + MONTH_SHORT[wkEnd.getMonth()];
+  // 1B58 · บรรทัดวันที่อยู่ "เหนือ" หัวข้อ ตามภาพร่าง
+  // ใช้คลาส .eyebrow ที่แอปมีอยู่แล้ว — จอสแกน กล่องเข้า ตัวเชื่อม ใช้ทรงนี้กันหมด
+  // บรรทัดบนบอกขอบเขต (ช่วงไหน มีเวลาเท่าไหร่) หัวข้อบอกว่ามันคืออะไร
+  // อ่านจบในลำดับเดียว: "ช่วง 5–11 ก.ย. ว่างรวม 46 ชม. — คือสัปดาห์นี้"
   const pageHead = `<div class="page-head">
-      <div class="eyebrow">รายการงาน</div>
-      <h1 class="page-title">ตารางงาน</h1>
-      <p class="page-sub">ค้างอยู่ <b>${pending.length}</b>${
-        done.length ? ' · เสร็จแล้ว ' + done.length : ''}</p>
+      <div class="eyebrow">${esc(range)}${
+        freeWk ? ' · ว่างรวม ' + humanMin(freeWk) : ''} · ค้าง ${pending.length}</div>
+      <h1 class="page-title">สัปดาห์นี้</h1>
     </div>`;
 
-  const head = pageHead + `${tlModeTabs()}
-    <div class="daystrip">
-      ${days.map(x => `<button class="ds${taskDay === x.k ? ' on' : ''}" onclick="setTaskDay('${x.k}')">
-        <i class="ds-d">${esc(x.label)}</i><b class="ds-n">${x.d.getDate()}</b>
-        ${x.n ? `<u class="ds-dot${x.tone ? ' ' + x.tone : ''}"></u>` : '<u class="ds-dot off"></u>'}
-      </button>`).join('')}
-    </div>
-    ${taskDay && days.some(x => x.k === taskDay) ? `<button class="dayclear" onclick="setTaskDay(null)">
-      ${icon('calendar')}เฉพาะ${esc(fmtThaiDate(days.find(x => x.k === taskDay).d))}
-      <span>ดูทุกวัน</span></button>` : ''}`;
+  // ช่องค้นหาโผล่เมื่อมีงานพอที่จะหาไม่เจอด้วยตาเปล่า — ต่ำกว่านั้นมันคือช่องว่าง
+  // ที่กินพื้นที่บนสุดของจอโดยไม่มีประโยชน์ (เกณฑ์เดียวกับที่แอปอื่นซ่อนช่องค้นหา
+  // ในลิสต์สั้น ๆ) · แต่ถ้ากำลังค้นอยู่ต้องอยู่ต่อเสมอ ไม่งั้นลบคำค้นแล้วช่องหายไปทั้งช่อง
+  const searchBox = (pending.length >= 6 || taskQ)
+    ? `<div class="fr-search tk-search">
+        ${icon('search')}
+        <input id="tkQ" autocomplete="off" spellcheck="false" placeholder="ค้นหางาน"
+               value="${esc(taskQ)}" oninput="taskSearch(this.value)">
+        <button class="fr-clear" ${taskQ ? '' : 'hidden'} onclick="clearTaskSearch()"
+          aria-label="ล้างคำค้น">${icon('x')}</button>
+      </div>` : '';
 
-  const empty = taskDay ? 'วันนี้ไม่มีงานที่ถึงกำหนด'
-    : 'ไม่มีงานค้างเลย — เคลียร์หมดแล้ว';
+  // ============================================================
+  // 1B47 · หัวจอเหลือชื่อจอกับช่องค้นหา
+  // ============================================================
+  // สวิตช์ รายวัน/ปฏิทิน/รายการงาน กับแถบวันเจ็ดช่องถูกถอดออกทั้งคู่ (เจ้าของเลือกทิศทาง A)
+  // สองอย่างนั้นกินจอเกือบครึ่งก่อนถึงงานใบแรก และมันแก้ปัญหาเดียวกันสองรอบ:
+  // "อยากเห็นงานของวันไหน" — ซึ่งมุมมองสัปดาห์ตอบด้วยการวางงานลงวันของมันเลย
+  // ไม่ต้องมีตัวกรองแยกอีกชั้น
+  // ภาพร่างมีสองอย่าง: หัวจอกับสัปดาห์ · ช่องค้นหาไม่เคยอยู่ในนั้น
+  // มันย้ายไปท้ายจอแทน (ดู el.innerHTML ข้างล่าง) — คนที่จะค้นหาเลื่อนลงไปหาได้
+  // ส่วนคนที่เปิดมาดูว่าวันนี้มีอะไร ไม่ต้องเลื่อนผ่านช่องที่ตัวเองไม่ได้จะใช้
+  const head = pageHead;
 
   // ใบแรกของรายการที่ยังไม่เสร็จได้แถบฟ้า = "ใบนี้คือใบที่ควรลงมือ"
   // ให้ทุกใบมีแถบก็เท่ากับไม่มีใบไหนมีแถบ
-  const firstPending = rows.find(t => !t.done);
+  const firstPending = rows[0];
+
+  // จัดกลุ่มเฉพาะตอนดูทุกวันและไม่ได้ค้นหา — กรองเหลือวันเดียวแล้วทุกใบอยู่ถังเดียวกัน
+  // หัวข้อกลุ่มอันเดียวคร่อมทั้งลิสต์จึงไม่ได้บอกอะไรเพิ่ม มีแต่กินที่
+  // ค้นหาอยู่ = แสดงเป็นรายการเรียบ ๆ · ผลค้นหาข้ามวันอยู่แล้ว การยัดกลับลงปฏิทิน
+  // สัปดาห์แปลว่าต้องเลื่อนหาเองว่าใบที่ค้นเจออยู่แถวไหน
+  let listHTML;
+  if (!rows.length) listHTML = '';
+  else if (taskQ) listHTML = rows.map(t => taskCard(t, now, t === firstPending)).join('');
+  else listHTML = weekView(rows, now, firstPending);
 
   el.innerHTML = head
-    + (rows.length
-        ? rows.map(t => taskCard(t, now, t === firstPending)).join('')
-        : `<div class="card empty">${empty}</div>`)
+    // "มีคนตอบคำถามที่คุณถามไว้" — อยู่บนสุดของรายการงานเพราะจอนี้คือจอที่นักเรียน
+    // เปิดทุกวัน · ของที่อยู่ในจอที่ต้องเดินไปหา เท่ากับของที่ไม่มีอยู่
+    // (เตี้ยกว่าการ์ดงานหนึ่งใบเสมอ ไม่งั้นมันแย่งที่ของงานที่ใกล้ส่ง ซึ่งเป็นเหตุผลหลักที่คนเปิดแอป)
+    + (typeof topicNewsCard === 'function' ? topicNewsCard() : '')
+    + (rows.length ? listHTML : tasksEmpty(now, days))
+    + (pending.length >= 6 || taskQ ? searchBox : '')
     + (done.length ? `<button class="bin-btn" onclick="setFilter('done')">
         ${icon('check-circle')}เสร็จแล้ว · ${done.length} งาน</button>` : '')
     + (bin.length ? `<button class="bin-btn" onclick="setFilter('bin')">
         ${icon('trash')}ถังขยะ · ${bin.length} รายการ</button>` : '');
+}
+
+// ============================================================
+// 1B49 · ชิปงานบรรทัดเดียว — ของที่ภาพร่างสัญญาไว้
+// ============================================================
+// 1B47 เอา taskCard() ตัวเดิมมาใช้ซ้ำในมุมมองสัปดาห์ ซึ่งเป็นการทิ้งเหตุผลทั้งหมด
+// ของแบบ A ไป: การ์ดเต็มใบสูง ~90px ต่อหนึ่งงาน เจ็ดวันจึงยาวกว่าสามจอ
+// แล้ว "เห็นทั้งสัปดาห์ในจอเดียว" ซึ่งเป็นข้อเดียวที่แบบนี้ชนะแบบอื่น ก็หายไป
+//
+// ชิปสูง ~34px · แถบสีวิชาซ้าย ชื่อกลาง เวลาขวา ปุ่มติ๊กท้ายสุด
+// ห้าวันจึงอยู่ในพื้นที่เท่าที่การ์ดเต็มใบใช้กับสองงาน
+//
+// สิ่งที่ต่างจากภาพร่างหนึ่งอย่าง: ภาพร่างไม่มีปุ่มติ๊ก
+// แต่ "ทำเสร็จ" คือสิ่งที่คนกดบ่อยที่สุดในจอนี้ ตัดออกแล้วต้องเปิดฟอร์มทุกครั้ง
+// จึงใส่กลับมาเป็นวงกลม 18px ท้ายชิป — กว้างขึ้นจากภาพร่างประมาณ 24px เท่านั้น
+function taskChip(t, now) {
+  const subj = (t.subject || '').trim();
+  const named = subj && subj !== 'อื่น ๆ';
+  const late = t.due && new Date(t.due) < now;
+  // ขวาสุดบอกของที่ต่างกันตามสถานะ: ค้างแล้วบอกว่ากี่วัน ยังไม่ถึงบอกว่ากินเวลาเท่าไหร่
+  // ตัวเลขสองชนิดนี้ไม่เคยมีความหมายพร้อมกัน — งานที่เลยกำหนดแล้ว "ใช้ 40 นาที" ไม่ช่วยอะไร
+  // 1B76 — ช่องขวาสุดนี้เคยบอกได้อย่างเดียวว่า "งานนี้กินเวลาเท่าไหร่"
+  // ซึ่งเป็นข้อมูลที่ไม่เปลี่ยนการตัดสินใจของใคร (รู้ว่า 90 นาที แล้วยังไงต่อ)
+  // สิ่งที่เปลี่ยนการตัดสินใจคือ "เหลือเวลาให้เริ่มอีกนานแค่ไหน" — ถ้ามีเรื่องด่วนจะบอก ใส่แทน
+  // ไม่มีก็ถอยกลับไปบอกจำนวนนาทีเหมือนเดิม ตามกฎ "ไม่มีอะไรจะบอกก็ไม่ต้องโผล่"
+  //
+  // เกณฑ์การพูดของจอนี้เข้มกว่าการ์ดหน้าแรกโดยตั้งใจ: ที่นี่พูดเฉพาะงานที่ยัง "ต้องตัดสินใจ"
+  // งานที่สบายอยู่แล้วเงียบไว้ ปล่อยให้บอกจำนวนนาทีตามเดิม
+  // ("เริ่มใน 34ชม." บนงานที่ทันสบายคือแรงกดดันปลอม และมันไปแย่งสายตากับสองใบที่ด่วนจริง)
+  const rk = late ? null : riskFor(t, now);
+  const rkShort = rk && rk.verdict !== 'safe' && typeof pnrShort === 'function'
+    ? pnrShort(rk, now) : null;
+  const rkTone = !rkShort ? '' : rk.verdict === 'tight' ? 'warm' : 'hot';
+  const meta = late
+    ? '−' + Math.max(1, Math.round((now - new Date(t.due)) / 864e5)) + 'ว.'
+    : rkShort
+    || (TASK_TYPES[taskType(t)].schedulable && t.estMin ? remainingMin(t) + 'น' : '');
+  const subs = Array.isArray(t.subs) && t.subs.length
+    ? t.subs.filter(x => x.done).length + '/' + t.subs.length : '';
+  return `<button class="wc ${named ? subjClass(subj) : ''}${late ? ' late' : ''}"
+      data-id="${t.id}" onclick="openForm('${t.id}')">
+    <b>${esc(t.detail || subj || 'งาน')}</b>
+    ${subs ? `<u>${subs}</u>` : ''}
+    ${meta ? `<i class="mono${rkTone ? ' ' + rkTone : ''}">${esc(meta)}</i>` : ''}
+    <span class="wc-tick" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
+      aria-label="ทำเสร็จ">${icon('check')}</span>
+  </button>`;
+}
+
+// ============================================================
+// 1B47 · มุมมองสัปดาห์ — จอเดียวแทนสามโหมด
+// ============================================================
+// เจ้าของเลือกทิศทาง A จากสี่แบบ และเลือกให้ตัดปฏิทินเดือนทิ้งได้เลย
+//
+// ---- ทำไมสามโหมดถึงเป็นตัวปัญหาเอง ----
+// รายวัน · ปฏิทิน · รายการงาน คือข้อมูลชุดเดียวกันวาดสามแบบ แล้วสวิตช์สลับโหมด
+// ต้องอยู่บนทั้งสามจอ บวกแถบวันเจ็ดช่อง บวกช่องค้นหา — รวมแล้วกินจอเกือบครึ่ง
+// ก่อนเห็นงานใบแรก และกินเท่ากันทุกโหมด ปรับสีหรือระยะแก้เรื่องนี้ไม่ได้
+//
+// ---- ทำไมสัปดาห์ ไม่ใช่เดือนหรือวัน ----
+// เดือนกว้างเกินกว่าที่นักเรียนวางแผนจริง (ไม่มีใครตัดสินใจวันนี้จากงานอีกสามสัปดาห์)
+// ส่วนวันเดียวแคบเกินกว่าจะรู้ว่าควรเริ่มงานชิ้นไหนก่อน — งานที่ส่งวันพุธจะเริ่มวันไหน
+// ต้องมองเห็นวันจันทร์กับอังคารพร้อมกันถึงตอบได้
+//
+// ---- งานที่เลยกำหนดไปกองอยู่แถวไหน ----
+// ไม่มีวันของตัวเองบนสัปดาห์นี้แล้ว จึงยกมาไว้แถวแรกสุดเหนือทุกวัน ในกล่องของมันเอง
+// ยัดลงแถว "วันนี้" ไม่ได้ เพราะมันไม่ได้ถึงกำหนดวันนี้ — และการโกหกวันกำหนดส่ง
+// คือสิ่งเดียวที่แอปจัดตารางห้ามทำ
+function weekView(rows, now, firstPending) {
+  const key = d => d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // ---- 1B50 · ทุกอย่างลงแถววัน ไม่มีกองแยก ----
+  // 1B47–1B49 ค่อย ๆ งอกกองขึ้นมาสามกอง (ค้นหา · เลยกำหนด · ยังไม่ตั้งวัน)
+  // จนสัปดาห์กลายเป็นของเล็ก ๆ ตรงกลางจอ ซึ่งไม่ใช่สิ่งที่ภาพร่างวาดไว้เลย
+  // ภาพร่างมีสองอย่าง: หัวจอ กับสัปดาห์ · และงานที่เลยกำหนดอยู่บนแถว "วันนี้" ตรง ๆ
+  //
+  // เหตุผลที่มันถูก: งานที่เลยกำหนดแล้วกับงานที่ยังไม่ตั้งวัน มีคำตอบเดียวกันคือ
+  // "ต้องทำวันนี้ถ้าจะทำ" — มันจึงเป็นของของวันนี้จริง ๆ ไม่ใช่หมวดหมู่ที่สาม
+  // กองแยกทำให้มันดูเหมือนที่เก็บของ ซึ่งเป็นที่ที่ของเข้าไปแล้วไม่ออกมา
+  const byDay = {};
+  const todayK = key(today);
+  byDay[todayK] = [];
+  for (const t of rows) {
+    if (!t.due) { byDay[todayK].push(t); continue; }
+    const d = new Date(t.due);
+    if (d < today) { byDay[todayK].push(t); continue; }
+    (byDay[key(d)] = byDay[key(d)] || []).push(t);
+  }
+  // เรียงในแถววันนี้: ค้างนานสุดก่อน แล้วค่อยของที่ถึงกำหนดวันนี้ แล้วของที่ไม่มีวัน
+  byDay[todayK].sort((a, b) => {
+    const av = a.due ? new Date(a.due).getTime() : Infinity;
+    const bv = b.due ? new Date(b.due).getTime() : Infinity;
+    return av - bv;
+  });
+
+  let span = 7;
+  for (const t of rows) {
+    if (!t.due) continue;
+    const d = new Date(t.due);
+    if (d < today) continue;
+    span = Math.max(span, Math.round((d - today) / 864e5) + 1);
+  }
+  span = Math.min(span, 60);
+
+  const out = [];
+  for (let i = 0; i < span; i++) {
+    const d = addDays(today, i);
+    const list = byDay[key(d)] || [];
+    const mk = (typeof marksOn === 'function' && typeof calKey === 'function')
+      ? marksOn(calKey(d)) : [];
+    if (!list.length && !mk.length && i >= 7) continue;
+    const isToday = i === 0;
+    const wd = WEEKDAY_SHORT[d.getDay()].replace('.', '');
+    // ============================================================
+    // 1B59 · แถววันนี้มีเพดาน
+    // ============================================================
+    // 1B50 ย้ายงานเลยกำหนดกับงานไม่มีวันมาไว้แถว "วันนี้" ตามภาพร่าง ซึ่งถูก
+    // แต่ตอนนั้นภาพร่างมีงานค้างสองใบ พอของจริงมีสิบสองใบ แถววันนี้ยาวเต็มจอ
+    // แล้ววันที่ 6–11 ไม่มีวันได้โผล่เลย — มุมมองสัปดาห์จึงไม่เคยได้ทำงาน
+    // เป็นอาการเดียวกับกำแพงแดงที่แก้ไปแล้วใน 1B48 แค่ย้ายที่เกิด
+    //
+    // สี่ใบคือจำนวนที่ยังเหลือที่ให้วันอื่นได้โผล่ในจอเดียวกัน
+    // ที่เหลือยุบเป็นบรรทัดเดียวที่พาไปจอ "เลยกำหนดทั้งหมด" ซึ่งมีอยู่แล้ว
+    const CAP = 4;
+    const over = isToday && list.length > CAP ? list.length - CAP : 0;
+    const shown = over ? list.slice(0, CAP) : list;
+    // เส้นเรียนของวันนั้น — ภาพร่างมีบรรทัด "เรียน 07:40–15:10" ใต้ชิป
+    // มันคือเหตุผลว่าทำไมวันนั้นถึงว่างน้อย ซึ่งอธิบายตัวเลขเวลาว่างให้ในตัว
+    let clsLine = '';
+    if (typeof busyBlocks === 'function') {
+      try {
+        const cls = busyBlocks(d).filter(b => b.kind === 'class');
+        if (cls.length) {
+          const a = cls[0], z = cls[cls.length - 1];
+          clsLine = 'เรียน ' + min2hm(a.from) + '–' + min2hm(z.to);
+        }
+      } catch (_) {}
+    }
+    const sub = [clsLine, freeLabel(d, now)].filter(Boolean).join(' · ');
+    out.push(`<div class="wk-row${isToday ? ' now' : ''}${list.length ? '' : ' empty'}">
+      <div class="wk-d"><b>${d.getDate()}</b><i>${esc(isToday ? 'วันนี้' : wd)}</i></div>
+      <div class="wk-b">
+        ${mk.map(m => `<span class="wk-mark sj-${esc(m.color || 'grey')}">${
+          esc(m.title || 'หมุด')}</span>`).join('')}
+        ${shown.map(t => taskChip(t, now)).join('')}
+        ${over ? `<button class="wk-more" onclick="setFilter('late')">
+          อีก ${over} ใบที่ค้างอยู่${icon('chevron')}</button>` : ''}
+        <div class="wk-sub">${esc(sub)}</div>
+      </div>
+    </div>`);
+  }
+
+  // 1B58 · ทั้งสัปดาห์อยู่ในการ์ดใบเดียว ตามภาพร่าง
+  // แถวที่วางเปล่า ๆ บนพื้นจออ่านเป็น "รายการยาวที่ไม่รู้จบตรงไหน"
+  // ก้อนที่มีขอบเขตชัดอ่านเป็น "ตารางหนึ่งใบ" ซึ่งเป็นสิ่งที่มันเป็นจริง ๆ
+  return `<div class="wk wk-card">${out.join('')}</div>`;
+}
+
+// ข้อความบนวันที่ไม่มีงาน — บอกเวลาว่างจริงถ้ารู้ ไม่งั้นบอกแค่ว่าไม่มีอะไรถึงกำหนด
+// "ว่าง 4 ชม." มีประโยชน์กว่า "ไม่มีงาน" มาก เพราะมันคือคำตอบว่าจะยกงานใหญ่มาลงวันไหน
+// 1B48 · บั๊ก: วันนี้เคยขึ้น "ว่าง 14 ชม. 30 นาที" ตอนบ่ายห้า
+// freeMinutes(d, null) คิดช่องว่างทั้งวันตั้งแต่ตื่นจนนอน ซึ่งถูกสำหรับวันข้างหน้า
+// แต่ผิดสำหรับวันนี้ — เวลาที่ผ่านไปแล้วไม่ใช่เวลาว่าง
+// ต้องส่ง now เข้าไปด้วยเฉพาะวันนี้ ตัวมันเองจะตัดช่วงที่เลยมาแล้วออกให้
+function freeLabel(d, now) {
+  if (typeof freeMinutes === 'function') {
+    try {
+      const isToday = now && d.toDateString() === now.toDateString();
+      const m = freeMinutes(d, isToday ? now : null);
+      if (m > 0) return 'ว่าง ' + humanMin(m);
+      if (isToday) return 'หมดเวลาว่างของวันนี้แล้ว';
+    } catch (_) {}
+  }
+  return 'ไม่มีอะไรถึงกำหนด';
+}
+
+// ---------- จอว่าง ----------
+// ไอคอน + ประโยคเดียว + ปุ่มเดียว · ของเดิมเป็นการ์ดสีเทาที่บอกอย่างเดียวว่าไม่มีอะไร
+// แล้วปล่อยให้ผู้ใช้หาทางต่อเอง · จอว่างสามแบบต่างกันจริง ๆ จึงต้องพูดคนละเรื่อง
+function tasksEmpty(now, days) {
+  if (taskQ) {
+    return `<div class="fr-empty">
+      ${icon('search')}
+      <b>ไม่เจองานที่ตรงกับ “${esc(taskQ.trim())}”</b>
+      <p>ลองพิมพ์ชื่อวิชา หรือคำที่อยู่ในชื่องาน</p>
+      <button class="fr-empty-go" onclick="clearTaskSearch()">${icon('x')}ล้างคำค้น</button>
+    </div>`;
+  }
+  if (taskDay) {
+    const d = days.find(x => x.k === taskDay);
+    return `<div class="fr-empty">
+      ${icon('calendar')}
+      <b>${d ? esc(fmtThaiDate(d.d)) : 'วันนี้'}ไม่มีงานถึงกำหนด</b>
+      <p>วันอื่นอาจมีอยู่ — กดดูทุกวันได้</p>
+      <button class="fr-empty-go" onclick="setTaskDay(null)">${icon('calendar')}ดูทุกวัน</button>
+    </div>`;
+  }
+  return `<div class="fr-empty">
+    ${icon('check-circle')}
+    <b>ไม่มีงานค้างเลย</b>
+    <p>เคลียร์หมดแล้ว — เพิ่มงานใหม่ได้ด้วยการพูด ถ่ายรูป หรือพิมพ์เอง</p>
+    <button class="fr-empty-go" onclick="openAddSheet()">${icon('type')}เพิ่มงาน</button>
+  </div>`;
+}
+
+// 1B48 · จอรวมงานที่เลยกำหนด
+// โครงเดียวกับถังขยะกับงานที่เสร็จแล้ว — จอที่เปิดจากปุ่มท้ายรายการ มีทางกลับของตัวเอง
+function lateView(pending, now) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const late = pending.filter(t => t.due && new Date(t.due) < today)
+    .sort((a, b) => new Date(a.due) - new Date(b.due));
+  // ใช้โครงหัวจอเดียวกับถังขยะเป๊ะ — จอที่เปิดจากปุ่มท้ายรายการต้องหน้าตาเหมือนกันทุกใบ
+  const head = `<div class="bin-head">
+      <button class="back" onclick="setFilter('pending')" aria-label="กลับ">${icon('chevron')}</button>
+      <div style="flex:1;min-width:0">
+        <div class="eyebrow">ค้างนานสุด ${
+          late.length ? esc(overdueFor(now - new Date(late[0].due))) : '—'}</div>
+        <div class="page-title" style="font-size:21px;margin-top:2px">เลยกำหนด ${late.length}</div>
+      </div>
+    </div>`;
+  if (!late.length) {
+    return head + `<div class="fr-empty">${icon('check-circle')}
+      <b>ไม่มีงานเลยกำหนดแล้ว</b>
+      <p>เคลียร์หมดพอดี</p></div>`;
+  }
+  return head + late.map(t => taskCard(t, now, false)).join('');
 }
 
 // ---------- ที่เก็บงานที่ทำเสร็จ ----------
@@ -3397,14 +4570,20 @@ function tlDayItems(day, isToday, now) {
 // สวิตช์ตัวเดียวกันโผล่ทั้งสองจอ เพราะสามโหมดนี้เป็นของแท็บ "ตาราง" เดียวกัน
 // รายวันกับปฏิทินอยู่ในจอเส้นเวลา ส่วนรายการงานเป็นอีกจอ (มีฟิลเตอร์/ถังขยะของตัวเอง)
 // ผู้ใช้ไม่ต้องรู้ว่ามันคนละจอ — เห็นแค่สวิตช์ที่อยู่ที่เดิมและทำงานเหมือนกัน
-function tlModeTabs() {
-  const onList = curScreen === 'scr-tasks';
-  return `<div class="tlmode">
-    <button class="tlm${!onList && tlMode === 'day' ? ' on' : ''}" onclick="goTlMode('day')">รายวัน</button>
-    <button class="tlm${!onList && tlMode === 'cal' ? ' on' : ''}" onclick="goTlMode('cal')">ปฏิทิน</button>
-    <button class="tlm${onList ? ' on' : ''}" onclick="goTlMode('list')">รายการงาน</button>
-  </div>`;
-}
+// 1B47 · สวิตช์สามโหมดถูกถอดออก — แท็บ "งาน" เหลือมุมมองเดียวคือสัปดาห์
+// ตัวฟังก์ชันยังอยู่และคืนค่าว่าง เพราะจอเส้นเวลากับปฏิทินยังเรียกมันอยู่
+// (สองจอนั้นไม่มีทางเข้าจากผังหลักแล้ว แต่โค้ดยังอยู่ครบเผื่อต้องถอยกลับ
+//  กฎเดียวกับที่ 1B21 ทำกับ .td-up / .td-rem)
+function tlModeTabs() { return ''; }
+
+// แท็บ "งาน" บนแถบล่างเปิดที่ "รายวัน" เสมอ
+//
+// เดิมมันชี้ตรงไปที่ scr-tasks = โหมด "รายการงาน" ซึ่งเป็นตัวขวาสุดของสวิตช์สามช่อง
+// คนอ่านซ้ายไปขวา ตัวที่ถูกเลือกอยู่จึงควรเป็นตัวซ้ายสุด ไม่งั้นจอเปิดมาพร้อมความรู้สึกว่า
+// "ข้ามอะไรไปหรือเปล่า" · และคำถามแรกของคนเปิดแท็บงานคือ "วันนี้มีอะไร" ไม่ใช่ "ทั้งหมดมีกี่ใบ"
+// (รายการงานยังอยู่ที่เดิม ห่างไปหนึ่งแตะ)
+// 1B47 · แท็บ "งาน" ไปที่มุมมองสัปดาห์ตรง ๆ — ไม่มีโหมดให้เลือกแล้ว
+function goTasksTab() { taskDay = null; taskFilter = 'pending'; go('scr-tasks'); }
 
 function goTlMode(m) {
   if (m === 'list') { go('scr-tasks'); return; }
@@ -3426,6 +4605,12 @@ let calPick = null;  // 'YYYY-M-D' ของวันที่เลือกอ
 function calShift(n) { calMonth += n; calPick = null; calEdit = null; renderTimeline(); }
 function calSelect(k) { calPick = k; calEdit = null; renderTimeline(); }
 function calKey(d) { return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+// ทางกลับของ calKey — คีย์ไม่ได้เติมศูนย์หน้า จึงแปลงกลับด้วย new Date(str) ไม่ได้
+// ('2026-9-5' ไม่ใช่รูปแบบ ISO · เบราว์เซอร์บางตัวคืน Invalid Date บางตัวเดาให้)
+function calDate(k) {
+  const [y, m, d] = String(k).split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
 
 // ---------- หมุดปฏิทิน ----------
 // ปฏิทินเดิมอ่านอย่างเดียว — มันบอกได้แค่สิ่งที่ระบบรู้ (เส้นตายกับคาบเรียน)
@@ -3590,7 +4775,8 @@ function calHtml(now) {
         <button class="btn ghost sm" onclick="calCancelMark()">ยกเลิก</button>
         <button class="btn sm" onclick="calSaveMark()">${calEdit.id ? 'บันทึก' : 'ปัก'}</button>
       </div>
-    </div>` : `<button class="cal-add" onclick="calAddMark('${pick}')">+ ปักหมุดวันนี้</button>`;
+    </div>` : `<button class="cal-add" onclick="calAddMark('${pick}')">+ ปักหมุด ${
+      pick === calKey(new Date()) ? 'วันนี้' : esc(fmtThaiDate(calDate(pick)))}</button>`;
 
   const detail = `<div class="cal-day">
       <div class="cal-day-h">
@@ -3675,7 +4861,7 @@ function renderTimeline() {
       // มาต่อกันเป็นย่อหน้า การ์ดเลยสูงจนดันเส้นเวลาตกจอไปทั้งเส้น ทั้งที่เส้นเวลาคือของหลักของจอนี้
       verdict = `<div class="dayvd bad">
         <div class="dayvd-h">${tkChip('ไม่ทัน', 'hot')}<b>${missed.length} งานเสี่ยงเลยกำหนดวันนี้</b></div>
-        <p>${esc(missed.map(t => taskTitleText(t)).join(' · '))}${nf
+        <p>${missed.map(t => `<b class="vd-t">${esc(taskTitleText(t))}</b>`).join('<i class="vd-sep">·</i>')}${nf
           ? ' — ช่องว่างถัดไปคือ' + (nf.dayOffset === 1 ? 'พรุ่งนี้ ' : 'วัน' + THAI_DAY[nf.date.getDay()] + ' ') + nf.fromHm
           : ''}</p></div>`;
     } else if (plan.overflow.length || left < 30) {
@@ -4028,35 +5214,53 @@ function renderProfile() {
   const done = liveTasks().filter(t => t.done).length;
   const name = state.settings.name || (currentUser && currentUser.user_metadata && currentUser.user_metadata.full_name) || 'นักเรียน';
   const pic = currentUser && currentUser.user_metadata && (currentUser.user_metadata.avatar_url || currentUser.user_metadata.picture);
-
-  // รูปที่ตั้งเองมาก่อนรูปจากบัญชี Google — ผู้ใช้เลือกเองย่อมตั้งใจกว่า
   const mine = userAvatar();
-  const av = document.getElementById('pfAv');
-  if (av) {
-    av.innerHTML = (mine || pic)
-      ? `<img src="${esc(mine || pic)}" alt="">`
-      : esc(name.trim().charAt(0).toUpperCase() || 'N');
-    av.classList.toggle('has-img', !!(mine || pic));
+
+  // ---------- หัวโปรไฟล์ ----------
+  // 1B70 · วาดด้วย profileHeadHTML() ตัวเดียวกับหน้าที่เพื่อนเปิดดู (อยู่ใน feed.js)
+  // ของเดิมเป็นการ์ดสีน้ำเงินคนละทรงกับหน้าเพื่อน ทำให้ไม่มีใครรู้ว่าคนอื่นเห็นเราเป็นยังไง
+  if (typeof renderProfileHead === 'function') renderProfileHead();
+  if (typeof loadMyCard === 'function') loadMyCard();
+
+  // ---------- ตัวเลขที่เห็นคนเดียว ----------
+  // ย้ายลงมาใต้หัว ติดป้ายให้ชัดว่าไม่ใช่ของสาธารณะ
+  // เดิมมันนั่งอยู่บนการ์ดหัวจอ ปนกับชื่อและรูป ซึ่งอ่านเหมือนเป็นของที่เพื่อนเห็นด้วย
+  const priv = document.getElementById('pfPriv');
+  if (priv) {
+    const tk = typeof tokenState === 'function' ? tokenState() : {};
+    const st = typeof loginStreak === 'function' ? loginStreak() : 0;
+    const now2 = new Date();
+    const wk = liveTasks().filter(t => t.done && t.doneAt
+      && (now2 - new Date(t.doneAt)) < 7 * 8.64e7).length;
+    // สี่ช่องนี้คือ **ที่เดียว** ของตัวเลขส่วนตัวบนจอนี้
+    // ก่อนหน้านี้ "งานเสร็จ" โผล่สองรอบในจอเดียว (ที่นี่ กับในบล็อกผลของฉันสีเหลือง)
+    // ตัวเลขเดียวกันสองที่ในหน้าเดียว ทำให้คนไม่แน่ใจว่าอันไหนคือของจริง
+    // และเป็นสัญญาณว่าจอนี้ประกอบจากของสองยุคที่ไม่เคยถูกจัดให้เข้ากัน
+    priv.innerHTML = `<div class="pf-priv">
+      <div class="pf-priv-lb">${icon('lock')}เห็นคนเดียว</div>
+      <div class="num-row four">
+        <div><b>${done}</b><span>งานเสร็จ</span></div>
+        <div><b>${wk}</b><span>ใน 7 วัน</span></div>
+        <div><b>${st}</b><span>ต่อเนื่อง</span></div>
+        <div><b>${Math.round(tk.bal || 0)}</b><span>โทเคน</span></div>
+      </div>
+    </div>`;
   }
-  // ปุ่มเอารูปออก โผล่เฉพาะคนที่ตั้งรูปเองไว้ (รูปจากบัญชี Google เอาออกที่นี่ไม่ได้)
-  const avDel = document.getElementById('avDel');
-  if (avDel) avDel.hidden = !mine;
-  const avLabel = document.getElementById('avPickLabel');
-  if (avLabel) avLabel.textContent = mine ? 'เปลี่ยนรูป' : 'เลือกรูป';
-  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  const sub = currentUser ? (currentUser.email || 'ซิงก์ข้ามเครื่องอยู่') : 'ยังไม่ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้';
-  set('pfNm', name);
-  set('pfSb', sub);
+
   // การ์ดตัวตนบนหัวจอตั้งค่า — ข้อมูลชุดเดียวกับหน้า "ฉัน" ต้องไม่มีทางขัดกันเอง
+  const sub = currentUser ? (currentUser.email || 'ซิงก์ข้ามเครื่องอยู่') : 'ยังไม่ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้';
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
   set('setNm', name);
   set('setSb', sub);
   const sav = document.getElementById('setAv');
   if (sav) sav.innerHTML = (mine || pic)
     ? `<img src="${esc(mine || pic)}" alt="">`
     : esc(name.trim().charAt(0).toUpperCase() || 'N');
-  set('pfDone', done);
-  set('pfFree', (state.settings.freeHours || 2) + ' ชม.');
-  set('pfPending', pending.length);
+  // ปุ่มเอารูปออกอยู่ในจอตั้งค่า โผล่เฉพาะคนที่ตั้งรูปเองไว้
+  const avDel = document.getElementById('avDel');
+  if (avDel) avDel.hidden = !mine;
+  const avLabel = document.getElementById('avPickLabel');
+  if (avLabel) avLabel.textContent = mine ? 'เปลี่ยนรูป' : 'เลือกรูป';
 
   // บัญชี
   const acc = document.getElementById('accountCard');
@@ -4071,7 +5275,12 @@ function renderProfile() {
         <button class="pf-quiet" onclick="go('scr-privacy'); renderPrivacy()">${icon('lock')}เราเก็บอะไรของคุณบ้าง</button>
         <button class="pf-quiet pf-danger" onclick="deleteAccount()">${icon('trash')}ลบบัญชีและข้อมูลทั้งหมด</button>`;
     } else {
-      acc.innerHTML = `<button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span>เข้าสู่ระบบเพื่อซิงก์ข้ามเครื่อง</button>`;
+      // ปุ่มนี้เคยเรียก loginGoogle() ตรง ๆ ซึ่งยิงเข้า Google ทันทีโดยไม่ผ่านจอล็อกอิน
+      // ผลคือคนที่กด "ใช้แบบไม่ล็อกอินไปก่อน" ไปแล้ว ไม่มีทางกลับมาเห็นจอนั้นอีกเลยทั้งแอป
+      // ทั้งที่จอนั้นคือที่เดียวที่มีช่องทางอื่นให้เลือก — เปลี่ยนใจไปใช้ Discord ไม่ได้เลย
+      // และป้ายก็ไม่ได้เขียนว่า "ด้วย Google" ด้วย คนกดจึงไม่รู้ตัวว่ากำลังจะไปไหน
+      acc.innerHTML = `<button class="btn primary" onclick="setLoginView('root');go('scr-login')">
+        ${icon('user')}เข้าสู่ระบบเพื่อซิงก์ข้ามเครื่อง</button>`;
     }
   }
 
@@ -4089,7 +5298,11 @@ function renderProfile() {
   const pb = document.getElementById('peBadgeCt');
   if (pb) pb.textContent = badgesEarned().length + ' จาก ' + BADGES.length + ' เหรียญ';
   const pf2 = document.getElementById('peFriendCt');
-  if (pf2) pf2.textContent = friends().length ? friends().length + ' คนในรายการ' : 'ยังไม่มีใครในรายการ';
+  // รายชื่อเพื่อนโหลดตอนเข้าจอเพื่อน ไม่ใช่ตอนบูต — ก่อนโหลดจึงยังไม่รู้จำนวน
+  // ขึ้นว่า "0 คน" ไว้ก่อนคือการโกหก คนมีเพื่อนอยู่จะเห็นเลขผิดทุกครั้งที่เปิดหน้านี้
+  if (pf2) pf2.textContent = frLoaded
+    ? (frList.length ? frList.length + ' คน' : 'ยังไม่มีเพื่อน')
+    : 'ค้นหาและเพิ่มเพื่อน';
   // ห้องของฉัน — บอกว่ามีของวางอยู่กี่ชิ้นแล้ว ห้องเปล่ากับห้องที่แต่งแล้วต้องอ่านต่างกัน
   const pr = document.getElementById('peRoomCt');
   if (pr && typeof roomState === 'function') {
@@ -4139,136 +5352,378 @@ function renderProfile() {
   }
 }
 
-// ---------- ALT 1A6M3: ระบบเพื่อน (เฟสแรก) ----------
-// ยังไม่มีตารางฝั่งเซิร์ฟเวอร์สำหรับเพื่อน จึงทำให้ใช้งานได้จริงวันนี้ด้วยการ
-// "แลกรหัสสถานะ" กันตรง ๆ — ก๊อปรหัสของตัวเองส่งให้เพื่อน แล้ววางรหัสของเพื่อนกลับมา
-// ไม่ต้องรอ backend และไม่มีข้อมูลใครถูกส่งไปไหนโดยที่เจ้าตัวไม่ได้กดเอง
-function friends() {
-  state.settings = state.settings || {};
-  if (!Array.isArray(state.settings.friends)) state.settings.friends = [];
-  return state.settings.friends;
-}
+// ---------- ระบบเพื่อน (1B17) ----------
+// ของเดิมคือ "รหัสสถานะ" SOS1.xxxx ที่ก๊อปวางกันเอง แล้วเก็บลง state.settings.friends
+// ในเครื่องตัวเอง — ไม่เคยแตะเซิร์ฟเวอร์เลยสักครั้ง แปลว่าเพื่อนในรายการคือภาพถ่าย
+// ณ วินาทีที่เขาก๊อปรหัส ไม่อัปเดตอีกจนกว่าจะขอรหัสใหม่มาวาง (บรรทัด "ข้อมูล 3 ชม.ที่แล้ว"
+// ที่ไม่มีวันเปลี่ยน) มันอ่านเหมือนมีเพื่อน แต่ไม่มีใครอยู่ปลายทางจริงสักคน
+//
+// ของใหม่ต่อกับตาราง friendships ที่ deploy อยู่แล้ว และเติมสิ่งที่ขาดไปชิ้นเดียว:
+// ชื่อผู้ใช้ที่ "ค้นหาได้" — เพราะ ask_friend() เดิมบังคับว่าต้องอยู่ห้อง LINE เดียวกัน
+// จึงเพิ่มเพื่อนไม่ได้เลยถ้ายังไม่มีใครเอาบอทเข้ากลุ่มห้องเรียน (ดู migration 17)
+//
+// ไม่ใช้รหัสสุ่มให้ก๊อป เพราะรหัสที่ต้องก๊อปแปลว่าต้องมีช่องทางส่งรหัสอยู่ก่อนแล้ว
+// ซึ่งถ้ามีช่องทางนั้นก็คุยกันได้อยู่แล้ว · ชื่อที่พิมพ์ตามกันได้จึงเป็นด่านที่ต่ำกว่า
 
-// สถานะของเราแบบย่อ — เอาไปทำเป็นรหัสให้เพื่อน
-function myStatus() {
-  const now = new Date();
-  const live = liveTasks();
-  const done = live.filter(t => t.done);
-  return {
-    n: who() || 'เพื่อน',
-    p: live.filter(t => !t.done).length,
-    d7: done.filter(t => t.doneAt && (now - new Date(t.doneAt)) < 7 * 8.64e7).length,
-    d: done.length,
-    u: now.toISOString(),
-  };
-}
+let frHandle = null;      // ชื่อผู้ใช้ของเรา
+let frList = [];          // เพื่อนที่รับกันแล้ว
+let frReqs = [];          // คำขอที่รอเราตอบ
+let frHits = null;        // ผลค้นหา · null = ยังไม่ได้ค้น (ต่างจาก [] ที่แปลว่าค้นแล้วไม่เจอ)
+let frLoading = false;
+let frLoaded = false;   // โหลดสำเร็จอย่างน้อยหนึ่งครั้งหรือยัง — 0 ที่ยังไม่ได้โหลด กับ 0 จริง อ่านต่างกัน
+let frSearchTimer = null;
 
-function myShareCode() {
+// ปุ่มทางเข้าสองที่ในแท็บ "ฉัน" นับจำนวนจากฟังก์ชันนี้ จึงคงชื่อเดิมไว้
+function friends() { return frList; }
+
+async function loadFriends() {
+  // เศษของระบบเก่า — ลบทิ้งครั้งเดียวตอนเข้าหน้านี้ครั้งแรกหลังอัปเดต
+  // ปล่อยไว้ก็ไม่พัง แต่มันคือรายชื่อที่ไม่มีใครอ่านอีกแล้วซึ่งซิงก์ขึ้น cloud ทุกรอบ
+  if (state.settings && state.settings.friends) { delete state.settings.friends; save(); }
+
+  if (!sb || !currentUser) { frHandle = null; frList = []; frReqs = []; renderFriends(); return; }
+  if (frLoading) return;
+  frLoading = true;
   try {
-    const json = JSON.stringify(myStatus());
-    return 'SOS1.' + btoa(unescape(encodeURIComponent(json)));
-  } catch (_) { return ''; }
+    // ยิงพร้อมกันทั้งสามอัน — เรียงกันคือรอสามรอบเน็ตบนมือถือโรงเรียน
+    const [h, l, i] = await Promise.all([
+      sb.rpc('my_handle'), sb.rpc('friend_list'), sb.rpc('friend_inbox'),
+    ]);
+    if (!h.error) frHandle = h.data || null;
+    if (!l.error) frList = l.data || [];
+    if (!i.error) frReqs = i.data || [];
+  } catch (_) { /* ออฟไลน์ — วาดด้วยของที่ค้างอยู่ในตัวแปร ดีกว่าล้างจอเป็นหน้าว่าง */ }
+  frLoading = false;
+  frLoaded = true;
+  renderFriends();
+  if (typeof renderTabBadges === 'function') renderTabBadges();
 }
 
-function parseShareCode(code) {
-  const raw = String(code || '').trim();
-  if (!raw.startsWith('SOS1.')) return null;
-  try {
-    const json = decodeURIComponent(escape(atob(raw.slice(5))));
-    const o = JSON.parse(json);
-    if (!o || typeof o.n !== 'string') return null;
-    return o;
-  } catch (_) { return null; }
+// ---------- ค้นหา ----------
+// หน่วง 350ms ก่อนยิงจริง · พิมพ์ชื่อหกตัวคือหกคำขอถ้าไม่หน่วง
+// และผลของคำที่พิมพ์ไม่ครบมักกลับมาทีหลังผลของคำเต็ม แล้วทับผลที่ถูกต้อง
+function friendSearch(v) {
+  clearTimeout(frSearchTimer);
+  const q = String(v || '').trim();
+  // ตัวเดียวไม่ใช่การค้นหา มันคือการไล่ดูรายชื่อทั้งระบบ — ฝั่ง SQL ก็กันไว้อีกชั้น
+  if (q.length < 2) { frHits = null; paintFriendParts(); return; }
+  frSearchTimer = setTimeout(() => doFriendSearch(q), 350);
 }
-
-async function copyMyCode() {
-  const code = myShareCode();
-  try {
-    await navigator.clipboard.writeText(code);
-    haptic('arm');
-    showToast({ title: 'ก๊อปรหัสแล้ว 📋', body: 'ส่งให้เพื่อนวางในหน้า “เพื่อน” ของเขาได้เลย' });
-  } catch (_) {
-    // เบราว์เซอร์ไม่ให้ก๊อปอัตโนมัติ → โชว์ให้เลือกเอง
-    const box = document.getElementById('frMyCode');
-    if (box) { box.hidden = false; box.value = code; box.select(); }
-  }
-}
-
-function addFriendCode() {
-  const el = document.getElementById('frInput');
-  const o = parseShareCode(el && el.value);
-  if (!o) {
-    showToast({ title: 'รหัสไม่ถูกต้อง', body: 'ต้องเป็นรหัสที่ขึ้นต้นด้วย SOS1. ที่เพื่อนก๊อปมาให้' });
+async function doFriendSearch(q) {
+  if (!sb || !currentUser) {
+    showToast({ title: 'ต้องล็อกอินก่อน', body: 'เข้าบัญชีแล้วถึงจะค้นหาเพื่อนได้' });
     return;
   }
-  const list = friends();
-  const i = list.findIndex(f => f.n === o.n);
-  if (i >= 0) list[i] = o; else list.push(o);
-  save();
-  if (el) el.value = '';
+  const { data, error } = await sb.rpc('find_people', { p_q: q });
+  if (error) return;
+  frHits = data || [];
+  paintFriendParts();
+}
+
+// ---------- ตั้งชื่อผู้ใช้ ----------
+async function saveHandle() {
+  const el = document.getElementById('frHandle');
+  const v = ((el && el.value) || '').trim();
+  if (!sb || !currentUser) { showToast({ title: 'ต้องล็อกอินก่อน', body: 'ชื่อผู้ใช้เก็บอยู่กับบัญชี' }); return; }
+  const { data, error } = await sb.rpc('set_handle', { p_handle: v });
+  if (error) {
+    // ข้อความจาก raise ในฝั่ง SQL เขียนเป็นภาษาคนไว้แล้ว เอามาโชว์ตรง ๆ ได้เลย
+    showToast({ title: 'ใช้ชื่อนี้ไม่ได้', body: error.message || 'ลองชื่ออื่นดู' });
+    return;
+  }
+  frHandle = data;
   haptic('done');
-  renderFriends(); renderTabBadges();
-  showToast({ title: (i >= 0 ? 'อัปเดตสถานะของ ' : 'เพิ่มเพื่อนแล้ว: ') + o.n, body: 'เห็นงานค้างและผลของเขาในหน้าเพื่อนแล้ว' });
+  showToast({ title: 'ชื่อผู้ใช้คือ @' + data, body: 'บอกชื่อนี้ให้เพื่อน แล้วให้เขาค้นหาคุณ' });
+  paintFriendParts();
+}
+async function copyHandle() {
+  if (!frHandle) return;
+  try {
+    await navigator.clipboard.writeText('@' + frHandle);
+    haptic('arm');
+    showToast({ title: 'ก๊อปแล้ว 📋', body: 'ส่งให้เพื่อนไปค้นในหน้า “เพื่อน” ของเขา' });
+  } catch (_) {
+    const el = document.getElementById('frHandle');
+    if (el) { el.focus(); el.select(); }
+  }
 }
 
-function removeFriend(name) {
-  state.settings.friends = friends().filter(f => f.n !== name);
-  save();
-  renderFriends();
+// ---------- ส่งคำขอ / ตอบรับ / เอาออก ----------
+async function addPerson(id) {
+  if (!sb || !currentUser) return;
+  const { data, error } = await sb.rpc('ask_friend', { p_other: id });
+  if (error) { showToast({ title: 'ส่งคำขอไม่ได้', body: error.message || 'ลองใหม่อีกที' }); return; }
+  // แก้สถานะในผลค้นหาที่ถืออยู่ แทนที่จะยิงค้นใหม่ — ผลชุดเดิมยังถูกต้องทุกแถว
+  if (frHits) { const hit = frHits.find(x => x.id === id); if (hit) hit.rel = data; }
+  haptic('done');
+  if (data === 'friends') {
+    showToast({ title: 'เป็นเพื่อนกันแล้ว 🎉', body: 'เขาเคยส่งคำขอมาก่อน การกดของคุณคือการตอบรับ' });
+    loadFriends();
+  } else {
+    showToast({ title: 'ส่งคำขอแล้ว', body: 'รอเขากดรับ แล้วถึงจะเห็นกันในรายชื่อเพื่อน' });
+    paintFriendParts();
+  }
+}
+async function answerReq(id, yes) {
+  if (!sb || !currentUser) return;
+  const { error } = await sb.rpc(yes ? 'ask_friend' : 'drop_friend', { p_other: id });
+  if (error) { showToast({ title: 'ทำรายการไม่ได้', body: error.message || 'ลองใหม่อีกที' }); return; }
+  haptic(yes ? 'done' : 'tap');
+  await loadFriends();
+}
+async function removeFriend(id, name) {
+  if (!confirm('เอา ' + (name || 'คนนี้') + ' ออกจากรายชื่อเพื่อน?')) return;
+  const { error } = await sb.rpc('drop_friend', { p_other: id });
+  if (error) { showToast({ title: 'เอาออกไม่ได้', body: error.message || 'ลองใหม่อีกที' }); return; }
+  await loadFriends();
 }
 
-function friendAgo(iso) {
-  if (!iso) return 'ไม่รู้เวลา';
-  const m = Math.round((Date.now() - new Date(iso)) / 60000);
-  if (m < 2) return 'เมื่อครู่';
-  if (m < 60) return m + ' นาทีที่แล้ว';
-  const h = Math.round(m / 60);
-  if (h < 24) return h + ' ชม.ที่แล้ว';
-  return Math.round(h / 24) + ' วันที่แล้ว';
-}
+// ---------- วาดจอ (1B19: จัดใหม่ตามธรรมเนียมแอปทั่วไป) ----------
+// ลำดับเดิมคือ ชื่อผู้ใช้ของฉัน → ค้นหา → คำขอ → เพื่อน ซึ่งเอาของที่ตั้งครั้งเดียว
+// ในชีวิตไว้บนสุด แล้วดันของที่ใช้ทุกครั้งลงไปข้างล่าง · ทุกแอปที่มีระบบเพื่อน
+// (Discord · IG · LINE) เอา handle ตัวเองไว้ในโปรไฟล์ และเริ่มหน้านี้ด้วยช่องค้นหา
+// ลำดับใหม่: ค้นหา → คำขอ → เพื่อน → ชื่อผู้ใช้ของฉัน (แถวเล็กล่างสุด)
+//
+// แยกสองชั้นเหมือนเดิม: โครงจอวาดครั้งเดียว รายการวาดใหม่ได้ตลอด
+// เพราะ renderAll() วิ่งทุกครั้งที่ข้อมูลเปลี่ยน ถ้าเขียน innerHTML ทั้งก้อนทุกรอบ
+// ช่องค้นหาจะโดนสร้างใหม่กลางคัน — คีย์บอร์ดปิด ตัวที่พิมพ์ค้างหาย ทุก ๆ ไม่กี่วินาที
+let frEditing = false;   // กำลังแก้ชื่อผู้ใช้อยู่หรือเปล่า
 
-function renderFriends() {
+function renderFriends(force) {
   const body = document.getElementById('friendsBody');
   if (!body) return;
-  const me = myStatus();
-  const list = friends().slice().sort((a, b) => (b.d7 || 0) - (a.d7 || 0));
-  const board = [{ ...me, me: true }, ...list].sort((a, b) => (b.d7 || 0) - (a.d7 || 0));
-  const peak = Math.max(1, ...board.map(f => f.d7 || 0));
+  if (body.dataset.built === '1' && !force) { paintFriendParts(); return; }
 
-  body.innerHTML = `<div class="page-head">
-      <div class="eyebrow mono">${esc(fmtThaiDate(new Date()))}</div>
-      <h1 class="page-title">เพื่อน</h1>
-      <p class="page-sub">แลกรหัสสถานะกัน แล้วดูว่าใครเคลียร์งานไปถึงไหน</p>
+  // ยังไม่ได้ล็อกอิน = ยังทำอะไรตรงนี้ไม่ได้เลยสักอย่าง (ชื่อผู้ใช้ · ค้นหา · ส่งคำขอ
+  // ล้วนต้องรู้ว่าเป็นบัญชีไหน) จอจึงต้องบอกตั้งแต่แรก ไม่ใช่โชว์ช่องให้กรอกครบทุกช่อง
+  // แล้วค่อยไปบอกตอนกดบันทึก — ผู้ใช้พิมพ์ชื่อที่ตั้งใจไว้ทิ้งไปหนึ่งรอบฟรี ๆ
+  if (!sb || !currentUser) {
+    body.innerHTML = `<div class="fr-gate">
+        ${icon('lock')}
+        <b>เข้าบัญชีก่อนถึงจะเพิ่มเพื่อนได้</b>
+        <p>เพื่อนผูกอยู่กับบัญชี ไม่ใช่กับเครื่อง — เปลี่ยนเครื่องแล้วรายชื่อยังอยู่ครบ
+           และเพื่อนถึงจะค้นหาคุณเจอ</p>
+        <button class="fr-gate-go" onclick="loginFromFriends()">เข้าสู่ระบบ</button>
+      </div>`;
+    body.dataset.built = '';   // ล็อกอินเสร็จต้องวาดของจริงทับ ไม่ใช่คิดว่าโครงเดิมยังอยู่
+    return;
+  }
+
+  // ช่องค้นหาไม่มีป้ายกำกับลอยอยู่ข้างบน — แว่นขยายในช่องบอกหน้าที่ของมันครบแล้ว
+  // ป้ายกำกับมีไว้สำหรับฟอร์มที่ต้องกรอกหลายช่อง ไม่ใช่ช่องค้นหาช่องเดียวบนสุดของจอ
+  // 1B52 · ก้อนตัวตนขึ้นมาอยู่บนสุด
+  // ของเดิมอยู่ล่างสุดใต้รายชื่อเพื่อน ซึ่งทำให้มันอ่านเป็น "เพื่อนอีกคนที่ชื่อแปลก ๆ"
+  // ทั้งที่มันคือชื่อของเจ้าตัวเอง — ของที่ต้องส่งให้เพื่อนไปค้นหา จึงต้องหาเจอทันที
+  // ไม่ใช่ต้องเลื่อนผ่านรายชื่อทั้งหมดก่อน
+  // 1B64 · ช่องค้นหากางค้างไว้ตลอด — **ผู้ใช้สั่งกลับเองเมื่อ 9 ก.ย. 2569**
+  //
+  // 1B53 เคยพับมันไว้หลังแว่นขยายด้วยเหตุผลว่า "จอนี้เปิดมาเพื่อดูเพื่อน ไม่ใช่เพื่อค้นหา"
+  // และอ้างว่า Instagram · LINE · Messenger ทำเหมือนกัน — เหตุผลนั้นถูกสำหรับแอปที่
+  // **มีเพื่อนอยู่แล้ว** แต่แอปนี้ยังไม่มีใครมีเพื่อนสักคน จอนี้จึงเปิดมาเพื่อค้นหาล้วน ๆ
+  // ผู้ใช้บอกตรง ๆ ว่า "อยู่ด้านบนหาไม่เจอ ... ไม่ก็ทำให้มันเด่น"
+  //
+  // อย่าพับกลับอีกจนกว่าจะมีคนใช้จริงที่มีเพื่อนกันแล้วเป็นสิบคน
+  body.innerHTML = `
+    <div id="frMeRow"></div>
+    <div class="fr-search big" id="frSearchBox">
+      ${icon('search')}
+      <input id="frQ" autocomplete="off" autocapitalize="off" spellcheck="false"
+             placeholder="พิมพ์ @ชื่อผู้ใช้ของเพื่อน" oninput="friendSearch(this.value)">
+      <button class="fr-clear" id="frClear" hidden onclick="clearFriendSearch()"
+        aria-label="ล้างคำค้น">${icon('x')}</button>
     </div>
+    <div id="frHits"></div>
+    <div id="frReqBox"></div>
+    <div id="frListBox"></div>`;
+  body.dataset.built = '1';
+  paintFriendParts();
+}
 
-    <div class="fr-me">
-      <div class="fr-me-h">${icon('user')}รหัสสถานะของฉัน</div>
-      <p class="fr-me-p">ก๊อปส่งให้เพื่อน — ในรหัสมีแค่ชื่อเล่น จำนวนงานค้าง และจำนวนงานที่เสร็จ</p>
-      <button class="fr-copy" onclick="copyMyCode()">${icon('check')}ก๊อปรหัสของฉัน</button>
-      <textarea class="fr-code" id="frMyCode" rows="2" readonly hidden></textarea>
-    </div>
+// ช่องค้นหาไม่พับแล้ว (1B64) ปุ่มแว่นขยายจึงถูกถอดออกจากหัวจอ
+// ฟังก์ชันนี้ยังอยู่เพราะอาจมีที่อื่นเรียก — เปลี่ยนหน้าที่เป็น "พาไปที่ช่อง" แทน
+let frSearchOpen = true;
+function toggleFriendSearch() {
+  const q = document.getElementById('frQ');
+  if (q) { q.focus(); q.scrollIntoView({ block: 'nearest' }); }
+}
 
-    <div class="fr-add">
-      <label for="frInput">วางรหัสของเพื่อน</label>
-      <textarea id="frInput" rows="2" placeholder="SOS1.…"></textarea>
-      <button class="fr-add-btn" onclick="addFriendCode()">${icon('users')}เพิ่ม / อัปเดตเพื่อน</button>
-    </div>
+function clearFriendSearch() {
+  const q = document.getElementById('frQ');
+  if (q) { q.value = ''; q.focus(); }
+  frHits = null;
+  paintFriendParts();
+}
 
-    <div class="sec-label">กระดานเทียบผล 7 วัน</div>
-    ${board.map(f => `<div class="fr-card${f.me ? ' me' : ''}">
-      <div class="fr-av">${esc((f.n || '?').slice(0, 1))}</div>
-      <div class="fr-bd">
-        <div class="fr-nm">${esc(f.n)}${f.me ? '<span class="fr-tag">คุณ</span>' : ''}</div>
-        <div class="fr-st">งานค้าง <b>${f.p ?? '—'}</b> · เสร็จ 7 วัน <b>${f.d7 ?? '—'}</b> · รวม ${f.d ?? '—'}</div>
-        <div class="fr-bar"><i style="width:${Math.round((f.d7 || 0) / peak * 100)}%"></i></div>
-        <div class="fr-ago">${f.me ? 'อัปเดตสด' : 'ข้อมูล ' + esc(friendAgo(f.u))}</div>
+function frAv(p) {
+  const nm = p.display_name || p.handle || '?';
+  return p.avatar
+    ? `<div class="fr-av"><img src="${esc(p.avatar)}" alt=""></div>`
+    : `<div class="fr-av" style="${typeof faceTint === 'function' ? faceTint(p) : ''}">${
+        esc(typeof faceLetter === 'function' ? faceLetter(p) : nm.slice(0, 1))}</div>`;
+}
+// 1B56 · คนที่ยังไม่ได้ตั้งชื่อ ไม่ควรถูกเรียกว่า "นักเรียน"
+// คำนั้นเป็นชื่อสามัญที่ใช้ได้กับทุกคนในแอป มันจึงอ่านเหมือนระบบหาชื่อไม่เจอ
+// ไม่ใช่เหมือนชื่อของใครสักคน · ถ้ามี @ชื่อผู้ใช้อยู่แล้ว ให้ใช้อันนั้นเป็นชื่อไปเลย
+// เพราะมันคือชื่อที่เจ้าตัวตั้งเอง และเป็นชื่อที่เพื่อนใช้เรียกกันจริงอยู่แล้ว
+function frName(p) {
+  const nm = (p.display_name || '').trim();
+  const hd = (p.handle || '').trim();
+  return `<div class="fr-nm">${esc(nm || (hd ? '@' + hd : 'ยังไม่ได้ตั้งชื่อ'))}</div>
+    ${hd && nm ? `<div class="fr-hd">@${esc(hd)}</div>` : ''}`;
+}
+// ============================================================
+// 1B52 · แถวเพื่อนต้องตอบว่า "ช่วยกันได้ตรงไหน"
+// ============================================================
+// ของเดิมมีแค่รูป ชื่อ @ชื่อผู้ใช้ แล้วจบ — ซึ่งเป็นข้อมูลที่ไม่ได้ทำอะไรเลย
+// คุณรู้จักเขาอยู่แล้วถึงได้เพิ่มเป็นเพื่อน การเห็นชื่อเขาอีกรอบไม่ได้บอกอะไรใหม่
+//
+// ข้อมูลที่มีอยู่แล้วแต่ไม่เคยถูกใช้: friend_list คืน strong[] weak[] bio since มาครบ
+// และ feed.js รู้ว่าใครกำลังเปิดแอปอยู่ตอนนี้ (onlineNow)
+//
+// เอามาจับคู่กับวิชาของเราเอง แล้วแถวนี้ตอบคำถามที่มีค่าที่สุดในจอนี้ได้:
+//   วิชาที่เขาถนัด ∩ วิชาที่เราอ่อน  →  "เขาช่วยเราได้"
+//   วิชาที่เราถนัด ∩ วิชาที่เขาอ่อน  →  "เราช่วยเขาได้"
+// ซึ่งตรงกับหลักของชั้นสังคมทั้งชั้น: ทุกคนเป็นทั้งติวเตอร์และนักเรียน แยกตามวิชา
+// ไม่มีใครเป็นฝ่ายให้หรือฝ่ายรับอย่างเดียว
+//
+// ไม่มีคู่ที่แมตช์กันก็ไม่ต้องแต่งเรื่อง — โชว์วิชาที่เขาถนัดเฉย ๆ หรือ bio ของเขา
+// แถวที่ขึ้นว่า "ไม่มีวิชาตรงกัน" ทุกใบคือแถวที่สอนให้คนเลิกอ่านตรงนั้น
+function frMatch(p) {
+  const me = typeof socialChips === 'function' ? socialChips() : null;
+  const myStrong = (me && me.strong) || [];
+  const myWeak = (me && me.weak) || [];
+  const their = { strong: p.strong || [], weak: p.weak || [] };
+  const norm = a => (a || []).map(x => String(x).trim()).filter(Boolean);
+  const inter = (a, b) => norm(a).filter(x => norm(b).includes(x));
+
+  const helpsMe = inter(their.strong, myWeak);
+  const iHelp = inter(myStrong, their.weak);
+  const rows = [];
+  if (helpsMe.length) rows.push(`<div class="fr-mt in">
+    <span class="fr-mt-ic">${icon('flag')}</span>เขาช่วยคุณได้ · <b>${esc(helpsMe.slice(0, 2).join(' · '))}</b></div>`);
+  if (iHelp.length) rows.push(`<div class="fr-mt out">
+    <span class="fr-mt-ic">${icon('users')}</span>คุณช่วยเขาได้ · <b>${esc(iHelp.slice(0, 2).join(' · '))}</b></div>`);
+  if (rows.length) return rows.join('');
+
+  // ไม่แมตช์ — บอกสิ่งที่เขาเป็นแทน เรียงจากของที่มีความหมายมากสุด
+  if (their.strong.length) return `<div class="fr-mt flat">ถนัด <b>${
+    esc(norm(their.strong).slice(0, 3).join(' · '))}</b></div>`;
+  if (p.bio) return `<div class="fr-mt flat">${esc(String(p.bio).slice(0, 60))}</div>`;
+  // 1B56 · ไม่มีข้อมูลเลย บอกตรง ๆ ว่าทำไมแถวนี้ว่าง
+  // การ์ดที่มีแต่ชื่อกับ @ แล้วจบ อ่านเหมือนโหลดไม่ครบ ไม่ใช่เหมือนคนที่ยังไม่ได้กรอก
+  // และประโยคนี้บอกด้วยว่ากดเข้าไปแล้วเจออะไร ซึ่งเป็นเหตุผลให้กด
+  return `<div class="fr-mt flat dim">ยังไม่ได้บอกว่าถนัดวิชาไหน · แตะดูโปรไฟล์</div>`;
+}
+
+// เพื่อนคนนี้กำลังเปิดแอปอยู่ไหม — onlineNow มาจาก presence ของ feed.js
+function frOnline(p) {
+  if (typeof onlineNow === 'undefined' || !Array.isArray(onlineNow)) return null;
+  return onlineNow.find(u => u && u.id === p.id) || null;
+}
+
+// หัวข้อกลุ่ม — ใช้ทรงเดียวกันทุกกลุ่มในจอนี้ เพื่อให้ "คำขอ" กับ "เพื่อน" อ่านเป็นชั้นเดียวกัน
+function frSec(label, n) {
+  return `<div class="fr-sec">${esc(label)}${n ? `<i>${n}</i>` : ''}</div>`;
+}
+
+function paintFriendParts() {
+  // ---------- ผลค้นหา ----------
+  const clr = document.getElementById('frClear');
+  const qEl = document.getElementById('frQ');
+  if (clr) clr.hidden = !(qEl && qEl.value.trim());
+
+  const hits = document.getElementById('frHits');
+  if (hits) {
+    if (frHits === null) hits.innerHTML = '';
+    else if (!frHits.length) hits.innerHTML = `<p class="fr-note">ไม่เจอใครชื่อนี้ — ลองถามเพื่อนว่าชื่อผู้ใช้ของเขาสะกดยังไง</p>`;
+    else hits.innerHTML = frHits.map(p => `<div class="fr-card">
+        ${frAv(p)}
+        <div class="fr-bd">${frName(p)}</div>
+        ${p.rel === 'friends' ? '<span class="fr-tag">เพื่อนแล้ว</span>'
+          : p.rel === 'sent' ? '<span class="fr-tag wait">รอเขารับ</span>'
+          : `<button class="fr-go" onclick="addPerson('${esc(p.id)}')">${
+              p.rel === 'incoming' ? 'ตอบรับ' : 'เพิ่ม'}</button>`}
+      </div>`).join('');
+  }
+
+  // ---------- คำขอที่รอเราตอบ ----------
+  // ปุ่มปฏิเสธเป็น ✕ เล็ก ไม่ใช่ปุ่มขนาดเท่า "รับ" — สองปุ่มน้ำหนักเท่ากันแปลว่า
+  // จอกำลังบอกว่าสองทางนี้มีค่าเท่ากัน ซึ่งไม่จริง คนกดเข้ามาที่นี่มาเพื่อกดรับ
+  const rq = document.getElementById('frReqBox');
+  if (rq) {
+    rq.innerHTML = !frReqs.length ? '' : frSec('คำขอ', frReqs.length)
+      + frReqs.map(p => `<div class="fr-card req">
+          ${frAv(p)}
+          <div class="fr-bd">${frName(p)}</div>
+          <button class="fr-go" onclick="answerReq('${esc(p.id)}', true)">รับ</button>
+          <button class="fr-x" onclick="answerReq('${esc(p.id)}', false)"
+            aria-label="ปฏิเสธ">${icon('x')}</button>
+        </div>`).join('');
+  }
+
+  // ---------- รายชื่อเพื่อน ----------
+  const lb = document.getElementById('frListBox');
+  if (lb) {
+    // จอว่างเป็นย่อหน้าสีเทาคือจอที่ไม่มีใครอ่านจบ · มาตรฐานคือ ไอคอน + ประโยคเดียว
+    // + ปุ่มให้กดหนึ่งปุ่ม เพราะคนที่มาถึงจอว่างคือคนที่ยังไม่รู้ว่าต้องทำอะไรต่อ
+    lb.innerHTML = frList.length
+      // 1B53 · หัวข้อ "เพื่อน N" ขึ้นเฉพาะตอนมีกลุ่มอื่นอยู่ด้วย (คำขอที่รอตอบ)
+      // ถ้ามีกลุ่มเดียวทั้งจอ หัวข้อนั้นไม่ได้แยกอะไรจากอะไร — และแท็บที่เพิ่งกดมา
+      // ก็ชื่อ "เพื่อนฉัน" อยู่แล้ว มันจึงพูดคำเดิมซ้ำโดยกินที่ 35px
+      ? (frReqs.length ? frSec('เพื่อน', frList.length) : '') + frList.map(p => {
+          const on = frOnline(p);
+          // 1B56 · การ์ดทั้งใบกดได้ → เปิดโปรไฟล์เพื่อน
+          // บั๊ก: จอโปรไฟล์เพื่อน (scr-user) กับ openUser() มีอยู่ครบมาตลอด
+          // แต่ไม่มีอะไรบนการ์ดเรียกมันเลย · ของเดียวที่กดได้คือถังขยะ
+          // ซึ่งแปลว่าการกระทำเดียวที่จอนี้เสนอให้ทำกับเพื่อน คือการลบเขาทิ้ง
+          return `<div class="fr-card big${on ? ' online' : ''}"
+              onclick="openUser('${esc(p.id)}')" role="button" tabindex="0">
+          <div class="fr-top">
+            ${frAv(p)}
+            <div class="fr-bd">${frName(p)}</div>
+            ${on ? `<span class="fr-live">${on.subject
+                ? esc(on.subject) : 'ออนไลน์'}</span>` : ''}
+            <span class="fr-go2">${icon('chevron')}</span>
+            <button class="fr-del" onclick="event.stopPropagation();removeFriend('${esc(p.id)}', '${esc((p.display_name || '').replace(/'/g, ''))}')"
+              aria-label="เอาออก">${icon('trash')}</button>
+          </div>
+          ${frMatch(p)}
+        </div>`; }).join('')
+      : `<div class="fr-empty">
+          ${icon('users')}
+          <b>ยังไม่มีเพื่อน</b>
+          <p>ส่งชื่อผู้ใช้ของคุณให้เพื่อน หรือค้นหาชื่อของเขาในช่องด้านบน</p>
+          <button class="fr-empty-go" onclick="copyHandle()">${icon('copy')}ก๊อป @${esc(frHandle || '…')}</button>
+        </div>`;
+  }
+
+  // ---------- ชื่อผู้ใช้ของฉัน — แถวเล็กล่างสุด ----------
+  // ของที่ตั้งครั้งเดียวแล้วแทบไม่กลับมาแก้ ไม่ควรกินพื้นที่บนสุดของจอที่เปิดทุกวัน
+  const me = document.getElementById('frMeRow');
+  if (!me) return;
+  const hi = document.getElementById('frHandle');
+  if (hi && document.activeElement === hi) return;   // กำลังพิมพ์อยู่ ห้ามวาดทับ
+
+  me.innerHTML = frEditing
+    ? `<div class="fr-me2 edit">
+        <span class="fr-at">@</span>
+        <input id="frHandle" maxlength="15" autocomplete="off" autocapitalize="off"
+               spellcheck="false" placeholder="ตั้งชื่อของคุณ" value="${esc(frHandle || '')}">
+        <button class="fr-go" onclick="saveHandle()">บันทึก</button>
+        <button class="fr-x" onclick="frEditing=false;paintFriendParts()" aria-label="ยกเลิก">${icon('x')}</button>
       </div>
-      ${f.me ? '' : `<button class="fr-del" onclick="removeFriend('${esc(f.n).replace(/'/g, "\\'")}')"
-        aria-label="เอาออก">${icon('trash')}</button>`}
-    </div>`).join('')}
-
-    ${list.length ? '' : `<p class="fr-note">ยังไม่มีเพื่อนในรายการ — ส่งรหัสของคุณให้เพื่อนก่อน
-      แล้วขอรหัสของเขามาวางตรงช่องด้านบน · สถานะเป็นภาพนิ่ง ณ เวลาที่แลกรหัสกัน ไม่ได้อัปเดตเอง</p>`}`;
+      <p class="fr-fine">3-15 ตัว ใช้ได้ทั้งไทยและอังกฤษ · ห้ามเว้นวรรค</p>`
+    // 1B53 · กลับมาเป็นบรรทัดเดียว ไม่ใช่แบนเนอร์ไล่สี
+    // 1B52 ทำให้มันเป็นการ์ดใหญ่เพื่อแก้ปัญหา "หาไม่เจอ" ซึ่งแก้ถูก แต่แก้แรงเกินไป:
+    // ของที่ดังที่สุดบนจอกลายเป็นก้อนที่พูดถึงตัวเจ้าของเอง ไม่ใช่เพื่อนซึ่งเป็นเนื้อหาของจอ
+    // อยู่บนสุดเหมือนเดิม (แก้เรื่องหาเจอ) แต่เบาลงเป็นบรรทัดเดียว (คืนที่ให้เนื้อหา)
+    : `<button class="fr-me-line" onclick="copyHandle()">
+        <span class="fr-me-at">@${esc(frHandle || '…')}</span>
+        <span class="fr-me-hint">ชื่อของคุณ · แตะเพื่อก๊อปส่งให้เพื่อน</span>
+        ${icon('copy')}
+        <i class="fr-me-edit" onclick="event.stopPropagation();frEditing=true;paintFriendParts();document.getElementById('frHandle').focus()"
+          role="button" aria-label="เปลี่ยนชื่อผู้ใช้">${icon('pencil')}</i>
+      </button>`;
 }
 
 // ---------- บริบทของฉัน (ตารางเรียน · กิจวัตร · เวลานอน) ----------
@@ -4301,6 +5756,66 @@ function ctxHours(min) {
   if (min <= 0) return '0 นาที';
   const h = Math.floor(min / 60), m = min % 60;
   return (h ? h + ' ชม.' : '') + (h && m ? ' ' : '') + (m ? m + ' นาที' : '');
+}
+
+// ============================================================
+// 1B45 · F7 — ตารางสลับสัปดาห์ (A/B)
+// ============================================================
+// โผล่เป็นสวิตช์ปิดอยู่ตามค่าเริ่มต้น · โรงเรียนส่วนใหญ่ตารางซ้ำทุกสัปดาห์
+// คนกลุ่มนั้นต้องไม่ต้องอ่านอะไรเพิ่มเลย จึงเป็นแถวเดียวที่ปิดอยู่ ไม่ใช่คำถามที่ต้องตอบ
+//
+// เปิดแล้วต้องถามต่อทันทีว่า "สัปดาห์นี้คือ A หรือ B" — เพราะระบบเดาเองไม่ได้
+// และการเดาผิดแปลว่าตารางผิดทั้งเทอมโดยที่หน้าจอดูปกติทุกอย่าง
+// จุดยึดเก็บเป็นวันที่จริง ไม่ใช่ตัวนับ ดังนั้นเปิดแอปข้ามเดือนแล้วก็ยังคำนวณถูก
+function abBlock(p) {
+  const on = p.weekMode === 'ab';
+  const nowW = on && typeof ctxWeekOf === 'function' ? ctxWeekOf(new Date()) : null;
+  return `<div class="sec-label">ตารางสลับสัปดาห์</div>
+    <div class="pf-list">
+      <div class="pf-row">
+        <span class="tile">${icon('calendar')}</span>
+        <span class="bd"><span class="lb">ตารางไม่ซ้ำทุกสัปดาห์</span>
+          <span class="sb">โรงเรียนที่ใช้สัปดาห์ A / สัปดาห์ B</span></span>
+        <button class="ctx-sw${on ? ' on' : ''}" role="switch" aria-checked="${on}"
+          onclick="ctxToggleAb()" aria-label="ตารางสลับสัปดาห์"><i></i></button>
+      </div>
+      ${on ? `<div class="pf-row ab-pick">
+        <span class="bd"><span class="lb">สัปดาห์นี้คือ</span>
+          <span class="sb">ตั้งผิดแล้วตารางจะสลับกันทั้งเทอมโดยที่หน้าจอดูปกติ</span></span>
+        <div class="ab-btns">
+          <button class="ab${nowW === 'A' ? ' on' : ''}" onclick="ctxSetThisWeek('A')">A</button>
+          <button class="ab${nowW === 'B' ? ' on' : ''}" onclick="ctxSetThisWeek('B')">B</button>
+        </div>
+      </div>` : ''}
+    </div>`;
+}
+
+function ctxToggleAb() {
+  const p = ctxPrefs();
+  if (p.weekMode === 'ab') {
+    // ปิดแล้วไม่ล้าง week ของแต่ละคาบทิ้ง — เปิดกลับมาแล้วของเดิมต้องอยู่ครบ
+    // (onDay ข้ามด่านสัปดาห์เองอยู่แล้วเมื่อ weekMode ไม่ใช่ 'ab')
+    ctxSetPrefs({ weekMode: 'single' });
+  } else {
+    ctxSetPrefs({ weekMode: 'ab', weekAnchor: ctxPrefs().weekAnchor || ymdLocal(new Date()) });
+  }
+  renderContext(); renderAll();
+}
+
+// ตั้งว่า "สัปดาห์นี้" เป็น A หรือ B — เก็บเป็นจุดยึด ไม่ใช่ตัวนับ
+// เลือก B แปลว่าจุดยึด (สัปดาห์ A) คือสัปดาห์ก่อนหน้านี้หนึ่งสัปดาห์
+function ctxSetThisWeek(w) {
+  const d = new Date();
+  if (w === 'B') d.setDate(d.getDate() - 7);
+  ctxSetPrefs({ weekMode: 'ab', weekAnchor: ymdLocal(d) });
+  renderContext(); renderAll();
+  showToast({ title: 'สัปดาห์นี้คือสัปดาห์ ' + w,
+    body: 'คาบที่ตั้งไว้เฉพาะสัปดาห์อีกฝั่งจะไม่ขึ้นในเวลาว่างของสัปดาห์นี้' });
+}
+
+function ymdLocal(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+    + '-' + String(d.getDate()).padStart(2, '0');
 }
 
 function renderContext() {
@@ -4383,6 +5898,8 @@ function renderContext() {
         <span>อ่านทั้งสัปดาห์ในทีเดียว — ตรวจแก้ได้ก่อนบันทึกทุกคาบ</span></span>
       <span class="cs-go">${icon('chevron')}</span>
     </button>
+
+    ${abBlock(p)}
 
     <div class="sec-label">เวลาประจำวัน</div>
     <div class="pf-list">
@@ -4916,6 +6433,7 @@ function ctxWeekHtml() {
             <i class="mono">${esc(x.start)}–${esc(x.end)}</i>
             <b>${esc(name)}</b>
             ${ctxDayCount(x) > 1 ? `<u>${esc(ctxDayLabel(x))}</u>` : ''}
+            ${x.week ? `<u class="wk">สัปดาห์ ${esc(x.week)}</u>` : ''}
             <button class="ctx-del" onclick="ctxDelete('class','${x.id}')"
               aria-label="ลบ ${esc(name)}">${icon('trash')}</button>
           </div>`;
@@ -4982,6 +6500,11 @@ function ctxFormHtml(kind) {
       <span>ถึง</span>
       <input type="time" value="${esc(d.end)}" onchange="ctxEditing.draft.end=this.value">
     </div>
+    ${kind === 'class' && ctxPrefs().weekMode === 'ab' ? `<div class="ctx-days ctx-wks">
+      ${[['', 'ทุกสัปดาห์'], ['A', 'สัปดาห์ A'], ['B', 'สัปดาห์ B']].map(([v, lb]) =>
+        `<button type="button" class="ctx-day${(d.week || '') === v ? ' on' : ''}"
+          onclick="ctxSetWeek('${v}')">${lb}</button>`).join('')}
+    </div>` : ''}
     <div class="ctx-form-act">
       <button class="btn ghost sm" onclick="ctxCloseForm()">ยกเลิก</button>
       <button class="btn sm" onclick="ctxSubmit()">เพิ่ม</button>
@@ -5015,6 +6538,12 @@ function ctxToggleDay(i) {
   renderContext();
 }
 
+function ctxSetWeek(w) {
+  if (!ctxEditing) return;
+  ctxEditing.draft.week = w || '';
+  renderContext();
+}
+
 function ctxSubmit() {
   if (!ctxEditing) return;
   const { kind, draft } = ctxEditing;
@@ -5032,8 +6561,12 @@ function ctxSubmit() {
     weekday: days.length === 0 || days.length === 7 ? null : days,
     start: draft.start, end: draft.end,
   };
-  if (kind === 'class') rec.subject = draft.name.trim();
-  else { rec.title = draft.name.trim(); rec.kind = draft.kind; }
+  // 1B45 · เก็บ week เฉพาะเมื่อเลือกจริง · คาบที่ไม่ระบุ = เกิดทุกสัปดาห์
+  // ต้องเป็น undefined ไม่ใช่ '' เพราะ onDay เช็คด้วย truthiness
+  if (kind === 'class') {
+    rec.subject = draft.name.trim();
+    if (draft.week) rec.week = draft.week;
+  } else { rec.title = draft.name.trim(); rec.kind = draft.kind; }
 
   ctxUpsert(kind, rec);
   ctxEditing = null;
@@ -6007,17 +7540,13 @@ function renderTabBadges() {
     dot.setAttribute('aria-label', waiting ? 'มีของรางวัลรายวันรอรับ' : '');
   }
 
-  // ปุ่มเพื่อนมุมขวาบน — ขึ้นจำนวนเพื่อนที่มีในรายการ
+  // ปุ่มเพื่อนมุมขวาบน — ขึ้นจำนวนคำขอที่รอเราตอบ ไม่ใช่จำนวนเพื่อน
+  // เลขบนแบดจควรแปลว่า "มีอะไรรอให้กด" เสมอ · จำนวนเพื่อนไม่มีอะไรให้กด
   const fb = document.getElementById('friendsBadge');
   if (fb) {
-    const n = friends().length;
+    const n = frReqs.length;
     fb.hidden = !n;
     fb.textContent = n > 9 ? '9+' : n;
-  }
-  const fsub = document.getElementById('friendsSub');
-  if (fsub) {
-    const n = friends().length;
-    fsub.textContent = n ? n + ' คนในรายการ · ดูสถานะและผลของเพื่อน' : 'ดูสถานะและผลของเพื่อน';
   }
 }
 
@@ -6101,13 +7630,12 @@ function renderStats() {
       <span class="sec-label">ผลของฉัน</span>
       <span class="st-open-go">ดูทั้งหมด${icon('chevron')}</span>
     </button>
-    <div class="st-hero">
-      <div><div class="v">${done.length}</div><div class="k">งานที่เสร็จ</div></div>
-      <div class="sep"></div>
-      <div><div class="v">${week.length}</div><div class="k">เสร็จใน 7 วัน</div></div>
-      <div class="sep"></div>
-      <div><div class="v">${estH}<span class="u">ชม.</span></div><div class="k">เวลาที่ประเมินไว้</div></div>
-    </div>
+    <!-- แถบเหลืองสามช่องถูกถอดออกใน 1B71 — สองในสามช่องซ้ำกับบล็อก "เห็นคนเดียว"
+         ที่อยู่เหนือขึ้นไปในจอเดียวกัน (งานที่เสร็จ · เสร็จใน 7 วัน)
+         และช่องที่สาม "เวลาที่ประเมินไว้ 31.1 ชม." ล้นกรอบจนตัวเลขทับหน่วย
+         เพราะเป็นช่องเดียวที่มีทศนิยม+หน่วยในความกว้างเท่ากับช่องที่มีเลขหลักเดียว
+         ตัวเลขนั้นยังอยู่ครบในจอ "ผลของฉัน" ฉบับเต็มหลังปุ่มดูทั้งหมด
+         สีเหลืองก็หลุดจากชุดสีของจอนี้ที่เหลือเป็นฟ้า-ขาวทั้งหมดด้วย -->
 
     <div class="st-card">
       <div class="st-h">งานที่ติ๊กเสร็จ 7 วันล่าสุด</div>
@@ -6375,7 +7903,8 @@ function workStatsHtml(now) {
 
 function renderAll() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline(); renderAi();
-  renderProfile(); renderStats(); renderPlan(); renderFriends(); renderBadges();
+  renderWhy();
+  renderProfile(); renderStats(); renderPlan(); renderFriends(); renderBadges(); renderTools();
   renderShop(); renderPro(); renderWheel(); renderInstallCard(); renderTabBadges(); renderContext();
   renderRunBar();
   // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น
@@ -6385,6 +7914,12 @@ function renderAll() {
   if (typeof renderRoom === 'function') renderRoom();
   if (typeof renderMates === 'function') renderMates();
   if (typeof renderFeed === 'function') renderFeed();
+  // ห้องการบ้าน — ลงชื่อว่ามีงานชิ้นไหนบ้างแล้วรับตัวเลขกลับมา
+  // เรียกจากที่นี่เพราะรายการงานเปลี่ยนได้จากสิบทาง (เพิ่ม · ติ๊กเสร็จ · เลื่อน · ซิงก์จาก cloud)
+  // ตัว hwSync หน่วงและกันยิงถี่ไว้เองแล้ว จึงเรียกบ่อยได้โดยไม่กินเน็ต
+  if (typeof hwSync === 'function') hwSync();
+  // เช็คว่ามีคำตอบใหม่ในเธรดหัวข้อที่เราถามไว้หรือยัง · หน่วงเองภายใน 2 นาที
+  if (typeof loadTopicNews === 'function') loadTopicNews();
 }
 
 // ---------- สแกนตารางเรียนจากรูป ----------
@@ -6843,7 +8378,15 @@ function toggleDone(id, el) {
   t.done = !t.done;
   t.progress = t.done ? 100 : (t.progress === 100 ? 0 : t.progress);
   t.doneAt = t.done ? new Date().toISOString() : null;
+  // ข้อย่อยต้องตามสถานะใบใหญ่ — ติ๊กใบใหญ่เสร็จแล้วเหลือข้อย่อยค้างสามข้อ
+  // คือใบที่บอกสองอย่างขัดกันในการ์ดเดียว
+  if (Array.isArray(t.subs) && t.subs.length && t.done) t.subs.forEach(x => { x.done = true; });
   if (!wasDone && t.done) funnelDone();   // ต้องอยู่ก่อน save() จะได้เขียนลงไปในรอบเดียวกัน
+  // 1B43 · F3 — งานซ้ำสร้างใบถัดไปตรงนี้ ตอนที่ใบนี้เพิ่งถูกติ๊กเสร็จ
+  // ไม่ใช่ตอนถึงกำหนด (ดูเหตุผลใน spawnRepeat) · ยกเลิกติ๊กแล้วไม่ลบใบถัดไปทิ้ง
+  // เพราะกดพลาดแล้วกดคืนเป็นเรื่องปกติ ส่วนการลบงานที่ระบบสร้างให้เงียบ ๆ ไม่ใช่
+  let spawned = null;
+  if (!wasDone && t.done && t.repeatDays) spawned = spawnRepeat(t);
   save();
 
   if (!wasDone && t.done) {
@@ -6852,6 +8395,11 @@ function toggleDone(id, el) {
     celebrate(el);
     haptic('done'); // ALT: จังหวะคู่ ให้รู้สึกว่า "เช็คสำเร็จ" ไม่ใช่แค่ภาพเปลี่ยน
     const cleared = pendingTasks().length === 0;
+    // บอกด้วยว่ารอบถัดไปถูกตั้งให้แล้ว ไม่งั้นงานที่เพิ่ง "หายไป" จะดูเหมือนหายจริง
+    if (spawned) setTimeout(() => showToast({
+      title: 'ตั้งรอบถัดไปให้แล้ว 🔁',
+      body: taskTitle(spawned).replace(/<[^>]*>/g, '') + ' · ' + fmtThaiDate(new Date(spawned.due)),
+    }), 900);
     setTimeout(() => {
       renderAll();
       // คำชมที่ไม่บอกว่างานถัดไปคืออะไร คือคำชมที่ทำให้ต้องกลับไปนั่งเลือกใหม่เอง
@@ -7007,6 +8555,22 @@ function openForm(id, parsed) {
   let t = null;
   if (id) t = state.tasks.find(x => x.id === id);
 
+  // 1B43 · เติมสามช่องใหม่ · ต้องล้างทุกครั้งด้วย ไม่งั้นค่าของงานใบก่อนค้างมาที่ใบใหม่
+  const fSubs = document.getElementById('fSubs');
+  const fRepeat = document.getElementById('fRepeat');
+  const fGot = document.getElementById('fGot');
+  const fGotMax = document.getElementById('fGotMax');
+  const fGotWrap = document.getElementById('fGotWrap');
+  const tEdit = id ? state.tasks.find(x => x.id === id) : null;
+  if (fSubs) fSubs.value = (tEdit && Array.isArray(tEdit.subs))
+    ? tEdit.subs.map(x => x.text).join('\n') : '';
+  if (fRepeat) fRepeat.value = (tEdit && tEdit.repeatDays) ? String(tEdit.repeatDays) : '';
+  if (fGot) fGot.value = (tEdit && tEdit.got != null) ? tEdit.got : '';
+  if (fGotMax) fGotMax.value = (tEdit && tEdit.gotMax != null) ? tEdit.gotMax : '';
+  // ช่องคะแนนที่ได้โผล่เฉพาะงานที่มีอยู่แล้ว — งานที่เพิ่งเพิ่มยังไม่มีผลให้กรอก
+  if (fGotWrap) fGotWrap.hidden = !tEdit;
+  updateSubsCount();
+
   const okBadge = document.getElementById('fmOk');
   if (parsed) {
     title.textContent = 'ตรวจก่อนบันทึก';
@@ -7075,6 +8639,51 @@ function openForm(id, parsed) {
   autoGrow(f.detail);
 }
 
+// 1B43 · ป้ายนับข้อย่อยข้างหัวช่อง — บอกว่าพิมพ์ไปกี่ข้อแล้วโดยไม่ต้องนับเอง
+function updateSubsCount() {
+  const box = document.getElementById('fSubs');
+  const val = document.getElementById('fSubsVal');
+  if (!box || !val) return;
+  const n = box.value.split('\n').map(x => x.trim()).filter(Boolean).length;
+  val.textContent = n ? n + ' ข้อ' : 'ไม่มี';
+}
+
+// ---- 1B43 · F2 · ติ๊กข้อย่อยจากการ์ดงาน ----
+// ความคืบหน้าเป็นเปอร์เซ็นต์คิดจากข้อย่อยให้เอง — ช่อง progress เดิมยังใช้ได้เหมือนเดิม
+// สำหรับงานที่ไม่มีข้อย่อย · งานที่มีข้อย่อยไม่ควรต้องลากแถบเองอีก มันนับได้อยู่แล้ว
+function toggleSub(taskId, i) {
+  const t = state.tasks.find(x => x.id === taskId);
+  if (!t || !Array.isArray(t.subs) || !t.subs[i]) return;
+  t.subs[i].done = !t.subs[i].done;
+  const n = t.subs.length;
+  const hit = t.subs.filter(x => x.done).length;
+  t.progress = n ? Math.round(hit / n * 100) : (t.progress || 0);
+  save();
+  renderAll();
+}
+
+// ---- 1B43 · F3 · งานซ้ำ ----
+// สร้างใบถัดไปตอน "ติ๊กเสร็จ" ไม่ใช่ตอนถึงกำหนด — งานที่ยังไม่เสร็จแล้วมีใบถัดไป
+// โผล่มาซ้อน คือรายการที่ยาวขึ้นเรื่อย ๆ โดยไม่มีใครทำทัน แล้วคนก็เลิกเชื่อรายการนั้น
+//
+// ใบใหม่เริ่มที่ progress 0 และข้อย่อยถูกล้างเครื่องหมายถูกทั้งหมด — มันคือรอบใหม่
+// ไม่ใช่ใบเดิมที่ถูกเลื่อนวัน · ส่วนคะแนนที่ได้ไม่ตามไปด้วยเพราะเป็นผลของรอบที่แล้ว
+function spawnRepeat(t) {
+  if (!t || !t.repeatDays || !t.due) return null;
+  const next = new Date(new Date(t.due).getTime() + t.repeatDays * 864e5);
+  const copy = Object.assign({}, t, {
+    id: uid(),
+    done: false, doneAt: null, deleted: false,
+    progress: 0, got: null, gotMax: null,
+    snoozedAt: null, snoozeCount: 0, remindedAt: null, remindedStage: null,
+    createdAt: new Date().toISOString(),
+    due: next.toISOString(),
+    subs: Array.isArray(t.subs) ? t.subs.map(x => ({ text: x.text, done: false })) : [],
+  });
+  state.tasks.push(copy);
+  return copy;
+}
+
 function saveForm() {
   const detail = document.getElementById('fDetail').value.trim();
   if (!detail) { alert('ใส่ชื่องานก่อนนะ'); return; }
@@ -7096,6 +8705,27 @@ function saveForm() {
     progress: ti.schedulable ? (+document.getElementById('fProgress').value || 0) : 0,
     due: due ? due.toISOString() : null,
   };
+
+  // ---- 1B43 · F2 งานย่อย ----
+  // เก็บสถานะติ๊กของข้อเดิมไว้ถ้าข้อความยังเหมือนเดิม — คนที่เข้ามาแก้ชื่องานใหญ่
+  // ไม่ควรเสียเครื่องหมายถูกของข้อย่อยที่ทำไปแล้วสามข้อ
+  const oldSubs = (editingId && (state.tasks.find(x => x.id === editingId) || {}).subs) || [];
+  const subLines = (document.getElementById('fSubs').value || '')
+    .split('\n').map(x => x.trim()).filter(Boolean).slice(0, 20);
+  data.subs = subLines.map(text => {
+    const prev = oldSubs.find(o => o && o.text === text);
+    return { text, done: !!(prev && prev.done) };
+  });
+
+  // ---- 1B43 · F3 งานซ้ำ ----
+  const rep = +document.getElementById('fRepeat').value || 0;
+  data.repeatDays = rep || null;
+
+  // ---- 1B43 · F5 คะแนนที่ได้จริง ----
+  const gotV = document.getElementById('fGot').value;
+  const gotMaxV = document.getElementById('fGotMax').value;
+  data.got = gotV === '' ? null : +gotV;
+  data.gotMax = gotMaxV === '' ? null : Math.max(1, +gotMaxV);
   if (ti.schedulable && data.progress >= 100) data.done = true;
 
   const target = editingId ? state.tasks.find(x => x.id === editingId) : null;
@@ -8240,13 +9870,17 @@ async function pickAvatar(file) {
   haptic('done');
   vaultTouch();
   renderProfile();
-  showToast({ title: 'เปลี่ยนรูปโปรไฟล์แล้ว 🖼', body: 'เอาออกได้ที่จอตั้งค่า' });
+  // ดันขึ้นให้เพื่อนเห็นทันที — ไม่มีใครเดาได้ว่าต้องเดินไปกดปุ่มเผยแพร่อีกรอบ
+  if (typeof syncPublicFace === 'function') syncPublicFace(true);
+  showToast({ title: 'เปลี่ยนรูปโปรไฟล์แล้ว 🖼', body: 'เพื่อนจะเห็นรูปใหม่นี้ด้วย' });
 }
 
 function clearAvatar() {
   try { localStorage.removeItem(AV_KEY); } catch (_) {}
   vaultTouch();
   renderProfile();
+  // ส่ง clearFace มาด้วย — นี่คือทางเดียวที่รูปบนเซิร์ฟเวอร์จะถูกลบ
+  if (typeof syncPublicFace === 'function') syncPublicFace(true, { clearFace: true });
   showToast({ title: 'เอารูปโปรไฟล์ออกแล้ว', body: 'กลับไปใช้ตัวอักษรแรกของชื่อเหมือนเดิม' });
 }
 
@@ -8792,6 +10426,8 @@ async function cloudOcrRetry() {
 // ---------- profile ----------
 function saveProfile() {
   state.settings.name = document.getElementById('pName').value.trim();
+  // ชื่อก็เหมือนรูป — เปลี่ยนแล้วเพื่อนต้องเห็นชื่อใหม่โดยไม่ต้องไปกดเผยแพร่ซ้ำ
+  if (typeof syncPublicFace === 'function') syncPublicFace(true);
   state.settings.freeHours = Math.max(0.5, +document.getElementById('pFree').value || 2);
   save(); renderAll();
   alert('บันทึกแล้ว ✓');
@@ -9460,14 +11096,25 @@ function stopFunFacts(el) {
 //
 // อ่านแค่ว่า "มีโทเคนที่ยังไม่หมดอายุอยู่ไหม" ไม่ได้เอาไปใช้ยืนยันตัวตน
 // การยืนยันจริงยังเป็นหน้าที่ของ initCloud() เหมือนเดิม
+// "เครื่องนี้เคยล็อกอินค้างไว้ไหม" — ตอบก่อนที่ Supabase จะตอบกลับมา ใช้เดาว่าจอแรกคือจออะไร
+//
+// เดิมเช็ค expires_at ว่ายังไม่หมดอายุ ซึ่งเป็นคำถามผิด: access token มีอายุแค่ 1 ชั่วโมง
+// แปลว่าทุกครั้งที่วางแอปไว้เกินหนึ่งชั่วโมงแล้วเปิดใหม่ คำตอบของบรรทัดนี้คือ "ไม่เคยล็อกอิน"
+// routeStart() จึงส่งคนที่ล็อกอินค้างอยู่ไปจอบัญชี ทั้งที่ refresh token ยังใช้ได้
+// และ initCloud() ต่ออายุให้สำเร็จอีกสองวินาทีถัดมา — แต่ไม่มีใครพาเขาออกจากจอนั้น
+// นี่คือสาเหตุจริงของ "ต้องล็อกอินใหม่ทุกครั้ง" ไม่ใช่ session ที่หายไปไหน
+//
+// ตัวที่ตอบคำถามนี้คือ refresh token: มันไม่หมดอายุตามเวลา (หมดได้จากการถูกเพิกถอน
+// หรือเปลี่ยนรหัสเท่านั้น) มีมันอยู่ = เครื่องนี้ล็อกอินค้างอยู่ จนกว่าจะพิสูจน์ได้ว่าใช้ไม่ได้จริง
+// ซึ่งมีตัวแก้จออยู่แล้วหลัง initCloud() เสร็จ
 function hasStoredSession() {
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (!k || !/^sb-.*-auth-token$/.test(k)) continue;
       const v = JSON.parse(localStorage.getItem(k) || 'null');
-      const exp = v && (v.expires_at || (v.currentSession && v.currentSession.expires_at));
-      if (exp && exp * 1000 > Date.now()) return true;
+      const sess = v && (v.currentSession || v);
+      if (sess && (sess.refresh_token || sess.access_token)) return true;
     }
   } catch (_) {}
   return false;
@@ -9478,6 +11125,25 @@ const ONBOARD_SKIP_KEY = 'studentos.alt.onboardSkipped';
 
 // ชื่อที่ผู้ใช้อยากให้เรียก — ใช้ทั่วแอป ทั้งคำชม คำเตือน และหน้าไม่มีงาน
 function who() { return (state.settings.name || '').trim(); }
+
+// ---------- ชื่อจากบัญชีที่ล็อกอินมา ----------
+// ใช้เป็นตัวสำรองของ who() เท่านั้น ไม่เคยเขียนทับชื่อที่ผู้ใช้กรอกเอง
+// ตัดเหลือคำแรก — Google ส่งชื่อเต็มมา ("สมชาย ใจดี") ซึ่งยาวเกินไปสำหรับหัวจอ
+// ที่มีที่ให้บรรทัดเดียว และคำทักทายที่ยาวจนโดนตัดด้วย ellipsis อ่านแย่กว่าไม่มีชื่อ
+function accountName() {
+  const m = (currentUser && currentUser.user_metadata) || {};
+  const full = (m.full_name || m.name || '').trim();
+  return full ? full.split(/\s+/)[0] : '';
+}
+
+// ---------- รูปในวงกลมหัวจอ ----------
+// ลำดับ: รูปที่ตั้งเอง → รูปจากบัญชี Google → ตราแอป
+// ตัวสุดท้ายเคยเป็นไอคอนรูปคนสีน้ำเงิน ซึ่งไม่ได้บอกอะไรเลยนอกจาก "ยังไม่มีรูป"
+// ใช้ตราเดียวกับหน้าล็อกอินแทน เพราะมุมซ้ายบนคือที่ที่ทุกแอปวางตราของตัวเอง
+function headFace() {
+  const m = (currentUser && currentUser.user_metadata) || {};
+  return (state.settings.avatar || m.avatar_url || m.picture || '').trim();
+}
 
 // หน้าทำความรู้จักขึ้นครั้งเดียวในชีวิตของเครื่องนั้น และขึ้นเฉพาะตอนที่ยังไม่มีอะไรเลย (1A9n)
 //
@@ -9569,7 +11235,10 @@ function takeSharedText() {
 }
 
 // ปุ่มลัดจากไอคอนแอป (manifest shortcuts) ส่ง ?go=... มา — ต้องพาไปจอนั้นจริง ไม่งั้นปุ่มลัดโกหก
-const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-timeline' };
+// 1B47 · 'timeline' ชี้มาที่ scr-tasks แล้ว — จอเส้นเวลาไม่มีทางเข้าจากผังหลักอีก
+// ลิงก์เก่าจากหน้า land.html ที่ส่ง ?start=timeline มายังต้องพาไปที่ที่มีของให้ดู
+// ไม่ใช่จอที่ออกไปไหนไม่ได้นอกจากกดแถบล่าง
+const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-tasks' };
 function shortcutTarget() {
   try {
     const g = new URLSearchParams(location.search).get('go');
@@ -9637,8 +11306,10 @@ function routeAfterLogin() {
   // แล้วถูกส่งกลับมาที่หน้าแรก ส่วนใหญ่ไม่เดินกลับไปหน้าเพื่อนเองอีก
   // (ธงถูกลบทิ้งตอนอ่าน จึงมีผลครั้งเดียวต่อการล็อกอินหนึ่งครั้ง)
   const back = typeof takeAfterLogin === 'function' ? takeAfterLogin() : null;
-  if (back === 'scr-mates') {
-    if (typeof openFeed === 'function') openFeed();
+  if (back === 'scr-mates' || back === 'scr-friends') {
+    // กดล็อกอินจากแท็บ "เพื่อนฉัน" ต้องกลับมาที่แท็บนั้น ไม่ใช่โผล่ที่ฟีด
+    // แล้วให้เขาหาทางกลับมาเอง — ซึ่งเป็นทางที่เขาหาไม่เจอมาแล้วสามรอบ
+    if (typeof openFeed === 'function') openFeed(back === 'scr-friends' ? 'friends' : 'feed');
     return;
   }
   go('scr-menu');
@@ -10011,8 +11682,17 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   // ตรวจคำเดาเมื่อกี้ว่าถูกไหม — แก้จอเฉพาะตอนเดาผิด ไม่ใช่วาดใหม่ทุกครั้ง
   // เดาผิดได้ทางเดียว: มีโทเคนค้างอยู่ใน localStorage แต่ใช้จริงไม่ได้แล้ว
   // (ถูกเพิกถอน · เปลี่ยนรหัส · หมดอายุระหว่างที่ปิดแอปไว้)
-  if (guessedSignedIn && !currentUser && cloudConfigured() &&
-      !localStorage.getItem('studentos.alt.skipLogin')) {
+  //
+  // เดาผิดได้สองทาง แต่ของเดิมแก้ให้ทางเดียว:
+  //   เดาว่า "เข้าอยู่" แต่จริง ๆ ออก → ต้องพาไปจอบัญชี (ของเดิมทำอยู่แล้ว)
+  //   เดาว่า "ออกแล้ว" แต่จริง ๆ เข้า → ต้องพาออกจากจอบัญชีเข้าแอป (ไม่เคยมีใครทำ)
+  // ทางที่สองคือทางที่ผู้ใช้เจอทุกวัน: access token หมดอายุใน 1 ชม. หน้าจอแรกจึงเดาว่า
+  // "ยังไม่ล็อกอิน" แล้วค้างอยู่ที่จอบัญชีต่อไปแม้ initCloud() จะต่ออายุสำเร็จไปแล้ว
+  //
+  // ขาที่พาไปจอบัญชีต้องรอ sessionAnswered ด้วย — เน็ตช้าจน getSession() หมดเวลา
+  // ไม่ใช่หลักฐานว่าเขาไม่ได้ล็อกอิน การเด้งไปจอบัญชีตอนนั้นคือการเตะคนที่ล็อกอินอยู่ออก
+  if (cloudConfigured() && !localStorage.getItem('studentos.alt.skipLogin') &&
+      guessedSignedIn !== !!currentUser && (currentUser || sessionAnswered)) {
     routeStart();
   }
   // ตอนนี้รู้แล้วว่าล็อกอินสำเร็จจริงไหม — ถ้ามี token ค้างจากลิงก์กลุ่ม ใช้ตรงนี้

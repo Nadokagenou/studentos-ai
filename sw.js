@@ -5,10 +5,11 @@
 // ⚠️ ทุกชื่อในลิสต์นี้ต้องมีไฟล์อยู่จริง — addAll จะล้มทั้งก้อนถ้ามีตัวใดตัวหนึ่ง 404
 //    แล้วแอปจะไม่มีแคชเลย (เปิดออฟไลน์ไม่ได้) โดยไม่มี error โผล่ให้เห็นที่หน้าจอ
 //    เคยพลาดมาแล้วตอนคัดลอกไฟล์จาก alt/ ขึ้นมา: ลิสต์ยังมี icon-alt-* ซึ่ง root ไม่มี
-const CACHE = 'studentos-1b15b-assist';   // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
-const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'custom.css',
-  'engine.js', 'context.js', 'planner.js', 'brain.js', 'inbox.js', 'linelink.js', 'app.js', 'config.js', 'manifest.json',
-  'icon-192.png', 'icon-512.png', 'logo-mark.png', 'logo-splash.png', 'logo-splash-light.png',
+const CACHE = 'studentos-1b79-signal';   // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
+const SHELL = ['.', 'index.html', 'manifest.json',
+  'style.css', 'alt.css', 'inbox.css', 'today.css', 'room.css', 'social.css', 'feed.css', 'safety.css', 'hw.css', 'topic.css', 'custom.css',
+  'config.js', 'engine.js', 'context.js', 'planner.js', 'profile.js', 'simulate.js', 'calibrate.js', 'loss.js', 'decide.js', 'brain.js', 'inbox.js', 'linelink.js', 'room.js', 'social.js', 'feed.js', 'hw.js', 'topic.js', 'safety.js', 'app.js',
+  'icon-192.png', 'logo-splash.png', 'logo-splash-light.png', 'icon-512.png', 'logo-mark.png',
   // หน้าน้องไซบนฟองแชท — ต้องอยู่ในแคชด้วย ไม่งั้นเปิดแอปตอนไม่มีเน็ตแล้วมาสคอตหายไปทั้งจอ
   'sai-avatar.png'];
 
