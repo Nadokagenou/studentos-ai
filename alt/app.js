@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B78';                 // สายเลขของแอป
+const APP_VERSION = '1B79';                 // สายเลขของแอป
 const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -2993,23 +2993,24 @@ function riskChips(t, now) {
 // decide() เดินอนาคต 120 เส้น × ทางเลือกห้าถึงหกทาง = หลักหมื่นก้าว ราว 15–25 มิลลิวินาที
 // เร็วพอสำหรับการกดเข้าจอหนึ่งครั้ง แต่ไม่เร็วพอจะเรียกซ้ำทุกครั้งที่ renderAll ทำงาน
 // (renderAll ถูกเรียกทุกนาทีจาก minuteTick) — จึงแคชด้วยคีย์เดียวกับ riskFor
-let _decideMemo = { key: '', val: null };
-function decideFor(now) {
+// **ห้ามเรียก focusPlan() ในนี้เด็ดขาด** — ตั้งแต่ 1B79 studyPlan() เรียก decideFor()
+// เพื่อเลือกใบที่จะขึ้นการ์ด "ตอนนี้" · เรียกกลับไปเมื่อไหร่ได้วงกลมทันที
+// (studyPlan → decideFor → focusPlan → studyPlan) แล้วแอปค้างตั้งแต่วาดจอแรก
+//
+// ผู้เรียกที่อยากได้มุมของ "ใบที่อยู่บนการ์ด" ต้องส่ง focusId มาเอง — มีที่เดียวคือ renderWhy()
+// ซึ่งไม่ได้ถูกเรียกจากในแผน จึงไม่มีทางเกิดวงกลม
+const _decideMemo = new Map();
+function decideFor(now, focusId) {
   if (typeof decide !== 'function') return null;
   const pend = pendingTasks();
-  const key = Math.floor(now.getTime() / 60000) + '|' +
+  const key = Math.floor(now.getTime() / 60000) + '|' + (focusId || '') + '|' +
     pend.map(x => x.id + ':' + x.due + ':' + x.estMin + ':' + (x.progress || 0)).join(',');
-  // ส่ง "ใบที่การ์ดหน้าแรกแนะนำอยู่" เข้าไปด้วยเสมอ — จอ "AI คิดยังไง" ต้องอธิบายใบนั้น
-  // ไม่ใช่ใบที่ตัวมันเองเลือก · สองจอในแอปเดียวห้ามชี้ไปคนละที่
-  if (_decideMemo.key !== key) {
-    let focusId = null;
-    try {
-      const sp = typeof focusPlan === 'function' ? focusPlan(now) : null;
-      focusId = sp && sp.now ? sp.now.task.id : null;
-    } catch (e) { focusId = null; }
-    _decideMemo = { key, val: decide(state, now, { focusId }) };
+  if (!_decideMemo.has(key)) {
+    // เก็บไม่กี่ชิ้นพอ — คีย์มีนาทีอยู่ด้วย ของเก่าจึงไม่มีวันถูกใช้ซ้ำอยู่แล้ว
+    if (_decideMemo.size >= 4) _decideMemo.clear();
+    _decideMemo.set(key, decide(state, now, focusId ? { focusId } : {}));
   }
-  return _decideMemo.val;
+  return _decideMemo.get(key);
 }
 
 // หน่วยของตัวเลขต้องอธิบายด้วยคำที่นักเรียนเข้าใจทันที
@@ -3054,7 +3055,15 @@ function renderWhy() {
   if (typeof curScreen === 'string' && curScreen !== 'scr-why') return;
 
   const now = new Date();
-  const d = decideFor(now);
+  // ส่งใบที่อยู่บนการ์ดหน้าแรกเข้าไป เพื่อให้จอนี้อธิบาย "ใบนั้น" เสมอ
+  // ปกติตั้งแต่ 1B79 มันจะเป็นใบเดียวกับที่ decide() เลือกอยู่แล้ว (แผนตามเอนจินไปแล้ว)
+  // แต่ยังต่างกันได้เมื่อใบที่เอนจินชอบไม่มีคิวในวันนี้ — กรณีนั้นต้องพูดออกมา ไม่ใช่กลบ
+  let focusId = null;
+  try {
+    const sp = typeof focusPlan === 'function' ? focusPlan(now) : null;
+    focusId = sp && sp.now ? sp.now.task.id : null;
+  } catch (e) { focusId = null; }
+  const d = decideFor(now, focusId);
   const sub = document.getElementById('whySub');
 
   if (!d) {

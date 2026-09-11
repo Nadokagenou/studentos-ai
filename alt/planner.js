@@ -420,9 +420,44 @@ function studyPlan(state, now = new Date()) {
   // ต่างกันตรงที่แผนรู้ว่าเวลาที่เหลืออยู่ตอนนี้พอทำอะไรได้บ้าง ส่วนคะแนนไม่รู้
   // งานที่ผู้ใช้เพิ่งบอกว่าไม่ไหว ต้องไม่เด้งกลับมาเป็นการ์ดใบใหญ่ทันที — มันยังอยู่ในแผนก็พอ
   const offer = s => !s.break && !stuck.includes(s.task);
-  const firstSlot = plan.slots.find(offer) || null;
-  const nowTask = firstSlot ? firstSlot.task
+  let firstSlot = plan.slots.find(offer) || null;
+  let nowTask = firstSlot ? firstSlot.task
     : (sortByPriority(live.filter(t => !stuck.includes(t)), now)[0] || null);
+
+  // ============================================================
+  // 1B79 · คำแนะนำหลักมาจากเอนจินตัดสินใจ ไม่ใช่จากลำดับในแผน
+  // ============================================================
+  // ถึงตรงนี้ nowTask คือ "ช่องแรกของแผนวันนี้" ซึ่งมาจากลำดับเส้นตาย (EDF) —
+  // เกณฑ์ที่ถูกสำหรับคำถาม "จะจัดคิวยังไงให้ทันครบ" แต่ไม่ใช่คำตอบของ "ตอนนี้ควรทำอะไร"
+  //
+  // decide() ตอบคำถามหลังโดยเดินอนาคตทั้งกองแล้วเทียบราคาเป็นคะแนนเทอมที่เสี่ยงจะเสีย
+  // ตั้งแต่ 1B77 มันคำนวณคำตอบนั้นไว้แล้ว แต่ถูกใช้แค่ "อธิบาย" ใบที่ EDF เลือก
+  // ซึ่งแปลว่าสมองใหม่ทั้งก้อนไม่เคยได้ตัดสินใจอะไรจริง ๆ เลย
+  //
+  // กติกาการสลับ เข้มโดยตั้งใจ — สามข้อต้องจริงพร้อมกัน:
+  //   1. ใบที่ decide เลือก ต้องมีคิวในแผนวันนี้อยู่แล้ว
+  //      (ไม่งั้นจะเชียร์งานที่วันนี้ไม่มีเวลาให้ ซึ่งเป็นคำแนะนำที่ทำตามไม่ได้)
+  //   2. ต้องไม่ใช่ใบที่ผู้ใช้เพิ่งกดพักไว้
+  //   3. ต้องดีกว่าใบเดิมเกินเกณฑ์ TIE_MARGIN จริง ๆ
+  //      ต่างกันเศษทศนิยมแล้วสลับ = การ์ดเปลี่ยนใบเองทุกนาที ซึ่งแย่กว่าเลือกผิด
+  //
+  // **ห้ามให้ decideFor() เรียก focusPlan()** — ตรงนี้คือวงกลมที่จะเกิดทันที
+  // (studyPlan → decide → focusPlan → studyPlan) · app.js จึงเรียก decideFor(now)
+  // แบบไม่ส่ง focusId เสมอ แล้วค่อยส่งตอนวาดจอ "AI คิดยังไง" เท่านั้น
+  if (typeof decideFor === 'function' && nowTask) {
+    try {
+      const d = decideFor(now);
+      const pick = d && d.best ? d.best.task : null;
+      const cur = d && d.scenarios ? d.scenarios.find(x => x.task.id === nowTask.id) : null;
+      const gap = cur ? cur.score - d.best.score : 0;
+      const slot = pick ? plan.slots.find(s => offer(s) && s.task.id === pick.id) : null;
+      if (pick && slot && pick.id !== nowTask.id && gap >= (typeof TIE_MARGIN === 'number' ? TIE_MARGIN : 0.3)) {
+        nowTask = pick;
+        firstSlot = slot;
+      }
+    } catch (e) { /* เอนจินใหม่ล้มต้องไม่ทำให้แผนทั้งวันหาย — ใช้ของ EDF ต่อไปเงียบ ๆ */ }
+  }
+
   const nextSlot = plan.slots.find(s => offer(s) && s.task !== nowTask) || null;
 
   // LATER = งานที่ "ไม่มีคิวในวันนี้เลย" ไม่ใช่แค่งานที่ไม่ใช่สองใบแรก
