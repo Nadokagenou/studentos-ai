@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B76';                 // สายเลขของแอป
+const APP_VERSION = '1B77';                 // สายเลขของแอป
 const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -2038,6 +2038,14 @@ function nowCard(sp, now) {
       ${noDue ? `<button class="tn-ask" onclick="openForm('${t.id}')">
         ${icon('calendar')}ครูสั่งส่งวันไหน? บอกแล้วผมจัดแผนได้แม่นขึ้น${icon('chevron')}
       </button>` : ''}
+
+      ${/* 1B77 — ทางเข้าเดียวของจอเทียบทางเลือก
+            เป็นบรรทัดเงียบ ๆ ไม่ใช่ปุ่ม เพราะการ์ดใบนี้มีจุดโฟกัสได้จุดเดียว (ดู 1B24 ข้างบน)
+            และจุดนั้นคือปุ่ม "เริ่มทำเลย" · คนที่ไม่สงสัยไม่ต้องเห็นอะไรเพิ่ม
+            คนที่สงสัยว่า "ทำไมใบนี้" จะหาเจอตรงที่คำถามเกิดพอดี */''}
+      <button class="tn-why-go" onclick="go('scr-why')">
+        ${icon('sparkles')}ทำไมถึงเป็นใบนี้ — ดูทางเลือกอื่นที่เทียบแล้ว${icon('chevron')}
+      </button>
     </div>
   </section>`;
 }
@@ -2969,6 +2977,95 @@ function riskChips(t, now) {
     clock ? tkChip(clock, tone) : '',
     showOdds ? tkChip('โอกาสเสร็จทัน ' + Math.round(r.odds * 100) + '%', '') : '',
   ].filter(Boolean).join('');
+}
+
+// ---------- 1B77 · จอ "AI คิดยังไง" ----------
+// decide() เดินอนาคต 120 เส้น × ทางเลือกห้าถึงหกทาง = หลักหมื่นก้าว ราว 15–25 มิลลิวินาที
+// เร็วพอสำหรับการกดเข้าจอหนึ่งครั้ง แต่ไม่เร็วพอจะเรียกซ้ำทุกครั้งที่ renderAll ทำงาน
+// (renderAll ถูกเรียกทุกนาทีจาก minuteTick) — จึงแคชด้วยคีย์เดียวกับ riskFor
+let _decideMemo = { key: '', val: null };
+function decideFor(now) {
+  if (typeof decide !== 'function') return null;
+  const pend = pendingTasks();
+  const key = Math.floor(now.getTime() / 60000) + '|' +
+    pend.map(x => x.id + ':' + x.due + ':' + x.estMin + ':' + (x.progress || 0)).join(',');
+  // ส่ง "ใบที่การ์ดหน้าแรกแนะนำอยู่" เข้าไปด้วยเสมอ — จอ "AI คิดยังไง" ต้องอธิบายใบนั้น
+  // ไม่ใช่ใบที่ตัวมันเองเลือก · สองจอในแอปเดียวห้ามชี้ไปคนละที่
+  if (_decideMemo.key !== key) {
+    let focusId = null;
+    try {
+      const sp = typeof focusPlan === 'function' ? focusPlan(now) : null;
+      focusId = sp && sp.now ? sp.now.task.id : null;
+    } catch (e) { focusId = null; }
+    _decideMemo = { key, val: decide(state, now, { focusId }) };
+  }
+  return _decideMemo.val;
+}
+
+// หน่วยของตัวเลขต้องอธิบายด้วยคำที่นักเรียนเข้าใจทันที
+// "expected loss" หรือ "คะแนนคาดหวังที่สูญเสีย" เป็นภาษาที่ถูกแต่ไม่มีใครอ่านจบ
+const WHY_UNIT = 'คะแนนที่เสี่ยงจะเสีย';
+
+function renderWhy() {
+  const body = document.getElementById('whyBody');
+  if (!body) return;
+  // คิดเฉพาะตอนที่จอนี้ถูกเปิดอยู่จริง — จออื่นไม่ต้องจ่ายค่าคำนวณของจอนี้
+  if (typeof curScreen === 'string' && curScreen !== 'scr-why') return;
+
+  const now = new Date();
+  const d = decideFor(now);
+  const sub = document.getElementById('whySub');
+
+  if (!d) {
+    if (sub) sub.textContent = '';
+    body.innerHTML = `<div class="card empty">ยังไม่มีงานที่ต้องตัดสินใจตอนนี้ 🎉</div>`;
+    return;
+  }
+  if (sub) sub.textContent = 'เทียบ ' + d.scenarios.length + ' ทาง จากอนาคต 120 เส้น';
+
+  const cards = typeof scenarioCards === 'function' ? scenarioCards(d) : [];
+  const tiles = cards.map(c => `<div class="wy-t ${c.tone}">
+      <div class="wy-tag">${esc(c.id)} · ${esc(c.tag)}</div>
+      <div class="wy-num mono">${c.loss}</div>
+      <div class="wy-act">${esc(c.act)}</div>
+    </div>`).join('');
+
+  const rows = [
+    ['ทำไมงานนี้', d.why.task],
+    ['ทำไมตอนนี้', d.why.now],
+    ['ถ้าเลื่อน', d.why.delayed],
+    ['ปัญหาที่หลบ', d.why.avoided],
+    ['โอกาสที่เปิด', d.why.opened],
+    ['ถ้าเลือกอีกใบ', d.why.instead],
+  ].map(([k, v]) => `<div class="wy-r"><div class="wy-k">${esc(k)}</div>
+      <div class="wy-v">${esc(v)}</div></div>`).join('');
+
+  // เอนจินที่กล้าบอกให้ไปนอนคือเอนจินที่คนจะเชื่อตอนมันบอกให้ทำ
+  // ขึ้นเฉพาะตอนที่การพักชนะจริงแบบมีนัยสำคัญ ไม่ใช่ชนะเพราะเศษทศนิยม
+  const rest = d.rest.wins ? `<div class="wy-rest">${icon('clock')}
+      <b>คืนนี้พักได้</b>
+      <span>เวลาว่างที่เหลือน้อยจนทำแล้วได้ไม่คุ้ม — พรุ่งนี้เช้าคุ้มกว่า</span>
+    </div>` : '';
+
+  // ตัวเลขก้อนเดียวบอกไม่ได้ว่ามันประกอบจากอะไร แล้วคนก็ตีความเอาเองผิด ๆ
+  // "2.2 คะแนน" ที่มาจากความแน่นของตารางล้วน ๆ เป็นคนละข่าวกับ 2.2 ที่มาจากงานที่จะพลาดจริง
+  // โชว์เฉพาะก้อนที่มีน้ำหนักพอจะเปลี่ยนการตัดสินใจ — ก้อนที่เป็นศูนย์ไม่ต้องขึ้นให้รก
+  const bs = d.best.sum;
+  const parts = [
+    ['งานที่จะพลาด', bs.grade],
+    ['หนี้ความรู้วิชาสะสม', bs.debt],
+    ['ความแน่นของตาราง', bs.stress],
+    ['เวลานอนที่ต้องยืม', bs.sleep],
+  ].filter(([, v]) => v >= 0.05)
+    .map(([k, v]) => `<span><i>${esc(k)}</i>${Math.round(v * 10) / 10}</span>`).join('');
+
+  body.innerHTML = `<div class="wy-tiles">${tiles}</div>
+    <p class="wy-unit">ตัวเลข = <b>${WHY_UNIT}</b> จากคะแนนรวมทั้งเทอม · ต่ำกว่าดีกว่า</p>
+    ${parts ? `<div class="wy-bd"><div class="wy-bd-h">${esc(d.best.sum.total < 1 ? 'ทางที่แนะนำ ประกอบจาก' : 'ตัวเลขของทางที่แนะนำ ประกอบจาก')}</div>${parts}</div>` : ''}
+    ${rest}
+    <div class="wy-rows">${rows}</div>
+    <p class="wy-note">ทุกบรรทัดคำนวณจากการจำลองอนาคต 120 เส้น โดยสุ่มตามที่คนทำได้จริง
+      ไม่ใช่ข้อความสำเร็จรูป · ตัวเลขเดิมเข้า ได้คำตอบเดิมออกเสมอ</p>`;
 }
 
 // การ์ดงาน — ลำดับการอ่านจากบนลงล่างทางเดียว ไม่มีเลขลอยชิดขวาให้ตาวิ่งไปมา
@@ -7755,6 +7852,7 @@ function workStatsHtml(now) {
 
 function renderAll() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline(); renderAi();
+  renderWhy();
   renderProfile(); renderStats(); renderPlan(); renderFriends(); renderBadges(); renderTools();
   renderShop(); renderPro(); renderWheel(); renderInstallCard(); renderTabBadges(); renderContext();
   renderRunBar();

@@ -371,3 +371,187 @@ function mostUrgentRisk(report, now = new Date()) {
   if (!live.length) return null;
   return live.sort((a, b) => a.pnr - b.pnr)[0];
 }
+
+// ============================================================
+// เฟส 2 — สุ่มอนาคตหลายเส้น
+// ------------------------------------------------------------
+// เฟส 1 เดินอนาคตเส้นเดียวด้วยอัตราคงที่ 0.7 ซึ่งตอบได้ดีว่า "ทันไหม"
+// แต่ตอบไม่ได้ว่า "ทางเลือกไหนดีกว่ากันเท่าไหร่" เพราะเส้นเดียวไม่มีการกระจายให้เทียบ
+//
+// ตรงนี้จึงเดินอนาคตหลายร้อยเส้น แต่ละเส้นสุ่มนิสัยจริงของคน:
+// บางคืนทำได้ 90% บางคืนได้ 40% · งานบางใบบานกว่าที่ประเมิน บางใบไม่บาน
+// แล้วดูว่าจากทั้งหมดนั้น ทางเลือกไหนพาไปจบที่ไหนบ่อยแค่ไหน
+//
+// **ห้ามใช้ Math.random()** — ทั้งไฟล์นี้ต้องให้คำตอบเดิมเมื่อใส่ข้อมูลเดิม
+// ไม่งั้นการ์ดบนจอจะขยับตัวเลขเองทุกครั้งที่วาดใหม่ (renderMenu ถูกเรียกทุกนาที)
+// และ riskbench ก็จะทดสอบอะไรไม่ได้เลย
+// ============================================================
+
+// mulberry32 — PRNG 32 บิตที่สั้นพอจะอ่านจบและกระจายดีพอสำหรับงานแบบนี้
+function simRng(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// สุ่มแบบระฆังคว่ำ (ผลรวมสามค่าจากการสุ่มแบน ~ normal) แล้วตัดปลายทั้งสองข้าง
+// ใช้แทน Box-Muller เพราะไม่ต้องเรียก log/cos และไม่มีทางคืนค่าหลุดขอบ
+function simBell(rnd, mean, sd, lo, hi) {
+  const z = (rnd() + rnd() + rnd() - 1.5) * 2;   // sd ~ 1
+  return Math.max(lo, Math.min(hi, mean + z * sd));
+}
+
+// ---------- ความไม่แน่นอนสองก้อนที่แยกกันชัดเจน ----------
+// 1) อัตราลงมือ - สุ่มใหม่ "ทุกช่วงเวลา" เพราะแต่ละคืนไม่เหมือนกัน
+//    ค่ากลางเท่ากับ FOLLOW_RATE_PRIOR ของเฟส 1 เป๊ะ ๆ นาฬิกากับ Scenario จะได้ไม่เถียงกัน
+// 2) ความคลาดของการประเมินเวลา - สุ่มครั้งเดียว "ต่องานหนึ่งใบ"
+//    งานใบเดียวไม่ได้บานเป็นบางช่วง มันบานทั้งใบ · ค่ากลางมาจาก durationStats ถ้ามี
+const FOLLOW_SD = 0.18;
+const BIAS_SD = 0.28;
+
+// เวลาตั้งตัวตอนสลับวิชา - งานที่ต้องต่อความคิดแพงกว่างานที่หยิบมาทำต่อได้ทันที
+// อยู่ในตัวจำลอง ไม่ได้อยู่ในฟังก์ชันความสูญเสีย โดยตั้งใจ:
+// การสลับวิชาไม่ได้ "ผิด" มันแค่ "กินเวลา" - ให้มันกินเวลาจริงในแบบจำลอง
+// แล้วผลเสียจะโผล่เองในรูปของงานที่ทำไม่ทัน ไม่ต้องมีใครตั้งค่าปรับ
+const RAMP_DEEP = 12;
+const RAMP_LIGHT = 6;
+const DEEP_SUBJECTS = ['คณิตศาสตร์', 'ฟิสิกส์', 'เคมี', 'วิทยาการคำนวณ', 'ภาษาอังกฤษ'];
+
+// ยืมเวลาจากการนอนได้ แต่ยืมได้ไม่เยอะและได้งานน้อยกว่าปกติ
+// ต้องมีในแบบจำลอง เพราะเด็กทำจริง - แบบจำลองที่บอกว่า "หมดเวลาแล้วจบ" จะประเมิน
+// ความเสียหายสูงเกินจริงทุกครั้งที่งานส่งเช้าวันรุ่งขึ้น
+// ราคาของมันไปโผล่ที่ SleepDebt ใน loss.js ไม่ใช่ที่นี่
+const NIGHT_BORROW_MAX = 90;
+const NIGHT_BORROW_RATE = 0.55;
+
+// ---------- เตรียมข้อมูลครั้งเดียว ใช้ซ้ำทุกเส้น ----------
+// สร้างใหม่ทุกเส้นคือการเรียก freeSlots() หกร้อยรอบโดยได้คำตอบเดียวกันทุกรอบ
+// ทุกอย่างในนี้เป็นตัวเลขล้วน ไม่มี Date - วนหกแสนรอบแล้วต่างกันชัดเจน
+function simPrep(tasks, now = new Date(), opts = {}) {
+  // opts.timeline เอาไว้ให้เครื่องมือทดสอบยัดตารางเวลาเข้ามาเองได้
+  // ผลของ decide() จะได้ไม่ขึ้นกับว่าเครื่องที่รันตั้งตารางเรียนไว้ยังไง
+  const timeline = opts.timeline || simTimeline(now, opts.days || 10);
+  const stats = opts.stats || (typeof durationStats === 'function' && opts.state
+    ? durationStats(opts.state) : null);
+  const t0 = now.getTime();
+  const midnight = new Date(now); midnight.setHours(0, 0, 0, 0);
+
+  const slots = timeline.map(s => ({
+    from: (s.start - t0) / 60000,          // นาทีนับจาก "ตอนนี้"
+    to: (s.end - t0) / 60000,
+    min: s.min,
+    day: Math.round((new Date(s.start).setHours(0, 0, 0, 0) - midnight.getTime()) / 864e5),
+  }));
+
+  const list = (tasks || []).filter(t => {
+    if (!t || t.done || t.deleted || !t.due) return false;
+    if (typeof TASK_TYPES === 'object' && typeof taskType === 'function') {
+      return TASK_TYPES[taskType(t)].schedulable;
+    }
+    return true;
+  });
+
+  const items = list.map(t => {
+    const subject = (t.subject || 'อื่น ๆ').trim();
+    const s = stats && stats[subject];
+    return {
+      task: t,
+      subject,
+      type: typeof taskType === 'function' ? taskType(t) : 'homework',
+      due: (new Date(t.due) - now) / 60000,           // นาทีจากตอนนี้ · ติดลบ = เลยกำหนด
+      need: typeof remainingMin === 'function' ? remainingMin(t) : (t.estMin || 30),
+      biasMean: s ? s.factor : 1,
+      deep: DEEP_SUBJECTS.includes(subject),
+      scorePct: t.scorePct,
+      progress: t.progress || 0,
+    };
+  }).sort((a, b) => (a.due - b.due) || (a.need - b.need));
+
+  // ความจุรายวัน - ใช้เป็นตัวหารของ StressCost ("วันนั้นแน่นแค่ไหน" ไม่ใช่ "ทำไปกี่นาที")
+  const dayCap = {};
+  for (const s of slots) dayCap[s.day] = (dayCap[s.day] || 0) + s.min;
+
+  return { slots, items, dayCap, nowMs: t0 };
+}
+
+// ---------- เดินอนาคตหนึ่งเส้น ----------
+// action บอกว่า "ช่วงเวลาถัดไปเอาไปทำอะไร" ซึ่งเป็นสิ่งเดียวที่ผู้ใช้ตัดสินใจได้จริงตอนนี้
+//   {kind:'do', idx}          ทำงานใบนี้ก่อนในช่วงแรก
+//   {kind:'delay', skipMin}   ไม่ทำอะไรไปอีกกี่นาที แล้วค่อยเริ่มตามปกติ
+//   {kind:'free'}             ปล่อยให้ EDF จัดเอง (เส้นฐาน)
+function simRollout(prep, seed, action) {
+  const rnd = simRng(seed);
+  const n = prep.items.length;
+  if (!n) return { frac: [], dayLoad: {}, pastBed: 0 };
+
+  // เวลาที่ต้องใช้จริงของแต่ละใบ - สุ่มครั้งเดียวต่อใบ ต่อหนึ่งเส้นอนาคต
+  const need = new Array(n);
+  for (let i = 0; i < n; i++) {
+    need[i] = prep.items[i].need * simBell(rnd, prep.items[i].biasMean, BIAS_SD, 0.6, 2.2);
+  }
+  const left = need.slice();
+  const dayLoad = {};
+  let pastBed = 0;
+  let lastSubj = null;
+
+  const skipMin = action && action.kind === 'delay' ? action.skipMin : 0;
+  const pinned = action && action.kind === 'do' ? action.idx : -1;
+  let firstWorkingSlot = true;
+
+  for (const slot of prep.slots) {
+    if (slot.to <= skipMin) continue;                     // ช่วงนี้ถูกข้ามไปทั้งก้อน
+    const startAt = Math.max(slot.from, skipMin);
+    let room = (slot.to - startAt) * simBell(rnd, FOLLOW_RATE_PRIOR, FOLLOW_SD, 0.15, 1);
+    if (room < 5) continue;
+
+    // ลำดับในช่วงนี้: EDF ตามปกติ · ยกเว้นช่วงแรกที่ถูกตรึงด้วย action
+    const order = [];
+    for (let i = 0; i < n; i++) if (left[i] > 0 && prep.items[i].due > startAt) order.push(i);
+    if (!order.length) continue;
+    if (firstWorkingSlot && pinned >= 0 && left[pinned] > 0) {
+      const at = order.indexOf(pinned);
+      if (at > 0) { order.splice(at, 1); order.unshift(pinned); }
+    }
+    firstWorkingSlot = false;
+
+    for (const i of order) {
+      if (room < 5) break;
+      const it = prep.items[i];
+      if (it.due <= startAt) continue;
+      if (lastSubj !== null && lastSubj !== it.subject) {
+        room -= it.deep ? RAMP_DEEP : RAMP_LIGHT;
+        if (room < 5) break;
+      }
+      lastSubj = it.subject;
+      // ทำได้ไม่เกินเวลาที่เหลือในช่วง และไม่เกินเวลาที่เหลือก่อนกำหนดส่งของใบนั้น
+      const untilDue = Math.max(0, it.due - startAt);
+      const take = Math.min(left[i], room, untilDue);
+      if (take <= 0) continue;
+      left[i] -= take;
+      room -= take;
+      dayLoad[slot.day] = (dayLoad[slot.day] || 0) + take;
+    }
+  }
+
+  // ---- ยืมเวลาจากการนอน ----
+  // เฉพาะใบที่ยังไม่เสร็จ และไม่มีช่วงว่างเหลืออีกแล้วก่อนกำหนดส่ง (คือ "คืนนี้ต้องเสร็จ" จริง ๆ)
+  let borrow = NIGHT_BORROW_MAX;
+  for (let i = 0; i < n && borrow > 5; i++) {
+    const it = prep.items[i];
+    if (left[i] <= 0 || it.due <= 0) continue;
+    if (prep.slots.some(s => s.from > 0 && s.from < it.due)) continue;
+    const take = Math.min(left[i], borrow * NIGHT_BORROW_RATE);
+    left[i] -= take;
+    pastBed += take / NIGHT_BORROW_RATE;
+    borrow -= take / NIGHT_BORROW_RATE;
+  }
+
+  // frac = ทำไปได้กี่ส่วนของงานทั้งใบ (0-1) · นี่คือสิ่งเดียวที่ loss.js ต้องรู้
+  const frac = new Array(n);
+  for (let i = 0; i < n; i++) frac[i] = need[i] <= 0 ? 1 : Math.max(0, 1 - left[i] / need[i]);
+  return { frac, dayLoad, pastBed };
+}

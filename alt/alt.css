@@ -6971,3 +6971,87 @@ body.deep-scr .top-friends { display: none; }
   color: var(--muted); font-size: 12px;
 }
 .wk-b .wk-more svg { opacity: .6; }
+
+/* ============================================================
+   1B77 · จอ "AI คิดยังไง" — การ์ดเทียบทางเลือก + คำอธิบายหกข้อ
+   ============================================================
+   จอนี้มีหน้าที่เดียว: ทำให้ตัวเลขสามตัวเทียบกันได้ด้วยตาในหนึ่งวินาที
+   แล้วค่อยให้เหตุผลกับคนที่อยากอ่านต่อ · ลำดับจึงเป็น ตัวเลข → หน่วย → เหตุผล
+   ไม่ใช่ เหตุผล → ตัวเลข ซึ่งบังคับให้อ่านก่อนถึงจะเทียบได้ */
+
+.wy-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+/* งานสองใบก็มีแค่การ์ด A กับ B — สองช่องต้องเต็มความกว้าง ไม่ใช่ทิ้งช่องว่างไว้ข้างขวา */
+.wy-tiles:has(.wy-t:nth-child(2):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.wy-t {
+  border-radius: 14px; padding: 12px 10px; text-align: center;
+  background: var(--card2); min-width: 0;
+}
+.wy-t.good { background: var(--good-soft); }
+.wy-t.warn { background: var(--warn-soft); }
+.wy-tag {
+  font-size: 10.5px; letter-spacing: .04em; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wy-t.good .wy-tag { color: var(--good); }
+.wy-t.warn .wy-tag { color: var(--warn); }
+/* ตัวเลขคือพระเอกของจอนี้ — ตัวเดียวที่ใหญ่กว่าตัวหนังสือปกติ */
+.wy-num { font-size: 26px; font-weight: 700; line-height: 1.25; margin: 2px 0; }
+.wy-t.good .wy-num { color: var(--good); }
+.wy-t.warn .wy-num { color: var(--warn); }
+.wy-act {
+  font-size: 11.5px; color: var(--muted); line-height: 1.4;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wy-unit { font-size: 12px; color: var(--faint); margin: 10px 2px 0; line-height: 1.6; }
+.wy-unit b { color: var(--muted); font-weight: 600; }
+
+/* แถบ "คืนนี้พักได้" — ขึ้นน้อยมากโดยตั้งใจ ของที่ขึ้นทุกวันไม่มีใครเชื่อ */
+.wy-rest {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 14px; padding: 12px 14px; border-radius: 14px;
+  background: var(--good-soft); color: var(--good);
+}
+.wy-rest svg { width: 18px; height: 18px; flex: none; }
+.wy-rest b { font-size: 14px; }
+.wy-rest span { font-size: 12.5px; opacity: .85; width: 100%; line-height: 1.5; }
+
+/* หกแถวเหตุผล — คำถามซ้าย คำตอบขวา ไม่มีการ์ดซ้อนการ์ด */
+.wy-rows {
+  margin-top: 16px; border: 1px solid var(--line); border-radius: 14px;
+  overflow: hidden; background: var(--card);
+}
+.wy-r { padding: 11px 14px; border-bottom: 1px solid var(--line); }
+.wy-r:last-child { border-bottom: 0; }
+.wy-k { font-size: 11.5px; color: var(--faint); margin-bottom: 3px; }
+.wy-v { font-size: 13.5px; line-height: 1.6; }
+.wy-note { font-size: 11.5px; color: var(--faint); line-height: 1.65; margin: 14px 2px 0; }
+
+/* ทางเข้าบนการ์ด "ตอนนี้" — บรรทัดเงียบ ไม่ใช่ปุ่มที่สอง
+   การ์ดใบนั้นมีจุดโฟกัสได้จุดเดียว และจุดนั้นคือ "เริ่มทำเลย" (ดู 1B24) */
+.tn-why-go {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  margin-top: 10px; padding: 9px 2px 0; border: 0; border-top: 1px solid var(--line);
+  background: none; color: var(--muted); font: inherit; font-size: 12.5px;
+  text-align: left; cursor: pointer;
+}
+.tn-why-go svg { width: 15px; height: 15px; flex: none; }
+.tn-why-go svg:last-child { margin-left: auto; opacity: .6; }
+.tn-why-go:active { opacity: .6; }
+
+/* ตัวเลขประกอบจากอะไร — ก้อนที่เป็นศูนย์ไม่ขึ้น (ดูหมายเหตุใน renderWhy) */
+.wy-bd {
+  margin-top: 12px; padding: 11px 14px; border-radius: 14px;
+  background: var(--card2); display: flex; flex-wrap: wrap; gap: 6px 16px;
+}
+.wy-bd-h { width: 100%; font-size: 11px; color: var(--faint); margin-bottom: 2px; }
+.wy-bd span {
+  font-size: 12.5px; font-weight: 600; color: var(--ink);
+  font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: 5px;
+}
+.wy-bd i { font-style: normal; font-weight: 400; color: var(--muted); font-size: 12px; }
+
+/* การ์ดที่ผลไม่ต่างจากทางที่แนะนำอย่างมีนัยสำคัญ — เป็นกลาง ไม่ใช่สีเตือน
+   สีเตือนบนตัวเลขที่เท่ากันคือการบอกข้อมูลผิดด้วยสี ทั้งที่ตัวเลขข้างบนบอกถูกอยู่แล้ว */
+.wy-t.flat { background: var(--card2); }
+.wy-t.flat .wy-num { color: var(--ink); }
