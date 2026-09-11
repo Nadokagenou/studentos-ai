@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B77';                 // สายเลขของแอป
+const APP_VERSION = '1B78';                 // สายเลขของแอป
 const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -2952,6 +2952,16 @@ function riskFor(t, now) {
   if (_riskMemo.key !== key) {
     const rep = riskReport(pend, now, { state });
     _riskMemo = { key, map: new Map(rep.map(r => [r.task.id, r])) };
+
+    // 1B78 — ปิดวงจร: จดคำทำนายไว้ แล้วเก็บผลจริงของอันที่ถึงกำหนดแล้ว
+    // ทำตรงนี้เพราะเป็นจุดเดียวที่ "ความเสี่ยงของทั้งกอง" ถูกคิดใหม่จริง ๆ (นาทีละครั้ง)
+    // calibLog กันซ้ำเองวันละครั้งต่องานหนึ่งใบ จึงไม่บวมและไม่ save ถี่
+    if (typeof calibLog === 'function') {
+      let dirty = false;
+      for (const r of rep) if (calibLog(state, r, now)) dirty = true;
+      if (calibResolve(state, now)) dirty = true;
+      if (dirty) save();
+    }
   }
   return (_riskMemo.map && _riskMemo.map.get(t.id)) || null;
 }
@@ -3005,6 +3015,37 @@ function decideFor(now) {
 // หน่วยของตัวเลขต้องอธิบายด้วยคำที่นักเรียนเข้าใจทันที
 // "expected loss" หรือ "คะแนนคาดหวังที่สูญเสีย" เป็นภาษาที่ถูกแต่ไม่มีใครอ่านจบ
 const WHY_UNIT = 'คะแนนที่เสี่ยงจะเสีย';
+
+// ---------- 1B78 · สองบรรทัดที่แอปพูดถึงตัวเอง ----------
+// บนสุดของจอเป็นเรื่องของงาน ล่างสุดเป็นเรื่องของ "แอปรู้จักคุณแค่ไหน และมันแม่นแค่ไหน"
+// สองอย่างนี้คือสิ่งที่ทำให้ตัวเลขข้างบนน่าเชื่อหรือไม่น่าเชื่อ — ซ่อนไว้ไม่ได้
+// และถ้ายังไม่รู้จริงก็ไม่ต้องขึ้น ตามกติกาเดียวกับ brain.js
+function whySelfHTML(now) {
+  const rows = [];
+  if (typeof studyProfile === 'function' && typeof profileText === 'function') {
+    const tx = profileText(studyProfile(state, now));
+    if (tx) rows.push(['ที่แอปเรียนรู้จากคุณ', tx, '']);
+    else rows.push(['ที่แอปเรียนรู้จากคุณ',
+      'ยังใช้ค่ากลางอยู่ — จับเวลาตอนทำงานสักสองสามวัน แล้วตัวเลขทั้งจอนี้จะเป็นของคุณจริง ๆ', 'soft']);
+  }
+  if (typeof calibText === 'function') {
+    const tx = calibText(state);
+    if (tx) {
+      const s = calibSummary(state);
+      rows.push(['คำทำนายที่ผ่านมาแม่นแค่ไหน',
+        tx + ' · ' + calibGrade(s.brier) + ' (Brier ' + (Math.round(s.brier * 100) / 100) + ')', '']);
+    } else {
+      const s = calibSummary(state);
+      rows.push(['คำทำนายที่ผ่านมาแม่นแค่ไหน',
+        'ยังตรวจไม่ได้ — ต้องรอผลจริงของงานอีก ' + (s.need || CALIB_MIN_SCORED) + ' ใบก่อน', 'soft']);
+    }
+  }
+  if (!rows.length) return '';
+  return `<div class="wy-self">
+    ${rows.map(([k, v, c]) => `<div class="wy-r${c ? ' ' + c : ''}">
+      <div class="wy-k">${esc(k)}</div><div class="wy-v">${esc(v)}</div></div>`).join('')}
+  </div>`;
+}
 
 function renderWhy() {
   const body = document.getElementById('whyBody');
@@ -3064,6 +3105,7 @@ function renderWhy() {
     ${parts ? `<div class="wy-bd"><div class="wy-bd-h">${esc(d.best.sum.total < 1 ? 'ทางที่แนะนำ ประกอบจาก' : 'ตัวเลขของทางที่แนะนำ ประกอบจาก')}</div>${parts}</div>` : ''}
     ${rest}
     <div class="wy-rows">${rows}</div>
+    ${whySelfHTML(now)}
     <p class="wy-note">ทุกบรรทัดคำนวณจากการจำลองอนาคต 120 เส้น โดยสุ่มตามที่คนทำได้จริง
       ไม่ใช่ข้อความสำเร็จรูป · ตัวเลขเดิมเข้า ได้คำตอบเดิมออกเสมอ</p>`;
 }

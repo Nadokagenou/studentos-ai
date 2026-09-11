@@ -7055,3 +7055,12 @@ body.deep-scr .top-friends { display: none; }
    สีเตือนบนตัวเลขที่เท่ากันคือการบอกข้อมูลผิดด้วยสี ทั้งที่ตัวเลขข้างบนบอกถูกอยู่แล้ว */
 .wy-t.flat { background: var(--card2); }
 .wy-t.flat .wy-num { color: var(--ink); }
+
+/* 1B78 · สองบรรทัดท้ายจอที่แอปพูดถึงตัวเอง — โปรไฟล์ที่เรียนมา + คะแนนคำทำนายของมันเอง
+   แยกกล่องจากหกแถวข้างบนโดยตั้งใจ: ข้างบนคือเรื่องของงาน ตรงนี้คือเรื่องของแอป */
+.wy-self {
+  margin-top: 14px; border: 1px solid var(--line); border-radius: 14px;
+  overflow: hidden; background: var(--card2);
+}
+.wy-self .wy-r { border-bottom-color: var(--line); }
+.wy-self .wy-r.soft .wy-v { color: var(--muted); }

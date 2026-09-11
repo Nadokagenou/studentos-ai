@@ -1543,7 +1543,12 @@
      และ planner.js (plannedMin/durationStats — มันยืมตัวเลข "เวลาที่เรียนรู้มาจริง" มาใช้
      ไม่งั้นนาฬิกา "เริ่มไม่ทันแล้ว" จะพูดคนละเลขกับหน้าแผน ซึ่งเป็นบั๊กประเภทที่แพงที่สุดของแอปนี้)
      ตอบคำถามที่ priorityInfo() ตอบไม่ได้: "ยังเริ่มทันอยู่ไหม" — เฟส 1 ของเอนจินตัดสินใจ -->
+<!-- profile.js ต้องมาก่อน simulate.js — simulate เรียก studyProfile()/profileBucketOf()
+     เพื่อเอาอัตราลงมือจริงของผู้ใช้มาใช้แทนค่ากลาง (เฟส 3) -->
+<script src="profile.js"></script>
 <script src="simulate.js"></script>
+<!-- calibrate.js เป็นอิสระ ไม่มีใครใน engine เรียกมัน — app.js เรียกฝ่ายเดียว (เฟส 4-5) -->
+<script src="calibrate.js"></script>
 <!-- loss.js + decide.js = เฟส 2 · ต้องอยู่หลัง simulate.js (simPrep/simRollout)
      loss.js เป็นฟังก์ชันบริสุทธิ์ล้วน ไม่พึ่งใครนอกจากผลของ simRollout
      decide.js เรียกทั้งคู่ + riskReport + taskPhrase — จึงต้องมาท้ายสุดของกลุ่มนี้

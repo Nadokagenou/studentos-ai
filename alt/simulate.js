@@ -26,10 +26,9 @@
 //      ที่นี่คืนค่า 0–1 ที่ค่อย ๆ ลง — และตัวเลขที่ค่อย ๆ ลงคือตัวเลขที่เตือนได้ทัน
 //
 // ------------------------------------------------------------
-// สิ่งที่ยัง **ไม่** ทำในเฟสนี้ (อย่าเผลอยัดเข้ามา)
-//   · ไม่สุ่ม Monte Carlo — เดินอนาคตเส้นเดียว เฟส 2 ค่อยแตกเป็นหลายเส้น
-//   · ไม่มีฟังก์ชันความสูญเสีย — ยังไม่ตีราคาเป็นคะแนนเทอม เฟส 2 เช่นกัน
-//   · ไม่เรียนรู้อัตราลงมือจากผู้ใช้ — ใช้ค่ากลางไปก่อน เฟส 3 ค่อยเรียน (ดู followRate)
+// ไฟล์นี้โตขึ้นตามเฟส · ส่วนบน (ถึงข้อ 7) คือเฟส 1 ที่เดินอนาคตเส้นเดียว
+// ส่วนล่างคือเฟส 2 ที่สุ่มหลายเส้น · และตั้งแต่เฟส 3 อัตราลงมือไม่ใช่ค่ากลางอีกแล้ว —
+// มันมาจาก profile.js ที่อ่านประวัติจริงของผู้ใช้คนนั้น (ดู followRate ข้างล่าง)
 //
 // คำนวณในเครื่องล้วน ไม่มีเน็ต ไม่มีโมเดลภาษา ใส่ now เดิมแล้วต้องได้คำตอบเดิมทุกครั้ง
 // ============================================================
@@ -38,18 +37,22 @@
 // เวลาว่าง 100 นาที ไม่ได้แปลว่าได้ทำงาน 100 นาที — มีเดินไปหาของ มีแชทเด้ง มีเหม่อ
 // ตัวเลขนี้คือตัวคูณที่แปลง "เวลาว่างบนปฏิทิน" เป็น "เวลาที่ได้ทำงานจริง"
 //
-// 0.7 เป็นค่ากลางที่ตั้งไว้ก่อน ไม่ใช่ค่าที่วัดจากผู้ใช้คนนี้ — และนั่นคือเหตุผลที่มันต้องอยู่
-// ในฟังก์ชันไม่ใช่ค่าคงที่ลอย ๆ: เฟส 3 จะเปลี่ยนที่นี่ที่เดียวให้อ่านจากประวัติจริง
-// (วางแผนไว้กี่นาที กดจับเวลาจริงกี่นาที) แล้วทั้งไฟล์ได้ตัวเลขของคนคนนั้นทันทีโดยไม่ต้องแก้ที่อื่น
+// 0.7 คือค่ากลางที่ใช้ "ตอนยังไม่รู้จักเขา" เท่านั้น — พอมีประวัติถึงเกณฑ์
+// profile.js จะเข้ามาแทนที่ผ่าน followRate() ข้างล่าง และตัวเลขนี้จะไม่ถูกใช้อีกเลย
+// (ยังต้องอยู่ เพราะวันแรกที่เปิดแอปยังไม่มีประวัติสักบรรทัด)
 //
 // ห้ามตั้งเป็น 1.0 แม้จะดู "เป็นกลาง" กว่า — 1.0 คือการกลับไปเป็น isLastChanceToday
 // ซึ่งบอกว่าทันจนถึงนาทีสุดท้ายแล้วค่อยบอกว่าไม่ทัน ซึ่งสายเกินกว่าจะทำอะไรได้แล้ว
 const FOLLOW_RATE_PRIOR = 0.7;
 
-function followRate() {
-  // เฟส 3: ถ้ามีประวัติมากพอ ให้คืนค่าที่วัดได้จริงพร้อม learned: true
-  // จนกว่าจะถึงตอนนั้น ต้องประกาศตรง ๆ ว่านี่คือค่ากลาง ไม่ใช่ค่าของผู้ใช้คนนี้
-  return { rate: FOLLOW_RATE_PRIOR, learned: false, n: 0 };
+// เฟส 3 ต่อสายเข้า profile.js ตรงนี้ที่เดียว — ทั้งไฟล์จึงได้ตัวเลขของผู้ใช้คนนั้นทันที
+// profile.js ไม่อยู่ (หรือข้อมูลยังไม่ถึงเกณฑ์) → ถอยกลับไปค่ากลางเงียบ ๆ ไม่พัง
+function followRate(state, now) {
+  if (typeof studyProfile === 'function' && state) {
+    const p = studyProfile(state, now || new Date());
+    if (p && p.learned) return { rate: p.rate, learned: true, n: p.days, profile: p };
+  }
+  return { rate: FOLLOW_RATE_PRIOR, learned: false, n: 0, profile: null };
 }
 
 // ---------- ขอบเขตที่มองไปข้างหน้า ----------
@@ -167,7 +170,7 @@ function pointOfNoReturn(timeline, due, needMin, rate) {
 // EDF ไม่ใช่การเดา — ถ้ามีลำดับไหนที่ทำทันทุกใบ EDF ก็ทำทันทุกใบด้วย (พิสูจน์ได้)
 // จึงเป็นเกณฑ์ที่ถูกต้องสำหรับคำถาม "ยังเป็นไปได้ไหม" โดยเฉพาะ
 function riskReport(tasks, now = new Date(), opts = {}) {
-  const rate = opts.rate != null ? opts.rate : followRate().rate;
+  const rate = opts.rate != null ? opts.rate : followRate(opts.state, now).rate;
   const timeline = opts.timeline || simTimeline(now);
   const stats = opts.stats || (typeof durationStats === 'function' && opts.state
     ? durationStats(opts.state) : null);
@@ -445,6 +448,10 @@ function simPrep(tasks, now = new Date(), opts = {}) {
     to: (s.end - t0) / 60000,
     min: s.min,
     day: Math.round((new Date(s.start).setHours(0, 0, 0, 0) - midnight.getTime()) / 864e5),
+    // เฟส 3 — ช่วงของวันที่ช่องนี้อยู่ · ตัวจำลองใช้เลือกอัตราลงมือให้ตรงกับช่วงนั้น
+    // ("คุณลงมือได้ดีตอนค่ำ แต่เช้าแทบไม่ได้เลย" เป็นข้อมูลที่เปลี่ยนคำตอบจริง)
+    bucket: typeof profileBucketOf === 'function'
+      ? profileBucketOf(new Date(s.start).getHours()) : 0,
   }));
 
   const list = (tasks || []).filter(t => {
@@ -475,7 +482,14 @@ function simPrep(tasks, now = new Date(), opts = {}) {
   const dayCap = {};
   for (const s of slots) dayCap[s.day] = (dayCap[s.day] || 0) + s.min;
 
-  return { slots, items, dayCap, nowMs: t0 };
+  // อัตราลงมือที่จะใช้ในแต่ละช่วงของวัน — คิดครั้งเดียว ใช้ซ้ำทุกเส้น
+  const prof = typeof studyProfile === 'function' && opts.state
+    ? studyProfile(opts.state, now) : null;
+  const rates = (prof && prof.learned)
+    ? prof.buckets.map(b => b.rate)
+    : [FOLLOW_RATE_PRIOR, FOLLOW_RATE_PRIOR, FOLLOW_RATE_PRIOR];
+
+  return { slots, items, dayCap, nowMs: t0, rates, profile: prof };
 }
 
 // ---------- เดินอนาคตหนึ่งเส้น ----------
@@ -505,7 +519,10 @@ function simRollout(prep, seed, action) {
   for (const slot of prep.slots) {
     if (slot.to <= skipMin) continue;                     // ช่วงนี้ถูกข้ามไปทั้งก้อน
     const startAt = Math.max(slot.from, skipMin);
-    let room = (slot.to - startAt) * simBell(rnd, FOLLOW_RATE_PRIOR, FOLLOW_SD, 0.15, 1);
+    // ค่ากลางของการสุ่มมาจากช่วงของวันที่ช่องนี้อยู่ ไม่ใช่ค่าเดียวทั้งสัปดาห์
+    const mean = (prep.rates && prep.rates[slot.bucket] != null)
+      ? prep.rates[slot.bucket] : FOLLOW_RATE_PRIOR;
+    let room = (slot.to - startAt) * simBell(rnd, mean, FOLLOW_SD, 0.15, 1);
     if (room < 5) continue;
 
     // ลำดับในช่วงนี้: EDF ตามปกติ · ยกเว้นช่วงแรกที่ถูกตรึงด้วย action

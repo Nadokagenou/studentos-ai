@@ -171,7 +171,8 @@ function decide(state, now = new Date(), opts = {}) {
   // ("เริ่มที่ฟิสิกส์ก่อน" ถูก ส่วนชื่องานยาว ๆ ต้องมีอัญประกาศคั่นแทนการเว้นวรรค)
   const nm = t => (typeof taskPhrase === 'function' ? taskPhrase(t)
     : (t.subject || t.detail || 'งานนี้'));
-  const n1 = v => Math.round(v * 10) / 10;
+  // ทศนิยมหนึ่งตำแหน่งเสมอ — "ขึ้นเป็น 2.4 (จาก 2)" อ่านแล้วเหมือนพิมพ์ตก
+  const n1 = v => v.toFixed(1);
   const pct = v => Math.round(v * 100) + '%';
   const delayTx = delayMin >= 60 ? Math.round(delayMin / 60 * 10) / 10 + ' ชม.' : delayMin + ' นาที';
 
