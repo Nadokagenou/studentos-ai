@@ -491,7 +491,26 @@
     touch('ลำดับหน้าแรก');
   }
   /* ==================== Priority Engine ==================== */
-  // งานตัวอย่างที่ครอบคลุมสี่กรณีที่เถียงกันบ่อยที่สุดในโปรเจกต์นี้:
+  // ---------- งานที่เอามาเรียงให้ดู ----------
+  // **ของจริงก่อนเสมอ** — Control Center อยู่โดเมนเดียวกับแอป จึงอ่าน state ก้อนเดียวกันได้ตรง ๆ
+  // งานตัวอย่างที่แต่งขึ้นบอกได้แค่ว่าสูตรทำงาน แต่ไม่ได้บอกสิ่งที่เจ้าของระบบอยากรู้จริง ๆ
+  // ซึ่งคือ "ลากแล้ว **งานของฉัน** สลับที่ไหม" · ถ้าไม่มีงานค้างเลยค่อยถอยไปใช้ตัวอย่าง
+  // เพื่อไม่ให้จอว่างจนปรับอะไรแล้วไม่เห็นผล
+  var STORE_KEY = 'studentos.alt.v1';
+
+  function realTasks() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return null;
+      var st = JSON.parse(raw);
+      var list = (st && Array.isArray(st.tasks)) ? st.tasks : [];
+      // เรียงเหมือนที่หน้าแรกเรียง: เฉพาะที่ยังไม่เสร็จและไม่ได้ลบ
+      list = list.filter(function (t) { return t && !t.done && !t.deleted; });
+      return list.length ? list : null;
+    } catch (e) { return null; }
+  }
+
+  // ตัวอย่างสำรอง — ครอบสี่กรณีที่เถียงกันบ่อยที่สุดในโปรเจกต์นี้:
   // สอบไกลแต่ใหญ่ · การบ้านใกล้แต่เล็ก · ของที่เลยกำหนดไปแล้ว · งานที่ผู้ใช้ปักดาวเอง
   function samples() {
     var H = 36e5, D = 864e5, now = Date.now();
@@ -510,6 +529,15 @@
         due: new Date(now + 9 * D).toISOString(), scorePct: 8, estMin: 45 },
     ];
   }
+
+  // ชื่อที่คนอ่านแล้วรู้ว่าใบไหน — งานจริงบางใบไม่มีวิชา บางใบไม่มีรายละเอียด
+  function taskName(t) {
+    var sub = String(t.subject || '').trim();
+    var det = String(t.detail || '').trim();
+    if (sub && sub !== 'อื่น ๆ' && det) return sub + ' — ' + det;
+    return sub && sub !== 'อื่น ๆ' ? sub : (det || 'งานที่ไม่มีชื่อ');
+  }
+
   function rankPv() {
     var el = $('#prioPv');
     if (typeof priorityInfo !== 'function') {
@@ -517,14 +545,25 @@
       return;
     }
     var now = new Date();
-    var rows = samples().map(function (t) {
+    var mine = realTasks();
+    var list = mine || samples();
+    var rows = list.map(function (t) {
       var info = priorityInfo(t, now);
       return { t: t, s: info.score, stars: info.stars };
-    }).sort(function (a, b) { return b.s - a.s; });
+    }).sort(function (a, b) { return b.s - a.s; }).slice(0, 8);
+
+    var src = $('#prioSrc');
+    if (src) {
+      src.textContent = mine
+        ? 'งานค้างจริงของคุณ ' + mine.length + ' ใบ' + (mine.length > 8 ? ' (แสดง 8 อันดับแรก)' : '')
+        : 'ยังไม่มีงานค้างในเครื่องนี้ — แสดงงานตัวอย่างแทน';
+      src.className = 'hint' + (mine ? ' real' : '');
+    }
+
     el.innerHTML = rows.map(function (r, i) {
       return '<div class="tg"><b style="width:22px;flex:none;font-size:15px;color:'
         + (i === 0 ? 'var(--cacc)' : 'var(--cfaint)') + '">' + (i + 1) + '</b>'
-        + '<div class="tx"><b>' + esc(r.t.subject) + ' — ' + esc(r.t.detail) + '</b>'
+        + '<div class="tx"><b>' + esc(taskName(r.t)) + '</b>'
         + '<small>' + '★'.repeat(r.stars) + '</small></div>'
         + '<span class="mono" style="color:var(--cmuted);font-size:12px">' + r.s + '</span></div>';
     }).join('');
@@ -856,9 +895,27 @@
 
   window.addEventListener('message', function (e) {
     if (e.origin !== location.origin) return;
-    if (!e.data || e.data.type !== 'sos-preview-ready') return;
-    pvReady = true;
-    pvPush();
+    if (!e.data) return;
+
+    if (e.data.type === 'sos-preview-ready') {
+      pvReady = true;
+      pvPush();
+      return;
+    }
+
+    /* งานที่แก้ด้วยมือในตัวแก้ดีไซน์ ไหลกลับมาเป็นส่วนหนึ่งของ draft
+       ยังไม่ถึงใครจนกว่าจะกดเผยแพร่ เหมือนทุกอย่างในหน้านี้ */
+    if (e.data.type === 'sos-preview-ui' && e.data.ui && draft) {
+      draft.ui = e.data.ui;
+      dirty = true;
+      syncLive();
+      msg('แก้ดีไซน์แล้ว — ยังไม่ได้เผยแพร่');
+      updateBar();
+      dash();
+      pvTag();
+      // ไม่เรียก pvPush() ตรงนี้ — จอในกรอบทาสีของมันเองไปแล้ว
+      // ส่งกลับไปอีกรอบคือการเขียนทับสิ่งที่เขากำลังแก้อยู่กลางคัน
+    }
   });
 
   // ชิ้นเดียวย้ายไปมา — สร้างใหม่ทุกจอ = แอปบูตซ้ำทุกครั้งที่สลับ ซึ่งช้าและกะพริบ

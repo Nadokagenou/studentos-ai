@@ -1386,5 +1386,39 @@
     hIdx = hist.length - 1;
   }
 
+  /* ==================== สะพานไป Control Center ====================
+     เดิมงานที่แก้ด้วยมืออยู่แค่ใน localStorage ของเครื่องเดียว — สวยอยู่คนเดียว
+     ช่องนี้ทำให้มันเดินทางออกไปได้: Control Center ฝังแอปนี้ไว้ใน iframe แล้วดึง
+     rules/tokens/texts ออกไปเป็นส่วนหนึ่งของค่าตั้งที่เผยแพร่ให้ทุกคน
+
+     ตั้งใจให้เป็น "ท่อออก" อย่างเดียว ไม่ได้ทำให้ไฟล์นี้รู้จัก Control Center —
+     ใครจะอ่านก็อ่านได้ผ่าน window.sosVE ตัวเดียว ไฟล์นี้จึงยังใช้เดี่ยว ๆ ได้เหมือนเดิม
+     ================================================================= */
+  window.sosVE = {
+    get: function () {
+      return JSON.parse(JSON.stringify({ rules: S.rules, tokens: S.tokens, texts: S.texts }));
+    },
+    /* ใส่ของที่เคยเผยแพร่ไว้กลับเข้ามา เพื่อให้เปิด Control Center รอบหน้าแล้วแก้ต่อได้
+       ไม่ใช่เริ่มจากศูนย์ทุกครั้ง · ไม่ปักประวัติ เพราะนี่คือ "จุดตั้งต้น" ไม่ใช่การแก้ */
+    set: function (o) {
+      if (!o || typeof o !== 'object') return;
+      S.rules = o.rules || {};
+      S.tokens = o.tokens || {};
+      S.texts = o.texts || {};
+      applyAll();
+      saveLS();
+    },
+    /* เรียกทุกครั้งที่มีการแก้ที่ "ปักหมุดประวัติ" แล้ว — ไม่ยิงทุกการลากนิ้ว
+       เพราะทุกการลากคือหลายสิบเหตุการณ์ต่อวินาที และปลายทางต้องส่งข้ามเฟรม */
+    onChange: null,
+  };
+
+  var _commit = commit;
+  commit = function (label) {
+    _commit(label);
+    try { if (typeof window.sosVE.onChange === 'function') window.sosVE.onChange(window.sosVE.get()); }
+    catch (e) {}
+  };
+
   console.log('%cVisual Editor v3 พร้อมใช้ — กดปุ่ม "แก้ดีไซน์" มุมขวาบน', 'background:#F59E0B;color:#111;padding:4px 10px;border-radius:6px;font-weight:700');
 })();

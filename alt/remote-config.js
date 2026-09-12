@@ -71,6 +71,16 @@
 
     texts: {},           // id → ข้อความที่ทับของเดิม (ดู sosText)
 
+    /* ---------- งานที่แก้ด้วยมือจาก Visual Editor ----------
+       rules  : { 'ตัวเลือก CSS': { prop: value } }   — ทับสไตล์ของชิ้นนั้น
+       tokens : { 'ชื่อธีม': { '--var': value } }      — ทับโทเคนเฉพาะธีมนั้น
+       texts  : { 'ตัวเลือก CSS': 'ข้อความใหม่' }
+
+       รูปเดียวกับที่ visual-editor.js ใช้อยู่แล้วเป๊ะ ๆ โดยตั้งใจ —
+       ของเดิมมันเก็บลง localStorage ของเครื่องเดียว ตรงนี้คือทางที่ทำให้
+       สิ่งที่เจ้าของระบบแก้ด้วยมือ เดินทางไปถึงเครื่องของทุกคน */
+    ui: { rules: {}, tokens: {}, texts: {} },
+
     noti: {
       flags: { exam: true, urgent: true, overdue: true, daily: false, streak: false },
       // ว่าง = ส่งตามจังหวะของงานเหมือนเดิม (ไม่จำกัดหน้าต่างเวลา)
@@ -212,6 +222,18 @@
         ');padding-bottom:calc(14px * ' + t.spacing + ')}';
     }
 
+    /* ---------- สไตล์ที่แก้ด้วยมือ ----------
+       ต่อท้ายโทเคน เพราะมันต้องชนะโทเคน: คนที่ไปแตะชิ้นนั้นด้วยมือ ตั้งใจให้ชิ้นนั้น
+       เป็นแบบนั้นจริง ๆ ไม่ใช่ให้ธีมมาตัดสินแทน · ใช้ !important ด้วยเหตุผลเดียวกับ
+       ที่ visual-editor.js ใช้: ตัวเลือกที่มันสร้างมักสู้ตัวเลือกใน alt.css ไม่ได้ */
+    var rules = (window.SOSCFG.ui && window.SOSCFG.ui.rules) || {};
+    for (k in rules) {
+      var decl = rules[k], body = '', prop;
+      if (!decl || typeof decl !== 'object') continue;
+      for (prop in decl) body += prop + ':' + decl[prop] + ' !important;';
+      if (body) extra += k + '{' + body + '}';
+    }
+
     var el = document.getElementById('sos-remote-theme');
     if (!el) {
       el = document.createElement('style');
@@ -228,8 +250,55 @@
        data-theme ไว้หรือไม่ — ต่างจากการเขียน [data-theme] ที่จะพลาดตอนไม่มีแอตทริบิวต์ */
     el.textContent = (css.length ? ':root:root:root{' + css.join('') + '}' : '') + extra;
   }
-  applyTheme();
-  window.sosApplyTheme = applyTheme;
+  /* ---------- โทเคนรายธีม + ข้อความที่แก้ด้วยมือ ----------
+     โทเคนเขียนเป็น inline style บน <html> เหมือนที่ visual-editor.js ทำ เพราะมันต้อง
+     เปลี่ยนตามธีมที่ผู้ใช้เลือกอยู่ ไม่ใช่ตายตัวก้อนเดียว */
+  var liveTokens = [];
+  function applyUiTokens() {
+    var r = document.documentElement, i;
+    for (i = 0; i < liveTokens.length; i++) r.style.removeProperty(liveTokens[i]);
+    liveTokens = [];
+    var all = (window.SOSCFG.ui && window.SOSCFG.ui.tokens) || {};
+    var t = all[r.getAttribute('data-theme') || 'light'] || {};
+    for (var n in t) {
+      if (/^--[\w-]+$/.test(n)) { r.style.setProperty(n, t[n]); liveTokens.push(n); }
+    }
+  }
+
+  /* ข้อความต้องทาซ้ำ เพราะแอปเขียนทับ innerHTML ทั้งก้อนทุกครั้งที่วาดใหม่ (ทุกนาที
+     และทุกครั้งที่ข้อมูลเปลี่ยน) · ตัวจับเวลาเดินเฉพาะตอนมีข้อความที่ตั้งไว้จริง —
+     เด็กที่เจ้าของระบบไม่ได้แก้ข้อความอะไรเลย จะไม่มี timer เดินในเครื่องเขาสักตัว */
+  var textTimer = null;
+  function applyUiTexts() {
+    var map = (window.SOSCFG.ui && window.SOSCFG.ui.texts) || {};
+    for (var sel in map) {
+      try {
+        var e = document.querySelector(sel);
+        if (!e) continue;
+        if (e.getAttribute('contenteditable')) continue;
+        /* ชิ้นที่มีลูกเป็นอิลิเมนต์ ห้ามเขียนทับ — ไม่งั้นลูกหายทั้งกิ่ง
+           (กติกาเดียวกับ visual-editor.js ซึ่งเจอปัญหานี้มาแล้ว) */
+        var hasEl = false, c;
+        for (c = 0; c < e.childNodes.length; c++) {
+          if (e.childNodes[c].nodeType === 1) { hasEl = true; break; }
+        }
+        if (hasEl) continue;
+        if (e.textContent !== map[sel]) e.textContent = map[sel];
+      } catch (x) {}
+    }
+  }
+  function scheduleTexts() {
+    var map = (window.SOSCFG.ui && window.SOSCFG.ui.texts) || {};
+    var any = false, kk;
+    for (kk in map) { any = true; break; }
+    if (any && !textTimer) textTimer = setInterval(applyUiTexts, 2500);
+    if (!any && textTimer) { clearInterval(textTimer); textTimer = null; }
+    if (any) applyUiTexts();
+  }
+
+  function applyAll() { applyTheme(); applyUiTokens(); scheduleTexts(); }
+  applyAll();
+  window.sosApplyTheme = applyAll;
 
   /* ==================== โหลดจากเซิร์ฟเวอร์ ====================
      ใช้ fetch ตรง ๆ ไม่ผ่าน supabase-js เพราะไฟล์นี้ต้องทำงานได้ก่อนที่
@@ -237,7 +306,7 @@
      ล้มเหลวเมื่อไหร่ = เงียบ แล้วใช้แคช/ค่าเริ่มต้นต่อ — ไม่มีทางที่จอจะค้างเพราะไฟล์นี้
      ============================================================= */
   function announce(source) {
-    applyTheme();
+    applyAll();
     try {
       window.dispatchEvent(new CustomEvent('sos-config', { detail: { source: source } }));
     } catch (e) {}
@@ -311,6 +380,26 @@
   window.SOS_PREVIEW = PREVIEW;
 
   if (PREVIEW) {
+    /* ตัวแก้ดีไซน์โหลดเฉพาะในพรีวิว — ไฟล์มันหนัก ~50KB และเด็กไม่เคยต้องใช้
+       การใส่ไว้ใน index.html ถาวรแปลว่าทุกคนโหลดของที่มีคนเดียวที่ได้ใช้ */
+    var uiSeeded = false;
+    function loadEditor() {
+      if (document.getElementById('sos-ve-script')) return;
+      var sc = document.createElement('script');
+      sc.id = 'sos-ve-script';
+      sc.src = 'visual-editor.js';
+      sc.onload = function () {
+        if (!window.sosVE) return;
+        /* ใส่ของที่เผยแพร่ไว้แล้วกลับเข้าไป เพื่อให้เปิดมาแก้ต่อได้ ไม่ใช่เริ่มจากศูนย์ */
+        if (!uiSeeded) { window.sosVE.set((window.SOSCFG.ui) || {}); uiSeeded = true; }
+        window.sosVE.onChange = function (ui) {
+          try { window.parent.postMessage({ type: 'sos-preview-ui', ui: ui }, location.origin); }
+          catch (e) {}
+        };
+      };
+      document.body.appendChild(sc);
+    }
+
     window.addEventListener('message', function (e) {
       if (e.origin !== location.origin) return;          // หน้าอื่นห้ามสั่ง
       var d = e.data;
@@ -318,6 +407,9 @@
       overrides = (d.config && typeof d.config === 'object') ? d.config : {};
       window.SOSCFG = merge(clone(DEFAULTS), overrides);
       announce('preview');
+      /* โหลดตัวแก้ดีไซน์หลังได้ค่าตั้งก้อนแรก — โหลดก่อนหน้านั้นแล้วมันจะ seed ด้วยของว่าง
+         แล้วทับงานที่เคยเผยแพร่ไว้ทิ้งทันทีที่มีการแก้ครั้งแรก */
+      loadEditor();
     });
     /* บอกหน้าแม่ว่าพร้อมรับแล้ว — หน้าแม่ส่งก่อนที่ไฟล์นี้จะรันเสร็จไม่ได้
        และการให้หน้าแม่ยิงซ้ำ ๆ เผื่อไว้ แพงกว่าจับมือกันหนึ่งครั้ง */
