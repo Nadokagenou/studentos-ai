@@ -159,15 +159,28 @@ input[type=range]{width:100%;accent-color:var(--cacc);height:22px;margin:0}
 .mv:hover{background:var(--ccard2);color:var(--cink)}
 .mv:disabled{opacity:.25;cursor:not-allowed}
 
-.phone{border:1px solid var(--cline);border-radius:22px;background:var(--cscr);overflow:hidden;
-  box-shadow:var(--cshadow);position:sticky;top:20px}
-.phone .bar{background:var(--ccard2);padding:6px;text-align:center;color:var(--cfaint);
-  font-size:10.5px;font-weight:700;letter-spacing:.06em}
-.phone .scr{padding:12px;min-height:430px}
-.pv{border:1px solid var(--cline);border-radius:12px;padding:10px 11px;margin-bottom:8px;background:var(--ccard)}
-.pv b{display:block;font-size:12.5px}
-.pv small{color:var(--cmuted);font-size:11px}
-.pv.accent{background:var(--cacc-soft);border-color:transparent}
+/* ---------- แอปจริงที่ฝังไว้ ----------
+   375×812 คือขนาดที่ทั้งโปรเจกต์ใช้วัดหน้าจอมาตลอด · ย่อด้วย transform ไม่ใช่
+   ย่อด้วยการตั้ง width ให้เล็ก — ย่อด้วย width แล้ว media query ของแอปจะเข้าใจว่า
+   นี่คือจอแคบกว่ามือถือจริง แล้ววาดคนละแบบกับที่เด็กเห็น ซึ่งทำให้พรีวิวโกหก */
+.live{position:sticky;top:20px}
+.live-bar{display:flex;align-items:center;gap:8px;padding:0 2px 8px;font-size:12.5px}
+.live-bar b{font-weight:650}
+.dot-live{width:7px;height:7px;border-radius:50%;background:var(--cgood);flex:none;
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--cgood) 22%, transparent)}
+.live-tag{margin-left:auto;background:var(--cwarn-soft);color:var(--cwarn);
+  border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700;white-space:nowrap}
+.live-tag.clean{background:var(--cgood-soft);color:var(--cgood)}
+.live-screen{width:293px;height:634px;border-radius:22px;overflow:hidden;
+  border:1px solid var(--cline);box-shadow:var(--cshadow);background:var(--cscr)}
+#pvFrame{width:375px;height:812px;border:0;display:block;
+  transform:scale(.78);transform-origin:0 0}
+.live-note{color:var(--cfaint);font-size:11px;margin:8px 2px 0;line-height:1.55;max-width:293px}
+.pv-slot:empty{display:none}
+@media(max-width:880px){
+  .live{position:static}
+  .live-screen{width:100%;max-width:293px}
+}
 
 .swatch{width:36px;height:32px;border-radius:9px;border:1px solid var(--cline);flex:none;padding:2px;background:none}
 .hint{color:var(--cfaint);font-size:11.5px;margin:8px 0 0;line-height:1.6}

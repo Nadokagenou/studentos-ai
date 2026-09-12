@@ -46,15 +46,6 @@
     hwNowBlock: ['เพื่อนกำลังทำอะไร', 'ว่างเองเมื่อไม่มีใครออนไลน์'],
     toolsLink:  ['ฟีเจอร์อื่น ๆ', 'บรรทัดเดียวปิดท้าย'],
   };
-  var BLOCK_PV = {
-    todayHead:  ['ศุกร์ 12 ก.ย. · สวัสดีตอนค่ำ', 'ว่างอีก ~2.5 ชม.', 0],
-    todayStats: ['ค้าง 4 · เสร็จ 2', '', 0],
-    askBar:     ['ถามน้องไซ…', '', 0],
-    nowCard:    ['🔥 ฟิสิกส์ บทที่ 4', 'เริ่มเลย · ~45 นาที', 1],
-    dayRail:    ['ที่เหลือของวันนี้', 'เคมี 19:00 · อังกฤษ 20:15', 0],
-    hwNowBlock: ['เพื่อน 3 คนกำลังทำอยู่', '', 0],
-    toolsLink:  ['ฟีเจอร์อื่น ๆ →', '', 0],
-  };
   var PRIO_META = [
     ['deadline', 'ความด่วนของกำหนดส่ง', 'เส้นโค้ง urgencyScore() — ยิ่งใกล้ยิ่งพุ่ง'],
     ['exam',     'น้ำหนักการสอบ',        'ทำให้เวลาของงานที่ต้องเตรียมล่วงหน้าเดินเร็วกว่าจริง · 0 = สอบถูกคิดเหมือนงานส่งธรรมดา'],
@@ -167,6 +158,10 @@
     $('#brandSub').textContent = me.email || 'แอดมิน';
     await loadConfig();
     renderAll();
+    // เสียบแอปจริงเข้าจอที่เปิดอยู่ (Home Builder) แล้วปล่อยให้มันบูตขนานไปกับ
+    // การโหลดประวัติ/สถิติ — ไม่มีอะไรในสองอันนั้นที่พรีวิวต้องรอ
+    pvMoveTo('home');
+    pvTag();
     loadVersions();
     loadStats();
   }
@@ -243,6 +238,8 @@
     msg('แก้' + (what ? ' ' + what : '') + 'แล้ว — ยังไม่ได้เผยแพร่');
     updateBar();
     dash();
+    pvPush();
+    pvTag();
   }
   function msg(t, cls) {
     var el = $('#saveMsg');
@@ -268,6 +265,7 @@
       published = clone(draft);
       dirty = false;
       updateBar();
+      pvTag();
       msg('เผยแพร่แล้ว · เครื่องผู้ใช้จะได้ค่าใหม่ตอนเปิดแอปครั้งถัดไป', 'ok');
       dash();
       loadVersions();
@@ -284,6 +282,8 @@
     dirty = false;
     renderAll();
     updateBar();
+    pvMoveTo(($('.nav.on') || {}).dataset ? $('.nav.on').dataset.go : 'home');
+    pvTag();
     msg('กลับไปเป็นค่าที่เผยแพร่อยู่');
   };
   $('#btnExport').onclick = function () {
@@ -481,7 +481,7 @@
       };
       el.appendChild(d);
     });
-    drawPhone();
+    pvPush();
   }
   function move(from, to) {
     var l = draft.home.blocks;
@@ -490,21 +490,6 @@
     drawBlocks();
     touch('ลำดับหน้าแรก');
   }
-  function drawPhone() {
-    var el = $('#phonePv');
-    var on = draft.home.blocks.filter(function (b) { return b.on; });
-    if (!on.length) {
-      el.innerHTML = '<p class="hint" style="text-align:center;padding:40px 0">'
-        + 'ปิดหมดทุกบล็อก — หน้าแรกจะว่างเปล่า</p>';
-      return;
-    }
-    el.innerHTML = on.map(function (b) {
-      var p = BLOCK_PV[b.id] || [b.id, '', 0];
-      return '<div class="pv' + (p[2] ? ' accent' : '') + '"><b>' + esc(p[0]) + '</b>'
-        + (p[1] ? '<small>' + esc(p[1]) + '</small>' : '') + '</div>';
-    }).join('');
-  }
-
   /* ==================== Priority Engine ==================== */
   // งานตัวอย่างที่ครอบคลุมสี่กรณีที่เถียงกันบ่อยที่สุดในโปรเจกต์นี้:
   // สอบไกลแต่ใหญ่ · การบ้านใกล้แต่เล็ก · ของที่เลยกำหนดไปแล้ว · งานที่ผู้ใช้ปักดาวเอง
@@ -597,37 +582,9 @@
       el.appendChild(d);
     });
   }
-  function themePv() {
-    var t = draft.theme, c = t.colors || {};
-    var g = function (k, fb) { return c[k] || fb; };
-    var rad = (typeof t.radius === 'number' ? t.radius : 20) + 'px';
-    var fs = (typeof t.fontScale === 'number' ? t.fontScale : 1);
-    var fam = t.fontFamily
-      ? JSON.stringify(t.fontFamily) + ',"IBM Plex Sans Thai",sans-serif'
-      : '"IBM Plex Sans Thai","Noto Sans Thai",sans-serif';
-    var SH = { none: 'none', soft: '0 1px 2px rgba(0,0,0,.06)',
-      mid: '0 1px 2px rgba(0,0,0,.05),0 12px 28px -12px rgba(0,0,0,.18)',
-      deep: '0 2px 6px rgba(0,0,0,.08),0 26px 50px -14px rgba(0,0,0,.3)' };
-    $('#themePv').innerHTML =
-      '<div style="background:' + esc(g('scr', '#FCFBF7')) + ';padding:14px;border-radius:14px;'
-      + 'font-family:' + fam + ';font-size:' + (14 * fs) + 'px">'
-      + '<div style="background:' + esc(g('card', '#FFFFFF')) + ';border-radius:' + rad
-      + ';padding:14px;box-shadow:' + (SH[t.shadow] || SH.mid) + '">'
-      + '<b style="color:' + esc(g('ink', '#1F2430')) + ';font-size:' + (15 * fs) + 'px">ตอนนี้ควรทำอะไร</b>'
-      + '<p style="color:' + esc(g('ink', '#1F2430')) + ';opacity:.62;margin:4px 0 10px;font-size:'
-      + (12.5 * fs) + 'px">ฟิสิกส์ บทที่ 4 · ~45 นาที</p>'
-      + '<button style="background:' + esc(g('blue', '#9E5B04')) + ';color:#fff;border:0;border-radius:'
-      + Math.round(parseInt(rad, 10) * 0.55) + 'px;padding:8px 16px;font-weight:700;font-size:'
-      + (13 * fs) + 'px">เริ่มเลย</button>'
-      + '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">'
-      + ['good', 'warn', 'alert'].map(function (k, i) {
-        var fb = ['#1C6B3B', '#8A6206', '#C42B1F'][i];
-        var lb = ['เสร็จแล้ว', 'ใกล้ถึงกำหนด', 'เลยกำหนด'][i];
-        return '<span style="background:' + esc(g(k, fb)) + ';color:#fff;border-radius:999px;'
-          + 'padding:2px 9px;font-size:' + (11 * fs) + 'px;font-weight:700">' + lb + '</span>';
-      }).join('')
-      + '</div></div></div>';
-  }
+  // ธีมไม่ต้องวาดตัวอย่างเองแล้ว — แอปจริงในกรอบข้าง ๆ คือตัวอย่างที่ดีที่สุดที่มีได้
+  // เหลือไว้เป็นชื่อเดิมเพื่อให้ทุกจุดที่เคยเรียกยังเรียกได้เหมือนเดิม
+  function themePv() { pvPush(); }
 
   /* ==================== Content ==================== */
   function drawTexts() {
@@ -859,6 +816,78 @@
   $('#rulesTx').oninput = function () { draft.ai.rules = this.value; };
   $('#rulesTx').onchange = function () { touch('กติกา'); };
 
+  /* ==================== แอปจริงที่ฝังไว้ ====================
+     เหตุผลที่ต้องมี: พรีวิวที่วาดเองเป็นภาพวาดของแอป ไม่ใช่แอป
+     ลากบล็อกแล้วเห็นกล่องเขียนว่า "การ์ดตอนนี้" ไม่ได้บอกอะไรเลยว่าของจริงจะออกมายังไง
+     — และถ้าพรีวิวกับของจริงไม่ตรงกันวันไหน พรีวิวจะกลายเป็นสิ่งที่ทำให้ตัดสินใจผิด
+
+     ตัวส่งค่าเป็น postMessage ทางเดียว: หน้านี้ส่ง draft เข้าไป · ฝั่งโน้นไม่เขียนแคช
+     (ดูโหมดพรีวิวใน remote-config.js — ข้อ 2 คือข้อที่พลาดแล้วเจ็บที่สุด)
+     ========================================================= */
+  // ธงที่ iframe อ่านได้ (โดเมนเดียวกัน) — ต้องตั้งก่อน iframe เริ่มโหลด
+  // และต้องอยู่รอดการที่ service worker สั่ง iframe รีโหลดตัวเอง ซึ่งคิวรีไม่รอด
+  window.__SOS_CONTROL_PREVIEW__ = true;
+
+  var pvReady = false, pvTimer = null;
+
+  function pvFrame() { return $('#pvFrame'); }
+
+  function pvBoot() {
+    var f = pvFrame();
+    if (!f || f.src) return;
+    // cache-bust ไม่ได้ใส่โดยตั้งใจ — service worker เป็น network-first อยู่แล้ว
+    // และการยัด timestamp ทุกครั้งแปลว่าแอปบูตใหม่หมดทุกการสลับจอ
+    f.src = 'index.html?sosPreview=1';
+  }
+
+  // ส่งถี่เท่าที่ลากได้ = แอปวาดใหม่ทุกเฟรม · หน่วงสั้น ๆ พอให้ลากลื่นแต่ยังรู้สึกว่าทันที
+  function pvPush() {
+    if (!pvReady || !draft) return;
+    clearTimeout(pvTimer);
+    pvTimer = setTimeout(function () {
+      var f = pvFrame();
+      if (!f || !f.contentWindow) return;
+      try {
+        f.contentWindow.postMessage(
+          { type: 'sos-preview-config', config: clone(draft) }, location.origin);
+      } catch (e) {}
+    }, 60);
+  }
+
+  window.addEventListener('message', function (e) {
+    if (e.origin !== location.origin) return;
+    if (!e.data || e.data.type !== 'sos-preview-ready') return;
+    pvReady = true;
+    pvPush();
+  });
+
+  // ชิ้นเดียวย้ายไปมา — สร้างใหม่ทุกจอ = แอปบูตซ้ำทุกครั้งที่สลับ ซึ่งช้าและกะพริบ
+  function pvMoveTo(pageId) {
+    var live = $('#livePv');
+    var slot = document.querySelector('#p-' + pageId + ' .pv-slot');
+    if (!live) return;
+    if (!slot) { live.hidden = true; return; }
+    live.hidden = false;
+    if (live.parentNode !== slot) slot.appendChild(live);
+    pvBoot();
+    pvPush();
+  }
+
+  function pvTag() {
+    var t = $('#liveTag');
+    if (!t) return;
+    t.textContent = dirty ? 'ยังไม่เผยแพร่' : 'ตรงกับที่เผยแพร่';
+    t.className = 'live-tag' + (dirty ? '' : ' clean');
+  }
+
+  $('#pvReload').onclick = function () {
+    var f = pvFrame();
+    if (!f) return;
+    pvReady = false;
+    f.src = 'index.html?sosPreview=1';
+  };
+  $('#pvOpen').onclick = function () { window.open('index.html', '_blank', 'noopener'); };
+
   /* ==================== เมนู ==================== */
   Array.prototype.forEach.call(document.querySelectorAll('.nav[data-go]'), function (b) {
     b.onclick = function () {
@@ -867,6 +896,7 @@
       b.classList.add('on');
       var p = $('#p-' + b.dataset.go);
       if (p) p.classList.add('on');
+      pvMoveTo(b.dataset.go);
       window.scrollTo(0, 0);
     };
   });
