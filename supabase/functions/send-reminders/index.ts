@@ -23,6 +23,7 @@
 // ============================================================
 import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { appConfig, num, str, fill } from '../_shared/appconfig.ts';
 
 // ---------- เพดานที่ตั้งไว้ตั้งใจ ----------
 const PAGE = 500;               // อ่าน subscription ทีละหน้า
@@ -87,10 +88,60 @@ const SAME_DAY_HOURS = 12;     // ใกล้ขนาดนี้ส่งไ�
 const LOOKAHEAD_HOURS = 30;    // มองไกลพอที่จะเตือนงาน "พรุ่งนี้ 23:59" ได้ตั้งแต่เย็นนี้
 const LAPSED_DAYS = 3;         // หายไปกี่วันถึงจะทัก
 
+// ---------- ค่าที่ Control Center ทับได้ ----------
+// ค่าเริ่มต้นทุกตัวคือค่าคงที่ที่อยู่ข้างบนนี้เป๊ะ ๆ — ตารางยังไม่มี/เน็ตหลุด = เหมือนเดิม
+// **ยกเว้นข้อเดียวที่ตั้งใจให้ต่าง:** examHours (ดูหมายเหตุที่ตัวแปรนั้น)
+let cfgNightFrom = NIGHT_FROM;
+let cfgExamHours = LOOKAHEAD_HOURS;
+let cfgFlags: Record<string, boolean> = {};
+let cfgTimes: string[] = [];
+let cfgTemplates: Record<string, string> = {};
+
+async function loadNotiConfig() {
+  const c = await appConfig();
+  // "ห้ามเตือนหลังเวลา" — รับได้เฉพาะรูป HH:MM · อย่างอื่นใช้ของเดิม
+  const q = str(c.noti?.quietAfter, '');
+  const m = /^(\d{1,2}):(\d{2})$/.exec(q);
+  cfgNightFrom = m ? num(m[1], NIGHT_FROM, 12, 23) : NIGHT_FROM;
+
+  // ---------- จุดเดียวที่ค่าเริ่มต้นเปลี่ยนพฤติกรรมเดิม ----------
+  // เดิมทุกงานมองไปข้างหน้า 30 ชม. เท่ากันหมด แปลว่า "สอบอีกสามวัน" ไม่เคยได้ push เลย
+  // จนกว่าจะเหลือ 30 ชม. ซึ่งขัดกับตัวแอปเองที่คิด prepHours ให้การสอบมาตั้งแต่ต้น
+  // (engine.js ให้เวลาของการสอบ "เดินเร็วกว่าจริง" เพราะสอบต้องเริ่มอ่านล่วงหน้า)
+  // เจ้าของระบบสั่งให้มีช่อง "เตือนก่อนสอบ 3 วัน" จึงทำตามนั้น และนับเป็นการเปลี่ยน
+  // พฤติกรรมที่ตั้งใจ — ปิดได้ด้วยสวิตช์ "เตือนก่อนสอบ" ใน Notification Center
+  cfgExamHours = Math.round(num(c.noti?.examDays, 3, 0, 14) * 24);
+
+  cfgFlags = (c.noti?.flags ?? {}) as Record<string, boolean>;
+  cfgTimes = Array.isArray(c.noti?.times) ? c.noti!.times!.filter(t => /^\d{1,2}:\d{2}$/.test(t)) : [];
+  cfgTemplates = (c.noti?.templates ?? {}) as Record<string, string>;
+}
+
+/** สวิตช์ใน Notification Center · ไม่รู้จัก = เปิด (ฟีเจอร์ใหม่ต้องทำงานทันที) */
+function notiOn(id: string): boolean { return cfgFlags[id] !== false; }
+
+/** ตั้งเวลาส่งไว้ = ส่งเฉพาะในหน้าต่าง ±15 นาทีของเวลานั้น · ไม่ได้ตั้ง = ตามจังหวะของงาน */
+function inSendWindow(ms: number): boolean {
+  if (!cfgTimes.length) return true;
+  const d = thDate(ms);
+  const mins = d.getUTCHours() * 60 + d.getUTCMinutes();
+  return cfgTimes.some(t => {
+    const [h, mm] = t.split(':').map(Number);
+    return Math.abs(mins - (h * 60 + mm)) <= 15;
+  });
+}
+
 function thDate(ms: number): Date { return new Date(ms + TH_OFFSET); }
 function thHour(ms: number): number { return thDate(ms).getUTCHours(); }
-function isNight(ms: number): boolean { const h = thHour(ms); return h >= NIGHT_FROM || h < NIGHT_TO; }
+function isNight(ms: number): boolean { const h = thHour(ms); return h >= cfgNightFrom || h < NIGHT_TO; }
 function isEvening(ms: number): boolean { const h = thHour(ms); return h >= EVE_FROM && h < EVE_TO; }
+
+/** งานใบนี้เป็นการสอบไหม — ฝั่งเซิร์ฟเวอร์ไม่มี taskType() ของ engine.js ให้เรียก */
+function isExam(t: any): boolean {
+  const ty = String(t?.type || '').toLowerCase();
+  if (ty) return ty === 'exam';
+  return /สอบ|ควิซ|quiz|midterm|final/i.test(String(t?.detail || '') + ' ' + String(t?.subject || ''));
+}
 
 // คีย์สัปดาห์แบบง่าย — ใช้กันการทักซ้ำ ไม่ได้ใช้แสดงผล จึงไม่ต้องตรงมาตรฐาน ISO
 function thWeekKey(ms: number): string {
@@ -128,10 +179,51 @@ function taskName(t: any): string {
 // ทุกข้อความข้างล่างจึงต้องมีชื่องานจริงกับเวลาจริงเสมอ ไม่มีอันไหนพูดลอย ๆ
 const pick = <T>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
 
+// ---------- แม่แบบที่เจ้าของระบบเขียนเองได้ ----------
+// ตั้งไว้ = ใช้แทนข้อความในไฟล์นี้ · ไม่ได้ตั้ง = ใช้ของเดิม (ซึ่งสุ่มสองแบบเพื่อไม่ให้ซ้ำซาก)
+//
+// **แม่แบบไม่มีตัวเลือกให้สุ่ม** โดยตั้งใจ — คนเขียนข้อความเองย่อมอยากได้ข้อความนั้น
+// ไม่ใช่ข้อความนั้นบ้างอย่างอื่นบ้าง · ราคาคือเห็นซ้ำบ่อยขึ้น ซึ่งเจ้าของเลือกเอง
+//
+// ชื่อที่ไม่มีข้อมูลถูกลบทิ้ง ไม่ปล่อยให้ {{days}} โผล่บนหน้าจอล็อกของเด็ก (ดู fill())
+function tpl(id: string, vars: Record<string, string | number>): string | null {
+  const t = str(cfgTemplates[id], '');
+  return t ? fill(t, vars) : null;
+}
+
 function reminderCopy(t: any, hoursLeft: number, nowMs: number) {
   const name = taskName(t);
   const hr = Math.max(1, Math.round(hoursLeft));
   const when = t?.due ? dueLabel(t.due, nowMs) : '';
+  const vars = {
+    task: name,
+    subject: String(t?.subject || ''),
+    time: when,
+    hours: hr,
+    days: Math.max(0, Math.round(hoursLeft / 24)),
+  };
+
+  // สอบมีแม่แบบของตัวเอง และต้องมาก่อนสาขาอื่นทั้งหมด — ไม่งั้น "สอบอีกสามวัน"
+  // จะไปตกสาขาสุดท้ายแล้วได้ข้อความว่า "มีส่ง" ซึ่งผิดประเภทงาน
+  if (isExam(t) && hoursLeft > SAME_DAY_HOURS) {
+    const custom = tpl('exam', vars);
+    if (custom) return { title: `สอบ${when ? when : ''} 📖`.trim(), body: custom };
+    return {
+      title: `สอบ${when ? when : 'เร็ว ๆ นี้'} 📖`,
+      body: `${name} — อีก ${vars.days} วัน เริ่มอ่านวันนี้จะทันแบบไม่ต้องอัด`,
+    };
+  }
+
+  if (hoursLeft < 0) {
+    const custom = tpl('overdue', vars);
+    if (custom) return { title: 'เลยกำหนดไปแล้ว 😬', body: custom };
+  } else if (hoursLeft <= SAME_DAY_HOURS) {
+    const custom = tpl('urgent', vars);
+    if (custom) return { title: `ส่ง${when || 'วันนี้'} 📚`, body: custom };
+  } else {
+    const custom = tpl('daily', vars);
+    if (custom) return { title: `${when || 'พรุ่งนี้'}มีส่ง 📌`, body: custom };
+  }
 
   if (hoursLeft < 0) return {
     title: 'เลยกำหนดไปแล้ว 😬',
@@ -235,6 +327,10 @@ Deno.serve(async () => {
   const errors: string[] = [];
   let truncated = false;
 
+  // ต้องอ่านค่าตั้งก่อนทุกการตัดสินใจ — เวลาห้ามส่งกับหน้าต่างเวลาส่งมาจากที่นี่
+  // ล้มเหลว = ใช้ค่าคงที่ในไฟล์นี้ (ดู _shared/appconfig.ts) ไม่มีทางทำให้รอบนี้พัง
+  await loadNotiConfig();
+
   // กลางดึกไม่ส่งอะไรทั้งนั้น — ออกตั้งแต่ยังไม่แตะฐานข้อมูล
   // ของที่ถึงคิวตอนดึกไม่ได้หายไปไหน เพราะ push_sent ยังไม่ถูกปัก
   // รอบเช้าจะเจอมันอีกครั้งแล้วส่งตอนที่คนตื่นอยู่และทำอะไรได้จริง
@@ -242,6 +338,16 @@ Deno.serve(async () => {
     return new Response(JSON.stringify({
       ok: true, sent: 0, scanned: 0, skipped: 'night',
       thaiHour: thHour(now), ms: Date.now() - startedAt,
+    }), { headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // เจ้าของระบบตั้ง "เวลาส่ง" ไว้ = รอบที่ไม่ตรงหน้าต่างนั้นไม่ส่ง
+  // ออกด้วยเหตุผลเดียวกับกลางดึก: ยังไม่ปัก push_sent ของจึงรอรอบถัดไปได้
+  // ไม่ได้ตั้งไว้ = ส่งตามจังหวะของงานเหมือนเดิม (พฤติกรรมเริ่มต้น)
+  if (!inSendWindow(now)) {
+    return new Response(JSON.stringify({
+      ok: true, sent: 0, scanned: 0, skipped: 'outside-window',
+      thaiHour: thHour(now), windows: cfgTimes, ms: Date.now() - startedAt,
     }), { headers: { 'Content-Type': 'application/json' } });
   }
 
@@ -322,7 +428,16 @@ Deno.serve(async () => {
             const h = (Date.parse(t.due) - now) / 3.6e6;
             return { t, h, stage: h > SAME_DAY_HOURS ? 'plan' : 'soon' };
           })
-          .filter((x: any) => x.h <= LOOKAHEAD_HOURS && x.h > -24)
+          // การสอบมองไกลกว่างานส่ง — ตั้งได้ที่ Notification Center (ค่าเริ่มต้น 3 วัน)
+          // ปิดสวิตช์ "เตือนก่อนสอบ" แล้วมันกลับไปใช้หน้าต่าง 30 ชม. เท่างานอื่นทันที
+          .filter((x: any) => {
+            const far = (isExam(x.t) && notiOn('exam'))
+              ? Math.max(LOOKAHEAD_HOURS, cfgExamHours) : LOOKAHEAD_HOURS;
+            return x.h <= far && x.h > -24;
+          })
+          // สวิตช์รายประเภท · เลยกำหนดต้องเช็คก่อน เพราะใบที่เลยกำหนดก็ติด stage 'soon'
+          .filter((x: any) => x.h < 0 ? notiOn('overdue')
+                            : x.stage === 'soon' ? notiOn('urgent') : true)
           // ของที่ยังไกล ส่งเฉพาะช่วงเย็น — เตือนงานพรุ่งนี้ตอนบ่ายสองไม่มีใครลุกไปทำ
           .filter((x: any) => x.stage === 'soon' || evening)
           // กันซ้ำ: คีย์ใหม่แยกตามจังหวะ · คีย์เก่าเป็น id เปล่า ๆ ต้องนับด้วย

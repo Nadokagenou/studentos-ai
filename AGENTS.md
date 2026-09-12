@@ -45,7 +45,8 @@ To-do list ทั่วไปแสดงรายการทั้งหมด
 - **ห้ามแก้ `style.css`** — ของ ALT ไปอยู่ใน `alt.css` เท่านั้น
   *(ข้อยกเว้นที่เกิดขึ้นแล้ว: 1A9e เพิ่มโทเคนสีทองลง `style.css` โดยตั้งใจ เพราะทองต้องอยู่กลุ่มเดียวกับ `--pri-*` ที่คงที่ทุกธีม)*
 - **ลำดับโหลดสคริปต์ห้ามสลับ** — `context.js` ต้องมาก่อน `app.js`
-  `supabase → config.js → engine.js → context.js → planner.js → brain.js → inbox.js → linelink.js → app.js`
+  `supabase → config.js → remote-config.js → engine.js → context.js → planner.js → brain.js → inbox.js → linelink.js → app.js`
+  *(`remote-config.js` ต้องมาก่อน `engine.js` — `priorityInfo()` เรียก `prioWeight()` ตอนคิดคะแนน)*
 - **ขึ้นเวอร์ชัน = แก้ 3 ที่ขึ้นไปให้ตรงกัน** — `APP_VERSION` (app.js) + `CACHE` (sw.js) + title/meta/manifest/README/PATCHNOTES
 - **เพิ่มธีมใหม่ต้องแก้ 3 ที่** — `THEME_BAR`/`THEME_NAME` (app.js) + ตาราง `BAR` ใน `<head>` + โทเคนใน `alt.css`
 - **หน้าแรก (`scr-menu`) ต้องไม่ต้องเลื่อน** — วัดที่ 375×812 ทุกครั้งที่เพิ่มของ

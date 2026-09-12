@@ -22,6 +22,7 @@
 // ============================================================
 
 import { chat, chatStream, listModels, llmReady, LLM_MODEL, LLM_BASE_URL, LLM_API_KEY, type ChatMsg } from '../_shared/llm.ts';
+import { appConfig, num, str } from '../_shared/appconfig.ts';
 import {
   GEMINI_MODELS, geminiBody, geminiGenerate, geminiOrder, geminiPickText,
   geminiRemember, geminiThinkingRetry, RETRY_NEXT_MODEL,
@@ -185,18 +186,50 @@ TCAS 4 รอบ: Portfolio · โควตา · Admission · รับตร�
 
 type Msg = { role: 'user' | 'model'; text: string };
 
+// ---------- ค่าที่ Control Center ทับได้ ----------
+// สามค่านี้เคยเป็นค่าคงที่ในไฟล์นี้ · ย้ายมาเป็นตัวแปรเพื่อให้เจ้าของระบบแก้พรอมป์
+// ได้จากหน้าเว็บโดยไม่ต้อง deploy — ซึ่งเป็นเหตุผลทั้งหมดที่ Control Center มีอยู่
+//
+// **ค่าเริ่มต้นยังเป็นของเดิมทุกตัว** ไม่ได้ตั้งอะไร/ตารางยังไม่มี/เน็ตสะดุด
+// → ฟังก์ชันทำงานเหมือนก่อนมีระบบนี้เป๊ะ
+//
+// เป็นตัวแปรระดับโมดูล ไม่ได้ส่งผ่านพารามิเตอร์ เพราะ ADAPTERS/STREAMERS มีลายเซ็น
+// ร่วมกันหลายตัวและถูกเรียกจากเจ็ดที่ · การไล่เติมพารามิเตอร์ทุกเส้นทางแลกมาด้วย
+// โอกาสพลาดที่สูงกว่าปัญหาที่แก้ได้มาก
+//
+// **สิ่งที่แลกไป (รู้ตัว):** คำขอสองสายที่ทับกันพอดีตอนแคช 60 วินาทีหมดอายุ อาจได้
+// พรอมป์คนละรุ่นกัน · ผลที่แย่ที่สุดคือคำตอบหนึ่งใบใช้พรอมป์เก่ากว่าหนึ่งนาที
+// ซึ่งเป็นความคลาดเคลื่อนระดับเดียวกับที่การแคชสร้างขึ้นอยู่แล้ว
+let aiSystem = SYSTEM;
+let aiTemp = 0.6;
+let aiMaxTokens = MAX_OUTPUT_TOKENS;
+
+async function loadAiConfig() {
+  const c = await appConfig();
+  const base = str(c.ai?.prompt, SYSTEM);
+  const rules = str(c.ai?.rules, '');
+  // กติกาลำดับความสำคัญต่อท้ายได้ทั้งกับพรอมป์ที่เขียนเองและพรอมป์เริ่มต้น
+  // (ตั้งกติกาอย่างเดียวโดยไม่อยากเขียนพรอมป์ใหม่ทั้งใบ เป็นกรณีที่ใช้บ่อยที่สุด)
+  aiSystem = rules ? `${base}
+
+ลำดับความสำคัญเวลาจัดอันดับงาน:
+${rules}` : base;
+  aiTemp = num(c.ai?.temp, 0.6, 0, 1);
+  aiMaxTokens = Math.round(num(c.ai?.maxTokens, MAX_OUTPUT_TOKENS, 256, 8192));
+}
+
 // รูปคำขอของ Gemini — ใช้ร่วมกันทั้งสายตอบทีเดียวและสายไหลทีละคำ
 // แยกไว้เพราะสองสายนั้นต้องเห็นบุคลิกและบริบทชุดเดียวกันเป๊ะ ๆ
 // ถ้าปล่อยให้ต่างคนต่างประกอบ วันหนึ่งจะได้บอทที่นิสัยไม่เหมือนกันแล้วแต่ว่าสตรีมหรือไม่
 function geminiOpts(question: string, context: string, history: Msg[]) {
   return {
-    system: SYSTEM,
+    system: aiSystem,
     contents: [
       ...history.map(m => ({ role: m.role, parts: [{ text: m.text }] })),
       { role: 'user', parts: [{ text: `ข้อมูลของผู้ใช้ (ณ ตอนนี้):\n${context}\n\nคำถาม:\n${question}` }] },
     ],
-    temperature: 0.6,        // ต้องอธิบายให้เข้าใจ ไม่ใช่อ่านตำรา — แต่ไม่ถึงกับแต่งเรื่อง
-    maxOutputTokens: MAX_OUTPUT_TOKENS,
+    temperature: aiTemp,     // ต้องอธิบายให้เข้าใจ ไม่ใช่อ่านตำรา — แต่ไม่ถึงกับแต่งเรื่อง (ค่าเริ่มต้น 0.6)
+    maxOutputTokens: aiMaxTokens,
     think: 'low' as const,   // คำถามนักเรียนส่วนใหญ่ตรงไปตรงมา คิดนานไม่ได้ทำให้ตอบดีขึ้น มีแต่ช้าลง
   };
 }
@@ -304,7 +337,7 @@ async function askGemini(question: string, context: string, history: Msg[], budg
 // ที่เหลือ (ไล่ลองชื่อรุ่น) ไม่ต้องมี เพราะชื่อรุ่นของ gateway ตั้งมาตายตัวจาก LLM_MODEL
 function gatewayMessages(question: string, context: string, history: Msg[]): ChatMsg[] {
   return [
-    { role: 'system', content: SYSTEM },
+    { role: 'system', content: aiSystem },
     ...history.map((m): ChatMsg => ({
       role: m.role === 'model' ? 'assistant' : 'user',
       content: m.text,
@@ -430,6 +463,10 @@ Deno.serve(async (req) => {
       message: 'ยังไม่ได้เปิดใช้น้องไซบนเซิร์ฟเวอร์',
     }, 501);
   }
+
+  // ดึงพรอมป์/อุณหภูมิ/เพดานโทเคนที่เจ้าของระบบตั้งไว้ · แคช 60 วิ จึงไม่ได้ยิงทุกคำขอ
+  // ล้มเหลว = ใช้ค่าเดิมในไฟล์นี้ ไม่มีทางทำให้คำขอนี้พัง (ดู _shared/appconfig.ts)
+  await loadAiConfig();
 
   let body: { question?: string; context?: string; history?: Msg[]; stream?: boolean };
   try { body = await req.json(); }

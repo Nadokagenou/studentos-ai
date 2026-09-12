@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B82';                 // สายเลขของแอป
+const APP_VERSION = '1B83';                 // สายเลขของแอป
 const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -557,7 +557,12 @@ function fontPref() {
 
 function applyFontScale() {
   const key = fontPref();
-  document.documentElement.style.setProperty('--fs', FONT_STEPS[key]);
+  // Theme Studio ตั้ง "ขนาดฐาน" ของทั้งแอป · ผู้ใช้ยังเลือกเล็ก/ปกติ/ใหญ่ทับได้เหมือนเดิม
+  // สองค่านี้คูณกัน ไม่ใช่แทนที่กัน — ค่าตั้งของเจ้าของระบบต้องไม่ลบการตั้งค่าการเข้าถึง
+  // ที่ผู้ใช้เลือกไว้เอง คนที่ตั้งไว้ "ใหญ่มาก" มักตั้งเพราะมองไม่เห็น ไม่ใช่เพราะชอบ
+  const base = typeof sosCfg === 'function' ? sosCfg('theme.fontScale', null) : null;
+  const mul = (typeof base === 'number' && base >= 0.6 && base <= 2) ? base : 1;
+  document.documentElement.style.setProperty('--fs', FONT_STEPS[key] * mul);
   document.documentElement.dataset.fs = key;
 }
 
@@ -2196,7 +2201,7 @@ function dayRail(sp, split, now) {
   // ขนาดจึงขึ้นตามหน้าที่ได้โดยไม่ต้องแข่งกับอะไร (การ์ดฟ้ายังใหญ่กว่าและมีสี)
   return `<section class="td-railwrap">
     <div class="rl-lb">
-      <b>ที่เหลือของวันนี้</b><span>${esc(sumTx)}</span>
+      <b>${esc(typeof sosText === 'function' ? sosText('railTitle', 'ที่เหลือของวันนี้') : 'ที่เหลือของวันนี้')}</b><span>${esc(sumTx)}</span>
     </div>
     <div class="td-rail">
     ${body}
@@ -2237,10 +2242,14 @@ function toolsGrid() {
   // แถวล่าง = ของที่ "เอาไว้ดู/ของตัวเอง" (สถิติ · ของสะสม · ร้านค้า · Pro)
   //
   // แบดจ์ต้องแปลว่า "มีอะไรรอให้กด" เท่านั้น — กฎเดียวกับแบดจ์บนแถบล่าง
-  //   [ไอคอน, ป้าย, กลุ่มสี, สิ่งที่ทำตอนกด, แบดจ์ ('' = เงียบ), เป็นสีเตือนไหม]
+  //   [ไอคอน, ป้าย, กลุ่มสี, สิ่งที่ทำตอนกด, แบดจ์ ('' = เงียบ), เป็นสีเตือนไหม, ชื่อฟีเจอร์]
+  //
+  // ช่องสุดท้ายคือชื่อที่ Feature Manager ใช้ปิด · ไม่ใส่ = ปิดไม่ได้ (ของที่เป็นแกนของแอป)
+  // ปิดฟีเจอร์ต้องซ่อน "ทุกทางเข้า" ของมัน ไม่ใช่ปุ่มเดียว — ปุ่มที่กดแล้วเจอจอที่ไม่ควรมี
+  // แย่กว่าปุ่มที่ไม่มี ด้วยเหตุผลเดียวกับปุ่มล็อกอินที่ขึ้นว่า provider is not enabled
   const tiles = [
-    ['users', 'เพื่อนฉัน', 'in', "openFeed('friends')", reqs || '', true],
-    ['book', 'สแกนตารางเรียน', 'in', "go('scr-ttscan')", noCtx ? '!' : '', true],
+    ['users', 'เพื่อนฉัน', 'in', "openFeed('friends')", reqs || '', true, 'social'],
+    ['book', 'สแกนตารางเรียน', 'in', "go('scr-ttscan')", noCtx ? '!' : '', true, 'ttscan'],
     ['sparkles', 'แผนวันนี้', 'time', "go('scr-plan')", '', false],
     // 1B47 · ไทล์ "ปฏิทินเดือน" ถูกถอดออก — เจ้าของเลือก "ตัดปฏิทินได้เลย"
     // ที่ว่างคืนให้ "กล่องเข้า" ซึ่งเป็นทางเข้าที่มีของรออยู่จริงและหายากกว่า
@@ -2248,9 +2257,9 @@ function toolsGrid() {
       (typeof inboxPending === 'function' ? inboxPending().length : 0) || '', true],
     ['flame', 'สถิติ', 'me', "go('scr-stats')", '', false],
     ['medal', 'ของสะสม', 'me', "go('scr-badges')", '', false],
-    ['bag', 'ร้านค้า', 'me', "go('scr-shop')", gift ? ' ' : '', true],
+    ['bag', 'ร้านค้า', 'me', "go('scr-shop')", gift ? ' ' : '', true, 'shop'],
     ['lock', 'Pro', 'me', "go('scr-pro')", '', false],
-  ];
+  ].filter(t => !t[6] || typeof sosFeature !== 'function' || sosFeature(t[6]));
 
   return `<section class="td-tiles">
     <div class="tg-grid">
@@ -2266,7 +2275,8 @@ function toolsGrid() {
 // บรรทัดปิดท้ายหน้าแรก — เป็นตัวหนังสือสีจาง ไม่ใช่ปุ่ม เพราะมันไม่ใช่สิ่งที่จอนี้
 // อยากให้กด มันแค่ต้องมีอยู่ให้คนที่ตามหาของหาเจอ
 function toolsLink() {
-  return `<button class="td-more" onclick="go('scr-tools')">ฟีเจอร์อื่น ๆ${icon('chevron')}</button>`;
+  const lb = typeof sosText === 'function' ? sosText('toolsLink', 'ฟีเจอร์อื่น ๆ') : 'ฟีเจอร์อื่น ๆ';
+  return `<button class="td-more" onclick="go('scr-tools')">${esc(lb)}${icon('chevron')}</button>`;
 }
 
 // ---------- ของที่ถูกยุบเข้าไปใน dayRail() แล้วใน 1B21 ----------
@@ -2290,7 +2300,7 @@ function askBar() {
   return `<section class="td-ask">
     <span class="tk-ic">${icon('sparkles')}</span>
     <input id="hmAsk" class="tk-in" type="text" maxlength="500" enterkeyhint="send"
-      placeholder="ถามน้องไซ…"
+      placeholder="${esc(typeof sosText === 'function' ? sosText('askPh', 'ถามน้องไซ…') : 'ถามน้องไซ…')}"
       onkeydown="if(event.key==='Enter'){event.preventDefault();homeAsk();}">
     <button class="tk-go" onclick="homeAsk()" aria-label="ส่งคำถาม">${icon('chevron')}</button>
   </section>`;
@@ -2412,6 +2422,59 @@ function todayStats(sp, now) {
   </div>`;
 }
 
+// ---------- ALT: ทะเบียนบล็อกของหน้าแรก (Home Builder) ----------
+// เดิมหน้าแรกคือสตริงเจ็ดก้อนต่อกันตรง ๆ ใน renderMenu ซึ่งอ่านง่ายมาก
+// แต่แปลว่าลำดับสายตาที่อธิบายไว้ยาวเหยียดข้างบนถูกล็อกไว้ในโค้ด
+// เจ้าของระบบเปลี่ยนไม่ได้เลยถ้าไม่มีเครื่องที่ลง git
+//
+// ทะเบียนนี้ไม่ได้เปลี่ยนว่าแต่ละบล็อกวาดอะไร — เปลี่ยนแค่ว่า "ใครสั่งลำดับ"
+// ค่าเริ่มต้นคือลำดับเดิมเป๊ะ (HOME_ORDER) จึงไม่มีอะไรขยับจนกว่าจะมีคนไปจัดใหม่จริง
+const HOME_BLOCKS = {
+  todayHead:  ctx => todayHead(ctx.sp, ctx.now),
+  todayStats: ctx => todayStats(ctx.sp, ctx.now),
+  askBar:     ()  => askBar(),
+  // การ์ด "ตอนนี้" กับจอว่างเป็นบล็อกเดียวกัน เพราะมันคือของสองหน้าของคำถามเดียวกัน:
+  // มีอะไรให้ทำไหม · แยกเป็นสองบล็อกเมื่อไหร่ จะมีวันที่จอโชว์ทั้งคู่หรือไม่โชว์เลย
+  nowCard:    ctx => ctx.sp.now
+    ? nowCard(ctx.sp, ctx.now) + (ctx.outOfTime ? noTimeLeft(ctx.sp, ctx.now) : '')
+    : todayEmpty(ctx.now, ctx.hasReminders),
+  dayRail:    ctx => dayRail(ctx.sp, ctx.split, ctx.now),
+  // 1B40 · ของที่มาเติมครึ่งล่างที่ว่างลงหลัง 1B39 (เจ้าของเลือกเอง: "เพื่อนกำลังทำอะไรอยู่"
+  // วางใต้ "ที่เหลือของวันนี้") · ไฟล์ hw.js อาจโหลดไม่ขึ้น จึงต้องเช็คก่อนเรียกเสมอ
+  // ตัวมันเองคืนค่าว่างเมื่อไม่มีใครอยู่ — จอจึงกลับไปเป็นแบบ 1B39 เป๊ะตอนไม่มีข่าว
+  hwNowBlock: ()  => (typeof hwNowBlock === 'function' ? hwNowBlock() : ''),
+  toolsLink:  ()  => toolsLink(),
+};
+const HOME_ORDER = ['todayHead', 'todayStats', 'askBar', 'nowCard', 'dayRail', 'hwNowBlock', 'toolsLink'];
+
+function homeLayout() {
+  const saved = (typeof sosCfg === 'function') ? sosCfg('home.blocks', null) : null;
+  if (!Array.isArray(saved) || !saved.length) return HOME_ORDER.map(id => ({ id, on: true }));
+
+  const seen = new Set(), out = [];
+  for (const b of saved) {
+    if (!b || !HOME_BLOCKS[b.id] || seen.has(b.id)) continue;   // ชื่อที่โค้ดไม่รู้จัก = ข้าม
+    seen.add(b.id);
+    out.push({ id: b.id, on: b.on !== false });
+  }
+  // บล็อกที่โค้ดมีแต่ค่าตั้งไม่รู้จัก = ของที่เพิ่งเพิ่มในรุ่นใหม่ — ต้องโผล่เองโดยไม่ต้องรอ
+  // ให้ใครไปกดเปิดในหน้าแอดมิน ไม่งั้นฟีเจอร์ใหม่จะมองไม่เห็นเฉพาะกับคนที่เคยจัดหน้าแรกไว้
+  // ซึ่งเป็นบั๊กที่หาสาเหตุยากมากเพราะมันไม่เกิดกับเครื่องของคนที่เขียนโค้ด
+  for (const id of HOME_ORDER) if (!seen.has(id)) out.push({ id, on: true });
+  return out;
+}
+
+// บล็อกใบเดียวพังต้องไม่ทำให้ทั้งหน้าแรกว่าง — จอขาวคืออาการที่ผู้ใช้กู้เองไม่ได้
+function renderHomeBlocks(ctx) {
+  return homeLayout()
+    .filter(b => b.on)
+    .map(b => {
+      try { return HOME_BLOCKS[b.id](ctx) || ''; }
+      catch (e) { console.warn('[home] บล็อก ' + b.id + ' พัง:', e); return ''; }
+    })
+    .join('');
+}
+
 function renderMenu() {
   const body = document.getElementById('menuBody');
   if (!body) return;
@@ -2451,18 +2514,9 @@ function renderMenu() {
   //
   // ที่กริดเคยอยู่ตอนนี้ไม่มีอะไรเลย ซึ่งถูกแล้ว: ของที่เคยคิดจะใส่แทน (งานถัดไป ·
   // คำแนะนำ AI) อยู่บนจอแล้วทั้งคู่ — การ์ดฟ้าคือคำแนะนำ ส่วนรางคืองานถัดไป
-  body.innerHTML = todayHead(sp, now)
-    + todayStats(sp, now)
-    + askBar()
-    + (sp.now ? nowCard(sp, now)
-                + (outOfTime ? noTimeLeft(sp, now) : '')
-              : todayEmpty(now, split.reminders.length > 0))
-    + dayRail(sp, split, now)
-    // 1B40 · ของที่มาเติมครึ่งล่างที่ว่างลงหลัง 1B39 (เจ้าของเลือกเอง: "เพื่อนกำลังทำอะไรอยู่"
-    // วางใต้ "ที่เหลือของวันนี้") · ไฟล์ hw.js อาจโหลดไม่ขึ้น จึงต้องเช็คก่อนเรียกเสมอ
-    // ตัวมันเองคืนค่าว่างเมื่อไม่มีใครอยู่ — จอจึงกลับไปเป็นแบบ 1B39 เป๊ะตอนไม่มีข่าว
-    + (typeof hwNowBlock === 'function' ? hwNowBlock() : '')
-    + toolsLink();
+  body.innerHTML = renderHomeBlocks({
+    sp, now, split, outOfTime, hasReminders: split.reminders.length > 0,
+  });
 
   if (askKeep || askFocus) {
     const b2 = document.getElementById('hmAsk');
@@ -2528,8 +2582,14 @@ function addSheetHTML() {
   // และไม่ต้องพิมพ์สักตัว · ที่เหลือเป็นรายการเงียบ ๆ ข้างล่างเพราะมันคือทางสำรอง
   // ไม่ใช่ทางหลัก · ตัวเชื่อมแยกไปอยู่ท้ายสุดเพราะมันไม่ใช่ "การเพิ่มงานตอนนี้"
   // แต่คือ "ตั้งครั้งเดียวแล้วไม่ต้องเพิ่มอีก" ซึ่งเป็นคนละการตัดสินใจกัน
-  const hero = ADD_ACTIONS.slice(0, 2);
-  const rest = ADD_ACTIONS.slice(2);
+  // ปิด OCR ใน Feature Manager = ถอดท่า "ถ่ายรูปใบงาน" ออกจากแผ่นนี้ด้วย
+  // ไม่ใช่แค่ซ่อนไทล์ที่อื่น · กรองตอนวาด ไม่ใช่ตอนประกาศอาเรย์ เพราะค่าตั้งมาถึง
+  // หลังแอปโหลดเสร็จได้ (remote-config ยิงแยกจากการบูต)
+  const live = (typeof sosFeature === 'function' && !sosFeature('ocr'))
+    ? ADD_ACTIONS.filter(a => a[0] !== 'camera')
+    : ADD_ACTIONS;
+  const hero = live.slice(0, 2);
+  const rest = live.slice(2);
   return `<div class="as-grip"></div>
     <div class="as-h">เพิ่มอะไร?</div>
     <div class="as-heroes">
@@ -7526,6 +7586,19 @@ function renderShop() {
 // ---------- ALT 1A6M3: ป้ายเตือนบนแถบเมนู ----------
 // งานที่ AI จัดว่า "ด่วนมาก" และยังไม่เสร็จ ต้องเห็นได้โดยไม่ต้องเข้าไปดู
 function renderTabBadges() {
+  // ---------- ปิดชั้นสังคม = ถอดแท็บ "เพื่อน" ออกจากแถบล่างด้วย ----------
+  // ซ่อนแค่ไทล์ในหน้า "ฟีเจอร์อื่น ๆ" แต่ทิ้งแท็บไว้ทั้งแท็บ คือการปิดครึ่งเดียว
+  //
+  // **ผลข้างเคียงที่รู้ตัว:** แถบเหลือสี่ช่อง แปลว่าปุ่ม + ไม่ได้อยู่กึ่งกลางเป๊ะอีกต่อไป
+  // (ดูเหตุผลของเลขห้าช่องใน index.html — ช่องกลางมีได้เฉพาะแถบที่มีจำนวนช่องคี่)
+  // ยอมแลก เพราะปุ่มที่พาไปยังฟีเจอร์ที่เจ้าของปิดไปแล้ว แย่กว่าปุ่มที่เยื้องครึ่งช่อง
+  // เขียนไว้บนหน้า Feature Manager แล้วว่าปิดแล้วแถบจะเหลือสี่ช่อง
+  const mates = document.getElementById('tabMates');
+  if (mates) {
+    const off = typeof sosFeature === 'function' && !sosFeature('social');
+    mates.style.display = off ? 'none' : '';
+  }
+
   const el = document.getElementById('badgeHome');
   if (!el) return;
   const now = new Date();
@@ -7932,6 +8005,15 @@ function renderAll() {
   // เช็คว่ามีคำตอบใหม่ในเธรดหัวข้อที่เราถามไว้หรือยัง · หน่วงเองภายใน 2 นาที
   if (typeof loadTopicNews === 'function') loadTopicNews();
 }
+
+// ---------- ค่าตั้งจากเซิร์ฟเวอร์มาถึงทีหลัง ----------
+// remote-config.js ยิงแยกจากการบูตโดยตั้งใจ (แอปต้องเปิดได้แม้เน็ตหลุด) แปลว่า
+// จอแรกมักถูกวาดด้วยค่าที่แคชไว้ แล้วค่าจริงมาถึงอีกไม่กี่ร้อยมิลลิวินาทีถัดมา
+// ถ้าไม่วาดใหม่ตรงนี้ อาการที่ได้คือ "แก้ใน Control Center แล้วต้องปิดเปิดแอปถึงจะเห็น"
+// ซึ่งทำให้ทั้งระบบรู้สึกเหมือนพัง ทั้งที่ค่าเดินทางถึงแล้ว
+window.addEventListener('sos-config', () => {
+  try { applyFontScale(); renderAll(); } catch (e) { console.warn('[cfg] วาดใหม่ไม่สำเร็จ:', e); }
+});
 
 // ---------- สแกนตารางเรียนจากรูป ----------
 // ท่อ: เลือกรูป → ย่อในเครื่อง → Edge Function (Gemini อ่าน) → หน้าตรวจ → เขียนลงบริบท
