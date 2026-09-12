@@ -380,6 +380,12 @@ function scenarioCards(d) {
   // จอนี้เปิดมาเพื่อตอบว่า "ทำไมถึงเป็นใบนี้" — ใบนี้คือใบบนการ์ด
   // ถ้าการจำลองเห็นว่าอีกใบดีกว่า มันจะไปโผล่เป็นการ์ด C พร้อมตัวเลขที่ต่ำกว่า ซึ่งอ่านออกทันที
   const head = d.focus || d.best;
+  // ---- ต่างกันต่ำกว่าความละเอียดของแบบจำลองเอง = "พอ ๆ กัน" ----
+  // Monte Carlo 120 เส้นมีความคลาดของตัวมันเองราว ±0.1 · การ์ดที่ขึ้น 8.3 ข้าง ๆ 8.4
+  // แล้วบรรทัดใต้เขียนว่า "ต่ำกว่าดีกว่า" อ่านแล้วเหมือนแอปเชียร์ทางที่แย่กว่าเอง
+  // ทั้งที่ความจริงคือสองทางนี้เท่ากันในสายตาของแบบจำลอง — ต้องพูดออกมาแบบนั้น
+  const NEAR = 0.15;
+  const near = v => Math.abs(v - head.sum.total) < NEAR;
   const cards = [{
     id: 'A', kind: 'best', tone: d.disagrees ? 'flat' : 'good',
     tag: d.disagrees ? 'ที่แนะนำอยู่' : 'ทำตามนี้',
@@ -387,9 +393,9 @@ function scenarioCards(d) {
     loss: n1(head.sum.total),
     why: d.why.task,
   }, {
-    id: 'B', kind: 'delay', tone: d.delay.sum.total - d.best.sum.total < 0.15 ? 'flat' : 'warn',
+    id: 'B', kind: 'delay', tone: near(d.delay.sum.total) ? 'flat' : 'warn',
     tag: 'เลื่อน',
-    act: 'รออีก ' + dTx,
+    act: near(d.delay.sum.total) ? 'รออีก ' + dTx + ' · พอ ๆ กัน' : 'รออีก ' + dTx,
     loss: n1(d.delay.sum.total),
     why: d.why.delayed,
   }];
@@ -403,7 +409,8 @@ function scenarioCards(d) {
       id: 'C', kind: 'alt',
       tone: d.disagrees ? 'good' : d.tie ? 'good' : (alt.regret < 1 ? 'flat' : 'warn'),
       tag: d.disagrees ? 'ดีกว่า' : 'อีกใบ',
-      act: 'เริ่ม' + label(alt.task),
+      act: (!d.disagrees && near(alt.sum.total))
+        ? 'เริ่ม' + label(alt.task) + ' · พอ ๆ กัน' : 'เริ่ม' + label(alt.task),
       loss: n1(alt.sum.total),
       why: d.why.instead,
     });
