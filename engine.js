@@ -1014,22 +1014,7 @@ function buildDayPlan(pending, settings, now = new Date(), opts = {}) {
     .filter(t => t.due && new Date(t.due) >= now &&
       (new Date(t.due) <= endOfDay || isLastChanceToday(t, now)))
     .sort((a, b) => new Date(a.due) - new Date(b.due));
-  let sorted = [...mustToday, ...byPriority.filter(t => !mustToday.includes(t))];
-
-  // ---- 1B81 · ใบที่เอนจินตัดสินใจเลือก ต้องได้ช่องแรกของวัน ----
-  // ไม่ใช่แค่ "ได้ขึ้นการ์ด" — ถ้าได้ขึ้นการ์ดแต่ไม่ได้ช่องแรก การ์ดจะบอกเวลาหนึ่ง
-  // ส่วนรางข้างล่างบอกอีกเวลาหนึ่ง (เจอจริง: การ์ดบอก "สอบ 13:00" ขณะที่ตอนนี้ 11:19
-  // และแผนบรรทัดถัดไปคือการบ้าน 11:20 — ปุ่มเขียนว่า "เริ่มเลย" แต่เวลาบนการ์ดคือ 13:00)
-  //
-  // ห้ามแซงใบที่ "วันนี้เป็นโอกาสสุดท้าย" (mustToday) — ยอมเมื่อไหร่ แผนก็พาไปพลาดส่ง
-  // กรณีนั้นปล่อยให้ EDF ชนะ แล้วจอ "AI คิดยังไง" จะอธิบายเองว่าทำไมถึงไม่ทำตามเอนจิน
-  if (opts.firstTask && !mustToday.includes(opts.firstTask)) {
-    const i = sorted.indexOf(opts.firstTask);
-    if (i > 0) {
-      sorted.splice(i, 1);
-      sorted.splice(mustToday.length, 0, opts.firstTask);
-    }
-  }
+  const sorted = [...mustToday, ...byPriority.filter(t => !mustToday.includes(t))];
 
   const win = dayWindows(settings, now);
   const midnight = atTime(now, 0, 0);
