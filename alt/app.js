@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B85';                 // สายเลขของแอป
+const APP_VERSION = '1B86';                 // สายเลขของแอป
 const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -2016,20 +2016,24 @@ function nowCard(sp, now) {
        <span class="tk-t mono">${fmtClock(slot.end)}</span>`
     : `<span class="tk-solo">ยังไม่มีคิว · ใช้เวลา ${goalMin} นาที</span>`;
 
-  return `<section class="td-now ${tone}${running ? ' running' : ''}">
-    <div class="tn-head">
-      <div class="tn-top">
+  // ---- 1B86: การ์ดใบนี้ประกอบจากชิ้นส่วนที่จัดลำดับได้ ----
+  //
+  // เหตุผลเดียวกับที่หน้าแรกกลายเป็นทะเบียนบล็อกใน 1B83: ลำดับสายตาที่อธิบายไว้ยาวเหยียด
+  // ข้างบนนี้เป็นการตัดสินใจที่ดี แต่มันถูกล็อกไว้ในโค้ด เจ้าของระบบลองแบบอื่นไม่ได้เลย
+  //
+  // สิ่งที่ "ไม่" เปิดให้จัดคือโซน — หัวการ์ดกับตัวการ์ดมีพื้นหลังและน้ำหนักต่างกันโดยตั้งใจ
+  // (ดู 1B28: บล็อกสีทึบมีได้ก้อนเดียวบนจอ) ย้ายชิ้นข้ามโซนได้เมื่อไหร่ กฎนั้นพังทันที
+  // แต่ละชิ้นจึงผูกกับโซนของมันตายตัว และจัดลำดับได้ภายในโซนเท่านั้น
+  const P = {
+    top: `<div class="tn-top">
         <span class="tn-eyebrow"><i class="tn-mark">${icon('target')}</i>${esc(eyebrow)}</span>
         <span class="tn-pill ${tone}">${pillIc ? icon(pillIc) : ''}${esc(pillTx)}</span>
-      </div>
-      <h2 class="tn-title">${esc(t.detail || 'งานนี้')}</h2>
-      <div class="tn-route">${route}</div>
-      ${metaBits.length ? `<div class="tn-why2">${esc(metaBits.join(' · '))}</div>` : ''}
-    </div>
-
-    <div class="tn-body">
-      ${hasProg ? `<div class="tn-bar"><i style="width:${prog}%"></i></div>` : ''}
-      <div class="tn-row">
+      </div>`,
+    title: `<h2 class="tn-title">${esc(t.detail || 'งานนี้')}</h2>`,
+    route: `<div class="tn-route">${route}</div>`,
+    why: metaBits.length ? `<div class="tn-why2">${esc(metaBits.join(' · '))}</div>` : '',
+    progress: hasProg ? `<div class="tn-bar"><i style="width:${prog}%"></i></div>` : '',
+    actions: `<div class="tn-row">
         <button class="tn-cta" onclick="startFocus('${t.id}')">
           <span class="tc-main">${icon(running ? 'clock' : 'play')}${
             running ? 'กลับเข้าโหมดโฟกัส' : (n.step ? 'เริ่ม ' + n.step.min + ' นาทีแรก' : 'เริ่มทำเลย')}</span>
@@ -2038,21 +2042,65 @@ function nowCard(sp, now) {
           aria-label="ทำเสร็จแล้ว">${icon('check')}</button>
         <button class="tn-ib" onclick="notNow('${t.id}')"
           aria-label="ยังไม่ไหว เลื่อนไปก่อน">${icon('clock')}</button>
-      </div>
-
-      ${noDue ? `<button class="tn-ask" onclick="openForm('${t.id}')">
+      </div>`,
+    askDue: noDue ? `<button class="tn-ask" onclick="openForm('${t.id}')">
         ${icon('calendar')}ครูสั่งส่งวันไหน? บอกแล้วผมจัดแผนได้แม่นขึ้น${icon('chevron')}
-      </button>` : ''}
-
-      ${/* 1B77 — ทางเข้าเดียวของจอเทียบทางเลือก
-            เป็นบรรทัดเงียบ ๆ ไม่ใช่ปุ่ม เพราะการ์ดใบนี้มีจุดโฟกัสได้จุดเดียว (ดู 1B24 ข้างบน)
-            และจุดนั้นคือปุ่ม "เริ่มทำเลย" · คนที่ไม่สงสัยไม่ต้องเห็นอะไรเพิ่ม
-            คนที่สงสัยว่า "ทำไมใบนี้" จะหาเจอตรงที่คำถามเกิดพอดี */''}
-      <button class="tn-why-go" onclick="go('scr-why')">
+      </button>` : '',
+    // 1B77 — ทางเข้าเดียวของจอเทียบทางเลือก
+    // เป็นบรรทัดเงียบ ๆ ไม่ใช่ปุ่ม เพราะการ์ดใบนี้มีจุดโฟกัสได้จุดเดียว (ดู 1B24 ข้างบน)
+    // และจุดนั้นคือปุ่ม "เริ่มทำเลย" · คนที่ไม่สงสัยไม่ต้องเห็นอะไรเพิ่ม
+    // คนที่สงสัยว่า "ทำไมใบนี้" จะหาเจอตรงที่คำถามเกิดพอดี
+    whyGo: `<button class="tn-why-go" onclick="go('scr-why')">
         ${icon('sparkles')}ทำไมถึงเป็นใบนี้ — ดูทางเลือกอื่นที่เทียบแล้ว${icon('chevron')}
-      </button>
-    </div>
+      </button>`,
+  };
+
+  const head = nowParts('head').map(id => P[id] || '').join('');
+  const body = nowParts('body').map(id => P[id] || '').join('');
+
+  return `<section class="td-now ${tone}${running ? ' running' : ''}">
+    <div class="tn-head">${head}</div>
+    <div class="tn-body">${body}</div>
   </section>`;
+}
+
+// ---------- ทะเบียนชิ้นส่วนของการ์ด "ตอนนี้" ----------
+// โซนของแต่ละชิ้นตายตัว · ลำดับภายในโซนตั้งได้จาก Control Center
+//
+// title กับ actions ถอดไม่ได้โดยตั้งใจ — การ์ดใบนี้มีอยู่เพื่อตอบว่า "ทำอะไร" แล้ว "กดตรงไหน"
+// ถอดสองอย่างนี้ออกแล้วมันกลายเป็นกล่องที่กินพื้นที่ที่สุดบนจอเพื่อไม่บอกอะไรเลย
+// ซึ่งไม่ใช่ค่าตั้งที่ใครควรตั้งได้แม้จะตั้งใจ (กฎเดียวกับเส้นบันทึกเองที่ล็อกไว้ 50%)
+const NOW_PARTS = [
+  { id: 'top',      zone: 'head', lock: false },
+  { id: 'title',    zone: 'head', lock: true  },
+  { id: 'route',    zone: 'head', lock: false },
+  { id: 'why',      zone: 'head', lock: false },
+  { id: 'progress', zone: 'body', lock: false },
+  { id: 'actions',  zone: 'body', lock: true  },
+  { id: 'askDue',   zone: 'body', lock: false },
+  { id: 'whyGo',    zone: 'body', lock: false },
+];
+const NOW_ZONE = NOW_PARTS.reduce((m, p) => (m[p.id] = p.zone, m), {});
+const NOW_LOCK = NOW_PARTS.reduce((m, p) => (m[p.id] = p.lock, m), {});
+
+function nowLayout() {
+  const saved = (typeof sosCfg === 'function') ? sosCfg('cards.now', null) : null;
+  if (!Array.isArray(saved) || !saved.length) return NOW_PARTS.map(p => ({ id: p.id, on: true }));
+
+  const seen = new Set(), out = [];
+  for (const p of saved) {
+    if (!p || !NOW_ZONE[p.id] || seen.has(p.id)) continue;
+    seen.add(p.id);
+    // ชิ้นที่ล็อกไว้ ปิดไม่ได้ ไม่ว่าค่าตั้งจะบอกว่ายังไง
+    out.push({ id: p.id, on: NOW_LOCK[p.id] ? true : p.on !== false });
+  }
+  // ชิ้นที่โค้ดมีแต่ค่าตั้งไม่รู้จัก = ของที่เพิ่งเพิ่มในรุ่นใหม่ ต้องโผล่เอง (กฎเดียวกับ homeLayout)
+  for (const p of NOW_PARTS) if (!seen.has(p.id)) out.push({ id: p.id, on: true });
+  return out;
+}
+
+function nowParts(zone) {
+  return nowLayout().filter(p => p.on && NOW_ZONE[p.id] === zone).map(p => p.id);
 }
 
 // ---------- แยกของที่เหลือออกเป็นสองกอง ----------
