@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B77';                 // สายเลขของแอป
+const APP_VERSION = '1B81';                 // สายเลขของแอป
 const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -2038,6 +2038,14 @@ function nowCard(sp, now) {
       ${noDue ? `<button class="tn-ask" onclick="openForm('${t.id}')">
         ${icon('calendar')}ครูสั่งส่งวันไหน? บอกแล้วผมจัดแผนได้แม่นขึ้น${icon('chevron')}
       </button>` : ''}
+
+      ${/* 1B77 — ทางเข้าเดียวของจอเทียบทางเลือก
+            เป็นบรรทัดเงียบ ๆ ไม่ใช่ปุ่ม เพราะการ์ดใบนี้มีจุดโฟกัสได้จุดเดียว (ดู 1B24 ข้างบน)
+            และจุดนั้นคือปุ่ม "เริ่มทำเลย" · คนที่ไม่สงสัยไม่ต้องเห็นอะไรเพิ่ม
+            คนที่สงสัยว่า "ทำไมใบนี้" จะหาเจอตรงที่คำถามเกิดพอดี */''}
+      <button class="tn-why-go" onclick="go('scr-why')">
+        ${icon('sparkles')}ทำไมถึงเป็นใบนี้ — ดูทางเลือกอื่นที่เทียบแล้ว${icon('chevron')}
+      </button>
     </div>
   </section>`;
 }
@@ -2628,7 +2636,7 @@ function rankCard(t, n, now) {
     <div class="rank-card sw-card" data-id="${t.id}" onclick="openForm('${t.id}')">
       <span class="rank ${tone}${n === 1 ? ' first' : ''}">${n}</span>
       <div class="rc-body">
-        <div class="rc-tags"><span class="tag ${tone}">${esc(priorityLabel(info.stars))}</span>${snoozeBadge(t)}</div>
+        <div class="rc-tags"><span class="tag ${tone}">${esc(priorityLabel(info.stars))}</span>${riskChips(t, now)}${snoozeBadge(t)}</div>
         <div class="rc-title">${taskTitle(t)}</div>
         <div class="rc-meta">${bits.join('<i class="msep"></i>')}</div>
       </div>
@@ -2928,6 +2936,200 @@ function tkChip(text, tone) {
   return `<span class="tk-chip${tone ? ' ' + tone : ''}">${esc(text)}</span>`;
 }
 
+// ---------- 1B76 · นาฬิกา "เริ่มไม่ทันแล้ว" ----------
+// รายงานความเสี่ยงต้องคิดจาก "งานทั้งกอง" ครั้งเดียว แล้วให้ทุกการ์ดอ่านจากผลก้อนนั้น
+// ห้ามให้การ์ดแต่ละใบเรียก riskReport เอง — นอกจากจะช้า (n ใบ × ไล่ปฏิทิน 14 วัน)
+// มันยังผิดด้วย: การ์ดที่คิดเองจะไม่เห็นว่าใบอื่นจองเวลาไปแล้ว ซึ่งเป็นทั้งจุดของฟีเจอร์นี้
+//
+// คีย์ของแคชมีทั้งนาทีปัจจุบันและลายเซ็นของงาน — เวลาเดินไปหนึ่งนาทีคำตอบก็เปลี่ยนได้จริง
+// (นาฬิกานับถอยหลังอยู่) และแก้ estMin/progress/กำหนดส่งเมื่อไหร่ก็ต้องคิดใหม่ทันที
+let _riskMemo = { key: '', map: null };
+function riskFor(t, now) {
+  if (typeof riskReport !== 'function') return null;
+  const pend = pendingTasks();
+  const key = Math.floor(now.getTime() / 60000) + '|' +
+    pend.map(x => x.id + ':' + x.due + ':' + x.estMin + ':' + (x.progress || 0)).join(',');
+  if (_riskMemo.key !== key) {
+    const rep = riskReport(pend, now, { state });
+    _riskMemo = { key, map: new Map(rep.map(r => [r.task.id, r])) };
+
+    // 1B78 — ปิดวงจร: จดคำทำนายไว้ แล้วเก็บผลจริงของอันที่ถึงกำหนดแล้ว
+    // ทำตรงนี้เพราะเป็นจุดเดียวที่ "ความเสี่ยงของทั้งกอง" ถูกคิดใหม่จริง ๆ (นาทีละครั้ง)
+    // calibLog กันซ้ำเองวันละครั้งต่องานหนึ่งใบ จึงไม่บวมและไม่ save ถี่
+    if (typeof calibLog === 'function') {
+      let dirty = false;
+      for (const r of rep) if (calibLog(state, r, now)) dirty = true;
+      if (calibResolve(state, now)) dirty = true;
+      if (dirty) save();
+    }
+  }
+  return (_riskMemo.map && _riskMemo.map.get(t.id)) || null;
+}
+
+// ชิปนาฬิกา + ชิปโอกาส · คืนสตริงว่างเมื่อ "ไม่มีอะไรจะบอก" ตามกฎเดียวกับทุกแถวในแอปนี้
+//
+// สองอย่างที่จงใจไม่พูด:
+//   1. งานที่สบายอยู่แล้วและจุดเริ่มยังอีกไกลกว่า 36 ชม. — ชิปที่ขึ้นทุกใบคือชิปที่ไม่มีใครอ่าน
+//      (บรรทัดกำหนดส่งเดิมยังอยู่ ข้อมูลไม่ได้หายไปไหน)
+//   2. เปอร์เซ็นต์ของงานที่ทันสบาย และของงานที่ไม่ทันแน่แล้ว
+//      "97%" ไม่เปลี่ยนพฤติกรรมใคร ส่วน "2%" ก็ซ้ำกับชิปที่บอกไปแล้วว่าเวลาไม่พอ
+//      เลขมีประโยชน์เฉพาะช่วงกลาง ที่การตัดสินใจยังพลิกได้
+const RISK_QUIET_H = 36;
+function riskChips(t, now) {
+  const r = riskFor(t, now);
+  if (!r || r.overdue) return '';          // เลยกำหนดมีชิปของตัวเองอยู่แล้ว ไม่ต้องพูดซ้ำ
+  if (r.verdict === 'safe' && (!r.pnr || (r.pnr - now) > RISK_QUIET_H * 3.6e6)) return '';
+
+  const tone = r.verdict === 'safe' ? 'ok' : r.verdict === 'tight' ? 'warm' : 'hot';
+  const clock = typeof pnrChip === 'function' ? pnrChip(r, now) : null;
+  const showOdds = r.verdict === 'tight' || r.verdict === 'critical';
+  return [
+    clock ? tkChip(clock, tone) : '',
+    showOdds ? tkChip('โอกาสเสร็จทัน ' + Math.round(r.odds * 100) + '%', '') : '',
+  ].filter(Boolean).join('');
+}
+
+// ---------- 1B77 · จอ "AI คิดยังไง" ----------
+// decide() เดินอนาคต 120 เส้น × ทางเลือกห้าถึงหกทาง = หลักหมื่นก้าว ราว 15–25 มิลลิวินาที
+// เร็วพอสำหรับการกดเข้าจอหนึ่งครั้ง แต่ไม่เร็วพอจะเรียกซ้ำทุกครั้งที่ renderAll ทำงาน
+// (renderAll ถูกเรียกทุกนาทีจาก minuteTick) — จึงแคชด้วยคีย์เดียวกับ riskFor
+// **ห้ามเรียก focusPlan() ในนี้เด็ดขาด** — ตั้งแต่ 1B79 studyPlan() เรียก decideFor()
+// เพื่อเลือกใบที่จะขึ้นการ์ด "ตอนนี้" · เรียกกลับไปเมื่อไหร่ได้วงกลมทันที
+// (studyPlan → decideFor → focusPlan → studyPlan) แล้วแอปค้างตั้งแต่วาดจอแรก
+//
+// ผู้เรียกที่อยากได้มุมของ "ใบที่อยู่บนการ์ด" ต้องส่ง focusId มาเอง — มีที่เดียวคือ renderWhy()
+// ซึ่งไม่ได้ถูกเรียกจากในแผน จึงไม่มีทางเกิดวงกลม
+const _decideMemo = new Map();
+function decideFor(now, focusId) {
+  if (typeof decide !== 'function') return null;
+  const pend = pendingTasks();
+  const key = Math.floor(now.getTime() / 60000) + '|' + (focusId || '') + '|' +
+    pend.map(x => x.id + ':' + x.due + ':' + x.estMin + ':' + (x.progress || 0)).join(',');
+  if (!_decideMemo.has(key)) {
+    // เก็บไม่กี่ชิ้นพอ — คีย์มีนาทีอยู่ด้วย ของเก่าจึงไม่มีวันถูกใช้ซ้ำอยู่แล้ว
+    if (_decideMemo.size >= 4) _decideMemo.clear();
+    _decideMemo.set(key, decide(state, now, focusId ? { focusId } : {}));
+  }
+  return _decideMemo.get(key);
+}
+
+// หน่วยของตัวเลขต้องอธิบายด้วยคำที่นักเรียนเข้าใจทันที
+// "expected loss" หรือ "คะแนนคาดหวังที่สูญเสีย" เป็นภาษาที่ถูกแต่ไม่มีใครอ่านจบ
+const WHY_UNIT = 'คะแนนที่เสี่ยงจะเสีย';
+
+// ---------- 1B78 · สองบรรทัดที่แอปพูดถึงตัวเอง ----------
+// บนสุดของจอเป็นเรื่องของงาน ล่างสุดเป็นเรื่องของ "แอปรู้จักคุณแค่ไหน และมันแม่นแค่ไหน"
+// สองอย่างนี้คือสิ่งที่ทำให้ตัวเลขข้างบนน่าเชื่อหรือไม่น่าเชื่อ — ซ่อนไว้ไม่ได้
+// และถ้ายังไม่รู้จริงก็ไม่ต้องขึ้น ตามกติกาเดียวกับ brain.js
+function whySelfHTML(now) {
+  const rows = [];
+  if (typeof studyProfile === 'function' && typeof profileText === 'function') {
+    const tx = profileText(studyProfile(state, now));
+    if (tx) rows.push(['ที่แอปเรียนรู้จากคุณ', tx, '']);
+    else rows.push(['ที่แอปเรียนรู้จากคุณ',
+      'ยังใช้ค่ากลางอยู่ — จับเวลาตอนทำงานสักสองสามวัน แล้วตัวเลขทั้งจอนี้จะเป็นของคุณจริง ๆ', 'soft']);
+  }
+  if (typeof calibText === 'function') {
+    const tx = calibText(state);
+    if (tx) {
+      const s = calibSummary(state);
+      rows.push(['คำทำนายที่ผ่านมาแม่นแค่ไหน',
+        tx + ' · ' + calibGrade(s.brier) + ' (Brier ' + (Math.round(s.brier * 100) / 100) + ')', '']);
+    } else {
+      const s = calibSummary(state);
+      rows.push(['คำทำนายที่ผ่านมาแม่นแค่ไหน',
+        'ยังตรวจไม่ได้ — ต้องรอผลจริงของงานอีก ' + (s.need || CALIB_MIN_SCORED) + ' ใบก่อน', 'soft']);
+    }
+  }
+  if (!rows.length) return '';
+  return `<div class="wy-self">
+    ${rows.map(([k, v, c]) => `<div class="wy-r${c ? ' ' + c : ''}">
+      <div class="wy-k">${esc(k)}</div><div class="wy-v">${esc(v)}</div></div>`).join('')}
+  </div>`;
+}
+
+function renderWhy() {
+  const body = document.getElementById('whyBody');
+  if (!body) return;
+  // คิดเฉพาะตอนที่จอนี้ถูกเปิดอยู่จริง — จออื่นไม่ต้องจ่ายค่าคำนวณของจอนี้
+  if (typeof curScreen === 'string' && curScreen !== 'scr-why') return;
+
+  const now = new Date();
+  // ส่งใบที่อยู่บนการ์ดหน้าแรกเข้าไป เพื่อให้จอนี้อธิบาย "ใบนั้น" เสมอ
+  // ปกติตั้งแต่ 1B79 มันจะเป็นใบเดียวกับที่ decide() เลือกอยู่แล้ว (แผนตามเอนจินไปแล้ว)
+  // แต่ยังต่างกันได้เมื่อใบที่เอนจินชอบไม่มีคิวในวันนี้ — กรณีนั้นต้องพูดออกมา ไม่ใช่กลบ
+  let focusId = null;
+  try {
+    const sp = typeof focusPlan === 'function' ? focusPlan(now) : null;
+    focusId = sp && sp.now ? sp.now.task.id : null;
+  } catch (e) { focusId = null; }
+  const d = decideFor(now, focusId);
+  const sub = document.getElementById('whySub');
+
+  if (!d) {
+    if (sub) sub.textContent = '';
+    body.innerHTML = `<div class="card empty">ยังไม่มีงานที่ต้องตัดสินใจตอนนี้ 🎉</div>`;
+    return;
+  }
+  if (sub) sub.textContent = 'เทียบ ' + d.scenarios.length + ' ทาง จากอนาคต 120 เส้น';
+
+  const cards = typeof scenarioCards === 'function' ? scenarioCards(d) : [];
+  const tiles = cards.map(c => `<div class="wy-t ${c.tone}">
+      <div class="wy-tag">${esc(c.id)} · ${esc(c.tag)}</div>
+      <div class="wy-num mono">${c.loss}</div>
+      <div class="wy-act">${esc(c.act)}</div>
+    </div>`).join('');
+
+  const rows = [
+    ['ทำไมงานนี้', d.why.task],
+    ['ทำไมตอนนี้', d.why.now],
+    ['ถ้าเลื่อน', d.why.delayed],
+    ['ปัญหาที่หลบ', d.why.avoided],
+    ['โอกาสที่เปิด', d.why.opened],
+    ['ถ้าเลือกอีกใบ', d.why.instead],
+  ].map(([k, v]) => `<div class="wy-r"><div class="wy-k">${esc(k)}</div>
+      <div class="wy-v">${esc(v)}</div></div>`).join('');
+
+  // เอนจินที่กล้าบอกให้ไปนอนคือเอนจินที่คนจะเชื่อตอนมันบอกให้ทำ
+  // ขึ้นเฉพาะตอนที่การพักชนะจริงแบบมีนัยสำคัญ ไม่ใช่ชนะเพราะเศษทศนิยม
+  // ยอมทิ้งใบไหน — ขึ้นเหนือทุกอย่างเมื่อมันมี เพราะมันเปลี่ยนทั้งกรอบของการตัดสินใจ
+  // ไม่ใช่ "ทำอันไหนก่อน" แต่เป็น "ทำทุกอันไม่ได้แล้วนะ"
+  const sacTx = typeof sacrificeText === 'function' ? sacrificeText(d) : null;
+  const sac = sacTx ? `<div class="wy-sac">${icon('flame')}
+      <b>ต้องเลือกแล้ว</b><span>${esc(sacTx)}</span></div>` : '';
+
+  // ซ้อมรับมือ — เงียบเมื่อแผนทนได้
+  const fragTx = typeof fragileText === 'function' ? fragileText(d) : null;
+
+  const rest = d.rest.wins ? `<div class="wy-rest">${icon('clock')}
+      <b>คืนนี้พักได้</b>
+      <span>เวลาว่างที่เหลือน้อยจนทำแล้วได้ไม่คุ้ม — พรุ่งนี้เช้าคุ้มกว่า</span>
+    </div>` : '';
+
+  // ตัวเลขก้อนเดียวบอกไม่ได้ว่ามันประกอบจากอะไร แล้วคนก็ตีความเอาเองผิด ๆ
+  // "2.2 คะแนน" ที่มาจากความแน่นของตารางล้วน ๆ เป็นคนละข่าวกับ 2.2 ที่มาจากงานที่จะพลาดจริง
+  // โชว์เฉพาะก้อนที่มีน้ำหนักพอจะเปลี่ยนการตัดสินใจ — ก้อนที่เป็นศูนย์ไม่ต้องขึ้นให้รก
+  const bs = d.best.sum;
+  const parts = [
+    ['งานที่จะพลาด', bs.grade],
+    ['หนี้ความรู้วิชาสะสม', bs.debt],
+    ['ความแน่นของตาราง', bs.stress],
+    ['เวลานอนที่ต้องยืม', bs.sleep],
+  ].filter(([, v]) => v >= 0.05)
+    .map(([k, v]) => `<span><i>${esc(k)}</i>${Math.round(v * 10) / 10}</span>`).join('');
+
+  body.innerHTML = `${sac}<div class="wy-tiles">${tiles}</div>
+    <p class="wy-unit">ตัวเลข = <b>${WHY_UNIT}</b> จากคะแนนรวมทั้งเทอม · ต่ำกว่าดีกว่า</p>
+    ${parts ? `<div class="wy-bd"><div class="wy-bd-h">${esc(d.best.sum.total < 1 ? 'ทางที่แนะนำ ประกอบจาก' : 'ตัวเลขของทางที่แนะนำ ประกอบจาก')}</div>${parts}</div>` : ''}
+    ${rest}
+    <div class="wy-rows">${rows}</div>
+    ${fragTx ? `<div class="wy-frag"><div class="wy-k">ถ้ามีอะไรผิดแผน</div>
+      <div class="wy-v">${esc(fragTx)}</div></div>` : ''}
+    ${whySelfHTML(now)}
+    <p class="wy-note">ทุกบรรทัดคำนวณจากการจำลองอนาคต 120 เส้น โดยสุ่มตามที่คนทำได้จริง
+      ไม่ใช่ข้อความสำเร็จรูป · ตัวเลขเดิมเข้า ได้คำตอบเดิมออกเสมอ</p>`;
+}
+
 // การ์ดงาน — ลำดับการอ่านจากบนลงล่างทางเดียว ไม่มีเลขลอยชิดขวาให้ตาวิ่งไปมา
 //   วิชา (ป้ายเล็ก) → สิ่งที่ต้องทำ (ตัวใหญ่สุด) → สถานะ + เวลาที่ใช้
 // ของเดิมเอาชื่อวิชาเป็นตัวใหญ่สุด ทั้งที่นักเรียนรู้อยู่แล้วว่าฟิสิกส์คืออะไร
@@ -2971,6 +3173,9 @@ function taskCard(t, now, focus) {
   const chips = [
     examCd ? tkChip(examCd, tone || 'warn') : '',
     t.due ? tkChip(fmtDue(t.due, now, t), tone) : tkChip('ยังไม่ระบุกำหนด', ''),
+    // 1B76 — มาหลังกำหนดส่งโดยตั้งใจ: กำหนดส่งคือข้อเท็จจริงที่ครูให้มา
+    // ส่วนนาฬิกานี้คือสิ่งที่แอปคำนวณให้ · เรียงตามลำดับนั้นเพื่อไม่ให้สับสนว่าอันไหนมาจากไหน
+    riskChips(t, now),
     t.scorePct != null ? tkChip('คะแนน ' + t.scorePct + '%', '') : '',
     gotTx ? tkChip('ได้ ' + gotTx, 'good') : '',
     t.repeatDays ? tkChip(t.repeatDays === 7 ? 'ซ้ำทุกสัปดาห์'
@@ -3848,16 +4053,29 @@ function taskChip(t, now) {
   const late = t.due && new Date(t.due) < now;
   // ขวาสุดบอกของที่ต่างกันตามสถานะ: ค้างแล้วบอกว่ากี่วัน ยังไม่ถึงบอกว่ากินเวลาเท่าไหร่
   // ตัวเลขสองชนิดนี้ไม่เคยมีความหมายพร้อมกัน — งานที่เลยกำหนดแล้ว "ใช้ 40 นาที" ไม่ช่วยอะไร
+  // 1B76 — ช่องขวาสุดนี้เคยบอกได้อย่างเดียวว่า "งานนี้กินเวลาเท่าไหร่"
+  // ซึ่งเป็นข้อมูลที่ไม่เปลี่ยนการตัดสินใจของใคร (รู้ว่า 90 นาที แล้วยังไงต่อ)
+  // สิ่งที่เปลี่ยนการตัดสินใจคือ "เหลือเวลาให้เริ่มอีกนานแค่ไหน" — ถ้ามีเรื่องด่วนจะบอก ใส่แทน
+  // ไม่มีก็ถอยกลับไปบอกจำนวนนาทีเหมือนเดิม ตามกฎ "ไม่มีอะไรจะบอกก็ไม่ต้องโผล่"
+  //
+  // เกณฑ์การพูดของจอนี้เข้มกว่าการ์ดหน้าแรกโดยตั้งใจ: ที่นี่พูดเฉพาะงานที่ยัง "ต้องตัดสินใจ"
+  // งานที่สบายอยู่แล้วเงียบไว้ ปล่อยให้บอกจำนวนนาทีตามเดิม
+  // ("เริ่มใน 34ชม." บนงานที่ทันสบายคือแรงกดดันปลอม และมันไปแย่งสายตากับสองใบที่ด่วนจริง)
+  const rk = late ? null : riskFor(t, now);
+  const rkShort = rk && rk.verdict !== 'safe' && typeof pnrShort === 'function'
+    ? pnrShort(rk, now) : null;
+  const rkTone = !rkShort ? '' : rk.verdict === 'tight' ? 'warm' : 'hot';
   const meta = late
     ? '−' + Math.max(1, Math.round((now - new Date(t.due)) / 864e5)) + 'ว.'
-    : (TASK_TYPES[taskType(t)].schedulable && t.estMin ? remainingMin(t) + 'น' : '');
+    : rkShort
+    || (TASK_TYPES[taskType(t)].schedulable && t.estMin ? remainingMin(t) + 'น' : '');
   const subs = Array.isArray(t.subs) && t.subs.length
     ? t.subs.filter(x => x.done).length + '/' + t.subs.length : '';
   return `<button class="wc ${named ? subjClass(subj) : ''}${late ? ' late' : ''}"
       data-id="${t.id}" onclick="openForm('${t.id}')">
     <b>${esc(t.detail || subj || 'งาน')}</b>
     ${subs ? `<u>${subs}</u>` : ''}
-    ${meta ? `<i class="mono">${esc(meta)}</i>` : ''}
+    ${meta ? `<i class="mono${rkTone ? ' ' + rkTone : ''}">${esc(meta)}</i>` : ''}
     <span class="wc-tick" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
       aria-label="ทำเสร็จ">${icon('check')}</span>
   </button>`;
@@ -7696,6 +7914,7 @@ function workStatsHtml(now) {
 
 function renderAll() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline(); renderAi();
+  renderWhy();
   renderProfile(); renderStats(); renderPlan(); renderFriends(); renderBadges(); renderTools();
   renderShop(); renderPro(); renderWheel(); renderInstallCard(); renderTabBadges(); renderContext();
   renderRunBar();
@@ -8421,6 +8640,19 @@ function openForm(id, parsed) {
   document.getElementById('fProgress').value = prog;
   document.getElementById('fProgressVal').textContent = prog + '%';
 
+  // ---- 1B80 · สองช่องของชั้น L0 ----
+  // ช่อง "ต้องทำอะไรก่อน" เติมรายชื่องานที่ยังค้างอยู่ ยกเว้นใบนี้เอง (กันวงกลมตั้งแต่หน้าจอ)
+  const lateSel = document.getElementById('fLate');
+  if (lateSel) lateSel.value = t?.latePolicy || '';
+  const blkSel = document.getElementById('fBlock');
+  if (blkSel) {
+    const cur = (t && Array.isArray(t.blockedBy) && t.blockedBy[0]) || '';
+    blkSel.innerHTML = '<option value="">ไม่ต้องรออะไร</option>' +
+      pendingTasks().filter(x => x.id !== (t && t.id))
+        .map(x => `<option value="${esc(x.id)}">${esc(taskTitleText(x).slice(0, 40))}</option>`).join('');
+    blkSel.value = cur;
+  }
+
   const due = t?.due ? new Date(t.due) : new Date(Date.now() + 8.64e7); // default พรุ่งนี้
   f.date.value = due.getFullYear() + '-' + String(due.getMonth() + 1).padStart(2, '0') + '-' + String(due.getDate()).padStart(2, '0');
   f.time.value = String(due.getHours()).padStart(2, '0') + ':' + String(due.getMinutes()).padStart(2, '0');
@@ -8494,6 +8726,10 @@ function saveForm() {
     estMin: Math.max(5, +document.getElementById('fEst').value || 30),
     isExam: formType === 'exam', // เก็บไว้เพื่อความเข้ากันได้กับข้อมูลเก่า
     userStars: formUserStars || null,
+    // 1B80 — ว่างไว้แปลว่า "ให้เดา" ไม่ใช่ "ไม่มี" · facts.js เป็นคนตอบเมื่อค่าเป็น null
+    latePolicy: (document.getElementById('fLate') || {}).value || null,
+    blockedBy: ((document.getElementById('fBlock') || {}).value || '')
+      ? [document.getElementById('fBlock').value] : [],
     progress: ti.schedulable ? (+document.getElementById('fProgress').value || 0) : 0,
     due: due ? due.toISOString() : null,
   };

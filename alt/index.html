@@ -616,6 +616,24 @@
                 <input type="number" id="fScore" min="0" max="100" placeholder="20"></div>
             </div>
 
+            <!-- 1B80 · สองอย่างที่เปลี่ยนคำตอบของเอนจินมากกว่าคะแนน แต่ไม่เคยถามมาก่อน
+                 ทั้งคู่มีค่าเริ่มต้นที่เดาให้แล้วจาก facts.js — ช่องนี้มีไว้ "แก้" ไม่ใช่ "กรอก"
+                 ว่างไว้ = ใช้ค่าที่เดา ซึ่งถูกสำหรับงานส่วนใหญ่ -->
+            <div class="fld">
+              <label>ส่งช้าได้ไหม</label>
+              <select id="fLate">
+                <option value="">ให้ AI เดาจากงาน</option>
+                <option value="penalty">ส่งช้าได้ แต่โดนหักคะแนน</option>
+                <option value="zero">ส่งช้าไม่ได้เลย</option>
+                <option value="ok">ส่งช้าได้ ไม่มีผล</option>
+              </select>
+            </div>
+
+            <div class="fld" id="fBlockWrap">
+              <label>ต้องทำอะไรให้เสร็จก่อน</label>
+              <select id="fBlock"><option value="">ไม่ต้องรออะไร</option></select>
+            </div>
+
             <div class="fld" id="fEstWrap">
               <div class="fld-head"><label id="fEstLabel">ใช้เวลา</label><span class="val" id="fEstVal">30 นาที</span></div>
               <input type="range" id="fEst" min="5" max="180" step="5" value="30"
@@ -715,6 +733,23 @@
             <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
         </div>
         <div class="scr-body plan-body" id="planList"></div>
+      </div>
+
+      <!-- ============ SCREEN: AI คิดยังไง (1B77) ============
+           การ์ดเทียบทางเลือก A/B/C + คำอธิบายหกข้อ ทั้งหมดคำนวณจาก decide()
+           อยู่จอของตัวเองเพราะหน้าแรกมีลำดับสายตาที่จัดไว้แล้ว (1B38/1B49)
+           และเพราะคำอธิบายหกข้อต้องการที่พอจะอ่านจบ ไม่ใช่ที่พอจะเหลือบเห็น
+           ทางเข้าเดียวคือบรรทัดใต้ปุ่มบนการ์ด "ตอนนี้" · วาดจาก renderWhy() -->
+      <div class="screen flush" id="scr-why">
+        <div class="sticky-head row">
+          <div>
+            <h2 class="sh-title">AI คิดยังไง</h2>
+            <p class="sh-sub" id="whySub"></p>
+          </div>
+          <button class="sh-btn" onclick="go('scr-menu')" aria-label="กลับ">
+            <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+        </div>
+        <div class="scr-body" id="whyBody"></div>
       </div>
 
       <!-- ============ SCREEN: ALL ASSIGNMENTS ============ -->
@@ -1522,6 +1557,25 @@
      มันเรียก buildDayPlan/freeSlots ตอนคิดแผน และ app.js เรียก studyPlan() ตอนวาดจอ
      ทุกจอที่พูดเรื่อง "ควรทำอะไร" อ่านคำตอบจากไฟล์นี้ก้อนเดียว ห้ามคิดเองซ้ำ -->
 <script src="planner.js"></script>
+<!-- simulate.js ต้องอยู่หลัง engine.js (remainingMin/TASK_TYPES) · context.js (freeSlots)
+     และ planner.js (plannedMin/durationStats — มันยืมตัวเลข "เวลาที่เรียนรู้มาจริง" มาใช้
+     ไม่งั้นนาฬิกา "เริ่มไม่ทันแล้ว" จะพูดคนละเลขกับหน้าแผน ซึ่งเป็นบั๊กประเภทที่แพงที่สุดของแอปนี้)
+     ตอบคำถามที่ priorityInfo() ตอบไม่ได้: "ยังเริ่มทันอยู่ไหม" — เฟส 1 ของเอนจินตัดสินใจ -->
+<!-- profile.js ต้องมาก่อน simulate.js — simulate เรียก studyProfile()/profileBucketOf()
+     เพื่อเอาอัตราลงมือจริงของผู้ใช้มาใช้แทนค่ากลาง (เฟส 3) -->
+<!-- facts.js ต้องมาก่อนทุกชั้นของเอนจิน — ทั้ง simulate/loss/decide อ่าน taskFacts()
+     เพื่อรู้ว่างานใบนี้ติดใบอื่นไหม ส่งช้าได้ไหม ต้องต่อความคิดแค่ไหน (ชั้น L0) -->
+<script src="facts.js"></script>
+<script src="profile.js"></script>
+<script src="simulate.js"></script>
+<!-- calibrate.js เป็นอิสระ ไม่มีใครใน engine เรียกมัน — app.js เรียกฝ่ายเดียว (เฟส 4-5) -->
+<script src="calibrate.js"></script>
+<!-- loss.js + decide.js = เฟส 2 · ต้องอยู่หลัง simulate.js (simPrep/simRollout)
+     loss.js เป็นฟังก์ชันบริสุทธิ์ล้วน ไม่พึ่งใครนอกจากผลของ simRollout
+     decide.js เรียกทั้งคู่ + riskReport + taskPhrase — จึงต้องมาท้ายสุดของกลุ่มนี้
+     ทุกจอที่อยากรู้ว่า "ทางไหนดีกว่ากันเท่าไหร่" อ่านจาก decide() ก้อนเดียว -->
+<script src="loss.js"></script>
+<script src="decide.js"></script>
 <!-- ต้องมาก่อน app.js: app.js เรียก renderInbox/renderSources ใน renderAll
      และเรียก loadLineLinks/pullInbox ตอนซิงก์ -->
 <script src="brain.js"></script>
