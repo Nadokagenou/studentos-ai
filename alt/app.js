@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B81';                 // สายเลขของแอป
+const APP_VERSION = '1B82';                 // สายเลขของแอป
 const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -9889,6 +9889,29 @@ async function pickAvatar(file) {
   const out = document.createElement('canvas');
   out.width = out.height = 256;          // แสดงจริงแค่ 60px ที่ 2x-3x ก็ยังเหลือเฟือ
   out.getContext('2d').drawImage(bmp, sx, sy, side, side, 0, 0, 256, 256);
+  // ---------- ตรวจก่อนเก็บ ไม่ใช่ก่อนเผยแพร่ ----------
+  // รูปโปรไฟล์ไม่ได้เดินผ่าน storage เหมือนรูปโพสต์กับรูปแชท (มันถูกยัดเป็น data URL
+  // ลง profiles.avatar ตรง ๆ) ตอนต่อสายตัวกรองรอบแรกจึงมองข้ามไปทั้งทาง
+  //
+  // **นี่เป็นช่องที่กว้างกว่ารูปในโพสต์เสียอีก** เพราะรูปโปรไฟล์โผล่ทุกหน้าที่มีชื่อคนนั้น
+  // ฟีด กล่องข้อความ หัวห้องแชท หน้าโปรไฟล์ — คนที่ไม่เคยเปิดโพสต์ของเขาเลยก็ยังเห็น
+  // และเด็กที่เลื่อนฟีดผ่าน ๆ ไม่ได้เลือกที่จะเห็นมันด้วยซ้ำ
+  //
+  // ตรวจก่อน setItem ไม่ใช่ก่อน syncPublicFace เพราะถ้าเก็บลงเครื่องไปแล้ว
+  // รูปจะขึ้นบนจอของเจ้าตัวทันที และซิงก์รอบถัดไปจะดันขึ้นเองโดยไม่ผ่านตรงนี้อีก
+  if (typeof guardImage === 'function') {
+    const blob = await new Promise(r => out.toBlob(r, 'image/jpeg', 0.82));
+    if (blob) {
+      showToast({ title: 'กำลังตรวจรูป…', body: 'ใช้เวลาสักครู่' });
+      const g = await guardImage(blob);
+      if (!g.ok) {
+        haptic('snooze');
+        showToast({ title: 'ใช้รูปนี้ไม่ได้', body: g.message });
+        return;
+      }
+    }
+  }
+
   const data = out.toDataURL('image/jpeg', 0.82);
   try { localStorage.setItem(AV_KEY, data); }
   catch (_) {

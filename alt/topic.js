@@ -383,6 +383,8 @@ async function sendTopicAsk() {
   });
   if (btn) { btn.disabled = false; btn.textContent = 'ถามเลย'; }
   if (error) { showToast({ title: 'ถามไม่สำเร็จ', body: error.message }); return; }
+  // topic_ask คืน id ของเธรดมาตรง ๆ (ไม่ใช่ทั้งแถว) จึงส่งเข้าตัวกรองได้เลย
+  if (typeof guardText === 'function' && data) guardText('tthread', data, body);
   if (typeof haptic === 'function') haptic('done');
   closeTopicAsk();
   await openTopic(topicNow.id);
@@ -520,6 +522,7 @@ async function sayTopic() {
     return;
   }
   const row = Array.isArray(data) ? data[0] : data;
+  if (typeof guardText === 'function' && row && row.id) guardText('tmsg', row.id, body);
   tthread.msgs = (tthread.msgs || []).concat([{
     id: (row && row.id) || Date.now(), body, lang: TOPIC_LANG, ai: false, mine: true,
     name: (state.settings.name || '').trim() || 'ฉัน',

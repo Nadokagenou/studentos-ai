@@ -733,9 +733,14 @@ async function submitPost() {
     return;
   }
 
-  const { error } = await sb.from('posts').insert(row);
+  // ขอ id กลับมาด้วย — ไม่งั้นสแกนเสร็จแล้วไม่รู้ว่าจะไปซ่อนแถวไหน
+  // ค่าใช้จ่ายคือคอลัมน์เดียวต่อโพสต์ ซึ่งถูกกว่าการมีตัวกรองที่ชี้เป้าไม่ได้มาก
+  const { data: made, error } = await sb.from('posts').insert(row).select('id').single();
   if (btn) { btn.disabled = false; btn.textContent = 'โพสต์'; }
   if (error) { showToast({ title: 'โพสต์ไม่สำเร็จ', body: error.message }); return; }
+
+  // ข้อความสแกนตามหลัง ไม่รอผล (กติกาที่ผู้ใช้เคาะไว้)
+  if (made && made.id) guardText('post', made.id, body);
 
   haptic('done');
   closeCompose();
@@ -850,13 +855,15 @@ async function sendReply() {
   const body = el.value.trim();
   if (!body) return;
   el.value = '';
-  const { error } = await sb.from('post_replies')
-    .insert({ post: thePost.id, author: currentUser.id, body, anon: false });
+  const { data: made, error } = await sb.from('post_replies')
+    .insert({ post: thePost.id, author: currentUser.id, body, anon: false })
+    .select('id').single();
   if (error) {
     el.value = body;
     showToast({ title: 'ตอบไม่สำเร็จ', body: error.message });
     return;
   }
+  if (made && made.id) guardText('reply', made.id, body);
   haptic('done');
   const { data } = await sb.rpc('post_thread', { p_post: thePost.id });
   theReplies = data || [];
