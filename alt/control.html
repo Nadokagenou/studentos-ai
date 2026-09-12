@@ -58,9 +58,9 @@
       <div><b>Control Center</b><small id="brandSub">StudentOS</small></div>
     </div>
     <div class="navsec">ภาพรวม</div>
-    <button class="nav on" data-go="dash"><span class="ic">▦</span>Dashboard<span class="dot"></span></button>
+    <button class="nav" data-go="dash"><span class="ic">▦</span>Dashboard<span class="dot"></span></button>
     <div class="navsec">หน้าตาแอป</div>
-    <button class="nav" data-go="home"><span class="ic">▤</span>Home Builder<span class="dot"></span></button>
+    <button class="nav on" data-go="home"><span class="ic">▤</span>Home Builder<span class="dot"></span></button>
     <button class="nav" data-go="theme"><span class="ic">◑</span>Theme Studio<span class="dot"></span></button>
     <button class="nav" data-go="content"><span class="ic">¶</span>Content Manager<span class="dot"></span></button>
     <div class="navsec">สมอง</div>
@@ -79,7 +79,7 @@
   <main class="main">
 
     <!-- ---------- DASHBOARD ---------- -->
-    <section class="page on" id="p-dash">
+    <section class="page" id="p-dash">
       <div class="ph"><h1>Dashboard</h1>
         <p>ค่าตั้งทั้งหมดเก็บอยู่ใน Supabase · แอปทุกเครื่องอ่านตอนเปิด และอ่านซ้ำทุกครั้งที่กลับมาหน้าจอ
            แปลว่ากด “เผยแพร่” แล้วเครื่องผู้ใช้เห็นของใหม่โดยไม่ต้องอัปเดตแอป</p></div>
@@ -103,16 +103,13 @@
     </section>
 
     <!-- ---------- HOME BUILDER ---------- -->
-    <section class="page" id="p-home">
+    <section class="page on" id="p-home">
       <div class="ph"><h1>Home Builder</h1>
         <p>จัดลำดับบล็อกของหน้าแรกจริง (<code>scr-menu</code>) · ลากที่จุดจับ หรือใช้ปุ่ม ↑↓ บนมือถือ
            ปิดบล็อกไหนก็ได้ ยกเว้นว่าปิดหมดแล้วหน้าแรกจะว่างเปล่า</p></div>
       <div class="hb">
         <div class="card"><h3>ลำดับบล็อก</h3><p>บนสุด = เห็นก่อน</p><div id="blkList"></div></div>
-        <div class="phone">
-          <div class="bar">PREVIEW · หน้าแรก</div>
-          <div class="scr" id="phonePv"></div>
-        </div>
+        <div class="pv-slot"></div>
       </div>
     </section>
 
@@ -176,7 +173,10 @@
       <div class="ph"><h1>Feature Manager</h1>
         <p>ปิดฟีเจอร์ = ซ่อนทางเข้าทั้งหมดของมัน ไม่ใช่แค่ปุ่มเดียว
            ปุ่มที่กดแล้วเจอจอที่ไม่ควรมี แย่กว่าปุ่มที่ไม่มี</p></div>
-      <div class="card"><h3>ฟีเจอร์</h3><div id="featList"></div></div>
+      <div class="hb">
+        <div class="card"><h3>ฟีเจอร์</h3><div id="featList"></div></div>
+        <div class="pv-slot"></div>
+      </div>
     </section>
 
     <!-- ---------- NOTIFICATIONS ---------- -->
@@ -269,9 +269,7 @@
                 <option value="none">ไม่มี</option><option value="soft">อ่อน</option>
                 <option value="mid">กลาง</option><option value="deep">เข้ม</option></select></label>
           </div>
-          <div class="card"><h3>ตัวอย่าง</h3>
-            <div id="themePv"></div>
-          </div>
+          <div class="pv-slot"></div>
         </div>
       </div>
     </section>
@@ -280,7 +278,10 @@
     <section class="page" id="p-content">
       <div class="ph"><h1>Content Manager</h1>
         <p>ข้อความที่ต่อสายไว้แล้วจริง ๆ · ว่าง = ใช้ของเดิมในโค้ด</p></div>
-      <div class="card"><h3>ข้อความในแอป</h3><div id="txtList"></div></div>
+      <div class="hb">
+        <div class="card"><h3>ข้อความในแอป</h3><div id="txtList"></div></div>
+        <div class="pv-slot"></div>
+      </div>
       <div class="warn">มีแค่สามจุดนี้ที่ต่อสายแล้ว — เพิ่มจุดอื่นต้องแก้ที่ <code>app.js</code>
         ให้เรียก <code>sosText('ชื่อ', 'ของเดิม')</code> ตรงจุดนั้นก่อน · ทำรายการปลอมให้ยาวกว่านี้ได้
         แต่ช่องที่แก้แล้วไม่มีอะไรเปลี่ยนจะทำให้เลิกเชื่อทั้งหน้า</div>
@@ -318,6 +319,20 @@
     </section>
 
   </main>
+</div>
+
+<!-- ============ แอปจริง ============ -->
+<!-- ชิ้นเดียวในหน้า แล้วย้ายไปเสียบตาม .pv-slot ของจอที่เปิดอยู่
+     สองชิ้นขึ้นไป = แอปบูตซ้ำทุกครั้งที่สลับจอ ซึ่งช้าและกะพริบ -->
+<div class="live" id="livePv" hidden>
+  <div class="live-bar">
+    <span class="dot-live"></span><b>แอปจริงของคุณ</b>
+    <span class="live-tag" id="liveTag">ยังไม่เผยแพร่</span>
+    <button class="mv" id="pvReload" title="โหลดแอปใหม่">↻</button>
+    <button class="mv" id="pvOpen" title="เปิดในแท็บใหม่">↗</button>
+  </div>
+  <div class="live-screen"><iframe id="pvFrame" title="แอปจริง" loading="lazy"></iframe></div>
+  <p class="live-note">ลากหรือปรับอะไรก็ตาม จอนี้เปลี่ยนทันทีโดยยังไม่มีใครนอกจากคุณเห็น</p>
 </div>
 
 <div class="savebar" id="savebar" hidden>

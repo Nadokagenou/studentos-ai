@@ -281,12 +281,55 @@
   window.sosConfigReload = load;
   window.sosConfigRaw = function () { return clone(overrides); };
 
-  /* ยิงทันที ไม่รอ DOMContentLoaded — ยิ่งกลับมาเร็ว จอแรกยิ่งมีโอกาสได้ค่าจริง */
-  load();
+  /* ==================== โหมดพรีวิว ====================
+     Control Center ฝังแอปนี้ไว้ใน iframe เพื่อให้ "ลากแล้วเห็นของจริงเปลี่ยน"
+     ไม่ใช่เห็นภาพวาดของแอป · โหมดนี้ต่างจากปกติสามอย่าง และทั้งสามอย่างจำเป็น:
 
-  /* กลับมาเปิดแอปอีกครั้งหลังพับไว้นาน = จังหวะที่ถูกที่สุดในการเช็คค่าใหม่
-     ไม่ตั้ง interval เพราะค่าตั้งไม่ได้เปลี่ยนบ่อยพอจะคุ้มกับการยิงทุกนาที */
-  document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') load();
-  });
+     1. **ไม่โหลดจากเซิร์ฟเวอร์** — ค่าที่ต้องเห็นคือค่าที่กำลังลากอยู่ ไม่ใช่ค่าที่เผยแพร่แล้ว
+     2. **ไม่เขียนแคชเด็ดขาด** — นี่คือข้อที่พลาดแล้วเจ็บที่สุด: iframe ใช้ localStorage
+        ก้อนเดียวกับแอปจริงของคนที่เปิดอยู่ (โดเมนเดียวกัน) เผลอเขียนเมื่อไหร่
+        ค่าที่ยัง "ลากเล่นอยู่" จะกลายเป็นค่าจริงบนเครื่องเขาทันทีโดยไม่มีใครกดเผยแพร่
+     3. **ไม่ฟัง visibilitychange** — ไม่งั้นสลับแท็บกลับมาแล้วค่าที่ลากไว้ถูกทับด้วยของเซิร์ฟเวอร์
+
+     เงื่อนไขต้องอยู่ใน iframe ก่อนเสมอ แล้วดูสัญญาณอีกชั้น — แอปนี้ถูกฝังที่อื่นได้
+     และหน้าไหนก็ตั้งคิวรีเองได้ ข้อเดียวจึงไม่พอ
+
+     **ห้ามพึ่งคิวรีอย่างเดียวเด็ดขาด** — เจอมาแล้วตอนทดสอบ:
+       app.js ลบคิวรีทิ้งตอนบูต (history.replaceState) แล้วพอ service worker
+       เข้าคุมครั้งแรก มันสั่ง location.reload() ด้วย URL ที่ถูกลบไปแล้ว
+       พรีวิวจึงกลายเป็นแอปธรรมดาเงียบ ๆ — ซึ่งอันตราย เพราะมันจะเริ่มเขียนแคช
+       ทับค่าจริงบนเครื่องของคนที่กำลังเปิด Control Center อยู่
+     ตัวที่เชื่อได้คือธงบนหน้าแม่ ซึ่งอยู่รอดทุกการรีโหลดของ iframe
+     (ข้ามโดเมนจะโยน error ตอนแตะ parent — catch แล้วถือว่าไม่ใช่พรีวิว ซึ่งปลอดภัยกว่า)
+     ===================================================== */
+  var PREVIEW = false;
+  try {
+    PREVIEW = window.parent !== window
+      && (window.parent.__SOS_CONTROL_PREVIEW__ === true
+          || /[?&]sosPreview=1/.test(location.search));
+  } catch (e) { PREVIEW = false; }
+  window.SOS_PREVIEW = PREVIEW;
+
+  if (PREVIEW) {
+    window.addEventListener('message', function (e) {
+      if (e.origin !== location.origin) return;          // หน้าอื่นห้ามสั่ง
+      var d = e.data;
+      if (!d || d.type !== 'sos-preview-config') return;
+      overrides = (d.config && typeof d.config === 'object') ? d.config : {};
+      window.SOSCFG = merge(clone(DEFAULTS), overrides);
+      announce('preview');
+    });
+    /* บอกหน้าแม่ว่าพร้อมรับแล้ว — หน้าแม่ส่งก่อนที่ไฟล์นี้จะรันเสร็จไม่ได้
+       และการให้หน้าแม่ยิงซ้ำ ๆ เผื่อไว้ แพงกว่าจับมือกันหนึ่งครั้ง */
+    try { window.parent.postMessage({ type: 'sos-preview-ready' }, location.origin); } catch (e) {}
+  } else {
+    /* ยิงทันที ไม่รอ DOMContentLoaded — ยิ่งกลับมาเร็ว จอแรกยิ่งมีโอกาสได้ค่าจริง */
+    load();
+
+    /* กลับมาเปิดแอปอีกครั้งหลังพับไว้นาน = จังหวะที่ถูกที่สุดในการเช็คค่าใหม่
+       ไม่ตั้ง interval เพราะค่าตั้งไม่ได้เปลี่ยนบ่อยพอจะคุ้มกับการยิงทุกนาที */
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') load();
+    });
+  }
 })();
