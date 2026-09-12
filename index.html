@@ -283,11 +283,6 @@
     <!-- ป้ายบอกรุ่นเคยอยู่ตรงนี้ (กลางบนจอ) — เอาออกแล้ว
          เลขรุ่นเป็นข้อมูลของคนทำแอป ไม่ใช่ของนักเรียน และมันนั่งทับตำแหน่งที่มีค่าที่สุดของจอ
          คนที่อยากรู้เลขรุ่นยังดูได้ที่แท็บ "ฉัน" (#appVer) ซึ่งบอกครบกว่าเดิมอยู่แล้ว -->
-    <!-- ALT 1A6M3: ทางเข้าระบบเพื่อน — มุมขวาบน ไม่กินช่องในเมนูหลัก -->
-    <button class="top-friends" onclick="openFeed('friends')" aria-label="เพื่อน">
-      <svg viewBox="0 0 24 24"><use href="#lu-users"/></svg>
-      <span class="tf-badge" id="friendsBadge" hidden></span>
-    </button>
     <div class="screens">
 
       <!-- ============ SCREEN: LOGIN ============ -->
@@ -854,22 +849,6 @@
           <!-- รายการทางเข้าถูกจัดกลุ่มใน 1B20 — ของเดิมเป็นรายการแบน 7 แถวเรียงกันรวด
                โดยที่ "ร้านค้า (กำลังทำ)" กับ "Pro (ยังไม่เปิดขาย)" นั่งแทรกอยู่กลางของที่ใช้ได้จริง
                จอที่เอาของยังไม่เสร็จมาวางปนกับของที่เสร็จแล้ว ทำให้ทั้งจออ่านเหมือนยังไม่เสร็จ -->
-          <div class="pf-sec">สังคม</div>
-          <div class="pf-entry">
-            <!-- เพื่อนคือเหตุผลหลักที่กลุ่มเป้าหมายจะเปิดแอปนี้ค้างไว้ ของอื่นในจอนี้
-                 ทำคนเดียวได้ทั้งหมด สองแถวนี้เท่านั้นที่ต้องมีคนอื่น จึงได้อยู่กลุ่มบนสุด
-                 ทั้งคู่ไปจอเดียวกันแต่คนละแท็บ (ฟีด / เพื่อนฉัน) หลังยุบสองจอเข้าด้วยกัน -->
-            <button class="pe" onclick="openFeed()">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
-              <span class="pe-tx"><b>เพื่อนร่วมห้อง</b><i id="peMateCt"></i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <button class="pe" onclick="openFeed('friends')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-user"/></svg></span>
-              <span class="pe-tx"><b>เพื่อนของฉัน</b><i id="peFriendCt"></i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-          </div>
 
           <div class="pf-sec">ของฉัน</div>
           <div class="pf-entry">
@@ -981,30 +960,9 @@
       <!-- ============ SCREEN: เพื่อนร่วมห้อง ============
            หัวใจของชั้นสังคม — ใครในห้องช่วยเรื่องอะไรได้ พร้อมเหตุผลบนการ์ด
            ต้องล็อกอิน เพราะห้องเรียนต้องรู้ว่าใครเป็นใคร -->
-      <div class="screen flush" id="scr-mates">
-        <div class="scr-body pf-body">
-          <div id="feedBody"></div>
-        </div>
-      </div>
-
       <!-- วิชาของฉัน + คนในห้อง — ย้ายออกจากแท็บหลักมาอยู่หลังปุ่มบนหัวฟีด
            มันเป็นของที่ตั้งครั้งเดียวแล้วแทบไม่กลับมาแก้ ต่างจากฟีดที่เปิดทุกวัน -->
-      <div class="screen flush" id="scr-people">
-        <div class="scr-body pf-body">
-          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
-            <div></div>
-            <button class="sh-btn" onclick="go('scr-mates')" aria-label="กลับ">
-              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
-          </div>
-          <div id="matesBody"></div>
-        </div>
-      </div>
-
       <!-- ============ SCREEN: เขียนโพสต์ ============ -->
-      <div class="screen flush" id="scr-compose">
-        <div class="scr-body"><div id="composeBody"></div></div>
-      </div>
-
       <!-- ============ SCREEN: ก่อนเข้าไปเจอเพื่อน ============
            ขึ้นครั้งเดียวก่อนใช้ชั้นสังคมครั้งแรก — บอกว่าใครเห็นอะไร แล้วถามช่วงอายุ -->
       <div class="screen flush" id="scr-consent">
@@ -1019,61 +977,23 @@
       <!-- ============ SCREEN: หน้าของคนคนหนึ่ง ============
            เข้ามาจากการแตะรูป/ชื่อในฟีด · เธรด · หรือแถวคนออนไลน์
            นี่คือ "พื้นที่แสดงตัวตน" ที่เป็นคำขอตั้งต้นของทั้งฟีเจอร์ -->
-      <div class="screen flush" id="scr-user">
-        <div class="scr-body"><div id="userBody"></div></div>
-      </div>
-
       <!-- ============ SCREEN: เธรดใต้โพสต์ ============ -->
-      <div class="screen flush" id="scr-post">
-        <div class="scr-body"><div id="postBody"></div></div>
-      </div>
-
       <!-- ============ SCREEN: ช่องคุย ============
            จอนี้กินเต็มความสูงและมีปุ่มกลับของตัวเองในหัวจอ ไม่ใช้ sticky-head แบบจออื่น
            เพราะช่องพิมพ์ต้องติดก้นจอ และรายการข้อความต้องเลื่อนอยู่ตรงกลางเท่านั้น -->
-      <div class="screen flush" id="scr-chat">
-        <div class="scr-body">
-          <div id="chatBody"></div>
-        </div>
-      </div>
-
       <!-- ============ SCREEN: ห้องการบ้าน ============
            ห้องที่เกิดจากงานหนึ่งชิ้นและปิดตัวเองตอนถึงกำหนดส่ง
            ทางเข้ามีทางเดียวคือแถวใต้การ์ดงาน — ตั้งใจไม่ให้มีรายการห้องให้ไล่ดู
            เพราะรายการห้องคือสิ่งที่ทำให้มันกลายเป็นกลุ่มแชทถาวรอีกกลุ่ม -->
-      <div class="screen flush" id="scr-hw">
-        <div class="scr-body">
-          <div id="hwBody"></div>
-        </div>
-      </div>
-
       <!-- ============ SCREEN: หัวข้อทั่วโลก ============
            ชั้นที่ห้าของบันไดสโคป · กุญแจคือ "คุณติดอะไร" ไม่ใช่ "ใครนั่งข้างคุณ"
            อยู่คนละจอกับฟีดโดยตั้งใจ — ฟีดเรียงตามเวลา หน้าหัวข้อเรียงตามว่า
            คำตอบไหนช่วยได้จริง คนละตรรกะกันคนละเรื่อง ยัดรวมกันแล้วเสียทั้งสองอัน
            ทางเข้ามีสองทางคือแถวใต้การ์ดงาน กับรูปที่เพิ่งถ่าย · ไม่มีแท็บสำรวจ -->
-      <div class="screen flush" id="scr-topic">
-        <div class="scr-body">
-          <div id="topicBody"></div>
-        </div>
-      </div>
-
       <!-- ============ SCREEN: เธรดในหัวข้อ ============ -->
-      <div class="screen flush" id="scr-tthread">
-        <div class="scr-body">
-          <div id="tthreadBody"></div>
-        </div>
-      </div>
-
       <!-- ============ SCREEN: กล่องข้อความ ============
            เกิดขึ้นเพราะการทักไม่ได้จำกัดอยู่แค่คนในห้องเรียนอีกต่อไป —
            ข้อความจากคนที่ไม่ได้อยู่ในรายชื่อไหนเลยต้องมีที่ไปรวมกัน -->
-      <div class="screen flush" id="scr-dm">
-        <div class="scr-body">
-          <div id="dmBody"></div>
-        </div>
-      </div>
-
       <!-- ============ SCREEN: ห้องของฉัน ============
            พื้นที่ส่วนตัวที่แต่งเองได้ — ทางเข้าอยู่ในแท็บ "ฉัน" แถวบนสุดของรายการ
            จอนี้ไม่ต้องมีเน็ต ทุกอย่างอ่าน/เขียนกับ state ในเครื่องแล้วซิงก์ตามก้อนเดิม -->
@@ -1159,8 +1079,6 @@
               <svg viewBox="0 0 24 24"><use href="#lu-bag"/></svg><span>ร้านค้า</span></button>
             <button type="button" onclick="go('scr-badges')">
               <svg viewBox="0 0 24 24"><use href="#lu-medal"/></svg><span>เหรียญตรา</span></button>
-            <button type="button" onclick="openFeed('friends')">
-              <svg viewBox="0 0 24 24"><use href="#lu-users"/></svg><span>เพื่อน</span></button>
             <button type="button" onclick="go('scr-pro')">
               <svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg><span>Pro</span></button>
           </div>
@@ -1526,9 +1444,9 @@
         <span class="scan-dot"><svg viewBox="0 0 24 24"><use href="#tb-plus"/></svg></span><span>เพิ่ม</span></button>
       <!-- เพื่อนร่วมห้อง — วางถัดจากปุ่มเพิ่มทันที เป็นตำแหน่งที่นิ้วโป้งถึงง่ายที่สุดรองจากปุ่มกลาง
            เพราะเพื่อนคือเหตุผลหลักที่กลุ่มเป้าหมายจะเปิดแอปนี้ค้างไว้ ไม่ใช่ของที่ซ่อนอยู่ในแท็บ "ฉัน" -->
-      <button class="tab" data-scr="scr-mates" onclick="openFeed()">
-        <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-mates"/></svg>
-        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-mates-f"/></svg><span>เพื่อน</span></button>
+      <button class="tab" data-scr="scr-ai" onclick="go('scr-ai')">
+        <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-ai"/></svg>
+        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-ai-f"/></svg><span>น้องไซ</span></button>
       <button class="tab" data-scr="scr-profile" onclick="go('scr-profile')">
         <span class="ic-wrap"><svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-profile"/></svg>
           <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-profile-f"/></svg>
@@ -1584,12 +1502,8 @@
 <!-- ต้องมาก่อน app.js: app.js เรียก renderRoom() ใน renderAll
      และ room.js ใช้ fmtThaiDate จาก engine.js ซึ่งโหลดไปแล้วข้างบน -->
 <script src="room.js"></script>
-<script src="social.js"></script>
-<script src="feed.js"></script>
 <!-- ต้องมาหลัง feed.js: hw.js ใช้ myFirstRoom() กับ avStyle() จากไฟล์นั้น
      และต้องมาก่อน app.js เพราะ taskCard() เรียก hwStrip() ทุกครั้งที่วาดการ์ด -->
-<script src="hw.js"></script>
-<script src="topic.js"></script>
 <script src="safety.js"></script>
 <script src="app.js"></script>
 

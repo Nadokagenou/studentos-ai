@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B81';                 // สายเลขของแอป
+const APP_VERSION = '1B82';                 // สายเลขของแอป
 const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -5231,6 +5231,21 @@ function renderProfile() {
   // 1B70 · วาดด้วย profileHeadHTML() ตัวเดียวกับหน้าที่เพื่อนเปิดดู (อยู่ใน feed.js)
   // ของเดิมเป็นการ์ดสีน้ำเงินคนละทรงกับหน้าเพื่อน ทำให้ไม่มีใครรู้ว่าคนอื่นเห็นเราเป็นยังไง
   if (typeof renderProfileHead === 'function') renderProfileHead();
+  else {
+    // ---- บิลด์ที่ไม่มีชั้นสังคม (ตัวจริง) ----
+    // profileHeadHTML() อยู่ใน feed.js ซึ่งบิลด์ตัวจริงไม่โหลด · ไม่มีสำรองแล้วหัวจอหายทั้งก้อน
+    // เหลือแต่ตัวเลข "เห็นคนเดียว" ลอยอยู่บนจอเปล่า ๆ โดยไม่มีชื่อหรือรูปบอกว่านี่คือใคร
+    // (เจอจริง 12 ก.ย. 2569 ตอนถอดชั้นสังคมออกจากตัวจริงรอบที่สาม)
+    const hd = document.getElementById('pfHead');
+    if (hd) {
+      hd.innerHTML = `<div class="pf-solo">
+        <span class="pf-solo-av">${mine ? `<img src="${esc(mine)}" alt="">`
+          : esc((name || 'น').trim().slice(0, 1))}</span>
+        <span class="pf-solo-tx"><b>${esc(name)}</b>
+          <i>${currentUser ? esc(currentUser.email || '') : 'ยังไม่ได้เข้าบัญชี'}</i></span>
+      </div>`;
+    }
+  }
   if (typeof loadMyCard === 'function') loadMyCard();
 
   // ---------- ตัวเลขที่เห็นคนเดียว ----------
