@@ -24,6 +24,7 @@
 
 import { chat, dataUri } from '../_shared/llm.ts';
 import { geminiGenerate, geminiTrailLine, type GeminiError } from '../_shared/gemini.ts';
+import { appConfig, num } from '../_shared/appconfig.ts';
 
 const PROVIDER = Deno.env.get('OCR_PROVIDER') ?? 'none';
 
@@ -31,6 +32,24 @@ const PROVIDER = Deno.env.get('OCR_PROVIDER') ?? 'none';
 // มีไว้ตอบคำถามเดียว: ที่ช้าอยู่นี่เพราะยังคิดอยู่ หรือเพราะรุ่นมันช้าเอง
 let lastShot: { model: string; think: string; ms: number } | null = null;
 const MAX_BYTES = Number(Deno.env.get('OCR_MAX_BYTES') ?? 6_000_000);  // ~6MB หลังถอด base64
+
+// ---------- ค่าที่ Control Center ทับได้ ----------
+// ค่าเริ่มต้นเป็นของเดิมทุกตัว · อ่านไม่ได้ = ใช้ของเดิม (ดู _shared/appconfig.ts)
+// budgetMs เคยเป็น 45 วิฝังในสาย gemini และ 30 วิในสาย gateway — ต่างกันเพราะ
+// สองเจ้าตอบไม่เท่ากัน · ค่าที่ตั้งจากหน้าเว็บจึงคูณลงบนอัตราส่วนเดิม ไม่ได้ตั้งทับให้เท่ากัน
+const OCR_BUDGET_GEMINI = 45_000;
+const OCR_BUDGET_GATEWAY = 30_000;
+let ocrBudgetScale = 1;   // ตั้งจาก ocr.timeout (วินาที) เทียบกับ 20 วิที่เป็นค่าเริ่มต้น
+let ocrRetries = 1;       // ลองใหม่กี่รอบเมื่อผู้ให้บริการล้ม (ไม่นับรอบแรก)
+let ocrAutoRetry = true;
+
+async function loadOcrConfig() {
+  const c = await appConfig();
+  const secs = num(c.ocr?.timeout, 20, 3, 60);
+  ocrBudgetScale = secs / 20;
+  ocrRetries = Math.round(num(c.ocr?.retries, 1, 0, 5));
+  ocrAutoRetry = c.ocr?.autoRetry !== false;
+}
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -100,7 +119,7 @@ const ADAPTERS: Record<string, OcrAdapter> = {
       temperature: 0,        // งานถอดข้อความ ไม่ใช่งานแต่งเรื่อง
       think: 'off',          // ถอดตัวอักษรที่เห็น ไม่ต้องคิด — คิดแล้วเปลืองโทเคนจนคำตอบโดนตัด
       maxOutputTokens: 4096, // ใบงานเต็มหน้ากินโทเคนเยอะ ตัดกลางคัน = ได้ข้อความไม่ครบ
-      budgetMs: 45_000,
+      budgetMs: Math.round(OCR_BUDGET_GEMINI * ocrBudgetScale),
     });
 
     // Gemini ไม่คืนคะแนนความมั่นใจมาให้ ต่างจาก Tesseract ที่มีให้เป็นตัวเลขจริง
@@ -127,7 +146,7 @@ const ADAPTERS: Record<string, OcrAdapter> = {
       }],
       temperature: 0,      // งานถอดข้อความ ไม่ใช่งานแต่งเรื่อง
       maxTokens: 2000,     // ใบงานเต็มหน้ากินโทเคนเยอะ ตัดกลางคัน = ได้ข้อความไม่ครบ
-      timeoutMs: 30000,    // อ่านรูปช้ากว่าตอบข้อความมาก
+      timeoutMs: Math.round(OCR_BUDGET_GATEWAY * ocrBudgetScale),  // อ่านรูปช้ากว่าตอบข้อความมาก
     });
 
     // ฝั่ง OpenAI ไม่มีตัวเลขความมั่นใจให้เหมือนกัน และเรายังไม่ยอมแต่งเลขขึ้นมาเอง
@@ -150,6 +169,9 @@ Deno.serve(async (req) => {
     }, 501);
   }
 
+  // เพดานเวลา/จำนวนรอบที่เจ้าของระบบตั้งไว้ · แคช 60 วิ · ล้มเหลว = ใช้ค่าเดิม
+  await loadOcrConfig();
+
   let body: { image?: string; mime?: string; debug?: boolean };
   try { body = await req.json(); }
   catch { return json({ ok: false, code: 'bad_json', message: 'ข้อมูลที่ส่งมาไม่ถูกรูปแบบ' }, 400); }
@@ -168,15 +190,36 @@ Deno.serve(async (req) => {
 
   const t0 = Date.now();
   try {
-    const r = await adapter({ b64, mime: body.mime || 'image/jpeg' });
-    return json({
-      ok: true,
-      text: r.text ?? '',
-      conf: Math.max(0, Math.min(100, Math.round(r.conf ?? 0))),
-      provider: PROVIDER,
-      ms: Date.now() - t0,
-      ...(body.debug === true && lastShot ? { shot: lastShot } : {}),
-    });
+    // ---------- ลองใหม่เมื่อผู้ให้บริการล้ม ----------
+    // จำนวนรอบมาจาก Control Center (ค่าเริ่มต้น 1 = ลองซ้ำอีกครั้งเดียว)
+    //
+    // ลองซ้ำเฉพาะตอน "ล้ม" เท่านั้น ไม่ใช่ตอนอ่านได้แต่ได้ข้อความน้อย —
+    // รูปที่เบลอจริงจะเบลอเท่าเดิมทุกรอบ การยิงซ้ำจึงเผาโควตาฟรีโดยไม่มีทางได้ผลต่าง
+    // (ฝั่งแอปมีชั้นลองรูปหลายแบบของตัวเองอยู่แล้ว ดู ocrTextScore ใน app.js)
+    //
+    // **ไม่ยืดเวลารวมตามจำนวนรอบ** — แต่ละรอบมีงบของตัวเองเท่าเดิม เพราะ platform
+    // ตัดที่ ~150 วิ ตั้ง 5 รอบ × 45 วิ = โดนตัดกลางรอบที่สามโดยไม่มีอะไรบอก
+    const tries = ocrAutoRetry ? ocrRetries + 1 : 1;
+    let last: unknown = null;
+    for (let i = 0; i < tries; i++) {
+      try {
+        const r = await adapter({ b64, mime: body.mime || 'image/jpeg' });
+        return json({
+          ok: true,
+          text: r.text ?? '',
+          conf: Math.max(0, Math.min(100, Math.round(r.conf ?? 0))),
+          provider: PROVIDER,
+          ms: Date.now() - t0,
+          ...(i > 0 ? { retried: i } : {}),
+          ...(body.debug === true && lastShot ? { shot: lastShot } : {}),
+        });
+      } catch (e) {
+        last = e;
+        // เหลือเวลาไม่พอให้อีกรอบจบ = เลิกลองดีกว่าโดน platform ตัดกลางคัน
+        if (Date.now() - t0 > 90_000) break;
+      }
+    }
+    throw last;
   } catch (e) {
     // รายละเอียดจริงเก็บไว้ใน log ฝั่งเซิร์ฟเวอร์ ไม่ส่งกลับไปหน้าเว็บ
     // (ข้อความ error ของผู้ให้บริการบางเจ้ามีชิ้นส่วนของ key หรือ endpoint ติดมาด้วย)

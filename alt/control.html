@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- หน้านี้ไม่ควรถูกค้นเจอ และไม่มีลิงก์จากที่ไหนในแอป -->
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>StudentOS Control Center</title>
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="control.css">
+</head>
+<body>
+
+<!-- ============ ทางเข้า ============ -->
+<!-- ปิดทั้งจอจนกว่าจะรู้ว่าเป็นแอดมินจริง · ไม่ได้แค่ซ่อนปุ่ม
+     ถึงจะแอบเข้ามาถึงตรงนี้ได้ RLS ฝั่งเซิร์ฟเวอร์ก็ปฏิเสธการเขียนอยู่ดี -->
+<div class="gate" id="gate">
+  <div class="gate-box">
+    <img src="logo-cc.svg" alt="StudentOS">
+    <h1>Control Center</h1>
+    <p id="gateSub">กำลังตรวจสิทธิ์…</p>
+
+    <div id="gateForm" hidden>
+      <label class="fld"><span>อีเมลของแอดมิน</span>
+        <input class="in" id="gateEmail" type="email" autocomplete="email" placeholder="you@example.com">
+      </label>
+      <div id="gateOtpWrap" hidden>
+        <label class="fld"><span>รหัส 6 หลักที่ส่งไปในอีเมล</span>
+          <input class="in mono" id="gateOtp" inputmode="numeric" maxlength="6" placeholder="000000">
+        </label>
+      </div>
+      <div class="row" style="justify-content:center">
+        <button class="btn pri" id="gateSend">ส่งรหัสเข้าอีเมล</button>
+        <button class="btn" id="gateGoogle">ใช้ Google</button>
+      </div>
+    </div>
+
+    <div id="gateDenied" hidden>
+      <p style="color:var(--calert);font-weight:600;margin-bottom:14px">
+        บัญชีนี้ไม่ได้อยู่ในรายชื่อแอดมิน</p>
+      <p class="hint" style="text-align:left">
+        เพิ่มสิทธิ์ได้ที่ Supabase → SQL Editor เท่านั้น (เปิดให้เพิ่มจากหน้าเว็บไม่ได้
+        เพราะ anon key อยู่ในโค้ดฝั่งเบราว์เซอร์ ใครก็เลื่อนตัวเองเป็นแอดมินได้):<br>
+        <code id="gateSql">insert into public.app_admins (user_id) values ('…');</code>
+      </p>
+      <button class="btn" id="gateOut" style="margin-top:14px">ออกจากระบบ</button>
+    </div>
+
+    <p class="gate-msg" id="gateMsg"></p>
+  </div>
+</div>
+
+<!-- ============ คอนโซล ============ -->
+<div class="shell" id="shell" hidden>
+  <aside class="sb">
+    <div class="brand">
+      <img src="logo-cc.svg" alt="">
+      <div><b>Control Center</b><small id="brandSub">StudentOS</small></div>
+    </div>
+    <div class="navsec">ภาพรวม</div>
+    <button class="nav on" data-go="dash"><span class="ic">▦</span>Dashboard<span class="dot"></span></button>
+    <div class="navsec">หน้าตาแอป</div>
+    <button class="nav" data-go="home"><span class="ic">▤</span>Home Builder<span class="dot"></span></button>
+    <button class="nav" data-go="theme"><span class="ic">◑</span>Theme Studio<span class="dot"></span></button>
+    <button class="nav" data-go="content"><span class="ic">¶</span>Content Manager<span class="dot"></span></button>
+    <div class="navsec">สมอง</div>
+    <button class="nav" data-go="prio"><span class="ic">⚖</span>Priority Engine<span class="dot"></span></button>
+    <button class="nav" data-go="brain"><span class="ic">✦</span>AI Brain<span class="dot"></span></button>
+    <button class="nav" data-go="ocr"><span class="ic">⌾</span>OCR Center<span class="dot"></span></button>
+    <div class="navsec">ระบบ</div>
+    <button class="nav" data-go="feat"><span class="ic">⧉</span>Feature Manager<span class="dot"></span></button>
+    <button class="nav" data-go="noti"><span class="ic">◎</span>Notification Center<span class="dot"></span></button>
+    <button class="nav" data-go="ana"><span class="ic">📈</span>Analytics<span class="dot"></span></button>
+    <button class="nav" data-go="exp"><span class="ic">⚗</span>A/B Testing<span class="dot"></span></button>
+    <div class="navsec">บัญชี</div>
+    <button class="nav" id="btnOut"><span class="ic">⎋</span>ออกจากระบบ</button>
+  </aside>
+
+  <main class="main">
+
+    <!-- ---------- DASHBOARD ---------- -->
+    <section class="page on" id="p-dash">
+      <div class="ph"><h1>Dashboard</h1>
+        <p>ค่าตั้งทั้งหมดเก็บอยู่ใน Supabase · แอปทุกเครื่องอ่านตอนเปิด และอ่านซ้ำทุกครั้งที่กลับมาหน้าจอ
+           แปลว่ากด “เผยแพร่” แล้วเครื่องผู้ใช้เห็นของใหม่โดยไม่ต้องอัปเดตแอป</p></div>
+      <div class="grid4">
+        <div class="stat"><div class="k">เวอร์ชันค่าตั้ง</div><div class="v mono" id="dVer">—</div><div class="s" id="dVerAt">—</div></div>
+        <div class="stat"><div class="k">ค่าที่ทับของเริ่มต้น</div><div class="v" id="dOver">0</div><div class="s">จุด</div></div>
+        <div class="stat"><div class="k">ฟีเจอร์เปิดอยู่</div><div class="v" id="dFeat">—</div><div class="s">จากทั้งหมด</div></div>
+        <div class="stat"><div class="k">บล็อกหน้าแรก</div><div class="v" id="dBlk">—</div><div class="s">ที่แสดงผล</div></div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h3>ประวัติเวอร์ชัน</h3>
+        <p>ทุกครั้งที่เผยแพร่ ระบบเก็บก้อนค่าตั้งเต็ม ๆ ไว้เอง (ทำที่ฝั่งฐานข้อมูล ไม่ได้ฝากไว้กับหน้านี้)
+           — ปรับแล้วแอปพัง กดย้อนได้ทันที</p>
+        <div id="verList"><p class="hint">กำลังโหลด…</p></div>
+      </div>
+      <div class="card">
+        <h3>ของที่หน้านี้ยังทำไม่ได้</h3>
+        <p>เขียนไว้ให้ครบ เพราะรายการที่บอกว่าทำได้ทุกอย่างคือรายการที่เชื่อไม่ได้สักข้อ</p>
+        <div id="gapList"></div>
+      </div>
+    </section>
+
+    <!-- ---------- HOME BUILDER ---------- -->
+    <section class="page" id="p-home">
+      <div class="ph"><h1>Home Builder</h1>
+        <p>จัดลำดับบล็อกของหน้าแรกจริง (<code>scr-menu</code>) · ลากที่จุดจับ หรือใช้ปุ่ม ↑↓ บนมือถือ
+           ปิดบล็อกไหนก็ได้ ยกเว้นว่าปิดหมดแล้วหน้าแรกจะว่างเปล่า</p></div>
+      <div class="hb">
+        <div class="card"><h3>ลำดับบล็อก</h3><p>บนสุด = เห็นก่อน</p><div id="blkList"></div></div>
+        <div class="phone">
+          <div class="bar">PREVIEW · หน้าแรก</div>
+          <div class="scr" id="phonePv"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- PRIORITY ENGINE ---------- -->
+    <section class="page" id="p-prio">
+      <div class="ph"><h1>Priority Engine</h1>
+        <p>น้ำหนักที่ <code>priorityInfo()</code> ใช้จัดอันดับงาน · ค่าที่เห็นตอนนี้คือพฤติกรรมเดิมของแอป
+           ลากไปครึ่งหนึ่ง = น้ำหนักครึ่งหนึ่ง · 0 = ตัดเรื่องนั้นออกจากการคิดคะแนน</p></div>
+      <div class="grid2">
+        <div class="card"><h3>น้ำหนัก</h3><div id="slList"></div>
+          <div class="row"><button class="btn sm" id="prioReset">คืนค่าเริ่มต้น</button></div>
+        </div>
+        <div>
+          <div class="card"><h3>ลำดับที่ได้</h3>
+            <p>งานตัวอย่าง 6 ใบ คิดด้วยเอนจินตัวจริง (<code>engine.js</code>) ไม่ใช่สูตรจำลอง</p>
+            <div id="prioPv"></div>
+          </div>
+          <div class="warn">ขีดแบ่งดาว (ด่วนมาก / ด่วน / ปกติ) ตั้งจากเพดานคะแนนของน้ำหนักชุดเริ่มต้น
+            — ดันขึ้นทั้งกระดานแล้วป้าย “ด่วนมาก” จะไปติดครึ่งรายการ ซึ่งเท่ากับไม่มีป้าย</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- AI BRAIN ---------- -->
+    <section class="page" id="p-brain">
+      <div class="ph"><h1>AI Brain</h1>
+        <p>คำสั่งที่ส่งให้โมเดลทุกครั้งที่มีคนถามน้องไซ</p></div>
+      <div class="warn" id="brainWarn">พรอมป์ · กติกา · Temperature · เพดานโทเคน
+        มีผลจริงกับ <code>ask-sai</code> แล้ว (ค่าใหม่ถึงเซิร์ฟเวอร์ภายใน 1 นาทีหลังเผยแพร่)
+        — <b>ยกเว้น “ผู้ให้บริการ” กับ “คำถามต่อคนต่อวัน”</b> ที่ยังไม่มีผล ดูเหตุผลบน Dashboard</div>
+      <div class="card"><h3>System Prompt</h3>
+        <p>ว่างไว้ = ใช้พรอมป์ที่ฝังอยู่ใน Edge Function ตามเดิม</p>
+        <textarea class="in" id="sysPrompt" spellcheck="false"></textarea>
+        <p class="hint"><span id="promptLen">0</span> ตัวอักษร</p>
+      </div>
+      <div class="card"><h3>Priority Rules</h3><p>ลำดับที่บอกโมเดลว่าอะไรมาก่อน · บรรทัดละข้อ</p>
+        <textarea class="in" id="rulesTx" style="min-height:120px" spellcheck="false"></textarea>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3>โมเดล</h3>
+          <label class="fld"><span>ผู้ให้บริการ</span>
+            <em>ยังไม่มีผล — ตัวจริงมาจาก secret <code>ASK_PROVIDER</code> บนเซิร์ฟเวอร์</em>
+            <select class="in" data-cfg="ai.provider">
+              <option value="gemini-flash">Gemini Flash</option>
+              <option value="gemini-pro">Gemini Pro</option>
+              <option value="claude-haiku">Claude Haiku</option></select></label>
+          <label class="fld"><span>Temperature</span><em>สูง = ตอบหลากหลาย · ต่ำ = ตอบนิ่ง</em>
+            <input class="in" type="number" step="0.1" min="0" max="1" data-cfg="ai.temp"></label>
+        </div>
+        <div class="card"><h3>เพดาน</h3>
+          <label class="fld"><span>โทเคนสูงสุดต่อคำตอบ</span><input class="in" type="number" data-cfg="ai.maxTokens"></label>
+          <label class="fld"><span>คำถามต่อคนต่อวัน</span>
+            <em>ยังไม่มีผล — ask-sai ไม่รู้ว่าใครถาม ต้องมีตารางนับก่อน</em>
+            <input class="in" type="number" data-cfg="ai.dailyCap"></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- FEATURE MANAGER ---------- -->
+    <section class="page" id="p-feat">
+      <div class="ph"><h1>Feature Manager</h1>
+        <p>ปิดฟีเจอร์ = ซ่อนทางเข้าทั้งหมดของมัน ไม่ใช่แค่ปุ่มเดียว
+           ปุ่มที่กดแล้วเจอจอที่ไม่ควรมี แย่กว่าปุ่มที่ไม่มี</p></div>
+      <div class="card"><h3>ฟีเจอร์</h3><div id="featList"></div></div>
+    </section>
+
+    <!-- ---------- NOTIFICATIONS ---------- -->
+    <section class="page" id="p-noti">
+      <div class="ph"><h1>Notification Center</h1>
+        <p>ทุกอย่างยิงผ่าน service worker — <code>new Notification()</code> ใช้ไม่ได้บน Chrome มือถือ</p></div>
+      <div class="warn">ตัวส่งจริงคือ <code>send-reminders</code> ที่ cron เรียกทุก 30 นาที ·
+        เตือนก่อนสอบ · งานด่วน · เลยกำหนด · เวลาส่ง · เวลาห้ามเตือน · ข้อความ — ต่อสายแล้วทั้งหมด
+        <br><b>“สรุปแผนตอนเช้า” กับ “เตือนก่อนสตรีคขาด” ยังไม่มีตัวส่ง</b> เปิดแล้วจะยังไม่มีอะไรออกไป</div>
+      <div class="grid2">
+        <div class="card"><h3>เตือนอะไรบ้าง</h3><div id="notiList"></div></div>
+        <div>
+          <div class="card"><h3>เวลาส่ง</h3>
+            <p>หน้าต่างเวลาที่อนุญาตให้ส่ง · ไม่ตั้ง = ส่งตามจังหวะของงาน (ค่าเริ่มต้น)</p>
+            <div id="timeList"></div>
+            <button class="btn sm" id="addTime">+ เพิ่มเวลา</button>
+            <label class="fld" style="margin-top:16px"><span>เตือนก่อนสอบล่วงหน้า (วัน)</span>
+              <input class="in" type="number" min="0" max="14" data-cfg="noti.examDays"></label>
+            <label class="fld"><span>ห้ามเตือนหลังเวลา</span><em>กันการเตือนตอนนอน</em>
+              <input class="in" type="time" data-cfg="noti.quietAfter"></label>
+          </div>
+        </div>
+      </div>
+      <div class="card"><h3>ข้อความแจ้งเตือน</h3>
+        <p>ใช้ <code>{{task}}</code> <code>{{subject}}</code> <code>{{days}}</code> <code>{{time}}</code>
+           แทนค่าจริง · ว่างไว้ = ใช้ข้อความเดิมของระบบ</p>
+        <div id="tplList"></div>
+      </div>
+    </section>
+
+    <!-- ---------- OCR ---------- -->
+    <section class="page" id="p-ocr">
+      <div class="ph"><h1>OCR Center</h1><p>ค่าที่ใช้ตอนอ่านรูปใบงาน</p></div>
+      <div class="grid2">
+        <div class="card"><h3>ผู้ให้บริการ</h3>
+          <label class="fld"><span>Provider</span>
+            <em>ยังไม่มีผล — ตัวจริงมาจาก secret <code>OCR_PROVIDER</code> บนเซิร์ฟเวอร์</em>
+            <select class="in" data-cfg="ocr.provider">
+              <option value="google-vision">Google Vision</option>
+              <option value="gemini-flash">Gemini Flash (vision)</option>
+              <option value="tesseract">Tesseract (ในเครื่อง)</option></select></label>
+          <div class="sl"><div class="lb"><b>ความมั่นใจขั้นต่ำ</b><span id="vConf">80%</span></div>
+            <em>ต่ำกว่านี้ = ส่งเข้ากล่องเข้าให้คนตรวจ ไม่บันทึกเอง</em>
+            <input type="range" min="50" max="99" data-cfg="ocr.confidence" id="rConf"></div>
+          <div class="warn" id="confWarn" hidden>เส้น 80% ถูกตั้งไว้ด้วยเหตุผล — ต่ำกว่านี้แปลว่า
+            งานที่อ่านผิดจะไหลเข้าแผนเองเงียบ ๆ แล้วผู้ใช้จะเจอตอนที่มันดันงานจริงตกไปแล้ว
+            <br>(ระบบล็อกขั้นต่ำไว้ที่ 50% — ต่ำกว่าครึ่งคือเดาผิดบ่อยกว่าเดาถูกแล้วยังบันทึกเอง)</div>
+        </div>
+        <div class="card"><h3>พฤติกรรม</h3><div id="ocrList"></div>
+          <label class="fld" style="margin-top:14px"><span>ลองใหม่กี่ครั้งเมื่ออ่านไม่ออก</span>
+            <input class="in" type="number" min="0" max="5" data-cfg="ocr.retries"></label>
+          <label class="fld"><span>เพดานเวลาต่อรูป (วินาที)</span>
+            <input class="in" type="number" min="3" max="60" data-cfg="ocr.timeout"></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- THEME STUDIO ---------- -->
+    <section class="page" id="p-theme">
+      <div class="ph"><h1>Theme Studio</h1>
+        <p>ทับโทเคนที่ทุกจอใช้ร่วมกัน · ช่องที่ไม่ได้แตะจะไม่ถูกทับ ธีมมืดกับธีมอุ่นจึงยังทำงานเหมือนเดิม</p></div>
+      <div class="grid2">
+        <div>
+          <div class="card"><h3>สี</h3><p>ว่าง = ใช้สีของธีมตามเดิม</p><div id="colList"></div></div>
+          <div class="card"><h3>ตัวอักษร</h3>
+            <label class="fld"><span>ฟอนต์</span><em>ไม่ได้เลือก = IBM Plex Sans Thai ตามเดิม</em>
+              <select class="in" data-cfg="theme.fontFamily">
+                <option value="">— ตามเดิม —</option>
+                <option value="IBM Plex Sans Thai">IBM Plex Sans Thai</option>
+                <option value="Noto Sans Thai">Noto Sans Thai</option>
+                <option value="Sarabun">Sarabun</option>
+                <option value="Prompt">Prompt</option>
+                <option value="Kanit">Kanit</option></select></label>
+            <div class="sl"><div class="lb"><b>ขนาดฐาน</b><span id="vFs">1.00×</span></div>
+              <em>คูณทับขนาดที่ผู้ใช้เลือกเองในแอป ไม่ได้ไปลบการตั้งค่าของเขา</em>
+              <input type="range" min="85" max="130" data-cfg="theme.fontScale" id="rFs"></div>
+          </div>
+        </div>
+        <div>
+          <div class="card"><h3>รูปทรงและระยะ</h3>
+            <div class="sl"><div class="lb"><b>ความมนของการ์ด</b><span id="vRad">20px</span></div>
+              <input type="range" min="0" max="34" data-cfg="theme.radius" id="rRad"></div>
+            <div class="sl"><div class="lb"><b>ระยะห่างของเนื้อหา</b><span id="vSp">1.00×</span></div>
+              <em>ขยับช่องไฟบนลงล่างของเนื้อหาในจอ · ดีไซน์กำหนดขนาดเป็น px ทุกจุด
+                  การไล่คูณทุกที่ทำให้จอพังมากกว่าสวยขึ้น</em>
+              <input type="range" min="80" max="140" data-cfg="theme.spacing" id="rSp"></div>
+            <label class="fld"><span>เงา</span>
+              <select class="in" data-cfg="theme.shadow">
+                <option value="">— ตามเดิม —</option>
+                <option value="none">ไม่มี</option><option value="soft">อ่อน</option>
+                <option value="mid">กลาง</option><option value="deep">เข้ม</option></select></label>
+          </div>
+          <div class="card"><h3>ตัวอย่าง</h3>
+            <div id="themePv"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- CONTENT ---------- -->
+    <section class="page" id="p-content">
+      <div class="ph"><h1>Content Manager</h1>
+        <p>ข้อความที่ต่อสายไว้แล้วจริง ๆ · ว่าง = ใช้ของเดิมในโค้ด</p></div>
+      <div class="card"><h3>ข้อความในแอป</h3><div id="txtList"></div></div>
+      <div class="warn">มีแค่สามจุดนี้ที่ต่อสายแล้ว — เพิ่มจุดอื่นต้องแก้ที่ <code>app.js</code>
+        ให้เรียก <code>sosText('ชื่อ', 'ของเดิม')</code> ตรงจุดนั้นก่อน · ทำรายการปลอมให้ยาวกว่านี้ได้
+        แต่ช่องที่แก้แล้วไม่มีอะไรเปลี่ยนจะทำให้เลิกเชื่อทั้งหน้า</div>
+    </section>
+
+    <!-- ---------- ANALYTICS ---------- -->
+    <section class="page" id="p-ana">
+      <div class="ph"><h1>Analytics</h1><p>ตัวเลขที่อ่านได้จริงจากฐานข้อมูลตอนนี้</p></div>
+      <div class="grid4" id="anaTiles"></div>
+      <div class="card" style="margin-top:14px"><h3>ทำไมมีแค่นี้</h3>
+        <p id="anaWhy">กำลังตรวจว่าอ่านอะไรได้บ้าง…</p></div>
+    </section>
+
+    <!-- ---------- A/B ---------- -->
+    <section class="page" id="p-exp">
+      <div class="ph"><h1>A/B Testing</h1>
+        <p>แบ่งผู้ใช้เป็นสองกลุ่มด้วยรหัสเครื่อง แล้ววัดว่าแบบไหนดีกว่า</p></div>
+      <div class="warn">ยังไม่มีที่เก็บผลวัด — ตั้งค่าตรงนี้แบ่งกลุ่มได้จริง (แอปอ่าน
+        <code>exp</code> ไปตัดสินใจเองได้) แต่ “แบบไหนดีกว่า” ยังต้องดูจากที่อื่น
+        เพราะไม่มีตารางเก็บ event</div>
+      <div class="card"><h3>การทดลอง</h3>
+        <div id="expOn"></div>
+        <label class="fld" style="margin-top:10px"><span>รหัสการทดลอง</span>
+          <em>ชื่อสั้น ๆ ที่โค้ดใช้อ้างถึง เช่น <code>home-v2</code></em>
+          <input class="in mono" data-cfg="exp.id" placeholder="home-v2"></label>
+        <div class="grid2">
+          <label class="fld"><span>กลุ่ม A (ของเดิม)</span><input class="in" data-cfg="exp.a"></label>
+          <label class="fld"><span>กลุ่ม B (ของใหม่)</span><input class="in" data-cfg="exp.b"></label>
+        </div>
+        <div class="sl"><div class="lb"><b>สัดส่วนที่เข้ากลุ่ม B</b><span id="vSplit">50%</span></div>
+          <input type="range" min="0" max="100" step="5" data-cfg="exp.split" id="rSplit"></div>
+        <div class="row"><span class="pill live">A <b id="sA">50%</b></span>
+          <span class="pill off">B <b id="sB">50%</b></span></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="savebar" id="savebar" hidden>
+  <span class="msg" id="saveMsg">โหลดค่าตั้งแล้ว</span>
+  <button class="btn sm" id="btnDark">โหมดมืด</button>
+  <button class="btn sm" id="btnExport">ส่งออก JSON</button>
+  <button class="btn sm danger" id="btnRevert">ทิ้งที่แก้</button>
+  <button class="btn pri" id="btnPublish" disabled>เผยแพร่</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="remote-config.js"></script>
+<!-- engine.js โหลดมาเพื่อให้ตัวอย่างลำดับงานในหน้า Priority Engine คิดด้วยเอนจินตัวจริง
+     ไม่ใช่สูตรจำลองที่เขียนซ้ำไว้ในหน้านี้ — สูตรที่เขียนซ้ำคือสูตรที่จะเพี้ยนวันหนึ่ง
+     แล้วหน้าแอดมินจะโกหกว่าปรับแล้วได้ลำดับแบบนี้ ทั้งที่แอปจริงได้อีกแบบ -->
+<script src="engine.js"></script>
+<script src="control.js"></script>
+</body>
+</html>
