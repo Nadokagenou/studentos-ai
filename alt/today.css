@@ -1242,7 +1242,10 @@
    โครงนี้มาจากภาพอ้างอิงตรง ๆ (2h 45m Study Time / 5 Task / 12 Days Streak)
    ต่างกันที่ตัวเลขของเราไม่มีหน่วยแทรกกลาง — หน่วยอยู่ในป้ายข้างล่าง
    เพราะช่องที่มีเลขสองตัวจะดูไม่เป็นชุดเดียวกับช่องที่มีเลขตัวเดียว */
-.td-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 14px; }
+/* auto-flow แทน repeat(3,1fr) — ผลเหมือนเดิมเป๊ะตอนมีสามช่อง แต่ปรับตามจำนวนที่เหลือ
+   เมื่อเจ้าของระบบปิดช่องไหนจาก Control Center · ตรึงไว้ 3 แล้วปิดช่องเดียว
+   จะเหลือช่องว่างค้างอยู่ ซึ่งดูเหมือนของหาย ไม่ใช่ของที่ถูกเอาออก */
+.td-stats { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 9px; margin-top: 14px; }
 .ts {
   background: var(--soft-card, var(--card)); border-radius: 19px; padding: 12px 11px;
   box-shadow: var(--soft-shadow, var(--shadow));

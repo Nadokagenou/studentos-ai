@@ -46,19 +46,38 @@
     hwNowBlock: ['เพื่อนกำลังทำอะไร', 'ว่างเองเมื่อไม่มีใครออนไลน์'],
     toolsLink:  ['ฟีเจอร์อื่น ๆ', 'บรรทัดเดียวปิดท้าย'],
   };
-  // ชิ้นส่วนของการ์ด "ตอนนี้" · zone ต้องตรงกับ NOW_PARTS ใน app.js เป๊ะ
-  // lock = ถอดไม่ได้ เพราะการ์ดใบนี้มีอยู่เพื่อตอบว่า "ทำอะไร" แล้ว "กดตรงไหน"
-  var NOW_META = [
-    ['top',      'head', 0, 'แถวบน',            'ไอคอน + ชื่อวิชา + ป้ายความด่วน'],
-    ['title',    'head', 1, 'ชื่องาน',           'จุดโฟกัสของการ์ด'],
-    ['route',    'head', 0, 'ช่วงเวลา',          'เริ่มกี่โมง → จบกี่โมง'],
-    ['why',      'head', 0, 'เหตุผล + คะแนน',    'ทำไมถึงเป็นใบนี้'],
-    ['progress', 'body', 0, 'แถบความคืบหน้า',    'ขึ้นเฉพาะตอนทำไปแล้วบางส่วน'],
-    ['actions',  'body', 1, 'ปุ่มเริ่ม + เสร็จ + เลื่อน', 'สิ่งเดียวที่ต้องกด'],
-    ['askDue',   'body', 0, 'ถามวันส่ง',         'ขึ้นเฉพาะงานที่ยังไม่รู้กำหนด'],
-    ['whyGo',    'body', 0, 'ลิงก์ “ทำไมใบนี้”',  'ทางเข้าจอเทียบทางเลือก'],
+  // ชิ้นส่วนของการ์ดที่จัดได้ · zone ต้องตรงกับ *_PARTS ใน app.js เป๊ะ
+  // lock = ถอดไม่ได้ เพราะถอดแล้วการ์ดใบนั้นไม่เหลือเหตุผลที่จะมีอยู่
+  //   [id, zone, lock, ชื่อ, คำอธิบาย]
+  var CARD_META = {
+    stats: [
+      ['free',     'row',  0, 'ชั่วโมงที่ว่าง',   'เวลาที่เหลือจริงนับจากนาทีนี้'],
+      ['pending',  'row',  0, 'งานค้าง',          'จำนวนใบที่ยังไม่เสร็จ'],
+      ['streak',   'row',  0, 'วันต่อเนื่อง',      'สตรีคการเปิดแอป'],
+    ],
+    now: [
+      ['top',      'head', 0, 'แถวบน',            'ไอคอน + ชื่อวิชา + ป้ายความด่วน'],
+      ['title',    'head', 1, 'ชื่องาน',           'จุดโฟกัสของการ์ด'],
+      ['route',    'head', 0, 'ช่วงเวลา',          'เริ่มกี่โมง → จบกี่โมง'],
+      ['why',      'head', 0, 'เหตุผล + คะแนน',    'ทำไมถึงเป็นใบนี้'],
+      ['progress', 'body', 0, 'แถบความคืบหน้า',    'ขึ้นเฉพาะตอนทำไปแล้วบางส่วน'],
+      ['actions',  'body', 1, 'ปุ่มเริ่ม + เสร็จ + เลื่อน', 'สิ่งเดียวที่ต้องกด'],
+      ['askDue',   'body', 0, 'ถามวันส่ง',         'ขึ้นเฉพาะงานที่ยังไม่รู้กำหนด'],
+      ['whyGo',    'body', 0, 'ลิงก์ “ทำไมใบนี้”',  'ทางเข้าจอเทียบทางเลือก'],
+    ],
+    rail: [
+      ['label',    'head', 0, 'หัวข้อราง',         'ชื่อ + สรุปเวลารวม'],
+      ['rows',     'body', 1, 'แถวงาน',           'เนื้อหาทั้งหมดของราง'],
+      ['end',      'body', 0, 'แถวปิดท้าย',        '“หมดเวลาว่าง” + เวลา'],
+    ],
+  };
+  var ZONE_NAME = { head: 'หัวการ์ด', body: 'ตัวการ์ด', row: 'ช่องตัวเลข' };
+  // การ์ดไหนแสดงที่ไหนใน Home Builder
+  var CARD_PANELS = [
+    ['stats', 'statsList'],
+    ['now',   'nowList'],
+    ['rail',  'railList'],
   ];
-  var NOW_ZONE_NAME = { head: 'หัวการ์ด', body: 'ตัวการ์ด' };
 
   var PRIO_META = [
     ['deadline', 'ความด่วนของกำหนดส่ง', 'เส้นโค้ง urgencyScore() — ยิ่งใกล้ยิ่งพุ่ง'],
@@ -504,47 +523,59 @@
     drawBlocks();
     touch('ลำดับหน้าแรก');
   }
-  /* ---------- ชิ้นส่วนในการ์ด "ตอนนี้" ---------- */
-  function nowLayout() {
-    var saved = (draft.cards && draft.cards.now) || [];
+  /* ---------- ชิ้นส่วนในการ์ด ----------
+     ตัววาดตัวเดียวใช้กับทุกการ์ด · เขียนแยกทีละการ์ดคือวิธีที่ทำให้สามการ์ด
+     มีพฤติกรรมต่างกันทีละนิดโดยไม่มีใครสังเกต จนวันหนึ่งอันหนึ่งพังคนเดียว */
+  function metaOf(cardId, id) {
+    var list = CARD_META[cardId] || [];
+    for (var i = 0; i < list.length; i++) if (list[i][0] === id) return list[i];
+    return null;
+  }
+
+  function cardLayout(cardId) {
+    var defs = CARD_META[cardId] || [];
+    var saved = (draft.cards && draft.cards[cardId]) || [];
     var seen = {}, out = [];
     saved.forEach(function (p) {
       if (!p || seen[p.id]) return;
-      var m = NOW_META.filter(function (x) { return x[0] === p.id; })[0];
+      var m = metaOf(cardId, p.id);
       if (!m) return;
       seen[p.id] = 1;
       out.push({ id: p.id, on: m[2] ? true : p.on !== false });
     });
-    NOW_META.forEach(function (m) { if (!seen[m[0]]) out.push({ id: m[0], on: true }); });
+    defs.forEach(function (m) { if (!seen[m[0]]) out.push({ id: m[0], on: true }); });
     if (!draft.cards) draft.cards = {};
-    draft.cards.now = out;
+    draft.cards[cardId] = out;
     return out;
   }
 
-  function drawNowParts() {
-    var el = $('#nowList');
+  function drawCardParts(cardId, elId) {
+    var el = $('#' + elId);
     if (!el) return;
     el.innerHTML = '';
-    var list = nowLayout();
-    var metaOf = function (id) { return NOW_META.filter(function (x) { return x[0] === id; })[0]; };
+    var list = cardLayout(cardId);
+    var zones = {};
+    list.forEach(function (p) { zones[metaOf(cardId, p.id)[1]] = 1; });
+    var multiZone = Object.keys(zones).length > 1;
     var lastZone = '';
 
     list.forEach(function (p, i) {
-      var m = metaOf(p.id);
+      var m = metaOf(cardId, p.id);
       var zone = m[1], locked = !!m[2];
 
-      if (zone !== lastZone) {
+      // ป้ายโซนมีประโยชน์เฉพาะตอนมีมากกว่าโซนเดียว — การ์ดโซนเดียวใส่ไปก็เป็นหัวข้อลอย
+      if (multiZone && zone !== lastZone) {
         lastZone = zone;
         var h = document.createElement('div');
         h.className = 'navsec';
         h.style.padding = '10px 2px 4px';
-        h.textContent = NOW_ZONE_NAME[zone] || zone;
+        h.textContent = ZONE_NAME[zone] || zone;
         el.appendChild(h);
       }
 
       // เพื่อนบ้านในโซนเดียวกันเท่านั้น — ย้ายข้ามโซนไม่ได้
-      var sameZone = list.map(function (x, j) { return metaOf(x.id)[1] === zone ? j : -1; })
-                         .filter(function (j) { return j >= 0; });
+      var sameZone = [];
+      list.forEach(function (x, j) { if (metaOf(cardId, x.id)[1] === zone) sameZone.push(j); });
       var pos = sameZone.indexOf(i);
 
       var d = document.createElement('div');
@@ -555,25 +586,29 @@
       var up = document.createElement('button');
       up.className = 'mv'; up.textContent = '↑'; up.disabled = pos === 0;
       up.setAttribute('aria-label', 'เลื่อนขึ้น');
-      up.onclick = function () { nowMove(i, sameZone[pos - 1]); };
+      up.onclick = function () { cardMove(cardId, elId, i, sameZone[pos - 1]); };
       var dn = document.createElement('button');
       dn.className = 'mv'; dn.textContent = '↓'; dn.disabled = pos === sameZone.length - 1;
       dn.setAttribute('aria-label', 'เลื่อนลง');
-      dn.onclick = function () { nowMove(i, sameZone[pos + 1]); };
+      dn.onclick = function () { cardMove(cardId, elId, i, sameZone[pos + 1]); };
       d.appendChild(up); d.appendChild(dn);
 
       if (locked) {
         var lk = document.createElement('span');
         lk.className = 'pill off';
         lk.textContent = 'ถอดไม่ได้';
-        lk.title = 'การ์ดใบนี้มีอยู่เพื่อตอบว่าทำอะไร แล้วกดตรงไหน — ถอดออกแล้วมันไม่เหลืออะไร';
+        lk.title = 'ถอดออกแล้วการ์ดใบนี้ไม่เหลือเหตุผลที่จะกินพื้นที่บนจอ';
         d.appendChild(lk);
       } else {
         var sw = document.createElement('button');
         sw.className = 'sw';
         sw.setAttribute('role', 'switch');
         sw.setAttribute('aria-checked', p.on ? 'true' : 'false');
-        sw.onclick = function () { p.on = !p.on; drawNowParts(); touch('การ์ดตอนนี้'); };
+        sw.onclick = function () {
+          p.on = !p.on;
+          drawCardParts(cardId, elId);
+          touch('ชิ้นส่วนการ์ด');
+        };
         d.appendChild(sw);
       }
 
@@ -592,19 +627,26 @@
         var from = parseInt(e.dataTransfer.getData('text/plain'), 10);
         if (isNaN(from)) return;
         // ปล่อยข้ามโซน = ไม่ทำอะไร ดีกว่าย้ายไปแล้วจอพัง
-        if (metaOf(list[from].id)[1] !== zone) { msg('ย้ายข้ามโซนไม่ได้ — หัวการ์ดกับตัวการ์ดคนละพื้นหลัง'); return; }
-        nowMove(from, i);
+        if (metaOf(cardId, list[from].id)[1] !== zone) {
+          msg('ย้ายข้ามโซนไม่ได้ — หัวการ์ดกับตัวการ์ดคนละพื้นหลัง');
+          return;
+        }
+        cardMove(cardId, elId, from, i);
       };
       el.appendChild(d);
     });
   }
 
-  function nowMove(from, to) {
-    var l = draft.cards.now;
+  function cardMove(cardId, elId, from, to) {
+    var l = draft.cards[cardId];
     if (from === to || from < 0 || to < 0 || from >= l.length || to >= l.length) return;
     l.splice(to, 0, l.splice(from, 1)[0]);
-    drawNowParts();
+    drawCardParts(cardId, elId);
     touch('ลำดับในการ์ด');
+  }
+
+  function drawAllCards() {
+    CARD_PANELS.forEach(function (c) { drawCardParts(c[0], c[1]); });
   }
 
   /* ==================== Priority Engine ==================== */
@@ -879,7 +921,7 @@
   /* ==================== วาดทั้งหมด ==================== */
   function renderAll() {
     drawBlocks();
-    drawNowParts();
+    drawAllCards();
     drawPrio();
 
     var fl = $('#featList');

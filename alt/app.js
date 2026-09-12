@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B86';                 // สายเลขของแอป
+const APP_VERSION = '1B87';                 // สายเลขของแอป
 const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -2055,8 +2055,8 @@ function nowCard(sp, now) {
       </button>`,
   };
 
-  const head = nowParts('head').map(id => P[id] || '').join('');
-  const body = nowParts('body').map(id => P[id] || '').join('');
+  const head = partsHtml('now', NOW_PARTS, 'head', P);
+  const body = partsHtml('now', NOW_PARTS, 'body', P);
 
   return `<section class="td-now ${tone}${running ? ' running' : ''}">
     <div class="tn-head">${head}</div>
@@ -2080,27 +2080,36 @@ const NOW_PARTS = [
   { id: 'askDue',   zone: 'body', lock: false },
   { id: 'whyGo',    zone: 'body', lock: false },
 ];
-const NOW_ZONE = NOW_PARTS.reduce((m, p) => (m[p.id] = p.zone, m), {});
-const NOW_LOCK = NOW_PARTS.reduce((m, p) => (m[p.id] = p.lock, m), {});
+// ---------- ตัวช่วยกลางของทุกการ์ดที่จัดชิ้นส่วนได้ ----------
+// กฎเดียวกับ homeLayout() ทุกข้อ · เขียนครั้งเดียวแล้วให้ทุกการ์ดใช้ร่วมกัน
+// ก๊อปตรรกะนี้ไปทีละการ์ดคือวิธีที่ทำให้สามการ์ดมีพฤติกรรมต่างกันทีละนิดโดยไม่มีใครสังเกต
+function partLayout(cardId, defs) {
+  const zone = {}, lock = {};
+  for (const d of defs) { zone[d.id] = d.zone; lock[d.id] = d.lock; }
 
-function nowLayout() {
-  const saved = (typeof sosCfg === 'function') ? sosCfg('cards.now', null) : null;
-  if (!Array.isArray(saved) || !saved.length) return NOW_PARTS.map(p => ({ id: p.id, on: true }));
+  const saved = (typeof sosCfg === 'function') ? sosCfg('cards.' + cardId, null) : null;
+  if (!Array.isArray(saved) || !saved.length) return defs.map(d => ({ id: d.id, on: true }));
 
   const seen = new Set(), out = [];
   for (const p of saved) {
-    if (!p || !NOW_ZONE[p.id] || seen.has(p.id)) continue;
+    if (!p || !zone[p.id] || seen.has(p.id)) continue;
     seen.add(p.id);
     // ชิ้นที่ล็อกไว้ ปิดไม่ได้ ไม่ว่าค่าตั้งจะบอกว่ายังไง
-    out.push({ id: p.id, on: NOW_LOCK[p.id] ? true : p.on !== false });
+    out.push({ id: p.id, on: lock[p.id] ? true : p.on !== false });
   }
-  // ชิ้นที่โค้ดมีแต่ค่าตั้งไม่รู้จัก = ของที่เพิ่งเพิ่มในรุ่นใหม่ ต้องโผล่เอง (กฎเดียวกับ homeLayout)
-  for (const p of NOW_PARTS) if (!seen.has(p.id)) out.push({ id: p.id, on: true });
+  // ชิ้นที่โค้ดมีแต่ค่าตั้งไม่รู้จัก = ของที่เพิ่งเพิ่มในรุ่นใหม่ ต้องโผล่เอง
+  for (const d of defs) if (!seen.has(d.id)) out.push({ id: d.id, on: true });
   return out;
 }
 
-function nowParts(zone) {
-  return nowLayout().filter(p => p.on && NOW_ZONE[p.id] === zone).map(p => p.id);
+// ประกอบชิ้นส่วนในโซนหนึ่งตามลำดับที่ตั้งไว้ · P คือตารางชิ้นส่วน → HTML
+function partsHtml(cardId, defs, zone, P) {
+  const inZone = {};
+  for (const d of defs) inZone[d.id] = d.zone === zone;
+  return partLayout(cardId, defs)
+    .filter(p => p.on && inZone[p.id])
+    .map(p => P[p.id] || '')
+    .join('');
 }
 
 // ---------- แยกของที่เหลือออกเป็นสองกอง ----------
@@ -2247,19 +2256,31 @@ function dayRail(sp, split, now) {
   // ตอนมันอยู่ในการ์ด มันเป็น "ป้ายกำกับของกล่อง" ซึ่งอ่านเป็นของชิ้นเดียวกับแถวข้างล่าง
   // พอออกมายืนบนพื้นจอ มันกลายเป็นหัวข้อของส่วนหนึ่งในหน้า = ฮีโร่รองจริง ๆ
   // ขนาดจึงขึ้นตามหน้าที่ได้โดยไม่ต้องแข่งกับอะไร (การ์ดฟ้ายังใหญ่กว่าและมีสี)
-  return `<section class="td-railwrap">
-    <div class="rl-lb">
+  const RP = {
+    label: `<div class="rl-lb">
       <b>${esc(typeof sosText === 'function' ? sosText('railTitle', 'ที่เหลือของวันนี้') : 'ที่เหลือของวันนี้')}</b><span>${esc(sumTx)}</span>
-    </div>
-    <div class="td-rail">
-    ${body}
-    ${endHm ? `<div class="dr-row end">
+    </div>`,
+    rows: body,
+    end: endHm ? `<div class="dr-row end">
       <span class="dr-t mono">${esc(endHm)}</span>
       <span class="dr-b">หมดเวลาว่าง</span>
-    </div>` : ''}
-    </div>
+    </div>` : '',
+  };
+
+  return `<section class="td-railwrap">
+    ${partsHtml('rail', RAIL_PARTS, 'head', RP)}
+    <div class="td-rail">${partsHtml('rail', RAIL_PARTS, 'body', RP)}</div>
   </section>`;
 }
+
+// ---------- ชิ้นส่วนของราง ----------
+// rows ถอดไม่ได้ — รางที่ไม่มีแถวงานคือกรอบเปล่าที่กินที่โดยไม่บอกอะไร
+// (เหตุผลเดียวกับ title/actions ของการ์ด "ตอนนี้")
+const RAIL_PARTS = [
+  { id: 'label', zone: 'head', lock: false },
+  { id: 'rows',  zone: 'body', lock: true  },
+  { id: 'end',   zone: 'body', lock: false },
+];
 
 // ============================================================
 // 1B38b — กริดฟีเจอร์ย้ายไปอยู่จอของตัวเอง
@@ -2456,19 +2477,31 @@ function todayStats(sp, now) {
   // ข้อความยาวช่องเดียวทำให้ทั้งแถวดูไม่เป็นชุดเดียวกัน (บทเรียนจากภาพร่างรอบแรก)
   const h = Math.floor(free / 60), m = Math.round(free % 60);
   const freeTx = free > 0 ? h + ':' + String(m).padStart(2, '0') : '0:00';
-  const cells = [
-    ['clock', 'v', freeTx, 'ชั่วโมงที่ว่าง'],
-    ['target', 'w', String(pend), 'งานค้าง'],
-    ['flame', 'g', String(streak), 'วันต่อเนื่อง'],
-  ];
-  return `<div class="td-stats">
-    ${cells.map(([ic, tone, val, lb]) => `<div class="ts ${tone}">
+  const cell = (ic, tone, val, lb) => `<div class="ts ${tone}">
       <span class="ts-ic">${icon(ic)}</span>
       <b>${esc(val)}</b>
       <i>${esc(lb)}</i>
-    </div>`).join('')}
-  </div>`;
+    </div>`;
+  const SP = {
+    free:    cell('clock', 'v', freeTx, 'ชั่วโมงที่ว่าง'),
+    pending: cell('target', 'w', String(pend), 'งานค้าง'),
+    streak:  cell('flame', 'g', String(streak), 'วันต่อเนื่อง'),
+  };
+  const row = partsHtml('stats', STATS_PARTS, 'row', SP);
+  // ปิดครบสามช่อง = แถวเปล่า · คืนค่าว่างไปเลยดีกว่าเว้นกรอบไว้เฉย ๆ
+  // (อยากซ่อนทั้งแถบ ปิดบล็อก "แถบตัวเลข" ใน Home Builder ตรง ๆ จะตรงกว่า
+  //  แต่ปิดทีละช่องจนครบก็ต้องได้ผลเดียวกัน ไม่ใช่กรอบว่าง)
+  return row ? `<div class="td-stats">${row}</div>` : '';
 }
+
+// ---------- ชิ้นส่วนของแถบตัวเลข ----------
+// โซนเดียว ปิดได้หมดทุกช่อง — ไม่มีช่องไหนที่แถบนี้ขาดไม่ได้
+// สามช่องต้องกว้างเท่ากัน (ดูหมายเหตุเรื่อง 2:20 ข้างบน) ซึ่ง CSS จัดให้เองตามจำนวนที่เหลือ
+const STATS_PARTS = [
+  { id: 'free',    zone: 'row', lock: false },
+  { id: 'pending', zone: 'row', lock: false },
+  { id: 'streak',  zone: 'row', lock: false },
+];
 
 // ---------- ALT: ทะเบียนบล็อกของหน้าแรก (Home Builder) ----------
 // เดิมหน้าแรกคือสตริงเจ็ดก้อนต่อกันตรง ๆ ใน renderMenu ซึ่งอ่านง่ายมาก

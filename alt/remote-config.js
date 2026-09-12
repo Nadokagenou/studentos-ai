@@ -47,6 +47,18 @@
        ส่วนตรงนี้จัดว่า "ในการ์ดใบนั้นมีอะไร เรียงยังไง"
        โซน (หัวการ์ด/ตัวการ์ด) ตายตัว ย้ายข้ามไม่ได้ — ดู NOW_PARTS ใน app.js ว่าทำไม */
     cards: {
+      // โซนของแต่ละชิ้นอยู่ในโค้ด (NOW_PARTS · RAIL_PARTS · STATS_PARTS ใน app.js)
+      // ตรงนี้เก็บแค่ลำดับกับเปิด/ปิด
+      stats: [
+        { id: 'free',    on: true },
+        { id: 'pending', on: true },
+        { id: 'streak',  on: true }
+      ],
+      rail: [
+        { id: 'label', on: true },
+        { id: 'rows',  on: true },
+        { id: 'end',   on: true }
+      ],
       now: [
         { id: 'top',      on: true },
         { id: 'title',    on: true },

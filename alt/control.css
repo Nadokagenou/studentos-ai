@@ -162,6 +162,12 @@ input[type=range]{width:100%;accent-color:var(--cacc);height:22px;margin:0}
 .blk .nm small{color:var(--cmuted);font-size:11.5px}
 .blk.hid{opacity:.5}
 .blk.hid .nm b{text-decoration:line-through}
+/* หัวข้อของแต่ละการ์ดในแผงชิ้นส่วน — ต้องหนักกว่าป้ายโซน (.navsec) ที่อยู่ใต้มัน
+   ไม่งั้นสองชั้นนี้อ่านเป็นระดับเดียวกันแล้วไม่รู้ว่าชิ้นไหนของการ์ดใบไหน */
+.cardsec{font-size:13px;font-weight:750;margin:18px 0 8px;padding-top:14px;
+  border-top:1px solid var(--cline2);color:var(--cink)}
+.card > .cardsec:first-of-type{margin-top:4px;padding-top:0;border-top:0}
+
 .mv{border:0;background:none;color:var(--cfaint);padding:2px 5px;font-size:13px;border-radius:7px;flex:none}
 .mv:hover{background:var(--ccard2);color:var(--cink)}
 .mv:disabled{opacity:.25;cursor:not-allowed}
