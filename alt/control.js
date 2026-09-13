@@ -1258,18 +1258,29 @@
 
      ไม่ดัก Ctrl+C/V ตอนที่กำลังพิมพ์อยู่ในช่องกรอก เพราะคัดลอกข้อความปกติ
      ต้องยังทำงานได้ · คนที่กด Ctrl+C ในช่องพรอมป์ตั้งใจก๊อปข้อความ ไม่ใช่ก๊อปหน้าตาปุ่ม */
+  var FWD_KEYS = /^(ArrowLeft|ArrowRight|ArrowUp|ArrowDown|Escape|\[|\])$/;
+
   document.addEventListener('keydown', function (e) {
-    if (!(e.ctrlKey || e.metaKey) && e.key !== 'Escape') return;
-    var t = e.target;
-    if (t && /INPUT|TEXTAREA|SELECT/.test(t.tagName)) return;
+    var mod = e.ctrlKey || e.metaKey;
+    if (!mod && !FWD_KEYS.test(e.key)) return;
+    if (mod && !/^(z|y|c|v)$/i.test(e.key)) return;
+
+    /* ---------- ต้องใช้ composedPath ไม่ใช่ e.target ----------
+       เหตุการณ์ที่เกิดใน shadow root ถูก "เปลี่ยนเป้า" เป็นตัว host เมื่อมองจาก document
+       e.target จึงเป็น <div id="veDock"> เสมอ ไม่ใช่ช่องกรอกที่กำลังพิมพ์อยู่จริง
+       ผลคือพิมพ์ Ctrl+C ในช่อง CSS ของแผงเครื่องมือแล้วโดนดักไปคัดลอกสไตล์แทน
+       composedPath()[0] คือชิ้นจริงที่ถูกกด ทะลุ shadow DOM ลงไปถึงตัวใน */
+    var t = (typeof e.composedPath === 'function' && e.composedPath()[0]) || e.target;
+    if (t && t.tagName && /INPUT|TEXTAREA|SELECT/.test(t.tagName)) return;
     if (t && t.isContentEditable) return;
-    if (!/^(z|y|c|v)$/i.test(e.key) && e.key !== 'Escape') return;
 
     var f = pvFrame();
     var ve = null;
     try { ve = f && f.contentWindow && f.contentWindow.sosVE; } catch (err) {}
     if (!ve || !ve.key) return;
 
+    /* ลูกศรถูกส่งต่อเฉพาะตอนมีชิ้นที่เลือกอยู่ — veKey คืน false เมื่อไม่มี
+       เราจึงไม่ preventDefault แล้วหน้ายังเลื่อนด้วยลูกศรได้ตามปกติ */
     var handled = ve.key({
       key: e.key, shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, metaKey: e.metaKey,
     });
