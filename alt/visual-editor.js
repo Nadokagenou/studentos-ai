@@ -675,7 +675,16 @@
     if (!leafText(cur)) { toast('แตะตรงตัวอักษรโดยตรงก่อน แล้วค่อยกดแก้ข้อความ'); return; }
     var el = cur, old = el.textContent;
     el.setAttribute('contenteditable', 'true');
-    el.style.outline = '2px solid #22C55E'; el.focus();
+    el.style.outline = '2px solid #22C55E';
+    /* ---------- ต้องดึงโฟกัสเข้ามาที่หน้าต่างนี้ก่อน ----------
+       ตอนแผงเครื่องมือถูกย้ายออกไปอยู่หน้าแม่ (โหมด dock ใน Control Center)
+       ปุ่ม ✎ ที่กดอยู่ในเอกสารของหน้าแม่ · โฟกัสของเบราว์เซอร์จึงอยู่ที่นั่น
+       el.focus() ตั้ง activeElement ในเอกสารนี้ได้ก็จริง แต่ไม่ได้ย้าย "เอกสารที่รับคีย์บอร์ด"
+       ผลคือชิ้นนั้นกลายเป็น contenteditable แล้ว แต่พิมพ์แล้วไม่มีอะไรเข้า
+       — อาการที่เจ้าของระบบเจอ ("ยังบัคพิมพ์ไม่ได้")
+       window.focus() คือตัวที่ย้ายโฟกัสเข้ามาในกรอบจริง ๆ ต้องเรียกก่อน el.focus() */
+    try { window.focus(); } catch (x) {}
+    el.focus();
     try { var g = document.createRange(); g.selectNodeContents(el); var s2 = getSelection(); s2.removeAllRanges(); s2.addRange(g); } catch (x) {}
     toast('พิมพ์แก้ได้เลย · Enter = เสร็จ');
     function done() {
