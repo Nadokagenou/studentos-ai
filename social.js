@@ -90,84 +90,20 @@ let mates = null;          // ผลจับคู่ล่าสุด · null
 let matesErr = null;
 let matesBusy = false;
 
-// ============================================================
-// หน้าตาสาธารณะ — ชื่อกับรูปที่เพื่อนเห็น (1B69)
-// ------------------------------------------------------------
-// **บั๊กที่ผู้ใช้เจอเอง: "อยากให้รูปที่ขึ้นในโปรไฟล์เรา เป็นรูปที่เพื่อนเห็น"**
-//
-// รูปโปรไฟล์ของตัวเองเก็บใน localStorage คีย์ studentos.alt.avatar (ดู AV_KEY ใน app.js)
-// อ่านผ่าน userAvatar() · แต่ publishProfile อ่านจาก state.settings.avatar
-// ซึ่ง **ไม่มีโค้ดบรรทัดไหนในแอปเขียนค่าลงไปเลยสักที่** (ยืนยันด้วย grep: 0 แห่ง)
-// ผลคือทุกครั้งที่กดเผยแพร่ ระบบส่ง avatar: null ขึ้นไปทับของเดิม —
-// เพื่อนจึงไม่มีวันเห็นรูปเรา ไม่ว่าจะตั้งรูปไปแล้วกี่รอบ
-//
-// สองอย่างที่แก้พร้อมกัน ไม่ใช่อย่างเดียว:
-//   1) อ่านจากที่เดียวกับที่เขียน (userAvatar) — แก้แค่ข้อนี้ยังต้องรอผู้ใช้ไปกดเผยแพร่เอง
-//   2) เปลี่ยนรูปหรือชื่อเมื่อไหร่ ดันขึ้นทันที — เพราะไม่มีใครเดาได้ว่าต้องเดินไป
-//      หน้า "วิชาของฉัน" กดปุ่มเผยแพร่อีกรอบ ถึงจะให้เพื่อนเห็นรูปใหม่
-// ============================================================
-function myFace() {
-  return (typeof userAvatar === 'function' ? userAvatar() : '') || null;
-}
-function myName() {
-  return (state.settings.name || '').trim() || 'นักเรียน';
-}
-
-// ดันชื่อกับรูปขึ้นไปเงียบ ๆ · เรียกได้บ่อยโดยไม่เปลืองเน็ต เพราะกันซ้ำด้วยลายเซ็น
-// ไม่ upsert ทั้งแถวโดยตั้งใจ — update เฉพาะสองช่องนี้ เพื่อไม่ให้ไปทับ strong/weak/bio
-// ที่ผู้ใช้ตั้งไว้ตอนเผยแพร่ (upsert ทั้งแถวคือวิธีที่ทำให้ของหายโดยไม่มีใครรู้)
-//
-// **กับดักที่ต้องระวังที่สุดของฟังก์ชันนี้ (เจอจริงภายในชั่วโมงเดียวหลังปล่อย 1B69):**
-// รูปเก็บใน localStorage = **เก็บแยกรายเครื่อง** ตั้งรูปในมือถือแล้วเปิดแอปในคอม
-// คอมจะเห็นว่าตัวเองไม่มีรูป แล้วส่ง avatar: null ขึ้นไป **ลบรูปที่มือถือเพิ่งส่งขึ้นไปทิ้ง**
-// ผู้ใช้จะเห็นรูปหายเองโดยไม่ได้ทำอะไรผิดเลย และหาสาเหตุไม่เจอแน่นอน
-//
-// กติกาจึงเป็น: **ส่งรูปขึ้นไปเฉพาะตอนที่เครื่องนี้มีรูปจริง**
-// การลบรูปเกิดได้ทางเดียวคือผู้ใช้กดปุ่มเอาออกเอง (clearAvatar ส่ง opts.clearFace มา)
-let lastFaceSig = '';
-async function syncPublicFace(force, opts) {
-  if (!sb || !currentUser) return;
-  const clearFace = !!(opts && opts.clearFace);
-  const av = myFace();
-  const nm = myName();
-  const sig = nm + '|' + (av ? av.length + ':' + av.slice(-24) : 'none') + (clearFace ? '|clear' : '');
-  if (!force && sig === lastFaceSig) return;
-  lastFaceSig = sig;
-
-  const patch = { display_name: nm, updated_at: new Date().toISOString() };
-  if (av) patch.avatar = av;              // มีรูปในเครื่องนี้ → ส่งขึ้น
-  else if (clearFace) patch.avatar = null; // ผู้ใช้กดเอาออกเอง → ลบจริง
-  // ไม่มีรูปและไม่ได้กดเอาออก → **ไม่แตะช่องรูปเลย** ปล่อยของเดิมบนเซิร์ฟเวอร์ไว้
-
-  const { error } = await sb.from('profiles')
-    .update(patch)
-    .eq('id', currentUser.id);
-  // ยังไม่มีแถวโปรไฟล์ (ยังไม่เคยกดเผยแพร่) — update จะไม่แตะอะไรเลยและไม่ error
-  // สร้างแถวขั้นต่ำให้ เพื่อให้เพื่อนที่ค้นเจอเห็นชื่อกับรูปได้ทันที
-  if (error) { lastFaceSig = ''; return; }
-  const { data } = await sb.from('profiles').select('id').eq('id', currentUser.id).maybeSingle();
-  if (!data) {
-    await sb.from('profiles').insert({ id: currentUser.id, display_name: nm, avatar: av || null });
-  }
-}
-
 async function publishProfile() {
   if (!sb || !currentUser) return { error: 'ยังไม่ได้ล็อกอิน' };
   const c = socialChips();
   const s = socialState();
   const row = {
     id: currentUser.id,
-    display_name: myName(),
+    display_name: (state.settings.name || '').trim() || 'นักเรียน',
+    avatar: (state.settings.avatar || null),
     bio: s.bio || null,
     strong: c.strong,
     weak: c.weak,
     open_to_help: s.open,
     updated_at: new Date().toISOString(),
   };
-  // ใส่รูปเฉพาะตอนที่เครื่องนี้มีจริง — กับดักเดียวกับ syncPublicFace
-  // ถ้าใส่ตลอด การกดเผยแพร่จากเครื่องที่ไม่มีรูปจะลบรูปที่ตั้งไว้จากอีกเครื่องทิ้ง
-  const face = myFace();
-  if (face) row.avatar = face;
   const { error } = await sb.from('profiles').upsert(row);
   if (error) return { error: error.message };
   saveSocial(Object.assign(s, { strong: c.strong, weak: c.weak, pubAt: Date.now() }));
@@ -187,84 +123,9 @@ async function loadMates() {
 // ============================================================
 // จอ "เพื่อนร่วมห้อง"
 // ============================================================
-// ============================================================
-// หลังบ้านยังไม่ได้ apply migration หรือยัง
-// ------------------------------------------------------------
-// หน้าเว็บกับฐานข้อมูลปล่อยคนละรอบเสมอ — โค้ดขึ้น GitHub Pages ทันทีที่ push
-// แต่ migration ต้องมีคนรัน `supabase db push` เอง ช่วงกลางระหว่างสองอย่างนี้
-// อาจยาวเป็นวัน และมีคนใช้แอปอยู่จริงตลอดช่วงนั้น
-//
-// PostgREST ตอบ PGRST202 เมื่อเรียกฟังก์ชันที่ยังไม่มี · จับตรงนี้แล้ว
-// **ซ่อนฟีเจอร์ที่ยังไม่พร้อม** แทนที่จะปล่อยให้ผู้ใช้กดแล้วเจอ error
-// ปุ่มที่กดแล้วขึ้น error อ่านเหมือนแอปพัง ส่วนปุ่มที่ยังไม่โผล่ไม่มีใครคิดถึง
-// และมันโผล่เองทันทีที่ apply migration เสร็จ ไม่ต้องปล่อยเว็บใหม่
-function rpcMissing(err) {
-  if (!err) return false;
-  const c = String(err.code || '');
-  const m = String(err.message || '');
-  return c === 'PGRST202' || c === '42883'
-    || /could not find the function|does not exist/i.test(m);
-}
-
-// ============================================================
-// ช่วงชั้น — กุญแจของสโคป "ทั่วประเทศ"
-// ------------------------------------------------------------
-// สามปุ่มเท่านั้น (ม.ต้น / ม.ปลาย / มหาลัย) ตามที่ผู้ใช้เคาะเมื่อ 8 ก.ย. 2569
-// ไม่แยกเป็น ม.1 ถึง ม.6 ด้วยเหตุผลที่เขียนไว้ยาว ๆ ใน migration 20260908090000:
-// ผู้ชมต้องกว้างพอที่จะมีคนว่างตอบเสมอ · ม.4 อย่างเดียวคือหนึ่งในสามของ ม.ปลาย
-//
-// ช่องนี้ทำงานสองอย่างพร้อมกัน — เป็นตัวจับคู่ของฟีดทั่วประเทศ
-// และเป็นตัวบอกช่วงอายุแบบหยาบ ๆ สำหรับค่าเริ่มต้นด้านความปลอดภัย โดยไม่ต้องถามวันเกิด
-// ============================================================
-const GRADE_BANDS = ['ม.ต้น', 'ม.ปลาย', 'มหาลัย'];
-let cohort = { country: 'TH', grade: null };
-let cohortLoaded = false;
-// false จนกว่าจะพิสูจน์ได้ว่าหลังบ้านมีของแล้ว — ไม่ใช่ true แล้วค่อยพัง
-let cohortReady = false;
-
-async function loadCohort() {
-  if (!sb || !currentUser || cohortLoaded) return;
-  cohortLoaded = true;
-  const { data, error } = await sb.rpc('my_cohort');
-  if (rpcMissing(error)) { cohortReady = false; renderMates(); return; }
-  cohortReady = true;
-  const row = Array.isArray(data) ? data[0] : data;
-  if (row) cohort = { country: row.country || 'TH', grade: row.grade || null };
-  renderMates();
-  if (typeof renderFeed === 'function') renderFeed();
-}
-
-function cohortBlock() {
-  if (!currentUser || !cohortReady) return '';
-  return `<p class="ch-lb">ตอนนี้เรียนอยู่ช่วงไหน</p>
-    <div class="ch-row">
-      ${GRADE_BANDS.map(g => `<button class="ch-chip${cohort.grade === g ? ' on' : ''}"
-        onclick="setCohort('${g}')">${g}</button>`).join('')}
-    </div>
-    <p class="ch-fine">${cohort.grade
-      ? 'ใช้จับคู่กับคนที่เรียนเรื่องเดียวกันทั้งประเทศ — แท็บ "ทั่วประเทศ" ในฟีด'
-      : 'ยังไม่ได้เลือก · แท็บ "ทั่วประเทศ" ในฟีดจะยังว่างอยู่จนกว่าจะเลือก'}</p>`;
-}
-
-async function setCohort(g) {
-  if (!sb || !currentUser) return loginFromMates();
-  const was = cohort.grade;
-  cohort.grade = (was === g) ? null : g;    // กดซ้ำ = ยกเลิก
-  renderMates();
-  const { error } = await sb.rpc('set_cohort', { p_grade: cohort.grade, p_track: null });
-  if (error) {
-    cohort.grade = was;
-    renderMates();
-    showToast({ title: 'บันทึกไม่สำเร็จ', body: error.message });
-    return;
-  }
-  if (typeof haptic === 'function') haptic('arm');
-}
-
 function renderMates() {
   const box = document.getElementById('matesBody');
   if (!box) return;
-  if (currentUser && !cohortLoaded) loadCohort();
   const c = socialChips();
   const s = socialState();
   const known = knownSubjects();
@@ -279,106 +140,31 @@ function renderMates() {
   const chip = (name, kind, on) => `<button class="so-chip ${kind}${on ? ' on' : ''}"
     onclick="toggleSubj('${kind}','${esc(name).replace(/'/g, "\\'")}')">${esc(name)}</button>`;
 
-  // ============================================================
-  // หน้าแก้ไขโปรไฟล์ — ทรงเดียวกับ Edit profile ของ Instagram (1B72)
-  // ------------------------------------------------------------
-  // ผู้ใช้บอกตรง ๆ ว่า "หน้าแก้ไขโปรไฟล์ผมอยากให้มันดีกว่านี้ มันยังดูกากมากๆ
-  // ปรับ ux/ui เลย ลองดูของ ig เป็นตัวอย่าง" แล้วส่งหน้า Edit profile ของ IG มาให้ดู
-  //
-  // ของเดิมผิดตั้งแต่ชื่อ — การ์ดชื่อ "วิชาของฉัน" ที่มีช่องแนะนำตัวกับช่วงชั้นแอบอยู่ข้างใน
-  // คนที่กด "แก้ไขโปรไฟล์" มาแล้วเจอหัวข้อว่า "วิชาของฉัน" จะไม่รู้ว่ามาถูกที่หรือเปล่า
-  // และไม่มีทางเดาได้เลยว่าชื่อกับรูปแก้ที่ไหน (คำตอบคือคนละจอ ซึ่งไม่มีอะไรบอก)
-  //
-  // สิ่งที่ IG ทำแล้วเราไม่ได้ทำ สามข้อ:
-  //   1) รูปกับชื่ออยู่บนสุด พร้อมปุ่มเปลี่ยนรูปที่เห็นชัด — ไม่ต้องเดาว่าแก้ที่ไหน
-  //   2) ทุกช่องมีป้ายกำกับของตัวเอง เรียงลงมาเป็นฟอร์มเดียว ไม่ใช่การ์ดซ้อนการ์ด
-  //   3) ปุ่มบันทึกอันเดียวอยู่ล่างสุด ไม่ใช่ปุ่มที่เขียนว่า "เผยแพร่" ซึ่งฟังดูเหมือน
-  //      ทำอย่างอื่นที่ไม่ใช่การบันทึก
-  // ============================================================
-  const handle = (typeof frHandle !== 'undefined' && frHandle) ? frHandle : '';
-  const myName2 = (state.settings.name || '').trim();
-  const myPic = typeof userAvatar === 'function' ? userAvatar() : '';
-
-  const setup = `<div class="ep">
-      <!-- ---------- แถวรูป ---------- -->
-      <div class="ep-face">
-        ${myPic ? `<img class="ep-av" src="${esc(myPic)}" alt="รูปโปรไฟล์">`
-                : `<div class="ep-av" style="${typeof avOf === 'function' ? avOf(myName2 || handle || 'N') : ''}">${
-                    esc((myName2 || handle || 'N').slice(0, 1))}</div>`}
-        <div class="ep-face-tx">
-          <b>${esc(myName2 || handle || 'ยังไม่ได้ตั้งชื่อ')}</b>
-          <i>${handle ? '@' + esc(handle) : 'ยังไม่มีชื่อผู้ใช้'}</i>
-        </div>
-        <input type="file" id="epFile" accept="image/*" hidden onchange="pickAvatar(this.files[0])">
-        <button class="ep-face-go" onclick="document.getElementById('epFile').click()">
-          ${myPic ? 'เปลี่ยนรูป' : 'เลือกรูป'}
-        </button>
+  const setup = `<div class="so-card">
+      <div class="so-card-h">
+        <b>วิชาของฉัน</b>
+        ${c.confirmed ? '' : '<span class="so-guess">แอปเดาให้จากงานที่ผ่านมา — แก้ได้</span>'}
       </div>
-
-      <!-- ---------- ชื่อที่แสดง ---------- -->
-      <div class="ep-f">
-        <label for="epName">ชื่อ</label>
-        <input id="epName" type="text" maxlength="40" value="${esc(myName2)}"
-               placeholder="ชื่อที่เพื่อนเรียกคุณ" oninput="epDirty()">
-        <p class="ep-hint">เพื่อนเห็นชื่อนี้ทุกที่ในแอป — เปลี่ยนได้ตลอด</p>
+      <p class="so-lb">วิชาที่ช่วยเพื่อนได้</p>
+      <div class="so-chips">
+        ${known.length ? known.map(n => chip(n, 'good', c.strong.includes(n))).join('')
+                       : '<span class="so-none">ยังไม่มีวิชาให้เลือก — เพิ่มงานสักสองสามชิ้นก่อน</span>'}
       </div>
-
-      <!-- ---------- ชื่อผู้ใช้ ---------- -->
-      <div class="ep-f">
-        <label for="epHandle">ชื่อผู้ใช้</label>
-        <div class="ep-at">
-          <span>@</span>
-          <input id="epHandle" type="text" maxlength="20" value="${esc(handle)}"
-                 autocapitalize="off" spellcheck="false"
-                 placeholder="beam4_16" oninput="epDirty()">
-        </div>
-        <p class="ep-hint">นี่คือสิ่งที่เพื่อนใช้ค้นหาคุณ · ใช้ a-z 0-9 กับ _ ได้</p>
+      <p class="so-lb">วิชาที่อยากให้ใครมาช่วย</p>
+      <div class="so-chips">
+        ${known.length ? known.map(n => chip(n, 'need', c.weak.includes(n))).join('') : ''}
       </div>
-
-      <!-- ---------- แนะนำตัว ---------- -->
-      <div class="ep-f">
-        <label for="epBio">แนะนำตัว</label>
-        <textarea id="epBio" rows="2" maxlength="80"
-                  placeholder="เช่น ติวเลขให้ได้ แลกกับโน้ตอังกฤษ"
-                  oninput="epDirty(); epCount()">${esc(s.bio)}</textarea>
-        <span class="ep-count" id="epCount">${(s.bio || '').length} / 80</span>
-      </div>
-
-      <!-- ---------- ช่วงชั้น ---------- -->
-      <div class="ep-f">
-        <label>ตอนนี้เรียนอยู่ช่วงไหน</label>
-        ${currentUser && cohortReady ? `<div class="ep-chips">
-          ${GRADE_BANDS.map(g => `<button class="ep-chip${cohort.grade === g ? ' on' : ''}"
-            onclick="setCohort('${g}')">${g}</button>`).join('')}
-        </div>
-        <p class="ep-hint">${cohort.grade
-          ? 'ใช้จับคู่กับคนที่เรียนเรื่องเดียวกันทั้งประเทศ'
-          : 'ยังไม่ได้เลือก — แท็บ "ประเทศ" ในฟีดจะยังว่างอยู่'}</p>`
-        : '<p class="ep-hint">เข้าบัญชีก่อนถึงจะตั้งได้</p>'}
-      </div>
-
-      <!-- ---------- วิชา ---------- -->
-      <div class="ep-f">
-        <label>วิชาที่ช่วยเพื่อนได้</label>
-        <div class="so-chips row">
-          ${known.length ? known.map(n => chip(n, 'good', c.strong.includes(n))).join('')
-                         : '<span class="so-none">ยังไม่มีวิชาให้เลือก — เพิ่มงานสักสองสามชิ้นก่อน</span>'}
-        </div>
-      </div>
-      <div class="ep-f">
-        <label>วิชาที่อยากให้ใครมาช่วย</label>
-        <div class="so-chips row">
-          ${known.length ? known.map(n => chip(n, 'need', c.weak.includes(n))).join('') : ''}
-        </div>
-        ${c.confirmed ? '' : '<p class="ep-hint">แอปเดาให้จากงานที่ผ่านมา — แตะเพื่อแก้ได้</p>'}
-      </div>
-
-      <p class="ep-fine">${icon('lock')}เพื่อนเห็นแค่ชื่อ รูป และสองแถววิชานี้ —
-        งานกับตารางเรียนไม่ได้ส่งขึ้นไป</p>
-
-      <!-- ปุ่มเดียว เขียนว่า "บันทึก" ตรง ๆ · ของเดิมเขียนว่า "เผยแพร่"
-           ซึ่งฟังดูเหมือนทำอย่างอื่นที่ไม่ใช่การบันทึกสิ่งที่เพิ่งพิมพ์ไป -->
-      <button class="ep-save" id="epSave" onclick="saveProfileEdit()">บันทึก</button>
+      <label class="so-fld">
+        <span>แนะนำตัวสั้น ๆ</span>
+        <input type="text" maxlength="80" value="${esc(s.bio)}"
+               placeholder="เช่น ติวเลขให้ได้ แลกกับโน้ตอังกฤษ"
+               onchange="socialSetBio(this.value)">
+      </label>
+      <button class="so-pub" onclick="doPublish()">
+        ${s.pubAt ? 'อัปเดตโปรไฟล์' : 'เผยแพร่ให้เพื่อนร่วมห้องเห็น'}
+      </button>
+      <p class="so-fine">เพื่อนเห็นได้แค่ชื่อ รูป คำแนะนำตัว และรายชื่อวิชาสองแถวนี้ ·
+        งานของคุณ ตารางเรียน และสถิติ ไม่ได้ถูกส่งขึ้นไปด้วย</p>
     </div>`;
 
   // ---- รายชื่อ ----
@@ -424,9 +210,7 @@ function renderMates() {
   }
 
   // คำขอเป็นเพื่อนขึ้นก่อนทุกอย่าง — ของที่รอคนตอบต้องไม่อยู่ใต้ของที่ตั้งครั้งเดียวจบ
-  // คำขอเพื่อนย้ายไปอยู่แท็บ "เพื่อนฉัน" ของจอฟีดแล้ว (1B18) — เดิมมันโผล่สองที่
-  // ด้วยโค้ดคนละชุด ซึ่งแปลว่ากดรับที่หนึ่งแล้วอีกที่ยังค้างอยู่จนกว่าจะโหลดใหม่
-  const inbox = '';
+  const inbox = typeof friendInboxHTML === 'function' ? friendInboxHTML() : '';
   box.innerHTML = matesHead() + inbox + setup
     + (s.pubAt ? '<div class="sec-label">คนในห้องของคุณ</div>' : '') + list;
 }
@@ -435,7 +219,7 @@ function matesHead() {
   return `<div class="page-head">
     <div class="eyebrow mono">${esc(fmtThaiDate(new Date()))}</div>
     <h1 class="page-title">เพื่อนร่วมห้อง</h1>
-    <p class="page-sub">บอกว่าคุณช่วยเรื่องอะไรได้ แล้วแอปจะหาคนที่ตรงกันให้</p>
+    <p class="page-sub">ทุกคนเก่งคนละวิชา — ตรงนี้บอกว่าใครช่วยเรื่องอะไรได้ แล้วทักไปได้เลย</p>
   </div>`;
 }
 
@@ -509,71 +293,6 @@ function socialSetBio(v) {
   saveSocial(s);
 }
 
-
-// ============================================================
-// บันทึกหน้าแก้ไขโปรไฟล์ (1B72)
-// ------------------------------------------------------------
-// ของเดิมกระจายอยู่สามที่: ชื่อแก้ในแท็บ "ฉัน" · ชื่อผู้ใช้แก้ในแท็บเพื่อน ·
-// แนะนำตัวกับวิชาแก้ในการ์ด "วิชาของฉัน" — ไม่มีทางรู้เลยว่าอันไหนอยู่ตรงไหน
-// ตอนนี้รวมมาที่เดียว แล้วปุ่มเดียวบันทึกทั้งหมด
-function epDirty() {
-  const b = document.getElementById('epSave');
-  if (b) { b.disabled = false; b.textContent = 'บันทึก'; }
-}
-function epCount() {
-  const t = document.getElementById('epBio');
-  const c = document.getElementById('epCount');
-  if (t && c) c.textContent = t.value.length + ' / 80';
-}
-
-async function saveProfileEdit() {
-  const btn = document.getElementById('epSave');
-  const nm = (document.getElementById('epName') || {}).value || '';
-  const hd = ((document.getElementById('epHandle') || {}).value || '').trim().replace(/^@/, '');
-  const bio = (document.getElementById('epBio') || {}).value || '';
-
-  if (btn) { btn.disabled = true; btn.textContent = 'กำลังบันทึก…'; }
-
-  // ชื่อกับแนะนำตัวเก็บในเครื่องก่อน แล้วค่อยดันขึ้น — ทำงานได้แม้ยังไม่ล็อกอิน
-  state.settings.name = nm.trim();
-  save();
-  socialSetBio(bio);
-
-  if (!currentUser) {
-    if (btn) { btn.disabled = false; btn.textContent = 'บันทึก'; }
-    if (typeof renderAll === 'function') renderAll();
-    showToast({ title: 'บันทึกในเครื่องแล้ว', body: 'เข้าบัญชีเพื่อให้เพื่อนเห็นด้วย' });
-    return;
-  }
-
-  // ชื่อผู้ใช้เปลี่ยนก็ต่อเมื่อพิมพ์มาไม่ตรงของเดิม — set_handle มีกติกาของมันเอง
-  // และคืน error เป็นภาษาไทยที่เอาไปโชว์ได้ตรง ๆ (ซ้ำกับคนอื่น · ตัวอักษรไม่ผ่าน)
-  if (hd && hd !== (frHandle || '')) {
-    const { data, error } = await sb.rpc('set_handle', { p_handle: hd });
-    if (error) {
-      if (btn) { btn.disabled = false; btn.textContent = 'บันทึก'; }
-      showToast({ title: 'ตั้งชื่อผู้ใช้ไม่สำเร็จ', body: error.message });
-      return;
-    }
-    frHandle = data;
-  }
-
-  const r = await publishProfile();
-  if (btn) { btn.disabled = false; }
-  if (r.error) {
-    if (btn) btn.textContent = 'บันทึก';
-    if (typeof haptic === 'function') haptic('snooze');
-    showToast({ title: 'บันทึกไม่สำเร็จ', body: r.error });
-    return;
-  }
-  if (typeof haptic === 'function') haptic('done');
-  if (btn) btn.textContent = 'บันทึกแล้ว';
-  if (typeof myCard !== 'undefined') { myCard = null; }
-  if (typeof loadMyCard === 'function') loadMyCard(true);
-  if (typeof renderAll === 'function') renderAll();
-  showToast({ title: 'บันทึกแล้ว', body: 'เพื่อนเห็นของใหม่ทันที' });
-}
-
 async function doPublish() {
   // ยังไม่ล็อกอินก็กดปุ่มนี้ได้ — มันคือจุดที่บัญชีเริ่มจำเป็นจริง ๆ
   // พาไปล็อกอินเลยดีกว่าขึ้น error บอกว่า "ยังไม่ได้ล็อกอิน" ซึ่งไม่ได้ช่วยอะไร
@@ -597,22 +316,16 @@ let chatThread = null;     // { id, name, subject }
 let chatMsgs = [];
 let chatSub = null;        // ช่องรับข้อความสด — ต้องปิดทุกครั้งที่ออกจากจอ
 
-async function pokeMate(id, topic, name) {
+async function pokeMate(id, topic) {
   if (!sb || !currentUser) return;
   const m = (mates || []).find(x => x.id === id);
   const { data, error } = await sb.rpc('open_dm', { p_other: id, p_subject: topic || null });
   if (error) {
     haptic('snooze');
-    // ข้อความจาก dm_gate เป็นภาษาไทยที่เอาไปโชว์ได้ตรง ๆ อยู่แล้ว (โควตาเต็ม · ช่วงอายุ · ตั้งค่าปิด)
-    // จึงไม่ต้องแปลงอะไร — และห้ามเขียนทับด้วยข้อความกลาง ๆ เพราะเหตุผลคือสิ่งเดียวที่ช่วยเขาได้
-    showToast({ title: 'ทักไม่ได้', body: error.message });
+    showToast({ title: 'เปิดห้องคุยไม่ได้', body: error.message });
     return;
   }
-  chatThread = {
-    id: data, name: (m && m.display_name) || name || 'นักเรียน',
-    avatar: (m && m.avatar) || null,
-    subject: topic || '', other: id,
-  };
+  chatThread = { id: data, name: (m && m.display_name) || 'เพื่อนร่วมห้อง', subject: topic || '' };
   chatMsgs = [];
   go('scr-chat');
   openChat();
@@ -621,36 +334,8 @@ async function pokeMate(id, topic, name) {
 async function openChat() {
   if (!chatThread) return;
   renderChat();
-
-  // ---------- สถานะของห้อง ----------
-  // ต้องรู้ก่อนวาด ว่านี่คือห้องที่เปิดแล้ว หรือคำขอที่ยังไม่มีใครตอบรับ
-  // ไม่งั้นคนขอจะพิมพ์ข้อความที่สองแล้วเจอ error โดยไม่รู้ว่าทำไม
-  const { data: t } = await sb.from('dm_threads')
-    .select('state, opener').eq('id', chatThread.id).maybeSingle();
-  if (t) {
-    chatThread.state = t.state || 'open';
-    chatThread.mineReq = t.opener === currentUser.id;
-  }
-  renderChat();
-
-  // ---------- ชื่อจริงกับรูปของอีกฝ่าย ----------
-  // ของเดิมพึ่งชื่อที่ผู้เรียกส่งมาอย่างเดียว ทางเข้าไหนที่ไม่ได้ส่งมาก็ตกไปเป็น "นักเรียน"
-  // ซึ่งผู้ใช้เจอจริง — หัวจอขึ้นคำว่า "นักเรียน" ทั้งที่คุยกับคนที่มีชื่อ
-  // ถามผ่าน user_card เพราะเป็นประตูเดียวกับหน้าโปรไฟล์ กติกาการมองเห็นจึงตรงกันเสมอ
-  if (chatThread.other) {
-    const { data: c } = await sb.rpc('user_card', { p_user: chatThread.other });
-    const u = Array.isArray(c) ? c[0] : c;
-    if (u) {
-      // personName อยู่ใน feed.js — ถ้ายังไม่ได้ตั้งชื่อจะได้ @ชื่อผู้ใช้แทนคำว่า "นักเรียน"
-      chatThread.name = (typeof personName === 'function' ? personName(u) : u.display_name)
-        || chatThread.name;
-      chatThread.avatar = u.avatar || null;
-      renderChat();
-    }
-  }
-
   const { data, error } = await sb.from('dm_messages')
-    .select('id, sender, body, image, created_at')
+    .select('id, sender, body, created_at')
     .eq('thread', chatThread.id)
     .order('created_at', { ascending: true })
     .limit(200);
@@ -677,619 +362,56 @@ function closeChat() {
   if (chatSub) { try { sb.removeChannel(chatSub); } catch (_) {} chatSub = null; }
 }
 
-// ============================================================
-// จอแชท — ทรงเดียวกับ Instagram (1B67)
-// ------------------------------------------------------------
-// ผู้ใช้ส่งหน้า DM ของ IG มาให้ดูแล้วบอกว่า "ขอเหมือน ig เลย" (10 ก.ย. 2569)
-//
-// สามอย่างที่ทำให้ IG อ่านเป็นห้องแชท ไม่ใช่รายการข้อความ:
-//   1) หัวจอมีรูปคนคุยอยู่ด้วย และแตะแล้วไปโปรไฟล์ได้ — ของเดิมมีแต่ชื่อเป็นตัวหนังสือ
-//      ทำให้จอนี้ตัดขาดจากตัวตนของอีกฝ่ายโดยสิ้นเชิง
-//   2) ข้อความที่ส่งติด ๆ กันถูกจับเป็นก้อนเดียว รูปโผล่แค่ฟองสุดท้ายของก้อน
-//      ถ้าให้รูปโผล่ทุกฟอง สิบข้อความติดกันจะกลายเป็นสิบหน้าเรียงลงมา
-//   3) ช่องพิมพ์เป็นแคปซูลใบเดียว ปุ่มส่งโผล่ตอนมีตัวอักษรเท่านั้น
-//      ปุ่มส่งที่ค้างอยู่ตลอดเวลาทั้งที่กดไปก็ไม่เกิดอะไร คือปุ่มที่สอนให้คนเลิกเชื่อปุ่ม
-//
-// ที่ไม่ได้ทำตาม IG: ปุ่มโทร ปุ่มวิดีโอคอล และปุ่มกล้อง — สองอันแรกไม่มีในแอปนี้
-// และจะไม่มี (เส้นความปลอดภัยที่ขีดไว้ในเอกสารบันไดสโคป) ส่วนกล้องยังส่งรูปในแชทไม่ได้
-// ปุ่มที่กดแล้วไม่เกิดอะไรแย่กว่าปุ่มที่ยังไม่มี
-// ============================================================
-
-// หัวข้อความคั่นวัน — IG มี และมันจำเป็นจริงเมื่อห้องเริ่มมีข้อความข้ามวัน
-function chatDayLabel(iso) {
-  const d = new Date(iso);
-  if (isNaN(d)) return '';
-  const today = new Date();
-  const same = (a, b) => a.toDateString() === b.toDateString();
-  if (same(d, today)) return 'วันนี้';
-  const y = new Date(today); y.setDate(y.getDate() - 1);
-  if (same(d, y)) return 'เมื่อวาน';
-  return typeof fmtThaiDate === 'function' ? fmtThaiDate(d) : d.toLocaleDateString();
-}
-function chatTime(iso) {
-  const d = new Date(iso);
-  if (isNaN(d)) return '';
-  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-}
-
-function chatAvatar() {
-  return chatThread.avatar
-    ? `<img class="ch-face" src="${esc(chatThread.avatar)}" alt="">`
-    : `<span class="ch-face" style="${typeof faceTint === 'function' ? faceTint(chatThread) : ''}">${
-        esc(typeof faceLetter === 'function' ? faceLetter(chatThread)
-                                             : (chatThread.name || '?').slice(0, 1))}</span>`;
-}
-
 function renderChat() {
   const box = document.getElementById('chatBody');
   if (!box || !chatThread) return;
   const me = currentUser && currentUser.id;
 
-  // ---------- คำขอทัก ----------
-  // ฝั่งคนขอ: บอกตรง ๆ ว่าส่งได้ข้อความเดียวจนกว่าจะมีคนตอบ · ถ้าไม่บอก เขาจะพิมพ์ต่อ
-  // แล้วเจอ error ที่อ่านเหมือนแอปพัง ทั้งที่มันคือกติกาที่ตั้งใจให้เป็นแบบนั้น
-  // ฝั่งคนรับ: ปุ่มรับ/ปฏิเสธอยู่บนสุด และ **ตอบกลับก็คือการรับ** ไม่ต้องกดปุ่มก่อนก็ได้
-  const pending = chatThread.state === 'pending';
-  const asked = pending && chatThread.mineReq;
-  const gotAsked = pending && !chatThread.mineReq;
-  const usedUp = asked && chatMsgs.some(m => m.sender === me);
-
-  // ---------- จับข้อความติด ๆ กันเป็นก้อน ----------
-  // เกณฑ์: คนเดียวกัน และห่างกันไม่เกิน 5 นาที · เกินนั้นถือว่าเป็นคนละจังหวะการคุย
-  let lastDay = '';
-  const rows = chatMsgs.map((m, i) => {
-    const prev = chatMsgs[i - 1];
-    const next = chatMsgs[i + 1];
-    const mine = m.sender === me;
-    const gap = (x, y) => !x || !y
-      || Math.abs(new Date(y.created_at) - new Date(x.created_at)) > 5 * 60 * 1000;
-    const startsRun = !prev || prev.sender !== m.sender || gap(prev, m);
-    const endsRun = !next || next.sender !== m.sender || gap(m, next);
-
-    const day = chatDayLabel(m.created_at);
-    const dayHead = day && day !== lastDay ? `<div class="ch-day"><span>${esc(day)}</span></div>` : '';
-    lastDay = day || lastDay;
-
-    // เวลาโผล่ใต้ฟองสุดท้ายของก้อน ไม่ใช่ทุกฟอง (ผู้ใช้ขอ "ให้บอกเวลาพิมพ์ด้วย")
-    // ทุกฟองมีเวลา = ตัวเลขเรียงลงมาสิบบรรทัดที่บอกเรื่องเดียวกัน
-    // ก้อนหนึ่งคือหนึ่งจังหวะการพิมพ์อยู่แล้ว เวลาเดียวต่อก้อนจึงพอ
-    return dayHead + `<div class="ch-msg${mine ? ' me' : ''}${endsRun ? ' last' : ''}">
-      ${mine ? '' : (endsRun ? chatAvatar() : '<span class="ch-face ghost"></span>')}
-      <span class="ch-col">
-        ${m.image ? (() => {
-          const u = dmImageUrl(m.image);
-          return u ? `<img class="ch-img" loading="lazy" alt="รูปที่ส่งมา" src="${esc(u)}"
-                        onclick="openFace('${esc(u)}','')">`
-                   : '<span class="ch-img wait"></span>';
-        })() : ''}
-        ${String(m.body || '').trim()
-          ? `<span class="ch-bub${startsRun ? ' first' : ''}${endsRun ? ' tail' : ''}">${esc(m.body)}</span>`
-          : ''}
-        ${endsRun ? `<span class="ch-when">${esc(chatTime(m.created_at))}${
-          mine ? ` · <button class="ch-del" onclick="unsendChat('${esc(String(m.id))}')"
-                     aria-label="ลบข้อความนี้">ลบ</button>` : ''}</span>` : ''}
-      </span>
-    </div>`;
-  }).join('');
-
   box.innerHTML = `
     <div class="ch-top">
       <button class="ch-back" onclick="go('scr-mates')" aria-label="กลับ">${icon('chevron')}</button>
-      <!-- รูป+ชื่อแตะแล้วไปโปรไฟล์ เหมือน IG · จอแชทที่ไม่มีทางไปหาตัวตนของอีกฝ่าย
-           คือจอที่คุยกับคนที่ตรวจสอบไม่ได้ ซึ่งเป็นสิ่งที่ต้องไม่เกิดหลังเปิดให้ทักทั้งแอป -->
-      <button class="ch-who${chatThread.other ? ' tap' : ''}"
-        ${chatThread.other ? `onclick="openUser('${esc(chatThread.other)}')"` : ''}>
-        ${chatAvatar()}
-        <span class="ch-who-tx">
-          <b>${esc(chatThread.name)}${chatThread.other ? icon('chevron') : ''}</b>
-          ${chatThread.subject ? `<i>เรื่อง${esc(chatThread.subject)}</i>` : ''}
-        </span>
-      </button>
-      ${chatThread.other ? `<button class="ch-more" aria-label="รายงานหรือบล็อก"
-        onclick="openReport('user','${esc(chatThread.other)}')">${icon('flag')}</button>` : ''}
-    </div>
-
-    ${gotAsked ? `<div class="ch-req">
-      <p>คนนี้ยังไม่ใช่เพื่อนของคุณ — เขาส่งคำขอทักมา</p>
-      <div class="ch-req-row">
-        <button class="ch-req-no" onclick="declineDm('${esc(chatThread.id)}', false)">ไม่รับ</button>
-        <button class="ch-req-block" onclick="declineDm('${esc(chatThread.id)}', true)">บล็อก</button>
-        <button class="ch-req-ok" onclick="acceptDm('${esc(chatThread.id)}')">รับ</button>
+      <div class="ch-who">
+        <b>${esc(chatThread.name)}</b>
+        ${chatThread.subject ? `<i>เรื่อง${esc(chatThread.subject)}</i>` : ''}
       </div>
-    </div>` : ''}
-    ${asked ? `<p class="ch-wait">${usedUp
-        ? 'ส่งคำขอแล้ว — ส่งได้อีกครั้งเมื่อเขาตอบกลับ'
-        : 'คนนี้ยังไม่ใช่เพื่อนของคุณ ข้อความแรกจะไปอยู่ในกล่องคำขอของเขา'}</p>` : ''}
-
+    </div>
     <div class="ch-list" id="chatList">
-      ${chatMsgs.length ? rows : `<div class="ch-blank">
-          ${chatAvatar()}
-          <b>${esc(chatThread.name)}</b>
-          <p>ยังไม่มีใครพิมพ์อะไร — ประโยคแรกยากที่สุดเสมอ</p>
-        </div>`}
+      ${chatMsgs.length ? chatMsgs.map(m => `<div class="ch-msg${m.sender === me ? ' me' : ''}">
+          <span class="ch-bub">${esc(m.body)}</span>
+        </div>`).join('')
+        : `<p class="ch-first">ยังไม่มีใครพิมพ์อะไร — ประโยคแรกยากที่สุดเสมอ
+             ${chatThread.subject ? 'ลองใช้ที่ร่างไว้ให้ข้างล่างก็ได้' : ''}</p>`}
     </div>
+    <div class="ch-bar">
+      <input id="chatIn" type="text" maxlength="2000" placeholder="พิมพ์ข้อความ"
+             value="${chatMsgs.length || !chatThread.subject ? ''
+                     : esc(chatThread.subject + 'ขอถามหน่อยได้ป่ะ')}"
+             onkeydown="if(event.key==='Enter')sendChat()">
+      <button class="ch-send" onclick="sendChat()" aria-label="ส่ง">${icon('check')}</button>
+    </div>`;
 
-    ${usedUp ? '' : `
-      <div class="ch-emo" id="chEmo" hidden>
-        ${CHAT_EMOJI.map(e => `<button onclick="addEmoji('${e}')" aria-label="ใส่ ${e}">${e}</button>`).join('')}
-      </div>
-      <div class="ch-bar">
-        <input type="file" id="chFile" accept="image/*" hidden onchange="pickChatImage(this)">
-        <button class="ch-plus" onclick="document.getElementById('chFile').click()"
-          aria-label="ส่งรูป">${icon('image')}</button>
-        <div class="ch-field">
-          <input id="chatIn" type="text" maxlength="2000" placeholder="ข้อความ…"
-                 autocomplete="off"
-                 value="${chatMsgs.length || !chatThread.subject ? ''
-                         : esc(chatThread.subject + 'ขอถามหน่อยได้ป่ะ')}"
-                 oninput="chatTyping()"
-                 onkeydown="if(event.key==='Enter')sendChat()">
-          <button class="ch-emo-btn" onclick="toggleEmoji()" aria-label="อิโมจิ">${icon('sparkles')}</button>
-          <button class="ch-send" id="chSend" onclick="sendChat()" aria-label="ส่ง">${icon('check')}</button>
-        </div>
-      </div>`}`;
-
-  chatTyping();
   const list = document.getElementById('chatList');
   if (list) list.scrollTop = list.scrollHeight;
 }
 
-
-// ============================================================
-// รูปกับอิโมจิในแชท (1B72)
-// ------------------------------------------------------------
-// ผู้ใช้ขอเอง: "สามารถส่งไฟล์ รูป หรืออิโมจิได้"
-//
-// อิโมจิไม่ต้องแก้อะไรฝั่งเซิร์ฟเวอร์เลย มันคือตัวอักษรธรรมดา —
-// ที่ต้องมีคือ **ทางเข้าที่ไม่ต้องพึ่งคีย์บอร์ดของเครื่อง** เพราะบนเว็บในมือถือบางรุ่น
-// ปุ่มอิโมจิของคีย์บอร์ดหาไม่เจอ และบนเดสก์ท็อปไม่มีเลย
-// ชุดนี้เลือกจากที่นักเรียนใช้จริงตอนถามการบ้าน ไม่ใช่ชุดยอดนิยมทั่วไป
-const CHAT_EMOJI = ['👍','🙏','😂','😭','🔥','✅','❓','💡','😅','🥲','👀','💯'];
-
-function toggleEmoji() {
-  const el = document.getElementById('chEmo');
-  if (el) el.hidden = !el.hidden;
-}
-function addEmoji(e) {
+async function sendChat() {
   const el = document.getElementById('chatIn');
-  if (!el) return;
-  el.value += e;
-  el.focus();
-  chatTyping();
-}
-
-// รูปย่อในเครื่องก่อนเสมอ — รูปจากกล้องมือถือใบละ 3-5 MB
-// อัปโหลดดิบ ๆ บนเน็ตโรงเรียนคือรอเป็นนาที แล้วคนก็เลิกส่งไปเลย
-// (กติกาเดียวกับ shrinkImage ที่หน้าเขียนโพสต์ ใช้ตัวเดียวกันเลย)
-async function pickChatImage(input) {
-  const file = input.files && input.files[0];
-  input.value = '';
-  if (!file || !chatThread) return;
-  const btn = document.querySelector('.ch-plus');
-  if (btn) btn.disabled = true;
-  try {
-    const blob = await shrinkImage(file, 1280, 0.72);
-
-    // ตรวจก่อนอัปโหลดเสมอ (ผู้ใช้เคาะเอง: รูปกันก่อนส่ง)
-    const g = typeof guardImage === 'function' ? await guardImage(blob) : { ok: true };
-    if (!g.ok) {
-      if (typeof haptic === 'function') haptic('snooze');
-      showToast({ title: 'ส่งรูปนี้ไม่ได้', body: g.message });
-      if (btn) btn.disabled = false;
-      return;
-    }
-
-    // bucket 'dm' ปิดอยู่ (public = false) ต่างจาก 'posts' ที่เปิดสาธารณะ
-    // รูปในแชทตัวต่อตัวเป็นของสองคน มันไม่ควรเปิดได้ด้วย URL เปล่า ๆ โดยไม่ต้องล็อกอิน
-    //
-    // path ต้องขึ้นต้นด้วย uid ตรง ๆ ไม่ใช่ 'dm/<uid>/' แบบเดิม
-    // เพราะ policy ดูโฟลเดอร์แรกว่าเป็น uid ของคนอัปโหลดหรือเปล่า
-    // ของเดิมโฟลเดอร์แรกเป็นคำว่า 'dm' จึงโดนปฏิเสธทุกครั้งตั้งแต่ 1B72
-    const path = currentUser.id + '/' + Date.now() + '.jpg';
-    const up = await sb.storage.from('dm').upload(path, blob, { contentType: 'image/jpeg' });
-    if (up.error) throw new Error(up.error.message);
-    await sendChat(path);
-  } catch (e) {
-    if (typeof haptic === 'function') haptic('snooze');
-    showToast({ title: 'ส่งรูปไม่สำเร็จ', body: e.message || 'ลองรูปอื่นดู' });
-  }
-  if (btn) btn.disabled = false;
-}
-
-// ============================================================
-// รูปใน bucket ปิด ต้องขอ URL ชั่วคราวก่อนถึงจะแสดงได้ (1B76)
-// ------------------------------------------------------------
-// getPublicUrl ใช้กับ bucket ที่ปิดอยู่ไม่ได้ ต้องใช้ createSignedUrl ซึ่งเป็น async
-// แต่ตัววาดหน้าจอเป็น sync จึงต้องมีที่พักไว้ตรงกลาง:
-//   ยังไม่มีในที่พัก -> วาดฟองว่างไว้ก่อน แล้วไปขอมา พอได้แล้วค่อยวาดใหม่รอบเดียว
-// ลิงก์มีอายุหนึ่งชั่วโมง ซึ่งนานกว่าที่คนเปิดแชทค้างไว้รอบหนึ่ง
-const dmPic = {};        // path -> url
-const dmPicWait = {};    // path -> true ระหว่างที่กำลังขอ
-
-function dmImageUrl(path) {
-  if (!path) return '';
-  if (/^https?:/.test(path)) return path;
-  if (dmPic[path]) return dmPic[path];
-  if (!dmPicWait[path] && sb) {
-    dmPicWait[path] = true;
-    sb.storage.from('dm').createSignedUrl(path, 3600).then(({ data }) => {
-      dmPicWait[path] = false;
-      if (data && data.signedUrl) { dmPic[path] = data.signedUrl; renderChat(); }
-    }).catch(() => { dmPicWait[path] = false; });
-  }
-  return '';
-}
-
-// ปุ่มส่งโผล่ตอนมีตัวอักษรเท่านั้น (เหมือน IG)
-// ปุ่มที่ค้างอยู่ตลอดทั้งที่กดไปก็ไม่เกิดอะไร คือปุ่มที่สอนให้คนเลิกเชื่อปุ่ม
-function chatTyping() {
-  const el = document.getElementById('chatIn');
-  const btn = document.getElementById('chSend');
-  if (!el || !btn) return;
-  btn.classList.toggle('on', !!el.value.trim());
-}
-
-// ส่งผ่าน dm_say เสมอ ไม่ insert ตรงอีกแล้ว
-// policy ของ dm_messages ถูกบีบให้รับเฉพาะห้องที่เปิดแล้ว (migration 19) —
-// ห้องที่ยังเป็นคำขอจึงเข้าได้ทางฟังก์ชันนี้ทางเดียว ซึ่งเป็นที่ที่บังคับกติกา
-// "คนขอส่งได้ข้อความเดียว" กับ "ปลายทางตอบ = ห้องเปิด" ไว้ที่เดียว
-
-// ---------- ลบข้อความที่ส่งไปแล้ว ----------
-// IG เรียก unsend และลบให้ทั้งสองฝั่ง ไม่ใช่ลบแค่ฝั่งตัวเอง
-// ลบแค่ฝั่งตัวเองคือคำสัญญาที่ผิด: คนกดเพราะอยากให้อีกฝ่ายไม่เห็น ไม่ใช่เพราะรกตา
-async function unsendChat(id) {
-  if (!sb || !currentUser) return;
-  if (!confirm('ลบข้อความนี้ อีกฝ่ายจะไม่เห็นด้วย แน่ใจนะ?')) return;
-  const { data, error } = await sb.rpc('dm_unsend', { p_msg: Number(id) });
+  if (!el || !chatThread) return;
+  const body = el.value.trim();
+  if (!body) return;
+  el.value = '';
+  const { data, error } = await sb.from('dm_messages')
+    .insert({ thread: chatThread.id, sender: currentUser.id, body })
+    .select('id, sender, body, created_at')
+    .single();
   if (error) {
-    if (typeof haptic === 'function') haptic('snooze');
-    showToast({ title: 'ลบไม่สำเร็จ',
-      body: rpcMissing(error) ? 'ยังไม่ได้อัปเดตฐานข้อมูล' : error.message });
-    return;
-  }
-  if (data) { try { await sb.storage.from('dm').remove([data]); } catch (_) {} }
-  chatMsgs = chatMsgs.filter(m => String(m.id) !== String(id));
-  if (typeof haptic === 'function') haptic('done');
-  renderChat();
-  refreshDmRows();
-}
-
-// รีเฟรชกล่องข้อความเงียบ ๆ โดยไม่พาคนออกจากห้องแชท
-// openDmInbox() ใช้ไม่ได้ตรงนี้เพราะมันเรียก go('scr-dm') เป็นอย่างแรก
-// ซึ่งจะเด้งออกจากห้องที่เพิ่งลบข้อความไป ทั้งที่คนยังอ่านค้างอยู่
-// ถ้าไม่รีเฟรช บรรทัดสรุปในกล่องจะยังโชว์ข้อความที่ถูกลบไปแล้วจนกว่าจะเปิดใหม่
-async function refreshDmRows() {
-  if (!sb || !currentUser) return;
-  const { data, error } = await sb.rpc('dm_inbox');
-  if (!error) { dmRows = data || []; if (curScreen === 'scr-dm') renderDmInbox(); }
-}
-
-async function sendChat(imagePath) {
-  const el = document.getElementById('chatIn');
-  if (!chatThread) return;
-  const body = el ? el.value.trim() : '';
-  if (!body && !imagePath) return;
-  if (el) el.value = '';
-  const emo = document.getElementById('chEmo');
-  if (emo) emo.hidden = true;
-  let { data, error } = await sb.rpc('dm_say',
-    { p_thread: chatThread.id, p_body: body, p_image: imagePath || null });
-  // ยังไม่ได้ apply migration 25 (dm_say ยังรับสองพารามิเตอร์) — ลองแบบเดิมอีกรอบ
-  // ส่งรูปจะไม่ได้ แต่ข้อความยังส่งได้ตามปกติ ซึ่งสำคัญกว่า
-  if (error && /p_image|function public\.dm_say/i.test(error.message || '')) {
-    ({ data, error } = await sb.rpc('dm_say', { p_thread: chatThread.id, p_body: body }));
-    if (!error && imagePath) {
-      showToast({ title: 'ส่งข้อความแล้ว', body: 'รูปยังส่งไม่ได้จนกว่าจะอัปเดตฐานข้อมูล' });
-    }
-  }
-  // ยังไม่ได้ apply migration 19 — ถอยไปเขียนตรงแบบเดิม
-  // ปลอดภัยเพราะถ้ายังไม่มี dm_say ก็แปลว่ายังไม่มีคอลัมน์ state ด้วย จึงไม่มีห้องคำขอ
-  // ให้ข้ามกติกาตั้งแต่แรก · ข้อสำคัญคือ **แชทเดิมต้องไม่พังระหว่างรอ migration**
-  if (rpcMissing(error)) {
-    const r = await sb.from('dm_messages')
-      .insert({ thread: chatThread.id, sender: currentUser.id, body,
-                image: imagePath || null })
-      .select('id, sender, body, image, created_at').single();
-    data = r.data ? [r.data] : null;
-    error = r.error;
-  }
-  if (error) {
-    if (el) el.value = body;               // คืนข้อความให้ ไม่ใช่กลืนหายไปเฉย ๆ
+    el.value = body;                       // คืนข้อความให้ ไม่ใช่กลืนหายไปเฉย ๆ
     haptic('snooze');
     showToast({ title: 'ส่งไม่สำเร็จ', body: error.message });
     return;
   }
-  const row = Array.isArray(data) ? data[0] : data;
-  chatMsgs.push({
-    id: (row && row.id) || Date.now(), sender: currentUser.id, body,
-    image: imagePath || null,
-    created_at: (row && row.created_at) || new Date().toISOString(),
-  });
-  // ข้อความขึ้นไปแล้ว สแกนตามหลังโดยไม่รอผล (กติกาที่ผู้ใช้เคาะไว้)
-  if (typeof guardText === 'function' && row && row.id) guardText('dm', row.id, body);
-  // ปลายทางพิมพ์ตอบ = ห้องเปิดแล้วฝั่งเซิร์ฟเวอร์ · ฝั่งนี้ต้องตามให้ทัน
-  // ไม่งั้นแบนเนอร์ "คำขอ" ยังค้างอยู่ทั้งที่คุยกันได้แล้ว
-  if (chatThread.state === 'pending' && !chatThread.mineReq) chatThread.state = 'open';
+  chatMsgs.push(data);
   renderChat();
-}
-
-// ============================================================
-// กล่องข้อความ — ห้องที่เปิดแล้ว กับ คำขอทัก
-// ------------------------------------------------------------
-// จอนี้เกิดขึ้นเพราะการทักไม่ได้จำกัดอยู่แค่คนในห้องเรียนอีกต่อไป (migration 19)
-// ตอนที่ทักได้เฉพาะคนห้องเดียวกัน ทางเข้าห้องคุยคือรายชื่อคนในห้อง ซึ่งพอ
-// พอเปิดให้ทักกันได้ทั่วไป ต้องมีที่ที่ข้อความเข้ามารวมกัน ไม่งั้นข้อความจากคนที่
-// ไม่ได้อยู่ในรายชื่อไหนเลยจะไม่มีทางถูกเห็น
-//
-// คำขออยู่บนสุดเสมอและนับให้เห็นเป็นตัวเลข ส่วนห้องที่เปิดแล้วเรียงตามเวลาปกติ
-// ============================================================
-let dmRows = [];
-let dmBusy = false;
-let dmPending = 0;        // จำนวนคำขอที่ยังไม่ได้ตอบ — ใช้ติดจุดแดงบนปุ่มในหัวฟีด
-let dmReady = false;      // กล่องข้อความโผล่ต่อเมื่อหลังบ้านมี dm_inbox แล้ว
-let dmDotAt = 0;
-
-// เช็คคำขอค้างแบบเบา ๆ · ไม่ยิงถี่กว่าทุกสองนาที เพราะจุดแดงเป็นของที่ช้าได้
-// (บทเรียนเดียวกับ HW_MIN_GAP ใน hw.js — ยิงทุกเรนเดอร์คือเน็ตของเด็ก)
-async function loadDmDot(force) {
-  if (!sb || !currentUser) { dmPending = 0; return; }
-  if (!force && Date.now() - dmDotAt < 120000) return;
-  dmDotAt = Date.now();
-  const { data, error } = await sb.rpc('dm_inbox');
-  if (rpcMissing(error)) { dmReady = false; if (typeof renderFeed === 'function') renderFeed(); return; }
-  if (error) return;
-  dmReady = true;
-  dmRows = data || [];
-  const n = dmRows.filter(r => r.is_request).length;
-  if (n !== dmPending) { dmPending = n; if (typeof renderFeed === 'function') renderFeed(); }
-}
-
-async function openDmInbox() {
-  if (!sb || !currentUser) return loginFromMates();
-  go('scr-dm');
-  dmBusy = true;
-  renderDmInbox();
-  const { data, error } = await sb.rpc('dm_inbox');
-  dmBusy = false;
-  dmRows = error ? [] : (data || []);
-  renderDmInbox();
-}
-
-function dmPendingCount() {
-  return dmRows.filter(r => r.is_request).length;
-}
-
-// ============================================================
-// เริ่มแชทใหม่ — เลือกคนจากหน้าข้อความได้เลย
-// ------------------------------------------------------------
-// ของเดิมทักได้ทางเดียวคือเดินไปหน้าโปรไฟล์ของคนคนนั้นก่อน ซึ่งแปลว่า
-// ต้องเจอเขาในฟีดหรือในหัวข้อเสียก่อน · คนที่เปิดหน้าข้อความมาเพราะ
-// "อยากทักเพื่อน" จึงเจอทางตัน แล้วข้อความว่างเปล่าที่บอกให้ไปหาที่อื่น
-// คือหน้าจอที่ทำให้คนปิดแอป ไม่ใช่หน้าจอที่พาเขาไปต่อ
-//
-// ทำแบบ IG: ปุ่มดินสอมุมขวาบน → รายชื่อเพื่อน + ช่องค้นหา @ชื่อผู้ใช้
-// เพื่อนขึ้นก่อนเสมอโดยไม่ต้องพิมพ์อะไร เพราะคนที่จะทักส่วนใหญ่คือเพื่อนอยู่แล้ว
-// ส่วนช่องค้นหามีไว้สำหรับคนที่ยังไม่ได้เป็นเพื่อน ซึ่งจะกลายเป็นคำขอทักตามกติกาเดิม
-// ============================================================
-let dmNew = false;          // true = กำลังอยู่ในโหมดเลือกคนที่จะทัก
-let dmFriends = null;       // null = ยังไม่เคยโหลด
-let dmFound = [];           // ผลค้นหา @ชื่อผู้ใช้
-let dmFindQ = '';
-let dmFindBusy = false;
-
-async function openDmNew() {
-  dmNew = true;
-  renderDmInbox();
-  if (dmFriends === null) {
-    const { data, error } = await sb.rpc('friend_list');
-    dmFriends = error ? [] : (data || []);
-    renderDmInbox();
-  }
-}
-function closeDmNew() { dmNew = false; renderDmInbox(); }
-
-// พิมพ์แล้วค่อยยิง — พิมพ์ทีละตัวอักษรแล้วยิงทุกตัวคือเน็ตของเด็ก
-let dmFindTimer = null;
-function dmFindSoon(v) {
-  dmFindQ = String(v || '');
-  clearTimeout(dmFindTimer);
-  dmFindTimer = setTimeout(dmFind, 350);
-}
-async function dmFind() {
-  const q = dmFindQ.trim();
-  if (q.length < 2) { dmFound = []; renderDmInbox(); return; }
-  dmFindBusy = true; renderDmInbox();
-  const { data, error } = await sb.rpc('find_people', { p_q: q });
-  dmFindBusy = false;
-  dmFound = error ? [] : (data || []);
-  renderDmInbox();
-}
-
-// เลือกคนแล้วเข้าห้องเลย · pokeMate เป็นประตูเดิมที่เรียก open_dm อยู่แล้ว
-// กติกาทั้งหมด (เพื่อน = เปิดห้องเลย · ไม่ใช่เพื่อน = เข้ากล่องคำขอ) อยู่ฝั่งเซิร์ฟเวอร์
-// ฝั่งนี้จึงไม่ต้องรู้ว่าใครเป็นเพื่อนใคร แค่ส่ง id ไปแล้วรับผลมา
-function dmStart(id, name) {
-  dmNew = false;
-  pokeMate(id, '', name);
-}
-
-// ---------- วาดใหม่โดยไม่ให้โฟกัสหลุดจากช่องค้นหา ----------
-// จอนี้วาดด้วย innerHTML ทั้งก้อน แปลว่า <input> ถูกสร้างใหม่ทุกครั้ง —
-// พิมพ์ตัวแรกแล้ว debounce ยิง render กลับมา คีย์บอร์ดจะเด้งปิดกลางคัน
-// และตัวที่พิมพ์ต่อไปหายเงียบ ๆ · เก็บสถานะโฟกัสไว้แล้วคืนให้หลังวาดเสร็จ
-function renderDmInbox() {
-  const was = document.activeElement && document.activeElement.id === 'dmQ';
-  renderDmInboxInner();
-  if (!was) return;
-  const el = document.getElementById('dmQ');
-  if (!el) return;
-  el.focus();
-  // เคอร์เซอร์ต้องกลับไปท้ายข้อความ ไม่ใช่ต้นบรรทัด ไม่งั้นตัวถัดไปโผล่หน้าคำที่พิมพ์ไว้
-  try { el.setSelectionRange(el.value.length, el.value.length); } catch (_) {}
-}
-
-function renderDmInboxInner() {
-  const box = document.getElementById('dmBody');
-  if (!box) return;
-  const q = dmFindQ.trim().toLowerCase().replace(/^@/, '');
-
-  const avOfRow = (u) => u.avatar
-    ? `<img class="dm-av" src="${esc(u.avatar)}" alt="">`
-    : `<div class="dm-av" style="${typeof faceTint === 'function' ? faceTint(u) : ''}">${
-        esc(typeof faceLetter === 'function' ? faceLetter(u)
-                                            : String(u.display_name || '?').slice(0, 1))}</div>`;
-
-  // ชื่อกับ @ชื่อผู้ใช้ต้องไม่ซ้ำกันในบรรทัดเดียว
-  // คนที่ยังไม่ได้ตั้งชื่อจะได้ @ชื่อผู้ใช้มาเป็นชื่อ ถ้าโชว์ @ต่อท้ายอีกก็จะอ่านว่า
-  // "sos1048666 @sos1048666" ซึ่งดูเหมือนแอปพิมพ์ซ้ำ มากกว่าจะดูเหมือนข้อมูลสองชิ้น
-  const nameLine = (u) => {
-    const nm = typeof personName === 'function' ? personName(u)
-                                                : (u.display_name || 'นักเรียน');
-    const hd = String(u.handle || '').trim();
-    return `${esc(nm)}${hd && hd !== nm ? `<span>@${esc(hd)}</span>` : ''}`;
-  };
-
-  const row = (r) => `<div class="dm-row" onclick="openDmRow('${esc(r.id)}','${esc(r.other)}','${
-      esc(String(typeof personName === 'function' ? personName(r) : (r.display_name || ''))
-            .replace(/'/g, "\'"))}','${esc(r.avatar || '')}','${esc(r.handle || '')}')">
-      ${avOfRow(r)}
-      <div class="dm-bd">
-        <b>${nameLine(r)}</b>
-        <i>${r.last_body ? (r.mine_last ? 'คุณ: ' : '') + esc(String(r.last_body).slice(0, 60))
-                         : 'ยังไม่มีข้อความ'}</i>
-      </div>
-    </div>`;
-
-  // แถวของคนที่ยังไม่มีห้องคุยกัน — ไม่มีข้อความล่าสุดให้โชว์ จึงโชว์เหตุผลที่จะทักเขาแทน
-  const pickRow = (p, why) => `<div class="dm-row" onclick="dmStart('${esc(p.id)}','${
-      esc(String(typeof personName === 'function' ? personName(p) : (p.display_name || ''))
-            .replace(/'/g, "\'"))}')">
-      ${avOfRow(p)}
-      <div class="dm-bd">
-        <b>${nameLine(p)}</b>
-        <i>${esc(why || '')}</i>
-      </div>
-      <span class="dm-go">${icon('chat')}</span>
-    </div>`;
-
-  // ---------- ช่องค้นหาอยู่บนสุดตลอดเวลา ----------
-  // ต่างจาก IG ที่ซ่อนช่องค้นหาไว้หลังปุ่มเขียนข้อความ · Telegram วางไว้ให้เห็นเสมอ
-  // แล้วมันค้นสองอย่างพร้อมกันในช่องเดียว: ห้องที่คุยกันอยู่แล้ว กับ คนที่ยังไม่เคยคุย
-  // ซึ่งตรงกับสิ่งที่คนคิดในหัวจริง ๆ — เขาคิดถึง "คน" ไม่ได้คิดว่าคนนั้นอยู่ในรายการไหน
-  const head = `
-    <div class="ch-top">
-      <button class="ch-back" onclick="go('scr-mates')" aria-label="กลับ">${icon('chevron')}</button>
-      <div class="ch-who"><b>ข้อความ</b></div>
-    </div>
-    <div class="dm-find">
-      <span class="dm-find-ic">${icon('search')}</span>
-      <input type="search" id="dmQ" value="${esc(dmFindQ)}" autocomplete="off"
-        placeholder="ค้นหาชื่อ หรือ @ชื่อผู้ใช้" oninput="dmFindSoon(this.value)">
-      ${dmFindQ ? `<button class="dm-find-x" onclick="dmClearFind()" aria-label="ล้าง">${icon('x')}</button>` : ''}
-    </div>`;
-
-  // ปุ่มดินสอลอยมุมล่างขวา — ทางเข้าสำหรับคนที่ยังไม่รู้ว่าจะทักใคร จึงยังพิมพ์อะไรไม่ได้
-  const fab = `<button class="dm-fab" onclick="openDmNew()" aria-label="เริ่มแชทใหม่">${icon('pencil')}</button>`;
-
-  // ---------- โหมดไล่ดูเพื่อน (มาจากปุ่มดินสอ) ----------
-  if (dmNew) {
-    const fr = dmFriends || [];
-    box.innerHTML = `
-      <div class="ch-top">
-        <button class="ch-back" onclick="closeDmNew()" aria-label="กลับ">${icon('chevron')}</button>
-        <div class="ch-who"><b>ทักใครดี</b></div>
-      </div>
-      <div class="dm-list">
-        ${fr.length ? `<div class="sec-label">เพื่อนของคุณ</div>
-          ${fr.map(p => pickRow(p, (p.strong && p.strong.length)
-            ? 'ช่วยได้เรื่อง' + esc(p.strong.slice(0, 2).join(' · '))
-            : (p.bio || 'แตะเพื่อเริ่มคุย'))).join('')}`
-          : (dmFriends === null ? '<p class="so-hint">กำลังโหลด…</p>'
-            : `<p class="so-hint">ยังไม่มีเพื่อน — ปิดหน้านี้แล้วพิมพ์ @ชื่อผู้ใช้ในช่องค้นหาด้านบน
-                 หรือส่ง @ชื่อผู้ใช้ของคุณให้เพื่อนที่หน้า "เพื่อนฉัน"</p>`)}
-      </div>`;
-    return;
-  }
-
-  // ---------- กำลังค้นหา ----------
-  if (q.length >= 1) {
-    const hit = (r) => (String(r.display_name || '').toLowerCase().includes(q)
-      || String(r.handle || '').toLowerCase().includes(q));
-    const chats = dmRows.filter(hit);
-    const known = new Set(dmRows.map(r => r.other));
-    const others = dmFound.filter(p => !known.has(p.id));
-
-    box.innerHTML = head + `
-      <div class="dm-list">
-        ${chats.length ? `<div class="sec-label">แชท</div>${chats.map(row).join('')}` : ''}
-        ${q.length >= 2 ? `
-          <div class="sec-label">คนอื่นในแอป</div>
-          ${dmFindBusy ? '<p class="so-hint">กำลังค้นหา…</p>' : ''}
-          ${others.length
-            ? others.map(p => pickRow(p, p.rel === 'friends' ? 'เพื่อนของคุณ'
-                : 'ยังไม่ใช่เพื่อน — ข้อความแรกจะไปอยู่ในกล่องคำขอของเขา')).join('')
-            : (dmFindBusy ? '' : '<p class="so-hint">ไม่เจอใครที่ตรงกับคำนี้</p>')}`
-          : '<p class="so-hint">พิมพ์อีกสักตัวเพื่อค้นหาคนทั้งแอป</p>'}
-      </div>` + fab;
-    return;
-  }
-
-  // ---------- รายการปกติ ----------
-  const reqs = dmRows.filter(r => r.is_request);
-  const open = dmRows.filter(r => !r.is_request);
-  box.innerHTML = head + `
-    <div class="dm-list">
-      ${dmBusy && !dmRows.length ? '<p class="so-hint">กำลังโหลด…</p>' : ''}
-      ${reqs.length ? `<div class="sec-label">คำขอทัก ${reqs.length}</div>
-        <p class="dm-fine">คนที่ยังไม่ใช่เพื่อนส่งข้อความมาได้ข้อความเดียว
-          จนกว่าคุณจะตอบกลับ · ไม่ตอบก็ไม่เกิดอะไรขึ้น</p>
-        ${reqs.map(row).join('')}` : ''}
-      ${open.length ? `<div class="sec-label">${reqs.length ? 'ห้องที่คุยกันแล้ว' : 'ข้อความ'}</div>
-        ${open.map(row).join('')}` : ''}
-      ${!dmBusy && !dmRows.length
-        ? `<div class="dm-blank">
-             <div class="dm-blank-ic">${icon('chat')}</div>
-             <p class="dm-blank-h">ยังไม่มีข้อความ</p>
-             <p class="dm-blank-p">พิมพ์ชื่อเพื่อนในช่องด้านบนเพื่อเริ่มคุย
-               หรือกดปุ่มดินสอเพื่อไล่ดูรายชื่อเพื่อน</p>
-           </div>` : ''}
-    </div>` + fab;
-}
-
-function dmClearFind() {
-  dmFindQ = ''; dmFound = [];
-  renderDmInbox();
-  const el = document.getElementById('dmQ');
-  if (el) el.focus();
-}
-
-function openDmRow(id, other, name, avatar, handle) {
-  chatThread = { id, other, name: name || '', handle: handle || '',
-                 avatar: avatar || null, subject: '' };
-  chatMsgs = [];
-  go('scr-chat');
-  openChat();
-}
-
-async function acceptDm(id) {
-  const { error } = await sb.rpc('dm_accept', { p_thread: id });
-  if (error) { showToast({ title: 'ทำไม่สำเร็จ', body: error.message }); return; }
-  if (chatThread && chatThread.id === id) { chatThread.state = 'open'; renderChat(); }
-  dmRows = dmRows.map(r => (r.id === id ? { ...r, is_request: false, state: 'open' } : r));
-  renderDmInbox();
-}
-
-// ปฏิเสธ = ลบห้องทิ้งทั้งใบ ไม่ใช่แค่ซ่อน (เหตุผลอยู่ใน dm_decline ที่ migration 19)
-// ถ้าแค่ซ่อน คนขอจะยังส่งเข้ามาได้ในห้องที่เรามองไม่เห็น ซึ่งเป็นช่องที่แย่ที่สุดช่องหนึ่ง
-async function declineDm(id, block) {
-  const { error } = await sb.rpc('dm_decline', { p_thread: id, p_block: !!block });
-  if (error) { showToast({ title: 'ทำไม่สำเร็จ', body: error.message }); return; }
-  dmRows = dmRows.filter(r => r.id !== id);
-  chatThread = null;
-  go('scr-dm');
-  renderDmInbox();
-  showToast({ title: block ? 'บล็อกแล้ว' : 'ไม่รับคำขอแล้ว',
-    body: block ? 'เขาจะทักคุณไม่ได้อีก และไม่รู้ว่าถูกบล็อก' : 'เขาไม่ได้รับแจ้งอะไร' });
 }
 
 // ---------- ล็อกอินแล้วต้องกลับมาที่หน้านี้ ----------
@@ -1299,11 +421,6 @@ async function declineDm(id, block) {
 const MATES_RETURN_KEY = 'studentos.alt.afterLogin';
 function loginFromMates() {
   try { localStorage.setItem(MATES_RETURN_KEY, 'scr-mates'); } catch (_) {}
-  loginGoogle();
-}
-// เหมือน loginFromMates แต่จำว่ามาจากแท็บ "เพื่อนฉัน" — คนละปลายทางกัน
-function loginFromFriends() {
-  try { localStorage.setItem(MATES_RETURN_KEY, 'scr-friends'); } catch (_) {}
   loginGoogle();
 }
 function takeAfterLogin() {
