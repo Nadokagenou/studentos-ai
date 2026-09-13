@@ -1220,6 +1220,28 @@
 .as-hero b { font-size: 14.5px; font-weight: 700; letter-spacing: -.015em; line-height: 1.3; }
 .as-hero span { font-size: 11.5px; opacity: .85; line-height: 1.4; }
 
+/* 1B93 · ท่าที่สาม "ถามน้องไซ" — เจ้าของขอปุ่ม AI ในแผ่นนี้ (13 ก.ย. 2569)
+
+   วางเป็นไทล์เต็มความกว้างใต้สองอันเดิม ไม่ใช่ช่องที่สามในกริด เพราะมันไม่ใช่
+   ท่าเพิ่มงานชนิดเดียวกัน: ถ่ายรูปกับพูดคือ "รู้แล้วว่างานอะไร เหลือแค่บันทึก"
+   ส่วนน้องไซคือ "ยังไม่รู้ว่าต้องทำอะไร" — คนละคำถาม จึงไม่ควรยืนเรียงกันสามช่อง
+   แล้วให้ตาเลือกเหมือนของชนิดเดียวกัน
+
+   และทำให้จางกว่าสองอันบนหนึ่งขั้น (พื้นโปร่ง ขอบสีแทนพื้นทึบ) เพราะคำสัญญา
+   ของแผ่นนี้คือ "ไม่ต้องพิมพ์" — ท่าที่เร็วที่สุดต้องยังเด่นที่สุดอยู่ */
+.as-hero.wide {
+  grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 12px;
+  padding: 12px 14px; margin-top: 10px; border-radius: 18px;
+  background: var(--blue-soft);
+  border: 1.5px solid var(--blue); color: var(--blue); box-shadow: none;
+}
+.as-hero.wide .as-hero-ic {
+  width: 34px; height: 34px; margin-bottom: 0; flex: none;
+  background: var(--card);
+}
+.as-hero.wide .as-tx { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.as-hero.wide span { opacity: .78; }
+
 /* คั่นก่อนรายการทางสำรอง — เส้นกับคำสั้น ๆ บอกว่าข้างล่างเป็นของอีกชนิด
    ไม่ใช่ตัวเลือกที่ห้าหกเจ็ดของชุดเดียวกัน */
 .as-or {
