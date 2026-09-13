@@ -2429,6 +2429,25 @@
    เพราะจอนี้มีหัวจอเต็มรูปแบบอยู่ข้างบน ส่วนจอเพื่อนไม่มี */
 .tk-search { margin: 14px 0 4px; }
 
+/* 1B93 · สวิตช์สองโหมดบนหัวจองาน (สัปดาห์ / รายการ)
+
+   แถวเดียวสูง ~34px รวมระยะห่าง — นี่คือเพดานที่ตั้งไว้เอง เพราะเหตุผลที่สวิตช์
+   สามช่องเดิมถูกถอดออกตอน 1B47 คือมันกินจอเกือบครึ่งก่อนเห็นงานใบแรก
+   สองช่องกว้างเท่ากันแบบ 1fr 1fr ไม่ใช่ auto — ป้ายยาวไม่เท่ากัน ("สัปดาห์" 7 ตัว
+   "รายการ" 7 ตัว) แต่ช่องต้องเท่ากัน ไม่งั้นตัวที่ถูกเลือกจะขยับความกว้างตอนสลับ */
+.tk-modes {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 3px;
+  margin: 10px 0 2px; padding: 3px;
+  background: var(--surface); border-radius: 12px;
+}
+.tk-mode {
+  padding: 7px 10px; border: none; border-radius: 9px; cursor: pointer;
+  background: transparent; color: var(--faint);
+  font-family: inherit; font-size: 12.5px; font-weight: 600;
+  transition: background .14s ease, color .14s ease;
+}
+.tk-mode.on { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
+
 /* หัวข้อกลุ่มในแท็บ "ฉัน" — ทรงเดียวกับ .fr-sec แต่ต้องมีระยะบนของตัวเอง
    เพราะมันคั่นระหว่างกล่องรายการ ไม่ได้อยู่ในกล่องเหมือนจอเพื่อน */
 .pf-sec {
