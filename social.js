@@ -871,7 +871,14 @@ async function pickChatImage(input) {
     const blob = await shrinkImage(file, 1280, 0.72);
 
     // ตรวจก่อนอัปโหลดเสมอ (ผู้ใช้เคาะเอง: รูปกันก่อนส่ง)
-    const g = typeof guardImage === 'function' ? await guardImage(blob) : { ok: true };
+    //
+    // **ตัวกรองหาย ≠ ผ่าน** — ของเดิมเขียน `: { ok: true }` ไว้ ซึ่งแปลว่าถ้า feed.js
+    // โหลดไม่ทันหรือ parse ไม่ผ่าน (ไฟล์นั้นใหญ่และโหลดทีหลัง social.js ด้วยซ้ำ)
+    // รูปในแชทจะขึ้นไปโดยไม่มีใครตรวจแบบเงียบสนิท ไม่มีอะไรบนจอบอกสักอย่าง
+    // กติกาของรูปคือล้มแบบปิด จึงต้องปิดตรงนี้ด้วย ไม่ใช่ปิดเฉพาะตอนที่ตัวกรองตอบมา
+    const g = typeof guardImage === 'function'
+      ? await guardImage(blob)
+      : { ok: false, message: 'ตัวกรองรูปยังไม่พร้อม ลองรีเฟรชหน้าแล้วส่งใหม่' };
     if (!g.ok) {
       if (typeof haptic === 'function') haptic('snooze');
       showToast({ title: 'ส่งรูปนี้ไม่ได้', body: g.message });

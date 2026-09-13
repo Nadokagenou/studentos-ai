@@ -10124,17 +10124,31 @@ async function pickAvatar(file) {
   //
   // ตรวจก่อน setItem ไม่ใช่ก่อน syncPublicFace เพราะถ้าเก็บลงเครื่องไปแล้ว
   // รูปจะขึ้นบนจอของเจ้าตัวทันที และซิงก์รอบถัดไปจะดันขึ้นเองโดยไม่ผ่านตรงนี้อีก
-  if (typeof guardImage === 'function') {
-    const blob = await new Promise(r => out.toBlob(r, 'image/jpeg', 0.82));
-    if (blob) {
-      showToast({ title: 'กำลังตรวจรูป…', body: 'ใช้เวลาสักครู่' });
-      const g = await guardImage(blob);
-      if (!g.ok) {
-        haptic('snooze');
-        showToast({ title: 'ใช้รูปนี้ไม่ได้', body: g.message });
-        return;
-      }
-    }
+  //
+  // **สามทางที่เคยแอบผ่าน และตอนนี้ปิดหมดแล้ว** — ทั้งสามทางไม่ได้เกิดจากตัวกรอง
+  // ตัดสินว่าผ่าน แต่เกิดจากโค้ดตรงนี้ไม่เคยได้ถามตัวกรองเลย:
+  //   1) guardImage ไม่มี (feed.js โหลดไม่ทัน/พัง) → ของเดิมข้ามทั้งบล็อกเงียบ ๆ
+  //   2) toBlob คืน null → ของเดิม `if (blob)` ไม่เข้า แล้วไหลไปเก็บรูปต่อ
+  //   3) ยังไม่ล็อกอิน → guardImageOnce คืน ok ให้ฟรี (ปิดไปแล้วใน feed.js)
+  // ข้อ 3 เป็นข้อที่กว้างที่สุด เพราะ syncPublicFace() จะดันรูปที่ไม่เคยถูกตรวจ
+  // ขึ้นเซิร์ฟเวอร์ให้เองตอนล็อกอินครั้งถัดไป
+  if (typeof guardImage !== 'function') {
+    haptic('snooze');
+    showToast({ title: 'ใช้รูปนี้ไม่ได้', body: 'ตัวกรองรูปยังไม่พร้อม ลองรีเฟรชหน้าแล้วทำใหม่' });
+    return;
+  }
+  const blob = await new Promise(r => out.toBlob(r, 'image/jpeg', 0.82));
+  if (!blob) {
+    haptic('snooze');
+    showToast({ title: 'ใช้รูปนี้ไม่ได้', body: 'อ่านรูปไม่สำเร็จ ลองเลือกรูปใหม่อีกครั้ง' });
+    return;
+  }
+  showToast({ title: 'กำลังตรวจรูป…', body: 'ใช้เวลาสักครู่' });
+  const g = await guardImage(blob);
+  if (!g.ok) {
+    haptic('snooze');
+    showToast({ title: 'ใช้รูปนี้ไม่ได้', body: g.message });
+    return;
   }
 
   const data = out.toDataURL('image/jpeg', 0.82);
