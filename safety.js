@@ -47,14 +47,34 @@ async function sendReport(reason) {
   if (error) { showToast({ title: 'รายงานไม่สำเร็จ', body: error.message }); return; }
   haptic('done');
   // ซ่อนจากตาเจ้าตัวทันที ไม่ต้องรอถึงเกณฑ์ — คนที่เพิ่งรายงานไม่ควรต้องเห็นมันอีก
+  //
+  // เขียนเป็นรายชนิดตรง ๆ ไม่ใช่ if/else สองทางเหมือนเดิม เพราะตอนนี้มีห้าชนิดแล้ว
+  // (post · reply · user · topic · tmsg หลัง migration 22) และ else ที่รับทุกอย่าง
+  // ที่ไม่ใช่ post จะไปยุ่งกับ theReplies ของจอที่ผู้ใช้ไม่ได้อยู่ด้วยซ้ำ
   if (t.kind === 'post') {
     feedRows = (feedRows || []).filter(p => p.id !== t.id);
     if (typeof renderFeed === 'function') renderFeed();
-  } else {
+  } else if (t.kind === 'reply') {
     theReplies = (theReplies || []).filter(r => String(r.id) !== t.id);
     if (typeof renderThread === 'function') renderThread();
+  } else if (t.kind === 'topic') {
+    if (typeof tthread === 'object' && tthread && String(tthread.id) === t.id) {
+      // คำถามทั้งเธรดโดนรายงาน — ออกจากเธรดไปเลย ค้างอยู่ในนั้นก็ไม่มีอะไรให้อ่านแล้ว
+      if (typeof closeTThread === 'function') closeTThread();
+      go(typeof topicNow === 'object' && topicNow ? 'scr-topic' : 'scr-tasks');
+    }
+  } else if (t.kind === 'tmsg') {
+    if (typeof tthread === 'object' && tthread && tthread.msgs) {
+      tthread.msgs = tthread.msgs.filter(m => String(m.id) !== t.id);
+      if (typeof renderTThread === 'function') renderTThread();
+    }
   }
-  showToast({ title: 'รายงานแล้ว ขอบคุณ', body: 'เราซ่อนมันออกจากหน้าของคุณให้แล้ว' });
+  // 'user' ไม่ซ่อนอะไรในจอ — คนที่อยากให้เขาเงียบไปเลยมีปุ่มบล็อกซึ่งได้ผลทันที
+  // ส่วนคำร้องเรียนเรื่องคนต้องมีคนอ่านเสมอ (เหตุผลอยู่ใน migration 22)
+  showToast({ title: 'รายงานแล้ว ขอบคุณ',
+    body: t.kind === 'user'
+      ? 'ทีมงานจะตรวจให้ · ถ้าอยากให้เขาทักไม่ได้อีก ใช้ปุ่มบล็อกได้เลย'
+      : 'เราซ่อนมันออกจากหน้าของคุณให้แล้ว' });
 }
 
 // ============================================================
