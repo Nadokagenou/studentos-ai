@@ -369,6 +369,9 @@
 
 <div class="savebar" id="savebar" hidden>
   <span class="msg" id="saveMsg">โหลดค่าตั้งแล้ว</span>
+  <!-- ชื่อเวอร์ชัน — ไม่ใส่ก็เผยแพร่ได้ แต่ประวัติจะขึ้นว่า "ไม่ได้ตั้งชื่อ"
+       ซึ่งไม่ช่วยอะไรตอนต้องย้อนกลับหลังจากผ่านไปหลายรุ่น -->
+  <input class="in pubname" id="pubName" maxlength="60" placeholder="ชื่อเวอร์ชันนี้ (ไม่ใส่ก็ได้)">
   <button class="btn sm" id="btnDark">โหมดมืด</button>
   <button class="btn sm" id="btnExport">ส่งออก JSON</button>
   <button class="btn sm danger" id="btnRevert">ทิ้งที่แก้</button>
