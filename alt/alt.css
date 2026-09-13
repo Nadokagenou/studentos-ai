@@ -6106,7 +6106,9 @@ body.deep-scr .top-friends { display: none; }
      บนเครื่องจริงขอบจอคือขอบบนของนาฬิกากับแบต ปุ่มจึงไปนั่งทับแบตพอดี (บนคอมไม่เห็น)
      กันนอตช์ด้วย safe-area แล้วบวก 26 ให้ตัวปุ่มเสมอกับบรรทัดหัวเรื่องของหน้าจอ
      ไม่ใช่แค่ "พ้นแบต" เฉย ๆ — ของที่ลอยต้องเกาะบรรทัดใดบรรทัดหนึ่งถึงจะดูตั้งใจ */
-  .top-friends { top: calc(26px + env(safe-area-inset-top)); }
+  /* 1B94 · เฟืองอยู่ช่องเดียวกับปุ่มเพื่อน จึงต้องขยับพร้อมกันเสมอ
+     แยกบรรทัดเมื่อไหร่ ปุ่มสองตัวจะไม่อยู่ระดับเดียวกันบนเครื่องที่มีนอตช์ */
+  .top-friends, .top-set { top: calc(26px + env(safe-area-inset-top)); }
 }
 
 /* ---------- ปุ่มเฟืองในการ์ดโปรไฟล์ (1A9e) ---------- */
@@ -6124,6 +6126,38 @@ body.deep-scr .top-friends { display: none; }
 .pf-set:active { background: rgba(255, 255, 255, .28); transform: scale(.92); }
 /* ปุ่มเพื่อนยังหลบหน้า "ฉัน" เหมือนเดิม — แถว "เพื่อน" อยู่ในลิสต์ข้างล่างอยู่แล้ว */
 .me-scr .top-friends { display: none; }
+
+/* ---------- ปุ่มตั้งค่ามุมขวาบน (1B94) ----------
+   ยืมทรงจาก .top-friends ทั้งก้อน เพราะทั้งสองปุ่มคือ "ช่องมุมขวาบน" ช่องเดียวกัน
+   ที่สลับเนื้อในตามหน้า ไม่ใช่ปุ่มสองปุ่มที่บังเอิญอยู่ใกล้กัน — ถ้าขนาดหรือเงาไม่ตรงกัน
+   มันจะกระตุกตอนสลับหน้า ทั้งที่ผู้ใช้ไม่ได้รู้สึกว่ามีอะไรถูกสลับ
+
+   ค่าเริ่มต้นคือซ่อน แล้วโผล่เฉพาะ .me-scr — ไม่ใช่ตรงข้าม เพราะจอที่ควรมีเฟือง
+   มีจอเดียว ส่วนจอที่ไม่ควรมีคือทุกจอที่เหลือ กฎที่สั้นกว่าคือกฎที่พังยากกว่า */
+.top-set {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 91;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform .16s ease;
+}
+.top-set svg { width: 18px; height: 18px; }
+.top-set:active { transform: scale(.9); }
+.me-scr .top-set { display: flex; }
+/* จอที่มีปุ่มย้อนกลับของตัวเองมุมขวาบน (deep-scr) ต้องไม่มีเฟืองมาทับ —
+   ตัวหน้า "ฉัน" อยู่บนแถบล่างจึงไม่เคยเป็น deep-scr แต่เขียนกันไว้เหมือนปุ่มเพื่อน */
+.login-mode .top-set, .deep-scr .top-set { display: none; }
 
 /* ---------- หัวจอตั้งค่า + การ์ดตัวตน (1A9d) ---------- */
 .set-top {
@@ -7116,3 +7150,126 @@ body.deep-scr .top-friends { display: none; }
 }
 .wy-frag .wy-k { color: var(--warn); }
 .wy-frag .wy-v { color: var(--warn); font-size: 13px; }
+
+/* ============================================================
+   1B94 · ปุ่มรวม — เมนูสองทาง + แผ่นผู้ช่วย
+   ============================================================
+   ทรงและระยะยืมจาก .add-sheet (today.css) ทั้งชุด — แผ่นสองแผ่นที่เลื่อนขึ้น
+   จากก้นจอเหมือนกันต้องเคลื่อนที่เหมือนกัน ไม่งั้นมันอ่านเป็นคนละแอป
+   ตัวเลข z-index ต้องสูงกว่าแถบล่าง (.tabbar) และปุ่มลอย (.fd-fab z-index 6)
+   แต่ต่ำกว่าแผ่นเพิ่มงาน (95) ไม่ได้ — ทั้งสองไม่มีวันเปิดพร้อมกัน จึงใช้ชั้นเดียวกันได้ */
+
+/* ---------- เมนูสองทางที่กางจากปุ่ม ---------- */
+.fab-hub { position: absolute; inset: 0; z-index: 94; }
+.fab-hub[hidden] { display: none; }
+.fh-scrim {
+  position: absolute; inset: 0; background: rgba(0, 0, 0, .38);
+  opacity: 0; transition: opacity .2s ease;
+}
+.fab-hub.on .fh-scrim { opacity: 1; }
+
+/* --y คือระยะเหนือปุ่มหลัก · ตั้งค่าเป็น inline style ตอนวาด เพราะจำนวนตัวเลือก
+   เปลี่ยนได้ (ยังไม่ล็อกอิน = ไม่มีเมนูเลย กดแล้วเปิดผู้ช่วยตรง ๆ) */
+.fh-op {
+  position: absolute; right: 16px;
+  bottom: calc(var(--tabgap) + 78px + var(--y, 52px));
+  display: flex; align-items: center; gap: 10px;
+  border: 0; background: none; padding: 0; font: inherit; cursor: pointer;
+  opacity: 0; transform: translateY(10px);
+  transition: opacity .18s ease var(--d, 0s), transform .18s ease var(--d, 0s);
+}
+.fab-hub.on .fh-op { opacity: 1; transform: none; }
+.fh-lb {
+  padding: 6px 12px; border-radius: 10px;
+  background: var(--card); color: var(--ink);
+  font-size: 13.5px; font-weight: 600; white-space: nowrap;
+  box-shadow: var(--shadow-lg);
+}
+.fh-cir {
+  position: relative; flex: none;
+  width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--card); color: var(--blue);
+  box-shadow: var(--shadow-lg);
+}
+.fh-cir svg { width: 20px; height: 20px; }
+.fh-op:active .fh-cir { transform: scale(.92); }
+.fh-cir i {
+  position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px;
+  padding: 0 5px; border-radius: 999px;
+  background: var(--bad, #e5484d); color: #fff;
+  border: 2px solid var(--card);
+  font-style: normal; font-size: 10px; font-weight: 700; line-height: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+/* ปุ่มหลักหมุนเป็นกากบาทตอนกางอยู่ — บอกว่าการกดครั้งต่อไปคือ "ปิด" ไม่ใช่ "เปิดอีกอัน" */
+.fd-fab.open { transform: rotate(90deg); }
+.fd-fab { transition: transform .2s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .fh-scrim, .fh-op, .fd-fab { transition: none; }
+}
+
+/* ---------- แผ่นผู้ช่วย ---------- */
+.ai-sheet { position: absolute; inset: 0; z-index: 95; }
+.ai-sheet[hidden] { display: none; }
+.ah-scrim {
+  position: absolute; inset: 0; background: rgba(0, 0, 0, .5);
+  opacity: 0; transition: opacity .2s ease;
+}
+.ai-sheet.on .ah-scrim { opacity: 1; }
+.ah-card {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 8px 14px calc(20px + env(safe-area-inset-bottom));
+  background: var(--card); border-radius: 22px 22px 0 0;
+  transform: translateY(100%); transition: transform .24s cubic-bezier(.22, 1, .36, 1);
+  max-height: 86%; overflow-y: auto;
+}
+.ai-sheet.on .ah-card { transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ah-scrim, .ah-card { transition: none; }
+}
+.ah-grip { width: 38px; height: 4px; margin: 4px auto 12px; border-radius: 999px; background: var(--line); }
+.ah-h { margin-bottom: 12px; font-size: 16px; font-weight: 700; color: var(--ink); }
+/* บรรทัดรอง = ตัวเลขจริงว่าผู้ช่วยเห็นอะไร ไม่ใช่คำโปรย — จึงเป็นสีปกติที่อ่านออก
+   ไม่ใช่สีจางระดับคำบรรยายที่สายตากวาดข้าม */
+.ah-h i { display: block; margin-top: 2px; font-style: normal; font-size: 12px;
+  font-weight: 400; color: var(--muted); }
+
+.ah-tools { display: flex; flex-direction: column; gap: 8px; }
+.ah-tool {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 11px 12px; border: 0; border-radius: 14px;
+  background: var(--surface); font: inherit; text-align: left; cursor: pointer;
+}
+.ah-tool:active { transform: scale(.985); }
+.ah-ic {
+  flex: none; width: 38px; height: 38px; display: grid; place-items: center;
+  border-radius: 12px; background: var(--blue); color: var(--on-accent);
+}
+.ah-ic svg { width: 18px; height: 18px; }
+.ah-tx { flex: 1; min-width: 0; }
+.ah-tx b { display: block; font-size: 14.5px; font-weight: 600; color: var(--ink); }
+.ah-tx span { display: block; margin-top: 1px; font-size: 12px; color: var(--muted); }
+
+/* ทางลัดเป็นชิปแบน ๆ ไม่ใช่การ์ด — ความต่างของรูปทรงคือสิ่งที่บอกว่า
+   ของกลุ่มนี้ไปที่น้องไซตัวเดียวกันหมด ไม่ใช่เครื่องมือคนละตัว (เจ้าของสั่งข้อนี้ตรง ๆ) */
+.ah-qa-h { margin: 16px 0 7px; font-size: 11.5px; font-weight: 600;
+  letter-spacing: .04em; color: var(--muted); }
+.ah-qa { display: flex; flex-wrap: wrap; gap: 6px; }
+.ah-qa button {
+  padding: 7px 13px; border: 1px solid var(--line); border-radius: 999px;
+  background: none; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer;
+}
+.ah-qa button:active { background: var(--surface); transform: scale(.96); }
+
+.ah-ask {
+  display: flex; align-items: center; width: 100%; margin-top: 14px;
+  padding: 12px 10px 12px 16px; border: 1px solid var(--line); border-radius: 999px;
+  background: none; color: var(--muted); font: inherit; font-size: 14px;
+  text-align: left; cursor: pointer;
+}
+.ah-ask-go {
+  margin-left: auto; flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--blue); color: var(--on-accent);
+}
+.ah-ask-go svg { width: 15px; height: 15px; }

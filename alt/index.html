@@ -288,6 +288,23 @@
       <svg viewBox="0 0 24 24"><use href="#lu-users"/></svg>
       <span class="tf-badge" id="friendsBadge" hidden></span>
     </button>
+    <!-- ============================================================
+         1B94 · ปุ่มตั้งค่ามุมขวาบนของหน้า "ฉัน" (เจ้าของสั่งเอง · อนุมัติจากภาพร่าง)
+         ============================================================
+         go() มีบรรทัด me-scr ที่เขียนไว้ตั้งแต่ 1A9e ว่า "หน้าฉันสลับปุ่มมุมขวาบน
+         จากเพื่อนเป็นตั้งค่า" แต่ครึ่งหลังของประโยคนั้นหายไปตั้งแต่ 1B70:
+         ปุ่มเฟืองตัวเดิม (.pf-set) ถูกวาดอยู่ในการ์ดโปรไฟล์สีน้ำเงิน แล้วการ์ดใบนั้น
+         ถูกแทนด้วย profileHeadHTML() ซึ่งเป็นหัวร่วมกับหน้าที่เพื่อนเปิดดู —
+         และหัวนั้นจะมีปุ่มตั้งค่าของเราไม่ได้ เพราะเพื่อนก็เห็นหัวเดียวกัน
+         ผลคือ .me-scr ซ่อนปุ่มเพื่อนทิ้งไปเฉย ๆ แล้วมุมขวาบนว่างมาสองรุ่น
+         ส่วนทางเข้าตั้งค่าเหลือแถวที่หกในลิสต์ ซึ่งต้องเลื่อนลงไปหา
+
+         ปุ่มนี้จึงอยู่ "นอกกองจอ" คู่กับปุ่มเพื่อน ไม่ใช่ในหัวโปรไฟล์ — ตำแหน่ง
+         ขนาด และเงาชุดเดียวกันเป๊ะ เพราะมันคือช่องเดียวกันของจอที่สลับเนื้อในตามหน้า
+         (ดู .top-set ใน alt.css · ทั้งคู่ซ่อนพร้อมกันในโหมดล็อกอิน) -->
+    <button class="top-set" onclick="go('scr-settings')" aria-label="ตั้งค่า">
+      <svg viewBox="0 0 24 24"><use href="#lu-cog"/></svg>
+    </button>
     <div class="screens">
 
       <!-- ============ SCREEN: LOGIN ============ -->
@@ -893,11 +910,9 @@
               <span class="pe-tx"><b>เหรียญตรา</b><i id="peBadgeCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button class="pe" onclick="go('scr-settings')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-cog"/></svg></span>
-              <span class="pe-tx"><b>ตั้งค่าแอป</b><i>ธีม · ตัวอักษร · การแจ้งเตือน · เพดานงานต่อวัน</i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
+            <!-- 1B94 · แถว "ตั้งค่าแอป" ถูกถอดออก — ไปอยู่ที่เฟืองมุมขวาบนแล้ว
+                 ปุ่มสองปุ่มที่ไปที่เดียวกันคือสิ่งที่จอนี้เพิ่งเลิกทำไปเมื่อ 1B93
+                 (เหตุผลเดียวกับที่ "ปฏิทิน" ถูกถอดออกจากแถบล่างใน 1A9) -->
             <div class="pe-split"></div>
             <button class="pe pe-shop" onclick="go('scr-shop')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-bag"/></svg></span>
@@ -1164,7 +1179,18 @@
               <svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg><span>Pro</span></button>
           </div>
 
-          <div class="set-grp">บัญชีของฉัน</div>
+          <!-- ============================================================
+               1B94 · สี่หมวดจัดใหม่ตามที่เจ้าของสั่ง (บัญชี · Student OS · ความปลอดภัย)
+               ============================================================
+               ไม่มีแถวไหนถูกสร้างใหม่หรือถูกลบ — ย้ายที่อย่างเดียว ยกเว้นสองแถว:
+               "ผู้ช่วย AI" (ต่อเข้าฟังก์ชันที่มีอยู่แล้วทั้งคู่) กับ "การกรองเนื้อหา"
+               (แถวบอกสถานะ ไม่มีปลายทาง เพราะการรายงานเป็นของที่ทำจากบนโพสต์ ไม่ใช่จากที่นี่)
+
+               หมวดที่สเปกขอแต่ยังไม่มีของจริงคือ "ภาษา" — แอปเป็นไทยล้วนทั้งตัว
+               ยังไม่มีชุดคำแปลสักภาษา แถวที่กดแล้วไม่มีอะไรให้เลือกแย่กว่าไม่มีแถว
+               หมวดที่สี่ (ข้อมูลของฉัน) ไม่ได้อยู่ในสามหมวดที่สั่ง แต่ "ล้างข้อมูลทั้งหมด"
+               ต้องอยู่ท้ายสุดเสมอ และมันไม่ใช่เรื่องความปลอดภัย -->
+          <div class="set-grp">บัญชี</div>
           <div class="set-card">
             <div class="set-row">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#ic-profile"/></svg></span>
@@ -1188,11 +1214,38 @@
               </span>
             </div>
           </div>
+          <!-- การแจ้งเตือนอยู่ในหมวด "บัญชี" ตามที่สั่ง — มันคือของที่ตั้งครั้งเดียว
+               ต่อหนึ่งคน ไม่ใช่ของที่ปรับตามอารมณ์เหมือนธีมหรือขนาดตัวอักษร -->
+          <div class="set-card">
+            <div class="set-row" id="notifRow">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg></span>
+              <span class="set-lb">การแจ้งเตือน<i id="notifStatus">ยังไม่ได้เปิด</i></span>
+              <button class="btn secondary sm" id="notifTest" style="width:auto;min-height:34px;padding:0 12px;display:none"
+                onclick="testNotify()">ทดสอบ</button>
+              <button class="btn secondary sm" id="notifBtn" style="width:auto;min-height:34px;padding:0 14px" onclick="enableNotif()">เปิด</button>
+            </div>
+            <!-- เลือกได้ว่าจะรับแบบไหน — โผล่เฉพาะตอนอนุญาตแจ้งเตือนแล้ว
+                 มีอยู่เพื่อกันไม่ให้คนที่รำคาญอย่างเดียว ไปปิดการแจ้งเตือนที่เบราว์เซอร์
+                 ซึ่งปิดแล้วปิดเลย เบราว์เซอร์ไม่ถามซ้ำ แล้วเขาจะไม่ได้รับของด่วนไปด้วยตลอดกาล
+                 สวิตช์ที่ย้อนกลับได้ตรงนี้ ถูกกว่าการเสียคนหนึ่งคนไปถาวรมาก -->
+            <div class="set-row" id="prefDueRow" hidden>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-bell"/></svg></span>
+              <span class="set-lb">เตือนงานใกล้ถึงกำหนด<i>เย็นก่อนวันส่ง และวันที่ต้องส่ง</i></span>
+              <button class="btn secondary sm" id="prefDueBtn" style="width:auto;min-height:34px;padding:0 14px"
+                onclick="toggleNotifPref('notifDue')">เปิดอยู่</button>
+            </div>
+            <div class="set-row" id="prefNudgeRow" hidden>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-chat"/></svg></span>
+              <span class="set-lb">ทักเมื่อไม่ได้เปิดหลายวัน<i>ไม่เกินสัปดาห์ละครั้ง</i></span>
+              <button class="btn secondary sm" id="prefNudgeBtn" style="width:auto;min-height:34px;padding:0 14px"
+                onclick="toggleNotifPref('notifNudge')">เปิดอยู่</button>
+            </div>
+          </div>
 
           <!-- หน้าตาแอป — แต่ละแถวพาไปหน้าย่อยที่มีตัวเลือกจริง
                ของพวกนี้เคยกางอยู่ในจอเดียวกันหมด ธีม 16 อันเรียงเป็นตาราง บวกวิดเจ็ต
                ตัวอักษร แถบเมนู พื้นหลัง — จอเลื่อนยาวจนหาของที่ตั้งใจจะมาแก้ไม่เจอ -->
-          <div class="set-grp">หน้าตาแอป</div>
+          <div class="set-grp">Student OS</div>
           <div class="set-card">
             <button type="button" class="set-row go" onclick="openSetOpt('theme')">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-contrast"/></svg></span>
@@ -1221,30 +1274,25 @@
               <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
           </div>
 
-          <div class="set-grp">การแจ้งเตือนและแอป</div>
+          <!-- การ์ดที่สองของหมวด Student OS — ของที่เป็นเรื่องของ "ตัวแอป"
+               ไม่ใช่ของบัญชีและไม่ใช่หน้าตา จึงอยู่หลังของที่ปรับบ่อย -->
           <div class="set-card">
-            <div class="set-row" id="notifRow">
-              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg></span>
-              <span class="set-lb">การแจ้งเตือน<i id="notifStatus">ยังไม่ได้เปิด</i></span>
-              <button class="btn secondary sm" id="notifTest" style="width:auto;min-height:34px;padding:0 12px;display:none"
-                onclick="testNotify()">ทดสอบ</button>
-              <button class="btn secondary sm" id="notifBtn" style="width:auto;min-height:34px;padding:0 14px" onclick="enableNotif()">เปิด</button>
-            </div>
-            <!-- เลือกได้ว่าจะรับแบบไหน — โผล่เฉพาะตอนอนุญาตแจ้งเตือนแล้ว
-                 มีอยู่เพื่อกันไม่ให้คนที่รำคาญอย่างเดียว ไปปิดการแจ้งเตือนที่เบราว์เซอร์
-                 ซึ่งปิดแล้วปิดเลย เบราว์เซอร์ไม่ถามซ้ำ แล้วเขาจะไม่ได้รับของด่วนไปด้วยตลอดกาล
-                 สวิตช์ที่ย้อนกลับได้ตรงนี้ ถูกกว่าการเสียคนหนึ่งคนไปถาวรมาก -->
-            <div class="set-row" id="prefDueRow" hidden>
-              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-bell"/></svg></span>
-              <span class="set-lb">เตือนงานใกล้ถึงกำหนด<i>เย็นก่อนวันส่ง และวันที่ต้องส่ง</i></span>
-              <button class="btn secondary sm" id="prefDueBtn" style="width:auto;min-height:34px;padding:0 14px"
-                onclick="toggleNotifPref('notifDue')">เปิดอยู่</button>
-            </div>
-            <div class="set-row" id="prefNudgeRow" hidden>
-              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-chat"/></svg></span>
-              <span class="set-lb">ทักเมื่อไม่ได้เปิดหลายวัน<i>ไม่เกินสัปดาห์ละครั้ง</i></span>
-              <button class="btn secondary sm" id="prefNudgeBtn" style="width:auto;min-height:34px;padding:0 14px"
-                onclick="toggleNotifPref('notifNudge')">เปิดอยู่</button>
+            <!-- ============================================================
+                 1B94 · แถวผู้ช่วย AI — ปุ่มสองปุ่มที่ทำงานจริงทั้งคู่ ไม่ใช่แถวประดับ
+                 ============================================================
+                 สเปกขอ "การตั้งค่าผู้ช่วย AI" ซึ่งของจริงยังไม่มีอะไรให้ "ตั้ง" สักอย่าง
+                 (โมเดล ขอบเขต และ system prompt อยู่ฝั่ง Edge Function ทั้งหมด
+                  ซึ่งเป็นที่ที่บังคับใช้ได้จริง ต่างจากสวิตช์บนเครื่องที่เป็นแค่คำขอ)
+                 สิ่งที่ผู้ใช้ทำได้จริงมีสองอย่าง และทั้งสองอย่างมีฟังก์ชันอยู่แล้ว:
+                 เปิดดูว่าส่งอะไรไปกับคำถาม (ของจริง ไม่ใช่คำอธิบาย) และล้างประวัติ
+                 แถวที่มีแต่ของที่กดแล้วเกิดอะไรขึ้นจริง ดีกว่าแถวที่ครบตามสเปกแต่กดแล้วเงียบ -->
+            <div class="set-row" id="aiPrefRow">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+              <span class="set-lb">ผู้ช่วย AI<i>น้องไซเห็นงาน ตารางเรียน และเวลาว่างของคุณ</i></span>
+              <button class="btn secondary sm" style="width:auto;min-height:34px;padding:0 12px"
+                onclick="aiShowContext()">เห็นอะไร</button>
+              <button class="btn secondary sm" style="width:auto;min-height:34px;padding:0 12px"
+                onclick="aiClear()">ล้างประวัติ</button>
             </div>
             <div class="set-row" id="installCard" hidden>
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-check-circle"/></svg></span>
@@ -1269,8 +1317,31 @@
             </div>
           </div>
 
-          <div class="set-grp">ข้อมูลของฉัน</div>
+          <!-- ความปลอดภัย — บัญชี · สิ่งที่เก็บ · การถอนตัว อยู่ใน #accountCard
+               ซึ่งวาดจาก app.js เพราะเนื้อในต่างกันสามแบบ (ยังไม่ตั้งค่า cloud /
+               ล็อกอินแล้ว / ยังไม่ล็อกอิน) · อย่าแยกสามปุ่มนั้นออกจากกัน มันเป็นชุดเดียว
+               ในหัวคน: "ฉันจะถอนตัวยังไง" -->
+          <div class="set-grp">ความปลอดภัย</div>
           <div id="accountCard"></div>
+          <div class="set-card">
+            <!-- ============================================================
+                 1B94 · แถวบอกว่าตัวกรองมีอยู่ และมันทำอะไรกับของที่เราส่ง
+                 ============================================================
+                 ไม่มีปลายทาง ไม่มีสวิตช์ และตั้งใจให้เป็นแบบนั้น:
+                 - สวิตช์ปิดตัวกรองไม่ควรมีอยู่ในแอปที่ผู้ใช้เป็นผู้เยาว์
+                 - การรายงานเป็นของที่ทำ "บนของชิ้นที่มีปัญหา" (ปุ่ม ··· บนโพสต์/ข้อความ)
+                   ไม่ใช่ของที่ทำจากหน้าตั้งค่า — แถวที่พาไปหน้ารายการรายงานเปล่า ๆ
+                   คือแถวที่กดแล้วต้องย้อนกลับมาทุกครั้ง
+                 สิ่งที่แถวนี้ทำจริงคือตอบคำถาม "มีใครดูแลอยู่ไหม" ซึ่งเป็นคำถามที่
+                 ทั้งนักเรียนและผู้ปกครองถาม และตอนนี้ทั้งแอปไม่มีที่ไหนตอบเลย -->
+            <div class="set-row" id="modInfoRow">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
+              <span class="set-lb">การกรองเนื้อหา<i>รูปถูกตรวจก่อนส่ง · ข้อความตรวจหลังส่ง ·
+                รายงานหรือบล็อกได้จากปุ่ม ··· บนโพสต์และข้อความทุกชิ้น</i></span>
+            </div>
+          </div>
+
+          <div class="set-grp">ข้อมูลของฉัน</div>
           <div class="set-card">
             <button type="button" class="set-row go" onclick="loadSample()">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-book"/></svg></span>
@@ -1485,7 +1556,16 @@
          และโผล่แค่จอเดียว · ย้ายมาเป็นพี่น้องกับแถบเมนู = อิงกล่องเดียวกัน
          อยู่นิ่งเสมอ และเห็นได้จากทุกจอโดยไม่ต้องวาดซ้ำ
     -->
-    <button class="fd-fab" id="feedFab" aria-label="ข้อความ" hidden></button>
+    <button class="fd-fab" id="feedFab" aria-label="ข้อความและผู้ช่วย" hidden></button>
+
+    <!-- ============================================================
+         1B94 · เมนูที่กางจากปุ่มรวม + แผ่นผู้ช่วย
+         ============================================================
+         ทั้งคู่อยู่นอกกองจอด้วยเหตุผลเดียวกับปุ่มที่มันเกาะอยู่: .screen เป็น
+         absolute + overflow-y:auto ของที่วาดข้างในจะเลื่อนหนีตามเนื้อหา
+         และโผล่แค่จอเดียว · วาดเนื้อในจาก toggleFabHub()/openAiHub() ใน app.js -->
+    <div class="fab-hub" id="fabMenu" hidden></div>
+    <div class="ai-sheet" id="aiSheet" hidden></div>
 
     <!-- ============ TAB BAR ============ -->
     <!-- แผ่นรายงาน — ลอยทับได้ทุกจอ จึงอยู่นอกกองจอ -->

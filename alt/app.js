@@ -951,6 +951,11 @@ function go(id) {
   document.body.classList.toggle('deep-scr', !TABBED_SCREENS.includes(id));
   // ปุ่มข้อความลอยต้องอัปเดตทุกครั้งที่เปลี่ยนจอ — มันอยู่นอกกองจอ
   // จึงไม่มีใครวาดใหม่ให้เองเหมือนของที่อยู่ในจอ (1B70)
+  // 1B94 · เมนูกับแผ่นผู้ช่วยก็อยู่นอกกองจอเหมือนกัน ย้ายจอทั้งทีต้องเก็บทั้งคู่ด้วย
+  // ไม่งั้นมันค้างลอยทับจอใหม่ทั้งที่ผู้ใช้ไม่ได้สั่งอะไร (ปุ่มย้อนกลับของเครื่อง
+  // ไม่ได้ผูกกับจอในแอปนี้ ทางออกของแผ่นจึงมีแค่แตะพื้นที่ว่างกับย้ายจอ)
+  if (typeof closeFabHub === 'function') closeFabHub(true);
+  if (typeof closeAiHub === 'function') closeAiHub();
   if (typeof paintFeedFab === 'function') paintFeedFab();
   // ปุ่มเพื่อนลอยมุมขวาบนต้องหลบหน้า "วันนี้" — มันนั่งทับกระดิ่งกล่องเข้าพอดี
   // และเพื่อนไม่ใช่คำตอบของ "ตอนนี้ควรทำอะไร" · ทางเข้ายังอยู่ครบสองที่ในแท็บ "ฉัน"
@@ -2753,6 +2758,179 @@ function closeAddSheet() {
   el.classList.remove('on');
   addSheetView = 'root';   // เปิดครั้งหน้าต้องเริ่มที่หน้าหลักเสมอ ไม่ใช่ค้างอยู่หน้าตัวเชื่อม
   setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
+}
+
+// ============================================================
+// 1B94 · ปุ่มรวม — ข้อความ + ผู้ช่วย (เจ้าของเลือกแบบ B จากภาพร่าง)
+// ============================================================
+// ปุ่มลอยมุมขวาล่างมีเจ้าของอยู่ก่อนแล้ว: มันคือกล่องข้อความ และเจ้าของสั่งเองสองรอบ
+// ให้มันติดขอบจอทุกหน้า (ดูหัวไฟล์ของ paintFeedFab ใน feed.js) · การเอามันไปเป็น
+// AI Hub เฉย ๆ จึงเท่ากับถอดทางเข้าที่สั่งไว้เองทิ้ง — คำตอบที่เจ้าของเลือกคือ
+// "ปุ่มเดียว กางออกมาสองทาง" ซึ่งรักษาทั้งเลขข้อความบนปุ่มและที่ทางของผู้ช่วยไว้ได้
+//
+// **ราคาที่รู้ตัวแล้วว่าจ่าย:** แชทถอยจากหนึ่งแตะเป็นสองแตะ
+// ถ้าใช้จริงแล้วรำคาญ ทางแก้คือ "แตะ = เปิดแชท · กดค้าง = กางเมนู" ซึ่งแก้ที่ toggleFabHub
+// บรรทัดเดียว ไม่ต้องรื้อ CSS หรือ markup อะไรเลย
+//
+// สิ่งที่เปลี่ยนไปจากเดิมและสำคัญ: **ปุ่มนี้โผล่แม้ยังไม่ล็อกอิน**
+// ของเดิมซ่อนทั้งปุ่มเมื่อ !currentUser เพราะมันเป็นปุ่มข้อความล้วน ๆ
+// แต่ผู้ช่วยใช้ได้โดยไม่ต้องมีบัญชี (ask-sai ยิงด้วย anon key) การซ่อนทั้งปุ่ม
+// จึงเท่ากับซ่อนผู้ช่วยจากคนที่ยังไม่ได้สมัคร ซึ่งเป็นคนกลุ่มที่ต้องการมันที่สุด
+let fabHubOpen = false;
+
+// ข้อความใช้ได้เมื่อไหร่ — ต้องล็อกอิน *และ* หลังบ้านมี dm_inbox แล้ว
+// สองเงื่อนไขนี้เป็นของกล่องข้อความอย่างเดียว ห้ามเอาไปคุมทั้งปุ่ม
+function dmUsable() {
+  return !!(typeof currentUser !== 'undefined' && currentUser
+    && typeof dmReady !== 'undefined' && dmReady);
+}
+
+function toggleFabHub() {
+  if (fabHubOpen) { closeFabHub(); return; }
+  // มีปลายทางเดียว = ไม่ต้องกาง · เมนูที่มีตัวเลือกเดียวคือขั้นตอนที่เพิ่มมาเปล่า ๆ
+  const el = document.getElementById('fabMenu');
+  if (!dmUsable() || !el) { openAiHub(); return; }
+
+  const n = typeof dmPending === 'number' ? dmPending : 0;
+  // ผู้ช่วยอยู่ใกล้ปุ่มหลักที่สุด ตามภาพร่างที่อนุมัติ · ไล่ขึ้นทีละอันห่างกัน 40ms
+  // (ขึ้นพร้อมกันทั้งคู่จะอ่านเป็น "เมนูเด้ง" ส่วนไล่ขึ้นอ่านเป็น "ปุ่มคลี่ออก")
+  clearTimeout(fabHubTimer);
+  el.innerHTML = `
+    <div class="fh-scrim" onclick="closeFabHub()"></div>
+    <button class="fh-op" style="--d:.04s;--y:52px" onclick="closeFabHub();openAiHub()">
+      <span class="fh-lb">ผู้ช่วย AI</span>
+      <span class="fh-cir">${icon('sparkles')}</span>
+    </button>
+    <button class="fh-op" style="--d:0s;--y:98px" onclick="closeFabHub();openDmInbox()">
+      <span class="fh-lb">ข้อความ</span>
+      <span class="fh-cir">${icon('chat')}${n ? `<i>${n > 9 ? '9+' : n}</i>` : ''}</span>
+    </button>`;
+  el.hidden = false;
+  fabHubOpen = true;
+  // setTimeout ไม่ใช่ rAF ด้วยเหตุผลเดียวกับ openAddSheet — rAF ไม่ทำงานเลย
+  // ถ้าหน้าไม่ได้ถูกวาดจริง แล้วเมนูจะค้างอยู่ในสถานะโปร่งใสแบบถาวรโดยไม่มี error
+  setTimeout(() => el.classList.add('on'), 16);
+  const fab = document.getElementById('feedFab');
+  if (fab) { fab.classList.add('open'); fab.innerHTML = icon('x'); }
+  haptic('tap');
+}
+
+function closeFabHub(instant) {
+  // ปิดอยู่แล้ว = ออกทันที · ด่านนี้ไม่ใช่การกันงานซ้ำ แต่กันลูปไม่รู้จบ:
+  // ตัวมันเองเรียก paintFeedFab() ตอนจบ และ paintFeedFab() เรียกตัวนี้กลับมา
+  // ตอนที่ปุ่มต้องหายไปจากจอ — ไม่มีด่านนี้ สองตัวจะเรียกกันไปเรื่อยจนจอค้าง
+  if (!fabHubOpen) return;
+  const el = document.getElementById('fabMenu');
+  fabHubOpen = false;
+  if (el) {
+    el.classList.remove('on');
+    clearTimeout(fabHubTimer);
+    if (instant) { el.hidden = true; el.innerHTML = ''; }
+    else fabHubTimer = setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
+  }
+  const fab = document.getElementById('feedFab');
+  if (fab) fab.classList.remove('open');
+  // ไอคอนกับเลขบนปุ่มหลักคืนค่าโดย paintFeedFab ไม่ใช่เขียนซ้ำตรงนี้ —
+  // เลขข้อความมีที่มาที่เดียว ถ้าเขียนสองที่วันหนึ่งมันจะไม่ตรงกัน
+  if (typeof paintFeedFab === 'function') paintFeedFab();
+}
+
+// ---------- แผ่นผู้ช่วย ----------
+// เป็นแผ่นเลื่อนขึ้น ไม่ใช่ปุ่มกลมอีกหกลูก — ข้อกำหนดของเจ้าของคือ "ต้องไม่รกบนมือถือ"
+// และปุ่มลอยหกลูกคือของที่บังเนื้อหาตั้งแต่ยังไม่ได้กดอะไรเลย
+// ตัวจับเวลา "เก็บของหลังแอนิเมชันจบ" ต้องยกเลิกได้ — ไม่งั้นเจอบั๊กนี้:
+// go() สั่งปิดแผ่นทุกครั้งที่ย้ายจอ ซึ่งตั้งเวลาเก็บของไว้ 200ms
+// ถ้าระหว่างนั้นมีคนเปิดแผ่นใหม่ (เช่น aiHubAsk ที่ปิด → ย้ายจอ → เปิด)
+// ตัวจับเวลาของรอบก่อนจะมาถึงแล้วซ่อนแผ่นที่เพิ่งเปิด — แผ่นหายไปเองโดยไม่มี error
+// เจอตอนตรวจบนเครื่องจริง ไม่ใช่ตอนอ่านโค้ด
+let aiSheetTimer = null, fabHubTimer = null;
+
+function openAiHub() {
+  const el = document.getElementById('aiSheet');
+  if (!el) { go('scr-ai'); return; }
+  clearTimeout(aiSheetTimer);
+  el.innerHTML = `<div class="ah-scrim" onclick="closeAiHub()"></div>
+    <div class="ah-card" role="dialog" aria-label="ผู้ช่วย">${aiHubHTML()}</div>`;
+  el.hidden = false;
+  setTimeout(() => el.classList.add('on'), 16);
+  haptic('tap');
+}
+
+function closeAiHub() {
+  const el = document.getElementById('aiSheet');
+  if (!el || el.hidden) return;   // ปิดอยู่แล้ว = ห้ามตั้งเวลาเก็บของซ้ำ (ดูหมายเหตุข้างบน)
+  el.classList.remove('on');
+  clearTimeout(aiSheetTimer);
+  aiSheetTimer = setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
+}
+
+// ---------- สามอย่างที่ทำงานต่างกันจริง ----------
+// เจ้าของสั่งตรง ๆ ว่า "ไม่ต้องสร้าง AI ปลอม 6 ตัว" — สามการ์ดนี้คือสามความสามารถ
+// ที่มาจากคนละที่กันจริง ๆ ส่วนของที่ยิงเข้า ask-sai เหมือนกันหมดไปอยู่แถวทางลัดข้างล่าง
+// ซึ่งหน้าตาต่างกันชัดเจน ไม่ได้ปลอมเป็นเครื่องมือคนละตัว
+const AI_HUB_TOOLS = [
+  ['book', 'ช่วยการบ้าน', 'อธิบายทีละขั้น ไม่เฉลยให้ลอก',
+    "aiHubAsk('อธิบายการบ้านที่ค้างอยู่ให้เข้าใจหน่อย ผมยังไม่รู้จะเริ่มตรงไหน')"],
+  ['calendar', 'วางแผนเวลา', 'จัดวันนี้ให้ · คิดในเครื่อง ไม่กินโควตา',
+    "closeAiHub();go('scr-plan')"],
+  ['type', 'สรุป · ช่วยเรียน', 'ย่อบทเรียน ทำชุดทบทวนก่อนสอบ',
+    "aiHubAsk('ช่วยสรุปเนื้อหาที่ต้องอ่านสำหรับสอบให้หน่อย')"],
+];
+
+function aiHubHTML() {
+  const pend = pendingTasks().length;
+  const nCls = typeof ctxClasses === 'function' ? ctxClasses().length : 0;
+  // บรรทัดรองคือบรรทัดเดียวกับที่จอน้องไซใช้ — มันคือคำตอบของ "AI เห็นอะไรของฉันบ้าง"
+  // ซึ่งต้องตอบด้วยตัวเลขจริง ไม่ใช่คำสัญญาว่าเก็บเท่าที่จำเป็น
+  const sub = 'เห็นงาน ' + pend + ' ใบ'
+    + (nCls ? ' · ตารางเรียน ' + nCls + ' คาบ' : '') + ' · เวลาว่างของคุณ';
+  const chips = aiHubChips();
+  return `<div class="ah-grip"></div>
+    <div class="ah-h">ผู้ช่วย<i>${esc(sub)}</i></div>
+    <div class="ah-tools">
+      ${AI_HUB_TOOLS.map(t => `<button class="ah-tool" onclick="${t[3]}">
+        <span class="ah-ic">${icon(t[0])}</span>
+        <span class="ah-tx"><b>${esc(t[1])}</b><span>${esc(t[2])}</span></span>
+      </button>`).join('')}
+    </div>
+    ${chips.length ? `<div class="ah-qa-h">ทางลัด</div>
+      <div class="ah-qa">${chips.map(c =>
+        `<button onclick="${c[1]}">${esc(c[0])}</button>`).join('')}</div>` : ''}
+    <button class="ah-ask" onclick="closeAiHub();go('scr-ai')">
+      ถามเอง…<span class="ah-ask-go">${icon('chevron')}</span>
+    </button>`;
+}
+
+// ทางลัดเปลี่ยนตามจอที่เปิดอยู่ — ปุ่มที่เสนอเรื่องที่ผู้ใช้ไม่ได้มองอยู่
+// คือปุ่มที่กดแล้วต้องอธิบายบริบทใหม่ทั้งหมดด้วยตัวเอง ซึ่งช้ากว่าพิมพ์เอง
+function aiHubChips() {
+  // หน้าสังคม: ผู้ช่วยไม่มีอะไรฉลาดจะเสนอเกี่ยวกับโพสต์ของคนอื่น เหลือแค่ "ถามเอง"
+  if (['scr-mates', 'scr-post', 'scr-user', 'scr-people', 'scr-room'].includes(curScreen)) return [];
+  const out = [];
+  const t = editingId ? state.tasks.find(x => x.id === editingId) : null;
+  if (t) {
+    const nm = (typeof taskLabel === 'function' ? taskLabel(t) : (t.detail || t.subject)) || 'งานนี้';
+    out.push(['แบ่งงานนี้', aiHubAskJs('ช่วยแบ่ง "' + nm + '" เป็นขั้นตอนย่อย ๆ ให้หน่อย')]);
+    out.push(['อธิบายเรื่องนี้', aiHubAskJs('อธิบาย "' + nm + '" ให้เข้าใจหน่อย ผมยังไม่รู้จะเริ่มตรงไหน')]);
+  }
+  out.push(['จัดลำดับงาน', aiHubAskJs('วันนี้ควรทำอะไรก่อน แล้วเรียงลำดับยังไงดี')]);
+  // ทางลัดนี้ไม่ใช่คำถาม — มันพาไปที่เครื่องมืออ่านตารางซึ่งมีอยู่แล้วแต่หาทางเข้าไม่เจอ
+  if (typeof openTtScan === 'function') out.push(['อ่านตารางจากรูป', 'closeAiHub();openTtScan()']);
+  return out;
+}
+
+// ข้อความคำถามมีทั้งเครื่องหมายคำพูดและชื่องานที่ผู้ใช้พิมพ์เอง จึงต้องหนีอักขระ
+// สองชั้น: ชั้นในสำหรับ JS string ในแอตทริบิวต์ onclick ชั้นนอกสำหรับ HTML
+function aiHubAskJs(q) {
+  return "aiHubAsk('" + esc(q).replace(/'/g, "\\'") + "')";
+}
+
+// ไปที่จอน้องไซก่อนแล้วค่อยถาม — aiAsk() เขียนผลลงจอนั้นโดยตรง
+// ถามก่อนย้ายจอแปลว่าคำตอบถูกวาดลงจอที่ยังไม่ได้เปิด แล้วหายไปตอน renderAll รอบถัดไป
+function aiHubAsk(q) {
+  closeAiHub();
+  go('scr-ai');
+  setTimeout(() => { if (typeof aiAsk === 'function') aiAsk(q); }, 80);
 }
 
 // ---------- ตารางงาน (เดิมคือหน้าแรก) ----------
