@@ -492,8 +492,19 @@
   '<textarea id="out" spellcheck="false"></textarea>' +
   '<div class="f2"><button class="b1" id="bCp">คัดลอกทั้งหมด</button><button class="b2" id="bDl">ดาวน์โหลด</button><button class="b2" id="bX">ปิด</button></div></div></div>';
 
-  var $ = function (s) { return sr.querySelector(s); };
-  var $$ = function (s) { return [].slice.call(sr.querySelectorAll(s)); };
+  /* ค้นได้หลายราก — พอแผงเครื่องมือถูกย้ายออกไปอยู่ในหน้าแม่ (โหมด dock)
+     มันไม่ได้อยู่ใน sr อีกต่อไป · ถ้า $ ยังค้นแค่ sr ปุ่มทุกปุ่มในแผงจะกลายเป็น null
+     แล้วแผงจะเงียบสนิทโดยไม่มี error ให้เห็น ซึ่งหาสาเหตุยากที่สุด */
+  var roots = [sr];
+  var $ = function (s) {
+    for (var i = 0; i < roots.length; i++) { var e = roots[i].querySelector(s); if (e) return e; }
+    return null;
+  };
+  var $$ = function (s) {
+    var out = [];
+    for (var i = 0; i < roots.length; i++) out = out.concat([].slice.call(roots[i].querySelectorAll(s)));
+    return out;
+  };
   var hl = $('#hl'), se = $('#se'), grip = $('#grip'), tip = $('#tip'), qb = $('#qb'), pn = $('#pn'), bd = $('#bd');
 
   function toast(m) { var t = $('#toast'); t.textContent = m; t.style.opacity = '1'; clearTimeout(t._t); t._t = setTimeout(function () { t.style.opacity = '0'; }, 1400); }
@@ -506,6 +517,7 @@
   }
 
   /* ==================== FRAME ==================== */
+  var docked = false;   // แผงเครื่องมือถูกย้ายไปอยู่ในหน้าแม่แล้วหรือยัง
   var HP = { nw: [0, 0], n: [.5, 0], ne: [1, 0], w: [0, .5], e: [1, .5], sw: [0, 1], s: [.5, 1], se: [1, 1] };
   function wide() { return innerWidth > 720; }
   function panelOpen() { return pn.classList.contains('open'); }
@@ -529,6 +541,9 @@
       h.style.top = (r.top + r.height * q[1] - 6) + 'px';
       h.style.display = 'block'; h.style.cursor = h.getAttribute('data-h') + '-resize';
     });
+    /* โหมด dock: แถบเครื่องมืออยู่นอกแอปแล้ว ไม่ต้องหาที่วางให้มันอีก
+       และห้ามคำนวณตำแหน่ง เพราะพิกัดที่ได้เป็นของหน้าต่างแอป ไม่ใช่ของหน้าแม่ */
+    if (docked) { qb.classList.add('show'); return; }
     /* จอแคบ + แผงเปิดอยู่ = แผงบังทั้งจอ แถบเครื่องมือจะโผล่ใต้แผงแบบกดไม่ได้ ซ่อนไปเลยดีกว่า */
     if (panelOpen() && !wide()) { qb.classList.remove('show'); return; }
     var qh = qb.offsetHeight || 250, qw = qb.offsetWidth || 322;
@@ -1245,33 +1260,69 @@
   }
 
   /* ==================== KEYBOARD ==================== */
-  document.addEventListener('keydown', function (e) {
-    if (!editing || paused) return;
-    var t = e.target;
-    if (t && /INPUT|TEXTAREA|SELECT/.test(t.tagName)) return;
-    if (t && t.getAttribute && t.getAttribute('contenteditable')) return;
+  /* ---------- คัดลอก/วางสไตล์ ----------
+     คัดลอกคือ "ก๊อปหน้าตาของชิ้นนี้" ไม่ใช่ก๊อปตัวชิ้น — วางแล้วชิ้นปลายทางได้สไตล์เดียวกัน
+     แต่ยังเป็นชิ้นเดิมของมัน ซึ่งเป็นสิ่งที่คนต้องการจริงเวลาไล่ปรับหลายชิ้นให้เหมือนกัน
+     (ก๊อปตัวชิ้นจริง ๆ ทำไม่ได้อยู่แล้ว เพราะแอปเขียนทับ innerHTML ทุกครั้งที่วาดใหม่) */
+  var clip = null;
+
+  function copyStyle() {
+    var k = ck();
+    if (!k || !S.rules[k]) { toast('ชิ้นนี้ยังไม่ได้ปรับอะไร ไม่มีอะไรให้คัดลอก'); return; }
+    clip = JSON.parse(JSON.stringify(S.rules[k]));
+    var n = Object.keys(clip).length;
+    toast('คัดลอกหน้าตาไว้แล้ว ' + n + ' อย่าง');
+  }
+
+  function pasteStyle() {
+    if (!clip) { toast('ยังไม่ได้คัดลอกอะไรไว้'); return; }
+    var k = ck();
+    if (!k) { toast('เลือกชิ้นที่จะวางก่อน'); return; }
+    S.rules[k] = S.rules[k] || {};
+    for (var p in clip) S.rules[k][p] = clip[p];
+    applyAll(); paint(); frame();
+    commit('วางหน้าตา');
+    toast('วางหน้าตาแล้ว');
+  }
+
+  function veKey(e) {
+    if (!editing || paused) return false;
     var m = e.ctrlKey || e.metaKey;
-    if (e.key === 'Escape') { cur = null; frame(); paint(); return; }
-    if (m && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
-    if (m && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
-    if (!cur) return;
-    if (e.key === '[') { if (cur.parentElement && cur.parentElement !== document.body) pick(cur.parentElement); return; }
-    if (e.key === ']') { if (cur.firstElementChild) pick(cur.firstElementChild); return; }
+    if (e.key === 'Escape') { cur = null; frame(); paint(); return true; }
+    if (m && e.key.toLowerCase() === 'z') { if (e.shiftKey) redo(); else undo(); return true; }
+    if (m && e.key.toLowerCase() === 'y') { redo(); return true; }
+    if (m && e.key.toLowerCase() === 'c') { copyStyle(); return true; }
+    if (m && e.key.toLowerCase() === 'v') { pasteStyle(); return true; }
+    if (!cur) return false;
+    if (e.key === '[') { if (cur.parentElement && cur.parentElement !== document.body) pick(cur.parentElement); return true; }
+    if (e.key === ']') { if (cur.firstElementChild) pick(cur.firstElementChild); return true; }
     var d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
-    if (!d) return;
-    e.preventDefault();
+    if (!d) return false;
     var st = e.shiftKey ? 10 : 1, c = xy();
     setXY(c[0] + d[0] * st, c[1] + d[1] * st);
     frame();
     clearTimeout(window.__veNudge);
     window.__veNudge = setTimeout(function () { commit('ขยับตำแหน่ง'); }, 500);
+    return true;
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (!editing || paused) return;
+    var t = e.target;
+    if (t && /INPUT|TEXTAREA|SELECT/.test(t.tagName)) return;
+    if (t && t.getAttribute && t.getAttribute('contenteditable')) return;
+    if (veKey(e)) { e.preventDefault(); return; }
+    var m = e.ctrlKey || e.metaKey;
+    if (!cur) return;
   }, true);
 
   /* ==================== BUTTONS ==================== */
   function openPanel(o) {
     pn.classList.toggle('open', o);
-    /* จอกว้าง: ขยับปุ่มมาซ้ายของแผง · จอแคบ: แผงกินทั้งจอ ซ่อนปุ่มไปเลย (ปิดแผงด้วยกากบาทในแผง) */
     var f = $('#fabs');
+    /* โหมด dock: ปุ่มกับแผงอยู่นอกแอปคนละที่กันอยู่แล้ว ไม่ต้องหลบกัน */
+    if (docked) { f.style.right = ''; f.style.display = 'flex'; frame(); return; }
+    /* จอกว้าง: ขยับปุ่มมาซ้ายของแผง · จอแคบ: แผงกินทั้งจอ ซ่อนปุ่มไปเลย (ปิดแผงด้วยกากบาทในแผง) */
     f.style.right = (o && wide()) ? '344px' : '14px';
     f.style.display = (o && !wide()) ? 'none' : 'flex';
     frame();
@@ -1291,6 +1342,9 @@
       cur = null; openPanel(false); hl.style.display = 'none'; tip.style.display = 'none';
       toast('ใช้แอปได้ตามปกติ');
     }
+    /* บอกหน้าแม่ว่าเข้า/ออกโหมดแก้แล้ว — Control Center ใช้สลับเป็นโต๊ะทำงาน
+       (ซ่อนแผงควบคุมซ้าย ขยายแอปเป็นขนาดจริง) ซึ่งทำเองไม่ได้ถ้าไม่รู้ว่าเริ่มแก้เมื่อไหร่ */
+    try { if (typeof window.sosVE.onEdit === 'function') window.sosVE.onEdit(editing); } catch (x) {}
     frame();
   };
   /* พักการแก้ชั่วคราว — กดใช้แอปจริง ๆ ได้ (เปลี่ยนหน้า เปิดเมนู) โดยไม่เสียงานที่แก้ไว้ */
@@ -1394,7 +1448,67 @@
      ตั้งใจให้เป็น "ท่อออก" อย่างเดียว ไม่ได้ทำให้ไฟล์นี้รู้จัก Control Center —
      ใครจะอ่านก็อ่านได้ผ่าน window.sosVE ตัวเดียว ไฟล์นี้จึงยังใช้เดี่ยว ๆ ได้เหมือนเดิม
      ================================================================= */
+  /* ==================== ย้ายแผงเครื่องมือออกไปหน้าแม่ ====================
+     ปัญหาที่แก้: Control Center ฝังแอปไว้ในกรอบกว้าง 244–293px แล้วย่อด้วย transform
+     แถบเครื่องมือกว้าง 322px จึงไม่มีที่จะไปนอกจากทับชิ้นที่กำลังแก้อยู่ และเล็กจนกดยาก
+     เพราะมันโดนย่อไปพร้อมแอป
+
+     วิธีแก้: ย้าย "ตัวควบคุม" (แถบเครื่องมือ · แผงละเอียด · ปุ่มลอย) ออกไปอยู่ในหน้าแม่
+     ที่มีที่ว่างและไม่โดนย่อ · ส่วน "ตัวชี้" (กรอบไฮไลต์ · มือจับย่อขยาย · ป้ายชื่อชิ้น)
+     ยังอยู่ในแอปเหมือนเดิม เพราะมันต้องทาบกับพิกัดจริงของชิ้นนั้น
+
+     adoptNode ย้ายโหนดข้ามเอกสารได้เพราะเป็นโดเมนเดียวกัน และ event listener
+     ติดไปกับโหนดด้วย ปุ่มทุกปุ่มจึงยังเรียกฟังก์ชันชุดเดิมในสโคปนี้ */
+  function dockInto(hostEl) {
+    if (docked || !hostEl) return false;
+    var pdoc = hostEl.ownerDocument;
+    var droot = hostEl.shadowRoot || hostEl.attachShadow({ mode: 'open' });
+
+    // ใช้สไตล์ก้อนเดียวกับในแอป แล้วค่อยทับเฉพาะที่ต้องเปลี่ยนเพราะไม่ได้ลอยทับจออีกแล้ว
+    var css = sr.querySelector('style').textContent +
+      '#qb{position:static;display:block;width:100%;max-width:none;box-shadow:none;' +
+        'border:0;padding:0;background:transparent}' +
+      '#qb:not(.show){display:none}' +
+      '#pn{position:static;transform:none;height:auto;width:100%;max-width:none;' +
+        'box-shadow:none;margin-top:10px;display:none}' +
+      '#pn.open{display:flex}' +
+      '#fabs{position:static;justify-content:flex-end;margin-bottom:10px}' +
+      // กล่องสอนใช้งานกับข้อความแจ้ง ย้ายมาด้วย ไม่งั้นมันทับแอปอยู่ดีทั้งที่ย้ายแผงออกมาแล้ว
+      '#coach{position:static;width:auto;margin-bottom:10px}' +
+      '#toast{position:static;transform:none;margin-top:10px;display:block;text-align:center}' +
+      ':host{display:block}';
+    var st = pdoc.createElement('style');
+    st.textContent = css;
+    droot.appendChild(st);
+
+    [$('#fabs'), $('#coach'), qb, pn, $('#toast')].forEach(function (el) {
+      if (!el) return;
+      pdoc.adoptNode(el);
+      droot.appendChild(el);
+    });
+
+    roots.push(droot);
+    docked = true;
+    frame();
+    return true;
+  }
+
   window.sosVE = {
+    dockInto: dockInto,
+    isDocked: function () { return docked; },
+    /* หน้าแม่ส่งคีย์เข้ามา — โฟกัสอยู่ที่เอกสารไหน เอกสารนั้นได้ keydown
+       พอแผงย้ายออกไปอยู่หน้าแม่ การกดปุ่มหลังแตะแผงจะไปเข้าหน้าแม่ ไม่ใช่แอป
+       Ctrl+Z จึงเงียบสนิททั้งที่โค้ดรองรับอยู่แล้ว · ตัวนี้คือทางให้มันเดินกลับเข้ามา */
+    key: function (d) {
+      if (!d) return false;
+      return veKey({
+        key: d.key, shiftKey: !!d.shiftKey,
+        ctrlKey: !!d.ctrlKey, metaKey: !!d.metaKey,
+      });
+    },
+    copyStyle: copyStyle,
+    pasteStyle: pasteStyle,
+    onEdit: null,        // หน้าแม่ตั้งเอง · เรียกทุกครั้งที่เข้า/ออกโหมดแก้
     get: function () {
       return JSON.parse(JSON.stringify({ rules: S.rules, tokens: S.tokens, texts: S.texts }));
     },

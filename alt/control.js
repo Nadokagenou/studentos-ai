@@ -1065,6 +1065,23 @@
       return;
     }
 
+    /* ตัวแก้ดีไซน์พร้อมแล้ว — ย้ายแผงเครื่องมือออกมาไว้ข้างนอกทันที
+       ปล่อยไว้ในกรอบ 244px มันจะทับชิ้นที่กำลังแก้ และเล็กจนกดไม่โดน */
+    if (e.data.type === 'sos-preview-editor') {
+      var f = pvFrame(), dock = $('#veDock');
+      try {
+        if (f && f.contentWindow.sosVE && dock) f.contentWindow.sosVE.dockInto(dock);
+      } catch (err) { console.warn('[cc] ย้ายแผงเครื่องมือไม่สำเร็จ:', err); }
+      return;
+    }
+
+    /* เข้า/ออกโหมดแก้ดีไซน์ — สลับหน้าเป็นโต๊ะทำงาน (ซ่อนแผงซ้าย ขยายแอปเป็นขนาดจริง) */
+    if (e.data.type === 'sos-preview-edit') {
+      var m = document.querySelector('.main');
+      if (m) m.classList.toggle('pv-edit', !!e.data.on);
+      return;
+    }
+
     /* งานที่แก้ด้วยมือในตัวแก้ดีไซน์ ไหลกลับมาเป็นส่วนหนึ่งของ draft
        ยังไม่ถึงใครจนกว่าจะกดเผยแพร่ เหมือนทุกอย่างในหน้านี้ */
     if (e.data.type === 'sos-preview-ui' && e.data.ui && draft) {
@@ -1137,6 +1154,31 @@
       pvMoveTo(b.dataset.go);
       window.scrollTo(0, 0);
     };
+  });
+
+  /* ---------- คีย์ลัดเดินเข้าไปถึงตัวแก้ดีไซน์ ----------
+     โฟกัสอยู่ที่เอกสารไหน เอกสารนั้นได้ keydown · พอแผงเครื่องมือย้ายออกมาอยู่หน้าแม่
+     การกดปุ่มหลังแตะแผงจะเข้าหน้าแม่ ไม่ใช่แอปในกรอบ · Ctrl+Z จึงเงียบสนิท
+     ทั้งที่ตัวแก้ดีไซน์รองรับอยู่แล้ว — ตัวนี้คือทางให้มันเดินกลับเข้าไป
+
+     ไม่ดัก Ctrl+C/V ตอนที่กำลังพิมพ์อยู่ในช่องกรอก เพราะคัดลอกข้อความปกติ
+     ต้องยังทำงานได้ · คนที่กด Ctrl+C ในช่องพรอมป์ตั้งใจก๊อปข้อความ ไม่ใช่ก๊อปหน้าตาปุ่ม */
+  document.addEventListener('keydown', function (e) {
+    if (!(e.ctrlKey || e.metaKey) && e.key !== 'Escape') return;
+    var t = e.target;
+    if (t && /INPUT|TEXTAREA|SELECT/.test(t.tagName)) return;
+    if (t && t.isContentEditable) return;
+    if (!/^(z|y|c|v)$/i.test(e.key) && e.key !== 'Escape') return;
+
+    var f = pvFrame();
+    var ve = null;
+    try { ve = f && f.contentWindow && f.contentWindow.sosVE; } catch (err) {}
+    if (!ve || !ve.key) return;
+
+    var handled = ve.key({
+      key: e.key, shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, metaKey: e.metaKey,
+    });
+    if (handled) e.preventDefault();
   });
 
   // ปิดแท็บทั้งที่ยังไม่ได้เผยแพร่ = เสียงานที่ลากมาทั้งหน้า
