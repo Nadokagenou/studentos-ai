@@ -29,8 +29,13 @@
       var pref = null;
       try { pref = localStorage.getItem('studentos.alt.theme'); } catch (e) {} // ALT: คนละคีย์กับตัวจริง
       if (pref === 'library') pref = 'ocean'; // 1A6M3: ธีมห้องสมุดถูกแทนที่ด้วยมหาสมุทร
-      var t = BAR[pref] ? pref
-        : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      // 1B58 · ค่าเริ่มต้นเป็นโทนสว่าง ไม่ใช่ตามเครื่องอีกแล้ว
+      // ภาษาภาพใหม่ (พื้นไล่สี · การ์ดขาวโปร่ง · เงานุ่ม) ถูกออกแบบบนโทนสว่าง
+      // และภาพอ้างอิงที่เจ้าของเลือกก็เป็นโทนสว่างทั้งคู่ — เปิดมาครั้งแรกต้องเห็นอันนั้น
+      // "ตามระบบ" ยังเลือกเองได้ในจอตั้งค่า และคนที่เคยเลือกไว้แล้วไม่ถูกแตะ
+      var t = BAR[pref] ? pref : (pref === 'system'
+        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : 'light');
       document.documentElement.dataset.theme = t;
       var m = document.querySelector('meta[name=theme-color]');
       if (m) m.content = BAR[t];
@@ -64,7 +69,7 @@
        เบราว์เซอร์จึงหยิบทีละตัวอักษร: อังกฤษ/ตัวเลข = IBM Plex เหมือนเดิม · ไทย = Sarabun
        (เลิกโหลด IBM Plex Sans Thai แล้ว เพราะมีตัวไทยแบบไม่มีหัวติดมาด้วย)
        Space Mono = ตัวเลข · Orbitron / Cinzel / Cinzel Decorative = ชื่อเหรียญพิเศษ -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Orbitron:wght@600;800&family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Outfit:wght@500;600;700&family=Orbitron:wght@600;800&family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&display=swap">
   <link rel="stylesheet" href="style.css">
   <!-- ทุกอย่างที่สายนี้เพิ่มขึ้นมาอยู่ในไฟล์นี้ไฟล์เดียว — style.css ยังดึงจากต้นทางมาทับได้ตลอด -->
   <link rel="stylesheet" href="alt.css">
@@ -73,6 +78,19 @@
   <!-- จอ "วันนี้" กับโหมดโฟกัส — ของใหม่ทั้งก้อน จึงอยู่แยกไฟล์
        ถอยกลับหน้าแรกแบบเก่า = เอาบรรทัดนี้ออก ไม่ต้องคุ้ย alt.css ที่ยาว 250 KB -->
   <link rel="stylesheet" href="today.css">
+  <!-- ห้องของฉัน — พื้นที่ส่วนตัวที่แต่งเองได้ ชั้นใหม่ทั้งชั้น แยกไฟล์ไว้ให้ถอดออกได้ทั้งก้อน -->
+  <link rel="stylesheet" href="room.css">
+  <!-- เพื่อนร่วมห้อง + ช่องคุย -->
+  <link rel="stylesheet" href="social.css">
+  <!-- ฟีด: โพสต์ · เธรด · ใครออนไลน์ -->
+  <link rel="stylesheet" href="feed.css">
+  <!-- ชุดความปลอดภัย: รายงาน · ยินยอม · นโยบาย -->
+  <link rel="stylesheet" href="safety.css">
+  <!-- ห้องการบ้าน: แถวใต้การ์ดงาน + จอห้อง -->
+  <link rel="stylesheet" href="hw.css">
+
+  <!-- หัวข้อทั่วโลก — ชั้นที่ห้าของบันไดสโคป (ดูหัวไฟล์ topic.css) -->
+  <link rel="stylesheet" href="topic.css">
   <!-- ดีไซน์ที่ปรับด้วยตัวแก้ดีไซน์ ต้องอยู่ท้ายสุดถึงจะทับของเดิมได้
        ว่างอยู่ = ยังไม่มีใครปรับอะไร ไม่มีผลกับหน้าตาเดิมเลย -->
   <link rel="stylesheet" href="custom.css">
@@ -152,6 +170,12 @@
     <g id="lu-image" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></g>
     <g id="lu-type" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16"></path><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"></path><path d="M9 20h6"></path></g>
     <!-- ALT: เพื่อน / ล็อก / หมุดเส้นทาง -->
+    <!-- ตราแบรนด์ของผู้ให้บริการล็อกอิน — เป็น path ทึบ (fill) ไม่ใช่เส้น (stroke)
+         เหมือนไอคอนตัวอื่นในสไปรท์ ตัวอักษร "D"/"f" ที่ใช้แทนก่อนหน้านี้อ่านเป็นของทำเอง -->
+    <g id="lu-discord" fill="currentColor" stroke="none"><path d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"></path></g>
+    <g id="lu-facebook" fill="currentColor" stroke="none"><path d="M22 12.061C22 6.505 17.523 2 12 2S2 6.505 2 12.061c0 5.022 3.657 9.184 8.438 9.939v-7.03H7.898v-2.909h2.54V9.845c0-2.522 1.492-3.915 3.777-3.915 1.094 0 2.238.196 2.238.196v2.476h-1.26c-1.243 0-1.63.775-1.63 1.57v1.889h2.773l-.443 2.909h-2.33V22c4.78-.755 8.437-4.917 8.437-9.939Z"></path></g>
+    <g id="lu-search" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></g>
+    <g id="lu-copy" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></g>
     <g id="lu-users" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></g>
     <g id="lu-lock" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></g>
     <!-- ALT: ไอคอนตำแหน่งแถบเมนู (จอ + แถบด้านข้าง) -->
@@ -260,7 +284,7 @@
          เลขรุ่นเป็นข้อมูลของคนทำแอป ไม่ใช่ของนักเรียน และมันนั่งทับตำแหน่งที่มีค่าที่สุดของจอ
          คนที่อยากรู้เลขรุ่นยังดูได้ที่แท็บ "ฉัน" (#appVer) ซึ่งบอกครบกว่าเดิมอยู่แล้ว -->
     <!-- ALT 1A6M3: ทางเข้าระบบเพื่อน — มุมขวาบน ไม่กินช่องในเมนูหลัก -->
-    <button class="top-friends" onclick="go('scr-friends')" aria-label="เพื่อน">
+    <button class="top-friends" onclick="openFeed('friends')" aria-label="เพื่อน">
       <svg viewBox="0 0 24 24"><use href="#lu-users"/></svg>
       <span class="tf-badge" id="friendsBadge" hidden></span>
     </button>
@@ -274,17 +298,45 @@
                1A9j: เหลือรูปเดียว ไม่ต้องสลับตามธีมอีก — แผ่นรองเป็นสีขาวทุกธีม
                ตราเข้มจึงอ่านออกเสมอ ส่วนตราคู่ธีมสว่างเป็นโลโก้เต็มที่มีตัวหนังสือ
                ย่อลงกรอบ 86px แล้วคำว่า Student OS เล็กจนอ่านไม่ออกอยู่ดี -->
-          <div class="login-plate"><img class="login-mark" src="logo-splash-light.png" alt="Student OS"></div>
-          <!-- 1A9j: ตัดสร้อย "รู้ว่าต้องทำอะไรก่อน เสมอ" ออก
-               หน้านี้มีงานเดียวคือให้กดเข้าระบบ คำโปรยขายของตรงนี้ไม่ได้ช่วยให้ใครกด
-               มันแค่ดันปุ่มลงไป และคนที่เปิดแอปมาก็รู้อยู่แล้วว่าแอปนี้ทำอะไร -->
-          <div class="big-title" style="margin:0 0 14px">StudentOS <span class="ai-blue">AI</span></div>
-          <button class="btn google" onclick="loginGoogle()"><span class="g-badge">G</span> เข้าสู่ระบบด้วย Google</button>
-          <button class="btn ghost" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>
-          <!-- คนที่เพิ่งเปิดลิงก์มาครั้งแรกเจอจอนี้เป็นอย่างแรก แล้วจอนี้
-               ไม่ได้บอกเลยว่าแอปทำอะไร — มีแต่ปุ่มให้ยอมมอบบัญชี
-               ทางออกที่ถูกที่สุดคือให้มีทางไปอ่านก่อน แล้วค่อยกลับมากด -->
-          <a class="login-what" href="land.html">แอปนี้คืออะไร →</a>
+          <!-- 1B37: สามชั้น บน-กลาง-ล่าง · ตราอยู่บน คำทักอยู่กลาง ปุ่มอยู่ล่าง
+               ของเดิมทุกอย่างกองอยู่กลางจอเป็นแถวเดียว ปุ่มจึงลอยอยู่ตรงที่นิ้วโป้งเอื้อมไม่ถึง
+               และที่ว่างครึ่งล่างของจอไม่ได้ทำหน้าที่อะไรเลย -->
+          <!-- ============================================================
+               1B44 · L1/L2/L3 — โครง "แบรนด์อยู่บนสี · ปุ่มอยู่บนแผ่น"
+               ============================================================
+               ของเดิมทุกอย่างอยู่ชั้นเดียวกันหมดบนพื้นไล่สี ซึ่งสะอาดแต่ต้องอ่าน
+               ถึงจะรู้ว่าอันไหนกดได้ · แผ่นทึบรับปุ่มทำให้สายตาแยกออกทันทีว่า
+               ครึ่งบนคือ "เราเป็นใคร" ครึ่งล่างคือ "คุณต้องทำอะไร"
+
+               L2 · บรรทัดพิสูจน์ใต้แบรนด์ ต้องเป็นเรื่องจริงเท่านั้น
+               คู่แข่งใช้ "ล้านคนต่อปี" ซึ่งเราพูดตามไม่ได้และไม่ควรพูด
+               ของจริงที่เราพูดได้คือเงื่อนไขการใช้งาน ซึ่งบังเอิญตรงกับ
+               ความกลัวจริงของคนที่กดเข้ามาครั้งแรกพอดี -->
+          <div class="lg-top">
+            <div class="login-plate"><img class="login-mark" src="logo-splash-light.png" alt="Student OS"></div>
+            <div class="lg-brand">StudentOS <span class="ai-blue">AI</span></div>
+            <p class="lg-proof">ฟรีตลอดไป · ไม่ต้องผูกบัตร</p>
+          </div>
+
+          <!-- L3 · ข้อความสองชุด คนเคยล็อกอินกับคนมาครั้งแรกไม่ได้ต้องการคำเดียวกัน
+               คนเก่าต้องการคำยืนยันว่าของยังอยู่ · คนใหม่ต้องการรู้ว่าจะได้อะไร
+               renderLoginCopy() ใน app.js เป็นคนสลับ -->
+          <div class="lg-card">
+            <div class="lg-mid">
+              <h1 class="lg-h" id="lgHead">ยินดีต้อนรับ</h1>
+              <p class="lg-p" id="lgSub">ล็อกอินแล้วงานกับตารางตามไปทุกเครื่อง</p>
+            </div>
+
+          <!-- ปุ่มช่องทางล็อกอินวาดจาก renderLoginOpts() ใน app.js ไม่ใช่จากตรงนี้
+               เพราะรายชื่อผู้ให้บริการมาจาก config.js (เปิดใช้เจ้าไหนไว้บ้าง) และช่องทาง
+               "อีเมล" มีสามสถานะในตัวมันเอง (เลือก → กรอกอีเมล → กรอกรหัส) ซึ่งเขียนเป็น
+               HTML นิ่ง ๆ ไม่ได้ · ห้ามเอาปุ่มกลับมาแปะไว้ตรงนี้ มันจะซ้ำกับที่ JS วาด -->
+            <div id="loginOpts" class="lg-opts"></div>
+            <p class="lg-note" id="loginNote"></p>
+            <!-- ลิงก์นี้ย้ายเข้ามาอยู่ในแผ่นด้วย · ปล่อยไว้ข้างนอกแล้วแผ่นจะลอยไม่ถึงขอบจอ
+                 แล้วอ่านเป็นการ์ดที่วางผิดที่ ไม่ใช่พื้นที่ล่างของหน้า -->
+            <a class="login-what" href="land.html">แอปนี้คืออะไร →</a>
+          </div>
         </div>
       </div>
 
@@ -564,6 +616,24 @@
                 <input type="number" id="fScore" min="0" max="100" placeholder="20"></div>
             </div>
 
+            <!-- 1B80 · สองอย่างที่เปลี่ยนคำตอบของเอนจินมากกว่าคะแนน แต่ไม่เคยถามมาก่อน
+                 ทั้งคู่มีค่าเริ่มต้นที่เดาให้แล้วจาก facts.js — ช่องนี้มีไว้ "แก้" ไม่ใช่ "กรอก"
+                 ว่างไว้ = ใช้ค่าที่เดา ซึ่งถูกสำหรับงานส่วนใหญ่ -->
+            <div class="fld">
+              <label>ส่งช้าได้ไหม</label>
+              <select id="fLate">
+                <option value="">ให้ AI เดาจากงาน</option>
+                <option value="penalty">ส่งช้าได้ แต่โดนหักคะแนน</option>
+                <option value="zero">ส่งช้าไม่ได้เลย</option>
+                <option value="ok">ส่งช้าได้ ไม่มีผล</option>
+              </select>
+            </div>
+
+            <div class="fld" id="fBlockWrap">
+              <label>ต้องทำอะไรให้เสร็จก่อน</label>
+              <select id="fBlock"><option value="">ไม่ต้องรออะไร</option></select>
+            </div>
+
             <div class="fld" id="fEstWrap">
               <div class="fld-head"><label id="fEstLabel">ใช้เวลา</label><span class="val" id="fEstVal">30 นาที</span></div>
               <input type="range" id="fEst" min="5" max="180" step="5" value="30"
@@ -579,6 +649,47 @@
                 <button type="button" class="sp lv3" data-lv="3" onclick="setStarPick(3)">★3</button>
                 <button type="button" class="sp lv4" data-lv="4" onclick="setStarPick(4)">★4</button>
                 <button type="button" class="sp lv5" data-lv="5" onclick="setStarPick(5)">★5</button>
+              </div>
+            </div>
+
+            <!-- ============================================================
+                 1B43 · F2 งานย่อย · F3 งานซ้ำ · F5 คะแนนที่ได้
+                 ============================================================
+                 สามช่องนี้อยู่ท้ายฟอร์มทั้งหมด ไม่ใช่บนสุด เพราะไม่มีอันไหนจำเป็น
+                 ต่อการบันทึกงานหนึ่งใบ · ช่องที่จำเป็น (ชื่อ · วิชา · กำหนดส่ง)
+                 ต้องกรอกจบก่อนโดยไม่ต้องเลื่อนผ่านของที่ข้ามได้ -->
+
+            <!-- F2 · งานย่อย — งานใหญ่แตกเป็นข้อ ๆ ติ๊กทีละข้อ
+                 หนึ่งบรรทัดต่อหนึ่งข้อ ไม่ใช่ปุ่ม "เพิ่มข้อ" ทีละข้อ เพราะคนที่รู้อยู่แล้ว
+                 ว่าจะแตกเป็นอะไรบ้าง พิมพ์รวดเดียวเร็วกว่ากดเพิ่มทีละบรรทัดสามรอบ -->
+            <div class="fld" id="fSubsWrap">
+              <div class="fld-head"><label>งานย่อย</label><span class="val" id="fSubsVal">ไม่มี</span></div>
+              <textarea id="fSubs" rows="2" oninput="updateSubsCount()"
+                placeholder="หนึ่งบรรทัดต่อหนึ่งข้อ&#10;หาข้อมูล&#10;เขียนร่าง&#10;ตรวจคำผิด"></textarea>
+            </div>
+
+            <!-- F3 · งานซ้ำ — การบ้านที่สั่งทุกสัปดาห์ ตั้งครั้งเดียวจบ
+                 ใบใหม่ถูกสร้างตอน "ติ๊กเสร็จ" ไม่ใช่ตอนถึงกำหนด เพราะงานที่ยังไม่เสร็จ
+                 แล้วมีใบถัดไปโผล่มาซ้อน คือรายการที่ยาวขึ้นเรื่อย ๆ โดยไม่มีใครทำทัน -->
+            <div class="fld" id="fRepeatWrap">
+              <label>ซ้ำอีกไหม</label>
+              <select id="fRepeat">
+                <option value="">ไม่ซ้ำ</option>
+                <option value="7">ทุกสัปดาห์</option>
+                <option value="14">ทุกสองสัปดาห์</option>
+                <option value="1">ทุกวัน</option>
+              </select>
+            </div>
+
+            <!-- F5 · คะแนนที่ได้จริง — คนละเรื่องกับช่อง "คะแนน" ข้างบน
+                 ข้างบนคือน้ำหนัก (งานนี้กี่ % ของเทอม) ซึ่งรู้ตั้งแต่ครูสั่ง
+                 ช่องนี้คือผลที่ได้กลับมา ซึ่งรู้หลังส่ง — สองอย่างนี้ปนกันไม่ได้เด็ดขาด
+                 โผล่เฉพาะตอนแก้งานที่มีอยู่แล้ว เพราะงานที่เพิ่งเพิ่มยังไม่มีผล -->
+            <div class="fld" id="fGotWrap" hidden>
+              <label id="fGotLabel">ได้คะแนนเท่าไหร่</label>
+              <div class="row-2">
+                <input type="number" id="fGot" min="0" step="0.5" placeholder="18">
+                <input type="number" id="fGotMax" min="1" step="0.5" placeholder="เต็ม 20">
               </div>
             </div>
 
@@ -624,6 +735,23 @@
         <div class="scr-body plan-body" id="planList"></div>
       </div>
 
+      <!-- ============ SCREEN: AI คิดยังไง (1B77) ============
+           การ์ดเทียบทางเลือก A/B/C + คำอธิบายหกข้อ ทั้งหมดคำนวณจาก decide()
+           อยู่จอของตัวเองเพราะหน้าแรกมีลำดับสายตาที่จัดไว้แล้ว (1B38/1B49)
+           และเพราะคำอธิบายหกข้อต้องการที่พอจะอ่านจบ ไม่ใช่ที่พอจะเหลือบเห็น
+           ทางเข้าเดียวคือบรรทัดใต้ปุ่มบนการ์ด "ตอนนี้" · วาดจาก renderWhy() -->
+      <div class="screen flush" id="scr-why">
+        <div class="sticky-head row">
+          <div>
+            <h2 class="sh-title">AI คิดยังไง</h2>
+            <p class="sh-sub" id="whySub"></p>
+          </div>
+          <button class="sh-btn" onclick="go('scr-menu')" aria-label="กลับ">
+            <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+        </div>
+        <div class="scr-body" id="whyBody"></div>
+      </div>
+
       <!-- ============ SCREEN: ALL ASSIGNMENTS ============ -->
       <!-- หัวข้อ + แท็บ + รายการ + ถังขยะ วาดจาก state ทั้งหมดใน renderTasks -->
       <div class="screen" id="scr-tasks">
@@ -641,6 +769,21 @@
       <!-- ============ SCREEN: TIMELINE ============ -->
       <div class="screen" id="scr-timeline">
         <div id="timeline"></div>
+      </div>
+
+      <!-- ============ SCREEN: ฟีเจอร์อื่น ๆ (1B38b) ============ -->
+      <!-- กริดแปดก้อนที่เคยอยู่ท้ายหน้าแรก · วาดจาก renderTools() ใน app.js
+           ทางเข้าเดียวคือบรรทัด "ฟีเจอร์อื่น ๆ" ที่ท้ายจอวันนี้ -->
+      <div class="screen flush" id="scr-tools">
+        <div class="sticky-head row">
+          <div>
+            <h2 class="sh-title">ฟีเจอร์อื่น ๆ</h2>
+            <p class="sh-sub">ของที่ไม่มีที่บนแถบล่างหกช่อง</p>
+          </div>
+          <button class="sh-btn" onclick="go('scr-menu')" aria-label="กลับหน้าแรก">
+            <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+        </div>
+        <div class="scr-body" id="toolsBody"></div>
       </div>
 
       <!-- ============ SCREEN: กล่องเข้า ============ -->
@@ -674,42 +817,30 @@
 
       <!-- ============ SCREEN: เพื่อน (ALT 1A6M3) ============ -->
       <!-- ดูสถานะและผลของเพื่อน · วาดจาก state ใน renderFriends -->
-      <div class="screen flush" id="scr-friends">
-        <div class="scr-body fr-body" id="friendsBody"></div>
-      </div>
+      <!-- จอ "เพื่อน" ถูกยุบเข้าไปเป็นแท็บหนึ่งของ #scr-mates แล้วใน 1B18 —
+           #friendsBody ถูกสร้างโดย renderFeed() ตอนอยู่โหมด friends
+           ห้ามเอา div เปล่ากลับมาไว้ตรงนี้ เพราะ id ซ้ำสองที่แปลว่า renderFriends()
+           จะไปวาดใส่ตัวที่ซ่อนอยู่ แล้วจอที่ผู้ใช้มองอยู่ว่างเปล่าโดยไม่มี error -->
 
       <!-- ============ SCREEN: PROFILE ============ -->
       <div class="screen flush" id="scr-profile">
         <div class="scr-body pf-body">
-          <div class="pf-hero">
-            <span class="b1"></span><span class="b2"></span>
-            <div class="pf-id">
-              <!-- ALT: แตะที่รูปเปลี่ยนรูปได้เลย ไม่ต้องเข้าไปหาในตั้งค่า -->
-              <button type="button" class="pf-av-btn" id="pfAvBtn"
-                onclick="document.getElementById('avInput').click()" aria-label="เปลี่ยนรูปโปรไฟล์">
-                <div class="pf-av" id="pfAv">N</div>
-                <span class="pf-av-cam"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
-              </button>
-              <input type="file" id="avInput" accept="image/*" hidden>
-              <div style="flex:1;min-width:0">
-                <div class="pf-nm" id="pfNm">นักเรียน</div>
-                <div class="pf-sb" id="pfSb"></div>
-              </div>
-              <!-- เฟืองอยู่ในการ์ด ไม่ใช่ลอยมุมขวาบนของจอ (1A9e)
-                   ตำแหน่งลอยไปชนแถบสถานะของเครื่อง — นาฬิกากับแบตอยู่แถวนั้นพอดี
-                   และมันเป็นของของ "โปรไฟล์นี้" อยู่แล้ว จึงควรอยู่ในกล่องเดียวกับชื่อ -->
-              <button class="pf-set" onclick="go('scr-settings')" aria-label="ตั้งค่า">
-                <svg viewBox="0 0 24 24"><use href="#lu-cog"/></svg>
-              </button>
-            </div>
-            <div class="pf-stats">
-              <div><div class="v" id="pfDone">0</div><div class="k">ทำเสร็จแล้ว</div></div>
-              <div class="sep"></div>
-              <div><div class="v" id="pfFree">2 ชม.</div><div class="k">เพดานงาน/วัน</div></div>
-              <div class="sep"></div>
-              <div><div class="v" id="pfPending">0</div><div class="k">งานค้าง</div></div>
-            </div>
-          </div>
+          <!-- ============================================================
+               1B70 · หัวแท็บ "ฉัน" = หัวเดียวกับหน้าที่เพื่อนเปิดดู
+               ============================================================
+               ผู้ใช้สั่งเอง (10 ก.ย. 2569): "ตรงโปรไฟล์ฉันอยากให้มันเป็นอันเดียวกัน
+               ต้องเป็นอันเดียวกันตอนเพื่อนเปิดดูของเราก็จะเป็นหน้านี้"
+
+               ของเดิมเป็นการ์ดสีน้ำเงินที่มีตัวเลข เสร็จแล้ว/ต่อเนื่อง/โทเคน/เพื่อน
+               ซึ่งเป็นเรื่องส่วนตัวล้วน เพื่อนไม่เคยเห็นสักช่อง — เปิดหน้าตัวเองกับ
+               เปิดหน้าเพื่อนจึงเป็นคนละแอปกัน และไม่มีทางรู้ว่าคนอื่นเห็นเราเป็นยังไง
+
+               ตอนนี้หัวถูกวาดด้วย profileHeadHTML() ตัวเดียวกับ scr-user เป๊ะ
+               ต่างแค่ปุ่ม (แก้ไขโปรไฟล์ / ดูแบบที่เพื่อนเห็น แทน ทัก / เพิ่มเพื่อน)
+               ส่วนตัวเลขส่วนตัวย้ายลงใต้เส้นประ ติดป้ายว่าเห็นคนเดียว -->
+          <div id="pfHead"></div>
+          <input type="file" id="avInput" accept="image/*" hidden>
+          <div id="pfPriv"></div>
 
           <!-- 1A9g: การ์ดชวนตั้งบริบท — ขึ้นเฉพาะตอนที่ยังไม่มีข้อมูล (วาดใน renderContext)
                บริบทคือข้อมูลที่ทำให้การจัดตารางแม่น ถ้าผู้ใช้ยังไม่กรอก ทั้งแอปก็เดาเอา
@@ -720,32 +851,41 @@
           <div id="statsBox"></div>
 
           <!-- ALT 1A6M3: ทางเข้าใหญ่ 3 ทาง — ตั้งค่าทั้งหมดย้ายไปอยู่หลังปุ่ม -->
+          <!-- รายการทางเข้าถูกจัดกลุ่มใน 1B20 — ของเดิมเป็นรายการแบน 7 แถวเรียงกันรวด
+               โดยที่ "ร้านค้า (กำลังทำ)" กับ "Pro (ยังไม่เปิดขาย)" นั่งแทรกอยู่กลางของที่ใช้ได้จริง
+               จอที่เอาของยังไม่เสร็จมาวางปนกับของที่เสร็จแล้ว ทำให้ทั้งจออ่านเหมือนยังไม่เสร็จ -->
+          <!-- ============================================================
+               1B93 · ยุบสี่กลุ่มเหลือก้อนเดียว — เจ้าของสั่งเอง (13 ก.ย. 2569)
+               ============================================================
+               "ด้านล่างยังจัดไม่ดี เหมือนอันหลักเรา มันดีกว่าและเป็นระบบกว่า"
+               บิลด์หลักวางทางเข้าทั้งหมดเป็นลิสต์เดียวไม่มีหัวข้อกลุ่ม แล้วจบในจอเดียว
+               ส่วน 1B20 หั่นมันเป็นสี่กลุ่ม ซึ่งเพิ่มหัวข้อ ~31px สี่อัน = สูงขึ้นกว่า 120px
+               โดยไม่ได้เพิ่มข้อมูลใหม่สักบรรทัด — แปดแถวไม่ได้เยอะพอที่จะต้องมีสารบัญ
+
+               **สิ่งเดียวที่ 1B20 พูดถูกและต้องรักษาไว้:** ของที่ยังไม่เสร็จ (ร้านค้า · Pro)
+               ห้ามนั่งปนกลางของที่ใช้ได้จริง — คำเดิมคือ "ป้ายอย่างเดียวไม่พอถ้ามันยัง
+               นั่งปนอยู่กลางของที่ใช้ได้จริง" · คำสำคัญคือ "กลาง" ไม่ใช่ "ปน"
+               ย้ายมาไว้ท้ายสุดหลังของที่ใช้ได้ทั้งหมด แล้วคั่นด้วยเส้นผมเส้นเดียว
+               จึงได้ขอบเขตเดิมกลับมาในราคา 1px แทน 31px -->
           <div class="pf-entry">
-            <!-- บริบทของฉัน — ที่เดียวที่แอปรู้ว่า "คนนี้ว่างตอนไหนจริง ๆ"
-                 1A9g: ย้ายมาเป็นแถวแรกของรายการ — มันคือข้อมูลที่ทำให้การจัดตารางแม่น
-                 ไม่ใช่ของแต่งหน้าตา จึงไม่ควรอยู่ท้ายสุดต่อจากของเล่น
-                 ตอนยังไม่กรอก แถวนี้จะถูกซ่อน แล้วไปโผล่เป็นการ์ดใหญ่ #ctxHero ด้านบนแทน -->
+            <button class="pe" onclick="openFeed()">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
+              <span class="pe-tx"><b>เพื่อนร่วมห้อง</b><i id="peMateCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <button class="pe" onclick="openFeed('friends')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-user"/></svg></span>
+              <span class="pe-tx"><b>เพื่อนของฉัน</b><i id="peFriendCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
             <button class="pe" id="peCtx" onclick="go('scr-context')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
               <span class="pe-tx"><b>บริบทของฉัน</b><i id="peCtxCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <!-- 1A9g: การ์ด "ถามน้องไซ" ถูกถอดออกจากตรงนี้
-                 มันซ้ำกับแท็บ "น้องไซ" ที่อยู่บนแถบล่างตลอดเวลา — ทางเข้าสองทางไปที่เดียวกัน
-                 เอาออกแล้วรายการข้างล่างขยับขึ้นมาอยู่ในจอเดียวครบ ไม่ต้องเลื่อนหา -->
-            <!-- ALT 1A6M3: ร้านค้า — อยู่เหนือเหรียญตรา · ติดป้าย "กำลังทำ" เพราะของในร้านยังไม่เปิด
-                 แต่โทเคนสะสมจริงตั้งแต่ตอนนี้ ปุ่มจึงกดเข้าไปดูยอดได้ ไม่ใช่ปุ่มตาย -->
-            <button class="pe pe-shop" onclick="go('scr-shop')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-bag"/></svg></span>
-              <span class="pe-tx"><b>ร้านค้า <span class="pe-wip">กำลังทำ</span></b><i id="peShopCt"></i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <!-- แผนราคา — ยังไม่เปิดขาย ปุ่มจึงพาไปดูแผนอย่างเดียว ไม่ได้พาไปจ่ายเงิน
-                 ป้าย "ยังไม่เปิดขาย" อยู่บนปุ่มตั้งแต่ก่อนกด ไม่ใช่ไปเซอร์ไพรส์ข้างใน -->
-            <button class="pe pe-pro" onclick="go('scr-pro')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
-              <span class="pe-tx"><b>StudentOS Pro <span class="pe-wip">ยังไม่เปิดขาย</span></b>
-                <i>ดูว่าจะมีอะไรเพิ่ม</i></span>
+            <button class="pe" onclick="go('scr-room')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
+              <span class="pe-tx"><b>ห้องของฉัน</b><i id="peRoomCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
             <button class="pe" onclick="go('scr-badges')">
@@ -753,9 +893,21 @@
               <span class="pe-tx"><b>เหรียญตรา</b><i id="peBadgeCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button class="pe" onclick="go('scr-friends')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
-              <span class="pe-tx"><b>เพื่อน</b><i id="peFriendCt"></i></span>
+            <button class="pe" onclick="go('scr-settings')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-cog"/></svg></span>
+              <span class="pe-tx"><b>ตั้งค่าแอป</b><i>ธีม · ตัวอักษร · การแจ้งเตือน · เพดานงานต่อวัน</i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <div class="pe-split"></div>
+            <button class="pe pe-shop" onclick="go('scr-shop')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-bag"/></svg></span>
+              <span class="pe-tx"><b>ร้านค้า <span class="pe-wip">กำลังทำ</span></b><i id="peShopCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <button class="pe pe-pro" onclick="go('scr-pro')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+              <span class="pe-tx"><b>StudentOS Pro <span class="pe-wip">ยังไม่เปิดขาย</span></b>
+                <i>ดูว่าจะมีอะไรเพิ่ม</i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
           </div>
@@ -828,25 +980,112 @@
       <!-- ============ SCREEN: เพื่อนร่วมห้อง ============
            หัวใจของชั้นสังคม — ใครในห้องช่วยเรื่องอะไรได้ พร้อมเหตุผลบนการ์ด
            ต้องล็อกอิน เพราะห้องเรียนต้องรู้ว่าใครเป็นใคร -->
+      <div class="screen flush" id="scr-mates">
+        <div class="scr-body pf-body">
+          <div id="feedBody"></div>
+        </div>
+      </div>
 
       <!-- วิชาของฉัน + คนในห้อง — ย้ายออกจากแท็บหลักมาอยู่หลังปุ่มบนหัวฟีด
            มันเป็นของที่ตั้งครั้งเดียวแล้วแทบไม่กลับมาแก้ ต่างจากฟีดที่เปิดทุกวัน -->
+      <div class="screen flush" id="scr-people">
+        <div class="scr-body pf-body">
+          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+            <div></div>
+            <button class="sh-btn" onclick="go('scr-mates')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <div id="matesBody"></div>
+        </div>
+      </div>
 
       <!-- ============ SCREEN: เขียนโพสต์ ============ -->
+      <div class="screen flush" id="scr-compose">
+        <div class="scr-body"><div id="composeBody"></div></div>
+      </div>
+
+      <!-- ============ SCREEN: ก่อนเข้าไปเจอเพื่อน ============
+           ขึ้นครั้งเดียวก่อนใช้ชั้นสังคมครั้งแรก — บอกว่าใครเห็นอะไร แล้วถามช่วงอายุ -->
+      <div class="screen flush" id="scr-consent">
+        <div class="scr-body"><div id="consentBody"></div></div>
+      </div>
+
+      <!-- ============ SCREEN: เราเก็บอะไรของคุณบ้าง ============ -->
+      <div class="screen flush" id="scr-privacy">
+        <div class="scr-body"><div id="privacyBody"></div></div>
+      </div>
 
       <!-- ============ SCREEN: หน้าของคนคนหนึ่ง ============
            เข้ามาจากการแตะรูป/ชื่อในฟีด · เธรด · หรือแถวคนออนไลน์
            นี่คือ "พื้นที่แสดงตัวตน" ที่เป็นคำขอตั้งต้นของทั้งฟีเจอร์ -->
+      <div class="screen flush" id="scr-user">
+        <div class="scr-body"><div id="userBody"></div></div>
+      </div>
 
       <!-- ============ SCREEN: เธรดใต้โพสต์ ============ -->
+      <div class="screen flush" id="scr-post">
+        <div class="scr-body"><div id="postBody"></div></div>
+      </div>
 
       <!-- ============ SCREEN: ช่องคุย ============
            จอนี้กินเต็มความสูงและมีปุ่มกลับของตัวเองในหัวจอ ไม่ใช้ sticky-head แบบจออื่น
            เพราะช่องพิมพ์ต้องติดก้นจอ และรายการข้อความต้องเลื่อนอยู่ตรงกลางเท่านั้น -->
+      <div class="screen flush" id="scr-chat">
+        <div class="scr-body">
+          <div id="chatBody"></div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: ห้องการบ้าน ============
+           ห้องที่เกิดจากงานหนึ่งชิ้นและปิดตัวเองตอนถึงกำหนดส่ง
+           ทางเข้ามีทางเดียวคือแถวใต้การ์ดงาน — ตั้งใจไม่ให้มีรายการห้องให้ไล่ดู
+           เพราะรายการห้องคือสิ่งที่ทำให้มันกลายเป็นกลุ่มแชทถาวรอีกกลุ่ม -->
+      <div class="screen flush" id="scr-hw">
+        <div class="scr-body">
+          <div id="hwBody"></div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: หัวข้อทั่วโลก ============
+           ชั้นที่ห้าของบันไดสโคป · กุญแจคือ "คุณติดอะไร" ไม่ใช่ "ใครนั่งข้างคุณ"
+           อยู่คนละจอกับฟีดโดยตั้งใจ — ฟีดเรียงตามเวลา หน้าหัวข้อเรียงตามว่า
+           คำตอบไหนช่วยได้จริง คนละตรรกะกันคนละเรื่อง ยัดรวมกันแล้วเสียทั้งสองอัน
+           ทางเข้ามีสองทางคือแถวใต้การ์ดงาน กับรูปที่เพิ่งถ่าย · ไม่มีแท็บสำรวจ -->
+      <div class="screen flush" id="scr-topic">
+        <div class="scr-body">
+          <div id="topicBody"></div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: เธรดในหัวข้อ ============ -->
+      <div class="screen flush" id="scr-tthread">
+        <div class="scr-body">
+          <div id="tthreadBody"></div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: กล่องข้อความ ============
+           เกิดขึ้นเพราะการทักไม่ได้จำกัดอยู่แค่คนในห้องเรียนอีกต่อไป —
+           ข้อความจากคนที่ไม่ได้อยู่ในรายชื่อไหนเลยต้องมีที่ไปรวมกัน -->
+      <div class="screen flush" id="scr-dm">
+        <div class="scr-body">
+          <div id="dmBody"></div>
+        </div>
+      </div>
 
       <!-- ============ SCREEN: ห้องของฉัน ============
            พื้นที่ส่วนตัวที่แต่งเองได้ — ทางเข้าอยู่ในแท็บ "ฉัน" แถวบนสุดของรายการ
            จอนี้ไม่ต้องมีเน็ต ทุกอย่างอ่าน/เขียนกับ state ในเครื่องแล้วซิงก์ตามก้อนเดิม -->
+      <div class="screen flush" id="scr-room">
+        <div class="scr-body pf-body">
+          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+            <div></div>
+            <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <div id="roomBody"></div>
+        </div>
+      </div>
 
       <div class="screen flush" id="scr-shop">
         <div class="scr-body pf-body">
@@ -919,7 +1158,7 @@
               <svg viewBox="0 0 24 24"><use href="#lu-bag"/></svg><span>ร้านค้า</span></button>
             <button type="button" onclick="go('scr-badges')">
               <svg viewBox="0 0 24 24"><use href="#lu-medal"/></svg><span>เหรียญตรา</span></button>
-            <button type="button" onclick="go('scr-friends')">
+            <button type="button" onclick="openFeed('friends')">
               <svg viewBox="0 0 24 24"><use href="#lu-users"/></svg><span>เพื่อน</span></button>
             <button type="button" onclick="go('scr-pro')">
               <svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg><span>Pro</span></button>
@@ -1237,7 +1476,21 @@
          เป็นแผ่นเลื่อนขึ้น ไม่ใช่จอใหม่ เพราะการเพิ่มงานควรจบโดยไม่ต้องออกจากคำตอบที่กำลังดูอยู่ -->
     <div class="add-sheet" id="addSheet" hidden></div>
 
+    <!-- ============================================================
+         1B70 · ปุ่มข้อความลอย — อยู่นอกกองจอเหมือน .tabbar
+         ============================================================
+         ผู้ใช้สั่งเอง: "อยากให้อันนี้ติดขอบจอตลอด ไม่ว่าจะเปิดหน้าไหน เลื่อนลงเลื่อนขึ้น"
+         ของเดิมวาดอยู่ข้างใน #scr-mates ซึ่ง .screen เป็น position:absolute + overflow-y:auto
+         ปุ่มจึงเป็นลูกของกล่องที่เลื่อนได้ แล้วมันเลื่อนหนีตามเนื้อหาไปด้วย
+         และโผล่แค่จอเดียว · ย้ายมาเป็นพี่น้องกับแถบเมนู = อิงกล่องเดียวกัน
+         อยู่นิ่งเสมอ และเห็นได้จากทุกจอโดยไม่ต้องวาดซ้ำ
+    -->
+    <button class="fd-fab" id="feedFab" aria-label="ข้อความ" hidden></button>
+
     <!-- ============ TAB BAR ============ -->
+    <!-- แผ่นรายงาน — ลอยทับได้ทุกจอ จึงอยู่นอกกองจอ -->
+    <div id="reportSheet" class="rp-sheet" hidden></div>
+
     <div class="tabbar">
       <!-- แถบล่าง: วันนี้ · งาน · ＋ · น้องไซ · ฉัน
            "ปฏิทิน" ถูกถอดออกจากแถบล่างใน 1A9 — ไม่ได้ถูกลบ มันเป็นมุมมองที่สองของแท็บ "งาน"
@@ -1248,15 +1501,46 @@
         <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-home"/></svg>
         <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-home-f"/></svg><span>วันนี้</span></button>
       <!-- แบดจ์อยู่บนแท็บ "งาน" — เลขบนแท็บต้องพาไปยังที่ที่ลงมือแก้เรื่องนั้นได้จริง -->
-      <button class="tab" data-scr="scr-tasks" onclick="go('scr-tasks')">
+      <button class="tab" data-scr="scr-tasks" onclick="goTasksTab()">
         <span class="ic-wrap"><svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-tasks"/></svg>
           <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-tasks-f"/></svg>
           <span class="tab-badge" id="badgeHome" hidden></span></span><span>งาน</span></button>
+      <!-- ============================================================
+           1B41 · ปุ่ม + กลับมาอยู่ "ตรงกลางเสมอ" (เจ้าของสั่งตรง ๆ)
+           ============================================================
+           "ตรงกลาง" เป็นข้อกำหนดที่บังคับจำนวนช่องไปด้วยในตัว: ช่องกลางมีได้เฉพาะ
+           แถบที่มีจำนวนช่องคี่ · หกช่องไม่มีกึ่งกลาง ปุ่มจะเยื้องซ้ายครึ่งช่องเสมอ
+           ซึ่งเป็นเหตุผลเดียวกับที่ 1A9 เคยยอมทำให้ปุ่มนี้แบนราบไปกับแท็บอื่น
+
+           ห้าช่องคือคำตอบเดียวที่ได้ทั้งสองอย่าง: + อยู่กลางจริง (ช่องที่ 3 จาก 5)
+           และป้ายทุกช่องยังอ่านครบบนจอ 320px (~55px ต่อช่อง)
+
+           ช่องที่ถอดออกคือ "ผู้ช่วย" ไม่ใช่ "เพื่อน" — เพราะ scr-ai มีทางเข้าหนึ่งแตะ
+           อยู่แล้วที่ช่องถามน้องไซบนหัวจอแรก ซึ่งเห็นก่อนแถบล่างด้วยซ้ำ
+           การมีทั้งช่องบนแถบและช่องพิมพ์บนหน้าแรกคือทางเข้าสองทางไปที่เดียวกัน
+           ส่วน "เพื่อน" ไม่มีทางเข้าอื่นที่เห็นได้โดยไม่ต้องกดเข้าไปหา
+           (หมายเหตุ: app.js:806 บันทึกไว้ว่า scr-ai เคยออกจากแถบล่างมาแล้วรอบหนึ่ง
+            และ renderAi มีปุ่มย้อนกลับของตัวเองอยู่แล้ว จอนี้จึงไม่เคยพึ่งแถบล่าง) -->
       <button class="tab scan" onclick="openAddSheet()" aria-label="เพิ่มงานใหม่">
         <span class="scan-dot"><svg viewBox="0 0 24 24"><use href="#tb-plus"/></svg></span><span>เพิ่ม</span></button>
+      <!-- ============================================================
+           1B93 · ช่องที่ 4 กลับเป็น "น้องไซ" — เจ้าของสั่งเอง (13 ก.ย. 2569)
+           ============================================================
+           เหตุผลไม่ใช่เรื่องดีไซน์ แต่เป็นเรื่องความปลอดภัย เจ้าของเขียนไว้ตรง ๆ ว่า
+           "หน้าเพื่อนมันไอเดียดีแล้วแต่ยังอันตราย เพราะเรายังไม่มี AI วิเคราะห์รูปภาพ
+           และข้อความ" — หลักฐานคือมีคนโพสต์รูปแผลผ่าตัดลงฟีดจริงในรุ่นทดลอง
+           ฟีดที่ไม่มีตัวกรองคือของที่ปล่อยให้เด็กใช้ไม่ได้ ไม่ว่าจอมันจะสวยแค่ไหน
+
+           **ทางเข้าอื่นของฟีดยังเปิดอยู่โดยตั้งใจ** (ไทล์ "เพื่อนฉัน" ในหน้าฟีเจอร์อื่น ๆ
+           และลิงก์จากหน้าโปรไฟล์) — เจ้าของเคาะเองว่าเอาแค่สลับแท็บก่อน
+           ปิดทั้งชั้นเมื่อไหร่ใช้สวิตช์ features.social ใน Control Center ได้ทันที
+           ซึ่งกรองไทล์ให้ด้วยอยู่แล้ว (ดู tiles ใน renderTools)
+
+           ช่องนี้เคยเป็นน้องไซมาก่อนและถูกเพื่อนแทนที่ไปรอบหนึ่ง — รอบนี้คือสลับกลับ
+           สัญลักษณ์ #tb-ai / #tb-ai-f ยังอยู่ครบใน <defs> ตั้งแต่รอบนั้น ไม่ต้องวาดใหม่ -->
       <button class="tab" data-scr="scr-ai" onclick="go('scr-ai')">
         <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-ai"/></svg>
-        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-ai-f"/></svg><span>ผู้ช่วย</span></button>
+        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-ai-f"/></svg><span>น้องไซ</span></button>
       <button class="tab" data-scr="scr-profile" onclick="go('scr-profile')">
         <span class="ic-wrap"><svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-profile"/></svg>
           <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-profile-f"/></svg>
@@ -1278,6 +1562,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
+<!-- remote-config.js ต้องมาก่อน engine.js — engine.js เรียก prioWeight() ตอนคิดคะแนน
+     และต้องมาหลัง config.js เพราะมันอ่าน SUPABASE_CONFIG ไปดึงค่าตั้ง
+     ตัวมันเองไม่บล็อกอะไร: ค่าเริ่มต้นพร้อมใช้ทันทีแบบ synchronous แล้วค่อยอัปเดตทีหลัง -->
+<script src="remote-config.js"></script>
 <script src="engine.js"></script>
 <!-- context.js ต้องมาก่อน app.js — app.js เรียก freeSlots() ตอนวาดจอ -->
 <script src="context.js"></script>
@@ -1285,11 +1573,40 @@
      มันเรียก buildDayPlan/freeSlots ตอนคิดแผน และ app.js เรียก studyPlan() ตอนวาดจอ
      ทุกจอที่พูดเรื่อง "ควรทำอะไร" อ่านคำตอบจากไฟล์นี้ก้อนเดียว ห้ามคิดเองซ้ำ -->
 <script src="planner.js"></script>
+<!-- simulate.js ต้องอยู่หลัง engine.js (remainingMin/TASK_TYPES) · context.js (freeSlots)
+     และ planner.js (plannedMin/durationStats — มันยืมตัวเลข "เวลาที่เรียนรู้มาจริง" มาใช้
+     ไม่งั้นนาฬิกา "เริ่มไม่ทันแล้ว" จะพูดคนละเลขกับหน้าแผน ซึ่งเป็นบั๊กประเภทที่แพงที่สุดของแอปนี้)
+     ตอบคำถามที่ priorityInfo() ตอบไม่ได้: "ยังเริ่มทันอยู่ไหม" — เฟส 1 ของเอนจินตัดสินใจ -->
+<!-- profile.js ต้องมาก่อน simulate.js — simulate เรียก studyProfile()/profileBucketOf()
+     เพื่อเอาอัตราลงมือจริงของผู้ใช้มาใช้แทนค่ากลาง (เฟส 3) -->
+<!-- facts.js ต้องมาก่อนทุกชั้นของเอนจิน — ทั้ง simulate/loss/decide อ่าน taskFacts()
+     เพื่อรู้ว่างานใบนี้ติดใบอื่นไหม ส่งช้าได้ไหม ต้องต่อความคิดแค่ไหน (ชั้น L0) -->
+<script src="facts.js"></script>
+<script src="profile.js"></script>
+<script src="simulate.js"></script>
+<!-- calibrate.js เป็นอิสระ ไม่มีใครใน engine เรียกมัน — app.js เรียกฝ่ายเดียว (เฟส 4-5) -->
+<script src="calibrate.js"></script>
+<!-- loss.js + decide.js = เฟส 2 · ต้องอยู่หลัง simulate.js (simPrep/simRollout)
+     loss.js เป็นฟังก์ชันบริสุทธิ์ล้วน ไม่พึ่งใครนอกจากผลของ simRollout
+     decide.js เรียกทั้งคู่ + riskReport + taskPhrase — จึงต้องมาท้ายสุดของกลุ่มนี้
+     ทุกจอที่อยากรู้ว่า "ทางไหนดีกว่ากันเท่าไหร่" อ่านจาก decide() ก้อนเดียว -->
+<script src="loss.js"></script>
+<script src="decide.js"></script>
 <!-- ต้องมาก่อน app.js: app.js เรียก renderInbox/renderSources ใน renderAll
      และเรียก loadLineLinks/pullInbox ตอนซิงก์ -->
 <script src="brain.js"></script>
 <script src="inbox.js"></script>
 <script src="linelink.js"></script>
+<!-- ต้องมาก่อน app.js: app.js เรียก renderRoom() ใน renderAll
+     และ room.js ใช้ fmtThaiDate จาก engine.js ซึ่งโหลดไปแล้วข้างบน -->
+<script src="room.js"></script>
+<script src="social.js"></script>
+<script src="feed.js"></script>
+<!-- ต้องมาหลัง feed.js: hw.js ใช้ myFirstRoom() กับ avStyle() จากไฟล์นั้น
+     และต้องมาก่อน app.js เพราะ taskCard() เรียก hwStrip() ทุกครั้งที่วาดการ์ด -->
+<script src="hw.js"></script>
+<script src="topic.js"></script>
+<script src="safety.js"></script>
 <script src="app.js"></script>
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────

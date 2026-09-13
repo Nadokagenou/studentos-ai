@@ -152,6 +152,33 @@ def main():
     root_html = io.open(os.path.join(ROOT, 'index.html'), encoding='utf-8', newline='').read()
     shell = re.search(r'const SHELL = \[(.*?)\];', sw, flags=re.S)
     listed = set(re.findall(r"'([^']+)'", shell.group(1))) if shell else set()
+
+    # ---------- เติมไฟล์ใหม่ลง SHELL ให้เอง ----------
+    # ⚠️ บทเรียนรอบที่สาม (13 ก.ย. 2569): สคริปต์เคย "ฟ้องแล้วจบ" ตรงนี้ แล้วคนที่รัน
+    #    ต้องไปไล่เติมชื่อไฟล์ทีละตัวในมือเอง — สิบเก้าไฟล์ในรอบ 1B15→1B91
+    #    ขั้นตอนมือที่ต้องทำทุกครั้งคือขั้นตอนที่วันหนึ่งจะถูกลืม แล้วผลของการลืมคือ
+    #    "เปิดแอปตอนไม่มีเน็ตแล้วจอขาว" ซึ่งไม่มีอะไรบนหน้าจอบอกสาเหตุเลย
+    #
+    #    เติมได้อย่างปลอดภัยเพราะเงื่อนไขแคบมาก: ต้องเป็นไฟล์ที่ index.html ของตัวจริง
+    #    อ้างถึงจริง **และ** มีอยู่จริงที่ราก (เช็คไปแล้วในลูปข้างล่าง) — สองข้อนี้คือ
+    #    นิยามของ "ไฟล์ที่ต้องอยู่ใน SHELL" พอดี ไม่ได้เดาแทนคน
+    #    splash-* ยังถูกยกเว้นเหมือนเดิม (iOS โหลดตอนติดตั้ง ไม่ได้โหลดผ่านหน้าเว็บ)
+    missing = [f for f in dict.fromkeys(local_refs(root_html))
+               if f not in listed and not f.startswith('splash-')
+               and os.path.exists(os.path.join(ROOT, f))]
+    if missing and shell:
+        # แทรกก่อน manifest.json ถ้ามี ไม่งั้นต่อท้ายบรรทัดแรกของลิสต์
+        add = ''.join("'%s', " % f for f in missing)
+        body = shell.group(1)
+        if "'manifest.json'" in body:
+            body2 = body.replace("'manifest.json'", add + "'manifest.json'", 1)
+        else:
+            body2 = body.rstrip() + ',{}  '.format(chr(10)) + add.rstrip(', ')
+        sw = sw.replace(shell.group(0), 'const SHELL = [' + body2 + '];', 1)
+        io.open(swp, 'w', encoding='utf-8', newline='').write(sw)
+        listed |= set(missing)
+        print('เติมลง SHELL ให้แล้ว: ' + ', '.join(missing))
+
     for f in local_refs(root_html):
         # addAll ล้มทั้งก้อนถ้ามีตัวใดตัวหนึ่ง 404 แล้วแอปจะไม่มีแคชเลยโดยไม่มี error โผล่
         if not os.path.exists(os.path.join(ROOT, f)):

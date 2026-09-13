@@ -246,3 +246,442 @@
   display: flex; align-items: center; justify-content: center;
 }
 .so-poke.off svg { width: 18px; height: 18px; }
+
+/* ============================================================
+   กล่องข้อความ + คำขอทัก  (1B61)
+   ------------------------------------------------------------
+   เกิดขึ้นเพราะการทักไม่ได้จำกัดอยู่แค่คนในห้องเรียนอีกต่อไป (migration 19)
+   ตอนที่ทักได้เฉพาะคนห้องเดียวกัน รายชื่อคนในห้องคือทางเข้าห้องคุย ซึ่งพอ —
+   พอเปิดให้ทักกันได้ทั่วไป ข้อความจากคนที่ไม่ได้อยู่ในรายชื่อไหนเลยต้องมีที่ไปรวมกัน
+   ============================================================ */
+#scr-dm .scr-body {
+  display: flex; flex-direction: column;
+  position: absolute; inset: 0; padding: 0;
+}
+#dmBody { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.dm-list { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 14px 24px; }
+.dm-fine { margin: 0 0 8px; font-size: 11.5px; line-height: 1.6; color: var(--faint); }
+
+.dm-row {
+  display: flex; align-items: center; gap: 11px;
+  padding: 11px 0; border-bottom: 1px solid var(--line); cursor: pointer;
+}
+.dm-av {
+  width: 40px; height: 40px; flex: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; object-fit: cover;
+  background: var(--card2); color: var(--muted);
+}
+.dm-bd { min-width: 0; flex: 1; }
+.dm-bd b { display: block; font-size: 14px; }
+/* ชื่อผู้ใช้ต้องโชว์คู่ชื่อจริงเสมอ — "บีม" สามคนในหน้าเดียวคือเรื่องปกติในโรงเรียนเดียว
+   (เหตุผลเดียวกับที่ friend_list คืน handle มาด้วยตั้งแต่ migration 17) */
+.dm-bd b span { margin-left: 6px; font-weight: 400; font-size: 11.5px; color: var(--faint); }
+.dm-bd i {
+  display: block; margin-top: 2px; font-style: normal;
+  font-size: 12px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dm-row:active { opacity: .7; }
+
+/* ---------- แบนเนอร์คำขอในจอแชท ---------- */
+/* อยู่ใต้หัวจอ ไม่ใช่ป๊อปอัป — คนรับต้องอ่านข้อความที่เขาส่งมาก่อนถึงจะตัดสินใจได้
+   ป๊อปอัปที่บังข้อความไว้แปลว่าต้องกดปิดก่อนถึงจะรู้ว่าจะรับดีไหม */
+.ch-req {
+  padding: 12px 14px; border-bottom: 1px solid var(--line);
+  background: var(--card2);
+}
+.ch-req p { margin: 0 0 10px; font-size: 12.5px; line-height: 1.6; color: var(--muted); }
+.ch-req-row { display: flex; gap: 8px; }
+.ch-req-row button {
+  flex: 1; border-radius: 10px; padding: 9px 0;
+  font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+.ch-req-no { border: 1.5px solid var(--line); background: var(--card); color: var(--muted); }
+.ch-req-block { border: 1.5px solid var(--line); background: var(--card); color: var(--bad, #d14343); }
+.ch-req-ok { border: 0; background: var(--blue); color: var(--on-accent); }
+.ch-req-row button:active { transform: scale(.97); }
+
+.ch-wait {
+  margin: 0; padding: 10px 14px;
+  border-bottom: 1px solid var(--line); background: var(--card2);
+  font-size: 12px; line-height: 1.6; color: var(--muted);
+}
+
+/* ปุ่มรายงาน/บล็อกต้องอยู่ในทุกจอที่มีคนแปลกหน้า — ไม่มีข้อยกเว้น
+   จอที่ลืมใส่คือจอที่คนโดนกวนแล้วไม่มีอะไรทำได้นอกจากปิดแอป */
+.ch-more {
+  margin-left: auto; width: 34px; height: 34px; flex: none;
+  border: 0; border-radius: 10px; background: var(--card2); color: var(--muted);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.ch-more svg { width: 16px; height: 16px; }
+
+/* ============================================================
+   เริ่มแชทใหม่ — โครงแบบ Telegram
+   ------------------------------------------------------------
+   ต่างจาก IG ที่ซ่อนช่องค้นหาไว้หลังปุ่มเขียนข้อความ: Telegram วางช่องค้นหา
+   ไว้บนสุดให้เห็นเสมอ แล้วมันค้นทั้งห้องที่คุยอยู่แล้วและคนที่ยังไม่เคยคุยในช่องเดียว
+   ซึ่งตรงกับสิ่งที่คนคิดในหัวจริง ๆ — เขาคิดถึง "คน" ไม่ได้คิดว่าคนนั้นอยู่รายการไหน
+   ส่วนปุ่มดินสอลอยมุมล่างมีไว้สำหรับคนที่ยังไม่รู้ว่าจะทักใคร จึงยังพิมพ์อะไรไม่ได้
+   ============================================================ */
+#dmBody { position: relative; }
+
+.dm-find { position: relative; padding: 10px 14px 6px; flex: none; }
+.dm-find input {
+  width: 100%; padding: 10px 36px 10px 38px; border-radius: 999px;
+  border: 1.5px solid var(--line); background: var(--card2); color: var(--ink);
+  font-family: inherit; font-size: 14px;
+}
+.dm-find input:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+.dm-find input::-webkit-search-cancel-button { display: none; }
+.dm-find-ic {
+  position: absolute; left: 26px; top: 50%; transform: translateY(-40%);
+  display: inline-flex; color: var(--faint); pointer-events: none;
+}
+.dm-find-ic svg { width: 16px; height: 16px; }
+.dm-find-x {
+  position: absolute; right: 22px; top: 50%; transform: translateY(-40%);
+  width: 24px; height: 24px; border: 0; border-radius: 50%;
+  background: var(--line); color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.dm-find-x svg { width: 12px; height: 12px; }
+
+/* ไอคอนท้ายแถวบอกว่าแตะแล้วจะได้คุย ไม่ใช่แค่เปิดโปรไฟล์ —
+   แถวหน้าตาเดียวกันสองความหมายคือที่มาของการกดผิดที่แก้ยากที่สุด */
+.dm-go { flex: none; display: inline-flex; color: var(--blue); }
+.dm-go svg { width: 17px; height: 17px; }
+
+/* ---------- ปุ่มดินสอลอย ---------- */
+/* อยู่มุมล่างขวาเหมือน Telegram · เว้นระยะจากขอบล่างของเครื่องที่มีแถบบ้าน */
+.dm-fab {
+  position: absolute; right: 16px;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  width: 52px; height: 52px; border: 0; border-radius: 50%;
+  background: var(--blue); color: var(--on-accent); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow-brand, 0 6px 18px rgba(0,0,0,.18));
+}
+.dm-fab svg { width: 21px; height: 21px; }
+.dm-fab:active { transform: scale(.94); }
+
+/* ---------- หน้าข้อความที่ยังว่าง ---------- */
+/* ของเดิมเป็นข้อความสองบรรทัดที่บอกให้ไปทำอย่างอื่นที่หน้าอื่น ซึ่งเป็นทางตัน
+   ตอนนี้ทางไปต่ออยู่บนจอเดียวกันแล้วทั้งสองทาง (ช่องค้นหาข้างบน · ปุ่มดินสอมุมล่าง)
+   ข้อความจึงมีหน้าที่แค่ชี้ไปที่สองอันนั้น ไม่ต้องมีปุ่มของตัวเองอีก */
+.dm-blank { padding: 40px 24px; text-align: center; }
+.dm-blank-ic { color: var(--faint); }
+.dm-blank-ic svg { width: 34px; height: 34px; }
+.dm-blank-h { margin: 12px 0 4px; font-size: 15px; font-weight: 700; color: var(--ink); }
+.dm-blank-p { margin: 0; font-size: 12.5px; line-height: 1.7; color: var(--muted); }
+
+/* 1B65 · สองแถววิชาเป็นแถวเลื่อน ไม่ใช่ห่อลงบรรทัดใหม่ไปเรื่อย ๆ
+   ผู้ใช้บอกว่าจอนี้ "ข้อความเยอะๆแบบนั้นไม่ควร" — วิชา 11 ตัวสองชุดห่อลงมา
+   กินความสูงเกือบสิบบรรทัด ทั้งที่คนกดจริงแค่สองสามตัว
+   แถวเลื่อนคืนความสูงให้เกือบครึ่งจอ โดยยังกดครบทุกวิชาเหมือนเดิม */
+.so-chips.row {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.so-chips.row::-webkit-scrollbar { display: none; }
+.so-chips.row .so-chip { flex: none; white-space: nowrap; }
+
+/* ============================================================
+   1B67 · จอแชททรง Instagram
+   ------------------------------------------------------------
+   ผู้ใช้ส่งหน้า DM ของ IG มาแล้วบอกว่า "ขอเหมือน ig เลย"
+   สามอย่างที่ทำให้ IG อ่านเป็นห้องแชท ไม่ใช่รายการข้อความ:
+   รูปคนคุยอยู่บนหัวจอ · ข้อความติดกันจับเป็นก้อน · ช่องพิมพ์เป็นแคปซูลใบเดียว
+   ============================================================ */
+.ch-top { gap: 8px; padding: 10px 12px; }
+/* ทั้งก้อน รูป+ชื่อ เป็นปุ่มเดียวที่พาไปโปรไฟล์ — พื้นที่กดต้องใหญ่พอสำหรับนิ้ว
+   ไม่ใช่ตัวหนังสือบาง ๆ ที่ต้องเล็งกด */
+.ch-who {
+  /* ต้องเขียน flex-direction: row ให้ชัด — กฎเดิมบรรทัด 169 ตั้ง column ไว้
+     และ specificity เท่ากัน กฎนี้จึงทับได้เฉพาะคุณสมบัติที่เขียนถึงเท่านั้น
+     ลืมบรรทัดนี้ = รูปไปกองอยู่เหนือชื่อกลางหัวจอ (เจอจริงตอนเทสต์) */
+  display: flex; flex-direction: row; align-items: center; gap: 9px; min-width: 0; flex: 1;
+  border: 0; background: none; padding: 2px 0; text-align: left;
+  font-family: inherit; color: inherit; cursor: default;
+}
+.ch-who.tap { cursor: pointer; }
+.ch-who.tap:active { opacity: .6; }
+.ch-who-tx { min-width: 0; }
+.ch-who-tx b {
+  display: flex; align-items: center; gap: 2px;
+  font-size: 14.5px; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* ลูกศรเล็ก ๆ ท้ายชื่อ = แตะได้ · IG ใช้สัญญาณตัวนี้ตัวเดียวโดยไม่ต้องมีคำอธิบาย */
+.ch-who-tx b svg { width: 13px; height: 13px; flex: none; color: var(--faint); }
+.ch-who-tx i {
+  display: block; font-style: normal; font-size: 11px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ch-face {
+  width: 32px; height: 32px; flex: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; object-fit: cover;
+  background: var(--card2); color: var(--muted);
+}
+/* ที่ว่างแทนรูปในฟองที่ไม่ใช่ฟองสุดท้ายของก้อน — ฟองยังเรียงตรงกัน แต่ไม่มีหน้าซ้ำสิบรอบ */
+.ch-face.ghost { background: none; }
+
+/* ---------- หัวคั่นวัน ---------- */
+.ch-day { display: flex; justify-content: center; margin: 14px 0 10px; }
+.ch-day span {
+  padding: 3px 12px; border-radius: 999px;
+  background: var(--card2); color: var(--muted);
+  font-size: 11px; font-weight: 600;
+}
+
+/* ---------- ฟองข้อความ ---------- */
+.ch-msg { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 2px; }
+.ch-msg.last { margin-bottom: 10px; }
+.ch-msg.me { justify-content: flex-end; }
+.ch-bub {
+  max-width: 74%; padding: 9px 14px;
+  border-radius: 18px;
+  background: var(--card2); color: var(--ink);
+  font-size: 14.5px; line-height: 1.5; word-break: break-word;
+}
+/* มุมที่ติดกับก้อนถูกบีบให้แคบลง — เป็นสัญญาณเดียวกับ IG ว่าสองฟองนี้คือคนเดียวกันพูดต่อกัน */
+.ch-msg:not(.me) .ch-bub { border-bottom-left-radius: 5px; }
+.ch-msg:not(.me) .ch-bub.tail { border-bottom-left-radius: 18px; }
+.ch-msg:not(.me) .ch-bub:not(.first) { border-top-left-radius: 5px; }
+.ch-msg.me .ch-bub {
+  background: var(--blue); color: var(--on-accent);
+  border-bottom-right-radius: 5px;
+}
+.ch-msg.me .ch-bub.tail { border-bottom-right-radius: 18px; }
+.ch-msg.me .ch-bub:not(.first) { border-top-right-radius: 5px; }
+
+/* ---------- ห้องที่ยังไม่มีใครพิมพ์ ---------- */
+/* IG โชว์รูปกับชื่อคนที่กำลังจะคุยด้วยตรงกลางจอ ซึ่งตอบคำถาม "นี่ห้องของใคร"
+   ได้ดีกว่าประโยคชวนคุยลอย ๆ */
+.ch-blank { text-align: center; padding: 48px 24px; }
+.ch-blank .ch-face { width: 68px; height: 68px; font-size: 26px; margin: 0 auto 12px; }
+.ch-blank b { display: block; font-size: 15px; color: var(--ink); }
+.ch-blank p { margin: 6px 0 0; font-size: 12.5px; line-height: 1.7; color: var(--muted); }
+
+/* ---------- แถบพิมพ์ ---------- */
+.ch-bar { border-top: 0; padding: 8px 12px calc(10px + env(safe-area-inset-bottom, 0px)); }
+.ch-field {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 4px 4px 16px; border-radius: 999px;
+  border: 1.5px solid var(--line); background: var(--card2);
+}
+.ch-field:focus-within { border-color: var(--blue); }
+.ch-field input {
+  flex: 1; min-width: 0; border: 0; background: none; color: var(--ink);
+  font-family: inherit; font-size: 14.5px; padding: 8px 0;
+}
+.ch-field input:focus { outline: none; }
+/* ปุ่มส่งโผล่ตอนมีตัวอักษรเท่านั้น — ปุ่มที่ค้างอยู่ตลอดทั้งที่กดไปก็ไม่เกิดอะไร
+   คือปุ่มที่สอนให้คนเลิกเชื่อปุ่ม */
+.ch-send {
+  width: 36px; height: 36px; flex: none; border: 0; border-radius: 50%;
+  background: var(--blue); color: var(--on-accent); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transform: scale(.6); opacity: 0; pointer-events: none;
+  transition: transform .14s ease, opacity .14s ease;
+}
+.ch-send.on { transform: scale(1); opacity: 1; pointer-events: auto; }
+.ch-send svg { width: 17px; height: 17px; }
+@media (prefers-reduced-motion: reduce) { .ch-send { transition: none; } }
+
+/* ---------- เวลาใต้ฟองข้อความ (1B72) ---------- */
+/* ผู้ใช้ขอ "ให้บอกเวลาพิมพ์ด้วย" · โผล่ใต้ฟองสุดท้ายของแต่ละก้อนเท่านั้น
+   ทุกฟองมีเวลา = ตัวเลขเรียงลงมาสิบบรรทัดที่บอกเรื่องเดียวกัน */
+.ch-col { display: flex; flex-direction: column; max-width: 78%; min-width: 0; }
+.ch-msg.me .ch-col { align-items: flex-end; }
+.ch-col .ch-bub { max-width: 100%; }
+.ch-when {
+  margin: 3px 4px 0;
+  font-size: 10.5px; color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   1B72 · หน้าแก้ไขโปรไฟล์ — ทรง Edit profile ของ Instagram
+   ------------------------------------------------------------
+   ผู้ใช้บอกว่า "มันยังดูกากมากๆ ปรับ ux/ui เลย ลองดูของ ig เป็นตัวอย่าง"
+   สามอย่างที่ IG ทำแล้วเราไม่ได้ทำ:
+   รูป+ชื่ออยู่บนสุดพร้อมปุ่มเปลี่ยนรูป · ทุกช่องมีป้ายกำกับเรียงเป็นฟอร์มเดียว ·
+   ปุ่มบันทึกอันเดียวอยู่ล่างสุด
+   ============================================================ */
+.ep { display: flex; flex-direction: column; gap: 20px; padding-bottom: 8px; }
+
+/* ---------- แถวรูปบนสุด ---------- */
+.ep-face {
+  display: flex; align-items: center; gap: 13px;
+  padding: 14px; border-radius: 16px; background: var(--card2);
+}
+.ep-av {
+  width: 56px; height: 56px; flex: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 21px; font-weight: 700; object-fit: cover;
+  background: var(--card); color: var(--muted);
+}
+.ep-face-tx { flex: 1; min-width: 0; }
+.ep-face-tx b {
+  display: block; font-size: 14.5px; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ep-face-tx i {
+  display: block; font-style: normal; font-size: 12px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ep-face-go {
+  flex: none; padding: 8px 14px; border: 0; border-radius: 10px;
+  background: var(--blue); color: var(--on-accent);
+  font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+.ep-face-go:active { transform: scale(.96); }
+
+/* ---------- ช่องกรอก ---------- */
+/* ป้ายกำกับอยู่เหนือช่องเสมอ ไม่ใช่ข้างใน — ป้ายที่อยู่ข้างในหายไปตอนพิมพ์
+   แล้วคนที่กลับมาดูทีหลังจะไม่รู้ว่าช่องนี้คืออะไร */
+.ep-f { display: flex; flex-direction: column; gap: 7px; position: relative; }
+.ep-f > label {
+  font-size: 12px; font-weight: 700; color: var(--ink); letter-spacing: .01em;
+}
+.ep-f input[type="text"], .ep-f textarea {
+  width: 100%; padding: 12px 14px; border-radius: 12px;
+  border: 1.5px solid var(--line); background: var(--card2); color: var(--ink);
+  font-family: inherit; font-size: 14.5px; line-height: 1.5; resize: none;
+}
+.ep-f input:focus, .ep-f textarea:focus {
+  outline: none; border-color: var(--blue); background: var(--card);
+}
+.ep-hint { margin: 0; font-size: 11.5px; line-height: 1.55; color: var(--faint); }
+.ep-count {
+  position: absolute; right: 2px; top: 0;
+  font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums;
+}
+
+/* @ อยู่ในกรอบเดียวกับช่อง ไม่ใช่ข้อความนำหน้าที่ลอยอยู่ข้างนอก
+   เพราะมันเป็นส่วนหนึ่งของค่าที่กำลังกรอก ไม่ใช่คำอธิบาย */
+.ep-at {
+  display: flex; align-items: center; gap: 2px;
+  padding-left: 14px; border-radius: 12px;
+  border: 1.5px solid var(--line); background: var(--card2);
+}
+.ep-at:focus-within { border-color: var(--blue); background: var(--card); }
+.ep-at span { color: var(--faint); font-size: 14.5px; }
+.ep-at input {
+  flex: 1; min-width: 0; border: 0 !important; background: none !important;
+  padding-left: 2px !important;
+}
+
+.ep-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.ep-chip {
+  padding: 9px 16px; border-radius: 999px;
+  border: 1.5px solid var(--line); background: var(--card2); color: var(--muted);
+  font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.ep-chip.on { border-color: var(--blue); background: var(--blue); color: var(--on-accent); }
+.ep-chip:active { transform: scale(.97); }
+
+.ep-fine {
+  display: flex; align-items: flex-start; gap: 6px; margin: 0;
+  font-size: 11.5px; line-height: 1.6; color: var(--faint);
+}
+.ep-fine svg { width: 13px; height: 13px; flex: none; margin-top: 2px; }
+
+.ep-save {
+  width: 100%; padding: 14px 0; border: 0; border-radius: 14px;
+  background: var(--blue); color: var(--on-accent);
+  font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.ep-save:disabled { opacity: .55; cursor: default; }
+.ep-save:not(:disabled):active { transform: scale(.99); }
+
+/* ============================================================
+   1B74 · ปุ่มแนบรูปกับอิโมจิในแถบพิมพ์
+   ------------------------------------------------------------
+   CSS ชุดนี้หายไปตั้งแต่ 1B72 — คำสั่งที่เขียนไฟล์ล้มไปครึ่งทางแล้วไม่ได้รันซ้ำ
+   ปุ่มจึงมีอยู่ใน DOM จริงแต่ไม่มีขนาด กลายเป็นสี่เหลี่ยม 4x21px ที่มองแทบไม่เห็น
+   ผู้ใช้เห็นเป็นเส้นบาง ๆ ข้างช่องพิมพ์ แล้วบอกว่า "เอามาไว้ฝั่งซ้ายให้มันชัดเจน"
+   — มันอยู่ซ้ายอยู่แล้ว แค่ไม่มีขนาด
+
+   บทเรียน: ปล่อย JS ที่อ้างคลาสใหม่โดยไม่ได้เช็คว่าคลาสนั้นมีจริงในไฟล์ CSS
+   = ฟีเจอร์ที่ "ทำงาน" แต่มองไม่เห็น ซึ่งหาสาเหตุยากกว่าฟีเจอร์ที่พังตรง ๆ
+   ============================================================ */
+.ch-bar { align-items: flex-end; gap: 8px; }
+
+/* ปุ่มแนบรูปอยู่ซ้ายสุด นอกแคปซูล — ตำแหน่งเดียวกับ IG และ Messenger
+   อยู่นอกแคปซูลเพราะมันทำคนละเรื่องกับการพิมพ์ ไม่ใช่เครื่องมือของช่องข้อความ */
+.ch-plus {
+  width: 42px; height: 42px; flex: none;
+  border: 0; border-radius: 50%;
+  background: var(--blue); color: var(--on-accent);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-brand);
+}
+.ch-plus svg { width: 20px; height: 20px; }
+.ch-plus:active { transform: scale(.94); }
+.ch-plus:disabled { opacity: .5; cursor: default; }
+
+/* อิโมจิอยู่ในแคปซูล ติดกับข้อความ เพราะมันคือการพิมพ์อีกแบบหนึ่ง */
+.ch-emo-btn {
+  width: 34px; height: 34px; flex: none;
+  border: 0; border-radius: 50%; background: none; color: var(--muted);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.ch-emo-btn svg { width: 18px; height: 18px; }
+.ch-emo-btn:active { transform: scale(.9); }
+
+/* แผงอิโมจิ — ทางเข้าที่ไม่ต้องพึ่งคีย์บอร์ดของเครื่อง
+   บนเว็บในมือถือบางรุ่นปุ่มอิโมจิของคีย์บอร์ดหาไม่เจอ และบนเดสก์ท็อปไม่มีเลย */
+.ch-emo {
+  display: flex; flex-wrap: wrap; gap: 5px; flex: none;
+  padding: 10px 12px 0;
+}
+.ch-emo[hidden] { display: none; }
+.ch-emo button {
+  width: 42px; height: 42px; border: 0; border-radius: 12px;
+  background: var(--card2); font-size: 22px; line-height: 1; cursor: pointer;
+}
+.ch-emo button:active { transform: scale(.9); }
+
+/* รูปในฟองข้อความ — ไม่มีกรอบฟองครอบ เพราะรูปเป็นเนื้อหาเองอยู่แล้ว
+   ฟองรอบรูปทำให้เห็นขอบสองชั้นโดยไม่ได้บอกอะไรเพิ่ม */
+.ch-img {
+  display: block; max-width: 100%; width: 220px;
+  border-radius: 16px; border: 1px solid var(--line);
+  cursor: pointer; object-fit: cover;
+}
+.ch-img + .ch-bub { margin-top: 4px; }
+
+/* ============================================================
+   1B76 · ลบข้อความที่ส่งไปแล้ว + รูปที่กำลังรอลิงก์ชั่วคราว
+   ------------------------------------------------------------
+   ปุ่มลบซ่อนอยู่ในบรรทัดเวลา ไม่ใช่ปุ่มลอยข้างฟอง — สองเหตุผล:
+   บรรทัดเวลาโผล่เฉพาะฟองสุดท้ายของก้อนอยู่แล้ว ปุ่มจึงไม่ซ้ำสิบรอบในก้อนเดียว
+   และปุ่มลอยข้างฟองต้องกันที่ว่างไว้ตลอดเวลา ซึ่งทำให้ฟองทุกใบแคบลงเพื่อของ
+   ที่แทบไม่มีใครกด
+   ============================================================ */
+.ch-del {
+  border: 0; background: none; padding: 0 2px;
+  font: inherit; font-size: 10.5px;
+  color: var(--faint); cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.ch-del:hover { color: var(--bad, #c0392b); }
+
+/* รูปใน bucket ปิดต้องรอลิงก์ชั่วคราวก่อนถึงจะโหลดได้ ระหว่างนั้นกันที่ไว้
+   ขนาดเท่ารูปจริง ไม่งั้นพอรูปมาถึง ข้อความทั้งหน้าจะกระโดดลงไปหนึ่งช่วง */
+.ch-img.wait {
+  display: block; width: 220px; height: 165px;
+  border-radius: 16px; border: 1px solid var(--line);
+  background: linear-gradient(100deg, var(--card) 30%, var(--line) 50%, var(--card) 70%)
+              0 0 / 300% 100%;
+  animation: chImgWait 1.1s linear infinite;
+}
+@keyframes chImgWait { to { background-position: -150% 0; } }
