@@ -197,6 +197,13 @@ kbd{font:600 10px ui-monospace,Menlo,Consolas,monospace;background:var(--ccard2)
    กดแก้ดีไซน์เมื่อไหร่ แผงควบคุมซ้ายหลบไปทั้งคอลัมน์ แล้วแอปขึ้นเป็นขนาดจริง 375px
    ไม่ย่อ · แผงเครื่องมือไปนั่งข้าง ๆ ไม่ทับของที่กำลังแก้
    เหตุผล: แถบเครื่องมือกว้าง 322px จะไม่มีวันพอดีในกรอบ 244px ไม่ว่าจะจัดยังไง */
+/* แถบเตือนว่าไฟล์ในกรอบเป็นของเก่า — ต้องเด่นพอที่จะไม่ถูกมองข้าม เพราะอาการของมันคือ
+   "กดแล้วไม่มีอะไรเกิดขึ้น" ซึ่งคนจะเดาว่าฟีเจอร์พัง ไม่ใช่เดาว่าไฟล์เก่า */
+.stale{background:var(--cwarn-soft);border:1px solid var(--cwarn);border-radius:12px;
+  padding:12px 13px;margin-top:10px;max-width:336px}
+.stale b{display:block;font-size:13px;color:var(--cwarn);margin-bottom:3px}
+.stale p{margin:0 0 10px;font-size:11.5px;color:var(--cmuted);line-height:1.6}
+
 .live-stage{display:flex;gap:14px;align-items:flex-start}
 .ve-dock{width:336px;flex:none;display:none}
 .main.pv-edit .ve-dock{display:block}
