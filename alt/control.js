@@ -1094,6 +1094,11 @@
     if (e.data.type === 'sos-preview-edit') {
       var m = document.querySelector('.main');
       if (m) m.classList.toggle('pv-edit', !!e.data.on);
+      var eb = $('#pvEdit');
+      if (eb) {
+        eb.textContent = e.data.on ? 'เสร็จแล้ว' : 'แก้ดีไซน์';
+        eb.classList.toggle('pri', !e.data.on);
+      }
       return;
     }
 
@@ -1195,6 +1200,23 @@
   }
   $('#pvPurge').onclick = purgeAppCache;
   $('#pvPurge2').onclick = purgeAppCache;
+
+  /* ---------- ทางเข้าโหมดแก้ดีไซน์ ----------
+     กดปุ่มเดิมของตัวแก้ดีไซน์ที่ถูกย้ายมาอยู่ในด็อก — ใช้เส้นทางเดิมทุกขั้น
+     ไม่ได้เขียนตรรกะเปิด/ปิดซ้ำ ซึ่งจะเพี้ยนจากของจริงวันหนึ่งแน่นอน
+
+     **ปุ่มนี้ต้องอยู่บนหัวราง ไม่ใช่ในด็อก** — ด็อกโผล่เฉพาะตอนอยู่ในโหมดแก้
+     ปุ่มที่ใช้ "เข้า" โหมดนั้นจึงอยู่ในนั้นไม่ได้ ไม่งั้นไม่มีทางเข้าเลย (เคยพลาดมาแล้ว
+     เพราะตอนทดสอบสั่ง .click() ตรง ๆ จึงไม่เคยเจอว่าปุ่มมองไม่เห็น) */
+  $('#pvEdit').onclick = function () {
+    var dock = $('#veDock');
+    var fab = dock && dock.shadowRoot ? dock.shadowRoot.querySelector('#fab') : null;
+    if (!fab) {
+      msg('ตัวแก้ดีไซน์ยังไม่พร้อม — ถ้าค้างอยู่แบบนี้ กดปุ่ม ⟲ ล้างแคชแล้วลองใหม่', 'bad');
+      return;
+    }
+    fab.click();
+  };
 
   /* ==================== เมนู ==================== */
   Array.prototype.forEach.call(document.querySelectorAll('.nav[data-go]'), function (b) {
