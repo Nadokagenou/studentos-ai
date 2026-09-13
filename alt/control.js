@@ -1068,10 +1068,25 @@
     /* ตัวแก้ดีไซน์พร้อมแล้ว — ย้ายแผงเครื่องมือออกมาไว้ข้างนอกทันที
        ปล่อยไว้ในกรอบ 244px มันจะทับชิ้นที่กำลังแก้ และเล็กจนกดไม่โดน */
     if (e.data.type === 'sos-preview-editor') {
-      var f = pvFrame(), dock = $('#veDock');
-      try {
-        if (f && f.contentWindow.sosVE && dock) f.contentWindow.sosVE.dockInto(dock);
-      } catch (err) { console.warn('[cc] ย้ายแผงเครื่องมือไม่สำเร็จ:', err); }
+      var f = pvFrame(), dock = $('#veDock'), ve = null;
+      try { ve = f && f.contentWindow && f.contentWindow.sosVE; } catch (err) {}
+
+      /* ---------- ไฟล์ในกรอบเป็นของเก่า ----------
+         service worker เก็บ visual-editor.js ไว้ในแคช ส่วน control.js ไม่ได้อยู่ในรายการนั้น
+         เปิดหน้าหลังปล่อยรุ่นใหม่จึงได้ "หน้าแม่ใหม่ + แอปในกรอบเก่า" ซึ่งอาการคือ
+         กดแก้ดีไซน์แล้วแผงยังโผล่ในกรอบเหมือนเดิม แล้วล้มเงียบใน catch
+         ต้องบอกให้เห็น ไม่ใช่ปล่อยให้เดาว่าฟีเจอร์พัง */
+      if (!ve || typeof ve.dockInto !== 'function') {
+        var st = $('#pvStale');
+        if (st) st.hidden = false;
+        msg('แอปในกรอบยังเป็นไฟล์เก่าจากแคช — กดปุ่ม ⟲ เพื่อล้างแล้วโหลดใหม่', 'bad');
+        return;
+      }
+
+      var st2 = $('#pvStale');
+      if (st2) st2.hidden = true;
+      try { if (dock) ve.dockInto(dock); }
+      catch (err2) { console.warn('[cc] ย้ายแผงเครื่องมือไม่สำเร็จ:', err2); }
       return;
     }
 
@@ -1142,6 +1157,44 @@
     f.src = 'index.html?sosPreview=1';
   };
   $('#pvOpen').onclick = function () { window.open('index.html', '_blank', 'noopener'); };
+
+  /* ---------- ล้างแคชของแอปแล้วโหลดใหม่ ----------
+     ทำในกรอบ ไม่ใช่ในหน้านี้ — service worker กับ Cache Storage เป็นของโดเมน
+     สั่งจากที่ไหนก็ได้ผลเดียวกัน แต่การรีโหลดต้องเกิดกับกรอบเท่านั้น
+     ไม่งั้นหน้าแอดมินรีโหลดตัวเองแล้วงานที่ยังไม่เผยแพร่หายทั้งหมด
+
+     ผลข้างเคียงที่รู้ตัว: service worker ของแอปจริงบนเครื่องนี้ถูกถอนไปด้วย
+     มันลงทะเบียนใหม่เองตอนเปิดแอปครั้งถัดไป · เสียแค่ความสามารถเปิดออฟไลน์ชั่วคราว
+     ไม่ใช่ข้อมูลผู้ใช้ ซึ่งอยู่คนละที่กัน (localStorage ไม่ได้ถูกแตะ) */
+  function purgeAppCache() {
+    var f = pvFrame();
+    if (!f || !f.contentWindow) return;
+    var w = f.contentWindow;
+    msg('กำลังล้างแคชของแอป…');
+    pvReady = false;
+    Promise.resolve()
+      .then(function () {
+        return w.navigator.serviceWorker
+          ? w.navigator.serviceWorker.getRegistrations()
+          : [];
+      })
+      .then(function (regs) {
+        return Promise.all((regs || []).map(function (r) { return r.unregister(); }));
+      })
+      .then(function () { return w.caches ? w.caches.keys() : []; })
+      .then(function (keys) {
+        return Promise.all((keys || []).map(function (k) { return w.caches.delete(k); }));
+      })
+      .catch(function () {})
+      .then(function () {
+        var st = $('#pvStale');
+        if (st) st.hidden = true;
+        msg('ล้างแคชแล้ว กำลังโหลดแอปใหม่…');
+        f.src = 'index.html?sosPreview=1&fresh=' + Date.now();
+      });
+  }
+  $('#pvPurge').onclick = purgeAppCache;
+  $('#pvPurge2').onclick = purgeAppCache;
 
   /* ==================== เมนู ==================== */
   Array.prototype.forEach.call(document.querySelectorAll('.nav[data-go]'), function (b) {
