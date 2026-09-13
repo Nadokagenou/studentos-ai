@@ -342,10 +342,16 @@
     <button class="mv" id="pvReload" title="โหลดแอปใหม่">↻</button>
     <button class="mv" id="pvOpen" title="เปิดในแท็บใหม่">↗</button>
   </div>
-  <div class="live-screen"><iframe id="pvFrame" title="แอปจริง" loading="lazy"></iframe></div>
+  <div class="live-stage">
+    <div class="live-screen"><iframe id="pvFrame" title="แอปจริง" loading="lazy"></iframe></div>
+    <!-- แผงเครื่องมือของตัวแก้ดีไซน์ย้ายมาอยู่ตรงนี้ (adoptNode ข้ามเอกสาร)
+         เพื่อไม่ให้มันทับชิ้นที่กำลังแก้ และไม่โดนย่อไปพร้อมแอป -->
+    <div class="ve-dock" id="veDock"></div>
+  </div>
   <p class="live-note">ลากหรือปรับอะไรก็ตาม จอนี้เปลี่ยนทันทีโดยยังไม่มีใครนอกจากคุณเห็น<br>
-    <b>แตะปุ่ม “แก้ดีไซน์” มุมขวาบนของจอนี้</b> เพื่อแตะชิ้นไหนก็ได้แล้วปรับสี ขนาด ความมน
-    ระยะห่าง หรือแก้ข้อความตรงนั้นเลย</p>
+    <b>แตะปุ่ม “แก้ดีไซน์”</b> เพื่อแตะชิ้นไหนก็ได้แล้วปรับสี ขนาด ความมน ระยะห่าง หรือแก้ข้อความ
+    <br><span class="keys"><kbd>Ctrl</kbd>+<kbd>Z</kbd> ย้อน · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> ทำซ้ำ
+    · <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> คัดลอก–วางหน้าตา · <kbd>Esc</kbd> เลิกเลือก</span></p>
 </div>
   </main>
 </div>

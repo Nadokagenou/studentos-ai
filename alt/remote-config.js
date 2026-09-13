@@ -425,6 +425,14 @@
           try { window.parent.postMessage({ type: 'sos-preview-ui', ui: ui }, location.origin); }
           catch (e) {}
         };
+        window.sosVE.onEdit = function (on) {
+          try { window.parent.postMessage({ type: 'sos-preview-edit', on: !!on }, location.origin); }
+          catch (e) {}
+        };
+        /* บอกหน้าแม่ว่าตัวแก้ดีไซน์พร้อมแล้ว — หน้าแม่จะย้ายแผงเครื่องมือออกมาไว้ข้างนอก
+           ต้องบอกตอนนี้ ไม่ใช่ตอน sos-preview-ready เพราะตอนนั้นสคริปต์ยังไม่โหลด */
+        try { window.parent.postMessage({ type: 'sos-preview-editor', ready: true }, location.origin); }
+        catch (e) {}
       };
       document.body.appendChild(sc);
     }
