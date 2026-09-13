@@ -783,6 +783,22 @@
         <div class="scr-body" id="aiBody"></div>
       </div>
 
+      <!-- ============ SCREEN: ตารางวันนี้ทั้งวัน (1B94) ============
+           คาบเรียน + กิจวัตร + งานที่จัดไว้ + กิจกรรม เรียงตามเวลาในลิสต์เดียว
+           อยู่หลังปุ่มท้ายโหมด "วันนี้" ของแท็บงาน ไม่ได้อยู่บนจอหลัก —
+           ข้อกำหนดของเจ้าของคือจอวันนี้ต้องไม่ยาว · วาดจาก renderDayFull() -->
+      <div class="screen flush" id="scr-dayfull">
+        <div class="sticky-head row">
+          <div>
+            <h2 class="sh-title">ตารางวันนี้</h2>
+            <p class="sh-sub">คาบเรียนกับงานทั้งวันเรียงตามเวลา</p>
+          </div>
+          <button class="sh-btn" onclick="goTasksTab()" aria-label="กลับไปที่งาน">
+            <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+        </div>
+        <div class="scr-body" id="dayFullBody"></div>
+      </div>
+
       <!-- ============ SCREEN: TIMELINE ============ -->
       <div class="screen" id="scr-timeline">
         <div id="timeline"></div>
