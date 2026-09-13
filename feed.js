@@ -801,16 +801,24 @@ async function myFirstRoom() {
 const FAB_HIDE = ['scr-login', 'scr-onboard', 'scr-chat', 'scr-hw',
   'scr-topic', 'scr-tthread', 'scr-dm', 'scr-compose', 'scr-crop', 'scr-scan'];
 
+// 1B94 · ปุ่มนี้ไม่ใช่ปุ่มข้อความอีกแล้ว — มันคือปุ่มรวม (ข้อความ + ผู้ช่วย)
+// เงื่อนไข "ต้องล็อกอินก่อนถึงจะโผล่" จึงถูกถอดออก: ผู้ช่วยใช้ได้โดยไม่ต้องมีบัญชี
+// การซ่อนทั้งปุ่มเมื่อยังไม่ล็อกอิน เท่ากับซ่อนผู้ช่วยจากคนที่ยังไม่ได้สมัคร
+// เงื่อนไขเดิมย้ายไปอยู่ที่ dmUsable() ใน app.js ซึ่งคุมเฉพาะ "ช่องข้อความ" ในเมนู
 function paintFeedFab() {
   const fab = document.getElementById('feedFab');
   if (!fab) return;
-  const ready = !!currentUser && typeof dmReady !== 'undefined' && dmReady;
-  const show = ready && !FAB_HIDE.includes(curScreen);
+  const show = !FAB_HIDE.includes(curScreen);
   fab.hidden = !show;
-  if (!show) return;
-  if (!fab.onclick) fab.onclick = () => openDmInbox();
-  const n = typeof dmPending === 'number' ? dmPending : 0;
-  fab.innerHTML = icon('chat') + (n ? `<i>${n > 9 ? '9+' : n}</i>` : '');
+  // ออกจากจอที่มีเมนูกางค้างอยู่ = ต้องเก็บเมนูไปด้วย ไม่งั้นมันลอยทับจอใหม่
+  if (!show) { if (typeof closeFabHub === 'function') closeFabHub(true); return; }
+  fab.onclick = () => (typeof toggleFabHub === 'function' ? toggleFabHub() : openDmInbox());
+  // เลขบนปุ่มยังเป็นเลขข้อความเหมือนเดิม และนับได้ต่อเมื่อกล่องข้อความใช้ได้จริง
+  const usable = typeof dmUsable === 'function' ? dmUsable() : !!currentUser;
+  const n = usable && typeof dmPending === 'number' ? dmPending : 0;
+  // ไอคอนหลักเป็นประกาย ไม่ใช่ลูกโป่งคำพูด — ปุ่มนี้เปิดสองอย่าง ถ้ายังเป็นลูกโป่ง
+  // คนจะอ่านว่ามันคือแชท แล้วเมนูที่กางออกมาจะกลายเป็นเรื่องเซอร์ไพรส์ทุกครั้ง
+  fab.innerHTML = icon('sparkles') + (n ? `<i>${n > 9 ? '9+' : n}</i>` : '');
   fab.classList.toggle('has-req', !!n);
 }
 
