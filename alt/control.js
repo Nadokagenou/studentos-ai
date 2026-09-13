@@ -290,6 +290,14 @@
     msg('กำลังเผยแพร่…');
     try {
       var body = clone(draft);
+      /* ชื่อเวอร์ชัน — trigger ฝั่งฐานข้อมูลอ่านจาก data->>'__label' ตอนปักประวัติ
+         (ดู app_config_snapshot ใน migration) · ไม่ใส่ชื่อ = ประวัติขึ้นว่า "ไม่ได้ตั้งชื่อ"
+         ซึ่งเป็นสิ่งที่เกิดกับทุกเวอร์ชันมาตลอด เพราะไม่เคยมีที่ให้กรอกเลย
+         remote-config.js ลบคีย์นี้ทิ้งตอนอ่าน มันจึงไม่ไปโผล่เป็นค่าตั้งบนเครื่องใคร */
+      var nameEl = $('#pubName');
+      var label = nameEl ? nameEl.value.trim() : '';
+      if (label) body.__label = label;
+
       var r = await sb.from('app_config')
         .upsert({ channel: 'live', data: body }, { onConflict: 'channel' })
         .select('version,updated_at').maybeSingle();
@@ -297,6 +305,7 @@
       if (r.data) { meta.version = r.data.version; meta.at = r.data.updated_at; }
       published = clone(draft);
       dirty = false;
+      if ($('#pubName')) $('#pubName').value = '';
       updateBar();
       pvTag();
       msg('เผยแพร่แล้ว · เครื่องผู้ใช้จะได้ค่าใหม่ตอนเปิดแอปครั้งถัดไป', 'ok');
@@ -1226,6 +1235,17 @@
       b.classList.add('on');
       var p = $('#p-' + b.dataset.go);
       if (p) p.classList.add('on');
+
+      /* อยู่ในโหมดแก้ดีไซน์แล้วกดเมนู = ออกจากโหมดแก้ก่อน
+         ไม่งั้นแถบซ้ายไฮไลต์เปลี่ยน แต่จอไม่เปลี่ยนอะไรเลย (เพราะ .pv-edit ซ่อน .page ไว้)
+         ซึ่งอ่านว่า "กดไม่ติด" ไม่ใช่ "กำลังแก้ดีไซน์อยู่" · งานที่แก้ไว้ไม่หาย
+         เพราะมันเข้า draft ไปตั้งแต่ตอนแก้แล้ว */
+      if (document.querySelector('.main').classList.contains('pv-edit')) {
+        var fab = $('#veDock') && $('#veDock').shadowRoot
+          ? $('#veDock').shadowRoot.querySelector('#fab') : null;
+        if (fab) fab.click();
+      }
+
       pvMoveTo(b.dataset.go);
       window.scrollTo(0, 0);
     };
