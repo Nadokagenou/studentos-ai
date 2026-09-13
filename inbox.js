@@ -134,27 +134,6 @@ function inboxConfidence(parsed) {
 // ถ้าเผลอปล่อยงานผิดเข้าแผน ความเชื่อใจพังทันที ซึ่งแพงกว่าการถามเกินไปหนึ่งครั้ง
 const AUTO_ACCEPT = 0.8;
 
-// ---------- เกณฑ์เดียวกันนี้ปรับได้จาก Control Center ----------
-// ค่าเริ่มต้นคือ 0.8 เป๊ะ — ไม่ได้ตั้งอะไร/เน็ตหลุด = เหมือนก่อนมีระบบนี้ทุกประการ
-//
-// **ขั้นต่ำล็อกไว้ที่ 0.5** ไม่ใช่ 0 · ต่ำกว่าครึ่งแปลว่า "เดาถูกน้อยกว่าเดาผิด แล้วยัง
-// บันทึกเอง" ซึ่งไม่ใช่ค่าตั้งที่ใครควรตั้งได้แม้จะตั้งใจ — ของที่อ่านผิดจะไหลเข้าแผน
-// เงียบ ๆ แล้วผู้ใช้จะเจอตอนที่มันดันงานจริงตกไปแล้ว ซึ่งเป็นความเสียหายที่กู้คืนไม่ได้
-// ด้วยการเลื่อนสไลเดอร์กลับ
-function autoAcceptBar() {
-  const v = typeof sosCfg === 'function' ? sosCfg('ocr.confidence', null) : null;
-  if (typeof v !== 'number' || !isFinite(v)) return AUTO_ACCEPT;
-  return Math.max(0.5, Math.min(1, v / 100));
-}
-
-// สวิตช์ "บันทึกเองเมื่อมั่นใจพอ" ของเจ้าของระบบ **และ** ของผู้ใช้ ต้องเปิดทั้งคู่
-// ฝั่งไหนปิดก็พอให้ไม่บันทึกเอง — ค่าตั้งของเจ้าของระบบเป็นเพดาน ไม่ใช่คำสั่งที่ลบ
-// การตัดสินใจของผู้ใช้ทิ้ง (คนที่ปิดไว้เองมักปิดเพราะเคยโดนงานผิดเข้าแผนมาแล้ว)
-function autoAcceptOn() {
-  const owner = typeof sosCfg === 'function' ? sosCfg('ocr.autoFile', true) !== false : true;
-  return owner && state.settings.autoAccept !== false;
-}
-
 // ---------- ประตูแรก: นี่คืองาน หรือแค่คนในกลุ่มคุยกัน ----------
 // กลุ่มห้องเรียนมีข้อความวันละเป็นร้อย แต่เป็นงานจริงไม่กี่ข้อความ
 // ถ้าปล่อยเข้ามาหมดแล้วให้นักเรียนมานั่งกดทิ้งทีละอัน มันแย่กว่าการพิมพ์เองอีก
@@ -358,7 +337,7 @@ function inboxAdd(rawText, sourceId = 'text', meta = {}) {
     return { status: 'duplicate', item, dup };
   }
 
-  if (conf >= autoAcceptBar() && autoAcceptOn()) {
+  if (conf >= AUTO_ACCEPT && state.settings.autoAccept !== false) {
     const t = inboxToTask(item);
     item.status = 'accepted';
     item.taskId = t.id;
@@ -444,7 +423,7 @@ function inboxAddBatch(text, cut, sourceId, meta) {
   // เข้าแผนเองได้ก็ต่อเมื่อ **ทุก** ใบในก้อนมั่นใจถึงเกณฑ์
   // ก้อนหนึ่งคือคำตอบเดียวที่ครอบสิบเอ็ดงาน — ปล่อยผ่านทั้งที่มีใบเดียวไม่แน่ใจ
   // คือการเดาแทนผู้ใช้สิบเอ็ดครั้งจากการตัดสินใจครั้งเดียว ราคาของการผิดจึงสูงกว่ากันมาก
-  if (fresh.every(c => c.confidence >= autoAcceptBar()) && autoAcceptOn()) {
+  if (fresh.every(c => c.confidence >= AUTO_ACCEPT) && state.settings.autoAccept !== false) {
     for (const c of fresh) { c.taskId = inboxToTask(childShim(item, c)).id; c.status = 'accepted'; }
     item.status = 'accepted';
     state.inbox.unshift(item);

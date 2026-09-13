@@ -9,30 +9,12 @@
 // รายชื่อเพื่อนกับตัวจับคู่ไม่ได้หายไป มันย้ายไปเป็นเครื่องยนต์ที่จัดลำดับฟีดแทน
 // ============================================================
 
-// ---------- บันไดสโคป ----------
-// เรียงจากใกล้ไปไกล และแต่ละขั้นแลกของสองอย่างกันตรง ๆ:
-// **ยิ่งใกล้ยิ่งมีคนรู้จักเรา ยิ่งไกลยิ่งมีคนว่างตอบ**
-//
-// 'country' คือขั้นที่เพิ่งเพิ่มเข้ามา (8 ก.ย. 2569) และมันมีเหตุผลชัดกว่าที่ดูเผิน ๆ:
-// ห้องเรียนคือกลุ่มคนที่ได้ใบงานเดียวกัน ส่งวันเดียวกัน จึง **ติดพร้อมกัน** —
-// คืนก่อนส่งคือเวลาที่ห้องเงียบที่สุด · คนระดับชั้นเดียวกันทั้งประเทศเรียนหลักสูตรเดียวกัน
-// แต่ปฏิทินโรงเรียนไม่ตรงกันเป๊ะ จึงมีคนที่ผ่านเรื่องนี้ไปแล้วและว่างอยู่เสมอ
-//
-// ขั้นที่ไกลกว่านี้ (หัวข้อทั่วโลก) ไม่ได้อยู่ในฟีด มันอยู่คนละจอด้วยเหตุผลที่เขียนไว้ใน topic.js —
-// ฟีดเรียงตามเวลา หน้าหัวข้อเรียงตามว่าคำตอบไหนช่วยได้จริง คนละตรรกะกันคนละเรื่อง
 const FEED_SCOPES = [
-  { id: 'all',     name: 'ทั้งหมด' },
-  { id: 'room',    name: 'ห้องฉัน' },
-  { id: 'school',  name: 'โรงเรียน' },
-  { id: 'country', name: 'ประเทศ' },
+  { id: 'all',    name: 'ทั้งหมด' },
+  { id: 'room',   name: 'ห้องฉัน' },
+  { id: 'school', name: 'โรงเรียน' },
 ];
 
-// จอ "เพื่อนร่วมห้อง" มีสองโหมดในจอเดียวกัน — ฟีด กับ รายชื่อเพื่อน (1B18)
-// ก่อนหน้านี้แยกเป็นสองจอ แล้วคำว่า "เพื่อน" ไปโผล่สามที่ที่พาไปคนละหน้ากันหมด
-// (ปุ่มแถบล่าง → ฟีด · ปุ่มลอยมุมขวาบน → รายชื่อ · แถวในแท็บ "ฉัน" → รายชื่อ)
-// ผู้ใช้กดหารายชื่อเพื่อนไม่เจอสามรอบ ซึ่งเป็นหลักฐานพอแล้วว่าการแยกจอนี้ผิด
-// ในหัวนักเรียน "เพื่อนร่วมห้อง" กับ "เพื่อนของฉัน" ไม่ใช่คนละเรื่อง
-let feedView = 'feed';    // 'feed' | 'friends'
 let feedScope = 'all';
 let feedRows = null;      // null = ยังไม่เคยโหลด
 let feedErr = null;
@@ -85,11 +67,7 @@ function avOf(name) {
 // โหลดฟีด
 // ============================================================
 async function loadFeed(scope) {
-  // กดแท็บช่วงของฟีดเมื่อไหร่ = กลับมาโหมดฟีดเสมอ · ไม่งั้นกดแล้วจอไม่เปลี่ยน
-  const was = feedView;
-  feedView = 'feed';
   if (scope) feedScope = scope;
-  if (was !== 'feed') { renderFeed(); }
   if (!sb || !currentUser) { feedErr = 'ยังไม่ได้ล็อกอิน'; renderFeed(); return; }
   feedBusy = true; feedFresh = 0; renderFeed();
   const { data, error } = await sb.rpc('feed', { p_scope: feedScope, p_limit: 30 });
@@ -153,7 +131,7 @@ function presenceCard() {
   return {
     id: currentUser.id,
     name: (state.settings.name || '').trim() || 'นักเรียน',
-    avatar: typeof myFace === 'function' ? myFace() : null,
+    avatar: state.settings.avatar || null,
     subject, since,
   };
 }
@@ -166,56 +144,6 @@ function unwatchPresence() {
 // ============================================================
 // วาดฟีด
 // ============================================================
-// ============================================================
-// 1B54 · แถวตัวกรองหลบตอนเลื่อนลง
-// ============================================================
-// สี่ปุ่มนั้นกินสูง 45px ทุกจอตลอดเวลา ทั้งที่คนสลับช่วงฟีดวันละไม่กี่ครั้ง
-// แต่เลื่อนอ่านตลอด · IG กับ LINE ซ่อนแถบของตัวเองตอนเลื่อนลงด้วยเหตุผลเดียวกัน
-//
-// ซ่อนตอน "เลื่อนลง" ไม่ใช่ตอน "เลื่อนพ้นระยะหนึ่ง" — แบบหลังทำให้แถบหายไปเลย
-// เมื่ออ่านยาว ๆ แล้วต้องเลื่อนกลับขึ้นบนสุดถึงจะได้คืน
-// แบบนี้ปัดขึ้นนิดเดียวก็ได้คืนทันที ซึ่งเป็นท่าที่นิ้วทำอยู่แล้วเวลาจะกดอะไรข้างบน
-//
-// กันสั่น: ต้องเลื่อนเกิน 8px ถึงนับเป็นการเปลี่ยนทิศ · ต่ำกว่านั้นคือมือสั่นบนจอสัมผัส
-// และไม่ซ่อนเลยถ้าเนื้อหาสั้นกว่าหนึ่งจอ — ไม่มีอะไรให้เลื่อน ไม่ต้องมีอะไรให้หลบ
-let fdLastY = 0, fdHidden = false;
-// กันวงจรป้อนกลับตอนแถบตัวกรองย่อ/กาง — เหตุผลเต็มอยู่ใน watchFeedScroll (1B72)
-let fdLockUntil = 0;
-function watchFeedScroll() {
-  const scr = document.getElementById('scr-mates');
-  if (!scr || scr.dataset.scrollHook === '1') return;
-  scr.dataset.scrollHook = '1';
-  // ---------- บั๊กกระตุก (แก้ 1B72) ----------
-  // ผู้ใช้แจ้งว่า "เหมือนมันบัคกระตุกตรงช่องเพื่อน" — และมันกระตุกจริง
-  //
-  // ต้นเหตุเป็นวงจรป้อนกลับ: .fd-tuck ย่อแถบตัวกรองจนความสูงหายไป ~60px
-  // (ดู .fd-tuck .fd-scopes { max-height: 0 } ใน feed.css)
-  // ความสูงเนื้อหาลดลง เบราว์เซอร์ปรับ scrollTop ตาม แล้วยิง scroll event ใหม่
-  // รอบนั้นคำนวณ dy ได้ราว -60 ซึ่งเกินเกณฑ์ 8px → ตีความว่า "เลื่อนขึ้น" → กางคืน
-  // ความสูงกลับมา +60px → ยิง scroll อีก → ย่อ → กาง → วนไม่จบตราบใดที่ยังเลื่อนอยู่
-  //
-  // เกณฑ์ 8px กันได้แค่มือสั่น กันวงจรนี้ไม่ได้เลย เพราะการกระโดดมันใหญ่กว่ามาก
-  // แก้ด้วยการล็อกไม่ให้ตัดสินใจซ้ำระหว่างที่ความสูงกำลังเปลี่ยน (นานกว่า transition)
-  // และขยับเกณฑ์เป็น 16px เพราะ 8px ยังไวเกินไปสำหรับการเลื่อนด้วยนิ้วจริง
-  scr.addEventListener('scroll', () => {
-    const y = scr.scrollTop;
-    // ระหว่างล็อก แค่จำตำแหน่งไว้ ไม่ตัดสินใจอะไร — scroll ที่เกิดจากความสูงที่เราเปลี่ยนเอง
-    // จะได้ไม่ถูกนับเป็นเจตนาของผู้ใช้
-    if (Date.now() < fdLockUntil) { fdLastY = y; return; }
-    const room = scr.scrollHeight - scr.clientHeight;
-    if (room < 120) { if (fdHidden) { fdHidden = false; scr.classList.remove('fd-tuck'); } fdLastY = y; return; }
-    const dy = y - fdLastY;
-    if (Math.abs(dy) < 16) return;
-    const down = dy > 0 && y > 40;
-    if (down !== fdHidden) {
-      fdHidden = down;
-      scr.classList.toggle('fd-tuck', down);
-      fdLockUntil = Date.now() + 340;   // .22s ของ transition + เผื่อเวลาจัดหน้าใหม่
-    }
-    fdLastY = y;
-  }, { passive: true });
-}
-
 function renderFeed() {
   const box = document.getElementById('feedBody');
   if (!box) return;
@@ -223,75 +151,24 @@ function renderFeed() {
   box.innerHTML = `
     <div class="fd-top">
       <h1 class="fd-title">เพื่อนร่วมห้อง</h1>
-      <!-- 1B53 · แว่นขยายอยู่บนหัวจอ ไม่ใช่ช่องค้นหากางค้างอยู่กลางจอ
-           จอนี้เปิดมาเพื่อดูเพื่อน ไม่ใช่เพื่อค้นหา — ช่องที่กางค้างคือแถบสูง 46px
-           ที่กันคนส่วนใหญ่ออกจากเนื้อหาโดยไม่ได้ช่วยอะไรเขา -->
-      <!-- แว่นขยายถูกถอดออกเมื่อ 1B64 · ช่องค้นหากางค้างอยู่ในจอแล้ว
-           ปุ่มที่พาไปหาของที่มองเห็นอยู่แล้วคือปุ่มที่กินที่บนหัวจอเปล่า ๆ -->
-      <!-- กล่องข้อความ · จำเป็นตั้งแต่วันที่การทักไม่ได้จำกัดอยู่แค่คนในห้องเรียนอีกต่อไป
-           ข้อความจากคนที่ไม่ได้อยู่ในรายชื่อไหนเลยต้องมีที่ไปรวมกัน ไม่งั้นไม่มีทางถูกเห็น -->
-      <!-- ปุ่มข้อความย้ายลงไปลอยมุมล่างขวาตั้งแต่ 1B68 (ดู feedFab)
-           ผู้ใช้วาดลูกศรจากไอคอนบนหัวจอชี้ลงมุมล่าง แล้วบอกว่า "อยากให้เห็นชัดกว่านี้" -->
       <button class="fd-people" onclick="go('scr-people'); renderMates()" aria-label="วิชาของฉันกับคนในห้อง">
         ${icon('users')}
       </button>
     </div>
 
     <div class="fd-scopes" role="tablist">
-      ${FEED_SCOPES.filter(s => s.id !== 'country'
-          || (typeof cohortReady !== 'undefined' && cohortReady))
-        .map(s => `<button role="tab" class="fd-scope${
-        feedView === 'feed' && s.id === feedScope ? ' on' : ''}"
-        aria-selected="${feedView === 'feed' && s.id === feedScope}"
+      ${FEED_SCOPES.map(s => `<button role="tab" class="fd-scope${s.id === feedScope ? ' on' : ''}"
+        aria-selected="${s.id === feedScope}"
         onclick="loadFeed('${s.id}')">${esc(s.name)}</button>`).join('')}
-      <!-- แท็บที่สี่ไม่ใช่ "ช่วงของฟีด" แต่เป็นอีกมุมมองของจอเดียวกัน — คั่นด้วยเส้น
-           เพื่อไม่ให้อ่านว่าเป็นตัวกรองโพสต์อีกตัวหนึ่ง -->
-      <button role="tab" class="fd-scope fd-scope-fr${feedView === 'friends' ? ' on' : ''}"
-        aria-selected="${feedView === 'friends'}"
-        onclick="showFriendsTab()">เพื่อนฉัน<span class="fd-scope-n" id="frTabN" hidden></span></button>
     </div>
 
-    ${feedView === 'friends' ? '<div id="friendsBody" class="fr-body"></div>' : `
-      <div id="onlineRow"></div>
-      ${currentUser ? composerHTML() : ''}
-      <div id="freshPill"></div>
-      <div id="feedList">${feedListHTML()}</div>`}`;
+    <div id="onlineRow"></div>
+    ${currentUser ? composerHTML() : ''}
+    <div id="freshPill"></div>
+    <div id="feedList">${feedListHTML()}</div>`;
 
-  if (feedView === 'friends') {
-    // renderFriends อยู่ใน app.js — โครงจอถูกสร้างใหม่ทุกครั้งที่สลับโหมด
-    // จึงต้องบังคับวาดใหม่ ไม่ใช่ปล่อยให้มันคิดว่าโครงเดิมยังอยู่
-    if (typeof renderFriends === 'function') renderFriends(true);
-    if (typeof loadFriends === 'function') loadFriends();
-  } else {
-    renderOnline();
-    renderFreshPill();
-  }
-  renderFriendDot();
-  paintFeedFab();
-  if (typeof loadDmDot === 'function') loadDmDot();
-  keepScopeInView();
-  watchFeedScroll();
-}
-
-// ---------- ปุ่มที่เลือกอยู่ต้องมองเห็นเสมอ ----------
-// ห้าปุ่มยาวเกินจอ 320px แถวจึงเลื่อนได้ (ดู 1B61a ใน feed.css)
-// แต่แถวที่เลื่อนได้อย่างเดียวยังไม่พอ — กด "เพื่อนฉัน" แล้วจอวาดใหม่โดยเลื่อนกลับไปซ้ายสุด
-// ผู้ใช้จะเห็นว่าตัวเองอยู่แท็บที่มองไม่เห็น ซึ่งอ่านเหมือนกดแล้วไม่มีอะไรเกิดขึ้น
-function keepScopeInView() {
-  const row = document.querySelector('.fd-scopes');
-  const on = row && row.querySelector('.fd-scope.on');
-  if (!row || !on) return;
-  const pad = 12;
-  const left = on.offsetLeft - pad;
-  const right = on.offsetLeft + on.offsetWidth + pad;
-  if (left < row.scrollLeft) row.scrollLeft = Math.max(0, left);
-  else if (right > row.scrollLeft + row.clientWidth) row.scrollLeft = right - row.clientWidth;
-}
-
-// สลับมาโหมดรายชื่อเพื่อน · ไม่ยิงโหลดฟีดซ้ำ เพราะฟีดที่โหลดไว้แล้วยังอยู่ครบ
-function showFriendsTab() {
-  feedView = 'friends';
-  renderFeed();
+  renderOnline();
+  renderFreshPill();
 }
 
 // ---------- แถวคนออนไลน์ ----------
@@ -305,10 +182,10 @@ function renderOnline() {
       const busy = !!u.subject;
       const av = u.avatar
         ? `<img src="${esc(u.avatar)}" alt="">`
-        : `<span>${esc(faceLetter(u))}</span>`;
+        : `<span>${esc((u.name || '?').slice(0, 1))}</span>`;
       return `<div class="fd-on${busy ? ' busy' : ''}" onclick="openUser('${esc(u.id)}')" role="link" tabindex="0">
-        <div class="fd-on-ring"${u.avatar ? '' : ` style="${faceTint(u)}"`}>${av}</div>
-        <div class="fd-on-nm">${esc(personName(u))}</div>
+        <div class="fd-on-ring"${u.avatar ? '' : ` style="${avOf(u.name)}"`}>${av}</div>
+        <div class="fd-on-nm">${esc(u.name || 'นักเรียน')}</div>
         <div class="fd-on-sub">${busy ? esc(u.subject) : 'ออนไลน์'}</div>
       </div>`;
     }).join('')}
@@ -364,11 +241,11 @@ function feedListHTML() {
 // ---------- การ์ดโพสต์ ----------
 function postCard(p) {
   const anon = !p.display_name;
-  const name = anon ? 'ไม่ระบุชื่อ' : personName(p);
+  const name = anon ? 'ไม่ระบุชื่อ' : p.display_name;
   const av = (!anon && p.avatar)
     ? `<img class="fd-av" src="${esc(p.avatar)}" alt="">`
-    : `<div class="fd-av${anon ? ' anon' : ''}"${anon ? '' : ` style="${faceTint(p)}"`}>${
-        anon ? '?' : esc(faceLetter(p))}</div>`;
+    : `<div class="fd-av${anon ? ' anon' : ''}"${anon ? '' : ` style="${avOf(name)}"`}>${
+        anon ? '?' : esc((name || '?').slice(0, 1))}</div>`;
 
   const tapHead = !anon && p.author;
   return `<article class="fd-post${p.for_me ? ' for-me' : ''}" onclick="openPost('${esc(p.id)}')">
@@ -386,150 +263,10 @@ function postCard(p) {
     <div class="fd-foot">
       <span class="fd-reply">${icon('chat')}${p.reply_count ? p.reply_count + ' คำตอบ' : 'ยังไม่มีใครตอบ'}</span>
       ${p.kind === 'help' && !p.reply_count ? '<span class="fd-wait">รออยู่</span>' : ''}
-      ${p.mine
-        ? `<button class="fd-flagbtn" aria-label="ลบโพสต์นี้"
-            onclick="event.stopPropagation();delPost('${esc(p.id)}')">${icon('trash')}</button>`
-        : `<button class="fd-flagbtn" aria-label="รายงานโพสต์นี้"
-            onclick="event.stopPropagation();openReport('post','${esc(p.id)}')">${icon('flag')}</button>`}
+      ${p.mine ? '' : `<button class="fd-flagbtn" aria-label="รายงานโพสต์นี้"
+        onclick="event.stopPropagation();openReport('post','${esc(p.id)}')">${icon('flag')}</button>`}
     </div>
   </article>`;
-}
-
-// ============================================================
-// ตัวกรองเนื้อหา — ฝั่งแอป (1B76)
-// ------------------------------------------------------------
-// ผู้ใช้เคาะกติกาไว้: รูปกันก่อนส่ง · ข้อความปล่อยขึ้นก่อนแล้วสแกนตามหลัง
-// ฝั่งเซิร์ฟเวอร์อยู่ใน Edge Function ชื่อ guard (migration 27)
-//
-// **สามสถานะที่ต้องแยกให้ออก** ไม่ใช่สองอย่างที่คนมักเขียน (ผ่าน/ไม่ผ่าน):
-//   1) ตัวกรองบอกว่าไม่ผ่าน      -> ไม่ให้ส่ง บอกเหตุผลเป็นภาษาคน
-//   2) ตัวกรองล่ม/หมดโควตา      -> ไม่ให้ส่ง บอกให้ลองใหม่  (ล้มแบบปิด)
-//   3) ยังไม่ได้ deploy guard เลย -> ให้ส่ง
-//
-// ข้อ 3 คือข้อที่ต้องคิด: ถ้าเหมาว่า "เรียกไม่ได้ = ไม่ให้ส่ง" แอปจะส่งรูปไม่ได้เลย
-// ทั้งแอปจนกว่าจะมีคน deploy ซึ่งไม่ได้ทำให้ใครปลอดภัยขึ้น มีแต่ทำให้แอปพัง
-// และสภาพก่อนหน้านี้ก็คือไม่มีตัวกรองอยู่แล้ว จึงไม่ได้แย่ลงกว่าเดิม
-// แยกสองอย่างนี้ด้วยรหัสตอบกลับ: 404 = ยังไม่มีฟังก์ชัน · อย่างอื่น = มีแต่ล้ม
-let guardMissing = false;         // จำไว้ทั้งอายุแอป จะได้ไม่ยิงซ้ำทุกครั้งที่แนบรูป
-
-function blobToB64(blob) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(String(r.result).split(',')[1] || '');
-    r.onerror = () => rej(new Error('อ่านไฟล์ไม่ได้'));
-    r.readAsDataURL(blob);
-  });
-}
-
-// คืน { ok } เมื่อผ่าน · { ok:false, message } เมื่อไม่ผ่านหรือตรวจไม่ได้
-//
-// **ลองซ้ำหนึ่งครั้งก่อนยอมแพ้** — วัดจริงกับแอปจริง 10 ก.ย. 69 ยิงไป 6 ครั้ง
-// ล้มไป 2 ครั้งด้วย guard_down (Gemini อืดหรือคนแน่น) ซึ่งไม่ใช่การบล็อกเนื้อหา
-// แต่ผู้ใช้เห็นเป็น "ส่งรูปไม่ได้" เหมือนกันหมด · รูปที่ส่งไม่ได้หนึ่งในสามครั้ง
-// จะทำให้คนเลิกแนบรูป แล้วด่านที่อุตส่าห์ทำก็ไม่มีอะไรให้ตรวจอีกเลย
-//
-// ลองซ้ำเฉพาะตอน guard_down เท่านั้น · คำตัดสินว่า "ไม่ผ่าน" ห้ามลองซ้ำเด็ดขาด
-// เพราะการยิงซ้ำจนกว่าจะผ่านคือวิธีหลบด่านที่ง่ายที่สุดเท่าที่มี
-async function guardImage(blob) {
-  const first = await guardImageOnce(blob);
-  if (first.ok || first.reason !== 'guard_down') return first;
-  return await guardImageOnce(blob);
-}
-
-async function guardImageOnce(blob) {
-  if (guardMissing || !sb || !currentUser) return { ok: true };
-  try {
-    const b64 = await blobToB64(blob);
-    const { data, error } = await sb.functions.invoke('guard', {
-      body: { mode: 'image', b64, mime: 'image/jpeg' },
-    });
-    if (error) {
-      // supabase-js ยัดสถานะไว้ใน error.context ตอนฟังก์ชันตอบไม่ใช่ 2xx
-      const st = (error.context && error.context.status) || 0;
-      if (st === 404) { guardMissing = true; return { ok: true }; }
-      // guard เองตอบ 503 พร้อมข้อความไทยตอนตรวจไม่สำเร็จ — เอามาโชว์ตรง ๆ
-      let msg = 'ตรวจรูปไม่สำเร็จ ลองส่งใหม่อีกครั้ง';
-      let why = 'guard_down';
-      try {
-        const b = await error.context.json();
-        if (b && b.message) msg = b.message;
-        if (b && b.reason) why = b.reason;
-      } catch (_) {}
-      return { ok: false, reason: why, message: msg };
-    }
-    if (data && data.ok === false) {
-      return { ok: false, reason: data.reason || 'block',
-               message: data.message || 'ส่งรูปนี้ไม่ได้' };
-    }
-    return { ok: true };
-  } catch (_) {
-    // ยิงไม่ถึงเลย (เน็ตหลุด) — ล้มแบบปิดเหมือนกัน
-    return { ok: false, reason: 'guard_down',
-             message: 'ตรวจรูปไม่สำเร็จ ลองส่งใหม่อีกครั้ง' };
-  }
-}
-
-// ข้อความ: ยิงแล้วไม่รอ · ของขึ้นไปแล้ว การรอผลจึงไม่ได้กันอะไร มีแต่ทำให้ช้า
-// ถ้าตัวกรองตัดสินว่าไม่ผ่าน มันซ่อนของให้เองฝั่งเซิร์ฟเวอร์แล้ว
-function guardText(kind, target, text) {
-  if (guardMissing || !sb || !currentUser || !target || !String(text || '').trim()) return;
-  try {
-    sb.functions.invoke('guard', { body: { mode: 'text', kind, target: String(target), text } })
-      .then(({ error }) => {
-        if (error && (error.context && error.context.status) === 404) guardMissing = true;
-      })
-      .catch(() => {});
-  } catch (_) {}
-}
-
-
-// ============================================================
-// ลบของตัวเอง (1B76)
-// ------------------------------------------------------------
-// ผู้ใช้ทักมาว่า "แบบนี้ลบสิ่งที่โพสไม่ได้" ซึ่งถูก — ก่อน migration 26
-// ทั้งฐานข้อมูลไม่มีคำสั่งลบเลยสักตัว และ policy บน posts มีแค่ insert
-//
-// **RPC คืน path ของรูปมาให้ แล้วต้องลบไฟล์ต่อเสมอ** ลบแค่แถวในตาราง
-// แล้วทิ้งไฟล์ไว้ = รูปยังเปิดได้ด้วย URL เดิมทุกประการ ซึ่งไม่ใช่การลบ
-// เป็นแค่การเอาออกจากหน้าจอ · คนที่กดลบเพราะเผลอโพสต์รูปที่ไม่ควรโพสต์
-// จะเข้าใจว่ามันหายไปแล้ว ทั้งที่ยังอยู่
-function rpcGone(err) {
-  return !!err && (err.code === 'PGRST202' || err.code === '42883');
-}
-
-async function delPost(id) {
-  if (!sb || !currentUser) return;
-  if (!confirm('ลบโพสต์นี้ถาวร คำตอบใต้โพสต์หายไปด้วย แน่ใจนะ?')) return;
-  const { data, error } = await sb.rpc('post_delete', { p_post: id });
-  if (error) {
-    if (typeof haptic === 'function') haptic('snooze');
-    showToast({ title: 'ลบไม่สำเร็จ',
-      body: rpcGone(error) ? 'ยังไม่ได้อัปเดตฐานข้อมูล' : error.message });
-    return;
-  }
-  if (data) { try { await sb.storage.from('posts').remove([data]); } catch (_) {} }
-  feedRows = (typeof feedRows !== 'undefined' && Array.isArray(feedRows))
-    ? feedRows.filter(x => x.id !== id) : feedRows;
-  if (typeof thePost !== 'undefined' && thePost && thePost.id === id) { go('scr-feed'); }
-  if (typeof haptic === 'function') haptic('done');
-  renderFeed();
-  showToast({ title: 'ลบแล้ว' });
-}
-
-async function delReply(id) {
-  if (!sb || !currentUser) return;
-  if (!confirm('ลบคำตอบนี้ถาวร แน่ใจนะ?')) return;
-  const { error } = await sb.rpc('reply_delete', { p_reply: Number(id) });
-  if (error) {
-    if (typeof haptic === 'function') haptic('snooze');
-    showToast({ title: 'ลบไม่สำเร็จ',
-      body: rpcGone(error) ? 'ยังไม่ได้อัปเดตฐานข้อมูล' : error.message });
-    return;
-  }
-  theReplies = (theReplies || []).filter(x => String(x.id) !== String(id));
-  if (typeof haptic === 'function') haptic('done');
-  renderFeed();
-  showToast({ title: 'ลบแล้ว' });
 }
 
 function postImageUrl(path) {
@@ -557,10 +294,7 @@ function renderCompose() {
   // ไม่มี 'ทุกคนในแอป' อีกแล้ว — การกระจายเสียงหาคนทั้งแอปคือช่องที่คนแปลกหน้า
   // เข้าถึงเด็กได้ ซึ่งเป็นเส้นเดียวที่ทำให้แอปแบบนี้อันตรายจริง
   // (แท็บ "ทั้งหมด" ในฟีดยังอยู่ มันคือมุมมองรวมของสิ่งที่เราเห็นได้ คนละเรื่องกัน)
-  // ซ่อน 'ทั่วประเทศ' ด้วยถ้าหลังบ้านยังไม่พร้อม — เลือกได้แต่โพสต์ไม่ผ่าน policy
-  // คือปุ่มที่หลอกให้เสียเวลาพิมพ์ทั้งโพสต์แล้วค่อยบอกว่าไม่ได้
-  const scopes = FEED_SCOPES.filter(s => s.id !== 'all'
-    && (s.id !== 'country' || (typeof cohortReady !== 'undefined' && cohortReady)));
+  const scopes = FEED_SCOPES.filter(s => s.id !== 'all');
 
   box.innerHTML = `
     <div class="cp-top">
@@ -575,14 +309,7 @@ function renderCompose() {
       ${composeImg ? `<div class="cp-img">
           <img src="${esc(composeImg.url)}" alt="รูปที่จะแนบ">
           <button class="cp-img-x" onclick="dropComposeImg()" aria-label="เอารูปออก">${icon('x')}</button>
-        </div>
-        <!-- ทางเข้าที่สองของชั้นหัวข้อ (อีกทางคือแถวใต้การ์ดงาน) —
-             รูปใบงานอยู่ในมือถือเด็กอยู่แล้ว แอปจึงไม่ต้องถามว่าเขาติดเรื่องอะไร
-             นี่คือข้อที่ฟอรัมถาม-ตอบระดับโลกทุกเจ้าทำไม่ได้ เพราะต้องรอให้ผู้ใช้พิมพ์แท็กเอง -->
-        ${typeof topicReady !== 'undefined' && topicReady
-          ? `<button class="cp-add" id="cpTopic" onclick="topicFromCompose()">
-              ${icon('sparkles')}ถามคนทั้งโลกจากรูปนี้แทน
-            </button>` : ''}` : ''}
+        </div>` : ''}
 
       <button class="cp-add" onclick="document.getElementById('cpFile').click()">
         ${icon('camera')}${composeImg ? 'เปลี่ยนรูป' : 'แนบรูปโจทย์'}
@@ -677,17 +404,6 @@ async function submitPost() {
 
   let imagePath = null;
   if (composeImg) {
-    // ตรวจก่อนอัปโหลด ไม่ใช่หลังอัปโหลด — ตรวจทีหลังแปลว่ารูปขึ้นไปอยู่บน storage
-    // และมี URL ที่เปิดได้จริงแล้วตั้งแต่ก่อนรู้ผล
-    if (btn) btn.textContent = 'กำลังตรวจรูป…';
-    const g = await guardImage(composeImg.blob);
-    if (!g.ok) {
-      if (btn) { btn.disabled = false; btn.textContent = 'โพสต์'; }
-      if (typeof haptic === 'function') haptic('snooze');
-      showToast({ title: 'ส่งรูปนี้ไม่ได้', body: g.message });
-      return;
-    }
-    if (btn) btn.textContent = 'กำลังโพสต์…';
     const path = currentUser.id + '/' + Date.now() + '.jpg';
     const up = await sb.storage.from('posts').upload(path, composeImg.blob, { contentType: 'image/jpeg' });
     if (up.error) {
@@ -707,13 +423,6 @@ async function submitPost() {
   // ขอบเขตต้องมีที่อยู่จริง ไม่งั้น policy ฝั่งเซิร์ฟเวอร์ปฏิเสธ
   if (scope === 'room') row.room_id = await myFirstRoom();
   if (scope === 'school') row.school = await mySchool();
-  // ประเทศ+ช่วงชั้นถ่ายสำเนาไว้ตอนโพสต์ ไม่ได้อ้างอิงโปรไฟล์ตอนอ่าน —
-  // ขึ้น ม.ปลายแล้วโพสต์เก่าต้องอยู่ในฟีดของ ม.ต้นต่อไป ไม่ใช่ย้ายตามเจ้าของขึ้นไปทั้งก้อน
-  if (scope === 'country') {
-    const c = await myCohort();
-    row.country = c.country || 'TH';
-    row.grade = c.grade || null;
-  }
 
   if (scope === 'room' && !row.room_id) {
     if (btn) { btn.disabled = false; btn.textContent = 'โพสต์'; }
@@ -726,21 +435,10 @@ async function submitPost() {
     showToast({ title: 'ยังไม่ได้กรอกโรงเรียน', body: 'กรอกได้ที่หน้า "วิชาของฉัน"' });
     return;
   }
-  if (scope === 'country' && !row.grade) {
-    if (btn) { btn.disabled = false; btn.textContent = 'โพสต์'; }
-    showToast({ title: 'ยังไม่ได้เลือกช่วงชั้น',
-      body: 'เลือกได้ที่หน้า "วิชาของฉัน" — แท็บทั่วประเทศใช้ช่วงชั้นเป็นตัวจับคู่' });
-    return;
-  }
 
-  // ขอ id กลับมาด้วย — ไม่งั้นสแกนเสร็จแล้วไม่รู้ว่าจะไปซ่อนแถวไหน
-  // ค่าใช้จ่ายคือคอลัมน์เดียวต่อโพสต์ ซึ่งถูกกว่าการมีตัวกรองที่ชี้เป้าไม่ได้มาก
-  const { data: made, error } = await sb.from('posts').insert(row).select('id').single();
+  const { error } = await sb.from('posts').insert(row);
   if (btn) { btn.disabled = false; btn.textContent = 'โพสต์'; }
   if (error) { showToast({ title: 'โพสต์ไม่สำเร็จ', body: error.message }); return; }
-
-  // ข้อความสแกนตามหลัง ไม่รอผล (กติกาที่ผู้ใช้เคาะไว้)
-  if (made && made.id) guardText('post', made.id, body);
 
   haptic('done');
   closeCompose();
@@ -750,42 +448,6 @@ async function submitPost() {
 async function myFirstRoom() {
   const { data } = await sb.from('line_links').select('room_id').limit(1);
   return (data && data[0] && data[0].room_id) || null;
-}
-// ประเทศ + ช่วงชั้นของตัวเอง · คืนเป็นก้อนเดียวเพราะสองค่านี้ใช้คู่กันเสมอ
-// (ประเทศอย่างเดียวไม่พอ ช่วงชั้นอย่างเดียวก็ไม่พอ — กุญแจของสโคปนี้คือทั้งคู่)
-// ============================================================
-// ปุ่มข้อความลอย (1B68 · ย้ายออกนอกกองจอใน 1B70)
-// ------------------------------------------------------------
-// ผู้ใช้สั่งสองรอบ: รอบแรก "อยากให้เห็นชัดกว่านี้" (ย้ายลงมุมล่างขวา)
-// รอบสอง "อยากให้ติดขอบจอตลอด ไม่ว่าจะเปิดหน้าไหน เลื่อนลงเลื่อนขึ้น"
-//
-// รอบแรกวางไว้ข้างใน #scr-mates ซึ่งผิด เพราะ .screen เป็น absolute + overflow-y:auto
-// ปุ่มจึงเป็นลูกของกล่องที่เลื่อนได้ แล้วเลื่อนหนีตามเนื้อหา และโผล่แค่จอเดียว
-// ตอนนี้ตัวปุ่มอยู่ใน index.html เป็นพี่น้องกับ .tabbar แล้ว (อิงกล่องเดียวกัน อยู่นิ่งเสมอ)
-// ฟังก์ชันนี้เหลือหน้าที่เดียวคือเปิด/ปิด และอัปเดตตัวเลข
-//
-// ซ่อนในจอที่ปุ่มจะไปทับของสำคัญ: จอล็อกอิน · จอที่มีช่องพิมพ์ติดก้นจอ
-// (แชท · ห้องการบ้าน · เธรดหัวข้อ · กล่องข้อความเอง ซึ่งมีปุ่มดินสอของตัวเองอยู่แล้ว)
-const FAB_HIDE = ['scr-login', 'scr-onboard', 'scr-chat', 'scr-hw',
-  'scr-topic', 'scr-tthread', 'scr-dm', 'scr-compose', 'scr-crop', 'scr-scan'];
-
-function paintFeedFab() {
-  const fab = document.getElementById('feedFab');
-  if (!fab) return;
-  const ready = !!currentUser && typeof dmReady !== 'undefined' && dmReady;
-  const show = ready && !FAB_HIDE.includes(curScreen);
-  fab.hidden = !show;
-  if (!show) return;
-  if (!fab.onclick) fab.onclick = () => openDmInbox();
-  const n = typeof dmPending === 'number' ? dmPending : 0;
-  fab.innerHTML = icon('chat') + (n ? `<i>${n > 9 ? '9+' : n}</i>` : '');
-  fab.classList.toggle('has-req', !!n);
-}
-
-async function myCohort() {
-  const { data } = await sb.from('profiles')
-    .select('country, grade').eq('id', currentUser.id).maybeSingle();
-  return { country: (data && data.country) || 'TH', grade: (data && data.grade) || null };
 }
 async function mySchool() {
   const { data } = await sb.from('profiles').select('school').eq('id', currentUser.id).maybeSingle();
@@ -826,18 +488,15 @@ function renderThread() {
         const ra = !r.display_name;
         return `<div class="th-reply"${ra || !r.author ? '' :
           ` onclick="openUser('${esc(r.author)}')" role="link" tabindex="0"`}>
-          <div class="fd-av sm${ra ? ' anon' : ''}"${ra ? '' : ` style="${faceTint(r)}"`}>${
-            ra ? '?' : esc(faceLetter(r))}</div>
+          <div class="fd-av sm${ra ? ' anon' : ''}"${ra ? '' : ` style="${avOf(r.display_name)}"`}>${
+            ra ? '?' : esc((r.display_name || '?').slice(0, 1))}</div>
           <div class="th-bd">
-            <b>${ra ? 'ไม่ระบุชื่อ' : esc(personName(r))}${r.mine ? '<span class="fd-mine">คุณ</span>' : ''}
+            <b>${ra ? 'ไม่ระบุชื่อ' : esc(r.display_name)}${r.mine ? '<span class="fd-mine">คุณ</span>' : ''}
               <i>${esc(ago(r.created_at))}</i></b>
             <p>${esc(r.body)}</p>
           </div>
-          ${r.mine
-            ? `<button class="fd-flagbtn" aria-label="ลบคำตอบนี้"
-                onclick="event.stopPropagation();delReply('${esc(r.id)}')">${icon('trash')}</button>`
-            : `<button class="fd-flagbtn" aria-label="รายงานคำตอบนี้"
-                onclick="event.stopPropagation();openReport('reply','${esc(r.id)}')">${icon('flag')}</button>`}
+          ${r.mine ? '' : `<button class="fd-flagbtn" aria-label="รายงานคำตอบนี้"
+            onclick="event.stopPropagation();openReport('reply','${esc(r.id)}')">${icon('flag')}</button>`}
         </div>`;
       }).join('')}
     </div>
@@ -855,15 +514,13 @@ async function sendReply() {
   const body = el.value.trim();
   if (!body) return;
   el.value = '';
-  const { data: made, error } = await sb.from('post_replies')
-    .insert({ post: thePost.id, author: currentUser.id, body, anon: false })
-    .select('id').single();
+  const { error } = await sb.from('post_replies')
+    .insert({ post: thePost.id, author: currentUser.id, body, anon: false });
   if (error) {
     el.value = body;
     showToast({ title: 'ตอบไม่สำเร็จ', body: error.message });
     return;
   }
-  if (made && made.id) guardText('reply', made.id, body);
   haptic('done');
   const { data } = await sb.rpc('post_thread', { p_post: thePost.id });
   theReplies = data || [];
@@ -875,14 +532,13 @@ async function sendReply() {
 // รวมสี่อย่างที่ต้องทำพร้อมกันไว้ที่เดียว: เปิดจอ · โหลด · ฟังโพสต์ใหม่ · บอกว่าเราออนไลน์
 // ถ้ากระจายไปเรียกตามปุ่มต่าง ๆ วันหนึ่งจะมีทางเข้าที่ลืมเรียกอันใดอันหนึ่ง
 // แล้วฟีดจะนิ่งเงียบเฉพาะตอนเข้าทางนั้น ซึ่งเป็นบั๊กที่หาสาเหตุยากมาก
-function openFeed(view) {
+function openFeed() {
   // ครั้งแรกต้องรู้ก่อนว่าอะไรเป็นอะไร แล้วค่อยเข้าไปเจอคน
   if (currentUser && typeof needsConsent === 'function' && needsConsent()) {
     go('scr-consent');
     renderConsent();
     return;
   }
-  feedView = view === 'friends' ? 'friends' : 'feed';
   go('scr-mates');
   renderFeed();
   loadFeed();
@@ -898,186 +554,12 @@ function openFeed(view) {
 // ฟีดที่แตะรูปใครแล้วไม่มีอะไรเกิดขึ้น จึงอ่านเป็น "รายการข้อความ" ไม่ใช่ "ที่ที่มีคนอยู่"
 // ============================================================
 let theUser = null;
-// ============================================================
-// หัวโปรไฟล์ตัวกลาง — ใช้ทั้งหน้าเพื่อนและแท็บ "ฉัน" (1B70)
-// ------------------------------------------------------------
-// ผู้ใช้สั่งเอง: "ตรงโปรไฟล์ฉันอยากให้มันเป็นอันเดียวกัน ต้องเป็นอันเดียวกัน
-// ตอนเพื่อนเปิดดูของเราก็จะเป็นหน้านี้"
-//
-// เหตุผลที่ลึกกว่าความสวย: ถ้าหน้าตัวเองกับหน้าที่คนอื่นเห็นเป็นคนละหน้า
-// **ไม่มีใครรู้เลยว่าคนอื่นเห็นเราเป็นยังไง** — ซึ่งเป็นสิ่งที่คนแก้ให้ดีขึ้นไม่ได้
-// ถ้ามองไม่เห็น · IG แก้ข้อนี้ด้วยการใช้หน้าเดียวกัน ต่างแค่ปุ่ม
-//
-// ฟังก์ชันนี้จึงเป็น **แหล่งเดียว** ของหัวโปรไฟล์ทั้งแอป
-// วันไหนแก้ ต้องแก้ที่นี่ที่เดียว และทั้งสองจอเปลี่ยนพร้อมกันเสมอโดยอัตโนมัติ
-// ============================================================
-function profileHeadHTML(u, opts) {
-  const o = opts || {};
-  const name = personName(u);
-  const n = (v) => (v > 999 ? (v / 1000).toFixed(1).replace('.0', '') + 'k' : (v || 0));
-  const where = [u.grade, u.school].filter(Boolean).join(' · ');
-  const chips = []
-    .concat((u.strong || []).map(x => `<span class="ig-chip good">ช่วยได้ · ${esc(x)}</span>`))
-    .concat((u.weak || []).map(x => `<span class="ig-chip need">อยากได้ · ${esc(x)}</span>`));
-
-  // รูป: แตะแล้วขยายเสมอ · ของตัวเองมีป้ายกล้องมุมล่างขวาไว้เปลี่ยนรูป (ทรงเดียวกับ IG)
-  const face = u.avatar
-    ? `<img class="ig-av tap" src="${esc(u.avatar)}" alt="รูปโปรไฟล์"
-         onclick="openFace('${esc(u.avatar)}','${esc(name).replace(/'/g, "\\'")}')">`
-    : `<div class="ig-av" style="${faceTint(u)}">${esc(faceLetter(u))}</div>`;
-
-  return `
-    <div class="ig-head">
-      <div class="ig-av-wrap">
-        ${face}
-        ${o.mine ? `<button class="ig-av-cam" aria-label="เปลี่ยนรูปโปรไฟล์"
-          onclick="document.getElementById('avInput').click()">${icon('camera')}</button>` : ''}
-      </div>
-      <div class="ig-stats num-row">
-        <button onclick="switchUserTab('posts')"><b>${n(u.post_count)}</b><span>โพสต์</span></button>
-        <div><b>${n(u.friend_count)}</b><span>เพื่อน</span></div>
-        <button onclick="switchUserTab('answers')"><b>${n(u.help_count)}</b><span>ช่วยแล้ว</span></button>
-      </div>
-    </div>
-
-    <div class="ig-id">
-      <b>${esc(name)}<span class="ig-tick">${icon('check')}นักเรียน</span></b>
-      ${where ? `<i>${esc(where)}</i>` : ''}
-      ${o.extra || ''}
-    </div>
-    ${u.bio ? `<p class="ig-bio">${esc(u.bio)}</p>` : ''}
-    ${o.buttons || ''}
-    ${chips.length ? `<div class="ig-strip">${chips.join('')}</div>` : ''}`;
-}
-
-// ---------- ก้อนโปรไฟล์ของตัวเอง ----------
-// ถามผ่าน user_card ตัวเดียวกับหน้าเพื่อน — ตัวเลขจึงนับด้วยกติกาเดียวกันเป๊ะ
-// ถ้าคิดเองฝั่งแอป วันหนึ่งสองหน้าจะบอกเลขไม่ตรงกันโดยไม่มีใครรู้ว่าอันไหนถูก
-let myCard = null;
-let myCardAt = 0;
-async function loadMyCard(force) {
-  if (!sb || !currentUser) { myCard = null; return; }
-  if (!force && myCard && Date.now() - myCardAt < 60000) return;
-  myCardAt = Date.now();
-  const { data } = await sb.rpc('user_card', { p_user: currentUser.id });
-  myCard = (Array.isArray(data) ? data[0] : data) || null;
-  renderProfileHead();
-}
-
-// วาดหัวในแท็บ "ฉัน" · เรียกจาก renderProfile ใน app.js
-function renderProfileHead() {
-  const box = document.getElementById('pfHead');
-  if (!box) return;
-
-  // ยังไม่ได้ล็อกอิน = ไม่มีโปรไฟล์สาธารณะให้โชว์ · บอกตรง ๆ แล้วให้ทางไปต่อ
-  if (!currentUser) {
-    const nm = (state.settings.name || '').trim() || 'นักเรียน';
-    const pic = typeof userAvatar === 'function' ? userAvatar() : '';
-    box.innerHTML = profileHeadHTML(
-      { display_name: nm, avatar: pic || null, strong: [], weak: [],
-        post_count: 0, friend_count: 0, help_count: 0 },
-      { mine: true,
-        buttons: `<div class="ig-btns">
-          <button class="pri" onclick="setLoginView('root');go('scr-login')">${icon('user')}เข้าสู่ระบบ</button>
-        </div>`,
-        extra: '<i>ยังไม่ล็อกอิน — เพื่อนยังหาคุณไม่เจอ</i>' });
-    return;
-  }
-
-  // ระหว่างรอเซิร์ฟเวอร์ ใช้ของในเครื่องไปก่อน จอจะได้ไม่ว่างหนึ่งจังหวะ
-  const local = {
-    id: currentUser.id,
-    display_name: (state.settings.name || '').trim(),
-    handle: (typeof frHandle !== 'undefined' && frHandle) ? frHandle : '',
-    avatar: (typeof userAvatar === 'function' ? userAvatar() : '') || null,
-    strong: [], weak: [], post_count: 0, friend_count: 0, help_count: 0,
-  };
-  const u = Object.assign(local, myCard || {});
-  // รูปในเครื่องมาก่อนของเซิร์ฟเวอร์เสมอ — เครื่องนี้คือที่ที่เขาเพิ่งตั้งมัน
-  if (local.avatar) u.avatar = local.avatar;
-
-  box.innerHTML = profileHeadHTML(u, {
-    mine: true,
-    buttons: `<div class="ig-btns">
-      <button class="pri" onclick="go('scr-people'); renderMates()">${icon('pencil')}แก้ไขโปรไฟล์</button>
-      <!-- ปุ่มนี้คือหัวใจของการรวมสองหน้า — กดแล้วเห็นของจริงที่เพื่อนเห็น
-           ไม่ใช่ภาพจำลอง เพราะมันเปิดหน้าเดียวกับที่เพื่อนเปิดจริง ๆ -->
-      <button onclick="openUser(currentUser.id)">${icon('users')}ดูแบบที่เพื่อนเห็น</button>
-    </div>`,
-  });
-}
-
-// ============================================================
-// แตะรูปโปรไฟล์แล้วขยาย (1B69)
-// ------------------------------------------------------------
-// ผู้ใช้ขอเอง "อยากให้กดรูปแล้วขยาย แบบ IG"
-// วงกลม 74px บอกไม่ได้ว่าในรูปมีใครอยู่บ้าง — ซึ่งเป็นข้อมูลที่คนอยากได้จริง
-// ตอนกำลังตัดสินใจว่าจะทักคนแปลกหน้าคนนี้ดีไหม
-//
-// สร้างชั้นซ้อนสด ๆ แล้วลบทิ้งเมื่อปิด ไม่ใช่ซ่อนไว้ในหน้าตลอดเวลา —
-// รูปเป็น data URL ขนาดหลายสิบ KB การถือ <img> ที่ซ่อนอยู่ไว้ทุกจอคือหน่วยความจำเปล่า
-function openFace(src, name) {
-  if (!src) return;
-  const box = document.createElement('div');
-  box.className = 'face-zoom';
-  box.setAttribute('role', 'dialog');
-  box.setAttribute('aria-label', 'รูปโปรไฟล์');
-  box.innerHTML = `<img src="${esc(src)}" alt="รูปโปรไฟล์ของ${esc(name || '')}">`;
-  // แตะที่ไหนก็ปิด · ปุ่มปิดแยกอีกอันคือของที่ต้องเล็งกดโดยไม่จำเป็น
-  box.onclick = () => box.remove();
-  document.addEventListener('keydown', function esc2(e) {
-    if (e.key === 'Escape') { box.remove(); document.removeEventListener('keydown', esc2); }
-  });
-  document.body.appendChild(box);
-}
-
-// ---------- ชื่อที่เอาไปโชว์จริง ----------
-// profiles.display_name มี default เป็น 'นักเรียน' อยู่ใน schema (migration 10)
-// แปลว่าคนที่ยังไม่เคยตั้งชื่อ **มีชื่อว่า "นักเรียน" จริง ๆ ในฐานข้อมูล** ไม่ใช่ค่าว่าง
-// ทุกจอจึงขึ้นคำเดียวกันหมด และตัวอักษรแรกในวงกลมกลายเป็น "น" เหมือนกันทุกคน —
-// เปิดหน้าใครก็เหมือนเปิดหน้าเดิม ซึ่งผู้ใช้ทักมาเองเมื่อ 10 ก.ย. 2569
-//
-// ทางแก้: ถ้ายังไม่ได้ตั้งชื่อ ใช้ @ชื่อผู้ใช้แทน เพราะมันไม่ซ้ำกันและเป็นของเขาจริง
-// ส่วนคำว่า "นักเรียน" ย้ายไปเป็นป้ายติ๊กถูกข้างชื่อ ตามที่ผู้ใช้เสนอ
-const NO_NAME = 'นักเรียน';
-function personName(u) {
-  if (!u) return NO_NAME;
-  // บางจอส่งฟิลด์ชื่อมาว่า name (แถวออนไลน์ · การ์ดในหัวข้อโลก) บางจอส่ง display_name
-  // รับทั้งสองอย่างตรงนี้ที่เดียว จะได้ไม่ต้องมีจอไหนคิดชื่อเองอีก
-  const raw = u.display_name != null ? u.display_name : u.name;
-  const n = String(raw || '').trim();
-  if (n && n !== NO_NAME) return n;
-  const h = String(u.handle || '').trim();
-  return h || NO_NAME;
-}
-
-// ============================================================
-// วงกลมหน้าคน — แหล่งเดียวของทั้งแอป (1B75)
-// ------------------------------------------------------------
-// กติกามีข้อเดียว: **ตัวอักษรกับสีต้องมาจากชื่อที่คนเห็นบนจอเดียวกันนั้น**
-// ถ้าจอหนึ่งโชว์ชื่อว่า sos1048666 แต่วงกลมข้าง ๆ เอา "นักเรียน" ไปคิดสี
-// วงกลมนั้นก็ไม่ได้แทนใครเลย · และคนคนเดียวกันจะเปลี่ยนหน้าไปมาระหว่างจอ
-// ซึ่งอ่านเหมือนแอปจำคนผิด มากกว่าจะอ่านเป็นเรื่องสีสวยไม่สวย
-//
-// ตัวพิมพ์ใหญ่เฉพาะ a-z: ชื่อผู้ใช้ที่ระบบตั้งให้เป็นตัวเล็กหมด (sos1048666)
-// ตัวเล็กตัวเดียวกลางวงกลมใหญ่อ่านเหมือนตัวอักษรหลุดมา ไม่เหมือนหน้าคน
-// ภาษาไทยไม่มีตัวใหญ่ตัวเล็ก จึงไม่แตะ
-function faceLetter(u) {
-  const c = personName(u).trim().slice(0, 1);
-  return /[a-z]/.test(c) ? c.toUpperCase() : (c || '?');
-}
-function faceTint(u) {
-  return avOf(personName(u));
-}
-
 let theUserPosts = [];
 let userBusy = false;
 
 async function openUser(id) {
   if (!id || !sb || !currentUser) return;
   theUser = null; theUserPosts = []; userBusy = true;
-  // เปิดหน้าใหม่ = รีเซ็ตแท็บกลับมาที่โพสต์เสมอ ไม่ใช่ค้างแท็บของคนก่อนหน้า
-  userTab = 'posts'; userAnswers = null; answersBusy = false;
   go('scr-user');
   renderUser();
   const [c, p] = await Promise.all([
@@ -1098,43 +580,6 @@ function onlineOf(id) {
   return (onlineNow || []).find(u => u.id === id) || null;
 }
 
-// ============================================================
-// หน้าโปรไฟล์ — ทรงเดียวกับ Instagram (1B65)
-// ------------------------------------------------------------
-// ผู้ใช้ขอเองเมื่อ 9 ก.ย. 2569 พร้อมส่งหน้า IG ของตัวเองมาให้ดู
-//
-// ของเดิมวางแบบ "การ์ดแนะนำตัว" — รูปกลางจอ ชื่อใต้รูป แล้วสองคอลัมน์วิชา
-// ซึ่งกินครึ่งจอบนไปกับข้อมูลที่ตอบไม่ได้เลยว่า **คนนี้น่าเชื่อแค่ไหน**
-// และปุ่มทักตกไปอยู่ล่างสุดจนต้องเลื่อนหา
-//
-// ทรงของ IG แก้ทั้งสองข้อพร้อมกัน: รูปกับตัวเลขอยู่บรรทัดเดียวกัน
-// ตัวเลขตอบคำถามแรกที่คนดูโปรไฟล์คนแปลกหน้าถามเสมอ ("คนนี้มีตัวตนจริงไหม")
-// แล้วปุ่มอยู่เหนือพับจอเสมอ
-//
-// ตัวเลขที่เลือกมาสามตัว: โพสต์ · เพื่อน · **ช่วยแล้ว**
-// ตัวที่สามแทนที่ "ผู้ติดตาม" ของ IG โดยตั้งใจ — แอปนี้ไม่มีการติดตาม และ
-// บทเรียนเดิมที่ผู้ใช้เคยปฏิเสธไว้คือ "นักเรียนไม่ได้อยากอวดว่าทำงานเสร็จกี่ชิ้น"
-// ตัวเลขที่ควรอวดจึงต้องเป็นสิ่งที่เขาทำให้ **คนอื่น** ไม่ใช่สิ่งที่เขาทำให้ตัวเอง
-// ============================================================
-let userTab = 'posts';        // posts | answers
-let userAnswers = null;       // null = ยังไม่เคยโหลด
-let answersBusy = false;
-
-function switchUserTab(t) {
-  userTab = t;
-  renderUser();
-  if (t === 'answers' && userAnswers === null) loadUserAnswers();
-}
-
-async function loadUserAnswers() {
-  if (!theUser || !sb) return;
-  answersBusy = true; renderUser();
-  const { data, error } = await sb.rpc('user_answers', { p_user: theUser.id, p_limit: 20 });
-  answersBusy = false;
-  userAnswers = error ? [] : (data || []);
-  renderUser();
-}
-
 function renderUser() {
   const box = document.getElementById('userBody');
   if (!box) return;
@@ -1149,100 +594,78 @@ function renderUser() {
       <b>โปรไฟล์</b><span></span></div>
       <div class="so-empty" style="margin:14px">
         <p class="so-empty-h">เปิดหน้านี้ไม่ได้</p>
-        <p class="so-empty-p">อาจเป็นเพราะบัญชีนี้ถูกลบไปแล้ว หรือคุณกับเขาบล็อกกันอยู่</p>
+        <p class="so-empty-p">เห็นโปรไฟล์ได้เฉพาะคนที่อยู่ห้องเรียนเดียวกัน</p>
       </div>`;
     return;
   }
 
   const u = theUser;
   const on = onlineOf(u.id);
-  const name = personName(u);
-  const n = (v) => (v > 999 ? (v / 1000).toFixed(1).replace('.0', '') + 'k' : (v || 0));
-
-  // บรรทัดใต้ชื่อ — ช่วงชั้นกับโรงเรียน · โรงเรียนไม่โผล่ให้คนต่างประเทศเห็น
-  // (ฝั่งเซิร์ฟเวอร์คืน null มาให้เองแล้ว ฝั่งนี้จึงไม่ต้องรู้กติกาซ้ำอีกที่)
-  const where = [u.grade, u.school].filter(Boolean).join(' · ');
-
-  const chips = []
-    .concat((u.strong || []).map(x => `<span class="ig-chip good">ช่วยได้ · ${esc(x)}</span>`))
-    .concat((u.weak || []).map(x => `<span class="ig-chip need">อยากได้ · ${esc(x)}</span>`));
+  const name = u.display_name || 'นักเรียน';
 
   box.innerHTML = `
     <div class="cp-top">
       <button class="cp-x" onclick="go('scr-mates')">${icon('chevron')}</button>
-      <b>${u.handle ? '@' + esc(u.handle) : esc(name)}</b>
-      ${u.mine ? '<span></span>' : `<button class="cp-flag" aria-label="รายงานหรือบล็อก"
-        onclick="openReport('user','${esc(u.id)}')">${icon('flag')}</button>`}
+      <b>${esc(name)}</b><span></span>
     </div>
-
     <div class="us-scroll">
-      ${profileHeadHTML(u, {
-        mine: false,
-        extra: on ? `<div class="us-live${on.subject ? ' busy' : ''}">
-            <span class="rm-dot"></span>${on.subject
-              ? 'กำลังติว' + esc(on.subject) + 'อยู่' : 'ออนไลน์อยู่'}</div>` : '',
-        buttons: u.mine ? '' : (() => {
-          const f = FRIEND_BTN[friendState] || FRIEND_BTN.none;
-          return `<div class="ig-btns">
-            <button class="pri" onclick="pokeUser()">${icon('chat')}ทัก</button>
-            <button class="${f.cls}" onclick="${f.act}">
-              ${icon(friendState === 'friends' ? 'check' : 'users')}${f.t}</button>
-          </div>`;
-        })(),
-      })}
+      <div class="us-hero">
+        ${u.avatar
+          ? `<img class="us-av" src="${esc(u.avatar)}" alt="">`
+          : `<div class="us-av" style="${avOf(name)}">${esc(name.slice(0, 1))}</div>`}
+        <div class="us-nm">${esc(name)}${u.mine ? '<span class="fd-mine">คุณ</span>' : ''}</div>
+        ${on
+          ? `<div class="us-live${on.subject ? ' busy' : ''}">
+               <span class="rm-dot"></span>${on.subject
+                 ? 'กำลังติว' + esc(on.subject) + 'อยู่' : 'ออนไลน์อยู่'}</div>`
+          : ''}
+        ${u.bio ? `<p class="us-bio">${esc(u.bio)}</p>` : ''}
+      </div>
 
-      <!-- เหตุผลที่ควรทักเขา — ของชิ้นเดียวบนหน้านี้ที่ IG ไม่มีและลอกไม่ได้
-           เพราะมันมาจากการที่แอปรู้ว่าใครจมวิชาไหน -->
-      ${(u.match && u.match.length) || (u.give && u.give.length) ? `<div class="ig-why">
+      ${(u.match && u.match.length) || (u.give && u.give.length) ? `<div class="us-why">
         ${u.match && u.match.length
           ? `<p class="so-why good">เก่ง<b>${esc(u.match.join(' · '))}</b> ซึ่งเป็นวิชาที่คุณกำลังจม</p>` : ''}
         ${u.give && u.give.length
           ? `<p class="so-why give">กำลังจม<b>${esc(u.give.join(' · '))}</b> ซึ่งคุณช่วยได้</p>` : ''}
       </div>` : ''}
 
-      <div class="ig-tabs">
-        <button class="${userTab === 'posts' ? 'on' : ''}" onclick="switchUserTab('posts')">
-          ${icon('type')}โพสต์</button>
-        <button class="${userTab === 'answers' ? 'on' : ''}" onclick="switchUserTab('answers')">
-          ${icon('chat')}คำตอบ</button>
+      <div class="us-subs">
+        <div class="us-col">
+          <span class="us-lb">ช่วยเพื่อนได้</span>
+          <div class="so-chips">${(u.strong || []).length
+            ? u.strong.map(x => `<span class="so-chip good on">${esc(x)}</span>`).join('')
+            : '<span class="so-none">ยังไม่ได้ระบุ</span>'}</div>
+        </div>
+        <div class="us-col">
+          <span class="us-lb">อยากให้ช่วย</span>
+          <div class="so-chips">${(u.weak || []).length
+            ? u.weak.map(x => `<span class="so-chip need on">${esc(x)}</span>`).join('')
+            : '<span class="so-none">ยังไม่ได้ระบุ</span>'}</div>
+        </div>
       </div>
 
-      <div class="ig-tabbody">${userTab === 'posts' ? userPostsHTML(u, name) : userAnswersHTML(u)}</div>
+      ${u.mine ? '' : (() => {
+        const f = FRIEND_BTN[friendState] || FRIEND_BTN.none;
+        return `<div class="us-acts">
+          <button class="us-friend ${f.cls}" onclick="${f.act}">
+            ${icon(friendState === 'friends' ? 'check' : 'users')}${f.t}</button>
+          <button class="us-poke" onclick="pokeUser()">
+            ${icon('chat')}ทัก</button>
+        </div>`;
+      })()}
+
+      <div class="us-lb us-postlb">${u.post_count ? 'โพสต์ ' + u.post_count + ' ใบ' : 'ยังไม่เคยโพสต์'}</div>
+      ${theUserPosts.length
+        ? theUserPosts.map(p => postCard(Object.assign({}, p, {
+            display_name: p.anon ? null : name, avatar: u.avatar, author: u.id, for_me: false,
+          }))).join('')
+        : `<p class="so-hint">${u.mine
+            ? 'โพสต์ของคุณจะมาอยู่ตรงนี้'
+            : 'เขายังไม่เคยโพสต์อะไรที่คุณเห็นได้'}</p>`}
     </div>`;
 }
 
-function userPostsHTML(u, name) {
-  if (theUserPosts.length) {
-    return theUserPosts.map(p => postCard(Object.assign({}, p, {
-      display_name: p.anon ? null : name, avatar: u.avatar, author: u.id, for_me: false,
-    }))).join('');
-  }
-  return `<p class="so-hint">${u.mine
-    ? 'โพสต์ของคุณจะมาอยู่ตรงนี้'
-    : 'เขายังไม่เคยโพสต์อะไรที่คุณเห็นได้'}</p>`;
-}
-
-// แท็บคำตอบทำให้ตัวเลข "ช่วยแล้ว" กดดูได้ ไม่ใช่เลขลอย ๆ
-// ตัวเลขที่กดไม่ได้คือตัวเลขที่ไม่มีใครเชื่อ
-function userAnswersHTML(u) {
-  if (answersBusy && userAnswers === null) return '<p class="so-hint">กำลังโหลด…</p>';
-  const rows = userAnswers || [];
-  if (!rows.length) {
-    return `<p class="so-hint">${u.mine
-      ? 'คำตอบที่คุณเขียนให้คนอื่นจะมาอยู่ตรงนี้'
-      : 'เขายังไม่เคยตอบใครในที่ที่คุณเห็นได้'}</p>`;
-  }
-  return rows.map(r => `<div class="ig-ans" onclick="${r.kind === 'topic'
-      ? `openTThread('${esc(r.ref)}')` : `openPost('${esc(r.ref)}')`}">
-    <div class="ig-ans-h">
-      <span class="ig-ans-tag">${r.kind === 'topic' ? 'ในหัวข้อ' : 'ใต้โพสต์'}</span>
-      ${r.topic || r.subject ? `<span>${esc(r.topic || r.subject)}</span>` : ''}
-      <i>${r.at && typeof ago === 'function' ? esc(ago(r.at)) : ''}</i>
-    </div>
-    <p>${esc(String(r.body || '').slice(0, 160))}</p>
-  </div>`).join('');
-}
-
+// ทักจากหน้าโปรไฟล์ — ใช้ท่อเดียวกับที่ทักจากรายชื่อ
 function pokeUser() {
   if (!theUser) return;
   const topic = (theUser.match && theUser.match[0]) || (theUser.give && theUser.give[0]) || '';
@@ -1314,11 +737,10 @@ async function loadFriendInbox() {
 
 // จุดแดงบนปุ่มคนในหัวฟีด — คำขอที่ไม่มีใครเห็นคือคำขอที่ไม่มีใครตอบ
 function renderFriendDot() {
-  // เลขต้องอยู่บนปุ่มที่พาไปยังที่ที่กดตอบคำขอได้จริง — เดิมมันอยู่บนปุ่มที่พาไป
-  // หน้า "วิชาของฉัน" ซึ่งไม่ใช่ที่ที่คำขออยู่อีกต่อไปแล้วหลังยุบสองจอเข้าด้วยกัน
-  const n = friendInbox.length;
-  const el = document.getElementById('frTabN');
-  if (el) { el.hidden = !n; el.textContent = n > 9 ? '9+' : String(n); }
+  const b = document.querySelector('.fd-people');
+  if (!b) return;
+  b.classList.toggle('has-req', friendInbox.length > 0);
+  b.dataset.n = friendInbox.length > 9 ? '9+' : String(friendInbox.length || '');
 }
 
 // ---------- คำขอที่รอตอบ วาดไว้บนสุดของหน้า "คนในห้อง" ----------
@@ -1329,9 +751,10 @@ function friendInboxHTML() {
     ${friendInbox.map(u => `<div class="fi-row">
       ${u.avatar
         ? `<img class="fd-av" src="${esc(u.avatar)}" alt="">`
-        : `<div class="fd-av" style="${faceTint(u)}">${esc(faceLetter(u))}</div>`}
+        : `<div class="fd-av" style="${avOf(u.display_name)}">${
+            esc((u.display_name || '?').slice(0, 1))}</div>`}
       <div class="fi-bd">
-        <b>${esc(personName(u))}</b>
+        <b>${esc(u.display_name || 'นักเรียน')}</b>
         ${u.strong && u.strong.length
           ? `<i>เก่ง${esc(u.strong.slice(0, 2).join(' · '))}</i>` : ''}
       </div>
