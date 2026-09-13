@@ -37,6 +37,25 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
+// ============================================================
+// โควตาของตัวกรอง แยกออกจากฟีเจอร์ AI อื่น (เจ้าของสั่ง 13 ก.ย. 2569)
+// ------------------------------------------------------------
+// วัดของจริงแล้วพบว่าตัวกรองล่มเพราะ **โควตาหมด** ไม่ใช่เพราะตัดสินผิด:
+// 8 ใน 9 ครั้งที่ควรบล็อก (bully/threat/doxx/grooming) กลับมาเป็น unchecked
+// เพราะทุกรุ่นในบันไดตอบ 429 ภายใน 2 วินาที
+//
+// ต้นเหตุไม่ได้อยู่ที่ตัวกรอง — เก้าฟังก์ชันดูดจากถังเดียวกัน และตัวที่หนักที่สุด
+// คือ ask-sai ซึ่งยิงทุกข้อความที่นักเรียนพิมพ์ · แปลว่า **ยิ่งมีคนใช้แอปมาก
+// ตัวกรองยิ่งพัง** ซึ่งกลับหัวกับสิ่งที่ระบบความปลอดภัยควรเป็น
+//
+// **กุญแจดอกนี้ต้องมาจากโปรเจกต์ Google คนละอัน** — โควตา free tier นับต่อโปรเจกต์
+// ไม่ใช่ต่อกุญแจ (เอกสาร Google: "Rate limits are applied per project, not per API key")
+// ดอกที่สองของโปรเจกต์เดิมจะแชร์ถังเดิมอยู่ดี แล้วการแก้นี้จะไม่ได้อะไรเลย
+//
+// ไม่ได้ตั้งไว้ = ถอยไปใช้ GEMINI_API_KEY เท่ากับพฤติกรรมเดิมเป๊ะ (ดู geminiGenerate)
+// จึง deploy ก่อนตั้ง secret ได้โดยไม่มีอะไรพัง
+const GUARD_KEY = Deno.env.get('GUARD_GEMINI_KEY') ?? '';
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -87,6 +106,7 @@ Deno.serve(async (req) => {
     try {
       const r = await geminiGenerate({
         parts: [{ text: IMAGE_RULES }, { inline_data: { mime_type: mime, data: b64 } }],
+        apiKey: GUARD_KEY,
         temperature: 0,
         think: 'off',
         json: true,
@@ -158,6 +178,7 @@ Deno.serve(async (req) => {
     try {
       const r = await geminiGenerate({
         parts: [{ text: TEXT_RULES }, { text: '\n\nข้อความที่ต้องตรวจ:\n' + text }],
+        apiKey: GUARD_KEY,
         temperature: 0,
         think: 'off',
         json: true,
