@@ -958,27 +958,45 @@
                เจ้าของ: "ตรงสัญลักษณ์อยากให้ใส่สีไปด้วย ไม่ใช่กลมกับสีพื้นหลัง"
                ของเดิมทุกใบเป็น --card2 ซึ่งบนธีมอวกาศห่างจากพื้นการ์ดแค่ไม่กี่หน่วย
                สีมาจากโทเคนของธีม ไม่ใช่สีตายตัว — เปลี่ยนธีมแล้วสีตามไปเอง
-               และไม่มีธีมไหนที่สีจะหลุดโทน เพราะทุกธีมนิยาม --blue/--good/--warn ครบ -->
+
+               ============================================================
+               1B98 · สีเลิกเลือกทีละแถว — สีบอก "ประเภท" ไม่ใช่บอก "ลำดับที่"
+               ============================================================
+               เจ้าของ: "สีของ icon/feature แต่ละตัวดูเหมือนเลือกแยกกัน"
+               ซึ่งตรงกับของจริง — 1B96 ไล่แจกสีทีละแถวตามลำดับที่มันบังเอิญวางอยู่
+               (ฟ้า · เขียว · เหลือง · ฟ้า) ห้าแถวได้สี่สีที่ไม่ได้แปลว่าอะไรเลย
+               และแถว "เพื่อนของฉัน" ได้ --warn ซึ่งทั้งแอปใช้แปลว่า "ใกล้เสียหาย"
+
+               ตอนนี้เหลือสามระดับ และแต่ละระดับมีเหตุผลที่พูดออกมาได้:
+                 tone-self   = ของที่เป็น "ข้อมูลของฉัน" ที่แอปเอาไปใช้คิด
+                               (วิชาของฉัน · บริบทของฉัน) — สีเน้นของธีมเอง
+                 tone-people = ของที่มี "คนอื่น" อยู่ปลายทาง (ข้อความ · เพื่อน)
+                 ไม่มีสี      = ทางเข้าที่ยังกดแล้วไม่ได้ของ (ชุมชน · Pro)
+               บวกอีกสองใบที่บอกสถานะในตัวเอง ไม่ใช่สีตกแต่ง:
+                 ธีมสี = ช่องสีของธีมที่ใช้อยู่จริง · ร้านค้า = ทอง (กฎเดิมของโทเคน)
+
+               ลำดับแถวถูกจัดให้ของประเภทเดียวกันติดกัน ไม่งั้นสีที่เป็นระบบแล้ว
+               จะยังอ่านเป็นลายสลับอยู่ดี — ระบบสีกับลำดับต้องพูดเรื่องเดียวกัน -->
           <div class="pf-entry">
-            <button class="pe tone-blue" onclick="openMySubjects()">
+            <button class="pe tone-self" onclick="openMySubjects()">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-book"/></svg></span>
               <span class="pe-tx"><b>วิชาของฉัน</b><i id="peSubjCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button class="pe tone-good" onclick="openDmInbox('scr-profile')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-chat"/></svg></span>
-              <span class="pe-tx"><b>ข้อความ<span class="pe-n" id="peDmN" hidden></span></b>
-                <i>คุยกับเพื่อนแบบตัวต่อตัว</i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <button class="pe tone-warn" onclick="openFeed('friends')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-user"/></svg></span>
-              <span class="pe-tx"><b>เพื่อนของฉัน</b><i id="peFriendCt"></i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <button class="pe tone-blue" id="peCtx" onclick="go('scr-context')">
+            <button class="pe tone-self" id="peCtx" onclick="go('scr-context')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
               <span class="pe-tx"><b>บริบทของฉัน</b><i id="peCtxCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <button class="pe tone-people" onclick="openDmInbox('scr-profile')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-chat"/></svg></span>
+              <span class="pe-tx"><b>ข้อความ<span class="pe-n" id="peDmN" hidden></span></b>
+                <i id="peDmCt">คุยกับเพื่อนตัวต่อตัว</i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <button class="pe tone-people" onclick="openFeed('friends')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-user"/></svg></span>
+              <span class="pe-tx"><b>เพื่อนของฉัน</b><i id="peFriendCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
             <!-- 1B96 · ธีมสีขึ้นมาอยู่ตรงนี้ — ของเดิมต้องเดินสี่ชั้น
@@ -996,23 +1014,35 @@
                  ปุ่มสองปุ่มที่ไปที่เดียวกันคือสิ่งที่จอนี้เพิ่งเลิกทำไปเมื่อ 1B93
                  (เหตุผลเดียวกับที่ "ปฏิทิน" ถูกถอดออกจากแถบล่างใน 1A9) -->
             <div class="pe-split"></div>
-            <!-- ชุมชน = ฟีดโพสต์เดิม · โค้ดยังอยู่ครบ ปิดด้วยสวิตช์ COMMUNITY_LIVE ใน feed.js
-                 กดแล้วได้แผ่นอธิบายว่ามันจะเป็นอะไร ไม่ใช่ปุ่มที่กดแล้วเงียบ -->
-            <button class="pe pe-soon" onclick="openSoonSheet('community')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
-              <span class="pe-tx"><b>ชุมชน <span class="pe-wip pe-soon-tag">เร็ว ๆ นี้</span></b>
-                <i>โพสต์ถามเพื่อนร่วมห้อง · โรงเรียน · ทั้งประเทศ</i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
+            <!-- ============================================================
+                 1B98 · ร้านค้าขึ้นเป็นแถวแรกของกลุ่มล่าง (เจ้าของเคาะเอง 14 ก.ย. 2569)
+                 ============================================================
+                 ของเดิมร้านค้านั่งอยู่ *ใต้* "ชุมชน" ซึ่งยังกดเข้าไปใช้ไม่ได้เลย
+                 ปลายทางที่เปิดใช้ได้จริงอยู่ต่ำกว่าปลายทางที่ยังไม่เปิด คือลำดับที่ผิด
+                 ไม่ว่าจะอ่านด้วยเกณฑ์ไหน · ตอนนี้กลุ่มล่างเรียงตาม "เข้าไปแล้วได้อะไร":
+                 ร้านค้า (ได้ของจริงวันนี้) → ชุมชน (เร็ว ๆ นี้) → Pro (ยังไม่เปิดขาย)
+
+                 ยังอยู่ใต้เส้นคั่นเหมือนเดิมตามมติ 1B93 — ของยังไม่เสร็จห้ามนั่ง
+                 *กลาง* ของที่ใช้ได้จริง · มันเด่นขึ้นด้วยลำดับกับชิปทอง ไม่ใช่ด้วย
+                 พื้นสี ขอบ หรือกล่องใหญ่ ซึ่งเป็นสิ่งที่ทำให้แถวอ่านเป็นแบนเนอร์ขายของ -->
             <button class="pe pe-shop" onclick="go('scr-shop')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-bag"/></svg></span>
               <span class="pe-tx"><b>ร้านค้า <span class="pe-wip">กำลังทำ</span></b><i id="peShopCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
+            <!-- ชุมชน = ฟีดโพสต์เดิม · โค้ดยังอยู่ครบ ปิดด้วยสวิตช์ COMMUNITY_LIVE ใน feed.js
+                 กดแล้วได้แผ่นอธิบายว่ามันจะเป็นอะไร ไม่ใช่ปุ่มที่กดแล้วเงียบ -->
+            <button class="pe pe-soon" onclick="openSoonSheet('community')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
+              <span class="pe-tx"><b>ชุมชน <span class="pe-wip pe-soon-tag">เร็ว ๆ นี้</span></b>
+                <i>ถามเพื่อนร่วมห้อง · โรงเรียน · ทั้งประเทศ</i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <!-- ป้าย "ยังไม่เปิดขาย" บอกครบแล้วว่าแถวนี้คืออะไรและกดไปเจออะไร
+                 บรรทัดรอง "ดูว่าจะมีอะไรเพิ่ม" จึงเป็นการพูดเรื่องเดิมซ้ำด้วยคำที่ยาวกว่า -->
             <button class="pe pe-pro" onclick="go('scr-pro')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
-              <span class="pe-tx"><b>StudentOS Pro <span class="pe-wip">ยังไม่เปิดขาย</span></b>
-                <i>ดูว่าจะมีอะไรเพิ่ม</i></span>
+              <span class="pe-tx"><b>StudentOS Pro <span class="pe-wip">ยังไม่เปิดขาย</span></b></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
           </div>
