@@ -2435,8 +2435,13 @@
    สามช่องเดิมถูกถอดออกตอน 1B47 คือมันกินจอเกือบครึ่งก่อนเห็นงานใบแรก
    สองช่องกว้างเท่ากันแบบ 1fr 1fr ไม่ใช่ auto — ป้ายยาวไม่เท่ากัน ("สัปดาห์" 7 ตัว
    "รายการ" 7 ตัว) แต่ช่องต้องเท่ากัน ไม่งั้นตัวที่ถูกเลือกจะขยับความกว้างตอนสลับ */
+/* 1B94 · จำนวนช่องไม่ถูกล็อกไว้ที่สองอีกแล้ว
+   ของเดิมเขียน grid-template-columns: 1fr 1fr ตายตัว พอเพิ่มโหมด "วันนี้" เข้ามา
+   ช่องที่สามตกไปบรรทัดสอง กลายเป็นแถบสองชั้นที่ช่องล่างกว้างครึ่งเดียว
+   (เห็นบนจอจริงเท่านั้น — DOM ยังบอกว่ามีปุ่มครบสามปุ่ม จึงไม่มีเทสไหนจับได้)
+   grid-auto-flow: column ปล่อยให้จำนวนช่องเป็นไปตามจำนวนปุ่มที่วาดจริง */
 .tk-modes {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 3px;
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px;
   margin: 10px 0 2px; padding: 3px;
   background: var(--surface); border-radius: 12px;
 }
@@ -6106,7 +6111,9 @@ body.deep-scr .top-friends { display: none; }
      บนเครื่องจริงขอบจอคือขอบบนของนาฬิกากับแบต ปุ่มจึงไปนั่งทับแบตพอดี (บนคอมไม่เห็น)
      กันนอตช์ด้วย safe-area แล้วบวก 26 ให้ตัวปุ่มเสมอกับบรรทัดหัวเรื่องของหน้าจอ
      ไม่ใช่แค่ "พ้นแบต" เฉย ๆ — ของที่ลอยต้องเกาะบรรทัดใดบรรทัดหนึ่งถึงจะดูตั้งใจ */
-  .top-friends { top: calc(26px + env(safe-area-inset-top)); }
+  /* 1B94 · เฟืองอยู่ช่องเดียวกับปุ่มเพื่อน จึงต้องขยับพร้อมกันเสมอ
+     แยกบรรทัดเมื่อไหร่ ปุ่มสองตัวจะไม่อยู่ระดับเดียวกันบนเครื่องที่มีนอตช์ */
+  .top-friends, .top-set { top: calc(26px + env(safe-area-inset-top)); }
 }
 
 /* ---------- ปุ่มเฟืองในการ์ดโปรไฟล์ (1A9e) ---------- */
@@ -6124,6 +6131,38 @@ body.deep-scr .top-friends { display: none; }
 .pf-set:active { background: rgba(255, 255, 255, .28); transform: scale(.92); }
 /* ปุ่มเพื่อนยังหลบหน้า "ฉัน" เหมือนเดิม — แถว "เพื่อน" อยู่ในลิสต์ข้างล่างอยู่แล้ว */
 .me-scr .top-friends { display: none; }
+
+/* ---------- ปุ่มตั้งค่ามุมขวาบน (1B94) ----------
+   ยืมทรงจาก .top-friends ทั้งก้อน เพราะทั้งสองปุ่มคือ "ช่องมุมขวาบน" ช่องเดียวกัน
+   ที่สลับเนื้อในตามหน้า ไม่ใช่ปุ่มสองปุ่มที่บังเอิญอยู่ใกล้กัน — ถ้าขนาดหรือเงาไม่ตรงกัน
+   มันจะกระตุกตอนสลับหน้า ทั้งที่ผู้ใช้ไม่ได้รู้สึกว่ามีอะไรถูกสลับ
+
+   ค่าเริ่มต้นคือซ่อน แล้วโผล่เฉพาะ .me-scr — ไม่ใช่ตรงข้าม เพราะจอที่ควรมีเฟือง
+   มีจอเดียว ส่วนจอที่ไม่ควรมีคือทุกจอที่เหลือ กฎที่สั้นกว่าคือกฎที่พังยากกว่า */
+.top-set {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 91;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform .16s ease;
+}
+.top-set svg { width: 18px; height: 18px; }
+.top-set:active { transform: scale(.9); }
+.me-scr .top-set { display: flex; }
+/* จอที่มีปุ่มย้อนกลับของตัวเองมุมขวาบน (deep-scr) ต้องไม่มีเฟืองมาทับ —
+   ตัวหน้า "ฉัน" อยู่บนแถบล่างจึงไม่เคยเป็น deep-scr แต่เขียนกันไว้เหมือนปุ่มเพื่อน */
+.login-mode .top-set, .deep-scr .top-set { display: none; }
 
 /* ---------- หัวจอตั้งค่า + การ์ดตัวตน (1A9d) ---------- */
 .set-top {
@@ -7116,3 +7155,262 @@ body.deep-scr .top-friends { display: none; }
 }
 .wy-frag .wy-k { color: var(--warn); }
 .wy-frag .wy-v { color: var(--warn); font-size: 13px; }
+
+/* ============================================================
+   1B94 · ปุ่มรวม — เมนูสองทาง + แผ่นผู้ช่วย
+   ============================================================
+   ทรงและระยะยืมจาก .add-sheet (today.css) ทั้งชุด — แผ่นสองแผ่นที่เลื่อนขึ้น
+   จากก้นจอเหมือนกันต้องเคลื่อนที่เหมือนกัน ไม่งั้นมันอ่านเป็นคนละแอป
+   ตัวเลข z-index ต้องสูงกว่าแถบล่าง (.tabbar) และปุ่มลอย (.fd-fab z-index 6)
+   แต่ต่ำกว่าแผ่นเพิ่มงาน (95) ไม่ได้ — ทั้งสองไม่มีวันเปิดพร้อมกัน จึงใช้ชั้นเดียวกันได้ */
+
+/* ---------- เมนูสองทางที่กางจากปุ่ม ---------- */
+.fab-hub { position: absolute; inset: 0; z-index: 94; }
+.fab-hub[hidden] { display: none; }
+.fh-scrim {
+  position: absolute; inset: 0; background: rgba(0, 0, 0, .38);
+  opacity: 0; transition: opacity .2s ease;
+}
+.fab-hub.on .fh-scrim { opacity: 1; }
+
+/* --y คือระยะเหนือปุ่มหลัก · ตั้งค่าเป็น inline style ตอนวาด เพราะจำนวนตัวเลือก
+   เปลี่ยนได้ (ยังไม่ล็อกอิน = ไม่มีเมนูเลย กดแล้วเปิดผู้ช่วยตรง ๆ) */
+.fh-op {
+  position: absolute; right: 16px;
+  bottom: calc(var(--tabgap) + 78px + var(--y, 52px));
+  display: flex; align-items: center; gap: 10px;
+  border: 0; background: none; padding: 0; font: inherit; cursor: pointer;
+  opacity: 0; transform: translateY(10px);
+  transition: opacity .18s ease var(--d, 0s), transform .18s ease var(--d, 0s);
+}
+.fab-hub.on .fh-op { opacity: 1; transform: none; }
+.fh-lb {
+  padding: 6px 12px; border-radius: 10px;
+  background: var(--card); color: var(--ink);
+  font-size: 13.5px; font-weight: 600; white-space: nowrap;
+  box-shadow: var(--shadow-lg);
+}
+.fh-cir {
+  position: relative; flex: none;
+  width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--card); color: var(--blue);
+  box-shadow: var(--shadow-lg);
+}
+.fh-cir svg { width: 20px; height: 20px; }
+.fh-op:active .fh-cir { transform: scale(.92); }
+.fh-cir i {
+  position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px;
+  padding: 0 5px; border-radius: 999px;
+  background: var(--bad, #e5484d); color: #fff;
+  border: 2px solid var(--card);
+  font-style: normal; font-size: 10px; font-weight: 700; line-height: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+/* ปุ่มหลักหมุนเป็นกากบาทตอนกางอยู่ — บอกว่าการกดครั้งต่อไปคือ "ปิด" ไม่ใช่ "เปิดอีกอัน" */
+.fd-fab.open { transform: rotate(90deg); }
+.fd-fab { transition: transform .2s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .fh-scrim, .fh-op, .fd-fab { transition: none; }
+}
+
+/* ---------- แผ่นผู้ช่วย ---------- */
+.ai-sheet { position: absolute; inset: 0; z-index: 95; }
+.ai-sheet[hidden] { display: none; }
+.ah-scrim {
+  position: absolute; inset: 0; background: rgba(0, 0, 0, .5);
+  opacity: 0; transition: opacity .2s ease;
+}
+.ai-sheet.on .ah-scrim { opacity: 1; }
+.ah-card {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 8px 14px calc(20px + env(safe-area-inset-bottom));
+  background: var(--card); border-radius: 22px 22px 0 0;
+  transform: translateY(100%); transition: transform .24s cubic-bezier(.22, 1, .36, 1);
+  max-height: 86%; overflow-y: auto;
+}
+.ai-sheet.on .ah-card { transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ah-scrim, .ah-card { transition: none; }
+}
+.ah-grip { width: 38px; height: 4px; margin: 4px auto 12px; border-radius: 999px; background: var(--line); }
+.ah-h { margin-bottom: 12px; font-size: 16px; font-weight: 700; color: var(--ink); }
+/* บรรทัดรอง = ตัวเลขจริงว่าผู้ช่วยเห็นอะไร ไม่ใช่คำโปรย — จึงเป็นสีปกติที่อ่านออก
+   ไม่ใช่สีจางระดับคำบรรยายที่สายตากวาดข้าม */
+.ah-h i { display: block; margin-top: 2px; font-style: normal; font-size: 12px;
+  font-weight: 400; color: var(--muted); }
+
+.ah-tools { display: flex; flex-direction: column; gap: 8px; }
+.ah-tool {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 11px 12px; border: 0; border-radius: 14px;
+  background: var(--surface); font: inherit; text-align: left; cursor: pointer;
+}
+.ah-tool:active { transform: scale(.985); }
+.ah-ic {
+  flex: none; width: 38px; height: 38px; display: grid; place-items: center;
+  border-radius: 12px; background: var(--blue); color: var(--on-accent);
+}
+.ah-ic svg { width: 18px; height: 18px; }
+.ah-tx { flex: 1; min-width: 0; }
+.ah-tx b { display: block; font-size: 14.5px; font-weight: 600; color: var(--ink); }
+.ah-tx span { display: block; margin-top: 1px; font-size: 12px; color: var(--muted); }
+
+/* ทางลัดเป็นชิปแบน ๆ ไม่ใช่การ์ด — ความต่างของรูปทรงคือสิ่งที่บอกว่า
+   ของกลุ่มนี้ไปที่น้องไซตัวเดียวกันหมด ไม่ใช่เครื่องมือคนละตัว (เจ้าของสั่งข้อนี้ตรง ๆ) */
+.ah-qa-h { margin: 16px 0 7px; font-size: 11.5px; font-weight: 600;
+  letter-spacing: .04em; color: var(--muted); }
+.ah-qa { display: flex; flex-wrap: wrap; gap: 6px; }
+.ah-qa button {
+  padding: 7px 13px; border: 1px solid var(--line); border-radius: 999px;
+  background: none; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer;
+}
+.ah-qa button:active { background: var(--surface); transform: scale(.96); }
+
+.ah-ask {
+  display: flex; align-items: center; width: 100%; margin-top: 14px;
+  padding: 12px 10px 12px 16px; border: 1px solid var(--line); border-radius: 999px;
+  background: none; color: var(--muted); font: inherit; font-size: 14px;
+  text-align: left; cursor: pointer;
+}
+.ah-ask-go {
+  margin-left: auto; flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--blue); color: var(--on-accent);
+}
+.ah-ask-go svg { width: 15px; height: 15px; }
+
+/* ============================================================
+   1B94 · จอ A — งาน › วันนี้ + ตารางเต็มวัน
+   ============================================================
+   จอนี้ไม่ได้ใช้ .card เป็นทรงหลัก เพราะการ์ดทุกก้อนเท่ากันหมดคือจอที่ไม่มีลำดับ
+   สามชั้นที่ต่างกันตั้งใจ: แถวตัวเลข (แบน) · คาบเรียน (การ์ดเงียบ) ·
+   งานที่ควรทำก่อน (การ์ดสีเน้น — จุดเดียวที่การตัดสินใจจบ) */
+
+/* ---------- แถวตัวเลขสามช่อง ---------- */
+.tb-stats { display: flex; gap: 8px; margin-bottom: 12px; }
+.tb-st {
+  flex: 1; min-width: 0; padding: 10px 8px; border-radius: 14px;
+  background: var(--card); text-align: center;
+}
+.tb-st b { display: block; font-size: 20px; font-weight: 700; line-height: 1.2; color: var(--ink); }
+.tb-st i { display: block; margin-top: 1px; font-style: normal; font-size: 11.5px; color: var(--muted); }
+
+/* ---------- คาบถัดไป ---------- */
+/* การ์ดเงียบ: ไม่มีปุ่ม ไม่มีสีเน้น เพราะคาบเรียนไม่ใช่สิ่งที่ผู้ใช้ตัดสินใจได้
+   มันคือกรอบที่ทุกอย่างอื่นต้องวางตัวอยู่ข้างใน */
+.tb-cls { padding: 12px 14px; border-radius: 16px; background: var(--card); margin-bottom: 10px; }
+.tb-cl-lb {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; color: var(--muted); margin-bottom: 4px;
+}
+.tb-cl-lb svg { width: 13px; height: 13px; }
+.tb-cl-t { font-size: 16px; font-weight: 600; color: var(--ink); line-height: 1.3; }
+.tb-cl-s { margin-top: 2px; font-size: 12.5px; color: var(--muted); }
+.tb-cls.quiet {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 14px; font-size: 13px; color: var(--muted); background: var(--surface);
+}
+.tb-cls.quiet svg { width: 15px; height: 15px; flex: none; }
+
+/* ชวนสแกนตารางเรียน — ดังกว่าการ์ดอื่นได้ เพราะถ้าไม่มีตารางเรียน
+   ตัวเลขทุกตัวบนจอนี้ตั้งอยู่บนการเดา และผู้ใช้ควรรู้ตัว */
+.tb-nudge {
+  display: flex; align-items: center; gap: 12px; width: 100%; margin-bottom: 10px;
+  padding: 12px 14px; border: 1px solid var(--blue); border-radius: 16px;
+  background: var(--blue-soft); font: inherit; text-align: left; cursor: pointer;
+}
+.tb-nd-ic { flex: none; width: 34px; height: 34px; display: grid; place-items: center;
+  border-radius: 11px; background: var(--blue); color: var(--on-accent); }
+.tb-nd-ic svg { width: 17px; height: 17px; }
+.tb-nd-tx { flex: 1; min-width: 0; }
+.tb-nd-tx b { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
+.tb-nd-tx span { display: block; margin-top: 1px; font-size: 12px; color: var(--muted); line-height: 1.45; }
+.tb-nd-go { flex: none; display: flex; color: var(--blue); }
+.tb-nd-go svg { width: 16px; height: 16px; }
+
+/* ---------- งานที่ควรทำก่อน ---------- */
+.tb-focus {
+  padding: 14px 16px 15px; border-radius: 18px;
+  background: var(--blue); color: var(--on-accent); margin-bottom: 12px;
+}
+.tb-fc-lb {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; opacity: .85; margin-bottom: 5px;
+}
+.tb-fc-lb svg { width: 13px; height: 13px; }
+.tb-fc-t { font-size: 17px; font-weight: 700; line-height: 1.32; }
+.tb-fc-s { margin-top: 3px; font-size: 12.5px; opacity: .85; }
+.tb-fc-go {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  width: 100%; margin-top: 12px; padding: 11px 0; border: 0; border-radius: 12px;
+  background: var(--card); color: var(--blue);
+  font: inherit; font-size: 14.5px; font-weight: 600; cursor: pointer;
+}
+.tb-fc-go svg { width: 15px; height: 15px; }
+.tb-fc-go:active { transform: scale(.98); }
+/* จอว่าง/หมดเวลา — ไม่ใช่สีเน้น เพราะไม่มีอะไรให้ลงมือ การ์ดสีเน้นที่ไม่มีปุ่ม
+   คือคำสัญญาที่ไม่มีของจริงรองรับ */
+.tb-focus.flat {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 20px 18px; background: var(--card); color: var(--ink);
+  border: 0; width: 100%; font: inherit;
+}
+.tb-focus.flat svg { width: 20px; height: 20px; color: var(--muted); margin-bottom: 3px; }
+.tb-focus.flat b { font-size: 14.5px; font-weight: 600; }
+.tb-focus.flat span { font-size: 12.5px; color: var(--muted); text-align: center; line-height: 1.5; }
+.tb-focus.flat.tap { cursor: pointer; }
+.tb-focus.flat.tap:active { transform: scale(.99); }
+
+/* ---------- ไทม์ไลน์ย่อ ---------- */
+.tb-tl { display: flex; flex-direction: column; border-radius: 16px; background: var(--card); overflow: hidden; }
+.tb-tl-r {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 10px 14px; border: 0; background: none; font: inherit; text-align: left; cursor: pointer;
+}
+.tb-tl-r + .tb-tl-r { border-top: 1px solid var(--line); }
+.tb-tl-r:active { background: var(--surface); }
+.tb-tl-t {
+  flex: none; width: 38px; font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 11.5px; color: var(--muted);
+}
+.tb-tl-bar { flex: none; width: 3px; align-self: stretch; min-height: 26px; border-radius: 2px; background: var(--blue); }
+.tb-tl-bar.ev { background: var(--muted); }
+.tb-tl-x { flex: 1; min-width: 0; }
+.tb-tl-x b { display: block; font-size: 13.5px; font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tb-tl-x i { display: block; font-style: normal; font-size: 11.5px; color: var(--muted); }
+
+.tb-more {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  width: 100%; margin-top: 10px; padding: 12px 0;
+  border: 0; border-radius: 14px; background: var(--surface); color: var(--blue);
+  font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.tb-more svg { width: 15px; height: 15px; }
+.tb-more:active { transform: scale(.99); }
+
+/* ---------- ตารางเต็มวัน ---------- */
+.df-list { display: flex; flex-direction: column; border-radius: 16px; background: var(--card); overflow: hidden; }
+.df-r {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 10px 14px; border: 0; background: none; font: inherit; text-align: left;
+}
+.df-r + .df-r { border-top: 1px solid var(--line); }
+button.df-r { cursor: pointer; }
+button.df-r:active { background: var(--surface); }
+/* ของที่ผ่านไปแล้วยังอยู่ครบแต่จาง — มันคือคำตอบของ "ทำไมวันนี้ถึงไม่เหลือเวลา" */
+.df-r.past { opacity: .42; }
+.df-t { flex: none; width: 38px; font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 11.5px; color: var(--muted); }
+.df-bar { flex: none; width: 3px; align-self: stretch; min-height: 24px; border-radius: 2px; background: var(--line); }
+/* สีของแถบซ้ายคือชนิดของเวลา ไม่ใช่ความด่วน — คาบเรียนกับกิจวัตรเลือกไม่ได้
+   งานเลือกได้ · ความต่างนี้คือสิ่งเดียวที่ทำให้ตารางเต็มวันอ่านเร็วกว่ารายการเรียบ */
+.df-r.class .df-bar { background: var(--blue); }
+.df-r.rt .df-bar { background: var(--muted); }
+.df-r.work .df-bar { background: var(--pri-green, #2E9E6B); }
+.df-r.ev .df-bar { background: var(--muted); }
+.df-r.brk .df-bar { background: var(--line); }
+.df-x { flex: 1; min-width: 0; }
+.df-x b { display: block; font-size: 13.5px; font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.df-x i { display: block; font-style: normal; font-size: 11.5px; color: var(--muted); }

@@ -410,7 +410,21 @@ function postCard(p) {
 // ทั้งแอปจนกว่าจะมีคน deploy ซึ่งไม่ได้ทำให้ใครปลอดภัยขึ้น มีแต่ทำให้แอปพัง
 // และสภาพก่อนหน้านี้ก็คือไม่มีตัวกรองอยู่แล้ว จึงไม่ได้แย่ลงกว่าเดิม
 // แยกสองอย่างนี้ด้วยรหัสตอบกลับ: 404 = ยังไม่มีฟังก์ชัน · อย่างอื่น = มีแต่ล้ม
-let guardMissing = false;         // จำไว้ทั้งอายุแอป จะได้ไม่ยิงซ้ำทุกครั้งที่แนบรูป
+//
+// ---------- 2A · ข้อ 3 ข้างบนใช้กับ "รูป" ไม่ได้อีกต่อไป (เจ้าของเคาะ 13 ก.ย. 2569) ----------
+// เหตุผลเดิมฟังขึ้นตอนที่ยังไม่มีใครใช้ตัวกรอง แต่มันเปิดช่องที่กว้างกว่าที่ตั้งใจ:
+// 404 **ครั้งเดียว** — เช่นเสี้ยววินาทีระหว่าง redeploy guard — ทำให้ธงนี้ติดค้าง
+// ทั้งอายุแอป แล้วรูปทุกใบหลังจากนั้นขึ้นไปโดยไม่มีใครตรวจเลยสักใบ
+// ซึ่งขัดกับกติกา "รูปล้มแบบปิด" ที่เจ้าของเคาะไว้เอง และเป็นช่องที่ไม่มีใครตั้งใจให้มี
+//
+// ตอนนี้จึงแยกกันชัด ๆ ตามกติกาของแต่ละชนิด ไม่ใช่ธงเดียวคุมทั้งสองอย่าง:
+//   รูป     → ไม่มีทางผ่านฟรี · ตรวจไม่ได้เมื่อไหร่ = ไม่ให้ส่งเมื่อนั้น (ธงนี้ไม่มีผลกับรูป)
+//   ข้อความ → ยังใช้ธงนี้เหมือนเดิม เพราะ policy ของข้อความคือ fail-open อยู่แล้ว
+//             ธงนี้กับข้อความจึงมีหน้าที่เดียวคือเลิกยิงไปที่ 404 ซ้ำ ๆ ไม่ได้ปลดการตรวจอะไร
+//
+// **ผลที่ต้องรู้ก่อน deploy**: ถ้า guard ยังไม่ได้ deploy จริง แอปจะส่งรูปไม่ได้ทั้งแอป
+// ทันที — นั่นคือสิ่งที่ fail-closed แปลว่า และเป็นราคาที่เจ้าของเลือกจ่ายเอง
+let guardMissing = false;         // ใช้กับ "ข้อความ" เท่านั้นแล้ว — รูปไม่อ่านธงนี้
 
 function blobToB64(blob) {
   return new Promise((res, rej) => {
@@ -437,7 +451,19 @@ async function guardImage(blob) {
 }
 
 async function guardImageOnce(blob) {
-  if (guardMissing || !sb || !currentUser) return { ok: true };
+  // ---------- ไม่มีบัญชี = ตรวจไม่ได้ = ไม่ให้ใช้รูป ----------
+  // guard ต้องการ JWT เพื่อรู้ว่าใครถูกกรอง (mod_log ที่ไม่รู้ว่าใครคือบันทึกที่ใช้ไม่ได้)
+  // ของเดิมคืน ok ตรงนี้ ซึ่งเปิดช่องที่ใหญ่กว่าที่เห็น: ตั้งรูปโปรไฟล์ตอนยังไม่ล็อกอิน
+  // → เก็บลงเครื่องโดยไม่ตรวจ → พอล็อกอินครั้งถัดไป syncPublicFace() ดันรูปนั้น
+  // ขึ้น profiles.avatar ให้เอง **โดยไม่เคยผ่านตัวกรองเลยสักครั้ง**
+  // และรูปโปรไฟล์คือรูปที่โผล่ทุกหน้าที่มีชื่อคนนั้น คนที่ไม่เคยเปิดโพสต์เขาก็ยังเห็น
+  if (!sb || !currentUser) {
+    return { ok: false, reason: 'guard_noauth',
+             message: 'ต้องเข้าสู่ระบบก่อนถึงจะใช้รูปได้' };
+  }
+  // **ไม่อ่าน guardMissing แล้ว** — ธงนั้นติดค้างทั้งอายุแอปจาก 404 ครั้งเดียว
+  // ยอมเสียคำขอเปล่าใบละครั้งดีกว่าปลดการตรวจรูปยาวทั้งเซสชัน และการยิงจริงทุกครั้ง
+  // ทำให้มันฟื้นเองได้เมื่อ guard กลับมา · คำขอที่ตกที่ 404 ไม่แตะโควตา Gemini เลย
   try {
     const b64 = await blobToB64(blob);
     const { data, error } = await sb.functions.invoke('guard', {
@@ -446,7 +472,13 @@ async function guardImageOnce(blob) {
     if (error) {
       // supabase-js ยัดสถานะไว้ใน error.context ตอนฟังก์ชันตอบไม่ใช่ 2xx
       const st = (error.context && error.context.status) || 0;
-      if (st === 404) { guardMissing = true; return { ok: true }; }
+      // 404 = ยังไม่มีฟังก์ชัน · ยังตั้งธงไว้เพื่อให้ **ข้อความ** เลิกยิงซ้ำ (policy fail-open)
+      // แต่ **รูปไม่ได้ผ่านเพราะธงนี้อีกแล้ว** — ตรวจไม่ได้คือไม่ให้ส่ง
+      if (st === 404) {
+        guardMissing = true;
+        return { ok: false, reason: 'guard_missing',
+                 message: 'ตรวจรูปไม่ได้ตอนนี้ ลองใหม่อีกครั้ง' };
+      }
       // guard เองตอบ 503 พร้อมข้อความไทยตอนตรวจไม่สำเร็จ — เอามาโชว์ตรง ๆ
       let msg = 'ตรวจรูปไม่สำเร็จ ลองส่งใหม่อีกครั้ง';
       let why = 'guard_down';
@@ -769,16 +801,24 @@ async function myFirstRoom() {
 const FAB_HIDE = ['scr-login', 'scr-onboard', 'scr-chat', 'scr-hw',
   'scr-topic', 'scr-tthread', 'scr-dm', 'scr-compose', 'scr-crop', 'scr-scan'];
 
+// 1B94 · ปุ่มนี้ไม่ใช่ปุ่มข้อความอีกแล้ว — มันคือปุ่มรวม (ข้อความ + ผู้ช่วย)
+// เงื่อนไข "ต้องล็อกอินก่อนถึงจะโผล่" จึงถูกถอดออก: ผู้ช่วยใช้ได้โดยไม่ต้องมีบัญชี
+// การซ่อนทั้งปุ่มเมื่อยังไม่ล็อกอิน เท่ากับซ่อนผู้ช่วยจากคนที่ยังไม่ได้สมัคร
+// เงื่อนไขเดิมย้ายไปอยู่ที่ dmUsable() ใน app.js ซึ่งคุมเฉพาะ "ช่องข้อความ" ในเมนู
 function paintFeedFab() {
   const fab = document.getElementById('feedFab');
   if (!fab) return;
-  const ready = !!currentUser && typeof dmReady !== 'undefined' && dmReady;
-  const show = ready && !FAB_HIDE.includes(curScreen);
+  const show = !FAB_HIDE.includes(curScreen);
   fab.hidden = !show;
-  if (!show) return;
-  if (!fab.onclick) fab.onclick = () => openDmInbox();
-  const n = typeof dmPending === 'number' ? dmPending : 0;
-  fab.innerHTML = icon('chat') + (n ? `<i>${n > 9 ? '9+' : n}</i>` : '');
+  // ออกจากจอที่มีเมนูกางค้างอยู่ = ต้องเก็บเมนูไปด้วย ไม่งั้นมันลอยทับจอใหม่
+  if (!show) { if (typeof closeFabHub === 'function') closeFabHub(true); return; }
+  fab.onclick = () => (typeof toggleFabHub === 'function' ? toggleFabHub() : openDmInbox());
+  // เลขบนปุ่มยังเป็นเลขข้อความเหมือนเดิม และนับได้ต่อเมื่อกล่องข้อความใช้ได้จริง
+  const usable = typeof dmUsable === 'function' ? dmUsable() : !!currentUser;
+  const n = usable && typeof dmPending === 'number' ? dmPending : 0;
+  // ไอคอนหลักเป็นประกาย ไม่ใช่ลูกโป่งคำพูด — ปุ่มนี้เปิดสองอย่าง ถ้ายังเป็นลูกโป่ง
+  // คนจะอ่านว่ามันคือแชท แล้วเมนูที่กางออกมาจะกลายเป็นเรื่องเซอร์ไพรส์ทุกครั้ง
+  fab.innerHTML = icon('sparkles') + (n ? `<i>${n > 9 ? '9+' : n}</i>` : '');
   fab.classList.toggle('has-req', !!n);
 }
 

@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B93';                 // สายเลขของแอป
-const APP_CODENAME = 'Signal';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1B94';                 // สายเลขของแอป
+const APP_CODENAME = 'Horizon';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -824,6 +824,8 @@ const TABBED_SCREENS = ['scr-menu', 'scr-ai', 'scr-tasks', 'scr-scan', 'scr-time
 // ส่วน "ปฏิทิน" เสียปุ่มไป — มันเป็นมุมมองที่สองของแท็บ "งาน" อยู่แล้ว (ดู tlModeTabs)
 // ถ้าไม่ยกให้แท็บนั้นติดไฟ ผู้ใช้จะอยู่ในปฏิทินโดยไม่มีแท็บไหนสว่างเลย = "หลงอยู่ที่ไหนไม่รู้"
 const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
+  // 1B94 · ตารางเต็มวันเข้าจากโหมด "วันนี้" ของแท็บงาน จึงคืนไฟให้แท็บนั้น
+  'scr-dayfull': 'scr-tasks',
   'scr-settings': 'scr-profile', 'scr-setopt': 'scr-profile', 'scr-stats': 'scr-profile',
   // จอแชทซ่อนแถบล่างอยู่แล้ว แต่ต้องผูกเจ้าของไว้ด้วย — ไม่งั้นตอนกดย้อนกลับ
   // ออกมา จะไม่มีแท็บไหนติดไฟสักอัน ซึ่งอ่านว่า "หลงอยู่ที่ไหนไม่รู้"
@@ -951,6 +953,11 @@ function go(id) {
   document.body.classList.toggle('deep-scr', !TABBED_SCREENS.includes(id));
   // ปุ่มข้อความลอยต้องอัปเดตทุกครั้งที่เปลี่ยนจอ — มันอยู่นอกกองจอ
   // จึงไม่มีใครวาดใหม่ให้เองเหมือนของที่อยู่ในจอ (1B70)
+  // 1B94 · เมนูกับแผ่นผู้ช่วยก็อยู่นอกกองจอเหมือนกัน ย้ายจอทั้งทีต้องเก็บทั้งคู่ด้วย
+  // ไม่งั้นมันค้างลอยทับจอใหม่ทั้งที่ผู้ใช้ไม่ได้สั่งอะไร (ปุ่มย้อนกลับของเครื่อง
+  // ไม่ได้ผูกกับจอในแอปนี้ ทางออกของแผ่นจึงมีแค่แตะพื้นที่ว่างกับย้ายจอ)
+  if (typeof closeFabHub === 'function') closeFabHub(true);
+  if (typeof closeAiHub === 'function') closeAiHub();
   if (typeof paintFeedFab === 'function') paintFeedFab();
   // ปุ่มเพื่อนลอยมุมขวาบนต้องหลบหน้า "วันนี้" — มันนั่งทับกระดิ่งกล่องเข้าพอดี
   // และเพื่อนไม่ใช่คำตอบของ "ตอนนี้ควรทำอะไร" · ทางเข้ายังอยู่ครบสองที่ในแท็บ "ฉัน"
@@ -1397,15 +1404,25 @@ function esc(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 // หัวเรื่องการ์ด: ไม่โชว์ "อื่น ๆ ·" ซ้ำซ้อนเวลาไม่ได้ระบุวิชา
+//
+// 1B94 · ตัวคั่นต้องหายไปด้วยเมื่อไม่มีรายละเอียด — ของเดิมต่อ ' · ' ทุกครั้งที่มีวิชา
+// แล้วงานที่กรอกมาแต่ชื่อวิชา (ซึ่งเป็นงานที่แกะจากรูปเกือบทุกใบ) จะขึ้นว่า
+// "คณิตศาสตร์ · " มีจุดค้างห้อยท้าย · เห็นชัดตอนทำจอ "งาน › วันนี้" เพราะการ์ดสีน้ำเงิน
+// เอาชื่อนี้ไปขึ้นตัวใหญ่ 17px จุดที่ห้อยอยู่จึงกลายเป็นของที่เลี่ยงสายตาไม่ได้
+// เจตนาเดิมของฟังก์ชันนี้เขียนไว้บรรทัดบนอยู่แล้วว่าไม่เอาตัวคั่นที่ไม่มีของตามหลัง
 function taskTitle(t) {
-  const subj = t.subject && t.subject !== 'อื่น ๆ' ? esc(t.subject) + ' · ' : '';
-  return subj + esc(t.detail);
+  const detail = (t.detail || '').trim();
+  const subj = t.subject && t.subject !== 'อื่น ๆ' ? esc(t.subject) : '';
+  if (!detail) return subj || esc(t.detail || '');
+  return (subj ? subj + ' · ' : '') + esc(detail);
 }
 // ชื่อเดียวกันแบบข้อความล้วน — สำหรับที่ที่เขียนด้วย textContent (toast, การแจ้งเตือนของระบบ)
 // เอา taskTitle ไปใส่ตรงนั้นตรง ๆ ไม่ได้ เพราะ &amp; จะโผล่ให้ผู้ใช้เห็นดิบ ๆ
 function taskTitleText(t) {
-  const subj = t.subject && t.subject !== 'อื่น ๆ' ? t.subject + ' · ' : '';
-  return subj + (t.detail || '');
+  const detail = (t.detail || '').trim();
+  const subj = t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '';
+  if (!detail) return subj;
+  return (subj ? subj + ' · ' : '') + detail;
 }
 // ---------- สีประจำวิชา ----------
 // วิชาเดียวกันต้องได้สีเดิมทุกจอและทุกเครื่อง จึงคำนวณจากชื่อ ไม่ใช่จากลำดับที่เจอ
@@ -2755,6 +2772,179 @@ function closeAddSheet() {
   setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
 }
 
+// ============================================================
+// 1B94 · ปุ่มรวม — ข้อความ + ผู้ช่วย (เจ้าของเลือกแบบ B จากภาพร่าง)
+// ============================================================
+// ปุ่มลอยมุมขวาล่างมีเจ้าของอยู่ก่อนแล้ว: มันคือกล่องข้อความ และเจ้าของสั่งเองสองรอบ
+// ให้มันติดขอบจอทุกหน้า (ดูหัวไฟล์ของ paintFeedFab ใน feed.js) · การเอามันไปเป็น
+// AI Hub เฉย ๆ จึงเท่ากับถอดทางเข้าที่สั่งไว้เองทิ้ง — คำตอบที่เจ้าของเลือกคือ
+// "ปุ่มเดียว กางออกมาสองทาง" ซึ่งรักษาทั้งเลขข้อความบนปุ่มและที่ทางของผู้ช่วยไว้ได้
+//
+// **ราคาที่รู้ตัวแล้วว่าจ่าย:** แชทถอยจากหนึ่งแตะเป็นสองแตะ
+// ถ้าใช้จริงแล้วรำคาญ ทางแก้คือ "แตะ = เปิดแชท · กดค้าง = กางเมนู" ซึ่งแก้ที่ toggleFabHub
+// บรรทัดเดียว ไม่ต้องรื้อ CSS หรือ markup อะไรเลย
+//
+// สิ่งที่เปลี่ยนไปจากเดิมและสำคัญ: **ปุ่มนี้โผล่แม้ยังไม่ล็อกอิน**
+// ของเดิมซ่อนทั้งปุ่มเมื่อ !currentUser เพราะมันเป็นปุ่มข้อความล้วน ๆ
+// แต่ผู้ช่วยใช้ได้โดยไม่ต้องมีบัญชี (ask-sai ยิงด้วย anon key) การซ่อนทั้งปุ่ม
+// จึงเท่ากับซ่อนผู้ช่วยจากคนที่ยังไม่ได้สมัคร ซึ่งเป็นคนกลุ่มที่ต้องการมันที่สุด
+let fabHubOpen = false;
+
+// ข้อความใช้ได้เมื่อไหร่ — ต้องล็อกอิน *และ* หลังบ้านมี dm_inbox แล้ว
+// สองเงื่อนไขนี้เป็นของกล่องข้อความอย่างเดียว ห้ามเอาไปคุมทั้งปุ่ม
+function dmUsable() {
+  return !!(typeof currentUser !== 'undefined' && currentUser
+    && typeof dmReady !== 'undefined' && dmReady);
+}
+
+function toggleFabHub() {
+  if (fabHubOpen) { closeFabHub(); return; }
+  // มีปลายทางเดียว = ไม่ต้องกาง · เมนูที่มีตัวเลือกเดียวคือขั้นตอนที่เพิ่มมาเปล่า ๆ
+  const el = document.getElementById('fabMenu');
+  if (!dmUsable() || !el) { openAiHub(); return; }
+
+  const n = typeof dmPending === 'number' ? dmPending : 0;
+  // ผู้ช่วยอยู่ใกล้ปุ่มหลักที่สุด ตามภาพร่างที่อนุมัติ · ไล่ขึ้นทีละอันห่างกัน 40ms
+  // (ขึ้นพร้อมกันทั้งคู่จะอ่านเป็น "เมนูเด้ง" ส่วนไล่ขึ้นอ่านเป็น "ปุ่มคลี่ออก")
+  clearTimeout(fabHubTimer);
+  el.innerHTML = `
+    <div class="fh-scrim" onclick="closeFabHub()"></div>
+    <button class="fh-op" style="--d:.04s;--y:52px" onclick="closeFabHub();openAiHub()">
+      <span class="fh-lb">ผู้ช่วย AI</span>
+      <span class="fh-cir">${icon('sparkles')}</span>
+    </button>
+    <button class="fh-op" style="--d:0s;--y:98px" onclick="closeFabHub();openDmInbox()">
+      <span class="fh-lb">ข้อความ</span>
+      <span class="fh-cir">${icon('chat')}${n ? `<i>${n > 9 ? '9+' : n}</i>` : ''}</span>
+    </button>`;
+  el.hidden = false;
+  fabHubOpen = true;
+  // setTimeout ไม่ใช่ rAF ด้วยเหตุผลเดียวกับ openAddSheet — rAF ไม่ทำงานเลย
+  // ถ้าหน้าไม่ได้ถูกวาดจริง แล้วเมนูจะค้างอยู่ในสถานะโปร่งใสแบบถาวรโดยไม่มี error
+  setTimeout(() => el.classList.add('on'), 16);
+  const fab = document.getElementById('feedFab');
+  if (fab) { fab.classList.add('open'); fab.innerHTML = icon('x'); }
+  haptic('tap');
+}
+
+function closeFabHub(instant) {
+  // ปิดอยู่แล้ว = ออกทันที · ด่านนี้ไม่ใช่การกันงานซ้ำ แต่กันลูปไม่รู้จบ:
+  // ตัวมันเองเรียก paintFeedFab() ตอนจบ และ paintFeedFab() เรียกตัวนี้กลับมา
+  // ตอนที่ปุ่มต้องหายไปจากจอ — ไม่มีด่านนี้ สองตัวจะเรียกกันไปเรื่อยจนจอค้าง
+  if (!fabHubOpen) return;
+  const el = document.getElementById('fabMenu');
+  fabHubOpen = false;
+  if (el) {
+    el.classList.remove('on');
+    clearTimeout(fabHubTimer);
+    if (instant) { el.hidden = true; el.innerHTML = ''; }
+    else fabHubTimer = setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
+  }
+  const fab = document.getElementById('feedFab');
+  if (fab) fab.classList.remove('open');
+  // ไอคอนกับเลขบนปุ่มหลักคืนค่าโดย paintFeedFab ไม่ใช่เขียนซ้ำตรงนี้ —
+  // เลขข้อความมีที่มาที่เดียว ถ้าเขียนสองที่วันหนึ่งมันจะไม่ตรงกัน
+  if (typeof paintFeedFab === 'function') paintFeedFab();
+}
+
+// ---------- แผ่นผู้ช่วย ----------
+// เป็นแผ่นเลื่อนขึ้น ไม่ใช่ปุ่มกลมอีกหกลูก — ข้อกำหนดของเจ้าของคือ "ต้องไม่รกบนมือถือ"
+// และปุ่มลอยหกลูกคือของที่บังเนื้อหาตั้งแต่ยังไม่ได้กดอะไรเลย
+// ตัวจับเวลา "เก็บของหลังแอนิเมชันจบ" ต้องยกเลิกได้ — ไม่งั้นเจอบั๊กนี้:
+// go() สั่งปิดแผ่นทุกครั้งที่ย้ายจอ ซึ่งตั้งเวลาเก็บของไว้ 200ms
+// ถ้าระหว่างนั้นมีคนเปิดแผ่นใหม่ (เช่น aiHubAsk ที่ปิด → ย้ายจอ → เปิด)
+// ตัวจับเวลาของรอบก่อนจะมาถึงแล้วซ่อนแผ่นที่เพิ่งเปิด — แผ่นหายไปเองโดยไม่มี error
+// เจอตอนตรวจบนเครื่องจริง ไม่ใช่ตอนอ่านโค้ด
+let aiSheetTimer = null, fabHubTimer = null;
+
+function openAiHub() {
+  const el = document.getElementById('aiSheet');
+  if (!el) { go('scr-ai'); return; }
+  clearTimeout(aiSheetTimer);
+  el.innerHTML = `<div class="ah-scrim" onclick="closeAiHub()"></div>
+    <div class="ah-card" role="dialog" aria-label="ผู้ช่วย">${aiHubHTML()}</div>`;
+  el.hidden = false;
+  setTimeout(() => el.classList.add('on'), 16);
+  haptic('tap');
+}
+
+function closeAiHub() {
+  const el = document.getElementById('aiSheet');
+  if (!el || el.hidden) return;   // ปิดอยู่แล้ว = ห้ามตั้งเวลาเก็บของซ้ำ (ดูหมายเหตุข้างบน)
+  el.classList.remove('on');
+  clearTimeout(aiSheetTimer);
+  aiSheetTimer = setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
+}
+
+// ---------- สามอย่างที่ทำงานต่างกันจริง ----------
+// เจ้าของสั่งตรง ๆ ว่า "ไม่ต้องสร้าง AI ปลอม 6 ตัว" — สามการ์ดนี้คือสามความสามารถ
+// ที่มาจากคนละที่กันจริง ๆ ส่วนของที่ยิงเข้า ask-sai เหมือนกันหมดไปอยู่แถวทางลัดข้างล่าง
+// ซึ่งหน้าตาต่างกันชัดเจน ไม่ได้ปลอมเป็นเครื่องมือคนละตัว
+const AI_HUB_TOOLS = [
+  ['book', 'ช่วยการบ้าน', 'อธิบายทีละขั้น ไม่เฉลยให้ลอก',
+    "aiHubAsk('อธิบายการบ้านที่ค้างอยู่ให้เข้าใจหน่อย ผมยังไม่รู้จะเริ่มตรงไหน')"],
+  ['calendar', 'วางแผนเวลา', 'จัดวันนี้ให้ · คิดในเครื่อง ไม่กินโควตา',
+    "closeAiHub();go('scr-plan')"],
+  ['type', 'สรุป · ช่วยเรียน', 'ย่อบทเรียน ทำชุดทบทวนก่อนสอบ',
+    "aiHubAsk('ช่วยสรุปเนื้อหาที่ต้องอ่านสำหรับสอบให้หน่อย')"],
+];
+
+function aiHubHTML() {
+  const pend = pendingTasks().length;
+  const nCls = typeof ctxClasses === 'function' ? ctxClasses().length : 0;
+  // บรรทัดรองคือบรรทัดเดียวกับที่จอน้องไซใช้ — มันคือคำตอบของ "AI เห็นอะไรของฉันบ้าง"
+  // ซึ่งต้องตอบด้วยตัวเลขจริง ไม่ใช่คำสัญญาว่าเก็บเท่าที่จำเป็น
+  const sub = 'เห็นงาน ' + pend + ' ใบ'
+    + (nCls ? ' · ตารางเรียน ' + nCls + ' คาบ' : '') + ' · เวลาว่างของคุณ';
+  const chips = aiHubChips();
+  return `<div class="ah-grip"></div>
+    <div class="ah-h">ผู้ช่วย<i>${esc(sub)}</i></div>
+    <div class="ah-tools">
+      ${AI_HUB_TOOLS.map(t => `<button class="ah-tool" onclick="${t[3]}">
+        <span class="ah-ic">${icon(t[0])}</span>
+        <span class="ah-tx"><b>${esc(t[1])}</b><span>${esc(t[2])}</span></span>
+      </button>`).join('')}
+    </div>
+    ${chips.length ? `<div class="ah-qa-h">ทางลัด</div>
+      <div class="ah-qa">${chips.map(c =>
+        `<button onclick="${c[1]}">${esc(c[0])}</button>`).join('')}</div>` : ''}
+    <button class="ah-ask" onclick="closeAiHub();go('scr-ai')">
+      ถามเอง…<span class="ah-ask-go">${icon('chevron')}</span>
+    </button>`;
+}
+
+// ทางลัดเปลี่ยนตามจอที่เปิดอยู่ — ปุ่มที่เสนอเรื่องที่ผู้ใช้ไม่ได้มองอยู่
+// คือปุ่มที่กดแล้วต้องอธิบายบริบทใหม่ทั้งหมดด้วยตัวเอง ซึ่งช้ากว่าพิมพ์เอง
+function aiHubChips() {
+  // หน้าสังคม: ผู้ช่วยไม่มีอะไรฉลาดจะเสนอเกี่ยวกับโพสต์ของคนอื่น เหลือแค่ "ถามเอง"
+  if (['scr-mates', 'scr-post', 'scr-user', 'scr-people', 'scr-room'].includes(curScreen)) return [];
+  const out = [];
+  const t = editingId ? state.tasks.find(x => x.id === editingId) : null;
+  if (t) {
+    const nm = (typeof taskLabel === 'function' ? taskLabel(t) : (t.detail || t.subject)) || 'งานนี้';
+    out.push(['แบ่งงานนี้', aiHubAskJs('ช่วยแบ่ง "' + nm + '" เป็นขั้นตอนย่อย ๆ ให้หน่อย')]);
+    out.push(['อธิบายเรื่องนี้', aiHubAskJs('อธิบาย "' + nm + '" ให้เข้าใจหน่อย ผมยังไม่รู้จะเริ่มตรงไหน')]);
+  }
+  out.push(['จัดลำดับงาน', aiHubAskJs('วันนี้ควรทำอะไรก่อน แล้วเรียงลำดับยังไงดี')]);
+  // ทางลัดนี้ไม่ใช่คำถาม — มันพาไปที่เครื่องมืออ่านตารางซึ่งมีอยู่แล้วแต่หาทางเข้าไม่เจอ
+  if (typeof openTtScan === 'function') out.push(['อ่านตารางจากรูป', 'closeAiHub();openTtScan()']);
+  return out;
+}
+
+// ข้อความคำถามมีทั้งเครื่องหมายคำพูดและชื่องานที่ผู้ใช้พิมพ์เอง จึงต้องหนีอักขระ
+// สองชั้น: ชั้นในสำหรับ JS string ในแอตทริบิวต์ onclick ชั้นนอกสำหรับ HTML
+function aiHubAskJs(q) {
+  return "aiHubAsk('" + esc(q).replace(/'/g, "\\'") + "')";
+}
+
+// ไปที่จอน้องไซก่อนแล้วค่อยถาม — aiAsk() เขียนผลลงจอนั้นโดยตรง
+// ถามก่อนย้ายจอแปลว่าคำตอบถูกวาดลงจอที่ยังไม่ได้เปิด แล้วหายไปตอน renderAll รอบถัดไป
+function aiHubAsk(q) {
+  closeAiHub();
+  go('scr-ai');
+  setTimeout(() => { if (typeof aiAsk === 'function') aiAsk(q); }, 80);
+}
+
 // ---------- ตารางงาน (เดิมคือหน้าแรก) ----------
 // โครง: หัวข้อ → การ์ดสรุปของ AI → งาน 3 อันดับแรก → ทางไปงานที่เหลือ
 // การ์ดสรุปคือที่เดียวที่ AI "พูด" ยาว ๆ ได้ การ์ดงานจึงเหลือแต่ข้อมูลดิบล้วน
@@ -4045,17 +4235,30 @@ let taskQ = '';
 //
 // จำไว้ในเครื่อง ไม่ใช่ใน state หลัก — มันคือ "ชอบมองแบบไหน" ของคนคนนี้บนเครื่องนี้
 // ไม่ใช่ข้อมูลงานที่ต้องซิงก์ข้ามเครื่อง
-const TASK_VIEW_KEY = 'studentos.alt.taskView';
-let taskView = (() => {
-  try { return localStorage.getItem(TASK_VIEW_KEY) === 'list' ? 'list' : 'week'; }
-  catch (_) { return 'week'; }
-})();
+// ============================================================
+// 1B94 · โหมดที่สาม "วันนี้" — เจ้าของเลือกเอง (แบบ B จากภาพร่าง)
+// ============================================================
+// สองโหมดเดิมตอบคำถามของ "กองงาน": วันไหนหนัก (สัปดาห์) · ทำอะไรก่อน (รายการ)
+// ไม่มีโหมดไหนตอบ "วันนี้ทั้งวันหน้าตาเป็นยังไง" ซึ่งต้องเอาคาบเรียนมาปนกับงาน
+// — คาบเรียนถูกใช้คำนวณช่องว่างมาตลอด แต่ไม่เคยถูกวาดให้เห็นสักจอ
+//
+// **เส้นแบ่งกับแท็บล่าง "วันนี้" ที่เจ้าของเคาะเอง:**
+//   แท็บล่าง  = ตอนนี้ควรทำอะไร   (ระดับการตัดสินใจ — ใบเดียว)
+//   งาน›วันนี้ = วันนี้ทั้งวันเป็นยังไง (ระดับภาพรวม — ทั้งวันเรียงเวลา)
+// คนละระดับของข้อมูล ไม่ใช่ของซ้ำ · ตัวเลขยังมาจาก studyPlan() ก้อนเดียวกันทั้งคู่
+// ห้ามคิดเองที่จอไหนเด็ดขาด (กฎเดิมของโปรเจกต์ เคยพังมาแล้วสามจอตอบคนละอย่าง)
+//
+// **ไม่จำโหมดข้ามการเปิดแอปอีกแล้ว** — ของเดิมจำ week/list ลง localStorage
+// เหตุผลของโหมดนี้คือ "เปิดแอปตอนเช้าแล้วรู้ว่าวันนี้เป็นยังไง" ซึ่งใช้ไม่ได้เลย
+// ถ้าเปิดมาแล้วเจอมุมมองที่เลือกไว้เมื่อวาน · โหมดยังจำอยู่ "ภายในรอบที่เปิดอยู่"
+// (เข้าใบงานแล้วกดย้อนกลับ ยังอยู่โหมดเดิม) แต่แตะแท็บ "งาน" เมื่อไหร่กลับมาที่วันนี้เสมอ
+const TASK_VIEWS = ['today', 'week', 'list'];
+let taskView = 'today';
 
 function setTaskView(v) {
-  const next = v === 'list' ? 'list' : 'week';
+  const next = TASK_VIEWS.includes(v) ? v : 'today';
   if (next === taskView) return;
   taskView = next;
-  try { localStorage.setItem(TASK_VIEW_KEY, next); } catch (_) {}
   haptic('tap');
   renderTasks();
 }
@@ -4106,6 +4309,191 @@ function taskBucket(t, now) {
   if (diff === 1) return 'tmr';
   if (diff <= 7) return 'week';
   return 'later';
+}
+
+// ============================================================
+// 1B94 · จอ A — งาน › วันนี้ (Morning Dashboard)
+// ============================================================
+// เจ้าของสั่งไว้ตรง ๆ ว่า **ห้ามแสดงคาบเรียนทั้งวันจนหน้ายาว** — จอนี้จึงเป็นบทสรุป
+// ไม่ใช่ตารางเต็ม: คาบถัดไปใบเดียว งานที่ควรทำก่อนใบเดียว แล้วไทม์ไลน์ย่อสามแถว
+// ตารางเต็มวันอยู่หลังปุ่มท้ายจอ (scr-dayfull) สำหรับคนที่อยากเห็นจริง ๆ
+//
+// ตัวเลขทุกตัวมาจาก studyPlan() ผ่าน focusPlan() ก้อนเดียวกับหน้าแรกและจอน้องไซ
+// ส่วนคาบเรียนมาจาก busyBlocks() ใน context.js ซึ่งเป็นตัวเดียวกับที่ใช้คำนวณช่องว่าง
+// อยู่แล้ว — ไม่มีการนับเวลาเองที่จอนี้สักบรรทัด (กฎเดิม: เคยพังมาแล้วสามจอตอบคนละเลข)
+//
+// หมายเหตุจากภาพร่าง: การ์ดคาบเรียนในภาพมี "ห้อง 412" ต่อท้ายชื่อวิชา
+// ของจริงไม่มีช่องเก็บเลขห้อง (ctxUpsert('class') มีแค่ subject/start/end/weekday)
+// จึงตัดออก ไม่ใช่ใส่ค่าปลอมให้ตรงภาพ
+function todayBoard(now) {
+  const sp = focusPlan(now);
+  const plan = sp.plan;
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const busy = typeof busyBlocks === 'function' ? busyBlocks(now) : [];
+  const classes = busy.filter(b => b.kind === 'class');
+  const slots = typeof freeSlots === 'function' ? freeSlots(now, now) : [];
+
+  // ---- แถวตัวเลขสามช่อง ----
+  // "งานวันนี้" = จำนวนงานที่ตัวจัดแผนวางลงวันนี้จริง ไม่ใช่จำนวนงานค้างทั้งกอง
+  // สองเลขนี้ต่างกันมากในวันที่งานเยอะแต่เวลาว่างน้อย และเลขที่ตรงกับสิ่งที่จอนี้
+  // กำลังแสดงอยู่คือเลขแรก · จำนวนค้างทั้งกองมีที่ของมันอยู่แล้วบนโหมดสัปดาห์
+  const planTasks = new Set(plan.slots.filter(s => !s.break).map(s => s.task.id));
+  const used = plan.usedMin || 0;
+  const usedTx = Math.floor(used / 60) + ':' + String(Math.round(used % 60)).padStart(2, '0');
+  const stats = '<div class="tb-stats">'
+    + [[String(classes.length), 'คาบเรียน'],
+       [String(planTasks.size), 'งานวันนี้'],
+       [usedTx, 'ต้องใช้เวลา']].map(function (c) {
+      return '<div class="tb-st"><b>' + esc(c[0]) + '</b><i>' + esc(c[1]) + '</i></div>';
+    }).join('') + '</div>';
+
+  // ---- คาบถัดไป ----
+  // สามสถานะที่ต่างกันจริงและห้ามยุบรวม: ยังไม่เคยบอกตารางมาเลย / วันนี้ไม่มีคาบ /
+  // มีคาบแล้วเรียนจบหมดแล้ว · ทั้งสามพูดคนละเรื่องกับคนที่กำลังมองจออยู่
+  const ongoing = classes.find(c => c.from <= nowMin && nowMin < c.to);
+  const next = classes.find(c => c.from > nowMin);
+  let clsCard = '';
+  if (!classes.length) {
+    clsCard = (typeof ctxClasses === 'function' && !ctxClasses().length)
+      ? '<button class="tb-nudge" onclick="openTtScan()">'
+        + '<span class="tb-nd-ic">' + icon('camera') + '</span>'
+        + '<span class="tb-nd-tx"><b>ยังไม่รู้ตารางเรียนของคุณ</b>'
+        + '<span>ถ่ายรูปตารางทีเดียว แล้วแผนทุกวันจะลงช่องว่างจริง ไม่ใช่ที่เดาไว้</span></span>'
+        + '<span class="tb-nd-go">' + icon('chevron') + '</span></button>'
+      : '<div class="tb-cls quiet">' + icon('calendar') + 'วันนี้ไม่มีคาบเรียน</div>';
+  } else if (ongoing) {
+    clsCard = '<div class="tb-cls">'
+      + '<div class="tb-cl-lb">' + icon('clock') + 'กำลังเรียนอยู่ · เหลืออีก '
+      + humanMin(ongoing.to - nowMin) + '</div>'
+      + '<div class="tb-cl-t">' + esc(ongoing.title) + '</div>'
+      + '<div class="tb-cl-s">' + esc(min2hm(ongoing.from)) + '–' + esc(min2hm(ongoing.to)) + '</div>'
+      + '</div>';
+  } else if (next) {
+    // ช่องว่างก้อนถัดไปหลังคาบนี้ — ตอบ "เรียนเสร็จแล้วมีเวลาถึงกี่โมง" ซึ่งเป็นสิ่งที่
+    // ทำให้เวลาเริ่มของงานข้างล่างมีความหมาย ไม่ใช่แค่ตัวเลขลอย ๆ
+    const after = slots.find(x => x.from >= next.to - 1);
+    clsCard = '<div class="tb-cls">'
+      + '<div class="tb-cl-lb">' + icon('calendar') + 'คาบถัดไป · อีก '
+      + humanMin(next.from - nowMin) + '</div>'
+      + '<div class="tb-cl-t">' + esc(next.title) + '</div>'
+      + '<div class="tb-cl-s">' + esc(min2hm(next.from)) + '–' + esc(min2hm(next.to))
+      + (after ? ' · หลังจากนี้ว่างถึง ' + esc(after.toHm) : '') + '</div>'
+      + '</div>';
+  } else {
+    const last = classes[classes.length - 1];
+    clsCard = '<div class="tb-cls quiet">' + icon('check-circle')
+      + 'เลิกเรียนแล้วตั้งแต่ ' + esc(min2hm(last.to)) + '</div>';
+  }
+
+  // ---- งานที่ควรทำก่อน ----
+  // ใบเดียวเสมอ · การ์ดนี้คือจุดที่การตัดสินใจจบ ถ้ามีสองใบก็แปลว่ายังไม่ได้ตัดสินใจให้
+  let focus;
+  if (sp.now) {
+    const t = sp.now.task;
+    const left = typeof remainingMin === 'function' ? remainingMin(t) : (t.estMin || 30);
+    focus = '<div class="tb-focus">'
+      + '<div class="tb-fc-lb">' + icon('target') + 'ควรทำก่อน</div>'
+      + '<div class="tb-fc-t">' + taskTitle(t) + '</div>'
+      + '<div class="tb-fc-s">' + esc(fmtDue(t.due, now, t).replace(/^⚠\s*/, ''))
+      + ' · ~' + left + ' นาที</div>'
+      + '<button class="tb-fc-go" onclick="startFocus(\'' + t.id + '\')">'
+      + icon('play') + 'เริ่มทำ</button></div>';
+  } else if (pendingTasks().length) {
+    focus = '<div class="tb-focus flat">' + icon('pin')
+      + '<b>วันนี้ไม่มีช่องว่างให้เจียดแล้ว</b>'
+      + '<span>งานที่ค้างอยู่ยังอยู่ครบ — ดูได้ที่โหมดสัปดาห์</span></div>';
+  } else {
+    focus = '<button class="tb-focus flat tap" onclick="openAddSheet()">' + icon('camera')
+      + '<b>ไม่มีอะไรค้าง</b><span>วันนี้พักได้ — หรือเพิ่มงานใหม่ไว้ก่อน</span></button>';
+  }
+
+  // ---- ไทม์ไลน์ย่อ: สามแถวแรกที่ยังไม่ถึงเวลา ----
+  // ข้ามช่องแรกของงานที่กำลังโชว์เป็นการ์ดอยู่ (เหตุผลเดียวกับ dayRail บนหน้าแรก):
+  // แถวที่พูดซ้ำกับการ์ดที่อยู่เหนือมันสองนิ้ว ไม่ได้บอกอะไรใหม่
+  const nowTask = sp.now ? sp.now.task : null;
+  const rows = [];
+  let skipped = false;
+  for (const s of plan.slots) {
+    if (s.break) continue;
+    if (nowTask && s.task === nowTask && !skipped) { skipped = true; continue; }
+    if (s.start <= now) continue;
+    rows.push({ at: s.start, title: taskTitle(s.task), sub: humanMin(s.min || 0),
+      id: s.task.id, tone: 'work' });
+  }
+  for (const e of plan.events || []) {
+    const at = new Date(e.due);
+    if (isNaN(at) || at <= now) continue;
+    rows.push({ at, title: taskTitle(e), sub: 'กิจกรรม', id: e.id, tone: 'ev' });
+  }
+  rows.sort((a, b) => a.at - b.at);
+  const timeline = rows.slice(0, 3).map(function (r) {
+    return '<button class="tb-tl-r" onclick="openForm(\'' + r.id + '\')">'
+      + '<span class="tb-tl-t">' + esc(fmtClock(r.at)) + '</span>'
+      + '<span class="tb-tl-bar ' + r.tone + '"></span>'
+      + '<span class="tb-tl-x"><b>' + r.title + '</b><i>' + esc(r.sub) + '</i></span></button>';
+  }).join('');
+
+  return stats + clsCard + focus
+    + (timeline ? '<div class="tb-tl">' + timeline + '</div>' : '')
+    + '<button class="tb-more" onclick="goDayFull()">ดูตารางวันนี้ทั้งหมด' + icon('chevron') + '</button>';
+}
+
+// ============================================================
+// 1B94 · ตารางเต็มวัน — จอเดียวที่เอาคาบเรียนมาปนกับงานครบทั้งวัน
+// ============================================================
+// อยู่หลังปุ่ม ไม่ได้อยู่บนจอหลัก เพราะข้อกำหนดของเจ้าของคือจอวันนี้ต้องไม่ยาว
+// ของที่ผ่านไปแล้วยังอยู่ครบแต่จาง — วันที่เหลือครึ่งเดียวอ่านง่ายขึ้นมากถ้าเห็นว่า
+// ครึ่งแรกหมดไปกับอะไร และมันคือคำตอบของ "ทำไมวันนี้ถึงไม่เหลือเวลา"
+function goDayFull() { go('scr-dayfull'); renderDayFull(); }
+
+function renderDayFull() {
+  const el = document.getElementById('dayFullBody');
+  if (!el) return;
+  const now = new Date();
+  const sp = focusPlan(now);
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const busy = typeof busyBlocks === 'function' ? busyBlocks(now) : [];
+
+  const rows = busy.map(function (b) {
+    return { from: b.from, to: b.to, kind: b.kind === 'class' ? 'class' : 'rt',
+      title: b.title, sub: min2hm(b.from) + '–' + min2hm(b.to), id: null };
+  });
+  for (const s of sp.plan.slots) {
+    const from = s.start.getHours() * 60 + s.start.getMinutes();
+    rows.push({ from, to: from + (s.min || 0), kind: s.break ? 'brk' : 'work',
+      title: s.break ? 'พัก' : taskTitleText(s.task),
+      sub: humanMin(s.min || 0), id: s.break ? null : s.task.id });
+  }
+  for (const e of sp.plan.events || []) {
+    const at = new Date(e.due);
+    if (isNaN(at)) continue;
+    const from = at.getHours() * 60 + at.getMinutes();
+    rows.push({ from, to: from, kind: 'ev', title: taskTitleText(e), sub: 'กิจกรรม', id: e.id });
+  }
+  rows.sort((a, b) => a.from - b.from || a.to - b.to);
+
+  const dateLine = WEEKDAY_SHORT[now.getDay()].replace('.', '') + ' ' + now.getDate()
+    + ' ' + MONTH_SHORT[now.getMonth()];
+  const free = typeof freeMinutes === 'function' ? freeMinutes(now, now) : 0;
+
+  // ชื่อจอกับปุ่มย้อนกลับอยู่ในหัวจอติดหนึบของ index.html แล้ว — ตรงนี้เติมแค่บรรทัดรอง
+  // วาดหัวซ้ำอีกชุดจะได้คำว่า "ตารางวันนี้" สองครั้งซ้อนกันห่างกันไม่ถึงนิ้ว
+  const sub = document.querySelector('#scr-dayfull .sh-sub');
+  if (sub) sub.textContent = dateLine + (free ? ' · ว่างอีก ' + humanMin(free) : '');
+
+  const list = rows.map(function (r) {
+    const tag = r.id ? 'button' : 'div';
+    return '<' + tag + ' class="df-r ' + r.kind + (r.to && r.to <= nowMin ? ' past' : '') + '"'
+      + (r.id ? ' onclick="openForm(\'' + r.id + '\')"' : '') + '>'
+      + '<span class="df-t">' + esc(min2hm(r.from)) + '</span>'
+      + '<span class="df-bar"></span>'
+      + '<span class="df-x"><b>' + esc(r.title) + '</b><i>' + esc(r.sub) + '</i></span>'
+      + '</' + tag + '>';
+  }).join('');
+
+  el.innerHTML = (rows.length
+    ? '<div class="df-list">' + list + '</div>'
+    : '<div class="card empty">วันนี้ยังไม่มีทั้งคาบเรียนและงานที่จัดไว้</div>');
 }
 
 function renderTasks() {
@@ -4175,20 +4563,32 @@ function renderTasks() {
   // 1B93 · ชื่อจอเปลี่ยนตามโหมด — "สัปดาห์นี้" ขณะดูรายการเรียงความด่วนคือคำโกหก
   // เล็ก ๆ ที่ทำให้หัวจอกับเนื้อจอไม่ตรงกัน · บรรทัดบน (ช่วงวัน/เวลาว่าง) คงไว้ทั้งสองโหมด
   // เพราะมันคือขอบเขตของข้อมูลที่ดึงมา ไม่ใช่ของวิธีเรียง
-  const viewTitle = taskView === 'list' ? 'งานทั้งหมด' : 'สัปดาห์นี้';
+  const viewTitle = taskView === 'list' ? 'งานทั้งหมด'
+    : taskView === 'today' ? 'วันนี้' : 'สัปดาห์นี้';
   // สวิตช์ไม่โผล่ตอนค้นหา — ผลค้นหาเป็นรายการเรียบเสมออยู่แล้ว (ดู listHTML ข้างล่าง)
   // ปุ่มที่กดแล้วไม่มีอะไรเปลี่ยนคือปุ่มที่ทำให้คนเลิกเชื่อปุ่มอื่นในจอเดียวกัน
   const viewTabs = taskQ ? '' : `<div class="tk-modes" role="tablist">
-      ${[['week', 'สัปดาห์'], ['list', 'รายการ']].map(([id, lb]) =>
+      ${[['today', 'วันนี้'], ['week', 'สัปดาห์'], ['list', 'รายการ']].map(([id, lb]) =>
         `<button role="tab" class="tk-mode${taskView === id ? ' on' : ''}"
           aria-selected="${taskView === id}" onclick="setTaskView('${id}')">${lb}</button>`).join('')}
     </div>`;
+  // โหมดวันนี้พูดถึงวันเดียว ไม่ใช่ช่วงเจ็ดวัน — บรรทัดบนจึงต้องเป็นวันนั้นกับเวลาว่างของวันนั้น
+  // ใช้ช่วงสัปดาห์ต่อไปจะเป็นตัวเลขที่ไม่เกี่ยวกับอะไรบนจอเลยสักตัว
+  const todayFree = typeof freeMinutes === 'function' ? freeMinutes(now, now) : 0;
+  const eyebrow = taskView === 'today'
+    ? WEEKDAY_SHORT[now.getDay()].replace('.', '') + ' ' + now.getDate()
+      + ' ' + MONTH_SHORT[now.getMonth()]
+      + (todayFree ? ' · ว่าง ' + humanMin(todayFree) : ' · วันนี้ไม่มีช่องว่างเหลือแล้ว')
+    : esc(range) + (freeWk ? ' · ว่างรวม ' + humanMin(freeWk) : '') + ' · ค้าง ' + pending.length;
   const pageHead = `<div class="page-head">
-      <div class="eyebrow">${esc(range)}${
-        freeWk ? ' · ว่างรวม ' + humanMin(freeWk) : ''} · ค้าง ${pending.length}</div>
+      <div class="eyebrow">${eyebrow}</div>
       <h1 class="page-title">${viewTitle}</h1>
       ${viewTabs}
     </div>`;
+
+  // โหมดวันนี้มีเนื้อจอเป็นของตัวเองทั้งก้อน — ไม่ใช่รายการงานที่ถูกกรองให้เหลือวันเดียว
+  // จึงออกตรงนี้เลย ไม่ต้องเดินต่อไปสร้างลิสต์ ช่องค้นหา และปุ่มถังขยะที่จอนี้ไม่ได้ใช้
+  if (taskView === 'today' && !taskQ) { el.innerHTML = pageHead + todayBoard(now); return; }
 
   // ช่องค้นหาโผล่เมื่อมีงานพอที่จะหาไม่เจอด้วยตาเปล่า — ต่ำกว่านั้นมันคือช่องว่าง
   // ที่กินพื้นที่บนสุดของจอโดยไม่มีประโยชน์ (เกณฑ์เดียวกับที่แอปอื่นซ่อนช่องค้นหา
@@ -4803,7 +5203,13 @@ function tlModeTabs() { return ''; }
 // "ข้ามอะไรไปหรือเปล่า" · และคำถามแรกของคนเปิดแท็บงานคือ "วันนี้มีอะไร" ไม่ใช่ "ทั้งหมดมีกี่ใบ"
 // (รายการงานยังอยู่ที่เดิม ห่างไปหนึ่งแตะ)
 // 1B47 · แท็บ "งาน" ไปที่มุมมองสัปดาห์ตรง ๆ — ไม่มีโหมดให้เลือกแล้ว
-function goTasksTab() { taskDay = null; taskFilter = 'pending'; go('scr-tasks'); }
+// 1B94 · แตะแท็บ "งาน" = กลับมาที่โหมดวันนี้เสมอ
+// ต่างจากการกดย้อนกลับจากใบงาน ซึ่งพากลับมาที่โหมดที่กำลังดูอยู่ (ผ่าน formReturn → go)
+// แท็บล่างคือ "เริ่มใหม่ที่จอนี้" ส่วนปุ่มย้อนกลับคือ "กลับไปที่ที่ค้างไว้" — คนละคำสั่ง
+function goTasksTab() {
+  taskDay = null; taskFilter = 'pending'; taskView = 'today'; taskQ = '';
+  go('scr-tasks');
+}
 
 function goTlMode(m) {
   if (m === 'list') { go('scr-tasks'); return; }
@@ -10124,17 +10530,31 @@ async function pickAvatar(file) {
   //
   // ตรวจก่อน setItem ไม่ใช่ก่อน syncPublicFace เพราะถ้าเก็บลงเครื่องไปแล้ว
   // รูปจะขึ้นบนจอของเจ้าตัวทันที และซิงก์รอบถัดไปจะดันขึ้นเองโดยไม่ผ่านตรงนี้อีก
-  if (typeof guardImage === 'function') {
-    const blob = await new Promise(r => out.toBlob(r, 'image/jpeg', 0.82));
-    if (blob) {
-      showToast({ title: 'กำลังตรวจรูป…', body: 'ใช้เวลาสักครู่' });
-      const g = await guardImage(blob);
-      if (!g.ok) {
-        haptic('snooze');
-        showToast({ title: 'ใช้รูปนี้ไม่ได้', body: g.message });
-        return;
-      }
-    }
+  //
+  // **สามทางที่เคยแอบผ่าน และตอนนี้ปิดหมดแล้ว** — ทั้งสามทางไม่ได้เกิดจากตัวกรอง
+  // ตัดสินว่าผ่าน แต่เกิดจากโค้ดตรงนี้ไม่เคยได้ถามตัวกรองเลย:
+  //   1) guardImage ไม่มี (feed.js โหลดไม่ทัน/พัง) → ของเดิมข้ามทั้งบล็อกเงียบ ๆ
+  //   2) toBlob คืน null → ของเดิม `if (blob)` ไม่เข้า แล้วไหลไปเก็บรูปต่อ
+  //   3) ยังไม่ล็อกอิน → guardImageOnce คืน ok ให้ฟรี (ปิดไปแล้วใน feed.js)
+  // ข้อ 3 เป็นข้อที่กว้างที่สุด เพราะ syncPublicFace() จะดันรูปที่ไม่เคยถูกตรวจ
+  // ขึ้นเซิร์ฟเวอร์ให้เองตอนล็อกอินครั้งถัดไป
+  if (typeof guardImage !== 'function') {
+    haptic('snooze');
+    showToast({ title: 'ใช้รูปนี้ไม่ได้', body: 'ตัวกรองรูปยังไม่พร้อม ลองรีเฟรชหน้าแล้วทำใหม่' });
+    return;
+  }
+  const blob = await new Promise(r => out.toBlob(r, 'image/jpeg', 0.82));
+  if (!blob) {
+    haptic('snooze');
+    showToast({ title: 'ใช้รูปนี้ไม่ได้', body: 'อ่านรูปไม่สำเร็จ ลองเลือกรูปใหม่อีกครั้ง' });
+    return;
+  }
+  showToast({ title: 'กำลังตรวจรูป…', body: 'ใช้เวลาสักครู่' });
+  const g = await guardImage(blob);
+  if (!g.ok) {
+    haptic('snooze');
+    showToast({ title: 'ใช้รูปนี้ไม่ได้', body: g.message });
+    return;
   }
 
   const data = out.toDataURL('image/jpeg', 0.82);

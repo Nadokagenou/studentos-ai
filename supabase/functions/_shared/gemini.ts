@@ -135,6 +135,16 @@ export type GeminiOpts = {
   /** 'off' = งานถอดข้อความ/คืน JSON ไม่ต้องคิด · 'low' = ตอบคำถามคน คิดนิดเดียวพอ */
   think?: 'low' | 'off';
   models?: string[];
+  /** กุญแจของคำขอนี้ — ว่างไว้ = ใช้ GEMINI_KEY ร่วมของทั้งระบบ
+   *
+   *  มีไว้เพื่อแยก **โควตา** ไม่ใช่เพื่อแยกสิทธิ์: โควตา free tier ของ Gemini
+   *  นับต่อโปรเจกต์ ไม่ใช่ต่อกุญแจ (เอกสาร Google: "Rate limits are applied per
+   *  project, not per API key") กุญแจที่ส่งมาตรงนี้จึงต้องมาจาก **โปรเจกต์คนละอัน**
+   *  ถึงจะได้ถังใหม่จริง — ดอกที่สองของโปรเจกต์เดิมไม่ช่วยอะไรเลย
+   *
+   *  ผู้ใช้จริงตอนนี้มีแค่ guard กับ guard-sweep · ฟีเจอร์อื่นไม่ส่งช่องนี้มา
+   *  จึงยังใช้ถังเดิมร่วมกันเหมือนเดิมทุกประการ */
+  apiKey?: string;
   /** บังคับให้คืน JSON ล้วน */
   json?: boolean;
   /** โครง JSON ที่ต้องการ (ใช้คู่กับ json: true) — Gemini จะคืนตามโครงนี้เป๊ะ ๆ */
@@ -209,7 +219,10 @@ export function geminiTrailLine(trail: GeminiAttempt[] = []) {
 
 /** ยิงจริง ไล่รุ่นตามบันไดถอย + ถอยขั้นการคิดเองเมื่อโดน 400 เรื่องช่องที่ไม่รู้จัก */
 export async function geminiGenerate(opts: GeminiOpts): Promise<GeminiResult> {
-  if (!GEMINI_KEY) throw new Error('ยังไม่ได้ตั้ง secret GEMINI_API_KEY');
+  // กุญแจรายคำขอมาก่อนเสมอ · ว่าง (หรือไม่ส่งมา) = ถอยไปใช้ตัวร่วมของทั้งระบบ
+  // ผู้เรียกที่ตั้ง secret ของตัวเองไม่ครบจึงไม่เคยล้ม แค่กลับไปใช้ถังเดิม
+  const apiKey = opts.apiKey || GEMINI_KEY;
+  if (!apiKey) throw new Error('ยังไม่ได้ตั้ง secret GEMINI_API_KEY');
 
   const models = opts.models ?? geminiOrder();
   const want = opts.think ?? 'low';
@@ -238,7 +251,7 @@ export async function geminiGenerate(opts: GeminiOpts): Promise<GeminiResult> {
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
           {
             method: 'POST',
-            headers: { 'content-type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
+            headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
             body: geminiBody(model, o),
             signal: ctl.signal,
           },

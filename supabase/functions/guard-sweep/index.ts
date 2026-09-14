@@ -25,6 +25,12 @@ import { TEXT_RULES, VERDICT_TOKENS, readVerdict } from '../_shared/modrules.ts'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+// ตาข่ายชั้นสองใช้ **ถังเดียวกับ guard** ไม่ใช่ถังที่สาม — มันคือชั้นกรองชั้นเดียวกัน
+// และสามถังแปลว่าต้องเฝ้าสามที่ · เบรกของตัวมันเองยังอยู่ (down >= 3 แล้วหยุดรอบ)
+// จึงกินได้ไม่เกินสามคำขอเสียต่อรอบแม้ถังจะแห้ง
+// ไม่ได้ตั้ง = ถอยไปใช้ GEMINI_API_KEY เหมือนเดิม (ดูหมายเหตุเต็มใน guard/index.ts)
+const GUARD_KEY = Deno.env.get('GUARD_GEMINI_KEY') ?? '';
+
 // เพดานต่อรอบ · ไม่ใช่เพื่อประหยัด แต่เพราะ Edge Function มีเพดานเวลาของมันเอง
 // ทำเกินนี้ในรอบเดียวแปลว่าโดนตัดกลางคัน แล้วของที่ตรวจไปแล้วบางส่วนจะไม่ถูกบันทึก
 // รอบหน้าอีก 10 นาทีค่อยมาเก็บต่อ ซึ่งของที่ค้างก็ยังอยู่ครบเพราะ mod_pending
@@ -49,6 +55,7 @@ Deno.serve(async () => {
     try {
       const g = await geminiGenerate({
         parts: [{ text: TEXT_RULES }, { text: '\n\nข้อความที่ต้องตรวจ:\n' + String(r.body).slice(0, 2000) }],
+        apiKey: GUARD_KEY,
         temperature: 0,
         think: 'off',
         json: true,
