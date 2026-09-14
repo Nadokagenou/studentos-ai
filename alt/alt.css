@@ -474,11 +474,11 @@
   --scr:#150E26; --card:#20163A; --card2:#2C204E; --surface:#2C204E;
   --ink:#F1EAFF; --muted:#AA9BD4; --faint:#9C8FC6;
   --line:rgba(232,194,90,.14);
-  --blue:#E8C25A; --blue-soft:rgba(232,194,90,.16); --blue-deep:#F5DC96; --on-accent:#1A1030;
+  --blue:#E8C25A; --blue-soft:rgba(232,194,90,.26); --blue-deep:#F5DC96; --on-accent:#1A1030;
   --neon:#E8C25A;
-  --alert:#FF8098; --alert-soft:rgba(255,128,152,.16);
-  --warn:#E8C25A;  --warn-soft:rgba(232,194,90,.15);
-  --good:#69D8B5;  --good-soft:rgba(105,216,181,.15); --fire:#FF8098;
+  --alert:#FF8098; --alert-soft:rgba(255,128,152,.26);
+  --warn:#E8C25A;  --warn-soft:rgba(232,194,90,.26);
+  --good:#69D8B5;  --good-soft:rgba(105,216,181,.26); --fire:#FF8098;
   --shadow:0 2px 8px rgba(0,0,0,.5), 0 18px 40px -14px rgba(0,0,0,.85);
   --shadow-lg:0 4px 12px rgba(0,0,0,.55), 0 36px 66px -18px rgba(0,0,0,.95);
   --shadow-brand:0 10px 28px -8px rgba(139,92,246,.6);
@@ -498,11 +498,11 @@
   --scr:#0B0618; --card:#170D2E; --card2:#241143; --surface:#241143;
   --ink:#F0E8FF; --muted:#A796CF; --faint:#9C8BC5;
   --line:rgba(255,255,255,.10);
-  --blue:#BB8CFF; --blue-soft:rgba(187,140,255,.18); --blue-deep:#DAC7FF; --on-accent:#130826;
+  --blue:#BB8CFF; --blue-soft:rgba(187,140,255,.28); --blue-deep:#DAC7FF; --on-accent:#130826;
   --neon:#FF7AD9;
-  --alert:#FF6F9C; --alert-soft:rgba(255,111,156,.16);
-  --warn:#FFC46B;  --warn-soft:rgba(255,196,107,.15);
-  --good:#5EE7D0;  --good-soft:rgba(94,231,208,.15); --fire:#FF6F9C;
+  --alert:#FF6F9C; --alert-soft:rgba(255,111,156,.26);
+  --warn:#FFC46B;  --warn-soft:rgba(255,196,107,.26);
+  --good:#5EE7D0;  --good-soft:rgba(94,231,208,.26); --fire:#FF6F9C;
   --shadow:0 2px 8px rgba(0,0,0,.55), 0 18px 42px -14px rgba(0,0,0,.9);
   --shadow-lg:0 4px 12px rgba(0,0,0,.6), 0 36px 68px -18px rgba(0,0,0,.95);
   --shadow-brand:0 10px 30px -8px rgba(168,85,247,.65);
@@ -648,11 +648,11 @@
   --scr:#04121F; --card:#0B2033; --card2:#132E45; --surface:#132E45;
   --ink:#DCEEF9; --muted:#8AAEC6; --faint:#7CA3BD;
   --line:rgba(160,220,255,.11);
-  --blue:#38BDF8; --blue-soft:rgba(56,189,248,.16); --blue-deep:#9BDCFB; --on-accent:#04121F;
+  --blue:#38BDF8; --blue-soft:rgba(56,189,248,.26); --blue-deep:#9BDCFB; --on-accent:#04121F;
   --neon:#22D3EE;
-  --alert:#FF7A94; --alert-soft:rgba(255,122,148,.15);
-  --warn:#F0C05A;  --warn-soft:rgba(240,192,90,.15);
-  --good:#4FD8C0;  --good-soft:rgba(79,216,192,.15); --fire:#FF7A94;
+  --alert:#FF7A94; --alert-soft:rgba(255,122,148,.26);
+  --warn:#F0C05A;  --warn-soft:rgba(240,192,90,.26);
+  --good:#4FD8C0;  --good-soft:rgba(79,216,192,.26); --fire:#FF7A94;
   --shadow:0 2px 8px rgba(0,10,20,.55), 0 18px 40px -14px rgba(0,8,16,.9);
   --shadow-lg:0 4px 12px rgba(0,10,20,.6), 0 36px 66px -18px rgba(0,8,16,.95);
   --shadow-brand:0 10px 28px -8px rgba(14,165,233,.55);
@@ -668,9 +668,9 @@
 
 /* ป้ายความสำคัญบนโทนมืดใหม่ — พื้นโปร่ง ตัวอักษรสว่าง (เหมือนที่ dark/space ทำ) */
 :root[data-theme="magic"], :root[data-theme="galaxy"], :root[data-theme="deepocean"] {
-  --pri-red-soft:rgba(255,107,124,.18);  --pri-red-text:#FF9AA6;
-  --pri-yellow-soft:rgba(240,185,10,.18); --pri-yellow-text:#F3C64B;
-  --pri-green-soft:rgba(52,211,153,.18);  --pri-green-text:#5BDC93;
+  --pri-red-soft:rgba(255,107,124,.28);  --pri-red-text:#FF9AA6;
+  --pri-yellow-soft:rgba(240,185,10,.28); --pri-yellow-text:#F3C64B;
+  --pri-green-soft:rgba(52,211,153,.28);  --pri-green-text:#5BDC93;
 }
 
 /* สวอตช์ในหน้าเลือกธีม */
@@ -4471,11 +4471,11 @@ body.draw-lock #scr-wheel .scr-body { padding-bottom: 24px; }
   --scr:#050A16; --card:#0C1526; --card2:#132038; --surface:#132038;
   --ink:#E6F0FF; --muted:#8FA8CC; --faint:#7A93B8;
   --line:rgba(120,190,255,.14);
-  --blue:#3FA9FF; --blue-soft:rgba(63,169,255,.16); --blue-deep:#9CD4FF; --on-accent:#03101F;
+  --blue:#3FA9FF; --blue-soft:rgba(63,169,255,.26); --blue-deep:#9CD4FF; --on-accent:#03101F;
   --neon:#5FD0FF;
-  --alert:#FF6B8A; --alert-soft:rgba(255,107,138,.16);
-  --warn:#FFC46B;  --warn-soft:rgba(255,196,107,.15);
-  --good:#4FE0C0;  --good-soft:rgba(79,224,192,.15); --fire:#FF6B8A;
+  --alert:#FF6B8A; --alert-soft:rgba(255,107,138,.26);
+  --warn:#FFC46B;  --warn-soft:rgba(255,196,107,.26);
+  --good:#4FE0C0;  --good-soft:rgba(79,224,192,.26); --fire:#FF6B8A;
   --shadow:0 2px 8px rgba(0,0,0,.6), 0 18px 42px -14px rgba(0,0,0,.92);
   --shadow-lg:0 4px 12px rgba(0,0,0,.65), 0 36px 68px -18px rgba(0,0,0,.95);
   --shadow-brand:0 10px 30px -8px rgba(63,169,255,.6);
@@ -4554,11 +4554,11 @@ body.draw-lock #scr-wheel .scr-body { padding-bottom: 24px; }
   --scr:#04060A; --card:#0A0F16; --card2:#101822; --surface:#101822;
   --ink:#DFF7FF; --muted:#7FA6B4; --faint:#6B909D;
   --line:rgba(90,230,255,.16);
-  --blue:#27E0F5; --blue-soft:rgba(39,224,245,.14); --blue-deep:#9DF3FF; --on-accent:#01161B;
+  --blue:#27E0F5; --blue-soft:rgba(39,224,245,.26); --blue-deep:#9DF3FF; --on-accent:#01161B;
   --neon:#FF2E88;
-  --alert:#FF3B5C; --alert-soft:rgba(255,59,92,.18);
-  --warn:#FFD166;  --warn-soft:rgba(255,209,102,.15);
-  --good:#3DF5C0;  --good-soft:rgba(61,245,192,.15); --fire:#FF3B5C;
+  --alert:#FF3B5C; --alert-soft:rgba(255,59,92,.28);
+  --warn:#FFD166;  --warn-soft:rgba(255,209,102,.26);
+  --good:#3DF5C0;  --good-soft:rgba(61,245,192,.26); --fire:#FF3B5C;
   --shadow:0 2px 8px rgba(0,0,0,.7), 0 18px 42px -14px rgba(0,0,0,.95);
   --shadow-lg:0 4px 12px rgba(0,0,0,.75), 0 36px 68px -18px rgba(0,0,0,.98);
   --shadow-brand:0 10px 30px -8px rgba(39,224,245,.55);
@@ -7526,10 +7526,14 @@ button.df-r:active { background: var(--surface); }
   transition: transform .14s ease;
 }
 .shw:active { transform: scale(.97); }
+/* 1B97 · ช่องที่ยังไม่มีของก็ต้องมีสี — เดิมใช้ --surface ซึ่งบนธีมมืดคือสีเดียวกับ
+   พื้นการ์ดแทบทุกหน่วย ชิปจึงหายไปทั้งใบ (ปัญหาเดียวกับที่เจ้าของวงมาให้ดู)
+   ยังแยกสองสถานะได้อยู่ แต่แยกด้วย **เฉดสี** ไม่ใช่แยกด้วย "มีสี / ไม่มีสี":
+   ยังไม่มีของ = ฟ้าเย็น · มีของแล้ว = ทอง (กฎเดิม ทองใช้กับของที่สำเร็จจริงเท่านั้น) */
 .shw-ic {
   width: 38px; height: 38px; margin-bottom: 5px;
   display: grid; place-items: center; border-radius: 12px;
-  background: var(--surface); color: var(--faint);
+  background: var(--blue-soft); color: var(--blue);
 }
 .shw-ic svg { width: 19px; height: 19px; }
 /* ทองเฉพาะใบที่มีของจริงแล้วเท่านั้น — ใบที่ยังว่างอยู่เป็นเทาปกติ
