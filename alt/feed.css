@@ -1147,3 +1147,33 @@
 /* เว้นบนให้มากกว่าเดิมหน่อย เพื่อให้เส้นประอ่านเป็นเส้นแบ่งจริง ๆ
    ไม่ใช่เส้นที่บังเอิญอยู่ติดกับปุ่มข้างบน */
 #scr-profile .pf-priv { margin-top: 24px; }
+
+/* ============================================================
+   1B95 · แถวบนสุดของหัวโปรไฟล์ตัวเอง
+   ============================================================
+   @ชื่อผู้ใช้ · ชั้นเรียน ทางซ้าย — เฟืองทางขวา · ขึ้นเฉพาะหน้าตัวเอง
+   (หน้าที่เพื่อนเปิดดูไม่มีแถวนี้ เพราะไม่มีอะไรให้เขาตั้งค่า)
+
+   ระยะซ้าย/ขวา 16px ตรงกับ .ig-head/.ig-id ทุกก้อนในหัว — ของที่อยู่คนละบรรทัด
+   แต่ขอบไม่ตรงกันคือสิ่งแรกที่ตาจับได้ว่า "หน้านี้ประกอบมาจากหลายชิ้น"
+
+   เฟืองไม่มีพื้นวงกลม เหลือแค่ไอคอน — หัวนี้ไม่มีกล่องครอบ ปุ่มพื้นทึบจึงกลายเป็น
+   จุดหนักลอยอยู่มุมขวาโดยไม่มีอะไรรองรับ (IG ก็วางเปล่าแบบนี้) */
+.ig-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 16px 0;
+}
+.ig-hd {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 13px; font-weight: 500; color: var(--muted);
+}
+/* พื้นที่กดต้อง 34px เต็ม แม้ไอคอนจะ 19px — นิ้วไม่ได้เล็งที่ไอคอน
+   ติดลบขวา 6px เพื่อให้ "ขอบไอคอน" เสมอ 16px ไม่ใช่ "ขอบพื้นที่กด" */
+.ig-set {
+  flex: none; width: 34px; height: 34px; margin-right: -6px;
+  display: grid; place-items: center;
+  border: 0; border-radius: 50%; background: none; color: var(--muted);
+  cursor: pointer;
+}
+.ig-set svg { width: 19px; height: 19px; }
+.ig-set:active { color: var(--ink); transform: scale(.92); }

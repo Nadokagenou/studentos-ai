@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B94';                 // สายเลขของแอป
+const APP_VERSION = '1B95';                 // สายเลขของแอป
 const APP_CODENAME = 'Horizon';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -864,8 +864,11 @@ const NO_RESUME = ['scr-crop', 'scr-parsing', 'scr-form', 'scr-login', 'scr-onbo
 // จึงเช็คหลังวาดเสร็จหนึ่งจังหวะ ว่าเนื้อในมีอะไรหรือยัง ถ้าไม่มีให้พากลับจอที่ปลอดภัย
 // (ต้องเป็น setTimeout ไม่ใช่เช็คทันที เพราะผู้เรียกส่วนใหญ่ทำ go() แล้วค่อย renderX())
 const LIVE_ONLY = {
-  'scr-chat':    { body: 'chatBody',    back: 'scr-mates' },
-  'scr-dm':      { body: 'dmBody',      back: 'scr-mates' },
+  // 1B95 · ตาข่ายรองต้องลงที่เดียวกับปุ่มย้อนกลับปกติ ไม่งั้นทางตันสองทางพาไปคนละที่
+  // ห้องคุยตกลงมาที่กล่องข้อความ (จอแม่ของมัน) · กล่องข้อความตกลงมาที่แท็บ "ฉัน"
+  // ทั้งคู่ไม่ใช่ฟีดอีกแล้ว — ฟีดเป็นคนละระบบกับการคุยกัน
+  'scr-chat':    { body: 'chatBody',    back: 'scr-dm' },
+  'scr-dm':      { body: 'dmBody',      back: 'scr-profile' },
   'scr-hw':      { body: 'hwBody',      back: 'scr-tasks' },
   'scr-topic':   { body: 'topicBody',   back: 'scr-tasks' },
   'scr-tthread': { body: 'tthreadBody', back: 'scr-tasks' },
@@ -2827,6 +2830,72 @@ function toggleFabHub() {
   haptic('tap');
 }
 
+// ============================================================
+// 1B95 · ทางเข้า "วิชาของฉัน"
+// ------------------------------------------------------------
+// ชิปวิชาถูกถอดออกจากหัวโปรไฟล์ตามคำสั่งเจ้าของ ("ตรงช่วยได้ อยากได้ ต้องไว้ตรงอื่น
+// และมันยังไม่สวย") · ที่ใหม่คือแถวแรกของลิสต์ในแท็บ "ฉัน" ซึ่งพามาที่บล็อกวิชา
+// ในหน้าแก้ไขโปรไฟล์โดยตรง ไม่ใช่หัวฟอร์ม
+//
+// ต้องรอหนึ่งจังหวะก่อน scroll — renderMates() เพิ่งเขียน innerHTML ทั้งก้อน
+// เบราว์เซอร์ยังไม่ได้จัดผังใหม่ ตำแหน่งของบล็อกจึงยังเป็นของผังเก่า (หรือยังไม่มี)
+function openMySubjects() {
+  go('scr-people');
+  if (typeof renderMates === 'function') renderMates();
+  setTimeout(() => {
+    const el = document.getElementById('epSubj');
+    if (!el) return;
+    try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    catch (_) { el.scrollIntoView(); }
+  }, 60);
+}
+
+// ============================================================
+// 1B95 · แผ่น "เร็ว ๆ นี้"
+// ------------------------------------------------------------
+// ฟีดชุมชนถูกปิดไว้ (COMMUNITY_LIVE ใน feed.js) แต่ห้ามกลายเป็นปุ่มที่กดแล้วเงียบ —
+// ปุ่มที่กดแล้วไม่มีอะไรเกิดขึ้นคือปุ่มที่ทำให้คนเลิกเชื่อปุ่มอื่นในจอเดียวกัน
+// (เหตุผลเดียวกับที่สวิตช์โหมดไม่โผล่ตอนค้นหา) · แผ่นนี้บอกว่ามันคืออะไร
+// แล้วชี้ทางที่ใช้ได้จริงวันนี้ให้แทน
+const SOON_SHEETS = {
+  community: {
+    icon: 'users',
+    title: 'ชุมชนกำลังจะเปิด',
+    body: 'ถามการบ้านกับเพื่อนร่วมห้อง เพื่อนทั้งโรงเรียน '
+        + 'หรือนักเรียนทั้งประเทศที่ติดบทเดียวกับคุณ',
+    // ทางที่ใช้ได้จริงวันนี้ — แผ่นที่บอกแค่ว่า "ยังไม่เปิด" คือทางตันที่สุภาพ
+    goLabel: 'ทักเพื่อนตรง ๆ ที่ “ข้อความ”',
+    go: "closeSoonSheet();openDmInbox('scr-profile')",
+  },
+};
+
+function openSoonSheet(key) {
+  const s = SOON_SHEETS[key];
+  const el = document.getElementById('soonSheet');
+  if (!s || !el) return;
+  el.innerHTML = `<div class="as-scrim" onclick="closeSoonSheet()"></div>
+    <div class="as-card soon-card" role="dialog" aria-label="${esc(s.title)}">
+      <div class="as-grip"></div>
+      <div class="soon-ic">${icon(s.icon)}</div>
+      <h3 class="soon-t">${esc(s.title)}</h3>
+      <p class="soon-b">${esc(s.body)}</p>
+      <button class="soon-go" onclick="${s.go}">${esc(s.goLabel)}</button>
+      <button class="soon-x" onclick="closeSoonSheet()">ปิด</button>
+    </div>`;
+  el.hidden = false;
+  // setTimeout ไม่ใช่ rAF — เหตุผลเดียวกับ openAddSheet (rAF ไม่ทำงานถ้าหน้าไม่ได้ถูกวาดจริง
+  // แล้วแผ่นจะค้างอยู่ในสถานะโปร่งใสถาวรโดยไม่มี error ให้เห็น)
+  setTimeout(() => el.classList.add('on'), 16);
+  haptic('tap');
+}
+
+function closeSoonSheet() {
+  const el = document.getElementById('soonSheet');
+  if (!el || el.hidden) return;
+  el.classList.remove('on');
+  setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
+}
+
 function closeFabHub(instant) {
   // ปิดอยู่แล้ว = ออกทันที · ด่านนี้ไม่ใช่การกันงานซ้ำ แต่กันลูปไม่รู้จบ:
   // ตัวมันเองเรียก paintFeedFab() ตอนจบ และ paintFeedFab() เรียกตัวนี้กลับมา
@@ -4340,11 +4409,19 @@ function todayBoard(now) {
   const planTasks = new Set(plan.slots.filter(s => !s.break).map(s => s.task.id));
   const used = plan.usedMin || 0;
   const usedTx = Math.floor(used / 60) + ':' + String(Math.round(used % 60)).padStart(2, '0');
-  const stats = '<div class="tb-stats">'
+  // 1B95 · การ์ดสามใบยุบเหลือแถบเดียว และถอยลงไปอยู่ "หลัง" การ์ดควรทำก่อน
+  //
+  // ของเดิมสามใบนี้ดังที่สุดรองจากหัวข้อ ทั้งที่ไม่มีใบไหนบอกว่า *ควรทำอะไร* เลยสักใบ
+  // "8 คาบเรียน" ไม่ใช่การตัดสินใจ มันคือภาพรวมที่ดูหลังจากรู้คำตอบแล้ว
+  // ส่วนการ์ด "ควรทำก่อน" ซึ่งเป็นคำตอบของทั้งแอป เคยอยู่อันดับที่สี่ลงไป
+  // (เจ้าของสั่งเอง: "เปิดหน้านี้ตอนเช้าแล้วต้องเข้าใจสถานการณ์ภายใน 3–5 วินาที")
+  //
+  // ตัวเลขยังอยู่ครบทั้งสามตัว ไม่ได้ตัดอะไรทิ้ง — เปลี่ยนแค่น้ำหนักกับลำดับ
+  const stats = '<div class="tb-strip">'
     + [[String(classes.length), 'คาบเรียน'],
        [String(planTasks.size), 'งานวันนี้'],
        [usedTx, 'ต้องใช้เวลา']].map(function (c) {
-      return '<div class="tb-st"><b>' + esc(c[0]) + '</b><i>' + esc(c[1]) + '</i></div>';
+      return '<div><b>' + esc(c[0]) + '</b><i>' + esc(c[1]) + '</i></div>';
     }).join('') + '</div>';
 
   // ---- คาบถัดไป ----
@@ -4362,23 +4439,21 @@ function todayBoard(now) {
         + '<span class="tb-nd-go">' + icon('chevron') + '</span></button>'
       : '<div class="tb-cls quiet">' + icon('calendar') + 'วันนี้ไม่มีคาบเรียน</div>';
   } else if (ongoing) {
-    clsCard = '<div class="tb-cls">'
-      + '<div class="tb-cl-lb">' + icon('clock') + 'กำลังเรียนอยู่ · เหลืออีก '
-      + humanMin(ongoing.to - nowMin) + '</div>'
-      + '<div class="tb-cl-t">' + esc(ongoing.title) + '</div>'
-      + '<div class="tb-cl-s">' + esc(min2hm(ongoing.from)) + '–' + esc(min2hm(ongoing.to)) + '</div>'
-      + '</div>';
+    // 1B95 · ยุบจากการ์ดสามบรรทัดเหลือแถวเดียว
+    // คาบที่กำลังเรียนอยู่ไม่ใช่สิ่งที่ผู้ใช้ตัดสินใจได้ — มันคือ "เหตุผลที่ยังเริ่มไม่ได้"
+    // ของที่ตัดสินใจไม่ได้ไม่ควรกินพื้นที่เท่าการ์ดที่มีปุ่มให้กด
+    clsCard = '<div class="tb-now"><span class="tb-now-pip"></span>'
+      + 'กำลังเรียน <b>' + esc(ongoing.title) + '</b> · เหลือ '
+      + humanMin(ongoing.to - nowMin) + '</div>';
   } else if (next) {
     // ช่องว่างก้อนถัดไปหลังคาบนี้ — ตอบ "เรียนเสร็จแล้วมีเวลาถึงกี่โมง" ซึ่งเป็นสิ่งที่
     // ทำให้เวลาเริ่มของงานข้างล่างมีความหมาย ไม่ใช่แค่ตัวเลขลอย ๆ
     const after = slots.find(x => x.from >= next.to - 1);
-    clsCard = '<div class="tb-cls">'
-      + '<div class="tb-cl-lb">' + icon('calendar') + 'คาบถัดไป · อีก '
-      + humanMin(next.from - nowMin) + '</div>'
-      + '<div class="tb-cl-t">' + esc(next.title) + '</div>'
-      + '<div class="tb-cl-s">' + esc(min2hm(next.from)) + '–' + esc(min2hm(next.to))
-      + (after ? ' · หลังจากนี้ว่างถึง ' + esc(after.toHm) : '') + '</div>'
-      + '</div>';
+    // เหตุผลเดียวกับคาบที่กำลังเรียน · "ว่างถึงกี่โมง" คือส่วนเดียวที่เปลี่ยนการตัดสินใจ
+    // จึงเก็บไว้ ส่วนช่วงเวลาเต็ม 11:00–11:50 ตัดทิ้ง — มันอยู่ในตารางเต็มวันอยู่แล้ว
+    clsCard = '<div class="tb-now"><span class="tb-now-pip next"></span>'
+      + 'คาบถัดไป <b>' + esc(next.title) + '</b> · อีก ' + humanMin(next.from - nowMin)
+      + (after ? ' · แล้วว่างถึง ' + esc(after.toHm) : '') + '</div>';
   } else {
     const last = classes[classes.length - 1];
     clsCard = '<div class="tb-cls quiet">' + icon('check-circle')
@@ -4433,9 +4508,20 @@ function todayBoard(now) {
       + '<span class="tb-tl-x"><b>' + r.title + '</b><i>' + esc(r.sub) + '</i></span></button>';
   }).join('');
 
-  return stats + clsCard + focus
+  // ---------- ลำดับสายตาของทั้งจอ (1B95) ----------
+  // 1. ติดอะไรอยู่ตอนนี้  — แถวบาง ๆ · บอกว่าทำไมยังเริ่มไม่ได้
+  // 2. ควรทำอะไร        — การ์ดพระเอก · คำตอบของทั้งแอป ใหญ่ที่สุดบนจอ
+  // 3. ภาพรวมวันนี้      — แถบตัวเลขบรรทัดเดียว · ดูหลังจากรู้คำตอบแล้ว
+  // 4. คิวถัดไป         — มีหัวข้อกลุ่มกำกับ ไม่งั้นสามแถวนี้อ่านเป็น "งานทั้งหมด"
+  //                       ซึ่งเป็นคำโกหก (มันคือสามอันแรกของคิว)
+  const queueHead = timeline
+    ? '<div class="tb-grp"><b>คิวถัดไปวันนี้</b>'
+      + '<button onclick="goDayFull()">ดูทั้งวัน' + icon('chevron') + '</button></div>'
+    : '';
+  return clsCard + focus + stats + queueHead
     + (timeline ? '<div class="tb-tl">' + timeline + '</div>' : '')
-    + '<button class="tb-more" onclick="goDayFull()">ดูตารางวันนี้ทั้งหมด' + icon('chevron') + '</button>';
+    + (timeline ? ''
+      : '<button class="tb-more" onclick="goDayFull()">ดูตารางวันนี้ทั้งหมด' + icon('chevron') + '</button>');
 }
 
 // ============================================================
@@ -5851,27 +5937,12 @@ function renderProfile() {
   // ---------- ตัวเลขที่เห็นคนเดียว ----------
   // ย้ายลงมาใต้หัว ติดป้ายให้ชัดว่าไม่ใช่ของสาธารณะ
   // เดิมมันนั่งอยู่บนการ์ดหัวจอ ปนกับชื่อและรูป ซึ่งอ่านเหมือนเป็นของที่เพื่อนเห็นด้วย
+  // 1B95 · บล็อก "เห็นคนเดียว" สี่ตัวเลขถูกยุบเข้าไปอยู่ในการ์ด "ผลของฉัน" แล้ว
+  // (ดู privNums ใน renderStats) — สองก้อนนี้พูดเรื่องเดียวกันและเห็นคนเดียวเหมือนกัน
+  // แต่ถูกวาดคนละกล่องเพราะมาคนละยุค · กล่องนี้จึงเหลือเป็นที่ว่างไว้เฉย ๆ
+  // ไม่ถอด <div id="pfPriv"> ออกจาก index.html เพราะลำดับก้อนในจอนี้ถูกอ้างถึงหลายที่
   const priv = document.getElementById('pfPriv');
-  if (priv) {
-    const tk = typeof tokenState === 'function' ? tokenState() : {};
-    const st = typeof loginStreak === 'function' ? loginStreak() : 0;
-    const now2 = new Date();
-    const wk = liveTasks().filter(t => t.done && t.doneAt
-      && (now2 - new Date(t.doneAt)) < 7 * 8.64e7).length;
-    // สี่ช่องนี้คือ **ที่เดียว** ของตัวเลขส่วนตัวบนจอนี้
-    // ก่อนหน้านี้ "งานเสร็จ" โผล่สองรอบในจอเดียว (ที่นี่ กับในบล็อกผลของฉันสีเหลือง)
-    // ตัวเลขเดียวกันสองที่ในหน้าเดียว ทำให้คนไม่แน่ใจว่าอันไหนคือของจริง
-    // และเป็นสัญญาณว่าจอนี้ประกอบจากของสองยุคที่ไม่เคยถูกจัดให้เข้ากัน
-    priv.innerHTML = `<div class="pf-priv">
-      <div class="pf-priv-lb">${icon('lock')}เห็นคนเดียว</div>
-      <div class="num-row four">
-        <div><b>${done}</b><span>งานเสร็จ</span></div>
-        <div><b>${wk}</b><span>ใน 7 วัน</span></div>
-        <div><b>${st}</b><span>ต่อเนื่อง</span></div>
-        <div><b>${Math.round(tk.bal || 0)}</b><span>โทเคน</span></div>
-      </div>
-    </div>`;
-  }
+  if (priv) priv.innerHTML = '';
 
   // การ์ดตัวตนบนหัวจอตั้งค่า — ข้อมูลชุดเดียวกับหน้า "ฉัน" ต้องไม่มีทางขัดกันเอง
   const sub = currentUser ? (currentUser.email || 'ซิงก์ข้ามเครื่องอยู่') : 'ยังไม่ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้';
@@ -5920,6 +5991,31 @@ function renderProfile() {
   // ช่องใส่โค้ด — มีเฉพาะรุ่นที่ผูกไว้ใน CODE_VERSION
   const codeRow = document.getElementById('codeRow');
   if (codeRow) codeRow.hidden = !codesLive();
+  // ---------- 1B95 · แถว "วิชาของฉัน" ----------
+  // บรรทัดรองต้องบอก "ค่าที่ตั้งไว้" ไม่ใช่คำโฆษณาของแถว — นี่คือเหตุผลเดียวที่แถวนี้
+  // ไม่ใช่ทางเข้าซ้ำกับปุ่ม "แก้ไขโปรไฟล์" · คนอ่านผ่านแล้วรู้เลยว่าตั้งไว้ว่าอะไร
+  // ไม่ต้องกดเข้าไปดู (เกณฑ์เดียวกับแถว "บริบทของฉัน" ที่บอก % ไว้บนแถว)
+  const pj = document.getElementById('peSubjCt');
+  if (pj && typeof socialState === 'function') {
+    const ss = socialState();
+    const st = (ss.strong || []).length;
+    const wk = (ss.weak || []).length;
+    // ยังไม่เคยยืนยัน (null) กับ ยืนยันแล้วแต่ไม่ได้เลือกสักวิชา ([]) ต่างกันจริง
+    // อันแรกคือ "ยังไม่ได้ทำ" อันหลังคือ "ทำแล้วและตั้งใจว่าไม่เลือก" ห้ามเขียนเหมือนกัน
+    pj.textContent = (ss.strong === null && ss.weak === null)
+      ? 'ยังไม่ได้เลือก — เพื่อนยังจับคู่กับคุณไม่ได้'
+      : [st ? 'ช่วยได้ ' + st + ' วิชา' : '', wk ? 'อยากได้ ' + wk + ' วิชา' : '']
+          .filter(Boolean).join(' · ') || 'ยังไม่ได้เลือกสักวิชา';
+  }
+  // ---------- 1B95 · เลขข้อความค้างบนแถว "ข้อความ" ----------
+  // อ่านจาก dmPending ก้อนเดียวกับที่ปุ่มลอยในฟีดใช้ — เลขข้อความมีที่มาที่เดียว
+  // ถ้าคิดเองตรงนี้ วันหนึ่งสองที่จะบอกไม่ตรงกันโดยไม่มีใครรู้ว่าอันไหนถูก
+  const pdm = document.getElementById('peDmN');
+  if (pdm) {
+    const n = (typeof dmPending === 'number') ? dmPending : 0;
+    pdm.hidden = !n;
+    pdm.textContent = n > 9 ? '9+' : String(n);
+  }
   // ตัวเลขบนปุ่มทางเข้าใหญ่ 3 ปุ่ม
   const pb = document.getElementById('peBadgeCt');
   if (pb) pb.textContent = badgesEarned().length + ' จาก ' + BADGES.length + ' เหรียญ';
@@ -8217,6 +8313,61 @@ function weekReviewCard(now) {
   </div>`;
 }
 
+// ============================================================
+// 1B95 · โชว์ · พื้นที่ของฉัน
+// ------------------------------------------------------------
+// เจ้าของถามตรง ๆ ว่า "ถ้าหน้าฉันคือพื้นที่ของผู้ใช้ ส่วน Showcase ควรทำหน้าที่อะไร"
+// คำตอบที่เลือก: **ของที่เพื่อนจะเห็นถ้าเปิดหน้าเรา** ไม่ใช่กราฟความขยัน
+// (กราฟเป็นเรื่องส่วนตัว มีที่ของมันอยู่แล้วในการ์ดเห็นคนเดียวที่อยู่ถัดลงไป)
+//
+// สามช่องไม่ได้เพิ่มข้อมูลใหม่สักช่อง — ย้ายของที่มีอยู่แล้วมารวมกัน:
+//   ห้องของฉัน + เหรียญตรา  ← เคยเป็นสองแถวในลิสต์ข้างล่าง
+//   ต่อเนื่อง               ← เคยเป็นช่องที่สามของบล็อกตัวเลขส่วนตัว
+// ลิสต์จึงสั้นลงสองแถว และการ์ดส่วนตัวเหลือสามช่องพอดีโดยไม่มีอะไรหายไปจากจอ
+//
+// สีทองขึ้นเฉพาะตอนมีของจริงเท่านั้น (เหรียญที่ได้แล้ว · วันต่อเนื่องที่นับได้จริง)
+// ถ้าทองโผล่บนช่องที่ยังว่าง มันเลิกแปลว่าสำเร็จทันที — กฎเดิมของโปรเจกต์
+// หน้าสาธารณะมีได้ต่อเมื่อมีบัญชี — ยังไม่ล็อกอินก็ยังไม่มีหน้าให้เพื่อนเปิดดู
+// บอกตรง ๆ แล้วให้ทางไปต่อ ดีกว่าเปิดจอเปล่าที่ไม่มีใครเข้าใจว่าทำไมว่าง
+function openMyPublic() {
+  if (!currentUser) {
+    showToast({ title: 'ยังไม่มีหน้าสาธารณะ',
+      body: 'เข้าบัญชีก่อน เพื่อนถึงจะเปิดหน้าคุณได้' });
+    return;
+  }
+  openUser(currentUser.id);
+}
+
+function renderShowcase() {
+  const box = document.getElementById('showBox');
+  if (!box) return;
+
+  const rs = (typeof roomState === 'function') ? roomState() : { on: {}, name: '' };
+  const put = Object.keys(rs.on || {}).filter(k => rs.on[k] && rs.on[k] !== 'none').length;
+  const got = (typeof badgesEarned === 'function') ? badgesEarned().length : 0;
+  const all = (typeof BADGES !== 'undefined' && BADGES) ? BADGES.length : 0;
+  const stk = (typeof loginStreak === 'function') ? loginStreak() : 0;
+
+  const tile = (cls, ic, on, title, sub) =>
+    `<button class="sw${on ? ' got' : ''}" onclick="${cls}">
+      <span class="sw-ic">${icon(ic)}</span>
+      <b>${esc(title)}</b><i>${esc(sub)}</i>
+    </button>`;
+
+  box.innerHTML = `<button class="st-open" onclick="openMyPublic()">
+      <span class="sec-label">โชว์ · พื้นที่ของฉัน</span>
+      <span class="st-open-go">ดูแบบที่เพื่อนเห็น${icon('chevron')}</span>
+    </button>
+    <div class="sw-row">
+      ${tile("go('scr-room')", 'image', put > 0, 'ห้องของฉัน',
+        rs.name || (put ? 'วางของไว้ ' + put + ' ชิ้น' : 'ยังไม่ได้แต่ง'))}
+      ${tile("go('scr-badges')", 'medal', got > 0, 'เหรียญตรา',
+        got ? got + ' จาก ' + all : 'ยังไม่มีเหรียญ')}
+      ${tile("go('scr-stats')", 'flame', stk > 1, 'ต่อเนื่อง',
+        stk > 1 ? stk + ' วันติด' : (stk === 1 ? 'เริ่มวันนี้' : 'ยังไม่เริ่ม'))}
+    </div>`;
+}
+
 function renderStats() {
   const box = document.getElementById('statsBox');
   if (!box) return;
@@ -8259,8 +8410,25 @@ function renderStats() {
   //
   // 1A9g: ทางเข้า scr-stats เหลือปุ่ม "ดูทั้งหมด" ข้างบนอย่างเดียว
   // แถวท้ายบล็อกเคยพาไปจอเดียวกัน — สองปุ่มต่อจอเดียวคือความสับสน ไม่ใช่ทางเลือก
+  // ---------- 1B95 · ตัวเลขส่วนตัวย้ายเข้ามาอยู่ในการ์ดเดียวกับกราฟ ----------
+  // ของเดิมเป็นสองก้อนซ้อนกัน: บล็อก "เห็นคนเดียว" (4 ตัวเลข) แล้วต่อด้วยการ์ด
+  // "ผลของฉัน" (กราฟ 7 วัน) — ทั้งคู่พูดเรื่องเดียวกันคือ "เราทำได้แค่ไหน"
+  // และทั้งคู่เป็นของที่เห็นคนเดียวเหมือนกัน แต่ถูกวาดคนละกล่องเพราะมาคนละยุค
+  // ยุบเป็นใบเดียวจึงได้พื้นที่คืนหนึ่งการ์ดเต็ม ๆ โดยไม่มีตัวเลขไหนหายไปสักตัว
+  // (ป้าย "เห็นคนเดียว" ย้ายมาอยู่บนหัวการ์ด — มันคุมทั้งใบอยู่แล้ว)
+  //
+  // เหลือสามช่อง ไม่ใช่สี่ — "ต่อเนื่อง" ย้ายขึ้นไปเป็นช่องหนึ่งของแถบ "โชว์"
+  // ตัวเลขเดียวกันห้ามโผล่สองที่ในจอเดียว คนจะไม่แน่ใจว่าอันไหนคือของจริง
+  // (กฎเดิมของจอนี้ตั้งแต่ 1B71 ตอนถอดแถบเหลืองสามช่องออกด้วยเหตุผลเดียวกันเป๊ะ)
+  const tkS = typeof tokenState === 'function' ? tokenState() : {};
+  const privNums = `<div class="num-row st-priv">
+      <div><b>${done.length}</b><span>งานเสร็จ</span></div>
+      <div><b>${week.length}</b><span>ใน 7 วัน</span></div>
+      <div><b>${Math.round(tkS.bal || 0)}</b><span>โทเคน</span></div>
+    </div>`;
+
   box.innerHTML = `<button class="st-open" onclick="go('scr-stats')">
-      <span class="sec-label">ผลของฉัน</span>
+      <span class="sec-label">${icon('lock')}ผลของฉัน · เห็นคนเดียว</span>
       <span class="st-open-go">ดูทั้งหมด${icon('chevron')}</span>
     </button>
     <!-- แถบเหลืองสามช่องถูกถอดออกใน 1B71 — สองในสามช่องซ้ำกับบล็อก "เห็นคนเดียว"
@@ -8271,6 +8439,7 @@ function renderStats() {
          สีเหลืองก็หลุดจากชุดสีของจอนี้ที่เหลือเป็นฟ้า-ขาวทั้งหมดด้วย -->
 
     <div class="st-card">
+      ${privNums}
       <div class="st-h">งานที่ติ๊กเสร็จ 7 วันล่าสุด</div>
       <div class="st-bars">
         ${days.map(d => `<div class="st-bar${d.today ? ' now' : ''}${d.n ? ' has' : ''}">
@@ -8537,7 +8706,7 @@ function workStatsHtml(now) {
 function renderAll() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline(); renderAi();
   renderWhy();
-  renderProfile(); renderStats(); renderPlan(); renderFriends(); renderBadges(); renderTools();
+  renderProfile(); renderShowcase(); renderStats(); renderPlan(); renderFriends(); renderBadges(); renderTools();
   renderShop(); renderPro(); renderWheel(); renderInstallCard(); renderTabBadges(); renderContext();
   renderRunBar();
   // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น

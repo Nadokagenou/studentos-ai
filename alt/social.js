@@ -357,8 +357,11 @@ function renderMates() {
         : '<p class="ep-hint">เข้าบัญชีก่อนถึงจะตั้งได้</p>'}
       </div>
 
-      <!-- ---------- วิชา ---------- -->
-      <div class="ep-f">
+      <!-- ---------- วิชา ----------
+           id ตรงนี้คือจุดหมายของแถว "วิชาของฉัน" ในแท็บ "ฉัน" (1B95)
+           แถวนั้นพาคนมาที่บล็อกนี้โดยตรง ไม่ใช่หัวฟอร์ม จึงไม่ใช่ทางเข้าซ้ำ
+           กับปุ่ม "แก้ไขโปรไฟล์" ที่ลงจอเดียวกันแต่เริ่มอ่านจากบนสุด -->
+      <div class="ep-f" id="epSubj">
         <label>วิชาที่ช่วยเพื่อนได้</label>
         <div class="so-chips row">
           ${known.length ? known.map(n => chip(n, 'good', c.strong.includes(n))).join('')
@@ -614,6 +617,9 @@ async function pokeMate(id, topic, name) {
     subject: topic || '', other: id,
   };
   chatMsgs = [];
+  // ทักจากหน้าโปรไฟล์ · ฟีด · หัวข้อ — กลับไปที่เดิมถ้ากลับได้ ไม่งั้นลงที่กล่องข้อความ
+  // ซึ่งเป็นจอแม่ของห้องคุยทุกห้องอยู่แล้ว (ไม่ใช่ฟีด ซึ่งเป็นคนละระบบ)
+  chatReturn = pickReturn('scr-dm');
   go('scr-chat');
   openChat();
 }
@@ -774,7 +780,7 @@ function renderChat() {
 
   box.innerHTML = `
     <div class="ch-top">
-      <button class="ch-back" onclick="go('scr-mates')" aria-label="กลับ">${icon('chevron')}</button>
+      <button class="ch-back" onclick="chatBack()" aria-label="กลับ">${icon('chevron')}</button>
       <!-- รูป+ชื่อแตะแล้วไปโปรไฟล์ เหมือน IG · จอแชทที่ไม่มีทางไปหาตัวตนของอีกฝ่าย
            คือจอที่คุยกับคนที่ตรวจสอบไม่ได้ ซึ่งเป็นสิ่งที่ต้องไม่เกิดหลังเปิดให้ทักทั้งแอป -->
       <button class="ch-who${chatThread.other ? ' tap' : ''}"
@@ -1051,8 +1057,36 @@ async function loadDmDot(force) {
   if (n !== dmPending) { dmPending = n; if (typeof renderFeed === 'function') renderFeed(); }
 }
 
-async function openDmInbox() {
+// ============================================================
+// 1B95 · ปุ่มย้อนกลับเลิกเดาปลายทาง
+// ------------------------------------------------------------
+// ของเดิมทั้งกล่องข้อความและห้องคุยเขียนตายตัวว่า go('scr-mates') = ฟีดโพสต์เสมอ
+// ไม่ว่าจะเข้ามาจากทางไหน · เข้าจากแท็บ "ฉัน" แล้วกดย้อนกลับ จึงโผล่ไปอยู่กลางฟีด
+// ของคนอื่น ซึ่งเป็นคนละระบบกับสิ่งที่เขากำลังทำอยู่ (เจ้าของสั่งแยกเอง 14 ก.ย. 2569:
+// "หน้าคุยกับเพื่อน = communication · Social = community ไม่ควรใช้ Back กระโดดข้าม")
+//
+// จำจอที่เข้ามาแล้วกลับไปที่นั่น · แต่ไม่ใช่ทุกจอที่กลับไปได้ —
+// จอที่วาดเนื้อในด้วย JS แล้วไม่มีใครวาดซ้ำให้ตอนกลับ จะกลายเป็นจอเปล่าที่ออกไม่ได้
+// (บทเรียนเดียวกับ NO_RESUME ใน app.js) รายการนี้จึงเป็นรายชื่อขาว ไม่ใช่รายชื่อดำ
+const BACK_OK = ['scr-menu', 'scr-tasks', 'scr-profile', 'scr-mates', 'scr-dm'];
+let dmReturn = 'scr-profile';
+let chatReturn = 'scr-dm';
+function pickReturn(fallback) {
+  return BACK_OK.includes(curScreen) ? curScreen : fallback;
+}
+// ปุ่มเรียกฟังก์ชัน ไม่ใช่ฝังชื่อจอลงใน onclick ตอนวาด — จอถูกวาดซ้ำหลายรอบ
+// (พิมพ์ในช่องค้นหาทีละตัวก็วาดใหม่) ถ้าฝังค่าไว้ ค่าที่ฝังคือค่าตอนวาดครั้งนั้น
+function dmBack() { go(dmReturn); }
+function chatBack() {
+  go(chatReturn);
+  // กลับเข้ากล่องข้อความ = ต้องเห็นข้อความล่าสุดของห้องที่เพิ่งออกมา
+  // ไม่ใช่บรรทัดสรุปของรอบก่อนที่ค้างอยู่ใน DOM ตั้งแต่ตอนเปิดห้อง
+  if (chatReturn === 'scr-dm') { renderDmInbox(); refreshDmRows(); }
+}
+
+async function openDmInbox(from) {
   if (!sb || !currentUser) return loginFromMates();
+  dmReturn = from || pickReturn('scr-profile');
   go('scr-dm');
   dmBusy = true;
   renderDmInbox();
@@ -1185,7 +1219,7 @@ function renderDmInboxInner() {
   // ซึ่งตรงกับสิ่งที่คนคิดในหัวจริง ๆ — เขาคิดถึง "คน" ไม่ได้คิดว่าคนนั้นอยู่ในรายการไหน
   const head = `
     <div class="ch-top">
-      <button class="ch-back" onclick="go('scr-mates')" aria-label="กลับ">${icon('chevron')}</button>
+      <button class="ch-back" onclick="dmBack()" aria-label="กลับ">${icon('chevron')}</button>
       <div class="ch-who"><b>ข้อความ</b></div>
     </div>
     <div class="dm-find">
@@ -1274,6 +1308,8 @@ function openDmRow(id, other, name, avatar, handle) {
   chatThread = { id, other, name: name || '', handle: handle || '',
                  avatar: avatar || null, subject: '' };
   chatMsgs = [];
+  // เข้ามาจากรายการในกล่องข้อความ — ย้อนกลับต้องคืนรายการนั้น เสมอ
+  chatReturn = 'scr-dm';
   go('scr-chat');
   openChat();
 }
