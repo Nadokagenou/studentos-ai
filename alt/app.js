@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B95b';                 // สายเลขของแอป
+const APP_VERSION = '1B96';                 // สายเลขของแอป
 const APP_CODENAME = 'Horizon';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -481,6 +481,14 @@ function splashBurst(n = 8, cls = 'egg-bub') {
 function bubbleBurst(n = 8) { splashBurst(n, 'egg-bub'); }
 const THEMES = Object.keys(THEME_NAME);
 
+// ธีมที่ "เห็นอยู่บนจอจริง" ตอนนี้ — ต่างจาก themePref() ตรงที่คลี่ 'system' ออกแล้ว
+// 1B96 · สูตรนี้เคยถูกเขียนซ้ำสามที่ (applyTheme · syncSetVals · แถวธีมในแท็บฉัน)
+// ตัวเลขที่คิดสามรอบคือตัวเลขที่วันหนึ่งจะตอบไม่ตรงกัน — รวบมาไว้ที่เดียว
+function activeTheme() {
+  const p = themePref();
+  return p === 'system' ? (systemDark() ? 'dark' : 'light') : p;
+}
+
 function themePref() {
   let v = null;
   try { v = localStorage.getItem(THEME_KEY); } catch (_) {}
@@ -509,6 +517,15 @@ function applyTheme() {
   const now = document.getElementById('themeNow');
   if (now) now.textContent = pref === 'system' ? `ตามระบบ · ตอนนี้โทน${THEME_NAME[theme]}` : '';
   if (typeof syncSetVals === 'function') syncSetVals();
+  // 1B96 · ช่องสีบนแถว "ธีมสี" ในแท็บ "ฉัน" ต้องเปลี่ยนพร้อมธีมด้วย
+  // ไม่งั้นเลือกธีมใหม่แล้วเดินกลับมา จะเจอช่องสีของธีมเก่าค้างอยู่ ซึ่งอ่านว่า
+  // "เลือกไม่ติด" ทั้งที่ทั้งจอเปลี่ยนสีไปแล้ว
+  const psw2 = document.getElementById('peThemeSw');
+  if (psw2) psw2.className = 'pe-ic pe-sw sw-' + theme;
+  const pth2 = document.getElementById('peThemeCt');
+  if (pth2) pth2.textContent = pref === 'system'
+    ? 'ตามระบบ · ตอนนี้โทน' + (THEME_NAME[theme] || '')
+    : (THEME_NAME[theme] || '') + ' · แตะเพื่อเปลี่ยน';
 }
 
 function setTheme(pref) {
@@ -5997,6 +6014,47 @@ function renderProfile() {
   // ช่องใส่โค้ด — มีเฉพาะรุ่นที่ผูกไว้ใน CODE_VERSION
   const codeRow = document.getElementById('codeRow');
   if (codeRow) codeRow.hidden = !codesLive();
+  // ---------- 1B96 · แถบเช็คอินรายวัน ----------
+  // ขึ้นทั้งสองสถานะเสมอ · ต่างกันที่ "เสียง" ไม่ใช่ที่การมีอยู่
+  // ยอดโทเคนต่อท้ายด้วย เพื่อให้เห็นโดยไม่ต้องเลื่อนลงไปหาร้านค้า
+  const pdy = document.getElementById('peDaily');
+  if (pdy && typeof dailyPending === 'function') {
+    const live = dailyPending();
+    const bal = typeof tokenBalance === 'function' ? tokenBalance() : 0;
+    pdy.classList.toggle('live', live);
+    const ct = document.getElementById('peDailyCt');
+    if (ct) {
+      // ขณะยังไม่ได้รับ ต้องบอกว่า "จะได้อะไร" ไม่ใช่แค่ "กดสิ"
+      // รางวัลของแต่ละวันไม่เท่ากัน คนจึงมีเหตุผลต่างกันในแต่ละวันที่จะกด
+      let head = 'รับของวันนี้แล้ว · รอบหน้าพรุ่งนี้ 6 โมงเช้า';
+      if (live && typeof pendingCycleDay === 'function' && typeof DAILY_PLAN !== 'undefined') {
+        const d = pendingCycleDay();
+        const rw = DAILY_PLAN[d - 1];
+        head = 'วันที่ ' + d + ' ของรอบ · ได้ '
+             + (rw === 'spin' ? 'สุ่มฟรี 1 ใบ' : rw + ' โทเคน');
+      }
+      ct.textContent = head + ' · มี ' + (typeof fmtTok === 'function' ? fmtTok(bal) : bal) + ' โทเคน';
+    }
+    const gob = document.getElementById('peDailyGo');
+    if (gob) gob.textContent = live ? 'รับเลย' : 'พรุ่งนี้';
+  }
+
+  // ---------- 1B96 · แถว "ธีมสี" ----------
+  // ช่องสีต้องเป็นธีมที่ "เห็นอยู่จริง" ไม่ใช่ค่าที่ตั้งไว้ — ตั้ง "ตามระบบ" ไว้
+  // แล้วโชว์ช่องครึ่งขาวครึ่งดำ จะไม่ได้บอกอะไรเลยว่าตอนนี้จอเป็นโทนไหน
+  const psw = document.getElementById('peThemeSw');
+  if (psw && typeof activeTheme === 'function') {
+    psw.className = 'pe-ic pe-sw sw-' + activeTheme();
+  }
+  const pth = document.getElementById('peThemeCt');
+  if (pth && typeof THEME_NAME !== 'undefined') {
+    const pref = typeof themePref === 'function' ? themePref() : 'system';
+    const act = typeof activeTheme === 'function' ? activeTheme() : 'light';
+    pth.textContent = pref === 'system'
+      ? 'ตามระบบ · ตอนนี้โทน' + (THEME_NAME[act] || '')
+      : (THEME_NAME[act] || '') + ' · แตะเพื่อเปลี่ยน';
+  }
+
   // ---------- 1B95 · แถว "วิชาของฉัน" ----------
   // บรรทัดรองต้องบอก "ค่าที่ตั้งไว้" ไม่ใช่คำโฆษณาของแถว — นี่คือเหตุผลเดียวที่แถวนี้
   // ไม่ใช่ทางเข้าซ้ำกับปุ่ม "แก้ไขโปรไฟล์" · คนอ่านผ่านแล้วรู้เลยว่าตั้งไว้ว่าอะไร
@@ -8355,8 +8413,8 @@ function renderShowcase() {
   const stk = (typeof loginStreak === 'function') ? loginStreak() : 0;
 
   const tile = (cls, ic, on, title, sub) =>
-    `<button class="sw${on ? ' got' : ''}" onclick="${cls}">
-      <span class="sw-ic">${icon(ic)}</span>
+    `<button class="shw${on ? ' got' : ''}" onclick="${cls}">
+      <span class="shw-ic">${icon(ic)}</span>
       <b>${esc(title)}</b><i>${esc(sub)}</i>
     </button>`;
 
@@ -8364,7 +8422,7 @@ function renderShowcase() {
       <span class="sec-label">โชว์ · พื้นที่ของฉัน</span>
       <span class="st-open-go">ดูแบบที่เพื่อนเห็น${icon('chevron')}</span>
     </button>
-    <div class="sw-row">
+    <div class="shw-row">
       ${tile("go('scr-room')", 'image', put > 0, 'ห้องของฉัน',
         rs.name || (put ? 'วางของไว้ ' + put + ' ชิ้น' : 'ยังไม่ได้แต่ง'))}
       ${tile("go('scr-badges')", 'medal', got > 0, 'เหรียญตรา',

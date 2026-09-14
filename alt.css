@@ -7508,32 +7508,38 @@ button.df-r:active { background: var(--surface); }
    สามชิ้น ไม่ใช่การ์ดสามใบที่บังเอิญมาอยู่ติดกัน
    สูงเท่ากันด้วย grid ไม่ใช่ปล่อยให้เนื้อในกำหนด เพราะบรรทัดรองยาวไม่เท่ากัน
    (ห้องของฉันอาจยาวถึง "วางของไว้ 12 ชิ้น" ส่วนเหรียญสั้นแค่ "6 จาก 11") */
-.sw-row {
+/* ⚠️ ชื่อคลาสเคยเป็น .sw / .sw-row / .sw-ic แล้วไป **ทับของเดิมสองชุด**:
+   `.th-grid .sw` คือช่องสีตัวอย่างของปุ่มเลือกธีม และ `.sw-ic` คือไอคอนบนแถบปัดการ์ด
+   `.sw { background: var(--card) }` ความจำเพาะ (0,1,0) เท่ากับ `.sw-space` / `.sw-light`
+   แต่ประกาศทีหลัง จึงชนะ — **ช่องสีของธีมทั้ง 11 อันกลายเป็นสี่เหลี่ยมทึบสีเดียวกันหมด**
+   (ผู้ใช้ส่งภาพมา 14 ก.ย. 2569: "สีแปลก ๆ" · จอเลือกธีมเป็นวงกลมดำล้วนทั้งตาราง)
+   ใช้ชื่อ .shw- ที่ไม่ชนกับใคร · ก่อนตั้งชื่อคลาสใหม่ให้ grep ชื่อนั้นทั้งโฟลเดอร์ก่อนเสมอ */
+.shw-row {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
   margin-top: 9px;
 }
-.sw {
+.shw {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   padding: 12px 7px 13px; border: 0; border-radius: var(--r-tile);
   background: var(--card); box-shadow: var(--shadow);
   font: inherit; text-align: center; cursor: pointer;
   transition: transform .14s ease;
 }
-.sw:active { transform: scale(.97); }
-.sw-ic {
+.shw:active { transform: scale(.97); }
+.shw-ic {
   width: 38px; height: 38px; margin-bottom: 5px;
   display: grid; place-items: center; border-radius: 12px;
   background: var(--surface); color: var(--faint);
 }
-.sw-ic svg { width: 19px; height: 19px; }
+.shw-ic svg { width: 19px; height: 19px; }
 /* ทองเฉพาะใบที่มีของจริงแล้วเท่านั้น — ใบที่ยังว่างอยู่เป็นเทาปกติ
    ถ้าทองขึ้นทุกใบตั้งแต่วันแรก มันก็ไม่ได้แปลว่าอะไรอีกต่อไป */
-.sw.got .sw-ic { background: var(--warn-soft); color: var(--warn); }
-.sw b {
+.shw.got .shw-ic { background: var(--warn-soft); color: var(--warn); }
+.shw b {
   font-size: 13px; font-weight: 700; color: var(--ink);
   line-height: 1.25;
 }
-.sw i {
+.shw i {
   font-style: normal; font-size: 11px; line-height: 1.3; color: var(--faint);
 }
 
@@ -7602,3 +7608,35 @@ button.df-r:active { background: var(--surface); }
   font: inherit; font-size: 12.5px; font-weight: 600; color: var(--blue);
 }
 .tb-grp button svg { width: 14px; height: 14px; }
+
+/* ============================================================
+   1B96 · แถบเช็คอินรายวันบนสุดของแท็บ "ฉัน"
+   ============================================================
+   สองสถานะ ต่างกันที่ "เสียง" ไม่ใช่ที่การมีอยู่ — รับแล้วแถบต้องยังอยู่
+   ของที่หายไปเลยหลังกด อ่านว่า "แอปพัง" มากกว่า "รับไปแล้ว" */
+.pe-daily {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  margin-top: 10px; padding: 11px 13px;
+  border: 1px solid var(--line); border-radius: var(--r-tile);
+  background: var(--card); box-shadow: var(--shadow);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.pe-daily:active { transform: scale(.99); }
+.pe-daily .pe-ic {
+  width: 34px; height: 34px; border-radius: 11px; flex: none;
+  display: grid; place-items: center;
+  background: var(--gold-soft, var(--warn-soft)); color: var(--gold-text, var(--warn));
+}
+.pe-daily .pe-ic svg { width: 17px; height: 17px; }
+.pe-daily .pe-tx b { font-size: 14.5px; font-weight: 600; color: var(--ink); }
+.pe-daily .pe-tx i { font-style: normal; font-size: 11px; color: var(--faint); }
+.pe-daily-go { flex: none; font-size: 11.5px; font-weight: 600; color: var(--faint); }
+
+/* ยังไม่ได้รับ = ขอบทอง + ป้ายทึบ · ทองใช้ได้เพราะมันคือของที่ "ได้จริง" เดี๋ยวนี้
+   ไม่ใช่ของที่ยังไม่ได้ทำ (กฎเดิมของโปรเจกต์เรื่องสีทอง) */
+.pe-daily.live { border-color: var(--gold-text, var(--warn)); }
+.pe-daily.live .pe-daily-go {
+  padding: 3px 10px; border-radius: 999px;
+  background: var(--gold-text, var(--warn)); color: var(--pg, #1a1200);
+  font-weight: 700;
+}

@@ -878,6 +878,24 @@
           <input type="file" id="avInput" accept="image/*" hidden>
           <div id="pfPriv"></div>
 
+          <!-- 1B96 · แถบเช็คอินรายวัน — ขึ้นบนสุดและขึ้น "ตลอด"
+               ------------------------------------------------------------
+               เจ้าของบอกว่า "ล็อคอินประจำวันมันไม่ขึ้น มันต้องขึ้นตลอด"
+               ตรวจแล้วแถวนี้ขึ้นตลอดอยู่แล้ว — แต่ขึ้นอยู่ *ในร้านค้า* ซึ่งเป็นแถวล่างสุด
+               ของลิสต์ที่ต้องเลื่อนลงไปหา คนจึงไม่เจอ ซึ่งเท่ากับไม่ขึ้นในทางปฏิบัติ
+
+               ดึงออกมาเป็นแถบเดี่ยวบนสุด กดรับได้เลยไม่ต้องเข้าร้านค้า
+               **รับแล้วแถบไม่หาย** แต่เงียบลง (ขอบทองหาย · ป้ายเปลี่ยนเป็นเวลารอบหน้า)
+               ของที่หายไปเลยทำให้คนคิดว่าแอปพัง ไม่ใช่คิดว่า "รับไปแล้ว"
+
+               ยอดโทเคนอยู่บนแถบนี้ด้วย จึงเห็นทุกครั้งโดยไม่ต้องเลื่อนไปหาร้านค้า
+               ส่วนตัวร้านค้ายังอยู่กลุ่มล่างตามมติ 1B93 (ของยังไม่เสร็จห้ามนั่งปนของที่ใช้ได้) -->
+          <button class="pe-daily" id="peDaily" onclick="openDailyCheck(false)">
+            <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg></span>
+            <span class="pe-tx"><b>เช็คอินรายวัน</b><i id="peDailyCt"></i></span>
+            <span class="pe-daily-go" id="peDailyGo"></span>
+          </button>
+
           <!-- ============ โชว์ · พื้นที่ของฉัน (1B95) ============
                คำถามที่ส่วนนี้ตอบคือ "ถ้าเพื่อนเปิดหน้าเรา เขาจะเห็นอะไร"
                ไม่ใช่ "เราขยันแค่ไหน" — กราฟความขยันเป็นเรื่องส่วนตัว
@@ -935,26 +953,43 @@
                   ที่ว่าของยังไม่เสร็จห้ามนั่งปนกลางของที่ใช้ได้จริง
 
                ห้องของฉัน กับ เหรียญตรา ย้ายขึ้นไปเป็นช่องในแถบ "โชว์" — ไม่ได้หายไป -->
+
+          <!-- 1B96 · ไอคอนมีสีประจำแถว (tone-*)
+               เจ้าของ: "ตรงสัญลักษณ์อยากให้ใส่สีไปด้วย ไม่ใช่กลมกับสีพื้นหลัง"
+               ของเดิมทุกใบเป็น --card2 ซึ่งบนธีมอวกาศห่างจากพื้นการ์ดแค่ไม่กี่หน่วย
+               สีมาจากโทเคนของธีม ไม่ใช่สีตายตัว — เปลี่ยนธีมแล้วสีตามไปเอง
+               และไม่มีธีมไหนที่สีจะหลุดโทน เพราะทุกธีมนิยาม --blue/--good/--warn ครบ -->
           <div class="pf-entry">
-            <button class="pe" onclick="openMySubjects()">
+            <button class="pe tone-blue" onclick="openMySubjects()">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-book"/></svg></span>
               <span class="pe-tx"><b>วิชาของฉัน</b><i id="peSubjCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button class="pe" onclick="openDmInbox('scr-profile')">
+            <button class="pe tone-good" onclick="openDmInbox('scr-profile')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-chat"/></svg></span>
               <span class="pe-tx"><b>ข้อความ<span class="pe-n" id="peDmN" hidden></span></b>
                 <i>คุยกับเพื่อนแบบตัวต่อตัว</i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button class="pe" onclick="openFeed('friends')">
+            <button class="pe tone-warn" onclick="openFeed('friends')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-user"/></svg></span>
               <span class="pe-tx"><b>เพื่อนของฉัน</b><i id="peFriendCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button class="pe" id="peCtx" onclick="go('scr-context')">
+            <button class="pe tone-blue" id="peCtx" onclick="go('scr-context')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
               <span class="pe-tx"><b>บริบทของฉัน</b><i id="peCtxCt"></i></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <!-- 1B96 · ธีมสีขึ้นมาอยู่ตรงนี้ — ของเดิมต้องเดินสี่ชั้น
+                 (ฉัน → เฟือง → Student OS → ธีมสี) กว่าจะถึง
+                 ในเฟืองยังมีเหมือนเดิม ไม่ได้ย้ายออก — นี่คือทางลัด ไม่ใช่การย้ายบ้าน
+                 **ช่องสีคือธีมจริงที่ใช้อยู่** ไม่ใช่ไอคอนทั่วไป จึงบอกสถานะได้ในตัวเอง
+                 ใช้คลาส .sw-* ชุดเดียวกับตารางเลือกธีม — ช่องสีมีที่มาที่เดียว
+                 ถ้าวาดใหม่ วันหนึ่งสองที่จะไม่ตรงกันโดยไม่มีใครรู้ว่าอันไหนถูก -->
+            <button class="pe tone-theme" onclick="openSetOpt('theme')">
+              <span class="pe-ic pe-sw" id="peThemeSw"></span>
+              <span class="pe-tx"><b>ธีมสี</b><i id="peThemeCt"></i></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
             <!-- 1B94 · แถว "ตั้งค่าแอป" ถูกถอดออก — ไปอยู่ที่เฟืองมุมขวาบนแล้ว
