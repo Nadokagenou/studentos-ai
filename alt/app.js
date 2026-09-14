@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B97';                 // สายเลขของแอป
+const APP_VERSION = '1B98';                 // สายเลขของแอป
 const APP_CODENAME = 'Horizon';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -525,7 +525,7 @@ function applyTheme() {
   const pth2 = document.getElementById('peThemeCt');
   if (pth2) pth2.textContent = pref === 'system'
     ? 'ตามระบบ · ตอนนี้โทน' + (THEME_NAME[theme] || '')
-    : (THEME_NAME[theme] || '') + ' · แตะเพื่อเปลี่ยน';
+    : (THEME_NAME[theme] || '');
 }
 
 function setTheme(pref) {
@@ -6052,7 +6052,9 @@ function renderProfile() {
     const act = typeof activeTheme === 'function' ? activeTheme() : 'light';
     pth.textContent = pref === 'system'
       ? 'ตามระบบ · ตอนนี้โทน' + (THEME_NAME[act] || '')
-      : (THEME_NAME[act] || '') + ' · แตะเพื่อเปลี่ยน';
+      // 1B98 · ตัด "· แตะเพื่อเปลี่ยน" ออก — ทุกแถวในลิสต์นี้กดได้และมีลูกศรบอกอยู่แล้ว
+      // คำที่บอกสิ่งที่ผู้ใช้เห็นอยู่แล้ว คือคำที่ทำให้คำที่บอกของจริงอ่านยากขึ้น
+      : (THEME_NAME[act] || '');
   }
 
   // ---------- 1B95 · แถว "วิชาของฉัน" ----------
@@ -6067,7 +6069,7 @@ function renderProfile() {
     // ยังไม่เคยยืนยัน (null) กับ ยืนยันแล้วแต่ไม่ได้เลือกสักวิชา ([]) ต่างกันจริง
     // อันแรกคือ "ยังไม่ได้ทำ" อันหลังคือ "ทำแล้วและตั้งใจว่าไม่เลือก" ห้ามเขียนเหมือนกัน
     pj.textContent = (ss.strong === null && ss.weak === null)
-      ? 'ยังไม่ได้เลือก — เพื่อนยังจับคู่กับคุณไม่ได้'
+      ? 'ยังไม่ได้เลือกวิชา'
       : [st ? 'ช่วยได้ ' + st + ' วิชา' : '', wk ? 'อยากได้ ' + wk + ' วิชา' : '']
           .filter(Boolean).join(' · ') || 'ยังไม่ได้เลือกสักวิชา';
   }
@@ -6075,11 +6077,16 @@ function renderProfile() {
   // อ่านจาก dmPending ก้อนเดียวกับที่ปุ่มลอยในฟีดใช้ — เลขข้อความมีที่มาที่เดียว
   // ถ้าคิดเองตรงนี้ วันหนึ่งสองที่จะบอกไม่ตรงกันโดยไม่มีใครรู้ว่าอันไหนถูก
   const pdm = document.getElementById('peDmN');
+  const ndm = (typeof dmPending === 'number') ? dmPending : 0;
   if (pdm) {
-    const n = (typeof dmPending === 'number') ? dmPending : 0;
-    pdm.hidden = !n;
-    pdm.textContent = n > 9 ? '9+' : String(n);
+    pdm.hidden = !ndm;
+    pdm.textContent = ndm > 9 ? '9+' : String(ndm);
   }
+  // 1B98 · บรรทัดรองเป็นของที่ **แทนที่กัน** ไม่ใช่ของที่เพิ่มเข้ามา
+  // มีของรอ = บอกว่ารออะไรอยู่ · ไม่มีของรอ = บอกว่าแถวนี้พาไปไหน
+  // สองอย่างนี้ไม่มีวันจำเป็นพร้อมกัน การโชว์ทั้งคู่คือการเพิ่มบรรทัดเปล่า
+  const pdc = document.getElementById('peDmCt');
+  if (pdc) pdc.textContent = ndm ? 'มีข้อความรออ่าน' : 'คุยกับเพื่อนตัวต่อตัว';
   // ตัวเลขบนปุ่มทางเข้าใหญ่ 3 ปุ่ม
   const pb = document.getElementById('peBadgeCt');
   if (pb) pb.textContent = badgesEarned().length + ' จาก ' + BADGES.length + ' เหรียญ';
@@ -8326,11 +8333,18 @@ function renderTabBadges() {
 
   // จุดแดงบนแท็บ "ฉัน" — ของรางวัลรายวันที่ยังไม่ได้กดรับ
   // ไม่มีตัวเลข เพราะมันคือของชิ้นเดียวต่อวัน ตัวเลขจะกลายเป็นการบอกว่า "1" ซึ่งไม่ได้บอกอะไรเพิ่ม
+  // 1B98 · จุดเดียวกันนี้ติดเมื่อมีข้อความรออ่านด้วย
+  // แท็บ "ฉัน" คือทางเข้าเดียวของกล่องข้อความตั้งแต่ 1B95 (ปุ่มลอยอยู่ในฟีดซึ่งปิดอยู่)
+  // ถ้าจุดแดงไม่ติด ก็ไม่มีอะไรบนจอบอกเลยว่ามีคนทักมา จนกว่าจะบังเอิญเปิดแท็บนั้นเอง
+  // ยังเป็นจุดเปล่าไม่มีตัวเลขเหมือนเดิม — ตัวเลขจริงอยู่บนแถว "ข้อความ" ข้างใน
   const dot = document.getElementById('dotMe');
   if (dot) {
-    const waiting = typeof dailyPending === 'function' && dailyPending();
+    const daily = typeof dailyPending === 'function' && dailyPending();
+    const msgs = (typeof dmPending === 'number' && dmPending > 0);
+    const waiting = daily || msgs;
     dot.hidden = !waiting;
-    dot.setAttribute('aria-label', waiting ? 'มีของรางวัลรายวันรอรับ' : '');
+    dot.setAttribute('aria-label', waiting
+      ? (msgs ? 'มีข้อความรออ่าน' : 'มีของรางวัลรายวันรอรับ') : '');
   }
 
   // ปุ่มเพื่อนมุมขวาบน — ขึ้นจำนวนคำขอที่รอเราตอบ ไม่ใช่จำนวนเพื่อน
@@ -11625,10 +11639,20 @@ function checkReminders() {
     const stage = hLeft <= 0 ? null : hLeft <= 3 ? 'soon' : hLeft <= 24 ? 'day' : null;
     if (!stage) continue;
     if (t.remindedStage === stage || (stage === 'day' && t.remindedAt)) continue;
+    // ---------- 1B98 · tag ต้องตรงกับฝั่งเซิร์ฟเวอร์ ----------
+    // send-reminders ส่ง push ของงานใบเดียวกันด้วย tag 'task-<id>' ส่วนที่นี่เคยใช้
+    // 'studentos-alt-<id>' · คนละ tag = ระบบปฏิบัติการถือว่าเป็นคนละเรื่อง
+    // เปิดแอปค้างไว้ตอน cron ยิงพอดี จึงได้การ์ดเตือนงานเดียวกันสองใบซ้อนกัน
+    // tag เดียวกันแปลว่าใบใหม่ "แทนที่" ใบเก่า ซึ่งเป็นสิ่งที่ควรเกิดอยู่แล้ว
     if (canNotify) {
       const c = reminderCopy(t, now);
-      notify(c.title, c.body, 'studentos-alt-' + t.id);
+      notify(c.title, c.body, 'task-' + t.id);
     }
+    // ---------- 1B98 · ไม่ได้ส่ง ก็ห้ามจดว่าส่งแล้ว ----------
+    // ของเดิมจดทุกครั้ง แม้ตอนที่ยังไม่ได้อนุญาตแจ้งเตือน · ผลคือคนที่มากดอนุญาต
+    // ทีหลัง จะไม่ได้รับการเตือนของงานที่ผ่านจังหวะไปแล้วเลย ทั้งที่เพิ่งเปิดให้เตือน
+    // แล้วจังหวะแรกที่เขาจะได้เจอคือ 3 ชม.ก่อนส่ง ซึ่งอาจสายไปแล้วสำหรับงานนั้น
+    if (!canNotify) continue;
     t.remindedAt = now.toISOString();
     t.remindedStage = stage;
     touched = true;
@@ -12643,6 +12667,23 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) renderTabBadges();
   });
+
+  // ---------- 1B98 · ตัวนับข้อความค้างต้องมีนาฬิกาของตัวเอง ----------
+  // loadDmDot() เคยมีผู้เรียกอยู่ที่เดียวคือ renderFeed() ซึ่งอยู่ในฟีด (ชุมชน)
+  // และฟีดถูกปิดด้วย COMMUNITY_LIVE ตั้งแต่ 1B95 — ตัวนับจึงไม่เคยเดินอีกเลย
+  // ผลที่ผู้ใช้เจอคือ "เพื่อนทักมาแล้วแอปเงียบสนิท" ซึ่งอ่านว่าไม่มีระบบแจ้งเตือน
+  // ทั้งที่ระบบมีอยู่ครบ แค่ไม่มีใครกดให้มันเดิน
+  //
+  // ผูกกับนาฬิกาเดียวกับแบดจ์แถบล่างและกับการกลับเข้าแอป — สองจังหวะเดียวกับที่
+  // checkReminders ใช้อยู่แล้ว · ตัว loadDmDot มีเพดานของมันเองอยู่แล้ว (2 นาที)
+  // จึงไม่ได้ยิงเน็ตทุกนาทีตามชื่อ interval
+  if (typeof loadDmDot === 'function') {
+    setInterval(() => loadDmDot(), 60_000);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) loadDmDot(true);   // กลับเข้าแอป = อยากรู้เดี๋ยวนี้ ไม่ต้องรอรอบ
+    });
+    loadDmDot(true);
+  }
 
   // ของสองอย่างที่เคยรอฉากเปิดแอปปิดก่อนถึงจะเด้ง — ตอนนี้รอให้ผู้ใช้ตั้งตัวแทน
   // toast เตือนงานด่วนขึ้นเฉพาะตอนที่เขาอยู่ในแอปจริงแล้ว ไม่ใช่ตอนยังค้างหน้าบัญชี

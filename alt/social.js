@@ -662,6 +662,9 @@ async function openChat() {
     .limit(200);
   if (!error) chatMsgs = data || [];
   renderChat();
+  // 1B98 · เปิดห้องแล้ว = อ่านแล้ว · ต้องอยู่ตรงนี้ ไม่ใช่ตอนกดเข้ามา
+  // เพราะเวลาที่ต้องจำคือเวลาของข้อความล่าสุดที่โหลดมาได้จริง
+  dmMarkRead();
 
   // ข้อความใหม่เด้งเข้าเอง — ไม่ต้องปัดลงรีเฟรช
   closeChat();
@@ -673,6 +676,8 @@ async function openChat() {
         if (chatMsgs.some(m => m.id === p.new.id)) return;   // ของตัวเองที่เพิ่งส่งไป
         chatMsgs.push(p.new);
         renderChat();
+        // นั่งอยู่ในห้องตอนข้อความมาถึง = อ่านแล้ว ห้ามให้จุดแดงขึ้นตามหลัง
+        dmMarkRead();
       })
     .subscribe();
 }
@@ -1042,7 +1047,61 @@ let dmPending = 0;        // จำนวนคำขอที่ยังไม
 let dmReady = false;      // กล่องข้อความโผล่ต่อเมื่อหลังบ้านมี dm_inbox แล้ว
 let dmDotAt = 0;
 
-// เช็คคำขอค้างแบบเบา ๆ · ไม่ยิงถี่กว่าทุกสองนาที เพราะจุดแดงเป็นของที่ช้าได้
+// ============================================================
+// 1B98 · "ข้อความใหม่" เคยนับไม่ได้เลย และตัวนับก็ไม่เคยถูกเรียก
+// ------------------------------------------------------------
+// สองบั๊กซ้อนกันอยู่ตรงนี้ ทั้งคู่ทำให้ผลลัพธ์เดียวกัน: เพื่อนทักมาแล้วไม่มีอะไรขึ้นเลย
+//
+//   1) loadDmDot() มีผู้เรียกอยู่ที่เดียวคือ renderFeed() ในฟีด
+//      แต่ฟีด (ชุมชน) ถูกปิดด้วย COMMUNITY_LIVE ตั้งแต่ 1B95 — ในการใช้งานจริง
+//      จึงไม่มีใครเรียกมันอีกเลย · dmPending ค้างที่ 0 ตลอดชีพของแอป
+//      แปลว่าเลขบนแถว "ข้อความ" กับบนปุ่มลอย ไม่เคยขึ้นเลยแม้แต่ครั้งเดียว
+//      (แก้ที่ initApp — ให้มันเดินด้วยนาฬิกาเดียวกับ renderTabBadges)
+//
+//   2) ต่อให้ถูกเรียก มันนับแค่ `is_request` = "คำขอคุยที่ยังไม่ได้ตอบ"
+//      ข้อความใหม่จากห้องที่เปิดคุยกันไปแล้ว จึงไม่ถูกนับเป็นอะไรเลย
+//      ซึ่งเป็นเคสที่เกิดบ่อยที่สุด — คนที่คุยกันอยู่แล้วคือคนที่จะส่งข้อความหากัน
+//
+// ฝั่งหลังบ้านไม่มีคอลัมน์ "อ่านแล้ว" (dm_inbox คืนแค่ last_at กับ mine_last)
+// และการเพิ่มคอลัมน์แปลว่าต้อง migrate ฐานข้อมูลจริง · แต่ข้อมูลที่มีพอแล้ว:
+// เก็บเวลาของข้อความล่าสุดที่ "เราเปิดห้องนั้นแล้วเห็น" ไว้ในเครื่อง
+// แล้วห้องไหนที่ last_at ใหม่กว่าที่เราเห็น และข้อความล่าสุดไม่ใช่ของเราเอง = ยังไม่ได้อ่าน
+//
+// ข้อจำกัดที่ต้องพูดให้ตรง: มันเป็นค่าต่อเครื่อง ไม่ตามไปเครื่องอื่น
+// อ่านในมือถือแล้วเปิดบนคอม จะยังเห็นเลขค้างอยู่จนกว่าจะเปิดห้องนั้นอีกครั้ง
+// ราคานี้ถูกกว่าการ migrate ตารางที่มีคนใช้อยู่จริง เพื่อของที่เป็นแค่จุดแดง
+// ============================================================
+const DM_SEEN_KEY = 'studentos.alt.dmSeen';
+
+function dmSeenMap() {
+  try { return JSON.parse(localStorage.getItem(DM_SEEN_KEY) || '{}') || {}; }
+  catch (_) { return {}; }
+}
+
+// เปิดห้องไหน = เห็นข้อความล่าสุดของห้องนั้นแล้ว
+// เก็บเฉพาะห้องที่ยังอยู่ในกล่อง 100 ห้องล่าสุด ไม่งั้นค่านี้โตไปเรื่อย ๆ ไม่มีที่สิ้นสุด
+function markDmSeen(threadId, at) {
+  if (!threadId) return;
+  const m = dmSeenMap();
+  m[threadId] = at || new Date().toISOString();
+  const keep = new Set(dmRows.map(r => r.id).concat([threadId]));
+  for (const k of Object.keys(m)) if (!keep.has(k)) delete m[k];
+  try { localStorage.setItem(DM_SEEN_KEY, JSON.stringify(m)); } catch (_) {}
+}
+
+// จำนวน "ของที่รอเราอยู่ในกล่องข้อความ" = คำขอที่ยังไม่ตอบ + ห้องที่มีข้อความใหม่
+function dmWaiting() {
+  const seen = dmSeenMap();
+  return dmRows.filter(r => {
+    if (r.is_request) return true;
+    if (r.mine_last) return false;              // ข้อความล่าสุดเป็นของเราเอง
+    if (!r.last_at) return false;
+    const s = seen[r.id];
+    return !s || new Date(r.last_at) > new Date(s);
+  }).length;
+}
+
+// เช็คของค้างแบบเบา ๆ · ไม่ยิงถี่กว่าทุกสองนาที เพราะจุดแดงเป็นของที่ช้าได้
 // (บทเรียนเดียวกับ HW_MIN_GAP ใน hw.js — ยิงทุกเรนเดอร์คือเน็ตของเด็ก)
 async function loadDmDot(force) {
   if (!sb || !currentUser) { dmPending = 0; return; }
@@ -1053,8 +1112,16 @@ async function loadDmDot(force) {
   if (error) return;
   dmReady = true;
   dmRows = data || [];
-  const n = dmRows.filter(r => r.is_request).length;
-  if (n !== dmPending) { dmPending = n; if (typeof renderFeed === 'function') renderFeed(); }
+  const n = dmWaiting();
+  if (n !== dmPending) {
+    dmPending = n;
+    // จอไหนที่โชว์เลขนี้อยู่ ต้องวาดใหม่ทั้งหมด ไม่ใช่เฉพาะฟีด
+    // (แถว "ข้อความ" ในแท็บฉัน · จุดแดงบนแถบล่าง · ปุ่มลอย) — พลาดจอไหนไป
+    // จอนั้นจะโชว์เลขของรอบก่อนค้างไว้ ซึ่งแย่กว่าไม่โชว์เลข
+    if (typeof renderFeed === 'function') renderFeed();
+    if (typeof renderProfile === 'function') renderProfile();
+    if (typeof renderTabBadges === 'function') renderTabBadges();
+  }
 }
 
 // ============================================================
@@ -1090,6 +1157,23 @@ function chatBack() {
   if (chatReturn === 'scr-dm') { renderDmInbox(); refreshDmRows(); }
 }
 
+// ห้องที่เปิดอยู่ตอนนี้ถูกอ่านแล้ว — จดเวลาไว้แล้วปรับเลขค้างทันที
+// ไม่รอรอบ 2 นาทีของ loadDmDot เพราะ "อ่านแล้วเลขยังค้าง" อ่านว่าแอปพัง
+function dmMarkRead() {
+  if (!chatThread) return;
+  const last = chatMsgs.length ? chatMsgs[chatMsgs.length - 1].created_at : null;
+  markDmSeen(chatThread.id, last);
+  const row = dmRows.find(r => r.id === chatThread.id);
+  if (row && last) { row.last_at = last; }
+  const n = dmWaiting();
+  if (n !== dmPending) {
+    dmPending = n;
+    if (typeof renderProfile === 'function') renderProfile();
+    if (typeof renderTabBadges === 'function') renderTabBadges();
+    if (typeof paintFeedFab === 'function') paintFeedFab();
+  }
+}
+
 async function openDmInbox(from) {
   if (!sb || !currentUser) return loginFromMates();
   dmReturn = from || pickReturn('scr-profile');
@@ -1099,6 +1183,12 @@ async function openDmInbox(from) {
   const { data, error } = await sb.rpc('dm_inbox');
   dmBusy = false;
   dmRows = error ? [] : (data || []);
+  dmReady = !error;
+  // กล่องที่เพิ่งโหลดสด ๆ คือแหล่งข้อมูลที่ใหม่ที่สุดที่มี — ใช้มันปรับเลขค้างเลย
+  // ไม่งั้นเลขบนแถว "ข้อความ" จะเป็นของรอบก่อนจนกว่านาฬิกา 2 นาทีจะเดินถึง
+  dmPending = dmWaiting();
+  if (typeof renderProfile === 'function') renderProfile();
+  if (typeof renderTabBadges === 'function') renderTabBadges();
   renderDmInbox();
 }
 
