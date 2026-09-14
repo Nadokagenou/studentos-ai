@@ -868,6 +868,7 @@ let thePost = null;
 let theReplies = [];
 
 async function openPost(id) {
+  postReturn = (typeof pickReturn === 'function') ? pickReturn('scr-mates', 'scr-post') : 'scr-mates';
   thePost = (feedRows || []).find(p => p.id === id) || null;
   theReplies = [];
   go('scr-post');
@@ -885,7 +886,7 @@ function renderThread() {
 
   box.innerHTML = `
     <div class="cp-top">
-      <button class="cp-x" onclick="go('scr-mates')">${icon('chevron')}</button>
+      <button class="cp-x" onclick="postBack()">${icon('chevron')}</button>
       <b>โพสต์</b><span></span>
     </div>
     <div class="th-scroll">
@@ -1172,8 +1173,40 @@ function faceTint(u) {
 let theUserPosts = [];
 let userBusy = false;
 
+// ============================================================
+// 1B95b · จอโปรไฟล์กับจอเธรดก็ต้องจำทางกลับเหมือนกัน
+// ------------------------------------------------------------
+// ผู้ใช้กด "ดูแบบที่เพื่อนเห็น" จากแท็บ "ฉัน" แล้วกดย้อนกลับ → **ได้จอขาวล้วน**
+// ที่มีแต่ปุ่ม AI ลอยอยู่ (ส่งภาพมา 14 ก.ย. 2569 เวลา 14:02)
+//
+// ต้นเหตุ: ปุ่มย้อนกลับของจอนี้เขียนตายตัวว่า go('scr-mates') เหมือนกับที่กล่องข้อความ
+// เคยเป็น · ฟีดวาดเนื้อในด้วย JS ทั้งใบ และ go() ไม่ได้สั่งวาด — ใครที่ไม่เคยเปิดฟีด
+// มาก่อนในรอบนี้ จึงถูกส่งไปยืนอยู่บนจอที่ยังไม่มีอะไรอยู่ในนั้นเลย
+//
+// 1B95 ทำให้เจอง่ายขึ้นมาก เพราะชุมชนถูกปิด คนทั่วไปจึงไม่มีเหตุให้เปิดฟีดอีกแล้ว
+// ทางเดียวที่เคยกลบบั๊กนี้ไว้คือ "บังเอิญเคยเปิดฟีดมาก่อน"
+//
+// แก้สองชั้น: จำจอที่เข้ามา + ทางกลับที่ลงฟีดต้องผ่าน backToFeed() ซึ่งสั่งวาดเสมอ
+let userReturn = 'scr-mates';
+let postReturn = 'scr-mates';
+
+// ห้ามใช้ go('scr-mates') ดิบ ๆ จากที่ไหนอีก — จอนั้นว่างเปล่าจนกว่าจะมีคนสั่งวาด
+function backToFeed() {
+  if (typeof openFeed === 'function') openFeed(feedView);
+  else go('scr-mates');
+}
+function userBack() {
+  if (userReturn === 'scr-mates') { backToFeed(); return; }
+  go(userReturn);
+}
+function postBack() {
+  if (postReturn === 'scr-mates') { backToFeed(); return; }
+  go(postReturn);
+}
+
 async function openUser(id) {
   if (!id || !sb || !currentUser) return;
+  userReturn = (typeof pickReturn === 'function') ? pickReturn('scr-mates', 'scr-user') : 'scr-mates';
   theUser = null; theUserPosts = []; userBusy = true;
   // เปิดหน้าใหม่ = รีเซ็ตแท็บกลับมาที่โพสต์เสมอ ไม่ใช่ค้างแท็บของคนก่อนหน้า
   userTab = 'posts'; userAnswers = null; answersBusy = false;
@@ -1239,12 +1272,12 @@ function renderUser() {
   if (!box) return;
 
   if (userBusy && !theUser) {
-    box.innerHTML = `<div class="cp-top"><button class="cp-x" onclick="go('scr-mates')">${icon('chevron')}</button>
+    box.innerHTML = `<div class="cp-top"><button class="cp-x" onclick="userBack()">${icon('chevron')}</button>
       <b>โปรไฟล์</b><span></span></div><p class="so-hint" style="padding:0 14px">กำลังเปิด…</p>`;
     return;
   }
   if (!theUser) {
-    box.innerHTML = `<div class="cp-top"><button class="cp-x" onclick="go('scr-mates')">${icon('chevron')}</button>
+    box.innerHTML = `<div class="cp-top"><button class="cp-x" onclick="userBack()">${icon('chevron')}</button>
       <b>โปรไฟล์</b><span></span></div>
       <div class="so-empty" style="margin:14px">
         <p class="so-empty-h">เปิดหน้านี้ไม่ได้</p>
@@ -1268,7 +1301,7 @@ function renderUser() {
 
   box.innerHTML = `
     <div class="cp-top">
-      <button class="cp-x" onclick="go('scr-mates')">${icon('chevron')}</button>
+      <button class="cp-x" onclick="userBack()">${icon('chevron')}</button>
       <b>${u.handle ? '@' + esc(u.handle) : esc(name)}</b>
       ${u.mine ? '<span></span>' : `<button class="cp-flag" aria-label="รายงานหรือบล็อก"
         onclick="openReport('user','${esc(u.id)}')">${icon('flag')}</button>`}
