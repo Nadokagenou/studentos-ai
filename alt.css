@@ -2451,7 +2451,17 @@
   font-family: inherit; font-size: 12.5px; font-weight: 600;
   transition: background .14s ease, color .14s ease;
 }
-.tk-mode.on { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
+/* 1B95 · ตัวที่เลือกอยู่เป็นน้ำเงินทึบ ไม่ใช่การ์ดขาวบนพื้นเทา
+   เจ้าของสั่งเอง: "อยากให้ selected state เป็นสีฟ้า เพราะจะช่วยให้เห็น active state ชัดขึ้น"
+   ของเดิมขาวบนพื้นเทาอ่อน ต่างกันแค่เงาบาง ๆ — กลางแดดแยกไม่ออกว่าอยู่โหมดไหน
+
+   เส้นแบ่งที่ห้ามข้าม: ฟ้าบนจอนี้มีสามจุดเท่านั้น — ปุ่มโหมดที่เลือก · การ์ดควรทำก่อน ·
+   เส้นหน้าชื่องาน · พื้นหลังยังขาว-ฟ้าจางเหมือนเดิมทั้งหน้า และตัวเลขสรุปเป็นสีหมึกธรรมดา
+   ฟ้าแปลว่า "กดได้ / สำคัญ" ไม่ใช่สีตกแต่ง (คำสั่งเดิม: "อย่าใช้ฟ้าทั้งหน้าจอ")
+
+   ไม่ใส่เงาสีให้ปุ่ม — ปุ่มกว้าง ~100px สูง 30px เงาฟุ้งใต้ของเล็กขนาดนี้อ่านเป็นรอยเปื้อน
+   ไม่ใช่ความสูง · พื้นทึบกับพื้นโปร่งต่างกันมากพออยู่แล้ว */
+.tk-mode.on { background: var(--fill); color: var(--on-fill); }
 
 /* 1B93 · เส้นคั่นก่อนของที่ยังไม่เสร็จ (ร้านค้า · Pro) ในลิสต์แท็บ "ฉัน"
 
@@ -5059,7 +5069,16 @@ body[data-godir] :root[data-theme="meta"] .screen.on { animation-duration: .24s;
    ป้ายเลขรุ่นกับปุ่มเพื่อนลอยอยู่เหนือทุกจอ จอที่ขึ้นต้นด้วยการ์ดเต็มความกว้าง
    (แท็บ "ฉัน") จึงมีของมาทับหัวการ์ดพอดี จอที่ขึ้นต้นด้วยหัวข้อไม่เป็น เพราะบรรทัด
    วันที่ตัวเล็กรับแรงชนไว้ให้อยู่แล้ว */
-.pf-body { padding-top: 42px; }
+/* 1B95 · 42px นั้นเคยเป็นที่ว่างที่กันไว้ให้ปุ่มเฟืองลอยมุมขวาบนโดยเฉพาะ
+   เฟืองย้ายเข้าไปอยู่ในหัวโปรไฟล์แล้ว ที่ว่างก้อนนี้จึงไม่มีอะไรมาอยู่อีก —
+   ถ้าไม่ถอดออก หน้าจะเปิดมาด้วยช่องว่างเปล่าสูงเท่านิ้วหัวแม่มือ
+   เหลือ 6px ไว้พอไม่ให้แถว @ชื่อผู้ใช้ชนขอบบนของพื้นที่เลื่อน */
+.pf-body { padding-top: 6px; }
+
+/* ก้อนที่ไม่มีเนื้อในต้องไม่กินระยะห่าง — #pfPriv ว่างตั้งแต่ 1B95 (ตัวเลขย้ายไปรวมกับกราฟ)
+   ส่วน #ctxHero กับ #showBox ว่างได้ตามสถานะของผู้ใช้ · <div> เปล่าที่ยังมี margin
+   คือช่องว่างลึกลับกลางหน้าที่หาต้นตอไม่เจอ */
+#pfPriv:empty, #ctxHero:empty, #showBox:empty { display: none; }
 
 /* ---------- การ์ดงานในตารางงาน ----------
    หนึ่งใบเคยพูดว่า "ด่วน" สามครั้ง: เลขลำดับพื้นแดง ป้ายคำว่าด่วนมากพื้นแดง
@@ -6106,6 +6125,26 @@ body.deep-scr .top-friends { display: none; }
   /* #aiBody ตั้ง padding เองใน today.css แบบย่อ (ทับกฎนี้) — safe-area ของมันอยู่ที่นั่น */
   .menu-body { padding-top: calc(10px + env(safe-area-inset-top)); }
   .screen.flush > .sticky-head { padding-top: calc(12px + env(safe-area-inset-top)); }
+
+  /* 1B95 · หัวจอตระกูลแชทไม่เคยได้ safe-area เลย
+     ------------------------------------------------------------
+     กฎบรรทัดบนแจกให้เฉพาะจอที่ใช้ `.sticky-head` · ส่วนห้องคุย กล่องข้อความ
+     ห้องการบ้าน และหัวข้อ วาดหัวของตัวเองด้วย JS ทั้งใบ (.ch-top/.hw-top/.tp-top)
+     ทั้งสี่จึงตกสำรวจมาตลอด แล้วปุ่มย้อนกลับไปนั่งทับนาฬิกากับแบตของเครื่องพอดี
+     — เห็นบนเครื่องจริงเท่านั้น บนคอมไม่มีนอตช์จึงไม่มีใครจับได้ (ผู้ใช้ส่งภาพมา 14 ก.ย. 2569)
+
+     **ต้องเขียน `.screen` นำหน้า** — social.css / hw.css / topic.css โหลดทีหลัง alt.css
+     และประกาศ `padding` แบบย่อไว้ทั้งคู่ (`padding: 10px 12px`) ถ้าเขียนแค่ `.ch-top`
+     ความจำเพาะเท่ากัน ไฟล์ที่โหลดทีหลังชนะ แล้ว padding-top ตรงนี้จะถูกล้างทิ้งเงียบ ๆ
+     `.screen .ch-top` = (0,2,0) ชนะ (0,1,0) เสมอไม่ว่าลำดับโหลดจะเป็นยังไง
+
+     ตั้งแค่ด้านบนด้านเดียว ซ้าย/ขวา/ล่างปล่อยให้ไฟล์เจ้าของคุมต่อไปเหมือนเดิม
+
+     (ไม่ต้อง sticky — ทั้งสี่จอวางหัวเป็นพี่น้อง flex ของตัวเลื่อนข้างใน
+      .ch-list/.dm-list อยู่แล้ว หัวจึงอยู่กับที่ด้วยผังเอง ไม่ได้เลื่อนไปกับเนื้อหา) */
+  .screen .ch-top, .screen .hw-top, .screen .tp-top {
+    padding-top: calc(10px + env(safe-area-inset-top));
+  }
 
   /* ปุ่มเพื่อนลอยมุมขวาบนก็โดนอาการเดียวกับปุ่มเฟืองใน 1A9e — top: 8px วัดจากขอบจอ
      บนเครื่องจริงขอบจอคือขอบบนของนาฬิกากับแบต ปุ่มจึงไปนั่งทับแบตพอดี (บนคอมไม่เห็น)
@@ -7414,3 +7453,152 @@ button.df-r:active { background: var(--surface); }
 .df-x b { display: block; font-size: 13.5px; font-weight: 600; color: var(--ink);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .df-x i { display: block; font-style: normal; font-size: 11.5px; color: var(--muted); }
+
+/* ============================================================
+   1B95 · แผ่น "เร็ว ๆ นี้"
+   ============================================================
+   ยืมโครง .add-sheet/.as-scrim/.as-card จาก today.css ทั้งก้อน — ของใหม่มีแค่เนื้อใน
+   จัดกลางจอทั้งแผ่น เพราะแผ่นนี้ไม่มีรายการให้เลือก มีข้อความเดียวกับทางไปต่อทางเดียว
+   (ต่างจากแผ่นเพิ่มงานที่เป็นรายการ จึงชิดซ้ายเหมือนรายการทุกอัน) */
+.soon-card { text-align: center; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+.soon-ic {
+  width: 56px; height: 56px; margin: 4px auto 12px;
+  display: grid; place-items: center;
+  border-radius: 18px; background: var(--blue-soft); color: var(--blue-deep);
+}
+.soon-ic svg { width: 26px; height: 26px; }
+.soon-t { margin: 0 0 5px; font-size: 19px; font-weight: 700; color: var(--ink); }
+/* ความกว้างสูงสุดบังคับให้ข้อความตัดบรรทัดตรงที่อ่านง่าย ไม่ใช่ตรงขอบจอ
+   ย่อหน้ากลางจอที่ยาวเต็มความกว้างอ่านยากกว่าย่อหน้าชิดซ้ายเสมอ */
+.soon-b {
+  margin: 0 auto 18px; max-width: 30ch;
+  font-size: 14px; line-height: 1.55; color: var(--muted);
+}
+.soon-go {
+  width: 100%; padding: 13px; border: 0; border-radius: 14px;
+  background: var(--fill); color: var(--on-fill);
+  font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.soon-go:active { transform: scale(.98); }
+.soon-x {
+  width: 100%; margin-top: 6px; padding: 11px; border: 0; border-radius: 14px;
+  background: none; color: var(--muted);
+  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+
+/* ---------- แถวในลิสต์แท็บ "ฉัน" ที่ยังไม่เปิด (1B95) ---------- */
+/* ป้ายใช้ทรง .pe-wip เดิมของร้านค้า/Pro — แต่โทนฟ้าแทนเหลือง
+   เหลือง = "กำลังทำอยู่" · ฟ้า = "ทำเสร็จแล้วแต่ยังไม่เปิด" ซึ่งเป็นคนละสถานะ */
+.pe-soon-tag { background: var(--blue-soft); color: var(--blue-deep); }
+
+/* ตัวเลขข้อความค้างบนแถว "ข้อความ" — ทรงเดียวกับจุดแดงบนแถบล่าง
+   ไม่ใช่จุดเปล่า ๆ เพราะจำนวนคือสิ่งที่ตัดสินว่าจะกดเข้าไปตอนนี้หรือทีหลัง */
+.pe-n {
+  display: inline-block; min-width: 19px; margin-left: 7px; padding: 1px 6px;
+  border-radius: 999px; background: var(--fill); color: var(--on-fill);
+  font-size: 11px; font-weight: 700; line-height: 1.5; text-align: center;
+  vertical-align: 1px;
+}
+.pe-n[hidden] { display: none; }
+
+/* ============================================================
+   1B95 · แถบ "โชว์ · พื้นที่ของฉัน"
+   ============================================================
+   สามช่องเท่ากันเป๊ะ ขอบ เส้นฐาน และระยะในเท่ากันทุกใบ — มันคือของชนิดเดียวกัน
+   สามชิ้น ไม่ใช่การ์ดสามใบที่บังเอิญมาอยู่ติดกัน
+   สูงเท่ากันด้วย grid ไม่ใช่ปล่อยให้เนื้อในกำหนด เพราะบรรทัดรองยาวไม่เท่ากัน
+   (ห้องของฉันอาจยาวถึง "วางของไว้ 12 ชิ้น" ส่วนเหรียญสั้นแค่ "6 จาก 11") */
+.sw-row {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  margin-top: 9px;
+}
+.sw {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 12px 7px 13px; border: 0; border-radius: var(--r-tile);
+  background: var(--card); box-shadow: var(--shadow);
+  font: inherit; text-align: center; cursor: pointer;
+  transition: transform .14s ease;
+}
+.sw:active { transform: scale(.97); }
+.sw-ic {
+  width: 38px; height: 38px; margin-bottom: 5px;
+  display: grid; place-items: center; border-radius: 12px;
+  background: var(--surface); color: var(--faint);
+}
+.sw-ic svg { width: 19px; height: 19px; }
+/* ทองเฉพาะใบที่มีของจริงแล้วเท่านั้น — ใบที่ยังว่างอยู่เป็นเทาปกติ
+   ถ้าทองขึ้นทุกใบตั้งแต่วันแรก มันก็ไม่ได้แปลว่าอะไรอีกต่อไป */
+.sw.got .sw-ic { background: var(--warn-soft); color: var(--warn); }
+.sw b {
+  font-size: 13px; font-weight: 700; color: var(--ink);
+  line-height: 1.25;
+}
+.sw i {
+  font-style: normal; font-size: 11px; line-height: 1.3; color: var(--faint);
+}
+
+/* ตัวเลขส่วนตัวที่ย้ายเข้ามาอยู่หัวการ์ด "ผลของฉัน" — คั่นจากกราฟด้วยเส้นผม
+   ไม่ใช่ระยะห่างเปล่า ๆ เพราะสองก้อนนี้อ่านคนละแบบ (ตัวเลข vs กราฟ)
+   เส้นบอกว่ามันเป็นสองส่วนของการ์ดใบเดียว ไม่ใช่สองการ์ดที่ติดกัน */
+.st-priv {
+  padding-bottom: 12px; margin-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+/* ป้ายกุญแจบนหัวการ์ด — คุมทั้งใบ ไม่ใช่แค่แถวตัวเลข */
+.st-open .sec-label svg {
+  width: 12px; height: 12px; vertical-align: -1px; margin-right: 4px;
+}
+
+/* ============================================================
+   1B95 · จอ "งาน" โหมดวันนี้ — ชิ้นส่วนที่ยุบน้ำหนักลง
+   ============================================================
+   สองก้อนนี้เคยเป็นการ์ดเต็มใบทั้งคู่ (.tb-cls สามบรรทัด · .tb-stats สามใบ)
+   ทั้งที่ไม่มีก้อนไหนต้องตัดสินใจอะไรเลย · ยุบลงมาเป็นแถบบรรทัดเดียว
+   เพื่อคืนความดังทั้งหมดให้การ์ด "ควรทำก่อน" ซึ่งเป็นคำตอบจริงของจอนี้ */
+
+/* คาบที่กำลังเรียน / คาบถัดไป — แถวเดียวจบ */
+.tb-now {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 13px; margin-bottom: 10px;
+  border-radius: 13px; background: var(--card);
+  font-size: 13.5px; line-height: 1.4; color: var(--muted);
+}
+.tb-now b { font-weight: 700; color: var(--ink); }
+/* จุดเขียว = กำลังเกิดขึ้นอยู่ตอนนี้ · จุดเทา = ยังมาไม่ถึง
+   สองสถานะนี้ต่างกันจริงและต้องแยกออกด้วยหางตา ไม่ต้องอ่านคำ */
+.tb-now-pip {
+  width: 7px; height: 7px; flex: none; border-radius: 50%;
+  background: var(--good);
+}
+.tb-now-pip.next { background: var(--faint); }
+
+/* ภาพรวมวันนี้ — สามเลขในแถบเดียว คั่นด้วยเส้น ไม่ใช่สามการ์ด
+   ตัวเลขเป็นสีหมึกธรรมดา ไม่ใช่ฟ้า — มันคือข้อมูล ไม่ใช่ของที่กดได้ */
+.tb-strip {
+  display: flex; margin-bottom: 12px;
+  padding: 10px 4px; border-radius: 14px; background: var(--card);
+}
+.tb-strip > div {
+  flex: 1; min-width: 0; text-align: center;
+  border-right: 1px solid var(--line);
+}
+.tb-strip > div:last-child { border-right: 0; }
+.tb-strip b {
+  display: block; font-size: 16px; font-weight: 700; line-height: 1.25;
+  color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.tb-strip i { font-style: normal; font-size: 11px; color: var(--faint); }
+
+/* หัวข้อกลุ่มของคิว — ถ้าไม่มี สามแถวข้างล่างอ่านเป็น "งานทั้งหมดของวันนี้"
+   ซึ่งไม่จริง มันคือสามอันแรกของคิว · ปุ่มขวาคือทางไปดูของที่เหลือ */
+.tb-grp {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 8px; margin: 0 2px 8px;
+}
+.tb-grp b { font-size: 13px; font-weight: 700; color: var(--muted); }
+.tb-grp button {
+  display: inline-flex; align-items: center; gap: 1px;
+  padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 12.5px; font-weight: 600; color: var(--blue);
+}
+.tb-grp button svg { width: 14px; height: 14px; }

@@ -20,6 +20,20 @@
 //
 // ขั้นที่ไกลกว่านี้ (หัวข้อทั่วโลก) ไม่ได้อยู่ในฟีด มันอยู่คนละจอด้วยเหตุผลที่เขียนไว้ใน topic.js —
 // ฟีดเรียงตามเวลา หน้าหัวข้อเรียงตามว่าคำตอบไหนช่วยได้จริง คนละตรรกะกันคนละเรื่อง
+// ============================================================
+// 1B95 · สวิตช์เปิด/ปิดชุมชน
+// ------------------------------------------------------------
+// เจ้าของสั่งเอง (14 ก.ย. 2569): "ระบบ Social / Class Posts ตอนนี้ยังไม่ต้องเปิด
+// ให้ใช้งานจริง · ให้แสดงเป็น Coming Soon และทำให้ดูเหมือน feature ที่กำลังจะเปิด"
+//
+// **ปิด ไม่ใช่ลบ** — โค้ดฟีดทั้งก้อน (โพสต์ · ช่วง 4 ระดับ · presence · realtime)
+// ทำงานได้จริงและมีโพสต์ของผู้ใช้อยู่แล้ว วันที่พร้อมเปิดคือแก้ค่าเดียวบรรทัดนี้
+// ลบโค้ดทิ้งแล้วเขียนใหม่ทีหลังคือการจ่ายค่าเดิมสองรอบเพื่อไม่ได้อะไรเพิ่ม
+//
+// ปิดแล้วจอ scr-mates เหลือโหมดเดียวคือรายชื่อเพื่อน — ซึ่งเป็นคนละระบบกับฟีด
+// และเป็นระบบที่เจ้าของสั่งให้แยกออกจากกันให้ชัด (communication vs community)
+const COMMUNITY_LIVE = false;
+
 const FEED_SCOPES = [
   { id: 'all',     name: 'ทั้งหมด' },
   { id: 'room',    name: 'ห้องฉัน' },
@@ -85,6 +99,12 @@ function avOf(name) {
 // โหลดฟีด
 // ============================================================
 async function loadFeed(scope) {
+  // ชุมชนปิดอยู่ = ไม่มีโหมดฟีดให้กลับไป · ออกตรงนี้เลย
+  // ไม่งั้น openFeed() ที่เพิ่งตั้ง feedView เป็น 'friends' จะถูกบรรทัดล่างดึงกลับเป็น 'feed'
+  // ทันที (openFeed เรียก loadFeed ต่อเป็นขั้นตอนที่สอง) แล้วจอเพื่อนจะกลายเป็น
+  // ฟีดเปล่าที่ขึ้นว่า "ล็อกอินเพื่อเห็นฟีด" ทั้งที่หัวจอเขียนว่า "เพื่อนของฉัน"
+  // — เจอจริงตอนเทสต์ 14 ก.ย. 2569
+  if (!COMMUNITY_LIVE) return;
   // กดแท็บช่วงของฟีดเมื่อไหร่ = กลับมาโหมดฟีดเสมอ · ไม่งั้นกดแล้วจอไม่เปลี่ยน
   const was = feedView;
   feedView = 'feed';
@@ -103,6 +123,10 @@ async function loadFeed(scope) {
 // ของที่ขยับเองใต้นิ้วระหว่างอ่านคือของที่น่ารำคาญ ไม่ใช่ของที่น่าตื่นเต้น
 function watchFeed() {
   unwatchFeed();
+  // ชุมชนปิด = ไม่มีใครดูโพสต์อยู่ · ช่อง realtime ที่เปิดค้างกินโควตาซึ่งนับ
+  // "จำนวนช่องที่เปิดพร้อมกัน" ไม่ใช่จำนวนข้อความ — เปิดทิ้งไว้เพื่อฟีดที่ไม่มีใครเห็น
+  // คือการจ่ายโควตาให้ของที่ปิดอยู่
+  if (!COMMUNITY_LIVE) return;
   if (!sb || !currentUser) return;
   feedSub = sb.channel('feed-live')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, p => {
@@ -220,9 +244,14 @@ function renderFeed() {
   const box = document.getElementById('feedBody');
   if (!box) return;
 
+  // ชุมชนปิดอยู่ = จอนี้คือ "เพื่อนของฉัน" ล้วน ๆ · ชื่อจอต้องตรงกับสิ่งที่อยู่ในจอ
+  // หัวข้อว่า "เพื่อนร่วมห้อง" บนจอที่มีแต่รายชื่อเพื่อน คือคำโกหกเล็ก ๆ
+  // ที่ทำให้คนไม่แน่ใจว่ากดมาถูกที่หรือเปล่า (บทเรียนเดียวกับ viewTitle ใน 1B93)
+  const onlyFriends = !COMMUNITY_LIVE;
+
   box.innerHTML = `
     <div class="fd-top">
-      <h1 class="fd-title">เพื่อนร่วมห้อง</h1>
+      <h1 class="fd-title">${onlyFriends ? 'เพื่อนของฉัน' : 'เพื่อนร่วมห้อง'}</h1>
       <!-- 1B53 · แว่นขยายอยู่บนหัวจอ ไม่ใช่ช่องค้นหากางค้างอยู่กลางจอ
            จอนี้เปิดมาเพื่อดูเพื่อน ไม่ใช่เพื่อค้นหา — ช่องที่กางค้างคือแถบสูง 46px
            ที่กันคนส่วนใหญ่ออกจากเนื้อหาโดยไม่ได้ช่วยอะไรเขา -->
@@ -237,7 +266,7 @@ function renderFeed() {
       </button>
     </div>
 
-    <div class="fd-scopes" role="tablist">
+    ${onlyFriends ? '' : `<div class="fd-scopes" role="tablist">
       ${FEED_SCOPES.filter(s => s.id !== 'country'
           || (typeof cohortReady !== 'undefined' && cohortReady))
         .map(s => `<button role="tab" class="fd-scope${
@@ -249,7 +278,7 @@ function renderFeed() {
       <button role="tab" class="fd-scope fd-scope-fr${feedView === 'friends' ? ' on' : ''}"
         aria-selected="${feedView === 'friends'}"
         onclick="showFriendsTab()">เพื่อนฉัน<span class="fd-scope-n" id="frTabN" hidden></span></button>
-    </div>
+    </div>`}
 
     ${feedView === 'friends' ? '<div id="friendsBody" class="fr-body"></div>' : `
       <div id="onlineRow"></div>
@@ -922,7 +951,9 @@ function openFeed(view) {
     renderConsent();
     return;
   }
-  feedView = view === 'friends' ? 'friends' : 'feed';
+  // ชุมชนปิดอยู่ = จอนี้มีโหมดเดียว · ทางเข้าเดิมที่ยังเรียก openFeed() เปล่า ๆ
+  // (ลิงก์เก่า · จอที่ค้างไว้ตอนสลับแอป) ต้องลงที่รายชื่อเพื่อน ไม่ใช่ฟีดเปล่า
+  feedView = (!COMMUNITY_LIVE || view === 'friends') ? 'friends' : 'feed';
   go('scr-mates');
   renderFeed();
   loadFeed();
@@ -966,7 +997,32 @@ function profileHeadHTML(u, opts) {
          onclick="openFace('${esc(u.avatar)}','${esc(name).replace(/'/g, "\\'")}')">`
     : `<div class="ig-av" style="${faceTint(u)}">${esc(faceLetter(u))}</div>`;
 
-  return `
+  // ============================================================
+  // 1B95 · หัวของ "ฉัน" กับหัวของ "เพื่อน" ต่างกันสามจุด
+  // ------------------------------------------------------------
+  // ยังเป็นฟังก์ชันเดียวกันตามมติ 1B70 (เปิดหน้าตัวเองต้องเห็นของจริงที่เพื่อนเห็น)
+  // แต่หน้าตัวเองมีงานเพิ่มอีกอย่างที่หน้าเพื่อนไม่มี คือ "เข้าไปตั้งค่า"
+  //
+  // 1) แถวบนสุด: @ชื่อผู้ใช้ · ชั้นเรียน ทางซ้าย — เฟืองทางขวา
+  //    เจ้าของสั่งเอง (14 ก.ย. 2569): "ฟันเฟืองต้องอยู่ด้านบนขวา"
+  //    ของเดิมเป็นปุ่มลอย .top-set แบบ position:fixed อยู่นอกกองจอ พอเลื่อนหน้าลงมา
+  //    มันไม่เลื่อนตาม แล้วไปทับคำว่า "ดูทั้งหมด" ของบล็อกผลของฉันพอดี (ผู้ใช้ส่งภาพมา)
+  //    ย้ายเข้ามาอยู่ในหัวจึงหายไปกับเนื้อหาเวลาเลื่อน และไม่ทับอะไรอีกเลย
+  //
+  // 2) บรรทัดชื่อเหลือแค่ชื่อกับป้ายนักเรียน — ชั้นเรียนย้ายขึ้นไปแถวบนแล้ว
+  //    ที่ใต้ชื่อคืนให้ bio ตรงที่ IG วางไว้ ("ไอที่มันอยู่ด้านล่างชื่อคือ bio")
+  //
+  // 3) ชิปวิชาไม่ขึ้นในหน้าตัวเอง — ไปเป็นแถว "วิชาของฉัน" ในลิสต์ข้างล่างแทน
+  //    **แต่ยังขึ้นครบในหน้าที่เพื่อนเปิดดู** เพราะนั่นคือที่ที่มันทำงานจริง:
+  //    คนอื่นใช้ชิปหาว่าเราช่วยอะไรได้ ส่วนเราไม่ต้องโชว์ให้ตัวเองดู แค่มีทางไปแก้ก็พอ
+  const topRow = o.mine ? `
+    <div class="ig-top">
+      <span class="ig-hd">${[u.handle ? '@' + esc(u.handle) : '', esc(where)]
+        .filter(Boolean).join(' · ') || 'ยังไม่มีชื่อผู้ใช้'}</span>
+      <button class="ig-set" onclick="go('scr-settings')" aria-label="ตั้งค่า">${icon('cog')}</button>
+    </div>` : '';
+
+  return `${topRow}
     <div class="ig-head">
       <div class="ig-av-wrap">
         ${face}
@@ -982,12 +1038,12 @@ function profileHeadHTML(u, opts) {
 
     <div class="ig-id">
       <b>${esc(name)}<span class="ig-tick">${icon('check')}นักเรียน</span></b>
-      ${where ? `<i>${esc(where)}</i>` : ''}
+      ${!o.mine && where ? `<i>${esc(where)}</i>` : ''}
       ${o.extra || ''}
     </div>
     ${u.bio ? `<p class="ig-bio">${esc(u.bio)}</p>` : ''}
     ${o.buttons || ''}
-    ${chips.length ? `<div class="ig-strip">${chips.join('')}</div>` : ''}`;
+    ${!o.mine && chips.length ? `<div class="ig-strip">${chips.join('')}</div>` : ''}`;
 }
 
 // ---------- ก้อนโปรไฟล์ของตัวเอง ----------
@@ -1035,6 +1091,9 @@ function renderProfileHead() {
   const u = Object.assign(local, myCard || {});
   // รูปในเครื่องมาก่อนของเซิร์ฟเวอร์เสมอ — เครื่องนี้คือที่ที่เขาเพิ่งตั้งมัน
   if (local.avatar) u.avatar = local.avatar;
+  // 1B95 · @ชื่อผู้ใช้ขึ้นไปอยู่แถวบนสุดของหัวแล้ว จึงต้องไม่หายระหว่างรอเซิร์ฟเวอร์
+  // Object.assign ข้างบนปล่อยให้ handle ของ myCard (ซึ่งอาจเป็น null) ทับของในเครื่องได้
+  if (!u.handle && local.handle) u.handle = local.handle;
 
   box.innerHTML = profileHeadHTML(u, {
     mine: true,
