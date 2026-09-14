@@ -1068,10 +1068,16 @@ async function loadDmDot(force) {
 // จำจอที่เข้ามาแล้วกลับไปที่นั่น · แต่ไม่ใช่ทุกจอที่กลับไปได้ —
 // จอที่วาดเนื้อในด้วย JS แล้วไม่มีใครวาดซ้ำให้ตอนกลับ จะกลายเป็นจอเปล่าที่ออกไม่ได้
 // (บทเรียนเดียวกับ NO_RESUME ใน app.js) รายการนี้จึงเป็นรายชื่อขาว ไม่ใช่รายชื่อดำ
-const BACK_OK = ['scr-menu', 'scr-tasks', 'scr-profile', 'scr-mates', 'scr-dm'];
+// scr-post / scr-user อยู่ในรายชื่อได้เพราะเนื้อในของมันไม่ถูกล้างตอนย้ายจอ
+// (ต่างจาก scr-chat ที่ closeChat() ตัดช่อง realtime ทิ้งแล้วต้องเปิดใหม่)
+const BACK_OK = ['scr-menu', 'scr-tasks', 'scr-profile', 'scr-mates', 'scr-dm',
+  'scr-post', 'scr-user'];
 let dmReturn = 'scr-profile';
 let chatReturn = 'scr-dm';
-function pickReturn(fallback) {
+// ห้ามคืนค่าเป็นจอที่กำลังจะเปิด — เปิดโปรไฟล์จากในโปรไฟล์แล้วกดย้อนกลับ
+// จะได้จอเดิมค้างอยู่ ซึ่งอ่านว่า "ปุ่มเสีย" ไม่ใช่ "ย้อนกลับแล้ว"
+function pickReturn(fallback, opening) {
+  if (curScreen === opening) return fallback;
   return BACK_OK.includes(curScreen) ? curScreen : fallback;
 }
 // ปุ่มเรียกฟังก์ชัน ไม่ใช่ฝังชื่อจอลงใน onclick ตอนวาด — จอถูกวาดซ้ำหลายรอบ
