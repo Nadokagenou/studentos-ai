@@ -39,15 +39,42 @@ const SOURCES = [
     desc: 'โน้ต · Classroom · Gmail · เว็บ · แชทไหนก็ได้',
     how: ['เปิดแอปที่มีงานอยู่ แล้วเลือกข้อความ', 'กดปุ่มแชร์ของเครื่อง', 'เลือก Student OS'] },
 
-  { id: 'classroom', name: 'Google Classroom', icon: 'book',
-    kind: 'connector', state: 'setup', viaInbox: true,
-    desc: 'ดึงงานที่ครูมอบหมายและกำหนดส่งมาเอง',
-    blocker: 'ติดที่การเปิดบัญชีนักพัฒนา ไม่ได้ติดที่โค้ด — ต้องมี Google Cloud project + OAuth consent screen (โหมด test user ใช้ได้เลย)' },
+  // ---------- ตัวเชื่อมที่ต่อผ่าน API ทางการ ----------
+  // id ต้องตรงกับชื่อ provider ฝั่งเซิร์ฟเวอร์เป๊ะ ๆ เพราะแถวใน inbox_items ใช้ชื่อนั้น
+  // เป็นค่า source · ไม่ตรงเมื่อไหร่ สวิตช์เปิด/ปิดกับตัวนับจะชี้ไปคนละตัวโดยไม่มีอะไรฟ้อง
+  //
+  // state: 'oauth' = โค้ดพร้อมแล้ว แต่ "พร้อมใช้จริงไหม" ขึ้นกับว่าเซิร์ฟเวอร์มีกุญแจ
+  // ของ Google หรือยัง ซึ่งเป็นคำตอบที่มีแต่เซิร์ฟเวอร์รู้ (integrations.js ถามให้)
+  // ไม่มี toggle: true เหมือนตัวอื่น โดยตั้งใจ — ตัวที่ต่อผ่าน API มีสวิตช์ของตัวเองอยู่แล้ว
+  // บนแถวบัญชีที่เชื่อมไว้ (ปุ่มตัดการเชื่อม) สวิตช์ที่สองที่ทำเรื่องคล้ายกันแต่ไม่เหมือนกัน
+  // คือของที่ทำให้คนไม่รู้ว่าต้องกดอันไหนถึงจะหยุดจริง
+  // shortName ใช้บนแถวบัญชีที่เชื่อมแล้ว — ตรงนั้นมีชื่อปฏิทินจริงอยู่ใต้ชื่ออยู่แล้ว
+  // วงเล็บ "(Canvas · Moodle)" จึงกลายเป็นตัวหนังสือที่ดันชื่อให้ตกบรรทัดโดยไม่ได้บอกอะไรเพิ่ม
+  { id: 'ics', name: 'ปฏิทินของโรงเรียน (Canvas · Moodle)', shortName: 'ปฏิทินของโรงเรียน',
+    icon: 'calendar',
+    kind: 'connector', state: 'live', viaInbox: true, connect: 'ics',
+    desc: 'วางลิงก์ปฏิทินจากระบบของโรงเรียน แล้วกำหนดส่งไหลเข้ามาเอง',
+    note: 'เป็นลิงก์ที่ระบบของโรงเรียนออกให้นักเรียนเองอยู่แล้ว — ไม่ต้องขอใครอนุมัติ และไม่ต้องบอกรหัสผ่านกับใคร' },
 
-  { id: 'gcal', name: 'Google Calendar', icon: 'calendar',
-    kind: 'connector', state: 'setup', viaInbox: true,
+  { id: 'google_classroom', name: 'Google Classroom', icon: 'book',
+    kind: 'connector', state: 'oauth', viaInbox: true, connect: 'google',
+    desc: 'ดึงงานที่ครูมอบหมาย กำหนดส่ง และสถานะว่าส่งไปแล้วหรือยัง',
+    note: 'ขอสิทธิ์อ่านอย่างเดียว และเฉพาะงานของตัวเอง — ไม่เห็นงานหรือคะแนนของเพื่อนร่วมห้อง',
+    blocker: 'ต้องตั้งกุญแจ Google ฝั่งเซิร์ฟเวอร์ก่อน (Google Cloud project + OAuth consent screen)' },
+
+  { id: 'google_calendar', name: 'Google Calendar', icon: 'calendar',
+    kind: 'connector', state: 'oauth', viaInbox: true, connect: 'google',
     desc: 'วันสอบและกิจกรรมที่โรงเรียนลงปฏิทินไว้',
-    blocker: 'ใช้ OAuth ดอกเดียวกับ Classroom — เปิดพร้อมกันได้ ไม่ต้องตั้งเพิ่ม' },
+    blocker: 'ใช้กุญแจดอกเดียวกับ Classroom — ตั้งครั้งเดียวได้ทั้งคู่' },
+
+  // Microsoft เปิด API ให้จริง (Graph · EduAssignments) แต่ล็อกไว้ที่ชั้นที่เราข้ามไม่ได้:
+  // สิทธิ์ชุดนั้นเป็นแบบ "ต้องให้แอดมินอนุมัติ" ทั้งโดเมน นักเรียนกดยอมรับเองไม่ได้เลยสักคน
+  // จึงไม่ใช่ทั้ง 'รอตั้งค่า' (รอเรา) และไม่ใช่ 'ต่อไม่ได้' (ไม่มีวันได้) — มันเป็นอย่างที่สาม
+  { id: 'ms_teams', name: 'Microsoft Teams (งานในห้องเรียน)', icon: 'users',
+    kind: 'connector', state: 'admin', viaInbox: true,
+    desc: 'งานที่ครูสั่งผ่าน Teams Assignments',
+    blocker: 'Microsoft บังคับให้ผู้ดูแลระบบของโรงเรียนอนุมัติแอปก่อน นักเรียนกดเชื่อมเองไม่ได้ — ไม่ใช่ข้อจำกัดของเรา',
+    insteadOf: 'share' },
 
   // เขียนไว้ให้ชัดว่า "ไม่ใช่ยังไม่ทำ" แต่ "ทำไม่ได้" — คนที่รอฟีเจอร์นี้จะได้ไม่รอเปล่า
   { id: 'notes', name: 'โน้ต (Apple · Samsung · Keep)', icon: 'pencil',
@@ -96,8 +123,10 @@ function srcToggle(id, quiet) {
 // หน้าเต็มอยู่ลึกสองชั้น (กล่องเข้า → เลื่อนลงสุด → ปุ่ม) ซึ่งแปลว่าไม่มีใครหาเจอ
 // ส่วนปุ่ม + อยู่บนแถบล่างของทุกหน้า = ห่างจากนิ้วหนึ่งครั้งกดเสมอ
 // ตัวเชื่อมเป็นของที่ตั้งครั้งเดียวก็จริง แต่ "ครั้งเดียว" นั้นจะไม่เกิดขึ้นเลยถ้าหาไม่เจอ
+// ตัวที่ต่อผ่าน API ไม่อยู่ในเมนูนี้ (กรอง s.connect ออก) เพราะมันไม่มีสวิตช์ให้กด —
+// การเชื่อม/ตัดของพวกนั้นอยู่บนแถวบัญชีในหน้าเต็ม ซึ่งเป็นที่เดียวที่บอกสถานะจริงได้
 function connectorMenuRows() {
-  const list = SOURCES.filter(s => s.kind === 'connector' && s.state === 'live');
+  const list = SOURCES.filter(s => s.kind === 'connector' && s.state === 'live' && !s.connect);
   return list.map(s => {
     const on = srcEnabled(s.id);
     return `<div class="as-row as-tgl ${on ? '' : 'off'}" onclick="srcToggle('${s.id}', true)">
@@ -112,8 +141,14 @@ function connectorMenuRows() {
 
 // จำนวนตัวเชื่อมที่เปิดอยู่ / ทั้งหมด — โชว์บนแถวหลัก ให้รู้สถานะโดยไม่ต้องกดเข้าไปดู
 function connectorCount() {
-  const live = SOURCES.filter(s => s.kind === 'connector' && s.state === 'live');
-  return { on: live.filter(s => srcEnabled(s.id)).length, all: live.length };
+  const live = SOURCES.filter(s => s.kind === 'connector' && s.state === 'live' && !s.connect);
+  // บัญชีที่เชื่อมผ่าน API นับเป็นตัวเชื่อมหนึ่งตัวต่อหนึ่งบัญชี ไม่ใช่หนึ่งตัวต่อหนึ่งเจ้า —
+  // คนที่ต่อปฏิทินสองใบมีสองเส้นจริง ๆ · เส้นที่เสียไม่ถูกนับว่า "เปิดอยู่" เพราะมันไม่ได้ทำงาน
+  const accts = typeof integItems === 'function' ? integItems() : [];
+  return {
+    on: live.filter(s => srcEnabled(s.id)).length + accts.filter(a => a.status === 'active').length,
+    all: live.length + accts.length,
+  };
 }
 
 // ---------- ความมั่นใจ ----------
@@ -235,7 +270,9 @@ function looksLikeTaskList(segments) {
 // แหล่งที่ข้อมูลไหลเข้ามาเองโดยไม่มีใครสั่ง — พวกนี้ต้องผ่านประตูแรกก่อน
 // ส่วนสแกน/พูด/แปะเอง ไม่ต้องกรอง เพราะนักเรียนตั้งใจส่งเข้ามาเองอยู่แล้ว
 // ถ้าไปกรองของที่เขาตั้งใจส่ง จะกลายเป็นแอปที่เถียงกับผู้ใช้
-const PASSIVE_SOURCES = ['line', 'classroom'];
+// (ตัวเชื่อมที่ต่อผ่าน API ไม่อยู่ในลิสต์นี้ และต้องไม่อยู่ — ของที่ครูกดสั่งในระบบของ
+//  โรงเรียนคืองานแน่นอนอยู่แล้ว ไม่ใช่บทสนทนาที่ต้องมาเดาว่าใช่งานหรือเปล่า)
+const PASSIVE_SOURCES = ['line'];
 
 // ---------- จับซ้ำ ----------
 // ครูสั่งงานเดียวกันทั้งในกลุ่ม LINE และ Classroom เป็นเรื่องปกติ
@@ -370,6 +407,135 @@ function inboxAdd(rawText, sourceId = 'text', meta = {}) {
   state.inbox.unshift(item);
   save();
   return { status: 'pending', item };
+}
+
+// ============================================================
+// ประตูที่สอง: ของที่มาจาก API ของแพลตฟอร์มอื่น
+// ------------------------------------------------------------
+// **ไม่ผ่านตัวแกะข้อความเลยสักบรรทัด และต้องไม่ผ่านตลอดไป**
+// Classroom กับปฏิทินของ LMS ส่ง "ชื่องาน · คำสั่ง · กำหนดส่ง · คอร์ส" มาเป็นช่อง ๆ
+// อยู่แล้ว · เอาไปให้ parseAssignment เดาใหม่คือการเพิ่มโอกาสผิดให้ข้อมูลที่ถูกอยู่แล้ว
+//
+// สามอย่างที่ประตูนี้ทำต่างจากประตูแรก:
+//   1. ไม่ให้คะแนนความมั่นใจ — ข้อมูลมีโครงจากต้นทาง ไม่ได้เดาเอา จึงเข้าแผนเลย
+//   2. จับซ้ำด้วย srcKey (ต้นทาง + id ของต้นทาง) ไม่ใช่ด้วยข้อความ
+//      เพราะครูแก้กำหนดส่งย้อนหลังได้ และการแก้ต้องตามไปที่งานใบเดิม ไม่ใช่เกิดใบใหม่
+//   3. รับคำสั่ง "ถูกแก้" กับ "ถูกยกเลิก" ได้ ซึ่งข้อความจากแชทไม่มีวันบอกได้
+// ============================================================
+
+// ชนิดของงานฝั่งเรามีสี่แบบ (engine.js · TASK_TYPES) ตัวเชื่อมรู้จักแค่สาม
+const SYNC_TYPES = { homework: 'homework', exam: 'exam', event: 'activity' };
+
+function taskBySrcKey(key) {
+  if (!key) return null;
+  return (state.tasks || []).find(t => t.srcKey === key && !t.deleted) || null;
+}
+
+// ชื่อคอร์สจากต้นทางเป็นข้อความอิสระ ("ว31101 เคมี ม.4/2" · "Mathematics 4/2")
+// ส่วน StudentOS ใช้รายชื่อวิชาตายตัว — จับคู่ด้วยตัวแกะตัวเดิมของแอป
+// ไม่เขียนตัวจับคู่ชุดที่สองขึ้นมา เพราะสองชุดแปลว่ามีวันที่มันไม่ตรงกัน
+function syncSubject(courseName) {
+  if (!courseName || typeof parseAssignment !== 'function') return 'อื่น ๆ';
+  return parseAssignment(String(courseName)).subject || 'อื่น ๆ';
+}
+
+function syncParsed(meta) {
+  const t = (meta && meta.task) || {};
+  const subject = syncSubject(t.subject);
+  return {
+    subject,
+    detail: String(t.title || '').trim(),
+    teacher: '',
+    due: t.due || null,
+    type: SYNC_TYPES[t.type] || 'homework',
+    scorePct: null,
+    // ต้นทางไม่เคยบอกว่างานหนึ่งใช้เวลากี่นาที — ปล่อยให้ค่าเริ่มต้นของแอปทำงาน
+    // ใส่ตัวเลขเดาลงไปแล้วแผนทั้งสัปดาห์จะถูกจัดจากเวลาที่ไม่มีใครเคยวัด
+    estMin: null,
+    detected: { due: !!t.due, subject: subject !== 'อื่น ๆ' },
+  };
+}
+
+// ---------- ประตูหลักของของที่ซิงก์มา ----------
+// เรียกจาก pullInbox() เมื่อแถวนั้นมีธง structured · คืนสถานะให้ผู้เรียกสรุปรวมทีเดียว
+function inboxAddSynced(meta, sourceId) {
+  if (!meta || !meta.task) return { status: 'empty' };
+  if (!srcEnabled(sourceId)) return { status: 'off' };
+
+  const key = String(meta.srcKey || '');
+  const parsed = syncParsed(meta);
+  if (!parsed.detail) return { status: 'empty' };
+  const existing = taskBySrcKey(key);
+
+  // ---------- ต้นทางยกเลิก/ลบงานนี้ ----------
+  // ไม่ลบทิ้งเอง — ย้ายไปถังขยะ (deleted) ซึ่งเป็นกลไกที่แอปมีอยู่แล้วและกู้คืนได้
+  // ลบถาวรแทนคนคือการตัดสินใจแทนเขาในเรื่องที่เขาอาจทำไปแล้วครึ่งทาง
+  if (meta.op === 'cancel') {
+    if (!existing || existing.done) return { status: 'gone' };
+    existing.deleted = true;
+    existing.deletedAt = new Date().toISOString();
+    existing.srcCancelled = true;
+    save();
+    return { status: 'cancelled', task: existing };
+  }
+
+  // ---------- ต้นทางแก้ของเดิม ----------
+  if (existing) {
+    // ฝั่งต้นทางเป็นเจ้าของ "ข้อเท็จจริงของงาน" (ชื่อ · กำหนดส่ง · วิชา)
+    // ฝั่งนักเรียนเป็นเจ้าของ "การลงมือ" (ติ๊กเสร็จ · ความคืบหน้า · เวลาที่ประเมินเอง · งานย่อย)
+    // เส้นแบ่งนี้คือเหตุผลที่การซิงก์ไม่ลบความพยายามของใครทิ้ง
+    let changed = false;
+    if (parsed.detail && parsed.detail !== existing.detail) { existing.detail = parsed.detail; changed = true; }
+    if (parsed.due !== existing.due) { existing.due = parsed.due; changed = true; }
+    if (parsed.subject !== 'อื่น ๆ' && parsed.subject !== existing.subject) {
+      existing.subject = parsed.subject; changed = true;
+    }
+    if (meta.sourceUrl && meta.sourceUrl !== existing.sourceUrl) {
+      existing.sourceUrl = meta.sourceUrl; changed = true;
+    }
+    // ต้นทางเอางานที่เคยยกเลิกกลับมา — พากลับออกจากถังขยะให้ด้วย
+    if (existing.deleted && existing.srcCancelled) {
+      existing.deleted = false; existing.srcCancelled = false; changed = true;
+    }
+    if (!changed) return { status: 'same', task: existing };
+    save();
+    return { status: 'updated', task: existing };
+  }
+
+  // ---------- ของใหม่ ----------
+  const item = {
+    id: uid(), source: sourceId, raw: meta.raw || parsed.detail,
+    at: new Date().toISOString(),
+    parsed, confidence: 1, status: 'new', taskId: null,
+    meta: { srcKey: key, sourceUrl: meta.sourceUrl || null, account: meta.account || null },
+    sync: { srcKey: key, sourceUrl: meta.sourceUrl || null, srcSubject: (meta.task || {}).subject || '' },
+  };
+
+  // ครูสั่งงานเดียวกันทั้งในกลุ่ม LINE และใน Classroom เป็นเรื่องปกติที่สุด
+  // เจอของเดิมที่พิมพ์/รับเข้ามาก่อนแล้ว = ผูก srcKey เข้ากับใบเดิม ไม่สร้างใบที่สอง
+  // (ผูกแล้วการแก้กำหนดส่งรอบหน้าจะไหลเข้าใบนั้นเองโดยไม่ต้องทำอะไรเพิ่ม)
+  const dup = findDuplicate(parsed);
+  if (dup && dup.kind === 'task') {
+    const t = (state.tasks || []).find(x => x.id === dup.id);
+    if (t && !t.srcKey) {
+      t.srcKey = key;
+      t.sourceUrl = meta.sourceUrl || t.sourceUrl || null;
+      item.status = 'duplicate'; item.taskId = t.id; item.dupOf = dup;
+      state.inbox = state.inbox || [];
+      state.inbox.unshift(item);
+      save();
+      return { status: 'linked', task: t };
+    }
+  }
+
+  const task = inboxToTask(item);
+  item.status = 'accepted';
+  item.taskId = task.id;
+  state.inbox = state.inbox || [];
+  if (state.inbox.length > 150) state.inbox.length = 150;
+  state.inbox.unshift(item);
+  save();
+  return { status: 'accepted', task };
 }
 
 // ---------- ข้อความเดียว หลายงาน ----------
@@ -529,6 +695,15 @@ function inboxToTask(item) {
     // จำไว้ว่างานนี้มาจากไหน — ใช้ตอบคำถาม "งานนี้โผล่มาจากไหน" และใช้กรองในชั้นหนังสือ
     sourceId: item.source, sourceText: item.raw, fromInbox: item.id,
   };
+  // งานที่ซิงก์มาจาก API ถือกุญแจของต้นทางติดตัวไว้ — มันคือสิ่งเดียวที่ทำให้การแก้
+  // กำหนดส่งรอบหน้าไหลเข้าใบนี้ แทนที่จะกลายเป็นงานใบที่สองที่หน้าตาเหมือนกันเป๊ะ
+  // srcSubject เก็บชื่อคอร์สตามที่ต้นทางเรียก ("ว31101 เคมี ม.4/2") ไว้ตอบว่ามาจากห้องไหน
+  // เพราะ subject ถูกบีบให้เป็นหนึ่งในรายชื่อวิชาตายตัวไปแล้ว
+  if (item.sync) {
+    t.srcKey = item.sync.srcKey;
+    t.sourceUrl = item.sync.sourceUrl || null;
+    t.srcSubject = item.sync.srcSubject || '';
+  }
   state.tasks.push(t);
   // typeof กันไว้เพราะ inbox.js ถูกโหลดก่อน app.js — ตอนไฟล์นี้ถูกอ่านยังไม่มีฟังก์ชันนี้
   // (ตอนถูกเรียกจริงมีแล้ว แต่ลำดับโหลดห้ามสลับ จึงไม่พึ่งลำดับ)
@@ -783,6 +958,7 @@ function renderSources() {
   // ---------- ตัวเชื่อมที่ยังต่อไม่ได้ ----------
   // แยกสองเหตุผลออกจากกัน เพราะมันไม่เหมือนกันเลยสำหรับคนที่รอ:
   //   setup = รอเราไปตั้งค่า · noapi = เจ้าของแอปไม่เปิดให้ใครต่อ รอไปก็ไม่มีวันได้
+  const DEAD_TAG = { noapi: 'ต่อไม่ได้', admin: 'รอโรงเรียนอนุมัติ' };
   const deadRow = s => {
     const alt = s.insteadOf && sourceById(s.insteadOf);
     return `<div class="src off">
@@ -794,13 +970,94 @@ function renderSources() {
         ${alt ? `<span class="src-alt">${icon(alt.icon)}ใช้ "${esc(alt.name)}" แทนได้เลย —
           ได้ผลเหมือนกันทุกอย่าง ต่างแค่กดแชร์เอง</span>` : ''}
       </span>
-      <span class="src-tag ${s.state}">${s.state === 'noapi' ? 'ต่อไม่ได้' : 'รอตั้งค่า'}</span>
+      <span class="src-tag ${s.state}">${DEAD_TAG[s.state] || 'รอตั้งค่า'}</span>
+    </div>`;
+  };
+
+  // ---------- บัญชีที่เชื่อมผ่าน API ----------
+  // ความจริงเรื่องนี้อยู่ฝั่งเซิร์ฟเวอร์ (integrations.js ถามมาให้) ไม่ได้อยู่ในเครื่อง
+  const accts = typeof integItems === 'function' ? integItems() : [];
+  const busyId = typeof integ !== 'undefined' ? integ.busy : '';
+
+  const acctRow = r => {
+    const s = SOURCES.find(x => x.id === r.provider) || { name: r.provider, icon: 'calendar' };
+    const bad = r.status === 'needs_reauth';
+    const busy = busyId === r.id;
+    // ปุ่ม "เชื่อมใหม่" พาไปคนละทางตามชนิดของตัวเชื่อม: ฝั่ง Google พาออกไปหน้าอนุญาตใหม่
+    // ส่วนปฏิทินต้องให้คนไปก๊อปลิงก์ใหม่มาเอง เพราะลิงก์เดิมถูกเพิกถอนไปแล้ว
+    const again = r.provider === 'ics'
+      ? `document.getElementById('icsUrl').focus()`
+      : `integConnectGoogle('${r.provider}')`;
+    return `<div class="lk-room col">
+      <span class="lk-room-ic"${bad ? ' style="background:var(--warn-soft);color:var(--warn)"' : ''}>${icon(s.icon)}</span>
+      <span class="lk-room-bd">
+        <span class="t">${esc(s.shortName || s.name)}</span>
+        ${r.account ? `<span class="s">${esc(r.account)}</span>` : ''}
+        <span class="src-state ${bad ? 'bad' : 'ok'}">${icon(bad ? 'flag' : 'check-circle')}${esc(integStatusText(r))}</span>
+      </span>
+      <button onclick="integDisconnect('${esc(r.id)}')"${busy ? ' disabled' : ''}>ตัดการเชื่อม</button>
+      <div class="ib-act" style="width:100%">
+        ${bad ? `<button class="ib-go" style="flex:1" onclick="${again}">เชื่อมใหม่</button>` : ''}
+        <button onclick="integSyncNow('${esc(r.id)}')"${busy ? ' disabled' : ''}>
+          ${busy ? 'กำลังซิงก์…' : 'ซิงก์เดี๋ยวนี้'}</button>
+      </div>
+    </div>`;
+  };
+
+  // ---------- แถวของตัวที่ "ต่อได้" ----------
+  // ต้องล็อกอินก่อนเสมอ เพราะการเชื่อมคือการผูกบัญชีของที่อื่นเข้ากับบัญชีที่นี่
+  // ถ้าไม่บอกตรงนี้ คนจะกดปุ่มแล้วเจอ error ที่ไม่ได้อธิบายอะไร
+  const signedIn = typeof currentUser !== 'undefined' && !!currentUser;
+  const googleReady = typeof integ !== 'undefined' && integ.google;
+
+  const apiRow = s => {
+    const busy = busyId === s.id || busyId === 'ics';
+    const serverDown = typeof integ !== 'undefined' && !!integ.err;
+    let action;
+    if (!signedIn) {
+      action = `<div class="src-need">${icon('lock')}ต้องล็อกอินก่อน เพราะต้องรู้ว่างานที่ดึงมาเป็นของใคร</div>
+        <button class="ib-go" style="margin-top:10px; align-self:flex-start"
+          onclick="go('scr-profile')">ไปล็อกอิน</button>`;
+    } else if (serverDown) {
+      // ถามเซิร์ฟเวอร์ไม่ได้เลย (ยังไม่ได้ deploy · เน็ตหลุด) — ต้องไม่โชว์ปุ่มที่กดแล้วพัง
+      // และต้องไม่โชว์ว่า "ยังไม่ได้เชื่อมอะไร" ทั้งที่จริง ๆ แค่ถามไม่ได้
+      action = `<div class="src-need">${icon('flag')}ตอนนี้ยังต่อกับเซิร์ฟเวอร์ตัวเชื่อมไม่ได้ —
+        ลองใหม่อีกครั้งภายหลัง</div>`;
+    } else if (s.connect === 'ics') {
+      action = `<input class="src-in" id="icsUrl" inputmode="url" spellcheck="false"
+          placeholder="วางลิงก์ปฏิทินที่นี่"
+          onkeydown="if(event.key==='Enter')integConnectIcs(this.value)">
+        <button class="ib-go" style="margin-top:9px; align-self:flex-start"${busy ? ' disabled' : ''}
+          onclick="integConnectIcs(document.getElementById('icsUrl').value)">
+          ${icon('check')}${busy ? 'กำลังตรวจลิงก์…' : 'เชื่อมปฏิทิน'}</button>
+        <span class="src-help">
+          <b>Canvas:</b> ปฏิทิน → Calendar Feed → ก๊อปลิงก์<br>
+          <b>Moodle:</b> ปฏิทิน → Export calendar → Get calendar URL
+        </span>`;
+    } else if (!googleReady) {
+      // พูดตรง ๆ ว่าติดที่ฝั่งเรา ไม่ใช่ที่เครื่องเขา — ปุ่มที่กดแล้วขึ้น error
+      // แย่กว่าปุ่มที่ยังไม่มี (กติกาเดียวกับปุ่มล็อกอินใน config.js)
+      action = `<div class="src-need">${icon('lock')}${esc(s.blocker || 'ยังไม่พร้อมใช้งาน')}</div>`;
+    } else {
+      action = `<button class="ib-go" style="margin-top:10px; align-self:flex-start"${busy ? ' disabled' : ''}
+        onclick="integConnectGoogle('${s.id}')">${busy ? 'กำลังพาไป Google…' : 'เชื่อมด้วย Google'}</button>`;
+    }
+    return `<div class="src on">
+      <span class="src-ic">${icon(s.icon)}</span>
+      <span class="src-bd">
+        <span class="t">${esc(s.name)}</span>
+        <span class="s">${esc(s.desc)}</span>
+        ${s.note ? `<span class="src-note">${esc(s.note)}</span>` : ''}
+        ${action}
+      </span>
+      ${s.viaInbox && counts[s.id] ? `<span class="src-n">${counts[s.id]}</span>` : ''}
     </div>`;
   };
 
   const conn = SOURCES.filter(s => s.kind === 'connector');
-  const live = conn.filter(s => s.state === 'live');
-  const dead = conn.filter(s => s.state !== 'live');
+  const api = conn.filter(s => s.connect);
+  const live = conn.filter(s => s.state === 'live' && !s.connect);
+  const dead = conn.filter(s => s.state !== 'live' && !s.connect);
   const manual = SOURCES.filter(s => s.kind === 'manual');
   const onN = live.filter(s => srcEnabled(s.id)).length;
 
@@ -810,6 +1067,12 @@ function renderSources() {
       <p class="page-sub">เชื่อมครั้งเดียว แล้วไม่ต้องพิมพ์อะไรอีกเลย —
         งานที่ครูสั่งไหลเข้ามาเอง แอปอ่านให้ก่อน แล้วถามเฉพาะตอนที่ไม่มั่นใจ</p>
     </div>
+
+    ${accts.length ? `<div class="sec-title">บัญชีที่เชื่อมไว้ ${accts.length}</div>
+      ${accts.map(acctRow).join('')}` : ''}
+
+    <div class="sec-title">ต่อกับระบบของโรงเรียน</div>
+    ${api.map(apiRow).join('')}
 
     <div class="sec-title">ใช้งานอยู่ ${onN}/${live.length}</div>
     ${live.map(liveRow).join('')}
@@ -825,8 +1088,8 @@ function renderSources() {
       ${counts[s.id] ? `<span class="src-n">${counts[s.id]}</span>` : ''}
     </div>`).join('')}
 
-    <p class="src-foot">ที่ขึ้นว่า <b>รอตั้งค่า</b> ติดที่การเปิดบัญชีนักพัฒนา ไม่ได้ติดที่โค้ด —
-      เปิดได้เมื่อไหร่ เสียบเข้ากล่องเข้าได้ทันทีโดยไม่ต้องแก้ส่วนอื่นของแอป<br>
+    <p class="src-foot">ที่ขึ้นว่า <b>รอโรงเรียนอนุมัติ</b> คือเจ้าของระบบเปิดให้ต่อได้จริง
+      แต่ต้องให้ผู้ดูแลระบบของโรงเรียนกดอนุญาตก่อน รอเราไปทำก็ไม่ได้<br>
       ที่ขึ้นว่า <b>ต่อไม่ได้</b> คือเจ้าของแอปนั้นไม่เปิดให้ใครต่อเลย รอไปก็ไม่ได้ —
       แต่ทุกตัวในนั้นส่งเข้ามาได้ด้วยปุ่มแชร์ของเครื่องอยู่แล้ว</p>`;
 }
