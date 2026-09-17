@@ -1344,6 +1344,15 @@
               <button class="btn secondary sm" id="prefDueBtn" style="width:auto;min-height:34px;padding:0 14px"
                 onclick="toggleNotifPref('notifDue')">เปิดอยู่</button>
             </div>
+            <!-- 1B99 · สวิตช์เรื่องสังคม — ฝั่งเซิร์ฟเวอร์อ่าน settings.notifSocial ตัวเดียวกันนี้
+                 (ดู wantSocial ใน supabase/functions/send-reminders) จึงคุมได้ทั้งสองท่อ
+                 ด้วยสวิตช์เดียว ไม่ต้องมีที่ตั้งค่าสองที่ให้ขัดกันเอง -->
+            <div class="set-row" id="prefSocialRow" hidden>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
+              <span class="set-lb">ข้อความและคำขอเป็นเพื่อน<i>เด้งแม้ปิดแอป · ไม่เกินวันละ 6 ครั้ง</i></span>
+              <button class="btn secondary sm" id="prefSocialBtn" style="width:auto;min-height:34px;padding:0 14px"
+                onclick="toggleNotifPref('notifSocial')">เปิดอยู่</button>
+            </div>
             <div class="set-row" id="prefNudgeRow" hidden>
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-chat"/></svg></span>
               <span class="set-lb">ทักเมื่อไม่ได้เปิดหลายวัน<i>ไม่เกินสัปดาห์ละครั้ง</i></span>

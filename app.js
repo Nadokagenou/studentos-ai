@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B98';                 // สายเลขของแอป
+const APP_VERSION = '1B99';                 // สายเลขของแอป
 const APP_CODENAME = 'Horizon';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -1414,7 +1414,10 @@ function skipLogin() {
 }
 
 async function logout() {
-  if (sb) await sb.auth.signOut();
+  // 1B99 · signOut() ที่โยน error (เน็ตหลุด · โทเคนหมดอายุ) เคยทำให้ทั้งฟังก์ชันหยุดตรงนี้
+  // แปลว่า "ออกจากระบบ" ตอนไม่มีเน็ตคือปุ่มที่กดแล้วไม่เกิดอะไรขึ้นเลย ทั้งที่ของที่ต้องล้าง
+  // ทั้งหมดอยู่ในเครื่องและล้างได้โดยไม่ต้องถามใคร · ฝั่งเซิร์ฟเวอร์จะหมดอายุเองอยู่แล้ว
+  try { if (sb) await sb.auth.signOut(); } catch (_) {}
   currentUser = null; lastSync = null;
   // เพื่อนเป็นของบัญชี ไม่ใช่ของเครื่อง — ออกจากบัญชีแล้วต้องไม่เหลือค้างบนจอ
   frHandle = null; frList = []; frReqs = []; frHits = null; frLoaded = false;
@@ -6124,10 +6127,18 @@ function renderProfile() {
       if (nb) nb.style.display = 'none';
     }
   } else if (Notification.permission === 'granted') {
+    // 1B99 · สามสถานะ ไม่ใช่สอง — 'local' คือ "เบราว์เซอร์พร้อม แต่เซิร์ฟเวอร์ยังส่งไม่ถึง"
+    // ซึ่งเดิมถูกนับรวมเป็น 'on' แล้วจอก็สัญญาเกินกว่าที่ระบบทำได้จริง
     if (pushState === 'on' && currentUser) st.textContent = 'เตือนก่อนถึงกำหนด แม้ปิดแอป';
-    else if (pushState === 'on') st.textContent = 'เตือนตอนเปิดแอป · ล็อกอินเพื่อเตือนแม้ปิดแอป';
+    else if (pushState === 'local' && currentUser) st.textContent = 'เตือนตอนเปิดแอป · ยังเชื่อมกับเซิร์ฟเวอร์ไม่ได้';
+    else if (pushState === 'on' || pushState === 'local') st.textContent = 'เตือนตอนเปิดแอป · ล็อกอินเพื่อเตือนแม้ปิดแอป';
     else st.textContent = 'เตือนตอนเปิดแอป';
-    if (nb) nb.style.display = (pushState === 'on' || pushState === 'unsupported') ? 'none' : 'block';
+    // 'local' ต้องมีปุ่มให้กดลองใหม่ — สถานะที่บอกว่าพังแต่ไม่มีอะไรให้กด คือทางตัน
+    if (nb) {
+      const stuck = pushState === 'local' && currentUser;
+      nb.style.display = (pushState === 'on' || pushState === 'unsupported') ? 'none' : 'block';
+      if (stuck) nb.textContent = 'ลองเชื่อมใหม่';
+    }
   } else if (Notification.permission === 'denied') {
     st.textContent = 'ถูกปิดไว้ในเบราว์เซอร์';
     if (nb) nb.style.display = 'none';
@@ -11393,7 +11404,12 @@ function urlB64ToUint8Array(base64String) {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
 }
 
-let pushState = 'unknown'; // unknown | on | off | unsupported | need-login
+// unknown    ยังไม่ได้ตรวจ
+// on         เบราว์เซอร์มี subscription **และ** เซิร์ฟเวอร์มีแถวของมัน = เตือนแม้ปิดแอปได้จริง
+// local      เบราว์เซอร์พร้อม แต่เซิร์ฟเวอร์ยังส่งไม่ถึง (ยังไม่ล็อกอิน · ออฟไลน์ · แถวหาย)
+// off        ยังไม่มี subscription
+// unsupported เบราว์เซอร์/เครื่องนี้ทำไม่ได้
+let pushState = 'unknown';
 
 function pushSupported() {
   return 'serviceWorker' in navigator && 'PushManager' in window && !!window.VAPID_PUBLIC_KEY;
@@ -11407,7 +11423,29 @@ async function refreshPushState() {
     // เจอจริงบนเครื่องที่เคยติดตั้งรุ่นก่อนหน้าไว้ (เครื่องที่เพิ่งเปิดครั้งแรกจะไม่เจอ)
     const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ตรวจสิทธิ์แจ้งเตือน');
     const sub = await reg.pushManager.getSubscription();
-    pushState = sub ? 'on' : 'off';
+    if (!sub) { pushState = 'off'; return; }
+
+    // ============================================================
+    // 1B99 · "เบราว์เซอร์มี subscription" ไม่ได้แปลว่า "เซิร์ฟเวอร์ส่งถึงเราได้"
+    // ------------------------------------------------------------
+    // ของเดิมตั้ง pushState = 'on' ทันทีที่เบราว์เซอร์คืน subscription มา แล้วจอตั้งค่า
+    // ก็เขียนว่า "เตือนก่อนถึงกำหนด แม้ปิดแอป" ตามค่านั้น — ซึ่งเป็นคำโกหกได้ง่ายมาก
+    // เพราะฝั่งเซิร์ฟเวอร์ **ลบแถวทิ้งเองได้** เมื่อยิงแล้วเจอ 403/404/410
+    // (ดู catch ใน send-reminders) เครื่องที่โดนลบไปจะยังมี subscription ในเบราว์เซอร์อยู่
+    // ครบทุกอย่าง ไม่มีอะไรเปลี่ยนบนเครื่องเลย แต่ไม่มีใครส่งหาเขาได้อีกตลอดกาล
+    // และจอก็ยังยืนยันกับเขาว่าเปิดอยู่ — คนคนนั้นจะไม่มีวันรู้ว่าตัวเองหลุดไปแล้ว
+    //
+    // ถามแถวจริงหนึ่งครั้ง แล้วซ่อมให้เลยถ้าไม่มี · ถามไม่ได้ (ออฟไลน์) = ไม่สรุปว่าพัง
+    // ไปสรุปว่า 'local' ซึ่งเป็นคำที่จอแปลว่า "เตือนตอนเปิดแอป" ไม่ใช่ "เตือนแม้ปิดแอป"
+    // พูดน้อยกว่าความจริงตอนที่ไม่รู้ ดีกว่าพูดเกินความจริงแล้วเขาพลาดงานส่ง
+    // ============================================================
+    if (!(sb && currentUser)) { pushState = 'local'; return; }
+    const { data, error } = await sb.from('push_subscriptions')
+      .select('endpoint').eq('endpoint', sub.endpoint).maybeSingle();
+    if (error) { pushState = 'local'; return; }
+    if (data) { pushState = 'on'; return; }
+    // แถวหาย — สมัครใหม่ให้เงียบ ๆ ตรงนี้เลย ไม่ต้องให้ผู้ใช้ไปกดปุ่มที่เขาไม่รู้ว่าต้องกด
+    pushState = (await subscribePush().catch(() => false)) ? 'on' : 'local';
   } catch (_) { pushState = 'off'; }
 }
 
@@ -11479,7 +11517,9 @@ function toggleNotifPref(key) {
   state.settings[key] = on;
   save();
   renderProfile();
-  const name = key === 'notifDue' ? 'การเตือนงานใกล้ถึงกำหนด' : 'การทักเมื่อหายไปหลายวัน';
+  const name = key === 'notifDue' ? 'การเตือนงานใกล้ถึงกำหนด'
+             : key === 'notifSocial' ? 'การเตือนข้อความและคำขอเป็นเพื่อน'
+             : 'การทักเมื่อหายไปหลายวัน';
   showToast(on
     ? { title: 'เปิดแล้ว 🔔', body: name + ' จะกลับมาทำงานตามปกติ' }
     : { title: 'ปิดแล้ว', body: name + ' จะไม่ถูกส่งอีก — เปิดกลับได้ตรงนี้ทุกเมื่อ' });
@@ -11490,6 +11530,7 @@ function renderNotifPrefs() {
   const granted = ('Notification' in window) && Notification.permission === 'granted';
   for (const [key, row, btn] of [
     ['notifDue', 'prefDueRow', 'prefDueBtn'],
+    ['notifSocial', 'prefSocialRow', 'prefSocialBtn'],
     ['notifNudge', 'prefNudgeRow', 'prefNudgeBtn'],
   ]) {
     const r = document.getElementById(row), b = document.getElementById(btn);
@@ -11516,10 +11557,18 @@ async function enableNotif() {
     (who() ? who() + ' ' : '') + 'จะเตือนก่อนถึงกำหนดส่ง — ลองกด "ทดสอบ" ได้ทุกเมื่อ', 'studentos-alt-on');
   try {
     const ok = await subscribePush();
-    if (ok && !(sb && currentUser)) {
-      showToast({ title: 'เปิดการเตือนแล้ว 🔔', body: 'ล็อกอินด้วย Google เพิ่ม เพื่อให้เตือนได้แม้ปิดแอป' });
-    } else if (ok) {
+    // 1B99 · ยืนยันจากของจริงก่อนจะพูดว่า "แม้ปิดแอป" — subscribePush คืน true ได้
+    // ทั้งตอนที่บันทึกขึ้น cloud สำเร็จ และตอนที่ยังไม่ได้ล็อกอิน (ซึ่งส่งไม่ถึงแน่ ๆ)
+    // ประโยคที่สัญญาเกินกว่าที่ระบบทำได้ คือประโยคที่ทำให้เขาไม่ไปตั้งอย่างอื่นเผื่อไว้
+    await refreshPushState();
+    if (!ok) {
+      showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'แต่ยังตั้งการเตือนนอกแอปไม่ได้ — ลองใหม่ที่ปุ่มในหน้านี้' });
+    } else if (pushState === 'on') {
       showToast({ title: 'เปิดการเตือนแล้ว 🔔', body: 'จะเตือนก่อนถึงกำหนดส่ง แม้ปิดแอปอยู่' });
+    } else if (!(sb && currentUser)) {
+      showToast({ title: 'เปิดการเตือนแล้ว 🔔', body: 'ล็อกอินด้วย Google เพิ่ม เพื่อให้เตือนได้แม้ปิดแอป' });
+    } else {
+      showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเชื่อมกับเซิร์ฟเวอร์ไม่ได้ — จะลองใหม่ให้เองตอนเปิดแอปครั้งหน้า' });
     }
   } catch (e) {
     console.warn('[push] subscribe failed:', e.message);
@@ -11630,11 +11679,31 @@ async function notify(title, body, tag) {
 // ปุ่ม "ทดสอบ" ในแท็บฉัน — พิสูจน์ว่ามันเด้งจริงบนเครื่องนี้ ไม่ต้องรอถึงกำหนดส่ง
 async function testNotify() {
   if (Notification.permission !== 'granted') { enableNotif(); return; }
+  const tag = 'studentos-alt-test';
   const ok = await notify('ทดสอบแจ้งเตือน 🔔',
-    (who() ? who() + ' ' : '') + 'ถ้าเห็นข้อความนี้แปลว่าแจ้งเตือนใช้งานได้แล้ว', 'studentos-alt-test');
-  showToast(ok
-    ? { title: 'ส่งแจ้งเตือนแล้ว', body: 'ถ้าไม่เห็น ลองเช็คการตั้งค่าแจ้งเตือนของเครื่อง/เบราว์เซอร์' }
-    : { title: 'ยังส่งไม่ได้', body: 'เบราว์เซอร์นี้บล็อกการแจ้งเตือนอยู่' });
+    (who() ? who() + ' ' : '') + 'ถ้าเห็นข้อความนี้แปลว่าแจ้งเตือนใช้งานได้แล้ว', tag);
+
+  // 1B99 · showNotification() ที่ resolve แล้ว **ไม่ได้แปลว่าการ์ดขึ้นจริง**
+  // มันแปลว่า "เบราว์เซอร์รับเรื่องไว้แล้ว" เท่านั้น · ระบบปฏิบัติการยังปัดทิ้งต่อได้อีกชั้น
+  // (โหมดห้ามรบกวน · สิทธิ์ระดับเครื่องที่ปิดไว้แยกจากสิทธิ์ของเว็บ · โควตาของ Safari)
+  // ปุ่มนี้มีหน้าที่เดียวคือ "พิสูจน์" ถ้ามันตอบว่าสำเร็จทั้งที่ไม่มีอะไรขึ้น มันก็ไร้ประโยชน์
+  // ถามกลับจาก service worker ว่าการ์ดใบนี้มีอยู่จริงไหม — คำตอบเดียวที่เชื่อได้
+  let shown = null;
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      shown = (await reg.getNotifications({ tag })).length > 0;
+    }
+  } catch (_) { shown = null; }   // ถามไม่ได้ = ไม่รู้ ซึ่งต่างจากรู้ว่าไม่ขึ้น
+
+  if (!ok || shown === false) {
+    showToast({ title: 'ยังส่งไม่ได้',
+      body: 'เครื่องนี้ปัดการแจ้งเตือนทิ้ง — เช็คโหมดห้ามรบกวน และสิทธิ์แจ้งเตือนของแอปในตั้งค่าเครื่อง' });
+    return;
+  }
+  showToast(shown === true
+    ? { title: 'ขึ้นแล้ว ✅', body: 'การ์ดแจ้งเตือนขึ้นจริงบนเครื่องนี้ ระบบพร้อมใช้งาน' }
+    : { title: 'ส่งแจ้งเตือนแล้ว', body: 'ถ้าไม่เห็น ลองเช็คการตั้งค่าแจ้งเตือนของเครื่อง/เบราว์เซอร์' });
 }
 
 function checkReminders() {
@@ -11722,7 +11791,10 @@ async function socialWatch(force) {
         // แท็ก studentos-friend ตัวเดียวกันทุกดอก — คำขอที่สองมาทับใบแรก ไม่ใช่กองสิบใบ
         notify(fresh.length > 1 ? 'มีคำขอเป็นเพื่อน ' + fresh.length + ' คน' : nm + ' ขอเป็นเพื่อน',
           fresh.length > 1 ? 'เปิดแอปเพื่อกดรับ' : 'กดรับแล้วเห็นผลและตารางของกันและกัน',
-          'studentos-friend');
+          // แท็กต้องตรงกับที่ send-reminders ใช้เป๊ะ ('friend' / 'dm')
+          // ทั้งสองท่ออาจเห็นเหตุการณ์เดียวกันคนละจังหวะ (แอปเปิดอยู่ตอนที่ cron ยิงพอดี)
+          // แท็กเดียวกัน = ใบใหม่ทับใบเก่า เหลือการ์ดเดียว · แท็กต่างกัน = ได้สองใบซ้อน
+          'friend');
       }
       if (ids.join() !== known.join()) { seen.fr = ids; dirty = true; }
     }
@@ -11738,7 +11810,7 @@ async function socialWatch(force) {
         const nm = String((r.display_name || '').trim()) || 'เพื่อน';
         notify(fresh.length > 1 ? 'ข้อความใหม่ ' + fresh.length + ' ห้อง' : nm + ' ส่งข้อความมา',
           fresh.length > 1 ? 'เปิดแอปเพื่ออ่าน' : String(r.last_body || 'ส่งรูปมา').slice(0, 80),
-          'studentos-dm');
+          'dm');
       }
       const next = {};
       for (const r of rows) next[r.id] = r.last_at;
