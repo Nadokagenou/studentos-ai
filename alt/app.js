@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B99';                 // สายเลขของแอป
-const APP_CODENAME = 'Horizon';          // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1C01';                 // สายเลขของแอป
+const APP_CODENAME = 'Bridge';           // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -1059,6 +1059,9 @@ async function initCloud() {
       // ตอนนี้มีอะไรค้างอยู่บ้าง (ไม่งั้นคนที่มีคำขอเก่าสิบอันจะโดนสิบดอกรวดตอนล็อกอิน)
       if (typeof socialWatch === 'function') socialWatch(true);
       if (typeof syncPublicFace === 'function') syncPublicFace(true);
+      // รายการตัวเชื่อมอยู่ฝั่งเซิร์ฟเวอร์ ไม่ได้อยู่ในก้อนข้อมูลผู้ใช้ — ต้องถามเอง
+      // หลังล็อกอินเสร็จ ไม่งั้นหน้าตัวเชื่อมจะขึ้นว่า "ยังไม่ได้เชื่อมอะไรเลย" ทั้งที่เชื่อมไว้แล้ว
+      if (typeof integLoad === 'function') integLoad(true);
       syncFromCloud().then(() => { routeAfterLogin(); return applyJoinToken(); });
     } else {
       renderAll();
@@ -12763,6 +12766,10 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
         ? { title: 'เก็บไว้ในบันทึกแล้ว', body: 'อ่านแล้วไม่เหมือนงานที่ครูสั่ง เลยไม่เอาขึ้นเป็นคำถาม' }
         : { title: 'รับข้อความแล้ว 📥', body: 'ดูในกล่องเข้าได้เลยว่าแกะออกมาเป็นงานอะไร' }), 700);
   }
+
+  // ขากลับจากหน้าอนุญาตของ Google — ต้องมีข้อความบอกผลเสมอ
+  // (อ่านจาก BOOT_Q ซึ่งเก็บคิวรีไว้ตั้งแต่ก่อนบรรทัดล้าง URL ข้างบน)
+  if (typeof integBootNotice === 'function') setTimeout(integBootNotice, 900);
 
   // ฟอนต์ไทยมาจาก CDN — รอให้พร้อมก่อน ไม่งั้นจอแรกกระตุกตอนฟอนต์สลับ
   // ถ้าเน็ตช้าหรือโหลดไม่ขึ้น ไม่รอเกิน 2.5 วิ แล้วไปต่อด้วยฟอนต์ระบบ

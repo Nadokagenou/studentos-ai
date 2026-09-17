@@ -107,12 +107,12 @@ async function unlinkLineRoom(roomId) {
 
 // ---------- ดึงของดิบเข้ากล่องเข้า ----------
 // เรียกตอนเปิดแอปและทุกครั้งที่ซิงก์ — ของที่อ่านแล้วมาร์ค consumed กันดึงซ้ำ
+//
+// ท่อนี้ไม่ได้เป็นของ LINE อย่างเดียวแล้ว: ตัวซิงก์ฝั่งเซิร์ฟเวอร์ (sync-integrations)
+// หย่อนงานจาก Classroom และปฏิทินของโรงเรียนลงตารางเดียวกันนี้ · แถวที่มีธง
+// meta.structured คือของที่มีโครงมาจาก API แล้ว ต้องไม่เอาไปให้ตัวแกะข้อความเดาใหม่
 async function pullInbox() {
   if (!lineReady()) return 0;
-  // ปิดตัวเชื่อมไว้ = ไม่ดึงเลย ไม่ใช่ดึงมาแล้วทิ้ง
-  // ถ้าดึงมาแล้วทิ้ง แถวฝั่งเซิร์ฟเวอร์จะถูกทำเครื่องหมายว่าใช้แล้ว
-  // แล้วของช่วงที่ปิดไว้จะหายถาวร ต่อให้เปิดกลับมาทีหลังก็ไม่ได้คืน
-  if (typeof srcEnabled === 'function' && !srcEnabled('line')) return 0;
   const { data, error } = await sb.from('inbox_items')
     .select('id, source, raw, meta, created_at')
     .eq('consumed', false)
@@ -120,23 +120,57 @@ async function pullInbox() {
     .limit(50);
   if (error || !data || !data.length) return 0;
 
-  let added = 0;
+  const tally = { added: 0, updated: 0, cancelled: 0 };
+  const done = [];
   for (const row of data) {
-    const r = inboxAdd(row.raw, row.source || 'line', row.meta || {});
-    if (r.status === 'accepted' || r.status === 'pending') added++;
-  }
-  await sb.from('inbox_items').update({ consumed: true }).in('id', data.map(r => r.id));
+    const src = row.source || 'line';
+    // ปิดตัวเชื่อมไว้ = ไม่แตะแถวนั้นเลย ไม่ใช่ดึงมาแล้วทิ้ง
+    // ทิ้งแล้วมาร์คว่าใช้แล้ว = ของช่วงที่ปิดไว้หายถาวร ต่อให้เปิดกลับมาทีหลังก็ไม่ได้คืน
+    // (เดิมเช็คแค่ 'line' ตัวเดียวตายตัว ซึ่งจะบล็อกตัวเชื่อมอื่นทั้งหมดไปด้วย)
+    if (typeof srcEnabled === 'function' && !srcEnabled(src)) continue;
 
-  if (added) {
-    renderAll();
-    const wait = inboxPending().length;
-    showToast({
-      title: `มีของใหม่จากกลุ่ม LINE ${added} รายการ`,
-      body: wait ? `เข้าแผนให้แล้วบางส่วน · เหลือ ${wait} รายการที่อยากให้คุณดูก่อน`
-                 : 'AI มั่นใจพอ เลยเพิ่มเข้าแผนให้หมดแล้ว',
-    });
+    const meta = row.meta || {};
+    const r = (meta.structured && typeof inboxAddSynced === 'function')
+      ? inboxAddSynced({ ...meta, raw: row.raw }, src)
+      : inboxAdd(row.raw, src, meta);
+
+    if (r.status === 'accepted' || r.status === 'pending') tally.added++;
+    else if (r.status === 'updated') tally.updated++;
+    else if (r.status === 'cancelled') tally.cancelled++;
+    done.push(row.id);
   }
-  return added;
+  if (done.length) await sb.from('inbox_items').update({ consumed: true }).in('id', done);
+
+  const total = tally.added + tally.updated + tally.cancelled;
+  if (total) {
+    renderAll();
+    showToast(inboxPullToast(tally));
+  }
+  return tally.added;
+}
+
+// ข้อความสรุปหนึ่งก้อนต่อการดึงหนึ่งรอบ — ไม่ใช่หนึ่งก้อนต่องานหนึ่งใบ
+// ครูสั่งงานทั้งสัปดาห์ทีเดียวแล้วได้แจ้งเตือนสิบเอ็ดดอกรวด คือเหตุผลที่คนปิดแจ้งเตือน
+function inboxPullToast(t) {
+  const wait = typeof inboxPending === 'function' ? inboxPending().length : 0;
+  // งานที่ถูกยกเลิกสำคัญกว่าของใหม่เสมอ — มันคือของที่เขาอาจกำลังนั่งทำอยู่ตอนนี้
+  if (t.cancelled) {
+    return {
+      title: `ครูยกเลิกงาน ${t.cancelled} ใบ`,
+      body: 'ย้ายไปถังขยะให้แล้ว กู้คืนได้ถ้าคิดว่ายังต้องทำ',
+    };
+  }
+  if (t.updated && !t.added) {
+    return { title: `งานถูกแก้ ${t.updated} ใบ`, body: 'อัปเดตกำหนดส่งให้ตามต้นทางแล้ว' };
+  }
+  const bits = [];
+  if (t.added) bits.push(`ของใหม่ ${t.added} รายการ`);
+  if (t.updated) bits.push(`แก้ไข ${t.updated} รายการ`);
+  return {
+    title: 'มีงานเข้ามาใหม่ · ' + bits.join(' · '),
+    body: wait ? `เข้าแผนให้แล้วบางส่วน · เหลือ ${wait} รายการที่อยากให้คุณดูก่อน`
+               : 'เข้าแผนให้เรียบร้อยแล้ว ไม่ต้องกรอกอะไรเพิ่ม',
+  };
 }
 
 // ---------- คอยดึงของใหม่ระหว่างที่แอปเปิดค้างอยู่ ----------

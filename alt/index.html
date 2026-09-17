@@ -1801,6 +1801,9 @@
 <script src="brain.js"></script>
 <script src="inbox.js"></script>
 <script src="linelink.js"></script>
+<!-- ต้องมาหลัง inbox.js (เรียก renderSources/srcEnabled) และก่อน app.js
+     ซึ่งเรียก integBootNotice()/integLoad() ตอนบูตกับตอนล็อกอินเสร็จ -->
+<script src="integrations.js"></script>
 <!-- ต้องมาก่อน app.js: app.js เรียก renderRoom() ใน renderAll
      และ room.js ใช้ fmtThaiDate จาก engine.js ซึ่งโหลดไปแล้วข้างบน -->
 <script src="room.js"></script>

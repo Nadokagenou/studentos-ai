@@ -75,3 +75,25 @@ verify_jwt = true
 # ตั้งนาฬิกาที่ migration 20260912090000_mod_sweep.sql
 [functions.guard-sweep]
 verify_jwt = true
+
+# ---------- ชั้นตัวเชื่อมกับแพลตฟอร์มอื่น ----------
+# ประตูที่แอปใช้คุยเรื่องการเชื่อม · ถือกุญแจของผู้ใช้ทุกคนอยู่หลังประตูนี้
+# ห้ามปิด verify_jwt เด็ดขาด — ปิดเมื่อไหร่ ใครก็ยิงคำสั่ง disconnect ของคนอื่นได้
+# (ในฟังก์ชันเช็ค uid จาก JWT ซ้ำอีกชั้น เพราะชั้นเดียวคือชั้นที่ลืมแก้ได้)
+[functions.integrations]
+verify_jwt = true
+
+# ตัวซิงก์ · ยิงจาก cron ของ Supabase เอง (migration 20260917090100)
+# และถูกเรียกต่อจากฟังก์ชัน integrations ด้วย service role ตอนกด "ซิงก์เดี๋ยวนี้"
+[functions.sync-integrations]
+verify_jwt = true
+
+# ⚠️ verify_jwt = false ตัวเดียวในชุดนี้ และจงใจ:
+#    Google เป็นคนพาเบราว์เซอร์ของผู้ใช้มาที่ URL นี้ มันไม่มีทางแนบ JWT ของเรามาด้วย
+#    เปิดไว้จะได้ 401 ทุกครั้งแบบเงียบ ๆ — อาการเดียวกับ line-webhook เป๊ะ
+#
+#    ด่านจริงคือ state ที่เราเซ็นด้วย INTEGRATION_KEY ตอนกดปุ่มเชื่อม แล้วตรวจตอนกลับมา
+#    (อายุ 10 นาที · ระบุตัวผู้ใช้) ซึ่งแน่นกว่า JWT ในกรณีนี้ เพราะ JWT ไม่ได้ผูกกับ
+#    "การกดเชื่อมครั้งนี้" แต่ state ผูก
+[functions.oauth-callback]
+verify_jwt = false
