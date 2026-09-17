@@ -1193,9 +1193,56 @@
 
    ความจำเพาะต้องสูงกว่ากฎพื้นเรียบข้างบน (#scr-profile .pf-entry .pe-ic = 1,2,0)
    จึงต้องมี #scr-profile นำหน้าด้วย ไม่งั้นเขียนไปก็ไม่มีผล */
-#scr-profile .pf-entry .pe.tone-blue .pe-ic { background: var(--blue-soft); color: var(--blue); }
-#scr-profile .pf-entry .pe.tone-good .pe-ic { background: var(--good-soft); color: var(--good); }
-#scr-profile .pf-entry .pe.tone-warn .pe-ic { background: var(--warn-soft); color: var(--warn); }
+/* 1B98 · tone-good / tone-warn ถูกถอดออก — เจ้าของบอกว่า "สีฟีเจอร์มันมั่วไป"
+   และถูก: ฟ้า/เขียว/เหลืองที่แจกให้แถวที่ 1/2/3 ไม่ได้แปลว่าอะไรสักสี มันคือ
+   ลำดับ ไม่ใช่ความหมาย · สีที่เข้ารหัสลำดับอ่านเป็นสีมั่วเสมอ เพราะสมองไปหา
+   ความหมายแล้วไม่เจอ · ตระกูลเดียวทั้งลิสต์ แล้วให้ "สีที่ต่างออกไป" เหลือที่เดียว
+   คือทองของร้านค้า ซึ่งแปลว่า "ของที่ได้มาจริงอยู่ในนี้" ตามกฎสีทองเดิมของโปรเจกต์ */
+#scr-profile .pf-entry .pe .pe-ic { background: var(--blue-soft); color: var(--blue); }
+/* สองแถวท้ายยังเปิดไม่ได้ ไอคอนจึงเงียบ — แถวที่กดแล้วไม่ได้ของ ไม่ควรดังเท่าแถวที่ได้ */
+#scr-profile .pf-entry .pe-soon .pe-ic,
+#scr-profile .pf-entry .pe-pro .pe-ic { background: var(--card2); color: var(--faint); }
+
+/* ---------- ค่าชิดขวา ----------
+   ตัวเลข/สถานะของแถวย้ายมาอยู่บรรทัดเดียวกับชื่อ ชิดขวาก่อนลูกศร
+   ตากวาดคอลัมน์เดียวลงมาได้ครบทุกแถว ซึ่งบรรทัดที่สองไม่เคยทำได้
+   ตัดบรรทัดไม่ได้ (nowrap) — แถวที่สูงกว่าเพื่อนหนึ่งบรรทัดทำให้ลิสต์อ่านเป็นคนละชุด
+   ยาวเกินก็ให้หดตัวเองด้วย ellipsis ไม่ใช่ไปเบียดชื่อแถว */
+#scr-profile .pf-entry .pe-v {
+  flex: 0 1 auto; min-width: 0;
+  font-style: normal; font-size: 12px; font-weight: 500;
+  color: var(--faint); text-align: right;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#scr-profile .pf-entry .pe-tx { flex: 1 1 auto; }
+
+/* ---------- ร้านค้า: การ์ดเดี่ยวเหนือลิสต์ ----------
+   ทรงเดียวกับแถบเช็คอินรายวันที่อยู่เหนือมันขึ้นไป — สองก้อนนี้เป็นเรื่องเดียวกัน
+   (ได้โทเคน → ใช้โทเคน) ถ้าคนละทรงมันจะอ่านเป็นสองระบบที่ไม่เกี่ยวกัน
+   พื้นยังเป็นสีการ์ดปกติ ของที่เป็นทองคือชิปไอคอนกับขอบ — ไม่ใช่ทั้งใบ
+   การ์ดทองเต็มใบจะดังกว่าหัวโปรไฟล์ซึ่งเป็นพระเอกของจอนี้ */
+.pe-shopcard {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  margin-top: 14px; padding: 12px 13px;
+  border: 1px solid var(--gold-text, var(--warn)); border-radius: var(--r-tile);
+  background: var(--card); box-shadow: var(--shadow);
+  font: inherit; color: var(--ink); text-align: left; cursor: pointer;
+  transition: transform .16s ease;
+}
+.pe-shopcard:active { transform: scale(.985); }
+.pe-shopcard .pe-ic {
+  width: 36px; height: 36px; flex: none; border-radius: 12px;
+  display: grid; place-items: center;
+  background: var(--gold-soft, var(--warn-soft)); color: var(--gold-text, var(--warn));
+}
+.pe-shopcard .pe-ic svg { width: 18px; height: 18px; stroke-width: 2.1; }
+.pe-shopcard .pe-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.pe-shopcard .pe-tx b { font-size: 15px; font-weight: 700; }
+.pe-shopcard .pe-tx i {
+  font-style: normal; font-size: 11.5px; font-weight: 600;
+  color: var(--gold-text, var(--warn));
+}
+.pe-shopcard .pe-go { width: 16px; height: 16px; flex: none; color: var(--faint); }
 
 /* ช่องสีธีม — ไม่มีไอคอนข้างใน ตัวมันเองคือสีของธีมที่ใช้อยู่
    ขอบบาง ๆ ไว้กันธีมที่พื้นใกล้สีการ์ด (สว่าง/Crystal) จนดูเหมือนช่องว่าง */
@@ -1210,7 +1257,4 @@
 
    ชุมชน กับ Pro ยังเป็นสีเงียบต่อไปโดยตั้งใจ — ทั้งคู่ยังเปิดไม่ได้
    แถวที่กดแล้วไม่ได้ของ ไม่ควรดังเท่าแถวที่กดแล้วได้ */
-#scr-profile .pf-entry .pe-shop .pe-ic {
-  background: var(--gold-soft, var(--warn-soft));
-  color: var(--gold-text, var(--warn));
-}
+/* 1B98 · ร้านค้าไม่ได้อยู่ในลิสต์แล้ว กฎนี้จึงย้ายไปอยู่ที่ .pe-shopcard ข้างบน */

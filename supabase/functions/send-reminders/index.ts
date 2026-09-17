@@ -30,6 +30,13 @@ const PAGE = 500;               // อ่าน subscription ทีละหน�
 const ID_CHUNK = 200;           // uuid ต่อหนึ่ง .in() — วัดแล้วพังที่ 700 ตั้งไว้ต่ำกว่าสามเท่า
 const PUSH_CONCURRENCY = 20;    // ส่ง push พร้อมกันกี่สาย
 const QUIET_HOURS = 4;          // เตือนคนเดิมไม่เกิน 1 ครั้งต่อกี่ชั่วโมง
+// ---------- เรื่องสังคม (คำขอเพื่อน · ข้อความใหม่) ----------
+// ช่องว่างสั้นกว่าเรื่องงานมาก เพราะคนละธรรมชาติกัน: งานที่ส่งพรุ่งนี้รอสี่ชั่วโมงได้
+// ข้อความที่เพื่อนเพิ่งพิมพ์มาแล้วเงียบไปสี่ชั่วโมง คือการแจ้งเตือนที่มาช้าจนไม่มีความหมาย
+// แต่ต้องมีช่องว่าง ไม่งั้นห้องที่คุยกันรัว ๆ จะกลายเป็นเครื่องยิงแจ้งเตือน
+const SOCIAL_QUIET_MIN = 25;     // เรื่องสังคมของคนเดิม ห่างกันอย่างน้อยกี่นาที
+const SOCIAL_MAX_DAY = 6;        // เพดานต่อคนต่อวัน — เกินนี้คือสแปม ไม่ใช่การแจ้งเตือน
+const SOCIAL_LOOKBACK_MIN = 180; // มองย้อนหลังกี่นาที (เผื่อรอบที่ข้ามไปเพราะกลางคืน)
 const DEADLINE_MS = 100_000;    // หยุดเองก่อนโดน platform ตัด แล้วรายงานว่าค้างเท่าไหร่
 
 let inited = false;
@@ -292,6 +299,36 @@ function lapsedCopy(pending: any[], daysAway: number, nowMs: number) {
   };
 }
 
+// ---------- ข้อความเรื่องสังคม ----------
+// กฎเดียวกับข้อความเรื่องงาน: ต้องเจาะจงพอที่จะปัดทิ้งไม่ลง
+// "มีคนขอเป็นเพื่อน" ปัดทิ้งได้ · "มายด์ขอเป็นเพื่อน" ปัดทิ้งไม่ลง เพราะมีคนอยู่ปลายทางจริง
+//
+// ⚠️ **ไม่ใส่เนื้อข้อความของ DM ลงในการ์ดแจ้งเตือน** — การ์ดขึ้นบนหน้าจอล็อก ซึ่งใครก็ตาม
+// ที่หยิบเครื่องขึ้นมาก็เห็น · เด็กที่คุยเรื่องส่วนตัวกับเพื่อนไม่ได้ตกลงกับเราว่าจะให้
+// ข้อความนั้นไปโผล่หน้าจอล็อกให้พ่อแม่หรือเพื่อนร่วมห้องอ่าน (เส้นความปลอดภัยเด็กของโปรเจกต์)
+// ฝั่งแอปตอนเปิดอยู่แสดงเนื้อความได้ เพราะคนที่มองจออยู่คือเจ้าของเครื่องแน่นอนแล้ว
+function friendCopy(names: string[], n: number) {
+  if (n > 1) return {
+    title: `มีคำขอเป็นเพื่อน ${n} คน 👋`,
+    body: names.slice(0, 3).join(' · ') + (n > 3 ? ` และอีก ${n - 3} คน` : '') + ' — กดรับในแอป',
+  };
+  return {
+    title: `${names[0] || 'มีคน'}ขอเป็นเพื่อน 👋`,
+    body: 'กดรับแล้วเห็นผลและวิชาที่ช่วยกันได้ของกันและกัน',
+  };
+}
+
+function dmCopy(names: string[], rooms: number, msgs: number) {
+  if (rooms > 1) return {
+    title: `ข้อความใหม่ ${msgs} ข้อความ 💬`,
+    body: 'จาก ' + names.slice(0, 3).join(' · ') + (rooms > 3 ? ` และอีก ${rooms - 3} ห้อง` : ''),
+  };
+  return {
+    title: `${names[0] || 'เพื่อน'}ส่งข้อความมา 💬`,
+    body: msgs > 1 ? `${msgs} ข้อความใหม่ — เปิดอ่านในแอป` : 'เปิดอ่านในแอป',
+  };
+}
+
 // หั่นรายการยาวเป็นชุดย่อย — ใช้กับ .in() ที่มีเพดาน URL
 function chunk<T>(list: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -353,6 +390,14 @@ Deno.serve(async () => {
 
   try {
     const quietBefore = new Date(now - QUIET_HOURS * 3.6e6).toISOString();
+    // ⚠️ ด่านที่ SQL ใช้คัดคนออกต้องเป็น "ด่านที่กว้างที่สุดของทุกชนิดการเตือน" เสมอ
+    // เดิมมันคือ 4 ชม. ของเรื่องงาน ซึ่งพอเพิ่มเรื่องสังคม (25 นาที) เข้ามาแล้วจะกลายเป็น
+    // การตัดคนที่มีสิทธิ์ได้รับข้อความใหม่ทิ้งตั้งแต่ยังไม่ได้ดูว่าเขามีข้อความหรือเปล่า
+    // คัดกว้างที่ SQL แล้วไปตัดสินจริงในโค้ดทีละชนิด — ราคาคือลากแถวขึ้นมามากขึ้นเท่านั้น
+    const gateBefore = new Date(now - SOCIAL_QUIET_MIN * 60000).toISOString();
+    const socialSince = new Date(now - SOCIAL_LOOKBACK_MIN * 60000).toISOString();
+    const dayStart = (() => { const d = thDate(now);
+      return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - TH_OFFSET).toISOString(); })();
 
     for (let page = 0; ; page++) {
       if (Date.now() - startedAt > DEADLINE_MS) { truncated = true; break; }
@@ -362,8 +407,8 @@ Deno.serve(async () => {
       const from = page * PAGE;
       const { data: subs, error: subErr } = await db
         .from('push_subscriptions')
-        .select('endpoint, user_id, p256dh, auth')
-        .or(`last_sent_at.is.null,last_sent_at.lt.${quietBefore}`)
+        .select('endpoint, user_id, p256dh, auth, last_sent_at')
+        .or(`last_sent_at.is.null,last_sent_at.lt.${gateBefore}`)
         .order('endpoint')
         .range(from, from + PAGE - 1);
       if (subErr) throw new Error('push_subscriptions: ' + subErr.message);
@@ -394,10 +439,93 @@ Deno.serve(async () => {
 
       // 3) หมุดว่าเคยเตือนงานไหนไปแล้ว — อยู่ตารางของตัวเอง ไม่ต้องแตะข้อมูลผู้ใช้
       const sentKeys = new Set<string>();
+      // เรื่องสังคมต้องรู้ "เมื่อไหร่" ด้วย ไม่ใช่แค่ "เคยส่งหรือยัง" — มันมีทั้งช่องว่างขั้นต่ำ
+      // และเพดานต่อวัน ซึ่งทั้งสองอย่างเป็นคำถามเรื่องเวลา ไม่ใช่คำถามเรื่องการมีอยู่
+      const socialLastAt = new Map<string, number>();   // ส่งเรื่องสังคมครั้งล่าสุดเมื่อไหร่
+      const socialToday = new Map<string, number>();    // วันนี้ส่งไปแล้วกี่ดอก
       for (const ids of chunk(userIds, ID_CHUNK)) {
         const { data: rows } = await db
-          .from('push_sent').select('user_id, task_id').in('user_id', ids);
-        for (const r of rows ?? []) sentKeys.add(`${(r as any).user_id}::${(r as any).task_id}`);
+          .from('push_sent').select('user_id, task_id, sent_at').in('user_id', ids);
+        for (const r of rows ?? []) {
+          const uid = (r as any).user_id, key = (r as any).task_id;
+          sentKeys.add(`${uid}::${key}`);
+          if (key.startsWith('fr::') || key.startsWith('dm::')) {
+            const at = Date.parse((r as any).sent_at || '');
+            if (!Number.isFinite(at)) continue;
+            if (at > (socialLastAt.get(uid) ?? 0)) socialLastAt.set(uid, at);
+            if ((r as any).sent_at >= dayStart) socialToday.set(uid, (socialToday.get(uid) ?? 0) + 1);
+          }
+        }
+      }
+
+      // ---------- ของที่เกิดขึ้นในโลกสังคมช่วงที่ผ่านมา ----------
+      // ทั้งก้อนนี้ห่อ try ไว้ทั้งหมดโดยตั้งใจ: ถ้าตารางไหนยังไม่ได้ deploy หรือคิวรีพัง
+      // การเตือนเรื่องงานต้องออกตามปกติ · ฟีเจอร์ใหม่ห้ามพาของเดิมล้มไปด้วย
+      // (ที่เก็บของจริงกับที่เก็บใน repo ไม่เคยตรงกันเป๊ะ — เคยเจอมาแล้วสองฟังก์ชัน)
+      const frByUser = new Map<string, string[]>();          // ผู้ใช้ -> ชื่อคนที่ขอมา
+      const frKeyByUser = new Map<string, string[]>();       // ผู้ใช้ -> คีย์กันซ้ำ
+      const dmByUser = new Map<string, { names: Set<string>; msgs: number; keys: string[] }>();
+      try {
+        const nameOf = new Map<string, string>();
+        const need = new Set<string>();
+
+        // คำขอเป็นเพื่อนที่ยังค้าง — ฝั่งที่ต้อง "ตอบ" คือคนที่ไม่ใช่ asked_by
+        // คู่ถูกเก็บเรียง a < b เสมอ จึงต้องถามสองด้าน แล้วค่อยกรองว่าใครเป็นผู้รับ
+        for (const ids of chunk(userIds, ID_CHUNK)) {
+          for (const col of ['a', 'b']) {
+            const { data: rows, error } = await db
+              .from('friendships').select('a, b, asked_by, created_at')
+              .eq('status', 'pending').gte('created_at', socialSince).in(col, ids);
+            if (error) throw new Error('friendships: ' + error.message);
+            for (const r of rows ?? []) {
+              const me = (r as any)[col], asker = (r as any).asked_by;
+              if (asker === me) continue;                    // เราเป็นฝ่ายขอเอง ไม่ต้องเตือน
+              need.add(asker);
+              (frByUser.get(me) ?? frByUser.set(me, []).get(me)!).push(asker);
+              (frKeyByUser.get(me) ?? frKeyByUser.set(me, []).get(me)!)
+                .push(`fr::${asker}::${(r as any).created_at}`);
+            }
+          }
+        }
+
+        // ข้อความใหม่ — อ่านจาก dm_messages ตรง ๆ ไม่ใช่จาก last_at ของห้อง
+        // last_at ขยับตอนใครพิมพ์ก็ได้ รวมถึงตัวเจ้าของเครื่องเอง ซึ่งไม่ใช่ของที่ต้องเตือน
+        const { data: msgs, error: msgErr } = await db
+          .from('dm_messages')
+          .select('thread, sender, created_at, dm_threads!inner(a, b)')
+          .gte('created_at', socialSince)
+          .order('created_at', { ascending: true })
+          .limit(2000);
+        if (msgErr) throw new Error('dm_messages: ' + msgErr.message);
+        const inBatch = new Set(userIds);
+        for (const m of msgs ?? []) {
+          const th = (m as any).dm_threads;
+          if (!th) continue;
+          const to = (m as any).sender === th.a ? th.b : th.a;
+          if ((m as any).sender === to || !inBatch.has(to)) continue;
+          need.add((m as any).sender);
+          const rec = dmByUser.get(to) ?? { names: new Set<string>(), msgs: 0, keys: [] };
+          rec.msgs++;
+          rec.names.add((m as any).sender);
+          rec.keys.push(`dm::${(m as any).thread}::${(m as any).created_at}`);
+          dmByUser.set(to, rec);
+        }
+
+        // ชื่อคน — ถามครั้งเดียวสำหรับทุกคนที่ต้องเอ่ยถึงในรอบนี้
+        for (const ids of chunk([...need], ID_CHUNK)) {
+          const { data: ps } = await db.from('profiles').select('id, display_name').in('id', ids);
+          for (const pr of ps ?? []) nameOf.set((pr as any).id, (pr as any).display_name || '');
+        }
+        const named = (id: string) => (nameOf.get(id) || '').trim() || 'เพื่อน';
+        for (const [uid, list] of frByUser) frByUser.set(uid, list.map(named));
+        for (const [, rec] of dmByUser) {
+          const ns = [...rec.names].map(named);
+          rec.names.clear();
+          for (const n of ns) rec.names.add(n);
+        }
+      } catch (e: any) {
+        errors.push('social: ' + ((e && e.message) || String(e)));
+        frByUser.clear(); frKeyByUser.clear(); dmByUser.clear();
       }
 
       // 4) เลือกว่าจะส่งอะไรให้ใคร — คนสองกลุ่ม เงื่อนไขคนละชุด
@@ -415,6 +543,11 @@ Deno.serve(async () => {
         const prefs = prefsByUser.get(sub.user_id) ?? {};
         const wantDue = prefs?.notifDue !== false;
         const wantNudge = prefs?.notifNudge !== false;
+        const wantSocial = prefs?.notifSocial !== false;
+
+        // ด่าน 4 ชม. ของเรื่องงาน ย้ายจาก SQL มาไว้ตรงนี้ (ดูหมายเหตุที่ gateBefore)
+        // เครื่องที่ยังไม่พ้นช่วงเงียบของเรื่องงาน ยังมีสิทธิ์ได้รับเรื่องสังคมอยู่
+        const taskReady = !sub.last_sent_at || Date.parse(sub.last_sent_at) <= now - QUIET_HOURS * 3.6e6;
 
         // ---- กลุ่มที่ 1: มีงานใกล้กำหนด ----
         // สองจังหวะต่องาน ไม่ใช่จังหวะเดียว:
@@ -422,7 +555,7 @@ Deno.serve(async () => {
         //   soon — วันที่ต้องส่ง ไว้ "ลงมือ"
         // จังหวะเดียวไม่พอสำหรับเป้าหมายว่าห้ามลืม เตือนล่วงหน้าอย่างเดียวแล้วเงียบ
         // ในวันจริง คือการฝากความจำไว้กับคนที่เรารู้อยู่แล้วว่าเขาลืม
-        const candidates = (wantDue ? pending : [])
+        const candidates = (wantDue && taskReady ? pending : [])
           .filter((t: any) => t.due)
           .map((t: any) => {
             const h = (Date.parse(t.due) - now) / 3.6e6;
@@ -449,15 +582,52 @@ Deno.serve(async () => {
         if (candidates.length) {
           const { t, h, stage } = candidates[0];
           jobs.push({
-            sub, key: `${t.id}::${stage}`, tag: 'task-' + t.id,
+            sub, kind: 'task', key: `${t.id}::${stage}`, tag: 'task-' + t.id,
             copy: reminderCopy(t, h, now),
           });
           continue;   // คนหนึ่งได้อย่างเดียวต่อรอบ งานด่วนสำคัญกว่าคำทัก
         }
 
+        // ---- กลุ่มที่ 1.5: มีคนทักหรือขอเป็นเพื่อน ----
+        // มาหลังงาน เพราะแอปนี้เป็นแอปจัดการงานก่อนเป็นอย่างอื่น · แต่มาก่อนคำทัก
+        // เพราะมีคนจริงรออยู่ปลายทาง ต่างจากคำทักที่เป็นเราพูดกับตัวเอง
+        //
+        // สามด่านกันสแปม ซ้อนกันคนละชั้น ไม่ใช่ด่านเดียว:
+        //   1. คีย์กันซ้ำถาวรต่อเหตุการณ์ (คำขอใบนั้น · ข้อความข้อความนั้น) ใน push_sent
+        //   2. ช่องว่างขั้นต่ำ 25 นาทีต่อคน — ห้องที่คุยรัว ๆ จึงได้ดอกเดียวแล้วเงียบ
+        //   3. เพดานต่อวัน — กันกรณีที่สองด่านบนยังปล่อยผ่านได้ทั้งวัน
+        // และทั้งหมดนี้ยังอยู่ใต้ด่านกลางคืนของทั้งฟังก์ชันอีกชั้น
+        const socialGap = now - (socialLastAt.get(sub.user_id) ?? 0) >= SOCIAL_QUIET_MIN * 60000;
+        const socialRoom = (socialToday.get(sub.user_id) ?? 0) < SOCIAL_MAX_DAY;
+        if (wantSocial && socialGap && socialRoom && notiOn('social')) {
+          const frKeys = (frKeyByUser.get(sub.user_id) ?? [])
+            .filter((k) => !sentKeys.has(`${sub.user_id}::${k}`));
+          const dm = dmByUser.get(sub.user_id);
+          const dmKeys = (dm?.keys ?? []).filter((k) => !sentKeys.has(`${sub.user_id}::${k}`));
+
+          // คำขอเพื่อนมาก่อนข้อความ — มันเป็นของที่ "ต้องตัดสินใจ" ส่วนข้อความเป็นของที่อ่าน
+          if (frKeys.length) {
+            jobs.push({
+              sub, kind: 'social', key: frKeys, tag: 'friend',
+              copy: friendCopy(frByUser.get(sub.user_id) ?? [], frKeys.length),
+            });
+            continue;
+          }
+          if (dmKeys.length && dm) {
+            // นับ "ห้อง" จากคีย์ที่ยังไม่เคยส่ง ไม่ใช่จากทั้งหมดที่เจอ
+            // ไม่งั้นข้อความที่เตือนไปแล้วรอบก่อนจะถูกนับซ้ำในเลขของรอบนี้
+            const rooms = new Set(dmKeys.map((k) => k.split('::')[1])).size;
+            jobs.push({
+              sub, kind: 'social', key: dmKeys, tag: 'dm',
+              copy: dmCopy([...dm.names], rooms, dmKeys.length),
+            });
+            continue;
+          }
+        }
+
         // ---- กลุ่มที่ 2: หายไปนานแล้ว ----
         // ทักได้แค่ช่วงเย็น และไม่เกินสัปดาห์ละครั้ง — ไม่ด่วน จึงไม่มีสิทธิ์รบกวนเท่างานจริง
-        if (!wantNudge || !evening || sentKeys.has(`${sub.user_id}::${weekKey}`)) continue;
+        if (!wantNudge || !taskReady || !evening || sentKeys.has(`${sub.user_id}::${weekKey}`)) continue;
 
         const f = funnelByUser.get(sub.user_id);
         // ไม่มี funnel = ยังไม่ได้อัปเดตแอป เราไม่รู้ว่าเขาหายไปจริงไหม → เงียบไว้
@@ -467,12 +637,12 @@ Deno.serve(async () => {
         if (!(daysAway >= LAPSED_DAYS)) continue;
 
         jobs.push({
-          sub, key: weekKey, tag: 'nudge',
+          sub, kind: 'nudge', key: weekKey, tag: 'nudge',
           copy: lapsedCopy(pending, Math.floor(daysAway), now),
         });
       }
 
-      await pool(jobs, PUSH_CONCURRENCY, async ({ sub, key, tag, copy }) => {
+      await pool(jobs, PUSH_CONCURRENCY, async ({ sub, kind, key, tag, copy }) => {
         try {
           await webpush.sendNotification(
             { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
@@ -480,10 +650,20 @@ Deno.serve(async () => {
           );
           sent++;
           // ปักหมุดสองที่: เรื่องนี้ส่งแล้ว (กันซ้ำถาวร) + เครื่องนี้เพิ่งได้รับ (กันถี่)
+          // เรื่องสังคมหนึ่งดอกครอบคลุมหลายเหตุการณ์ (สามข้อความ = ดอกเดียว) จึงต้องปัก
+          // ให้ครบทุกคีย์ ไม่ใช่คีย์เดียว ไม่งั้นอีกสองข้อความจะถูกเตือนซ้ำในรอบถัดไป
+          const at = new Date().toISOString();
+          const keys: string[] = Array.isArray(key) ? key : [key];
           await db.from('push_sent')
-            .upsert({ user_id: sub.user_id, task_id: key, sent_at: new Date().toISOString() });
-          await db.from('push_subscriptions')
-            .update({ last_sent_at: new Date().toISOString() }).eq('endpoint', sub.endpoint);
+            .upsert(keys.map((k) => ({ user_id: sub.user_id, task_id: k, sent_at: at })));
+          // ⚠️ เรื่องสังคม **ห้ามขยับ last_sent_at** — คอลัมน์นั้นคือนาฬิกาของช่วงเงียบ
+          // 4 ชม. ของเรื่องงาน · ถ้าข้อความตอนบ่ายสามไปขยับมัน การเตือนงานที่ควรออก
+          // ตอนสี่โมงจะถูกเลื่อนไปทุ่มนึง ซึ่งคือการเอาฟีเจอร์ใหม่ไปทำลายฟีเจอร์เดิม
+          // ช่วงเงียบของเรื่องสังคมมีนาฬิกาของตัวเองอยู่แล้ว (socialLastAt จาก push_sent)
+          if (kind !== 'social') {
+            await db.from('push_subscriptions')
+              .update({ last_sent_at: at }).eq('endpoint', sub.endpoint);
+          }
         } catch (e: any) {
           errors.push(`${sub.user_id}: ${e?.statusCode ?? ''} ${e?.message ?? e}`);
           // 404/410 = subscription หมดอายุ (ถอนแอป/ล้างข้อมูล) → ลบทิ้ง

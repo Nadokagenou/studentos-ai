@@ -959,60 +959,80 @@
                ของเดิมทุกใบเป็น --card2 ซึ่งบนธีมอวกาศห่างจากพื้นการ์ดแค่ไม่กี่หน่วย
                สีมาจากโทเคนของธีม ไม่ใช่สีตายตัว — เปลี่ยนธีมแล้วสีตามไปเอง
                และไม่มีธีมไหนที่สีจะหลุดโทน เพราะทุกธีมนิยาม --blue/--good/--warn ครบ -->
+          <!-- ============================================================
+               1B98 · ร้านค้าขึ้นมาอยู่บนสุด และเป็นการ์ดของตัวเอง
+               ============================================================
+               เจ้าของสั่งเอง (17 ก.ย. 2569): "เอาร้านค้าอยู่บนสุดของฟีเจอร์ให้เลือก
+               เน้นสีด้วย" · 1B93 เคยเถียงว่าของยังไม่เสร็จห้ามนั่งปนกลางของที่ใช้ได้
+               ซึ่งยังถูกอยู่ — แต่ข้อนั้นพูดถึง "กลางลิสต์" ไม่ใช่ "บนสุด"
+               ร้านค้าที่ออกมาเป็นการ์ดเดี่ยวเหนือลิสต์ ไม่ได้นั่งปนกับใครเลย
+               และมันคือที่เดียวที่โทเคนของเช็คอินรายวันเอาไปใช้ได้จริง
+               จึงต้องอยู่ติดกับแถบเช็คอิน ไม่ใช่ห่างกันคนละปลายจอ -->
+          <button class="pe-shopcard" onclick="go('scr-shop')">
+            <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-bag"/></svg></span>
+            <span class="pe-tx"><b>ร้านค้า</b><i id="peShopCt"></i></span>
+            <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+          </button>
+
+          <!-- ============================================================
+               1B98 · ลิสต์เหลือชื่อบรรทัดเดียว + ค่าชิดขวา
+               ============================================================
+               ของเดิมทุกแถวเป็นสองบรรทัด และบรรทัดล่างครึ่งหนึ่งเป็นคำโฆษณาที่พูดซ้ำ
+               กับชื่อแถวข้างบนมันเอง ("ข้อความ / คุยกับเพื่อนแบบตัวต่อตัว")
+               เจ็ดแถวคูณสองบรรทัดคือกำแพงตัวหนังสือที่ไม่มีบรรทัดไหนช่วยตัดสินใจ
+
+               แถวที่มี "ค่า" จริง (กี่วิชา · กี่คน · กี่ %) ค่าย้ายไปชิดขวาบรรทัดเดียวกับชื่อ
+               แถวที่ไม่มีค่า ก็ไม่มีบรรทัดที่สอง — ตากวาดคอลัมน์ขวาลงมาทีเดียวจบ
+
+               สีไอคอน: ตระกูลเดียวทั้งลิสต์ (ฟ้าของธีม) ตามที่เจ้าของเลือก
+               1B96 เคยแจกฟ้า/เขียว/เหลืองคนละแถวเพื่อให้ "มีสี" แต่สีพวกนั้นไม่ได้
+               แปลว่าอะไรเลย มันจึงอ่านเป็นสีมั่ว ไม่ใช่รหัสสี · สีที่แปลว่าอะไรจริง
+               ในจอนี้มีสีเดียวคือทองของร้านค้า ซึ่งตอนนี้ออกไปเป็นการ์ดข้างบนแล้ว -->
           <div class="pf-entry">
-            <button class="pe tone-blue" onclick="openMySubjects()">
+            <button class="pe" onclick="openMySubjects()">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-book"/></svg></span>
-              <span class="pe-tx"><b>วิชาของฉัน</b><i id="peSubjCt"></i></span>
+              <span class="pe-tx"><b>วิชาของฉัน</b></span>
+              <em class="pe-v" id="peSubjCt"></em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button class="pe tone-good" onclick="openDmInbox('scr-profile')">
+            <button class="pe" onclick="openDmInbox('scr-profile')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-chat"/></svg></span>
-              <span class="pe-tx"><b>ข้อความ<span class="pe-n" id="peDmN" hidden></span></b>
-                <i>คุยกับเพื่อนแบบตัวต่อตัว</i></span>
+              <span class="pe-tx"><b>ข้อความ<span class="pe-n" id="peDmN" hidden></span></b></span>
+              <em class="pe-v" id="peDmCt"></em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button class="pe tone-warn" onclick="openFeed('friends')">
+            <button class="pe" onclick="openFeed('friends')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-user"/></svg></span>
-              <span class="pe-tx"><b>เพื่อนของฉัน</b><i id="peFriendCt"></i></span>
+              <span class="pe-tx"><b>เพื่อนของฉัน</b></span>
+              <em class="pe-v" id="peFriendCt"></em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button class="pe tone-blue" id="peCtx" onclick="go('scr-context')">
+            <button class="pe" id="peCtx" onclick="go('scr-context')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
-              <span class="pe-tx"><b>บริบทของฉัน</b><i id="peCtxCt"></i></span>
+              <span class="pe-tx"><b>บริบทของฉัน</b></span>
+              <em class="pe-v" id="peCtxCt"></em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <!-- 1B96 · ธีมสีขึ้นมาอยู่ตรงนี้ — ของเดิมต้องเดินสี่ชั้น
-                 (ฉัน → เฟือง → Student OS → ธีมสี) กว่าจะถึง
-                 ในเฟืองยังมีเหมือนเดิม ไม่ได้ย้ายออก — นี่คือทางลัด ไม่ใช่การย้ายบ้าน
-                 **ช่องสีคือธีมจริงที่ใช้อยู่** ไม่ใช่ไอคอนทั่วไป จึงบอกสถานะได้ในตัวเอง
-                 ใช้คลาส .sw-* ชุดเดียวกับตารางเลือกธีม — ช่องสีมีที่มาที่เดียว
-                 ถ้าวาดใหม่ วันหนึ่งสองที่จะไม่ตรงกันโดยไม่มีใครรู้ว่าอันไหนถูก -->
-            <button class="pe tone-theme" onclick="openSetOpt('theme')">
-              <span class="pe-ic pe-sw" id="peThemeSw"></span>
-              <span class="pe-tx"><b>ธีมสี</b><i id="peThemeCt"></i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <!-- 1B94 · แถว "ตั้งค่าแอป" ถูกถอดออก — ไปอยู่ที่เฟืองมุมขวาบนแล้ว
-                 ปุ่มสองปุ่มที่ไปที่เดียวกันคือสิ่งที่จอนี้เพิ่งเลิกทำไปเมื่อ 1B93
-                 (เหตุผลเดียวกับที่ "ปฏิทิน" ถูกถอดออกจากแถบล่างใน 1A9) -->
+            <!-- 1B98 · แถว "ธีมสี" ถูกถอดออกจากลิสต์ — ไปเป็นช่องที่สี่ของแถบ "โชว์"
+                 ช่องสีของมันเคยว่างเปล่าทุกธีม เพราะ `#scr-profile .pf-entry .pe-ic`
+                 (ความจำเพาะ 1,2,0) ทับ `.sw-light` / `.sw-space` (0,1,0) ทุกใบ
+                 ในแถบโชว์ไม่มีกฎนั้น ช่องสีจึงขึ้นจริง และใหญ่กว่าเดิมด้วย
+                 ทางเข้าเดิมในเฟือง → Student OS → ธีมสี ยังอยู่ครบไม่ได้ย้าย -->
             <div class="pe-split"></div>
             <!-- ชุมชน = ฟีดโพสต์เดิม · โค้ดยังอยู่ครบ ปิดด้วยสวิตช์ COMMUNITY_LIVE ใน feed.js
-                 กดแล้วได้แผ่นอธิบายว่ามันจะเป็นอะไร ไม่ใช่ปุ่มที่กดแล้วเงียบ -->
+                 กดแล้วได้แผ่นอธิบายว่ามันจะเป็นอะไร ไม่ใช่ปุ่มที่กดแล้วเงียบ
+                 ป้าย .pe-wip ถูกถอด — สถานะไปอยู่คอลัมน์ขวาแล้ว ป้ายสีจึงเป็นเสียงซ้ำ
+                 ที่ดังกว่าแถวที่กดแล้วได้ของจริงข้างบนมัน -->
             <button class="pe pe-soon" onclick="openSoonSheet('community')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
-              <span class="pe-tx"><b>ชุมชน <span class="pe-wip pe-soon-tag">เร็ว ๆ นี้</span></b>
-                <i>โพสต์ถามเพื่อนร่วมห้อง · โรงเรียน · ทั้งประเทศ</i></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <button class="pe pe-shop" onclick="go('scr-shop')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-bag"/></svg></span>
-              <span class="pe-tx"><b>ร้านค้า <span class="pe-wip">กำลังทำ</span></b><i id="peShopCt"></i></span>
+              <span class="pe-tx"><b>ชุมชน</b></span>
+              <em class="pe-v">เร็ว ๆ นี้</em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
             <button class="pe pe-pro" onclick="go('scr-pro')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
-              <span class="pe-tx"><b>StudentOS Pro <span class="pe-wip">ยังไม่เปิดขาย</span></b>
-                <i>ดูว่าจะมีอะไรเพิ่ม</i></span>
+              <span class="pe-tx"><b>StudentOS Pro</b></span>
+              <em class="pe-v">ยังไม่เปิดขาย</em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
           </div>
@@ -1323,6 +1343,15 @@
               <span class="set-lb">เตือนงานใกล้ถึงกำหนด<i>เย็นก่อนวันส่ง และวันที่ต้องส่ง</i></span>
               <button class="btn secondary sm" id="prefDueBtn" style="width:auto;min-height:34px;padding:0 14px"
                 onclick="toggleNotifPref('notifDue')">เปิดอยู่</button>
+            </div>
+            <!-- 1B99 · สวิตช์เรื่องสังคม — ฝั่งเซิร์ฟเวอร์อ่าน settings.notifSocial ตัวเดียวกันนี้
+                 (ดู wantSocial ใน supabase/functions/send-reminders) จึงคุมได้ทั้งสองท่อ
+                 ด้วยสวิตช์เดียว ไม่ต้องมีที่ตั้งค่าสองที่ให้ขัดกันเอง -->
+            <div class="set-row" id="prefSocialRow" hidden>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
+              <span class="set-lb">ข้อความและคำขอเป็นเพื่อน<i>เด้งแม้ปิดแอป · ไม่เกินวันละ 6 ครั้ง</i></span>
+              <button class="btn secondary sm" id="prefSocialBtn" style="width:auto;min-height:34px;padding:0 14px"
+                onclick="toggleNotifPref('notifSocial')">เปิดอยู่</button>
             </div>
             <div class="set-row" id="prefNudgeRow" hidden>
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-chat"/></svg></span>
