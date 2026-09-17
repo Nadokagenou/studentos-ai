@@ -912,6 +912,11 @@
   font-size: 11px; font-weight: 700; white-space: nowrap;
 }
 .as-cnt.sm { margin-left: 0; }
+/* ป้ายสถานะของตัวเชื่อมที่ต่อผ่าน API — สามสถานะที่ต้องแยกออกจากกันด้วยหางตา:
+   ฟ้า = กดได้เลย · เขียว = ทำงานอยู่ ไม่ต้องทำอะไร · เหลือง = ต้องมากด ไม่งั้นงานหยุดไหล */
+.as-cnt.ok { background: var(--good-soft); color: var(--good); }
+.as-cnt.bad { background: var(--warn-soft); color: var(--warn); }
+.as-cnt svg { width: 12px; height: 12px; vertical-align: -2px; margin-right: 3px; }
 
 /* แถวสวิตช์ — ทั้งแถวกดสลับได้ ไม่ใช่เฉพาะตัวสวิตช์
    บนมือถือเป้ากดกว้าง 42px กลางแถวยาว ๆ คือเป้าที่พลาดง่ายที่สุดเป้าหนึ่ง */

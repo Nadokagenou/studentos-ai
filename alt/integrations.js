@@ -177,6 +177,51 @@ function integBootNotice() {
   }
 }
 
+// ---------- แถวตัวเชื่อม API ในเมนู + ----------
+// เหตุผลเดียวกับที่ connectorMenuRows() มีอยู่: หน้าเต็มอยู่ลึกสองชั้น ซึ่งแปลว่าไม่มีใครหาเจอ
+// ส่วนปุ่ม + อยู่บนแถบล่างของทุกหน้า — ห่างจากนิ้วหนึ่งครั้งกดเสมอ
+//
+// กติกาของแผ่นนี้ต่างจากหน้าเต็มหนึ่งข้อ: **โชว์เฉพาะสิ่งที่กดแล้วเกิดอะไรขึ้นจริง**
+// ยังไม่ล็อกอิน · เซิร์ฟเวอร์ยังไม่พร้อม · ยังไม่ได้ตั้งกุญแจ Google → ไม่ต้องโผล่ตรงนี้
+// เพราะแผ่นนี้คือที่ที่คนมาเพื่อ "ทำอะไรสักอย่างให้เสร็จเดี๋ยวนี้" ไม่ใช่ที่อ่านว่าทำไมยังทำไม่ได้
+// (หน้าเต็มอธิบายครบอยู่แล้ว และ "ดูตัวเชื่อมทั้งหมด" อยู่ท้ายแผ่นพอดี)
+function integMenuRows() {
+  if (!integReady() || integ.err) return '';
+  const src = id => (typeof SOURCES !== 'undefined' && SOURCES.find(s => s.id === id)) || null;
+  let html = '';
+
+  // ---- ที่เชื่อมไว้แล้ว: บอกสถานะ แตะเพื่อไปจัดการต่อ ----
+  for (const r of integItems()) {
+    const s = src(r.provider) || { name: r.provider, icon: 'calendar' };
+    const bad = r.status === 'needs_reauth';
+    html += `<div class="as-row as-tgl" onclick="closeAddSheet();go('scr-sources')">
+      <span class="as-ic">${icon(s.icon)}</span>
+      <span class="as-tx"><b>${esc(s.shortName || s.name)}</b>
+        <span>${esc(r.account || integStatusText(r))}</span></span>
+      <span class="as-cnt ${bad ? 'bad' : 'ok'}">${icon(bad ? 'flag' : 'check')}${bad ? 'ต้องเชื่อมใหม่' : 'เชื่อมแล้ว'}</span>
+    </div>`;
+  }
+
+  // ---- ที่ยังต่อเพิ่มได้: กดแล้วเริ่มเชื่อมจากตรงนี้เลย ----
+  const connected = new Set(integItems().map(r => r.provider));
+  const open = (typeof SOURCES !== 'undefined' ? SOURCES : [])
+    .filter(s => s.connect && !connected.has(s.id))
+    .filter(s => s.connect !== 'google' || integ.google);
+  for (const s of open) {
+    // ปฏิทินต้องวางลิงก์ซึ่งพิมพ์ในแผ่นเตี้ย ๆ ไม่ไหว → พาไปหน้าเต็มแล้วโฟกัสช่องให้เลย
+    // ส่วน Google ไม่ต้องกรอกอะไรสักช่อง กดแล้วออกไปหน้าอนุญาตได้ทันทีจากตรงนี้
+    const act = s.connect === 'google'
+      ? `closeAddSheet();integConnectGoogle('${s.id}')`
+      : `closeAddSheet();go('scr-sources');setTimeout(()=>{const e=document.getElementById('icsUrl');if(e)e.focus();},350)`;
+    html += `<div class="as-row as-tgl" onclick="${act}">
+      <span class="as-ic">${icon(s.icon)}</span>
+      <span class="as-tx"><b>${esc(s.shortName || s.name)}</b><span>${esc(s.desc)}</span></span>
+      <span class="as-cnt">เชื่อม</span>
+    </div>`;
+  }
+  return html;
+}
+
 // ---------- ข้อความสถานะที่ผู้ใช้อ่านรู้เรื่อง ----------
 // สถานะดิบจากเซิร์ฟเวอร์เป็นคำของโปรแกรมเมอร์ · หน้าจอไม่ควรเห็นมันเลยสักคำ
 function integStatusText(row) {

@@ -2703,6 +2703,7 @@ function addSheetHTML() {
         <span class="as-cnt">เปิดอยู่ ${c.on}/${c.all}</span>
       </div>
       <p class="as-sub">เปิดไว้แล้วงานไหลเข้าเอง ไม่ต้องพิมพ์ ไม่ต้องกดอะไรอีก</p>
+      ${typeof integMenuRows === 'function' ? integMenuRows() : ''}
       ${typeof connectorMenuRows === 'function' ? connectorMenuRows() : ''}
       <button class="as-row as-more" onclick="closeAddSheet();go('scr-sources')">
         <span class="as-ic dim">${icon('cog')}</span>
