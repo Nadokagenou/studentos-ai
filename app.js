@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1B97';                 // สายเลขของแอป
+const APP_VERSION = '1B98';                 // สายเลขของแอป
 const APP_CODENAME = 'Horizon';          // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -520,12 +520,9 @@ function applyTheme() {
   // 1B96 · ช่องสีบนแถว "ธีมสี" ในแท็บ "ฉัน" ต้องเปลี่ยนพร้อมธีมด้วย
   // ไม่งั้นเลือกธีมใหม่แล้วเดินกลับมา จะเจอช่องสีของธีมเก่าค้างอยู่ ซึ่งอ่านว่า
   // "เลือกไม่ติด" ทั้งที่ทั้งจอเปลี่ยนสีไปแล้ว
-  const psw2 = document.getElementById('peThemeSw');
-  if (psw2) psw2.className = 'pe-ic pe-sw sw-' + theme;
-  const pth2 = document.getElementById('peThemeCt');
-  if (pth2) pth2.textContent = pref === 'system'
-    ? 'ตามระบบ · ตอนนี้โทน' + (THEME_NAME[theme] || '')
-    : (THEME_NAME[theme] || '') + ' · แตะเพื่อเปลี่ยน';
+  // 1B98 · ช่องนี้ย้ายไปอยู่ในแถบโชว์แล้ว · วาดใหม่ทั้งแถบ เพราะช่องสีกับชื่อธีม
+  // อยู่ในก้อน innerHTML เดียวกัน — แก้ทีละ element คือทางที่ทำให้สองที่เพี้ยนกันเอง
+  if (typeof renderShowcase === 'function' && document.getElementById('showBox')) renderShowcase();
 }
 
 function setTheme(pref) {
@@ -1058,6 +1055,9 @@ async function initCloud() {
       // คำขอเป็นเพื่อนที่ค้างอยู่ต้องขึ้นจุดแดงได้โดยไม่ต้องรอให้คนเปิดหน้าเพื่อนก่อน
       // ไม่งั้นคนส่งคำขอมาแล้วไม่มีอะไรบอก กว่าอีกฝั่งจะบังเอิญเปิดเข้าไปเอง
       if (typeof loadFriends === 'function') loadFriends();
+      // 1B98 · ตั้งต้นรอบเฝ้าเรื่องสังคมทันทีที่ล็อกอิน · รอบแรกไม่เตือน มันแค่จดว่า
+      // ตอนนี้มีอะไรค้างอยู่บ้าง (ไม่งั้นคนที่มีคำขอเก่าสิบอันจะโดนสิบดอกรวดตอนล็อกอิน)
+      if (typeof socialWatch === 'function') socialWatch(true);
       if (typeof syncPublicFace === 'function') syncPublicFace(true);
       syncFromCloud().then(() => { routeAfterLogin(); return applyJoinToken(); });
     } else {
@@ -1418,6 +1418,10 @@ async function logout() {
   currentUser = null; lastSync = null;
   // เพื่อนเป็นของบัญชี ไม่ใช่ของเครื่อง — ออกจากบัญชีแล้วต้องไม่เหลือค้างบนจอ
   frHandle = null; frList = []; frReqs = []; frHits = null; frLoaded = false;
+  // ของที่ "เคยเห็นแล้ว" ผูกกับบัญชี ไม่ใช่กับเครื่อง — ไม่ล้างแล้วบัญชีถัดไปที่ล็อกอิน
+  // บนเครื่องนี้จะไม่ได้รับการเตือนคำขอของตัวเอง เพราะไอดีของคนอื่นค้างอยู่ในรายการ
+  try { localStorage.removeItem(SOCIAL_SEEN_KEY); } catch (_) {}
+  socialAt = 0;
   const fb0 = document.getElementById('friendsBody');
   if (fb0) fb0.dataset.built = '';
   localStorage.removeItem('studentos.alt.skipLogin');
@@ -6039,21 +6043,9 @@ function renderProfile() {
     if (gob) gob.textContent = live ? 'รับเลย' : 'พรุ่งนี้';
   }
 
-  // ---------- 1B96 · แถว "ธีมสี" ----------
-  // ช่องสีต้องเป็นธีมที่ "เห็นอยู่จริง" ไม่ใช่ค่าที่ตั้งไว้ — ตั้ง "ตามระบบ" ไว้
-  // แล้วโชว์ช่องครึ่งขาวครึ่งดำ จะไม่ได้บอกอะไรเลยว่าตอนนี้จอเป็นโทนไหน
-  const psw = document.getElementById('peThemeSw');
-  if (psw && typeof activeTheme === 'function') {
-    psw.className = 'pe-ic pe-sw sw-' + activeTheme();
-  }
-  const pth = document.getElementById('peThemeCt');
-  if (pth && typeof THEME_NAME !== 'undefined') {
-    const pref = typeof themePref === 'function' ? themePref() : 'system';
-    const act = typeof activeTheme === 'function' ? activeTheme() : 'light';
-    pth.textContent = pref === 'system'
-      ? 'ตามระบบ · ตอนนี้โทน' + (THEME_NAME[act] || '')
-      : (THEME_NAME[act] || '') + ' · แตะเพื่อเปลี่ยน';
-  }
+  // 1B98 · "ธีมสี" ย้ายไปเป็นช่องที่สี่ของแถบโชว์ — วาดใน renderShowcase()
+  // ช่องสีของมันเคยว่างเปล่าทุกธีม เพราะกฎพื้นเรียบของลิสต์ (#scr-profile .pf-entry .pe-ic
+  // ความจำเพาะ 1,2,0) ทับคลาส .sw-* (0,1,0) ทิ้งทุกใบ — เขียนช่องสีไปก็ไม่เคยขึ้น
 
   // ---------- 1B95 · แถว "วิชาของฉัน" ----------
   // บรรทัดรองต้องบอก "ค่าที่ตั้งไว้" ไม่ใช่คำโฆษณาของแถว — นี่คือเหตุผลเดียวที่แถวนี้
@@ -6067,9 +6059,9 @@ function renderProfile() {
     // ยังไม่เคยยืนยัน (null) กับ ยืนยันแล้วแต่ไม่ได้เลือกสักวิชา ([]) ต่างกันจริง
     // อันแรกคือ "ยังไม่ได้ทำ" อันหลังคือ "ทำแล้วและตั้งใจว่าไม่เลือก" ห้ามเขียนเหมือนกัน
     pj.textContent = (ss.strong === null && ss.weak === null)
-      ? 'ยังไม่ได้เลือก — เพื่อนยังจับคู่กับคุณไม่ได้'
-      : [st ? 'ช่วยได้ ' + st + ' วิชา' : '', wk ? 'อยากได้ ' + wk + ' วิชา' : '']
-          .filter(Boolean).join(' · ') || 'ยังไม่ได้เลือกสักวิชา';
+      ? 'ยังไม่ได้เลือก'
+      : [st ? 'ช่วยได้ ' + st : '', wk ? 'อยากได้ ' + wk : '']
+          .filter(Boolean).join(' · ') || 'ไม่ได้เลือกไว้';
   }
   // ---------- 1B95 · เลขข้อความค้างบนแถว "ข้อความ" ----------
   // อ่านจาก dmPending ก้อนเดียวกับที่ปุ่มลอยในฟีดใช้ — เลขข้อความมีที่มาที่เดียว
@@ -6088,7 +6080,14 @@ function renderProfile() {
   // ขึ้นว่า "0 คน" ไว้ก่อนคือการโกหก คนมีเพื่อนอยู่จะเห็นเลขผิดทุกครั้งที่เปิดหน้านี้
   if (pf2) pf2.textContent = frLoaded
     ? (frList.length ? frList.length + ' คน' : 'ยังไม่มีเพื่อน')
-    : 'ค้นหาและเพิ่มเพื่อน';
+    : 'ค้นหาเพื่อน';
+  // 1B98 · ค่าของแถว "ข้อความ" — เดิมบรรทัดรองเขียนว่า "คุยกับเพื่อนแบบตัวต่อตัว"
+  // ซึ่งไม่ได้บอกอะไรที่คำว่า "ข้อความ" ไม่ได้บอกไว้แล้ว · ตอนนี้บอกจำนวนที่ค้างจริง
+  const pdc = document.getElementById('peDmCt');
+  if (pdc) {
+    const n = (typeof dmPending === 'number') ? dmPending : 0;
+    pdc.textContent = n ? n + ' ข้อความใหม่' : 'ไม่มีข้อความใหม่';
+  }
   // ห้องของฉัน — บอกว่ามีของวางอยู่กี่ชิ้นแล้ว ห้องเปล่ากับห้องที่แต่งแล้วต้องอ่านต่างกัน
   const pr = document.getElementById('peRoomCt');
   if (pr && typeof roomState === 'function') {
@@ -6099,8 +6098,8 @@ function renderProfile() {
   const ps = document.getElementById('peShopCt');
   if (ps) {
     const st = loginStreak();
-    ps.textContent = tokenBalance() + ' โทเคน'
-      + (st > 1 ? ' · เปิดติดกัน ' + st + ' วัน' : '');
+    ps.textContent = (typeof fmtTok === 'function' ? fmtTok(tokenBalance()) : tokenBalance())
+      + ' โทเคน' + (st > 1 ? ' · เปิดติดกัน ' + st + ' วัน' : '');
   }
   const ver = document.getElementById('appVer');
   if (ver) ver.textContent = 'StudentOS Version ' + APP_VERSION + ' “' + APP_CODENAME + '”';
@@ -6628,9 +6627,12 @@ function renderContext() {
   const ct   = document.getElementById('peCtxCt');
 
   if (ct) {
+    // 1B98 · ค่านี้ไปอยู่คอลัมน์ขวาของแถวแล้ว จึงต้องสั้นพอที่จะไม่เบียดชื่อแถว
+    // ข้อความชวนตอบเพิ่ม ("— ตอบเพิ่มได้") ถูกตัดทิ้ง เพราะมันคือคำที่ปุ่มทั้งแถว
+    // พูดอยู่แล้วด้วยการเป็นปุ่ม · ส่วนคำชวนของจริงยังอยู่ที่ #ctxHero เหมือนเดิม
     ct.textContent = know >= 100
-      ? ctxClasses().length + ' คาบเรียน · ' + ctxRoutines().length + ' กิจวัตร'
-      : 'รู้จักคุณแล้ว ' + know + '% — ตอบเพิ่มได้';
+      ? ctxClasses().length + ' คาบ · ' + ctxRoutines().length + ' กิจวัตร'
+      : 'รู้จัก ' + know + '%';
   }
   if (row) row.hidden = false;
   if (hero) {
@@ -8328,9 +8330,14 @@ function renderTabBadges() {
   // ไม่มีตัวเลข เพราะมันคือของชิ้นเดียวต่อวัน ตัวเลขจะกลายเป็นการบอกว่า "1" ซึ่งไม่ได้บอกอะไรเพิ่ม
   const dot = document.getElementById('dotMe');
   if (dot) {
-    const waiting = typeof dailyPending === 'function' && dailyPending();
+    // 1B98 · จุดนี้เคยแปลว่า "มีของรางวัลรายวัน" อย่างเดียว
+    // แต่ทางเข้าเดียวของคำขอเพื่อนกับกล่องข้อความก็อยู่หลังแท็บนี้เหมือนกัน
+    // ของที่รอให้กดอยู่หลังปุ่มเดียวกัน ต้องใช้สัญญาณเดียวกัน ไม่งั้นครึ่งหนึ่งเงียบหาย
+    const waiting = (typeof dailyPending === 'function' && dailyPending())
+      || (Array.isArray(frReqs) && frReqs.length > 0)
+      || (typeof dmPending === 'number' && dmPending > 0);
     dot.hidden = !waiting;
-    dot.setAttribute('aria-label', waiting ? 'มีของรางวัลรายวันรอรับ' : '');
+    dot.setAttribute('aria-label', waiting ? 'มีของรออยู่ในแท็บฉัน' : '');
   }
 
   // ปุ่มเพื่อนมุมขวาบน — ขึ้นจำนวนคำขอที่รอเราตอบ ไม่ใช่จำนวนเพื่อน
@@ -8418,17 +8425,33 @@ function renderShowcase() {
       <b>${esc(title)}</b><i>${esc(sub)}</i>
     </button>`;
 
+  // ---------- 1B98 · ช่องที่สี่: ธีมสี ----------
+  // ย้ายมาจากลิสต์ทางเข้าข้างล่าง ที่ซึ่งช่องสีของมันว่างเปล่ามาตลอด
+  // (กฎพื้นเรียบของลิสต์ทับคลาส .sw-* ทิ้งด้วยความจำเพาะ ดูหมายเหตุใน renderProfile)
+  //
+  // ที่นี่ไอคอนของช่องคือ "ตัวธีมเอง" ไม่ใช่รูปอะไรสักอย่างที่แปลว่าธีม
+  // ซึ่งเข้ากับแถบนี้พอดี เพราะอีกสามช่องก็โชว์ของจริงที่เขามีอยู่เหมือนกัน
+  // .shw-sw ใช้คลาส .sw-* ชุดเดียวกับตารางเลือกธีม — ช่องสีมีที่มาที่เดียวทั้งแอป
+  const act = (typeof activeTheme === 'function') ? activeTheme() : 'light';
+  const pref = (typeof themePref === 'function') ? themePref() : 'light';
+  const thName = (typeof THEME_NAME !== 'undefined' && THEME_NAME[act]) || '';
+  const thTile = `<button class="shw got" onclick="openSetOpt('theme')">
+      <span class="shw-sw sw-${act}"></span>
+      <b>ธีมสี</b><i>${esc(pref === 'system' ? 'ตามระบบ · ' + thName : thName)}</i>
+    </button>`;
+
   box.innerHTML = `<button class="st-open" onclick="openMyPublic()">
       <span class="sec-label">โชว์ · พื้นที่ของฉัน</span>
       <span class="st-open-go">ดูแบบที่เพื่อนเห็น${icon('chevron')}</span>
     </button>
-    <div class="shw-row">
+    <div class="shw-row shw-4">
       ${tile("go('scr-room')", 'image', put > 0, 'ห้องของฉัน',
-        rs.name || (put ? 'วางของไว้ ' + put + ' ชิ้น' : 'ยังไม่ได้แต่ง'))}
+        rs.name || (put ? 'วางไว้ ' + put + ' ชิ้น' : 'ยังไม่ได้แต่ง'))}
       ${tile("go('scr-badges')", 'medal', got > 0, 'เหรียญตรา',
         got ? got + ' จาก ' + all : 'ยังไม่มีเหรียญ')}
       ${tile("go('scr-stats')", 'flame', stk > 1, 'ต่อเนื่อง',
         stk > 1 ? stk + ' วันติด' : (stk === 1 ? 'เริ่มวันนี้' : 'ยังไม่เริ่ม'))}
+      ${thTile}
     </div>`;
 }
 
@@ -11625,15 +11648,117 @@ function checkReminders() {
     const stage = hLeft <= 0 ? null : hLeft <= 3 ? 'soon' : hLeft <= 24 ? 'day' : null;
     if (!stage) continue;
     if (t.remindedStage === stage || (stage === 'day' && t.remindedAt)) continue;
-    if (canNotify) {
-      const c = reminderCopy(t, now);
-      notify(c.title, c.body, 'studentos-alt-' + t.id);
-    }
+    // ⚠️ 1B98 · ของเดิมติดธง remindedStage **ไม่ว่าจะเตือนออกไปจริงหรือไม่**
+    // คนที่ยังไม่ได้กดอนุญาตแจ้งเตือน (ซึ่งคือทุกคนในช่วงวันแรก ๆ) จึงเดินผ่าน
+    // ทั้งสองจังหวะไปเงียบ ๆ · พอเขากดอนุญาตทีหลัง งานที่ค้างอยู่ตอนนั้นจะไม่มีวัน
+    // ถูกเตือนอีกเลย เพราะธงถูกติดไปแล้วตั้งแต่ตอนที่ยังส่งอะไรไม่ได้
+    // นี่คือคำตอบตรง ๆ ของ "มันไม่ค่อยแจ้ง" — มันแจ้งครั้งเดียวแล้วเผาโควตาตัวเองทิ้ง
+    // ส่งไม่ได้ก็อย่าติดธง · รอบหน้าที่ส่งได้ค่อยเตือน งานยังค้างอยู่ที่เดิม
+    if (!canNotify) continue;
+    const c = reminderCopy(t, now);
+    notify(c.title, c.body, 'studentos-alt-' + t.id);
     t.remindedAt = now.toISOString();
     t.remindedStage = stage;
     touched = true;
   }
   if (touched) save();
+}
+
+// ============================================================
+// 1B98 · เฝ้าคำขอเพื่อน · ข้อความใหม่ — แล้วเด้งแจ้งเตือนจริง
+// ============================================================
+// เจ้าของแจ้งว่า "ตอนพิมพ์หาเพื่อนต้องแจ้งเตือนมาในโทรศัพท์เสมอ ตอนนี้มันไม่แจ้งเลย"
+// ตรวจแล้วถูก — ทั้งแอปไม่มีจุดไหนเรียก notify() ให้เรื่องสังคมเลยสักจุด
+// มีแต่ renderTabBadges() ที่ขยับ "ตัวเลขบนแถบ" ซึ่งเห็นได้ต่อเมื่อเปิดแอปอยู่แล้ว
+// และเปิดอยู่ที่จอที่มีแถบนั้น · แบดจ์ไม่ใช่การแจ้งเตือน มันคือของที่ต้องไปหา
+//
+// ตัวนี้ทำงานตราบใดที่หน้ายังมีชีวิตอยู่ — รวมถึงตอนสลับไปแอปอื่นหรือพับจอลง
+// (เบราว์เซอร์บีบ timer ของแท็บที่ซ่อนอยู่ให้ช้าลง แต่ไม่ได้หยุด) การเตือนจึงออกได้
+// ทั้งที่ผู้ใช้ไม่ได้มองแอปอยู่ ซึ่งเป็นสิ่งที่ถูกสั่งมา
+//
+// ⚠️ **ปิดแอปสนิทแล้วยังไม่แจ้ง** — อันนั้นต้องให้เซิร์ฟเวอร์ยิง Web Push
+// ท่อนั้นมีอยู่แล้วและใช้งานจริงกับ "งานใกล้ถึงกำหนด" (supabase/functions/send-reminders)
+// แต่ยังไม่มีใครสั่งให้มันดูตาราง friend_requests / dm_threads
+// วันที่จะทำ: เพิ่มสองคิวรีในไฟล์นั้น ไม่ต้องแตะฝั่งแอปเลย เพราะ sw.js รับ push
+// ชนิดไหนก็แสดงได้อยู่แล้ว (มันอ่าน title/body/tag/url จาก payload ตรง ๆ)
+//
+// กันเตือนซ้ำด้วย "ของที่เคยเห็นแล้ว" เก็บในเครื่อง ไม่ใช่ด้วยเวลาที่เตือนล่าสุด
+// เวลาเป็นเกณฑ์ที่ผิดเสมอเมื่อมีของใหม่เข้ามาสองชิ้นในนาทีเดียวกัน
+const SOCIAL_SEEN_KEY = 'studentos.alt.socialSeen';
+const SOCIAL_GAP = 55_000;   // ต่ำกว่ารอบ 60 วิ นิดหน่อย ไม่งั้นบางรอบจะถูกข้ามทิ้ง
+let socialBusy = false, socialAt = 0;
+
+function socialSeen() {
+  try { return JSON.parse(localStorage.getItem(SOCIAL_SEEN_KEY)) || {}; } catch (_) { return {}; }
+}
+function saveSocialSeen(v) {
+  try { localStorage.setItem(SOCIAL_SEEN_KEY, JSON.stringify(v)); } catch (_) {}
+}
+
+// เปิดแอปครั้งแรกหลังอัปเดต = ยังไม่เคยมีของที่ "เคยเห็น" เลย
+// ถ้าเตือนทุกอย่างที่ค้างอยู่ตอนนั้น คนที่มีคำขอเก่าค้าง 8 อันจะโดนแปดดอกรวด
+// รอบแรกจึงแค่จดว่ามีอะไรอยู่บ้าง ไม่เตือน — ของที่เข้ามา "หลังจากนี้" เท่านั้นที่เตือน
+async function socialWatch(force) {
+  if (!sb || !currentUser) return;
+  if (socialBusy) return;
+  if (!force && Date.now() - socialAt < SOCIAL_GAP) return;
+  socialAt = Date.now();
+  socialBusy = true;
+  try {
+    const [inb, dm] = await Promise.all([sb.rpc('friend_inbox'), sb.rpc('dm_inbox')]);
+    const seen = socialSeen();
+    const first = !seen.ready;
+    let dirty = false;
+
+    // ---------- คำขอเพื่อน ----------
+    if (!inb.error) {
+      const rows = inb.data || [];
+      frReqs = rows;                                   // แบดจ์อ่านจากตัวแปรเดียวกันนี้
+      const ids = rows.map(r => r.id);
+      const known = seen.fr || [];
+      const fresh = rows.filter(r => !known.includes(r.id));
+      if (fresh.length && !first) {
+        const nm = String((fresh[0].display_name || '').trim()) || 'มีคน';
+        // แท็ก studentos-friend ตัวเดียวกันทุกดอก — คำขอที่สองมาทับใบแรก ไม่ใช่กองสิบใบ
+        notify(fresh.length > 1 ? 'มีคำขอเป็นเพื่อน ' + fresh.length + ' คน' : nm + ' ขอเป็นเพื่อน',
+          fresh.length > 1 ? 'เปิดแอปเพื่อกดรับ' : 'กดรับแล้วเห็นผลและตารางของกันและกัน',
+          'studentos-friend');
+      }
+      if (ids.join() !== known.join()) { seen.fr = ids; dirty = true; }
+    }
+
+    // ---------- ข้อความใหม่ ----------
+    // นับเฉพาะห้องที่ "คนอื่นพูดคนสุดท้าย" — ข้อความที่เราเพิ่งพิมพ์เองไม่ใช่ของใหม่
+    if (!dm.error) {
+      const rows = (dm.data || []).filter(r => r.last_at && !r.mine_last);
+      const stamps = seen.dm || {};
+      const fresh = rows.filter(r => stamps[r.id] !== r.last_at);
+      if (fresh.length && !first) {
+        const r = fresh[0];
+        const nm = String((r.display_name || '').trim()) || 'เพื่อน';
+        notify(fresh.length > 1 ? 'ข้อความใหม่ ' + fresh.length + ' ห้อง' : nm + ' ส่งข้อความมา',
+          fresh.length > 1 ? 'เปิดแอปเพื่ออ่าน' : String(r.last_body || 'ส่งรูปมา').slice(0, 80),
+          'studentos-dm');
+      }
+      const next = {};
+      for (const r of rows) next[r.id] = r.last_at;
+      if (JSON.stringify(next) !== JSON.stringify(stamps)) { seen.dm = next; dirty = true; }
+      // เลขบนแถว "ข้อความ" ในแท็บฉัน อ่านจาก dmPending ก้อนเดิม — อัปเดตให้ตรงกันไปเลย
+      // ไม่งั้นรอบนี้เพิ่งยิง dm_inbox ไปแล้วแต่ตัวเลขยังเป็นของเมื่อสองนาทีก่อน
+      if (typeof dmPending === 'number') {
+        const pend = (dm.data || []).filter(r => r.is_request).length;
+        if (pend !== dmPending) { dmPending = pend; dirty = true; }
+      }
+    }
+
+    if (first) { seen.ready = 1; dirty = true; }
+    if (dirty) {
+      saveSocialSeen(seen);
+      if (typeof renderTabBadges === 'function') renderTabBadges();
+      if (curScreen === 'scr-profile' && typeof renderProfile === 'function') renderProfile();
+    }
+  } catch (_) { /* ออฟไลน์ — รอบหน้าค่อยว่ากัน ไม่ต้องบอกอะไรผู้ใช้ */ }
+  socialBusy = false;
 }
 
 // เตือนแบบ toast ตอนเปิดแอป (ครั้งเดียวต่อการเปิด) ถ้ามีงานด่วน
@@ -12642,6 +12767,17 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   setInterval(renderTabBadges, 60_000);
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) renderTabBadges();
+  });
+
+  // 1B98 · รอบเฝ้าเรื่องสังคม — คำขอเพื่อน · ข้อความใหม่ (ดู socialWatch)
+  // รอบเดียวกับแบดจ์ แต่แยก interval เพราะ socialWatch ยิงเน็ตส่วน renderTabBadges ไม่ยิง
+  // ถ้ารวมกันไว้ วันหนึ่งที่ใครสักคนเร่งความถี่แบดจ์ จะกลายเป็นการเร่งคำขอเน็ตไปด้วย
+  // โดยไม่ตั้งใจ (socialWatch มีเพดานของตัวเองที่ SOCIAL_GAP อยู่แล้วอีกชั้น)
+  setInterval(() => socialWatch(), 60_000);
+  document.addEventListener('visibilitychange', () => {
+    // กลับเข้าแอป = จังหวะที่คุ้มที่สุดที่จะถาม เพราะช่วงที่ซ่อนอยู่เบราว์เซอร์บีบ timer
+    // จนอาจข้ามไปหลายรอบ · force ข้ามเพดานเวลาให้รอบนี้รอบเดียว
+    if (!document.hidden) socialWatch(true);
   });
 
   // ของสองอย่างที่เคยรอฉากเปิดแอปปิดก่อนถึงจะเด้ง — ตอนนี้รอให้ผู้ใช้ตั้งตัวแทน
