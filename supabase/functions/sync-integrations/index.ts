@@ -19,6 +19,7 @@ import { cryptoReady, fingerprint, unseal } from '../_shared/integrations.ts';
 import type { StandardTask } from '../_shared/integrations.ts';
 import { fetchIcs } from '../_shared/ics.ts';
 import { classroomReady, fetchClassroom } from '../_shared/classroom.ts';
+import { fetchCalendar } from '../_shared/gcal.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -146,6 +147,12 @@ async function pull(row: Row, secret: string): Promise<{
     if (!classroomReady()) throw new Error('ยังไม่ได้ตั้งกุญแจ Google ฝั่งเซิร์ฟเวอร์');
     const r = await fetchClassroom(secret);
     return { tasks: r.tasks, account: r.account || undefined };
+  }
+
+  if (row.provider === 'google_calendar') {
+    if (!classroomReady()) throw new Error('ยังไม่ได้ตั้งกุญแจ Google ฝั่งเซิร์ฟเวอร์');
+    const r = await fetchCalendar(secret);
+    return { tasks: r.tasks };
   }
 
   throw new Error(`ไม่รู้จักตัวเชื่อม "${row.provider}"`);
