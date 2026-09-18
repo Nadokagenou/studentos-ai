@@ -161,6 +161,19 @@ async function reconcile(row: Row, tasks: StandardTask[]) {
 
   const byId = new Map((known || []).map(k => [k.source_id, k]));
   const now = new Date().toISOString();
+
+  // ---------- งานที่เลยกำหนดไปแล้ว ไม่ต้องส่งเข้ากล่องเข้า ----------
+  // เจอตอนทดสอบกับปฏิทินจริง: ฟีดหนึ่งใบมี 317 รายการ ย้อนหลังไปถึงปี 2021
+  // ทั้งหมดถูกหย่อนเข้ากล่องเข้าในวินาทีที่กดเชื่อม — ปฏิทินของโรงเรียนจริงก็หน้าตาแบบนี้
+  // (งานทั้งเทอมที่ผ่านมาอยู่ในฟีดเดียวกันกับงานสัปดาห์หน้า)
+  //
+  // ผลคือกล่องเข้าที่มีเพดาน 150 รายการถูกงานที่ส่งไปแล้วเมื่อปีที่แล้วกลืนจนหมด
+  // แล้วงานที่ต้องส่งพรุ่งนี้หายไปอยู่ท้ายแถว ซึ่งแย่กว่าการไม่เชื่อมเลย
+  //
+  // เผื่อไว้หนึ่งวันเต็ม ไม่ใช่ตัดที่ "เดี๋ยวนี้" — งานที่ครบกำหนดเมื่อเช้ายังเป็นงานที่
+  // เจ้าตัวอาจยังไม่ได้ทำและยังส่งตามได้ · ที่เก่ากว่านั้นคือประวัติศาสตร์
+  const STALE_MS = 24 * 3600_000;
+  const staleBefore = Date.now() - STALE_MS;
   const deliver: { task: StandardTask; op: 'new' | 'update' | 'cancel'; fp: string }[] = [];
   const ledger: Record<string, unknown>[] = [];
   const seen = new Set<string>();
@@ -174,13 +187,19 @@ async function reconcile(row: Row, tasks: StandardTask[]) {
     // ไม่มีอะไรเปลี่ยน และเคยส่งไปแล้ว — ข้ามไปเลย ไม่ต้องเขียนอะไรทั้งนั้น
     if (old && old.fingerprint === fp && old.sent_fingerprint === fp) continue;
 
-    const op: 'new' | 'update' | 'cancel' = t.cancelled ? 'cancel' : (old ? 'update' : 'new');
-    deliver.push({ task: t, op, fp });
+    // เก่าเกินกว่าจะเป็นงานที่ทำอะไรต่อได้ — จดไว้ในทะเบียนว่ารู้จักแล้ว แต่ไม่ส่งต่อ
+    // จดด้วย sent_fingerprint เท่ากับของปัจจุบัน เพื่อไม่ต้องคิดใหม่ทุกรอบ sync
+    // แต่ถ้าวันหลังครูเลื่อนกำหนดส่งมาข้างหน้า ลายนิ้วมือจะเปลี่ยน แล้วมันจะกลับเข้าเส้นทางนี้
+    // อีกครั้งโดยอัตโนมัติ คราวนี้ผ่านด่านเพราะกำหนดส่งอยู่ในอนาคตแล้ว
+    const stale = !t.cancelled && t.due && new Date(t.due).getTime() < staleBefore;
+
+    if (!stale) deliver.push({ task: t, op: t.cancelled ? 'cancel' : (old ? 'update' : 'new'), fp });
     ledger.push({
       integration_id: row.id, source_id: t.sourceId, user_id: row.user_id,
       fingerprint: fp, title: t.title.slice(0, 200), due: t.due ?? null, url: t.url ?? null,
       state: t.cancelled ? 'cancelled' : 'active',
       seen_at: now, updated_at: now,
+      ...(stale ? { sent_fingerprint: fp, sent_at: now } : {}),
     });
   }
 

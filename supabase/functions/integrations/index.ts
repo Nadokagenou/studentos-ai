@@ -87,7 +87,13 @@ Deno.serve(async (req) => {
 
       // ซิงก์รอบแรกทันที — "เชื่อมแล้วไม่มีอะไรเกิดขึ้น" คือจุดที่คนเลิกเชื่อว่ามันทำงาน
       await kick(String(data.id));
-      return json({ ok: true, item: data, found: probe.tasks.length });
+
+      // นับเฉพาะของที่จะเข้าแผนจริง ไม่ใช่จำนวนบรรทัดทั้งไฟล์ — ปฏิทินโรงเรียนใบหนึ่ง
+      // มีงานย้อนหลังทั้งปีอยู่ในนั้น บอกว่า "เจอ 317 รายการ" แล้วขึ้นมาสิบใบ
+      // คือตัวเลขที่ทำให้คนคิดว่าระบบกินของหายไป 307 ใบ
+      const cut = Date.now() - 24 * 3600_000;
+      const upcoming = probe.tasks.filter(t => !t.due || new Date(t.due).getTime() >= cut).length;
+      return json({ ok: true, item: data, found: upcoming, total: probe.tasks.length });
     }
 
     // ---------- เชื่อมบัญชี Google ----------
