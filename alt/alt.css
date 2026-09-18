@@ -1749,13 +1749,18 @@
 
 /* รุ่นบรรทัดเดียวของคำชวนข้างบน — ใช้ในเส้นเวลา ซึ่งของหลักคือเส้น ไม่ใช่คำชวน
    ไม่มีกรอบ ไม่มีพื้นสี เพราะกรอบประให้ความรู้สึกว่า "มีอะไรผิด" ทั้งที่แค่ยังไม่ได้กรอก */
+/* 1C07 · ขยายขึ้นมาเท่าหัวข้อกลุ่ม — เจ้าของวงบรรทัดนี้มาด้วย
+   บรรทัดนี้คือที่เดียวบนจอที่บอกว่า AI ยังเดาเวลาว่างอยู่ แต่มันเคยเป็น
+   ตัวหนังสือที่เล็กที่สุดและจางที่สุดในจอ ซึ่งอ่านเป็น "ข้อความประกอบ"
+   ทั้งที่มันคือปุ่ม · nowrap ถูกถอด — ตัดท้ายประโยคทิ้งบนจอ 375
+   ทำให้คำว่า "เดาเวลาว่างอยู่" หายไป ซึ่งเป็นครึ่งที่สำคัญกว่าของประโยค */
 .tl-hint {
   display: flex; align-items: center; gap: 7px; width: 100%; text-align: left;
   background: transparent; border: none; padding: 2px 2px 0; margin-bottom: 14px;
-  font-family: inherit; font-size: 11.5px; color: var(--muted); cursor: pointer;
+  font-family: inherit; font-size: 13px; line-height: 1.45; color: var(--ink); cursor: pointer;
 }
-.tl-hint span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tl-hint b { flex: none; font-weight: 600; color: var(--fill); }
+.tl-hint span { flex: 1; min-width: 0; }
+.tl-hint b { flex: none; font-weight: 700; color: var(--fill); }
 .tl-hint svg { width: 13px; height: 13px; flex: none; color: var(--faint); }
 .tl-hint:active { opacity: .6; }
 
@@ -2961,7 +2966,18 @@ body { line-height: 1.7; letter-spacing: 0; }
 .page-title { font-size: var(--fs-page); line-height: 1.24; letter-spacing: -.034em; }
 .page-sub { font-size: 13px; line-height: 1.65; color: var(--muted); }
 .sh-title { font-size: 21px; letter-spacing: -.03em; }
-.sec-label { font-size: 11.5px; letter-spacing: .09em; color: var(--muted); margin-top: 20px; }
+/* 1C07 · หัวข้อกลุ่มขยายและเข้มขึ้น — เจ้าของวงมาสามจุด "ขยายกับเพิ่มความชัด"
+   ตัวการไม่ใช่ขนาดอย่างเดียว แต่เป็น letter-spacing .08–.09em ที่ติดมากับ
+   .sec-label ตั้งแต่ style.css · การถ่างตัวอักษรเป็นสูตรของหัวข้อภาษาอังกฤษตัวใหญ่
+   ซึ่งได้ผลเพราะตัวพิมพ์ใหญ่ทุกตัวสูงเท่ากันและไม่มีอะไรลอยอยู่ข้างบนข้างล่าง
+   ภาษาไทยตรงข้าม: สระบนล่างกับวรรณยุกต์ต้องเกาะพยัญชนะของมัน พอถ่างออก
+   คำเลยแตกเป็นตัว ๆ และที่ 11.5px ตาต้องประกอบคำเองทุกคำ
+   เหลือ .01em ไว้พอไม่ให้ตัวชนกัน · สีขึ้นจาก --muted เป็น --ink เพราะมันคือ
+   หัวข้อที่บอกว่ากลุ่มข้างล่างคืออะไร ไม่ใช่คำอธิบายประกอบ */
+.sec-label {
+  font-size: 13.5px; font-weight: 700; letter-spacing: .01em;
+  color: var(--ink); margin-top: 20px;
+}
 .eyebrow { font-size: var(--fs-meta); letter-spacing: .04em; }
 /* ตัวหนังสือรองเดิมจางจนอ่านยากบนธีมสว่าง — ยกน้ำหนักขึ้นนิดหนึ่ง */
 .rc-meta, .am, .mt-sub, .st-row .ct, .fr-st { font-weight: 500; }
@@ -6267,9 +6283,11 @@ body.deep-scr .top-friends { display: none; }
   padding: 0; border: 0; background: none; font: inherit; text-align: left; cursor: pointer;
 }
 .st-open .sec-label { flex: 1; margin-top: 0; }
+/* 1C07 · ตามหัวข้อกลุ่มขึ้นมาหนึ่งขั้น — ลิงก์ที่เล็กกว่าหัวข้อมากเกินไป
+   อ่านเป็นของที่ไม่ได้ตั้งใจให้กด */
 .st-open-go {
   display: inline-flex; align-items: center; gap: 2px;
-  font-size: 12px; font-weight: 600; color: var(--blue);
+  font-size: 13px; font-weight: 700; color: var(--blue);
 }
 .st-open-go svg { width: 14px; height: 14px; }
 /* ============================================================
