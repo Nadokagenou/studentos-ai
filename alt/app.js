@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C08';                 // สายเลขของแอป
-const APP_CODENAME = 'Bridge';           // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1C09';                 // สายเลขของแอป
+const APP_CODENAME = 'Quiet';           // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -6038,20 +6038,24 @@ function renderProfile() {
   const pdy = document.getElementById('peDaily');
   if (pdy && typeof dailyPending === 'function') {
     const live = dailyPending();
-    const bal = typeof tokenBalance === 'function' ? tokenBalance() : 0;
     pdy.classList.toggle('live', live);
     const ct = document.getElementById('peDailyCt');
     if (ct) {
       // ขณะยังไม่ได้รับ ต้องบอกว่า "จะได้อะไร" ไม่ใช่แค่ "กดสิ"
       // รางวัลของแต่ละวันไม่เท่ากัน คนจึงมีเหตุผลต่างกันในแต่ละวันที่จะกด
-      let head = 'รับของวันนี้แล้ว · รอบหน้าพรุ่งนี้ 6 โมงเช้า';
+      //
+      // 1C09 · ข้อความย้ายไปคอลัมน์ขวาของแถว จึงต้องสั้นพอที่จะไม่เบียดชื่อแถว
+      // ของที่ตัดออกคือส่วนที่พูดซ้ำกับที่อื่นในจอเดียวกัน:
+      //   • "รอบหน้าพรุ่งนี้ 6 โมงเช้า" → ป้ายขวาสุดเขียนว่า "พรุ่งนี้" อยู่แล้ว
+      //   • "· มี N โทเคน"             → ยอดเดียวกันอยู่บนหัวจอและบนแถวร้านค้า
+      let head = 'รับแล้ววันนี้';
       if (live && typeof pendingCycleDay === 'function' && typeof DAILY_PLAN !== 'undefined') {
         const d = pendingCycleDay();
         const rw = DAILY_PLAN[d - 1];
-        head = 'วันที่ ' + d + ' ของรอบ · ได้ '
+        head = 'วันที่ ' + d + ' · ได้ '
              + (rw === 'spin' ? 'สุ่มฟรี 1 ใบ' : rw + ' โทเคน');
       }
-      ct.textContent = head + ' · มี ' + (typeof fmtTok === 'function' ? fmtTok(bal) : bal) + ' โทเคน';
+      ct.textContent = head;
     }
     const gob = document.getElementById('peDailyGo');
     if (gob) gob.textContent = live ? 'รับเลย' : 'พรุ่งนี้';
@@ -6109,11 +6113,13 @@ function renderProfile() {
     const put = Object.keys(rs.on).filter(k => rs.on[k] && rs.on[k] !== 'none').length;
     pr.textContent = rs.name || (put ? 'วางของไว้ ' + put + ' ชิ้น' : 'ยังไม่ได้แต่งเลย');
   }
+  // 1C09 · ค่าของแถวร้านค้าเหลือยอดโทเคนล้วน ๆ — "เปิดติดกัน N วัน" ถูกตัด
+  // เพราะเลขเดียวกันเป็นช่อง "ต่อเนื่อง" ของแถบโชว์ที่อยู่เหนือขึ้นไปในจอเดียวกัน
+  // (กฎเดิมของจอนี้ตั้งแต่ 1B71: ตัวเลขเดียวกันห้ามโผล่สองที่ในจอเดียว)
   const ps = document.getElementById('peShopCt');
   if (ps) {
-    const st = loginStreak();
     ps.textContent = (typeof fmtTok === 'function' ? fmtTok(tokenBalance()) : tokenBalance())
-      + ' โทเคน' + (st > 1 ? ' · เปิดติดกัน ' + st + ' วัน' : '');
+      + ' โทเคน';
   }
   const ver = document.getElementById('appVer');
   if (ver) ver.textContent = 'StudentOS Version ' + APP_VERSION + ' “' + APP_CODENAME + '”';
@@ -8496,10 +8502,11 @@ function renderShowcase() {
   // สี่ช่องข้างล่างบอกชื่อตัวเองครบทุกช่อง (ห้องของฉัน · เหรียญตรา · ต่อเนื่อง · ธีมสี)
   // หัวข้อจึงไม่ได้เพิ่มข้อมูล มันแค่ตั้งชื่อให้ของที่มีชื่ออยู่แล้ว
   // ลิงก์ยังอยู่ เพราะมันคือทางเข้าหน้าอื่น ไม่ใช่คำอธิบาย
-  box.innerHTML = `<button class="st-open st-open-bare" onclick="openMyPublic()">
-      <span class="st-open-go">ดูแบบที่เพื่อนเห็น${icon('chevron')}</span>
-    </button>
-    <div class="shw-row shw-4">
+  // 1C09 · ลิงก์ "ดูแบบที่เพื่อนเห็น" ที่เคยอยู่เหนือสี่ช่องนี้ถูกถอด
+  // มันเป็นทางเข้าที่สองไปหน้าเดียวกับปุ่มบนหัวจอ ซึ่งอยู่ห่างกันแค่ 100px
+  // และอยู่ในจอเดียวกัน — ทางเข้าสองทางไปที่เดียวกันไม่ใช่ทางเลือก มันคือความสับสน
+  // (เหตุผลเดียวกับที่ 1A9g ถอดแถวท้ายบล็อกผลของฉันทิ้งเพราะซ้ำกับปุ่ม "ดูทั้งหมด")
+  box.innerHTML = `<div class="shw-row shw-4">
       ${tile("go('scr-room')", 'image', put > 0, 'ห้องของฉัน',
         rs.name || (put ? 'วางไว้ ' + put + ' ชิ้น' : 'ยังไม่ได้แต่ง'))}
       ${tile("go('scr-badges')", 'medal', got > 0, 'เหรียญตรา',

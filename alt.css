@@ -415,6 +415,28 @@
 }
 
 /* ============================================================
+   1C09 · รอบแก้คอนทราสต์ของโทเคนตัวอักษรจาง (วัดเอง ไม่ใช่กะเอา)
+   ============================================================
+   กวาดคู่สีที่จอ "ฉัน" ใช้จริงครบทั้ง 15 ธีม แล้วเจอห้าจุดที่ต่ำกว่า 4.5:1
+   ซึ่งเป็นเกณฑ์ของตัวอักษรขนาดปกติ (ค่าชิดขวาของลิสต์คือ 12px = ตัวเล็ก
+   จึงไม่เข้าข้อยกเว้น large text ที่ยอมให้ 3:1):
+
+     --faint บนพื้นการ์ดขาว   earth  #6A8074 4.24 → #657A6E 4.60
+                              ocean  #5D8296 4.12 → #57798C 4.65
+                              earth2 #65816C 4.28 → #617B67 4.63
+                              sweet  #8B6C9E 4.43 → #89699C 4.60
+     --muted บนพื้นจอ         genesis #4A5599 2.62 → #2E345E 4.52
+     --faint บนพื้นกระจก      genesis #5A66AB 4.44 → #5562A8 4.70
+
+   สี่ตัวแรกขยับแค่ความสว่าง (H กับ S เท่าเดิมเป๊ะ) จึงไม่มีธีมไหนเปลี่ยนโทน
+   ส่วน genesis ขยับเยอะเพราะพื้นจอมันเป็นม่วงอ่อนอิ่มสี (#8E9BE8) ไม่ใช่พื้นเทา
+   ตัวหนังสือจางบนพื้นนั้นวัดได้ 2.62 ซึ่งต่ำกว่าเกณฑ์ตัวใหญ่ (3:1) ด้วยซ้ำ
+   ค่าใหม่ยังอ่านออกบนพื้นการ์ดของมันเอง (10.46:1) ไม่ได้เสียอีกด้านไป
+
+   ทั้งห้าจุดเป็นคู่สีเดิมที่มีมาก่อน 1C09 ไม่ใช่ของใหม่จากการรื้อจอ "ฉัน" —
+   แต่จอนั้นใช้มันถี่ที่สุด (ค่าชิดขวาเจ็ดแถว + บรรทัดใต้ชื่อบนหัวจอ) จึงเจอตอนวัด
+   ============================================================ */
+/* ============================================================
    ธีมเพิ่ม 4 โทน (ALT)
    ใช้ชื่อโทเคนชุดเดียวกับ style.css เป๊ะ — เพิ่มโทน = เพิ่มบล็อกเดียว
    ไม่ต้องแตะ CSS ของจอไหนเลย ตามที่ระบบเดิมออกแบบไว้
@@ -424,7 +446,7 @@
 :root[data-theme="earth"] {
   color-scheme: light;
   --scr:#F1F6F1; --card:#FFFFFF; --card2:#E5EFE6; --surface:#E5EFE6;
-  --ink:#1E2E27; --muted:#5C7267; --faint:#6A8074;
+  --ink:#1E2E27; --muted:#5C7267; --faint:#657A6E;
   --line:rgba(30,46,39,.10);
   --blue:#1F7A5C; --blue-soft:#DCEFE6; --blue-deep:#14563F; --on-accent:#FFFFFF;
   --neon:#1F7A5C;
@@ -448,7 +470,7 @@
 :root[data-theme="ocean"] {
   color-scheme: light;
   --scr:#E9F4FB; --card:#FFFFFF; --card2:#D7EAF7; --surface:#D7EAF7;
-  --ink:#0C2C3E; --muted:#4E7186; --faint:#5D8296;
+  --ink:#0C2C3E; --muted:#4E7186; --faint:#57798C;
   --line:rgba(12,44,62,.10);
   --blue:#0E6E92; --blue-soft:#D5EDF9; --blue-deep:#0A5170; --on-accent:#FFFFFF;
   --neon:#0E6E92;
@@ -563,7 +585,7 @@
 :root[data-theme="genesis"] {
   color-scheme: dark;
   --scr:#8E9BE8; --card:#EDF0FF; --card2:#D5DCFA; --surface:#D5DCFA;
-  --ink:#1B2154; --muted:#4A5599; --faint:#5A66AB;
+  --ink:#1B2154; --muted:#2E345E; --faint:#5562A8;
   --line:rgba(27,33,84,.12);
   --blue:#3B49B8; --blue-soft:#DFE5FF; --blue-deep:#232C87; --on-accent:#FFFFFF;
   --neon:#B7F5FF;
@@ -597,7 +619,7 @@
 :root[data-theme="sweet"] {
   color-scheme: light;
   --scr:#FDF0F8; --card:#FFFFFF; --card2:#F8E5F6; --surface:#F8E5F6;
-  --ink:#3A1F4A; --muted:#7B5B90; --faint:#8B6C9E;
+  --ink:#3A1F4A; --muted:#7B5B90; --faint:#89699C;
   --line:rgba(58,31,74,.10);
   --blue:#B247CC; --blue-soft:#F7E3FB; --blue-deep:#8A2FA6; --on-accent:#FFFFFF;
   --neon:#FF8FD0;
@@ -621,7 +643,7 @@
 :root[data-theme="earth2"] {
   color-scheme: light;
   --scr:#EFF7EE; --card:#FFFFFF; --card2:#E2EFE1; --surface:#E2EFE1;
-  --ink:#1B2E20; --muted:#57735E; --faint:#65816C;
+  --ink:#1B2E20; --muted:#57735E; --faint:#617B67;
   --line:rgba(27,46,32,.10);
   --blue:#2F7D42; --blue-soft:#DCEFDC; --blue-deep:#1E5B2E; --on-accent:#FFFFFF;
   --neon:#2F7D42;
@@ -2992,23 +3014,56 @@ body { line-height: 1.7; letter-spacing: 0; }
 /* ============================================================
    หน้าฉัน: ปุ่มทางเข้าใหญ่ 3 ปุ่ม (1A6M3)
    ============================================================ */
-.pf-entry { display: flex; flex-direction: column; gap: 9px; margin-top: 20px; }
+/* ============================================================
+   1C09 · ลิสต์ทางเข้าเป็น "การ์ดใบเดียวมีเส้นคั่น" ไม่ใช่การ์ดลอยเจ็ดใบ
+   ============================================================
+   เจ้าของสั่ง (18 ก.ย. 2569): "ไม่ทำให้ทุก card ดูเหมือนปุ่ม · ลด border และ
+   decoration ที่ไม่จำเป็น · card hierarchy ชัด"
+
+   ของเดิมให้เจ็ดแถวได้ขอบ + เงา + มุมโค้งของตัวเองคนละใบ ซึ่งแปลว่าทุกแถว
+   ประกาศตัวว่า "ฉันเป็นวัตถุแยกชิ้น" เท่ากันหมด รวมถึงเท่ากับการ์ดผลงานข้างบน
+   ที่เป็นของหลักจริง ๆ ด้วย · เมื่อทุกอย่างลอยเท่ากัน ก็ไม่มีอะไรลอย
+
+   ใบเดียวมีเส้นคั่นให้ผลสามอย่างพร้อมกัน: ลำดับชั้นกลับมา (การ์ดผลงานลอย
+   ลิสต์ไม่ลอย) · เงาเจ็ดชั้นเหลือชั้นเดียว · และสูงลดลง ~54px จากช่องว่าง
+   ระหว่างใบที่ไม่ต้องมีอีก (gap 9px × 6)
+
+   :active เปลี่ยนจากย่อทั้งใบเป็นพื้นสว่างขึ้น — ย่อแถวเดียวในกล่องที่ overflow
+   ซ่อนอยู่ ทำให้ขอบแถวข้างเคียงกระตุกตาม */
+.pf-entry {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  /* หมายเหตุ: บล็อก "พื้นแบบกระจก" ท้ายไฟล์ (.card, .st-card, .pf-entry, …)
+     มาทีหลังและความจำเพาะเท่ากัน จึงทับสองบรรทัดนี้ด้วย --soft-card/--soft-shadow
+     ตั้งใจให้เป็นแบบนั้น — ลิสต์จะได้เป็นพื้นชุดเดียวกับการ์ดอื่นทั้งแอป
+     สองบรรทัดนี้คือค่าสำรองเผื่อบล็อกนั้นถูกจำกัดขอบเขตในอนาคต */
+  background: var(--card);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
 .pe {
   display: flex;
   align-items: center;
   gap: 13px;
-  padding: 14px 15px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  background: var(--card);
-  box-shadow: var(--shadow);
+  padding: 13px 15px;
+  border: 0;
+  border-radius: 0;
+  background: none;
   color: var(--ink);
   font-family: inherit;
   text-align: left;
   cursor: pointer;
-  transition: transform .16s ease;
+  transition: background .16s ease;
 }
-.pe:active { transform: scale(.985); }
+.pe + .pe { border-top: 1px solid var(--line); }
+/* พื้นตอนกดใช้ --press ตัวเดียวกับแถวในการ์ดสัปดาห์ (.wk-card .wc) และแถวราง
+   ของจอวันนี้ (.dr-row) — เทากลาง 7% เข้มขึ้นบนพื้นสว่าง สว่างขึ้นบนพื้นมืด
+   จึงเห็นครบทุกธีมโดยไม่ต้องเขียนทีละธีม และไม่ดึงคอนทราสต์ของค่าชิดขวาลง
+   (ถ้าใช้ --card2 แทน ค่าจาง 12px จะตกไปเหลือ 3.76:1 ในธีมทะเล) */
+.pe:active { background: var(--press, rgba(127,127,127,.07)); }
 /* ไอคอนเป็นพื้นทึบสีฟ้า ไม่ใช่พื้นจาง 15%
    ของเดิมใช้ var(--blue-soft) ซึ่งบนธีมมืดคือฟ้าที่ opacity .15 บนพื้นการ์ดเข้ม —
    ออกมาเป็นเทาอมฟ้าที่แทบแยกไม่ออกจากพื้น ทั้งแถวเลยดูเป็นสี่เหลี่ยมเทาเรียงกัน
@@ -3436,10 +3491,12 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 
 /* ---------- จังหวะตอนกด ----------
    กดแล้วยุบลงทันที ปล่อยแล้วเด้งกลับ — บอกว่าแอปรับคำสั่งแล้วก่อนจอจะเปลี่ยน */
-.mtile, .pe, .pf-row, .tl-task, .rank-card, .bg-pick, .empty-cta {
+/* 1C09 · .pe หลุดจากสองกฎนี้ — แถวในลิสต์ไม่ได้เป็นการ์ดลอยของตัวเองแล้ว
+   จึงย่อทั้งใบไม่ได้ (ดูหมายเหตุ .pf-entry) · มันใช้พื้นสว่างขึ้นแทน */
+.mtile, .pf-row, .tl-task, .rank-card, .bg-pick, .empty-cta {
   transition: transform .13s cubic-bezier(.3,.8,.4,1), box-shadow .13s ease;
 }
-.pe:active, .pf-row:active, .rank-card:active { transform: scale(.982); }
+.pf-row:active, .rank-card:active { transform: scale(.982); }
 .tl-task:active { transform: scale(.97); }
 .empty-cta:active { transform: scale(.96); }
 
@@ -6286,8 +6343,8 @@ body.deep-scr .top-friends { display: none; }
   display: flex; align-items: baseline; gap: 8px; width: 100%;
   padding: 0; border: 0; background: none; font: inherit; text-align: left; cursor: pointer;
 }
-/* 1C08 · แถวที่เหลือแต่ลิงก์หลังถอดหัวข้อ — ชิดขวา และเตี้ยลงเพราะไม่มีหัวข้อให้รองรับ */
-.st-open-bare { justify-content: flex-end; margin-bottom: 8px; }
+/* 1C09 · .st-open-bare ไม่มีใครใช้แล้ว — ลิงก์ "ดูแบบที่เพื่อนเห็น" เหนือแถบโชว์
+   ถูกถอดเพราะซ้ำกับปุ่มบนหัวจอ (ดู renderShowcase) · เก็บกฎไว้ไม่ได้ช่วยอะไร */
 
 /* 1C08 · การ์ดใบเดียวที่รวม "ยังไม่รู้อะไร" กับ "รู้แล้วเท่าไหร่" ไว้ด้วยกัน
    กรอบกับพื้นย้ายมาอยู่ที่ใบนอก .st-card ข้างในจึงต้องถอดของพวกนั้นออก
@@ -7762,22 +7819,32 @@ button.df-r:active { background: var(--surface); }
    ============================================================
    สองสถานะ ต่างกันที่ "เสียง" ไม่ใช่ที่การมีอยู่ — รับแล้วแถบต้องยังอยู่
    ของที่หายไปเลยหลังกด อ่านว่า "แอปพัง" มากกว่า "รับไปแล้ว" */
+/* 1C09 · แถวเดียว ไม่ใช่การ์ดสองบรรทัด — วัดของเดิมได้ 68px
+   ทรงเดียวกับแถวในลิสต์ข้างล่างเป๊ะ (ชื่อซ้าย · ค่าขวา · สถานะขวาสุด)
+   ต่างที่มันเป็นการ์ดของตัวเอง เพราะมันกดแล้วได้ของทันที ไม่ใช่ทางไปจออื่น */
 .pe-daily {
-  display: flex; align-items: center; gap: 11px; width: 100%;
-  margin-top: 10px; padding: 11px 13px;
-  border: 1px solid var(--line); border-radius: var(--r-tile);
+  display: flex; align-items: center; gap: 13px; width: 100%;
+  padding: 11px 15px;
+  border: 1px solid var(--line); border-radius: var(--r-card);
   background: var(--card); box-shadow: var(--shadow);
   font: inherit; text-align: left; cursor: pointer;
+  transition: background .16s ease;
 }
-.pe-daily:active { transform: scale(.99); }
+.pe-daily:active { background: var(--press, rgba(127,127,127,.07)); }
 .pe-daily .pe-ic {
-  width: 34px; height: 34px; border-radius: 11px; flex: none;
+  width: 32px; height: 32px; border-radius: 11px; flex: none;
   display: grid; place-items: center;
   background: var(--gold-soft, var(--warn-soft)); color: var(--gold-text, var(--warn));
 }
 .pe-daily .pe-ic svg { width: 17px; height: 17px; }
-.pe-daily .pe-tx b { font-size: 14.5px; font-weight: 600; color: var(--ink); }
-.pe-daily .pe-tx i { font-style: normal; font-size: 11px; color: var(--faint); }
+.pe-daily .pe-tx { flex: 1 1 auto; min-width: 0; }
+.pe-daily .pe-tx b { font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: -.015em; }
+/* ค่าชิดขวาก่อนป้ายสถานะ — คอลัมน์เดียวกับลิสต์ข้างล่าง ตาจึงกวาดลงมาได้ทีเดียว */
+.pe-daily .pe-v {
+  flex: 0 1 auto; min-width: 0;
+  font-style: normal; font-size: 12px; font-weight: 500; color: var(--faint);
+  text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .pe-daily-go { flex: none; font-size: 11.5px; font-weight: 600; color: var(--faint); }
 
 /* ยังไม่ได้รับ = ขอบทอง + ป้ายทึบ · ทองใช้ได้เพราะมันคือของที่ "ได้จริง" เดี๋ยวนี้

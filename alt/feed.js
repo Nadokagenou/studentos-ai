@@ -827,7 +827,14 @@ async function myFirstRoom() {
 //
 // ซ่อนในจอที่ปุ่มจะไปทับของสำคัญ: จอล็อกอิน · จอที่มีช่องพิมพ์ติดก้นจอ
 // (แชท · ห้องการบ้าน · เธรดหัวข้อ · กล่องข้อความเอง ซึ่งมีปุ่มดินสอของตัวเองอยู่แล้ว)
-const FAB_HIDE = ['scr-login', 'scr-onboard', 'scr-chat', 'scr-hw',
+// 1C09 · scr-profile เข้ารายการนี้ด้วย ด้วยเกณฑ์เดิมของรายการเป๊ะ ๆ สองข้อ:
+//   1) มันทับของสำคัญจริง — ลิสต์ทางเข้าของแท็บ "ฉัน" มีค่าชิดขวาทุกแถว
+//      (0 โทเคน · ยังไม่ได้เลือก · เร็ว ๆ นี้) ปุ่มลอยนั่งทับคอลัมน์นั้นพอดี
+//      เห็นได้ในภาพที่เจ้าของส่งมาเอง: มันบังค่าของแถว "StudentOS Pro"
+//   2) ทั้งสองปลายทางของปุ่มมีทางเข้าอยู่แล้วบนจอนี้ — "ข้อความ" เป็นแถวในลิสต์
+//      ตั้งแต่ 1B95 และ "น้องไซ" เป็นช่องบนแถบล่างที่เห็นพร้อมกันอยู่แล้ว
+//      ปุ่มลอยจึงเป็นทางเข้าที่สาม/สี่ไปที่เดิม ซึ่งจ่ายด้วยการบังเนื้อหา
+const FAB_HIDE = ['scr-login', 'scr-onboard', 'scr-chat', 'scr-hw', 'scr-profile',
   'scr-topic', 'scr-tthread', 'scr-dm', 'scr-compose', 'scr-crop', 'scr-scan'];
 
 // 1B94 · ปุ่มนี้ไม่ใช่ปุ่มข้อความอีกแล้ว — มันคือปุ่มรวม (ข้อความ + ผู้ช่วย)
@@ -1016,6 +1023,46 @@ function profileHeadHTML(u, opts) {
   // 3) ชิปวิชาไม่ขึ้นในหน้าตัวเอง — ไปเป็นแถว "วิชาของฉัน" ในลิสต์ข้างล่างแทน
   //    **แต่ยังขึ้นครบในหน้าที่เพื่อนเปิดดู** เพราะนั่นคือที่ที่มันทำงานจริง:
   //    คนอื่นใช้ชิปหาว่าเราช่วยอะไรได้ ส่วนเราไม่ต้องโชว์ให้ตัวเองดู แค่มีทางไปแก้ก็พอ
+  // ============================================================
+  // 1C09 · ทรงที่สอง: หัวแถวเดียวของแท็บ "ฉัน" (compact)
+  // ============================================================
+  // วัดของเดิมไว้ที่ 232px บนจอสูง 812px — เกือบสามในสิบของจอแรกหมดไปกับ
+  // ของที่ไม่ใช่คำถามที่คนเปิดแท็บนี้มาถาม · เจ้าของสั่ง (18 ก.ย. 2569) ว่า
+  // "หัวโปรไฟล์กินพื้นที่มากเกินไป · ไม่ให้ profile เป็นพระเอกของหน้า"
+  //
+  // ของสามอย่างที่หายไปจากทรงนี้ ไม่ได้ถูกลบ — มันย้ายที่:
+  //   • โพสต์ · เพื่อน · ช่วยแล้ว  → ยังครบในหน้าที่เพื่อนเปิดดู ซึ่งอยู่ห่างไป
+  //     หนึ่งปุ่มบนหัวนี้เอง และเป็นที่ที่ตัวเลขพวกนี้ทำงานจริง (คนอื่นเป็นคนอ่าน)
+  //   • @ชื่อผู้ใช้ · ชั้นเรียน     → ต่อท้ายชื่อในบรรทัดเดียวกัน
+  //   • ยอดโทเคน                 → ต่อท้ายบรรทัดเดียวกันด้วย (เดิมอยู่บนแถบเช็คอิน)
+  //
+  // **ทรงเดิมไม่ได้ถูกแตะเลย** — o.compact เป็นทางแยกที่มีคนเรียกที่เดียวคือ
+  // renderProfileHead() · หน้าที่เพื่อนเปิดดู (scr-user) ยังได้ทรง IG เต็มเหมือนเดิม
+  // ซึ่งถูกแล้ว เพราะที่นั่นตัวเลขสามช่องคือเหตุผลที่คนกดเข้าไป
+  if (o.compact) {
+    const tok = (typeof tokenBalance === 'function' && typeof fmtTok === 'function')
+      ? fmtTok(tokenBalance()) + ' โทเคน' : '';
+    const bits = [u.handle ? '@' + esc(u.handle) : '', esc(where), tok].filter(Boolean);
+    // o.extra ในทรงนี้คือ "ข้อความแทนบรรทัดรอง" (ล้วน ๆ ไม่ใช่ HTML) ไม่ใช่ของต่อท้าย
+    // แบบในทรงเต็ม — คนที่ยังไม่ล็อกอินไม่มี @ ไม่มีชั้นเรียน ไม่มีโทเคน
+    // บรรทัดรองจึงต้องพูดเรื่องนั้นแทน ไม่ใช่ขึ้น "ยังไม่มีชื่อผู้ใช้" เฉย ๆ
+    const meta = o.extra || bits.join(' · ') || 'ยังไม่มีชื่อผู้ใช้';
+    return `<div class="ig-mini">
+      <div class="ig-av-wrap">
+        ${face}
+        ${o.mine ? `<button class="ig-av-cam" aria-label="เปลี่ยนรูปโปรไฟล์"
+          onclick="document.getElementById('avInput').click()">${icon('camera')}</button>` : ''}
+      </div>
+      <div class="ig-mini-tx">
+        <b>${esc(name)}<span class="ig-tick">${icon('check')}นักเรียน</span></b>
+        <i>${esc(meta)}</i>
+      </div>
+      ${o.mine ? `<button class="ig-set" onclick="go('scr-settings')" aria-label="ตั้งค่า">${icon('cog')}</button>` : ''}
+    </div>
+    ${u.bio ? `<p class="ig-bio ig-mini-bio">${esc(u.bio)}</p>` : ''}
+    ${o.buttons || ''}`;
+  }
+
   const topRow = o.mine ? `
     <div class="ig-top">
       <span class="ig-hd">${[u.handle ? '@' + esc(u.handle) : '', esc(where)]
@@ -1073,11 +1120,12 @@ function renderProfileHead() {
     box.innerHTML = profileHeadHTML(
       { display_name: nm, avatar: pic || null, strong: [], weak: [],
         post_count: 0, friend_count: 0, help_count: 0 },
-      { mine: true,
+      { mine: true, compact: true,
         buttons: `<div class="ig-btns">
           <button class="pri" onclick="setLoginView('root');go('scr-login')">${icon('user')}เข้าสู่ระบบ</button>
         </div>`,
-        extra: '<i>ยังไม่ล็อกอิน — เพื่อนยังหาคุณไม่เจอ</i>' });
+        // ทรง compact กิน extra เป็นข้อความบรรทัดรองล้วน ๆ (ดูหมายเหตุใน profileHeadHTML)
+        extra: 'ยังไม่ล็อกอิน — เพื่อนยังหาคุณไม่เจอ' });
     return;
   }
 
@@ -1096,13 +1144,17 @@ function renderProfileHead() {
   // Object.assign ข้างบนปล่อยให้ handle ของ myCard (ซึ่งอาจเป็น null) ทับของในเครื่องได้
   if (!u.handle && local.handle) u.handle = local.handle;
 
+  // 1C09 · ปุ่มซ้ายเลิกเป็นปุ่มพื้นทึบ — สองปุ่มนี้ไม่ได้สำคัญไม่เท่ากัน
+  // และจอนี้ไม่ควรมีของสีเน้นอยู่บนสุดแข่งกับของที่กดแล้วได้งานจริงข้างล่าง
+  // (ปุ่มขวาเปลี่ยนไปเรียก openMyPublic() ซึ่งมีด่านกันคนยังไม่ล็อกอินอยู่แล้ว
+  //  ของเดิมยิง openUser(currentUser.id) ตรง ๆ ซึ่งพังถ้า currentUser หลุดไประหว่างทาง)
   box.innerHTML = profileHeadHTML(u, {
-    mine: true,
-    buttons: `<div class="ig-btns">
-      <button class="pri" onclick="go('scr-people'); renderMates()">${icon('pencil')}แก้ไขโปรไฟล์</button>
+    mine: true, compact: true,
+    buttons: `<div class="ig-btns ig-btns-quiet">
+      <button onclick="go('scr-people'); renderMates()">${icon('pencil')}แก้ไขโปรไฟล์</button>
       <!-- ปุ่มนี้คือหัวใจของการรวมสองหน้า — กดแล้วเห็นของจริงที่เพื่อนเห็น
            ไม่ใช่ภาพจำลอง เพราะมันเปิดหน้าเดียวกับที่เพื่อนเปิดจริง ๆ -->
-      <button onclick="openUser(currentUser.id)">${icon('users')}ดูแบบที่เพื่อนเห็น</button>
+      <button onclick="openMyPublic()">${icon('users')}ดูแบบที่เพื่อนเห็น</button>
     </div>`,
   });
 }

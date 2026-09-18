@@ -982,9 +982,15 @@
 /* ---------- หัวโปรไฟล์ในแท็บ "ฉัน" ---------- */
 /* .pf-body มี padding ซ้ายขวาของตัวเองอยู่แล้ว (มาจาก .screen)
    ถ้าปล่อยให้หัวใส่ padding ซ้ำ ขอบจะลึกกว่าจออื่นสองเท่าและอ่านเป็นคนละแอป */
-#pfHead .ig-head, #pfHead .ig-id, #pfHead .ig-bio,
+/* 1C09 · .ig-mini กับ .ig-top เข้ารายการนี้ด้วย — สองอันนี้ตกหล่นมาตลอด
+   ผลคือแถว "@ชื่อผู้ใช้ · ม.ปลาย" เยื้องเข้ามา 36px (20 ของจอ + 16 ของตัวเอง)
+   ขณะที่ชื่อใต้มันอยู่ที่ 20px · ต่างกัน 16px บนสองบรรทัดที่ติดกัน */
+#pfHead .ig-head, #pfHead .ig-id, #pfHead .ig-bio, #pfHead .ig-top, #pfHead .ig-mini,
 #pfHead .ig-btns, #pfHead .ig-strip { padding-left: 0; padding-right: 0; }
 #pfHead .ig-head { padding-top: 0; }
+/* เฟืองชิดขอบขวาจริง — .ig-set กัน margin-right ติดลบไว้ให้พื้นที่กด 34px
+   เกินขอบได้ ซึ่งถูกตอนหัวมี padding ของตัวเอง แต่ตรงนี้ไม่มีแล้ว */
+#pfHead .ig-set { margin-right: -7px; }
 
 /* ---------- ตัวเลขที่เห็นคนเดียว ---------- */
 /* เส้นประคือเส้นแบ่ง "ของสาธารณะ" กับ "ของส่วนตัว" — ต้องเห็นด้วยตาโดยไม่ต้องอ่าน
@@ -1196,6 +1202,41 @@
 .ig-set:active { color: var(--ink); transform: scale(.92); }
 
 /* ============================================================
+   1C09 · หัวแถวเดียวของแท็บ "ฉัน"
+   ============================================================
+   สามชั้นของทรงเดิม (แถว @ชื่อ · แถวรูป+ตัวเลข · แถวชื่อ) ยุบเป็นแถวเดียว
+   รูปเล็กลงจาก 74px เหลือ 46px ซึ่งยังใหญ่พอให้จำหน้าตัวเองได้ และยังมีป้าย
+   กล้องมุมล่างขวาเหมือนเดิม — ทางเปลี่ยนรูปไม่ได้หายไปไหน
+
+   ระยะขอบ 16px เท่าทรงเดิมเป๊ะ เพราะชิ้นที่อยู่ใต้มัน (แถบเช็คอิน · การ์ดผลงาน)
+   อยู่ในกริดของ .scr-body ที่มี padding 20px — หัวที่เยื้องคนละระยะกับของข้างล่าง
+   คือสิ่งแรกที่ตาจับได้ว่าหน้านี้ประกอบมาจากหลายชิ้น (เหตุผลเดียวกับหมายเหตุ .ig-top) */
+.ig-mini {
+  display: flex; align-items: center; gap: 13px;
+  padding: 4px 16px 0;
+}
+.ig-mini .ig-av { width: 46px; height: 46px; font-size: 18px; }
+/* ป้ายกล้องย่อตามรูป ไม่งั้นมันกินพื้นที่รูปไปเกือบครึ่ง */
+.ig-mini .ig-av-cam { width: 19px; height: 19px; right: -1px; bottom: -1px; }
+.ig-mini .ig-av-cam svg { width: 11px; height: 11px; }
+.ig-mini-tx { flex: 1; min-width: 0; }
+.ig-mini-tx > b {
+  display: block; font-size: 17px; font-weight: 700; letter-spacing: -.02em;
+  color: var(--ink); line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ig-mini-tx > i {
+  display: block; margin-top: 1px; font-style: normal;
+  font-size: 12px; font-weight: 500; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ig-mini .ig-set { align-self: center; }
+.ig-mini-bio { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+/* สองปุ่มเท่ากัน ไม่มีตัวไหนเป็นพื้นทึบ — จอนี้ไม่มี action หลักที่ต้องรีบกด */
+.ig-btns-quiet { padding-top: 12px; }
+.ig-btns-quiet button { font-size: 12.5px; padding: 9px 0; border-width: 1px; }
+
+/* ============================================================
    1B96 · สีประจำแถวในลิสต์แท็บ "ฉัน"
    ============================================================
    ของเดิม (1B-ก่อนหน้า) ตั้งใจให้ไอคอนเป็น "สัญลักษณ์เงียบ" พื้น --card2 ทุกใบ
@@ -1234,33 +1275,21 @@
 }
 #scr-profile .pf-entry .pe-tx { flex: 1 1 auto; }
 
-/* ---------- ร้านค้า: การ์ดเดี่ยวเหนือลิสต์ ----------
-   ทรงเดียวกับแถบเช็คอินรายวันที่อยู่เหนือมันขึ้นไป — สองก้อนนี้เป็นเรื่องเดียวกัน
-   (ได้โทเคน → ใช้โทเคน) ถ้าคนละทรงมันจะอ่านเป็นสองระบบที่ไม่เกี่ยวกัน
-   พื้นยังเป็นสีการ์ดปกติ ของที่เป็นทองคือชิปไอคอนกับขอบ — ไม่ใช่ทั้งใบ
-   การ์ดทองเต็มใบจะดังกว่าหัวโปรไฟล์ซึ่งเป็นพระเอกของจอนี้ */
-.pe-shopcard {
-  display: flex; align-items: center; gap: 11px; width: 100%;
-  margin-top: 14px; padding: 12px 13px;
-  border: 1px solid var(--gold-text, var(--warn)); border-radius: var(--r-tile);
-  background: var(--card); box-shadow: var(--shadow);
-  font: inherit; color: var(--ink); text-align: left; cursor: pointer;
-  transition: transform .16s ease;
-}
-.pe-shopcard:active { transform: scale(.985); }
-.pe-shopcard .pe-ic {
-  width: 36px; height: 36px; flex: none; border-radius: 12px;
-  display: grid; place-items: center;
-  background: var(--gold-soft, var(--warn-soft)); color: var(--gold-text, var(--warn));
-}
-.pe-shopcard .pe-ic svg { width: 18px; height: 18px; stroke-width: 2.1; }
-.pe-shopcard .pe-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.pe-shopcard .pe-tx b { font-size: 15px; font-weight: 700; }
-.pe-shopcard .pe-tx i {
-  font-style: normal; font-size: 11.5px; font-weight: 600;
+/* ---------- ร้านค้า: แถวแรกของลิสต์ (1C09) ----------
+   เคยเป็นการ์ดขอบทองเดี่ยวเหนือลิสต์ (1B98) — ตอนนั้นลิสต์เป็นการ์ดลอยเจ็ดใบ
+   การ์ดขอบทองจึงเป็นใบที่เน้นกว่าเพื่อน · พอลิสต์กลายเป็นใบเดียวมีเส้นคั่น
+   การ์ดที่ลอยอยู่ใบเดียวกลางจออ่านกลับอ่านเป็น "ของหลุดชุด" มากกว่า "ของเน้น"
+
+   ข้อกำหนดของ 1B98 คือ "บนสุด" กับ "เน้นสี" — ยังครบทั้งคู่: มันเป็นแถวแรก
+   ของลิสต์ และเป็นแถวเดียวที่ได้ชิปทองกับตัวเลขทอง ขณะที่อีกหกแถวเป็นฟ้า/เทา
+   ทองในโปรเจกต์นี้แปลว่า "ของที่ได้มาจริงแล้ว" ซึ่งโทเคนเป็นอย่างนั้นจริง */
+#scr-profile .pf-entry .pe.pe-shop .pe-ic {
+  background: var(--gold-soft, var(--warn-soft));
   color: var(--gold-text, var(--warn));
 }
-.pe-shopcard .pe-go { width: 16px; height: 16px; flex: none; color: var(--faint); }
+#scr-profile .pf-entry .pe-shop .pe-v {
+  color: var(--gold-text, var(--warn)); font-weight: 600;
+}
 
 /* ช่องสีธีม — ไม่มีไอคอนข้างใน ตัวมันเองคือสีของธีมที่ใช้อยู่
    ขอบบาง ๆ ไว้กันธีมที่พื้นใกล้สีการ์ด (สว่าง/Crystal) จนดูเหมือนช่องว่าง */
@@ -1275,4 +1304,4 @@
 
    ชุมชน กับ Pro ยังเป็นสีเงียบต่อไปโดยตั้งใจ — ทั้งคู่ยังเปิดไม่ได้
    แถวที่กดแล้วไม่ได้ของ ไม่ควรดังเท่าแถวที่กดแล้วได้ */
-/* 1B98 · ร้านค้าไม่ได้อยู่ในลิสต์แล้ว กฎนี้จึงย้ายไปอยู่ที่ .pe-shopcard ข้างบน */
+/* 1C09 · ร้านค้ากลับเข้าลิสต์แล้ว ทองของมันอยู่ในบล็อก "ร้านค้า: แถวแรกของลิสต์" ข้างบน */
