@@ -15,7 +15,7 @@
 // สถานะอยู่ในหน่วยความจำ ไม่ลง state/localStorage โดยตั้งใจ —
 // ความจริงเรื่อง "เชื่อมอะไรไว้บ้าง" อยู่ที่เซิร์ฟเวอร์ · เก็บสำเนาไว้ในเครื่องเมื่อไหร่
 // จะมีวันที่มันไม่ตรงกัน แล้วผู้ใช้จะเห็นว่าเชื่อมอยู่ทั้งที่ถูกถอนสิทธิ์ไปแล้ว
-let integ = { items: [], google: false, loaded: false, busy: '', err: '' };
+let integ = { items: [], google: false, loaded: false, busy: '', err: '', tried: false };
 
 function integReady() { return !!(typeof sb !== 'undefined' && sb && currentUser); }
 function integItems() { return integ.items || []; }
@@ -44,6 +44,7 @@ async function integErrText(error) {
 async function integLoad(force) {
   if (!integReady()) { integ.items = []; integ.loaded = false; return; }
   if (integ.loaded && !force) return;
+  integ.tried = true;
   try {
     const d = await integCall('list');
     integ.items = d.items || [];
@@ -52,8 +53,19 @@ async function integLoad(force) {
     integ.err = '';
   } catch (e) {
     integ.err = e.message;
+    // ล้มรอบนี้ไม่ได้แปลว่าล้มตลอดไป (เน็ตสะดุดตอนบูตเป็นเรื่องปกติของมือถือ)
+    // ปลดธงให้จอที่วาดครั้งหน้าได้ลองใหม่ · ไม่วนเองเพราะการวาดเกิดจากคนกดเท่านั้น
+    integ.tried = false;
   }
   if (typeof renderSources === 'function') renderSources();
+}
+
+// ตาข่ายชั้นสอง: จอไหนที่ต้องใช้ข้อมูลนี้ เรียกตัวนี้ตอนเริ่มวาดได้เลย
+// ไม่ต้องไปพึ่งว่าเส้นทางบูตเส้นไหนจะเรียก integLoad ให้หรือเปล่า — ซึ่งเป็นสมมติฐาน
+// ที่ผิดมาแล้วหนึ่งรอบ (ดูหมายเหตุใน initCloud) และผิดแบบเงียบสนิทไม่มีอะไรฟ้อง
+function integAutoLoad() {
+  if (integ.tried || integ.loaded || !integReady()) return;
+  integLoad(true);
 }
 
 // ---------- เชื่อมปฏิทินของ LMS ----------
@@ -186,6 +198,7 @@ function integBootNotice() {
 // เพราะแผ่นนี้คือที่ที่คนมาเพื่อ "ทำอะไรสักอย่างให้เสร็จเดี๋ยวนี้" ไม่ใช่ที่อ่านว่าทำไมยังทำไม่ได้
 // (หน้าเต็มอธิบายครบอยู่แล้ว และ "ดูตัวเชื่อมทั้งหมด" อยู่ท้ายแผ่นพอดี)
 function integMenuRows() {
+  integAutoLoad();
   if (!integReady() || integ.err) return '';
   const src = id => (typeof SOURCES !== 'undefined' && SOURCES.find(s => s.id === id)) || null;
   let html = '';
