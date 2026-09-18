@@ -27,7 +27,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 // ตัวแกะภาษาไทยตัวเดียวกับที่แอปใช้ — ไฟล์นี้ถูกสร้างจาก alt/engine.js
 // ห้ามแก้ปลายทาง แก้ที่ alt/engine.js แล้วรัน  python sync-engine.py  ก่อน deploy ทุกครั้ง
-import { parseAssignment, splitAssignments } from '../_shared/engine.js';
+import { looksLikeQuestion, parseAssignment, splitAssignments } from '../_shared/engine.js';
 import { chat, llmReady, type ChatMsg } from '../_shared/llm.ts';
 
 const CHANNEL_SECRET = Deno.env.get('LINE_CHANNEL_SECRET') ?? '';
@@ -293,6 +293,7 @@ async function confirmListInGroup(ev: any, cut: any, rid: string, mid: string, l
     try {
       const p = parseAssignment(seg, now);
       // เกณฑ์เดียวกับข้อความเดี่ยว — รายการของห้องเป็นของสาธารณะ มีของมั่วปนไม่ได้
+      if (looksLikeQuestion(seg)) continue;
       if (p?.detected?.due && p?.detected?.subject && p?.due) kept.push(p);
     } catch (_) { /* บรรทัดเดียวแกะไม่ออก ไม่ควรทำให้ทั้งใบสั่งงานตกไปด้วย */ }
   }
@@ -346,6 +347,9 @@ async function confirmInGroup(ev: any, text: string, linked: number) {
     return;
   }
   if (!p?.detected?.due || !p?.detected?.subject || !p?.due) return;
+  // คำถามในกลุ่มมีทั้งชื่อวิชาและคำบอกเวลาครบได้ง่ายมาก ("พรุ่งนี้เรียนฟิสิกส์ห้องไหนอะ")
+  // ด่านข้างบนจึงไม่พอ — ต้องกันคนละชั้น ไม่งั้นบทสนทนากลายเป็นการบ้านของทั้งห้อง
+  if (looksLikeQuestion(text)) return;
 
   // เก็บเข้ารายการของห้องด้วย — ใช้ประตูเดียวกับที่ตัดสินใจว่าจะพูดหรือไม่พูด
   // ตั้งใจให้เข้มเท่ากัน เพราะรายการที่มีของมั่วปนอยู่ แย่กว่ารายการที่ขาดไปหนึ่งใบ

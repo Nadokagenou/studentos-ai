@@ -252,6 +252,26 @@ function readThaiClock(t) {
   return null;
 }
 
+// ---------- 0.8) ประโยคคำถาม ไม่ใช่ใบสั่งงาน ----------
+// กลุ่มห้องเรียนมีคนถามกันทั้งวัน และคำถามจำนวนมากมีครบทั้งชื่อวิชาและคำบอกเวลา
+// ("พรุ่งนี้เรียนฟิสิกส์ห้องไหนอะ") ซึ่งพอจะหลอกด่าน "เจอวิชา + เจอกำหนดส่ง" ให้ผ่านได้สบาย
+// แล้วกลายเป็นการบ้านของทั้งห้องพร้อมกำหนดส่ง — เจอของจริงแบบนี้ค้างอยู่ในตาราง room_tasks
+//
+// ดูที่ **ตำแหน่ง** ไม่ใช่แค่ "มีคำนี้อยู่ไหม" โดยตั้งใจ:
+// ลงท้ายหรือขึ้นต้นด้วยคำถาม = คำถามเกือบแน่นอน · แต่ "ส่งพรุ่งนี้นะ ใครไม่ส่งโดนหักคะแนน"
+// มีคำว่า "ใคร" อยู่กลางประโยคทั้งที่เป็นใบสั่งงานเต็มตัว — เช็คแบบ includes จะตัดทิ้งทันที
+//
+// เอียงไปทางตัดออกมากกว่าปล่อยผ่าน ตามกติกาที่เขียนไว้แล้วที่ confirmInGroup:
+// "รายการที่มีของมั่วปนอยู่ แย่กว่ารายการที่ขาดไปหนึ่งใบ" เพราะรายการของห้องเป็นของสาธารณะ
+const Q_TAIL = /(\?|？|ไหม|มั้ย|หรือเปล่า|รึเปล่า|ป่าว|เหรอ|หรอ|อ่ะ|อะ|ปะ|มะ)\s*$/;
+const Q_HEAD = /^\s*(ใคร|ทำไม|เมื่อไหร่|เมื่อไร|ที่ไหน|ห้องไหน|อันไหน|ยังไง|ขอถาม|มีใคร)/;
+
+function looksLikeQuestion(text) {
+  const t = String(text || '').trim();
+  if (!t) return false;
+  return Q_TAIL.test(t) || Q_HEAD.test(t);
+}
+
 // ---------- 1) แกะข้อความ ----------
 // opts.fuzzy = ข้อความมาจาก OCR ให้ยอมให้ตัวอักษรเพี้ยนได้
 function parseAssignment(text, now = new Date(), opts = {}) {
@@ -384,6 +404,58 @@ function parseAssignment(text, now = new Date(), opts = {}) {
         if (d < now) d = new Date(now.getFullYear() + 1, idx, +m[1], hh, mm);
         due = d;
         dueText = m[0];
+        break;
+      }
+    }
+  }
+  // ---------- เดือนย่อที่รูปอ่านมาเพี้ยน (เปิดเฉพาะข้อความจากรูป) ----------
+  // วัดจริงกับใบงานที่เรนเดอร์เอง: "12 ก.ย. 2569" ถูกอ่านเป็น "12 ค.ย. 2569"
+  // ตัวอักษรเดียวที่เพี้ยน ทำให้ทั้งกำหนดส่งหายไป — ซึ่งเป็นช่องที่มีค่าที่สุดของทั้งใบ
+  // (ก กับ ค ไม่ได้อยู่คลาสเดียวกันใน OCR_LOOKALIKE และไม่ควรอยู่ด้วย เพราะคลาสนั้น
+  //  ถูกใช้จับชื่อวิชาทั้งหมด การยุบ ก↔ค ตรงนั้นจะทำให้ "กีฬา" กับ "ดีฬา" ปนกันไปหมด
+  //  จึงทำเป็นกฎเฉพาะของเดือนตรงนี้แทน — ขอบเขตแคบ ผลข้างเคียงจำกัดอยู่ในสิบสองคำนี้)
+  //
+  // เงื่อนไข: ต้องลงท้ายด้วยจุด (รูปแบบตัวย่อของเดือน) ไม่งั้น "5 คะแนน" จะโดนจับ
+  //
+  // **จุดกลางเป็นตัวเลือก** เพราะวัดจริงแล้ว OCR ทำจุดกลางหายบ่อยพอ ๆ กับทำตัวอักษรเพี้ยน:
+  // "ส่ง 22 ก.ย. 2569" ถูกอ่านเป็น "ส่ง 22 กุย. 2569" — จุดกลางกลายเป็นสระอุ
+  // ถ้าบังคับว่าต้องมีจุดกลาง เคสนี้หลุดทั้งที่ตัวอักษรถูกครบ
+  //
+  // แต่การทิ้งจุดกลางไปเฉย ๆ อันตราย เพราะ "ใช้เวลา 10 นาที." เข้ารูปแบบเดียวกันเป๊ะ
+  // และ ocrKey('นาที') = 'นท' ซึ่งห่างจาก ม.ค. ('นด') แค่ตัวเดียว = กลายเป็น 10 มกราคม
+  // จึงชดเชยด้วยการ **บังคับว่าไม่มีจุดกลางแล้วต้องตรงเป๊ะ** (ระยะ 0 หลังยุบตัวอักษรคล้าย)
+  //   "กุย." → 'กย' = ก.ย. เป๊ะ ✓ รับ
+  //   "นาที." → 'นท' ไม่ตรงกับเดือนไหนเลย ✗ ทิ้ง
+  if (!due && opts.fuzzy) {
+    // ยอมให้มีสระ/วรรณยุกต์นำหน้าพยัญชนะตัวที่สองได้ด้วย เพราะจุดกลางที่ถูกอ่านเพี้ยน
+    // มักกลายเป็นสระเล็ก ๆ ไม่ได้หายไปเฉย ๆ — วัดจริง "12 ก.ย." ออกมาเป็น "12 ก.ุย."
+    // (เครื่องหมายพวกนี้ถูก ocrKey ตัดทิ้งก่อนเทียบอยู่แล้ว จึงไม่กระทบการจับคู่)
+    const MON_RE = /(\d{1,2})\s*([ก-ฮ][ะ-๎]{0,2})\s*(\.?)\s*([ะ-๎]{0,2}[ก-ฮ][ะ-๎]{0,2})\s*\./g;
+    let m2;
+    while ((m2 = MON_RE.exec(t))) {
+      const hasMidDot = m2[3] === '.';
+      const cand = ocrKey(m2[2] + m2[4]);
+      let bestD = 99, hits = [];
+      MONTH_SHORT.forEach((mon, idx) => {
+        const d = editDistance(cand, ocrKey(mon.replace(/\./g, '')), 1);
+        if (d < bestD) { bestD = d; hits = [idx]; }
+        else if (d === bestD) hits.push(idx);
+      });
+      if (bestD > (hasMidDot ? 1 : 0)) continue;
+      // เสมอกันหลายเดือน (เช่น "ดย" ที่ห่างจาก ก.ย./พ.ย./มิ.ย. เท่ากันหมด) —
+      // เลือกอันที่ "ถึงก่อน" ในอนาคต ตามเหตุผลเดียวกับกฎ "วันที่ N ถัดไป" ข้างล่าง:
+      // งานที่ไม่มีกำหนดส่งเลย ตัวจัดแผนมองไม่เห็นมันทั้งใบ ซึ่งแย่กว่าเดาเดือนพลาด
+      // และช่องวันที่จะถูกตีกรอบเตือนให้ตรวจในหน้ายืนยันด้วย (ดู detected.dueFuzzy)
+      let pick = null;
+      for (const idx of hits) {
+        let d = new Date(now.getFullYear(), idx, +m2[1], hh, mm);
+        if (d < now) d = new Date(now.getFullYear() + 1, idx, +m2[1], hh, mm);
+        if (!pick || d < pick) pick = d;
+      }
+      if (pick) {
+        due = pick;
+        dueText = m2[0];
+        detected.dueFuzzy = (bestD > 0 || hits.length > 1);
         break;
       }
     }
@@ -696,9 +768,27 @@ function urgencyScore(effHours) {
   return Math.max(2, Math.round(60 - 7 * Math.log2(1 + Math.max(0, effHours))));
 }
 
+// ---------- น้ำหนักที่ปรับได้จาก Control Center ----------
+// คืน "ตัวคูณ" ไม่ใช่คะแนนดิบ · ค่าเริ่มต้นใน remote-config.js ให้ 1.0 ทุกตัว
+// แปลว่าเครื่องที่ยังไม่ได้ตั้งอะไร (หรือเน็ตหลุด) คิดคะแนนเหมือนก่อนมีระบบนี้เป๊ะ
+//
+// ตัวเลขดิบยังอยู่ที่เดิมทุกตัว จงใจไม่ย้ายไปรวมเป็นตารางค่าคงที่ —
+// เหตุผลของแต่ละตัวเขียนไว้ตรงบรรทัดที่มันถูกใช้ และเหตุผลที่ต้องเลื่อนไปอ่านอีกที่
+// คือเหตุผลที่ไม่มีใครอ่าน
+//
+// หมายเหตุที่ต้องรู้ก่อนขยับ: ขีดแบ่งดาว (52/44/32/22 ข้างล่าง) ตั้งจากเพดาน ≈95
+// ของน้ำหนักชุดเริ่มต้น · ดันน้ำหนักขึ้นทั้งกระดาน = ป้าย "ด่วนมาก" ติดครึ่งรายการ
+// ซึ่งเป็นป้ายที่ไม่ได้บอกอะไรเลย
+function pw(key) {
+  return typeof window !== 'undefined' && typeof window.prioWeight === 'function'
+    ? window.prioWeight(key) : 1;
+}
+
 function priorityInfo(task, now = new Date()) {
   const reasons = [];
   let score = 0;
+  const wDead = pw('deadline'), wExam = pw('exam'), wScore = pw('score');
+  const wHard = pw('hard'), wSize = pw('size'), wOver = pw('overdue');
 
   const due = task.due ? new Date(task.due) : null;
   const hoursLeft = due ? (due - now) / 3.6e6 : null;
@@ -708,21 +798,23 @@ function priorityInfo(task, now = new Date()) {
   // สอบต้องเริ่มอ่านล่วงหน้า จึงให้เวลาที่เหลือ "เดินเร็วกว่าจริง" ตาม prepHours
   // เดิมใช้การลบ (hoursLeft − 48) ซึ่งพอใกล้วันสอบจะติดลบ ต้องมีสาขาพิเศษมารับ
   // และทำให้สอบอีก 47 ชม. ได้คะแนนเท่างานที่ส่งในอีกนาทีเดียว — หารแทน เส้นจึงต่อเนื่องตลอด
-  const effHours = hoursLeft == null ? null : hoursLeft / (1 + ti.prepHours / 24);
+  // wExam ขยับ "เวลาที่เหลือเดินเร็วกว่าจริงเท่าไหร่" ของงานที่ต้องเตรียมล่วงหน้า
+  // 0 = สอบถูกคิดเหมือนงานส่งธรรมดา (ไม่มีโบนัสเริ่มอ่านก่อน)
+  const effHours = hoursLeft == null ? null : hoursLeft / (1 + ti.prepHours * wExam / 24);
 
   if (due) {
     if (type === 'activity' || type === 'reminder') {
       // เหตุการณ์ตามเวลา: ไม่ต้องเจียดเวลาทำล่วงหน้า ความด่วนพุ่งเฉพาะตอนใกล้ถึงเวลา
-      if (hoursLeft < 0)        { score += 30; reasons.push('⚠ เลยเวลาแล้ว'); }
-      else if (hoursLeft <= 3)  { score += 55; reasons.push('อีก ' + Math.max(1, Math.round(hoursLeft)) + ' ชม. ถึงเวลา'); }
-      else if (hoursLeft <= 14) { score += 38; reasons.push('ถึงเวลาวันนี้'); }
-      else if (hoursLeft <= 30) { score += 24; reasons.push('ถึงเวลาพรุ่งนี้'); }
-      else                      { score += 6;  reasons.push('ยังอีกหลายวัน'); }
+      if (hoursLeft < 0)        { score += 30 * wOver; reasons.push('⚠ เลยเวลาแล้ว'); }
+      else if (hoursLeft <= 3)  { score += 55 * wDead; reasons.push('อีก ' + Math.max(1, Math.round(hoursLeft)) + ' ชม. ถึงเวลา'); }
+      else if (hoursLeft <= 14) { score += 38 * wDead; reasons.push('ถึงเวลาวันนี้'); }
+      else if (hoursLeft <= 30) { score += 24 * wDead; reasons.push('ถึงเวลาพรุ่งนี้'); }
+      else                      { score += 6 * wDead;  reasons.push('ยังอีกหลายวัน'); }
     } else if (hoursLeft < 0) {
       // เลยกำหนดต้องอยู่เหนือสุดของเส้นโค้ง (60) เสมอ ไม่งั้นงานที่พลาดไปแล้วจะหล่นหาย
-      score += 65; reasons.push('⚠ เลยกำหนดแล้ว');
+      score += 65 * wOver; reasons.push('⚠ เลยกำหนดแล้ว');
     } else {
-      score += urgencyScore(effHours);
+      score += urgencyScore(effHours) * wDead;
       // คะแนนมาจากเส้นโค้ง แต่ข้อความต้องพูดแบบที่คนนับวันกันจริง
       //
       // เดิมแบ่งด้วยจำนวนชั่วโมง ซึ่งไม่ตรงกับปฏิทินที่ผู้ใช้มองอยู่:
@@ -744,10 +836,10 @@ function priorityInfo(task, now = new Date()) {
   // ของเดิมให้ได้ถึง 30 = เท่ากับความต่างของแถบความด่วนทั้งแถบ และให้ค่าว่าง = 0
   // แปลว่า "ครูไม่ได้บอกว่ากี่คะแนน" ถูกอ่านเป็น "ไม่สำคัญ" — ซึ่งเป็นกรณีปกติของนักเรียน
   if (task.scorePct != null) {
-    score += Math.min(15, Math.round(task.scorePct / 2));
+    score += Math.min(15, Math.round(task.scorePct / 2)) * wScore;
     reasons.push('คะแนน ' + task.scorePct + '%');
   } else {
-    score += 6;   // ค่ากลาง ≈ งาน 12% · ไม่รู้ ≠ ไม่สำคัญ (ไม่ต้องมีเหตุผลกำกับ ไม่มีอะไรจะบอก)
+    score += 6 * wScore;   // ค่ากลาง ≈ งาน 12% · ไม่รู้ ≠ ไม่สำคัญ (ไม่ต้องมีเหตุผลกำกับ ไม่มีอะไรจะบอก)
   }
 
   // เวลาที่ใช้ทำมีความหมายเฉพาะงานที่ต้องนั่งทำ — กิจกรรมไม่ต้องเจียดเวลา
@@ -765,7 +857,7 @@ function priorityInfo(task, now = new Date()) {
   if (ti.schedulable) {
     const need = remainingMin(task);
     const far = hoursLeft != null && hoursLeft > 48;
-    const w = far ? 0.5 : 1;
+    const w = (far ? 0.5 : 1) * wSize;
     if (need >= 90)      { score += 15 * w; reasons.push((type === 'exam' ? 'อ่าน' : 'งานใหญ่') + ' ~' + Math.round(need / 60 * 10) / 10 + ' ชม. — ควรเริ่มก่อน'); }
     else if (need >= 45) { score += 9 * w;  reasons.push('ใช้เวลา ~' + need + ' นาที'); }
     else                 { score += 4 * w;  reasons.push('~' + need + ' นาที'); }
@@ -791,9 +883,12 @@ function priorityInfo(task, now = new Date()) {
 
   // ผู้ใช้กำหนดความสำคัญเอง → เคารพการตัดสินใจของเขา (override AI)
   // ลำดับภายในดาวเท่ากัน: ใกล้ deadline กว่ามาก่อน
+  // wHard = "ความยาก" ใน Control Center · ในแอปนี้ความยากไม่ใช่ค่าที่ AI เดา
+  // แต่คือดาวที่เจ้าตัวกดเอง — ตัวคูณนี้จึงบอกว่า "ให้เสียงของผู้ใช้ดังแค่ไหน"
+  // 0 = คำสั่งของผู้ใช้ยังเปลี่ยนจำนวนดาวได้ แต่ไม่ดันลำดับขึ้นอีกต่อไป
   if (task.userStars >= 1) {
     stars = task.userStars;
-    score = task.userStars * 20
+    score = task.userStars * 20 * wHard
       + (hoursLeft != null ? Math.max(0, 15 - Math.max(0, hoursLeft) / 12) : 0);
     reasons.unshift('★ กำหนดความสำคัญเอง');
   }
@@ -801,6 +896,9 @@ function priorityInfo(task, now = new Date()) {
     : (hoursLeft != null && hoursLeft <= 30) ? 'hot'
     : (hoursLeft != null && hoursLeft <= 54) ? 'mid' : 'norm';
 
+  // ปัดครั้งสุดท้ายตรงนี้ — ตัวคูณทำให้คะแนนเป็นทศนิยมได้ทุกสาขา ไม่ใช่แค่สาขาที่มี
+  // Math.round อยู่แล้ว · คะแนนที่มีเศษไปโผล่บนจอ "AI คิดยังไง" ในรูป 43.19999999
+  score = Math.round(score);
   return { score, stars, reasons, hoursLeft, urgency, lastChance, type, typeInfo: ti };
 }
 
@@ -968,7 +1066,22 @@ function buildDayPlan(pending, settings, now = new Date(), opts = {}) {
     .filter(t => t.due && new Date(t.due) >= now &&
       (new Date(t.due) <= endOfDay || isLastChanceToday(t, now)))
     .sort((a, b) => new Date(a.due) - new Date(b.due));
-  const sorted = [...mustToday, ...byPriority.filter(t => !mustToday.includes(t))];
+  let sorted = [...mustToday, ...byPriority.filter(t => !mustToday.includes(t))];
+
+  // ---- 1B81 · ใบที่เอนจินตัดสินใจเลือก ต้องได้ช่องแรกของวัน ----
+  // ไม่ใช่แค่ "ได้ขึ้นการ์ด" — ถ้าได้ขึ้นการ์ดแต่ไม่ได้ช่องแรก การ์ดจะบอกเวลาหนึ่ง
+  // ส่วนรางข้างล่างบอกอีกเวลาหนึ่ง (เจอจริง: การ์ดบอก "สอบ 13:00" ขณะที่ตอนนี้ 11:19
+  // และแผนบรรทัดถัดไปคือการบ้าน 11:20 — ปุ่มเขียนว่า "เริ่มเลย" แต่เวลาบนการ์ดคือ 13:00)
+  //
+  // ห้ามแซงใบที่ "วันนี้เป็นโอกาสสุดท้าย" (mustToday) — ยอมเมื่อไหร่ แผนก็พาไปพลาดส่ง
+  // กรณีนั้นปล่อยให้ EDF ชนะ แล้วจอ "AI คิดยังไง" จะอธิบายเองว่าทำไมถึงไม่ทำตามเอนจิน
+  if (opts.firstTask && !mustToday.includes(opts.firstTask)) {
+    const i = sorted.indexOf(opts.firstTask);
+    if (i > 0) {
+      sorted.splice(i, 1);
+      sorted.splice(mustToday.length, 0, opts.firstTask);
+    }
+  }
 
   const win = dayWindows(settings, now);
   const midnight = atTime(now, 0, 0);
@@ -1122,4 +1235,4 @@ function fmtThaiDate(d = new Date()) {
   return WEEKDAY_SHORT[d.getDay()] + ' ' + d.getDate() + ' ' + MONTH_SHORT[d.getMonth()] + ' ' + (d.getFullYear() + 543);
 }
 
-export { parseAssignment, splitAssignments };
+export { parseAssignment, splitAssignments, looksLikeQuestion };
