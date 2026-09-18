@@ -229,6 +229,22 @@
       <path opacity=".34" d="M2.6 7.8A4.2 4.2 0 0 1 6.8 3.6h10.4a4.2 4.2 0 0 1 4.2 4.2v5.6a4.2 4.2 0 0 1-4.2 4.2H9.4l-4.5 3.4a1 1 0 0 1-1.6-.8v-2.9a4.2 4.2 0 0 1-.7-2.3z"/>
       <circle cx="8.4" cy="10.6" r="1.35"/><circle cx="12" cy="10.6" r="1.35"/><circle cx="15.6" cy="10.6" r="1.35"/>
     </g>
+    <!-- ============================================================
+         1C06 · ไอคอนทึบสำหรับลิสต์ทางเข้าในแท็บ "ฉัน"
+         ============================================================
+         เจ้าของสั่ง (18 ก.ย. 2569): "เอาไอคอนให้เหมือนไอโฟน" — หมายถึงทรงของ
+         iOS Settings: ชิปสี่เหลี่ยมมนสีทึบ + สัญลักษณ์ทึบสีขาวข้างใน
+         สัญลักษณ์เส้น (lu-*) วางบนพื้นทึบแล้วอ่านเป็นลายเส้นบาง ๆ ที่จมหายไป
+         ตัวทึบจึงต้องเป็นคนละชุด ไม่ใช่เอา lu-* มาใส่ fill
+
+         ชุดนี้ใช้ที่เดียวคือ #scr-profile .pf-entry — ที่อื่นในแอปยังเป็นเส้นเหมือนเดิม
+         เพราะที่อื่นไม่มีพื้นทึบรอง สัญลักษณ์ทึบลอยเปล่า ๆ จะหนักกว่าที่ควร -->
+    <g id="sf-book" fill="currentColor"><path d="M11.15 5.9c-1.05-1.25-2.6-2-4.5-2.2l-2.4-.25A1.65 1.65 0 0 0 2.4 5.1v10.7c0 .86.66 1.57 1.51 1.65l2.74.29c1.66.17 3.2.86 4.5 2.01z"/><path d="M12.85 5.9c1.05-1.25 2.6-2 4.5-2.2l2.4-.25A1.65 1.65 0 0 1 21.6 5.1v10.7c0 .86-.66 1.57-1.51 1.65l-2.74.29c-1.66.17-3.2.86-4.5 2.01z"/></g>
+    <g id="sf-chat" fill="currentColor"><path d="M12 3.2c-5.2 0-9.4 3.5-9.4 7.9 0 2.4 1.25 4.55 3.2 6-.2 1.35-.85 2.6-1.75 3.5-.42.42-.15 1.15.45 1.1 1.95-.15 3.75-.9 5.15-2 .75.15 1.55.23 2.35.23 5.2 0 9.4-3.5 9.4-7.9S17.2 3.2 12 3.2z"/></g>
+    <g id="sf-user" fill="currentColor"><path d="M12 11.8a3.7 3.7 0 1 0 0-7.4 3.7 3.7 0 0 0 0 7.4z"/><path d="M12 13.1c-3.6 0-6.5 2.3-6.5 5.1 0 1.05.85 1.5 2 1.5h9c1.15 0 2-.45 2-1.5 0-2.8-2.9-5.1-6.5-5.1z"/></g>
+    <g id="sf-clock" fill="currentColor" fill-rule="evenodd"><path d="M12 2.4a9.6 9.6 0 1 0 0 19.2 9.6 9.6 0 0 0 0-19.2zM11.15 6.2h1.7v5h4v1.7h-5.7z"/></g>
+    <g id="sf-users" fill="currentColor"><path d="M16.9 10.1a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4z"/><path d="M16.9 11.5c-.6 0-1.17.08-1.7.24 1.6 1.15 2.65 2.85 2.65 4.7 0 .26-.02.5-.07.72h2.3c.95 0 1.62-.43 1.62-1.28 0-2.25-2.16-4.38-4.8-4.38z"/><path d="M9.1 11.6a3.35 3.35 0 1 0 0-6.7 3.35 3.35 0 0 0 0 6.7z"/><path d="M9.1 12.9c-3.35 0-6.05 2.1-6.05 4.7 0 .97.78 1.4 1.9 1.4h8.3c1.12 0 1.9-.43 1.9-1.4 0-2.6-2.7-4.7-6.05-4.7z"/></g>
+    <g id="sf-sparkles" fill="currentColor"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/></g>
     <g id="tb-home" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></g>
     <g id="tb-tasks" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5h8"></path><path d="M13 12h8"></path><path d="M13 19h8"></path><path d="m3 17 2 2 4-4"></path><path d="m3 7 2 2 4-4"></path></g>
     <g id="tb-scan" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M7 12h10"></path></g>
@@ -910,10 +926,22 @@
           <!-- 1A9g: การ์ดชวนตั้งบริบท — ขึ้นเฉพาะตอนที่ยังไม่มีข้อมูล (วาดใน renderContext)
                บริบทคือข้อมูลที่ทำให้การจัดตารางแม่น ถ้าผู้ใช้ยังไม่กรอก ทั้งแอปก็เดาเอา
                มันจึงต้องดังกว่าแถวอื่น — แต่ดังตอนที่ยังจำเป็นเท่านั้น กรอกแล้วก็เงียบลง -->
-          <div id="ctxHero"></div>
+          <!-- ============================================================
+               1C08 · บรรทัด "รู้จักคุณแล้ว %" ยุบเข้าไปอยู่ในการ์ดเดียวกับผลงาน
+               ============================================================
+               เจ้าของวงมา (18 ก.ย. 2569): "มันมีบางอย่างเกินและไม่สมดุล"
+               วัดแล้วบรรทัดนี้สูง 21px แต่กินพื้นที่แนวตั้งรวม 68px — flex gap 24px
+               ของ .scr-body บวก margin ของ .pf-hint ทั้งบนและล่าง ก้อนที่ลอยเดี่ยว
+               ระหว่างสองก้อนใหญ่จึงได้ช่องว่างสองชั้นโดยไม่มีใครตั้งใจให้
 
-          <!-- ALT 1A6M3: ผลของฉัน — สรุปจากข้อมูลที่แอปมีจริง วาดใน renderStats -->
-          <div id="statsBox"></div>
+               สองก้อนนี้เป็นเรื่องเดียวกันอยู่แล้ว: ทั้งคู่คือ "แอปรู้อะไรเกี่ยวกับคุณ"
+               อันบนคือสิ่งที่ยังไม่รู้ อันล่างคือสิ่งที่รู้แล้ว · ใบเดียวจึงถูกกว่าสองใบ
+               .pf-me เป็นตัวการ์ด ส่วน .st-card ข้างในถูกถอดกรอบออกไม่ให้ซ้อนสองชั้น -->
+          <div class="pf-me">
+            <div id="ctxHero"></div>
+            <!-- ALT 1A6M3: ผลของฉัน — สรุปจากข้อมูลที่แอปมีจริง วาดใน renderStats -->
+            <div id="statsBox"></div>
+          </div>
 
           <!-- ALT 1A6M3: ทางเข้าใหญ่ 3 ทาง — ตั้งค่าทั้งหมดย้ายไปอยู่หลังปุ่ม -->
           <!-- รายการทางเข้าถูกจัดกลุ่มใน 1B20 — ของเดิมเป็นรายการแบน 7 แถวเรียงกันรวด
@@ -990,25 +1018,25 @@
                ในจอนี้มีสีเดียวคือทองของร้านค้า ซึ่งตอนนี้ออกไปเป็นการ์ดข้างบนแล้ว -->
           <div class="pf-entry">
             <button class="pe" onclick="openMySubjects()">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-book"/></svg></span>
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-book"/></svg></span>
               <span class="pe-tx"><b>วิชาของฉัน</b></span>
               <em class="pe-v" id="peSubjCt"></em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
             <button class="pe" onclick="openDmInbox('scr-profile')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-chat"/></svg></span>
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-chat"/></svg></span>
               <span class="pe-tx"><b>ข้อความ<span class="pe-n" id="peDmN" hidden></span></b></span>
               <em class="pe-v" id="peDmCt"></em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
             <button class="pe" onclick="openFeed('friends')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-user"/></svg></span>
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-user"/></svg></span>
               <span class="pe-tx"><b>เพื่อนของฉัน</b></span>
               <em class="pe-v" id="peFriendCt"></em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
             <button class="pe" id="peCtx" onclick="go('scr-context')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-clock"/></svg></span>
               <span class="pe-tx"><b>บริบทของฉัน</b></span>
               <em class="pe-v" id="peCtxCt"></em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
@@ -1018,19 +1046,22 @@
                  (ความจำเพาะ 1,2,0) ทับ `.sw-light` / `.sw-space` (0,1,0) ทุกใบ
                  ในแถบโชว์ไม่มีกฎนั้น ช่องสีจึงขึ้นจริง และใหญ่กว่าเดิมด้วย
                  ทางเข้าเดิมในเฟือง → Student OS → ธีมสี ยังอยู่ครบไม่ได้ย้าย -->
-            <div class="pe-split"></div>
+            <!-- 1C06 · เส้นคั่นก่อน "ชุมชน" ถูกถอด — เจ้าของสั่งให้ทุกแถวเท่ากัน
+                 และพอ ชุมชน/Pro ได้ชิปน้ำเงินเท่าแถวอื่นแล้ว เส้นนี้ก็ไม่ได้แบ่งอะไร
+                 สถานะ "เร็ว ๆ นี้ / ยังไม่เปิดขาย" ยังอยู่ครบในคอลัมน์ขวา
+                 ซึ่งเป็นที่เดียวที่บอกความจริงนั้นด้วยคำ ไม่ใช่ด้วยการทำให้จาง -->
             <!-- ชุมชน = ฟีดโพสต์เดิม · โค้ดยังอยู่ครบ ปิดด้วยสวิตช์ COMMUNITY_LIVE ใน feed.js
                  กดแล้วได้แผ่นอธิบายว่ามันจะเป็นอะไร ไม่ใช่ปุ่มที่กดแล้วเงียบ
                  ป้าย .pe-wip ถูกถอด — สถานะไปอยู่คอลัมน์ขวาแล้ว ป้ายสีจึงเป็นเสียงซ้ำ
                  ที่ดังกว่าแถวที่กดแล้วได้ของจริงข้างบนมัน -->
             <button class="pe pe-soon" onclick="openSoonSheet('community')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-users"/></svg></span>
               <span class="pe-tx"><b>ชุมชน</b></span>
               <em class="pe-v">เร็ว ๆ นี้</em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
             <button class="pe pe-pro" onclick="go('scr-pro')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-sparkles"/></svg></span>
               <span class="pe-tx"><b>StudentOS Pro</b></span>
               <em class="pe-v">ยังไม่เปิดขาย</em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>

@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C04';                 // สายเลขของแอป
+const APP_VERSION = '1C08';                 // สายเลขของแอป
 const APP_CODENAME = 'Bridge';           // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -6678,11 +6678,12 @@ function renderContext() {
       <div class="ck-h"><span>รู้จักคุณแล้ว ${ctxKnow()}%</span>
         <b class="mono">${gaps.length - missing.length}/${gaps.length}</b></div>
       <div class="ck-bar"><span style="width:${ctxKnow()}%"></span></div>
-      ${missing.length ? `<div class="ck-list">${missing.map(g => `<div class="ck-gap">
+      ${missing.length ? `<div class="ck-list">${missing.map(g => `<button type="button"
+        class="ck-gap" onclick="${CTX_GAP_GO[g.key] || 'wizOpen()'}">
         <span class="ck-dot"></span>
         <span class="ck-tx"><b>${esc(g.label)}</b><i>${esc(g.why)}</i></span>
-      </div>`).join('')}</div>
-      <button class="btn sm ck-go" onclick="wizOpen()">${icon('sparkles')}ตอบให้ครบใน 1 นาที</button>`
+        ${icon('chevron')}
+      </button>`).join('')}</div>`
       : `<p class="ck-done">${icon('check')}ครบแล้ว — ตารางที่ AI วางให้อ้างจากวันจริงของคุณทั้งหมด</p>`}
     </section>
 
@@ -6808,10 +6809,32 @@ const WIZ_CHIPS = [
 
 let wiz = null;
 
-function wizOpen() {
+// 1C06 · เปิดที่ขั้นไหนก็ได้ — แถวใน "รู้จักคุณแล้ว %" ส่งมาที่ขั้นที่ตอบเรื่องนั้นจริง ๆ
+// ไม่ใช่ทุกช่องที่ว่างจะมีขั้นของตัวเอง (ตัวช่วยมี 5 ขั้น แต่ช่องที่ยังไม่รู้มี 5 เรื่อง
+// ที่ไม่ได้จับคู่กันหนึ่งต่อหนึ่ง) — ดู CTX_GAP_GO ว่าเรื่องไหนไปที่ไหน
+// 1C06 · ช่องที่ยังไม่รู้ → ที่ที่ตอบมันได้จริง
+// เจ้าของสั่งให้ถอดปุ่ม "ตอบให้ครบใน 1 นาที" (18 ก.ย. 2569) และถูก: หน้า "ฉัน"
+// มีทางเข้า wizOpen() อยู่สามที่ในจอเดียว — แถบ #ctxHero, แถวในลิสต์ และปุ่มนี้
+// ทางเข้าเดียวกันสามอันไม่ได้แปลว่าเข้าถึงง่ายขึ้น มันแปลว่าต้องอ่านสามรอบ
+// เพื่อรู้ว่าทั้งสามอันคืออันเดียวกัน
+//
+// สิ่งที่มาแทนไม่ใช่ปุ่มที่เล็กลง แต่คือการให้แถวที่บอกว่า "ยังไม่รู้เรื่องนี้"
+// เป็นตัวพาไปตอบเรื่องนั้นเอง — คำอธิบายกับปุ่มกลายเป็นของชิ้นเดียว
+//
+// ตารางเรียนไม่ได้อยู่ในตัวช่วย มันมาจากการสแกน จึงส่งไปจอสแกนตรง ๆ
+// อีกสี่เรื่องอยู่ในขั้นที่ 2 (กิจวัตรที่เดาไว้) ทั้งหมด — ไม่แกล้งทำเป็นว่ามีขั้นของตัวเอง
+const CTX_GAP_GO = {
+  timetable: "go('scr-ttscan')",
+  travel:  'wizOpen(2)',
+  meal:    'wizOpen(2)',
+  after:   'wizOpen(2)',
+  morning: 'wizOpen(2)',
+};
+
+function wizOpen(step) {
   const span = ctxSchoolSpan();
   wiz = {
-    step: 1,
+    step: Math.max(1, Math.min(WIZ_LAST - 1, step || 1)),
     // ถ้ามีตารางเรียนอยู่แล้ว เอาเวลาจริงมาตั้งต้น ไม่ต้องให้เขาตอบซ้ำของที่บอกไปแล้ว
     inHm: span ? span.fromHm : '08:00',
     outHm: span ? span.toHm : '16:00',
@@ -6993,8 +7016,16 @@ function wizDayChips(key, days) {
 function renderCtxWiz() {
   const b = document.getElementById('wizBody');
   if (!b || !wiz) return;
+  // 1C06 · ปุ่มถอยขึ้นมาอยู่บนซ้าย แทนที่จะซ่อนอยู่ล่างสุดของแผ่น
+  // ของเดิมมี "ย้อนกลับ" เป็นปุ่มผีอยู่ท้ายแผ่นคู่กับ "ถัดไป" ซึ่งอยู่ใต้เนื้อหา
+  // ที่เลื่อนได้ — ขั้นที่ยาวจึงต้องเลื่อนลงไปหาก่อนถึงจะเห็นว่าถอยได้
+  // ขั้นแรกไม่มีที่ให้ถอย มุมซ้ายจึงเป็น X (ทิ้งทั้งตัวช่วย) ตามเดิม
+  // และไม่ใส่ทั้ง X ทั้งลูกศรพร้อมกัน — สองปุ่มที่แปลว่า "ออก" เหมือนกัน
+  // คือคำถามที่ต้องคิดก่อนกด ไม่ใช่ทางออกที่ชัดขึ้น
+  const first = wiz.step === 1;
   const head = `<div class="wz-top">
-    <button class="set-back" onclick="wizClose()" aria-label="ปิด">${icon('x')}</button>
+    <button class="set-back" onclick="${first ? 'wizClose()' : `wizGo(${wiz.step - 1})`}"
+      aria-label="${first ? 'ปิด' : 'ย้อนกลับ'}">${icon(first ? 'x' : 'chevron')}</button>
     <div class="wz-dots">${Array.from({ length: WIZ_LAST }, (_, i) =>
       `<span class="${i + 1 === wiz.step ? 'on' : (i + 1 < wiz.step ? 'past' : '')}"></span>`).join('')}</div>
   </div>`;
@@ -7086,14 +7117,13 @@ function renderCtxWiz() {
         ไม่ใช่ "ว่างวันละ 2 ชั่วโมง" ที่เดาเอาเองอีกต่อไป</p>`;
   }
 
-  const back = step > 1 && step < WIZ_LAST
-    ? `<button class="btn ghost" onclick="wizGo(${step - 1})">ย้อนกลับ</button>` : '';
+  // 1C06 · "ย้อนกลับ" ท้ายแผ่นถูกถอด — หน้าที่นั้นไปอยู่ที่ลูกศรมุมซ้ายบนแล้ว
   const next = step === WIZ_LAST
     ? `<button class="btn" onclick="wizClose()">เสร็จแล้ว</button>`
     : `<button class="btn" onclick="wizGo(${step + 1})">ถัดไป</button>`;
 
   b.innerHTML = `${head}<div class="wz-main">${body}</div>
-    <div class="wz-act">${back}${next}</div>`;
+    <div class="wz-act">${next}</div>`;
 }
 
 // ---------- แอปเดาจากพฤติกรรมจริง แล้วขอยืนยัน ----------
@@ -8462,8 +8492,11 @@ function renderShowcase() {
       <b>ธีมสี</b><i>${esc(pref === 'system' ? 'ตามระบบ · ' + thName : thName)}</i>
     </button>`;
 
-  box.innerHTML = `<button class="st-open" onclick="openMyPublic()">
-      <span class="sec-label">โชว์ · พื้นที่ของฉัน</span>
+  // 1C08 · หัวข้อ "โชว์ · พื้นที่ของฉัน" ถูกถอด — เจ้าของสั่งเอง (18 ก.ย. 2569)
+  // สี่ช่องข้างล่างบอกชื่อตัวเองครบทุกช่อง (ห้องของฉัน · เหรียญตรา · ต่อเนื่อง · ธีมสี)
+  // หัวข้อจึงไม่ได้เพิ่มข้อมูล มันแค่ตั้งชื่อให้ของที่มีชื่ออยู่แล้ว
+  // ลิงก์ยังอยู่ เพราะมันคือทางเข้าหน้าอื่น ไม่ใช่คำอธิบาย
+  box.innerHTML = `<button class="st-open st-open-bare" onclick="openMyPublic()">
       <span class="st-open-go">ดูแบบที่เพื่อนเห็น${icon('chevron')}</span>
     </button>
     <div class="shw-row shw-4">
@@ -8536,10 +8569,12 @@ function renderStats() {
       <div><b>${Math.round(tkS.bal || 0)}</b><span>โทเคน</span></div>
     </div>`;
 
-  box.innerHTML = `<button class="st-open" onclick="go('scr-stats')">
-      <span class="sec-label">${icon('lock')}ผลของฉัน · เห็นคนเดียว</span>
-      <span class="st-open-go">ดูทั้งหมด${icon('chevron')}</span>
-    </button>
+  // 1C08 · หัวข้อ "ผลของฉัน · เห็นคนเดียว" ถูกถอดทั้งบรรทัด
+  // ตัวเลขสามช่องข้างล่างบอกอยู่แล้วว่านี่คือผลของใคร และ "ดูทั้งหมด" ย้ายไปเกาะ
+  // บรรทัดหัวกราฟที่มีอยู่แล้ว — ได้ทางเข้าเดิมคืนโดยไม่ต้องมีแถวของตัวเอง
+  // กุญแจเหลือแต่ไอคอน ไม่มีคำ: มันบอกว่า "ใบนี้เห็นคนเดียว" ซึ่งเป็นข้อมูลที่
+  // ไม่มีที่อื่นบอก จึงถอดไม่ได้ แต่ไม่ต้องใช้คำเพื่อบอกก็ได้
+  box.innerHTML = `
     <!-- แถบเหลืองสามช่องถูกถอดออกใน 1B71 — สองในสามช่องซ้ำกับบล็อก "เห็นคนเดียว"
          ที่อยู่เหนือขึ้นไปในจอเดียวกัน (งานที่เสร็จ · เสร็จใน 7 วัน)
          และช่องที่สาม "เวลาที่ประเมินไว้ 31.1 ชม." ล้นกรอบจนตัวเลขทับหน่วย
@@ -8549,7 +8584,10 @@ function renderStats() {
 
     <div class="st-card">
       ${privNums}
-      <div class="st-h">งานที่ติ๊กเสร็จ 7 วันล่าสุด</div>
+      <div class="st-h st-h-row">
+        <span>${icon('lock')}งานที่ติ๊กเสร็จ 7 วันล่าสุด</span>
+        <button class="st-open-go" onclick="go('scr-stats')">ดูทั้งหมด${icon('chevron')}</button>
+      </div>
       <div class="st-bars">
         ${days.map(d => `<div class="st-bar${d.today ? ' now' : ''}${d.n ? ' has' : ''}">
           <span class="bar" style="height:${Math.round(d.n / peak * 100)}%"></span>

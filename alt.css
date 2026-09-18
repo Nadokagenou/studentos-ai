@@ -1749,13 +1749,18 @@
 
 /* รุ่นบรรทัดเดียวของคำชวนข้างบน — ใช้ในเส้นเวลา ซึ่งของหลักคือเส้น ไม่ใช่คำชวน
    ไม่มีกรอบ ไม่มีพื้นสี เพราะกรอบประให้ความรู้สึกว่า "มีอะไรผิด" ทั้งที่แค่ยังไม่ได้กรอก */
+/* 1C07 · ขยายขึ้นมาเท่าหัวข้อกลุ่ม — เจ้าของวงบรรทัดนี้มาด้วย
+   บรรทัดนี้คือที่เดียวบนจอที่บอกว่า AI ยังเดาเวลาว่างอยู่ แต่มันเคยเป็น
+   ตัวหนังสือที่เล็กที่สุดและจางที่สุดในจอ ซึ่งอ่านเป็น "ข้อความประกอบ"
+   ทั้งที่มันคือปุ่ม · nowrap ถูกถอด — ตัดท้ายประโยคทิ้งบนจอ 375
+   ทำให้คำว่า "เดาเวลาว่างอยู่" หายไป ซึ่งเป็นครึ่งที่สำคัญกว่าของประโยค */
 .tl-hint {
   display: flex; align-items: center; gap: 7px; width: 100%; text-align: left;
   background: transparent; border: none; padding: 2px 2px 0; margin-bottom: 14px;
-  font-family: inherit; font-size: 11.5px; color: var(--muted); cursor: pointer;
+  font-family: inherit; font-size: 13px; line-height: 1.45; color: var(--ink); cursor: pointer;
 }
-.tl-hint span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tl-hint b { flex: none; font-weight: 600; color: var(--fill); }
+.tl-hint span { flex: 1; min-width: 0; }
+.tl-hint b { flex: none; font-weight: 700; color: var(--fill); }
 .tl-hint svg { width: 13px; height: 13px; flex: none; color: var(--faint); }
 .tl-hint:active { opacity: .6; }
 
@@ -2684,12 +2689,16 @@
   padding: 13px 13px 12px;
 }
 .st-card.soft { box-shadow: none; background: var(--card2); border: none; }
+/* 1C08 · บั๊กเดียวกับ .sec-label ใน 1C07 — letter-spacing .07em คู่กับ uppercase
+   เป็นสูตรของหัวข้ออังกฤษตัวใหญ่ พอใช้กับ "งานที่ติ๊กเสร็จ 7 วันล่าสุด" ที่ 11px
+   สระกับวรรณยุกต์หลุดจากพยัญชนะ · uppercase ไม่มีผลกับไทยอยู่แล้วแต่ยังคงไว้
+   เพราะบางที่ใช้คลาสนี้กับข้อความอังกฤษ */
 .st-h {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: .07em;
+  letter-spacing: .01em;
   text-transform: uppercase;
-  color: var(--faint);
+  color: var(--muted);
   margin-bottom: 12px;
 }
 .st-line { display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--ink); }
@@ -2961,7 +2970,18 @@ body { line-height: 1.7; letter-spacing: 0; }
 .page-title { font-size: var(--fs-page); line-height: 1.24; letter-spacing: -.034em; }
 .page-sub { font-size: 13px; line-height: 1.65; color: var(--muted); }
 .sh-title { font-size: 21px; letter-spacing: -.03em; }
-.sec-label { font-size: 11.5px; letter-spacing: .09em; color: var(--muted); margin-top: 20px; }
+/* 1C07 · หัวข้อกลุ่มขยายและเข้มขึ้น — เจ้าของวงมาสามจุด "ขยายกับเพิ่มความชัด"
+   ตัวการไม่ใช่ขนาดอย่างเดียว แต่เป็น letter-spacing .08–.09em ที่ติดมากับ
+   .sec-label ตั้งแต่ style.css · การถ่างตัวอักษรเป็นสูตรของหัวข้อภาษาอังกฤษตัวใหญ่
+   ซึ่งได้ผลเพราะตัวพิมพ์ใหญ่ทุกตัวสูงเท่ากันและไม่มีอะไรลอยอยู่ข้างบนข้างล่าง
+   ภาษาไทยตรงข้าม: สระบนล่างกับวรรณยุกต์ต้องเกาะพยัญชนะของมัน พอถ่างออก
+   คำเลยแตกเป็นตัว ๆ และที่ 11.5px ตาต้องประกอบคำเองทุกคำ
+   เหลือ .01em ไว้พอไม่ให้ตัวชนกัน · สีขึ้นจาก --muted เป็น --ink เพราะมันคือ
+   หัวข้อที่บอกว่ากลุ่มข้างล่างคืออะไร ไม่ใช่คำอธิบายประกอบ */
+.sec-label {
+  font-size: 13.5px; font-weight: 700; letter-spacing: .01em;
+  color: var(--ink); margin-top: 20px;
+}
 .eyebrow { font-size: var(--fs-meta); letter-spacing: .04em; }
 /* ตัวหนังสือรองเดิมจางจนอ่านยากบนธีมสว่าง — ยกน้ำหนักขึ้นนิดหนึ่ง */
 .rc-meta, .am, .mt-sub, .st-row .ct, .fr-st { font-weight: 500; }
@@ -6266,10 +6286,54 @@ body.deep-scr .top-friends { display: none; }
   display: flex; align-items: baseline; gap: 8px; width: 100%;
   padding: 0; border: 0; background: none; font: inherit; text-align: left; cursor: pointer;
 }
+/* 1C08 · แถวที่เหลือแต่ลิงก์หลังถอดหัวข้อ — ชิดขวา และเตี้ยลงเพราะไม่มีหัวข้อให้รองรับ */
+.st-open-bare { justify-content: flex-end; margin-bottom: 8px; }
+
+/* 1C08 · การ์ดใบเดียวที่รวม "ยังไม่รู้อะไร" กับ "รู้แล้วเท่าไหร่" ไว้ด้วยกัน
+   กรอบกับพื้นย้ายมาอยู่ที่ใบนอก .st-card ข้างในจึงต้องถอดของพวกนั้นออก
+   ไม่งั้นได้กล่องในกล่องที่ขอบห่างกัน 13px ซึ่งอ่านเป็นความผิดพลาด ไม่ใช่ลำดับชั้น */
+.pf-me {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.pf-me .st-card {
+  margin-top: 0; background: none; border: 0; border-radius: 0; box-shadow: none;
+}
+/* บรรทัด "รู้จักคุณแล้ว %" เป็นแถวบนสุดของการ์ด — margin ลอย ๆ ของ .pf-hint
+   ถูกแทนด้วย padding กับเส้นคั่น ซึ่งเป็นระยะที่อยู่ในการ์ด ไม่ใช่ระหว่างการ์ด */
+.pf-me .tl-hint {
+  margin: 0; padding: 12px 13px; border-bottom: 1px solid var(--line);
+}
+/* "ตอบต่อ" ใช้ --fill ส่วนอีกสองลิงก์ใช้ --blue — ค่าเท่ากันในธีมส่วนใหญ่แต่ไม่ทุกธีม
+   และที่สำคัญกว่าคือมันไม่ได้จางลง 10% ตามเพื่อน · สามลิงก์ในการ์ดกลุ่มเดียวกัน
+   ต้องมาจากสูตรเดียวกัน ไม่ใช่บังเอิญตรงกัน */
+.pf-me .tl-hint b {
+  color: var(--blue);
+  color: color-mix(in srgb, var(--blue) 90%, var(--card));
+}
+/* ว่างเปล่าตอนรู้ครบ 100% แล้ว — ไม่ให้เหลือเส้นคั่นที่ไม่ได้คั่นอะไร */
+.pf-me > div:empty { display: none; }
+
+/* หัวกราฟรับ "ดูทั้งหมด" เข้ามาอยู่บรรทัดเดียวกัน แทนที่จะมีแถวของตัวเอง */
+.st-h-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.st-h-row > span { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+.st-h-row svg { width: 12px; height: 12px; flex: none; }
+.st-h-row .st-open-go { letter-spacing: 0; text-transform: none; }
 .st-open .sec-label { flex: 1; margin-top: 0; }
+/* 1C07 · ตามหัวข้อกลุ่มขึ้นมาหนึ่งขั้น — ลิงก์ที่เล็กกว่าหัวข้อมากเกินไป
+   อ่านเป็นของที่ไม่ได้ตั้งใจให้กด */
+/* 1C08 · สีลิงก์จางลง 10% ตามที่เจ้าของสั่ง — ผสมเข้าหาพื้นการ์ด ไม่ใช่ตั้งค่าสีใหม่
+   ผสมกับ --card ทำให้ "จางลง 10%" แปลว่าเดียวกันในทุกธีม: ธีมสว่างจางไปทางขาว
+   ธีมมืดจางไปทางกรมท่า · ถ้าตั้งเป็นค่าสีตายตัวก็ต้องไล่เขียนทั้ง 14 ธีม
+   บรรทัด color แรกเป็นตัวสำรองให้เบราว์เซอร์ที่ยังไม่รู้จัก color-mix */
 .st-open-go {
   display: inline-flex; align-items: center; gap: 2px;
-  font-size: 12px; font-weight: 600; color: var(--blue);
+  padding: 0; border: 0; background: none; font-family: inherit; cursor: pointer;
+  font-size: 13px; font-weight: 700; color: var(--blue);
+  color: color-mix(in srgb, var(--blue) 90%, var(--card));
 }
 .st-open-go svg { width: 14px; height: 14px; }
 /* ============================================================
@@ -6373,8 +6437,11 @@ body.deep-scr .top-friends { display: none; }
 .an-bd.got .ab-nm { color: var(--gold-text); }
 .an-bd.got .ab-ds { color: var(--gold-text); opacity: .8; }
 
-/* หัวข้อ "ผลของฉัน" บนหน้า "ฉัน" ได้ทองจาง ๆ ที่ลูกศร ให้รู้ว่าข้างในมีของ */
-.st-open-go { color: var(--gold-text); }
+/* 1C08 · กฎทองถูกถอด — คอมเมนต์เดิมบอกว่าตั้งใจให้เฉพาะหัวข้อ "ผลของฉัน"
+   แต่ selector ไม่ได้เจาะจงจอหรือบล็อกไหนเลย มันจึงทาทองทับ .st-open-go ทุกใบ
+   รวมถึง "ดูแบบที่เพื่อนเห็น" ในแถบโชว์ด้วย · ผลคือลิงก์สามอันในช่วงเดียวกัน
+   เป็นทองสอง น้ำเงินหนึ่ง ซึ่งอ่านเป็นสีมั่ว ไม่ใช่รหัสสี — เจ้าของเห็นแล้ววงมา
+   ทองในโปรเจกต์นี้แปลว่า "ของที่ได้มาจริง" (โทเคน · เหรียญ) ไม่ใช่ "กดเข้าไปดูได้" */
 
 /* ธีมมืดแบน --grad-hero เป็นสีเดียวไว้ (ดูบล็อก :root[data-theme="dark"])
    แต่การ์ดทองใช้ token ของตัวเอง จึงไม่โดนแบนไปด้วย — เขียนกำกับไว้กันแก้ผิดที่ */
@@ -6437,13 +6504,22 @@ body.deep-scr .top-friends { display: none; }
 .ck-bar { height: 5px; border-radius: 999px; background: var(--card2); overflow: hidden; margin-top: 8px; }
 .ck-bar span { display: block; height: 100%; border-radius: 999px; background: var(--blue); transition: width .3s ease; }
 .ck-list { display: flex; flex-direction: column; gap: 9px; margin-top: 12px; }
-.ck-gap { display: flex; gap: 9px; }
-.ck-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); flex: none; margin-top: 5px; }
+/* 1C06 · แต่ละช่องที่ยังไม่รู้เป็นปุ่มของตัวเอง ไม่ใช่รายการเฉย ๆ ใต้ปุ่มรวมอันเดียว
+   ต้องมีขอบกับลูกศร ไม่งั้นมันดูเหมือนรายการเดิมทุกประการแล้วไม่มีใครรู้ว่ากดได้
+   ขอบเป็น --line เส้นเดียว ไม่ใช่พื้นทึบ — การ์ดนี้อยู่บนพื้นการ์ดอยู่แล้ว
+   ซ้อนพื้นทึบอีกชั้นจะได้กล่องในกล่องในกล่อง */
+.ck-gap {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 9px 10px; border: 1px solid var(--line); border-radius: 11px;
+  background: none; font-family: inherit; text-align: left; cursor: pointer;
+  transition: transform .14s ease;
+}
+.ck-gap:active { transform: scale(.985); background: var(--card2); }
+.ck-gap > svg:last-child { width: 15px; height: 15px; flex: none; color: var(--faint); }
+.ck-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); flex: none; }
 .ck-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .ck-tx b { font-size: 12.5px; font-weight: 600; color: var(--ink); }
 .ck-tx i { font-style: normal; font-size: 11px; line-height: 1.45; color: var(--muted); }
-.ck-go { width: 100%; margin-top: 13px; gap: 6px; }
-.ck-go svg { width: 15px; height: 15px; }
 .ck-done {
   display: flex; align-items: center; gap: 7px; margin: 10px 0 0;
   font-size: 11.5px; line-height: 1.5; color: var(--muted);
