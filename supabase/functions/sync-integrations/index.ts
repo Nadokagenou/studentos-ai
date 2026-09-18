@@ -20,6 +20,7 @@ import type { StandardTask } from '../_shared/integrations.ts';
 import { fetchIcs } from '../_shared/ics.ts';
 import { classroomReady, fetchClassroom } from '../_shared/classroom.ts';
 import { fetchCalendar } from '../_shared/gcal.ts';
+import { isQuietHours, markSent, pushReady, pushToUser, unsentKeys } from '../_shared/notify.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -37,6 +38,10 @@ const NORMAL_GAP_MIN = 30;
 type Row = {
   id: string; user_id: string; provider: string; account: string;
   secret: string | null; meta: Record<string, unknown>; fail_count: number;
+  last_sync_at: string | null;
+  // รอบนี้เป็นการซิงก์ครั้งแรกของการเชื่อมเส้นนี้ไหม — ต้องอ่านก่อนที่ syncOne
+  // จะเขียน last_sync_at ทับ ไม่งั้นทุกอย่างดูเหมือนไม่ใช่ครั้งแรกไปหมด
+  first_sync?: boolean;
 };
 
 Deno.serve(async (req) => {
@@ -48,7 +53,7 @@ Deno.serve(async (req) => {
     const only = typeof body?.integration_id === 'string' ? body.integration_id : null;
 
     let q = db.from('integrations')
-      .select('id, user_id, provider, account, secret, meta, fail_count');
+      .select('id, user_id, provider, account, secret, meta, fail_count, last_sync_at');
     q = only
       ? q.eq('id', only)
       // paused = ผู้ใช้ปิดไว้เอง · needs_reauth = ลองใหม่เองอีกกี่รอบก็ไม่หาย ต้องรอคนมากด
@@ -59,7 +64,9 @@ Deno.serve(async (req) => {
     if (error) throw error;
 
     const out = [];
-    for (const row of (data || []) as Row[]) out.push(await syncOne(row));
+    for (const row of (data || []) as Row[]) {
+      out.push(await syncOne({ ...row, first_sync: !row.last_sync_at }));
+    }
     return json({ ok: true, ran: out.length, results: out });
   } catch (e) {
     console.error('[sync] รอบนี้ล้มทั้งรอบ:', e instanceof Error ? e.message : e);
@@ -281,7 +288,115 @@ async function reconcile(row: Row, tasks: StandardTask[]) {
       .update({ sent_fingerprint: d.fp, sent_at: now })
       .eq('integration_id', row.id).eq('source_id', d.task.sourceId);
   }
-  return { sent: deliver.length };
+
+  // บอกเจ้าตัวว่ามีของใหม่เข้ามา — ทำหลังทุกอย่างสำเร็จแล้วเท่านั้น
+  // ล้มตรงนี้ไม่ทำให้รอบ sync ล้ม งานยังอยู่ในกล่องเข้าครบ แค่ไม่มีดอกเตือน
+  const pushed = await notifyNewItems(row, deliver).catch(() => 0);
+
+  return { sent: deliver.length, pushed };
+}
+
+// ============================================================
+// แจ้งเตือนว่ามีของใหม่ไหลเข้ามา
+// ------------------------------------------------------------
+// ทำไมต้องมี ทั้งที่ send-reminders เตือนงานใกล้กำหนดอยู่แล้ว:
+// ตั้งแต่มีตัวเชื่อม งานเข้าแอปได้เองตอนที่เจ้าตัวไม่ได้เปิดแอปเลย · ถ้าไม่บอก
+// เขาจะไม่รู้จนกว่าจะบังเอิญเปิดแอป หรือจนกว่ามันจะใกล้กำหนดส่งแล้ว
+// ซึ่งสายไปสำหรับงานที่ครูสั่งล่วงหน้าหนึ่งสัปดาห์
+//
+// สี่ข้อที่ตั้งใจให้เป็นแบบนี้ และแต่ละข้อมีราคาถ้าทำกลับกัน:
+//
+//   1. **ดอกเดียวต่อรอบ ไม่ใช่ดอกต่องาน** — เชื่อมปฏิทินครั้งแรกได้ 133 รายการ
+//      ยิงทีละใบคือการสอนให้คนปิดการแจ้งเตือนภายในสิบวินาที
+//   2. **เงียบตอนกลางคืน** — ของยังอยู่ในกล่องเข้าครบ แค่ไม่มีดอก และ send-reminders
+//      จะเจอมันเองตอนใกล้กำหนด · ไม่ต้องมีคิวรอส่ง เพราะไม่มีอะไรหาย
+//   3. **ไม่แจ้งตอนซิงก์รอบแรก** — คนที่เพิ่งกดเชื่อมกำลังมองจออยู่และเห็น toast
+//      ในแอปไปแล้ว ("เจอ 133 รายการ") · ดอกที่สองคือการพูดซ้ำเรื่องที่เพิ่งพูดจบ
+//   4. **เฉพาะ op = 'new'** — งานที่ครูแก้กำหนดส่งกับงานที่ถูกยกเลิก ฝั่งแอปขึ้น
+//      ข้อความให้ตอนเปิดอยู่แล้ว (inboxPullToast) ยังไม่มีหลักฐานว่าต้องดังถึงขั้น push
+// ============================================================
+
+/** ปิดสวิตช์ "เตือนงานใกล้ถึงกำหนด" ไว้ = ไม่อยากได้การเตือนเรื่องงาน ซึ่งรวมถึงเรื่องนี้ด้วย
+ *  จงใจไม่เพิ่มสวิตช์ตัวที่สี่ — สวิตช์ที่แยกละเอียดเกินกว่าที่คนจะเข้าใจความต่าง
+ *  คือสวิตช์ที่ไม่มีใครกด และเป็นของที่ต้องดูแลตลอดไป */
+async function wantsTaskPush(userId: string): Promise<boolean> {
+  const { data } = await db.from('user_state')
+    .select('settings:data->settings').eq('id', userId).maybeSingle();
+  return (data as { settings?: { notifDue?: boolean } } | null)?.settings?.notifDue !== false;
+}
+
+async function notifyNewItems(
+  row: Row,
+  deliver: { task: StandardTask; op: string; fp: string }[],
+): Promise<number> {
+  if (!pushReady() || isQuietHours()) return 0;
+  if (row.first_sync) return 0;
+
+  const fresh = deliver.filter(d => d.op === 'new' && !d.task.cancelled);
+  if (!fresh.length) return 0;
+  if (!(await wantsTaskPush(row.user_id))) return 0;
+
+  // กันซ้ำถาวรต่องานหนึ่งใบ — ไม่ผูกกับ integration_id เพราะตัดการเชื่อมแล้วเชื่อมใหม่
+  // ไม่ควรได้ดอกเดิมซ้ำทั้งปฏิทิน (เหตุผลเดียวกับที่ srcKey ใช้ provider)
+  const keys = fresh.map(d => `sync-new::${row.provider}::${d.task.sourceId}`);
+  const todo = await unsentKeys(db, row.user_id, keys);
+  if (!todo.length) return 0;
+
+  const ok = await pushToUser(db, row.user_id, newItemsCopy(fresh, row.account));
+  // ปักหมุดแม้ส่งไม่สำเร็จสักเครื่อง — ไม่งั้นคนที่ไม่มีเครื่องรับ push เลยจะถูกคิดใหม่
+  // ทุกรอบตลอดไป และวันที่เขาเปิด push ครั้งแรกจะโดนของเก่าทั้งเทอมรวดเดียว
+  await markSent(db, row.user_id, todo);
+  return ok;
+}
+
+/** หนึ่งข้อความที่สรุปทั้งรอบ — เจาะจงพอที่จะปัดทิ้งไม่ลง แต่ไม่ยาวจนโดนตัดกลางคัน
+ *  กฎเดียวกับข้อความใน send-reminders: ต้องมีชื่อของจริงเสมอ ไม่พูดลอย ๆ ว่า "มีงานใหม่" */
+function newItemsCopy(
+  fresh: { task: StandardTask }[],
+  account: string,
+): { title: string; body: string; tag: string } {
+  const exams = fresh.filter(d => d.task.type === 'exam');
+  const events = fresh.filter(d => d.task.type === 'event');
+  const n = fresh.length;
+
+  // ใบเดียว บอกชื่อกับกำหนดส่งไปเลย — เจาะจงที่สุดเท่าที่ทำได้
+  if (n === 1) {
+    const t = fresh[0].task;
+    const what = t.type === 'exam' ? 'มีสอบเพิ่มเข้ามา 📖'
+               : t.type === 'event' ? 'มีกิจกรรมเพิ่มเข้ามา 📅'
+               : 'มีงานใหม่เข้ามา 📥';
+    const name = [t.subject, t.title].filter(Boolean).join(' · ') || t.title;
+    return { title: what, body: name + dueSuffix(t.due), tag: 'sync-new' };
+  }
+
+  // หลายใบ บอกจำนวนกับวิชา ไม่ใช่ชื่อทุกใบ — การ์ดแจ้งเตือนสูงไม่กี่บรรทัด
+  const subjects = [...new Set(fresh.map(d => d.task.subject).filter(Boolean))].slice(0, 3);
+  const head = exams.length === n ? `มีสอบใหม่ ${n} รายการ 📖`
+             : events.length === n ? `มีกิจกรรมใหม่ ${n} รายการ 📅`
+             : `มีงานใหม่ ${n} ชิ้น 📥`;
+  const soonest = fresh.map(d => d.task).filter(t => t.due)
+    .sort((a, b) => Date.parse(a.due!) - Date.parse(b.due!))[0];
+  const body = (subjects.length ? subjects.join(' · ') : account || 'เข้ามาเอง')
+    + (soonest ? ` — อันที่ใกล้สุด${dueSuffix(soonest.due)}` : '');
+  return { title: head, body, tag: 'sync-new' };
+}
+
+/** " ส่งพรุ่งนี้" — คนพูดกันแบบนี้ ไม่มีใครพูดว่า "ส่งอีก 31 ชั่วโมง" */
+function dueSuffix(due: string | null | undefined): string {
+  if (!due) return '';
+  const ms = Date.parse(due);
+  if (!Number.isFinite(ms)) return '';
+  const TH = 7 * 3.6e6;
+  const day = (x: number) => { const d = new Date(x + TH);
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); };
+  const diff = Math.round((day(ms) - day(Date.now())) / 86400000);
+  if (diff < 0) return ' (เลยกำหนดแล้ว)';
+  if (diff === 0) return ' ส่งวันนี้';
+  if (diff === 1) return ' ส่งพรุ่งนี้';
+  if (diff === 2) return ' ส่งมะรืนนี้';
+  const TH_DAY = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
+  if (diff <= 6) return ' ส่งวัน' + TH_DAY[new Date(ms + TH).getUTCDay()];
+  return ` ส่งอีก ${diff} วัน`;
 }
 
 /** บรรทัดที่อ่านออกด้วยตา — inbox_items.raw ห้ามว่าง และมันคือสิ่งที่โผล่ในบันทึก
