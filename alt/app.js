@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C01';                 // สายเลขของแอป
+const APP_VERSION = '1C02';                 // สายเลขของแอป
 const APP_CODENAME = 'Bridge';           // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -1042,6 +1042,13 @@ async function initCloud() {
   // เพราะ publishProfile อ่านผิดที่มาตลอด (ดู syncPublicFace ใน social.js)
   // ยิงครั้งเดียวตอนเปิดแอป และกันซ้ำด้วยลายเซ็นอยู่แล้ว จึงไม่เปลืองเน็ต
   if (currentUser && typeof syncPublicFace === 'function') syncPublicFace();
+  // ---------- รายการตัวเชื่อม ----------
+  // ต้องถามตรงนี้ด้วย ไม่ใช่เฉพาะในบล็อก "เพิ่งล็อกอินเสร็จ" ข้างล่าง —
+  // บรรทัด currentUser = ... ข้างบนทำให้ wasLoggedIn เป็น true ไปแล้วตั้งแต่ก่อนที่
+  // onAuthStateChange จะยิงครั้งแรก · การเปิดแอปโดยมี session ค้างอยู่ (ซึ่งคือเกือบทุกครั้ง)
+  // จึงไม่เคยเข้าบล็อกนั้นเลย และปุ่ม "เชื่อมด้วย Google" ก็ไม่เคยโผล่
+  // เจอตอนทดสอบบนเครื่องจริงหลัง deploy ไม่ใช่ตอนอ่านโค้ด
+  if (currentUser && typeof integLoad === 'function') integLoad(true);
   sb.auth.onAuthStateChange((event, sess) => {
     const wasLoggedIn = !!currentUser;
     currentUser = sess ? sess.user : null;

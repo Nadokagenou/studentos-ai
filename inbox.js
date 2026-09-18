@@ -904,6 +904,8 @@ function renderInbox() {
 function renderSources() {
   const body = document.getElementById('srcBody');
   if (!body) return;
+  // ข้อมูลการเชื่อมอยู่ฝั่งเซิร์ฟเวอร์ — ถ้ายังไม่เคยถาม ถามตอนนี้แล้วให้มันวาดซ้ำเองเมื่อได้คำตอบ
+  if (typeof integAutoLoad === 'function') integAutoLoad();
 
   // นับเป็น "จำนวนงาน" ไม่ใช่ "จำนวนข้อความ" — ให้ตรงกับตัวเลขในกล่องเข้า
   // ข้อความเดียวของครูมีสิบเอ็ดงานได้ ตัวเลข 1 ตรงนี้จะดูเหมือนตัวเชื่อมแทบไม่ทำงาน
