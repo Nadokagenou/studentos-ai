@@ -673,7 +673,17 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .sticky-head{position:sticky; top:0; z-index:4;
   background:var(--glass); backdrop-filter:blur(18px) saturate(180%); -webkit-backdrop-filter:blur(18px) saturate(180%);
   border-bottom:1px solid var(--glass-line); padding:calc(14px + env(safe-area-inset-top)) 20px 12px}
-.sticky-head.row{display:flex; align-items:flex-end; justify-content:space-between; gap:12px}
+/* 1C06 · ปุ่มกลับย้ายมาอยู่ซ้ายสุด ก่อนชื่อจอ
+   ของเดิมเป็นลูกศร "ชี้ซ้าย" (.sh-btn svg พลิกด้วย scaleX(-1)) ที่นั่งอยู่ "ขอบขวา"
+   ซึ่งขัดกันเองจนตาหาไม่เจอ — เจ้าของถามตรง ๆ ว่า "จะกลับไปไหน" บนสามจอติดกัน
+   ทุกระบบปฏิบัติการวางปุ่มกลับไว้มุมบนซ้าย นิ้วโป้งกับสายตาไปที่นั่นก่อนเสมอ
+   แก้ด้วย order ที่เดียว มีผลครบทั้ง 14 จอ โดยไม่ต้องไล่สลับ HTML ทีละจอ
+
+   align-items เปลี่ยนจาก flex-end เป็น center — พอปุ่มมาอยู่ซ้าย การชิดล่างทำให้
+   ลูกศรไปเสมอกับบรรทัดคำอธิบาย แล้วอ่านเหมือนลูกศรเป็นของคำอธิบายนั้น ไม่ใช่ของจอ */
+.sticky-head.row{display:flex; align-items:center; justify-content:flex-start; gap:12px}
+.sticky-head.row > :not(.sh-btn){flex:1 1 auto; min-width:0}
+.sticky-head.row .sh-btn{order:-1}
 .sh-title{font-size:24px; font-weight:700; letter-spacing:-.032em; margin:0; line-height:1.15}
 .sh-sub{font-size:12px; color:var(--muted); margin:4px 0 0; font-variant-numeric:tabular-nums}
 .sh-btn{width:38px; height:38px; flex:none; border:none; border-radius:12px; background:var(--card);

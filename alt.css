@@ -6437,13 +6437,22 @@ body.deep-scr .top-friends { display: none; }
 .ck-bar { height: 5px; border-radius: 999px; background: var(--card2); overflow: hidden; margin-top: 8px; }
 .ck-bar span { display: block; height: 100%; border-radius: 999px; background: var(--blue); transition: width .3s ease; }
 .ck-list { display: flex; flex-direction: column; gap: 9px; margin-top: 12px; }
-.ck-gap { display: flex; gap: 9px; }
-.ck-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); flex: none; margin-top: 5px; }
+/* 1C06 · แต่ละช่องที่ยังไม่รู้เป็นปุ่มของตัวเอง ไม่ใช่รายการเฉย ๆ ใต้ปุ่มรวมอันเดียว
+   ต้องมีขอบกับลูกศร ไม่งั้นมันดูเหมือนรายการเดิมทุกประการแล้วไม่มีใครรู้ว่ากดได้
+   ขอบเป็น --line เส้นเดียว ไม่ใช่พื้นทึบ — การ์ดนี้อยู่บนพื้นการ์ดอยู่แล้ว
+   ซ้อนพื้นทึบอีกชั้นจะได้กล่องในกล่องในกล่อง */
+.ck-gap {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 9px 10px; border: 1px solid var(--line); border-radius: 11px;
+  background: none; font-family: inherit; text-align: left; cursor: pointer;
+  transition: transform .14s ease;
+}
+.ck-gap:active { transform: scale(.985); background: var(--card2); }
+.ck-gap > svg:last-child { width: 15px; height: 15px; flex: none; color: var(--faint); }
+.ck-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); flex: none; }
 .ck-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .ck-tx b { font-size: 12.5px; font-weight: 600; color: var(--ink); }
 .ck-tx i { font-style: normal; font-size: 11px; line-height: 1.45; color: var(--muted); }
-.ck-go { width: 100%; margin-top: 13px; gap: 6px; }
-.ck-go svg { width: 15px; height: 15px; }
 .ck-done {
   display: flex; align-items: center; gap: 7px; margin: 10px 0 0;
   font-size: 11.5px; line-height: 1.5; color: var(--muted);

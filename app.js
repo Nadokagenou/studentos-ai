@@ -6678,11 +6678,12 @@ function renderContext() {
       <div class="ck-h"><span>รู้จักคุณแล้ว ${ctxKnow()}%</span>
         <b class="mono">${gaps.length - missing.length}/${gaps.length}</b></div>
       <div class="ck-bar"><span style="width:${ctxKnow()}%"></span></div>
-      ${missing.length ? `<div class="ck-list">${missing.map(g => `<div class="ck-gap">
+      ${missing.length ? `<div class="ck-list">${missing.map(g => `<button type="button"
+        class="ck-gap" onclick="${CTX_GAP_GO[g.key] || 'wizOpen()'}">
         <span class="ck-dot"></span>
         <span class="ck-tx"><b>${esc(g.label)}</b><i>${esc(g.why)}</i></span>
-      </div>`).join('')}</div>
-      <button class="btn sm ck-go" onclick="wizOpen()">${icon('sparkles')}ตอบให้ครบใน 1 นาที</button>`
+        ${icon('chevron')}
+      </button>`).join('')}</div>`
       : `<p class="ck-done">${icon('check')}ครบแล้ว — ตารางที่ AI วางให้อ้างจากวันจริงของคุณทั้งหมด</p>`}
     </section>
 
@@ -6808,10 +6809,32 @@ const WIZ_CHIPS = [
 
 let wiz = null;
 
-function wizOpen() {
+// 1C06 · เปิดที่ขั้นไหนก็ได้ — แถวใน "รู้จักคุณแล้ว %" ส่งมาที่ขั้นที่ตอบเรื่องนั้นจริง ๆ
+// ไม่ใช่ทุกช่องที่ว่างจะมีขั้นของตัวเอง (ตัวช่วยมี 5 ขั้น แต่ช่องที่ยังไม่รู้มี 5 เรื่อง
+// ที่ไม่ได้จับคู่กันหนึ่งต่อหนึ่ง) — ดู CTX_GAP_GO ว่าเรื่องไหนไปที่ไหน
+// 1C06 · ช่องที่ยังไม่รู้ → ที่ที่ตอบมันได้จริง
+// เจ้าของสั่งให้ถอดปุ่ม "ตอบให้ครบใน 1 นาที" (18 ก.ย. 2569) และถูก: หน้า "ฉัน"
+// มีทางเข้า wizOpen() อยู่สามที่ในจอเดียว — แถบ #ctxHero, แถวในลิสต์ และปุ่มนี้
+// ทางเข้าเดียวกันสามอันไม่ได้แปลว่าเข้าถึงง่ายขึ้น มันแปลว่าต้องอ่านสามรอบ
+// เพื่อรู้ว่าทั้งสามอันคืออันเดียวกัน
+//
+// สิ่งที่มาแทนไม่ใช่ปุ่มที่เล็กลง แต่คือการให้แถวที่บอกว่า "ยังไม่รู้เรื่องนี้"
+// เป็นตัวพาไปตอบเรื่องนั้นเอง — คำอธิบายกับปุ่มกลายเป็นของชิ้นเดียว
+//
+// ตารางเรียนไม่ได้อยู่ในตัวช่วย มันมาจากการสแกน จึงส่งไปจอสแกนตรง ๆ
+// อีกสี่เรื่องอยู่ในขั้นที่ 2 (กิจวัตรที่เดาไว้) ทั้งหมด — ไม่แกล้งทำเป็นว่ามีขั้นของตัวเอง
+const CTX_GAP_GO = {
+  timetable: "go('scr-ttscan')",
+  travel:  'wizOpen(2)',
+  meal:    'wizOpen(2)',
+  after:   'wizOpen(2)',
+  morning: 'wizOpen(2)',
+};
+
+function wizOpen(step) {
   const span = ctxSchoolSpan();
   wiz = {
-    step: 1,
+    step: Math.max(1, Math.min(WIZ_LAST - 1, step || 1)),
     // ถ้ามีตารางเรียนอยู่แล้ว เอาเวลาจริงมาตั้งต้น ไม่ต้องให้เขาตอบซ้ำของที่บอกไปแล้ว
     inHm: span ? span.fromHm : '08:00',
     outHm: span ? span.toHm : '16:00',
@@ -6993,8 +7016,16 @@ function wizDayChips(key, days) {
 function renderCtxWiz() {
   const b = document.getElementById('wizBody');
   if (!b || !wiz) return;
+  // 1C06 · ปุ่มถอยขึ้นมาอยู่บนซ้าย แทนที่จะซ่อนอยู่ล่างสุดของแผ่น
+  // ของเดิมมี "ย้อนกลับ" เป็นปุ่มผีอยู่ท้ายแผ่นคู่กับ "ถัดไป" ซึ่งอยู่ใต้เนื้อหา
+  // ที่เลื่อนได้ — ขั้นที่ยาวจึงต้องเลื่อนลงไปหาก่อนถึงจะเห็นว่าถอยได้
+  // ขั้นแรกไม่มีที่ให้ถอย มุมซ้ายจึงเป็น X (ทิ้งทั้งตัวช่วย) ตามเดิม
+  // และไม่ใส่ทั้ง X ทั้งลูกศรพร้อมกัน — สองปุ่มที่แปลว่า "ออก" เหมือนกัน
+  // คือคำถามที่ต้องคิดก่อนกด ไม่ใช่ทางออกที่ชัดขึ้น
+  const first = wiz.step === 1;
   const head = `<div class="wz-top">
-    <button class="set-back" onclick="wizClose()" aria-label="ปิด">${icon('x')}</button>
+    <button class="set-back" onclick="${first ? 'wizClose()' : `wizGo(${wiz.step - 1})`}"
+      aria-label="${first ? 'ปิด' : 'ย้อนกลับ'}">${icon(first ? 'x' : 'chevron')}</button>
     <div class="wz-dots">${Array.from({ length: WIZ_LAST }, (_, i) =>
       `<span class="${i + 1 === wiz.step ? 'on' : (i + 1 < wiz.step ? 'past' : '')}"></span>`).join('')}</div>
   </div>`;
@@ -7086,14 +7117,13 @@ function renderCtxWiz() {
         ไม่ใช่ "ว่างวันละ 2 ชั่วโมง" ที่เดาเอาเองอีกต่อไป</p>`;
   }
 
-  const back = step > 1 && step < WIZ_LAST
-    ? `<button class="btn ghost" onclick="wizGo(${step - 1})">ย้อนกลับ</button>` : '';
+  // 1C06 · "ย้อนกลับ" ท้ายแผ่นถูกถอด — หน้าที่นั้นไปอยู่ที่ลูกศรมุมซ้ายบนแล้ว
   const next = step === WIZ_LAST
     ? `<button class="btn" onclick="wizClose()">เสร็จแล้ว</button>`
     : `<button class="btn" onclick="wizGo(${step + 1})">ถัดไป</button>`;
 
   b.innerHTML = `${head}<div class="wz-main">${body}</div>
-    <div class="wz-act">${back}${next}</div>`;
+    <div class="wz-act">${next}</div>`;
 }
 
 // ---------- แอปเดาจากพฤติกรรมจริง แล้วขอยืนยัน ----------
