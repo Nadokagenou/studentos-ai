@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C07';                 // สายเลขของแอป
+const APP_VERSION = '1C08';                 // สายเลขของแอป
 const APP_CODENAME = 'Bridge';           // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -8492,8 +8492,11 @@ function renderShowcase() {
       <b>ธีมสี</b><i>${esc(pref === 'system' ? 'ตามระบบ · ' + thName : thName)}</i>
     </button>`;
 
-  box.innerHTML = `<button class="st-open" onclick="openMyPublic()">
-      <span class="sec-label">โชว์ · พื้นที่ของฉัน</span>
+  // 1C08 · หัวข้อ "โชว์ · พื้นที่ของฉัน" ถูกถอด — เจ้าของสั่งเอง (18 ก.ย. 2569)
+  // สี่ช่องข้างล่างบอกชื่อตัวเองครบทุกช่อง (ห้องของฉัน · เหรียญตรา · ต่อเนื่อง · ธีมสี)
+  // หัวข้อจึงไม่ได้เพิ่มข้อมูล มันแค่ตั้งชื่อให้ของที่มีชื่ออยู่แล้ว
+  // ลิงก์ยังอยู่ เพราะมันคือทางเข้าหน้าอื่น ไม่ใช่คำอธิบาย
+  box.innerHTML = `<button class="st-open st-open-bare" onclick="openMyPublic()">
       <span class="st-open-go">ดูแบบที่เพื่อนเห็น${icon('chevron')}</span>
     </button>
     <div class="shw-row shw-4">
@@ -8566,10 +8569,12 @@ function renderStats() {
       <div><b>${Math.round(tkS.bal || 0)}</b><span>โทเคน</span></div>
     </div>`;
 
-  box.innerHTML = `<button class="st-open" onclick="go('scr-stats')">
-      <span class="sec-label">${icon('lock')}ผลของฉัน · เห็นคนเดียว</span>
-      <span class="st-open-go">ดูทั้งหมด${icon('chevron')}</span>
-    </button>
+  // 1C08 · หัวข้อ "ผลของฉัน · เห็นคนเดียว" ถูกถอดทั้งบรรทัด
+  // ตัวเลขสามช่องข้างล่างบอกอยู่แล้วว่านี่คือผลของใคร และ "ดูทั้งหมด" ย้ายไปเกาะ
+  // บรรทัดหัวกราฟที่มีอยู่แล้ว — ได้ทางเข้าเดิมคืนโดยไม่ต้องมีแถวของตัวเอง
+  // กุญแจเหลือแต่ไอคอน ไม่มีคำ: มันบอกว่า "ใบนี้เห็นคนเดียว" ซึ่งเป็นข้อมูลที่
+  // ไม่มีที่อื่นบอก จึงถอดไม่ได้ แต่ไม่ต้องใช้คำเพื่อบอกก็ได้
+  box.innerHTML = `
     <!-- แถบเหลืองสามช่องถูกถอดออกใน 1B71 — สองในสามช่องซ้ำกับบล็อก "เห็นคนเดียว"
          ที่อยู่เหนือขึ้นไปในจอเดียวกัน (งานที่เสร็จ · เสร็จใน 7 วัน)
          และช่องที่สาม "เวลาที่ประเมินไว้ 31.1 ชม." ล้นกรอบจนตัวเลขทับหน่วย
@@ -8579,7 +8584,10 @@ function renderStats() {
 
     <div class="st-card">
       ${privNums}
-      <div class="st-h">งานที่ติ๊กเสร็จ 7 วันล่าสุด</div>
+      <div class="st-h st-h-row">
+        <span>${icon('lock')}งานที่ติ๊กเสร็จ 7 วันล่าสุด</span>
+        <button class="st-open-go" onclick="go('scr-stats')">ดูทั้งหมด${icon('chevron')}</button>
+      </div>
       <div class="st-bars">
         ${days.map(d => `<div class="st-bar${d.today ? ' now' : ''}${d.n ? ' has' : ''}">
           <span class="bar" style="height:${Math.round(d.n / peak * 100)}%"></span>
