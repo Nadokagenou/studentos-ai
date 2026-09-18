@@ -132,6 +132,35 @@
   display:inline-flex; align-items:center; gap:6px}
 .lk-new svg{width:13px; height:13px}
 
+/* ---------- บัญชีที่เชื่อมผ่าน API ---------- */
+/* ใช้แถว .lk-room ตัวเดิมที่กลุ่ม LINE ใช้อยู่ — ของสองอย่างนี้คือเรื่องเดียวกัน
+   ในสายตาผู้ใช้ ("อะไรที่เชื่อมไว้แล้วบ้าง") จึงไม่ควรหน้าตาคนละแบบ
+   ต่างกันแค่ตรงนี้มีบรรทัดสถานะเพิ่มมา จึงต้องเลิกจัดกึ่งกลางแนวตั้ง */
+.lk-room.col{align-items:flex-start; flex-wrap:wrap}
+.lk-room.col .lk-room-bd{gap:2px}
+/* .ib-act button ชนะ .ib-go ด้วย specificity (0,1,1 vs 0,1,0) ปุ่มเน้นที่อยู่ในแถวปุ่ม
+   จึงกลายเป็นสีเทาเหมือนปุ่มรอง · จงใจแก้เฉพาะในแถวบัญชีเท่านั้น ไม่แก้ทั้งระบบ
+   เพราะการ์ดในกล่องเข้าก็เข้าข่ายเดียวกัน และการเปลี่ยนหน้าตาจอนั้นเป็นคนละเรื่องกับงานนี้ */
+.lk-room .ib-act .ib-go{background:var(--blue); border-color:var(--blue); color:var(--on-accent)}
+.src-state{display:flex; align-items:center; gap:5px; margin-top:4px;
+  font-size:11px; font-weight:600; line-height:1.5}
+.src-state svg{width:12px; height:12px; flex:none}
+.src-state.ok{color:var(--good)}
+.src-state.bad{color:var(--warn)}
+
+/* ช่องวางลิงก์ปฏิทิน — ช่องกรอกของแอปถูกเขียนไว้ใต้ .fm-card ทั้งหมด
+   ซึ่งเป็นของฟอร์มเพิ่มงาน ไม่ใช่ของหน้านี้ จึงต้องมีตัวของตัวเองหนึ่งตัว */
+.src-in{width:100%; margin-top:10px; background:var(--card2); border:none;
+  border-radius:12px; min-height:44px; padding:0 13px; font-size:13px;
+  font-family:inherit; color:var(--ink); -webkit-appearance:none; appearance:none}
+.src-in:focus{outline:2px solid var(--blue); outline-offset:-2px}
+.src-help{margin-top:9px; font-size:11px; color:var(--faint); line-height:1.75}
+.src-help b{color:var(--muted); font-weight:600}
+
+/* "รอโรงเรียนอนุมัติ" ต่างจาก "รอตั้งค่า" และ "ต่อไม่ได้" จริง ๆ สำหรับคนที่รอ:
+   ของนี้ต่อได้ แต่ต้องให้ผู้ใหญ่ที่ไม่ใช่เรากดอนุญาตก่อน — รอเราไปทำก็ไม่มีวันได้ */
+.src-tag.admin{background:var(--warn-soft); color:var(--warn)}
+
 /* ---------- การ์ด "เรียนรู้จากคุณ" ---------- */
 /* ระบบที่เรียนรู้ได้ต้องมองเห็นได้ว่ามันเรียนอะไรไป และล้างทิ้งได้เสมอ
    ไม่งั้นเวลามันคัดผิด ผู้ใช้จะรู้สึกว่าแอปมีใจของตัวเองและควบคุมไม่ได้ */

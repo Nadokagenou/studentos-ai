@@ -4,7 +4,7 @@
 // สายนี้เคยเป็นบิลด์ทดลอง (ALT) และถูกยกขึ้นเป็นตัวหลักตั้งแต่ 1A7V2 · ชื่อ cache เลยเปลี่ยนตาม
 // -m: เปลี่ยนโลโก้ทั้งชุด — ชื่อไฟล์เดิมทุกไฟล์ ถ้าไม่ขึ้นเลขรุ่น เครื่องที่ติดตั้งไว้แล้ว
 // จะเสิร์ฟโลโก้เก่าจากแคชต่อไปโดยไม่มีอะไรบอกว่ามีของใหม่
-const CACHE = 'studentos-1b99-horizon'; // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
+const CACHE = 'studentos-1c01-bridge'; // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
 // ทุกไฟล์ที่ index.html อ้างถึงต้องอยู่ในรายการนี้ — ไฟล์ที่หน้าเรียกแต่ไม่ได้แคชไว้
 // จะหายไปเงียบ ๆ ตอนออฟไลน์ โดยไม่มีอะไรบอกว่าหายไปไหน (ไอคอน icon-alt-* เป็นของที่หน้ายังอ้างถึงอยู่จริง)
 //
@@ -13,7 +13,7 @@ const CACHE = 'studentos-1b99-horizon'; // ขึ้นเวอร์ชัน�
 // เพื่อของที่มีคนเดียวได้ใช้ · และที่แย่กว่านั้นคือมันทำให้ปล่อยรุ่นใหม่แล้วหน้าแอดมิน
 // ได้ "หน้าแม่ใหม่ + ตัวแก้ดีไซน์เก่า" ซึ่งอาการคือกดแล้วไม่มีอะไรเกิดขึ้น
 const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'room.css', 'social.css', 'feed.css', 'safety.css', 'hw.css', 'topic.css', 'custom.css',
-  'engine.js', 'context.js', 'planner.js', 'facts.js', 'profile.js', 'simulate.js', 'calibrate.js', 'loss.js', 'decide.js', 'brain.js', 'inbox.js', 'linelink.js', 'room.js', 'social.js', 'feed.js', 'hw.js', 'topic.js', 'safety.js', 'app.js', 'config.js', 'remote-config.js',
+  'engine.js', 'context.js', 'planner.js', 'facts.js', 'profile.js', 'simulate.js', 'calibrate.js', 'loss.js', 'decide.js', 'brain.js', 'inbox.js', 'linelink.js', 'integrations.js', 'room.js', 'social.js', 'feed.js', 'hw.js', 'topic.js', 'safety.js', 'app.js', 'config.js', 'remote-config.js',
   'manifest.json',
   'icon-alt-192.png', 'icon-alt-512.png', 'icon-192.png', 'icon-512.png',
   'logo-mark.png', 'logo-splash.png', 'logo-splash-light.png',
