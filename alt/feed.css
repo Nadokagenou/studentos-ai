@@ -982,14 +982,15 @@
 /* ---------- หัวโปรไฟล์ในแท็บ "ฉัน" ---------- */
 /* .pf-body มี padding ซ้ายขวาของตัวเองอยู่แล้ว (มาจาก .screen)
    ถ้าปล่อยให้หัวใส่ padding ซ้ำ ขอบจะลึกกว่าจออื่นสองเท่าและอ่านเป็นคนละแอป */
-/* 1C09 · .ig-mini กับ .ig-top เข้ารายการนี้ด้วย — สองอันนี้ตกหล่นมาตลอด
+/* 1C09 · .ig-top เข้ารายการนี้ด้วย — มันตกหล่นมาตลอด
    ผลคือแถว "@ชื่อผู้ใช้ · ม.ปลาย" เยื้องเข้ามา 36px (20 ของจอ + 16 ของตัวเอง)
-   ขณะที่ชื่อใต้มันอยู่ที่ 20px · ต่างกัน 16px บนสองบรรทัดที่ติดกัน */
-#pfHead .ig-head, #pfHead .ig-id, #pfHead .ig-bio, #pfHead .ig-top, #pfHead .ig-mini,
+   ขณะที่ชื่อใต้มันอยู่ที่ 20px · ต่างกัน 16px บนสองบรรทัดที่ติดกัน
+   (1C10 ถอดทรง compact ออกแล้ว แต่กฎนี้เป็นการแก้ขอบคนละเรื่อง จึงอยู่ต่อ) */
+#pfHead .ig-head, #pfHead .ig-id, #pfHead .ig-bio, #pfHead .ig-top,
 #pfHead .ig-btns, #pfHead .ig-strip { padding-left: 0; padding-right: 0; }
 #pfHead .ig-head { padding-top: 0; }
 /* เฟืองชิดขอบขวาจริง — .ig-set กัน margin-right ติดลบไว้ให้พื้นที่กด 34px
-   เกินขอบได้ ซึ่งถูกตอนหัวมี padding ของตัวเอง แต่ตรงนี้ไม่มีแล้ว */
+   เกินขอบได้ ซึ่งถูกตอน .ig-top มี padding ของตัวเอง แต่กฎข้างบนถอดไปแล้ว */
 #pfHead .ig-set { margin-right: -7px; }
 
 /* ---------- ตัวเลขที่เห็นคนเดียว ---------- */
@@ -1201,40 +1202,6 @@
 .ig-set svg { width: 19px; height: 19px; }
 .ig-set:active { color: var(--ink); transform: scale(.92); }
 
-/* ============================================================
-   1C09 · หัวแถวเดียวของแท็บ "ฉัน"
-   ============================================================
-   สามชั้นของทรงเดิม (แถว @ชื่อ · แถวรูป+ตัวเลข · แถวชื่อ) ยุบเป็นแถวเดียว
-   รูปเล็กลงจาก 74px เหลือ 46px ซึ่งยังใหญ่พอให้จำหน้าตัวเองได้ และยังมีป้าย
-   กล้องมุมล่างขวาเหมือนเดิม — ทางเปลี่ยนรูปไม่ได้หายไปไหน
-
-   ระยะขอบ 16px เท่าทรงเดิมเป๊ะ เพราะชิ้นที่อยู่ใต้มัน (แถบเช็คอิน · การ์ดผลงาน)
-   อยู่ในกริดของ .scr-body ที่มี padding 20px — หัวที่เยื้องคนละระยะกับของข้างล่าง
-   คือสิ่งแรกที่ตาจับได้ว่าหน้านี้ประกอบมาจากหลายชิ้น (เหตุผลเดียวกับหมายเหตุ .ig-top) */
-.ig-mini {
-  display: flex; align-items: center; gap: 13px;
-  padding: 4px 16px 0;
-}
-.ig-mini .ig-av { width: 46px; height: 46px; font-size: 18px; }
-/* ป้ายกล้องย่อตามรูป ไม่งั้นมันกินพื้นที่รูปไปเกือบครึ่ง */
-.ig-mini .ig-av-cam { width: 19px; height: 19px; right: -1px; bottom: -1px; }
-.ig-mini .ig-av-cam svg { width: 11px; height: 11px; }
-.ig-mini-tx { flex: 1; min-width: 0; }
-.ig-mini-tx > b {
-  display: block; font-size: 17px; font-weight: 700; letter-spacing: -.02em;
-  color: var(--ink); line-height: 1.3;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.ig-mini-tx > i {
-  display: block; margin-top: 1px; font-style: normal;
-  font-size: 12px; font-weight: 500; color: var(--muted);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.ig-mini .ig-set { align-self: center; }
-.ig-mini-bio { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
-/* สองปุ่มเท่ากัน ไม่มีตัวไหนเป็นพื้นทึบ — จอนี้ไม่มี action หลักที่ต้องรีบกด */
-.ig-btns-quiet { padding-top: 12px; }
-.ig-btns-quiet button { font-size: 12.5px; padding: 9px 0; border-width: 1px; }
 
 /* ============================================================
    1B96 · สีประจำแถวในลิสต์แท็บ "ฉัน"

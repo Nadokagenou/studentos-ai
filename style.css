@@ -1085,7 +1085,9 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 
 /* ---------- แถวสถิติวันติดต่อกัน (ท้ายหน้าแรก) ---------- */
 
-.app-ver{font-size:11px; color:var(--faint); text-align:center; margin:2px 0 0; letter-spacing:.04em}
+/* 1C10 · --muted ไม่ใช่ --faint — ป้ายนี้นั่งบนพื้นจอ ไม่ใช่บนการ์ด และ --faint
+   ถูกปรับมาให้พอดีกับพื้นการ์ด · บนพื้นจอของธีม genesis มันวัดได้ 2.16:1 */
+.app-ver{font-size:11px; color:var(--muted); text-align:center; margin:2px 0 0; letter-spacing:.04em}
 
 /* ข้อความรองที่ว่างเปล่าไม่ควรกินที่ */
 .sh-sub:empty, .fm-p:empty, .sub:empty, .pf-row .sb:empty{display:none}
