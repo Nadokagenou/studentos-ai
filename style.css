@@ -733,6 +733,19 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .pslot .work{flex:1; background:var(--card); border-radius:18px; box-shadow:var(--shadow); padding:14px 15px;
   display:flex; flex-direction:column; gap:7px; border-left:3px solid var(--blue)}
 .pslot .work.lv5{border-left-color:var(--alert)} .pslot .work.lv4{border-left-color:var(--warn)}
+/* ---------- 1C13 · ใบพระเอกของแผน ----------
+   ภาษาเดียวกับจอ "ผลของฉัน": ใบที่มีสีมีได้ใบเดียวต่อจอ ที่เหลือขาว
+   ที่นี่ใบนั้นคือช่องที่ต้องเริ่มตอนนี้ — เดิมทุกช่องเป็นการ์ดขาวเท่ากันหมด
+   ต่างกันแค่เส้นซ้ายบาง ๆ 3px ซึ่งอ่านไม่ออกตั้งแต่เหลือบ ตาเลยไม่รู้ว่าเริ่มตรงไหน
+   ป้ายระดับความด่วนยังอยู่ แค่สลับเป็นพื้นขาวโปร่งบนฟ้า ไม่ได้หายไป */
+.pslot .work.lead{background:var(--blue); color:var(--on-accent);
+  border-left-color:rgba(255,255,255,.45); box-shadow:none}
+.pslot .work.lead .tt{font-size:19px; font-weight:700; line-height:1.34; letter-spacing:-.02em}
+.pslot .work.lead .ndue{color:rgba(255,255,255,.78)}
+.pslot .work.lead .nbadge{background:rgba(255,255,255,.2); color:#fff}
+.pslot .work.lead .wk-go{background:var(--card); border-color:var(--card); color:var(--blue)}
+/* เวลาของช่องพระเอกหนาขึ้นตามการ์ด — ถ้าเลขยังเท่าช่องอื่น มันจะอ่านเป็นคนละลำดับกับการ์ด */
+.pslot:has(.work.lead) .ptime .s{font-size:15px; font-weight:700; color:var(--blue)}
 .pslot .work .tt{font-size:14.5px; font-weight:600; line-height:1.4; letter-spacing:-.01em}
 .pslot .work .nt{font-size:12px; color:var(--muted); line-height:1.55}
 .povf{display:flex; flex-direction:column; gap:10px; margin-top:14px}
@@ -854,7 +867,12 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
   padding:9px 12px; border-radius:12px; font-size:12.5px; font-weight:650; letter-spacing:-.01em;
   background:var(--card2); color:var(--ink); cursor:pointer}
 .wk-go svg{width:14px; height:14px}
-.wk-go.on{background:var(--good); color:#fff}
+/* 1C13 · ปุ่มเงียบเป็นค่าเริ่มต้น ปุ่มทึบมีใบเดียวต่อจอ (ดู lead ใน renderPlan)
+   ของเดิมทุกช่องได้พื้น --card2 เท่ากันหมด ซึ่งอ่านว่า "เลือกอันไหนก็ได้"
+   ทั้งที่แผนตั้งใจบอกว่าให้เริ่มจากอันบนสุด */
+.wk-go{background:transparent; border:1px solid var(--line); color:var(--muted); font-weight:600}
+.wk-go.lead{background:var(--blue); border-color:var(--blue); color:var(--on-accent); font-weight:650}
+.wk-go.on{background:var(--good); border-color:var(--good); color:#fff}
 .wk-go:disabled{opacity:.42; cursor:default}
 .wk-go:not(:disabled):active{transform:scale(.98)}
 

@@ -765,20 +765,40 @@ function renderInbox() {
   const countUnits = (list, ok) => list.reduce((n, i) => n + inboxUnits(i).filter(ok).length, 0);
   const waitN = countUnits(wait, c => c.status === 'new');
 
+  const autoN0 = countUnits(all.filter(i => i.status === 'accepted'), c => c.status === 'accepted');
   const sub = document.getElementById('inboxSub');
   if (sub) {
-    const auto = countUnits(all.filter(i => i.status === 'accepted'), c => c.status === 'accepted');
     sub.textContent = waitN
-      ? `รอตรวจ ${waitN} · เข้าแผนเองแล้ว ${auto}`
-      : `เข้าแผนเองแล้ว ${auto} รายการ`;
+      ? `รอตรวจ ${waitN} · เข้าแผนเองแล้ว ${autoN0}`
+      : `เข้าแผนเองแล้ว ${autoN0} รายการ`;
   }
 
-  const head = `<div class="page-head">
-    <div class="eyebrow">ของที่ไหลเข้ามาเอง</div>
-    <h1 class="page-title">กล่องเข้า</h1>
-    <p class="page-sub">AI อ่านทุกอย่างที่เข้ามาก่อน แล้วถามเฉพาะตอนที่ไม่มั่นใจ
-      — ที่เหลือเข้าแผนให้เองโดยไม่ต้องกด</p>
-  </div>`;
+  // ---------- 1C13 · หัวจอเป็นตัวเลข ไม่ใช่ย่อหน้า ----------
+  // เดิมตรงนี้วาดหัวข้อชุดที่สองทับหัวจอจริงใน index.html — คำว่า "กล่องเข้า" ขึ้นสองรอบ
+  // ในจอเดียว ห่างกันไม่ถึงครึ่งนิ้ว พร้อมคำอธิบายสองบรรทัดที่พูดซ้ำบรรทัดใต้ชื่อ
+  //
+  // ภาษาเดียวกับจอ "ผลของฉัน" (1C13): ใบพระเอกมีสีใบเดียว ข้างในมีตัวเลขเดียว
+  // ตัวเลขของจอนี้คือของที่ AI จัดเข้าแผนให้เองโดยไม่ต้องถาม — มันคือสิ่งที่จอนี้ขายจริง ๆ
+  // ส่วน "รอคุณตรวจ" เป็นตัวเลขที่สำคัญกว่าเมื่อมีของค้าง จึงสลับขึ้นมาเป็นตัวหลักแทน
+  const autoN = autoN0;
+  const heroN = waitN || autoN;
+  const heroLb = waitN ? 'รอคุณตรวจ' : 'AI จัดเข้าแผนให้เอง';
+  const heroSub = waitN
+    ? (autoN ? `อีก ${autoN} รายการ AI จัดเข้าแผนไปแล้ว` : '')
+    : 'ไม่ได้ถามคุณสักคำ';
+
+  // ยังไม่เคยมีอะไรไหลเข้ามาเลย = ตัวเลข 0 บนการ์ดสีคือการโชว์ความว่างเปล่า
+  // จอต้องพูดว่าต้องทำอะไรถึงจะมีของแทน
+  const head = heroN
+    ? `<div class="ib-hero${waitN ? ' wait' : ''}">
+        <div class="ih-lb">${icon(waitN ? 'unplug' : 'sparkles')}${heroLb}</div>
+        <div class="ih-n"><b>${heroN}</b><i>รายการ</i></div>
+        ${heroSub ? `<div class="ih-sub">${esc(heroSub)}</div>` : ''}
+      </div>`
+    : `<div class="ib-hero flat">
+        <div class="ih-lb">${icon('unplug')}ยังไม่มีอะไรไหลเข้ามา</div>
+        <div class="ih-sub">ต่อ LINE กลุ่มห้องไว้ แล้วงานที่ครูสั่งจะมาโผล่ที่นี่เอง</div>
+      </div>`;
 
   // ---- การ์ดของก้อนที่มีหลายงาน ----
   // หน้าตาเป็นเช็คลิสต์ ไม่ใช่คำถาม — ของที่แกะได้ครบติ๊กมาให้แล้ว
@@ -886,8 +906,10 @@ function renderInbox() {
   };
 
   body.innerHTML = head
+    // หัวข้อ "รอคุณตัดสินใจ N รายการ" ถูกถอดออก — ใบพระเอกข้างบนเพิ่งพูด
+    // เลขเดียวกันด้วยคำเกือบเดียวกัน ห่างกันสองนิ้ว — คือบั๊กเดิมของจอนี้ในรูปแบบใหม่
     + (wait.length
-      ? `<div class="sec-title">รอคุณตัดสินใจ ${waitN} รายการ</div>` + wait.map(card).join('')
+      ? wait.map(card).join('')
       : `<div class="ib-empty">
           <div class="ib-empty-ic">${icon('check-circle')}</div>
           <div class="ib-empty-t">ไม่มีอะไรค้างให้ตรวจ</div>
@@ -895,6 +917,16 @@ function renderInbox() {
         </div>`)
     + (recent.length ? `<div class="sec-title">ที่ผ่านมา</div>` + recent.map(logRow).join('') : '')
     + brainCard()
+    // 1C13 · จบจอด้วยคนพูด ไม่ใช่ด้วยกล่องข้อมูลอีกใบ (ภาษาเดียวกับจอ "ผลของฉัน")
+    // ประโยคเปลี่ยนตามสถานการณ์ เพราะคำถามที่ค้างอยู่ในหัวคนอ่านไม่เหมือนกันสามแบบ
+    + `<div class="an-sai">
+        <img src="sai-avatar.png" alt="" class="as-face">
+        <p class="as-say">${waitN
+          ? 'พวกนี้ผมไม่กล้าเดาแทน — ดูให้หน่อยนะ กดรับแล้วเดี๋ยวผมจัดลงแผนให้เอง'
+          : autoN
+          ? 'ที่เหลือผมจัดเข้าแผนให้หมดแล้ว ไม่ต้องกดอะไรเพิ่ม'
+          : 'ต่อตัวเชื่อมไว้สักทาง แล้วผมจะเฝ้าให้เองว่ามีงานอะไรเข้ามาบ้าง'}</p>
+      </div>`
     + `<button class="ib-wide" onclick="go('scr-sources')">${icon('chevron')}จัดการตัวเชื่อม</button>`;
 }
 
