@@ -291,3 +291,38 @@
 .src-tag.noapi{background:var(--card2); color:var(--faint)}
 
 .src-sub{margin:-4px 2px 9px; font-size:11.5px; color:var(--faint); line-height:1.6}
+
+/* ============================================================
+   1C13 · ใบพระเอกของกล่องเข้า
+   ============================================================
+   ภาษาเดียวกับจอ "ผลของฉัน" — ใบที่มีสีมีได้ใบเดียวต่อจอ ตัวเลขข้างในมีตัวเดียว
+   และขนาดต้องกระโดดจากตัวอื่นบนจอจริง ๆ ไม่ใช่หนาขึ้นนิดเดียว */
+.ib-hero {
+  position: relative; overflow: hidden;
+  margin: 2px 0 14px; padding: 16px 18px 18px;
+  border-radius: 20px; background: var(--blue); color: var(--on-accent);
+}
+.ib-hero::after {
+  content: ''; position: absolute; right: -34px; top: -42px;
+  width: 150px; height: 150px; border-radius: 50%;
+  background: rgba(255, 255, 255, .09);
+}
+.ib-hero > * { position: relative; }
+/* เคยลองให้ขาสถานะ "รอคนตรวจ" เป็นสีเตือน (--warn) แต่ --warn เป็นโทเคนสีตัวอักษร
+   ไม่ใช่สีพื้น — #8A6206 เต็มใบออกมาเป็นน้ำตาลขุ่น หลุดจากชุดสีทั้งแอป
+   และขัดกับที่เจ้าของสั่งเองว่า "ฟ้าเหมือนเดิม แต่คุมให้แน่น"
+   สองสถานะจึงใช้ฟ้าเหมือนกัน — คำว่า "รอคุณตรวจ" กับตัวเลขบอกความต่างได้ครบแล้ว */
+.ih-lb { display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; opacity: .88; }
+.ih-lb svg { width: 13px; height: 13px; }
+.ih-n { display: flex; align-items: baseline; gap: 7px; margin-top: 1px; }
+.ih-n b { font-size: 44px; font-weight: 800; line-height: 1.05; letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums; }
+.ih-n i { font-style: normal; font-size: 16px; font-weight: 600; opacity: .8; }
+.ih-sub { margin-top: 3px; font-size: 12px; opacity: .85; line-height: 1.5; }
+/* ยังไม่เคยมีของเข้ามา — ไม่มีตัวเลขให้โชว์ จึงไม่ใช้พื้นสีเต็ม */
+.ib-hero.flat { background: var(--blue-soft); color: var(--ink); }
+.ib-hero.flat::after { display: none; }
+.ib-hero.flat .ih-lb { color: var(--blue); opacity: 1; font-size: 14px; font-weight: 700; }
+.ib-hero.flat .ih-lb svg { width: 16px; height: 16px; }
+.ib-hero.flat .ih-sub { color: var(--muted); opacity: 1; font-size: 12.5px; }

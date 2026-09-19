@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C12';                 // สายเลขของแอป
-const APP_CODENAME = 'Solid';           // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1C13';                 // สายเลขของแอป
+const APP_CODENAME = 'Show';           // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -942,6 +942,14 @@ function go(id) {
   // เปิดจอสแกน = เริ่มโหลดโมเดลอ่านภาษาไว้เลย ระหว่างที่ผู้ใช้ยังเล็งกล้องอยู่
   // (เงียบ ๆ ล้มก็ไม่เป็นไร ตอนกดอ่านจริงจะลองใหม่เอง — ดู warmOcr)
   if (id === 'scr-scan' && typeof warmOcr === 'function') warmOcr();
+  // 1C13 · ตาข่ายรองของจอสแกนตารางเรียน — เนื้อในจอนี้วาดจาก ttState ซึ่ง renderAll()
+  // ไม่ได้แตะ (ตั้งใจ: วาดใหม่ทุกครั้งที่ข้อมูลขยับ = ล้างตารางที่ผู้ใช้กำลังแก้อยู่ทิ้ง)
+  // ทางเข้าที่ถูกคือ openTtScan() แต่ทางเข้ามีเพิ่มได้เรื่อย ๆ และคนเพิ่มไม่มีทางรู้กฎนี้
+  // วาดให้เฉพาะตอนที่ยังว่างจริง ๆ — ไม่ทับของที่ค้างอยู่กลางการตรวจ
+  if (id === 'scr-ttscan' && typeof renderTtScan === 'function') {
+    const tb = document.getElementById('ttBody');
+    if (tb && !tb.firstElementChild) renderTtScan();
+  }
   document.body.dataset.godir = dir;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on', 'just-in'));
   const scr = document.getElementById(id);
@@ -2294,9 +2302,23 @@ function dayRail(sp, split, now) {
     </button>`;
   }).join('');
 
-  // ไม่มีอะไรบนราง = ไม่ต้องมีราง · เส้นปิดวันเดี่ยว ๆ ใต้หัวข้อ "ที่เหลือของวันนี้"
-  // อ่านออกมาว่ามีอะไรอยู่แล้วต้องมองหา ทั้งที่ไม่มี — แย่กว่าไม่ขึ้นอะไรเลย
-  if (!rows.length) return '';
+  // ---- 1C13 · คิววันนี้หมดแล้ว ไม่ได้แปลว่างานหมด ----
+  //
+  // ของเดิมคืนค่าว่างทิ้งทั้งส่วน ด้วยเหตุผลว่า "ไม่มีอะไรบนราง = ไม่ต้องมีราง"
+  // ซึ่งจริงเฉพาะตอนที่ไม่มีงานค้างเลย · แต่เคสที่เจอบ่อยที่สุดคือเคสตรงข้าม:
+  // สี่ทุ่ม เหลือช่องว่างครึ่งชั่วโมง ตัวจัดแผนใส่ได้ใบเดียวซึ่งขึ้นเป็นการ์ดฟ้าไปแล้ว
+  // งานที่เหลืออีกสามใบจึงไม่มีที่ยืนบนจอนี้เลยสักที่ แล้วจอก็กระโดดจากการ์ดฟ้า
+  // ไปกริดไอคอนทันที — อ่านออกมาว่า "วันนี้เหลือแค่นี้" ทั้งที่ยังค้างสามใบ
+  // (เจ้าของเจอเอง 19 ก.ย. 2569: "หน้าวันนี้ต้องมีที่เหลือของวันนี้ด้วย ปัจจุบันยังไม่เห็น")
+  //
+  // ส่วนนี้จึงอยู่เสมอ และตอบคนละคำถามตามสถานการณ์:
+  //   มีคิวเหลือ → "เย็นนี้เหลืออะไร ถึงกี่โมง" (ของเดิม ไม่เปลี่ยน)
+  //   คิวหมดแล้ว → "แล้วที่ค้างอยู่ไปไหน" ซึ่งตอบด้วยแถวที่กดเข้าใบงานได้จริง
+  //
+  // ต่างจากบรรทัด "ยังเหลืออีก N งาน" ที่ถูกถอดไปใน 1B22 ตรงที่อันนั้นเป็นประโยค
+  // ที่กดไม่ได้ ส่วนอันนี้เป็นแถวที่พาไปลงมือได้ทันที — ของที่บอกแล้วทำอะไรต่อไม่ได้
+  // คือของที่ไม่ควรกินที่ ส่วนของที่บอกแล้วกดต่อได้คือทางเข้า
+  if (!rows.length) return idleRail(sp, split, now);
 
   // 1B22: ถอดบรรทัด "ยังเหลืออีก N งาน — ยังไม่ได้ลงคิววันนี้" ที่เคยต่อท้ายรางออก
   // มันตอบคำถามที่จอนี้ไม่ได้ถาม · จอนี้ถามว่า "ตอนนี้ทำอะไร" ซึ่งรางตอบครบไปแล้ว
@@ -2340,6 +2362,36 @@ function dayRail(sp, split, now) {
   </section>`;
 }
 
+// ---------- ราง เวอร์ชัน "คิวหมดแล้ว" (1C13) ----------
+// เรียกจาก dayRail() เมื่อไม่มีช่องเหลือให้โชว์
+//
+// เหลือแค่เส้นปิดวันจริง ๆ — เจ้าของเลือกเอง (19 ก.ย. 2569) จากสามทางที่เสนอ
+// อีกสองทางคือเอางานที่ยังค้างมาต่อท้าย กับสรุปสิ่งที่ทำไปวันนี้ · ทั้งคู่ถูกปฏิเสธ
+// เพราะจอนี้ถามว่า "ตอนนี้ทำอะไร" ไม่ได้ถามว่า "ยังเหลืออะไรในชีวิต" —
+// งานที่ค้างมีแท็บของตัวเองที่มีเลขบนแบดจ์อยู่แล้ว
+//
+// สิ่งที่บรรทัดเดียวนี้ทำได้และของเดิม (คืนค่าว่าง) ทำไม่ได้ คือปิดวันให้จบ:
+// การ์ดฟ้าบอกว่าทำอะไรอยู่ · บรรทัดนี้บอกว่าทำถึงกี่โมงแล้วเลิก
+function idleRail(sp, split, now) {
+  const wslots = (sp.plan.windows && sp.plan.windows.slots) || [];
+  const endHm = wslots.length ? wslots[wslots.length - 1].toHm : '';
+  // ไม่มีแม้แต่เวลาปิดวัน = ไม่มีอะไรจะพูด · nowCard/todayEmpty พูดแทนไปแล้วหนึ่งรอบ
+  if (!endHm) return '';
+
+  return `<section class="td-railwrap">
+    <div class="rl-lb">
+      <b>${esc(typeof sosText === 'function' ? sosText('railTitle', 'ที่เหลือของวันนี้') : 'ที่เหลือของวันนี้')}</b>
+      <span>ไม่มีคิวเหลือแล้ว</span>
+    </div>
+    <div class="td-rail">
+      <div class="dr-row end">
+        <span class="dr-t mono">${esc(endHm)}</span>
+        <span class="dr-b">หมดเวลาว่าง</span>
+      </div>
+    </div>
+  </section>`;
+}
+
 // ---------- ชิ้นส่วนของราง ----------
 // rows ถอดไม่ได้ — รางที่ไม่มีแถวงานคือกรอบเปล่าที่กินที่โดยไม่บอกอะไร
 // (เหตุผลเดียวกับ title/actions ของการ์ด "ตอนนี้")
@@ -2380,7 +2432,10 @@ function toolsGrid() {
   // แย่กว่าปุ่มที่ไม่มี ด้วยเหตุผลเดียวกับปุ่มล็อกอินที่ขึ้นว่า provider is not enabled
   const tiles = [
     ['users', 'เพื่อนฉัน', 'in', "openFeed('friends')", reqs || '', true, 'social'],
-    ['book', 'สแกนตารางเรียน', 'in', "go('scr-ttscan')", noCtx ? '!' : '', true, 'ttscan'],
+    // openTtScan() ไม่ใช่ go() — renderAll() ไม่เคยเรียก renderTtScan() เลย แปลว่าการ go()
+    // เข้าจอนี้ตรง ๆ ได้จอที่มีแต่หัวข้อกับพื้นว่าง · เนื้อในทั้งใบวาดจาก ttState ซึ่งมีแต่
+    // openTtScan() ที่ตั้งค่าแล้ววาดให้ (เจ้าของเจอเอง 19 ก.ย. 2569: "กดแล้วไม่มี")
+    ['book', 'สแกนตารางเรียน', 'in', 'openTtScan()', noCtx ? '!' : '', true, 'ttscan'],
     ['sparkles', 'แผนวันนี้', 'time', "go('scr-plan')", '', false],
     // 1B47 · ไทล์ "ปฏิทินเดือน" ถูกถอดออก — เจ้าของเลือก "ตัดปฏิทินได้เลย"
     // ที่ว่างคืนให้ "กล่องเข้า" ซึ่งเป็นทางเข้าที่มีของรออยู่จริงและหายากกว่า
@@ -4526,7 +4581,7 @@ function todayBoard(now) {
     if (nowTask && s.task === nowTask && !skipped) { skipped = true; continue; }
     if (s.start <= now) continue;
     rows.push({ at: s.start, title: taskTitle(s.task), sub: humanMin(s.min || 0),
-      id: s.task.id, tone: 'work' });
+      id: s.task.id, tone: 'work ' + subjClass(s.task.subject) });
   }
   for (const e of plan.events || []) {
     const at = new Date(e.due);
@@ -5843,8 +5898,8 @@ function renderPlan() {
     html += `<button class="pctx-nudge" onclick="go('scr-context')">
       <span class="pn-ic">${icon('clock')}</span>
       <span class="pn-tx">
-        <b>ตอนนี้ AI เดาว่าคุณเริ่มทำการบ้าน 19:00</b>
-        <span>บอกตารางเรียนกับกิจวัตรสักครั้ง แล้วแผนจะวางลงช่องว่างจริงของคุณ — ว่างบ่ายก็ได้เริ่มบ่าย</span>
+        <b>แผนนี้ตั้งอยู่บนการเดาว่าคุณเริ่ม 19:00</b>
+        <span>บอกตารางเรียนสักครั้ง แล้วมันจะลงช่องว่างจริง</span>
       </span>
       <span class="pn-go">${icon('chevron')}</span>
     </button>`;
@@ -5863,6 +5918,16 @@ function renderPlan() {
   // มีมากกว่าหนึ่งช่วงเมื่อไหร่ ผู้ใช้ต้องเห็นทันทีว่าอะไรทำก่อนเลิกเรียน อะไรทำหลังกินข้าว
   const multi = win.slots.length > 1;
   let wi = -1;
+  // 1C13 · ช่องงานช่องแรกของวันเท่านั้นที่ได้ปุ่มทึบ
+  //
+  // ก่อนหน้านี้ทุกช่องได้ปุ่มหน้าตาเดียวกันเป๊ะ — สามช่องก็สามปุ่ม "เริ่มจับเวลา"
+  // เต็มความกว้าง น้ำหนักเท่ากัน วางเรียงกันลงมา · จอที่มีปุ่มหลักสามปุ่มคือจอที่ไม่มี
+  // ปุ่มหลักเลย เพราะตาไม่มีทางรู้ว่าอันไหนคืออันที่ต้องกดตอนนี้ ทั้งที่แผนเรียงเวลาไว้
+  // ให้แล้วว่าต้องเริ่มจากอันบนสุด — คำตอบมีอยู่ในข้อมูล แต่หน้าตาไม่ได้พูดมันออกมา
+  //
+  // ช่องที่เหลือไม่ได้ถูกถอดปุ่ม แค่เงียบลงเป็นปุ่มเส้นขอบ — ยังกดข้ามไปทำอันหลังได้
+  // (ซึ่งต้องกดได้จริง คนไม่ได้ทำตามแผนเป๊ะทุกวัน) แต่ไม่แย่งสายตาจากอันแรก
+  let firstWork = true;
   for (const s of plan.slots) {
     if (multi) {
       const inWin = win.slots.findIndex(w =>
@@ -5889,16 +5954,19 @@ function renderPlan() {
       const run = runningWork();
       const mine = run && run.taskId === s.task.id;
       const busy = run && !mine;
+      // ปุ่มทึบไปอยู่กับอันที่กำลังจับเวลาอยู่ถ้ามี — ไม่งั้นไปอยู่กับช่องงานช่องแรก
+      const lead = mine || (firstWork && !run);
+      firstWork = false;
       html += `<div class="pslot">
         <div class="ptime"><span class="s">${fmtClock(s.start)}</span><span class="e">${fmtClock(s.end)}</span></div>
-        <div class="work ${lv}${mine ? ' running' : ''}">
+        <div class="work ${lv}${mine ? ' running' : ''}${lead ? ' lead' : ''}">
           <div class="tm">
             <span class="nbadge ${lv}">${esc(priorityLabel(info.stars))}</span>
             <span class="ndue">${s.min} นาที${did ? ` · ทำไปแล้ว ${did}` : ''}</span>
           </div>
           <div class="tt">${taskTitle(s.task)}</div>
-          ${s.note ? `<div class="nt">${esc(s.note)}</div>` : ''}
-          <button class="wk-go${mine ? ' on' : ''}" ${busy ? 'disabled' : ''}
+          ${s.note && !lead ? `<div class="nt">${esc(s.note)}</div>` : ''}
+          <button class="wk-go${mine ? ' on' : ''}${lead ? ' lead' : ''}" ${busy ? 'disabled' : ''}
             onclick="${mine ? 'stopWork()' : `startWork('${s.task.id}')`}">
             ${icon(mine ? 'check' : 'clock')}${mine ? 'หยุดจับเวลา' : busy ? 'จับเวลางานอื่นอยู่' : 'เริ่มจับเวลา'}
           </button>
@@ -6826,7 +6894,7 @@ let wiz = null;
 // ตารางเรียนไม่ได้อยู่ในตัวช่วย มันมาจากการสแกน จึงส่งไปจอสแกนตรง ๆ
 // อีกสี่เรื่องอยู่ในขั้นที่ 2 (กิจวัตรที่เดาไว้) ทั้งหมด — ไม่แกล้งทำเป็นว่ามีขั้นของตัวเอง
 const CTX_GAP_GO = {
-  timetable: "go('scr-ttscan')",
+  timetable: 'openTtScan()',   // ดู toolsGrid() — go() เข้าจอนี้ตรง ๆ ได้จอเปล่า
   travel:  'wizOpen(2)',
   meal:    'wizOpen(2)',
   after:   'wizOpen(2)',
@@ -8738,6 +8806,9 @@ function renderStatFull(now, d) {
     return a;
   }).join('');
 
+  // ---- ชิ้นส่วนที่มาจากรอบจับเวลาจริง (ดู workStatsHtml) ----
+  const wk = workStatsHtml(now);
+
   // ---- น้องไซวิเคราะห์ ----
   const wr = typeof weeklyReview === 'function' ? weeklyReview(state, now) : { insights: [] };
 
@@ -8747,9 +8818,55 @@ function renderStatFull(now, d) {
   const nextUp = BADGES.filter(b => !badgeEarned(b)).slice(0, Math.max(0, 4 - earned.length));
   const badgeCells = earned.slice(-4).concat(nextUp);
 
+  // ============================================================
+  // 1C13 · จอนี้เป็น "จอโชว์" ไม่ใช่รายงาน
+  // ============================================================
+  // ของเดิมคือการ์ดขาวหกใบหน้าตาเหมือนกัน หัวข้อตัวหนาขนาดเท่ากัน เรียงต่อกันลงมา
+  // เจ้าของสรุปเองว่า "ไม่รู้จะมองตรงไหนก่อน · มีแต่ตัวหนังสือ ไม่มีภาพ · ไม่พรีเมียม"
+  //
+  // โครงใหม่มีชั้นที่ต่างกันจริง ไม่ใช่การ์ดเท่ากันหกใบ:
+  //   1 ใบพระเอก มีสี เต็มความกว้าง ตัวเลขเดียว — ชั่วโมงที่นั่งทำจริง
+  //     (เจ้าของเลือกตัวนี้เอง เพราะมันเป็นตัวเดียวที่แอปอื่นไม่มี — มาจากนาฬิกาที่เขากดเอง)
+  //   2 ตัวเลขรอง แถวเดียว เล็กกว่ามาก
+  //   3 กราฟ — ใหญ่พอให้เป็นภาพ ไม่ใช่ของประดับข้างข้อความ
+  //   4 น้องไซโผล่มาพูดประโยคเดียว — คำตอบของ "เข้ามาแล้วไงต่อ"
+  //
+  // การ์ด "ประเมินเวลาแม่นแค่ไหน" ถูกถอดออกทั้งใบ — มันคือข้อสังเกตหนึ่งประโยค
+  // ซึ่งเป็นงานของน้องไซ ไม่ใช่งานของการ์ดขาวทั้งใบที่มีแต่ประโยคเดียวอยู่ข้างใน
+
+  // ชั่วโมงเต็ม + เศษหนึ่งตำแหน่ง — "13.5" อ่านได้เร็วกว่า "13 ชม. 30 นาที" ตอนเป็นตัวเลขใหญ่
+  const heroH = Math.round(totalMin7 / 6) / 10;
+  const heroWhole = Math.floor(heroH);
+  const heroFrac = Math.round((heroH - heroWhole) * 10);
+
+  // ชิปบนการ์ดพระเอก — เทียบสัปดาห์ก่อน · ย้ายมาจากแถวไทล์เดิม
+  // เพราะมันเป็นข้อมูลของตัวเลขพระเอก ไม่ใช่ตัวเลขของตัวเอง
+  const dTile = tiles.find(t => t.k === 'เทียบสัปดาห์ก่อน');
+  const subTiles = tiles.filter(t => t !== dTile);
+
+  // ประโยคเดียวของน้องไซ — เอาข้อสังเกตที่แรงที่สุดใบเดียว
+  // ไม่มีข้อสังเกตก็ตกมาที่ความแม่นของการประเมิน สุดท้ายคือชวนให้กดจับเวลา
+  //
+  // ยอด "เลื่อนงานไปแล้วกี่ครั้ง" เคยเป็นการ์ดเงียบ ๆ ของตัวเอง — การ์ดทั้งใบที่มีแต่
+  // ประโยคเดียวข้างในคือสิ่งที่ 1C13 เลิกทำ แต่ตัวเลขไม่ควรหายไปเฉย ๆ
+  // มันจึงมาต่อคิวอยู่ท้ายประโยคของน้องไซแทน (โผล่เฉพาะตอนที่ไม่มีอะไรสำคัญกว่าจะพูด)
+  const saiLine = wr.insights[0] || wk.accuracyLine || wk.nudge
+    || (d.snoozes >= 3
+      ? `คุณเลื่อนงานไปแล้วรวม <b>${d.snoozes} ครั้ง</b> — งานที่เลื่อนบ่อยมักแปลว่าเวลาที่กรอกไว้น้อยไป`
+      : 'กดจับเวลาตอนนั่งทำสักสองสามรอบ แล้วเดี๋ยวหน้านี้จะเริ่มรู้จักคุณ');
+
   box.innerHTML = `
-    ${tiles.length ? `<div class="an-tiles">
-      ${tiles.map(t => `<div class="an-tile${t.gold ? ' gold' : ''}${t.tone ? ' ' + t.tone : ''}">
+    <div class="an-hero">
+      <div class="ah-lb">${icon('clock')}เวลาที่นั่งทำจริง · 7 วันล่าสุด</div>
+      <div class="ah-n">
+        <b>${heroWhole}${heroFrac ? `<span class="ah-frac">.${heroFrac}</span>` : ''}</b>
+        <i>ชม.</i>
+      </div>
+      ${dTile ? `<div class="ah-chip ${dTile.tone || ''}">${icon(dTile.ic)}${dTile.v}${dTile.u === '%' ? '%' : ' ' + dTile.u} เทียบสัปดาห์ก่อน</div>` : ''}
+    </div>
+
+    ${subTiles.length ? `<div class="an-tiles">
+      ${subTiles.map(t => `<div class="an-tile${t.gold ? ' gold' : ''}${t.tone ? ' ' + t.tone : ''}">
         <span class="at-ic">${icon(t.ic)}</span>
         <span class="at-v">${t.v}<i>${t.u}</i></span>
         <span class="at-k">${esc(t.k)}</span>
@@ -8757,53 +8874,47 @@ function renderStatFull(now, d) {
     </div>` : ''}
 
     ${totalMin7 ? `<div class="st-card">
-      <div class="st-h">เวลาที่จับไว้ 7 วันล่าสุด<span class="st-h-v">${esc(humanMin(totalMin7))}</span></div>
-      <div class="st-bars">
+      <div class="st-h">แต่ละวัน</div>
+      <div class="st-bars tall">
         ${hourDays.map(x => `<div class="st-bar${x.today ? ' now' : ''}${x.min ? ' has' : ''}">
-          <span class="bar" style="height:${Math.round(x.min / peakMin * 100)}%"></span>
+          <span class="bar" style="height:${Math.max(x.min ? 8 : 2, Math.round(x.min / peakMin * 100))}%"></span>
           <span class="n mono">${x.min ? (Math.round(x.min / 6) / 10) : ''}</span>
           <span class="d">${x.label}</span>
         </div>`).join('')}
       </div>
-      <p class="st-foot">ชั่วโมงที่กดจับเวลาไว้จริง ไม่ใช่เวลาที่ประเมิน</p>
     </div>` : ''}
 
     ${subjRows.length ? `<div class="st-card">
-      <div class="st-h">${useReal ? 'เวลาที่จับไว้จริง' : 'เวลาที่ประเมินไว้'} แยกตามวิชา</div>
-      <p class="st-foot" style="margin:0 0 10px">${useReal ? 'จากทุกรอบที่จับเวลาไว้ ไม่ใช่แค่ 7 วันล่าสุด'
-        : 'ยังจับเวลาไม่พอจะแยกตามวิชาได้ — นี่คือเวลาที่กรอกไว้ตอนเพิ่มงาน'}</p>
-      <div class="an-split">
-        <div class="an-legend">
-          ${subjRows.map(([name, min]) => {
-            const pct = subjTotal ? Math.round(min / subjTotal * 100) : 0;
-            return `<div class="an-lg ${subjClass(name)}">
-              <span class="lg-dot"></span>
-              <span class="lg-nm">${esc(name)}</span>
-              <span class="lg-bar"><i style="width:${pct}%"></i></span>
-              <span class="lg-pct mono">${pct}%</span>
-            </div>`;
-          }).join('')}
-        </div>
-        <div class="an-donut">
-          <svg viewBox="0 0 96 96" aria-hidden="true">
-            <circle class="dn-bg" cx="48" cy="48" r="38"></circle>${arcs}
-          </svg>
-          <span class="dn-mid"><i>รวม</i><b>${Math.round(subjTotal / 6) / 10}</b><i>ชม.</i></span>
-        </div>
+      <div class="st-h">แยกตามวิชา<span class="st-h-v">${useReal ? 'เวลาจริง' : 'เวลาที่ประเมิน'}</span></div>
+      <div class="an-donut big">
+        <svg viewBox="0 0 96 96" aria-hidden="true">
+          <circle class="dn-bg" cx="48" cy="48" r="38"></circle>${arcs}
+        </svg>
+        <span class="dn-mid"><b>${Math.round(subjTotal / 6) / 10}</b><i>ชม.</i></span>
+      </div>
+      <div class="an-legend wide">
+        ${subjRows.map(([name, min]) => {
+          const pct = subjTotal ? Math.round(min / subjTotal * 100) : 0;
+          return `<div class="an-lg ${subjClass(name)}">
+            <span class="lg-dot"></span>
+            <span class="lg-nm">${esc(name)}</span>
+            <span class="lg-bar"><i style="width:${pct}%"></i></span>
+            <span class="lg-pct mono">${pct}%</span>
+          </div>`;
+        }).join('')}
       </div>
     </div>` : ''}
 
-    ${d.snoozes ? `<div class="st-card soft">
-      <div class="st-line">${icon('clock')}เลื่อนงานไปแล้วรวม <b>${d.snoozes}</b> ครั้ง</div>
+    ${wk.bands ? `<div class="st-card">
+      <div class="st-h">ช่วงที่ทำได้เยอะ<span class="st-h-v">${wk.rounds} รอบ</span></div>
+      ${wk.bands}
+      ${wk.best ? `<p class="st-note">${wk.best}</p>` : ''}
     </div>` : ''}
 
-    ${wr.insights.length ? `<div class="an-ai">
-      <div class="an-ai-h">${icon('sparkles')}น้องไซวิเคราะห์</div>
-      <ul>${wr.insights.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
-      <p class="an-ai-note">ข้อสังเกตพวกนี้ถูกใช้กันเวลาในแผนของสัปดาห์หน้าให้เองแล้ว</p>
-    </div>` : ''}
-
-    ${workStatsHtml(now)}
+    <div class="an-sai">
+      <img src="sai-avatar.png" alt="" class="as-face">
+      <p class="as-say">${saiLine}</p>
+    </div>
 
     ${badgeCells.length ? `<div class="an-grp">ความสำเร็จ<button onclick="go('scr-badges')">ดูทั้งหมด${icon('chevron')}</button></div>
     <div class="an-badges">
@@ -8811,14 +8922,8 @@ function renderStatFull(now, d) {
         return `<div class="an-bd${got ? ' got' : ''}">
           <span class="ab-mark">${got ? esc(b.mark) : icon('lock')}</span>
           <span class="ab-nm">${esc(b.name)}</span>
-          <span class="ab-ds">${got ? 'ได้แล้ว' : 'ทำให้ครบ ' + b.goal + ' งาน'}</span>
         </div>`;
       }).join('')}
-    </div>` : ''}
-
-    ${d.onTimePct == null && !subjRows.length && !totalMin7 ? `<div class="st-card soft">
-      <div class="st-line">${icon('check-circle')}ยังไม่มีอะไรให้วิเคราะห์ —
-        ติ๊กงานให้เสร็จสักสองสามใบ แล้วกดจับเวลาตอนนั่งทำ หน้านี้จะเริ่มมีของ</div>
     </div>` : ''}`;
 }
 
@@ -8841,10 +8946,9 @@ function bandOf(hour) {
 function workStatsHtml(now) {
   const all = sessions();
   if (all.length < WORK_MIN_SESSIONS) {
-    return `<div class="st-card soft">
-      <div class="st-line">${icon('clock')}กดเริ่มจับเวลาในหน้าแผนอีก
-        <b>${WORK_MIN_SESSIONS - all.length}</b> รอบ แล้วจะเริ่มบอกได้ว่าคุณทำงานได้ดีที่สุดช่วงไหน</div>
-    </div>`;
+    return { bands: '', best: '', rounds: all.length, accuracyLine: '',
+      nudge: `กดเริ่มจับเวลาในหน้าแผนอีก <b>${WORK_MIN_SESSIONS - all.length}</b> รอบ`
+        + ` แล้วจะเริ่มบอกได้ว่าคุณทำงานได้ดีที่สุดช่วงไหน` };
   }
 
   const week = all.filter(s => (now - new Date(s.start)) < 7 * 8.64e7);
@@ -8875,32 +8979,33 @@ function workStatsHtml(now) {
   const didSum = rows.reduce((a, r) => a + r.did, 0);
   const ratio = (rows.length >= 3 && estSum) ? didSum / estSum : null;
 
-  return `<div class="st-card">
-      <div class="st-h">ช่วงเวลาที่ทำงานได้ดี</div>
-      <!-- เลิกรายงาน "7 วันล่าสุด X ชม." ตรงนี้แล้ว — กราฟแท่งเหนือการ์ดนี้บอกตัวเลขเดียวกัน
-           ของที่การ์ดนี้มีของตัวเองจริงคือการแยกตามช่วงเวลา กับความแม่นของการประเมิน -->
-      <div class="st-line">จาก ${all.length} รอบที่จับเวลาไว้</div>
-      ${topBand ? `<div class="st-bands">
+  // 1C13 · คืนเป็นชิ้น ไม่ใช่การ์ดสำเร็จรูป — ผู้เรียกเป็นคนตัดสินว่าชิ้นไหนไปอยู่ใบไหน
+  // (ก่อนหน้านี้ที่นี่ปั๊มการ์ดขาวมาสองใบต่อท้ายใบอื่นอีกสามใบ จอเลยเป็นการ์ดหน้าตา
+  //  เหมือนกันหกใบเรียงกัน ซึ่งไม่มีลำดับให้ตาไล่เลย)
+  return {
+    bands: topBand ? `<div class="st-bands">
         ${bands.map(([nm, min]) => `<div class="st-band">
           <span class="nm">${esc(nm)}</span>
           <span class="tr"><i style="width:${Math.round(min / bandTotal * 100)}%"></i></span>
           <span class="ct mono">${Math.round(min / 6) / 10} ชม.</span>
         </div>`).join('')}
-      </div>
-      <div class="st-line soft">ลงมือได้มากที่สุด<b>${esc(topBand[0])}</b> —
-        ถ้าเลือกได้ กันงานหนักไว้ช่วงนั้น</div>` : ''}
-    </div>
-    ${ratio ? `<div class="st-card">
-      <div class="st-h">ประเมินเวลาแม่นแค่ไหน</div>
-      <div class="st-line">${ratio > 1.15
-        ? `ใช้จริงมากกว่าที่ประเมินไว้ <b>${Math.round((ratio - 1) * 100)}%</b> —
-           เผื่อเวลาเพิ่มอีกหน่อยตอนกรอกงานใหม่ แผนจะได้ไม่พังกลางทาง`
+      </div>` : '',
+    best: topBand
+      ? `ลงมือได้มากที่สุด<b>${esc(topBand[0])}</b> — ถ้าเลือกได้ กันงานหนักไว้ช่วงนั้น`
+      : '',
+    rounds: all.length,
+    // 1C13 · เคยเป็นการ์ดขาวทั้งใบที่มีประโยคเดียวอยู่ข้างใน ตอนนี้เป็นประโยคเปล่า ๆ
+    // ให้น้องไซเอาไปพูด — ข้อสังเกตหนึ่งประโยคไม่ต้องมีกล่องของตัวเอง
+    accuracyLine: ratio
+      ? (ratio > 1.15
+        ? `งานของคุณใช้เวลาจริงมากกว่าที่ประเมินไว้ราว <b>${Math.round((ratio - 1) * 100)}%</b>`
+          + ` — เผื่อเวลาเพิ่มอีกหน่อยตอนกรอกงานใหม่ แผนจะได้ไม่พังกลางทาง`
         : ratio < 0.85
-        ? `ใช้จริงน้อยกว่าที่ประเมินไว้ <b>${Math.round((1 - ratio) * 100)}%</b> —
-           ประเมินเผื่อไว้เยอะ กล้าใส่งานเพิ่มในวันเดียวกันได้`
-        : `ประเมินได้ใกล้เคียงของจริงมาก (คลาดเคลื่อนไม่ถึง 15%) — เชื่อตัวเลขตัวเองได้เลย`}
-        <span class="soft">· จาก ${rows.length} งานที่จับเวลาไว้</span></div>
-    </div>` : ''}`;
+        ? `งานของคุณใช้เวลาจริงน้อยกว่าที่ประเมินไว้ราว <b>${Math.round((1 - ratio) * 100)}%</b>`
+          + ` — ประเมินเผื่อไว้เยอะ กล้าใส่งานเพิ่มในวันเดียวกันได้`
+        : `คุณประเมินเวลาได้ใกล้เคียงของจริงมาก คลาดเคลื่อนไม่ถึง 15% — เชื่อตัวเลขตัวเองได้เลย`)
+      : '',
+  };
 }
 
 function renderAll() {

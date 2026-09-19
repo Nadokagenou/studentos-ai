@@ -2493,10 +2493,13 @@
    ช่องที่สามตกไปบรรทัดสอง กลายเป็นแถบสองชั้นที่ช่องล่างกว้างครึ่งเดียว
    (เห็นบนจอจริงเท่านั้น — DOM ยังบอกว่ามีปุ่มครบสามปุ่ม จึงไม่มีเทสไหนจับได้)
    grid-auto-flow: column ปล่อยให้จำนวนช่องเป็นไปตามจำนวนปุ่มที่วาดจริง */
+/* รางเป็นเทากลาง ไม่ใช่ --surface ซึ่งเป็นฟ้าจาง (#EAF2FD) — เม็ดฟ้าที่เลือกอยู่
+   เคยนั่งอยู่บนรางสีตระกูลเดียวกับตัวมันเอง ความต่างจึงเหลือแค่ความเข้ม
+   พอรางเป็นกลาง เม็ดฟ้าถึงอ่านว่า "อันนี้แหละที่เลือกอยู่" ได้ตั้งแต่เหลือบ */
 .tk-modes {
   display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px;
   margin: 10px 0 2px; padding: 3px;
-  background: var(--surface); border-radius: 12px;
+  background: rgba(127, 137, 155, .13); border-radius: 12px;
 }
 .tk-mode {
   padding: 7px 10px; border: none; border-radius: 9px; cursor: pointer;
@@ -2741,9 +2744,19 @@
   color: var(--muted);
   margin-bottom: 12px;
 }
-.st-line { display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--ink); }
-.st-line svg { width: 15px; height: 15px; color: var(--muted); }
-.st-line b { color: var(--blue); }
+/* 1C13 · เคยเป็น display:flex ซึ่งพังกับทุกบรรทัดที่มี <b> อยู่กลางประโยค
+   flex ทำให้ข้อความรอบ ๆ <b> กลายเป็นกล่องคนละใบ แล้วตัดบรรทัดแยกกันเอง
+   ผลบนจอคือ "ลงมือได้มาก ช่วง — ถ้าเลือกได้ กันงานหนักไว้ / ที่สุด หัวค่ำ ช่วงนั้น"
+   คือคำที่ถูกทุกคำ เรียงผิดทุกตำแหน่ง · โดนสองประโยคในจอ "ผลของฉัน"
+   ประโยคต้องเป็นประโยค — บล็อกธรรมดา แล้วให้ไอคอนเป็น inline ไปกับคำ */
+.st-line { display: block; font-size: 13.5px; line-height: 1.6; color: var(--ink); }
+.st-line svg { display: inline-block; vertical-align: -3px; margin-right: 6px;
+  width: 15px; height: 15px; color: var(--muted); }
+.st-line b { color: var(--blue); white-space: nowrap; }
+/* บรรทัดกำกับใต้หัวข้อการ์ด — บอกที่มาของตัวเลข ไม่ใช่พูดหัวข้อซ้ำ */
+.st-sub { margin: -4px 0 10px; font-size: 12px; color: var(--faint); line-height: 1.5; }
+/* ต่อท้ายกราฟในการ์ดเดียวกัน — ต้องมีที่หายใจ ไม่งั้นอ่านเป็นป้ายแกนของกราฟข้างบน */
+.st-bars + .st-sub { margin: 14px 0 9px; }
 .st-track {
   margin-top: 10px;
   height: 7px;
@@ -6406,7 +6419,10 @@ body.deep-scr .top-friends { display: none; }
    ============================================================
    สีทองใช้ได้เฉพาะของที่ทำสำเร็จแล้วเท่านั้น — สถิติต่อเนื่องกับเหรียญที่ได้
    ประมาณ 10% ของจอ · ถ้าทองไปโผล่บนของที่ยังไม่ได้ทำ มันก็เลิกแปลว่าสำเร็จ */
-.an-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+/* 1C13 · auto-fit แทน repeat(3) — ตัวเลข "เทียบสัปดาห์ก่อน" ย้ายไปอยู่บนใบพระเอกแล้ว
+   แถวนี้จึงเหลือสองช่องบ่อย ๆ และช่องที่สามที่เป็นรูโหว่ มันก็อ่านเป็น "มีอะไรหายไป" */
+.an-tiles { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  gap: 8px; margin-bottom: 12px; }
 .an-tile {
   padding: 12px 10px; border: 1px solid var(--line); border-radius: 15px;
   background: var(--card); text-align: center;
@@ -6429,6 +6445,10 @@ body.deep-scr .top-friends { display: none; }
 /* หัวการ์ดที่มีตัวเลขรวมชิดขวา */
 .st-h-v { float: right; font-weight: 700; color: var(--ink); }
 .st-foot { margin: 8px 0 0; font-size: 11px; color: var(--faint); }
+/* ข้อสรุปหนึ่งบรรทัดของการ์ด — ไม่ใช่เชิงอรรถ มันคือคำตอบที่กราฟข้างบนหามา
+   จึงอ่านได้ในขนาดปกติ ไม่ใช่ 11px สีจาง */
+.st-note { margin: 11px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--muted); }
+.st-note b { color: var(--blue); white-space: nowrap; }
 
 /* แยกตามวิชา: แถบซ้าย + โดนัทขวา */
 .an-split { display: flex; align-items: center; gap: 14px; }
@@ -7544,13 +7564,19 @@ body.deep-scr .top-friends { display: none; }
 
 /* ชวนสแกนตารางเรียน — ดังกว่าการ์ดอื่นได้ เพราะถ้าไม่มีตารางเรียน
    ตัวเลขทุกตัวบนจอนี้ตั้งอยู่บนการเดา และผู้ใช้ควรรู้ตัว */
+/* 1C13 · เคยเป็นก้อนฟ้าเต็มใบ (พื้น --blue-soft + ขอบฟ้า + ชิปไอคอนฟ้าทึบ)
+   วางอยู่เหนือการ์ด "ควรทำก่อน" ซึ่งเป็นก้อนฟ้าจริงของจอ — ครึ่งบนของจอจึงเป็นฟ้าสองก้อน
+   ซ้อนกัน แล้วทั้งคู่ก็แย่งกันเป็นของที่ตาไปถึงก่อน ทั้งที่อันบนเป็นแค่คำชวน
+   ขัดกฎที่เขียนไว้เองข้างล่างนี้ด้วย (ฟ้าบนจอนี้มีได้สามจุด แถบนี้เป็นจุดที่สี่)
+   ตอนนี้เป็นการ์ดขาวขอบบางเหมือนของอื่น · ฟ้าเหลือแค่ตัวไอคอนกับลูกศร
+   ซึ่งพอให้รู้ว่ากดได้ โดยไม่ต้องแย่งความสำคัญกับคำตอบของจอ */
 .tb-nudge {
   display: flex; align-items: center; gap: 12px; width: 100%; margin-bottom: 10px;
-  padding: 12px 14px; border: 1px solid var(--blue); border-radius: 16px;
-  background: var(--blue-soft); font: inherit; text-align: left; cursor: pointer;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: 16px;
+  background: var(--card); font: inherit; text-align: left; cursor: pointer;
 }
 .tb-nd-ic { flex: none; width: 34px; height: 34px; display: grid; place-items: center;
-  border-radius: 11px; background: var(--blue); color: var(--on-accent); }
+  border-radius: 11px; background: var(--blue-soft); color: var(--blue); }
 .tb-nd-ic svg { width: 17px; height: 17px; }
 .tb-nd-tx { flex: 1; min-width: 0; }
 .tb-nd-tx b { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
@@ -7592,7 +7618,8 @@ body.deep-scr .top-friends { display: none; }
 .tb-focus.flat.tap:active { transform: scale(.99); }
 
 /* ---------- ไทม์ไลน์ย่อ ---------- */
-.tb-tl { display: flex; flex-direction: column; border-radius: 16px; background: var(--card); overflow: hidden; }
+.tb-tl { display: flex; flex-direction: column; border-radius: 16px; background: var(--card);
+  border: 1px solid var(--line); overflow: hidden; }
 .tb-tl-r {
   display: flex; align-items: center; gap: 10px; width: 100%;
   padding: 10px 14px; border: 0; background: none; font: inherit; text-align: left; cursor: pointer;
@@ -7603,7 +7630,12 @@ body.deep-scr .top-friends { display: none; }
   flex: none; width: 38px; font-family: 'Space Mono', ui-monospace, monospace;
   font-size: 11.5px; color: var(--muted);
 }
-.tb-tl-bar { flex: none; width: 3px; align-self: stretch; min-height: 26px; border-radius: 2px; background: var(--blue); }
+/* 1C13 · แถบหน้าแถวถือสีวิชา ไม่ใช่ฟ้าทุกแถว — ฟ้าเท่ากันหมดคือสีที่ไม่ได้บอกอะไรเลย
+   นอกจาก "นี่คือแถว" ซึ่งตำแหน่งของมันบอกอยู่แล้ว · สีเดียวกับรางของหน้าวันนี้
+   คนจึงเรียนรู้คู่สี-วิชาครั้งเดียวแล้วใช้ได้ทั้งสองจอ (ดู .dr-row::before)
+   กว้างขึ้นเป็น 4px เท่ารางหน้าวันนี้ด้วย — 3px แคบเกินกว่าที่สีจะอ่านออกตั้งแต่เหลือบ */
+.tb-tl-bar { flex: none; width: 4px; align-self: stretch; min-height: 26px;
+  border-radius: 2px; background: var(--sj, var(--blue)); }
 .tb-tl-bar.ev { background: var(--muted); }
 .tb-tl-x { flex: 1; min-width: 0; }
 .tb-tl-x b { display: block; font-size: 13.5px; font-weight: 600; color: var(--ink);
@@ -7821,6 +7853,7 @@ button.df-r:active { background: var(--surface); }
 .tb-strip {
   display: flex; margin-bottom: 12px;
   padding: 10px 4px; border-radius: 14px; background: var(--card);
+  border: 1px solid var(--line);
 }
 .tb-strip > div {
   flex: 1; min-width: 0; text-align: center;
@@ -7896,3 +7929,86 @@ button.df-r:active { background: var(--surface); }
   background: var(--gold-text, var(--warn)); color: var(--card);
   font-weight: 700;
 }
+
+/* ============================================================
+   1C13 · จอ "ผลของฉัน" แบบจอโชว์
+   ============================================================
+   เจ้าของสรุปปัญหาของจอเดิมไว้สามข้อ แต่ละข้อมีคำตอบของตัวเองในบล็อกนี้:
+     "การ์ดขาวเหมือนกันหมด ไม่มีชั้น" → .an-hero เป็นใบเดียวที่มีสี ที่เหลือขาวล้วน
+     "ขนาดตัวอักษรไล่เลี่ยกันหมด"      → 56px → 26px → 15px → 11px มีจังหวะกระโดดจริง
+     "มีแต่ตัวหนังสือ ไม่มีภาพ"        → กราฟสูงขึ้นเท่าตัว โดนัทใหญ่ขึ้น น้องไซมีหน้า */
+
+/* ---- ใบพระเอก ---- */
+/* ใบเดียวบนจอที่มีพื้นสี — ถ้ามีสองใบขึ้นไป มันก็เลิกแปลว่า "อันนี้สำคัญที่สุด" ทันที
+   ตัวเลขข้างในคือชั่วโมงที่เขากดจับเวลาเอง ซึ่งเป็นตัวเดียวในแอปที่แอปอื่นลอกไม่ได้ */
+.an-hero {
+  position: relative; overflow: hidden;
+  margin-bottom: 12px; padding: 18px 20px 20px;
+  border-radius: 22px; background: var(--blue); color: var(--on-accent);
+}
+/* วงกลมจาง ๆ มุมขวา — ภาษาเดียวกับการ์ด "ตอนนี้" บนหน้าแรก ไม่ใช่ลายใหม่ */
+.an-hero::after {
+  content: ''; position: absolute; right: -38px; top: -46px;
+  width: 168px; height: 168px; border-radius: 50%;
+  background: rgba(255, 255, 255, .09);
+}
+.an-hero > * { position: relative; }
+.ah-lb {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; opacity: .88;
+}
+.ah-lb svg { width: 13px; height: 13px; }
+/* หน่วยนั่งบนเส้นฐานเดียวกับตัวเลข ไม่ใช่ลอยกลาง — ไม่งั้นอ่านเป็นตัวยก */
+.ah-n { display: flex; align-items: baseline; gap: 7px; margin-top: 2px; }
+.ah-n b {
+  font-size: 56px; font-weight: 800; line-height: 1.02; letter-spacing: -.045em;
+  font-variant-numeric: tabular-nums;
+}
+/* เศษทศนิยมเล็กกว่าตัวเต็ม — ".5" ไม่ใช่ข้อมูลระดับเดียวกับ "13" */
+.ah-frac { font-size: 30px; font-weight: 700; letter-spacing: -.03em; opacity: .82; }
+.ah-n i { font-style: normal; font-size: 19px; font-weight: 600; opacity: .8; }
+.ah-chip {
+  display: inline-flex; align-items: center; gap: 5px; margin-top: 11px;
+  padding: 5px 11px 5px 9px; border-radius: 999px;
+  background: rgba(255, 255, 255, .17);
+  font-size: 12px; font-weight: 600;
+}
+.ah-chip svg { width: 13px; height: 13px; }
+.ah-chip.down { background: rgba(0, 0, 0, .16); }
+
+/* ---- กราฟแท่งเวอร์ชันโชว์ ---- */
+/* สูงขึ้นจากของเดิมเกือบเท่าตัว · ของเดิมเตี้ยจนความต่างระหว่างวันอ่านไม่ออก
+   ซึ่งทำให้มันเป็นของประดับข้างข้อความจริง ๆ ไม่ใช่ภาพที่ตอบอะไรได้ */
+.st-bars.tall { height: 132px; align-items: flex-end; }
+.st-bars.tall .bar { border-radius: 9px 9px 4px 4px; }
+.st-bars.tall .n { font-size: 11px; }
+
+/* ---- โดนัทใหญ่ ---- */
+/* ของเดิมโดนัทกับคำอธิบายแย่งความกว้างกันในแถวเดียว โดนัทเลยเหลือ ~96px
+   แยกชั้นกันแล้วโดนัทได้ความกว้างเต็ม และคำอธิบายได้บรรทัดเต็มของตัวเอง */
+.an-donut.big { width: 186px; height: 186px; margin: 6px auto 14px; }
+/* .an-donut svg ถูกล็อกขนาดไว้เป็น px ไม่ใช่ 100% — ขยายกล่องเฉย ๆ วงข้างในไม่โตตาม */
+.an-donut.big svg { width: 186px; height: 186px; }
+.an-donut.big .dn-mid b { font-size: 34px; letter-spacing: -.035em; }
+.an-donut.big .dn-mid i { font-size: 12px; }
+.an-legend.wide { display: flex; flex-direction: column; gap: 9px; }
+
+/* ---- น้องไซพูดหนึ่งประโยค ---- */
+/* จบจอด้วยคนพูด ไม่ใช่ด้วยการ์ดข้อมูลใบที่เจ็ด — เจ้าของเลือกเองว่าจอดูข้อมูล
+   ควรจบด้วยประโยคเดียวจากน้องไซ ไม่ใช่ปุ่ม (ปุ่มท้ายจอดูข้อมูลคือการไล่คนออกจากจอ) */
+.an-sai {
+  display: flex; gap: 12px; align-items: flex-start;
+  margin: 16px 0 4px; padding: 14px 16px 15px;
+  border-radius: 18px; background: var(--blue-soft);
+}
+.as-face {
+  flex: none; width: 38px; height: 38px; border-radius: 50%;
+  object-fit: cover; background: var(--card);
+}
+.as-say { margin: 2px 0 0; font-size: 13.5px; line-height: 1.62; color: var(--ink); }
+.as-say b { color: var(--blue); white-space: nowrap; }
+
+/* ---- เหรียญ: สองบรรทัดพอ ---- */
+/* บรรทัดที่สาม ("ทำให้ครบ 25 งาน") ถูกถอดออก — ช่องกว้าง 78px รับสามบรรทัดไม่ไหว
+   มันเลยหักคำกลางคำทุกใบ · เงื่อนไขครบ ๆ อยู่ในจอเหรียญซึ่งมีที่ให้เขียนจริง */
+.an-bd .ab-nm { font-size: 11.5px; line-height: 1.35; }
