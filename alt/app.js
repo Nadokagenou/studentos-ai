@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C15';                 // สายเลขของแอป
-const APP_CODENAME = 'Order';           // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1C16';                 // สายเลขของแอป
+const APP_CODENAME = 'Viewfinder';           // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -938,6 +938,9 @@ function go(id) {
   // ออกจากจอสุ่มเมื่อไหร่ ทิ้งผลรอบเดิม กลับเข้ามาจะได้เริ่มใหม่สะอาด ๆ
   if (id !== 'scr-wheel') { drawResults = []; drawOpen = []; }
   curScreen = id;
+  // 1C16 · ออกจากจอสแกนตาราง = ปิดกล้องเสมอ กล้องที่ค้างเปิดคือไฟแดงที่ไม่มีใครสั่ง
+  // ดักที่นี่ที่เดียว ไม่ไล่แก้ทีละทางออก — ทางออกถัดไปจะไม่รู้ว่ามีกฎนี้อยู่
+  if (id !== 'scr-ttscan' && typeof ttCamStop === 'function') ttCamStop();
   funnelScreen(id);   // จอนี้เคยถูกเปิดหรือยัง — เขียนครั้งเดียวต่อจอ
   // เปิดจอสแกน = เริ่มโหลดโมเดลอ่านภาษาไว้เลย ระหว่างที่ผู้ใช้ยังเล็งกล้องอยู่
   // (เงียบ ๆ ล้มก็ไม่เป็นไร ตอนกดอ่านจริงจะลองใหม่เอง — ดู warmOcr)
@@ -2396,7 +2399,9 @@ function toolsGrid() {
   // แย่กว่าปุ่มที่ไม่มี ด้วยเหตุผลเดียวกับปุ่มล็อกอินที่ขึ้นว่า provider is not enabled
   const tiles = [
     ['users', 'เพื่อนฉัน', 'in', "openFeed('friends')", reqs || '', true, 'social'],
-    ['book', 'สแกนตารางเรียน', 'in', "go('scr-ttscan')", noCtx ? '!' : '', true, 'ttscan'],
+    // ต้องเรียก openTtScan() ไม่ใช่ go() — จอนี้วาดจาก renderTtScan() ทั้งจอ
+    // go() เฉย ๆ จึงเปิดมาเจอจอเปล่า (เจ้าของส่งภาพมา 20 ก.ย. 2569)
+    ['book', 'สแกนตารางเรียน', 'in', "openTtScan()", noCtx ? '!' : '', true, 'ttscan'],
     ['sparkles', 'แผนวันนี้', 'time', "go('scr-plan')", '', false],
     // 1B47 · ไทล์ "ปฏิทินเดือน" ถูกถอดออก — เจ้าของเลือก "ตัดปฏิทินได้เลย"
     // ที่ว่างคืนให้ "กล่องเข้า" ซึ่งเป็นทางเข้าที่มีของรออยู่จริงและหายากกว่า
@@ -6842,7 +6847,7 @@ let wiz = null;
 // ตารางเรียนไม่ได้อยู่ในตัวช่วย มันมาจากการสแกน จึงส่งไปจอสแกนตรง ๆ
 // อีกสี่เรื่องอยู่ในขั้นที่ 2 (กิจวัตรที่เดาไว้) ทั้งหมด — ไม่แกล้งทำเป็นว่ามีขั้นของตัวเอง
 const CTX_GAP_GO = {
-  timetable: "go('scr-ttscan')",
+  timetable: "openTtScan()",
   travel:  'wizOpen(2)',
   meal:    'wizOpen(2)',
   after:   'wizOpen(2)',
@@ -8961,13 +8966,77 @@ const TT_DAYS = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
 let ttState = { phase: 'pick', rows: [], note: '', error: '' };
 
 function openTtScan() {
-  ttState = { phase: 'pick', rows: [], note: '', error: '' };
+  ttState = { phase: 'pick', rows: [], note: '', error: '', shot: '' };
   renderTtScan();
   go('scr-ttscan');
+  // สั่งเปิดกล้องหลัง go() — go() เป็นคนปิดสตรีมทุกครั้งที่ออกจากจอนี้
+  // ถ้าสั่งก่อน มันจะโดนปิดทิ้งทันที
+  if (ttCam !== 'denied') ttCamStart();
+}
+
+// ---------- 1C16 · กล้องสดในจอสแกนตาราง ----------
+// เจ้าของเลือกเอง (20 ก.ย. 2569) ว่าจะเอากล้องสดจริง ๆ ไม่ใช่กรอบวาดหลอก
+//
+// ทำไมกล้องสดถึงคุ้มกับงานที่เพิ่มมา: ตารางเรียนคือกระดาษที่ต้องวางให้ตรงและเต็มกรอบ
+// ถึงจะอ่านออก · เส้นกล้องของระบบไม่มีกรอบบอกว่าต้องเล็งแค่ไหน คนจึงถ่ายเฉียง ๆ
+// มาแล้วรออีกสิบวินาทีเพื่อจะรู้ว่าอ่านไม่ได้ · กรอบเล็งบอกตั้งแต่ก่อนกดชัตเตอร์
+//
+// ทางถอยมีสองชั้นเสมอ เพราะกล้องเป็นของที่ปฏิเสธได้และบางเครื่องไม่มี:
+//   ไม่ให้สิทธิ์ / ไม่มีกล้อง / ไม่ใช่ https → ตกไปที่ "เลือกจากคลังภาพ" ซึ่งเป็นท่อเดิม
+// สตรีมต้องปิดทุกครั้งที่ออกจากจอหรือแอปถูกพับไป — กล้องที่ค้างเปิดคือไฟแดงที่ไม่มีใครสั่ง
+let ttStream = null;
+let ttCam = 'off';   // off | on | denied | nocam
+
+function ttCamOn() { return ttCam === 'on' && !!ttStream; }
+
+async function ttCamStart() {
+  if (ttStream) return;
+  const v = document.getElementById('ttCam');
+  if (!v) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    ttCam = 'nocam'; renderTtScan(); return;
+  }
+  try {
+    // facingMode เป็น ideal ไม่ใช่ exact — โน้ตบุ๊กมีแต่กล้องหน้า ถ้าบังคับ exact
+    // มันจะโยน OverconstrainedError แล้วตกไปทางเลือกไฟล์ทั้งที่กล้องใช้ได้
+    ttStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 } }, audio: false });
+    v.srcObject = ttStream;
+    await v.play().catch(() => {});
+    ttCam = 'on';
+  } catch (e) {
+    const n = e && e.name;
+    ttCam = (n === 'NotAllowedError' || n === 'SecurityError') ? 'denied' : 'nocam';
+  }
+  renderTtScan();
+}
+
+function ttCamStop() {
+  if (ttStream) { ttStream.getTracks().forEach(t => t.stop()); ttStream = null; }
+  const v = document.getElementById('ttCam');
+  if (v) v.srcObject = null;
+  if (ttCam === 'on') ttCam = 'off';
+}
+
+// ถ่ายจากสตรีมตรง ๆ — ไม่ต้องผ่านไฟล์ ย่อตั้งแต่ตอนวาดลง canvas เลย
+async function ttShoot() {
+  const v = document.getElementById('ttCam');
+  if (!v || !ttStream || !v.videoWidth) return;
+  haptic('tap');
+  const long = Math.max(v.videoWidth, v.videoHeight);
+  const k = long > TT_MAX_LONG ? TT_MAX_LONG / long : 1;
+  const c = document.createElement('canvas');
+  c.width = Math.round(v.videoWidth * k);
+  c.height = Math.round(v.videoHeight * k);
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  const url = c.toDataURL('image/jpeg', 0.85);
+  ttCamStop();                       // ปิดก่อนส่ง — ระหว่างรอผลไม่มีอะไรให้เล็งแล้ว
+  await ttRead(url);
 }
 
 // ย่อก่อนส่งเสมอ — รูปจากกล้องมือถือ 4 MB ที่ส่งดิบ ๆ คือเน็ตมือถือของเด็กหนึ่งก้อน
 // และโควตาที่จ่ายไปโดยไม่ได้ความแม่นเพิ่มขึ้นเลย
+// คืน data URL เต็ม ๆ เพราะจอ "กำลังอ่าน" เอารูปเดิมนี้ไปโชว์ใต้เส้นกวาดด้วย
 async function ttShrink(file) {
   const img = await ocrLoadBitmap(file);
   const long = Math.max(img.width, img.height);
@@ -8977,33 +9046,42 @@ async function ttShrink(file) {
   c.height = Math.round(img.height * k);
   c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
   // 0.85 เพราะเส้นตารางกับตัวเลขบาง ๆ แตกง่ายกว่าตัวหนังสือบนใบงาน
-  return c.toDataURL('image/jpeg', 0.85).split(',')[1];
+  return c.toDataURL('image/jpeg', 0.85);
 }
 
 async function ttPick(input) {
   const file = input.files && input.files[0];
   input.value = '';
   if (!file) return;
+  ttCamStop();
+  await ttRead(await ttShrink(file));
+}
+
+// ทางเดินเดียวของทั้งสองทางเข้า (ชัตเตอร์กล้อง กับ เลือกไฟล์) — รับ data URL เสมอ
+async function ttRead(dataUrl) {
   if (!currentUser) {
-    ttState = { phase: 'pick', rows: [], note: '',
+    ttState = { phase: 'pick', rows: [], note: '', shot: '',
       error: 'ตัวอ่านตารางทำงานบนเซิร์ฟเวอร์ ต้องล็อกอินก่อนถึงจะใช้ได้ — กรอกเองในหน้าบริบทได้ตามปกติ' };
-    return renderTtScan();
+    renderTtScan();
+    return;
   }
-  ttState = { phase: 'reading', rows: [], note: '', error: '' };
+  ttState = { phase: 'reading', rows: [], note: '', error: '', shot: dataUrl };
   renderTtScan();
   try {
-    const image = await ttShrink(file);
+    const image = dataUrl.split(',')[1];
     const { data, error } = await sb.functions.invoke('read-timetable', { body: { image, mime: 'image/jpeg' } });
     if (error) throw new Error(error.message || 'เรียกตัวอ่านไม่สำเร็จ');
     if (data && data.error) throw new Error(data.error);
     const rows = (data && data.classes || []).map(r => ({ ...r, on: true }));
-    ttState = { phase: rows.length ? 'review' : 'pick', rows,
+    ttState = { phase: rows.length ? 'review' : 'pick', rows, shot: dataUrl,
       note: (data && data.note) || '',
       error: rows.length ? '' : ((data && data.note) || 'อ่านตารางจากรูปนี้ไม่ได้ — ลองถ่ายให้ตรงและชัดขึ้น') };
   } catch (e) {
-    ttState = { phase: 'pick', rows: [], note: '', error: e.message };
+    ttState = { phase: 'pick', rows: [], note: '', shot: '', error: e.message };
   }
   renderTtScan();
+  // อ่านไม่ผ่าน = ต้องเล็งใหม่ทันที ไม่ใช่กดปุ่มเปิดกล้องอีกรอบเอง
+  if (ttState.phase === 'pick' && ttCam !== 'denied' && ttCam !== 'nocam') ttCamStart();
 }
 
 function ttSet(i, key, val) {
@@ -9039,58 +9117,112 @@ function renderTtScan() {
   const body = document.getElementById('ttBody');
   if (!body) return;
   const { phase, rows, error } = ttState;
+  const stage = document.getElementById('ttStage');
+  const cam = document.getElementById('ttCam');
+  const shot = document.getElementById('ttShot');
+  const hint = document.getElementById('ttStageHint');
+
+  // เวทีกล้องโชว์สองสถานะ: ตอนเล็ง (ภาพสด) กับตอนอ่าน (ภาพที่เพิ่งถ่าย + เส้นกวาด)
+  // หน้าตรวจไม่ต้องมีรูปแล้ว — ของที่ต้องมองตอนนั้นคือคาบเรียน ไม่ใช่กระดาษ
+  if (stage) {
+    stage.hidden = phase === 'review';
+    stage.classList.toggle('reading', phase === 'reading');
+    stage.classList.toggle('empty', phase === 'pick' && !ttCamOn());
+    if (cam) cam.hidden = !(phase === 'pick' && ttCamOn());
+    if (shot) {
+      const show = phase === 'reading' && !!ttState.shot;
+      shot.hidden = !show;
+      if (show && shot.getAttribute('src') !== ttState.shot) shot.src = ttState.shot;
+    }
+    if (hint) hint.textContent =
+      phase === 'reading' ? 'กำลังไล่อ่านทีละคาบ…'
+      : ttCamOn() ? 'วางตารางให้เต็มกรอบ แล้วกดปุ่มกลม'
+      : ttCam === 'denied' ? 'ยังไม่ได้สิทธิ์ใช้กล้อง — เลือกรูปจากคลังภาพก็ได้'
+      : 'เลือกรูปตารางจากคลังภาพได้เลย';
+  }
 
   if (phase === 'reading') {
-    body.innerHTML = `<div class="tt-wait">
-      <div class="tt-spin"></div>
-      <b>กำลังอ่านตาราง…</b>
-      <span>ปกติใช้เวลาไม่เกิน 10 วินาที</span>
-    </div>`;
+    body.innerHTML = `
+      <div class="tt-steps">
+        <div class="tts done">${icon('check')}<span>ส่งรูปให้ตัวอ่านแล้ว</span></div>
+        <div class="tts now"><i></i><span>ไล่เส้นตารางกับชื่อวัน</span></div>
+        <div class="tts"><i></i><span>จับเวลาเริ่ม–เลิกแต่ละคาบ</span></div>
+      </div>
+      <p class="tt-foot">ปกติไม่เกิน 10 วินาที · รูปถูกส่งไปอ่านครั้งเดียวแล้วทิ้ง ไม่ได้ถูกเก็บไว้ที่ไหน</p>`;
     return;
   }
 
   if (phase === 'pick') {
+    const live = ttCamOn();
     body.innerHTML = `
       ${error ? `<div class="tt-err">${icon('clock')}<span>${esc(error)}</span></div>` : ''}
-      <div class="tt-intro">
-        <div class="tt-ring">${icon('camera')}</div>
-        <b>ถ่ายรูปตารางเรียนให้เห็นทั้งสัปดาห์</b>
-        <p>วางให้ตรง ไม่เอียง เห็นทั้งชื่อวันและเวลาแต่ละคาบ — AI จะอ่านให้
-          แล้วคุณตรวจแก้ได้ทุกคาบก่อนบันทึก</p>
-      </div>
-      <button class="tt-cta" onclick="document.getElementById('ttFile').click()">
-        ${icon('camera')}เลือกรูปตารางเรียน</button>
+      ${live
+        // แถวชัตเตอร์: ปุ่มกลมอยู่กลางจอเป๊ะ ๆ ปุ่มคลังภาพอยู่ซ้าย และมีช่องเปล่าขวา
+        // ถ่วงให้สมดุล — กล้องทุกตัวในโลกวางชัตเตอร์ไว้กลาง นิ้วโป้งไปที่นั่นก่อนเสมอ
+        ? `<div class="tt-shoot">
+             <button class="tt-gal" onclick="document.getElementById('ttFile').click()"
+               aria-label="เลือกจากคลังภาพ">${icon('image')}</button>
+             <button class="tt-shutter" onclick="ttShoot()" aria-label="ถ่ายตารางเรียน"><i></i></button>
+             <span class="tt-gal ghost" aria-hidden="true"></span>
+           </div>`
+        : `<button class="tt-cta" onclick="document.getElementById('ttFile').click()">
+             ${icon('image')}เลือกรูปตารางจากคลังภาพ</button>
+           <button class="tt-2nd" onclick="ttCamStart()">${icon('camera')}${
+             ttCam === 'denied' ? 'เปิดสิทธิ์แล้ว ลองอีกครั้ง' : 'เปิดกล้องถ่ายเอง'}</button>`}
+      <div class="tt-tips"><span>วางให้ตรง ไม่เอียง</span><span>เห็นครบทั้งสัปดาห์</span><span>ไฟสว่างพอ</span></div>
       <p class="tt-foot">รูปถูกส่งไปให้ Gemini อ่านครั้งเดียวแล้วทิ้ง ไม่ได้ถูกเก็บไว้ที่ไหน
         · ส่วนอื่นของบริบทยังคำนวณในเครื่องเหมือนเดิม</p>`;
     return;
   }
 
+  // ---- หน้าตรวจ ----
+  // จัดกลุ่มตามวัน เรียงจันทร์→อาทิตย์ · ตารางเรียนในหัวคนเป็นวัน ๆ ไม่ใช่รายการยาวสิบกว่าแถว
+  // และคาบที่อ่านเพี้ยนมักเพี้ยนทั้งวัน (แถวที่เอียงในรูป) การเห็นเป็นวันจึงจับผิดได้เร็วกว่า
   const on = rows.filter(r => r.on).length;
-  body.innerHTML = `
-    <div class="tt-sum">อ่านได้ <b>${rows.length}</b> คาบ — เลือกไว้ ${on} คาบ
-      ${ttState.note ? `<span class="tt-note">${esc(ttState.note)}</span>` : ''}</div>
-    <p class="tt-hint">ตรวจให้ครบก่อนบันทึก โดยเฉพาะเวลาเริ่ม–เลิก คาบที่ผิดจะไปกินเวลาว่างในแผนทุกสัปดาห์</p>
-    <div class="tt-list">
-      ${rows.map((r, i) => `<div class="tt-row${r.on ? '' : ' off'}">
-        <button class="tt-ck${r.on ? ' on' : ''}" onclick="ttToggle(${i})"
-          aria-label="${r.on ? 'ไม่เอาคาบนี้' : 'เอาคาบนี้'}">${icon('check')}</button>
-        <div class="tt-fields">
-          <input class="tt-sub" type="text" value="${esc(r.subject)}" maxlength="40"
-            oninput="ttSet(${i},'subject',this.value)">
-          <div class="tt-when">
-            <select onchange="ttSet(${i},'day',this.value)">
-              ${TT_DAYS.map((d, n) => `<option value="${n}"${n === r.day ? ' selected' : ''}>${d}</option>`).join('')}
-            </select>
-            <input type="time" value="${esc(r.start)}" onchange="ttSet(${i},'start',this.value)">
-            <span class="tt-dash">–</span>
-            <input type="time" value="${esc(r.end)}" onchange="ttSet(${i},'end',this.value)">
-          </div>
-        </div>
-      </div>`).join('')}
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  const groups = order
+    .map(d => [d, rows.map((r, i) => [r, i]).filter(([r]) => r.day === d)])
+    .filter(([, g]) => g.length);
+
+  const rowHtml = (r, i) => `<div class="tt-row${r.on ? '' : ' off'}">
+    <button class="tt-ck${r.on ? ' on' : ''}" onclick="ttToggle(${i})"
+      aria-label="${r.on ? 'ไม่เอาคาบนี้' : 'เอาคาบนี้'}">${icon('check')}</button>
+    <div class="tt-fields">
+      <input class="tt-sub" type="text" value="${esc(r.subject)}" maxlength="40"
+        oninput="ttSet(${i},'subject',this.value)">
+      <div class="tt-when">
+        <select onchange="ttSet(${i},'day',this.value)" aria-label="วัน">
+          ${TT_DAYS.map((d, n) => `<option value="${n}"${n === r.day ? ' selected' : ''}>${d}</option>`).join('')}
+        </select>
+        <input type="time" value="${esc(r.start)}" onchange="ttSet(${i},'start',this.value)" aria-label="เริ่ม">
+        <span class="tt-dash">–</span>
+        <input type="time" value="${esc(r.end)}" onchange="ttSet(${i},'end',this.value)" aria-label="เลิก">
+      </div>
     </div>
-    <div class="tt-act">
-      <button class="fm-save" onclick="ttSave()" ${on ? '' : 'disabled'}>บันทึก ${on} คาบเข้าบริบท</button>
-      <button class="fm-cancel" onclick="openTtScan()">ถ่ายใหม่</button>
+  </div>`;
+
+  body.innerHTML = `
+    <!-- หัวสรุปอยู่ในการ์ดเหมือนกัน ไม่ลอยบนพื้นหน้าเพจ — บรรทัดอธิบายสีจาง
+         บนพื้นเพจของธีม genesis เหลือคอนทราสต์ 2.16:1 (วัดแล้ว) บน --card ผ่านทุกธีม -->
+    <section class="fm-sec tt-sum-sec">
+      <div class="fs-head">
+        <h3 class="fs-h">อ่านได้ ${rows.length} คาบ</h3>
+        <span class="fs-badge req">เลือกไว้ ${on}</span>
+      </div>
+      <p class="fs-note">ตรวจเวลาให้ครบก่อนบันทึก — คาบที่ผิดจะไปกินเวลาว่างในแผนทุกสัปดาห์${
+        ttState.note ? `<br>${esc(ttState.note)}` : ''}</p>
+    </section>
+    ${groups.map(([d, g]) => `<section class="fm-sec tt-day">
+      <div class="fs-head"><h3 class="fs-h">${THAI_DAY[d]}</h3>
+        <span class="fs-badge">${g.length} คาบ</span></div>
+      <div class="tt-list">${g.map(([r, i]) => rowHtml(r, i)).join('')}</div>
+    </section>`).join('')}
+    <button class="tt-2nd" onclick="openTtScan()">${icon('camera')}ถ่ายใหม่</button>
+    <div class="fm-bar tt-bar">
+      <button class="fm-save" onclick="ttSave()" ${on ? '' : 'disabled'}>
+        <span class="fb-t">บันทึก ${on} คาบเข้าบริบท</span>
+        <span class="fb-s">แผนวันนี้จะเลี่ยงเวลาเรียนให้เอง</span>
+      </button>
     </div>`;
 }
 
@@ -13108,6 +13240,14 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   if (fd) fd.addEventListener('input', () => autoGrow(fd));
   // 1C15 · ทุกการพิมพ์/เลือกในฟอร์ม → แถวสรุปกับบรรทัดใต้ปุ่มบันทึกขยับตาม
   // เกาะที่กรอบจอครั้งเดียว — ฟอร์มไม่ได้ถูกสร้างใหม่ทุกครั้งที่เปิด
+  // 1C16 · พับแอปหนีไปทำอย่างอื่น = ปิดกล้อง กลับมาที่จอเดิมค่อยเปิดใหม่
+  // iOS หยุดสตรีมให้เองตอนพับอยู่แล้ว แต่ไม่คืนมาเองตอนกลับ — จอดำค้างจึงต้องสั่งเอง
+  document.addEventListener('visibilitychange', () => {
+    if (typeof ttCamStop !== 'function') return;
+    const onTt = (document.querySelector('.screen.on') || {}).id === 'scr-ttscan';
+    if (document.hidden) { ttCamStop(); if (onTt) renderTtScan(); }
+    else if (onTt && ttState && ttState.phase === 'pick' && ttCam !== 'denied') ttCamStart();
+  });
   const formScreen = document.getElementById('scr-form');
   if (formScreen) {
     const sync = () => { if (typeof syncFormUI === 'function') syncFormUI(); };
