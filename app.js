@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C16';                 // สายเลขของแอป
-const APP_CODENAME = 'Viewfinder';           // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1C17';                 // สายเลขของแอป
+const APP_CODENAME = 'Shutter';           // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -941,6 +941,7 @@ function go(id) {
   // 1C16 · ออกจากจอสแกนตาราง = ปิดกล้องเสมอ กล้องที่ค้างเปิดคือไฟแดงที่ไม่มีใครสั่ง
   // ดักที่นี่ที่เดียว ไม่ไล่แก้ทีละทางออก — ทางออกถัดไปจะไม่รู้ว่ามีกฎนี้อยู่
   if (id !== 'scr-ttscan' && typeof ttCamStop === 'function') ttCamStop();
+  if (id !== 'scr-shot' && typeof shotStop === 'function') shotStop();
   funnelScreen(id);   // จอนี้เคยถูกเปิดหรือยัง — เขียนครั้งเดียวต่อจอ
   // เปิดจอสแกน = เริ่มโหลดโมเดลอ่านภาษาไว้เลย ระหว่างที่ผู้ใช้ยังเล็งกล้องอยู่
   // (เงียบ ๆ ล้มก็ไม่เป็นไร ตอนกดอ่านจริงจะลองใหม่เอง — ดู warmOcr)
@@ -8954,6 +8955,56 @@ window.addEventListener('sos-config', () => {
   try { applyFontScale(); renderAll(); } catch (e) { console.warn('[cfg] วาดใหม่ไม่สำเร็จ:', e); }
 });
 
+// ============================================================
+// 1C17 · กล้องในแอป — ของกลางที่สองจอใช้ร่วมกัน
+// ------------------------------------------------------------
+// จอสแกนตาราง (1C16) กับจอถ่ายใบงาน (1C17) ต้องการของอย่างเดียวกันเป๊ะ:
+// ขอสตรีมกล้องหลัง · แปะลง <video> · จับเฟรมมาย่อ · ปิดให้สนิท
+// เขียนไว้ที่เดียวเพราะสามกับดักข้างล่างนี้พลาดที่ไหนก็เจ็บเหมือนกันทั้งสองจอ
+//   1) facingMode ต้องเป็น ideal ไม่ใช่ exact — โน้ตบุ๊กมีแต่กล้องหน้า
+//      บังคับ exact แล้วได้ OverconstrainedError ทั้งที่กล้องใช้ได้
+//   2) ต้องแยก "ไม่ให้สิทธิ์" ออกจาก "ไม่มีกล้อง" — ข้อความที่ต้องบอกคนละเรื่องกัน
+//   3) ปิดต้องหยุดทุก track แล้วล้าง srcObject ด้วย ไม่งั้นไฟกล้องยังติดบนบางเครื่อง
+// ============================================================
+
+// คืน { stream, err } — err เป็น 'denied' | 'nocam' | null
+async function camOpen(videoId) {
+  const v = document.getElementById(videoId);
+  if (!v) return { stream: null, err: 'nocam' };
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    return { stream: null, err: 'nocam' };   // http:// ธรรมดาก็มาตกที่นี่ ไม่ใช่แค่เครื่องไม่มีกล้อง
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 } }, audio: false });
+    v.srcObject = stream;
+    await v.play().catch(() => {});
+    return { stream, err: null };
+  } catch (e) {
+    const n = e && e.name;
+    return { stream: null, err: (n === 'NotAllowedError' || n === 'SecurityError') ? 'denied' : 'nocam' };
+  }
+}
+
+function camClose(stream, videoId) {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  const v = document.getElementById(videoId);
+  if (v) v.srcObject = null;
+}
+
+// จับเฟรมปัจจุบันมาเป็น canvas ที่ย่อแล้ว — คืน null ถ้าภาพยังไม่มา
+function camGrab(videoId, maxLong) {
+  const v = document.getElementById(videoId);
+  if (!v || !v.videoWidth) return null;
+  const long = Math.max(v.videoWidth, v.videoHeight);
+  const k = long > maxLong ? maxLong / long : 1;
+  const c = document.createElement('canvas');
+  c.width = Math.round(v.videoWidth * k);
+  c.height = Math.round(v.videoHeight * k);
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  return c;
+}
+
 // ---------- สแกนตารางเรียนจากรูป ----------
 // ท่อ: เลือกรูป → ย่อในเครื่อง → Edge Function (Gemini อ่าน) → หน้าตรวจ → เขียนลงบริบท
 //
@@ -8991,44 +9042,23 @@ function ttCamOn() { return ttCam === 'on' && !!ttStream; }
 
 async function ttCamStart() {
   if (ttStream) return;
-  const v = document.getElementById('ttCam');
-  if (!v) return;
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    ttCam = 'nocam'; renderTtScan(); return;
-  }
-  try {
-    // facingMode เป็น ideal ไม่ใช่ exact — โน้ตบุ๊กมีแต่กล้องหน้า ถ้าบังคับ exact
-    // มันจะโยน OverconstrainedError แล้วตกไปทางเลือกไฟล์ทั้งที่กล้องใช้ได้
-    ttStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 } }, audio: false });
-    v.srcObject = ttStream;
-    await v.play().catch(() => {});
-    ttCam = 'on';
-  } catch (e) {
-    const n = e && e.name;
-    ttCam = (n === 'NotAllowedError' || n === 'SecurityError') ? 'denied' : 'nocam';
-  }
+  const { stream, err } = await camOpen('ttCam');
+  ttStream = stream;
+  ttCam = err || 'on';
   renderTtScan();
 }
 
 function ttCamStop() {
-  if (ttStream) { ttStream.getTracks().forEach(t => t.stop()); ttStream = null; }
-  const v = document.getElementById('ttCam');
-  if (v) v.srcObject = null;
+  camClose(ttStream, 'ttCam');
+  ttStream = null;
   if (ttCam === 'on') ttCam = 'off';
 }
 
 // ถ่ายจากสตรีมตรง ๆ — ไม่ต้องผ่านไฟล์ ย่อตั้งแต่ตอนวาดลง canvas เลย
 async function ttShoot() {
-  const v = document.getElementById('ttCam');
-  if (!v || !ttStream || !v.videoWidth) return;
+  const c = camGrab('ttCam', TT_MAX_LONG);
+  if (!c) return;
   haptic('tap');
-  const long = Math.max(v.videoWidth, v.videoHeight);
-  const k = long > TT_MAX_LONG ? TT_MAX_LONG / long : 1;
-  const c = document.createElement('canvas');
-  c.width = Math.round(v.videoWidth * k);
-  c.height = Math.round(v.videoHeight * k);
-  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
   const url = c.toDataURL('image/jpeg', 0.85);
   ttCamStop();                       // ปิดก่อนส่ง — ระหว่างรอผลไม่มีอะไรให้เล็งแล้ว
   await ttRead(url);
@@ -9224,6 +9254,92 @@ function renderTtScan() {
         <span class="fb-s">แผนวันนี้จะเลี่ยงเวลาเรียนให้เอง</span>
       </button>
     </div>`;
+}
+
+
+// ============================================================
+// 1C17 · ถ่ายใบงานด้วยกล้องในแอป (จอ "เพิ่มงานใหม่" → ไทล์ "ถ่ายรูปใบงาน")
+// ------------------------------------------------------------
+// เดิมไทล์นี้เป็น <label for="cameraInput"> ซึ่งเปิดกล้องของระบบ: ออกจากแอปไปหนึ่งจอ
+// ถ่าย ยืนยัน แล้วค่อยเด้งกลับ · ไม่มีกรอบบอกว่าต้องเล็งแค่ไหนถึงจะอ่านออก
+// ซึ่งเป็นเหตุผลเดียวกับที่จอสแกนตารางได้กล้องในแอปไปก่อนแล้ว (1C16)
+//
+// ของที่ถ่ายได้ไหลเข้าท่อเดิมทั้งเส้น: scanFromPhoto(blob) → จอครอบกรอบ → OCR ในเครื่อง
+// ไม่มีอะไรในท่อรู้เลยว่ารูปมาจากกล้องในแอปหรือจากไฟล์ — จึงไม่ต้องแก้อะไรต่อจากนั้น
+//
+// ทางถอย: ไม่ให้สิทธิ์ / ไม่มีกล้อง → ปุ่มเรียกกล้องของระบบ (#cameraInput) ยังอยู่ครบ
+// คนที่ปฏิเสธสิทธิ์ไปแล้วจึงยังถ่ายใบงานได้เหมือนเดิม ไม่ใช่เจอทางตัน
+// ============================================================
+const SHOT_MAX_LONG = 2000;   // ใบงานตัวหนังสือใหญ่กว่าตารางเรียน ย่อได้น้อยกว่านิดหน่อย
+let shotStream = null;
+let shotCam = 'off';          // off | on | denied | nocam
+
+function openShot() {
+  go('scr-shot');
+  renderShot();
+  if (shotCam !== 'denied') shotStart();   // ต้องหลัง go() ด้วยเหตุผลเดียวกับ openTtScan()
+}
+
+async function shotStart() {
+  if (shotStream) return;
+  const { stream, err } = await camOpen('shotCam');
+  shotStream = stream;
+  shotCam = err || 'on';
+  renderShot();
+}
+
+function shotStop() {
+  camClose(shotStream, 'shotCam');
+  shotStream = null;
+  if (shotCam === 'on') shotCam = 'off';
+}
+
+function closeShot() {
+  shotStop();
+  go('scr-scan');
+}
+
+// ถ่าย → Blob → ท่อเดิม · toBlob เป็น callback ตัวเดียวที่ไม่มีเวอร์ชัน Promise ในทุกเบราว์เซอร์
+function shotTake() {
+  const c = camGrab('shotCam', SHOT_MAX_LONG);
+  if (!c) return;
+  haptic('tap');
+  shotStop();
+  c.toBlob(blob => {
+    if (!blob) { shotCam = 'off'; renderShot(); shotStart(); return; }
+    // ตั้งชื่อให้มันเหมือนไฟล์จริง เผื่อมีที่ไหนอ่าน .name (ท่อปัจจุบันไม่อ่าน แต่ของฟรี)
+    const file = new File([blob], 'worksheet.jpg', { type: 'image/jpeg' });
+    scanFromPhoto(file);
+  }, 'image/jpeg', 0.9);
+}
+
+function renderShot() {
+  const body = document.getElementById('shotBody');
+  const stage = document.getElementById('shotStage');
+  const cam = document.getElementById('shotCam');
+  const hint = document.getElementById('shotHint');
+  if (!body || !stage) return;
+  const live = shotCam === 'on' && !!shotStream;
+  stage.classList.toggle('empty', !live);
+  if (cam) cam.hidden = !live;
+  if (hint) hint.textContent = live ? 'วางใบงานให้เต็มกรอบ แล้วกดปุ่มกลม'
+    : shotCam === 'denied' ? 'ยังไม่ได้สิทธิ์ใช้กล้อง'
+    : 'ใช้กล้องของเครื่องแทนได้';
+  body.innerHTML = live
+    ? `<div class="tt-shoot">
+         <button class="tt-gal" onclick="document.getElementById('galleryInput').click()"
+           aria-label="เลือกจากคลังภาพ">${icon('image')}</button>
+         <button class="tt-shutter" onclick="shotTake()" aria-label="ถ่ายรูปใบงาน"><i></i></button>
+         <span class="tt-gal ghost" aria-hidden="true"></span>
+       </div>
+       <div class="tt-tips"><span>ให้เห็นโจทย์ทั้งข้อ</span><span>อย่าให้เงามือบัง</span><span>ถือนิ่ง ๆ</span></div>`
+    : `<button class="tt-cta" onclick="document.getElementById('cameraInput').click()">
+         ${icon('camera')}ใช้กล้องของเครื่อง</button>
+       <button class="tt-2nd" onclick="document.getElementById('galleryInput').click()">
+         ${icon('image')}เลือกจากคลังภาพ</button>
+       ${shotCam === 'denied'
+         ? `<button class="tt-2nd" onclick="shotStart()">${icon('camera')}เปิดสิทธิ์แล้ว ลองอีกครั้ง</button>`
+         : ''}`;
 }
 
 // ---------- เวลาทำงานจริง ----------
@@ -13244,9 +13360,15 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   // iOS หยุดสตรีมให้เองตอนพับอยู่แล้ว แต่ไม่คืนมาเองตอนกลับ — จอดำค้างจึงต้องสั่งเอง
   document.addEventListener('visibilitychange', () => {
     if (typeof ttCamStop !== 'function') return;
-    const onTt = (document.querySelector('.screen.on') || {}).id === 'scr-ttscan';
-    if (document.hidden) { ttCamStop(); if (onTt) renderTtScan(); }
-    else if (onTt && ttState && ttState.phase === 'pick' && ttCam !== 'denied') ttCamStart();
+    const cur = (document.querySelector('.screen.on') || {}).id;
+    if (document.hidden) {
+      ttCamStop(); shotStop();
+      if (cur === 'scr-ttscan') renderTtScan();
+      if (cur === 'scr-shot') renderShot();
+      return;
+    }
+    if (cur === 'scr-ttscan' && ttState && ttState.phase === 'pick' && ttCam !== 'denied') ttCamStart();
+    if (cur === 'scr-shot' && shotCam !== 'denied') shotStart();
   });
   const formScreen = document.getElementById('scr-form');
   if (formScreen) {

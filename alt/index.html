@@ -558,10 +558,12 @@
             </button>
 
             <div class="scan-pair">
-              <label class="scan-tile" for="cameraInput">
+              <!-- 1C17 · เปิดกล้องในแอป ไม่ใช่ <label for="cameraInput"> ที่เด้งกล้องของระบบ
+                   (ช่อง #cameraInput ยังอยู่ข้างล่าง — เป็นทางถอยตอนกล้องในแอปใช้ไม่ได้) -->
+              <button class="scan-tile" onclick="openShot()">
                 <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-camera"/></svg></span>
                 <span class="lb">ถ่ายรูปใบงาน</span>
-              </label>
+              </button>
               <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
               <label class="scan-tile" for="galleryInput">
                 <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
@@ -601,6 +603,30 @@
             <button class="manual" onclick="openForm(null)">
               <svg viewBox="0 0 24 24"><use href="#lu-type"/></svg>พิมพ์เพิ่มเองทีละช่อง</button>
           </div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: กล้องถ่ายใบงาน (1C17) ============
+           โครงเดียวกับจอสแกนตาราง และใช้ CSS ชุดเดียวกัน (.tt-stage · .ttf · .tt-sweep)
+           ถ่ายเสร็จแล้วไหลเข้าท่อเดิมทั้งเส้น: scanFromPhoto() → จอครอบกรอบ → OCR ในเครื่อง -->
+      <div class="screen flush" id="scr-shot">
+        <div class="scr-body pf-body tt-body">
+          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+            <div>
+              <h2 class="sh-title">ถ่ายรูปใบงาน</h2>
+              <p class="sh-sub">ถ่ายแล้ว AI อ่านโจทย์ให้เอง</p>
+            </div>
+            <button class="sh-btn" onclick="closeShot()" aria-label="ปิดกล้อง">
+              <svg viewBox="0 0 24 24"><use href="#lu-x"/></svg></button>
+          </div>
+          <div class="tt-stage empty" id="shotStage">
+            <video id="shotCam" playsinline muted autoplay hidden></video>
+            <span class="ttf tl"></span><span class="ttf tr"></span>
+            <span class="ttf bl"></span><span class="ttf br"></span>
+            <span class="tt-sweep"></span>
+            <p class="tt-stage-h" id="shotHint">วางใบงานให้เต็มกรอบ</p>
+          </div>
+          <div id="shotBody"></div>
         </div>
       </div>
 
