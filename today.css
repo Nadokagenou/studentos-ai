@@ -567,7 +567,11 @@
    ทับทุกอย่างรวมถึงแถบล่าง — ระหว่างทำงานอยู่ "ไปหน้าอื่น" ไม่ใช่สิ่งที่ควรทำได้ง่าย
    บนจอนี้มีทางออกสามทางเท่านั้น: เสร็จ · พัก · กากบาท */
 .focus-wrap {
-  position: absolute; inset: 0; z-index: 90;
+  /* 1C14 · 90 → 92 · ปุ่มลอยมุมขวาบนสองตัว (.top-friends · .top-set) อยู่ที่ 91
+     มันจึงลอยอยู่เหนือจอโฟกัสทั้งใบ ทั้งจอจับเวลาและจอฉลอง — บั๊คตัวเดียวกับ
+     ปุ่มประกายที่ทับปุ่มบันทึกในจอกรอกงาน (FAB_HIDE ใน feed.js) — ของที่ลอย
+     อยู่นอกกองจอ จะทับอะไรสักอย่างเสมอ · 94/95 (.fab-hub · .add-sheet) ยังอยู่เหนือตามเดิม */
+  position: absolute; inset: 0; z-index: 92;
   background: var(--scr); display: flex; flex-direction: column;
   animation: fcIn .22s ease-out;
 }
@@ -650,21 +654,124 @@
 }
 .fc-done svg, .fc-go svg, .fc-pause svg { width: 18px; height: 18px; }
 
-/* จอฉลอง — ตัวต่อสุดท้ายของลูกโซ่: บอกชื่องานถัดไป ไม่ใช่แค่ชมแล้วโยนกลับหน้าแรก */
-.fc-sheet.done { align-items: center; justify-content: center; text-align: center; }
-.fc-win { color: var(--pri-green); }
-.fc-win svg { width: 58px; height: 58px; }
-.fc-wt { margin: 14px 0 0; font-size: 26px; font-weight: 700; color: var(--ink); }
-.fc-wp { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
-.fc-next {
-  margin-top: 30px; width: 100%; max-width: 340px;
-  padding: 18px 16px; background: var(--card); border: 1px solid var(--line);
-  border-radius: var(--r-card);
+/* ============================================================
+   จอฉลอง (1C14) — ใบพระเอกเต็มจอ ภาษาเดียวกับจอล็อกอิน
+   ============================================================
+   ของเดิมเป็นวงกลมถูกเขียว + ตัวหนังสือ + การ์ดขาวใบหนึ่ง ทั้งหมดกองกลางจอ
+   เหลือที่ว่างบน 35% ล่าง 35% · และปุ่มสองใบในการ์ดไม่เต็มแถว ชิดซ้าย
+   กว้างไม่เท่ากัน เพราะ .fc-next ไม่ได้บังคับความกว้างให้ลูกของมัน
+
+   ตอนนี้ปุ่มอยู่นอกการ์ด ใน .fw-act ซึ่งเป็น grid — ความกว้างมาจากผัง
+   ไม่ใช่จากความยาวของคำในปุ่ม ซึ่งเป็นสาเหตุเดิมของ "ของที่ดูพัง" */
+.fc-sheet.done { align-items: stretch; justify-content: flex-start; text-align: left; }
+
+/* ใบกินสลักทั้งหมดด้วย flex:1 — ไม่ใช่ margin-top:auto ที่ของข้างล่าง
+   รอบก่อนย้ายที่ว่างไปไว้กลางจอ วัดได้ 350px ที่ไม่มีอะไรอยู่เลย — อาการเดียวกับจอเก่า
+   ตอนนี้ใบเป็นคนกินที่ว่างเอง จอสูงเท่าไหร่ก็ได้สัดส่วนเดิม และจอฉลองควรเป็นจอที่มีสีเต็มตาอยู่แล้ว */
+.fw-hero {
+  position: relative;
+  display: flex; flex-direction: column;
+  margin-top: 8px;
+  padding: 30px 20px 34px;
+  border-radius: 26px;
+  /* ม่านทึบปลายสว่างของไล่สี — ชุดเดียวกับ .lg-hero ของจอล็อกอิน
+     เหตุผลเต็มอยู่ที่นั่น — วัดมาได้ 2.22 : 1 บนธีม warm ก่อนแก้ */
+  /* พื้นชุดเดียวกับ .lg-hero ของจอล็อกอิน — เหตุผลเต็มอยู่ที่นั่น (style.css) */
+  background-image: linear-gradient(150deg,
+    color-mix(in srgb, var(--fill) 84%, #000) 0%,
+    var(--fill) 58%,
+    color-mix(in srgb, var(--fill) 88%, #000) 100%);
+  color: var(--on-fill);
+  box-shadow: var(--shadow-lg);
 }
-.fc-next b { display: block; font-size: 17px; color: var(--ink); }
-.fn-min { display: block; margin-top: 5px; font-size: 13px; color: var(--muted); }
-.fc-next .fc-go { margin-top: 16px; }
-.fc-next .fc-later { margin-top: 8px; }
+/* วงกลมจาง ๆ หลังใบ ชุดเดียวกับ .lg-hero และ .td-now .tn-head */
+.fw-hero::after {
+  content: ''; position: absolute; right: -50px; top: -58px;
+  width: 180px; height: 180px; border-radius: 50%;
+  background: color-mix(in srgb, var(--on-fill) 12%, transparent); pointer-events: none;
+  clip-path: inset(58px 50px 0 0 round 0 26px 0 0);
+}
+.fw-hero > * { position: relative; z-index: 2; }
+
+/* เครื่องหมายถูกเป็นวงขาวโปร่งบนพื้นสี ไม่ใช่วงเขียวบนพื้นขาว
+   เขียวตัวเดิม (--pri-green) เป็นสีเดียวบนจอและไม่ได้อยู่ในชุดของแบรนด์
+   — 1C13 เคาะไว้ว่าสีของแอปคือฟ้า คุมให้แน่น */
+.fw-ring {
+  width: 62px; height: 62px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--on-fill) 22%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--on-fill) 48%, transparent);
+  color: var(--on-fill);
+}
+.fw-ring svg { width: 30px; height: 30px; stroke-width: 3; }
+
+/* 40 → 15 → 11.5 — ต้องกระโดด ไม่ใช่ไล่เลี่ยกัน (กฎ 1C13)
+   ของเดิม 26 → 14 บนพื้นขาว ซึ่งอ่านเป็นหัวข้อของกล่องข้อความ ไม่ใช่คำฉลอง */
+.fw-mid { margin: 20px 0 26px; }
+.fw-t { margin: 0; font-size: 40px; font-weight: 800;
+  letter-spacing: -.04em; line-height: 1.05; color: var(--on-fill); }
+.fw-p { margin: 7px 0 0; font-size: 15px; font-weight: 500; line-height: 1.5;
+  color: var(--on-fill); max-width: 15em; }
+
+/* ตัวเลขที่เพิ่งได้มาจริง ๆ — ไม่มีอันไหนเป็นค่าที่เขียนไว้ล่วงหน้า
+   เส้นคั่นเป็นขอบซ้ายของใบที่สองเป็นต้นไป จึงไม่ต้องนับจำนวนช่องใน CSS */
+/* กันที่ให้น้องไซ 84px — วัดจริงรอบแรกแล้วตัวเลขช่องที่สามไปอยู่ใต้รูปพอดี
+   รูปกว้าง 72 + ชิดขวา 18 − พาดดิ้งของใบ 20 ≈ 70 · เผื่ออีกนิดกันช่องหายใจ */
+.fw-stats { display: flex; gap: 0; margin-top: 0; padding-right: 84px; }
+.fw-stats > div { flex: 1; min-width: 0; padding: 0 12px; }
+.fw-stats > div:first-child { padding-left: 0; }
+.fw-stats > div + div { border-left: 1px solid color-mix(in srgb, var(--on-fill) 24%, transparent); }
+.fw-stats b { display: block; font-size: 26px; font-weight: 800;
+  line-height: 1.1; color: var(--on-fill); font-variant-numeric: tabular-nums; }
+.fw-stats span { display: block; margin-top: 2px; font-size: 11.5px;
+  font-weight: 600; color: var(--on-fill); opacity: .88; }
+
+/* น้องไซคร่อมขอบล่าง ครึ่งในครึ่งนอก — ท่าเดียวกับจอล็อกอินเป๊ะ
+   จอสองจอที่วางตัวละครคนละท่า อ่านเป็นสองแอป */
+.fw-sai {
+  position: absolute; right: 18px; bottom: -26px;
+  width: 72px; height: 72px; border-radius: 50%; object-fit: cover;
+  border: 3px solid var(--scr); box-shadow: var(--shadow);
+  pointer-events: none; z-index: 3;
+}
+
+/* งานถัดไปเป็นแถวเปล่าบนพื้นจอ ไม่ใช่การ์ดขาว — การ์ดขาวใต้ใบสี
+   ทำให้จอมีของสองชิ้นที่แข่งกัน ทั้งที่ใบบนคือคำตอบ ใบล่างคือคำถามถัดไป */
+/* margin-top:auto อยู่ที่ .fw-next ไม่ใช่ .fw-act — ที่ว่างที่เหลือจึงไปกอง
+   อยู่ใต้ใบพระเอก แทนที่จะแทรกคั่นกลางระหว่าง "งานถัดไป" กับปุ่มที่เป็นของคู่กัน
+   รอบแรกวัดได้ 300px คาอยู่ตรงกลางนั้นพอดี — อาการเดียวกันกับจอเก่า */
+.fw-next { margin-top: 28px; padding: 0 2px; }
+/* --blue-deep ไม่ใช่ --blue — ทุกธีมนิยามมันไว้เป็นตัวที่ตัดกับพื้นมากกว่าเสมอ
+   ทั้งธีมสว่างและธีมมืด · --blue บน --scr ของธีมชมพูวัดได้แค่ 4.30 : 1 */
+.fw-lb { display: block; font-size: 11.5px; font-weight: 700;
+  letter-spacing: .01em; color: var(--muted); }
+.fw-next b { display: block; margin-top: 5px; font-size: 19px; font-weight: 700;
+  line-height: 1.35; color: var(--ink); }
+.fw-min { display: block; margin-top: 5px; font-size: 12.5px;
+  line-height: 1.5; color: var(--muted); }
+
+/* ปุ่มถูกดันไปติดก้นจอ และเต็มแถวทั้งคู่ — ทรงเดียวกับกองปุ่มจอล็อกอิน */
+/* คิวที่เหลือของวันนี้ — แถวบาง ไม่มีพื้น เส้นคั่นทีละเส้น
+   การ์ดขาวสามใบใต้ใบสีจะกลายเป็นกองของสี่ก้อนที่แข่งกันเอง ตามกฎ 1C13 */
+.fw-rest { margin-top: 26px; padding: 0 2px; }
+/* ข้อควรระวัง: ตัวหนังสือที่นั่งบนพื้นจอ (--scr) ตรง ๆ ใช้ --faint ไม่ได้
+   ธีม genesis มี --scr เป็นสีกลาง (142,155,232) — --faint บนนั้นวัดได้ 2.16 : 1
+   (--blue 2.83 · --blue-deep 4.49 · --muted 4.52 · --ink 5.75) — มีแค่ --muted กับ --ink ที่ผ่าน
+   --faint ถูกออกแบบมาสำหรับของที่นั่งบนการ์ด (--card ซึ่งเกือบขาวทุกธีม) ไม่ใช่พื้นจอ */
+.fw-rest .fw-lb { margin-bottom: 4px; color: var(--muted); }
+.fw-row {
+  display: grid; grid-template-columns: 46px 1fr auto; align-items: center;
+  gap: 10px; padding: 10px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13.5px;
+}
+.fw-rt { color: var(--muted); font-size: 12.5px; }
+.fw-rx { min-width: 0; color: var(--ink); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.fw-rm { color: var(--muted); font-size: 12px; }
+
+.fw-act { margin-top: auto; padding-top: 24px; display: grid; gap: 9px; }
+.fw-act .fc-go, .fw-act .fc-later { width: 100%; min-height: 54px; border-radius: 16px; }
 
 /* จอกว้าง: การ์ด NOW ยังต้องเป็นของชิ้นเดียวที่ใหญ่ที่สุด ไม่ใช่ยืดจนอ่านยาก */
 @media (min-width: 720px) {
