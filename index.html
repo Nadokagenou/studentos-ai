@@ -652,145 +652,228 @@
       </div>
 
       <!-- ============ SCREEN: FORM (ยืนยัน/แก้ไข) ============ -->
+      <!-- 1C15 · โครงใหม่แบบ "ใบสั่งอาหาร" (เจ้าของส่งภาพหน้าสั่งอาหารของ Grab มาเป็นตัวอย่าง)
+           สี่อย่างที่ยืมมา แล้วมันแก้ปัญหาของฟอร์มเดิมทีละข้อ:
+             1) แบ่งเป็นบล็อกมีหัวข้อใหญ่ — ของเดิมเป็นป้าย 12px สิบเอ็ดอันเรียงเท่ากันหมด
+                จึงไม่มีทางรู้ว่าอันไหนต้องกรอก อันไหนข้ามได้
+             2) ป้ายขวาหัวบล็อก ("ต้องกรอก" · "เลือก 1" · "ไม่จำเป็นต้องระบุ") — ตอบคำถามนั้น
+                ตั้งแต่ก่อนเริ่มอ่านช่องข้างใน
+             3) ตัวเลือกเป็นแถวสูงกดง่าย ไม่ใช่ dropdown — วิชากับกำหนดส่งเคยเป็นสองแตะ
+                (เปิดรายการ แล้วเลือก) ตอนนี้เหลือแตะเดียว
+             4) ปุ่มบันทึกติดขอบล่างตลอด พร้อมสรุปว่ากำลังจะบันทึกเป็นของวันไหน
+           ที่ไม่ได้ยืมมา: บล็อกเป็นการ์ดมุมมน ไม่ใช่แถบเต็มขอบ — แอปนี้เป็นภาษาการ์ดทั้งเครื่อง
+
+           ช่องเดิมยังอยู่ครบทุกช่องและ id เดิมทั้งหมด (fDetail/fSubject/fDate/fTime/fScore/
+           fEst/fLate/fBlock/fSubs/fRepeat/fGot/fProgress) — saveForm() กับ openForm()
+           อ่านที่เดิมไม่มีอะไรเปลี่ยน · #fSubject กลายเป็นตัวเก็บค่าที่ซ่อนอยู่หลังแถววิชา -->
       <div class="screen flush" id="scr-form">
-        <div class="scr-body form-body">
+        <div class="sticky-head row fm-top">
           <div>
-            <div class="fm-ok" id="fmOk"></div>
-            <h2 class="fm-h" id="formTitle">ตรวจก่อนบันทึก</h2>
+            <h2 class="sh-title" id="formTitle">เพิ่มงานใหม่</h2>
           </div>
+          <button class="sh-btn fm-x" onclick="cancelForm()" aria-label="ปิดโดยไม่บันทึก">
+            <svg viewBox="0 0 24 24"><use href="#lu-x"/></svg></button>
+        </div>
+
+        <div class="scr-body form-body">
+          <div class="fm-ok" id="fmOk"></div>
           <div class="fm-chips" id="detectedChips"></div>
 
-          <div class="fm-card">
-            <div class="fld">
-              <label>ประเภท</label>
-              <div class="type-pick" id="typePick">
-                <button type="button" class="tp" data-type="homework" onclick="setTypePick('homework')">
-                  <svg viewBox="0 0 24 24"><use href="#lu-type"/></svg>การบ้าน</button>
-                <button type="button" class="tp" data-type="exam" onclick="setTypePick('exam')">
-                  <svg viewBox="0 0 24 24"><use href="#lu-book"/></svg>สอบ</button>
-                <button type="button" class="tp" data-type="activity" onclick="setTypePick('activity')">
-                  <svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg>กิจกรรม</button>
-                <button type="button" class="tp" data-type="reminder" onclick="setTypePick('reminder')">
-                  <svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg>อื่น ๆ</button>
-              </div>
+          <!-- บล็อก 1 · สิ่งเดียวที่คนกรอกรู้อยู่แล้วตอนกดเข้ามา จึงอยู่บนสุด -->
+          <section class="fm-sec">
+            <div class="fs-head">
+              <h3 class="fs-h" id="fDetailLabel">งานที่ต้องทำ</h3>
+              <span class="fs-badge req">ต้องกรอก</span>
             </div>
-
-            <div class="fld-row">
-              <div class="fld" id="fSubjectWrap"><label>วิชา</label><select id="fSubject"></select></div>
-              <div class="fld" id="fTeacherWrap"><label>ครูผู้สั่ง</label><input type="text" id="fTeacher" placeholder="เช่น ครูสมชาย"></div>
-            </div>
-
             <!-- เป็น textarea ไม่ใช่ input: ข้อความจาก OCR ยาวเป็นย่อหน้าได้
                  ช่องบรรทัดเดียวจะเลื่อนออกข้าง ทำให้เห็นทีละไม่กี่คำและตรวจก่อนบันทึกไม่ได้
                  rows=1 แล้วให้ autoGrow() ยืดตามเนื้อหา — สั้นก็ไม่กินที่ ยาวก็เห็นครบ -->
-            <div class="fld"><label id="fDetailLabel">งานที่ต้องทำ</label>
-              <textarea id="fDetail" rows="1" placeholder="เช่น ทำโจทย์บทที่ 4 ข้อ 1–10"></textarea></div>
+            <div class="fld" id="fDetailFld">
+              <textarea id="fDetail" rows="1" placeholder="เช่น ทำโจทย์บทที่ 4 ข้อ 1–10"></textarea>
+            </div>
+            <button type="button" class="fs-alt" onclick="go('scr-scan')">
+              <svg viewBox="0 0 24 24"><use href="#lu-mic"/></svg>พูดหรือถ่ายรูปแทนการพิมพ์</button>
+          </section>
 
-            <div class="fld-row">
-              <div class="fld" style="flex:1.3"><label id="fDateLabel">กำหนดส่ง</label>
-                <div class="fld-pair accent">
-                  <input type="date" id="fDate"><input type="time" id="fTime">
+          <!-- บล็อก 2 · ประเภท — แถวเดียวต่อหนึ่งตัวเลือก มีจุดกลมบอกว่าเลือกอันไหนอยู่ -->
+          <section class="fm-sec">
+            <div class="fs-head">
+              <h3 class="fs-h">ประเภท</h3>
+              <span class="fs-badge">เลือก 1</span>
+            </div>
+            <div class="pick-rows" id="typePick">
+              <button type="button" class="tp" data-type="homework" onclick="setTypePick('homework')">
+                <span class="pk-dot"></span><svg viewBox="0 0 24 24"><use href="#lu-type"/></svg>การบ้าน</button>
+              <button type="button" class="tp" data-type="exam" onclick="setTypePick('exam')">
+                <span class="pk-dot"></span><svg viewBox="0 0 24 24"><use href="#lu-book"/></svg>สอบ</button>
+              <button type="button" class="tp" data-type="activity" onclick="setTypePick('activity')">
+                <span class="pk-dot"></span><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg>กิจกรรม</button>
+              <button type="button" class="tp" data-type="reminder" onclick="setTypePick('reminder')">
+                <span class="pk-dot"></span><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg>อื่น ๆ</button>
+            </div>
+          </section>
+
+          <!-- บล็อก 3 · วิชา — วิชาที่เพิ่งใช้ขึ้นก่อน ที่เหลือซ่อนไว้หลังปุ่ม "ดูวิชาทั้งหมด"
+               (18 วิชาเรียงเป็นแถวหมดคือบล็อกที่ยาวกว่าฟอร์มทั้งอันเดิม)
+               #fSubject ยังอยู่ เป็นที่เก็บค่าจริงที่ saveForm() อ่าน — แถวข้างบนแค่เขียนใส่มัน -->
+          <section class="fm-sec" id="fSubjectWrap">
+            <div class="fs-head">
+              <h3 class="fs-h">วิชา</h3>
+              <span class="fs-badge">เลือก 1</span>
+            </div>
+            <div class="pick-rows" id="subjRows"></div>
+            <button type="button" class="fs-alt" id="subjMore" onclick="toggleSubjAll()">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>ดูวิชาทั้งหมด</button>
+            <select id="fSubject" hidden></select>
+          </section>
+
+          <!-- บล็อก 4 · กำหนดส่ง — สามวันที่ใช้จริงเกือบทุกใบเป็นแถวกดทีเดียว
+               ปฏิทินยังอยู่ แต่ถอยไปอยู่หลังแถว "เลือกวันเอง" -->
+          <section class="fm-sec">
+            <div class="fs-head">
+              <h3 class="fs-h" id="fDateLabel">กำหนดส่ง</h3>
+              <span class="fs-badge req">ต้องกรอก</span>
+            </div>
+            <div class="pick-rows" id="duePick"></div>
+            <div class="fld due-exact" id="dueExact" hidden>
+              <input type="date" id="fDate">
+            </div>
+            <div class="due-time">
+              <span class="dt-l">เวลา</span>
+              <input type="time" id="fTime">
+            </div>
+          </section>
+
+          <!-- ============================================================
+               บล็อก 5 · ของที่ข้ามได้ทั้งหมด
+               ============================================================
+               ทุกช่องในนี้เป็นแถวสรุป "ชื่อช่อง + ค่าปัจจุบัน" กดแล้วกางช่องจริงออกมา
+               (<details> ของเบราว์เซอร์ ไม่ต้องมี JS คุมการเปิดปิด)
+               ค่าเริ่มต้นคือปิดทุกแถว — งานหนึ่งใบบันทึกได้โดยไม่ต้องเปิดสักแถว
+               และคนที่อยากแก้อันเดียว ไม่ต้องเลื่อนผ่านอีกเก้าช่องที่ไม่ได้ใช้ -->
+          <section class="fm-sec">
+            <div class="fs-head">
+              <h3 class="fs-h">รายละเอียด</h3>
+              <span class="fs-badge">ไม่จำเป็นต้องระบุ</span>
+            </div>
+            <p class="fs-note">ช่องที่ไม่ได้กรอก น้องไซเดาให้เอง</p>
+
+            <details class="fm-row" id="fTeacherWrap">
+              <summary><span class="rw-l">ครูผู้สั่ง</span><span class="rw-v" id="rvTeacher">ยังไม่ระบุ</span></summary>
+              <div class="rw-body fld"><input type="text" id="fTeacher" placeholder="เช่น ครูสมชาย"></div>
+            </details>
+
+            <details class="fm-row" id="fScoreWrap">
+              <summary><span class="rw-l">คะแนน</span><span class="rw-v" id="rvScore">ให้ AI เดา</span></summary>
+              <div class="rw-body fld"><input type="number" id="fScore" min="0" max="100" placeholder="20"></div>
+            </details>
+
+            <details class="fm-row" id="fStarWrap">
+              <summary><span class="rw-l">ความสำคัญ</span><span class="rw-v" id="rvStars">AI จัดให้</span></summary>
+              <div class="rw-body">
+                <div class="star-pick" id="starPick">
+                  <button type="button" class="sp sp-auto" data-lv="0" onclick="setStarPick(0)">AI จัดให้</button>
+                  <button type="button" class="sp lv1" data-lv="1" onclick="setStarPick(1)">★1</button>
+                  <button type="button" class="sp lv2" data-lv="2" onclick="setStarPick(2)">★2</button>
+                  <button type="button" class="sp lv3" data-lv="3" onclick="setStarPick(3)">★3</button>
+                  <button type="button" class="sp lv4" data-lv="4" onclick="setStarPick(4)">★4</button>
+                  <button type="button" class="sp lv5" data-lv="5" onclick="setStarPick(5)">★5</button>
                 </div>
               </div>
-              <div class="fld" id="fScoreWrap"><label>คะแนน</label>
-                <input type="number" id="fScore" min="0" max="100" placeholder="20"></div>
-            </div>
+            </details>
+
+            <details class="fm-row" id="fEstWrap">
+              <summary><span class="rw-l" id="fEstLabel">ใช้เวลา</span><span class="rw-v" id="fEstVal">30 นาที</span></summary>
+              <div class="rw-body">
+                <input type="range" id="fEst" min="5" max="180" step="5" value="30"
+                  oninput="document.getElementById('fEstVal').textContent = this.value + ' นาที'">
+              </div>
+            </details>
 
             <!-- 1B80 · สองอย่างที่เปลี่ยนคำตอบของเอนจินมากกว่าคะแนน แต่ไม่เคยถามมาก่อน
                  ทั้งคู่มีค่าเริ่มต้นที่เดาให้แล้วจาก facts.js — ช่องนี้มีไว้ "แก้" ไม่ใช่ "กรอก"
                  ว่างไว้ = ใช้ค่าที่เดา ซึ่งถูกสำหรับงานส่วนใหญ่ -->
-            <div class="fld">
-              <label>ส่งช้าได้ไหม</label>
-              <select id="fLate">
-                <option value="">ให้ AI เดาจากงาน</option>
-                <option value="penalty">ส่งช้าได้ แต่โดนหักคะแนน</option>
-                <option value="zero">ส่งช้าไม่ได้เลย</option>
-                <option value="ok">ส่งช้าได้ ไม่มีผล</option>
-              </select>
-            </div>
-
-            <div class="fld" id="fBlockWrap">
-              <label>ต้องทำอะไรให้เสร็จก่อน</label>
-              <select id="fBlock"><option value="">ไม่ต้องรออะไร</option></select>
-            </div>
-
-            <div class="fld" id="fEstWrap">
-              <div class="fld-head"><label id="fEstLabel">ใช้เวลา</label><span class="val" id="fEstVal">30 นาที</span></div>
-              <input type="range" id="fEst" min="5" max="180" step="5" value="30"
-                oninput="document.getElementById('fEstVal').textContent = this.value + ' นาที'">
-            </div>
-
-            <div class="fld">
-              <label>ความสำคัญ</label>
-              <div class="star-pick" id="starPick">
-                <button type="button" class="sp sp-auto" data-lv="0" onclick="setStarPick(0)">AI จัดให้</button>
-                <button type="button" class="sp lv1" data-lv="1" onclick="setStarPick(1)">★1</button>
-                <button type="button" class="sp lv2" data-lv="2" onclick="setStarPick(2)">★2</button>
-                <button type="button" class="sp lv3" data-lv="3" onclick="setStarPick(3)">★3</button>
-                <button type="button" class="sp lv4" data-lv="4" onclick="setStarPick(4)">★4</button>
-                <button type="button" class="sp lv5" data-lv="5" onclick="setStarPick(5)">★5</button>
+            <details class="fm-row" id="fLateWrap">
+              <summary><span class="rw-l">ส่งช้าได้ไหม</span><span class="rw-v" id="rvLate">ให้ AI เดา</span></summary>
+              <div class="rw-body fld">
+                <select id="fLate">
+                  <option value="">ให้ AI เดาจากงาน</option>
+                  <option value="penalty">ส่งช้าได้ แต่โดนหักคะแนน</option>
+                  <option value="zero">ส่งช้าไม่ได้เลย</option>
+                  <option value="ok">ส่งช้าได้ ไม่มีผล</option>
+                </select>
               </div>
-            </div>
+            </details>
 
-            <!-- ============================================================
-                 1B43 · F2 งานย่อย · F3 งานซ้ำ · F5 คะแนนที่ได้
-                 ============================================================
-                 สามช่องนี้อยู่ท้ายฟอร์มทั้งหมด ไม่ใช่บนสุด เพราะไม่มีอันไหนจำเป็น
-                 ต่อการบันทึกงานหนึ่งใบ · ช่องที่จำเป็น (ชื่อ · วิชา · กำหนดส่ง)
-                 ต้องกรอกจบก่อนโดยไม่ต้องเลื่อนผ่านของที่ข้ามได้ -->
+            <details class="fm-row" id="fBlockWrap">
+              <summary><span class="rw-l">ต้องทำอะไรให้เสร็จก่อน</span><span class="rw-v" id="rvBlock">ไม่ต้องรออะไร</span></summary>
+              <div class="rw-body fld">
+                <select id="fBlock"><option value="">ไม่ต้องรออะไร</option></select>
+              </div>
+            </details>
 
             <!-- F2 · งานย่อย — งานใหญ่แตกเป็นข้อ ๆ ติ๊กทีละข้อ
                  หนึ่งบรรทัดต่อหนึ่งข้อ ไม่ใช่ปุ่ม "เพิ่มข้อ" ทีละข้อ เพราะคนที่รู้อยู่แล้ว
                  ว่าจะแตกเป็นอะไรบ้าง พิมพ์รวดเดียวเร็วกว่ากดเพิ่มทีละบรรทัดสามรอบ -->
-            <div class="fld" id="fSubsWrap">
-              <div class="fld-head"><label>งานย่อย</label><span class="val" id="fSubsVal">ไม่มี</span></div>
-              <!-- 1C14 · rows="4" ไม่ใช่ 2 — ข้อความตัวอย่างข้างในมีสี่บรรทัด
-                   กล่องสูงสองบรรทัดจึงตัดคำว่า "เขียนร่าง" ค้างครึ่งตัวตลอดเวลา
-                   อ่านเป็นของที่พัง ไม่ใช่ของที่ย่อไว้ · กล่องนี้อยู่ท้ายฟอร์ม
-                   ในกลุ่มช่องที่ข้ามได้ ความสูงที่เพิ่มมาจึงไม่ได้ผลักช่องจำเป็นลงไปไหน -->
-              <textarea id="fSubs" rows="4" oninput="updateSubsCount()"
-                placeholder="หนึ่งบรรทัดต่อหนึ่งข้อ&#10;หาข้อมูล&#10;เขียนร่าง&#10;ตรวจคำผิด"></textarea>
-            </div>
+            <details class="fm-row" id="fSubsWrap">
+              <summary><span class="rw-l">งานย่อย</span><span class="rw-v" id="fSubsVal">ไม่มี</span></summary>
+              <div class="rw-body fld">
+                <textarea id="fSubs" rows="4" oninput="updateSubsCount()"
+                  placeholder="หนึ่งบรรทัดต่อหนึ่งข้อ&#10;หาข้อมูล&#10;เขียนร่าง&#10;ตรวจคำผิด"></textarea>
+              </div>
+            </details>
 
             <!-- F3 · งานซ้ำ — การบ้านที่สั่งทุกสัปดาห์ ตั้งครั้งเดียวจบ
                  ใบใหม่ถูกสร้างตอน "ติ๊กเสร็จ" ไม่ใช่ตอนถึงกำหนด เพราะงานที่ยังไม่เสร็จ
                  แล้วมีใบถัดไปโผล่มาซ้อน คือรายการที่ยาวขึ้นเรื่อย ๆ โดยไม่มีใครทำทัน -->
-            <div class="fld" id="fRepeatWrap">
-              <label>ซ้ำอีกไหม</label>
-              <select id="fRepeat">
-                <option value="">ไม่ซ้ำ</option>
-                <option value="7">ทุกสัปดาห์</option>
-                <option value="14">ทุกสองสัปดาห์</option>
-                <option value="1">ทุกวัน</option>
-              </select>
-            </div>
+            <details class="fm-row" id="fRepeatWrap">
+              <summary><span class="rw-l">ซ้ำอีกไหม</span><span class="rw-v" id="rvRepeat">ไม่ซ้ำ</span></summary>
+              <div class="rw-body fld">
+                <select id="fRepeat">
+                  <option value="">ไม่ซ้ำ</option>
+                  <option value="7">ทุกสัปดาห์</option>
+                  <option value="14">ทุกสองสัปดาห์</option>
+                  <option value="1">ทุกวัน</option>
+                </select>
+              </div>
+            </details>
+
+            <details class="fm-row" id="fProgressWrap">
+              <summary><span class="rw-l">ความคืบหน้า</span><span class="rw-v" id="fProgressVal">0%</span></summary>
+              <div class="rw-body">
+                <input type="range" id="fProgress" min="0" max="100" step="5" value="0"
+                  oninput="document.getElementById('fProgressVal').textContent = this.value + '%'">
+              </div>
+            </details>
 
             <!-- F5 · คะแนนที่ได้จริง — คนละเรื่องกับช่อง "คะแนน" ข้างบน
                  ข้างบนคือน้ำหนัก (งานนี้กี่ % ของเทอม) ซึ่งรู้ตั้งแต่ครูสั่ง
                  ช่องนี้คือผลที่ได้กลับมา ซึ่งรู้หลังส่ง — สองอย่างนี้ปนกันไม่ได้เด็ดขาด
                  โผล่เฉพาะตอนแก้งานที่มีอยู่แล้ว เพราะงานที่เพิ่งเพิ่มยังไม่มีผล -->
-            <div class="fld" id="fGotWrap" hidden>
-              <label id="fGotLabel">ได้คะแนนเท่าไหร่</label>
-              <div class="row-2">
-                <input type="number" id="fGot" min="0" step="0.5" placeholder="18">
-                <input type="number" id="fGotMax" min="1" step="0.5" placeholder="เต็ม 20">
+            <details class="fm-row" id="fGotWrap" hidden>
+              <summary><span class="rw-l" id="fGotLabel">ได้คะแนนเท่าไหร่</span><span class="rw-v" id="rvGot">ยังไม่รู้ผล</span></summary>
+              <div class="rw-body fld">
+                <div class="row-2">
+                  <input type="number" id="fGot" min="0" step="0.5" placeholder="18">
+                  <input type="number" id="fGotMax" min="1" step="0.5" placeholder="เต็ม 20">
+                </div>
               </div>
-            </div>
+            </details>
+          </section>
 
-            <div class="fld" id="fProgressWrap">
-              <div class="fld-head"><label>ความคืบหน้า</label><span class="val" id="fProgressVal">0%</span></div>
-              <input type="range" id="fProgress" min="0" max="100" step="5" value="0"
-                oninput="document.getElementById('fProgressVal').textContent = this.value + '%'">
-            </div>
-          </div>
+          <!-- โชว์เฉพาะตอนแก้งานที่มีอยู่แล้ว — ลบแล้วไปนอนในถังขยะ กู้คืนได้ -->
+          <button class="fm-del" id="fmDel" onclick="deleteFromForm()" hidden>
+            <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg>ย้ายงานนี้ไปถังขยะ</button>
+        </div>
 
-          <div style="display:flex;flex-direction:column;gap:9px">
-            <button class="fm-save" onclick="saveForm()">บันทึกเข้าแผน</button>
-            <button class="fm-cancel" onclick="cancelForm()">ยกเลิก</button>
-            <!-- โชว์เฉพาะตอนแก้งานที่มีอยู่แล้ว — ลบแล้วไปนอนในถังขยะ กู้คืนได้ -->
-            <button class="fm-del" id="fmDel" onclick="deleteFromForm()" hidden>
-              <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg>ย้ายงานนี้ไปถังขยะ</button>
-          </div>
+        <!-- ปุ่มเดียวของจอนี้ ติดขอบล่างตลอดการเลื่อน (sticky ไม่ใช่ fixed — มันอยู่ในกล่อง
+             ที่เลื่อนอยู่แล้ว) · บรรทัดล่างสรุปว่ากำลังจะบันทึกเป็นของวันไหน เวลาเท่าไหร่
+             z-index ต่ำกว่าแถบแท็บ เพื่อไม่ให้พื้นของมันไปบังแคปซูลแท็บด้านล่าง -->
+        <div class="fm-bar">
+          <button class="fm-save" onclick="saveForm()">
+            <span class="fb-t">บันทึกเข้าแผน</span>
+            <span class="fb-s" id="fmSaveSub"></span>
+          </button>
         </div>
       </div>
 
