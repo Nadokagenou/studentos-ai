@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C14';                 // สายเลขของแอป
-const APP_CODENAME = 'Welcome';           // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1C15';                 // สายเลขของแอป
+const APP_CODENAME = 'Order';           // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -9588,12 +9588,15 @@ function setTypePick(type) {
   show('fEstWrap', isWork);
   show('fTeacherWrap', isHomework || formType === 'exam');
   show('fProgressWrap', isWork);
+  // แถวสรุปกับป้ายบนหัวบล็อกเปลี่ยนตามประเภทที่เพิ่งเลือก
+  if (typeof syncFormUI === 'function') syncFormUI();
 }
 
 function setStarPick(n) {
   formUserStars = n;
   document.querySelectorAll('#starPick .sp').forEach(b =>
     b.classList.toggle('active', +b.dataset.lv === n));
+  if (typeof updateFormSummary === 'function') updateFormSummary();
 }
 
 function fillSubjectSelect() {
@@ -9694,14 +9697,20 @@ function openForm(id, parsed) {
   if (del) del.hidden = !(id && state.tasks.some(x => x.id === id));
 
   // ALT: ช่องที่ค่ามาจากคำที่ OCR ไม่มั่นใจ ตีกรอบเตือนไว้ให้ตรวจก่อนบันทึก
-  document.querySelectorAll('#scr-form .fld.unsure').forEach(el => el.classList.remove('unsure'));
+  document.querySelectorAll('#scr-form .unsure').forEach(el => el.classList.remove('unsure'));
   // due อยู่ในนี้ด้วยเพราะกำหนดส่งที่กู้มาจากเดือนย่อที่อ่านเพี้ยน (detected.dueFuzzy)
   // เป็นค่าที่ "เดามาให้" ไม่ใช่ค่าที่อ่านได้ชัด ๆ — ต้องให้ผู้ใช้เห็นว่าควรตรวจตรงไหน
-  const unsureIds = { subject: 'fSubject', teacher: 'fTeacher', detail: 'fDetail', due: 'fDate' };
+  //
+  // 1C15 · ชี้ไปที่ "กล่องของช่อง" ตรง ๆ ไม่ใช่ closest('.fld') อีกแล้ว
+  // โครงใหม่มีสองช่องที่ไม่มี .fld ห่ออีกต่อไป: วิชาเป็นแถวกด (select ซ่อนอยู่)
+  // ส่วนครูผู้สั่งอยู่ในแถวที่พับไว้ — กรอบเตือนที่มองไม่เห็นคือกรอบที่ไม่มีอยู่จริง
+  // แถวที่พับไว้จึงต้องถูกกางให้ด้วยเมื่อโดนหมายว่าไม่ชัด
+  const unsureWraps = { subject: 'fSubjectWrap', teacher: 'fTeacherWrap', detail: 'fDetailFld', due: 'dueExact' };
   for (const key of (parsed && parsed._low) || []) {
-    const el = document.getElementById(unsureIds[key]);
-    const fld = el && el.closest('.fld');
-    if (fld) fld.classList.add('unsure');
+    const wrap = document.getElementById(unsureWraps[key]);
+    if (!wrap) continue;
+    wrap.classList.add('unsure');
+    if (wrap.tagName === 'DETAILS') wrap.open = true;
   }
 
   setTypePick(t ? taskType(t) : 'homework');
@@ -9740,6 +9749,14 @@ function openForm(id, parsed) {
   // "บันทึกเข้าแผน" ของจอนี้ (เจ้าของส่งภาพมา 20 ก.ย. 2569)
   if (typeof paintFeedFab === 'function') paintFeedFab();
   // ต้องยืดหลังจอถูกแสดงแล้ว — วัด scrollHeight ตอนจอยัง display:none ได้ 0 ทุกครั้ง
+  // 1C15 · จอนี้สลับเองไม่ผ่าน go() คลาสของ body จึงค้างเป็นของจอก่อนหน้า
+  // deep-scr คือตัวที่สั่งให้ปุ่มเพื่อนลอยมุมขวาบนหลบ — ไม่สั่ง มันจะมานั่งทับหัวจอนี้
+  // (บั๊กตัวเดียวกับปุ่มลอยของ 1C14 — จอที่สลับเองต้องทำงานที่ go() ทำให้เองทุกอย่าง)
+  document.body.classList.add('deep-scr');
+  // 1C15 · วาดแถววิชา/กำหนดส่ง และค่าสรุปทุกแถว — หลังเติมค่าลงช่องจริงครบทุกช่องแล้ว
+  subjShowAll = false;
+  dueCustom = false;
+  syncFormUI();
   autoGrow(f.detail);
 }
 
@@ -9750,6 +9767,169 @@ function updateSubsCount() {
   if (!box || !val) return;
   const n = box.value.split('\n').map(x => x.trim()).filter(Boolean).length;
   val.textContent = n ? n + ' ข้อ' : 'ไม่มี';
+}
+
+// ============================================================
+// 1C15 · แถวเลือกของฟอร์ม (วิชา · กำหนดส่ง) + แถวสรุปของช่องที่ข้ามได้
+// ------------------------------------------------------------
+// ทั้งชุดนี้เป็น "หน้าตา" ล้วน ๆ — ค่าจริงยังอยู่ใน <select id="fSubject">,
+// <input id="fDate"> ฯลฯ ที่เดิมทุกตัว saveForm() จึงไม่ต้องรู้ว่ามีแถวพวกนี้อยู่
+// (ถ้าวันหนึ่งอยากถอยกลับไปเป็น dropdown ก็ลบเฉพาะบล็อกนี้กับ CSS ของมันได้เลย)
+// ============================================================
+
+let subjShowAll = false;   // แถววิชากางครบ 18 วิชาแล้วหรือยัง
+let dueCustom = false;     // คนกดเลือกวันจากปฏิทินเอง (ไม่ใช่สามปุ่มลัด)
+
+// วิชาที่ควรอยู่ในห้าแถวแรก: วิชาของใบที่กำลังแก้ → วิชาที่ใช้บ่อยในแผน → ชุดตั้งต้น
+// คนที่เพิ่งเริ่มใช้แอปยังไม่มีประวัติ แถวจึงต้องมีของให้กดตั้งแต่ใบแรก
+function recentSubjects() {
+  const count = {};
+  for (const t of (state.tasks || [])) {
+    if (t && t.subject && !t.deleted) count[t.subject] = (count[t.subject] || 0) + 1;
+  }
+  const used = Object.keys(count).sort((a, b) => count[b] - count[a]);
+  const fallback = ['คณิตศาสตร์', 'ภาษาอังกฤษ', 'วิทยาศาสตร์', 'ภาษาไทย', 'สังคมศึกษา'];
+  const sel = document.getElementById('fSubject');
+  const cur = sel && sel.value;
+  const out = [];
+  for (const name of [cur, ...used, ...fallback]) {
+    if (name && !out.includes(name) && SUBJECTS.some(s => s.name === name)) out.push(name);
+  }
+  return out.slice(0, 5);
+}
+
+function renderSubjRows() {
+  const box = document.getElementById('subjRows');
+  const sel = document.getElementById('fSubject');
+  const more = document.getElementById('subjMore');
+  if (!box || !sel) return;
+  const cur = sel.value || 'อื่น ๆ';
+  const names = subjShowAll
+    ? SUBJECTS.map(s => s.name)
+    : recentSubjects().concat(['อื่น ๆ']).filter((n, i, a) => a.indexOf(n) === i);
+  box.innerHTML = names.map(n =>
+    `<button type="button" class="pk${n === cur ? ' on' : ''}" onclick="pickSubject('${esc(n).replace(/'/g, "\\'")}')">`
+    + `<span class="pk-dot"></span>${esc(n)}</button>`).join('');
+  if (more) {
+    more.hidden = false;
+    more.querySelector('svg') && more.classList.toggle('up', subjShowAll);
+    const label = more.lastChild;
+    if (label && label.nodeType === 3) label.nodeValue = subjShowAll ? 'ย่อรายการวิชา' : 'ดูวิชาทั้งหมด';
+  }
+}
+
+function pickSubject(name) {
+  const sel = document.getElementById('fSubject');
+  if (!sel) return;
+  sel.value = name;
+  renderSubjRows();
+  updateFormSummary();
+}
+
+function toggleSubjAll() {
+  subjShowAll = !subjShowAll;
+  renderSubjRows();
+}
+
+// ---------- กำหนดส่ง ----------
+function dateInputValue(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+    + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function renderDueRows() {
+  const box = document.getElementById('duePick');
+  const f = document.getElementById('fDate');
+  const exact = document.getElementById('dueExact');
+  if (!box || !f) return;
+  const today = new Date();
+  const presets = [[0, 'วันนี้'], [1, 'พรุ่งนี้'], [2, 'มะรืนนี้']].map(([n, label]) => {
+    const d = addDays(today, n);
+    return { n, label, v: dateInputValue(d), sub: d.getDate() + ' ' + MONTH_SHORT[d.getMonth()] };
+  });
+  const hit = presets.find(p => p.v === f.value);
+  box.innerHTML = presets.map(p =>
+    `<button type="button" class="pk${hit === p ? ' on' : ''}" onclick="pickDue(${p.n})">`
+    + `<span class="pk-dot"></span>${p.label}<span class="pk-s">${p.sub}</span></button>`).join('')
+    + `<button type="button" class="pk${hit ? '' : ' on'}" onclick="pickDueCustom()">`
+    + `<span class="pk-dot"></span>เลือกวันเอง`
+    + (!hit && f.value ? `<span class="pk-s">${esc(thaiDateShort(f.value))}</span>` : '') + `</button>`;
+  // ปฏิทินโผล่เมื่อคนขอเอง หรือเมื่อวันที่ในใบไม่ตรงกับปุ่มลัดอันไหนเลย
+  // (รวมถึงตอนที่ OCR เดาวันมาแล้วไม่มั่นใจ — .unsure ตีกรอบไว้ที่กล่องนี้)
+  if (exact) exact.hidden = !(dueCustom || !hit || exact.classList.contains('unsure'));
+}
+
+function thaiDateShort(v) {
+  const d = new Date(v + 'T00:00');
+  if (isNaN(d)) return '';
+  return d.getDate() + ' ' + MONTH_SHORT[d.getMonth()];
+}
+
+function pickDue(n) {
+  const f = document.getElementById('fDate');
+  if (!f) return;
+  dueCustom = false;
+  f.value = dateInputValue(addDays(new Date(), n));
+  renderDueRows();
+  updateFormSummary();
+}
+
+function pickDueCustom() {
+  const f = document.getElementById('fDate');
+  dueCustom = true;
+  renderDueRows();
+  if (!f) return;
+  // showPicker() เปิดปฏิทินให้เลย — ไม่งั้นคนต้องกดสองที (กดแถว แล้วกดช่องวันที่)
+  // ไม่ใช่ทุกเบราว์เซอร์มี และบางตัวโยนทิ้งถ้าเรียกนอก user gesture จึงต้องกันไว้
+  try { if (typeof f.showPicker === 'function') f.showPicker(); else f.focus(); } catch (e) { f.focus(); }
+}
+
+// ---------- แถวสรุปของช่องที่ข้ามได้ + บรรทัดล่างของปุ่มบันทึก ----------
+function selText(id) {
+  const el = document.getElementById(id);
+  if (!el || el.selectedIndex < 0) return '';
+  return el.options[el.selectedIndex].textContent.trim();
+}
+function setRow(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function updateFormSummary() {
+  const v = id => (document.getElementById(id) || {}).value || '';
+  setRow('rvTeacher', v('fTeacher').trim() || 'ยังไม่ระบุ');
+  setRow('rvScore', v('fScore') ? v('fScore') + ' คะแนน' : 'ให้ AI เดา');
+  setRow('rvStars', formUserStars ? '★' + formUserStars : 'AI จัดให้');
+  setRow('fEstVal', (v('fEst') || 30) + ' นาที');
+  setRow('rvLate', v('fLate') ? selText('fLate') : 'ให้ AI เดา');
+  setRow('rvBlock', v('fBlock') ? selText('fBlock') : 'ไม่ต้องรออะไร');
+  setRow('rvRepeat', v('fRepeat') ? selText('fRepeat') : 'ไม่ซ้ำ');
+  setRow('fProgressVal', (v('fProgress') || 0) + '%');
+  setRow('rvGot', v('fGot') === '' ? 'ยังไม่รู้ผล' : v('fGot') + '/' + (v('fGotMax') || '?'));
+  updateSubsCount();
+
+  // บรรทัดล่างปุ่มบันทึก — ปุ่มที่ติดขอบจอตลอดต้องบอกได้ว่ากำลังจะบันทึกเป็นของวันไหน
+  // เพราะคนกดมันตอนที่หัวข้อ "กำหนดส่ง" เลื่อนพ้นจอไปแล้ว
+  const sub = document.getElementById('fmSaveSub');
+  if (sub) {
+    const dv = v('fDate');
+    if (!dv) { sub.textContent = 'ยังไม่ได้เลือกวัน'; }
+    else {
+      const d = new Date(dv + 'T' + (v('fTime') || '23:59'));
+      const days = Math.round((new Date(dv + 'T00:00') - atTime(new Date(), 0, 0)) / 864e5);
+      const near = days === 0 ? 'วันนี้' : days === 1 ? 'พรุ่งนี้' : days === 2 ? 'มะรืนนี้'
+        : days < 0 ? 'เลยกำหนดแล้ว' : 'วัน' + THAI_DAY[d.getDay()];
+      sub.textContent = near + ' · ' + d.getDate() + ' ' + MONTH_SHORT[d.getMonth()]
+        + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    }
+  }
+}
+
+// เรียกทีเดียวจบทั้งจอ — ใช้ตอนเปิดฟอร์ม และทุกครั้งที่มีการพิมพ์/เลือกในฟอร์ม
+function syncFormUI() {
+  renderSubjRows();
+  renderDueRows();
+  updateFormSummary();
 }
 
 // ---- 1B43 · F2 · ติ๊กข้อย่อยจากการ์ดงาน ----
@@ -12926,6 +13106,14 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   // ช่อง "งานที่ต้องทำ" ยืดตามที่พิมพ์ · เกาะครั้งเดียวตอนบูต เพราะฟอร์มไม่ได้ถูกสร้างใหม่ทุกครั้ง
   const fd = document.getElementById('fDetail');
   if (fd) fd.addEventListener('input', () => autoGrow(fd));
+  // 1C15 · ทุกการพิมพ์/เลือกในฟอร์ม → แถวสรุปกับบรรทัดใต้ปุ่มบันทึกขยับตาม
+  // เกาะที่กรอบจอครั้งเดียว — ฟอร์มไม่ได้ถูกสร้างใหม่ทุกครั้งที่เปิด
+  const formScreen = document.getElementById('scr-form');
+  if (formScreen) {
+    const sync = () => { if (typeof syncFormUI === 'function') syncFormUI(); };
+    formScreen.addEventListener('input', sync);
+    formScreen.addEventListener('change', sync);
+  }
 
   // วาดจอแรกตรงนี้ ก่อน await ทุกตัวข้างล่าง — นี่คือบรรทัดที่ทำให้เอาฉากเปิดแอปออกได้
   // ทุกอย่างที่จำเป็นต่อการวาดจอ (ธีม ฟอนต์สเกล พื้นหลัง เมนู) ถูกตั้งครบไปแล้วข้างบน

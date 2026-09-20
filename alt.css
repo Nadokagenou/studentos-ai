@@ -2911,6 +2911,24 @@
   box-shadow: inset 0 0 0 1.5px var(--warn);
   background: var(--warn-soft);
 }
+/* 1C15 · โครงใหม่ของจอเพิ่มงาน: ช่องที่ OCR ไม่มั่นใจอาจเป็นบล็อกวิชา
+   (ไม่มี input ให้ตีกรอบ) หรือแถวสรุปที่พับไว้ — ต้องมีที่เกาะป้ายทั้งสามแบบ
+   ช่องวันที่เป็น input[type=date] ซึ่งกฎเดิมไม่ครอบถึง */
+.fld.unsure input[type=date],
+.fld.unsure input[type=number] {
+  box-shadow: inset 0 0 0 1.5px var(--warn);
+  background: var(--warn-soft);
+}
+.fld.unsure::before {
+  content: 'อ่านได้ไม่ชัด — ตรวจอีกทีหน่อย';
+  font-size: 11.5px; font-weight: 700; color: var(--warn);
+}
+.fm-sec.unsure { box-shadow: var(--shadow), inset 0 0 0 1.5px var(--warn); }
+.fm-sec.unsure .fs-h::after,
+.fm-row.unsure > summary .rw-l::after {
+  content: ' · ไม่ค่อยชัด';
+  color: var(--warn); font-weight: 700; font-size: 11.5px;
+}
 
 /* ---------- หน้าครอบกรอบก่อนอ่าน ---------- */
 .crop-body { gap: 16px; padding-top: 22px; }
@@ -7856,4 +7874,170 @@ button.df-r:active { background: var(--surface); }
   padding: 3px 10px; border-radius: 999px;
   background: var(--gold-text, var(--warn)); color: var(--card);
   font-weight: 700;
+}
+
+/* ============================================================
+   1C15 · ฟอร์มเพิ่ม/แก้งาน — โครงบล็อกแบบหน้าสั่งอาหาร
+   ------------------------------------------------------------
+   จอนี้ไม่มี .fm-card ห่ออีกแล้ว (เป็น .fm-sec หลายใบแทน) หน้าตาของช่องกรอก
+   ที่ style.css เขียนไว้ให้ลูกของ .fm-card จึงมาไม่ถึง — ต้องเขียนซ้ำให้ .fm-sec
+   ทั้งชุด ตัวเลขทุกตัวลอกมาจากของเดิมเป๊ะ เพื่อให้ช่องในจอนี้หน้าตาเดียวกับ
+   ช่องกรอกที่อื่นทั้งแอป (ดูบล็อก 1A6M3 ข้างบน)
+   สีทุกจุดเป็นโทเคน ไม่มีค่าดิบ — ธีมมืด/โอเชียนจึงไม่ต้องแก้อะไรเพิ่ม
+   ============================================================ */
+/* จอนี้คุมระยะขอบล่างเองด้วยปุ่มที่ติดขอบ — padding ของจอ (22px จากกฎกลาง)
+   ดันขอบล่างของ sticky ขึ้นมา แล้วเนื้อหาโผล่ใต้ปุ่มเป็นแถบ อ่านว่าเลย์เอาต์หลุด */
+#scr-form { padding-bottom: 0; }
+#scr-form .form-body { padding-top: 14px; padding-bottom: 8px; gap: 10px; }
+#scr-form .fm-chips:empty { display: none; }
+
+.fm-sec {
+  background: var(--card);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 15px 15px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fs-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+/* หัวบล็อก 17px หนา — ของเดิมเป็นป้าย 12px ตัวพิมพ์ใหญ่ ซึ่งอ่านเป็น "ชื่อช่อง"
+   ไม่ใช่ "หัวข้อของกลุ่ม" ทั้งฟอร์มจึงแบนเท่ากันหมดไม่มีอะไรนำสายตา
+   ไม่ถ่างตัวอักษร (letter-spacing ติดลบ) — คำไทยแตกเป็นตัว ๆ ถ้าถ่าง ดู 1C07–1C08 */
+.fs-h { font-size: 17px; font-weight: 700; letter-spacing: -.02em; margin: 0; line-height: 1.3; }
+.fs-badge {
+  flex: none; font-size: 11.5px; font-weight: 600; white-space: nowrap;
+  padding: 4px 10px; border-radius: 999px;
+  background: var(--card2); color: var(--muted);
+}
+.fs-badge.req { background: var(--blue-soft); color: var(--blue-deep); }
+.fs-note { margin: -4px 0 0; font-size: 12px; color: var(--faint); line-height: 1.55; }
+
+/* ---- ช่องกรอกในบล็อก (ลอกหน้าตาจาก .fm-card เดิม) ---- */
+.fm-sec input[type=text], .fm-sec input[type=number], .fm-sec input[type=date],
+.fm-sec input[type=time], .fm-sec select, .fm-sec textarea {
+  background: var(--card2); border: none; border-radius: 14px; min-height: 48px; padding: 0 13px;
+  font-size: 15px; font-weight: 500; font-family: inherit; color: var(--ink); width: 100%;
+  box-shadow: inset 0 0 0 1px var(--line); font-variant-numeric: tabular-nums;
+  -webkit-appearance: none; appearance: none;
+}
+.fm-sec select { background-image: none; }
+.fm-sec textarea {
+  padding: 12px 13px; line-height: 1.65; display: block; resize: none; overflow: hidden;
+}
+.fm-sec input:focus, .fm-sec select:focus, .fm-sec textarea:focus {
+  box-shadow: none; outline: 2px solid var(--blue); outline-offset: -2px;
+}
+/* ช่องชื่องานคือช่องเดียวที่ต้องพิมพ์จริง — ให้ตัวใหญ่กว่าช่องอื่นหนึ่งขั้น */
+#fDetail { font-size: 16.5px; }
+.fm-sec input[type=range] {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 6px; min-height: 0;
+  background: var(--card2); border-radius: 99px; padding: 0; box-shadow: none; outline: none;
+}
+.fm-sec input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--card);
+  box-shadow: 0 2px 8px rgba(15,23,42,.2), 0 0 0 2px var(--blue); cursor: pointer;
+}
+.fm-sec input[type=range]::-moz-range-thumb {
+  width: 20px; height: 20px; border: none; border-radius: 50%; background: var(--card);
+  box-shadow: 0 2px 8px rgba(15,23,42,.2), 0 0 0 2px var(--blue); cursor: pointer;
+}
+
+/* ---- แถวตัวเลือก (ประเภท · วิชา · กำหนดส่ง) ----
+   หนึ่งแถวต่อหนึ่งตัวเลือก สูง 52px กดพลาดยาก และตาไล่ลงเป็นคอลัมน์เดียว
+   ของเดิมเป็น dropdown สองแตะ กับตาราง 2×2 ที่ตาต้องไล่สองทิศ */
+.pick-rows { display: flex; flex-direction: column; }
+.pick-rows .pk, .pick-rows .tp {
+  display: flex; align-items: center; gap: 11px; width: 100%; min-height: 52px;
+  padding: 6px 2px; border: none; border-radius: 0; background: none; box-shadow: none;
+  border-bottom: 1px solid var(--line);
+  font-family: inherit; font-size: 15.5px; font-weight: 600; color: var(--ink);
+  text-align: left; cursor: pointer; transition: color .14s ease;
+}
+.pick-rows > :last-child { border-bottom: none; }
+.pick-rows .tp svg { width: 18px; height: 18px; flex: none; color: var(--faint); }
+/* แถวที่เลือกอยู่บอกด้วยจุดกลมกับน้ำหนักตัวอักษร ไม่ใช่สีของตัวหนังสือ
+   วัดแล้ว --blue-deep บน --card เหลือ 2.5:1 ในธีม earth กับ 2.97:1 ใน warm
+   ซึ่งต่ำกว่าเกณฑ์ของตัวอักษรปกติ — และการอ่านหลักของแถวห้ามพึ่งสีอยู่แล้ว */
+.pick-rows .pk.on, .pick-rows .tp.active, .pick-rows .tp.on {
+  color: var(--ink); font-weight: 700; background: none; box-shadow: none;
+}
+.pick-rows .tp.active svg { color: var(--blue); }
+/* จุดกลมหน้าแถว: วงแหวนหนา = อันที่เลือกอยู่ (ภาษาเดียวกับ radio ของทั้งโลก) */
+.pk-dot {
+  flex: none; width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--line); box-sizing: border-box; transition: border .14s ease;
+}
+.pick-rows .pk.on .pk-dot, .pick-rows .tp.active .pk-dot { border-width: 7px; border-color: var(--blue); }
+.pk-s { margin-left: auto; font-size: 12.5px; font-weight: 600; color: var(--faint); }
+.pick-rows .pk.on .pk-s { color: var(--blue); }
+
+/* ปุ่มรองใต้บล็อก (พูด/ถ่ายรูปแทน · ดูวิชาทั้งหมด) */
+.fs-alt {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  width: 100%; min-height: 44px; border: none; border-radius: 12px;
+  background: var(--card2); color: var(--muted);
+  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.fs-alt:active { transform: scale(.98); }
+.fs-alt svg { width: 15px; height: 15px; }
+/* #lu-chevron ชี้ขวาโดยกำเนิด — หมุนให้ชี้ลง แล้วชี้ขึ้นตอนกางครบ */
+#subjMore svg { transform: rotate(90deg); transition: transform .16s ease; }
+#subjMore.up svg { transform: rotate(-90deg); }
+
+/* เวลาส่ง: แถวเดียว ป้ายซ้าย ช่องขวา — ไม่ต้องมีหัวข้อของตัวเอง */
+.due-time { display: flex; align-items: center; gap: 12px; padding-top: 2px; }
+.due-time .dt-l { flex: 1; font-size: 14px; font-weight: 600; color: var(--muted); }
+.due-time input[type=time] { width: auto; max-width: 132px; }
+
+/* ---- แถวสรุปของช่องที่ข้ามได้ (<details>) ----
+   ปิดอยู่ = อ่านได้ว่าค่าปัจจุบันคืออะไรโดยไม่ต้องเปิด
+   ซึ่งเป็นเหตุผลที่ยุบได้โดยไม่ทำให้ใครหาช่องไม่เจอ */
+.fm-row { display: block; border-bottom: 1px solid var(--line); }
+/* กฎคู่แฝดของ .fld[hidden] ใน style.css — ของที่ตั้ง display เองต้องเขียนบรรทัดนี้เสมอ
+   ไม่งั้น hidden ของเบราว์เซอร์แพ้ (fGotWrap โผล่ในงานที่ยังไม่มีผลคะแนน) */
+.fm-row[hidden] { display: none; }
+/* ตัวเดียวกัน: .fm-del ใน style.css เป็น display:flex ปุ่มลบจึงโผล่ในงานที่เพิ่งเพิ่ม
+   ทั้งที่ openForm() สั่ง hidden ไว้ถูกแล้ว (วัดด้วย getComputedStyle ได้ flex) */
+.fm-del[hidden] { display: none; }
+.fm-row:last-child { border-bottom: none; }
+.fm-row > summary {
+  display: flex; align-items: center; gap: 10px; min-height: 52px;
+  cursor: pointer; list-style: none; -webkit-tap-highlight-color: transparent;
+}
+.fm-row > summary::-webkit-details-marker { display: none; }
+.rw-l { font-size: 15px; font-weight: 600; color: var(--ink); }
+.rw-v {
+  margin-left: auto; display: flex; align-items: center; gap: 9px;
+  font-size: 13.5px; font-weight: 600; color: var(--faint);
+  font-variant-numeric: tabular-nums; text-align: right;
+}
+.rw-v::after {
+  content: ''; flex: none; width: 7px; height: 7px; margin-right: 2px;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  opacity: .6; transform: rotate(45deg) translate(-1px, -1px); transition: transform .16s ease;
+}
+.fm-row[open] > summary .rw-l { color: var(--blue-deep); }
+.fm-row[open] > summary .rw-v::after { transform: rotate(-135deg) translate(-1px, -1px); }
+.rw-body { display: flex; flex-direction: column; gap: 9px; padding: 2px 0 14px; }
+
+/* ---- ปุ่มบันทึกที่ติดขอบล่างตลอดการเลื่อน ----
+   sticky ไม่ใช่ fixed: มันอยู่ใน .screen ที่เลื่อนอยู่แล้ว จึงไม่ต้องรู้พิกัดจอ
+   z-index ต่ำกว่าแถบแท็บ (5) เพื่อไม่ให้พื้นของมันไปบังแคปซูลแท็บ */
+.fm-bar {
+  position: sticky; bottom: 0; z-index: 4;
+  padding: 10px 20px calc(var(--tabgap) + 70px);
+  background: linear-gradient(to bottom, transparent, var(--scr) 26%);
+}
+.fm-bar .fm-save {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; min-height: 58px; border-radius: 18px;
+}
+.fb-t { font-size: 15.5px; font-weight: 700; letter-spacing: -.01em; }
+.fb-s { font-size: 11.5px; font-weight: 600; opacity: .85; font-variant-numeric: tabular-nums; }
+.fb-s:empty { display: none; }
+/* บนเครื่องจริง/จอแคบ แถบแท็บอยู่ในผัง (ดู 1A9n ข้างบน) .screens หดให้เองแล้ว
+   ปุ่มจึงไม่ต้องเผื่อที่ให้แถบอีก — ถ้าเผื่อซ้ำจะเหลือช่องว่างใต้ปุ่มเกือบสองนิ้ว */
+@media (max-width: 768px), (display-mode: standalone) {
+  :root:not([data-nav="side"]) .fm-bar { padding-bottom: 12px; }
 }
