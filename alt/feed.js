@@ -834,8 +834,14 @@ async function myFirstRoom() {
 //   2) ทั้งสองปลายทางของปุ่มมีทางเข้าอยู่แล้วบนจอนี้ — "ข้อความ" เป็นแถวในลิสต์
 //      ตั้งแต่ 1B95 และ "น้องไซ" เป็นช่องบนแถบล่างที่เห็นพร้อมกันอยู่แล้ว
 //      ปุ่มลอยจึงเป็นทางเข้าที่สาม/สี่ไปที่เดิม ซึ่งจ่ายด้วยการบังเนื้อหา
+// 1C14 · 'scr-form' เข้ารายการนี้ — มันตกหล่นมาตั้งแต่ 1B68
+//   จอกรอกงานมีปุ่มหลักของตัวเองอยู่ท้ายหน้า (บันทึกเข้าแผน) และปุ่มลอย 52px
+//   ที่มุมขวาล่างไปนั่งทับมุมขวาของปุ่มนั้นพอดี · เจ้าของเห็นแล้วอ่านไม่ออกว่ามันคืออะไร
+//   ("เหมือนมันบั๊คอยู่สักอย่าง" 20 ก.ย. 2569) ซึ่งถูก — ปุ่มลอยที่ทับปุ่มยืนยัน
+//   คือปุ่มที่แข่งกับงานเดียวที่จอนั้นมี
 const FAB_HIDE = ['scr-login', 'scr-onboard', 'scr-chat', 'scr-hw', 'scr-profile',
-  'scr-topic', 'scr-tthread', 'scr-dm', 'scr-compose', 'scr-crop', 'scr-scan'];
+  'scr-topic', 'scr-tthread', 'scr-dm', 'scr-compose', 'scr-crop', 'scr-scan',
+  'scr-form'];
 
 // 1B94 · ปุ่มนี้ไม่ใช่ปุ่มข้อความอีกแล้ว — มันคือปุ่มรวม (ข้อความ + ผู้ช่วย)
 // เงื่อนไข "ต้องล็อกอินก่อนถึงจะโผล่" จึงถูกถอดออก: ผู้ช่วยใช้ได้โดยไม่ต้องมีบัญชี
@@ -844,7 +850,18 @@ const FAB_HIDE = ['scr-login', 'scr-onboard', 'scr-chat', 'scr-hw', 'scr-profile
 function paintFeedFab() {
   const fab = document.getElementById('feedFab');
   if (!fab) return;
-  const show = !FAB_HIDE.includes(curScreen);
+  // 1C14 · อ่านจอที่เปิดอยู่จริงจาก DOM ก่อน แล้วค่อยถอยไปใช้ curScreen
+  // ------------------------------------------------------------
+  // openForm() สลับจอด้วยมือ (querySelectorAll('.screen').remove('on') แล้ว add เอง)
+  // ไม่ได้ผ่าน go() จึงไม่ได้อัปเดต curScreen — ตอนอยู่หน้ากรอกงาน curScreen
+  // ยังค้างเป็นชื่อจอก่อนหน้า การเช็ก FAB_HIDE จึงถามผิดจอมาตลอด
+  // ใส่ 'scr-form' ลงรายการเฉย ๆ ไม่พอ ต้องแก้ตรงที่ถามด้วย
+  //
+  // ถามจาก DOM แล้วถูกเสมอไม่ว่าใครจะสลับจอด้วยวิธีไหน — ซึ่งสำคัญกว่าการไล่
+  // แก้ที่เรียกทีละจุด เพราะจุดถัดไปที่สลับจอเองจะไม่รู้ว่ามีกฎนี้อยู่
+  const onScreen = document.querySelector('.screen.on');
+  const cur = (onScreen && onScreen.id) || curScreen;
+  const show = !FAB_HIDE.includes(cur);
   fab.hidden = !show;
   // ออกจากจอที่มีเมนูกางค้างอยู่ = ต้องเก็บเมนูไปด้วย ไม่งั้นมันลอยทับจอใหม่
   if (!show) { if (typeof closeFabHub === 'function') closeFabHub(true); return; }

@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C12';                 // สายเลขของแอป
-const APP_CODENAME = 'Solid';           // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1C14';                 // สายเลขของแอป
+const APP_CODENAME = 'Welcome';           // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -1335,9 +1335,13 @@ function renderLoginCopy() {
   const known = (state.settings && state.settings.name) || '';
   const back = hasWork || !!known;
   h.textContent = back ? (known ? 'ยินดีต้อนรับกลับมา' : 'กลับมาแล้ว') : 'ยินดีต้อนรับ';
+  // 1C14 · ทั้งสองบรรทัดสั้นลงและเลิกพูดเรื่องล็อกอิน
+  // ของเดิมยาวจนตกสามบรรทัดบนจอ 375px แล้วคำว่า "เครื่อง" เหลือโดดอยู่บรรทัดท้าย
+  // และเหตุผลของการล็อกอินย้ายไปอยู่ใต้ปุ่มล็อกอินแล้ว (.lg-why ใน renderLoginOpts)
+  // บรรทัดนี้จึงเหลือหน้าที่เดียว: บอกว่าจอนี้คือแอปอะไร / ของยังอยู่ไหม
   p.textContent = back
-    ? 'งานกับตารางของคุณอยู่ที่เดิม ล็อกอินแล้วมันตามไปทุกเครื่อง'
-    : 'ล็อกอินแล้วงานกับตารางตามไปทุกเครื่อง';
+    ? 'งานกับตารางของคุณอยู่ที่เดิม'
+    : 'จัดคิวงานให้เอง รู้ว่าควรทำอะไรก่อน';
 }
 
 function renderLoginOpts() {
@@ -1410,8 +1414,20 @@ function renderLoginOpts() {
   // ลำดับ: ทางหลัก → ทางที่ไม่ต้องมีบัญชี → ช่องทางรอง → ทางสำรองสุดท้าย
   // ปุ่มสองใบบนสุดจงใจให้คนละทรง (ขาวทึบ / ขอบโปร่ง) ไม่ใช่สองใบสีต่างกันขนาดเท่ากัน
   // ซึ่งเป็นอาการที่ผู้ใช้รายงานซ้ำสองรอบว่า "มันเหมือนซ้ำกัน"
-  el.innerHTML = mainBtn
-    + `<button class="btn ghost lg-skip" onclick="skipLogin()">ใช้แบบไม่ล็อกอินไปก่อน</button>`
+  // ---------- 1C14 · สลับลำดับปุ่ม: เข้าใช้เลย มาก่อน ล็อกอิน ----------
+  // เจ้าของชี้เองว่า "ปุ่มผิดลำดับ" (20 ก.ย. 2569) และถูก — ของเดิมปุ่มขาวทึบ
+  // ของ Google ดังที่สุดบนจอ ส่วนทางที่ไม่ต้องมีบัญชีเป็นเส้นขอบจาง ๆ ใต้มัน
+  // ทั้งที่ข้อเสนอของแอปคือ "ฟรีตลอดไป ไม่ต้องผูกบัตร" · จอแรกที่ขอบัญชีก่อน
+  // จึงขัดกับบรรทัดพิสูจน์ที่อยู่เหนือมันสามบรรทัดพอดี
+  //
+  // แต่ล็อกอินไม่ได้ถูกลดเป็นลิงก์ — มันยังเป็นปุ่มเต็มแถวพื้นการ์ดมีเงา
+  // เพราะชั้นสังคม (เพื่อน · ห้องการบ้าน) ใช้ไม่ได้เลยถ้าไม่มีบัญชี
+  // ที่เปลี่ยนคือ "ใบไหนดังกว่า" ไม่ใช่ "ใบไหนมีอยู่"
+  // และเหตุผลของการล็อกอินย้ายมาอยู่ใต้ปุ่มมันเอง ซึ่งเป็นที่ที่มันเป็นข้อโต้แย้งจริง
+  // ไม่ใช่คำบรรยายจอแบบตอนที่มันอยู่บนสุด
+  el.innerHTML = `<button class="btn lg-go" onclick="skipLogin()">เริ่มใช้เลย · ไม่ต้องสมัคร</button>`
+    + mainBtn
+    + (first ? `<p class="lg-why">ล็อกอินแล้วงานตามไปทุกเครื่อง และเพิ่มเพื่อนได้</p>` : '')
     + restRow
     + `<button class="lg-alt" onclick="setLoginView('mail')">
         ใช้บัญชีพวกนี้ไม่ได้? <b>รับรหัสทางอีเมล</b></button>`;
@@ -9355,24 +9371,84 @@ function finishFocus() {
   const nxt = sp.now;
   clearInterval(focusTimer); focusTimer = null;
 
+  // ============================================================
+  // 1C14 · จอฉลองถูกรื้อทั้งใบ
+  // ------------------------------------------------------------
+  // เจ้าของดูของจริงแล้วบอกว่า "ดูแปลก ๆ ไม่สวยเท่าไหร่" (20 ก.ย. 2569)
+  // แล้วเลือกเองว่าให้ทำใหม่เป็นใบฉลองเต็มจอ ไม่ใช่จัดของเดิมให้ตรงแนว
+  //
+  // ของเดิมผิดสามอย่างพร้อมกัน:
+  //   1) ทุกอย่างกองกลางจอ เหลือที่ว่างบน 35% ล่าง 35% — จอที่ควรรู้สึกว่า
+  //      "ได้อะไรมา" กลับเป็นจอที่โล่งที่สุดในแอป
+  //   2) ปุ่มสองใบใน .fc-next ไม่เต็มแถว ความกว้างไม่เท่ากัน ชิดซ้าย
+  //      อ่านเป็นของพัง ไม่ใช่ของที่จัดไว้
+  //   3) วงกลมถูกสีเขียวเป็นสีเดียวบนจอ และเป็นเขียวที่ไม่ได้อยู่ในชุดของแบรนด์
+  //
+  // ภาษาที่ใช้เป็นชุดเดียวกับจอล็อกอินที่เพิ่งรื้อ (กฎ 1C13): ใบพระเอกมีสีใบเดียว
+  // ขนาดตัวอักษรกระโดด (40 → 15 → 11.5) มีน้องไซ และงานถัดไปเป็นแถวเปล่า
+  // ไม่ใช่การ์ดขาวซ้อนใต้ใบสี — สองใบซ้อนกันคือที่มาของคำว่า "แปลก ๆ"
+  //
+  // ตัวเลขบนใบต้องเป็นของจริงที่เพิ่งได้มาเท่านั้น · ตั้งใจไม่ใส่ "+โทเคน"
+  // เพราะการทำงานเสร็จไม่ได้ให้โทเคนจริง (โทเคนมาจากเช็คอินรายวันกับโค้ด)
+  // ตัวเลขปลอมบนจอฉลองคือวิธีที่เร็วที่สุดที่จะทำให้คนเลิกเชื่อตัวเลขทั้งแอป
+  const mins = typeof workedMin === 'function' ? workedMin(t.id) : 0;
+  const dk = new Date().toDateString();
+  const todayDone = liveTasks().filter(x => x.done && x.doneAt
+    && new Date(x.doneAt).toDateString() === dk).length;
+  const stats = [
+    todayDone > 1 ? [todayDone, 'งานเสร็จวันนี้'] : null,
+    mins >= 1 ? [mins, 'นาทีที่ลงไป'] : null,
+    [doneCount(), 'เสร็จทั้งหมด'],
+  ].filter(Boolean).slice(0, 2);   // สองช่อง ไม่ใช่สาม — สามช่องแล้วป้ายตกสองบรรทัดทุกช่อง (วัดจริง)
+
+  // คิวที่เหลือของวันนี้ — หักใบที่กำลังเสนอเป็น "งานถัดไป" ข้างบนออก
+  // ไม่ใช่ของประดับ: หลังทำงานเสร็จ คำถามจริงคือ "แล้ววันนี้เหลืออีกเท่าไหร่"
+  // ไม่ใช่ "เก่งมาก" · จอนี้จึงตอบคำถามนั้นแทนที่จะเว้นที่ว่างไว้เฉย ๆ
+  const slots = ((sp.plan && sp.plan.slots) || [])
+    .filter(s => s.task && !s.task.done && (!nxt || s.task.id !== nxt.task.id))
+    .slice(0, 3);
+
   const wrap = document.getElementById('focusWrap');
   wrap.innerHTML = `<div class="fc-sheet done">
-    <div class="fc-win">${icon('check-circle')}</div>
-    <h2 class="fc-wt">เสร็จแล้ว</h2>
-    <p class="fc-wp">${esc(taskTitleText(t))}</p>
-    ${nxt ? `<div class="fc-next">
-      <span class="fn-lb">งานถัดไป</span>
+    <div class="fw-hero">
+      <div class="fw-ring">${icon('check')}</div>
+      <!-- คำทักกับชื่องานห่อรวมกันอยู่ใน .fw-mid — ใบใช้ space-between กระจายลูกสามก้อน
+           ถ้าปล่อยสองบรรทัดนี้แยกกัน ชื่องานจะลอยห่างจากคำว่า "เสร็จแล้ว" ทั้งที่มันคือประโยคเดียวกัน -->
+      <div class="fw-mid">
+        <h2 class="fw-t">เสร็จแล้ว</h2>
+        <p class="fw-p">${esc(taskTitleText(t))}</p>
+      </div>
+      <div class="fw-stats">${stats.map(([v, k]) =>
+        `<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>
+      <img class="fw-sai" src="sai-avatar.png" alt="" aria-hidden="true">
+    </div>
+
+    ${nxt ? `<div class="fw-next">
+      <span class="fw-lb">งานถัดไป</span>
       <b>${taskTitle(nxt.task)}</b>
-      <span class="fn-min">~${nxt.task.estMin || 30} นาที · ${esc(topReason(nxt.info))}</span>
+      <span class="fw-min">~${nxt.task.estMin || 30} นาที · ${esc(topReason(nxt.info))}</span>
+    </div>
+    ${slots.length ? `<div class="fw-rest">
+      <span class="fw-lb">แล้ววันนี้เหลืออีก</span>
+      ${slots.map(s => `<div class="fw-row">
+        <span class="fw-rt mono">${fmtClock(s.start)}</span>
+        <span class="fw-rx">${esc(taskTitleText(s.task))}</span>
+        <span class="fw-rm mono">${s.min}น</span>
+      </div>`).join('')}
+    </div>` : ''}
+    <div class="fw-act">
       <button class="fc-go" onclick="startFocus('${nxt.task.id}')">${icon('play')}ทำต่อเลย</button>
       <button class="fc-later" onclick="closeFocus(true)">พอแค่นี้ก่อน</button>
-    </div>` : `<div class="fc-next">
-      <b>ไม่เหลืองานค้างแล้ว</b>
-      <span class="fn-min">วันนี้พักได้เต็มที่</span>
-      <button class="fc-later" onclick="closeFocus(true)">กลับหน้าแรก</button>
+    </div>` : `<div class="fw-next">
+      <span class="fw-lb">ไม่เหลืองานค้างแล้ว</span>
+      <b>วันนี้พักได้เต็มที่</b>
+      <span class="fw-min">ที่เหลือรอพรุ่งนี้ได้</span>
+    </div>
+    <div class="fw-act">
+      <button class="fc-go" onclick="closeFocus(true)">กลับหน้าแรก</button>
     </div>`}
   </div>`;
-  celebrate(document.querySelector('.fc-win'));
+  celebrate(document.querySelector('.fw-ring'));
   setTimeout(checkBadges, 1800);
 }
 
@@ -9659,6 +9735,10 @@ function openForm(id, parsed) {
 
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
   document.getElementById('scr-form').classList.add('on');
+  // 1C14 · จอนี้สลับเองไม่ผ่าน go() ของที่ go() เคยเรียกให้จึงต้องเรียกเองด้วย
+  // ไม่งั้นปุ่มลอยมุมขวาล่างยังคิดว่าตัวเองอยู่บนจอก่อนหน้า แล้วลอยทับปุ่ม
+  // "บันทึกเข้าแผน" ของจอนี้ (เจ้าของส่งภาพมา 20 ก.ย. 2569)
+  if (typeof paintFeedFab === 'function') paintFeedFab();
   // ต้องยืดหลังจอถูกแสดงแล้ว — วัด scrollHeight ตอนจอยัง display:none ได้ 0 ทุกครั้ง
   autoGrow(f.detail);
 }
