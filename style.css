@@ -351,147 +351,233 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 @keyframes sp-spark{from{opacity:0; transform:scale(0) rotate(-90deg)} 70%{transform:scale(1.25) rotate(8deg)} to{opacity:1; transform:scale(1) rotate(0)}}
 @media (prefers-reduced-motion: reduce){ .sp-star1{animation:none} }
 
-/* ---------- login (ธีมเข้มต่อเนื่องจาก splash) ---------- */
-/* ไล่เฉดแนวตั้งจริง สว่างบน-เข้มล่าง ตามภาพอ้างอิง — ของเดิมเป็น radial ที่จุดสว่าง
-   อยู่กลางบนพอดี ทำให้จอแทบดูเป็นสีเรียบและตราแบรนด์จมหายไปกับพื้นหลัง */
-#scr-login{background:linear-gradient(176deg,#1B3C8F 0%,#16306F 32%,#0E1F4C 66%,#070F2A 100%)}
-#scr-login .big-title{color:#fff; font-size:30px; letter-spacing:-.036em}
-#scr-login .sub{color:rgba(199,210,254,.8); font-size:14px}
-#scr-login .hint{color:rgba(199,210,254,.5); font-size:11.5px; line-height:1.7}
-#scr-login.on{display:flex; align-items:center; justify-content:center;
-  padding-top:calc(env(safe-area-inset-top) + 8px); padding-bottom:calc(env(safe-area-inset-bottom) + 8px)}
-/* ---------- 1B37: สามชั้น บน-กลาง-ล่าง ---------- */
-/* สัดส่วนไล่ตามภาพอ้างอิง: ที่ว่างจริงเหนือตรา · ตราอยู่ราวหนึ่งในสี่บนของจอ ·
-   คำทักลอยกลางโดยมีที่ว่างก้อนใหญ่ทั้งบนและล่าง · ปุ่มกับไอคอนถูกดันไปติดก้นจอ
-   space-between + ตัวเว้นสองตัวทำงานแทนการเดาค่า margin เป็นตัวเลขตายตัว
-   ซึ่งจะเพี้ยนทันทีบนจอที่สูงไม่เท่ากัน */
-.login-wrap{display:flex; flex-direction:column; align-items:center; gap:0;
-  justify-content:space-between;
-  text-align:center; padding:0 10px 8px; width:100%; min-height:100%}
-.lg-top{padding-top:11vh}
-.login-mark{width:66px; height:66px; border-radius:20px; box-shadow:0 18px 44px rgba(0,0,0,.5)}
-/* ชื่อแบรนด์เป็นตัวเล็กกางตัวอักษร ไม่ใช่หัวข้อใหญ่ — ในภาพอ้างอิงชื่อแบรนด์เป็นป้ายกำกับ
-   ใต้ตรา ส่วนตัวใหญ่ที่สุดบนจอคือคำทักทาย ไม่ใช่ชื่อแอป */
-.lg-brand{margin:11px 0 0; font-size:13.5px; font-weight:700; letter-spacing:.16em;
-  text-transform:uppercase; opacity:.92}
+/* ============================================================
+   login (1C14) — จอนี้พูดภาษาเดียวกับทั้งแอปแล้ว
+   ============================================================
+   ของเดิมเป็นพื้นกรมท่าไล่สีทุกธีม ตัวหนังสือสีฟ้าจาง ปุ่มแคปซูลขาว
+   ซึ่งเป็นภาษาที่ไม่มีอยู่ที่อื่นในแอปเลยสักจอ · เจ้าของชี้เองว่า
+   "ไม่เหมือนแอปตัวเอง" (20 ก.ย. 2569) แล้วนั่นคือสาเหตุของอีกสามข้อที่เขาชี้ด้วย:
+   พอจอทั้งใบเป็นสี ก็ไม่มีใบไหนเป็นพระเอกได้ ทุกอย่างจึงต้องเล่นด้วยที่ว่าง
+   และที่ว่างก็กินไป 45% ของครึ่งบน
 
-.lg-mid{margin:0; max-width:290px; padding-bottom:6vh}
-.lg-h{margin:0; font-size:32px; font-weight:700; letter-spacing:-.03em; color:#fff; line-height:1.2}
-.lg-p{margin:9px 0 0; font-size:13px; line-height:1.7; color:rgba(199,210,254,.62)}
-/* แคปซูลตามภาพอ้างอิง · ทรงกลมสุดขั้วทำให้ปุ่มอ่านเป็น "ของกด" ชัดกว่าสี่เหลี่ยมมนที่
-   ใช้ซ้ำกับการ์ดทั้งแอป — บนจอที่มีปุ่มเป็นพระเอก ทรงจึงควรต่างจากที่อื่น */
-.login-wrap .btn{width:100%; max-width:300px; min-height:54px; border-radius:999px}
-/* ทางไปอ่านว่าแอปนี้คืออะไร — ตั้งใจให้เบากว่าปุ่มทั้งสอง
-   คนที่รู้จักแอปอยู่แล้วต้องไม่สะดุดกับมัน มันมีไว้สำหรับคนที่เพิ่งกดลิงก์มา
-   แล้วยังไม่รู้ว่าตัวเองกำลังจะล็อกอินเข้าอะไร */
-/* ลิงก์ท้ายสุด เงียบที่สุดบนจอ — มันคือทางออกไปอ่าน ไม่ใช่ทางเข้าใช้งาน */
-.login-what{
-  margin-top:2px; font-size:12.5px; font-weight:600; text-decoration:none;
-  color:rgba(255,255,255,.42); padding:6px 12px; border-radius:12px;
-}
-.login-what:active{color:#fff; background:rgba(255,255,255,.07)}
-.btn.google{background:#fff; color:#0B1220; border:none; display:flex; align-items:center; justify-content:center; gap:11px;
-  box-shadow:0 12px 30px -8px rgba(0,0,0,.28)}
-/* ขอบโปร่ง พื้นใส — ของเดิมเป็นก้อนเทาทึบที่หนักพอ ๆ กับปุ่มขาว สองใบเลยอ่านเป็น
-   ทางเลือกที่มีค่าเท่ากัน ทั้งที่ทางหลักคือ Google · น้ำหนักต้องต่างกันจริงถึงจะนำสายตาได้ */
-#scr-login .btn.ghost{background:transparent; backdrop-filter:none; -webkit-backdrop-filter:none;
-  border:1.5px solid rgba(255,255,255,.38); color:#EAF0FF; box-shadow:none}
-#scr-login .btn.ghost:active{background:rgba(255,255,255,.08)}
-.g-badge{width:22px; height:22px; border-radius:50%; background:#fff; border:none; box-shadow:0 0 0 1px rgba(15,23,42,.12);
-  color:#4285F4; font-weight:700; font-size:12.5px; display:inline-flex; align-items:center; justify-content:center; flex:none}
+   ตอนนี้: พื้นจอ = พื้นแอป · สีทั้งหมดอยู่ในใบพระเอกใบเดียว (กฎ 1C13)
+   ทุกค่าเป็นโทเคนของธีม ไม่มีสีดิบ จอนี้จึงเปลี่ยนตามธีมพร้อมทั้งแอป
+   แทนที่จะเป็นจอเดียวที่ค้างอยู่ที่กรมท่าเสมอ */
+#scr-login{background:var(--scr)}
+#scr-login.on{display:flex; align-items:stretch; justify-content:center;
+  padding:calc(env(safe-area-inset-top) + 10px) 16px calc(env(safe-area-inset-bottom) + 14px)}
 
-/* ---------- 1B21: ช่องทางล็อกอินหลายทาง ---------- */
-/* กองปุ่มถูกวาดจาก JS จึงต้องมีคอลัมน์ของตัวเอง — .login-wrap เป็น flex อยู่แล้ว
-   แต่ตัวลูกที่โผล่มาเป็นก้อนเดียวจะกินความกว้างไม่เท่ากับปุ่มที่เคยเป็นลูกตรง ๆ */
-/* ก้อนล่างสุด — ปุ่ม คำกำกับ ไอคอน แล้วประโยคอีเมล เรียงลงไปจนติดขอบจอ
-   ตัวมันเองไม่ยืด (space-between ของตัวแม่เป็นคนดันมาไว้ล่างแล้ว) */
-.lg-opts{display:flex; flex-direction:column; align-items:center; gap:11px; width:100%;
-  padding-bottom:2px}
-.lg-opts .btn{width:100%; max-width:300px; min-height:54px; border-radius:17px}
-/* Apple/Facebook/Microsoft ยังไม่ได้เปิดใช้ตามค่าเริ่มต้น — สีเตรียมไว้ให้ครบ
-   เพื่อที่การเปิดใช้จะเป็นการแก้ config.js บรรทัดเดียว ไม่ใช่งาน CSS อีกรอบ */
-.btn.apple{background:#000; color:#fff; border:none; display:flex; align-items:center; justify-content:center; gap:11px}
-.btn.apple .g-badge{background:transparent; box-shadow:none; color:#fff; font-size:17px}
-.btn.facebook{background:#1877F2; color:#fff; border:none; display:flex; align-items:center; justify-content:center; gap:11px}
-.btn.facebook .g-badge{background:#fff; box-shadow:none; color:#1877F2; font-size:14px}
-.btn.ms{background:#fff; color:#0B1220; border:none; display:flex; align-items:center; justify-content:center; gap:11px}
-.btn.ms .g-badge{background:#fff; color:#0078D4}
-/* อีเมลเป็นช่องทางรอง — โปร่งเหมือน .ghost แต่ยังเป็น "ปุ่มล็อกอิน" ไม่ใช่ปุ่มข้าม
-   จึงสว่างกว่าปุ่มข้ามหนึ่งขั้น และมีตราหน้าเหมือนช่องทางอื่นเพื่อให้อยู่ในแถวเดียวกันจริง */
-.btn.mail{background:rgba(255,255,255,.10); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-  border:1px solid rgba(169,188,240,.34); color:#EAF0FF;
+/* กองทั้งหมดเป็นคอลัมน์เดียว · ใบพระเอกอยู่บน กองปุ่มถูกดันไปติดก้นจอด้วย
+   margin-top:auto ของ .lg-actions ไม่ใช่ space-between ของตัวแม่
+   ต่างกันตรงที่ space-between จะถ่างช่องว่างระหว่าง "ทุก" ลูกเท่า ๆ กัน
+   ซึ่งทำให้ชิปพิสูจน์ลอยห่างจากใบที่มันเป็นของ */
+.login-wrap{display:flex; flex-direction:column; align-items:stretch; gap:0;
+  text-align:left; width:100%; max-width:420px; min-height:100%}
+
+/* ---------- L1 · ใบพระเอก ---------- */
+/* ไล่สีของธีม (--grad-hero) ไม่ใช่สีทึบ — ใบทึบสีเดียวอ่านเป็น "แถบสี"
+   ส่วนไล่สีอ่านเป็น "วัตถุ" เหตุผลเดียวกับหัวการ์ดคำสั่งใน 1B57 */
+.lg-hero{position:relative; overflow:hidden;
+  border-radius:26px; padding:20px 20px 22px;
+/* ม่านทึบทับปลายสว่างของไล่สี — วัดมาแล้วไม่ใช่เรื่องความสวย
+   --grad-hero ของธีม light/warm/ocean จบที่สีสว่างจนตัวหนังสือขาวเล็กตกเกณฑ์:
+   วัดได้ 2.22 : 1 (warm · ป้ายใต้ตัวเลข) กับ 2.63 : 1 (light) จากที่ต้องได้ 4.5
+   ทึบเฉพาะปลาสว่าง (0 → .28) ปลาเข้มคงเดิม — ไล่สีจึงยังเห็นเป็นไล่สี
+   ไม่ใช่การทำทั้งใบให้มืดลงเท่ากัน ซึ่งจะเสียสีของธีมไปเปล่า ๆ */
+/* ---------- ทำไมใบนี้ถึงไม่ใช้ --grad-hero ---------- */
+/* วัดคอนทราสต์จริงทั้งแปดธีมแล้ว --grad-hero ตกสามธีม (light 2.63 · warm 2.22 · ocean 3.58)
+   เพราะปลายสว่างของมันสว่างกว่าสีเน้นของธีม — มันถูกออกแบบมาให้เป็นหัวการ์ด
+   ที่มีตัวหนังสือสองสามคำ ไม่ใช่ใบที่มีย่อหน้าทั้งย่ออยู่ข้างใน
+   ที่ลองทับด้วยผ้าคลุมดำก็ไม่ผ่าน — มันแก้ภาพได้ แต่พิสูจน์ไม่ได้ว่าทุกธีมผ่าน
+
+   --fill / --on-fill คือคู่ที่ทั้งแอปใช้เป็น "พื้นสีเน้น + ตัวหนังสือบนมัน" อยู่แล้ว
+   (ปุ่มหลักทุกจอ) ทุกธีมจึงรับประกันคู่นี้ไว้แล้ว · ไล่สีผสมไปทาง #000 อย่างเดียว
+   ปลายที่สว่างที่สุดของไล่สีจึงเป็น --fill เอง = กรณีแย่ที่สุดก็ยังอ่านออก
+
+   ตัวหนังสือบนใบทุกตัวเป็น --on-fill ทึบเต็ม ไม่ลดอัลฟา — ลำดับมาจากขนาดกับน้ำหนัก
+   ไม่ใช่ความจาง ซึ่งเป็นสิ่งที่ทำให้ค่าตกทุกครั้ง */
+  background-image:linear-gradient(150deg,
+    color-mix(in srgb, var(--fill) 84%, #000) 0%,
+    var(--fill) 58%,
+    color-mix(in srgb, var(--fill) 88%, #000) 100%);
+  color:var(--on-fill);
+  box-shadow:var(--shadow-lg)}
+/* วงกลมจาง ๆ หลังใบ ชุดเดียวกับ .td-now .tn-head — ทำให้ใบมีความลึก
+   โดยไม่ต้องเพิ่มของที่ต้องอ่านอีกชิ้น */
+.lg-hero::after{content:''; position:absolute; right:-52px; top:-62px;
+  width:186px; height:186px; border-radius:50%;
+  background:color-mix(in srgb, var(--on-fill) 12%, transparent); pointer-events:none}
+.lg-hero > *{position:relative; z-index:2}
+
+/* ตรา + ชื่อแบรนด์ บรรทัดเดียว พูดครั้งเดียวจบ
+   ของเดิมเป็นแผ่นขาว 112px + ชื่อแบรนด์ + บรรทัดพิสูจน์ ซ้อนกันสามชั้น
+   ทั้งที่ทั้งสามชั้นตอบคำถามเดียวกันว่า "นี่แอปอะไร" */
+.lg-badge{display:flex; align-items:center; gap:9px; margin-bottom:26px}
+.lg-mark{width:34px; height:34px; border-radius:10px; padding:3px;
+  background:#fff; object-fit:contain; flex:none}
+.lg-brand{font-size:12.5px; font-weight:700; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--on-fill); opacity:.88}
+
+/* 34 → 14.5 → 11.5 — ขนาดต้องกระโดด ไม่ใช่ไล่เลี่ยกัน (กฎ 1C13)
+   ของเดิม 32 → 13 บนพื้นไล่สีทั้งจอ ซึ่งกระโดดเหมือนกัน แต่ไม่มีอะไรรองรับ
+   ตัวใหญ่จึงลอยอยู่กลางที่ว่างแทนที่จะเป็นหัวของอะไรสักอย่าง */
+.lg-h{margin:0; font-size:34px; font-weight:800; letter-spacing:-.035em;
+  line-height:1.16; color:var(--on-fill); max-width:8.5em}
+.lg-p{margin:9px 0 0; font-size:14.5px; line-height:1.55; font-weight:500;
+  color:var(--on-fill); max-width:15em}
+
+/* น้องไซถูกขอบใบตัดครึ่งตัว — 1C13 สั่งว่าจอต้องมีภาพ ไม่ใช่มีแต่ตัวหนังสือ */
+.lg-hero{padding-bottom:30px}
+.lg-sai{position:absolute; right:18px; bottom:-26px;
+  width:72px; height:72px; border-radius:50%; object-fit:cover;
+  border:3px solid var(--scr); box-shadow:var(--shadow);
+  pointer-events:none; z-index:3}
+
+/* ---------- L2 · ชิปพิสูจน์ ---------- */
+/* พื้นการ์ดของธีม ไม่ใช่พื้นสี — ถ้าชิปมีสีด้วย ใบพระเอกก็เลิกเป็นใบเดียวที่มีสี */
+/* overflow ของ .lg-hero ต้องไม่ซ่อน — น้องไซคร่อมขอบล่างอยู่ · วงกลมจาง ๆ
+   ที่เคยพึ่ง overflow:hidden จึงย้ายไปคุมขอบด้วย clip-path ของตัวเองแทน */
+.lg-hero{overflow:visible}
+.lg-hero::after{clip-path:inset(62px 52px 0 0 round 0 26px 0 0)}
+
+.lg-proofs{display:flex; flex-wrap:wrap; gap:6px; margin-top:18px}
+
+/* ---------- L2b · สามบรรทัดว่าแอปทำอะไร ---------- */
+/* แถวเปล่าบนพื้นจอ ไม่ใช่การ์ด — ชิปไอคอนเป็นที่เดียวที่มีสี และเป็นสีจาง (--blue-soft)
+   ไม่ใช่สีทึบ เพราะของทึบสามก้อนเรียงกันจะแข่งกับปุ่มหลักที่อยู่ข้างล่าง */
+.lg-feats{display:flex; flex-direction:column; gap:14px; margin-top:22px}
+.lg-feat{display:grid; grid-template-columns:38px 1fr; column-gap:12px; align-items:center}
+.lf-ic{grid-row:span 2; width:38px; height:38px; border-radius:12px;
+  display:grid; place-items:center;
+  background:var(--blue-soft); color:var(--blue)}
+.lf-ic svg{width:19px; height:19px}
+/* 14.5 → 11.5 — ขนาดกระโดดในแถวเดียวกัน ไม่ใช่ 13/12.5 ที่อ่านเป็นตัวหนังสือสองบรรทัด
+   ที่บังเอิญหนักไม่เท่ากัน (กฎ 1C13) */
+.lg-feat b{font-size:14.5px; font-weight:700; color:var(--ink); line-height:1.35}
+.lg-feat i{grid-column:2; font-style:normal; font-size:11.5px; font-weight:500;
+  color:var(--muted); line-height:1.45}
+.lg-proofs span{padding:6px 11px; border-radius:999px;
+  background:var(--card); border:1px solid var(--line);
+  font-size:11.5px; font-weight:600; color:var(--muted)}
+
+/* ---------- L3 · กองปุ่ม ---------- */
+/* margin-top:auto ดันทั้งกองไปติดก้นจอ — ที่ว่างที่เหลือทั้งหมดไปกองอยู่เหนือมัน
+   แทนที่จะถูกแบ่งเท่า ๆ กันทั่วจอ · ปุ่มจึงอยู่ในระยะนิ้วโป้งเสมอไม่ว่าจอจะสูงเท่าไหร่ */
+.lg-actions{margin-top:auto; padding-top:22px;
+  display:flex; flex-direction:column; align-items:center; gap:0}
+.lg-opts{display:flex; flex-direction:column; align-items:stretch; gap:10px; width:100%}
+.lg-opts .btn{width:100%; min-height:56px; border-radius:18px;
+  font-size:15.5px; font-weight:700}
+
+/* ทางหลัก = เข้าใช้เลย · พื้นสีเน้นทึบ ทรงเดียวกับปุ่มหลักทุกจอในแอป
+   (เทียบ .fm-save · .ai-read) — จอนี้จึงไม่มีปุ่มทรงพิเศษที่ไม่มีอยู่ที่อื่นอีกแล้ว */
+.lg-opts .btn.lg-go{background:var(--fill); color:var(--on-fill);
+  border:none; box-shadow:var(--shadow-brand)}
+.lg-opts .btn.lg-go:active{transform:scale(.985)}
+
+/* ทางรอง = ล็อกอิน · ยังเป็นปุ่มเต็มแถวที่มีน้ำหนักจริง ไม่ใช่ลิงก์
+   ต่างจากทางหลักด้วย "วัสดุ" (การ์ดขาวมีเส้นขอบ vs พื้นสีทึบ) ไม่ใช่ด้วยขนาด
+   ปุ่มสองใบที่ต่างกันแค่สีแต่ขนาดเท่ากัน คืออาการที่ผู้ใช้รายงานซ้ำสองรอบว่า
+   "มันเหมือนซ้ำกัน" — วัสดุคนละอย่างอ่านออกโดยไม่ต้องเทียบ */
+.btn.google,.btn.ms{background:var(--card); color:var(--ink);
+  border:1px solid var(--line); box-shadow:var(--shadow);
   display:flex; align-items:center; justify-content:center; gap:11px}
-.btn.mail .g-badge{background:rgba(255,255,255,.16); box-shadow:none; color:#EAF0FF; font-size:14px}
-
-/* เส้นคั่น "หรือ" — แยกช่องทางล็อกอินออกจากทางข้าม ไม่ให้ปุ่มข้ามดูเป็นช่องทางที่ห้า */
-/* Discord — สีแบรนด์ blurple ตราขาวบนพื้นม่วง เหมือน Facebook ที่มีอยู่แล้วข้างบน
-   ปุ่มจะโผล่ก็ต่อเมื่อใส่ 'discord' ลง SUPABASE_CONFIG.providers หลังเปิดใช้ในแดชบอร์ดแล้ว */
+.btn.apple{background:var(--ink); color:var(--scr); border:none;
+  display:flex; align-items:center; justify-content:center; gap:11px}
+.btn.apple .g-badge{background:transparent; box-shadow:none; color:var(--scr); font-size:17px}
+.btn.facebook{background:#1877F2; color:#fff; border:none;
+  display:flex; align-items:center; justify-content:center; gap:11px}
+.btn.facebook .g-badge{background:#fff; box-shadow:none; color:#1877F2; font-size:14px}
+.btn.ms .g-badge{background:#fff; color:#0078D4}
 .btn.discord{background:#5865F2; color:#fff; border:none}
 .btn.discord .g-badge{background:#fff; box-shadow:none; color:#5865F2; font-size:13px; font-weight:800}
+.btn.mail{background:var(--card); color:var(--ink); border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center; gap:11px}
+.btn.mail .g-badge{background:var(--card2); box-shadow:none; color:var(--ink); font-size:14px}
+/* ทางหลักกับทางรองสูงเท่ากันแล้ว — ของเดิมทางหลักสูง 62 อีกใบ 54
+   พอสลับให้ "เข้าใช้เลย" เป็นทางหลัก ความสูงที่ต่างกันจะอ่านเป็น "ปุ่มล็อกอินถูกลดชั้น"
+   ซึ่งไม่ใช่สิ่งที่เปลี่ยน · ที่เปลี่ยนคือใบไหนดังกว่า ไม่ใช่ใบไหนสำคัญกว่า */
+.lg-opts .btn.lg-main{min-height:56px; border-radius:18px; font-size:15.5px; font-weight:700}
+.lg-main .g-badge{width:24px; height:24px; font-size:14px}
 
-/* ---------- ทางหลักใบใหญ่ ---------- */
-/* ใหญ่กว่าปุ่มอื่นทุกใบบนจอนี้อย่างเห็นได้ชัด ไม่ใช่ใหญ่กว่านิดเดียว
-   ต่างกันนิดเดียวคือ "ไม่ได้ตั้งใจ" ในสายตาคนอ่าน แล้วเขาก็ต้องอ่านทุกปุ่มอยู่ดี */
-.lg-opts .btn.lg-main{min-height:62px; border-radius:19px; font-size:16px; font-weight:700}
-.lg-main .g-badge{width:26px; height:26px; font-size:14px}
+/* เหตุผลของการล็อกอิน อยู่ใต้ปุ่มล็อกอิน ไม่ใช่บนหัวจอ
+   บนหัวจอมันเป็นคำบรรยาย · ตรงนี้มันเป็นข้อโต้แย้งของปุ่มที่อยู่เหนือมันหนึ่งบรรทัด */
+.lg-why{margin:2px 0 0; font-size:11.5px; line-height:1.6; font-weight:500;
+  color:var(--muted); text-align:center}
 
 /* ---------- ช่องทางรอง: วงกลมเรียงกัน ---------- */
-/* ข้อความเปล่า ไม่มีเส้นขีดสองข้าง · เล็กและเงียบ เพราะมันเป็นป้ายบอกทาง ไม่ใช่หัวข้อ */
-.lg-or2{color:rgba(199,210,254,.45); font-size:11px; font-weight:600;
-  letter-spacing:.06em; margin:16px 0 0; text-align:center}
-.lg-ics{display:flex; gap:12px; justify-content:center; margin-top:10px}
-/* 46px — เล็กกว่าปุ่มหลัก 70px ชัดเจน · ของเดิม 54px ใหญ่เกือบเท่าปุ่มจริง
-   สองวงกลมขนาดนั้นลอยอยู่กลางที่ว่างเลยอ่านเป็นของหลุดมา ไม่ใช่แถวช่องทางรอง */
-/* วงกลมขาว ตราเป็นสีแบรนด์ — แบบเดียวกับภาพอ้างอิงที่ผู้ใช้ส่งมา
-   วงกลมสีแบรนด์ทึบสองอันเรียงกันคือก้อนสีสองก้อนที่แข่งกันเองและแข่งกับปุ่มหลัก
-   พอพื้นเป็นขาวเหมือนกันหมด แถวนี้อ่านเป็นของกลุ่มเดียวกัน แล้วสีไปอยู่ที่ตรา
-   ซึ่งเป็นที่ที่สีควรอยู่ — มันคือสิ่งที่บอกว่าปุ่มนี้คือเจ้าไหน */
-/* วงกลมขอบโปร่ง ตราสีขาว — ชุดเดียวกับปุ่มรองข้างบน จอทั้งใบจึงมีวัสดุแค่สองอย่าง:
-   ขาวทึบ (ทางหลัก) กับ ขอบโปร่ง (ทางรอง) · วงกลมขาวทึบที่ลองก่อนหน้านี้กลายเป็น
-   ก้อนสว่างสามก้อนบนจอเดียว แล้วสายตาไม่รู้ว่าควรไปหยุดที่ไหน */
+.lg-or2{color:var(--muted); font-size:11px; font-weight:600;
+  letter-spacing:.01em; margin:16px 0 0; text-align:center}
+.lg-ics{display:flex; gap:10px; justify-content:center; margin-top:10px}
 .lg-ic{width:44px; height:44px; border-radius:50%; cursor:pointer;
   display:grid; place-items:center; font-family:inherit; font-size:16px; font-weight:800;
-  background:transparent; border:1.4px solid rgba(255,255,255,.36); color:#fff;
+  background:var(--card); border:1px solid var(--line); color:var(--ink);
+  box-shadow:var(--shadow);
   transition:transform .14s ease, background .16s, border-color .16s}
 .lg-ic svg{width:20px; height:20px}
 .lg-ic:active{transform:scale(.92)}
-.lg-ic:hover{background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.6)}
-/* ปุ่มไม่ล็อกอินแยกตัวออกจากกลุ่มช่องทางด้วยระยะ ไม่ใช่ด้วยเส้นคั่นอีกเส้น */
-.lg-opts .btn.lg-skip{margin-top:10px}
 
-/* อีเมลเป็นลิงก์ข้อความ ไม่ใช่ปุ่มแบรนด์ใบที่สี่ — ปุ่มที่สูงเท่ากัน กว้างเท่ากัน
-   มีวงกลมไอคอนเหมือนกัน ต่างแค่สีพื้น สายตาอ่านว่าของอย่างเดียวกันหลายอัน */
-/* ประโยค ไม่ใช่ลิงก์ขีดเส้นใต้ — ขีดเส้นใต้บนพื้นเข้มอ่านเหมือนลิงก์เว็บดิบ ๆ
-   ตัวที่กดได้คือคำท้ายประโยคซึ่งเป็นตัวขาวหนา ส่วนคำถามข้างหน้าเป็นตัวจาง
-   รูปแบบเดียวกับ "Don't have an account? Sign up" ที่แอปทั่วไปวางไว้ก้นจอ */
-.lg-alt{background:none; border:none; color:rgba(199,210,254,.6); font-size:12.5px; font-weight:500;
-  padding:10px 6px 2px; cursor:pointer; font-family:inherit; line-height:1.6}
-.lg-alt b{color:#fff; font-weight:700; margin-left:3px}
-.lg-alt:active b{color:#BFD0F5}
+/* ประโยค ไม่ใช่ลิงก์ขีดเส้นใต้ — ตัวที่กดได้คือคำท้ายประโยคซึ่งเป็นตัวเข้มหนา
+   ส่วนคำถามข้างหน้าเป็นตัวจาง รูปแบบเดียวกับที่แอปทั่วไปวางไว้ก้นจอ */
+/* ข้อควรระวัง: ตัวหนังสือที่นั่งบนพื้นจอ (--scr) ตรง ๆ ใช้ --faint ไม่ได้
+   ธีม genesis มี --scr เป็นสีกลาง (142,155,232) — --faint บนนั้นวัดได้ 2.16 : 1
+   (--blue 2.83 · --blue-deep 4.49 · --muted 4.52 · --ink 5.75) — มีแค่ --muted กับ --ink ที่ผ่าน
+   --faint ถูกออกแบบมาสำหรับของที่นั่งบนการ์ด (--card ซึ่งเกือบขาวทุกธีม) ไม่ใช่พื้นจอ */
+.lg-alt{background:none; border:none; color:var(--muted); font-size:12.5px; font-weight:500;
+  padding:14px 6px 2px; cursor:pointer; font-family:inherit; line-height:1.6}
+/* --blue-deep ไม่ใช่ --blue — ทุกธีมนิยาม --blue-deep ไว้เป็นตัวที่ตัดกับพื้นของธีมมากกว่า
+   (ธีมสว่าง = เข้มกว่า · ธีมมืด = สว่างกว่า) วัดแล้ว --blue บน --scr ของธีมชมพูได้ 4.30 : 1 */
+/* ตัวที่กดได้เป็น --ink ขีดเส้นใต้ ไม่ใช่สีฟ้า — วัดแล้ว --blue-deep บน --scr
+   ของธีม genesis ได้ 4.49 : 1 ขาดอยู่นิดเดียว · --ink ได้ 5.75 ขึ้นไปทุกธีม
+   ขีดเส้นใต้มาแทนสี — ดีกว่าเดิมด้วยซ้ำ เพราะคนตาบอดสีก็เห็นว่าตรงนี้กดได้ */
+.lg-alt b{color:var(--ink); font-weight:700; margin-left:3px; text-decoration:underline;
+  text-underline-offset:3px; text-decoration-thickness:1.5px}
+.lg-alt:active b{opacity:.7}
 
-.lg-or{display:flex; align-items:center; gap:10px; width:100%; max-width:300px;
-  color:rgba(199,210,254,.45); font-size:12px; font-weight:600; margin:2px 0}
-.lg-or i{flex:1; height:1px; background:rgba(169,188,240,.20)}
+.lg-or{display:flex; align-items:center; gap:10px; width:100%;
+  color:var(--muted); font-size:12px; font-weight:600; margin:2px 0}
+.lg-or i{flex:1; height:1px; background:var(--line)}
 
-.lg-mail{display:flex; flex-direction:column; gap:10px; width:100%; max-width:300px; text-align:left}
-.lg-lb{font-size:12.5px; font-weight:600; color:rgba(199,210,254,.72); padding:0 2px}
-.lg-in{width:100%; min-height:52px; border-radius:16px; padding:0 16px; font-size:16px;
-  background:rgba(255,255,255,.07); border:1px solid rgba(169,188,240,.28); color:#fff;
+/* ---------- ช่องทางอีเมล (สามสถานะ) ---------- */
+.lg-mail{display:flex; flex-direction:column; gap:10px; width:100%; text-align:left}
+.lg-lb{font-size:12.5px; font-weight:600; color:var(--muted); padding:0 2px}
+.lg-in{width:100%; min-height:54px; border-radius:16px; padding:0 16px; font-size:16px;
+  background:var(--card); border:1px solid var(--line); color:var(--ink);
   -webkit-appearance:none; appearance:none}
-.lg-in::placeholder{color:rgba(199,210,254,.38)}
-.lg-in:focus{outline:none; border-color:rgba(169,188,240,.6); background:rgba(255,255,255,.11)}
+.lg-in::placeholder{color:var(--faint); opacity:.7}
+.lg-in:focus{outline:none; border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-soft)}
 /* ช่องรหัสอ่านง่ายที่สุดเมื่อตัวเลขห่างกันและอยู่กลางช่อง — หกหลักที่ชิดกันอ่านผิดกันบ่อย */
 .lg-in.code{text-align:center; letter-spacing:.42em; font-size:22px; font-weight:700; padding-right:0}
-.lg-back{background:none; border:none; color:rgba(199,210,254,.62); font-size:13.5px; font-weight:600;
-  padding:8px; border-radius:12px; text-align:center}
-.lg-back:active{color:#fff; background:rgba(255,255,255,.07)}
-.lg-note{min-height:18px; margin:0; font-size:12.5px; line-height:1.6; max-width:300px;
-  color:rgba(199,210,254,.72)}
-.lg-note.bad{color:#FCA5A5}
+.lg-back{background:none; border:none; color:var(--muted); font-size:13.5px; font-weight:600;
+  padding:8px; border-radius:12px; text-align:center; cursor:pointer; font-family:inherit}
+.lg-back:active{color:var(--ink); background:var(--card2)}
+.lg-note{min-height:18px; margin:6px 0 0; font-size:12.5px; line-height:1.6;
+  color:var(--muted); text-align:center}
+/* ข้อความผิดพลาดเป็นชิปมีพื้น ไม่ใช่ตัวหนังสือสีแดงลอยบนพื้นจอ
+   --alert บน --scr ของธีม genesis วัดได้ 1.94 : 1 — อ่านไม่ออกเลย
+   --ink บนชิป --alert-soft วัดได้ 8.88–14.56 ทุกธีม · สีแดงย้ายไปอยู่ที่ขอบ
+   ซึ่งเป็นการย้ำ ไม่ใช่ตัวเดียวที่แบกข่าวร้าย */
+.lg-note.bad{color:var(--ink); background:var(--alert-soft);
+  border-left:3px solid var(--alert); border-radius:10px;
+  padding:9px 12px; text-align:left}
 .lg-opts .btn[disabled]{opacity:.6}
+
+/* ลิงก์ท้ายสุด เงียบที่สุดบนจอ — มันคือทางออกไปอ่าน ไม่ใช่ทางเข้าใช้งาน
+   คนที่รู้จักแอปอยู่แล้วต้องไม่สะดุดกับมัน */
+.login-what{margin-top:10px; font-size:12.5px; font-weight:600; text-decoration:none;
+  color:var(--muted); padding:6px 12px; border-radius:12px}
+.login-what:active{color:var(--ink); background:var(--card2)}
+
+.g-badge{width:22px; height:22px; border-radius:50%; background:#fff; border:none;
+  box-shadow:0 0 0 1px rgba(15,23,42,.12);
+/* #1A73E8 ไม่ใช่ #4285F4 — สีหลังคือฟ้าที่ Google เองประกาศให้ใช้บนพื้นขาว
+   สีเดิมวัดได้ 3.56 : 1 บนวงกลมขาว — ตัว G หนา 13px ต้องการ 4.5 */
+  display:grid; place-items:center; font-size:13px; font-weight:800; color:#1A73E8; flex:none}
+
 .login-mode .tabbar{display:none}
-/* จอล็อกอินเป็นพื้นเข้มทุกธีม — นาฬิกาบนสุดต้องสว่างตาม ไม่ใช่ตามสีตัวอักษรของธีม */
-.login-mode .statusbar{color:#E9EDF5}
+/* 1C14 · จอล็อกอินเลิกเป็นพื้นเข้มแล้ว นาฬิกาจึงกลับไปใช้สีตัวอักษรของธีมตามปกติ
+   กฎเดิมบังคับ #E9EDF5 ไว้ ซึ่งบนพื้นสว่างคือตัวหนังสือขาวบนขาว */
+.login-mode .statusbar{color:var(--ink)}
 
 /* ---------- Voice input ---------- */
 .btn.voice{display:flex; align-items:center; justify-content:center; gap:11px; min-height:64px; border-radius:20px;
@@ -995,9 +1081,16 @@ input[type=range]{width:100%; accent-color:var(--blue); height:28px; background:
 .fm-card{background:var(--card); border-radius:22px; box-shadow:var(--shadow);
   padding:18px 18px 20px; display:flex; flex-direction:column; gap:18px}
 .fld{display:flex; flex-direction:column; gap:8px; flex:1; min-width:0}
-.fld > label{font-size:11px; font-weight:600; color:var(--faint); letter-spacing:.08em; text-transform:uppercase}
+/* 1C14 · ต้องมาหลัง .fld เสมอ และห้ามลบ
+   `hidden` ซ่อนของด้วย `display:none` จาก stylesheet ของเบราว์เซอร์เอง
+   ซึ่งมีน้ำหนักต่ำกว่า `display:flex` บรรทัดข้างบน — ช่องที่สั่งซ่อนจึงโผล่อยู่ดี
+   เจอตอนถ่ายภาพเทียบ before/after: #fGotWrap ("ได้คะแนนเท่าไหร่") ตั้ง hidden ไว้
+   เพราะงานที่เพิ่งเพิ่มยังไม่มีผลสอบ แต่มันขึ้นมาตลอด — บั๊คตัวเดียวกันกับ .focus-wrap ใน today.css
+   ใครก็ตามที่ตั้ง display ให้ของที่ซ่อนด้วย hidden ต้องเขียนบรรทัดคู่แบบนี้เสมอ */
+.fld[hidden]{display:none}
+.fld > label{font-size:12px; font-weight:600; color:var(--faint); letter-spacing:.01em; text-transform:uppercase}
 .fld-head{display:flex; align-items:baseline; justify-content:space-between}
-.fld-head label{font-size:11px; font-weight:600; color:var(--faint); letter-spacing:.08em; text-transform:uppercase}
+.fld-head label{font-size:12px; font-weight:600; color:var(--faint); letter-spacing:.01em; text-transform:uppercase}
 .fld-head .val{font-size:13px; font-weight:600; color:var(--blue); font-variant-numeric:tabular-nums}
 .fld-row{display:flex; gap:12px}
 
