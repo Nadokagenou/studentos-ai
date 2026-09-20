@@ -8041,3 +8041,149 @@ button.df-r:active { background: var(--surface); }
 @media (max-width: 768px), (display-mode: standalone) {
   :root:not([data-nav="side"]) .fm-bar { padding-bottom: 12px; }
 }
+
+/* ============================================================
+   1C16 · จอสแกนตารางเรียน — เวทีกล้องสด
+   ------------------------------------------------------------
+   เวทีเป็นพื้นเข้มเสมอทุกธีม และนั่นตั้งใจ: มันคือช่องมองของกล้อง ไม่ใช่การ์ดของแอป
+   ทุกแอปที่มีกล้องทำแบบนี้ เพราะภาพจริงต้องเป็นของที่สว่างที่สุดในจอ
+   สีตัวอักษรบนเวทีจึงเขียนตรง ๆ ไม่ใช่โทเคน — โทเคนของธีมสว่างจะอ่านไม่ออกบนพื้นนี้
+   ============================================================ */
+#scr-ttscan { padding-bottom: 0; }
+.tt-body { padding-bottom: 8px; gap: 14px; }
+
+.tt-stage {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #0B1220;
+  aspect-ratio: 3 / 4;
+  max-height: 46vh;
+  display: flex; align-items: center; justify-content: center;
+}
+.tt-stage[hidden] { display: none; }
+.tt-stage video, .tt-stage img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+}
+.tt-stage video[hidden], .tt-stage img[hidden] { display: none; }
+/* ตอนยังไม่มีภาพ: ลายตารางจาง ๆ ให้เห็นว่ากรอบนี้รอรับอะไร ไม่ใช่กล่องดำที่พัง */
+.tt-stage.empty::before {
+  content: '';
+  position: absolute; inset: 26px;
+  background:
+    repeating-linear-gradient(to right, rgba(255,255,255,.14) 0 1px, transparent 1px 20%),
+    repeating-linear-gradient(to bottom, rgba(255,255,255,.14) 0 1px, transparent 1px 25%);
+  border-radius: 6px;
+}
+/* มุมเล็งสี่มุม — ภาษาเดียวกับกล้องสแกนทุกตัว บอกว่า "ให้ของอยู่ในนี้" */
+.ttf {
+  position: absolute; width: 26px; height: 26px; border: 3px solid var(--neon, #4DA3FF);
+  filter: drop-shadow(0 0 6px rgba(77,163,255,.55));
+}
+.ttf.tl { top: 12px; left: 12px; border-right: none; border-bottom: none; border-radius: 9px 0 0 0; }
+.ttf.tr { top: 12px; right: 12px; border-left: none; border-bottom: none; border-radius: 0 9px 0 0; }
+.ttf.bl { bottom: 12px; left: 12px; border-right: none; border-top: none; border-radius: 0 0 0 9px; }
+.ttf.br { bottom: 12px; right: 12px; border-left: none; border-top: none; border-radius: 0 0 9px 0; }
+/* เส้นกวาด: วิ่งตลอดตอนเล็ง และเร็วขึ้นตอนกำลังอ่าน — เป็นตัวบอกว่าเครื่องยังทำงานอยู่
+   จังหวะเดียวกับแถบโหลด แต่ไม่กินที่เพิ่มเลยสักพิกเซล */
+.tt-sweep {
+  position: absolute; left: 14px; right: 14px; height: 2px; top: 14%;
+  background: var(--neon, #4DA3FF);
+  box-shadow: 0 0 14px 2px rgba(77,163,255,.65);
+  animation: ttSweep 3.2s ease-in-out infinite;
+}
+.tt-stage.reading .tt-sweep { animation-duration: 1.4s; }
+@keyframes ttSweep { 0%, 100% { top: 12% } 50% { top: 84% } }
+@media (prefers-reduced-motion: reduce) { .tt-sweep { animation: none; opacity: .5 } }
+/* ม่านดำที่ก้นเวที — ประโยคบอกวิธีเล็งต้องอ่านออกแม้เล็งอยู่กับกระดาษขาว
+   เงาตัวอักษรอย่างเดียวไม่พอ ภาพสดสว่างกว่าเงาเสมอ */
+.tt-stage::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 74px;
+  background: linear-gradient(to top, rgba(6,12,24,.72), transparent);
+  pointer-events: none;
+}
+.tt-stage-h {
+  position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; z-index: 1;
+  font-size: 12px; font-weight: 600; color: #EAF2FF;
+  text-shadow: 0 1px 6px rgba(0,0,0,.8);
+}
+
+/* แถวชัตเตอร์ */
+.tt-shoot { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.tt-shutter {
+  flex: none; width: 72px; height: 72px; border-radius: 50%; border: none; cursor: pointer;
+  background: var(--card); box-shadow: inset 0 0 0 3px var(--blue), var(--shadow);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .12s ease;
+}
+.tt-shutter i { width: 56px; height: 56px; border-radius: 50%; background: var(--blue); display: block; }
+.tt-shutter:active { transform: scale(.93); }
+.tt-gal {
+  flex: none; width: 48px; height: 48px; border-radius: 16px; border: none; cursor: pointer;
+  background: var(--card2); color: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+}
+.tt-gal svg { width: 20px; height: 20px; }
+.tt-gal.ghost { background: none; pointer-events: none; }
+
+.tt-2nd {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+  min-height: 46px; border: none; border-radius: 14px; background: var(--card2); color: var(--ink);
+  font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; margin-top: 9px;
+}
+.tt-2nd svg { width: 16px; height: 16px; }
+.tt-2nd:active { transform: scale(.98); }
+
+.tt-tips { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; margin-top: 14px; }
+/* บรรทัดอธิบายท้ายจอนั่งบนพื้นเพจ ไม่ใช่บนการ์ด — --faint จึงเหลือ 2.16:1 ในธีม genesis
+   (วัดแล้ว: --muted ได้ 4.52 · --ink ได้ 5.75) กฎนี้คุมเฉพาะจอนี้ */
+#scr-ttscan .tt-foot { color: var(--muted); }
+.tt-tips span {
+  font-size: 11.5px; font-weight: 600; color: var(--muted);
+  background: var(--card2); border-radius: 999px; padding: 6px 11px;
+}
+
+/* ขั้นตอนตอนกำลังอ่าน — แทนวงกลมหมุนเปล่า ๆ ที่ไม่ได้บอกว่ากำลังทำอะไรถึงไหน */
+.tt-steps { display: flex; flex-direction: column; gap: 12px; padding: 4px 2px; }
+.tts { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--faint); }
+.tts.done { color: var(--ink); }
+.tts.now { color: var(--ink); }
+.tts svg { width: 17px; height: 17px; flex: none; color: var(--good); }
+.tts i {
+  width: 17px; height: 17px; flex: none; border-radius: 50%;
+  border: 2px solid var(--line); box-sizing: border-box;
+}
+.tts.now i { border-color: var(--blue); border-top-color: transparent; animation: ttSpin .9s linear infinite; }
+
+/* หน้าตรวจ — ภาษาเดียวกับฟอร์มเพิ่มงาน 1C15 (บล็อกมีหัวข้อ + ป้ายขวา + ปุ่มติดขอบล่าง) */
+.tt-top { margin-top: 2px; }
+.tt-day { gap: 8px; padding: 14px 14px 15px; }
+.tt-day .tt-list { gap: 0; }
+.tt-day .tt-row {
+  background: none; box-shadow: none; border-radius: 0; padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+.tt-day .tt-row:last-child { border-bottom: none; }
+/* ต้องเขียน .fm-sec.tt-day (สองคลาสชนกัน) ไม่ใช่ .tt-day เฉย ๆ
+   เพราะ [type=text] นับน้ำหนักเท่า class — .fm-sec input[type=text] จึงเป็น 0,2,1
+   ชนะ .tt-day .tt-sub ที่เป็น 0,2,0 — รอบแรกเขียนสั้นไปแล้วกฎไม่ติดสักข้อ */
+/* กับดัก: .tt-day ใช้คลาส .fm-sec ด้วย กฎช่องกรอกของ 1C15
+   (width:100% · min-height:48px) จึงมาโดนช่องเล็ก ๆ ในแถวคาบเต็ม ๆ
+   แล้วช่องเวลาถูกดันหลุดขอบจอ — คืนขนาดของแถวให้กลับมาตรงนี้ */
+.fm-sec.tt-day .tt-row { align-items: center; gap: 10px; }
+.fm-sec.tt-day .tt-fields { flex: 1; min-width: 0; }
+.fm-sec.tt-day .tt-sub {
+  background: none; box-shadow: none; border-radius: 0; min-height: 0; padding: 0;
+  font-size: 14.5px; font-weight: 650;
+}
+.fm-sec.tt-day .tt-sub:focus { outline: none; box-shadow: none; border-bottom: 1.5px solid var(--blue); }
+.fm-sec.tt-day .tt-when select, .fm-sec.tt-day .tt-when input[type=time] {
+  width: auto; min-height: 34px; padding: 0 8px; font-size: 12.5px; border-radius: 10px;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.fm-sec.tt-day .tt-when { gap: 5px; }
+.fm-sec.tt-day .tt-when select { flex: none; width: 52px; padding: 0 4px; }
+/* ช่องเวลายืดเอง — บางเครื่องแสดง AM/PM ซึ่งกินที่กว่าแบบ 24 ชม. อยู่สิบกว่าพิกเซล */
+.fm-sec.tt-day .tt-when input[type=time] { flex: 1; min-width: 0; padding: 0 6px; }
+.tt-bar { margin: 0 -20px; }
+.tt-bar .fm-save:disabled { opacity: .45; }

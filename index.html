@@ -1254,7 +1254,7 @@
            สามสถานะในจอเดียว: เลือกรูป → กำลังอ่าน → ตรวจก่อนบันทึก
            วาดทั้งหมดจาก renderTtScan() เพราะจำนวนคาบที่อ่านได้ไม่แน่นอน -->
       <div class="screen flush" id="scr-ttscan">
-        <div class="scr-body pf-body">
+        <div class="scr-body pf-body tt-body">
           <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
             <div>
               <h2 class="sh-title">สแกนตารางเรียน</h2>
@@ -1262,6 +1262,17 @@
             </div>
             <button class="sh-btn" onclick="go('scr-context')" aria-label="กลับ">
               <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <!-- 1C16 · เวทีกล้อง — อยู่ใน HTML ไม่ได้อยู่ใน innerHTML ของ renderTtScan()
+               <video> ที่ถูกสร้างใหม่ทุกครั้งที่วาดจอ คือสตรีมกล้องที่เริ่มใหม่ทุกครั้ง
+               (กล้องกะพริบ ไฟสีเขียวกะพริบ และกินแบตเตอรี่ฟรี ๆ) -->
+          <div class="tt-stage" id="ttStage" hidden>
+            <video id="ttCam" playsinline muted autoplay></video>
+            <img id="ttShot" alt="" hidden>
+            <span class="ttf tl"></span><span class="ttf tr"></span>
+            <span class="ttf bl"></span><span class="ttf br"></span>
+            <span class="tt-sweep"></span>
+            <p class="tt-stage-h" id="ttStageHint">วางตารางให้เต็มกรอบ</p>
           </div>
           <input type="file" id="ttFile" accept="image/*" hidden onchange="ttPick(this)">
           <div id="ttBody"></div>
