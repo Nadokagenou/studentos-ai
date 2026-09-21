@@ -113,9 +113,14 @@
   position: relative; width: 92px; height: 159px;
   transform: rotate(calc(var(--sx) * 3.5deg)) translateX(calc(var(--sx) * 4px));
 }
+/* มุมมน แต่ไม่มีพื้นหลัง — จงใจให้ใช้ได้กับภาพสองชนิดโดยไม่ต้องแก้ CSS:
+   ไฟล์ปัจจุบันยังมีพื้นหลังฟ้าอ่อนติดมา มุมมนทำให้มันอ่านเป็น "ไทล์" ไม่ใช่รูปสี่เหลี่ยมแปะ
+   วันที่ได้ PNG พื้นโปร่งจากคนวาด มุมมนบนพื้นโปร่งมองไม่เห็นอยู่แล้ว — ทับไฟล์ทิ้งได้เลย
+   ⚠️ ห้ามใส่ background/border/box-shadow ตรงนี้ ไม่งั้นวันนั้นจะได้กรอบลอยรอบตัวเปล่า ๆ */
 .saip-chibi {
   position: relative; display: block;
   width: 92px; height: 159px; object-fit: contain;
+  border-radius: 16px;
   animation: saiFloat 4.6s ease-in-out infinite;
 }
 .saip-chibi.dim { filter: saturate(.75) brightness(.94); }
@@ -182,19 +187,19 @@
 .sd-wake .sd-t, .sd-sleep .sd-t { color: var(--muted); font-weight: 700; font-size: 15px; }
 
 /* ---------- สีแยกหมวด ----------
-   ⚠️ มีสีเดียวในเส้นเวลาทั้งเส้น และมันคือ "ช่องว่าง"
-   รอบที่แล้วทาสีทุกหมวด (เรียนฟ้า · ว่างเขียว · กิจกรรมเหลือง) ซึ่งได้ผลตรงข้าม:
-   เมื่อทุกอย่างมีสี ก็ไม่มีอะไรเด่น และในธีมมืดสีโปร่งสามสีทับพื้นการ์ดกลายเป็นโคลนสามกอง
-   ช่องว่างคือสิ่งเดียวบนเส้นนี้ที่เขา "ตัดสินใจได้" — คาบเรียนกับกิจวัตรเปลี่ยนไม่ได้อยู่แล้ว
-   สีจึงควรอยู่บนของที่กดแล้วเกิดอะไรขึ้น ไม่ใช่บนของที่ดูอย่างเดียว
+   มีก้อนสีทึบก้อนเดียวในเส้นเวลาทั้งเส้น และมันคือ "ช่องว่าง"
+   เพราะเป็นสิ่งเดียวบนเส้นนี้ที่เขาตัดสินใจได้ — คาบเรียนกับกิจวัตรเปลี่ยนไม่ได้อยู่แล้ว
+   สีควรอยู่บนของที่กดแล้วเกิดอะไรขึ้น ไม่ใช่บนของที่ดูอย่างเดียว
 
-   ใช้คู่ --pri-green-soft / --pri-green-text ซึ่งเป็นคู่ที่ออกแบบมาให้วางบนพื้นการ์ด
-   และพลิกตามธีมพร้อมกันทั้งคู่ · ห้ามเอา --sig-* มาใช้ตรงนี้ (ตัวอักษรจะเข้มบนพื้นเข้ม) */
+   ⚠️ --sig-green ไม่พลิกตามธีม และตัวอักษรขาวบนมันผ่าน AA ทุกธีม (6.0)
+   ห้ามเปลี่ยนไปใช้ --good/--pri-green-* ตรงนี้ เพราะสองตัวนั้นพลิกตามธีม
+   ธีมมืดจะได้เขียวอ่อนซึ่งตัวอักษรขาวอ่านไม่ออก */
 .sd-free .sd-x {
-  background: var(--pri-green-soft);
-  border-left-color: var(--pri-green-text);
+  background: var(--sig-green); border-left-color: rgba(255,255,255,.35);
+  color: #fff;
 }
-.sd-free .sd-x > b { color: var(--pri-green-text); }
+.sd-free .sd-x > b { color: #fff; }
+.sd-free .sd-x > i { color: rgba(255,255,255,.8); }
 
 .sd-ev .sd-x { border-left-color: var(--pri-yellow-text); }
 .sd-ev .sd-x > b { color: var(--pri-yellow-text); }
@@ -274,56 +279,39 @@ button.sd-job:active { transform: scale(.985); }
    ตัวเลขทุกตัวในใบนี้มาจาก state จริง ไม่มีตัวไหนเป็นคำให้กำลังใจ
    วันไหนตัวเลขไม่สวยก็ต้องขึ้นตามนั้น — ตัวเลขที่สวยเสมอคือตัวเลขที่ไม่มีใครเชื่อ
    ============================================================ */
-/* ⚠️ ตระกูลสีที่ใช้ตรงนี้คือ --sig-* เท่านั้น และนี่ไม่ใช่เรื่องรสนิยม
-   แอปนี้มีสองตระกูลที่ห้ามปนกัน (ดูบล็อก "โทเคนสัญญาณ" ใน today.css):
-     --pri-*-soft / --pri-*-text   พลิกตามธีม · พื้นอ่อน + ตัวอักษรเข้ม · วางบนพื้นการ์ด
-     --sig-*                       ไม่พลิกตามธีม · พื้นทึบ + ตัวอักษรขาวเสมอ
-   รอบที่แล้วผมใช้ --good-soft/--warn-soft ซึ่งในธีมมืดเป็นสีโปร่ง 26%
-   ทับพื้นการ์ดกรมท่า ได้สีโคลนน้ำตาลขุ่นที่อ่านยากและดูไม่ได้
-   การ์ดใบนี้เป็น "ก้อนสีเดียวของทั้งจอ" เหมือนหัวตั๋วในหน้าวันนี้ จึงต้องเป็นพื้นทึบ
-   ขาวบน #0B6E3F = 6.0 · บน #B54708 = 5.9 ผ่าน AA ทั้งคู่ทุกธีม */
+/* ============================================================
+   การ์ดผลลัพธ์ — ประโยคเดียว พื้นทึบ
+   ------------------------------------------------------------
+   สูตรเดียวกับหัวตั๋ว .tn-head ในหน้าวันนี้ ซึ่งเป็นใบที่เจ้าของชี้เองว่าสีโอเค:
+   พื้น --fill · ตัวอักษร --on-fill · วงกลมขาวโปร่งสองวงเป็นลวดลาย
+   ⚠️ ทุกอย่างในนี้สืบสีจาก --on-fill ห้ามหลุดไปใช้ --ink แม้แต่ตัวเดียว
+   ไม่งั้นจะได้ตัวหนังสือเข้มบนพื้นเข้ม ซึ่งพังเฉพาะบางธีมและมองข้ามง่ายมากตอนเทส
+   ============================================================ */
 .sp-hero {
-  margin: 12px 0 6px; padding: 16px 18px;
-  border-radius: var(--r-card);
-  color: #fff;
-  box-shadow: var(--shadow);
+  position: relative; overflow: hidden;
+  margin: 12px 0 8px; padding: 20px 20px 22px;
+  border-radius: calc(var(--r-card) + 4px);
+  background: var(--fill); color: var(--on-fill);
+  box-shadow: var(--shadow-lg);
 }
-.sp-hero.ok   { background: var(--sig-green); }
-.sp-hero.warn { background: var(--sig-amber); }
-.sp-hero.calm { background: var(--card2); color: var(--ink); box-shadow: none; }
-
-.sp-h-lb {
-  display: block; font-size: 11.5px; font-weight: 700;
-  letter-spacing: .04em; color: rgba(255,255,255,.82);
+.sp-hero::after {
+  content: ''; position: absolute; right: -40px; top: -52px;
+  width: 160px; height: 160px; border-radius: 50%;
+  background: rgba(255,255,255,.11); pointer-events: none;
 }
-.sp-hero.calm .sp-h-lb { color: var(--muted); }
-
-/* ตัวเลขที่เป็นคำตอบใหญ่กว่าคำรอบข้างอีกชั้น — คนกวาดตาเจอ "0" ก่อนเจอ "ส่งทัน"
-   ซึ่งถูกแล้ว เพราะคำว่า "ส่งทัน" เหมือนกันทุกวัน ตัวเลขคือสิ่งเดียวที่เปลี่ยน */
-.sp-h-big {
-  display: block; margin-top: 3px;
-  font-size: 23px; font-weight: 750; letter-spacing: -.02em; line-height: 1.25;
+.sp-hero::before {
+  content: ''; position: absolute; right: 22px; bottom: -62px;
+  width: 116px; height: 116px; border-radius: 50%;
+  background: rgba(255,255,255,.07); pointer-events: none;
 }
-.sp-h-big em { font-style: normal; font-size: 34px; font-weight: 850; }
-
-/* สองผลที่ตามมา — อยู่แถวเดียวกันเพราะเป็นสองด้านของการตัดสินใจเดียว
-   พื้นขาวโปร่งบนพื้นทึบ ใช้ได้ทุกธีมเพราะพื้นข้างหลังไม่พลิกตามธีม */
-.sp-h-row {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px;
-  margin-top: 14px;
+.sp-hero b {
+  position: relative;
+  display: block; font-size: 19px; font-weight: 700; line-height: 1.45;
+  letter-spacing: -.015em; color: var(--on-fill);
 }
-.sp-h-cell {
-  min-width: 0; padding: 9px 11px; border-radius: 12px;
-  background: rgba(255,255,255,.16);
-}
-.sp-hero.calm .sp-h-cell { background: var(--card); }
-.sp-h-cell i {
-  display: block; font-size: 10.5px; font-style: normal; font-weight: 700;
-  color: rgba(255,255,255,.78); line-height: 1.3;
-}
-.sp-hero.calm .sp-h-cell i { color: var(--muted); }
-.sp-h-cell b {
-  display: block; margin-top: 2px; font-size: 14.5px; font-weight: 800; line-height: 1.3;
+/* ตัวเลขคือสิ่งเดียวที่เปลี่ยนทุกวัน — คำรอบข้างเหมือนเดิมเสมอ มันจึงต้องใหญ่กว่า */
+.sp-hero b em {
+  font-style: normal; font-size: 32px; font-weight: 850; letter-spacing: -.03em;
 }
 
 /* ---------- ปุ่มเรียกโหมดเล่าทีละข้อ ---------- */
@@ -384,3 +372,11 @@ button.sd-job:active { transform: scale(.985); }
 .st-next { background: var(--fill); border: 0; color: var(--on-fill); }
 .st-next svg { width: 15px; height: 15px; }
 .st-back:active, .st-next:active { transform: scale(.98); }
+
+/* การ์ด "พัก" เป็นแบบโปร่งเส้นประ ซึ่งบนพื้นเขียวทึบกลายเป็นเทาบนเขียว อ่านแทบไม่ออก
+   มันนั่งอยู่บนพื้นที่ไม่พลิกตามธีม จึงต้องใช้สีที่ไม่พลิกตามธีมด้วย (ขาวโปร่ง)
+   กฎเดียวกับบล็อก "โทเคนสัญญาณ" ใน today.css — ผสมสองตระกูลเมื่อไหร่คือพังธีมใดธีมหนึ่ง */
+.sd-free .sd-job.brk { border-color: rgba(255,255,255,.4); }
+.sd-free .sd-job.brk .sd-jt { color: rgba(255,255,255,.72); }
+.sd-free .sd-job.brk .sd-jx b { color: #fff; }
+.sd-free .sd-job.brk .sd-jx i { color: rgba(255,255,255,.72); }
