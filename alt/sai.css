@@ -58,14 +58,15 @@
   transform: rotate(calc(var(--sx) * 6deg))
              translate(calc(var(--sx) * 3px), calc(var(--sy) * 2px));
 }
-/* วงกลม ไม่ใช่กรอบสี่เหลี่ยมมุมมน · รอบแรกใช้สี่เหลี่ยมแล้วเจ้าของทักว่า
-   "เหมือนเอารูปไปใส่" ซึ่งถูก — สี่เหลี่ยมมุมมนอ่านว่า "รูปที่ถูกครอป"
-   ส่วนวงกลมอ่านว่า "รูปโปรไฟล์" เพราะทุกแอปใช้รูปทรงนี้กับคนมาสิบปีแล้ว
-   พื้นหลังกรมท่าในภาพจึงกลายเป็นพื้นของรูปโปรไฟล์ ไม่ใช่กรอบที่แปะทับการ์ด */
-.saih-ring {
-  position: absolute; inset: -5px; border-radius: 50%;
-  background: var(--fill); opacity: .2; filter: blur(9px);
-}
+/* ⚠️ .saih-ring กับ .saip-glow ถูกลบทิ้งใน 1C22 — ห้ามใส่กลับ
+   ทั้งคู่เป็นวงรีเบลอ 9–18px ที่วางไว้ "หลังตัวเธอ" ตอนออกแบบ
+   และมันคือสิ่งที่เจ้าของทักว่า "ขอบขาว ๆ รอบตัว" มาสามรอบติด
+   สองรอบก่อนหน้าไปแก้ที่ไฟล์ภาพ (กัดขอบ · ลามสีเนื้อใน) ซึ่งถูกต้องทั้งคู่
+   แต่แก้ผิดที่ เพราะเรืองแสงไม่ได้มาจากภาพเลย มันมาจาก CSS ของเราเอง
+   บทเรียน: ตรวจ "การ์ดจริงบนจอ" ไม่ใช่ "ไฟล์ภาพบนพื้นดำ" — สองอย่างนี้ไม่เหมือนกัน
+
+   วงกลมของรูปโปรไฟล์ยังอยู่ — สี่เหลี่ยมมุมมนอ่านว่า "รูปที่ถูกครอป"
+   ส่วนวงกลมอ่านว่า "รูปโปรไฟล์" เพราะทุกแอปใช้รูปทรงนี้กับคนมาสิบปีแล้ว */
 .saih-face {
   position: relative; display: block;
   width: 62px; height: 62px;
@@ -111,10 +112,6 @@
   --sx: 0; --sy: 0;
   position: relative; width: 92px; height: 159px;
   transform: rotate(calc(var(--sx) * 3.5deg)) translateX(calc(var(--sx) * 4px));
-}
-.saip-glow {
-  position: absolute; inset: 10% 2% 6%; border-radius: 50%;
-  background: var(--fill); opacity: .15; filter: blur(18px);
 }
 .saip-chibi {
   position: relative; display: block;
@@ -184,14 +181,27 @@
 .sd-wake .sd-x > b, .sd-sleep .sd-x > b { font-weight: 600; color: var(--muted); font-size: 13.5px; }
 .sd-wake .sd-t, .sd-sleep .sd-t { color: var(--muted); font-weight: 700; font-size: 15px; }
 
-/* หมวดสี — สีเป็นตัวแยกหมวดในแวบเดียว ส่วนตัวหนังสือยังบอกครบเหมือนเดิม */
-.sd-class .sd-x { background: var(--blue-soft); border-left-color: var(--blue); }
-.sd-class .sd-x > b { color: var(--blue-deep, var(--ink)); }
-.sd-free  .sd-x { background: var(--good-soft); border-left-color: var(--good); }
-.sd-free  .sd-x > b { color: var(--good); }
-.sd-ev    .sd-x { background: var(--warn-soft); border-left-color: var(--warn); }
-.sd-ev    .sd-x > b { color: var(--warn); }
-.sd-rt    .sd-x { border-left-color: var(--faint); }
+/* ---------- สีแยกหมวด ----------
+   ⚠️ มีสีเดียวในเส้นเวลาทั้งเส้น และมันคือ "ช่องว่าง"
+   รอบที่แล้วทาสีทุกหมวด (เรียนฟ้า · ว่างเขียว · กิจกรรมเหลือง) ซึ่งได้ผลตรงข้าม:
+   เมื่อทุกอย่างมีสี ก็ไม่มีอะไรเด่น และในธีมมืดสีโปร่งสามสีทับพื้นการ์ดกลายเป็นโคลนสามกอง
+   ช่องว่างคือสิ่งเดียวบนเส้นนี้ที่เขา "ตัดสินใจได้" — คาบเรียนกับกิจวัตรเปลี่ยนไม่ได้อยู่แล้ว
+   สีจึงควรอยู่บนของที่กดแล้วเกิดอะไรขึ้น ไม่ใช่บนของที่ดูอย่างเดียว
+
+   ใช้คู่ --pri-green-soft / --pri-green-text ซึ่งเป็นคู่ที่ออกแบบมาให้วางบนพื้นการ์ด
+   และพลิกตามธีมพร้อมกันทั้งคู่ · ห้ามเอา --sig-* มาใช้ตรงนี้ (ตัวอักษรจะเข้มบนพื้นเข้ม) */
+.sd-free .sd-x {
+  background: var(--pri-green-soft);
+  border-left-color: var(--pri-green-text);
+}
+.sd-free .sd-x > b { color: var(--pri-green-text); }
+
+.sd-ev .sd-x { border-left-color: var(--pri-yellow-text); }
+.sd-ev .sd-x > b { color: var(--pri-yellow-text); }
+
+/* เรียนกับกิจวัตร = ของที่เปลี่ยนไม่ได้ · แถบซ้ายทึบพอให้แยกออก แต่ไม่มีพื้นสี */
+.sd-class .sd-x { border-left-color: var(--muted); }
+.sd-rt    .sd-x { border-left-color: var(--line); }
 
 /* เส้น "ตอนนี้" — เส้นเดียวต่อจอ และเป็นสิ่งเดียวที่เป็นสีเตือน
    ถ้ามีของสีแดงมากกว่าหนึ่งอย่าง ตาจะไม่รู้ว่าอันไหนคือ "ตรงนี้"
@@ -264,43 +274,54 @@ button.sd-job:active { transform: scale(.985); }
    ตัวเลขทุกตัวในใบนี้มาจาก state จริง ไม่มีตัวไหนเป็นคำให้กำลังใจ
    วันไหนตัวเลขไม่สวยก็ต้องขึ้นตามนั้น — ตัวเลขที่สวยเสมอคือตัวเลขที่ไม่มีใครเชื่อ
    ============================================================ */
+/* ⚠️ ตระกูลสีที่ใช้ตรงนี้คือ --sig-* เท่านั้น และนี่ไม่ใช่เรื่องรสนิยม
+   แอปนี้มีสองตระกูลที่ห้ามปนกัน (ดูบล็อก "โทเคนสัญญาณ" ใน today.css):
+     --pri-*-soft / --pri-*-text   พลิกตามธีม · พื้นอ่อน + ตัวอักษรเข้ม · วางบนพื้นการ์ด
+     --sig-*                       ไม่พลิกตามธีม · พื้นทึบ + ตัวอักษรขาวเสมอ
+   รอบที่แล้วผมใช้ --good-soft/--warn-soft ซึ่งในธีมมืดเป็นสีโปร่ง 26%
+   ทับพื้นการ์ดกรมท่า ได้สีโคลนน้ำตาลขุ่นที่อ่านยากและดูไม่ได้
+   การ์ดใบนี้เป็น "ก้อนสีเดียวของทั้งจอ" เหมือนหัวตั๋วในหน้าวันนี้ จึงต้องเป็นพื้นทึบ
+   ขาวบน #0B6E3F = 6.0 · บน #B54708 = 5.9 ผ่าน AA ทั้งคู่ทุกธีม */
 .sp-hero {
-  margin: 10px 0 4px; padding: 16px 18px;
+  margin: 12px 0 6px; padding: 16px 18px;
   border-radius: var(--r-card);
-  background: var(--good-soft); color: var(--good);
-  border: 1px solid transparent;
+  color: #fff;
+  box-shadow: var(--shadow);
 }
-.sp-hero.warn { background: var(--warn-soft); color: var(--warn); }
-.sp-hero.calm { background: var(--card2); color: var(--ink); }
+.sp-hero.ok   { background: var(--sig-green); }
+.sp-hero.warn { background: var(--sig-amber); }
+.sp-hero.calm { background: var(--card2); color: var(--ink); box-shadow: none; }
+
 .sp-h-lb {
   display: block; font-size: 11.5px; font-weight: 700;
-  letter-spacing: .02em; opacity: .8;
+  letter-spacing: .04em; color: rgba(255,255,255,.82);
 }
-/* ตัวเลขที่เป็นคำตอบถูกทำให้ใหญ่กว่าคำรอบข้างอีกชั้น — คนกวาดตาเจอ "0" ก่อนเจอ "ส่งทัน"
-   ซึ่งถูกแล้ว เพราะคำว่า "ส่งทัน" เหมือนกันทุกวัน ส่วนตัวเลขคือสิ่งเดียวที่เปลี่ยน */
+.sp-hero.calm .sp-h-lb { color: var(--muted); }
+
+/* ตัวเลขที่เป็นคำตอบใหญ่กว่าคำรอบข้างอีกชั้น — คนกวาดตาเจอ "0" ก่อนเจอ "ส่งทัน"
+   ซึ่งถูกแล้ว เพราะคำว่า "ส่งทัน" เหมือนกันทุกวัน ตัวเลขคือสิ่งเดียวที่เปลี่ยน */
 .sp-h-big {
-  display: block; margin-top: 2px;
+  display: block; margin-top: 3px;
   font-size: 23px; font-weight: 750; letter-spacing: -.02em; line-height: 1.25;
 }
-.sp-h-big em { font-style: normal; font-size: 33px; font-weight: 850; }
+.sp-h-big em { font-style: normal; font-size: 34px; font-weight: 850; }
 
-/* สองช่องล่าง — "เสียอะไรถ้าไม่ทำ" กับ "ได้อะไรถ้าทำ" ต้องอยู่แถวเดียวกัน
-   เพราะมันคือสองด้านของการตัดสินใจเดียว ไม่ใช่ข้อเท็จจริงสองข้อที่ไม่รู้จักกัน */
 /* สองผลที่ตามมา — อยู่แถวเดียวกันเพราะเป็นสองด้านของการตัดสินใจเดียว
-   เป็นก้อนโปร่งบนพื้นการ์ด ไม่ใช่แค่ข้อความใต้เส้นคั่น จะได้อ่านเป็น "ตัวเลขสองตัว"
-   ไม่ใช่ "ประโยคสองประโยคที่ห้อยอยู่" */
+   พื้นขาวโปร่งบนพื้นทึบ ใช้ได้ทุกธีมเพราะพื้นข้างหลังไม่พลิกตามธีม */
 .sp-h-row {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px;
   margin-top: 14px;
 }
 .sp-h-cell {
   min-width: 0; padding: 9px 11px; border-radius: 12px;
-  background: color-mix(in srgb, currentColor 10%, transparent);
+  background: rgba(255,255,255,.16);
 }
+.sp-hero.calm .sp-h-cell { background: var(--card); }
 .sp-h-cell i {
   display: block; font-size: 10.5px; font-style: normal; font-weight: 700;
-  opacity: .72; line-height: 1.3;
+  color: rgba(255,255,255,.78); line-height: 1.3;
 }
+.sp-hero.calm .sp-h-cell i { color: var(--muted); }
 .sp-h-cell b {
   display: block; margin-top: 2px; font-size: 14.5px; font-weight: 800; line-height: 1.3;
 }

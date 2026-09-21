@@ -159,7 +159,6 @@ function saiHero(ctx) {
       <span class="saih-go">${icon('sparkles')}เข้าห้องน้องไซ</span>
     </span>
     <span class="saih-stage">
-      <span class="saih-ring"></span>
       ${dot ? '<span class="saih-dot"></span>' : ''}
       <img class="saih-face" src="${synFace(mood)}" alt="น้องไซ" width="76" height="76">
     </span>
@@ -361,7 +360,7 @@ function renderSaiPlan() {
     // เขียวต่อเมื่อทันครบทุกใบเท่านั้น — ทัน 1 จาก 2 ยังเป็นข่าวไม่ดี
     // การ์ดเขียวที่ขึ้นตอนยังมีใบที่ไม่ทัน คือการ์ดที่สอนให้เลิกเชื่อสีของมันเอง
     const win = pay.pileup === 0;
-    hero = '<section class="sp-hero' + (win ? '' : ' warn') + '">'
+    hero = '<section class="sp-hero ' + (win ? 'ok' : 'warn') + '">'
       + '<span class="sp-h-lb">ทำตามแผนนี้</span>'
       + '<b class="sp-h-big">ส่งทัน <em>' + pay.covered + '</em> จาก ' + pay.soon + ' ใบ</b>'
       + '<div class="sp-h-row">'
@@ -432,7 +431,6 @@ function renderSaiPlan() {
   el.innerHTML = ''
     + '<section class="sai-hi">'
     + '  <div class="saip-stage">'
-    + '    <span class="saip-glow"></span>'
     + '    <img class="saip-chibi' + (mood === 'sleepy' ? ' dim' : '') + '" src="' + SYN_CHIBI
     + '" alt="น้องไซ" width="92" height="159">'
     + '  </div>'
@@ -555,7 +553,6 @@ function renderSaiTour() {
     + '</div>'
     + '<div class="st-mid">'
     + '  <div class="saip-stage st-stage">'
-    + '    <span class="saip-glow"></span>'
     + '    <img class="saip-chibi" src="' + SYN_CHIBI + '" alt="น้องไซ" width="130" height="224">'
     + '  </div>'
     + '  <div class="st-say saip-in">'
