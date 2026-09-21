@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C17';                 // สายเลขของแอป
-const APP_CODENAME = 'Shutter';           // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1C18';                 // สายเลขของแอป
+const APP_CODENAME = 'Synara';           // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -849,6 +849,8 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
   // (วันนี้ → ไทล์ "เพื่อนฉัน" ท้ายจอ) ไม่งั้นเปิดฟีดแล้วไม่มีแท็บไหนสว่างสักอัน
   'scr-mates': 'scr-menu',
   'scr-chat': 'scr-menu', 'scr-people': 'scr-menu',
+  // 1C18 · ห้องคุยแผนเข้าจากใบน้องไซบนหน้าวันนี้ จึงคืนไฟให้แท็บนั้น
+  'scr-sai': 'scr-menu',
   // ห้องการบ้านเข้าจากรายการงาน จึงคืนไฟให้แท็บนั้น ไม่ใช่แท็บเพื่อน
   'scr-hw': 'scr-tasks',
   'scr-compose': 'scr-menu', 'scr-post': 'scr-menu', 'scr-user': 'scr-menu' };
@@ -869,7 +871,11 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
 //     (ปิดแอปค้างไว้ที่หน้าข้อความ เปิดใหม่แล้วได้จอขาวล้วน)
 const NO_RESUME = ['scr-crop', 'scr-parsing', 'scr-form', 'scr-login', 'scr-onboard',
   'scr-setopt', 'scr-ctxwiz',
-  'scr-chat', 'scr-hw', 'scr-dm', 'scr-topic', 'scr-tthread'];
+  'scr-chat', 'scr-hw', 'scr-dm', 'scr-topic', 'scr-tthread',
+  // 1C18 · ห้องคุยแผนวาดจาก openSaiPlan() ล้วน ๆ · กลับเข้าแอปแล้วถูกพามาที่นี่ตรง ๆ
+  // จะได้จอเปล่าที่ไม่มีแม้แต่ปุ่มย้อนกลับ · และ "แผนวันนี้" ที่เล่าค้างไว้เมื่อครึ่งชั่วโมงก่อน
+  // ก็ไม่ใช่สิ่งที่ใครอยากกลับมาเจอต่อจากข้อที่สามอยู่แล้ว
+  'scr-sai'];
 
 // ---------- ตาข่ายรองรับชั้นที่สอง ----------
 // NO_RESUME กันทางที่เจอจริงไปแล้ว แต่ยังมีทางอื่นที่พาเข้าจอพวกนี้โดยไม่มีใครสั่งวาด
@@ -892,6 +898,8 @@ const LIVE_ONLY = {
   // แต่ยังต้องมีตาข่ายรองไว้ เพราะทางเข้าจอพวกนี้มีหลายทางและเพิ่มได้เรื่อย ๆ
   'scr-user':    { body: 'userBody',    back: 'scr-profile' },
   'scr-post':    { body: 'postBody',    back: 'scr-mates' },
+  // ทางเข้าห้องคุยแผนมีทางเดียวคือ openSaiPlan() แต่ปุ่มย้อนของเครื่องพาเข้ามาได้
+  'scr-sai':     { body: 'saiBody',     back: 'scr-menu' },
 };
 const LAST_SCR_KEY = 'studentos.alt.lastScreen';
 // เกิน 30 นาทีถือว่าเป็นการเปิดใหม่ ไม่ใช่การกลับเข้ามาต่อ — เริ่มที่เมนูตามปกติ
@@ -963,9 +971,12 @@ function go(id) {
   if (id === 'scr-login') { loginView = 'root'; renderLoginOpts(); loginNote(''); }
   // จอแชทซ่อนแถบล่างเหมือนจอล็อกอิน — ช่องพิมพ์ต้องติดก้นจอจริง ๆ
   // ไม่ใช่ลอยอยู่หลังแถบล่างจนกดไม่โดน · ออกจากจอนี้ได้ทางปุ่มย้อนกลับในหัวจอ
+  // 1C18 · ห้องคุยแผนใช้โหมดเดียวกัน — ไม่ใช่เพราะมีช่องพิมพ์ แต่เพราะเป็นบทสนทนา
+  // ที่มีทางออกของตัวเองอยู่แล้วสองทาง (กากบาท · ข้ามไปก่อน) แถบล่างที่ยังอยู่
+  // แปลว่าระหว่างฟังแผนยังกดไปแท็บอื่นได้ ซึ่งทำให้ไม่มีใครฟังจนจบสักครั้ง
   document.body.classList.toggle('chat-mode',
     id === 'scr-chat' || id === 'scr-hw' || id === 'scr-topic'
-    || id === 'scr-tthread' || id === 'scr-dm');
+    || id === 'scr-tthread' || id === 'scr-dm' || id === 'scr-sai');
   document.body.classList.toggle('compose-mode',
     id === 'scr-compose' || id === 'scr-post' || id === 'scr-user');
   // ออกจากฟีดเมื่อไหร่ ปิดช่องรับโพสต์สดกับ presence — ทั้งคู่กินโควตา realtime
@@ -2595,6 +2606,10 @@ const HOME_BLOCKS = {
   todayHead:  ctx => todayHead(ctx.sp, ctx.now),
   todayStats: ctx => todayStats(ctx.sp, ctx.now),
   askBar:     ()  => askBar(),
+  // 1C18 · น้องไซตัวเป็น ๆ ใต้ช่องถาม — ทางเข้าห้องคุยแผน
+  // sai.js อาจโหลดไม่ขึ้น (เน็ตหลุดกลางคัน · แคชเก่า) จึงต้องเช็คก่อนเรียกเสมอ
+  // เหมือน hwNowBlock · บล็อกที่หายไปเงียบ ๆ ดีกว่าหน้าแรกที่ว่างทั้งจอ
+  saiHero:    ctx => (typeof saiHero === 'function' ? saiHero(ctx) : ''),
   // การ์ด "ตอนนี้" กับจอว่างเป็นบล็อกเดียวกัน เพราะมันคือของสองหน้าของคำถามเดียวกัน:
   // มีอะไรให้ทำไหม · แยกเป็นสองบล็อกเมื่อไหร่ จะมีวันที่จอโชว์ทั้งคู่หรือไม่โชว์เลย
   nowCard:    ctx => ctx.sp.now
@@ -2607,7 +2622,7 @@ const HOME_BLOCKS = {
   hwNowBlock: ()  => (typeof hwNowBlock === 'function' ? hwNowBlock() : ''),
   toolsGrid:  ()  => toolsGrid(),
 };
-const HOME_ORDER = ['todayHead', 'todayStats', 'askBar', 'nowCard', 'dayRail', 'hwNowBlock', 'toolsGrid'];
+const HOME_ORDER = ['todayHead', 'todayStats', 'askBar', 'saiHero', 'nowCard', 'dayRail', 'hwNowBlock', 'toolsGrid'];
 
 function homeLayout() {
   const saved = (typeof sosCfg === 'function') ? sosCfg('home.blocks', null) : null;
@@ -2622,7 +2637,19 @@ function homeLayout() {
   // บล็อกที่โค้ดมีแต่ค่าตั้งไม่รู้จัก = ของที่เพิ่งเพิ่มในรุ่นใหม่ — ต้องโผล่เองโดยไม่ต้องรอ
   // ให้ใครไปกดเปิดในหน้าแอดมิน ไม่งั้นฟีเจอร์ใหม่จะมองไม่เห็นเฉพาะกับคนที่เคยจัดหน้าแรกไว้
   // ซึ่งเป็นบั๊กที่หาสาเหตุยากมากเพราะมันไม่เกิดกับเครื่องของคนที่เขียนโค้ด
-  for (const id of HOME_ORDER) if (!seen.has(id)) out.push({ id, on: true });
+  //
+  // ⚠️ 1C18 · ของเดิมต่อท้ายสุดเสมอ ซึ่งผิดในทางที่มองไม่เห็นจนกว่าจะลองจริง:
+  // บล็อกใหม่ที่ตั้งใจให้อยู่ที่สาม (น้องไซ ใต้ช่องถาม) ไปโผล่ล่างสุดใต้กริดฟีเจอร์
+  // แปลว่า "โผล่เอง" ได้จริง แต่โผล่ในที่ที่ไม่มีใครเลื่อนไปถึง ซึ่งเท่ากับไม่โผล่
+  // วางตามตำแหน่งใน HOME_ORDER แทน — ต่อหลังบล็อกที่มาก่อนมันในลำดับมาตรฐาน
+  for (const id of HOME_ORDER) {
+    if (seen.has(id)) continue;
+    const before = HOME_ORDER.slice(0, HOME_ORDER.indexOf(id)).reverse()
+      .find(x => out.some(o => o.id === x));
+    const at = before ? out.findIndex(o => o.id === before) + 1 : 0;
+    out.splice(at, 0, { id, on: true });
+    seen.add(id);   // บล็อกใหม่ใบถัดไปต้องเกาะใบนี้ได้ ไม่ใช่กระโดดข้ามไปเกาะใบเก่า
+  }
   return out;
 }
 
@@ -2679,6 +2706,10 @@ function renderMenu() {
   body.innerHTML = renderHomeBlocks({
     sp, now, split, outOfTime, hasReminders: split.reminders.length > 0,
   });
+
+  // เวทีน้องไซเพิ่งถูกวาดใหม่ทั้งก้อน — ลูปที่เคยเดินอยู่หยุดตัวเองไปแล้วตอนหาเวทีไม่เจอ
+  // ต้องปลุกทุกครั้งหลังวาด ไม่ใช่ปลุกครั้งเดียวตอนเปิดแอป (renderMenu ถูกเรียกทุกนาที)
+  if (typeof saiStart === 'function') saiStart();
 
   if (askKeep || askFocus) {
     const b2 = document.getElementById('hmAsk');

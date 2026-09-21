@@ -93,6 +93,8 @@
   <link rel="stylesheet" href="topic.css">
   <!-- ดีไซน์ที่ปรับด้วยตัวแก้ดีไซน์ ต้องอยู่ท้ายสุดถึงจะทับของเดิมได้
        ว่างอยู่ = ยังไม่มีใครปรับอะไร ไม่มีผลกับหน้าตาเดิมเลย -->
+  <!-- น้องไซ (Synara) — มาสคอตบนหน้าวันนี้ + ห้องคุยแผน -->
+  <link rel="stylesheet" href="sai.css">
   <link rel="stylesheet" href="custom.css">
 </head>
 <body>
@@ -963,6 +965,14 @@
            คาบเรียน + กิจวัตร + งานที่จัดไว้ + กิจกรรม เรียงตามเวลาในลิสต์เดียว
            อยู่หลังปุ่มท้ายโหมด "วันนี้" ของแท็บงาน ไม่ได้อยู่บนจอหลัก —
            ข้อกำหนดของเจ้าของคือจอวันนี้ต้องไม่ยาว · วาดจาก renderDayFull() -->
+      <!-- ============ SCREEN: ห้องคุยแผน (น้องไซ) ============
+           จอเปล่าโดยตั้งใจ — วาดทั้งหมดจาก renderSaiPlan() เพราะจำนวนข้อ
+           ขึ้นกับแผนของวันนั้น (ไม่มีงาน = 2 ข้อ · งานเต็มวัน = 5 ข้อ)
+           ⚠️ go('scr-sai') เฉย ๆ ได้จอเปล่า ต้องเรียกผ่าน openSaiPlan() เสมอ -->
+      <div class="screen flush" id="scr-sai">
+        <div class="scr-body saip-body" id="saiBody"></div>
+      </div>
+
       <div class="screen flush" id="scr-dayfull">
         <div class="sticky-head row">
           <div>
@@ -2018,6 +2028,7 @@
 <script src="hw.js"></script>
 <script src="topic.js"></script>
 <script src="safety.js"></script>
+<script src="sai.js"></script>
 <script src="app.js"></script>
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────

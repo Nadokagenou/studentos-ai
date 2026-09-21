@@ -1,0 +1,219 @@
+/* ============================================================
+   น้องไซ (Synara) — มาสคอตที่ขยับตามนิ้ว + ห้องคุยแผน
+   ------------------------------------------------------------
+   ภาพทั้งหมดตัดมาจาก character sheet ใบเดียวที่เจ้าของส่งมา
+   (สีหน้า 6 แบบ + ชิบิ) จึงเป็นลายเส้นเดียวกันทุกใบ ไม่มีการเจนใหม่
+   ซึ่งสำคัญ เพราะหน้าที่เพี้ยนไปจากตัวจริงหนึ่งใบ ทำให้ทั้งชุดดูปลอม
+
+   กรอบกับแสงใช้ --fill (สีเน้นของธีม) ไม่ใช่สีฟ้าตายตัว
+   ตัวภาพเป็นโทนฟ้าของตัวละครอยู่แล้ว ถ้าใส่ฟ้าเข้าไปอีกชั้น
+   ธีมส้ม/ธีมม่วงจะได้ก้อนฟ้าแปลกปลอมลอยอยู่กลางจอ
+   ============================================================ */
+
+/* ---------- ใบเล็กบนหน้าวันนี้ ---------- */
+/* ⚠️ grid ไม่ใช่ flex — และไม่ใช่เรื่องรสนิยม
+   วัดบนหน้าจริงแล้ว: flex item ที่เป็น <span> ในแอปนี้ถูกบีบเหลือกว้าง 0
+   แม้จะตั้ง flex:1 หรือ width:200px ตรง ๆ ก็ตาม (ตัวหนังสือแตกเป็นตัวละบรรทัด
+   การ์ดสูง 565px แทนที่จะเป็น ~100px) · grid กับ minmax(0,1fr) ให้ผลถูกต้องทันที
+   ใครจะเปลี่ยนกลับไปเป็น flex ต้องวัดความกว้างจริงก่อน ไม่ใช่ดูว่ามันควรจะได้ */
+.saih {
+  display: grid; grid-template-columns: minmax(0, 1fr) 76px;
+  align-items: center; gap: 12px;
+  width: 100%; margin: 0 0 12px; padding: 12px 14px;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r-card); box-shadow: var(--shadow);
+  text-align: start; font: inherit; color: inherit; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.saih:active { transform: scale(.985); }
+
+.saih-bubble { min-width: 0; }
+.saih-bubble b {
+  display: block; font-size: 15px; font-weight: 700; line-height: 1.45;
+  color: var(--ink);
+}
+.saih-bubble span {
+  display: block; margin-top: 3px; font-size: 12.5px; line-height: 1.5;
+  color: var(--muted);
+}
+.saih-go {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-top: 7px; font-size: 12.5px; font-weight: 600; color: var(--fill);
+}
+.saih-go svg { width: 14px; height: 14px; }
+
+/* ---------- เวที: กรอบที่เอียงตามนิ้ว ----------
+   --sx / --sy ถูกเขียนทับทุกเฟรมจาก saiTrack() เป็นค่า −1…1
+   ไม่ผูกกับ transition เพราะมันถูกอัปเดตถี่กว่าที่ transition จะไล่ทัน
+   ความลื่นมาจากการหน่วงค่าใน JS (lerp) แทน ซึ่งคุมจังหวะได้จริง */
+.saih-stage {
+  --sx: 0; --sy: 0;
+  position: relative;
+  width: 76px; height: 76px;
+  transform: rotate(calc(var(--sx) * 5deg)) translate(calc(var(--sx) * 3px), calc(var(--sy) * 2px));
+}
+.saih-ring {
+  position: absolute; inset: -4px; border-radius: 26px;
+  background: var(--fill); opacity: .16;
+  filter: blur(7px);
+}
+.saih-face {
+  position: relative; display: block;
+  width: 76px; height: 76px; border-radius: 22px;
+  object-fit: cover;
+  /* ภาพใหญ่กว่ากรอบแล้วเลื่อนตำแหน่งข้างใน = เธอขยับในกรอบ ไม่ใช่กรอบลากภาพไปด้วย
+     นี่คือสิ่งที่ทำให้รู้สึกว่า "หันตาม" ทั้งที่เป็นภาพนิ่ง */
+  object-position: calc(50% + var(--sx) * 9%) calc(46% + var(--sy) * 7%);
+  border: 1.5px solid var(--line);
+  background: var(--card2);
+  animation: saiFloat 4.6s ease-in-out infinite;
+}
+@keyframes saiFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3.5px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .saih-face { animation: none; }
+  .saih-stage { transform: none; }
+}
+
+/* จุดกะพริบ "มีอะไรจะบอก" — มุมบนขวาของกรอบ */
+.saih-dot {
+  position: absolute; top: -2px; right: -2px; z-index: 2;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--alert); border: 2px solid var(--card);
+}
+
+/* ============================================================
+   ห้องคุยแผน
+   ------------------------------------------------------------
+   หนึ่งจอ = หนึ่งประโยค · แตะที่ไหนก็ได้เพื่อไปข้อถัดไป
+   เหตุผลที่ไม่ทำเป็นลิสต์ยาว ๆ: ลิสต์คือของที่หน้าวันนี้ให้ไปแล้ว
+   ห้องนี้ขายอย่างเดียวคือ "มีคนเล่าให้ฟัง" ซึ่งพังทันทีถ้าโชว์ทุกข้อพร้อมกัน
+   ============================================================ */
+.saip-body {
+  display: flex; flex-direction: column;
+  min-height: 100%; padding: 0;
+}
+
+.saip-top {
+  display: grid; grid-template-columns: minmax(0, 1fr) 32px;
+  align-items: center; gap: 10px;
+  padding: 4px 2px 14px;
+}
+/* เหตุผลเดียวกับ .saih — แถบความคืบหน้าที่เป็น flex item จะกว้าง 0 ทุกขีด */
+.saip-dots { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 5px; }
+.saip-dots i {
+  height: 5px; border-radius: 99px;
+  background: var(--line); transition: background .25s ease;
+}
+.saip-dots i.on { background: var(--fill); }
+.saip-x {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--card2); border: 0; color: var(--muted); cursor: pointer;
+}
+.saip-x svg { width: 17px; height: 17px; }
+
+/* ---------- ตัวน้องไซในห้อง ----------
+   ⚠️ ทำไมชิบิถึงอยู่ในกรอบ ไม่ใช่ตัวลอยตัดพื้นหลังออก
+   วัดสีจากไฟล์จริงแล้ว: พื้นหลังมุมล่าง rgb(216,241,253) กับผมสีเงิน rgb(209,218,249)
+   ห่างกันแค่ ~24 ในสามแกนรวมกัน · flood fill ที่กินพื้นหลังหมดจะกินผมไปด้วย
+   และมาสคอตหัวแหว่งแย่กว่ามาสคอตที่อยู่ในกรอบมาก
+   กรอบเรืองแสงยังเป็นภาษาของ character sheet ต้นฉบับอยู่แล้ว (ทุกชิ้นในใบนั้น
+   นั่งอยู่ในกรอบหกเหลี่ยมเรืองแสง) จึงไม่ใช่การยอมแพ้ มันคือของเดิมของตัวละคร */
+.saip-stage {
+  --sx: 0; --sy: 0;
+  position: relative; align-self: center;
+  width: 124px; height: 214px; margin: 6px 0 2px;
+  transform: rotate(calc(var(--sx) * 4deg));
+}
+.saip-glow {
+  position: absolute; inset: -16px; border-radius: 34px;
+  background: var(--fill); opacity: .16; filter: blur(20px);
+}
+.saip-chibi {
+  position: relative; display: block;
+  width: 100%; height: 100%; object-fit: cover; object-fit: contain;
+  border-radius: 20px; border: 1.5px solid var(--line);
+  background: var(--card2);
+  animation: saiFloat 4.6s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+.saip-face {
+  position: relative; display: block;
+  width: 124px; height: 124px; margin: 45px auto; border-radius: 40px;
+  object-fit: cover;
+  object-position: calc(50% + var(--sx) * 8%) calc(44% + var(--sy) * 6%);
+  border: 2px solid var(--line); background: var(--card2);
+  animation: saiFloat 4.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .saip-chibi, .saip-face { animation: none; }
+  .saip-stage { transform: none; }
+}
+
+/* ---------- ฟองคำพูด ---------- */
+.saip-say {
+  position: relative;
+  margin: 14px 0 0; padding: 16px 18px;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 20px; border-top-left-radius: 6px;
+  box-shadow: var(--shadow);
+}
+.saip-say h3 {
+  margin: 0; font-size: 21px; font-weight: 800; line-height: 1.4; color: var(--ink);
+}
+.saip-say p {
+  margin: 8px 0 0; font-size: 14.5px; line-height: 1.65; color: var(--muted);
+}
+.saip-say .mono { font-variant-numeric: tabular-nums; }
+
+/* ก้อนข้อมูลในฟอง — เวลา/ชื่องาน ที่ต้องอ่านเป็นตัวเลข ไม่ใช่เป็นประโยค */
+.saip-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 10px 8px 0 0; padding: 7px 12px;
+  background: var(--card2); border-radius: 99px;
+  font-size: 13px; font-weight: 600; color: var(--ink);
+}
+.saip-chip svg { width: 14px; height: 14px; color: var(--muted); }
+.saip-chip.hot { background: var(--alert-soft); color: var(--alert); }
+.saip-chip.hot svg { color: var(--alert); }
+
+/* ก้อนกลางกินที่เหลือทั้งหมดแล้วจัดกึ่งกลางแนวตั้ง
+   ของเดิมดันทุกอย่างไปชิดบน แล้วเหลือช่องว่างขาว ๆ สูงเกือบหนึ่งในสามจอ
+   ซึ่งอ่านออกว่า "จอนี้ยังทำไม่เสร็จ" ไม่ใช่ "จอนี้โล่งเพราะตั้งใจ" */
+.saip-mid {
+  flex: 1; display: flex; flex-direction: column; justify-content: center;
+  min-height: 0; padding-bottom: 8px;
+}
+
+/* ---------- ปุ่มท้ายจอ ---------- */
+.saip-act { display: flex; flex-direction: column; gap: 9px; padding: 14px 0 6px; }
+/* แถบจับเวลาที่กำลังเดินอยู่ (.runbar) ลอยสูงจากก้นจอ 72px เพราะมันเล็งไว้ให้
+   อยู่เหนือแถบล่าง — แต่จอนี้ซ่อนแถบล่าง (chat-mode) มันเลยไปนั่งทับปุ่ม "ต่อไป" พอดี
+   ซึ่งเกิดจริงทุกครั้งที่กด "เริ่มทำเลย" แล้ววกกลับเข้ามาฟังแผนต่อ
+   เลื่อนปุ่มหลบเฉพาะตอนแถบนั้นโผล่ ไม่ใช่เว้นที่ว่างไว้ตลอดเวลาให้ของที่ไม่ค่อยมี */
+body:has(.runbar:not([hidden])) .saip-act { padding-bottom: 80px; }
+.saip-next {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 15px; border: 0; border-radius: 16px;
+  background: var(--fill); color: var(--on-fill);
+  font-size: 16px; font-weight: 700; cursor: pointer;
+}
+.saip-next:active { transform: scale(.985); }
+.saip-next svg { width: 18px; height: 18px; }
+.saip-skip {
+  width: 100%; padding: 11px; border: 0; background: transparent;
+  color: var(--muted); font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+
+/* ตัวหนังสือไล่ขึ้นตอนเปลี่ยนข้อ — บอกว่ามีของใหม่มาโดยไม่ต้องมีคำว่า "ข้อถัดไป" */
+.saip-in { animation: saipIn .34s cubic-bezier(.2, .8, .3, 1) both; }
+@keyframes saipIn {
+  from { opacity: 0; transform: translateY(9px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .saip-in { animation: none; }
+}
