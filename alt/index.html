@@ -93,6 +93,8 @@
   <link rel="stylesheet" href="topic.css">
   <!-- ดีไซน์ที่ปรับด้วยตัวแก้ดีไซน์ ต้องอยู่ท้ายสุดถึงจะทับของเดิมได้
        ว่างอยู่ = ยังไม่มีใครปรับอะไร ไม่มีผลกับหน้าตาเดิมเลย -->
+  <!-- น้องไซ (Synara) — มาสคอตบนหน้าวันนี้ + ห้องคุยแผน -->
+  <link rel="stylesheet" href="sai.css">
   <link rel="stylesheet" href="custom.css">
 </head>
 <body>
@@ -963,6 +965,23 @@
            คาบเรียน + กิจวัตร + งานที่จัดไว้ + กิจกรรม เรียงตามเวลาในลิสต์เดียว
            อยู่หลังปุ่มท้ายโหมด "วันนี้" ของแท็บงาน ไม่ได้อยู่บนจอหลัก —
            ข้อกำหนดของเจ้าของคือจอวันนี้ต้องไม่ยาว · วาดจาก renderDayFull() -->
+      <!-- ============ SCREEN: แผนวันนี้ (ห้องน้องไซ) ============
+           1C19 · เคยเป็นสไลด์ทีละข้อที่ย้อนกลับไม่ได้ · เจ้าของสั่งให้เป็น
+           "หน้าจอปกติ" ที่เห็นภาพรวมตั้งแต่ตื่นนอนจนเข้านอนในจอเดียว
+           หัวจอติดหนึบพร้อมปุ่มย้อนกลับจึงมาอยู่ใน markup เหมือนจออื่นทุกจอ
+           ⚠️ go('scr-sai') เฉย ๆ ได้จอเปล่า ต้องเรียกผ่าน openSaiPlan() เสมอ -->
+      <div class="screen flush" id="scr-sai">
+        <div class="sticky-head row">
+          <div>
+            <h2 class="sh-title">แผนวันนี้</h2>
+            <p class="sh-sub" id="saiSub">น้องไซจัดให้แล้ว ตั้งแต่ตื่นจนเข้านอน</p>
+          </div>
+          <button class="sh-btn" onclick="go('scr-menu')" aria-label="กลับ">
+            <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+        </div>
+        <div class="scr-body" id="saiBody"></div>
+      </div>
+
       <div class="screen flush" id="scr-dayfull">
         <div class="sticky-head row">
           <div>
@@ -2018,6 +2037,7 @@
 <script src="hw.js"></script>
 <script src="topic.js"></script>
 <script src="safety.js"></script>
+<script src="sai.js"></script>
 <script src="app.js"></script>
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────

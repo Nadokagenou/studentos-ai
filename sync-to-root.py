@@ -61,6 +61,20 @@ IDENTITY = [
 ASSETS = ('.js', '.css', '.png', '.svg', '.webp', '.ico', '.jpg', '.jpeg')
 
 
+
+# ---------- ของที่ถูกอ้างจาก .js ไม่ใช่จาก index.html ----------
+# local_refs() มองเห็นเฉพาะ src="/href=" ในหน้า HTML · ไฟล์ที่โค้ดเรียกเองตอนรัน
+# (เช่น 'sai-chibi.webp' ที่เป็นสตริงอยู่ใน sai.js) จึงไม่เคยถูกก๊อปขึ้นราก
+# อาการคือรูปแตกเฉพาะบนตัวจริง โดยที่ alt/ ปกติดีทุกอย่าง — ซึ่งเป็นบั๊กพันธุ์เดียวกับ
+# ที่สคริปต์นี้เจ็บมาแล้วสองรอบ (โลโก้ค้างหกวัน · land.html อ้าง logo-lockup.svg)
+# ครั้งก่อนแก้ด้วยการเติมชื่อไฟล์ลง ALWAYS ทีละตัว ซึ่งพังอีกแน่ตอนมีไฟล์ใหม่
+# รอบนี้สแกนหาเอง: สตริงในเครื่องหมายคำพูดที่ลงท้ายด้วยนามสกุลสื่อ และมีไฟล์อยู่จริงใน alt/
+def js_assets(js):
+    out = []
+    for m in re.finditer(r"['\"]([A-Za-z0-9_.-]+\.(?:png|svg|webp|jpg|jpeg|ico|gif))['\"]", js):
+        out.append(m.group(1))
+    return out
+
 def local_refs(html):
     """ชื่อไฟล์ในโฟลเดอร์เดียวกันที่หน้านี้เรียกใช้จริง (ไม่นับที่คอมเมนต์ทิ้ง)"""
     live = re.sub(r'<!--.*?-->', '', html, flags=re.S)
@@ -103,6 +117,17 @@ def main():
         files.append(pg)
         files += [f for f in local_refs(io.open(src, encoding='utf-8').read())
                   if f not in PER_CHANNEL and f not in ALT_ONLY]
+
+    # ไฟล์สื่อที่โค้ดเรียกเองตอนรัน — ต้องหาให้เจอก่อนเริ่มก๊อป
+    for js in [f for f in files if f.endswith('.js')]:
+        src = os.path.join(ALT, js)
+        if not os.path.exists(src):
+            continue
+        for a in js_assets(io.open(src, encoding='utf-8', errors='replace').read()):
+            if a in PER_CHANNEL or a in ALT_ONLY:
+                continue
+            if os.path.exists(os.path.join(ALT, a)):
+                files.append(a)
 
     copied, added = [], []
     for name in dict.fromkeys(files):          # กันชื่อซ้ำ แต่คงลำดับไว้
@@ -163,8 +188,16 @@ def main():
     #    อ้างถึงจริง **และ** มีอยู่จริงที่ราก (เช็คไปแล้วในลูปข้างล่าง) — สองข้อนี้คือ
     #    นิยามของ "ไฟล์ที่ต้องอยู่ใน SHELL" พอดี ไม่ได้เดาแทนคน
     #    splash-* ยังถูกยกเว้นเหมือนเดิม (iOS โหลดตอนติดตั้ง ไม่ได้โหลดผ่านหน้าเว็บ)
-    missing = [f for f in dict.fromkeys(local_refs(root_html))
+    #    เติมของที่ .js เรียกเองด้วย (ดู js_assets) — ไฟล์พวกนี้ index.html ไม่ได้อ้างถึง
+    #    แต่แอปขอมันตอนรัน ถ้าไม่อยู่ใน SHELL = เปิดตอนไม่มีเน็ตแล้วรูปแตกเป็นกรอบเปล่า
+    want_shell = list(local_refs(root_html))
+    for js in [f for f in copied if f.endswith('.js')]:
+        jp = os.path.join(ROOT, js)
+        if os.path.exists(jp):
+            want_shell += js_assets(io.open(jp, encoding='utf-8', errors='replace').read())
+    missing = [f for f in dict.fromkeys(want_shell)
                if f not in listed and not f.startswith('splash-')
+               and f not in ALT_ONLY
                and os.path.exists(os.path.join(ROOT, f))]
     if missing and shell:
         # แทรกก่อน manifest.json ถ้ามี ไม่งั้นต่อท้ายบรรทัดแรกของลิสต์
