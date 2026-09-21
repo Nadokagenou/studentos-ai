@@ -180,9 +180,19 @@
 .sd-r.past .sd-t { color: var(--muted); font-weight: 700; }
 
 /* ตื่น/นอน เป็นหมุดหัวท้าย ไม่ใช่กิจกรรม — ไม่มีก้อนสี มีแต่บรรทัดเบา ๆ */
+/* ⚠️ padding บนของ .sd-x กับ .sd-t ต้องเท่ากันเสมอ ไม่งั้นตัวหนังสือสองคอลัมน์
+   จะไม่อยู่บรรทัดเดียวกัน · แถวปกติเป็น 11px ทั้งคู่ แต่แถวตื่น/นอนลดเหลือ 7px
+   เฉพาะฝั่งขวา ทำให้ "เข้านอน" ลอยสูงกว่า "22:00" อย่างเห็นได้ชัด (เจ้าของทักเอง)
+   ลดพร้อมกันทั้งสองฝั่ง ไม่ใช่ฝั่งเดียว */
+/* จับคู่ด้วย align-items: center แทนการไล่ padding ให้เท่ากัน
+   เพราะสองคอลัมน์นี้ตัวหนังสือคนละขนาด (เวลา 15px · ชื่อ 13.5px)
+   ต่อให้ padding เท่ากันเป๊ะ กล่องบรรทัดก็สูงไม่เท่ากันอยู่ดี แล้วตัวหนังสือก็ยังเหลื่อม
+   แถวตื่น/นอนไม่มีบรรทัดรอง จึงจัดกึ่งกลางได้ตรงเป๊ะโดยไม่ต้องคำนวณอะไร */
+.sd-wake, .sd-sleep { align-items: center; }
 .sd-wake .sd-x, .sd-sleep .sd-x {
-  background: transparent; border-left-color: transparent; padding: 7px 0 7px 14px;
+  background: transparent; border-left-color: transparent; padding: 4px 0 4px 14px;
 }
+.sd-wake .sd-t, .sd-sleep .sd-t { padding-top: 0; }
 .sd-wake .sd-x > b, .sd-sleep .sd-x > b { font-weight: 600; color: var(--muted); font-size: 13.5px; }
 .sd-wake .sd-t, .sd-sleep .sd-t { color: var(--muted); font-weight: 700; font-size: 15px; }
 
@@ -385,3 +395,31 @@ button.sd-job:active { transform: scale(.985); }
 .sd-free .sd-job.brk .sd-jt { color: rgba(255,255,255,.72); }
 .sd-free .sd-job.brk .sd-jx b { color: #fff; }
 .sd-free .sd-job.brk .sd-jx i { color: rgba(255,255,255,.72); }
+
+
+/* ============================================================
+   การ์ดงานที่นั่งอยู่บนก้อน "ว่าง"
+   ------------------------------------------------------------
+   ⚠️ กฎเดิมที่เขียนคาไว้แล้วแต่ยังพลาด: ก้อน "ว่าง" เป็น --sig-blue ซึ่ง
+   **ไม่พลิกตามธีม** · ของที่นั่งอยู่บนมันจึงต้องไม่พลิกตามธีมด้วยทุกตัว
+   ของเดิมใช้ var(--card) ซึ่งธีมสว่างเป็นขาว (สวย) แต่ธีมมืดเป็นกรมท่าเข้ม
+   ได้การ์ดสีเดียวกับพื้นจอมาแปะทับฟ้าสด — หนักและอ่านยากเฉพาะธีมมืด
+   ซึ่งเป็นอาการเดียวกับที่ today.css เตือนไว้ทุกบรรทัด
+   ============================================================ */
+.sd-free .sd-job {
+  background: #fff; border-color: transparent;
+  box-shadow: 0 1px 2px rgba(10, 30, 70, .12);
+}
+.sd-free .sd-job .sd-jt { color: #5A6478; }
+.sd-free .sd-job .sd-jx b { color: #16223A; }
+.sd-free .sd-job .sd-jx i { color: #5A6478; }
+.sd-free .sd-job svg { color: #8A93A6; }
+
+/* "พัก" ยังเป็นเส้นประโปร่ง — มันไม่ใช่งาน จึงไม่ควรได้การ์ดทึบเท่ากัน */
+.sd-free .sd-job.brk {
+  background: transparent; box-shadow: none;
+  border-color: rgba(255, 255, 255, .45);
+}
+.sd-free .sd-job.brk .sd-jt { color: rgba(255,255,255,.75); }
+.sd-free .sd-job.brk .sd-jx b { color: #fff; }
+.sd-free .sd-job.brk .sd-jx i { color: rgba(255,255,255,.75); }
