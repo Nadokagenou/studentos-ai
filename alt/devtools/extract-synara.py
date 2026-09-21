@@ -44,7 +44,8 @@ def flood(im, tol):
     return seen
 
 
-def cutout(box, tol, circle=False, feather=1.0, erode=False, despeckle=False):
+def cutout(box, tol, circle=False, feather=1.0, erode=0, despeckle=False,
+           decontaminate=False, bleed=2):
     im = src.crop(box)
     w, h = im.size
     alpha = np.where(flood(im, tol), 0, 255).astype(np.uint8)
@@ -57,7 +58,7 @@ def cutout(box, tol, circle=False, feather=1.0, erode=False, despeckle=False):
         d = np.sqrt(((xx - cx) / r) ** 2 + ((yy - cy) / r) ** 2)
         alpha = np.where(d <= 1.0, alpha, 0).astype(np.uint8)
 
-    if erode:
+    for _ in range(erode):
         # ⚠️ ขั้นนี้คือขั้นที่ขาดไปรอบแรก และเป็นที่มาของ "ขอบขาว ๆ รอบตัว"
         # flood fill หยุดตรงพิกเซลที่สีเริ่มต่าง ซึ่งคือพิกเซลลูกครึ่ง (antialias)
         # ที่เป็นสีพื้นหลังผสมสีตัวละคร — มันถูกเก็บไว้ทั้งแถบ
@@ -95,10 +96,39 @@ def cutout(box, tol, circle=False, feather=1.0, erode=False, despeckle=False):
             big = max(sizes, key=sizes.get)
             alpha = np.where(lab == big, alpha, 0).astype(np.uint8)
 
+    rgb = np.asarray(im).astype(np.float32)
+    if decontaminate:
+        # ⚠️ ขั้นที่ขาดไปสองรอบแรก และเป็นรากของ "ขอบขาว ๆ รอบตัว"
+        #
+        # รอบที่แล้วกัดแค่ **อัลฟ่า** ให้แคบลง ซึ่งไม่ได้แก้อะไรเลย เพราะพิกเซลที่เหลือ
+        # ตรงขอบยังมี **สี** เป็นสีพื้นหลังผสมสีตัวละครอยู่เหมือนเดิม
+        # พอวางบนพื้นดำ สีฟ้าอ่อนที่ติดมากับขอบก็ยังเรืองอยู่ดี — แค่บางลงนิดเดียว
+        #
+        # ทางแก้จริงคือเปลี่ยน "สี" ของแถบขอบให้เป็นสีของเนื้อในแทน
+        # ลามสีจากเนื้อในออกมาทับทีละชั้น จนคลุมทั้งแถบที่เคยเป็นลูกครึ่ง
+        inner = np.asarray(Image.fromarray(
+            np.where(alpha > 0, 255, 0).astype(np.uint8), 'L'
+        ).filter(ImageFilter.MinFilter(2 * bleed + 1))) > 0
+        fixed = inner.copy()
+        for _ in range(bleed + 1):
+            # ห้ามตั้งชื่อว่า src — ชนกับ src ระดับโมดูล (ภาพต้นฉบับ) แล้วทั้งฟังก์ชัน
+            # จะมองมันเป็นตัวแปรท้องถิ่น ทำให้ im = src.crop(box) ข้างบนพังตั้งแต่บรรทัดแรก
+            known = fixed.copy()
+            acc = np.zeros_like(rgb)
+            cnt = np.zeros(alpha.shape, np.float32)
+            for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)):
+                sh = np.roll(np.roll(rgb, dy, 0), dx, 1)
+                m = np.roll(np.roll(known, dy, 0), dx, 1)
+                acc += sh * m[..., None]
+                cnt += m
+            need = (~fixed) & (alpha > 0) & (cnt > 0)
+            rgb[need] = (acc[need] / cnt[need][..., None])
+            fixed |= need
+
     am = Image.fromarray(alpha, 'L')
     if feather:
         am = am.filter(ImageFilter.GaussianBlur(feather))
-    out = im.convert('RGBA')
+    out = Image.fromarray(rgb.clip(0, 255).astype(np.uint8), 'RGB').convert('RGBA')
     out.putalpha(am)
     return out
 
@@ -121,6 +151,7 @@ for name, box in FACES.items():
     img.save(f'{OUT}/sai-face-{name}.webp', 'WEBP', quality=90, method=6)
     print('face', name, img.size)
 
-chibi = cutout((988, 612, 1178, 940), tol=45, feather=0.6, erode=True, despeckle=True)
+chibi = cutout((988, 612, 1178, 940), tol=45, feather=0.5,
+                erode=2, despeckle=True, decontaminate=True, bleed=3)
 chibi.save(f'{OUT}/sai-chibi.webp', 'WEBP', quality=90, method=6)
 print('chibi', chibi.size)

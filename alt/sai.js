@@ -288,7 +288,11 @@ function saiDayRows(now) {
         at: s.start.getHours() * 60 + s.start.getMinutes(),
         min: s.min || 0,
         brk: !!s.break,
-        title: s.break ? 'พัก' : (typeof taskTitleText === 'function' ? taskTitleText(s.task) : 'งาน'),
+        // ชื่อวิชาไม่เอามาไว้ในหัวเรื่อง — taskTitleText() ใส่ "วิชา · งาน" ให้
+        // แล้วบรรทัดล่างก็บอกวิชาซ้ำอีกที ผลคือชื่อยาวจนถูกตัดด้วย … ทุกใบ
+        // วิชาอยู่บรรทัดล่างที่เดียวพอ หัวเรื่องเหลือแต่ "ทำอะไร" ซึ่งอ่านจบในบรรทัดเดียว
+        title: s.break ? 'พัก' : ((s.task.detail || '').trim()
+          || (typeof typeInfo === 'function' ? typeInfo(s.task).name : 'งาน')),
         subject: !s.break && s.task.subject && s.task.subject !== 'อื่น ๆ' ? s.task.subject : '',
         id: s.break ? null : s.task.id,
       }));
@@ -348,6 +352,10 @@ function renderSaiPlan() {
   // ---- การ์ดพระเอก: ทำตามนี้แล้วได้อะไร ----
   // ใบนี้คือเหตุผลที่จอนี้มีอยู่ · ถ้าวันไหนมันพูดอะไรไม่ได้ มันจะไม่ขึ้นเลย
   // ดีกว่าขึ้นการ์ดเปล่าที่เขียนว่า "วันนี้ไม่มีข้อมูล" ซึ่งกินที่ของพระเอกไปเฉย ๆ
+  // ⚠️ ทุกคำในใบนี้ต้องอธิบายได้ว่าอยู่เพื่ออะไร (เจ้าของ: "ข้อความไม่จำเป็นเยอะไป")
+  // ที่ถูกตัดออกรอบนี้: "งานที่ถึงกำหนดภายในพรุ่งนี้" — ตัวเลขข้างบนพูดไปแล้ว
+  // และ "ทำครบแล้วเหลือเป็นของเรา" ยาวเกินกว่าจะเป็นป้ายกำกับตัวเลข
+  // เหลือสามชิ้น: พูดว่าอะไร · ตัวเลขใหญ่ · สองผลที่ตามมา
   let hero = '';
   if (pay.soon > 0) {
     // เขียวต่อเมื่อทันครบทุกใบเท่านั้น — ทัน 1 จาก 2 ยังเป็นข่าวไม่ดี
@@ -355,20 +363,17 @@ function renderSaiPlan() {
     const win = pay.pileup === 0;
     hero = '<section class="sp-hero' + (win ? '' : ' warn') + '">'
       + '<span class="sp-h-lb">ทำตามแผนนี้</span>'
-      + '<b class="sp-h-big">ส่งทัน ' + pay.covered + ' จาก ' + pay.soon + ' ใบ</b>'
-      + '<span class="sp-h-sub">งานที่ถึงกำหนดภายในพรุ่งนี้</span>'
+      + '<b class="sp-h-big">ส่งทัน <em>' + pay.covered + '</em> จาก ' + pay.soon + ' ใบ</b>'
       + '<div class="sp-h-row">'
-      +   '<span class="sp-h-cell"><i>ถ้าคืนนี้ไม่แตะเลย</i><b>'
-      +     (pay.pileup > 0 ? 'พรุ่งนี้ต้องทำรวด ' + hm(pay.pileup) : 'ก็ยังทันอยู่')
-      +   '</b></span>'
-      +   '<span class="sp-h-cell"><i>ทำครบแล้วเหลือเป็นของเรา</i><b>'
-      +     (pay.mine > 0 ? hm(pay.mine) : 'ไม่เหลือแล้ว') + '</b></span>'
+      +   '<span class="sp-h-cell"><i>ไม่ทำคืนนี้</i><b>'
+      +     (pay.pileup > 0 ? 'พรุ่งนี้ +' + hm(pay.pileup) : 'ยังทัน') + '</b></span>'
+      +   '<span class="sp-h-cell"><i>เหลือของเรา</i><b>'
+      +     (pay.mine > 0 ? hm(pay.mine) : 'ไม่เหลือ') + '</b></span>'
       + '</div></section>';
   } else if (pay.plannedMin > 0) {
     hero = '<section class="sp-hero calm">'
-      + '<span class="sp-h-lb">วันนี้ไม่มีอะไรถึงกำหนด</span>'
-      + '<b class="sp-h-big">ทำล่วงหน้า ' + hm(pay.plannedMin) + '</b>'
-      + '<span class="sp-h-sub">จัดไว้ให้แล้ว เพื่อไม่ให้ไปกองทีเดียวตอนใกล้ส่ง</span>'
+      + '<span class="sp-h-lb">ไม่มีอะไรถึงกำหนด</span>'
+      + '<b class="sp-h-big">ทำล่วงหน้า <em>' + hm(pay.plannedMin) + '</em></b>'
       + '</section>';
   }
 
@@ -392,8 +397,8 @@ function renderSaiPlan() {
     let pre = '';
     if (!markedNow && r.at > nowMin) {
       markedNow = true;
-      pre = '<div class="sd-now"><span class="mono">' + esc(min2hm(nowMin))
-        + '</span><i></i>ตอนนี้</div>';
+      pre = '<div class="sd-now"><span>' + esc(min2hm(nowMin))
+        + '</span><i></i></div>';
     }
     const past = (r.to != null ? r.to : r.at) <= nowMin;
     const span = (r.to != null ? r.to : r.at) - r.at;
@@ -411,9 +416,12 @@ function renderSaiPlan() {
         + '</' + tag + '>';
     }).join('');
 
+    // ⚠️ ราง <i> ถูกถอดออกใน 1C21 · เจ้าของ: "เวลาต้องเด่นสุด ... แล้วสีด้วยองค์ประกอบ"
+    // ของเดิมเวลาเป็นตัวเทาขนาด 12px อยู่ข้างเส้นราง แล้วทุกแถวหน้าตาเหมือนกันหมด
+    // ตอนนี้เวลาเป็นตัวหนา 17px คอลัมน์ซ้าย และก้อนขวามีพื้นสีตามหมวด
+    // ราง 2px กลายเป็นของที่ไม่ได้บอกอะไรเพิ่ม เพราะคอลัมน์เวลาเรียงเป็นเส้นให้อยู่แล้ว
     return pre + '<div class="sd-r sd-' + r.kind + (past ? ' past' : '') + '">'
-      + '<span class="sd-t mono">' + esc(min2hm(r.at)) + '</span>'
-      + '<span class="sd-rail"><i></i></span>'
+      + '<span class="sd-t">' + esc(min2hm(r.at)) + '</span>'
       + '<span class="sd-x"' + (h ? ' style="min-height:' + h + 'px"' : '') + '>'
       + '<b>' + esc(r.title) + '</b>'
       + (r.sub ? '<i>' + esc(r.sub) + '</i>' : '')

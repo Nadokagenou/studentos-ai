@@ -127,75 +127,90 @@
   color: var(--ink);
 }
 
-/* ---------- เส้นเวลาทั้งวัน ---------- */
-.sd-list { margin: 2px 0 4px; }
+/* ============================================================
+   เส้นเวลาทั้งวัน
+   ------------------------------------------------------------
+   เจ้าของ (21 ก.ย. 2569): "ทั้งวันของเราก็ยังดูจืด ๆ สีไม่มีอะไรเด่นเลย
+   เวลาต้องเด่นสุด ... แล้วสีด้วยองค์ประกอบ"
+
+   สามอย่างที่เปลี่ยนตามนั้น:
+     1. เวลาเป็นตัวหนา 17px ในคอลัมน์ของตัวเอง — จากเดิมเทา 12px ข้างเส้นราง
+        คอลัมน์เวลาที่เรียงกันเป็นเส้นอยู่แล้ว ทำให้ราง 2px กลายเป็นของเกิน จึงถอดทิ้ง
+     2. ก้อนขวามีพื้นสีตามหมวด + แถบสีซ้าย — เรียน/กิจวัตร/ว่าง/กิจกรรม แยกออกใน
+        การกวาดตาครั้งเดียว โดยไม่ต้องอ่านตัวหนังสือ
+     3. ความสูงยังแปรตามเวลาจริง — สีบอก "อะไร" ความสูงบอก "นานแค่ไหน"
+
+   ⚠️ สีเป็นชั้นที่สอง ไม่ใช่ชั้นแรก — ชื่อกับเวลายังอ่านครบถ้าตาบอดสี
+   หรือถ้าธีมไหนให้ค่าสีมาไม่ครบ · ใช้โทเคน *-soft ที่ทุกธีมประกาศไว้แล้ว
+   ห้ามผสมสีลงใน --card2 เอง (บทเรียนเดิม: ธีมมืดจะได้การ์ดขาวทั้งแอป)
+   ============================================================ */
+.sd-list { margin: 4px 0 4px; }
 
 .sd-r {
-  display: grid; grid-template-columns: 46px 14px minmax(0, 1fr);
-  align-items: start; gap: 8px;
+  display: grid; grid-template-columns: 52px minmax(0, 1fr);
+  align-items: start; gap: 10px; margin-bottom: 8px;
 }
+/* เวลา — ของที่เด่นที่สุดในแถว และเด่นที่สุดในจอรองจากการ์ดพระเอก */
 .sd-t {
-  padding-top: 10px; font-size: 12px; font-variant-numeric: tabular-nums;
-  color: var(--muted); text-align: end;
+  padding-top: 11px;
+  font-size: 17px; font-weight: 800; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink); text-align: end;
 }
-/* รางแนวตั้งที่ลากผ่านทุกแถว — เส้นเดียวที่ทำให้กองแถวอ่านเป็น "หนึ่งวัน"
-   ไม่ใช่ "รายการที่บังเอิญเรียงตามเวลา" */
-.sd-rail { position: relative; align-self: stretch; }
-.sd-rail::before {
-  content: ''; position: absolute; left: 50%; top: 0; bottom: -2px;
-  width: 2px; margin-left: -1px; background: var(--line);
+.sd-x {
+  display: block; min-width: 0;
+  padding: 11px 14px; border-radius: 15px;
+  background: var(--card2);
+  border-left: 3px solid var(--line);
 }
-.sd-r:first-child .sd-rail::before { top: 14px; }
-.sd-r:last-child .sd-rail::before { bottom: auto; height: 14px; }
-.sd-rail i {
-  position: absolute; left: 50%; top: 12px;
-  width: 9px; height: 9px; margin-left: -4.5px;
-  border-radius: 50%; background: var(--line);
-  border: 2px solid var(--scr);
-}
-.sd-x { padding: 8px 0 10px; min-width: 0; }
 .sd-x > b {
-  display: block; font-size: 14px; font-weight: 650; line-height: 1.45;
+  display: block; font-size: 14.5px; font-weight: 700; line-height: 1.4;
   color: var(--ink);
 }
 .sd-x > i {
-  display: block; margin-top: 1px; font-size: 11.5px; font-style: normal;
+  display: block; margin-top: 2px; font-size: 11.5px; font-style: normal;
   color: var(--muted);
 }
 
 /* ของที่ผ่านไปแล้วยังอยู่ครบ แต่จาง — "ทำไมวันนี้ไม่เหลือเวลา" ตอบด้วยครึ่งแรกของวัน
    ลบทิ้งแล้วจอจะสะอาดขึ้นและตอบคำถามนั้นไม่ได้อีกเลย */
-.sd-r.past { opacity: .45; }
+.sd-r.past { opacity: .42; }
+.sd-r.past .sd-t { color: var(--muted); font-weight: 700; }
 
-/* ตื่น/นอน เป็นหมุดหัวท้าย ไม่ใช่กิจกรรม — ตัวหนังสือจึงเบากว่าแถวอื่น */
-.sd-wake .sd-x > b, .sd-sleep .sd-x > b { font-weight: 600; color: var(--muted); }
-.sd-wake .sd-rail i, .sd-sleep .sd-rail i { background: var(--muted); }
+/* ตื่น/นอน เป็นหมุดหัวท้าย ไม่ใช่กิจกรรม — ไม่มีก้อนสี มีแต่บรรทัดเบา ๆ */
+.sd-wake .sd-x, .sd-sleep .sd-x {
+  background: transparent; border-left-color: transparent; padding: 7px 0 7px 14px;
+}
+.sd-wake .sd-x > b, .sd-sleep .sd-x > b { font-weight: 600; color: var(--muted); font-size: 13.5px; }
+.sd-wake .sd-t, .sd-sleep .sd-t { color: var(--muted); font-weight: 700; font-size: 15px; }
 
-.sd-class .sd-rail i { background: var(--fill); }
-.sd-ev .sd-rail i { background: var(--warn); }
-.sd-free .sd-rail i { background: var(--good); }
-.sd-free .sd-x > b { color: var(--good); }
+/* หมวดสี — สีเป็นตัวแยกหมวดในแวบเดียว ส่วนตัวหนังสือยังบอกครบเหมือนเดิม */
+.sd-class .sd-x { background: var(--blue-soft); border-left-color: var(--blue); }
+.sd-class .sd-x > b { color: var(--blue-deep, var(--ink)); }
+.sd-free  .sd-x { background: var(--good-soft); border-left-color: var(--good); }
+.sd-free  .sd-x > b { color: var(--good); }
+.sd-ev    .sd-x { background: var(--warn-soft); border-left-color: var(--warn); }
+.sd-ev    .sd-x > b { color: var(--warn); }
+.sd-rt    .sd-x { border-left-color: var(--faint); }
 
 /* เส้น "ตอนนี้" — เส้นเดียวต่อจอ และเป็นสิ่งเดียวที่เป็นสีเตือน
-   ถ้ามีของสีแดงมากกว่าหนึ่งอย่าง ตาจะไม่รู้ว่าอันไหนคือ "ตรงนี้" */
+   ถ้ามีของสีแดงมากกว่าหนึ่งอย่าง ตาจะไม่รู้ว่าอันไหนคือ "ตรงนี้"
+   เป็นเส้นลากขวางจริง ๆ ไม่ใช่แถวข้อความ — คำว่า "ตอนนี้" ถูกตัดทิ้ง
+   เพราะเส้นแดงที่มีเวลากำกับอยู่หัวเส้น ไม่มีทางแปลว่าอย่างอื่นได้ */
 .sd-now {
-  display: grid; grid-template-columns: 46px 14px minmax(0, 1fr);
-  align-items: center; gap: 8px;
-  margin: 3px 0; font-size: 11.5px; font-weight: 700; color: var(--alert);
+  display: grid; grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center; gap: 10px; margin: 2px 0 10px;
 }
-.sd-now .mono { font-variant-numeric: tabular-nums; text-align: end; }
-.sd-now i {
-  justify-self: center; width: 9px; height: 9px;
-  border-radius: 50%; background: var(--alert);
+.sd-now span {
+  font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums;
+  color: var(--alert); text-align: end;
 }
+.sd-now i { display: block; height: 2px; border-radius: 2px; background: var(--alert); }
 
 /* ---------- งานที่ AI วางลงในช่องว่าง ---------- */
 /* ซ้อนอยู่ใต้ช่องว่างที่มันกินเวลาอยู่ ไม่ใช่แถวพี่น้องกัน
    เส้นขอบซ้ายบอกว่า "ของพวกนี้อยู่ข้างในของข้างบน" โดยไม่ต้องมีคำอธิบาย */
-.sd-jobs {
-  display: block; margin: 8px 0 2px;
-  border-left: 2px solid var(--line); padding-left: 10px;
-}
+.sd-jobs { display: block; margin: 10px 0 1px; }
 .sd-job {
   display: grid; grid-template-columns: 40px minmax(0, 1fr) 16px;
   align-items: center; gap: 8px;
@@ -213,9 +228,13 @@ button.sd-job:active { transform: scale(.985); }
 }
 .sd-jt { font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--muted); }
 .sd-jx { min-width: 0; }
+/* ชื่องานยาวได้สองบรรทัด ไม่ตัดด้วย … ตั้งแต่บรรทัดแรก
+   "เขียน Essay หัวข้อ My D…" ไม่ได้บอกอะไรมากกว่า "เขียน Essay" ที่เต็มบรรทัดเดียว
+   ส่วนสองบรรทัดเต็ม ๆ บอกครบว่าหัวข้ออะไร ซึ่งเป็นสิ่งเดียวที่ต้องรู้ก่อนกด */
 .sd-jx b {
-  display: block; font-size: 13.5px; font-weight: 650; color: var(--ink);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13.5px; font-weight: 700; line-height: 1.35; color: var(--ink);
 }
 .sd-jx i {
   display: block; margin-top: 1px; font-size: 11px; font-style: normal; color: var(--muted);
@@ -257,26 +276,33 @@ button.sd-job:active { transform: scale(.985); }
   display: block; font-size: 11.5px; font-weight: 700;
   letter-spacing: .02em; opacity: .8;
 }
+/* ตัวเลขที่เป็นคำตอบถูกทำให้ใหญ่กว่าคำรอบข้างอีกชั้น — คนกวาดตาเจอ "0" ก่อนเจอ "ส่งทัน"
+   ซึ่งถูกแล้ว เพราะคำว่า "ส่งทัน" เหมือนกันทุกวัน ส่วนตัวเลขคือสิ่งเดียวที่เปลี่ยน */
 .sp-h-big {
-  display: block; margin-top: 3px;
-  font-size: 25px; font-weight: 800; letter-spacing: -.02em; line-height: 1.2;
+  display: block; margin-top: 2px;
+  font-size: 23px; font-weight: 750; letter-spacing: -.02em; line-height: 1.25;
 }
-.sp-h-sub { display: block; margin-top: 3px; font-size: 12px; opacity: .85; }
+.sp-h-big em { font-style: normal; font-size: 33px; font-weight: 850; }
 
 /* สองช่องล่าง — "เสียอะไรถ้าไม่ทำ" กับ "ได้อะไรถ้าทำ" ต้องอยู่แถวเดียวกัน
    เพราะมันคือสองด้านของการตัดสินใจเดียว ไม่ใช่ข้อเท็จจริงสองข้อที่ไม่รู้จักกัน */
+/* สองผลที่ตามมา — อยู่แถวเดียวกันเพราะเป็นสองด้านของการตัดสินใจเดียว
+   เป็นก้อนโปร่งบนพื้นการ์ด ไม่ใช่แค่ข้อความใต้เส้นคั่น จะได้อ่านเป็น "ตัวเลขสองตัว"
+   ไม่ใช่ "ประโยคสองประโยคที่ห้อยอยู่" */
 .sp-h-row {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px;
-  margin-top: 13px; padding-top: 12px;
-  border-top: 1px solid currentColor;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px;
+  margin-top: 14px;
 }
-.sp-h-row { border-top-color: color-mix(in srgb, currentColor 22%, transparent); }
-.sp-h-cell { min-width: 0; }
+.sp-h-cell {
+  min-width: 0; padding: 9px 11px; border-radius: 12px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
 .sp-h-cell i {
-  display: block; font-size: 11px; font-style: normal; opacity: .78; line-height: 1.4;
+  display: block; font-size: 10.5px; font-style: normal; font-weight: 700;
+  opacity: .72; line-height: 1.3;
 }
 .sp-h-cell b {
-  display: block; margin-top: 2px; font-size: 14px; font-weight: 750; line-height: 1.35;
+  display: block; margin-top: 2px; font-size: 14.5px; font-weight: 800; line-height: 1.3;
 }
 
 /* ---------- ปุ่มเรียกโหมดเล่าทีละข้อ ---------- */
