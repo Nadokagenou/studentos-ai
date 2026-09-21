@@ -1,0 +1,425 @@
+/* ============================================================
+   น้องไซ (Synara) — มาสคอตที่ขยับตามนิ้ว + จอแผนวันนี้
+   ------------------------------------------------------------
+   ภาพทั้งหมดตัดมาจาก character sheet ใบเดียวที่เจ้าของส่งมา
+   (สีหน้า 6 แบบ + ชิบิ) จึงเป็นลายเส้นเดียวกันทุกใบ ไม่มีการเจนใหม่
+   ซึ่งสำคัญ เพราะหน้าที่เพี้ยนไปจากตัวจริงหนึ่งใบ ทำให้ทั้งชุดดูปลอม
+
+   ⚠️ ขนาดที่เขียนไว้ในไฟล์นี้ห้ามใหญ่กว่าขนาดจริงของไฟล์ภาพ
+   ใบหน้าเป็น 131×118 · ชิบิเป็น 190×328 · รอบแรกเคยอัปเป็น 236 กับ 380
+   แล้วเจ้าของทักทันทีว่า "บางอันเบลอ ๆ" · ภาพที่ย่อลงคมเสมอ ภาพที่ขยายขึ้นไม่มีวันคม
+   จอมือถือส่วนใหญ่เป็น 2–3 เท่า จึงแสดงที่ราวครึ่งหนึ่งของขนาดไฟล์
+
+   กรอบกับแสงใช้ --fill (สีเน้นของธีม) ไม่ใช่สีฟ้าตายตัว
+   ตัวภาพเป็นโทนฟ้าของตัวละครอยู่แล้ว ถ้าใส่ฟ้าเข้าไปอีกชั้น
+   ธีมส้ม/ธีมม่วงจะได้ก้อนฟ้าแปลกปลอมลอยอยู่กลางจอ
+   ============================================================ */
+
+/* ---------- ใบเล็กบนหน้าวันนี้ ---------- */
+/* ⚠️ grid ไม่ใช่ flex — และไม่ใช่เรื่องรสนิยม
+   วัดบนหน้าจริงแล้ว: flex item ที่เป็น <span> ในแอปนี้ถูกบีบเหลือกว้าง 0
+   แม้จะตั้ง flex:1 หรือ width:200px ตรง ๆ ก็ตาม (ตัวหนังสือแตกเป็นตัวละบรรทัด
+   การ์ดสูง 565px แทนที่จะเป็น ~100px) · grid กับ minmax(0,1fr) ให้ผลถูกต้องทันที
+   ใครจะเปลี่ยนกลับไปเป็น flex ต้องวัดความกว้างจริงก่อน ไม่ใช่ดูว่ามันควรจะได้ */
+.saih {
+  display: grid; grid-template-columns: minmax(0, 1fr) 62px;
+  align-items: center; gap: 12px;
+  width: 100%; margin: 0 0 12px; padding: 12px 14px;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r-card); box-shadow: var(--shadow);
+  text-align: start; font: inherit; color: inherit; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.saih:active { transform: scale(.985); }
+
+.saih-bubble { min-width: 0; }
+.saih-bubble b {
+  display: block; font-size: 15px; font-weight: 700; line-height: 1.45;
+  color: var(--ink);
+}
+.saih-bubble span {
+  display: block; margin-top: 3px; font-size: 12.5px; line-height: 1.5;
+  color: var(--muted);
+}
+.saih-go {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-top: 7px; font-size: 12.5px; font-weight: 600; color: var(--fill);
+}
+.saih-go svg { width: 14px; height: 14px; }
+
+/* ---------- เวที: ตัวเธอเอียงตามนิ้ว ----------
+   --sx / --sy ถูกเขียนทับทุกเฟรมจาก saiTick() เป็นค่า −1…1
+   ไม่ผูกกับ transition เพราะมันถูกอัปเดตถี่กว่าที่ transition จะไล่ทัน
+   ความลื่นมาจากการหน่วงค่าใน JS (lerp) แทน ซึ่งคุมจังหวะได้จริง */
+.saih-stage {
+  --sx: 0; --sy: 0;
+  position: relative;
+  width: 62px; height: 62px;
+  transform: rotate(calc(var(--sx) * 6deg))
+             translate(calc(var(--sx) * 3px), calc(var(--sy) * 2px));
+}
+/* ⚠️ .saih-ring กับ .saip-glow ถูกลบทิ้งใน 1C22 — ห้ามใส่กลับ
+   ทั้งคู่เป็นวงรีเบลอ 9–18px ที่วางไว้ "หลังตัวเธอ" ตอนออกแบบ
+   และมันคือสิ่งที่เจ้าของทักว่า "ขอบขาว ๆ รอบตัว" มาสามรอบติด
+   สองรอบก่อนหน้าไปแก้ที่ไฟล์ภาพ (กัดขอบ · ลามสีเนื้อใน) ซึ่งถูกต้องทั้งคู่
+   แต่แก้ผิดที่ เพราะเรืองแสงไม่ได้มาจากภาพเลย มันมาจาก CSS ของเราเอง
+   บทเรียน: ตรวจ "การ์ดจริงบนจอ" ไม่ใช่ "ไฟล์ภาพบนพื้นดำ" — สองอย่างนี้ไม่เหมือนกัน
+
+   วงกลมของรูปโปรไฟล์ยังอยู่ — สี่เหลี่ยมมุมมนอ่านว่า "รูปที่ถูกครอป"
+   ส่วนวงกลมอ่านว่า "รูปโปรไฟล์" เพราะทุกแอปใช้รูปทรงนี้กับคนมาสิบปีแล้ว */
+.saih-face {
+  position: relative; display: block;
+  width: 62px; height: 62px;
+  border-radius: 50%; border: 1.5px solid var(--line);
+  object-fit: cover;
+  /* ภาพกว้างกว่ากรอบแล้วเลื่อนตำแหน่งข้างใน = เธอขยับในที่ของเธอ
+     ไม่ใช่ทั้งรูปถูกลากไปมา — นี่คือสิ่งที่ทำให้รู้สึกว่า "หันตาม" */
+  object-position: calc(50% + var(--sx) * 8%) calc(44% + var(--sy) * 6%);
+  animation: saiFloat 4.6s ease-in-out infinite;
+}
+@keyframes saiFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3.5px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .saih-face, .saip-chibi { animation: none; }
+  .saih-stage, .saip-stage { transform: none; }
+}
+
+/* จุดกะพริบ "มีอะไรจะบอก" — มุมบนขวา */
+.saih-dot {
+  position: absolute; top: 0; right: 0; z-index: 2;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--alert); border: 2px solid var(--card);
+}
+
+/* ============================================================
+   จอแผนวันนี้ — ห้องของน้องไซ
+   ------------------------------------------------------------
+   จอปกติที่เลื่อนได้ มีหัวจอติดหนึบกับปุ่มย้อนกลับเหมือนจออื่นทุกจอ
+   (เคยเป็นสไลด์ทีละข้อที่ย้อนกลับไม่ได้ — เจ้าของตีกลับ 21 ก.ย. 2569)
+   ============================================================ */
+
+/* ---------- น้องไซกับคำพูดหนึ่งบรรทัด ---------- */
+.sai-hi {
+  display: grid; grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center; gap: 14px;
+  margin: 2px 0 6px; padding: 14px 16px 14px 10px;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r-card); box-shadow: var(--shadow);
+}
+.saip-stage {
+  --sx: 0; --sy: 0;
+  position: relative; width: 92px; height: 159px;
+  transform: rotate(calc(var(--sx) * 3.5deg)) translateX(calc(var(--sx) * 4px));
+}
+/* มุมมน แต่ไม่มีพื้นหลัง — จงใจให้ใช้ได้กับภาพสองชนิดโดยไม่ต้องแก้ CSS:
+   ไฟล์ปัจจุบันยังมีพื้นหลังฟ้าอ่อนติดมา มุมมนทำให้มันอ่านเป็น "ไทล์" ไม่ใช่รูปสี่เหลี่ยมแปะ
+   วันที่ได้ PNG พื้นโปร่งจากคนวาด มุมมนบนพื้นโปร่งมองไม่เห็นอยู่แล้ว — ทับไฟล์ทิ้งได้เลย
+   ⚠️ ห้ามใส่ background/border/box-shadow ตรงนี้ ไม่งั้นวันนั้นจะได้กรอบลอยรอบตัวเปล่า ๆ */
+.saip-chibi {
+  position: relative; display: block;
+  width: 92px; height: 159px; object-fit: contain;
+  border-radius: 16px;
+  animation: saiFloat 4.6s ease-in-out infinite;
+}
+.saip-chibi.dim { filter: saturate(.75) brightness(.94); }
+.sai-say {
+  margin: 0; font-size: 14.5px; font-weight: 600; line-height: 1.6;
+  color: var(--ink);
+}
+
+/* ============================================================
+   เส้นเวลาทั้งวัน
+   ------------------------------------------------------------
+   เจ้าของ (21 ก.ย. 2569): "ทั้งวันของเราก็ยังดูจืด ๆ สีไม่มีอะไรเด่นเลย
+   เวลาต้องเด่นสุด ... แล้วสีด้วยองค์ประกอบ"
+
+   สามอย่างที่เปลี่ยนตามนั้น:
+     1. เวลาเป็นตัวหนา 17px ในคอลัมน์ของตัวเอง — จากเดิมเทา 12px ข้างเส้นราง
+        คอลัมน์เวลาที่เรียงกันเป็นเส้นอยู่แล้ว ทำให้ราง 2px กลายเป็นของเกิน จึงถอดทิ้ง
+     2. ก้อนขวามีพื้นสีตามหมวด + แถบสีซ้าย — เรียน/กิจวัตร/ว่าง/กิจกรรม แยกออกใน
+        การกวาดตาครั้งเดียว โดยไม่ต้องอ่านตัวหนังสือ
+     3. ความสูงยังแปรตามเวลาจริง — สีบอก "อะไร" ความสูงบอก "นานแค่ไหน"
+
+   ⚠️ สีเป็นชั้นที่สอง ไม่ใช่ชั้นแรก — ชื่อกับเวลายังอ่านครบถ้าตาบอดสี
+   หรือถ้าธีมไหนให้ค่าสีมาไม่ครบ · ใช้โทเคน *-soft ที่ทุกธีมประกาศไว้แล้ว
+   ห้ามผสมสีลงใน --card2 เอง (บทเรียนเดิม: ธีมมืดจะได้การ์ดขาวทั้งแอป)
+   ============================================================ */
+.sd-list { margin: 4px 0 4px; }
+
+.sd-r {
+  display: grid; grid-template-columns: 52px minmax(0, 1fr);
+  align-items: start; gap: 10px; margin-bottom: 8px;
+}
+/* เวลา — ของที่เด่นที่สุดในแถว และเด่นที่สุดในจอรองจากการ์ดพระเอก */
+.sd-t {
+  padding-top: 11px;
+  font-size: 17px; font-weight: 800; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink); text-align: end;
+}
+.sd-x {
+  display: block; min-width: 0;
+  padding: 11px 14px; border-radius: 15px;
+  background: var(--card2);
+  border-left: 3px solid var(--line);
+}
+.sd-x > b {
+  display: block; font-size: 14.5px; font-weight: 700; line-height: 1.4;
+  color: var(--ink);
+}
+.sd-x > i {
+  display: block; margin-top: 2px; font-size: 11.5px; font-style: normal;
+  color: var(--muted);
+}
+
+/* ของที่ผ่านไปแล้วยังอยู่ครบ แต่จาง — "ทำไมวันนี้ไม่เหลือเวลา" ตอบด้วยครึ่งแรกของวัน
+   ลบทิ้งแล้วจอจะสะอาดขึ้นและตอบคำถามนั้นไม่ได้อีกเลย */
+.sd-r.past { opacity: .42; }
+.sd-r.past .sd-t { color: var(--muted); font-weight: 700; }
+
+/* ตื่น/นอน เป็นหมุดหัวท้าย ไม่ใช่กิจกรรม — ไม่มีก้อนสี มีแต่บรรทัดเบา ๆ */
+/* ⚠️ padding บนของ .sd-x กับ .sd-t ต้องเท่ากันเสมอ ไม่งั้นตัวหนังสือสองคอลัมน์
+   จะไม่อยู่บรรทัดเดียวกัน · แถวปกติเป็น 11px ทั้งคู่ แต่แถวตื่น/นอนลดเหลือ 7px
+   เฉพาะฝั่งขวา ทำให้ "เข้านอน" ลอยสูงกว่า "22:00" อย่างเห็นได้ชัด (เจ้าของทักเอง)
+   ลดพร้อมกันทั้งสองฝั่ง ไม่ใช่ฝั่งเดียว */
+/* จับคู่ด้วย align-items: center แทนการไล่ padding ให้เท่ากัน
+   เพราะสองคอลัมน์นี้ตัวหนังสือคนละขนาด (เวลา 15px · ชื่อ 13.5px)
+   ต่อให้ padding เท่ากันเป๊ะ กล่องบรรทัดก็สูงไม่เท่ากันอยู่ดี แล้วตัวหนังสือก็ยังเหลื่อม
+   แถวตื่น/นอนไม่มีบรรทัดรอง จึงจัดกึ่งกลางได้ตรงเป๊ะโดยไม่ต้องคำนวณอะไร */
+.sd-wake, .sd-sleep { align-items: center; }
+.sd-wake .sd-x, .sd-sleep .sd-x {
+  background: transparent; border-left-color: transparent; padding: 4px 0 4px 14px;
+}
+.sd-wake .sd-t, .sd-sleep .sd-t { padding-top: 0; }
+.sd-wake .sd-x > b, .sd-sleep .sd-x > b { font-weight: 600; color: var(--muted); font-size: 13.5px; }
+.sd-wake .sd-t, .sd-sleep .sd-t { color: var(--muted); font-weight: 700; font-size: 15px; }
+
+/* ---------- สีแยกหมวด ----------
+   มีก้อนสีทึบก้อนเดียวในเส้นเวลาทั้งเส้น และมันคือ "ช่องว่าง"
+   เพราะเป็นสิ่งเดียวบนเส้นนี้ที่เขาตัดสินใจได้ — คาบเรียนกับกิจวัตรเปลี่ยนไม่ได้อยู่แล้ว
+   สีควรอยู่บนของที่กดแล้วเกิดอะไรขึ้น ไม่ใช่บนของที่ดูอย่างเดียว
+
+   เจ้าของเคาะสีเอง (21 ก.ย. 2569): "สีเขียวเปลี่ยนเป็นสีฟ้าเถอะ" */
+/* ตระกูล --sig-* ที่ today.css ประกาศไว้มีแค่ แดง/ส้ม/เขียว — ไม่มีฟ้า
+   เพิ่มตัวที่สี่ไว้ตรงนี้ ใช้กฎเดียวกันเป๊ะ: ค่าคงที่ ไม่พลิกตามธีม ตัวอักษรขาวเสมอ
+   ขาวบน #1B5FD0 = 5.9 ผ่าน AA ทุกธีม (เกณฑ์เดียวกับ แดง 4.8 · ส้ม 5.9 · เขียว 6.3)
+   ⚠️ ห้ามเปลี่ยนไปใช้ --fill หรือ --blue ตรงนี้ ทั้งคู่พลิกตามธีม
+   ธีมสว่างของแอปนี้ --blue เป็นสีส้มอำพัน ไม่ใช่ฟ้า · จะได้ก้อนส้มทันที */
+:root { --sig-blue: #1B5FD0; }
+
+.sd-free .sd-x {
+  background: var(--sig-blue); border-left-color: rgba(255,255,255,.35);
+  color: #fff;
+}
+.sd-free .sd-x > b { color: #fff; }
+.sd-free .sd-x > i { color: rgba(255,255,255,.8); }
+
+.sd-ev .sd-x { border-left-color: var(--pri-yellow-text); }
+.sd-ev .sd-x > b { color: var(--pri-yellow-text); }
+
+/* เรียนกับกิจวัตร = ของที่เปลี่ยนไม่ได้ · แถบซ้ายทึบพอให้แยกออก แต่ไม่มีพื้นสี */
+.sd-class .sd-x { border-left-color: var(--muted); }
+.sd-rt    .sd-x { border-left-color: var(--line); }
+
+/* เส้น "ตอนนี้" — เส้นเดียวต่อจอ และเป็นสิ่งเดียวที่เป็นสีเตือน
+   ถ้ามีของสีแดงมากกว่าหนึ่งอย่าง ตาจะไม่รู้ว่าอันไหนคือ "ตรงนี้"
+   เป็นเส้นลากขวางจริง ๆ ไม่ใช่แถวข้อความ — คำว่า "ตอนนี้" ถูกตัดทิ้ง
+   เพราะเส้นแดงที่มีเวลากำกับอยู่หัวเส้น ไม่มีทางแปลว่าอย่างอื่นได้ */
+.sd-now {
+  display: grid; grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center; gap: 10px; margin: 2px 0 10px;
+}
+.sd-now span {
+  font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums;
+  color: var(--alert); text-align: end;
+}
+.sd-now i { display: block; height: 2px; border-radius: 2px; background: var(--alert); }
+
+/* ---------- งานที่ AI วางลงในช่องว่าง ---------- */
+/* ซ้อนอยู่ใต้ช่องว่างที่มันกินเวลาอยู่ ไม่ใช่แถวพี่น้องกัน
+   เส้นขอบซ้ายบอกว่า "ของพวกนี้อยู่ข้างในของข้างบน" โดยไม่ต้องมีคำอธิบาย */
+.sd-jobs { display: block; margin: 10px 0 1px; }
+.sd-job {
+  display: grid; grid-template-columns: 40px minmax(0, 1fr) 16px;
+  align-items: center; gap: 8px;
+  width: 100%; margin-bottom: 6px; padding: 9px 10px;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 13px;
+  text-align: start; font: inherit; color: inherit;
+}
+button.sd-job { cursor: pointer; }
+button.sd-job:active { transform: scale(.985); }
+.sd-job:last-child { margin-bottom: 0; }
+.sd-job.brk {
+  grid-template-columns: 40px minmax(0, 1fr);
+  background: transparent; border-style: dashed;
+}
+.sd-jt { font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.sd-jx { min-width: 0; }
+/* ชื่องานยาวได้สองบรรทัด ไม่ตัดด้วย … ตั้งแต่บรรทัดแรก
+   "เขียน Essay หัวข้อ My D…" ไม่ได้บอกอะไรมากกว่า "เขียน Essay" ที่เต็มบรรทัดเดียว
+   ส่วนสองบรรทัดเต็ม ๆ บอกครบว่าหัวข้ออะไร ซึ่งเป็นสิ่งเดียวที่ต้องรู้ก่อนกด */
+.sd-jx b {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13.5px; font-weight: 700; line-height: 1.35; color: var(--ink);
+}
+.sd-jx i {
+  display: block; margin-top: 1px; font-size: 11px; font-style: normal; color: var(--muted);
+}
+.sd-job svg { width: 15px; height: 15px; color: var(--faint); }
+
+/* ---------- ปุ่มท้ายจอ ---------- */
+.sai-cta {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; margin-top: 14px; padding: 15px;
+  border: 0; border-radius: 16px;
+  background: var(--fill); color: var(--on-fill);
+  font-size: 15.5px; font-weight: 700; cursor: pointer;
+}
+.sai-cta:active { transform: scale(.985); }
+.sai-cta svg { width: 17px; height: 17px; }
+
+.sai-note {
+  margin: 12px 0 4px; font-size: 11.5px; line-height: 1.6; color: var(--faint);
+}
+
+/* ============================================================
+   การ์ดพระเอก — "ทำตามแผนนี้แล้วได้อะไร"
+   ------------------------------------------------------------
+   ใบนี้คือคำตอบของ "ถึงแม้จะมีแผนแต่ไม่ต่างอะไร มันก็ไร้ค่า" (21 ก.ย. 2569)
+   ตารางเวลาเป็นของที่ปฏิทินให้ได้ฟรี · ผลของการทำตามตารางไม่ใช่
+   ตัวเลขทุกตัวในใบนี้มาจาก state จริง ไม่มีตัวไหนเป็นคำให้กำลังใจ
+   วันไหนตัวเลขไม่สวยก็ต้องขึ้นตามนั้น — ตัวเลขที่สวยเสมอคือตัวเลขที่ไม่มีใครเชื่อ
+   ============================================================ */
+/* ============================================================
+   การ์ดผลลัพธ์ — ประโยคเดียว พื้นทึบ
+   ------------------------------------------------------------
+   สูตรเดียวกับหัวตั๋ว .tn-head ในหน้าวันนี้ ซึ่งเป็นใบที่เจ้าของชี้เองว่าสีโอเค:
+   พื้น --fill · ตัวอักษร --on-fill · วงกลมขาวโปร่งสองวงเป็นลวดลาย
+   ⚠️ ทุกอย่างในนี้สืบสีจาก --on-fill ห้ามหลุดไปใช้ --ink แม้แต่ตัวเดียว
+   ไม่งั้นจะได้ตัวหนังสือเข้มบนพื้นเข้ม ซึ่งพังเฉพาะบางธีมและมองข้ามง่ายมากตอนเทส
+   ============================================================ */
+.sp-hero {
+  position: relative; overflow: hidden;
+  margin: 12px 0 8px; padding: 20px 20px 22px;
+  border-radius: calc(var(--r-card) + 4px);
+  background: var(--fill); color: var(--on-fill);
+  box-shadow: var(--shadow-lg);
+}
+.sp-hero::after {
+  content: ''; position: absolute; right: -40px; top: -52px;
+  width: 160px; height: 160px; border-radius: 50%;
+  background: rgba(255,255,255,.11); pointer-events: none;
+}
+.sp-hero::before {
+  content: ''; position: absolute; right: 22px; bottom: -62px;
+  width: 116px; height: 116px; border-radius: 50%;
+  background: rgba(255,255,255,.07); pointer-events: none;
+}
+.sp-hero b {
+  position: relative;
+  display: block; font-size: 19px; font-weight: 700; line-height: 1.45;
+  letter-spacing: -.015em; color: var(--on-fill);
+}
+/* ตัวเลขคือสิ่งเดียวที่เปลี่ยนทุกวัน — คำรอบข้างเหมือนเดิมเสมอ มันจึงต้องใหญ่กว่า */
+.sp-hero b em {
+  font-style: normal; font-size: 32px; font-weight: 850; letter-spacing: -.03em;
+}
+
+/* ---------- ปุ่มเรียกโหมดเล่าทีละข้อ ---------- */
+/* อยู่ท้ายจอ ไม่ใช่ประตูหน้า — ใครไม่อยากฟังก็อ่านจอแผนเอาเองได้ครบอยู่แล้ว */
+.sai-tour {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; margin-top: 9px; padding: 13px;
+  border: 1px dashed var(--fill); border-radius: 16px;
+  background: transparent; color: var(--fill);
+  font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.sai-tour:active { transform: scale(.985); }
+.sai-tour svg { width: 16px; height: 16px; }
+
+/* ============================================================
+   โหมดเล่าทีละข้อ
+   ------------------------------------------------------------
+   ของเดิมจาก 1C18 ที่เจ้าของบอกว่าชอบ · กลับมาพร้อมปุ่ม "ก่อนหน้า" จริง ๆ
+   ซึ่งเป็นข้อที่ถูกตีกลับ ("เหมือนมันย้อนกลับไม่ได้ด้วย")
+   ============================================================ */
+.st-dots { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 5px; padding: 4px 0 2px; }
+.st-dots i { height: 5px; border-radius: 99px; background: var(--line); transition: background .25s ease; }
+.st-dots i.on { background: var(--fill); }
+
+.st-mid {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 22px 0 10px;
+}
+.st-stage { width: 130px; height: 224px; }
+.st-stage .saip-chibi { width: 130px; height: 224px; }
+
+.st-say {
+  width: 100%; margin-top: 18px; padding: 18px 20px;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 20px; border-top-left-radius: 6px;
+  box-shadow: var(--shadow);
+}
+.st-say h3 {
+  margin: 0; font-size: 21px; font-weight: 800; line-height: 1.4; color: var(--ink);
+}
+.st-say p { margin: 8px 0 0; font-size: 14.5px; line-height: 1.65; color: var(--muted); }
+
+.saip-in { animation: saipIn .34s cubic-bezier(.2, .8, .3, 1) both; }
+@keyframes saipIn {
+  from { opacity: 0; transform: translateY(9px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .saip-in { animation: none; } }
+
+.st-act { padding: 6px 0 4px; }
+.st-nav { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-top: 10px; }
+.st-back, .st-next {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 13px; border-radius: 15px; font-size: 14.5px; font-weight: 700; cursor: pointer;
+}
+.st-back { background: var(--card2); border: 0; color: var(--muted); }
+.st-back svg { width: 15px; height: 15px; transform: rotate(180deg); }
+.st-next { background: var(--fill); border: 0; color: var(--on-fill); }
+.st-next svg { width: 15px; height: 15px; }
+.st-back:active, .st-next:active { transform: scale(.98); }
+
+/* การ์ด "พัก" เป็นแบบโปร่งเส้นประ ซึ่งบนพื้นเขียวทึบกลายเป็นเทาบนเขียว อ่านแทบไม่ออก
+   มันนั่งอยู่บนพื้นที่ไม่พลิกตามธีม จึงต้องใช้สีที่ไม่พลิกตามธีมด้วย (ขาวโปร่ง)
+   กฎเดียวกับบล็อก "โทเคนสัญญาณ" ใน today.css — ผสมสองตระกูลเมื่อไหร่คือพังธีมใดธีมหนึ่ง */
+.sd-free .sd-job.brk { border-color: rgba(255,255,255,.4); }
+.sd-free .sd-job.brk .sd-jt { color: rgba(255,255,255,.72); }
+.sd-free .sd-job.brk .sd-jx b { color: #fff; }
+.sd-free .sd-job.brk .sd-jx i { color: rgba(255,255,255,.72); }
+
+
+/* ============================================================
+   การ์ดงานที่นั่งอยู่บนก้อน "ว่าง"
+   ------------------------------------------------------------
+   ⚠️ กฎเดิมที่เขียนคาไว้แล้วแต่ยังพลาด: ก้อน "ว่าง" เป็น --sig-blue ซึ่ง
+   **ไม่พลิกตามธีม** · ของที่นั่งอยู่บนมันจึงต้องไม่พลิกตามธีมด้วยทุกตัว
+   ของเดิมใช้ var(--card) ซึ่งธีมสว่างเป็นขาว (สวย) แต่ธีมมืดเป็นกรมท่าเข้ม
+   ได้การ์ดสีเดียวกับพื้นจอมาแปะทับฟ้าสด — หนักและอ่านยากเฉพาะธีมมืด
+   ซึ่งเป็นอาการเดียวกับที่ today.css เตือนไว้ทุกบรรทัด
+   ============================================================ */
+.sd-free .sd-job {
+  background: #fff; border-color: transparent;
+  box-shadow: 0 1px 2px rgba(10, 30, 70, .12);
+}
+.sd-free .sd-job .sd-jt { color: #5A6478; }
+.sd-free .sd-job .sd-jx b { color: #16223A; }
+.sd-free .sd-job .sd-jx i { color: #5A6478; }
+.sd-free .sd-job svg { color: #8A93A6; }
+
+/* "พัก" ยังเป็นเส้นประโปร่ง — มันไม่ใช่งาน จึงไม่ควรได้การ์ดทึบเท่ากัน */
+.sd-free .sd-job.brk {
+  background: transparent; box-shadow: none;
+  border-color: rgba(255, 255, 255, .45);
+}
+.sd-free .sd-job.brk .sd-jt { color: rgba(255,255,255,.75); }
+.sd-free .sd-job.brk .sd-jx b { color: #fff; }
+.sd-free .sd-job.brk .sd-jx i { color: rgba(255,255,255,.75); }
