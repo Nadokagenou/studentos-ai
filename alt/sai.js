@@ -168,24 +168,89 @@ function saiHero(ctx) {
 // ============================================================
 // แผนวันนี้ — ห้องของน้องไซ
 // ------------------------------------------------------------
-// 1C19 · รอบแรกทำเป็นสไลด์ทีละข้อแบบ Duolingo แล้วเจ้าของตีกลับสองข้อ:
-// "พอเข้าห้องผมอยากให้เป็นเหมือนหน้าจอปกติแหละ" และ "เหมือนมันย้อนกลับไม่ได้ด้วย"
-// ข้อหลังคือข้อที่แพงที่สุด — สไลด์ที่เดินหน้าอย่างเดียวแปลว่าถ้าอ่านข้อสองไม่ทัน
-// ก็หมดสิทธิ์ ต้องออกแล้วเข้าใหม่ · บทสนทนาที่ย้อนกลับไม่ได้ไม่ใช่บทสนทนา
+// ประวัติของจอนี้สั้นแต่สอนเยอะ เก็บไว้ทั้งสามรอบเพราะรอบถัดไปจะได้ไม่วนกลับ:
 //
-// ของที่ขอมาแทนคือ "เข้าเห็นภาพรวมตั้งแต่ตื่นนอน-จนนอน" ซึ่งเป็นคำตอบของคำถาม
-// ที่ค้างมาสองรอบว่าไทม์ไลน์เต็มวันควรอยู่จอไหน — เจ้าของเคยชี้เองว่าหน้าบริบท
-// เป็นจอ "กรอกข้อมูล" ส่วนไทม์ไลน์เป็น "ผลลัพธ์" สองอย่างนี้จึงอยู่จอเดียวกันไม่ได้
-// ห้องนี้เป็นจอผลลัพธ์ล้วน ๆ ไม่มีช่องกรอกสักช่อง มันจึงเป็นบ้านที่ถูกของมัน
+//   1C18  สไลด์ทีละข้อแบบ Duolingo
+//         → ตีกลับ: "อยากให้เป็นเหมือนหน้าจอปกติ" + "ย้อนกลับไม่ได้ด้วย"
+//   1C19  จอเลื่อนได้ เส้นเวลาตั้งแต่ตื่นจนนอน
+//         → ตีกลับ: "ก็ยังดูธรรมดา ๆ อะ ถึงแม้จะมีแผนแต่ไม่ต่างอะไร
+//                    หรือไม่มีคุณค่าอื่น มันก็ไร้ค่า"
+//   1C20  จอนี้
 //
-// เส้นเวลาไม่ได้เริ่มที่ช่องว่างช่องแรกเหมือนรางในหน้าวันนี้ — เริ่มที่ "ตื่น"
-// เพราะคำถามที่จอนี้ตอบคือ "วันนี้ของฉันหน้าตายังไง" ไม่ใช่ "เย็นนี้ทำอะไรต่อ"
-// และคำว่า "ว่าง 2 ชม." ไม่มีความหมายเลยถ้าไม่เห็นว่าอีก 14 ชม. หายไปไหน
+// คำตีกลับรอบสองคือโจทย์จริง และมันถูก: **ปฏิทินก็ทำได้**
+// รายการเวลาที่เรียงจากเช้าถึงเย็นคือของที่ Google Calendar ให้ฟรีมาสิบปีแล้ว
+// แอปนี้ไม่ได้มีเอนจินตัดสินใจไว้เพื่อวาดตารางให้สวยกว่าเดิม
+//
+// สิ่งที่ปฏิทินตอบไม่ได้ และจอนี้ต้องตอบ มีสามข้อ:
+//   1. ทำตามแผนนี้แล้ว "ได้อะไร" — ส่งทันกี่ใบ
+//   2. ไม่ทำแล้ว "เสียอะไร" — พรุ่งนี้ต้องทำรวดกี่ชั่วโมง
+//   3. หลังทำงานครบแล้ว "เหลือเวลาเป็นของตัวเองเท่าไหร่"
+// ทั้งสามข้อคำนวณจาก state จริงทั้งหมด ไม่มีข้อไหนเป็นคำพูดให้กำลังใจ
+// ถ้าวันไหนตัวเลขออกมาไม่สวย มันก็ต้องขึ้นตามนั้น — ตัวเลขที่สวยเสมอคือตัวเลขที่ไม่มีใครเชื่อ
+//
+// และเส้นเวลาถูกทำให้ "สูงตามเวลาจริง" — เรียนแปดชั่วโมงต้องกินที่มากกว่าพักสิบนาที
+// สิบเท่า ไม่ใช่เท่ากันเพราะบรรทัดละหนึ่งแถว · นี่คือความต่างระหว่างการอ่านตาราง
+// กับการ "เห็น" ว่าวันหนึ่งหมดไปกับอะไร
 // ============================================================
 
 function openSaiPlan() {
+  saiTour = -1;             // ออกจากโหมดเล่าทีละข้อเสมอตอนเข้าจอใหม่
   go('scr-sai');
   renderSaiPlan();
+}
+
+// ============================================================
+// สามตัวเลขที่ปฏิทินให้ไม่ได้
+// ------------------------------------------------------------
+// นิยามที่ใช้ และเหตุผลที่เลือกนิยามนี้:
+//
+//   soon     งานที่ถึงกำหนดภายใน 36 ชม. — ครอบ "พรุ่งนี้ 23:59" ซึ่งเป็นกำหนดส่ง
+//            ของงานส่วนใหญ่ในโรงเรียนไทย (บทเรียนเดียวกับ LOOKAHEAD ใน send-reminders)
+//   covered  งานใน soon ที่แผนวันนี้จัดเวลาให้ครบตามที่ประเมินไว้
+//            "ครบ" = นาทีที่จัดให้ ≥ นาทีที่เหลือ (est หักความคืบหน้าแล้ว)
+//   pileup   นาทีของงานใน soon ที่ยังไม่ถูกจัด = ของที่ตกไปอยู่บนบ่าพรุ่งนี้
+//   mine     เวลาว่างที่เหลือหลังหักงานทั้งหมดออก = เวลาที่เป็นของเขาจริง ๆ
+//
+// ⚠️ ห้ามนับงานที่ไม่มีกำหนดส่งเข้า soon — เราไม่รู้ว่ามันด่วนไหม
+// การเดาแล้วขึ้นว่า "เสี่ยงไม่ทัน" คือการสร้างความกดดันจากข้อมูลที่ไม่มีอยู่จริง
+// ============================================================
+const SAI_SOON_H = 36;
+
+function saiPayoff(sp, now) {
+  const plan = (sp && sp.plan) || {};
+  const slots = plan.slots || [];
+  const budget = (plan.windows && plan.windows.budgetMin) || 0;
+
+  // นาทีที่แผนจัดให้แต่ละงานวันนี้
+  const given = new Map();
+  let plannedMin = 0;
+  for (const s of slots) {
+    if (s.break || !s.task) continue;
+    given.set(s.task.id, (given.get(s.task.id) || 0) + (s.min || 0));
+    plannedMin += s.min || 0;
+  }
+
+  const pend = typeof pendingTasks === 'function' ? pendingTasks() : [];
+  const soon = pend.filter(t => {
+    if (!t.due) return false;
+    const h = (new Date(t.due) - now) / 3.6e6;
+    return h > -24 && h <= SAI_SOON_H;
+  });
+
+  let covered = 0, pileup = 0;
+  const shortTasks = [];
+  for (const t of soon) {
+    const need = Math.max(0, Math.round((t.estMin || 30) * (1 - (t.progress || 0) / 100)));
+    const got = given.get(t.id) || 0;
+    if (got >= need) covered++;
+    else { pileup += need - got; shortTasks.push(t); }
+  }
+
+  return {
+    soon: soon.length, covered, pileup, plannedMin,
+    mine: Math.max(0, budget - plannedMin),
+    short: shortTasks,
+  };
 }
 
 // ---------- ประกอบแถวของทั้งวัน ----------
@@ -194,8 +259,6 @@ function openSaiPlan() {
 //   freeSlots()   ช่องที่เหลือหลังหักของข้างบน — ของที่เป็นของเราจริง
 //   plan.slots    งานที่เอนจินวางลงในช่องว่างพวกนั้น — ของที่ AI ตัดสินใจ
 // งานจึงถูกซ้อนไว้ใต้ช่องว่างที่มันนั่งอยู่ ไม่ใช่วางเรียงปนกันเป็นแถวเดียว
-// ไม่งั้นจะอ่านเหมือน "ว่าง 2 ชม." กับ "ทำคณิต 30 นาที" เป็นสองเรื่องที่ไม่รู้จักกัน
-// ทั้งที่อันหลังกินเวลาของอันแรกอยู่
 function saiDayRows(now) {
   const p = typeof ctxPrefs === 'function' ? ctxPrefs() : {};
   const wake = (typeof hm2min === 'function' ? hm2min(p.wake) : null) || 6 * 60;
@@ -206,18 +269,16 @@ function saiDayRows(now) {
   const slots = (sp && sp.plan && sp.plan.slots) || [];
   const hm = m => (typeof humanMin === 'function' ? humanMin(m) : m + ' นาที');
 
-  const rows = [{ at: wake, kind: 'wake', title: 'ตื่นนอน', sub: '' }];
+  const rows = [{ at: wake, to: wake, kind: 'wake', title: 'ตื่นนอน', sub: '' }];
 
   for (const b of busy) {
     rows.push({
       at: b.from, to: b.to, kind: b.kind === 'class' ? 'class' : 'rt',
-      title: b.title, sub: min2hm(b.from) + '–' + min2hm(b.to),
+      title: b.title, sub: min2hm(b.from) + '–' + min2hm(b.to) + ' · ' + hm(b.to - b.from),
     });
   }
 
   for (const f of free) {
-    // งานที่เอนจินวางไว้ในช่องนี้ — เทียบด้วยเวลาเริ่ม ไม่ใช่ช่วงที่ทับกัน
-    // งานที่ล้นออกนอกช่องนิดหน่อย (เพราะพักคั่น) ยังควรอยู่ใต้ช่องที่มันเริ่ม
     const kids = slots
       .filter(s => {
         const m = s.start.getHours() * 60 + s.start.getMinutes();
@@ -231,13 +292,16 @@ function saiDayRows(now) {
         subject: !s.break && s.task.subject && s.task.subject !== 'อื่น ๆ' ? s.task.subject : '',
         id: s.break ? null : s.task.id,
       }));
+    const used = kids.reduce((a, k) => a + (k.brk ? 0 : k.min), 0);
     rows.push({
       at: f.from, to: f.to, kind: 'free',
-      title: 'ว่าง ' + hm(f.min), sub: f.fromHm + '–' + f.toHm, kids,
+      title: 'ว่าง ' + hm(f.min),
+      sub: min2hm(f.from) + '–' + min2hm(f.to)
+        + (used ? ' · จัดงานไว้ ' + hm(used) : ' · ยังไม่ได้จัดอะไร'),
+      kids,
     });
   }
 
-  // กิจกรรมที่ต้องไปให้ทัน — ของที่ตัดสินใจอะไรไม่ได้ ต้องจำอย่างเดียว
   for (const e of (sp && sp.plan && sp.plan.events) || []) {
     const d = new Date(e.due);
     if (isNaN(d)) continue;
@@ -248,62 +312,98 @@ function saiDayRows(now) {
     });
   }
 
-  rows.push({ at: sleep, kind: 'sleep', title: 'เข้านอน', sub: '' });
+  rows.push({ at: sleep, to: sleep, kind: 'sleep', title: 'เข้านอน', sub: '' });
   rows.sort((a, b) => a.at - b.at || (a.to || a.at) - (b.to || b.at));
   return rows;
+}
+
+// ---------- ความสูงของบล็อก ----------
+// เชิงเส้นตรง ๆ แล้วคาบเรียนแปดชั่วโมงจะสูง 480 หน่วย ต้องเลื่อนจอสามรอบกว่าจะพ้น
+// ปิดเพดานไว้ที่ 128 และพื้นที่ 34 — ยังเห็นชัดว่าอะไรกินเวลามากกว่าอะไรหลายเท่า
+// โดยที่ทั้งวันยังอยู่ในจอเดียวครึ่ง ซึ่งเป็นจุดที่ "เห็นทั้งวัน" ยังเป็นจริง
+const SAI_PXMIN = 0.24, SAI_HMIN = 34, SAI_HMAX = 128;
+function saiBlockH(min) {
+  return Math.round(Math.max(SAI_HMIN, Math.min(SAI_HMAX, (min || 0) * SAI_PXMIN)));
 }
 
 function renderSaiPlan() {
   const el = document.getElementById('saiBody');
   if (!el) return;
+  if (saiTour >= 0) { renderSaiTour(); return; }
+
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
   const sp = typeof focusPlan === 'function' ? focusPlan(now) : null;
   const mood = saiMood(sp, now);
   const name = (typeof who === 'function' && who()) ? who() : '';
-  const budget = (sp && sp.plan && sp.plan.windows && sp.plan.windows.budgetMin) || 0;
+  const pay = saiPayoff(sp, now);
   const hm = m => (typeof humanMin === 'function' ? humanMin(m) : m + ' นาที');
 
-  // ---- บรรทัดรองบนหัวจอ ----
-  // หัวจอกับปุ่มย้อนกลับอยู่ใน index.html แล้ว ตรงนี้เติมแค่ตัวเลขของวันนี้
   const sub = document.getElementById('saiSub');
   if (sub) {
-    sub.textContent = (typeof fmtThaiDate === 'function' ? fmtThaiDate(now) + ' · ' : '')
-      + (budget > 0 ? 'ว่างได้จริง ' + hm(budget) : 'วันนี้ไม่เหลือช่องที่ยาวพอแล้ว');
+    sub.textContent = (typeof fmtThaiDate === 'function' ? fmtThaiDate(now) : '')
+      + ' · จัดไว้ ' + hm(pay.plannedMin);
+  }
+
+  // ---- การ์ดพระเอก: ทำตามนี้แล้วได้อะไร ----
+  // ใบนี้คือเหตุผลที่จอนี้มีอยู่ · ถ้าวันไหนมันพูดอะไรไม่ได้ มันจะไม่ขึ้นเลย
+  // ดีกว่าขึ้นการ์ดเปล่าที่เขียนว่า "วันนี้ไม่มีข้อมูล" ซึ่งกินที่ของพระเอกไปเฉย ๆ
+  let hero = '';
+  if (pay.soon > 0) {
+    // เขียวต่อเมื่อทันครบทุกใบเท่านั้น — ทัน 1 จาก 2 ยังเป็นข่าวไม่ดี
+    // การ์ดเขียวที่ขึ้นตอนยังมีใบที่ไม่ทัน คือการ์ดที่สอนให้เลิกเชื่อสีของมันเอง
+    const win = pay.pileup === 0;
+    hero = '<section class="sp-hero' + (win ? '' : ' warn') + '">'
+      + '<span class="sp-h-lb">ทำตามแผนนี้</span>'
+      + '<b class="sp-h-big">ส่งทัน ' + pay.covered + ' จาก ' + pay.soon + ' ใบ</b>'
+      + '<span class="sp-h-sub">งานที่ถึงกำหนดภายในพรุ่งนี้</span>'
+      + '<div class="sp-h-row">'
+      +   '<span class="sp-h-cell"><i>ถ้าคืนนี้ไม่แตะเลย</i><b>'
+      +     (pay.pileup > 0 ? 'พรุ่งนี้ต้องทำรวด ' + hm(pay.pileup) : 'ก็ยังทันอยู่')
+      +   '</b></span>'
+      +   '<span class="sp-h-cell"><i>ทำครบแล้วเหลือเป็นของเรา</i><b>'
+      +     (pay.mine > 0 ? hm(pay.mine) : 'ไม่เหลือแล้ว') + '</b></span>'
+      + '</div></section>';
+  } else if (pay.plannedMin > 0) {
+    hero = '<section class="sp-hero calm">'
+      + '<span class="sp-h-lb">วันนี้ไม่มีอะไรถึงกำหนด</span>'
+      + '<b class="sp-h-big">ทำล่วงหน้า ' + hm(pay.plannedMin) + '</b>'
+      + '<span class="sp-h-sub">จัดไว้ให้แล้ว เพื่อไม่ให้ไปกองทีเดียวตอนใกล้ส่ง</span>'
+      + '</section>';
   }
 
   // ---- น้องไซพูดหนึ่งบรรทัด ----
-  // หนึ่งบรรทัดเท่านั้น และต้องเป็นบรรทัดที่เส้นเวลาข้างล่างพูดแทนไม่ได้
-  // เส้นเวลาบอก "อะไรอยู่ตรงไหน" ครบอยู่แล้ว สิ่งที่มันบอกไม่ได้คือ "เริ่มจากใบไหน"
+  // ต้องเป็นบรรทัดที่การ์ดพระเอกกับเส้นเวลาพูดแทนไม่ได้ = "เริ่มจากใบไหน"
   let say;
   if (sp && sp.now) {
-    const t = sp.now.task;
     const when = sp.now.slot && typeof fmtClock === 'function' ? fmtClock(sp.now.slot.start) : '';
-    say = 'เริ่มจาก ' + (typeof taskTitleText === 'function' ? taskTitleText(t) : 'ใบแรก')
-      + (when ? ' ตอน ' + when : '') + ' นะ ที่เหลือจัดไว้ให้แล้วข้างล่าง';
-  } else if (budget > 0) {
+    say = 'เริ่มจาก ' + (typeof taskTitleText === 'function' ? taskTitleText(sp.now.task) : 'ใบแรก')
+      + (when ? ' ตอน ' + when : '') + ' นะ';
+  } else if (pay.mine > 0) {
     say = 'วันนี้ไม่มีงานที่ต้องนั่งทำ' + (name ? ' ' + name : '') + ' — เวลาที่เหลือเป็นของเราล้วน ๆ';
   } else {
     say = 'วันนี้เต็มไปหมดแล้ว พรุ่งนี้เริ่มใหม่ได้เต็มวันนะ';
   }
 
-  // ---- เส้นเวลาทั้งวัน ----
+  // ---- เส้นเวลาทั้งวัน สูงตามเวลาจริง ----
   const rows = saiDayRows(now);
   let markedNow = false;
   const list = rows.map(r => {
-    // เส้น "ตอนนี้" แทรกก่อนแถวแรกที่ยังมาไม่ถึง — เส้นเดียวต่อจอ
     let pre = '';
     if (!markedNow && r.at > nowMin) {
       markedNow = true;
       pre = '<div class="sd-now"><span class="mono">' + esc(min2hm(nowMin))
         + '</span><i></i>ตอนนี้</div>';
     }
-    const past = (r.to || r.at) <= nowMin;
+    const past = (r.to != null ? r.to : r.at) <= nowMin;
+    const span = (r.to != null ? r.to : r.at) - r.at;
+    const h = r.kind === 'wake' || r.kind === 'sleep' || r.kind === 'ev'
+      ? 0 : saiBlockH(span);
+
     const kids = (r.kids || []).map(k => {
       const tag = k.id ? 'button' : 'div';
       const on = k.id ? ' onclick="openForm(\'' + k.id + '\')"' : '';
-      const meta = k.brk ? hm(k.min)
-        : (k.subject ? k.subject + ' · ' + hm(k.min) : hm(k.min));
+      const meta = k.subject ? k.subject + ' · ' + hm(k.min) : hm(k.min);
       return '<' + tag + ' class="sd-job' + (k.brk ? ' brk' : '') + '"' + on + '>'
         + '<span class="sd-jt mono">' + esc(min2hm(k.at)) + '</span>'
         + '<span class="sd-jx"><b>' + esc(k.title) + '</b><i>' + esc(meta) + '</i></span>'
@@ -314,7 +414,8 @@ function renderSaiPlan() {
     return pre + '<div class="sd-r sd-' + r.kind + (past ? ' past' : '') + '">'
       + '<span class="sd-t mono">' + esc(min2hm(r.at)) + '</span>'
       + '<span class="sd-rail"><i></i></span>'
-      + '<span class="sd-x"><b>' + esc(r.title) + '</b>'
+      + '<span class="sd-x"' + (h ? ' style="min-height:' + h + 'px"' : '') + '>'
+      + '<b>' + esc(r.title) + '</b>'
       + (r.sub ? '<i>' + esc(r.sub) + '</i>' : '')
       + (kids ? '<span class="sd-jobs">' + kids + '</span>' : '')
       + '</span></div>';
@@ -329,14 +430,143 @@ function renderSaiPlan() {
     + '  </div>'
     + '  <p class="sai-say">' + esc(say) + '</p>'
     + '</section>'
+    + hero
     + '<div class="sec-label">ทั้งวันของคุณ</div>'
     + '<div class="sd-list">' + list + '</div>'
     + (sp && sp.now
       ? '<button class="sai-cta" onclick="startFocus(\'' + sp.now.task.id + '\')">'
         + icon('play') + 'เริ่มทำเลย</button>'
       : '')
+    + '<button class="sai-tour" onclick="saiTourStart()">'
+      + icon('sparkles') + 'ให้น้องไซเล่าให้ฟังทีละข้อ</button>'
     + '<p class="sai-note">คาบเรียนกับกิจวัตรมาจากบริบทของคุณ · แก้ได้ที่แท็บ "ฉัน" '
     + 'แล้วแผนนี้จะขยับตามเอง</p>';
+
+  saiStart();
+}
+
+// ============================================================
+// โหมดเล่าทีละข้อ — ของที่เจ้าของบอกว่า "จริง ๆ ผมชอบอันเก่านะ"
+// ------------------------------------------------------------
+// มันกลับมาแล้ว แต่กลับมาในที่ที่ถูก: เป็นปุ่มท้ายจอแผน ไม่ใช่ประตูหน้า
+// ความต่างจาก 1C18 สองข้อ และทั้งสองข้อคือสิ่งที่ถูกตีกลับพอดี:
+//   1. ย้อนกลับได้ — มีปุ่ม "ก่อนหน้า" จริง ๆ ไม่ใช่เดินหน้าอย่างเดียว
+//   2. ไม่ใช่ทางเข้าบังคับ — ใครไม่อยากฟังก็อ่านจอแผนเอาเองได้ครบอยู่แล้ว
+// ============================================================
+let saiTour = -1;
+let saiTourSteps = [];
+
+function saiTourStart() {
+  saiTourSteps = saiTourBuild(new Date());
+  saiTour = 0;
+  renderSaiPlan();
+}
+function saiTourEnd() { saiTour = -1; renderSaiPlan(); }
+function saiTourGo(d) {
+  const n = saiTour + d;
+  if (n < 0) { saiTourEnd(); return; }
+  if (n >= saiTourSteps.length) { saiTourEnd(); return; }
+  saiTour = n;
+  renderSaiTour();
+}
+
+function saiTourBuild(now) {
+  const sp = typeof focusPlan === 'function' ? focusPlan(now) : null;
+  const pay = saiPayoff(sp, now);
+  const name = (typeof who === 'function' && who()) ? who() : '';
+  const hi = now.getHours();
+  const greet = hi < 12 ? 'สวัสดีตอนเช้า' : hi < 17 ? 'สวัสดีตอนบ่าย'
+    : hi < 22 ? 'สวัสดีตอนเย็น' : 'ดึกแล้วนะ';
+  const hm = m => (typeof humanMin === 'function' ? humanMin(m) : m + ' นาที');
+  const budget = (sp && sp.plan && sp.plan.windows && sp.plan.windows.budgetMin) || 0;
+  const steps = [];
+
+  steps.push({
+    face: hi >= 22 || hi < 5 ? 'sleepy' : 'happy',
+    head: greet + (name ? ' ' + name : ''),
+    body: budget > 0
+      ? 'วันนี้หักเวลาเรียนกับกิจวัตรออกแล้ว เหลือเวลาทำงานได้จริง ' + hm(budget)
+      : 'วันนี้ไม่เหลือช่องที่ยาวพอจะทำงานแล้ว',
+  });
+
+  if (sp && sp.now) {
+    const t = sp.now.task, info = sp.now.info || {};
+    const late = t.due && new Date(t.due) < now;
+    const why = late && typeof overdueFor === 'function'
+      ? 'เลยกำหนดมา ' + overdueFor(now - new Date(t.due))
+      : (typeof topReason === 'function' ? topReason(info) : '');
+    steps.push({
+      face: late || (info.stars || 0) >= 4 ? 'serious' : 'normal',
+      head: typeof taskTitleText === 'function' ? taskTitleText(t) : 'งานแรก',
+      body: 'เราเลือกใบนี้ขึ้นมาก่อน' + (why ? ' เพราะ' + why : ''),
+    });
+  }
+
+  if (pay.soon > 0) {
+    steps.push({
+      face: pay.pileup > 0 ? 'serious' : 'wow',
+      head: 'ส่งทัน ' + pay.covered + ' จาก ' + pay.soon + ' ใบ',
+      body: pay.pileup > 0
+        ? 'ถ้าคืนนี้ไม่แตะเลย พรุ่งนี้ต้องทำรวด ' + hm(pay.pileup) + ' ซึ่งไม่สนุกแน่'
+        : 'ทำตามที่จัดไว้แล้วทันหมดทุกใบ ไม่ต้องอดนอน',
+    });
+  }
+
+  steps.push({
+    face: pay.mine > 0 ? 'happy' : 'sulk',
+    head: pay.mine > 0 ? 'เหลือเป็นของเรา ' + hm(pay.mine) : 'วันนี้ไม่เหลือเวลาว่างแล้ว',
+    body: pay.mine > 0
+      ? 'ทำงานครบตามแผนแล้วยังเหลือเท่านี้ เอาไปทำอะไรก็ได้ ไม่ต้องรู้สึกผิด'
+      : 'พรุ่งนี้ลองขยับเวลานอนหรือตัดกิจวัตรบางอย่างออกดูนะ',
+  });
+
+  if (sp && sp.now) {
+    steps.push({
+      face: 'wow', head: 'เริ่มเลยไหม',
+      body: 'กดแล้วเข้าโหมดโฟกัสให้เลย จับเวลาให้ด้วย ไม่ต้องตั้งเอง',
+      taskId: sp.now.task.id, cta: 'เริ่มทำเลย', ctaIc: 'play',
+    });
+  }
+  return steps;
+}
+
+function renderSaiTour() {
+  const el = document.getElementById('saiBody');
+  if (!el) return;
+  if (!saiTourSteps.length) saiTourSteps = saiTourBuild(new Date());
+  const i = Math.min(saiTour, saiTourSteps.length - 1);
+  const s = saiTourSteps[i] || {};
+  const last = i >= saiTourSteps.length - 1;
+
+  const sub = document.getElementById('saiSub');
+  if (sub) sub.textContent = 'น้องไซเล่าให้ฟัง · ข้อ ' + (i + 1) + ' จาก ' + saiTourSteps.length;
+
+  el.innerHTML = ''
+    + '<div class="st-dots">'
+    + saiTourSteps.map((_, n) => '<i class="' + (n <= i ? 'on' : '') + '"></i>').join('')
+    + '</div>'
+    + '<div class="st-mid">'
+    + '  <div class="saip-stage st-stage">'
+    + '    <span class="saip-glow"></span>'
+    + '    <img class="saip-chibi" src="' + SYN_CHIBI + '" alt="น้องไซ" width="130" height="224">'
+    + '  </div>'
+    + '  <div class="st-say saip-in">'
+    + '    <h3>' + esc(s.head || '') + '</h3>'
+    + (s.body ? '<p>' + esc(s.body) + '</p>' : '')
+    + '  </div>'
+    + '</div>'
+    + '<div class="st-act">'
+    + (s.taskId
+      ? '<button class="sai-cta" onclick="startFocus(\'' + s.taskId + '\')">'
+        + icon(s.ctaIc || 'play') + esc(s.cta || 'เริ่มทำเลย') + '</button>'
+      : '')
+    + '  <div class="st-nav">'
+    + '    <button class="st-back" onclick="saiTourGo(-1)">' + icon('chevron')
+    +        (i === 0 ? 'ออก' : 'ก่อนหน้า') + '</button>'
+    + '    <button class="st-next" onclick="' + (last ? 'saiTourEnd()' : 'saiTourGo(1)') + '">'
+    +        (last ? 'ดูแผนทั้งวัน' : 'ต่อไป') + icon('chevron') + '</button>'
+    + '  </div>'
+    + '</div>';
 
   saiStart();
 }

@@ -236,3 +236,104 @@ button.sd-job:active { transform: scale(.985); }
 .sai-note {
   margin: 12px 0 4px; font-size: 11.5px; line-height: 1.6; color: var(--faint);
 }
+
+/* ============================================================
+   การ์ดพระเอก — "ทำตามแผนนี้แล้วได้อะไร"
+   ------------------------------------------------------------
+   ใบนี้คือคำตอบของ "ถึงแม้จะมีแผนแต่ไม่ต่างอะไร มันก็ไร้ค่า" (21 ก.ย. 2569)
+   ตารางเวลาเป็นของที่ปฏิทินให้ได้ฟรี · ผลของการทำตามตารางไม่ใช่
+   ตัวเลขทุกตัวในใบนี้มาจาก state จริง ไม่มีตัวไหนเป็นคำให้กำลังใจ
+   วันไหนตัวเลขไม่สวยก็ต้องขึ้นตามนั้น — ตัวเลขที่สวยเสมอคือตัวเลขที่ไม่มีใครเชื่อ
+   ============================================================ */
+.sp-hero {
+  margin: 10px 0 4px; padding: 16px 18px;
+  border-radius: var(--r-card);
+  background: var(--good-soft); color: var(--good);
+  border: 1px solid transparent;
+}
+.sp-hero.warn { background: var(--warn-soft); color: var(--warn); }
+.sp-hero.calm { background: var(--card2); color: var(--ink); }
+.sp-h-lb {
+  display: block; font-size: 11.5px; font-weight: 700;
+  letter-spacing: .02em; opacity: .8;
+}
+.sp-h-big {
+  display: block; margin-top: 3px;
+  font-size: 25px; font-weight: 800; letter-spacing: -.02em; line-height: 1.2;
+}
+.sp-h-sub { display: block; margin-top: 3px; font-size: 12px; opacity: .85; }
+
+/* สองช่องล่าง — "เสียอะไรถ้าไม่ทำ" กับ "ได้อะไรถ้าทำ" ต้องอยู่แถวเดียวกัน
+   เพราะมันคือสองด้านของการตัดสินใจเดียว ไม่ใช่ข้อเท็จจริงสองข้อที่ไม่รู้จักกัน */
+.sp-h-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px;
+  margin-top: 13px; padding-top: 12px;
+  border-top: 1px solid currentColor;
+}
+.sp-h-row { border-top-color: color-mix(in srgb, currentColor 22%, transparent); }
+.sp-h-cell { min-width: 0; }
+.sp-h-cell i {
+  display: block; font-size: 11px; font-style: normal; opacity: .78; line-height: 1.4;
+}
+.sp-h-cell b {
+  display: block; margin-top: 2px; font-size: 14px; font-weight: 750; line-height: 1.35;
+}
+
+/* ---------- ปุ่มเรียกโหมดเล่าทีละข้อ ---------- */
+/* อยู่ท้ายจอ ไม่ใช่ประตูหน้า — ใครไม่อยากฟังก็อ่านจอแผนเอาเองได้ครบอยู่แล้ว */
+.sai-tour {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; margin-top: 9px; padding: 13px;
+  border: 1px dashed var(--fill); border-radius: 16px;
+  background: transparent; color: var(--fill);
+  font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.sai-tour:active { transform: scale(.985); }
+.sai-tour svg { width: 16px; height: 16px; }
+
+/* ============================================================
+   โหมดเล่าทีละข้อ
+   ------------------------------------------------------------
+   ของเดิมจาก 1C18 ที่เจ้าของบอกว่าชอบ · กลับมาพร้อมปุ่ม "ก่อนหน้า" จริง ๆ
+   ซึ่งเป็นข้อที่ถูกตีกลับ ("เหมือนมันย้อนกลับไม่ได้ด้วย")
+   ============================================================ */
+.st-dots { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 5px; padding: 4px 0 2px; }
+.st-dots i { height: 5px; border-radius: 99px; background: var(--line); transition: background .25s ease; }
+.st-dots i.on { background: var(--fill); }
+
+.st-mid {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 22px 0 10px;
+}
+.st-stage { width: 130px; height: 224px; }
+.st-stage .saip-chibi { width: 130px; height: 224px; }
+
+.st-say {
+  width: 100%; margin-top: 18px; padding: 18px 20px;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 20px; border-top-left-radius: 6px;
+  box-shadow: var(--shadow);
+}
+.st-say h3 {
+  margin: 0; font-size: 21px; font-weight: 800; line-height: 1.4; color: var(--ink);
+}
+.st-say p { margin: 8px 0 0; font-size: 14.5px; line-height: 1.65; color: var(--muted); }
+
+.saip-in { animation: saipIn .34s cubic-bezier(.2, .8, .3, 1) both; }
+@keyframes saipIn {
+  from { opacity: 0; transform: translateY(9px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .saip-in { animation: none; } }
+
+.st-act { padding: 6px 0 4px; }
+.st-nav { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-top: 10px; }
+.st-back, .st-next {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 13px; border-radius: 15px; font-size: 14.5px; font-weight: 700; cursor: pointer;
+}
+.st-back { background: var(--card2); border: 0; color: var(--muted); }
+.st-back svg { width: 15px; height: 15px; transform: rotate(180deg); }
+.st-next { background: var(--fill); border: 0; color: var(--on-fill); }
+.st-next svg { width: 15px; height: 15px; }
+.st-back:active, .st-next:active { transform: scale(.98); }
