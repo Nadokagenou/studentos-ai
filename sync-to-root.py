@@ -163,11 +163,11 @@ def main():
     # เงียบ ๆ ซึ่งคือ "แก้แล้วแต่บนมือถือเหมือนเดิม" ที่หาสาเหตุยากที่สุดในโปรเจกต์นี้
     app = io.open(os.path.join(ROOT, 'app.js'), encoding='utf-8', newline='').read()
     ver = re.search(r"APP_VERSION\s*=\s*'([^']+)'", app)
-    code = re.search(r"APP_CODENAME\s*=\s*'([^']+)'", app)
+    code = re.search(r"APP_CODENAME\s*=\s*'([^']*)'", app)   # ว่างได้ — รุ่นที่เจ้าของไม่ตั้งชื่อเล่น
     swp = os.path.join(ROOT, 'sw.js')
     sw = io.open(swp, encoding='utf-8', newline='').read()
     if ver and code:
-        want = 'studentos-%s-%s' % (ver.group(1).lower(), code.group(1).lower())
+        want = 'studentos-' + '-'.join(x for x in (ver.group(1).lower(), code.group(1).lower()) if x)
         sw2 = re.sub(r"(const CACHE = ')[^']+(')", lambda m: m.group(1) + want + m.group(2), sw, count=1)
         if sw2 != sw:
             io.open(swp, 'w', encoding='utf-8', newline='').write(sw2)

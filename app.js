@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C26';                 // สายเลขของแอป
-const APP_CODENAME = 'Send';           // ชื่อรุ่นของอัปเดตนี้
+const APP_VERSION = '1C27';                 // สายเลขของแอป
+const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -2734,9 +2734,12 @@ function renderMenu() {
 // ---------- ปุ่ม + : ทางเข้าที่เร็วที่สุดของการเพิ่มงาน ----------
 // เพิ่มงานคือสิ่งที่ทำบ่อยที่สุดรองจากการดูว่าต้องทำอะไร มันจึงต้องอยู่ห่างจากนิ้วหนึ่งครั้งกด
 // แต่ต้องไม่แย่งสายตาจากคำตอบ — จึงเป็นปุ่มบนแถบล่าง ไม่ใช่การ์ดบนหน้าแรก
+// ไทล์ถ่ายรูป/พูด เคยเรียก #fileInput กับ startVoice() ซึ่งไม่มีอยู่จริงทั้งคู่ — กดแล้วเงียบ
+// เรียกตรง ๆ ไม่ผ่าน setTimeout: Safari ต้องให้ไมค์เริ่มในจังหวะเดียวกับที่นิ้วกด
+// ถ้าหน่วงไปแล้ว "การกด" หมดอายุ เบราว์เซอร์จะไม่ยอมเปิดไมค์
 const ADD_ACTIONS = [
-  ['camera', 'ถ่ายรูปใบงาน', 'AI อ่านให้ทั้งใบ', "go('scr-scan');setTimeout(()=>document.getElementById('fileInput')&&document.getElementById('fileInput').click(),150)"],
-  ['mic', 'พูดเพิ่มงาน', 'เร็วที่สุด — 5 วินาที', "go('scr-scan');setTimeout(()=>typeof startVoice==='function'&&startVoice(),150)"],
+  ['camera', 'ถ่ายรูปใบงาน', 'AI อ่านให้ทั้งใบ', "openShot()"],
+  ['mic', 'พูดเพิ่มงาน', 'เร็วที่สุด — 5 วินาที', "go('scr-scan');toggleVoice()"],
   ['type', 'แปะข้อความจากครู', 'วางแล้วให้ AI แกะ', "go('scr-scan')"],
   ['pencil', 'พิมพ์เองทีละช่อง', 'งานที่ไม่มีข้อความต้นทาง', "openForm(null)"],
   ['book', 'เพิ่มวันสอบ', 'แล้วผมแบ่งรอบอ่านให้', "openForm(null);setTimeout(()=>typeof setFormType==='function'&&setFormType('exam'),60)"],
@@ -6168,7 +6171,7 @@ function renderProfile() {
       + ' โทเคน';
   }
   const ver = document.getElementById('appVer');
-  if (ver) ver.textContent = 'StudentOS Version ' + APP_VERSION + ' “' + APP_CODENAME + '”';
+  if (ver) ver.textContent = 'StudentOS Version ' + APP_VERSION + (APP_CODENAME ? ' “' + APP_CODENAME + '”' : '');
   const pn = document.getElementById('pName'); if (pn) pn.value = state.settings.name || '';
   const pf = document.getElementById('pFree'); if (pf) pf.value = state.settings.freeHours || 2;
 
@@ -10407,7 +10410,9 @@ function toggleVoice() {
   recog.continuous = false;
   recog.maxAlternatives = 1;
 
-  let finalText = '';
+  // Safari บน iPhone บางทีจบรอบโดยไม่เคยส่งผล isFinal เลย (โดยเฉพาะตอนแตะหยุดเอง)
+  // ถ้ารอแต่ finalText คำที่ขึ้นจออยู่แล้วจะหายไปเฉย ๆ — เก็บคำล่าสุดไว้เป็นทางถอย
+  let finalText = '', lastInterim = '';
   recog.onstart = () => {
     recogActive = true;
     setVoiceUI({ recording: true, dim: true,
@@ -10420,6 +10425,7 @@ function toggleVoice() {
       if (r.isFinal) finalText += r[0].transcript;
       else interim += r[0].transcript;
     }
+    lastInterim = interim;
     const shown = (finalText + interim).trim();
     if (shown) setVoiceUI({ recording: true, text: shown, dim: false });
   };
@@ -10436,7 +10442,7 @@ function toggleVoice() {
   };
   recog.onend = () => {
     recogActive = false;
-    const raw = finalText.trim();
+    const raw = (finalText + lastInterim).trim();
     if (!raw) { setVoiceUI({ recording: false }); return; }
     const text = normalizeSpokenText(raw); // แปลงเลขคำอ่านไทยเป็นตัวเลขก่อนแกะ
     if (text.length < 3) {
