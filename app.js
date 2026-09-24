@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C30';                 // สายเลขของแอป
+const APP_VERSION = '1C31';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -636,6 +636,48 @@ addEventListener('orientationchange', () => setTimeout(navRecheck, 250));
 // เคยเจอกับตัว — ย่อหน้าต่างเหลือขนาดมือถือแล้วแถบซ้ายค้างอยู่ ทั้งที่ควรกลับไปอยู่ด้านล่าง
 document.addEventListener('visibilitychange', () => { if (!document.hidden) navRecheck(); });
 addEventListener('pageshow', navRecheck);
+
+// ---------- iOS 26: คีย์บอร์ดปิดแล้วจอไม่คืนที่ ----------
+// พิมพ์ถามน้องไซ (หรือช่องไหนก็ได้) แล้วคีย์บอร์ดปิด — iOS 26 ไม่คืน viewport ให้
+// ทั้งแอปค้างเลื่อนลงไปราว ๆ 50pt: หัวจอมีช่องว่างเกิน แถบล่างตกขอบจอจนกดไม่ได้
+// ค้างแบบนั้นจนปิดแอปทิ้ง · เป็นบั๊กของ WebKit เอง (เจอทั้ง Safari และแอปที่ติดตั้ง)
+// CSS แก้ไม่ได้ เพราะ 100dvh / innerHeight ที่ iOS รายงานมาผิดตั้งแต่ต้นทาง
+// วิธีเดียวที่ได้ผลคือบังคับให้ WebKit วัดจอใหม่หลังคีย์บอร์ดปิด:
+//   1 · เลื่อนเอกสารกลับ 0 (iOS เลื่อนหน้าเพื่อหลบคีย์บอร์ดแล้วไม่เลื่อนคืน)
+//   2 · ถ้าความสูงยังหดอยู่ ซ่อน .phone แล้วโชว์คืนพร้อม reflow บังคับหนึ่งรอบ
+// ข้อ 2 ทำให้กล่องที่เลื่อนได้ข้างในเด้งกลับบนสุด จึงจำตำแหน่งไว้แล้วคืนให้
+const KB_FIELD = 'input, textarea, select, [contenteditable="true"]';
+const kbTall = { p: 0, l: 0 }; // ความสูงสูงสุดที่เคยเห็นตอนไม่มีคีย์บอร์ด แยกตามแนวจอ
+const kbSide = () => (innerWidth > innerHeight ? 'l' : 'p');
+const kbTyping = () => { const a = document.activeElement; return !!(a && a.matches && a.matches(KB_FIELD)); };
+const kbNote = () => { if (!kbTyping()) kbTall[kbSide()] = Math.max(kbTall[kbSide()], innerHeight); };
+kbNote();
+addEventListener('resize', kbNote);
+function healViewport() {
+  if (kbTyping()) return; // โฟกัสย้ายไปอีกช่อง คีย์บอร์ดยังเปิดอยู่ — ยังไม่ถึงเวลา
+  if (window.scrollY || window.scrollX) window.scrollTo(0, 0);
+  const tall = kbTall[kbSide()];
+  if (!tall || tall - innerHeight <= 4) return;
+  const ph = document.querySelector('.phone');
+  if (!ph) return;
+  const kept = [];
+  ph.querySelectorAll('*').forEach(el => { if (el.scrollTop) kept.push([el, el.scrollTop]); });
+  ph.style.display = 'none';
+  void ph.offsetHeight;
+  ph.style.display = '';
+  kept.forEach(([el, y]) => { el.scrollTop = y; });
+}
+document.addEventListener('focusout', e => {
+  if (e.target && e.target.matches && e.target.matches(KB_FIELD)) setTimeout(healViewport, 150);
+});
+// คีย์บอร์ดปิดด้วยการปัด/กด "เสร็จ" บางทีไม่มี focusout — จับจากขนาดจอที่ขยายกลับแทน
+if (window.visualViewport) {
+  let vvTimer = null;
+  visualViewport.addEventListener('resize', () => {
+    clearTimeout(vvTimer);
+    vvTimer = setTimeout(() => { if (!kbTyping()) healViewport(); }, 200);
+  });
+}
 
 // ---------- ALT: พื้นหลังภาพของผู้ใช้เอง ----------
 // เก็บเป็น data URL ใน localStorage — ย่อก่อนเสมอ (กว้างสุด 1280px, JPEG คุณภาพ .72)

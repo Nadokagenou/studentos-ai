@@ -45,7 +45,13 @@
   <link rel="icon" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <!-- default ไม่ใช่ black-translucent · iOS 26 มีบั๊ก (WebKit 301108): แอปที่วาดทับแถบสถานะ
+       จะได้จอที่สั้นกว่าจริงเท่าความสูงแถบสถานะ (~47pt) ขาดหายที่ด้านล่าง
+       แถบล่างเลยลอยไม่ติดขอบ และช่องใต้มัน CSS เอื้อมไม่ถึง (ลองมาแล้วทั้ง dvh/fixed/screen.height)
+       default = จอเริ่มใต้นาฬิกาแล้วยาวถึงขอบล่างจริง · safe-area-inset-top กลายเป็น 0 เอง
+       ข้อเสียที่ยอมรับ: ช่องนาฬิกาเป็นสีของระบบ ไม่ใช่สีธีม
+       เปลี่ยนค่านี้แล้ว iOS อ่านตอน "เพิ่มไปยังหน้าจอโฮม" — เครื่องที่ติดตั้งไว้อาจต้องลบแล้วติดตั้งใหม่ -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Student OS">
   <!-- จอคั่นตอนเปิดแอปบน iOS — ไม่มีชุดนี้ = จอเปล่าสีพื้นจนกว่าหน้าเว็บจะโหลดเสร็จ
        ขนาดต้องตรงกับเครื่องเป๊ะทั้งสามค่า ไม่งั้น iOS ข้ามไปใช้จอเปล่าเหมือนเดิม
