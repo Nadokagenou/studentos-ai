@@ -839,6 +839,12 @@ async function myFirstRoom() {
 //   ที่มุมขวาล่างไปนั่งทับมุมขวาของปุ่มนั้นพอดี · เจ้าของเห็นแล้วอ่านไม่ออกว่ามันคืออะไร
 //   ("เหมือนมันบั๊คอยู่สักอย่าง" 20 ก.ย. 2569) ซึ่งถูก — ปุ่มลอยที่ทับปุ่มยืนยัน
 //   คือปุ่มที่แข่งกับงานเดียวที่จอนั้นมี
+// ปุ่มลอยประกายถูกพักไว้ทุกจอ (เจ้าของสั่ง 24 ก.ย. 2569: "ดูรก ๆ เอาออกก่อน")
+// ไม่ได้ลบ — ปลายทางทั้งสองของมันยังมีทางเข้าอื่นครบ: ผู้ช่วยอยู่ที่แท็บ "น้องไซ"
+// กับช่องถามน้องไซบนหน้าแรก · กล่องข้อความอยู่ที่แท็บ "ฉัน" (index.html · openDmInbox)
+// สิ่งที่หายไปจริงคือเลขข้อความค้างบนปุ่ม · เอากลับ = ตั้งเป็น false บรรทัดเดียว
+const FAB_PARKED = true;
+
 const FAB_HIDE = ['scr-login', 'scr-onboard', 'scr-chat', 'scr-hw', 'scr-profile',
   'scr-topic', 'scr-tthread', 'scr-dm', 'scr-compose', 'scr-crop', 'scr-scan',
   // 1C16 · จอกล้องก็เหมือนกัน — ปุ่มลอยที่ลอยอยู่ข้างชัตเตอร์ คือปุ่มที่แข่งกับงานเดียวของจอนั้น
@@ -872,7 +878,7 @@ function paintFeedFab() {
   // แก้ที่เรียกทีละจุด เพราะจุดถัดไปที่สลับจอเองจะไม่รู้ว่ามีกฎนี้อยู่
   const onScreen = document.querySelector('.screen.on');
   const cur = (onScreen && onScreen.id) || curScreen;
-  const show = !FAB_HIDE.includes(cur);
+  const show = !FAB_PARKED && !FAB_HIDE.includes(cur);
   fab.hidden = !show;
   // ออกจากจอที่มีเมนูกางค้างอยู่ = ต้องเก็บเมนูไปด้วย ไม่งั้นมันลอยทับจอใหม่
   if (!show) { if (typeof closeFabHub === 'function') closeFabHub(true); return; }
