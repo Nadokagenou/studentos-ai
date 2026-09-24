@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C27';                 // สายเลขของแอป
+const APP_VERSION = '1C28';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -2126,7 +2126,7 @@ function nowCard(sp, now) {
   const P = {
     top: `<div class="tn-top">
         <span class="tn-eyebrow"><i class="tn-mark">${icon('target')}</i>${esc(eyebrow)}</span>
-        <span class="tn-pill ${tone}">${pillIc ? icon(pillIc) : ''}${esc(pillTx)}</span>
+        <span class="tn-pill ${tone}">${pillIc ? icon(pillIc) : ''}${noDue ? '' : starsHtml(info.stars)}${esc(pillTx)}</span>
       </div>`,
     title: `<h2 class="tn-title">${esc(t.detail || 'งานนี้')}</h2>`,
     route: `<div class="tn-route">${route}</div>`,
@@ -3123,6 +3123,15 @@ function briefCard(pending, now) {
   </div>`;
 }
 
+// ดาวระดับความสำคัญ (กลับมาอีกครั้ง) — เติมข้างป้ายคำ ไม่ได้แทนมัน
+// ใช้สีเดียวกับป้าย (currentColor) ไม่ใช่สีทอง เพราะทองสงวนไว้ให้ของที่ทำสำเร็จแล้วเท่านั้น
+// ดวงที่ไม่เต็มจางลงแทนการหายไป — ตาเทียบความยาวแถวได้ทันทีว่าใบไหนหนักกว่า
+function starsHtml(n) {
+  n = Math.max(1, Math.min(5, Math.round(n || 3)));
+  return `<span class="pstars" role="img" aria-label="ความสำคัญ ${n} จาก 5 ดาว">`
+    + '★'.repeat(n) + `<span class="off">${'★'.repeat(5 - n)}</span></span>`;
+}
+
 // การ์ดงานพร้อมเลขลำดับ — สีของเลขและป้ายมาจากระดับความสำคัญชุดเดียวกัน
 function rankCard(t, n, now) {
   const info = priorityInfo(t, now);
@@ -3145,7 +3154,7 @@ function rankCard(t, n, now) {
     <div class="rank-card sw-card" data-id="${t.id}" onclick="openForm('${t.id}')">
       <span class="rank ${tone}${n === 1 ? ' first' : ''}">${n}</span>
       <div class="rc-body">
-        <div class="rc-tags"><span class="tag ${tone}">${esc(priorityLabel(info.stars))}</span>${riskChips(t, now)}${snoozeBadge(t)}</div>
+        <div class="rc-tags"><span class="tag ${tone}">${starsHtml(info.stars)}${esc(priorityLabel(info.stars))}</span>${riskChips(t, now)}${snoozeBadge(t)}</div>
         <div class="rc-title">${taskTitle(t)}</div>
         <div class="rc-meta">${bits.join('<i class="msep"></i>')}</div>
       </div>
@@ -3703,6 +3712,15 @@ function taskCard(t, now, focus) {
       </button>`).join('')}
   </div>` : '';
 
+  // ดาวระดับความสำคัญนั่งแถวเดียวกับชื่อวิชา — ไม่เพิ่มแถว · งานที่ไม่รู้กำหนดส่งไม่ได้ดาว
+  // (เราไม่รู้ว่ามันด่วนแค่ไหน ดาวที่เดาขึ้นมาเองคือข้อมูลปลอม)
+  const stars = t.due ? priorityInfo(t, now).stars : 0;
+  const hasSubj = subj && subj !== 'อื่น ๆ';
+  const subLine = hasSubj || stars
+    ? `<div class="tk-sub">${hasSubj ? esc(subj) : ''}${stars
+      ? `<span class="tk-pri ${priorityTone(stars)}${hasSubj ? '' : ' solo'}">${starsHtml(stars)}</span>` : ''}</div>`
+    : '';
+
   // ปัดขวา = เสร็จ · ปัดซ้าย = เลื่อนไปพรุ่งนี้ — โครงเดียวกับการ์ดหน้าแรกทุกประการ
   // สองท่านี้เคยมีเฉพาะหน้าแรก แต่แท็บที่คนเปิดมาจัดการงานจริง ๆ คือแท็บนี้
   // พอมันหายไปเฉพาะที่นี่ ผู้ใช้จึงรายงานว่า "ปุ่มเลื่อน/ติ๊กเสร็จหายไป" — มันไม่เคยมาถึงตรงนี้ต่างหาก
@@ -3712,7 +3730,7 @@ function taskCard(t, now, focus) {
     <div class="tk sw-card${focus ? ' tk-focus' : ''}" data-id="${t.id}" onclick="openForm('${t.id}')">
       <button class="tk-tick" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
         aria-label="ทำเสร็จ">${icon('check')}</button>
-      ${subj && subj !== 'อื่น ๆ' ? `<div class="tk-sub">${esc(subj)}</div>` : ''}
+      ${subLine}
       <div class="tk-ttl">${esc(t.detail || '')}</div>
       <div class="tk-meta">${chips}<span class="tk-sp"></span>
         ${ti.schedulable ? `<span class="tk-min">~${remainingMin(t)} นาที</span>` : ''}</div>
@@ -4556,8 +4574,13 @@ function todayBoard(now) {
   if (sp.now) {
     const t = sp.now.task;
     const left = typeof remainingMin === 'function' ? remainingMin(t) : (t.estMin || 30);
+    // ดาวชิดขวาในแถวหัวการ์ด — ไม่กินแถวเพิ่ม (จอนี้ต้องไม่ต้องเลื่อน)
+    // งานที่ยังไม่รู้กำหนดส่งไม่ได้ดาว ด้วยเหตุผลเดียวกับป้าย "ยังไม่รู้กำหนด" บนการ์ดหน้าแรก
+    const stars = t.due ? priorityInfo(t, now).stars : 0;
     focus = '<div class="tb-focus">'
-      + '<div class="tb-fc-lb">' + icon('target') + 'ควรทำก่อน</div>'
+      + '<div class="tb-fc-lb">' + icon('target') + 'ควรทำก่อน'
+      + (stars ? '<span class="tb-fc-pri">' + starsHtml(stars) + esc(priorityLabel(stars)) + '</span>' : '')
+      + '</div>'
       + '<div class="tb-fc-t">' + taskTitle(t) + '</div>'
       + '<div class="tb-fc-s">' + esc(fmtDue(t.due, now, t).replace(/^⚠\s*/, ''))
       + ' · ~' + left + ' นาที</div>'
@@ -4582,8 +4605,9 @@ function todayBoard(now) {
     if (s.break) continue;
     if (nowTask && s.task === nowTask && !skipped) { skipped = true; continue; }
     if (s.start <= now) continue;
+    const st = s.task.due ? priorityInfo(s.task, now).stars : 0;
     rows.push({ at: s.start, title: taskTitle(s.task), sub: humanMin(s.min || 0),
-      id: s.task.id, tone: 'work' });
+      id: s.task.id, tone: 'work', stars: st });
   }
   for (const e of plan.events || []) {
     const at = new Date(e.due);
@@ -4595,7 +4619,9 @@ function todayBoard(now) {
     return '<button class="tb-tl-r" onclick="openForm(\'' + r.id + '\')">'
       + '<span class="tb-tl-t">' + esc(fmtClock(r.at)) + '</span>'
       + '<span class="tb-tl-bar ' + r.tone + '"></span>'
-      + '<span class="tb-tl-x"><b>' + r.title + '</b><i>' + esc(r.sub) + '</i></span></button>';
+      + '<span class="tb-tl-x"><b>' + r.title + '</b><i>' + esc(r.sub) + '</i></span>'
+      + (r.stars ? '<span class="tb-tl-pri ' + priorityTone(r.stars) + '">' + starsHtml(r.stars) + '</span>' : '')
+      + '</button>';
   }).join('');
 
   // ---------- ลำดับสายตาของทั้งจอ (1B95) ----------
@@ -5950,7 +5976,7 @@ function renderPlan() {
         <div class="ptime"><span class="s">${fmtClock(s.start)}</span><span class="e">${fmtClock(s.end)}</span></div>
         <div class="work ${lv}${mine ? ' running' : ''}">
           <div class="tm">
-            <span class="nbadge ${lv}">${esc(priorityLabel(info.stars))}</span>
+            <span class="nbadge ${lv}">${starsHtml(info.stars)}${esc(priorityLabel(info.stars))}</span>
             <span class="ndue">${s.min} นาที${did ? ` · ทำไปแล้ว ${did}` : ''}</span>
           </div>
           <div class="tt">${taskTitle(s.task)}</div>

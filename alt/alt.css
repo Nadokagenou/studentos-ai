@@ -8187,3 +8187,22 @@ button.df-r:active { background: var(--surface); }
 .fm-sec.tt-day .tt-when input[type=time] { flex: 1; min-width: 0; padding: 0 6px; }
 .tt-bar { margin: 0 -20px; }
 .tt-bar .fm-save:disabled { opacity: .45; }
+
+/* ดาวระดับความสำคัญในป้าย — สีตามป้าย (ไม่ใช่ทอง) · ดวงว่างจางลง */
+.pstars { display: inline-block; margin-right: 5px; font-size: .92em; letter-spacing: .5px;
+  line-height: 1; font-family: system-ui, sans-serif; }
+.pstars .off { opacity: .28; }
+/* การ์ด "ควรทำก่อน" (พื้นน้ำเงิน) — ดาวใช้สีตัวอักษรของการ์ด ชิดขวาแถวหัว */
+.tb-fc-pri { margin-left: auto; display: inline-flex; align-items: center; font-weight: 700; }
+/* แถวคิวถัดไป — ดาวชิดขวา สีตามระดับ (ชุด --pri-* คงที่ทุกธีม) */
+.tb-tl-pri { flex: none; font-size: 11px; }
+.tb-tl-pri .pstars { margin-right: 0; }
+.tb-tl-pri.red { color: var(--pri-red-text); }
+.tb-tl-pri.yellow { color: var(--pri-yellow-text); }
+.tb-tl-pri.green { color: var(--pri-green-text); }
+/* การ์ดในแท็บ "รายการ" — ดาวต่อท้ายชื่อวิชา */
+.tk-sub .tk-pri { margin-left: 6px; font-size: 10.5px; }
+.tk-sub .tk-pri.solo { margin-left: 0; }
+.tk-pri.red { color: var(--pri-red-text); }
+.tk-pri.yellow { color: var(--pri-yellow-text); }
+.tk-pri.green { color: var(--pri-green-text); }
