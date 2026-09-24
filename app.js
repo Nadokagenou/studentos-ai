@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C31';                 // สายเลขของแอป
+const APP_VERSION = '1C32';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -667,6 +667,28 @@ function healViewport() {
   ph.style.display = '';
   kept.forEach(([el, y]) => { el.scrollTop = y; });
 }
+// 1C32 · จอสั้นที่ขอบล่างเพราะบั๊ก WebKit 301108 (แอปที่ติดตั้งด้วย black-translucent)
+// 1C31 เปลี่ยน meta เป็น default แล้ว แต่ iOS อ่านค่านั้นตอนติดตั้ง เครื่องที่ติดตั้งไว้ก่อนจึงยังโดนอยู่
+// อาการวัดได้: หน้าเว็บสั้นกว่าจอจริงเท่ากับ safe-area ด้านบนเป๊ะ
+// ถ้าเป็นแบบนั้น ขอบล่างของหน้าเว็บอยู่สูงกว่าเส้น home indicator อยู่แล้ว 47pt
+// ระยะเว้นให้ home indicator ใต้แถบล่างจึงซ้ำซ้อน — alt.css ตัดทิ้งเมื่อมี data-vpshort
+// ติดตั้งใหม่แบบ default แล้ว safe-area ด้านบนเป็น 0 เงื่อนไขนี้ไม่ผ่านเอง ระยะเว้นเดิมกลับมา
+function checkShortVP() {
+  const root = document.documentElement;
+  if (!navigator.standalone || kbTyping()) return;
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;visibility:hidden;padding-top:env(safe-area-inset-top)';
+  document.body.appendChild(probe);
+  const top = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+  probe.remove();
+  const tall = innerWidth > innerHeight ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
+  const short = top > 20 && Math.abs(tall - innerHeight - top) <= 4;
+  if (short) root.dataset.vpshort = '';
+  else delete root.dataset.vpshort;
+}
+checkShortVP();
+addEventListener('resize', checkShortVP);
+addEventListener('pageshow', checkShortVP);
 document.addEventListener('focusout', e => {
   if (e.target && e.target.matches && e.target.matches(KB_FIELD)) setTimeout(healViewport, 150);
 });
