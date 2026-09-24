@@ -2318,10 +2318,13 @@ function dayRail(sp, split, now) {
     // และแถวนี้มีสามข้อความอยู่แล้ว (เวลา · ชื่องาน · วิชา) ข้อที่สี่คือข้อที่ทำให้รก
     // คนที่อยากรู้ว่าเหลืออีกเท่าไหร่กดเข้าไปดูได้ในใบงาน ซึ่งเขียนไว้ครบกว่านี้
     const rest = s.min + ' นาที';
+    // 1C28 · ดาวชิดขวาก่อนลูกศร — แถวเดิม ไม่เพิ่มบรรทัด · ไม่มีกำหนดส่ง = ไม่มีดาว
+    const st = t.due ? priorityInfo(t, now).stars : 0;
     return `<button class="dr-row ${subjClass(t.subject)}" onclick="startFocus('${t.id}')">
       <span class="dr-t mono">${fmtClock(s.start)}</span>
       <span class="dr-b"><b>${esc(t.detail || t.subject || 'งาน')}</b>
         <span class="dr-m">${subjTx ? `<i class="dr-sj">${esc(subjTx)}</i> · ` : ''}${esc(rest)}</span></span>
+      ${st ? `<span class="tb-tl-pri ${priorityTone(st)}">${starsHtml(st)}</span>` : ''}
       <span class="dr-go">${icon('chevron')}</span>
     </button>`;
   }).join('');
