@@ -12,7 +12,7 @@
 // ============================================================
 
 const APP_VERSION = '1C26';                 // สายเลขของแอป
-const APP_CODENAME = 'Aligned';           // ชื่อรุ่นของอัปเดตนี้
+const APP_CODENAME = 'Send';           // ชื่อรุ่นของอัปเดตนี้
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
