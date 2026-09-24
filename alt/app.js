@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C28';                 // สายเลขของแอป
+const APP_VERSION = '1C29';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -12383,10 +12383,31 @@ async function testNotify() {
     : { title: 'ส่งแจ้งเตือนแล้ว', body: 'ถ้าไม่เห็น ลองเช็คการตั้งค่าแจ้งเตือนของเครื่อง/เบราว์เซอร์' });
 }
 
+// ============================================================
+// 1C28 · แจ้งเตือนต้องมาตอน "ไม่ได้เปิดแอป" ไม่ใช่ตอนเปิด
+// ------------------------------------------------------------
+// เจ้าของแจ้งว่าเปิดแอปทีไรแจ้งเตือนเด้งรัว ๆ แต่ตอนไม่ได้เปิดกลับไม่เห็นอะไรเลย
+// ซึ่งกลับหัวกับหน้าที่ของมันพอดี · สาเหตุมีสามชั้นซ้อนกัน:
+//   1. ฟังก์ชันนี้ถูกเรียกตอนเปิดแอป + ทุกครั้งที่กลับเข้าแอป แล้วยิง "หนึ่งดอกต่องาน"
+//      งานค้างห้าใบที่ใกล้กำหนด = ห้าดอกรวดในวินาทีที่เปิดแอป
+//   2. openNudge() เด้ง toast ซ้ำอีกชั้นทุกครั้งที่เปิด
+//   3. socialWatch(true) ตอนกลับเข้าแอป ยิงแจ้งเตือนข้อความที่เข้ามาระหว่างปิด
+//
+// กฎใหม่: คนที่กำลังมองแอปอยู่ไม่ต้องได้แจ้งเตือน — การ์ด "ควรทำก่อน" บอกเขาอยู่แล้ว
+// จังหวะที่เขาเห็นงานบนจอถือว่า "เตือนแล้ว" (ติดธงเงียบ ๆ) · แจ้งเตือนจริงออกเฉพาะตอน
+// แอปถูกซ่อนอยู่ และออกทีละดอก (ใบที่ด่วนที่สุด) ไม่ใช่ทีละใบ
+//
+// เครื่องที่ต่อ Web Push ได้แล้ว (pushState 'on') ปล่อยให้เซิร์ฟเวอร์เตือนคนเดียว
+// send-reminders มีด่านกันซ้ำ · ช่วงเงียบ · กลางคืน ครบกว่าฝั่งนี้ · สองท่อยิงพร้อมกันคือเตือนซ้ำ
+// ============================================================
+function appInView() { return !document.hidden; }
+
 function checkReminders() {
   const now = new Date();
   const canNotify = ('Notification' in window) && Notification.permission === 'granted';
-  let touched = false;
+  if (pushState === 'on') return;
+  const looking = appInView();
+  let touched = false, fire = null;
   for (const t of pendingTasks()) {
     if (!t.due) continue;
     const hLeft = (new Date(t.due) - now) / 3.6e6;
@@ -12400,12 +12421,17 @@ function checkReminders() {
     // ถูกเตือนอีกเลย เพราะธงถูกติดไปแล้วตั้งแต่ตอนที่ยังส่งอะไรไม่ได้
     // นี่คือคำตอบตรง ๆ ของ "มันไม่ค่อยแจ้ง" — มันแจ้งครั้งเดียวแล้วเผาโควตาตัวเองทิ้ง
     // ส่งไม่ได้ก็อย่าติดธง · รอบหน้าที่ส่งได้ค่อยเตือน งานยังค้างอยู่ที่เดิม
+    // เปิดแอปอยู่ = เห็นงานบนจออยู่แล้ว → ติดธงโดยไม่ยิง (กฎ 1B98 ยังอยู่: ถ้ายังไม่ได้
+    // อนุญาตแจ้งเตือน ไม่ติดธง เพราะวันที่เขากดอนุญาต งานนี้ต้องยังเตือนได้ตอนปิดแอป)
     if (!canNotify) continue;
-    const c = reminderCopy(t, now);
-    notify(c.title, c.body, 'studentos-alt-' + t.id);
+    if (!looking && (!fire || hLeft < fire.h)) fire = { t, h: hLeft };
     t.remindedAt = now.toISOString();
     t.remindedStage = stage;
     touched = true;
+  }
+  if (fire) {
+    const c = reminderCopy(fire.t, now);
+    notify(c.title, c.body, 'studentos-alt-' + fire.t.id);
   }
   if (touched) save();
 }
@@ -12463,7 +12489,8 @@ async function socialWatch(force) {
       const ids = rows.map(r => r.id);
       const known = seen.fr || [];
       const fresh = rows.filter(r => !known.includes(r.id));
-      if (fresh.length && !first) {
+      // 1C28 · เปิดแอปอยู่ = แบดจ์บนแถบบอกแล้ว ไม่ต้องเด้งการ์ดแจ้งเตือนทับหน้าจอ
+      if (fresh.length && !first && !appInView()) {
         const nm = String((fresh[0].display_name || '').trim()) || 'มีคน';
         // แท็ก studentos-friend ตัวเดียวกันทุกดอก — คำขอที่สองมาทับใบแรก ไม่ใช่กองสิบใบ
         notify(fresh.length > 1 ? 'มีคำขอเป็นเพื่อน ' + fresh.length + ' คน' : nm + ' ขอเป็นเพื่อน',
@@ -12482,7 +12509,7 @@ async function socialWatch(force) {
       const rows = (dm.data || []).filter(r => r.last_at && !r.mine_last);
       const stamps = seen.dm || {};
       const fresh = rows.filter(r => stamps[r.id] !== r.last_at);
-      if (fresh.length && !first) {
+      if (fresh.length && !first && !appInView()) {
         const r = fresh[0];
         const nm = String((r.display_name || '').trim()) || 'เพื่อน';
         notify(fresh.length > 1 ? 'ข้อความใหม่ ' + fresh.length + ' ห้อง' : nm + ' ส่งข้อความมา',
@@ -12510,15 +12537,8 @@ async function socialWatch(force) {
   socialBusy = false;
 }
 
-// เตือนแบบ toast ตอนเปิดแอป (ครั้งเดียวต่อการเปิด) ถ้ามีงานด่วน
-let openNudgeShown = false;
-function openNudge() {
-  if (openNudgeShown) return;
-  const now = new Date();
-  const soon = sortByPriority(pendingTasks(), now)
-    .find(t => { const h = t.due ? (new Date(t.due) - now) / 3.6e6 : null; return h != null && h <= 24; });
-  if (soon) { openNudgeShown = true; setTimeout(() => showToast(reminderCopy(soon, now)), 900); }
-}
+// 1C28 · openNudge() (toast "อย่าเพิ่งลืมนะ" ทุกครั้งที่เปิดแอป) ถูกถอดออก
+// มันพูดซ้ำกับการ์ด "ควรทำก่อน" ที่อยู่ใต้มันพอดี และเป็นหนึ่งในสามชั้นของ "เปิดแล้วเด้งรัว ๆ"
 
 // ---------- sample / clear ----------
 function loadSample() {
@@ -13570,8 +13590,6 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   // ของสองอย่างที่เคยรอฉากเปิดแอปปิดก่อนถึงจะเด้ง — ตอนนี้รอให้ผู้ใช้ตั้งตัวแทน
   // toast เตือนงานด่วนขึ้นเฉพาะตอนที่เขาอยู่ในแอปจริงแล้ว ไม่ใช่ตอนยังค้างหน้าบัญชี
   setTimeout(() => {
-    if (!document.getElementById('scr-login').classList.contains('on') &&
-        !document.getElementById('scr-onboard').classList.contains('on')) openNudge();
     // iPhone + Safari (ยังไม่ติดตั้ง) → เด้งแนะนำวิธีติดตั้งอัตโนมัติครั้งเดียว กันลืม/กันงง
     if (isIOS() && !isStandalone() && !localStorage.getItem('studentos.alt.installGuideDismissed')) {
       setTimeout(showInstallGuide, 1400);
