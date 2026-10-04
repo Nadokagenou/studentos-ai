@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C34';                 // สายเลขของแอป
+const APP_VERSION = '1C35';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -2102,6 +2102,9 @@ function nowCard(sp, now) {
   // สองคำถามที่เหลืออยู่หลังรู้แล้วว่าจะทำอะไร · ตอบด้วยตัวเลขล้วน ไม่มีประโยค
   const goalMin = t.estMin || 30;
   const startTx = slot ? fmtClock(slot.start) : 'ยังไม่มีคิว';
+  // 1C35 · ปุ่มเคยบอก "เริ่ม 36 นาทีแรก" ใต้ตั๋วที่เขียนว่าช่องนี้ว่าง 25 นาที (ภาพจากเจ้าของ)
+  // ขั้นแรกของงานยาวกว่าช่องว่างตอนนี้ได้ — ตัวเลขบนปุ่มต้องไม่เกินเวลาที่มีจริง
+  const firstMin = n.step ? (slot && slot.min ? Math.min(n.step.min, slot.min) : n.step.min) : 0;
 
   // ---- วงแหวนความคืบหน้า ----
   // ขึ้นเฉพาะตอนมีความคืบหน้าจริง · งานที่ยังไม่เริ่มไม่ควรได้วงแหวน 0% เพราะวงกลมเปล่า
@@ -2201,7 +2204,7 @@ function nowCard(sp, now) {
     actions: `<div class="tn-row">
         <button class="tn-cta" onclick="startFocus('${t.id}')">
           <span class="tc-main">${icon(running ? 'clock' : 'play')}${
-            running ? 'กลับเข้าโหมดโฟกัส' : (n.step ? 'เริ่ม ' + n.step.min + ' นาทีแรก' : 'เริ่มทำเลย')}</span>
+            running ? 'กลับเข้าโหมดโฟกัส' : (n.step ? 'เริ่ม ' + firstMin + ' นาทีแรก' : 'เริ่มทำเลย')}</span>
         </button>
         <button class="tn-ib done" onclick="toggleDone('${t.id}',this)"
           aria-label="ทำเสร็จแล้ว">${icon('check')}</button>
