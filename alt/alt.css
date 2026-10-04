@@ -8232,7 +8232,7 @@ button.df-r:active { background: var(--surface); }
 .sticky-head.sh-inline + * > .page-head:first-child { padding-top: 0; }
 
 /* ============================================================
-   1C33 · จอ "ทำไมอันนี้ก่อน" — ลำดับการมอง: งานที่ต้องทำ → อันดับ → รายละเอียด (พับไว้)
+   1C33 · จอ "ทำไมอันนี้ก่อน" — ลำดับการมอง: งานที่ต้องทำ → เหตุผล → อันดับ
    สีเดียว (--fill) + แดงเฉพาะตอนเสี่ยงจริง · ไม่มีพื้นสีจาง · ข้อความสั้นที่สุดที่ยังครบ
    ============================================================ */
 .wy2-hero { margin: 4px 0 0; padding: 18px; border-radius: 22px; background: var(--fill); color: var(--on-fill); }
@@ -8260,11 +8260,6 @@ button.df-r:active { background: var(--surface); }
 .wy2-line i { flex: none; font-style: normal; font-size: 12px; color: var(--faint); }
 .wy2-more { margin-top: 12px; font-size: 12.5px; color: var(--faint); }
 
-.wy2-deep { margin-top: 14px; }
-.wy2-deep > summary { list-style: none; cursor: pointer; padding: 12px 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
-.wy2-deep > summary::-webkit-details-marker { display: none; }
-.wy2-deep > summary::after { content: ' ›'; }
-.wy2-deep[open] > summary::after { content: ' ‹'; }
 
 /* ============================================================
    1C33 · เลิกใช้พื้นเขียว/เหลืองจางกับบล็อกใหญ่
@@ -8332,3 +8327,49 @@ button.df-r:active { background: var(--surface); }
 .cx2-times span { font-size: 11px; font-weight: 600; color: var(--faint); }
 .cx2-times input { border: 0; background: none; padding: 0; font: inherit; font-size: 17px; font-weight: 800; color: var(--ink); width: 100%; }
 .cx2-past { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px 0 0 6px; background: var(--card); opacity: .72; }
+
+/* ============================================================
+   1C34 · ปุ่ม + อยู่ในแถบ ไม่ยื่นออกมา
+   ------------------------------------------------------------
+   เจ้าของ: "ปุ่ม 5 ช่องล่าง มันยืดออกมาอยู่ดี" · วัดจากของจริง: ก้อนกลม 42px ล้นพ้นขอบบน
+   ของแถบ 13px และล้นลงล่าง 8px ไปทับป้าย "เพิ่ม" ของตัวเองจนอ่านได้ครึ่งคำ
+   แบบเดียวกับ Instagram/TikTok: ก้อนสีอยู่ในแถบพอดี ไม่มีป้าย (ปุ่มมี aria-label อยู่แล้ว)
+   ก้อนยังเป็นของชิ้นเดียวในแถบที่มีสีเต็ม จึงยังบอกได้ว่า "ปุ่มนี้ทำงานต่างจากแท็บ"
+   ============================================================ */
+:root:not([data-nav="side"]) .tab.scan .scan-dot {
+  width: 46px; height: 34px; margin: 0; border-radius: 12px;
+  outline: 0; box-shadow: none;
+}
+:root:not([data-nav="side"]) .tab.scan .scan-dot svg { width: 20px; height: 20px; }
+:root:not([data-nav="side"]) .tab.scan > span:last-child { display: none; }
+/* 1C34 · แถวเหตุผลในจอ "ทำไมอันนี้ก่อน" */
+.wy2-why { display: flex; align-items: center; gap: 10px; padding: 9px 0; font-size: 14px; color: var(--ink); }
+.wy2-why + .wy2-why { border-top: 1px solid var(--line); }
+.wy2-cap + .wy2-why { margin-top: 2px; }
+.wy2-why svg { flex: none; width: 16px; height: 16px; color: var(--fill); }
+.wy2-why.rest svg { color: var(--good); }
+/* 1C34 · จอบริบทแบบกระชับ */
+.cx2-wk { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.cx2-wk .cx2-week { height: 56px; margin-top: 10px; }
+.cx2-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.cx2-chip { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; border: 0; border-radius: 10px;
+  font: inherit; font-size: 12.5px; font-weight: 600; background: var(--surface); color: var(--fill); }
+.cx2-chip.done { background: none; color: var(--muted); padding-left: 2px; }
+.cx2-chip svg { width: 13px; height: 13px; color: var(--fill); }
+.cx2-times { margin-top: 12px; }
+.cx2-list { margin-top: 12px; border-radius: 20px; background: var(--card); box-shadow: var(--shadow); overflow: hidden; }
+.cx2-sec + .cx2-sec { border-top: 1px solid var(--line); }
+.cx2-sec > summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 15px 16px; cursor: pointer;
+  font-size: 14.5px; font-weight: 600; color: var(--ink); }
+.cx2-sec > summary::-webkit-details-marker { display: none; }
+.cx2-sec > summary span { flex: 1; }
+.cx2-sec > summary i { font-style: normal; font-size: 13px; font-weight: 500; color: var(--faint); }
+.cx2-sec > summary svg { width: 16px; height: 16px; color: var(--faint); transition: transform .15s; }
+.cx2-sec[open] > summary svg { transform: rotate(90deg); }
+.cx2-sec-body { padding: 0 12px 14px; }
+#ctxBody .ctx-wipe { margin-top: 14px; }
+.cx2-times label { position: relative; }
+.cx2-times b { font-size: 18px; font-weight: 800; color: var(--ink); }
+.cx2-times input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.cx2-wk .cx2-week { height: 48px; }
+#whyBody > .wy2-card { margin-top: 0; }

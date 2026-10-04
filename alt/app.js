@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C33';                 // สายเลขของแอป
+const APP_VERSION = '1C34';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -3600,40 +3600,6 @@ function decideFor(now, focusId) {
   return _decideMemo.get(key);
 }
 
-// หน่วยของตัวเลขต้องอธิบายด้วยคำที่นักเรียนเข้าใจทันที
-// "expected loss" หรือ "คะแนนคาดหวังที่สูญเสีย" เป็นภาษาที่ถูกแต่ไม่มีใครอ่านจบ
-const WHY_UNIT = 'คะแนนที่เสี่ยงจะเสีย';
-
-// ---------- 1B78 · สองบรรทัดที่แอปพูดถึงตัวเอง ----------
-// บนสุดของจอเป็นเรื่องของงาน ล่างสุดเป็นเรื่องของ "แอปรู้จักคุณแค่ไหน และมันแม่นแค่ไหน"
-// สองอย่างนี้คือสิ่งที่ทำให้ตัวเลขข้างบนน่าเชื่อหรือไม่น่าเชื่อ — ซ่อนไว้ไม่ได้
-// และถ้ายังไม่รู้จริงก็ไม่ต้องขึ้น ตามกติกาเดียวกับ brain.js
-function whySelfHTML(now) {
-  const rows = [];
-  if (typeof studyProfile === 'function' && typeof profileText === 'function') {
-    const tx = profileText(studyProfile(state, now));
-    if (tx) rows.push(['ที่แอปเรียนรู้จากคุณ', tx, '']);
-    else rows.push(['ที่แอปเรียนรู้จากคุณ',
-      'ยังใช้ค่ากลางอยู่ — จับเวลาตอนทำงานสักสองสามวัน แล้วตัวเลขทั้งจอนี้จะเป็นของคุณจริง ๆ', 'soft']);
-  }
-  if (typeof calibText === 'function') {
-    const tx = calibText(state);
-    if (tx) {
-      const s = calibSummary(state);
-      rows.push(['คำทำนายที่ผ่านมาแม่นแค่ไหน',
-        tx + ' · ' + calibGrade(s.brier) + ' (Brier ' + (Math.round(s.brier * 100) / 100) + ')', '']);
-    } else {
-      const s = calibSummary(state);
-      rows.push(['คำทำนายที่ผ่านมาแม่นแค่ไหน',
-        'ยังตรวจไม่ได้ — ต้องรอผลจริงของงานอีก ' + (s.need || CALIB_MIN_SCORED) + ' ใบก่อน', 'soft']);
-    }
-  }
-  if (!rows.length) return '';
-  return `<div class="wy-self">
-    ${rows.map(([k, v, c]) => `<div class="wy-r${c ? ' ' + c : ''}">
-      <div class="wy-k">${esc(k)}</div><div class="wy-v">${esc(v)}</div></div>`).join('')}
-  </div>`;
-}
 
 // ============================================================
 // 1C33 · จอ "ทำไมอันนี้ก่อน" — อ่านจบในสามวินาที
@@ -3670,7 +3636,7 @@ function whyRankHTML(sp, now) {
     ${rows.map(({ t, p }, i) => `<div class="wy2-row${i ? '' : ' top'}">
       <span class="wy2-n">${i + 1}</span>
       <div class="wy2-main">
-        <div class="wy2-line"><b>${esc(taskTitleText(t))}</b><i>${esc(String(p.reasons[0] || '').split(' — ')[0])}</i></div>
+        <div class="wy2-line"><b>${esc(taskTitleText(t))}</b><i>${esc(String(p.reasons[0] || '').replace(/^⚠\s*/, '').split(' — ')[0])}</i></div>
       </div>
     </div>`).join('')}
     ${order.length > 5 ? `<div class="wy2-more">และอีก ${order.length - 5} งาน</div>` : ''}
@@ -3697,8 +3663,12 @@ function renderWhy() {
   const pnr = r && r.pnr ? new Date(r.pnr) : null;
   const due = top.due ? new Date(top.due) : null;
   const hot = r && (r.verdict === 'tight' || r.verdict === 'critical');
-  const stat2 = pnr
-    ? [fmtClock(pnr), whyDayWord(pnr, now0) + ' · เริ่มช้าสุด']
+  // เลยกำหนดแล้ว = ไม่มี "เริ่มช้าสุด" ให้พูดถึง · บอกว่าเลยมานานแค่ไหนแทนเวลาที่ผ่านไปแล้ว
+  const late = due && due < now0;
+  const stat2 = late
+    ? [(m => m >= 1440 ? Math.round(m / 1440) + ' วัน' : m >= 60 ? Math.round(m / 60) + ' ชม.' : m + ' นาที')(
+        Math.max(1, Math.round((now0 - due) / 60000))), 'เลยกำหนดมาแล้ว']
+    : pnr ? [fmtClock(pnr), whyDayWord(pnr, now0) + ' · เริ่มช้าสุด']
     : due ? [fmtClock(due), whyDayWord(due, now0) + ' · กำหนดส่ง'] : null;
   const hero = `<section class="wy2-hero">
       <div class="wy2-k">ทำก่อน</div>
@@ -3710,86 +3680,32 @@ function renderWhy() {
       ${hot ? `<div class="wy2-warn">${icon('flame')}โอกาสเสร็จทัน ${Math.round(r.odds * 100)}%</div>` : ''}
     </section>`;
 
-  // renderAll วาดจอนี้ซ้ำทุกนาที — จำว่าเปิด "วิธีคิดแบบละเอียด" ค้างไว้ไหม ไม่งั้นมันหุบเองต่อหน้า
-  const wasOpen = !!body.querySelector('.wy2-deep[open]');
-  body.innerHTML = hero + whyRankHTML(sp, now0) +
-    `<details class="wy2-deep"${wasOpen ? ' open' : ''}><summary>วิธีคิดแบบละเอียด</summary><div id="whyDeep"></div></details>`;
-  const deep = document.getElementById('whyDeep');
-  if (deep) renderWhyDeep(deep);
+  body.innerHTML = hero + whyReasonsHTML(top, now0) + whyRankHTML(sp, now0);
 }
 
-// ตัวเลขละเอียดของเอนจิน (ของเดิมทั้งก้อน) — ไม่ได้ทิ้ง เพราะมันคือหลักฐานว่าไม่ใช่ข้อความสำเร็จรูป
-// แต่ไม่ใช่ของที่นักเรียนต้องอ่านทุกครั้ง จึงพับไว้
-function renderWhyDeep(body) {
-
-  const now = new Date();
-  // ส่งใบที่อยู่บนการ์ดหน้าแรกเข้าไป เพื่อให้จอนี้อธิบาย "ใบนั้น" เสมอ
-  // ปกติตั้งแต่ 1B79 มันจะเป็นใบเดียวกับที่ decide() เลือกอยู่แล้ว (แผนตามเอนจินไปแล้ว)
-  // แต่ยังต่างกันได้เมื่อใบที่เอนจินชอบไม่มีคิวในวันนี้ — กรณีนั้นต้องพูดออกมา ไม่ใช่กลบ
-  let focusId = null;
+// ============================================================
+// 1C34 · เหตุผลเป็นคำพูด ไม่ใช่ตัวเลขของเอนจิน
+// ------------------------------------------------------------
+// 1C33 พับตัวเลขของ decide() ไว้ใต้ "วิธีคิดแบบละเอียด" — เจ้าของเปิดดูแล้วเจอ "16.5"
+// (คะแนนที่เสี่ยงจะเสียรวมทั้งเทอม พุ่งเพราะมีงานเลยกำหนดค้างห้าใบ) แล้วงงว่าคืออะไร
+// ตัวเลขที่ต้องอธิบายหน่วยก่อนถึงจะอ่านออก ไม่ควรอยู่บนจอของนักเรียนเลย พับไว้ก็ไม่ช่วย
+// เหลือเหตุผลชุดเดียวกับที่ดาวความสำคัญใช้ (priorityInfo) — สั้น เป็นคำพูด และตรวจได้ด้วยตา
+// ============================================================
+function whyReasonsHTML(t, now) {
+  const rs = priorityInfo(t, now).reasons.map(r => String(r).replace(/^⚠\s*/, ''));
+  let rest = null;
   try {
-    const sp = typeof focusPlan === 'function' ? focusPlan(now) : null;
-    focusId = sp && sp.now ? sp.now.task.id : null;
-  } catch (e) { focusId = null; }
-  const d = decideFor(now, focusId);
-  if (!d) { body.innerHTML = ''; return; }
-
-  const cards = typeof scenarioCards === 'function' ? scenarioCards(d) : [];
-  const tiles = cards.map(c => `<div class="wy-t ${c.tone}">
-      <div class="wy-tag">${esc(c.id)} · ${esc(c.tag)}</div>
-      <div class="wy-num mono">${c.loss}</div>
-      <div class="wy-act">${esc(c.act)}</div>
-    </div>`).join('');
-
-  const rows = [
-    ['ทำไมงานนี้', d.why.task],
-    ['ทำไมตอนนี้', d.why.now],
-    ['ถ้าเลื่อน', d.why.delayed],
-    ['ปัญหาที่หลบ', d.why.avoided],
-    ['โอกาสที่เปิด', d.why.opened],
-    ['ถ้าเลือกอีกใบ', d.why.instead],
-  ].map(([k, v]) => `<div class="wy-r"><div class="wy-k">${esc(k)}</div>
-      <div class="wy-v">${esc(v)}</div></div>`).join('');
-
-  // เอนจินที่กล้าบอกให้ไปนอนคือเอนจินที่คนจะเชื่อตอนมันบอกให้ทำ
-  // ขึ้นเฉพาะตอนที่การพักชนะจริงแบบมีนัยสำคัญ ไม่ใช่ชนะเพราะเศษทศนิยม
-  // ยอมทิ้งใบไหน — ขึ้นเหนือทุกอย่างเมื่อมันมี เพราะมันเปลี่ยนทั้งกรอบของการตัดสินใจ
-  // ไม่ใช่ "ทำอันไหนก่อน" แต่เป็น "ทำทุกอันไม่ได้แล้วนะ"
-  const sacTx = typeof sacrificeText === 'function' ? sacrificeText(d) : null;
-  const sac = sacTx ? `<div class="wy-sac">${icon('flame')}
-      <b>ต้องเลือกแล้ว</b><span>${esc(sacTx)}</span></div>` : '';
-
-  // ซ้อมรับมือ — เงียบเมื่อแผนทนได้
-  const fragTx = typeof fragileText === 'function' ? fragileText(d) : null;
-
-  const rest = d.rest.wins ? `<div class="wy-rest">${icon('clock')}
-      <b>คืนนี้พักได้</b>
-      <span>เวลาว่างที่เหลือน้อยจนทำแล้วได้ไม่คุ้ม — พรุ่งนี้เช้าคุ้มกว่า</span>
-    </div>` : '';
-
-  // ตัวเลขก้อนเดียวบอกไม่ได้ว่ามันประกอบจากอะไร แล้วคนก็ตีความเอาเองผิด ๆ
-  // "2.2 คะแนน" ที่มาจากความแน่นของตารางล้วน ๆ เป็นคนละข่าวกับ 2.2 ที่มาจากงานที่จะพลาดจริง
-  // โชว์เฉพาะก้อนที่มีน้ำหนักพอจะเปลี่ยนการตัดสินใจ — ก้อนที่เป็นศูนย์ไม่ต้องขึ้นให้รก
-  const bs = d.best.sum;
-  const parts = [
-    ['งานที่จะพลาด', bs.grade],
-    ['หนี้ความรู้วิชาสะสม', bs.debt],
-    ['ความแน่นของตาราง', bs.stress],
-    ['เวลานอนที่ต้องยืม', bs.sleep],
-  ].filter(([, v]) => v >= 0.05)
-    .map(([k, v]) => `<span><i>${esc(k)}</i>${Math.round(v * 10) / 10}</span>`).join('');
-
-  body.innerHTML = `${sac}<div class="wy-tiles">${tiles}</div>
-    <p class="wy-unit">ตัวเลข = <b>${WHY_UNIT}</b> จากคะแนนรวมทั้งเทอม · ต่ำกว่าดีกว่า</p>
-    ${parts ? `<div class="wy-bd"><div class="wy-bd-h">${esc(d.best.sum.total < 1 ? 'ทางที่แนะนำ ประกอบจาก' : 'ตัวเลขของทางที่แนะนำ ประกอบจาก')}</div>${parts}</div>` : ''}
-    ${rest}
-    <div class="wy-rows">${rows}</div>
-    ${fragTx ? `<div class="wy-frag"><div class="wy-k">ถ้ามีอะไรผิดแผน</div>
-      <div class="wy-v">${esc(fragTx)}</div></div>` : ''}
-    ${whySelfHTML(now)}
-    <p class="wy-note">ทุกบรรทัดคำนวณจากการจำลองอนาคต 120 เส้น โดยสุ่มตามที่คนทำได้จริง
-      ไม่ใช่ข้อความสำเร็จรูป · ตัวเลขเดิมเข้า ได้คำตอบเดิมออกเสมอ</p>`;
+    const d = typeof decideFor === 'function' ? decideFor(now, t.id) : null;
+    if (d && d.rest && d.rest.wins) rest = 'คืนนี้พักได้ — พรุ่งนี้เช้าคุ้มกว่า';
+  } catch (_) { rest = null; }
+  if (!rs.length && !rest) return '';
+  return `<section class="wy2-card">
+    <div class="wy2-cap">เหตุผล</div>
+    ${rs.map(r => `<div class="wy2-why">${icon('check')}<span>${esc(r)}</span></div>`).join('')}
+    ${rest ? `<div class="wy2-why rest">${icon('clock')}<span>${esc(rest)}</span></div>` : ''}
+  </section>`;
 }
+
 
 // การ์ดงาน — ลำดับการอ่านจากบนลงล่างทางเดียว ไม่มีเลขลอยชิดขวาให้ตาวิ่งไปมา
 //   วิชา (ป้ายเล็ก) → สิ่งที่ต้องทำ (ตัวใหญ่สุด) → สถานะ + เวลาที่ใช้
@@ -6903,42 +6819,53 @@ function renderContext() {
   // เจ้าของ: ข้อความเยอะไม่ได้แปลว่าดี · ขอน้อยแต่ครบ และจัดลำดับสายตาให้ดี
   // ลำดับใหม่: ว่างเท่าไหร่ (ตัวเลขใหญ่ + แท่งวัน) → ทั้งสัปดาห์ → ข้อมูลที่ยังขาด → ฟอร์ม
   // ============================================================
+  // 1C34 · เจ้าของ: "หน้าบริบทยาวไป ต้องไม่ยาว จัดห้องดี ๆ"
+  // ตารางเรียนกับกิจวัตรเป็นของที่ตั้งครั้งเดียวแล้วแทบไม่กลับมาแก้ — พับเป็นแถวเดียวต่ออย่าง
+  // แท่งวันกับแท่งสัปดาห์รวมเป็นการ์ดเดียว · รายการข้อมูลที่ยังขาดเป็นชิปแทนแถวเต็ม
+  // renderContext ถูกเรียกซ้ำทุกครั้งที่แก้คาบหรือกิจวัตร — จำว่าแถวไหนเปิดอยู่ ไม่ให้หุบเองต่อหน้า
+  const openSec = new Set([...body.querySelectorAll('.cx2-sec[open]')].map(d => d.dataset.k));
+  const nCls = ctxClasses().length, nRt = ctxRoutines().length;
   body.innerHTML = `
-    ${ctxHeroHtml(ctxBarDay, now, total, slots)}
-    ${ctxWeekBarsHtml(now)}
+    ${ctxHeroHtml(ctxBarDay, now, total)}
 
-    <section class="cx2-card">
+    ${doneN < gaps.length ? `<section class="cx2-card">
       <div class="cx2-cap"><span>ข้อมูลของคุณ</span><b>${doneN}/${gaps.length}</b></div>
-      ${gaps.map(g => g.done
-        ? `<div class="cx2-gap done">${icon('check-circle')}<span>${esc(g.label)}</span></div>`
-        : `<button type="button" class="cx2-gap" onclick="${CTX_GAP_GO[g.key] || 'wizOpen()'}">
-            <i class="cx2-plus">+</i><span>${esc(g.label)}</span>${icon('chevron')}</button>`).join('')}
+      <div class="cx2-chips">${gaps.map(g => g.done
+        ? `<span class="cx2-chip done">${icon('check')}${esc(g.label)}</span>`
+        : `<button type="button" class="cx2-chip" onclick="${CTX_GAP_GO[g.key] || 'wizOpen()'}">+ ${esc(g.label)}</button>`).join('')}</div>
       <button class="cx2-scan" onclick="openTtScan()">${icon('camera')}ถ่ายรูปตารางเรียน</button>
-    </section>
+    </section>` : ''}
 
     ${ctxLearnHtml()}
 
-    <div class="sec-label">เวลาประจำวัน</div>
+    <!-- ตัวเลขเวลาวาดเอง ช่อง input โปร่งใสทับอยู่ข้างบน — ช่อง time ของเบราว์เซอร์แสดงตาม locale
+         เครื่องที่ตั้ง 12 ชม. ได้ "09:30 PM" ซึ่งช่องแคบตัด PM ทิ้ง เหลือ 09:30 ทั้งที่ค่าจริงคือ 21:30 -->
     <div class="cx2-times">
-      <label><span>ตื่น</span><input type="time" value="${esc(p.wake)}" onchange="ctxSavePref('wake', this.value)"></label>
-      <label><span>หยุดทำงาน</span><input type="time" value="${esc(p.noWorkAfter)}" onchange="ctxSavePref('noWorkAfter', this.value)"></label>
-      <label><span>นอน</span><input type="time" value="${esc(p.sleep)}" onchange="ctxSavePref('sleep', this.value)"></label>
+      ${[['wake', 'ตื่น'], ['noWorkAfter', 'หยุดทำงาน'], ['sleep', 'นอน']].map(([k, lb]) => `<label>
+        <span>${lb}</span><b class="mono">${esc(p[k] || '--:--')}</b>
+        <input type="time" value="${esc(p[k])}" onchange="ctxSavePref('${k}', this.value)" aria-label="${lb}">
+      </label>`).join('')}
     </div>
 
-    <div class="sec-label">ตารางเรียน</div>
-    ${ctxWeekHtml()}
-    ${abBlock(p)}
+    <div class="cx2-list">
+      <details class="cx2-sec" data-k="cls"${openSec.has('cls') ? ' open' : ''}>
+        <summary><span>ตารางเรียน</span><i>${nCls ? nCls + ' คาบ' : 'ยังไม่มี'}</i>${icon('chevron')}</summary>
+        <div class="cx2-sec-body">${ctxWeekHtml()}${abBlock(p)}</div>
+      </details>
+      <details class="cx2-sec" data-k="rt"${openSec.has('rt') ? ' open' : ''}>
+        <summary><span>กิจวัตรและกิจกรรม</span><i>${nRt ? nRt + ' อย่าง' : 'ยังไม่มี'}</i>${icon('chevron')}</summary>
+        <div class="cx2-sec-body">${ctxListHtml('routine')}</div>
+      </details>
+    </div>
 
-    <div class="sec-label">กิจวัตรและกิจกรรม</div>
-    ${ctxListHtml('routine')}
-
-    <button class="ctx-wipe" onclick="ctxWipe()">${icon('trash')}ลบบริบททั้งหมด</button>
-    <p class="ctx-note">เก็บและคำนวณในเครื่องนี้เท่านั้น · ลบแล้วงานไม่หาย</p>`;
+    <button class="ctx-wipe" onclick="ctxWipe()">${icon('trash')}ลบบริบททั้งหมด</button>`;
 }
+
+// ---------- 1C33 · ตัวเลขใหญ่ + แท่งวัน + แท่งสัปดาห์ (การ์ดเดียว ตั้งแต่ 1C34) ----------
 
 // ---------- 1C33 · ตัวเลขใหญ่ + แท่งวัน ----------
 // วันนี้ = นับจากตอนนี้ (ของที่ผ่านไปแล้วใช้ไม่ได้) · วันอื่น = ทั้งวัน
-function ctxHeroHtml(weekday, now, todayLeft, slots) {
+function ctxHeroHtml(weekday, now, todayLeft) {
   const bar = ctxDayBar(weekday);
   const isToday = weekday === now.getDay();
   const freeMin = isToday ? todayLeft : bar.freeMin;
@@ -6963,7 +6890,7 @@ function ctxHeroHtml(weekday, now, todayLeft, slots) {
     <div class="cx2-big">${esc(ctxHours(freeMin))}</div>
     ${seg ? `<div class="cx2-bar">${seg}${mark}</div>
     <div class="cx2-axis mono"><span>${esc(min2hm(bar.from))}</span><span>${esc(min2hm(bar.to))}</span></div>` : ''}
-    ${isToday && slots.length ? `<div class="cx2-slots">${slots.map(x => `<span class="mono">${x.fromHm}–${x.toHm}</span>`).join('')}</div>` : ''}
+    ${ctxWeekBarsHtml(now)}
   </section>`;
 }
 
@@ -6977,7 +6904,7 @@ function ctxWeekBarsHtml(now) {
   const sorted = days.map(x => x.min).sort((a, b) => a - b);
   const median = sorted[3];
   const short = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
-  return `<section class="cx2-card">
+  return `<div class="cx2-wk">
     <div class="cx2-cap"><span>สัปดาห์นี้</span><b>ว่างรวม ${esc(ctxHours(sum))}</b></div>
     <div class="cx2-week">${days.map((x, i) => {
       const cls = x.d === ctxBarDay ? ' on' : (median && x.min < median * 0.65 ? ' low' : '');
@@ -6985,7 +6912,7 @@ function ctxWeekBarsHtml(now) {
         aria-label="วัน${WD_FULL[x.d]} ว่าง ${esc(ctxHours(x.min))}">
         <i style="height:${Math.max(6, Math.round(x.min / max * 100))}%"></i><span>${short[i]}</span></button>`;
     }).join('')}</div>
-  </section>`;
+  </div>`;
 }
 
 // ---------- แท่ง "วันของคุณ" ----------
