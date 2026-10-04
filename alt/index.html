@@ -619,7 +619,7 @@
            ถ่ายเสร็จแล้วไหลเข้าท่อเดิมทั้งเส้น: scanFromPhoto() → จอครอบกรอบ → OCR ในเครื่อง -->
       <div class="screen flush" id="scr-shot">
         <div class="scr-body pf-body tt-body">
-          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+          <div class="sticky-head row sh-inline">
             <div>
               <h2 class="sh-title">ถ่ายรูปใบงาน</h2>
               <p class="sh-sub">ถ่ายแล้ว AI อ่านโจทย์ให้เอง</p>
@@ -944,8 +944,7 @@
       <div class="screen flush" id="scr-why">
         <div class="sticky-head row">
           <div>
-            <h2 class="sh-title">AI คิดยังไง</h2>
-            <p class="sh-sub" id="whySub"></p>
+            <h2 class="sh-title">ทำไมอันนี้ก่อน</h2>
           </div>
           <button class="sh-btn" onclick="go('scr-menu')" aria-label="กลับ">
             <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
@@ -1265,10 +1264,10 @@
            วาดจาก renderStatFull() -->
       <div class="screen flush" id="scr-stats">
         <div class="scr-body pf-body">
-          <div class="set-top">
-            <button class="set-back" onclick="go('scr-profile')" aria-label="กลับ">
+          <div class="sticky-head row sh-inline">
+            <div><h2 class="sh-title">ผลของฉัน</h2></div>
+            <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
               <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
-            <h2 class="set-title">ผลของฉัน</h2>
           </div>
           <div id="statFull"></div>
         </div>
@@ -1289,10 +1288,9 @@
            เพราะรายการเรียนกับกิจวัตรมีกี่แถวก็ได้ -->
       <div class="screen flush" id="scr-context">
         <div class="scr-body pf-body">
-          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+          <div class="sticky-head row sh-inline">
             <div>
               <h2 class="sh-title">บริบทของฉัน</h2>
-              <p class="sh-sub">AI ใช้ข้อมูลนี้หาว่าคุณว่างตอนไหนจริง ๆ</p>
             </div>
             <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
               <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
@@ -1306,7 +1304,7 @@
            วาดทั้งหมดจาก renderTtScan() เพราะจำนวนคาบที่อ่านได้ไม่แน่นอน -->
       <div class="screen flush" id="scr-ttscan">
         <div class="scr-body pf-body tt-body">
-          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+          <div class="sticky-head row sh-inline">
             <div>
               <h2 class="sh-title">สแกนตารางเรียน</h2>
               <p class="sh-sub">ถ่ายรูปตารางมา แล้วตรวจก่อนบันทึก</p>
@@ -1344,7 +1342,7 @@
            มันเป็นของที่ตั้งครั้งเดียวแล้วแทบไม่กลับมาแก้ ต่างจากฟีดที่เปิดทุกวัน -->
       <div class="screen flush" id="scr-people">
         <div class="scr-body pf-body">
-          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+          <div class="sticky-head row sh-inline">
             <div></div>
             <button class="sh-btn" onclick="go('scr-mates')" aria-label="กลับ">
               <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
@@ -1432,7 +1430,7 @@
            จอนี้ไม่ต้องมีเน็ต ทุกอย่างอ่าน/เขียนกับ state ในเครื่องแล้วซิงก์ตามก้อนเดิม -->
       <div class="screen flush" id="scr-room">
         <div class="scr-body pf-body">
-          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+          <div class="sticky-head row sh-inline">
             <div></div>
             <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
               <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
@@ -1443,7 +1441,7 @@
 
       <div class="screen flush" id="scr-shop">
         <div class="scr-body pf-body">
-          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+          <div class="sticky-head row sh-inline">
             <div></div>
             <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
               <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
@@ -1457,7 +1455,7 @@
            มีของขาย จะขายอะไรในราคาเท่าไหร่ ปุ่มล่างจึงเป็น "แจ้งเตือนเมื่อเปิด" ไม่ใช่ "จ่ายเงิน" -->
       <div class="screen flush" id="scr-pro">
         <div class="scr-body pf-body">
-          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+          <div class="sticky-head row sh-inline">
             <div></div>
             <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
               <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
@@ -1469,7 +1467,7 @@
       <!-- ============ SCREEN: สุ่มสกิน — การ์ด 3D (ALT 1A7) ============ -->
       <div class="screen flush" id="scr-wheel">
         <div class="scr-body pf-body">
-          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+          <div class="sticky-head row sh-inline">
             <div></div>
             <button class="sh-btn" onclick="go('scr-shop')" aria-label="กลับ">
               <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
@@ -1486,12 +1484,12 @@
       <!-- ============ SCREEN: ตั้งค่า (ALT 1A6M3) ============ -->
       <div class="screen flush" id="scr-settings">
         <div class="scr-body pf-body">
-          <!-- หัวจอกึ่งกลาง + ปุ่มย้อนกลับซ้าย — แบบเดียวกับหน้าตั้งค่าของระบบปฏิบัติการ
-               ซึ่งเป็นแบบที่คนอ่านออกโดยไม่ต้องเรียนรู้อะไรใหม่ -->
-          <div class="set-top">
-            <button class="set-back" onclick="go('scr-profile')" aria-label="กลับ">
+          <!-- หัวจอแบบเดียวกับทุกจอย่อย (ปุ่มกลับซ้าย + ชื่อจอชิดซ้าย) — เดิมเป็นหัวกึ่งกลาง
+               แบบหน้าตั้งค่าของระบบ แต่มันทำให้สองจอนี้ต่างจากอีกสิบกว่าจอที่เปิดจากแท็บเดียวกัน -->
+          <div class="sticky-head row sh-inline">
+            <div><h2 class="sh-title">ตั้งค่า</h2></div>
+            <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
               <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
-            <h2 class="set-title">ตั้งค่า</h2>
           </div>
 
           <!-- การ์ดตัวตนบนสุด — ก่อนจะตั้งค่าอะไร ต้องรู้ก่อนว่ากำลังตั้งให้ใคร
@@ -1544,7 +1542,7 @@
             <!-- ALT: รูปโปรไฟล์ของตัวเอง — เก็บในเครื่อง ไม่ต้องมีบัญชี -->
             <div class="set-row">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-image"/></svg></span>
-              <span class="set-lb">รูปโปรไฟล์<i>แตะที่รูปในหน้า “ฉัน” ก็เปลี่ยนได้เหมือนกัน</i></span>
+              <span class="set-lb">รูปโปรไฟล์</span>
               <span class="bg-tools">
                 <button type="button" class="bg-pick" onclick="document.getElementById('avInput').click()">
                   <svg viewBox="0 0 24 24"><use href="#lu-image"/></svg><span id="avPickLabel">เลือกรูป</span></button>
@@ -1684,8 +1682,7 @@
                  ทั้งนักเรียนและผู้ปกครองถาม และตอนนี้ทั้งแอปไม่มีที่ไหนตอบเลย -->
             <div class="set-row" id="modInfoRow">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
-              <span class="set-lb">การกรองเนื้อหา<i>รูปถูกตรวจก่อนส่ง · ข้อความตรวจหลังส่ง ·
-                รายงานหรือบล็อกได้จากปุ่ม ··· บนโพสต์และข้อความทุกชิ้น</i></span>
+              <span class="set-lb">การกรองเนื้อหา<i>ตรวจรูปและข้อความอัตโนมัติ · รายงานได้จากปุ่ม ···</i></span>
             </div>
           </div>
 
@@ -1713,7 +1710,7 @@
            ซ้ำสองชุด แล้ว renderAppearance() จะไปเขียนใส่ตัวที่ไม่ได้อยู่บนจอ -->
       <div class="screen flush" id="scr-setopt">
         <div class="scr-body pf-body">
-          <div class="sticky-head row" style="position:static;padding:0;margin-bottom:4px">
+          <div class="sticky-head row sh-inline">
             <div>
               <h2 class="sh-title" id="setoptTitle">ตั้งค่า</h2>
             </div>

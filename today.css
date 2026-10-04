@@ -1168,6 +1168,9 @@
    ตอนกริดกลับมาอยู่ท้ายจอ — เว้นที่ว่างใต้กริดให้เลื่อนพ้นปุ่มได้
    แก้ที่กริด ไม่ใช่ขยับปุ่ม เพราะปุ่มเป็นของทุกจอ ส่วนที่ว่างนี้เป็นของจอเดียว */
 .td-tiles { margin-top: 22px; padding-bottom: 58px; }
+/* ปุ่มลอยถูกพักไว้ (FAB_PARKED ใน feed.js · 1C30) = ที่ว่างหลบปุ่มไม่มีอะไรให้หลบแล้ว
+   คืน 58px ให้หน้าแรก · เอาปุ่มกลับเมื่อไหร่ กฎนี้ปิดตัวเองเพราะปุ่มไม่ได้ [hidden] อีก */
+.phone:has(.fd-fab[hidden]) .td-tiles { padding-bottom: 0; }
 .tg-lb { font-size: 12.5px; font-weight: 700; color: var(--muted); margin: 0 0 10px 1px; }
 .tg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 6px; }
 

@@ -2741,8 +2741,10 @@
   color: var(--muted);
   margin-bottom: 12px;
 }
-.st-line { display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--ink); }
-.st-line svg { width: 15px; height: 15px; color: var(--muted); }
+/* block ไม่ใช่ flex — ประโยคมี <b> ตัวเลขอยู่กลางประโยค flex หั่นข้อความเป็นสามคอลัมน์
+   (เลขลอยอยู่กลาง ข้อความสองฝั่งตัดบรรทัดแยกกัน) ทันทีที่ประโยคยาวเกินหนึ่งบรรทัด */
+.st-line { display: block; font-size: 13.5px; line-height: 1.5; color: var(--ink); }
+.st-line svg { width: 15px; height: 15px; color: var(--muted); vertical-align: -2px; margin-right: 7px; }
 .st-line b { color: var(--blue); }
 .st-track {
   margin-top: 10px;
@@ -8210,3 +8212,123 @@ button.df-r:active { background: var(--surface); }
 .tk-pri.red { color: var(--pri-red-text); }
 .tk-pri.yellow { color: var(--pri-yellow-text); }
 .tk-pri.green { color: var(--pri-green-text); }
+
+/* ============================================================
+   หัวจอย่อยแบบฝังในเนื้อจอ (.sh-inline) — แบบเดียวกันทุกจอที่เปิดจากแท็บ "ฉัน"
+   ------------------------------------------------------------
+   เดิมเก้าจอเขียน style="position:static;padding:0" ทับหัวจอปกติไว้ตรง ๆ
+   แต่ไม่ได้ถอดพื้นกระจกออก ผลคือมีกล่องสีจางเหลื่อมอยู่หลังชื่อจอ และชื่อจอชิดขอบบน
+   กว่าจออื่น 6px (บริบทของฉัน · สแกนตารางเรียน · ถ่ายรูปใบงาน เห็นชัดสุด)
+   ส่วน "ผลของฉัน" กับ "ตั้งค่า" ใช้หัวคนละแบบ (ชื่อกึ่งกลาง 17px ลูกศรเปล่า) ย้ายมาใช้ตัวนี้ด้วย
+   ระยะบนคิดให้ชื่อจอลงตรงบรรทัดเดียวกับจอแผนวันนี้ (pf-body 6px + 6px = 12px)
+   ============================================================ */
+.sticky-head.sh-inline {
+  position: static; padding: 6px 0 0; margin-bottom: 10px;
+  background: none; border-bottom: 0;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+/* จอที่ชื่อจอใหญ่อยู่บรรทัดถัดไป (ร้านค้า · Pro · คนในห้อง · สุ่มสกิน) — ไม่ต้องเว้นซ้ำอีกชั้น */
+.sticky-head.sh-inline + .page-head,
+.sticky-head.sh-inline + * > .page-head:first-child { padding-top: 0; }
+
+/* ============================================================
+   1C33 · จอ "ทำไมอันนี้ก่อน" — ลำดับการมอง: งานที่ต้องทำ → อันดับ → รายละเอียด (พับไว้)
+   สีเดียว (--fill) + แดงเฉพาะตอนเสี่ยงจริง · ไม่มีพื้นสีจาง · ข้อความสั้นที่สุดที่ยังครบ
+   ============================================================ */
+.wy2-hero { margin: 4px 0 0; padding: 18px; border-radius: 22px; background: var(--fill); color: var(--on-fill); }
+.wy2-k { font-size: 11.5px; font-weight: 700; letter-spacing: .04em; opacity: .72; }
+.wy2-hero h3 { margin: 4px 0 16px; font-size: 22px; font-weight: 800; line-height: 1.25; letter-spacing: -.02em; }
+.wy2-stats { display: flex; gap: 18px; }
+.wy2-stats > div + div { padding-left: 18px; border-left: 1px solid rgba(255,255,255,.25); }
+.wy2-stats b { display: block; font-size: 22px; font-weight: 800; line-height: 1.1; }
+.wy2-stats span { display: block; margin-top: 3px; font-size: 11.5px; opacity: .75; }
+.wy2-warn { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; padding: 6px 10px;
+  border-radius: 10px; background: rgba(255,255,255,.16); font-size: 12.5px; font-weight: 700; }
+.wy2-warn svg { width: 14px; height: 14px; }
+
+.wy2-card { margin-top: 14px; padding: 16px; border-radius: 20px; background: var(--card); box-shadow: var(--shadow); }
+.wy2-cap { font-size: 11.5px; font-weight: 700; letter-spacing: .04em; color: var(--faint); margin-bottom: 2px; }
+.wy2-row { display: flex; gap: 10px; align-items: center; padding: 11px 0; }
+.wy2-row + .wy2-row { border-top: 1px solid var(--line); }
+.wy2-n { flex: none; width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center;
+  font-size: 12px; font-weight: 800; background: var(--surface); color: var(--fill); }
+.wy2-row.top .wy2-n { background: var(--fill); color: var(--on-fill); }
+.wy2-main { flex: 1; min-width: 0; }
+.wy2-line { display: flex; align-items: baseline; gap: 8px; }
+.wy2-line b { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wy2-row.top .wy2-line b { font-weight: 800; }
+.wy2-line i { flex: none; font-style: normal; font-size: 12px; color: var(--faint); }
+.wy2-more { margin-top: 12px; font-size: 12.5px; color: var(--faint); }
+
+.wy2-deep { margin-top: 14px; }
+.wy2-deep > summary { list-style: none; cursor: pointer; padding: 12px 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.wy2-deep > summary::-webkit-details-marker { display: none; }
+.wy2-deep > summary::after { content: ' ›'; }
+.wy2-deep[open] > summary::after { content: ' ‹'; }
+
+/* ============================================================
+   1C33 · เลิกใช้พื้นเขียว/เหลืองจางกับบล็อกใหญ่
+   ------------------------------------------------------------
+   เจ้าของ: "การ์ดสีเขียวเหลืองมันแปลก ๆ จางแปลก ๆ" · พื้นสีจางทั้งใบทำให้การ์ดดูซีด
+   และแย่งสายตากับการ์ดหลักสีน้ำเงิน ทั้งที่ข้อมูลข้างในเป็นเรื่องรอง
+   กติกาใหม่: บล็อกใหญ่เป็นการ์ดขาวเสมอ · สีของสถานะอยู่ที่ "เส้นหรือตัวอักษร" เท่านั้น
+   ชิปเล็ก ๆ (tk-chip · src-tag · ป้าย) ยังใช้พื้นอ่อนได้ เพราะเล็กพอจะอ่านเป็นป้าย ไม่ใช่การ์ด
+   ทองไม่แตะ — ทองคือ "ทำสำเร็จแล้ว" ตามกฎของโปรเจกต์ (an-tile.gold · an-bd.got)
+   ============================================================ */
+.povf .it { background: var(--card); box-shadow: inset 3px 0 0 var(--warn), var(--shadow); }
+.povf.danger .it { background: var(--card); box-shadow: inset 3px 0 0 var(--alert), var(--shadow); }
+.povf-head { color: var(--warn); }
+
+.wy-t.good, .wy-t.warn, .wy-t.flat { background: var(--card); box-shadow: inset 0 0 0 1px var(--line); }
+.wy-frag { background: var(--card); box-shadow: inset 3px 0 0 var(--warn); }
+
+.src-need, .src-warn { background: none; padding: 2px 0 0; color: var(--warn); }
+.src-alt { background: none; padding: 2px 0 0; color: var(--good); }
+
+/* ============================================================
+   1C33 · จอบริบทของฉัน — การ์ดขาวชุดเดียวกับจอ "ทำไมอันนี้ก่อน"
+   ============================================================ */
+.cx2-card { margin-top: 12px; padding: 16px; border-radius: 20px; background: var(--card); box-shadow: var(--shadow); }
+.cx2-card:first-child { margin-top: 0; }
+.cx2-cap { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-size: 11.5px; font-weight: 700; letter-spacing: .04em; color: var(--faint); }
+.cx2-cap b { font-size: 12px; color: var(--fill); letter-spacing: 0; }
+.cx2-pick { border: 0; background: var(--surface); color: var(--ink); font: inherit; font-size: 12px;
+  font-weight: 600; letter-spacing: 0; padding: 5px 8px; border-radius: 9px; }
+.cx2-big { margin: 4px 0 14px; font-size: 32px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; }
+.cx2-bar { position: relative; display: flex; gap: 2px; height: 14px; border-radius: 6px; overflow: visible; }
+.cx2-bar > i { display: block; min-width: 2px; border-radius: 3px; box-shadow: none; }
+.cx2-now { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--ink); }
+.cx2-axis { display: flex; justify-content: space-between; margin-top: 6px; font-size: 10.5px; color: var(--faint); }
+.cx2-slots { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.cx2-slots span { font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 8px; background: var(--surface); color: var(--fill); }
+
+.cx2-week { display: flex; gap: 8px; align-items: flex-end; height: 76px; margin-top: 12px; }
+.cx2-day { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch;
+  gap: 5px; border: 0; background: none; padding: 0; font: inherit; }
+.cx2-day i { display: block; border-radius: 5px; background: var(--fill); opacity: .32; }
+.cx2-day span { font-size: 11px; color: var(--faint); text-align: center; }
+.cx2-day.on i { opacity: 1; }
+.cx2-day.on span { color: var(--fill); font-weight: 700; }
+.cx2-day.low i { background: var(--alert); opacity: .85; }
+.cx2-day.low span { color: var(--alert); font-weight: 700; }
+
+.cx2-gap { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 0; border: 0; background: none;
+  font: inherit; font-size: 14px; color: var(--ink); text-align: left; }
+.cx2-gap + .cx2-gap { border-top: 1px solid var(--line); }
+.cx2-cap + .cx2-gap { margin-top: 4px; }
+.cx2-gap span { flex: 1; min-width: 0; }
+.cx2-gap > svg { width: 16px; height: 16px; color: var(--faint); }
+.cx2-gap.done > svg { width: 18px; height: 18px; color: var(--fill); }
+.cx2-gap.done span { color: var(--muted); }
+.cx2-plus { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  font-style: normal; font-size: 13px; font-weight: 700; line-height: 1; color: var(--fill); box-shadow: inset 0 0 0 1.5px var(--fill); }
+.cx2-scan { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 12px;
+  padding: 12px; border: 0; border-radius: 14px; background: var(--fill); color: var(--on-fill); font: inherit; font-size: 14.5px; font-weight: 700; }
+.cx2-scan svg { width: 18px; height: 18px; }
+
+.cx2-times { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.cx2-times label { display: flex; flex-direction: column; gap: 2px; padding: 10px; border-radius: 16px; background: var(--card); box-shadow: var(--shadow); }
+.cx2-times span { font-size: 11px; font-weight: 600; color: var(--faint); }
+.cx2-times input { border: 0; background: none; padding: 0; font: inherit; font-size: 17px; font-weight: 800; color: var(--ink); width: 100%; }
+.cx2-past { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px 0 0 6px; background: var(--card); opacity: .72; }

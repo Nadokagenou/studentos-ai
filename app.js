@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C32';                 // สายเลขของแอป
+const APP_VERSION = '1C33';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -1009,6 +1009,8 @@ function go(id) {
   const dir = navDirection(curScreen, id);
   // ออกจากจอสุ่มเมื่อไหร่ ทิ้งผลรอบเดิม กลับเข้ามาจะได้เริ่มใหม่สะอาด ๆ
   if (id !== 'scr-wheel') { drawResults = []; drawOpen = []; }
+  // จอเหรียญตราเข้าได้สามทาง (หน้าแรก · แท็บฉัน · ผลของฉัน) — ปุ่มกลับต้องกลับไปที่เดิม
+  if (id === 'scr-badges' && ['scr-menu', 'scr-profile', 'scr-stats'].includes(curScreen)) badgesReturn = curScreen;
   curScreen = id;
   // 1C16 · ออกจากจอสแกนตาราง = ปิดกล้องเสมอ กล้องที่ค้างเปิดคือไฟแดงที่ไม่มีใครสั่ง
   // ดักที่นี่ที่เดียว ไม่ไล่แก้ทีละทางออก — ทางออกถัดไปจะไม่รู้ว่ามีกฎนี้อยู่
@@ -2214,7 +2216,7 @@ function nowCard(sp, now) {
     // และจุดนั้นคือปุ่ม "เริ่มทำเลย" · คนที่ไม่สงสัยไม่ต้องเห็นอะไรเพิ่ม
     // คนที่สงสัยว่า "ทำไมใบนี้" จะหาเจอตรงที่คำถามเกิดพอดี
     whyGo: `<button class="tn-why-go" onclick="go('scr-why')">
-        ${icon('sparkles')}ทำไมถึงเป็นใบนี้ — ดูทางเลือกอื่นที่เทียบแล้ว${icon('chevron')}
+        ${icon('sparkles')}ทำไมอันนี้ก่อน${icon('chevron')}
       </button>`,
   };
 
@@ -3633,11 +3635,92 @@ function whySelfHTML(now) {
   </div>`;
 }
 
+// ============================================================
+// 1C33 · จอ "ทำไมอันนี้ก่อน" — อ่านจบในสามวินาที
+// ------------------------------------------------------------
+// จอเดิมพูดภาษาของเอนจิน ("0.5 คะแนนที่เสี่ยงจะเสีย" · "อนาคต 120 เส้น") เป็นกำแพงข้อความ
+// เจ้าของบอกตรง ๆ ว่ามันดูเหมือนแอปกาก · นักเรียนถามคำถามเดียว: "ทำไมต้องอันนี้"
+// คำตอบมีสามชั้น เรียงตามลำดับที่ตามอง: งานที่ต้องทำ → อยู่ตรงไหนเทียบกับงานอื่น → เส้นตายของการเริ่ม
+//
+// ⚠️ ทุกอย่างบนจอนี้มาจาก studyPlan() ก้อนเดียว (กฎของโปรเจกต์)
+// จอเดิมเอาการ์ดบนสุดจากแผน แต่ "เริ่มได้ถึง…" มาจากใบที่ decide() เลือก ซึ่งเป็นคนละใบได้
+// — จอเดียวกันพูดถึงงานสองใบโดยไม่บอก · ตัวเลขละเอียดของเอนจินยังอยู่ ย้ายไปไว้ใต้ "วิธีคิดแบบละเอียด"
+// ============================================================
+function whyDayWord(d, now) {
+  const a = new Date(d); a.setHours(0, 0, 0, 0);
+  const b = new Date(now); b.setHours(0, 0, 0, 0);
+  const diff = Math.round((a - b) / 864e5);
+  return diff === 0 ? 'วันนี้' : diff === 1 ? 'พรุ่งนี้' : 'วัน' + THAI_DAY[d.getDay()];
+}
+
+function whyRankHTML(sp, now) {
+  const seen = new Set(), order = [];
+  const add = t => { if (t && !seen.has(t.id)) { seen.add(t.id); order.push(t); } };
+  if (sp && sp.now) add(sp.now.task);
+  for (const x of (sp && sp.next) || []) add(x.task || x);
+  for (const x of (sp && sp.later) || []) add(x.task || x);
+  // ใบที่แผนไม่ได้วางเลย (ไกลเกินขอบแผน) ต่อท้ายตามคะแนนความสำคัญ
+  pendingTasks().map(t => [t, priorityInfo(t, now).score]).sort((a, b) => b[1] - a[1]).forEach(([t]) => add(t));
+  const rows = order.slice(0, 5).map(t => ({ t, p: priorityInfo(t, now) }));
+  if (rows.length < 2) return '';
+  // ไม่มีแท่งความยาว โดยตั้งใจ — ลำดับมาจากแผน (คิดเวลาว่างด้วย) ส่วนคะแนนความสำคัญคิดจากตัวงานล้วน
+  // แท่งจากคะแนนจึงยาวสลับกับลำดับได้ แล้วภาพก็เถียงกับตัวเลขอันดับเอง
+  return `<section class="wy2-card">
+    <div class="wy2-cap">ลำดับทั้งหมด</div>
+    ${rows.map(({ t, p }, i) => `<div class="wy2-row${i ? '' : ' top'}">
+      <span class="wy2-n">${i + 1}</span>
+      <div class="wy2-main">
+        <div class="wy2-line"><b>${esc(taskTitleText(t))}</b><i>${esc(String(p.reasons[0] || '').split(' — ')[0])}</i></div>
+      </div>
+    </div>`).join('')}
+    ${order.length > 5 ? `<div class="wy2-more">และอีก ${order.length - 5} งาน</div>` : ''}
+  </section>`;
+}
+
 function renderWhy() {
   const body = document.getElementById('whyBody');
   if (!body) return;
   // คิดเฉพาะตอนที่จอนี้ถูกเปิดอยู่จริง — จออื่นไม่ต้องจ่ายค่าคำนวณของจอนี้
   if (typeof curScreen === 'string' && curScreen !== 'scr-why') return;
+
+  const now0 = new Date();
+  const sp = studyPlan(state, now0);
+  const top = sp && sp.now ? sp.now.task : null;
+  const sub0 = document.getElementById('whySub');
+  if (sub0) sub0.textContent = '';
+  if (!top) {
+    body.innerHTML = `<div class="card empty">ไม่มีงานค้าง</div>`;
+    return;
+  }
+  const r = typeof riskFor === 'function' ? riskFor(top, now0) : null;
+  const need = r && r.needMin ? r.needMin : Math.max(5, Math.round((top.estMin || 30) * (1 - (top.progress || 0) / 100)));
+  const pnr = r && r.pnr ? new Date(r.pnr) : null;
+  const due = top.due ? new Date(top.due) : null;
+  const hot = r && (r.verdict === 'tight' || r.verdict === 'critical');
+  const stat2 = pnr
+    ? [fmtClock(pnr), whyDayWord(pnr, now0) + ' · เริ่มช้าสุด']
+    : due ? [fmtClock(due), whyDayWord(due, now0) + ' · กำหนดส่ง'] : null;
+  const hero = `<section class="wy2-hero">
+      <div class="wy2-k">ทำก่อน</div>
+      <h3>${esc(taskTitleText(top))}</h3>
+      <div class="wy2-stats">
+        <div><b>${humanMin(need)}</b><span>ที่ต้องใช้</span></div>
+        ${stat2 ? `<div><b>${esc(stat2[0])}</b><span>${esc(stat2[1])}</span></div>` : ''}
+      </div>
+      ${hot ? `<div class="wy2-warn">${icon('flame')}โอกาสเสร็จทัน ${Math.round(r.odds * 100)}%</div>` : ''}
+    </section>`;
+
+  // renderAll วาดจอนี้ซ้ำทุกนาที — จำว่าเปิด "วิธีคิดแบบละเอียด" ค้างไว้ไหม ไม่งั้นมันหุบเองต่อหน้า
+  const wasOpen = !!body.querySelector('.wy2-deep[open]');
+  body.innerHTML = hero + whyRankHTML(sp, now0) +
+    `<details class="wy2-deep"${wasOpen ? ' open' : ''}><summary>วิธีคิดแบบละเอียด</summary><div id="whyDeep"></div></details>`;
+  const deep = document.getElementById('whyDeep');
+  if (deep) renderWhyDeep(deep);
+}
+
+// ตัวเลขละเอียดของเอนจิน (ของเดิมทั้งก้อน) — ไม่ได้ทิ้ง เพราะมันคือหลักฐานว่าไม่ใช่ข้อความสำเร็จรูป
+// แต่ไม่ใช่ของที่นักเรียนต้องอ่านทุกครั้ง จึงพับไว้
+function renderWhyDeep(body) {
 
   const now = new Date();
   // ส่งใบที่อยู่บนการ์ดหน้าแรกเข้าไป เพื่อให้จอนี้อธิบาย "ใบนั้น" เสมอ
@@ -3649,14 +3732,7 @@ function renderWhy() {
     focusId = sp && sp.now ? sp.now.task.id : null;
   } catch (e) { focusId = null; }
   const d = decideFor(now, focusId);
-  const sub = document.getElementById('whySub');
-
-  if (!d) {
-    if (sub) sub.textContent = '';
-    body.innerHTML = `<div class="card empty">ยังไม่มีงานที่ต้องตัดสินใจตอนนี้ 🎉</div>`;
-    return;
-  }
-  if (sub) sub.textContent = 'เทียบ ' + d.scenarios.length + ' ทาง จากอนาคต 120 เส้น';
+  if (!d) { body.innerHTML = ''; return; }
 
   const cards = typeof scenarioCards === 'function' ? scenarioCards(d) : [];
   const tiles = cards.map(c => `<div class="wy-t ${c.tone}">
@@ -5993,8 +6069,8 @@ function renderPlan() {
     html += `<button class="pctx-nudge" onclick="go('scr-context')">
       <span class="pn-ic">${icon('clock')}</span>
       <span class="pn-tx">
-        <b>ตอนนี้ AI เดาว่าคุณเริ่มทำการบ้าน 19:00</b>
-        <span>บอกตารางเรียนกับกิจวัตรสักครั้ง แล้วแผนจะวางลงช่องว่างจริงของคุณ — ว่างบ่ายก็ได้เริ่มบ่าย</span>
+        <b>ตอนนี้แผนเดาว่าคุณเริ่ม 19:00</b>
+        <span>ใส่ตารางเรียน แผนจะตรงกับวันจริง</span>
       </span>
       <span class="pn-go">${icon('chevron')}</span>
     </button>`;
@@ -6817,82 +6893,99 @@ function renderContext() {
   // ชั้นที่ถูกถอดคือชั้นที่ไม่ได้เพิ่มข้อมูล · wizOpen() ยังมีทางเข้าจากจอบริบทเอง
 
   const gaps = ctxGaps();
-  const missing = gaps.filter(g => !g.done);
+  const doneN = gaps.filter(g => g.done).length;
 
+  // ============================================================
+  // 1C33 · จอบริบทแบบใหม่ — ผลลัพธ์ก่อน ฟอร์มทีหลัง ข้อความเท่าที่จำเป็น
+  // ------------------------------------------------------------
+  // ของเดิม: แท่งวัน · รายการ "รู้จักคุณแล้ว 0%" ห้าแถวพร้อมคำอธิบายแถวละประโยค
+  // · การ์ด "เหลือเวลาว่างวันนี้" ที่บอกเลขเดียวกับแท่งซ้ำอีกรอบ · ย่อหน้าวิธีนับ
+  // เจ้าของ: ข้อความเยอะไม่ได้แปลว่าดี · ขอน้อยแต่ครบ และจัดลำดับสายตาให้ดี
+  // ลำดับใหม่: ว่างเท่าไหร่ (ตัวเลขใหญ่ + แท่งวัน) → ทั้งสัปดาห์ → ข้อมูลที่ยังขาด → ฟอร์ม
+  // ============================================================
   body.innerHTML = `
-    <!-- ผลลัพธ์มาก่อนฟอร์มเสมอ — และผลลัพธ์ที่อ่านง่ายที่สุดคือรูปวันของเขาเอง (1A9h)
-         ตัวเลข "ว่าง 2 ชม." ตอบไม่ได้ว่าสองชั่วโมงนั้นอยู่ก่อนหรือหลังข้าวเย็น -->
-    ${ctxBarHtml(ctxBarDay)}
+    ${ctxHeroHtml(ctxBarDay, now, total, slots)}
+    ${ctxWeekBarsHtml(now)}
 
-    <!-- แถบรู้จัก — จอนี้เคยเปิดมาเจอฟอร์มเปล่าที่ไม่บอกว่าต้องกรอกอะไรถึงจะพอ
-         ตอนนี้บอกตรง ๆ ว่ายังไม่รู้อะไร และรู้แล้วจะเอาไปทำอะไร -->
-    <section class="ctx-know">
-      <div class="ck-h"><span>รู้จักคุณแล้ว ${ctxKnow()}%</span>
-        <b class="mono">${gaps.length - missing.length}/${gaps.length}</b></div>
-      <div class="ck-bar"><span style="width:${ctxKnow()}%"></span></div>
-      ${missing.length ? `<div class="ck-list">${missing.map(g => `<button type="button"
-        class="ck-gap" onclick="${CTX_GAP_GO[g.key] || 'wizOpen()'}">
-        <span class="ck-dot"></span>
-        <span class="ck-tx"><b>${esc(g.label)}</b><i>${esc(g.why)}</i></span>
-        ${icon('chevron')}
-      </button>`).join('')}</div>`
-      : `<p class="ck-done">${icon('check')}ครบแล้ว — ตารางที่ AI วางให้อ้างจากวันจริงของคุณทั้งหมด</p>`}
+    <section class="cx2-card">
+      <div class="cx2-cap"><span>ข้อมูลของคุณ</span><b>${doneN}/${gaps.length}</b></div>
+      ${gaps.map(g => g.done
+        ? `<div class="cx2-gap done">${icon('check-circle')}<span>${esc(g.label)}</span></div>`
+        : `<button type="button" class="cx2-gap" onclick="${CTX_GAP_GO[g.key] || 'wizOpen()'}">
+            <i class="cx2-plus">+</i><span>${esc(g.label)}</span>${icon('chevron')}</button>`).join('')}
+      <button class="cx2-scan" onclick="openTtScan()">${icon('camera')}ถ่ายรูปตารางเรียน</button>
     </section>
 
     ${ctxLearnHtml()}
 
-    <div class="ctx-sum">
-      <div class="ctx-sum-h">${icon('clock')}<span>เหลือเวลาว่างวันนี้</span></div>
-      <div class="ctx-sum-v">${esc(ctxHours(total))}</div>
-      <div class="ctx-slots">
-        ${slots.length
-          ? slots.map(s => `<span class="ctx-slot mono">${s.fromHm}–${s.toHm}</span>`).join('')
-          : `<span class="ctx-none">วันนี้ไม่เหลือช่องว่างแล้ว — พรุ่งนี้เริ่มใหม่</span>`}
-      </div>
-      <p class="ctx-sum-p">นับจากตอนนี้ถึง ${esc(p.noWorkAfter)} น. หักเวลาเรียนกับกิจวัตรออกแล้ว
-        ช่องที่สั้นกว่า ${p.minBlockMin} นาทีไม่ถูกนับ</p>
-    </div>
-
-    <!-- กรอกตารางเรียนทีละคาบคือการพิมพ์ 30–40 ครั้ง ซึ่งเกือบไม่มีใครทำจนจบ
-         ทางลัดจึงต้องอยู่เหนือฟอร์ม ไม่ใช่ซ่อนไว้ท้ายจอหลังของที่มันมาแทน -->
-    <button class="ctx-scan" onclick="openTtScan()">
-      <span class="cs-ic">${icon('camera')}</span>
-      <span class="cs-tx"><b>ถ่ายรูปตารางเรียน แล้วให้ AI กรอกให้</b>
-        <span>อ่านทั้งสัปดาห์ในทีเดียว — ตรวจแก้ได้ก่อนบันทึกทุกคาบ</span></span>
-      <span class="cs-go">${icon('chevron')}</span>
-    </button>
-
-    ${abBlock(p)}
-
     <div class="sec-label">เวลาประจำวัน</div>
-    <div class="pf-list">
-      <div class="pf-row">
-        <span class="tile">${icon('clock')}</span>
-        <span class="bd"><span class="lb">ตื่น</span></span>
-        <input type="time" value="${esc(p.wake)}" onchange="ctxSavePref('wake', this.value)">
-      </div>
-      <div class="pf-row">
-        <span class="tile">${icon('clock')}</span>
-        <span class="bd"><span class="lb">เข้านอน</span></span>
-        <input type="time" value="${esc(p.sleep)}" onchange="ctxSavePref('sleep', this.value)">
-      </div>
-      <div class="pf-row">
-        <span class="tile">${icon('lock')}</span>
-        <span class="bd"><span class="lb">ห้ามวางงานหลัง</span>
-          <span class="sb">ช่วงก่อนนอนเป็นเวลาของคุณ ไม่ใช่เวลาที่เหลือให้แอปใช้</span></span>
-        <input type="time" value="${esc(p.noWorkAfter)}" onchange="ctxSavePref('noWorkAfter', this.value)">
-      </div>
+    <div class="cx2-times">
+      <label><span>ตื่น</span><input type="time" value="${esc(p.wake)}" onchange="ctxSavePref('wake', this.value)"></label>
+      <label><span>หยุดทำงาน</span><input type="time" value="${esc(p.noWorkAfter)}" onchange="ctxSavePref('noWorkAfter', this.value)"></label>
+      <label><span>นอน</span><input type="time" value="${esc(p.sleep)}" onchange="ctxSavePref('sleep', this.value)"></label>
     </div>
 
     <div class="sec-label">ตารางเรียน</div>
     ${ctxWeekHtml()}
+    ${abBlock(p)}
 
     <div class="sec-label">กิจวัตรและกิจกรรม</div>
     ${ctxListHtml('routine')}
 
     <button class="ctx-wipe" onclick="ctxWipe()">${icon('trash')}ลบบริบททั้งหมด</button>
-    <p class="ctx-note">ข้อมูลชุดนี้อยู่คนละที่กับงานของคุณ ลบทิ้งได้โดยงานไม่หายสักใบ ·
-      การจัดตารางคำนวณในเครื่อง ไม่มีการส่งตารางชีวิตของคุณออกไปไหน</p>`;
+    <p class="ctx-note">เก็บและคำนวณในเครื่องนี้เท่านั้น · ลบแล้วงานไม่หาย</p>`;
+}
+
+// ---------- 1C33 · ตัวเลขใหญ่ + แท่งวัน ----------
+// วันนี้ = นับจากตอนนี้ (ของที่ผ่านไปแล้วใช้ไม่ได้) · วันอื่น = ทั้งวัน
+function ctxHeroHtml(weekday, now, todayLeft, slots) {
+  const bar = ctxDayBar(weekday);
+  const isToday = weekday === now.getDay();
+  const freeMin = isToday ? todayLeft : bar.freeMin;
+  const span = Math.max(1, bar.to - bar.from);
+  const seg = bar.blocks.map(b => {
+    const of = b.kind === 'busy' ? ` cb-of-${b.of === 'class' ? 'class' : (CTX_KINDS[b.of] ? b.of : 'other')}` : '';
+    return `<i class="cb-${b.kind}${of}" style="flex:${b.min}"></i>`;
+  }).join('');
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  // ช่วงที่ผ่านไปแล้วของวันนี้ซีดลง — ไม่งั้นแท่งน้ำเงินเต็มเส้นตั้งแต่เช้าเถียงกับตัวเลข "ว่าง 45 นาที"
+  const pastPct = isToday ? Math.max(0, Math.min(100, (nowMin - bar.from) / span * 100)) : 0;
+  const mark = isToday && nowMin > bar.from && nowMin < bar.to
+    ? `<span class="cx2-past" style="width:${pastPct.toFixed(1)}%"></span><span class="cx2-now" style="left:${pastPct.toFixed(1)}%"></span>`
+    : (pastPct >= 100 ? `<span class="cx2-past" style="width:100%"></span>` : '');
+  return `<section class="cx2-card cx2-hero">
+    <div class="cx2-cap">
+      <span>${isToday ? 'ว่างวันนี้' : 'ว่างวัน' + WD_FULL[weekday]}</span>
+      <select class="cx2-pick" onchange="ctxPickDay(this.value)" aria-label="เลือกวัน">
+        ${[1, 2, 3, 4, 5, 6, 0].map(d => `<option value="${d}"${d === weekday ? ' selected' : ''}>วัน${WD_FULL[d]}</option>`).join('')}
+      </select>
+    </div>
+    <div class="cx2-big">${esc(ctxHours(freeMin))}</div>
+    ${seg ? `<div class="cx2-bar">${seg}${mark}</div>
+    <div class="cx2-axis mono"><span>${esc(min2hm(bar.from))}</span><span>${esc(min2hm(bar.to))}</span></div>` : ''}
+    ${isToday && slots.length ? `<div class="cx2-slots">${slots.map(x => `<span class="mono">${x.fromHm}–${x.toHm}</span>`).join('')}</div>` : ''}
+  </section>`;
+}
+
+// ---------- 1C33 · ว่างทั้งสัปดาห์ ----------
+// วันที่ว่างน้อยผิดปกติขึ้นสีแดง — มันคือวันที่แผนจะไม่วางงานใหญ่ลงไป คนควรเห็นก่อนแผนบอก
+function ctxWeekBarsHtml(now) {
+  const days = [1, 2, 3, 4, 5, 6, 0].map(d => ({ d, min: ctxDayBar(d).freeMin }));
+  const max = Math.max(...days.map(x => x.min), 1);
+  const sum = days.reduce((a, x) => a + x.min, 0);
+  if (!sum) return '';
+  const sorted = days.map(x => x.min).sort((a, b) => a - b);
+  const median = sorted[3];
+  const short = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
+  return `<section class="cx2-card">
+    <div class="cx2-cap"><span>สัปดาห์นี้</span><b>ว่างรวม ${esc(ctxHours(sum))}</b></div>
+    <div class="cx2-week">${days.map((x, i) => {
+      const cls = x.d === ctxBarDay ? ' on' : (median && x.min < median * 0.65 ? ' low' : '');
+      return `<button type="button" class="cx2-day${cls}" onclick="ctxPickDay(${x.d})"
+        aria-label="วัน${WD_FULL[x.d]} ว่าง ${esc(ctxHours(x.min))}">
+        <i style="height:${Math.max(6, Math.round(x.min / max * 100))}%"></i><span>${short[i]}</span></button>`;
+    }).join('')}</div>
+  </section>`;
 }
 
 // ---------- แท่ง "วันของคุณ" ----------
@@ -7653,13 +7746,20 @@ function checkBadges() {
   setTimeout(checkGenesisUnlock, 6500);
 }
 
+var badgesReturn = 'scr-profile'; // var ไม่ใช่ let — go() ข้างบนไฟล์อ่านมัน (กัน TDZ)
 function renderBadges() {
   const box = document.getElementById('badgesBody');
   if (!box) return;
   const done = doneCount();
   const got = badgesEarned().length;
 
-  box.innerHTML = `<div class="page-head">
+  // จอนี้เคยไม่มีปุ่มกลับเลย — เข้ามาจาก "ผลของฉัน" แล้วออกได้ทางแถบล่างทางเดียว
+  box.innerHTML = `<div class="sticky-head row sh-inline">
+      <div></div>
+      <button class="sh-btn" onclick="go(badgesReturn)" aria-label="กลับ">
+        <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+    </div>
+    <div class="page-head">
       <div class="eyebrow mono">${got} / ${BADGES.length}</div>
       <h1 class="page-title">เหรียญตรา</h1>
     </div>
@@ -8920,8 +9020,7 @@ function renderStatFull(now, d) {
 
     ${subjRows.length ? `<div class="st-card">
       <div class="st-h">${useReal ? 'เวลาที่จับไว้จริง' : 'เวลาที่ประเมินไว้'} แยกตามวิชา</div>
-      <p class="st-foot" style="margin:0 0 10px">${useReal ? 'จากทุกรอบที่จับเวลาไว้ ไม่ใช่แค่ 7 วันล่าสุด'
-        : 'ยังจับเวลาไม่พอจะแยกตามวิชาได้ — นี่คือเวลาที่กรอกไว้ตอนเพิ่มงาน'}</p>
+      <p class="st-foot" style="margin:0 0 10px">${useReal ? 'ทุกรอบที่จับเวลาไว้' : 'จากเวลาที่กรอกตอนเพิ่มงาน'}</p>
       <div class="an-split">
         <div class="an-legend">
           ${subjRows.map(([name, min]) => {
@@ -8992,8 +9091,8 @@ function workStatsHtml(now) {
   const all = sessions();
   if (all.length < WORK_MIN_SESSIONS) {
     return `<div class="st-card soft">
-      <div class="st-line">${icon('clock')}กดเริ่มจับเวลาในหน้าแผนอีก
-        <b>${WORK_MIN_SESSIONS - all.length}</b> รอบ แล้วจะเริ่มบอกได้ว่าคุณทำงานได้ดีที่สุดช่วงไหน</div>
+      <div class="st-line">${icon('clock')}จับเวลาอีก <b>${WORK_MIN_SESSIONS - all.length}</b> รอบ
+        จะรู้ว่าคุณทำงานได้ดีช่วงไหน</div>
     </div>`;
   }
 
@@ -12324,31 +12423,17 @@ function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
 
 // ALT: ทุกคำชม/คำเตือนเรียกชื่อที่ผู้ใช้บอกไว้ตอนทำความรู้จัก
 // ยังไม่ได้บอกชื่อ (กดข้าม) → ตัดคำเรียกทิ้ง ประโยคยังอ่านรู้เรื่องเหมือนเดิม
+// 1C33 · รูปแบบเดียวกับ send-reminders: หัว = ชื่องาน · เนื้อ = เวลาบรรทัดเดียว
+// ของเดิมเป็นประโยคเชียร์สามแบบสุ่ม ("ครูกำลังมองอยู่ 👀") ยาวจนการ์ดตัดคำ
+// และพูดคนละน้ำเสียงกับการ์ดจากเซิร์ฟเวอร์ — งานเดียวกันได้สองบุคลิกแล้วแต่ว่าท่อไหนยิง
 function reminderCopy(t, now) {
   const h = t.due ? (new Date(t.due) - now) / 3.6e6 : null;
-  // งานที่ไม่ได้เลือกวิชาจะมี subject = 'อื่น ๆ' ติดมา ซึ่งเอามาแทนชื่องานในประโยคไม่ได้
-  // ("อื่น ๆ เลยเวลาส่งไปแล้วน้า" ไม่ได้บอกว่างานไหน) → ถอยไปใช้ชื่องานแทน
-  const s = taskLabel(t);
-  const hr = h != null ? Math.max(1, Math.round(h)) : 0;
-  const nm = who();
-  const call = nm ? nm : 'คุณ';           // ใช้แทนคำเรียกกลางประโยค
-  const hey = nm ? nm + ' ' : '';         // ใช้ขึ้นต้นประโยค
-  if (h != null && h < 0) return { title: 'อุ๊ย เลยกำหนดแล้ว! 😬', body: pick([
-    `${hey}${s} เลยเวลาส่งไปแล้วน้า… แต่ยังไม่สายเกินไป รีบเคลียร์เลย!`,
-    `${s} ยังค้างอยู่นะ ครูกำลังมองอยู่ 👀 ส่งตอนนี้ยังพอทัน!`,
-    `เฮ้ ${call}! ${s} หนีไม่พ้นหรอกน้า ทำให้จบวันนี้เถอะ 🙏`,
-  ]) };
-  if (h != null && h <= 3) return { title: '⏰ เหลือเวลาไม่มากแล้ว!', body: pick([
-    `${hey}${s} เหลือแค่ ${hr} ชม.! ลุยเลยตอนนี้ เดี๋ยวไม่ทันน้า`,
-    `นับถอยหลัง ${hr} ชม. สำหรับ ${s} — สู้ ๆ ${call}ทำได้! 💪`,
-    `${s} กำลังจะหมดเวลาแล้ว ${hey}รีบอีกนิดเดียว ใกล้เสร็จแล้ว!`,
-  ]) };
-  if (h != null && h <= 12) return { title: 'อย่าเพิ่งลืมนะ 📚', body: pick([
-    `${s} รออยู่ เหลือ ${hr} ชม. ทำตอนนี้สบายกว่าตอนดึกเยอะ 😉`,
-    `${hey}แอบเตือนเรื่อง ${s} หน่อย~ เริ่มเลยดีกว่า จะได้พักแบบไม่มีห่วง`,
-    `${s} ยังรอ${call}อยู่นะ เริ่มจากนิดเดียวก็ได้ เดี๋ยวก็เสร็จ!`,
-  ]) };
-  return { title: 'มีงานรออยู่นะ ✨', body: `${taskTitleText(t)} (${fmtDue(t.due, now, t)})` };
+  const title = taskTitleText(t);   // วิชา · รายละเอียด — วิชาอย่างเดียวแยกไม่ออกถ้ามีสองใบ
+  if (h == null) return { title, body: 'ยังค้างอยู่' };
+  if (h < 0) return { title, body: 'เลยกำหนดแล้ว · ส่งช้ายังดีกว่าไม่ส่ง' };
+  const when = fmtDue(t.due, now, t);
+  if (h <= 3) return { title, body: when + ' · เหลือ ' + Math.max(1, Math.round(h)) + ' ชม.' };
+  return { title, body: when };
 }
 
 function celebrateCopy(allDone) {
@@ -12400,7 +12485,8 @@ const NOTIF_BRAND = 'Student OS';
 
 async function notify(title, body, tag) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return false;
-  title = title ? NOTIF_BRAND + ' · ' + title : NOTIF_BRAND;
+  // 1C33 · ไม่เติมชื่อแอปแล้ว — มือถือพิมพ์ชื่อแอปบนการ์ดให้เอง (ตรงกับ sw.js)
+  title = title || NOTIF_BRAND;
   const opt = {
     body, tag: tag || 'studentos-alt',
     icon: 'icon-192.png', badge: 'icon-192.png',
@@ -12466,6 +12552,28 @@ async function testNotify() {
 // ============================================================
 function appInView() { return !document.hidden; }
 
+// ============================================================
+// "เด้งตอนเข้าแอป" — ทางเดียวที่ปลอดภัยสำหรับแจ้งเตือนจากฝั่งแอปตอนถูกซ่อน
+// ------------------------------------------------------------
+// มือถือแช่แข็ง JS ของแอปที่ถูกซ่อน แล้วปล่อยรอบ setInterval ที่ค้างไว้ออกมาทันที
+// ที่ปลุกกลับ — **ก่อน** visibilitychange จะยิงและก่อน document.hidden จะกลายเป็น false
+// รอบนั้นจึงเห็นว่า "แอปซ่อนอยู่" แล้วยิงแจ้งเตือน ซึ่งไปเด้งตอนเด็กเพิ่งกดเปิดแอปพอดี
+// (และ showNotification ที่สั่งไว้ก่อนโดนแช่แข็ง ก็ไปโผล่ตอนปลุกกลับเหมือนกัน)
+//
+// แก้ด้วยการรอสั้น ๆ แล้วถามซ้ำ: ถ้าเป็นจังหวะเปิดแอป ภายในวินาทีครึ่ง document.hidden
+// เปลี่ยนเป็น false แล้ว → ไม่ยิง · ถ้าซ่อนอยู่จริงก็ยังซ่อนอยู่ → ยิงตามปกติ
+// และห้ามส่งกลางดึกเหมือนฝั่ง send-reminders (22:00–07:00) — ฝั่งแอปเคยไม่มีด่านนี้เลย
+// ============================================================
+const AWAY_CONFIRM_MS = 1500;
+function notifyAway(title, body, tag) {
+  setTimeout(() => {
+    if (appInView()) return;
+    const h = new Date().getHours();
+    if (h >= 22 || h < 7) return;
+    notify(title, body, tag);
+  }, AWAY_CONFIRM_MS);
+}
+
 function checkReminders() {
   const now = new Date();
   const canNotify = ('Notification' in window) && Notification.permission === 'granted';
@@ -12488,6 +12596,9 @@ function checkReminders() {
     // เปิดแอปอยู่ = เห็นงานบนจออยู่แล้ว → ติดธงโดยไม่ยิง (กฎ 1B98 ยังอยู่: ถ้ายังไม่ได้
     // อนุญาตแจ้งเตือน ไม่ติดธง เพราะวันที่เขากดอนุญาต งานนี้ต้องยังเตือนได้ตอนปิดแอป)
     if (!canNotify) continue;
+    // กลางดึก + ซ่อนอยู่ = ไม่ยิงและไม่ติดธง เก็บไว้ให้รอบเช้าเตือน (notifyAway ปัดกลางดึกทิ้งอยู่แล้ว
+    // ถ้าติดธงไปตอนนี้ งานใบนี้จะไม่ถูกเตือนอีกเลย)
+    if (!looking && !(now.getHours() >= 7 && now.getHours() < 22)) continue;
     if (!looking && (!fire || hLeft < fire.h)) fire = { t, h: hLeft };
     t.remindedAt = now.toISOString();
     t.remindedStage = stage;
@@ -12495,7 +12606,8 @@ function checkReminders() {
   }
   if (fire) {
     const c = reminderCopy(fire.t, now);
-    notify(c.title, c.body, 'studentos-alt-' + fire.t.id);
+    // แท็กเดียวกับ send-reminders ('task-<id>') — ถ้าสองท่อเตือนงานเดียวกัน ใบใหม่ทับใบเก่า
+    notifyAway(c.title, c.body, 'task-' + fire.t.id);
   }
   if (touched) save();
 }
@@ -12557,7 +12669,7 @@ async function socialWatch(force) {
       if (fresh.length && !first && !appInView()) {
         const nm = String((fresh[0].display_name || '').trim()) || 'มีคน';
         // แท็ก studentos-friend ตัวเดียวกันทุกดอก — คำขอที่สองมาทับใบแรก ไม่ใช่กองสิบใบ
-        notify(fresh.length > 1 ? 'มีคำขอเป็นเพื่อน ' + fresh.length + ' คน' : nm + ' ขอเป็นเพื่อน',
+        notifyAway(fresh.length > 1 ? 'มีคำขอเป็นเพื่อน ' + fresh.length + ' คน' : nm + ' ขอเป็นเพื่อน',
           fresh.length > 1 ? 'เปิดแอปเพื่อกดรับ' : 'กดรับแล้วเห็นผลและตารางของกันและกัน',
           // แท็กต้องตรงกับที่ send-reminders ใช้เป๊ะ ('friend' / 'dm')
           // ทั้งสองท่ออาจเห็นเหตุการณ์เดียวกันคนละจังหวะ (แอปเปิดอยู่ตอนที่ cron ยิงพอดี)
@@ -12576,7 +12688,7 @@ async function socialWatch(force) {
       if (fresh.length && !first && !appInView()) {
         const r = fresh[0];
         const nm = String((r.display_name || '').trim()) || 'เพื่อน';
-        notify(fresh.length > 1 ? 'ข้อความใหม่ ' + fresh.length + ' ห้อง' : nm + ' ส่งข้อความมา',
+        notifyAway(fresh.length > 1 ? 'ข้อความใหม่ ' + fresh.length + ' ห้อง' : nm + ' ส่งข้อความมา',
           fresh.length > 1 ? 'เปิดแอปเพื่ออ่าน' : String(r.last_body || 'ส่งรูปมา').slice(0, 80),
           'dm');
       }

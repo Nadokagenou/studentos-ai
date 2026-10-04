@@ -175,19 +175,20 @@ function clip(s: string, max: number): string {
 
 // ชื่องานที่คนอ่านแล้วรู้ทันทีว่าใบไหน — วิชาอย่างเดียวไม่พอถ้ามีสามใบในวิชาเดียว
 function taskName(t: any): string {
-  const s = String(t?.subject || 'งาน');
+  // 'อื่น ๆ' คือวิชาที่ไม่ได้เลือก — เอาขึ้นหัวการ์ดไม่ได้ ("อื่น ๆ ทดสอบ" ไม่ได้บอกอะไร)
+  const raw = String(t?.subject || '').trim();
+  const s = raw && raw !== 'อื่น ๆ' ? raw : '';
+  if (!s) return clip(t?.detail || '', 40) || 'งานของคุณ';
   const d = clip(t?.detail || '', 38);
-  return d && !d.includes(s) ? s + ' ' + d : (d || s);
+  return d && !d.includes(s) ? s + ' · ' + d : (d || s);   // ตัวคั่นเดียวกับ taskTitleText() ในแอป
 }
 
 // ---------- ข้อความเตือน ----------
 // สิ่งที่ทำให้การแจ้งเตือนน่าเปิด ไม่ใช่คำอุทานหรืออีโมจิ แต่คือ "ความเจาะจง"
 // "มีงานรออยู่" ปัดทิ้งได้ทันที · "เคมี บทที่ 4 ส่งพรุ่งนี้" ปัดทิ้งไม่ลง
 // ทุกข้อความข้างล่างจึงต้องมีชื่องานจริงกับเวลาจริงเสมอ ไม่มีอันไหนพูดลอย ๆ
-const pick = <T>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
-
 // ---------- แม่แบบที่เจ้าของระบบเขียนเองได้ ----------
-// ตั้งไว้ = ใช้แทนข้อความในไฟล์นี้ · ไม่ได้ตั้ง = ใช้ของเดิม (ซึ่งสุ่มสองแบบเพื่อไม่ให้ซ้ำซาก)
+// ตั้งไว้ = ใช้แทนเนื้อการ์ดในไฟล์นี้ (หัวการ์ดเป็นชื่องานเสมอ) · ไม่ได้ตั้ง = ใช้ของเดิม
 //
 // **แม่แบบไม่มีตัวเลือกให้สุ่ม** โดยตั้งใจ — คนเขียนข้อความเองย่อมอยากได้ข้อความนั้น
 // ไม่ใช่ข้อความนั้นบ้างอย่างอื่นบ้าง · ราคาคือเห็นซ้ำบ่อยขึ้น ซึ่งเจ้าของเลือกเอง
@@ -198,10 +199,25 @@ function tpl(id: string, vars: Record<string, string | number>): string | null {
   return t ? fill(t, vars) : null;
 }
 
+// เวลาส่งแบบที่คนพูด — 23:59 คือค่าปริยายของ "ภายในวันนั้น" ไม่ต้องพิมพ์เลขให้รก
+function dueClock(dueIso: string): string {
+  const d = thDate(Date.parse(dueIso));
+  const h = d.getUTCHours(), m = d.getUTCMinutes();
+  if (h === 23 && m === 59) return '';
+  return ' ' + String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+
+// ============================================================
+// 1C33 · การ์ดแจ้งเตือนแบบแอประดับโลก: หัว = ชื่องาน · เนื้อ = เวลา บรรทัดเดียว
+// ------------------------------------------------------------
+// ของเดิมเป็น "Student OS · เหลือ 1 ชั่วโมง ⏰" + ประโยคเชียร์ยาว ๆ
+// เจ้าของบอกว่าข้อความเยอะและแปลก — และชื่อแอปซ้ำ เพราะมือถือพิมพ์ชื่อแอปให้บนการ์ดอยู่แล้ว
+// สิ่งที่คนต้องรู้จากการ์ดมีสองอย่าง: งานไหน · เมื่อไหร่ อย่างอื่นคือเสียงรบกวน
+// ============================================================
 function reminderCopy(t: any, hoursLeft: number, nowMs: number) {
   const name = taskName(t);
   const hr = Math.max(1, Math.round(hoursLeft));
-  const when = t?.due ? dueLabel(t.due, nowMs) : '';
+  const when = t?.due ? dueLabel(t.due, nowMs) + dueClock(t.due) : '';
   const vars = {
     task: name,
     subject: String(t?.subject || ''),
@@ -210,56 +226,14 @@ function reminderCopy(t: any, hoursLeft: number, nowMs: number) {
     days: Math.max(0, Math.round(hoursLeft / 24)),
   };
 
-  // สอบมีแม่แบบของตัวเอง และต้องมาก่อนสาขาอื่นทั้งหมด — ไม่งั้น "สอบอีกสามวัน"
-  // จะไปตกสาขาสุดท้ายแล้วได้ข้อความว่า "มีส่ง" ซึ่งผิดประเภทงาน
+  // สอบมาก่อนสาขาอื่นทั้งหมด — ไม่งั้น "สอบอีกสามวัน" จะได้คำว่า "ส่ง" ซึ่งผิดประเภทงาน
   if (isExam(t) && hoursLeft > SAME_DAY_HOURS) {
-    const custom = tpl('exam', vars);
-    if (custom) return { title: `สอบ${when ? when : ''} 📖`.trim(), body: custom };
-    return {
-      title: `สอบ${when ? when : 'เร็ว ๆ นี้'} 📖`,
-      body: `${name} — อีก ${vars.days} วัน เริ่มอ่านวันนี้จะทันแบบไม่ต้องอัด`,
-    };
+    return { title: name, body: tpl('exam', vars) ?? `สอบ${when} · อีก ${vars.days} วัน` };
   }
-
-  if (hoursLeft < 0) {
-    const custom = tpl('overdue', vars);
-    if (custom) return { title: 'เลยกำหนดไปแล้ว 😬', body: custom };
-  } else if (hoursLeft <= SAME_DAY_HOURS) {
-    const custom = tpl('urgent', vars);
-    if (custom) return { title: `ส่ง${when || 'วันนี้'} 📚`, body: custom };
-  } else {
-    const custom = tpl('daily', vars);
-    if (custom) return { title: `${when || 'พรุ่งนี้'}มีส่ง 📌`, body: custom };
-  }
-
-  if (hoursLeft < 0) return {
-    title: 'เลยกำหนดไปแล้ว 😬',
-    body: pick([
-      `${name} เลยเวลาส่งแล้ว — ส่งช้ายังดีกว่าไม่ส่ง เคลียร์เลย`,
-      `${name} ยังค้างอยู่ ยังไม่สายเกินไปถ้าเริ่มตอนนี้`,
-    ]),
-  };
-  if (hoursLeft <= 3) return {
-    title: `เหลือ ${hr} ชั่วโมง ⏰`,
-    body: pick([
-      `${name} — เริ่มตอนนี้ยังทัน`,
-      `${name} ใกล้หมดเวลาแล้ว เอาให้จบคืนนี้`,
-    ]),
-  };
-  if (hoursLeft <= SAME_DAY_HOURS) return {
-    title: `ส่ง${when || 'วันนี้'} 📚`,
-    body: pick([
-      `${name} — เหลืออีก ${hr} ชม. ทำตอนนี้สบายกว่าตอนดึกเยอะ`,
-      `${name} รออยู่ เริ่มเลยจะได้พักแบบไม่มีห่วง`,
-    ]),
-  };
-  return {
-    title: `${when || 'พรุ่งนี้'}มีส่ง 📌`,
-    body: pick([
-      `${name} — เย็นนี้เคลียร์ได้ ${when}จะได้ไม่ต้องรีบ`,
-      `${name} — เริ่มคืนนี้สักหน่อย ${when}จะสบายขึ้นเยอะ`,
-    ]),
-  };
+  if (hoursLeft < 0) return { title: name, body: tpl('overdue', vars) ?? 'เลยกำหนดแล้ว · ส่งช้ายังดีกว่าไม่ส่ง' };
+  if (hoursLeft <= 3) return { title: name, body: tpl('urgent', vars) ?? `ส่ง${when} · เหลือ ${hr} ชม.` };
+  if (hoursLeft <= SAME_DAY_HOURS) return { title: name, body: tpl('urgent', vars) ?? `ส่ง${when}` };
+  return { title: name, body: tpl('daily', vars) ?? `ส่ง${when} · เริ่มคืนนี้สบายกว่า` };
 }
 
 // ---------- ข้อความสำหรับคนที่หายไป ----------
@@ -271,8 +245,8 @@ function reminderCopy(t: any, hoursLeft: number, nowMs: number) {
 function lapsedCopy(pending: any[], daysAway: number, nowMs: number) {
   // ไม่มีงานเลย — ปัญหาไม่ใช่ว่าเขาขี้เกียจ แต่คือแอปยังว่าง บอกทางที่ทำให้มันไม่ว่างไปเลย
   if (!pending.length) return {
-    title: 'แอปยังว่างอยู่เลย',
-    body: 'เชื่อมกลุ่ม LINE ห้องเธอไว้ แล้วงานที่ครูสั่งจะเข้ามาเอง ไม่ต้องพิมพ์สักตัว',
+    title: 'เชื่อมกลุ่ม LINE ห้องเรียน',
+    body: 'งานที่ครูสั่งจะเข้ามาเอง ไม่ต้องพิมพ์',
   };
 
   const withDue = pending.filter((t) => t.due).sort((a, b) => Date.parse(a.due) - Date.parse(b.due));
@@ -286,16 +260,14 @@ function lapsedCopy(pending: any[], daysAway: number, nowMs: number) {
   if (fresh.length) {
     const subs = [...new Set(fresh.map((t: any) => String(t.subject || 'งาน')))].slice(0, 3);
     return {
-      title: `มีงานใหม่ ${fresh.length} ชิ้นรออยู่ 📥`,
-      body: subs.join(' · ') + (soonest ? ` — อันที่ใกล้สุดส่ง${dueLabel(soonest.due, nowMs)}` : ''),
+      title: `งานใหม่ ${fresh.length} ชิ้น`,
+      body: subs.join(' · '),
     };
   }
 
   return {
-    title: `ยังมีงานค้าง ${n} ชิ้น`,
-    body: soonest
-      ? `${taskName(soonest)} ส่ง${dueLabel(soonest.due, nowMs)} — เปิดดูสักนิดว่าควรเริ่มอันไหนก่อน`
-      : 'เปิดดูสักนิดว่าควรเริ่มอันไหนก่อน',
+    title: `งานค้าง ${n} ชิ้น`,
+    body: soonest ? `ใกล้สุด: ${taskName(soonest)} · ส่ง${dueLabel(soonest.due, nowMs)}` : 'แตะเพื่อดูว่าควรเริ่มอันไหน',
   };
 }
 
@@ -309,24 +281,36 @@ function lapsedCopy(pending: any[], daysAway: number, nowMs: number) {
 // ฝั่งแอปตอนเปิดอยู่แสดงเนื้อความได้ เพราะคนที่มองจออยู่คือเจ้าของเครื่องแน่นอนแล้ว
 function friendCopy(names: string[], n: number) {
   if (n > 1) return {
-    title: `มีคำขอเป็นเพื่อน ${n} คน 👋`,
-    body: names.slice(0, 3).join(' · ') + (n > 3 ? ` และอีก ${n - 3} คน` : '') + ' — กดรับในแอป',
+    title: `คำขอเป็นเพื่อน ${n} คน`,
+    body: names.slice(0, 3).join(' · ') + (n > 3 ? ` +${n - 3}` : ''),
   };
-  return {
-    title: `${names[0] || 'มีคน'}ขอเป็นเพื่อน 👋`,
-    body: 'กดรับแล้วเห็นผลและวิชาที่ช่วยกันได้ของกันและกัน',
-  };
+  return { title: names[0] || 'คำขอเป็นเพื่อนใหม่', body: 'ขอเป็นเพื่อนกับคุณ' };
 }
 
 function dmCopy(names: string[], rooms: number, msgs: number) {
   if (rooms > 1) return {
-    title: `ข้อความใหม่ ${msgs} ข้อความ 💬`,
-    body: 'จาก ' + names.slice(0, 3).join(' · ') + (rooms > 3 ? ` และอีก ${rooms - 3} ห้อง` : ''),
+    title: `${msgs} ข้อความใหม่`,
+    body: names.slice(0, 3).join(' · ') + (rooms > 3 ? ` +${rooms - 3}` : ''),
   };
-  return {
-    title: `${names[0] || 'เพื่อน'}ส่งข้อความมา 💬`,
-    body: msgs > 1 ? `${msgs} ข้อความใหม่ — เปิดอ่านในแอป` : 'เปิดอ่านในแอป',
-  };
+  return { title: names[0] || 'เพื่อน', body: msgs > 1 ? `${msgs} ข้อความใหม่` : 'ส่งข้อความถึงคุณ' };
+}
+
+// ============================================================
+// ความด่วนกับอายุของ push — "ปิดแอปไม่เด้ง แต่เปิดแอปแล้วเด้ง"
+// ------------------------------------------------------------
+// web-push ส่งด้วย Urgency: normal และ TTL 4 สัปดาห์เป็นค่าปริยาย
+// บน Android (โดยเฉพาะ Samsung ที่ประหยัดแบตดุ) ข้อความความด่วนปกติถูกพักไว้
+// ระหว่างที่เครื่องหลับ แล้วค่อยปล่อยตอนเครื่องตื่น — ซึ่งคือตอนที่เด็กหยิบมือถือขึ้นมาเปิดแอป
+// ผลคือการ์ดที่ควรเด้งตอนสี่โมงเย็นมาเด้งตอนเปิดแอปสามทุ่ม พร้อมข้อความที่เก่าไปแล้ว
+//
+// high = ให้ปลุกเครื่องส่งทันที (ใช้ได้เพราะเราส่งคนละไม่เกินหนึ่งดอกต่อรอบอยู่แล้ว)
+// TTL สั้น = ส่งไม่ถึงภายในเวลานี้ก็ทิ้ง ดีกว่าไปเด้งทีหลังด้วยเรื่องที่ไม่จริงแล้ว
+// ("เหลือ 3 ชั่วโมง" ที่มาถึงตอนเลยกำหนดไปแล้ว คือการแจ้งเตือนที่โกหก)
+// ============================================================
+function pushOpts(kind: string) {
+  // คำทักคนหายไม่ผูกกับเวลา อยู่ได้นาน · งานกับข้อความเก่าเร็ว เกินสามชั่วโมงทิ้ง
+  const ttlHours = kind === 'nudge' ? 12 : 3;
+  return { urgency: 'high', TTL: ttlHours * 3600 };
 }
 
 // หั่นรายการยาวเป็นชุดย่อย — ใช้กับ .in() ที่มีเพดาน URL
@@ -647,6 +631,7 @@ Deno.serve(async () => {
           await webpush.sendNotification(
             { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
             JSON.stringify({ ...copy, tag, url: './' }),
+            pushOpts(kind),
           );
           sent++;
           // ปักหมุดสองที่: เรื่องนี้ส่งแล้ว (กันซ้ำถาวร) + เครื่องนี้เพิ่งได้รับ (กันถี่)
@@ -665,7 +650,12 @@ Deno.serve(async () => {
               .update({ last_sent_at: at }).eq('endpoint', sub.endpoint);
           }
         } catch (e: any) {
-          errors.push(`${sub.user_id}: ${e?.statusCode ?? ''} ${e?.message ?? e}`);
+          // body คือเหตุผลจริงจากปลายทาง (Apple ตอบ {"reason":"BadJwtToken"} ฯลฯ)
+          // ไม่มีมัน error ทุกตัวจะอ่านว่า "403 Received unexpected response code" เหมือนกันหมด
+          // ซึ่งแยกไม่ออกว่ากุญแจผิด · subject ผิด · หรือเครื่องถอนแอปไปแล้ว
+          const host = String(sub.endpoint).split('/')[2] ?? '';
+          const why = String(e?.body ?? '').slice(0, 120);
+          errors.push(`${sub.user_id}: ${e?.statusCode ?? ''} ${host} ${why || (e?.message ?? e)}`);
           // 404/410 = subscription หมดอายุ (ถอนแอป/ล้างข้อมูล) → ลบทิ้ง
           //
           // 403 = กุญแจ VAPID ไม่ตรง — subscription ถูกสร้างไว้ด้วยกุญแจคนละดอกกับที่

@@ -3,8 +3,8 @@ let fail = null;
 export function __setFail(f) { fail = f; }
 export default {
   setVapidDetails() {},
-  async sendNotification(sub, payload) {
+  async sendNotification(sub, payload, opts) {
     if (fail) { const e = fail(sub); if (e) throw e; }
-    __sent.push({ endpoint: sub.endpoint, ...JSON.parse(payload) });
+    __sent.push({ endpoint: sub.endpoint, ...JSON.parse(payload), opts });
   },
 };

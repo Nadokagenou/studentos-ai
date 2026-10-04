@@ -37,12 +37,28 @@ async function run(tables) {
 const results = [];
 const check = (name, cond, detail) => { results.push({ name, pass: !!cond, detail }); };
 
+// ---- การ์ดเตือนงาน: หัว = ชื่องาน · เนื้อ = เวลาบรรทัดเดียว · ไม่มีชื่อแอปซ้ำ ----
+{
+  const due = new Date(Date.now() + 2 * 3600e3).toISOString();
+  const t = base({ user_state: [{ id: 'u1', data: { tasks: [
+    { id: 'k1', subject: 'อื่น ๆ', detail: 'ทดสอบแจ้งเตือน', due, done: false } ],
+    funnel: { lastOpen: new Date().toISOString() }, settings: {} } }] });
+  const r = await run(t);
+  const c = r.sent[0] || {};
+  check('task card title is the task name', c.title === 'ทดสอบแจ้งเตือน', JSON.stringify(c));
+  check('task card body is short', c.body && c.body.length <= 40 && /เหลือ 2 ชม\./.test(c.body), JSON.stringify(c));
+  check('no app name in title', !/Student OS/.test(String(c.title)), c.title);
+}
+
 {
   const t = base();
   t.friendships.push({ a: 'u1', b: 'u2', asked_by: 'u2', status: 'pending', created_at: iso(Date.now() - 5 * 60000) });
   const r = await run(t);
   check('friend request -> push', r.sent.length === 1 && r.sent[0].tag === 'friend', JSON.stringify(r.sent));
   check('friend push names the asker', /MIND/.test(r.sent[0] ? r.sent[0].title : ''), r.sent[0] && r.sent[0].title);
+  // ความด่วนต่ำ = Android พักไว้ตอนเครื่องหลับ แล้วไปเด้งตอนเปิดแอปแทน
+  const o = wp.__sent[0] && wp.__sent[0].opts;
+  check('push sent high-urgency with short TTL', o && o.urgency === 'high' && o.TTL === 3 * 3600, JSON.stringify(o));
   const r2 = await run(t);
   check('friend request not repeated', r2.sent.length === 0, JSON.stringify(r2.sent));
 }
