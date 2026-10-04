@@ -8373,3 +8373,32 @@ button.df-r:active { background: var(--surface); }
 .cx2-times input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 .cx2-wk .cx2-week { height: 48px; }
 #whyBody > .wy2-card { margin-top: 0; }
+
+/* ============================================================
+   1C36 · แถบล่างเป็นกระจกใสแบบ iPhone
+   ------------------------------------------------------------
+   เจ้าของ: "ขอบล่างให้เป็นขอบใส การ์ดนี้ดูใส ๆ ก็ได้ เหมือนไอโฟน"
+   กระจกจะดูเป็นกระจกได้ต้องมีของเลื่อนอยู่ข้างหลัง — แถบอยู่ในผังปกติ (1A9n) ไม่มีอะไรลอดใต้มัน
+   ทำใสอย่างเดียวจึงได้แค่แผ่นสีจาง · ทางที่ไม่ต้องกลับไปใช้ fixed/absolute (ซึ่ง iOS ตีความเพี้ยน):
+   ให้ .screens ยื่นลงไปใต้แถบด้วย margin ติดลบเท่าที่แถบกินที่ (สูง 48 + ระยะล่างของแถบ)
+   แล้วชดเชยด้วย padding ล่างของแต่ละจอ เนื้อหาจึงเลื่อนลอดใต้กระจก แต่ของชิ้นสุดท้ายยังพ้นแถบ
+   แถบยังอยู่ในผังเหมือนเดิมทุกอย่าง ไม่มีพิกัดขอบจอให้ iOS ตีความผิด
+   ============================================================ */
+@media (max-width: 768px), (display-mode: standalone) {
+  :root { --tb-under: calc(48px + max(6px, calc(env(safe-area-inset-bottom) - 18px))); }
+  :root[data-vpshort] { --tb-under: 52px; }
+  :root:not([data-nav="side"]) .tabbar {
+    position: relative; left: auto; right: auto; bottom: auto; z-index: 5;
+    background: color-mix(in srgb, var(--card) 62%, transparent);
+    backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+    border: 1px solid var(--glass-line);
+    box-shadow: 0 10px 30px -12px rgba(15, 40, 80, .35);
+  }
+  :root:not([data-nav="side"]) body:not(.login-mode) .screens { margin-bottom: calc(-1 * var(--tb-under)); }
+  :root:not([data-nav="side"]) body:not(.login-mode) .screens > .screen { padding-bottom: calc(22px + var(--tb-under)); }
+  /* ของที่ปักขอบล่างของจอไว้เอง ต้องยกพ้นกระจกเอง — padding ของจอไม่มีผลกับมัน
+     จอแชท: today.css ตั้ง #scr-ai.screen { padding: 0 } ด้วย id จึงต้องทับด้วย id
+     ปุ่มบันทึกจอเพิ่มงาน: sticky bottom:0 วัดจากขอบช่องเลื่อน ไม่ใช่จาก padding */
+  :root:not([data-nav="side"]) body:not(.login-mode) #scr-ai.screen { padding-bottom: var(--tb-under); }
+  :root:not([data-nav="side"]) .fm-bar { bottom: var(--tb-under); }
+}
