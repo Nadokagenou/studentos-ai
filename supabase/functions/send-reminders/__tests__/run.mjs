@@ -172,48 +172,7 @@ const check = (name, cond, detail) => { results.push({ name, pass: !!cond, detai
 }
 
 
-// ---- 1C37 · รอบประจำวัน เช้า · บ่าย · ค่ำ (วันละ 2–3 ดอก) ----
-{
-  const realNow = Date.now;
-  const at = (utcH, utcM) => { const d = new Date(); d.setUTCHours(utcH, utcM, 0, 0); return d.getTime(); };
-  const withTask = (dueMs) => { const t = base();
-    t.user_state[0].data.tasks = [{ id: 'd1', subject: 'เคมี', detail: 'บทที่ 4', due: iso(dueMs), done: false }];
-    return t; };
-
-  Date.now = () => at(0, 15);                       // 07:15 ไทย
-  let t = withTask(Date.now() + 3 * 86400e3);       // ส่งอีก 3 วัน — เดิมเงียบสนิท
-  let r = await run(t);
-  check('morning digest sent for a task due in 3 days', r.sent.length === 1 && r.sent[0].tag === 'digest'
-    && r.sent[0].title === 'เคมี · บทที่ 4', JSON.stringify(r.sent));
-  r = await run(t);
-  check('same slot not repeated', r.sent.length === 0, JSON.stringify(r.sent));
-
-  Date.now = () => at(5, 0);                        // 12:00 ไทย — ไม่ใช่รอบ
-  r = await run(withTask(Date.now() + 3 * 86400e3));
-  check('no digest outside the three slots', r.sent.length === 0, JSON.stringify(r.sent));
-
-  Date.now = () => at(13, 15);                      // 20:15 ไทย · วันนี้ส่งเรื่องงานไปแล้ว 3 ดอก
-  t = withTask(Date.now() + 3 * 86400e3);
-  for (let i = 0; i < 3; i++) t.push_sent.push({ user_id: 'u1', task_id: 'x' + i + '::soon', sent_at: iso(Date.now() - (5 + i) * HOUR) });
-  r = await run(t);
-  check('daily cap of 3 task pushes', r.sent.length === 0, JSON.stringify(r.sent));
-
-  Date.now = () => at(9, 45);                       // 16:45 ไทย · มีแต่งานเลยกำหนดเก่าเกิน 7 วัน
-  r = await run(withTask(Date.now() - 10 * 86400e3));
-  check('stale overdue task does not trigger digests', r.sent.length === 0, JSON.stringify(r.sent));
-
-  // ทั้งวัน: รอบ cron ทุกครึ่งชั่วโมงตั้งแต่ 07:00 ถึง 21:30 ไทย → ต้องได้ 3 ดอกพอดี
-  t = withTask(at(0, 0) + 4 * 86400e3);
-  let total = 0;
-  for (let m = 0; m <= 14.5 * 60; m += 30) {
-    Date.now = () => at(0, 0) + m * 60000;
-    const rr = await run(t);
-    total += rr.sent.length;
-  }
-  check('a whole day gives exactly 3 reminders', total === 3, 'got ' + total);
-
-  Date.now = realNow;
-}
+// (เทสต์รอบประจำวันของ 1C37 ย้ายไปอยู่ชุด 1C38 ข้างล่าง — พฤติกรรมเปลี่ยนโดยตั้งใจ ดู PATCHNOTES)
 
 // ---- กลางคืนต้องเงียบสนิท แม้แต่ข้อความใหม่ ----
 // เส้นความปลอดภัยเด็กของโปรเจกต์: เด็กที่โดนปลุกตอนเที่ยงคืนจะปิดการแจ้งเตือน แล้วปิดถาวร
@@ -239,6 +198,298 @@ const check = (name, cond, detail) => { results.push({ name, pass: !!cond, detai
   await run(t);
   wp.__setFail(null);
   check('410 subscription deleted', t.push_subscriptions.length === 0, 'left=' + t.push_subscriptions.length);
+}
+
+// ============================================================
+// 1C38 · รอบประจำวันแบบปรับตามคน — ทุกเทสต์ข้างล่างตรึงนาฬิกาไว้ที่เวลาไทยที่ระบุ
+// เทสต์ข้างบนวิ่งตามนาฬิกาจริง (ผลเปลี่ยนตามเวลาที่รัน) · ข้างล่างต้องได้ผลเดิมทุกครั้ง
+// ============================================================
+// 6 ต.ค. 2569 = วันอังคาร · 10 ต.ค. = วันเสาร์
+const TH = (day, hh, mm = 0) => Date.UTC(2026, 9, day, hh - 7, mm);
+const thDay = (day) => '2026-10-' + String(day).padStart(2, '0');
+async function at(ms, tables) {
+  const real = Date.now;
+  Date.now = () => ms;
+  try { return await run(tables); } finally { Date.now = real; }
+}
+function rhythm(over = {}) {
+  const { tasks = [], push = {}, settings = {}, sub = {} } = over;
+  return base({
+    push_subscriptions: [{ endpoint: 'ep1', user_id: 'u1', p256dh: 'p', auth: 'a', last_sent_at: null,
+      updated_at: '2026-09-01T00:00:00Z', ...sub }],
+    user_state: [{ id: 'u1', data: { tasks, settings, push } }],
+  });
+}
+const hw = (id, dueMs, extra = {}) => ({ id, subject: 'ฟิสิกส์', detail: 'บทที่ ' + id, due: iso(dueMs), done: false, ...extra });
+
+// ---- รอบเย็น: งานที่แอปเลือก ตรงเวลาที่เรียนรู้มา ----
+{
+  const now = TH(6, 19, 0);
+  const t = rhythm({
+    tasks: [hw('p1', TH(8, 23, 59)), hw('p2', TH(7, 23, 59))],
+    push: { v: 1, seen: thDay(6), wd: 1110, plans: [{ day: thDay(6), m: 1110, id: 'p1', min: 40, start: '19:00' }] },
+  });
+  const r = await at(now, t);
+  const c = r.sent[0] || {};
+  check('plan: fires at learned time', r.sent.length === 1 && c.tag === 'plan', JSON.stringify(r.sent));
+  check('plan: names the task studyPlan picked (not soonest)', /p1/.test(c.title), c.title);
+  check('plan: says how long', /40 นาที/.test(c.body), c.body);
+  check('plan: mentions tomorrow\'s other task in same card', /พรุ่งนี้ส่งอีก 1 งาน/.test(c.body), c.body);
+  check('plan: short TTL', wp.__sent[0] && wp.__sent[0].opts.TTL === 2 * 3600, JSON.stringify(wp.__sent[0] && wp.__sent[0].opts));
+  const r2 = await at(TH(6, 19, 30), t);
+  check('plan: once per day', r2.sent.length === 0, JSON.stringify(r2.sent));
+  check('plan: covered tomorrow task, no extra evening card', t.push_sent.some(x => x.task_id === 'p2::plan'), JSON.stringify(t.push_sent));
+}
+
+{
+  const t = rhythm({
+    tasks: [hw('p1', TH(8, 23, 59))],
+    push: { seen: thDay(6), plans: [{ day: thDay(6), m: 1110, id: 'p1', min: 40, start: '19:00' }] },
+  });
+  const r = await at(TH(6, 18, 0), t);
+  check('plan: silent before its time', r.sent.length === 0, JSON.stringify(r.sent));
+  const r2 = await at(TH(6, 20, 0), t);
+  check('plan: silent after its 90-min window', r2.sent.length === 0, JSON.stringify(r2.sent));
+}
+
+{
+  const now = TH(6, 19, 0);
+  const t = rhythm({
+    tasks: [hw('p1', TH(8, 23, 59))],
+    push: { seen: thDay(6), plans: [{ day: thDay(6), m: 1110, id: 'p1', min: 40, start: '19:00' }] },
+    sub: { updated_at: iso(now - 10 * 60000) },
+  });
+  const r = await at(now, t);
+  check('plan: skipped when app was just open', r.sent.length === 0, JSON.stringify(r.sent));
+}
+
+{
+  const now = TH(6, 19, 0);
+  const t = rhythm({
+    tasks: [hw('p1', TH(8, 23, 59))],
+    push: { seen: thDay(6), workAt: iso(now - HOUR), plans: [{ day: thDay(6), m: 1110, id: 'p1', min: 40 }] },
+  });
+  const r = await at(now, t);
+  check('plan: skipped while already working', r.sent.length === 0, JSON.stringify(r.sent));
+}
+
+{
+  const t = rhythm({
+    tasks: [hw('p1', TH(8, 23, 59))],
+    push: { seen: thDay(6), plans: [{ day: thDay(6), m: 1110, id: 'p1', min: 40 }] },
+    settings: { notifPlan: false },
+  });
+  const r = await at(TH(6, 19, 0), t);
+  check('plan: notifPlan=false -> no plan card', !r.sent.some(s => s.tag === 'plan'), JSON.stringify(r.sent));
+}
+
+{
+  // ใบที่แอปเลือกถูกติ๊กเสร็จไปแล้ว — ห้ามชวนทำงานที่เสร็จแล้ว ถอยไปพูดข้อเท็จจริง
+  const t = rhythm({
+    tasks: [hw('gone', TH(7, 23, 59), { done: true }), hw('p3', TH(9, 23, 59))],
+    push: { seen: thDay(5), wd: 1110, plans: [{ day: thDay(6), m: 1110, id: 'gone', min: 30 }] },
+  });
+  const r = await at(TH(6, 18, 30), t);
+  const c = r.sent[0] || {};
+  check('plan: stale pick -> falls back to soonest, honestly worded', r.sent.length === 1 && /p3/.test(c.title) && /ใกล้สุด/.test(c.body), JSON.stringify(r.sent));
+}
+
+{
+  // ไม่มีแผนของวันนี้ (เปิดแอปล่าสุดเมื่อวาน) — ใช้เวลานิสัยของวันธรรมดา
+  const t = rhythm({
+    tasks: [hw('p4', TH(9, 23, 59))],
+    push: { seen: thDay(5), wd: 19 * 60 + 30 },
+  });
+  const r1 = await at(TH(6, 19, 0), t);
+  const r2 = await at(TH(6, 19, 30), t);
+  check('plan: uses learned weekday habit when no plan for today', r1.sent.length === 0 && r2.sent.length === 1 && r2.sent[0].tag === 'plan',
+    JSON.stringify([r1.sent, r2.sent]));
+}
+
+{
+  // วันเสาร์ ไม่มีข้อมูลนิสัย = 10:00
+  const t = rhythm({ tasks: [hw('p5', TH(12, 23, 59))], push: { seen: thDay(10) } });
+  const r = await at(TH(10, 10, 0), t);
+  check('plan: weekend default 10:00', r.sent.length === 1 && r.sent[0].tag === 'plan', JSON.stringify(r.sent));
+}
+
+// ---- หายไป: รอบเย็นหยุดเอง · คำทักออกจริง (ก่อน 1C38 ไม่เคยออก) · หายนานเกินเลิกทัก ----
+{
+  const t = rhythm({ tasks: [hw('p6', TH(12, 23, 59))], push: { seen: thDay(3), wd: 1110 } });
+  const r = await at(TH(6, 19, 0), t);
+  check('away 3 days: plan stops, weekly nudge fires', r.sent.length === 1 && r.sent[0].tag === 'nudge', JSON.stringify(r.sent));
+}
+{
+  const t = rhythm({ tasks: [], push: { seen: '2026-08-01' } });
+  const r = await at(TH(6, 19, 0), t);
+  check('away 66 days: no more nudges', r.sent.length === 0, JSON.stringify(r.sent));
+}
+{
+  // แอปรุ่นเก่า (ไม่มี push · ไม่มี funnel) — ไม่รู้ว่าหายไปจริงไหม ต้องเงียบ
+  const t = rhythm({ tasks: [] });
+  t.user_state[0].data = { tasks: [], settings: {} };
+  const r = await at(TH(6, 19, 0), t);
+  check('unknown last-open: no nudge guess', r.sent.length === 0, JSON.stringify(r.sent));
+}
+
+// ---- รอบเช้า ----
+{
+  const t = rhythm({
+    tasks: [hw('m1', TH(6, 16, 0)), hw('m2', TH(6, 23, 59), { subject: 'เคมี' }), hw('m3', TH(8, 23, 59))],
+    push: { seen: thDay(5) },
+  });
+  const r = await at(TH(6, 7, 0), t);
+  const c = r.sent[0] || {};
+  check('morning: one digest for today\'s items', r.sent.length === 1 && c.tag === 'digest' && /วันนี้ส่ง 2 งาน/.test(c.title), JSON.stringify(r.sent));
+  check('morning: lists subjects, not tomorrow\'s', /ฟิสิกส์/.test(c.body) && /เคมี/.test(c.body), c.body);
+  const r2 = await at(TH(6, 10, 0), t);
+  check('morning: no repeat, nothing nagging during class', r2.sent.length === 0, JSON.stringify(r2.sent));
+  // บ่ายโมง: m1 เหลือ 3 ชม. → เสียงสุดท้ายออกได้แม้อยู่ในเวลาเรียน
+  const r3 = await at(TH(6, 13, 0), t);
+  check('last call fires during school when due soon', r3.sent.length === 1 && r3.sent[0].tag === 'task-m1' && /เหลือ 3 ชม\./.test(r3.sent[0].body),
+    JSON.stringify(r3.sent));
+}
+{
+  const t = rhythm({ tasks: [hw('m4', TH(8, 23, 59))], push: { seen: thDay(5) } });
+  const r = await at(TH(6, 7, 0), t);
+  check('morning: nothing due today -> silent', r.sent.length === 0, JSON.stringify(r.sent));
+}
+
+// ---- เพดานวันละ 3 · เสียงสุดท้ายไม่โดนเพดาน ----
+{
+  const now = TH(6, 19, 0);
+  const t = rhythm({
+    tasks: [hw('c1', TH(8, 23, 59))],
+    push: { seen: thDay(6), plans: [{ day: thDay(6), m: 1110, id: 'c1', min: 40 }] },
+    sub: { last_sent_at: iso(now - 3 * HOUR) },
+  });
+  for (let i = 0; i < 3; i++) t.push_sent.push({ user_id: 'u1', task_id: 'x' + i + '::soon', sent_at: iso(now - (4 + i) * HOUR) });
+  const r = await at(now, t);
+  check('cap: 3 task pushes today -> plan held', r.sent.length === 0, JSON.stringify(r.sent));
+}
+{
+  const now = TH(6, 21, 0);
+  const t = rhythm({
+    tasks: [hw('c2', TH(6, 23, 59))],
+    push: { seen: thDay(6) },
+    sub: { last_sent_at: iso(now - 90 * 60000) },
+  });
+  for (let i = 0; i < 3; i++) t.push_sent.push({ user_id: 'u1', task_id: 'y' + i + '::soon', sent_at: iso(now - (2 + i) * HOUR) });
+  const r = await at(now, t);
+  check('cap: last call still goes through', r.sent.length === 1 && r.sent[0].tag === 'task-c2', JSON.stringify(r.sent));
+}
+{
+  const now = TH(6, 21, 0);
+  const t = rhythm({ tasks: [hw('c3', TH(6, 23, 59))], push: { seen: thDay(6) }, sub: { last_sent_at: iso(now - 30 * 60000) } });
+  const r = await at(now, t);
+  check('last call waits 60 min after previous push', r.sent.length === 0, JSON.stringify(r.sent));
+}
+
+// ---- เลยกำหนด: ครั้งเดียว · ไม่เด้งตอนนั่งเรียน ----
+{
+  const t = rhythm({ tasks: [hw('o1', TH(5, 23, 59))], push: { seen: thDay(5) } });
+  t.push_sent.push({ user_id: 'u1', task_id: 'o1::soon', sent_at: iso(TH(5, 12, 0)) });
+  const r1 = await at(TH(6, 10, 0), t);
+  check('overdue: held during class', r1.sent.length === 0, JSON.stringify(r1.sent));
+  const r2 = await at(TH(6, 16, 0), t);
+  check('overdue: told once after school even though "soon" was sent',
+    r2.sent.length === 1 && /เลยกำหนด/.test(r2.sent[0].body), JSON.stringify(r2.sent));
+  const r3 = await at(TH(6, 19, 0), t);
+  check('overdue: not repeated', !r3.sent.some(s => s.tag === 'task-o1'), JSON.stringify(r3.sent));
+}
+
+// ---- คนที่ไม่มีรอบเย็น (แอปเก่า) ยังได้จังหวะเดิม ----
+{
+  const t = rhythm({ tasks: [hw('l1', TH(7, 23, 59))] });
+  t.user_state[0].data = { tasks: t.user_state[0].data.tasks, settings: {}, funnel: { lastOpen: iso(TH(6, 8, 0)) } };
+  const r = await at(TH(6, 19, 0), t);
+  check('legacy: evening-before reminder still works', r.sent.length === 1 && r.sent[0].tag === 'task-l1', JSON.stringify(r.sent));
+}
+
+// ---- รอบเช้าวันที่ไม่มีของส่งวันนี้ · รอบค่ำตามต่อ · ทั้งวัน ----
+{
+  const t = rhythm({ tasks: [hw('a1', TH(7, 23, 59))], push: { seen: thDay(6) } });
+  const r = await at(TH(6, 7, 15), t);
+  check('morning: heads-up for a task due within 2 days', r.sent.length === 1 && r.sent[0].tag === 'digest' && /ส่งพรุ่งนี้/.test(r.sent[0].body),
+    JSON.stringify(r.sent));
+  const r2 = await at(TH(6, 7, 45), t);
+  check('morning: same round not repeated', r2.sent.length === 0, JSON.stringify(r2.sent));
+}
+{
+  const t = rhythm({ tasks: [hw('a2', TH(9, 23, 59))], push: { seen: thDay(6) } });
+  const r = await at(TH(6, 7, 15), t);
+  check('morning: no nag for a task due in 3+ days', r.sent.length === 0, JSON.stringify(r.sent));
+  const r2 = await at(TH(6, 12, 0), t);
+  check('no round at noon', r2.sent.length === 0, JSON.stringify(r2.sent));
+}
+{
+  // 1C37 ยิงรอบเช้าไปแล้ววันนี้ (คีย์รูปเดิม) — วันที่ขึ้นรุ่นต้องไม่ได้รอบเช้าซ้ำ
+  const t = rhythm({ tasks: [hw('a3', TH(7, 23, 59))], push: { seen: thDay(6) } });
+  t.push_sent.push({ user_id: 'u1', task_id: 'digest::2026-10-6::am', sent_at: iso(TH(6, 7, 0)) });
+  const r = await at(TH(6, 7, 30), t);
+  check('round keys compatible with 1C37', r.sent.length === 0, JSON.stringify(r.sent));
+}
+{
+  const t = rhythm({
+    tasks: [hw('e1', TH(9, 23, 59))],
+    push: { seen: thDay(6), plans: [{ day: thDay(6), m: 1110, id: 'e1', min: 40, step: 'อ่านโจทย์' }] },
+  });
+  const r = await at(TH(6, 20, 30), t);
+  check('late: follow-up when nothing done today', r.sent.length === 1 && r.sent[0].tag === 'plan' && /e1/.test(r.sent[0].title),
+    JSON.stringify(r.sent));
+  check('late: asks for a small start (<=25 min or first step)', /(1\d|2[0-5]) นาที|ขั้นแรก/.test(r.sent[0] ? r.sent[0].body : ''), r.sent[0] && r.sent[0].body);
+}
+{
+  const t = rhythm({
+    tasks: [hw('e2', TH(9, 23, 59))],
+    push: { seen: thDay(6), workAt: iso(TH(6, 16, 0)), plans: [{ day: thDay(6), m: 1110, id: 'e2', min: 40 }] },
+  });
+  const r = await at(TH(6, 20, 30), t);
+  check('late: silent if already worked today', r.sent.length === 0, JSON.stringify(r.sent));
+}
+{
+  // มีงานส่งคืนนี้ → เสียงสุดท้ายจะพูดเอง รอบค่ำหลบให้
+  const t = rhythm({ tasks: [hw('e3', TH(6, 23, 59)), hw('e4', TH(9, 23, 59))], push: { seen: thDay(6) } });
+  const r = await at(TH(6, 20, 30), t);
+  check('late: yields to tonight\'s last call', !r.sent.some(s => s.tag === 'plan'), JSON.stringify(r.sent));
+}
+async function wholeDay(t, day = 6) {
+  const out = [];
+  for (let m = 7 * 60; m <= 21 * 60 + 30; m += 30) {
+    const r = await at(TH(day, 0) + m * 60000, t);
+    for (const s of r.sent) out.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0') + ' ' + s.tag);
+  }
+  return out;
+}
+{
+  // ส่งพรุ่งนี้ ยังไม่ได้แตะงานทั้งวัน → เช้า · เย็นตามนิสัย · ค่ำ = 3 ดอกพอดี
+  const t = rhythm({
+    tasks: [hw('w1', TH(7, 23, 59))],
+    push: { seen: thDay(6), wd: 1110, plans: [{ day: thDay(6), m: 1110, id: 'w1', min: 40, start: '19:00' }] },
+  });
+  const got = await wholeDay(t);
+  check('whole day (untouched, due tomorrow): exactly 3 rounds', got.length === 3 && /^07:00/.test(got[0]) && /^18:30 plan/.test(got[1]) && /^20:30 plan/.test(got[2]),
+    JSON.stringify(got));
+}
+{
+  // ส่งอีกสี่วัน · เริ่มทำไปตอน 17:00 → ไม่มีรอบเช้า (ยังไกล) · เย็นข้าม (กำลังทำ) · ค่ำข้าม (ทำแล้ววันนี้)
+  const t = rhythm({
+    tasks: [hw('w2', TH(10, 23, 59))],
+    push: { seen: thDay(6), workAt: iso(TH(6, 17, 0)), plans: [{ day: thDay(6), m: 1110, id: 'w2', min: 40 }] },
+  });
+  const got = await wholeDay(t);
+  check('whole day (already working): no nagging', got.length === 0, JSON.stringify(got));
+}
+{
+  // วันหนัก: ส่งเช้านี้ 1 · ส่งคืนนี้ 1 · ส่งพรุ่งนี้ 1 · ไม่แตะงาน
+  const t = rhythm({
+    tasks: [hw('h1', TH(6, 9, 0)), hw('h2', TH(6, 23, 59)), hw('h3', TH(7, 23, 59))],
+    push: { seen: thDay(6), plans: [{ day: thDay(6), m: 1110, id: 'h2', min: 60, start: '18:30' }] },
+  });
+  const got = await wholeDay(t);
+  const nonLast = got.filter(x => !/task-/.test(x)).length;
+  check('heavy day: rounds stay within cap, last calls on top', nonLast <= 3 && got.length <= 4 && got.some(x => /task-h2/.test(x)),
+    JSON.stringify(got));
 }
 
 for (const r of results) console.log((r.pass ? 'PASS  ' : 'FAIL  ') + r.name + (r.pass ? '' : '   >> ' + r.detail));

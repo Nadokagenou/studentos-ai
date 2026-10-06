@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C37';                 // สายเลขของแอป
+const APP_VERSION = '1C38';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -1254,11 +1254,14 @@ function pushToCloud(immediate) {
       const avatar = (vault && vault.avatar) || null;
       if (vault) delete vault.avatar;
 
+      // 1C38 · ของฝากให้รอบเย็นของ send-reminders (ดู pushHints) — คิดพังต้องไม่พาการซิงก์งานพังตาม
+      let push;
+      try { push = pushHints(); } catch (e) { console.warn('[sync] hints failed:', e.message); }
       const body = { tasks: state.tasks, settings: state.settings,
         sessions: state.sessions || [],
         marks: state.marks || [],
         ctx: typeof ctxExport === 'function' ? ctxExport() : undefined,
-        vault };
+        vault, push };
       const json = JSON.stringify(body);
       const hash = cheapHash(json);
       const avatarChanged = avatar !== lastPushedAvatar;
@@ -12279,6 +12282,7 @@ function toggleNotifPref(key) {
   save();
   renderProfile();
   const name = key === 'notifDue' ? 'การเตือนงานใกล้ถึงกำหนด'
+             : key === 'notifPlan' ? 'การชวนเริ่มทำตอนเย็น'
              : key === 'notifSocial' ? 'การเตือนข้อความและคำขอเป็นเพื่อน'
              : 'การทักเมื่อหายไปหลายวัน';
   showToast(on
@@ -12291,6 +12295,7 @@ function renderNotifPrefs() {
   const granted = ('Notification' in window) && Notification.permission === 'granted';
   for (const [key, row, btn] of [
     ['notifDue', 'prefDueRow', 'prefDueBtn'],
+    ['notifPlan', 'prefPlanRow', 'prefPlanBtn'],
     ['notifSocial', 'prefSocialRow', 'prefSocialBtn'],
     ['notifNudge', 'prefNudgeRow', 'prefNudgeBtn'],
   ]) {
@@ -12531,6 +12536,135 @@ function checkReminders() {
     notifyAway(c.title, c.body, 'task-' + fire.t.id);
   }
   if (touched) save();
+}
+
+// ============================================================
+// 1C38 · ของที่ฝากให้เซิร์ฟเวอร์ใช้ทำ "รอบเย็น" — data.push ใน user_state
+// ------------------------------------------------------------
+// send-reminders ยิงการ์ด "เย็นนี้เริ่มอันนี้" วันละครั้ง ตรงเวลาที่เด็กคนนี้มักเริ่มทำงาน
+// แต่เซิร์ฟเวอร์ตอบเองไม่ได้ว่า "ควรทำอันไหน" — ตัวตอบมีตัวเดียวคือ studyPlan() ซึ่งต้องใช้
+// ตารางเรียน (context.js) กับเอนจินตัดสินใจ (decide.js) ที่อยู่ในเครื่องนี้เท่านั้น
+// กฎของโปรเจกต์ห้ามมีตัวตอบตัวที่สอง จึงถาม studyPlan() ล่วงหน้าที่นี่ว่า
+// "ถ้าเป็นเวลานั้นของวันนั้น ควรทำอะไร" แล้วฝากคำตอบไว้ให้เซิร์ฟเวอร์อ่านไปพูด
+//
+//   seen   วันที่เปิดแอปล่าสุด — ฟิลด์ระดับ "วัน" โดยตั้งใจ ก้อนข้อมูลจึงเปลี่ยนวันละครั้ง
+//          ไม่ใช่ทุกครั้งที่เปิด (ทุกการเปลี่ยนคือการส่งทั้งก้อน ~50KB ขึ้น cloud)
+//          ⚠️ ก่อนรุ่นนี้เซิร์ฟเวอร์อ่าน funnel.lastOpen ซึ่งไม่เคยถูกส่งขึ้น cloud เลย
+//          คำทัก "หายไปหลายวัน" จึงไม่เคยออกสักครั้ง
+//   wd/we  นาทีของวันที่ควรชวน (วันธรรมดา/เสาร์อาทิตย์) — เรียนรู้จากเวลาที่ทำงานจริง
+//   workAt ครั้งล่าสุดที่จับเวลา/ติ๊กเสร็จ — กำลังทำอยู่ = ไม่ต้องชวน
+//   plans  คำตอบของ studyPlan() สำหรับรอบเย็นวันนี้กับพรุ่งนี้ (เผื่อพรุ่งนี้ไม่ได้เปิดแอป)
+// ============================================================
+const HINT_DEF_WD = 18 * 60 + 30;   // ต้องตรงกับ PLAN_DEFAULT_WD ใน send-reminders
+const HINT_DEF_WE = 10 * 60;        // ต้องตรงกับ PLAN_DEFAULT_WE
+const HINT_LOOKBACK_D = 28;
+const HINT_MIN_SAMPLES = 3;         // ต่ำกว่านี้ยังเดาไม่ได้ ใช้ค่าเริ่มต้นดีกว่าเชื่อตัวอย่างสองตัว
+const HINT_WINDOW_MIN = 90;         // ต้องตรงกับ PLAN_WINDOW_MIN
+let _hintCache = null;
+
+// เวลาที่ "มักเริ่มทำงาน" — ค่ากลางของเวลาเริ่มจับเวลา (หรือเวลาติ๊กเสร็จลบเวลาที่ใช้
+// สำหรับงานที่ไม่เคยจับเวลา) ย้อนหลังสี่สัปดาห์ · แยกวันธรรมดากับเสาร์อาทิตย์เพราะคนละชีวิต
+// ชวนก่อนเวลานั้น 15–45 นาที (ปัดลงเป็น :00/:30 ซึ่งเป็นจังหวะเดียวที่ cron ยิงได้)
+// สัญญาณที่มาก่อนการลงมือพอดี คือสัญญาณที่กลายเป็นนิสัย — มาหลังคือการทวง
+function habitMinutes(now) {
+  const since = now.getTime() - HINT_LOOKBACK_D * 864e5;
+  const wd = [], we = [];
+  const add = d => {
+    const ms = d.getTime();
+    if (!isFinite(ms) || ms < since || ms > now.getTime()) return;
+    const m = d.getHours() * 60 + d.getMinutes();
+    const weekend = d.getDay() === 0 || d.getDay() === 6;
+    // ติ๊กเสร็จตอนพักกลางวันเพื่อเคลียร์รายการ ไม่ใช่เวลาที่นั่งทำงาน — ตัดทิ้งก่อนคิดค่ากลาง
+    if (weekend ? (m >= 8 * 60 && m < 22 * 60) : (m >= 15 * 60 && m < 22 * 60)) (weekend ? we : wd).push(m);
+  };
+  const timed = new Set();
+  for (const s of sessions()) { if (s.start) { add(new Date(s.start)); timed.add(s.taskId); } }
+  for (const t of state.tasks) {
+    if (!t.done || !t.doneAt || t.deleted || timed.has(t.id)) continue;
+    add(new Date(new Date(t.doneAt).getTime() - Math.min(90, t.estMin || 30) * 60000));
+  }
+  const pickAt = (list, def, lo, hi) => {
+    if (list.length < HINT_MIN_SAMPLES) return def;
+    const s = list.slice().sort((a, b) => a - b);
+    const med = s[Math.floor(s.length / 2)];
+    return Math.max(lo, Math.min(hi, Math.floor((med - 15) / 30) * 30));
+  };
+  return {
+    wd: pickAt(wd, HINT_DEF_WD, 16 * 60, 21 * 60),
+    we: pickAt(we, HINT_DEF_WE, 9 * 60, 20 * 60),
+    samples: wd.length + we.length,
+  };
+}
+
+// คำตอบของ studyPlan() ณ เวลารอบเย็นของวันนั้น — รูปเดียวกับที่การ์ดหน้าแรกจะแสดงตอนนั้น
+function planHintFor(day, habit) {
+  const at = new Date(day); at.setHours(Math.floor(habit / 60), habit % 60, 0, 0);
+  const sp = studyPlan(state, at);
+  // กติกาเดียวกับ focusPlan(): กิจกรรม/นัดไม่ใช่ของที่ "เริ่มทำ" ได้
+  const n = sp.now && !isRemindKind(sp.now.task) ? sp.now : null;
+  if (!n) return null;
+  const slot = n.slot || null;
+  const startMin = slot && slot.start ? slot.start.getHours() * 60 + slot.start.getMinutes() : null;
+  // ตารางเรียนบอกว่าว่างจริงช้ากว่านิสัย (เรียนพิเศษถึงสองทุ่ม) → เลื่อนการชวนไปใกล้ช่องว่างจริง
+  // ว่างเร็วกว่านิสัย → ยึดนิสัย · ว่างสี่โมงไม่ได้แปลว่าเขาจะเริ่มสี่โมง
+  const m = startMin != null && slot.start.toDateString() === at.toDateString()
+    ? Math.min(21 * 60, Math.max(habit, Math.floor((startMin - 15) / 30) * 30)) : habit;
+  const step = n.step && n.step.title ? n.step.title : '';
+  return {
+    day: funnelDay(at), m, id: n.task.id,
+    min: slot ? slot.min : remainingMin(n.task),
+    start: startMin != null ? fmtClock(slot.start) : '',
+    step, part: !!(slot && slot.partial),
+  };
+}
+
+function pushHints(now = new Date()) {
+  const key = stateRev + ':' + funnelDay(now) + ':' + Math.floor(now.getTime() / 18e5);
+  if (_hintCache && _hintCache.key === key) return _hintCache.val;
+  const habit = habitMinutes(now);
+  const val = { v: 1, seen: funnelDay(now), wd: habit.wd, we: habit.we };
+
+  let work = state.running ? new Date(state.running.start).getTime() : 0;
+  for (const s of sessions()) work = Math.max(work, new Date(s.end || s.start).getTime() || 0);
+  for (const t of state.tasks) if (t.done && t.doneAt) work = Math.max(work, new Date(t.doneAt).getTime() || 0);
+  if (work) val.workAt = new Date(work).toISOString();
+
+  // แผนพังต้องไม่พาการซิงก์พังไปด้วย — ส่ง seen/เวลานิสัยไปก่อน เซิร์ฟเวอร์ถอยไปพูดข้อเท็จจริงเอง
+  try {
+    const plans = [];
+    for (let i = 0; i < 2; i++) {
+      const day = new Date(now); day.setDate(day.getDate() + i);
+      const wkend = day.getDay() === 0 || day.getDay() === 6;
+      const habitDay = wkend ? habit.we : habit.wd;
+      const p = planHintFor(day, habitDay);
+      // รอบเย็นของวันนี้เลยไปแล้ว = ไม่มีประโยชน์จะฝาก
+      if (p && (i > 0 || now.getHours() * 60 + now.getMinutes() < p.m + HINT_WINDOW_MIN)) plans.push(p);
+    }
+    if (plans.length) val.plans = plans;
+  } catch (e) { console.warn('[push] plan hint failed:', e.message); }
+
+  _hintCache = { key, val };
+  return val;
+}
+
+// ---------- บอกเซิร์ฟเวอร์ว่า "เพิ่งเปิดแอป" ----------
+// รอบเย็นไม่ควรเด้งใส่คนที่เพิ่งปิดแอปไปสิบนาที — เขาเห็นการ์ด "ทำอันนี้" กับตาแล้ว
+// ส่งผ่าน push_subscriptions.updated_at ของเครื่องนี้ ไม่ใช่ผ่าน user_state
+// เพราะ user_state ต้องส่งทั้งก้อน ~50KB ส่วนแถวนี้คือคำขอไม่กี่ร้อยไบต์ · ไม่ต้องมีคอลัมน์ใหม่
+// (ตีความใหม่: updated_at = ครั้งล่าสุดที่เครื่องนี้ "รายงานตัว" · send-reminders อ่านตามนี้)
+const BEAT_GAP_MS = 10 * 60000;
+let _beatAt = 0;
+async function pushHeartbeat() {
+  if (pushState !== 'on' || !sb || !currentUser) return;
+  if (Date.now() - _beatAt < BEAT_GAP_MS) return;
+  _beatAt = Date.now();
+  try {
+    const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'รายงานตัว');
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) return;
+    await sb.from('push_subscriptions').update({ updated_at: new Date().toISOString() })
+      .eq('endpoint', sub.endpoint);
+  } catch (_) { /* ออฟไลน์ — ผลแย่สุดคือได้การ์ดรอบเย็นทั้งที่เพิ่งปิดแอป ไม่ใช่พลาดอะไร */ }
 }
 
 // ============================================================
@@ -13660,6 +13794,10 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   if ('Notification' in window && Notification.permission === 'granted' && currentUser) {
     subscribePush().then(() => renderProfile()).catch(() => {});
   }
+  // 1C38 · รายงานตัวกับเซิร์ฟเวอร์ — รอบเย็นจะได้ไม่เด้งใส่คนที่เพิ่งเห็นการ์ดบนจอ (ดู pushHeartbeat)
+  // ยิงทั้งตอนเข้าและตอนออก (ไม่เกินสิบนาทีครั้ง) — ด่านของเซิร์ฟเวอร์คือหนึ่งชั่วโมง ละเอียดแค่นี้พอ
+  pushHeartbeat();
+  document.addEventListener('visibilitychange', () => pushHeartbeat());
 
   // หน้าต่างเช็คอินไม่เด้งเองอีกแล้ว
   // ของรางวัลรายวันเคยเป็นสิ่งแรกที่ผู้ใช้เห็นตอนเปิดแอป — แผ่นเต็มจอทับหน้าแรกไว้ทั้งใบ

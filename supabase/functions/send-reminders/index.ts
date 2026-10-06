@@ -29,20 +29,49 @@ import { appConfig, num, str, fill } from '../_shared/appconfig.ts';
 const PAGE = 500;               // อ่าน subscription ทีละหน้า
 const ID_CHUNK = 200;           // uuid ต่อหนึ่ง .in() — วัดแล้วพังที่ 700 ตั้งไว้ต่ำกว่าสามเท่า
 const PUSH_CONCURRENCY = 20;    // ส่ง push พร้อมกันกี่สาย
-const QUIET_HOURS = 3;          // เตือนคนเดิมไม่เกิน 1 ครั้งต่อกี่ชั่วโมง (1C37: 4 → 3 ให้รอบบ่ายกับรอบค่ำห่างกันพอ)
-// ---------- 1C37 · เตือนวันละ 2–3 ครั้ง ----------
-// เจ้าของ: "ระบบแจ้งเตือนให้แจ้งเตือนบ่อย ๆ ไม่ใช่แค่ครั้งเดียวต่อวัน ประมาณ 2–3 ครั้งต่อวัน"
-// ของเดิมเตือนตามกำหนดส่งเท่านั้น งานที่ส่งอีกสี่วันจึงเงียบสนิทจนถึงวันก่อนส่ง
-// รอบประจำวันสามรอบ ตรงกับจังหวะชีวิตนักเรียน (ก่อนไปเรียน · กลับถึงบ้าน · หลังข้าวเย็น)
-// หน้าต่างละ 1 ชม. = cron ครึ่งชั่วโมงเจอสองรอบ คีย์ต่อวันต่อรอบกันส่งซ้ำ
-// เพดานรวม 3 ดอกเรื่องงานต่อวัน (รวมเตือนกำหนดส่งด้วย) — ไม่ให้วันที่งานเยอะกลายเป็นสแปม
-const DIGEST_SLOTS = [
-  { key: 'am',  from: 7 * 60,       to: 8 * 60 },
-  { key: 'pm',  from: 16 * 60 + 30, to: 17 * 60 + 30 },
-  { key: 'eve', from: 20 * 60,      to: 21 * 60 },
-];
-const TASK_MAX_DAY = 3;
-const DIGEST_STALE_DAYS = 7;    // เลยกำหนดเกินนี้ = งานค้างเก่าที่ไม่มีใครจะทำแล้ว ไม่เอามาเตือนทุกวัน
+
+// ============================================================
+// รอบประจำวัน — แจ้งเตือนเป็น "รอบ" ไม่ใช่เป็น "เหตุการณ์"
+// ------------------------------------------------------------
+// ก่อน 1C37 เตือนได้แค่สองครั้งต่องาน (เย็นก่อนวันส่ง · วันส่ง) แล้วเงียบ — งานที่ส่งอีกสี่วัน
+// เงียบสนิทจนถึงวันก่อนส่ง · เจ้าของ: "ให้แจ้งเตือนบ่อย ๆ ประมาณ 2–3 ครั้งต่อวัน"
+//
+// 1C37 วางโครงสามรอบ (เช้า · กลับบ้าน · ค่ำ) เวลาตายตัว บอกงานที่ใกล้กำหนดสุดทุกรอบ
+// 1C38 คงสามรอบไว้ แต่เปลี่ยนเนื้อในตามงานวิจัยสี่ชิ้น (รายละเอียดใน alt/PATCHNOTES.md):
+//   - นิสัยเกิดจากสัญญาณเดิมเวลาเดิมทุกวัน (Lally 2010) และ Duolingo ส่งราวเวลาที่ผู้ใช้
+//     เรียนครั้งก่อน → รอบเย็นยิงตาม "เวลาที่เด็กคนนั้นเริ่มทำงานจริง" ไม่ใช่เวลาเดียวของทุกคน
+//   - รวบเป็นรอบวันละ ~3 ครั้ง ดีกว่าเด้งทุกเหตุการณ์ และดีกว่าไม่เด้งเลย (Fitz 2019)
+//   - ข้อความที่บอก "อะไร + เมื่อไหร่ + นานแค่ไหน" ทำให้คนลงมือจริงมากกว่า (Milkman 2011)
+//     → รอบเย็นพูดงานที่ studyPlan() เลือก พร้อมเวลาเริ่มและจำนวนนาที
+//   - การเตือนซ้ำ ๆ ทำให้คนชินจนไม่อ่าน (93% → 47% ใน 8 สัปดาห์) → ทุกรอบต้องมีเหตุผล
+//     ของวันนั้นจริง ๆ ถึงจะยิง · ข้ามคนที่เพิ่งเห็นจอ/กำลังทำ · หมุนคำ · หยุดเองเมื่อเขาหายไป
+//
+//   เช้า 07:00–08:00   วันนี้ส่งอะไร (หรือใบที่ส่งภายในสองวัน) · ไม่มีอะไรใกล้ = ไม่เด้ง
+//   เย็น (ของใครของมัน)  "เย็นนี้เริ่มอันนี้" งานเดียวกับการ์ดหน้าแรก
+//   ค่ำ 20:30–21:30    ตามต่อเฉพาะคนที่วันนี้ยังไม่ได้แตะงานเลย
+//   + เสียงสุดท้ายเมื่อเหลือ ≤ 3 ชม. · เลยกำหนดครั้งเดียว
+//
+// คีย์ของรอบใช้รูปเดิมของ 1C37 (digest::<วัน>::am|pm|eve) — วันที่ขึ้นรุ่นนี้
+// รอบที่ 1C37 ยิงไปแล้วต้องนับว่ายิงแล้ว ไม่งั้นได้รอบเดียวกันสองดอก
+// ============================================================
+const QUIET_HOURS = 2;          // เรื่องงานของคนเดิม ห่างกันอย่างน้อยกี่ชั่วโมง (เดิม 4 · 1C37 = 3 · เย็นตามนิสัยกับค่ำต้องห่างได้ 2)
+const LAST_CALL_HOURS = 3;      // เหลือเท่านี้ = เสียงสุดท้าย
+const LAST_CALL_GAP_MIN = 60;   // เสียงสุดท้ายแทรกได้ถ้าห่างจากดอกก่อนอย่างน้อยเท่านี้
+const TASK_MAX_DAY = 3;         // เรื่องงานต่อคนต่อวัน (ไม่นับเสียงสุดท้าย — ดูหมายเหตุที่ B)
+const AM_FROM = 7 * 60;         // รอบเช้า · นาทีของวัน (เวลาไทย) · หน้าต่างเดิมของ 1C37
+const AM_TO = 8 * 60;
+const AM_AHEAD_HOURS = 48;      // วันที่ไม่มีของส่งวันนี้ รอบเช้าพูดถึงงานที่ส่งภายในเท่านี้เท่านั้น
+const LATE_FROM = 20 * 60 + 30; // รอบค่ำ (ตามต่อ)
+const LATE_TO = 21 * 60 + 30;
+const SCHOOL_FROM = 8 * 60 + 30;  // จันทร์–ศุกร์ ช่วงนี้นั่งเรียนอยู่ ไม่เด้งของที่รอได้
+const SCHOOL_TO = 15 * 60 + 30;
+const PLAN_WINDOW_MIN = 90;     // รอบเย็นยิงได้ตั้งแต่เวลาที่ตั้งจนถึง +90 นาที
+const PLAN_DEFAULT_WD = 18 * 60 + 30;  // ยังไม่มีข้อมูลพอจะเรียนรู้ — วันธรรมดา
+const PLAN_DEFAULT_WE = 10 * 60;       // เสาร์–อาทิตย์
+const ACTIVE_SKIP_MIN = 60;     // เพิ่งเปิดแอปภายในเท่านี้ = เห็นการ์ดแล้ว ไม่ต้องชวน
+const WORKING_SKIP_HOURS = 3;   // เพิ่งจับเวลา/ติ๊กเสร็จภายในเท่านี้ = กำลังทำอยู่ ไม่ต้องชวน
+const PLAN_MAX_AWAY_DAYS = 2;   // ไม่ได้เปิดแอปเกินนี้ แผนที่เครื่องคิดไว้เก่าเกินจะพูดแทนเขา
+const LAPSED_STOP_DAYS = 45;    // หายไปนานขนาดนี้ เลิกทัก (การเตือนกำหนดส่งยังทำงานตามปกติ)
 // ---------- เรื่องสังคม (คำขอเพื่อน · ข้อความใหม่) ----------
 // ช่องว่างสั้นกว่าเรื่องงานมาก เพราะคนละธรรมชาติกัน: งานที่ส่งพรุ่งนี้รอสี่ชั่วโมงได้
 // ข้อความที่เพื่อนเพิ่งพิมพ์มาแล้วเงียบไปสี่ชั่วโมง คือการแจ้งเตือนที่มาช้าจนไม่มีความหมาย
@@ -153,6 +182,33 @@ function inSendWindow(ms: number): boolean {
 
 function thDate(ms: number): Date { return new Date(ms + TH_OFFSET); }
 function thHour(ms: number): number { return thDate(ms).getUTCHours(); }
+function thMinute(ms: number): number { const d = thDate(ms); return d.getUTCHours() * 60 + d.getUTCMinutes(); }
+function thWeekend(ms: number): boolean { const w = thDate(ms).getUTCDay(); return w === 0 || w === 6; }
+function inSchool(ms: number): boolean {
+  if (thWeekend(ms)) return false;
+  const m = thMinute(ms);
+  return m >= SCHOOL_FROM && m < SCHOOL_TO;
+}
+// 'YYYY-MM-DD' ตามปฏิทินไทย — รูปเดียวกับ funnelDay() ฝั่งแอป (แอปคิดด้วยเวลาเครื่องซึ่งเป็นเวลาไทย)
+function thDayKey(ms: number): string {
+  const d = thDate(ms);
+  return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getUTCDate()).padStart(2, '0');
+}
+/** จำนวนวันจาก a ถึง b (รูป YYYY-MM-DD) · อ่านไม่ออก = null */
+function dayGap(a: string, b: string): number | null {
+  const pa = Date.parse(a + 'T00:00:00Z'), pb = Date.parse(b + 'T00:00:00Z');
+  return Number.isFinite(pa) && Number.isFinite(pb) ? Math.round((pb - pa) / 86400000) : null;
+}
+/** นาทีของวัน → 'HH:MM' */
+function hm(min: number): string {
+  return String(Math.floor(min / 60)).padStart(2, '0') + ':' + String(min % 60).padStart(2, '0');
+}
+/** ประเภทงานฝั่งเซิร์ฟเวอร์ — กิจกรรม/เตือนความจำ ไม่ใช่ของที่ "นั่งทำ" */
+function isEvent(t: any): boolean {
+  const ty = String(t?.type || '').toLowerCase();
+  return ty === 'activity' || ty === 'reminder';
+}
 function isNight(ms: number): boolean { const h = thHour(ms); return h >= cfgNightFrom || h < NIGHT_TO; }
 function isEvening(ms: number): boolean { const h = thHour(ms); return h >= EVE_FROM && h < EVE_TO; }
 
@@ -168,30 +224,11 @@ function thWeekKey(ms: number): string {
   return 'w' + Math.floor((ms + TH_OFFSET) / (7 * 86400000));
 }
 
-function thDayKey(ms: number): string {
+// คีย์กันซ้ำของรอบประจำวัน — รูปเดิมของ 1C37 ทุกตัวอักษร (วัน/เดือนไม่เติมศูนย์)
+// ห้ามเปลี่ยนเป็นรูปเดียวกับ thDayKey: วันที่ขึ้นรุ่น รอบที่ 1C37 ยิงไปแล้วจะไม่ถูกนับ
+function roundKey(ms: number, slot: 'am' | 'pm' | 'eve'): string {
   const d = thDate(ms);
-  return d.getUTCFullYear() + '-' + (d.getUTCMonth() + 1) + '-' + d.getUTCDate();
-}
-
-/** รอบประจำวันที่ตอนนี้อยู่ในหน้าต่างของมัน · ไม่อยู่ในรอบไหน = null */
-function digestSlot(ms: number) {
-  const d = thDate(ms);
-  const m = d.getUTCHours() * 60 + d.getUTCMinutes();
-  return DIGEST_SLOTS.find((x) => m >= x.from && m < x.to) ?? null;
-}
-
-// การ์ดรอบประจำวัน — รูปเดียวกับการ์ดเตือนงาน (หัว = ชื่องาน · เนื้อ = บรรทัดเดียว)
-// งานบนหัวการ์ดคือใบที่ใกล้กำหนดที่สุด · เซิร์ฟเวอร์ไม่มี studyPlan() ให้เรียก
-// จึงใช้กำหนดส่งเป็นตัวเรียง ซึ่งตรงกับใบบนสุดของแอปเกือบทุกครั้ง (ไม่ใช่ทุกครั้ง — ยอมรับได้
-// เพราะการ์ดนี้ชวนให้เปิดแอป แล้วแอปเป็นคนบอกเองว่าควรเริ่มอะไร)
-function digestCopy(slot: string, list: any[], nowMs: number) {
-  const top = list[0];
-  const late = Date.parse(top.due) < nowMs;
-  const when = late ? 'เลยกำหนดแล้ว' : 'ส่ง' + dueLabel(top.due, nowMs) + dueClock(top.due);
-  const more = list.length > 1 ? ` · ค้างอีก ${list.length - 1} งาน` : '';
-  if (slot === 'am') return { title: taskName(top), body: when + more };
-  if (slot === 'pm') return { title: taskName(top), body: when + ' · เริ่มสัก 25 นาทีไหม' };
-  return { title: taskName(top), body: when + ' · ทำอีกนิดก่อนนอน' };
+  return `digest::${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}::${slot}`;
 }
 
 // "วันนี้ / พรุ่งนี้ / วันพฤหัส" — คนพูดกันแบบนี้ ไม่มีใครพูดว่า "อีก 31 ชั่วโมง"
@@ -275,6 +312,95 @@ function reminderCopy(t: any, hoursLeft: number, nowMs: number) {
   return { title: name, body: tpl('daily', vars) ?? `ส่ง${when} · เริ่มคืนนี้สบายกว่า` };
 }
 
+// ============================================================
+// 1C38 · รอบเย็น — "เย็นนี้เริ่มอันนี้"
+// ------------------------------------------------------------
+// งานบนการ์ดนี้ **ไม่ได้ถูกเลือกที่เซิร์ฟเวอร์** — แอปถาม studyPlan() ล่วงหน้าว่า
+// "ถ้าเป็นเวลานั้น ควรทำอะไร" แล้วฝากคำตอบไว้ใน data.push.plans (ดู pushHints() ใน app.js)
+// กฎของโปรเจกต์: ทุกที่ที่พูดเรื่อง "ควรทำอะไร" ต้องอ่านจาก studyPlan() ก้อนเดียว
+// ถ้าเซิร์ฟเวอร์คิดเอง แจ้งเตือนจะชี้งานหนึ่ง แตะเข้าไปแล้วหน้าแรกชี้อีกงาน — บั๊กเดิมที่เคยแก้มาแล้ว
+//
+// แผนที่ฝากไว้ใช้ไม่ได้ (เก่า/งานถูกติ๊กไปแล้ว) → ถอยไปพูดแค่ข้อเท็จจริง "ใกล้สุด"
+// ไม่อ้างว่าเป็นคำแนะนำ เพราะมันไม่ได้มาจากตัวที่ตัดสินใจ
+//
+// หมุนคำวันละแบบ (ไม่สุ่ม — สุ่มแล้วได้ซ้ำสองวันติดได้) เพราะการ์ดหน้าตาเดิมทุกเย็น
+// คือการ์ดที่ตาเรียนรู้ที่จะข้าม · ทุกแบบยังบอก "อะไร + เมื่อไหร่/นานแค่ไหน" ครบ
+// ============================================================
+function planCopy(t: any, p: any, extra: string, nowMs: number) {
+  const name = taskName(t);
+  const rawMin = Math.round(Number(p?.min) || 0);
+  const min = rawMin > 0 ? Math.max(5, rawMin) : null;
+  const start = /^\d{1,2}:\d{2}$/.test(String(p?.start || '')) ? String(p.start) : '';
+  const step = clip(String(p?.step || ''), 26);
+  const vars = { task: name, subject: String(t?.subject || ''), time: start, min: min ?? '', step };
+  const custom = tpl('plan', vars);
+  if (custom) return { title: name, body: custom };
+
+  const opts: string[] = [];
+  if (start && min) opts.push(`เริ่ม ${start} · ${min} นาที`);
+  if (min) opts.push(`${min} นาทีก็พอ${start ? ' · เริ่ม ' + start : ''}`);
+  if (step && min) opts.push(`ขั้นแรก: ${step} · ${min} นาที`);
+  if (min && p?.part) opts.push(`วันนี้แค่ ${min} นาที · ที่เหลือแบ่งไว้วันอื่นแล้ว`);
+  if (!opts.length) opts.push(start ? `เริ่ม ${start}` : 'เย็นนี้เริ่มอันนี้');
+  const day = Math.floor((nowMs + TH_OFFSET) / 86400000);
+  const body = opts[day % opts.length];
+  return { title: name, body: extra ? body + ' · ' + extra : body };
+}
+
+// แผนที่ฝากไว้ใช้ไม่ได้ — พูดเฉพาะสิ่งที่จริงแน่ ๆ
+function planFallbackCopy(t: any, nowMs: number) {
+  const when = t?.due ? dueLabel(t.due, nowMs) + dueClock(t.due) : '';
+  return { title: taskName(t), body: when ? `ใกล้สุด · ${isExam(t) ? 'สอบ' : 'ส่ง'}${when}` : 'ยังค้างอยู่' };
+}
+
+// ---------- รอบค่ำ: ตามต่อคนที่วันนี้ยังไม่ได้เริ่ม ----------
+// ไม่ทวง ไม่ทำให้รู้สึกผิด (ไม่มี "ทำไมยังไม่ทำ") — ลดขนาดสิ่งที่ขอให้เล็กที่สุดแทน
+// งานใหญ่ที่ดูใหญ่เกินจะเริ่มตอนสามทุ่ม เริ่มได้ถ้าสิ่งที่ขอคือ "แค่ขั้นแรก"
+function lateCopy(t: any, p: any, nowMs: number) {
+  const name = taskName(t);
+  const rawMin = Math.round(Number(p?.min) || 0);
+  const min = rawMin > 0 ? Math.min(25, Math.max(10, rawMin)) : 15;
+  const step = clip(String(p?.step || ''), 26);
+  const custom = tpl('late', { task: name, subject: String(t?.subject || ''), min, step });
+  if (custom) return { title: name, body: custom };
+  const opts = [`ยังไม่ได้เริ่มวันนี้ · ${min} นาทีก็พอ`, `ทำอีกนิดก่อนนอน · ${min} นาที`];
+  if (step) opts.push(`แค่ขั้นแรกก่อนนอน: ${step}`);
+  const day = Math.floor((nowMs + TH_OFFSET) / 86400000);
+  return { title: name, body: opts[day % opts.length] };
+}
+
+// ---------- รอบเช้าวันที่ไม่มีอะไรต้องส่ง: ใบที่ส่งภายในสองวัน ----------
+function amAheadCopy(t: any, more: number, nowMs: number) {
+  const when = dueLabel(t.due, nowMs) + dueClock(t.due);
+  return { title: taskName(t), body: (isExam(t) ? 'สอบ' : 'ส่ง') + when + (more > 0 ? ` · ค้างอีก ${more} งาน` : '') };
+}
+
+// ---------- รอบเช้า: วันนี้มีอะไรต้องส่ง ----------
+// มีไว้กันลืมของที่ต้องเอาไปส่งที่โรงเรียน · ไม่มีของวันนี้ = ไม่เด้ง (ไม่มี "อรุณสวัสดิ์" ลอย ๆ)
+function morningCopy(items: any[], nowMs: number) {
+  const ex = items.filter((x) => isExam(x.t)).length;
+  const ev = items.filter((x) => !isExam(x.t) && isEvent(x.t)).length;
+  const hw = items.length - ex - ev;
+  const vars = { count: items.length, tasks: items.map((x) => taskName(x.t)).slice(0, 3).join(' · ') };
+  const custom = tpl('morning', vars);
+  if (items.length === 1) {
+    const t = items[0].t;
+    // ใบเดียวที่เหลือ ≤ 3 ชม. = ดอกนี้คือเสียงสุดท้ายของมันด้วย ต้องบอกชั่วโมงที่เหลือแบบเดียวกัน
+    if (items[0].h <= LAST_CALL_HOURS) return reminderCopy(t, items[0].h, nowMs);
+    const verb = isExam(t) ? 'สอบ' : isEvent(t) ? '' : 'ส่ง';
+    return { title: taskName(t), body: custom ?? `${verb}วันนี้${dueClock(t.due)}`.trim() };
+  }
+  const parts = [hw && `ส่ง ${hw} งาน`, ex && `สอบ ${ex} วิชา`, ev && `นัด ${ev} อย่าง`].filter(Boolean);
+  const subs = [...new Set(items.map((x) => {
+    const s = String(x.t?.subject || '').trim();
+    return s && s !== 'อื่น ๆ' ? s : clip(x.t?.detail || '', 16);
+  }))].filter(Boolean);
+  return {
+    title: 'วันนี้' + parts.join(' · '),
+    body: custom ?? (subs.slice(0, 3).join(' · ') + (subs.length > 3 ? ` +${subs.length - 3}` : '')),
+  };
+}
+
 // ---------- ข้อความสำหรับคนที่หายไป ----------
 // คนกลุ่มนี้ไม่เคยได้รับอะไรเลยในระบบเดิม เพราะการเตือนทุกแบบผูกกับกำหนดส่ง
 // ไม่มีงาน = ไม่มีกำหนดส่ง = เงียบสนิทตลอดกาล ทั้งที่เป็นกลุ่มที่กำลังจะหายไปจริง ๆ
@@ -348,7 +474,8 @@ function dmCopy(names: string[], rooms: number, msgs: number) {
 // ============================================================
 function pushOpts(kind: string) {
   // คำทักคนหายไม่ผูกกับเวลา อยู่ได้นาน · งานกับข้อความเก่าเร็ว เกินสามชั่วโมงทิ้ง
-  const ttlHours = kind === 'nudge' ? 12 : 3;
+  // รอบเช้า/เย็นผูกกับช่วงเวลา — "เย็นนี้เริ่ม 19:00" ที่มาถึงสี่ทุ่มคือการ์ดที่พูดเรื่องที่ผ่านไปแล้ว
+  const ttlHours = kind === 'nudge' ? 12 : (kind === 'plan' || kind === 'morning') ? 2 : 3;
   return { urgency: 'high', TTL: ttlHours * 3600 };
 }
 
@@ -430,7 +557,8 @@ Deno.serve(async () => {
       const from = page * PAGE;
       const { data: subs, error: subErr } = await db
         .from('push_subscriptions')
-        .select('endpoint, user_id, p256dh, auth, last_sent_at')
+        // updated_at = ครั้งล่าสุดที่เครื่องนี้ "แจ้งว่าเปิดแอปอยู่" (1C38 · ดู pushHeartbeat ใน app.js)
+        .select('endpoint, user_id, p256dh, auth, last_sent_at, updated_at')
         .or(`last_sent_at.is.null,last_sent_at.lt.${gateBefore}`)
         .order('endpoint')
         .range(from, from + PAGE - 1);
@@ -447,16 +575,21 @@ Deno.serve(async () => {
       const funnelByUser = new Map<string, any>();
       // settings ก็เล็กเท่ากัน และเป็นที่เดียวที่บอกว่าเขาอยากได้การเตือนแบบไหน
       const prefsByUser = new Map<string, any>();
+      // 1C38 · สิ่งที่แอปฝากไว้ให้รอบเย็น: วันที่เปิดล่าสุด · เวลาที่มักเริ่มทำงาน · งานที่ studyPlan() เลือก
+      // ⚠️ funnel ไม่เคยถูกส่งขึ้น cloud (pushToCloud ไม่ได้ใส่) — คำทักคนหายไปจึงไม่เคยออกเลยสักครั้ง
+      // ตัวนี้แก้ด้วยการให้ push.seen เป็นแหล่งหลัก แล้วค่อยถอยไปหา funnel ถ้าวันหนึ่งมันถูกส่งขึ้นมา
+      const hintByUser = new Map<string, any>();
       for (const ids of chunk(userIds, ID_CHUNK)) {
         const { data: rows, error: stErr } = await db
           .from('user_state')
-          .select('id, tasks:data->tasks, funnel:data->funnel, settings:data->settings')
+          .select('id, tasks:data->tasks, funnel:data->funnel, settings:data->settings, push:data->push')
           .in('id', ids);
         if (stErr) throw new Error('user_state: ' + stErr.message);
         for (const r of rows ?? []) {
           tasksByUser.set((r as any).id, (r as any).tasks ?? []);
           funnelByUser.set((r as any).id, (r as any).funnel ?? null);
           prefsByUser.set((r as any).id, (r as any).settings ?? null);
+          hintByUser.set((r as any).id, (r as any).push ?? null);
         }
       }
 
@@ -466,22 +599,26 @@ Deno.serve(async () => {
       // และเพดานต่อวัน ซึ่งทั้งสองอย่างเป็นคำถามเรื่องเวลา ไม่ใช่คำถามเรื่องการมีอยู่
       const socialLastAt = new Map<string, number>();   // ส่งเรื่องสังคมครั้งล่าสุดเมื่อไหร่
       const socialToday = new Map<string, number>();    // วันนี้ส่งไปแล้วกี่ดอก
-      const taskToday = new Map<string, number>();      // เรื่องงานวันนี้ส่งไปแล้วกี่ดอก (เพดาน TASK_MAX_DAY)
+      // เรื่องงานวันนี้กี่ดอก — นับ "ดอก" ไม่ใช่ "คีย์": ดอกเดียวปักได้หลายคีย์ (รอบเช้าที่พูดถึง
+      // สามงานปักสามคีย์) แต่ทุกคีย์ของดอกเดียวกันมี sent_at เดียวกันเป๊ะ จึงนับจาก sent_at ที่ไม่ซ้ำ
+      // ดอกที่เป็นเสียงสุดท้าย (::last) ไม่นับเพดาน — ดูหมายเหตุที่ B
+      // (1C37 นับเป็นคีย์ · รอบเช้าที่ปักสามคีย์จึงกินเพดานหมดทั้งวันในดอกเดียว)
+      const taskShots = new Map<string, Map<string, boolean>>();   // ผู้ใช้ -> sent_at -> เป็นเสียงสุดท้ายไหม
       for (const ids of chunk(userIds, ID_CHUNK)) {
         const { data: rows } = await db
           .from('push_sent').select('user_id, task_id, sent_at').in('user_id', ids);
         for (const r of rows ?? []) {
           const uid = (r as any).user_id, key = (r as any).task_id;
           sentKeys.add(`${uid}::${key}`);
-          if (!key.startsWith('fr::') && !key.startsWith('dm::') && !key.startsWith('nudge-')
-              && (r as any).sent_at >= dayStart) {
-            taskToday.set(uid, (taskToday.get(uid) ?? 0) + 1);
-          }
           if (key.startsWith('fr::') || key.startsWith('dm::')) {
             const at = Date.parse((r as any).sent_at || '');
             if (!Number.isFinite(at)) continue;
             if (at > (socialLastAt.get(uid) ?? 0)) socialLastAt.set(uid, at);
             if ((r as any).sent_at >= dayStart) socialToday.set(uid, (socialToday.get(uid) ?? 0) + 1);
+          } else if (!key.startsWith('nudge-') && String((r as any).sent_at || '') >= dayStart) {
+            const m = taskShots.get(uid) ?? taskShots.set(uid, new Map()).get(uid)!;
+            const at = String((r as any).sent_at);
+            m.set(at, (m.get(at) ?? false) || key.endsWith('::last'));
           }
         }
       }
@@ -573,67 +710,195 @@ Deno.serve(async () => {
         const wantNudge = prefs?.notifNudge !== false;
         const wantSocial = prefs?.notifSocial !== false;
 
-        // ด่าน 4 ชม. ของเรื่องงาน ย้ายจาก SQL มาไว้ตรงนี้ (ดูหมายเหตุที่ gateBefore)
-        // เครื่องที่ยังไม่พ้นช่วงเงียบของเรื่องงาน ยังมีสิทธิ์ได้รับเรื่องสังคมอยู่
-        const taskReady = (!sub.last_sent_at || Date.parse(sub.last_sent_at) <= now - QUIET_HOURS * 3.6e6)
-          && (taskToday.get(sub.user_id) ?? 0) < TASK_MAX_DAY;
+        const uid = sub.user_id;
+        const sent = (k: string) => sentKeys.has(`${uid}::${k}`);
+        const wantPlan = prefs?.notifPlan !== false;
 
-        // ---- กลุ่มที่ 1: มีงานใกล้กำหนด ----
-        // สองจังหวะต่องาน ไม่ใช่จังหวะเดียว:
+        // ---- ด่านกลางของเรื่องงาน (ช่วงเงียบ · เพดานต่อวัน · เวลาเรียน) ----
+        // ช่วงเงียบอยู่ที่นี่ ไม่ใช่ใน SQL (ดูหมายเหตุที่ gateBefore) — เครื่องที่ยังไม่พ้น
+        // ช่วงเงียบของเรื่องงาน ยังมีสิทธิ์ได้รับเรื่องสังคมอยู่
+        const sinceLast = sub.last_sent_at ? now - Date.parse(sub.last_sent_at) : Infinity;
+        const gapOk = sinceLast >= QUIET_HOURS * 3.6e6;
+        const capOk = [...(taskShots.get(uid)?.values() ?? [])].filter((isLast) => !isLast).length < TASK_MAX_DAY;
+        // นั่งเรียนอยู่ = ไม่เด้งของที่รอได้ · มือถือในห้องเรียนคือของที่ครูยึด และการ์ดที่ขึ้นตอนนั้น
+        // ถูกปัดทิ้งโดยไม่ได้อ่าน แล้วนับเป็น "เห็นแล้ว" ไปเฉย ๆ
+        const school = inSchool(now);
+        const today = thDayKey(now);
+        const minute = thMinute(now);
+
+        // ---- เขาเปิดแอปล่าสุดเมื่อไหร่ ----
+        const hint = hintByUser.get(uid);
+        const fun = funnelByUser.get(uid);
+        const seenDay = (typeof hint?.seen === 'string' && hint.seen)
+          || (fun?.lastOpen ? thDayKey(Date.parse(fun.lastOpen)) : null);
+        const daysAway = seenDay ? dayGap(seenDay, today) : null;
+
+        const dueList = pending
+          .filter((t: any) => t.due && Number.isFinite(Date.parse(t.due)))
+          .map((t: any) => ({ t, h: (Date.parse(t.due) - now) / 3.6e6 }));
+        const dueToday = (x: any) => x.h > 0 && thDayKey(Date.parse(x.t.due)) === today;
+
+        // สวิตช์ใหญ่ของรอบประจำวันจาก 1C37 ('digest') ยังมีผล — ปิดตัวนี้ = ปิดทั้งสามรอบ
+        // (สวิตช์รายรอบ morning · plan อยู่ใต้มันอีกชั้น)
+        const roundsOn = notiOn('digest');
+        // รอบเย็น/ค่ำ ต้องมีของที่แอปฝากไว้ (hint) และเปิดแอปมาไม่เกินสองวัน — หลังจากนั้นแผนในมือ
+        // เก่าเกินจะพูดแทนเขา และเขาก็เข้ากลุ่ม "หายไป" ซึ่งมีคำทักของมันเอง (สัปดาห์ละครั้ง)
+        // นี่คือกลไกเลิกเตือนเองเมื่อการเตือนไม่ได้ผล: ไม่เปิดแอปสามวัน = รอบเย็นกับค่ำหยุด
+        const recent = !!hint && daysAway != null && daysAway <= PLAN_MAX_AWAY_DAYS;
+        const planOn = roundsOn && wantPlan && notiOn('plan') && recent;
+        // เพิ่งเปิดแอป = เห็นการ์ด "ทำอันนี้" ไปแล้วกับตา · เพิ่งจับเวลา/ติ๊กเสร็จ = กำลังทำอยู่
+        // ทั้งสองกรณีการชวนคือการขัดจังหวะ ไม่ใช่การช่วย — รอบถัดไปในหน้าต่างเดียวกันจะดูใหม่เอง
+        const active = !!sub.updated_at && now - Date.parse(sub.updated_at) < ACTIVE_SKIP_MIN * 60000;
+        const workAt = hint?.workAt ? Date.parse(hint.workAt) : NaN;
+        const working = Number.isFinite(workAt) && now - workAt < WORKING_SKIP_HOURS * 3.6e6;
+        const entry = recent
+          ? (Array.isArray(hint.plans) ? hint.plans : []).find((p: any) => p && p.day === today) ?? null : null;
+        // ใบที่แอปเลือกไว้ — ยังค้างอยู่จริงไหม (อาจถูกติ๊กเสร็จบนเครื่องอื่นไปแล้ว)
+        const picked = entry ? pending.find((x: any) => x.id === entry.id) ?? null : null;
+        // ใบที่ส่งใกล้สุด (ไม่นับนัด/กิจกรรม) — ใช้เมื่อไม่มีใบที่แอปเลือก และต้องพูดว่า "ใกล้สุด" ไม่ใช่ "ควรทำ"
+        const nearest = dueList.filter((x: any) => x.h > 0 && !isEvent(x.t)).sort((a: any, b: any) => a.h - b.h);
+
+        if (wantDue) {
+          // ---- A) รอบเช้า 07:00–08:00 ----
+          // มาก่อนเสียงสุดท้าย เพราะดอกนี้พูดถึงงานที่ส่งเช้านี้อยู่แล้ว (ปักคีย์ ::last ให้ด้วย)
+          // ถ้าให้เสียงสุดท้ายออกก่อน เจ็ดโมงเช้าจะได้สองดอกห่างกันครึ่งชั่วโมงเรื่องเดียวกัน
+          const amKey = roundKey(now, 'am');
+          if (roundsOn && notiOn('morning') && gapOk && capOk && minute >= AM_FROM && minute < AM_TO && !sent(amKey)) {
+            const items = dueList.filter(dueToday).sort((a: any, b: any) => a.h - b.h);
+            if (items.length) {
+              jobs.push({
+                // ใบเดียว = ใช้แท็กของงานนั้น การ์ดจะทับกับการ์ดอื่นของงานเดียวกัน ไม่ซ้อนสองใบ
+                sub, kind: 'morning', tag: items.length === 1 ? 'task-' + items[0].t.id : 'digest',
+                key: [amKey,
+                  ...items.map((x: any) => `${x.t.id}::soon`),
+                  ...items.filter((x: any) => x.h <= LAST_CALL_HOURS).map((x: any) => `${x.t.id}::last`)],
+                copy: morningCopy(items, now),
+              });
+              continue;
+            }
+            // วันนี้ไม่มีอะไรต้องส่ง — 1C37 บอกงานใกล้สุดทุกเช้าแม้จะส่งอีกหกวัน ซึ่งคือการ์ดเดิม
+            // ทุกเช้าที่ตาเรียนรู้ที่จะปัดทิ้ง · พูดเฉพาะเมื่อใบใกล้สุดส่งภายในสองวัน และเฉพาะคนที่ยังใช้แอปอยู่
+            const soonest = nearest.filter((x: any) => x.h <= AM_AHEAD_HOURS);
+            if (recent && soonest.length) {
+              jobs.push({
+                sub, kind: 'morning', tag: 'digest', key: amKey,
+                copy: amAheadCopy(soonest[0].t, nearest.length - 1, now),
+              });
+              continue;
+            }
+          }
+
+          // ---- B) เสียงสุดท้าย: เหลือ ≤ 3 ชม. ----
+          // ไม่นับเพดานวันละ 3 โดยตั้งใจ: เพดานมีไว้กันรำคาญ ส่วนดอกนี้คือดอกที่กันพลาดส่งจริง
+          // ถ้ามันโดนเพดานตัด แปลว่าเราเอาโควตาไปใช้กับของที่รอได้ แล้วไม่เหลือให้ของที่รอไม่ได้
+          // ยังต้องห่างจากดอกก่อนหนึ่งชั่วโมง และออกครั้งเดียวต่องาน
+          if (notiOn('urgent') && sinceLast >= LAST_CALL_GAP_MIN * 60000) {
+            const last = dueList
+              .filter((x: any) => x.h > 0 && x.h <= LAST_CALL_HOURS && !sent(`${x.t.id}::last`))
+              .sort((a: any, b: any) => a.h - b.h)[0];
+            if (last) {
+              jobs.push({
+                sub, kind: 'task', tag: 'task-' + last.t.id,
+                key: [`${last.t.id}::last`, `${last.t.id}::soon`],
+                copy: reminderCopy(last.t, last.h, now),
+              });
+              continue;
+            }
+          }
+
+          // ---- C) เลยกำหนด: ครั้งเดียวต่องาน ----
+          // ของเดิมรวมไว้กับจังหวะ 'soon' — งานที่เตือนไปตอนเช้าแล้วเลยกำหนดตอนเที่ยงคืน
+          // จึงไม่เคยถูกบอกว่าเลยแล้ว · กิจกรรม (ประชุม/นัด) ไม่เตือน เลยเวลาไปแล้วทำอะไรไม่ได้
+          if (notiOn('overdue') && gapOk && capOk && !school) {
+            const over = dueList
+              .filter((x: any) => x.h <= 0 && x.h > -36 && !isEvent(x.t) && !sent(`${x.t.id}::over`))
+              .sort((a: any, b: any) => b.h - a.h)[0];
+            if (over) {
+              jobs.push({
+                sub, kind: 'task', tag: 'task-' + over.t.id,
+                key: [`${over.t.id}::over`, `${over.t.id}::soon`],
+                copy: reminderCopy(over.t, over.h, now),
+              });
+              continue;
+            }
+          }
+        }
+
+        // ---- D) รอบเย็น: "เย็นนี้เริ่มอันนี้" — ตามเวลาของเด็กคนนั้น ----
+        // แทนรอบ 16:30 ของ 1C37 (คีย์ 'pm' เดิม) · ไม่มีข้อมูลพอจะเรียนรู้ = 18:30
+        const pmKey = roundKey(now, 'pm');
+        if (planOn && pending.length && !sent(pmKey)) {
+          const habit = thWeekend(now)
+            ? num(hint.we, PLAN_DEFAULT_WE, 8 * 60, 21 * 60)
+            : num(hint.wd, PLAN_DEFAULT_WD, 15 * 60, 21 * 60);
+          const planAt = entry ? num(entry.m, habit, 8 * 60, 21 * 60) : habit;
+          const inWindow = minute >= planAt && minute < planAt + PLAN_WINDOW_MIN;
+          const named = picked ?? nearest[0]?.t ?? null;
+          if (inWindow && gapOk && capOk && !active && !working && named) {
+            // บอกของที่เหลือในบรรทัดเดียวกัน แทนการแยกไปเป็นอีกดอก (งานวิจัย: รวบเป็นรอบ)
+            const othersToday = dueList.filter((x: any) => dueToday(x) && x.t.id !== named.id && !isEvent(x.t));
+            const tomorrow = thDayKey(now + 86400000);
+            const othersTmr = dueList.filter((x: any) => x.t.id !== named.id && !isEvent(x.t)
+              && thDayKey(Date.parse(x.t.due)) === tomorrow);
+            const extra = othersToday.length ? `วันนี้ส่งอีก ${othersToday.length} งาน`
+              : othersTmr.length ? `พรุ่งนี้ส่งอีก ${othersTmr.length} งาน` : '';
+            jobs.push({
+              sub, kind: 'plan', tag: 'plan',
+              key: [pmKey, `${named.id}::plan`, ...othersTmr.map((x: any) => `${x.t.id}::plan`)],
+              copy: picked ? planCopy(picked, entry, extra, now) : planFallbackCopy(named, now),
+            });
+            continue;
+          }
+        }
+
+        // ---- E) รอบค่ำ 20:30–21:30: ตามต่อ เฉพาะคนที่วันนี้ยังไม่ได้แตะงานเลย ----
+        // 1C37 ยิงรอบนี้ให้ทุกคนทุกคืน · ตอนนี้ยิงเมื่อ "วันนี้ยังไม่ได้เริ่ม" จริงเท่านั้น
+        // แบบเดียวกับที่ Duolingo ไม่เตือนคนที่เรียนไปแล้ววันนั้น — คนที่ทำแล้วโดนทวงซ้ำ
+        // คือคนที่เรียนรู้ว่าการ์ดนี้ไม่ได้ดูอะไรเลย แล้วเลิกอ่านทุกใบ
+        // และหลบให้เสียงสุดท้าย: มีงานส่งคืนนี้ = เดี๋ยว B พูดเอง ไม่ต้องมีสองดอก
+        const eveKey = roundKey(now, 'eve');
+        if (planOn && pending.length && !sent(eveKey) && minute >= LATE_FROM && minute < LATE_TO
+            && gapOk && capOk && !active) {
+          const workedToday = Number.isFinite(workAt) && thDayKey(workAt) === today;
+          const lastCallTonight = wantDue && dueList.some((x: any) => dueToday(x) && !isEvent(x.t));
+          const named = picked ?? nearest[0]?.t ?? null;
+          if (!workedToday && !lastCallTonight && named) {
+            jobs.push({
+              sub, kind: 'plan', tag: 'plan', key: eveKey,
+              copy: picked ? lateCopy(picked, entry, now) : planFallbackCopy(named, now),
+            });
+            continue;
+          }
+        }
+
+        // ---- F) จังหวะตามกำหนดส่งแบบเดิม — เฉพาะคนที่ไม่มีรอบเย็น ----
+        // (แอปรุ่นเก่าที่ยังไม่ฝากแผน · ปิดรอบเย็นไว้ · หายไปเกินสองวัน)
+        // คนที่มีรอบเย็นไม่ต้องได้ชุดนี้ซ้ำ — รอบเย็นพูดถึงงานพรุ่งนี้ไปแล้ว รอบเช้าพูดถึงงานวันนี้
         //   plan — เย็นก่อนวันส่ง ไว้ "วางแผน" ตอนที่ยังมีเวลาทำจริง
         //   soon — วันที่ต้องส่ง ไว้ "ลงมือ"
-        // จังหวะเดียวไม่พอสำหรับเป้าหมายว่าห้ามลืม เตือนล่วงหน้าอย่างเดียวแล้วเงียบ
-        // ในวันจริง คือการฝากความจำไว้กับคนที่เรารู้อยู่แล้วว่าเขาลืม
-        const candidates = (wantDue && taskReady ? pending : [])
-          .filter((t: any) => t.due)
-          .map((t: any) => {
-            const h = (Date.parse(t.due) - now) / 3.6e6;
-            return { t, h, stage: h > SAME_DAY_HOURS ? 'plan' : 'soon' };
-          })
+        const candidates = (wantDue && !planOn && gapOk && capOk && !school ? dueList : [])
+          .map((x: any) => ({ ...x, stage: x.h > SAME_DAY_HOURS ? 'plan' : 'soon' }))
           // การสอบมองไกลกว่างานส่ง — ตั้งได้ที่ Notification Center (ค่าเริ่มต้น 3 วัน)
           // ปิดสวิตช์ "เตือนก่อนสอบ" แล้วมันกลับไปใช้หน้าต่าง 30 ชม. เท่างานอื่นทันที
           .filter((x: any) => {
             const far = (isExam(x.t) && notiOn('exam'))
               ? Math.max(LOOKAHEAD_HOURS, cfgExamHours) : LOOKAHEAD_HOURS;
-            return x.h <= far && x.h > -24;
+            return x.h <= far && x.h > 0;   // เลยกำหนดแล้วไปทาง C ด้านบน
           })
-          // สวิตช์รายประเภท · เลยกำหนดต้องเช็คก่อน เพราะใบที่เลยกำหนดก็ติด stage 'soon'
-          .filter((x: any) => x.h < 0 ? notiOn('overdue')
-                            : x.stage === 'soon' ? notiOn('urgent') : true)
+          .filter((x: any) => x.stage === 'soon' ? notiOn('urgent') : true)
           // ของที่ยังไกล ส่งเฉพาะช่วงเย็น — เตือนงานพรุ่งนี้ตอนบ่ายสองไม่มีใครลุกไปทำ
           .filter((x: any) => x.stage === 'soon' || evening)
-          // กันซ้ำ: คีย์ใหม่แยกตามจังหวะ · คีย์เก่าเป็น id เปล่า ๆ ต้องนับด้วย
-          // ไม่งั้นตอนขึ้นรุ่นนี้ งานที่เคยเตือนไปแล้วจะถูกเตือนซ้ำอีกรอบให้ทุกคนพร้อมกัน
-          .filter((x: any) => !sentKeys.has(`${sub.user_id}::${x.t.id}`)
-                           && !sentKeys.has(`${sub.user_id}::${x.t.id}::${x.stage}`))
+          // กันซ้ำ: คีย์แยกตามจังหวะ · คีย์เก่าเป็น id เปล่า ๆ ต้องนับด้วย
+          .filter((x: any) => !sent(x.t.id) && !sent(`${x.t.id}::${x.stage}`))
           .sort((a: any, b: any) => a.h - b.h);
-
-        // รอบประจำวันที่กำลังเปิดอยู่ (ถ้ามี) — ดอกไหนออกในรอบนี้ก็ปักคีย์ของรอบไว้ด้วย
-        // ไม่งั้นเตือนกำหนดส่งตอน 16:30 แล้วรอบบ่ายยังยิงซ้ำอีกดอกตอน 17:00
-        const slot = digestSlot(now);
-        const slotKey = slot ? `digest::${thDayKey(now)}::${slot.key}` : null;
 
         if (candidates.length) {
           const { t, h, stage } = candidates[0];
           jobs.push({
-            sub, kind: 'task', key: slotKey ? [`${t.id}::${stage}`, slotKey] : `${t.id}::${stage}`,
-            tag: 'task-' + t.id,
+            sub, kind: 'task', key: `${t.id}::${stage}`, tag: 'task-' + t.id,
             copy: reminderCopy(t, h, now),
           });
           continue;   // คนหนึ่งได้อย่างเดียวต่อรอบ งานด่วนสำคัญกว่าคำทัก
-        }
-
-        // ---- กลุ่มที่ 1.2: รอบประจำวัน (1C37) ----
-        // ไม่มีงานถึงคิวเตือนกำหนดส่ง แต่ยังมีงานค้าง = ทักตามรอบ เช้า · บ่าย · ค่ำ
-        if (slot && slotKey && wantDue && taskReady && notiOn('digest')
-            && !sentKeys.has(`${sub.user_id}::${slotKey}`)) {
-          const list = pending
-            .filter((t: any) => t.due && Date.parse(t.due) > now - DIGEST_STALE_DAYS * 86400000)
-            .sort((a: any, b: any) => Date.parse(a.due) - Date.parse(b.due));
-          if (list.length) {
-            jobs.push({ sub, kind: 'task', key: slotKey, tag: 'digest', copy: digestCopy(slot.key, list, now) });
-            continue;
-          }
         }
 
         // ---- กลุ่มที่ 1.5: มีคนทักหรือขอเป็นเพื่อน ----
@@ -675,18 +940,19 @@ Deno.serve(async () => {
 
         // ---- กลุ่มที่ 2: หายไปนานแล้ว ----
         // ทักได้แค่ช่วงเย็น และไม่เกินสัปดาห์ละครั้ง — ไม่ด่วน จึงไม่มีสิทธิ์รบกวนเท่างานจริง
-        if (!wantNudge || !taskReady || !evening || sentKeys.has(`${sub.user_id}::${weekKey}`)) continue;
+        if (!wantNudge || !gapOk || !evening || sent(weekKey)) continue;
 
-        const f = funnelByUser.get(sub.user_id);
-        // ไม่มี funnel = ยังไม่ได้อัปเดตแอป เราไม่รู้ว่าเขาหายไปจริงไหม → เงียบไว้
+        // ไม่รู้ว่าเปิดล่าสุดเมื่อไหร่ = ยังไม่ได้อัปเดตแอป เราไม่รู้ว่าเขาหายไปจริงไหม → เงียบไว้
         // เดาแล้วทักผิดคือการสอนให้เขาปิดการแจ้งเตือน ซึ่งแพงกว่าการไม่ทัก
-        if (!f?.lastOpen) continue;
-        const daysAway = (now - Date.parse(f.lastOpen)) / 86400000;
-        if (!(daysAway >= LAPSED_DAYS)) continue;
+        // (ก่อน 1C38 ทางนี้อ่าน funnel.lastOpen อย่างเดียว ซึ่งไม่เคยขึ้น cloud — คำทักจึงไม่เคยออกเลย)
+        if (daysAway == null || daysAway < LAPSED_DAYS) continue;
+        // หายไปเดือนครึ่ง = การทักไม่ได้ผลแล้ว เลิกทัก (แบบเดียวกับที่ Duolingo หยุดเองหลังหนึ่งเดือน)
+        // การเตือนกำหนดส่งยังทำงานต่อ เพราะงานจากกลุ่ม LINE ยังไหลเข้ามาเป็นของจริง
+        if (daysAway >= LAPSED_STOP_DAYS) continue;
 
         jobs.push({
           sub, kind: 'nudge', key: weekKey, tag: 'nudge',
-          copy: lapsedCopy(pending, Math.floor(daysAway), now),
+          copy: lapsedCopy(pending, daysAway, now),
         });
       }
 
@@ -701,9 +967,14 @@ Deno.serve(async () => {
           // ปักหมุดสองที่: เรื่องนี้ส่งแล้ว (กันซ้ำถาวร) + เครื่องนี้เพิ่งได้รับ (กันถี่)
           // เรื่องสังคมหนึ่งดอกครอบคลุมหลายเหตุการณ์ (สามข้อความ = ดอกเดียว) จึงต้องปัก
           // ให้ครบทุกคีย์ ไม่ใช่คีย์เดียว ไม่งั้นอีกสองข้อความจะถูกเตือนซ้ำในรอบถัดไป
-          const at = new Date(Date.now()).toISOString();   // นาฬิกาเดียวกับทั้งไฟล์ (Date.now) — เทสต์จำลองเวลาได้
-          const keys: string[] = Array.isArray(key) ? key : [key];
-          await db.from('push_sent')
+          // นาฬิกาเดียวกับที่ใช้ตัดสินใจทั้งรอบ (ต่างจากเวลาส่งจริงไม่กี่วินาที)
+          // ใช้คนละนาฬิกา = ด่าน "วันนี้ส่งไปกี่ดอก" กับ "ห่างจากดอกก่อนเท่าไหร่" นับไม่ตรงกับตอนตัดสิน
+          const at = new Date(now).toISOString();
+          // ไม่ปักทับคีย์ที่มีอยู่แล้ว — sent_at ของคีย์เก่าคือ "ดอกไหน" ที่มันมากับ
+          // ปักทับแล้วดอกเก่าจะหดหายไปจากตัวนับเพดานต่อวัน (ดู taskShots)
+          const keys: string[] = (Array.isArray(key) ? key : [key])
+            .filter((k) => !sentKeys.has(`${sub.user_id}::${k}`));
+          if (keys.length) await db.from('push_sent')
             .upsert(keys.map((k) => ({ user_id: sub.user_id, task_id: k, sent_at: at })));
           // ⚠️ เรื่องสังคม **ห้ามขยับ last_sent_at** — คอลัมน์นั้นคือนาฬิกาของช่วงเงียบ
           // 4 ชม. ของเรื่องงาน · ถ้าข้อความตอนบ่ายสามไปขยับมัน การเตือนงานที่ควรออก

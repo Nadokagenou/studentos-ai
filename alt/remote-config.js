@@ -111,7 +111,9 @@
     ui: { rules: {}, tokens: {}, texts: {} },
 
     noti: {
-      flags: { exam: true, urgent: true, overdue: true, daily: false, streak: false },
+      // 1C38 · plan = รอบเย็น "เย็นนี้เริ่มอันนี้" · morning = รอบเช้า "วันนี้ส่งอะไร"
+      // ทั้งคู่เปิดเป็นค่าเริ่มต้น (เจ้าของสั่ง) · daily เดิมไม่เคยต่อกับอะไร ถอดออกจากหน้า Control Center แล้ว
+      flags: { exam: true, urgent: true, overdue: true, plan: true, morning: true, daily: false, streak: false },
       // ว่าง = ส่งตามจังหวะของงานเหมือนเดิม (ไม่จำกัดหน้าต่างเวลา)
       // ใส่เวลาเมื่อไหร่ = ส่งเฉพาะ ±15 นาทีรอบเวลานั้น · ดู inSendWindow() ใน send-reminders
       // ค่าเริ่มต้นต้องเป็นว่าง ไม่ใช่ '18:00' — ตั้งเวลาเดียวเป็นค่าเริ่มต้นแปลว่า
