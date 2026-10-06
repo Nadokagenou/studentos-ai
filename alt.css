@@ -7662,6 +7662,19 @@ button.df-r:active { background: var(--surface); }
   font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
 }
 
+/* ---------- แผ่นบอกทางก่อนออกไปหน้าอนุญาตของ Google (integrations.js) ----------
+   ยืมทรง .soon-card ทั้งแผ่น · ขั้นตอนชิดซ้ายเพราะเป็นลำดับที่ต้องอ่านทีละข้อ
+   ข้อความกลางจอสามบรรทัดซ้อนกันอ่านเป็นลำดับไม่ออก */
+.gg-steps {
+  margin: 4px 0 12px; padding-left: 1.3em; text-align: left;
+  font-size: 14px; line-height: 1.55; color: var(--ink);
+}
+.gg-steps li + li { margin-top: 6px; }
+.gg-note {
+  margin: 0 0 16px; text-align: left;
+  font-size: 12.5px; line-height: 1.5; color: var(--muted);
+}
+
 /* ---------- แถวในลิสต์แท็บ "ฉัน" ที่ยังไม่เปิด (1B95) ---------- */
 /* ป้ายใช้ทรง .pe-wip เดิมของร้านค้า/Pro — แต่โทนฟ้าแทนเหลือง
    เหลือง = "กำลังทำอยู่" · ฟ้า = "ทำเสร็จแล้วแต่ยังไม่เปิด" ซึ่งเป็นคนละสถานะ */

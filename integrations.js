@@ -101,7 +101,48 @@ async function integConnectIcs(url) {
 
 // ---------- เชื่อมบัญชี Google ----------
 // พาออกไปหน้าอนุญาตของ Google แล้วเดินทางกลับเข้ามาที่ integBootNotice()
-async function integConnectGoogle(provider) {
+//
+// ก่อนออกไปต้องผ่านแผ่นบอกทางหนึ่งแผ่นเสมอ (ข้ามได้ด้วย go = true จากปุ่มในแผ่นเอง)
+// เพราะหน้าของ Google มีกับดักสามจุดที่คนพลาดกันจริง และพลาดแล้วไม่มีอะไรบอกว่าพลาด:
+//   1. เลือกบัญชีส่วนตัวแทนบัญชีโรงเรียน → เชื่อมผ่าน แต่ไม่มีงานเข้าเลยสักใบ
+//   2. แอปยังไม่ผ่านการตรวจของ Google → ขึ้นหน้าเตือนสีแดง ซ่อนปุ่มไปต่อไว้หลัง "ขั้นสูง"
+//      คนที่ไม่รู้มาก่อนจะกด "กลับสู่ความปลอดภัย" แล้วสรุปว่าแอปพัง
+//   3. Google ให้ติ๊กสิทธิ์ทีละช่อง → ไม่ติ๊กครบ เชื่อมผ่านแต่ดึงงานไม่ได้
+// prompt=consent แปลว่าเจอหน้าพวกนี้ทุกครั้งที่กดเชื่อม แผ่นนี้จึงโผล่ทุกครั้งเหมือนกัน
+const GOOGLE_GUIDE = {
+  google_classroom: { acct: 'เลือกบัญชีที่ใช้เข้า Classroom (ส่วนมากคืออีเมลโรงเรียน)' },
+  google_calendar:  { acct: 'เลือกบัญชีที่มีปฏิทินของโรงเรียน' },
+};
+
+function integGoogleGuide(provider) {
+  const el = document.getElementById('soonSheet');
+  const g = GOOGLE_GUIDE[provider];
+  if (!el || !g) return false;
+  const s = (typeof SOURCES !== 'undefined' && SOURCES.find(x => x.id === provider)) || {};
+  el.innerHTML = `<div class="as-scrim" onclick="closeSoonSheet()"></div>
+    <div class="as-card soon-card" role="dialog" aria-label="เชื่อม ${esc(s.name || 'Google')}">
+      <div class="as-grip"></div>
+      <div class="soon-ic">${icon(s.icon || 'book')}</div>
+      <h3 class="soon-t">เชื่อม ${esc(s.name || 'Google')}</h3>
+      <ol class="gg-steps">
+        <li>${esc(g.acct)}</li>
+        <li>ถ้าขึ้นว่า <b>“Google ยังไม่ได้ยืนยันแอปนี้”</b> ให้กด <b>ขั้นสูง</b>
+          แล้วกดลิงก์ <b>ไปที่ … (ไม่ปลอดภัย)</b> ข้างล่าง · แอปขอแค่อ่าน ไม่แก้อะไรใน Classroom</li>
+        <li><b>ติ๊กทุกช่อง</b> แล้วกดดำเนินการต่อ · ขาดช่องไหนจะดึงงานไม่ได้</li>
+      </ol>
+      <p class="gg-note">ถ้าขึ้นว่าถูกบล็อกหรือต้องให้ผู้ดูแลอนุมัติ แปลว่าโรงเรียนปิดกั้นแอปภายนอก
+        ใช้ปุ่มแชร์ใน Classroom ส่งงานเข้าแอปนี้แทนได้</p>
+      <button class="soon-go" onclick="closeSoonSheet();integConnectGoogle('${provider}', true)">ไปหน้า Google</button>
+      <button class="soon-x" onclick="closeSoonSheet()">ยกเลิก</button>
+    </div>`;
+  el.hidden = false;
+  setTimeout(() => el.classList.add('on'), 16);
+  if (typeof haptic === 'function') haptic('tap');
+  return true;
+}
+
+async function integConnectGoogle(provider, go) {
+  if (!go && integGoogleGuide(provider)) return false;
   integ.busy = provider;
   if (typeof renderSources === 'function') renderSources();
   try {
