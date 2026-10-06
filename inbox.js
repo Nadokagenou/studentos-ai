@@ -337,16 +337,10 @@ function inboxUnits(item) {
 // ---------- ประตูเข้าหลัก ----------
 // ทุกแหล่งเรียกฟังก์ชันนี้ฟังก์ชันเดียว ส่งข้อความดิบมาให้
 // คืนค่าเป็นรายการที่เกิดขึ้นจริง เพื่อให้ตัวเรียกรู้ว่าควรพาไปหน้าไหนต่อ
-function inboxAdd(rawText, sourceId = 'text', meta = {}) {
-  const text = String(rawText || '').trim();
-  if (!text) return { status: 'empty' };
-
-  // ผู้ใช้ปิดตัวเชื่อมนี้ไว้ — ไม่เก็บ ไม่ถาม ไม่บันทึกด้วย
-  // (บันทึกไว้จะกลายเป็นการเก็บของจากทางที่เขาเพิ่งบอกว่าไม่อยากให้เก็บ)
-  if (!srcEnabled(sourceId)) return { status: 'off' };
-
-  // ครูสั่งงานทั้งสัปดาห์ในข้อความเดียวเป็นเรื่องปกติ ไม่ใช่ข้อยกเว้น
-  // ต้องตัดเป็นงาน ๆ ก่อนเสมอ ไม่งั้นได้งานเดียวที่มีทุกวิชาปนกันแล้วไม่มีกำหนดส่ง
+// ตัดก้อนข้อความเป็นงาน ๆ — ประตูเดียวที่ทุกทางเข้า (กล่องเข้า · ช่องแปะข้อความ · เบนช์) ต้องเรียก
+// เคยมีแค่กล่องเข้าที่ตัด ส่วนช่องแปะบนจอเพิ่มงานส่งทั้งก้อนเข้า parseAssignment ตรง ๆ
+// ผลคือแปะสองบรรทัดสองงาน ได้งานเดียวชื่อยาวที่กำหนดส่งของบรรทัดแรกหายไป (QA 6 ต.ค. 69)
+function cutAssignments(text) {
   const cut = typeof splitAssignments === 'function'
     ? splitAssignments(text) : { multi: false, reason: 'single', segments: [text], header: '' };
 
@@ -357,6 +351,20 @@ function inboxAdd(rawText, sourceId = 'text', meta = {}) {
   if (!cut.multi && cut.reason === 'lines' && cut.segments.length >= 2 && looksLikeTaskList(cut.segments)) {
     cut.multi = true;
   }
+  return cut;
+}
+
+function inboxAdd(rawText, sourceId = 'text', meta = {}) {
+  const text = String(rawText || '').trim();
+  if (!text) return { status: 'empty' };
+
+  // ผู้ใช้ปิดตัวเชื่อมนี้ไว้ — ไม่เก็บ ไม่ถาม ไม่บันทึกด้วย
+  // (บันทึกไว้จะกลายเป็นการเก็บของจากทางที่เขาเพิ่งบอกว่าไม่อยากให้เก็บ)
+  if (!srcEnabled(sourceId)) return { status: 'off' };
+
+  // ครูสั่งงานทั้งสัปดาห์ในข้อความเดียวเป็นเรื่องปกติ ไม่ใช่ข้อยกเว้น
+  // ต้องตัดเป็นงาน ๆ ก่อนเสมอ ไม่งั้นได้งานเดียวที่มีทุกวิชาปนกันแล้วไม่มีกำหนดส่ง
+  const cut = cutAssignments(text);
   if (cut.multi) return inboxAddBatch(text, cut, sourceId, meta);
 
   const parsed = parseAssignment(text);

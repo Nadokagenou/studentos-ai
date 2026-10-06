@@ -1440,14 +1440,33 @@
   -webkit-backdrop-filter: blur(14px) saturate(150%);
   backdrop-filter: blur(14px) saturate(150%);
 }
+/* กระเบื้องไล่สีแบบไอคอนแอป + ภาพทึบสีขาว (ภาพอยู่ใน STAT_ART ของ app.js)
+   สามสีแยกกันชัด และตรงกับเรื่องของช่อง: ฟ้า = เวลาว่าง (สบาย) · ม่วง = งานค้าง · ส้มแดง = ไฟต่อเนื่อง
+   ประกายขอบบน + เงาสีเดียวกับกระเบื้อง ให้ดูเป็นก้อนนูน ไม่ใช่สติกเกอร์แปะ
+   ขนาด 30 + ระยะล่าง 7 = 37px เท่าของเดิม (29 + 8) — หน้าแรกเลื่อนอยู่แล้ว ห้ามสูงขึ้น
+   --ts-ink = สีเข้มของกระเบื้อง ใช้ระบายเข็ม/บรรทัด/ช่วงเวลาบนภาพสีขาว (currentColor) */
 .ts-ic {
-  display: grid; place-items: center; width: 29px; height: 29px;
-  border-radius: 11px; margin-bottom: 8px;
+  display: grid; place-items: center; width: 30px; height: 30px;
+  border-radius: 10px; margin-bottom: 7px;
+  color: var(--ts-ink);
+  background: linear-gradient(150deg, var(--ts-a), var(--ts-b));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), inset 0 -1px 0 rgba(0,0,0,.08),
+    0 5px 12px -5px var(--ts-glow);
 }
-.ts-ic svg { width: 15px; height: 15px; }
-.ts.v .ts-ic { background: var(--blue-soft); color: var(--blue); }
-.ts.w .ts-ic { background: var(--pri-yellow-soft, var(--warn-soft)); color: var(--pri-yellow-text, var(--warn)); }
-.ts.g .ts-ic { background: var(--good-soft); color: var(--good); }
+.ts-ic svg { width: 19px; height: 19px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.14)); }
+.ts.v { --ts-a: #7DD3FC; --ts-b: #2563EB; --ts-ink: #1D4ED8; --ts-glow: rgba(37,99,235,.55); }
+.ts.w { --ts-a: #C4B5FD; --ts-b: #7C3AED; --ts-ink: #6D28D9; --ts-glow: rgba(124,58,237,.55); }
+.ts.g { --ts-a: #FDBA74; --ts-b: #EF4444; --ts-ink: #DC2626; --ts-glow: rgba(239,68,68,.5); }
+/* เปลวไฟไหวช้า ๆ จากโคนเปลว — ของชิ้นเดียวในแถวที่ขยับ เพราะมันคือ "ไฟที่ยังไม่ดับ" */
+.ts-flame { transform-box: fill-box; transform-origin: 50% 100%; animation: ts-flame 2.4s ease-in-out infinite; }
+@keyframes ts-flame {
+  0%, 100% { transform: scale(1, 1) skewX(0); }
+  35% { transform: scale(.96, 1.05) skewX(-2deg); }
+  70% { transform: scale(1.03, .96) skewX(1.5deg); }
+}
+@media (prefers-reduced-motion: reduce) { .ts-flame { animation: none; } }
+/* Astral Black: ขาว–ดำ–เทาล้วน → กระเบื้องเงินไล่เทา ภาพขาว ระบายเทาเข้ม */
+:root[data-theme="astral"] .ts-ic { filter: grayscale(1); }
 .ts b {
   display: block; font-family: 'Outfit', ui-monospace, monospace;
   font-size: 21px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1;

@@ -2867,6 +2867,10 @@
 :root[data-nav="side"] .screens { margin-left: 106px; }
 :root[data-nav="side"] .statusbar { padding-left: 120px; }
 :root[data-nav="side"] .screen { padding-bottom: 28px; }
+/* หัวจอย่อยอยู่ในคอลัมน์ flex + margin auto (กฎคุมความกว้างข้างล่าง) จึงหดเหลือเท่าปุ่มแล้วไปกลางจอ
+   ปุ่มกลับของจอสุ่มสกิน/ร้านค้า ฯลฯ เลยลอยอยู่กลางบน — เจ้าของ: "ปุ่มออกอยู่ฝั่งซ้าย"
+   เต็มความกว้างของคอลัมน์ ปุ่มกลับกลับไปชิดซ้ายเหมือนบนมือถือ */
+:root[data-nav="side"] .sticky-head { width: 100%; }
 :root[data-nav="side"] .home-body,
 :root[data-nav="side"] .scr-body {
   padding-bottom: 28px;
@@ -2965,6 +2969,10 @@
   border-radius: 3px;
   background: rgba(0, 0, 0, .35);
 }
+/* มุมซ้ายบนใช้คลาส .tl ชนกับ .tl ของเส้นเวลา (margin-top 18px · padding-left 26px · เส้นแกนตั้ง ::before)
+   มุมนี้เลยหลุดลงมาจากมุมกรอบและกว้างกว่าอีกสามมุม — ล้างของเส้นเวลาทิ้งให้ทั้งสี่มุมหน้าตาเดียวกัน */
+.crop-box .h { margin: 0; padding: 0; }
+.crop-box .h::before { content: none; }
 .crop-box .tl { left: -9px; top: -9px; border-right: none; border-bottom: none; }
 .crop-box .tr { right: -9px; top: -9px; border-left: none; border-bottom: none; }
 .crop-box .bl { left: -9px; bottom: -9px; border-right: none; border-top: none; }
@@ -4463,11 +4471,9 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 }
 .pe-shop .pe-ic svg, .tk-cta .tile svg { stroke-width: 2.1; }
 
-/* ---------- ล็อกจอตอนยังเปิดการ์ดไม่ครบ ----------
-   ต้องดูให้จบก่อนถึงจะออกไปไหนได้ ปุ่มกลับกับแถบเมนูจึงหายไปชั่วคราว */
-body.draw-lock .tabbar,
-body.draw-lock #scr-wheel .sh-btn { display: none; }
-body.draw-lock #scr-wheel .scr-body { padding-bottom: 24px; }
+/* ---------- ระหว่างหงายการ์ด ----------
+   เดิมซ่อนแถบเมนูกับปุ่มกลับ บังคับให้ดูจนจบ — เจ้าของ: "ให้ปุ่มเมนูมาด้วย" จึงไม่ซ่อนแล้ว
+   ออกกลางคันได้ ของในใบที่ยังคว่ำเข้ากระเป๋าให้เอง (drawSettle ใน app.js) */
 
 /* ---------- เวทีของหน้าสุ่ม ----------
    แสงไล่สีหลังแถบการ์ด ทำให้การ์ดดูลอยอยู่บนเวที ไม่ใช่วางบนพื้นเปล่า */
@@ -4478,23 +4484,56 @@ body.draw-lock #scr-wheel .scr-body { padding-bottom: 24px; }
   height: 250px;
   pointer-events: none;
   z-index: 0;
+  /* เงาพื้นดำใต้การ์ด (วงรีดำ 28% ที่ก้นเวที) ถูกถอดออก — เจ้าของ: "มีขอบดำ ๆ จาง ๆ ข้างล่างใต้การ์ด เอาออก"
+     วงรีจุดศูนย์กลางอยู่ที่ 96% ของความสูง ครึ่งล่างล้นกล่องจึงโดนตัดเป็นขอบตรง เห็นเป็นแถบเทาขอบแข็งใต้การ์ด */
   background:
-    radial-gradient(60% 52% at 50% 46%, rgba(120,160,255,.22), transparent 72%),
-    radial-gradient(90% 30% at 50% 96%, rgba(0,0,0,.28), transparent 70%);
+    radial-gradient(60% 52% at 50% 46%, rgba(120,160,255,.22), transparent 72%);
 }
 .gc-stage.idle { animation: gc-breathe 5s ease-in-out infinite; }
 @keyframes gc-breathe { 0%,100% { opacity: .6; } 50% { opacity: 1; } }
-/* แสงวูบตอนเปิดได้ของหายาก — สีตามระดับ */
-.gc-stage.burst-rare { animation: gc-burst-r .9s ease-out; }
-.gc-stage.burst-legendary { animation: gc-burst-l 1.15s ease-out; }
-@keyframes gc-burst-r {
-  0%   { box-shadow: inset 0 0 0 0 rgba(96,165,250,.7); background-color: rgba(59,130,246,.3); }
-  100% { box-shadow: inset 0 0 90px 30px rgba(96,165,250,0); background-color: transparent; }
+/* แสงวูบตอนเปิดได้ของหายาก — สีตามระดับ · คลุมทั้งจอ (ดู gcFlash ใน app.js)
+   เดิมอยู่บน .gc-stage สูง 250px เห็นเป็นกล่องฟ้าขอบแข็งกลางจอ — เจ้าของ: "ให้มันรอบหน้าจอเลย"
+   เรืองจากขอบจอทุกด้านเข้ามา (เงาด้านใน) + พื้นจอติดสีจาง ๆ ตรงกลาง แล้วจางหาย
+   อนิเมตแค่ opacity — เงาก้อนใหญ่ขนาดนี้ถ้าอนิเมตขนาดเงาเองจะวาดใหม่ทุกเฟรมบนมือถือ */
+.gc-flash {
+  position: absolute; inset: 0; z-index: 60; pointer-events: none;
+  opacity: 0;
+  animation: gc-flash 1.1s ease-out forwards;
 }
-@keyframes gc-burst-l {
-  0%   { box-shadow: inset 0 0 0 0 rgba(252,211,77,.85); background-color: rgba(245,158,11,.42); }
-  100% { box-shadow: inset 0 0 120px 40px rgba(252,211,77,0); background-color: transparent; }
+.gc-flash.rare {
+  background: radial-gradient(130% 90% at 50% 42%, rgba(59,130,246,.2), transparent 70%);
+  box-shadow: inset 0 0 90px 24px rgba(96,165,250,.8), inset 0 0 0 2px rgba(147,197,253,.7);
 }
+.gc-flash.legendary {
+  animation-duration: 1.45s;
+  background: radial-gradient(130% 90% at 50% 42%, rgba(245,158,11,.26), transparent 70%);
+  box-shadow: inset 0 0 120px 34px rgba(252,211,77,.85), inset 0 0 0 2px rgba(253,230,138,.8);
+}
+@keyframes gc-flash { 0% { opacity: 0; } 14% { opacity: 1; } 100% { opacity: 0; } }
+.gc-flash.secret {
+  animation-duration: 1.45s;
+  background: radial-gradient(130% 90% at 50% 42%, rgba(217,70,239,.24), transparent 70%);
+  box-shadow: inset 0 0 120px 34px rgba(232,121,249,.8), inset 0 0 0 2px rgba(245,208,254,.8);
+}
+/* แสงขอบจอที่ค้างอยู่ตลอดที่การ์ดของหายากใบนั้นอยู่ข้างหน้า (ดู gcAuraSync ใน app.js)
+   เบากว่าจังหวะวูบ เพราะต้องอยู่ร่วมกับจอไปนาน ๆ · หายใจช้า ๆ ให้รู้ว่ายังมีชีวิต
+   เปลี่ยนสี/เปิด/ปิด ไล่ 0.4 วิ — หมุนผ่านหลายใบเร็ว ๆ แสงจะไหลตาม ไม่กะพริบ */
+.gc-aura {
+  position: absolute; inset: 0; z-index: 59; pointer-events: none;
+  opacity: 0; transition: opacity .4s ease, box-shadow .4s ease;
+}
+.gc-aura.on { opacity: 1; animation: gc-aura 2.8s ease-in-out .5s infinite alternate; }
+.gc-aura.rare {
+  box-shadow: inset 0 0 85px 18px rgba(96,165,250,.75), inset 0 0 0 1.5px rgba(147,197,253,.7);
+}
+.gc-aura.legendary {
+  box-shadow: inset 0 0 90px 18px rgba(252,211,77,.65), inset 0 0 0 1.5px rgba(253,230,138,.7);
+}
+.gc-aura.secret {
+  box-shadow: inset 0 0 90px 18px rgba(232,121,249,.6), inset 0 0 0 1.5px rgba(245,208,254,.65);
+}
+@keyframes gc-aura { from { opacity: 1; } to { opacity: .62; } }
+@media (prefers-reduced-motion: reduce) { .gc-aura.on { animation: none; } }
 #gcArea { position: relative; }
 
 /* หัวจอมีไล่สีทองนิดหนึ่ง ให้รู้ว่าจอนี้ไม่ใช่จอข้อมูลธรรมดา */
@@ -7552,7 +7591,9 @@ body.deep-scr .top-friends { display: none; }
 .tb-nd-ic svg { width: 17px; height: 17px; }
 .tb-nd-tx { flex: 1; min-width: 0; }
 .tb-nd-tx b { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
-.tb-nd-tx span { display: block; margin-top: 1px; font-size: 12px; color: var(--muted); line-height: 1.45; }
+/* บรรทัดอธิบายเคยเป็น --muted ตัวบาง บนพื้นการ์ดที่ติดสีธีมอยู่แล้ว — ธีมมืดเหลือเทาจางบนเทา
+   (เจ้าของ: "ทำให้สีชัดขึ้น") · หมึกของธีม 85% + หนา 500 ยังเบากว่าหัวข้อหนึ่งขั้น */
+.tb-nd-tx span { display: block; margin-top: 1px; font-size: 12px; font-weight: 500; color: color-mix(in srgb, var(--ink) 85%, transparent); line-height: 1.45; }
 .tb-nd-go { flex: none; display: flex; color: var(--blue); }
 .tb-nd-go svg { width: 16px; height: 16px; }
 
@@ -8454,6 +8495,8 @@ button.df-r:active { background: var(--surface); }
 }
 .tabbar .tab,.tg-grid .tg-t{will-change:transform}
 .tabbar .tab{transform-origin:50% 100%}
+/* แถบตั้งด้านซ้าย: ขยายจากขอบซ้าย ดันออกไปทางเนื้อหา — แบบ dock ที่วางไว้ข้างจอ */
+:root[data-nav="side"] .tabbar .tab{transform-origin:0% 50%}
 .tg-grid .tg-t{position:relative;transform-origin:50% 60%}
 
 /* AI composer = same capsule + glass send button as the home ask bar */
@@ -8602,13 +8645,17 @@ button.df-r:active { background: var(--surface); }
 .hs-glow{position:absolute;inset:0;overflow:hidden;border-radius:inherit;pointer-events:none;z-index:0}
 .hs-wrap{position:absolute;left:0;right:0;bottom:0;height:50%;opacity:var(--hs-op,.2);transition:opacity .25s ease-out}
 .hs-b{position:absolute}
-.hs-b1{bottom:-16px;width:192px;height:64px;filter:blur(24px);background:linear-gradient(90deg,#ff0080,#7928ca,#00d4ff,#0070f3);animation:hsA var(--d1,6s) ease-in-out infinite}
-.hs-b2{bottom:-12px;width:128px;height:48px;filter:blur(16px);background:linear-gradient(90deg,#ff4d4d,#f9cb28,#ff0080);animation:hsB var(--d2,5s) ease-in-out infinite}
-.hs-b3{bottom:-8px;width:96px;height:40px;filter:blur(16px);background:linear-gradient(90deg,#0070f3,#00d4ff,#7928ca);animation:hsC var(--d3,4s) ease-in-out infinite}
+/* สีแสงตามธีม — เจ้าของ: "ตรงแสงที่เคลื่อนไหวข้างล่างใช้สีตามแต่ละธีม"
+   ของต้นทางเป็นชมพู/ม่วง/ฟ้า/เหลืองตายตัว ทุกธีมเลยได้แสงสีรุ้งชุดเดียวกัน (ธีมเขียว ธีมส้ม ก็ยังเรืองชมพูม่วง)
+   ก้อนใหญ่ = ไล่สีแบรนด์ของธีม (--grad-brand · ธีมที่ตั้งเป็นสีทึบก็ใช้ได้) ·
+   ก้อนกลาง = สีเน้นอ่อน · ก้อนเล็ก = สีเน้นเต็ม → อ่อน · Astral Black ทับเป็นเงินไว้ในบล็อกของตัวเอง */
+.hs-b1{bottom:-16px;width:192px;height:64px;filter:blur(24px);background:var(--grad-brand,var(--fill));animation:hsA var(--d1,6s) ease-in-out infinite}
+.hs-b2{bottom:-12px;width:128px;height:48px;filter:blur(16px);background:linear-gradient(90deg,color-mix(in srgb,var(--fill) 55%,#fff),var(--fill),color-mix(in srgb,var(--fill) 70%,#fff));animation:hsB var(--d2,5s) ease-in-out infinite}
+.hs-b3{bottom:-8px;width:96px;height:40px;filter:blur(16px);background:linear-gradient(90deg,var(--fill),color-mix(in srgb,var(--fill) 45%,#fff));animation:hsC var(--d3,4s) ease-in-out infinite}
 @keyframes hsA{0%,100%{left:-5%}50%{left:75%}}
 @keyframes hsB{0%,100%{left:65%}50%{left:10%}}
 @keyframes hsC{0%,100%{left:25%}50%{left:55%}}
-.phone .sai-bar.hs-focus{--hs-op:.34;box-shadow:0 0 0 1px rgba(168,85,247,.38),0 8px 22px -10px rgba(121,40,202,.4) !important}
+.phone .sai-bar.hs-focus{--hs-op:.34;box-shadow:0 0 0 1px color-mix(in srgb,var(--fill) 45%,transparent),0 8px 22px -10px color-mix(in srgb,var(--fill) 50%,transparent) !important}
 .phone .sai-bar.hs-type{--d1:3.5s;--d2:3s;--d3:2.4s}
 .phone .sai-bar.hs-load{--hs-op:.42;--d1:2.4s;--d2:2s;--d3:1.7s}
 .phone .sai-bar.hs-del{--hs-op:.42;--d1:2.35s;--d2:2s;--d3:1.65s}
@@ -8782,10 +8829,12 @@ button.df-r:active { background: var(--surface); }
   border-radius: 16px;
 }
 
-:root:not([data-nav="side"]) .phone .tabbar .tab.scan .scan-dot {
-  width: 34px; height: 34px;
-  margin: -11px 0 -2px;
+/* หน้าตาปุ่ม + ใช้ชุดเดียวกันทั้งแถบล่างและแถบตั้งด้านซ้าย (จอกว้าง)
+   เจ้าของ: "ตรงปุ่มตรงกลาง ทำให้รูปแรก (แถบข้าง) เหมือนรูปสอง (แถบล่าง)" — แถบข้างเคยเป็นวงกลมกระจกเข้ม
+   มีวงแหวนขาวหนา ไม่ใช่ปุ่มสีธีม · ต่างกันแค่ขนาด/ระยะ ซึ่งแยกไว้ข้างล่างตามโหมด */
+.phone .tabbar .tab.scan .scan-dot {
   border-radius: 50%;
+  outline: none;
   color: #fff;
   background:
     radial-gradient(120% 90% at 26% -4%, rgba(255,255,255,.55) 0%, rgba(255,255,255,.1) 44%, transparent 64%),
@@ -8796,7 +8845,17 @@ button.df-r:active { background: var(--surface); }
     0 0 0 2.5px color-mix(in srgb, var(--fill) 42%, #fff),
     0 8px 16px -6px var(--lg-drop) !important;
 }
+:root:not([data-nav="side"]) .phone .tabbar .tab.scan .scan-dot {
+  width: 34px; height: 34px;
+  margin: -11px 0 -2px;
+}
 :root:not([data-nav="side"]) .phone .tabbar .tab.scan .scan-dot svg { width: 19px; height: 19px; stroke-width: 2.4; }
+/* แถบข้างมีที่แนวตั้งเหลือ ไม่ต้องยกลอยขึ้นจากแถบ — วางในก้อนตรง ๆ ใหญ่กว่าแถบล่างนิดหนึ่งตามความกว้างแถบ */
+:root[data-nav="side"] .phone .tabbar .tab.scan .scan-dot {
+  width: 42px; height: 42px;
+  margin: 0 0 4px;
+}
+:root[data-nav="side"] .phone .tabbar .tab.scan .scan-dot svg { width: 22px; height: 22px; stroke-width: 2.4; }
 :root:not([data-nav="side"]) .phone .tabbar .tab.scan > span:last-child { display: block; }
 
 /* ============================================================
@@ -9069,6 +9128,23 @@ button.df-r:active { background: var(--surface); }
 /* ไฟเรืองของการ์ดสุ่มที่หงายได้ของดี (ฟ้า/ส้ม) → แสงขาว */
 :root[data-theme="astral"] .gc.lit-rare { filter: drop-shadow(0 0 12px rgba(255,255,255,.35)); }
 :root[data-theme="astral"] .gc.lit-legendary { filter: drop-shadow(0 0 18px rgba(255,255,255,.6)); }
+/* แสงวูบเต็มจอตอนหงายของหายาก (ฟ้า/ทอง) → แสงขาว ระดับต่างกันที่ความแรง */
+:root[data-theme="astral"] .gc-flash.rare {
+  background: radial-gradient(130% 90% at 50% 42%, rgba(255,255,255,.12), transparent 70%);
+  box-shadow: inset 0 0 90px 24px rgba(255,255,255,.5), inset 0 0 0 2px rgba(255,255,255,.55);
+}
+:root[data-theme="astral"] .gc-flash.secret {
+  background: radial-gradient(130% 90% at 50% 42%, rgba(255,255,255,.2), transparent 70%);
+  box-shadow: inset 0 0 120px 34px rgba(255,255,255,.75), inset 0 0 0 2px rgba(255,255,255,.8);
+}
+:root[data-theme="astral"] .gc-aura.rare { box-shadow: inset 0 0 70px 12px rgba(255,255,255,.35), inset 0 0 0 1.5px rgba(255,255,255,.45); }
+:root[data-theme="astral"] :is(.gc-aura.legendary, .gc-aura.secret) {
+  box-shadow: inset 0 0 90px 18px rgba(255,255,255,.55), inset 0 0 0 1.5px rgba(255,255,255,.65);
+}
+:root[data-theme="astral"] .gc-flash.legendary {
+  background: radial-gradient(130% 90% at 50% 42%, rgba(255,255,255,.2), transparent 70%);
+  box-shadow: inset 0 0 120px 34px rgba(255,255,255,.75), inset 0 0 0 2px rgba(255,255,255,.8);
+}
 /* ภาพประกอบที่วาดด้วยสีเต็ม (เหรียญโทเคน · เหรียญตรา · หน้าการ์ดสุ่ม · การ์ดสกิน · หัวข้อไล่สี ·
    วงรอบรูปคนที่ออนไลน์) — ลดเป็นขาวดำทั้งชิ้น ดีกว่าไล่เขียนสีใหม่ทีละชิ้นแล้วตกหล่น */
 :root[data-theme="astral"] :is(.tok, .bg-mark, .bg-nm.fancy, .gc-face, .gc-title, .tk-skin, .tk-aura,
@@ -9083,13 +9159,27 @@ button.df-r:active { background: var(--surface); }
    เจ้าของ: "ทำให้ข้อความนี้ชัดขึ้นทั้งสามข้อความ" — เดิมเป็น --faint #8E8E8E หนัก 600 ขนาด 12px
    บนพื้นดำที่มีเส้นคลื่นวิ่งผ่าน ตัวเล็กสีเทากลางเลยจมไปกับลาย
    ยกเป็นหมึกเกือบเต็ม + หนาขึ้น + เงาดำบาง ๆ แยกตัวหนังสือออกจากเส้นคลื่น · ยังเบากว่าหัวข้อจอหนึ่งขั้น */
-:root[data-theme="astral"] .eyebrow {
-  color: color-mix(in srgb, var(--ink) 88%, transparent);
-  font-size: 13px; font-weight: 700;
-  text-shadow: 0 1px 6px rgba(0,0,0,.9);
+:root[data-theme="astral"] .eyebrow { color: var(--ink); font-weight: 700; }
+/* รอบสอง — เจ้าของส่งภาพเดิมมาอีกครั้ง: ตัวขาว + เงาฟุ้งยังโดนเส้นคลื่นวิ่งตัดกลางตัวหนังสือ
+   และเงาฟุ้งทำให้ตัวดูเบลอ · แก้ที่ต้นเหตุ = อย่าให้เส้นผ่านหลังตัวหนังสือเลย
+   บรรทัดบนหัวจอได้แคปซูลกระจกดำของตัวเอง (กว้างเท่าข้อความ) · ขาวเต็ม 13.5px ไม่มีเงาฟุ้ง */
+:root[data-theme="astral"] .page-head .eyebrow {
+  width: fit-content; max-width: 100%;
+  padding: 3px 11px; margin: 0 0 4px -2px; border-radius: 999px;
+  background: rgba(0,0,0,.66);
+  border: 1px solid rgba(255,255,255,.16);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  color: #FFFFFF; font-size: 13.5px; letter-spacing: .02em;
 }
-:root[data-theme="astral"] .tk-mode { font-size: 13.5px; font-weight: 700; }
-:root[data-theme="astral"] .tk-mode:not(.on) { color: color-mix(in srgb, var(--ink) 90%, transparent); }
+/* รางแท็บโหมด: กระจกเงินโปร่ง 8.6% เห็นเส้นคลื่นกับดาวเคราะห์ทะลุมาหลังคำ "สัปดาห์ / รายการ"
+   → กระจกดำเกือบทึบ ขอบเงินเดิม · ตัวที่ไม่ได้เลือกขาวเต็ม หนา 700
+   (ต้องผ่าน #scr-tasks เพราะชุดกระจกใส่ !important ไว้ด้วยตัวเลือกที่จำเพาะกว่า .tk-modes เดี่ยว ๆ) */
+:root[data-theme="astral"] #scr-tasks .tk-modes {
+  background-color: rgba(10,10,10,.84) !important;
+  background-image: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.02) 60%) !important;
+}
+:root[data-theme="astral"] .tk-mode { font-size: 14px; font-weight: 700; }
+:root[data-theme="astral"] .tk-mode:not(.on) { color: #FFFFFF; }
 
 /* ============================================================
    1C40 · แชทน้องไซหน้าตาแบบแอปแชท AI (Claude · ChatGPT · Grok)
@@ -9218,3 +9308,426 @@ button.df-r:active { background: var(--surface); }
 .phone #aiBody .sai-bar.sai-cmp .sb-send svg { width: 18px; height: 18px; stroke-width: 2.6; }
 .phone #aiBody .sai-bar.sai-cmp .sb-send:active { transform: scale(.92); }
 @media (prefers-reduced-motion: reduce) { .am-caret { animation: none; } }
+
+/* ============================================================
+   QA 6 ต.ค. 69 · แก้ตามรายงานตรวจก่อนเผยแพร่ (20 จุด)
+   รวมไว้ท้ายไฟล์ก้อนเดียว เพราะหลายข้อต้องชนะชั้นกระจก 1C40 ที่อยู่ข้างบน
+   ห้ามแตะ style.css (กฎของโปรเจกต์) — ข้อที่ต้นเหตุอยู่ในนั้นจึง override จากตรงนี้
+   ============================================================ */
+
+/* #16 · ตัวหนังสือไม่โดน Safari แนวนอนขยายเอง · ป้ายเล็กสุดไม่ต่ำกว่า 11px */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.phone .tabbar .tab { font-size: 11px; }
+/* ตัวเลขเล็กกว่า 10px ที่เป็นข้อความอ่านจริง (ไม่ใช่แบดจ์) ยกขึ้นเป็น 10.5px */
+.ck-node em, .cal-more, .tltime .d, .dn-mid i, .ab-ds { font-size: 10.5px; }
+
+/* #8 · ข้อความผิดใต้ช่องแปะข้อความ (แทน alert) */
+.paste-err { display: block; margin: 6px 4px 0; }
+.paste-err[hidden] { display: none; }
+#pasteText[aria-invalid="true"], #fDetail[aria-invalid="true"] { outline: 2px solid var(--alert); outline-offset: 2px; border-radius: 12px; }
+
+/* #17 · ปุ่มย้อนในแผ่นเพิ่มงาน (หน้าตัวเชื่อม) เป็น <button> แล้ว — ล้างหน้าตาปุ่มของเบราว์เซอร์ */
+button.as-back { background: none; border: 0; font: inherit; color: inherit; width: 100%;
+  text-align: inherit; cursor: pointer; }
+
+/* #17 · วงโฟกัสคีย์บอร์ดที่เห็นได้ทุกปุ่ม ทุกธีม — เฉพาะตอนใช้คีย์บอร์ด (ไม่ขึ้นตอนแตะนิ้ว) */
+.phone :is(button, a, [role="button"], [tabindex], input, textarea, select, label.scan-tile):focus-visible,
+#addSheet :focus-visible, #checkin :focus-visible, #focusWrap :focus-visible,
+#soonSheet :focus-visible, #aiSheet :focus-visible {
+  outline: 2.5px solid var(--blue) !important; outline-offset: 2px !important;
+}
+
+/* #12 · ปุ่มที่ใช้ไม่ได้ต้องดูออกว่าใช้ไม่ได้ · และมีสถานะชี้บนจอที่มีเมาส์ */
+.phone button:disabled, .phone button[aria-disabled="true"] { opacity: .5; cursor: not-allowed; filter: saturate(.6); }
+@media (hover: hover) and (pointer: fine) {
+  .phone :is(.fm-save, .tc-cta, .sai-cta, .ck-cta, .as-row, .tg-t, .dr-row, .soon-go, .ai-read, .manual):not(:disabled):hover {
+    filter: brightness(1.06);
+  }
+  .phone :is(.as-row, .dr-row):not(:disabled):hover { background-color: color-mix(in srgb, var(--blue) 6%, transparent); }
+}
+
+/* #11 · เป้ากดเล็กกว่า 44px — คงขนาดที่เห็นไว้ แต่ขยายพื้นที่รับนิ้วด้วยชั้นล่องหน */
+/* :where() = ความเจาะจง 0 — ปุ่มที่ตั้ง position ไว้เองแล้ว (เช่น .top-friends เป็น absolute) ชนะเสมอ
+   ใส่ relative เฉพาะตัวที่ยังเป็น static เพื่อให้ชั้นล่องหนข้างล่างเกาะตัวมันเอง */
+:where(.phone) :where(.chk, .wc-tick, .tk-tick, .dm-find-x, .wz-x, .cp-img-x, .fr-x, .ctx-del, .ch-emo-btn,
+  .ig-set, .th-bell, .fd-people, .bg-del, .top-friends) { position: relative; }
+.phone :is(.chk, .wc-tick, .tk-tick, .dm-find-x, .wz-x, .cp-img-x, .fr-x, .ctx-del, .ch-emo-btn,
+  .ig-set, .th-bell, .fd-people, .bg-del, .top-friends)::before {
+  /* ::before ไม่ใช่ ::after — .fd-people.has-req ใช้ ::after เป็นจุดแดงอยู่แล้ว */
+  content: ''; position: absolute; inset: -10px; border-radius: 50%;
+}
+.phone .wc-tick { width: 24px; height: 24px; }
+.phone .dm-find-x { width: 32px; height: 32px; }
+
+/* #6 · ปุ่มเพื่อนมุมขวาบน (z 91) ลอยทับชั้นมืดของเช็คอิน/แผ่นต่าง ๆ — หลบเมื่อมีชั้นไหนเปิดอยู่ */
+body:has(#checkin:not([hidden]), #addSheet:not([hidden]), #soonSheet:not([hidden]),
+  #aiSheet:not([hidden]), #reportSheet:not([hidden])) .top-friends,
+body.focus-on .top-friends { visibility: hidden; }
+
+/* #5 · จอ "เสร็จแล้ว" ของโหมดโฟกัสเลื่อนแนวนอนได้ 32px (อวตารน้องไซยื่นออกขอบการ์ด) */
+.fc-sheet.done { overflow-x: hidden; }
+.fc-sheet.done .fw-hero { max-width: 100%; }
+
+/* #4 · หน้าแรกต้องพอดี 375×812 — ไทล์ไม่ต้องเป็นสี่เหลี่ยมจัตุรัสบนจอแคบ (ประหยัด ~40px)
+   และช่องไฟระหว่างบล็อกลดจาก 22 → 16 · จอกว้างกว่า 620 ใช้กติกาเดิมใน today.css */
+@media (max-width: 619px) {
+  .tg-ic { aspect-ratio: auto; height: 60px; border-radius: 17px; }
+  .tg-ic svg { width: 21px; height: 21px; padding: 7px; }
+  .tg-grid { gap: 10px 6px; }
+  .tg-lb2 { min-height: 2.5em; }
+  #menuBody .td-tiles, #menuBody .td-railwrap { margin-top: 16px; }
+}
+@media (max-width: 619px) {
+  #menuBody .saih { margin-bottom: 0; }
+  #menuBody .td-stats { margin-top: 10px; gap: 8px; }
+  /* แถบตัวเลขแบบบรรทัดเดียว: ไอคอนซ้าย ตัวเลข+ป้ายขวา — สูง ~52 แทน 103 */
+  #menuBody .ts { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px;
+    align-items: center; padding: 9px 10px; border-radius: 16px; }
+  #menuBody .ts-ic { grid-row: span 2; margin: 0; width: 28px; height: 28px; }
+  #menuBody .ts b { font-size: 17px; }
+  #menuBody .ts i { margin-top: 1px; font-size: 11px; }
+  #menuBody > .td-ask { margin: 10px 0 0; }
+  #menuBody > .td-now, #menuBody > .td-empty { margin-top: 12px; }
+  #menuBody { padding-bottom: 12px; }
+}
+
+/* #14 · ปุ่มส่งของช่องพิมพ์น้องไซจางเกิน (≈2.2:1 ในธีมมืด) — ไอคอนต้องได้ 3:1 ขึ้นไป */
+.phone .sai-bar .sb-send, .phone #aiBody .sai-bar.sai-cmp .sb-send { color: var(--muted) !important; }
+:is([data-theme=dark],[data-theme=space],[data-theme=magic],[data-theme=galaxy],[data-theme=deepocean],[data-theme=meta],[data-theme=glitch],[data-theme=astral])
+  .phone :is(.sai-bar .sb-send, #aiBody .sai-bar.sai-cmp .sb-send) { color: var(--ink) !important; }
+/* #14 · Genesis: --faint 2.16:1 บนพื้นจอ → เข้มขึ้นจนได้ ≥4.5:1 บนการ์ดและพื้นจอ */
+:root[data-theme="genesis"] { --faint: #2E3566; }
+
+/* #15 · ปุ่มทองใช้โทเคนทองของธีม ไม่ใช่สีดิบ — Astral จึงได้ "เงิน" ตามที่ตั้งใจ */
+:root :is(.gc-go.lead, .ck-cta) {
+  background-image:
+    radial-gradient(120% 100% at 18% -8%, rgba(255,255,255,.5) 0%, rgba(255,255,255,.1) 42%, transparent 64%),
+    linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 50%, rgba(0,0,0,.06)),
+    var(--grad-gold) !important;
+  color: var(--on-gold) !important;
+}
+/* #15 · Astral = ขาว ดำ เทา ล้วน — แถบล่างไม่อมน้ำเงินตามชุดธีมมืดรวม */
+:root[data-theme="astral"] .phone .tabbar {
+  background: linear-gradient(180deg, rgba(38,38,38,.66), rgba(18,18,18,.55)) !important;
+  border-color: rgba(255,255,255,.22) !important;
+}
+
+/* #8 · การ์ดผลพลาดของการสแกน (แทน alert) */
+.scan-err { display: grid; gap: 4px; margin: 10px 0 0; padding: 12px 14px; border-radius: 16px;
+  background: var(--alert-soft); border: 1px solid color-mix(in srgb, var(--alert) 30%, transparent);
+  text-align: left; }
+.scan-err b { font-size: 14px; color: var(--ink); }
+.scan-err span { font-size: 13px; line-height: 1.45; color: var(--ink); opacity: .85; }
+.scan-err small { font-size: 11px; color: var(--muted); }
+
+/* #15 · โทเคนสเกลตัวอักษร / ระยะห่าง / มุมโค้ง — ดู alt/DESIGN.md
+   ของใหม่ใช้ตัวพวกนี้ · ของเก่าย้ายเมื่อแตะจอนั้นอยู่แล้ว (ไม่รื้อ 1,100 จุดรวดเดียว) */
+:root {
+  --fs-xs: 11px; --fs-sm: 12.5px; --fs-md: 14px; --fs-base: 15.5px;
+  --fs-lg: 18px; --fs-xl: 22px; --fs-2xl: 28px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --r-pill: 999px;
+}
+/* #15 · ปุ่มหลักทุกจอใช้คู่สีเดียวกัน (--fill/--on-fill) — เดิมธีมมืดได้ฟ้าอ่อน+ตัวดำที่ฟอร์ม
+   แต่น้ำเงิน+ตัวขาวที่การ์ดหน้าแรก อ่านเหมือนสองแบรนด์ · ชั้นประกายกระจกเป็น background-image จึงยังอยู่ */
+.phone :is(.btn.primary, .fm-save, .ai-read, .tc-cta, .sai-cta, .ep-save) {
+  background-color: var(--fill) !important; color: var(--on-fill) !important;
+}
+.phone :is(.tc-cta, .fr-go, .gc-go) { border-radius: var(--r-pill) !important; }
+
+/* ============================================================
+   จอเข้าสู่ระบบ — รอบ "ดูง่ายและไม่รก"
+   ------------------------------------------------------------
+   ชิปสามใบกับบรรทัดเหตุผลใต้ปุ่มล็อกอินถูกถอดจาก markup แล้ว · สามข้อของแอปเหลือบรรทัดเดียว
+   style.css ตั้ง .lf-ic ให้คร่อมสองแถว (หัวข้อ + บรรทัดรอง) — ไม่มีบรรทัดรองแล้ว ต้องคืนเป็นแถวเดียว
+   ไม่งั้นหัวข้อลอยชิดบนของไอคอนแทนที่จะอยู่กลาง
+   ระยะจากใบพระเอกเพิ่มเป็น 38px — เดิมชิปคั่นอยู่ น้องไซที่คร่อมขอบล่างใบจะชนแถวแรก
+   ============================================================ */
+.lg-feats { margin-top: 38px; gap: 16px; }
+.lg-feat .lf-ic { grid-row: auto; }
+.lg-feat b { font-size: 15px; }
+
+/* ============================================================
+   หน้าแรกจอกว้าง — ทุกก้อนกว้างเท่ากัน
+   ------------------------------------------------------------
+   เจ้าของ: "ทำให้ความยาวมันเท่า ๆ กัน" — today.css คุม max-width 620px ไว้ทีละคลาส
+   (หัวจอ · ช่องถาม · ไทล์ · การ์ดตอนนี้ ฯลฯ) แต่ก้อนที่เพิ่มทีหลัง (การ์ดน้องไซ · แถวตัวเลข ·
+   การ์ด "วันนี้ยังไม่มีงาน") ไม่อยู่ในรายชื่อ เลยยืดเต็มคอลัมน์ 680px ขอบขวาเลยแหว่งเป็นฟันปลา
+   คุมที่ลูกทุกตัวของ .menu-body แทนการไล่เติมรายชื่อ — บล็อกใหม่ที่ตามมาจะกว้างเท่ากันเอง
+   ============================================================ */
+@media (min-width: 720px) {
+  #scr-menu .menu-body > * { max-width: 620px; }
+}
+
+/* ============================================================
+   แท็บโหมด วันนี้ · สัปดาห์ · รายการ — ก้อนเลื่อนด้วยสปริง (แบบ HaloToggleGroup)
+   ------------------------------------------------------------
+   ก้อนเป็นของชิ้นเดียว (.tk-thumb ดูสปริงใน app.js) ปุ่มที่เลือกเหลือแค่สีตัวหนังสือ
+   ตำแหน่งมาจาก --il / --ir (ลำดับช่องของขอบซ้าย/ขวา ทศนิยมได้) กับ --n (จำนวนช่อง)
+   ช่องหนึ่งกว้าง (100% − padding 6px − ช่องไฟ 3px × (n−1)) ÷ n — ตรงกับ grid ของ .tk-modes เป๊ะ
+   ฮาโล = แสงสีธีมฟุ้งใต้ก้อน ตามชื่อต้นแบบ (Halo) · มีแค่ตอนมีก้อน (.has-thumb) —
+   ถ้า JS ไม่ได้วาดก้อน ปุ่มที่เลือกยังเป็นก้อนทึบแบบเดิม ไม่หายเงียบ
+   ============================================================ */
+.tk-modes.has-thumb { position: relative; isolation: isolate; }
+.tk-modes.has-thumb .tk-mode { position: relative; z-index: 1; transition: color .2s ease .08s; }
+/* สีตัวหนังสือเปลี่ยนช้ากว่าก้อนนิดหนึ่ง — ขาวทันทีตอนก้อนยังวิ่งมาไม่ถึง = ขาวบนพื้นราง อ่านไม่ออกชั่วครู่ */
+.tk-modes.has-thumb .tk-mode.on {
+  background: transparent !important; background-image: none !important;
+  border-color: transparent !important; box-shadow: none !important;
+}
+.tk-thumb {
+  --cell: calc((100% - 6px - (var(--n, 3) - 1) * 3px) / var(--n, 3));
+  position: absolute; top: 3px; bottom: 3px; z-index: 0; pointer-events: none;
+  left: calc(3px + var(--il, 0) * (var(--cell) + 3px));
+  width: calc((var(--ir, 0) - var(--il, 0)) * (var(--cell) + 3px) + var(--cell));
+  border-radius: 999px;
+  background-color: var(--fill);
+  background-image:
+    radial-gradient(120% 100% at 18% -8%, rgba(255,255,255,.46) 0%, rgba(255,255,255,.1) 42%, transparent 64%),
+    linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0) 50%, rgba(0,0,0,.08));
+  border: 1px solid rgba(255,255,255,.4);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,.6), inset 0 -1.5px 3px rgba(0,0,0,.14),
+    inset 0 0 12px rgba(255,255,255,.12), 0 0 0 .5px var(--lgb-edge, transparent);
+}
+.tk-thumb::after {
+  content: ''; position: absolute; z-index: -1;
+  left: 12%; right: 12%; bottom: -7px; height: 14px; border-radius: 50%;
+  background: var(--fill); filter: blur(10px); opacity: .55;
+}
+
+/* ============================================================
+   Deep Ocean — ไทล์หน้าแรกสีอ่อนลง (เฉพาะธีมนี้)
+   ------------------------------------------------------------
+   เจ้าของ: "ทำให้แค่ในธีมนี้สีอ่อนลง" — กรอบไทล์ใช้ --fill ทึบ (#38BDF8 ฟ้าสด) แปดก้อนบนทะเลมืด
+   จ้าจนแย่งสายตาจากปุ่มหลัก · เหลือฟ้า 55% โปร่งให้ทะเลข้างหลังลอดขึ้นมา เป็นกระจกฟ้าแทนก้อนฟ้าทึบ
+   ลองที่ 34% แล้ว — กลายเป็นเทาอมเขียว ไม่อ่านเป็นสีฟ้าแล้ว (บทเรียน 1B25: จางกว่าพื้นขั้นเดียว = พื้นผิว)
+   ============================================================ */
+:root[data-theme="deepocean"] .tg-t { --tg-bg: color-mix(in srgb, var(--fill) 55%, transparent); }
+/* การ์ด "ไม่มีอะไรค้าง" กับแถบตัวเลขสามช่องบนจองาน (โหมดวันนี้) — เจ้าของ: "ให้มันมีขอบสว่างหน่อย"
+   แล้วต่อมา "ทำให้มีขอบสว่างในทุกธีม" · พื้นเป็น --card ไม่มีขอบไม่มีเงา จึงจมหายไปกับพื้นจอ
+   ขอบสีเน้นของธีม 40% (ชุดเดียวกับการ์ด "ยังไม่รู้ตารางเรียน" ที่อยู่เหนือมัน) + ประกายบนบาง ๆ
+   + เรืองสีธีมจางรอบนอก · ใช้เงาด้านในแทน border — ไม่เพิ่มความหนา 1px ให้ผังขยับ
+   (เริ่มที่ Deep Ocean ธีมเดียว แล้วขยายเป็นทุกธีมตามคำสั่ง — สีมาจาก --fill ของแต่ละธีมเอง) */
+:root :is(.tb-focus.flat, .tb-strip) {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--fill) 40%, transparent),
+    inset 0 1px 0 rgba(255,255,255,.1),
+    0 0 18px -6px color-mix(in srgb, var(--fill) 35%, transparent);
+}
+
+/* ============================================================
+   หัวจองาน — ชื่อจอกับบรรทัดวัน/เวลาว่างอยู่บรรทัดเดียวกัน
+   ------------------------------------------------------------
+   เจ้าของ: "ลองเอามาไว้หลังคำว่าวันนี้" · ชื่อจอซ้าย บรรทัดวันต่อท้ายขวา กึ่งกลางแนวตั้ง
+   flex-wrap: ชื่อจอยาว + บรรทัดยาว (สัปดาห์นี้ · 6–12 ต.ค. · ว่างรวม ... · ค้าง N) ไม่พอดี 375px
+   ก็ปัดบรรทัดวันลงไปใต้ชื่อจอเอง ไม่ตัดคำ ไม่ล้นขอบ
+   ============================================================ */
+/* เว้นขวา 34px ให้ปุ่มเพื่อนที่ลอยอยู่มุมขวาบน (.top-friends) — บรรทัดวันยาวกว่านี้ต้องปัดลงก่อนถึงปุ่ม ไม่ใช่ลอดใต้ปุ่ม */
+#scr-tasks .tk-head-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding-right: 34px; }
+#scr-tasks .tk-head-row .page-title { margin: 0; }
+#scr-tasks .tk-head-row .eyebrow { margin: 0; min-width: 0; }
+
+/* ============================================================
+   แคปซูลรอบบรรทัดวัน/เวลาว่างบนหัวจอ — ทุกธีม
+   ------------------------------------------------------------
+   เจ้าของ: "เอากรอบที่ครอบรอบ อ 6 ต.ค. ไปใส่ในทุกธีม" · เดิมมีเฉพาะ Astral Black (ดำโปร่ง ตัวขาว)
+   ธีมอื่นใช้สีของธีมเอง: พื้นการ์ดโปร่ง 78% · ขอบสีเน้น 32% (ชุดเดียวกับขอบการ์ดบนจองาน) · หมึกหนา 700
+   ธีมสว่างจะได้แคปซูลขาวขอบสี ไม่ใช่ก้อนดำที่หนักเกินจอ · Astral ยังใช้กฎของตัวเอง (จำเพาะกว่า)
+   ============================================================ */
+.page-head .eyebrow {
+  width: fit-content; max-width: 100%;
+  padding: 3px 11px; margin: 0 0 4px -2px; border-radius: 999px;
+  background: color-mix(in srgb, var(--card) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fill) 32%, transparent);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  color: var(--ink); font-size: 13px; font-weight: 700; letter-spacing: .02em;
+}
+
+/* ============================================================
+   ปุ่ม + — อนิเมชันตอนกด (เจ้าของ: "สร้าง animation เมื่อกดตรงเพิ่ม")
+   ------------------------------------------------------------
+   1) ก้อนยุบ 0.8 แล้วเด้งเกิน 1.12 กลับมาที่ 1 (สปริงแบบ iOS) — .pop ใส่ด้วย plusTap() ใน app.js
+   2) วงแหวนสีธีมสองวงกระจายออกจากก้อน ห่างกัน 0.12 วิ แล้วจาง (::before / ::after)
+   3) เครื่องหมาย + หมุน 135° กลายเป็น × ตลอดที่แผ่นเพิ่มงานเปิด (body.as-open) แล้วหมุนกลับตอนปิด
+   4) ของในแผ่นลอยขึ้นทีละชิ้น: หัวข้อ → ไทล์ใหญ่สามใบ → "หรือใส่เอง" → รายการ (.as-card.intro)
+      ไอคอนในไทล์ใหญ่เด้งตามจังหวะไทล์ของตัวเอง
+   ทุกท่าปิดเมื่อเครื่องตั้งลดการเคลื่อนไหว · ใช้แค่ transform/opacity ไม่ไปขยับผัง
+   ============================================================ */
+.tab.scan .scan-dot { position: relative; }
+.tab.scan .scan-dot svg { transition: transform .5s cubic-bezier(.34, 1.56, .64, 1); }
+body.as-open .tab.scan .scan-dot svg { transform: rotate(135deg); }
+.tab.scan.pop .scan-dot { animation: plus-pop .5s cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes plus-pop {
+  0%   { transform: scale(1); }
+  28%  { transform: scale(.8); }
+  62%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.tab.scan .scan-dot::before,
+.tab.scan .scan-dot::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  border: 2px solid color-mix(in srgb, var(--fill) 70%, #fff);
+  opacity: 0;
+}
+.tab.scan.pop .scan-dot::before { animation: plus-ring .62s ease-out; }
+.tab.scan.pop .scan-dot::after  { animation: plus-ring .62s ease-out .12s; }
+@keyframes plus-ring {
+  0%   { opacity: .9; transform: scale(1); }
+  100% { opacity: 0;  transform: scale(2.3); }
+}
+
+@keyframes as-in {
+  from { opacity: 0; transform: translateY(16px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes as-ic-pop {
+  0%   { transform: scale(.4) rotate(-20deg); }
+  70%  { transform: scale(1.12) rotate(4deg); }
+  100% { transform: none; }
+}
+.as-card.intro :is(.as-h, .as-hero, .as-or),
+.as-card.intro > .as-row { animation: as-in .44s cubic-bezier(.22, 1, .36, 1) both; }
+.as-card.intro .as-hero .as-hero-ic { animation: as-ic-pop .55s cubic-bezier(.34, 1.56, .64, 1) both; animation-delay: inherit; }
+.as-card.intro .as-h { animation-delay: .05s; }
+.as-card.intro .as-hero:nth-of-type(1) { animation-delay: .1s; }
+.as-card.intro .as-hero:nth-of-type(2) { animation-delay: .15s; }
+.as-card.intro .as-hero:nth-of-type(3) { animation-delay: .2s; }
+.as-card.intro .as-or { animation-delay: .24s; }
+.as-card.intro > .as-row:nth-of-type(1) { animation-delay: .27s; }
+.as-card.intro > .as-row:nth-of-type(2) { animation-delay: .3s; }
+.as-card.intro > .as-row:nth-of-type(3) { animation-delay: .33s; }
+.as-card.intro > .as-row:nth-of-type(4) { animation-delay: .36s; }
+.as-card.intro > .as-row:nth-of-type(n+5) { animation-delay: .39s; }
+@media (prefers-reduced-motion: reduce) {
+  .tab.scan.pop .scan-dot, .tab.scan.pop .scan-dot::before, .tab.scan.pop .scan-dot::after,
+  .as-card.intro :is(.as-h, .as-hero, .as-or, .as-hero-ic), .as-card.intro > .as-row { animation: none; }
+  .tab.scan .scan-dot svg { transition: none; }
+}
+
+/* ============================================================
+   เมนูเลือกวิชาแบบ HaloSelect (ปุ่ม "ดูวิชาทั้งหมด" ในฟอร์มเพิ่มงาน)
+   ------------------------------------------------------------
+   ปุ่ม = ตัวเรียก: ข้อความซ้าย ลูกศรขวา หมุนกลับหัวตอนเปิด
+   แผ่น = กระจกฝ้าโปร่ง (พื้นการ์ด 78% + เบลอ) ลอยทับฟอร์มลงมาจากใต้ปุ่ม ไม่ดันอะไรเลื่อน
+          ขยายจากขอบบน + จางเข้า · รายการไหลเข้าทีละแถว (--i) · สูงสุด 300px แล้วเลื่อนในแผ่น
+   เลือก = แถบที่เลือกเป็นสีเน้นจาง มีเครื่องหมายถูก · ตอนกดวาบสีเน้นหนึ่งครั้ง (.flash)
+           แถวในฟอร์มกับตัวปุ่มวาบตามหลังแผ่นปิด ให้ตาตามไปเจอว่าค่าไปลงที่ไหน
+   ============================================================ */
+.hsel-trig { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+.hsel-trig .hsel-val { flex: 1; min-width: 0; text-align: left; }
+.hsel-trig .hsel-ind { flex: none; transform: rotate(90deg); transition: transform .32s cubic-bezier(.34, 1.56, .64, 1); }
+.hsel-trig.hsel-open .hsel-ind { transform: rotate(-90deg); }
+/* ตำแหน่ง left/top/width ใส่จาก hselOpen() เทียบกับ .screen ที่เลื่อนอยู่ · เหนือปุ่มบันทึกที่ติดขอบล่าง */
+.hsel-pop {
+  position: absolute; z-index: 45;
+  max-height: 300px; overflow-y: auto; overscroll-behavior: contain;
+  padding: 6px; border-radius: 18px;
+  background: color-mix(in srgb, var(--card) 78%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--fill) 26%, var(--line));
+  box-shadow: 0 18px 40px -16px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.18);
+  transform-origin: 50% 0; transform: translateY(-6px) scale(.96); opacity: 0;
+  transition: transform .26s cubic-bezier(.34, 1.4, .64, 1), opacity .18s ease;
+}
+.hsel-pop.on { transform: none; opacity: 1; }
+.hsel-it {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
+  padding: 11px 12px; border: 0; border-radius: 12px; background: none;
+  font: inherit; font-size: 14.5px; font-weight: 600; color: var(--ink); text-align: left; cursor: pointer;
+  transition: background-color .15s ease;
+}
+.hsel-pop.on .hsel-it { animation: hsel-in .32s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(var(--i, 0) * 18ms); }
+@keyframes hsel-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.hsel-it svg { width: 17px; height: 17px; flex: none; color: var(--fill); opacity: 0; transform: scale(.6); transition: opacity .15s ease, transform .25s cubic-bezier(.34, 1.56, .64, 1); }
+.hsel-it:hover, .hsel-it:focus-visible { background: color-mix(in srgb, var(--fill) 10%, transparent); outline: none; }
+.hsel-it.on { background: color-mix(in srgb, var(--fill) 16%, transparent); color: var(--ink); }
+.hsel-it.on svg { opacity: 1; transform: none; }
+.hsel-it.flash { animation: hsel-flash .5s ease-out; }
+@keyframes hsel-flash {
+  0%   { background: color-mix(in srgb, var(--fill) 55%, transparent); }
+  100% { background: color-mix(in srgb, var(--fill) 16%, transparent); }
+}
+/* แถวในบล็อก "รายละเอียด" ที่เป็นเมนู: ลูกศรกลับหัว + ชื่อแถวเป็นสีเน้นตอนเปิด (แบบแถวที่กางอยู่เดิม) */
+.fm-row > summary.hsel-open .rw-l { color: var(--blue-deep); }
+.fm-row > summary.hsel-open .rw-v::after { transform: rotate(-135deg) translate(-1px, -1px); }
+.fm-row > summary { border-radius: 12px; }
+/* แถวในฟอร์มกับตัวเรียกวาบตามหลังแผ่นปิด — วงแสงสีธีมจางออก */
+:is(.pick-rows .pk, .hsel-trig, .fm-row > summary).flash { animation: hsel-glow .75s ease-out; }
+@keyframes hsel-glow {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--fill) 55%, transparent); }
+  100% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--fill) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hsel-pop, .hsel-trig .hsel-ind, .hsel-it svg { transition: none; }
+  .hsel-pop.on .hsel-it, .hsel-it.flash, :is(.pick-rows .pk, .hsel-trig, .fm-row > summary).flash { animation: none; }
+}
+
+/* ============================================================
+   แถบโหลดแบบ HaloProgress — จอสแกนใบงาน (#ocrBarWrap)
+   ------------------------------------------------------------
+   เจ้าของ: "เอามาใช้ตอนโหลด" (ตัวอย่าง HaloProgress) · ป้ายขั้นซ้าย ตัวเลขใหญ่สีเน้นขวา
+   แถบ: ไล่สีแบรนด์ของธีม + แสงวาบวิ่งผ่านตลอด (ไม่นิ่งแม้ตัวเลขยังไม่ขยับ) + หัวเรืองที่ปลายแถบ (ฮาโล)
+   ไม่รู้ว่านานแค่ไหน (.indet) = ท่อนแถบวิ่งวนซ้ายไปขวา ไม่มีตัวเลข ไม่มีหัวเรือง
+   ความยาวแถบมาจาก width ที่ ocrHalo() ใส่ · หัวเรืองตามตำแหน่งผ่าน --p
+   ============================================================ */
+.hprog { margin: 12px 2px 6px; }
+.hprog[hidden] { display: none; }
+.hp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 9px; }
+.hp-lbl {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 13.5px; font-weight: 700; color: var(--ink);
+}
+.hp-val { flex: none; font-size: 15px; font-weight: 800; color: var(--fill); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.hp-track {
+  position: relative; height: 8px; border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 9%, transparent);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.12);
+}
+.hp-fill {
+  position: relative; height: 100%; width: 0; border-radius: inherit; overflow: hidden;
+  background: var(--grad-brand, var(--fill));
+  box-shadow: 0 0 14px 1px color-mix(in srgb, var(--fill) 55%, transparent);
+  transition: width .5s cubic-bezier(.22, 1, .36, 1);
+}
+.hp-fill::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  transform: translateX(-100%); animation: hp-shine 1.5s ease-in-out infinite;
+}
+@keyframes hp-shine { to { transform: translateX(100%); } }
+.hp-track::after {
+  content: ''; position: absolute; top: 50%; left: calc(var(--p, 0) * 1%);
+  width: 14px; height: 14px; border-radius: 50%; transform: translate(-50%, -50%);
+  background: color-mix(in srgb, var(--fill) 55%, #fff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fill) 25%, transparent), 0 0 16px 4px color-mix(in srgb, var(--fill) 60%, transparent);
+  transition: left .5s cubic-bezier(.22, 1, .36, 1);
+}
+.hprog.indet .hp-track { overflow: hidden; }
+.hprog.indet .hp-track::after { display: none; }
+.hprog.indet .hp-fill { width: 38% !important; animation: hp-indet 1.25s cubic-bezier(.65, 0, .35, 1) infinite; transition: none; }
+@keyframes hp-indet { from { transform: translateX(-105%); } to { transform: translateX(265%); } }
+@media (prefers-reduced-motion: reduce) {
+  .hp-fill::after { animation: none; display: none; }
+  .hprog.indet .hp-fill { animation: none; transform: none; }
+  .hp-fill, .hp-track::after { transition: none; }
+}
+
+/* ============================================================
+   หัวฟอร์มเพิ่มงาน — ชื่อจออยู่แค่บนสุด กากบาทลอยอยู่ซ้ายตลอด (คู่กับ .stuck ใน app.js)
+   ------------------------------------------------------------
+   เจ้าของ: "มันอยู่แค่ข้างบน พอเลื่อนลงมาจะไม่เจอ ส่วนปุ่มกากบาทให้ไปอยู่ด้านซ้าย"
+   รอบก่อนใส่พื้นกระจกฝ้าให้หัวจอทั้งแถบติดขอบบน — ผิดทาง: ชื่อจอไม่ต้องตามลงมา
+   ตอนนี้พอเลื่อนพ้นบนสุด ชื่อจอจางหายไป เหลือปุ่มกากบาท (ก้อนกระจกกลม มีเงาอยู่แล้ว) ลอยมุมซ้ายบน
+   ปิดฟอร์มได้จากทุกตำแหน่งที่เลื่อนไป · แถบหัวจอโปร่งและไม่รับการแตะ ยกเว้นตัวปุ่ม
+   (ไม่งั้นแถบใส ๆ สูง 66px จะบังการแตะของในฟอร์มที่เลื่อนลอดอยู่ข้างใต้)
+   ============================================================ */
+#scr-form .fm-top #formTitle { transition: opacity .18s ease, transform .18s ease; }
+#scr-form .fm-top.stuck { pointer-events: none; }
+#scr-form .fm-top.stuck .fm-x { pointer-events: auto; }
+#scr-form .fm-top.stuck #formTitle { opacity: 0; transform: translateY(-6px); }
+/* จอกว้าง (แถบเมนูซ้าย): กากบาทออกไปอยู่ในช่องว่างซ้ายของคอลัมน์ฟอร์ม ไม่ทับขอบการ์ด
+   เจ้าของวาดลูกศรชี้ให้ย้ายไปทางซ้าย — ตอนลอยอยู่ (.stuck) มันไปนั่งบนแถว "การบ้าน" ของการ์ดแรก
+   ขอบขวาของปุ่มห่างขอบการ์ด 14px (หัวจอมี padding 20px → left: 20 − 42 − 14 = −36px)
+   หลุดออกจากแถวหัวจอ ชื่อจอจึงเลื่อนไปชิดแนวเดียวกับหัวข้อในการ์ด · มือถือไม่มีที่ว่างข้าง ๆ คงเดิม */
+:root[data-nav="side"] #scr-form .fm-top .fm-x { position: absolute; left: -36px; top: 12px; }

@@ -156,7 +156,7 @@ function saiHero(ctx) {
     <span class="saih-bubble">
       <b>${esc(line)}</b>
       <span>${esc(sub)}</span>
-      <span class="saih-go">${icon('sparkles')}เข้าห้องน้องไซ</span>
+      <span class="saih-go">เข้าห้องน้องไซ</span>
     </span>
     <span class="saih-stage">
       ${dot ? '<span class="saih-dot"></span>' : ''}

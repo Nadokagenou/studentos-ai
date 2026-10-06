@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C41';                 // สายเลขของแอป
+const APP_VERSION = '1C41b';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -233,6 +233,18 @@ function pendingTasks() { return state.tasks.filter(t => !t.done && !t.deleted);
 // ---------- ธีมสี ----------
 // เก็บแยกจาก state เพราะเป็นค่าประจำ "เครื่องนี้" ไม่ใช่ของบัญชี —
 // มือถือกับคอมของคนเดียวกันอาจอยากได้ธีมต่างกัน จึงไม่ซิงก์ข้ามเครื่อง
+// 1C40 · ธีมที่ได้จากโค้ดเท่านั้น — ไม่อยู่ในสุ่ม ไม่อยู่ในร้าน และ **ไม่บอกว่ามีอยู่** จนกว่าจะใส่โค้ด
+// (ปุ่มในจอเลือกธีมถูกซ่อนด้วย applyThemeLocks เหมือนธีมสุ่ม/ร้าน) · โค้ดอยู่ใน CODE_GIFT
+// เก็บเป็นธงในเครื่องชุดเดียวกับธีมลับ และพกขึ้น cloud ใน vault เหมือนธง GENESIS
+// ล้างข้อมูล / ปุ่มล็อกธีมลับกลับ ลบธงนี้ด้วย — สองปุ่มนั้นต้องพากลับไปจุดเริ่มต้นได้จริง
+// เจ้าของ: "ทำให้ธีม Astral Black ได้จากการใส่โค้ดอย่างเดียว" — ไม่มีข้อยกเว้น "ใช้อยู่ก่อนแล้วใช้ต่อได้"
+// แบบธีมสุ่ม/ร้าน: ไม่มีธง = เปิดแอปมาก็เป็นโทนสว่าง (themePref) ปุ่มไม่โผล่ (themeVisible)
+// และสคริปต์ใน <head> ไม่วาดจอแรกเป็นธีมนี้ · อยู่ต้นไฟล์เพราะ themePref() ถูกเรียกก่อนถึงกลางไฟล์
+// ชื่อคีย์ธงต้องตรงกับสคริปต์ใน <head> ของ index.html
+const THEME_CODE = { astral: 'studentos.alt.astralUnlocked' };
+function codeThemeOwned(id) {
+  try { return !!THEME_CODE[id] && localStorage.getItem(THEME_CODE[id]) === '1'; } catch (_) { return false; }
+}
 const THEME_KEY = 'studentos.alt.theme';   // ALT: แยกจากตัวจริง (ต้องตรงกับสคริปต์ใน <head>)
 // สีแถบสถานะของแต่ละโทน (ต้องตรงกับ --scr ใน style.css/alt.css และตารางในสคริปต์ <head>)
 const THEME_BAR = {
@@ -496,6 +508,8 @@ function themePref() {
   // 1B58 · ยังไม่เคยเลือก = โทนสว่าง ไม่ใช่ 'system'
   // ภาษาภาพใหม่ถูกออกแบบบนโทนสว่าง เปิดมาครั้งแรกจึงต้องเห็นอันนั้น
   // ต้องตรงกับสคริปต์ใน <head> ของ index.html เสมอ ไม่งั้นจอแรกกะพริบสลับโทน
+  // ธีมจากโค้ดที่ยังไม่มีโค้ด (ค่าค้างจากรุ่นที่ยังฟรี · แก้ localStorage เอง) = ค่าเริ่มต้น ไม่ใช่ธีมนั้น
+  if (THEME_CODE[v] && !codeThemeOwned(v)) return 'light';
   return THEMES.includes(v) ? v : 'light';
 }
 function systemDark() { return matchMedia('(prefers-color-scheme: dark)').matches; }
@@ -1011,7 +1025,7 @@ function go(id) {
   if (curScreen === 'scr-setopt' && id !== 'scr-setopt') stashSetOpt();
   const dir = navDirection(curScreen, id);
   // ออกจากจอสุ่มเมื่อไหร่ ทิ้งผลรอบเดิม กลับเข้ามาจะได้เริ่มใหม่สะอาด ๆ
-  if (id !== 'scr-wheel') { drawResults = []; drawOpen = []; }
+  if (id !== 'scr-wheel') { drawSettle(); drawResults = []; drawOpen = []; gcAuraOff(); applyDrawLock(); }
   // จอเหรียญตราเข้าได้สามทาง (หน้าแรก · แท็บฉัน · ผลของฉัน) — ปุ่มกลับต้องกลับไปที่เดิม
   if (id === 'scr-badges' && ['scr-menu', 'scr-profile', 'scr-stats'].includes(curScreen)) badgesReturn = curScreen;
   curScreen = id;
@@ -1451,7 +1465,7 @@ function renderLoginCopy() {
   h.textContent = back ? (known ? 'ยินดีต้อนรับกลับมา' : 'กลับมาแล้ว') : 'ยินดีต้อนรับ';
   // 1C14 · ทั้งสองบรรทัดสั้นลงและเลิกพูดเรื่องล็อกอิน
   // ของเดิมยาวจนตกสามบรรทัดบนจอ 375px แล้วคำว่า "เครื่อง" เหลือโดดอยู่บรรทัดท้าย
-  // และเหตุผลของการล็อกอินย้ายไปอยู่ใต้ปุ่มล็อกอินแล้ว (.lg-why ใน renderLoginOpts)
+  // (บรรทัดเหตุผลใต้ปุ่มล็อกอิน .lg-why ถูกถอดออกไปแล้ว — จอเข้าสู่ระบบรอบ "ไม่รก")
   // บรรทัดนี้จึงเหลือหน้าที่เดียว: บอกว่าจอนี้คือแอปอะไร / ของยังอยู่ไหม
   p.textContent = back
     ? 'งานกับตารางของคุณอยู่ที่เดิม'
@@ -1537,11 +1551,10 @@ function renderLoginOpts() {
   // แต่ล็อกอินไม่ได้ถูกลดเป็นลิงก์ — มันยังเป็นปุ่มเต็มแถวพื้นการ์ดมีเงา
   // เพราะชั้นสังคม (เพื่อน · ห้องการบ้าน) ใช้ไม่ได้เลยถ้าไม่มีบัญชี
   // ที่เปลี่ยนคือ "ใบไหนดังกว่า" ไม่ใช่ "ใบไหนมีอยู่"
-  // และเหตุผลของการล็อกอินย้ายมาอยู่ใต้ปุ่มมันเอง ซึ่งเป็นที่ที่มันเป็นข้อโต้แย้งจริง
-  // ไม่ใช่คำบรรยายจอแบบตอนที่มันอยู่บนสุด
+  // บรรทัดเหตุผลใต้ปุ่มล็อกอิน (.lg-why "ล็อกอินแล้วงานตามไปทุกเครื่อง...") ถูกถอดออกแล้ว
+  // เจ้าของวงให้ลบ — "ทำให้ดูง่ายและไม่รก" · ปุ่มสองใบบนสุดพูดแทนตัวเองได้
   el.innerHTML = `<button class="btn lg-go" onclick="skipLogin()">เริ่มใช้เลย · ไม่ต้องสมัคร</button>`
     + mainBtn
-    + (first ? `<p class="lg-why">ล็อกอินแล้วงานตามไปทุกเครื่อง และเพิ่มเพื่อนได้</p>` : '')
     + restRow
     + `<button class="lg-alt" onclick="setLoginView('mail')">
         ใช้บัญชีพวกนี้ไม่ได้? <b>รับรหัสทางอีเมล</b></button>`;
@@ -2255,7 +2268,7 @@ function nowCard(sp, now) {
     // และจุดนั้นคือปุ่ม "เริ่มทำเลย" · คนที่ไม่สงสัยไม่ต้องเห็นอะไรเพิ่ม
     // คนที่สงสัยว่า "ทำไมใบนี้" จะหาเจอตรงที่คำถามเกิดพอดี
     whyGo: `<button class="tn-why-go" onclick="go('scr-why')">
-        ${icon('sparkles')}ทำไมอันนี้ก่อน${icon('chevron')}
+        ทำไมอันนี้ก่อน${icon('chevron')}
       </button>`,
   };
 
@@ -2694,6 +2707,32 @@ function minuteTick() {
 //   ค้างกี่ใบ      → หนี้ที่สะสมอยู่มีแค่ไหน
 //   ต่อเนื่องกี่วัน  → เหตุผลที่จะไม่ทำให้ขาดวันนี้
 // ตัวเลขทั้งสามมาจาก state จริง ไม่มีตัวไหนเป็นเลขตกแต่ง
+// ภาพในกรอบของแถวสถิติ — เจ้าของ: "ลองใช้รูปอื่นดู ตรงกรอบยังไม่ค่อยสวย ทำให้ดูสวยและน่าสนใจ เข้ากับหัวข้อ"
+// เดิมเป็นไอคอนเส้นชุดเดียวกับทั้งแอป (นาฬิกา · เป้า · ไฟ) บนชิปสีจาง — "เป้า" ไม่ได้แปลว่างานค้าง
+// ตอนนี้เป็นภาพทึบสองชั้นบนกระเบื้องไล่สี แต่ละใบเล่าเรื่องของป้ายตัวเอง:
+//   ว่าง   = หน้าปัดนาฬิกา มีก้อนเวลาหนึ่งช่วงระบายไว้ (ชั่วโมงที่หยิบไปใช้ได้)
+//   ค้าง   = ใบงานซ้อนกันสองแผ่น มีบรรทัดรายการ
+//   ต่อเนื่อง = เปลวไฟสองชั้น (ในเหลือง) ไหวเบา ๆ
+// ไม่มี id ข้างใน — วาดซ้ำกี่ครั้งก็ไม่ชนกัน · สีกระเบื้องอยู่ใน today.css (.ts.v/.w/.g .ts-ic)
+const STAT_ART = {
+  free: `<svg viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12.5" r="8" fill="#fff"/>
+    <path d="M12 4.5A8 8 0 0 1 20 12.5H12Z" fill="currentColor" opacity=".32"/>
+    <path d="M12 7.6v4.9l3.1 1.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="12" cy="12.5" r="1.3" fill="currentColor"/>
+    <path d="M9.6 2.6h4.8" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".85"/>
+  </svg>`,
+  pending: `<svg viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="7.4" y="3.2" width="12" height="15.6" rx="2.4" fill="#fff" opacity=".5" transform="rotate(9 13.4 11)"/>
+    <rect x="4.6" y="5" width="12" height="15.6" rx="2.4" fill="#fff"/>
+    <path d="M7.6 9.6h6M7.6 12.8h6M7.6 16h3.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+  </svg>`,
+  streak: `<svg viewBox="0 0 24 24" aria-hidden="true"><g class="ts-flame">
+    <path d="M12 2.2c1 3.8 6 6.3 6 11.8a6 6 0 0 1-12 0c0-3 1.5-4.8 3-6 0 2 1 3.2 2 3.6-.5-3.6 0-6.8 1-9.4Z" fill="#fff"/>
+    <path d="M12 11c.6 2 3 3 3 5.5a3 3 0 0 1-6 0c0-1.3.6-2.2 1.3-2.7.1.8.5 1.3 1 1.5-.2-1.5.1-3 .7-4.3Z" fill="#FDBA74"/>
+  </g></svg>`,
+};
+
 function todayStats(sp, now) {
   const pend = pendingTasks().length;
   const streak = typeof loginStreak === 'function' ? loginStreak() : 0;
@@ -2702,15 +2741,15 @@ function todayStats(sp, now) {
   // ข้อความยาวช่องเดียวทำให้ทั้งแถวดูไม่เป็นชุดเดียวกัน (บทเรียนจากภาพร่างรอบแรก)
   const h = Math.floor(free / 60), m = Math.round(free % 60);
   const freeTx = free > 0 ? h + ':' + String(m).padStart(2, '0') : '0:00';
-  const cell = (ic, tone, val, lb) => `<div class="ts ${tone}">
-      <span class="ts-ic">${icon(ic)}</span>
+  const cell = (art, tone, val, lb) => `<div class="ts ${tone}">
+      <span class="ts-ic">${STAT_ART[art]}</span>
       <b>${esc(val)}</b>
       <i>${esc(lb)}</i>
     </div>`;
   const SP = {
-    free:    cell('clock', 'v', freeTx, 'เวลาว่าง'),
-    pending: cell('target', 'w', String(pend), 'งานค้าง'),
-    streak:  cell('flame', 'g', String(streak), 'วันต่อเนื่อง'),
+    free:    cell('free', 'v', freeTx, 'เวลาว่าง'),
+    pending: cell('pending', 'w', String(pend), 'งานค้าง'),
+    streak:  cell('streak', 'g', String(streak), 'วันต่อเนื่อง'),
   };
   const row = partsHtml('stats', STATS_PARTS, 'row', SP);
   // ปิดครบสามช่อง = แถวเปล่า · คืนค่าว่างไปเลยดีกว่าเว้นกรอบไว้เฉย ๆ
@@ -2986,9 +3025,13 @@ function openAddSheet(view) {
     return;
   }
 
+  // .intro = ของในแผ่นลอยขึ้นทีละชิ้นตอนเปิดครั้งแรก · ถอดทิ้งหลังเล่นจบ ไม่งั้น refreshAddSheet
+  // (กดสวิตช์ตัวเชื่อม) วาดเนื้อในใหม่แล้วทุกชิ้นลอยขึ้นซ้ำทุกครั้งที่แตะ
   el.innerHTML = `<div class="as-scrim" onclick="closeAddSheet()"></div>
-    <div class="as-card" role="dialog" aria-label="เพิ่มงานใหม่">${addSheetHTML()}</div>`;
+    <div class="as-card intro" role="dialog" aria-label="เพิ่มงานใหม่">${addSheetHTML()}</div>`;
   el.hidden = false;
+  document.body.classList.add('as-open');      // ปุ่ม + หมุนเป็น × ตลอดที่แผ่นเปิด
+  setTimeout(() => { const c = el.querySelector('.as-card'); if (c) c.classList.remove('intro'); }, 900);
   // ใช้ setTimeout ไม่ใช่ requestAnimationFrame
   //
   // rAF ไม่ทำงานเลยถ้าหน้าไม่ได้ถูกวาดจริง (แท็บพื้นหลัง · เบราว์เซอร์ในเครื่องมือทดสอบ ·
@@ -3000,10 +3043,33 @@ function openAddSheet(view) {
   haptic('tap');
 }
 
+// ปุ่ม + บนแถบเมนู — เจ้าของ: "สร้าง animation เมื่อกดตรงเพิ่ม"
+// จังหวะกด: ก้อนยุบแล้วเด้งเกิน + วงแหวนสีธีมสองวงกระจายออก แล้วเปิดแผ่นเพิ่มงาน
+// แยกจาก openAddSheet() เพราะปุ่มอื่นในแอปก็เปิดแผ่นเดียวกัน (การ์ดวันนี้ยังไม่มีงาน ฯลฯ)
+// วงแหวนต้องเกิดที่ปุ่มที่ถูกกดจริงเท่านั้น ไม่ใช่ปุ่ม + ที่นิ่งอยู่บนแถบตอนกดจากที่อื่น
+function plusTap(btn) {
+  if (btn) {
+    btn.classList.remove('pop');
+    void btn.offsetWidth;            // ถอดแล้วใส่ใหม่ในเฟรมเดียวกัน = อนิเมชันเล่นซ้ำได้ทุกครั้งที่กด
+    btn.classList.add('pop');
+    setTimeout(() => btn.classList.remove('pop'), 800);
+    // แผ่นเพิ่มงานเลื่อนขึ้นมาทับแถบเมนูทั้งแถบ — เปิดทันทีคือจังหวะกดถูกบังก่อนจะได้เห็น
+    // หมุน + เป็น × ตั้งแต่ตอนกด แล้วหน่วงแผ่น 0.15 วิ ให้ยุบ-เด้งกับวงแหวนวงแรกเล่นให้เห็นก่อน
+    const sheet = document.getElementById('addSheet');
+    if (sheet && sheet.hidden) {
+      document.body.classList.add('as-open');
+      setTimeout(openAddSheet, 150);
+      return;
+    }
+  }
+  openAddSheet();
+}
+
 function closeAddSheet() {
   const el = document.getElementById('addSheet');
   if (!el) return;
   el.classList.remove('on');
+  document.body.classList.remove('as-open');
   addSheetView = 'root';   // เปิดครั้งหน้าต้องเริ่มที่หน้าหลักเสมอ ไม่ใช่ค้างอยู่หน้าตัวเชื่อม
   setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
 }
@@ -4644,6 +4710,62 @@ function setTaskView(v) {
   renderTasks();
 }
 
+// ---------- ก้อนเลื่อนของแท็บโหมด (แบบ HaloToggleGroup) ----------
+// เจ้าของส่งตัวอย่าง HaloToggleGroup มาให้ใส่หน้านี้ — ก้อนที่เลือกเลื่อนไปหาแท็บใหม่ด้วยสปริง
+// ไม่ใช่สีกระโดดไปทึบที่ปุ่มใหม่ทันที · แอปไม่มี React เลยเขียนสปริงเอง (ไม่กี่บรรทัด)
+// • ก้อนเป็นของชิ้นเดียว (.tk-thumb) อยู่ใต้ปุ่มทั้งสาม ปุ่มที่เลือกแค่เปลี่ยนสีตัวหนังสือ
+// • ตำแหน่งคิดเป็น "ลำดับช่อง" (0 · 1 · 2) แล้วให้ CSS แปลงเป็นความกว้างเอง (calc + --n)
+//   ไม่ต้องวัดพิกเซล — จอที่ซ่อนอยู่วัดได้ 0 ซึ่งทำให้ก้อนพุ่งมาจากขอบซ้ายตอนกลับเข้าจอ
+// • ขอบซ้ายกับขอบขวาวิ่งด้วยสปริงคนละตัว ขอบที่นำหน้าแข็งกว่า → ก้อนยืดออกตอนวิ่ง แล้วหดเข้าที่
+//   ตอนถึง (ท่าเดียวกับ dock/ก้อนกระจกของ iOS) · เด้งเกินนิดหนึ่งเพราะหน่วงไม่เต็ม
+// • renderTasks วาดจอใหม่ทั้งก้อนบ่อย (ทุกนาที · ข้อมูลเปลี่ยน) — ตำแหน่ง/ความเร็วเก็บไว้นอก DOM
+//   วาดใหม่กลางทางก็วิ่งต่อจากจุดเดิม ไม่สะดุด
+const TK_THUMB = { il: null, ir: null, vl: 0, vr: 0, to: 0, raf: 0, t: 0 };
+function tkThumbPaint() {
+  const th = document.querySelector('#scr-tasks .tk-thumb');
+  if (!th) return;
+  th.style.setProperty('--il', TK_THUMB.il.toFixed(4));
+  th.style.setProperty('--ir', TK_THUMB.ir.toFixed(4));
+}
+function tkThumbMount() {
+  const track = document.querySelector('#scr-tasks .tk-modes');
+  if (!track) return;
+  const tabs = track.querySelectorAll('.tk-mode');
+  const to = [...tabs].findIndex(b => b.classList.contains('on'));
+  if (to < 0) return;
+  track.classList.add('has-thumb');
+  track.style.setProperty('--n', tabs.length);
+  const th = document.createElement('i');
+  th.className = 'tk-thumb'; th.setAttribute('aria-hidden', 'true');
+  track.prepend(th);
+  const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (TK_THUMB.il === null || still) { TK_THUMB.il = TK_THUMB.ir = to; TK_THUMB.vl = TK_THUMB.vr = 0; }
+  TK_THUMB.to = to;
+  tkThumbPaint();
+  if ((TK_THUMB.il !== to || TK_THUMB.ir !== to) && !TK_THUMB.raf) {
+    TK_THUMB.t = 0;
+    TK_THUMB.raf = requestAnimationFrame(tkThumbStep);
+  }
+}
+function tkThumbStep(ts) {
+  const S = TK_THUMB;
+  const dt = S.t ? Math.min(1 / 30, (ts - S.t) / 1000) : 1 / 60;
+  S.t = ts;
+  // ขอบที่อยู่ฝั่งปลายทางคือขอบนำ: ไปขวา = ขอบขวานำ · ไปซ้าย = ขอบซ้ายนำ
+  const right = S.to > (S.il + S.ir) / 2;
+  const LEAD = [560, 30], TRAIL = [300, 24];      // [ความแข็ง, ความหน่วง] — หน่วงไม่เต็ม = เด้งเกินนิด
+  const [kl, cl] = right ? TRAIL : LEAD, [kr, cr] = right ? LEAD : TRAIL;
+  S.vl += (-kl * (S.il - S.to) - cl * S.vl) * dt; S.il += S.vl * dt;
+  S.vr += (-kr * (S.ir - S.to) - cr * S.vr) * dt; S.ir += S.vr * dt;
+  // ขอบซ้ายห้ามข้ามขอบขวา (ก้อนพลิกกลับด้าน)
+  if (S.il > S.ir) { const m = (S.il + S.ir) / 2; S.il = S.ir = m; }
+  const done = Math.abs(S.il - S.to) < 0.002 && Math.abs(S.ir - S.to) < 0.002
+    && Math.abs(S.vl) < 0.02 && Math.abs(S.vr) < 0.02;
+  if (done) { S.il = S.ir = S.to; S.vl = S.vr = 0; }
+  tkThumbPaint();
+  S.raf = done ? 0 : requestAnimationFrame(tkThumbStep);
+}
+
 function taskSearch(v) {
   taskQ = String(v || '');
   renderTasks();
@@ -4989,16 +5111,20 @@ function renderTasks() {
     ? WEEKDAY_SHORT[now.getDay()].replace('.', '') + ' ' + now.getDate()
       + ' ' + MONTH_SHORT[now.getMonth()]
       + (todayFree ? ' · ว่าง ' + humanMin(todayFree) : ' · วันนี้ไม่มีช่องว่างเหลือแล้ว')
-    : esc(range) + (freeWk ? ' · ว่างรวม ' + humanMin(freeWk) : '') + ' · ค้าง ' + pending.length;
+    : esc(range) + (freeWk ? ' · ว่างรวม ' + daysMin(freeWk) : '') + ' · ค้าง ' + pending.length;
+  // บรรทัดวัน/เวลาว่างย้ายไปอยู่ "หลัง" ชื่อจอบนบรรทัดเดียวกัน (เจ้าของ: "ลองเอามาไว้หลังคำว่าวันนี้")
+  // เดิมอยู่เหนือชื่อจอ (1B58) — หัวจอสูงสองชั้นทั้งที่ชื่อจอสั้นแค่คำเดียว · ยาวไม่พอดีก็ปัดลงบรรทัดใหม่เอง
   const pageHead = `<div class="page-head">
-      <div class="eyebrow">${eyebrow}</div>
-      <h1 class="page-title">${viewTitle}</h1>
+      <div class="tk-head-row">
+        <h1 class="page-title">${viewTitle}</h1>
+        <div class="eyebrow">${eyebrow}</div>
+      </div>
       ${viewTabs}
     </div>`;
 
   // โหมดวันนี้มีเนื้อจอเป็นของตัวเองทั้งก้อน — ไม่ใช่รายการงานที่ถูกกรองให้เหลือวันเดียว
   // จึงออกตรงนี้เลย ไม่ต้องเดินต่อไปสร้างลิสต์ ช่องค้นหา และปุ่มถังขยะที่จอนี้ไม่ได้ใช้
-  if (taskView === 'today' && !taskQ) { el.innerHTML = pageHead + todayBoard(now); return; }
+  if (taskView === 'today' && !taskQ) { el.innerHTML = pageHead + todayBoard(now); tkThumbMount(); return; }
 
   // ช่องค้นหาโผล่เมื่อมีงานพอที่จะหาไม่เจอด้วยตาเปล่า — ต่ำกว่านั้นมันคือช่องว่าง
   // ที่กินพื้นที่บนสุดของจอโดยไม่มีประโยชน์ (เกณฑ์เดียวกับที่แอปอื่นซ่อนช่องค้นหา
@@ -5051,6 +5177,7 @@ function renderTasks() {
         ${icon('check-circle')}เสร็จแล้ว · ${done.length} งาน</button>` : '')
     + (bin.length ? `<button class="bin-btn" onclick="setFilter('bin')">
         ${icon('trash')}ถังขยะ · ${bin.length} รายการ</button>` : '');
+  tkThumbMount();
 }
 
 // ============================================================
@@ -5485,6 +5612,17 @@ function humanMin(m) {
   if (m < 60) return m + ' นาที';
   const h = Math.floor(m / 60), r = m % 60;
   return r ? h + ' ชม. ' + r + ' นาที' : h + ' ชม.';
+}
+
+// ยอดรวมหลายวัน (เวลาว่างทั้งสัปดาห์) — เกิน 24 ชม. นับเป็นวัน: "3 วัน 22 ชม." แทน "94 ชม. 35 นาที"
+// เจ้าของ: "เปลี่ยนเวลาให้เป็น[วัน]เมื่อ[เกิน] 24 ชั่วโมง" — ตัวเลขชั่วโมงเกินร้อยต้องหารในหัวก่อนถึงจะเห็นภาพ
+// ตัดเศษนาทีทิ้งเมื่อเป็นหลักวัน และปัดลงเสมอ — เวลาว่างที่บอกเกินจริงคือแผนที่ทำตามไม่ได้
+// ต่ำกว่า 24 ชม. ส่งต่อให้ humanMin() ตามเดิม หน่วยในจอเดียวกันจึงยังตรงกัน
+function daysMin(m) {
+  m = Math.max(0, Math.round(m));
+  if (m < 1440) return humanMin(m);
+  const d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60);
+  return h ? d + ' วัน ' + h + ' ชม.' : d + ' วัน';
 }
 
 // รุ่นสั้นสำหรับที่ที่ต้องอยู่บรรทัดเดียวกับของอื่น — "6ช 35น" แทน "6 ชม. 35 นาที"
@@ -7882,14 +8020,7 @@ const THEME_SHOP = {                                          // ซื้อด
   warm:  { cost: 30, name: 'ชมพู' },
   space: { cost: 30, name: 'อวกาศ' },
 };
-// 1C40 · ธีมที่ได้จากโค้ดเท่านั้น — ไม่อยู่ในสุ่ม ไม่อยู่ในร้าน และ **ไม่บอกว่ามีอยู่** จนกว่าจะใส่โค้ด
-// (ปุ่มในจอเลือกธีมถูกซ่อนด้วย applyThemeLocks เหมือนธีมสุ่ม/ร้าน) · โค้ดอยู่ใน CODE_GIFT
-// เก็บเป็นธงในเครื่องชุดเดียวกับธีมลับ และพกขึ้น cloud ใน vault เหมือนธง GENESIS
-// ล้างข้อมูล / ปุ่มล็อกธีมลับกลับ ลบธงนี้ด้วย — สองปุ่มนั้นต้องพากลับไปจุดเริ่มต้นได้จริง
-const THEME_CODE = { astral: 'studentos.alt.astralUnlocked' };
-function codeThemeOwned(id) {
-  try { return !!THEME_CODE[id] && localStorage.getItem(THEME_CODE[id]) === '1'; } catch (_) { return false; }
-}
+// THEME_CODE (ธีมที่ได้จากโค้ดเท่านั้น) ย้ายขึ้นไปอยู่ข้าง THEME_KEY ต้นไฟล์ — themePref() ต้องใช้มัน
 
 // ---------- คราฟธีมลับจากธีมต้นแบบ ----------
 // ต้องมีธีมต้นแบบอยู่ในมือก่อน แล้วจ่ายโทเคนแปลงร่างเป็นธีมลับของสายนั้น
@@ -7935,7 +8066,8 @@ function themeOwned(id) {
   if (THEME_GACHA.includes(id)) return ((s.skins || {})[id] || 0) > 0;
   return (s.bought || []).includes(id);
 }
-function themeVisible(id) { return themeOwned(id) || themePref() === id; }
+// ธีมจากโค้ดไม่มีช่วงผ่อนผัน "ใช้อยู่ก่อนแล้วใช้ต่อได้" — มีโค้ดเท่านั้นถึงเห็น
+function themeVisible(id) { return THEME_CODE[id] ? codeThemeOwned(id) : (themeOwned(id) || themePref() === id); }
 
 // ซ่อน/โชว์ปุ่มธีมตามสิทธิ์ — เรียกทุกครั้งที่สิทธิ์เปลี่ยน
 function applyThemeLocks() {
@@ -8352,7 +8484,34 @@ function ringPaint() {
     c.style.visibility = hide ? 'hidden' : '';
     c.tabIndex = hide ? -1 : 0;
   });
+  gcAuraSync();
   return true;
+}
+
+// แสงขอบจอตามการ์ดใบหน้า — เจ้าของ: "แสงที่ตอนแรกแค่รอบการ์ด ให้ครอบหน้าจอโทรศัพท์เลย
+// สุ่มได้ของแรร์สีอะไร (ก็เป็นสีนั้น)" · การ์ดที่หงายแล้วเป็น Rare/Legendary/??? = ขอบจอเรืองสีระดับนั้น
+// ค้างอยู่ตลอดที่ใบนั้นอยู่ข้างหน้า หมุนวงไปใบอื่นแสงเปลี่ยนสีตาม · Common / ยังไม่หงาย = ไม่มีแสง
+// ชั้นเดียวบน .phone (ไม่รับคลิก) แตะ className เฉพาะตอนสีเปลี่ยน เพราะ ringPaint ถูกเรียกทุกเฟรมตอนหมุน
+function gcAuraSync() {
+  const phone = document.querySelector('.phone');
+  if (!phone) return;
+  let a = phone.querySelector(':scope > .gc-aura');
+  let front = -1, best = 999;
+  for (let i = 0; i < drawResults.length; i++) {
+    const v = Math.abs(ringAngle(i));
+    if (v < best) { best = v; front = i; }
+  }
+  const r = front >= 0 && drawOpen[front] ? drawResults[front] : null;
+  const rar = r && r.rarity !== 'common' ? r.rarity : '';
+  if (!rar && !a) return;
+  if (!a) { a = document.createElement('i'); a.className = 'gc-aura'; phone.appendChild(a); void a.offsetWidth; }
+  const want = 'gc-aura' + (rar ? ' on ' + rar : (a.dataset.last ? ' ' + a.dataset.last : ''));
+  if (rar) a.dataset.last = rar;
+  if (a.className !== want) a.className = want;
+}
+function gcAuraOff() {
+  const a = document.querySelector('.phone > .gc-aura');
+  if (a) a.remove();
 }
 
 function ringTo(target) {
@@ -8433,8 +8592,30 @@ function gcTap(i) {
   flipCard(i);
 }
 
-// ยังเปิดไม่ครบ = ห้ามออกจากจอ ต้องดูให้จบก่อน
+// ยังเปิดไม่ครบ — เดิมแปลว่า "ห้ามออกจากจอ" (ซ่อนแถบเมนูกับปุ่มกลับระหว่างหงาย)
+// เจ้าของให้แถบเมนูอยู่ตลอด ("ให้ปุ่มเมนูมาด้วย") ตอนนี้จึงใช้แค่บอกว่ายังมีใบคว่ำค้าง
 function drawBusy() { return drawResults.length > 0 && drawOpen.some(v => !v); }
+
+// ออกจากจอสุ่มกลางคัน — ของในใบที่ยังคว่ำต้องเข้ากระเป๋าครบ เพราะจ่ายโทเคนไปตั้งแต่ตอนสุ่มแล้ว
+// (ผลถูกล็อกไว้ตั้งแต่กดสุ่ม การหงายเป็นแค่การเปิดดู) · ไม่งั้นกดแท็บอื่นระหว่างหงาย = เสียโทเคนฟรี
+// บอกด้วยการแจ้งเตือนเล็ก ๆ ว่าได้อะไรไป จะได้ไม่งงว่ายอดโทเคนขยับเพราะอะไร
+function drawSettle() {
+  if (!drawBusy()) return;
+  let tok = 0, fresh = 0;
+  drawResults.forEach((r, i) => {
+    if (drawOpen[i]) return;
+    drawOpen[i] = true;
+    grantPrize(r);
+    tok += r.amount || 0;
+    if (r.kind === 'skin' && !r.duplicate) fresh++;
+  });
+  if (typeof applyThemeLocks === 'function') applyThemeLocks();
+  showToast({
+    title: 'เก็บการ์ดที่ยังไม่ได้หงายให้แล้ว',
+    body: (tok ? '+' + fmtTok(Math.round(tok * 10) / 10) + ' โทเคน' : 'ได้ของครบทุกใบ')
+      + (fresh ? ' · ธีมใหม่ ' + fresh + ' อัน' : ''),
+  });
+}
 function applyDrawLock() {
   document.body.classList.toggle('draw-lock', drawBusy());
 }
@@ -8462,6 +8643,20 @@ function drawCardsHtml() {
     </div>`;
 }
 
+// แสงวูบตอนหงายได้ของหายาก — คลุมทั้งจอ เรืองเข้ามาจากขอบจอทุกด้านแล้วจางหาย
+// (จังหวะ "เปิดได้!" · แสงขอบจอที่ค้างอยู่หลังจากนั้นคือ gcAuraSync())
+// เจ้าของ: "แสงสีฟ้าให้มันรอบหน้าจอเลย" — เดิมแสงอยู่ใน .gc-stage ซึ่งสูงเท่าวงการ์ด (250px)
+// จึงเห็นเป็นกล่องสี่เหลี่ยมขอบแข็งกลางจอ · ใส่เป็นลูกของ .phone แบบเดียวกับดาวของ splashBurst()
+// ใบหนึ่งชั้นหนึ่ง หงายติดกันหลายใบก็ซ้อนกันได้ ลบตัวเองเมื่อจบ ไม่รับคลิก
+function gcFlash(rarity) {
+  const phone = document.querySelector('.phone');
+  if (!phone || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const f = document.createElement('i');
+  f.className = 'gc-flash ' + rarity;
+  phone.appendChild(f);
+  setTimeout(() => f.remove(), 1700);
+}
+
 function drawSummary() {
   const tok = drawResults.reduce((n, r) => n + (r.amount || 0), 0);
   const fresh = drawResults.filter(r => r.kind === 'skin' && !r.duplicate).length;
@@ -8480,17 +8675,13 @@ function flipCard(i) {
     el.querySelector('.gc-face').innerHTML = cardFace(r);   // เติมหน้าการ์ดตอนจะพลิกเท่านั้น
     el.classList.add('open', 'lit-' + r.rarity);
   }
+  gcAuraSync();
   haptic(r.rarity === 'common' ? 'arm' : 'done');
   // ของหายากเด้งเอฟเฟกต์ตอนการ์ดพลิกไปครึ่งทาง ไม่ใช่ตอนแตะ
   if (r.rarity !== 'common') {
     setTimeout(() => {
       splashBurst(r.rarity === 'legendary' ? 28 : 13, 'egg-star');
-      const stage = document.querySelector('.gc-stage');
-      if (stage) {
-        stage.classList.remove('burst-rare', 'burst-legendary');
-        void stage.offsetWidth;
-        stage.classList.add('burst-' + r.rarity);
-      }
+      gcFlash(r.rarity);
     }, 340);
   }
   if (r.rarity === 'legendary') {
@@ -10547,6 +10738,7 @@ function openForm(id, parsed) {
   document.body.classList.add('deep-scr');
   // 1C15 · วาดแถววิชา/กำหนดส่ง และค่าสรุปทุกแถว — หลังเติมค่าลงช่องจริงครบทุกช่องแล้ว
   subjShowAll = false;
+  hselClose(true);           // เมนูที่ค้างเปิดจากใบก่อน (วิชา · รายละเอียด) ต้องไม่ลอยมากับใบใหม่
   dueCustom = false;
   syncFormUI();
   autoGrow(f.detail);
@@ -10604,9 +10796,9 @@ function renderSubjRows() {
     + `<span class="pk-dot"></span>${esc(n)}</button>`).join('');
   if (more) {
     more.hidden = false;
-    more.querySelector('svg') && more.classList.toggle('up', subjShowAll);
-    const label = more.lastChild;
-    if (label && label.nodeType === 3) label.nodeValue = subjShowAll ? 'ย่อรายการวิชา' : 'ดูวิชาทั้งหมด';
+    // วิชาที่เลือกจากเมนูแต่ไม่อยู่ในห้าแถวลัด ขึ้นมาเป็นแถวบนสุดเองอยู่แล้ว (recentSubjects ใส่ค่าปัจจุบันก่อน)
+    const v = more.querySelector('.hsel-val');
+    if (v) v.textContent = 'ดูวิชาทั้งหมด · ' + SUBJECTS.length + ' วิชา';
   }
 }
 
@@ -10622,6 +10814,163 @@ function toggleSubjAll() {
   subjShowAll = !subjShowAll;
   renderSubjRows();
 }
+
+// ============================================================
+// HaloSelect — เมนูเลือกแบบแผ่นกระจกฝ้า (ใช้ร่วมทั้งฟอร์ม)
+// ============================================================
+// เจ้าของส่งตัวอย่าง HaloSelect มาสองรอบ: ปุ่ม "ดูวิชาทั้งหมด" แล้วตามด้วยแถวในบล็อก "รายละเอียด"
+// ตัวเรียก (ปุ่ม/แถว) → แผ่นกระจกฝ้าลอยลงมาใต้ตัวเรียก · เลือกแล้วแถบวาบก่อนปิด ตัวเรียกวาบตาม
+// แผ่นอยู่ใน .screen ที่เลื่อนอยู่ (ไม่ใช่ fixed) จึงเลื่อนไปพร้อมฟอร์มเอง ไม่ต้องคอยคำนวณตำแหน่งใหม่
+// และอยู่นอก <details> เพราะลูกของ details ที่ปิดอยู่ถูกซ่อนทั้งหมด
+// ปิดได้: แตะนอกแผ่น · Esc · เลือกเสร็จ · แตะตัวเรียกซ้ำ · ลูกศรขึ้นลงเลื่อนในรายการ (role=listbox)
+let hselState = null;   // { pop, anchor, onPick }
+function hselOpen(anchor, items, cur, onPick) {
+  if (hselState) hselClose(true);
+  const host = anchor.closest('.screen') || document.body;
+  const pop = document.createElement('div');
+  pop.className = 'hsel-pop';
+  pop.setAttribute('role', 'listbox');
+  pop.innerHTML = items.map((it, i) => {
+    const on = String(it.value) === String(cur);
+    return `<button type="button" role="option" class="hsel-it${on ? ' on' : ''}" aria-selected="${on}"`
+      + ` data-v="${esc(String(it.value))}" style="--i:${Math.min(i, 12)}"${it.disabled ? ' disabled' : ''}>`
+      + `<span>${esc(it.label)}</span>${icon('check')}</button>`;
+  }).join('');
+  host.appendChild(pop);
+  const r = anchor.getBoundingClientRect(), hr = host.getBoundingClientRect();
+  pop.style.left = (r.left - hr.left + host.scrollLeft) + 'px';
+  pop.style.width = r.width + 'px';
+  pop.style.top = (r.bottom - hr.top + host.scrollTop + 6) + 'px';
+  anchor.classList.add('hsel-open');
+  anchor.setAttribute('aria-expanded', 'true');
+  hselState = { pop, anchor, onPick };
+  pop.addEventListener('click', e => {
+    const b = e.target.closest('.hsel-it');
+    if (b && !b.disabled) hselChoose(b);
+  });
+  // ตัวที่เลือกอยู่ให้อยู่กลางแผ่น (เลื่อนในแผ่นเอง ไม่ไปเลื่อนทั้งจอ) แล้วค่อยเลื่อนจอให้เห็นทั้งแผ่น
+  const on = pop.querySelector('.hsel-it.on') || pop.querySelector('.hsel-it:not(:disabled)');
+  if (on) pop.scrollTop = Math.max(0, on.offsetTop - (pop.clientHeight - on.offsetHeight) / 2);
+  setTimeout(() => pop.classList.add('on'), 16);   // setTimeout ไม่ใช่ rAF — เหตุผลเดียวกับ openAddSheet
+  setTimeout(() => {
+    if (hselState && hselState.pop === pop) {
+      pop.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      if (on) on.focus({ preventScroll: true });
+    }
+  }, 60);
+  document.addEventListener('pointerdown', hselOutside, true);
+  document.addEventListener('keydown', hselKey, true);
+  haptic('tap');
+}
+function hselClose(instant) {
+  const s = hselState;
+  if (!s) return;
+  hselState = null;
+  s.anchor.classList.remove('hsel-open');
+  s.anchor.setAttribute('aria-expanded', 'false');
+  s.pop.classList.remove('on');
+  if (instant) s.pop.remove(); else setTimeout(() => s.pop.remove(), 180);
+  document.removeEventListener('pointerdown', hselOutside, true);
+  document.removeEventListener('keydown', hselKey, true);
+}
+function hselOutside(e) {
+  if (!hselState) return;
+  const t = e.target;
+  if (hselState.pop.contains(t) || hselState.anchor.contains(t)) return;   // ตัวเรียกจัดการเอง (กดซ้ำ = ปิด)
+  hselClose();
+}
+function hselKey(e) {
+  if (!hselState) return;
+  if (e.key === 'Escape') {
+    e.preventDefault(); e.stopPropagation();
+    const a = hselState.anchor;
+    hselClose();
+    a.focus();
+    return;
+  }
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  const items = [...hselState.pop.querySelectorAll('.hsel-it:not(:disabled)')];
+  if (!items.length) return;
+  e.preventDefault();
+  let i = items.indexOf(document.activeElement);
+  i = e.key === 'ArrowDown' ? Math.min(items.length - 1, i + 1) : Math.max(0, i - 1);
+  items[i].focus();
+}
+function hselFlash(el) {
+  if (!el) return;
+  el.classList.remove('flash');
+  void el.offsetWidth;
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 750);
+}
+function hselChoose(btn) {
+  const s = hselState;
+  if (!s) return;
+  s.pop.querySelectorAll('.hsel-it.on').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-selected', 'false'); });
+  btn.classList.add('on', 'flash');
+  btn.setAttribute('aria-selected', 'true');
+  haptic('tap');
+  // วาบให้เห็นก่อนแผ่นหาย — ปิดทันทีคือเลือกแล้วไม่มีอะไรยืนยันเลยว่าโดนอันไหน
+  setTimeout(() => {
+    if (hselState !== s) return;
+    hselClose();
+    s.onPick(btn.dataset.v);
+    hselFlash(s.anchor);
+  }, 170);
+}
+
+// ปุ่ม "ดูวิชาทั้งหมด" — เดิมกางทั้ง 18 วิชาลงในฟอร์มตรง ๆ · ห้าแถวลัดข้างบนยังอยู่เหมือนเดิม
+// ค่าจริงยังเขียนลง <select id="fSubject"> ผ่าน pickSubject() ตัวเดิม saveForm() ไม่ต้องรู้อะไรเพิ่ม
+function toggleSubjSelect(force) {
+  const trig = document.getElementById('subjMore');
+  if (!trig) return;
+  const isOpen = !!(hselState && hselState.anchor === trig);
+  const open = typeof force === 'boolean' ? force : !isOpen;
+  if (!open) { if (isOpen) hselClose(); return; }
+  if (isOpen) return;
+  const cur = (document.getElementById('fSubject') || {}).value || 'อื่น ๆ';
+  hselOpen(trig, SUBJECTS.map(s => ({ value: s.name, label: s.name })), cur, name => {
+    pickSubject(name);
+    hselFlash(document.querySelector('#subjRows .pk.on'));   // แถวที่ค่าไปลง — ถ้าไม่อยู่ในห้าแถว มันขึ้นมาบนสุดเอง
+  });
+}
+
+// แถวในบล็อก "รายละเอียด" ที่เป็นตัวเลือกตายตัว (data-hsel ใน index.html)
+// เมนูอ่านตัวเลือกจาก <select> ตัวจริงตอนกด (fBlock เติมรายชื่องานใหม่ทุกครั้งที่เปิดฟอร์ม)
+// เลือกแล้วเขียนกลับลง <select> + ยิง change ให้ทุกอย่างที่ฟังอยู่เดิมทำงานเหมือนคนเลือกเอง
+function hselFromSelect(id) {
+  const sel = document.getElementById(id);
+  return {
+    items: [...sel.options].map(o => ({ value: o.value, label: o.textContent.trim() })),
+    cur: sel.value,
+    pick: v => {
+      sel.value = v;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      updateFormSummary();
+    },
+  };
+}
+const HSEL_ROWS = {
+  fStarWrap: () => ({
+    items: [{ value: '0', label: 'AI จัดให้' }].concat([1, 2, 3, 4, 5].map(n => ({ value: String(n), label: '★' + n }))),
+    cur: String(formUserStars || 0),
+    pick: v => setStarPick(+v),
+  }),
+  fLateWrap: () => hselFromSelect('fLate'),
+  fBlockWrap: () => hselFromSelect('fBlock'),
+  fRepeatWrap: () => hselFromSelect('fRepeat'),
+};
+document.addEventListener('click', e => {
+  const sum = e.target.closest && e.target.closest('details.fm-row[data-hsel] > summary');
+  if (!sum) return;
+  e.preventDefault();                       // ไม่ให้ details กางลงมา — เมนูแทนที่การกางทั้งหมด
+  if (hselState && hselState.anchor === sum) { hselClose(); return; }
+  const make = HSEL_ROWS[sum.parentElement.id];
+  if (!make) return;
+  const c = make();
+  sum.setAttribute('aria-haspopup', 'listbox');
+  hselOpen(sum, c.items, c.cur, c.pick);
+});
 
 // ---------- กำหนดส่ง ----------
 function dateInputValue(d) {
@@ -11157,12 +11506,35 @@ async function ocrWarmLangs(onProgress) {
 const mb = n => (n / 1048576).toFixed(1);
 function ocrLangProgress(p, got, total) {
   const st = document.getElementById('ocrStatus');
-  const bar = document.getElementById('ocrBar');
   const wrap = document.getElementById('ocrBarWrap');
-  if (bar && wrap && !wrap.hidden) bar.style.width = Math.round(4 + p * 8) + '%';  // 4-12% คือช่วงโหลดโมเดล
-  if (st) {
-    st.textContent = `📦 โหลดโมเดลอ่านภาษาไทย ${mb(got)}/${mb(total)} MB (ครั้งแรกครั้งเดียว)`;
+  const msg = `📦 โหลดโมเดลอ่านภาษาไทย ${mb(got)}/${mb(total)} MB (ครั้งแรกครั้งเดียว)`;
+  // กำลังอ่านอยู่ = ตัวเลขขึ้นบนแถบโหลด (4–12% คือช่วงโหลดโมเดล) · โหลดล่วงหน้าเงียบ ๆ (ยังไม่มีแถบ) = บรรทัดสถานะเดิม
+  if (wrap && !wrap.hidden) ocrHalo(msg, 4 + p * 8);
+  else if (st) st.textContent = msg;
+}
+
+// ---------- แถบโหลดแบบ HaloProgress ----------
+// pct เป็นตัวเลข = รู้ความคืบหน้า (แถบยาวตาม + ตัวเลขขวา) · null = ไม่รู้ว่านานแค่ไหน (แถบวิ่งวน)
+// undefined = เปลี่ยนแค่ป้าย คงแถบไว้เหมือนเดิม (รอบอ่านซ้ำหลังอ่านจบ ซึ่งไม่มีตัวเลขของมันเอง)
+function ocrHalo(label, pct) {
+  const wrap = document.getElementById('ocrBarWrap');
+  const bar = document.getElementById('ocrBar');
+  const lb = document.getElementById('ocrLbl');
+  const val = document.getElementById('ocrPct');
+  if (!wrap || !bar) return;
+  if (label != null && lb) lb.textContent = label;
+  if (pct === undefined) return;
+  wrap.classList.toggle('indet', pct === null);
+  if (pct === null) {
+    if (val) val.textContent = '';
+    wrap.removeAttribute('aria-valuenow');
+    return;
   }
+  const p = Math.max(0, Math.min(100, pct));
+  bar.style.width = p + '%';
+  wrap.style.setProperty('--p', p);
+  wrap.setAttribute('aria-valuenow', Math.round(p));
+  if (val) val.textContent = Math.round(p) + '%';
 }
 
 // ---------- โหลดล่วงหน้าตอนเปิดจอสแกน ----------
@@ -12407,28 +12779,29 @@ let ocrRunning = false;
 async function runOcrOn(source, how) {
   const st = document.getElementById('ocrStatus');
   const barWrap = document.getElementById('ocrBarWrap');
-  const bar = document.getElementById('ocrBar');
   if (ocrRunning) {
     showToast({ title: 'กำลังอ่านใบก่อนหน้าอยู่ ⏳', body: 'รออีกนิดเดียว เดี๋ยวถึงคิวใบนี้' });
     return;
   }
   ocrRunning = true;
   try {
-    barWrap.hidden = false; bar.style.width = '4%';
+    // ป้ายขั้นกับตัวเลขย้ายไปอยู่บนแถบโหลด (HaloProgress) — บรรทัดสถานะเดิมเว้นว่างระหว่างอ่าน
+    // ไม่งั้นข้อความเดียวกันขึ้นสองที่ · บรรทัดสถานะยังใช้กับข้อความนอกช่วงอ่าน (โหลดล่วงหน้า · ผิดพลาด · cloud)
+    st.textContent = '';
+    barWrap.hidden = false;
+    ocrHalo('🖼 กำลังเริ่ม…', null);
     startFunFacts(document.getElementById('scanFact')); // มีอะไรให้อ่านระหว่างรอ OCR
     ocrProgress = m => {
       if (m.status === 'recognizing text') {
-        const p = 15 + Math.round(m.progress * 80);
-        bar.style.width = p + '%';
-        st.textContent = '📖 AI กำลังอ่านใบงาน… ' + Math.round(m.progress * 100) + '%';
+        ocrHalo('📖 AI กำลังอ่านใบงาน…', 15 + Math.round(m.progress * 80));
       } else if (m.status) {
-        st.textContent = '⏳ ' + m.status + '…';
+        ocrHalo('⏳ ' + m.status + '…');
       }
     };
     // ปรับภาพก่อน แล้วค่อยโหลดโมเดล — ผู้ใช้จะได้เห็นความคืบหน้าตั้งแต่วินาทีแรก
+    // เตรียมภาพ / เตรียมโมเดล ไม่มีตัวเลขให้ → แถบวิ่งวน · รอบอ่านซ้ำหลังอ่านจบ → คงแถบไว้ เปลี่ยนแค่ป้าย
     const r = await ocrReadCanvas(source, stage => {
-      st.textContent = OCR_STAGE_TEXT[stage] || '';
-      if (stage === 'model') bar.style.width = '12%';
+      ocrHalo(OCR_STAGE_TEXT[stage] || '', ['prep', 'lang', 'model'].includes(stage) ? null : undefined);
     });
 
     ocrProgress = null;
@@ -14366,16 +14739,21 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   function tick(){
     raf=0; var c=cur; if(!c||!c.el||!c.el.isConnected){ cur=null; return; }
     var moving=false;
+    // แถบตั้งด้านซ้าย (จอกว้าง · data-nav="side") — ไอคอนเรียงตามแกน Y ถ้าวัดระยะแกน X แบบแถบล่าง
+    // ทุกไอคอนห่างจากเมาส์เท่ากันหมด เลยขยายพร้อมกันทั้งแถบแล้วยกขึ้นทับกัน (เจ้าของส่งภาพมา)
+    // แบบเดียวกับแถบล่าง: วัดระยะตามแกนของแถบ · ดันออกจากขอบจอ = ไปทางขวา (ต้นทางขยายอยู่ใน alt.css)
+    var vert=c.cfg.flat && c.el.offsetHeight>c.el.offsetWidth;
     var items=c.el.querySelectorAll(c.cfg.item), rowcy=null;
     if(!c.cfg.flat && px!==null){ var best=1e9;
       items.forEach(function(el){ var r=el.getBoundingClientRect(), d=Math.abs(py-(r.top+r.height/2)); if(d<best){best=d; rowcy=r.top+r.height/2;} }); }
     items.forEach(function(el){
       var r=el.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2, target=1;
-      if(px!==null && (c.cfg.flat || Math.abs(cy-rowcy)<12)) target=smooth(Math.abs(px-cx), c.cfg);
+      if(px!==null && (c.cfg.flat || Math.abs(cy-rowcy)<12)) target=smooth(vert ? Math.abs(py-cy) : Math.abs(px-cx), c.cfg);
       var s=st.get(el)||1; s+=(target-s)*K;
       if(Math.abs(target-s)>.002) moving=true; else s=target;
       st.set(el,s);
-      el.style.transform = s===1 ? '' : 'translateY('+(-(s-1)*c.cfg.lift/c.cfg.extra).toFixed(2)+'px) scale('+s.toFixed(3)+')';
+      var lift=((s-1)*c.cfg.lift/c.cfg.extra).toFixed(2);
+      el.style.transform = s===1 ? '' : (vert ? 'translateX('+lift+'px)' : 'translateY(-'+lift+'px)')+' scale('+s.toFixed(3)+')';
       el.style.zIndex = s>1.03 ? 8 : '';
     });
     if(moving||px!==null) raf=requestAnimationFrame(tick);
@@ -14483,4 +14861,19 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     new MutationObserver(scan).observe(root,{childList:true,subtree:true}); scan();
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
+})();
+
+// ============================================================
+// หัวฟอร์มเพิ่มงาน/ตรวจก่อนบันทึก — ชื่อจออยู่แค่บนสุด กากบาทลอยอยู่ซ้าย
+// ============================================================
+// เจ้าของ: "มันอยู่แค่ข้างบน พอเลื่อนลงมาจะไม่เจอ ส่วนปุ่มกากบาทให้ไปอยู่ด้านซ้าย"
+// หัวจอติดขอบบน (sticky) และโปร่งใส — พอเลื่อนลง ชื่อจอเลยไปซ้อนกับแถวในฟอร์มที่ลอดขึ้นมา
+// .stuck (เลื่อนพ้นบนสุด) = ชื่อจอจางหาย เหลือปุ่มกากบาทลอยมุมซ้าย · CSS อยู่ท้าย alt.css
+(function () {
+  const scr = document.getElementById('scr-form');
+  const head = scr && scr.querySelector('.fm-top');
+  if (!head) return;
+  const sync = () => head.classList.toggle('stuck', scr.scrollTop > 4);
+  scr.addEventListener('scroll', sync, { passive: true });
+  sync();
 })();
