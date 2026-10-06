@@ -6,16 +6,16 @@
   <meta name="google-site-verification" content="EL8HSk9rzF6WS9GYcfkFaYwxf00p2PzEKganiKXzDh0" />
   <title>Student OS — ผู้ช่วยจัดลำดับงานสำหรับนักเรียน</title>
   <meta name="description" content="Student OS คือ AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงานหรือแปะข้อความจาก LINE แล้ว AI จัดลำดับความสำคัญพร้อมเหตุผล ไม่ต้องเดาว่าจะทำอะไรก่อน">
-  <link rel="canonical" href="https://nadokagenou.github.io/studentos-ai/">
+  <link rel="canonical" href="https://nadokagenou.github.io/studentos-ai/alt/">
 
   <meta property="og:type" content="website">
   <meta property="og:title" content="Student OS — รู้ว่าต้องทำอะไรก่อน เสมอ">
   <meta property="og:description" content="AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงาน จัดลำดับความสำคัญพร้อมเหตุผล">
-  <meta property="og:url" content="https://nadokagenou.github.io/studentos-ai/">
-  <meta property="og:image" content="https://nadokagenou.github.io/studentos-ai/icon-512.png">
+  <meta property="og:url" content="https://nadokagenou.github.io/studentos-ai/alt/">
+  <meta property="og:image" content="https://nadokagenou.github.io/studentos-ai/alt/icon-512.png">
   <meta name="twitter:card" content="summary">
 
-  <meta name="theme-color" content="#F8FAFC">
+  <meta name="theme-color" content="#F7FAFF">
   <!-- ธีมต้องถูกตัดสินก่อนวาดจอแรก ไม่งั้นคนใช้ธีมมืดจะเห็นจอขาวแวบหนึ่ง
        ค่า "system" ถูกแปลงเป็น light/dark ที่นี่เลย CSS จึงมีแค่ 4 โทนจริง -->
   <script>
@@ -42,8 +42,8 @@
     })();
   </script>
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon-alt-192.png">
-  <link rel="apple-touch-icon" href="icon-alt-192.png">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <!-- default ไม่ใช่ black-translucent · iOS 26 มีบั๊ก (WebKit 301108): แอปที่วาดทับแถบสถานะ
        จะได้จอที่สั้นกว่าจริงเท่าความสูงแถบสถานะ (~47pt) ขาดหายที่ด้านล่าง
@@ -471,7 +471,7 @@
           <div class="ob-prog"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
           <div class="ob-head">
             <h2 class="ob-h">เรียกคุณว่าอะไรดี</h2>
-            <p class="ob-p">ทั้งแอปจะเรียกชื่อนี้ — ข้อนี้ข้อเดียวที่ข้ามไม่ได้</p>
+            <p class="ob-p">ทั้งแอปจะเรียกชื่อนี้ — ใส่ชื่อเล่นก็ได้</p>
           </div>
 
           <div class="ob-card">
@@ -601,8 +601,9 @@
           <div class="scan-paste">
             <div class="rule"><span></span>หรือแปะข้อความ<span></span></div>
             <div class="paste-card">
-              <textarea id="pasteText" rows="4"
+              <textarea id="pasteText" rows="4" aria-describedby="pasteErr"
                 placeholder="วางข้อความ"></textarea>
+              <span class="ob-err paste-err" id="pasteErr" role="alert" hidden>แปะข้อความก่อนนะ</span>
               <div class="pc-act">
                 <button class="ai-read" onclick="scanFromText()">
                   <svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg>ให้ AI อ่าน</button>
@@ -723,8 +724,11 @@
                  ช่องบรรทัดเดียวจะเลื่อนออกข้าง ทำให้เห็นทีละไม่กี่คำและตรวจก่อนบันทึกไม่ได้
                  rows=1 แล้วให้ autoGrow() ยืดตามเนื้อหา — สั้นก็ไม่กินที่ ยาวก็เห็นครบ -->
             <div class="fld" id="fDetailFld">
-              <textarea id="fDetail" rows="1" placeholder="เช่น ทำโจทย์บทที่ 4 ข้อ 1–10"></textarea>
+              <textarea id="fDetail" rows="1" placeholder="เช่น ทำโจทย์บทที่ 4 ข้อ 1–10"
+                aria-labelledby="fDetailLabel" aria-describedby="fDetailErr" aria-required="true"
+                onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();saveForm();}"></textarea>
             </div>
+            <span class="ob-err paste-err" id="fDetailErr" role="alert" hidden>ใส่ชื่องานก่อนนะ</span>
             <button type="button" class="fs-alt" onclick="go('scr-scan')">
               <svg viewBox="0 0 24 24"><use href="#lu-mic"/></svg>พูดหรือถ่ายรูปแทนการพิมพ์</button>
           </section>

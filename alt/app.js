@@ -1015,6 +1015,8 @@ function go(id) {
   // จอเหรียญตราเข้าได้สามทาง (หน้าแรก · แท็บฉัน · ผลของฉัน) — ปุ่มกลับต้องกลับไปที่เดิม
   if (id === 'scr-badges' && ['scr-menu', 'scr-profile', 'scr-stats'].includes(curScreen)) badgesReturn = curScreen;
   curScreen = id;
+  // เข้าจอที่ลึกกว่าหน้าแรก = ปุ่มย้อนของเครื่องต้องพากลับในแอป ไม่ใช่ปิดแอป (ดู armBackTrap)
+  if (id !== 'scr-menu' && id !== 'scr-login' && id !== 'scr-onboard') armBackTrap();
   // 1C16 · ออกจากจอสแกนตาราง = ปิดกล้องเสมอ กล้องที่ค้างเปิดคือไฟแดงที่ไม่มีใครสั่ง
   // ดักที่นี่ที่เดียว ไม่ไล่แก้ทีละทางออก — ทางออกถัดไปจะไม่รู้ว่ามีกฎนี้อยู่
   if (id !== 'scr-ttscan' && typeof ttCamStop === 'function') ttCamStop();
@@ -1023,6 +1025,8 @@ function go(id) {
   // เปิดจอสแกน = เริ่มโหลดโมเดลอ่านภาษาไว้เลย ระหว่างที่ผู้ใช้ยังเล็งกล้องอยู่
   // (เงียบ ๆ ล้มก็ไม่เป็นไร ตอนกดอ่านจริงจะลองใหม่เอง — ดู warmOcr)
   if (id === 'scr-scan' && typeof warmOcr === 'function') warmOcr();
+  // กลับถึงหน้าแรกแล้วค่อยชวนรับของรายวัน (ถ้ายังไม่ได้ชวนวันนี้) — ดู dailyPromptOnOpen
+  if (id === 'scr-menu') setTimeout(dailyPromptOnOpen, 900);
   document.body.dataset.godir = dir;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on', 'just-in'));
   const scr = document.getElementById(id);
@@ -1219,8 +1223,29 @@ async function syncFromCloud() {
     await loadLineLinks();
     await pullInbox();
     renderAll();
-  } catch (e) { console.warn('[sync] pull failed:', e.message); }
+  } catch (e) { console.warn('[sync] pull failed:', e.message); syncFailNotice('pull'); }
 }
+
+// QA 6 ต.ค. 69 · ซิงก์ล้มต้องมีคนรู้ — เดิมมีแค่ console.warn ผู้ใช้จึงเชื่อว่างานไปถึงอีกเครื่องแล้ว
+// บอกครั้งเดียวต่อรอบปัญหา (สำเร็จครั้งถัดไปเมื่อไหร่ค่อยนับใหม่) ไม่งั้น toast เด้งทุก 1.5 วิตอนเน็ตหลุด
+// ข้อมูลยังอยู่ในเครื่องครบ — ข้อความต้องพูดตรงนี้ให้ชัด คนกลัวว่างานหายมากกว่ากลัวว่าซิงก์ช้า
+let syncFailShown = false;
+function syncFailNotice(kind) {
+  if (syncFailShown) return;
+  syncFailShown = true;
+  const off = navigator.onLine === false;
+  showToast({
+    title: off ? 'ออฟไลน์อยู่ — ยังไม่ได้ซิงก์' : 'ซิงก์ไม่สำเร็จ',
+    body: 'งานทั้งหมดยังอยู่ในเครื่องนี้ครบ · ' + (off ? 'ต่อเน็ตแล้วจะซิงก์ให้เอง' : 'ลองใหม่ได้เลย'),
+    action: off ? null : { label: 'ลองใหม่', fn: () => { syncFailShown = false; kind === 'pull' ? syncFromCloud() : pushToCloud(true); } },
+  });
+}
+// ต่อเน็ตกลับมาแล้ว = ลองซิงก์ใหม่เงียบ ๆ · ถ้ายังพังอยู่ syncFailNotice จะบอกเอง
+window.addEventListener('online', () => {
+  if (!syncFailShown) return;
+  syncFailShown = false;
+  if (typeof currentUser !== 'undefined' && currentUser) pushToCloud(true);
+});
 
 // ============================================================
 // ส่งข้อมูลขึ้น cloud (debounce 1.5 วิ กันยิงถี่)
@@ -1287,7 +1312,8 @@ function pushToCloud(immediate) {
       if (back && typeof back.rev === 'number') lastSeenRev = back.rev;
       lastSync = new Date();
       renderProfile();
-    } catch (e) { console.warn('[sync] push failed:', e.message); }
+      syncFailShown = false;   // สำเร็จแล้ว — รอบหน้าที่พังต้องได้บอกใหม่
+    } catch (e) { console.warn('[sync] push failed:', e.message); syncFailNotice('push'); }
   };
   if (immediate) return doPush();
   clearTimeout(syncTimer);
@@ -2506,7 +2532,12 @@ function toolsGrid() {
     ['medal', 'ของสะสม', 'me', "go('scr-badges')", '', false],
     ['bag', 'ร้านค้า', 'me', "go('scr-shop')", gift ? ' ' : '', true, 'shop'],
     ['lock', 'Pro', 'me', "go('scr-pro')", '', false],
-  ].filter(t => !t[6] || typeof sosFeature !== 'function' || sosFeature(t[6]));
+  ].filter(t => !t[6] || typeof sosFeature !== 'function' || sosFeature(t[6]))
+    // QA 6 ต.ค. 69 · แถวล่าง (สถิติ · ของสะสม · ร้านค้า · Pro) ไม่ขึ้นบนหน้าแรกแล้ว
+    // สองแถวทำให้หน้าแรกล้นจอ 375×812 (ผิดกฎ "หน้าแรกไม่ต้องเลื่อน") และทั้งสี่อย่างคือ "ของตัวเอง"
+    // ไม่ได้ช่วยตอบ "ตอนนี้ควรทำอะไร" — Vision บอกให้ไปอยู่หลังแท็บ "ฉัน" ซึ่งมีทางเข้าครบทั้งสี่อยู่แล้ว
+    // (แถว pe-shop · pe-pro · ไทล์เหรียญ/ต่อเนื่องในหน้าโปรไฟล์) · แบดจ์ของรางวัลยังอยู่บนแท็บ "ฉัน"
+    .filter(t => t[2] !== 'me');
 
   return `<section class="td-tiles">
     <div class="tg-grid">
@@ -2677,7 +2708,7 @@ function todayStats(sp, now) {
       <i>${esc(lb)}</i>
     </div>`;
   const SP = {
-    free:    cell('clock', 'v', freeTx, 'ชั่วโมงที่ว่าง'),
+    free:    cell('clock', 'v', freeTx, 'เวลาว่าง'),
     pending: cell('target', 'w', String(pend), 'งานค้าง'),
     streak:  cell('flame', 'g', String(streak), 'วันต่อเนื่อง'),
   };
@@ -2729,9 +2760,14 @@ const HOME_BLOCKS = {
 // (ต่อหลังบล็อกที่มาก่อนมันใน HOME_ORDER) · ถ้าวันหนึ่งจัดลำดับใน Control Center แล้วรวมบล็อกนี้ด้วย ค่านั้นชนะ
 const HOME_ORDER = ['todayHead', 'saiHero', 'todayStats', 'askBar', 'nowCard', 'dayRail', 'hwNowBlock', 'toolsGrid'];
 
+// QA 6 ต.ค. 69 · แถบตัวเลขปิดไว้เป็นค่าเริ่มต้น — "ว่าง 45 นาที · ค้าง 1 งาน" บนหัวจอพูดเลขชุดเดียวกันอยู่แล้ว
+// สองช่องซ้ำกันกิน 125px ที่ทำให้หน้าแรกล้นจอ 375×812 จนกริดไทล์จมใต้แถบล่าง (ผิดกฎ "หน้าแรกไม่ต้องเลื่อน")
+// ยังเปิดคืนได้ใน Control Center (Home Builder) — ค่าที่บันทึกไว้ชนะค่าเริ่มต้นนี้เสมอ
+const HOME_OFF = ['todayStats'];
+
 function homeLayout() {
   const saved = (typeof sosCfg === 'function') ? sosCfg('home.blocks', null) : null;
-  if (!Array.isArray(saved) || !saved.length) return HOME_ORDER.map(id => ({ id, on: true }));
+  if (!Array.isArray(saved) || !saved.length) return HOME_ORDER.map(id => ({ id, on: !HOME_OFF.includes(id) }));
 
   const seen = new Set(), out = [];
   for (const b of saved) {
@@ -2858,10 +2894,10 @@ function addSheetHTML() {
   if (addSheetView === 'connectors') {
     const c = typeof connectorCount === 'function' ? connectorCount() : { on: 0, all: 0 };
     return `<div class="as-grip"></div>
-      <div class="as-h as-back" onclick="openAddSheet('root')">
+      <button type="button" class="as-h as-back" onclick="openAddSheet('root')" aria-label="กลับไปเมนูเพิ่มงาน">
         <span class="as-bk">${icon('chevron')}</span>ตัวเชื่อม
         <span class="as-cnt">เปิดอยู่ ${c.on}/${c.all}</span>
-      </div>
+      </button>
       <p class="as-sub">เปิดไว้แล้วงานไหลเข้าเอง ไม่ต้องพิมพ์ ไม่ต้องกดอะไรอีก</p>
       ${typeof integMenuRows === 'function' ? integMenuRows() : ''}
       ${typeof connectorMenuRows === 'function' ? connectorMenuRows() : ''}
@@ -4941,7 +4977,11 @@ function renderTasks() {
     </div>`;
   // โหมดวันนี้พูดถึงวันเดียว ไม่ใช่ช่วงเจ็ดวัน — บรรทัดบนจึงต้องเป็นวันนั้นกับเวลาว่างของวันนั้น
   // ใช้ช่วงสัปดาห์ต่อไปจะเป็นตัวเลขที่ไม่เกี่ยวกับอะไรบนจอเลยสักตัว
-  const todayFree = typeof freeMinutes === 'function' ? freeMinutes(now, now) : 0;
+  // QA 6 ต.ค. 69 · ตัวเลขเดียวกับหัวจอหน้าแรก (studyPlan → windows.budgetMin) ไม่ใช่ freeMinutes ตรง ๆ
+  // เดิมสองจอคิดคนละสูตร: หน้าแรกบอก "ว่าง 1 ชม." ขณะที่จอนี้บอก "ไม่มีช่องว่างเหลือแล้ว" ในนาทีเดียวกัน
+  const tp = typeof todayPlan === 'function' ? todayPlan(now) : null;
+  const todayFree = tp && tp.plan && tp.plan.windows ? (tp.plan.windows.budgetMin || 0)
+    : (typeof freeMinutes === 'function' ? freeMinutes(now, now) : 0);
   const eyebrow = taskView === 'today'
     ? WEEKDAY_SHORT[now.getDay()].replace('.', '') + ' ' + now.getDate()
       + ' ' + MONTH_SHORT[now.getMonth()]
@@ -8170,6 +8210,10 @@ function dailyPromptOnOpen() {
   if (typeof dailyPending !== 'function' || !dailyPending()) return;
   if (document.body.classList.contains('login-mode')) return;
   if (Date.now() < checkinHoldUntil) return;
+  // เด้งบนหน้าแรกเท่านั้น และต้องไม่มีชั้นอื่นเปิดอยู่ (QA 6 ต.ค. 69)
+  // เดิมตัวจับเวลาทุกนาทียิงได้ทุกจอ — เจอจริงตอนกำลังแปะข้อความงานอยู่กลางจอเพิ่มงาน
+  // ของรางวัลไม่ใช่คำตอบของ "ตอนนี้ควรทำอะไร" จึงห้ามแทรกกลางงานที่กำลังทำ
+  if (curScreen !== 'scr-menu' || focusId || openOverlayEl()) return;
   const day = rewardDayKey();
   let asked = null;
   try { asked = localStorage.getItem(CHECKIN_ASKED_KEY); } catch (_) {}
@@ -9865,11 +9909,140 @@ function startFocus(taskId) {
   haptic('arm');
 }
 
-// Esc ออกจากโหมดโฟกัส — คนที่ใช้บนคอมคาดหวังปุ่มนี้กับทุกอย่างที่ทับเต็มจอ
-// ไม่มีให้แล้วต้องไปเล็งกากบาทเล็ก ๆ มุมซ้ายบน ซึ่งเป็นการเพิ่มแรงเสียดทานให้ทางออก
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && focusId) closeFocus();
+// ============================================================
+// QA 6 ต.ค. 69 · ทางออกเดียวของทุกชั้นที่ทับจอ: Esc · ปุ่มย้อนกลับของเครื่อง · โฟกัสคีย์บอร์ด
+// ------------------------------------------------------------
+// เดิม Esc ปิดได้แค่โหมดโฟกัส ส่วนแผ่นเพิ่มงาน/เช็คอิน/ผู้ช่วยปิดได้ทางเดียวคือแตะพื้นที่ว่าง
+// และปุ่มย้อนของ Android ไม่ได้ผูกกับอะไรเลย (go() ไม่เคยเขียน history) — กดแล้วแอปปิดทิ้ง
+// ทั้งที่อยู่ลึกสามจอ · รวมไว้ที่เดียว เพราะชั้นใหม่ที่เพิ่มทีหลังจะไม่รู้ว่าต้องไปลงทะเบียนกี่ที่
+//
+// เรียงจากชั้นบนสุดลงล่าง — ปิดทีละชั้นต่อหนึ่งครั้งที่กด
+const OVERLAYS = [
+  { sel: '.face-zoom',       close: el => el.remove() },
+  { sel: '#reportSheet',     close: () => closeReport() },
+  { sel: '#tpSheet',         close: () => closeTopicAsk() },
+  { sel: '#checkin',         close: () => closeDailyCheck() },
+  { sel: '#soonSheet',       close: () => closeSoonSheet() },
+  // หน้าตัวเชื่อมในแผ่นเพิ่มงาน ถอยกลับหน้าหลักของแผ่นก่อน ไม่ใช่ปิดทั้งแผ่น
+  { sel: '#addSheet',        close: () => addSheetView === 'connectors' ? openAddSheet('root') : closeAddSheet() },
+  { sel: '#aiSheet',         close: () => closeAiHub() },
+  { sel: '#fabMenu',         close: () => closeFabHub() },
+  // ออกจากโหมดโฟกัสด้วยทางลัด = นาฬิกายังเดินต่อในแถบล่าง (เหมือน "พักก่อน" ไม่ใช่ "ทิ้งงาน")
+  { sel: '#focusWrap',       close: () => closeFocus(true) },
+];
+function openOverlayEl() {
+  for (const o of OVERLAYS) {
+    const el = document.querySelector(o.sel);
+    if (el && !el.hidden && el.isConnected && (el.firstElementChild || o.sel === '.face-zoom')) return { el, o };
+  }
+  return null;
+}
+function dismissTopOverlay() {
+  const top = openOverlayEl();
+  if (!top) return false;
+  try { top.o.close(top.el); } catch (_) { top.el.hidden = true; }
+  return true;
+}
+
+// ปุ่มย้อนในหัวจอของจอปัจจุบัน — ใช้ปุ่มที่จอนั้นมีอยู่แล้ว จะได้กลับไปที่เดียวกับที่แตะเอง
+// (แต่ละจอรู้ทางกลับของตัวเองดีกว่าตารางกลาง เช่นจอเหรียญที่เข้าได้สามทาง)
+const SCREEN_BACK_SEL = '.set-back,.ch-back,.hw-back,.tp-back,.sh-back,.lg-back,.back,button[aria-label^="กลับ"]';
+function backOneScreen() {
+  if (curScreen === 'scr-menu' || curScreen === 'scr-login' || curScreen === 'scr-onboard') return false;
+  const scr = document.getElementById(curScreen);
+  const btn = scr && [...scr.querySelectorAll(SCREEN_BACK_SEL)].find(b => b.offsetParent !== null);
+  if (btn) { btn.click(); return true; }
+  go('scr-menu');
+  return true;
+}
+
+// กับดักประวัติหนึ่งช่อง: ถือไว้หนึ่งรายการเสมอ กดย้อนแล้วเราได้ popstate แทนการออกจากหน้า
+// ไม่ push ทุกครั้งที่ย้ายจอ — ประวัติที่ยาวเท่าจำนวนจอที่เคยแตะ ทำให้กดย้อนวนอยู่ในแอปเป็นสิบครั้ง
+// หน้าแรกที่ไม่มีอะไรเปิดค้าง = ไม่วางกับดักคืน → กดย้อนอีกครั้งออกจากแอปตามปกติของเครื่อง
+let backTrapArmed = false;
+function armBackTrap() {
+  if (backTrapArmed) return;
+  try { history.pushState({ sosTrap: 1 }, ''); backTrapArmed = true; } catch (_) {}
+}
+window.addEventListener('popstate', () => {
+  backTrapArmed = false;
+  if (dismissTopOverlay() || backOneScreen()) armBackTrap();
 });
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (dismissTopOverlay()) e.preventDefault();
+    return;
+  }
+  // Tab วนอยู่ในชั้นบนสุด ไม่หลุดไปกดของที่อยู่หลังแผ่น
+  if (e.key === 'Tab') {
+    const top = openOverlayEl();
+    if (!top) return;
+    const f = [...top.el.querySelectorAll('button,[href],input,textarea,select,[tabindex]:not([tabindex="-1"])')]
+      .filter(x => !x.disabled && x.offsetParent !== null);
+    if (!f.length) return;
+    const first = f[0], last = f[f.length - 1];
+    if (!top.el.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+});
+
+// QA 6 ต.ค. 69 · div/span ที่มี onclick (แถวงาน · แถววันบนเส้นเวลา · แถวข้อความ · โพสต์ ฯลฯ 28 แบบ
+// กระจายอยู่ในเทมเพลตหลายไฟล์) กดด้วยคีย์บอร์ดไม่ได้เลย · ไล่แก้ทีละเทมเพลตแล้วเทมเพลตถัดไปก็ลืมอีก
+// จึงติดป้ายให้ตอนมันโผล่ในหน้า: role=button + tabindex=0 · Enter/Space = คลิก
+// ชั้นมืดหลังแผ่น (scrim) ไม่นับ — มันคือ "แตะที่ว่างเพื่อปิด" ซึ่ง Esc ทำแทนอยู่แล้ว
+const CLICKY_SKIP = '.as-scrim,.ah-scrim,.rp-back,.face-zoom,#checkin,.fc-sheet,.screen';
+function tagClickables(root) {
+  (root || document).querySelectorAll('[onclick]:not(button):not(a):not(input):not(label):not(select):not(textarea):not([role]):not([tabindex])')
+    .forEach(el => {
+      if (el.matches(CLICKY_SKIP)) return;
+      el.setAttribute('role', 'button');
+      el.setAttribute('tabindex', '0');
+    });
+}
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const el = e.target;
+  if (!el || el.getAttribute('role') !== 'button' || el.tagName === 'BUTTON' || !el.hasAttribute('onclick')) return;
+  e.preventDefault();
+  el.click();
+});
+let tagTimer = 0;
+new MutationObserver(() => {
+  if (tagTimer) return;
+  tagTimer = setTimeout(() => { tagTimer = 0; tagClickables(); }, 120);
+}).observe(document.documentElement, { childList: true, subtree: true });
+
+// เปิดชั้นไหนก็ตาม: ประกาศว่าเป็น modal · ย้ายโฟกัสเข้าไป · วางกับดักย้อนกลับ
+// ปิดแล้วคืนโฟกัสให้ปุ่มที่กดเปิด — คนใช้คีย์บอร์ดจะได้ไม่หล่นกลับไปต้นหน้า
+// ใช้ตัวเฝ้า hidden ไม่ใช่ไล่แก้ทุกฟังก์ชัน open* เพราะทางเปิดมีหลายสิบทาง
+const overlayReturn = new WeakMap();
+function watchOverlays() {
+  const ids = ['checkin', 'focusWrap', 'addSheet', 'soonSheet', 'aiSheet', 'fabMenu', 'reportSheet'];
+  const mo = new MutationObserver(recs => {
+    for (const r of recs) {
+      const el = r.target;
+      if (!el.hidden) {
+        if (!overlayReturn.has(el)) overlayReturn.set(el, document.activeElement);
+        const card = el.querySelector('[role="dialog"]') || el;
+        card.setAttribute('aria-modal', 'true');
+        if (!card.getAttribute('role')) card.setAttribute('role', 'dialog');
+        armBackTrap();
+        setTimeout(() => {
+          if (el.hidden || el.contains(document.activeElement)) return;
+          const f = el.querySelector('button,[href],input,textarea,select');
+          if (f) f.focus({ preventScroll: true });
+        }, 60);
+      } else if (overlayReturn.has(el)) {
+        const back = overlayReturn.get(el);
+        overlayReturn.delete(el);
+        if (back && back.isConnected && typeof back.focus === 'function') back.focus({ preventScroll: true });
+      }
+    }
+  });
+  ids.forEach(id => { const el = document.getElementById(id); if (el) mo.observe(el, { attributes: true, attributeFilter: ['hidden'] }); });
+}
 
 function closeFocus(keepRunning) {
   clearInterval(focusTimer); focusTimer = null;
@@ -9980,7 +10153,8 @@ function finishFocus() {
   _planCache = null;
   haptic('done');
 
-  const sp = todayPlan(new Date());
+  // focusPlan ไม่ใช่ todayPlan — "ทำต่อเลย" ต้องไม่เปิดจับเวลาให้ประชุมชมรมหรือเตือนความจำ
+  const sp = focusPlan(new Date());
   const nxt = sp.now;
   clearInterval(focusTimer); focusTimer = null;
 
@@ -10104,10 +10278,12 @@ function toggleDone(id, el) {
       renderAll();
       // คำชมที่ไม่บอกว่างานถัดไปคืออะไร คือคำชมที่ทำให้ต้องกลับไปนั่งเลือกใหม่เอง
       // ลูกโซ่ เริ่ม → เสร็จ → ต่อ ขาดตรงนี้มาตลอด ทั้งที่ตัวจัดแผนรู้คำตอบอยู่แล้ว
-      const sp = todayPlan(new Date());
+      const sp = focusPlan(new Date());   // ตัวเดียวกับการ์ดโฟกัส — ไม่เสนอเตือนความจำเป็นงานถัดไป
       showToast(cleared || !sp.now ? celebrateCopy(true) : {
         title: 'เยี่ยม! เสร็จอีกงาน 💪',
         body: 'ต่อไป: ' + taskTitleText(sp.now.task) + ' · ~' + (sp.now.task.estMin || 30) + ' นาที',
+        // ติ๊กจากหน้าแรกต้องไปต่อได้ในแตะเดียวเหมือนจอ "เสร็จแล้ว" ของโหมดโฟกัส
+        action: { label: 'เริ่มเลย', fn: () => startFocus(sp.now.task.id) },
       });
       // เหรียญใหม่ (ถ้ามี) เด้งตามหลังคำชม ไม่ให้ทับกัน
       setTimeout(checkBadges, 2600);
@@ -10582,8 +10758,23 @@ function spawnRepeat(t) {
 }
 
 function saveForm() {
-  const detail = document.getElementById('fDetail').value.trim();
-  if (!detail) { alert('ใส่ชื่องานก่อนนะ'); return; }
+  const detailEl = document.getElementById('fDetail');
+  const detailErr = document.getElementById('fDetailErr');
+  const detail = detailEl.value.trim();
+  // บอกใต้ช่องที่ขาด แล้วพาไปที่ช่องนั้น — ปุ่มบันทึกอยู่ล่างสุดของฟอร์มยาว ช่องชื่อจึงมักอยู่นอกจอ
+  if (!detail) {
+    if (detailErr) detailErr.hidden = false;
+    detailEl.setAttribute('aria-invalid', 'true');
+    detailEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    detailEl.focus({ preventScroll: true });
+    detailEl.addEventListener('input', () => {
+      if (detailErr) detailErr.hidden = true;
+      detailEl.removeAttribute('aria-invalid');
+    }, { once: true });
+    return;
+  }
+  if (detailErr) detailErr.hidden = true;
+  detailEl.removeAttribute('aria-invalid');
   const dateV = document.getElementById('fDate').value;
   const timeV = document.getElementById('fTime').value || '23:59';
   const due = dateV ? new Date(dateV + 'T' + timeV) : null;
@@ -10642,9 +10833,18 @@ function saveForm() {
     funnelTask(formFromScan ? 'scan' : 'manual');
   }
   const back = formReturn;
+  const wasEdit = !!target;
   editingId = null;
   save();
   go(back);
+  // QA 6 ต.ค. 69 · บันทึกแล้วต้องมีคำยืนยัน — เดิมเงียบจนไม่แน่ใจว่างานเข้าแผนหรือยัง (ลบมี toast แต่บันทึกไม่มี)
+  const late = data.due && new Date(data.due) < new Date();
+  setTimeout(() => showToast({
+    title: wasEdit ? 'แก้ไขแล้ว' : 'บันทึกเข้าแผนแล้ว ✓',
+    body: late ? 'กำหนดส่งเลยมาแล้ว — ดูได้ในแท็บ “งาน”'
+      : data.due ? 'ส่ง ' + fmtThaiDate(new Date(data.due)) + ' · ' + detail.slice(0, 40)
+      : detail.slice(0, 60),
+  }), 250);
 }
 
 // ยกเลิก = ทิ้งการแก้ทั้งหมด แล้วกลับจอที่มาจาก (ไม่ใช่เด้งไปหน้าแรกเสมอ)
@@ -10789,10 +10989,49 @@ function toggleVoice() {
 }
 
 // ---------- scan: ข้อความ ----------
+// QA 6 ต.ค. 69 · ผลพลาดของการสแกนขึ้นเป็นการ์ดบนจอสแกน (ใต้ปุ่มกล้อง ข้างปุ่ม "อ่านให้แม่นขึ้น")
+// แทน alert() ที่เด้งกลางจอ — คำแนะนำต้องอยู่ข้างปุ่มที่ใช้แก้ ไม่ใช่ในกล่องที่ต้องกดปิดก่อนถึงจะเห็นปุ่ม
+function scanNotice(title, lines, detail) {
+  const st = document.getElementById('ocrStatus');
+  if (!st) { showToast({ title, body: (lines || []).join(' · ') }); return; }
+  st.innerHTML = `<div class="scan-err" role="alert">
+      <b>${esc(title)}</b>
+      ${(lines || []).map(l => `<span>${esc(l)}</span>`).join('')}
+      ${detail ? `<small>${esc(String(detail).slice(0, 140))}</small>` : ''}
+    </div>`;
+  st.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
 function scanFromText() {
-  const text = document.getElementById('pasteText').value.trim();
-  if (!text) { alert('แปะข้อความก่อนนะ'); return; }
-  document.getElementById('pasteText').value = '';
+  const box = document.getElementById('pasteText');
+  const err = document.getElementById('pasteErr');
+  const text = box.value.trim();
+  // บอกใต้ช่องที่ผิด ไม่ใช่ alert() ที่เด้งกลางจอแล้วไม่ชี้ว่าต้องแก้ตรงไหน
+  if (!text) {
+    if (err) err.hidden = false;
+    box.setAttribute('aria-invalid', 'true');
+    box.focus();
+    box.oninput = () => { if (err) err.hidden = true; box.removeAttribute('aria-invalid'); box.oninput = null; };
+    return;
+  }
+  if (err) err.hidden = true;
+  box.removeAttribute('aria-invalid');
+  box.value = '';
+
+  // แปะมาหลายงานในก้อนเดียว → ตัดเป็นงาน ๆ ผ่านประตูเดียวกับกล่องเข้า แล้วให้ติ๊กเลือกที่นั่น
+  // (เดิมส่งทั้งก้อนเข้าฟอร์มเดียว ได้งานเดียวที่ชื่อยาวและกำหนดส่งของบรรทัดแรกหายไป)
+  const cut = typeof cutAssignments === 'function' ? cutAssignments(text) : null;
+  if (cut && cut.multi && typeof inboxAdd === 'function') {
+    const r = inboxAdd(text, 'text', { via: 'paste' });
+    if (r && r.status !== 'off') {
+      go('scr-inbox');
+      const n = r.count || cut.segments.length;
+      setTimeout(() => showToast(r.status === 'accepted'
+        ? { title: `เพิ่ม ${n} งานเข้าแผนแล้ว`, body: 'แยกจากข้อความที่แปะมาให้เอง' }
+        : { title: `แยกได้ ${n} งาน`, body: 'ติ๊กงานที่ใช่ แล้วกดรับเข้าแผน' }), 300);
+      return;
+    }
+  }
   runParsing(text, 'paste');
 }
 
@@ -11650,7 +11889,7 @@ async function openCropFor(file, mode) {
     go('scr-crop');
   } catch (e) {
     console.error('[OCR]', e);
-    alert('เปิดไฟล์ภาพนี้ไม่ได้ — ลองเลือกไฟล์อื่น (JPG หรือ PNG)');
+    scanNotice('เปิดไฟล์ภาพนี้ไม่ได้', ['ลองเลือกไฟล์อื่น (JPG หรือ PNG)']);
   }
 }
 
@@ -12210,10 +12449,10 @@ async function runOcrOn(source, how) {
     if (text.length < 5 || (conf < OCR_CONF_MIN && !r.fields)) {
       lastOcrConfidence = null;
       renderCloudOcr();     // รูปยังอยู่ — ทางที่อ่านลายมือได้ยังเปิดอยู่ ให้เห็นปุ่มไว้
-      alert('อ่านตัวหนังสือจากรูปนี้ไม่ค่อยออก (ความมั่นใจ ' + conf + '%)\n\n'
-        + 'ลองอีกที: ถ่ายให้เห็นเฉพาะส่วนที่เป็นโจทย์ · วางกล้องขนานกับกระดาษ · เลี่ยงเงามือทับตัวหนังสือ\n'
-        + 'ถ้าเป็นลายมือ ให้กดปุ่ม "อ่านให้แม่นขึ้น" — การอ่านในเครื่องอ่านลายมือไทยไม่ได้\n'
-        + 'หรือใช้ "แปะข้อความ" แทน — เร็วกว่าและแม่นกว่า');
+      scanNotice('อ่านตัวหนังสือจากรูปนี้ไม่ค่อยออก (ความมั่นใจ ' + conf + '%)', [
+        'ถ่ายให้เห็นเฉพาะส่วนที่เป็นโจทย์ · วางกล้องขนานกับกระดาษ · เลี่ยงเงามือทับตัวหนังสือ',
+        'ถ้าเป็นลายมือ กด "อ่านให้แม่นขึ้น" — การอ่านในเครื่องอ่านลายมือไทยไม่ได้',
+        'หรือใช้ "แปะข้อความ" ข้างล่าง — เร็วกว่าและแม่นกว่า']);
       return;
     }
     if (conf < OCR_CONF_OK) {
@@ -12237,9 +12476,9 @@ async function runOcrOn(source, how) {
     dropOcrWorker();
     // รูปยังอยู่ในมือ — เสนอทางที่ยังเดินต่อได้ แทนที่จะบอกแค่ว่าพัง
     renderCloudOcr();
-    alert('อ่านรูปไม่สำเร็จ: ' + e.message
-      + '\n\nลองใหม่อีกครั้งได้เลย (เตรียมเครื่องมือใหม่ให้แล้ว)'
-      + '\nหรือใช้ปุ่ม "อ่านให้แม่นขึ้น" / "แปะข้อความ" แทนก็ได้');
+    scanNotice('อ่านรูปไม่สำเร็จ', [
+        'ลองใหม่อีกครั้งได้เลย (เตรียมเครื่องมือใหม่ให้แล้ว)',
+        'หรือใช้ปุ่ม "อ่านให้แม่นขึ้น" / "แปะข้อความ" แทนก็ได้'], e.message);
   } finally {
     ocrRunning = false;
   }
@@ -12342,12 +12581,12 @@ async function cloudOcrRetry() {
       try { payload = await error.context.json(); } catch (_) { payload = null; }
     }
     if (!payload || payload.ok !== true) {
-      alert(payload?.message || 'อ่านด้วย AI บนเซิร์ฟเวอร์ไม่สำเร็จ — ลองใหม่อีกครั้ง');
+      scanNotice('อ่านด้วย AI บนเซิร์ฟเวอร์ไม่สำเร็จ', [payload?.message || 'ลองใหม่อีกครั้ง หรือแปะข้อความแทน']);
       return;
     }
     const text = normalizeOcrText(payload.text || '');
     if (text.trim().length < 5) {
-      alert('เซิร์ฟเวอร์อ่านรูปนี้ไม่ออกเหมือนกัน — ลองถ่ายใหม่ให้ชัดขึ้น');
+      scanNotice('เซิร์ฟเวอร์อ่านรูปนี้ไม่ออกเหมือนกัน', ['ลองถ่ายใหม่ให้ชัดขึ้น หรือแปะข้อความแทน']);
       return;
     }
     console.debug(`[ALT OCR/cloud] provider=${payload.provider} conf=${payload.conf}% `
@@ -12357,7 +12596,8 @@ async function cloudOcrRetry() {
     runParsing(text, 'ocr');
   } catch (e) {
     console.error('[ALT OCR/cloud]', e);
-    alert('อ่านด้วย AI บนเซิร์ฟเวอร์ไม่สำเร็จ: ' + e.message);
+    scanNotice('อ่านด้วย AI บนเซิร์ฟเวอร์ไม่สำเร็จ', [
+      navigator.onLine === false ? 'ตอนนี้ออฟไลน์อยู่ — ต่อเน็ตแล้วลองใหม่' : 'ลองใหม่อีกครั้ง หรือแปะข้อความแทน'], e.message);
   } finally {
     if (st2) st2.textContent = '';
     renderCloudOcr();
@@ -12371,7 +12611,7 @@ function saveProfile() {
   if (typeof syncPublicFace === 'function') syncPublicFace(true);
   state.settings.freeHours = Math.max(0.5, +document.getElementById('pFree').value || 2);
   save(); renderAll();
-  alert('บันทึกแล้ว ✓');
+  showToast({ title: 'บันทึกแล้ว ✓', body: 'ชื่อและเวลาว่างต่อวันอัปเดตแล้ว' });
 }
 
 // ---------- Web Push: สมัครรับการเตือนแม้ปิดแอป ----------
@@ -12607,9 +12847,12 @@ function showToast(copy) {
   }
   el.querySelector('.tt').textContent = copy.title;
   el.querySelector('.tb').textContent = copy.body;
+  // ปุ่มเดียวในการ์ดทำได้สองหน้าที่: "เลิกทำ" (undo) หรือการกระทำถัดไป (action: {label, fn})
   const undo = el.querySelector('.tu');
-  undo.hidden = !copy.undo;
-  undo.onclick = copy.undo ? () => { copy.undo(); el.classList.remove('show'); } : null;
+  const act = copy.undo ? { label: 'เลิกทำ', fn: copy.undo } : copy.action || null;
+  undo.hidden = !act;
+  undo.textContent = act ? act.label : 'เลิกทำ';
+  undo.onclick = act ? () => { act.fn(); el.classList.remove('show'); } : null;
   void el.offsetWidth; // บังคับ reflow ให้ transition ทำงาน
   setTimeout(() => el.classList.add('show'), 30);
   clearTimeout(toastTimer);
@@ -12629,7 +12872,7 @@ async function notify(title, body, tag) {
   title = title || NOTIF_BRAND;
   const opt = {
     body, tag: tag || 'studentos-alt',
-    icon: 'icon-alt-192.png', badge: 'icon-alt-192.png',
+    icon: 'icon-192.png', badge: 'icon-192.png',
     renotify: true, data: { url: location.pathname },
   };
   try {
@@ -13965,6 +14208,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   // ที่เหลือ (ฟอนต์จาก CDN · บัญชี · การแจ้งเตือน) เติมเข้ามาทีหลังได้โดยไม่ต้องให้ใครรอ
   const guessedSignedIn = hasStoredSession();
   routeStart();
+  watchOverlays();
 
   // ข้อความที่แชร์เข้ามาจากแอปอื่น — ทำหลังวาดจอแรก จะได้เห็นผลทันทีว่ามันเข้าแล้ว
   // ไม่ต้องรอล็อกอิน เพราะกล่องเข้าอยู่ในเครื่อง คนที่แค่อยากลองจึงลองได้เลย
@@ -14112,7 +14356,10 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     {sel:'.tabbar',  item:'.tab',  radius:96,  extra:.34, lift:9,  flat:true}
   ];
   var px=null, py=null, cur=null, raf=0, st=new WeakMap();
-  function smooth(d,c){ if(d>=c.radius) return 1; var t=1-d/c.radius; return 1+c.extra*t*t*(3-2*t); }
+  // QA 6 ต.ค. 69 · ใต้นิ้วขยายแค่ ~40% ของตอนใช้เมาส์ — 1.34 เท่าทำให้แท็บกว้าง ~94px ทับเพื่อนบ้าน
+  // และแท็บริมสุดโดนขอบ .phone ตัด · นิ้วบังไอคอนอยู่แล้ว การขยายเต็มที่จึงได้แค่ความเละ
+  var TOUCH_K=.4, touching=false;
+  function smooth(d,c){ if(d>=c.radius) return 1; var t=1-d/c.radius; return 1+c.extra*(touching?TOUCH_K:1)*t*t*(3-2*t); }
   function tick(){
     raf=0; var c=cur; if(!c||!c.el||!c.el.isConnected){ cur=null; return; }
     var moving=false;
@@ -14139,12 +14386,13 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   function leave(){ px=null; py=null; if(cur&&!raf) raf=requestAnimationFrame(tick); }
   document.addEventListener('pointermove',function(e){
     if(e.pointerType==='touch') return;
+    touching=false;
     var h=hit(e.target); h?go(h,e.clientX,e.clientY):leave();
   },{passive:true});
   document.addEventListener('pointerleave',leave,true);
   ['touchstart','touchmove'].forEach(function(n){
     document.addEventListener(n,function(e){
-      var t=e.touches[0]; if(!t) return;
+      var t=e.touches[0]; if(!t) return; touching=true;
       var h=hit(e.target); h?go(h,t.clientX,t.clientY):leave();
     },{passive:true});
   });

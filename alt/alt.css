@@ -9218,3 +9218,129 @@ button.df-r:active { background: var(--surface); }
 .phone #aiBody .sai-bar.sai-cmp .sb-send svg { width: 18px; height: 18px; stroke-width: 2.6; }
 .phone #aiBody .sai-bar.sai-cmp .sb-send:active { transform: scale(.92); }
 @media (prefers-reduced-motion: reduce) { .am-caret { animation: none; } }
+
+/* ============================================================
+   QA 6 ต.ค. 69 · แก้ตามรายงานตรวจก่อนเผยแพร่ (20 จุด)
+   รวมไว้ท้ายไฟล์ก้อนเดียว เพราะหลายข้อต้องชนะชั้นกระจก 1C40 ที่อยู่ข้างบน
+   ห้ามแตะ style.css (กฎของโปรเจกต์) — ข้อที่ต้นเหตุอยู่ในนั้นจึง override จากตรงนี้
+   ============================================================ */
+
+/* #16 · ตัวหนังสือไม่โดน Safari แนวนอนขยายเอง · ป้ายเล็กสุดไม่ต่ำกว่า 11px */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.phone .tabbar .tab { font-size: 11px; }
+/* ตัวเลขเล็กกว่า 10px ที่เป็นข้อความอ่านจริง (ไม่ใช่แบดจ์) ยกขึ้นเป็น 10.5px */
+.ck-node em, .cal-more, .tltime .d, .dn-mid i, .ab-ds { font-size: 10.5px; }
+
+/* #8 · ข้อความผิดใต้ช่องแปะข้อความ (แทน alert) */
+.paste-err { display: block; margin: 6px 4px 0; }
+.paste-err[hidden] { display: none; }
+#pasteText[aria-invalid="true"], #fDetail[aria-invalid="true"] { outline: 2px solid var(--alert); outline-offset: 2px; border-radius: 12px; }
+
+/* #17 · ปุ่มย้อนในแผ่นเพิ่มงาน (หน้าตัวเชื่อม) เป็น <button> แล้ว — ล้างหน้าตาปุ่มของเบราว์เซอร์ */
+button.as-back { background: none; border: 0; font: inherit; color: inherit; width: 100%;
+  text-align: inherit; cursor: pointer; }
+
+/* #17 · วงโฟกัสคีย์บอร์ดที่เห็นได้ทุกปุ่ม ทุกธีม — เฉพาะตอนใช้คีย์บอร์ด (ไม่ขึ้นตอนแตะนิ้ว) */
+.phone :is(button, a, [role="button"], [tabindex], input, textarea, select, label.scan-tile):focus-visible,
+#addSheet :focus-visible, #checkin :focus-visible, #focusWrap :focus-visible,
+#soonSheet :focus-visible, #aiSheet :focus-visible {
+  outline: 2.5px solid var(--blue) !important; outline-offset: 2px !important;
+}
+
+/* #12 · ปุ่มที่ใช้ไม่ได้ต้องดูออกว่าใช้ไม่ได้ · และมีสถานะชี้บนจอที่มีเมาส์ */
+.phone button:disabled, .phone button[aria-disabled="true"] { opacity: .5; cursor: not-allowed; filter: saturate(.6); }
+@media (hover: hover) and (pointer: fine) {
+  .phone :is(.fm-save, .tc-cta, .sai-cta, .ck-cta, .as-row, .tg-t, .dr-row, .soon-go, .ai-read, .manual):not(:disabled):hover {
+    filter: brightness(1.06);
+  }
+  .phone :is(.as-row, .dr-row):not(:disabled):hover { background-color: color-mix(in srgb, var(--blue) 6%, transparent); }
+}
+
+/* #11 · เป้ากดเล็กกว่า 44px — คงขนาดที่เห็นไว้ แต่ขยายพื้นที่รับนิ้วด้วยชั้นล่องหน */
+/* :where() = ความเจาะจง 0 — ปุ่มที่ตั้ง position ไว้เองแล้ว (เช่น .top-friends เป็น absolute) ชนะเสมอ
+   ใส่ relative เฉพาะตัวที่ยังเป็น static เพื่อให้ชั้นล่องหนข้างล่างเกาะตัวมันเอง */
+:where(.phone) :where(.chk, .wc-tick, .tk-tick, .dm-find-x, .wz-x, .cp-img-x, .fr-x, .ctx-del, .ch-emo-btn,
+  .ig-set, .th-bell, .fd-people, .bg-del, .top-friends) { position: relative; }
+.phone :is(.chk, .wc-tick, .tk-tick, .dm-find-x, .wz-x, .cp-img-x, .fr-x, .ctx-del, .ch-emo-btn,
+  .ig-set, .th-bell, .fd-people, .bg-del, .top-friends)::before {
+  /* ::before ไม่ใช่ ::after — .fd-people.has-req ใช้ ::after เป็นจุดแดงอยู่แล้ว */
+  content: ''; position: absolute; inset: -10px; border-radius: 50%;
+}
+.phone .wc-tick { width: 24px; height: 24px; }
+.phone .dm-find-x { width: 32px; height: 32px; }
+
+/* #6 · ปุ่มเพื่อนมุมขวาบน (z 91) ลอยทับชั้นมืดของเช็คอิน/แผ่นต่าง ๆ — หลบเมื่อมีชั้นไหนเปิดอยู่ */
+body:has(#checkin:not([hidden]), #addSheet:not([hidden]), #soonSheet:not([hidden]),
+  #aiSheet:not([hidden]), #reportSheet:not([hidden])) .top-friends,
+body.focus-on .top-friends { visibility: hidden; }
+
+/* #5 · จอ "เสร็จแล้ว" ของโหมดโฟกัสเลื่อนแนวนอนได้ 32px (อวตารน้องไซยื่นออกขอบการ์ด) */
+.fc-sheet.done { overflow-x: hidden; }
+.fc-sheet.done .fw-hero { max-width: 100%; }
+
+/* #4 · หน้าแรกต้องพอดี 375×812 — ไทล์ไม่ต้องเป็นสี่เหลี่ยมจัตุรัสบนจอแคบ (ประหยัด ~40px)
+   และช่องไฟระหว่างบล็อกลดจาก 22 → 16 · จอกว้างกว่า 620 ใช้กติกาเดิมใน today.css */
+@media (max-width: 619px) {
+  .tg-ic { aspect-ratio: auto; height: 60px; border-radius: 17px; }
+  .tg-ic svg { width: 21px; height: 21px; padding: 7px; }
+  .tg-grid { gap: 10px 6px; }
+  .tg-lb2 { min-height: 2.5em; }
+  #menuBody .td-tiles, #menuBody .td-railwrap { margin-top: 16px; }
+}
+@media (max-width: 619px) {
+  #menuBody .saih { margin-bottom: 0; }
+  #menuBody .td-stats { margin-top: 10px; gap: 8px; }
+  /* แถบตัวเลขแบบบรรทัดเดียว: ไอคอนซ้าย ตัวเลข+ป้ายขวา — สูง ~52 แทน 103 */
+  #menuBody .ts { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px;
+    align-items: center; padding: 9px 10px; border-radius: 16px; }
+  #menuBody .ts-ic { grid-row: span 2; margin: 0; width: 28px; height: 28px; }
+  #menuBody .ts b { font-size: 17px; }
+  #menuBody .ts i { margin-top: 1px; font-size: 11px; }
+  #menuBody > .td-ask { margin: 10px 0 0; }
+  #menuBody > .td-now, #menuBody > .td-empty { margin-top: 12px; }
+  #menuBody { padding-bottom: 12px; }
+}
+
+/* #14 · ปุ่มส่งของช่องพิมพ์น้องไซจางเกิน (≈2.2:1 ในธีมมืด) — ไอคอนต้องได้ 3:1 ขึ้นไป */
+.phone .sai-bar .sb-send, .phone #aiBody .sai-bar.sai-cmp .sb-send { color: var(--muted) !important; }
+:is([data-theme=dark],[data-theme=space],[data-theme=magic],[data-theme=galaxy],[data-theme=deepocean],[data-theme=meta],[data-theme=glitch],[data-theme=astral])
+  .phone :is(.sai-bar .sb-send, #aiBody .sai-bar.sai-cmp .sb-send) { color: var(--ink) !important; }
+/* #14 · Genesis: --faint 2.16:1 บนพื้นจอ → เข้มขึ้นจนได้ ≥4.5:1 บนการ์ดและพื้นจอ */
+:root[data-theme="genesis"] { --faint: #2E3566; }
+
+/* #15 · ปุ่มทองใช้โทเคนทองของธีม ไม่ใช่สีดิบ — Astral จึงได้ "เงิน" ตามที่ตั้งใจ */
+:root :is(.gc-go.lead, .ck-cta) {
+  background-image:
+    radial-gradient(120% 100% at 18% -8%, rgba(255,255,255,.5) 0%, rgba(255,255,255,.1) 42%, transparent 64%),
+    linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 50%, rgba(0,0,0,.06)),
+    var(--grad-gold) !important;
+  color: var(--on-gold) !important;
+}
+/* #15 · Astral = ขาว ดำ เทา ล้วน — แถบล่างไม่อมน้ำเงินตามชุดธีมมืดรวม */
+:root[data-theme="astral"] .phone .tabbar {
+  background: linear-gradient(180deg, rgba(38,38,38,.66), rgba(18,18,18,.55)) !important;
+  border-color: rgba(255,255,255,.22) !important;
+}
+
+/* #8 · การ์ดผลพลาดของการสแกน (แทน alert) */
+.scan-err { display: grid; gap: 4px; margin: 10px 0 0; padding: 12px 14px; border-radius: 16px;
+  background: var(--alert-soft); border: 1px solid color-mix(in srgb, var(--alert) 30%, transparent);
+  text-align: left; }
+.scan-err b { font-size: 14px; color: var(--ink); }
+.scan-err span { font-size: 13px; line-height: 1.45; color: var(--ink); opacity: .85; }
+.scan-err small { font-size: 11px; color: var(--muted); }
+
+/* #15 · โทเคนสเกลตัวอักษร / ระยะห่าง / มุมโค้ง — ดู alt/DESIGN.md
+   ของใหม่ใช้ตัวพวกนี้ · ของเก่าย้ายเมื่อแตะจอนั้นอยู่แล้ว (ไม่รื้อ 1,100 จุดรวดเดียว) */
+:root {
+  --fs-xs: 11px; --fs-sm: 12.5px; --fs-md: 14px; --fs-base: 15.5px;
+  --fs-lg: 18px; --fs-xl: 22px; --fs-2xl: 28px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --r-pill: 999px;
+}
+/* #15 · ปุ่มหลักทุกจอใช้คู่สีเดียวกัน (--fill/--on-fill) — เดิมธีมมืดได้ฟ้าอ่อน+ตัวดำที่ฟอร์ม
+   แต่น้ำเงิน+ตัวขาวที่การ์ดหน้าแรก อ่านเหมือนสองแบรนด์ · ชั้นประกายกระจกเป็น background-image จึงยังอยู่ */
+.phone :is(.btn.primary, .fm-save, .ai-read, .tc-cta, .sai-cta, .ep-save) {
+  background-color: var(--fill) !important; color: var(--on-fill) !important;
+}
+.phone :is(.tc-cta, .fr-go, .gc-go) { border-radius: var(--r-pill) !important; }

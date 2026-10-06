@@ -6,7 +6,7 @@
 // จะเสิร์ฟโลโก้เก่าจากแคชต่อไปโดยไม่มีอะไรบอกว่ามีของใหม่
 const CACHE = 'studentos-1c40'; // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
 // ทุกไฟล์ที่ index.html อ้างถึงต้องอยู่ในรายการนี้ — ไฟล์ที่หน้าเรียกแต่ไม่ได้แคชไว้
-// จะหายไปเงียบ ๆ ตอนออฟไลน์ โดยไม่มีอะไรบอกว่าหายไปไหน (ไอคอน icon-alt-* เป็นของที่หน้ายังอ้างถึงอยู่จริง)
+// จะหายไปเงียบ ๆ ตอนออฟไลน์ โดยไม่มีอะไรบอกว่าหายไปไหน (icon-alt-* เลิกใช้ในหน้าแล้วตั้งแต่ QA 6 ต.ค. 69 · คงไว้ให้ index.html เก่าในแคชของเครื่องที่ยังไม่อัปเดต)
 //
 // **visual-editor.js ถูกถอดออกจากรายการนี้ตั้งแต่ 1B89 โดยตั้งใจ** — index.html ไม่ได้อ้างถึงมันแล้ว
 // (Control Center ฉีดเข้า iframe ตอนรันเอง) การแคชไว้จึงเป็นการส่ง ~50KB ไปให้เด็กทุกคน
@@ -15,7 +15,7 @@ const CACHE = 'studentos-1c40'; // ขึ้นเวอร์ชันทุก
 const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'room.css', 'social.css', 'feed.css', 'safety.css', 'hw.css', 'topic.css', 'sai.css', 'custom.css',
   'engine.js', 'context.js', 'planner.js', 'facts.js', 'profile.js', 'simulate.js', 'calibrate.js', 'loss.js', 'decide.js', 'brain.js', 'inbox.js', 'linelink.js', 'integrations.js', 'room.js', 'social.js', 'feed.js', 'hw.js', 'topic.js', 'safety.js', 'sai.js', 'app.js', 'config.js', 'remote-config.js',
   'manifest.json',
-  'icon-alt-192.png', 'icon-alt-512.png', 'icon-192.png', 'icon-512.png',
+  'icon-alt-192.png', 'icon-alt-512.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png',
   'logo-mark.png', 'logo-splash.png', 'logo-splash-light.png',
   // หน้าน้องไซบนฟองแชท — ต้องอยู่ในแคชด้วย ไม่งั้นเปิดแอปตอนไม่มีเน็ตแล้วมาสคอตหายไปทั้งจอ
   'sai-avatar.png',
