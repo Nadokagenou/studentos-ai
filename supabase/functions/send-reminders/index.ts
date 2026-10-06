@@ -29,7 +29,20 @@ import { appConfig, num, str, fill } from '../_shared/appconfig.ts';
 const PAGE = 500;               // อ่าน subscription ทีละหน้า
 const ID_CHUNK = 200;           // uuid ต่อหนึ่ง .in() — วัดแล้วพังที่ 700 ตั้งไว้ต่ำกว่าสามเท่า
 const PUSH_CONCURRENCY = 20;    // ส่ง push พร้อมกันกี่สาย
-const QUIET_HOURS = 4;          // เตือนคนเดิมไม่เกิน 1 ครั้งต่อกี่ชั่วโมง
+const QUIET_HOURS = 3;          // เตือนคนเดิมไม่เกิน 1 ครั้งต่อกี่ชั่วโมง (1C37: 4 → 3 ให้รอบบ่ายกับรอบค่ำห่างกันพอ)
+// ---------- 1C37 · เตือนวันละ 2–3 ครั้ง ----------
+// เจ้าของ: "ระบบแจ้งเตือนให้แจ้งเตือนบ่อย ๆ ไม่ใช่แค่ครั้งเดียวต่อวัน ประมาณ 2–3 ครั้งต่อวัน"
+// ของเดิมเตือนตามกำหนดส่งเท่านั้น งานที่ส่งอีกสี่วันจึงเงียบสนิทจนถึงวันก่อนส่ง
+// รอบประจำวันสามรอบ ตรงกับจังหวะชีวิตนักเรียน (ก่อนไปเรียน · กลับถึงบ้าน · หลังข้าวเย็น)
+// หน้าต่างละ 1 ชม. = cron ครึ่งชั่วโมงเจอสองรอบ คีย์ต่อวันต่อรอบกันส่งซ้ำ
+// เพดานรวม 3 ดอกเรื่องงานต่อวัน (รวมเตือนกำหนดส่งด้วย) — ไม่ให้วันที่งานเยอะกลายเป็นสแปม
+const DIGEST_SLOTS = [
+  { key: 'am',  from: 7 * 60,       to: 8 * 60 },
+  { key: 'pm',  from: 16 * 60 + 30, to: 17 * 60 + 30 },
+  { key: 'eve', from: 20 * 60,      to: 21 * 60 },
+];
+const TASK_MAX_DAY = 3;
+const DIGEST_STALE_DAYS = 7;    // เลยกำหนดเกินนี้ = งานค้างเก่าที่ไม่มีใครจะทำแล้ว ไม่เอามาเตือนทุกวัน
 // ---------- เรื่องสังคม (คำขอเพื่อน · ข้อความใหม่) ----------
 // ช่องว่างสั้นกว่าเรื่องงานมาก เพราะคนละธรรมชาติกัน: งานที่ส่งพรุ่งนี้รอสี่ชั่วโมงได้
 // ข้อความที่เพื่อนเพิ่งพิมพ์มาแล้วเงียบไปสี่ชั่วโมง คือการแจ้งเตือนที่มาช้าจนไม่มีความหมาย
@@ -153,6 +166,32 @@ function isExam(t: any): boolean {
 // คีย์สัปดาห์แบบง่าย — ใช้กันการทักซ้ำ ไม่ได้ใช้แสดงผล จึงไม่ต้องตรงมาตรฐาน ISO
 function thWeekKey(ms: number): string {
   return 'w' + Math.floor((ms + TH_OFFSET) / (7 * 86400000));
+}
+
+function thDayKey(ms: number): string {
+  const d = thDate(ms);
+  return d.getUTCFullYear() + '-' + (d.getUTCMonth() + 1) + '-' + d.getUTCDate();
+}
+
+/** รอบประจำวันที่ตอนนี้อยู่ในหน้าต่างของมัน · ไม่อยู่ในรอบไหน = null */
+function digestSlot(ms: number) {
+  const d = thDate(ms);
+  const m = d.getUTCHours() * 60 + d.getUTCMinutes();
+  return DIGEST_SLOTS.find((x) => m >= x.from && m < x.to) ?? null;
+}
+
+// การ์ดรอบประจำวัน — รูปเดียวกับการ์ดเตือนงาน (หัว = ชื่องาน · เนื้อ = บรรทัดเดียว)
+// งานบนหัวการ์ดคือใบที่ใกล้กำหนดที่สุด · เซิร์ฟเวอร์ไม่มี studyPlan() ให้เรียก
+// จึงใช้กำหนดส่งเป็นตัวเรียง ซึ่งตรงกับใบบนสุดของแอปเกือบทุกครั้ง (ไม่ใช่ทุกครั้ง — ยอมรับได้
+// เพราะการ์ดนี้ชวนให้เปิดแอป แล้วแอปเป็นคนบอกเองว่าควรเริ่มอะไร)
+function digestCopy(slot: string, list: any[], nowMs: number) {
+  const top = list[0];
+  const late = Date.parse(top.due) < nowMs;
+  const when = late ? 'เลยกำหนดแล้ว' : 'ส่ง' + dueLabel(top.due, nowMs) + dueClock(top.due);
+  const more = list.length > 1 ? ` · ค้างอีก ${list.length - 1} งาน` : '';
+  if (slot === 'am') return { title: taskName(top), body: when + more };
+  if (slot === 'pm') return { title: taskName(top), body: when + ' · เริ่มสัก 25 นาทีไหม' };
+  return { title: taskName(top), body: when + ' · ทำอีกนิดก่อนนอน' };
 }
 
 // "วันนี้ / พรุ่งนี้ / วันพฤหัส" — คนพูดกันแบบนี้ ไม่มีใครพูดว่า "อีก 31 ชั่วโมง"
@@ -427,12 +466,17 @@ Deno.serve(async () => {
       // และเพดานต่อวัน ซึ่งทั้งสองอย่างเป็นคำถามเรื่องเวลา ไม่ใช่คำถามเรื่องการมีอยู่
       const socialLastAt = new Map<string, number>();   // ส่งเรื่องสังคมครั้งล่าสุดเมื่อไหร่
       const socialToday = new Map<string, number>();    // วันนี้ส่งไปแล้วกี่ดอก
+      const taskToday = new Map<string, number>();      // เรื่องงานวันนี้ส่งไปแล้วกี่ดอก (เพดาน TASK_MAX_DAY)
       for (const ids of chunk(userIds, ID_CHUNK)) {
         const { data: rows } = await db
           .from('push_sent').select('user_id, task_id, sent_at').in('user_id', ids);
         for (const r of rows ?? []) {
           const uid = (r as any).user_id, key = (r as any).task_id;
           sentKeys.add(`${uid}::${key}`);
+          if (!key.startsWith('fr::') && !key.startsWith('dm::') && !key.startsWith('nudge-')
+              && (r as any).sent_at >= dayStart) {
+            taskToday.set(uid, (taskToday.get(uid) ?? 0) + 1);
+          }
           if (key.startsWith('fr::') || key.startsWith('dm::')) {
             const at = Date.parse((r as any).sent_at || '');
             if (!Number.isFinite(at)) continue;
@@ -531,7 +575,8 @@ Deno.serve(async () => {
 
         // ด่าน 4 ชม. ของเรื่องงาน ย้ายจาก SQL มาไว้ตรงนี้ (ดูหมายเหตุที่ gateBefore)
         // เครื่องที่ยังไม่พ้นช่วงเงียบของเรื่องงาน ยังมีสิทธิ์ได้รับเรื่องสังคมอยู่
-        const taskReady = !sub.last_sent_at || Date.parse(sub.last_sent_at) <= now - QUIET_HOURS * 3.6e6;
+        const taskReady = (!sub.last_sent_at || Date.parse(sub.last_sent_at) <= now - QUIET_HOURS * 3.6e6)
+          && (taskToday.get(sub.user_id) ?? 0) < TASK_MAX_DAY;
 
         // ---- กลุ่มที่ 1: มีงานใกล้กำหนด ----
         // สองจังหวะต่องาน ไม่ใช่จังหวะเดียว:
@@ -563,13 +608,32 @@ Deno.serve(async () => {
                            && !sentKeys.has(`${sub.user_id}::${x.t.id}::${x.stage}`))
           .sort((a: any, b: any) => a.h - b.h);
 
+        // รอบประจำวันที่กำลังเปิดอยู่ (ถ้ามี) — ดอกไหนออกในรอบนี้ก็ปักคีย์ของรอบไว้ด้วย
+        // ไม่งั้นเตือนกำหนดส่งตอน 16:30 แล้วรอบบ่ายยังยิงซ้ำอีกดอกตอน 17:00
+        const slot = digestSlot(now);
+        const slotKey = slot ? `digest::${thDayKey(now)}::${slot.key}` : null;
+
         if (candidates.length) {
           const { t, h, stage } = candidates[0];
           jobs.push({
-            sub, kind: 'task', key: `${t.id}::${stage}`, tag: 'task-' + t.id,
+            sub, kind: 'task', key: slotKey ? [`${t.id}::${stage}`, slotKey] : `${t.id}::${stage}`,
+            tag: 'task-' + t.id,
             copy: reminderCopy(t, h, now),
           });
           continue;   // คนหนึ่งได้อย่างเดียวต่อรอบ งานด่วนสำคัญกว่าคำทัก
+        }
+
+        // ---- กลุ่มที่ 1.2: รอบประจำวัน (1C37) ----
+        // ไม่มีงานถึงคิวเตือนกำหนดส่ง แต่ยังมีงานค้าง = ทักตามรอบ เช้า · บ่าย · ค่ำ
+        if (slot && slotKey && wantDue && taskReady && notiOn('digest')
+            && !sentKeys.has(`${sub.user_id}::${slotKey}`)) {
+          const list = pending
+            .filter((t: any) => t.due && Date.parse(t.due) > now - DIGEST_STALE_DAYS * 86400000)
+            .sort((a: any, b: any) => Date.parse(a.due) - Date.parse(b.due));
+          if (list.length) {
+            jobs.push({ sub, kind: 'task', key: slotKey, tag: 'digest', copy: digestCopy(slot.key, list, now) });
+            continue;
+          }
         }
 
         // ---- กลุ่มที่ 1.5: มีคนทักหรือขอเป็นเพื่อน ----
@@ -637,7 +701,7 @@ Deno.serve(async () => {
           // ปักหมุดสองที่: เรื่องนี้ส่งแล้ว (กันซ้ำถาวร) + เครื่องนี้เพิ่งได้รับ (กันถี่)
           // เรื่องสังคมหนึ่งดอกครอบคลุมหลายเหตุการณ์ (สามข้อความ = ดอกเดียว) จึงต้องปัก
           // ให้ครบทุกคีย์ ไม่ใช่คีย์เดียว ไม่งั้นอีกสองข้อความจะถูกเตือนซ้ำในรอบถัดไป
-          const at = new Date().toISOString();
+          const at = new Date(Date.now()).toISOString();   // นาฬิกาเดียวกับทั้งไฟล์ (Date.now) — เทสต์จำลองเวลาได้
           const keys: string[] = Array.isArray(key) ? key : [key];
           await db.from('push_sent')
             .upsert(keys.map((k) => ({ user_id: sub.user_id, task_id: k, sent_at: at })));

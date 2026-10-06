@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C36';                 // สายเลขของแอป
+const APP_VERSION = '1C37';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -3625,9 +3625,13 @@ function whyDayWord(d, now) {
 function whyRankHTML(sp, now) {
   const seen = new Set(), order = [];
   const add = t => { if (t && !seen.has(t.id)) { seen.add(t.id); order.push(t); } };
+  // studyPlan(): now / next เป็นก้อนเดียว ({task, slot, step}) ส่วน later เป็นรายการ
+  // (1C34 วน next แบบรายการ แล้วจอพังทันทีที่แผนมี "งานถัดไป" — ตอนทดสอบ next ว่างพอดี)
+  const one = x => (x ? [x] : []);
+  const list = x => (Array.isArray(x) ? x : one(x));
   if (sp && sp.now) add(sp.now.task);
-  for (const x of (sp && sp.next) || []) add(x.task || x);
-  for (const x of (sp && sp.later) || []) add(x.task || x);
+  for (const x of list(sp && sp.next)) add(x.task || x);
+  for (const x of list(sp && sp.later)) add(x.task || x);
   // ใบที่แผนไม่ได้วางเลย (ไกลเกินขอบแผน) ต่อท้ายตามคะแนนความสำคัญ
   pendingTasks().map(t => [t, priorityInfo(t, now).score]).sort((a, b) => b[1] - a[1]).forEach(([t]) => add(t));
   const rows = order.slice(0, 5).map(t => ({ t, p: priorityInfo(t, now) }));
@@ -8042,41 +8046,28 @@ function claimDaily() {
 
 
 
-// ---------- 1C12 · ของรางวัลรายวันรับให้เอง ----------
-// เจ้าของสั่งเอง (19 ก.ย. 2569): "ล็อกอินรายวันได้เหรียญ อยากให้ระบบมันแจ้งเตือนหาผู้ใช้เลย
-// ตอนเข้าแอปใหม่ต่อวัน ไม่ต้องมากดเอง"
+// ---------- 1C37 · ของรางวัลรายวัน: ชวนตอนเข้าแอป แต่ให้กดรับเอง ----------
+// 1C12 รับให้อัตโนมัติตามที่เจ้าของสั่งตอนนั้น (19 ก.ย. 2569) · 6 ต.ค. เจ้าของสั่งใหม่:
+// "พอคนเข้าแอปมันจะต้องแจ้งเตือนเลย ให้รับเองไม่ใช่รับอัตโนมัติ"
+// การกดรับเองคือจังหวะที่คนรู้สึกว่าได้ของ — ตัวเลขที่ขยับเองเงียบ ๆ ไม่มีใครจำได้
 //
-// ของเดิมต้องเดินไปหยิบเองสี่จังหวะ: จุดแดงบนแท็บ "ฉัน" → แถวเช็คอิน → แผ่น → ปุ่ม "รับเลย"
-// ทั้งที่ของชิ้นนี้ไม่มีเงื่อนไขอะไรเลย — ใครเปิดแอปวันนี้ก็ได้เท่ากันหมด
-// การกดจึงไม่ใช่การเลือก มันเป็นแค่ด่าน และคนที่ลืมกดคือคนที่เสียสตรีคทั้งที่เปิดแอปจริง
-//
-// สองข้อห้ามที่ยกมาจาก openDailyCheck ตรง ๆ เพราะเหตุผลเดียวกัน:
-//   • ยังอยู่จอบัญชี/จอทำความรู้จัก (login-mode) = ยังไม่ได้เข้าแอปจริง ห้ามรับให้
-//   • เพิ่งผ่านฉาก "ยินดีที่ได้รู้จัก" มาหมาด ๆ ห้ามแย่ง toast ต้อนรับ — รอบถัดไปค่อยรับ
-// และห้ามรับให้เงียบ ๆ: ข้อความคือส่วนที่ทำให้มันเป็นของขวัญ ไม่ใช่ตัวเลขที่ขยับเอง
-function autoDailyClaim() {
+// เด้งแผ่นเช็คอิน (ที่มีปุ่ม "รับเลย" อยู่แล้ว) ครั้งแรกที่เข้าแอปของวันรางวัลใหม่
+// ปิดแผ่นไปแล้ว = วันนั้นไม่เด้งซ้ำ (จุดแดงบนแท็บ "ฉัน" ยังบอกอยู่) — เด้งทุกครั้งที่กลับเข้าแอป
+// คือการลงโทษคนที่ตั้งใจจะรับทีหลัง · ข้อห้ามเดิมยังอยู่ใน openDailyCheck(true):
+// ห้ามเด้งบนจอบัญชี/จอทำความรู้จัก และห้ามแย่งฉากต้อนรับคนใช้ครั้งแรก
+const CHECKIN_ASKED_KEY = 'studentos.alt.checkinAsked';
+function dailyPromptOnOpen() {
   if (typeof dailyPending !== 'function' || !dailyPending()) return;
   if (document.body.classList.contains('login-mode')) return;
   if (Date.now() < checkinHoldUntil) return;
-  const got = claimDaily();
-  if (!got) return;
-  // แผ่นเช็คอินอาจเปิดค้างอยู่ตอนวันเปลี่ยน — วาดใหม่ ไม่งั้นมันค้างปุ่ม "รับเลย" ที่กดแล้วไม่เกิดอะไร
+  const day = rewardDayKey();
+  let asked = null;
+  try { asked = localStorage.getItem(CHECKIN_ASKED_KEY); } catch (_) {}
+  if (asked === day) return;
   const sheet = document.getElementById('checkin');
-  if (sheet && !sheet.hidden) openDailyCheck(false);
-  renderAll();
-  if (got.prize === 'spin') {
-    // วันที่ 7 ได้สิทธิ์หมุน ไม่ใช่เหรียญ — เจ้าของเลือกเองว่า "ให้สิทธิ์แล้วบอกในข้อความ"
-    // ไม่ลากไปจอวงล้อ: คนที่เพิ่งเปิดแอปมาทำอย่างอื่น ไม่ควรถูกพาออกจากสิ่งที่เขามาทำ
-    showToast({
-      title: 'ครบ 7 วันแล้ว 🎡',
-      body: 'ได้สิทธิ์สุ่มสกินฟรี 1 ใบ — กดหมุนที่ร้านค้าเมื่อไหร่ก็ได้',
-    });
-  } else {
-    showToast({
-      title: '+' + got.prize + ' โทเคน · รับให้อัตโนมัติแล้ว',
-      body: 'เช็คอินต่อเนื่อง ' + got.streak + ' วัน · รวม ' + got.bal + ' โทเคน',
-    });
-  }
+  if (sheet && !sheet.hidden) return;
+  openDailyCheck(true);
+  if (sheet && !sheet.hidden) { try { localStorage.setItem(CHECKIN_ASKED_KEY, day); } catch (_) {} }
 }
 
 // ---------- หน้าต่างเช็คอินรายวัน ----------
@@ -13231,8 +13222,8 @@ function routeStart() {
 // ใช้หลังผ่านหน้าบัญชีแล้ว (ล็อกอินสำเร็จ หรือกดใช้แบบไม่ล็อกอิน)
 function routeAfterLogin() {
   // 1C12 · เพิ่งเข้าแอปได้จริง — ของรางวัลรายวันติด login-mode อยู่จนถึงบรรทัดนี้
-  // (ยังไม่รู้จักชื่อ = ไปจอทำความรู้จักต่อ ซึ่ง autoDailyClaim กันตัวเองอยู่แล้ว)
-  setTimeout(autoDailyClaim, 1200);
+  // (ยังไม่รู้จักชื่อ = ไปจอทำความรู้จักต่อ ซึ่ง dailyPromptOnOpen กันตัวเองอยู่แล้ว)
+  setTimeout(dailyPromptOnOpen, 1200);
   if (needsOnboard()) return openOnboard();
   // กลับไปที่จอที่กดล็อกอินมา ถ้ามีธงค้างไว้ — คนที่กดล็อกอินจากหน้าเพื่อน
   // แล้วถูกส่งกลับมาที่หน้าแรก ส่วนใหญ่ไม่เดินกลับไปหน้าเพื่อนเองอีก
@@ -13627,14 +13618,14 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) checkReminders(); });
   checkReminders();
 
-  // 1C12 · ของรางวัลรายวันรับให้เองตอนเปิดแอปวันใหม่ — ดู autoDailyClaim()
+  // 1C37 · ของรางวัลรายวัน: เด้งชวนตอนเข้าแอปวันใหม่ ให้กดรับเอง — ดู dailyPromptOnOpen()
   // หน่วงก่อนยิงครั้งแรก ให้จอแรกวาดเสร็จและ toast ของขาเข้า (ข้อความที่แชร์มา ·
   // ผลเชื่อมบัญชี) พูดจบก่อน — toast มีใบเดียว ใครมาทีหลังทับใบเดิมเสมอ
-  setTimeout(autoDailyClaim, 1800);
+  setTimeout(dailyPromptOnOpen, 1800);
   // วันของรางวัลเปลี่ยนตอน 6 โมงเช้า เครื่องที่เปิดแอปค้างไว้ข้ามคืนจึงต้องได้ของ
   // โดยไม่ต้องปิดเปิดใหม่ · และคนที่เพิ่งล็อกอินเสร็จก็เข้าเงื่อนไขในรอบถัดไปเอง
-  setInterval(autoDailyClaim, 60_000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) autoDailyClaim(); });
+  setInterval(dailyPromptOnOpen, 60_000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) dailyPromptOnOpen(); });
 
   await initCloud();
 

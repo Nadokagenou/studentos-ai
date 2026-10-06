@@ -172,6 +172,49 @@ const check = (name, cond, detail) => { results.push({ name, pass: !!cond, detai
 }
 
 
+// ---- 1C37 · รอบประจำวัน เช้า · บ่าย · ค่ำ (วันละ 2–3 ดอก) ----
+{
+  const realNow = Date.now;
+  const at = (utcH, utcM) => { const d = new Date(); d.setUTCHours(utcH, utcM, 0, 0); return d.getTime(); };
+  const withTask = (dueMs) => { const t = base();
+    t.user_state[0].data.tasks = [{ id: 'd1', subject: 'เคมี', detail: 'บทที่ 4', due: iso(dueMs), done: false }];
+    return t; };
+
+  Date.now = () => at(0, 15);                       // 07:15 ไทย
+  let t = withTask(Date.now() + 3 * 86400e3);       // ส่งอีก 3 วัน — เดิมเงียบสนิท
+  let r = await run(t);
+  check('morning digest sent for a task due in 3 days', r.sent.length === 1 && r.sent[0].tag === 'digest'
+    && r.sent[0].title === 'เคมี · บทที่ 4', JSON.stringify(r.sent));
+  r = await run(t);
+  check('same slot not repeated', r.sent.length === 0, JSON.stringify(r.sent));
+
+  Date.now = () => at(5, 0);                        // 12:00 ไทย — ไม่ใช่รอบ
+  r = await run(withTask(Date.now() + 3 * 86400e3));
+  check('no digest outside the three slots', r.sent.length === 0, JSON.stringify(r.sent));
+
+  Date.now = () => at(13, 15);                      // 20:15 ไทย · วันนี้ส่งเรื่องงานไปแล้ว 3 ดอก
+  t = withTask(Date.now() + 3 * 86400e3);
+  for (let i = 0; i < 3; i++) t.push_sent.push({ user_id: 'u1', task_id: 'x' + i + '::soon', sent_at: iso(Date.now() - (5 + i) * HOUR) });
+  r = await run(t);
+  check('daily cap of 3 task pushes', r.sent.length === 0, JSON.stringify(r.sent));
+
+  Date.now = () => at(9, 45);                       // 16:45 ไทย · มีแต่งานเลยกำหนดเก่าเกิน 7 วัน
+  r = await run(withTask(Date.now() - 10 * 86400e3));
+  check('stale overdue task does not trigger digests', r.sent.length === 0, JSON.stringify(r.sent));
+
+  // ทั้งวัน: รอบ cron ทุกครึ่งชั่วโมงตั้งแต่ 07:00 ถึง 21:30 ไทย → ต้องได้ 3 ดอกพอดี
+  t = withTask(at(0, 0) + 4 * 86400e3);
+  let total = 0;
+  for (let m = 0; m <= 14.5 * 60; m += 30) {
+    Date.now = () => at(0, 0) + m * 60000;
+    const rr = await run(t);
+    total += rr.sent.length;
+  }
+  check('a whole day gives exactly 3 reminders', total === 3, 'got ' + total);
+
+  Date.now = realNow;
+}
+
 // ---- กลางคืนต้องเงียบสนิท แม้แต่ข้อความใหม่ ----
 // เส้นความปลอดภัยเด็กของโปรเจกต์: เด็กที่โดนปลุกตอนเที่ยงคืนจะปิดการแจ้งเตือน แล้วปิดถาวร
 {
