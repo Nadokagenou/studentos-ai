@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>นโยบายความเป็นส่วนตัว · StudentOS AI</title>
+<meta name="description" content="StudentOS AI เก็บข้อมูลอะไร ใช้ทำอะไร และไม่ทำอะไรกับข้อมูลของคุณ">
+<link rel="canonical" href="https://nadokagenou.github.io/studentos-ai/alt/privacy.html">
+<link rel="icon" href="icon-192.png">
+<!-- ============================================================
+     หน้านี้มีไว้ให้คนนอกแอปอ่านได้ด้วย URL ตรง — หน้าขออนุญาตของ Google
+     (OAuth consent screen) ต้องมีลิงก์นโยบายสาธารณะก่อนถึงจะกด Publish ได้
+     ไม่งั้นแอปค้างอยู่ในโหมด Testing แล้วทุกคนที่ไม่อยู่ในรายชื่อ Test users โดนบล็อก
+
+     เนื้อหาต้องตรงกับหน้า "เราเก็บอะไรของคุณบ้าง" ในแอป (safety.js · renderPrivacy)
+     แก้ที่หนึ่งแล้วต้องแก้อีกที่ด้วย · ไฟล์เดี่ยว ไม่พึ่ง alt.css
+     ============================================================ -->
+<style>
+:root {
+  --bg: #FFFBF2; --ink: #1d1a14; --mute: #6b6457; --line: #e8dfcc; --card: #ffffff; --accent: #b4561f;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #15130f; --ink: #f2ede3; --mute: #a59d8e; --line: #2f2b24; --card: #1d1a15; --accent: #f0a46b; }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.7 "Noto Sans Thai", "Sarabun", system-ui, -apple-system, sans-serif;
+}
+main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 1.6rem; line-height: 1.3; margin: 0 0 4px; }
+h2 { font-size: 1.15rem; margin: 32px 0 8px; }
+h3 { font-size: 1rem; margin: 20px 0 4px; }
+p, li { color: var(--ink); }
+ul { padding-left: 1.2em; margin: 4px 0; }
+.meta { color: var(--mute); font-size: .9rem; margin: 0 0 24px; }
+.box { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px 12px; margin: 16px 0; }
+a { color: var(--accent); }
+hr { border: 0; border-top: 1px solid var(--line); margin: 48px 0 24px; }
+code { font-size: .85em; word-break: break-all; }
+</style>
+</head>
+<body>
+<main>
+  <h1>นโยบายความเป็นส่วนตัว</h1>
+  <p class="meta">StudentOS AI · มีผลตั้งแต่ 6 ตุลาคม 2026 · <a href="#en">English below</a></p>
+
+  <p>StudentOS AI เป็นแอปช่วยนักเรียนตัดสินใจว่าควรทำงานไหนก่อน ทำโดยทีมนักเรียน (ทีม Masterpiece)
+    สำหรับโครงการ Samsung Solve for Tomorrow 2026 และยังอยู่ในช่วงทดลอง</p>
+
+  <h2>อยู่ในเครื่องคุณอย่างเดียว</h2>
+  <ul>
+    <li>งาน ตารางเรียน เวลาที่จับไว้ สถิติ และการตั้งค่าทั้งหมด เก็บในเบราว์เซอร์ของเครื่องคุณ</li>
+    <li>ถ้าไม่ล็อกอิน ข้อมูลเหล่านี้ไม่ถูกส่งออกจากเครื่อง</li>
+    <li>รูปที่ถ่ายให้แอปอ่าน (OCR) ถูกอ่านในเครื่องเป็นค่าเริ่มต้น</li>
+  </ul>
+
+  <h2>เก็บบนเซิร์ฟเวอร์ เมื่อคุณล็อกอิน</h2>
+  <ul>
+    <li>อีเมล ชื่อ และรูปโปรไฟล์จากบัญชีที่ใช้ล็อกอิน (เช่น Google) — ใช้ระบุว่าบัญชีไหนเป็นของคุณ</li>
+    <li>ข้อมูลงานของคุณ — ใช้ซิงก์ข้ามเครื่อง ผู้ใช้คนอื่นอ่านไม่ได้</li>
+    <li>สิ่งที่คุณเลือกแชร์ให้เพื่อนร่วมห้องเห็น เช่น ชื่อ รูป คำแนะนำตัว โพสต์ และคำตอบ</li>
+  </ul>
+  <p>เซิร์ฟเวอร์ใช้บริการ Supabase</p>
+
+  <h2>ข้อมูลจากบัญชี Google (เมื่อคุณกดเชื่อมเอง)</h2>
+  <div class="box">
+    <h3>Google Classroom</h3>
+    <ul>
+      <li>อ่านอย่างเดียว: รายชื่อคอร์สของคุณ งานที่ครูมอบหมาย กำหนดส่ง และสถานะว่าคุณส่งงานแล้วหรือยัง</li>
+      <li>ใช้เพื่อเอางานเข้ามาในรายการงานของคุณ และข้ามงานที่ส่งไปแล้ว</li>
+      <li><b>ไม่อ่าน</b>คะแนน ไม่อ่านรายชื่อหรือข้อมูลของเพื่อนร่วมห้อง และไม่เขียนอะไรกลับไปที่ Classroom</li>
+    </ul>
+    <h3>Google Calendar</h3>
+    <ul>
+      <li>อ่านอย่างเดียว: กิจกรรมในปฏิทิน เพื่อเอาวันสอบหรือกิจกรรมของโรงเรียนเข้าแผน</li>
+    </ul>
+    <h3>อีเมลของบัญชี Google</h3>
+    <ul>
+      <li>ใช้แสดงว่าคุณเชื่อมด้วยบัญชีไหน เผื่อกดผิดบัญชี</li>
+    </ul>
+    <p>กุญแจเข้าถึง (refresh token) ถูกเข้ารหัสเก็บไว้ฝั่งเซิร์ฟเวอร์ และไม่ถูกส่งมาที่เบราว์เซอร์
+      ข้อมูลจาก Google ไม่ถูกส่งไปให้ AI อ่าน เพราะมีโครงครบอยู่แล้ว</p>
+    <p>เมื่อกดตัดการเชื่อม เราถอนสิทธิ์ที่ฝั่ง Google ให้ด้วย ไม่ใช่แค่ลบข้อมูลฝั่งเรา
+      คุณยังถอนสิทธิ์เองได้ที่ <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a></p>
+  </div>
+
+  <h2>เมื่อไหร่ที่ AI ได้อ่านข้อมูล</h2>
+  <p>บางฟีเจอร์ส่งข้อความหรือรูปที่<b>คุณเลือกเอง</b>ไปให้ Google Gemini อ่าน เช่น
+    ถามผู้ช่วย AI ในแอป หรือให้อ่านรูปตารางเรียน โดยส่งเฉพาะตอนที่คุณใช้ฟีเจอร์นั้น</p>
+  <p>บอท LINE เห็นเฉพาะข้อความในกลุ่มที่บอทถูกเชิญเข้าไป และเห็นตั้งแต่ตอนที่ถูกเชิญ
+    เราไม่อ่านแชทส่วนตัว และไม่มีทางอ่านได้</p>
+
+  <h2>ไม่เคยเก็บ</h2>
+  <ul>
+    <li>วันเกิด (ถามแค่ช่วงอายุ) ตำแหน่งที่อยู่ เบอร์โทร เลขบัตรประชาชน</li>
+    <li>รหัสผ่านของบริการอื่น</li>
+  </ul>
+
+  <h2>ไม่ขาย ไม่โฆษณา</h2>
+  <p>เราไม่ขายข้อมูลของคุณ ไม่ใช้ข้อมูลยิงโฆษณา และไม่ส่งต่อให้ใคร
+    นอกจากผู้ให้บริการที่แอปต้องใช้ทำงาน (Supabase, Google, LINE) เท่าที่ฟีเจอร์นั้นต้องใช้</p>
+
+  <h2>สิทธิ์ของคุณ</h2>
+  <ul>
+    <li>ดูได้ว่าเรามีอะไรของคุณ ในแอปที่ ตั้งค่า → เราเก็บอะไรของคุณบ้าง</li>
+    <li>ลบบัญชีและข้อมูลทั้งหมดถาวรได้เอง ที่ ตั้งค่า → ลบบัญชี</li>
+    <li>ตัดการเชื่อม Google ได้ทุกเมื่อในหน้าตัวเชื่อม</li>
+  </ul>
+
+  <h2>ติดต่อ</h2>
+  <p><a href="mailto:pondechthanthaph@gmail.com">pondechthanthaph@gmail.com</a></p>
+
+  <hr>
+
+  <section id="en" lang="en">
+    <h1>Privacy Policy</h1>
+    <p class="meta">StudentOS AI · Effective October 6, 2026</p>
+
+    <p>StudentOS AI helps secondary-school students decide which task to do next. It is built by a
+      student team for Samsung Solve for Tomorrow 2026 and is still in a trial phase.</p>
+
+    <h2>Stored only on your device</h2>
+    <p>Tasks, timetable, timers, stats and settings are kept in your browser. If you do not sign in,
+      this data never leaves your device. Photos you scan are read on-device by default.</p>
+
+    <h2>Stored on our server when you sign in</h2>
+    <p>Your email, name and profile picture from the sign-in provider (e.g. Google), used to identify
+      your account; your task data, used to sync across your devices and not readable by other users;
+      and anything you choose to share with classmates. Our backend runs on Supabase.</p>
+
+    <h2>Google user data</h2>
+    <p>Only when you choose to connect them, StudentOS AI requests read-only access to:</p>
+    <ul>
+      <li><b>Google Classroom</b> — your courses, coursework assigned to you, due dates, and whether you
+        have turned work in. Used to add assignments to your task list and skip ones already submitted.
+        We do not read grades, classmates' information, or write anything back to Classroom.</li>
+      <li><b>Google Calendar</b> — events, used to add exams and school events to your plan.</li>
+      <li><b>Your Google account email</b> — shown so you can see which account is connected.</li>
+    </ul>
+    <p>Refresh tokens are encrypted server-side and never sent to the browser. Google user data is not
+      sent to any AI model. When you disconnect, we revoke access at Google, not only delete our copy.
+      You can also revoke access at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</p>
+    <p>StudentOS AI's use and transfer of information received from Google APIs adheres to the
+      <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>,
+      including the Limited Use requirements. We do not sell Google user data, use it for advertising,
+      or use it to train AI models.</p>
+
+    <h2>AI processing</h2>
+    <p>Some features send text or images that you choose (for example, a question to the in-app
+      assistant or a timetable photo) to Google Gemini, only when you use that feature. Our LINE bot
+      only sees messages in groups it has been invited to, from the time it joined. We do not and cannot
+      read private chats.</p>
+
+    <h2>Never collected</h2>
+    <p>Date of birth (we ask for an age range only), location, phone number, national ID number, or
+      passwords for other services.</p>
+
+    <h2>No selling, no ads</h2>
+    <p>We do not sell your data, use it for advertising, or share it with anyone except the service
+      providers the app needs to function (Supabase, Google, LINE), and only as far as each feature needs.</p>
+
+    <h2>Your choices</h2>
+    <p>See what we store in the app under Settings, permanently delete your account and all data under
+      Settings → Delete account, and disconnect Google at any time from the connectors screen.</p>
+
+    <h2>Contact</h2>
+    <p><a href="mailto:pondechthanthaph@gmail.com">pondechthanthaph@gmail.com</a></p>
+  </section>
+</main>
+</body>
+</html>
