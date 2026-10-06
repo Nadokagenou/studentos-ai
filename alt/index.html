@@ -25,7 +25,7 @@
       var BAR = { light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
         earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
         deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8', genesis: '#8E9BE8',
-        meta: '#050A16', glitch: '#04060A' };
+        meta: '#050A16', glitch: '#04060A', astral: '#000000' };
       var pref = null;
       try { pref = localStorage.getItem('studentos.alt.theme'); } catch (e) {} // ALT: คนละคีย์กับตัวจริง
       if (pref === 'library') pref = 'ocean'; // 1A6M3: ธีมห้องสมุดถูกแทนที่ด้วยมหาสมุทร
@@ -1023,6 +1023,20 @@
         <div class="scr-body" id="inboxBody"></div>
       </div>
 
+      <!-- ============ SCREEN: การแจ้งเตือน (1C40) ============ -->
+      <!-- ข้อความจากเพื่อน + งานที่ไหลเข้ากล่องเข้า รวมไว้ใต้กระดิ่งบนหน้าแรก — วาดใน renderNotif (inbox.js) -->
+      <div class="screen flush" id="scr-notif">
+        <div class="sticky-head row">
+          <div>
+            <h2 class="sh-title">การแจ้งเตือน</h2>
+            <p class="sh-sub" id="notifSub"></p>
+          </div>
+          <button class="sh-btn" onclick="go('scr-menu')" aria-label="กลับหน้าแรก">
+            <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+        </div>
+        <div class="scr-body" id="notifBody"></div>
+      </div>
+
       <!-- ============ SCREEN: ตัวเชื่อม ============ -->
       <!-- บอกตรง ๆ ว่าตัวไหนต่อได้แล้ว ตัวไหนติดอะไรอยู่
            และตัวไหนที่เจ้าของแอปนั้นไม่เปิดให้ใครต่อเลย -->
@@ -1527,7 +1541,8 @@
                ยังไม่มีชุดคำแปลสักภาษา แถวที่กดแล้วไม่มีอะไรให้เลือกแย่กว่าไม่มีแถว
                หมวดที่สี่ (ข้อมูลของฉัน) ไม่ได้อยู่ในสามหมวดที่สั่ง แต่ "ล้างข้อมูลทั้งหมด"
                ต้องอยู่ท้ายสุดเสมอ และมันไม่ใช่เรื่องความปลอดภัย -->
-          <div class="set-grp">บัญชี</div>
+          <!-- 1C40 · หัวข้อกลุ่มทั้งสี่ (บัญชี · Student OS · ความปลอดภัย · ข้อมูลของฉัน) ถูกถอดออก
+               ทุกธีม ตามที่เจ้าของสั่ง — การ์ดแต่ละใบยังแยกกลุ่มกันด้วยระยะห่างของ .scr-body -->
           <div class="set-card">
             <div class="set-row">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#ic-profile"/></svg></span>
@@ -1600,7 +1615,6 @@
           <!-- หน้าตาแอป — แต่ละแถวพาไปหน้าย่อยที่มีตัวเลือกจริง
                ของพวกนี้เคยกางอยู่ในจอเดียวกันหมด ธีม 16 อันเรียงเป็นตาราง บวกวิดเจ็ต
                ตัวอักษร แถบเมนู พื้นหลัง — จอเลื่อนยาวจนหาของที่ตั้งใจจะมาแก้ไม่เจอ -->
-          <div class="set-grp">Student OS</div>
           <div class="set-card">
             <button type="button" class="set-row go" onclick="openSetOpt('theme')">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-contrast"/></svg></span>
@@ -1676,7 +1690,6 @@
                ซึ่งวาดจาก app.js เพราะเนื้อในต่างกันสามแบบ (ยังไม่ตั้งค่า cloud /
                ล็อกอินแล้ว / ยังไม่ล็อกอิน) · อย่าแยกสามปุ่มนั้นออกจากกัน มันเป็นชุดเดียว
                ในหัวคน: "ฉันจะถอนตัวยังไง" -->
-          <div class="set-grp">ความปลอดภัย</div>
           <div id="accountCard"></div>
           <div class="set-card">
             <!-- ============================================================
@@ -1695,7 +1708,6 @@
             </div>
           </div>
 
-          <div class="set-grp">ข้อมูลของฉัน</div>
           <div class="set-card">
             <button type="button" class="set-row go" onclick="loadSample()">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-book"/></svg></span>
@@ -1757,6 +1769,10 @@
                   <span class="sw sw-magic"></span><span class="nm">เวทมนตร์</span></button>
                 <button type="button" data-th="galaxy" onclick="setTheme('galaxy')">
                   <span class="sw sw-galaxy"></span><span class="nm">กาแล็กซี</span></button>
+                <!-- 1C40 · ดำสนิท + แสงดาว · ได้จากโค้ดเท่านั้น (THEME_CODE) — ปุ่มถูกซ่อนด้วยระบบสิทธิ์จนกว่าจะปลด
+                     ห้ามใบ้ว่ามีโค้ดหรือมีธีมนี้อยู่ที่ไหนในแอป -->
+                <button type="button" class="th-astral" data-th="astral" onclick="setTheme('astral')">
+                  <span class="sw sw-astral"></span><span class="nm">ASTRAL BLACK</span></button>
                 <!-- ปลดล็อกด้วยการกดปุ่ม "มหาสมุทร" ซ้ำ 4 ครั้ง (อีสเตอร์เอกก์) -->
                 <button type="button" class="th-secret" data-th="deepocean" onclick="setTheme('deepocean')">
                   <span class="sw sw-deepocean"></span><span class="nm">ทะเลลึก</span></button>

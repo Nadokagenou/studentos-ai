@@ -50,8 +50,14 @@
 /* บรรทัดรองคือตัวเลข ไม่ใช่คำพูด — "เหลือเวลาว่าง 2 ชม. 30 นาที · 5 งานค้าง"
    เคยลองทำเป็นการ์ดสถิติสามช่องแล้ว ได้สองปัญหาพร้อมกัน: มันแย่งสายตากับการ์ดโฟกัสทันที
    และตัวเลขเวลาต้องย่อจนเหลือ "3ช" ซึ่งไม่มีใครอ่านออก */
+/* 1C40 · เจ้าของ: "คำนี้ทำให้ดูชัดขึ้นหน่อย" — เดิม 12.5px น้ำหนักปกติ สีรอง (--muted)
+   บนธีมมืดที่มีฉากหลังเคลื่อนไหวมันจางจนกลืน · ตอนนี้เข้มเกือบเท่าตัวหลัก หนาขึ้น ใหญ่ขึ้นครึ่ง px
+   แต่ยังเล็กกว่าคำทักทาย (16.5px หนา 700) ลำดับความสำคัญเลยไม่เปลี่ยน
+   ไม่ใหญ่กว่า 13px: ประโยคยาวสุด ("12 รายการรออยู่ — ไม่มีงานที่ต้องเจียดเวลา") พอดีกล่องเป๊ะที่ 375px
+   13.5px ล้น 3px แล้วโดนตัดเป็น "…" */
 .th-sub {
-  margin: 3px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--muted);
+  margin: 3px 0 0; font-size: 13px; line-height: 1.45; font-weight: 600;
+  color: color-mix(in srgb, var(--ink) 80%, transparent);
 }
 .th-bell {
   position: relative; flex: none; width: 38px; height: 38px;
@@ -497,19 +503,61 @@
 .td-note p { margin: 6px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
 .td-note .tn-ask { margin-top: 10px; }
 
-/* ---------- ยังไม่มีงาน ---------- */
-.td-clear { margin-top: 40px; text-align: center; }
-.td-clear .tc-ic { display: inline-flex; color: var(--pri-green); }
-.td-clear .tc-ic svg { width: 38px; height: 38px; }
-.td-clear b { display: block; margin-top: 14px; font-size: 19px; color: var(--ink); }
-.td-clear p { margin: 8px auto 0; max-width: 28ch; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+/* ---------- ยังไม่มีงาน ----------
+   1C40 · การ์ดกระจกใบเดียว: น้องไซในวงแสง (ซ้าย) + หัวข้อ/คำอธิบาย (ขวา) ·
+   สามขั้นเฉพาะครั้งแรก · ปุ่มเต็มความกว้าง · สูงไม่เกินของเดิม (~213px) */
+.td-clear {
+  position: relative; overflow: hidden;
+  margin-top: 10px; padding: 14px;
+  border-radius: 24px; border: 1px solid var(--line);
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--fill) 16%, transparent), transparent 60%),
+    var(--soft-card, var(--card));
+  box-shadow: var(--soft-shadow, var(--shadow));
+  -webkit-backdrop-filter: blur(14px) saturate(150%); backdrop-filter: blur(14px) saturate(150%);
+}
+.tc-top { display: flex; align-items: center; gap: 14px; }
+/* วงแสงหลังน้องไซ — สีเน้นของธีมจาง ๆ ลอยขึ้นลงช้า ๆ ให้จอว่างไม่นิ่งตาย */
+.tc-art {
+  position: relative; flex: none; width: 64px; height: 64px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--fill) 34%, transparent), color-mix(in srgb, var(--fill) 8%, transparent) 70%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 26%, transparent);
+  animation: tc-float 4.5s ease-in-out infinite;
+}
+.tc-art img { width: 56px; height: 56px; object-fit: cover; border-radius: 50%; }
+.tc-fb { display: none; color: var(--fill); }
+.tc-fb svg { width: 28px; height: 28px; }
+.tc-art.no-img .tc-fb { display: grid; }
+@keyframes tc-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.tc-tx { flex: 1; min-width: 0; text-align: left; }
+.td-clear b { display: block; font-size: 18px; font-weight: 800; letter-spacing: -.02em; line-height: 1.3; color: var(--ink); }
+.td-clear p { margin: 5px 0 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+/* วันนี้ทำเสร็จไปกี่งาน — ตัวเลขคือของที่น่าภูมิใจที่สุดบนการ์ดนี้ */
+.tc-badge {
+  flex: none; align-self: flex-start; display: inline-flex; align-items: center; gap: 3px;
+  padding: 4px 9px 4px 7px; border-radius: 999px;
+  background: var(--good-soft); color: var(--good);
+  font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.tc-badge svg { width: 13px; height: 13px; stroke-width: 3; }
+/* สามขั้นของแอป — บอกว่ากดปุ่มข้างล่างแล้วจะเกิดอะไร ไม่ต้องเดา */
+.tc-steps {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  margin-top: 11px; padding: 7px 8px; border-radius: 14px;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+.tc-steps span { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+.tc-steps span svg { width: 14px; height: 14px; color: var(--fill); }
+.tc-steps > svg { width: 13px; height: 13px; color: var(--faint); flex: none; }
 .tc-cta {
-  display: inline-flex; align-items: center; gap: 8px;
-  margin-top: 20px; padding: 12px 22px; border: 0; border-radius: 13px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; margin-top: 10px; padding: 11px 22px; border: 0; border-radius: 13px;
   background: var(--fill); color: var(--on-fill);
-  font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+  font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
 }
 .tc-cta svg { width: 17px; height: 17px; }
+@media (prefers-reduced-motion: reduce) { .tc-art { animation: none; } }
 
 /* ---------- แผ่นเลือกวิธีเพิ่มงาน (ปุ่ม +) ---------- */
 .add-sheet { position: absolute; inset: 0; z-index: 95; }

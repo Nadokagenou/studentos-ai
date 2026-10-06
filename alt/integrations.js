@@ -58,6 +58,8 @@ async function integLoad(force) {
     integ.tried = false;
   }
   if (typeof renderSources === 'function') renderSources();
+  // 1C40 · กล่องเข้ามีแถวสถานะของตัวเชื่อมด้วย — คำตอบจากเซิร์ฟเวอร์ต้องไปถึงจอนั้นเหมือนกัน
+  if (typeof renderInbox === 'function') renderInbox();
 }
 
 // ตาข่ายชั้นสอง: จอไหนที่ต้องใช้ข้อมูลนี้ เรียกตัวนี้ตอนเริ่มวาดได้เลย

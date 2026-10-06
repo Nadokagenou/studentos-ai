@@ -251,6 +251,8 @@ function renderFeed() {
 
   box.innerHTML = `
     <div class="fd-top">
+      <!-- 1C40 · จอนี้เปิดจากแท็บล่างก็จริง แต่ไม่มีทางกลับหน้าแรกบนหัวจอเลย -->
+      <button class="sh-btn fd-back" onclick="go('scr-menu')" aria-label="กลับหน้าแรก">${icon('chevron')}</button>
       <h1 class="fd-title">${onlyFriends ? 'เพื่อนของฉัน' : 'เพื่อนร่วมห้อง'}</h1>
       <!-- 1B53 · แว่นขยายอยู่บนหัวจอ ไม่ใช่ช่องค้นหากางค้างอยู่กลางจอ
            จอนี้เปิดมาเพื่อดูเพื่อน ไม่ใช่เพื่อค้นหา — ช่องที่กางค้างคือแถบสูง 46px

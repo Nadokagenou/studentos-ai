@@ -291,3 +291,159 @@
 .src-tag.noapi{background:var(--card2); color:var(--faint)}
 
 .src-sub{margin:-4px 2px 9px; font-size:11.5px; color:var(--faint); line-height:1.6}
+
+/* ============================================================
+   1C40 · จอกล่องเข้าแบบใหม่
+   ------------------------------------------------------------
+   การ์ดสถานะ (คำตอบ + ตัวเลขสามช่อง) → รอตัดสินใจ → ที่ผ่านมา → แหล่งงาน
+   รายการทุกชุดเป็นการ์ดใบเดียวคั่นด้วยเส้น ไม่ใช่กล่องเทาแยกกันทีละแถว
+   (กล่องเทาเรียงกันหลายใบอ่านเป็น "ของหลายชิ้นที่ไม่เกี่ยวกัน" ทั้งที่เป็นรายการเดียวกัน)
+   สีเน้นมาจาก --fill ของธีม · สถานะ "ไม่มีอะไรค้าง" ใช้ --good เพราะเป็นข่าวดี ไม่ใช่สีแบรนด์
+   ============================================================ */
+.ib2-hero{position:relative; overflow:hidden; margin-top:4px; padding:18px 18px 16px; border-radius:24px;
+  background:
+    radial-gradient(130% 100% at 0% 0%, color-mix(in srgb, var(--fill) 16%, transparent), transparent 62%),
+    color-mix(in srgb, var(--card) 80%, transparent);
+  border:1px solid color-mix(in srgb, var(--fill) 16%, var(--line));
+  box-shadow:inset 0 1.5px 0 var(--lg-hi, rgba(255,255,255,.9)), var(--shadow);
+  -webkit-backdrop-filter:blur(20px) saturate(170%); backdrop-filter:blur(20px) saturate(170%)}
+.ib2-hero-top{display:flex; align-items:center; gap:14px}
+.ib2-hero-ic{width:50px; height:50px; flex:none; border-radius:17px; display:grid; place-items:center;
+  background-color:var(--fill); color:var(--on-fill);
+  background-image:radial-gradient(120% 90% at 22% -10%, rgba(255,255,255,.45), rgba(255,255,255,.06) 48%, transparent 66%);
+  box-shadow:inset 0 1.5px 0 rgba(255,255,255,.55), inset 0 -2px 3px rgba(0,0,0,.12),
+    0 10px 20px -10px color-mix(in srgb, var(--fill) 75%, transparent)}
+.ib2-hero.clear .ib2-hero-ic{background-color:var(--good); color:#fff;
+  box-shadow:inset 0 1.5px 0 rgba(255,255,255,.55), inset 0 -2px 3px rgba(0,0,0,.12),
+    0 10px 20px -10px color-mix(in srgb, var(--good) 75%, transparent)}
+.ib2-hero-ic svg{width:25px; height:25px}
+.ib2-hero-t{font-size:20px; font-weight:800; line-height:1.25; letter-spacing:-.02em; color:var(--ink)}
+.ib2-hero-p{margin:4px 0 0; font-size:12.5px; line-height:1.55; color:var(--muted)}
+.ib2-stats{display:grid; grid-template-columns:repeat(3,1fr); margin-top:16px; padding-top:14px;
+  border-top:1px solid var(--line)}
+.ib2-stats > div{display:flex; flex-direction:column; align-items:center; gap:3px}
+.ib2-stats > div + div{border-left:1px solid var(--line)}
+.ib2-stats b{font-size:22px; font-weight:800; line-height:1.1; color:var(--ink); font-variant-numeric:tabular-nums}
+.ib2-stats span{font-size:11.5px; color:var(--muted)}
+.ib2-stats .hot b{color:var(--fill)}
+
+.ib2-sec{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:24px 4px 9px}
+.ib2-sec span{font-size:13.5px; font-weight:700; color:var(--ink)}
+.ib2-sec button{border:0; background:none; padding:4px 2px; cursor:pointer;
+  font-family:inherit; font-size:12.5px; font-weight:700; color:var(--fill)}
+
+.ib2-list{border-radius:20px; overflow:hidden; background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow)}
+.ib2-list > * + *{border-top:1px solid var(--line)}
+/* แถวบันทึกเดิม (.ib-log) เป็นกล่องเทาของตัวเอง — ในการ์ดรวมให้เป็นแถวเปล่า */
+.ib2-list .ib-log{margin:0; padding:11px 14px; border-radius:0; background:none}
+.ib2-list .ib-log-ic{background:var(--surface)}
+
+.ib2-src{display:flex; align-items:center; gap:12px; width:100%; padding:12px 14px; border:0; background:none;
+  font-family:inherit; text-align:left; color:var(--ink); cursor:pointer; -webkit-tap-highlight-color:transparent}
+.ib2-src:active{background:var(--surface)}
+.ib2-src-ic{width:38px; height:38px; flex:none; border-radius:12px; display:grid; place-items:center;
+  background:color-mix(in srgb, var(--fill) 12%, var(--card)); color:var(--fill)}
+.ib2-src-ic svg{width:19px; height:19px}
+.ib2-src-bd{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px}
+.ib2-src-bd .t{font-size:14px; font-weight:650; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.ib2-src-bd .s{display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--muted)}
+.ib2-src-bd .s i{width:7px; height:7px; flex:none; border-radius:50%; background:var(--faint)}
+.ib2-src-bd .s.ok i{background:var(--good)}
+.ib2-src-bd .s.off i{background:var(--alert)}
+.ib2-src-bd .s.wait i{background:var(--warn)}
+.ib2-src > svg{width:16px; height:16px; flex:none; color:var(--faint)}
+/* "เชื่อม" เป็นป้ายในแถว ไม่ใช่ปุ่มซ้อนปุ่ม — ทั้งแถวคือปุ่มอยู่แล้ว */
+.ib2-src-go{flex:none; padding:6px 13px; border-radius:999px; font-size:12px; font-weight:700;
+  background-color:var(--fill); color:var(--on-fill);
+  background-image:radial-gradient(120% 100% at 18% -8%, rgba(255,255,255,.42), transparent 62%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1.5px 2px rgba(0,0,0,.12)}
+
+/* .scr-body เป็น flex ที่มี gap 24px ระหว่างลูกทุกชิ้น — หัวข้อกับรายการของมันห่างกันเท่ากับระหว่างหมวด
+   จอนี้คุมระยะเองด้วย margin (หัวข้อ 24 บน 9 ล่าง) ให้หัวข้ออยู่ติดของที่มันเป็นหัว */
+#inboxBody{gap:0}
+/* การ์ดที่รอตัดสินใจ — มุมกับเงาชุดเดียวกับการ์ดอื่นในจอนี้ */
+#inboxBody .ib{border-radius:20px}
+#inboxBody .brain{margin-top:24px; border-radius:20px}
+/* ปุ่มหลักของการ์ดรอตัดสินใจอยู่แถวของตัวเองเต็มความกว้าง — สามปุ่มเรียงกันในการ์ดกว้าง ~300px
+   ปุ่ม "เพิ่มเข้าแผน" ถูกบีบจนตกเป็นสองบรรทัด และพื้นโดน .ib-act button (พื้นเทา) ทับจนดูเป็นปุ่มรอง
+   ทั้งที่มันคือคำตอบที่ถูกเกือบทุกครั้ง */
+#inboxBody .ib-act .ib-go{flex:1 1 100%; min-height:44px; white-space:nowrap;
+  background-color:var(--fill); color:var(--on-fill); border-color:transparent; font-size:13.5px; font-weight:700}
+#inboxBody .ib-act button:not(.ib-go){white-space:nowrap}
+
+/* ============================================================
+   1C40 · จอการแจ้งเตือน + ป้ายเด้งเมื่อมีข้อความเข้ามา
+   ------------------------------------------------------------
+   แถวแบบ iOS/IG: รูปคน (หรือไอคอนแหล่งงาน) + ป้ายชนิดเล็กมุมรูป · ประโยคเดียวว่าเกิดอะไร ·
+   ตัวอย่างข้อความ · เวลา · จุดสีธีมบอกว่ายังไม่อ่าน
+   รายการใช้การ์ดรวม .ib2-list ชุดเดียวกับกล่องเข้า สองจอนี้จึงเป็นของบ้านเดียวกัน
+   ============================================================ */
+#notifBody{gap:0}
+.nt-chips{display:flex; gap:7px; margin:4px 0 2px}
+.nt-chips .cp-chip{padding:7px 15px; font-size:13px}
+
+.nt-row, .nt-login{display:flex; align-items:flex-start; gap:12px; width:100%; padding:13px 14px; border:0; background:none;
+  font-family:inherit; text-align:left; color:var(--ink); cursor:pointer; -webkit-tap-highlight-color:transparent}
+.nt-row:active, .nt-login:active{background:var(--surface)}
+/* ยังไม่อ่าน = พื้นสีธีมจาง ๆ ทั้งแถว — จุดเล็กอย่างเดียวหาไม่เจอตอนกวาดตาเร็ว ๆ */
+.nt-row.new{background:color-mix(in srgb, var(--fill) 7%, transparent)}
+.nt-ic{position:relative; flex:none}
+.nt-av{width:44px; height:44px; border-radius:50%; object-fit:cover; display:grid; place-items:center;
+  font-size:17px; font-weight:700; color:#fff; background:var(--card2)}
+.nt-av.src{border-radius:14px; background:color-mix(in srgb, var(--fill) 12%, var(--card)); color:var(--fill)}
+.nt-av svg{width:21px; height:21px}
+.nt-ic-b{position:absolute; right:-3px; bottom:-3px; width:20px; height:20px; border-radius:50%;
+  display:grid; place-items:center; color:#fff; background:var(--fill); box-shadow:0 0 0 2px var(--card)}
+.nt-ic-b svg{width:11px; height:11px; stroke-width:2.6}
+.nt-ic-b.dm{background:var(--blue)}
+.nt-ic-b.wait{background:var(--warn)}
+.nt-ic-b.auto{background:var(--good)}
+.nt-bd{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; padding-top:1px}
+.nt-t{font-size:13.5px; line-height:1.4; color:var(--ink)}
+.nt-t b{font-weight:700}
+.nt-p{font-size:12.5px; line-height:1.45; color:var(--muted);
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+.nt-row.new .nt-p{color:var(--ink)}
+.nt-time{font-size:11px; color:var(--faint); margin-top:1px}
+.nt-row.new .nt-time{color:var(--fill); font-weight:600}
+.nt-dot{flex:none; width:9px; height:9px; margin-top:17px; border-radius:50%; background:var(--fill)}
+.nt-go{flex:none; align-self:center; padding:6px 12px; border-radius:999px; font-size:12px; font-weight:700;
+  background-color:var(--fill); color:var(--on-fill);
+  background-image:radial-gradient(120% 100% at 18% -8%, rgba(255,255,255,.42), transparent 62%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1.5px 2px rgba(0,0,0,.12)}
+.nt-login{margin-top:14px; align-items:center; border-radius:20px; background:var(--card);
+  border:1px dashed color-mix(in srgb, var(--fill) 35%, var(--line))}
+.nt-login > svg{width:16px; height:16px; color:var(--faint); flex:none}
+
+.nt-empty{margin-top:14px; padding:30px 22px 26px; text-align:center; border-radius:24px;
+  background:color-mix(in srgb, var(--card) 80%, transparent); border:1px solid var(--line); box-shadow:var(--shadow)}
+.nt-empty-ic{width:58px; height:58px; margin:0 auto 14px; border-radius:20px; display:grid; place-items:center;
+  background-color:var(--fill); color:var(--on-fill);
+  background-image:radial-gradient(120% 90% at 22% -10%, rgba(255,255,255,.45), rgba(255,255,255,.06) 48%, transparent 66%);
+  box-shadow:inset 0 1.5px 0 rgba(255,255,255,.55), inset 0 -2px 3px rgba(0,0,0,.12),
+    0 12px 22px -10px color-mix(in srgb, var(--fill) 75%, transparent)}
+.nt-empty-ic svg{width:28px; height:28px}
+.nt-empty-t{font-size:17px; font-weight:800; letter-spacing:-.02em; color:var(--ink)}
+.nt-empty-p{margin:6px auto 0; max-width:270px; font-size:12.5px; line-height:1.6; color:var(--muted)}
+
+/* ---------- ป้ายเด้ง ----------
+   ลงมาจากขอบบนแบบแจ้งเตือนของ iOS · กระจกเบลอ แตะแล้วเปิดห้องคุยนั้นเลย
+   อยู่ใน .phone (เหมือน toast) จึงไม่หลุดกรอบบนจอกว้าง · ไม่บังปุ่มอะไรนานเกิน 5 วิ */
+.nt-banner{position:absolute; left:10px; right:10px; top:calc(env(safe-area-inset-top) + 8px); z-index:96;
+  display:flex; align-items:center; gap:11px; padding:11px 13px; border-radius:22px; cursor:pointer;
+  background:color-mix(in srgb, var(--card) 78%, transparent);
+  -webkit-backdrop-filter:blur(24px) saturate(190%); backdrop-filter:blur(24px) saturate(190%);
+  border:1px solid var(--lg-mid, rgba(255,255,255,.55));
+  box-shadow:inset 0 1.5px 0 var(--lg-hi, rgba(255,255,255,.9)), 0 18px 40px -14px rgba(15,27,45,.45);
+  transform:translateY(calc(-100% - 30px)); opacity:0;
+  transition:transform .45s cubic-bezier(.3,1.35,.5,1), opacity .25s ease}
+.nt-banner.show{transform:none; opacity:1}
+.nt-banner .nt-av{width:40px; height:40px; font-size:15px}
+.nt-bn-bd{flex:1; min-width:0; display:flex; flex-direction:column; gap:1px}
+.nt-bn-top{display:flex; align-items:baseline; justify-content:space-between; gap:8px}
+.nt-bn-top b{font-size:13.5px; font-weight:700; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.nt-bn-top i{flex:none; font-style:normal; font-size:11px; color:var(--faint)}
+.nt-bn-tx{font-size:12.5px; line-height:1.4; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.nt-bn-tx em{font-style:normal; font-weight:700; color:var(--fill)}
+.nt-banner:not(.show){pointer-events:none}
+@media (prefers-reduced-motion: reduce){ .nt-banner{transition:opacity .2s ease; transform:none} }

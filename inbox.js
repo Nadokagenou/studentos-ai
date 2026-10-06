@@ -768,17 +768,70 @@ function renderInbox() {
   const sub = document.getElementById('inboxSub');
   if (sub) {
     const auto = countUnits(all.filter(i => i.status === 'accepted'), c => c.status === 'accepted');
+    // ยังไม่เคยมีอะไรเข้ามา = "เข้าแผนเองแล้ว 0" ไม่ได้บอกอะไรเลย · บอกว่าจอนี้คืออะไรแทน
     sub.textContent = waitN
       ? `รอตรวจ ${waitN} · เข้าแผนเองแล้ว ${auto}`
-      : `เข้าแผนเองแล้ว ${auto} รายการ`;
+      : all.length ? `เข้าแผนเองแล้ว ${auto} รายการ` : 'งานที่ไหลเข้ามาเองจากแหล่งต่าง ๆ';
   }
 
-  const head = `<div class="page-head">
-    <div class="eyebrow">ของที่ไหลเข้ามาเอง</div>
-    <h1 class="page-title">กล่องเข้า</h1>
-    <p class="page-sub">AI อ่านทุกอย่างที่เข้ามาก่อน แล้วถามเฉพาะตอนที่ไม่มั่นใจ
-      — ที่เหลือเข้าแผนให้เองโดยไม่ต้องกด</p>
-  </div>`;
+  // ---- 1C40 · การ์ดสถานะแทนหัวจอซ้ำ ----
+  // คนเปิดจอนี้มาถามเรื่องเดียว: "มีอะไรต้องให้ฉันทำไหม" — ตอบในการ์ดใบแรกด้วยประโยคเดียวตัวใหญ่
+  // ของเดิมมีชื่อจอซ้ำสองชั้น (หัวจอ + page-head) แล้วตามด้วยย่อหน้าอธิบายระบบ ก่อนจะถึงคำตอบ
+  // ตัวเลขสามช่องข้างล่างคือหลักฐานว่า AI ทำงานอยู่ — ขึ้นเฉพาะเมื่อเคยมีอะไรเข้ามาแล้ว
+  const auto = countUnits(all, c => c.status === 'accepted');
+  const skipped = countUnits(all, c => c.status === 'noise' || c.status === 'duplicate' || c.status === 'ignored');
+  const mood = waitN ? 'wait' : all.length ? 'clear' : 'fresh';
+  const hero = `<section class="ib2-hero ${mood}">
+    <div class="ib2-hero-top">
+      <span class="ib2-hero-ic">${icon(waitN ? 'bell' : all.length ? 'check-circle' : 'sparkles')}</span>
+      <div>
+        <div class="ib2-hero-t">${waitN ? `รอคุณดู ${waitN} งาน` : all.length ? 'ไม่มีอะไรค้าง' : 'ยังไม่มีอะไรเข้ามา'}</div>
+        <p class="ib2-hero-p">${waitN ? 'AI ไม่แน่ใจ เลยถามก่อนเข้าแผน — ที่เหลือเข้าให้เองแล้ว'
+          : all.length ? 'ของที่ AI มั่นใจ เข้าแผนไปเองหมดแล้ว'
+          : 'เชื่อมแหล่งงานข้างล่างไว้ แล้วงานจะไหลเข้าแผนเอง ไม่ต้องพิมพ์'}</p>
+      </div>
+    </div>
+    ${all.length ? `<div class="ib2-stats">
+      <div><b>${auto}</b><span>เข้าแผนเอง</span></div>
+      <div><b>${skipped}</b><span>ข้ามให้</span></div>
+      <div class="${waitN ? 'hot' : ''}"><b>${waitN}</b><span>รอตรวจ</span></div>
+    </div>` : ''}
+  </section>`;
+
+  // ---- 1C40 · แหล่งงานเป็นรายการในจอนี้เลย ----
+  // เดิมเป็นปุ่ม "จัดการตัวเชื่อม" ลอย ๆ ท้ายจอ — คนที่เห็นกล่องว่างไม่รู้ว่าว่างเพราะไม่มีงาน
+  // หรือเพราะยังไม่ได้ต่ออะไรเลย · แถวบอกสถานะของแต่ละทางเข้าตรง ๆ แตะแล้วไปจอตัวเชื่อมเหมือนเดิม
+  // โชว์เฉพาะตัวที่ต่อได้จริง (live/oauth) — ตัวที่ต่อไม่ได้อยู่ในจอตัวเชื่อม ไม่ต้องมาเกะกะที่นี่
+  if (typeof integAutoLoad === 'function') integAutoLoad();
+  const perSrc = {};
+  for (const i of all) perSrc[i.source] = (perSrc[i.source] || 0) + inboxUnits(i).filter(c => c.status !== 'noise').length;
+  const srcStatus = s => {
+    if (s.toggle && !srcEnabled(s.id)) return ['off', 'ปิดอยู่'];
+    if (s.id === 'line') {
+      const n = typeof lineLinks !== 'undefined' ? lineLinks.length : 0;
+      return n ? ['ok', `เชื่อมแล้ว ${n} กลุ่ม`] : ['idle', 'ยังไม่เชื่อม'];
+    }
+    if (s.id === 'share') return ['ok', 'พร้อมใช้'];
+    if (s.state === 'oauth' && typeof integ !== 'undefined' && integ.loaded && !integ.google) return ['wait', 'ยังเปิดใช้ไม่ได้'];
+    const n = typeof integBy === 'function' ? integBy(s.id).length : 0;
+    return n ? ['ok', 'เชื่อมแล้ว'] : ['idle', 'ยังไม่เชื่อม'];
+  };
+  const srcList = SOURCES.filter(s => s.kind === 'connector' && (s.state === 'live' || s.state === 'oauth'))
+    .map(s => {
+      const [k, txt] = srcStatus(s);
+      const n = perSrc[s.id] || 0;
+      return `<button class="ib2-src" onclick="go('scr-sources')">
+        <span class="ib2-src-ic">${icon(s.icon)}</span>
+        <span class="ib2-src-bd">
+          <span class="t">${esc(s.shortName || s.name)}</span>
+          <span class="s ${k}"><i></i>${esc(txt)}${n ? ` · ${n} งาน` : ''}</span>
+        </span>
+        ${k === 'idle' ? '<span class="ib2-src-go">เชื่อม</span>' : icon('chevron')}
+      </button>`;
+    }).join('');
+  const sources = `<div class="ib2-sec"><span>แหล่งที่ส่งงานเข้ามา</span>
+      <button onclick="go('scr-sources')">จัดการ</button></div>
+    <div class="ib2-list">${srcList}</div>`;
 
   // ---- การ์ดของก้อนที่มีหลายงาน ----
   // หน้าตาเป็นเช็คลิสต์ ไม่ใช่คำถาม — ของที่แกะได้ครบติ๊กมาให้แล้ว
@@ -879,23 +932,20 @@ function renderInbox() {
     return `<div class="ib-log ${it.status}">
       <span class="ib-log-ic">${icon(s.icon)}</span>
       <span class="ib-log-bd">
-        <span class="t">${esc(it.parsed.subject || '')} · ${esc(it.parsed.detail || it.raw.slice(0, 40))}</span>
+        <span class="t">${esc([it.parsed.subject, it.parsed.detail || it.raw.slice(0, 40)].filter(Boolean).join(' · '))}</span>
         <span class="s">${esc(label)} · ${esc(s.name)}</span>
       </span>
     </div>`;
   };
 
-  body.innerHTML = head
-    + (wait.length
-      ? `<div class="sec-title">รอคุณตัดสินใจ ${waitN} รายการ</div>` + wait.map(card).join('')
-      : `<div class="ib-empty">
-          <div class="ib-empty-ic">${icon('check-circle')}</div>
-          <div class="ib-empty-t">ไม่มีอะไรค้างให้ตรวจ</div>
-          <p class="ib-empty-p">ของที่ AI มั่นใจพอ เข้าแผนไปเองหมดแล้ว</p>
-        </div>`)
-    + (recent.length ? `<div class="sec-title">ที่ผ่านมา</div>` + recent.map(logRow).join('') : '')
-    + brainCard()
-    + `<button class="ib-wide" onclick="go('scr-sources')">${icon('chevron')}จัดการตัวเชื่อม</button>`;
+  // ลำดับ: คำตอบ → ของที่ต้องตัดสิน → เกิดอะไรขึ้นไปแล้ว → ทางเข้า
+  // คนที่ยังไม่มีอะไรเข้ามาเลย สองช่องกลางว่าง แถวแหล่งงานจึงขึ้นมาอยู่ใต้การ์ดสถานะพอดี
+  body.innerHTML = hero
+    + (wait.length ? `<div class="ib2-sec"><span>รอคุณตัดสินใจ</span></div>` + wait.map(card).join('') : '')
+    + (recent.length ? `<div class="ib2-sec"><span>ที่ผ่านมา</span></div>
+        <div class="ib2-list">${recent.map(logRow).join('')}</div>` : '')
+    + sources
+    + brainCard();
 }
 
 // ---------- จอ "ตัวเชื่อม" ----------
@@ -1094,4 +1144,224 @@ function renderSources() {
       แต่ต้องให้ผู้ดูแลระบบของโรงเรียนกดอนุญาตก่อน รอเราไปทำก็ไม่ได้<br>
       ที่ขึ้นว่า <b>ต่อไม่ได้</b> คือเจ้าของแอปนั้นไม่เปิดให้ใครต่อเลย รอไปก็ไม่ได้ —
       แต่ทุกตัวในนั้นส่งเข้ามาได้ด้วยปุ่มแชร์ของเครื่องอยู่แล้ว</p>`;
+}
+
+// ============================================================
+// 1C40 · การแจ้งเตือน — ทุกอย่างที่ "เข้ามาหาคุณ" ในที่เดียว
+// ------------------------------------------------------------
+// ของที่เข้ามามีสองสาย: ข้อความจากเพื่อน (คำขอทัก + ข้อความใหม่) กับงานที่ไหลเข้ากล่องเข้า
+// เดิมกระดิ่งบนหน้าแรกพาไปกล่องเข้าอย่างเดียว ข้อความจากเพื่อนต้องเดินไปเปิดกล่องข้อความเอง
+// ถึงจะรู้ว่ามีคนทักมา — จอนี้รวมทั้งสองสายไว้ใต้กระดิ่งอันเดียว
+//
+// "อ่านแล้ว" เก็บในเครื่อง ไม่ได้เก็บที่เซิร์ฟเวอร์ — dm_inbox ไม่มีสถานะอ่าน/ยังไม่อ่าน
+// จึงจำเวลาที่เปิดแต่ละห้องล่าสุดไว้ (ข้อความที่มาหลังเวลานั้น = ยังไม่อ่าน)
+// เปลี่ยนเครื่องแล้วจุดแดงขึ้นใหม่ได้ ซึ่งยอมได้ — ดีกว่าบอกว่าอ่านแล้วทั้งที่ยังไม่เห็น
+// ============================================================
+const NOTIF_KEY = 'studentos.alt.notifSeen';
+let notifFilter = 'all';        // all · dm · work
+let notifLoadedAt = 0;
+let notifKickAt = 0;
+
+function notifTs(v) { const n = Date.parse(v || ''); return isNaN(n) ? 0 : n; }
+function notifSeen() {
+  try { return JSON.parse(localStorage.getItem(NOTIF_KEY)) || {}; } catch (_) { return {}; }
+}
+function notifSaveSeen(s) { try { localStorage.setItem(NOTIF_KEY, JSON.stringify(s)); } catch (_) {} }
+// เรียกจากจอแชททั้งตอนเปิดและตอนออก — ข้อความที่มาระหว่างนั่งอยู่ในห้องก็นับว่าเห็นแล้ว
+function notifSeenDm(id) {
+  if (!id) return;
+  const s = notifSeen(); s.dm = s.dm || {}; s.dm[id] = Date.now(); notifSaveSeen(s);
+}
+
+function notifName(r) {
+  return typeof personName === 'function' ? personName(r) : (r.display_name || 'เพื่อน');
+}
+
+// รายการทั้งหมด เรียงใหม่สุดก่อน · ไม่เก็บลงที่ไหน คำนวณใหม่ทุกครั้งจากของจริงสองก้อน
+function notifItems() {
+  const s = notifSeen(), dmSeen = s.dm || {}, cut = s.all || 0;
+  const out = [];
+  for (const r of (typeof dmRows !== 'undefined' ? dmRows : [])) {
+    const at = notifTs(r.last_at);
+    if (!at) continue;
+    // คนพูดล่าสุดคือเรา = ไม่มีอะไรเข้ามาใหม่ในห้องนั้น (เว้นคำขอ ซึ่งเป็นของเขาเสมอ)
+    if (r.mine_last && !r.is_request) continue;
+    out.push({ kind: r.is_request ? 'req' : 'dm', at, unread: at > Math.max(dmSeen[r.id] || 0, cut), row: r });
+  }
+  for (const i of state.inbox || []) {
+    const at = notifTs(i.at);
+    // ของที่ AI ข้ามให้เอง (ไม่ใช่งาน · ซ้ำ) ไม่ใช่ข่าว — มันอยู่ในบันทึกของกล่องเข้าอยู่แล้ว
+    if (!at || ['noise', 'duplicate', 'ignored'].includes(i.status)) continue;
+    out.push({ kind: i.status === 'new' ? 'wait' : 'auto', at, unread: at > cut, item: i });
+  }
+  return out.sort((a, b) => b.at - a.at).slice(0, 50);
+}
+function notifUnread() { return notifItems().filter(n => n.unread).length; }
+
+function notifReadAll() {
+  const s = notifSeen(); s.all = Date.now(); notifSaveSeen(s);
+  renderNotif(); notifPaintBell();
+}
+function notifSetFilter(f) { notifFilter = f; renderNotif(); }
+
+function notifOpenDm(id) {
+  const r = (typeof dmRows !== 'undefined' ? dmRows : []).find(x => x.id === id);
+  if (!r || typeof openDmRow !== 'function') return;
+  notifSeenDm(id);
+  openDmRow(r.id, r.other, notifName(r), r.avatar || '', r.handle || '');
+  // กดย้อนกลับจากห้องคุย ต้องกลับมาที่รายการแจ้งเตือน ไม่ใช่กล่องข้อความที่ไม่ได้เปิดมา
+  if (typeof chatReturn !== 'undefined') chatReturn = 'scr-notif';
+}
+
+// จุดแดงบนกระดิ่ง — แก้ตรงที่ปุ่ม ไม่วาดหน้าแรกใหม่ทั้งจอเพราะจุดเดียว
+function notifPaintBell() {
+  const b = document.querySelector('.th-bell');
+  if (!b) return;
+  const n = notifUnread();
+  let dot = b.querySelector('.th-dot');
+  if (n && !dot) { dot = document.createElement('span'); dot.className = 'th-dot'; b.appendChild(dot); }
+  if (!n && dot) dot.remove();
+  b.setAttribute('aria-label', n ? `การแจ้งเตือน — ใหม่ ${n} รายการ` : 'การแจ้งเตือน');
+}
+
+// ---------- ป้ายเด้งเมื่อมีข้อความเข้ามา ----------
+// ถามเซิร์ฟเวอร์ห่างกันอย่างน้อย 45 วิ (จังหวะเดียวกับที่กล่องเข้าดึง LINE) และเฉพาะตอนจอเปิดอยู่
+// ป้ายขึ้นเฉพาะข้อความที่ใหม่กว่าป้ายใบล่าสุด — เปิดแอปครั้งแรกจะไม่เด้งข้อความเก่าทั้งกองใส่หน้า
+async function notifKick(force) {
+  if (typeof sb === 'undefined' || !sb || typeof currentUser === 'undefined' || !currentUser) return;
+  if (typeof loadDmDot !== 'function') return;
+  if (!force && Date.now() - notifKickAt < 45000) return;
+  notifKickAt = Date.now();
+  await loadDmDot(true);
+  notifLoadedAt = Date.now();
+  const s = notifSeen();
+  if (!s.banner) { s.banner = Date.now(); notifSaveSeen(s); }
+  const fresh = notifItems().filter(n => (n.kind === 'dm' || n.kind === 'req') && n.unread && n.at > s.banner
+    // อยู่ในห้องนั้นอยู่แล้ว = เห็นข้อความกับตา ไม่ต้องเด้งซ้ำ
+    && !(curScreen === 'scr-chat' && typeof chatThread !== 'undefined' && chatThread && chatThread.id === n.row.id));
+  if (fresh.length) {
+    s.banner = Math.max(...fresh.map(n => n.at)); notifSaveSeen(s);
+    notifBanner(fresh[0], fresh.length);
+  }
+  notifPaintBell();
+  if (curScreen === 'scr-notif') renderNotif();
+}
+
+let notifBannerTimer = null;
+function notifBanner(n, count) {
+  const phone = document.querySelector('.phone');
+  if (!phone) return;
+  let el = document.getElementById('notifBanner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'notifBanner'; el.className = 'nt-banner'; el.setAttribute('role', 'status');
+    phone.appendChild(el);
+  }
+  const r = n.row, nm = notifName(r);
+  el.innerHTML = `${notifAvatar(r)}
+    <span class="nt-bn-bd">
+      <span class="nt-bn-top"><b>${esc(nm)}</b><i>เมื่อกี้</i></span>
+      <span class="nt-bn-tx">${n.kind === 'req' ? 'ขอทักคุณ' : esc(notifPreview(r))}${
+        count > 1 ? ` <em>+${count - 1}</em>` : ''}</span>
+    </span>`;
+  el.onclick = () => { el.classList.remove('show'); notifOpenDm(r.id); };
+  void el.offsetWidth;
+  el.classList.add('show');
+  clearTimeout(notifBannerTimer);
+  notifBannerTimer = setTimeout(() => el.classList.remove('show'), 5000);
+  if (typeof haptic === 'function') haptic('arm');
+}
+
+function notifPreview(r) {
+  return r.last_body ? String(r.last_body).slice(0, 90) : 'ส่งรูปมา';
+}
+function notifAvatar(r) {
+  const nm = notifName(r);
+  return r.avatar
+    ? `<img class="nt-av" src="${esc(r.avatar)}" alt="">`
+    : `<span class="nt-av" style="${typeof faceTint === 'function' ? faceTint(r) : ''}">${
+        esc(typeof faceLetter === 'function' ? faceLetter(r) : String(nm).slice(0, 1))}</span>`;
+}
+function notifAgo(ms) {
+  return typeof ago === 'function' ? ago(new Date(ms).toISOString()) : '';
+}
+
+// ---------- จอ "การแจ้งเตือน" ----------
+function renderNotif() {
+  const body = document.getElementById('notifBody');
+  if (!body) return;
+  // เปิดจอแล้วถามเซิร์ฟเวอร์รอบหนึ่ง — ข้อความจากเพื่อนไม่ได้อยู่ในเครื่อง
+  if (curScreen === 'scr-notif' && Date.now() - notifLoadedAt > 30000) {
+    notifLoadedAt = Date.now();
+    notifKick(true);
+  }
+
+  const all = notifItems();
+  const isDm = n => n.kind === 'dm' || n.kind === 'req';
+  const list = all.filter(n => notifFilter === 'all' || (notifFilter === 'dm' ? isDm(n) : !isDm(n)));
+  const unread = all.filter(n => n.unread).length;
+  const sub = document.getElementById('notifSub');
+  if (sub) sub.textContent = unread ? `ยังไม่ได้อ่าน ${unread}` : 'อ่านครบแล้ว';
+
+  const row = n => {
+    const t = notifAgo(n.at);
+    if (isDm(n)) {
+      const r = n.row;
+      return `<button class="nt-row ${n.unread ? 'new' : ''}" onclick="notifOpenDm('${esc(r.id)}')">
+        <span class="nt-ic">${notifAvatar(r)}<span class="nt-ic-b dm">${icon('chat')}</span></span>
+        <span class="nt-bd">
+          <span class="nt-t"><b>${esc(notifName(r))}</b> ${n.kind === 'req' ? 'ขอทักคุณ' : 'ส่งข้อความถึงคุณ'}</span>
+          <span class="nt-p">${esc(notifPreview(r))}</span>
+          <span class="nt-time">${esc(t)}</span>
+        </span>
+        ${n.kind === 'req' ? '<span class="nt-go">ดูคำขอ</span>' : n.unread ? '<span class="nt-dot"></span>' : ''}
+      </button>`;
+    }
+    const i = n.item, s = sourceById(i.source);
+    // ชื่อเต็มของแหล่งมีวงเล็บอธิบาย ("LINE (บอทในกลุ่มห้อง)") ซึ่งดันประโยคให้ตกบรรทัด — ที่นี่พอแค่ชื่อ
+    const srcName = s.shortName || s.name.replace(/\s*\(.*\)\s*$/, '');
+    const what = i.kind === 'batch'
+      ? `${(i.header || i.raw.split('\n')[0]).slice(0, 50)} · ${(i.children || []).length} งาน`
+      : [i.parsed && i.parsed.subject, i.parsed && i.parsed.detail].filter(Boolean).join(' · ') || i.raw.slice(0, 60);
+    return `<button class="nt-row ${n.unread ? 'new' : ''}" onclick="go('scr-inbox')">
+      <span class="nt-ic"><span class="nt-av src">${icon(s.icon)}</span><span class="nt-ic-b ${n.kind}">${
+        icon(n.kind === 'wait' ? 'bell' : 'check')}</span></span>
+      <span class="nt-bd">
+        <span class="nt-t">${n.kind === 'wait'
+          ? `<b>งานใหม่</b> จาก ${esc(srcName)} รอคุณดู`
+          : `<b>เข้าแผนให้แล้ว</b> จาก ${esc(srcName)}`}</span>
+        <span class="nt-p">${esc(what)}</span>
+        <span class="nt-time">${esc(t)}</span>
+      </span>
+      ${n.kind === 'wait' ? '<span class="nt-go">ตรวจ</span>' : n.unread ? '<span class="nt-dot"></span>' : ''}
+    </button>`;
+  };
+
+  const fresh = list.filter(n => n.unread), older = list.filter(n => !n.unread);
+  const chips = `<div class="nt-chips" role="tablist">${[['all', 'ทั้งหมด'], ['dm', 'ข้อความ'], ['work', 'งาน']]
+    .map(([k, l]) => `<button class="cp-chip ${notifFilter === k ? 'on' : ''}" role="tab"
+      aria-selected="${notifFilter === k}" onclick="notifSetFilter('${k}')">${l}</button>`).join('')}</div>`;
+
+  const loggedIn = typeof currentUser !== 'undefined' && !!currentUser;
+  const empty = `<section class="nt-empty">
+    <span class="nt-empty-ic">${icon('bell')}</span>
+    <div class="nt-empty-t">${notifFilter === 'dm' ? 'ยังไม่มีข้อความใหม่' : notifFilter === 'work' ? 'ยังไม่มีงานเข้ามา' : 'ยังไม่มีอะไรใหม่'}</div>
+    <p class="nt-empty-p">ข้อความจากเพื่อน และงานที่ครูสั่งในกลุ่ม LINE จะมาขึ้นที่นี่ทันทีที่เข้ามา</p>
+  </section>`;
+  // ไม่ได้ล็อกอิน = ข้อความจากเพื่อนมาไม่ถึงเครื่องนี้เลย · บอกตรง ๆ ดีกว่าให้รอสิ่งที่ไม่มีวันมา
+  const login = !loggedIn && notifFilter !== 'work' && typeof cloudConfigured === 'function' && cloudConfigured()
+    ? `<button class="nt-login" onclick="go('scr-login')">
+        <span class="nt-av src">${icon('user')}</span>
+        <span class="nt-bd"><span class="nt-t"><b>เข้าสู่ระบบ</b> เพื่อรับข้อความจากเพื่อน</span>
+          <span class="nt-p">ตอนนี้แจ้งได้เฉพาะงานที่เข้ากล่องในเครื่องนี้</span></span>
+        ${icon('chevron')}
+      </button>` : '';
+
+  body.innerHTML = chips + login
+    + (!list.length ? empty : '')
+    + (fresh.length ? `<div class="ib2-sec"><span>ใหม่</span>
+        <button onclick="notifReadAll()">อ่านทั้งหมด</button></div>
+        <div class="ib2-list">${fresh.map(row).join('')}</div>` : '')
+    + (older.length ? `<div class="ib2-sec"><span>ก่อนหน้านี้</span></div>
+        <div class="ib2-list">${older.map(row).join('')}</div>` : '');
 }

@@ -627,6 +627,8 @@ async function pokeMate(id, topic, name) {
 async function openChat() {
   if (!chatThread) return;
   renderChat();
+  // 1C40 · เปิดห้องแล้ว = เห็นข้อความแล้ว · จุดแดงในจอการแจ้งเตือนต้องดับตาม
+  if (typeof notifSeenDm === 'function') notifSeenDm(chatThread.id);
 
   // ---------- สถานะของห้อง ----------
   // ต้องรู้ก่อนวาด ว่านี่คือห้องที่เปิดแล้ว หรือคำขอที่ยังไม่มีใครตอบรับ
@@ -681,6 +683,8 @@ async function openChat() {
 // realtime ของ Supabase นับจำนวนช่องที่เปิดพร้อมกัน ไม่ใช่จำนวนข้อความ
 function closeChat() {
   if (chatSub) { try { sb.removeChannel(chatSub); } catch (_) {} chatSub = null; }
+  // ข้อความที่เข้ามาระหว่างนั่งอยู่ในห้องก็เห็นแล้วเหมือนกัน
+  if (chatThread && typeof notifSeenDm === 'function') notifSeenDm(chatThread.id);
 }
 
 // ============================================================

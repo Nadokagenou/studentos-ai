@@ -184,14 +184,19 @@ function startInboxPolling() {
   clearInterval(inboxPoll);
   // ถามเฉพาะตอนที่หน้าจอเปิดอยู่จริง — อยู่ในกระเป๋าแล้วยังยิงทุก 45 วิ คือกินแบตฟรี ๆ
   inboxPoll = setInterval(() => {
-    if (document.visibilityState === 'visible') pullInbox();
+    if (document.visibilityState !== 'visible') return;
+    pullInbox();
+    // 1C40 · รอบเดียวกันถามข้อความจากเพื่อนด้วย — ป้ายเด้งเมื่อมีคนทักมา (notifKick ใน inbox.js)
+    if (typeof notifKick === 'function') notifKick();
   }, INBOX_POLL_MS);
 }
 
 // สลับจากแชทกลับมาที่แอป = จังหวะที่มีของใหม่รออยู่มากที่สุด
 // ดึงทันทีเลย ไม่ต้องให้รอจนครบรอบถัดไป
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') pullInbox();
+  if (document.visibilityState !== 'visible') return;
+  pullInbox();
+  if (typeof notifKick === 'function') notifKick(true);
 });
 
 startInboxPolling();

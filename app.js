@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C38';                 // สายเลขของแอป
+const APP_VERSION = '1C40';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -239,13 +239,13 @@ const THEME_BAR = {
   light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
   earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
   deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8', genesis: '#8E9BE8',
-  meta: '#050A16', glitch: '#04060A',
+  meta: '#050A16', glitch: '#04060A', astral: '#000000',
 };
 const THEME_NAME = {
   system: 'ตามระบบ', light: 'สว่าง', dark: 'มืด', warm: 'ชมพู', space: 'อวกาศ',
   earth: 'โลก', ocean: 'มหาสมุทร', magic: 'เวทมนตร์', galaxy: 'กาแล็กซี',
   deepocean: 'ทะเลลึก', earth2: 'ต้นไม้โลก', sweet: 'จักรวาลหวานแหว', genesis: 'Crystal',
-  meta: 'Metaverse', glitch: 'Glitch',
+  meta: 'Metaverse', glitch: 'Glitch', astral: 'Astral Black',
 };
 // ---------- ALT 1A6M3: อีสเตอร์เอกก์ ธีมลับ ----------
 // กดปุ่มธีมเดิมซ้ำ 5 ครั้งรวด = ปลดล็อกธีมลับของโทนนั้น
@@ -530,7 +530,8 @@ function setTheme(pref) {
   // ธีมที่ใช้อยู่ตอนนี้ผ่านได้เสมอ — ไม่ยึดของที่เขาใช้อยู่คืน
   if (typeof themeVisible === 'function' && pref !== 'system' && !themeVisible(pref)) {
     haptic('snooze');
-    showToast({ title: 'ยังไม่มีธีมนี้', body: THEME_SHOP[pref] ? 'ซื้อได้ที่ร้านค้า' : 'ได้จากการสุ่มสกินในร้านค้า' });
+    showToast({ title: 'ยังไม่มีธีมนี้', body: THEME_SHOP[pref] ? 'ซื้อได้ที่ร้านค้า'
+      : THEME_CODE[pref] ? 'ธีมนี้ยังไม่ได้ปลดล็อก' : 'ได้จากการสุ่มสกินในร้านค้า' });
     return;
   }
   // นับการกดซ้ำที่ปุ่มธีมที่มีของลับ — กดรัว ๆ ครบ 5 ครั้งแล้วปลดล็อก
@@ -902,6 +903,8 @@ const TABBED_SCREENS = ['scr-menu', 'scr-ai', 'scr-tasks', 'scr-scan', 'scr-time
 // ส่วน "ปฏิทิน" เสียปุ่มไป — มันเป็นมุมมองที่สองของแท็บ "งาน" อยู่แล้ว (ดู tlModeTabs)
 // ถ้าไม่ยกให้แท็บนั้นติดไฟ ผู้ใช้จะอยู่ในปฏิทินโดยไม่มีแท็บไหนสว่างเลย = "หลงอยู่ที่ไหนไม่รู้"
 const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
+  // 1C40 · การแจ้งเตือนเปิดจากกระดิ่งบนหน้าแรก จึงคืนไฟให้แท็บ "วันนี้"
+  'scr-notif': 'scr-menu',
   // 1B94 · ตารางเต็มวันเข้าจากโหมด "วันนี้" ของแท็บงาน จึงคืนไฟให้แท็บนั้น
   'scr-dayfull': 'scr-tasks',
   'scr-settings': 'scr-profile', 'scr-setopt': 'scr-profile', 'scr-stats': 'scr-profile',
@@ -2020,6 +2023,8 @@ function todayHead(sp, now) {
     : pend.length ? `${pend.length} รายการรออยู่ — ไม่มีงานที่ต้องเจียดเวลา`
     : 'ไม่มีอะไรค้าง — วันนี้พักได้';
 
+  const notifN = typeof notifUnread === 'function' ? notifUnread() : wait;
+  if (typeof notifKick === 'function') notifKick();
   return `<header class="td-head">
     <button class="th-me" onclick="go('scr-profile')" aria-label="หน้าของฉัน">${
       headFace()
@@ -2035,9 +2040,11 @@ function todayHead(sp, now) {
          แล้วหัวจอที่มีปุ่มสองปุ่มก็บีบบรรทัดตัวเลขจนตกสองแถว — แลกไม่คุ้ม
          ของชิ้นเดียวกันนี้อยู่ในกริดอยู่แล้วในรูปไทล์ "สแกนตารางเรียน" ที่ติดป้าย !
          ซึ่งเป็นทางที่เร็วกว่าด้วย (ถ่ายรูปตารางทีเดียวจบ แทนการกรอกทีละคาบ) -->
-    <button class="th-bell" onclick="go('scr-inbox')"
-      aria-label="${wait ? 'กล่องเข้า — รอตรวจ ' + wait + ' รายการ' : 'กล่องเข้า'}">
-      ${icon('bell')}${wait ? '<span class="th-dot"></span>' : ''}
+    <!-- 1C40 · กระดิ่งพาไปจอการแจ้งเตือน (ข้อความจากเพื่อน + งานเข้ากล่อง) แทนกล่องเข้าอย่างเดียว
+         จุดแดงนับทั้งสองสาย · ตัวเลขยังไม่ใส่ ด้วยเหตุผลเดิมของ .th-dot -->
+    <button class="th-bell" onclick="go('scr-notif')"
+      aria-label="${notifN ? 'การแจ้งเตือน — ใหม่ ' + notifN + ' รายการ' : 'การแจ้งเตือน'}">
+      ${icon('bell')}${notifN ? '<span class="th-dot"></span>' : ''}
     </button>
   </header>`;
 }
@@ -2535,7 +2542,6 @@ function toolsGrid() {
 // ให้บทสนทนามีที่อยู่ที่เดียว ไม่ใช่สองที่ที่จำคนละเรื่อง
 function askBar() {
   return `<section class="td-ask">
-    <span class="tk-ic">${icon('sparkles')}</span>
     <input id="hmAsk" class="tk-in" type="text" maxlength="500" enterkeyhint="send"
       placeholder="${esc(typeof sosText === 'function' ? sosText('askPh', 'ถามน้องไซ…') : 'ถามน้องไซ…')}"
       onkeydown="if(event.key==='Enter'){event.preventDefault();homeAsk();}">
@@ -2565,16 +2571,36 @@ function todayEmpty(now, hasRem) {
   const doneToday = liveTasks().filter(t => t.done && t.doneAt &&
     new Date(t.doneAt).toDateString() === now.toDateString()).length;
   const everHad = liveTasks().length > 0;
-  return `<section class="td-clear">
-    <span class="tc-ic">${icon('check-circle')}</span>
-    <b>${doneToday ? 'เคลียร์หมดแล้ววันนี้'
-      : hasRem ? 'ไม่มีงานที่ต้องนั่งทำ' : everHad ? 'ไม่มีงานค้าง' : 'วันนี้ยังไม่มีงาน'}</b>
-    <p>${doneToday ? 'ทำเสร็จไป ' + doneToday + ' งาน — วันนี้พักได้เต็มที่'
-      : hasRem ? 'เหลือแต่ของที่ถึงเวลาแล้วต้องไป — อยู่ข้างล่างนี้'
-      : everHad ? 'ครูสั่งอะไรมาใหม่ก็โยนเข้ามาได้เลย'
-      : 'ถ่ายรูปใบงานที่ครูสั่ง แล้วจะได้แผนแรกภายในไม่กี่วินาที'}</p>
-    <button class="tc-cta" onclick="openAddSheet()">${icon('camera')}${
-      everHad ? 'เพิ่มงาน' : 'สแกนใบงานแรก'}</button>
+  // 1C40 · การ์ดแทนไอคอนลอย ๆ (เจ้าของ: "เอาให้ดูน่าสนใจกว่านี้")
+  // น้องไซอยู่ในวงแสงเป็นตัวเอกของจอว่าง หน้าเปลี่ยนตามสถานการณ์ — มาสคอตที่ทำหน้าเดียวตลอด
+  // คือสติกเกอร์ ไม่ใช่ตัวละคร · ครั้งแรก = หน้าตื่นเต้น (wow) พร้อมสามขั้นว่าแอปทำอะไร
+  // (ไม่ใช้ภาพชิบิทั้งตัว — ภาพนั้นมีพื้นสี่เหลี่ยมของตัวเอง ใส่ในวงกลมแล้วอ่านเป็นการ์ดที่ถูกยัดเข้าไป)
+  // ความสูงทั้งก้อน ≤ ของเดิม (~213px) — หน้าแรกเลื่อนอยู่แล้ว ห้ามดันไทล์ลงไปอีก
+  const mood = doneToday ? 'done' : hasRem ? 'rem' : everHad ? 'rest' : 'first';
+  const face = typeof synFace === 'function'
+    ? synFace({ first: 'wow', done: 'happy', rest: 'sleepy', rem: 'normal' }[mood])
+    : 'sai-face-normal.webp';
+  return `<section class="td-clear ${mood}">
+    <div class="tc-top">
+      <span class="tc-art"><img src="${face}" alt="" aria-hidden="true" loading="lazy" decoding="async"
+        onerror="this.parentNode.classList.add('no-img');this.remove()"><i class="tc-fb">${icon('sparkles')}</i></span>
+      <span class="tc-tx">
+        <b>${doneToday ? 'เคลียร์หมดแล้ววันนี้'
+          : hasRem ? 'ไม่มีงานที่ต้องนั่งทำ' : everHad ? 'ไม่มีงานค้าง' : 'วันนี้ยังไม่มีงาน'}</b>
+        <p>${doneToday ? 'ทำเสร็จไป ' + doneToday + ' งาน — วันนี้พักได้เต็มที่'
+          : hasRem ? 'เหลือแต่ของที่ถึงเวลาแล้วต้องไป — อยู่ข้างล่างนี้'
+          : everHad ? 'ครูสั่งอะไรมาใหม่ก็โยนเข้ามาได้เลย'
+          : 'ถ่ายรูปใบงานที่ครูสั่ง แล้วจะได้แผนแรกภายในไม่กี่วินาที'}</p>
+      </span>
+      ${doneToday ? `<span class="tc-badge">${icon('check')}${doneToday}</span>` : ''}
+    </div>
+    ${mood === 'first' ? `<div class="tc-steps">
+      <span>${icon('camera')}ถ่ายรูป</span>${icon('chevron')}
+      <span>${icon('sparkles')}AI อ่าน</span>${icon('chevron')}
+      <span>${icon('target')}ได้แผน</span>
+    </div>` : ''}
+    ${hasRem ? '' : `<button class="tc-cta" onclick="openAddSheet()">${icon('camera')}${
+      everHad ? 'เพิ่มงาน' : 'สแกนใบงานแรก'}</button>`}
   </section>`;
 }
 
@@ -2698,7 +2724,10 @@ const HOME_BLOCKS = {
   hwNowBlock: ()  => (typeof hwNowBlock === 'function' ? hwNowBlock() : ''),
   toolsGrid:  ()  => toolsGrid(),
 };
-const HOME_ORDER = ['todayHead', 'todayStats', 'askBar', 'saiHero', 'nowCard', 'dayRail', 'hwNowBlock', 'toolsGrid'];
+// 1C40 · การ์ดน้องไซ (saiHero) ย้ายขึ้นไปอยู่ใต้คำทักทาย เหนือแถวตัวเลข — เจ้าของสั่ง "เอาไปไว้ข้างบน"
+// ค่าตั้งหน้าแรกที่บันทึกไว้ใน Control Center ยังไม่มีบล็อกนี้ homeLayout() จึงแทรกตามลำดับในนี้
+// (ต่อหลังบล็อกที่มาก่อนมันใน HOME_ORDER) · ถ้าวันหนึ่งจัดลำดับใน Control Center แล้วรวมบล็อกนี้ด้วย ค่านั้นชนะ
+const HOME_ORDER = ['todayHead', 'saiHero', 'todayStats', 'askBar', 'nowCard', 'dayRail', 'hwNowBlock', 'toolsGrid'];
 
 function homeLayout() {
   const saved = (typeof sosCfg === 'function') ? sosCfg('home.blocks', null) : null;
@@ -4050,7 +4079,7 @@ function aiLogSave(list) {
   try { localStorage.setItem(AI_LOG_KEY, JSON.stringify(list.slice(-AI_LOG_CAP))); } catch (_) {}
 }
 function aiClear() {
-  if (!confirm('ล้างประวัติการคุยกับน้องไซ?')) return;
+  if (!confirm('เริ่มแชทใหม่? ข้อความเดิมจะถูกล้าง')) return;
   try { localStorage.removeItem(AI_LOG_KEY); } catch (_) {}
   renderAi();
 }
@@ -4241,11 +4270,11 @@ function renderAi() {
         (pend.length ? 'เห็นงาน ' + pend.length + ' ใบ' : 'ยังไม่เห็นงานค้าง')
         + (nCls ? ' · ตาราง ' + nCls + ' คาบ' : ''))}</p>
     </div>
-    ${log.length ? `<button class="sh-wipe" onclick="aiClear()" aria-label="ล้างประวัติการคุย">${
-      icon('trash')}</button>` : ''}
-    <button class="sh-me" onclick="go('scr-profile')" aria-label="หน้าของฉัน">${
-      name ? esc(name.trim().charAt(0).toUpperCase()) : icon('user')}</button>
+    ${log.length ? `<button class="sh-new" onclick="aiClear()" aria-label="เริ่มแชทใหม่">${
+      icon('pencil')}</button>` : ''}
   </header>`;
+  // 1C40 · ปุ่มรูปคนมุมขวาบนถูกถอด — หัวจอแชทแบบ Claude / ChatGPT มีแค่ทางกลับกับปุ่มแชทใหม่
+  // หน้าของฉันยังอยู่ที่แท็บ "ฉัน" บนแถบล่าง · ถังขยะกลายเป็นปุ่มดินสอ "แชทใหม่" (ทำงานเดิม: ล้างแล้วเริ่มใหม่)
 
   // ---- 2 + 3 · ภาพรวมวันนี้ + งานที่ควรทำก่อน ----
   // สองอย่างนี้อยู่ในการ์ดใบเดียวกัน เพราะ "วันนี้มีเท่าไหร่" กับ "แล้วเริ่มใบไหน"
@@ -4307,6 +4336,10 @@ function renderAi() {
   </button>`;
 
   // ---- 4 · พื้นที่สนทนา ----
+  // 1C40 · หน้าตาแบบแอปแชท AI (Claude · ChatGPT · Grok): ข้อความเราเป็นฟองเทาชิดขวา
+  // คำตอบของน้องไซไม่มีฟอง — เป็นตัวหนังสือเต็มความกว้างใต้ป้ายชื่อ อ่านเหมือนเอกสารสั้น ๆ
+  // ไม่ใช่แชทเพื่อน · คำตอบยาว (ขั้นตอน · รายการ) อ่านง่ายกว่ามากเมื่อไม่ถูกบีบอยู่ในฟอง 84%
+  const saiHead = `<div class="am-head">${saiFace()}<b>น้องไซ</b></div>`;
   const bubbles = log.map((m, i) => {
     if (m.role === 'user') return `<div class="ai-msg me"><div class="ai-bub">${esc(m.text)}</div></div>`;
     // 1B42 · การ์ดเสนอเพิ่มงาน — ฟองของน้องไซที่กดได้ ไม่ใช่ข้อความเปล่า
@@ -4320,7 +4353,7 @@ function renderAi() {
       ].filter(Boolean);
       return `<div class="ai-msg me"><div class="ai-bub">${esc(m.text)}</div></div>
         <div class="ai-msg sai">
-          ${saiFace()}
+          ${saiHead}
           <div class="ai-offer${m.done ? ' spent' : ''}">
             <b class="ao-h">${m.done === 'asked' ? 'ได้ครับ ถามต่อเลย'
               : m.done ? 'เปิดหน้าตรวจให้แล้ว' : 'อันนี้เป็นงานใหม่ใช่ไหม'}</b>
@@ -4335,31 +4368,44 @@ function renderAi() {
         </div>`;
     }
     return `<div class="ai-msg sai">
-         ${saiFace()}
-         <div class="ai-bub${m.err ? ' err' : ''}">${esc(m.text)}</div>
+         ${saiHead}
+         <div class="am-text${m.err ? ' err' : ''}">${m.err ? esc(m.text) : aiFmt(m.text)}</div>
+         ${m.err ? '' : `<div class="am-act">
+           <button onclick="aiCopy(${i})" aria-label="คัดลอกคำตอบ">${icon('copy')}</button>
+         </div>`}
        </div>`;
   }).join('');
 
+  // กำลังตอบ: จุดสามจุดก่อนตัวแรกมา แล้วตัวหนังสือไหลเข้ามาพร้อมเคอร์เซอร์กะพริบ
   const typing = aiBusy ? `<div class="ai-msg sai">
-      ${saiFace()}
+      ${saiHead}
       ${aiPartial
-        ? `<div class="ai-bub ai-live">${esc(aiPartial)}</div>`
-        : `<div class="ai-bub ai-live ai-typing"><i></i><i></i><i></i></div>`}
+        ? `<div class="am-text ai-live">${aiFmt(aiPartial)}<i class="am-caret"></i></div>`
+        : `<div class="ai-typing"><i></i><i></i><i></i></div>`}
     </div>` : '';
 
-  const opener = fresh ? `<div class="ai-msg sai">
-      ${saiFace()}
-      <div class="ai-bub">${esc(aiOpener(sp))}</div>
-    </div>` : '';
+  // ---- จอว่าง: คำทัก + การ์ดคำถามสำเร็จรูป 2×2 (แบบหน้าแรกของ ChatGPT) ----
+  // ประโยคใต้หัวข้อยังเป็นประโยคที่คิดจากแผนวันนี้จริง (aiOpener) ไม่ใช่คำทักลอย ๆ
+  // การ์ดภาพรวมวันนี้ยังอยู่ — ปุ่ม "เริ่มทำ" คือปลายทางที่จอนี้มีไว้พาไป
+  const hello = fresh ? `<section class="ai-hello">
+      ${saiFace('hello')}
+      <h2>วันนี้ให้น้องไซช่วยอะไรดี?</h2>
+      <p>${esc(aiOpener(sp))}</p>
+    </section>
+    ${dayCard}
+    <div class="ai-starters">${AI_QUICK.map(q => `<button class="ai-st"
+        onclick="aiAsk('${esc(q[2]).replace(/'/g, "\\'")}')"${aiBusy ? ' disabled' : ''}>
+        ${icon(q[0])}<b>${esc(q[1])}</b><span>${esc(q[2])}</span></button>`).join('')}</div>
+    ${priv}` : '';
 
   // กล่องในต้องมีจริง — ดัน .at-in ด้วย margin-top:auto แทน justify-content:flex-end
   // เพราะ flex-end บนกล่องที่ scroll ได้ ทำให้เนื้อหาส่วนบนเลื่อนไปหาไม่เจอเมื่อล้น
-  const thread = `<div class="ai-thread"><div class="at-in">${opener}${bubbles}${typing}</div></div>`;
+  const thread = `<div class="ai-thread"><div class="at-in${fresh ? ' at-hello' : ''}">${hello}${bubbles}${typing}</div></div>`;
 
   // ---- 5 · ปุ่มทางลัด ----
   // อยู่เหนือช่องพิมพ์เสมอ ไม่ใช่เฉพาะตอนจอว่าง — จอเปล่ากับช่องพิมพ์เปล่า
   // คือจุดที่คนส่วนใหญ่ปิดทิ้งเพราะไม่รู้ว่าถามอะไรได้ และความไม่รู้นั้นไม่ได้หายไปหลังถามครั้งแรก
-  const quick = `<div class="sai-qa">
+  const quick = fresh ? '' : `<div class="sai-qa">
     ${fresh ? '' : `<button class="qa-priv" onclick="aiShowContext()">${
       icon('lock')}น้องไซเห็นอะไร</button>`}
     ${AI_QUICK.map(q => `<button onclick="aiAsk('${esc(q[2]).replace(/'/g, "\\'")}')"${
@@ -4367,15 +4413,20 @@ function renderAi() {
   </div>`;
 
   // ---- 6 · ช่องพิมพ์ ----
-  const bar = `<div class="sai-bar">
+  // 1C40 · กล่องพิมพ์แบบแอปแชท AI: ตัวหนังสืออยู่บน แถวปุ่มอยู่ล่าง (ไมค์ซ้าย · ส่งขวา)
+  // ปุ่มส่งเป็นวงกลมทึบเฉพาะตอนมีตัวหนังสือ (.has-text) — ว่างอยู่ก็จางลง บอกว่ายังไม่มีอะไรให้ส่ง
+  // คลาส .sai-bar คงไว้ เพราะฮาโลท้าย app.js เกาะกล่องนี้ด้วยชื่อคลาส
+  const bar = `<div class="sai-bar sai-cmp">
     <textarea id="aiInput" class="ai-in" rows="1" maxlength="2000"
       placeholder="ถามน้องไซ…" ${aiBusy ? 'disabled' : ''}
-      oninput="autoGrow(this)"
+      oninput="autoGrow(this);aiInputState(this)"
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiAsk();}"></textarea>
-    <button class="sb-mic${aiVoiceOn ? ' rec' : ''}" onclick="aiVoice()" ${aiBusy ? 'disabled' : ''}
-      aria-label="${aiVoiceOn ? 'หยุดฟัง' : 'พูดแทนพิมพ์'}">${icon('mic')}</button>
-    <button class="sb-send" onclick="aiAsk()" ${aiBusy ? 'disabled' : ''}
-      aria-label="ส่งคำถาม">${icon('chevron')}</button>
+    <div class="cmp-row">
+      <button class="sb-mic${aiVoiceOn ? ' rec' : ''}" onclick="aiVoice()" ${aiBusy ? 'disabled' : ''}
+        aria-label="${aiVoiceOn ? 'หยุดฟัง' : 'พูดแทนพิมพ์'}">${icon('mic')}</button>
+      <button class="sb-send" onclick="aiAsk()" ${aiBusy ? 'disabled' : ''}
+        aria-label="ส่งคำถาม">${icon('chevron')}</button>
+    </div>
   </div>`;
 
   // ---- ท้ายจอเคยมีอะไรอยู่ ----
@@ -4387,7 +4438,52 @@ function renderAi() {
   // ซึ่งเป็นที่ที่บังคับใช้ได้จริง ต่างจากข้อความบนจอที่เป็นแค่คำประกาศ
   // ส่วนความโปร่งใสยังอยู่ที่ปุ่ม "ดูว่าเห็นอะไร" เหนือบทสนทนา ซึ่งเปิดดูของจริงได้
 
-  el.innerHTML = head + (fresh ? dayCard + priv : '') + thread + quick + bar;
+  el.innerHTML = head + thread + quick + bar;
+}
+
+// ---------- 1C40 · จัดรูปคำตอบของน้องไซ ----------
+// คำตอบมาเป็นตัวหนังสือล้วนที่มีขึ้นบรรทัด "- " "1. " และ **ตัวหนา** แบบ markdown ย่อ
+// แปลงเฉพาะเท่านี้ — escape ก่อนทุกครั้ง จึงไม่มี HTML จากเซิร์ฟเวอร์หลุดมาวาดบนจอ
+function aiFmt(text) {
+  const inline = s => esc(s)
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+  const out = [];
+  let list = null;                         // { tag, items }
+  const flush = () => { if (list) { out.push(`<${list.tag}>${list.items.map(x => `<li>${x}</li>`).join('')}</${list.tag}>`); list = null; } };
+  let para = [];
+  const flushP = () => { if (para.length) { out.push(`<p>${para.join('<br>')}</p>`); para = []; } };
+  for (const raw of String(text || '').split('\n')) {
+    const line = raw.trimEnd();
+    const ul = line.match(/^\s*[-•*]\s+(.*)$/);
+    const ol = line.match(/^\s*(\d+)[.)]\s+(.*)$/);
+    if (ul || ol) {
+      flushP();
+      const tag = ul ? 'ul' : 'ol';
+      if (!list || list.tag !== tag) { flush(); list = { tag, items: [] }; }
+      list.items.push(inline(ul ? ul[1] : ol[2]));
+    } else if (!line.trim()) {
+      flush(); flushP();
+    } else {
+      flush(); para.push(inline(line));
+    }
+  }
+  flush(); flushP();
+  return out.join('');
+}
+
+function aiCopy(i) {
+  const m = aiLog()[i];
+  if (!m) return;
+  const done = () => { haptic('arm'); showToast({ title: 'คัดลอกแล้ว', body: 'วางที่ไหนก็ได้เลย' }); };
+  try { navigator.clipboard.writeText(m.text).then(done, () => showToast({ title: 'คัดลอกไม่ได้', body: 'เบราว์เซอร์ไม่ให้สิทธิ์' })); }
+  catch (_) { showToast({ title: 'คัดลอกไม่ได้', body: 'เบราว์เซอร์ไม่ให้สิทธิ์' }); }
+}
+
+// ปุ่มส่งทึบเฉพาะตอนมีตัวหนังสือ — แบบเดียวกับแอปแชท AI ทั่วไป
+function aiInputState(el) {
+  const bar = el && el.closest('.sai-bar');
+  if (bar) bar.classList.toggle('has-text', !!el.value.trim());
 }
 
 // เลื่อนลงล่างสุดหลังส่งคำถาม — บทสนทนาที่ตอบแล้วแต่ต้องเลื่อนหาเอง อ่านเหมือนไม่ได้ตอบ
@@ -7743,6 +7839,14 @@ const THEME_SHOP = {                                          // ซื้อด
   warm:  { cost: 30, name: 'ชมพู' },
   space: { cost: 30, name: 'อวกาศ' },
 };
+// 1C40 · ธีมที่ได้จากโค้ดเท่านั้น — ไม่อยู่ในสุ่ม ไม่อยู่ในร้าน และ **ไม่บอกว่ามีอยู่** จนกว่าจะใส่โค้ด
+// (ปุ่มในจอเลือกธีมถูกซ่อนด้วย applyThemeLocks เหมือนธีมสุ่ม/ร้าน) · โค้ดอยู่ใน CODE_GIFT
+// เก็บเป็นธงในเครื่องชุดเดียวกับธีมลับ และพกขึ้น cloud ใน vault เหมือนธง GENESIS
+// ล้างข้อมูล / ปุ่มล็อกธีมลับกลับ ลบธงนี้ด้วย — สองปุ่มนั้นต้องพากลับไปจุดเริ่มต้นได้จริง
+const THEME_CODE = { astral: 'studentos.alt.astralUnlocked' };
+function codeThemeOwned(id) {
+  try { return !!THEME_CODE[id] && localStorage.getItem(THEME_CODE[id]) === '1'; } catch (_) { return false; }
+}
 
 // ---------- คราฟธีมลับจากธีมต้นแบบ ----------
 // ต้องมีธีมต้นแบบอยู่ในมือก่อน แล้วจ่ายโทเคนแปลงร่างเป็นธีมลับของสายนั้น
@@ -7780,9 +7884,10 @@ function craftTheme(id) {
   showToast({ title: 'คราฟธีม' + c.name + 'สำเร็จ ✦', body: 'เลือกใช้ได้ที่จอตั้งค่า · เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
 }
 
-function themeLocked(id) { return THEME_GACHA.includes(id) || !!THEME_SHOP[id]; }
+function themeLocked(id) { return THEME_GACHA.includes(id) || !!THEME_SHOP[id] || !!THEME_CODE[id]; }
 function themeOwned(id) {
   if (!themeLocked(id)) return true;
+  if (THEME_CODE[id]) return codeThemeOwned(id);
   const s = tokenState();
   if (THEME_GACHA.includes(id)) return ((s.skins || {})[id] || 0) > 0;
   return (s.bought || []).includes(id);
@@ -7960,6 +8065,7 @@ function vaultExport() {
     allBadges: localStorage.getItem(ALLBADGE_KEY) === '1',
     luck: localStorage.getItem(LUCK_KEY) === '1',
     genesis: localStorage.getItem(GENESIS_KEY) === '1',
+    codeThemes: Object.keys(THEME_CODE).filter(codeThemeOwned),
     // รูปโปรไฟล์ย่อเป็นจัตุรัส 256px คุณภาพ .82 มาแล้ว ราว 20KB — เล็กพอจะพกไปด้วย
     avatar: av || undefined,
   };
@@ -7977,6 +8083,7 @@ function vaultImport(r) {
     if (r.allBadges) localStorage.setItem(ALLBADGE_KEY, '1');
     if (r.luck) localStorage.setItem(LUCK_KEY, '1');
     if (r.genesis) localStorage.setItem(GENESIS_KEY, '1');
+    for (const id of r.codeThemes || []) if (THEME_CODE[id]) localStorage.setItem(THEME_CODE[id], '1');
   } catch (_) {}
 
   const local = tokenState();
@@ -8163,19 +8270,120 @@ let drawResults = [];
 let drawOpen = [];
 let drawing = false;
 
-// การ์ดเอียงตามตำแหน่งจริงในแถบเลื่อน — ใบกลางตั้งตรง ใบข้าง ๆ หันหนีออกไป
-// อ่านจาก scrollLeft ทุกครั้งที่เลื่อน มันจึงขยับตามนิ้วจริง ไม่ใช่อนิเมชันที่เล่นเองรอบเดียว
-function tiltCards() {
-  const strip = document.getElementById('gcStrip');
-  if (!strip) return;
-  const mid = strip.scrollLeft + strip.clientWidth / 2;
-  strip.querySelectorAll('.gc').forEach(c => {
-    const d = Math.max(-1, Math.min(1, ((c.offsetLeft + c.offsetWidth / 2) - mid) / (strip.clientWidth / 2)));
-    c.style.setProperty('--ry', (d * -30).toFixed(2) + 'deg');
-    c.style.setProperty('--tz', (-Math.abs(d) * 110).toFixed(1) + 'px');
-    c.style.setProperty('--sc', (1 - Math.abs(d) * 0.14).toFixed(3));
-    c.style.setProperty('--dim', (1 - Math.abs(d) * 0.4).toFixed(2));
+// ---------- 1C40 · วงการ์ด 3D (แบบ ThreeDPhotoCarousel) ----------
+// การ์ดเรียงรอบทรงกระบอก ลากซ้าย-ขวาแล้ววงหมุนตามนิ้ว ปล่อยแล้วไหลต่อตามแรงส่ง แล้วเข้าล็อกใบที่ใกล้ที่สุด
+// วงถูกดันถอยหลังเท่ารัศมี (translateZ(-r)) ใบหน้าสุดจึงขนาดเท่าการ์ดจริง ไม่ขยายเข้าหาตา
+// **ใบที่หันหลังเกิน 90° ซ่อนทิ้ง** — จากด้านหลัง สิ่งที่เห็นคือหน้าการ์ด ซึ่งมีสีระดับความหายากติดอยู่
+// ตั้งแต่ยังไม่หงาย = มองทะลุวงไปก็รู้ผลล่วงหน้า
+let gcRot = 0, gcStep = 360, gcR = 0, gcRaf = 0, gcTarget = 0;
+const GC_REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function ringCards() { return [...document.querySelectorAll('#gcCyl .gc')]; }
+
+function ringLayout() {
+  const cyl = document.getElementById('gcCyl');
+  if (!cyl) return;
+  const n = drawResults.length;
+  gcStep = 360 / Math.max(1, n);
+  // เส้นรอบวง = การ์ดกว้าง 132 + ช่องไฟ 14 ต่อใบ · ขั้นต่ำ 150 กันใบน้อยแล้วซ้อนกัน
+  gcR = n < 2 ? 0 : Math.max(150, Math.round(n * 146 / (2 * Math.PI)));
+  cyl.style.setProperty('--r', gcR + 'px');
+  ringCards().forEach((c, i) => c.style.setProperty('--a', (i * gcStep) + 'deg'));
+}
+
+// มุมของใบที่ i เทียบกับหน้าวง (−180…180) · 0 = ใบที่หันหน้ามาหาเราตรง ๆ
+function ringAngle(i) { return ((i * gcStep + gcRot) % 360 + 540) % 360 - 180; }
+
+function ringPaint() {
+  const cyl = document.getElementById('gcCyl');
+  if (!cyl) return false;
+  cyl.style.setProperty('--rot', gcRot.toFixed(2) + 'deg');
+  ringCards().forEach((c, i) => {
+    const v = Math.abs(ringAngle(i));
+    const hide = v > 91;
+    c.style.opacity = hide ? '0' : (1 - (v / 90) * 0.5).toFixed(3);
+    c.style.visibility = hide ? 'hidden' : '';
+    c.tabIndex = hide ? -1 : 0;
   });
+  return true;
+}
+
+function ringTo(target) {
+  gcTarget = target;
+  if (GC_REDUCED) { gcRot = target; ringPaint(); return; }
+  if (gcRaf) return;
+  const step = () => {
+    gcRot += (gcTarget - gcRot) * 0.14;
+    if (Math.abs(gcTarget - gcRot) < 0.05) gcRot = gcTarget;
+    if (!ringPaint() || gcRot === gcTarget) { gcRaf = 0; return; }
+    gcRaf = requestAnimationFrame(step);
+  };
+  gcRaf = requestAnimationFrame(step);
+}
+function ringStop() { if (gcRaf) cancelAnimationFrame(gcRaf); gcRaf = 0; }
+function ringSnap(x) { return Math.round(x / gcStep) * gcStep; }
+// หมุนใบที่ i มาไว้ข้างหน้า — ไปทางที่สั้นกว่าเสมอ ไม่หมุนอ้อมเกือบรอบ
+function ringFocus(i) { ringTo(ringSnap(gcRot - ringAngle(i))); }
+
+function ringBind() {
+  const ring = document.getElementById('gcRing');
+  if (!ring || ring.__bound) return;
+  ring.__bound = true;
+  let d = null, eat = false;
+  ring.addEventListener('pointerdown', e => {
+    eat = false;
+    if (drawResults.length < 2 || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    d = { id: e.pointerId, x: e.clientX, y: e.clientY, rot: gcRot, moved: false, lx: e.clientX, lt: e.timeStamp, v: 0 };
+  });
+  ring.addEventListener('pointermove', e => {
+    if (!d || e.pointerId !== d.id) return;
+    const dx = e.clientX - d.x, dy = e.clientY - d.y;
+    if (!d.moved) {
+      if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) { d = null; return; }   // ตั้งใจเลื่อนจอขึ้นลง
+      if (Math.abs(dx) < 6) return;
+      d.moved = true;
+      ringStop();
+      try { ring.setPointerCapture(d.id); } catch (_) {}
+    }
+    // ลากไป dx พิกเซล = ใบหน้าเคลื่อนตามนิ้วพอดี (ส่วนโค้ง = r·θ)
+    gcRot = d.rot + (dx / gcR) * 57.2958;
+    const dt = e.timeStamp - d.lt;
+    if (dt > 0) d.v = d.v * 0.6 + ((e.clientX - d.lx) / dt) * 0.4;   // พิกเซล/มิลลิวินาที
+    d.lx = e.clientX; d.lt = e.timeStamp;
+    ringPaint();
+  });
+  const end = e => {
+    if (!d || e.pointerId !== d.id) return;
+    if (d.moved) {
+      // ลากจบบนการ์ด ไม่นับเป็นการแตะเปิดการ์ด · click (ถ้ามี) ตามหลัง pointerup ทันทีในจังหวะเดียวกัน
+      // บนจอสัมผัสมักไม่มี click ตามหลังการปัดเลย ธงต้องดับเองด้วย ไม่งั้นมันกินการแตะครั้งถัดไป
+      eat = true;
+      setTimeout(() => { eat = false; }, 0);
+      const fling = Math.max(-2.5, Math.min(2.5, d.v)) * 260;   // แรงส่ง → ระยะไหลต่อ (พิกเซล)
+      ringTo(ringSnap(gcRot + (fling / gcR) * 57.2958));
+    }
+    d = null;
+  };
+  ring.addEventListener('pointerup', end);
+  ring.addEventListener('pointercancel', end);
+  ring.addEventListener('click', e => {
+    if (eat) { eat = false; e.stopPropagation(); e.preventDefault(); }
+  }, true);
+  // คีย์บอร์ด: แท็บไปการ์ดไหน วงหมุนใบนั้นมาข้างหน้า · ลูกศรซ้าย/ขวาหมุนทีละใบ
+  ring.addEventListener('focusin', e => {
+    const c = e.target.closest && e.target.closest('.gc');
+    if (c) ringFocus(+c.dataset.i);
+  });
+  ring.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    ringTo(ringSnap(gcTarget) + (e.key === 'ArrowLeft' ? gcStep : -gcStep));
+  });
+}
+
+function gcTap(i) {
+  ringFocus(i);
+  flipCard(i);
 }
 
 // ยังเปิดไม่ครบ = ห้ามออกจากจอ ต้องดูให้จบก่อน
@@ -8193,15 +8401,17 @@ function cardFace(r) {
 
 function drawCardsHtml() {
   return `<div class="gc-stage"></div>
-    <div class="gc-strip" id="gcStrip" onscroll="tiltCards()">
+    <div class="gc-ring${drawResults.length > 1 ? ' multi' : ''}" id="gcRing">
+     <div class="gc-cyl" id="gcCyl">
       ${drawResults.map((r, i) => `
-        <button class="gc" data-i="${i}" onclick="flipCard(${i})"
+        <button class="gc" data-i="${i}" onclick="gcTap(${i})"
           aria-label="แตะเพื่อเปิดการ์ด">
           <span class="gc-in">
             <span class="gc-back"><i class="gc-mark">${coin(44)}</i><i class="gc-shine"></i></span>
             <span class="gc-face r-${r.rarity}${r.rarity === 'secret' ? ' p-' + r.id : ''}"></span>
           </span>
         </button>`).join('')}
+     </div>
     </div>`;
 }
 
@@ -8371,11 +8581,14 @@ async function doSpin(n) {
   refreshDrawFooter();
   refreshDrawHead();          // ยอดลดลงตามค่าสุ่มแล้ว แต่ยังไม่มีรางวัลเข้า
 
-  const cards = [...area.querySelectorAll('.gc')];
-  cards.forEach((c, i) => { c.style.animationDelay = (i * 60) + 'ms'; });
-  tiltCards();
-  requestAnimationFrame(tiltCards);
-  await new Promise(r => setTimeout(r, 260 + cards.length * 60));
+  // วงหมุนเข้ามาจากด้านข้างแล้วหยุดที่ใบแรก — ใบเดียวไม่มีวงให้หมุน แค่ลอยขึ้นมาเฉย ๆ
+  ringStop();
+  ringLayout();
+  ringBind();
+  gcRot = (drawResults.length > 1 && !GC_REDUCED) ? 120 : 0;
+  ringPaint();
+  ringTo(0);
+  await new Promise(r => setTimeout(r, 620));
 
   document.getElementById('gcGo1').disabled = false;
   document.getElementById('gcGo10').disabled = false;
@@ -9085,6 +9298,7 @@ function renderAll() {
   // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น
   // (กันแอปพังทั้งจอถ้าไฟล์ inbox.js/linelink.js โหลดไม่ขึ้น)
   if (typeof renderInbox === 'function') renderInbox();
+  if (typeof renderNotif === 'function') renderNotif();
   if (typeof renderSources === 'function') renderSources();
   if (typeof renderRoom === 'function') renderRoom();
   if (typeof renderMates === 'function') renderMates();
@@ -12795,9 +13009,11 @@ function clearAll() {
     // รวมถึงธงที่โค้ดในตั้งค่าเปิดเหรียญไว้ ไม่งั้นล้างแล้วเหรียญยังครบอยู่
     try { localStorage.removeItem(ALLBADGE_KEY); } catch (_) {}
     try { localStorage.removeItem(GENESIS_KEY); } catch (_) {}
+    for (const k of Object.values(THEME_CODE)) { try { localStorage.removeItem(k); } catch (_) {} }
     applySecrets();
     applyGenesisUnlock();
-    if (['deepocean', 'earth2', 'sweet', 'genesis'].includes(themePref())) setTheme('system');
+    applyThemeLocks();
+    if (['deepocean', 'earth2', 'sweet', 'genesis', ...Object.keys(THEME_CODE)].includes(themePref())) setTheme('system');
     state = { tasks: [], settings: { name: '', freeHours: 2 } };
     renderAll();
   }
@@ -12809,9 +13025,11 @@ function relockSecrets() {
   try { localStorage.removeItem(GENESIS_KEY); } catch (_) {}
   // เหรียญที่เปิดด้วยโค้ดก็ล็อกกลับพร้อมกัน — ปุ่มนี้ต้องพากลับไปจุดเริ่มต้นได้จริง
   try { localStorage.removeItem(ALLBADGE_KEY); } catch (_) {}
+  for (const k of Object.values(THEME_CODE)) { try { localStorage.removeItem(k); } catch (_) {} }
   applySecrets();
   applyGenesisUnlock();
-  if (['deepocean', 'earth2', 'sweet', 'genesis'].includes(themePref())) setTheme('system');
+  applyThemeLocks();
+  if (['deepocean', 'earth2', 'sweet', 'genesis', ...Object.keys(THEME_CODE)].includes(themePref())) setTheme('system');
   tapCount = 0; tapTheme = '';
   renderProfile();
   // ไม่บอกวิธีปลดล็อกซ้ำ — ของลับที่บอกวิธีไว้ข้าง ๆ ก็ไม่ใช่ของลับแล้ว
@@ -12824,7 +13042,9 @@ function relockSecrets() {
 // จะให้รุ่นถัดไปใช้ได้ต้องตั้งใจแก้บรรทัดล่างนี้เอง
 // ตอนนี้ผูกกับ 1A7V (ชื่อใหม่ของรุ่นก่อนหน้า) ส่วน APP_VERSION เป็น 1A7V2 → โค้ดจึงหมดอายุอยู่
 const CODE_VERSION = '1A7V';
-function codesLive() { return APP_VERSION === CODE_VERSION; }
+function oldCodesLive() { return APP_VERSION === CODE_VERSION; }
+// ช่องใส่โค้ดโผล่เมื่อมีโค้ดอย่างน้อยหนึ่งชุดที่ยังใช้ได้ (ชุดเก่าผูกรุ่น · ชุดแจกโทเคนไม่ผูกรุ่น)
+function codesLive() { return oldCodesLive() || Object.keys(CODE_GIFT).length > 0; }
 
 // เก็บเป็นลายนิ้วมือ SHA-256 ไม่ใช่ตัวโค้ด — เปิดซอร์สอ่านก็ยังไม่รู้ว่าต้องพิมพ์อะไร
 // และย้อนจากค่าพวกนี้กลับไปเป็นโค้ดไม่ได้
@@ -12837,6 +13057,17 @@ const CODE_HASH = {
   '84d74768527898c47b601208e11b640b65388fe251deb2d1da036ae30f2316b7': 'luckOff',
 };
 const CODE_TOKEN_GRANT = 1000;
+
+// 1C40 · โค้ดแจกโทเคนที่ไม่ผูกกับรุ่น — ใช้ได้ครั้งเดียวต่อเครื่อง
+// คีย์คือลายนิ้วมือของโค้ดตัวพิมพ์เล็ก (พิมพ์ตัวใหญ่ปนมาก็ยังผ่าน)
+// id ใช้ตั้งชื่อธง "ใช้แล้ว" ในเครื่อง — ห้ามเปลี่ยนหลังแจกโค้ดไปแล้ว ไม่งั้นคนเดิมใช้ซ้ำได้
+// theme = โค้ดปลดล็อกธีม (THEME_CODE) — ไม่ใช้ธง "ใช้แล้ว" เพราะสถานะจริงคือ "มีธีมหรือยัง"
+// ใส่ซ้ำได้ไม่เสียหาย และถ้าเคยล็อกกลับด้วยปุ่มล็อกธีมลับ ใส่โค้ดเดิมก็ปลดได้อีก
+const CODE_GIFT = {
+  '5c774939904173ffdc62b2f78e88d8fdbce4074c636cd887c0b4f6700fdc4e33': { id: 'g1', tokens: 10000 },
+  'dd5ffe1c63293b21d17dfc192de4ec660e5aa2467bba77e930fbbe639d5c0866': { id: 'astral', theme: 'astral' },
+};
+const CODE_GIFT_USED = 'studentos.alt.codeGift.';
 
 async function codeFingerprint(s) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
@@ -12858,8 +13089,30 @@ async function redeemCode() {
   // crypto.subtle มีเฉพาะบน https กับ localhost — เปิดผ่าน IP วงแลนจะไม่มีให้ใช้
   if (!codesLive() || !(window.crypto && crypto.subtle)) { say('โค้ดนี้ใช้ไม่ได้', true); return; }
 
+  let gift = null;
+  try { gift = CODE_GIFT[await codeFingerprint(raw.toLowerCase())] || null; } catch (_) { gift = null; }
+  if (gift && gift.theme) {
+    if (codeThemeOwned(gift.theme)) { say('มีธีมนี้อยู่แล้ว — เลือกใช้ได้ที่ ธีมสี', true); input.select(); return; }
+    input.value = '';
+    say('');
+    codeUnlockTheme(gift.theme);
+    return;
+  }
+  if (gift) {
+    let used = false;
+    try { used = !!localStorage.getItem(CODE_GIFT_USED + gift.id); } catch (_) {}
+    if (used) { say('โค้ดนี้ใช้ในเครื่องนี้ไปแล้ว', true); haptic('snooze'); input.select(); return; }
+    try { localStorage.setItem(CODE_GIFT_USED + gift.id, '1'); } catch (_) {}
+    input.value = '';
+    say('');
+    codeGrantTokens(gift.tokens);
+    return;
+  }
+
   let kind = '';
-  try { kind = CODE_HASH[await codeFingerprint(raw)] || ''; } catch (_) { kind = ''; }
+  if (oldCodesLive()) {
+    try { kind = CODE_HASH[await codeFingerprint(raw)] || ''; } catch (_) { kind = ''; }
+  }
   if (!kind) {
     // บอกแค่ว่าไม่ผ่าน ไม่ใบ้ว่าใกล้เคียงแค่ไหนหรือมีโค้ดอะไรอยู่บ้าง
     say('โค้ดนี้ใช้ไม่ได้', true);
@@ -12875,6 +13128,18 @@ async function redeemCode() {
   else if (kind === 'grantAll') codeGrantEverything();
   else if (kind === 'luckOn') codeSetLuck(true);
   else if (kind === 'luckOff') codeSetLuck(false);
+}
+
+// ปลดธีมจากโค้ดแล้วเปลี่ยนให้เลย — คนที่พิมพ์โค้ดธีมมาคือคนที่อยากเห็นธีมนั้นตอนนี้
+function codeUnlockTheme(id) {
+  try { localStorage.setItem(THEME_CODE[id], '1'); } catch (_) {}
+  vaultTouch();
+  applyThemeLocks();
+  setTheme(id);
+  haptic('done');
+  splashBurst(22, 'egg-star');
+  renderAll();
+  showToast({ title: 'ปลดล็อกธีม ' + (THEME_NAME[id] || id) + ' ✦', body: 'เปลี่ยนให้แล้ว · เลือกธีมอื่นได้ที่ ธีมสี' });
 }
 
 // เปิด/ปิดโชคเพิ่ม — เก็บเป็นธงในเครื่อง ไม่ผูกกับยอดโทเคน
@@ -12911,12 +13176,12 @@ function codeGrantEverything() {
 }
 
 // โค้ดโทเคน — เติมยอดให้ก้อนใหญ่ ไว้ลองสุ่มสกินโดยไม่ต้องรอเช็คอินหลายวัน
-function codeGrantTokens() {
-  const bal = addTokens(CODE_TOKEN_GRANT);
+function codeGrantTokens(n = CODE_TOKEN_GRANT) {
+  const bal = addTokens(n);
   haptic('done');
   splashBurst(22, 'egg-star');
   renderAll();
-  showToast({ title: '+' + CODE_TOKEN_GRANT + ' โทเคน ✦', body: 'ตอนนี้มี ' + bal + ' โทเคน — ลองสุ่มสกินได้เลย' });
+  showToast({ title: '+' + n.toLocaleString() + ' โทเคน ✦', body: 'ตอนนี้มี ' + bal + ' โทเคน — ลองสุ่มสกินได้เลย' });
 }
 
 // โค้ดที่ 1 — เปิดทุกอย่างในแอปให้เลย: เหรียญครบทุกอัน + ธีมลับครบทุกโทน
@@ -13830,4 +14095,141 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
       setTimeout(showInstallGuide, 1400);
     }
   }, 900);
+})();
+
+// ============================================================
+// 1C40 · การเคลื่อนไหวของชุดกระจก (กฎหน้าตาอยู่ท้าย alt.css)
+// ขยายแบบ dock บนแถบล่างกับไทล์หน้าแรก · แสงฮาโลบนช่องพิมพ์จอน้องไซ
+// ทั้งสองอันเป็นแค่การเคลื่อนไหว ปิดตัวเองเมื่อเครื่องตั้งลดการเคลื่อนไหวไว้
+// ============================================================
+/* dock-magnify motion (from Apple Pro Display XDR dock) — motion only */
+(function(){
+  if(window.__dockMag) return; window.__dockMag=1;
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var K=.2;
+  var G=[ // grid: 2D distance, centre origin · tabbar: X only, bottom origin (like the real dock)
+    {sel:'.tg-grid', item:'.tg-t', radius:110, extra:.22, lift:7,  flat:false},
+    {sel:'.tabbar',  item:'.tab',  radius:96,  extra:.34, lift:9,  flat:true}
+  ];
+  var px=null, py=null, cur=null, raf=0, st=new WeakMap();
+  function smooth(d,c){ if(d>=c.radius) return 1; var t=1-d/c.radius; return 1+c.extra*t*t*(3-2*t); }
+  function tick(){
+    raf=0; var c=cur; if(!c||!c.el||!c.el.isConnected){ cur=null; return; }
+    var moving=false;
+    var items=c.el.querySelectorAll(c.cfg.item), rowcy=null;
+    if(!c.cfg.flat && px!==null){ var best=1e9;
+      items.forEach(function(el){ var r=el.getBoundingClientRect(), d=Math.abs(py-(r.top+r.height/2)); if(d<best){best=d; rowcy=r.top+r.height/2;} }); }
+    items.forEach(function(el){
+      var r=el.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2, target=1;
+      if(px!==null && (c.cfg.flat || Math.abs(cy-rowcy)<12)) target=smooth(Math.abs(px-cx), c.cfg);
+      var s=st.get(el)||1; s+=(target-s)*K;
+      if(Math.abs(target-s)>.002) moving=true; else s=target;
+      st.set(el,s);
+      el.style.transform = s===1 ? '' : 'translateY('+(-(s-1)*c.cfg.lift/c.cfg.extra).toFixed(2)+'px) scale('+s.toFixed(3)+')';
+      el.style.zIndex = s>1.03 ? 8 : '';
+    });
+    if(moving||px!==null) raf=requestAnimationFrame(tick);
+  }
+  function hit(t){
+    if(!t||!t.closest) return null;
+    for(var i=0;i<G.length;i++){ var el=t.closest(G[i].sel); if(el) return {el:el,cfg:G[i]}; }
+    return null;
+  }
+  function go(h,x,y){ cur=h; px=x; py=y; if(!raf) raf=requestAnimationFrame(tick); }
+  function leave(){ px=null; py=null; if(cur&&!raf) raf=requestAnimationFrame(tick); }
+  document.addEventListener('pointermove',function(e){
+    if(e.pointerType==='touch') return;
+    var h=hit(e.target); h?go(h,e.clientX,e.clientY):leave();
+  },{passive:true});
+  document.addEventListener('pointerleave',leave,true);
+  ['touchstart','touchmove'].forEach(function(n){
+    document.addEventListener(n,function(e){
+      var t=e.touches[0]; if(!t) return;
+      var h=hit(e.target); h?go(h,t.clientX,t.clientY):leave();
+    },{passive:true});
+  });
+  ['touchend','touchcancel'].forEach(function(n){ document.addEventListener(n,leave,{passive:true}); });
+})();
+
+(function(){
+  if(window.__haloAi) return; window.__haloAi=1;
+  var RM=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var seg=(window.Intl&&Intl.Segmenter)?new Intl.Segmenter('th',{granularity:'grapheme'}):null;
+  var LOAD_TEXT='กำลังคิด…';
+  function glyphs(t){ return seg?Array.from(seg.segment(t),function(s){return s.segment}):(t.match(/[\s\S][\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]*/gu)||[]); }
+  function fill(el,text,step,dur){
+    el.textContent='';
+    glyphs(text).forEach(function(g,i){
+      var s=document.createElement('span'); s.textContent=g;
+      s.style.animationDelay=RM?'0s':(i*step).toFixed(3)+'s'; s.style.animationDuration=dur+'s'; el.appendChild(s);
+    });
+  }
+  function timing(n){
+    var sweep=.51, norm=Math.min(1,Math.max(0,(n-1)/60)), ease=1-Math.pow(1-norm,3), f=1-.6*ease;
+    var dur=Math.max(.12,Math.max(.22,sweep*.45)*f), step=Math.max(.004,Math.max(.012,sweep*.03)*f);
+    var span=Math.max(0,n-1)*step; if(span>.85&&span>0){ step*=.85/span; span=Math.max(0,n-1)*step; }
+    return {dur:dur,step:step,span:span};
+  }
+  function ghost(ta,text){
+    if(RM||!text) return;
+    var r=ta.getBoundingClientRect(), cs=getComputedStyle(ta), g=document.createElement('div');
+    g.className='hs-ghost';
+    var pl=parseFloat(cs.paddingLeft)||0, pt=parseFloat(cs.paddingTop)||0, pr=parseFloat(cs.paddingRight)||0;
+    g.style.left=(r.left+pl)+'px'; g.style.top=(r.top+pt)+'px'; g.style.width=(r.width-pl-pr)+'px'; g.style.height=(r.height-pt)+'px';
+    g.style.font=cs.font; g.style.lineHeight=cs.lineHeight; g.style.letterSpacing=cs.letterSpacing; g.style.color=cs.color;
+    var gl=[]; glyphs(text).forEach(function(c){
+      if(c==='\n'){ g.appendChild(document.createElement('br')); return; }
+      var s=document.createElement('span'); s.textContent=c; g.appendChild(s); gl.push(s);
+    });
+    document.body.appendChild(g);
+    var t=timing(gl.length);
+    gl.forEach(function(s,i){
+      s.animate([{opacity:1,filter:'blur(0px)',transform:'translateY(0)'},{opacity:.04,filter:'blur(10px)',transform:'translateY(-1px)'}],
+        {duration:t.dur*1000,delay:(gl.length-1-i)*t.step*1000,fill:'forwards',easing:'ease-out'});
+    });
+    setTimeout(function(){ if(g.parentNode) g.parentNode.removeChild(g); }, Math.max(510,(t.span+t.dur)*1000)+160);
+  }
+  function enhance(bar){
+    var ta=bar.querySelector('textarea'); if(!ta) return; bar.__hs=1;
+    var glow=document.createElement('div'); glow.className='hs-glow';
+    glow.innerHTML='<div class="hs-wrap"><div class="hs-b hs-b1"></div><div class="hs-b hs-b2"></div><div class="hs-b hs-b3"></div></div>';
+    bar.insertBefore(glow,bar.firstChild);
+    var ph=document.createElement('span'); ph.className='hs-ph'; bar.appendChild(ph);
+    var phText=ta.getAttribute('placeholder')||'ถามน้องไซ…', busy=ta.disabled, prev=ta.value, shown='';
+    bar.classList.toggle('hs-load',busy);
+    function place(){
+      var cs=getComputedStyle(ta);
+      ph.style.left=(ta.offsetLeft+(parseFloat(cs.paddingLeft)||0))+'px';
+      ph.style.top=(ta.offsetTop+(parseFloat(cs.paddingTop)||0))+'px';
+      ph.style.font=cs.font; ph.style.lineHeight=cs.lineHeight; ph.style.letterSpacing=cs.letterSpacing;
+    }
+    function refresh(){
+      var want=busy?'L':(ta.value.length?'':'P');
+      if(want===shown) return; shown=want;
+      if(!want){ ph.style.display='none'; ph.textContent=''; return; }
+      ph.style.display='flex'; ph.classList.toggle('ld',busy); place();
+      if(busy) fill(ph,LOAD_TEXT,.044,.42); else fill(ph,phText,.018,.16);
+    }
+    var d=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value'), delT, typT;
+    function cleared(p){ ghost(ta,p); if(RM) return; bar.classList.add('hs-del'); clearTimeout(delT); delT=setTimeout(function(){bar.classList.remove('hs-del')},Math.max(510,(timing(p.length).span+timing(p.length).dur)*1000)+160); }
+    Object.defineProperty(ta,'value',{configurable:true,get:function(){return d.get.call(ta)},set:function(v){
+      var p=d.get.call(ta); d.set.call(ta,v); if(p&&!v) cleared(p); prev=d.get.call(ta); refresh();
+    }});
+    ta.addEventListener('input',function(){
+      var v=d.get.call(ta);
+      if(!v&&prev) cleared(prev);
+      else if(!RM){ bar.classList.add('hs-type'); clearTimeout(typT); typT=setTimeout(function(){bar.classList.remove('hs-type')},420); }
+      prev=v; refresh();
+    });
+    bar.addEventListener('focusin',function(){bar.classList.add('hs-focus')});
+    bar.addEventListener('focusout',function(){bar.classList.remove('hs-focus')});
+    requestAnimationFrame(function(){ place(); refresh(); });
+    if(document.fonts&&document.fonts.ready) document.fonts.ready.then(place);
+  }
+  function scan(){ var b=document.querySelector('#scr-ai .sai-bar'); if(b&&!b.__hs) enhance(b); }
+  function start(){
+    var root=document.getElementById('scr-ai'); if(!root) return setTimeout(start,300);
+    new MutationObserver(scan).observe(root,{childList:true,subtree:true}); scan();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
 })();

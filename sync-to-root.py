@@ -75,6 +75,15 @@ def js_assets(js):
         out.append(m.group(1))
     return out
 
+# ไฟล์สื่อที่ CSS เรียกผ่าน url() — สคริปต์เคยมองแค่ index.html กับสตริงใน .js
+# ภาพพื้นหลังของธีม (astral-bg.png ใน alt.css) จึงไม่เคยถูกก๊อปขึ้นราก แล้วตัวจริงได้ธีมไม่มีภาพ
+# โดยไม่มีอะไรฟ้อง — บั๊กพันธุ์เดียวกับโลโก้ค้างหกวันที่หัวไฟล์นี้เล่าไว้
+def css_assets(css):
+    out = []
+    for m in re.finditer(r"url\(\s*['\"]?([A-Za-z0-9_.-]+\.(?:png|svg|webp|jpg|jpeg|gif))['\"]?\s*\)", css):
+        out.append(m.group(1))
+    return out
+
 def local_refs(html):
     """ชื่อไฟล์ในโฟลเดอร์เดียวกันที่หน้านี้เรียกใช้จริง (ไม่นับที่คอมเมนต์ทิ้ง)"""
     live = re.sub(r'<!--.*?-->', '', html, flags=re.S)
@@ -124,6 +133,16 @@ def main():
         if not os.path.exists(src):
             continue
         for a in js_assets(io.open(src, encoding='utf-8', errors='replace').read()):
+            if a in PER_CHANNEL or a in ALT_ONLY:
+                continue
+            if os.path.exists(os.path.join(ALT, a)):
+                files.append(a)
+
+    for css in [f for f in files if f.endswith('.css')]:
+        src = os.path.join(ALT, css)
+        if not os.path.exists(src):
+            continue
+        for a in css_assets(io.open(src, encoding='utf-8', errors='replace').read()):
             if a in PER_CHANNEL or a in ALT_ONLY:
                 continue
             if os.path.exists(os.path.join(ALT, a)):

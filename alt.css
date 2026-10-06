@@ -3423,8 +3423,11 @@ body { line-height: 1.7; letter-spacing: 0; }
    ไม่มีที่ไหนในแอปบอกว่ามีโค้ดอะไรอยู่บ้าง — คนที่ได้โค้ดมาเท่านั้นถึงจะรู้
    ============================================================ */
 .code-tools { display: flex; align-items: center; gap: 8px; }
-/* .pf-row input ของดีไซน์เดิมถูกบังคับกว้าง 120px และชิดขวา ช่องนี้ต้องยาวเต็มแถว */
-.pf-row .code-tools input[type=text] {
+/* .pf-row input ของดีไซน์เดิมถูกบังคับกว้าง 120px และชิดขวา ช่องนี้ต้องยาวเต็มแถว
+   1C40 · แถวนี้ย้ายจาก .pf-row ไปอยู่ใน .set-row ตอนจัดจอตั้งค่าใหม่ กฎนี้จึงไม่ติดอีก
+   ช่องพิมพ์โดน .set-row input (แคบ ชิดขวา) ทับ เหลือ 116px ข้างปุ่ม — ครอบทั้งสองแบบแถว */
+.pf-row .code-tools input[type=text],
+.set-row .code-tools input[type=text] {
   flex: 1 1 auto;
   width: auto;
   min-width: 0;
@@ -3436,6 +3439,9 @@ body { line-height: 1.7; letter-spacing: 0; }
   letter-spacing: .02em;
 }
 .code-tools .btn { flex: none; width: auto; min-height: 42px; padding: 0 18px; }
+/* ช่องพิมพ์ยาวเต็มแถวตั้งแต่ขอบซ้ายของการ์ดถึงปุ่ม "ใช้" ที่ชิดขวาสุด
+   (รอบแรกเยื้องเข้าไปตรงแนวชื่อแถว — เจ้าของขอให้ยาวเต็มช่อง จึงไม่เยื้องแล้ว) */
+.set-row .code-tools { width: 100%; }
 .code-msg { margin: 0; }
 .code-msg.bad { color: var(--alert); }
 .code-msg[hidden] { display: none; }
@@ -4067,9 +4073,8 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 
 /* ============================================================
    ALT 1A7: การ์ดสุ่มสกิน 3D (แทนวงล้อเดิม)
-   แถบเลื่อนได้จริงด้วยการเลื่อนของเบราว์เซอร์เอง — ไม่ได้จำลองด้วยอนิเมชัน
-   JS อ่าน scrollLeft แล้วเซ็ต --ry/--tz/--sc ให้แต่ละใบตามระยะห่างจากกึ่งกลาง
-   การ์ดจึงหันตามนิ้วจริง ๆ ไม่ใช่เล่นท่าเดิมซ้ำรอบเดียว
+   1C40: จากแถบเลื่อนเอียง ๆ เป็นวงทรงกระบอก (แบบ ThreeDPhotoCarousel)
+   JS เซ็ต --a (มุมของแต่ละใบ) --r (รัศมี) --rot (มุมของวง) · ลาก/ปัดหมุนวงได้ ดู ringBind() ใน app.js
    ============================================================ */
 /* ---------- ตารางอัตรา ----------
    ย้ายลงมาอยู่ใต้ปุ่มแล้ว: มันเป็นข้อมูลอ้างอิง ไม่ใช่ของที่ต้องอ่านก่อนกด
@@ -4147,41 +4152,45 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
   50%     { transform: translateY(-6px); }
 }
 
-/* ---------- แถบการ์ด ---------- */
-.gc-strip {
-  display: flex;
-  gap: 14px;
-  padding: 24px calc(50% - 66px) 26px;   /* เว้นข้างให้ใบแรก/ใบสุดท้ายเลื่อนมาอยู่กลางจอได้ */
+/* ---------- วงการ์ด ----------
+   สูงเท่าสำรับก่อนสุ่ม (.gc-empty 250px) จอจะได้ไม่กระโดดตอนการ์ดโผล่
+   กว้างชนขอบจอ (margin ติดลบเท่า padding ของจอ) ใบข้าง ๆ จึงหายเข้าขอบจอ ไม่ใช่โดนตัดกลางจอ
+   touch-action: pan-y = ลากขึ้นลงยังเลื่อนจอได้ตามปกติ แนวนอนเป็นของวง */
+.gc-ring {
+  position: relative;
+  height: 250px;
   margin: 0 -20px;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: hidden;
   perspective: 1000px;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
+  touch-action: pan-y;
+  user-select: none; -webkit-user-select: none;
+  animation: gc-ring-in .45s ease-out both;
 }
-.gc-strip::-webkit-scrollbar { display: none; }
+.gc-ring.multi { cursor: grab; }
+.gc-ring.multi:active { cursor: grabbing; }
+.gc-cyl {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: translateZ(calc(-1 * var(--r, 0px))) rotateY(var(--rot, 0deg));
+}
+@keyframes gc-ring-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 
 .gc {
-  flex: none;
+  position: absolute;
+  left: 50%; top: 50%;
   width: 132px;
   height: 190px;
+  margin: -95px 0 0 -66px;
   padding: 0;
   border: none;
   background: none;
   cursor: pointer;
-  scroll-snap-align: center;
   transform-style: preserve-3d;
-  transform: rotateY(var(--ry, 0deg)) translateZ(var(--tz, 0px)) scale(var(--sc, 1));
-  opacity: var(--dim, 1);
-  transition: opacity .2s linear;
-  animation: gc-in .38s cubic-bezier(.2,.9,.3,1.1) both;
+  transform: rotateY(var(--a, 0deg)) translateZ(var(--r, 0px));
+  -webkit-tap-highlight-color: transparent;
 }
-@keyframes gc-in {
-  from { opacity: 0; transform: translateY(26px) scale(.86); }
-  to   { opacity: var(--dim, 1); }
-}
+.gc-ring.multi .gc { cursor: inherit; }
 
 .gc-in {
   /* ต้องมี display:block — ตัวนี้เป็น <span> ซึ่งเป็น inline โดยปริยาย
@@ -4335,7 +4344,7 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
 .gc-go:disabled { opacity: .45; pointer-events: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .gc { animation: none; }
+  .gc-ring { animation: none; }
   .gc-in { transition: none; }
   .gc-face.r-legendary { animation: none; }
   .gc-fan { animation: none; }
@@ -5459,9 +5468,12 @@ body.deep-scr .top-friends { display: none; }
 .ds:active { transform: scale(.96); }
 /* วันที่เลือกอยู่ = ของที่กดได้และกำลังทำงาน จึงได้สีเน้นก้อนเดียวของแถบนี้ */
 .ds.on { background: var(--fill); }
-.ds.on .ds-d { color: rgba(255,255,255,.72); }
-.ds.on .ds-n { color: #fff; }
-.ds.on .ds-dot { background: rgba(255,255,255,.9); }
+/* 1C40 · ตัวหนังสือบนช่องวันที่เลือกใช้คู่สีของธีม (--on-fill) ไม่ใช่ขาวตายตัว
+   ธีมที่สีเน้นสว่าง (เวทมนตร์ ทอง · กาแล็กซี · อวกาศ · Metaverse · Astral Black เงิน)
+   ได้ขาวบนพื้นสว่าง วัดได้ 1.2:1 = มองไม่เห็นวันที่เลือกอยู่เลย */
+.ds.on .ds-d { color: color-mix(in srgb, var(--on-fill) 72%, transparent); }
+.ds.on .ds-n { color: var(--on-fill); }
+.ds.on .ds-dot { background: color-mix(in srgb, var(--on-fill) 90%, transparent); }
 
 /* ---- การ์ดงาน ---- */
 .tk {
@@ -6012,15 +6024,6 @@ body.deep-scr .top-friends { display: none; }
 .set-quick svg { width: 21px; height: 21px; stroke-width: 2.1; color: var(--blue); }
 .set-quick span { font-size: 11px; font-weight: 600; letter-spacing: -.01em; text-align: center; }
 
-/* หัวข้อกลุ่ม — อยู่นอกการ์ด ไม่ใช่ในแถวแรกของการ์ด
-   คนกวาดตาหาหัวข้อก่อนอ่านรายการ หัวข้อที่จมอยู่ในกรอบเดียวกับรายการจะถูกอ่านข้าม */
-.set-grp {
-  margin: 0 4px 8px;
-  font-size: 12.5px;
-  font-weight: 700;
-  letter-spacing: -.005em;
-  color: var(--muted);
-}
 .set-card {
   border: 1px solid var(--line);
   border-radius: var(--r-card);
@@ -6029,6 +6032,11 @@ body.deep-scr .top-friends { display: none; }
   overflow: hidden;
   margin-bottom: 20px;
 }
+/* 1C40 · จอตั้งค่าไม่มีหัวข้อกลุ่มแล้ว — การ์ดชิดกันขึ้น (เจ้าของ: "เอาให้มันใกล้ ๆ กันหน่อย")
+   ระยะเดิม 42px = gap ของ .pf-body 22 + margin ล่างของการ์ด 20 ซึ่งมีไว้กันการ์ดชนหัวข้อกลุ่มถัดไป
+   ไม่มีหัวข้อแล้วจึงเหลือ gap อย่างเดียว 12px · จำกัดที่จอนี้ — .set-card ใช้ในจอย่อยอื่นด้วย */
+#scr-settings .pf-body { gap: 12px; }
+#scr-settings :is(.set-me, .set-quick, .set-card) { margin-bottom: 0; }
 .set-row {
   display: flex;
   align-items: center;
@@ -6095,6 +6103,11 @@ body.deep-scr .top-friends { display: none; }
   font-weight: 600;
 }
 .set-row input[type=number] { width: 78px; }
+/* 1C40 · ช่องชื่อเล่นยาวเต็มแถว (เจ้าของ: "ตรงคำว่า เช่น Nado ด้วย" — ต่อจากช่องใส่โค้ด)
+   ชื่อแถวหดเท่าตัวหนังสือ ช่องกรอกกินที่ที่เหลือถึงขอบขวา พิมพ์จากซ้ายแบบช่องพิมพ์ทั่วไป
+   (116px ชิดขวาเหมาะกับตัวเลขสั้น ๆ ไม่ใช่ชื่อคน — ชื่อยาวโดนตัดตั้งแต่ตัวที่สิบ) */
+.set-row:has(#pName) .set-lb { flex: none; }
+.set-row #pName { flex: 1 1 auto; width: auto; min-width: 0; text-align: left; }
 .set-row input:focus { outline: 2px solid var(--blue); outline-offset: -2px; }
 
 /* ปุ่มเลือก/ลบรูป — ของเดิมสูง 44px และกินพื้นที่เต็มแถว เพราะเคยอยู่ในแถวแบบ col
@@ -8415,3 +8428,793 @@ button.df-r:active { background: var(--surface); }
   :root:not([data-nav="side"]) body:not(.login-mode) #scr-ai.screen { padding-bottom: var(--tb-under); }
   :root:not([data-nav="side"]) .fm-bar { bottom: var(--tb-under); }
 }
+
+/* ============================================================
+   1C40 · กระจก Liquid Glass ทั้งแอป — ยกมาจากไฟล์ที่เจ้าของแต่งไว้ในตัวแก้ดีไซน์
+   ------------------------------------------------------------
+   แถบล่างเป็นกรอบ dock · ไอคอนบนไทล์/ปุ่มหลัก/ปุ่มกลับเป็นกระจกขอบสะท้อน ·
+   หัวจอไม่มีพื้นกระจกยาว · ช่องพิมพ์น้องไซเป็นแคปซูลเดียวกับช่องถามหน้าแรก + แสงฮาโล
+   ทุกกฎผูกกับ .phone และใช้ !important เพราะต้องชนะกฎเดิมที่กระจายอยู่ในหลายไฟล์
+   การเคลื่อนไหว (ขยายแบบ dock · ฮาโล) อยู่ท้าย app.js
+   ============================================================ */
+/* dock frame around bottom tab bar (macOS-dock glass pill) */
+.phone .tabbar{
+  border-radius:26px !important; padding:6px 8px !important;
+  background:linear-gradient(180deg,rgba(255,255,255,.62) 0%,rgba(250,252,255,.4) 45%,rgba(255,255,255,.3) 100%) !important;
+  -webkit-backdrop-filter:blur(28px) saturate(190%) !important; backdrop-filter:blur(28px) saturate(190%) !important;
+  border:1px solid rgba(37,99,235,.30) !important;
+  box-shadow:0 0 0 .5px rgba(255,255,255,.75),0 0 0 1px rgba(15,27,45,.06),
+    inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(15,27,45,.05),
+    0 12px 32px rgba(15,27,45,.16) !important;
+}
+:is([data-theme=dark],[data-theme=space],[data-theme=magic],[data-theme=galaxy],[data-theme=deepocean],[data-theme=meta],[data-theme=glitch],[data-theme=astral]) .phone .tabbar{
+  background:linear-gradient(180deg,rgba(40,52,82,.62),rgba(20,28,48,.5)) !important;
+  border-color:rgba(160,185,255,.35) !important;
+  box-shadow:0 0 0 .5px rgba(255,255,255,.18),inset 0 1px 0 rgba(255,255,255,.16),0 12px 32px rgba(0,0,0,.45) !important;
+}
+.tabbar .tab,.tg-grid .tg-t{will-change:transform}
+.tabbar .tab{transform-origin:50% 100%}
+.tg-grid .tg-t{position:relative;transform-origin:50% 60%}
+
+/* AI composer = same capsule + glass send button as the home ask bar */
+.phone .sai-bar{
+  align-items:center !important; gap:9px !important; margin-top:10px;
+  padding:4px 4px 4px 13px !important; min-height:44px; border-radius:22px !important;
+  border:0 !important; outline:0 !important; box-shadow:none !important;
+  -webkit-backdrop-filter:none !important; backdrop-filter:none !important;
+  background:var(--card2) !important;
+}
+.phone .sai-bar:focus-within{border:0 !important; background:var(--card2) !important}
+.phone .sai-bar .ai-in{padding:10px 0 10px 6px !important; min-height:0 !important; border-radius:0 !important; background:transparent !important; border:0 !important}
+.phone .sai-bar .sb-mic{display:none !important}
+.phone .sai-bar .sb-send{
+  width:34px !important; height:34px !important; flex:none; align-self:flex-end; margin-bottom:0;
+  color:var(--muted) !important;
+  background:linear-gradient(135deg,rgba(255,255,255,.23) 0%,rgba(255,255,255,.05) 38%,rgba(255,255,255,.02) 62%,rgba(255,255,255,.13) 100%),rgba(255,255,255,.3) !important;
+  border:1px solid rgba(255,255,255,.275) !important;
+  box-shadow:0 10px 32px rgba(20,30,90,.16),inset 1.5px 1.5px 0 rgba(255,255,255,.424),inset -1px -1px 0 rgba(255,255,255,.176),inset 0 0 22px rgba(255,255,255,.11),inset 0 -8px 16px -8px rgba(255,255,255,.176) !important;
+  -webkit-backdrop-filter:blur(30px) saturate(1.9) brightness(.95) !important;
+  backdrop-filter:blur(30px) saturate(1.9) brightness(.95) !important;
+}
+
+/* iOS 26 Liquid Glass pass — crisp specular rims, refraction blur, soft lift */
+:root{--lg-hi:rgba(255,255,255,.95);--lg-mid:rgba(255,255,255,.55);--lg-lo:rgba(255,255,255,.3);--lg-glow:rgba(255,255,255,.2);--lg-drop:rgba(15,27,45,.34)}
+:is([data-theme=dark],[data-theme=space],[data-theme=magic],[data-theme=galaxy],[data-theme=deepocean],[data-theme=meta],[data-theme=glitch],[data-theme=astral]){--lg-hi:rgba(255,255,255,.72);--lg-mid:rgba(255,255,255,.38);--lg-lo:rgba(255,255,255,.18);--lg-glow:rgba(255,255,255,.12);--lg-drop:rgba(0,0,0,.55)}
+.phone .tg-ic{
+  background-image:
+    radial-gradient(130% 80% at 16% -6%,rgba(255,255,255,.62) 0%,rgba(255,255,255,.14) 38%,transparent 62%),
+    radial-gradient(90% 60% at 88% 112%,rgba(255,255,255,.3) 0%,transparent 62%),
+    linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,0) 42%,rgba(255,255,255,.1)) !important;
+  border:1px solid var(--lg-mid) !important;
+  box-shadow:
+    inset 0 1.5px 0 var(--lg-hi), inset 1.5px 0 0 var(--lg-mid),
+    inset 0 -1.5px 0 var(--lg-lo), inset -1px 0 0 var(--lg-lo),
+    inset 0 0 26px var(--lg-glow),
+    0 0 0 .5px rgba(15,27,45,.14),
+    0 14px 24px -12px var(--lg-drop), 0 3px 6px -2px rgba(15,27,45,.2) !important;
+  -webkit-backdrop-filter:blur(18px) saturate(200%) brightness(1.06) !important;
+  backdrop-filter:blur(18px) saturate(200%) brightness(1.06) !important;
+}
+.phone .tg-ic svg{
+  background:linear-gradient(160deg,rgba(255,255,255,.98),rgba(232,243,255,.8)) !important;
+  border:1px solid rgba(255,255,255,.95) !important;
+  box-shadow:inset 0 1px 0 #fff, inset 0 -1.5px 2px rgba(15,27,45,.12), 0 5px 10px -3px rgba(15,27,45,.3), 0 0 0 .5px rgba(15,27,45,.1) !important;
+}
+.phone .tc-cta{
+  background-image:
+    radial-gradient(120% 90% at 18% -10%,rgba(255,255,255,.55) 0%,rgba(255,255,255,.1) 42%,transparent 62%),
+    linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0) 48%,rgba(0,0,0,.08)) !important;
+  border:1px solid rgba(255,255,255,.5) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,.85), inset 1.5px 0 0 rgba(255,255,255,.4),
+    inset 0 -2px 3px rgba(0,0,0,.14), inset 0 0 22px rgba(255,255,255,.14),
+    0 0 0 .5px rgba(15,27,45,.2),
+    0 14px 26px -10px var(--lg-drop), 0 2px 4px rgba(15,27,45,.2) !important;
+}
+.phone .tabbar{
+  box-shadow:
+    inset 0 1.5px 0 var(--lg-hi), inset 0 -1px 0 var(--lg-lo), inset 0 0 22px var(--lg-glow),
+    0 0 0 .5px rgba(255,255,255,.7), 0 0 0 1px rgba(15,27,45,.07),
+    0 16px 34px -10px var(--lg-drop) !important;
+  -webkit-backdrop-filter:blur(30px) saturate(200%) brightness(1.04) !important;
+  backdrop-filter:blur(30px) saturate(200%) brightness(1.04) !important;
+}
+.phone .tabbar .tab.active{
+  background-image:
+    radial-gradient(120% 90% at 20% -10%,rgba(255,255,255,.5) 0%,rgba(255,255,255,.08) 45%,transparent 65%),
+    linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,0) 50%,rgba(0,0,0,.07)) !important;
+  box-shadow:inset 0 1.5px 0 rgba(255,255,255,.8), inset 0 -1.5px 2px rgba(0,0,0,.14), inset 0 0 0 1px rgba(255,255,255,.3), 0 8px 16px -8px var(--lg-drop) !important;
+}
+.phone .tabbar .scan-dot{
+  background-image:
+    radial-gradient(120% 90% at 22% -6%,rgba(255,255,255,.6) 0%,rgba(255,255,255,.1) 44%,transparent 64%),
+    linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,0) 50%,rgba(0,0,0,.1)) !important;
+  box-shadow:inset 0 1.5px 0 rgba(255,255,255,.85), inset 0 -2px 3px rgba(0,0,0,.16), 0 0 0 3px rgba(255,255,255,.9), 0 0 0 3.5px rgba(15,27,45,.1), 0 10px 18px -6px var(--lg-drop) !important;
+}
+
+/* back / exit buttons — thicker chevron, softly rounded liquid-glass tile */
+.phone :is(.sh-btn,.set-back,.ch-back,.hw-back,.tp-back,.sh-back,.lg-back,.rp-back,.back,.fc-x,button[aria-label^="กลับ"]){
+  width:42px !important; height:42px !important; min-width:42px; flex:none;
+  display:inline-grid !important; place-items:center; padding:0 !important;
+  border-radius:15px !important;
+  background:linear-gradient(160deg,rgba(255,255,255,.34),rgba(255,255,255,.08) 55%,rgba(255,255,255,.18)),rgba(255,255,255,.14) !important;
+  border:1px solid var(--lg-mid) !important;
+  box-shadow:inset 0 1.5px 0 var(--lg-hi), inset 1px 0 0 var(--lg-mid), inset 0 -1px 0 var(--lg-lo), inset 0 0 14px var(--lg-glow),
+    0 0 0 .5px rgba(15,27,45,.12), 0 8px 16px -8px var(--lg-drop) !important;
+  -webkit-backdrop-filter:blur(16px) saturate(190%) !important; backdrop-filter:blur(16px) saturate(190%) !important;
+  color:var(--ink) !important;
+}
+.phone :is(.sh-btn,.set-back,.ch-back,.hw-back,.tp-back,.sh-back,.lg-back,.rp-back,.back,.fc-x,button[aria-label^="กลับ"]) svg{
+  width:22px !important; height:22px !important; stroke-width:3 !important; stroke-linecap:round; stroke-linejoin:round;
+}
+.phone :is(.sh-btn,.set-back,.ch-back,.hw-back,.tp-back,.sh-back,.lg-back,.rp-back,.back,.fc-x,button[aria-label^="กลับ"]):active{transform:scale(.94)}
+
+/* remove the long glass frame behind sticky headers */
+.phone .sticky-head,.phone .sticky-head.row{
+  background:transparent !important; border:0 !important; box-shadow:none !important;
+  -webkit-backdrop-filter:none !important; backdrop-filter:none !important; outline:0 !important;
+}
+
+/* theme picker: drop the square frame nested inside the rounded sheet */
+.phone #setBlkTheme,.phone #setBlkTheme.pf-row{
+  background:transparent !important; border:0 !important; box-shadow:none !important; outline:0 !important;
+  -webkit-backdrop-filter:none !important; backdrop-filter:none !important; border-radius:0 !important;
+}
+
+/* theme picker: unused themes = thin outline only (no glass); the one in use keeps the glass frame */
+.phone #themePick button:not(.active){
+  background:transparent !important; border:1px solid color-mix(in srgb,currentColor 24%,transparent) !important; box-shadow:none !important;
+  -webkit-backdrop-filter:none !important; backdrop-filter:none !important; outline:0 !important;
+}
+
+/* add-sheet: whiter sheet body on light themes */
+:is(:root:not([data-theme]),[data-theme=light],[data-theme=warm],[data-theme=earth],[data-theme=ocean]) .phone .as-card{
+  background-image:linear-gradient(180deg,rgba(255,255,255,.97),rgba(255,255,255,.92)) !important;
+  background-color:rgba(255,255,255,.94) !important;
+}
+
+/* keep the "ask" card readable on the whiter sheet */
+:is(:root:not([data-theme]),[data-theme=light],[data-theme=warm],[data-theme=earth],[data-theme=ocean]) .phone .as-hero.wide{
+  background:color-mix(in srgb,var(--blue,#2563EB) 6%,#fff) !important;
+  border:1px solid color-mix(in srgb,var(--blue,#2563EB) 16%,#fff) !important;
+  box-shadow:0 6px 16px -10px rgba(15,27,45,.2) !important;
+  -webkit-backdrop-filter:none !important; backdrop-filter:none !important;
+}
+
+/* AI quick-chips: stop the scroller from clipping chip shadows into a grey band */
+.phone .sai-qa{padding:8px 0 14px !important; margin:-8px 0 -14px !important; background:transparent !important}
+.phone .sai-qa > button{
+  box-shadow:inset 1.5px 1.5px 0 rgba(255,255,255,.45), inset -1px -1px 0 rgba(255,255,255,.2), inset 0 0 18px rgba(255,255,255,.12),
+    0 4px 10px -6px rgba(20,30,90,.24) !important;
+}
+
+.fd-top .fd-title{flex:1;min-width:0}.fd-top .fd-back{margin-right:2px}
+
+/* clearer secondary values in list rows (right column) */
+#scr-profile .pf-entry .pe-v, .phone .pe-v{
+  color:color-mix(in srgb,var(--ink) 80%,transparent);
+  font-size:13px; font-weight:600; letter-spacing:.005em;
+}
+
+/* Halo search motion → AI chat composer (ported from cult-ui HaloSearchInput; motion only) */
+.phone .sai-bar{position:relative;isolation:isolate}
+.phone .sai-bar > :not(.hs-glow):not(.hs-ph){position:relative;z-index:1}
+.hs-glow{position:absolute;inset:0;overflow:hidden;border-radius:inherit;pointer-events:none;z-index:0}
+.hs-wrap{position:absolute;left:0;right:0;bottom:0;height:50%;opacity:var(--hs-op,.2);transition:opacity .25s ease-out}
+.hs-b{position:absolute}
+.hs-b1{bottom:-16px;width:192px;height:64px;filter:blur(24px);background:linear-gradient(90deg,#ff0080,#7928ca,#00d4ff,#0070f3);animation:hsA var(--d1,6s) ease-in-out infinite}
+.hs-b2{bottom:-12px;width:128px;height:48px;filter:blur(16px);background:linear-gradient(90deg,#ff4d4d,#f9cb28,#ff0080);animation:hsB var(--d2,5s) ease-in-out infinite}
+.hs-b3{bottom:-8px;width:96px;height:40px;filter:blur(16px);background:linear-gradient(90deg,#0070f3,#00d4ff,#7928ca);animation:hsC var(--d3,4s) ease-in-out infinite}
+@keyframes hsA{0%,100%{left:-5%}50%{left:75%}}
+@keyframes hsB{0%,100%{left:65%}50%{left:10%}}
+@keyframes hsC{0%,100%{left:25%}50%{left:55%}}
+.phone .sai-bar.hs-focus{--hs-op:.34;box-shadow:0 0 0 1px rgba(168,85,247,.38),0 8px 22px -10px rgba(121,40,202,.4) !important}
+.phone .sai-bar.hs-type{--d1:3.5s;--d2:3s;--d3:2.4s}
+.phone .sai-bar.hs-load{--hs-op:.42;--d1:2.4s;--d2:2s;--d3:1.7s}
+.phone .sai-bar.hs-del{--hs-op:.42;--d1:2.35s;--d2:2s;--d3:1.65s}
+.hs-del .hs-b1{background:linear-gradient(90deg,#fb7185,#f43f5e,#f97316,#ec4899,#a855f7)}
+.hs-del .hs-b2{background:linear-gradient(90deg,#fda4af,#fb923c,#f472b6,#fb7185)}
+.hs-del .hs-b3{background:linear-gradient(90deg,#e11d48,#db2777,#c026d3,#9333ea)}
+.hs-ph{position:absolute;z-index:2;pointer-events:none;display:flex;white-space:pre;color:var(--faint,#8a94a6)}
+.hs-ph.ld{color:var(--muted,#6b7a90)}
+.hs-ph span{display:inline-block;white-space:pre;opacity:0;animation:hsIn .16s ease-out forwards}
+@keyframes hsIn{to{opacity:1}}
+.phone .sai-bar .ai-in::placeholder{color:transparent !important}
+.phone .sai-bar.hs-load .ai-in{opacity:1 !important}
+.phone .sai-bar .sb-send svg{transition:opacity .2s ease-out,transform .2s ease-out}
+.phone .sai-bar.hs-load .sb-send{opacity:1 !important}
+.phone .sai-bar.hs-load .sb-send svg{opacity:0;transform:scale(.88) rotate(-90deg)}
+.phone .sai-bar.hs-load .sb-send::after{content:"";position:absolute;inset:0;margin:auto;width:14px;height:14px;border-radius:50%;border:2.25px solid currentColor;border-right-color:transparent;opacity:.8;animation:hsSpin .8s linear infinite}
+@keyframes hsSpin{to{transform:rotate(360deg)}}
+.hs-ghost{position:fixed;z-index:9999;pointer-events:none;white-space:pre-wrap;overflow:hidden}
+.hs-ghost span{display:inline-block;white-space:pre}
+@media (prefers-reduced-motion:reduce){.hs-b{animation:none}.hs-ph span{animation:none;opacity:1}.phone .sai-bar.hs-load .sb-send::after{animation:none}}
+
+/* ============================================================
+   1C40 · ปุ่มกระจก Liquid Glass (ตามภาพ iOS 26 Liquid Glass UI Kit ที่เจ้าของส่งมา)
+   ------------------------------------------------------------
+   ปุ่มมีสองแบบ แบบเดียวกับใน iOS 26:
+   • กระจกสี — ปุ่มหลักของจอ คงสีเดิมของธีมไว้ (background-color ไม่แตะ) แล้วซ้อน
+     ประกายบนซ้าย + ขอบขาวใส + เงาในด้านล่างทับลงไป จึงเป็นสีของธีมนั้นเสมอ
+   • กระจกใส — ปุ่มรอง/ชิป/ปุ่มไอคอนกลม พื้นฝ้าโปร่ง เบลอของข้างหลัง ขอบขาวสะท้อน
+   ของที่ "เลือกอยู่" (ชิป · แท็บ · ช่องวัน · สวิตช์ที่เปิด) เป็นกระจกสี เหมือนปุ่มที่เปิดอยู่ในศูนย์ควบคุม
+   ทรงแคปซูล · กดแล้วยุบแล้วเด้งกลับ
+   ไม่แตะ: การ์ดเนื้อหา/แถวรายการ (กระจกใน iOS 26 เป็นของปุ่มควบคุม ไม่ใช่ของเนื้อหา) ·
+   ปุ่มเข้าสู่ระบบของแบรนด์ (Google/Apple/…) · ปุ่มตัวหนังสือล้วน (.text/.danger/.pf-quiet/.ck-close)
+   ของชิ้นเล็ก (แท็บโหมด · ดาว · ช่องวัน · ชิป · สวิตช์) ไม่มีเงาฟุ้งใต้ตัว — ตามที่เจ้าของเคยสั่งไว้ที่ .tk-mode.on:
+   เงาฟุ้งใต้ของเล็กอ่านเป็นรอยเปื้อน ไม่ใช่ความสูง
+   ใช้โทเคน --lg-* ชุดเดียวกับกระจกด้านบน (ธีมมืดปรับให้เองแล้ว)
+   ============================================================ */
+:root { --lgb-top: rgba(255,255,255,.42); --lgb-bot: rgba(255,255,255,.06); --lgb-edge: rgba(15,27,45,.10); }
+:is([data-theme=dark],[data-theme=space],[data-theme=magic],[data-theme=galaxy],[data-theme=deepocean],[data-theme=meta],[data-theme=glitch],[data-theme=astral]) {
+  --lgb-top: rgba(255,255,255,.14); --lgb-bot: rgba(255,255,255,.02); --lgb-edge: rgba(0,0,0,.35);
+}
+
+/* ---------- การกด (ทุกปุ่มในชุดนี้) ---------- */
+:root :is(.btn.primary, .btn.secondary, .btn.ghost, .fm-save, .fm-cancel, .sai-cta, .daysheet-go,
+          .ib-go, .fr-go, .gc-go, .cp-chip, .so-retry, .ai-read, .cx2-scan, .ep-save, .ep-face-go,
+          .pro-cta, .ck-cta, .ig-btns button, .fs-alt, .tb-more, .ib-wide, .ctx-add, .ctx-wipe,
+          .bg-pick, .bg-del, .sai-qa > button, .cx2-chip, .sp, .tk-mode, .rm-tab, .ds,
+          .th-bell, .tk-go, .sh-wipe, .ig-set, .fd-people, .scan-tile, .voice-hero) {
+  transition: transform .42s cubic-bezier(.3,1.6,.5,1), filter .2s ease, box-shadow .2s ease, background-color .14s ease;
+}
+:root :is(.btn.primary, .btn.secondary, .btn.ghost, .fm-save, .fm-cancel, .sai-cta, .daysheet-go,
+          .ib-go, .fr-go, .gc-go, .cp-chip, .so-retry, .ai-read, .cx2-scan, .ep-save, .ep-face-go,
+          .pro-cta, .ck-cta, .ig-btns button, .fs-alt, .tb-more, .ib-wide, .ctx-add, .ctx-wipe,
+          .bg-pick, .bg-del, .sai-qa > button, .cx2-chip, .sp, .tk-mode, .rm-tab, .ds,
+          .th-bell, .tk-go, .sh-wipe, .ig-set, .fd-people, .scan-tile, .voice-hero):active {
+  transform: scale(.955);
+  filter: brightness(1.07) saturate(1.12);
+  transition-duration: .12s;
+}
+
+/* ---------- ทรงแคปซูล ---------- */
+:root :is(.btn.primary, .btn.secondary, .btn.ghost, .fm-save, .fm-cancel, .sai-cta, .daysheet-go, .ib-go,
+          .ai-read, .cx2-scan, .ep-save, .ep-face-go, .pro-cta, .ck-cta, .ig-btns button, .fs-alt,
+          .tb-more, .ib-wide, .ctx-add, .ctx-wipe, .bg-pick, .cx2-chip, .sp, .tk-mode, .tk-modes) {
+  border-radius: 999px !important;
+}
+:root .bg-del { border-radius: 50% !important; }
+
+/* ---------- กระจกสี ---------- */
+:root :is(.btn.primary, .fm-save, .sai-cta, .daysheet-go:not(.ghost), .ib-go, .fr-go, .ai-read, .cx2-scan,
+          .ep-save, .ep-face-go, .pro-cta:not(.done), .ig-btns button.pri, .ig-av-cam,
+          .cp-chip.on, .sp.active, .tk-mode.on, .rm-tab.on, .ds.on, .tg.on, .ctx-sw.on) {
+  background-image:
+    radial-gradient(120% 100% at 18% -8%, rgba(255,255,255,.46) 0%, rgba(255,255,255,.1) 42%, transparent 64%),
+    linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0) 50%, rgba(0,0,0,.08)) !important;
+  border: 1px solid rgba(255,255,255,.4) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,.62), inset 1px 0 0 rgba(255,255,255,.22),
+    inset 0 -2px 4px rgba(0,0,0,.14), inset 0 0 18px rgba(255,255,255,.12),
+    0 0 0 .5px var(--lgb-edge), 0 12px 24px -12px var(--lg-drop) !important;
+}
+/* ของชิ้นเล็ก: ประกายเท่าเดิม แต่ไม่มีเงาฟุ้ง */
+:root :is(.cp-chip.on, .sp.active, .tk-mode.on, .rm-tab.on, .ds.on, .tg.on, .ctx-sw.on, .ig-av-cam) {
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,.6), inset 0 -1.5px 3px rgba(0,0,0,.14),
+    inset 0 0 12px rgba(255,255,255,.12), 0 0 0 .5px var(--lgb-edge) !important;
+}
+:root .cp-chip.on { background-color: var(--blue) !important; color: var(--on-accent) !important; }
+/* ปุ่มที่พื้นเป็นไล่สีอยู่แล้ว — ต้องใส่ไล่สีเดิมกลับเป็นชั้นล่างสุด ไม่งั้นประกายกระจกทับสีเดิมหาย */
+:root :is(.gc-go.lead, .ck-cta) {
+  background-image:
+    radial-gradient(120% 100% at 18% -8%, rgba(255,255,255,.5) 0%, rgba(255,255,255,.1) 42%, transparent 64%),
+    linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 50%, rgba(0,0,0,.06)),
+    linear-gradient(135deg, #C8850F, #FFD87A) !important;
+  border: 1px solid rgba(255,255,255,.5) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,.7), inset 0 -2px 4px rgba(120,70,0,.18), inset 0 0 18px rgba(255,255,255,.14),
+    0 0 0 .5px rgba(120,70,0,.2), 0 13px 28px -12px rgba(233,169,60,.8) !important;
+}
+:root .voice-hero {
+  background:
+    radial-gradient(120% 100% at 14% -10%, rgba(255,255,255,.4) 0%, rgba(255,255,255,.08) 40%, transparent 62%),
+    linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,0) 50%, rgba(0,0,0,.08)),
+    var(--grad-brand) !important;
+  border: 1px solid rgba(255,255,255,.4) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,.6), inset 0 -2px 4px rgba(0,0,0,.14), inset 0 0 22px rgba(255,255,255,.12),
+    0 0 0 .5px var(--lgb-edge), var(--shadow-brand) !important;
+}
+:root .voice-hero.rec {
+  background:
+    radial-gradient(120% 100% at 14% -10%, rgba(255,255,255,.4) 0%, rgba(255,255,255,.08) 40%, transparent 62%),
+    linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,0) 50%, rgba(0,0,0,.08)),
+    linear-gradient(135deg,#B91C1C 0%,#DC2626 55%,#EA580C 100%) !important;
+}
+/* ปุ่มกลมของสวิตช์ — หยดแก้วขาว ประกายบน เงาล่าง */
+:root :is(.tg .tg-k, .ctx-sw i) {
+  background-image: linear-gradient(180deg, #fff, rgba(255,255,255,.86)) !important;
+  box-shadow: inset 0 1px 0 #fff, inset 0 -1px 2px rgba(15,27,45,.12), 0 0 0 .5px rgba(15,27,45,.12), 0 3px 8px -2px rgba(15,27,45,.35) !important;
+}
+
+/* ---------- กระจกใส ---------- */
+:root :is(.btn.secondary, .btn.ghost, .fm-cancel, .daysheet-go.ghost, .gc-go:not(.lead), .cp-chip:not(.on), .so-retry,
+          .ig-btns button:not(.pri), .fs-alt, .tb-more, .ib-wide, .ctx-add, .ctx-wipe, .bg-pick, .bg-del,
+          .sai-qa > button:not(.qa-priv), .cx2-chip:not(.done), .sp:not(.active), .rm-tab:not(.on), .tk-modes,
+          .th-bell, .tk-go, .sh-wipe, .ig-set, .fd-people, .scan-tile) {
+  /* --lgb-bg ให้ธีมตั้งพื้นกระจกเองได้ (Astral Black) · ไม่ตั้ง = การ์ดของธีมนั้นโปร่ง 52% */
+  background-color: var(--lgb-bg, color-mix(in srgb, var(--card) 52%, transparent)) !important;
+  background-image: linear-gradient(180deg, var(--lgb-top), var(--lgb-bot) 58%, color-mix(in srgb, var(--lgb-top) 40%, transparent)) !important;
+  border: 1px solid var(--lg-mid) !important;
+  box-shadow:
+    inset 0 1.5px 0 var(--lg-hi), inset 1px 0 0 var(--lg-mid), inset 0 -1px 0 var(--lg-lo),
+    inset 0 0 16px var(--lg-glow),
+    0 0 0 .5px var(--lgb-edge), 0 8px 18px -10px var(--lg-drop) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+/* ของชิ้นเล็กกับรางของแท็บโหมด: ไม่มีเงาฟุ้ง */
+:root :is(.cp-chip:not(.on), .sai-qa > button:not(.qa-priv), .cx2-chip:not(.done), .sp:not(.active), .rm-tab:not(.on), .tk-modes) {
+  box-shadow:
+    inset 0 1.5px 0 var(--lg-hi), inset 0 -1px 0 var(--lg-lo), inset 0 0 12px var(--lg-glow),
+    0 0 0 .5px var(--lgb-edge) !important;
+}
+/* ปุ่มไอคอนกลม — ไอคอนต้องเข้มพอบนพื้นที่โปร่งลง */
+:root :is(.th-bell, .tk-go, .sh-wipe, .ig-set, .fd-people) { color: var(--ink) !important; }
+:root .ctx-wipe { color: var(--alert) !important; }
+/* ตัวหนังสือบนกระจกใสต้องเข้มพอจะอ่านบนพื้นที่โปร่งลง (ghost เดิมอยู่บนพื้นทึบ --card2) */
+:root .btn.secondary { color: var(--blue) !important; }
+:root .fm-cancel { color: var(--ink) !important; }
+
+/* ============================================================
+   1C40 · แถบล่าง: แท็บที่อยู่เป็นก้อนกระจกสีของธีม · ปุ่ม + กลมมีวงแหวนและป้าย "เพิ่ม"
+   ------------------------------------------------------------
+   เจ้าของส่งภาพแถบล่างแบบจอกว้างมาให้ทำบนมือถือด้วย และให้ใช้สีตามธีม
+   **กลับคำตัดสินเก่าสองข้อโดยตั้งใจ:** 1A9k/1B39 (แท็บที่อยู่เป็นแค่สีตัวอักษร ไม่ใช่ก้อน)
+   กับ 1C34 (ปุ่ม + เป็นก้อนเหลี่ยมในแถบ ไม่มีป้าย)
+   • แท็บที่อยู่: พื้น --fill / ตัวอักษร --on-fill ของธีม — คู่สีที่ธีมกำหนดความต่างไว้แล้ว อ่านออกทุกธีม
+     ประกายกระจกมาจากกฎ .phone .tabbar .tab.active ด้านบน
+   • ปุ่ม +: กลม พื้น --grad-brand ของธีม (คนละสีกับก้อนแท็บ ยืนติดกันก็ยังแยกออก)
+     วงแหวนเป็นสีธีมผสมขาว · ป้าย "เพิ่ม" กลับมา
+     ข้อที่ 1C34 แก้ไว้ยังต้องจริง: ก้อนห้ามทับป้ายของตัวเอง — กินที่ในผัง 21px เท่าไอคอนอื่นเป๊ะ
+     (34 − 11 บน − 2 ล่าง) ล้นขึ้นบนนิดเดียว ล้นลงล่าง 2px ซึ่งยังอยู่ในช่องไฟ 3px เหนือป้าย
+   • กรอบแถบเป็นสีธีมจาง ๆ แทนน้ำเงินตายตัว
+   --grad-brand ของธีมมืดเป็นสีเดี่ยว ไม่ใช่ไล่สี จึงต้องใช้ background แบบย่อ
+   (ชั้นสุดท้ายของ background ย่อรับสีได้ ส่วน background-image รับไม่ได้ ทั้งบรรทัดจะเป็นโมฆะ)
+   ============================================================ */
+.phone .tabbar { border-color: color-mix(in srgb, var(--fill) 34%, transparent) !important; }
+
+:root:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) {
+  background-color: var(--fill) !important;
+  color: var(--on-fill) !important;
+  border-radius: 16px;
+}
+
+:root:not([data-nav="side"]) .phone .tabbar .tab.scan .scan-dot {
+  width: 34px; height: 34px;
+  margin: -11px 0 -2px;
+  border-radius: 50%;
+  color: #fff;
+  background:
+    radial-gradient(120% 90% at 26% -4%, rgba(255,255,255,.55) 0%, rgba(255,255,255,.1) 44%, transparent 64%),
+    linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0) 50%, rgba(0,0,0,.12)),
+    var(--grad-brand) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,.75), inset 0 -2px 3px rgba(0,0,0,.18),
+    0 0 0 2.5px color-mix(in srgb, var(--fill) 42%, #fff),
+    0 8px 16px -6px var(--lg-drop) !important;
+}
+:root:not([data-nav="side"]) .phone .tabbar .tab.scan .scan-dot svg { width: 19px; height: 19px; stroke-width: 2.4; }
+:root:not([data-nav="side"]) .phone .tabbar .tab.scan > span:last-child { display: block; }
+
+/* ============================================================
+   1C40 · ธีม Astral Black — อวกาศขาวดำ
+   ------------------------------------------------------------
+   ดำสนิท #000 แบบจอ OLED · ทุกอย่างเป็นขาว–เงิน–เทา ไม่มีสีอิ่มเลยนอกจากสีสถานะ
+   (แดง/เหลือง/เขียวของป้ายความสำคัญยังต้องแยกกันออก — ลดความสดลงแต่ไม่ทำเป็นเทา)
+   รอบสาม: เจ้าของส่งภาพแนวอ้างอิงมา (อวกาศขาวดำ · สายคลื่นเงินไหลเป็นชั้นเหมือนหมึก ·
+   ดาวเคราะห์ลายแถบ · ดาวจิ๋วเต็มฟ้า) และสั่งให้ "เอาแนวมาใช้ รวมถึงสี UI" — **ไม่ได้ใส่ภาพ**
+   ฉากทั้งหมดวาดใหม่เป็น SVG ในไฟล์นี้ (สร้างด้วย seed ตายตัว ลายเดิมทุกครั้ง)
+   สีรอบสอง (เงินน้ำแข็ง/ฟ้าเหล็ก) จึงถูกถอดเป็นขาวดำทั้งหมดตามภาพนี้
+   ⚠️ ธีมมืดมีรายชื่อกระจายอยู่หลายที่ — บล็อกนี้ประกาศของตัวเองครบในที่เดียว
+   ส่วนรายชื่อ :is(...) ของกระจก 1C40 ถูกเติม astral เข้าไปตรง ๆ
+   ============================================================ */
+:root[data-theme="astral"] {
+  color-scheme: dark;
+  --scr:#000000; --card:#0D0D0D; --card2:#181818; --surface:#181818;
+  --ink:#F5F5F5; --muted:#A9A9A9; --faint:#8E8E8E;
+  --line:rgba(255,255,255,.09);
+  /* สีเน้น = เงินขาว · ก้อนสีเน้นจึงเป็นเงินสว่าง ตัวอักษรบนก้อนเป็นดำ (15.9:1) */
+  --blue:#E6E6E6; --blue-soft:rgba(230,230,230,.16); --blue-deep:#FFFFFF; --on-accent:#0A0A0A;
+  --neon:#FFFFFF;
+  --alert:#F28B8B; --alert-soft:rgba(242,139,139,.22);
+  --warn:#E8CC85;  --warn-soft:rgba(232,204,133,.22);
+  --good:#8FD9B8;  --good-soft:rgba(143,217,184,.22); --fire:#F28B8B;
+  --shadow:0 2px 8px rgba(0,0,0,.7), 0 18px 42px -14px rgba(0,0,0,.95);
+  --shadow-lg:0 4px 12px rgba(0,0,0,.75), 0 36px 68px -18px rgba(0,0,0,1);
+  --shadow-brand:0 10px 30px -8px rgba(255,255,255,.16);
+  --glass:rgba(0,0,0,.78); --glass-line:rgba(255,255,255,.12);
+  --skel:rgba(255,255,255,.06); --skel-hi:rgba(255,255,255,.12);
+  /* ไล่สีแบรนด์มีตัวหนังสือ/ไอคอนขาวทับเสมอ (ปุ่ม + · ปุ่มไมค์) → เทากราไฟต์
+     ขาวทับได้ 5.1:1 ขึ้นไปตลอดเส้น (เงินอ่อนแบบสีเน้นได้แค่ 1.2:1) */
+  --grad-brand:linear-gradient(135deg,#6E6E6E 0%,#2B2B2B 100%);
+  --grad-hero:linear-gradient(150deg,#262626 0%,#070707 100%);
+  --glow-scan:0 0 0 1px rgba(255,255,255,.35), 0 8px 28px -4px rgba(255,255,255,.16);
+  --pg:#000000; --pg-ink:#F5F5F5; --pg-muted:#A9A9A9; --frame:#000000;
+  --r-card:22px; --r-tile:15px;
+  /* การ์ดกระจก — ดำโปร่งบนดำ แยกจากพื้นด้วยขอบกับเงา ไม่ใช่ด้วยความสว่าง */
+  --soft-card:rgba(12,12,12,.74);
+  --soft-shadow:0 0 0 1px rgba(255,255,255,.06), 0 14px 34px -12px rgba(0,0,0,.9);
+  --soft-shadow-lg:0 0 0 1px rgba(255,255,255,.07), 0 30px 60px -18px rgba(0,0,0,1);
+  /* ป้ายความสำคัญ + ทอง: ค่าของธีมสว่างบนพื้นดำมองไม่เห็น (บทเรียน 1B98) */
+  --pri-red-soft:rgba(242,139,139,.26);  --pri-red-text:#F5A3A3;
+  --pri-yellow-soft:rgba(232,204,133,.26); --pri-yellow-text:#EBD08E;
+  --pri-green-soft:rgba(143,217,184,.26);  --pri-green-text:#9FDFC2;
+  --gold-soft:rgba(240,193,74,.24);       --gold-text:#EFCB72;
+  /* ปุ่มกระจกใสเป็น "กระจกเงิน" — เจ้าของ: "พวกปุ่มเป็นดำ"
+     สูตรกลางผสมพื้นกระจกจากสีการ์ด ซึ่งบนธีมนี้คือเกือบดำ ปุ่มจึงจมหายเป็นหลุมดำ
+     ที่นี่ใช้ขาวโปร่งแทน + ขอบสะท้อนแรงขึ้น · การ์ดยังดำอยู่ (ปุ่มต้องเด่นกว่าการ์ด) */
+  --lgb-bg:rgba(255,255,255,.085); --lgb-top:rgba(255,255,255,.24); --lgb-bot:rgba(255,255,255,.05);
+  --lgb-edge:rgba(0,0,0,.5);
+  --lg-hi:rgba(255,255,255,.88); --lg-mid:rgba(255,255,255,.3); --lg-lo:rgba(255,255,255,.14);
+  --lg-glow:rgba(255,255,255,.1); --lg-drop:rgba(0,0,0,.7);
+}
+/* ไอคอนบนไทล์หน้าแรก + ตราบนหัวตั๋ว "ตอนนี้" — เจ้าของ: "ตรงนี้สีออกฟ้า ๆ ให้เปลี่ยนเป็นสีดำ"
+   สามที่ที่ยังเป็นน้ำเงินในธีมขาวดำ: ไอคอนกรมท่า #16306B (today.css — ตั้งไว้ให้ไม่ชนสีหัวตั๋ว) ·
+   แผ่นกลมใต้ไอคอนที่ไล่ไปฟ้าอ่อน (232,243,255) · เงาของแผ่นที่อมกรม (15,27,45)
+   ธีมนี้ไม่มีสีอื่นให้ชน จึงเป็นดำบนขาวล้วน · แผ่นไล่จากขาวไปเทาอ่อน เงาเป็นดำกลาง */
+:root[data-theme="astral"] .tg-ic svg,
+:root[data-theme="astral"] .td-now .tn-mark { color: #0A0A0A; }
+:root[data-theme="astral"] .phone .tg-ic svg {
+  background: linear-gradient(160deg, #FFFFFF, rgba(230,230,230,.9)) !important;
+  box-shadow: inset 0 1px 0 #fff, inset 0 -1.5px 2px rgba(0,0,0,.14), 0 5px 10px -3px rgba(0,0,0,.45), 0 0 0 .5px rgba(0,0,0,.12) !important;
+}
+/* ตราสว่างบนพื้นมืด */
+:root[data-theme="astral"] .brand-light { display: none; }
+:root[data-theme="astral"] .brand-dark { display: inline; }
+
+/* ---------- ฉากหลัง ----------
+   ซ้อนจากหลังไปหน้า: ดาวฝุ่นลอย → ดาวเคราะห์ + ดาวนิ่ง → คลื่นชั้นหลัง → คลื่นชั้นหน้า →
+   ประกาย → ขอบจอจมดำ (z-index ภายใน .fx — ลำดับใน DOM ไม่ตรงกับลำดับความลึกที่ต้องการ)
+   ทุกชั้นขยับด้วย transform/opacity เท่านั้น เบราว์เซอร์วาด SVG ครั้งเดียวแล้วแค่เลื่อนภาพ */
+:root[data-theme="astral"] .fx {
+  display: block; position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+}
+/* ดาวฝุ่นสองชั้น ลอยขึ้นช้าไม่เท่ากัน · เลื่อนทีละหนึ่งช่องลาย (320/420px) จึงวนต่อกันไม่กระตุก */
+:root[data-theme="astral"] .fx-b {
+  z-index: 1;
+  top: 0; left: 0; right: 0; bottom: -320px;
+  background-image:
+    radial-gradient(1px 1px at 24px 38px, #fff 100%, transparent),
+    radial-gradient(1px 1px at 96px 120px, rgba(255,255,255,.8) 100%, transparent),
+    radial-gradient(1.2px 1.2px at 170px 64px, #fff 100%, transparent),
+    radial-gradient(.9px .9px at 214px 210px, rgba(230,230,230,.85) 100%, transparent),
+    radial-gradient(1px 1px at 58px 262px, rgba(255,255,255,.75) 100%, transparent),
+    radial-gradient(.8px .8px at 140px 300px, #fff 100%, transparent),
+    radial-gradient(1.1px 1.1px at 248px 18px, rgba(240,240,240,.9) 100%, transparent);
+  background-size: 260px 320px;
+  opacity: .5;
+  animation: as-drift-b 140s linear infinite;
+}
+:root[data-theme="astral"] .fx-c {
+  z-index: 1;
+  top: 0; left: 0; right: 0; bottom: -420px;
+  background-image:
+    radial-gradient(1.6px 1.6px at 60px 90px, #fff 100%, transparent),
+    radial-gradient(1.3px 1.3px at 250px 40px, rgba(235,235,235,.95) 100%, transparent),
+    radial-gradient(1.5px 1.5px at 300px 300px, #fff 100%, transparent),
+    radial-gradient(1.2px 1.2px at 130px 380px, rgba(225,225,225,.95) 100%, transparent);
+  background-size: 340px 420px;
+  animation: as-drift-c 220s linear infinite, as-twinkle 6s ease-in-out infinite;
+}
+/* ดาวเคราะห์ลายแถบสี่ดวง + ดาวจิ๋วเต็มฟ้า — ลอยขึ้นลงช้า ๆ ไม่ใช่ติดตายบนวอลเปเปอร์ */
+:root[data-theme="astral"] .fx-d {
+  z-index: 2;
+  inset: -10px 0 0 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 860' preserveAspectRatio='xMidYMin slice'%3E%3Cdefs%3E%3CradialGradient id='s' cx='.34' cy='.3' r='.8'%3E%3Cstop offset='0' stop-color='rgb(232,232,232)'/%3E%3Cstop offset='.55' stop-color='rgb(120,120,120)'/%3E%3Cstop offset='1' stop-color='rgb(14,14,14)'/%3E%3C/radialGradient%3E%3CradialGradient id='n' cx='.78' cy='.82' r='.75'%3E%3Cstop offset='0' stop-color='rgb(0,0,0)' stop-opacity='.85'/%3E%3Cstop offset='1' stop-color='rgb(0,0,0)' stop-opacity='0'/%3E%3C/radialGradient%3E%3CclipPath id='c0'%3E%3Ccircle cx='96' cy='150' r='44'/%3E%3C/clipPath%3E%3CclipPath id='c1'%3E%3Ccircle cx='306' cy='92' r='23'/%3E%3C/clipPath%3E%3CclipPath id='c2'%3E%3Ccircle cx='236' cy='268' r='12'/%3E%3C/clipPath%3E%3CclipPath id='c3'%3E%3Ccircle cx='58' cy='372' r='7'/%3E%3C/clipPath%3E%3C/defs%3E%3Ccircle cx='249.2' cy='459.3' r='0.9' fill='rgba(255,255,255,0.82)'/%3E%3Ccircle cx='296' cy='571.1' r='0.4' fill='rgba(255,255,255,0.53)'/%3E%3Ccircle cx='377.3' cy='401.8' r='1' fill='rgba(255,255,255,0.32)'/%3E%3Ccircle cx='187.6' cy='152.7' r='0.8' fill='rgba(255,255,255,0.59)'/%3E%3Ccircle cx='5.2' cy='134.2' r='0.6' fill='rgba(255,255,255,0.80)'/%3E%3Ccircle cx='306.3' cy='98.8' r='0.9' fill='rgba(255,255,255,0.33)'/%3E%3Ccircle cx='247' cy='78.5' r='0.4' fill='rgba(255,255,255,0.77)'/%3E%3Ccircle cx='83.8' cy='133.4' r='1.1' fill='rgba(255,255,255,0.77)'/%3E%3Ccircle cx='115.7' cy='595.3' r='0.8' fill='rgba(255,255,255,0.66)'/%3E%3Ccircle cx='81.9' cy='582.7' r='0.9' fill='rgba(255,255,255,0.83)'/%3E%3Ccircle cx='357.5' cy='185' r='0.6' fill='rgba(255,255,255,0.35)'/%3E%3Ccircle cx='58.3' cy='40.3' r='0.6' fill='rgba(255,255,255,0.61)'/%3E%3Ccircle cx='1.4' cy='419.8' r='0.6' fill='rgba(255,255,255,0.44)'/%3E%3Ccircle cx='327.4' cy='297.7' r='0.6' fill='rgba(255,255,255,0.54)'/%3E%3Ccircle cx='281.9' cy='35.3' r='1.1' fill='rgba(255,255,255,0.26)'/%3E%3Ccircle cx='299.9' cy='523.2' r='0.4' fill='rgba(255,255,255,0.72)'/%3E%3Ccircle cx='146.5' cy='358.2' r='0.4' fill='rgba(255,255,255,0.28)'/%3E%3Ccircle cx='72.4' cy='591.4' r='0.5' fill='rgba(255,255,255,0.70)'/%3E%3Ccircle cx='371.9' cy='583.3' r='0.6' fill='rgba(255,255,255,0.46)'/%3E%3Ccircle cx='209.9' cy='480.3' r='0.4' fill='rgba(255,255,255,0.70)'/%3E%3Ccircle cx='318.9' cy='532.3' r='0.4' fill='rgba(255,255,255,0.82)'/%3E%3Ccircle cx='36.5' cy='211' r='0.8' fill='rgba(255,255,255,0.80)'/%3E%3Ccircle cx='136' cy='572.3' r='0.8' fill='rgba(255,255,255,0.44)'/%3E%3Ccircle cx='126.7' cy='109.9' r='0.4' fill='rgba(255,255,255,0.34)'/%3E%3Ccircle cx='275.7' cy='617.2' r='0.5' fill='rgba(255,255,255,0.28)'/%3E%3Ccircle cx='394.7' cy='330.4' r='0.7' fill='rgba(255,255,255,0.39)'/%3E%3Ccircle cx='237.6' cy='511.6' r='0.7' fill='rgba(255,255,255,0.50)'/%3E%3Ccircle cx='22.3' cy='567.2' r='0.4' fill='rgba(255,255,255,0.55)'/%3E%3Ccircle cx='335.4' cy='80.9' r='0.9' fill='rgba(255,255,255,0.82)'/%3E%3Ccircle cx='252.2' cy='487.9' r='0.4' fill='rgba(255,255,255,0.51)'/%3E%3Ccircle cx='59.7' cy='523.1' r='0.6' fill='rgba(255,255,255,0.52)'/%3E%3Ccircle cx='399.7' cy='527.7' r='1.1' fill='rgba(255,255,255,0.52)'/%3E%3Ccircle cx='195.3' cy='451.7' r='0.7' fill='rgba(255,255,255,0.42)'/%3E%3Ccircle cx='161.5' cy='90.7' r='0.6' fill='rgba(255,255,255,0.84)'/%3E%3Ccircle cx='383.9' cy='388.2' r='0.7' fill='rgba(255,255,255,0.45)'/%3E%3Ccircle cx='35.7' cy='168.6' r='0.9' fill='rgba(255,255,255,0.77)'/%3E%3Ccircle cx='144.5' cy='486.7' r='0.9' fill='rgba(255,255,255,0.67)'/%3E%3Ccircle cx='265.6' cy='470.4' r='0.6' fill='rgba(255,255,255,0.67)'/%3E%3Ccircle cx='112.3' cy='300.7' r='0.9' fill='rgba(255,255,255,0.66)'/%3E%3Ccircle cx='117.5' cy='585.5' r='0.8' fill='rgba(255,255,255,0.60)'/%3E%3Ccircle cx='4.6' cy='338.7' r='0.5' fill='rgba(255,255,255,0.65)'/%3E%3Ccircle cx='185.2' cy='505.7' r='0.8' fill='rgba(255,255,255,0.73)'/%3E%3Ccircle cx='139.2' cy='398.8' r='0.9' fill='rgba(255,255,255,0.75)'/%3E%3Ccircle cx='140' cy='521.9' r='1' fill='rgba(255,255,255,0.66)'/%3E%3Ccircle cx='390.4' cy='592.3' r='0.7' fill='rgba(255,255,255,0.57)'/%3E%3Ccircle cx='66.5' cy='518' r='1.1' fill='rgba(255,255,255,0.54)'/%3E%3Ccircle cx='276.6' cy='445.6' r='0.9' fill='rgba(255,255,255,0.35)'/%3E%3Ccircle cx='312.1' cy='359.7' r='0.8' fill='rgba(255,255,255,0.50)'/%3E%3Ccircle cx='249.5' cy='479.7' r='0.8' fill='rgba(255,255,255,0.68)'/%3E%3Ccircle cx='11' cy='99.1' r='0.7' fill='rgba(255,255,255,0.64)'/%3E%3Ccircle cx='87.6' cy='424.7' r='0.8' fill='rgba(255,255,255,0.28)'/%3E%3Ccircle cx='188.6' cy='140.1' r='0.4' fill='rgba(255,255,255,0.33)'/%3E%3Ccircle cx='126.9' cy='112.4' r='0.5' fill='rgba(255,255,255,0.27)'/%3E%3Ccircle cx='186.1' cy='235.5' r='0.8' fill='rgba(255,255,255,0.60)'/%3E%3Ccircle cx='95.1' cy='559.3' r='0.4' fill='rgba(255,255,255,0.49)'/%3E%3Ccircle cx='111.4' cy='253.9' r='0.4' fill='rgba(255,255,255,0.75)'/%3E%3Ccircle cx='149.6' cy='22.3' r='0.8' fill='rgba(255,255,255,0.31)'/%3E%3Ccircle cx='218.1' cy='210.1' r='0.8' fill='rgba(255,255,255,0.82)'/%3E%3Ccircle cx='327.4' cy='259.5' r='1' fill='rgba(255,255,255,0.64)'/%3E%3Ccircle cx='147.8' cy='88' r='0.8' fill='rgba(255,255,255,0.59)'/%3E%3Ccircle cx='382.9' cy='599.4' r='0.8' fill='rgba(255,255,255,0.46)'/%3E%3Ccircle cx='357.4' cy='0.6' r='0.4' fill='rgba(255,255,255,0.59)'/%3E%3Ccircle cx='246.1' cy='87.1' r='0.8' fill='rgba(255,255,255,0.78)'/%3E%3Ccircle cx='150.3' cy='267.3' r='0.5' fill='rgba(255,255,255,0.42)'/%3E%3Ccircle cx='389' cy='235.2' r='1.1' fill='rgba(255,255,255,0.80)'/%3E%3Ccircle cx='238.3' cy='160.9' r='1.1' fill='rgba(255,255,255,0.55)'/%3E%3Ccircle cx='166.2' cy='197.6' r='1.1' fill='rgba(255,255,255,0.55)'/%3E%3Ccircle cx='114.6' cy='295.3' r='0.4' fill='rgba(255,255,255,0.62)'/%3E%3Ccircle cx='177.4' cy='181.5' r='0.9' fill='rgba(255,255,255,0.75)'/%3E%3Ccircle cx='5.3' cy='329.8' r='0.6' fill='rgba(255,255,255,0.81)'/%3E%3Ccircle cx='312.8' cy='152.1' r='0.6' fill='rgba(255,255,255,0.34)'/%3E%3Ccircle cx='395.5' cy='181.5' r='0.8' fill='rgba(255,255,255,0.53)'/%3E%3Ccircle cx='258' cy='373.9' r='0.9' fill='rgba(255,255,255,0.32)'/%3E%3Ccircle cx='304.2' cy='186.2' r='0.8' fill='rgba(255,255,255,0.45)'/%3E%3Ccircle cx='118.7' cy='328.1' r='0.7' fill='rgba(255,255,255,0.47)'/%3E%3Ccircle cx='298' cy='365.8' r='0.4' fill='rgba(255,255,255,0.40)'/%3E%3Ccircle cx='182.2' cy='567.5' r='1' fill='rgba(255,255,255,0.58)'/%3E%3Ccircle cx='5.8' cy='482' r='0.7' fill='rgba(255,255,255,0.60)'/%3E%3Ccircle cx='283.3' cy='391.5' r='0.7' fill='rgba(255,255,255,0.80)'/%3E%3Ccircle cx='154.2' cy='242.6' r='1' fill='rgba(255,255,255,0.37)'/%3E%3Ccircle cx='118.6' cy='514' r='0.4' fill='rgba(255,255,255,0.75)'/%3E%3Ccircle cx='277.8' cy='268' r='0.6' fill='rgba(255,255,255,0.72)'/%3E%3Ccircle cx='364.3' cy='88.4' r='0.7' fill='rgba(255,255,255,0.58)'/%3E%3Ccircle cx='199.1' cy='204.8' r='0.5' fill='rgba(255,255,255,0.60)'/%3E%3Ccircle cx='324.7' cy='42.4' r='0.5' fill='rgba(255,255,255,0.74)'/%3E%3Ccircle cx='316.7' cy='410.9' r='0.4' fill='rgba(255,255,255,0.68)'/%3E%3Ccircle cx='391.5' cy='618.2' r='0.9' fill='rgba(255,255,255,0.28)'/%3E%3Ccircle cx='336.8' cy='135.7' r='0.8' fill='rgba(255,255,255,0.82)'/%3E%3Ccircle cx='285' cy='83.4' r='0.6' fill='rgba(255,255,255,0.80)'/%3E%3Ccircle cx='59.9' cy='378.1' r='0.7' fill='rgba(255,255,255,0.35)'/%3E%3Ccircle cx='249' cy='27' r='0.4' fill='rgba(255,255,255,0.48)'/%3E%3Ccircle cx='28.8' cy='35.6' r='0.8' fill='rgba(255,255,255,0.70)'/%3E%3Ccircle cx='351.4' cy='83.2' r='0.7' fill='rgba(255,255,255,0.44)'/%3E%3Ccircle cx='240.1' cy='303.1' r='1.1' fill='rgba(255,255,255,0.47)'/%3E%3Ccircle cx='22.3' cy='431.8' r='0.5' fill='rgba(255,255,255,0.63)'/%3E%3Ccircle cx='202.3' cy='563.7' r='0.8' fill='rgba(255,255,255,0.62)'/%3E%3Ccircle cx='105.3' cy='341.6' r='0.5' fill='rgba(255,255,255,0.70)'/%3E%3Ccircle cx='206.8' cy='82.8' r='0.5' fill='rgba(255,255,255,0.47)'/%3E%3Ccircle cx='294.7' cy='111' r='0.9' fill='rgba(255,255,255,0.64)'/%3E%3Ccircle cx='34.1' cy='413.6' r='0.4' fill='rgba(255,255,255,0.32)'/%3E%3Ccircle cx='237.6' cy='147.7' r='1' fill='rgba(255,255,255,0.54)'/%3E%3Ccircle cx='129.3' cy='493.2' r='0.4' fill='rgba(255,255,255,0.69)'/%3E%3Ccircle cx='21.5' cy='93.4' r='1.1' fill='rgba(255,255,255,0.66)'/%3E%3Ccircle cx='89.2' cy='71.9' r='1.1' fill='rgba(255,255,255,0.65)'/%3E%3Ccircle cx='328.2' cy='86.5' r='0.8' fill='rgba(255,255,255,0.46)'/%3E%3Ccircle cx='94' cy='206.4' r='0.8' fill='rgba(255,255,255,0.46)'/%3E%3Ccircle cx='154.3' cy='84.5' r='1' fill='rgba(255,255,255,0.64)'/%3E%3Ccircle cx='321.8' cy='268.4' r='1' fill='rgba(255,255,255,0.56)'/%3E%3Ccircle cx='237.1' cy='355' r='0.9' fill='rgba(255,255,255,0.49)'/%3E%3Ccircle cx='38.8' cy='20.5' r='0.5' fill='rgba(255,255,255,0.27)'/%3E%3Ccircle cx='96' cy='150' r='44' fill='url(%23s)'/%3E%3Cg clip-path='url(%23c0)'%3E%3Cg transform='rotate(-14 96 150)'%3E%3Crect x='34.4' y='106' width='123.2' height='6.5' fill='rgba(255,255,255,0.22)'/%3E%3Crect x='34.4' y='112.5' width='123.2' height='4.5' fill='rgba(0,0,0,0.24)'/%3E%3Crect x='34.4' y='118.1' width='123.2' height='4.5' fill='rgba(255,255,255,0.11)'/%3E%3Crect x='34.4' y='123' width='123.2' height='4' fill='rgba(255,255,255,0.24)'/%3E%3Crect x='34.4' y='127.4' width='123.2' height='3.4' fill='rgba(255,255,255,0.11)'/%3E%3Crect x='34.4' y='131.6' width='123.2' height='3.3' fill='rgba(255,255,255,0.09)'/%3E%3Crect x='34.4' y='137.4' width='123.2' height='4' fill='rgba(0,0,0,0.25)'/%3E%3Crect x='34.4' y='143.1' width='123.2' height='4.5' fill='rgba(0,0,0,0.13)'/%3E%3Crect x='34.4' y='149.4' width='123.2' height='3.6' fill='rgba(0,0,0,0.26)'/%3E%3Crect x='34.4' y='153.4' width='123.2' height='3.2' fill='rgba(255,255,255,0.12)'/%3E%3Crect x='34.4' y='156.8' width='123.2' height='4.1' fill='rgba(0,0,0,0.18)'/%3E%3Crect x='34.4' y='161.8' width='123.2' height='4.5' fill='rgba(255,255,255,0.21)'/%3E%3Crect x='34.4' y='168.1' width='123.2' height='3' fill='rgba(255,255,255,0.20)'/%3E%3Crect x='34.4' y='173.6' width='123.2' height='5.3' fill='rgba(255,255,255,0.26)'/%3E%3Crect x='34.4' y='178.9' width='123.2' height='2.5' fill='rgba(0,0,0,0.19)'/%3E%3Crect x='34.4' y='181.6' width='123.2' height='4.9' fill='rgba(0,0,0,0.21)'/%3E%3Crect x='34.4' y='187.3' width='123.2' height='2.7' fill='rgba(255,255,255,0.24)'/%3E%3Crect x='34.4' y='191.3' width='123.2' height='6.7' fill='rgba(255,255,255,0.12)'/%3E%3C/g%3E%3Ccircle cx='96' cy='150' r='44' fill='url(%23n)'/%3E%3C/g%3E%3Ccircle cx='96' cy='150' r='43.7' fill='none' stroke='rgba(255,255,255,.18)' stroke-width='.6'/%3E%3Ccircle cx='306' cy='92' r='23' fill='url(%23s)'/%3E%3Cg clip-path='url(%23c1)'%3E%3Cg transform='rotate(10 306 92)'%3E%3Crect x='273.8' y='69' width='64.4' height='2.2' fill='rgba(255,255,255,0.13)'/%3E%3Crect x='273.8' y='71.7' width='64.4' height='1.9' fill='rgba(255,255,255,0.09)'/%3E%3Crect x='273.8' y='75' width='64.4' height='1.6' fill='rgba(0,0,0,0.19)'/%3E%3Crect x='273.8' y='77.3' width='64.4' height='1.4' fill='rgba(255,255,255,0.10)'/%3E%3Crect x='273.8' y='79.4' width='64.4' height='3.5' fill='rgba(0,0,0,0.29)'/%3E%3Crect x='273.8' y='83.2' width='64.4' height='1.2' fill='rgba(0,0,0,0.21)'/%3E%3Crect x='273.8' y='85.2' width='64.4' height='2.1' fill='rgba(0,0,0,0.26)'/%3E%3Crect x='273.8' y='88.6' width='64.4' height='1.9' fill='rgba(255,255,255,0.23)'/%3E%3Crect x='273.8' y='90.8' width='64.4' height='1.4' fill='rgba(255,255,255,0.10)'/%3E%3Crect x='273.8' y='93.3' width='64.4' height='3.2' fill='rgba(255,255,255,0.10)'/%3E%3Crect x='273.8' y='96.6' width='64.4' height='1.8' fill='rgba(255,255,255,0.16)'/%3E%3Crect x='273.8' y='99.2' width='64.4' height='1.8' fill='rgba(255,255,255,0.21)'/%3E%3Crect x='273.8' y='101' width='64.4' height='1.7' fill='rgba(255,255,255,0.15)'/%3E%3Crect x='273.8' y='102.8' width='64.4' height='2.2' fill='rgba(255,255,255,0.22)'/%3E%3Crect x='273.8' y='105.8' width='64.4' height='3.4' fill='rgba(0,0,0,0.27)'/%3E%3Crect x='273.8' y='110' width='64.4' height='2.3' fill='rgba(0,0,0,0.24)'/%3E%3Crect x='273.8' y='113.6' width='64.4' height='3' fill='rgba(0,0,0,0.16)'/%3E%3C/g%3E%3Ccircle cx='306' cy='92' r='23' fill='url(%23n)'/%3E%3C/g%3E%3Ccircle cx='306' cy='92' r='22.7' fill='none' stroke='rgba(255,255,255,.18)' stroke-width='.6'/%3E%3Ccircle cx='236' cy='268' r='12' fill='url(%23s)'/%3E%3Cg clip-path='url(%23c2)'%3E%3Cg transform='rotate(-6 236 268)'%3E%3Crect x='219.2' y='256' width='33.6' height='1.1' fill='rgba(255,255,255,0.09)'/%3E%3Crect x='219.2' y='257.2' width='33.6' height='0.9' fill='rgba(0,0,0,0.16)'/%3E%3Crect x='219.2' y='258.2' width='33.6' height='1.6' fill='rgba(0,0,0,0.11)'/%3E%3Crect x='219.2' y='259.9' width='33.6' height='0.8' fill='rgba(255,255,255,0.23)'/%3E%3Crect x='219.2' y='261.3' width='33.6' height='1.4' fill='rgba(255,255,255,0.16)'/%3E%3Crect x='219.2' y='263' width='33.6' height='1' fill='rgba(255,255,255,0.19)'/%3E%3Crect x='219.2' y='264.6' width='33.6' height='1.6' fill='rgba(255,255,255,0.18)'/%3E%3Crect x='219.2' y='266.3' width='33.6' height='1.5' fill='rgba(255,255,255,0.25)'/%3E%3Crect x='219.2' y='268.4' width='33.6' height='0.8' fill='rgba(255,255,255,0.24)'/%3E%3Crect x='219.2' y='269.5' width='33.6' height='1.2' fill='rgba(255,255,255,0.22)'/%3E%3Crect x='219.2' y='271.3' width='33.6' height='1.3' fill='rgba(0,0,0,0.23)'/%3E%3Crect x='219.2' y='272.7' width='33.6' height='1.7' fill='rgba(255,255,255,0.09)'/%3E%3Crect x='219.2' y='275.1' width='33.6' height='0.6' fill='rgba(0,0,0,0.21)'/%3E%3Crect x='219.2' y='276.4' width='33.6' height='1.1' fill='rgba(255,255,255,0.13)'/%3E%3Crect x='219.2' y='277.6' width='33.6' height='1.3' fill='rgba(255,255,255,0.22)'/%3E%3Crect x='219.2' y='279.2' width='33.6' height='1.1' fill='rgba(255,255,255,0.26)'/%3E%3C/g%3E%3Ccircle cx='236' cy='268' r='12' fill='url(%23n)'/%3E%3C/g%3E%3Ccircle cx='236' cy='268' r='11.7' fill='none' stroke='rgba(255,255,255,.18)' stroke-width='.6'/%3E%3Ccircle cx='58' cy='372' r='7' fill='url(%23s)'/%3E%3Cg clip-path='url(%23c3)'%3E%3Cg transform='rotate(0 58 372)'%3E%3Crect x='48.2' y='365' width='19.6' height='1' fill='rgba(0,0,0,0.19)'/%3E%3Crect x='48.2' y='366.1' width='19.6' height='1' fill='rgba(255,255,255,0.09)'/%3E%3Crect x='48.2' y='367.1' width='19.6' height='0.4' fill='rgba(0,0,0,0.30)'/%3E%3Crect x='48.2' y='367.6' width='19.6' height='1' fill='rgba(255,255,255,0.20)'/%3E%3Crect x='48.2' y='369' width='19.6' height='0.8' fill='rgba(0,0,0,0.18)'/%3E%3Crect x='48.2' y='369.8' width='19.6' height='0.7' fill='rgba(0,0,0,0.14)'/%3E%3Crect x='48.2' y='370.7' width='19.6' height='0.6' fill='rgba(255,255,255,0.14)'/%3E%3Crect x='48.2' y='371.5' width='19.6' height='0.7' fill='rgba(0,0,0,0.19)'/%3E%3Crect x='48.2' y='372.6' width='19.6' height='1' fill='rgba(0,0,0,0.25)'/%3E%3Crect x='48.2' y='373.8' width='19.6' height='0.8' fill='rgba(0,0,0,0.18)'/%3E%3Crect x='48.2' y='374.9' width='19.6' height='0.9' fill='rgba(0,0,0,0.16)'/%3E%3Crect x='48.2' y='375.8' width='19.6' height='0.4' fill='rgba(255,255,255,0.18)'/%3E%3Crect x='48.2' y='376.5' width='19.6' height='0.9' fill='rgba(255,255,255,0.25)'/%3E%3Crect x='48.2' y='377.5' width='19.6' height='0.9' fill='rgba(255,255,255,0.22)'/%3E%3Crect x='48.2' y='378.7' width='19.6' height='1.1' fill='rgba(0,0,0,0.25)'/%3E%3C/g%3E%3Ccircle cx='58' cy='372' r='7' fill='url(%23n)'/%3E%3C/g%3E%3Ccircle cx='58' cy='372' r='6.7' fill='none' stroke='rgba(255,255,255,.18)' stroke-width='.6'/%3E%3C/svg%3E") center top / cover no-repeat;
+  opacity: .9;
+  animation: as-float 18s ease-in-out infinite alternate;
+}
+/* คลื่นเงินชั้นหลัง — จางกว่า ไหลไปทางขวา */
+:root[data-theme="astral"] .fx-a {
+  z-index: 3;
+  inset: 0 -64px;
+  transform-origin: 50% 100%;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 860' preserveAspectRatio='xMidYMax slice'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='rgb(10,10,10)' stop-opacity='.92'/%3E%3Cstop offset='.5' stop-color='rgb(3,3,3)' stop-opacity='.97'/%3E%3Cstop offset='1' stop-color='rgb(0,0,0)'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M-40 547Q-18 524.4 -7 512.7Q4 501 15 489.5Q26 478 37 467.3Q48 456.5 59 446.8Q70 437 81 428.5Q92 419.9 103 412.3Q114 404.8 125 397.9Q136 391.1 147 384.6Q158 378.1 169 371.6Q180 365.1 191 358.4Q202 351.7 213 344.7Q224 337.7 235 330.6Q246 323.6 257 316.7Q268 309.9 279 303.8Q290 297.6 301 292.6Q312 287.5 323 283.8Q334 280.2 345 277.9Q356 275.7 367 274.8Q378 273.8 389 273.7Q400 273.7 411 273.9L422 274.1L422 575.9L400 583.8L378 592.2L356 602L334 613.8L312 627.5L290 642.8L268 658.9L246 674.9L224 689.7L202 702.7L180 713.6L158 722.6L136 730.1L114 737.3L92 745L70 754.1L48 765.3L26 778.6L4 793.7L-18 809.9L-40 826.3Z' fill='url(%23g)'/%3E%3Cpath d='M-40 548.3Q-18 523.5 -7 510.9Q4 498.3 15 486.5Q26 474.7 37 464.3Q48 453.9 59 445.1Q70 436.3 81 428.8Q92 421.3 103 414.6Q114 407.8 125 401.1Q136 394.4 147 387.4Q158 380.3 169 372.8Q180 365.3 191 357.5Q202 349.8 213 342.1Q224 334.5 235 327.4Q246 320.4 257 314.3Q268 308.1 279 303.1Q290 298 301 293.9Q312 289.9 323 286.7Q334 283.5 345 281.1Q356 278.7 367 276.9Q378 275.1 389 274Q400 272.8 411 272.1L422 271.4' fill='none' stroke='rgba(255,255,255,0.43)' stroke-width='1.7'/%3E%3Cpath d='M-40 549.6Q-18 529.6 -7 519.2Q4 508.8 15 498.2Q26 487.6 37 477Q48 466.4 59 456.2Q70 446 81 436.7Q92 427.3 103 419.1Q114 410.8 125 403.8Q136 396.8 147 390.8Q158 384.8 169 379.4Q180 373.9 191 368.4Q202 362.9 213 356.8Q224 350.7 235 343.9Q246 337 257 329.7Q268 322.3 279 315Q290 307.8 301 301.4Q312 295.1 323 290.4Q334 285.7 345 283.1Q356 280.5 367 279.9Q378 279.3 389 279.9Q400 280.6 411 281.5L422 282.5' fill='none' stroke='rgba(255,255,255,0.48)' stroke-width='1.4'/%3E%3Cpath d='M-40 552.4Q-18 532.2 -7 522.2Q4 512.3 15 502.6Q26 492.8 37 483.4Q48 473.9 59 464.7Q70 455.4 81 446.6Q92 437.8 103 429.5Q114 421.3 125 413.9Q136 406.4 147 399.9Q158 393.3 169 387.5Q180 381.6 191 376.1Q202 370.5 213 364.9Q224 359.2 235 353.1Q246 347 257 340.3Q268 333.6 279 326.6Q290 319.7 301 313.1Q312 306.5 323 301.1Q334 295.7 345 292.1Q356 288.4 367 286.8Q378 285.1 389 285.1Q400 285.1 411 285.9L422 286.6' fill='none' stroke='rgba(255,255,255,0.41)' stroke-width='1.4'/%3E%3Cpath d='M-40 560.4Q-18 540 -7 529.3Q4 518.7 15 508.1Q26 497.6 37 487.6Q48 477.6 59 468.5Q70 459.4 81 451.4Q92 443.4 103 436.5Q114 429.6 125 423.6Q136 417.5 147 411.8Q158 406.2 169 400.5Q180 394.8 191 388.7Q202 382.5 213 375.8Q224 369.1 235 361.9Q246 354.7 257 347.3Q268 340 279 333.1Q290 326.1 301 320.2Q312 314.3 323 309.8Q334 305.3 345 302.3Q356 299.3 367 297.8Q378 296.2 389 295.5Q400 294.8 411 294.3L422 293.9' fill='none' stroke='rgba(255,255,255,0.33)' stroke-width='1.1'/%3E%3Cpath d='M-40 565.2Q-18 545.6 -7 535.3Q4 525 15 514.7Q26 504.3 37 494.4Q48 484.5 59 475.5Q70 466.5 81 458.7Q92 450.8 103 444.2Q114 437.6 125 431.8Q136 426.1 147 420.9Q158 415.7 169 410.4Q180 405.1 191 399.2Q202 393.3 213 386.6Q224 379.9 235 372.5Q246 365.1 257 357.5Q268 349.8 279 342.5Q290 335.2 301 329Q312 322.8 323 318Q334 313.3 345 310.3Q356 307.2 367 305.6Q378 303.9 389 303.1Q400 302.3 411 301.6L422 300.9' fill='none' stroke='rgba(255,255,255,0.23)' stroke-width='1.1'/%3E%3Cpath d='M-40 573.3Q-18 552.3 -7 541Q4 529.8 15 518.6Q26 507.5 37 497.5Q48 487.4 59 479.1Q70 470.8 81 464.3Q92 457.8 103 452.7Q114 447.6 125 443.1Q136 438.6 147 433.9Q158 429.1 169 423.4Q180 417.7 191 410.8Q202 403.9 213 396Q224 388 235 379.8Q246 371.5 257 363.7Q268 355.9 279 349.2Q290 342.5 301 337.3Q312 332 323 328.3Q334 324.5 345 321.9Q356 319.2 367 317.1Q378 315 389 313Q400 311 411 308.7L422 306.4' fill='none' stroke='rgba(255,255,255,0.24)' stroke-width='1'/%3E%3Cpath d='M-40 577.1Q-18 556.1 -7 545.1Q4 534.1 15 523.5Q26 513 37 503.7Q48 494.4 59 486.7Q70 479.1 81 473.1Q92 467.1 103 462.2Q114 457.4 125 452.8Q136 448.3 147 443.3Q158 438.3 169 432.4Q180 426.5 191 419.6Q202 412.6 213 404.9Q224 397.1 235 389.2Q246 381.3 257 373.8Q268 366.3 279 359.8Q290 353.2 301 347.9Q312 342.5 323 338.3Q334 334.1 345 330.8Q356 327.4 367 324.7Q378 321.9 389 319.3Q400 316.7 411 314.1L422 311.5' fill='none' stroke='rgba(255,255,255,0.20)' stroke-width='0.8'/%3E%3Cpath d='M-40 575.1Q-18 557.5 -7 549Q4 540.5 15 532.3Q26 524.1 37 516.1Q48 508.1 59 500.3Q70 492.6 81 485.2Q92 477.7 103 470.9Q114 464 125 457.9Q136 451.8 147 446.3Q158 440.9 169 436Q180 431 191 426.1Q202 421.1 213 415.7Q224 410.2 235 403.9Q246 397.6 257 390.3Q268 383.1 279 375.3Q290 367.4 301 359.8Q312 352.2 323 345.5Q334 338.9 345 333.9Q356 329 367 325.9Q378 322.8 389 321.4Q400 319.9 411 319.1L422 318.4' fill='none' stroke='rgba(255,255,255,0.19)' stroke-width='0.9'/%3E%3Cpath d='M-40 584.6Q-18 566.3 -7 556.7Q4 547.1 15 537.6Q26 528.1 37 519.3Q48 510.5 59 502.8Q70 495.2 81 488.9Q92 482.6 103 477.6Q114 472.5 125 468.1Q136 463.7 147 459.5Q158 455.2 169 450.3Q180 445.4 191 439.6Q202 433.7 213 426.7Q224 419.8 235 412Q246 404.2 257 396.1Q268 388.1 279 380.4Q290 372.8 301 366.2Q312 359.5 323 354.2Q334 348.9 345 345Q356 341.1 367 338.2Q378 335.3 389 332.9Q400 330.6 411 328.2L422 325.8' fill='none' stroke='rgba(255,255,255,0.13)' stroke-width='0.6'/%3E%3Cpath d='M-40 586.9Q-18 567.6 -7 558.3Q4 549 15 540.6Q26 532.2 37 525Q48 517.7 59 511.5Q70 505.3 81 499.9Q92 494.5 103 489.5Q114 484.4 125 479.4Q136 474.3 147 469Q158 463.7 169 457.9Q180 452.2 191 446.1Q202 439.9 213 433.4Q224 426.9 235 420.1Q246 413.4 257 406.5Q268 399.6 279 392.7Q290 385.8 301 379.2Q312 372.5 323 366.4Q334 360.2 345 354.8Q356 349.5 367 345.1Q378 340.7 389 337.3Q400 333.8 411 331.1L422 328.4' fill='none' stroke='rgba(255,255,255,0.13)' stroke-width='0.7'/%3E%3Cpath d='M-40 589Q-18 572.1 -7 564.2Q4 556.3 15 548.9Q26 541.6 37 534.7Q48 527.8 59 521.3Q70 514.9 81 508.7Q92 502.5 103 496.7Q114 490.9 125 485.5Q136 480.1 147 475.1Q158 470.1 169 465.2Q180 460.4 191 455.5Q202 450.5 213 445Q224 439.6 235 433.2Q246 426.9 257 419.6Q268 412.3 279 404.4Q290 396.5 301 388.6Q312 380.6 323 373.3Q334 366 345 360.1Q356 354.2 367 349.9Q378 345.7 389 342.9Q400 340.2 411 338.2L422 336.3' fill='none' stroke='rgba(255,255,255,0.07)' stroke-width='0.6'/%3E%3Cpath d='M-40 594.6Q-18 577.5 -7 569.4Q4 561.3 15 553.9Q26 546.5 37 539.9Q48 533.2 59 527.3Q70 521.3 81 515.9Q92 510.4 103 505.4Q114 500.3 125 495.4Q136 490.6 147 485.8Q158 481 169 476Q180 471.1 191 465.8Q202 460.5 213 454.6Q224 448.7 235 442.1Q246 435.5 257 428.2Q268 421 279 413.2Q290 405.5 301 397.8Q312 390.1 323 383Q334 375.8 345 369.8Q356 363.8 367 359.1Q378 354.4 389 350.9Q400 347.5 411 344.8L422 342.1' fill='none' stroke='rgba(255,255,255,0.09)' stroke-width='0.6'/%3E%3Cpath d='M-40 599.6Q-18 584.5 -7 577Q4 569.5 15 562.2Q26 554.9 37 547.9Q48 540.9 59 534.4Q70 527.9 81 522.1Q92 516.3 103 511.3Q114 506.3 125 502Q136 497.8 147 493.9Q158 490 169 486.1Q180 482.1 191 477.5Q202 472.9 213 467.2Q224 461.4 235 454.3Q246 447.2 257 439.1Q268 430.9 279 422.2Q290 413.5 301 405.2Q312 396.8 323 389.5Q334 382.2 345 376.4Q356 370.6 367 366.5Q378 362.3 389 359.3Q400 356.2 411 353.6L422 350.9' fill='none' stroke='rgba(255,255,255,0.07)' stroke-width='0.6'/%3E%3Cpath d='M-40 604.9Q-18 589.7 -7 582.2Q4 574.7 15 567.5Q26 560.3 37 553.5Q48 546.8 59 540.8Q70 534.7 81 529.5Q92 524.3 103 519.9Q114 515.4 125 511.6Q136 507.7 147 504.1Q158 500.5 169 496.5Q180 492.5 191 487.7Q202 482.9 213 476.9Q224 470.9 235 463.7Q246 456.4 257 448.2Q268 440 279 431.3Q290 422.7 301 414.4Q312 406.2 323 398.9Q334 391.6 345 385.6Q356 379.7 367 375.1Q378 370.6 389 367Q400 363.4 411 360.1L422 356.9' fill='none' stroke='rgba(255,255,255,0.07)' stroke-width='0.7'/%3E%3Cpath d='M-40 609.9Q-18 595.1 -7 587.7Q4 580.4 15 573.3Q26 566.2 37 559.7Q48 553.2 59 547.5Q70 541.7 81 536.9Q92 532.1 103 528Q114 524 125 520.6Q136 517.1 147 513.8Q158 510.4 169 506.6Q180 502.8 191 498Q202 493.2 213 487.1Q224 481 235 473.6Q246 466.2 257 457.8Q268 449.4 279 440.7Q290 431.9 301 423.6Q312 415.2 323 407.8Q334 400.4 345 394.3Q356 388.2 367 383.4Q378 378.6 389 374.6Q400 370.7 411 366.9L422 363.2' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='0.5'/%3E%3Cpath d='M-40 614.2Q-18 598.3 -7 590.8Q4 583.2 15 576.6Q26 570 37 564.4Q48 558.9 59 554.3Q70 549.8 81 546Q92 542.3 103 538.8Q114 535.4 125 531.9Q136 528.5 147 524.6Q158 520.7 169 516.2Q180 511.6 191 506.2Q202 500.8 213 494.6Q224 488.4 235 481.3Q246 474.3 257 466.6Q268 459 279 451Q290 443 301 435Q312 427 323 419.4Q334 411.7 345 404.8Q356 398 367 392Q378 386 389 380.9Q400 375.8 411 371.3L422 366.8' fill='none' stroke='rgba(255,255,255,0.05)' stroke-width='0.6'/%3E%3Cpath d='M-40 634.6Q-18 617.8 -7 610.2Q4 602.5 15 595.8Q26 589.2 37 583.4Q48 577.6 59 572.5Q70 567.5 81 562.9Q92 558.3 103 553.9Q114 549.5 125 544.9Q136 540.3 147 535.4Q158 530.4 169 524.9Q180 519.5 191 513.5Q202 507.5 213 501.1Q224 494.8 235 488.2Q246 481.7 257 475.3Q268 468.9 279 462.8Q290 456.7 301 451.1Q312 445.5 323 440.4Q334 435.3 345 430.6Q356 426 367 421.5Q378 417 389 412.5Q400 407.9 411 402.9L422 397.9L422 678.1L400 690L378 703.1L356 717.7L334 734.4L312 753.2L290 774L268 796.4L246 819.6L224 842.8L202 865.1L180 885.6L158 903.9L136 919.4L114 932.4L92 943.1L70 952.1L48 960L26 967.4L4 974.9L-18 982.6L-40 990.6Z' fill='url(%23g)'/%3E%3Cpath d='M-40 631.2Q-18 615.6 -7 609Q4 602.4 15 596.8Q26 591.1 37 586Q48 580.8 59 575.7Q70 570.7 81 565.4Q92 560.1 103 554.6Q114 549.1 125 543.5Q136 538 147 532.5Q158 527 169 521.8Q180 516.5 191 511.3Q202 506.2 213 500.9Q224 495.7 235 490.1Q246 484.4 257 478.4Q268 472.3 279 465.8Q290 459.3 301 452.8Q312 446.2 323 440Q334 433.9 345 428.4Q356 422.9 367 418.3Q378 413.7 389 409.6Q400 405.6 411 401.6L422 397.6' fill='none' stroke='rgba(255,255,255,0.64)' stroke-width='1.9'/%3E%3Cpath d='M-40 644Q-18 629.1 -7 622.1Q4 615 15 608.4Q26 601.7 37 595.5Q48 589.4 59 583.7Q70 578 81 572.8Q92 567.7 103 563Q114 558.3 125 553.9Q136 549.4 147 544.9Q158 540.3 169 535.3Q180 530.3 191 524.5Q202 518.7 213 512.1Q224 505.6 235 498.3Q246 491.1 257 483.7Q268 476.3 279 469.1Q290 462 301 455.7Q312 449.3 323 443.9Q334 438.6 345 434.1Q356 429.7 367 425.7Q378 421.7 389 417.7Q400 413.6 411 408.8L422 404.1' fill='none' stroke='rgba(255,255,255,0.70)' stroke-width='1.6'/%3E%3Cpath d='M-40 650.8Q-18 637.7 -7 631.8Q4 625.9 15 620.2Q26 614.5 37 608.8Q48 603 59 597.2Q70 591.3 81 585.5Q92 579.6 103 574Q114 568.4 125 563.1Q136 557.9 147 553Q158 548 169 543.1Q180 538.2 191 533Q202 527.7 213 521.6Q224 515.6 235 508.6Q246 501.6 257 493.8Q268 486.1 279 478.2Q290 470.2 301 462.7Q312 455.2 323 448.7Q334 442.2 345 437.1Q356 431.9 367 427.8Q378 423.7 389 420.2Q400 416.6 411 412.6L422 408.6' fill='none' stroke='rgba(255,255,255,0.48)' stroke-width='1.3'/%3E%3Cpath d='M-40 661.2Q-18 645.3 -7 638.4Q4 631.5 15 625.8Q26 620.1 37 615.3Q48 610.6 59 606.4Q70 602.1 81 597.9Q92 593.7 103 589Q114 584.3 125 578.9Q136 573.5 147 567.4Q158 561.2 169 554.4Q180 547.6 191 540.5Q202 533.4 213 526.3Q224 519.1 235 512Q246 505 257 498.2Q268 491.3 279 484.7Q290 478.1 301 471.7Q312 465.2 323 459Q334 452.8 345 446.8Q356 440.8 367 435.2Q378 429.5 389 424.1Q400 418.7 411 413.4L422 408.2' fill='none' stroke='rgba(255,255,255,0.44)' stroke-width='1.1'/%3E%3Cpath d='M-40 669.7Q-18 657 -7 651.3Q4 645.5 15 640.1Q26 634.7 37 629.3Q48 624 59 618.6Q70 613.3 81 607.8Q92 602.4 103 597Q114 591.5 125 586.1Q136 580.6 147 575.1Q158 569.7 169 563.9Q180 558.2 191 551.9Q202 545.6 213 538.7Q224 531.7 235 524Q246 516.3 257 508.1Q268 499.9 279 491.7Q290 483.4 301 475.6Q312 467.9 323 461Q334 454.2 345 448.4Q356 442.7 367 438Q378 433.2 389 429Q400 424.7 411 420.3L422 415.8' fill='none' stroke='rgba(255,255,255,0.38)' stroke-width='1.2'/%3E%3Cpath d='M-40 682.7Q-18 669.1 -7 662.3Q4 655.6 15 649.1Q26 642.7 37 636.9Q48 631.1 59 626Q70 620.9 81 616.4Q92 611.9 103 607.6Q114 603.4 125 598.9Q136 594.5 147 589.2Q158 584 169 577.6Q180 571.2 191 563.6Q202 556 213 547.5Q224 538.9 235 529.9Q246 520.9 257 512.1Q268 503.3 279 495.3Q290 487.2 301 480.3Q312 473.3 323 467.4Q334 461.6 345 456.4Q356 451.3 367 446.4Q378 441.5 389 436.4Q400 431.2 411 425.5L422 419.8' fill='none' stroke='rgba(255,255,255,0.42)' stroke-width='1'/%3E%3Cpath d='M-40 692.2Q-18 676.8 -7 669.6Q4 662.3 15 656.2Q26 650 37 645Q48 640.1 59 636.2Q70 632.4 81 629Q92 625.6 103 621.8Q114 618.1 125 613.3Q136 608.5 147 602.2Q158 595.8 169 588Q180 580.2 191 571.3Q202 562.4 213 553.1Q224 543.9 235 534.9Q246 526 257 517.8Q268 509.7 279 502.5Q290 495.3 301 488.9Q312 482.5 323 476.5Q334 470.5 345 464.6Q356 458.6 367 452.5Q378 446.3 389 439.9Q400 433.4 411 426.9L422 420.4' fill='none' stroke='rgba(255,255,255,0.27)' stroke-width='0.8'/%3E%3Cpath d='M-40 695.6Q-18 683.3 -7 678.2Q4 673.2 15 669Q26 664.9 37 661Q48 657.1 59 653Q70 648.9 81 644Q92 639.2 103 633.4Q114 627.6 125 621Q136 614.4 147 607.2Q158 600.1 169 592.7Q180 585.2 191 577.7Q202 570.2 213 562.6Q224 555 235 547.1Q246 539.3 257 531.1Q268 523 279 514.5Q290 506.1 301 497.5Q312 489 323 480.8Q334 472.6 345 465.2Q356 457.7 367 451.3Q378 444.9 389 439.6Q400 434.2 411 429.5L422 424.8' fill='none' stroke='rgba(255,255,255,0.24)' stroke-width='0.8'/%3E%3Cpath d='M-40 707Q-18 693 -7 687.1Q4 681.2 15 676.6Q26 672 37 668.4Q48 664.8 59 661.5Q70 658.3 81 654.6Q92 651 103 646.2Q114 641.4 125 635.1Q136 628.9 147 621.2Q158 613.5 169 604.9Q180 596.3 191 587.3Q202 578.3 213 569.4Q224 560.5 235 552Q246 543.6 257 535.6Q268 527.5 279 519.8Q290 512.1 301 504.4Q312 496.7 323 489Q334 481.4 345 473.8Q356 466.2 367 458.9Q378 451.7 389 445Q400 438.4 411 432.5L422 426.6' fill='none' stroke='rgba(255,255,255,0.20)' stroke-width='0.9'/%3E%3Cpath d='M-40 714.8Q-18 703.3 -7 698.5Q4 693.7 15 689.7Q26 685.7 37 682Q48 678.3 59 674.4Q70 670.5 81 665.8Q92 661.2 103 655.5Q114 649.9 125 643.3Q136 636.6 147 629.1Q158 621.7 169 613.7Q180 605.6 191 597.3Q202 589 213 580.4Q224 571.9 235 563.2Q246 554.5 257 545.6Q268 536.7 279 527.7Q290 518.7 301 509.8Q312 500.9 323 492.3Q334 483.8 345 476Q356 468.2 367 461.4Q378 454.6 389 448.8Q400 443 411 437.9L422 432.9' fill='none' stroke='rgba(255,255,255,0.18)' stroke-width='0.6'/%3E%3Cpath d='M-40 723.4Q-18 714.6 -7 710.8Q4 707 15 703.3Q26 699.5 37 695.4Q48 691.3 59 686.5Q70 681.6 81 676Q92 670.3 103 664.1Q114 657.8 125 651.1Q136 644.4 147 637.4Q158 630.5 169 623.2Q180 616 191 608.3Q202 600.6 213 592.2Q224 583.8 235 574.5Q246 565.2 257 555.2Q268 545.1 279 534.7Q290 524.3 301 514.2Q312 504.1 323 495Q334 485.9 345 478.3Q356 470.6 367 464.6Q378 458.5 389 453.6Q400 448.7 411 444.3L422 439.9' fill='none' stroke='rgba(255,255,255,0.14)' stroke-width='0.8'/%3E%3Cpath d='M-40 737.2Q-18 728.6 -7 724Q4 719.3 15 714.3Q26 709.3 37 704Q48 698.7 59 693.4Q70 688.1 81 682.9Q92 677.7 103 672.6Q114 667.4 125 662.1Q136 656.8 147 650.8Q158 644.9 169 637.7Q180 630.6 191 621.9Q202 613.3 213 603.2Q224 593.1 235 582Q246 570.9 257 559.4Q268 548 279 537.2Q290 526.4 301 516.8Q312 507.3 323 499.3Q334 491.4 345 484.9Q356 478.5 367 473Q378 467.5 389 462.3Q400 457.2 411 451.6L422 446.1' fill='none' stroke='rgba(255,255,255,0.14)' stroke-width='0.6'/%3E%3Cpath d='M-40 744.7Q-18 737 -7 733.1Q4 729.2 15 724.9Q26 720.6 37 715.9Q48 711.2 59 706.1Q70 700.9 81 695.5Q92 690 103 684.3Q114 678.6 125 672.7Q136 666.7 147 660.2Q158 653.6 169 646.2Q180 638.8 191 630.2Q202 621.6 213 611.7Q224 601.9 235 590.9Q246 579.9 257 568.5Q268 557 279 545.7Q290 534.5 301 524.2Q312 513.9 323 505.1Q334 496.4 345 489.2Q356 482 367 476.1Q378 470.3 389 465.1Q400 460 411 454.8L422 449.7' fill='none' stroke='rgba(255,255,255,0.09)' stroke-width='0.6'/%3E%3Cpath d='M-40 756.8Q-18 745.7 -7 740.2Q4 734.8 15 729.9Q26 725.1 37 721Q48 717 59 713.5Q70 710.1 81 706.7Q92 703.3 103 699.1Q114 695 125 689.3Q136 683.7 147 676.2Q158 668.6 169 659.2Q180 649.7 191 638.8Q202 627.9 213 616.3Q224 604.8 235 593.3Q246 581.8 257 571.1Q268 560.4 279 550.7Q290 541.1 301 532.4Q312 523.7 323 515.8Q334 507.8 345 500.2Q356 492.6 367 485.2Q378 477.8 389 470.5Q400 463.2 411 456.2L422 449.2' fill='none' stroke='rgba(255,255,255,0.10)' stroke-width='0.6'/%3E%3Cpath d='M-40 761.8Q-18 753.5 -7 749.9Q4 746.2 15 742.8Q26 739.5 37 736.1Q48 732.7 59 728.9Q70 725 81 720.3Q92 715.7 103 709.9Q114 704.2 125 697.2Q136 690.3 147 682.3Q158 674.3 169 665.3Q180 656.3 191 646.5Q202 636.7 213 626.3Q224 615.9 235 605.1Q246 594.2 257 583.2Q268 572.2 279 561.3Q290 550.3 301 539.9Q312 529.4 323 519.7Q334 510 345 501.4Q356 492.8 367 485.4Q378 478 389 471.7Q400 465.3 411 459.8L422 454.2' fill='none' stroke='rgba(255,255,255,0.07)' stroke-width='0.6'/%3E%3Cpath d='M-40 773.8Q-18 765.6 -7 761.5Q4 757.4 15 753.3Q26 749.2 37 745.3Q48 741.3 59 737.4Q70 733.4 81 729.1Q92 724.8 103 719.8Q114 714.8 125 708.6Q136 702.5 147 694.8Q158 687.2 169 678.1Q180 668.9 191 658.3Q202 647.7 213 636.1Q224 624.6 235 612.5Q246 600.5 257 588.6Q268 576.8 279 565.6Q290 554.4 301 544.2Q312 534 323 524.9Q334 515.9 345 507.8Q356 499.7 367 492.5Q378 485.2 389 478.6Q400 471.9 411 465.6L422 459.2' fill='none' stroke='rgba(255,255,255,0.07)' stroke-width='0.6'/%3E%3Cpath d='M-40 782.7Q-18 774.6 -7 770.6Q4 766.6 15 762.9Q26 759.1 37 755.6Q48 752.1 59 748.5Q70 744.9 81 740.9Q92 736.8 103 731.8Q114 726.8 125 720.4Q136 713.9 147 705.8Q158 697.7 169 688Q180 678.2 191 667.2Q202 656.1 213 644.2Q224 632.2 235 620.1Q246 607.9 257 596Q268 584.1 279 572.9Q290 561.6 301 551.3Q312 540.9 323 531.5Q334 522.1 345 513.6Q356 505 367 497.3Q378 489.5 389 482.4Q400 475.3 411 468.8L422 462.3' fill='none' stroke='rgba(255,255,255,0.07)' stroke-width='0.8'/%3E%3Cpath d='M-40 788.1Q-18 782.5 -7 780.1Q4 777.8 15 775.4Q26 773 37 770.1Q48 767.3 59 763.4Q70 759.5 81 754.4Q92 749.3 103 742.8Q114 736.4 125 728.7Q136 721.1 147 712.5Q158 703.9 169 694.5Q180 685.1 191 674.9Q202 664.8 213 653.9Q224 643 235 631.4Q246 619.7 257 607.6Q268 595.4 279 583.1Q290 570.8 301 558.8Q312 546.8 323 535.8Q334 524.9 345 515.3Q356 505.8 367 498Q378 490.1 389 483.8Q400 477.5 411 472.3L422 467.1' fill='none' stroke='rgba(255,255,255,0.07)' stroke-width='0.7'/%3E%3C/svg%3E") center bottom / cover no-repeat;
+  opacity: .7;
+  animation: as-flow-back 9s ease-in-out infinite alternate;
+}
+/* คลื่นเงินชั้นหน้า — สว่างที่สุด สันคลื่นกวาดจากล่างซ้ายขึ้นขวาบนแบบภาพอ้างอิง ไหลสวนทางชั้นหลัง
+   สองชั้นไหลคนละทางคือสิ่งที่ทำให้มันอ่านเป็น "ของไหล" ไม่ใช่ลายเส้นแผ่นเดียว
+   หรี่ไว้ .78 — สันคลื่นที่สว่างที่สุดอยู่หลังแถวไทล์กับแถบล่าง ตัวหนังสือต้องยังชนะ */
+:root[data-theme="astral"] .fx-g {
+  z-index: 4;
+  inset: 0 -72px;
+  transform-origin: 50% 100%;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 860' preserveAspectRatio='xMidYMax slice'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='rgb(10,10,10)' stop-opacity='.92'/%3E%3Cstop offset='.5' stop-color='rgb(3,3,3)' stop-opacity='.97'/%3E%3Cstop offset='1' stop-color='rgb(0,0,0)'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M-40 773.4Q-18 753.5 -7 742Q4 730.4 15 717.7Q26 705 37 691.6Q48 678.2 59 664.8Q70 651.3 81 638.4Q92 625.5 103 613.7Q114 601.8 125 591.5Q136 581.1 147 572.4Q158 563.7 169 556.7Q180 549.6 191 544Q202 538.4 213 533.8Q224 529.2 235 525.3Q246 521.4 257 517.7Q268 514 279 510.3Q290 506.5 301 502.4Q312 498.4 323 494.1Q334 489.8 345 485.3Q356 480.8 367 476.4Q378 471.9 389 467.9Q400 463.8 411 460.4L422 456.9L422 839.3L400 858.3L378 877.3L356 895.3L334 911.4L312 924.9L290 935.3L268 942.5L246 947.1L224 949.6L202 951.1L180 952.9L158 955.8L136 960.9L114 968.7L92 979.2L70 992.2L48 1007.2L26 1023.3L4 1039.8L-18 1056L-40 1071.5Z' fill='url(%23g)'/%3E%3Cpath d='M-40 772.2Q-18 753.7 -7 742.9Q4 732.1 15 719.7Q26 707.3 37 693.8Q48 680.3 59 666.2Q70 652.2 81 638.5Q92 624.9 103 612.4Q114 600 125 589.4Q136 578.8 147 570.4Q158 561.9 169 555.5Q180 549.1 191 544.2Q202 539.3 213 535.3Q224 531.3 235 527.5Q246 523.7 257 519.6Q268 515.6 279 511.1Q290 506.7 301 501.9Q312 497.1 323 492.3Q334 487.5 345 483.1Q356 478.6 367 474.6Q378 470.7 389 467.4Q400 464 411 461.3L422 458.5' fill='none' stroke='rgba(255,255,255,0.83)' stroke-width='1.7'/%3E%3Cpath d='M-40 775.8Q-18 757 -7 746.3Q4 735.6 15 723.7Q26 711.8 37 699Q48 686.2 59 672.9Q70 659.7 81 646.6Q92 633.5 103 621.4Q114 609.3 125 598.8Q136 588.3 147 579.7Q158 571.2 169 564.6Q180 558.1 191 553.3Q202 548.5 213 544.8Q224 541 235 537.7Q246 534.4 257 530.9Q268 527.4 279 523.3Q290 519.2 301 514.5Q312 509.8 323 504.8Q334 499.7 345 494.6Q356 489.5 367 484.9Q378 480.2 389 476.3Q400 472.3 411 469.2L422 466' fill='none' stroke='rgba(255,255,255,0.87)' stroke-width='1.6'/%3E%3Cpath d='M-40 781.3Q-18 760.6 -7 749.3Q4 737.9 15 725.9Q26 714 37 701.8Q48 689.6 59 677.6Q70 665.5 81 653.9Q92 642.2 103 631.2Q114 620.2 125 610.2Q136 600.2 147 591.5Q158 582.8 169 575.6Q180 568.4 191 562.8Q202 557.3 213 553.1Q224 548.9 235 545.8Q246 542.6 257 539.8Q268 537 279 534Q290 530.9 301 527.1Q312 523.3 323 518.6Q334 513.9 345 508.5Q356 503.1 367 497.4Q378 491.7 389 486.4Q400 481.1 411 476.7L422 472.4' fill='none' stroke='rgba(255,255,255,0.67)' stroke-width='1.4'/%3E%3Cpath d='M-40 789.5Q-18 770.1 -7 758.3Q4 746.6 15 733.5Q26 720.5 37 707Q48 693.6 59 680.7Q70 667.8 81 656.3Q92 644.7 103 634.8Q114 625 125 616.8Q136 608.6 147 601.7Q158 594.9 169 589Q180 583.1 191 577.8Q202 572.4 213 567.5Q224 562.6 235 558Q246 553.5 257 549.3Q268 545.1 279 541.3Q290 537.5 301 533.9Q312 530.3 323 526.6Q334 523 345 518.9Q356 514.9 367 510.3Q378 505.7 389 500.6Q400 495.6 411 490.4L422 485.2' fill='none' stroke='rgba(255,255,255,0.70)' stroke-width='1.3'/%3E%3Cpath d='M-40 790.7Q-18 770.5 -7 759.4Q4 748.2 15 736.5Q26 724.8 37 712.9Q48 701 59 689.5Q70 677.9 81 667Q92 656 103 645.9Q114 635.9 125 626.8Q136 617.8 147 610Q158 602.2 169 595.8Q180 589.3 191 584.2Q202 579.1 213 575.2Q224 571.2 235 568.1Q246 564.9 257 562Q268 559.2 279 556Q290 552.9 301 549.1Q312 545.3 323 540.5Q334 535.8 345 530.3Q356 524.7 367 518.8Q378 512.8 389 506.9Q400 501.1 411 495.9L422 490.7' fill='none' stroke='rgba(255,255,255,0.62)' stroke-width='1.1'/%3E%3Cpath d='M-40 798.1Q-18 779.1 -7 767.7Q4 756.3 15 743.8Q26 731.2 37 718.3Q48 705.5 59 693.3Q70 681.1 81 670.2Q92 659.4 103 650.3Q114 641.1 125 633.6Q136 626.1 147 619.9Q158 613.8 169 608.4Q180 603.1 191 598.3Q202 593.5 213 589Q224 584.5 235 580.2Q246 576 257 572Q268 568 279 564.2Q290 560.4 301 556.7Q312 553 323 549.1Q334 545.1 345 540.7Q356 536.2 367 531.1Q378 526 389 520.3Q400 514.6 411 508.8L422 502.9' fill='none' stroke='rgba(255,255,255,0.55)' stroke-width='1.2'/%3E%3Cpath d='M-40 797.9Q-18 778.2 -7 767.6Q4 757.1 15 746.3Q26 735.5 37 724.7Q48 713.8 59 703.2Q70 692.6 81 682.3Q92 672 103 662.4Q114 652.7 125 643.9Q136 635.1 147 627.6Q158 620.1 169 614Q180 608 191 603.5Q202 599 213 595.8Q224 592.6 235 590.2Q246 587.8 257 585.5Q268 583.2 279 580.2Q290 577.3 301 573.1Q312 569 323 563.6Q334 558.2 345 551.8Q356 545.4 367 538.6Q378 531.8 389 525.3Q400 518.8 411 513.2L422 507.6' fill='none' stroke='rgba(255,255,255,0.52)' stroke-width='1'/%3E%3Cpath d='M-40 804.8Q-18 784.4 -7 773.3Q4 762.2 15 750.8Q26 739.4 37 728.3Q48 717.3 59 707Q70 696.7 81 687.3Q92 678 103 669.5Q114 661 125 653.3Q136 645.7 147 638.9Q158 632.1 169 626.2Q180 620.3 191 615.4Q202 610.6 213 606.8Q224 602.9 235 600Q246 597 257 594.5Q268 592 279 589.3Q290 586.6 301 583.1Q312 579.7 323 575Q334 570.3 345 564.3Q356 558.4 367 551.4Q378 544.5 389 537.3Q400 530.1 411 523.4L422 516.7' fill='none' stroke='rgba(255,255,255,0.37)' stroke-width='1.1'/%3E%3Cpath d='M-40 808.9Q-18 791 -7 780.8Q4 770.5 15 759.4Q26 748.2 37 736.7Q48 725.2 59 714.1Q70 702.9 81 692.8Q92 682.7 103 674.1Q114 665.4 125 658.4Q136 651.3 147 645.7Q158 640.1 169 635.7Q180 631.3 191 627.7Q202 624 213 620.8Q224 617.5 235 614.3Q246 611.1 257 607.7Q268 604.2 279 600.4Q290 596.5 301 592.2Q312 587.8 323 582.8Q334 577.8 345 572.2Q356 566.6 367 560.5Q378 554.4 389 548Q400 541.7 411 535.4L422 529' fill='none' stroke='rgba(255,255,255,0.33)' stroke-width='0.9'/%3E%3Cpath d='M-40 810.4Q-18 793.9 -7 784.8Q4 775.7 15 765.6Q26 755.5 37 744.8Q48 734 59 723.1Q70 712.2 81 701.7Q92 691.3 103 682Q114 672.8 125 665.3Q136 657.7 147 652.2Q158 646.6 169 642.8Q180 639 191 636.4Q202 633.8 213 631.7Q224 629.6 235 627.3Q246 624.9 257 621.8Q268 618.6 279 614.3Q290 610 301 604.7Q312 599.4 323 593.3Q334 587.3 345 580.9Q356 574.5 367 568.1Q378 561.7 389 555.6Q400 549.5 411 543.8L422 538.1' fill='none' stroke='rgba(255,255,255,0.32)' stroke-width='0.9'/%3E%3Cpath d='M-40 819.9Q-18 801.3 -7 790.5Q4 779.7 15 768.3Q26 756.8 37 745.6Q48 734.3 59 724.1Q70 713.9 81 705.3Q92 696.6 103 689.6Q114 682.5 125 676.9Q136 671.2 147 666.5Q158 661.7 169 657.5Q180 653.3 191 649.4Q202 645.5 213 641.8Q224 638.1 235 634.6Q246 631 257 627.7Q268 624.4 279 621.1Q290 617.8 301 614.1Q312 610.5 323 606.1Q334 601.6 345 596.1Q356 590.6 367 583.9Q378 577.2 389 569.6Q400 562 411 554.2L422 546.3' fill='none' stroke='rgba(255,255,255,0.31)' stroke-width='0.8'/%3E%3Cpath d='M-40 817.6Q-18 800.2 -7 791.3Q4 782.4 15 773.4Q26 764.3 37 755Q48 745.8 59 736.5Q70 727.2 81 718Q92 708.9 103 700.3Q114 691.8 125 684.3Q136 676.9 147 671Q158 665.1 169 661Q180 656.9 191 654.4Q202 651.9 213 650.4Q224 648.9 235 647.6Q246 646.3 257 644.2Q268 642.2 279 638.8Q290 635.3 301 630.2Q312 625.1 323 618.4Q334 611.8 345 604.1Q356 596.5 367 588.6Q378 580.8 389 573.4Q400 565.9 411 559.4L422 552.8' fill='none' stroke='rgba(255,255,255,0.30)' stroke-width='0.8'/%3E%3Cpath d='M-40 823.1Q-18 806.6 -7 797.9Q4 789.1 15 779.8Q26 770.5 37 761Q48 751.4 59 741.8Q70 732.3 81 723.3Q92 714.2 103 706.2Q114 698.2 125 691.6Q136 685.1 147 680.1Q158 675.2 169 671.9Q180 668.6 191 666.5Q202 664.4 213 662.8Q224 661.3 235 659.5Q246 657.8 257 655.2Q268 652.7 279 648.8Q290 645 301 639.8Q312 634.5 323 628.1Q334 621.7 345 614.4Q356 607.2 367 599.7Q378 592.1 389 584.8Q400 577.4 411 570.4L422 563.5' fill='none' stroke='rgba(255,255,255,0.20)' stroke-width='0.9'/%3E%3Cpath d='M-40 825.7Q-18 810.8 -7 802.9Q4 795.1 15 786.5Q26 778 37 768.8Q48 759.6 59 750Q70 740.4 81 731Q92 721.6 103 713.2Q114 704.9 125 698.2Q136 691.6 147 687.1Q158 682.5 169 680Q180 677.5 191 676.4Q202 675.3 213 674.6Q224 673.9 235 672.6Q246 671.4 257 668.7Q268 666 279 661.6Q290 657.2 301 651.2Q312 645.1 323 638Q334 630.8 345 623.2Q356 615.5 367 608.1Q378 600.6 389 593.5Q400 586.5 411 580L422 573.4' fill='none' stroke='rgba(255,255,255,0.22)' stroke-width='0.6'/%3E%3Cpath d='M-40 832.3Q-18 818.3 -7 810.3Q4 802.3 15 793.2Q26 784.1 37 774.2Q48 764.3 59 754.4Q70 744.4 81 735.2Q92 726 103 718.4Q114 710.9 125 705.5Q136 700.1 147 696.8Q158 693.6 169 692Q180 690.4 191 689.5Q202 688.6 213 687.6Q224 686.5 235 684.5Q246 682.4 257 678.9Q268 675.5 279 670.6Q290 665.7 301 659.8Q312 653.8 323 647.2Q334 640.6 345 633.8Q356 626.9 367 620Q378 613 389 606Q400 599 411 591.9L422 584.7' fill='none' stroke='rgba(255,255,255,0.20)' stroke-width='0.8'/%3E%3Cpath d='M-40 836.8Q-18 818.8 -7 809.7Q4 800.6 15 791.9Q26 783.1 37 775Q48 766.9 59 759.4Q70 751.9 81 745Q92 738.2 103 731.9Q114 725.7 125 720.2Q136 714.7 147 710.1Q158 705.5 169 702Q180 698.5 191 696.1Q202 693.7 213 692.2Q224 690.7 235 689.5Q246 688.4 257 686.9Q268 685.4 279 682.8Q290 680.1 301 675.7Q312 671.2 323 664.8Q334 658.4 345 650.2Q356 642 367 632.8Q378 623.6 389 614.1Q400 604.7 411 595.9L422 587.1' fill='none' stroke='rgba(255,255,255,0.13)' stroke-width='0.5'/%3E%3Cpath d='M-40 843.2Q-18 824.8 -7 815.3Q4 805.8 15 796.7Q26 787.5 37 779.2Q48 770.9 59 763.7Q70 756.4 81 750.3Q92 744.2 103 739Q114 733.7 125 729.2Q136 724.7 147 720.8Q158 717 169 713.7Q180 710.4 191 707.8Q202 705.2 213 703.3Q224 701.3 235 699.7Q246 698.2 257 696.5Q268 694.8 279 692.3Q290 689.8 301 685.8Q312 681.8 323 675.9Q334 670 345 662.2Q356 654.4 367 645.1Q378 635.8 389 625.8Q400 615.8 411 606.1L422 596.4' fill='none' stroke='rgba(255,255,255,0.15)' stroke-width='0.7'/%3E%3Cpath d='M-40 844.7Q-18 829.6 -7 821.8Q4 813.9 15 805.8Q26 797.7 37 789.4Q48 781.2 59 773.2Q70 765.2 81 757.8Q92 750.5 103 744.3Q114 738 125 733.3Q136 728.6 147 725.5Q158 722.4 169 720.8Q180 719.1 191 718.3Q202 717.6 213 717Q224 716.5 235 715.4Q246 714.2 257 711.9Q268 709.6 279 705.7Q290 701.8 301 696.2Q312 690.6 323 683.6Q334 676.6 345 668.5Q356 660.4 367 651.7Q378 643.1 389 634.3Q400 625.5 411 616.9L422 608.3' fill='none' stroke='rgba(255,255,255,0.11)' stroke-width='0.6'/%3E%3Cpath d='M-40 849Q-18 834.3 -7 826.7Q4 819 15 811.1Q26 803.2 37 795.2Q48 787.2 59 779.5Q70 771.7 81 764.7Q92 757.6 103 751.8Q114 745.9 125 741.6Q136 737.2 147 734.5Q158 731.8 169 730.5Q180 729.2 191 728.8Q202 728.3 213 728Q224 727.6 235 726.6Q246 725.6 257 723.3Q268 721 279 717.1Q290 713.1 301 707.4Q312 701.8 323 694.6Q334 687.4 345 679.2Q356 671 367 662.1Q378 653.3 389 644.3Q400 635.2 411 626.3L422 617.4' fill='none' stroke='rgba(255,255,255,0.10)' stroke-width='0.5'/%3E%3Cpath d='M-40 853.9Q-18 839.6 -7 832.1Q4 824.6 15 816.7Q26 808.8 37 800.8Q48 792.9 59 785.2Q70 777.6 81 770.9Q92 764.1 103 758.8Q114 753.4 125 749.6Q136 745.9 147 743.8Q158 741.7 169 740.9Q180 740 191 739.8Q202 739.6 213 739.3Q224 739.1 235 737.9Q246 736.8 257 734.4Q268 731.9 279 727.8Q290 723.8 301 718Q312 712.3 323 705.2Q334 698.1 345 690Q356 681.8 367 672.9Q378 664.1 389 654.8Q400 645.6 411 636.3L422 627' fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='0.7'/%3E%3Cpath d='M-40 857.5Q-18 842.3 -7 834.8Q4 827.3 15 820Q26 812.6 37 805.6Q48 798.5 59 791.9Q70 785.3 81 779.4Q92 773.4 103 768.5Q114 763.5 125 759.7Q136 756 147 753.5Q158 751.1 169 749.9Q180 748.7 191 748.4Q202 748.1 213 748.1Q224 748 235 747.6Q246 747.1 257 745.4Q268 743.7 279 740.2Q290 736.8 301 731.3Q312 725.8 323 718.4Q334 711 345 702.1Q356 693.2 367 683.3Q378 673.5 389 663.5Q400 653.4 411 643.6L422 633.7' fill='none' stroke='rgba(255,255,255,0.10)' stroke-width='0.8'/%3E%3Cpath d='M-40 863.8Q-18 850.1 -7 842.7Q4 835.3 15 827.4Q26 819.6 37 811.7Q48 803.9 59 796.7Q70 789.4 81 783.4Q92 777.4 103 773.1Q114 768.8 125 766.2Q136 763.7 147 762.7Q158 761.6 169 761.6Q180 761.6 191 761.8Q202 762 213 761.7Q224 761.5 235 760.2Q246 758.9 257 756.2Q268 753.5 279 749.3Q290 745.1 301 739.5Q312 733.9 323 726.9Q334 720 345 711.9Q356 703.8 367 694.7Q378 685.7 389 675.9Q400 666.2 411 655.9L422 645.7' fill='none' stroke='rgba(255,255,255,0.11)' stroke-width='0.7'/%3E%3C/svg%3E") center bottom / cover no-repeat;
+  opacity: .78;
+  animation: as-flow-front 7s ease-in-out infinite alternate;
+}
+/* แสงวิ่งไปตามเส้นคลื่นชั้นหน้า — เจ้าของ: "ทำให้เส้นมันขยับให้เห็นชัดกว่านี้"
+   การแกว่งทั้งชั้นอย่างเดียวยังอ่านว่า "ภาพเลื่อน" · แสงที่ไหลไปตามเส้นต่างหากที่อ่านว่า "เส้นกำลังไหล"
+   หน้ากากคือเส้นชุดเดียวกับชั้นหน้าแต่ไม่มีพื้นดำ (สร้างจาก seed เดิม ตำแหน่งตรงกันเป๊ะ)
+   แสงจึงติดเฉพาะตัวเส้น ไม่ใช่ทั้งก้อนคลื่น · เป็นลูกของ .fx-g จึงแกว่งไปพร้อมกับเส้นของมันเอง */
+:root[data-theme="astral"] .fx-g::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 38%, rgba(255,255,255,.5) 46%, #fff 50%, rgba(255,255,255,.5) 54%, transparent 62%)
+    0 0 / 320% 100% no-repeat;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 860' preserveAspectRatio='xMidYMax slice'%3E%3Cpath d='M-40 772.2Q-18 753.7 -7 742.9Q4 732.1 15 719.7Q26 707.3 37 693.8Q48 680.3 59 666.2Q70 652.2 81 638.5Q92 624.9 103 612.4Q114 600 125 589.4Q136 578.8 147 570.4Q158 561.9 169 555.5Q180 549.1 191 544.2Q202 539.3 213 535.3Q224 531.3 235 527.5Q246 523.7 257 519.6Q268 515.6 279 511.1Q290 506.7 301 501.9Q312 497.1 323 492.3Q334 487.5 345 483.1Q356 478.6 367 474.6Q378 470.7 389 467.4Q400 464 411 461.3L422 458.5' fill='none' stroke='rgba(255,255,255,0.83)' stroke-width='1.7'/%3E%3Cpath d='M-40 775.8Q-18 757 -7 746.3Q4 735.6 15 723.7Q26 711.8 37 699Q48 686.2 59 672.9Q70 659.7 81 646.6Q92 633.5 103 621.4Q114 609.3 125 598.8Q136 588.3 147 579.7Q158 571.2 169 564.6Q180 558.1 191 553.3Q202 548.5 213 544.8Q224 541 235 537.7Q246 534.4 257 530.9Q268 527.4 279 523.3Q290 519.2 301 514.5Q312 509.8 323 504.8Q334 499.7 345 494.6Q356 489.5 367 484.9Q378 480.2 389 476.3Q400 472.3 411 469.2L422 466' fill='none' stroke='rgba(255,255,255,0.87)' stroke-width='1.6'/%3E%3Cpath d='M-40 781.3Q-18 760.6 -7 749.3Q4 737.9 15 725.9Q26 714 37 701.8Q48 689.6 59 677.6Q70 665.5 81 653.9Q92 642.2 103 631.2Q114 620.2 125 610.2Q136 600.2 147 591.5Q158 582.8 169 575.6Q180 568.4 191 562.8Q202 557.3 213 553.1Q224 548.9 235 545.8Q246 542.6 257 539.8Q268 537 279 534Q290 530.9 301 527.1Q312 523.3 323 518.6Q334 513.9 345 508.5Q356 503.1 367 497.4Q378 491.7 389 486.4Q400 481.1 411 476.7L422 472.4' fill='none' stroke='rgba(255,255,255,0.67)' stroke-width='1.4'/%3E%3Cpath d='M-40 789.5Q-18 770.1 -7 758.3Q4 746.6 15 733.5Q26 720.5 37 707Q48 693.6 59 680.7Q70 667.8 81 656.3Q92 644.7 103 634.8Q114 625 125 616.8Q136 608.6 147 601.7Q158 594.9 169 589Q180 583.1 191 577.8Q202 572.4 213 567.5Q224 562.6 235 558Q246 553.5 257 549.3Q268 545.1 279 541.3Q290 537.5 301 533.9Q312 530.3 323 526.6Q334 523 345 518.9Q356 514.9 367 510.3Q378 505.7 389 500.6Q400 495.6 411 490.4L422 485.2' fill='none' stroke='rgba(255,255,255,0.70)' stroke-width='1.3'/%3E%3Cpath d='M-40 790.7Q-18 770.5 -7 759.4Q4 748.2 15 736.5Q26 724.8 37 712.9Q48 701 59 689.5Q70 677.9 81 667Q92 656 103 645.9Q114 635.9 125 626.8Q136 617.8 147 610Q158 602.2 169 595.8Q180 589.3 191 584.2Q202 579.1 213 575.2Q224 571.2 235 568.1Q246 564.9 257 562Q268 559.2 279 556Q290 552.9 301 549.1Q312 545.3 323 540.5Q334 535.8 345 530.3Q356 524.7 367 518.8Q378 512.8 389 506.9Q400 501.1 411 495.9L422 490.7' fill='none' stroke='rgba(255,255,255,0.62)' stroke-width='1.1'/%3E%3Cpath d='M-40 798.1Q-18 779.1 -7 767.7Q4 756.3 15 743.8Q26 731.2 37 718.3Q48 705.5 59 693.3Q70 681.1 81 670.2Q92 659.4 103 650.3Q114 641.1 125 633.6Q136 626.1 147 619.9Q158 613.8 169 608.4Q180 603.1 191 598.3Q202 593.5 213 589Q224 584.5 235 580.2Q246 576 257 572Q268 568 279 564.2Q290 560.4 301 556.7Q312 553 323 549.1Q334 545.1 345 540.7Q356 536.2 367 531.1Q378 526 389 520.3Q400 514.6 411 508.8L422 502.9' fill='none' stroke='rgba(255,255,255,0.55)' stroke-width='1.2'/%3E%3Cpath d='M-40 797.9Q-18 778.2 -7 767.6Q4 757.1 15 746.3Q26 735.5 37 724.7Q48 713.8 59 703.2Q70 692.6 81 682.3Q92 672 103 662.4Q114 652.7 125 643.9Q136 635.1 147 627.6Q158 620.1 169 614Q180 608 191 603.5Q202 599 213 595.8Q224 592.6 235 590.2Q246 587.8 257 585.5Q268 583.2 279 580.2Q290 577.3 301 573.1Q312 569 323 563.6Q334 558.2 345 551.8Q356 545.4 367 538.6Q378 531.8 389 525.3Q400 518.8 411 513.2L422 507.6' fill='none' stroke='rgba(255,255,255,0.52)' stroke-width='1'/%3E%3Cpath d='M-40 804.8Q-18 784.4 -7 773.3Q4 762.2 15 750.8Q26 739.4 37 728.3Q48 717.3 59 707Q70 696.7 81 687.3Q92 678 103 669.5Q114 661 125 653.3Q136 645.7 147 638.9Q158 632.1 169 626.2Q180 620.3 191 615.4Q202 610.6 213 606.8Q224 602.9 235 600Q246 597 257 594.5Q268 592 279 589.3Q290 586.6 301 583.1Q312 579.7 323 575Q334 570.3 345 564.3Q356 558.4 367 551.4Q378 544.5 389 537.3Q400 530.1 411 523.4L422 516.7' fill='none' stroke='rgba(255,255,255,0.37)' stroke-width='1.1'/%3E%3Cpath d='M-40 808.9Q-18 791 -7 780.8Q4 770.5 15 759.4Q26 748.2 37 736.7Q48 725.2 59 714.1Q70 702.9 81 692.8Q92 682.7 103 674.1Q114 665.4 125 658.4Q136 651.3 147 645.7Q158 640.1 169 635.7Q180 631.3 191 627.7Q202 624 213 620.8Q224 617.5 235 614.3Q246 611.1 257 607.7Q268 604.2 279 600.4Q290 596.5 301 592.2Q312 587.8 323 582.8Q334 577.8 345 572.2Q356 566.6 367 560.5Q378 554.4 389 548Q400 541.7 411 535.4L422 529' fill='none' stroke='rgba(255,255,255,0.33)' stroke-width='0.9'/%3E%3Cpath d='M-40 810.4Q-18 793.9 -7 784.8Q4 775.7 15 765.6Q26 755.5 37 744.8Q48 734 59 723.1Q70 712.2 81 701.7Q92 691.3 103 682Q114 672.8 125 665.3Q136 657.7 147 652.2Q158 646.6 169 642.8Q180 639 191 636.4Q202 633.8 213 631.7Q224 629.6 235 627.3Q246 624.9 257 621.8Q268 618.6 279 614.3Q290 610 301 604.7Q312 599.4 323 593.3Q334 587.3 345 580.9Q356 574.5 367 568.1Q378 561.7 389 555.6Q400 549.5 411 543.8L422 538.1' fill='none' stroke='rgba(255,255,255,0.32)' stroke-width='0.9'/%3E%3Cpath d='M-40 819.9Q-18 801.3 -7 790.5Q4 779.7 15 768.3Q26 756.8 37 745.6Q48 734.3 59 724.1Q70 713.9 81 705.3Q92 696.6 103 689.6Q114 682.5 125 676.9Q136 671.2 147 666.5Q158 661.7 169 657.5Q180 653.3 191 649.4Q202 645.5 213 641.8Q224 638.1 235 634.6Q246 631 257 627.7Q268 624.4 279 621.1Q290 617.8 301 614.1Q312 610.5 323 606.1Q334 601.6 345 596.1Q356 590.6 367 583.9Q378 577.2 389 569.6Q400 562 411 554.2L422 546.3' fill='none' stroke='rgba(255,255,255,0.31)' stroke-width='0.8'/%3E%3Cpath d='M-40 817.6Q-18 800.2 -7 791.3Q4 782.4 15 773.4Q26 764.3 37 755Q48 745.8 59 736.5Q70 727.2 81 718Q92 708.9 103 700.3Q114 691.8 125 684.3Q136 676.9 147 671Q158 665.1 169 661Q180 656.9 191 654.4Q202 651.9 213 650.4Q224 648.9 235 647.6Q246 646.3 257 644.2Q268 642.2 279 638.8Q290 635.3 301 630.2Q312 625.1 323 618.4Q334 611.8 345 604.1Q356 596.5 367 588.6Q378 580.8 389 573.4Q400 565.9 411 559.4L422 552.8' fill='none' stroke='rgba(255,255,255,0.30)' stroke-width='0.8'/%3E%3Cpath d='M-40 823.1Q-18 806.6 -7 797.9Q4 789.1 15 779.8Q26 770.5 37 761Q48 751.4 59 741.8Q70 732.3 81 723.3Q92 714.2 103 706.2Q114 698.2 125 691.6Q136 685.1 147 680.1Q158 675.2 169 671.9Q180 668.6 191 666.5Q202 664.4 213 662.8Q224 661.3 235 659.5Q246 657.8 257 655.2Q268 652.7 279 648.8Q290 645 301 639.8Q312 634.5 323 628.1Q334 621.7 345 614.4Q356 607.2 367 599.7Q378 592.1 389 584.8Q400 577.4 411 570.4L422 563.5' fill='none' stroke='rgba(255,255,255,0.20)' stroke-width='0.9'/%3E%3Cpath d='M-40 825.7Q-18 810.8 -7 802.9Q4 795.1 15 786.5Q26 778 37 768.8Q48 759.6 59 750Q70 740.4 81 731Q92 721.6 103 713.2Q114 704.9 125 698.2Q136 691.6 147 687.1Q158 682.5 169 680Q180 677.5 191 676.4Q202 675.3 213 674.6Q224 673.9 235 672.6Q246 671.4 257 668.7Q268 666 279 661.6Q290 657.2 301 651.2Q312 645.1 323 638Q334 630.8 345 623.2Q356 615.5 367 608.1Q378 600.6 389 593.5Q400 586.5 411 580L422 573.4' fill='none' stroke='rgba(255,255,255,0.22)' stroke-width='0.6'/%3E%3Cpath d='M-40 832.3Q-18 818.3 -7 810.3Q4 802.3 15 793.2Q26 784.1 37 774.2Q48 764.3 59 754.4Q70 744.4 81 735.2Q92 726 103 718.4Q114 710.9 125 705.5Q136 700.1 147 696.8Q158 693.6 169 692Q180 690.4 191 689.5Q202 688.6 213 687.6Q224 686.5 235 684.5Q246 682.4 257 678.9Q268 675.5 279 670.6Q290 665.7 301 659.8Q312 653.8 323 647.2Q334 640.6 345 633.8Q356 626.9 367 620Q378 613 389 606Q400 599 411 591.9L422 584.7' fill='none' stroke='rgba(255,255,255,0.20)' stroke-width='0.8'/%3E%3Cpath d='M-40 836.8Q-18 818.8 -7 809.7Q4 800.6 15 791.9Q26 783.1 37 775Q48 766.9 59 759.4Q70 751.9 81 745Q92 738.2 103 731.9Q114 725.7 125 720.2Q136 714.7 147 710.1Q158 705.5 169 702Q180 698.5 191 696.1Q202 693.7 213 692.2Q224 690.7 235 689.5Q246 688.4 257 686.9Q268 685.4 279 682.8Q290 680.1 301 675.7Q312 671.2 323 664.8Q334 658.4 345 650.2Q356 642 367 632.8Q378 623.6 389 614.1Q400 604.7 411 595.9L422 587.1' fill='none' stroke='rgba(255,255,255,0.13)' stroke-width='0.5'/%3E%3Cpath d='M-40 843.2Q-18 824.8 -7 815.3Q4 805.8 15 796.7Q26 787.5 37 779.2Q48 770.9 59 763.7Q70 756.4 81 750.3Q92 744.2 103 739Q114 733.7 125 729.2Q136 724.7 147 720.8Q158 717 169 713.7Q180 710.4 191 707.8Q202 705.2 213 703.3Q224 701.3 235 699.7Q246 698.2 257 696.5Q268 694.8 279 692.3Q290 689.8 301 685.8Q312 681.8 323 675.9Q334 670 345 662.2Q356 654.4 367 645.1Q378 635.8 389 625.8Q400 615.8 411 606.1L422 596.4' fill='none' stroke='rgba(255,255,255,0.15)' stroke-width='0.7'/%3E%3Cpath d='M-40 844.7Q-18 829.6 -7 821.8Q4 813.9 15 805.8Q26 797.7 37 789.4Q48 781.2 59 773.2Q70 765.2 81 757.8Q92 750.5 103 744.3Q114 738 125 733.3Q136 728.6 147 725.5Q158 722.4 169 720.8Q180 719.1 191 718.3Q202 717.6 213 717Q224 716.5 235 715.4Q246 714.2 257 711.9Q268 709.6 279 705.7Q290 701.8 301 696.2Q312 690.6 323 683.6Q334 676.6 345 668.5Q356 660.4 367 651.7Q378 643.1 389 634.3Q400 625.5 411 616.9L422 608.3' fill='none' stroke='rgba(255,255,255,0.11)' stroke-width='0.6'/%3E%3Cpath d='M-40 849Q-18 834.3 -7 826.7Q4 819 15 811.1Q26 803.2 37 795.2Q48 787.2 59 779.5Q70 771.7 81 764.7Q92 757.6 103 751.8Q114 745.9 125 741.6Q136 737.2 147 734.5Q158 731.8 169 730.5Q180 729.2 191 728.8Q202 728.3 213 728Q224 727.6 235 726.6Q246 725.6 257 723.3Q268 721 279 717.1Q290 713.1 301 707.4Q312 701.8 323 694.6Q334 687.4 345 679.2Q356 671 367 662.1Q378 653.3 389 644.3Q400 635.2 411 626.3L422 617.4' fill='none' stroke='rgba(255,255,255,0.10)' stroke-width='0.5'/%3E%3Cpath d='M-40 853.9Q-18 839.6 -7 832.1Q4 824.6 15 816.7Q26 808.8 37 800.8Q48 792.9 59 785.2Q70 777.6 81 770.9Q92 764.1 103 758.8Q114 753.4 125 749.6Q136 745.9 147 743.8Q158 741.7 169 740.9Q180 740 191 739.8Q202 739.6 213 739.3Q224 739.1 235 737.9Q246 736.8 257 734.4Q268 731.9 279 727.8Q290 723.8 301 718Q312 712.3 323 705.2Q334 698.1 345 690Q356 681.8 367 672.9Q378 664.1 389 654.8Q400 645.6 411 636.3L422 627' fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='0.7'/%3E%3Cpath d='M-40 857.5Q-18 842.3 -7 834.8Q4 827.3 15 820Q26 812.6 37 805.6Q48 798.5 59 791.9Q70 785.3 81 779.4Q92 773.4 103 768.5Q114 763.5 125 759.7Q136 756 147 753.5Q158 751.1 169 749.9Q180 748.7 191 748.4Q202 748.1 213 748.1Q224 748 235 747.6Q246 747.1 257 745.4Q268 743.7 279 740.2Q290 736.8 301 731.3Q312 725.8 323 718.4Q334 711 345 702.1Q356 693.2 367 683.3Q378 673.5 389 663.5Q400 653.4 411 643.6L422 633.7' fill='none' stroke='rgba(255,255,255,0.10)' stroke-width='0.8'/%3E%3Cpath d='M-40 863.8Q-18 850.1 -7 842.7Q4 835.3 15 827.4Q26 819.6 37 811.7Q48 803.9 59 796.7Q70 789.4 81 783.4Q92 777.4 103 773.1Q114 768.8 125 766.2Q136 763.7 147 762.7Q158 761.6 169 761.6Q180 761.6 191 761.8Q202 762 213 761.7Q224 761.5 235 760.2Q246 758.9 257 756.2Q268 753.5 279 749.3Q290 745.1 301 739.5Q312 733.9 323 726.9Q334 720 345 711.9Q356 703.8 367 694.7Q378 685.7 389 675.9Q400 666.2 411 655.9L422 645.7' fill='none' stroke='rgba(255,255,255,0.11)' stroke-width='0.7'/%3E%3C/svg%3E") center bottom / cover no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 860' preserveAspectRatio='xMidYMax slice'%3E%3Cpath d='M-40 772.2Q-18 753.7 -7 742.9Q4 732.1 15 719.7Q26 707.3 37 693.8Q48 680.3 59 666.2Q70 652.2 81 638.5Q92 624.9 103 612.4Q114 600 125 589.4Q136 578.8 147 570.4Q158 561.9 169 555.5Q180 549.1 191 544.2Q202 539.3 213 535.3Q224 531.3 235 527.5Q246 523.7 257 519.6Q268 515.6 279 511.1Q290 506.7 301 501.9Q312 497.1 323 492.3Q334 487.5 345 483.1Q356 478.6 367 474.6Q378 470.7 389 467.4Q400 464 411 461.3L422 458.5' fill='none' stroke='rgba(255,255,255,0.83)' stroke-width='1.7'/%3E%3Cpath d='M-40 775.8Q-18 757 -7 746.3Q4 735.6 15 723.7Q26 711.8 37 699Q48 686.2 59 672.9Q70 659.7 81 646.6Q92 633.5 103 621.4Q114 609.3 125 598.8Q136 588.3 147 579.7Q158 571.2 169 564.6Q180 558.1 191 553.3Q202 548.5 213 544.8Q224 541 235 537.7Q246 534.4 257 530.9Q268 527.4 279 523.3Q290 519.2 301 514.5Q312 509.8 323 504.8Q334 499.7 345 494.6Q356 489.5 367 484.9Q378 480.2 389 476.3Q400 472.3 411 469.2L422 466' fill='none' stroke='rgba(255,255,255,0.87)' stroke-width='1.6'/%3E%3Cpath d='M-40 781.3Q-18 760.6 -7 749.3Q4 737.9 15 725.9Q26 714 37 701.8Q48 689.6 59 677.6Q70 665.5 81 653.9Q92 642.2 103 631.2Q114 620.2 125 610.2Q136 600.2 147 591.5Q158 582.8 169 575.6Q180 568.4 191 562.8Q202 557.3 213 553.1Q224 548.9 235 545.8Q246 542.6 257 539.8Q268 537 279 534Q290 530.9 301 527.1Q312 523.3 323 518.6Q334 513.9 345 508.5Q356 503.1 367 497.4Q378 491.7 389 486.4Q400 481.1 411 476.7L422 472.4' fill='none' stroke='rgba(255,255,255,0.67)' stroke-width='1.4'/%3E%3Cpath d='M-40 789.5Q-18 770.1 -7 758.3Q4 746.6 15 733.5Q26 720.5 37 707Q48 693.6 59 680.7Q70 667.8 81 656.3Q92 644.7 103 634.8Q114 625 125 616.8Q136 608.6 147 601.7Q158 594.9 169 589Q180 583.1 191 577.8Q202 572.4 213 567.5Q224 562.6 235 558Q246 553.5 257 549.3Q268 545.1 279 541.3Q290 537.5 301 533.9Q312 530.3 323 526.6Q334 523 345 518.9Q356 514.9 367 510.3Q378 505.7 389 500.6Q400 495.6 411 490.4L422 485.2' fill='none' stroke='rgba(255,255,255,0.70)' stroke-width='1.3'/%3E%3Cpath d='M-40 790.7Q-18 770.5 -7 759.4Q4 748.2 15 736.5Q26 724.8 37 712.9Q48 701 59 689.5Q70 677.9 81 667Q92 656 103 645.9Q114 635.9 125 626.8Q136 617.8 147 610Q158 602.2 169 595.8Q180 589.3 191 584.2Q202 579.1 213 575.2Q224 571.2 235 568.1Q246 564.9 257 562Q268 559.2 279 556Q290 552.9 301 549.1Q312 545.3 323 540.5Q334 535.8 345 530.3Q356 524.7 367 518.8Q378 512.8 389 506.9Q400 501.1 411 495.9L422 490.7' fill='none' stroke='rgba(255,255,255,0.62)' stroke-width='1.1'/%3E%3Cpath d='M-40 798.1Q-18 779.1 -7 767.7Q4 756.3 15 743.8Q26 731.2 37 718.3Q48 705.5 59 693.3Q70 681.1 81 670.2Q92 659.4 103 650.3Q114 641.1 125 633.6Q136 626.1 147 619.9Q158 613.8 169 608.4Q180 603.1 191 598.3Q202 593.5 213 589Q224 584.5 235 580.2Q246 576 257 572Q268 568 279 564.2Q290 560.4 301 556.7Q312 553 323 549.1Q334 545.1 345 540.7Q356 536.2 367 531.1Q378 526 389 520.3Q400 514.6 411 508.8L422 502.9' fill='none' stroke='rgba(255,255,255,0.55)' stroke-width='1.2'/%3E%3Cpath d='M-40 797.9Q-18 778.2 -7 767.6Q4 757.1 15 746.3Q26 735.5 37 724.7Q48 713.8 59 703.2Q70 692.6 81 682.3Q92 672 103 662.4Q114 652.7 125 643.9Q136 635.1 147 627.6Q158 620.1 169 614Q180 608 191 603.5Q202 599 213 595.8Q224 592.6 235 590.2Q246 587.8 257 585.5Q268 583.2 279 580.2Q290 577.3 301 573.1Q312 569 323 563.6Q334 558.2 345 551.8Q356 545.4 367 538.6Q378 531.8 389 525.3Q400 518.8 411 513.2L422 507.6' fill='none' stroke='rgba(255,255,255,0.52)' stroke-width='1'/%3E%3Cpath d='M-40 804.8Q-18 784.4 -7 773.3Q4 762.2 15 750.8Q26 739.4 37 728.3Q48 717.3 59 707Q70 696.7 81 687.3Q92 678 103 669.5Q114 661 125 653.3Q136 645.7 147 638.9Q158 632.1 169 626.2Q180 620.3 191 615.4Q202 610.6 213 606.8Q224 602.9 235 600Q246 597 257 594.5Q268 592 279 589.3Q290 586.6 301 583.1Q312 579.7 323 575Q334 570.3 345 564.3Q356 558.4 367 551.4Q378 544.5 389 537.3Q400 530.1 411 523.4L422 516.7' fill='none' stroke='rgba(255,255,255,0.37)' stroke-width='1.1'/%3E%3Cpath d='M-40 808.9Q-18 791 -7 780.8Q4 770.5 15 759.4Q26 748.2 37 736.7Q48 725.2 59 714.1Q70 702.9 81 692.8Q92 682.7 103 674.1Q114 665.4 125 658.4Q136 651.3 147 645.7Q158 640.1 169 635.7Q180 631.3 191 627.7Q202 624 213 620.8Q224 617.5 235 614.3Q246 611.1 257 607.7Q268 604.2 279 600.4Q290 596.5 301 592.2Q312 587.8 323 582.8Q334 577.8 345 572.2Q356 566.6 367 560.5Q378 554.4 389 548Q400 541.7 411 535.4L422 529' fill='none' stroke='rgba(255,255,255,0.33)' stroke-width='0.9'/%3E%3Cpath d='M-40 810.4Q-18 793.9 -7 784.8Q4 775.7 15 765.6Q26 755.5 37 744.8Q48 734 59 723.1Q70 712.2 81 701.7Q92 691.3 103 682Q114 672.8 125 665.3Q136 657.7 147 652.2Q158 646.6 169 642.8Q180 639 191 636.4Q202 633.8 213 631.7Q224 629.6 235 627.3Q246 624.9 257 621.8Q268 618.6 279 614.3Q290 610 301 604.7Q312 599.4 323 593.3Q334 587.3 345 580.9Q356 574.5 367 568.1Q378 561.7 389 555.6Q400 549.5 411 543.8L422 538.1' fill='none' stroke='rgba(255,255,255,0.32)' stroke-width='0.9'/%3E%3Cpath d='M-40 819.9Q-18 801.3 -7 790.5Q4 779.7 15 768.3Q26 756.8 37 745.6Q48 734.3 59 724.1Q70 713.9 81 705.3Q92 696.6 103 689.6Q114 682.5 125 676.9Q136 671.2 147 666.5Q158 661.7 169 657.5Q180 653.3 191 649.4Q202 645.5 213 641.8Q224 638.1 235 634.6Q246 631 257 627.7Q268 624.4 279 621.1Q290 617.8 301 614.1Q312 610.5 323 606.1Q334 601.6 345 596.1Q356 590.6 367 583.9Q378 577.2 389 569.6Q400 562 411 554.2L422 546.3' fill='none' stroke='rgba(255,255,255,0.31)' stroke-width='0.8'/%3E%3Cpath d='M-40 817.6Q-18 800.2 -7 791.3Q4 782.4 15 773.4Q26 764.3 37 755Q48 745.8 59 736.5Q70 727.2 81 718Q92 708.9 103 700.3Q114 691.8 125 684.3Q136 676.9 147 671Q158 665.1 169 661Q180 656.9 191 654.4Q202 651.9 213 650.4Q224 648.9 235 647.6Q246 646.3 257 644.2Q268 642.2 279 638.8Q290 635.3 301 630.2Q312 625.1 323 618.4Q334 611.8 345 604.1Q356 596.5 367 588.6Q378 580.8 389 573.4Q400 565.9 411 559.4L422 552.8' fill='none' stroke='rgba(255,255,255,0.30)' stroke-width='0.8'/%3E%3Cpath d='M-40 823.1Q-18 806.6 -7 797.9Q4 789.1 15 779.8Q26 770.5 37 761Q48 751.4 59 741.8Q70 732.3 81 723.3Q92 714.2 103 706.2Q114 698.2 125 691.6Q136 685.1 147 680.1Q158 675.2 169 671.9Q180 668.6 191 666.5Q202 664.4 213 662.8Q224 661.3 235 659.5Q246 657.8 257 655.2Q268 652.7 279 648.8Q290 645 301 639.8Q312 634.5 323 628.1Q334 621.7 345 614.4Q356 607.2 367 599.7Q378 592.1 389 584.8Q400 577.4 411 570.4L422 563.5' fill='none' stroke='rgba(255,255,255,0.20)' stroke-width='0.9'/%3E%3Cpath d='M-40 825.7Q-18 810.8 -7 802.9Q4 795.1 15 786.5Q26 778 37 768.8Q48 759.6 59 750Q70 740.4 81 731Q92 721.6 103 713.2Q114 704.9 125 698.2Q136 691.6 147 687.1Q158 682.5 169 680Q180 677.5 191 676.4Q202 675.3 213 674.6Q224 673.9 235 672.6Q246 671.4 257 668.7Q268 666 279 661.6Q290 657.2 301 651.2Q312 645.1 323 638Q334 630.8 345 623.2Q356 615.5 367 608.1Q378 600.6 389 593.5Q400 586.5 411 580L422 573.4' fill='none' stroke='rgba(255,255,255,0.22)' stroke-width='0.6'/%3E%3Cpath d='M-40 832.3Q-18 818.3 -7 810.3Q4 802.3 15 793.2Q26 784.1 37 774.2Q48 764.3 59 754.4Q70 744.4 81 735.2Q92 726 103 718.4Q114 710.9 125 705.5Q136 700.1 147 696.8Q158 693.6 169 692Q180 690.4 191 689.5Q202 688.6 213 687.6Q224 686.5 235 684.5Q246 682.4 257 678.9Q268 675.5 279 670.6Q290 665.7 301 659.8Q312 653.8 323 647.2Q334 640.6 345 633.8Q356 626.9 367 620Q378 613 389 606Q400 599 411 591.9L422 584.7' fill='none' stroke='rgba(255,255,255,0.20)' stroke-width='0.8'/%3E%3Cpath d='M-40 836.8Q-18 818.8 -7 809.7Q4 800.6 15 791.9Q26 783.1 37 775Q48 766.9 59 759.4Q70 751.9 81 745Q92 738.2 103 731.9Q114 725.7 125 720.2Q136 714.7 147 710.1Q158 705.5 169 702Q180 698.5 191 696.1Q202 693.7 213 692.2Q224 690.7 235 689.5Q246 688.4 257 686.9Q268 685.4 279 682.8Q290 680.1 301 675.7Q312 671.2 323 664.8Q334 658.4 345 650.2Q356 642 367 632.8Q378 623.6 389 614.1Q400 604.7 411 595.9L422 587.1' fill='none' stroke='rgba(255,255,255,0.13)' stroke-width='0.5'/%3E%3Cpath d='M-40 843.2Q-18 824.8 -7 815.3Q4 805.8 15 796.7Q26 787.5 37 779.2Q48 770.9 59 763.7Q70 756.4 81 750.3Q92 744.2 103 739Q114 733.7 125 729.2Q136 724.7 147 720.8Q158 717 169 713.7Q180 710.4 191 707.8Q202 705.2 213 703.3Q224 701.3 235 699.7Q246 698.2 257 696.5Q268 694.8 279 692.3Q290 689.8 301 685.8Q312 681.8 323 675.9Q334 670 345 662.2Q356 654.4 367 645.1Q378 635.8 389 625.8Q400 615.8 411 606.1L422 596.4' fill='none' stroke='rgba(255,255,255,0.15)' stroke-width='0.7'/%3E%3Cpath d='M-40 844.7Q-18 829.6 -7 821.8Q4 813.9 15 805.8Q26 797.7 37 789.4Q48 781.2 59 773.2Q70 765.2 81 757.8Q92 750.5 103 744.3Q114 738 125 733.3Q136 728.6 147 725.5Q158 722.4 169 720.8Q180 719.1 191 718.3Q202 717.6 213 717Q224 716.5 235 715.4Q246 714.2 257 711.9Q268 709.6 279 705.7Q290 701.8 301 696.2Q312 690.6 323 683.6Q334 676.6 345 668.5Q356 660.4 367 651.7Q378 643.1 389 634.3Q400 625.5 411 616.9L422 608.3' fill='none' stroke='rgba(255,255,255,0.11)' stroke-width='0.6'/%3E%3Cpath d='M-40 849Q-18 834.3 -7 826.7Q4 819 15 811.1Q26 803.2 37 795.2Q48 787.2 59 779.5Q70 771.7 81 764.7Q92 757.6 103 751.8Q114 745.9 125 741.6Q136 737.2 147 734.5Q158 731.8 169 730.5Q180 729.2 191 728.8Q202 728.3 213 728Q224 727.6 235 726.6Q246 725.6 257 723.3Q268 721 279 717.1Q290 713.1 301 707.4Q312 701.8 323 694.6Q334 687.4 345 679.2Q356 671 367 662.1Q378 653.3 389 644.3Q400 635.2 411 626.3L422 617.4' fill='none' stroke='rgba(255,255,255,0.10)' stroke-width='0.5'/%3E%3Cpath d='M-40 853.9Q-18 839.6 -7 832.1Q4 824.6 15 816.7Q26 808.8 37 800.8Q48 792.9 59 785.2Q70 777.6 81 770.9Q92 764.1 103 758.8Q114 753.4 125 749.6Q136 745.9 147 743.8Q158 741.7 169 740.9Q180 740 191 739.8Q202 739.6 213 739.3Q224 739.1 235 737.9Q246 736.8 257 734.4Q268 731.9 279 727.8Q290 723.8 301 718Q312 712.3 323 705.2Q334 698.1 345 690Q356 681.8 367 672.9Q378 664.1 389 654.8Q400 645.6 411 636.3L422 627' fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='0.7'/%3E%3Cpath d='M-40 857.5Q-18 842.3 -7 834.8Q4 827.3 15 820Q26 812.6 37 805.6Q48 798.5 59 791.9Q70 785.3 81 779.4Q92 773.4 103 768.5Q114 763.5 125 759.7Q136 756 147 753.5Q158 751.1 169 749.9Q180 748.7 191 748.4Q202 748.1 213 748.1Q224 748 235 747.6Q246 747.1 257 745.4Q268 743.7 279 740.2Q290 736.8 301 731.3Q312 725.8 323 718.4Q334 711 345 702.1Q356 693.2 367 683.3Q378 673.5 389 663.5Q400 653.4 411 643.6L422 633.7' fill='none' stroke='rgba(255,255,255,0.10)' stroke-width='0.8'/%3E%3Cpath d='M-40 863.8Q-18 850.1 -7 842.7Q4 835.3 15 827.4Q26 819.6 37 811.7Q48 803.9 59 796.7Q70 789.4 81 783.4Q92 777.4 103 773.1Q114 768.8 125 766.2Q136 763.7 147 762.7Q158 761.6 169 761.6Q180 761.6 191 761.8Q202 762 213 761.7Q224 761.5 235 760.2Q246 758.9 257 756.2Q268 753.5 279 749.3Q290 745.1 301 739.5Q312 733.9 323 726.9Q334 720 345 711.9Q356 703.8 367 694.7Q378 685.7 389 675.9Q400 666.2 411 655.9L422 645.7' fill='none' stroke='rgba(255,255,255,0.11)' stroke-width='0.7'/%3E%3C/svg%3E") center bottom / cover no-repeat;
+  animation: as-shimmer 5.5s linear infinite;
+}
+/* คลื่นสองชั้นจางลงช่วงกลางจอ เต็มแรงเฉพาะครึ่งล่าง (ตรงกับภาพอ้างอิงที่คลื่นหนักอยู่ล่าง)
+   กลางจอคือที่ที่ข้อความวางบนพื้นตรง ๆ ไม่มีการ์ดรอง (เช่น "วันนี้ยังไม่มีงาน") —
+   เส้นเงินบาง ๆ วิ่งตัดตัวหนังสือสีเทาคือตัวหนังสือที่อ่านยาก แม้ค่าเฉลี่ยความต่างจะผ่าน */
+:root[data-theme="astral"] :is(.fx-a, .fx-g) {
+  -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,.3) 0%, rgba(0,0,0,.38) 58%, #000 84%);
+          mask-image: linear-gradient(180deg, rgba(0,0,0,.3) 0%, rgba(0,0,0,.38) 58%, #000 84%);
+}
+/* ไม่มีดาวตกในธีมนี้โดยตั้งใจ (เจ้าของสั่งถอด) — .fx-shoot ไม่มีขนาดไม่มีพื้น จึงไม่โผล่เอง
+   ดาวประกายสี่แฉกสองดวงบนฟ้า */
+:root[data-theme="astral"] :is(.fx-e, .fx-f) {
+  z-index: 5;
+  width: 26px; height: 26px; margin: -13px 0 0 -13px;
+  background:
+    radial-gradient(circle, #fff 0 1.4px, rgba(235,235,235,.75) 2.4px, transparent 5.5px),
+    linear-gradient(90deg, transparent 0 46%, rgba(255,255,255,.75) 50%, transparent 54%) center / 100% 1px no-repeat,
+    linear-gradient(0deg, transparent 0 46%, rgba(255,255,255,.75) 50%, transparent 54%) center / 1px 100% no-repeat;
+  animation: as-glint 4.8s ease-in-out infinite;
+}
+:root[data-theme="astral"] .fx-e { left: 82%; top: 22%; }
+:root[data-theme="astral"] .fx-f { left: 40%; top: 9%; animation-delay: -2.4s; }
+/* ขอบจอจมลงดำ + แสงจางจากขอบบน */
+:root[data-theme="astral"] .fx-h {
+  z-index: 6;
+  inset: 0;
+  background:
+    radial-gradient(60% 40% at 50% 0%, rgba(255,255,255,.06), transparent 70%),
+    radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(0,0,0,.8) 100%);
+}
+@keyframes as-drift-b { to { transform: translateY(-320px); } }
+@keyframes as-drift-c { to { transform: translateY(-420px); } }
+@keyframes as-twinkle { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
+@keyframes as-glint   { 0%, 100% { opacity: .15; transform: scale(.45); } 50% { opacity: 1; transform: scale(1); } }
+@keyframes as-float   { from { transform: translateY(0); } to { transform: translateY(8px); } }
+@keyframes as-flow-back  { from { transform: translateX(-42px) scaleY(.97); } to { transform: translateX(42px) translateY(-10px) scaleY(1.04); } }
+@keyframes as-flow-front { from { transform: translateX(50px) scaleY(1.03); } to { transform: translateX(-50px) translateY(12px) scaleY(.96); } }
+@keyframes as-shimmer { from { background-position: 115% 0; } to { background-position: -15% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="astral"] :is(.fx-a, .fx-b, .fx-c, .fx-d, .fx-e, .fx-f, .fx-g) { animation: none; }
+  :root[data-theme="astral"] .fx-g::after { display: none; }
+}
+
+/* ---------- ช่องสีตัวอย่าง ----------
+   เจ้าของ: "หน้าปกธีมเป็นแค่ดำตัดขาวก็พอ" — ทรงเดียวกับธีมอื่น (เฉียง 135° สองสี) ไม่ต้องวาดฉากย่อ
+   ใช้ทั้งในจอเลือกธีม (.th-grid .sw) และไทล์ "ธีมสี" ในแท็บฉัน (.shw-sw) — เดิมเขียนแค่ตัวแรก
+   ไทล์ในแท็บฉันจึงเป็นช่องว่างตอนใช้ธีมนี้ · (0,2,0) โดยตั้งใจ — .sw ตัวเดียวเคยทับช่องสีทั้งตารางมาแล้ว */
+:is(.th-grid .sw, .shw-sw).sw-astral { background: linear-gradient(135deg, #000000 50%, #FFFFFF 50%); }
+/* ตัวเลือกธีมที่ไม่ได้ใช้เป็น "เส้นขอบอย่างเดียว" ตามดีไซน์เดิม — บนดำสนิทมันอ่านเป็นช่องว่าง
+   ใส่พื้นเงินจาง ๆ กับเส้นขอบสว่างขึ้นนิดเดียว (ยังไม่ใช่กระจก อันที่ใช้อยู่ยังเด่นกว่าชัด) */
+:root[data-theme="astral"] .phone #themePick button:not(.active) {
+  background: rgba(255,255,255,.05) !important;
+  border-color: rgba(255,255,255,.16) !important;
+}
+.th-grid .th-astral .nm { font-family: 'Cinzel', serif; font-weight: 700; font-size: 10.5px; letter-spacing: .06em; }
+
+/* ============================================================
+   1C40 · Astral Black ขาว–ดำ–เทาล้วน
+   ------------------------------------------------------------
+   เจ้าของ: "ทำให้สีพวก ui ในธีมนี้มีแค่ ขาว ดำ เทา" — รอบก่อนยังเก็บแดง/เหลือง/เขียวไว้ให้ป้ายความสำคัญ
+   รอบนี้ไม่มีสีอิ่มเหลือเลย ความต่างระดับย้ายจาก "สี" ไปเป็น "ความสว่าง":
+     ด่วน/อันตราย = ขาวสว่างสุด · ปานกลาง = เทากลาง · ไม่ด่วน/เรียบร้อย = เทาเข้ม
+   ไม่แตะ (ไม่ใช่สีของ UI): ช่องสีตัวอย่างธีมอื่นในจอเลือกธีม (เทาหมดแล้วแยกธีมไม่ออก) ·
+   สีผนัง/ของแต่งในห้องของฉัน (ผู้ใช้เลือกสีเอง) · โลโก้ Google · รูปถ่าย · น้องไซ
+   ============================================================ */
+:root[data-theme="astral"] {
+  /* สีสถานะ — ใช้เป็น "ตัวหนังสือบนพื้นมืด" เป็นหลัก จึงเป็นเทาสว่างไล่ระดับ */
+  --alert:#FFFFFF; --alert-soft:rgba(255,255,255,.18);
+  --warn:#CFCFCF;  --warn-soft:rgba(255,255,255,.12);
+  --good:#A8A8A8;  --good-soft:rgba(255,255,255,.09); --fire:#FFFFFF;
+  /* ระดับความสำคัญ: ทึบใช้กับแถบ/จุด/ป้าย · soft+text ใช้กับชิป */
+  --pri-red:#F2F2F2;    --pri-red-soft:rgba(255,255,255,.24);  --pri-red-text:#FFFFFF;
+  --pri-yellow:#A6A6A6; --pri-yellow-soft:rgba(255,255,255,.14); --pri-yellow-text:#D6D6D6;
+  --pri-green:#5E5E5E;  --pri-green-soft:rgba(255,255,255,.07);  --pri-green-text:#A3A3A3;
+  /* ทอง = "ทำสำเร็จแล้ว" ตามกฎของแอป → เงินสว่าง */
+  --gold:#E6E6E6; --gold-soft:rgba(255,255,255,.14); --gold-text:#EDEDED; --on-gold:#0A0A0A;
+  --grad-gold:linear-gradient(152deg,#F5F5F5 0%,#A8A8A8 100%);
+  /* ระดับความหายากของการสุ่ม */
+  --r-legend:#FFFFFF; --r-rare:#B5B5B5; --r-common:#6E6E6E;
+  /* หัวตั๋ว "ตอนนี้" เปลี่ยนสีตามความด่วน + ตัวหนังสือขาวทับ → เทาเข้มไล่ระดับ (ขาวทับได้ 6:1 ขึ้นไป) */
+  --sig-red:#5A5A5A; --sig-amber:#454545; --sig-green:#303030; --sig-blue:#3A3A3A;
+}
+
+/* ตัวหนังสือขาวที่วางบนก้อนสีสถานะ — ก้อนพวกนี้เป็นเทาสว่างแล้ว ตัวหนังสือต้องกลับเป็นดำ */
+:root[data-theme="astral"] :is(.tl-next.late .tile, .wg-pill.red, .wg-pill.yellow, .mt-ct.hot, .tab-badge,
+    .tk-live, .fd-scope-n, .sp.lv5.active, .sp.lv4.active, .sp.lv3.active,
+    .tt-ck.on, .wk-go.on, .runbar, .rc-check.on, .tk-sb.on .sb-box, .wc-tick:active,
+    .ib2-hero.clear .ib2-hero-ic, .rank.red, .rank.yellow, .rank.green, .pe-shop .pe-ic,
+    .nt-ic-b, .an-bd.got .ab-mark) {
+  color: #0A0A0A !important;
+}
+/* pseudo-element อยู่ใน :is() ไม่ได้ (ทั้งรายการจะเป็นโมฆะ) — แยกบรรทัด */
+:root[data-theme="astral"] .fd-people.has-req::after { color: #0A0A0A !important; }
+/* ป้ายตัวเลขแดงบนไทล์หน้าแรก ("!") — ขาวทึบ ตัวดำ ยังเป็นของที่สว่างที่สุดตรงนั้น */
+:root[data-theme="astral"] .tg-ct.hot { background: #F2F2F2; color: #0A0A0A; }
+
+/* ---------- ของที่ระบายสีตายตัว (ไม่ผ่านโทเคน) ---------- */
+/* แสงฮาโลของช่องพิมพ์น้องไซ (ชมพู/ม่วง/ฟ้า) → แสงเงิน */
+:root[data-theme="astral"] .hs-b1 { background: linear-gradient(90deg, #FFFFFF, #8A8A8A, #E0E0E0, #5A5A5A) !important; }
+:root[data-theme="astral"] .hs-b2 { background: linear-gradient(90deg, #BDBDBD, #FFFFFF, #7A7A7A) !important; }
+:root[data-theme="astral"] .hs-b3 { background: linear-gradient(90deg, #6E6E6E, #F0F0F0, #9A9A9A) !important; }
+:root[data-theme="astral"] .phone .sai-bar.hs-focus {
+  box-shadow: 0 0 0 1px rgba(255,255,255,.38), 0 8px 22px -10px rgba(255,255,255,.3) !important;
+}
+/* เส้นกวาดตอนสแกน (เงาฟ้า) */
+:root[data-theme="astral"] .tt-sweep { background: #FFFFFF; box-shadow: 0 0 14px 2px rgba(255,255,255,.55); }
+/* เงาอมกรมของปุ่มกลมในสวิตช์ — ชุดกระจกตั้งไว้ด้วย !important จึงต้องทับแบบเดียวกัน */
+:root[data-theme="astral"] :is(.tg .tg-k, .ctx-sw i) {
+  box-shadow: inset 0 1px 0 #fff, inset 0 -1px 2px rgba(0,0,0,.14), 0 0 0 .5px rgba(0,0,0,.25), 0 3px 8px -2px rgba(0,0,0,.6) !important;
+}
+/* ปุ่มนำสีทอง (สุ่ม 10 ใบ · รับรางวัลเช็คอิน) — ทองเขียนตายตัวในชุดกระจก → เงินขัดเงา ตัวดำ */
+:root[data-theme="astral"] :is(.gc-go.lead, .ck-cta) {
+  background-image:
+    radial-gradient(120% 100% at 18% -8%, rgba(255,255,255,.6) 0%, rgba(255,255,255,.1) 42%, transparent 64%),
+    linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 50%, rgba(0,0,0,.06)),
+    linear-gradient(135deg, #F2F2F2, #A0A0A0) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,.8), inset 0 -2px 4px rgba(0,0,0,.18), inset 0 0 18px rgba(255,255,255,.14),
+    0 0 0 .5px rgba(0,0,0,.3), 0 13px 28px -12px rgba(255,255,255,.28) !important;
+  color: #0A0A0A !important;
+}
+:root[data-theme="astral"] .gc-go.lead i { color: #2A2A2A !important; }
+/* แถบความคืบหน้าเช็คอิน (ไล่ทองตายตัว) · ติ๊ก "มีแล้ว" ในร้าน + ปุ่มติ๊กงานเสร็จ (เขียวตายตัว) ·
+   ตัวหนังสือน้ำตาลบนป้าย "ยังไม่เปิดขาย" */
+:root[data-theme="astral"] .tk-track i { background: linear-gradient(90deg, #8A8A8A, #F2F2F2); }
+:root[data-theme="astral"] :is(.tb-ok, .tb-row.own .tb-bd i, .tn-ib.done) { color: #D0D0D0; }
+:root[data-theme="astral"] .pe-wip { color: #0A0A0A; }
+:root[data-theme="astral"] .tk-cta .tile.deck { color: #0A0A0A; }
+/* ไฟเรืองของการ์ดสุ่มที่หงายได้ของดี (ฟ้า/ส้ม) → แสงขาว */
+:root[data-theme="astral"] .gc.lit-rare { filter: drop-shadow(0 0 12px rgba(255,255,255,.35)); }
+:root[data-theme="astral"] .gc.lit-legendary { filter: drop-shadow(0 0 18px rgba(255,255,255,.6)); }
+/* ภาพประกอบที่วาดด้วยสีเต็ม (เหรียญโทเคน · เหรียญตรา · หน้าการ์ดสุ่ม · การ์ดสกิน · หัวข้อไล่สี ·
+   วงรอบรูปคนที่ออนไลน์) — ลดเป็นขาวดำทั้งชิ้น ดีกว่าไล่เขียนสีใหม่ทีละชิ้นแล้วตกหล่น */
+:root[data-theme="astral"] :is(.tok, .bg-mark, .bg-nm.fancy, .gc-face, .gc-title, .tk-skin, .tk-aura,
+    .fd-on-ring, .an-tile, .ab-mark) {
+  filter: grayscale(1);
+}
+/* รูปย่อของคนที่ไม่มีรูป (ตัวอักษรบนพื้นสีประจำตัว — สีมาจาก JS เป็น style ในบรรทัด) */
+:root[data-theme="astral"] :is(.ch-face, .dm-av, .ep-av, .fd-av, .fr-av, .ig-av, .nt-av, .tp-av):not(img):not(.src) {
+  background: #2B2B2B !important; color: #F0F0F0 !important;
+}
+/* บรรทัดบนหัวจอ (วัน · วันที่ · เวลาว่าง / ค้างกี่งาน) กับแท็บโหมด "วันนี้ / สัปดาห์ / รายการ"
+   เจ้าของ: "ทำให้ข้อความนี้ชัดขึ้นทั้งสามข้อความ" — เดิมเป็น --faint #8E8E8E หนัก 600 ขนาด 12px
+   บนพื้นดำที่มีเส้นคลื่นวิ่งผ่าน ตัวเล็กสีเทากลางเลยจมไปกับลาย
+   ยกเป็นหมึกเกือบเต็ม + หนาขึ้น + เงาดำบาง ๆ แยกตัวหนังสือออกจากเส้นคลื่น · ยังเบากว่าหัวข้อจอหนึ่งขั้น */
+:root[data-theme="astral"] .eyebrow {
+  color: color-mix(in srgb, var(--ink) 88%, transparent);
+  font-size: 13px; font-weight: 700;
+  text-shadow: 0 1px 6px rgba(0,0,0,.9);
+}
+:root[data-theme="astral"] .tk-mode { font-size: 13.5px; font-weight: 700; }
+:root[data-theme="astral"] .tk-mode:not(.on) { color: color-mix(in srgb, var(--ink) 90%, transparent); }
+
+/* ============================================================
+   1C40 · แชทน้องไซหน้าตาแบบแอปแชท AI (Claude · ChatGPT · Grok)
+   ------------------------------------------------------------
+   เจ้าของ: "แก้ตรงแชทกับน้องไซให้มันคล้ายกับแชทเราคุยกัน เช่น claude chatgpt grok"
+   • ข้อความเรา = ฟองเทาชิดขวา ไม่มีรูป · คำตอบน้องไซ = ตัวหนังสือเต็มความกว้าง ไม่มีฟอง
+     มีป้ายชื่อเล็ก ๆ ข้างบน และปุ่มคัดลอกข้างล่าง
+   • จอว่าง = คำทักตัวใหญ่ + การ์ดคำถามสำเร็จรูป 2×2
+   • กล่องพิมพ์ = กล่องมนใหญ่ ตัวหนังสืออยู่บน แถวปุ่มอยู่ล่าง ปุ่มส่งวงกลมทึบตอนมีตัวหนังสือ
+   ชุดกระจก/ฮาโลเดิมตั้ง .phone .sai-bar ไว้ด้วย !important → ที่นี่ทับด้วย #aiBody (ความจำเพาะสูงกว่า)
+   ============================================================ */
+
+/* ---------- หัวจอ ---------- */
+#aiBody .sai-head { padding-bottom: 4px; }
+#aiBody .sai-head .ai-av.big { width: 34px; height: 34px; }
+#aiBody .sh-name { font-size: 18px; }
+.sh-new {
+  flex: none; width: 40px; height: 40px; display: grid; place-items: center;
+  border: 0; border-radius: 50%; background: none; color: var(--ink); cursor: pointer;
+}
+.sh-new svg { width: 19px; height: 19px; }
+.sh-new:active { background: var(--card2); }
+
+/* ---------- บทสนทนา ---------- */
+#aiBody .at-in { gap: 22px; padding: 6px 0 12px; }
+#aiBody .ai-msg.me { justify-content: flex-end; }
+#aiBody .ai-msg.me .ai-bub {
+  max-width: 82%;
+  padding: 10px 15px;
+  border: 0; border-radius: 22px 22px 6px 22px;
+  background: var(--card2); color: var(--ink);
+  font-size: 15px; line-height: 1.55;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+#aiBody .ai-msg.sai { display: block; }
+.am-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.am-head .ai-av { width: 24px; height: 24px; margin: 0; }
+.am-head b { font-size: 13.5px; font-weight: 700; color: var(--ink); letter-spacing: -.01em; }
+.am-text {
+  font-size: 15px; line-height: 1.72; color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.am-text p { margin: 0 0 10px; }
+.am-text > :last-child { margin-bottom: 0; }
+.am-text :is(ul, ol) { margin: 2px 0 10px; padding-left: 22px; }
+.am-text li { margin: 4px 0; padding-left: 2px; }
+.am-text li::marker { color: var(--muted); }
+.am-text b { font-weight: 700; }
+.am-text code {
+  font-family: 'Space Mono', ui-monospace, monospace; font-size: 13px;
+  padding: 1px 6px; border-radius: 6px; background: var(--card2);
+}
+.am-text.err { color: var(--alert); }
+/* เคอร์เซอร์ระหว่างพิมพ์ตอบ — บอกว่า "ยังพิมพ์อยู่" ไม่ใช่ตอบจบแล้ว */
+.am-caret {
+  display: inline-block; width: 8px; height: 1.05em; margin-left: 2px; vertical-align: -.15em;
+  border-radius: 2px; background: var(--ink); animation: am-caret 1s steps(2, start) infinite;
+}
+@keyframes am-caret { to { visibility: hidden; } }
+.am-text.ai-live > p:last-of-type { display: inline; }
+.am-act { display: flex; gap: 2px; margin: 6px 0 0 -8px; }
+.am-act button {
+  width: 32px; height: 32px; display: grid; place-items: center;
+  border: 0; border-radius: 10px; background: none; color: var(--faint); cursor: pointer;
+}
+.am-act button svg { width: 16px; height: 16px; }
+.am-act button:active { background: var(--card2); color: var(--ink); }
+#aiBody .ai-typing { height: 24px; padding-left: 2px; }
+#aiBody .ai-offer { margin-top: 2px; }
+
+/* ---------- จอว่าง ---------- */
+#aiBody .at-hello { gap: 14px; }
+.ai-hello { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 8px 6px 4px; }
+.ai-hello .ai-av.hello { width: 64px; height: 64px; margin: 0 0 12px; box-shadow: var(--shadow); }
+.ai-hello h2 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); line-height: 1.3; }
+.ai-hello p { margin: 8px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); max-width: 320px; }
+#aiBody .at-hello .sai-day { margin-top: 0; }
+.ai-starters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ai-st {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0;
+  padding: 12px 13px; border: 1px solid var(--line); border-radius: 18px;
+  background: var(--card); color: var(--ink); text-align: left; font-family: inherit; cursor: pointer;
+  transition: transform .2s cubic-bezier(.3,1.6,.5,1);
+}
+.ai-st svg { width: 17px; height: 17px; color: var(--fill); margin-bottom: 2px; }
+.ai-st b { font-size: 13.5px; font-weight: 700; }
+.ai-st span {
+  font-size: 11.5px; line-height: 1.45; color: var(--muted);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.ai-st:active { transform: scale(.97); }
+.ai-st:disabled { opacity: .5; }
+#aiBody .at-hello .ai-priv { margin-top: 0; }
+
+/* ---------- กล่องพิมพ์ ---------- */
+.phone #aiBody .sai-bar.sai-cmp {
+  display: flex !important; flex-direction: column !important; align-items: stretch !important; gap: 4px !important;
+  margin-top: 10px; padding: 10px 10px 8px 16px !important; min-height: 0 !important;
+  border-radius: 26px !important;
+  border: 1px solid var(--line) !important;
+  background: var(--card) !important;
+  box-shadow: 0 10px 30px -16px rgba(0,0,0,.45), inset 0 1px 0 color-mix(in srgb, var(--ink) 6%, transparent) !important;
+}
+.phone #aiBody .sai-bar.sai-cmp:focus-within { border-color: color-mix(in srgb, var(--ink) 22%, transparent) !important; }
+.phone #aiBody .sai-bar.sai-cmp .ai-in {
+  width: 100%; padding: 4px 0 2px !important; min-height: 26px !important;
+  font-size: 15px; line-height: 1.5; max-height: 160px;
+}
+.cmp-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.phone #aiBody .sai-bar.sai-cmp .sb-mic {
+  display: grid !important; width: 34px; height: 34px; margin-left: -6px;
+  background: none; color: var(--muted);
+}
+.phone #aiBody .sai-bar.sai-cmp .sb-send {
+  width: 36px !important; height: 36px !important; position: relative;
+  border: 0 !important; border-radius: 50% !important;
+  background: var(--card2) !important; color: var(--faint) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  transition: background-color .15s ease, color .15s ease, transform .15s ease;
+}
+/* มีตัวหนังสือแล้ว = ปุ่มส่งทึบด้วยสีหมึก (ดำบนธีมสว่าง · ขาวบนธีมมืด) แบบแอปแชท AI */
+.phone #aiBody .sai-bar.sai-cmp.has-text .sb-send {
+  background: var(--ink) !important; color: var(--scr) !important;
+}
+.phone #aiBody .sai-bar.sai-cmp .sb-send svg { width: 18px; height: 18px; stroke-width: 2.6; }
+.phone #aiBody .sai-bar.sai-cmp .sb-send:active { transform: scale(.92); }
+@media (prefers-reduced-motion: reduce) { .am-caret { animation: none; } }
