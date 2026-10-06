@@ -1567,9 +1567,18 @@
                  สวิตช์ที่ย้อนกลับได้ตรงนี้ ถูกกว่าการเสียคนหนึ่งคนไปถาวรมาก -->
             <div class="set-row" id="prefDueRow" hidden>
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-bell"/></svg></span>
-              <span class="set-lb">เตือนงานใกล้ถึงกำหนด<i>เย็นก่อนวันส่ง และวันที่ต้องส่ง</i></span>
+              <span class="set-lb">เตือนงานใกล้ถึงกำหนด<i>เช้าวันส่ง · 3 ชม. ก่อนส่ง · เลยกำหนด</i></span>
               <button class="btn secondary sm" id="prefDueBtn" style="width:auto;min-height:34px;padding:0 14px"
                 onclick="toggleNotifPref('notifDue')">เปิดอยู่</button>
+            </div>
+            <!-- 1C38 · รอบเย็น "เย็นนี้เริ่มอันนี้" — ฝั่งเซิร์ฟเวอร์อ่าน settings.notifPlan (wantPlan ใน send-reminders)
+                 แยกสวิตช์จากเรื่องกำหนดส่ง เพราะคนละชนิด: อันนั้นกันพลาด อันนี้ชวนเริ่ม
+                 คนที่รำคาญการชวนต้องปิดได้โดยไม่เสียการเตือนกันพลาดไปด้วย -->
+            <div class="set-row" id="prefPlanRow" hidden>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
+              <span class="set-lb">ชวนเริ่มทำทุกเย็น<i>วันละครั้ง ก่อนเวลาที่คุณมักเริ่มทำงาน</i></span>
+              <button class="btn secondary sm" id="prefPlanBtn" style="width:auto;min-height:34px;padding:0 14px"
+                onclick="toggleNotifPref('notifPlan')">เปิดอยู่</button>
             </div>
             <!-- 1B99 · สวิตช์เรื่องสังคม — ฝั่งเซิร์ฟเวอร์อ่าน settings.notifSocial ตัวเดียวกันนี้
                  (ดู wantSocial ใน supabase/functions/send-reminders) จึงคุมได้ทั้งสองท่อ
