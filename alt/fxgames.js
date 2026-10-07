@@ -31,6 +31,69 @@ const FX_ICONS = {
 const FX_GAMES = {};
 
 // ============================================================
+// บรรยากาศตามธีม (2D และ 3D ใช้ร่วมกัน)
+// ------------------------------------------------------------
+// เจ้าของ: "พื้นหลังบางเอฟเฟกต์ถ้าทำได้ ให้เป็นตามธีมที่เลือก"
+// ธีมกำหนด "ช่วงเวลา/บรรยากาศ" ของฉาก ไม่ใช่ทาสีพื้นหลังทื่อ ๆ — ฉากยังสมจริงอยู่:
+// ธีมสว่าง = กลางวัน · ชมพู = พระอาทิตย์ตก · มืด/อวกาศ = กลางคืนเปิดไฟสนาม · กาแล็กซี = คืนมีเนบิวลาสีธีม ฯลฯ
+// ของที่เป็นวัตถุจริง (หญ้า อิฐ ไม้ ลูกบอล) ไม่เปลี่ยนสีตามธีม — หญ้าสีชมพูคือของปลอม
+// สีธีม (--blue) ไปอยู่ที่ของที่ในโลกจริง "ทาสีได้": ผนังยิม สีในสนามบาส ป้ายโฆษณา เสื้อผู้เล่น
+// ============================================================
+const FX_MOODS = {
+  day:      { top: '#3E86D8', hor: '#D6EBFB', sun: '#FFFFFF', sunI: 2.6, hemiS: '#DDEBFF', hemiG: '#6B7A55', hemiI: 1.1, elev: 55, night: 0 },
+  sunset:   { top: '#4B3F8F', hor: '#FFB089', sun: '#FFB27A', sunI: 2.0, hemiS: '#FFC9B0', hemiG: '#6A5A62', hemiI: 1.2, elev: 9, night: 0 },
+  golden:   { top: '#4A88CC', hor: '#FFE0A6', sun: '#FFD79A', sunI: 2.3, hemiS: '#FFE9C9', hemiG: '#6B6A45', hemiI: 1.0, elev: 18, night: 0 },
+  forest:   { top: '#5C9ED8', hor: '#E0F3DA', sun: '#FFF6DF', sunI: 2.2, hemiS: '#E4F6DF', hemiG: '#4F7A45', hemiI: 1.1, elev: 45, night: 0 },
+  pastel:   { top: '#A99BEF', hor: '#FFE2F0', sun: '#FFF0F6', sunI: 2.1, hemiS: '#F3E6FF', hemiG: '#8A7A95', hemiI: 1.2, elev: 35, night: 0 },
+  twilight: { top: '#06142C', hor: '#2F5F95', sun: '#A8C4FF', sunI: 0.9, hemiS: '#4A6EA0', hemiG: '#1A2433', hemiI: 0.7, elev: 25, night: 0.6, stars: 0.5 },
+  night:    { top: '#03050C', hor: '#18213B', sun: '#C9D4FF', sunI: 0.6, hemiS: '#3A4870', hemiG: '#12161F', hemiI: 0.6, elev: 50, night: 1, stars: 1, lights: 1 },
+  nebula:   { top: '#07031A', hor: '#2B1452', sun: '#D6C4FF', sunI: 0.6, hemiS: '#4A3A80', hemiG: '#140E22', hemiI: 0.6, elev: 50, night: 1, stars: 1, lights: 1, glow: 1 },
+  neon:     { top: '#020611', hor: '#0B2436', sun: '#BDEBFF', sunI: 0.6, hemiS: '#2E5570', hemiG: '#0A1018', hemiI: 0.6, elev: 50, night: 1, stars: 0.6, lights: 1, glow: 1 },
+};
+const FX_THEME_MOOD = {
+  light: 'day', ocean: 'day', warm: 'sunset', earth: 'golden', earth2: 'forest', sweet: 'pastel', genesis: 'pastel',
+  deepocean: 'twilight', dark: 'night', space: 'night', astral: 'night', magic: 'nebula', galaxy: 'nebula', meta: 'neon', glitch: 'neon',
+};
+function fxPal() {
+  const root = document.documentElement;
+  const th = root.dataset.theme || 'light';
+  const m = FX_MOODS[FX_THEME_MOOD[th] || 'day'];
+  const cs = getComputedStyle(root);
+  // สีจากตัวแปร CSS อาจเขียนแบบไหนก็ได้ — ให้ canvas แปลงเป็น #rrggbb ก่อน (ต่อท้าย alpha แบบ '88' ได้)
+  const hex = c => { const g = fxPal.cx || (fxPal.cx = document.createElement('canvas').getContext('2d')); g.fillStyle = '#2A64D8'; g.fillStyle = c; return g.fillStyle; };
+  const accent = hex((cs.getPropertyValue('--blue') || '').trim() || '#2A64D8');
+  const deep = hex((cs.getPropertyValue('--blue-deep') || '').trim() || accent);
+  return Object.assign({ theme: th, mood: FX_THEME_MOOD[th] || 'day', accent, deep }, m);
+}
+// ท้องฟ้า 2D: ไล่สีบน → ขอบฟ้า · กลางคืนมีดาว · ธีมเรืองแสงมีหมอกสีธีมที่ขอบฟ้า
+function fxSky2D(run, g, y0, y1) {
+  const P = run.pal || (run.pal = fxPal());
+  const gr = g.createLinearGradient(0, y0, 0, y1);
+  gr.addColorStop(0, P.top); gr.addColorStop(1, P.hor);
+  g.fillStyle = gr; g.fillRect(0, y0, run.W, y1 - y0);
+  if (P.glow) {
+    const gl = g.createRadialGradient(run.W * 0.7, y1, 0, run.W * 0.7, y1, run.W * 0.8);
+    gl.addColorStop(0, P.accent + '88'); gl.addColorStop(1, P.accent + '00');
+    g.fillStyle = gl; g.fillRect(0, y0, run.W, y1 - y0);
+  }
+  if (P.stars) {
+    if (!run.starPts) run.starPts = Array.from({ length: 70 }, () => [Math.random(), Math.random() * 0.85, Math.random()]);
+    for (const [x, y, k] of run.starPts) {
+      g.globalAlpha = P.stars * (0.35 + 0.65 * Math.abs(Math.sin(run.t * 1.5 + k * 9)));
+      g.fillStyle = '#FFFFFF'; g.fillRect(x * run.W, y0 + y * (y1 - y0), k > 0.85 ? 2 : 1.2, k > 0.85 ? 2 : 1.2);
+    }
+    g.globalAlpha = 1;
+  }
+}
+// ทับฉากด้วยความมืดของกลางคืน (ของที่อยู่บนพื้นจริง ไม่ใช่ท้องฟ้า) — ไฟสนามเปิดจึงไม่มืดสนิท
+function fxNight2D(run, g, y0, y1) {
+  const P = run.pal || (run.pal = fxPal());
+  if (!P.night) return;
+  g.fillStyle = `rgba(4,8,22,${0.42 * P.night})`;
+  g.fillRect(0, y0, run.W, y1 - y0);
+}
+
+// ============================================================
 // เครื่องมือร่วม
 // ============================================================
 const fxClamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -467,15 +530,14 @@ FX_GAMES.goal = {
   },
   draw(r, g) {
     const W = r.W, H = r.H;
-    // ท้องฟ้า + อัฒจันทร์
-    let gr = g.createLinearGradient(0, 0, 0, r.gy);
-    gr.addColorStop(0, '#5BA3E6'); gr.addColorStop(1, '#BFE0FF');
-    g.fillStyle = gr; g.fillRect(0, 0, W, r.gy);
+    // ท้องฟ้าตามธีม + อัฒจันทร์ (คนดูใส่สีทีม = สีธีม ราวหนึ่งในสาม)
+    fxSky2D(r, g, 0, r.gy);
+    const P = r.pal;
     const standY = r.gy - r.gh - 36;
-    g.fillStyle = '#3A4A6B'; g.fillRect(0, standY, W, r.gh + 40);
+    g.fillStyle = P.night ? '#141A28' : '#3A4A6B'; g.fillRect(0, standY, W, r.gh + 40);
     for (let y = standY + 6; y < r.gy - 4; y += 7) for (let x = (y % 14) / 2; x < W; x += 9) {
-      g.fillStyle = ['#F2C14E', '#E86A5B', '#FFFFFF', '#6FB3F2', '#9AD48A'][(x * 7 + y * 3) % 5 | 0];
-      g.globalAlpha = 0.7; g.fillRect(x, y, 3, 3);
+      g.fillStyle = ['#F2C14E', '#E86A5B', '#FFFFFF', '#6FB3F2', P.accent, P.accent][(x * 7 + y * 3) % 6 | 0];
+      g.globalAlpha = P.night ? 0.5 : 0.7; g.fillRect(x, y, 3, 3);
     }
     g.globalAlpha = 1;
     // หญ้า — แถบสลับสีที่กว้างขึ้นตามระยะ (ให้รู้สึกลึก)
@@ -624,9 +686,7 @@ FX_GAMES.bat = {
   },
   draw(r, g) {
     const W = r.W, H = r.H;
-    let gr = g.createLinearGradient(0, 0, 0, H * 0.2);
-    gr.addColorStop(0, '#6DB4F2'); gr.addColorStop(1, '#CDE8FF');
-    g.fillStyle = gr; g.fillRect(0, 0, W, H * 0.2);
+    fxSky2D(r, g, 0, H * 0.2);
     g.fillStyle = '#25603A'; g.fillRect(0, H * 0.17, W, H * 0.04);          // รั้วนอกสนาม
     g.fillStyle = '#F2C14E'; g.fillRect(0, H * 0.17, W, 2);
     let y = H * 0.21, band = 8, i = 0;
@@ -836,6 +896,7 @@ FX_GAMES.golf = {
       g.fillStyle = 'rgba(0,0,0,.12)';
       for (const [ox, oy] of [[-3, -2], [2, -3], [3, 2], [-2, 3], [0, 0]]) { g.beginPath(); g.arc(bx + ox, by + oy, 1, 0, Math.PI * 2); g.fill(); }
     }
+    fxNight2D(r, g, 0, H);
     if (!r.roll && !r.sunk && !r.pull && !r.done) fxChip(r, g, r.bx0, r.by0 + 18);
   },
 };
@@ -1051,14 +1112,13 @@ FX_GAMES.bomb = {
   },
   draw(r, g) {
     const W = r.W, H = r.H;
-    const gr = g.createLinearGradient(0, 0, 0, r.gy);
-    gr.addColorStop(0, '#7FB8EE'); gr.addColorStop(1, '#DCEEFF');
-    g.fillStyle = gr; g.fillRect(0, 0, W, r.gy);
-    g.fillStyle = '#9CC98E';
+    fxSky2D(r, g, 0, r.gy);
+    g.fillStyle = r.pal.night ? '#2E4A33' : '#9CC98E';
     g.beginPath(); g.moveTo(0, r.gy); g.quadraticCurveTo(W * 0.25, r.gy - 70, W * 0.5, r.gy - 20); g.quadraticCurveTo(W * 0.78, r.gy - 80, W, r.gy - 30); g.lineTo(W, r.gy); g.fill();
     g.fillStyle = '#6E4B2E'; g.fillRect(0, r.gy, W, H - r.gy);
     g.fillStyle = '#4CA154'; g.fillRect(0, r.gy - 4, W, 10);
     for (const d of r.decals) { g.fillStyle = 'rgba(30,20,10,.55)'; g.beginPath(); g.ellipse(d.x, d.y + 3, 26, 6, 0, 0, Math.PI * 2); g.fill(); }
+    fxNight2D(r, g, r.gy - 80, H);
     // กองงาน
     if (!r.gone || !r.done) this.pile(r, g);
     // ระเบิด + เส้นเล็ง
@@ -1216,8 +1276,11 @@ FX_GAMES.crumple = {
   draw(r, g) {
     const W = r.W, H = r.H;
     // พื้นโต๊ะ/พื้นห้อง
+    // ผนังห้องทาสีธีมอ่อน (แบบเดียวกับ 3D) ไล่ลงพื้นสีไม้
+    const P = r.pal || (r.pal = fxPal());
     const gr = g.createLinearGradient(0, 0, 0, H);
-    gr.addColorStop(0, '#E9E4DA'); gr.addColorStop(1, '#CFC6B6');
+    gr.addColorStop(0, P.accent + '33'); gr.addColorStop(0.5, 'rgba(233,228,218,0)'); gr.addColorStop(1, 'rgba(207,198,182,1)');
+    g.fillStyle = '#EAE5DC'; g.fillRect(0, 0, W, H);
     g.fillStyle = gr; g.fillRect(0, 0, W, H);
     g.strokeStyle = 'rgba(0,0,0,.05)'; g.lineWidth = 1;
     for (let y = H * 0.15; y < H; y += 26) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
@@ -1379,6 +1442,12 @@ FX_GAMES.glass = {
       for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + 0.3; g.beginPath(); g.moveTo(d.x, d.y); g.lineTo(d.x + Math.cos(a) * 20, d.y + Math.sin(a) * 20); g.stroke(); }
       g.fillStyle = 'rgba(255,255,255,.25)'; g.beginPath(); g.arc(d.x, d.y, 9, 0, Math.PI * 2); g.fill();
     }
+    // ป้ายนีออนสีธีมบนอิฐ (แบบ 3D)
+    const P = r.pal || (r.pal = fxPal());
+    g.save(); g.font = `800 20px ${r.font}`; g.textAlign = 'center';
+    g.shadowColor = P.accent; g.shadowBlur = 16; g.fillStyle = P.accent;
+    g.fillText('STUDENT OS', W / 2 - (r.tgx - W / 2) * 0.8, r.wb * 0.16); g.restore();
+    fxNight2D(r, g, 0, H);
     // พื้น
     const fg = g.createLinearGradient(0, r.wb, 0, H);
     fg.addColorStop(0, '#8E8E8E'); fg.addColorStop(1, '#5E6168');

@@ -23,6 +23,55 @@ function fx3dLoad() {
   if (FX3D_T) return Promise.resolve(FX3D_T);
   return import('./vendor/three.module.min.js').then(m => (FX3D_T = m));
 }
+// ---------- ภาพหลังเรนเดอร์ (แสงฟุ้ง + เกรดสี) ----------
+// เจ้าของ: "ถ้าสวยเหมือน GTA 5 จะโหดจัด ๆ" — ทำแบบ GTA ไม่ได้ (ทีมหลายร้อยคน · ภาพถ่ายจริงเป็นพื้นผิว)
+// แต่หยิบเทคนิคหลักที่ทำให้มันดู "ภาพยนตร์" มาได้: แสงฟุ้งรอบของสว่าง (bloom) + เกรดสี + ขอบภาพมืด
+// ไฟล์ vendor/pp/* (MIT) แก้ import ให้ชี้ไฟล์ three ตัวเดียวกันในเครื่องแล้ว
+// เปิดเฉพาะเครื่องที่แรงพอ — มือถือรุ่นเล็กได้ภาพปกติ ลื่นกว่าสวย · โหลดไม่ได้ = ไม่มีเฉย ๆ ไม่พัง
+let FX3D_PP = null;
+function fx3dLoadPP() {
+  if (FX3D_PP) return Promise.resolve(FX3D_PP);
+  const b = './vendor/pp/';
+  return Promise.all(['EffectComposer', 'RenderPass', 'UnrealBloomPass', 'OutputPass', 'ShaderPass'].map(n => import(b + n + '.js')))
+    .then(ms => (FX3D_PP = Object.assign({}, ...ms)));
+}
+function fx3dStrong() {
+  const c = navigator.hardwareConcurrency || 4, m = navigator.deviceMemory || 4;
+  return c >= 6 && m >= 4;
+}
+const FX3D_GRADE = {
+  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.32 }, uSat: { value: 1.08 }, uCon: { value: 1.06 }, uTint: { value: [1, 1, 1] } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uVig, uSat, uCon; uniform vec3 uTint; varying vec2 vUv;
+    void main(){
+      vec4 c = texture2D(tDiffuse, vUv);
+      float l = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
+      c.rgb = mix(vec3(l), c.rgb, uSat);
+      c.rgb = (c.rgb - 0.5) * uCon + 0.5;
+      c.rgb *= uTint;
+      vec2 d = vUv - 0.5; c.rgb *= 1.0 - uVig * dot(d, d) * 2.2;
+      gl_FragColor = c;
+    }`,
+};
+function fx3dPost(run) {
+  const T = run.T, PP = FX3D_PP;
+  if (!PP || !fx3dStrong()) return;
+  const P = run.pal || fxPal();
+  const comp = new PP.EffectComposer(run.R);
+  comp.addPass(new PP.RenderPass(run.S, run.C));
+  // กลางวันแสงฟุ้งเฉพาะจุดที่จ้าจริง (ดวงอาทิตย์ สะท้อนแสง) · กลางคืนฟุ้งรอบไฟสนาม/นีออนชัด
+  const bloom = new PP.UnrealBloomPass(new T.Vector2(run.W / 2, run.H / 2), P.night ? 0.8 : 0.16, 0.5, P.night ? 0.6 : 0.94);
+  comp.addPass(bloom);
+  const grade = new PP.ShaderPass(FX3D_GRADE);
+  const tint = { sunset: [1.06, 0.98, 0.94], golden: [1.05, 1.0, 0.92], night: [0.94, 0.98, 1.06], nebula: [1.0, 0.96, 1.06],
+    neon: [0.95, 1.02, 1.06], twilight: [0.95, 0.99, 1.06], pastel: [1.03, 0.99, 1.03] }[P.mood] || [1, 1, 1];
+  grade.uniforms.uTint.value = tint;
+  comp.addPass(grade);
+  comp.addPass(new PP.OutputPass());
+  comp.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  comp.setSize(run.W, run.H);
+  run.comp = comp; run.bloom = bloom;
+}
 function fx3dSupported() {
   try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); }
   catch (_) { return false; }
@@ -47,7 +96,7 @@ async function open3D(id, title, onClose, preview) {
   say(run, 'กำลังโหลด 3D…');
   clearTimeout(run.msgT);
   let T;
-  try { T = await fx3dLoad(); }
+  try { T = await fx3dLoad(); await fx3dLoadPP().catch(() => null); }
   catch (_) {
     if (fxRun === run) { closeFx(true); fx3dFallback(id, title, onClose, preview, 'โหลด 3D ไม่ได้ — เล่นแบบ 2D แทน'); }
     return;
@@ -55,7 +104,7 @@ async function open3D(id, title, onClose, preview) {
   if (fxRun !== run) return;
   run.msg.className = 'hp-msg';
   run.T = T;
-  try { fx3dSetup(run, T); G.init(run, T); }
+  try { fx3dSetup(run, T); G.init(run, T); try { fx3dPost(run); } catch (_) { run.comp = null; } }
   catch (e) {
     console.warn('fx3d', e);
     if (fxRun === run) { closeFx(true); fx3dFallback(id, title, onClose, preview, 'เปิด 3D ไม่สำเร็จ — เล่นแบบ 2D'); }
@@ -70,7 +119,9 @@ async function open3D(id, title, onClose, preview) {
 
 function fx3dSetup(run, T) {
   const R = new T.WebGLRenderer({ canvas: run.cv, antialias: true, powerPreference: 'low-power' });
-  R.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  // เครื่องแรง: คมเต็มจอ + เงาละเอียด · เครื่องเล็ก: ลดความคม/เงาลงให้ลื่น (ลื่นสำคัญกว่าสวยในเกมจับจังหวะ)
+  const strong = fx3dStrong();
+  R.setPixelRatio(Math.min(strong ? 2 : 1.5, window.devicePixelRatio || 1));
   R.shadowMap.enabled = true;
   R.shadowMap.type = T.PCFSoftShadowMap;
   R.toneMapping = T.ACESFilmicToneMapping;
@@ -82,7 +133,8 @@ function fx3dSetup(run, T) {
   const sun = new T.DirectionalLight(0xffffff, 2.4);
   sun.position.set(4, 9, 4);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.mapSize.set(strong ? 2048 : 1024, strong ? 2048 : 1024);
+  sun.shadow.normalBias = 0.02;
   sun.shadow.bias = -0.0005;
   Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 0.5, far: 40 });
   S.add(hemi, sun, sun.target);
@@ -104,6 +156,7 @@ function fx3dResize(run) {
   const d = Math.min(2, window.devicePixelRatio || 1);
   run.c2.width = Math.round(r.width * d); run.c2.height = Math.round(r.height * d);
   run.g2.setTransform(d, 0, 0, d, 0, 0);
+  if (run.comp) run.comp.setSize(r.width, r.height);
   if (run.G && run.G.layout) run.G.layout(run);
 }
 
@@ -121,7 +174,7 @@ function fx3dLoop(run) {
       run.shake = Math.max(0, run.shake - dt * 2.5);
       C.position.set(run.camBase.x + fxRand(-1, 1) * run.shake * 0.08, run.camBase.y + fxRand(-1, 1) * run.shake * 0.08, run.camBase.z);
     } else C.position.copy(run.camBase);
-    run.R.render(run.S, C);
+    if (run.comp) run.comp.render(); else run.R.render(run.S, C);
     const g = run.g2;
     g.clearRect(0, 0, run.W, run.H);
     if (run.G.draw2d) run.G.draw2d(run, g);
@@ -138,6 +191,8 @@ function fx3dDispose(run) {
     const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
     ms.forEach(m => { for (const k in m) if (m[k] && m[k].isTexture) m[k].dispose(); m.dispose(); });
   });
+  if (run.envRT) run.envRT.dispose();
+  if (run.comp) { run.comp.passes.forEach(p => p.dispose && p.dispose()); run.comp.dispose && run.comp.dispose(); }
   if (run.R) { run.R.dispose(); try { run.R.forceContextLoss(); } catch (_) {} }
 }
 
@@ -166,6 +221,183 @@ function fx3dLook(run, pos, at) {
   run.camBase.set(pos[0], pos[1], pos[2]);
   run.C.position.copy(run.camBase);
   run.C.lookAt(at[0], at[1], at[2]);
+}
+
+// ---------- ท้องฟ้า + แสง + แสงสะท้อนรอบฉาก ตามธีม ----------
+// outdoor: โดมฟ้าไล่สี · ดวงอาทิตย์/ดวงจันทร์ · เมฆ (กลางวัน) · ดาว + เนบิวลาสีธีม (กลางคืน)
+// indoor:  ห้องสีผนังตามธีม + แผงไฟเพดาน (ใช้ทำแสงสะท้อนอย่างเดียว ไม่วาด)
+// ทั้งสองแบบสร้าง environment map (PMREM) — โลหะ แก้ว ลูกบอล มีเงาสะท้อนจริง ไม่ใช่สีเรียบ ๆ
+function fx3dEnv(run, T, o = {}) {
+  const P = run.pal = fxPal();
+  const S = run.S;
+  const hor = new T.Color(P.hor), top = new T.Color(P.top);
+  run.hemi.color.set(P.hemiS); run.hemi.groundColor.set(P.hemiG); run.hemi.intensity = P.hemiI * (o.indoor ? 0.8 : 1);
+  run.sun.color.set(o.indoor ? '#FFF6EA' : P.sun);
+  run.sun.intensity = o.indoor ? 1.45 : P.sunI;
+  const el = (o.indoor ? 60 : P.elev) * Math.PI / 180, az = (o.az == null ? 35 : o.az) * Math.PI / 180;
+  const dir = new T.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
+  const tgt = o.target || new T.Vector3(0, 0, -4);
+  run.sun.position.copy(tgt).addScaledVector(dir, 20); run.sun.target.position.copy(tgt);
+  const skyTex = fx3dTex(T, 8, 256, (g, w, h) => {
+    const gr = g.createLinearGradient(0, 0, 0, h);
+    // สีฟ้าลงมาถึงมุมเงยต่ำ ๆ (กล้องเกมส่วนใหญ่มองต่ำ เห็นแต่ฟ้าแถบล่าง) — สีขอบฟ้าอยู่แค่แถบบาง ๆ
+    const mid = '#' + top.clone().lerp(hor, 0.4).getHexString();
+    gr.addColorStop(0, P.top); gr.addColorStop(0.36, mid); gr.addColorStop(0.485, P.hor); gr.addColorStop(0.52, P.hor);
+    gr.addColorStop(1, o.indoor ? P.hor : '#' + hor.clone().multiplyScalar(0.55).getHexString());
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  });
+  const env = new T.Scene();
+  const domeG = new T.SphereGeometry(170, 32, 16);
+  if (!o.indoor) {
+    const dome = new T.Mesh(domeG, new T.MeshBasicMaterial({ map: skyTex, side: T.BackSide, fog: false, depthWrite: false }));
+    dome.renderOrder = -10; S.add(dome);
+    env.add(new T.Mesh(domeG, new T.MeshBasicMaterial({ map: skyTex, side: T.BackSide })));
+    S.background = null;
+    S.fog = new T.Fog(P.hor, o.fogNear || 30, o.fogFar || 120);
+    // ดวงอาทิตย์ / ดวงจันทร์
+    const disc = new T.Sprite(new T.SpriteMaterial({ map: run.dot, color: P.night ? '#E8EEFF' : P.sun, fog: false, depthWrite: false,
+      blending: T.AdditiveBlending, transparent: true }));
+    disc.position.copy(dir).multiplyScalar(160); disc.scale.setScalar(P.night ? 9 : P.elev < 20 ? 34 : 22); S.add(disc);
+    const sunE = disc.clone(); sunE.material = disc.material.clone(); env.add(sunE);
+    if (!P.night) {
+      const cloudTex = fx3dTex(T, 256, 128, (g, w, h) => {
+        for (let i = 0; i < 14; i++) {
+          const x = w * (0.15 + Math.random() * 0.7), y = h * (0.45 + Math.random() * 0.25), r = h * (0.18 + Math.random() * 0.22);
+          const gr = g.createRadialGradient(x, y, 0, x, y, r);
+          gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+          g.fillStyle = gr; g.fillRect(0, 0, w, h);
+        }
+      });
+      // เมฆก้อนเล็กกระจายสูง — รุ่นแรกก้อนใหญ่อยู่ต่ำ ทับกันจนฟ้าทั้งผืนเป็นหมอกขาว (ไม่ใช่ฟ้ากลางวันใส ๆ)
+      for (let i = 0; i < 6; i++) {
+        const c = new T.Sprite(new T.SpriteMaterial({ map: cloudTex, color: P.mood === 'sunset' ? '#FFD2C2' : '#FFFFFF', fog: false, depthWrite: false, transparent: true, opacity: 0.7 }));
+        const a = -Math.PI / 2 + (i - 2.5) * 0.42 + Math.random() * 0.2;
+        c.position.set(Math.cos(a) * 155, 38 + Math.random() * 30, Math.sin(a) * 155); c.scale.set(30 + Math.random() * 22, 10 + Math.random() * 6, 1);
+        S.add(c);
+      }
+    }
+    if (P.stars) {
+      const n = 900, pos = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) {
+        const v = new T.Vector3(Math.random() * 2 - 1, Math.random() * 0.95 + 0.05, Math.random() * 2 - 1).normalize().multiplyScalar(165);
+        pos.set([v.x, v.y, v.z], i * 3);
+      }
+      const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3));
+      S.add(new T.Points(g, new T.PointsMaterial({ color: '#FFFFFF', size: 1.6, sizeAttenuation: false, fog: false, transparent: true, opacity: P.stars, depthWrite: false })));
+    }
+    if (P.glow) {
+      const neb = new T.Sprite(new T.SpriteMaterial({ map: run.dot, color: P.accent, fog: false, depthWrite: false, blending: T.AdditiveBlending, transparent: true, opacity: 0.55 }));
+      neb.position.set(40, 40, -150); neb.scale.set(190, 110, 1); S.add(neb);
+      const neb2 = neb.clone(); neb2.material = neb.material.clone(); neb2.material.opacity = 0.35; neb2.position.set(-70, 25, -140); neb2.scale.set(140, 90, 1); S.add(neb2);
+    }
+  } else {
+    // ห้อง: ผนังสีธีมอ่อน ๆ + แผงไฟเพดาน — เอาไว้ทำแสงสะท้อน
+    const wall = new T.Color(o.wall || P.accent).lerp(new T.Color('#FFFFFF'), 0.55);
+    env.add(new T.Mesh(new T.BoxGeometry(20, 8, 20), new T.MeshBasicMaterial({ color: wall, side: T.BackSide })));
+    for (let i = 0; i < 4; i++) {
+      const pnl = new T.Mesh(new T.PlaneGeometry(4, 1.2), new T.MeshBasicMaterial({ color: '#FFFFFF' }));
+      pnl.position.set((i % 2 ? 4 : -4), 3.9, i < 2 ? -4 : 4); pnl.rotation.x = Math.PI / 2; env.add(pnl);
+    }
+    S.background = new T.Color(o.bg || P.hor);
+  }
+  const pm = new T.PMREMGenerator(run.R);
+  const rt = pm.fromScene(env, 0.04);
+  S.environment = rt.texture;
+  S.environmentIntensity = o.indoor ? 0.5 : (P.night ? 0.35 : 0.8);
+  run.envRT = rt; pm.dispose();
+  // ไฟสนามตอนกลางคืน — จุดไฟสว่างบนเสาไกล ๆ + แสงส่องลงสนาม
+  if (P.lights && o.stadium) {
+    for (const [x, z] of o.stadium) {
+      const sl = new T.SpotLight('#FFF4E0', 380, 90, 0.55, 0.6, 1.6);
+      sl.position.set(x, 26, z); sl.target.position.set(o.target ? o.target.x : 0, 0, o.target ? o.target.z : -6);
+      S.add(sl, sl.target);
+      const bulb = new T.Sprite(new T.SpriteMaterial({ map: run.dot, color: '#FFF8E8', blending: T.AdditiveBlending, transparent: true, depthWrite: false, fog: false }));
+      bulb.position.set(x, 26, z); bulb.scale.setScalar(5); S.add(bulb);
+    }
+    run.hemi.intensity += 0.25;
+  }
+  // กลางคืนที่ไม่มีไฟสนาม (ทุ่งหญ้า กรีนกอล์ฟ): แสงจันทร์ฟ้าอ่อนจากหลังผู้เล่น + เปิดรับแสงเพิ่ม
+  // รุ่นแรกพื้นดำสนิทจนมองไม่เห็นระเบิดกับกองงาน — คืนจริงยังเห็นของ แค่สีหม่นลง
+  if (P.night && !o.stadium && !o.indoor) {
+    const moon = new T.DirectionalLight('#A9BCFF', 1.6);
+    moon.position.set(-4, 10, 12); moon.target.position.copy(tgt); S.add(moon, moon.target);
+    run.hemi.intensity = Math.max(run.hemi.intensity, 1.15);
+    run.R.toneMappingExposure = 1.2;
+  }
+  return P;
+}
+
+// ลูกฟุตบอล: สีต่อจุดยอด — ดำเมื่ออยู่ในห้าเหลี่ยมรอบจุดยอดไอโคซาฮีดรอน 12 จุด
+// (ลายห้าเหลี่ยม/หกเหลี่ยมของลูกบอลจริงคือไอโคซาฮีดรอนตัดมุม) · มีเส้นตะเข็บจาง ๆ รอบห้าเหลี่ยม
+function fx3dSoccerGeo(T, r) {
+  const g = new T.SphereGeometry(r, 96, 64);
+  const f = (1 + Math.sqrt(5)) / 2;
+  const V = [[0, 1, f], [0, -1, f], [0, 1, -f], [0, -1, -f], [1, f, 0], [-1, f, 0], [1, -f, 0], [-1, -f, 0], [f, 0, 1], [-f, 0, 1], [f, 0, -1], [-f, 0, -1]]
+    .map(a => new T.Vector3(...a).normalize());
+  const basis = V.map(v => {
+    let n = null, best = -2;
+    for (const u of V) { const d = u.dot(v); if (d < 0.999 && d > best) { best = d; n = u; } }
+    const e1 = n.clone().addScaledVector(v, -v.dot(n)).normalize();
+    return [e1, new T.Vector3().crossVectors(v, e1)];
+  });
+  const pos = g.attributes.position, col = new Float32Array(pos.count * 3), p = new T.Vector3();
+  const apo = 0.27, step = Math.PI * 2 / 5;
+  for (let i = 0; i < pos.count; i++) {
+    p.fromBufferAttribute(pos, i).normalize();
+    let k = 0, best = -2;
+    for (let j = 0; j < 12; j++) { const d = V[j].dot(p); if (d > best) { best = d; k = j; } }
+    const th = Math.acos(Math.min(1, best));
+    const phi = Math.atan2(p.dot(basis[k][1]), p.dot(basis[k][0])) + Math.PI / 5;
+    const lim = apo / Math.cos(((phi % step) + step) % step - step / 2);
+    let c = th < lim ? 0.06 : 0.95;
+    if (Math.abs(th - lim) < 0.018 || Math.abs(th - lim * 1.95) < 0.012) c = Math.min(c, 0.55);   // ตะเข็บ
+    col.set([c, c, c * 1.01], i * 3);
+  }
+  g.setAttribute('color', new T.BufferAttribute(col, 3));
+  return g;
+}
+
+// ต้นไม้ใบกว้าง: พุ่มหลายก้อนผิวขรุขระ (ดันจุดยอดด้วยคลื่นจากตำแหน่ง → ไม่มีรอยแยก) + สีใบไม่เท่ากัน
+// รุ่นแรกเป็นกรวยเหลี่ยม — ดูเป็นเกมยุคเก่า ไม่ใช่สนามกอล์ฟ
+function fx3dTree(T, seed = 1) {
+  const tr = new T.Group();
+  const bark = fx3dStd(T, 0x5B4330, { roughness: 1 });
+  const trunk = new T.Mesh(new T.CylinderGeometry(0.12, 0.22, 2.2, 10), bark); trunk.position.y = 1.1; trunk.castShadow = true; tr.add(trunk);
+  const greens = [0x2F5E2A, 0x3A6D30, 0x2A5325, 0x467A36];
+  for (let i = 0; i < 6; i++) {
+    const g = new T.SphereGeometry(1, 14, 10), pos = g.attributes.position, v = new T.Vector3();
+    for (let k = 0; k < pos.count; k++) {
+      v.fromBufferAttribute(pos, k);
+      const n = Math.sin(v.x * 5.1 + seed) * Math.cos(v.y * 4.3 + i) * Math.sin(v.z * 6.7 + seed * 2);
+      v.multiplyScalar(1 + n * 0.16); pos.setXYZ(k, v.x, v.y, v.z);
+    }
+    g.computeVertexNormals();
+    const m = new T.Mesh(g, fx3dStd(T, greens[(i + seed) % 4], { roughness: 0.95 }));
+    const a = i / 6 * Math.PI * 2 + seed;
+    const rr = i === 0 ? 0 : 0.7;
+    m.position.set(Math.cos(a) * rr, 2.6 + (i === 0 ? 0.6 : Math.sin(i * 1.7 + seed) * 0.4), Math.sin(a) * rr);
+    m.scale.setScalar(i === 0 ? 1.15 : 0.85 + ((i * 37 + seed * 11) % 10) / 40);
+    m.castShadow = true; tr.add(m);
+  }
+  return tr;
+}
+// ฝูงคนบนอัฒจันทร์: หัวสีผิว + เสื้อหลากสี (ราว 1/3 ใส่สีทีม = สีธีม) บนเก้าอี้สีเข้ม
+function fx3dCrowd(T, P, w = 1024, h = 256) {
+  return fx3dTex(T, w, h, (g, W, H) => {
+    g.fillStyle = '#20252F'; g.fillRect(0, 0, W, H);
+    const skins = ['#F1C9A5', '#E0AC83', '#C68B5F', '#A0694A', '#7A4E36', '#F5D9C0'];
+    const shirts = ['#F4F4F4', '#1E2430', '#D23A3A', '#2E62C9', '#E8C14A', '#3F8F4E', '#8A8F9C', P.accent, P.accent, P.accent];
+    for (let y = 8, r = 0; y < H; y += 11, r++) {
+      g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, y + 6, W, 2);
+      for (let x = (r % 2) * 4; x < W; x += 8 + ((x * 7 + r) % 3)) {
+        if (((x * 13 + r * 7) % 17) === 0) continue;             // ที่นั่งว่าง
+        g.fillStyle = shirts[(x * 3 + r * 5 + (x >> 4)) % shirts.length];
+        g.fillRect(x - 3, y + 1, 7, 6);
+        g.fillStyle = skins[(x + r * 3) % skins.length];
+        g.beginPath(); g.arc(x + 0.5, y - 1, 2.6, 0, 7); g.fill();
+      }
+    }
+  });
 }
 
 // ---------- พื้นผิวจาก canvas ----------
@@ -291,61 +523,110 @@ FX3D_GAMES.hoop = {
   RIM_Y: 3.05, RIM_R: 0.23, BALL_R: 0.12, HZ: -4.6, MAXP: 140,
   init(run, T) {
     const S = run.S;
-    S.background = new T.Color(0x1A2238);
-    S.fog = new T.Fog(0x1A2238, 9, 22);
     run.hx = fxRand(-0.55, 0.55);
-    // พื้นไม้
-    const wood = fx3dTex(T, 512, 512, (g, w, h) => {
-      for (let i = 0; i < 8; i++) {
-        g.fillStyle = ['#C98B4E', '#BF8045', '#D19458', '#C4874B'][i % 4];
-        g.fillRect(0, i * h / 8, w, h / 8);
-        g.fillStyle = 'rgba(80,40,10,.25)'; g.fillRect(0, i * h / 8, w, 2);
-        for (let k = 0; k < 3; k++) { g.fillStyle = 'rgba(80,40,10,.18)'; g.fillRect(((i * 97 + k * 173) % w), i * h / 8, 2, h / 8); }
-      }
-    }, [6, 6]);
-    const floor = new T.Mesh(new T.PlaneGeometry(30, 30), fx3dStd(T, 0xffffff, { map: wood, roughness: 0.45 }));
-    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; S.add(floor);
-    const key = new T.Mesh(new T.PlaneGeometry(4.9, 5.8), fx3dStd(T, 0x2A64D8, { roughness: 0.5, transparent: true, opacity: 0.55 }));
-    key.rotation.x = -Math.PI / 2; key.position.set(0, 0.005, -2.0); key.receiveShadow = true; S.add(key);
-    const wall = new T.Mesh(new T.PlaneGeometry(30, 12), fx3dStd(T, 0x24304F, { roughness: 0.9 }));
-    wall.position.set(0, 6, -7.5); S.add(wall);
-    // เสา + แป้น + ห่วง + ตาข่าย
     const hz = this.HZ, ry = this.RIM_Y, hx = run.hx;
-    const pole = new T.Mesh(new T.CylinderGeometry(0.08, 0.08, 3.6, 16), fx3dStd(T, 0x3A4252, { metalness: 0.6, roughness: 0.4 }));
-    pole.position.set(hx, 1.8, hz - 1.2); pole.castShadow = true; S.add(pole);
-    const arm = new T.Mesh(new T.BoxGeometry(0.12, 0.12, 0.9), pole.material);
-    arm.position.set(hx, 3.35, hz - 0.8); S.add(arm);
-    const boardTex = fx3dTex(T, 256, 150, (g, w, h) => {
-      g.fillStyle = 'rgba(255,255,255,.92)'; g.fillRect(0, 0, w, h);
-      g.strokeStyle = '#E03A2F'; g.lineWidth = 8; g.strokeRect(6, 6, w - 12, h - 12);
-      g.lineWidth = 7; g.strokeRect(w / 2 - 38, h - 70, 76, 58);
+    const P = fx3dEnv(run, T, { indoor: true, target: new T.Vector3(hx, 0, hz + 2) });
+    // ---------- ยิม ----------
+    // พื้นไม้เมเปิล: ไม้หน้ากว้าง ~5.7 ซม. ต่อแผ่นยาวสลับ · เคลือบเงา (roughness ต่ำ สะท้อนไฟเพดาน)
+    // รุ่นแรกแผ่นละ ~60 ซม. — ดูเป็นพื้นห้องนั่งเล่น ไม่ใช่สนามบาส
+    const wood = fx3dTex(T, 1024, 1024, (g, w, h) => {
+      const n = 32, ph = h / n;
+      for (let i = 0; i < n; i++) {
+        let x = -((i * 211) % 300);
+        while (x < w) {
+          const L = 260 + ((i * 97 + x) % 220);
+          const k = (i * 13 + Math.floor(x / 7)) % 5;
+          g.fillStyle = ['#D9A86C', '#D2A064', '#DDAE74', '#CF9C5E', '#D6A56A'][k];
+          g.fillRect(x, i * ph, L, ph);
+          g.fillStyle = 'rgba(90,50,15,.06)';
+          for (let q = 0; q < 6; q++) g.fillRect(x, i * ph + q * ph / 6 + (q * 7 % 3), L, 1);
+          g.fillStyle = 'rgba(70,35,8,.35)'; g.fillRect(x, i * ph, 2, ph);
+          x += L;
+        }
+        g.fillStyle = 'rgba(70,35,8,.3)'; g.fillRect(0, i * ph, w, 1.5);
+      }
+    }, [16, 16]);
+    wood.rotation = Math.PI / 2;
+    const floor = new T.Mesh(new T.PlaneGeometry(30, 30), fx3dStd(T, 0xffffff, { map: wood, roughness: 0.32, metalness: 0 }));
+    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; S.add(floor);
+    // เขตสามวินาที (4.9 × 5.8 ม.) ทาสีทีม = สีธีม — สนามจริงก็ทาสีทีมตรงนี้
+    const key = new T.Mesh(new T.PlaneGeometry(4.9, 5.8), fx3dStd(T, P.accent, { roughness: 0.38 }));
+    key.rotation.x = -Math.PI / 2; key.position.set(0, 0.003, hz + 2.9 - 1.2); key.receiveShadow = true; S.add(key);
+    const lineM = new T.MeshBasicMaterial({ color: '#FFFFFF' });
+    const ln = (w, d, x, z) => { const m = new T.Mesh(new T.PlaneGeometry(w, d), lineM); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.005, z); S.add(m); };
+    ln(4.9, 0.05, 0, hz - 1.2 + 5.8); ln(0.05, 5.8, -2.45, hz + 1.7); ln(0.05, 5.8, 2.45, hz + 1.7); ln(30, 0.05, 0, hz - 1.2);
+    const ftc = new T.Mesh(new T.RingGeometry(1.775, 1.825, 64, 1, 0, Math.PI), lineM);
+    ftc.rotation.x = -Math.PI / 2; ftc.position.set(0, 0.005, hz - 1.2 + 5.8); S.add(ftc);
+    // ผนังทาสีทีม + แถบป้าย + ไฟเพดาน
+    // ผนังยิม: ธีมกลางวัน = สีทีมอ่อน (ยิมเปิดไฟสว่าง) · ธีมกลางคืน = สีทีมเข้ม (อารีน่าปิดไฟอัฒจันทร์)
+    const wallC = P.night ? new T.Color(P.deep).lerp(new T.Color('#141A28'), 0.6) : new T.Color(P.accent).lerp(new T.Color('#E4E7EC'), 0.6);
+    const wall = new T.Mesh(new T.PlaneGeometry(30, 12), fx3dStd(T, wallC, { roughness: 0.9 }));
+    wall.position.set(0, 6, -7.5); S.add(wall);
+    const banner = fx3dTex(T, 1024, 96, (g, w, h) => {
+      g.fillStyle = P.accent; g.fillRect(0, 0, w, h);
+      g.fillStyle = 'rgba(255,255,255,.92)'; g.font = `800 ${h * 0.5}px ${run.font}`; g.textBaseline = 'middle';
+      for (let x = 20; x < w; x += 360) g.fillText('STUDENT OS', x, h / 2);
     });
+    const bn = new T.Mesh(new T.BoxGeometry(30, 0.55, 0.12), fx3dStd(T, 0xffffff, { map: banner, roughness: 0.6 }));
+    bn.position.set(0, 0.28, -7.2); S.add(bn);          // ป้ายเตี้ยข้างสนาม (แบบ LED board ริมสนามจริง)
+    for (let i = 0; i < 6; i++) {
+      const lamp = new T.Mesh(new T.BoxGeometry(1.6, 0.06, 0.5), new T.MeshBasicMaterial({ color: '#FFF8EC' }));
+      lamp.position.set((i % 3 - 1) * 4.5, 9, -5 + Math.floor(i / 3) * 5); S.add(lamp);
+    }
+    // ---------- แป้น ห่วง ตาข่าย (ขนาดจริงตามกติกา FIBA) ----------
+    const steel = fx3dStd(T, 0x2C323D, { metalness: 0.85, roughness: 0.35 });
+    const pole = new T.Mesh(new T.CylinderGeometry(0.09, 0.1, 3.6, 24), steel);
+    pole.position.set(hx, 1.8, hz - 1.6); pole.castShadow = true; S.add(pole);
+    const pad = new T.Mesh(new T.BoxGeometry(0.34, 1.8, 0.34), fx3dStd(T, P.accent, { roughness: 0.8 }));
+    pad.position.set(hx, 0.9, hz - 1.6); pad.castShadow = true; S.add(pad);
+    const arm = new T.Mesh(new T.BoxGeometry(0.1, 0.1, 1.2), steel);
+    arm.position.set(hx, 3.4, hz - 1.0); S.add(arm);
     run.boardZ = hz - 0.38;
-    const board = new T.Mesh(new T.BoxGeometry(1.8, 1.05, 0.04), [0, 0, 0, 0, 0, 0].map((_, i) =>
-      i === 4 ? fx3dStd(T, 0xffffff, { map: boardTex, roughness: 0.2 }) : fx3dStd(T, 0xe8ecf2)));
-    board.position.set(hx, ry + 0.42, run.boardZ - 0.02); board.castShadow = true; S.add(board);
-    const rim = new T.Mesh(new T.TorusGeometry(this.RIM_R, 0.018, 12, 40), fx3dStd(T, 0xF2661B, { metalness: 0.5, roughness: 0.35 }));
+    // แป้นกระจกใส (แป้นแข่งจริง) + เส้นขาว: กรอบนอก + สี่เหลี่ยมใน 59 × 45 ซม.
+    const boardLines = fx3dTex(T, 512, 300, (g, w, h) => {
+      g.clearRect(0, 0, w, h);
+      g.strokeStyle = '#FFFFFF'; g.lineWidth = 14; g.strokeRect(7, 7, w - 14, h - 14);
+      const iw = w * 0.59 / 1.8, ih = h * 0.45 / 1.05;
+      g.lineWidth = 12; g.strokeRect(w / 2 - iw / 2, h - h * 0.15 / 1.05 - ih, iw, ih);
+    });
+    const glass = new T.MeshPhysicalMaterial({ color: 0xDDEAF5, transparent: true, opacity: 0.22, roughness: 0.03, metalness: 0, clearcoat: 1, depthWrite: false });
+    const board = new T.Mesh(new T.BoxGeometry(1.8, 1.05, 0.03), glass);
+    board.position.set(hx, ry + 0.45, run.boardZ - 0.015); S.add(board);
+    const bl = new T.Mesh(new T.PlaneGeometry(1.8, 1.05), fx3dStd(T, 0xffffff, { map: boardLines, transparent: true, depthWrite: false, roughness: 0.4 }));   // สีทา ไม่ใช่ไฟ
+    bl.position.set(hx, ry + 0.45, run.boardZ + 0.001); S.add(bl);
+    const frame = new T.Mesh(new T.BoxGeometry(1.84, 0.05, 0.06), steel); frame.position.set(hx, ry + 0.45 - 0.545, run.boardZ - 0.02); S.add(frame);
+    const rimM = fx3dStd(T, 0xE8531A, { metalness: 0.55, roughness: 0.32 });
+    const rim = new T.Mesh(new T.TorusGeometry(this.RIM_R, 0.01, 12, 64), rimM);
     rim.rotation.x = Math.PI / 2; rim.position.set(hx, ry, hz); rim.castShadow = true; S.add(rim);
-    const net = new T.Mesh(new T.CylinderGeometry(this.RIM_R, this.RIM_R * 0.6, 0.42, 16, 4, true),
-      new T.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.85 }));
-    net.position.set(hx, ry - 0.21, hz); S.add(net);
+    const brk = new T.Mesh(new T.BoxGeometry(0.16, 0.04, 0.16), rimM); brk.position.set(hx, ry - 0.01, run.boardZ + 0.07); S.add(brk);
+    // ตาข่ายถักลายข้าวหลามตัด 12 ห่วง (เส้นจริง ไม่ใช่ทรงกระบอกโปร่ง)
+    const net = new T.Group();
+    const pts = [], N = 12, rows = 4, H = 0.42;
+    const ring = (row, k) => { const t = row / rows, r = fxLerp(this.RIM_R, this.RIM_R * 0.58, t), a = (k + (row % 2) * 0.5) / N * Math.PI * 2; return new T.Vector3(Math.cos(a) * r, -t * H, Math.sin(a) * r); };
+    for (let row = 0; row < rows; row++) for (let k = 0; k < N; k++) {
+      const a = ring(row, k), b1 = ring(row + 1, k), b2 = ring(row + 1, (k + (row % 2 ? 1 : N - 1)) % N);
+      pts.push(a, b1, a, b2);
+    }
+    const netG = new T.BufferGeometry().setFromPoints(pts);
+    net.add(new T.LineSegments(netG, new T.LineBasicMaterial({ color: '#F4F4F4' })));
+    net.position.set(hx, ry, hz); S.add(net);
     Object.assign(run, { rim, net });
-    // ลูก — ลายบาส + ป้ายชื่องาน
-    const bt = fx3dTex(T, 512, 256, (g, w, h) => {
-      g.fillStyle = '#E8742A'; g.fillRect(0, 0, w, h);
-      for (let i = 0; i < 900; i++) { g.fillStyle = 'rgba(120,50,10,.18)'; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
-      g.strokeStyle = '#2A1608'; g.lineWidth = 6;
+    // ลูกบาส: ส้มอิฐ ผิวเม็ด (bump) + ร่อง 8 ช่อง + ป้ายชื่องาน
+    const bt = fx3dTex(T, 1024, 512, (g, w, h) => {
+      g.fillStyle = '#C8642A'; g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 9000; i++) { g.fillStyle = Math.random() < 0.5 ? 'rgba(90,35,8,.22)' : 'rgba(255,170,110,.12)'; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 1.6, 0, 7); g.fill(); }
+      g.strokeStyle = '#1C0E06'; g.lineWidth = 7;
       g.beginPath(); g.moveTo(0, h / 2); g.lineTo(w, h / 2); g.stroke();
       [w * 0.25, w * 0.75].forEach(x => { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); });
-      [0, w / 2].forEach(x => { g.beginPath(); g.ellipse(x, h / 2, w * 0.13, h * 0.5, 0, 0, Math.PI * 2); g.stroke(); });
-      g.fillStyle = 'rgba(255,255,255,.95)'; g.fillRect(w * 0.35, h * 0.38, w * 0.3, h * 0.24);
-      g.fillStyle = '#1F2430'; g.font = `700 ${h * 0.13}px ${run.font}`; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(run.label, w / 2, h / 2 + 1, w * 0.28);
+      [0, w / 2, w].forEach(x => { g.beginPath(); g.ellipse(x, h / 2, w * 0.12, h * 0.5, 0, 0, Math.PI * 2); g.stroke(); });
+      g.fillStyle = 'rgba(20,10,4,.85)'; g.font = `800 ${h * 0.07}px ${run.font}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(run.label, w * 0.62, h * 0.38, w * 0.2);
     });
-    const ball = new T.Mesh(new T.SphereGeometry(this.BALL_R, 32, 24), fx3dStd(T, 0xffffff, { map: bt, roughness: 0.7 }));
+    const bump = fx3dTex(T, 512, 256, (g, w, h) => { g.fillStyle = '#808080'; g.fillRect(0, 0, w, h); for (let i = 0; i < 12000; i++) { g.fillStyle = '#B0B0B0'; g.fillRect(Math.random() * w, Math.random() * h, 1.4, 1.4); } });
+    const ball = new T.Mesh(new T.SphereGeometry(this.BALL_R, 48, 32), fx3dStd(T, 0xffffff, { map: bt, bumpMap: bump, bumpScale: 0.6, roughness: 0.62 }));
     ball.castShadow = true; S.add(ball);
     run.ball = ball;
-    run.sun.position.set(hx + 3, 9, hz + 5); run.sun.target.position.set(hx, 0, hz + 2);
+    Object.assign(run.sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6 }); run.sun.shadow.camera.updateProjectionMatrix();
     this.layout(run);
     this.reset(run);
   },
@@ -491,89 +772,99 @@ FX3D_GAMES.hoop = {
 // ============================================================
 FX3D_GAMES.goal = {
   aria: 'เตะงานที่เสร็จเข้าประตู', hint: 'ปัดลูกขึ้นไปทางประตู · หลบผู้รักษาประตู', easy: 'ผู้รักษาประตูเหนื่อยแล้ว — ช้าลงนะ',
-  GZ: -11, GW: 7.32, GH: 2.44, BR: 0.2,
+  GZ: -11, GW: 7.32, GH: 2.44, BR: 0.11,
   init(run, T) {
     const S = run.S;
-    S.background = new T.Color(0x7FB8EE);
-    S.fog = new T.Fog(0x9CCBF2, 30, 80);
-    const grass = fx3dTex(T, 256, 256, (g, w, h) => {
-      for (let i = 0; i < 4; i++) { g.fillStyle = i % 2 ? '#3E9C4B' : '#47B055'; g.fillRect(0, i * h / 4, w, h / 4); }
-      for (let i = 0; i < 1500; i++) { g.fillStyle = 'rgba(20,70,20,.12)'; g.fillRect(Math.random() * w, Math.random() * h, 1, 3); }
-    }, [10, 14]);
-    const field = new T.Mesh(new T.PlaneGeometry(60, 80), fx3dStd(T, 0xffffff, { map: grass, roughness: 0.95 }));
-    field.rotation.x = -Math.PI / 2; field.position.z = -15; field.receiveShadow = true; S.add(field);
-    // เส้นสนาม
-    const lineM = new T.MeshBasicMaterial({ color: 0xffffff });
-    const line = (w, d, x, z) => { const m = new T.Mesh(new T.PlaneGeometry(w, d), lineM); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.01, z); S.add(m); };
     const gz = this.GZ;
-    line(60, 0.12, 0, gz);
+    const P = fx3dEnv(run, T, { target: new T.Vector3(0, 0, -6), stadium: [[-28, -30], [28, -30], [-30, 8], [30, 8]], fogNear: 40, fogFar: 150 });
+    // หญ้า: แถบตัดหญ้ากว้าง ~5.5 ม. ขนานเส้นประตู (แบบที่เห็นในถ่ายทอดสด) + ใบหญ้าละเอียด
+    const grass = fx3dTex(T, 512, 512, (g, w, h) => {
+      for (let i = 0; i < 2; i++) { g.fillStyle = i ? '#3D8B3F' : '#479A47'; g.fillRect(0, i * h / 2, w, h / 2); }
+      for (let i = 0; i < 26000; i++) { g.fillStyle = Math.random() < 0.5 ? 'rgba(20,60,15,.16)' : 'rgba(150,200,110,.10)'; g.fillRect(Math.random() * w, Math.random() * h, 1, 2 + Math.random() * 2); }
+    }, [6, 7]);
+    const field = new T.Mesh(new T.PlaneGeometry(70, 78), fx3dStd(T, 0xffffff, { map: grass, roughness: 0.95 }));
+    field.rotation.x = -Math.PI / 2; field.position.z = -15; field.receiveShadow = true; S.add(field);
+    const lineM = fx3dStd(T, 0xF4F4F4, { roughness: 0.9 });
+    const line = (w, d, x, z) => { const m = new T.Mesh(new T.PlaneGeometry(w, d), lineM); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.01, z); m.receiveShadow = true; S.add(m); };
+    line(70, 0.12, 0, gz);
     line(18.32, 0.12, 0, gz + 5.5); line(0.12, 5.5, -9.16, gz + 2.75); line(0.12, 5.5, 9.16, gz + 2.75);
     line(40.3, 0.12, 0, gz + 16.5); line(0.12, 16.5, -20.15, gz + 8.25); line(0.12, 16.5, 20.15, gz + 8.25);
-    const spot = new T.Mesh(new T.CircleGeometry(0.15, 20), lineM); spot.rotation.x = -Math.PI / 2; spot.position.set(0, 0.011, 0); S.add(spot);
-    // อัฒจันทร์
-    const crowd = fx3dTex(T, 512, 128, (g, w, h) => {
-      g.fillStyle = '#2E3A5C'; g.fillRect(0, 0, w, h);
-      for (let y = 4; y < h; y += 7) for (let x = (y % 14) / 2; x < w; x += 7) {
-        g.fillStyle = ['#F2C14E', '#E86A5B', '#FFFFFF', '#6FB3F2', '#9AD48A', '#2E3A5C'][(x * 7 + y * 3) % 6 | 0]; g.fillRect(x, y, 4, 4);
-      }
-    }, [4, 1]);
-    const stand = new T.Mesh(new T.BoxGeometry(70, 9, 2), fx3dStd(T, 0xffffff, { map: crowd, roughness: 1 }));
-    stand.position.set(0, 4.5, gz - 9); stand.rotation.x = -0.25; S.add(stand);
-    const board = new T.Mesh(new T.BoxGeometry(60, 0.9, 0.2), fx3dStd(T, 0x1E3A8A, { roughness: 0.4 }));
-    board.position.set(0, 0.45, gz - 4); S.add(board);
-    // ประตู
-    const postM = fx3dStd(T, 0xffffff, { roughness: 0.3 });
+    // "D" หน้าเขตโทษ: วงรัศมี 9.15 ม. จากจุดโทษ ส่วนที่อยู่นอกกรอบ
+    const arcA = Math.acos(5.5 / 9.15);
+    const dArc = new T.Mesh(new T.RingGeometry(9.09, 9.21, 64, 1, Math.PI / 2 + arcA - Math.PI, 2 * (Math.PI / 2 - arcA)), lineM);
+    dArc.rotation.x = -Math.PI / 2; dArc.position.set(0, 0.01, 0); S.add(dArc);
+    const spot = new T.Mesh(new T.CircleGeometry(0.075, 20), lineM); spot.rotation.x = -Math.PI / 2; spot.position.set(0, 0.011, 0); S.add(spot);
+    // อัฒจันทร์ + ป้ายโฆษณาข้างสนาม (สีธีม — ป้ายโฆษณาจริงก็เปลี่ยนสีได้)
+    // อัฒจันทร์ลาดหลังประตู ห่างเส้นประตู ~22 ม. — เห็นฟ้าเหนือหลังคา (รุ่นแรกชิดจนบังฟ้าหมด และคนดูเป็นแถบสี)
+    const crowd = fx3dCrowd(T, P);
+    crowd.wrapS = crowd.wrapT = T.RepeatWrapping; crowd.repeat.set(6, 3);
+    const stand = new T.Mesh(new T.PlaneGeometry(110, 22), fx3dStd(T, 0xffffff, { map: crowd, roughness: 1 }));
+    stand.position.set(0, 7.5, gz - 24); stand.rotation.x = -0.62; S.add(stand);
+    const wallS = new T.Mesh(new T.BoxGeometry(110, 1.2, 0.4), fx3dStd(T, 0x2A3140)); wallS.position.set(0, 0.6, gz - 15.5); S.add(wallS);
+    const roof = new T.Mesh(new T.BoxGeometry(110, 0.5, 12), fx3dStd(T, 0x2A3140, { metalness: 0.5, roughness: 0.5 }));
+    roof.position.set(0, 18, gz - 33); roof.rotation.x = 0.08; S.add(roof);
+    const ad = fx3dTex(T, 1024, 64, (g, w, h) => {
+      g.fillStyle = P.accent; g.fillRect(0, 0, w, h);
+      g.fillStyle = '#FFFFFF'; g.font = `800 ${h * 0.6}px ${run.font}`; g.textBaseline = 'middle';
+      for (let x = 10; x < w; x += 300) g.fillText('STUDENT OS', x, h / 2 + 2);
+    }, [3, 1]);
+    const board = new T.Mesh(new T.BoxGeometry(70, 0.9, 0.15), [0, 1, 2, 3, 4, 5].map(i => i === 4 ? new T.MeshBasicMaterial({ map: ad }) : fx3dStd(T, 0x1A1F2B)));
+    board.position.set(0, 0.45, gz - 4.5); board.castShadow = true; S.add(board);
+    // ประตู 7.32 × 2.44 ม. เสากลม 12 ซม. + คานหลัง + ตาข่ายลึก 2 ม. (บนลาดลง)
+    const postM = fx3dStd(T, 0xFAFAFA, { roughness: 0.25, metalness: 0.1 });
     const W = this.GW, H = this.GH;
-    const post = x => { const p = new T.Mesh(new T.CylinderGeometry(0.06, 0.06, H, 16), postM); p.position.set(x, H / 2, gz); p.castShadow = true; S.add(p); };
+    const post = x => { const p = new T.Mesh(new T.CylinderGeometry(0.06, 0.06, H, 20), postM); p.position.set(x, H / 2, gz); p.castShadow = true; S.add(p); };
     post(-W / 2); post(W / 2);
-    const bar = new T.Mesh(new T.CylinderGeometry(0.06, 0.06, W + 0.12, 16), postM);
+    const bar = new T.Mesh(new T.CylinderGeometry(0.06, 0.06, W + 0.12, 20), postM);
     bar.rotation.z = Math.PI / 2; bar.position.set(0, H, gz); bar.castShadow = true; S.add(bar);
+    const stayM = fx3dStd(T, 0xBFC5CF, { metalness: 0.6, roughness: 0.4 });
+    [-1, 1].forEach(sg => {
+      const st = new T.Mesh(new T.CylinderGeometry(0.025, 0.025, 2.4, 8), stayM);
+      st.position.set(sg * W / 2, H * 0.55, gz - 1.0); st.rotation.x = 0.85; S.add(st);
+    });
     const netTex = fx3dTex(T, 128, 128, (g, w, h) => {
-      g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 3;
+      g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = 2.2;
       for (let i = 0; i <= 8; i++) { g.beginPath(); g.moveTo(i * w / 8, 0); g.lineTo(i * w / 8, h); g.stroke(); g.beginPath(); g.moveTo(0, i * h / 8); g.lineTo(w, i * h / 8); g.stroke(); }
-    }, [10, 4]);
-    const netM = new T.MeshBasicMaterial({ map: netTex, transparent: true, side: T.DoubleSide, depthWrite: false });
-    const back = new T.Mesh(new T.PlaneGeometry(W, H, 24, 8), netM);
-    back.position.set(0, H / 2, gz - 1.8); S.add(back);
-    const top = new T.Mesh(new T.PlaneGeometry(W, 1.8), netM); top.rotation.x = Math.PI / 2; top.position.set(0, H, gz - 0.9); S.add(top);
-    [-1, 1].forEach(sg => { const sd = new T.Mesh(new T.PlaneGeometry(1.8, H), netM); sd.rotation.y = Math.PI / 2; sd.position.set(sg * W / 2, H / 2, gz - 0.9); S.add(sd); });
+    }, [14, 5]);
+    const netM = new T.MeshStandardMaterial({ map: netTex, transparent: true, side: T.DoubleSide, depthWrite: false, roughness: 1 });
+    const back = new T.Mesh(new T.PlaneGeometry(W, H * 0.8, 30, 10), netM);
+    back.position.set(0, H * 0.4, gz - 2.0); S.add(back);
+    const top = new T.Mesh(new T.PlaneGeometry(W, 2.1), netM); top.rotation.x = Math.PI / 2 - 0.1; top.position.set(0, H * 0.9, gz - 1.0); S.add(top);
+    [-1, 1].forEach(sg => { const sd = new T.Mesh(new T.PlaneGeometry(2.0, H), netM); sd.rotation.y = Math.PI / 2; sd.position.set(sg * W / 2, H / 2, gz - 1.0); S.add(sd); });
     run.netBack = back;
     run.netBase = back.geometry.attributes.position.array.slice();
-    // ผู้รักษาประตู
+    // ผู้รักษาประตู ~1.88 ม. · เสื้อสีสะท้อนแสง (กติกา: ต่างจากทุกคนในสนาม) · ถุงมือ
     const K = new T.Group();
-    const jersey = fx3dStd(T, 0xFF7A1A, { roughness: 0.7 });
-    const torso = new T.Mesh(new T.CapsuleGeometry(0.26, 0.55, 6, 12), jersey); torso.position.y = 1.15; torso.castShadow = true;
-    const head = new T.Mesh(new T.SphereGeometry(0.15, 20, 16), fx3dStd(T, 0xF1C27D)); head.position.y = 1.75; head.castShadow = true;
-    const legM = fx3dStd(T, 0x20242E);
-    const lg1 = new T.Mesh(new T.CapsuleGeometry(0.09, 0.6, 4, 8), legM); lg1.position.set(-0.13, 0.4, 0); lg1.castShadow = true;
-    const lg2 = lg1.clone(); lg2.position.x = 0.13;
-    const armG = new T.CapsuleGeometry(0.07, 0.6, 4, 8);
-    const a1 = new T.Mesh(armG, jersey); a1.position.set(-0.5, 1.45, 0); a1.rotation.z = -1.0; a1.castShadow = true;
-    const a2 = new T.Mesh(armG, jersey); a2.position.set(0.5, 1.45, 0); a2.rotation.z = 1.0; a2.castShadow = true;
-    const gloveM = fx3dStd(T, 0xffffff);
-    const g1 = new T.Mesh(new T.SphereGeometry(0.1, 12, 10), gloveM); g1.position.set(-0.78, 1.7, 0);
-    const g2 = g1.clone(); g2.position.x = 0.78;
-    K.add(torso, head, lg1, lg2, a1, a2, g1, g2);
+    const jersey = fx3dStd(T, 0xC8F03C, { roughness: 0.75 });
+    const skin = fx3dStd(T, 0xD9A57A, { roughness: 0.7 });
+    const torso = new T.Mesh(new T.CapsuleGeometry(0.22, 0.52, 8, 16), jersey); torso.position.y = 1.2; torso.castShadow = true;
+    const head = new T.Mesh(new T.SphereGeometry(0.115, 24, 16), skin); head.position.y = 1.76; head.castShadow = true;
+    const hair = new T.Mesh(new T.SphereGeometry(0.12, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2.1), fx3dStd(T, 0x2A1C14, { roughness: 0.9 })); hair.position.y = 1.78;
+    const shortsM = fx3dStd(T, 0x1A1F2B);
+    const shorts = new T.Mesh(new T.CylinderGeometry(0.22, 0.24, 0.24, 16), shortsM); shorts.position.y = 0.82;
+    const lg1 = new T.Mesh(new T.CapsuleGeometry(0.075, 0.62, 4, 10), skin); lg1.position.set(-0.11, 0.4, 0); lg1.castShadow = true;
+    const lg2 = lg1.clone(); lg2.position.x = 0.11;
+    const sock = new T.Mesh(new T.CylinderGeometry(0.08, 0.07, 0.3, 10), jersey); sock.position.set(-0.11, 0.2, 0);
+    const sock2 = sock.clone(); sock2.position.x = 0.11;
+    const armG = new T.CapsuleGeometry(0.058, 0.56, 4, 10);
+    const a1 = new T.Mesh(armG, jersey); a1.position.set(-0.46, 1.48, 0); a1.rotation.z = -1.05; a1.castShadow = true;
+    const a2 = new T.Mesh(armG, jersey); a2.position.set(0.46, 1.48, 0); a2.rotation.z = 1.05; a2.castShadow = true;
+    const gloveM = fx3dStd(T, 0xF2F2F2, { roughness: 0.6 });
+    const g1 = new T.Mesh(new T.BoxGeometry(0.13, 0.17, 0.06), gloveM); g1.position.set(-0.74, 1.73, 0);
+    const g2 = g1.clone(); g2.position.x = 0.74;
+    K.add(torso, head, hair, shorts, lg1, lg2, sock, sock2, a1, a2, g1, g2);
     K.position.set(0, 0, gz + 0.3);
     S.add(K);
     run.K = K; run.kph = fxRand(0, 6); run.kx = 0;
-    // ลูก
-    const bt = fx3dTex(T, 512, 256, (g, w, h) => {
-      g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, w, h);
-      g.fillStyle = '#1F2430';
-      for (let i = 0; i < 12; i++) { const x = (i % 6) * w / 6 + (i < 6 ? 0 : w / 12), y = i < 6 ? h * 0.3 : h * 0.72; g.beginPath(); for (let k = 0; k < 5; k++) { const a = k * Math.PI * 2 / 5 - Math.PI / 2; g.lineTo(x + Math.cos(a) * 26, y + Math.sin(a) * 26); } g.fill(); }
-      g.fillStyle = 'rgba(255,255,255,.95)'; g.fillRect(w * 0.36, h * 0.43, w * 0.28, h * 0.15);
-      g.fillStyle = '#1F2430'; g.font = `700 ${h * 0.1}px ${run.font}`; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(run.label, w / 2, h * 0.505, w * 0.26);
-    });
-    run.ball = new T.Mesh(new T.SphereGeometry(this.BR, 32, 24), fx3dStd(T, 0xffffff, { map: bt, roughness: 0.5 }));
+    // ลูกฟุตบอลขนาดจริง (เบอร์ 5 · Ø 22 ซม.) — ลายห้าเหลี่ยมดำ 12 จุด ตามรูปทรงไอโคซาฮีดรอนตัดมุมจริง
+    run.ball = new T.Mesh(fx3dSoccerGeo(T, this.BR), new T.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.42, clearcoat: 0.6, clearcoatRoughness: 0.3 }));
     run.ball.castShadow = true; S.add(run.ball);
-    run.sun.position.set(6, 14, 4); run.sun.target.position.set(0, 0, -6);
-    Object.assign(run.sun.shadow.camera, { left: -12, right: 12, top: 14, bottom: -6, far: 50 });
+    Object.assign(run.sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -8, far: 60 });
     run.sun.shadow.camera.updateProjectionMatrix();
     this.layout(run); this.reset(run);
   },
-  layout(run) { fx3dLook(run, [0, 1.35, 3.2], [0, 1.0, this.GZ]); },
+  // กล้องหลังลูกแบบมุมถ่ายทอดจุดโทษ: ลูกอยู่ช่วงล่างหนึ่งในสามของจอ (รุ่นแรกลูกจมขอบล่าง)
+  layout(run) { fx3dLook(run, [0, 1.3, 2.7], [0, 0.55, this.GZ]); },
   reset(run) {
     run.ball.position.set(0, this.BR, 0);
     Object.assign(run, { v: new run.T.Vector3(), fly: false, held: false, saved: false, after: false, kTarget: null, ft: 0, scored: false, kdive: 0 });
@@ -591,7 +882,9 @@ FX3D_GAMES.goal = {
     if (s < 500) { say(run, 'เบาไป — ปัดแรงกว่านี้'); return; }
     const vf = fxClamp(14 + (s - 800) / 120, 12, 30);
     const vy = fxClamp((s - 500) / 1900, 0, 1.35) * 8.5;
-    run.v.set(vf * (v.x / -v.y) * 0.9, vy, -vf);
+    // ทิศซ้ายขวา: ยิงรังสีจากจอไปหาเส้นประตูจริง (มุมมองไกลใกล้) — ไม่คูณอัตราส่วนบนจอตรง ๆ
+    const b0 = run.ball.position, ax = fx3dAimX(run, b0, v, this.GZ, 1.0), t = (b0.z - this.GZ) / vf;
+    run.v.set((ax - b0.x) / t, vy, -vf);
     run.fly = true; run.ft = 0;
     FXS.kick(fxClamp((s - 600) / 1500, 0, 1));
     haptic('arm');
@@ -636,7 +929,13 @@ FX3D_GAMES.goal = {
     if (run.scored) v.multiplyScalar(Math.exp(-6 * dt));
     b.addScaledVector(v, dt);
     run.ball.rotation.x -= dt * 14;
-    if (b.y < r) { b.y = r; v.y = Math.abs(v.y) * 0.5; v.x *= 0.9; v.z *= 0.9; }
+    // พื้นหญ้า: กระทบแรง = เด้ง + เสียความเร็ว · แตะเบา ๆ = กลิ้งไปกับพื้น หน่วงช้า ๆ
+    // บั๊กรุ่นแรก: ลด 10% "ทุกเฟรมย่อยที่แตะพื้น" ลูกเลียดพื้นเลยเบรกตัวเองหยุดที่ 4 ม. ไม่ถึงประตู 11 ม.
+    if (b.y < r) {
+      b.y = r;
+      if (v.y < -0.8) { v.y = -v.y * 0.45; v.x *= 0.85; v.z *= 0.85; }
+      else { v.y = 0; const k = Math.exp(-0.35 * dt); v.x *= k; v.z *= k; }
+    }
     if (run.after) return;
     // ผ่านแนวประตู
     if (pz > gz && b.z <= gz) {
@@ -662,7 +961,7 @@ FX3D_GAMES.goal = {
     }
     if (run.scored && b.z < gz - 1.7) { b.z = gz - 1.7; v.z = 0; }
     if (b.z < gz - 3 || run.ft > 3) {
-      if (!run.scored && !run.after) { run.after = true; fxMiss(run, 'ไม่เข้า — ลองใหม่', () => this.reset(run)); }
+      if (!run.scored && !run.after) { run.after = true; fxMiss(run, 'เบาไป — ลูกกลิ้งไม่ถึงประตู', () => this.reset(run)); }
     }
   },
   draw2d(run, g) { if (!run.fly && !run.done && !run.missing) fx3dChip(run, g, run.ball.position, 26); },
@@ -679,17 +978,19 @@ FX3D_GAMES.bat = {
   PZ: -18.4,
   init(run, T) {
     const S = run.S;
-    S.background = new T.Color(0x6DB4F2);
-    S.fog = new T.Fog(0xA9D3F7, 60, 160);
-    const grass = fx3dTex(T, 256, 256, (g, w, h) => {
-      for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#3E9A4C' : '#47AA55'; g.fillRect(0, i * h / 8, w, h / 8); }
-    }, [16, 16]);
+    const P = fx3dEnv(run, T, { target: new T.Vector3(0, 0, -12), stadium: [[-45, -60], [45, -60], [-60, -10], [60, -10]], fogNear: 80, fogFar: 200, az: -30 });
+    // หญ้าตัดลายตาราง (สนามเบสบอลจริงตัดเป็นลายหมากรุก)
+    const grass = fx3dTex(T, 512, 512, (g, w, h) => {
+      for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { g.fillStyle = (i + j) % 2 ? '#3D8E45' : '#47A04F'; g.fillRect(i * w / 2, j * h / 2, w / 2, h / 2); }
+      for (let i = 0; i < 22000; i++) { g.fillStyle = Math.random() < 0.5 ? 'rgba(20,60,15,.15)' : 'rgba(150,200,110,.1)'; g.fillRect(Math.random() * w, Math.random() * h, 1, 2.5); }
+    }, [26, 26]);
     const field = new T.Mesh(new T.PlaneGeometry(260, 260), fx3dStd(T, 0xffffff, { map: grass, roughness: 1 }));
     field.rotation.x = -Math.PI / 2; field.position.z = -60; field.receiveShadow = true; S.add(field);
-    const dirt = fx3dStd(T, 0xC98B5A, { roughness: 1 });
+    const dirtT = fx3dTex(T, 256, 256, (g, w, h) => { g.fillStyle = '#B97B4C'; g.fillRect(0, 0, w, h); for (let i = 0; i < 9000; i++) { g.fillStyle = Math.random() < 0.5 ? 'rgba(80,45,20,.2)' : 'rgba(230,180,130,.15)'; g.fillRect(Math.random() * w, Math.random() * h, 1.5, 1.5); } }, [8, 8]);
+    const dirt = fx3dStd(T, 0xffffff, { map: dirtT, roughness: 1 });
     const inf = new T.Mesh(new T.PlaneGeometry(29, 29), dirt);
     inf.rotation.x = -Math.PI / 2; inf.rotation.z = Math.PI / 4; inf.position.set(0, 0.004, -19.4); inf.receiveShadow = true; S.add(inf);
-    const ig = new T.Mesh(new T.PlaneGeometry(22, 22), fx3dStd(T, 0x47AA55, { roughness: 1 }));
+    const ig = new T.Mesh(new T.PlaneGeometry(22, 22), fx3dStd(T, 0xffffff, { map: grass, roughness: 1 }));
     ig.rotation.x = -Math.PI / 2; ig.rotation.z = Math.PI / 4; ig.position.set(0, 0.006, -19.4); ig.receiveShadow = true; S.add(ig);
     const mound = new T.Mesh(new T.CylinderGeometry(2.7, 2.9, 0.25, 32), dirt); mound.position.set(0, 0.12, this.PZ); mound.receiveShadow = true; S.add(mound);
     const baseM = fx3dStd(T, 0xffffff);
@@ -706,32 +1007,44 @@ FX3D_GAMES.bat = {
         g.fillStyle = ['#F2C14E', '#E86A5B', '#FFFFFF', '#6FB3F2', '#9AD48A', '#2E3A5C'][(x * 7 + y * 3) % 6 | 0]; g.fillRect(x, y, 4, 4);
       }
     }, [6, 1]);
-    const stands = new T.Mesh(new T.CylinderGeometry(135, 118, 26, 64, 1, true, Math.PI * 0.75, Math.PI * 0.5), fx3dStd(T, 0xffffff, { map: crowd, side: T.DoubleSide, roughness: 1 }));
+    const crowd2 = fx3dCrowd(T, P); crowd2.wrapS = crowd2.wrapT = T.RepeatWrapping; crowd2.repeat.set(10, 4);
+    const stands = new T.Mesh(new T.CylinderGeometry(135, 118, 26, 64, 1, true, Math.PI * 0.75, Math.PI * 0.5), fx3dStd(T, 0xffffff, { map: crowd2, side: T.DoubleSide, roughness: 1 }));
     stands.position.set(0, 15, 0); S.add(stands);
-    // พิทเชอร์
-    const P = new T.Group();
-    const uni = fx3dStd(T, 0xffffff, { roughness: 0.7 });
+    // ป้ายบนรั้วนอกสนาม (สีธีม)
+    const ad = fx3dTex(T, 1024, 64, (g, w, h) => { g.fillStyle = P.accent; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.font = `800 ${h * 0.6}px ${run.font}`; g.textBaseline = 'middle'; for (let x = 10; x < w; x += 260) g.fillText('STUDENT OS', x, h / 2 + 2); }, [8, 1]);
+    const adR = new T.Mesh(new T.CylinderGeometry(109.8, 109.8, 1.2, 64, 1, true, Math.PI * 0.75, Math.PI * 0.5), new T.MeshBasicMaterial({ map: ad, side: T.DoubleSide }));
+    adR.position.set(0, 3.2, 0); S.add(adR);
+    // พิทเชอร์ ~1.9 ม. · หมวก/แถบเสื้อสีทีม (สีธีม) · ถุงมือหนัง
+    const uni = fx3dStd(T, 0xF2F2F2, { roughness: 0.75 });
     const body = new T.Mesh(new T.CapsuleGeometry(0.28, 0.6, 6, 12), uni); body.position.y = 1.15; body.castShadow = true;
     const head = new T.Mesh(new T.SphereGeometry(0.16, 16, 12), fx3dStd(T, 0xF1C27D)); head.position.y = 1.78;
-    const cap = new T.Mesh(new T.SphereGeometry(0.17, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), fx3dStd(T, 0x2A64D8)); cap.position.y = 1.8;
+    const cap = new T.Mesh(new T.SphereGeometry(0.17, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), fx3dStd(T, P.accent)); cap.position.y = 1.8;
+    const bill = new T.Mesh(new T.CylinderGeometry(0.11, 0.11, 0.015, 16, 1, false, 0, Math.PI), fx3dStd(T, P.accent)); bill.position.set(0, 1.81, 0.1); bill.rotation.y = Math.PI / 2;
+    const glove = new T.Mesh(new T.SphereGeometry(0.11, 12, 10), fx3dStd(T, 0x6B3E1F, { roughness: 0.7 })); glove.scale.set(1, 1.2, 0.6); glove.position.set(-0.36, 1.25, 0.12);
+    const stripe = new T.Mesh(new T.CylinderGeometry(0.285, 0.285, 0.06, 16), fx3dStd(T, P.accent)); stripe.position.y = 1.3;
     const legs = new T.Mesh(new T.BoxGeometry(0.4, 0.75, 0.22), fx3dStd(T, 0x20242E)); legs.position.y = 0.42; legs.castShadow = true;
     const arm = new T.Group(); arm.position.set(0.3, 1.45, 0);
     const armM = new T.Mesh(new T.CapsuleGeometry(0.07, 0.55, 4, 8), uni); armM.position.y = 0.32; arm.add(armM);
-    P.add(body, head, cap, legs, arm);
-    P.position.set(0, 0.25, this.PZ); P.rotation.y = Math.PI; S.add(P);
-    run.P = P; run.parm = arm;
+    const Pt = new T.Group();
+    Pt.add(body, head, cap, bill, glove, stripe, legs, arm);
+    Pt.position.set(0, 0.25, this.PZ); Pt.rotation.y = Math.PI; S.add(Pt);
+    run.P = Pt; run.parm = arm;
     // กรอบสไตรค์
-    const zone = new T.LineSegments(new T.EdgesGeometry(new T.PlaneGeometry(0.5, 0.62)), new T.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
-    zone.position.set(0, 0.85, 0.2); S.add(zone);
+    // กรอบสไตรค์ขนาดจริง: กว้างเท่าเพลต 43 ซม. · สูงเข่า (~0.5 ม.) ถึงกลางอก (~1.1 ม.)
+    const zone = new T.LineSegments(new T.EdgesGeometry(new T.PlaneGeometry(0.43, 0.6)), new T.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 }));
+    zone.position.set(0, 0.8, 0.2); S.add(zone);
     // ไม้ตี — หมุนรอบมือ (ซ้ายของเพลต) · สองชั้น: หันซ้ายขวา (yaw) แล้วยกขึ้นลง (lift)
     // เงื้อ: ชี้ไปข้างหลัง (ทางคนรับลูก) และยกสูง → กวาดผ่านเพลตระดับเอว (ชี้ไปทางขวา = จังหวะโดน) → ตามแรงไปข้างหน้า
     // (รุ่นแรกหมุนแกนเดียว ไม้ยื่นขวางจอชี้ไปหาพิทเชอร์ตลอดเวลาที่รอ)
     const bat = new T.Group();
-    const wood = fx3dStd(T, 0xC8955A, { roughness: 0.45 });
-    const barrel = new T.Mesh(new T.CylinderGeometry(0.06, 0.03, 0.9, 16), wood);
-    barrel.rotation.z = Math.PI / 2; barrel.position.x = 0.5; barrel.castShadow = true;
-    const tape = new T.Mesh(new T.CylinderGeometry(0.031, 0.031, 0.22, 12), fx3dStd(T, 0x20242E));
-    tape.rotation.z = Math.PI / 2; tape.position.x = 0.1;
+    // ไม้แอชขนาดจริง: ยาว 84 ซม. · ปลาย Ø 6.6 ซม. · ด้าม Ø 2.5 ซม. · ปุ่มท้าย · เทปพันด้าม
+    const grain = fx3dTex(T, 512, 64, (g, w, h) => { g.fillStyle = '#D7B07A'; g.fillRect(0, 0, w, h); for (let i = 0; i < 40; i++) { g.strokeStyle = `rgba(120,80,40,${0.08 + Math.random() * 0.12})`; g.beginPath(); const y = Math.random() * h; g.moveTo(0, y); g.bezierCurveTo(w * 0.3, y + 4, w * 0.6, y - 4, w, y + 2); g.stroke(); } });
+    const wood = new T.MeshPhysicalMaterial({ map: grain, roughness: 0.35, clearcoat: 0.6, clearcoatRoughness: 0.2 });
+    const prof = [[0.0001, 0], [0.022, 0], [0.024, 0.012], [0.013, 0.03], [0.0125, 0.32], [0.022, 0.52], [0.033, 0.7], [0.033, 0.83], [0.028, 0.84], [0.0001, 0.84]].map(([x, y]) => new T.Vector2(x, y));
+    const barrel = new T.Mesh(new T.LatheGeometry(prof, 24), wood);
+    barrel.rotation.z = -Math.PI / 2; barrel.castShadow = true;
+    const tape = new T.Mesh(new T.CylinderGeometry(0.0135, 0.0135, 0.2, 12), fx3dStd(T, 0x1A1D24, { roughness: 0.9 }));
+    tape.rotation.z = Math.PI / 2; tape.position.x = 0.13;
     bat.add(barrel, tape);
     const yaw = new T.Group(); yaw.add(bat);
     yaw.position.set(-0.55, 0.95, 0.55);
@@ -743,7 +1056,9 @@ FX3D_GAMES.bat = {
       g.strokeStyle = '#E03A2F'; g.lineWidth = 4;
       for (const off of [0, w / 2]) { g.beginPath(); for (let x = 0; x <= w / 2; x += 4) g.lineTo(off + x, h / 2 + Math.sin(x / (w / 2) * Math.PI * 2) * h * 0.28); g.stroke(); }
     });
-    run.ball = new T.Mesh(new T.SphereGeometry(0.1, 24, 16), fx3dStd(T, 0xffffff, { map: bt, roughness: 0.6 }));
+    // ลูกเบสบอล: ขนาดจริง Ø 7.3 ซม. ที่ระยะ 9 ม. เหลือ ~3px บนจอ — เกมจับจังหวะที่มองไม่เห็นลูกคือเกมที่เล่นไม่ได้
+    // จึงขยาย 1.5 เท่า (ตาแทบแยกไม่ออก) + ทางลมขาว · ตรงนี้เลือกเล่นได้ก่อนสมจริงโดยตั้งใจ
+    run.ball = new T.Mesh(new T.SphereGeometry(0.055, 24, 16), fx3dStd(T, 0xffffff, { map: bt, roughness: 0.6, emissive: 0x222222 }));
     run.ball.castShadow = true; S.add(run.ball);
     run.sun.position.set(-8, 20, 6); run.sun.target.position.set(0, 0, -10);
     Object.assign(run.sun.shadow.camera, { left: -15, right: 15, top: 25, bottom: -5, far: 60 });
@@ -815,6 +1130,7 @@ FX3D_GAMES.bat = {
       run.p += dt / run.PT;
       run.ball.position.copy(this.ballAt(run, run.p));
       run.ball.rotation.x += dt * 30;
+      fx3dSprite(run, { pos: run.ball.position, size: 0.1, life: 0.16, color: 0xffffff, alpha: 0.6 });   // ทางลมช่วยให้ตาตามลูกทัน
       if (run.p > 1.12) {
         run.st = 'caught';
         FXS.glove();
@@ -841,52 +1157,67 @@ FX3D_GAMES.bat = {
 // ============================================================
 FX3D_GAMES.golf = {
   aria: 'พัตต์งานที่เสร็จลงหลุม', hint: 'ดึงลูกถอยหลังแล้วปล่อย · ดูทางลาดด้วย', easy: 'หลุมใหญ่ขึ้น + เห็นเส้นทางจริงแล้ว',
-  BR: 0.06, FR: 0.9, MAXP: 120,
+  BR: 0.02135, FR: 0.65, MAXP: 120,     // ลูกจริง · ความหน่วงกรีนแข่ง (stimp ~10)
   init(run, T) {
     const S = run.S;
-    S.background = new T.Color(0x8CC8F2);
-    S.fog = new T.Fog(0xBFE0FA, 18, 45);
-    const green = fx3dTex(T, 256, 256, (g, w, h) => {
-      for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#6DBF5E' : '#78C968'; g.fillRect(0, i * h / 8, w, h / 8); }
-      for (let i = 0; i < 2500; i++) { g.fillStyle = 'rgba(30,80,30,.08)'; g.fillRect(Math.random() * w, Math.random() * h, 1, 2); }
-    }, [3, 4]);
-    const rough = new T.Mesh(new T.PlaneGeometry(80, 80), fx3dStd(T, 0x3E8B3E, { roughness: 1 }));
-    rough.rotation.x = -Math.PI / 2; rough.position.y = -0.01; rough.receiveShadow = true; S.add(rough);
-    const gm = new T.Mesh(new T.CircleGeometry(6.5, 48), fx3dStd(T, 0xffffff, { map: green, roughness: 0.85 }));
-    gm.rotation.x = -Math.PI / 2; gm.scale.set(1, 1.35, 1); gm.position.set(0, 0, -3.2); gm.receiveShadow = true; S.add(gm);
-    for (let i = 0; i < 9; i++) {
-      const tr = new T.Group();
-      const trunk = new T.Mesh(new T.CylinderGeometry(0.15, 0.2, 1.4, 8), fx3dStd(T, 0x6B4A2E)); trunk.position.y = 0.7;
-      const top = new T.Mesh(new T.ConeGeometry(1.1, 2.6, 10), fx3dStd(T, 0x2F6B35)); top.position.y = 2.6;
-      trunk.castShadow = top.castShadow = true;
-      tr.add(trunk, top);
-      const a = -Math.PI * 0.15 - i * 0.09 * Math.PI;
-      tr.position.set(Math.cos(a) * 14 * (i % 2 ? 1.2 : 1), 0, -6 + Math.sin(a) * 14);
+    run.hx = fxRand(-0.8, 0.8); run.hz = -4.6;
+    const P = fx3dEnv(run, T, { target: new T.Vector3(0, 0, -3), fogNear: 25, fogFar: 90, az: 40 });
+    run.slope = fxRand(0.06, 0.12) * (Math.random() < 0.5 ? -1 : 1);    // m/s² ทางแกน x
+    const cupR = run.tries >= 3 ? 0.075 : 0.054;                        // หลุมจริง Ø 10.8 ซม.
+    run.cupR = cupR;
+    const grassTex = (a, b, rep, n) => fx3dTex(T, 512, 512, (g, w, h) => {
+      for (let i = 0; i < 2; i++) { g.fillStyle = i ? a : b; g.fillRect(0, i * h / 2, w, h / 2); }
+      for (let i = 0; i < n; i++) { g.fillStyle = Math.random() < 0.5 ? 'rgba(20,60,15,.1)' : 'rgba(170,220,130,.08)'; g.fillRect(Math.random() * w, Math.random() * h, 1, 1.5); }
+    }, rep);
+    // กรีนกับรัฟต่างเป็นแผ่นที่ "เจาะรู" ตรงหลุมจริง (ShapeGeometry + hole) — มองลงไปเห็นถ้วยข้างใน
+    const holePath = () => { const h = new T.Path(); h.absarc(run.hx, -run.hz, cupR, 0, Math.PI * 2, true); return h; };
+    const rough = new T.Shape(); rough.moveTo(-40, -40); rough.lineTo(40, -40); rough.lineTo(40, 40); rough.lineTo(-40, 40); rough.lineTo(-40, -40);
+    const gs = new T.Shape(); gs.absellipse(0, 3.0, 5.2, 6.8, 0, Math.PI * 2, false);
+    rough.holes.push(gs);
+    const roughM = new T.Mesh(new T.ShapeGeometry(rough, 48), fx3dStd(T, 0xffffff, { map: grassTex('#3F7F3A', '#468A40', [40, 40], 30000), roughness: 1 }));
+    roughM.rotation.x = -Math.PI / 2; roughM.receiveShadow = true; S.add(roughM);
+    const fringe = new T.Shape(); fringe.absellipse(0, 3.0, 5.2, 6.8, 0, Math.PI * 2, false);
+    const inner = new T.Path(); inner.absellipse(0, 3.0, 4.6, 6.2, 0, Math.PI * 2, true); fringe.holes.push(inner);
+    const fr = new T.Mesh(new T.ShapeGeometry(fringe, 64), fx3dStd(T, 0xffffff, { map: grassTex('#559B48', '#5CA24E', [10, 10], 20000), roughness: 0.95 }));
+    fr.rotation.x = -Math.PI / 2; fr.position.y = 0.001; fr.receiveShadow = true; S.add(fr);
+    const green = new T.Shape(); green.absellipse(0, 3.0, 4.6, 6.2, 0, Math.PI * 2, false); green.holes.push(holePath());
+    const gr = new T.Mesh(new T.ShapeGeometry(green, 96), fx3dStd(T, 0xffffff, { map: grassTex('#6CBF5A', '#76C963', [3, 3], 40000), roughness: 0.75 }));
+    gr.rotation.x = -Math.PI / 2; gr.position.y = 0.002; gr.receiveShadow = true; S.add(gr);
+    // ถ้วยในหลุม: ผนังดิน → ขอบถ้วยพลาสติกขาว 2.5 ซม. ใต้ผิว → ก้นมืด
+    const soil = new T.Mesh(new T.CylinderGeometry(cupR, cupR, 0.025, 32, 1, true), fx3dStd(T, 0x4A3520, { side: T.BackSide, roughness: 1 }));
+    soil.position.set(run.hx, -0.0105, run.hz); S.add(soil);
+    const liner = new T.Mesh(new T.CylinderGeometry(cupR * 0.97, cupR * 0.97, 0.08, 32, 1, true), fx3dStd(T, 0xEDEDED, { side: T.BackSide, roughness: 0.5 }));
+    liner.position.set(run.hx, -0.063, run.hz); S.add(liner);
+    const bottom = new T.Mesh(new T.CircleGeometry(cupR, 32), new T.MeshBasicMaterial({ color: 0x101010 }));
+    bottom.rotation.x = -Math.PI / 2; bottom.position.set(run.hx, -0.1, run.hz); S.add(bottom);
+    // ต้นไม้รอบ ๆ (เงาจริง)
+    for (let i = 0; i < 11; i++) {
+      const tr = fx3dTree(T, i + 1);
+      const a = -Math.PI * 0.12 - i * 0.07 * Math.PI;
+      const d = 13 + (i % 3) * 4;
+      tr.position.set(Math.cos(a) * d, 0, -5 + Math.sin(a) * d); tr.scale.setScalar(0.9 + (i % 4) * 0.15);
       S.add(tr);
     }
-    run.hx = fxRand(-1, 1); run.hz = -5.6;
-    run.slope = fxRand(0.08, 0.15) * (Math.random() < 0.5 ? -1 : 1);    // m/s² ทางแกน x
-    const cupR = run.tries >= 3 ? 0.17 : 0.13;
-    const cup = new T.Mesh(new T.CircleGeometry(cupR, 32), new T.MeshBasicMaterial({ color: 0x0E1A10 }));
-    cup.rotation.x = -Math.PI / 2; cup.position.set(run.hx, 0.004, run.hz); S.add(cup);
-    const lip = new T.Mesh(new T.RingGeometry(cupR, cupR + 0.02, 32), new T.MeshBasicMaterial({ color: 0xffffff }));
-    lip.rotation.x = -Math.PI / 2; lip.position.set(run.hx, 0.005, run.hz); S.add(lip);
-    const pole = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, 1.9, 8), fx3dStd(T, 0xEEEEEE)); pole.position.set(run.hx, 0.95, run.hz); pole.castShadow = true; S.add(pole);
-    const flagG = new T.PlaneGeometry(0.5, 0.32, 10, 2);
+    // ธง: ก้านไฟเบอร์ลายขาวสลับสี สูง 2.13 ม. · ผืน 50 × 36 ซม. สีธีม · ปักกลางหลุม
+    const stripes = fx3dTex(T, 16, 256, (g, w, h) => { for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#FFFFFF' : P.accent; g.fillRect(0, i * h / 8, w, h / 8); } });
+    const pole = new T.Mesh(new T.CylinderGeometry(0.0065, 0.0065, 2.13, 10), fx3dStd(T, 0xffffff, { map: stripes, roughness: 0.4 }));
+    pole.position.set(run.hx, 2.13 / 2 - 0.08, run.hz); pole.castShadow = true; S.add(pole);
+    const flagG = new T.PlaneGeometry(0.5, 0.36, 12, 3);
     flagG.translate(0.25, 0, 0);
-    const flag = new T.Mesh(flagG, fx3dStd(T, 0xE03A2F, { side: T.DoubleSide, roughness: 0.8 }));
-    flag.position.set(run.hx, 1.72, run.hz); flag.castShadow = true; S.add(flag);
+    const flag = new T.Mesh(flagG, fx3dStd(T, P.accent, { side: T.DoubleSide, roughness: 0.85 }));
+    flag.position.set(run.hx, 1.85, run.hz); flag.castShadow = true; S.add(flag);
     run.flag = flag; run.flagBase = flagG.attributes.position.array.slice();
-    run.cupR = cupR;
-    const bt = fx3dTex(T, 128, 64, (g, w, h) => { g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, w, h); for (let i = 0; i < 70; i++) { g.fillStyle = 'rgba(0,0,0,.08)'; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 2, 0, 7); g.fill(); } });
-    run.ball = new T.Mesh(new T.SphereGeometry(this.BR, 24, 16), fx3dStd(T, 0xffffff, { map: bt, roughness: 0.35 }));
+    // ลูกกอล์ฟขนาดจริง Ø 4.27 ซม. · รอยลักยิ้ม (bump) · ยูรีเทนเงา
+    const dimple = fx3dTex(T, 512, 256, (g, w, h) => { g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, w, h); for (let y = 6; y < h; y += 12) for (let x = (y % 24) / 2; x < w; x += 12) { g.fillStyle = '#9A9A9A'; g.beginPath(); g.arc(x, y, 4.3, 0, 7); g.fill(); } });
+    run.ball = new T.Mesh(new T.SphereGeometry(this.BR, 40, 28), new T.MeshPhysicalMaterial({ color: 0xffffff, bumpMap: dimple, bumpScale: 0.35, roughness: 0.38, clearcoat: 0.8, clearcoatRoughness: 0.25 }));
     run.ball.castShadow = true; S.add(run.ball);
-    run.sun.position.set(5, 10, 6); run.sun.target.position.set(0, 0, -3);
+    Object.assign(run.sun.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10, far: 50 }); run.sun.shadow.camera.updateProjectionMatrix();
     this.layout(run); this.reset(run);
   },
   layout(run) {
     const T = run.T;
-    fx3dLook(run, [0, 1.45, 2.6], [run.hx * 0.4, 0, -3.4]);
+    // สายตานักกอล์ฟตอนอ่านไลน์: ยืนหลังลูก ~1.4 ม. ตาสูง ~1 ม.
+    fx3dLook(run, [0, 1.05, 1.5], [run.hx * 0.45, 0, -3.0]);
     run.C.updateMatrixWorld();
     const floor = fxFloor(run), sy = Math.min(run.H * 0.82, floor - this.MAXP - 6);
     run.p0 = fx3dRayPlane(run, run.W / 2, sy, new T.Plane(new T.Vector3(0, 1, 0), -this.BR)) || new T.Vector3(0, this.BR, 0.6);
@@ -912,7 +1243,7 @@ FX3D_GAMES.golf = {
     if (l > run.maxP) { dx *= run.maxP / l; dy *= run.maxP / l; }
     run.pull.dx = dx; run.pull.dy = dy;
   },
-  // ทิศ: ดึงตรง ๆ = เล็งหลุมพอดี · ดึงเบี่ยงซ้ายขวา = เผื่อทางลาด (ละเอียด 0.3°/px)
+  // ทิศ: ดึงตรง ๆ = เล็งหลุมพอดี · ดึงเบี่ยงซ้ายขวา = เผื่อทางลาด
   // แรง: ช่วงกลาง (55–85%) ถูกบีบเข้าหาแรงที่ไปถึงหลุมด้วยความเร็ว ~1 ม./วิ (ตกได้)
   // รุ่นแรกเป็นเส้นตรงทั้งสองอย่าง — จำลองแล้วลงได้ 5 จาก 1,039 แบบที่ดึงได้ (ขยับ 3px มุมเปลี่ยนเกือบ 2°)
   shotV(run, pl) {
@@ -921,7 +1252,7 @@ FX3D_GAMES.golf = {
     const vI = Math.sqrt(2 * this.FR * D + 1);
     const f = s < 0.55 ? 0.97 - (0.55 - s) * 1.2 : s > 0.85 ? 1.03 + (s - 0.85) * 1.2 : 1 + (s - 0.7) * 0.2;
     const base = Math.atan2(run.hx - run.p0.x, -(run.hz - run.p0.z));
-    const a = base + (-pl.dx / run.maxP) * 0.6;
+    const a = base + (-pl.dx / run.maxP) * 0.4;     // 0.19°/px — หลุมจริงต้องเล็งละเอียด
     const sp = vI * f;
     return new T.Vector3(Math.sin(a) * sp, 0, -Math.cos(a) * sp);
   },
@@ -946,7 +1277,7 @@ FX3D_GAMES.golf = {
     if (run.sunk) {
       run.sunk += dt;
       const k = Math.min(1, run.sunk / 0.3), b = run.ball.position;
-      b.x += (run.hx - b.x) * 0.3; b.z += (run.hz - b.z) * 0.3; b.y = this.BR - k * 0.2;
+      b.x += (run.hx - b.x) * 0.3; b.z += (run.hz - b.z) * 0.3; b.y = this.BR - k * 0.09;
       return;
     }
     if (!run.roll) return;
@@ -958,7 +1289,7 @@ FX3D_GAMES.golf = {
     run.ball.rotation.x -= v.z * dt / this.BR; run.ball.rotation.z += v.x * dt / this.BR;
     const d = Math.hypot(b.x - run.hx, b.z - run.hz), sp = Math.hypot(v.x, v.z);
     run.near = Math.min(run.near, d);
-    if (d < run.cupR + 0.03) {               // ลูกเกยขอบหลุมเกินครึ่งก็ตก
+    if (d < run.cupR + this.BR * 0.8) {      // ลูกเกยขอบหลุมเกือบทั้งลูกก็ยังตก (ขอบหลุมจริงลาดลง)
       const sink = run.tries >= 3 ? 1.9 : 1.5;
       if (sp < sink) {
         run.sunk = 0.001; run.roll = false; FXS.cup();
@@ -1008,53 +1339,123 @@ FX3D_GAMES.golf = {
 // ============================================================
 FX3D_GAMES.slice = {
   aria: 'หั่นงานที่เสร็จ', hint: 'ปาดนิ้วผ่าผลไม้ที่ลอยขึ้นมา', easy: 'ผลไม้ลอยช้าลงและใหญ่ขึ้นแล้ว',
+  // ขนาดใกล้ของจริง (แตงโมลูกเล็ก · ส้มสายน้ำผึ้งลูกโต · แอปเปิลลูกโต) — กล้องอยู่ใกล้ขึ้นแทนการขยายผลไม้
   KINDS: [
-    { out: 0x2E8B3A, stripe: '#1E5E27', base: '#2E8B3A', flesh: '#F0435A', rind: '#BFE3A0', seed: '#2B2F3A', juice: 0xFF5A70, r: 0.3, sx: 1.15 },
-    { out: 0xF7931E, stripe: null, base: '#F7931E', flesh: '#FFB347', rind: '#FFE2B0', seed: null, juice: 0xFFB020, r: 0.22, sx: 1 },
-    { out: 0xD9343A, stripe: null, base: '#D9343A', flesh: '#FFF1CF', rind: '#FFF6E0', seed: '#5A3A1E', juice: 0xFFE9A8, r: 0.22, sx: 1 },
+    { id: 'melon', juice: 0xE8344E, r: 0.13, sx: 1.22 },
+    { id: 'orange', juice: 0xFFA21F, r: 0.06, sx: 1 },
+    { id: 'apple', juice: 0xFFF0C8, r: 0.055, sx: 1 },
   ],
   init(run, T) {
     const S = run.S;
-    S.background = new T.Color(0x3A2617);
-    const wood = fx3dTex(T, 512, 512, (g, w, h) => {
-      for (let i = 0; i < 6; i++) { g.fillStyle = ['#B07A45', '#A56F3C', '#BA8450'][i % 3]; g.fillRect(i * w / 6, 0, w / 6, h); g.fillStyle = 'rgba(60,30,10,.35)'; g.fillRect(i * w / 6, 0, 3, h); }
-      g.strokeStyle = 'rgba(60,30,10,.15)';
-      for (let i = 0; i < 40; i++) { const x = Math.random() * w; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + 20, h * 0.3, x - 15, h * 0.6, x + 10, h); g.stroke(); }
-    }, [2, 2]);
-    const wall = new T.Mesh(new T.PlaneGeometry(12, 9), fx3dStd(T, 0xffffff, { map: wood, roughness: 0.8 }));
-    wall.position.set(0, 2.5, -1.6); wall.receiveShadow = true; S.add(wall);
+    const P = fx3dEnv(run, T, { indoor: true, target: new T.Vector3(0, 1, -0.4), bg: '#1C1A18' });
+    // ผนังกระเบื้องครัว (subway tile) สีธีมอ่อน + ยาแนว · เคาน์เตอร์ไม้ด้านล่าง
+    const tileC = new T.Color(P.accent).lerp(new T.Color('#FFFFFF'), 0.72);
+    const tiles = fx3dTex(T, 512, 512, (g, w, h) => {
+      g.fillStyle = '#D8D4CC'; g.fillRect(0, 0, w, h);
+      const tw = 128, th = 64;
+      for (let r = 0, y = 0; y < h; r++, y += th) for (let x = (r % 2) * -tw / 2; x < w; x += tw) {
+        const k = 0.94 + ((r * 7 + x) % 5) * 0.015;
+        g.fillStyle = '#' + tileC.clone().multiplyScalar(k).getHexString();
+        g.fillRect(x + 3, y + 3, tw - 6, th - 6);
+        const gr = g.createLinearGradient(0, y, 0, y + th); gr.addColorStop(0, 'rgba(255,255,255,.35)'); gr.addColorStop(0.5, 'rgba(255,255,255,0)');
+        g.fillStyle = gr; g.fillRect(x + 3, y + 3, tw - 6, th - 6);
+      }
+    }, [6, 9]);
+    const wall = new T.Mesh(new T.PlaneGeometry(4, 3), fx3dStd(T, 0xffffff, { map: tiles, roughness: 0.25 }));
+    wall.position.set(0, 1.6, -0.75); wall.receiveShadow = true; S.add(wall);
+    const woodT = fx3dTex(T, 1024, 256, (g, w, h) => {
+      g.fillStyle = '#8A5A33'; g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 70; i++) { g.strokeStyle = `rgba(${40 + Math.random() * 30},20,5,${0.1 + Math.random() * 0.2})`; g.lineWidth = 1 + Math.random() * 2; const y = Math.random() * h; g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(w * 0.3, y + 10, w * 0.6, y - 10, w, y + 5); g.stroke(); }
+    });
+    const counter = new T.Mesh(new T.BoxGeometry(4, 0.06, 0.9), fx3dStd(T, 0xffffff, { map: woodT, roughness: 0.45 }));
+    counter.position.set(0, 0.5, -0.3); counter.receiveShadow = true; S.add(counter);
     run.wall = wall;
-    run.sun.position.set(2, 5, 6); run.sun.target.position.set(0, 1.2, -1);
+    Object.assign(run.sun.shadow.camera, { left: -2, right: 2, top: 3, bottom: -1 }); run.sun.shadow.camera.updateProjectionMatrix();
+    run.sun.position.set(1.2, 4, 3); run.sun.target.position.set(0, 1.1, -0.5);
     this.layout(run);
     this.reset(run);
   },
-  layout(run) { fx3dLook(run, [0, 1.35, 3.4], [0, 1.3, 0]); },
-  fruitTex(run, T, k) {
-    return fx3dTex(T, 512, 256, (g, w, h) => {
-      g.fillStyle = k.base; g.fillRect(0, 0, w, h);
-      if (k.stripe) { g.strokeStyle = k.stripe; g.lineWidth = 16; for (let x = 0; x < w; x += 46) { g.beginPath(); for (let y = 0; y <= h; y += 8) g.lineTo(x + Math.sin(y / 20) * 8, y); g.stroke(); } }
-      else for (let i = 0; i < 1500; i++) { g.fillStyle = 'rgba(0,0,0,.07)'; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 1.6, 0, 7); g.fill(); }
-      // สติกเกอร์ชื่องาน
-      g.fillStyle = 'rgba(255,255,255,.96)'; g.fillRect(w * 0.37, h * 0.4, w * 0.26, h * 0.2);
-      g.fillStyle = '#1F2430'; g.font = `700 ${h * 0.09}px ${run.font}`; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(run.label, w / 2, h / 2 + 1, w * 0.24);
+  layout(run) { fx3dLook(run, [0, 1.25, 1.25], [0, 1.2, 0]); },
+  skinTex(run, T, k) {
+    return fx3dTex(T, 1024, 512, (g, w, h) => {
+      if (k.id === 'melon') {
+        g.fillStyle = '#2F7A2E'; g.fillRect(0, 0, w, h);
+        g.fillStyle = '#123F15';
+        for (let x = 0; x < w; x += 64) { g.beginPath(); for (let y = 0; y <= h; y += 6) g.lineTo(x + Math.sin(y / 9 + x) * 7 + (Math.random() - 0.5) * 6, y); for (let y = h; y >= 0; y -= 6) g.lineTo(x + 22 + Math.sin(y / 11 + x) * 6 + (Math.random() - 0.5) * 6, y); g.fill(); }
+        for (let i = 0; i < 4000; i++) { g.fillStyle = 'rgba(170,210,120,.12)'; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
+      } else if (k.id === 'orange') {
+        g.fillStyle = '#F2861A'; g.fillRect(0, 0, w, h);
+        for (let i = 0; i < 16000; i++) { g.fillStyle = Math.random() < 0.5 ? 'rgba(170,70,0,.18)' : 'rgba(255,200,90,.18)'; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 1.8, 0, 7); g.fill(); }
+      } else {
+        g.fillStyle = '#B5161E'; g.fillRect(0, 0, w, h);
+        for (let i = 0; i < 300; i++) { g.strokeStyle = `rgba(255,${180 + Math.random() * 60},80,${0.1 + Math.random() * 0.2})`; g.lineWidth = 2 + Math.random() * 4; const x = Math.random() * w; g.beginPath(); g.moveTo(x, h * 0.2); g.lineTo(x + (Math.random() - 0.5) * 30, h * 0.8); g.stroke(); }
+        for (let i = 0; i < 1500; i++) { g.fillStyle = 'rgba(255,230,180,.35)'; g.fillRect(Math.random() * w, Math.random() * h, 1.5, 1.5); }
+      }
+      // สติกเกอร์ผลไม้ (แบบสติกเกอร์ยี่ห้อบนผลไม้จริง) = ชื่องาน
+      const sw = k.id === 'melon' ? w * 0.16 : w * 0.24, sh = sw * 0.42;
+      g.fillStyle = '#FFFFFF'; g.beginPath(); g.ellipse(w / 2, h / 2, sw / 2, sh / 2, 0, 0, 7); g.fill();
+      g.strokeStyle = 'rgba(0,0,0,.15)'; g.lineWidth = 2; g.stroke();
+      g.fillStyle = '#1F2430'; g.font = `700 ${sh * 0.36}px ${run.font}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(run.label, w / 2, h / 2 + 1, sw * 0.8);
+    });
+  },
+  faceTex(T, k) {
+    return fx3dTex(T, 512, 512, (g, w, h) => {
+      const c = w / 2, R = w / 2;
+      if (k.id === 'melon') {
+        g.fillStyle = '#2F7A2E'; g.beginPath(); g.arc(c, c, R, 0, 7); g.fill();
+        g.fillStyle = '#E8F2C9'; g.beginPath(); g.arc(c, c, R * 0.93, 0, 7); g.fill();
+        const gr = g.createRadialGradient(c, c, 0, c, c, R * 0.86);
+        gr.addColorStop(0, '#F2324A'); gr.addColorStop(0.75, '#F04760'); gr.addColorStop(1, '#F8A2A0');
+        g.fillStyle = gr; g.beginPath(); g.arc(c, c, R * 0.86, 0, 7); g.fill();
+        for (let i = 0; i < 2600; i++) { const a = Math.random() * 7, rr = Math.random() * R * 0.84; g.fillStyle = 'rgba(255,255,255,.08)'; g.fillRect(c + Math.cos(a) * rr, c + Math.sin(a) * rr, 2, 2); }
+        g.fillStyle = '#16120F';
+        for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2 + (i % 2) * 0.1, rr = R * (0.5 + (i % 3) * 0.06); g.save(); g.translate(c + Math.cos(a) * rr, c + Math.sin(a) * rr); g.rotate(a + Math.PI / 2); g.beginPath(); g.ellipse(0, 0, 5, 10, 0, 0, 7); g.fill(); g.restore(); }
+      } else if (k.id === 'orange') {
+        g.fillStyle = '#F2861A'; g.beginPath(); g.arc(c, c, R, 0, 7); g.fill();
+        g.fillStyle = '#FFF2DC'; g.beginPath(); g.arc(c, c, R * 0.9, 0, 7); g.fill();
+        for (let i = 0; i < 10; i++) {
+          const a0 = i / 10 * Math.PI * 2 + 0.03, a1 = (i + 1) / 10 * Math.PI * 2 - 0.03;
+          const gr = g.createRadialGradient(c, c, R * 0.08, c, c, R * 0.84);
+          gr.addColorStop(0, '#FFC25A'); gr.addColorStop(1, '#FF9A1C');
+          g.fillStyle = gr; g.beginPath(); g.moveTo(c + Math.cos((a0 + a1) / 2) * R * 0.08, c + Math.sin((a0 + a1) / 2) * R * 0.08); g.arc(c, c, R * 0.84, a0, a1); g.closePath(); g.fill();
+        }
+        for (let i = 0; i < 1800; i++) { const a = Math.random() * 7, rr = R * (0.15 + Math.random() * 0.68); g.fillStyle = 'rgba(255,240,190,.35)'; g.beginPath(); g.ellipse(c + Math.cos(a) * rr, c + Math.sin(a) * rr, 1.5, 4, a, 0, 7); g.fill(); }
+        g.fillStyle = '#FFF2DC'; g.beginPath(); g.arc(c, c, R * 0.07, 0, 7); g.fill();
+      } else {
+        g.fillStyle = '#9E1018'; g.beginPath(); g.arc(c, c, R, 0, 7); g.fill();
+        const gr = g.createRadialGradient(c, c, 0, c, c, R * 0.96);
+        gr.addColorStop(0, '#FFF6DE'); gr.addColorStop(0.85, '#FBEFC8'); gr.addColorStop(1, '#F0E6B0');
+        g.fillStyle = gr; g.beginPath(); g.arc(c, c, R * 0.96, 0, 7); g.fill();
+        g.strokeStyle = 'rgba(160,140,80,.5)'; g.lineWidth = 3;
+        g.beginPath(); for (let i = 0; i <= 10; i++) { const a = i / 10 * Math.PI * 2 - Math.PI / 2, rr = i % 2 ? R * 0.12 : R * 0.3; g.lineTo(c + Math.cos(a) * rr, c + Math.sin(a) * rr); } g.stroke();
+        g.fillStyle = '#4A2A14';
+        for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2 - Math.PI / 2; g.save(); g.translate(c + Math.cos(a) * R * 0.2, c + Math.sin(a) * R * 0.2); g.rotate(a); g.beginPath(); g.ellipse(0, 0, 9, 5, 0, 0, 7); g.fill(); g.restore(); }
+      }
     });
   },
   reset(run) {
     const T = run.T;
-    if (run.fruit) { run.S.remove(run.fruit); run.fruit.geometry.dispose(); run.fruit.material.map.dispose(); run.fruit.material.dispose(); }
+    if (run.fruit) { run.S.remove(run.fruit); run.fruit.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } }); }
     const easy = run.tries >= 3;
     const k = this.KINDS[Math.floor(Math.random() * this.KINDS.length)];
-    const r = k.r * (easy ? 1.25 : 1);
-    const m = new T.Mesh(new T.SphereGeometry(r, 36, 24), fx3dStd(T, 0xffffff, { map: this.fruitTex(run, T, k), roughness: 0.45 }));
-    m.scale.set(k.sx, 1, 1); m.castShadow = true;
-    m.position.set(fxRand(-0.7, 0.7), -0.6, 0.2);
+    const r = k.r * (easy ? 1.3 : 1);
+    const skinM = new T.MeshPhysicalMaterial({ map: this.skinTex(run, T, k), roughness: k.id === 'apple' ? 0.32 : k.id === 'orange' ? 0.55 : 0.4, clearcoat: k.id === 'apple' ? 0.6 : 0.2 });
+    const body = new T.Mesh(new T.SphereGeometry(r, 48, 32), skinM);
+    body.scale.set(k.sx, 1, 1); body.castShadow = true;
+    const m = new T.Group(); m.add(body);
+    if (k.id === 'apple') {
+      const stem = new T.Mesh(new T.CylinderGeometry(0.003, 0.004, 0.03, 6), fx3dStd(T, 0x5A3A1E)); stem.position.y = r + 0.01; stem.rotation.z = 0.2; m.add(stem);
+      const leaf = new T.Mesh(new T.SphereGeometry(0.014, 10, 6), fx3dStd(T, 0x4E8A2C)); leaf.scale.set(1.6, 0.25, 0.8); leaf.position.set(0.012, r + 0.015, 0); m.add(leaf);
+    }
+    if (k.id === 'melon') { const st = new T.Mesh(new T.CylinderGeometry(0.006, 0.008, 0.03, 6), fx3dStd(T, 0x6B5A2A)); st.rotation.z = Math.PI / 2; st.position.x = r * k.sx; m.add(st); }
+    m.position.set(fxRand(-0.32, 0.32), 0.35, 0.05);
     m.rotation.y = -Math.PI / 2;           // สติกเกอร์หันมาทางกล้องตอนเริ่ม
     run.S.add(m);
-    const g = easy ? 6.2 : 9.8;
+    const g = easy ? 4.5 : 6.5;            // ลอยช้ากว่าแรงโน้มถ่วงจริงเล็กน้อย (แบบเกมผ่าผลไม้) ให้ทันปาด
     run.fruit = m;
-    Object.assign(run, { kind: k, fr: r, grav: g, fv: new T.Vector3(-m.position.x * 0.6 + fxRand(-0.2, 0.2), Math.sqrt(2 * g * (2.05 - m.position.y)), 0.15),
-      fw: new T.Vector3(fxRand(-1, 1), fxRand(-1.5, 1.5), fxRand(-1, 1)), wait: 0.45, tossed: false, cut: false, trail: [] });
+    Object.assign(run, { kind: k, fr: r, grav: g, fv: new T.Vector3(-m.position.x * 0.7 + fxRand(-0.12, 0.12), Math.sqrt(2 * g * (1.62 - m.position.y)), 0.06),
+      fw: new T.Vector3(fxRand(-2, 2), fxRand(-3, 3), fxRand(-2, 2)), wait: 0.45, tossed: false, cut: false, trail: [] });
     m.visible = false;
   },
   down(run, p) { run.trail = [{ x: p.x, y: p.y, t: run.t }]; },
@@ -1066,7 +1467,7 @@ FX3D_GAMES.slice = {
     if (!prev || !run.tossed || run.cut || sp < 350) return;
     const c = fx3dToScreen(run, run.fruit.position);
     const edge = fx3dToScreen(run, run.fruit.position.clone().add(new run.T.Vector3(run.fr * run.kind.sx, 0, 0)));
-    const R = Math.abs(edge.x - c.x);
+    const R = Math.max(26, Math.abs(edge.x - c.x) * 1.15);     // ผลเล็กจริง → ระยะโดนขั้นต่ำ 26px (ปลายนิ้วกว้างกว่าใบมีด)
     const dx = p.x - prev.x, dy = p.y - prev.y, L2 = dx * dx + dy * dy || 1;
     const t = fxClamp(((c.x - prev.x) * dx + (c.y - prev.y) * dy) / L2, 0, 1);
     const d = Math.hypot(prev.x + dx * t - c.x, prev.y + dy * t - c.y);
@@ -1074,15 +1475,10 @@ FX3D_GAMES.slice = {
   },
   half(run, T, k, r, flip) {
     const grp = new T.Group();
-    const skin = new T.Mesh(new T.SphereGeometry(r, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), run.fruit.material.clone());
+    const skin = new T.Mesh(new T.SphereGeometry(r, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2), run.fruit.children[0].material.clone());
     skin.material.side = T.DoubleSide;
-    const face = fx3dTex(T, 256, 256, (g, w, h) => {
-      g.fillStyle = k.rind; g.beginPath(); g.arc(w / 2, h / 2, w / 2, 0, 7); g.fill();
-      g.fillStyle = k.flesh; g.beginPath(); g.arc(w / 2, h / 2, w * 0.43, 0, 7); g.fill();
-      if (k.seed) { g.fillStyle = k.seed; for (let i = 0; i < 14; i++) { const a = i / 14 * 7, rr = w * (0.18 + (i % 3) * 0.06); g.beginPath(); g.ellipse(w / 2 + Math.cos(a) * rr, h / 2 + Math.sin(a) * rr, 5, 9, a, 0, 7); g.fill(); } }
-      else { g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 3; for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; g.beginPath(); g.moveTo(w / 2, h / 2); g.lineTo(w / 2 + Math.cos(a) * w * 0.42, h / 2 + Math.sin(a) * w * 0.42); g.stroke(); } }
-    });
-    const cap = new T.Mesh(new T.CircleGeometry(r, 32), fx3dStd(T, 0xffffff, { map: face, roughness: 0.3 }));
+    // หน้าตัดเนื้อผล: ฉ่ำ (clearcoat) · แตงโมไล่แดง→ชมพู→ขาว เมล็ดหยดน้ำ · ส้มเป็นกลีบมีเยื่อ · แอปเปิลมีแกนดาว
+    const cap = new T.Mesh(new T.CircleGeometry(r, 48), new T.MeshPhysicalMaterial({ map: this.faceTex(T, k), roughness: 0.25, clearcoat: 0.8, clearcoatRoughness: 0.15 }));
     cap.rotation.x = Math.PI / 2;
     grp.add(skin, cap);
     if (flip) grp.rotation.x = Math.PI;
@@ -1105,18 +1501,18 @@ FX3D_GAMES.slice = {
       h.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), n.clone().multiplyScalar(sg));
       // บิดให้หน้าตัด (เนื้อผล) หันเข้ากล้อง — ไม่งั้นมันหันข้าง เห็นแต่เปลือกกลวง ๆ
       h.rotateOnWorldAxis(dir, sg * 0.9);
-      fx3dBody(run, h, { v: run.fv.clone().multiplyScalar(0.3).add(n.clone().multiplyScalar(sg * 1.8)).add(new T.Vector3(0, 1.2, 0)),
-        w: dir.clone().multiplyScalar(sg * 1.2), g: run.grav, floor: -3, life: 1.8 });
+      fx3dBody(run, h, { v: run.fv.clone().multiplyScalar(0.3).add(n.clone().multiplyScalar(sg * 0.9)).add(new T.Vector3(0, 0.6, 0)),
+        w: dir.clone().multiplyScalar(sg * 1.2), g: run.grav, floor: 0.53 + run.fr * 0.5, bounce: 0.25, life: 2.2 });
     });
     f.visible = false;
-    for (let i = 0; i < 40; i++) {
-      const v = new T.Vector3(fxRand(-1, 1), fxRand(-0.6, 1.2), fxRand(-0.4, 1)).normalize().multiplyScalar(fxRand(1, 4));
-      fx3dSprite(run, { pos: f.position, vel: v, g: 9, size: fxRand(0.04, 0.09), life: fxRand(0.5, 0.9), color: k.juice });
+    for (let i = 0; i < 46; i++) {
+      const v = new T.Vector3(fxRand(-1, 1), fxRand(-0.4, 1.2), fxRand(-0.6, 0.8)).normalize().multiplyScalar(fxRand(0.6, 2.4));
+      fx3dSprite(run, { pos: f.position, vel: v, g: 9.8, size: fxRand(0.008, 0.022), life: fxRand(0.5, 0.9), color: k.juice, floor: 0.53 });
     }
-    // คราบน้ำบนผนัง
-    for (let i = 0; i < 7; i++) {
-      const m = new T.Mesh(new T.CircleGeometry(fxRand(0.06, 0.2), 16), new T.MeshBasicMaterial({ color: k.juice, transparent: true, opacity: 0.4, depthWrite: false }));
-      m.position.set(f.position.x + fxRand(-0.6, 0.6), f.position.y + fxRand(-0.4, 0.5), -1.59); run.S.add(m);
+    // หยดน้ำบนกระเบื้อง — ขนาดเท่าหยดจริง กระจายรอบจุดผ่า
+    for (let i = 0; i < 14; i++) {
+      const m = new T.Mesh(new T.CircleGeometry(fxRand(0.006, 0.03), 14), new T.MeshPhysicalMaterial({ color: k.juice, transparent: true, opacity: 0.55, roughness: 0.1, clearcoat: 1, depthWrite: false }));
+      m.position.set(f.position.x + fxRand(-0.35, 0.35), f.position.y + fxRand(-0.25, 0.3), -0.745); run.S.add(m);
     }
     FXS.squish();
     const clean = off < 0.28;
@@ -1130,7 +1526,7 @@ FX3D_GAMES.slice = {
         run.fv.y -= run.grav * dt;
         f.position.addScaledVector(run.fv, dt);
         f.rotation.x += run.fw.x * dt; f.rotation.y += run.fw.y * dt * 0.4; f.rotation.z += run.fw.z * dt;
-        if (run.fv.y < 0 && f.position.y < -0.9 && !run.missing) fxMiss(run, 'หลุดมือ! ปาดให้โดนผล', () => this.reset(run), { delay: 700 });
+        if (run.fv.y < 0 && f.position.y < 0.2 && !run.missing) fxMiss(run, 'หลุดมือ! ปาดให้โดนผล', () => this.reset(run), { delay: 700 });
       }
     }
     run.trail = run.trail.filter(p => run.t - p.t < 0.14);
@@ -1157,39 +1553,50 @@ FX3D_GAMES.bomb = {
   MAXP: 130, G: 9.8,
   init(run, T) {
     const S = run.S;
-    S.background = new T.Color(0x86BFF0);
-    S.fog = new T.Fog(0xC2E1FA, 25, 70);
-    const gt = fx3dTex(T, 256, 256, (g, w, h) => {
-      g.fillStyle = '#5FA24F'; g.fillRect(0, 0, w, h);
-      for (let i = 0; i < 3000; i++) { g.fillStyle = Math.random() < 0.5 ? 'rgba(30,80,20,.15)' : 'rgba(160,210,110,.12)'; g.fillRect(Math.random() * w, Math.random() * h, 1, 3); }
-    }, [20, 20]);
+    run.tx = fxRand(-1.2, 1.2); run.tz = -6.5 + fxRand(-0.8, 0.8);
+    const P = fx3dEnv(run, T, { target: new T.Vector3(0, 0, -5), fogNear: 30, fogFar: 110, az: -40 });
+    // ทุ่งหญ้า: หญ้าไม่ตัด สีไม่เรียบ (ด่างตามดิน) + ใบหญ้าละเอียด
+    const gt = fx3dTex(T, 512, 512, (g, w, h) => {
+      g.fillStyle = '#5A9A48'; g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 30000; i++) { g.fillStyle = Math.random() < 0.5 ? 'rgba(25,70,15,.18)' : 'rgba(170,215,120,.12)'; g.fillRect(Math.random() * w, Math.random() * h, 1, 2 + Math.random() * 3); }
+    }, [30, 30]);
     const ground = new T.Mesh(new T.PlaneGeometry(120, 120), fx3dStd(T, 0xffffff, { map: gt, roughness: 1 }));
     ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; S.add(ground);
     for (let i = 0; i < 6; i++) {
       const hill = new T.Mesh(new T.SphereGeometry(fxRand(6, 11), 24, 12), fx3dStd(T, [0x7FB76A, 0x6FAE5E, 0x8CC478][i % 3], { roughness: 1 }));
       hill.scale.y = 0.35; hill.position.set(fxRand(-35, 35), -1, fxRand(-60, -35)); S.add(hill);
     }
-    run.tx = fxRand(-1.6, 1.6); run.tz = -9 + fxRand(-1, 1);
+    // กองงานขนาดจริง: รีมกระดาษ A4 (21 × 29.7 × 5 ซม.) สลับแฟ้มสีธีม ซ้อนเบี้ยว ๆ บนโต๊ะพับ
     const pile = new T.Group();
-    const paper = fx3dTex(T, 256, 128, (g, w, h) => {
-      g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, w, h);
-      g.fillStyle = '#C9D4E6'; for (let i = 0; i < 5; i++) g.fillRect(20, 30 + i * 18, w - 40, 3);
-    });
-    const front = fx3dLabel(run, T, run.label, { w: 512, h: 128 });
-    for (let i = 0; i < 5; i++) {
-      const box = new T.Mesh(new T.BoxGeometry(1.1, 0.22, 0.8), [0, 1, 2, 3, 4, 5].map(f => fx3dStd(T, 0xffffff, { map: f === 4 && i === 4 ? front : paper, roughness: 0.9 })));
-      box.position.set(fxRand(-0.05, 0.05), 0.11 + i * 0.22, fxRand(-0.05, 0.05)); box.rotation.y = fxRand(-0.15, 0.15);
-      box.castShadow = box.receiveShadow = true; pile.add(box);
+    const ream = fx3dTex(T, 256, 64, (g, w, h) => { g.fillStyle = '#F4F4F2'; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 2) { g.fillStyle = `rgba(0,0,0,${0.03 + Math.random() * 0.04})`; g.fillRect(0, y, w, 1); } });
+    const top = fx3dTex(T, 256, 360, (g, w, h) => { g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, w, h); g.fillStyle = '#1F2430'; g.font = `700 22px ${run.font}`; g.textAlign = 'center'; g.fillText(run.label, w / 2, 46, w - 30); g.fillStyle = '#C9D4E6'; for (let i = 0; i < 12; i++) g.fillRect(24, 76 + i * 22, (w - 48) * (i === 11 ? 0.5 : 1), 3); });
+    const paperM = fx3dStd(T, 0xffffff, { map: ream, roughness: 0.9 });
+    const binderM = fx3dStd(T, P.accent, { roughness: 0.55 });
+    const legM = fx3dStd(T, 0x9AA1AE, { metalness: 0.7, roughness: 0.4 });
+    const table = new T.Mesh(new T.BoxGeometry(0.9, 0.03, 0.6), fx3dStd(T, 0xC9A273, { roughness: 0.6 })); table.position.y = 0.72; table.castShadow = table.receiveShadow = true; pile.add(table);
+    [[-0.4, -0.25], [0.4, -0.25], [-0.4, 0.25], [0.4, 0.25]].forEach(([x, z]) => { const l = new T.Mesh(new T.CylinderGeometry(0.015, 0.015, 0.72, 8), legM); l.position.set(x, 0.36, z); l.castShadow = true; pile.add(l); });
+    let y = 0.735;
+    for (let i = 0; i < 9; i++) {
+      const binder = i % 3 === 1;
+      const hgt = binder ? 0.06 : 0.05;
+      const mats = binder ? binderM : [paperM, paperM, i === 8 ? fx3dStd(T, 0xffffff, { map: top, roughness: 0.9 }) : paperM, paperM, paperM, paperM];
+      const b = new T.Mesh(new T.BoxGeometry(binder ? 0.25 : 0.21, hgt, binder ? 0.32 : 0.297), mats);
+      b.position.set(fxRand(-0.03, 0.03), y + hgt / 2, fxRand(-0.03, 0.03)); b.rotation.y = fxRand(-0.25, 0.25);
+      b.castShadow = b.receiveShadow = true; pile.add(b);
+      y += hgt;
     }
     pile.position.set(run.tx, 0, run.tz); S.add(pile);
-    run.pile = pile;
+    run.pile = pile; run.pileTop = y;
+    for (let i = 0; i < 7; i++) { const t = fx3dTree(T, i + 3); t.position.set(-16 + i * 5.3 + fxRand(-1, 1), 0, -22 - fxRand(0, 8)); t.scale.setScalar(fxRand(1.1, 1.6)); S.add(t); }
+    // ระเบิดลูกกลมเหล็กหล่อ Ø 24 ซม. (ทรงการ์ตูนคลาสสิก แต่วัสดุจริง: ผิวหล่อขรุขระ · ปากเกลียวทองเหลือง · ชนวนเชือก)
+    const castBump = fx3dTex(T, 256, 128, (g, w, h) => { g.fillStyle = '#808080'; g.fillRect(0, 0, w, h); for (let i = 0; i < 5000; i++) { g.fillStyle = Math.random() < 0.5 ? '#6A6A6A' : '#979797'; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 1 + Math.random() * 2, 0, 7); g.fill(); } });
     const bomb = new T.Group();
-    const shell = new T.Mesh(new T.SphereGeometry(0.22, 28, 20), fx3dStd(T, 0x22262F, { metalness: 0.6, roughness: 0.35 }));
-    shell.castShadow = true;
-    const neck = new T.Mesh(new T.CylinderGeometry(0.07, 0.08, 0.1, 12), fx3dStd(T, 0x5A6070, { metalness: 0.7, roughness: 0.3 }));
-    neck.position.y = 0.23;
-    const fuse = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, 0.14, 6), fx3dStd(T, 0xC8955A));
-    fuse.position.set(0.03, 0.33, 0); fuse.rotation.z = -0.4;
+    const shell = new T.Mesh(new T.SphereGeometry(0.12, 40, 28), fx3dStd(T, 0x1C1F26, { metalness: 0.75, roughness: 0.48, bumpMap: castBump, bumpScale: 0.8 }));
+    // เงาเปิดตอนลอยเท่านั้น — ตอนถืออยู่ในมือ (มุมบุคคลที่หนึ่ง) เงาตกห่างลงพื้นดูเหมือนระเบิดลอยค้าง
+    const neck = new T.Mesh(new T.CylinderGeometry(0.035, 0.04, 0.05, 16), fx3dStd(T, 0xB08D3A, { metalness: 0.9, roughness: 0.3 }));
+    neck.position.y = 0.125;
+    const fuse = new T.Mesh(new T.CylinderGeometry(0.006, 0.006, 0.09, 6), fx3dStd(T, 0xC8A070, { roughness: 1 }));
+    fuse.position.set(0.015, 0.18, 0); fuse.rotation.z = -0.4;
     bomb.add(shell, neck, fuse);
     S.add(bomb);
     run.bomb = bomb;
@@ -1201,7 +1608,7 @@ FX3D_GAMES.bomb = {
   },
   layout(run) {
     const T = run.T;
-    fx3dLook(run, [0, 2.4, 3.6], [run.tx * 0.3, 0.4, -7]);
+    fx3dLook(run, [0, 1.75, 2.6], [run.tx * 0.3, 0.55, -5.5]);
     run.C.updateMatrixWorld();
     const floor = fxFloor(run), sy = Math.min(run.H * 0.8, floor - this.MAXP - 6);
     run.p0 = fx3dRayPlane(run, run.W / 2, sy, new T.Plane(new T.Vector3(0, 0, 1), -0.6)) || new T.Vector3(0, 1, 0.6);
@@ -1212,9 +1619,10 @@ FX3D_GAMES.bomb = {
   },
   reset(run) {
     run.bomb.position.copy(run.p0); run.bomb.visible = true; run.bomb.rotation.set(0, 0, 0);
+    run.bomb.children[0].castShadow = false;
     Object.assign(run, { v: new run.T.Vector3(), fly: false, pull: null, boomed: false });
   },
-  blastR(run) { return run.tries >= 3 ? 2.6 : 1.7; },
+  blastR(run) { return run.tries >= 3 ? 2.0 : 1.35; },
   down(run, p) {
     if (run.fly || run.boomed || run.missing) return;
     const s = fx3dToScreen(run, run.bomb.position);
@@ -1242,6 +1650,7 @@ FX3D_GAMES.bomb = {
     const pl = run.pull; run.pull = null; HSFX.release(); FXS.hissOff();
     if (!pl || Math.hypot(pl.dx, pl.dy) < 16 || pl.dy <= 4) return;
     run.v = this.launchV(run, pl); run.fly = true;
+    run.bomb.children[0].castShadow = true;
     FXS.throwS(); haptic('arm');
   },
   cancel(run) { run.pull = null; FXS.hissOff(); HSFX.release(); },
@@ -1261,8 +1670,8 @@ FX3D_GAMES.bomb = {
     }
     // ประกายที่ปลายชนวน
     if (!run.boomed && run.bomb.visible) {
-      const tip = new run.T.Vector3(0.06, 0.4, 0).applyMatrix4(run.bomb.matrixWorld);
-      if (Math.random() < 0.8) fx3dSprite(run, { pos: tip, vel: new run.T.Vector3(fxRand(-0.4, 0.4), fxRand(0.2, 0.8), fxRand(-0.4, 0.4)), size: 0.05, life: 0.25, color: 0xFFD15A, add: true });
+      const tip = new run.T.Vector3(0.035, 0.22, 0).applyMatrix4(run.bomb.matrixWorld);
+      if (Math.random() < 0.8) fx3dSprite(run, { pos: tip, vel: new run.T.Vector3(fxRand(-0.3, 0.3), fxRand(0.1, 0.6), fxRand(-0.3, 0.3)), g: 2, size: 0.025, life: 0.3, color: 0xFFD15A, add: true });
     }
     if (!run.fly) return;
     const b = run.bomb.position, v = run.v;
@@ -1270,8 +1679,8 @@ FX3D_GAMES.bomb = {
     run.bomb.rotation.x -= dt * 5;
     if (Math.random() < 0.6) fx3dSprite(run, { pos: b, size: 0.18, grow: 0.6, life: 0.6, color: 0x9A9AA0, alpha: 0.35 });
     const lp = run.pile.position;
-    const direct = Math.abs(b.x - lp.x) < 0.7 && Math.abs(b.z - lp.z) < 0.6 && b.y < 1.25;
-    if (direct || b.y < 0.2) this.explode(run, direct);
+    const direct = Math.abs(b.x - lp.x) < 0.48 && Math.abs(b.z - lp.z) < 0.34 && b.y < run.pileTop + 0.1;
+    if (direct || b.y < 0.12) this.explode(run, direct);
     else if (Math.abs(b.x) > 14 || b.z < -30) { run.fly = false; run.bomb.visible = false; fxMiss(run, 'ปาเลยไปไกล — ดึงเบาลง', () => this.reset(run)); }
   },
   explode(run, direct) {
@@ -1305,15 +1714,26 @@ FX3D_GAMES.bomb = {
       const d = new T.Mesh(new T.BoxGeometry(0.1, 0.08, 0.1), dirtM); d.position.copy(c); d.castShadow = true;
       fx3dBody(run, d, { v: new T.Vector3(fxRand(-4, 4), fxRand(4, 8), fxRand(-4, 4)), w: new T.Vector3(fxRand(-9, 9), fxRand(-9, 9), 0), floor: 0.04, life: 2.5 });
     }
-    const crater = new T.Mesh(new T.CircleGeometry(0.9 * big, 24), new T.MeshBasicMaterial({ color: 0x2A1E12, transparent: true, opacity: 0.75, depthWrite: false }));
+    // ฝุ่นฟุ้งเป็นวงตามพื้น (ground dust ring) + ลูกไฟร่วง
+    for (let i = 0; i < 22; i++) {
+      const a = i / 22 * Math.PI * 2;
+      fx3dSprite(run, { pos: new T.Vector3(c.x, 0.15, c.z), vel: new T.Vector3(Math.cos(a) * 4.5, fxRand(0.2, 0.8), Math.sin(a) * 4.5), drag: 2.2, size: 0.5 * big, grow: 1.6, life: fxRand(1.1, 1.7), color: 0x9C8B70, alpha: 0.45 });
+    }
+    for (let i = 0; i < 14; i++) fx3dSprite(run, { pos: c, vel: new T.Vector3(fxRand(-3, 3), fxRand(3, 7), fxRand(-3, 3)), g: 9.8, size: 0.06, life: fxRand(0.8, 1.3), color: 0xFF8A2E, add: true, floor: 0.02 });
+    const crater = new T.Mesh(new T.CircleGeometry(0.75 * big, 24), new T.MeshBasicMaterial({ color: 0x241A10, transparent: true, opacity: 0.8, depthWrite: false }));
     crater.rotation.x = -Math.PI / 2; crater.position.set(c.x, 0.02, c.z); run.S.add(crater);
     if (hit) {
       run.pile.visible = false;
       const paperM = fx3dStd(T, 0xffffff, { side: T.DoubleSide, roughness: 0.9 });
-      for (let i = 0; i < 30; i++) {
-        const sh = new T.Mesh(new T.PlaneGeometry(0.26, 0.34), paperM);
-        sh.position.set(lp.x + fxRand(-0.4, 0.4), fxRand(0.3, 1.1), lp.z + fxRand(-0.3, 0.3)); sh.castShadow = true;
-        fx3dBody(run, sh, { v: new T.Vector3(fxRand(-4, 4), fxRand(6, 11), fxRand(-4, 3)), w: new T.Vector3(fxRand(-8, 8), fxRand(-8, 8), fxRand(-8, 8)), g: 4, drag: 1.1, floor: 0.02, life: 3 });
+      run.pile.traverse(o => { if (o.isMesh && o.position.y > 0.7) {
+        const piece = o.clone(); piece.position.add(lp); run.S.add(piece);
+        fx3dBody(run, piece, { v: new T.Vector3(fxRand(-3, 3), fxRand(3, 7), fxRand(-3, 2)), w: new T.Vector3(fxRand(-9, 9), fxRand(-9, 9), fxRand(-9, 9)), floor: 0.03, bounce: 0.3, life: 3 });
+      } });
+      // แผ่น A4 จริงปลิวว่อน — ร่วงช้าแบบกระดาษ (แรงต้านอากาศสูง)
+      for (let i = 0; i < 40; i++) {
+        const sh = new T.Mesh(new T.PlaneGeometry(0.21, 0.297), paperM);
+        sh.position.set(lp.x + fxRand(-0.3, 0.3), fxRand(0.8, 1.3), lp.z + fxRand(-0.25, 0.25)); sh.castShadow = true;
+        fx3dBody(run, sh, { v: new T.Vector3(fxRand(-4, 4), fxRand(5, 10), fxRand(-4, 3)), w: new T.Vector3(fxRand(-8, 8), fxRand(-8, 8), fxRand(-8, 8)), g: 3.5, drag: 1.3, floor: 0.02, life: 3.2 });
       }
       fx3dWin(run, direct ? 'ตูม!! ตรงเป้า' : 'ตูม!!', lp.clone().add(new T.Vector3(0, 0.8, 0)), { clean: direct, burstDelay: 200, hold: 2000 });
     } else {
@@ -1339,18 +1759,21 @@ FX3D_GAMES.bomb = {
 // ============================================================
 FX3D_GAMES.crumple = {
   aria: 'ขยำงานที่เสร็จแล้วปาลงถัง', hint: 'ถูนิ้วไปมาบนกระดาษเพื่อขยำ', easy: 'ถังใบใหญ่ขึ้นแล้ว',
-  RUB: 1400, BIN_R: 0.26, BIN_H: 0.62,
+  RUB: 1400, BIN_R: 0.14, BIN_H: 0.36, PB: 0.035,   // ถังพลาสติก Ø 28 × 36 ซม. · ก้อนกระดาษ A4 ขยำ Ø ~7 ซม.
   init(run, T) {
     const S = run.S;
-    S.background = new T.Color(0xE9E2D6);
+    const P = fx3dEnv(run, T, { indoor: true, target: new T.Vector3(0, 0.5, -0.6), bg: '#2A2622' });
     const floorT = fx3dTex(T, 256, 256, (g, w, h) => {
       for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { g.fillStyle = (i + j) % 2 ? '#D9CFC0' : '#CFC4B3'; g.fillRect(i * w / 4, j * h / 4, w / 4, h / 4); }
     }, [8, 8]);
     const floor = new T.Mesh(new T.PlaneGeometry(30, 30), fx3dStd(T, 0xffffff, { map: floorT, roughness: 0.9 }));
     floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; S.add(floor);
-    const wall = new T.Mesh(new T.PlaneGeometry(30, 10), fx3dStd(T, 0xEFE9DF, { roughness: 1 }));
-    wall.position.set(0, 5, -5.5); S.add(wall);
-    const woodT = fx3dTex(T, 256, 256, (g, w, h) => { g.fillStyle = '#A8743F'; g.fillRect(0, 0, w, h); g.strokeStyle = 'rgba(60,30,10,.2)'; for (let i = 0; i < 30; i++) { const y = Math.random() * h; g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(w * 0.3, y + 8, w * 0.6, y - 8, w, y + 4); g.stroke(); } });
+    // ผนังทาสีธีมอ่อน (สีห้องจริง ไม่ใช่สีจัด) + บัวพื้น
+    const wallC = new T.Color(P.accent).lerp(new T.Color('#F3EFE8'), 0.78);
+    const wall = new T.Mesh(new T.PlaneGeometry(30, 10), fx3dStd(T, wallC, { roughness: 0.95 }));
+    wall.position.set(0, 5, -3.2); S.add(wall);
+    const skirt = new T.Mesh(new T.BoxGeometry(30, 0.1, 0.02), fx3dStd(T, 0xF4F1EC, { roughness: 0.6 })); skirt.position.set(0, 0.05, -3.19); S.add(skirt);
+    const woodT = fx3dTex(T, 1024, 512, (g, w, h) => { g.fillStyle = '#9C6A3A'; g.fillRect(0, 0, w, h); for (let i = 0; i < 160; i++) { g.strokeStyle = `rgba(${50 + Math.random() * 40},25,8,${0.08 + Math.random() * 0.16})`; g.lineWidth = 1 + Math.random() * 2; const y = Math.random() * h; g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(w * 0.3, y + 14, w * 0.6, y - 14, w, y + 6); g.stroke(); } });
     const desk = new T.Mesh(new T.BoxGeometry(2.6, 0.06, 1.3), fx3dStd(T, 0xffffff, { map: woodT, roughness: 0.6 }));
     desk.position.set(0, 0.75, 0.15); desk.receiveShadow = true; desk.castShadow = true; S.add(desk);
     [[-1.2, -0.4], [1.2, -0.4], [-1.2, 0.7], [1.2, 0.7]].forEach(([x, z]) => {
@@ -1362,10 +1785,10 @@ FX3D_GAMES.crumple = {
       g.fillStyle = '#1F2430'; g.font = `700 40px ${run.font}`; g.textAlign = 'center'; g.fillText(run.label, w / 2, 80, w - 60);
       g.fillStyle = '#C9D4E6'; for (let i = 0; i < 14; i++) g.fillRect(40, 130 + i * 36, (w - 80) * (i === 13 ? 0.5 : 1), 4);
     });
-    const geo = new T.PlaneGeometry(0.62, 0.8, 22, 28);
+    const geo = new T.PlaneGeometry(0.21, 0.297, 22, 30);    // A4 จริง
     geo.rotateX(-Math.PI / 2);
-    const paper = new T.Mesh(geo, fx3dStd(T, 0xffffff, { map: pt, side: T.DoubleSide, roughness: 0.85, flatShading: true }));
-    paper.position.set(0, 0.785, 0.2); paper.castShadow = true; paper.receiveShadow = true; S.add(paper);
+    const paper = new T.Mesh(geo, fx3dStd(T, 0xEDEDE9, { map: pt, side: T.DoubleSide, roughness: 0.9, flatShading: true }));   // กระดาษจริงขาวไม่สุด (ไม่งั้นจ้าจนฟุ้ง)
+    paper.position.set(0, 0.781, 0.12); paper.castShadow = true; paper.receiveShadow = true; S.add(paper);
     run.paper = paper;
     const pos = geo.attributes.position;
     run.base = pos.array.slice();
@@ -1375,20 +1798,20 @@ FX3D_GAMES.crumple = {
     const ph = Array.from({ length: 6 }, () => fxRand(0, 6.28));
     const wav = (u, v, k) => Math.sin(u * 7 + v * 3 + ph[k]) * 0.5 + Math.sin(u * 13 - v * 9 + ph[k + 1]) * 0.3 + Math.sin(v * 17 + u * 5 + ph[(k + 2) % 6]) * 0.2;
     for (let i = 0; i < pos.count; i++) {
-      const u = run.base[i * 3] / 0.31, v = run.base[i * 3 + 2] / 0.4;      // −1…1
+      const u = run.base[i * 3] / 0.105, v = run.base[i * 3 + 2] / 0.1485;  // −1…1
       const th = u * Math.PI * 0.95, fi = v * Math.PI * 0.47;
-      const rr = 0.13 * (1 + 0.16 * wav(u, v, 0));
-      run.tgt.push([Math.cos(fi) * Math.sin(th) * rr, Math.sin(fi) * rr + 0.13, Math.cos(fi) * Math.cos(th) * rr]);
+      const rr = this.PB * (1 + 0.16 * wav(u, v, 0));
+      run.tgt.push([Math.cos(fi) * Math.sin(th) * rr, Math.sin(fi) * rr + this.PB, Math.cos(fi) * Math.cos(th) * rr]);
       run.nz.push([wav(u, v, 1), Math.abs(wav(u, v, 2)), wav(u, v, 3)]);
     }
     // ถัง
-    run.binX = fxRand(-0.55, 0.55); run.binZ = -2.6;
+    run.binX = fxRand(-0.35, 0.35); run.binZ = -1.7;
     const bin = new T.Group();
-    const binM = fx3dStd(T, 0x9AA1AE, { metalness: 0.7, roughness: 0.35, side: T.DoubleSide });
+    const binM = fx3dStd(T, P.accent, { roughness: 0.4, side: T.DoubleSide });      // ถังพลาสติกสีธีม
     const bw = this.binR(run);
     const body = new T.Mesh(new T.CylinderGeometry(bw, bw * 0.8, this.BIN_H, 32, 1, true), binM); body.position.y = this.BIN_H / 2; body.castShadow = true;
     const bottom = new T.Mesh(new T.CircleGeometry(bw * 0.8, 32), fx3dStd(T, 0x3A3F4A)); bottom.rotation.x = -Math.PI / 2; bottom.position.y = 0.01;
-    const rim = new T.Mesh(new T.TorusGeometry(bw, 0.015, 8, 40), fx3dStd(T, 0xC5CBD5, { metalness: 0.8, roughness: 0.25 })); rim.rotation.x = Math.PI / 2; rim.position.y = this.BIN_H;
+    const rim = new T.Mesh(new T.TorusGeometry(bw, 0.008, 8, 48), binM); rim.rotation.x = Math.PI / 2; rim.position.y = this.BIN_H;
     bin.add(body, bottom, rim);
     bin.position.set(run.binX, 0, run.binZ); S.add(bin);
     run.bin = bin; run.bin.visible = false;
@@ -1399,13 +1822,14 @@ FX3D_GAMES.crumple = {
   binR(run) { return run.tries >= 3 ? this.BIN_R * 1.35 : this.BIN_R; },
   layout(run) {
     const T = run.T;
-    fx3dLook(run, [0, 1.75, 1.75], [0, 0.55, -1.3]);
+    // นั่งที่โต๊ะ ตาสูง ~1.2 ม. มองกระดาษบนโต๊ะ เห็นถังขยะที่พื้นข้างหน้า
+    fx3dLook(run, [0, 1.36, 0.92], [0, 0.42, -1.3]);
     run.C.updateMatrixWorld();
-    run.p0 = new T.Vector3(0, 0.95, 0.55);
+    run.p0 = new T.Vector3(0, 0.86, 0.22);
   },
   deform(run) {
     const pos = run.paper.geometry.attributes.position, a = pos.array, b = run.base, c = run.c;
-    const e = c * c * (3 - 2 * c), w = Math.sin(Math.PI * c) * 0.05;
+    const e = c * c * (3 - 2 * c), w = Math.sin(Math.PI * c) * 0.014;   // รอยยับกลางทางสูง ~1.4 ซม. (สเกล A4)
     for (let i = 0; i < pos.count; i++) {
       const t = run.tgt[i], n = run.nz[i];
       a[i * 3] = fxLerp(b[i * 3], t[0], e) + n[0] * w;
@@ -1418,7 +1842,7 @@ FX3D_GAMES.crumple = {
   down(run, p) {
     run.last = p;
     if (run.stage === 'ball' && !run.fly && !run.missing) {
-      const s = fx3dToScreen(run, run.paper.position.clone().add(new run.T.Vector3(0, 0.13, 0)));
+      const s = fx3dToScreen(run, run.paper.position.clone().add(new run.T.Vector3(0, this.PB, 0)));
       run.held = Math.hypot(p.x - s.x, p.y - s.y) < 90;
     }
   },
@@ -1450,14 +1874,14 @@ FX3D_GAMES.crumple = {
     const T = run.T, s = Math.hypot(v.x, v.y);
     // ตัวช่วยเล็ง (แบบห่วง 3D): ช่วงความเร็วกลางถูกบีบเข้าหาแรงที่ "ลงพอดี"
     const k = s < 1000 ? 0.86 - (1000 - s) / 2500 : s > 1900 ? 1.06 + (s - 1900) / 3000 : 1 + (s - 1450) / 15000;
-    const ball = run.paper.position.clone().add(new T.Vector3(0, 0.13, 0));
+    const ball = run.paper.position.clone().add(new T.Vector3(0, this.PB, 0));
     const top = new T.Vector3(run.binX, this.BIN_H + 0.05, run.binZ);
     const el = 55 * Math.PI / 180, cs = Math.cos(el), tn = Math.tan(el);
     const dz = ball.z - top.z, dy = top.y - ball.y;
     const vI = Math.sqrt(9.8 * dz * dz / (2 * cs * cs * Math.max(0.2, dz * tn - dy)));
     let ax = fx3dAimX(run, ball, v, run.binZ, top.y);
     const off = ax - run.binX;
-    if (Math.abs(off) < 0.4) ax = run.binX + off * 0.4;
+    if (Math.abs(off) < 0.25) ax = run.binX + off * 0.5;    // ดูดเข้าหาถัง (ถังจริง Ø 28 ซม. เล็กกว่ารุ่นแรก)
     const sp = vI * k, vz = sp * cs, t = dz / vz;
     run.vb = new T.Vector3((ax - ball.x) / t, sp * Math.sin(el), -vz);
     run.fly = true; run.ft = 0; run.desc = false; run.touched = false;
@@ -1477,15 +1901,15 @@ FX3D_GAMES.crumple = {
     for (let i = 0; i < 3; i++) this.sub(run, dt / 3);
   },
   sub(run, dt) {
-    const b = run.ballPos, v = run.vb, R = 0.13, bw = this.binR(run), H = this.BIN_H;
+    const b = run.ballPos, v = run.vb, R = this.PB, bw = this.binR(run), H = this.BIN_H;
     const prevY = b.y;
     run.ft += dt;
     v.y -= 9.8 * dt; b.addScaledVector(v, dt);
     if (v.y < 0) run.desc = true;
-    run.paper.position.copy(b).add(new run.T.Vector3(0, -0.13, 0));
+    run.paper.position.copy(b).add(new run.T.Vector3(0, -this.PB, 0));
     run.paper.rotation.x -= dt * 6;
     const hd = Math.hypot(b.x - run.binX, b.z - run.binZ);
-    if (run.inBin) { if (b.y < 0.2) { b.y = 0.2; v.set(0, 0, 0); run.fly = false; } return; }
+    if (run.inBin) { if (b.y < 0.06) { b.y = 0.06; v.set(0, 0, 0); run.fly = false; } return; }
     // ขอบถัง
     if (Math.abs(b.y - H) < R && Math.abs(hd - bw) < R * 0.9 && v.y < 0 && !run.touched) {
       run.touched = true; FXS.clank(); run.wob = 0.7;
@@ -1527,53 +1951,77 @@ FX3D_GAMES.glass = {
   WZ: -4.2,
   init(run, T) {
     const S = run.S;
-    S.background = new T.Color(0x2B2F38);
-    const brick = fx3dTex(T, 512, 512, (g, w, h) => {
-      g.fillStyle = '#7A3A2A'; g.fillRect(0, 0, w, h);
-      const bh = 32, bw = 96;
+    run.tgx = fxRand(-0.6, 0.6); run.tgy = fxRand(1.5, 2.1);
+    const P = fx3dEnv(run, T, { indoor: true, wall: '#B5573E', target: new T.Vector3(0, 1, -2), bg: '#141210' });
+    // อิฐมอญขนาดจริง 21.5 × 7.5 ซม. + ร่องปูน 1 ซม. (bump: ปูนลึกกว่าอิฐ) — รุ่นแรกก้อนละ ~60 ซม.
+    const bw = 86, bh = 30, mort = 4;
+    const drawBricks = (g, w, h, bump) => {
+      g.fillStyle = bump ? '#3A3A3A' : '#8F8A80'; g.fillRect(0, 0, w, h);
       for (let r = 0, y = 0; y < h; r++, y += bh) for (let x = (r % 2) * -bw / 2; x < w; x += bw) {
-        g.fillStyle = ['#B5573E', '#A9503A', '#BD6248', '#AE5940'][(r * 3 + Math.round(x / bw)) & 3];
-        g.fillRect(x + 3, y + 3, bw - 6, bh - 6);
+        if (bump) { g.fillStyle = `rgb(${150 + (r * 13 + x) % 40},${150 + (r * 13 + x) % 40},${150 + (r * 13 + x) % 40})`; }
+        else { const k = (r * 7 + Math.round(x / bw) * 3) % 6; g.fillStyle = ['#A84F37', '#9C4632', '#B65A3F', '#A3533A', '#8E4130', '#B2583D'][k]; }
+        g.fillRect(x + mort / 2, y + mort / 2, bw - mort, bh - mort);
+        if (!bump) for (let i = 0; i < 40; i++) { g.fillStyle = Math.random() < 0.5 ? 'rgba(60,20,10,.18)' : 'rgba(230,170,130,.12)'; g.fillRect(x + Math.random() * bw, y + Math.random() * bh, 2, 2); }
       }
-    }, [3, 2]);
-    const wall = new T.Mesh(new T.PlaneGeometry(10, 6), fx3dStd(T, 0xffffff, { map: brick, roughness: 0.95 }));
+    };
+    const brick = fx3dTex(T, 512, 512, (g, w, h) => drawBricks(g, w, h, false), [8.3, 5]);
+    const brickB = fx3dTex(T, 512, 512, (g, w, h) => drawBricks(g, w, h, true), [8.3, 5]);
+    const wall = new T.Mesh(new T.PlaneGeometry(10, 6), fx3dStd(T, 0xffffff, { map: brick, bumpMap: brickB, bumpScale: 2.2, roughness: 0.92 }));
     wall.position.set(0, 3, this.WZ); wall.receiveShadow = true; S.add(wall);
-    run.tgx = fxRand(-0.7, 0.7); run.tgy = fxRand(1.8, 2.5);
-    [[0.42, 0xffffff], [0.32, 0xE03A2F], [0.22, 0xffffff], [0.12, 0xE03A2F]].forEach(([r, c], i) => {
-      const m = new T.Mesh(new T.CircleGeometry(r, 40), fx3dStd(T, c, { roughness: 0.9 }));
-      m.position.set(run.tgx, run.tgy, this.WZ + 0.005 + i * 0.002); S.add(m);
+    // เป้าพ่นสีบนกำแพง
+    [[0.42, 0xF2F2F2], [0.32, 0xD8342B], [0.22, 0xF2F2F2], [0.12, 0xD8342B]].forEach(([r, c], i) => {
+      const m = new T.Mesh(new T.CircleGeometry(r, 48), fx3dStd(T, c, { roughness: 0.85, transparent: true, opacity: 0.92 }));
+      m.position.set(run.tgx, run.tgy, this.WZ + 0.004 + i * 0.002); S.add(m);
     });
-    const floor = new T.Mesh(new T.PlaneGeometry(14, 14), fx3dStd(T, 0x6E717A, { roughness: 0.8, metalness: 0.1 }));
+    // ป้ายไฟนีออนสีธีมบนอิฐ (เรืองจริง + แสงลงอิฐรอบ ๆ)
+    const neonTex = fx3dTex(T, 1024, 192, (g, w, h) => {
+      g.clearRect(0, 0, w, h);
+      g.font = `800 ${h * 0.55}px ${run.font}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.shadowColor = P.accent; g.shadowBlur = 30; g.strokeStyle = '#FFFFFF'; g.lineWidth = 6;
+      g.strokeText('STUDENT OS', w / 2, h / 2); g.fillStyle = P.accent; g.fillText('STUDENT OS', w / 2, h / 2);
+    });
+    const neon = new T.Mesh(new T.PlaneGeometry(2.2, 0.41), new T.MeshBasicMaterial({ map: neonTex, transparent: true, depthWrite: false, toneMapped: false }));
+    neon.position.set(-run.tgx * 1.2, 3.35, this.WZ + 0.03); S.add(neon);
+    const neonL = new T.PointLight(P.accent, 6, 4, 2); neonL.position.set(neon.position.x, 3.3, this.WZ + 0.5); S.add(neonL);
+    // พื้นปูนขัด มีคราบ
+    const conc = fx3dTex(T, 512, 512, (g, w, h) => {
+      g.fillStyle = '#7B7D82'; g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 30; i++) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '40,40,45' : '160,160,165'},.08)`; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 20 + Math.random() * 70, 0, 7); g.fill(); }
+      for (let i = 0; i < 20000; i++) { g.fillStyle = 'rgba(30,30,35,.12)'; g.fillRect(Math.random() * w, Math.random() * h, 1, 1); }
+    }, [4, 4]);
+    const floor = new T.Mesh(new T.PlaneGeometry(14, 14), fx3dStd(T, 0xffffff, { map: conc, roughness: 0.7, metalness: 0.05 }));
     floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; S.add(floor);
-    const stand = new T.Mesh(new T.CylinderGeometry(0.25, 0.3, 0.9, 24), fx3dStd(T, 0x3A3F4A, { roughness: 0.5 }));
-    stand.position.set(0, 0.45, 0.6); stand.receiveShadow = true; S.add(stand);
-    // แก้วทรงกลึง
-    const prof = [[0.001, 0], [0.13, 0.005], [0.13, 0.02], [0.02, 0.03], [0.014, 0.05], [0.014, 0.24], [0.04, 0.27], [0.11, 0.33], [0.135, 0.42], [0.13, 0.5], [0.125, 0.52]]
+    // สตูลไม้ (ที่วางแก้ว)
+    const woodM = fx3dStd(T, 0x8A5A33, { roughness: 0.5 });
+    const seat = new T.Mesh(new T.CylinderGeometry(0.17, 0.17, 0.035, 32), woodM); seat.position.set(0, 0.74, 0.45); seat.castShadow = seat.receiveShadow = true; S.add(seat);
+    for (let i = 0; i < 4; i++) { const a = i / 4 * Math.PI * 2 + 0.4; const lg = new T.Mesh(new T.CylinderGeometry(0.015, 0.02, 0.74, 8), woodM); lg.position.set(Math.cos(a) * 0.12, 0.37, 0.45 + Math.sin(a) * 0.12); lg.rotation.set(Math.sin(a) * 0.12, 0, -Math.cos(a) * 0.12); lg.castShadow = true; S.add(lg); }
+    // แก้วไวน์สัดส่วนจริง: สูง 21 ซม. · ปากกว้าง 9 ซม. · ก้าน Ø 9 มม. · ฐาน Ø 7 ซม. — แก้วหักเหแสงจริง (transmission)
+    const prof = [[0.0001, 0], [0.036, 0.001], [0.037, 0.004], [0.008, 0.008], [0.0045, 0.015], [0.0045, 0.09], [0.012, 0.1], [0.035, 0.12], [0.045, 0.15], [0.043, 0.185], [0.0385, 0.21]]
       .map(([x, y]) => new T.Vector2(x, y));
-    const glassM = new T.MeshPhysicalMaterial({ color: 0xDDEEFF, transparent: true, opacity: 0.38, roughness: 0.04, metalness: 0, clearcoat: 1, side: T.DoubleSide, depthWrite: false });
+    const glassM = new T.MeshPhysicalMaterial({ color: 0xFFFFFF, transmission: 1, thickness: 0.004, ior: 1.5, roughness: 0.02, metalness: 0, clearcoat: 1, side: T.DoubleSide, transparent: true, opacity: 1 });
     run.glassM = glassM;
-    const gl = new T.Mesh(new T.LatheGeometry(prof, 40), glassM);
-    const wine = new T.Mesh(new T.LatheGeometry([[0.001, 0.3], [0.08, 0.32], [0.118, 0.38], [0.126, 0.44]].map(([x, y]) => new T.Vector2(x, y)), 32),
-      fx3dStd(T, 0x8E1B3A, { transparent: true, opacity: 0.88, roughness: 0.15 }));
-    const top = new T.Mesh(new T.CircleGeometry(0.126, 32), fx3dStd(T, 0xA02848, { transparent: true, opacity: 0.9, roughness: 0.1 }));
-    top.rotation.x = -Math.PI / 2; top.position.y = 0.44;
-    const tag = new T.Mesh(new T.PlaneGeometry(0.22, 0.055), new T.MeshBasicMaterial({ map: fx3dLabel(run, T, run.label, { w: 512, h: 128 }), transparent: true }));
-    tag.position.set(0, 0.36, 0.14);
+    const gl = new T.Mesh(new T.LatheGeometry(prof, 48), glassM);
+    const wine = new T.Mesh(new T.LatheGeometry([[0.0001, 0.098], [0.022, 0.104], [0.038, 0.122], [0.0435, 0.145]].map(([x, y]) => new T.Vector2(x, y)), 40),
+      new T.MeshPhysicalMaterial({ color: 0x6E0F28, roughness: 0.08, transmission: 0.35, thickness: 0.05, transparent: true }));
+    const top = new T.Mesh(new T.CircleGeometry(0.0435, 40), new T.MeshPhysicalMaterial({ color: 0x7A1430, roughness: 0.05, clearcoat: 1 }));
+    top.rotation.x = -Math.PI / 2; top.position.y = 0.145;
+    // ป้ายชื่องานแขวนที่ก้านแก้ว (ป้ายกระดาษผูกเชือก)
+    const tag = new T.Mesh(new T.PlaneGeometry(0.075, 0.022), new T.MeshBasicMaterial({ map: fx3dLabel(run, T, run.label, { w: 512, h: 150 }), transparent: true }));
+    tag.position.set(0.02, 0.055, 0.012); tag.rotation.y = -0.3;
     const G = new T.Group(); G.add(gl, wine, top, tag);
     gl.castShadow = true;
     S.add(G);
     run.glass = G;
-    run.sun.position.set(3, 7, 5); run.sun.target.position.set(0, 1, -2);
-    run.hemi.intensity = 1.3;
+    Object.assign(run.sun.shadow.camera, { left: -4, right: 4, top: 5, bottom: -2 }); run.sun.shadow.camera.updateProjectionMatrix();
     this.layout(run); this.reset(run);
   },
-  layout(run) { fx3dLook(run, [0, 1.55, 2.3], [run.tgx * 0.3, 1.6, this.WZ]); },
+  layout(run) { fx3dLook(run, [0, 1.18, 1.32], [run.tgx * 0.3, 1.15, this.WZ]); },
   reset(run) {
-    run.glass.position.set(0, 0.9, 0.6); run.glass.rotation.set(0, 0, 0); run.glass.visible = true;
+    run.glass.position.set(0, 0.758, 0.45); run.glass.rotation.set(0, 0, 0); run.glass.visible = true;
     Object.assign(run, { fly: null, held: false, broken: false });
   },
   down(run, p) {
-    const s = fx3dToScreen(run, run.glass.position.clone().add(new run.T.Vector3(0, 0.25, 0)));
+    const s = fx3dToScreen(run, run.glass.position.clone().add(new run.T.Vector3(0, 0.12, 0)));
     run.held = !run.fly && !run.broken && !run.missing && Math.hypot(p.x - s.x, p.y - s.y) < 95;
   },
   up(run, p, v) {
@@ -1606,7 +2054,7 @@ FX3D_GAMES.glass = {
   },
   drop(run) {
     run.glass.rotation.set(Math.PI / 2, 0, fxRand(-1, 1));
-    run.glass.position.y = 0.14;
+    run.glass.position.y = 0.045;
     FXS.clink();
     fxMiss(run, 'เบาไป แก้วไม่แตก — ปาแรงกว่านี้', () => this.reset(run), { delay: 1150 });
   },
@@ -1614,10 +2062,10 @@ FX3D_GAMES.glass = {
     const T = run.T;
     run.broken = true; run.glass.visible = false; run.shake = 0.5;
     FXS.shatter();
-    for (let i = 0; i < 34; i++) {
+    for (let i = 0; i < 46; i++) {
       const g = new T.BufferGeometry();
       const pts = [];
-      for (let k = 0; k < 3; k++) pts.push(fxRand(-0.06, 0.06), fxRand(-0.06, 0.06), fxRand(-0.01, 0.01));
+      for (let k = 0; k < 3; k++) pts.push(fxRand(-0.022, 0.022), fxRand(-0.022, 0.022), fxRand(-0.003, 0.003));   // เศษแก้วจริง 1–4 ซม.
       g.setAttribute('position', new T.Float32BufferAttribute(pts, 3)); g.computeVertexNormals();
       const m = new T.Mesh(g, new T.MeshPhysicalMaterial({ color: 0xE6F3FF, transparent: true, opacity: 0.6, roughness: 0.05, clearcoat: 1, side: T.DoubleSide, depthWrite: false }));
       m.position.copy(at);
@@ -1627,7 +2075,7 @@ FX3D_GAMES.glass = {
     }
     for (let i = 0; i < 20; i++) fx3dSprite(run, { pos: at, vel: new T.Vector3(fxRand(-2, 2), fxRand(-1, 2.5), fxRand(0, 2)), g: 7, size: fxRand(0.04, 0.08), life: fxRand(0.5, 0.9), color: 0x9E1C3C });
     for (let i = 0; i < 16; i++) fx3dSprite(run, { pos: at, vel: new T.Vector3(fxRand(-3, 3), fxRand(-3, 3), fxRand(0, 2)), size: 0.06, life: 0.35, color: 0xffffff, add: true });
-    const crack = new T.Mesh(new T.PlaneGeometry(0.9, 0.9), new T.MeshBasicMaterial({ map: fx3dTex(T, 256, 256, (g, w) => {
+    const crack = new T.Mesh(new T.PlaneGeometry(0.6, 0.6), new T.MeshBasicMaterial({ map: fx3dTex(T, 256, 256, (g, w) => {
       g.strokeStyle = 'rgba(30,15,8,.75)'; g.lineWidth = 3;
       for (let i = 0; i < 11; i++) { const a = i / 11 * Math.PI * 2 + Math.random() * 0.3; g.beginPath(); g.moveTo(w / 2, w / 2); let x = w / 2, y = w / 2; for (let k = 0; k < 4; k++) { x += Math.cos(a + fxRand(-0.4, 0.4)) * w * 0.12; y += Math.sin(a + fxRand(-0.4, 0.4)) * w * 0.12; g.lineTo(x, y); } g.stroke(); }
       g.fillStyle = 'rgba(158,28,60,.55)'; for (let i = 0; i < 9; i++) { g.beginPath(); g.arc(w / 2 + fxRand(-40, 40), w / 2 + fxRand(-20, 60), fxRand(6, 18), 0, 7); g.fill(); }
