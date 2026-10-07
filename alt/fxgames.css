@@ -1,0 +1,22 @@
+/* ============================================================
+   เอฟเฟกต์ตอนงานเสร็จ · เกม canvas (fxgames.js)
+   ใช้จอกลางของ hoop.css ทั้งหมด (.hoop-ov · หัวจอ · ปุ่มข้าม · แถบล่าง)
+   ไฟล์นี้มีแค่ของที่ต่างออกไปเมื่อสนามเป็น canvas
+   ============================================================ */
+.fx-cv {
+  position: absolute; inset: 0; z-index: 1;
+  touch-action: none; cursor: grab;
+}
+/* ฉากเกมเป็นภาพสีสด (ท้องฟ้า · หญ้า · อิฐ) ทุกธีม — ข้อความสีตามธีมอ่านไม่ออกบนพื้นแบบนี้
+   จึงให้ข้อความกลางจอเป็นป้ายทึบตัวขาวแทน */
+.hoop-ov.fxg .hp-court { border-radius: 18px; margin: 8px 10px 0; }
+.hoop-ov.fxg .hp-msg {
+  left: 50%; right: auto; transform: translate(-50%, 6px);
+  width: max-content; max-width: calc(100% - 32px);
+  padding: 9px 16px; border-radius: 999px;
+  background: rgba(15, 20, 30, .62); color: #fff;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.hoop-ov.fxg .hp-msg.show { transform: translate(-50%, 0); }
+.hoop-ov.fxg .hp-msg.win { color: #FFD15A; font-size: 24px; }
+.hoop-ov.fxg .hp-msg b { color: #9CC8FF; }

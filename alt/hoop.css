@@ -171,11 +171,11 @@
 @keyframes hpNudge { 50% { transform: translateY(4px); } }
 
 /* ---------- ร้านค้า: แถวเอฟเฟกต์ ---------- */
-.tb-sw.sw-hoop {
+.tb-sw.fxi {
   display: grid; place-items: center;
   background: linear-gradient(160deg, #FFF4EC, #FFE2CF);
 }
-.tb-sw.sw-hoop svg { width: 24px; height: 24px; }
+.tb-sw.fxi svg { width: 24px; height: 24px; }
 .tb-try {
   flex: none; min-height: 36px; padding: 0 12px;
   border: 1px solid var(--line); border-radius: 11px;
@@ -190,15 +190,16 @@
 .fx-hd { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
 .fx-hd b { font-size: 14px; font-weight: 700; color: var(--ink); }
 .fx-hd span { font-size: 12px; color: var(--muted); }
-.th-grid .sw.fx-sw-confetti {
+.th-grid .sw.fx-sw.fx-sw-confetti {
   background:
     radial-gradient(circle at 30% 30%, #E03A2F 2.5px, transparent 3px),
     radial-gradient(circle at 70% 40%, #2C9C57 2.5px, transparent 3px),
     radial-gradient(circle at 45% 72%, #EFAE0B 2.5px, transparent 3px),
     var(--card);
 }
-.th-grid .sw.fx-sw-hoop { display: grid; place-items: center; background: #FFF1E6; }
-.th-grid .sw.fx-sw-hoop svg { width: 16px; height: 16px; }
+.th-grid .sw.fx-sw { display: grid; place-items: center; background: #FFF1E6; }
+.th-grid .sw.fx-sw svg { width: 16px; height: 16px; }
+.fx-try[hidden] { display: none; }
 .fx-try {
   margin-top: 9px; width: 100%; min-height: 40px;
   border: 1px dashed var(--line); border-radius: 12px;

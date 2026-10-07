@@ -1,6 +1,10 @@
 // ============================================================
-// เอฟเฟกต์ตอนงานเสร็จ · "โยนลงห่วง"
+// เอฟเฟกต์ตอนงานเสร็จ · โครงกลาง + "โยนลงห่วง"
 // ------------------------------------------------------------
+// ไฟล์นี้ = โครงที่ทุกเอฟเฟกต์ใช้ร่วมกัน (ร้านค้า · หน้าธีม · จอ · ปุ่มข้าม · เสียง)
+//           + เกมโยนลงห่วงที่เป็นชิ้นแรก (DOM ล้วน)
+// เกมอื่น (บอล · เบสบอล · กอล์ฟ · หั่นผลไม้ · ระเบิด · ขยำงาน · ปาแก้ว) อยู่ใน fxgames.js (canvas)
+//
 // ของในร้านค้าชิ้นแรกที่ไม่ใช่ธีมสี — ติ๊กงานเสร็จแล้วได้ "โยน" งานใบนั้นลงห่วงบาสเอง
 // เจ้าของเอามาจากคลิปที่โยนไฟล์ลงห่วงแทนการลากวาง (7 ต.ค. 2569)
 //
@@ -19,12 +23,25 @@
 // ============================================================
 
 const DONEFX_KEY = 'studentos.alt.doneFx';
-const FX_SHOP = {
-  hoop: { cost: 10, name: 'โยนลงห่วง', desc: 'โยนงานที่เสร็จลงห่วงบาส' },
-};
-
 // ห่วงจิ๋วสำหรับช่องตัวอย่างในร้านค้า/หน้าธีม
 const HOOP_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="9" rx="2" fill="none" stroke="#8A8F9C" stroke-width="1.4"/><path d="M7.5 15.5 9 22M16.5 15.5 15 22M10 15.5 11 22M14 15.5 13 22" stroke="#8A8F9C" stroke-width="1.1" stroke-linecap="round"/><rect x="6" y="13" width="12" height="2.6" rx="1.3" fill="#F2661B"/></svg>`;
+
+// ของในร้าน — ลำดับในตารางนี้ = ลำดับในร้านและในหน้าธีม
+// icon ของเกมอื่นมาจาก fxgames.js (FX_ICONS) · fxgames.js ต้องโหลดก่อนไฟล์นี้
+const FX_SHOP = {
+  hoop:    { cost: 10, name: 'โยนลงห่วง', desc: 'โยนงานที่เสร็จลงห่วงบาส', emoji: '🏀' },
+  goal:    { cost: 10, name: 'ยิงประตู', desc: 'เตะงานเข้าประตู หลบผู้รักษาประตู', emoji: '⚽' },
+  bat:     { cost: 10, name: 'ตีโฮมรัน', desc: 'จังหวะดี ๆ ตีงานกระเด็นออกสนาม', emoji: '⚾' },
+  golf:    { cost: 10, name: 'พัตต์ลงหลุม', desc: 'กะแรงพัตต์งานลงหลุมกอล์ฟ', emoji: '⛳' },
+  slice:   { cost: 10, name: 'หั่นผลไม้', desc: 'ปาดนิ้วผ่างานที่ลอยขึ้นมา', emoji: '🍉' },
+  bomb:    { cost: 10, name: 'ปาระเบิดใส่', desc: 'ปาระเบิดใส่กองงานให้กระจุย', emoji: '💣' },
+  crumple: { cost: 10, name: 'ขยำงาน', desc: 'ขยำกระดาษงานแล้วปาลงถัง', emoji: '🗑️' },
+  glass:   { cost: 10, name: 'ปาแก้ว', desc: 'ปาแก้วใส่กำแพงให้แตกกระจาย', emoji: '🥂' },
+};
+function fxIcon(id) {
+  if (id === 'hoop') return HOOP_ICON;
+  return (typeof FX_ICONS === 'object' && FX_ICONS[id]) || '';
+}
 
 function fxOwned(id) { return (tokenState().fx || []).includes(id); }
 function doneFxPref() {
@@ -32,18 +49,28 @@ function doneFxPref() {
   try { v = localStorage.getItem(DONEFX_KEY) || 'confetti'; } catch (_) {}
   return (v === 'confetti' || fxOwned(v)) ? v : 'confetti';
 }
-// เปิดจอโยนห่วงไหมตอนนี้ — เรียกจาก toggleDone / finishFocus
-function hoopActive() {
-  if (doneFxPref() !== 'hoop') return false;
+// เปิดจอเอฟเฟกต์ไหมตอนนี้ — เรียกจาก toggleDone / finishFocus
+function doneFxActive() {
+  const id = doneFxPref();
+  if (id === 'confetti') return false;
+  if (id !== 'hoop' && !(typeof FX_GAMES === 'object' && FX_GAMES[id])) return false;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
   return !!document.querySelector('.phone');
 }
+// เปิดเอฟเฟกต์ที่เลือกไว้ · id ระบุเองได้ (ปุ่ม "ลอง")
+function openDoneFx(title, onClose, preview, id) {
+  id = id || doneFxPref();
+  if (id === 'hoop') return openHoop(title, onClose, preview);
+  if (typeof FX_GAMES === 'object' && FX_GAMES[id]) return openFxGame(id, title, onClose, preview);
+  if (onClose) onClose();
+}
+function previewFx(id) { openDoneFx('ตัวอย่าง · เล่นได้เลย', null, true, id); }
 
 function setDoneFx(id) {
   if (id !== 'confetti' && !fxOwned(id)) return;
   try { localStorage.setItem(DONEFX_KEY, id); } catch (_) {}
   renderFxPick();
-  if (id === 'hoop') previewHoop();
+  if (id !== 'confetti') previewFx(id);
 }
 
 function buyFx(id) {
@@ -63,7 +90,7 @@ function buyFx(id) {
   haptic('done');
   splashBurst(18, 'egg-star');
   renderAll();
-  showToast({ title: 'ได้เอฟเฟกต์' + f.name + 'แล้ว 🏀', body: 'เปิดใช้ให้แล้ว · เปลี่ยนได้ที่ตั้งค่า › ธีมสี · เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
+  showToast({ title: 'ได้เอฟเฟกต์' + f.name + 'แล้ว ' + (f.emoji || '✨'), body: 'เปิดใช้ให้แล้ว · เปลี่ยนได้ที่ตั้งค่า › ธีมสี · เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
 }
 
 // ส่วน "เอฟเฟกต์ตอนงานเสร็จ" ในหน้าธีมสี — โผล่เมื่อมีเอฟเฟกต์อย่างน้อยหนึ่งชิ้นเท่านั้น
@@ -74,13 +101,16 @@ function renderFxPick() {
   sec.hidden = !any;
   if (!any) return;
   const cur = doneFxPref();
-  sec.querySelectorAll('#fxPick button[data-fx]').forEach(b => {
-    const id = b.dataset.fx;
-    b.hidden = id !== 'confetti' && !fxOwned(id);
-    b.classList.toggle('active', id === cur);
-  });
+  // ปุ่มสร้างจากของที่มีจริงทุกครั้ง — ร้านเพิ่มของใหม่แล้วไม่ต้องมาแก้ index.html
+  const pick = document.getElementById('fxPick');
+  if (pick) pick.innerHTML = ['confetti'].concat(Object.keys(FX_SHOP).filter(fxOwned)).map(id =>
+    `<button type="button" data-fx="${id}" class="${id === cur ? 'active' : ''}" onclick="setDoneFx('${id}')">
+      <span class="sw fx-sw ${id === 'confetti' ? 'fx-sw-confetti' : ''}">${id === 'confetti' ? '' : fxIcon(id)}</span>
+      <span class="nm">${id === 'confetti' ? 'เศษกระดาษ' : esc(FX_SHOP[id].name)}</span></button>`).join('');
   const now = document.getElementById('fxNow');
-  if (now) now.textContent = cur === 'hoop' ? 'โยนลงห่วง' : 'เศษกระดาษ (ปกติ)';
+  if (now) now.textContent = cur === 'confetti' ? 'เศษกระดาษ (ปกติ)' : FX_SHOP[cur].name;
+  const tr = document.getElementById('fxTry');
+  if (tr) tr.hidden = cur === 'confetti';
 }
 
 // ---------- ตัวเกม ----------
@@ -101,7 +131,7 @@ const HOOP = {
   HINT_AFTER: 3,
 };
 
-let hoopRun = null;
+let fxRun = null;
 
 // ============================================================
 // เสียง — สังเคราะห์สดด้วย Web Audio ไม่มีไฟล์เสียงสักไฟล์
@@ -256,7 +286,7 @@ function toggleHoopSound() {
   if (on) HSFX.pop();
 }
 function syncHoopSoundBtn() {
-  const b = hoopRun && hoopRun.ov.querySelector('.hp-snd');
+  const b = fxRun && fxRun.ov.querySelector('.hp-snd');
   if (!b) return;
   const on = hoopSoundOn();
   b.classList.toggle('off', !on);
@@ -264,18 +294,20 @@ function syncHoopSoundBtn() {
   b.setAttribute('aria-pressed', on ? 'false' : 'true');
 }
 
-function previewHoop() { openHoop('ตัวอย่าง · โยนเล่นได้เลย', null, true); }
+function previewHoop() { previewFx('hoop'); }
 
-// title = ชื่องานที่เพิ่งเสร็จ · onClose เรียกครั้งเดียวตอนจอปิด (ลง/ข้าม)
-function openHoop(title, onClose, preview) {
+// ---------- จอกลางของทุกเอฟเฟกต์ ----------
+// หัวจอ (ชื่องาน · ลำโพง · ข้าม) + สนามว่าง + ข้อความกลางจอ + แถบใบ้ล่าง
+// แต่ละเกมเติมของลงสนาม (run.court) เอง · ปิดด้วย closeFx() ทางเดียว
+function fxShell(title, onClose, preview, aria, hint) {
   const phone = document.querySelector('.phone');
-  if (!phone) { if (onClose) onClose(); return; }
-  closeHoop(true);
+  if (!phone) { if (onClose) onClose(); return null; }
+  closeFx(true);
 
   const ov = document.createElement('div');
   ov.className = 'hoop-ov';
   ov.setAttribute('role', 'dialog');
-  ov.setAttribute('aria-label', 'โยนงานที่เสร็จลงห่วง');
+  ov.setAttribute('aria-label', aria);
   ov.innerHTML = `
     <div class="hp-head">
       <div class="hp-tx">
@@ -287,7 +319,41 @@ function openHoop(title, onClose, preview) {
       </button>
       <button type="button" class="hp-skip">ข้าม</button>
     </div>
-    <div class="hp-court">
+    <div class="hp-court"><div class="hp-msg" aria-live="polite"></div></div>
+    <div class="hp-foot">
+      <span class="hp-hint">${hint}</span>
+      <span class="hp-try mono"></span>
+    </div>`;
+  phone.appendChild(ov);
+
+  const $ = q => ov.querySelector(q);
+  const run = fxRun = {
+    ov, onClose, preview, title, tries: 0, done: false, raf: 0,
+    msg: $('.hp-msg'), tryEl: $('.hp-try'), hint: $('.hp-hint'), court: $('.hp-court'),
+  };
+  $('.hp-skip').onclick = () => closeFx();
+  $('.hp-snd').onclick = toggleHoopSound;
+  syncHoopSoundBtn();
+  run.key = e => { if (e.key === 'Escape') closeFx(); };
+  document.addEventListener('keydown', run.key);
+  return run;
+}
+
+// นิ้วลงได้ต่ำสุดแค่ไหน (พิกัดในสนาม) — เว้นแถบโฮมของ iPhone
+// เกมที่ต้อง "ดึงลง" ใช้วางของให้มีที่ดึงพอ (บั๊ก "ดึงไม่ได้" ของห่วงรุ่นแรก)
+function fxFloor(run) {
+  const c = run.court.getBoundingClientRect();
+  const pr = run.ov.getBoundingClientRect();
+  const foot = run.ov.querySelector('.hp-foot');
+  const safe = foot ? Math.max(0, parseFloat(getComputedStyle(foot).paddingBottom) - 22) : 0;
+  return pr.bottom - c.top - safe - 14;
+}
+
+// title = ชื่องานที่เพิ่งเสร็จ · onClose เรียกครั้งเดียวตอนจอปิด (ลง/ข้าม)
+function openHoop(title, onClose, preview) {
+  const run = fxShell(title, onClose, preview, 'โยนงานที่เสร็จลงห่วง', 'ดึงลงแล้วปล่อย เพื่อโยนลงห่วง');
+  if (!run) return;
+  run.court.insertAdjacentHTML('afterbegin', `
       <div class="hp-board"><i></i></div>
       <div class="hp-ball" aria-hidden="true">
         <span class="hp-page"><i></i><i></i><i></i></span>
@@ -300,35 +366,18 @@ function openHoop(title, onClose, preview) {
                  M10 32 L86 32 M16 50 L80 50 M18 62 L78 62"/>
       </svg>
       <div class="hp-rim"></div>
-      <svg class="hp-dots" aria-hidden="true"></svg>
-      <div class="hp-msg" aria-live="polite"></div>
-    </div>
-    <div class="hp-foot">
-      <span class="hp-hint">ดึงลงแล้วปล่อย เพื่อโยนลงห่วง</span>
-      <span class="hp-try mono"></span>
-    </div>`;
-  phone.appendChild(ov);
-
-  const $ = s => ov.querySelector(s);
-  const run = hoopRun = {
-    ov, onClose, preview, tries: 0, done: false, raf: 0,
-    ball: $('.hp-ball'), rim: $('.hp-rim'), net: $('.hp-net'), dots: $('.hp-dots'),
-    msg: $('.hp-msg'), tryEl: $('.hp-try'), hint: $('.hp-hint'), court: $('.hp-court'),
-  };
-  $('.hp-skip').onclick = () => closeHoop();
-  $('.hp-snd').onclick = toggleHoopSound;
-  syncHoopSoundBtn();
-  run.key = e => { if (e.key === 'Escape') closeHoop(); };
-  document.addEventListener('keydown', run.key);
+      <svg class="hp-dots" aria-hidden="true"></svg>`);
+  const $ = q => run.ov.querySelector(q);
+  Object.assign(run, { ball: $('.hp-ball'), rim: $('.hp-rim'), net: $('.hp-net'), dots: $('.hp-dots') });
 
   // วัดสนามหลังวางลง DOM แล้วเท่านั้น — ขนาด .phone ต่างกันทุกเครื่อง
   requestAnimationFrame(() => {
-    if (hoopRun !== run) return;
+    if (fxRun !== run) return;
     layoutHoop(run);
     resetBall(run, true);
     bindPull(run);
     // หมุนจอ/ย่อหน้าต่างระหว่างเปิด — วางสนามใหม่ (ตอนลูกลอยอยู่ปล่อยให้จบก่อน)
-    run.rs = () => { if (hoopRun === run && !run.flying && !run.done) { layoutHoop(run); resetBall(run, true); } };
+    run.rs = () => { if (fxRun === run && !run.flying && !run.done) { layoutHoop(run); resetBall(run, true); } };
     window.addEventListener('resize', run.rs);
   });
 }
@@ -348,10 +397,7 @@ function layoutHoop(run) {
   // จอเตี้ยเหลือที่ใต้ลูกแค่ ~50px นิ้ว/เมาส์ชนขอบจอก่อน โยนยังไงก็ไม่ถึง · จอ 812 ก็ได้แค่ ~126px
   // ตอนนี้: วัดว่านิ้วลงไปได้ต่ำสุดแค่ไหน (เว้นแถบโฮมของ iPhone) แล้วยกลูกขึ้นให้มีที่ดึงสุดแขนพอ
   // ถ้าจอเตี้ยจนยกไม่ไหว ก็ลดระยะดึงสุดลงตามที่ว่างจริง — แรงคิดเป็น "สัดส่วนของระยะดึงสุด" เสมอ
-  const pr = run.ov.getBoundingClientRect();
-  const foot = run.ov.querySelector('.hp-foot');
-  const safe = foot ? Math.max(0, parseFloat(getComputedStyle(foot).paddingBottom) - 22) : 0;
-  const floor = pr.bottom - c.top - safe - 14;      // นิ้วลงได้ต่ำสุดตรงนี้ (พิกัดในสนาม)
+  const floor = fxFloor(run);                        // นิ้วลงได้ต่ำสุดตรงนี้ (พิกัดในสนาม)
   run.y0 = Math.max(run.rimY + 170, Math.min(run.H - 92, floor - HOOP.MAX_PULL));
   run.maxPull = Math.max(70, Math.min(HOOP.MAX_PULL, floor - run.y0));
   run.K = Math.sqrt(2 * HOOP.G * (run.y0 - run.rimY + HOOP.OVERSHOOT)) / run.maxPull;
@@ -452,7 +498,7 @@ function launch(run, vx, vy) {
   haptic('arm');
   let last = performance.now();
   const step = now => {
-    if (hoopRun !== run) return;
+    if (fxRun !== run) return;
     const dt = Math.min(0.033, (now - last) / 1000); last = now;
     // แบ่งเฟรมย่อย 4 รอบ — ลูกเร็ว ~1500px/s ข้ามปลายขอบห่วงไปได้ในเฟรมเดียวถ้าไม่แบ่ง
     for (let i = 0; i < 4 && run.flying; i++) physics(run, dt / 4);
@@ -550,10 +596,10 @@ function missHoop(run) {
     : short ? 'แรงไม่ถึง — ดึงยาวอีกนิด'
     : 'ออกข้าง — ลองเล็งใหม่');
   if (run.tries === HOOP.HINT_AFTER) setTimeout(() => {
-    if (hoopRun === run && !run.done) say(run, 'ใบ้ให้แล้ว — ดูเส้นจุดตอนดึง');
+    if (fxRun === run && !run.done) say(run, 'ใบ้ให้แล้ว — ดูเส้นจุดตอนดึง');
   }, 1600);
   // 900ms: ให้ "แป่ว แป๊ว" จบก่อนลูกเด้งกลับ ไม่งั้นเสียงป๊อปทับโน้ตสุดท้าย
-  setTimeout(() => { if (hoopRun === run && !run.done) resetBall(run, false); }, 900);
+  setTimeout(() => { if (fxRun === run && !run.done) resetBall(run, false); }, 900);
 }
 
 function scoreHoop(run) {
@@ -567,21 +613,25 @@ function scoreHoop(run) {
   // ลูกที่ร่วงทะลุตาข่ายจางหายไป ไม่ไหลลงไปทับคำว่า "ลงห่วง!" กลางจอ
   setTimeout(() => run.ball.classList.add('gone'), 260);
   // เศษกระดาษชุดเดิมของแอป แต่พุ่งจากห่วงแทนปุ่มติ๊ก
-  setTimeout(() => { if (hoopRun === run) celebrate(run.rim); }, 160);
-  setTimeout(() => { if (hoopRun === run) closeHoop(); }, 1500);
+  setTimeout(() => { if (fxRun === run) celebrate(run.rim); }, 160);
+  setTimeout(() => { if (fxRun === run) closeFx(); }, 1500);
 }
 
 // silent = ปิดของค้างเพื่อเปิดอันใหม่ (ไม่เรียก onClose ซ้ำ)
-function closeHoop(silent) {
-  const run = hoopRun;
+function closeFx(silent) {
+  const run = fxRun;
   if (!run) return;
-  hoopRun = null;
+  fxRun = null;
   cancelAnimationFrame(run.raf);
   clearTimeout(run.msgT);
   document.removeEventListener('keydown', run.key);
   if (run.rs) window.removeEventListener('resize', run.rs);
+  if (run.cleanup) run.cleanup();
   HSFX.stop();
   run.ov.classList.add('out');
   setTimeout(() => run.ov.remove(), 220);
   if (!silent && run.onClose) run.onClose();
 }
+
+// ชื่อเดิม — เผื่อมีที่ไหนเรียกอยู่
+function closeHoop(silent) { closeFx(silent); }

@@ -12,8 +12,8 @@ const CACHE = 'studentos-1c44'; // ขึ้นเวอร์ชันทุก
 // (Control Center ฉีดเข้า iframe ตอนรันเอง) การแคชไว้จึงเป็นการส่ง ~50KB ไปให้เด็กทุกคน
 // เพื่อของที่มีคนเดียวได้ใช้ · และที่แย่กว่านั้นคือมันทำให้ปล่อยรุ่นใหม่แล้วหน้าแอดมิน
 // ได้ "หน้าแม่ใหม่ + ตัวแก้ดีไซน์เก่า" ซึ่งอาการคือกดแล้วไม่มีอะไรเกิดขึ้น
-const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'room.css', 'social.css', 'feed.css', 'safety.css', 'hw.css', 'topic.css', 'sai.css', 'hoop.css', 'custom.css',
-  'engine.js', 'context.js', 'planner.js', 'facts.js', 'profile.js', 'simulate.js', 'calibrate.js', 'loss.js', 'decide.js', 'brain.js', 'inbox.js', 'linelink.js', 'integrations.js', 'room.js', 'social.js', 'feed.js', 'hw.js', 'topic.js', 'safety.js', 'sai.js', 'hoop.js', 'app.js', 'config.js', 'remote-config.js',
+const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'room.css', 'social.css', 'feed.css', 'safety.css', 'hw.css', 'topic.css', 'sai.css', 'hoop.css', 'fxgames.css', 'custom.css',
+  'engine.js', 'context.js', 'planner.js', 'facts.js', 'profile.js', 'simulate.js', 'calibrate.js', 'loss.js', 'decide.js', 'brain.js', 'inbox.js', 'linelink.js', 'integrations.js', 'room.js', 'social.js', 'feed.js', 'hw.js', 'topic.js', 'safety.js', 'sai.js', 'fxgames.js', 'hoop.js', 'app.js', 'config.js', 'remote-config.js',
   'manifest.json',
   'icon-alt-192.png', 'icon-alt-512.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png',
   'logo-mark.png', 'logo-splash.png', 'logo-splash-light.png',
