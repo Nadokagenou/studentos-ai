@@ -1831,6 +1831,7 @@
                 <div class="fx-hd"><b>เอฟเฟกต์ตอนงานเสร็จ</b><span id="fxNow"></span></div>
                 <!-- ปุ่มสร้างโดย renderFxPick() จากของที่ซื้อแล้ว -->
                 <div class="th-grid" id="fxPick"></div>
+                <div id="fxMode"></div>
                 <button type="button" class="fx-try" id="fxTry" onclick="previewFx(doneFxPref())">ลองเล่นดู</button>
               </div>
             </div>
@@ -2111,6 +2112,8 @@
      (renderShop · renderAppearance) เห็น FX_SHOP แล้ว — ไม่งั้นแถวเอฟเฟกต์โผล่ช้าไปหนึ่งรอบ -->
 <!-- fxgames.js ก่อน hoop.js: hoop.js อ่าน FX_ICONS/FX_GAMES ตอนวาดร้านรอบแรก -->
 <script src="fxgames.js"></script>
+<!-- โหมด 3D — ไฟล์นี้เล็ก · Three.js (vendor/) โหลดตอนเปิดเกม 3D ครั้งแรกเท่านั้น -->
+<script src="fx3d.js"></script>
 <script src="hoop.js"></script>
 <script src="gacha-fx.js"></script>
 <script src="app.js"></script>

@@ -210,3 +210,25 @@
 @media (prefers-reduced-motion: reduce) {
   .hoop-ov, .hp-net.swish, .hp-rim.hit, .hp-hint::before { animation: none; }
 }
+
+/* ---------- 3D (fx3d.js) ---------- */
+.fx-3dtag {
+  display: inline-block; margin-left: 4px; padding: 1px 5px 2px; border-radius: 6px;
+  font: 900 9px/1.2 'Orbitron', 'Space Mono', monospace; letter-spacing: .04em; vertical-align: 2px;
+  color: #fff; background: linear-gradient(90deg, #FF4F8B, #F59E0B, #10B981, #3B82F6, #A855F7);
+}
+.th-grid button .fx-3dtag { margin-left: auto; flex: none; padding: 1px 3px; font-size: 7.5px; }
+.fx-seg { display: flex; align-items: center; gap: 6px; margin-top: 9px; }
+.fx-seg-lb { font-size: 12.5px; color: var(--muted); margin-right: 4px; }
+.fx-seg button {
+  flex: 1; min-height: 38px; border-radius: 11px;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  font: 800 13px/1 'Orbitron', 'Space Mono', monospace; letter-spacing: .06em; cursor: pointer;
+}
+.fx-seg button.active { border-color: var(--blue); background: var(--blue-soft); color: var(--blue); }
+.fx-wait { margin: 8px 0 0; font-size: 12px; line-height: 1.45; color: var(--muted); }
+.tk-skin.r-mythic.got .ts-nm {
+  background: linear-gradient(90deg, #FF4F8B, #F59E0B, #10B981, #3B82F6, #A855F7);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.tk-skin.r-mythic .ts-rar { color: #B45CFF; }

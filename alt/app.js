@@ -9441,9 +9441,9 @@ function renderShop() {
         const own = fxOwned(id);
         return `<div class="tb-row${own ? ' own' : ''}">
           <span class="tb-sw fxi">${fxIcon(id)}</span>
-          <span class="tb-bd"><b>${esc(f.name)}</b><i>${own
+          <span class="tb-bd"><b>${esc(f.name)}${fx3dOwned(id) ? ' <span class="fx-3dtag">3D</span>' : ''}</b><i>${own
             ? (doneFxPref() === id ? 'มีแล้ว · ใช้อยู่' : 'มีแล้ว · เปิดได้ที่ตั้งค่า › ธีมสี')
-            : f.cost + ' โทเคน · ' + esc(f.desc)}</i></span>
+            : (fx3dOwned(id) ? 'มี 3D แล้ว · ซื้อเพื่อปลดล็อก · ' : '') + f.cost + ' โทเคน · ' + esc(f.desc)}</i></span>
           <button class="tb-try" onclick="previewFx('${id}')">ลอง</button>
           ${own ? `<span class="tb-ok">${icon('check')}</span>`
                 : `<button class="tb-go${(s.bal || 0) < f.cost ? ' poor' : ''}" onclick="buyFx('${id}')">ซื้อ</button>`}
@@ -9467,6 +9467,18 @@ function renderShop() {
         </div>`;
       }).join('')}
     </div>
+
+    ${typeof FX3D_IDS === 'object' ? `<div class="sec-label">เอฟเฟกต์ 3D · สุ่มเท่านั้น (ตัวละ 0.1%)</div>
+    <div class="tk-skins">
+      ${FX3D_IDS.map(fx => {
+        const n = (s.fx3d || {})[fx] || 0;
+        return `<div class="tk-skin r-mythic${n ? ' got' : ''}">
+          <div class="ts-rar">${n && !fxOwned(fx) ? '🔒 ซื้อปกติก่อน' : 'Mythic 3D'}</div>
+          <div class="ts-nm">${esc(FX3D_NAME[fx])}</div>
+          <div class="ts-ct mono">${n ? '×' + n : '— — —'}</div>
+        </div>`;
+      }).join('')}
+    </div>` : ''}
 
     <div class="sec-label">ธีมจากการสุ่มเท่านั้น</div>
     <div class="tk-skins">

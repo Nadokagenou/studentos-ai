@@ -20,3 +20,7 @@
 .hoop-ov.fxg .hp-msg.show { transform: translate(-50%, 0); }
 .hoop-ov.fxg .hp-msg.win { color: #FFD15A; font-size: 24px; }
 .hoop-ov.fxg .hp-msg b { color: #9CC8FF; }
+
+/* ---------- 3D (fx3d.js) — WebGL ข้างล่าง · ชั้น 2D ข้างบนไว้วาดเส้นจุด/ป้ายชื่องาน ---------- */
+.hoop-ov.fx3 .fx-cv { width: 100%; height: 100%; }
+.fx-cv2 { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; }

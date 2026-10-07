@@ -44,6 +44,26 @@ function fxIcon(id) {
 }
 
 function fxOwned(id) { return (tokenState().fx || []).includes(id); }
+
+// ---------- โหมด 3D (ได้จากการสุ่มเท่านั้น · fx3d.js) ----------
+// มี 3D แต่ยังไม่ได้ซื้อเอฟเฟกต์ปกติ = ยังใช้ไม่ได้ (เจ้าของสั่ง) — ของไม่หาย ซื้อเมื่อไหร่ใช้ได้ทันที
+// เลือก 2D/3D แยกรายเกม · เก็บในเครื่อง (เหมือนธีม) ที่ DONEFX_3D_KEY เป็นรายการ id ที่เลือก 3D
+const DONEFX_3D_KEY = 'studentos.alt.doneFx3d';
+function fx3dOwned(id) { return ((tokenState().fx3d || {})[id] || 0) > 0; }
+function fx3dUsable(id) { return fx3dOwned(id) && fxOwned(id); }
+function fx3dMode(id) {
+  try { return (JSON.parse(localStorage.getItem(DONEFX_3D_KEY)) || []).includes(id); } catch (_) { return false; }
+}
+function setFx3dMode(id, on) {
+  if (on && !fx3dUsable(id)) return;
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem(DONEFX_3D_KEY)) || []; } catch (_) {}
+  list = list.filter(x => x !== id);
+  if (on) list.push(id);
+  try { localStorage.setItem(DONEFX_3D_KEY, JSON.stringify(list)); } catch (_) {}
+  renderFxPick();
+  previewFx(id);
+}
 function doneFxPref() {
   let v = 'confetti';
   try { v = localStorage.getItem(DONEFX_KEY) || 'confetti'; } catch (_) {}
@@ -60,6 +80,7 @@ function doneFxActive() {
 // เปิดเอฟเฟกต์ที่เลือกไว้ · id ระบุเองได้ (ปุ่ม "ลอง")
 function openDoneFx(title, onClose, preview, id) {
   id = id || doneFxPref();
+  if (id !== 'confetti' && fx3dMode(id) && fx3dUsable(id) && typeof open3D === 'function') return open3D(id, title, onClose, preview);
   if (id === 'hoop') return openHoop(title, onClose, preview);
   if (typeof FX_GAMES === 'object' && FX_GAMES[id]) return openFxGame(id, title, onClose, preview);
   if (onClose) onClose();
@@ -106,9 +127,23 @@ function renderFxPick() {
   if (pick) pick.innerHTML = ['confetti'].concat(Object.keys(FX_SHOP).filter(fxOwned)).map(id =>
     `<button type="button" data-fx="${id}" class="${id === cur ? 'active' : ''}" onclick="setDoneFx('${id}')">
       <span class="sw fx-sw ${id === 'confetti' ? 'fx-sw-confetti' : ''}">${id === 'confetti' ? '' : fxIcon(id)}</span>
-      <span class="nm">${id === 'confetti' ? 'เศษกระดาษ' : esc(FX_SHOP[id].name)}</span></button>`).join('');
+      <span class="nm">${id === 'confetti' ? 'เศษกระดาษ' : esc(FX_SHOP[id].name)}</span>
+      ${id !== 'confetti' && fx3dOwned(id) ? '<span class="fx-3dtag">3D</span>' : ''}</button>`).join('');
   const now = document.getElementById('fxNow');
-  if (now) now.textContent = cur === 'confetti' ? 'เศษกระดาษ (ปกติ)' : FX_SHOP[cur].name;
+  if (now) now.textContent = cur === 'confetti' ? 'เศษกระดาษ (ปกติ)'
+    : FX_SHOP[cur].name + (fx3dMode(cur) && fx3dUsable(cur) ? ' · 3D' : '');
+  // สลับ 2D/3D — โผล่เฉพาะเกมที่เลือกอยู่และมี 3D แล้ว
+  const mode = document.getElementById('fxMode');
+  if (mode) {
+    const has3 = cur !== 'confetti' && fx3dUsable(cur), on3 = has3 && fx3dMode(cur);
+    const waiting = Object.keys(FX_SHOP).filter(id => fx3dOwned(id) && !fxOwned(id));
+    mode.innerHTML = (has3 ? `<div class="fx-seg" role="group" aria-label="โหมดภาพ">
+        <span class="fx-seg-lb">ภาพ</span>
+        <button type="button" class="${on3 ? '' : 'active'}" onclick="setFx3dMode('${cur}', false)">2D</button>
+        <button type="button" class="${on3 ? 'active' : ''}" onclick="setFx3dMode('${cur}', true)">3D</button>
+      </div>` : '')
+      + (waiting.length ? `<p class="fx-wait">มี 3D รอปลดล็อก: ${waiting.map(id => esc(FX_SHOP[id].name)).join(' · ')} — ซื้อเอฟเฟกต์ปกติในร้านค้าก่อน</p>` : '');
+  }
   const tr = document.getElementById('fxTry');
   if (tr) tr.hidden = cur === 'confetti';
 }
