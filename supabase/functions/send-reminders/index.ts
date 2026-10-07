@@ -520,12 +520,100 @@ async function pool<T>(items: T[], limit: number, worker: (item: T) => Promise<v
   await Promise.all(runners);
 }
 
-Deno.serve(async () => {
+// ============================================================
+// ปุ่ม "ทดสอบ" ในแอป — พิสูจน์ท่อจริงทั้งเส้น: เซิร์ฟเวอร์ → push service → มือถือที่ปิดแอปอยู่
+// ------------------------------------------------------------
+// ของเดิมปุ่มนั้นยิงจากในแอปเอง ซึ่งพิสูจน์ได้แค่ว่า "เครื่องนี้แสดงการ์ดได้"
+// ไม่ได้พิสูจน์ว่าเซิร์ฟเวอร์ส่งถึงเครื่อง (กุญแจ VAPID · subscription หาย · iPhone ไม่ได้ติดตั้งแอป)
+// ซึ่งคือจุดที่พังจริงทุกครั้งที่ผ่านมา
+//
+// ส่งเฉพาะเครื่องของคนที่กด (uid จาก JWT ของเขาเอง) · ไม่แตะ push_sent/last_sent_at
+// การ์ดเป็นตัวอย่างรอบเช้าจากงานจริงของเขา จะได้เห็นว่าพรุ่งนี้ 07:00 หน้าตาเป็นยังไง
+// delay > 0 = ตอบแอปทันทีแล้วค่อยส่ง (ให้เวลาปิดแอป) — ถ้ารอส่งก่อนค่อยตอบ แอปที่ถูกปิดจะตัดสายทิ้ง
+// ============================================================
+const TEST_MAX_DELAY_S = 20;
+// ปุ่มทดสอบเรียกจากเบราว์เซอร์ — ไม่มีหัวพวกนี้ เบราว์เซอร์บล็อกคำตอบทิ้งก่อนแอปจะได้อ่าน
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+async function handleTest(req: Request, body: any): Promise<Response> {
+  const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), {
+    status, headers: { ...CORS, 'Content-Type': 'application/json' },
+  });
+  const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+  const { data: who } = await db.auth.getUser(jwt);
+  const uid = who?.user?.id;
+  if (!uid) return json({ ok: false, error: 'ต้องล็อกอินก่อน' }, 401);
+
+  const { data: subs } = await db.from('push_subscriptions')
+    .select('endpoint, p256dh, auth').eq('user_id', uid);
+  if (!subs?.length) return json({ ok: false, devices: 0, error: 'ไม่มีเครื่องที่สมัครรับแจ้งเตือนไว้' });
+
+  await loadNotiConfig();
+  const now = Date.now();
+  const { data: st } = await db.from('user_state').select('tasks:data->tasks').eq('id', uid).maybeSingle();
+  const pending = (((st as any)?.tasks ?? []) as any[]).filter((t) => !t.done && !t.deleted);
+  const today = thDayKey(now);
+  const items = pending.filter((t) => t.due && Date.parse(t.due) > now && thDayKey(Date.parse(t.due)) === today)
+    .map((t) => ({ t, h: (Date.parse(t.due) - now) / 3.6e6 })).sort((a, b) => a.h - b.h);
+  const pick = roundPick(pending, now);
+  const copy = items.length ? morningCopy(items, now)
+    : pick ? amAheadCopy(pick, pending.filter((t) => !isEvent(t)).length - 1, now)
+    : { title: 'ทดสอบแจ้งเตือน', body: 'ยังไม่มีงานค้าง' };
+  const payload = JSON.stringify({ title: copy.title, body: 'ทดสอบ · ' + copy.body, tag: 'server-test', url: './' });
+
+  const delay = Math.max(0, Math.min(TEST_MAX_DELAY_S, Math.round(Number(body?.delay) || 0)));
+  const send = async () => {
+    if (delay) await new Promise((r) => setTimeout(r, delay * 1000));
+    let sent = 0;
+    const errors: string[] = [];
+    for (const s of subs as any[]) {
+      try {
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+          payload, { urgency: 'high', TTL: 600 });
+        sent++;
+      } catch (e: any) {
+        errors.push(`${e?.statusCode ?? ''} ${String(s.endpoint).split('/')[2] ?? ''} ${String(e?.body ?? e?.message ?? e).slice(0, 120)}`);
+        // กติกาเดียวกับรอบปกติ: subscription ที่ตายแล้วลบทิ้ง แอปจะสมัครใหม่ตอนเปิดครั้งหน้า
+        if (e?.statusCode === 403 || e?.statusCode === 404 || e?.statusCode === 410) {
+          await db.from('push_subscriptions').delete().eq('endpoint', s.endpoint);
+        }
+      }
+    }
+    return { sent, errors };
+  };
+
+  const rt = (globalThis as any).EdgeRuntime;
+  if (delay && rt?.waitUntil) {
+    rt.waitUntil(send());
+    return json({ ok: true, devices: subs.length, delay, queued: true });
+  }
+  const r = await send();
+  return json({ ok: r.sent > 0, devices: subs.length, delay, ...r });
+}
+
+Deno.serve(async (req: Request) => {
   ensureInit();
   if (initErr) {
     return new Response(JSON.stringify({ ok: false, error: 'init failed: ' + initErr }), {
       status: 500, headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  if (req?.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  // cron เรียกแบบไม่มี body · มีแต่ปุ่มทดสอบที่ส่ง { test: true } มา
+  let body: any = null;
+  if (req?.method === 'POST') { try { body = await req.json(); } catch (_) { body = null; } }
+  if (body?.test === true) {
+    try { return await handleTest(req, body); }
+    catch (e: any) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || String(e) }), {
+        status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
+    }
   }
 
   const startedAt = Date.now();

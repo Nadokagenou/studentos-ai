@@ -55,6 +55,7 @@ export function makeDb(tables, log) {
       upsert(payload) { st.op = 'upsert'; st.payload = payload; return api; },
       update(payload) { st.op = 'update'; st.payload = payload; return api; },
       delete() { st.op = 'delete'; return api; },
+      maybeSingle() { return api.run().then(r => ({ data: (r.data || [])[0] ?? null, error: r.error })); },
       then(res, rej) { return api.run().then(res, rej); },
       async run() {
         let out = rows().filter(r => st.filters.every(f => f(r)));
@@ -86,5 +87,10 @@ export function makeDb(tables, log) {
     };
     return api;
   };
-  return { from: q };
+  // ปุ่มทดสอบ: JWT รูป 'jwt-<uid>' ในเทสต์ = ผู้ใช้คนนั้น · อย่างอื่น = ไม่ได้ล็อกอิน
+  const auth = { async getUser(jwt) {
+    const m = /^jwt-(.+)$/.exec(String(jwt || ''));
+    return { data: { user: m ? { id: m[1] } : null }, error: m ? null : { message: 'bad jwt' } };
+  } };
+  return { from: q, auth };
 }

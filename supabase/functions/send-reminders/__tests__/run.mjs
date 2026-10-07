@@ -540,6 +540,48 @@ async function wholeDay(t, day = 6) {
   check('user switches off -> no rounds', got.length === 0, JSON.stringify(got));
 }
 
+// ---- ปุ่มทดสอบในแอป: ยิงจากเซิร์ฟเวอร์จริง เฉพาะเครื่องของคนที่กด ----
+async function testCall(tables, { jwt, body = { test: true }, method = 'POST' } = {}) {
+  sb.__setTables(tables);
+  wp.__sent.length = 0;
+  const headers = { 'Content-Type': 'application/json' };
+  if (jwt) headers.Authorization = 'Bearer ' + jwt;
+  const res = await handler(new Request('http://x', { method, headers, body: method === 'POST' ? JSON.stringify(body) : undefined }));
+  const text = await res.text();
+  let json = null; try { json = JSON.parse(text); } catch (_) {}
+  return { status: res.status, json, text, cors: res.headers.get('Access-Control-Allow-Origin'), sent: wp.__sent.slice() };
+}
+{
+  const t = rhythm({ tasks: [hw('s1', TH(9, 23, 59))], push: { seen: thDay(6) } });
+  t.push_subscriptions.push({ endpoint: 'ep2', user_id: 'u1', p256dh: 'p', auth: 'a', last_sent_at: null },
+    { endpoint: 'epX', user_id: 'other', p256dh: 'p', auth: 'a', last_sent_at: null });
+  const r0 = await testCall(t, {});
+  check('test push: not logged in -> 401, nothing sent', r0.status === 401 && r0.sent.length === 0, r0.text);
+  const r1 = await testCall(t, { jwt: 'jwt-u1' });
+  check('test push: reaches every device of the caller only', r1.status === 200 && r1.json.sent === 2 &&
+    r1.sent.every(s => s.endpoint !== 'epX') && r1.sent.every(s => s.tag === 'server-test'), r1.text + JSON.stringify(r1.sent));
+  check('test push: previews a real task, labelled as a test', r1.sent[0] && /s1/.test(r1.sent[0].title) && /^ทดสอบ · /.test(r1.sent[0].body),
+    JSON.stringify(r1.sent[0]));
+  check('test push: leaves dedupe keys and quiet clock alone', t.push_sent.length === 0 && t.push_subscriptions.every(s => s.last_sent_at === null),
+    JSON.stringify(t.push_sent));
+  check('test push: answers with CORS for the browser', r1.cors === '*', String(r1.cors));
+  const r2 = await testCall(t, { method: 'OPTIONS' });
+  check('test push: CORS preflight ok', r2.status === 200 && r2.cors === '*', r2.text);
+}
+{
+  const t = rhythm({ tasks: [] });
+  t.push_subscriptions.length = 0;
+  const r = await testCall(t, { jwt: 'jwt-u1' });
+  check('test push: no subscribed device -> says so', r.json && r.json.ok === false && r.json.devices === 0, r.text);
+}
+{
+  const t = rhythm({ tasks: [] });
+  wp.__setFail(() => Object.assign(new Error('gone'), { statusCode: 410 }));
+  const r = await testCall(t, { jwt: 'jwt-u1' });
+  wp.__setFail(null);
+  check('test push: dead subscription reported and removed', r.json && r.json.ok === false && /410/.test(r.json.errors[0]) && t.push_subscriptions.length === 0, r.text);
+}
+
 for (const r of results) console.log((r.pass ? 'PASS  ' : 'FAIL  ') + r.name + (r.pass ? '' : '   >> ' + r.detail));
 const failed = results.filter(r => !r.pass);
 console.log('');

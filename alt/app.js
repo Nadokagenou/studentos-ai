@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C42';                 // สายเลขของแอป
+const APP_VERSION = '1C43';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -13804,8 +13804,41 @@ async function notify(title, body, tag) {
 }
 
 // ปุ่ม "ทดสอบ" ในแท็บฉัน — พิสูจน์ว่ามันเด้งจริงบนเครื่องนี้ ไม่ต้องรอถึงกำหนดส่ง
+// ทดสอบจากเซิร์ฟเวอร์จริง — ทางเดียวที่พิสูจน์ว่า "ปิดแอปแล้วยังเด้ง"
+// การ์ดจากในเครื่องพิสูจน์ได้แค่ว่าเครื่องแสดงการ์ดได้ ส่วนที่พังจริงทุกครั้งคือเส้นเซิร์ฟเวอร์ → เครื่อง
+// (กุญแจ VAPID ไม่ตรง · แถว subscription ถูกลบ · iPhone ที่ไม่ได้ติดตั้งแอป) · send-reminders { test: true }
+const SERVER_TEST_DELAY_S = 8;
+async function testServerPush() {
+  showToast({ title: 'กำลังส่งจากเซิร์ฟเวอร์…', body: 'รอสักครู่' });
+  let res = null, err = null;
+  try {
+    const r = await withTimeout(sb.functions.invoke('send-reminders', {
+      body: { test: true, delay: SERVER_TEST_DELAY_S } }), 15000, 'ทดสอบแจ้งเตือน');
+    res = r.data; err = r.error;
+  } catch (e) { err = e; }
+  if (err || !res) {
+    showToast({ title: 'ส่งจากเซิร์ฟเวอร์ไม่ได้', body: 'เน็ตหลุดหรือเซิร์ฟเวอร์ไม่ตอบ — ลองใหม่อีกครั้ง' });
+    return;
+  }
+  if (!res.devices) {
+    // แถวหาย (เซิร์ฟเวอร์ลบทิ้งเพราะส่งไม่ถึง) — สมัครใหม่ให้เลย แล้วให้กดใหม่
+    await subscribePush().catch(() => false);
+    showToast({ title: 'เครื่องนี้ยังไม่ได้ลงทะเบียน', body: 'ลงทะเบียนใหม่ให้แล้ว — กด "ทดสอบ" อีกครั้ง' });
+    return;
+  }
+  if (res.queued) {
+    showToast({ title: `จะเด้งใน ${res.delay} วินาที 🔔`,
+      body: 'ส่งจากเซิร์ฟเวอร์จริง — ปิดแอปหรือล็อกจอรอได้เลย' + (res.devices > 1 ? ` (${res.devices} เครื่อง)` : '') });
+    return;
+  }
+  showToast(res.ok
+    ? { title: 'ส่งจากเซิร์ฟเวอร์แล้ว ✅', body: `ถึง ${res.sent}/${res.devices} เครื่อง` }
+    : { title: 'เซิร์ฟเวอร์ส่งไม่ถึงเครื่องนี้', body: 'ลงทะเบียนใหม่ให้แล้วตอนเปิดแอปครั้งหน้า — ลองกดทดสอบอีกครั้ง' });
+}
+
 async function testNotify() {
   if (Notification.permission !== 'granted') { enableNotif(); return; }
+  if (pushState === 'on' && sb && currentUser) { testServerPush(); return; }
   const tag = 'studentos-alt-test';
   const ok = await notify('ทดสอบแจ้งเตือน 🔔',
     (who() ? who() + ' ' : '') + 'ถ้าเห็นข้อความนี้แปลว่าแจ้งเตือนใช้งานได้แล้ว', tag);
