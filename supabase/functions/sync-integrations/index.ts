@@ -188,6 +188,14 @@ async function reconcile(row: Row, tasks: StandardTask[]) {
   // เจ้าตัวอาจยังไม่ได้ทำและยังส่งตามได้ · ที่เก่ากว่านั้นคือประวัติศาสตร์
   const STALE_MS = 24 * 3600_000;
   const staleBefore = Date.now() - STALE_MS;
+  // งานที่ครูไม่ได้ตั้งกำหนดส่ง ด่านข้างบนตัดสินไม่ได้เลย จึงไม่เคย "เก่า" สักใบ
+  // เจอกับบัญชีจริง (7 ต.ค. 2569): งาน Classroom ไม่มีกำหนดส่ง 72 ใบตั้งแต่ต้นเทอม
+  // ไหลเข้ามาเป็นงานค้าง หน้าแรกขึ้น "ค้าง 80 งาน" ทั้งที่งานจริงมีแค่ 8
+  // ใช้วันที่โพสต์แทน · สองสัปดาห์คือนานพอให้งานที่ครูสั่งปากเปล่าว่า "ส่งสัปดาห์หน้า"
+  // ยังอยู่ในแผน ส่วนที่เก่ากว่านั้นคือใบงานที่ทำในห้องไปแล้วแต่ไม่ได้กดส่งในระบบ
+  // ต้นทางที่ไม่บอกวันโพสต์ (ICS) ยังได้ทุกใบเหมือนเดิม — ไม่รู้ ดีกว่าเดาแล้วทิ้งงานจริง
+  const UNDATED_STALE_MS = 14 * 24 * 3600_000;
+  const undatedBefore = Date.now() - UNDATED_STALE_MS;
   const deliver: { task: StandardTask; op: 'new' | 'update' | 'cancel'; fp: string }[] = [];
   const ledger: Record<string, unknown>[] = [];
   const seen = new Set<string>();
@@ -205,7 +213,9 @@ async function reconcile(row: Row, tasks: StandardTask[]) {
     // จดด้วย sent_fingerprint เท่ากับของปัจจุบัน เพื่อไม่ต้องคิดใหม่ทุกรอบ sync
     // แต่ถ้าวันหลังครูเลื่อนกำหนดส่งมาข้างหน้า ลายนิ้วมือจะเปลี่ยน แล้วมันจะกลับเข้าเส้นทางนี้
     // อีกครั้งโดยอัตโนมัติ คราวนี้ผ่านด่านเพราะกำหนดส่งอยู่ในอนาคตแล้ว
-    const stale = !t.cancelled && t.due && new Date(t.due).getTime() < staleBefore;
+    const stale = !t.cancelled && (t.due
+      ? new Date(t.due).getTime() < staleBefore
+      : !!t.posted && new Date(t.posted).getTime() < undatedBefore);
 
     if (!stale) deliver.push({ task: t, op: t.cancelled ? 'cancel' : (old ? 'update' : 'new'), fp });
     ledger.push({

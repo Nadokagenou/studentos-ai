@@ -12,12 +12,26 @@ const ENV = {
   VAPID_PUBLIC_KEY: 'pub',
   VAPID_PRIVATE_KEY: 'priv',
   INTEGRATION_KEY: TEST_KEY,
+  GOOGLE_CLIENT_ID: 'cid',
+  GOOGLE_CLIENT_SECRET: 'csecret',
 };
 globalThis.Deno = { env: { get: k => ENV[k] }, serve: h => { handler = h; } };
 
 // ปฏิทินที่ "ต้นทาง" จะตอบกลับมา — เปลี่ยนได้รายเทสต์
 let FEED = '';
-globalThis.fetch = async () => new Response(FEED, { status: 200, headers: { 'content-type': 'text/calendar' } });
+// ห้องเรียนที่ Classroom API จะตอบกลับมา — คอร์สเดียว งานเปลี่ยนได้รายเทสต์
+let CLASSROOM_WORK = [];
+const json = o => new Response(JSON.stringify(o), { status: 200, headers: { 'content-type': 'application/json' } });
+globalThis.fetch = async (input) => {
+  const url = String(input instanceof Request ? input.url : input);
+  if (url.startsWith('https://oauth2.googleapis.com/token')) return json({ access_token: 'at' });
+  if (url.includes('googleapis.com/oauth2') || url.includes('userinfo')) return json({ email: 'student@example.com' });
+  // studentSubmissions ต้องมาก่อน courseWork เพราะ URL ของมันมีคำว่า courseWork อยู่ด้วย
+  if (url.includes('/studentSubmissions')) return json({ studentSubmissions: [] });
+  if (url.includes('/courseWork')) return json({ courseWork: CLASSROOM_WORK });
+  if (url.includes('classroom.googleapis.com/v1/courses')) return json({ courses: [{ id: 'c1', name: 'คณิตศาสตร์' }] });
+  return new Response(FEED, { status: 200, headers: { 'content-type': 'text/calendar' } });
+};
 
 const sb = await import('./sb.mjs');
 const wp = await import('./wp.mjs');
@@ -195,6 +209,28 @@ freezeThaiHour(14);
   wp.__setFail(null);
   check('410 → ลบ subscription ทิ้ง', r.tables.push_subscriptions.length === 0, r.tables.push_subscriptions.length);
   check('410 → รอบ sync ยังสำเร็จ', r.body.ok === true, JSON.stringify(r.body));
+}
+
+// ---- 12) Classroom: งานที่ไม่มีกำหนดส่งและโพสต์ไว้นานแล้ว ไม่ส่งเข้ากล่องเข้า ----
+// เจอกับบัญชีจริง (7 ต.ค. 2569): งาน Classroom ไม่มีกำหนดส่ง 72 ใบค้างเป็นงานในแผน
+// เพราะด่าน "เก่าเกิน" ดูแค่กำหนดส่ง งานที่ไม่มีกำหนดส่งจึงไม่เคยเก่าเลย ทั้งเทอมไหลเข้ามาหมด
+{
+  CLASSROOM_WORK = [
+    { id: 'w-old', title: 'ใบงานต้นเทอม', state: 'PUBLISHED', creationTime: iso(Date.now() - 40 * DAY) },
+    { id: 'w-new', title: 'ใบงานเมื่อวาน', state: 'PUBLISHED', creationTime: iso(Date.now() - 1 * DAY) },
+    { id: 'w-due', title: 'การบ้านมีกำหนด', state: 'PUBLISHED', creationTime: iso(Date.now() - 40 * DAY),
+      dueDate: (d => ({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() }))(new Date(Date.now() + 3 * DAY)) },
+  ];
+  const t = base();
+  Object.assign(t.integrations[0], { provider: 'google_classroom', account: 'student@example.com',
+    secret: await crypto32.seal('refresh-token'), meta: {} });
+  const r = await run(t);
+  const titles = r.tables.inbox_items.map(x => JSON.stringify(x)).join(' ');
+  check('Classroom ไม่มีกำหนด + เก่า → ไม่เข้ากล่องเข้า', !/ใบงานต้นเทอม/.test(titles), titles);
+  check('Classroom ไม่มีกำหนด + ใหม่ → ยังเข้า', /ใบงานเมื่อวาน/.test(titles), titles);
+  check('Classroom มีกำหนดในอนาคต → ยังเข้า แม้โพสต์ไว้นาน', /การบ้านมีกำหนด/.test(titles), titles);
+  check('Classroom → ทะเบียนจำครบทั้ง 3 ใบ', r.tables.integration_items.length === 3, r.tables.integration_items.length);
+  CLASSROOM_WORK = [];
 }
 
 unfreeze();

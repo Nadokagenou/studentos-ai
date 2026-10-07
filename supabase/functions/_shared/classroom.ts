@@ -223,6 +223,7 @@ export async function fetchClassroom(refreshToken: string): Promise<{
         // จึงไม่เดาให้ · ปล่อยเป็นการบ้านทั้งหมด แล้วให้เจ้าของเครื่องแก้ใบที่ไม่ใช่เอง
         type: 'homework',
         cancelled: String(w.state || '') === 'DELETED',
+        posted: typeof w.creationTime === 'string' ? w.creationTime : undefined,
       });
       // maxPoints ของ Classroom คือ "เต็มกี่คะแนน" ไม่ใช่ "กี่เปอร์เซ็นต์ของเกรด"
       // ซึ่งเป็นคนละอย่างกับช่อง scorePct ของ StudentOS — แปลงมั่วแล้วเอนจินจะจัดลำดับผิด
