@@ -21,7 +21,7 @@
 .hoop-ov ~ .particle { z-index: 97; }
 
 .hp-head {
-  display: flex; align-items: flex-start; gap: 12px;
+  display: flex; align-items: flex-start; gap: 8px;
   padding: calc(env(safe-area-inset-top) + 22px) 20px 0;
 }
 .hp-tx { flex: 1; min-width: 0; }
@@ -41,6 +41,19 @@
   font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
 }
 .hp-skip:active { transform: scale(.96); }
+/* ปุ่มลำโพง — ปิดเสียงได้ในแตะเดียว (ติ๊กงานในห้องเรียน) */
+.hp-snd {
+  flex: none; width: 36px; height: 36px; padding: 0;
+  display: grid; place-items: center;
+  border: 1px solid var(--line); border-radius: 50%;
+  background: var(--card); color: var(--muted); cursor: pointer;
+}
+.hp-snd svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.hp-snd svg path:first-child { fill: currentColor; }
+.hp-snd .x { display: none; }
+.hp-snd.off .w { display: none; }
+.hp-snd.off .x { display: inline; }
+.hp-snd:active { transform: scale(.94); }
 
 .hp-court { position: relative; flex: 1; overflow: hidden; }
 

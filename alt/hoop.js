@@ -103,6 +103,157 @@ const HOOP = {
 
 let hoopRun = null;
 
+// ============================================================
+// เสียง — สังเคราะห์สดด้วย Web Audio ไม่มีไฟล์เสียงสักไฟล์
+// ------------------------------------------------------------
+// • ไม่ต้องโหลดอะไร ใช้ออฟไลน์ได้ ไม่เพิ่มของในแคช sw.js
+// • AudioContext สร้างตอนนิ้วแตะลูกครั้งแรกเท่านั้น — iPhone ไม่ยอมให้เสียงดัง
+//   ถ้าไม่ได้เริ่มจากการแตะของผู้ใช้ (และไม่ควรมีเสียงก่อนผู้ใช้ลงมือเองอยู่แล้ว)
+// • audioSession = 'ambient' (Safari 17+) — เคารพสวิตช์ปิดเสียงข้างเครื่อง
+//   และไม่ไปหยุดเพลงที่ฟังอยู่ · นักเรียนติ๊กงานในห้องเรียนได้โดยไม่ต้องกลัวเสียงลั่น
+// • ปิดเสียงได้ที่ปุ่มลำโพงบนจอโยน · จำไว้ในเครื่อง (DONEFX_SOUND_KEY)
+// ============================================================
+const DONEFX_SOUND_KEY = 'studentos.alt.doneFxSound';
+function hoopSoundOn() {
+  try { return localStorage.getItem(DONEFX_SOUND_KEY) !== '0'; } catch (_) { return true; }
+}
+const HSFX = {
+  ac: null, out: null, noiseBuf: null, str: null,
+  ctx() {
+    if (!hoopSoundOn()) return null;
+    if (!this.ac) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch (_) {}
+      try { this.ac = new AC(); } catch (_) { return null; }
+      this.out = this.ac.createGain();
+      this.out.gain.value = 0.55;
+      this.out.connect(this.ac.destination);
+      // เสียงซ่า 1 วินาที ใช้ซ้ำทุกเสียงลม/ตาข่าย
+      const n = this.ac.sampleRate, buf = this.ac.createBuffer(1, n, n), d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      this.noiseBuf = buf;
+    }
+    if (this.ac.state === 'suspended') this.ac.resume();
+    return this.ac;
+  },
+  // ซองเสียง: ขึ้นเร็ว ลงแบบเอ็กซ์โพเนนเชียล
+  env(g, t, peak, a, d) {
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + a);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + a + d);
+  },
+  tone(type, f0, f1, peak, a, d, delay = 0) {
+    const ac = this.ctx(); if (!ac) return;
+    const t = ac.currentTime + delay;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, t);
+    if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + a + d);
+    this.env(g, t, peak, a, d);
+    o.connect(g).connect(this.out);
+    o.start(t); o.stop(t + a + d + 0.05);
+  },
+  noise(type, f0, f1, q, peak, a, d, delay = 0) {
+    const ac = this.ctx(); if (!ac) return;
+    const t = ac.currentTime + delay;
+    const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    src.buffer = this.noiseBuf;
+    f.type = type; f.Q.value = q;
+    f.frequency.setValueAtTime(f0, t);
+    f.frequency.exponentialRampToValueAtTime(f1, t + a + d);
+    this.env(g, t, peak, a, d);
+    src.connect(f).connect(g).connect(this.out);
+    src.start(t); src.stop(t + a + d + 0.05);
+  },
+
+  // จับลูก — คลิกสั้น ๆ แบบหยิบกระดาษ
+  grab() {
+    this.noise('bandpass', 2600, 1800, 1.2, 0.35, 0.004, 0.05);
+    this.tone('triangle', 420, 380, 0.12, 0.004, 0.06);
+  },
+  // ดึง — เสียงยางยืดที่สูงขึ้นตามระยะดึง เล่นค้างตลอดที่นิ้วยังกดอยู่
+  stretch(ratio) {
+    const ac = this.ctx(); if (!ac) return;
+    const t = ac.currentTime;
+    if (!this.str) {
+      const o = ac.createOscillator(), lfo = ac.createOscillator(), lg = ac.createGain();
+      const f = ac.createBiquadFilter(), g = ac.createGain();
+      o.type = 'sawtooth';
+      f.type = 'lowpass'; f.Q.value = 6;
+      lfo.frequency.value = 22; lg.gain.value = 6;   // สั่นนิด ๆ ให้เหมือนยางตึง ไม่ใช่เสียงนกหวีด
+      lfo.connect(lg).connect(o.frequency);
+      g.gain.value = 0.0001;
+      o.connect(f).connect(g).connect(this.out);
+      o.start(); lfo.start();
+      this.str = { o, lfo, f, g, tick: 0 };
+    }
+    const r = Math.max(0, Math.min(1, ratio));
+    this.str.o.frequency.setTargetAtTime(90 + r * 230, t, 0.03);
+    this.str.f.frequency.setTargetAtTime(500 + r * 1600, t, 0.03);
+    this.str.g.gain.setTargetAtTime(r < 0.05 ? 0.0001 : 0.025 + r * 0.06, t, 0.04);
+    // ติ๊กทุก ๆ 1/6 ของระยะดึง — รู้ว่าดึงไปแค่ไหนแล้วโดยไม่ต้องมองเส้นจุด
+    const step = Math.floor(r * 6);
+    if (step > this.str.tick) this.tone('square', 900 + step * 120, 900 + step * 120, 0.05, 0.002, 0.025);
+    this.str.tick = step;
+  },
+  release() {
+    if (!this.str || !this.ac) return;
+    const { o, lfo, g } = this.str, t = this.ac.currentTime;
+    g.gain.setTargetAtTime(0.0001, t, 0.02);
+    o.stop(t + 0.15); lfo.stop(t + 0.15);
+    this.str = null;
+  },
+  // ปล่อย — ดีดยาง + ลมพุ่ง แรงตามแรงที่ดึง
+  whoosh(power) {
+    this.tone('sine', 260 + power * 120, 120, 0.22, 0.003, 0.09);
+    this.noise('bandpass', 700 + power * 1500, 260, 1.4, 0.18 + power * 0.25, 0.04, 0.38 + power * 0.2);
+  },
+  // ชนขอบ — เหล็กดัง "แกร๊ง" (โอเวอร์โทนไม่ลงตัวกัน = เสียงโลหะ)
+  rim(hard) {
+    const v = 0.08 + Math.min(1, hard) * 0.16;
+    [[523, 1], [1287, 0.55], [2093, 0.35], [3271, 0.18]].forEach(([f, k]) =>
+      this.tone('sine', f, f * 0.995, v * k, 0.002, 0.35 + k * 0.4));
+    this.noise('highpass', 3000, 2500, 0.7, v * 0.6, 0.002, 0.04);
+  },
+  // ชนขอบจอ — ตุ้บเบา ๆ
+  thud() { this.tone('sine', 150, 70, 0.18, 0.003, 0.12); },
+  // ลงห่วง — ตาข่ายสะบัด "ฟึ่บ" แล้วตามด้วยโน้ตขึ้น · สวิช (ไม่โดนขอบ) ได้โน้ตเพิ่มอีกตัว
+  swish(clean) {
+    this.noise('highpass', 5200, 2400, 0.8, 0.32, 0.01, 0.26);
+    this.noise('bandpass', 1500, 900, 0.9, 0.12, 0.02, 0.2);
+    const notes = clean ? [784, 988, 1175, 1568] : [784, 988, 1175];
+    notes.forEach((f, i) => {
+      this.tone('triangle', f, f, 0.16, 0.006, 0.42, 0.14 + i * 0.085);
+      this.tone('sine', f * 2, f * 2, 0.04, 0.006, 0.25, 0.14 + i * 0.085);
+    });
+  },
+  // ไม่ลง — "ปู๊ว" ต่ำลงนุ่ม ๆ ไม่ใช่เสียงตำหนิ (งานเสร็จไปแล้วจริง ๆ)
+  miss() {
+    this.tone('triangle', 330, 196, 0.12, 0.01, 0.32);
+    this.tone('triangle', 247, 147, 0.08, 0.01, 0.36, 0.12);
+  },
+  // ลูกกลับมาที่จุดโยน — ป๊อป
+  pop() { this.tone('sine', 380, 760, 0.12, 0.004, 0.08); },
+  stop() { this.release(); },
+};
+
+function toggleHoopSound() {
+  const on = !hoopSoundOn();
+  try { localStorage.setItem(DONEFX_SOUND_KEY, on ? '1' : '0'); } catch (_) {}
+  if (!on) HSFX.stop();
+  syncHoopSoundBtn();
+  if (on) HSFX.pop();
+}
+function syncHoopSoundBtn() {
+  const b = hoopRun && hoopRun.ov.querySelector('.hp-snd');
+  if (!b) return;
+  const on = hoopSoundOn();
+  b.classList.toggle('off', !on);
+  b.setAttribute('aria-label', on ? 'ปิดเสียง' : 'เปิดเสียง');
+  b.setAttribute('aria-pressed', on ? 'false' : 'true');
+}
+
 function previewHoop() { openHoop('ตัวอย่าง · โยนเล่นได้เลย', null, true); }
 
 // title = ชื่องานที่เพิ่งเสร็จ · onClose เรียกครั้งเดียวตอนจอปิด (ลง/ข้าม)
@@ -121,6 +272,9 @@ function openHoop(title, onClose, preview) {
         <span class="hp-eb">${preview ? 'ลองเอฟเฟกต์' : 'งานเสร็จแล้ว'}</span>
         <b class="hp-t">${esc(title)}</b>
       </div>
+      <button type="button" class="hp-snd" aria-label="ปิดเสียง">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="w" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="x" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+      </button>
       <button type="button" class="hp-skip">ข้าม</button>
     </div>
     <div class="hp-court">
@@ -152,6 +306,8 @@ function openHoop(title, onClose, preview) {
     msg: $('.hp-msg'), tryEl: $('.hp-try'), hint: $('.hp-hint'), court: $('.hp-court'),
   };
   $('.hp-skip').onclick = () => closeHoop();
+  $('.hp-snd').onclick = toggleHoopSound;
+  syncHoopSoundBtn();
   run.key = e => { if (e.key === 'Escape') closeHoop(); };
   document.addEventListener('keydown', run.key);
 
@@ -193,6 +349,7 @@ function resetBall(run, first) {
     flying: false, rising: true, behind: false, over: false, scored: false, touched: false, t: 0, apexY: run.y0 });
   run.ball.classList.remove('front', 'behind', 'over');
   run.ball.classList.toggle('pop', !first);
+  if (!first) HSFX.pop();
   if (!first) setTimeout(() => run.ball.classList.remove('pop'), 320);
   drawBall(run);
   run.tryEl.textContent = run.tries ? 'ครั้งที่ ' + (run.tries + 1) : '';
@@ -220,6 +377,7 @@ function bindPull(run) {
     try { b.setPointerCapture(e.pointerId); } catch (_) {}
     run.hint.classList.add('off');
     b.classList.add('held');
+    HSFX.grab();
   });
   b.addEventListener('pointermove', e => {
     if (!start) return;
@@ -228,6 +386,7 @@ function bindPull(run) {
     run.x = run.x0 + p.dx * 0.45; run.y = run.y0 + p.dy * 0.45;
     drawBall(run);
     drawDots(run, p.len >= HOOP.MIN_PULL ? -p.dx * run.K : null, -p.dy * run.K);
+    HSFX.stretch(p.dy > 0 ? p.len / HOOP.MAX_PULL : 0);
   });
   const up = e => {
     if (!start) return;
@@ -235,15 +394,17 @@ function bindPull(run) {
     start = null;
     b.classList.remove('held');
     drawDots(run, null);
+    HSFX.release();
     if (p.len < HOOP.MIN_PULL || p.dy <= 4) {    // ดึงขึ้น/ดึงนิดเดียว = ไม่โยน กลับที่เดิม
       run.x = run.x0; run.y = run.y0; drawBall(run);
       if (p.len >= HOOP.MIN_PULL) say(run, 'ดึง<b>ลง</b>แล้วปล่อย ลูกจะพุ่งขึ้น');
       return;
     }
+    HSFX.whoosh(p.len / HOOP.MAX_PULL);
     launch(run, -p.dx * run.K, -p.dy * run.K);
   };
   b.addEventListener('pointerup', up);
-  b.addEventListener('pointercancel', () => { start = null; b.classList.remove('held'); drawDots(run, null); resetBall(run, true); });
+  b.addEventListener('pointercancel', () => { HSFX.release(); start = null; b.classList.remove('held'); drawDots(run, null); resetBall(run, true); });
 }
 
 // เส้นจุดทำนายวิถี — ปกติสั้น ๆ พอเห็นทิศ (แบบในคลิป) · พลาดครบ 3 ครั้งยาวจนถึงห่วง
@@ -306,8 +467,8 @@ function physics(run, dt) {
   }
 
   // ผนังซ้ายขวาของจอ — เด้งกลับเข้าสนาม
-  if (run.x < r) { run.x = r; run.vx = Math.abs(run.vx) * 0.6; }
-  if (run.x > run.W - r) { run.x = run.W - r; run.vx = -Math.abs(run.vx) * 0.6; }
+  if (run.x < r) { if (run.vx < -60) HSFX.thud(); run.x = r; run.vx = Math.abs(run.vx) * 0.6; }
+  if (run.x > run.W - r) { if (run.vx > 60) HSFX.thud(); run.x = run.W - r; run.vx = -Math.abs(run.vx) * 0.6; }
 
   if (run.behind && !run.scored) {
     // ปลายขอบห่วงสองข้าง = จุดกลมสองจุดที่ชนได้
@@ -322,6 +483,8 @@ function physics(run, dt) {
           run.vx -= (1 + HOOP.BOUNCE) * vn * nx;
           run.vy -= (1 + HOOP.BOUNCE) * vn * ny;
           if (!run.touched) haptic('arm');
+          // กลิ้งบนขอบ = ชนซ้ำถี่ ๆ ด้วยแรงน้อย — ไม่ดังทุกครั้ง ไม่งั้นกลายเป็นเสียงรัว
+          if (-vn > 120) HSFX.rim(-vn / 900);
           run.touched = true;
           run.rim.classList.remove('hit'); void run.rim.offsetWidth; run.rim.classList.add('hit');
         }
@@ -357,6 +520,7 @@ function say(run, html, cls) {
 function missHoop(run) {
   run.tries += 1;
   haptic('snooze');
+  HSFX.miss();
   const short = run.apexY > run.rimY - 6;
   say(run, run.touched ? 'โดนขอบ! เกือบแล้ว'
     : run.over ? 'แรงไป — ข้ามกระดานเลย'
@@ -373,6 +537,7 @@ function scoreHoop(run) {
   run.net.classList.add('swish');
   haptic('done');
   const sw = !run.touched;
+  HSFX.swish(sw);
   say(run, sw ? 'สวิช! ไม่โดนขอบเลย' : 'ลงห่วง!', 'win');
   run.ov.classList.add('won');
   // ลูกที่ร่วงทะลุตาข่ายจางหายไป ไม่ไหลลงไปทับคำว่า "ลงห่วง!" กลางจอ
@@ -390,6 +555,7 @@ function closeHoop(silent) {
   cancelAnimationFrame(run.raf);
   clearTimeout(run.msgT);
   document.removeEventListener('keydown', run.key);
+  HSFX.stop();
   run.ov.classList.add('out');
   setTimeout(() => run.ov.remove(), 220);
   if (!silent && run.onClose) run.onClose();
