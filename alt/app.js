@@ -881,6 +881,7 @@ function renderAppearance() {
   if (pickLabel) pickLabel.textContent = has ? 'เปลี่ยนภาพ' : 'เลือกภาพ';
   const dim = document.getElementById('bgDim');
   if (dim) { dim.value = bgDim(); const l = document.getElementById('bgDimVal'); if (l) l.textContent = bgDim() + '%'; }
+  if (typeof renderFxPick === 'function') renderFxPick();   // ส่วนเอฟเฟกต์ในหน้าธีมสี (hoop.js)
   syncSetVals();
 }
 
@@ -8608,10 +8609,12 @@ function vaultImport(r) {
   const remote = r.tokens || {};
   // สกินที่เคยได้เป็น "เซ็ต" ของที่ได้มาแล้วไม่เคยหาย รวมกันเสมอ ไม่มีทางเสียของ
   const skins = Object.assign({}, remote.skins || {}, local.skins || {});
+  // เอฟเฟกต์ที่ซื้อแล้วก็เป็นของที่ได้มาแล้วไม่หาย — รวมแบบเดียวกับสกิน
+  const fx = [...new Set([].concat(remote.fx || [], local.fx || []))];
   // ยอดโทเคนกับสตรีคเป็นตัวเลขที่ "ใช้แล้วลด" เอามากที่สุดไม่ได้ —
   // ใช้จนเหลือ 20 ที่เครื่องหนึ่ง แล้วเปิดอีกเครื่องที่ยังค้าง 100 ก็จะได้ 100 คืนทุกครั้ง
   // ซึ่งกลายเป็นวิธีปั๊มโทเคนแบบไม่จำกัด จึงตัดสินด้วยเวลาแทน: ฝั่งที่แก้ทีหลังชนะ
-  saveTokenState(Object.assign({}, remoteNewer ? remote : local, { skins }), true);
+  saveTokenState(Object.assign({}, remoteNewer ? remote : local, { skins }, fx.length ? { fx } : {}), true);
 
   if (remoteNewer) {
     if (r.avatar) { try { localStorage.setItem(AV_KEY, r.avatar); } catch (_) {} }
@@ -9400,6 +9403,22 @@ function renderShop() {
       }).join('')}
     </div>
 
+    ${typeof FX_SHOP === 'object' ? `<div class="sec-label">เอฟเฟกต์ตอนงานเสร็จ</div>
+    <div class="tk-buy">
+      ${Object.entries(FX_SHOP).map(([id, f]) => {
+        const own = fxOwned(id);
+        return `<div class="tb-row${own ? ' own' : ''}">
+          <span class="tb-sw sw-${id}">${HOOP_ICON}</span>
+          <span class="tb-bd"><b>${esc(f.name)}</b><i>${own
+            ? (doneFxPref() === id ? 'มีแล้ว · ใช้อยู่' : 'มีแล้ว · เปิดได้ที่ตั้งค่า › ธีมสี')
+            : f.cost + ' โทเคน · ' + esc(f.desc)}</i></span>
+          <button class="tb-try" onclick="previewHoop()">ลอง</button>
+          ${own ? `<span class="tb-ok">${icon('check')}</span>`
+                : `<button class="tb-go${(s.bal || 0) < f.cost ? ' poor' : ''}" onclick="buyFx('${id}')">ซื้อ</button>`}
+        </div>`;
+      }).join('')}
+    </div>` : ''}
+
     <div class="sec-label">คราฟธีม</div>
     <div class="tk-buy">
       ${Object.entries(THEME_CRAFT).map(([id, c]) => {
@@ -9435,7 +9454,7 @@ function renderShop() {
     </div>
     <div class="tk-soon">
       <div class="lb">ของอื่นในร้านยังไม่เปิด</div>
-      <p>ตอนนี้มีธีมกับการสุ่มก่อน — โทเคนที่สะสมไว้จะยังอยู่ครบเมื่อของอื่นเปิด</p>
+      <p>ตอนนี้มีธีม เอฟเฟกต์ กับการสุ่มก่อน — โทเคนที่สะสมไว้จะยังอยู่ครบเมื่อของอื่นเปิด</p>
     </div>`;
 }
 // ---------- ALT 1A6M3: ป้ายเตือนบนแถบเมนู ----------
@@ -10850,7 +10869,10 @@ function finishFocus() {
       <button class="fc-go" onclick="closeFocus(true)">กลับหน้าแรก</button>
     </div>`}
   </div>`;
-  celebrate(document.querySelector('.fw-ring'));
+  // เอฟเฟกต์ "โยนลงห่วง" ลอยทับจอฉลองนี้ — ปิดแล้วค่อยพ่นเศษกระดาษจากวงติ๊กตามเดิม
+  const ring = () => celebrate(document.querySelector('.fw-ring'));
+  if (typeof hoopActive === 'function' && hoopActive()) openHoop(taskTitleText(t), ring);
+  else ring();
   setTimeout(checkBadges, 1800);
 }
 
@@ -10881,15 +10903,23 @@ function toggleDone(id, el) {
   if (!wasDone && t.done) {
     // ให้เห็นจังหวะฉลองก่อน แล้วค่อยวาดรายการใหม่ (ไม่งั้นปุ่มหายไปก่อนดูจบ)
     if (el) { el.classList.add('on', 'pop'); }
-    celebrate(el);
+    // เอฟเฟกต์ "โยนลงห่วง" (ซื้อจากร้านค้า · hoop.js) — งานบันทึกว่าเสร็จไปแล้วข้างบน
+    // จอโยนเป็นแค่ฉลอง ทุกอย่างที่ตามหลังการติ๊ก (วาดใหม่ · บอกงานถัดไป) รอจนจอนั้นปิด
+    // ไม่งั้น toast "ต่อไป: …" จะเด้งไปซ่อนอยู่ใต้จอโยนแล้วหมดเวลาก่อนมีใครเห็น
+    const hoop = typeof hoopActive === 'function' && hoopActive();
+    if (!hoop) celebrate(el);
     haptic('done'); // ALT: จังหวะคู่ ให้รู้สึกว่า "เช็คสำเร็จ" ไม่ใช่แค่ภาพเปลี่ยน
     const cleared = pendingTasks().length === 0;
+    const after = fn => hoop ? openHoop(taskTitleText(t), fn) : setTimeout(fn, 430);
     // บอกด้วยว่ารอบถัดไปถูกตั้งให้แล้ว ไม่งั้นงานที่เพิ่ง "หายไป" จะดูเหมือนหายจริง
-    if (spawned) setTimeout(() => showToast({
+    // (จังหวะเดิม: 470ms หลังคำชม — มีจอโยนก็นับจากตอนจอนั้นปิด)
+    const spawnToast = () => { if (spawned) setTimeout(() => showToast({
       title: 'ตั้งรอบถัดไปให้แล้ว 🔁',
       body: taskTitle(spawned).replace(/<[^>]*>/g, '') + ' · ' + fmtThaiDate(new Date(spawned.due)),
-    }), 900);
-    setTimeout(() => {
+    }), hoop ? 470 : 900); };
+    if (!hoop) spawnToast();
+    after(() => {
+      if (hoop) spawnToast();
       renderAll();
       // คำชมที่ไม่บอกว่างานถัดไปคืออะไร คือคำชมที่ทำให้ต้องกลับไปนั่งเลือกใหม่เอง
       // ลูกโซ่ เริ่ม → เสร็จ → ต่อ ขาดตรงนี้มาตลอด ทั้งที่ตัวจัดแผนรู้คำตอบอยู่แล้ว
@@ -10902,7 +10932,7 @@ function toggleDone(id, el) {
       });
       // เหรียญใหม่ (ถ้ามี) เด้งตามหลังคำชม ไม่ให้ทับกัน
       setTimeout(checkBadges, 2600);
-    }, 430);
+    });
   } else {
     renderAll();
   }
