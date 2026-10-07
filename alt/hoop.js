@@ -86,7 +86,7 @@ function renderFxPick() {
 // ---------- ตัวเกม ----------
 const HOOP = {
   G: 2300,          // แรงโน้มถ่วง px/s²
-  MAX_PULL: 140,
+  MAX_PULL: 140,    // ระยะดึงสุดที่อยากได้ — จอเตี้ยได้น้อยกว่านี้ (ดู layoutHoop)
   // ดึงสุดแขน = ลูกขึ้นสูงกว่าขอบห่วงเท่านี้ (px) — ตัวคูณแรงคิดใหม่ตามความสูงจอทุกครั้ง
   // จอสูงจอเตี้ยจึงต้องดึงยาวเท่ากัน (~75–95% ของสุดแขน) ไม่ใช่จอเตี้ยลงง่ายกว่า
   OVERSHOOT: 300,
@@ -327,6 +327,9 @@ function openHoop(title, onClose, preview) {
     layoutHoop(run);
     resetBall(run, true);
     bindPull(run);
+    // หมุนจอ/ย่อหน้าต่างระหว่างเปิด — วางสนามใหม่ (ตอนลูกลอยอยู่ปล่อยให้จบก่อน)
+    run.rs = () => { if (hoopRun === run && !run.flying && !run.done) { layoutHoop(run); resetBall(run, true); } };
+    window.addEventListener('resize', run.rs);
   });
 }
 
@@ -340,8 +343,18 @@ function layoutHoop(run) {
   run.rimL = run.cx - HOOP.RIM_W / 2;
   run.rimR = run.cx + HOOP.RIM_W / 2;
   run.x0 = run.W / 2;
-  run.y0 = run.H - 92;
-  run.K = Math.sqrt(2 * HOOP.G * (run.y0 - run.rimY + HOOP.OVERSHOOT)) / HOOP.MAX_PULL;
+  // ---------- ที่ว่างให้ดึง ----------
+  // บั๊กรุ่นแรก (เจ้าของเจอ: "ดึงไม่ได้"): ลูกวางชิดล่างที่ H-92 แต่ต้องดึง ~110–135px ถึงจะถึงห่วง
+  // จอเตี้ยเหลือที่ใต้ลูกแค่ ~50px นิ้ว/เมาส์ชนขอบจอก่อน โยนยังไงก็ไม่ถึง · จอ 812 ก็ได้แค่ ~126px
+  // ตอนนี้: วัดว่านิ้วลงไปได้ต่ำสุดแค่ไหน (เว้นแถบโฮมของ iPhone) แล้วยกลูกขึ้นให้มีที่ดึงสุดแขนพอ
+  // ถ้าจอเตี้ยจนยกไม่ไหว ก็ลดระยะดึงสุดลงตามที่ว่างจริง — แรงคิดเป็น "สัดส่วนของระยะดึงสุด" เสมอ
+  const pr = run.ov.getBoundingClientRect();
+  const foot = run.ov.querySelector('.hp-foot');
+  const safe = foot ? Math.max(0, parseFloat(getComputedStyle(foot).paddingBottom) - 22) : 0;
+  const floor = pr.bottom - c.top - safe - 14;      // นิ้วลงได้ต่ำสุดตรงนี้ (พิกัดในสนาม)
+  run.y0 = Math.max(run.rimY + 170, Math.min(run.H - 92, floor - HOOP.MAX_PULL));
+  run.maxPull = Math.max(70, Math.min(HOOP.MAX_PULL, floor - run.y0));
+  run.K = Math.sqrt(2 * HOOP.G * (run.y0 - run.rimY + HOOP.OVERSHOOT)) / run.maxPull;
   const board = run.ov.querySelector('.hp-board');
   board.style.left = (run.cx - 82) + 'px';
   board.style.top = (run.rimY - 104) + 'px';
@@ -377,8 +390,8 @@ function bindPull(run) {
   const pull = e => {
     const dx = e.clientX - start.x, dy = e.clientY - start.y;
     const len = Math.hypot(dx, dy);
-    const k = len > HOOP.MAX_PULL ? HOOP.MAX_PULL / len : 1;
-    return { dx: dx * k, dy: dy * k, len: Math.min(len, HOOP.MAX_PULL) };
+    const k = len > run.maxPull ? run.maxPull / len : 1;
+    return { dx: dx * k, dy: dy * k, len: Math.min(len, run.maxPull) };
   };
   b.addEventListener('pointerdown', e => {
     if (run.flying || run.done) return;
@@ -396,7 +409,7 @@ function bindPull(run) {
     run.x = run.x0 + p.dx * 0.45; run.y = run.y0 + p.dy * 0.45;
     drawBall(run);
     drawDots(run, p.len >= HOOP.MIN_PULL ? -p.dx * run.K : null, -p.dy * run.K);
-    HSFX.stretch(p.dy > 0 ? p.len / HOOP.MAX_PULL : 0);
+    HSFX.stretch(p.dy > 0 ? p.len / run.maxPull : 0);
   });
   const up = e => {
     if (!start) return;
@@ -410,7 +423,7 @@ function bindPull(run) {
       if (p.len >= HOOP.MIN_PULL) say(run, 'ดึง<b>ลง</b>แล้วปล่อย ลูกจะพุ่งขึ้น');
       return;
     }
-    HSFX.whoosh(p.len / HOOP.MAX_PULL);
+    HSFX.whoosh(p.len / run.maxPull);
     launch(run, -p.dx * run.K, -p.dy * run.K);
   };
   b.addEventListener('pointerup', up);
@@ -566,6 +579,7 @@ function closeHoop(silent) {
   cancelAnimationFrame(run.raf);
   clearTimeout(run.msgT);
   document.removeEventListener('keydown', run.key);
+  if (run.rs) window.removeEventListener('resize', run.rs);
   HSFX.stop();
   run.ov.classList.add('out');
   setTimeout(() => run.ov.remove(), 220);
