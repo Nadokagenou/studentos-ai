@@ -234,6 +234,9 @@
     <g id="lu-unplug" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M19 5 5 19"></path><path d="M9 5.5 5.5 9l3 3 3.5-3.5z"></path><path d="M15.5 12l3 3L15 18.5l-3-3z"></path>
     </g>
+    <!-- ฟองแชทเส้น (lucide message-circle-more) — ไทล์ "ข้อความ" บนหน้าแรก · เป็นเส้นแบบไอคอนไทล์ใบอื่น
+         ไม่ใช่ #lu-chat ข้างล่าง (ทึบจาง 34%) ซึ่งบนแผ่นกลมขาวของไทล์ดูซีดกว่าเพื่อนบ้าน -->
+    <g id="lu-message" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path><path d="M8 12h.01M12 12h.01M16 12h.01"></path></g>
     <!-- กลุ่มแชท — ใช้แทน LINE ทั้งในกล่องเข้าและจอแหล่งข้อมูล -->
     <g id="lu-chat" fill="currentColor">
       <path opacity=".34" d="M2.6 7.8A4.2 4.2 0 0 1 6.8 3.6h10.4a4.2 4.2 0 0 1 4.2 4.2v5.6a4.2 4.2 0 0 1-4.2 4.2H9.4l-4.5 3.4a1 1 0 0 1-1.6-.8v-2.9a4.2 4.2 0 0 1-.7-2.3z"/>
@@ -786,8 +789,12 @@
               <span class="fs-badge req">ต้องกรอก</span>
             </div>
             <div class="pick-rows" id="duePick"></div>
+            <!-- ปฏิทินในแอปแทนตัวเลือกวันของเบราว์เซอร์ (เจ้าของ: "เปลี่ยนตรงนี้ให้ดูสวยขึ้น" — ป๊อปอัปของ Chrome
+                 แต่งไม่ได้ เป็นภาษาอังกฤษ สีเทาเข้มทุกธีม) · #fDate ยังเป็นที่เก็บค่าจริงที่ saveForm() อ่าน แค่ซ่อนไว้
+                 วาดจาก renderDueCal() ใน app.js -->
             <div class="fld due-exact" id="dueExact" hidden>
-              <input type="date" id="fDate">
+              <input type="date" id="fDate" hidden tabindex="-1" aria-hidden="true">
+              <div class="dcal" id="dueCal"></div>
             </div>
             <div class="due-time">
               <span class="dt-l">เวลา</span>

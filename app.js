@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C41b';                 // สายเลขของแอป
+const APP_VERSION = '1C43';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -2531,7 +2531,13 @@ function toolsGrid() {
   // ช่องสุดท้ายคือชื่อที่ Feature Manager ใช้ปิด · ไม่ใส่ = ปิดไม่ได้ (ของที่เป็นแกนของแอป)
   // ปิดฟีเจอร์ต้องซ่อน "ทุกทางเข้า" ของมัน ไม่ใช่ปุ่มเดียว — ปุ่มที่กดแล้วเจอจอที่ไม่ควรมี
   // แย่กว่าปุ่มที่ไม่มี ด้วยเหตุผลเดียวกับปุ่มล็อกอินที่ขึ้นว่า provider is not enabled
+  // 7 ต.ค. 69 · เจ้าของ: "เปลี่ยนตรงปุ่ม Pro เป็นแชทกับเพื่อนหรือข้อความ และเอาไปอยู่หน้าปุ่มเพื่อนฉัน"
+  // ไทล์ Pro ออกจากหน้าแรก (ยังเข้าได้จากแท็บ "ฉัน") · "ข้อความ" มาเป็นใบแรก — เปิดกล่องข้อความ (scr-dm)
+  // ป้ายต้องสั้นบรรทัดเดียว: แถวไทล์เลิกจองความสูงสองบรรทัดแล้ว หน้าแรกถึงพอดี 375×812
+  // แบดจ์ = คำขอแชทที่รอตอบ (dmRows โหลดตอนเปิดกล่องข้อความ/ล็อกอิน — ยังไม่โหลดก็เงียบไว้)
+  const dmReq = typeof dmPendingCount === 'function' ? dmPendingCount() : 0;
   const tiles = [
+    ['message', 'ข้อความ', 'in', "openDmInbox('scr-menu')", dmReq || '', true, 'social'],
     ['users', 'เพื่อนฉัน', 'in', "openFeed('friends')", reqs || '', true, 'social'],
     // ต้องเรียก openTtScan() ไม่ใช่ go() — จอนี้วาดจาก renderTtScan() ทั้งจอ
     // go() เฉย ๆ จึงเปิดมาเจอจอเปล่า (เจ้าของส่งภาพมา 20 ก.ย. 2569)
@@ -2544,13 +2550,10 @@ function toolsGrid() {
     ['flame', 'สถิติ', 'me', "go('scr-stats')", '', false],
     ['medal', 'ของสะสม', 'me', "go('scr-badges')", '', false],
     ['bag', 'ร้านค้า', 'me', "go('scr-shop')", gift ? ' ' : '', true, 'shop'],
-    ['lock', 'Pro', 'me', "go('scr-pro')", '', false],
-  ].filter(t => !t[6] || typeof sosFeature !== 'function' || sosFeature(t[6]))
-    // QA 6 ต.ค. 69 · แถวล่าง (สถิติ · ของสะสม · ร้านค้า · Pro) ไม่ขึ้นบนหน้าแรกแล้ว
-    // สองแถวทำให้หน้าแรกล้นจอ 375×812 (ผิดกฎ "หน้าแรกไม่ต้องเลื่อน") และทั้งสี่อย่างคือ "ของตัวเอง"
-    // ไม่ได้ช่วยตอบ "ตอนนี้ควรทำอะไร" — Vision บอกให้ไปอยู่หลังแท็บ "ฉัน" ซึ่งมีทางเข้าครบทั้งสี่อยู่แล้ว
-    // (แถว pe-shop · pe-pro · ไทล์เหรียญ/ต่อเนื่องในหน้าโปรไฟล์) · แบดจ์ของรางวัลยังอยู่บนแท็บ "ฉัน"
-    .filter(t => t[2] !== 'me');
+  ].filter(t => !t[6] || typeof sosFeature !== 'function' || sosFeature(t[6]));
+  // QA 6 ต.ค. 69 เคยถอดแถวล่าง (สถิติ · ของสะสม · ร้านค้า · Pro) ออกจากหน้าแรก เพราะทำให้ล้นจอ 375×812
+  // 7 ต.ค. 69 เจ้าของสั่งเอากลับมา ("เอาแถวล่างกลับมาด้วย") — ยังพอดี 375×812 ได้ด้วยการเลิกจองความสูง
+  // ป้ายสองบรรทัดใต้ไทล์ (กฎท้าย alt.css) · เพิ่มอะไรบนหน้าแรกอีก ต้องวัดใหม่ทุกครั้ง
 
   return `<section class="td-tiles">
     <div class="tg-grid">
@@ -2715,21 +2718,22 @@ function minuteTick() {
 //   ต่อเนื่อง = เปลวไฟสองชั้น (ในเหลือง) ไหวเบา ๆ
 // ไม่มี id ข้างใน — วาดซ้ำกี่ครั้งก็ไม่ชนกัน · สีกระเบื้องอยู่ใน today.css (.ts.v/.w/.g .ts-ic)
 const STAT_ART = {
+  // สองโทนสีเดียว (currentColor = สีของช่องจากธีม) — เจ้าของ: "ยังดูแปลก ๆ ปรับสีให้คล้ายรูปสอง"
+  // รูปสองคือกระเบื้องสีจางของธีม + ไอคอนสีเข้มของธีม · ภาพสีขาวบนกระเบื้องไล่สีตายตัวของ 1C41b ดูหลุดจากธีม
+  // รูปทรงเดิม (นาฬิกาจับเวลา · กองกระดาษ · เปลวไฟ) แค่เปลี่ยนจากขาวทึบเป็นเส้น + พื้นจางสีเดียวกัน
   free: `<svg viewBox="0 0 24 24" aria-hidden="true">
-    <circle cx="12" cy="12.5" r="8" fill="#fff"/>
-    <path d="M12 4.5A8 8 0 0 1 20 12.5H12Z" fill="currentColor" opacity=".32"/>
-    <path d="M12 7.6v4.9l3.1 1.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="12" cy="12.5" r="1.3" fill="currentColor"/>
-    <path d="M9.6 2.6h4.8" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".85"/>
+    <circle cx="12" cy="13" r="7.6" fill="currentColor" opacity=".2"/>
+    <circle cx="12" cy="13" r="7.6" fill="none" stroke="currentColor" stroke-width="1.9"/>
+    <path d="M12 9v4l2.6 1.6M9.8 3h4.4M12 3v2.4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>`,
   pending: `<svg viewBox="0 0 24 24" aria-hidden="true">
-    <rect x="7.4" y="3.2" width="12" height="15.6" rx="2.4" fill="#fff" opacity=".5" transform="rotate(9 13.4 11)"/>
-    <rect x="4.6" y="5" width="12" height="15.6" rx="2.4" fill="#fff"/>
-    <path d="M7.6 9.6h6M7.6 12.8h6M7.6 16h3.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+    <rect x="8" y="3" width="11.5" height="15" rx="2.4" fill="currentColor" opacity=".28" transform="rotate(9 13.75 10.5)"/>
+    <rect x="4.6" y="5.4" width="11.6" height="15.2" rx="2.4" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8"/>
+    <path d="M7.8 10h5.2M7.8 13.2h5.2M7.8 16.4h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
   </svg>`,
   streak: `<svg viewBox="0 0 24 24" aria-hidden="true"><g class="ts-flame">
-    <path d="M12 2.2c1 3.8 6 6.3 6 11.8a6 6 0 0 1-12 0c0-3 1.5-4.8 3-6 0 2 1 3.2 2 3.6-.5-3.6 0-6.8 1-9.4Z" fill="#fff"/>
-    <path d="M12 11c.6 2 3 3 3 5.5a3 3 0 0 1-6 0c0-1.3.6-2.2 1.3-2.7.1.8.5 1.3 1 1.5-.2-1.5.1-3 .7-4.3Z" fill="#FDBA74"/>
+    <path d="M12 2.6c1 3.7 5.8 6.1 5.8 11.4a5.8 5.8 0 0 1-11.6 0c0-2.9 1.4-4.6 2.9-5.8 0 1.9 1 3.1 1.9 3.5-.5-3.5 0-6.6 1-9.1Z" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M12 11.6c.6 1.9 2.7 2.8 2.7 5a2.7 2.7 0 0 1-5.4 0c0-1.2.5-2 1.2-2.5.1.7.5 1.2.9 1.4-.2-1.4.1-2.7.6-3.9Z" fill="currentColor"/>
   </g></svg>`,
 };
 
@@ -3143,7 +3147,8 @@ function openMySubjects() {
   if (typeof renderMates === 'function') renderMates();
   setTimeout(() => {
     const el = document.getElementById('epSubj');
-    if (!el) return;
+    // บล็อกวิชาโผล่เฉพาะตอนมีวิชาให้เลือก (หน้าแก้โปรไฟล์ไม่อธิบายช่องที่ใช้ไม่ได้แล้ว) — บอกตรงนี้แทน
+    if (!el) { showToast({ title: 'ยังไม่มีวิชาให้เลือก', body: 'เพิ่มงานสักสองสามชิ้นก่อน แล้ววิชาจะขึ้นมาให้เลือกเอง' }); return; }
     try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     catch (_) { el.scrollIntoView(); }
   }, 60);
@@ -4177,6 +4182,79 @@ let aiBusy = false;
 // ถ้าเน็ตหลุดกลางคัน ประวัติต้องไม่มีคำตอบครึ่งใบค้างไว้ให้อ่านวันหลัง
 let aiPartial = '';
 
+// ---------- คำตอบไหลออกทีละตัว (แบบ TextPanel ของ GenerateAnything · cult-ui · MIT) ----------
+// เจ้าของ: "ข้อความออกมาให้มีอนิเมชันเหมือนโค้ดที่ส่งไป"
+// เซิร์ฟเวอร์ส่งมาเป็นก้อนใหญ่บ้างเล็กบ้าง (ทางไม่สตรีมได้ทั้งคำตอบก้อนเดียว) ตัวหนังสือจึงโผล่เป็นพรวด ๆ
+// ตัวที่โชว์บนจอจึงแยกจากตัวที่ได้รับแล้ว และไล่ตามทีละ 2 ตัวต่อ 16ms เท่าต้นฉบับ
+// ถ้าตามหลังเยอะก็เร่ง ให้ส่วนที่ค้างจบในราว 2 วินาที คำตอบยาวจะได้ไม่ต้องนั่งรอ 10 วินาที
+// ทุกเฟรมเขียนลง .ai-live ตรง ๆ ไม่เรียก renderAi(): วาดทั้งจอจะล้างตัวหนังสือที่คนเริ่มพิมพ์คำถามถัดไป
+// i = ตำแหน่งคำตอบในประวัติ (-1 = ยังสตรีม) · full = ข้อความครบ (null = ยังสตรีม) · n = จำนวนตัวที่โชว์แล้ว
+let aiReveal = null;
+
+function aiRevealStart() {
+  aiRevealStop();
+  aiReveal = { i: -1, full: null, n: 0, last: 0, raf: 0, entered: false };
+}
+function aiRevealStop() {
+  if (aiReveal && aiReveal.raf) cancelAnimationFrame(aiReveal.raf);
+  aiReveal = null;
+}
+// ส่วนที่ควรโชว์ตอนนี้: ไม่ตัดกลางอีโมจิ และซ่อน ** ที่ยังไม่มีตัวปิด (ไม่งั้นเห็นดอกจันโผล่แวบ ๆ)
+function aiRevealShown() {
+  const r = aiReveal;
+  const full = r.full != null ? r.full : aiPartial;
+  let k = Math.min(full.length, Math.floor(r.n));
+  const c = full.charCodeAt(k - 1);
+  if (c >= 0xD800 && c <= 0xDBFF) k++;
+  let s = full.slice(0, k);
+  if ((s.split('**').length - 1) % 2) {
+    const at = s.lastIndexOf('**');
+    s = s.slice(0, at) + s.slice(at + 2);
+  }
+  return s;
+}
+function aiRevealRun() {
+  if (!aiReveal || aiReveal.raf) return;
+  aiReveal.last = performance.now();
+  aiReveal.raf = requestAnimationFrame(aiRevealStep);
+}
+function aiRevealStep() {
+  const r = aiReveal;
+  if (!r) return;
+  r.raf = 0;
+  const now = performance.now();
+  const dt = Math.min(100, now - r.last);
+  r.last = now;
+  const full = r.full != null ? r.full : aiPartial;
+  r.n = Math.min(full.length, r.n + dt * Math.max(.125, (full.length - r.n) / 2000));
+  const el = document.querySelector('#aiBody .ai-live');
+  if (el) {
+    const s = aiRevealShown();
+    if (el.dataset.n !== String(s.length)) {
+      const th = el.closest('.ai-thread');
+      const stick = th && th.scrollHeight - th.scrollTop - th.clientHeight < 80;
+      el.dataset.n = s.length;
+      el.innerHTML = aiFmt(s) + '<i class="am-caret"></i>';
+      if (stick) th.scrollTop = th.scrollHeight;   // อ่านอยู่ล่างสุด = เลื่อนตาม · เลื่อนขึ้นไปอ่านอยู่ = ไม่ดึงลง
+    }
+  }
+  if (r.full != null && r.n >= r.full.length) { aiRevealDone(el); return; }
+  if (r.full == null && r.n >= full.length) return;   // ทันตัวที่ได้รับแล้ว — รอก้อนถัดไปปลุก (aiRevealRun)
+  r.raf = requestAnimationFrame(aiRevealStep);
+}
+// ไหลครบ: เป็นข้อความปกติ + ปุ่มคัดลอก แบบเดียวกับที่ renderAi() วาด
+function aiRevealDone(el) {
+  const r = aiReveal;
+  aiReveal = null;
+  if (!el) return;
+  el.classList.remove('ai-live');
+  delete el.dataset.n;
+  el.innerHTML = aiFmt(r.full);
+  if (r.i >= 0 && !el.nextElementSibling) el.insertAdjacentHTML('afterend', `<div class="am-act">
+    <button onclick="aiCopy(${r.i})" aria-label="คัดลอกคำตอบ">${icon('copy')}</button>
+  </div>`);
+}
+
 function aiLog() {
   try { return JSON.parse(localStorage.getItem(AI_LOG_KEY) || '[]'); } catch (_) { return []; }
 }
@@ -4292,16 +4370,14 @@ function aiAsk(preset, opts) {
     .filter(m => m.role === 'user' || m.role === 'model')
     .map(m => ({ role: m.role, text: m.text }));
   // วาดใหม่ทุกชิ้นที่ไหลเข้ามาจะกระตุกและทำให้คนกำลังอ่านเสียตำแหน่ง —
-  // ต่อข้อความลงฟองที่มีอยู่แล้วโดยตรง แล้วค่อย renderAi() ทีเดียวตอนจบ
+  // วาดทั้งจอครั้งเดียวตอนชิ้นแรกมา (ฟองรอคำตอบ → บรรทัดคำตอบ) ชิ้นต่อไปตัวไล่ตาม (aiRevealStep) หยิบไปเอง
+  // (เดิมหา '.ai-bub.ai-live' ซึ่งหายไปตั้งแต่ 1C40 เปลี่ยนเป็น .am-text — เลยวาดทั้งจอทุกชิ้นมาตลอด)
   aiPartial = '';
+  aiRevealStart();
   askSaiStream(q, hist, (sofar) => {
     aiPartial = sofar;
-    const bub = document.querySelector('.ai-bub.ai-live');
-    if (!bub) { renderAi(); return; }
-    // ชิ้นแรกมาถึง = เลิกเป็นจุดสามจุด กลายเป็นฟองข้อความจริง
-    bub.classList.remove('ai-typing');
-    bub.textContent = sofar;
-    aiScrollDown();
+    if (!document.querySelector('#aiBody .ai-live')) { renderAi(); aiScrollDown(); }
+    aiRevealRun();
   }).then(r => {
     const l2 = aiLog();
     l2.push(r.ok ? { role: 'model', text: r.answer }
@@ -4309,8 +4385,13 @@ function aiAsk(preset, opts) {
     aiLogSave(l2);
     aiBusy = false;
     aiPartial = '';
+    // คำตอบจบแล้วแต่ตัวบนจอยังไหลไม่ครบ — ไหลต่อจากตัวเดิม · ข้อความผิดพลาดขึ้นทันที ไม่ต้องไหล
+    // ตำแหน่งต้องอ่านจากประวัติที่บันทึกแล้ว เพราะ aiLogSave ตัดเหลือ 40 ข้อความล่าสุด
+    if (r.ok && aiReveal && !sgaReduce()) { aiReveal.full = r.answer; aiReveal.i = aiLog().length - 1; }
+    else aiRevealStop();
     renderAi();
     aiScrollDown();
+    aiRevealRun();
   });
 }
 
@@ -4347,6 +4428,259 @@ function aiOpener(sp) {
   // ในเครื่องหมายคำพูด "ภาษาอังกฤษ · Essay" อ่านเหมือนชื่องานมีจุดกลางอยู่จริง
   return hi + ' วันนี้ผมแนะนำให้เริ่ม "' + (t.detail || t.subject || 'งานที่ค้างอยู่') + '" ก่อน'
     + (why ? ' เพราะ' + why.replace(/^⚠\s*/, '') : '');
+}
+
+// ---------- ฟองภาพเคลื่อนไหวระหว่างน้องไซกำลังตอบ ----------
+// เจ้าของส่ง GenerateAnything (cult-ui · tabs-illustration-vercel · MIT) มาให้ใส่หน้าแชท
+// รอบแรกวางเป็นแผงแท็บแทนการ์ด 2×2 ของจอว่าง → เจ้าของสั่ง "เอามาใช้เมื่อตอบคำถามอย่างเดียว"
+// ตอนนี้จึงโผล่เฉพาะช่วงรอคำตอบ (แทนจุดสามจุด) · ภาพเลือกตามคำถาม (sgaWait) ตัวแรกมาถึงก็หายไป
+// แผงแท็บ (sgaHTML · sgaPick) ยังเก็บไว้ ไม่มีจอไหนเรียกแล้ว
+// ภาพในฟองเป็นภาพประกอบเท่านั้น ไม่ใช่คำตอบจริงของน้องไซ
+//
+// ทุกอย่างที่ขยับคิดจากเวลาที่แท็บนี้เล่นไปแล้ว (SGA.t0) ก้อนเดียว
+// renderAi วาดจอใหม่ทั้งก้อนบ่อยมาก ถ้าแต่ละภาพนับเวลาเอง ภาพจะเริ่มใหม่ทุกครั้งที่ state ขยับ
+// เล่นเฉพาะตอนมองเห็น (IntersectionObserver) — ออกจากจอแล้วหยุด กลับมาก็เล่นต่อจากจุดเดิม
+const SGA_MS = 6000;
+const SGA_TABS = [   // เรียงตาม AI_QUICK ช่องต่อช่อง
+  { art: 'globe', d: 'ดูงานค้าง ตารางเรียน และเวลาว่างของวันนี้ แล้วบอกว่าควรเริ่มอะไรก่อน เรียงต่อให้ทั้งวัน' },
+  { art: 'text',  d: 'ไล่ให้ทีละขั้นจนเข้าใจเอง ไม่เฉลยให้ลอก ติดตรงไหนถามต่อได้เรื่อย ๆ' },
+  { art: 'note',  d: 'ย่อเรื่องยาวให้เหลือแต่ประเด็นที่ต้องจำก่อนสอบ' },
+  { art: 'wave',  d: 'แบ่งเวลาอ่านเป็นช่วงสั้น ๆ กระจายไปจนถึงวันสอบ ไม่ต้องอัดไว้คืนเดียว' },
+];
+const SGA_TEXT = 'ได้เลย มาไล่ทีละขั้นกันนะ ขั้นแรกอ่านโจทย์แล้วขีดเส้นใต้ว่าโจทย์ถามหาอะไร '
+  + 'ขั้นที่สองจดสิ่งที่โจทย์ให้มาไว้ข้าง ๆ ขั้นที่สามหาสูตรหรือหลักที่เชื่อมสองอย่างนี้เข้าหากัน '
+  + 'ลองทำขั้นแรกแล้วส่งมาให้ดูก่อน เดี๋ยวน้องไซช่วยดูว่ามาถูกทางไหม';
+const SGA_DAYS = ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.'];
+// เส้นแสงบนโลกโครงลวด — พิกัดชุดเดียวกับต้นฉบับ · c คือสีที่ 1–4 ของธีม (--sga-t1..4 ใน alt.css)
+// ต้นฉบับใช้เหลือง/เขียว/ส้มตายตัว ที่นี่สีมาจากธีม และไม่มีสีทอง เพราะทองสงวนไว้ให้ของที่ทำสำเร็จแล้ว
+const SGA_TRAILS = [
+  { c: 1, dur: 6.5, d: 'M617.415,100 h-61.743M555.673,100 h-74.252M506.605,200 A 123.097 400 0 0 0 481.421 100M506.605,200 h-106.605M400,200 h-106.605',
+    cx: '617.415;617.415;555.673;481.421;506.605;400;293.395;293.395;0', cy: '100;100;100;100;200;200;200;200;0',
+    r: '0;50;50;50;50;50;50;0;0', kt: '0;0.088;0.176;0.264;0.352;0.44;0.527;0.615;1', op: '0;1;1;1;1;1;1;0;0' },
+  { c: 2, dur: 4.1, d: 'M603.824,200 h-97.219M519.188,300 A 123.097 400 0 0 0 506.605 200',
+    cx: '603.824;603.824;506.605;519.188;519.188;0', cy: '200;200;200;300;300;0',
+    r: '0;50;50;50;0;0', kt: '0;0.098;0.195;0.293;0.39;1', op: '0;1;1;1;0;0' },
+  { c: 3, dur: 5.7, d: 'M718.264,300 h-90.382M627.882,300 A 235.355 400 0 0 0 603.824 200M603.824,200 h-97.219M506.605,200 h-106.605',
+    cx: '718.264;718.264;627.882;603.824;506.605;400;400;0', cy: '300;300;300;200;200;200;200;0',
+    r: '0;50;50;50;50;50;0;0', kt: '0;0.094;0.187;0.281;0.374;0.468;0.561;1', op: '0;1;1;1;1;1;0;0' },
+  { c: 4, dur: 5.7, d: 'M627.882,300 h-108.694M519.188,300 h-119.188M400,300 h-119.188M280.812,300 A -123.097 400 0 0 0 276.903 400',
+    cx: '627.882;627.882;519.188;400;280.812;276.903;276.903;0', cy: '300;300;300;300;300;400;400;0',
+    r: '0;50;50;50;50;50;0;0', kt: '0;0.094;0.187;0.281;0.374;0.468;0.561;1', op: '0;1;1;1;1;1;0;0' },
+  { c: 1, dur: 4.9, d: 'M318.579,100 h-74.252M244.327,100 h-61.743M182.585,100 A -328.701 400 0 0 0 115.336 200',
+    cx: '318.579;318.579;244.327;182.585;115.336;115.336;0', cy: '100;100;100;100;200;200;0',
+    r: '0;50;50;50;50;0;0', kt: '0;0.098;0.196;0.294;0.392;0.49;1', op: '0;1;1;1;1;0;0' },
+  { c: 2, dur: 4.9, d: 'M196.176,200 h-80.84M115.336,200 h-61.747M53.59,200 A -400 400 0 0 0 12.702 300',
+    cx: '196.176;196.176;115.336;53.59;12.702;12.702;0', cy: '200;200;200;200;300;300;0',
+    r: '0;50;50;50;50;0;0', kt: '0;0.098;0.196;0.294;0.392;0.49;1', op: '0;1;1;1;1;0;0' },
+  { c: 3, dur: 5.7, d: 'M280.812,300 h-108.694M172.118,300 h-90.382M81.736,300 h-69.035M12.702,300 A -400 400 0 0 0 0 400',
+    cx: '280.812;280.812;172.118;81.736;12.702;0;0;0', cy: '300;300;300;300;300;400;400;0',
+    r: '0;50;50;50;50;50;0;0', kt: '0;0.094;0.187;0.281;0.374;0.468;0.561;1', op: '0;1;1;1;1;1;0;0' },
+];
+// หางฟองแชท — path เดียวกับต้นฉบับ (ตัด mask ที่ครอบทั้งกรอบออก เพราะ svg ตัดขอบเองอยู่แล้ว)
+const SGA_TAIL = `<svg class="sga-tail" viewBox="0 0 24 24" aria-hidden="true">
+  <path fill="var(--sga-sf)" fill-rule="evenodd" d="M27-19C15.954-19 7-10.046 7 1c0 .335.008.669.025 1H7v10a15 15 0 01-3 9c4.116 0 7.845-1.658 10.555-4.342A19.915 19.915 0 0027 21c11.046 0 20-8.954 20-20s-8.954-20-20-20z"/>
+  <path fill="var(--sga-bd)" d="M7.025 2v1h1.05l-.052-1.05-.998.05zM7 2V1H6v1h1zm-3 19l-.8-.6L2 22h2v-1zm10.555-4.342l.623-.783-.695-.553-.631.625.703.71zM8 1c0-10.493 8.507-19 19-19v-2C15.402-20 6-10.598 6 1h2zm.023.95A19.327 19.327 0 018 1H6c0 .352.009.702.026 1.05l1.997-.1zM7 3h.025V1H7v2zm1 9V2H6v10h2zm-3.2 9.6A16 16 0 008 12H6a14 14 0 01-2.8 8.4l1.6 1.2zm9.052-5.653A13.952 13.952 0 014 20v2c4.39 0 8.37-1.77 11.259-4.632l-1.407-1.42zM27 20c-4.47 0-8.577-1.542-11.822-4.125l-1.245 1.565A20.915 20.915 0 0027 22v-2zM46 1c0 10.493-8.507 19-19 19v2c11.598 0 21-9.402 21-21h-2zM27-18c10.493 0 19 8.507 19 19h2c0-11.598-9.402-21-21-21v2z"/>
+</svg>`;
+
+const SGA = { i: 0, t0: 0, held: null, raf: 0, io: null, sec: null, uid: 0, q: null };
+const sgaReduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sgaElapsed = () => SGA.held != null ? SGA.held : performance.now() - SGA.t0;
+
+function sgaGlobe() {
+  const u = 'sga' + (++SGA.uid);
+  const V = [-400, -328.701, -235.355, -123.097, 0, 123.097, 235.355, 328.701, 400].map(a =>
+    `<path d="${a <= 0 ? `M 400 800 A ${a} 400 0 0 0 400 0` : `M 400 0 A ${a} 400 0 0 0 400 800`}"/>`).join('');
+  // เส้นแนวนอนใต้เส้นศูนย์สูตร (y > 400) อยู่นอก viewBox ทั้งเส้น — ต้นฉบับวาดไว้แต่ไม่เคยเห็น
+  const H = [[135.425, 100, 529.15], [53.59, 200, 692.82], [12.702, 300, 774.597], [0, 400, 800]]
+    .map(([x, y, w]) => `<path d="M${x},${y} h${w}"/>`).join('');
+  // SMIL ไม่ฟัง prefers-reduced-motion — ถ้าผู้ใช้ขอลดการเคลื่อนไหว ไม่วาดเส้นแสงเลย
+  const T = sgaReduce() ? '' : SGA_TRAILS.map((p, k) => {
+    const g = u + 't' + k, dur = p.dur + 's', col = `style="stop-color:var(--sga-t${p.c})"`;
+    const an = (attr, v) => `<animate attributeName="${attr}" dur="${dur}" keyTimes="${p.kt}" values="${v}" repeatCount="indefinite"/>`;
+    return `<g mask="url(#${u}m)">
+      <path class="sga-tr" d="${p.d}" stroke="url(#${g})">${an('opacity', p.op)}</path>
+      <defs><radialGradient id="${g}" gradientUnits="userSpaceOnUse" cx="100" cy="100" r="0">
+        <stop offset="0" ${col}/><stop offset=".4" ${col}/><stop offset="1" ${col} stop-opacity="0"/>
+        ${an('cx', p.cx)}${an('cy', p.cy)}${an('r', p.r)}
+      </radialGradient></defs></g>`;
+  }).join('');
+  return `<svg viewBox="-1 -1 802 402" aria-hidden="true">
+    <defs>
+      <linearGradient id="${u}f" gradientTransform="rotate(90)">
+        <stop offset=".7" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+      <mask id="${u}m"><rect width="100%" height="100%" fill="url(#${u}f)"/></mask>
+    </defs>
+    <g mask="url(#${u}m)"><circle class="sga-ball" cx="400" cy="400" r="400"/><g class="sga-grid">${V}${H}</g></g>
+    ${T}
+  </svg>`;
+}
+
+function sgaArt(i) {
+  const a = SGA_TABS[i].art;
+  let box;
+  if (a === 'text') {
+    box = `<div class="sga-box sga-txb"><p class="sga-tx"><span></span><i class="sga-caret"></i></p></div>`;
+  } else if (a === 'globe') {
+    box = `<div class="sga-box sga-glb">${sgaGlobe()}</div><div class="sga-bar"><i></i></div>`;
+  } else if (a === 'note') {
+    // ย่อหน้าโครงร่าง → ปากกาเน้นข้อความกวาดทีละบรรทัด → บรรทัดที่ไม่สำคัญจางลง → เหลือป้าย "3 ประเด็น"
+    const L = [[96, 6, 54], [82], [92, 30, 88], [74, 0, 44], [58]];   // 5 บรรทัด — ป้ายสรุปมุมล่างต้องไม่ทับเส้นที่เน้น
+    let k = 0;
+    box = `<div class="sga-box sga-nt">${L.map(([w, x, y]) => x == null
+      ? `<span class="sga-ln" style="--w:${w}%"></span>`
+      : `<span class="sga-ln key" style="--w:${w}%"><i class="sga-hl" style="--a:${x}%;--b:${y}%;--k:${k++}"></i></span>`).join('')}
+      <span class="sga-sum">${icon('check')}เหลือ 3 ประเด็นที่ต้องจำ</span></div>`;
+  } else {
+    box = `<div class="sga-box sga-wv"><div class="sga-bars">${'<i></i>'.repeat(28)}</div>
+      <div class="sga-tl"><span class="sga-day">${SGA_DAYS[0]}</span><span class="sga-trk"><i></i></span><span>วันสอบ</span></div></div>`;
+  }
+  return `<div class="sga-chat">
+    <span class="sga-av">${saiFace()}</span>
+    <div class="sga-bw"><div class="sga-bub">${box}</div>${SGA_TAIL}</div>
+  </div>`;
+}
+
+function sgaHTML(busy) {
+  if (!SGA.t0) SGA.t0 = performance.now();
+  const e = sgaElapsed();
+  const tabs = SGA_TABS.map((t, k) => {
+    const q = AI_QUICK[k], on = k === SGA.i;
+    return `<div class="sga-it${on ? ' on' : ''}">
+      <button type="button" class="sga-tb" role="tab" aria-selected="${on}" onclick="sgaPick(${k})">
+        <span class="sga-tt">${esc(q[1])}</span><span class="sga-pg"><i></i></span>
+      </button>
+      <div class="sga-dw"><div class="sga-dc">
+        <p>${esc(t.d)}</p>
+        <button type="button" class="sga-ask" onclick="aiAsk('${esc(q[2]).replace(/'/g, "\\'")}')"${
+          busy ? ' disabled' : ''}>ถามเรื่องนี้${icon('chevron')}</button>
+      </div></div>
+    </div>`;
+  }).join('');
+  // วาดใหม่กลางรอบ (renderAi) ห้ามเล่นท่าเข้าซ้ำ — เล่นเฉพาะช่วงแรกของแท็บ
+  return `<section class="sga" aria-label="น้องไซช่วยอะไรได้บ้าง"><div class="sga-in">
+    <h3 class="sga-h">น้องไซช่วยอะไรได้บ้าง</h3>
+    <div class="sga-tabs" role="tablist">${tabs}</div>
+    <span class="sga-dv" aria-hidden="true"></span>
+    <div class="sga-r"><div class="sga-stage${e < 300 ? ' in' : ''}" role="tabpanel"
+      style="--sga-e:${-Math.round(e)}ms">${sgaArt(SGA.i)}</div></div>
+  </div></section>`;
+}
+
+// ฟองรอคำตอบ — ภาพตามเรื่องที่ถาม ไม่สลับเอง · ภาพ "ตัวหนังสือไหล" ไม่ใช้ตรงนี้
+// เพราะตัวหนังสือปลอมที่ไหลอยู่ตอนรอคำตอบจริง อ่านเหมือนน้องไซตอบแล้ว
+function sgaWait(q) {
+  const k = /แบ่งเวลา|จัดเวลา|ทันสอบ|กี่ชั่วโมง|กี่ชม/.test(q) ? 3 : /สรุป|ย่อ/.test(q) ? 2 : 0;
+  const cap = k === 3 ? 'กำลังแบ่งเวลาให้' : k === 2 ? 'กำลังสรุปให้'
+    : /วางแผน|ทำอะไรก่อน|เรียงลำดับ|ควรทำ/.test(q) ? 'กำลังจัดลำดับให้' : 'น้องไซกำลังคิด';
+  if (SGA.q !== q || SGA.i !== k || !SGA.t0) { SGA.q = q; SGA.i = k; SGA.t0 = performance.now(); SGA.held = null; }
+  const e = sgaElapsed();
+  return `<div class="ai-msg sai"><section class="sga sga-wait" aria-live="polite" aria-label="${cap}">
+    <div class="sga-stage${e < 300 ? ' in' : ''}" style="--sga-e:${-Math.round(e)}ms">${sgaArt(k)}</div>
+    <p class="sga-cap">${cap}<i></i><i></i><i></i></p>
+  </section></div>`;
+}
+
+// เปลี่ยนแท็บ: ไฮไลต์แท็บ + วาดฟองใหม่พร้อมท่าเข้า
+function sgaShow(sec, enter) {
+  sec.querySelectorAll('.sga-it').forEach((it, k) => {
+    const on = k === SGA.i;
+    it.classList.toggle('on', on);
+    it.querySelector('.sga-tb').setAttribute('aria-selected', on);
+    if (!on) it.querySelector('.sga-pg i').style.transform = '';
+  });
+  const st = sec.querySelector('.sga-stage');
+  st.innerHTML = sgaArt(SGA.i);
+  st.style.setProperty('--sga-e', -Math.round(sgaElapsed()) + 'ms');
+  st.classList.remove('in');
+  if (enter) { void st.offsetWidth; st.classList.add('in'); }
+  sgaFrame(sec, sgaElapsed());
+}
+
+function sgaPick(k) {
+  if (k === SGA.i) return;
+  SGA.i = k;
+  SGA.t0 = performance.now();
+  if (SGA.held != null) SGA.held = 0;
+  if (SGA.sec && SGA.sec.isConnected) sgaShow(SGA.sec, true);
+}
+
+// ของที่ต้องคิดใหม่ทุกเฟรม: แถบนับถอยหลังใต้แท็บ + ตัวภาพของแท็บนั้น
+function sgaFrame(sec, e) {
+  const rd = sgaReduce();
+  const pg = sec.querySelector('.sga-it.on .sga-pg i');
+  if (pg) pg.style.transform = `scaleX(${rd ? 1 : Math.max(0, 1 - e / SGA_MS)})`;
+  const st = sec.querySelector('.sga-stage');
+  if (!st) return;
+  const a = SGA_TABS[SGA.i].art;
+  if (rd) e = SGA_MS;
+  if (a === 'text') {
+    const p = st.querySelector('.sga-tx');
+    const n = Math.min(SGA_TEXT.length, Math.floor(e / 16) * 2);
+    if (p && p.firstChild.textContent.length !== n) {
+      p.firstChild.textContent = SGA_TEXT.slice(0, n);
+      p.classList.toggle('done', n >= SGA_TEXT.length);
+    }
+  } else if (a === 'globe') {
+    // ฟองรอคำตอบไม่รู้ว่าจะรออีกนานแค่ไหน — แถบวนเต็มแล้วเริ่มใหม่ ไม่ค้างเต็มหลอกว่าเสร็จ
+    const b = st.querySelector('.sga-bar i');
+    const g = sec.classList.contains('sga-wait') ? (e % SGA_MS) / SGA_MS : e / (SGA_MS * .92);
+    if (b) b.style.transform = `scaleX(${Math.min(1, g)})`;
+  } else if (a === 'wave') {
+    const t = e / 1000;
+    st.querySelectorAll('.sga-bars i').forEach((b, k) => {
+      const ph = (t * 2.5 + k * .3) % (Math.PI * 2);
+      b.style.height = (10 + Math.abs(Math.sin(ph)) * 58).toFixed(1) + 'px';
+      b.style.setProperty('--hh', ((k * 11 + t * 30) % 360).toFixed(1));
+    });
+    const r = Math.min(1, e / SGA_MS);
+    const d = st.querySelector('.sga-day'), tr = st.querySelector('.sga-trk i');
+    if (d) d.textContent = SGA_DAYS[Math.min(6, Math.floor(r * 7))];
+    if (tr) tr.style.transform = `scaleX(${r})`;
+  }
+}
+
+function sgaStep() {
+  SGA.raf = 0;
+  const sec = SGA.sec;
+  if (!sec || !sec.isConnected) return;
+  let e = performance.now() - SGA.t0;
+  if (e >= SGA_MS && !sec.classList.contains('sga-wait')) {
+    SGA.i = (SGA.i + 1) % SGA_TABS.length;
+    SGA.t0 = performance.now();
+    e = 0;
+    sgaShow(sec, true);
+  }
+  sgaFrame(sec, e);
+  SGA.raf = requestAnimationFrame(sgaStep);
+}
+
+function sgaRun() {
+  if (SGA.held != null) {   // กลับมาจากที่หยุดไว้ — ต่อเวลาเดิม แล้ววาดภาพใหม่ให้ท่า CSS ตรงเวลา
+    SGA.t0 = performance.now() - SGA.held;
+    SGA.held = null;
+    if (SGA.sec && SGA.sec.isConnected) sgaShow(SGA.sec, false);
+  }
+  if (SGA.raf || sgaReduce()) return;
+  SGA.raf = requestAnimationFrame(sgaStep);
+}
+
+function sgaHold() {
+  if (SGA.raf) { cancelAnimationFrame(SGA.raf); SGA.raf = 0; }
+  if (SGA.held == null && SGA.t0) SGA.held = performance.now() - SGA.t0;
+}
+
+// เรียกหลัง renderAi เขียน innerHTML ทุกครั้ง
+function sgaMount() {
+  if (SGA.io) { SGA.io.disconnect(); SGA.io = null; }
+  const sec = document.querySelector('#aiBody .sga');
+  SGA.sec = sec;
+  if (!sec) { sgaHold(); return; }
+  sgaFrame(sec, sgaElapsed());
+  if (!('IntersectionObserver' in window)) { sgaRun(); return; }
+  SGA.io = new IntersectionObserver(es => {
+    if (es[es.length - 1].isIntersecting) sgaRun(); else sgaHold();
+  });
+  SGA.io.observe(sec);
 }
 
 function renderAi() {
@@ -4445,6 +4779,9 @@ function renderAi() {
   // คำตอบของน้องไซไม่มีฟอง — เป็นตัวหนังสือเต็มความกว้างใต้ป้ายชื่อ อ่านเหมือนเอกสารสั้น ๆ
   // ไม่ใช่แชทเพื่อน · คำตอบยาว (ขั้นตอน · รายการ) อ่านง่ายกว่ามากเมื่อไม่ถูกบีบอยู่ในฟอง 84%
   const saiHead = `<div class="am-head">${saiFace()}<b>น้องไซ</b></div>`;
+  // คำตอบใหม่โผล่ครั้งแรก = ท่าเข้าของต้นฉบับ (panelIn) · วาดซ้ำระหว่างไหลไม่เล่นซ้ำ
+  const enter = aiReveal && !aiReveal.entered && (aiBusy ? !!aiPartial : aiReveal.i >= 0) ? ' am-enter' : '';
+  if (enter) aiReveal.entered = true;
   const bubbles = log.map((m, i) => {
     if (m.role === 'user') return `<div class="ai-msg me"><div class="ai-bub">${esc(m.text)}</div></div>`;
     // 1B42 · การ์ดเสนอเพิ่มงาน — ฟองของน้องไซที่กดได้ ไม่ใช่ข้อความเปล่า
@@ -4472,6 +4809,11 @@ function renderAi() {
           </div>
         </div>`;
     }
+    // คำตอบที่ยังไหลไม่ครบ (มาครบแล้วแต่บนจอยังไม่ทัน) — ไม่มีปุ่มคัดลอกจนกว่าจะไหลจบ
+    if (aiReveal && aiReveal.i === i) return `<div class="ai-msg sai${enter}">
+         ${saiHead}
+         <div class="am-text ai-live">${aiFmt(aiRevealShown())}<i class="am-caret"></i></div>
+       </div>`;
     return `<div class="ai-msg sai">
          ${saiHead}
          <div class="am-text${m.err ? ' err' : ''}">${m.err ? esc(m.text) : aiFmt(m.text)}</div>
@@ -4482,11 +4824,11 @@ function renderAi() {
   }).join('');
 
   // กำลังตอบ: จุดสามจุดก่อนตัวแรกมา แล้วตัวหนังสือไหลเข้ามาพร้อมเคอร์เซอร์กะพริบ
-  const typing = aiBusy ? `<div class="ai-msg sai">
+  // ก่อนตัวแรกมา: ฟองภาพเคลื่อนไหวของน้องไซ (sgaWait) แทนจุดสามจุด · ตัวแรกมาถึงก็เป็นตัวหนังสือจริงทันที
+  const lastQ = (log.filter(m => m.role === 'user').pop() || {}).text || '';
+  const typing = aiBusy && !aiPartial ? sgaWait(lastQ) : aiBusy ? `<div class="ai-msg sai${enter}">
       ${saiHead}
-      ${aiPartial
-        ? `<div class="am-text ai-live">${aiFmt(aiPartial)}<i class="am-caret"></i></div>`
-        : `<div class="ai-typing"><i></i><i></i><i></i></div>`}
+      <div class="am-text ai-live">${aiFmt(aiReveal ? aiRevealShown() : aiPartial)}<i class="am-caret"></i></div>
     </div>` : '';
 
   // ---- จอว่าง: คำทัก + การ์ดคำถามสำเร็จรูป 2×2 (แบบหน้าแรกของ ChatGPT) ----
@@ -4544,6 +4886,7 @@ function renderAi() {
   // ส่วนความโปร่งใสยังอยู่ที่ปุ่ม "ดูว่าเห็นอะไร" เหนือบทสนทนา ซึ่งเปิดดูของจริงได้
 
   el.innerHTML = head + thread + quick + bar;
+  sgaMount();
 }
 
 // ---------- 1C40 · จัดรูปคำตอบของน้องไซ ----------
@@ -8361,25 +8704,37 @@ function dailyPromptOnOpen() {
 
 // ---------- หน้าต่างเช็คอินรายวัน ----------
 // เด้งเองเมื่อถึงวันใหม่ (6 โมงเช้าไทย) และยังไม่ได้กดรับ
-// ตาราง 3×3 เดิมทุกช่องหน้าตาเหมือนกันหมด อ่านไม่ออกว่ากำลัง "ต่อเนื่อง" อยู่ —
-// มันคือรอบที่เดินหน้าไปทีละวัน ไม่ใช่ตารางของรางวัล จึงวาดเป็นเส้นทางที่มีเส้นเชื่อม
-// วันที่ 7 ถูกดึงออกจากแถวนี้ไปอยู่บรรทัดของตัวเอง (ดู openDailyCheck)
-function dailyTrack(activeDay, claimedUpTo) {
-  return DAILY_PLAN.slice(0, 6).map((p, i) => {
+// 1C41b · ออกแบบใหม่ทั้งแผ่น (เจ้าของ: "ปรับพวก UI กับทำ animation ตอนกดหน่อย")
+//   • บนสุด: เหรียญของวันนี้ใหญ่ ๆ ในวงแสง + จำนวนที่จะได้ — ของที่กำลังจะกดรับต้องเป็นของชิ้นใหญ่สุดของแผ่น
+//   • ปฏิทินเจ็ดช่องแบบเกม: สี่ช่องบน · สองช่องล่าง + วันที่ 7 กว้างสองช่อง (รางวัลใหญ่ของรอบ)
+//     รับแล้ว = ตราประทับถูกบนช่อง · วันนี้ = กรอบสีเน้นเรืองหายใจ · วันถัดไป = จาง
+//     วันที่ 7 กลับเข้ามาอยู่ในปฏิทิน (เดิมแยกบรรทัดของตัวเอง) — แต่ยังไม่ดังกว่าปุ่มรับ
+//   • กด "รับเลย": ปุ่มยุบ → ช่องวันนี้โดนประทับถูก → เหรียญเล็กหลายเหรียญบินจากปุ่มเข้าเหรียญใหญ่
+//     → เหรียญใหญ่เด้ง + "+N" ลอยขึ้น → ปุ่มกลายเป็น "รับแล้ว" · ทั้งหมดจบใน ~1 วินาที
+//     ของเข้ากระเป๋าตั้งแต่วินาทีที่กด (claimDaily) อนิเมชันเป็นแค่การเล่าให้เห็น ไม่ได้หน่วงของจริง
+const CK_GIFT = `<svg viewBox="0 0 24 24" aria-hidden="true" class="ck-gift">
+  <rect x="3.5" y="9" width="17" height="11.5" rx="2.2" fill="currentColor" opacity=".9"/>
+  <rect x="2.5" y="6.5" width="19" height="4.2" rx="1.6" fill="currentColor"/>
+  <rect x="10.7" y="6.5" width="2.6" height="14" fill="#fff" opacity=".85"/>
+  <path d="M12 6.4c-1.2-2.6-3.9-3.8-5.1-2.6-1.1 1.1.1 2.9 2.4 2.9H12zm0 0c1.2-2.6 3.9-3.8 5.1-2.6 1.1 1.1-.1 2.9-2.4 2.9H12z" fill="currentColor"/>
+</svg>`;
+function dailyCal(activeDay, claimedUpTo) {
+  return DAILY_PLAN.map((p, i) => {
     const d = i + 1;
-    const done = d <= claimedUpTo;
-    const now = d === activeDay;
-    const link = i < 5
-      ? `<span class="ck-line${d <= claimedUpTo ? ' on' : ''}"></span>` : '';
-    return `<div class="ck-node${done ? ' done' : ''}${now ? ' now' : ''}">
-        <span class="ck-bub">${done ? icon('check') : '<b class="mono">' + p + '</b>'}</span>
-        <em>${now ? 'วันนี้' : d}</em>
-      </div>${link}`;
+    const spin = p === 'spin';
+    const st = d <= claimedUpTo ? 'done' : d === activeDay ? 'now' : 'next';
+    return `<div class="ck-c ${st}${spin ? ' d7' : ''}" data-d="${d}" style="--i:${i}">
+        <i class="ck-cd">${st === 'now' ? 'วันนี้' : 'วัน ' + d}</i>
+        <span class="ck-ci">${spin ? CK_GIFT : coin(24)}</span>
+        <b class="ck-cv">${spin ? 'สุ่มฟรี 1 ใบ' : '+' + p}</b>
+        <span class="ck-ok" aria-hidden="true">${icon('check')}</span>
+      </div>`;
   }).join('');
 }
 
 // กันเช็คอินเด้งทับฉากต้อนรับ — ตั้งเป็นเวลาที่ "ห้ามเด้งจนกว่าจะถึง"
 let checkinHoldUntil = 0;
+let ckClaiming = false;
 
 function openDailyCheck(auto) {
   const wrap = document.getElementById('checkin');
@@ -8392,54 +8747,120 @@ function openDailyCheck(auto) {
   // ถ้าปล่อยให้เช็คอินเด้งตรงนี้ เขาจะเจอ toast ต้อนรับ + แผ่นของรางวัล + จอที่ยังว่างเปล่า
   // พร้อมกันสามชั้น ทั้งที่ยังไม่ทันได้เห็นว่าแอปนี้ทำอะไรได้เลยสักอย่าง
   if (auto && Date.now() < checkinHoldUntil) return;
+  ckClaiming = false;
+  const pending = dailyPending();
+  const s = tokenState();
   const day = pendingCycleDay();
-  const claimed = dailyPending() ? day - 1 : (tokenState().cycleDay || 0);
+  const claimed = pending ? day - 1 : (s.cycleDay || 0);
   const prize = DAILY_PLAN[day - 1];
-  wrap.hidden = false;
   const spinDay = prize === 'spin';
-  wrap.innerHTML = `<div class="ck-sheet">
+  // ต่อเนื่องกี่วัน — ยังไม่ได้รับวันนี้ นับเฉพาะถ้าเมื่อวานรับไว้ (ขาดวัน = เริ่มนับใหม่ ไม่โชว์เลขเก่า)
+  const streak = pending ? (s.day === prevDayKey(rewardDayKey()) ? (s.streak || 0) : 0) : (s.streak || 0);
+  wrap.hidden = false;
+  wrap.innerHTML = `<div class="ck-sheet ck2" role="dialog" aria-label="เช็คอินรายวัน">
       <div class="ck-head">
         <div class="ck-ttl">เช็คอินรายวัน</div>
-        <div class="ck-sub">วันของรางวัลเปลี่ยนตอน 6 โมงเช้า</div>
+        <div class="ck-sub">วันที่ ${day} จาก 7 · วันใหม่เริ่ม 6 โมงเช้า</div>
+        ${streak ? `<span class="ck-streak">${icon('flame')}ต่อเนื่อง <b class="mono" id="ckStreak">${streak}</b> วัน</span>` : ''}
       </div>
-      <div class="ck-track">${dailyTrack(day, claimed)}</div>
-      <!-- ของวันนี้ได้เท่าไหร่ ต้องอ่านได้โดยไม่ต้องไปไล่หาช่องที่เรืองอยู่ในแถว -->
-      <div class="ck-today">
-        ${spinDay ? icon('sparkles', 'ck-tspin') : coin(30)}
-        <b class="mono">${spinDay ? '1' : prize}</b>
-        <span>${spinDay ? 'สิทธิ์สุ่มฟรีวันนี้' : 'โทเคนวันนี้'}</span>
+      <div class="ck-hero">
+        <span class="ck-halo" aria-hidden="true"></span>
+        <span class="ck-medal${spinDay ? ' gift' : ''}">${spinDay ? CK_GIFT : coin(56)}</span>
       </div>
-      ${dailyPending()
-        ? `<button class="ck-cta" onclick="claimDailyFromSheet()">รับเลย</button>`
-        : `<p class="ck-done">รับของวันนี้ไปแล้ว — กลับมาใหม่พรุ่งนี้ 6 โมงเช้า</p>`}
-      <!-- วันที่ 7 เคยเป็นแผ่นสีเน้นเต็มแถวที่ดังกว่าปุ่มรับ ทั้งที่ยังกดไม่ได้
-           ของที่ล็อกอยู่ไม่ควรดังกว่าของที่กดได้ตอนนี้ -->
-      ${day < 7 ? `<div class="ck-d7">
-        ${coin(22, 'off')}
-        <span class="ck-d7b"><b>วันที่ 7 · หมุนฟรี 1 ใบ</b><i>รางวัลใหญ่ของรอบ</i></span>
-        <span class="ck-rem">อีก ${7 - day} วัน</span>
-      </div>` : ''}
+      <div class="ck-amt">
+        <b class="mono">${spinDay ? 'สุ่มฟรี 1 ใบ' : '+' + prize}</b>
+        <span>${spinDay ? 'รางวัลใหญ่ของรอบ' : 'โทเคนวันนี้'}</span>
+      </div>
+      <div class="ck-cal">${dailyCal(day, claimed)}</div>
+      ${pending
+        ? `<button class="ck-cta" id="ckCta" onclick="claimDailyFromSheet(this)">รับเลย</button>`
+        : `<p class="ck-done">${icon('check')}รับของวันนี้ไปแล้ว — กลับมาใหม่พรุ่งนี้ 6 โมงเช้า</p>`}
       <button class="ck-close" onclick="closeDailyCheck()">ปิด</button>
     </div>`;
 }
 function closeDailyCheck() {
   const wrap = document.getElementById('checkin');
   if (wrap) { wrap.hidden = true; wrap.innerHTML = ''; }
+  ckClaiming = false;
 }
-function claimDailyFromSheet() {
+function claimDailyFromSheet(btn) {
+  if (ckClaiming) return;                 // กดรัวตอนอนิเมชันเล่นอยู่ = ไม่มีอะไรเกิดซ้ำ
   const got = claimDaily();
   if (!got) { closeDailyCheck(); return; }
+  ckClaiming = true;
   haptic('done');
-  splashBurst(16, 'egg-star');
-  renderAll();
-  if (got.prize === 'spin') {
-    closeDailyCheck();
-    go('scr-wheel');
-    showToast({ title: 'ครบ 7 วันแล้ว 🎡', body: 'ได้สิทธิ์สุ่มสกินฟรี 1 ใบ' });
-  } else {
-    openDailyCheck(false);   // วาดใหม่ให้ช่องวันนี้ติ๊กถูก
+  const sheet = document.querySelector('#checkin .ck-sheet');
+  const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const finish = () => {
+    renderAll();
+    if (got.prize === 'spin') {
+      closeDailyCheck();
+      go('scr-wheel');
+      showToast({ title: 'ครบ 7 วันแล้ว 🎡', body: 'ได้สิทธิ์สุ่มสกินฟรี 1 ใบ' });
+      return;
+    }
     showToast({ title: '+' + got.prize + ' โทเคน', body: 'เช็คอินต่อเนื่อง ' + got.streak + ' วัน · รวม ' + got.bal + ' โทเคน' });
+    ckClaiming = false;
+  };
+  if (!sheet || still) {
+    if (got.prize !== 'spin') openDailyCheck(false);   // วาดใหม่ให้ช่องวันนี้ติ๊กถูก
+    finish();
+    return;
   }
+  // 1) ปุ่มยุบ-เด้ง แล้วกลายเป็น "รับแล้ว"
+  if (btn) {
+    // ไม่ใช้ disabled / aria-disabled ตอนกด — ปุ่มสองสถานะนี้ถูกทำให้จางทันที (กฎ QA)
+    // อนิเมชันยุบ-เด้งเลยเล่นบนปุ่มซีด ๆ · กันกดซ้ำด้วย ckClaiming กับ pointer-events ของ .ck-press แทน
+    // ค่อยบอกว่ากดไม่ได้แล้วตอนกลายเป็น "รับแล้ว" ซึ่งจางได้ เพราะมันจบแล้วจริง
+    btn.classList.add('ck-press');
+    setTimeout(() => {
+      btn.classList.add('ck-got');
+      btn.setAttribute('aria-disabled', 'true');
+      btn.innerHTML = icon('check') + 'รับแล้ว';
+    }, 520);
+  }
+  // 2) ช่องวันนี้โดนประทับถูก
+  const cell = sheet.querySelector('.ck-c.now');
+  if (cell) {
+    cell.classList.add('ck-stamp');
+    setTimeout(() => { cell.classList.remove('now'); cell.classList.add('done');
+      const lb = cell.querySelector('.ck-cd'); if (lb) lb.textContent = 'วัน ' + cell.dataset.d; }, 260);
+  }
+  // 3) เหรียญเล็กบินจากปุ่มเข้าเหรียญใหญ่ (โค้งขึ้นแล้วตกเข้าเป้า กระจายซ้ายขวา)
+  const medal = sheet.querySelector('.ck-medal');
+  if (btn && medal && got.prize !== 'spin') {
+    const sr = sheet.getBoundingClientRect(), br = btn.getBoundingClientRect(), mr = medal.getBoundingClientRect();
+    const x0 = br.left + br.width / 2 - sr.left, y0 = br.top + br.height / 2 - sr.top;
+    const dx = mr.left + mr.width / 2 - sr.left - x0, dy = mr.top + mr.height / 2 - sr.top - y0;
+    const n = Math.min(10, 4 + got.prize * 2);
+    for (let i = 0; i < n; i++) {
+      const f = document.createElement('i');
+      f.className = 'ck-fly';
+      f.innerHTML = coin(18);
+      f.style.left = x0 + 'px'; f.style.top = y0 + 'px';
+      f.style.setProperty('--dx', dx + 'px');
+      f.style.setProperty('--dy', dy + 'px');
+      f.style.setProperty('--sx', ((i - (n - 1) / 2) * 16 + (Math.random() * 10 - 5)) + 'px');
+      f.style.animationDelay = (120 + i * 45) + 'ms';
+      sheet.appendChild(f);
+      setTimeout(() => f.remove(), 1400);
+    }
+  }
+  // 4) เหรียญใหญ่เด้ง + "+N" ลอยขึ้น + ตัวเลขต่อเนื่องขยับ
+  setTimeout(() => {
+    if (medal) medal.classList.add('ck-pop');
+    const hero = sheet.querySelector('.ck-hero');
+    if (hero) {
+      const plus = document.createElement('b');
+      plus.className = 'ck-plus mono';
+      plus.textContent = got.prize === 'spin' ? '+1 สุ่มฟรี' : '+' + got.prize;
+      hero.appendChild(plus);
+    }
+    const st = document.getElementById('ckStreak');
+    if (st) { st.textContent = got.streak; st.classList.add('ck-bump'); }
+    splashBurst(14, 'egg-star');
+  }, 640);
+  setTimeout(finish, 1150);
 }
 
 // ---------- เปิดการ์ดสุ่มสกิน (3D) ----------
@@ -10594,7 +11015,10 @@ function fillSubjectSelect() {
 function autoGrow(el) {
   if (!el) return;
   el.style.height = 'auto';
-  const cap = Math.round(window.innerHeight * 0.4);
+  // เพดานคือค่าที่ต่ำกว่าระหว่าง 40% ของจอ กับ max-height ใน CSS — เดิมดูแค่ 40%
+  // ช่องที่ CSS ตั้งเพดานต่ำกว่านั้น (ช่องถามน้องไซ 160px) ข้อความส่วนเกินถูกตัดทิ้ง เลื่อนดูก็ไม่ได้
+  const mh = parseFloat(getComputedStyle(el).maxHeight);
+  const cap = Math.min(Math.round(window.innerHeight * 0.4), mh > 0 ? mh : Infinity);
   const need = el.scrollHeight;
   el.style.height = Math.min(need, cap) + 'px';
   el.style.overflowY = need > cap ? 'auto' : 'hidden';
@@ -10697,6 +11121,7 @@ function openForm(id, parsed) {
   }
 
   setTypePick(t ? taskType(t) : 'homework');
+  dueCalView = null;   // ปฏิทินเลือกวันเริ่มที่เดือนของใบนี้เสมอ ไม่ค้างเดือนที่เลื่อนไปดูตอนเปิดใบก่อน
   setStarPick(t?.userStars || 0);
   f.subject.value = t?.subject || 'อื่น ๆ';
   f.detail.value = t?.detail || '';
@@ -10792,7 +11217,7 @@ function renderSubjRows() {
     ? SUBJECTS.map(s => s.name)
     : recentSubjects().concat(['อื่น ๆ']).filter((n, i, a) => a.indexOf(n) === i);
   box.innerHTML = names.map(n =>
-    `<button type="button" class="pk${n === cur ? ' on' : ''}" onclick="pickSubject('${esc(n).replace(/'/g, "\\'")}')">`
+    `<button type="button" class="pk${n === cur ? ' on' : ''}" data-k="${esc(n)}" onclick="pickSubject('${esc(n).replace(/'/g, "\\'")}')">`
     + `<span class="pk-dot"></span>${esc(n)}</button>`).join('');
   if (more) {
     more.hidden = false;
@@ -10806,7 +11231,13 @@ function pickSubject(name) {
   const sel = document.getElementById('fSubject');
   if (!sel) return;
   sel.value = name;
-  renderSubjRows();
+  // แตะแถวที่เห็นอยู่ = สลับจุดเลือกที่เดิม ไม่วาดใหม่ — วาดใหม่ทำให้วิชาที่เพิ่งแตะกระโดดขึ้นแถวบนสุด
+  // (recentSubjects ใส่วิชาปัจจุบันก่อน) ท่าเลือกของ FeaturePoll ก็จะเล่นบนแถวที่ย้ายที่ไปแล้ว
+  // วิชาที่มาจากเมนู "ดูวิชาทั้งหมด" ยังไม่มีแถว → วาดใหม่ให้มันขึ้นมาเป็นแถวแรกเหมือนเดิม
+  const box = document.getElementById('subjRows');
+  const row = box && [...box.children].find(b => b.dataset.k === name);
+  if (row) box.querySelectorAll('.pk').forEach(b => b.classList.toggle('on', b === row));
+  else renderSubjRows();
   updateFormSummary();
 }
 
@@ -10978,6 +11409,101 @@ function dateInputValue(d) {
     + '-' + String(d.getDate()).padStart(2, '0');
 }
 
+// ---------- ปฏิทินเลือกวันในแอป (แทนป๊อปอัปของเบราว์เซอร์) ----------
+// เจ้าของส่งรูปป๊อปอัปปฏิทินของ Chrome มา: "เปลี่ยนตรงนี้ให้ดูสวยขึ้นหน่อย มันไม่สวยเลย"
+// ป๊อปอัปของ <input type=date> แต่งด้วย CSS ไม่ได้เลย (ภาษาอังกฤษ ปี ค.ศ. เทาเข้มทุกธีม)
+// จึงวาดเองในกล่อง #dueExact · ค่าจริงยังอยู่ใน #fDate (ซ่อนไว้) — saveForm() กับ OCR ไม่ต้องรู้อะไรเพิ่ม
+// dueCalView = เดือนที่กำลังดู · dueCalFor = ค่าใน #fDate ตอนที่จัดเดือนให้ล่าสุด
+// renderDueRows() ถูกเรียกทุกครั้งที่พิมพ์อะไรในฟอร์ม (syncFormUI) — ถ้าค่าวันที่ไม่ได้เปลี่ยน
+// ต้องไม่ดึงเดือนที่คนเลื่อนไปดูอยู่กลับมา · ถ้าค่าเปลี่ยนจากที่อื่น (OCR · เปิดงานเก่า) ค่อยพาไปเดือนของค่านั้น
+const DCAL_WK = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+let dueCalView = null, dueCalFor = null, dueCalAnim = '', dueCalPop = '';
+
+function renderDueCal() {
+  const box = document.getElementById('dueCal');
+  const f = document.getElementById('fDate');
+  if (!box || !f) return;
+  if (!dueCalView || f.value !== dueCalFor) {
+    const base = f.value ? new Date(f.value + 'T00:00') : new Date();
+    dueCalView = new Date(base.getFullYear(), base.getMonth(), 1);
+    dueCalFor = f.value;
+  }
+  const y = dueCalView.getFullYear(), m = dueCalView.getMonth();
+  const todayV = dateInputValue(new Date());
+  const lead = new Date(y, m, 1).getDay();
+  const days = new Date(y, m + 1, 0).getDate();
+  let cells = '<span></span>'.repeat(lead);
+  for (let d = 1; d <= days; d++) {
+    const v = dateInputValue(new Date(y, m, d));
+    const cls = ['dcal-d'];
+    if (v < todayV) cls.push('past');
+    if (v === todayV) cls.push('today');
+    if (v === f.value) cls.push('on');
+    if (v === f.value && v === dueCalPop) cls.push('pop');
+    cells += `<button type="button" class="${cls.join(' ')}" onclick="pickDueDate('${v}')"`
+      + ` aria-label="${d} ${MONTH_FULL[m]} ${y + 543}"${v === f.value ? ' aria-pressed="true"' : ''}>${d}</button>`;
+  }
+  box.innerHTML = `<div class="dcal-head">
+      <b class="dcal-t${dueCalAnim ? ' in-' + dueCalAnim : ''}">${MONTH_FULL[m]} ${y + 543}</b>
+      <button type="button" class="dcal-nav prev" onclick="dueCalNav(-1)" aria-label="เดือนก่อน">${icon('chevron')}</button>
+      <button type="button" class="dcal-nav" onclick="dueCalNav(1)" aria-label="เดือนถัดไป">${icon('chevron')}</button>
+    </div>
+    <div class="dcal-wk">${DCAL_WK.map(w => `<span>${w}</span>`).join('')}</div>
+    <div class="dcal-grid${dueCalAnim ? ' in-' + dueCalAnim : ''}">${cells}</div>`;
+  dueCalAnim = '';
+  dueCalPop = '';
+}
+
+function dueCalNav(step) {
+  if (!dueCalView) return;
+  dueCalView = new Date(dueCalView.getFullYear(), dueCalView.getMonth() + step, 1);
+  dueCalAnim = step > 0 ? 'r' : 'l';
+  renderDueCal();
+}
+
+// เจ้าของ: "ทำอนิเมชันให้หน่อยตอนกด สักนิดสักหน่อยให้มันสวย"
+// วงที่เลือกอยู่ "ไหล" จากวันเดิมไปวันใหม่ (ยืด-หดนิด ๆ ระหว่างทาง) แทนการหายที่หนึ่งแล้วโผล่อีกที่
+// ปฏิทินถูกวาดใหม่ทั้งก้อน จึงจำตำแหน่งวงเดิมไว้ก่อนวาด แล้วให้วงลอย (.dcal-glide) วิ่งจากตรงนั้นมาที่วันใหม่
+// วันเดิมอยู่คนละเดือนกับที่ดูอยู่ (ไม่มีวงให้ไหล) → เด้งขึ้นที่วันใหม่แบบเดิม
+function pickDueDate(v) {
+  const f = document.getElementById('fDate');
+  if (!f) return;
+  const old = document.querySelector('#dueCal .dcal-d.on');
+  const from = old ? old.getBoundingClientRect() : null;
+  const moved = f.value !== v;
+  f.value = v;
+  dueCalFor = v;
+  dueCustom = true;
+  const glide = !!(from && moved && !matchMedia('(prefers-reduced-motion: reduce)').matches);
+  dueCalPop = glide ? '' : v;
+  renderDueRows();
+  updateFormSummary();
+  if (!glide) return;
+  const grid = document.querySelector('#dueCal .dcal-grid');
+  const now = grid && grid.querySelector('.dcal-d.on');
+  if (!now) return;
+  const to = now.getBoundingClientRect();
+  const dx = from.left - to.left, dy = from.top - to.top;
+  const g = document.createElement('i');
+  g.className = 'dcal-glide';
+  g.style.left = now.offsetLeft + 'px';
+  g.style.top = now.offsetTop + 'px';
+  grid.appendChild(g);
+  now.classList.add('glide', 'glide-ink');
+  const far = Math.min(1, Math.hypot(dx, dy) / 160);   // ไกลมาก = ยืดมากขึ้นนิดหน่อย
+  const anim = g.animate([
+    { transform: `translate(${dx}px, ${dy}px) scale(1)` },
+    { offset: .45, transform: `translate(${dx * .4}px, ${dy * .4}px) scale(${1 + .16 * far}, ${1 - .12 * far})` },
+    { transform: 'translate(0, 0) scale(1)' },
+  ], { duration: 340 + 120 * far, easing: 'cubic-bezier(.3, 1.15, .5, 1)' });
+  setTimeout(() => now.classList.remove('glide-ink'), 200 + 70 * far);
+  anim.onfinish = anim.oncancel = () => {
+    g.remove();
+    now.classList.remove('glide', 'glide-ink');
+    now.classList.add('ring');
+  };
+}
+
 function renderDueRows() {
   const box = document.getElementById('duePick');
   const f = document.getElementById('fDate');
@@ -10988,7 +11514,9 @@ function renderDueRows() {
     const d = addDays(today, n);
     return { n, label, v: dateInputValue(d), sub: d.getDate() + ' ' + MONTH_SHORT[d.getMonth()] };
   });
-  const hit = presets.find(p => p.v === f.value);
+  // กด "เลือกวันเอง" แล้ว แถวนั้นต้องเป็นแถวที่เลือก แม้วันในช่องยังตรงกับปุ่มลัดอยู่
+  // (เดิมจุดเลือกค้างที่ "มะรืนนี้" ทั้งที่ปฏิทินกางแล้ว — เจ้าของ: "กดเลือกวันแล้วมันยังอยู่ปุ่มก่อนหน้า")
+  const hit = dueCustom ? null : presets.find(p => p.v === f.value);
   box.innerHTML = presets.map(p =>
     `<button type="button" class="pk${hit === p ? ' on' : ''}" onclick="pickDue(${p.n})">`
     + `<span class="pk-dot"></span>${p.label}<span class="pk-s">${p.sub}</span></button>`).join('')
@@ -10997,7 +11525,15 @@ function renderDueRows() {
     + (!hit && f.value ? `<span class="pk-s">${esc(thaiDateShort(f.value))}</span>` : '') + `</button>`;
   // ปฏิทินโผล่เมื่อคนขอเอง หรือเมื่อวันที่ในใบไม่ตรงกับปุ่มลัดอันไหนเลย
   // (รวมถึงตอนที่ OCR เดาวันมาแล้วไม่มั่นใจ — .unsure ตีกรอบไว้ที่กล่องนี้)
-  if (exact) exact.hidden = !(dueCustom || !hit || exact.classList.contains('unsure'));
+  if (exact) {
+    const wasHidden = exact.hidden;
+    exact.hidden = !(dueCustom || !hit || exact.classList.contains('unsure'));
+    if (!exact.hidden) {
+      renderDueCal();
+      // เพิ่งกางออก = ท่าเข้าครั้งเดียว · วาดซ้ำตอนพิมพ์ช่องอื่นไม่เล่นซ้ำ
+      if (wasHidden) { exact.classList.remove('dcal-open'); void exact.offsetWidth; exact.classList.add('dcal-open'); }
+    }
+  }
 }
 
 function thaiDateShort(v) {
@@ -11016,13 +11552,14 @@ function pickDue(n) {
 }
 
 function pickDueCustom() {
-  const f = document.getElementById('fDate');
   dueCustom = true;
+  dueCalView = null;   // เปิดใหม่ทุกครั้งที่เดือนของค่าปัจจุบัน (หรือเดือนนี้ถ้ายังไม่มีค่า)
   renderDueRows();
-  if (!f) return;
-  // showPicker() เปิดปฏิทินให้เลย — ไม่งั้นคนต้องกดสองที (กดแถว แล้วกดช่องวันที่)
-  // ไม่ใช่ทุกเบราว์เซอร์มี และบางตัวโยนทิ้งถ้าเรียกนอก user gesture จึงต้องกันไว้
-  try { if (typeof f.showPicker === 'function') f.showPicker(); else f.focus(); } catch (e) { f.focus(); }
+  // เดิมเรียก showPicker() เปิดป๊อปอัปของเบราว์เซอร์ — ตอนนี้ปฏิทินกางอยู่ในฟอร์มแล้ว แค่เลื่อนให้เห็นทั้งก้อน
+  const cal = document.getElementById('dueCal');
+  if (cal) setTimeout(() => {
+    try { cal.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (_) { cal.scrollIntoView(false); }
+  }, 60);
 }
 
 // ---------- แถวสรุปของช่องที่ข้ามได้ + บรรทัดล่างของปุ่มบันทึก ----------
@@ -13221,8 +13758,12 @@ function showToast(copy) {
     el.onclick = e => { if (!e.target.closest('.tu')) el.classList.remove('show'); };
     phone.appendChild(el);
   }
+  // มีแจ้งเตือนค้างอยู่แล้วแล้วมีอันใหม่มา = เกาะเด้งรับหนึ่งที (แบบ Dynamic Island ของ iPhone 15)
+  // ไม่ยุบแล้วกางใหม่ — ข้อความเปลี่ยนในเกาะเดิม
+  const wasOn = el.classList.contains('show');
   el.querySelector('.tt').textContent = copy.title;
   el.querySelector('.tb').textContent = copy.body;
+  if (wasOn) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
   // ปุ่มเดียวในการ์ดทำได้สองหน้าที่: "เลิกทำ" (undo) หรือการกระทำถัดไป (action: {label, fn})
   const undo = el.querySelector('.tu');
   const act = copy.undo ? { label: 'เลิกทำ', fn: copy.undo } : copy.action || null;
@@ -13263,8 +13804,41 @@ async function notify(title, body, tag) {
 }
 
 // ปุ่ม "ทดสอบ" ในแท็บฉัน — พิสูจน์ว่ามันเด้งจริงบนเครื่องนี้ ไม่ต้องรอถึงกำหนดส่ง
+// ทดสอบจากเซิร์ฟเวอร์จริง — ทางเดียวที่พิสูจน์ว่า "ปิดแอปแล้วยังเด้ง"
+// การ์ดจากในเครื่องพิสูจน์ได้แค่ว่าเครื่องแสดงการ์ดได้ ส่วนที่พังจริงทุกครั้งคือเส้นเซิร์ฟเวอร์ → เครื่อง
+// (กุญแจ VAPID ไม่ตรง · แถว subscription ถูกลบ · iPhone ที่ไม่ได้ติดตั้งแอป) · send-reminders { test: true }
+const SERVER_TEST_DELAY_S = 8;
+async function testServerPush() {
+  showToast({ title: 'กำลังส่งจากเซิร์ฟเวอร์…', body: 'รอสักครู่' });
+  let res = null, err = null;
+  try {
+    const r = await withTimeout(sb.functions.invoke('send-reminders', {
+      body: { test: true, delay: SERVER_TEST_DELAY_S } }), 15000, 'ทดสอบแจ้งเตือน');
+    res = r.data; err = r.error;
+  } catch (e) { err = e; }
+  if (err || !res) {
+    showToast({ title: 'ส่งจากเซิร์ฟเวอร์ไม่ได้', body: 'เน็ตหลุดหรือเซิร์ฟเวอร์ไม่ตอบ — ลองใหม่อีกครั้ง' });
+    return;
+  }
+  if (!res.devices) {
+    // แถวหาย (เซิร์ฟเวอร์ลบทิ้งเพราะส่งไม่ถึง) — สมัครใหม่ให้เลย แล้วให้กดใหม่
+    await subscribePush().catch(() => false);
+    showToast({ title: 'เครื่องนี้ยังไม่ได้ลงทะเบียน', body: 'ลงทะเบียนใหม่ให้แล้ว — กด "ทดสอบ" อีกครั้ง' });
+    return;
+  }
+  if (res.queued) {
+    showToast({ title: `จะเด้งใน ${res.delay} วินาที 🔔`,
+      body: 'ส่งจากเซิร์ฟเวอร์จริง — ปิดแอปหรือล็อกจอรอได้เลย' + (res.devices > 1 ? ` (${res.devices} เครื่อง)` : '') });
+    return;
+  }
+  showToast(res.ok
+    ? { title: 'ส่งจากเซิร์ฟเวอร์แล้ว ✅', body: `ถึง ${res.sent}/${res.devices} เครื่อง` }
+    : { title: 'เซิร์ฟเวอร์ส่งไม่ถึงเครื่องนี้', body: 'ลงทะเบียนใหม่ให้แล้วตอนเปิดแอปครั้งหน้า — ลองกดทดสอบอีกครั้ง' });
+}
+
 async function testNotify() {
   if (Notification.permission !== 'granted') { enableNotif(); return; }
+  if (pushState === 'on' && sb && currentUser) { testServerPush(); return; }
   const tag = 'studentos-alt-test';
   const ok = await notify('ทดสอบแจ้งเตือน 🔔',
     (who() ? who() + ' ' : '') + 'ถ้าเห็นข้อความนี้แปลว่าแจ้งเตือนใช้งานได้แล้ว', tag);
@@ -14864,16 +15438,53 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 })();
 
 // ============================================================
-// หัวฟอร์มเพิ่มงาน/ตรวจก่อนบันทึก — ชื่อจออยู่แค่บนสุด กากบาทลอยอยู่ซ้าย
+// หัวจอ — ชื่อจออยู่แค่บนสุด ปุ่มกลับ/กากบาทลอยตามจอตลอด
 // ============================================================
-// เจ้าของ: "มันอยู่แค่ข้างบน พอเลื่อนลงมาจะไม่เจอ ส่วนปุ่มกากบาทให้ไปอยู่ด้านซ้าย"
-// หัวจอติดขอบบน (sticky) และโปร่งใส — พอเลื่อนลง ชื่อจอเลยไปซ้อนกับแถวในฟอร์มที่ลอดขึ้นมา
-// .stuck (เลื่อนพ้นบนสุด) = ชื่อจอจางหาย เหลือปุ่มกากบาทลอยมุมซ้าย · CSS อยู่ท้าย alt.css
+// เริ่มที่ฟอร์มเพิ่มงาน (เจ้าของ: "มันอยู่แค่ข้างบน พอเลื่อนลงมาจะไม่เจอ ส่วนปุ่มกากบาทให้ไปอยู่ด้านซ้าย")
+// แล้วขยายเป็นทุกจอ (เจ้าของ: "ทำให้พวกปุ่มกากบาท ปุ่มออก ให้มันตามหน้าจอเหมือนในรูปนี้")
+// หัวจอติดขอบบน (sticky) และโปร่งใส — พอเลื่อนลง ชื่อจอจะไปซ้อนกับเนื้อหาที่ลอดขึ้นมา
+// .stuck (เลื่อนพ้นบนสุด) = ชื่อจอจางหาย เหลือปุ่มลอยมุมซ้าย · CSS อยู่ท้าย alt.css
+// ฟังที่ capture ของ document ทีเดียว (scroll ไม่ bubble แต่ capture ได้) — ครอบทุกจอรวมจอที่วาดหัวใหม่ด้วย JS
+// โดยไม่ต้องผูกตัวฟังทีละจอ · ตัวเลื่อนของจอพวกนี้คือ .screen เอง
 (function () {
-  const scr = document.getElementById('scr-form');
-  const head = scr && scr.querySelector('.fm-top');
-  if (!head) return;
-  const sync = () => head.classList.toggle('stuck', scr.scrollTop > 4);
-  scr.addEventListener('scroll', sync, { passive: true });
-  sync();
+  const HEAD = '.sticky-head, .fd-top';
+  document.addEventListener('scroll', e => {
+    const scr = e.target;
+    if (!(scr instanceof Element) || !scr.classList.contains('screen')) return;
+    const head = scr.querySelector(HEAD);
+    if (head) head.classList.toggle('stuck', scr.scrollTop > 4);
+  }, { capture: true, passive: true });
+})();
+
+// ============================================================
+// ท่าตอนเลือกแถวตัวเลือกในฟอร์ม (ประเภท · วิชา · กำหนดส่ง) — FeaturePoll (cult-ui · MIT)
+// ============================================================
+// เจ้าของส่ง FeaturePoll มาให้ใช้ท่าของมันในหน้านี้: แถวเป็นกรอบมน · วงกลมเติมสีแล้วเครื่องหมายถูกเด้งขึ้น
+// · สีจาง ๆ กวาดจากซ้ายไปขวาเต็มแถว (แถบผลโหวตของต้นฉบับ) · แถวเดิมจางออก
+// แถววิชาวันที่ถูกวาดใหม่ทั้งก้อนทุกครั้งที่แตะ (innerHTML) transition ของ CSS จึงไม่มีทางเล่น
+// ใช้คลาสท่าครั้งเดียว (.pk-in · .pk-out) ใส่ "หลัง" ตัวจัดการ onclick ของแถววิ่งจบ แทน
+// ดักที่ capture แล้วรอหนึ่งจังหวะ — ไม่ต้องแก้ onclick ทีละปุ่ม และไม่เล่นตอนเปิดฟอร์ม (เล่นเฉพาะตอนนิ้วแตะ)
+(function () {
+  const onIdx = box => [...box.children].findIndex(b => b.matches('.on, .active'));
+  const play = (el, c) => {
+    if (!el) return;
+    el.classList.remove('pk-in', 'pk-out');
+    void el.offsetWidth;
+    el.classList.add(c);
+    setTimeout(() => el.classList.remove(c), 700);
+  };
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('#scr-form .pick-rows > button');
+    if (!b) return;
+    const box = b.parentElement;
+    const was = onIdx(box);
+    setTimeout(() => {
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const kids = [...box.children];
+      const now = onIdx(box);
+      if (now < 0 || now === was) return;
+      play(kids[now], 'pk-in');
+      if (was >= 0) play(kids[was], 'pk-out');
+    }, 0);
+  }, true);
 })();
