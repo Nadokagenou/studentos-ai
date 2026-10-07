@@ -143,7 +143,8 @@ const HSFX = {
     g.gain.exponentialRampToValueAtTime(peak, t + a);
     g.gain.exponentialRampToValueAtTime(0.0001, t + a + d);
   },
-  tone(type, f0, f1, peak, a, d, delay = 0) {
+  // lp = กรองเสียงแหลมออก (ใช้กับคลื่นฟันเลื่อย ไม่งั้นแสบหู)
+  tone(type, f0, f1, peak, a, d, delay = 0, lp = 0) {
     const ac = this.ctx(); if (!ac) return;
     const t = ac.currentTime + delay;
     const o = ac.createOscillator(), g = ac.createGain();
@@ -151,7 +152,9 @@ const HSFX = {
     o.frequency.setValueAtTime(f0, t);
     if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + a + d);
     this.env(g, t, peak, a, d);
-    o.connect(g).connect(this.out);
+    let n = o;
+    if (lp) { const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = lp; n = o.connect(f); }
+    n.connect(g).connect(this.out);
     o.start(t); o.stop(t + a + d + 0.05);
   },
   noise(type, f0, f1, q, peak, a, d, delay = 0) {
@@ -164,50 +167,53 @@ const HSFX = {
     f.frequency.exponentialRampToValueAtTime(f1, t + a + d);
     this.env(g, t, peak, a, d);
     src.connect(f).connect(g).connect(this.out);
-    src.start(t); src.stop(t + a + d + 0.05);
+    // เริ่มจากจุดสุ่มในก้อนซ่า — เม็ดเสียงสั้น ๆ ที่ยิงถี่ (เสียงไม้ลั่น) จะได้ไม่ซ้ำกันเป๊ะจนฟังเป็นหุ่นยนต์
+    src.start(t, Math.random() * 0.8); src.stop(t + a + d + 0.05);
   },
 
-  // จับลูก — คลิกสั้น ๆ แบบหยิบกระดาษ
+  // ---------- ธนู ----------
+  // เจ้าของฟังเสียงยางยืดรุ่นแรก (ฟันเลื่อยเล่นค้าง) แล้วบอกว่า "แปลก ๆ ทำให้เหมือนดึงธนู"
+  // เสียงน้าวคันธนูจริงไม่ใช่โทนค้าง — มันคือ "ไม้ลั่นเอี๊ยด" เป็นเม็ด ๆ ถี่ขึ้นและแหลมขึ้นตามแรงตึง
+  // ปล่อยแล้วเป็น "ตึ๊ง" ของสายที่สั่นค้าง + ลูกศร "ฟิ้ว"
+
+  // แตะลูก = พาดลูกศรเข้าสาย — "ก๊อก" ไม้เบา ๆ
   grab() {
-    this.noise('bandpass', 2600, 1800, 1.2, 0.35, 0.004, 0.05);
-    this.tone('triangle', 420, 380, 0.12, 0.004, 0.06);
+    this.tone('sine', 240, 170, 0.16, 0.002, 0.07);
+    this.noise('bandpass', 1400, 1100, 4, 0.18, 0.002, 0.035);
+    this.draw = { last: 0, acc: 0, full: false };
   },
-  // ดึง — เสียงยางยืดที่สูงขึ้นตามระยะดึง เล่นค้างตลอดที่นิ้วยังกดอยู่
+  // ดึง — ไม้ลั่นเป็นเม็ดตามระยะที่นิ้วขยับ ไม่ใช่ตามเวลา: ดึงนิ่ง = เงียบ ดึงต่อ = ลั่นต่อ
   stretch(ratio) {
-    const ac = this.ctx(); if (!ac) return;
-    const t = ac.currentTime;
-    if (!this.str) {
-      const o = ac.createOscillator(), lfo = ac.createOscillator(), lg = ac.createGain();
-      const f = ac.createBiquadFilter(), g = ac.createGain();
-      o.type = 'sawtooth';
-      f.type = 'lowpass'; f.Q.value = 6;
-      lfo.frequency.value = 22; lg.gain.value = 6;   // สั่นนิด ๆ ให้เหมือนยางตึง ไม่ใช่เสียงนกหวีด
-      lfo.connect(lg).connect(o.frequency);
-      g.gain.value = 0.0001;
-      o.connect(f).connect(g).connect(this.out);
-      o.start(); lfo.start();
-      this.str = { o, lfo, f, g, tick: 0 };
-    }
+    if (!this.ctx()) return;
+    const dr = this.draw || (this.draw = { last: 0, acc: 0, full: false });
     const r = Math.max(0, Math.min(1, ratio));
-    this.str.o.frequency.setTargetAtTime(90 + r * 230, t, 0.03);
-    this.str.f.frequency.setTargetAtTime(500 + r * 1600, t, 0.03);
-    this.str.g.gain.setTargetAtTime(r < 0.05 ? 0.0001 : 0.025 + r * 0.06, t, 0.04);
-    // ติ๊กทุก ๆ 1/6 ของระยะดึง — รู้ว่าดึงไปแค่ไหนแล้วโดยไม่ต้องมองเส้นจุด
-    const step = Math.floor(r * 6);
-    if (step > this.str.tick) this.tone('square', 900 + step * 120, 900 + step * 120, 0.05, 0.002, 0.025);
-    this.str.tick = step;
+    const d = r - dr.last;
+    dr.last = r;
+    dr.acc += Math.abs(d) * (d < 0 ? 0.5 : 1);      // ผ่อนสายกลับลั่นเบากว่าน้าว
+    let n = 0;
+    while (dr.acc >= 0.045 && n < 3) {
+      dr.acc -= 0.045; n++;
+      const f = 650 + r * 1100 + Math.random() * 180;
+      this.noise('bandpass', f, f * 0.9, 8, 0.45 + r * 0.6, 0.002, 0.03 + Math.random() * 0.02, n * 0.012);
+      this.tone('sine', f / 2, f / 2.1, 0.04 + r * 0.07, 0.002, 0.04, n * 0.012);
+    }
+    // น้าวสุด — คันธนูครางต่ำหนึ่งที บอกว่า "แรงสุดแล้ว ดึงต่อไม่ได้แรงเพิ่ม"
+    if (r >= 0.97 && !dr.full) {
+      dr.full = true;
+      this.tone('sawtooth', 96, 90, 0.07, 0.03, 0.22, 0, 500);
+      this.noise('bandpass', 900, 700, 10, 0.12, 0.003, 0.05, 0.02);
+    }
+    if (r < 0.9) dr.full = false;
   },
-  release() {
-    if (!this.str || !this.ac) return;
-    const { o, lfo, g } = this.str, t = this.ac.currentTime;
-    g.gain.setTargetAtTime(0.0001, t, 0.02);
-    o.stop(t + 0.15); lfo.stop(t + 0.15);
-    this.str = null;
-  },
-  // ปล่อย — ดีดยาง + ลมพุ่ง แรงตามแรงที่ดึง
+  release() { this.draw = null; },
+  // ปล่อย — สายธนูดีด "ตึ๊ง" (สองเสียงเพี้ยนกันนิดเดียว = สายสั่นค้าง) + ลูกศร "ฟิ้ว"
   whoosh(power) {
-    this.tone('sine', 260 + power * 120, 120, 0.22, 0.003, 0.09);
-    this.noise('bandpass', 700 + power * 1500, 260, 1.4, 0.18 + power * 0.25, 0.04, 0.38 + power * 0.2);
+    const f = 118 + power * 46;
+    this.tone('triangle', f, f * 0.93, 0.26, 0.002, 0.5);
+    this.tone('triangle', f * 1.012, f * 0.94, 0.16, 0.002, 0.42);
+    this.tone('sine', f * 2.01, f * 1.9, 0.08, 0.002, 0.22);
+    this.noise('lowpass', 1200, 500, 1, 0.3, 0.001, 0.05);              // "แปะ" สายตบข้อมือ
+    this.noise('bandpass', 3800, 700, 2.5, 0.16 + power * 0.2, 0.012, 0.26 + power * 0.12, 0.025);
   },
   // ชนขอบ — เหล็กดัง "แกร๊ง" (โอเวอร์โทนไม่ลงตัวกัน = เสียงโลหะ)
   rim(hard) {
@@ -228,10 +234,14 @@ const HSFX = {
       this.tone('sine', f * 2, f * 2, 0.04, 0.006, 0.25, 0.14 + i * 0.085);
     });
   },
-  // ไม่ลง — "ปู๊ว" ต่ำลงนุ่ม ๆ ไม่ใช่เสียงตำหนิ (งานเสร็จไปแล้วจริง ๆ)
+  // ไม่ลง — ลูกตกพื้น "ตุ้บ ตุ้บ" แล้ว "แป่ว แป๊ว" สองโน้ตลง
+  // รุ่นแรกเป็น "ปู๊ว" เบา ๆ จนเจ้าของไม่ได้ยิน — ต้องชัดพอให้รู้ว่าพลาด
+  // แต่ยังเป็นเสียงขำ ๆ ไม่ใช่ออดตำหนิ เพราะงานเสร็จไปแล้วจริง ไม่มีอะไรเสีย
   miss() {
-    this.tone('triangle', 330, 196, 0.12, 0.01, 0.32);
-    this.tone('triangle', 247, 147, 0.08, 0.01, 0.36, 0.12);
+    this.tone('sine', 140, 62, 0.4, 0.003, 0.14);
+    this.tone('sine', 120, 60, 0.22, 0.003, 0.1, 0.15);
+    this.tone('sawtooth', 392, 375, 0.32, 0.015, 0.2, 0.26, 1600);
+    this.tone('sawtooth', 311, 262, 0.34, 0.015, 0.48, 0.48, 1300);
   },
   // ลูกกลับมาที่จุดโยน — ป๊อป
   pop() { this.tone('sine', 380, 760, 0.12, 0.004, 0.08); },
@@ -529,7 +539,8 @@ function missHoop(run) {
   if (run.tries === HOOP.HINT_AFTER) setTimeout(() => {
     if (hoopRun === run && !run.done) say(run, 'ใบ้ให้แล้ว — ดูเส้นจุดตอนดึง');
   }, 1600);
-  setTimeout(() => { if (hoopRun === run && !run.done) resetBall(run, false); }, 420);
+  // 900ms: ให้ "แป่ว แป๊ว" จบก่อนลูกเด้งกลับ ไม่งั้นเสียงป๊อปทับโน้ตสุดท้าย
+  setTimeout(() => { if (hoopRun === run && !run.done) resetBall(run, false); }, 900);
 }
 
 function scoreHoop(run) {
