@@ -320,7 +320,6 @@ function renderMates() {
         <label for="epName">ชื่อ</label>
         <input id="epName" type="text" maxlength="40" value="${esc(myName2)}"
                placeholder="ชื่อที่เพื่อนเรียกคุณ" oninput="epDirty()">
-        <p class="ep-hint">เพื่อนเห็นชื่อนี้ทุกที่ในแอป — เปลี่ยนได้ตลอด</p>
       </div>
 
       <!-- ---------- ชื่อผู้ใช้ ---------- -->
@@ -332,7 +331,6 @@ function renderMates() {
                  autocapitalize="off" spellcheck="false"
                  placeholder="beam4_16" oninput="epDirty()">
         </div>
-        <p class="ep-hint">นี่คือสิ่งที่เพื่อนใช้ค้นหาคุณ · ใช้ a-z 0-9 กับ _ ได้</p>
       </div>
 
       <!-- ---------- แนะนำตัว ---------- -->
@@ -344,40 +342,32 @@ function renderMates() {
         <span class="ep-count" id="epCount">${(s.bio || '').length} / 80</span>
       </div>
 
-      <!-- ---------- ช่วงชั้น ---------- -->
-      <div class="ep-f">
+      <!-- ---------- ช่วงชั้น + วิชา ----------
+           เจ้าของ: "ลบตรงที่วงกลมสีฟ้าออก แล้วปรับให้ดูง่ายและไม่รกตา"
+           สามช่องนี้เคยโผล่ทุกครั้งแม้ใช้ไม่ได้ แล้วเต็มไปด้วยประโยคอธิบายว่าทำไมใช้ไม่ได้
+           ("เข้าบัญชีก่อน…" · "ยังไม่มีวิชาให้เลือก…") — ตอนนี้โผล่เฉพาะตอนมีอะไรให้เลือกจริง
+           คำใบ้ใต้ชื่อกับชื่อผู้ใช้ก็ถอดออก · ช่องนั้นอธิบายตัวเองด้วยป้ายกับตัวอย่างในช่องแล้ว -->
+      ${currentUser && cohortReady ? `<div class="ep-f">
         <label>ตอนนี้เรียนอยู่ช่วงไหน</label>
-        ${currentUser && cohortReady ? `<div class="ep-chips">
+        <div class="ep-chips">
           ${GRADE_BANDS.map(g => `<button class="ep-chip${cohort.grade === g ? ' on' : ''}"
             onclick="setCohort('${g}')">${g}</button>`).join('')}
         </div>
-        <p class="ep-hint">${cohort.grade
-          ? 'ใช้จับคู่กับคนที่เรียนเรื่องเดียวกันทั้งประเทศ'
-          : 'ยังไม่ได้เลือก — แท็บ "ประเทศ" ในฟีดจะยังว่างอยู่'}</p>`
-        : '<p class="ep-hint">เข้าบัญชีก่อนถึงจะตั้งได้</p>'}
-      </div>
+      </div>` : ''}
 
-      <!-- ---------- วิชา ----------
-           id ตรงนี้คือจุดหมายของแถว "วิชาของฉัน" ในแท็บ "ฉัน" (1B95)
-           แถวนั้นพาคนมาที่บล็อกนี้โดยตรง ไม่ใช่หัวฟอร์ม จึงไม่ใช่ทางเข้าซ้ำ
-           กับปุ่ม "แก้ไขโปรไฟล์" ที่ลงจอเดียวกันแต่เริ่มอ่านจากบนสุด -->
-      <div class="ep-f" id="epSubj">
+      <!-- id="epSubj" คือจุดหมายของแถว "วิชาของฉัน" ในแท็บ "ฉัน" (1B95)
+           ไม่มีวิชาให้เลือก = ไม่มีบล็อกนี้ · openMySubjects() บอกเหตุผลเป็น toast แทน -->
+      ${known.length ? `<div class="ep-f" id="epSubj">
         <label>วิชาที่ช่วยเพื่อนได้</label>
-        <div class="so-chips row">
-          ${known.length ? known.map(n => chip(n, 'good', c.strong.includes(n))).join('')
-                         : '<span class="so-none">ยังไม่มีวิชาให้เลือก — เพิ่มงานสักสองสามชิ้นก่อน</span>'}
-        </div>
+        <div class="so-chips row">${known.map(n => chip(n, 'good', c.strong.includes(n))).join('')}</div>
       </div>
       <div class="ep-f">
         <label>วิชาที่อยากให้ใครมาช่วย</label>
-        <div class="so-chips row">
-          ${known.length ? known.map(n => chip(n, 'need', c.weak.includes(n))).join('') : ''}
-        </div>
-        ${c.confirmed ? '' : '<p class="ep-hint">แอปเดาให้จากงานที่ผ่านมา — แตะเพื่อแก้ได้</p>'}
-      </div>
+        ${c.confirmed ? '' : '<span class="ep-count">แอปเดาให้</span>'}
+        <div class="so-chips row">${known.map(n => chip(n, 'need', c.weak.includes(n))).join('')}</div>
+      </div>` : ''}
 
-      <p class="ep-fine">${icon('lock')}เพื่อนเห็นแค่ชื่อ รูป และสองแถววิชานี้ —
-        งานกับตารางเรียนไม่ได้ส่งขึ้นไป</p>
+      <p class="ep-fine">${icon('lock')}เพื่อนเห็นแค่ชื่อ รูป แนะนำตัว และวิชาที่เลือก · งานกับตารางเรียนไม่ได้ส่งขึ้นไป</p>
 
       <!-- ปุ่มเดียว เขียนว่า "บันทึก" ตรง ๆ · ของเดิมเขียนว่า "เผยแพร่"
            ซึ่งฟังดูเหมือนทำอย่างอื่นที่ไม่ใช่การบันทึกสิ่งที่เพิ่งพิมพ์ไป -->
