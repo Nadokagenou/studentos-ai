@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C48';                 // สายเลขของแอป
+const APP_VERSION = '1C49';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -1108,6 +1108,7 @@ function go(id) {
   clearTimeout(enterTimer);
   scr.classList.add('just-in');
   enterTimer = setTimeout(() => scr.classList.remove('just-in'), 520);
+  growBars(scr);
   // ซ่อนแถบล่างในจอที่ยังไม่ได้เข้าแอปจริง (บัญชี / ทำความรู้จัก)
   document.body.classList.toggle('login-mode', id === 'scr-login' || id === 'scr-onboard');
   // ปุ่มช่องทางล็อกอินวาดด้วย JS (รายชื่อมาจาก config) และต้องรีเซ็ตกลับหน้าแรกของมัน
@@ -1146,6 +1147,9 @@ function go(id) {
   // และเพื่อนไม่ใช่คำตอบของ "ตอนนี้ควรทำอะไร" · ทางเข้ายังอยู่ครบสองที่ในแท็บ "ฉัน"
   document.body.classList.toggle('home-scr', id === 'scr-menu');
   document.body.classList.toggle('ai-scr', id === 'scr-ai');
+  // เข้าจอน้องไซ = เห็นข้อความล่าสุดเลย (เจ้าของ: "เมื่อกดเข้ามา ให้มาเห็นตรงแชทล่าสุดที่คุยกัน")
+  // ตอนจอยังซ่อนวัดความสูงไม่ได้ จึงเลื่อนหลังจอโผล่ แล้วซ้ำอีกทีหลังจังหวะเข้าจอ เผื่อรูปโหลดทีหลัง
+  if (id === 'scr-ai') { requestAnimationFrame(aiScrollDown); setTimeout(aiScrollDown, 360); }
   // ฟีดมีปุ่มของตัวเองบนหัวจอแล้ว — ปุ่มเพื่อนลอยมุมขวาบนของแอปจึงต้องหลบ
   // ไม่งั้นสองปุ่มนั่งทับกันพอดี แล้วกดโดนตัวที่ไม่ได้ตั้งใจ
   document.body.classList.toggle('mates-scr', id === 'scr-mates');
@@ -1536,6 +1540,8 @@ function renderLoginCopy() {
     : 'จัดคิวงานให้เอง รู้ว่าควรทำอะไรก่อน';
 }
 
+const GOOGLE_LOGO = '<svg class="g-logo" viewBox="0 0 256 262" aria-hidden="true"><path fill="#4285F4" d="M255.878 133.451c0-10.734-.871-18.567-2.756-26.69H130.55v48.448h71.947c-1.45 12.04-9.283 30.172-26.69 42.356l-.244 1.622 38.755 30.023 2.685.268c24.659-22.774 38.875-56.282 38.875-96.027"/><path fill="#34A853" d="M130.55 261.1c35.248 0 64.839-11.605 86.453-31.622l-41.196-31.913c-11.024 7.688-25.82 13.055-45.257 13.055-34.523 0-63.824-22.773-74.269-54.25l-1.531.13-40.298 31.187-.527 1.465C35.393 231.798 79.49 261.1 130.55 261.1"/><path fill="#FBBC05" d="M56.281 156.37c-2.756-8.123-4.351-16.827-4.351-25.82 0-8.994 1.595-17.697 4.206-25.82l-.073-1.73L15.26 71.312l-1.335.635C5.077 89.644 0 109.517 0 130.55s5.077 40.905 13.925 58.602l42.356-32.782"/><path fill="#EB4335" d="M130.55 50.479c24.514 0 41.05 10.589 50.479 19.438l36.844-35.974C195.245 12.91 165.798 0 130.55 0 79.49 0 35.393 29.301 13.925 71.947l42.211 32.783c10.59-31.477 39.891-54.251 74.414-54.251"/></svg>';
+
 function renderLoginOpts() {
   const el = document.getElementById('loginOpts');
   if (!el) return;
@@ -1578,8 +1584,10 @@ function renderLoginOpts() {
   const rest = provs.slice(1);
   const mainBtn = first ? (() => {
     const m = OAUTH_META[first];
+    // 8 ต.ค. 69 · Google ใช้โลโก้ G สี่สีของจริง (จากเดโม TextureCard ที่เจ้าของส่งมา) แทนตัว G ในวงกลม
+    const badge = first === 'google' ? GOOGLE_LOGO : `<span class="g-badge">${m.badge}</span>`;
     return `<button class="btn ${m.cls} lg-main" onclick="loginWith('${first}')">
-      <span class="g-badge">${m.badge}</span> เข้าสู่ระบบด้วย ${m.name}</button>`;
+      ${badge} เข้าสู่ระบบด้วย ${m.name}</button>`;
   })() : '';
   // ไม่มีเจ้าอื่นเปิดใช้ = ไม่ต้องมีหัวข้อ "หรือเข้าด้วย" กับแถวว่าง ๆ ใต้ปุ่ม
   //
@@ -1981,7 +1989,7 @@ function overdueFor(ms) {
 function inboxTile() {
   const wait = typeof inboxPending === 'function' ? inboxPending().length : 0;
   return `<button class="mtile wide tone-inbox" onclick="go('scr-inbox')">
-    <span class="mt-ic">${icon('chat')}</span>
+    <span class="mt-ic">${icon('inbox')}</span>
     <span class="mt-tx"><span class="mt-lb">กล่องเข้า</span>
       <span class="mt-sub">ข้อความจาก LINE ที่รอตรวจ</span></span>
     <span class="mt-ct${wait ? ' hot' : ''}">${wait}</span>
@@ -2332,9 +2340,14 @@ function nowCard(sp, now) {
     // เป็นบรรทัดเงียบ ๆ ไม่ใช่ปุ่ม เพราะการ์ดใบนี้มีจุดโฟกัสได้จุดเดียว (ดู 1B24 ข้างบน)
     // และจุดนั้นคือปุ่ม "เริ่มทำเลย" · คนที่ไม่สงสัยไม่ต้องเห็นอะไรเพิ่ม
     // คนที่สงสัยว่า "ทำไมใบนี้" จะหาเจอตรงที่คำถามเกิดพอดี
-    whyGo: `<button class="tn-why-go" onclick="go('scr-why')">
-        ทำไมอันนี้ก่อน${icon('chevron')}
-      </button>`,
+    // 7 ต.ค. 69 · เจ้าของ: "ปรับหน่อย และเอาไปให้อยู่บนปุ่มสามปุ่ม" — เดิมเป็นแถวเต็มกว้างมีเส้นคั่นอยู่ใต้ปุ่ม
+    // ตอนนี้เป็นแคปซูลเล็กเหนือแถวปุ่ม (ลำดับใน NOW_PARTS) · ยังเบากว่าปุ่ม "เริ่มทำเลย" หนึ่งระดับเสมอ
+    // แล้วต่อมา: "ลบดาวหน้าทำไม แล้วเอาหน้านี้ไปไว้บนสามปุ่ม" — ไม่พาไปจอ "ทำไมอันนี้ก่อน" แล้ว
+    // แตะ = กางเนื้อหาของจอนั้นลงในการ์ดตรงนี้ (เวลาที่ต้องใช้ · เริ่มช้าสุด · เหตุผล) แตะอีกที = พับ
+    // จอเต็มยังอยู่ที่ลิงก์ท้ายแผง เพราะการเทียบกับงานอื่นยาวเกินจะยัดลงการ์ด
+    whyGo: `<button class="tn-why-go${NOW_WHY_OPEN ? ' open' : ''}" aria-expanded="${NOW_WHY_OPEN}"
+        onclick="toggleNowWhy(this)">ทำไมอันนี้ก่อน${icon('chevron')}</button>
+      <div class="tn-why-pane${NOW_WHY_OPEN ? ' open' : ''}"><div class="tn-why-in">${nowWhyHTML(t, now)}</div></div>`,
   };
 
   const head = partsHtml('now', NOW_PARTS, 'head', P);
@@ -2344,6 +2357,41 @@ function nowCard(sp, now) {
     <div class="tn-head">${head}</div>
     <div class="tn-body">${body}</div>
   </section>`;
+}
+
+// ---------- แผง "ทำไมอันนี้ก่อน" ในการ์ด "ตอนนี้" ----------
+// เนื้อหาชุดเดียวกับหัวจอ scr-why (renderWhy) — ตัวเลขสองช่อง + เหตุผลชุดเดียวกับดาวความสำคัญ
+// เปิด/พับจำไว้ในตัวแปร เพราะ renderMenu วาดการ์ดใหม่ทุกนาที แผงที่เปิดอยู่ต้องไม่พับเอง
+let NOW_WHY_OPEN = false;
+
+function nowWhyHTML(t, now) {
+  const r = typeof riskFor === 'function' ? riskFor(t, now) : null;
+  const need = r && r.needMin ? r.needMin
+    : Math.max(5, Math.round((t.estMin || 30) * (1 - (t.progress || 0) / 100)));
+  const pnr = r && r.pnr ? new Date(r.pnr) : null;
+  const due = t.due ? new Date(t.due) : null;
+  const late = due && due < now;
+  const stat2 = late ? null
+    : pnr ? [fmtClock(pnr), whyDayWord(pnr, now) + ' · เริ่มช้าสุด']
+    : due ? [fmtClock(due), whyDayWord(due, now) + ' · กำหนดส่ง'] : null;
+  const rs = priorityInfo(t, now).reasons.map(x => String(x).replace(/^⚠\s*/, ''));
+  return `<div class="tw-stats">
+      <div><b>${humanMin(need)}</b><span>ที่ต้องใช้</span></div>
+      ${stat2 ? `<div><b>${esc(stat2[0])}</b><span>${esc(stat2[1])}</span></div>` : ''}
+    </div>
+    ${rs.length ? `<ul class="tw-rs">${rs.map(x => `<li>${icon('check')}<span>${esc(x)}</span></li>`).join('')}</ul>` : ''}
+    <button class="tw-more" onclick="go('scr-why')">เทียบกับงานอื่นทั้งหมด${icon('chevron')}</button>`;
+}
+
+function toggleNowWhy(btn) {
+  NOW_WHY_OPEN = !NOW_WHY_OPEN;
+  const card = btn.closest('.td-now');
+  if (!card) return;
+  btn.classList.toggle('open', NOW_WHY_OPEN);
+  btn.setAttribute('aria-expanded', NOW_WHY_OPEN);
+  const pane = card.querySelector('.tn-why-pane');
+  if (pane) pane.classList.toggle('open', NOW_WHY_OPEN);
+  if (typeof haptic === 'function') haptic('arm');
 }
 
 // ---------- ทะเบียนชิ้นส่วนของการ์ด "ตอนนี้" ----------
@@ -2358,9 +2406,9 @@ const NOW_PARTS = [
   { id: 'route',    zone: 'head', lock: false },
   { id: 'why',      zone: 'head', lock: false },
   { id: 'progress', zone: 'body', lock: false },
+  { id: 'whyGo',    zone: 'body', lock: false },   // เหนือแถวปุ่ม (7 ต.ค. 69 · เจ้าของสั่ง)
   { id: 'actions',  zone: 'body', lock: true  },
   { id: 'askDue',   zone: 'body', lock: false },
-  { id: 'whyGo',    zone: 'body', lock: false },
 ];
 // ---------- ตัวช่วยกลางของทุกการ์ดที่จัดชิ้นส่วนได้ ----------
 // กฎเดียวกับ homeLayout() ทุกข้อ · เขียนครั้งเดียวแล้วให้ทุกการ์ดใช้ร่วมกัน
@@ -2606,13 +2654,14 @@ function toolsGrid() {
     ['users', 'เพื่อนฉัน', 'in', "openFeed('friends')", reqs || '', true, 'social'],
     // ต้องเรียก openTtScan() ไม่ใช่ go() — จอนี้วาดจาก renderTtScan() ทั้งจอ
     // go() เฉย ๆ จึงเปิดมาเจอจอเปล่า (เจ้าของส่งภาพมา 20 ก.ย. 2569)
-    ['book', 'สแกนตารางเรียน', 'in', "openTtScan()", noCtx ? '!' : '', true, 'ttscan'],
-    ['sparkles', 'แผนวันนี้', 'time', "go('scr-plan')", '', false],
+    // 8 ต.ค. 69 · ไอคอนไทล์ตรงกับป้ายแล้ว (เจ้าของ: "เปลี่ยนหน้าปกให้ตรงกับหัวข้องาน") — ดูชุดใหม่ใน index.html (#lu-plan …)
+    ['scan', 'สแกนตารางเรียน', 'in', "openTtScan()", noCtx ? '!' : '', true, 'ttscan'],
+    ['plan', 'แผนวันนี้', 'time', "go('scr-plan')", '', false],
     // 1B47 · ไทล์ "ปฏิทินเดือน" ถูกถอดออก — เจ้าของเลือก "ตัดปฏิทินได้เลย"
     // ที่ว่างคืนให้ "กล่องเข้า" ซึ่งเป็นทางเข้าที่มีของรออยู่จริงและหายากกว่า
-    ['unplug', 'กล่องเข้า', 'time', "go('scr-inbox')",
+    ['inbox', 'กล่องเข้า', 'time', "go('scr-inbox')",
       (typeof inboxPending === 'function' ? inboxPending().length : 0) || '', true],
-    ['flame', 'สถิติ', 'me', "go('scr-stats')", '', false],
+    ['chart', 'สถิติ', 'me', "go('scr-stats')", '', false],
     ['medal', 'ของสะสม', 'me', "go('scr-badges')", '', false],
     ['bag', 'ร้านค้า', 'me', "go('scr-shop')", gift ? ' ' : '', true, 'shop'],
   ].filter(t => !t[6] || typeof sosFeature !== 'function' || sosFeature(t[6]));
@@ -2657,8 +2706,27 @@ function askBar() {
     <input id="hmAsk" class="tk-in" type="text" maxlength="500" enterkeyhint="send"
       placeholder="${esc(typeof sosText === 'function' ? sosText('askPh', 'ถามน้องไซ…') : 'ถามน้องไซ…')}"
       onkeydown="if(event.key==='Enter'){event.preventDefault();homeAsk();}">
-    <button class="tk-go" onclick="homeAsk()" aria-label="ส่งคำถาม">${icon('chevron')}</button>
+    <!-- 8 ต.ค. 69 · ปุ่มล้างแบบ HaloSearchInput (เจ้าของส่งเดโมมา: "ใช้ในหน้านี้") — โผล่เมื่อมีตัวหนังสือ · ตัวอักษรปลิวออกก่อนช่องว่าง -->
+    <button class="ha-x" type="button" onclick="homeAskClear()" aria-label="ล้างข้อความ"><svg viewBox="0 0 24 24" aria-hidden="true"
+      fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7 7l10 10M17 7 7 17"/></svg></button>
+    <button class="tk-go" onclick="homeAsk()" aria-label="ส่งคำถาม"><svg class="ha-up" viewBox="0 0 24 24" aria-hidden="true"
+      fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
   </section>`;
+}
+
+// ปุ่ม × ในช่องถามน้องไซ — ตัวอักษรในชั้นเงา (.ha-line) ปลิวขึ้นหายทีละตัวจากท้ายมาหน้า แล้วค่อยล้างช่องจริง
+// (แบบ deletion animation ของ HaloSearchInput) · ตั้งลดการเคลื่อนไหว = ล้างทันที
+function homeAskClear() {
+  const box = document.getElementById('hmAsk');
+  if (!box || !box.value) return;
+  const line = document.querySelector('.td-ask .ha-line');
+  const spans = line ? [...line.children] : [];
+  const done = () => { box.value = ''; box.focus(); };
+  if (!spans.length || matchMedia('(prefers-reduced-motion: reduce)').matches) return done();
+  const n = spans.length;
+  spans.forEach((s, i) => { s.style.animationDelay = Math.min(220, (n - 1 - i) * 14) + 'ms'; s.className = 'out'; });
+  if (typeof haptic === 'function') haptic('arm');
+  setTimeout(done, Math.min(220, (n - 1) * 14) + 260);
 }
 
 function homeAsk() {
@@ -2798,7 +2866,7 @@ const STAT_ART = {
   </svg>`,
   streak: `<svg viewBox="0 0 24 24" aria-hidden="true"><g class="ts-flame">
     <path d="M12 2.6c1 3.7 5.8 6.1 5.8 11.4a5.8 5.8 0 0 1-11.6 0c0-2.9 1.4-4.6 2.9-5.8 0 1.9 1 3.1 1.9 3.5-.5-3.5 0-6.6 1-9.1Z" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-    <path d="M12 11.6c.6 1.9 2.7 2.8 2.7 5a2.7 2.7 0 0 1-5.4 0c0-1.2.5-2 1.2-2.5.1.7.5 1.2.9 1.4-.2-1.4.1-2.7.6-3.9Z" fill="currentColor"/>
+    <path d="M12 11.6c.6 1.9 2.7 2.8 2.7 5a2.7 2.7 0 0 1-5.4 0c0-1.2.5-2 1.2-2.5.1.7.5 1.2.9 1.4-.2-1.4.1-2.7.6-3.9Z" style="fill: var(--ts-c2, currentColor)"/>
   </g></svg>`,
 };
 
@@ -2869,7 +2937,11 @@ const HOME_BLOCKS = {
 // 1C40 · การ์ดน้องไซ (saiHero) ย้ายขึ้นไปอยู่ใต้คำทักทาย เหนือแถวตัวเลข — เจ้าของสั่ง "เอาไปไว้ข้างบน"
 // ค่าตั้งหน้าแรกที่บันทึกไว้ใน Control Center ยังไม่มีบล็อกนี้ homeLayout() จึงแทรกตามลำดับในนี้
 // (ต่อหลังบล็อกที่มาก่อนมันใน HOME_ORDER) · ถ้าวันหนึ่งจัดลำดับใน Control Center แล้วรวมบล็อกนี้ด้วย ค่านั้นชนะ
-const HOME_ORDER = ['todayHead', 'saiHero', 'todayStats', 'askBar', 'nowCard', 'dayRail', 'hwNowBlock', 'toolsGrid'];
+// 7 ต.ค. 69 · การ์ด "ตอนนี้" ขึ้นไปบนสุด ใต้หัวจอทักทาย เหนือการ์ดน้องไซ — เจ้าของ: "เอามาไว้ตามลูกศรที่ชี้" แล้ว "เอามาไว้บนสุดเลย"
+// คำตอบว่า "ทำอะไรตอนนี้" คือสิ่งที่แอปขาย จึงต้องเป็นของแรกที่ตาเจอ · หัวจอ (โลโก้ · คำทัก · กระดิ่ง) ยังอยู่บนสุดของจอ
+// แล้วแถวตัวเลข (เวลาว่าง · งานค้าง · วันต่อเนื่อง) ตามขึ้นมาอยู่ใต้การ์ด "ตอนนี้" — เจ้าของวาดลูกศรอีกรอบ
+// (ต้องตรงกับ home.blocks ใน remote-config.js — saiHero ไม่อยู่ในค่านั้น homeLayout() แทรกต่อหลัง todayStats ตามลำดับนี้)
+const HOME_ORDER = ['todayHead', 'nowCard', 'todayStats', 'saiHero', 'askBar', 'dayRail', 'hwNowBlock', 'toolsGrid'];
 
 // QA 6 ต.ค. 69 · แถบตัวเลขปิดไว้เป็นค่าเริ่มต้น — "ว่าง 45 นาที · ค้าง 1 งาน" บนหัวจอพูดเลขชุดเดียวกันอยู่แล้ว
 // สองช่องซ้ำกันกิน 125px ที่ทำให้หน้าแรกล้นจอ 375×812 จนกริดไทล์จมใต้แถบล่าง (ผิดกฎ "หน้าแรกไม่ต้องเลื่อน")
@@ -3321,7 +3393,7 @@ function closeAiHub() {
 const AI_HUB_TOOLS = [
   ['book', 'ช่วยการบ้าน', 'อธิบายทีละขั้น ไม่เฉลยให้ลอก',
     "aiHubAsk('อธิบายการบ้านที่ค้างอยู่ให้เข้าใจหน่อย ผมยังไม่รู้จะเริ่มตรงไหน')"],
-  ['calendar', 'วางแผนเวลา', 'จัดวันนี้ให้ · คิดในเครื่อง ไม่กินโควตา',
+  ['plan', 'วางแผนเวลา', 'จัดวันนี้ให้ · คิดในเครื่อง ไม่กินโควตา',
     "closeAiHub();go('scr-plan')"],
   ['type', 'สรุป · ช่วยเรียน', 'ย่อบทเรียน ทำชุดทบทวนก่อนสอบ',
     "aiHubAsk('ช่วยสรุปเนื้อหาที่ต้องอ่านสำหรับสอบให้หน่อย')"],
@@ -3398,7 +3470,7 @@ function briefCard(pending, now) {
   return `<div class="brief">
     <div class="brief-head"><span class="brief-mark">${icon('sparkles')}</span><b>STUDENTOS AI</b></div>
     <p class="brief-body">${msg}</p>
-    <button class="brief-cta" onclick="go('scr-plan')">${icon('calendar')}ให้ AI วางแผนเวลาวันนี้</button>
+    <button class="brief-cta" onclick="go('scr-plan')">${icon('plan')}ให้ AI วางแผนเวลาวันนี้</button>
   </div>`;
 }
 
@@ -4316,7 +4388,7 @@ function aiRevealDone(el) {
   delete el.dataset.n;
   el.innerHTML = aiFmt(r.full);
   if (r.i >= 0 && !el.nextElementSibling) el.insertAdjacentHTML('afterend', `<div class="am-act">
-    <button onclick="aiCopy(${r.i})" aria-label="คัดลอกคำตอบ">${icon('copy')}</button>
+    <button class="cpb" onclick="aiCopy(${r.i}, this)" aria-label="คัดลอกคำตอบ">${AI_COPY_IC}</button>
   </div>`);
 }
 
@@ -4883,7 +4955,7 @@ function renderAi() {
          ${saiHead}
          <div class="am-text${m.err ? ' err' : ''}">${m.err ? esc(m.text) : aiFmt(m.text)}</div>
          ${m.err ? '' : `<div class="am-act">
-           <button onclick="aiCopy(${i})" aria-label="คัดลอกคำตอบ">${icon('copy')}</button>
+           <button class="cpb" onclick="aiCopy(${i}, this)" aria-label="คัดลอกคำตอบ">${AI_COPY_IC}</button>
          </div>`}
        </div>`;
   }).join('');
@@ -4950,7 +5022,15 @@ function renderAi() {
   // ซึ่งเป็นที่ที่บังคับใช้ได้จริง ต่างจากข้อความบนจอที่เป็นแค่คำประกาศ
   // ส่วนความโปร่งใสยังอยู่ที่ปุ่ม "ดูว่าเห็นอะไร" เหนือบทสนทนา ซึ่งเปิดดูของจริงได้
 
+  // 8 ต.ค. 69 · เจ้าของ: "เมื่อกดเข้ามา ให้มาเห็นตรงแชทล่าสุดที่คุยกัน"
+  // วาดใหม่ทั้งก้อน = กล่องบทสนทนาใหม่เริ่มที่บนสุดเสมอ · renderAll() เรียกจอนี้ทุกครั้งที่ข้อมูลเปลี่ยน
+  // จึงจำตำแหน่งเดิมไว้: อยู่ล่างสุด (หรือยังไม่เคยวาด) = ไปล่างสุด · เลื่อนขึ้นไปอ่านอยู่ = คืนที่เดิม ไม่ดึงลง
+  const oldTh = el.querySelector('.ai-thread');
+  const stick = !oldTh || oldTh.scrollHeight - oldTh.scrollTop - oldTh.clientHeight < 80;
+  const oldTop = oldTh ? oldTh.scrollTop : 0;
   el.innerHTML = head + thread + quick + bar;
+  const th = el.querySelector('.ai-thread');
+  if (th) th.scrollTop = stick ? th.scrollHeight : oldTop;
   sgaMount();
 }
 
@@ -4985,10 +5065,21 @@ function aiFmt(text) {
   return out.join('');
 }
 
-function aiCopy(i) {
+// ปุ่มคัดลอกแบบ CopyButton ของ animate-ui (เจ้าของส่งโค้ดมา) — ไอคอนสองตัวซ้อนกันในปุ่มเดียว
+// กดแล้วรูปคัดลอกหมุนหายไป เครื่องหมายถูกเด้งขึ้นแทนหนึ่งจังหวะครึ่ง แล้วสลับกลับ
+// ตัวปุ่มบอกผลเองแล้ว จึงไม่ต้องมี toast "คัดลอกแล้ว" ซ้อนอีก · คัดลอกไม่ได้ยังขึ้น toast เหมือนเดิม
+const AI_COPY_IC = `<span class="cpb-a">${icon('copy')}</span><span class="cpb-b">${icon('check')}</span>`;
+function aiCopy(i, btn) {
   const m = aiLog()[i];
   if (!m) return;
-  const done = () => { haptic('arm'); showToast({ title: 'คัดลอกแล้ว', body: 'วางที่ไหนก็ได้เลย' }); };
+  const done = () => {
+    haptic('arm');
+    if (!btn) { showToast({ title: 'คัดลอกแล้ว', body: 'วางที่ไหนก็ได้เลย' }); return; }
+    btn.classList.add('ok');
+    btn.setAttribute('aria-label', 'คัดลอกแล้ว');
+    clearTimeout(btn.__cpT);
+    btn.__cpT = setTimeout(() => { btn.classList.remove('ok'); btn.setAttribute('aria-label', 'คัดลอกคำตอบ'); }, 1500);
+  };
   try { navigator.clipboard.writeText(m.text).then(done, () => showToast({ title: 'คัดลอกไม่ได้', body: 'เบราว์เซอร์ไม่ให้สิทธิ์' })); }
   catch (_) { showToast({ title: 'คัดลอกไม่ได้', body: 'เบราว์เซอร์ไม่ให้สิทธิ์' }); }
 }
@@ -5417,15 +5508,31 @@ function renderDayFull() {
   const sub = document.querySelector('#scr-dayfull .sh-sub');
   if (sub) sub.textContent = dateLine + (free ? ' · ว่างอีก ' + humanMin(free) : '');
 
-  const list = rows.map(function (r) {
+  // 7 ต.ค. 69 · เจ้าของ: "ปรับหน่อย มันดูไม่สวยเลย สีไม่ค่อยชัด แต่ต้องทำให้มันดูง่าย"
+  // เดิม: เวลาตัวพิมพ์ดีดเล็กสีจาง + แถบสีบาง 3px + ชื่อบนการ์ดมืดใบเดียว — ทุกแถวหน้าตาเหมือนกันจนแยกชนิดไม่ออก
+  // ตอนนี้: เวลาเริ่มตัวหนา (เวลาจบตัวเล็กใต้) · แต่ละแถวเป็นการ์ดเล็กพื้นอมสีของชนิด มีขอบซ้ายสีเต็ม
+  // และป้ายชนิดมีไอคอน (งาน · เรียน · กิจวัตร · กิจกรรม · พัก) — อ่านชนิดได้จากคำ ไม่ต้องจำว่าสีไหนคืออะไร
+  // เส้น "ตอนนี้" แทรกตรงเวลาปัจจุบัน · แถวที่กำลังเกิดอยู่มีกรอบเรือง · ผ่านไปแล้วจาง
+  const KIND = { work: ['งาน', 'target'], class: ['เรียน', 'book'], rt: ['กิจวัตร', 'clock'],
+    ev: ['กิจกรรม', 'calendar'], brk: ['พัก', 'pause'] };
+  // เส้นอยู่หน้าแถวแรกที่ยังไม่จบ — แถวที่กำลังเกิดอยู่จึงอยู่ใต้เส้นพอดี (ไม่ใช่เหนือเส้นเหมือนของที่ผ่านไปแล้ว)
+  let nowAt = rows.findIndex(r => Math.max(r.to, r.from) > nowMin);
+  if (nowAt < 0) nowAt = rows.length;
+  const nowLine = '<div class="df-now"><span>ตอนนี้ ' + esc(min2hm(nowMin)) + '</span><i></i></div>';
+  const list = rows.map(function (r, i) {
     const tag = r.id ? 'button' : 'div';
-    return '<' + tag + ' class="df-r ' + r.kind + (r.to && r.to <= nowMin ? ' past' : '') + '"'
+    const past = r.to && r.to <= nowMin;
+    const live = !past && r.from <= nowMin && r.to > nowMin;
+    const k = KIND[r.kind] || KIND.rt;
+    return (i === nowAt ? nowLine : '')
+      + '<' + tag + ' class="df-r ' + r.kind + (past ? ' past' : '') + (live ? ' live' : '') + '"'
       + (r.id ? ' onclick="openForm(\'' + r.id + '\')"' : '') + '>'
-      + '<span class="df-t">' + esc(min2hm(r.from)) + '</span>'
-      + '<span class="df-bar"></span>'
-      + '<span class="df-x"><b>' + esc(r.title) + '</b><i>' + esc(r.sub) + '</i></span>'
+      + '<span class="df-t"><b>' + esc(min2hm(r.from)) + '</b>'
+      + (r.to > r.from ? '<i>' + esc(min2hm(r.to)) + '</i>' : '') + '</span>'
+      + '<span class="df-x"><span class="df-k">' + icon(k[1]) + k[0] + '</span>'
+      + '<b>' + esc(r.title) + '</b><i>' + esc(r.sub) + '</i></span>'
       + '</' + tag + '>';
-  }).join('');
+  }).join('') + (nowAt === rows.length ? nowLine : '');
 
   el.innerHTML = (rows.length
     ? '<div class="df-list">' + list + '</div>'
@@ -5725,16 +5832,21 @@ function weekView(rows, now, firstPending) {
         }
       } catch (_) {}
     }
-    const sub = [clsLine, freeLabel(d, now)].filter(Boolean).join(' · ');
+    // เจ้าของ: "ลองจัดหรือตกแต่งให้สวยหน่อย" — บรรทัดเทาเรียบ ๆ "เรียน … · ว่าง …" กลายเป็นป้ายเล็กมีไอคอน
+    // ว่าง = ป้ายเขียว (เวลาที่ยังใช้ได้) · หมดเวลาว่าง/ไม่รู้ = ป้ายกลาง · เวลาเรียน = ป้ายกลางมีรูปหนังสือ
+    const free = freeLabel(d, now);
+    const sub = (clsLine ? `<span class="wk-pill">${icon('book')}${esc(clsLine)}</span>` : '')
+      + `<span class="wk-pill${/^ว่าง/.test(free) ? ' free' : ''}">${icon('clock')}${esc(free)}</span>`;
+    // dw-0…6 = สีประจำวันแบบไทย (อาทิตย์แดง จันทร์เหลือง …) — จุดเล็กใต้ชื่อวัน ช่วยกวาดตาหาวันได้เร็วขึ้น
     out.push(`<div class="wk-row${isToday ? ' now' : ''}${list.length ? '' : ' empty'}">
-      <div class="wk-d"><b>${d.getDate()}</b><i>${esc(isToday ? 'วันนี้' : wd)}</i></div>
+      <div class="wk-d dw-${d.getDay()}"><b>${d.getDate()}</b><i>${esc(isToday ? 'วันนี้' : wd)}</i></div>
       <div class="wk-b">
         ${mk.map(m => `<span class="wk-mark sj-${esc(m.color || 'grey')}">${
           esc(m.title || 'หมุด')}</span>`).join('')}
         ${shown.map(t => taskChip(t, now)).join('')}
         ${over ? `<button class="wk-more" onclick="setFilter('late')">
           อีก ${over} ใบที่ค้างอยู่${icon('chevron')}</button>` : ''}
-        <div class="wk-sub">${esc(sub)}</div>
+        <div class="wk-sub">${sub}</div>
       </div>
     </div>`);
   }
@@ -5839,9 +5951,8 @@ function doneView(done) {
     `<div class="sec-label soft">${icon('check')}${esc(k)} · ${list.length} งาน</div>`
     + list.map(t => taskCard(t, now, false)).join('')).join('');
 
-  return head + body
-    + `<p class="bin-note">งานที่เสร็จไม่หายไปไหน — สถิติกับเหรียญตรานับจากรายการนี้
-        · แตะใบไหนเพื่อเอากลับมาเป็นงานค้าง</p>`;
+  // บรรทัดท้ายจอ "งานที่เสร็จไม่หายไปไหน …" ถูกถอดออก (8 ต.ค. 69 · เจ้าของวงแล้วสั่งลบ)
+  return head + body;
 }
 
 // ---------- ถังขยะ ----------
@@ -7523,16 +7634,8 @@ function renderContext() {
   body.innerHTML = `
     ${ctxHeroHtml(ctxBarDay, now, total)}
 
-    ${doneN < gaps.length ? `<section class="cx2-card">
-      <div class="cx2-cap"><span>ข้อมูลของคุณ</span><b>${doneN}/${gaps.length}</b></div>
-      <div class="cx2-chips">${gaps.map(g => g.done
-        ? `<span class="cx2-chip done">${icon('check')}${esc(g.label)}</span>`
-        : `<button type="button" class="cx2-chip" onclick="${CTX_GAP_GO[g.key] || 'wizOpen()'}">+ ${esc(g.label)}</button>`).join('')}</div>
-      <button class="cx2-scan" onclick="openTtScan()">${icon('camera')}ถ่ายรูปตารางเรียน</button>
-    </section>` : ''}
-
-    ${ctxLearnHtml()}
-
+    <!-- 8 ต.ค. 69 · เจ้าของลากลูกศรย้ายแถว ตื่น · หยุดทำงาน · นอน ขึ้นมาไว้ใต้การ์ด "ว่างวันนี้" ทันที
+         สามเวลานี้คือขอบของแท่งเวลาข้างบนพอดี (06:00 … 21:30) — อยู่ติดกันจึงเห็นว่าแก้ตรงนี้แล้วแท่งเปลี่ยน -->
     <!-- ตัวเลขเวลาวาดเอง ช่อง input โปร่งใสทับอยู่ข้างบน — ช่อง time ของเบราว์เซอร์แสดงตาม locale
          เครื่องที่ตั้ง 12 ชม. ได้ "09:30 PM" ซึ่งช่องแคบตัด PM ทิ้ง เหลือ 09:30 ทั้งที่ค่าจริงคือ 21:30 -->
     <div class="cx2-times">
@@ -7541,6 +7644,17 @@ function renderContext() {
         <input type="time" value="${esc(p[k])}" onchange="ctxSavePref('${k}', this.value)" aria-label="${lb}">
       </label>`).join('')}
     </div>
+
+    ${doneN < gaps.length ? `<section class="cx2-card">
+      <div class="cx2-cap"><span>ข้อมูลของคุณ</span><b>${doneN}/${gaps.length}</b></div>
+      <div class="cx2-prog"><i style="width:${Math.round(doneN / gaps.length * 100)}%"></i></div>
+      <div class="cx2-chips">${gaps.map(g => g.done
+        ? `<span class="cx2-chip done">${icon('check')}${esc(g.label)}</span>`
+        : `<button type="button" class="cx2-chip" onclick="${CTX_GAP_GO[g.key] || 'wizOpen()'}"><i class="cx2-pl" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></i>${esc(g.label)}</button>`).join('')}</div>
+      <button class="cx2-scan" onclick="openTtScan()">${icon('scan')}ถ่ายรูปตารางเรียน</button>
+    </section>` : ''}
+
+    ${ctxLearnHtml()}
 
     <div class="cx2-list">
       <details class="cx2-sec" data-k="cls"${openSec.has('cls') ? ' open' : ''}>
@@ -7578,11 +7692,19 @@ function ctxHeroHtml(weekday, now, todayLeft) {
   return `<section class="cx2-card cx2-hero">
     <div class="cx2-cap">
       <span>${isToday ? 'ว่างวันนี้' : 'ว่างวัน' + WD_FULL[weekday]}</span>
-      <select class="cx2-pick" onchange="ctxPickDay(this.value)" aria-label="เลือกวัน">
-        ${[1, 2, 3, 4, 5, 6, 0].map(d => `<option value="${d}"${d === weekday ? ' selected' : ''}>วัน${WD_FULL[d]}</option>`).join('')}
-      </select>
+      <!-- 8 ต.ค. 69 · เจ้าของ: "ปรับหน่อย ไม่สวยเลย มีอนิเมชันตอนกดด้วย" — เดิมเป็น <select> ซึ่งรายการที่กางออกเป็นของระบบ
+           (กล่องเหลี่ยมพื้นขาว แถบน้ำเงิน) แต่งไม่ได้ · ตอนนี้เป็นเมนูของแอปเอง กางแบบสปริงจากมุมขวาบน (ctxDdToggle) -->
+      <div class="cx2-dd">
+        <button type="button" class="cx2-pick" aria-haspopup="listbox" aria-expanded="false"
+          onclick="ctxDdToggle(this)">วัน${WD_FULL[weekday]}${icon('chevron')}</button>
+        <div class="cx2-menu" role="listbox" aria-label="เลือกวัน">
+          ${[1, 2, 3, 4, 5, 6, 0].map((d, k) => `<button type="button" role="option" style="--k:${k}"
+            class="cx2-opt${d === weekday ? ' on' : ''}" aria-selected="${d === weekday}"
+            onclick="ctxPickDay(${d})"><span>วัน${WD_FULL[d]}</span>${d === weekday ? icon('check') : ''}</button>`).join('')}
+        </div>
+      </div>
     </div>
-    <div class="cx2-big">${esc(ctxHours(freeMin))}</div>
+    <div class="cx2-big">${esc(ctxHours(freeMin)).replace(/(\d+)/g, '<b>$1</b>')}</div>
     ${seg ? `<div class="cx2-bar">${seg}${mark}</div>
     <div class="cx2-axis mono"><span>${esc(min2hm(bar.from))}</span><span>${esc(min2hm(bar.to))}</span></div>` : ''}
     ${ctxWeekBarsHtml(now)}
@@ -7652,7 +7774,55 @@ function ctxBarHtml(weekday, opts = {}) {
 
 // วันที่แท่งกำลังโชว์อยู่ — เริ่มที่วันนี้ เพราะคนเปิดมาถามถึงวันนี้ก่อนเสมอ
 let ctxBarDay = new Date().getDay();
-function ctxPickDay(d) { ctxBarDay = +d; renderContext(); }
+// เมนูเลือกวันมุมขวาบนของการ์ด "ว่างวันนี้" — เปิด/ปิด · แตะที่อื่นหรือกด Esc = ปิด
+// เลือกวันแล้ว renderContext วาดการ์ดใหม่ เมนูจึงปิดเองโดยไม่ต้องสั่ง
+function ctxDdToggle(btn) {
+  const dd = btn.closest('.cx2-dd');
+  const open = !dd.classList.contains('open');
+  dd.classList.toggle('open', open);
+  btn.setAttribute('aria-expanded', open);
+  if (typeof haptic === 'function') haptic('arm');
+  if (!open) return;
+  const close = e => {
+    if (e.type === 'keydown' ? e.key !== 'Escape' : dd.contains(e.target)) return;
+    dd.classList.remove('open'); btn.setAttribute('aria-expanded', false);
+    document.removeEventListener('pointerdown', close, true);
+    document.removeEventListener('keydown', close, true);
+  };
+  setTimeout(() => {
+    document.addEventListener('pointerdown', close, true);
+    document.addEventListener('keydown', close, true);
+  }, 0);
+}
+
+// 8 ต.ค. 69 · เจ้าของ: "ตรงนี้ทำอนิเมชันให้หน่อย เมื่อกดปุ่มในแต่ละวัน"
+// จอวาดใหม่ทั้งก้อน (renderContext) จึงเลื่อนด้วยมือหลังวาด: แท่งของวันที่เลือกไถลมาจากตำแหน่งวันเดิม (Web Animations)
+// ตัวเลขใหญ่เลื่อนเข้าจากฝั่งที่กดไป · แท่งเวลาของวันกวาดจากซ้ายไปขวา (.cx2-swap ใน alt.css)
+function ctxPickDay(d) {
+  const ORDER = [1, 2, 3, 4, 5, 6, 0];
+  const from = ORDER.indexOf(ctxBarDay), to = ORDER.indexOf(+d);
+  const oldDays = [...document.querySelectorAll('#ctxBody .cx2-day')];
+  const oldX = oldDays[from] ? oldDays[from].getBoundingClientRect().left : null;
+  ctxBarDay = +d;
+  renderContext();
+  if (from === to || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const hero = document.querySelector('#ctxBody .cx2-hero');
+  if (hero) {
+    hero.style.setProperty('--sx', (to > from ? 14 : -14) + 'px');
+    hero.classList.add('cx2-swap');
+    setTimeout(() => hero.classList.remove('cx2-swap'), 700);
+  }
+  const bar = document.querySelectorAll('#ctxBody .cx2-day')[to];
+  const fill = bar && bar.querySelector('i');
+  if (fill && oldX != null && fill.animate) {
+    const dx = oldX - bar.getBoundingClientRect().left;
+    // ระหว่างไถลต้องลอยเหนือแท่งของวันที่ผ่าน ไม่งั้นแท่งที่อยู่ทีหลังใน DOM ทับมันกลางทาง
+    fill.style.zIndex = 5;
+    fill.animate([{ transform: `translateX(${dx}px)` }, { transform: 'translateX(0)' }],
+      { duration: 420, easing: 'cubic-bezier(.3, 1.25, .5, 1)' }).onfinish = () => { fill.style.zIndex = ''; };
+  }
+  if (typeof haptic === 'function') haptic('arm');
+}
 
 // ---------- ตัวช่วยทำความรู้จักวันของเขา ----------
 // ห้าขั้น แต่ละขั้นตอบด้วยการแตะ ไม่ต้องพิมพ์สักตัวจนถึงขั้นสุดท้าย
@@ -9412,7 +9582,38 @@ const PRO_PLANS = [
 ];
 let proPick = 'max';
 
-function proSelect(id) { proPick = id; renderPro(); }
+// 8 ต.ค. 69 · เจ้าของ: "ทำอนิเมชั่นตอนเลื่อนไประหว่างสองราคาให้หน่อย … ทำให้ดูมินิมอลนะ"
+// ไม่วาดจอใหม่ทั้งก้อนแล้ว — กรอบเลือก (.pro-ind) เลื่อนจากใบเดิมไปใบใหม่ · รายการของแผนจางออก
+// แล้วข้อใหม่ไล่ขึ้นมาทีละข้อจากฝั่งที่เลื่อนไป · ความสูงของรายการยืด/หดตาม (3 ข้อ ↔ 4 ข้อ) ไม่กระตุก
+function proSelect(id) {
+  if (id === proPick) return;
+  const box = document.getElementById('proBody');
+  const grid = box && box.querySelector('.pro-grid');
+  const list = box && box.querySelector('.pro-feats');
+  proPick = id;
+  if (!grid || !list) { renderPro(); return; }
+  const i = PRO_PLANS.findIndex(p => p.id === id);
+  grid.style.setProperty('--i', i);
+  grid.querySelectorAll('.pro-card').forEach((c, k) => {
+    c.classList.toggle('on', k === i);
+    c.setAttribute('aria-pressed', k === i);
+  });
+  haptic('arm');
+  const h0 = list.offsetHeight;
+  list.innerHTML = proFeatsHTML();
+  list.dataset.dir = i > 0 ? 'r' : 'l';
+  list.classList.remove('swap'); void list.offsetWidth; list.classList.add('swap');
+  const h1 = list.offsetHeight;
+  if (h0 === h1 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  list.style.height = h0 + 'px'; void list.offsetWidth;
+  list.style.height = h1 + 'px';
+  setTimeout(() => { list.style.height = ''; }, 360);
+}
+
+function proFeatsHTML() {
+  return (PRO_PLANS.find(p => p.id === proPick) || PRO_PLANS[0]).feats
+    .map((f, k) => `<div class="pro-f" style="--k:${k}">${icon('check')}<span>${f}</span></div>`).join('');
+}
 
 function proNotify() {
   try { localStorage.setItem(PRO_NOTIFY_KEY, '1'); } catch (_) {}
@@ -9434,7 +9635,8 @@ function renderPro() {
         การจัดลำดับงานคำนวณในเครื่อง ต้นทุนเป็นศูนย์ อันนั้นฟรีตลอดไป</p>
     </div>
 
-    <div class="pro-grid">
+    <div class="pro-grid" style="--i:${Math.max(0, PRO_PLANS.findIndex(p => p.id === proPick))}">
+      <span class="pro-ind" aria-hidden="true"></span>
       ${PRO_PLANS.map(p => `<button class="pro-card${proPick === p.id ? ' on' : ''}"
         onclick="proSelect('${p.id}')" aria-pressed="${proPick === p.id}">
         <span class="pro-top">
@@ -9446,13 +9648,10 @@ function renderPro() {
       </button>`).join('')}
     </div>
 
-    <div class="pro-feats">
-      ${(PRO_PLANS.find(p => p.id === proPick) || PRO_PLANS[0]).feats
-        .map(f => `<div class="pro-f">${icon('check')}<span>${f}</span></div>`).join('')}
-    </div>
+    <div class="pro-feats">${proFeatsHTML()}</div>
 
     <button class="pro-cta${want ? ' done' : ''}" onclick="proNotify()" ${want ? 'disabled' : ''}>
-      ${icon(want ? 'check' : 'sparkles')}${want ? 'จะบอกเมื่อเปิดขาย' : 'บอกฉันเมื่อเปิดขาย'}
+      ${want ? icon('check') + 'จะบอกเมื่อเปิดขาย' : 'บอกฉันเมื่อเปิดขาย'}
     </button>
 
     <p class="pro-note">ตอนนี้ยังไม่เปิดขาย และ<b>ทุกฟีเจอร์ในแอปใช้ได้ฟรีทั้งหมด</b> —
@@ -9733,9 +9932,10 @@ function renderShowcase() {
   //
   // **การอ่านหลักไม่พึ่งสีเลย** — ทุกใบมีชื่อกับค่าเป็นตัวหนังสืออยู่ใต้ไอคอน
   // และใบที่ยังไม่มีของยังจางลงเหมือนเดิม (ดู .shw:not(.got) ใน alt.css)
+  // ใบ "ต่อเนื่อง" ใช้เปลวไฟชุดเดียวกับช่องวันต่อเนื่องบนหน้าแรก (STAT_ART.streak) — เจ้าของ: "เอามาเปลี่ยนในอันนี้ด้วย"
   const tile = (cls, ic, on, title, sub, tone) =>
     `<button class="shw${on ? ' got' : ''}${tone ? ' shw-' + tone : ''}" onclick="${cls}">
-      <span class="shw-ic">${icon(ic)}</span>
+      <span class="shw-ic">${tone === 'streak' ? STAT_ART.streak : icon(ic)}</span>
       <b>${esc(title)}</b><i>${esc(sub)}</i>
     </button>`;
 
@@ -9853,14 +10053,32 @@ function renderStats() {
       </div>
       <div class="st-bars">
         ${days.map(d => `<div class="st-bar${d.today ? ' now' : ''}${d.n ? ' has' : ''}">
-          <span class="bar" style="height:${Math.round(d.n / peak * 100)}%"></span>
           <span class="n mono">${d.n || ''}</span>
+          <span class="trk"><span class="bar" style="height:${d.n ? Math.max(14, Math.round(d.n / peak * 100)) : 0}%"></span></span>
           <span class="d">${d.label}</span>
         </div>`).join('')}
       </div>
     </div>`;
 
   renderStatFull(now, { onTimePct, onTime, rated, snoozes, subjRows });
+}
+
+// 8 ต.ค. 69 · เจ้าของ: "เมื่อสลับมาหน้านี้ ให้มีอนิเมชั่นของแท่งเทียนหน่อย"
+// เข้าจอที่มีกราฟแท่ง (แท็บฉัน · ผลของฉันฉบับเต็ม) = แท่งงอกขึ้นจากฐานทีละวัน ซ้ายไปขวา
+// แยกจาก .just-in เพราะคลาสนั้นถอดทิ้งที่ 520ms แต่แท่งสุดท้ายงอกจบราว 1.1 วินาที — ถอดกลางทางแล้วแท่งกระโดด
+// รอหนึ่งเฟรมก่อนติดคลาส: go() บางทางวาดจอใหม่ต่อจากนี้ ถ้าติดก่อน แท่งชุดใหม่จะไม่มีคลาส
+// วาดใหม่ระหว่างอยู่ในจอ (ติ๊กงาน · ซิงก์) ไม่งอกซ้ำ — งอกเฉพาะตอนเพิ่งเข้าจอ
+let barsTimer = null;
+function growBars(scr) {
+  clearTimeout(barsTimer);
+  requestAnimationFrame(() => {
+    const sets = scr.querySelectorAll('.st-bars, #statFull');
+    if (!sets.length) return;
+    // .st-bars ได้ .grow (แท่งงอก) · #statFull ได้ .an-in (การ์ดไล่ขึ้น · โดนัทวาดเส้น · แถบวิชายืด)
+    const cls = b => b.id === 'statFull' ? 'an-in' : 'grow';
+    sets.forEach(b => { b.classList.remove(cls(b)); void b.offsetWidth; b.classList.add(cls(b)); });
+    barsTimer = setTimeout(() => sets.forEach(b => b.classList.remove(cls(b))), 1400);
+  });
 }
 
 // ---------- ผลของฉัน ฉบับเต็ม — จอวิเคราะห์ ----------
@@ -9898,7 +10116,7 @@ function renderStatFull(now, d) {
   if (streak > 0) tiles.push({ gold: true, ic: 'flame', v: streak, u: 'วัน',
     k: 'เปิดแอปต่อเนื่อง' });
   if (d.onTimePct != null) tiles.push({ ic: 'check-circle', v: d.onTimePct, u: '%',
-    k: 'ส่งทันกำหนด · ' + d.onTime + '/' + d.rated + ' งาน' });
+    k: 'ส่งทันกำหนด · ' + d.onTime + '/' + d.rated + ' งาน', tone: 'ok' });
   if (delta != null) tiles.push({ ic: delta >= 0 ? 'medal' : 'clock',
     v: (delta >= 0 ? '+' : '') + delta, u: '%', k: 'เทียบสัปดาห์ก่อน',
     tone: delta >= 0 ? 'up' : 'down' });
@@ -10387,9 +10605,9 @@ function renderTtScan() {
              ${icon('image')}เลือกรูปตารางจากคลังภาพ</button>
            <button class="tt-2nd" onclick="ttCamStart()">${icon('camera')}${
              ttCam === 'denied' ? 'เปิดสิทธิ์แล้ว ลองอีกครั้ง' : 'เปิดกล้องถ่ายเอง'}</button>`}
-      <div class="tt-tips"><span>วางให้ตรง ไม่เอียง</span><span>เห็นครบทั้งสัปดาห์</span><span>ไฟสว่างพอ</span></div>
-      <p class="tt-foot">รูปถูกส่งไปให้ Gemini อ่านครั้งเดียวแล้วทิ้ง ไม่ได้ถูกเก็บไว้ที่ไหน
-        · ส่วนอื่นของบริบทยังคำนวณในเครื่องเหมือนเดิม</p>`;
+      <div class="tt-tips"><span>วางให้ตรง ไม่เอียง</span><span>เห็นครบทั้งสัปดาห์</span><span>ไฟสว่างพอ</span></div>`;
+    // บรรทัดท้ายจอ "รูปถูกส่งไปให้ Gemini อ่านครั้งเดียวแล้วทิ้ง…" ถูกถอด — เจ้าของสั่ง "ลบตรงนี้ออก"
+    // (บรรทัดเดียวกันในหน้ากำลังอ่านยังอยู่ — ตอนนั้นคือตอนที่รูปถูกส่งออกไปจริง)
     return;
   }
 
@@ -11081,7 +11299,14 @@ function toggleDone(id, el) {
       setTimeout(checkBadges, 2600);
     });
   } else {
-    renderAll();
+    // 8 ต.ค. 69 · กดติ๊กบนใบที่เสร็จแล้ว (เอากลับเป็นงานค้าง) — ติ๊กหดหาย การ์ดยุบเลื่อนออกไปทางขวา
+    // แล้วค่อยวาดใหม่ · ไม่งั้นใบหายวับไปเฉย ๆ จนไม่แน่ใจว่ากดโดนอะไร
+    const card = el && el.closest('.tk-done');
+    if (card && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      card.classList.add('undo');
+      haptic('arm');
+      setTimeout(renderAll, 300);
+    } else renderAll();
   }
 }
 
@@ -13695,6 +13920,20 @@ async function cloudOcrRetry() {
 }
 
 // ---------- profile ----------
+// ปุ่ม − / + ข้างช่อง "นั่งทำงานไหวต่อวัน" — ทีละครึ่งชั่วโมง ตั้งแต่ 0.5 ถึง 12 (พิมพ์เองเกินได้ ปุ่มแค่ไม่พาไปเกิน)
+// ตัวเลขเลื่อนขึ้น/ลงตามทิศที่กด (.up / .dn) ให้รู้ว่าเปลี่ยนแล้วโดยไม่ต้องจ้อง
+function stepFree(d) {
+  const el = document.getElementById('pFree');
+  if (!el) return;
+  const v = Math.min(12, Math.max(0.5, Math.round(((+el.value || 2) + d * 0.5) * 2) / 2));
+  if (v === +el.value) return;
+  el.value = v;
+  const box = el.parentElement;
+  box.classList.remove('up', 'dn'); void box.offsetWidth; box.classList.add(d > 0 ? 'up' : 'dn');
+  if (typeof haptic === 'function') haptic('arm');
+  saveProfile();
+}
+
 function saveProfile() {
   state.settings.name = document.getElementById('pName').value.trim();
   // ชื่อก็เหมือนรูป — เปลี่ยนแล้วเพื่อนต้องเห็นชื่อใหม่โดยไม่ต้องไปกดเผยแพร่ซ้ำ
@@ -13932,12 +14171,17 @@ function showToast(copy) {
     el.id = 'appToast'; el.className = 'toast';
     // ALT: มีปุ่ม "เลิกทำ" เพิ่มมา — ปัดพลาดแล้วต้องย้อนได้ในที่เดียวกับที่แจ้งผล
     el.innerHTML = `<img class="tav" src="logo-splash-light.png" alt=""><div class="tc"><div class="tt"></div><div class="tb"></div></div><button class="tu" type="button" hidden>เลิกทำ</button>`;
-    el.onclick = e => { if (!e.target.closest('.tu')) el.classList.remove('show'); };
+    el.onclick = e => {
+      if (el._dragged) { el._dragged = false; return; }
+      if (!e.target.closest('.tu')) el.classList.remove('show');
+    };
+    toastSwipe(el);
     phone.appendChild(el);
   }
   // มีแจ้งเตือนค้างอยู่แล้วแล้วมีอันใหม่มา = เกาะเด้งรับหนึ่งที (แบบ Dynamic Island ของ iPhone 15)
   // ไม่ยุบแล้วกางใหม่ — ข้อความเปลี่ยนในเกาะเดิม
   const wasOn = el.classList.contains('show');
+  el.style.transition = ''; el.style.transform = ''; el.style.opacity = '';
   el.querySelector('.tt').textContent = copy.title;
   el.querySelector('.tb').textContent = copy.body;
   if (wasOn) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
@@ -13951,6 +14195,57 @@ function showToast(copy) {
   setTimeout(() => el.classList.add('show'), 30);
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 6000);
+}
+
+// 8 ต.ค. 69 · เจ้าของ: "ทำให้เมื่อเลื่อนขึ้นปิดได้ เหมือนกับแจ้งเตือน แล้วเลื่อนทิ้งได้เลย"
+// ปัดขึ้น = การ์ดตามนิ้วขึ้นไปและจางลงตามระยะ · ปล่อยเมื่อเกิน 28px หรือสะบัดเร็ว = พุ่งขึ้นหายไป
+// ปล่อยก่อนถึง = เด้งกลับที่เดิม แล้วนับถอยหลังปิดเองใหม่ · ลากลงได้นิดเดียว (หนืด) แบบของ iPhone
+// ระหว่างนิ้วแตะอยู่ ตัวจับเวลาปิดเองหยุด — กำลังอ่านอยู่แล้วหายไปต่อหน้าคือเรื่องน่ารำคาญที่สุด
+// แตะเฉย ๆ (ไม่ลาก) ยังปิดเหมือนเดิม · ลากแล้วปล่อยไม่นับเป็นการแตะ (el._dragged)
+function toastSwipe(el) {
+  let y0 = 0, t0 = 0, dy = 0, on = false;
+  const hideAfter = ms => { clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), ms); };
+  el.addEventListener('pointerdown', e => {
+    if (!el.classList.contains('show') || e.target.closest('.tu')) return;
+    on = true; y0 = e.clientY; t0 = performance.now(); dy = 0; el._dragged = false;
+    clearTimeout(toastTimer);
+    el.style.transition = 'none';
+    try { el.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  el.addEventListener('pointermove', e => {
+    if (!on) return;
+    const raw = e.clientY - y0;
+    dy = raw < 0 ? raw : raw * .18;
+    if (Math.abs(raw) > 6) el._dragged = true;
+    el.style.transform = `translateY(${dy}px)`;
+    el.style.opacity = dy < 0 ? Math.max(.25, 1 + dy / 160) : '';
+  });
+  const end = () => {
+    if (!on) return;
+    on = false;
+    const v = dy / Math.max(1, performance.now() - t0);   // px/ms · ติดลบ = ขึ้น
+    if (dy < -28 || (dy < -8 && v < -.35)) {
+      el.style.transition = 'transform .26s cubic-bezier(.3, .7, .4, 1), opacity .22s ease';
+      el.style.transform = 'translateY(calc(-100% - 24px))';
+      el.style.opacity = '0';
+      if (typeof haptic === 'function') haptic('arm');
+      setTimeout(() => {
+        // ซ่อนทันทีแบบไม่มีอนิเมชันหด (การ์ดออกจากจอไปแล้ว) แล้วคืนค่าทุกอย่างให้รอบหน้า
+        el.style.transition = 'none';
+        el.classList.remove('show', 'bump');
+        el.style.transform = ''; el.style.opacity = '';
+        void el.offsetWidth;
+        el.style.transition = '';
+      }, 260);
+    } else {
+      el.style.transition = 'transform .45s cubic-bezier(.32, 1.3, .44, 1), opacity .2s ease';
+      el.style.transform = ''; el.style.opacity = '';
+      setTimeout(() => { if (!on) el.style.transition = ''; }, 460);
+      hideAfter(3500);
+    }
+  };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
 }
 
 // ---------- ALT: ยิงแจ้งเตือนของจริง ----------
@@ -15004,6 +15299,12 @@ function routeAfterLogin() {
     if (typeof openFeed === 'function') openFeed(back === 'scr-friends' ? 'friends' : 'feed');
     return;
   }
+  // มาจากปุ่ม "ข้อความ" (openDmInbox) — ล็อกอินสำเร็จแล้วเข้ากล่องข้อความต่อเลย
+  // ถ้ากด "เริ่มใช้เลย · ไม่ต้องสมัคร" แทน (ยังไม่มีบัญชี) ต้องไม่พากลับไป ไม่งั้นวนกลับมาหน้าเข้าสู่ระบบไม่จบ
+  if (back === 'scr-dm' && typeof currentUser !== 'undefined' && currentUser && typeof openDmInbox === 'function') {
+    openDmInbox('scr-menu');
+    return;
+  }
   go('scr-menu');
 }
 
@@ -15664,4 +15965,112 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
       if (was >= 0) play(kids[was], 'pk-out');
     }, 0);
   }, true);
+})();
+
+// ============================================================
+// ช่อง "ถามน้องไซ…" บนหน้าแรก — ตัวอักษรเคลื่อนไหว
+// ============================================================
+// เจ้าของ: "แก้เอาขอบออก กับทำให้มันมีอนิเมชันข้อความหน่อย"
+// <input> วาดตัวอักษรเองทั้งก้อน แต่งทีละตัวไม่ได้ — จึงซ้อนชั้นเงา (.ha-mir) ไว้ทับช่อง
+// ตัวอักษรจริงในช่องโปร่งใส (เหลือแค่เคอร์เซอร์) แล้วชั้นเงาวาดข้อความเดียวกันทีละพยางค์:
+//   • พิมพ์ = ตัวที่เพิ่งเพิ่มค่อย ๆ ชัดขึ้นจากเบลอ · ลบ/แก้กลางคำ = ตัวที่เหลือไม่ขยับ
+//   • ช่องว่าง = ข้อความชวนพิมพ์ไหลเข้ามาทีละตัว แล้ววนตัวอย่างคำถามจนกว่าจะแตะช่อง
+// ตัวอักษรเป็น span แบบ inline (ไม่ใช่ inline-block) ระยะตัวอักษรจึงเท่าในช่องจริงเป๊ะ เคอร์เซอร์ไม่เพี้ยน
+// ข้อความยาวเกินช่อง: ชั้นเงาเลื่อนตาม scrollLeft ของช่อง · ตัดพยางค์ไทยด้วย Intl.Segmenter
+// (สระ/วรรณยุกต์ไม่หลุดจากพยัญชนะ) · renderMenu วาดช่องใหม่ทุกนาที — MutationObserver เกาะช่องใหม่ให้เอง
+(function () {
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const seg = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('th', { granularity: 'grapheme' }) : null;
+  const glyphs = t => seg ? Array.from(seg.segment(t), s => s.segment)
+    : (t.match(/[\s\S][ัิ-ฺ็-๎]*/gu) || []);
+  const EXAMPLES = ['วันนี้ควรทำอะไรก่อน?', 'พรุ่งนี้สอบ ช่วยจัดเวลาให้หน่อย', 'อธิบายการบ้านที่ค้างอยู่ให้หน่อย'];
+
+  function attach(inp) {
+    if (inp.__ha) return;
+    inp.__ha = true;
+    const bar = inp.parentElement;
+    const mir = document.createElement('div');
+    mir.className = 'ha-mir';
+    mir.setAttribute('aria-hidden', 'true');
+    mir.innerHTML = '<span class="ha-line"></span><span class="ha-ph"></span>';
+    bar.appendChild(mir);
+    bar.classList.add('ha-on');
+    const line = mir.firstChild, ph = mir.lastChild;
+    const phrases = [inp.getAttribute('placeholder') || 'ถามน้องไซ…'].concat(RM ? [] : EXAMPLES);
+    let shown = [], pi = 0, cycle = 0;
+
+    function place() {
+      const cs = getComputedStyle(inp);
+      mir.style.left = inp.offsetLeft + 'px';
+      mir.style.top = inp.offsetTop + 'px';
+      mir.style.width = inp.offsetWidth + 'px';
+      mir.style.height = inp.offsetHeight + 'px';
+      mir.style.font = cs.font;
+      mir.style.letterSpacing = cs.letterSpacing;
+    }
+    function scroll() { line.style.transform = 'translateX(' + (-inp.scrollLeft) + 'px)'; }
+    function sync(animate) {
+      const g = glyphs(inp.value);
+      let i = 0;
+      while (i < shown.length && i < g.length && shown[i] === g[i]) i++;
+      while (line.childNodes.length > i) line.lastChild.remove();
+      for (let k = i; k < g.length; k++) {
+        const s = document.createElement('span');
+        s.textContent = g[k];
+        if (animate && !RM) s.className = 'in';
+        line.appendChild(s);
+      }
+      shown = g;
+      bar.classList.toggle('ha-has', g.length > 0);
+      requestAnimationFrame(scroll);
+    }
+    function showPhrase(text) {
+      ph.classList.remove('out');
+      ph.textContent = '';
+      glyphs(text).forEach((c, k) => {
+        const s = document.createElement('span');
+        s.textContent = c;
+        if (!RM) s.style.animationDelay = (k * 0.016).toFixed(3) + 's';
+        ph.appendChild(s);
+      });
+    }
+    // วนตัวอย่างคำถามเฉพาะตอนช่องว่าง ไม่ได้โฟกัส และหน้าแรกอยู่บนจอ · ช่องหายไปแล้ว = หยุดตัวเอง
+    function tick() {
+      if (!inp.isConnected) { clearInterval(cycle); return; }
+      if (inp.value || document.activeElement === inp || document.hidden || !inp.offsetParent) return;
+      ph.classList.add('out');
+      setTimeout(() => { pi = (pi + 1) % phrases.length; showPhrase(phrases[pi]); }, 260);
+    }
+
+    inp.addEventListener('input', () => sync(true));
+    ['keyup', 'click', 'select', 'scroll', 'focus'].forEach(ev => inp.addEventListener(ev, () => requestAnimationFrame(scroll)));
+    // ค่าที่ถูกเขียนลงช่องด้วยโค้ด (renderMenu คืนคำที่พิมพ์ค้าง · homeAsk ล้างช่อง) ไม่ยิง input
+    const d = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    Object.defineProperty(inp, 'value', {
+      configurable: true,
+      get() { return d.get.call(inp); },
+      set(v) { d.set.call(inp, v); sync(false); },
+    });
+    place();
+    sync(false);
+    showPhrase(phrases[0]);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(place);
+    if (phrases.length > 1) cycle = setInterval(tick, 3600);
+  }
+
+  function scan() {
+    const inp = document.getElementById('hmAsk');
+    if (inp && !inp.__ha) attach(inp);
+  }
+  function start() {
+    const root = document.getElementById('scr-menu');
+    if (!root) return setTimeout(start, 300);
+    new MutationObserver(scan).observe(root, { childList: true, subtree: true });
+    scan();
+    window.addEventListener('resize', () => {
+      const m = document.querySelector('.td-ask .ha-mir'), inp = document.getElementById('hmAsk');
+      if (m && inp) { m.style.left = inp.offsetLeft + 'px'; m.style.width = inp.offsetWidth + 'px'; }
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

@@ -1210,7 +1210,21 @@ function notifReadAll() {
   const s = notifSeen(); s.all = Date.now(); notifSaveSeen(s);
   renderNotif(); notifPaintBell();
 }
-function notifSetFilter(f) { notifFilter = f; renderNotif(); }
+// วาดจอใหม่ทั้งก้อนก็จริง แต่ตัวบอกปุ่มที่เลือกต้อง "เลื่อน" จากปุ่มเดิมไปปุ่มใหม่ ไม่ใช่โผล่ที่ใหม่เฉย ๆ
+// ตั้ง --i ของแผงใหม่เป็นตำแหน่งเดิมก่อน บังคับวาด แล้วค่อยเปลี่ยนเป็นตำแหน่งใหม่ — transition ใน CSS พาไปเอง
+function notifSetFilter(f) {
+  const keys = ['all', 'dm', 'work'];
+  const from = keys.indexOf(notifFilter);
+  notifFilter = f;
+  renderNotif();
+  const g = document.querySelector('#notifBody .gbg');
+  if (!g || from < 0 || from === keys.indexOf(f)) return;
+  g.classList.add('gbg-hold');
+  g.style.setProperty('--i', from);
+  void g.offsetWidth;
+  g.classList.remove('gbg-hold');
+  g.style.setProperty('--i', keys.indexOf(f));
+}
 
 function notifOpenDm(id) {
   const r = (typeof dmRows !== 'undefined' ? dmRows : []).find(x => x.id === id);
@@ -1346,9 +1360,16 @@ function renderNotif() {
   };
 
   const fresh = list.filter(n => n.unread), older = list.filter(n => !n.unread);
-  const chips = `<div class="nt-chips" role="tablist">${[['all', 'ทั้งหมด'], ['dm', 'ข้อความ'], ['work', 'งาน']]
-    .map(([k, l]) => `<button class="cp-chip ${notifFilter === k ? 'on' : ''}" role="tab"
-      aria-selected="${notifFilter === k}" onclick="notifSetFilter('${k}')">${l}</button>`).join('')}</div>`;
+  // 7 ต.ค. 69 · ปุ่มกรองเป็นแบบ GradientButtonGroup (cult-ui · MIT) — เจ้าของ: "เอามาใช้ในหน้านี้"
+  // ถาดยุบลง → แผงนูน → ปุ่มที่เลือกจมเป็นหลุม มีวงแหวนไล่สีหมุนรอบ · ตัวบอกปุ่มที่เลือกเป็นก้อนเดียว (.gbg-ind)
+  // ที่เลื่อนไปหาปุ่มใหม่แบบสปริง (notifSetFilter สั่งเลื่อนจากตำแหน่งเดิม หลังวาดจอใหม่)
+  const NT_FILTERS = [['all', 'ทั้งหมด'], ['dm', 'ข้อความ'], ['work', 'งาน']];
+  const chips = `<div class="nt-chips gbg-tray"><div class="gbg" role="tablist"
+      style="--i:${Math.max(0, NT_FILTERS.findIndex(x => x[0] === notifFilter))}">
+    <span class="gbg-ind" aria-hidden="true"><span class="gbg-ring"></span><span class="gbg-gap"></span></span>
+    ${NT_FILTERS.map(([k, l]) => `<button class="gbg-b${notifFilter === k ? ' on' : ''}" role="tab"
+      aria-selected="${notifFilter === k}" onclick="notifSetFilter('${k}')">${l}</button>`).join('')}
+  </div></div>`;
 
   const loggedIn = typeof currentUser !== 'undefined' && !!currentUser;
   const empty = `<section class="nt-empty">
@@ -1359,7 +1380,7 @@ function renderNotif() {
   // ไม่ได้ล็อกอิน = ข้อความจากเพื่อนมาไม่ถึงเครื่องนี้เลย · บอกตรง ๆ ดีกว่าให้รอสิ่งที่ไม่มีวันมา
   const login = !loggedIn && notifFilter !== 'work' && typeof cloudConfigured === 'function' && cloudConfigured()
     ? `<button class="nt-login" onclick="go('scr-login')">
-        <span class="nt-av src">${icon('user')}</span>
+        <span class="nt-av src">${icon('user-f')}</span>
         <span class="nt-bd"><span class="nt-t"><b>เข้าสู่ระบบ</b> เพื่อรับข้อความจากเพื่อน</span>
           <span class="nt-p">ตอนนี้แจ้งได้เฉพาะงานที่เข้ากล่องในเครื่องนี้</span></span>
         ${icon('chevron')}

@@ -1085,7 +1085,16 @@ function chatBack() {
 }
 
 async function openDmInbox(from) {
-  if (!sb || !currentUser) return loginFromMates();
+  // 7 ต.ค. 69 · เจ้าของ: "เมื่อกดปุ่มข้อความ ให้มันไปหน้าเข้าสู่ระบบก่อนถึงจะคุยได้"
+  // เดิมเด้งออกไปหน้า Google ทันที (loginFromMates) — คนที่ไม่ได้ใช้ Google เลือกทางอื่นไม่ได้
+  // ตอนนี้พาไปหน้าเข้าสู่ระบบของแอปก่อน (Google · อีเมลรับรหัส) แล้วฝากธงไว้ให้ routeAfterLogin()
+  // พากลับมากล่องข้อความหลังล็อกอินเสร็จ · กด "เริ่มใช้เลย" แทน = กลับหน้าแรก ไม่วนกลับมาที่นี่
+  if (!sb || !currentUser) {
+    try { localStorage.setItem(MATES_RETURN_KEY, 'scr-dm'); } catch (_) {}
+    if (typeof setLoginView === 'function') setLoginView('root');
+    go('scr-login');
+    return;
+  }
   dmReturn = from || pickReturn('scr-profile');
   go('scr-dm');
   dmBusy = true;
