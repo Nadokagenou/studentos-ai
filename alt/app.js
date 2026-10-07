@@ -8445,18 +8445,27 @@ function buyTheme(id) {
 
 // ---------- ตารางรางวัลของการสุ่ม ----------
 // Common 83 · Rare 16 · Legendary 1 (ธีมออกยากขึ้นกว่าเดิมมาก)
-// น้ำหนักรวม 100 พอดี — ระดับลับกินไป 0.4 โดยหักออกจาก Common
+// น้ำหนักรวม 100 พอดี — ระดับลับกินไป 0.4 และเอฟเฟกต์ 3D กินไป 0.8 โดยหักออกจาก Common
+//
+// เอฟเฟกต์ 3D (ระดับ Mythic) — ตัวละ 0.1% ทั้ง 8 เกม (เจ้าของสั่ง "ได้มาจากการสุ่มสกิล rate 0.1%")
+// **สุ่มได้แต่ยังไม่ได้ซื้อเอฟเฟกต์ปกติของเกมนั้น = ยังใช้ไม่ได้** (เจ้าของสั่งตรง ๆ)
+// ของไม่หาย — ซื้อเอฟเฟกต์ปกติเมื่อไหร่ 3D ใช้ได้ทันที · เก็บแยกที่ tokenState().fx3d
+// ต่างจากระดับลับตรงที่ "บอกว่ามีอยู่" — มันคือของที่เจ้าของอยากให้คนอยากสุ่ม ไม่ใช่อีสเตอร์เอกก์
+const FX3D_IDS = ['hoop', 'goal', 'bat', 'golf', 'slice', 'bomb', 'crumple', 'glass'];
+const FX3D_NAME = { hoop: 'โยนลงห่วง', goal: 'ยิงประตู', bat: 'ตีโฮมรัน', golf: 'พัตต์ลงหลุม',
+  slice: 'หั่นผลไม้', bomb: 'ปาระเบิดใส่', crumple: 'ขยำงาน', glass: 'ปาแก้ว' };
 const SPIN_TABLE = [
-  { id: 'tk1', rarity: 'common', kind: 'token', label: 'โทเคน', weight: 82.6 },
+  { id: 'tk1', rarity: 'common', kind: 'token', label: 'โทเคน', weight: 81.8 },
   { id: 'earth', rarity: 'rare', kind: 'skin', theme: 'earth', label: 'โลก', weight: 8 },
   { id: 'magic', rarity: 'rare', kind: 'skin', theme: 'magic', label: 'เวทมนตร์', weight: 8 },
   { id: 'ocean', rarity: 'legendary', kind: 'skin', theme: 'ocean', label: 'มหาสมุทร', weight: 0.5 },
   { id: 'galaxy', rarity: 'legendary', kind: 'skin', theme: 'galaxy', label: 'กาแล็กซี', weight: 0.5 },
   { id: 'meta', rarity: 'secret', kind: 'skin', theme: 'meta', label: 'METAVERSE', weight: 0.2 },
   { id: 'glitch', rarity: 'secret', kind: 'skin', theme: 'glitch', label: 'GL!TCH', weight: 0.2 },
+  ...FX3D_IDS.map(fx => ({ id: 'x3_' + fx, rarity: 'mythic', kind: 'fx3d', fx, label: FX3D_NAME[fx] + ' 3D', weight: 0.1 })),
 ];
-const RARITY_NAME = { common: 'Common', rare: 'Rare', legendary: 'Legendary', secret: '???' };
-const DUP_REFUND = { rare: 1.5, legendary: 2.5, secret: 5 };
+const RARITY_NAME = { common: 'Common', rare: 'Rare', legendary: 'Legendary', secret: '???', mythic: 'Mythic' };
+const DUP_REFUND = { rare: 1.5, legendary: 2.5, secret: 5, mythic: 10 };
 
 // โทเคนมีทศนิยมได้แล้ว (Common จ่าย 0–0.5) — แสดงผลให้พอดี ไม่โชว์ .0 ลอย ๆ
 function fmtTok(n) {
@@ -8489,7 +8498,7 @@ function rollPrize() {
   const total = SPIN_TABLE.reduce((n, p) => n + spinWeight(p), 0);
   let r = Math.random() * total;
   const p = SPIN_TABLE.find(x => (r -= spinWeight(x)) < 0) || SPIN_TABLE[0];
-  const out = { id: p.id, rarity: p.rarity, kind: p.kind, label: p.label, theme: p.theme };
+  const out = { id: p.id, rarity: p.rarity, kind: p.kind, label: p.label, theme: p.theme, fx: p.fx };
   // Common จ่าย 0–0.5 โทเคน (ทีละ 0.1)
   if (p.kind === 'token') out.amount = Math.round(Math.random() * 5) / 10;
   return out;
@@ -8501,6 +8510,16 @@ function grantPrize(r) {
   const s = tokenState();
   if (r.kind === 'token') {
     s.bal = Math.round(((s.bal || 0) + r.amount) * 10) / 10;
+  } else if (r.kind === 'fx3d') {
+    s.fx3d = s.fx3d || {};
+    const had = s.fx3d[r.fx] || 0;
+    s.fx3d[r.fx] = had + 1;
+    r.duplicate = had > 0;
+    r.locked = !(s.fx || []).includes(r.fx);      // ได้ 3D แต่ยังไม่ได้ซื้อเอฟเฟกต์ปกติ
+    if (r.duplicate) {
+      r.amount = DUP_REFUND.mythic;
+      s.bal = Math.round(((s.bal || 0) + r.amount) * 10) / 10;
+    }
   } else {
     s.skins = s.skins || {};
     const had = s.skins[r.id] || 0;
@@ -8611,10 +8630,12 @@ function vaultImport(r) {
   const skins = Object.assign({}, remote.skins || {}, local.skins || {});
   // เอฟเฟกต์ที่ซื้อแล้วก็เป็นของที่ได้มาแล้วไม่หาย — รวมแบบเดียวกับสกิน
   const fx = [...new Set([].concat(remote.fx || [], local.fx || []))];
+  const fx3d = Object.assign({}, remote.fx3d || {}, local.fx3d || {});
   // ยอดโทเคนกับสตรีคเป็นตัวเลขที่ "ใช้แล้วลด" เอามากที่สุดไม่ได้ —
   // ใช้จนเหลือ 20 ที่เครื่องหนึ่ง แล้วเปิดอีกเครื่องที่ยังค้าง 100 ก็จะได้ 100 คืนทุกครั้ง
   // ซึ่งกลายเป็นวิธีปั๊มโทเคนแบบไม่จำกัด จึงตัดสินด้วยเวลาแทน: ฝั่งที่แก้ทีหลังชนะ
-  saveTokenState(Object.assign({}, remoteNewer ? remote : local, { skins }, fx.length ? { fx } : {}), true);
+  saveTokenState(Object.assign({}, remoteNewer ? remote : local, { skins }, fx.length ? { fx } : {},
+    Object.keys(fx3d).length ? { fx3d } : {}), true);
 
   if (remoteNewer) {
     if (r.avatar) { try { localStorage.setItem(AV_KEY, r.avatar); } catch (_) {} }
@@ -9031,13 +9052,13 @@ function drawSettle() {
     drawOpen[i] = true;
     grantPrize(r);
     tok += r.amount || 0;
-    if (r.kind === 'skin' && !r.duplicate) fresh++;
+    if ((r.kind === 'skin' || r.kind === 'fx3d') && !r.duplicate) fresh++;
   });
   if (typeof applyThemeLocks === 'function') applyThemeLocks();
   showToast({
     title: 'เก็บการ์ดที่ยังไม่ได้หงายให้แล้ว',
     body: (tok ? '+' + fmtTok(Math.round(tok * 10) / 10) + ' โทเคน' : 'ได้ของครบทุกใบ')
-      + (fresh ? ' · ธีมใหม่ ' + fresh + ' อัน' : ''),
+      + (fresh ? ' · ของใหม่ ' + fresh + ' อัน' : ''),
   });
 }
 function applyDrawLock() {
@@ -9045,6 +9066,8 @@ function applyDrawLock() {
 }
 
 function cardFace(r) {
+  // หน้าการ์ดแบบการ์ดเกม (กรอบตามระดับ · ช่องภาพ · ดาว · NEW · ฟอยล์) อยู่ใน gacha-fx.js
+  if (typeof gcCardFace === 'function') return gcCardFace(r);
   const body = r.kind === 'token'
     ? `${coin(30, 'gc-tok')}<b class="mono">+${fmtTok(r.amount)}</b><span>โทเคน</span>`
     : `<b>${esc(r.label)}</b><span>${r.duplicate ? 'ซ้ำ · คืน ' + fmtTok(r.amount) + ' โทเคน' : 'ธีมใหม่!'}</span>`;
@@ -9059,7 +9082,7 @@ function drawCardsHtml() {
         <button class="gc" data-i="${i}" onclick="gcTap(${i})"
           aria-label="แตะเพื่อเปิดการ์ด">
           <span class="gc-in">
-            <span class="gc-back"><i class="gc-mark">${coin(44)}</i><i class="gc-shine"></i></span>
+            <span class="gc-back${r.rarity !== 'common' ? ' hint-' + r.rarity : ''}"><i class="gc-mark">${coin(44)}</i><i class="gc-shine"></i></span>
             <span class="gc-face r-${r.rarity}${r.rarity === 'secret' ? ' p-' + r.id : ''}"></span>
           </span>
         </button>`).join('')}
@@ -9084,11 +9107,12 @@ function gcFlash(rarity) {
 function drawSummary() {
   const tok = drawResults.reduce((n, r) => n + (r.amount || 0), 0);
   const fresh = drawResults.filter(r => r.kind === 'skin' && !r.duplicate).length;
+  const fresh3 = drawResults.filter(r => r.kind === 'fx3d' && !r.duplicate).length;
   const best = drawResults.reduce((a, b) => RANK[b.rarity] > RANK[a.rarity] ? b : a, drawResults[0]);
-  return `รอบนี้ได้ <b>${fmtTok(tok)}</b> โทเคน${fresh ? ' · ธีมใหม่ ' + fresh + ' อัน' : ''}
+  return `รอบนี้ได้ <b>${fmtTok(tok)}</b> โทเคน${fresh ? ' · ธีมใหม่ ' + fresh + ' อัน' : ''}${fresh3 ? ' · <b class="r-mythic">3D ใหม่ ' + fresh3 + '</b>' : ''}
     · ดีที่สุด <b class="r-${best.rarity}">${RARITY_NAME[best.rarity]}</b>`;
 }
-const RANK = { common: 0, rare: 1, legendary: 2, secret: 3 };
+const RANK = { common: 0, rare: 1, legendary: 2, secret: 3, mythic: 4 };
 
 function flipCard(i) {
   if (drawOpen[i]) return;
@@ -9098,6 +9122,7 @@ function flipCard(i) {
   if (el) {
     el.querySelector('.gc-face').innerHTML = cardFace(r);   // เติมหน้าการ์ดตอนจะพลิกเท่านั้น
     el.classList.add('open', 'lit-' + r.rarity);
+    if (typeof gcFlipFx === 'function') gcFlipFx(r, el);   // เสียงตามระดับ · ฟอยล์ตามนิ้ว · จอโชว์ของหายาก
   }
   gcAuraSync();
   haptic(r.rarity === 'common' ? 'arm' : 'done');
@@ -9108,7 +9133,9 @@ function flipCard(i) {
       gcFlash(r.rarity);
     }, 340);
   }
-  if (r.rarity === 'legendary') {
+  if (r.kind === 'fx3d' || (r.rarity === 'legendary' && typeof gcReveal === 'function' && !GC_REDUCED)) {
+    // จอโชว์เต็มจอ (gacha-fx.js) บอกรายละเอียดเองแล้ว — toast ซ้ำจะซ้อนอยู่บนจอโชว์
+  } else if (r.rarity === 'legendary') {
     setTimeout(() => showToast({
       title: 'LEGENDARY ✦ ' + r.label,
       body: r.duplicate ? 'ซ้ำ — คืน ' + fmtTok(r.amount) + ' โทเคน' : 'ปลดล็อกธีม' + r.label + 'แล้ว',
@@ -9181,11 +9208,13 @@ function renderWheel() {
          หัวจอกับการ์ด ทำให้ของชิ้นเอกของจอนี้ถูกดันลงไปอยู่กลางจอ -->
     <div class="gc-odds${luckOn() ? ' lucky' : ''}">
       <div class="gc-obar">
+        <i class="r-mythic" style="width:${oddsPct('mythic')}%"></i>
         <i class="r-legendary" style="width:${oddsPct('legendary')}%"></i>
         <i class="r-rare" style="width:${oddsPct('rare')}%"></i>
         <i class="r-common"></i>
       </div>
       <div class="gc-olb">
+        <span class="r-mythic">3D ${oddsText('mythic')}</span>
         <span class="r-legendary">Legendary ${oddsText('legendary')}</span>
         <span class="r-rare">Rare ${oddsText('rare')}</span>
         <span class="r-common">Common ${oddsText('common')}</span>
@@ -9236,6 +9265,9 @@ async function doSpin(n) {
   drawResults = Array.from({ length: n }, () => rollPrize());
   drawOpen = drawResults.map(() => false);
   applyDrawLock();
+
+  // ดาวตกก่อน — สีของมันบอกของที่ดีที่สุดในรอบนี้ ก่อนจะเห็นการ์ด (gacha-fx.js · แตะข้ามได้)
+  if (typeof gcIntro === 'function') await gcIntro(drawResults);
 
   const area = document.getElementById('gcArea');
   area.className = '';
