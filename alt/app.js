@@ -1366,9 +1366,13 @@ function loginWith(provider, retriesLeft = 15) {
     if (cloudConfigured() && retriesLeft > 0) setTimeout(() => loginWith(provider, retriesLeft - 1), 200);
     return;
   }
+  // prompt=select_account บังคับให้ Google ขึ้นหน้าเลือกบัญชีทุกครั้ง
+  // ไม่ใส่แล้ว Google จะเลือกบัญชีที่ล็อกอินค้างในเบราว์เซอร์ให้เองเงียบ ๆ
+  // คนที่มีทั้งอีเมลส่วนตัวกับอีเมลโรงเรียนเลยสลับไปอีกบัญชีไม่ได้เลย
+  const queryParams = provider === 'google' ? { prompt: 'select_account' } : undefined;
   sb.auth.signInWithOAuth({
     provider,
-    options: { redirectTo: location.origin + location.pathname },
+    options: { redirectTo: location.origin + location.pathname, queryParams },
   });
 }
 

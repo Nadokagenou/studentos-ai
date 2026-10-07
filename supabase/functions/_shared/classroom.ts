@@ -245,8 +245,9 @@ export function authorizeUrl(opts: {
   u.searchParams.set('state', opts.state);
   // offline + consent = บังคับให้ออก refresh token ใหม่ทุกครั้งที่กดเชื่อม
   // ไม่ใส่ prompt=consent แล้วคนที่เคยเชื่อมมาก่อนจะไม่ได้ refresh token กลับมาเลย
+  // select_account = ขึ้นหน้าเลือกบัญชีก่อน ไม่งั้น Google หยิบบัญชีที่ล็อกอินค้างอยู่ให้เอง
   u.searchParams.set('access_type', 'offline');
-  u.searchParams.set('prompt', 'consent');
+  u.searchParams.set('prompt', 'select_account consent');
   u.searchParams.set('include_granted_scopes', 'true');
   if (opts.loginHint) u.searchParams.set('login_hint', opts.loginHint);
   return u.toString();

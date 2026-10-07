@@ -227,7 +227,7 @@
     this.disabled = false;
   };
   $('#gateGoogle').onclick = function () {
-    sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href } })
+    sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href, queryParams: { prompt: 'select_account' } } })
       .catch(function (e) { gateMsg(e.message || 'เปิด Google ไม่สำเร็จ', 'bad'); });
   };
   function signOut() { sb.auth.signOut().then(function () { location.reload(); }); }
