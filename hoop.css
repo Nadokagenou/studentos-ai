@@ -1,0 +1,211 @@
+/* ============================================================
+   เอฟเฟกต์ตอนงานเสร็จ · โยนลงห่วง (hoop.js)
+   ============================================================
+   ทับทุกอย่างรวมถึงจอโฟกัส (92) และ toast (95) — จอนี้เปิดอยู่ได้ไม่กี่วินาที
+   และมีทางออกทางเดียวที่ไม่ใช่การเล่น: ปุ่ม "ข้าม" มุมขวาบน
+   ชั้นในสนาม: ลูก (แรงไป ข้ามกระดาน) 0 · กระดาน 1 · ลูก (ขาลง หลังขอบ) 2 · ตาข่าย 3 · ขอบหน้า 4 · ลูก (ขาขึ้น/ก่อนโยน) 5 */
+.hoop-ov {
+  position: absolute; inset: 0; z-index: 96;
+  display: flex; flex-direction: column;
+  background: var(--scr);
+  background: color-mix(in srgb, var(--scr) 90%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  animation: hpIn .22s ease-out;
+  touch-action: none;
+  user-select: none; -webkit-user-select: none;
+}
+.hoop-ov.out { opacity: 0; transition: opacity .2s ease; pointer-events: none; }
+@keyframes hpIn { from { opacity: 0; } to { opacity: 1; } }
+/* เศษกระดาษของ celebrate() ถูกต่อท้าย .phone หลังจอนี้ — ต้องลอยเหนือจอ ไม่งั้นมองไม่เห็นเลย */
+.hoop-ov ~ .particle { z-index: 97; }
+
+.hp-head {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: calc(env(safe-area-inset-top) + 22px) 20px 0;
+}
+.hp-tx { flex: 1; min-width: 0; }
+.hp-eb {
+  display: block; font-size: 11.5px; font-weight: 700; letter-spacing: .02em;
+  color: var(--gold-text);
+}
+.hp-t {
+  display: block; margin-top: 3px;
+  font-size: 19px; font-weight: 700; color: var(--ink); line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hp-skip {
+  flex: none; min-height: 36px; padding: 0 14px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--card); color: var(--muted);
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.hp-skip:active { transform: scale(.96); }
+/* ปุ่มลำโพง — ปิดเสียงได้ในแตะเดียว (ติ๊กงานในห้องเรียน) */
+.hp-snd {
+  flex: none; width: 36px; height: 36px; padding: 0;
+  display: grid; place-items: center;
+  border: 1px solid var(--line); border-radius: 50%;
+  background: var(--card); color: var(--muted); cursor: pointer;
+}
+.hp-snd svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.hp-snd svg path:first-child { fill: currentColor; }
+.hp-snd .x { display: none; }
+.hp-snd.off .w { display: none; }
+.hp-snd.off .x { display: inline; }
+.hp-snd:active { transform: scale(.94); }
+
+.hp-court { position: relative; flex: 1; overflow: hidden; }
+
+/* กระดาน — การ์ดสีพื้นของธีม กรอบสี่เหลี่ยมเล็กสีแดงเหนือห่วงแบบสนามจริง */
+.hp-board {
+  position: absolute; z-index: 1;
+  width: 164px; height: 110px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 28px -14px rgba(0,0,0,.35);
+}
+.hp-board i {
+  position: absolute; left: 50%; bottom: 12px;
+  width: 58px; height: 42px; margin-left: -29px;
+  border: 3px solid var(--pri-red); border-bottom-width: 0;
+  border-radius: 4px 4px 0 0; opacity: .85;
+}
+
+/* ขอบห่วง — ส้มบาสคงที่ทุกธีม (เป็นวัตถุ ไม่ใช่สีความหมายของแอป) */
+.hp-rim {
+  position: absolute; z-index: 4; height: 8px;
+  border-radius: 8px;
+  background: #F2661B;
+  box-shadow: 0 2px 0 #B8460C, 0 6px 12px -4px rgba(242,102,27,.55);
+  transform-origin: 50% 50%;
+}
+.hp-rim.hit { animation: hpRim .32s ease-out; }
+@keyframes hpRim {
+  30% { transform: translateY(3px) scaleX(.98); }
+  60% { transform: translateY(-1px); }
+}
+
+.hp-net {
+  position: absolute; z-index: 3; width: 96px; height: 64px;
+  overflow: visible; transform-origin: 50% 0;
+}
+.hp-net path { fill: none; stroke: var(--muted); stroke-width: 1.4; stroke-linecap: round; opacity: .75; }
+.hp-net.swish { animation: hpSwish .6s cubic-bezier(.3,1.6,.5,1); }
+@keyframes hpSwish {
+  25% { transform: scaleX(.82) scaleY(1.28); }
+  60% { transform: scaleX(1.04) scaleY(.94); }
+  100% { transform: none; }
+}
+
+/* ลูก = แผ่นงานที่เพิ่งเสร็จ (กระดาษ + ติ๊กทอง) — แบบไฟล์ PDF ที่โยนในคลิปต้นแบบ
+   ติ๊กเป็นทองได้ เพราะงานใบนี้ "สำเร็จแล้วจริง" ตามกฎสีทองของแอป */
+.hp-ball {
+  position: absolute; left: 0; top: 0; z-index: 5;
+  width: 50px; height: 50px;
+  display: grid; place-items: center;
+  cursor: grab; touch-action: none;
+  will-change: transform;
+}
+.hp-ball.behind { z-index: 2; }
+.hp-ball.over { z-index: 0; opacity: .85; }   /* ข้ามกระดานไปตกข้างหลัง */
+.hp-ball.front { z-index: 5; }
+.hp-ball.held { cursor: grabbing; }
+.hp-ball.gone { opacity: 0; transition: opacity .3s ease; }
+.hp-page {
+  position: relative;
+  width: 38px; height: 48px;
+  border-radius: 6px 13px 6px 6px;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 1px rgba(31,36,48,.12), 0 8px 18px -8px rgba(0,0,0,.45);
+  display: flex; flex-direction: column; justify-content: center; gap: 5px;
+  padding: 0 8px;
+}
+.hp-page::after {          /* มุมพับ */
+  content: ''; position: absolute; top: 0; right: 0;
+  width: 12px; height: 12px;
+  background: linear-gradient(225deg, var(--scr) 50%, #E3E6EC 50%);
+  border-radius: 0 13px 0 4px;
+}
+.hp-page i { display: block; height: 3px; border-radius: 2px; background: #D5D9E1; }
+.hp-page i:nth-child(2) { width: 75%; }
+.hp-page i:nth-child(3) { width: 55%; }
+.hp-ok {
+  position: absolute; right: -2px; bottom: -1px;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--grad-gold); color: var(--on-gold);
+  box-shadow: 0 0 0 2px var(--scr);
+}
+.hp-ok svg { width: 13px; height: 13px; stroke-width: 3; }
+.hp-ball.pop { animation: hpPop .3s cubic-bezier(.3,1.6,.5,1); }
+@keyframes hpPop { from { opacity: 0; } to { opacity: 1; } }
+
+.hp-dots { position: absolute; inset: 0; z-index: 6; pointer-events: none; overflow: visible; }
+.hp-dots circle { fill: var(--muted); }
+
+.hp-msg {
+  position: absolute; left: 0; right: 0; top: 52%;
+  text-align: center; font-size: 16px; font-weight: 700; color: var(--ink);
+  opacity: 0; transform: translateY(6px);
+  transition: opacity .18s ease, transform .18s ease;
+  pointer-events: none; z-index: 7;
+}
+.hp-msg.show { opacity: 1; transform: none; }
+.hp-msg.win { font-size: 26px; color: var(--gold-text); }
+.hp-msg b { color: var(--blue); }
+
+.hp-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 0 20px calc(env(safe-area-inset-bottom) + 22px);
+  min-height: 46px;
+}
+.hp-hint { font-size: 13px; color: var(--muted); transition: opacity .25s ease; }
+.hp-hint::before {
+  content: '↓'; display: inline-block; margin-right: 6px; font-weight: 700; color: var(--blue);
+  animation: hpNudge 1.1s ease-in-out infinite;
+}
+.hp-hint.off { opacity: 0; }
+.hp-try { font-size: 12px; color: var(--muted); }
+@keyframes hpNudge { 50% { transform: translateY(4px); } }
+
+/* ---------- ร้านค้า: แถวเอฟเฟกต์ ---------- */
+.tb-sw.sw-hoop {
+  display: grid; place-items: center;
+  background: linear-gradient(160deg, #FFF4EC, #FFE2CF);
+}
+.tb-sw.sw-hoop svg { width: 24px; height: 24px; }
+.tb-try {
+  flex: none; min-height: 36px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 11px;
+  background: transparent; color: var(--ink);
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.tb-try:active { transform: scale(.96); }
+
+/* ---------- ตั้งค่า › ธีมสี: ส่วนเอฟเฟกต์ (แยกจากตารางธีมสี) ---------- */
+.fx-sec { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.fx-sec[hidden] { display: none; }
+.fx-hd { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+.fx-hd b { font-size: 14px; font-weight: 700; color: var(--ink); }
+.fx-hd span { font-size: 12px; color: var(--muted); }
+.th-grid .sw.fx-sw-confetti {
+  background:
+    radial-gradient(circle at 30% 30%, #E03A2F 2.5px, transparent 3px),
+    radial-gradient(circle at 70% 40%, #2C9C57 2.5px, transparent 3px),
+    radial-gradient(circle at 45% 72%, #EFAE0B 2.5px, transparent 3px),
+    var(--card);
+}
+.th-grid .sw.fx-sw-hoop { display: grid; place-items: center; background: #FFF1E6; }
+.th-grid .sw.fx-sw-hoop svg { width: 16px; height: 16px; }
+.fx-try {
+  margin-top: 9px; width: 100%; min-height: 40px;
+  border: 1px dashed var(--line); border-radius: 12px;
+  background: transparent; color: var(--blue);
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hoop-ov, .hp-net.swish, .hp-rim.hit, .hp-hint::before { animation: none; }
+}

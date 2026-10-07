@@ -103,6 +103,8 @@
        ว่างอยู่ = ยังไม่มีใครปรับอะไร ไม่มีผลกับหน้าตาเดิมเลย -->
   <!-- น้องไซ (Synara) — มาสคอตบนหน้าวันนี้ + ห้องคุยแผน -->
   <link rel="stylesheet" href="sai.css">
+  <!-- เอฟเฟกต์ตอนงานเสร็จ "โยนลงห่วง" (ของในร้านค้า · hoop.js) -->
+  <link rel="stylesheet" href="hoop.css">
   <link rel="stylesheet" href="custom.css">
 </head>
 <body>
@@ -1819,6 +1821,19 @@
                 <button type="button" class="th-glitch" data-th="glitch" onclick="setTheme('glitch')">
                   <span class="sw sw-glitch"></span><span class="nm">GL!TCH</span></button>
               </div>
+              <!-- เอฟเฟกต์ตอนงานเสร็จ — ของที่ซื้อจากร้านค้า แยกจากตารางธีมสีข้างบน
+                   ซ่อนทั้งส่วนจนกว่าจะมีเอฟเฟกต์อย่างน้อยหนึ่งชิ้น (renderFxPick ใน hoop.js)
+                   ใช้ id #fxPick ไม่ใช่ #themePick — โค้ดธีมเลือกปุ่มด้วย '#themePick button' -->
+              <div class="fx-sec" id="fxSec" hidden>
+                <div class="fx-hd"><b>เอฟเฟกต์ตอนงานเสร็จ</b><span id="fxNow"></span></div>
+                <div class="th-grid" id="fxPick">
+                  <button type="button" data-fx="confetti" onclick="setDoneFx('confetti')">
+                    <span class="sw fx-sw-confetti"></span><span class="nm">เศษกระดาษ</span></button>
+                  <button type="button" data-fx="hoop" onclick="setDoneFx('hoop')" hidden>
+                    <span class="sw fx-sw-hoop"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="9" rx="2" fill="none" stroke="#8A8F9C" stroke-width="1.4"/><path d="M7.5 15.5 9 22M16.5 15.5 15 22M10 15.5 11 22M14 15.5 13 22" stroke="#8A8F9C" stroke-width="1.1" stroke-linecap="round"/><rect x="6" y="13" width="12" height="2.6" rx="1.3" fill="#F2661B"/></svg></span><span class="nm">โยนลงห่วง</span></button>
+                </div>
+                <button type="button" class="fx-try" onclick="previewHoop()">ลองโยนดู</button>
+              </div>
             </div>
 
             <!-- ALT 1A6M3: วิดเจ็ตบนหน้าแรก -->
@@ -2093,6 +2108,9 @@
 <script src="topic.js"></script>
 <script src="safety.js"></script>
 <script src="sai.js"></script>
+<!-- ฟังก์ชันล้วน ไม่รันอะไรตอนโหลด · ต้องมาก่อน app.js เพื่อให้การวาดรอบแรก
+     (renderShop · renderAppearance) เห็น FX_SHOP แล้ว — ไม่งั้นแถวเอฟเฟกต์โผล่ช้าไปหนึ่งรอบ -->
+<script src="hoop.js"></script>
 <script src="app.js"></script>
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────
