@@ -196,6 +196,9 @@
     <!-- ALT: ไอคอนตำแหน่งแถบเมนู (จอ + แถบด้านข้าง) -->
     <g id="lu-tasks-alt" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="16" x="3" y="4" rx="2"></rect><path d="M9 4v16"></path></g>
     <g id="lu-user" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M20 21a8 8 0 0 0-16 0"></path></g>
+    <!-- คนแบบทึบ — แถว "เข้าสู่ระบบ" ในจอแจ้งเตือน (เจ้าของ: "ให้ใส่สีให้เต็มเลย ใช้สีตามขอบตอนแรก")
+         รูปทรงเดียวกับ #lu-user แต่เติมสีทั้งหัวและไหล่ด้วย currentColor (สีเน้นของธีม) -->
+    <g id="lu-user-f" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M20 21a8 8 0 0 0-16 0z"></path></g>
     <!-- ALT 1A6M3: เหรียญตรา -->
     <g id="lu-medal" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"></path><path d="M11 12 5.12 2.2"></path><path d="m13 12 5.88-9.8"></path><path d="M8 7h8"></path><circle cx="12" cy="17" r="5"></circle><path d="M12 18v-2h-.5"></path></g>
     <!-- ALT 1A7b: เหรียญโทเคน — ของสะสม ไม่ใช่ไอคอนสถานะ
@@ -236,6 +239,15 @@
       <path d="M12 3v13"></path><path d="m8 7 4-4 4 4"></path>
     </g>
     <!-- ต่อไม่ได้เพราะเจ้าของแอปไม่เปิดให้ใครต่อ — ไม่ใช่ล็อกที่รอปลด จึงไม่ใช้รูปกุญแจ -->
+    <!-- 8 ต.ค. 69 · ไอคอนไทล์ชุดใหม่ (เจ้าของ: "เปลี่ยนหน้าปกให้ตรงกับหัวข้องาน แล้วก็เปลี่ยนโลโก้ที่เกี่ยวข้องด้วย")
+         ไทล์ "แผนวันนี้" เคยเป็นรูปประกาย · "สแกนตารางเรียน" เป็นหนังสือ · "กล่องเข้า" เป็นปลั๊ก · "สถิติ" เป็นไฟ — ไม่มีอันไหนบอกว่ากดแล้วเจออะไร
+         เส้นแบบ lucide (ISC) ให้เข้าชุดกับไอคอนอื่นในไฟล์นี้ · ใช้ทุกทางเข้าของฟีเจอร์นั้น ไม่ใช่แค่ไทล์ -->
+    <g id="lu-plan" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path><path d="m9 16 2 2 4-4"></path></g>
+    <g id="lu-scan" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><rect width="10" height="10" x="7" y="7" rx="1.5"></rect><path d="M7 12h10"></path><path d="M12 7v10"></path></g>
+    <g id="lu-inbox" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"></path><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></g>
+    <g id="lu-chart" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"></path><path d="M8 17v-4"></path><path d="M13 17V9"></path><path d="M18 17V5"></path></g>
+    <!-- ประตูมีลูกศรออก (lucide log-out · ISC) — แถว "ออกจากระบบ" ในตั้งค่า -->
+    <g id="lu-logout" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></g>
     <g id="lu-unplug" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M19 5 5 19"></path><path d="M9 5.5 5.5 9l3 3 3.5-3.5z"></path><path d="M15.5 12l3 3L15 18.5l-3-3z"></path>
     </g>
@@ -408,6 +420,12 @@
                ต่อจอ และการ์ดขาวสามใบใต้ใบสีก็แย่งความสนใจกันเองอยู่ดี
                รอบล่าสุด (เจ้าของ: "ทำให้ดูง่ายและไม่รก") เหลือบรรทัดเดียวต่อแถว — บรรทัดรองตัวเล็ก
                ใต้แต่ละข้อถูกถอด หัวข้ออย่างเดียวก็ตอบ "มันทำอะไรให้ฉัน" ได้ครบ -->
+          <!-- 8 ต.ค. 69 · การ์ดแบบ TextureCard (cult-ui · เจ้าของส่งเดโมมา: "ลองเอามาปรับใช้ในหน้านี้ดู")
+               สามบรรทัดว่าแอปทำอะไร + กองปุ่ม รวมเป็นการ์ดเดียว ขอบซ้อนหลายชั้นแบบเดโม คั่นด้วยเส้นคู่ (.tx-sep)
+               ท้ายการ์ดเป็นแถบพื้นเข้มกว่า (.tx-foot) แบบแถบ "Already have an account?" ของเดโม
+               ที่ว่างเปล่ากลางจอ (เดิม ~170px ระหว่างสามบรรทัดกับปุ่ม) หายไปเพราะทั้งสองอยู่ในการ์ดเดียวกันแล้ว -->
+          <div class="tx-card">
+          <div class="tx-body">
           <div class="lg-feats">
             <div class="lg-feat">
               <span class="lf-ic"><svg viewBox="0 0 24 24"><use href="#lu-camera"/></svg></span>
@@ -430,10 +448,15 @@
                เพราะรายชื่อผู้ให้บริการมาจาก config.js (เปิดใช้เจ้าไหนไว้บ้าง) และช่องทาง
                "อีเมล" มีสามสถานะในตัวมันเอง (เลือก → กรอกอีเมล → กรอกรหัส) ซึ่งเขียนเป็น
                HTML นิ่ง ๆ ไม่ได้ · ห้ามเอาปุ่มกลับมาแปะไว้ตรงนี้ มันจะซ้ำกับที่ JS วาด -->
+          </div>
+          <div class="tx-sep"></div>
+          <div class="tx-body">
           <div class="lg-actions">
             <div id="loginOpts" class="lg-opts"></div>
             <p class="lg-note" id="loginNote"></p>
-            <a class="login-what" href="land.html">แอปนี้คืออะไร →</a>
+          </div>
+          </div>
+          <div class="tx-foot"><a class="login-what" href="land.html">แอปนี้คืออะไร →</a></div>
           </div>
         </div>
       </div>
@@ -1573,7 +1596,16 @@
             <div class="set-row">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
               <span class="set-lb">นั่งทำงานไหวต่อวัน</span>
-              <input type="number" id="pFree" min="0.5" step="0.5" value="2" onchange="saveProfile()">
+              <!-- 8 ต.ค. 69 · เจ้าของ: "แก้ให้สวยกว่านี้" — เดิมเป็นช่องตัวเลขเปล่ามีลูกศรขึ้นลงเล็ก ๆ ของเบราว์เซอร์
+                   ตอนนี้เป็นปุ่ม − ตัวเลข + แบบแคปซูล กดทีละครึ่งชั่วโมง (stepFree) · ช่องตัวเลขยังพิมพ์เองได้ -->
+              <span class="stp" role="group" aria-label="ชั่วโมงที่นั่งทำงานไหวต่อวัน">
+                <button type="button" class="stp-b" onclick="stepFree(-1)" aria-label="ลดครึ่งชั่วโมง">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg></button>
+                <span class="stp-v"><input type="number" id="pFree" min="0.5" step="0.5" value="2" inputmode="decimal"
+                  onchange="saveProfile()"><i>ชม.</i></span>
+                <button type="button" class="stp-b" onclick="stepFree(1)" aria-label="เพิ่มครึ่งชั่วโมง">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg></button>
+              </span>
             </div>
             <!-- ALT: รูปโปรไฟล์ของตัวเอง — เก็บในเครื่อง ไม่ต้องมีบัญชี -->
             <div class="set-row">
@@ -1676,13 +1708,20 @@
                  สิ่งที่ผู้ใช้ทำได้จริงมีสองอย่าง และทั้งสองอย่างมีฟังก์ชันอยู่แล้ว:
                  เปิดดูว่าส่งอะไรไปกับคำถาม (ของจริง ไม่ใช่คำอธิบาย) และล้างประวัติ
                  แถวที่มีแต่ของที่กดแล้วเกิดอะไรขึ้นจริง ดีกว่าแถวที่ครบตามสเปกแต่กดแล้วเงียบ -->
-            <div class="set-row" id="aiPrefRow">
-              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
-              <span class="set-lb">ผู้ช่วย AI</span>
-              <button class="btn secondary sm" style="width:auto;min-height:34px;padding:0 12px"
-                onclick="aiShowContext()">เห็นอะไร</button>
-              <button class="btn secondary sm" style="width:auto;min-height:34px;padding:0 12px"
-                onclick="aiClear()">ล้างประวัติ</button>
+            <!-- 7 ต.ค. 69 · เจ้าของ: "ปรับหน่อย มันไม่สวยเลย แต่ทำให้ดูง่าย" — สองปุ่มเคยนั่งข้างชื่อแถว
+                 บีบคำอธิบายเหลือคอลัมน์แคบ ๆ ห้าบรรทัด · ตอนนี้หัวแถวกว้างเต็ม แล้วสองปุ่มเท่ากันอยู่แถวล่าง
+                 (โครงเดียวกับแถว "ใส่โค้ด" ข้างล่าง) · ป้ายปุ่มบอกครบว่ากดแล้วได้อะไร ไม่ต้องเดาจากคำสั้น ๆ -->
+            <div class="set-row col" id="aiPrefRow">
+              <span class="set-hd">
+                <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+                <span class="set-lb">ผู้ช่วย AI</span>
+              </span>
+              <div class="set-btns">
+                <button type="button" onclick="aiShowContext()">
+                  <svg viewBox="0 0 24 24"><use href="#lu-search"/></svg>น้องไซเห็นอะไร</button>
+                <button type="button" class="warn" onclick="aiClear()">
+                  <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg>ล้างประวัติแชท</button>
+              </div>
             </div>
             <div class="set-row" id="installCard" hidden>
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-check-circle"/></svg></span>
@@ -1739,9 +1778,24 @@
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
               <span class="set-lb">ล็อกธีมลับกลับ</span>
               <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
-            <button type="button" class="set-row go danger" onclick="clearAll()">
+            <!-- 8 ต.ค. 69 · เจ้าของ: "เปลี่ยนตรงนี้ให้เป็นออกจากระบบ หรือ log out" แล้วตามมาว่า "เปลี่ยนชื่อด้วยสิ"
+                 รอบแรกสลับป้ายตามสถานะล็อกอิน (ไม่ล็อกอิน = ยังเป็น "ล้างข้อมูลทั้งหมด") เจ้าของเห็นป้ายเดิมเลยสั่งซ้ำ
+                 ตอนนี้เป็น "ออกจากระบบ" เสมอ · ไม่ได้ล็อกอิน = logout() พากลับจอเข้าสู่ระบบ (ข้อมูลในเครื่องอยู่ครบ)
+                 ปุ่มล้างข้อมูลทั้งหมด (clearAll) ไม่มีทางเข้าจากจอนี้แล้ว — คนมีบัญชีลบได้จาก "ลบบัญชีและข้อมูลทั้งหมด" ในแท็บฉัน -->
+            <!-- 8 ต.ค. 69 · เจ้าของวงลิงก์สามบรรทัดเหนือการ์ด (ออกจากระบบ · เราเก็บอะไรของคุณบ้าง · ลบบัญชีและข้อมูลทั้งหมด):
+                 "ลบตรงนี้ออก แล้วเอามารวมกันกับปุ่ม" — สองอันที่ไม่ซ้ำย้ายมาเป็นแถวในการ์ดนี้ · ลิงก์ออกจากระบบที่ซ้ำกับแถวล่างถูกถอด
+                 สองแถวนี้มีความหมายเฉพาะตอนมีบัญชี → ซ่อนไว้ก่อน renderProfile เปิดให้เมื่อล็อกอินอยู่ -->
+            <button type="button" class="set-row go" id="setPrivRow" hidden onclick="go('scr-privacy'); renderPrivacy()">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
+              <span class="set-lb">เราเก็บอะไรของคุณบ้าง</span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <button type="button" class="set-row go danger" id="setOutRow" onclick="logout()">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-logout"/></svg></span>
+              <span class="set-lb">ออกจากระบบ</span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <button type="button" class="set-row go danger" id="setDelRow" hidden onclick="deleteAccount()">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg></span>
-              <span class="set-lb">ล้างข้อมูลทั้งหมด</span>
+              <span class="set-lb">ลบบัญชีและข้อมูลทั้งหมด</span>
               <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
           </div>
         </div>
@@ -1871,7 +1925,7 @@
                 <button type="button" data-nav="bottom" onclick="setNav('bottom')">ด้านล่าง</button>
                 <button type="button" data-nav="side" onclick="setNav('side')">ด้านซ้าย</button>
               </div>
-              <p class="bg-note">จอกว้าง (ไอแพด แท็บเล็ต คอม) จะย้ายแถบไปด้านซ้ายให้เอง — เลือกบังคับเองได้</p>
+              <!-- บรรทัดอธิบาย "จอกว้าง (ไอแพด แท็บเล็ต คอม) จะย้ายแถบไปด้านซ้ายให้เอง…" ถูกถอด — เจ้าของสั่ง "ลบ" (7 ต.ค. 69) -->
             </div>
 
             <!-- ALT: ขนาดตัวอักษร -->

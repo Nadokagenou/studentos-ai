@@ -316,8 +316,13 @@ function renderMates() {
       <!-- ---------- ชื่อที่แสดง ---------- -->
       <div class="ep-f">
         <label for="epName">ชื่อ</label>
-        <input id="epName" type="text" maxlength="40" value="${esc(myName2)}"
-               placeholder="ชื่อที่เพื่อนเรียกคุณ" oninput="epDirty()">
+        <!-- 8 ต.ค. 69 · ไอคอนนำหน้าในกรอบเดียวกับช่อง แบบ HaloInput leadingSlot (เจ้าของส่งเดโม HaloField มา) -->
+        <div class="ep-at hf-lead">
+          ${icon('user')}
+          <input id="epName" type="text" maxlength="40" value="${esc(myName2)}"
+                 placeholder="ชื่อที่เพื่อนเรียกคุณ" oninput="epDirty()">
+        </div>
+        <p class="hf-desc">เพื่อนเห็นชื่อนี้บนโปรไฟล์และในแชท</p>
       </div>
 
       <!-- ---------- ชื่อผู้ใช้ ---------- -->
@@ -326,9 +331,11 @@ function renderMates() {
         <div class="ep-at">
           <span>@</span>
           <input id="epHandle" type="text" maxlength="20" value="${esc(handle)}"
-                 autocapitalize="off" spellcheck="false"
-                 placeholder="beam4_16" oninput="epDirty()">
+                 autocapitalize="off" spellcheck="false" aria-describedby="epHandleErr"
+                 placeholder="beam4_16" oninput="epDirty(); epHandleCheck()" onblur="epHandleCheck(true)">
         </div>
+        <p class="hf-desc">เพื่อนพิมพ์ชื่อนี้เพื่อค้นหาคุณ · 3–15 ตัว</p>
+        <p class="hf-err" id="epHandleErr" role="alert" hidden></p>
       </div>
 
       <!-- ---------- แนะนำตัว ---------- -->
@@ -338,6 +345,7 @@ function renderMates() {
                   placeholder="เช่น ติวเลขให้ได้ แลกกับโน้ตอังกฤษ"
                   oninput="epDirty(); epCount()">${esc(s.bio)}</textarea>
         <span class="ep-count" id="epCount">${(s.bio || '').length} / 80</span>
+        <p class="hf-desc">ไม่ใส่ก็ได้ · โชว์บนโปรไฟล์</p>
       </div>
 
       <!-- ---------- ช่วงชั้น + วิชา ----------
@@ -429,10 +437,38 @@ function matesHead() {
 
 // การ์ดคนหนึ่งคน — เหตุผลต้องอยู่บนการ์ด ไม่ใช่ซ่อนอยู่ข้างใน
 // เพราะสิ่งที่ทำให้กล้ากดทักคือ "รู้ว่าจะทักไปว่าอะไร" ไม่ใช่ "รู้ว่าเขาชื่ออะไร"
+// ---------- ไอคอนประจำวิชา (ใบตัวอย่างในจอเพื่อน) ----------
+// 8 ต.ค. 69 · เจ้าของ: "ปรับตรงนี้ให้เป็นโลโก้ที่ตรงตามหัวข้อ" — ใบตัวอย่างสองใบเคยเป็นวงกลมตัวอักษรแรกของชื่อสมมติ
+// ("เ" จาก "เพื่อนในห้องเธอ" · "อ" จาก "อีกคนในห้องเธอ") ซึ่งไม่ได้บอกอะไร · หัวข้อของใบคือวิชา จึงใช้รูปของวิชานั้น
+// จับคำในชื่อวิชา (เลข/คณิต · เคมี · ฟิสิกส์ · ชีว · อังกฤษ · ไทย · สังคม/ประวัติ · คอม · ศิลป · ดนตรี · พละ) ไม่เจอ = หนังสือ
+// สีประจำหมวดตายตัว ไม่ใช้ subjColor() เพราะวิชาในใบตัวอย่าง ("เลข" "เคมี") อาจไม่อยู่ในรายการวิชาของผู้ใช้ — จะได้สีเทา
+// เส้นแบบ lucide (ISC) ให้เข้าชุดกับไอคอนอื่นในแอป · ใบของคนจริงยังเป็นรูป/ตัวอักษรของคนนั้นเหมือนเดิม
+const SUBJ_GLYPHS = [
+  [/เลข|คณิต|math/i, '#3B82F6', '<rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M8.5 6.5h7"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h.01M15.5 18h.01"/>'],
+  [/เคมี|chem/i, '#10B981', '<path d="M9.5 2.5v6.2L4.4 18a2 2 0 0 0 1.8 3h11.6a2 2 0 0 0 1.8-3l-5.1-9.3V2.5"/><path d="M8 2.5h8"/><path d="M6.8 15h10.4"/>'],
+  [/ฟิสิกส์|phys/i, '#8B5CF6', '<circle cx="12" cy="12" r="1.5"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8" transform="rotate(120 12 12)"/>'],
+  [/ชีว|bio/i, '#22C55E', '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10Z"/><path d="M2 21c0-3 1.9-5.4 5.2-6.1 2.4-.5 4.8-2 6.3-3.9"/>'],
+  [/อังกฤษ|eng|ภาษาต่าง|จีน|ญี่ปุ่น/i, '#EF4444', '<path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/>'],
+  [/ไทย/i, '#F97316', '<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>'],
+  [/สังคม|ประวัติ|ภูมิ|social|hist/i, '#F59E0B', '<circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19"/><path d="M12 2.5a14.5 14.5 0 0 1 0 19 14.5 14.5 0 0 1 0-19"/>'],
+  [/คอม|วิทยาการ|โปรแกรม|com/i, '#0EA5E9', '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M2 20h20"/><path d="m9 8-2 2 2 2M15 8l2 2-2 2"/>'],
+  [/ศิลป|art/i, '#EC4899', '<path d="M12 22a10 10 0 1 1 10-10c0 2.5-2 3.5-3.5 3.5H16a2 2 0 0 0-1.5 3.3A2 2 0 0 1 12 22Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15.5" cy="7.5" r="1"/>'],
+  [/ดนตรี|music/i, '#A855F7', '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>'],
+  [/พละ|สุขศึกษา|กีฬา|pe\b/i, '#14B8A6', '<circle cx="12" cy="12" r="9.5"/><path d="M12 2.5v19M2.5 12h19"/><path d="M5.3 5.3c3.6 3.6 3.6 9.8 0 13.4M18.7 5.3c-3.6 3.6-3.6 9.8 0 13.4"/>'],
+];
+function subjGlyph(name) {
+  const hit = SUBJ_GLYPHS.find(([re]) => re.test(String(name || '')));
+  const [, color, paths] = hit || [null, 'var(--fill)', '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>'];
+  return `<div class="so-av so-glyph" style="--sg:${color}" title="${esc(name || '')}"><svg viewBox="0 0 24 24" aria-hidden="true"
+    fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${paths}</svg></div>`;
+}
+
 function mateCard(m, demo) {
   const match = m.match || [];
   const give = m.give || [];
-  const av = m.avatar
+  // ใบตัวอย่าง = รูปของวิชาที่ใบนั้นพูดถึง (ดู subjGlyph) · ใบของคนจริง = รูปหรือตัวอักษรแรกของคนนั้น
+  const av = demo ? subjGlyph((m.match || [])[0] || (m.give || [])[0] || '')
+    : m.avatar
     ? `<img class="so-av" src="${esc(m.avatar)}" alt="">`
     : `<div class="so-av">${esc((m.display_name || '?').slice(0, 1))}</div>`;
 
@@ -508,6 +544,25 @@ function epDirty() {
   const b = document.getElementById('epSave');
   if (b) { b.disabled = false; b.textContent = 'บันทึก'; }
 }
+// ชื่อผู้ใช้: เช็กกติกาเดียวกับ set_handle ฝั่งเซิร์ฟเวอร์ (handle_ok · 3–15 ตัว · ก-๙ a-z 0-9 _) ระหว่างพิมพ์
+// แบบ HaloFieldError ในเดโม — ขอบแดง + บรรทัดบอกว่าผิดตรงไหน · สั้นไปเตือนตอนออกจากช่องเท่านั้น (ระหว่างพิมพ์ทุกชื่อสั้นไปก่อน)
+// ชื่อที่ซ้ำกับคนอื่นรู้ได้จากเซิร์ฟเวอร์เท่านั้น — ยังเตือนเป็น toast ตอนกดบันทึกเหมือนเดิม
+function epHandleCheck(leaving) {
+  const inp = document.getElementById('epHandle');
+  const err = document.getElementById('epHandleErr');
+  if (!inp || !err) return true;
+  const v = inp.value.trim().replace(/^@/, '').toLowerCase();
+  let msg = '';
+  if (v && /[^ก-๙a-z0-9_]/.test(v)) msg = /\s/.test(v) ? 'ห้ามเว้นวรรค — ใช้ _ แทนได้' : 'ใช้ได้แค่ ก-๙ a-z 0-9 และ _';
+  else if (v.length > 15) msg = 'ยาวไป — ไม่เกิน 15 ตัว (ตอนนี้ ' + v.length + ')';
+  else if (leaving && v && v.length < 3) msg = 'สั้นไป — ต้อง 3 ตัวขึ้นไป';
+  err.hidden = !msg;
+  err.textContent = msg;
+  inp.closest('.ep-at').classList.toggle('invalid', !!msg);
+  inp.setAttribute('aria-invalid', String(!!msg));
+  return !msg;
+}
+
 function epCount() {
   const t = document.getElementById('epBio');
   const c = document.getElementById('epCount');
@@ -819,8 +874,10 @@ function renderChat() {
                          : esc(chatThread.subject + 'ขอถามหน่อยได้ป่ะ')}"
                  oninput="chatTyping()"
                  onkeydown="if(event.key==='Enter')sendChat()">
-          <button class="ch-emo-btn" onclick="toggleEmoji()" aria-label="อิโมจิ">${icon('sparkles')}</button>
-          <button class="ch-send" id="chSend" onclick="sendChat()" aria-label="ส่ง">${icon('check')}</button>
+          <!-- 8 ต.ค. 69 · เจ้าของ: "ลบดาวออก" — ดาวคือปุ่มเปิดแถบอิโมจิ จึงเปลี่ยนเป็นรูปหน้ายิ้ม (ปุ่มยังทำงานเดิม) -->
+          <button class="ch-emo-btn" onclick="toggleEmoji()" aria-label="อิโมจิ"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9.5h.01M15 9.5h.01"/></svg></button>
+          <button class="ch-send" id="chSend" onclick="sendChat()" aria-label="ส่ง"><svg viewBox="0 0 24 24" aria-hidden="true"
+            fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
         </div>
       </div>`}`;
 
@@ -941,7 +998,7 @@ function chatTyping() {
 // ลบแค่ฝั่งตัวเองคือคำสัญญาที่ผิด: คนกดเพราะอยากให้อีกฝ่ายไม่เห็น ไม่ใช่เพราะรกตา
 async function unsendChat(id) {
   if (!sb || !currentUser) return;
-  if (!confirm('ลบข้อความนี้ อีกฝ่ายจะไม่เห็นด้วย แน่ใจนะ?')) return;
+  if (!(await appConfirm({ title: 'ลบข้อความนี้?', body: 'อีกฝ่ายจะไม่เห็นด้วย', ok: 'ลบข้อความ', danger: true }))) return;
   const { data, error } = await sb.rpc('dm_unsend', { p_msg: Number(id) });
   if (error) {
     if (typeof haptic === 'function') haptic('snooze');
@@ -1080,7 +1137,16 @@ function chatBack() {
 }
 
 async function openDmInbox(from) {
-  if (!sb || !currentUser) return loginFromMates();
+  // 7 ต.ค. 69 · เจ้าของ: "เมื่อกดปุ่มข้อความ ให้มันไปหน้าเข้าสู่ระบบก่อนถึงจะคุยได้"
+  // เดิมเด้งออกไปหน้า Google ทันที (loginFromMates) — คนที่ไม่ได้ใช้ Google เลือกทางอื่นไม่ได้
+  // ตอนนี้พาไปหน้าเข้าสู่ระบบของแอปก่อน (Google · อีเมลรับรหัส) แล้วฝากธงไว้ให้ routeAfterLogin()
+  // พากลับมากล่องข้อความหลังล็อกอินเสร็จ · กด "เริ่มใช้เลย" แทน = กลับหน้าแรก ไม่วนกลับมาที่นี่
+  if (!sb || !currentUser) {
+    try { localStorage.setItem(MATES_RETURN_KEY, 'scr-dm'); } catch (_) {}
+    if (typeof setLoginView === 'function') setLoginView('root');
+    go('scr-login');
+    return;
+  }
   dmReturn = from || pickReturn('scr-profile');
   go('scr-dm');
   dmBusy = true;
@@ -1217,11 +1283,15 @@ function renderDmInboxInner() {
       <button class="ch-back" onclick="dmBack()" aria-label="กลับ">${icon('chevron')}</button>
       <div class="ch-who"><b>ข้อความ</b></div>
     </div>
-    <div class="dm-find">
+    <!-- 8 ต.ค. 69 · ช่องค้นหาแบบ HaloSearchInput (เจ้าของส่งเดโมมา: "เอามาใช้ในตรงนี้") — วงไล่สีวนรอบช่อง
+         ระหว่างค้นหา (dmFindBusy) วงวนเร็วขึ้น + "กำลังค้นหา…" ไหลทีละตัวในช่อง (แบบ loadingText ของเดโม)
+         --hf-ph = จังหวะของวงตอนนี้ — จอนี้วาดใหม่ทั้งก้อนทุกครั้งที่เริ่ม/จบการค้นหา ถ้าไม่ต่อจังหวะ วงจะกระตุกกลับไปเริ่มที่เดิม -->
+    <div class="dm-find${dmFindBusy ? ' busy' : ''}" style="--hf-ph:-${((Date.now() / 1000) % 12).toFixed(2)}s">
       <span class="dm-find-ic">${icon('search')}</span>
       <input type="search" id="dmQ" value="${esc(dmFindQ)}" autocomplete="off"
         placeholder="ค้นหาชื่อ หรือ @ชื่อผู้ใช้" oninput="dmFindSoon(this.value)">
-      ${dmFindQ ? `<button class="dm-find-x" onclick="dmClearFind()" aria-label="ล้าง">${icon('x')}</button>` : ''}
+      ${dmFindBusy ? `<span class="dm-find-load" role="status">${dmLoadGlyphs('กำลังค้นหา…')}</span>`
+        : dmFindQ ? `<button class="dm-find-x" onclick="dmClearFind()" aria-label="ล้าง">${icon('x')}</button>` : ''}
     </div>`;
 
   // ปุ่มดินสอลอยมุมล่างขวา — ทางเข้าสำหรับคนที่ยังไม่รู้ว่าจะทักใคร จึงยังพิมพ์อะไรไม่ได้
@@ -1260,7 +1330,6 @@ function renderDmInboxInner() {
         ${chats.length ? `<div class="sec-label">แชท</div>${chats.map(row).join('')}` : ''}
         ${q.length >= 2 ? `
           <div class="sec-label">คนอื่นในแอป</div>
-          ${dmFindBusy ? '<p class="so-hint">กำลังค้นหา…</p>' : ''}
           ${others.length
             ? others.map(p => pickRow(p, p.rel === 'friends' ? 'เพื่อนของคุณ'
                 : 'ยังไม่ใช่เพื่อน')).join('')
@@ -1292,11 +1361,25 @@ function renderDmInboxInner() {
     </div>` + fab;
 }
 
+// ตัวอักษร "กำลังค้นหา…" ทีละพยางค์ (สระ/วรรณยุกต์ไม่หลุดจากพยัญชนะ) — แต่ละตัวมี --i ให้ CSS ไล่จังหวะเป็นคลื่น
+function dmLoadGlyphs(text) {
+  const seg = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('th', { granularity: 'grapheme' }) : null;
+  const g = seg ? Array.from(seg.segment(text), s => s.segment) : (text.match(/[\s\S][ัิ-ฺ็-๎]*/gu) || []);
+  return g.map((c, i) => `<span style="--i:${i}">${esc(c)}</span>`).join('');
+}
+
+// ปุ่ม × — ตัวหนังสือในช่องร่วงลงจางหายก่อน (แบบ deletion animation ของ HaloSearch) แล้วค่อยล้างจริง
 function dmClearFind() {
-  dmFindQ = ''; dmFound = [];
-  renderDmInbox();
-  const el = document.getElementById('dmQ');
-  if (el) el.focus();
+  const box = document.querySelector('#dmBody .dm-find');
+  const done = () => {
+    dmFindQ = ''; dmFound = [];
+    renderDmInbox();
+    const el = document.getElementById('dmQ');
+    if (el) el.focus();
+  };
+  if (!box || matchMedia('(prefers-reduced-motion: reduce)').matches) return done();
+  box.classList.add('clearing');
+  setTimeout(done, 220);
 }
 
 function openDmRow(id, other, name, avatar, handle) {

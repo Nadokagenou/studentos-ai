@@ -33,9 +33,9 @@
       /* ลำดับเดียวกับที่ renderMenu() ต่อสตริงอยู่ตอนนี้ (1B38) */
       blocks: [
         { id: 'todayHead',  on: true },
-        { id: 'todayStats', on: true },
+        { id: 'nowCard',    on: true },   // 7 ต.ค. 69 · บนสุดใต้หัวจอ — เจ้าของสั่ง
+        { id: 'todayStats', on: true },   // ตามมาใต้การ์ด "ตอนนี้" · saiHero แทรกต่อหลังแถวนี้เอง (HOME_ORDER ใน app.js)
         { id: 'askBar',     on: true },
-        { id: 'nowCard',    on: true },
         { id: 'dayRail',    on: true },
         { id: 'hwNowBlock', on: true },
         { id: 'toolsLink',  on: true }
@@ -65,9 +65,9 @@
         { id: 'route',    on: true },
         { id: 'why',      on: true },
         { id: 'progress', on: true },
+        { id: 'whyGo',    on: true },   // เหนือแถวปุ่ม — 7 ต.ค. 69 เจ้าของสั่ง (ต้องตรงกับ NOW_PARTS ใน app.js)
         { id: 'actions',  on: true },
-        { id: 'askDue',   on: true },
-        { id: 'whyGo',    on: true }
+        { id: 'askDue',   on: true }
       ]
     },
 

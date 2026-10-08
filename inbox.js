@@ -108,6 +108,17 @@ function srcToggle(id, quiet) {
   renderSources();
   // เมนู + วาดสวิตช์ชุดเดียวกัน ต้องอัปเดตด้วย ไม่งั้นกดแล้วสวิตช์ไม่ขยับ
   if (typeof refreshAddSheet === 'function') refreshAddSheet();
+  // 8 ต.ค. 69 · วาดใหม่ทั้งแผ่น = ปุ่มกลมในสวิตช์กระโดดไปอีกฝั่งทันที — ให้มันไถลไปแบบสปริงแทน
+  // และแถวที่กดกะพริบพื้นอมสีหนึ่งที (เจ้าของ: "มีอนิเมชันตอนกด")
+  const row = document.querySelector(`#addSheet .as-tgl[data-sid="${id}"]`);
+  const knob = row && row.querySelector('.tg-k');
+  if (knob && knob.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const on = srcEnabled(id);
+    knob.animate([{ transform: `translateX(${on ? 0 : 17}px)` }, { transform: `translateX(${on ? 17 : 0}px)` }],
+      { duration: 380, easing: 'cubic-bezier(.3, 1.5, .5, 1)' });
+    row.classList.add('pulse');
+    setTimeout(() => row.classList.remove('pulse'), 500);
+  }
   if (typeof haptic === 'function') haptic('tap');
   if (quiet) return;
   showToast(srcEnabled(id)
@@ -126,7 +137,7 @@ function connectorMenuRows() {
   const list = SOURCES.filter(s => s.kind === 'connector' && s.state === 'live' && !s.connect);
   return list.map(s => {
     const on = srcEnabled(s.id);
-    return `<div class="as-row as-tgl ${on ? '' : 'off'}" onclick="srcToggle('${s.id}', true)">
+    return `<div class="as-row as-tgl ${on ? '' : 'off'}" data-sid="${s.id}" onclick="srcToggle('${s.id}', true)">
       <span class="as-ic">${icon(s.icon)}</span>
       <span class="as-tx"><b>${esc(s.name)}</b></span>
       <button class="tg ${on ? 'on' : ''}" role="switch" aria-checked="${on}"
@@ -1191,7 +1202,21 @@ function notifReadAll() {
   const s = notifSeen(); s.all = Date.now(); notifSaveSeen(s);
   renderNotif(); notifPaintBell();
 }
-function notifSetFilter(f) { notifFilter = f; renderNotif(); }
+// วาดจอใหม่ทั้งก้อนก็จริง แต่ตัวบอกปุ่มที่เลือกต้อง "เลื่อน" จากปุ่มเดิมไปปุ่มใหม่ ไม่ใช่โผล่ที่ใหม่เฉย ๆ
+// ตั้ง --i ของแผงใหม่เป็นตำแหน่งเดิมก่อน บังคับวาด แล้วค่อยเปลี่ยนเป็นตำแหน่งใหม่ — transition ใน CSS พาไปเอง
+function notifSetFilter(f) {
+  const keys = ['all', 'dm', 'work'];
+  const from = keys.indexOf(notifFilter);
+  notifFilter = f;
+  renderNotif();
+  const g = document.querySelector('#notifBody .gbg');
+  if (!g || from < 0 || from === keys.indexOf(f)) return;
+  g.classList.add('gbg-hold');
+  g.style.setProperty('--i', from);
+  void g.offsetWidth;
+  g.classList.remove('gbg-hold');
+  g.style.setProperty('--i', keys.indexOf(f));
+}
 
 function notifOpenDm(id) {
   const r = (typeof dmRows !== 'undefined' ? dmRows : []).find(x => x.id === id);
@@ -1327,9 +1352,16 @@ function renderNotif() {
   };
 
   const fresh = list.filter(n => n.unread), older = list.filter(n => !n.unread);
-  const chips = `<div class="nt-chips" role="tablist">${[['all', 'ทั้งหมด'], ['dm', 'ข้อความ'], ['work', 'งาน']]
-    .map(([k, l]) => `<button class="cp-chip ${notifFilter === k ? 'on' : ''}" role="tab"
-      aria-selected="${notifFilter === k}" onclick="notifSetFilter('${k}')">${l}</button>`).join('')}</div>`;
+  // 7 ต.ค. 69 · ปุ่มกรองเป็นแบบ GradientButtonGroup (cult-ui · MIT) — เจ้าของ: "เอามาใช้ในหน้านี้"
+  // ถาดยุบลง → แผงนูน → ปุ่มที่เลือกจมเป็นหลุม มีวงแหวนไล่สีหมุนรอบ · ตัวบอกปุ่มที่เลือกเป็นก้อนเดียว (.gbg-ind)
+  // ที่เลื่อนไปหาปุ่มใหม่แบบสปริง (notifSetFilter สั่งเลื่อนจากตำแหน่งเดิม หลังวาดจอใหม่)
+  const NT_FILTERS = [['all', 'ทั้งหมด'], ['dm', 'ข้อความ'], ['work', 'งาน']];
+  const chips = `<div class="nt-chips gbg-tray"><div class="gbg" role="tablist"
+      style="--i:${Math.max(0, NT_FILTERS.findIndex(x => x[0] === notifFilter))}">
+    <span class="gbg-ind" aria-hidden="true"><span class="gbg-ring"></span><span class="gbg-gap"></span></span>
+    ${NT_FILTERS.map(([k, l]) => `<button class="gbg-b${notifFilter === k ? ' on' : ''}" role="tab"
+      aria-selected="${notifFilter === k}" onclick="notifSetFilter('${k}')">${l}</button>`).join('')}
+  </div></div>`;
 
   const loggedIn = typeof currentUser !== 'undefined' && !!currentUser;
   const empty = `<section class="nt-empty">
@@ -1339,7 +1371,7 @@ function renderNotif() {
   // ไม่ได้ล็อกอิน = ข้อความจากเพื่อนมาไม่ถึงเครื่องนี้เลย · บอกตรง ๆ ดีกว่าให้รอสิ่งที่ไม่มีวันมา
   const login = !loggedIn && notifFilter !== 'work' && typeof cloudConfigured === 'function' && cloudConfigured()
     ? `<button class="nt-login" onclick="go('scr-login')">
-        <span class="nt-av src">${icon('user')}</span>
+        <span class="nt-av src">${icon('user-f')}</span>
         <span class="nt-bd"><span class="nt-t"><b>เข้าสู่ระบบ</b> เพื่อรับข้อความจากเพื่อน</span></span>
         ${icon('chevron')}
       </button>` : '';

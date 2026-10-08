@@ -10365,5 +10365,1645 @@ body.as-open .tab.scan .scan-dot svg { transform: rotate(135deg); }
    ถ้าจอแคบจนป้ายยาวขึ้นสองบรรทัด แถวนั้นสูงขึ้นเอง ไอคอนยังตรงกัน · วัดแล้ว: ล้น 26px → 0px */
 @media (max-width: 619px) { #menuBody .tg-lb2 { min-height: 0; } }
 
+/* ใบ "ต่อเนื่อง" ในแท็บฉัน — สีไฟชุดเดียวกับช่องวันต่อเนื่องบนหน้าแรก (เจ้าของ: "เอามาเปลี่ยนในอันนี้ด้วย")
+   เดิมเป็นพื้นทึบ --fire (ชมพูแดงบนธีมมืด) กับเปลวไฟเส้นสีการ์ด · ตอนนี้พื้นส้มจาง + ขอบส้มบาง
+   เปลวไฟสองโทน (เส้นส้ม · แกนเหลืองอำพัน) ที่ไหวช้า ๆ จาก STAT_ART.streak · Astral Black ยังขาวดำ */
+/* รอบแรกใช้พื้นส้มจาง 18% แบบหน้าแรก — เจ้าของ: "มองไม่เห็น" · บนการ์ดมืดมันจมหาย
+   ขณะที่ใบข้าง ๆ (ห้อง · เหรียญ) เป็นพื้นทึบสีเต็ม · แถวนี้จึงต้องทึบเหมือนเพื่อนบ้าน:
+   พื้นไล่ส้ม → ส้มเข้ม · เปลวไฟเส้นขาว · แกนเหลืองสด */
+.shw-streak .shw-ic {
+  background: linear-gradient(160deg, #FB923C, #EA580C);
+  box-shadow: none;
+  color: #fff; --ts-c2: #FDE047;
+}
+.shw-streak .shw-ic svg { width: 22px; height: 22px; }
+:root[data-theme="astral"] .shw-streak .shw-ic { filter: grayscale(1); }
+
+/* ============================================================
+   ช่อง "ถามน้องไซ…" บนหน้าแรก — ไม่มีกรอบสี่เหลี่ยม + ตัวอักษรเคลื่อนไหว (คู่กับ .ha-mir ท้าย app.js)
+   ------------------------------------------------------------
+   เจ้าของ: "แก้เอาขอบออก กับทำให้มันมีอนิเมชันข้อความหน่อย"
+   กรอบสี่เหลี่ยมสีเน้นคือวงโฟกัสคีย์บอร์ดของ QA #17 (ช่องพิมพ์ติด :focus-visible ทุกครั้งแม้แตะนิ้ว)
+   แคปซูลทั้งอันยังบอกว่ากำลังพิมพ์อยู่ด้วยขอบสีเน้นของมันเอง (.td-ask:focus-within ใน today.css)
+   ตัวอักษรจริงในช่องโปร่งใส เหลือเคอร์เซอร์ — ชั้นเงาวาดแทนทีละพยางค์ (ชัดขึ้นจากเบลอ)
+   ============================================================ */
+.phone #hmAsk:is(:focus, :focus-visible) { outline: none !important; }
+.td-ask { position: relative; }
+.ha-mir {
+  position: absolute; z-index: 1; pointer-events: none; overflow: hidden;
+  display: flex; align-items: center; white-space: pre; color: var(--ink);
+}
+.ha-line { white-space: pre; }
+.ha-line span.in { animation: ha-in .34s ease-out both; }
+@keyframes ha-in { from { opacity: 0; filter: blur(5px); } }
+.ha-ph {
+  position: absolute; left: 0; top: 0; bottom: 0; display: flex; align-items: center;
+  white-space: pre; color: var(--faint); transition: opacity .24s ease, filter .24s ease;
+}
+.ha-ph.out { opacity: 0; filter: blur(4px); }
+.ha-ph span { opacity: 0; animation: ha-ph-in .36s ease-out forwards; }
+@keyframes ha-ph-in { from { opacity: 0; filter: blur(5px); } to { opacity: 1; filter: none; } }
+.td-ask.ha-has .ha-ph { display: none; }
+.td-ask.ha-on .tk-in { color: transparent; caret-color: var(--ink); }
+.td-ask.ha-on .tk-in::placeholder { color: transparent; }
+@media (prefers-reduced-motion: reduce) {
+  .ha-line span.in, .ha-ph span { animation: none; opacity: 1; }
+  .ha-ph { transition: none; }
+}
+
+/* จอสแกนตารางเรียนเลื่อนลงไปดูของท้ายจอไม่ได้ (เจ้าของ: "มันเลื่อนลงไม่ได้ ทำให้มันเลื่อนไปเห็นได้")
+   .tt-body ตั้งเว้นล่างไว้แค่ 8px (ให้เวทีกล้องพอดีจอ) — บนจอกว้างแบบกรอบโทรศัพท์ แถบเมนูล่างลอยทับก้นจอ
+   ชิปคำแนะนำ (วางให้ตรง · เห็นครบทั้งสัปดาห์ · ไฟสว่างพอ) กับบรรทัดท้ายเลยจมใต้แถบ เลื่อนได้แค่ 14px
+   คืนระยะเท่าจออื่น (.scr-body) ให้เลื่อนพ้นแถบได้ · มือถือ/แอปที่ติดตั้ง แถบอยู่นอกพื้นที่จอ ใช้ 22px ของมันเหมือนเดิม */
+:root:not([data-nav="side"]) .tt-body { padding-bottom: calc(100px + var(--tabgap)); }
+@media (max-width: 768px), (display-mode: standalone) {
+  :root:not([data-nav="side"]) .tt-body { padding-bottom: 22px; }
+}
+
+/* ============================================================
+   การ์ดสัปดาห์ (แท็บงาน → สัปดาห์) — ตกแต่งใหม่ (เจ้าของ: "ลองจัดหรือตกแต่งให้สวยหน่อย")
+   ------------------------------------------------------------
+   • คอลัมน์วัน: ชื่อวันมีจุดสีประจำวันแบบไทย (อา แดง · จ เหลือง · อ ชมพู · พ เขียว · พฤ ส้ม · ศ ฟ้า · ส ม่วง)
+     วันนี้ = แคปซูลทึบสีแบรนด์ ตัวขาว มีเงาเรือง (เดิมพื้นฟ้าจาง)
+   • เส้นตั้งระหว่างวันกับงานกลายเป็นแกนเวลา: มีจุดหนึ่งจุดต่อวัน · จุดวันนี้สีเน้นมีวงเรือง
+   • บรรทัดใต้งาน: ป้ายเล็กมีไอคอน — ว่าง = เขียวจาง (เวลาที่ยังใช้ได้) · เวลาเรียน/หมดเวลาว่าง = ป้ายกลาง
+   • เส้นคั่นแถวจางลง ให้แกนเวลาเป็นเส้นหลักของการ์ด
+   ============================================================ */
+.wk-card .wk-row { border-bottom-color: color-mix(in srgb, var(--line) 55%, transparent); }
+.wk-d { --dw: var(--muted); }
+.wk-d.dw-0 { --dw: #EF4444; } .wk-d.dw-1 { --dw: #EAB308; } .wk-d.dw-2 { --dw: #EC4899; }
+.wk-d.dw-3 { --dw: #22C55E; } .wk-d.dw-4 { --dw: #F97316; } .wk-d.dw-5 { --dw: #3B82F6; } .wk-d.dw-6 { --dw: #A855F7; }
+.wk-d b { color: var(--ink); }
+.wk-d i { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
+.wk-d i::before {
+  content: ''; flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--dw);
+}
+.wk-row.now .wk-d {
+  padding: 6px 0 7px; background: var(--grad-brand, var(--fill));
+  box-shadow: 0 6px 16px -8px var(--fill), inset 0 1px 0 rgba(255,255,255,.25);
+}
+.wk-row.now .wk-d b, .wk-row.now .wk-d i { color: var(--on-fill, #fff); }
+.wk-row.now .wk-d i::before { background: currentColor; opacity: .8; }
+
+/* แกนเวลา: จุดหนึ่งจุดบนเส้นตั้งของทุกวัน */
+.wk-b { position: relative; }
+.wk-b::before {
+  content: ''; position: absolute; left: -4px; top: 9px; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--card); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ink) 28%, transparent);
+}
+.wk-row.empty .wk-b::before { top: 6px; }
+.wk-row.now .wk-b::before {
+  background: var(--fill); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fill) 25%, transparent);
+  animation: wk-now 2.4s ease-in-out infinite;
+}
+@keyframes wk-now {
+  50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--fill) 12%, transparent); }
+}
+
+/* ป้ายใต้งาน */
+.wk-sub { display: flex; flex-wrap: wrap; gap: 5px; }
+.wk-pill {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px 3px 7px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; line-height: 1.4; color: var(--muted);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.wk-pill svg { width: 12px; height: 12px; flex: none; }
+.wk-pill.free {
+  color: color-mix(in srgb, var(--good) 85%, var(--ink));
+  background: color-mix(in srgb, var(--good) 13%, transparent);
+}
+@media (prefers-reduced-motion: reduce) { .wk-row.now .wk-b::before { animation: none; } }
+:root[data-theme="astral"] .wk-d i::before, :root[data-theme="astral"] .wk-pill.free { filter: grayscale(1); }
+
+/* "ทำไมอันนี้ก่อน" บนการ์ด "ตอนนี้" — แคปซูลเล็กเหนือแถวปุ่ม (เจ้าของ: "ปรับหน่อย และเอาไปให้อยู่บนปุ่มสามปุ่ม")
+   เดิมเป็นแถวเต็มกว้าง มีเส้นคั่นด้านบน อยู่ใต้ปุ่ม · ตอนนี้กว้างเท่าข้อความ พื้นสีเน้นจาง ไอคอนประกาย
+   ยังเบากว่าปุ่ม "เริ่มทำเลย" หนึ่งระดับ (พื้นจาง 14% ไม่ใช่สีทึบ) — การ์ดยังมีจุดโฟกัสเดียว */
+.td-now .tn-why-go {
+  display: inline-flex; width: auto; gap: 5px; margin: 0 0 10px; padding: 6px 10px 6px 9px;
+  border: 0; border-radius: 999px;
+  background: color-mix(in srgb, var(--fill) 14%, transparent);
+  color: color-mix(in srgb, var(--fill) 60%, var(--ink));
+  font-size: 12.5px; font-weight: 600;
+  transition: transform .15s ease, background .15s ease;
+}
+.td-now .tn-why-go svg { width: 14px; height: 14px; }
+.td-now .tn-why-go svg:first-child { color: var(--fill); }
+.td-now .tn-why-go svg:last-child { margin-left: 1px; opacity: .55; }
+.td-now .tn-why-go:active { opacity: 1; transform: scale(.96); background: color-mix(in srgb, var(--fill) 22%, transparent); }
+
+/* แผง "ทำไมอันนี้ก่อน" ในการ์ด "ตอนนี้" (เจ้าของ: "ลบดาวหน้าทำไม แล้วเอาหน้านี้ไปไว้บนสามปุ่ม")
+   แคปซูลไม่มีไอคอนประกายแล้ว · ลูกศรหมุนลงตอนเปิด · แผงกาง/พับแบบลื่น (grid 0fr → 1fr) อยู่เหนือแถวปุ่ม
+   เนื้อหา = สองช่องตัวเลข (ที่ต้องใช้ · เริ่มช้าสุด) + เหตุผลเป็นข้อ ๆ + ลิงก์ไปจอเทียบเต็ม */
+.td-now .tn-why-go svg:last-child { transition: transform .25s cubic-bezier(.3, 1.4, .5, 1); }
+.td-now .tn-why-go.open svg:last-child { transform: rotate(90deg); opacity: .8; }
+.tn-why-pane {
+  display: grid; grid-template-rows: 0fr; opacity: 0;
+  transition: grid-template-rows .32s cubic-bezier(.22, 1, .36, 1), opacity .22s ease, margin .32s ease;
+}
+.tn-why-pane.open { grid-template-rows: 1fr; opacity: 1; margin-bottom: 10px; }
+.tn-why-in { min-height: 0; overflow: hidden; }
+.tn-why-pane.open .tn-why-in > * { animation: tw-in .36s cubic-bezier(.22, 1, .36, 1) both; }
+.tn-why-pane.open .tn-why-in > :nth-child(2) { animation-delay: .05s; }
+.tn-why-pane.open .tn-why-in > :nth-child(3) { animation-delay: .1s; }
+@keyframes tw-in { from { opacity: 0; transform: translateY(-4px); } }
+.tw-stats { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.tw-stats > div {
+  padding: 9px 11px; border-radius: 14px;
+  background: color-mix(in srgb, var(--fill) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 22%, transparent);
+}
+.tw-stats b { display: block; font-size: 16px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.tw-stats span { display: block; margin-top: 1px; font-size: 11px; color: var(--muted); }
+.tw-rs { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.tw-rs li { display: flex; align-items: flex-start; gap: 7px; font-size: 13px; line-height: 1.5; color: var(--ink); }
+.tw-rs li svg { flex: none; width: 15px; height: 15px; margin-top: 2px; color: var(--good); }
+.tw-more {
+  display: inline-flex; align-items: center; gap: 2px; margin-top: 8px; padding: 2px 0;
+  border: 0; background: none; font: inherit; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer;
+}
+.tw-more svg { width: 13px; height: 13px; opacity: .6; }
+@media (prefers-reduced-motion: reduce) {
+  .tn-why-pane, .td-now .tn-why-go svg:last-child { transition: none; }
+  .tn-why-pane.open .tn-why-in > * { animation: none; }
+}
+
+/* วงกลมขาวไอคอนเป้าบนการ์ด "ตอนนี้" — ไม่มีขอบดำ (เจ้าของ: "มันมีขอบดำ ๆ เอาออก")
+   .tn-mark รับเงา --shadow ของธีม ซึ่งธีมมืดเป็นเงาดำหนัก (0 2px 8px ดำ 50% + 0 18px 40px ดำ 85%)
+   บนหัวการ์ดสีสด เงานั้นอ่านเป็นวงแหวนดำรอบวงกลม · ไม่ต้องมีเงา วงกลมขาวบนสีสดชัดอยู่แล้ว */
+.td-now .tn-mark { box-shadow: none; }
+
+/* ============================================================
+   ตารางวันนี้ (scr-dayfull) — อ่านง่ายขึ้น สีชัดขึ้น (คู่กับ renderDayFull ใน app.js)
+   ------------------------------------------------------------
+   เจ้าของ: "ปรับหน่อย มันดูไม่สวยเลย สีไม่ค่อยชัด แต่ต้องทำให้มันดูง่าย"
+   หนึ่งแถว = เวลา (ตัวหนา) ซ้าย + การ์ดเล็กขวา · การ์ดอมสีของชนิด 12% ขอบซ้ายสีเต็ม 3px
+   ป้ายชนิดเป็นคำ + ไอคอน — สีช่วยกวาด แต่การอ่านไม่พึ่งสี
+   งาน = สีเน้นของธีม · เรียน = ฟ้า · กิจกรรม = ส้ม · กิจวัตร/พัก = เทา
+   ============================================================ */
+.df-list { gap: 8px; background: none; border-radius: 0; overflow: visible; }
+.df-r { align-items: stretch; gap: 10px; padding: 0; color: inherit; }
+.df-r + .df-r { border-top: 0; }
+button.df-r:active { background: none; }
+button.df-r:active .df-x { transform: scale(.985); }
+.df-r.work { --k: var(--fill); }
+.df-r.class { --k: #3B82F6; }
+.df-r.ev { --k: #F97316; }
+.df-r.rt { --k: var(--muted); }
+.df-r.brk { --k: var(--faint); }
+.df-t {
+  width: 46px; display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start;
+  padding-top: 10px; font-family: inherit; font-variant-numeric: tabular-nums;
+}
+.df-t b { font-size: 15px; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+.df-t i { font-style: normal; margin-top: 1px; font-size: 11px; color: var(--faint); }
+.df-x {
+  padding: 9px 12px 10px 14px; border-radius: 16px;
+  background: color-mix(in srgb, var(--k) 12%, var(--card));
+  box-shadow: inset 3px 0 0 var(--k), inset 0 0 0 1px color-mix(in srgb, var(--k) 22%, transparent);
+  transition: transform .15s ease;
+}
+.df-k {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 700; color: color-mix(in srgb, var(--k) 70%, var(--ink));
+}
+.df-k svg { width: 12px; height: 12px; flex: none; }
+.df-x b { margin-top: 2px; font-size: 15px; font-weight: 700; }
+.df-x i { margin-top: 1px; font-size: 12px; }
+.df-r.past { opacity: .45; }
+.df-r.live .df-x {
+  box-shadow: inset 3px 0 0 var(--k), 0 0 0 2px color-mix(in srgb, var(--k) 55%, transparent),
+    0 10px 22px -12px var(--k);
+}
+/* เส้น "ตอนนี้" */
+.df-now { display: flex; align-items: center; gap: 8px; margin: 2px 0; }
+.df-now span {
+  flex: none; padding: 2px 8px; border-radius: 999px;
+  background: var(--alert); color: #fff; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.df-now i { flex: 1; height: 2px; border-radius: 2px; background: color-mix(in srgb, var(--alert) 70%, transparent); }
+:root[data-theme="astral"] .df-r { filter: grayscale(1); }
+
+/* เส้น "ตอนนี้" สีเข้มขึ้น (เจ้าของ: "ให้สีเข้มกว่านี้") — --alert บนธีมมืดเป็นชมพูอ่อน (ตั้งใจให้ตัวหนังสือแดงอ่านได้บนพื้นมืด)
+   แต่ที่นี่เป็นพื้นป้าย/เส้น ไม่ใช่ตัวหนังสือ จึงใช้แดงเข้มตายตัวทุกธีม ตัวหนังสือขาว · เส้นทึบเต็ม ไม่โปร่ง */
+.df-now span { background: #DC2626; box-shadow: 0 4px 12px -4px rgba(220, 38, 38, .6); }
+.df-now i { background: #DC2626; }
+:root[data-theme="astral"] .df-now span, :root[data-theme="astral"] .df-now i { background: #FFFFFF; color: #000; box-shadow: none; }
+
+/* ============================================================
+   ปุ่มกรองจอแจ้งเตือน (ทั้งหมด · ข้อความ · งาน) แบบ GradientButtonGroup (cult-ui · MIT)
+   ------------------------------------------------------------
+   เจ้าของส่งโค้ด GradientButtonGroup มา: "เอามาใช้ในหน้านี้"
+   ชั้นจากล่างขึ้นบน: ถาดยุบลง (.gbg-tray) → แผงนูน (.gbg) → ตัวบอกปุ่มที่เลือก (.gbg-ind):
+   หลุมจม → วงแหวนไล่สีหมุน (สีจากธีม · ต้นฉบับเป็นเขียวมิ้นต์ตายตัว) → ร่องมืดบาง ๆ → ป้ายปุ่มอยู่บนสุด
+   ปุ่มกว้างเท่ากัน 84px ตัวบอกจึงเลื่อนด้วย translateX(--i × (84 + 6)) ได้ตรง ไม่ต้องวัด
+   ============================================================ */
+/* .nt-chips (inbox.css) โหลดทีหลัง alt.css และตั้ง display:flex ไว้ — ต้องจำเพาะกว่า ไม่งั้นถาดยืดเต็มจอ */
+.nt-chips.gbg-tray {
+  display: inline-flex; margin: 6px 0 4px; padding: 4px; border-radius: 22px;
+  background: color-mix(in srgb, var(--ink) 7%, var(--scr));
+  box-shadow: inset 0 2px 8px rgba(0,0,0,.35), inset 0 1px 2px rgba(0,0,0,.25), 0 1px 0 rgba(255,255,255,.05);
+}
+.gbg {
+  --bw: 84px; --gp: 6px;
+  position: relative; display: grid; grid-template-columns: repeat(3, var(--bw)); gap: var(--gp);
+  padding: 5px; border-radius: 18px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card) 88%, #fff) 0%, var(--card) 55%, color-mix(in srgb, var(--card) 92%, #000) 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 1px 2px rgba(0,0,0,.18);
+}
+.gbg-b {
+  position: relative; z-index: 2; height: 40px; padding: 0; border: 0; border-radius: 14px; background: none;
+  font: inherit; font-size: 13.5px; font-weight: 700; color: var(--muted); cursor: pointer;
+  transition: color .25s ease, transform .15s ease;
+}
+.gbg-b.on { color: var(--ink); }
+.gbg-b:active { transform: scale(.96); }
+@media (hover: hover) and (pointer: fine) { .gbg-b:not(.on):hover { color: var(--ink); } }
+.gbg-ind {
+  position: absolute; z-index: 1; left: 5px; top: 5px; width: var(--bw); height: 40px; border-radius: 14px;
+  transform: translateX(calc(var(--i, 0) * (var(--bw) + var(--gp))));
+  transition: transform .5s cubic-bezier(.3, 1.3, .5, 1);
+  background: color-mix(in srgb, var(--ink) 5%, var(--scr));
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.55), inset 0 0 4px rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.06);
+}
+.gbg.gbg-hold .gbg-ind { transition: none; }
+.gbg-ring { position: absolute; inset: 3px; overflow: hidden; border-radius: 11px; }
+.gbg-ring::before {
+  content: ''; position: absolute; inset: -60%;
+  background: conic-gradient(from 220deg, var(--fill) 0%, color-mix(in srgb, var(--fill) 45%, #fff) 18%,
+    color-mix(in srgb, var(--fill) 55%, #22D3EE) 36%, var(--fill) 52%, color-mix(in srgb, var(--fill) 55%, #F472B6) 70%,
+    color-mix(in srgb, var(--fill) 40%, #fff) 86%, var(--fill) 100%);
+  animation: gbg-spin 3.2s linear infinite;
+}
+@keyframes gbg-spin { to { transform: rotate(360deg); } }
+.gbg-gap {
+  position: absolute; inset: 6px; border-radius: 9px;
+  background: var(--card);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.6), inset 0 0 2px rgba(0,0,0,.35);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gbg-ind { transition: none; }
+  .gbg-ring::before { animation: none; }
+}
+:root[data-theme="astral"] .gbg-ring { filter: grayscale(1); }
+
+/* แผงกว้างเต็มแถว — ถาดถูกยืดเต็มความกว้างอยู่แล้ว (คอลัมน์ flex ของจอ) ปุ่มกว้างตายตัวเลยทิ้งที่ว่างด้านขวา
+   ปุ่มแบ่งความกว้างเท่ากันสามช่อง · ตัวบอกกว้างหนึ่งช่อง เลื่อนทีละ (ความกว้างตัวเอง + ช่องไฟ) */
+.nt-chips.gbg-tray { display: flex; }
+.gbg { flex: 1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.gbg-ind {
+  width: calc((100% - 10px - 2 * var(--gp)) / 3);
+  transform: translateX(calc(var(--i, 0) * (100% + var(--gp))));
+}
+
+/* กล่องไอคอนในจอแจ้งเตือน (.nt-av.src) — รูปไม่อยู่กลางกล่อง และกล่องลอยสูงกว่ากลางแถว (เจ้าของ: "ปรับให้รูปมันตรง")
+   คลาส .src ชนกับการ์ดแหล่งข้อมูลใน inbox.css (.src { padding: 14px; margin-bottom: 9px }) —
+   padding ดันไอคอน 21px ไปมุมล่างขวาของกล่อง 44px (ซ้าย/บน 15 · ขวา/ล่าง 8) ส่วน margin ยกกล่องขึ้น ~5px
+   ล้างสองค่านั้นเฉพาะกล่องไอคอน — การ์ดแหล่งข้อมูลจริงยังได้ค่าเดิม */
+.nt-av.src { padding: 0; margin: 0; }
+
+/* ============================================================
+   ปุ่มตัวเลือกในหน้าตั้งค่าย่อย (แถบเมนู · ขนาดตัวอักษร · วิดเจ็ตหน้าแรก) แบบ NeumorphButton (cult-ui · MIT)
+   ------------------------------------------------------------
+   เจ้าของส่ง NeumorphButton มา: "ใช้กับพวกอันนี้"
+   ปุ่มทึบ มีขอบล่างเข้มเป็นสันนูน (inset −2px) + เงาฟุ้งใต้ปุ่ม · อันที่เลือก = แบบ "primary" สีเน้นของธีม
+   เงาเรืองสีเดียวกัน · กด = สันบางลง เงาสั้นลง ยุบ .98 · ชี้เมาส์ = นูนขึ้น 1.02 (สปริง)
+   อันที่ยังไม่เลือก = แบบ "default" พื้นทึบจากสีการ์ด — ไม่ใช่กรอบเส้นบาง ๆ แบบเดิม
+   ============================================================ */
+.fs-grid button {
+  border: 0; border-radius: 12px; color: var(--muted);
+  background: color-mix(in srgb, var(--ink) 8%, var(--card2));
+  box-shadow: inset 0 -2px 0 0 color-mix(in srgb, var(--ink) 18%, rgba(0,0,0,.35)), 0 1.2px 6px 0 rgba(0,0,0,.28);
+  transition: box-shadow .2s ease, background-color .2s ease, color .2s ease, transform .3s cubic-bezier(.3, 1.6, .5, 1);
+}
+.fs-grid button.active {
+  border: 0; color: var(--on-fill, #fff); background: var(--fill);
+  box-shadow: inset 0 -2.1px 0 0 color-mix(in srgb, var(--fill) 55%, #000),
+    0 1.2px 6.3px 0 color-mix(in srgb, var(--fill) 58%, transparent);
+}
+.fs-grid button:active {
+  transform: scale(.98); transition: none;
+  box-shadow: inset 0 -1.5px 0 0 color-mix(in srgb, var(--ink) 18%, rgba(0,0,0,.4)), 0 .5px 2px 0 rgba(0,0,0,.35);
+}
+.fs-grid button.active:active {
+  background: color-mix(in srgb, var(--fill) 86%, #000);
+  box-shadow: inset 0 -1.5px 0 0 color-mix(in srgb, var(--fill) 45%, #000), 0 .5px 2px 0 color-mix(in srgb, var(--fill) 70%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .fs-grid button:not(:active):hover { transform: scale(1.02); }
+  .fs-grid button:not(.active):not(:active):hover { background: color-mix(in srgb, var(--ink) 12%, var(--card2)); color: var(--ink); }
+}
+@media (prefers-reduced-motion: reduce) { .fs-grid button { transition: none; } .fs-grid button:hover, .fs-grid button:active { transform: none; } }
+
+/* ============================================================
+   หน้าตั้งค่า · แถว "ผู้ช่วย AI" กับ "ใส่โค้ด" (เจ้าของ: "ปรับหน่อย มันไม่สวยเลย แต่ทำให้ดูง่าย")
+   ------------------------------------------------------------
+   ผู้ช่วย AI: หัวแถวกว้างเต็ม (คำอธิบายบรรทัดเดียว) · สองปุ่มเท่ากันแถวล่าง มีไอคอน ป้ายบอกครบ
+   ปุ่มหน้าตาชุดเดียวกับปุ่มตัวเลือกในหน้าตั้งค่าย่อย (พื้นทึบ สันล่าง) · ล้างประวัติ = ตัวอักษรสีเตือน
+   ใส่โค้ด: ช่องพิมพ์กับปุ่ม "ใช้" สูงเท่ากัน มุมเท่ากัน ตัวพิมพ์ปกติแทนตัวพิมพ์ดีด
+   ============================================================ */
+.set-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.set-btns button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 42px; padding: 0 10px; border: 0; border-radius: 12px;
+  background: color-mix(in srgb, var(--ink) 8%, var(--card2)); color: var(--ink);
+  font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  box-shadow: inset 0 -2px 0 0 color-mix(in srgb, var(--ink) 18%, rgba(0,0,0,.35)), 0 1.2px 6px 0 rgba(0,0,0,.22);
+  transition: transform .2s cubic-bezier(.3, 1.6, .5, 1), background-color .2s ease;
+}
+.set-btns button svg { width: 15px; height: 15px; flex: none; color: var(--fill); }
+.set-btns button.warn { color: var(--alert); }
+.set-btns button.warn svg { color: currentColor; }
+.set-btns button:active { transform: scale(.97); box-shadow: inset 0 -1px 0 0 rgba(0,0,0,.35), 0 .5px 2px 0 rgba(0,0,0,.3); }
+.set-row .code-tools input[type=text] {
+  min-height: 42px; border-radius: 999px; padding: 0 16px; font-family: inherit; letter-spacing: .01em;
+}
+/* ปุ่ม "ใช้" เป็นแคปซูลตามกฎปุ่มหลักทั้งแอป (:root .btn.primary { border-radius: 999px !important })
+   ช่องพิมพ์จึงเป็นแคปซูลตามปุ่ม แทนการไปฝืนกฎนั้น */
+.code-tools .btn { min-height: 42px; padding: 0 20px; }
+
+/* แท็บ "ฉัน" — ค่าชิดขวาของแต่ละแถว (ยังไม่ได้เลือก · ไม่มีข้อความใหม่ · รู้จัก 0% · เร็ว ๆ นี้ …) ชัดขึ้น
+   เจ้าของ: "ปรับให้ชัดหน่อย" — ตัวอักษรขาว 80% บนพื้นการ์ดมืดยังอ่านเป็นของจาง
+   ตอนนี้เป็นแคปซูลเล็ก: ตัวอักษรเต็มความเข้ม พื้นจางสีหมึก 8% · ลูกศรท้ายแถวเข้มขึ้นจาก --faint
+   แถวเช็คอินรายวัน (.pe-daily) มีหน้าตาของตัวเอง ไม่แตะ */
+.phone .pe:not(.pe-daily) .pe-v:not(:empty) {
+  padding: 3px 10px; border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 9%, transparent);
+  color: var(--ink); font-size: 12.5px; font-weight: 700; font-style: normal;
+}
+.phone .pe .pe-go { color: color-mix(in srgb, var(--ink) 55%, transparent); }
+
+/* ============================================================
+   กราฟ "งานที่ติ๊กเสร็จ 7 วันล่าสุด" (แท็บฉัน) — จัดให้ตรงและสวยขึ้น (เจ้าของ: "จัดหน่อย มีอันไม่ตรง และทำให้สวยขึ้นหน่อย")
+   เดิม: ความสูงแท่งเป็น % ของทั้งคอลัมน์ (ซึ่งรวมตัวเลข + ชื่อวันด้วย) และตัวเลขอยู่ "ใต้" แท่ง
+   ตัวเลขกับฐานแท่งจึงลอยคนละระดับทุกคอลัมน์ · ตอนนี้: ตัวเลขบนแท่ง → รางสูงคงที่ 70px → ชื่อวัน
+   ทุกแท่งตั้งบนเส้นฐานเดียวกัน · รางว่างเป็นแถบจางเต็มความสูง (เห็นว่ามีเจ็ดช่อง) · วันนี้ไล่สีแบรนด์ + เรือง
+   ============================================================ */
+.st-card .st-bars { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; height: auto; align-items: end; margin-top: 4px; }
+.st-card .st-bar { display: flex; flex-direction: column; align-items: center; gap: 5px; height: auto; min-width: 0; }
+.st-bar .n { order: 0; min-height: 14px; font-size: 11px; font-weight: 700; color: var(--ink); line-height: 14px; }
+.st-bar .trk {
+  order: 1; position: relative; display: flex; align-items: flex-end; width: 100%; max-width: 30px; height: 70px;
+  border-radius: 9px; background: color-mix(in srgb, var(--ink) 6%, transparent); overflow: hidden;
+}
+.st-card .st-bar .bar {
+  width: 100%; min-height: 0; border-radius: 9px; margin: 0;
+  background: color-mix(in srgb, var(--fill) 70%, transparent);
+  transition: height .5s cubic-bezier(.22, 1, .36, 1);
+}
+.st-card .st-bar.now .bar { background: var(--grad-brand, var(--fill)); box-shadow: 0 0 14px -2px color-mix(in srgb, var(--fill) 70%, transparent); }
+.st-card .st-bar .d { order: 2; font-size: 11px; color: var(--faint); line-height: 1.2; }
+.st-card .st-bar.now .d { color: var(--fill); font-weight: 800; }
+
+/* ปุ่มคัดลอกใต้คำตอบน้องไซ — แบบ CopyButton ของ animate-ui (เจ้าของส่งโค้ดมา)
+   ไอคอนคัดลอกกับเครื่องหมายถูกซ้อนกัน · .ok = คัดลอกหมุนย่อหาย ถูกเด้งขึ้นสีเขียว · ครบ 1.5 วินาทีสลับกลับ */
+.am-act .cpb { position: relative; }
+.cpb > span { position: absolute; inset: 0; display: grid; place-items: center;
+  transition: transform .35s cubic-bezier(.3, 1.5, .5, 1), opacity .2s ease; }
+.cpb .cpb-b { opacity: 0; transform: scale(.4) rotate(-45deg); color: var(--good); }
+.cpb.ok .cpb-a { opacity: 0; transform: scale(.4) rotate(45deg); }
+.cpb.ok .cpb-b { opacity: 1; transform: none; }
+.cpb.ok { background: color-mix(in srgb, var(--good) 14%, transparent); }
+@media (prefers-reduced-motion: reduce) { .cpb > span { transition: opacity .15s ease; } }
+
+/* ปุ่มคัดลอกโดนตัดขอบซ้าย (เจ้าของส่งรูปเครื่องหมายถูกที่พื้นเขียวเหลือครึ่งเดียว: "แก้ด้วย")
+   แถวปุ่มใต้คำตอบดึงซ้าย −8px ให้ไอคอนตรงแนวตัวหนังสือ — ตอนปุ่มไม่มีพื้นก็ไม่มีใครเห็น
+   แต่กล่องแชทตัดของที่ล้นขอบซ้าย พอปุ่มมีพื้น (สถานะคัดลอกแล้ว) พื้นเลยโดนตัดครึ่ง · เลิกดึงซ้าย */
+#aiBody .am-act { margin-left: 0; }
+
+/* ============================================================
+   จอแผนราคา — อนิเมชันตอนสลับสองราคา (คู่กับ proSelect ใน app.js)
+   ------------------------------------------------------------
+   เจ้าของ: "ทำอนิเมชั่นตอนเลื่อนไประหว่างสองราคาให้หน่อย … ทำให้ดูมินิมอลนะ"
+   • กรอบเลือกเป็นชิ้นเดียว (.pro-ind) วางทับการ์ด เลื่อนไปหาใบใหม่ — มีแต่เส้นขอบ ไม่มีพื้น
+     (พื้นอมสีของใบที่เลือกยังเป็นของการ์ดเอง แค่ค่อย ๆ จางเข้าออก) จึงไม่บังตัวหนังสือ
+   • ใบที่เลือกไม่หนาขอบ/ไม่เปลี่ยน padding แล้ว — ตัวหนังสือไม่ขยับตอนสลับ
+   • รายการของแผน: ข้อใหม่ไล่ขึ้นทีละข้อ (ห่างกัน 40ms) จากฝั่งที่เลื่อนไป · ความสูงยืด/หดลื่น
+   ============================================================ */
+.pro-grid { position: relative; }
+.pro-card, .pro-card.on { border: 1px solid var(--line); padding: 12px 13px; }
+.pro-card { transition: background .3s ease, transform .15s ease; }
+.pro-card:active { transform: scale(.98); }
+.pro-name { transition: background .3s ease, color .3s ease; }
+.pro-ind {
+  position: absolute; z-index: 2; top: 0; left: 0; bottom: 0; pointer-events: none;
+  width: calc((100% - 9px) / 2); border-radius: 14px;
+  box-shadow: inset 0 0 0 2px var(--blue);
+  transform: translateX(calc(var(--i, 0) * (100% + 9px)));
+  transition: transform .42s cubic-bezier(.32, .72, 0, 1);
+}
+.pro-feats { overflow: hidden; transition: height .34s cubic-bezier(.32, .72, 0, 1); }
+.pro-feats.swap .pro-f { animation: pro-f-in .34s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(var(--k, 0) * 40ms); }
+.pro-feats[data-dir="l"] { --dx: -10px; }
+.pro-feats[data-dir="r"] { --dx: 10px; }
+@keyframes pro-f-in { from { opacity: 0; transform: translateX(var(--dx, 0)); } }
+@media (prefers-reduced-motion: reduce) {
+  .pro-ind, .pro-feats { transition: none; }
+  .pro-feats.swap .pro-f { animation: none; }
+}
+
+/* แจ้งเตือนแบบเกาะ: ปัดขึ้นเพื่อปิด (คู่กับ toastSwipe ใน app.js)
+   touch-action: none = นิ้วที่ลากบนการ์ดไม่ไปเลื่อนจอข้างใต้ · ไม่ให้เลือกข้อความตอนลาก */
+#appToast.toast { touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+#appToast.toast:active { cursor: grabbing; }
+
+/* กราฟแท่ง 7 วัน — แท่งงอกขึ้นจากฐานตอนเพิ่งเข้าจอ (คู่กับ growBars ใน app.js)
+   เจ้าของ: "เมื่อสลับมาหน้านี้ ให้มีอนิเมชั่นของแท่งเทียนหน่อย"
+   ยืดจากฐาน (scaleY 0 → 1) ทีละวันห่างกัน 55ms · ตัวเลขบนแท่งจางขึ้นตามหลังแท่งของมันนิดหนึ่ง
+   ใช้ transform ไม่ใช่ height — ไม่ดันเลย์เอาต์ และไม่ชนกับ transition ของ height ที่มีอยู่ */
+.st-bars.grow .bar { transform-origin: 50% 100%; animation: st-grow .7s cubic-bezier(.22, 1, .36, 1) both; }
+.st-bars.grow .n { animation: st-n-in .35s ease both; }
+.st-bars.grow .st-bar:nth-child(1) { --sd: 0ms; }
+.st-bars.grow .st-bar:nth-child(2) { --sd: 55ms; }
+.st-bars.grow .st-bar:nth-child(3) { --sd: 110ms; }
+.st-bars.grow .st-bar:nth-child(4) { --sd: 165ms; }
+.st-bars.grow .st-bar:nth-child(5) { --sd: 220ms; }
+.st-bars.grow .st-bar:nth-child(6) { --sd: 275ms; }
+.st-bars.grow .st-bar:nth-child(7) { --sd: 330ms; }
+.st-bars.grow .st-bar .bar { animation-delay: calc(var(--sd, 0ms) + 120ms); }
+.st-bars.grow .st-bar .n { animation-delay: calc(var(--sd, 0ms) + 420ms); }
+@keyframes st-grow { from { transform: scaleY(0); } }
+@keyframes st-n-in { from { opacity: 0; transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) { .st-bars.grow .bar, .st-bars.grow .n { animation: none; } }
+
+/* ============================================================
+   ช่อง "ถามน้องไซ…" บนหน้าแรก — แบบเรียบหรู (คู่กับ askBar + .ha-mir ใน app.js)
+   ------------------------------------------------------------
+   เจ้าของ: "ให้มันดูชิค ๆ กว่านี้" — เดิมตัวอย่างคำถามโผล่ทีละตัวจากเบลอ ตัวท้าย ๆ ยังมัวอยู่ตอนอ่าน ดูเลอะ
+   • ตัวอย่างคำถาม: แต่ละพยางค์ลอยขึ้นจากล่างเร็ว ๆ แบบคม ไม่เบลอ · อันเก่าเลื่อนขึ้นจางหาย (เหมือนป้ายหมุน)
+   • (เคอร์เซอร์ปลอมกะพริบท้ายตัวอย่างคำถามถูกถอดออกแล้ว — เจ้าของ: "ลบตรงขีดด้านหลังออก")
+   • ตัวที่พิมพ์เอง: จางเข้าเร็ว ๆ ไม่เบลอ
+   • แคปซูล: เส้นขอบบางมีไฮไลต์ด้านบน พื้นกระจก · ปุ่มส่งเป็นวงกลมทึบสีหมึก ลูกศรขึ้นเส้นบาง
+     พิมพ์แล้วปุ่มเปลี่ยนเป็นสีเน้นของธีม (ยังเบากว่าการ์ด "ตอนนี้" ตอนยังไม่ได้แตะ)
+   กฎกระจกของปุ่มกลม (:root :is(… .tk-go …) !important) มี .ig-btns button:not(.pri) อยู่ในรายการ ทำให้หนัก 0,3,1
+   ต้องหนักกว่า จึงเขียน :root .td-ask .tk-go.tk-go (0,4,0)
+   ============================================================ */
+.td-ask {
+  min-height: 48px; padding: 5px 5px 5px 16px;
+  border: 1px solid color-mix(in srgb, var(--ink) 9%, transparent);
+  background: color-mix(in srgb, var(--card) 72%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 6px 20px -14px rgba(0,0,0,.35);
+  -webkit-backdrop-filter: blur(16px) saturate(160%); backdrop-filter: blur(16px) saturate(160%);
+  transition: border-color .25s ease, box-shadow .25s ease, background .25s ease;
+}
+.td-ask:focus-within {
+  border-color: color-mix(in srgb, var(--fill) 45%, transparent);
+  background: var(--card);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 0 0 4px color-mix(in srgb, var(--fill) 10%, transparent),
+    0 10px 24px -14px color-mix(in srgb, var(--fill) 60%, transparent);
+}
+.td-ask .tk-in { font-size: 14px; letter-spacing: -.005em; }
+
+/* ตัวอย่างคำถาม: ป้ายหมุน */
+.ha-ph { color: color-mix(in srgb, var(--ink) 42%, transparent); transition: opacity .22s ease, transform .26s cubic-bezier(.4, 0, .2, 1); }
+.ha-ph.out { opacity: 0; filter: none; transform: translateY(-7px); }
+.ha-ph span { display: inline-block; white-space: pre; animation-name: ha-rise; animation-duration: .42s; animation-timing-function: cubic-bezier(.22, 1, .36, 1); }
+@keyframes ha-rise { from { opacity: 0; transform: translateY(.55em); } to { opacity: 1; transform: none; } }
+.ha-line span.in { animation: ha-fade .22s ease-out both; }
+@keyframes ha-fade { from { opacity: 0; } }
+
+/* ปุ่มส่ง */
+:root .td-ask .tk-go.tk-go {
+  width: 38px; height: 38px; border: 0 !important; border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 88%, transparent) !important; background-image: none !important;
+  color: var(--scr, #fff) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 4px 10px -4px rgba(0,0,0,.35) !important;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  transition: background-color .25s ease, transform .42s cubic-bezier(.3, 1.6, .5, 1) !important;
+}
+:root .td-ask .tk-go.tk-go .ha-up { width: 17px; height: 17px; transform: none; transition: transform .3s cubic-bezier(.3, 1.6, .5, 1); }
+:root .td-ask:is(:focus-within, .ha-has) .tk-go.tk-go { background: var(--fill) !important; color: var(--on-fill) !important; }
+:root .td-ask.ha-has .tk-go.tk-go .ha-up { transform: translateY(-1px); }
+@media (prefers-reduced-motion: reduce) {
+  .ha-ph span, .ha-line span.in { animation: none; opacity: 1; }
+}
+
+/* การ์ด "ทำก่อน" บนจอ "ทำไมอันนี้ก่อน" — พื้นแบบเดียวกับหัวการ์ด "ตอนนี้" บนหน้าแรก
+   เจ้าของ: "เอาให้หน้าของรูปที่สองใช้สีพื้นหลังเหมือนหน้าในรูปหนึ่ง"
+   ไล่สี 140° (สว่างมุมซ้ายบน → สีเน้น → เข้มมุมขวาล่าง) + วงกลมขาวจางสองวงซ้อนหลัง — ค่าเดียวกับ .td-now .tn-head (today.css)
+   เป็นงานชิ้นเดียวกันที่เพิ่งแตะมาจากการ์ดนั้น หน้าตาต้องต่อกัน */
+.wy2-hero {
+  position: relative; overflow: hidden;
+  background: linear-gradient(140deg,
+    color-mix(in srgb, var(--fill) 78%, #fff) 0%,
+    var(--fill) 55%,
+    color-mix(in srgb, var(--fill) 78%, #000) 100%);
+}
+.wy2-hero::after {
+  content: ''; position: absolute; right: -44px; top: -54px;
+  width: 168px; height: 168px; border-radius: 50%;
+  background: rgba(255, 255, 255, .11); pointer-events: none;
+}
+.wy2-hero::before {
+  content: ''; position: absolute; right: 18px; bottom: -66px;
+  width: 124px; height: 124px; border-radius: 50%;
+  background: rgba(255, 255, 255, .07); pointer-events: none;
+}
+.wy2-hero > * { position: relative; z-index: 2; }
+
+/* จอ "ทำไมอันนี้ก่อน" — ตัวหนังสือจางให้ชัดขึ้น (เจ้าของ: "ทำให้ข้อความที่ดูจาง ๆ ชัดขึ้น")
+   หัวการ์ด (เหตุผล · ลำดับทั้งหมด) · เหตุผลสั้นท้ายแถวลำดับ · บรรทัดท้ายการ์ด · เลขลำดับที่ไม่ใช่อันดับหนึ่ง
+   เดิมเป็น --faint ซึ่งบนพื้นการ์ดสีอ่อนของธีมสว่างจางเกินอ่าน → ผสม --ink ให้เข้มขึ้น ยังเบากว่าชื่องานหนึ่งระดับ */
+/* รอบสอง (เจ้าของส่งรูปเดิมมาอีกครั้ง: ยังจางอยู่) — 62% ยังไม่พอบนพื้นการ์ดกระจก → 85% + หนาขึ้น
+   เลขลำดับที่ไม่ใช่อันดับหนึ่งได้พื้นอมสีเน้นเข้มขึ้นด้วย เดิมพื้นชมพูจางจนเลขลอย */
+.wy2-cap { color: color-mix(in srgb, var(--ink) 85%, transparent); font-weight: 800; }
+.wy2-line i { color: color-mix(in srgb, var(--ink) 85%, transparent); font-weight: 600; }
+.wy2-more { color: color-mix(in srgb, var(--ink) 80%, transparent); }
+.wy2-row:not(.top) .wy2-n {
+  color: color-mix(in srgb, var(--fill) 75%, var(--ink));
+  background: color-mix(in srgb, var(--fill) 18%, var(--card));
+}
+
+/* ============================================================
+   ที่เก็บงานที่ทำเสร็จ (แท็บงาน → เสร็จแล้ว) — ติ๊กสีสด + อนิเมชันตอนกด (คู่กับ doneView · toggleDone)
+   ------------------------------------------------------------
+   เจ้าของ: "ทำให้เครื่องหมายถูกสีดูสดขึ้น … และให้มีอนิเมชันเมื่อกดตรงแต่ละงานที่เสร็จแล้วด้วย"
+   • ติ๊ก: วงกลมเขียวสดทึบ (ไล่สีบนลงล่าง) ติ๊กขาวเส้นหนา มีเงาเขียวเรือง — เดิมพื้นเขียวจาง ๆ ติ๊กเขียวเข้ม
+     แล้วทั้งการ์ดจาง 60% ซ้ำอีกชั้น ติ๊กจึงซีด · ตอนนี้ความจางย้ายไปอยู่ที่ตัวหนังสือแทน ติ๊กสดเต็มที่
+     เขียวคงที่ทุกธีม (ไม่ใช่ --good ซึ่งบางธีมเป็นเขียวหม่น) · Astral Black ขาวดำ
+   • กดการ์ด: การ์ดยุบลงนิด ติ๊กเด้งขยาย มีวงแหวนเขียวแผ่ออก · ชี้เมาส์ = การ์ดลอยขึ้นนิดหนึ่ง
+   • กดติ๊ก (เอากลับเป็นงานค้าง): ติ๊กหมุนหดหาย การ์ดจางและเลื่อนออกทางขวาแล้วยุบ (.undo)
+   ============================================================ */
+.tk-done { opacity: 1; transition: transform .35s cubic-bezier(.3, 1.4, .5, 1), box-shadow .25s ease; }
+.tk-done .tk-bd, .tk-done .tk-got { opacity: .7; }
+.tk-done .tk-ttl { color: var(--ink); }
+.tk-done .tk-tick.on {
+  position: relative; inset: auto; width: 26px; height: 26px; border: 0;   /* inset: auto — ล้าง top/right ของ .tk-tick ตัวหลัก */
+  background: linear-gradient(180deg, #34D399, #10B981 55%, #059669);
+  box-shadow: 0 3px 10px -3px rgba(16, 185, 129, .7), inset 0 1px 0 rgba(255, 255, 255, .45);
+  transition: transform .4s cubic-bezier(.3, 1.6, .5, 1), opacity .2s ease;
+}
+.tk-done .tk-tick.on svg { width: 14px; height: 14px; color: #fff; stroke-width: 3; }
+.tk-done .tk-tick.on::after {
+  content: ''; position: absolute; inset: -2px; border-radius: 50%; pointer-events: none;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, .55); opacity: 0;
+}
+/* กดการ์ด */
+.tk-done:active { transform: scale(.975); transition-duration: .12s; }
+.tk-done:active .tk-tick.on { transform: scale(1.18); }
+.tk-done:active .tk-tick.on::after { animation: tk-ring .55s ease-out; }
+@keyframes tk-ring {
+  0% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, .55); }
+  100% { opacity: 0; box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+}
+.tk-done .tk-go { transition: transform .3s cubic-bezier(.3, 1.4, .5, 1); }
+@media (hover: hover) and (pointer: fine) {
+  .tk-done:hover { transform: translateY(-2px); }
+  .tk-done:hover .tk-go { transform: translateX(3px); }
+}
+/* กดติ๊ก = เอากลับเป็นงานค้าง */
+.tk-done.undo { animation: tk-undo .3s cubic-bezier(.4, 0, .2, 1) forwards; pointer-events: none; }
+.tk-done.undo .tk-tick.on { transform: scale(0) rotate(-90deg); opacity: 0; }
+@keyframes tk-undo {
+  40% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(40px); }
+}
+:root[data-theme="astral"] .tk-done .tk-tick.on { filter: grayscale(1); }
+@media (prefers-reduced-motion: reduce) {
+  .tk-done, .tk-done .tk-tick.on, .tk-done .tk-go { transition: none; }
+  .tk-done:active .tk-tick.on::after { animation: none; }
+}
+
+/* ============================================================
+   ผลของฉัน ฉบับเต็ม (scr-stats · #statFull) — มีสีสันขึ้นแต่ยังเรียบ + อนิเมชันตอนเข้าจอ
+   ------------------------------------------------------------
+   เจ้าของ: "ทำให้มันดูสวยและมีสีสันขึ้นกว่านี้หน่อย แต่ให้ดูง่ายและมินิมอล ทำอนิเมชันตอนกดเข้ามาให้ด้วย"
+   • ไทล์บนสุด: ไทล์ละหนึ่งสี — ไอคอนอยู่ในวงกลมทึบสีนั้น ตัวเลขสีเดียวกัน พื้นอมสีจาง ๆ ไม่มีกรอบ
+       ต่อเนื่อง = ทอง (ของที่ทำสำเร็จแล้ว ตามกฎทอง) · ส่งทัน = เขียว · ดีขึ้นจากสัปดาห์ก่อน = สีเน้นของธีม · แย่ลง = เทา
+   • โดนัทวิชา: เส้นหนาขึ้น ปลายมน · "อื่น ๆ" ในจอนี้ใช้สีเน้นของธีมแทนเทา (มันไม่ใช่วิชาจริง จอทั้งจอเลยเทาไปหมด)
+     ตัวเลขกลางวงใหญ่ขึ้น · แถบวิชาหนาขึ้น
+   • การ์ดบรรทัดเดียว (เลื่อนงาน · จับเวลาอีก…): ไอคอนอยู่ในวงกลมอมสีเน้น ตัวเลขสีเน้น
+   • เข้าจอ (.an-in จาก growBars): ไทล์เด้งขึ้นทีละใบ · การ์ดไล่ขึ้นทีละใบ · โดนัทวาดเส้นรอบวง · แถบวิชายืดจากซ้าย
+   ============================================================ */
+#statFull .an-tiles { gap: 9px; }
+#statFull .an-tile {
+  --tc: var(--muted);
+  position: relative; overflow: hidden; padding: 13px 8px 12px; border: 0; border-radius: 18px;
+  background: color-mix(in srgb, var(--tc) 11%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc) 20%, transparent), 0 6px 16px -12px color-mix(in srgb, var(--tc) 70%, transparent);
+}
+#statFull .an-tile.gold { --tc: var(--gold); }
+#statFull .an-tile.ok { --tc: #10B981; }
+#statFull .an-tile.up { --tc: var(--fill); }
+#statFull .an-tile .at-ic {
+  width: 30px; height: 30px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center;
+  background: var(--tc); color: #fff;
+  box-shadow: 0 4px 10px -4px var(--tc), inset 0 1px 0 rgba(255,255,255,.35);
+}
+#statFull .an-tile.gold .at-ic { color: var(--on-gold, #3F2D00); }
+#statFull .an-tile .at-ic svg { width: 16px; height: 16px; }
+#statFull .an-tile .at-v { margin-top: 8px; font-size: 22px; font-weight: 800; color: color-mix(in srgb, var(--tc) 75%, var(--ink)); }
+#statFull .an-tile.gold .at-v { color: var(--gold-text); }
+#statFull .an-tile .at-k { color: color-mix(in srgb, var(--ink) 62%, transparent); }
+#statFull .an-tile.gold .at-k { color: var(--gold-text); opacity: .85; }
+
+/* โดนัท + แถบวิชา */
+#statFull .sj-0 { --sj: var(--fill); }
+#statFull .an-donut circle { stroke-width: 12; stroke-linecap: round; }
+#statFull .an-donut .dn-bg { stroke: color-mix(in srgb, var(--fill) 10%, var(--surface)); stroke-linecap: butt; }
+#statFull .dn-mid b { font-size: 22px; font-weight: 800; color: color-mix(in srgb, var(--fill) 70%, var(--ink)); }
+#statFull .dn-mid i { color: color-mix(in srgb, var(--ink) 55%, transparent); }
+#statFull .lg-bar { height: 7px; background: color-mix(in srgb, var(--sj, var(--fill)) 14%, var(--surface)); }
+#statFull .lg-dot { border-radius: 50%; }
+#statFull .lg-pct { color: var(--ink); font-weight: 700; }
+/* เจ้าของ: "ทำให้ข้อความข้างบนใหญ่หน่อย แล้วก็ข้อความข้างล่างชัด ใหญ่ขึ้นหน่อย" — หัวการ์ด 12 → 15px · บรรทัดรอง 11 → 12.5px เข้มขึ้น */
+#statFull .st-h { color: var(--ink); font-size: 15px; font-weight: 800; letter-spacing: -.005em; margin-bottom: 4px; }
+#statFull .st-foot { font-size: 12.5px; line-height: 1.5; color: color-mix(in srgb, var(--ink) 75%, transparent); }
+#statFull .st-h + .st-bars { margin-top: 12px; }
+
+/* การ์ดบรรทัดเดียว */
+#statFull .st-card.soft {
+  background: color-mix(in srgb, var(--fill) 7%, var(--card)); border-radius: 18px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 14%, transparent);
+}
+#statFull .st-card.soft .st-line { display: flex; align-items: center; gap: 10px; }
+#statFull .st-card.soft .st-line > svg {
+  flex: none; box-sizing: content-box; width: 15px; height: 15px; margin: 0; padding: 7px; border-radius: 50%;
+  vertical-align: 0; color: var(--fill); background: color-mix(in srgb, var(--fill) 16%, transparent);
+}
+#statFull .st-line b { color: var(--fill); font-weight: 800; }
+
+/* เข้าจอ */
+#statFull.an-in > * { animation: an-up .5s cubic-bezier(.22, 1, .36, 1) both; }
+#statFull.an-in > :nth-child(2) { animation-delay: .06s; }
+#statFull.an-in > :nth-child(3) { animation-delay: .12s; }
+#statFull.an-in > :nth-child(4) { animation-delay: .18s; }
+#statFull.an-in > :nth-child(5) { animation-delay: .24s; }
+#statFull.an-in > :nth-child(n+6) { animation-delay: .3s; }
+#statFull.an-in .an-tile { animation: an-pop .5s cubic-bezier(.3, 1.4, .5, 1) both; }
+#statFull.an-in .an-tile:nth-child(2) { animation-delay: .06s; }
+#statFull.an-in .an-tile:nth-child(3) { animation-delay: .12s; }
+#statFull.an-in .an-donut circle:not(.dn-bg) { animation: an-draw .9s cubic-bezier(.22, 1, .36, 1) .2s both; }
+#statFull.an-in .lg-bar i { transform-origin: 0 50%; animation: an-grow-x .7s cubic-bezier(.22, 1, .36, 1) .25s both; }
+@keyframes an-up { from { opacity: 0; transform: translateY(12px); } }
+@keyframes an-pop { from { opacity: 0; transform: translateY(8px) scale(.92); } }
+@keyframes an-draw { from { stroke-dasharray: 0 238.8; } }
+@keyframes an-grow-x { from { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) {
+  #statFull.an-in > *, #statFull.an-in .an-tile, #statFull.an-in .an-donut circle, #statFull.an-in .lg-bar i { animation: none; }
+}
+:root[data-theme="astral"] #statFull :is(.an-tile, .an-donut, .lg-bar, .lg-dot, .st-card.soft) { filter: grayscale(1); }
+
+/* ============================================================
+   ตั้งค่า → "นั่งทำงานไหวต่อวัน" — ตัวปรับแบบ − ตัวเลข + (คู่กับ stepFree ใน app.js)
+   ------------------------------------------------------------
+   เจ้าของ: "แก้ให้สวยกว่านี้" — เดิมช่องตัวเลขเปล่ามีลูกศรขึ้นลงเล็ก ๆ ของเบราว์เซอร์ติดขอบขวา
+   แคปซูลพื้นอมสีเน้น · ปุ่มกลมสองข้าง (ลบ = พื้นการ์ด · บวก = สีเน้นทึบ) · ตัวเลขหนาตรงกลางมีหน่วย "ชม."
+   ซ่อนลูกศรของเบราว์เซอร์ · กดแล้วตัวเลขเลื่อนตามทิศ · กฎ .set-row input เดิม (กว้าง 78px พื้นเทา) ถูกล้างในนี้
+   ============================================================ */
+.set-row .stp {
+  flex: none; display: inline-flex; align-items: center; gap: 2px; padding: 3px;
+  border-radius: 999px; background: color-mix(in srgb, var(--fill) 10%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 18%, transparent);
+}
+.stp-b {
+  width: 30px; height: 30px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%;
+  background: var(--card); color: var(--fill); cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,.12), inset 0 0 0 1px color-mix(in srgb, var(--fill) 16%, transparent);
+  transition: transform .3s cubic-bezier(.3, 1.6, .5, 1), background .2s ease;
+}
+.stp-b:last-child { background: var(--fill); color: var(--on-fill); box-shadow: 0 3px 8px -3px var(--fill); }
+.stp-b svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
+.stp-b:active { transform: scale(.86); }
+.stp-v { display: inline-flex; align-items: baseline; justify-content: center; gap: 3px; min-width: 58px; overflow: hidden; }
+.set-row .stp-v input[type=number] {
+  width: 32px; min-height: 0; padding: 0; border: 0 !important; border-radius: 0 !important; background: none !important;
+  box-shadow: none !important; outline: none !important; text-align: right;
+  font-size: 16px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield; appearance: textfield;
+}
+.stp-v input::-webkit-outer-spin-button, .stp-v input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stp-v i { font-style: normal; font-size: 11.5px; font-weight: 700; color: color-mix(in srgb, var(--ink) 60%, transparent); }
+.stp:focus-within { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fill) 55%, transparent); }
+.stp-v.up input { animation: stp-up .28s cubic-bezier(.22, 1, .36, 1); }
+.stp-v.dn input { animation: stp-dn .28s cubic-bezier(.22, 1, .36, 1); }
+@keyframes stp-up { from { opacity: 0; transform: translateY(8px); } }
+@keyframes stp-dn { from { opacity: 0; transform: translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) { .stp-v.up input, .stp-v.dn input { animation: none; } .stp-b { transition: none; } }
+
+/* ลูกศรขึ้นลงของเบราว์เซอร์ในช่องตัวเลขทุกช่องของแอป (คะแนนเก็บ · คะแนนที่ได้ · เต็ม …)
+   เจ้าของ: "ตรงนี้อะ ปุ่มเลื่อนมันยังไม่สวย" — ลูกศรเทาเล็ก ๆ ติดขอบไม่เข้ากับธีมไหนเลย และกดยากบนมือถือ
+   พิมพ์ตัวเลขเองได้เหมือนเดิม (มือถือขึ้นแป้นตัวเลขอยู่แล้ว) · ช่องที่ต้องกดปรับ ใช้ตัวปรับ − + (.stp) แทน */
+.phone input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+.phone input[type=number]::-webkit-outer-spin-button,
+.phone input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* ตัวปรับ − + ให้กะทัดรัดขึ้น — ในกรอบมือถือแคบ แคปซูล 128px ดันชื่อแถว "นั่งทำงานไหวต่อวัน" ตัดเป็นสองบรรทัด
+   ปุ่ม 30 → 26px · ช่องตัวเลข 58 → 46px · ชื่อแถวห้ามตัดกลางคำ (คำอธิบายใต้ชื่อยังตัดบรรทัดได้ตามปกติ) */
+.stp-b { width: 26px; height: 26px; }
+.stp-b svg { width: 13px; height: 13px; }
+.stp-v { min-width: 46px; gap: 2px; }
+.set-row .stp-v input[type=number] { width: 26px; font-size: 15px; }
+.stp-v i { font-size: 11px; }
+.set-row:has(.stp) .set-lb { min-width: 0; }
+.set-row:has(.stp) .set-lb { white-space: normal; }
+.set-row:has(.stp) .set-lb::first-line { white-space: nowrap; }
+
+/* ============================================================
+   ปุ่ม "เลือกรูป / เลือกภาพ" กับปุ่มถังขยะ (รูปโปรไฟล์ · ภาพวิดเจ็ต · พื้นหลัง) — ให้เห็นชัดว่าเป็นปุ่ม
+   ------------------------------------------------------------
+   เจ้าของ: "ปรับหน่อย เห็นปุ่มยังไม่ชัด" — ชั้นกระจก (:root :is(… .bg-pick, .bg-del …) !important) ทำให้ทั้งสองปุ่ม
+   เป็นแผ่นขาวโปร่งบนการ์ดขาว ขอบแทบไม่มี จึงจมไปกับพื้น
+   • เลือกรูป = แคปซูลพื้นอมสีเน้น ขอบสีเน้น ตัวหนังสือ/ไอคอนสีเน้นตัวหนา
+   • ถังขยะ = วงกลมพื้นแดงอ่อน ขอบแดง ไอคอนแดง — สีเตือนบอกว่ากดแล้วลบ
+   ต้องหนักกว่ากฎกระจก (0,3,1 + !important) จึงเขียน :root .bg-tools .bg-pick.bg-pick (0,4,0)
+   ============================================================ */
+:root .bg-tools .bg-pick.bg-pick {
+  min-height: 36px; padding: 0 14px 0 11px; gap: 6px; border-radius: 999px !important;
+  background: color-mix(in srgb, var(--fill) 13%, var(--card)) !important; background-image: none !important;
+  border: 1.5px solid color-mix(in srgb, var(--fill) 45%, transparent) !important;
+  color: color-mix(in srgb, var(--fill) 80%, var(--ink)) !important; font-weight: 700;
+  box-shadow: 0 3px 8px -5px var(--fill) !important;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+:root .bg-tools .bg-pick.bg-pick svg { color: inherit; }
+:root .bg-tools .bg-del.bg-del {
+  width: 36px; height: 36px; border-radius: 50% !important;
+  background: color-mix(in srgb, var(--alert) 12%, var(--card)) !important; background-image: none !important;
+  border: 1.5px solid color-mix(in srgb, var(--alert) 40%, transparent) !important;
+  color: var(--alert) !important; box-shadow: none !important;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+
+/* ============================================================
+   บริบทของฉัน (scr-context) — สวยขึ้นแต่ยังเรียบ (คู่กับ renderContext · ctxHeroHtml · ctxWeekBarsHtml)
+   ------------------------------------------------------------
+   เจ้าของ: "แก้ไขในหน้านี้ให้หน่อย ทำให้สวยแต่ยังดูง่ายและมินิมอล"
+   • หัวการ์ด (ว่างวันนี้ · สัปดาห์นี้ · ข้อมูลของคุณ) เข้มขึ้น ตัวเลขชิดขวาเป็นป้ายแคปซูลอมสี
+   • ตัวเลขใหญ่: เลขตัวโต 36px · หน่วยตัวเล็กจาง — อ่านเลขก่อน หน่วยทีหลัง
+   • แท่งวัน: ทรงแคปซูลหนา 14px · ว่าง = ไล่สีเน้น · ไม่ว่าง = สีเน้นจาง · ช่วงที่ผ่านไปแล้วซีด
+     เส้น "ตอนนี้" มีขอบขาวรอบ เห็นชัดทั้งบนช่วงว่างและไม่ว่าง
+   • แท่งสัปดาห์: แต่ละวันมีรางจางเต็มความสูง (เห็นว่าเทียบกับอะไร) · วันที่เลือก = ไล่สีเต็ม มีเงา ชื่อวันตัวหนา
+   • ข้อมูลของคุณ: แถบความคืบหน้าบาง ๆ ใต้หัว · ชิปพื้นอมสี ขอบประ มีวงกลม + สีเน้นนำหน้า
+   • ปุ่มถ่ายรูปตารางเรียน: แคปซูลเตี้ยลง (เดิมเป็นปุ่มยักษ์ที่ดังกว่าตัวเลขของจอ)
+   ============================================================ */
+#ctxBody .cx2-card { border-radius: 22px; }
+#ctxBody .cx2-cap { font-size: 12.5px; color: color-mix(in srgb, var(--ink) 70%, transparent); letter-spacing: .01em; }
+#ctxBody .cx2-cap b {
+  padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 800;
+  background: color-mix(in srgb, var(--fill) 12%, transparent); color: color-mix(in srgb, var(--fill) 85%, var(--ink));
+}
+#ctxBody .cx2-pick {
+  padding: 6px 10px; border-radius: 999px; font-weight: 700;
+  background: color-mix(in srgb, var(--fill) 12%, var(--card)); color: color-mix(in srgb, var(--fill) 85%, var(--ink));
+}
+
+/* ตัวเลขใหญ่ */
+#ctxBody .cx2-big { margin: 6px 0 14px; font-size: 15px; font-weight: 700; color: color-mix(in srgb, var(--ink) 55%, transparent); letter-spacing: 0; }
+#ctxBody .cx2-big b { font-size: 36px; font-weight: 800; letter-spacing: -.03em; color: var(--ink); margin-right: 3px; }
+#ctxBody .cx2-big b:not(:first-child) { margin-left: 6px; }
+
+/* แท่งวัน */
+#ctxBody .cx2-bar { height: 14px; gap: 3px; }
+#ctxBody .cx2-bar > i { border-radius: 999px; }
+#ctxBody .cx2-bar > .cb-free { background: linear-gradient(90deg, color-mix(in srgb, var(--fill) 75%, #fff), var(--fill)); }
+#ctxBody .cx2-bar > .cb-busy { background: color-mix(in srgb, var(--fill) 16%, var(--card)); opacity: 1; box-shadow: none; }
+#ctxBody .cx2-past { border-radius: 999px 0 0 999px; background: var(--card); opacity: .6; }
+#ctxBody .cx2-now { top: -5px; bottom: -5px; width: 3px; margin-left: -1.5px; border-radius: 3px; background: var(--ink); box-shadow: 0 0 0 2px var(--card); }
+#ctxBody .cx2-axis { font-size: 11px; font-weight: 600; color: color-mix(in srgb, var(--ink) 50%, transparent); }
+
+/* แท่งสัปดาห์ */
+#ctxBody .cx2-wk .cx2-week { height: 64px; gap: 7px; }
+#ctxBody .cx2-day { gap: 6px; }
+#ctxBody .cx2-day i {
+  position: relative; border-radius: 10px; opacity: 1;
+  background: color-mix(in srgb, var(--fill) 26%, var(--card));
+  transition: transform .2s ease;
+}
+#ctxBody .cx2-day { position: relative; }
+#ctxBody .cx2-day::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; bottom: 21px; border-radius: 10px;
+  background: color-mix(in srgb, var(--fill) 7%, var(--card)); z-index: 0;
+}
+#ctxBody .cx2-day > * { position: relative; z-index: 1; }
+#ctxBody .cx2-day.on i { background: linear-gradient(180deg, color-mix(in srgb, var(--fill) 75%, #fff), var(--fill)); box-shadow: 0 6px 12px -6px var(--fill); }
+#ctxBody .cx2-day span { font-size: 11.5px; font-weight: 600; color: color-mix(in srgb, var(--ink) 55%, transparent); }
+#ctxBody .cx2-day.on span { color: var(--fill); font-weight: 800; }
+#ctxBody .cx2-day.low i { background: color-mix(in srgb, var(--alert) 55%, var(--card)); }
+#ctxBody .cx2-day:active i { transform: scaleY(.94); transform-origin: 50% 100%; }
+
+/* ข้อมูลของคุณ */
+.cx2-prog { height: 5px; margin-top: 10px; border-radius: 999px; overflow: hidden; background: color-mix(in srgb, var(--fill) 12%, var(--card)); }
+.cx2-prog i { display: block; height: 100%; min-width: 5px; border-radius: 999px; background: var(--fill); transition: width .4s ease; }
+#ctxBody .cx2-chips { gap: 6px; margin-top: 12px; }
+:root #ctxBody .cx2-chip.cx2-chip:not(.done) {
+  gap: 5px; padding: 6px 10px 6px 6px; border-radius: 999px !important; font-size: 12.5px; font-weight: 700;
+  background: color-mix(in srgb, var(--fill) 7%, var(--card)) !important; background-image: none !important;
+  border: 1.5px dashed color-mix(in srgb, var(--fill) 40%, transparent) !important; box-shadow: none !important;
+  color: color-mix(in srgb, var(--fill) 80%, var(--ink)) !important;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.cx2-pl {
+  width: 16px; height: 16px; flex: none; display: grid; place-items: center; border-radius: 50%;
+  font-style: normal; font-size: 12px; font-weight: 800; line-height: 1;
+  background: var(--fill); color: var(--on-fill);
+}
+#ctxBody .cx2-chip.done { color: color-mix(in srgb, var(--ink) 60%, transparent); }
+
+/* ปุ่มถ่ายรูปตารางเรียน */
+#ctxBody .cx2-scan { min-height: 46px; padding: 10px 16px; margin-top: 14px; font-size: 14px; }
+#ctxBody .cx2-scan svg { width: 17px; height: 17px; }
+:root[data-theme="astral"] #ctxBody :is(.cx2-bar, .cx2-week, .cx2-prog, .cx2-pl) { filter: grayscale(1); }
+
+/* วงกลม + หน้าชิปไม่ตรงกลาง (เจ้าของ: "มันไม่ตรง") — ตัวอักษร "+" ของฟอนต์ไทยนั่งบนเส้นฐานที่สูงกว่ากลางวง
+   วาดเป็นเส้น SVG สองเส้นแทน ตรงกลางเป๊ะทุกฟอนต์ */
+/* สีต้องตั้งเอง — .cx2-chip svg (สีเน้น) ทับให้กากบาทสีเดียวกับวงจนหายไป */
+.cx2-chip .cx2-pl svg { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; color: var(--on-fill); }
+
+/* ชิป "ข้อมูลของคุณ" เรียงเป็นแถวเต็มความกว้างเท่ากันทุกอัน (เจ้าของ: "ยังไม่ตรงทุกอัน แก้ให้มันตรง")
+   ในกรอบมือถือแคบ ชิปตกบรรทัดละอันแต่กว้างไม่เท่ากัน (139–162px) ขอบขวาจึงหยักเป็นฟันปลา
+   เป็นคอลัมน์เดียวกว้างเต็ม = ขอบซ้ายขวาตรงแนวเดียวกันทุกแถว · ความสูงรวมเท่าเดิม (ในจอแคบมันเรียงบรรทัดละอันอยู่แล้ว) */
+#ctxBody .cx2-chips { display: grid; grid-template-columns: 1fr; gap: 6px; }
+#ctxBody .cx2-chip { width: 100%; justify-content: flex-start; text-align: left; }
+
+/* บริบทของฉัน — สลับวัน (คู่กับ ctxPickDay) · เจ้าของ: "ตรงนี้ทำอนิเมชันให้หน่อย เมื่อกดปุ่มในแต่ละวัน"
+   แท่งวันที่เลือกไถลมาจากวันเดิม (ทำใน JS) · หัว "ว่างวัน…" กับตัวเลขใหญ่เลื่อนเข้าจากฝั่งที่กดไป (--sx)
+   แท่งเวลาของวันกวาดจากซ้ายไปขวา · กดค้างที่แท่งวัน = แท่งยุบลงนิด (มีอยู่แล้ว) */
+#ctxBody .cx2-day i { z-index: 2; }
+.cx2-swap > .cx2-cap > span, .cx2-swap .cx2-big { animation: cx2-in .38s cubic-bezier(.22, 1, .36, 1) both; }
+.cx2-swap .cx2-big { animation-delay: .03s; }
+.cx2-swap .cx2-bar > i { animation: cx2-wipe .5s cubic-bezier(.22, 1, .36, 1) .05s both; }
+.cx2-swap .cx2-axis { animation: cx2-fade .3s ease .15s both; }
+@keyframes cx2-in { from { opacity: 0; transform: translateX(var(--sx, 12px)); } }
+@keyframes cx2-wipe { from { clip-path: inset(0 100% 0 0 round 999px); } to { clip-path: inset(0 0 0 0 round 999px); } }
+@keyframes cx2-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .cx2-swap > .cx2-cap > span, .cx2-swap .cx2-big, .cx2-swap .cx2-bar > i, .cx2-swap .cx2-axis { animation: none; }
+}
+
+/* ============================================================
+   บริบทของฉัน — เมนูเลือกวัน (คู่กับ ctxDdToggle) · เจ้าของ: "ปรับหน่อย ไม่สวยเลย มีอนิเมชันตอนกดด้วย"
+   ------------------------------------------------------------
+   ปุ่ม = แคปซูลอมสีเน้น ลูกศรหมุนลงตอนเปิด · เมนู = การ์ดลอยมุมมน เงานุ่ม กางแบบสปริงจากมุมขวาบน
+   รายการไล่ขึ้นทีละบรรทัด · วันที่เลือกอยู่ = พื้นอมสีเน้น ตัวหนา มีเครื่องหมายถูก
+   การ์ดนี้ต้องลอยเหนือการ์ดถัดไป (z-index) ไม่งั้นเมนูที่ยาวเลยขอบล่างโดนการ์ด "ข้อมูลของคุณ" ทับ
+   ============================================================ */
+#ctxBody .cx2-hero { position: relative; z-index: 5; }
+.cx2-dd { position: relative; }
+#ctxBody .cx2-pick {
+  display: inline-flex; align-items: center; gap: 4px; padding: 6px 8px 6px 12px; border: 0; cursor: pointer;
+  font: inherit; font-size: 12.5px; font-weight: 700; transition: transform .3s cubic-bezier(.3, 1.6, .5, 1), box-shadow .2s ease;
+}
+#ctxBody .cx2-pick svg { width: 14px; height: 14px; transform: rotate(90deg); transition: transform .3s cubic-bezier(.3, 1.4, .5, 1); }
+#ctxBody .cx2-pick:active { transform: scale(.94); }
+.cx2-dd.open .cx2-pick { box-shadow: 0 0 0 3px color-mix(in srgb, var(--fill) 18%, transparent); }
+.cx2-dd.open .cx2-pick svg { transform: rotate(-90deg); }
+.cx2-menu {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; min-width: 150px; padding: 6px;
+  display: flex; flex-direction: column; gap: 2px; border-radius: 18px;
+  background: var(--card); box-shadow: 0 18px 40px -14px rgba(0,0,0,.35), 0 0 0 1px color-mix(in srgb, var(--fill) 14%, transparent);
+  transform-origin: 90% 0; opacity: 0; visibility: hidden; transform: translateY(-6px) scale(.9);
+  transition: opacity .16s ease, transform .2s ease, visibility 0s .2s;
+}
+.cx2-dd.open .cx2-menu {
+  opacity: 1; visibility: visible; transform: none;
+  transition: opacity .18s ease, transform .38s cubic-bezier(.3, 1.35, .5, 1), visibility 0s;
+}
+.cx2-opt {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
+  padding: 9px 12px; border: 0; border-radius: 12px; background: none; cursor: pointer; text-align: left;
+  font: inherit; font-size: 13.5px; font-weight: 600; color: var(--ink);
+  transition: background .15s ease, transform .15s ease;
+}
+.cx2-opt svg { width: 15px; height: 15px; flex: none; color: var(--fill); stroke-width: 2.6; }
+.cx2-opt.on { background: color-mix(in srgb, var(--fill) 13%, transparent); color: color-mix(in srgb, var(--fill) 85%, var(--ink)); font-weight: 800; }
+.cx2-opt:active { transform: scale(.97); background: color-mix(in srgb, var(--fill) 9%, transparent); }
+@media (hover: hover) and (pointer: fine) { .cx2-opt:not(.on):hover { background: color-mix(in srgb, var(--ink) 5%, transparent); } }
+.cx2-dd.open .cx2-opt { animation: cx2-opt-in .3s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(var(--k, 0) * 22ms + 40ms); }
+@keyframes cx2-opt-in { from { opacity: 0; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) {
+  .cx2-menu, .cx2-dd.open .cx2-menu { transition: none; transform: none; }
+  .cx2-dd.open .cx2-opt { animation: none; }
+}
+
+/* ============================================================
+   ช่องถามน้องไซบนหน้าแรก — แบบ HaloSearchInput (เจ้าของส่งเดโมมา: "ใช้ในหน้านี้")
+   ------------------------------------------------------------
+   ได้มาแค่ไฟล์เดโม ไม่มีซอร์สของคอมโพเนนต์ — ทำตามที่เดโมบอกว่ามันทำอะไร:
+   • วงรัศมี (halo): ไล่สีวนรอบแคปซูลช้า ๆ ฟุ้งออกนอกขอบ · พื้นแคปซูลเป็นกระจกฝ้า เห็นสีลอดเข้ามาจาง ๆ (frosted fill)
+     ตอนพิมพ์ (โฟกัส) วงสว่างขึ้นและหมุนเร็วขึ้นนิดหนึ่ง
+   • ปุ่ม × โผล่เมื่อมีตัวหนังสือ · กดแล้วตัวอักษรปลิวขึ้นหายทีละตัวจากท้าย (homeAskClear)
+   • ไม่ได้ทำสถานะ "กำลังค้นหา…" — ช่องนี้กดส่งแล้วพาไปจอน้องไซทันที ไม่มีช่วงรอในช่องนี้ให้แสดง
+   สีวงมาจากสีเน้นของธีม + ชมพู + ฟ้า (ผสมกับสีเน้น ไม่ใช่สีตายตัว) · Astral Black ขาวดำ
+   ============================================================ */
+@property --ha-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+#menuBody .td-ask { isolation: isolate; overflow: visible; }
+#menuBody .td-ask::before {
+  content: ''; position: absolute; inset: -3px; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: conic-gradient(from var(--ha-a),
+    var(--fill), color-mix(in srgb, var(--fill) 45%, #F472B6), color-mix(in srgb, var(--fill) 40%, #38BDF8),
+    color-mix(in srgb, var(--fill) 60%, #A78BFA), var(--fill));
+  filter: blur(8px); opacity: .7;
+  animation: ha-spin 9s linear infinite;
+  transition: opacity .35s ease, filter .35s ease, inset .35s ease;
+}
+#menuBody .td-ask::after {
+  /* พื้นกระจกฝ้าของแคปซูลอยู่ชั้นนี้ ไม่ใช่บนตัวกล่อง — ใน stacking context ลูกที่ z-index ติดลบวาดทับพื้นของตัวกล่อง
+     ถ้าพื้นอยู่บนกล่อง วงรัศมี (::before) จะวาดทับข้างในจนตัวหนังสือจาง · ::after มาทีหลัง ::before จึงวาดทับวงได้ */
+  content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: color-mix(in srgb, var(--card) 84%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 0 0 1px color-mix(in srgb, var(--fill) 22%, transparent);
+  transition: background .3s ease, box-shadow .3s ease;
+}
+#menuBody .td-ask:focus-within::before { opacity: .95; filter: blur(11px); inset: -5px; animation-duration: 4.5s; }
+#menuBody .td-ask:focus-within::after { background: var(--card); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 0 0 1px color-mix(in srgb, var(--fill) 40%, transparent); }
+@keyframes ha-spin { to { --ha-a: 360deg; } }
+#menuBody .td-ask, #menuBody .td-ask:focus-within { background: transparent; border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* ปุ่ม × */
+.ha-x {
+  flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+  display: grid; place-items: center; background: color-mix(in srgb, var(--ink) 8%, transparent); color: color-mix(in srgb, var(--ink) 65%, transparent);
+  opacity: 0; transform: scale(.4) rotate(-90deg); pointer-events: none; width: 0; margin-right: -9px;
+  transition: opacity .2s ease, transform .35s cubic-bezier(.3, 1.6, .5, 1), width .25s ease, margin .25s ease;
+}
+.ha-x svg { width: 13px; height: 13px; }
+.td-ask.ha-has .ha-x { opacity: 1; transform: none; pointer-events: auto; width: 28px; margin-right: 0; }
+.ha-x:active { transform: scale(.85); }
+/* ตัวอักษรปลิวตอนกด × */
+.ha-line span.out { display: inline-block; animation: ha-out .26s cubic-bezier(.4, 0, .6, 1) both; }
+@keyframes ha-out { to { opacity: 0; transform: translateY(-9px) scale(.8); filter: blur(2px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  #menuBody .td-ask::before { animation: none; }
+  .ha-x { transition: none; }
+}
+:root[data-theme="astral"] #menuBody .td-ask::before { filter: grayscale(1) blur(9px); }
+
+/* ============================================================
+   จอเข้าสู่ระบบ — การ์ดแบบ TextureCard + ปุ่มแบบ TextureButton (cult-ui · MIT)
+   ------------------------------------------------------------
+   เจ้าของส่งเดโม TextureCardDemo มา: "ลองเอามาปรับใช้ในหน้านี้ดู" — ได้มาแค่เดโม ไม่มีซอร์สคอมโพเนนต์
+   ทำตามหน้าตาของ cult-ui: ขอบการ์ดซ้อนสี่ชั้น (ขาวจาง · ดำจาง · ขาวจาง · ดำจาง) ทำด้วยเงาซ้อน ไม่เพิ่ม <div>
+   เส้นคั่นเป็นเส้นคู่ (มืดบน สว่างล่าง) ให้ดูเป็นร่องบนผิว · ท้ายการ์ดเป็นแถบพื้นเข้มกว่าหนึ่งระดับ
+   ปุ่มหลัก = ไล่สีเน้นจากสว่างลงเข้ม ขอบเข้ม ไฮไลต์ขาวขอบบน (accent) · ปุ่ม Google = ไล่ขาวลงเทาจาง ขอบบาง (icon)
+   ไฮไลต์ขาวใช้ .35 ไม่ใช่ .6 ของเดโม — ธีมมืดของแอปใช้คลาสเดียวกัน ขาวเข้มกว่านี้เป็นเส้นสว่างบาดตาบนพื้นมืด
+   ============================================================ */
+.login-wrap .tx-card {
+  margin-top: 26px; border-radius: 24px; overflow: hidden;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card) 94%, var(--ink)), var(--card) 40%);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.35),
+    inset 0 0 0 1px color-mix(in srgb, var(--ink) 10%, transparent),
+    inset 0 0 0 2px rgba(255,255,255,.35),
+    inset 0 0 0 3px color-mix(in srgb, var(--ink) 6%, transparent),
+    0 18px 36px -22px rgba(0,0,0,.35);
+}
+.tx-body { padding: 18px 18px 16px; }
+.tx-card .lg-feats { margin-top: 0; gap: 12px; }
+.tx-card .lg-actions { margin-top: 0; padding-top: 0; }
+.tx-sep {
+  height: 0; margin: 0 3px;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+  border-bottom: 1px solid rgba(255,255,255,.4);
+}
+.tx-foot {
+  display: flex; justify-content: center; padding: 6px 12px 7px;
+  background: color-mix(in srgb, var(--ink) 4%, var(--card));
+  border-top: 1px solid color-mix(in srgb, var(--ink) 9%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+}
+.tx-foot .login-what { margin: 0; }
+.tx-card .lg-note:empty { display: none; }
+
+/* TextureButton · accent */
+.login-wrap .lg-opts .btn.lg-go {
+  min-height: 52px; border-radius: 16px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fill) 78%, #fff), var(--fill) 55%, color-mix(in srgb, var(--fill) 88%, #000));
+  border: 1px solid color-mix(in srgb, var(--fill) 55%, #000);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -1px 0 rgba(0,0,0,.18),
+    0 1px 2px rgba(0,0,0,.18), 0 8px 18px -10px var(--fill);
+  text-shadow: 0 1px 0 rgba(0,0,0,.15);
+  transition: transform .15s ease, filter .15s ease;
+}
+.login-wrap .lg-opts .btn.lg-go:active { transform: translateY(1px) scale(.99); filter: brightness(.96); }
+/* TextureButton · icon (Google และเจ้าอื่นที่เป็นปุ่มเต็มแถว) */
+.login-wrap .lg-opts .btn.lg-main {
+  min-height: 50px; border-radius: 16px; gap: 10px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card) 70%, #fff), var(--card));
+  border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 1px 2px rgba(0,0,0,.1), 0 6px 14px -10px rgba(0,0,0,.3);
+  transition: transform .15s ease, filter .15s ease;
+}
+.login-wrap .lg-opts .btn.lg-main:active { transform: translateY(1px) scale(.99); filter: brightness(.97); }
+.g-logo { width: 19px; height: 19px; flex: none; }
+.tx-card .lg-alt { margin-top: 2px; }
+
+/* การ์ดยืดเต็มที่ว่างที่เหลือของจอ — ปุ่มยังติดก้นจอในระยะนิ้วโป้ง (เหตุผลเดิมของ margin-top:auto ใน .lg-actions)
+   สามบรรทัดว่าแอปทำอะไรอยู่กลางส่วนบนของการ์ด · จอเตี้ยที่ไม่เหลือที่ = การ์ดสูงเท่าเนื้อหา ไม่บีบ */
+.login-wrap .tx-card { flex: 1 0 auto; display: flex; flex-direction: column; margin-bottom: 4px; }
+.tx-card > .tx-body:first-child { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; padding: 20px 20px; }
+.tx-card .lg-feats { gap: 16px; }
+
 /* toast ที่มีแค่หัวข้อ (ตัดคำอธิบายทิ้งแล้ว) — ไม่เหลือบรรทัดว่างใต้หัวข้อ */
 .toast .tb:empty { display: none; }
+
+/* ============================================================
+   แผงลอย "วันนั้นทำงานอะไรเสร็จบ้าง" — แตะแท่งกราฟ 7 วัน (คู่กับ statDayOpen ใน app.js)
+   ------------------------------------------------------------
+   เจ้าของ: "เมื่อกดไปยังแท่งกราฟ ให้อธิบายด้วยว่าทำงานอะไรไปบ้าง" + เดโม FloatingPanel (motion-primitives)
+   แผงงอกออกมาจากแท่งที่แตะ (FLIP ใน JS) · พื้นจอข้างหลังมืดลงและเบลอนิด ๆ · ตัวหนังสือในแผงโผล่หลังแผงกางเสร็จ
+   แถวงานไล่ลงทีละแถว (ห่างกัน 45ms) · หัวแผง = วัน + "เสร็จ N งาน · ประเมินรวม …" · ท้ายแผงมีปุ่มปิด
+   ============================================================ */
+.st-card button.st-bar { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.st-card button.st-bar .trk { transition: transform .2s ease, box-shadow .2s ease; }
+.st-card button.st-bar:active .trk { transform: scale(.94); }
+@media (hover: hover) and (pointer: fine) { .st-card button.st-bar:hover .trk { box-shadow: 0 0 0 2px color-mix(in srgb, var(--fill) 30%, transparent); } }
+
+.fp-scrim {
+  position: absolute; inset: 0; z-index: 80; border-radius: inherit;
+  background: rgba(10, 6, 20, .28); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  opacity: 0; transition: opacity .3s ease;
+}
+.fp-scrim.open { opacity: 1; }
+.fp {
+  position: absolute; left: 14px; right: 14px; z-index: 81; max-height: 70%;
+  display: flex; flex-direction: column; overflow: hidden; transform-origin: 0 0;
+  border-radius: 24px; background: var(--card);
+  box-shadow: 0 30px 60px -20px rgba(0,0,0,.45), 0 0 0 1px color-mix(in srgb, var(--fill) 16%, transparent);
+}
+.fp-in { display: flex; flex-direction: column; min-height: 0; opacity: 0; transition: opacity .18s ease; }
+.fp.open .fp-in { opacity: 1; }
+.fp-h { padding: 16px 18px 10px; }
+.fp-h b { display: block; font-size: 17px; font-weight: 800; color: var(--ink); }
+.fp-h i { display: block; margin-top: 2px; font-style: normal; font-size: 12.5px; font-weight: 600; color: color-mix(in srgb, var(--ink) 62%, transparent); }
+.fp-list { overflow-y: auto; padding: 2px 10px 6px; display: flex; flex-direction: column; gap: 4px; }
+.fp-row {
+  display: flex; align-items: center; gap: 11px; width: 100%; padding: 10px 10px; border: 0; border-radius: 14px;
+  background: color-mix(in srgb, var(--fill) 6%, transparent); font: inherit; text-align: left; color: var(--ink); cursor: pointer;
+  transition: background .15s ease, transform .15s ease;
+}
+.fp-row:active { transform: scale(.98); background: color-mix(in srgb, var(--fill) 12%, transparent); }
+.fp.open .fp-row { animation: fp-row-in .38s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(var(--k, 0) * 45ms + 60ms); }
+@keyframes fp-row-in { from { opacity: 0; transform: translateY(-8px); } }
+.fp-ck {
+  width: 24px; height: 24px; flex: none; border-radius: 50%; display: grid; place-items: center;
+  background: linear-gradient(180deg, #34D399, #10B981 55%, #059669); color: #fff;
+}
+.fp-ck svg { width: 13px; height: 13px; stroke-width: 3; }
+.fp-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fp-tx i {
+  align-self: flex-start; font-style: normal; font-size: 10.5px; font-weight: 800; margin-bottom: 2px;
+  padding: 1px 7px; border-radius: 99px; color: var(--sj, var(--fill));
+  background: color-mix(in srgb, var(--sj, var(--fill)) 14%, transparent);
+}
+.fp-tx b { font-size: 14px; font-weight: 700; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp-at { flex: none; font-size: 12px; font-weight: 700; color: color-mix(in srgb, var(--ink) 55%, transparent); }
+.fp-empty { margin: 4px 8px 8px; padding: 14px; border-radius: 14px; text-align: center; font-size: 13.5px; color: color-mix(in srgb, var(--ink) 62%, transparent); background: color-mix(in srgb, var(--fill) 6%, transparent); }
+.fp-foot { display: flex; justify-content: flex-end; padding: 8px 12px 12px; }
+.fp-x {
+  display: inline-flex; align-items: center; gap: 5px; padding: 8px 14px; border: 0; border-radius: 99px; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 700; color: var(--ink); background: color-mix(in srgb, var(--ink) 7%, transparent);
+}
+.fp-x svg { width: 14px; height: 14px; }
+.fp-x:active { transform: scale(.95); }
+@media (prefers-reduced-motion: reduce) {
+  .fp-in, .fp-scrim { transition: none; }
+  .fp.open .fp-row { animation: none; }
+}
+
+/* ============================================================
+   กล่องยืนยันของแอป (appConfirm ใน app.js) — แทน confirm() ของเบราว์เซอร์ที่ถูกปิดในบางที่
+   แผ่นเลื่อนขึ้นจากล่างแบบสปริง · พื้นหลังมืดและเบลอนิด · ปุ่มยืนยันสีแดงเมื่อเป็นการลบ
+   ============================================================ */
+.ac-scrim {
+  position: absolute; inset: 0; z-index: 120; border-radius: inherit;
+  background: rgba(10, 6, 20, .34); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  opacity: 0; transition: opacity .25s ease;
+}
+.ac-scrim.open { opacity: 1; }
+.ac-sheet {
+  position: absolute; left: 12px; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 121;
+  padding: 20px 18px 14px; border-radius: 26px; background: var(--card); color: var(--ink);
+  box-shadow: 0 30px 60px -20px rgba(0,0,0,.5), 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent);
+  transform: translateY(calc(100% + 30px)); transition: transform .26s cubic-bezier(.4, 0, .6, 1);
+}
+.ac-sheet.open { transform: none; transition: transform .45s cubic-bezier(.3, 1.25, .45, 1); }
+.ac-tx { text-align: center; padding: 0 6px; }
+.ac-tx b { display: block; font-size: 17px; font-weight: 800; line-height: 1.35; }
+.ac-tx p { margin: 8px 0 0; font-size: 13.5px; line-height: 1.6; color: color-mix(in srgb, var(--ink) 68%, transparent); text-align: left; }
+.ac-tx p:only-of-type { text-align: center; }
+.ac-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+.ac-btns button {
+  min-height: 48px; border: 0; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: 15px; font-weight: 800; transition: transform .15s ease;
+}
+.ac-btns button:active { transform: scale(.96); }
+.ac-no { background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
+.ac-ok { background: var(--fill); color: var(--on-fill); }
+.ac-ok.danger { background: #DC2626; color: #fff; }
+@media (prefers-reduced-motion: reduce) { .ac-sheet, .ac-sheet.open, .ac-scrim { transition: none; } }
+
+/* ============================================================
+   รายการแชทกับน้องไซ (ปุ่มดินสอบนหัวจอแชท · คู่กับ aiChatsOpen ใน app.js)
+   ใช้แผงลอย .fp ชุดเดียวกับแผงของแท่งกราฟ — งอกจากปุ่ม หดกลับเข้าปุ่ม · แถวไล่ลงทีละแถว
+   หน้าตาแบบแถบ "ล่าสุด" ของแอปแชท AI: ปุ่ม "แชทใหม่" บนสุด → หัวข้อ "ล่าสุด" → ชื่อแชท (คำถามแรก) + เวลา
+   ============================================================ */
+.ch-panel { max-height: 74%; }
+.ch-new {
+  display: flex; align-items: center; gap: 10px; margin: 0 10px 6px; padding: 12px 14px; border: 0; border-radius: 16px; cursor: pointer;
+  font: inherit; font-size: 15px; font-weight: 800; text-align: left;
+  background: color-mix(in srgb, var(--fill) 12%, var(--card)); color: color-mix(in srgb, var(--fill) 85%, var(--ink));
+  transition: transform .15s ease;
+}
+.ch-new svg { width: 18px; height: 18px; }
+.ch-new:active { transform: scale(.97); }
+.ch-sec { padding: 8px 20px 4px; font-size: 12px; font-weight: 800; letter-spacing: .02em; color: color-mix(in srgb, var(--ink) 55%, transparent); }
+.ch-list { gap: 2px; padding-bottom: 12px; }
+.ch-row { background: none; padding: 10px 10px 10px 12px; gap: 8px; cursor: pointer; }
+.ch-row:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+.ch-row.on { cursor: default; background: color-mix(in srgb, var(--fill) 8%, transparent); }
+.ch-row .fp-tx b { font-weight: 600; font-size: 14.5px; }
+.ch-row.on .fp-tx b { font-weight: 800; }
+.ch-row .fp-tx i { align-self: auto; padding: 0; margin: 2px 0 0; background: none; font-size: 11.5px; font-weight: 600; color: color-mix(in srgb, var(--ink) 50%, transparent); }
+.ch-row .fp-tx i.ch-now { color: var(--fill); font-weight: 800; }
+.ch-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--fill); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fill) 20%, transparent); }
+.ch-del {
+  width: 30px; height: 30px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+  background: none; color: color-mix(in srgb, var(--ink) 40%, transparent); transition: background .15s ease, color .15s ease;
+}
+.ch-del svg { width: 14px; height: 14px; }
+.ch-del:hover, .ch-del:focus-visible { background: color-mix(in srgb, #DC2626 12%, transparent); color: #DC2626; }
+
+/* ============================================================
+   แก้โปรไฟล์ — ช่องกรอกแบบ HaloField (เจ้าของส่งเดโม HaloFieldDemo มา: "เอามาใช้ในหน้านี้ดู")
+   ------------------------------------------------------------
+   ได้มาแค่เดโม ไม่มีซอร์สคอมโพเนนต์ — ทำตามที่เดโมบอก: "เปลือกกระจกฝ้า มีขอบเคลื่อนไหว" (frosted shell with an animated rim)
+   • ขอบ = ไล่สีวน (สีเน้นของธีม · ชมพู · ฟ้า) ทำด้วยพื้นสองชั้น (padding-box ทึบ + border-box ไล่สี) ไม่ต้องเพิ่ม <div>
+   • ปกติขอบจาง ๆ นิ่ง ๆ · แตะช่อง = ขอบเข้มขึ้น วนช้า ๆ มีแสงเรืองรอบช่อง · ไอคอน/@ นำหน้าเปลี่ยนเป็นสีเน้น
+   • ช่องชื่อมีไอคอนคนนำหน้า (leadingSlot ของเดโม) · ช่องชื่อผู้ใช้มี @ อยู่แล้ว
+   • ไม่ได้เพิ่มบรรทัดคำอธิบายใต้ช่อง (HaloFieldDescription) — เจ้าของเคยสั่งถอดคำใบ้ใต้ชื่อกับชื่อผู้ใช้ออกแล้ว
+   social.css โหลดทีหลังไฟล์นี้ — ขึ้นต้นด้วย .ep เพื่อให้หนักกว่ากฎเดิมของมัน
+   ============================================================ */
+@property --hf-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+.ep .ep-f > input[type="text"], .ep .ep-f > textarea, .ep .ep-at {
+  --hf-c1: color-mix(in srgb, var(--fill) 28%, transparent);
+  --hf-c2: color-mix(in srgb, #F472B6 22%, transparent);
+  --hf-c3: color-mix(in srgb, #38BDF8 22%, transparent);
+  border: 1.5px solid transparent; border-radius: 16px;
+  background:
+    linear-gradient(color-mix(in srgb, var(--card) 88%, transparent), color-mix(in srgb, var(--card) 88%, transparent)) padding-box,
+    conic-gradient(from var(--hf-a), var(--hf-c1), var(--hf-c2), var(--hf-c3), var(--hf-c1)) border-box;
+  -webkit-backdrop-filter: blur(12px) saturate(150%); backdrop-filter: blur(12px) saturate(150%);
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  transition: box-shadow .3s ease, --hf-c1 .3s, --hf-c2 .3s, --hf-c3 .3s;
+}
+.ep .ep-f > input[type="text"]:focus, .ep .ep-f > textarea:focus, .ep .ep-at:focus-within {
+  --hf-c1: var(--fill);
+  --hf-c2: color-mix(in srgb, var(--fill) 45%, #F472B6);
+  --hf-c3: color-mix(in srgb, var(--fill) 45%, #38BDF8);
+  outline: none; border-color: transparent;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    conic-gradient(from var(--hf-a), var(--hf-c1), var(--hf-c2), var(--hf-c3), var(--hf-c1)) border-box;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--fill) 12%, transparent), 0 10px 26px -14px color-mix(in srgb, var(--fill) 70%, transparent);
+  animation: hf-spin 4s linear infinite;
+}
+@keyframes hf-spin { to { --hf-a: 360deg; } }
+.ep .ep-f > input[type="text"], .ep .ep-f > textarea { padding: 13px 15px; }
+.ep .ep-at { padding-left: 14px; gap: 4px; }
+.ep .ep-at input { padding: 13px 15px 13px 4px !important; }
+.ep .ep-at > span, .ep .ep-at > svg { flex: none; color: color-mix(in srgb, var(--ink) 45%, transparent); transition: color .25s ease; }
+.ep .ep-at > svg { width: 17px; height: 17px; }
+.ep .ep-at:focus-within > span, .ep .ep-at:focus-within > svg { color: var(--fill); }
+.ep .hf-lead { gap: 8px; }
+.ep .ep-f > label { font-size: 12.5px; font-weight: 800; }
+.ep .ep-f:focus-within > label { color: var(--fill); }
+.ep .ep-count { font-weight: 700; }
+@media (prefers-reduced-motion: reduce) {
+  .ep .ep-f > input[type="text"]:focus, .ep .ep-f > textarea:focus, .ep .ep-at:focus-within { animation: none; }
+}
+
+/* แก้โปรไฟล์ · HaloField รอบสอง — เจ้าของ: "เอามาใช้ในหน้านี้ดิ ไม่เห็นเปลี่ยนอะไรเลย"
+   รอบแรกขอบจางเกินไปตอนไม่ได้แตะ (ไล่สี 22–28%) และวนเฉพาะตอนพิมพ์ — มองแวบเดียวเหมือนช่องเดิม
+   ตอนนี้: ขอบไล่สีชัดและวนช้า ๆ ตลอด (12 วินาทีต่อรอบ) มีรัศมีจาง ๆ รอบช่อง · แตะ = สว่างขึ้น วนเร็วขึ้น แสงเรืองกว้างขึ้น
+   + บรรทัดคำอธิบายใต้ช่อง (HaloFieldDescription) + ข้อผิดพลาดสีแดงของชื่อผู้ใช้ (HaloFieldError · epHandleCheck) */
+.ep .ep-f > input[type="text"], .ep .ep-f > textarea, .ep .ep-at {
+  --hf-c1: color-mix(in srgb, var(--fill) 70%, transparent);
+  --hf-c2: color-mix(in srgb, #F472B6 60%, transparent);
+  --hf-c3: color-mix(in srgb, #38BDF8 55%, transparent);
+  border-width: 2px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--fill) 6%, transparent), 0 8px 22px -16px color-mix(in srgb, var(--fill) 60%, transparent);
+  animation: hf-spin 12s linear infinite;
+}
+.ep .ep-f > input[type="text"]:focus, .ep .ep-f > textarea:focus, .ep .ep-at:focus-within {
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--fill) 15%, transparent), 0 12px 30px -12px color-mix(in srgb, var(--fill) 75%, transparent);
+  animation: hf-spin 3.5s linear infinite;
+}
+/* ผิดกติกา: ขอบแดงทึบ ไม่วน · แสงรอบเป็นแดง */
+.ep .ep-at.invalid, .ep .ep-at.invalid:focus-within {
+  --hf-c1: #DC2626; --hf-c2: #EF4444; --hf-c3: #F87171;
+  animation: none;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, .14);
+}
+.ep .ep-at.invalid > span { color: #DC2626; }
+.ep .hf-desc { margin: -1px 2px 0; font-size: 12px; line-height: 1.5; font-weight: 500; color: color-mix(in srgb, var(--ink) 58%, transparent); }
+.ep .hf-err {
+  display: flex; align-items: center; gap: 6px; margin: -2px 2px 0;
+  font-size: 12.5px; font-weight: 700; color: #DC2626; animation: hf-err-in .25s ease;
+}
+.ep .hf-err::before {
+  content: '!'; width: 16px; height: 16px; flex: none; border-radius: 50%; display: grid; place-items: center;
+  background: #DC2626; color: #fff; font-size: 11px; font-weight: 900; line-height: 1;
+}
+.ep .hf-err[hidden] { display: none; }
+@keyframes hf-err-in { from { opacity: 0; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) {
+  .ep .ep-f > input[type="text"], .ep .ep-f > textarea, .ep .ep-at { animation: none; }
+}
+
+/* แก้โปรไฟล์: กรอบซ้อนสองชั้นตอนพิมพ์ (เจ้าของ: "ยังไม่ถูกแก้ด้วย" — ส่งรูปช่องชื่อที่มีกรอบน้ำเงินมนอยู่ข้างในกรอบไล่สี)
+   ตัวการคือวงโฟกัสคีย์บอร์ดทั้งแอป (.phone :is(… input …):focus-visible · outline 2.5px !important · QA #17)
+   ช่องพิมพ์ติด :focus-visible ทุกครั้งแม้แตะด้วยนิ้ว วงจึงไปวาดรอบ <input> ตัวในของกรอบ @ / ไอคอน
+   กรอบ HaloField ข้างนอกบอกโฟกัสอยู่แล้ว (สว่างขึ้น วนเร็วขึ้น มีแสงรอบ) — ปิดวงซ้ำเฉพาะช่องในจอนี้ */
+.phone .ep .ep-at input:focus-visible,
+.phone .ep .ep-f > input[type="text"]:focus-visible,
+.phone .ep .ep-f > textarea:focus-visible { outline: none !important; }
+.ep .ep-at input:focus { border: 0 !important; background: none !important; box-shadow: none !important; }
+
+/* ใบตัวอย่างในจอเพื่อน — วงกลมเป็นรูปของวิชา (subjGlyph ใน social.js) · เจ้าของ: "ปรับตรงนี้ให้เป็นโลโก้ที่ตรงตามหัวข้อ"
+   พื้นอมสีประจำวิชา ขอบสีเดียวกันจาง ๆ ไอคอนสีเต็ม · Astral Black ขาวดำ */
+.so-av.so-glyph {
+  background: color-mix(in srgb, var(--sg) 15%, var(--card)); color: var(--sg);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--sg) 30%, transparent), 0 6px 14px -8px var(--sg);
+  border-style: solid; border-color: transparent;
+}
+.so-av.so-glyph svg { width: 22px; height: 22px; }
+:root[data-theme="astral"] .so-av.so-glyph { filter: grayscale(1); }
+
+/* แก้โปรไฟล์ — คำอธิบายใต้ช่องกับบรรทัดความเป็นส่วนตัวชัดขึ้น (เจ้าของวงแดงสี่จุด: "ทำให้ตรงที่วงกลมสีแดงชัดหน่อย")
+   เดิม 12px สีหมึก 58% บนพื้นลวดลายสีพาสเทล — จมไปกับพื้น · ตอนนี้ 12.5px หนาขึ้น สีหมึก 78%
+   บรรทัดความเป็นส่วนตัวเป็นแถบพื้นอมสีเน้น มีไอคอนกุญแจสีเน้น — อ่านออกเป็นข้อความเดียวที่ตั้งใจให้อ่าน */
+.ep .hf-desc { font-size: 12.5px; font-weight: 600; color: color-mix(in srgb, var(--ink) 86%, transparent); }
+.ep .ep-fine {
+  padding: 10px 12px; border-radius: 14px; font-size: 12.5px; font-weight: 600; line-height: 1.55;
+  color: color-mix(in srgb, var(--ink) 82%, transparent);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--fill) 14%, var(--card));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fill) 30%, transparent);
+}
+.ep .ep-fine svg { color: var(--fill); width: 14px; height: 14px; }
+
+/* แท็บฉัน · หัวโปรไฟล์ตอนยังไม่ล็อกอิน (เจ้าของ: "ทำให้ตรงที่วงกลมสีแดงชัดหน่อย และแก้ตรงหน้าเข้าสู่ระบบ ปุ่มมันยังดูลอย ๆ")
+   • บรรทัด "ยังไม่ล็อกอิน — เพื่อนยังหาคุณไม่เจอ": เดิมตัวเอียงสีจาง → ป้ายแคปซูลพื้นอมสีส้ม มีจุดสถานะ ตัวหนา ตัวตรง
+   (ส่วนปุ่ม "เข้าสู่ระบบ" ที่เคยแก้ในบล็อกนี้ ถูกถอดออกแล้วตามที่เจ้าของสั่ง — ดูท้ายบล็อก) */
+.ig-id > i.ig-off {
+  display: inline-flex; align-items: center; gap: 7px; margin-top: 6px; padding: 4px 11px 4px 9px; border-radius: 999px;
+  font-style: normal; font-size: 12.5px; font-weight: 700; color: color-mix(in srgb, #C2410C 85%, var(--ink));
+  background: color-mix(in srgb, #F97316 13%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #F97316 28%, transparent);
+}
+.ig-id > i.ig-off::before {
+  content: ''; width: 7px; height: 7px; flex: none; border-radius: 50%; background: #F97316;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #F97316 22%, transparent);
+}
+/* ปุ่ม "เข้าสู่ระบบ": เคยลองลดเงาแล้วทำเป็นปุ่มทึบ (ไม่ลอย) สองรอบ — เจ้าของสั่ง "เอากลับไปเหมือนเดิม" จึงถอดออก ปุ่มกลับเป็นปุ่มกระจกตามเดิม */
+:root[data-theme="astral"] .ig-id > i.ig-off { filter: grayscale(1); }
+
+/* กล่องข้อความ (scr-dm) — หัวจอไม่มีแถบขาวแล้ว (เจ้าของวงแดง: "ลบตรงสีขาวที่วงรอมอยู่")
+   .ch-top เป็นแถบพื้นการ์ดทึบมีเส้นใต้ (social.css) — เหมาะกับห้องแชทที่ข้อความเลื่อนผ่านใต้หัว
+   แต่กล่องข้อความเป็นรายการบนพื้นลวดลายของธีม แถบขาวทึบเลยตัดจอเป็นสองท่อน · ที่นี่เหลือแค่ปุ่มกลับกับคำว่า "ข้อความ" ลอยบนพื้น
+   เฉพาะ #dmBody — ห้องแชท (scr-chat) ยังมีแถบเหมือนเดิม */
+#dmBody .ch-top { background: transparent; border-bottom: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+#dmBody .ch-top .ch-who b { font-size: 18px; font-weight: 800; }
+
+/* ============================================================
+   กล่องข้อความ — ช่องค้นหาแบบ HaloSearchInput (เจ้าของส่งเดโมมา: "เอามาใช้ในตรงนี้")
+   ------------------------------------------------------------
+   • วงไล่สี (สีเน้น · ชมพู · ฟ้า) วนรอบช่องช้า ๆ ตลอด มีรัศมีจาง ๆ — ทำด้วยพื้นสองชั้นบนตัว <input> (padding-box ทึบ + border-box ไล่สี)
+   • แตะช่อง = วงสว่าง วนเร็วขึ้น แสงกว้างขึ้น (ไม่มีวงโฟกัสคีย์บอร์ดซ้อนอีกชั้น)
+   • กำลังค้นหา (.busy) = วงวนเร็ว + "กำลังค้นหา…" ไหลเป็นคลื่นทีละตัวที่ท้ายช่อง (แทนบรรทัด "กำลังค้นหา…" ในรายการ)
+   • ปุ่ม × = ตัวหนังสือในช่องร่วงลงจางหาย (.clearing) แล้วค่อยล้าง
+   ใช้ @property --hf-a ตัวเดียวกับช่องแก้โปรไฟล์ · social.css โหลดทีหลัง จึงขึ้นต้นด้วย #dmBody
+   ============================================================ */
+#dmBody .dm-find input {
+  --hf-c1: color-mix(in srgb, var(--fill) 65%, transparent);
+  --hf-c2: color-mix(in srgb, #F472B6 55%, transparent);
+  --hf-c3: color-mix(in srgb, #38BDF8 50%, transparent);
+  padding: 12px 40px 12px 40px; border: 2px solid transparent; border-radius: 999px; color: var(--ink);
+  background:
+    linear-gradient(color-mix(in srgb, var(--card) 90%, transparent), color-mix(in srgb, var(--card) 90%, transparent)) padding-box,
+    conic-gradient(from var(--hf-a), var(--hf-c1), var(--hf-c2), var(--hf-c3), var(--hf-c1)) border-box;
+  -webkit-backdrop-filter: blur(12px) saturate(150%); backdrop-filter: blur(12px) saturate(150%);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--fill) 6%, transparent), 0 10px 26px -16px color-mix(in srgb, var(--fill) 60%, transparent);
+  animation: hf-spin 12s linear infinite; animation-delay: var(--hf-ph, 0s);
+  transition: color .2s ease, transform .2s ease, box-shadow .3s ease;
+}
+#dmBody .dm-find input:focus {
+  outline: none;
+  --hf-c1: var(--fill);
+  --hf-c2: color-mix(in srgb, var(--fill) 45%, #F472B6);
+  --hf-c3: color-mix(in srgb, var(--fill) 45%, #38BDF8);
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    conic-gradient(from var(--hf-a), var(--hf-c1), var(--hf-c2), var(--hf-c3), var(--hf-c1)) border-box;
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--fill) 14%, transparent), 0 12px 30px -12px color-mix(in srgb, var(--fill) 75%, transparent);
+  animation-duration: 4s;
+}
+.phone #dmBody .dm-find input:focus-visible { outline: none !important; }
+#dmBody .dm-find-ic { left: 29px; z-index: 1; color: color-mix(in srgb, var(--ink) 55%, transparent); transition: color .25s ease; }
+#dmBody .dm-find.busy .dm-find-ic { color: var(--fill); }
+#dmBody .dm-find:focus-within .dm-find-ic { color: var(--fill); }
+#dmBody .dm-find-x { right: 25px; background: color-mix(in srgb, var(--ink) 9%, transparent); animation: dmx-in .3s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes dmx-in { from { opacity: 0; transform: translateY(-40%) scale(.4) rotate(-90deg); } }
+
+/* กำลังค้นหา */
+#dmBody .dm-find.busy input {
+  --hf-c1: var(--fill);
+  --hf-c2: color-mix(in srgb, var(--fill) 40%, #F472B6);
+  --hf-c3: color-mix(in srgb, var(--fill) 40%, #38BDF8);
+  animation-duration: 1.4s;
+}
+.dm-find-load {
+  position: absolute; right: 28px; top: 50%; transform: translateY(-40%); pointer-events: none;
+  display: inline-flex; font-size: 12.5px; font-weight: 700; color: var(--fill); white-space: pre;
+}
+.dm-find-load span { display: inline-block; animation: dm-wave 1.3s ease-in-out infinite; animation-delay: calc(var(--i) * 44ms); }
+@keyframes dm-wave {
+  0%, 100% { opacity: .35; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-2.5px); }
+}
+
+/* ปุ่ม × — ตัวหนังสือร่วงหาย */
+#dmBody .dm-find.clearing input { color: transparent; transform: translateY(1px); }
+#dmBody .dm-find.clearing .dm-find-x { transform: translateY(-40%) scale(.6) rotate(90deg); opacity: 0; transition: transform .2s ease, opacity .2s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  #dmBody .dm-find input, #dmBody .dm-find-x, .dm-find-load span { animation: none; }
+}
+:root[data-theme="astral"] #dmBody .dm-find input { filter: grayscale(1); }
+
+/* ============================================================
+   ห้องแชทกับเพื่อน (scr-chat) + กล่องข้อความ (scr-dm) — รอบปรับตามรูปของเจ้าของ
+   ------------------------------------------------------------
+   เจ้าของ: "ทำให้มีปุ่มเมนูกลับมาข้างล่าง · ตรงปุ่มข้อความปรับให้สวย แล้วลบดาวออก · ข้างบนลบกรอบสีขาวออก
+            · ใส่อนิเมชันตอนพิมพ์เหมือนตอนแชทกับน้องไซ · ในหน้าแชทปรับให้ข้อความเห็นชัดขึ้นหน่อย"
+   1 แถบล่างกลับมา (go() ไม่ใส่ chat-mode ให้สองจอนี้แล้ว) · จอกว้างที่เป็นกรอบโทรศัพท์ แถบล่างลอยทับก้นจอ
+     จึงยกช่องพิมพ์ขึ้นเท่ากับจอน้องไซ (มือถือจริงแถบอยู่นอกพื้นที่จอ ไม่ต้องยก)
+   2 หัวจอ: ไม่มีแถบขาว เส้นใต้ — ปุ่มกลับ รูป ชื่อ ลอยบนพื้นของธีม
+   3 แถบพิมพ์: ไม่มีพื้นขาว · ช่องพิมพ์เป็นแคปซูลกระจกขอบไล่สีวน (ชุดเดียวกับช่องค้นหาในกล่องข้อความ)
+     ดาว (ปุ่มอิโมจิ) เป็นหน้ายิ้ม · ปุ่มส่งเป็นลูกศรขึ้นในวงกลมไล่สี
+   4 ตัวที่พิมพ์ค่อย ๆ ชัดขึ้นทีละตัว (ชั้นเงา .ha-mir ตัวเดียวกับช่องถามน้องไซบนหน้าแรก)
+   5 ฟองข้อความ: ฟองของอีกฝ่ายเป็นพื้นการ์ดทึบมีขอบและเงาบาง (เดิมเทาจางกลืนพื้น) ตัวหนังสือเข้ม
+     ฟองของเราไล่สีเน้น · เวลาใต้ฟองกับป้ายวันเข้มขึ้น
+   ============================================================ */
+/* 1 · ยกช่องพิมพ์พ้นแถบล่าง (เฉพาะกรอบโทรศัพท์บนจอกว้าง — เลขเดียวกับจอน้องไซ) */
+:root:not([data-nav="side"]) .phone #scr-chat .scr-body { bottom: 80px; }   /* วัดที่ 1050px: 64 ยังทับแถบ 3px · 80 = ห่าง ~13px */
+/* มือถือ: แถบล่างลอยทับก้นจอเหมือนกัน (วัดที่ 375px: bottom 0 = ช่องพิมพ์จมใต้แถบ 54px) — ยกพ้นแถบ + safe-area ของเครื่อง */
+@media (max-width: 768px), (display-mode: standalone) {
+  :root:not([data-nav="side"]) .phone #scr-chat .scr-body { bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }
+}
+#scr-chat .ch-bar { padding-bottom: 10px; }
+
+/* 2 · หัวจอโปร่ง */
+#chatBody .ch-top { background: transparent; border-bottom: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+#chatBody .ch-who-tx b { font-size: 16px; font-weight: 800; }
+
+/* 3 · แถบพิมพ์ */
+#chatBody .ch-bar { background: transparent; border-top: 0; align-items: center; }
+#chatBody .ch-field {
+  --hf-c1: color-mix(in srgb, var(--fill) 60%, transparent);
+  --hf-c2: color-mix(in srgb, #F472B6 50%, transparent);
+  --hf-c3: color-mix(in srgb, #38BDF8 45%, transparent);
+  position: relative; flex: 1; min-width: 0; padding: 3px 4px 3px 16px; border: 2px solid transparent; border-radius: 999px;
+  background:
+    linear-gradient(color-mix(in srgb, var(--card) 92%, transparent), color-mix(in srgb, var(--card) 92%, transparent)) padding-box,
+    conic-gradient(from var(--hf-a), var(--hf-c1), var(--hf-c2), var(--hf-c3), var(--hf-c1)) border-box;
+  -webkit-backdrop-filter: blur(12px) saturate(150%); backdrop-filter: blur(12px) saturate(150%);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--fill) 6%, transparent), 0 10px 24px -16px color-mix(in srgb, var(--fill) 60%, transparent);
+  animation: hf-spin 12s linear infinite;
+  transition: box-shadow .3s ease;
+}
+#chatBody .ch-field:focus-within {
+  --hf-c1: var(--fill);
+  --hf-c2: color-mix(in srgb, var(--fill) 45%, #F472B6);
+  --hf-c3: color-mix(in srgb, var(--fill) 45%, #38BDF8);
+  border-color: transparent;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    conic-gradient(from var(--hf-a), var(--hf-c1), var(--hf-c2), var(--hf-c3), var(--hf-c1)) border-box;
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--fill) 14%, transparent), 0 12px 28px -12px color-mix(in srgb, var(--fill) 70%, transparent);
+  animation-duration: 4s;
+}
+.phone #chatBody .ch-field input:focus-visible { outline: none !important; }
+#chatBody .ch-field input { font-size: 15px; padding: 9px 0; color: var(--ink); }
+#chatBody .ch-emo-btn {
+  width: 34px; height: 34px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+  background: none; color: color-mix(in srgb, var(--ink) 50%, transparent); transition: color .2s ease, background .2s ease;
+}
+#chatBody .ch-emo-btn svg { width: 21px; height: 21px; }
+#chatBody .ch-emo-btn:hover, #chatBody .ch-emo-btn:active { color: var(--fill); background: color-mix(in srgb, var(--fill) 10%, transparent); }
+#chatBody .ch-send {
+  width: 38px; height: 38px; background: linear-gradient(180deg, color-mix(in srgb, var(--fill) 80%, #fff), var(--fill));
+  box-shadow: 0 6px 14px -6px var(--fill); color: var(--on-fill);
+}
+#chatBody .ch-send svg { width: 18px; height: 18px; }
+#chatBody .ch-plus {
+  width: 44px; height: 44px; background: linear-gradient(180deg, color-mix(in srgb, var(--fill) 80%, #fff), var(--fill));
+  box-shadow: 0 8px 18px -8px var(--fill);
+}
+
+/* 4 · ชั้นเงาตัวอักษร (ตัวเดียวกับ .td-ask บนหน้าแรก) */
+#chatBody .ch-field.ha-on #chatIn { color: transparent; caret-color: var(--ink); }
+#chatBody .ch-field.ha-on #chatIn::placeholder { color: transparent; }
+#chatBody .ch-field.ha-has .ha-ph { display: none; }
+#chatBody .ch-field .ha-mir { color: var(--ink); }
+
+/* 5 · ฟองข้อความชัดขึ้น */
+#chatBody .ch-msg:not(.me) .ch-bub {
+  background: var(--card); color: var(--ink); font-weight: 500;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--fill) 16%, transparent), 0 4px 12px -8px rgba(0,0,0,.25);
+}
+#chatBody .ch-msg.me .ch-bub {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--fill) 82%, #fff), var(--fill)); color: var(--on-fill); font-weight: 600;
+  box-shadow: 0 6px 14px -8px var(--fill);
+}
+#chatBody .ch-bub { font-size: 15px; line-height: 1.5; padding: 10px 15px; }
+#chatBody .ch-when { font-size: 11px; font-weight: 600; color: color-mix(in srgb, var(--ink) 62%, transparent); }
+#chatBody .ch-del { color: color-mix(in srgb, var(--ink) 62%, transparent); }
+#chatBody .ch-day span {
+  background: color-mix(in srgb, var(--card) 88%, transparent); color: color-mix(in srgb, var(--ink) 75%, transparent);
+  font-weight: 700; box-shadow: 0 0 0 1px color-mix(in srgb, var(--fill) 14%, transparent);
+}
+#chatBody .ch-img { border-radius: 18px; box-shadow: 0 8px 20px -12px rgba(0,0,0,.4); }
+/* ฟองใหม่ (ข้อความล่าสุด) เด้งเข้ามา */
+#chatBody .ch-msg.last:last-child { animation: chm-in .35s cubic-bezier(.3, 1.3, .5, 1); }
+@keyframes chm-in { from { opacity: 0; transform: translateY(8px) scale(.97); } }
+@media (prefers-reduced-motion: reduce) {
+  #chatBody .ch-field { animation: none; }
+  #chatBody .ch-msg.last:last-child { animation: none; }
+}
+:root[data-theme="astral"] #chatBody .ch-field { filter: grayscale(1); }
+
+/* ============================================================
+   6 · หน้าโปรไฟล์ — โพสต์เป็นตารางแบบ TweetGrid + หัวข้อไล่สีแบบ GradientHeading (คู่กับ tweetCard ใน feed.js)
+   ============================================================ */
+.twg-head {
+  margin: 6px 2px 14px; font-size: 24px; font-weight: 900; letter-spacing: -.02em; line-height: 1.2;
+  background: linear-gradient(180deg, var(--ink) 20%, color-mix(in srgb, var(--fill) 70%, var(--ink)));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.twg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+.twg-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.twg-card {
+  margin: 0; padding: 12px; border-radius: 18px; cursor: pointer; min-width: 0;
+  background: var(--card); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 7%, transparent), 0 8px 20px -14px rgba(0,0,0,.35);
+  animation: twg-in .5s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(var(--i, 0) * 50ms);
+  transition: transform .2s ease;
+}
+.twg-card:active { transform: scale(.98); }
+@keyframes twg-in { from { opacity: 0; transform: translateY(12px); } }
+.twg-h { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.twg-av { width: 28px; height: 28px; flex: none; border-radius: 50%; object-fit: cover; display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #fff; background: var(--fill); }
+.twg-av.anon { background: color-mix(in srgb, var(--ink) 20%, transparent); }
+.twg-who { min-width: 0; display: flex; flex-direction: column; }
+.twg-who b { font-size: 12.5px; font-weight: 800; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.twg-who i { font-style: normal; font-size: 10.5px; color: color-mix(in srgb, var(--ink) 55%, transparent); }
+.twg-subj {
+  display: inline-block; margin-bottom: 6px; padding: 2px 8px; border-radius: 99px; font-size: 10.5px; font-weight: 800;
+  color: var(--sj, var(--fill)); background: color-mix(in srgb, var(--sj, var(--fill)) 14%, transparent);
+}
+.twg-body {
+  margin: 0; font-size: 13px; line-height: 1.55; color: var(--ink); white-space: pre-wrap; word-break: break-word;
+  display: -webkit-box; -webkit-line-clamp: 7; -webkit-box-orient: vertical; overflow: hidden;
+}
+.twg-img { display: block; width: 100%; margin-top: 8px; border-radius: 12px; object-fit: cover; max-height: 220px; }
+.twg-f { display: flex; align-items: center; gap: 5px; margin-top: 9px; font-size: 11px; font-weight: 700; color: color-mix(in srgb, var(--ink) 55%, transparent); }
+.twg-f svg { width: 13px; height: 13px; }
+@media (prefers-reduced-motion: reduce) { .twg-card { animation: none; } }
+
+/* กล่องข้อความ: ปุ่มดินสอลอยมุมขวาล่างเคยวางชิดก้นจอ (18px) เพราะจอนี้ซ่อนแถบล่าง — แถบกลับมาแล้ว ปุ่มจมใต้แถบ 36px (วัดที่ 375px)
+   ยกขึ้นพ้นแถบ + ช่องหายใจ ~12px · ไล่สีชุดเดียวกับปุ่มส่งในห้องแชท */
+:root:not([data-nav="side"]) #dmBody .dm-fab { bottom: 96px; }   /* กรอบโทรศัพท์บนจอกว้าง (วัดที่ 1050px) */
+@media (max-width: 768px), (display-mode: standalone) {
+  :root:not([data-nav="side"]) #dmBody .dm-fab { bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+}
+#dmBody .dm-fab { background: linear-gradient(180deg, color-mix(in srgb, var(--fill) 80%, #fff), var(--fill)); color: var(--on-fill); box-shadow: 0 10px 22px -10px var(--fill); }
+
+/* ============================================================
+   หน้าโปรไฟล์ของคน (scr-user) — หัวจอโปร่ง + แท็บโพสต์/คำตอบแบบแคปซูลเลื่อน (คู่กับ renderUser · switchUserTab)
+   ------------------------------------------------------------
+   เจ้าของ: "แก้ตรงนี้ ลบสีขาวตรงที่วงไว้ และก็จัดตรงโพสต์กับคำตอบให้มันสวยกว่านี้ และมีอนิเมชันสักหน่อย"
+   • หัวจอ (.cp-top): ไม่มีแถบขาว เส้นใต้ — ปุ่มกลับเป็นวงกลมกระจก ชื่อ @ ตัวหนา
+   • แท็บ: รางแคปซูลอมสี · ก้อนสีเน้นเลื่อนแบบสปริงไปหาแท็บที่กด · ตัวเลขจำนวนเป็นป้ายเล็กข้างชื่อแท็บ
+   • สลับแท็บ: เนื้อหาเลื่อนเข้าจากฝั่งที่กด · การ์ดโพสต์ไล่ขึ้นทีละใบ (มีอยู่แล้วใน .twg-card)
+   • ไม่มีอะไรให้ดู: กล่องกลางจอมีไอคอนในวงกลม หัวข้อ และคำอธิบาย แทนบรรทัดเทาบรรทัดเดียว
+   ============================================================ */
+#userBody .cp-top { background: transparent; border-bottom: 0; box-shadow: none; padding: 12px 14px 4px; }
+#userBody .cp-top > b { font-size: 16px; font-weight: 800; }
+#userBody .cp-x {
+  width: 38px; height: 38px; justify-content: center; padding: 0; border-radius: 50%;
+  background: color-mix(in srgb, var(--card) 80%, transparent); color: var(--ink);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent), 0 4px 12px -6px rgba(0,0,0,.25);
+}
+#userBody .cp-x svg { width: 18px; height: 18px; }
+
+#userBody .ig-tabs {
+  position: relative; display: grid; grid-template-columns: 1fr 1fr; margin: 18px 2px 4px; padding: 4px;
+  border: 0; border-radius: 999px;
+  background: color-mix(in srgb, var(--fill) 9%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 16%, transparent);
+}
+#userBody .ig-tab-ind {
+  position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 999px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fill) 80%, #fff), var(--fill));
+  box-shadow: 0 6px 14px -6px var(--fill), inset 0 1px 0 rgba(255,255,255,.3);
+  transform: translateX(calc(var(--i, 0) * 100%));
+  transition: transform .45s cubic-bezier(.3, 1.3, .5, 1);
+}
+#userBody .ig-tabs.hold .ig-tab-ind { transition: none; }
+#userBody .ig-tabs button {
+  position: relative; z-index: 1; padding: 10px 0; border: 0; border-radius: 999px;
+  font-size: 13.5px; font-weight: 800; color: color-mix(in srgb, var(--ink) 65%, transparent);
+  transition: color .3s ease, transform .15s ease;
+}
+#userBody .ig-tabs button.on { color: var(--on-fill); border-bottom-color: transparent; }
+#userBody .ig-tabs button:active { transform: scale(.96); }
+#userBody .ig-tabs button svg { width: 15px; height: 15px; }
+#userBody .ig-tabs button i {
+  font-style: normal; margin-left: 2px; padding: 0 7px; border-radius: 99px; font-size: 11px; line-height: 18px;
+  background: color-mix(in srgb, var(--fill) 14%, transparent); color: var(--fill); transition: background .3s, color .3s;
+}
+#userBody .ig-tabs button.on i { background: rgba(255,255,255,.25); color: var(--on-fill); }
+
+#userBody .ig-tabbody { padding: 12px 2px 24px; }
+#userBody .ig-tabbody.swap { animation: igt-in .4s cubic-bezier(.22, 1, .36, 1); }
+#userBody .ig-tabbody[data-dir="r"] { --dx: 18px; }
+#userBody .ig-tabbody[data-dir="l"] { --dx: -18px; }
+@keyframes igt-in { from { opacity: 0; transform: translateX(var(--dx, 0)); } }
+
+.ig-empty {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px;
+  margin: 8px 0; padding: 26px 20px; border-radius: 22px;
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fill) 14%, transparent);
+  animation: igt-pop .45s cubic-bezier(.3, 1.3, .5, 1) both;
+}
+.ig-empty > span {
+  width: 52px; height: 52px; margin-bottom: 8px; border-radius: 50%; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--fill) 14%, var(--card)); color: var(--fill);
+  animation: igt-bob 3s ease-in-out infinite;
+}
+.ig-empty > span svg { width: 24px; height: 24px; }
+.ig-empty b { font-size: 15px; font-weight: 800; color: var(--ink); }
+.ig-empty p { margin: 0; font-size: 13px; line-height: 1.6; color: color-mix(in srgb, var(--ink) 65%, transparent); }
+@keyframes igt-pop { from { opacity: 0; transform: scale(.94) translateY(8px); } }
+@keyframes igt-bob { 50% { transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) {
+  #userBody .ig-tab-ind { transition: none; }
+  #userBody .ig-tabbody.swap, .ig-empty, .ig-empty > span { animation: none; }
+}
+
+/* ห้องแชท: ปุ่มส่งอยู่ท้ายช่องพิมพ์ตลอด (เจ้าของวาดลูกศรชี้ตรงที่ว่างท้ายช่อง)
+   เดิมซ่อนจนกว่าจะมีตัวหนังสือ (social.css · "ปุ่มที่กดไปก็ไม่เกิดอะไรคือปุ่มที่สอนให้เลิกเชื่อปุ่ม")
+   ตอนนี้ใช้ทางเดียวกับช่องถามน้องไซบนหน้าแรก: ว่าง = วงกลมสีหมึกจาง ๆ (กดได้แต่ไม่ส่งอะไร) · มีตัวหนังสือ = ไล่สีเน้นเต็ม ลูกศรขยับขึ้นนิด */
+#chatBody .ch-send { transform: none; opacity: 1; pointer-events: auto; transition: background .25s ease, box-shadow .25s ease, transform .15s ease; }
+#chatBody .ch-send:not(.on) { background: color-mix(in srgb, var(--ink) 12%, transparent); color: color-mix(in srgb, var(--ink) 55%, transparent); box-shadow: none; }
+#chatBody .ch-send svg { transition: transform .3s cubic-bezier(.3, 1.6, .5, 1); }
+#chatBody .ch-send.on svg { transform: translateY(-1px); }
+#chatBody .ch-send:active { transform: scale(.9); }
+
+/* ============================================================
+   แผ่นเพิ่มงาน → หน้า "ตัวเชื่อม" — หัวจัดตรง + อนิเมชันตอนกด (เจ้าของ: "ทำให้ตรงแล้วถูกต้อง ให้ดูสบายตาและมีอนิเมชันตอนกด")
+   ------------------------------------------------------------
+   ต้นเหตุที่หัวเละ: ปุ่มย้อนเคยมี aria-label "กลับไปเมนูเพิ่มงาน" กฎปุ่มกลับลอยของทุกจอจับไปเป็นวงกลมลอยทับคำว่า "ตัวเชื่อม"
+   (แก้ที่ป้ายใน app.js) · หัวตอนนี้เป็นแถวเดียว: วงกลมลูกศร · "ตัวเชื่อม" ตัวหนา · ป้ายจำนวนชิดขวา แล้วคำอธิบายใต้
+   • กดแถว = แถวยุบนิด พื้นอมสี · กดสวิตช์ = ปุ่มกลมไถลแบบสปริง แถวกะพริบพื้นอมสีหนึ่งที (.pulse)
+   • สลับหน้าในแผ่น = ของเลื่อนเข้าจากฝั่งที่ไป (.swap)
+   ============================================================ */
+#addSheet .as-back { display: flex; align-items: center; gap: 10px; padding: 2px 0 0; margin-bottom: 2px; font-size: 18px; font-weight: 800; }
+#addSheet .as-bk {
+  width: 34px; height: 34px; flex: none; display: grid; place-items: center; border-radius: 50%; transform: none;
+  background: color-mix(in srgb, var(--fill) 10%, var(--card)); color: var(--ink);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 16%, transparent);
+  transition: transform .2s ease, background .2s ease;
+}
+#addSheet .as-bk svg { width: 17px; height: 17px; transform: rotate(180deg); }
+#addSheet .as-back:active .as-bk { transform: scale(.9); background: color-mix(in srgb, var(--fill) 18%, var(--card)); }
+#addSheet .as-back .as-cnt { margin-left: auto; font-size: 11.5px; font-weight: 800; }
+#addSheet .as-sub { margin: 4px 0 8px 44px; font-size: 12.5px; color: color-mix(in srgb, var(--ink) 65%, transparent); }
+
+#addSheet .as-tgl { border-radius: 16px; padding-left: 8px; padding-right: 8px; transition: transform .15s ease, background .25s ease; }
+#addSheet .as-tgl + .as-tgl, #addSheet .as-tgl + .as-more { border-top-color: color-mix(in srgb, var(--ink) 7%, transparent); }
+#addSheet .as-tgl:active { transform: scale(.98); background: color-mix(in srgb, var(--fill) 8%, transparent); border-radius: 16px; }
+#addSheet .as-tgl.pulse { animation: as-pulse .5s ease; }
+@keyframes as-pulse { 30% { background: color-mix(in srgb, var(--fill) 12%, transparent); } }
+#addSheet .as-tgl .as-ic { transition: background .3s ease, color .3s ease, transform .3s cubic-bezier(.3, 1.6, .5, 1); }
+#addSheet .as-tgl.pulse .as-ic { transform: scale(1.1); }
+#addSheet .as-more { border-radius: 16px; padding-left: 8px; padding-right: 8px; transition: transform .15s ease; }
+#addSheet .as-more:active { transform: scale(.98); }
+#addSheet .as-more .as-go { transition: transform .2s ease; }
+#addSheet .as-more:active .as-go { transform: translateX(3px); }
+
+#addSheet .as-card.swap > * { animation: as-swap .4s cubic-bezier(.22, 1, .36, 1) both; }
+#addSheet .as-card.swap > :nth-child(3) { animation-delay: .03s; }
+#addSheet .as-card.swap > :nth-child(4) { animation-delay: .06s; }
+#addSheet .as-card.swap > :nth-child(5) { animation-delay: .09s; }
+#addSheet .as-card.swap > :nth-child(n+6) { animation-delay: .12s; }
+#addSheet .as-card[data-dir="r"] { --dx: 22px; }
+#addSheet .as-card[data-dir="l"] { --dx: -22px; }
+@keyframes as-swap { from { opacity: 0; transform: translateX(var(--dx, 0)); } }
+#addSheet .as-card.swap > .as-grip { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  #addSheet .as-card.swap > *, #addSheet .as-tgl.pulse { animation: none; }
+}

@@ -1520,3 +1520,8 @@
 }
 .ts-ic svg { width: 18px; height: 18px; filter: none; }
 .ts { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 10%, transparent), var(--soft-shadow, var(--shadow)); }
+
+/* ช่อง "วันต่อเนื่อง" ใช้สีไฟ (เจ้าของ: "ใช้โทนสีเกี่ยวกับไฟ") — เดิมเป็น --good (เขียวอมฟ้าบน Deep Ocean) ไม่เข้ากับเปลวไฟ
+   ส้มทุกธีม (ไฟสีเดียวไม่ว่าพื้นจะเป็นอะไร) · เปลวในเป็นเหลืองอำพัน (--ts-c2) ให้ดูมีแกนร้อนตรงกลาง
+   Astral Black ยังเป็นขาวดำตามกฎ grayscale ข้างบน */
+.ts.g { --ts-c: #F97316; --ts-c2: #FBBF24; }

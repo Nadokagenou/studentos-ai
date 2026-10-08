@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>StudentOS AI — รู้ว่าต้องทำอะไรก่อน เสมอ</title>
 <meta name="description" content="ผู้ช่วยจัดการงานสำหรับนักเรียนไทย — แปะข้อความจากแชทหรือถ่ายรูปใบงาน แล้ว AI แกะวิชา กำหนดส่ง คะแนน ให้เอง พร้อมบอกว่าควรทำอะไรก่อนและเพราะอะไร">
-<meta name="theme-color" content="#FFFBF2">
+<meta name="theme-color" content="#FFFFFF">
 <link rel="icon" href="icon-192.png">
 
 <!-- โอเพนกราฟ — หน้านี้มีไว้ให้แชร์ ถ้าแปะลิงก์แล้วขึ้นเป็นกล่องเปล่าก็เสียของ -->
@@ -18,440 +18,251 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;800;900&family=Nunito:wght@700;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800;900&family=Nunito:wght@700;800;900&display=swap">
 
 <style>
 /* ═════════════════════════════════════════════════════════════
-   หน้าแนะนำ StudentOS AI — ไฟล์เดี่ยว ไม่พึ่ง alt.css (355KB)
+   หน้าแนะนำ StudentOS AI — ไฟล์เดี่ยว ไม่พึ่ง alt.css
 
-   แนวทาง: ตัวหนา ขอบดำหนา ปุ่มมีสันสามมิติ — ความ "กล้า" มาจากรูปทรง
-   ไม่ใช่จากจำนวนสี · คนที่หน้านี้คุยด้วยคือนักเรียนมัธยม ไม่ใช่ฝ่ายจัดซื้อ
+   8 ต.ค. 69 รอบสอง · เจ้าของ: "ยัง ๆ ไม่สวย แก้ใหม่" แล้วเลือกเอง:
+     สไตล์ = "ขาวสะอาดแบบ Apple" · เนื้อหา = "ตัดให้สั้น"
+   รอบแรกของวันเป็นธีมมืดโทนเทค — ไม่ใช่สิ่งที่ต้องการ
 
-   คุมด้วยกฎ 60/30/10 ชุดเดียวกับที่ style.css ของแอปใช้:
-     60%  --scr    พื้นจอครีม
-     30%  --card / --card2 / --band   การ์ด แถบหมวด จอจำลอง
-     10%  --acc    น้ำเงินโลโก้ — ปุ่มหลัก ป้ายหมวด ตัวเลขขั้น แถบปิดท้าย เท่านั้น
-
-   รอบก่อนหน้านี้แจกหกสีให้หกหมวดโดยน้ำหนักเท่ากันหมด ซึ่งอ่านออกทันที
-   ว่าไม่มีใครเลือกอะไรเลย · --ok / --no เหลือไว้เฉพาะที่สีมีความหมายจริง
-   (ถูก/ผิด) และใช้แค่ขนาดไอคอน ไม่ลามไปเป็นพื้นทั้งกล่อง
+   หลักของรอบนี้:
+   • พื้นขาวล้วนสลับเทาอ่อนมาก (#F5F5F7) ทีละหมวด · ไม่มีเส้นขอบ ไม่มีเงาแข็ง ไม่มีธีมมืด (หน้าขาวเสมอ)
+   • ทุกอย่างอยู่กลางจอ อ่านลงทางเดียว · ตัวหนังสือดำ #1D1D1F รองเป็นเทา #6E6E73
+   • สีน้ำเงินแบรนด์ใช้สามที่เท่านั้น: คำสำคัญในหัวเรื่อง · ปุ่มหลัก · ลิงก์ — ไม่มีกล่องสี
+   • สี่หมวด: หัว+ปุ่ม+จอจำลอง → ใช้ยังไง → มีอะไรบ้าง → ปิดท้าย
+     หมวดที่ถูกตัด (ทำไมถึงมีแอปนี้ · น้องไซ · ราคา · คำถาม) — "ฟรีตลอดไป ไม่มีบัตร" ยังอยู่ใต้ปุ่ม
+     และน้องไซเป็นหนึ่งในการ์ด "มีอะไรบ้าง" (มีรูปเธอ)
    ═════════════════════════════════════════════════════════════ */
 
 :root{
-  --scr:#F7F8FC; --card:#FFFFFF; --card2:#EDF1F9;
-  --ink:#1B2030; --muted:#666C7E;
-  --edge:#1B2030;                 /* สีขอบ — เข้มเสมอ นี่คือที่มาของความ "กล้า" */
-  --edge-w:2.5px;
-  --plate:#FFFFFF;                /* แผ่นรองโลโก้ — ตราเป็นน้ำเงินเข้ม ต้องมีพื้นสว่างเสมอ */
-
-  /* น้ำเงินตัวเดียวกับตราในโลโก้ (#0657DC) — สีเน้นของหน้ากับสีของแบรนด์
-     ควรเป็นสีเดียวกัน ไม่งั้นโลโก้จะดูเหมือนถูกแปะมาจากที่อื่น */
-  --acc:#0657DC; --acc-soft:#E3EBFF; --acc-deep:#053E9E;   /* 10% */
-  /* ผิว "การ์ดที่ถูกเน้น" — ผสมสีเน้นลงบนสีการ์ด ไม่ใช่สีจาง ๆ ลอยบนพื้นจอ
-     เพราะโทนมืดพื้นจอลึกกว่าการ์ด สีจางบนพื้นจึงกลายเป็นมืดกว่าการ์ดธรรมดา
-     แล้วช่องที่ตั้งใจให้เด่นก็จมกว่าช่องที่ตั้งใจให้จาง */
-  --tint:color-mix(in srgb, var(--acc) 13%, var(--card));
-  /* การ์ดสีแบรนด์ — พื้นการ์ดเป็นน้ำเงินตัวเดียวกับตราในโลโก้
-     ทุกอย่างที่วางทับต้องไม่ใช่สีนี้ ไม่งั้นมันจมหายไปกับพื้นการ์ดเอง
-     แผ่นรองไอคอนกับวงตัวเลขจึงเป็นขาว แล้วให้ตัวเลขเป็นน้ำเงินแทน */
-  --cardacc:#0657DC; --on-cardacc:#FFFFFF; --on-cardacc-dim:rgba(255,255,255,.82);
-  /* ตัวอักษรบนพื้นสีเน้น — โทนมืดใช้อำพันสว่างกว่า ตัวขาวบนนั้นอ่านไม่ออก
-     ป้ายหมวดกับป้าย "ทำก่อน" ตัวเล็กสุดในหน้า เลยเป็นจุดที่พังก่อนเพื่อน */
-  --on-acc:#FFFFFF;
-  --band:#EEF2FB;                                          /* พื้นแถบหมวด (30%) */
-  --ok:#1E9E4A; --no:#D93A2B;                              /* สีที่แปลว่าอะไรจริง ๆ */
-  --r:22px; --r-lg:30px;
+  color-scheme: light;
+  --bg:#FFFFFF; --alt:#F5F5F7; --tile:#FFFFFF;
+  --ink:#1D1D1F; --muted:#6E6E73; --faint:#86868B;
+  --acc:#0657DC; --acc-hi:#2F74FF; --link:#0066CC;
+  --line:rgba(0,0,0,.08);
 }
-@media (prefers-color-scheme:dark){
-  :root{
-    /* รอบก่อนพื้นจอกับการ์ดห่างกันแค่ #0C1122 → #171E33 ซึ่งตาแทบแยกไม่ออก
-       การ์ดเลยดูเหมือนพื้นหลังที่มีเส้นขอบ · กดพื้นให้ลึกลงและดันการ์ด
-       ขึ้นมาทางน้ำเงิน ระยะห่างนี้แหละที่ทำให้สายตาจับได้ว่า "นี่คือของชิ้นหนึ่ง" */
-    --scr:#070C1A; --card:#16233F; --card2:#1F2F52;
-    --ink:#EDF1F8; --muted:#9AA6BE;
-    --edge:#00060F;
-    --plate:#F4F6FB;
-
-    --acc:#2C6FEA; --acc-soft:rgba(78,146,255,.17); --acc-deep:#9BC1FF;
-    --tint:color-mix(in srgb, var(--acc) 22%, var(--card));
-    --cardacc:#0657DC; --on-cardacc:#FFFFFF; --on-cardacc-dim:rgba(255,255,255,.80);
-    --on-acc:#FFFFFF;
-    --band:#0C142A;
-    --ok:#3FD173; --no:#FF8A7A;
-  }
-}
-
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{
-  margin:0; background:var(--scr); color:var(--ink);
-  font-family:'Noto Sans Thai','Nunito','IBM Plex Sans Thai',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  font-weight:600; line-height:1.6; -webkit-font-smoothing:antialiased;
-  overflow-x:hidden;
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:'Noto Sans Thai','Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-weight:500; line-height:1.55; -webkit-font-smoothing:antialiased; overflow-x:hidden;
 }
 img{max-width:100%; display:block}
 a{color:inherit; text-decoration:none}
-h1,h2,h3{margin:0; line-height:1.18; letter-spacing:-.6px; font-weight:900}
+h1,h2,h3{margin:0; font-weight:800; letter-spacing:-.025em}
 p{margin:0}
-.wrap{width:min(1120px,100% - 36px); margin-inline:auto}
+.wrap{width:min(980px,100% - 40px); margin-inline:auto}
 
-/* ── ปุ่มสันสามมิติ ─────────────────────────────────────────
-   สันล่างคือสิ่งเดียวที่ทำให้ปุ่มดู "กดได้" โดยไม่ต้องเขียนว่ากดตรงไหน
-   ตอนกด สันหายไปพร้อมกับตัวปุ่มขยับลง = ความรู้สึกว่ามันยุบจริง      */
-.btn{
-  display:inline-flex; align-items:center; justify-content:center; gap:9px;
-  border:var(--edge-w) solid var(--edge); border-radius:16px;
-  font:inherit; font-weight:900; letter-spacing:-.2px; cursor:pointer;
-  padding:13px 22px; line-height:1.2; white-space:nowrap;
-  box-shadow:0 4px 0 var(--edge);
-  transition:transform .08s ease, box-shadow .08s ease;
-}
-.btn:active{transform:translateY(4px); box-shadow:0 0 0 var(--edge)}
-.btn.big{padding:16px 30px; font-size:17px; border-radius:18px; box-shadow:0 5px 0 var(--edge)}
-.btn.big:active{transform:translateY(5px)}
-.btn.sm{padding:10px 16px; font-size:14px; border-radius:13px}
-.btn.fill{background:var(--acc); color:var(--on-acc)}
-.btn.plain{background:var(--card); color:var(--ink)}
-.btn.dark{background:var(--ink); color:var(--scr)}
-.g-badge{
-  width:21px; height:21px; border-radius:50%; background:#fff; color:#2C63E5;
-  display:grid; place-items:center; font-weight:900; font-size:13px; flex:none;
-  font-family:'Nunito',sans-serif;
-}
-
-/* ── แถบบน ── */
+/* ── แถบบน: บาง โปร่ง เบลอ ── */
 .top{
   position:sticky; top:0; z-index:60;
-  background:var(--scr); border-bottom:var(--edge-w) solid transparent;
-  transition:border-color .18s;
+  background:rgba(255,255,255,.78); -webkit-backdrop-filter:saturate(180%) blur(20px); backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid transparent; transition:border-color .2s;
 }
-.top.stuck{border-bottom-color:var(--edge)}
-.top-in{display:flex; align-items:center; gap:11px; padding:10px 0}
-.brand{display:flex; align-items:center; gap:9px; font-weight:900; font-size:17px; white-space:nowrap}
-.brand img{
-  width:36px; height:36px; border-radius:11px; background:var(--plate); padding:3px;
-  border:var(--edge-w) solid var(--edge);
-}
+.top.stuck{border-bottom-color:var(--line)}
+.top-in{display:flex; align-items:center; gap:12px; height:56px}
+.brand{display:flex; align-items:center; gap:9px; font-weight:800; font-size:16px; white-space:nowrap}
+.brand img{width:30px; height:30px; border-radius:9px; background:#fff; box-shadow:0 0 0 1px var(--line)}
 .brand .ai{color:var(--acc)}
 .top-sp{flex:1}
-.lang{
-  display:flex; border:var(--edge-w) solid var(--edge); border-radius:99px;
-  overflow:hidden; background:var(--card); font-size:13px; font-weight:900;
-}
-.lang button{
-  border:0; background:transparent; color:var(--muted); cursor:pointer;
-  padding:7px 13px; font:inherit; font-weight:900; line-height:1;
-}
-.lang button[aria-pressed="true"]{background:var(--ink); color:var(--scr)}
-@media (max-width:470px){ .top .brand span{display:none} .top-in{gap:8px} }
+.lang{display:flex; padding:2px; border-radius:99px; background:var(--alt); font-size:12.5px; font-weight:700}
+.lang button{border:0; background:transparent; color:var(--muted); cursor:pointer; border-radius:99px; padding:5px 11px; font:inherit; line-height:1}
+.lang button[aria-pressed="true"]{background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.12)}
+@media (max-width:470px){ .top .brand span{display:none} }
 
-/* ── ฮีโร่ ── */
-.hero{position:relative; padding:40px 0 10px; overflow:hidden}
-.hero::before{
-  content:''; position:absolute; z-index:0; inset:-280px -10% auto; height:660px;
-  background:radial-gradient(46% 52% at 30% 55%, var(--acc-soft), transparent 72%);
+/* ── ปุ่ม: แคปซูลน้ำเงินแบบ Apple · ปุ่มรองเป็นลิงก์ตัวหนังสือมีลูกศร ── */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:9px;
+  border:0; border-radius:99px; cursor:pointer; white-space:nowrap;
+  font:inherit; font-weight:700; line-height:1.2; padding:11px 22px;
+  transition:background .2s ease, transform .15s ease;
 }
-.hero-grid{position:relative; z-index:1; display:grid; gap:34px; align-items:center}
-@media (min-width:920px){ .hero-grid{grid-template-columns:1.02fr .98fr; gap:46px} }
+.btn:active{transform:scale(.97)}
+.btn.fill{background:var(--acc); color:#fff}
+.btn.fill:hover{background:var(--acc-hi)}
+.btn.big{padding:14px 28px; font-size:17px}
+.btn.sm{padding:7px 15px; font-size:13.5px}
+.link{color:var(--link); font-weight:700; font-size:17px; display:inline-flex; align-items:center; gap:2px}
+.link::after{content:'›'; font-size:1.25em; line-height:1; margin-left:4px; transition:transform .2s}
+.link:hover::after{transform:translateX(3px)}
+.g-logo{width:18px; height:18px; flex:none; background:#fff; border-radius:50%; padding:2px}
 
-.eyebrow{
-  display:inline-flex; align-items:center; gap:8px; font-size:13.5px; font-weight:900;
-  background:var(--card); color:var(--ink);
-  border:var(--edge-w) solid var(--edge); border-radius:99px;
-  padding:7px 16px; margin-bottom:20px; box-shadow:0 3px 0 var(--edge);
+/* ── หัว ── */
+.hero{padding:72px 0 0; text-align:center; overflow:hidden}
+.eyebrow{display:block; font-size:15px; font-weight:700; color:var(--acc); margin-bottom:14px}
+h1{font-size:clamp(42px,8.4vw,84px); line-height:1.08; letter-spacing:-.04em; margin:0 auto 22px; max-width:11em; text-wrap:balance}
+h1 .mark{
+  background:linear-gradient(90deg,#0657DC,#2F74FF 50%,#7C5CFF);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
 }
-h1{font-size:clamp(36px,7.4vw,58px); letter-spacing:-1.4px; margin-bottom:18px}
-h1 .mark{position:relative; white-space:nowrap; display:inline-block; padding:0 .1em}
-h1 .mark::before{                      /* ปาดไฮไลต์เหมือนปากกาเมจิก */
-  content:''; position:absolute; z-index:-1; left:0; right:0; bottom:.06em; height:.44em;
-  background:var(--acc); opacity:.32; border-radius:.2em; transform:rotate(-1.2deg);
+.lead{font-size:clamp(17px,2.2vw,22px); color:var(--muted); max-width:32em; text-wrap:balance; margin:0 auto 32px; line-height:1.5; font-weight:500}
+.cta{display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:14px 26px; margin-bottom:16px}
+.fineprint{font-size:13.5px; color:var(--faint); font-weight:500}
+
+/* จอจำลอง — พระเอกของหัว อยู่กลาง ตัวใหญ่ เงานุ่มลอยจากพื้น */
+.stage{position:relative; margin:56px auto 0; width:min(340px,86vw)}
+.stage::before{
+  content:''; position:absolute; inset:18% -30% -5%; z-index:0; pointer-events:none;
+  background:radial-gradient(50% 50% at 50% 50%, rgba(47,116,255,.20), transparent 70%); filter:blur(20px);
 }
-.lead{font-size:clamp(16.5px,2.1vw,19px); color:var(--muted); margin-bottom:28px; max-width:44ch; font-weight:600}
-.cta-row{display:flex; flex-wrap:wrap; gap:12px; margin-bottom:16px}
-.fineprint{font-size:14px; color:var(--muted); font-weight:700}
-
-/* ── จอมือถือจำลอง + สติกเกอร์รอบ ๆ ── */
-.phone-stage{position:relative; padding:18px 0 36px}
-
-/* จอในเครื่องเป็นโทนมืดตายตัว ไม่ตามธีมของหน้า —
-   ของเดิมหยิบ --scr กับ --card ของหน้ามาใช้ พอหน้าเป็นโทนสว่าง
-   จอขาวจึงไปนั่งบนพื้นครีม การ์ดขาวบนจอขาวอีกที ทั้งกองเลยจาง
-   ไม่มีอะไรบอกด้วยซ้ำว่าตรงนี้คือ "หน้าจอ" · เครื่องมืดบนหน้าสว่าง
-   คืออ่านออกทันทีว่าเป็นภาพหน้าจอ และเป็นโทนที่แอปจริงใช้อยู่แล้ว */
 .phone{
-  --p-scr:#0B1224; --p-card:#18274A; --p-ink:#F1F4FA; --p-muted:#93A2C0;
-  width:min(310px,84vw); margin-inline:auto; position:relative; z-index:2;
-  border-radius:38px; padding:11px; background:#101B36; color:var(--p-ink);
-  border:var(--edge-w) solid var(--edge);
-  box-shadow:10px 12px 0 var(--edge); transform:rotate(-1.6deg);
+  --p-scr:#0B1224; --p-card:#16233F; --p-ink:#F1F4FA; --p-muted:#93A2C0;
+  position:relative; z-index:1; border-radius:46px; padding:11px; background:#1D1D1F; color:var(--p-ink);
+  box-shadow:0 0 0 1px rgba(0,0,0,.06), 0 50px 80px -40px rgba(0,0,0,.45);
+  text-align:left;
 }
-.phone-in{background:var(--p-scr); border-radius:29px; padding:15px 13px 17px; overflow:hidden}
-.ph-top{display:flex; align-items:center; gap:8px; margin-bottom:13px}
+.phone-in{background:var(--p-scr); border-radius:36px; padding:18px 14px 20px; overflow:hidden}
+.ph-top{display:flex; align-items:center; gap:8px; margin-bottom:14px}
 .ph-top .dot{width:8px;height:8px;border-radius:50%;background:#3FD173}
-.ph-top b{font-size:13.5px; font-weight:900}
-.ph-top span{margin-left:auto; font-size:11.5px; color:var(--p-muted)}
-.sai{display:flex; gap:9px; margin-bottom:13px}
-.sai img{
-  width:34px;height:34px;border-radius:50%;flex:none;object-fit:cover;
-  background:var(--p-card); border:2px solid rgba(255,255,255,.22);
-}
-.sai-bub{
-  background:var(--p-card); border:2px solid rgba(255,255,255,.10);
-  border-radius:16px 16px 16px 5px; padding:10px 13px; font-size:13px; line-height:1.55;
-}
-.t-card{
-  background:var(--p-card); border:2px solid rgba(255,255,255,.08); border-radius:16px;
-  padding:11px 13px; margin-bottom:10px;
-}
-.t-card .rank{
-  font-size:10.5px; font-weight:900; letter-spacing:.3px;
-  color:var(--p-ink); background:rgba(255,255,255,.13);
-  border-radius:99px; padding:3px 10px; display:inline-block; margin-bottom:7px;
-}
-.t-card b{display:block; font-size:13.5px; margin-bottom:3px}
-.t-card small{color:var(--p-muted); font-size:11.5px; display:block; line-height:1.5; font-weight:600}
-
-/* ใบที่ต้องทำก่อนเป็นใบเดียวที่ได้สีเต็ม — ทั้งจอนี้มีไว้โชว์อย่างเดียว
-   คือ "แอปตอบได้ว่าเริ่มอันไหน" ถ้าสามใบหน้าตาเท่ากันก็ไม่ได้โชว์อะไร */
-.t-card.hot{
-  background:var(--cardacc); border-color:rgba(255,255,255,.28);
-  box-shadow:0 0 0 3px rgba(6,87,220,.28);
-}
-.t-card.hot .rank{background:#fff; color:var(--cardacc)}
-.t-card.hot small{color:rgba(255,255,255,.85)}
-
-.phone-stage::before{
-  content:''; position:absolute; z-index:0; inset:6% 2% 14%;
-  background:radial-gradient(58% 50% at 50% 50%, color-mix(in srgb, var(--acc) 34%, transparent), transparent 72%);
-  filter:blur(26px); pointer-events:none;
-}
-
-.sticker{
-  position:absolute; z-index:3; font-weight:900; font-size:13.5px;
-  background:var(--card); color:var(--ink);
-  border:var(--edge-w) solid var(--edge); border-radius:14px;
-  padding:8px 13px; box-shadow:0 4px 0 var(--edge); white-space:nowrap;
-}
-.sticker.s1{top:0; left:1%; transform:rotate(-7deg)}
-.sticker.s2{bottom:54px; right:0; transform:rotate(6deg)}
-@media (max-width:520px){ .sticker{font-size:12px; padding:7px 11px} .sticker.s1{left:-2%} }
-
-/* ── แถบข้อเท็จจริง ── */
-.facts{display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); gap:12px; margin:26px 0 6px}
-.facts div{
-  border:var(--edge-w) solid var(--edge); border-radius:18px;
-  padding:15px 17px; box-shadow:0 4px 0 var(--edge); background:var(--card2);
-}
-.facts b{display:block; font-size:15.5px; font-weight:900}
-.facts small{color:var(--muted); font-size:13px; font-weight:600; line-height:1.5}
-
+.ph-top b{font-size:14px; font-weight:800}
+.ph-top span{margin-left:auto; font-size:12px; color:var(--p-muted)}
+.sai{display:flex; gap:9px; margin-bottom:14px}
+.sai img{width:34px;height:34px;border-radius:50%;flex:none;object-fit:cover;background:var(--p-card)}
+.sai-bub{background:var(--p-card); border-radius:16px 16px 16px 5px; padding:10px 13px; font-size:13px; line-height:1.55}
+.t-card{background:var(--p-card); border-radius:16px; padding:12px 14px; margin-bottom:9px}
+.t-card .rank{font-size:10.5px; font-weight:800; color:var(--p-ink); background:rgba(255,255,255,.1); border-radius:99px; padding:3px 10px; display:inline-block; margin-bottom:7px}
+.t-card b{display:block; font-size:13.5px; margin-bottom:3px; font-weight:700}
+.t-card small{color:var(--p-muted); font-size:11.5px; display:block; line-height:1.5}
+.t-card.hot{background:linear-gradient(160deg,#2F74FF,#0657DC)}
+.t-card.hot .rank{background:#fff; color:#0657DC}
+.t-card.hot small{color:rgba(255,255,255,.86)}
+.t-card:not(.hot){opacity:.75}
+/* จอจำลองโดนตัดขอบล่างด้วยหมวดถัดไป — ดูเหมือนเครื่องโผล่ขึ้นมาจากพื้น */
+.hero-cut{height:120px; margin-top:-120px; position:relative; z-index:2; background:linear-gradient(transparent, var(--bg) 85%)}
 
 /* ── โครงหมวด ── */
-section{padding:74px 0}
-.band{background:var(--band); border-block:var(--edge-w) solid var(--edge)}
-.tag{
-  display:inline-block; font-size:13px; font-weight:900; letter-spacing:.5px;
-  color:var(--on-acc); background:var(--acc); border:var(--edge-w) solid var(--edge);
-  border-radius:99px; padding:5px 15px; margin-bottom:16px; box-shadow:0 3px 0 var(--edge);
-}
-.sec-h{max-width:22ch; margin-bottom:14px; font-size:clamp(27px,4.5vw,41px); letter-spacing:-1px}
-.sec-p{max-width:54ch; margin-bottom:38px; color:var(--muted); font-size:16.5px; font-weight:600}
+section{padding:110px 0}
+section.alt{background:var(--alt)}
+.sec-k{display:block; text-align:center; font-size:15px; font-weight:700; color:var(--acc); margin-bottom:10px}
+/* ความกว้างเป็น em ไม่ใช่ ch — ch วัดจากเลข 0 ซึ่งแคบกว่าตัวไทยมาก หัวไทยเลยตัดกลางวลี ("สิบ / วินาที") · balance ให้สองบรรทัดยาวพอ ๆ กัน */
+.sec-h{text-align:center; font-size:clamp(30px,5.2vw,52px); line-height:1.15; letter-spacing:-.035em; max-width:13em; margin:0 auto 56px; text-wrap:balance}
 
-/* ── ก่อน/หลัง ── */
-.ba{display:grid; gap:18px}
-@media (min-width:800px){ .ba{grid-template-columns:1fr 1fr; gap:22px} }
-.ba-col{
-  border-radius:var(--r-lg); padding:26px 26px 28px;
-  border:var(--edge-w) solid var(--edge); box-shadow:0 6px 0 var(--edge);
-}
-.ba-col h3{margin-bottom:18px; font-size:20px}
-.ba-col ul{margin:0; padding:0; list-style:none; display:grid; gap:13px}
-.ba-col li{display:flex; gap:11px; font-size:15.5px; line-height:1.55; font-weight:600}
-.ba-col li i{
-  font-style:normal; flex:none; width:25px; height:25px; border-radius:8px;
-  display:grid; place-items:center; font-size:14px; font-weight:900;
-  border:2px solid var(--edge); margin-top:2px; color:#fff;
-}
-.ba-col.bad{background:var(--card)}
-.ba-col.bad li i{background:var(--no)}
-.ba-col.bad li span{color:var(--muted)}
-.ba-col.good{background:var(--tint)}
-.ba-col.good li i{background:var(--ok)}
-
-/* ── ตารางฟีเจอร์ ── */
-.grid{display:grid; gap:18px; grid-template-columns:repeat(auto-fit,minmax(276px,1fr))}
-.f{
-  background:var(--card); border:var(--edge-w) solid var(--edge); border-radius:var(--r-lg);
-  padding:26px; box-shadow:0 6px 0 var(--edge);
-  transition:transform .14s ease, box-shadow .14s ease;
-}
-.f:hover{transform:translateY(-4px); box-shadow:0 10px 0 var(--edge)}
-.f .ico{
-  width:56px; height:56px; border-radius:17px; display:grid; place-items:center;
-  background:var(--tint); border:var(--edge-w) solid var(--edge);
-  font-size:27px; margin-bottom:17px; box-shadow:0 4px 0 var(--edge);
-}
-.f h3{margin-bottom:9px; font-size:18.5px}
-.f p{color:var(--muted); font-size:15px; line-height:1.62; font-weight:600}
-
-
-/* ── ขั้นตอน ── */
-.steps{display:grid; gap:24px; counter-reset:s}
-@media (min-width:840px){ .steps{grid-template-columns:repeat(3,1fr); gap:26px} }
-.step{
-  background:var(--card); border:var(--edge-w) solid var(--edge); border-radius:var(--r-lg);
-  padding:26px; box-shadow:0 6px 0 var(--edge);
-}
+/* ใช้ยังไง */
+.steps{display:grid; gap:16px; counter-reset:s}
+@media (min-width:820px){ .steps{grid-template-columns:repeat(3,1fr); gap:20px} }
+.step{background:var(--tile); border-radius:28px; padding:34px 30px 36px}
 .step::before{
   counter-increment:s; content:counter(s);
-  display:grid; place-items:center; width:52px; height:52px; border-radius:50%;
-  background:var(--acc); color:var(--on-acc); font-weight:900; font-size:23px;
-  border:var(--edge-w) solid var(--edge); box-shadow:0 4px 0 var(--edge);
-  margin-bottom:17px; font-family:'Nunito',sans-serif;
+  display:block; font-family:'Nunito',sans-serif; font-weight:900; font-size:44px; line-height:1;
+  background:linear-gradient(180deg,#2F74FF,#0657DC); -webkit-background-clip:text; background-clip:text; color:transparent;
+  margin-bottom:22px;
 }
+.step h3{font-size:22px; margin-bottom:10px; line-height:1.25}
+.step p{color:var(--muted); font-size:16px}
 
-.step h3{margin-bottom:8px; font-size:19px}
-.step p{color:var(--muted); font-size:15px; font-weight:600}
+/* มีอะไรบ้าง */
+.grid{display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.f{background:var(--alt); border-radius:28px; padding:32px 30px}
+.f .ico{width:52px; height:52px; border-radius:16px; display:grid; place-items:center; background:#fff; font-size:26px; margin-bottom:20px; box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.f .ico img{width:52px; height:52px; border-radius:16px; object-fit:cover}
+.f h3{font-size:20px; margin-bottom:8px; line-height:1.3}
+.f p{color:var(--muted); font-size:15.5px; line-height:1.6}
+.facts{display:flex; flex-wrap:wrap; justify-content:center; gap:10px 28px; margin-top:44px; color:var(--muted); font-size:15px; font-weight:600}
+.facts span::before{content:'✓'; color:var(--acc); font-weight:900; margin-right:7px}
 
-/* ── น้องไซ ── */
-.sai-sec{display:grid; gap:28px; align-items:center}
-@media (min-width:840px){ .sai-sec{grid-template-columns:250px 1fr; gap:48px} }
-.sai-face{
-  width:220px; height:220px; border-radius:50%; margin-inline:auto; object-fit:cover;
-  background:var(--card); border:4px solid var(--edge); box-shadow:8px 9px 0 var(--edge);
-}
-.quotes{display:grid; gap:13px; margin-top:22px}
-.q{
-  background:var(--card); border:var(--edge-w) solid var(--edge);
-  border-radius:18px 18px 18px 6px; box-shadow:0 4px 0 var(--edge);
-  padding:13px 17px; font-size:15.5px; max-width:46ch; font-weight:600;
-}
+/* ปิดท้าย */
+.final{text-align:center}
+.final .mark-logo{width:84px; height:84px; margin:0 auto 26px; border-radius:22px; background:#fff; padding:8px; box-shadow:0 10px 30px -12px rgba(0,0,0,.25)}
+.final h2{font-size:clamp(32px,5.6vw,56px); line-height:1.08; letter-spacing:-.035em; margin-bottom:16px}
+.final p.sub{font-size:clamp(17px,2.2vw,21px); color:var(--muted); max-width:30em; text-wrap:balance; margin:0 auto 32px}
 
-/* ── ราคา ── */
-.prices{display:grid; gap:20px; align-items:start}
-@media (min-width:800px){ .prices{grid-template-columns:1fr 1fr; gap:24px} }
-.plan{
-  border:var(--edge-w) solid var(--edge); border-radius:var(--r-lg);
-  padding:28px; box-shadow:0 6px 0 var(--edge); position:relative; background:var(--card);
-}
-.plan .flag{
-  position:absolute; top:-16px; right:22px; transform:rotate(4deg);
-  background:var(--muted); color:#fff; font-size:12.5px; font-weight:900;
-  border:var(--edge-w) solid var(--edge); border-radius:99px; padding:5px 14px;
-  box-shadow:0 3px 0 var(--edge);
-}
-.plan h3{font-size:22px}
-.plan .price{
-  font-size:42px; font-weight:900; letter-spacing:-1.6px; margin:10px 0 2px;
-  font-family:'Nunito','Noto Sans Thai',sans-serif;
-}
-.plan .price small{font-size:16px; font-weight:800; color:var(--muted); letter-spacing:0}
-/* ราคาเดิมที่ถูกขีด — เส้นขีดเป็นสีแดงเพราะมันคือ "อันนี้ไม่ใช่ราคาที่จ่าย"
-   ถ้าใช้สีเดียวกับตัวเลข ตาจะอ่านเป็นเลขสองตัวเรียงกันเฉย ๆ ไม่ใช่ส่วนลด */
-.plan .was{
-  color:var(--muted); font-size:27px; margin-right:9px; font-weight:800;
-  text-decoration:line-through; text-decoration-color:var(--no); text-decoration-thickness:3px;
-}
-.plan .off{
-  font-style:normal; font-size:12.5px; font-weight:900; letter-spacing:.2px;
-  color:#fff; background:var(--no); border:2px solid var(--edge);
-  border-radius:99px; padding:3px 10px; margin-left:10px;
-  display:inline-block; vertical-align:8px; white-space:nowrap;
-}
-.plan ul{margin:18px 0 0; padding:0; list-style:none; display:grid; gap:11px}
-.plan li{display:flex; gap:10px; font-size:15px; font-weight:600}
-.plan li i{
-  font-style:normal; flex:none; width:22px; height:22px; border-radius:7px; margin-top:2px;
-  display:grid; place-items:center; font-size:12px; color:#fff; background:var(--h);
-  border:2px solid var(--edge);
-}
-.plan.free{--h:var(--acc); background:var(--tint)}
-.plan.pro{--h:var(--muted)}
-.plan .note{margin-top:18px; font-size:13.5px; color:var(--muted); font-weight:700}
+footer{padding:28px 0 48px; color:var(--faint); font-size:13px; border-top:1px solid var(--line)}
+.f-row{display:flex; flex-wrap:wrap; gap:10px 24px; align-items:center}
+.f-row a{color:var(--link)}
 
-/* ── คำถามที่ถามบ่อย ── */
-.faq{display:grid; gap:13px; max-width:800px}
-details{
-  background:var(--card); border:var(--edge-w) solid var(--edge); border-radius:18px;
-  padding:17px 21px; box-shadow:0 4px 0 var(--edge);
-}
-details summary{
-  cursor:pointer; font-weight:900; font-size:16.5px; list-style:none;
-  display:flex; align-items:center; gap:12px;
-}
-details summary::-webkit-details-marker{display:none}
-details summary::after{
-  content:'+'; margin-left:auto; flex:none;
-  width:28px; height:28px; border-radius:9px; display:grid; place-items:center;
-  background:var(--acc); color:var(--on-acc); font-size:19px; border:2px solid var(--edge);
-  font-family:'Nunito',sans-serif;
-}
-details[open] summary::after{content:'–'}
-details p{margin-top:13px; color:var(--muted); font-size:15px; font-weight:600}
-
-/* ── ปิดท้าย ── */
-.final{
-  border-radius:34px; padding:48px 30px 54px; text-align:center;
-  /* น้ำเงินเข้มค่าคงที่ ไม่ใช่ --acc — โทนมืดสลับสีเน้นเป็นฟ้าสว่างกว่า
-     แล้วตัวหนังสือขาวบนพื้นนั้นจะอ่านไม่ออก · ตัวเล็กใต้ปุ่มคือจุดที่พังก่อน */
-  background:#0A47B0; color:#fff;
-  border:var(--edge-w) solid var(--edge); box-shadow:0 8px 0 var(--edge);
-}
-.final .lockup{
-  width:min(190px,52vw); margin:0 auto 24px; padding:16px 20px;
-  background:var(--plate); border:var(--edge-w) solid var(--edge); border-radius:24px;
-  box-shadow:0 5px 0 var(--edge);
-}
-.final .lockup img{width:100%}
-.final h2{margin-bottom:14px; font-size:clamp(28px,4.8vw,43px); letter-spacing:-1.2px}
-.final p{margin:0 auto 30px; max-width:42ch; font-size:17px; font-weight:700; opacity:.95}
-.final .cta-row{justify-content:center; margin-bottom:16px}
-/* สองปุ่มนี้ตรึงสีไว้เหมือนตัวแถบ — โทนมืดสลับ --ink เป็นสีขาว
-   ปุ่มเข้มจะกลายเป็นขาวบนขาวแล้วหายไปทั้งปุ่ม */
-.final .btn.plain{background:#fff; color:#1B2030}
-.final .btn.dark{background:#141A2B; color:#fff}
-.final .fineprint{color:#fff; opacity:.92}
-
-footer{padding:40px 0 64px; color:var(--muted); font-size:14px; font-weight:700}
-.f-row{display:flex; flex-wrap:wrap; gap:16px 28px; align-items:center}
-
-/* ═══ การ์ดสีแบรนด์ — รวมไว้ที่เดียว ═══════════════════════════
-   การ์ดที่ "เป็นฝั่งบวก" ใช้พื้นน้ำเงิน · การ์ดที่มีไว้เทียบ (ช่องปัญหา,
-   แพลน Pro, คำถามที่ถามบ่อย) อยู่บนผิวกลาง — คู่นี้ต่างกันชัดกว่าตอนที่
-   ทั้งสองฝั่งเป็นน้ำเงินอ่อน-เข้ม และไม่ต้องพึ่งสีแดง/เขียวเป็นพื้นทั้งกล่อง
-
-   จอมือถือจำลองไม่แตะ — นั่นคือภาพหน้าจอของแอปจริง ถ้าย้อมทั้งสามใบ
-   ป้าย "ทำก่อน" ก็หมดความหมาย ซึ่งเป็นสิ่งเดียวที่จอนั้นมีไว้โชว์      */
-.facts div, .f, .step, .q, .ba-col.good, .plan.free{
-  background:var(--cardacc); color:var(--on-cardacc);
-}
-.facts div small, .f p, .step p{color:var(--on-cardacc-dim)}
-.q, .plan.free .note{color:var(--on-cardacc-dim)}
-.plan.free h3, .plan.free .price, .plan.free li{color:var(--on-cardacc)}
-.plan.free .price small{color:var(--on-cardacc-dim)}
-.ba-col.good li span{color:var(--on-cardacc)}
-
-/* ของที่วางทับการ์ดน้ำเงิน — ขาวเสมอ แล้วสลับให้ "ตัวใน" เป็นน้ำเงิน */
-.f .ico{background:#fff}
-.step::before{background:#fff; color:var(--cardacc)}
-.plan.free li i{background:#fff; color:var(--cardacc)}
-.ba-col.good li i{background:#fff; color:var(--ok)}
-.ba-col.good h3{color:var(--on-cardacc)}
-
-/* ตัวเทียบ: ผิวกลาง ไม่ใช่สีตรงข้าม */
-.plan.pro{background:var(--card)}
-.ba-col.bad{background:var(--card)}
-
-/* ── หมวดค่อย ๆ ลอยขึ้น ──
-   เป็นของแถม ไม่ใช่โครงสร้าง: ซ่อนได้ต่อเมื่อ JS ประกาศตัวว่าจะโชว์คืนจริง
-   (html.anim) ถ้าสคริปต์ล้มหรือ observer ไม่ทำงาน หน้านี้ต้องอ่านได้ทั้งหน้า
-   ไม่ใช่เหลือแค่หัวจอแล้วว่างเปล่าลงไป */
-html.anim .rise{opacity:0; transform:translateY(20px); transition:opacity .55s ease, transform .55s ease}
+/* ── เลื่อนถึงแล้วค่อยลอยขึ้น (ซ่อนได้ต่อเมื่อ JS ประกาศตัว — สคริปต์ล้มแล้วหน้ายังอ่านได้ครบ) ── */
+html.anim .rise{opacity:0; transform:translateY(28px); transition:opacity .8s ease, transform .8s cubic-bezier(.22,1,.36,1)}
 html.anim .rise.in{opacity:1; transform:none}
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   html.anim .rise{opacity:1; transform:none; transition:none}
-  .btn,.f{transition:none}
+}
+
+/* ═════════════════════════════════════════════════════════════
+   อนิเมชัน (เจ้าของ: "ลองใส่อนิเมชันหน่อย") — เรียบแบบ Apple: ช้า นุ่ม ไม่เด้ง ไม่วนไม่หยุด
+   ตอนเปิดหน้า : ป้าย → หัวเรื่อง → คำอธิบาย → ปุ่ม ลอยขึ้นทีละชิ้น (ห่างกัน 90ms)
+                 จอมือถือลอยขึ้นจากเอียงไปข้างหลังนิด ๆ → ข้างในจอน้องไซพูดก่อน แล้วการ์ดงานไล่ตามทีละใบ
+                 ใบ "ทำก่อน" เรืองเป็นจังหวะช้า ๆ (ใบเดียวในหน้าที่ขยับเอง — มันคือคำตอบของแอป)
+                 คำสำคัญในหัวเรื่องมีแสงไล่สีไหลผ่านช้า ๆ
+   ตอนเลื่อน  : จอมือถือยกขึ้นและตั้งตรงตามระยะที่เลื่อน (parallax · JS ตั้ง --p 0→1)
+                 การ์ดในหมวดไล่ขึ้นทีละใบ (ห่างกัน 80ms) ตอนหมวดเลื่อนถึง
+   ทั้งหมดซ่อนได้ต่อเมื่อ html.anim (JS ประกาศตัว) · ตั้งลดการเคลื่อนไหว = ไม่มีอะไรขยับ
+   ═════════════════════════════════════════════════════════════ */
+@keyframes up-in { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:none; } }
+html.anim .hero .eyebrow, html.anim .hero h1, html.anim .hero .lead, html.anim .hero .cta, html.anim .hero .fineprint {
+  animation: up-in .9s cubic-bezier(.22,1,.36,1) both;
+}
+html.anim .hero h1 { animation-delay: .09s; }
+html.anim .hero .lead { animation-delay: .18s; }
+html.anim .hero .cta { animation-delay: .27s; }
+html.anim .hero .fineprint { animation-delay: .36s; }
+
+/* แสงไหลบนคำสำคัญ */
+h1 .mark { background-size: 200% 100%; animation: mark-flow 7s ease-in-out infinite alternate; }
+@keyframes mark-flow { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
+h1 .mark { background-image: linear-gradient(90deg,#0657DC,#2F74FF 25%,#7C5CFF 50%,#2F74FF 75%,#0657DC); }
+
+/* จอมือถือ: เข้ามา + เลื่อนตาม */
+.stage { perspective: 1400px; }
+.phone { transform-origin: 50% 100%; }
+html.anim .phone {
+  animation: phone-in 1.3s cubic-bezier(.22,1,.36,1) .35s both;
+  transform: translateY(calc((1 - var(--p, 0)) * 26px)) rotateX(calc((1 - var(--p, 0)) * 10deg)) scale(calc(.96 + var(--p, 0) * .04));
+}
+@keyframes phone-in { from { opacity:0; transform: translateY(90px) rotateX(24deg) scale(.92); } }
+html.anim .phone .sai, html.anim .phone .t-card { animation: up-in .7s cubic-bezier(.22,1,.36,1) both; }
+html.anim .phone .sai { animation-delay: 1.05s; }
+html.anim .phone .t-card:nth-child(3) { animation-delay: 1.45s; }
+html.anim .phone .t-card:nth-child(4) { animation-delay: 1.6s; }
+html.anim .phone .t-card:nth-child(5) { animation-delay: 1.75s; }
+html.anim .phone .t-card.hot { animation: up-in .7s cubic-bezier(.22,1,.36,1) 1.45s both, hot-glow 3.2s ease-in-out 2.4s infinite; }
+@keyframes hot-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(47,116,255,0); }
+  50% { box-shadow: 0 0 0 4px rgba(47,116,255,.22), 0 10px 26px -8px rgba(47,116,255,.75); }
+}
+/* จุดเขียว "ออนไลน์" หายใจ */
+.ph-top .dot { animation: dot-breathe 2.4s ease-in-out infinite; }
+@keyframes dot-breathe { 50% { box-shadow: 0 0 0 5px rgba(63,209,115,.18); } }
+/* แสงหลังเครื่องค่อย ๆ สว่างขึ้นตามการเลื่อน */
+.stage::before { opacity: calc(.55 + var(--p, 0) * .45); }
+
+/* การ์ดในหมวดไล่ขึ้นทีละใบ — ตัวหมวด (.rise) ลอยทั้งก้อนอยู่แล้ว ลูกในตารางขึ้นตามหลังทีละใบ */
+html.anim .rise .step, html.anim .rise .f, html.anim .rise .facts span, html.anim .rise .mark-logo {
+  opacity: 0; transform: translateY(26px);
+  transition: opacity .8s ease, transform .9s cubic-bezier(.22,1,.36,1);
+}
+html.anim .rise.in .step, html.anim .rise.in .f, html.anim .rise.in .facts span, html.anim .rise.in .mark-logo { opacity: 1; transform: none; }
+html.anim .rise.in :is(.step, .f):nth-child(2) { transition-delay: .08s; }
+html.anim .rise.in :is(.step, .f):nth-child(3) { transition-delay: .16s; }
+html.anim .rise.in .f:nth-child(4) { transition-delay: .24s; }
+html.anim .rise.in .f:nth-child(5) { transition-delay: .32s; }
+html.anim .rise.in .f:nth-child(6) { transition-delay: .40s; }
+html.anim .rise.in .facts span { transition-delay: .5s; }
+html.anim .rise.in .facts span:nth-child(2) { transition-delay: .56s; }
+html.anim .rise.in .facts span:nth-child(3) { transition-delay: .62s; }
+html.anim .rise.in .facts span:nth-child(4) { transition-delay: .68s; }
+/* โลโก้ปิดท้ายลอยขึ้นแล้วหมุนเข้าที่นิดหนึ่ง */
+html.anim .rise .mark-logo { transform: translateY(26px) scale(.85) rotate(-8deg); }
+html.anim .rise.in .mark-logo { transform: none; }
+
+/* ชี้เมาส์ (คอม): การ์ดยกขึ้นนิด ไอคอนขยายนิด */
+.step, .f { transition: transform .5s cubic-bezier(.22,1,.36,1), box-shadow .5s ease, opacity .8s ease; }
+@media (hover:hover) and (pointer:fine) {
+  .step:hover, .f:hover { transform: translateY(-6px) !important; box-shadow: 0 24px 50px -28px rgba(0,0,0,.28); }
+  .f .ico { transition: transform .5s cubic-bezier(.22,1,.36,1); }
+  .f:hover .ico { transform: scale(1.08) rotate(-4deg); }
+}
+.btn.fill { box-shadow: 0 8px 20px -10px rgba(6,87,220,.7); }
+.btn.fill:hover { transform: translateY(-1px); box-shadow: 0 12px 26px -10px rgba(6,87,220,.8); }
+
+@media (prefers-reduced-motion:reduce) {
+  html.anim .hero *, html.anim .phone, html.anim .phone *, h1 .mark, .ph-top .dot { animation: none !important; }
+  html.anim .phone { transform: none; }
+  html.anim .rise .step, html.anim .rise .f, html.anim .rise .facts span, html.anim .rise .mark-logo { opacity: 1; transform: none; transition: none; }
 }
 </style>
 </head>
@@ -473,34 +284,30 @@ html.anim .rise.in{opacity:1; transform:none}
   </div>
 </header>
 
-<!-- ═══════════ ฮีโร่ ═══════════ -->
+<!-- ═══════════ 1 · หัว — หัวเรื่อง · ปุ่มเดียว · จอจำลอง ═══════════ -->
 <div class="hero">
-  <div class="wrap hero-grid">
-    <div>
-      <span class="eyebrow" data-en="🇹🇭 Built by Thai students, for Thai students">🇹🇭 สร้างโดยนักเรียนไทย เพื่อนักเรียนไทย</span>
-      <h1 data-en='Know <span class="mark">what to do first</span>. Always.'>
-        รู้ว่าต้องทำ<span class="mark">อะไรก่อน</span> เสมอ
-      </h1>
-      <p class="lead" data-en="Paste a message from your class chat, or snap the worksheet. The AI pulls out the subject, the due date and the weighting — then tells you which one to start now, and why.">
-        แปะข้อความจากแชทห้อง หรือถ่ายรูปใบงาน แล้ว AI แกะให้เองว่าวิชาอะไร
-        ส่งเมื่อไหร่ กี่คะแนน — แล้วบอกว่าควรลงมือทำอันไหนก่อน และเพราะอะไร
-      </p>
-      <div class="cta-row">
-        <a class="btn fill big" href="index.html?start=google">
-          <span class="g-badge">G</span><span data-en="Sign up with Google">สมัครด้วย Google</span>
-        </a>
-        <a class="btn plain big" href="index.html?start=guest" data-en="Try it — no account">ลองก่อน ไม่ต้องสมัคร</a>
-      </div>
-      <p class="fineprint" data-en="Free forever · no credit card · opens in the browser">
-        ฟรีตลอดไป · ไม่มีบัตรเครดิต · เปิดในเบราว์เซอร์ได้เลย
-      </p>
+  <div class="wrap">
+    <span class="eyebrow" data-en="Built by Thai students, for Thai students">สร้างโดยนักเรียนไทย เพื่อนักเรียนไทย</span>
+    <h1 data-en='Know <span class="mark">what to do first.</span> Always.'>
+      รู้ว่าต้องทำ<span class="mark">อะไรก่อน</span> เสมอ
+    </h1>
+    <p class="lead" data-en="Paste a message from your class chat, or snap the worksheet. The AI reads the subject, due date and weighting — then tells you what to start now, and why.">
+      แปะข้อความจากแชทห้อง หรือถ่ายรูปใบงาน แล้ว AI อ่านให้เองว่าวิชาอะไร ส่งเมื่อไหร่ กี่คะแนน
+      — แล้วบอกว่าควรทำอันไหนก่อน และเพราะอะไร
+    </p>
+    <div class="cta">
+      <a class="btn fill big" href="index.html?start=google">
+        <svg class="g-logo" viewBox="0 0 256 262" aria-hidden="true"><path fill="#4285F4" d="M255.878 133.451c0-10.734-.871-18.567-2.756-26.69H130.55v48.448h71.947c-1.45 12.04-9.283 30.172-26.69 42.356l-.244 1.622 38.755 30.023 2.685.268c24.659-22.774 38.875-56.282 38.875-96.027"/><path fill="#34A853" d="M130.55 261.1c35.248 0 64.839-11.605 86.453-31.622l-41.196-31.913c-11.024 7.688-25.82 13.055-45.257 13.055-34.523 0-63.824-22.773-74.269-54.25l-1.531.13-40.298 31.187-.527 1.465C35.393 231.798 79.49 261.1 130.55 261.1"/><path fill="#FBBC05" d="M56.281 156.37c-2.756-8.123-4.351-16.827-4.351-25.82 0-8.994 1.595-17.697 4.206-25.82l-.073-1.73L15.26 71.312l-1.335.635C5.077 89.644 0 109.517 0 130.55s5.077 40.905 13.925 58.602l42.356-32.782"/><path fill="#EB4335" d="M130.55 50.479c24.514 0 41.05 10.589 50.479 19.438l36.844-35.974C195.245 12.91 165.798 0 130.55 0 79.49 0 35.393 29.301 13.925 71.947l42.211 32.783c10.59-31.477 39.891-54.251 74.414-54.251"/></svg>
+        <span data-en="Sign up with Google">สมัครด้วย Google</span>
+      </a>
+      <a class="link" href="index.html?start=guest" data-en="Try it — no account">ลองก่อน ไม่ต้องสมัคร</a>
     </div>
+    <p class="fineprint" data-en="Free forever · no credit card · opens in the browser">ฟรีตลอดไป · ไม่มีบัตรเครดิต · เปิดในเบราว์เซอร์ได้เลย</p>
 
-    <!-- จอจำลอง: ของจริงในแอปหน้าตาแบบนี้ — น้องไซพูดก่อน แล้วตามด้วยงานพร้อมเหตุผล -->
-    <div class="phone-stage">
-      <span class="sticker s1" data-en="⏱ 10 seconds a day">⏱ วันละ 10 วินาที</span>
-      <span class="sticker s2" data-en="💬 Ask her anything">💬 ถามน้องไซได้ทุกเรื่อง</span>
-      <div class="phone" aria-hidden="true">
+    <!-- จอจำลอง: ของจริงในแอปหน้าตาแบบนี้ — น้องไซพูดก่อน แล้วตามด้วยงานพร้อมเหตุผล
+         ใบ "ทำก่อน" เป็นใบเดียวที่มีสีเต็ม เพราะจอนี้มีไว้โชว์อย่างเดียวว่าแอปตอบได้ว่าเริ่มอันไหน -->
+    <div class="stage" aria-hidden="true">
+      <div class="phone">
         <div class="phone-in">
           <div class="ph-top"><i class="dot"></i><b>วันนี้</b><span>17:04</span></div>
           <div class="sai">
@@ -512,7 +319,7 @@ html.anim .rise.in{opacity:1; transform:none}
             <b>ฟิสิกส์ · โจทย์บทที่ 4 ข้อ 1–10</b>
             <small>ส่งพรุ่งนี้ 16:00 · 20% · ประเมิน 50 นาที</small>
           </div>
-          <div class="t-card next">
+          <div class="t-card">
             <span class="rank">ถัดไป</span>
             <b>อังกฤษ · เรียงความ 1 หน้า</b>
             <small>ส่งศุกร์ · 10% · งานยาว เริ่มวันนี้สัก 20 นาทีก็ยังดี</small>
@@ -526,236 +333,95 @@ html.anim .rise.in{opacity:1; transform:none}
       </div>
     </div>
   </div>
-
-  <div class="wrap">
-    <div class="facts">
-      <div><b data-en="Nothing to install">ไม่ต้องติดตั้งอะไร</b><small data-en="Open the link on your phone and it works">เปิดลิงก์บนมือถือแล้วใช้ได้เลย</small></div>
-      <div><b data-en="Add to home screen">ติดตั้งเป็นแอปได้</b><small data-en="Sits on the home screen like any other app">มีไอคอนบนจอโฮมเหมือนแอปทั่วไป</small></div>
-      <div><b data-en="Works offline">ใช้ตอนไม่มีเน็ตได้</b><small data-en="Your tasks live on your own phone">งานของคุณอยู่ในเครื่องตัวเอง</small></div>
-      <div><b data-en="Thai first">ภาษาไทยเป็นหลัก</b><small data-en="Reads “ส่งพรุ่งนี้”, “25 ก.ค.”, “16:00”">อ่าน "ส่งพรุ่งนี้" "25 ก.ค." "16:00" ออก</small></div>
-    </div>
-  </div>
+  <div class="hero-cut"></div>
 </div>
 
-<!-- ═══════════ ปัญหา ═══════════ -->
-<section class="rise">
+<!-- ═══════════ 2 · ใช้ยังไง ═══════════ -->
+<section class="alt rise">
   <div class="wrap">
-    <p class="tag" data-en="Why it exists">ทำไมถึงมีแอปนี้</p>
-    <h2 class="sec-h" data-en="Work doesn’t get missed because it’s hard. It gets missed because nobody wrote it down.">
-      งานไม่หลุดเพราะมันยาก — มันหลุดเพราะไม่มีใครจดไว้
-    </h2>
-    <p class="sec-p" data-en="Assignments arrive as chat messages, photos of a whiteboard, and things the teacher said out loud. They live in five places at once, and none of them is a list.">
-      การบ้านมาถึงในรูปข้อความแชท รูปถ่ายกระดาน และคำที่ครูพูดผ่านหู
-      มันกระจายอยู่ห้าที่พร้อมกัน และไม่มีที่ไหนเลยที่เป็นรายการงานจริง ๆ
-    </p>
-    <div class="ba">
-      <div class="ba-col bad">
-        <h3 data-en="🌀 Without it">🌀 ตอนที่ยังไม่มี</h3>
-        <ul>
-          <li><i>✕</i><span data-en="Scroll back through the class chat every night to check what was assigned">เลื่อนหาแชทห้องย้อนหลังทุกคืนว่าตกลงสั่งอะไรไว้บ้าง</span></li>
-          <li><i>✕</i><span data-en="You remember the deadline but not the weighting — so everything feels equally urgent">จำได้ว่าส่งเมื่อไหร่ แต่ไม่รู้กี่คะแนน ทุกอย่างเลยดูด่วนเท่ากันหมด</span></li>
-          <li><i>✕</i><span data-en="You find out on the morning it’s due">รู้ตัวอีกทีตอนเช้าวันส่ง</span></li>
-          <li><i>✕</i><span data-en="Two big things land on the same day and nobody saw it coming">งานใหญ่สองอันมาชนวันเดียวกันโดยไม่มีใครเห็นล่วงหน้า</span></li>
-        </ul>
+    <span class="sec-k" data-en="How it works">ใช้ยังไง</span>
+    <h2 class="sec-h" data-en="Three steps. The first takes ten seconds.">สามขั้น ขั้นแรกใช้เวลาสิบวินาที</h2>
+    <div class="steps">
+      <div class="step">
+        <h3 data-en="Throw the work in">โยนงานเข้าไป</h3>
+        <p data-en="Paste, photograph, speak it, or share it from another app.">แปะ ถ่ายรูป พูด หรือแชร์มาจากแอปอื่น — อันไหนใกล้นิ้วที่สุดก็อันนั้น</p>
       </div>
-      <div class="ba-col good">
-        <h3 data-en="✨ With StudentOS AI">✨ ตอนที่มี StudentOS AI</h3>
-        <ul>
-          <li><i>✓</i><span data-en="Paste once — subject, teacher, deadline and weighting are filled in for you">แปะครั้งเดียว — วิชา ครู กำหนดส่ง คะแนน ถูกกรอกให้เอง</span></li>
-          <li><i>✓</i><span data-en="One clear answer to “what now?”, with the reason written next to it">มีคำตอบเดียวชัด ๆ ว่า "ตอนนี้ทำอะไร" พร้อมเหตุผลกำกับ</span></li>
-          <li><i>✓</i><span data-en="A heads-up while there’s still time to act on it">เตือนตอนที่ยังทำอะไรทันอยู่</span></li>
-          <li><i>✓</i><span data-en="Clash days get flagged days in advance">วันที่งานชนกันถูกชี้ให้เห็นล่วงหน้าหลายวัน</span></li>
-        </ul>
+      <div class="step">
+        <h3 data-en="Check what it read">ดูว่ามันอ่านได้อะไร</h3>
+        <p data-en="Every field it picked up is shown first. Fix anything that’s off, then save.">ทุกช่องที่อ่านได้ขึ้นให้ดูก่อน ตรงไหนเพี้ยนก็แก้ แล้วกดบันทึก</p>
+      </div>
+      <div class="step">
+        <h3 data-en="Start at the top">เริ่มจากอันบนสุด</h3>
+        <p data-en="The order is already worked out. Do the first one and stop thinking about the rest.">ลำดับถูกคิดไว้ให้แล้ว ทำอันแรก แล้วเลิกคิดถึงที่เหลือ</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════ ฟีเจอร์ ═══════════ -->
-<section class="band rise">
+<!-- ═══════════ 3 · มีอะไรบ้าง ═══════════ -->
+<section class="rise">
   <div class="wrap">
-    <p class="tag" data-en="What’s inside">ในแอปมีอะไร</p>
-    <h2 class="sec-h" data-en="Six things it does all day, without being asked">
-      หกอย่างที่มันทำให้ตลอดวัน โดยไม่ต้องสั่ง
-    </h2>
+    <span class="sec-k" data-en="What’s inside">มีอะไรบ้าง</span>
+    <h2 class="sec-h" data-en="Everything it does for you, without being asked.">ทุกอย่างที่มันทำให้ โดยไม่ต้องสั่ง</h2>
     <div class="grid">
+      <div class="f">
+        <div class="ico">🔥</div>
+        <h3 data-en="Priority, with the reason">จัดลำดับพร้อมเหตุผล</h3>
+        <p data-en="Time left, how much it counts, how big it is and upcoming exams — combined into one order, with a plain sentence for each.">เวลาที่เหลือ น้ำหนักคะแนน ขนาดงาน และสอบที่ใกล้เข้ามา รวมเป็นลำดับเดียว พร้อมประโยคบอกว่าทำไม</p>
+      </div>
       <div class="f">
         <div class="ico">🤖</div>
         <h3 data-en="Reads Thai the way people type it">อ่านภาษาไทยแบบที่คนพิมพ์จริง</h3>
-        <p data-en="Paste a message from LINE and it pulls out the subject, the teacher, “due Friday 16:00”, “counts for 20%”, even “questions 1–10” to estimate how long it’ll take.">แปะข้อความจาก LINE แล้วมันแกะได้ทั้งวิชา ครู "ส่งศุกร์ 16:00" "เก็บ 20%" ไปจนถึง "ข้อ 1–10" เพื่อประเมินว่าใช้เวลากี่นาที</p>
+        <p data-en="Paste from LINE and it pulls out the subject, “due Friday 16:00”, “counts for 20%” and how long it’ll take.">แปะจาก LINE แล้วมันแกะได้ทั้งวิชา "ส่งศุกร์ 16:00" "เก็บ 20%" และประเมินว่าใช้เวลากี่นาที</p>
       </div>
       <div class="f">
         <div class="ico">📷</div>
         <h3 data-en="Snap the worksheet">ถ่ายรูปใบงาน</h3>
-        <p data-en="Point the camera at a worksheet or the whiteboard. The text is read on your own phone, then goes through the same parser.">เปิดกล้องส่องใบงานหรือกระดานหน้าห้อง ตัวหนังสือถูกอ่านในเครื่องตัวเอง แล้วส่งเข้าตัวแกะชุดเดียวกัน</p>
+        <p data-en="Point the camera at a worksheet or the whiteboard. The text is read on your own phone.">ส่องกล้องไปที่ใบงานหรือกระดาน ตัวหนังสือถูกอ่านในเครื่องของคุณเอง</p>
+      </div>
+      <div class="f">
+        <div class="ico"><img src="sai-avatar.png" data-fb="sai" alt=""></div>
+        <h3 data-en="น้องไซ — someone to ask">น้องไซ — คนที่ถามได้</h3>
+        <p data-en="Ask “what should I do tonight?” and get an answer built from your actual list, not a generic tip.">ถามว่า "เย็นนี้ทำอะไรดี" แล้วได้คำตอบจากรายการงานจริงของคุณ ไม่ใช่คำแนะนำสำเร็จรูป</p>
       </div>
       <div class="f">
         <div class="ico">✅</div>
-        <h3 data-en="You confirm before anything saves">ยืนยันก่อนบันทึกเสมอ</h3>
-        <p data-en="Every task the AI reads goes through a check screen first. AI gets things wrong sometimes — a wrong deadline you never saw is worse than no app at all.">ทุกงานที่ AI อ่านต้องผ่านหน้าตรวจก่อน · AI อ่านผิดได้ และกำหนดส่งที่ผิดโดยไม่มีใครเห็นนั้นแย่กว่าไม่มีแอปเลย</p>
-      </div>
-      <div class="f">
-        <div class="ico">🔥</div>
-        <h3 data-en="Priority with the reason attached">จัดลำดับพร้อมเหตุผล</h3>
-        <p data-en="Hours left, how much it counts for, how big it is, and whether an exam is coming — combined into one order, with a plain-Thai sentence explaining each place.">เวลาที่เหลือ + น้ำหนักคะแนน + ขนาดงาน + สอบที่ใกล้เข้ามา รวมเป็นลำดับเดียว พร้อมประโยคภาษาไทยบอกว่าทำไมอันนี้ถึงอยู่ตรงนี้</p>
-      </div>
-      <div class="f">
-        <div class="ico">💬</div>
-        <h3 data-en="น้องไซ — someone to ask">น้องไซ — คนที่ถามได้</h3>
-        <p data-en="Ask “what should I do tonight?” or “I’ve only got 40 minutes” and get a real answer built from your actual task list, not a generic tip.">ถามว่า "เย็นนี้ทำอะไรดี" หรือ "เหลือเวลาแค่ 40 นาที" แล้วได้คำตอบที่สร้างจากรายการงานจริงของคุณ ไม่ใช่คำแนะนำสำเร็จรูป</p>
+        <h3 data-en="You confirm before it saves">ยืนยันก่อนบันทึกเสมอ</h3>
+        <p data-en="AI can misread. Nothing is written to your list behind your back.">AI อ่านผิดได้ จึงไม่มีอะไรถูกเขียนลงรายการของคุณลับหลัง</p>
       </div>
       <div class="f">
         <div class="ico">📥</div>
-        <h3 data-en="Share straight from other apps">แชร์ตรงจากแอปอื่น</h3>
-        <p data-en="Hit share in LINE, Messenger or the browser and send it to StudentOS AI. It lands in an inbox, and the obvious ones file themselves.">กดแชร์ใน LINE, Messenger หรือเบราว์เซอร์แล้วส่งเข้า StudentOS AI ได้เลย · มันไปตกที่กล่องเข้า และอันที่ชัดเจนพอจะเข้าที่ของมันเอง</p>
+        <h3 data-en="Share from other apps">แชร์ตรงจากแอปอื่น</h3>
+        <p data-en="Hit share in LINE, Messenger or the browser and send it straight in.">กดแชร์ใน LINE, Messenger หรือเบราว์เซอร์ แล้วส่งเข้ามาได้เลย</p>
       </div>
+    </div>
+    <div class="facts">
+      <span data-en="Nothing to install">ไม่ต้องติดตั้ง</span>
+      <span data-en="Add to home screen">ติดตั้งเป็นแอปได้</span>
+      <span data-en="Works offline">ใช้ตอนไม่มีเน็ตได้</span>
+      <span data-en="Thai first">ภาษาไทยเป็นหลัก</span>
     </div>
   </div>
 </section>
 
-<!-- ═══════════ ขั้นตอน ═══════════ -->
-<section class="rise">
-  <div class="wrap">
-    <p class="tag" data-en="How it works">ใช้ยังไง</p>
-    <h2 class="sec-h" data-en="Three steps. The first takes about ten seconds.">
-      สามขั้น ขั้นแรกใช้เวลาราวสิบวินาที
-    </h2>
-    <div class="steps">
-      <div class="step">
-        <h3 data-en="Throw the work in">โยนงานเข้าไป</h3>
-        <p data-en="Paste, photograph, speak it, or share it from another app. Whichever is closest to your thumb.">แปะ ถ่ายรูป พูด หรือแชร์มาจากแอปอื่น — อันไหนใกล้นิ้วที่สุดก็อันนั้น</p>
-      </div>
-      <div class="step">
-        <h3 data-en="Glance at what it read">กวาดตาดูว่ามันอ่านได้อะไร</h3>
-        <p data-en="The check screen shows everything it picked up. Fix anything that’s off, then save.">หน้าตรวจโชว์ทุกช่องที่แกะมาได้ ตรงไหนเพี้ยนก็แก้ แล้วกดบันทึก</p>
-      </div>
-      <div class="step">
-        <h3 data-en="Open it when you sit down">เปิดตอนจะนั่งทำงาน</h3>
-        <p data-en="The order is already worked out. Start at the top and stop thinking about the rest.">ลำดับถูกคิดไว้ให้แล้ว เริ่มจากอันบนสุด แล้วเลิกคิดถึงที่เหลือ</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════ น้องไซ ═══════════ -->
-<section class="band rise">
-  <div class="wrap sai-sec">
-    <img class="sai-face" src="sai-avatar.png" data-fb="sai" alt="น้องไซ">
-    <div>
-      <p class="tag" data-en="Meet น้องไซ">ทำความรู้จักน้องไซ</p>
-      <h2 class="sec-h" style="margin-bottom:12px" data-en="Not a chatbot bolted on. She can see your list.">
-        ไม่ใช่แชทบอทที่แปะเข้ามาเฉย ๆ — เธอเห็นรายการงานของคุณ
-      </h2>
-      <p class="sec-p" style="margin-bottom:0" data-en="Cheerful without being loud. Keeps track of time without nagging. Listens for a sentence before jumping to a fix. And when you’re behind, she never says “I told you so”.">
-        สดใสแต่ไม่เว่อร์ เจ้าระเบียบเรื่องเวลาแต่ไม่ทวงซ้ำ
-        เวลาบ่นว่าเหนื่อยจะรับฟังก่อนหนึ่งประโยคเสมอ ไม่กระโดดเข้าวิธีแก้ทันที
-        และเวลางานเลยกำหนด เธอไม่พูดว่า "บอกแล้วไง"
-      </p>
-      <div class="quotes">
-        <div class="q" data-en="“Three left, but only one is due tomorrow. Physics first — the other two can wait.”">"เหลือสามอัน แต่ที่ส่งพรุ่งนี้มีอันเดียว เริ่มฟิสิกส์ก่อนนะ อีกสองอันรอได้"</div>
-        <div class="q" data-en="“Forty minutes is enough for the reading. Save the essay for when you’ve got a proper stretch.”">"สี่สิบนาทีพอสำหรับงานอ่านนะ ส่วนเรียงความเก็บไว้ตอนมีเวลายาว ๆ ดีกว่า"</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════ ราคา ═══════════ -->
-<section class="rise">
-  <div class="wrap">
-    <p class="tag" data-en="Pricing">ราคา</p>
-    <h2 class="sec-h" data-en="The part that keeps you organised is free. Forever.">
-      ส่วนที่ทำให้ชีวิตเป็นระเบียบ ฟรี ตลอดไป
-    </h2>
-    <p class="sec-p" data-en="We’d rather you actually use it than pay for it. Pro is for the people who lean on the AI every single day and want the cap taken off.">
-      เราอยากให้คุณได้ใช้จริงมากกว่าอยากให้คุณจ่าย · Pro มีไว้สำหรับคนที่พึ่ง AI ทุกวัน
-      แล้วอยากให้เพดานมันหายไป
-    </p>
-    <div class="prices">
-      <div class="plan free">
-        <h3 data-en="Free">ฟรี</h3>
-        <div class="price" data-en="฿0<small> forever</small>">฿0<small> ตลอดไป</small></div>
-        <ul>
-          <li><i>✓</i><span data-en="Unlimited tasks, priorities and reasons">เพิ่มงานได้ไม่จำกัด พร้อมลำดับและเหตุผล</span></li>
-          <li><i>✓</i><span data-en="Paste text, snap worksheets, share from other apps">แปะข้อความ ถ่ายใบงาน แชร์จากแอปอื่น</span></li>
-          <li><i>✓</i><span data-en="Timeline, clash warnings and reminders">ไทม์ไลน์ เตือนวันงานชน และแจ้งเตือน</span></li>
-          <li><i>✓</i><span data-en="Ask น้องไซ a few questions a day">ถามน้องไซได้วันละไม่กี่คำถาม</span></li>
-        </ul>
-        <p class="note" data-en="No card. No trial that quietly ends.">ไม่ต้องผูกบัตร ไม่มีทดลองใช้ที่หมดอายุเงียบ ๆ</p>
-      </div>
-      <div class="plan pro">
-        <span class="flag" data-en="later">มีทีหลัง</span>
-        <h3>Pro</h3>
-        <div class="price" data-en="<s class=&quot;was&quot;>฿99</s>฿67<small> /month</small><i class=&quot;off&quot;>-32%</i>"><s class="was">฿99</s>฿67<small> /เดือน</small><i class="off">ลด 32%</i></div>
-        <ul>
-          <li><i>★</i><span data-en="Ask น้องไซ as much as you want">ถามน้องไซได้เต็มที่</span></li>
-          <li><i>★</i><span data-en="Unlimited AI worksheet scanning">สแกนใบงานด้วย AI ไม่จำกัด</span></li>
-          <li><i>★</i><span data-en="Read your timetable straight off a photo">อ่านตารางเรียนจากรูปได้</span></li>
-          <li><i>★</i><span data-en="Every theme in the shop">ธีมในร้านค้าทั้งหมด</span></li>
-        </ul>
-        <p class="note" data-en="Not on sale yet — the free app is complete without it.">ยังไม่เปิดขาย · ตัวฟรีใช้งานได้ครบโดยไม่ต้องมีอันนี้</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════ FAQ ═══════════ -->
-<section class="band rise">
-  <div class="wrap">
-    <p class="tag" data-en="Before you start">ก่อนจะเริ่ม</p>
-    <h2 class="sec-h" data-en="The questions people actually ask">คำถามที่คนถามจริง ๆ</h2>
-    <div class="faq">
-      <details open>
-        <summary data-en="Do I have to sign up?">ต้องสมัครไหม</summary>
-        <p data-en="No. You can go straight in without an account and everything stays on this phone. Signing in with Google exists for one reason: your tasks follow you to another device, and survive if you clear the browser.">ไม่ต้อง · เข้าไปใช้เลยได้โดยไม่ต้องมีบัญชี ทุกอย่างจะอยู่ในเครื่องนี้ · การล็อกอินด้วย Google มีไว้เหตุผลเดียวคือให้งานตามไปเครื่องอื่นได้ และไม่หายตอนล้างข้อมูลเบราว์เซอร์</p>
-      </details>
-      <details>
-        <summary data-en="Will the free version stay free?">ตัวฟรีจะฟรีต่อไปไหม</summary>
-        <p data-en="Yes. Adding work, ordering it, and being reminded are the whole point of the app — those never go behind a paywall. Pro only lifts the limits on the heavier AI features.">ใช่ · การเพิ่มงาน จัดลำดับ และเตือน คือทั้งหมดที่แอปนี้มีไว้ทำ — สามอย่างนี้ไม่มีวันย้ายไปอยู่หลังกำแพงเงิน · Pro แค่ปลดเพดานของฟีเจอร์ AI ที่กินทรัพยากรมากเท่านั้น</p>
-      </details>
-      <details>
-        <summary data-en="Where does my data go?">ข้อมูลของฉันไปอยู่ไหน</summary>
-        <p data-en="Without an account: nowhere — it stays in your browser’s own storage. With an account: your task list syncs to your own row so a second device can read it. Either way, classmates don’t see it unless you choose to share something.">ถ้าไม่มีบัญชี: ไม่ไปไหนเลย อยู่ในที่เก็บของเบราว์เซอร์เครื่องนี้ · ถ้ามีบัญชี: รายการงานจะซิงก์ไปอยู่ในแถวของคุณเอง เพื่อให้อีกเครื่องอ่านได้ · ทั้งสองแบบเพื่อนร่วมห้องไม่เห็น นอกจากคุณเลือกแชร์เอง</p>
-      </details>
-      <details>
-        <summary data-en="Does it work on iPhone?">iPhone ใช้ได้ไหม</summary>
-        <p data-en="Yes — open the link in Safari, then Share → Add to Home Screen. On Android use Chrome’s ⋮ menu → Add to Home screen.">ได้ — เปิดลิงก์ใน Safari แล้วกด แชร์ → Add to Home Screen · ส่วน Android ใช้เมนู ⋮ ของ Chrome → เพิ่มลงในหน้าจอหลัก</p>
-      </details>
-      <details>
-        <summary data-en="What if the AI reads it wrong?">ถ้า AI อ่านผิดล่ะ</summary>
-        <p data-en="Then you fix it on the check screen, which every task passes through before it’s saved. Nothing gets written to your list behind your back.">ก็แก้ที่หน้าตรวจ ซึ่งทุกงานต้องผ่านก่อนถูกบันทึก · ไม่มีอะไรถูกเขียนลงรายการของคุณลับหลัง</p>
-      </details>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════ ปิดท้าย ═══════════ -->
-<section class="rise">
-  <div class="wrap">
-    <div class="final">
-      <!-- ตราเต็มวางบนแผ่นสว่างเสมอ — ตัวหนังสือในตราเป็นน้ำเงินเข้ม
-           ถ้าปล่อยลอยบนพื้นสีมันจะจมหายไปครึ่งอัน -->
-      <div class="lockup"><img src="logo-lockup.svg" data-fb="logo" alt="students OS"></div>
-      <h2 data-en="Start with tonight’s homework">เริ่มจากการบ้านของคืนนี้</h2>
-      <p data-en="Paste one message and see what it makes of it. That’s the whole trial.">แปะข้อความเดียวแล้วดูว่ามันทำอะไรกับมันได้ — การทดลองใช้มีแค่นั้น</p>
-      <div class="cta-row">
-        <a class="btn plain big" href="index.html?start=google">
-          <span class="g-badge">G</span><span data-en="Sign up with Google">สมัครด้วย Google</span>
-        </a>
-        <a class="btn dark big" href="index.html?start=guest" data-en="Try it — no account">ลองก่อน ไม่ต้องสมัคร</a>
-      </div>
-      <p class="fineprint" data-en="You can create an account later — nothing you add now is lost.">สมัครทีหลังก็ได้ — ของที่เพิ่มไว้ตอนนี้ไม่หาย</p>
+<!-- ═══════════ 4 · ปิดท้าย ═══════════ -->
+<section class="alt rise">
+  <div class="wrap final">
+    <img class="mark-logo" src="logo-splash-light.png" data-fb="logo" alt="">
+    <h2 data-en="Start with tonight’s homework.">เริ่มจากการบ้านของคืนนี้</h2>
+    <p class="sub" data-en="Paste one message and see what it makes of it. You can create an account later — nothing you add now is lost.">แปะข้อความเดียวแล้วดูว่ามันทำอะไรได้ · สมัครทีหลังก็ได้ ของที่เพิ่มไว้ตอนนี้ไม่หาย</p>
+    <div class="cta">
+      <a class="btn fill big" href="index.html?start=guest" data-en="Try it free">ลองใช้ฟรี</a>
+      <a class="link" href="index.html?start=google" data-en="Sign up with Google">สมัครด้วย Google</a>
     </div>
   </div>
 </section>
 
 <footer>
   <div class="wrap f-row">
-    <a class="brand" href="#top" style="font-size:15px">
-      <img src="logo-splash-light.png" data-fb="logo" alt="">
-      <span>StudentOS <span class="ai">AI</span></span>
-    </a>
+    <span>StudentOS AI</span>
     <span data-en="Made in Thailand, for Thai classrooms">ทำในไทย เพื่อห้องเรียนไทย</span>
-    <span style="margin-left:auto"><a href="index.html" data-en="Open the app →">เปิดแอป →</a></span>
+    <span style="margin-left:auto"><a href="index.html" data-en="Open the app">เปิดแอป</a></span>
   </div>
 </footer>
 
@@ -820,6 +486,24 @@ if ('IntersectionObserver' in window) {
 } else {
   revealAll();
 }
+
+/* ── จอมือถือเลื่อนตาม (parallax) ──
+   --p = 0 ตอนอยู่บนสุด → 1 เมื่อเลื่อนไปราวครึ่งจอ · CSS ใช้ค่านี้ยกเครื่องขึ้น ตั้งตรง และเพิ่มแสงหลังเครื่อง
+   เขียนใน requestAnimationFrame ทีละเฟรมเดียว ไม่เขียนทุก event — เลื่อนเร็ว ๆ แล้วไม่กระตุก */
+(function(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const stage = document.querySelector('.stage');
+  if (!stage) return;
+  let ticking = false;
+  function paint(){
+    ticking = false;
+    const p = Math.max(0, Math.min(1, scrollY / (innerHeight * .55)));
+    stage.style.setProperty('--p', p.toFixed(3));
+    const ph = stage.querySelector('.phone'); if (ph) ph.style.setProperty('--p', p.toFixed(3));
+  }
+  addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(paint); } }, { passive:true });
+  paint();
+})();
 </script>
 </body>
 </html>
