@@ -241,6 +241,8 @@ function geminiOpts(question: string, context: string, history: Msg[]) {
 //
 // alt=sse ทำให้ตอบเป็น "data: {...}" ทีละบรรทัดแบบเดียวกับฝั่ง OpenAI
 // ไม่ใส่ alt=sse จะได้ JSON array ก้อนใหญ่ที่ต้องรอครบก่อนถึงจะแกะได้ = ไม่ได้สตรีมจริง
+const STREAM_HEAD_MS = 9000;
+
 async function* geminiStream(question: string, context: string, history: Msg[], budgetMs = 35000)
   : AsyncGenerator<string> {
   if (!API_KEY) throw new Error('GEMINI_API_KEY ยังไม่ได้ตั้ง');
@@ -256,11 +258,30 @@ async function* geminiStream(question: string, context: string, history: Msg[], 
     for (const model of order) {
       // ยิงซ้ำรุ่นเดิมได้ถ้า 400 มาจากช่องคุมการคิดที่รุ่นนี้ไม่รู้จัก (ดู _shared/gemini.ts)
       for (let attempt = 0; attempt < 3; attempt++) {
-        res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`,
-          { method: 'POST',
-            headers: { 'content-type': 'application/json', 'x-goog-api-key': API_KEY },
-            body: geminiBody(model, opts), signal: ctl.signal });
+        // รอหัวคำตอบได้ไม่เกิน STREAM_HEAD_MS ต่อครั้ง — เดิมใช้ตัวจับเวลาก้อนเดียวทั้งงบ
+        // วัดจริง 8 ต.ค. 69: gemini-3.6-flash ค้าง 70 วิแล้วค่อยตอบ 503 (คนแน่น)
+        // งบ 28 วิจึงหมดที่รุ่นแรกทุกครั้ง ไม่เคยได้ลอง 3.5-flash ที่ตอบใน 2 วิ
+        // = แชทขึ้น "น้องไซตอบไม่ได้ตอนนี้" ทุกคำถาม ทั้งที่ทางไม่สตรีมยังตอบได้
+        // ตัวจับเวลานี้คุมแค่ช่วงรอหัว พอเริ่มไหลแล้วเหลือแต่งบทั้งก้อน (ctl) คุม
+        const head = new AbortController();
+        const stop = () => head.abort();
+        ctl.signal.addEventListener('abort', stop);
+        const headTimer = setTimeout(stop, STREAM_HEAD_MS);
+        try {
+          res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`,
+            { method: 'POST',
+              headers: { 'content-type': 'application/json', 'x-goog-api-key': API_KEY },
+              body: geminiBody(model, opts), signal: head.signal });
+        } catch (e) {
+          if (ctl.signal.aborted) throw e;            // งบทั้งก้อนหมด ไม่ต้องลองต่อ
+          console.warn('[ask-sai:gemini-stream]', model, 'ไม่ตอบใน', STREAM_HEAD_MS, 'ms');
+          res = null;
+          lastStatus = 504;                           // ให้บันไดถอยไปรุ่นถัดไปเหมือนรุ่นที่ตอบ 504
+          break;
+        } finally {
+          clearTimeout(headTimer);
+        }
         if (res.ok) break;
         lastStatus = res.status;
         const body = (await res.text()).slice(0, 300);
