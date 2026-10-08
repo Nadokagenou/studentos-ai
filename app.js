@@ -9511,11 +9511,15 @@ function renderShop() {
     ${typeof FX3D_IDS === 'object' ? `<div class="sec-label">เอฟเฟกต์ 3D · สุ่มเท่านั้น (ตัวละ 0.1%)</div>
     <div class="tk-skins">
       ${FX3D_IDS.map(fx => {
-        const n = (s.fx3d || {})[fx] || 0;
-        return `<div class="tk-skin r-mythic${n ? ' got' : ''}">
-          <div class="ts-rar">${n && !fxOwned(fx) ? '🔒 ซื้อปกติก่อน' : 'Mythic 3D'}</div>
+        // แอดมินเห็นว่ามีครบ (fx3dOwned) แต่จำนวนจริงที่สุ่มได้ยังเป็นของจริง
+        const n = (s.fx3d || {})[fx] || 0, got = fx3dOwned(fx);
+        // แตะการ์ด = ลองเล่นตัวอย่าง 3D ได้ทุกคน — คนเห็นของจริงก่อนถึงจะอยากสุ่ม (แบบเกมที่ให้ลองสกิน)
+        return `<div class="tk-skin r-mythic${got ? ' got' : ''}" role="button" tabindex="0"
+          onclick="previewFx3d('${fx}')" onkeydown="if(event.key==='Enter')previewFx3d('${fx}')">
+          <div class="ts-rar">${got && !fxOwned(fx) ? '🔒 ซื้อปกติก่อน' : 'Mythic 3D'}</div>
           <div class="ts-nm">${esc(FX3D_NAME[fx])}</div>
-          <div class="ts-ct mono">${n ? '×' + n : '— — —'}</div>
+          <div class="ts-ct mono">${n ? '×' + n : got ? 'แอดมิน' : '— — —'}</div>
+          <div class="ts-try">▶ ลองเล่น</div>
         </div>`;
       }).join('')}
     </div>` : ''}

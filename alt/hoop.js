@@ -49,7 +49,12 @@ function fxOwned(id) { return (tokenState().fx || []).includes(id); }
 // มี 3D แต่ยังไม่ได้ซื้อเอฟเฟกต์ปกติ = ยังใช้ไม่ได้ (เจ้าของสั่ง) — ของไม่หาย ซื้อเมื่อไหร่ใช้ได้ทันที
 // เลือก 2D/3D แยกรายเกม · เก็บในเครื่อง (เหมือนธีม) ที่ DONEFX_3D_KEY เป็นรายการ id ที่เลือก 3D
 const DONEFX_3D_KEY = 'studentos.alt.doneFx3d';
-function fx3dOwned(id) { return ((tokenState().fx3d || {})[id] || 0) > 0; }
+// บัญชีแอดมิน (TOKEN_ADMIN ใน app.js) มี 3D ครบทุกเกม — เจ้าของสั่งไว้ทดสอบบนมือถือ
+// อ่านสดจาก tokenAdmin เหมือนยอด ∞ ไม่เขียนลงข้อมูลจริง ออกจากระบบแล้วกลับเป็นของที่สุ่มได้จริง
+function fx3dOwned(id) {
+  if (typeof tokenAdmin !== 'undefined' && tokenAdmin) return true;
+  return ((tokenState().fx3d || {})[id] || 0) > 0;
+}
 function fx3dUsable(id) { return fx3dOwned(id) && fxOwned(id); }
 function fx3dMode(id) {
   try { return (JSON.parse(localStorage.getItem(DONEFX_3D_KEY)) || []).includes(id); } catch (_) { return false; }
@@ -86,6 +91,13 @@ function openDoneFx(title, onClose, preview, id) {
   if (onClose) onClose();
 }
 function previewFx(id) { openDoneFx('ตัวอย่าง · เล่นได้เลย', null, true, id); }
+// ดูตัวอย่าง 3D ได้ทุกคน แม้ยังสุ่มไม่ได้ — แบบเกมที่ให้ลองสกินก่อนสุ่ม (คนเห็นว่าของสวยแค่ไหนถึงอยากได้)
+// เล่นได้ครบ แต่เป็นโหมดตัวอย่าง: ไม่นับงานเสร็จ ไม่ปลดล็อกอะไร · ใช้จริงตอนงานเสร็จยังต้องสุ่มได้ก่อน
+function previewFx3d(id) {
+  if (typeof open3D === 'function' && typeof FX3D_GAMES === 'object' && FX3D_GAMES[id])
+    return open3D(id, fx3dUsable(id) ? 'ตัวอย่าง 3D · เล่นได้เลย' : 'ตัวอย่าง 3D · สุ่มได้ในกาชา', null, true);
+  previewFx(id);
+}
 
 function setDoneFx(id) {
   if (id !== 'confetti' && !fxOwned(id)) return;
@@ -137,11 +149,17 @@ function renderFxPick() {
   if (mode) {
     const has3 = cur !== 'confetti' && fx3dUsable(cur), on3 = has3 && fx3dMode(cur);
     const waiting = Object.keys(FX_SHOP).filter(id => fx3dOwned(id) && !fxOwned(id));
+    // ยังไม่มี 3D: ปุ่ม 3D ยังอยู่แต่ติดกุญแจ — กดแล้วได้ดูตัวอย่าง (เดิมซ่อนทั้งแถว คนเลยไม่รู้ว่ามี 3D)
     mode.innerHTML = (has3 ? `<div class="fx-seg" role="group" aria-label="โหมดภาพ">
         <span class="fx-seg-lb">ภาพ</span>
         <button type="button" class="${on3 ? '' : 'active'}" onclick="setFx3dMode('${cur}', false)">2D</button>
         <button type="button" class="${on3 ? 'active' : ''}" onclick="setFx3dMode('${cur}', true)">3D</button>
-      </div>` : '')
+      </div>` : cur !== 'confetti' ? `<div class="fx-seg" role="group" aria-label="โหมดภาพ">
+        <span class="fx-seg-lb">ภาพ</span>
+        <button type="button" class="active" onclick="previewFx('${cur}')">2D</button>
+        <button type="button" class="lock" onclick="previewFx3d('${cur}')" aria-label="3D ยังไม่ได้ปลดล็อก — ดูตัวอย่าง">🔒 3D</button>
+      </div>
+      <p class="fx-wait">3D สุ่มได้ในกาชา (ตัวละ 0.1%) · แตะ 🔒 3D เพื่อลองเล่นตัวอย่างก่อน</p>` : '')
       + (waiting.length ? `<p class="fx-wait">มี 3D รอปลดล็อก: ${waiting.map(id => esc(FX_SHOP[id].name)).join(' · ')} — ซื้อเอฟเฟกต์ปกติในร้านค้าก่อน</p>` : '');
   }
   const tr = document.getElementById('fxTry');
