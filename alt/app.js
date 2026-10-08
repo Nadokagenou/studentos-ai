@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C44';                 // สายเลขของแอป
+const APP_VERSION = '1C45';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -1141,6 +1141,7 @@ async function initCloud() {
     sessionAnswered = true;   // ได้คำตอบจริง — จะตอบว่ามีหรือไม่มีก็เชื่อได้ทั้งคู่
   } catch (e) { console.warn('[cloud] getSession failed:', e.message); }
   currentUser = session ? session.user : null;
+  syncTokenAdmin();
   // ---------- ดันชื่อกับรูปขึ้นให้ตรงกับที่ตั้งไว้ในเครื่อง ----------
   // จำเป็นสำหรับคนที่ตั้งรูปไว้ก่อนรุ่น 1B69 — รูปของเขาไม่เคยขึ้นไปถึงเพื่อนเลย
   // เพราะ publishProfile อ่านผิดที่มาตลอด (ดู syncPublicFace ใน social.js)
@@ -1156,6 +1157,7 @@ async function initCloud() {
   sb.auth.onAuthStateChange((event, sess) => {
     const wasLoggedIn = !!currentUser;
     currentUser = sess ? sess.user : null;
+    syncTokenAdmin();
     if (currentUser && !wasLoggedIn) {
       // เพิ่งล็อกอินเสร็จ (รวมถึงกลับมาจากหน้า Google)
       if ('Notification' in window && Notification.permission === 'granted') {
@@ -1366,9 +1368,13 @@ function loginWith(provider, retriesLeft = 15) {
     if (cloudConfigured() && retriesLeft > 0) setTimeout(() => loginWith(provider, retriesLeft - 1), 200);
     return;
   }
+  // prompt=select_account บังคับให้ Google ขึ้นหน้าเลือกบัญชีทุกครั้ง
+  // ไม่ใส่แล้ว Google จะเลือกบัญชีที่ล็อกอินค้างในเบราว์เซอร์ให้เองเงียบ ๆ
+  // คนที่มีทั้งอีเมลส่วนตัวกับอีเมลโรงเรียนเลยสลับไปอีกบัญชีไม่ได้เลย
+  const queryParams = provider === 'google' ? { prompt: 'select_account' } : undefined;
   sb.auth.signInWithOAuth({
     provider,
-    options: { redirectTo: location.origin + location.pathname },
+    options: { redirectTo: location.origin + location.pathname, queryParams },
   });
 }
 
@@ -1573,6 +1579,7 @@ async function logout() {
   // ทั้งหมดอยู่ในเครื่องและล้างได้โดยไม่ต้องถามใคร · ฝั่งเซิร์ฟเวอร์จะหมดอายุเองอยู่แล้ว
   try { if (sb) await sb.auth.signOut(); } catch (_) {}
   currentUser = null; lastSync = null;
+  syncTokenAdmin();
   // เพื่อนเป็นของบัญชี ไม่ใช่ของเครื่อง — ออกจากบัญชีแล้วต้องไม่เหลือค้างบนจอ
   frHandle = null; frList = []; frReqs = []; frHits = null; frLoaded = false;
   // ของที่ "เคยเห็นแล้ว" ผูกกับบัญชี ไม่ใช่กับเครื่อง — ไม่ล้างแล้วบัญชีถัดไปที่ล็อกอิน
@@ -8469,6 +8476,7 @@ const DUP_REFUND = { rare: 1.5, legendary: 2.5, secret: 5, mythic: 10 };
 
 // โทเคนมีทศนิยมได้แล้ว (Common จ่าย 0–0.5) — แสดงผลให้พอดี ไม่โชว์ .0 ลอย ๆ
 function fmtTok(n) {
+  if (n === Infinity) return '∞';   // บัญชีแอดมิน (ดู TOKEN_ADMIN)
   const v = Math.round((n || 0) * 10) / 10;
   return Number.isInteger(v) ? String(v) : v.toFixed(1);
 }
@@ -8599,7 +8607,7 @@ function vaultExport() {
   const av = typeof userAvatar === 'function' ? userAvatar() : '';
   return {
     at: +(localStorage.getItem(VAULT_AT_KEY) || 0),
-    tokens: tokenState(),
+    tokens: rawTokenState(),   // ยอดจริง ไม่ใช่ ∞ ของบัญชีแอดมิน
     allBadges: localStorage.getItem(ALLBADGE_KEY) === '1',
     luck: localStorage.getItem(LUCK_KEY) === '1',
     genesis: localStorage.getItem(GENESIS_KEY) === '1',
@@ -8624,7 +8632,7 @@ function vaultImport(r) {
     for (const id of r.codeThemes || []) if (THEME_CODE[id]) localStorage.setItem(THEME_CODE[id], '1');
   } catch (_) {}
 
-  const local = tokenState();
+  const local = rawTokenState();
   const remote = r.tokens || {};
   // สกินที่เคยได้เป็น "เซ็ต" ของที่ได้มาแล้วไม่เคยหาย รวมกันเสมอ ไม่มีทางเสียของ
   const skins = Object.assign({}, remote.skins || {}, local.skins || {});
@@ -8643,10 +8651,42 @@ function vaultImport(r) {
   }
 }
 
-function tokenState() {
+// ---------- บัญชีแอดมิน: โทเคนไม่จำกัด ----------
+// เจ้าของสั่ง (7 ต.ค. 2569) ให้สองบัญชีนี้ใช้โทเคนได้ไม่จำกัด
+// เก็บเป็น SHA-256 ของอีเมลตัวเล็ก ไม่ใช่อีเมลตรง ๆ — repo เป็นสาธารณะ อีเมลของคนอื่นไม่ควรไปโผล่บน GitHub
+// (เพิ่มคนใหม่: printf %s 'อีเมล' | shasum -a 256)
+// ยอดจริงในเครื่องกับบน cloud ไม่ถูกแตะ — tokenState() แค่ "โชว์" ว่าเป็น ∞ ตอนล็อกอินบัญชีนี้อยู่
+// ใช้จ่ายไปเท่าไหร่ saveTokenState ก็เขียนยอดเดิมกลับลงไป ออกจากระบบแล้วยอดเดิมยังอยู่ครบ
+const TOKEN_ADMIN = [
+  '568431e398cceb7470cf0b7c2d825f26d6f269741a0aeb635443130f236829a6',
+  '0378159474d683e4cdab0a3fff7f4d6191c64dfb91905826cbe7ec377cbd7f42',
+];
+let tokenAdmin = false, tokenAdminFor = null;
+// เรียกทุกครั้งที่ currentUser เปลี่ยน · SHA-256 เป็น async จึงจำผลไว้ ให้ tokenState() อ่านได้ทันที
+async function syncTokenAdmin() {
+  const email = (currentUser && currentUser.email || '').trim().toLowerCase();
+  if (email === tokenAdminFor) return;
+  tokenAdminFor = email;
+  let on = false;
+  if (email && window.crypto && crypto.subtle) {
+    try { on = TOKEN_ADMIN.includes(await codeFingerprint(email)); } catch (_) {}
+  }
+  if (tokenAdminFor !== email || on === tokenAdmin) return;   // ระหว่างรอ มีคนเปลี่ยนบัญชีไปแล้ว
+  tokenAdmin = on;
+  if (typeof renderAll === 'function') renderAll();
+}
+
+function rawTokenState() {
   try { return JSON.parse(localStorage.getItem(TOKEN_KEY)) || {}; } catch (_) { return {}; }
 }
+function tokenState() {
+  const s = rawTokenState();
+  if (tokenAdmin) s.bal = Infinity;
+  return s;
+}
 function saveTokenState(s, quiet) {
+  // ∞ แปลงเป็น JSON ไม่ได้ (กลายเป็น null = ยอดหาย) — เขียนยอดจริงที่มีอยู่กลับลงไปแทน
+  if (!Number.isFinite(s.bal)) s = Object.assign({}, s, { bal: rawTokenState().bal || 0 });
   try { localStorage.setItem(TOKEN_KEY, JSON.stringify(s)); } catch (_) {}
   // quiet = กำลังเขียนของที่เพิ่งดึงลงมาจาก cloud ห้ามประทับเวลาใหม่
   // ไม่งั้นเครื่องที่แค่ "รับ" ของมา จะกลายเป็นเครื่องที่มีของใหม่ที่สุดทันที
@@ -8823,7 +8863,7 @@ function claimDailyFromSheet(btn) {
       showToast({ title: 'ครบ 7 วันแล้ว 🎡', body: 'ได้สิทธิ์สุ่มสกินฟรี 1 ใบ' });
       return;
     }
-    showToast({ title: '+' + got.prize + ' โทเคน', body: 'เช็คอินต่อเนื่อง ' + got.streak + ' วัน · รวม ' + got.bal + ' โทเคน' });
+    showToast({ title: '+' + got.prize + ' โทเคน', body: 'เช็คอินต่อเนื่อง ' + got.streak + ' วัน · รวม ' + fmtTok(got.bal) + ' โทเคน' });
     ckClaiming = false;
   };
   if (!sheet || still) {
@@ -9728,7 +9768,7 @@ function renderStats() {
   const privNums = `<div class="num-row st-priv">
       <div><b>${done.length}</b><span>งานเสร็จ</span></div>
       <div><b>${week.length}</b><span>ใน 7 วัน</span></div>
-      <div><b>${Math.round(tkS.bal || 0)}</b><span>โทเคน</span></div>
+      <div><b>${tkS.bal === Infinity ? '∞' : Math.round(tkS.bal || 0)}</b><span>โทเคน</span></div>
     </div>`;
 
   // 1C08 · หัวข้อ "ผลของฉัน · เห็นคนเดียว" ถูกถอดทั้งบรรทัด
