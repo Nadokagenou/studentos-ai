@@ -135,19 +135,19 @@ function saiHero(ctx) {
   let line, sub;
   if (mood === 'sleepy') {
     line = 'ดึกแล้วนะ' + (name ? ' ' + name : '');
-    sub  = 'กดมาคุยกัน เดี๋ยวสรุปให้สั้น ๆ แล้วไปนอน';
+    sub  = '';
   } else if (mood === 'serious') {
     line = 'วันนี้มีใบที่รอไม่ได้อยู่';
-    sub  = 'กดมาหาเรา เดี๋ยวเล่าแผนวันนี้ให้ทีละข้อ';
+    sub  = '';
   } else if (mood === 'sulk') {
     line = 'ของค้างเริ่มเยอะแล้วนะ';
-    sub  = 'กดมาคุยกัน เดี๋ยวช่วยเลือกให้ว่าเริ่มจากใบไหน';
+    sub  = '';
   } else if (mood === 'happy') {
     line = 'วันนี้โล่งมากเลย' + (name ? ' ' + name : '');
-    sub  = 'กดมาหาเรา เดี๋ยวเล่าให้ฟังว่าเหลืออะไรบ้าง';
+    sub  = '';
   } else {
     line = 'แผนวันนี้พร้อมแล้ว';
-    sub  = 'กดเข้ามาในตัวเรา เดี๋ยวบอกแผนวันนี้ให้';
+    sub  = '';
   }
 
   const dot = mood === 'serious' || mood === 'sulk';
@@ -155,7 +155,7 @@ function saiHero(ctx) {
   return `<button type="button" class="saih" onclick="openSaiPlan()">
     <span class="saih-bubble">
       <b>${esc(line)}</b>
-      <span>${esc(sub)}</span>
+      ${sub ? `<span>${esc(sub)}</span>` : ''}
       <span class="saih-go">เข้าห้องน้องไซ</span>
     </span>
     <span class="saih-stage">
@@ -449,9 +449,7 @@ function renderSaiPlan() {
         + icon('play') + 'เริ่มทำเลย</button>'
       : '')
     + '<button class="sai-tour" onclick="saiTourStart()">'
-      + icon('sparkles') + 'ให้น้องไซเล่าให้ฟังทีละข้อ</button>'
-    + '<p class="sai-note">คาบเรียนกับกิจวัตรมาจากบริบทของคุณ · แก้ได้ที่แท็บ "ฉัน" '
-    + 'แล้วแผนนี้จะขยับตามเอง</p>';
+      + icon('sparkles') + 'ให้น้องไซเล่าให้ฟังทีละข้อ</button>';
 
   saiStart();
 }
@@ -496,7 +494,7 @@ function saiTourBuild(now) {
     face: hi >= 22 || hi < 5 ? 'sleepy' : 'happy',
     head: greet + (name ? ' ' + name : ''),
     body: budget > 0
-      ? 'วันนี้หักเวลาเรียนกับกิจวัตรออกแล้ว เหลือเวลาทำงานได้จริง ' + hm(budget)
+      ? 'เหลือเวลาทำงานได้ ' + hm(budget)
       : 'วันนี้ไม่เหลือช่องที่ยาวพอจะทำงานแล้ว',
   });
 
@@ -518,8 +516,8 @@ function saiTourBuild(now) {
       face: pay.pileup > 0 ? 'serious' : 'wow',
       head: 'ส่งทัน ' + pay.covered + ' จาก ' + pay.soon + ' ใบ',
       body: pay.pileup > 0
-        ? 'ถ้าคืนนี้ไม่แตะเลย พรุ่งนี้ต้องทำรวด ' + hm(pay.pileup) + ' ซึ่งไม่สนุกแน่'
-        : 'ทำตามที่จัดไว้แล้วทันหมดทุกใบ ไม่ต้องอดนอน',
+        ? 'ถ้าคืนนี้ไม่แตะ พรุ่งนี้ต้องทำรวด ' + hm(pay.pileup)
+        : 'ทำตามแผนแล้วทันทุกใบ',
     });
   }
 
@@ -527,14 +525,14 @@ function saiTourBuild(now) {
     face: pay.mine > 0 ? 'happy' : 'sulk',
     head: pay.mine > 0 ? 'เหลือเป็นของเรา ' + hm(pay.mine) : 'วันนี้ไม่เหลือเวลาว่างแล้ว',
     body: pay.mine > 0
-      ? 'ทำงานครบตามแผนแล้วยังเหลือเท่านี้ เอาไปทำอะไรก็ได้ ไม่ต้องรู้สึกผิด'
-      : 'พรุ่งนี้ลองขยับเวลานอนหรือตัดกิจวัตรบางอย่างออกดูนะ',
+      ? 'เอาไปทำอะไรก็ได้'
+      : '',
   });
 
   if (sp && sp.now) {
     steps.push({
       face: 'wow', head: 'เริ่มเลยไหม',
-      body: 'กดแล้วเข้าโหมดโฟกัสให้เลย จับเวลาให้ด้วย ไม่ต้องตั้งเอง',
+      body: '',
       taskId: sp.now.task.id, cta: 'เริ่มทำเลย', ctaIc: 'play',
     });
   }

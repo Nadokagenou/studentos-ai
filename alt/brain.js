@@ -126,7 +126,7 @@ function brainReset() {
   state.settings.brain = { pos: {}, neg: {}, nPos: 0, nNeg: 0 };
   save(); renderAll();
   showToast({ title: 'ล้างสิ่งที่เรียนรู้แล้ว',
-    body: 'กลับไปใช้กฎพื้นฐานอย่างเดียว แล้วเริ่มเรียนใหม่จากศูนย์' });
+    body: '' });
 }
 
 // ---------- การ์ดบอกสถานะ ----------

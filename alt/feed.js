@@ -367,8 +367,6 @@ function feedListHTML() {
   if (!currentUser) {
     return `<div class="so-empty">
       <p class="so-empty-h">ล็อกอินเพื่อเห็นฟีด</p>
-      <p class="so-empty-p">ฟีดคือของที่คนในห้องเพิ่งโพสต์ — ต้องรู้ว่าใครเป็นใครก่อน
-        ถึงจะรู้ว่าโพสต์ไหนควรให้ใครเห็น</p>
       <button class="btn google" onclick="loginFromMates()"><span class="g-badge">G</span>
         เข้าสู่ระบบด้วย Google</button>
     </div>`;
@@ -633,7 +631,7 @@ function renderCompose() {
     </div>
     <div class="cp-body">
       <textarea id="cpText" rows="4" maxlength="1000"
-        placeholder="ติดตรงไหน เขียนมาเลย — เช่น ข้อ 7 ทำไม่เป็นจริง ๆ ใครพอช่วยได้บ้าง"></textarea>
+        placeholder="ติดตรงไหน"></textarea>
 
       ${composeImg ? `<div class="cp-img">
           <img src="${esc(composeImg.url)}" alt="รูปที่จะแนบ">
@@ -657,7 +655,7 @@ function renderCompose() {
         ${subs.length
           ? subs.map(s => `<button class="cp-chip" data-subj="${esc(s)}"
               onclick="pickCpChip(this,'cpSubj')">${esc(s)}</button>`).join('')
-          : '<span class="so-none">ยังไม่มีวิชา — เพิ่มงานสักชิ้นก่อน แล้ววิชาจะมาโผล่ตรงนี้</span>'}
+          : '<span class="so-none">ยังไม่มีวิชา</span>'}
       </div>
 
       <p class="cp-lb">ให้ใครเห็น</p>
@@ -670,7 +668,7 @@ function renderCompose() {
            บังคับติดชื่อทุกโพสต์แปลว่าไม่มีใครกล้าถาม ซึ่งฆ่าโพสต์ชนิดที่สำคัญที่สุดในแอปนี้ -->
       <label class="cp-anon">
         <input type="checkbox" id="cpAnon">
-        <span><b>ไม่ระบุชื่อ</b><i>เพื่อนจะเห็นแค่คำถาม ไม่เห็นว่าเป็นใคร</i></span>
+        <span><b>ไม่ระบุชื่อ</b></span>
       </label>
     </div>`;
 }
@@ -781,7 +779,7 @@ async function submitPost() {
   if (scope === 'room' && !row.room_id) {
     if (btn) { btn.disabled = false; btn.textContent = 'โพสต์'; }
     showToast({ title: 'ยังไม่ได้เข้าห้องเรียน',
-      body: 'ต้องกดลิงก์จากกลุ่ม LINE ของห้องก่อน หรือเลือกให้ "ทุกคนในแอป" เห็นแทน' });
+      body: 'กดลิงก์จากกลุ่ม LINE ของห้องก่อน' });
     return;
   }
   if (scope === 'school' && !row.school) {
@@ -792,7 +790,7 @@ async function submitPost() {
   if (scope === 'country' && !row.grade) {
     if (btn) { btn.disabled = false; btn.textContent = 'โพสต์'; }
     showToast({ title: 'ยังไม่ได้เลือกช่วงชั้น',
-      body: 'เลือกได้ที่หน้า "วิชาของฉัน" — แท็บทั่วประเทศใช้ช่วงชั้นเป็นตัวจับคู่' });
+      body: 'เลือกที่หน้า "วิชาของฉัน"' });
     return;
   }
 
@@ -934,7 +932,7 @@ function renderThread() {
     </div>
     <div class="th-scroll">
       ${postCard(Object.assign({}, p, { for_me: false })).replace(/onclick="openPost\([^"]*\)"/, '')}
-      <div class="th-lb">${theReplies.length ? theReplies.length + ' คำตอบ' : 'ยังไม่มีใครตอบ — เป็นคนแรกก็ได้'}</div>
+      <div class="th-lb">${theReplies.length ? theReplies.length + ' คำตอบ' : 'ยังไม่มีใครตอบ'}</div>
       ${theReplies.map(r => {
         const ra = !r.display_name;
         return `<div class="th-reply"${ra || !r.author ? '' :
@@ -1127,7 +1125,7 @@ function renderProfileHead() {
         buttons: `<div class="ig-btns">
           <button class="pri" onclick="setLoginView('root');go('scr-login')">${icon('user')}เข้าสู่ระบบ</button>
         </div>`,
-        extra: '<i>ยังไม่ล็อกอิน — เพื่อนยังหาคุณไม่เจอ</i>' });
+        extra: '<i>ยังไม่ล็อกอิน</i>' });
     return;
   }
 
@@ -1335,7 +1333,6 @@ function renderUser() {
       <b>โปรไฟล์</b><span></span></div>
       <div class="so-empty" style="margin:14px">
         <p class="so-empty-h">เปิดหน้านี้ไม่ได้</p>
-        <p class="so-empty-p">อาจเป็นเพราะบัญชีนี้ถูกลบไปแล้ว หรือคุณกับเขาบล็อกกันอยู่</p>
       </div>`;
     return;
   }
@@ -1415,7 +1412,7 @@ function userAnswersHTML(u) {
   const rows = userAnswers || [];
   if (!rows.length) {
     return `<p class="so-hint">${u.mine
-      ? 'คำตอบที่คุณเขียนให้คนอื่นจะมาอยู่ตรงนี้'
+      ? 'ยังไม่มีคำตอบ'
       : 'เขายังไม่เคยตอบใครในที่ที่คุณเห็นได้'}</p>`;
   }
   return rows.map(r => `<div class="ig-ans" onclick="${r.kind === 'topic'

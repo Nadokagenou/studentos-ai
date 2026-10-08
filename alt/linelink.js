@@ -24,7 +24,7 @@ let linkCode = null, linkTimer = null;
 
 async function requestLineCode() {
   if (!lineReady()) {
-    showToast({ title: 'ต้องล็อกอินก่อน', body: 'เชื่อม LINE ต้องรู้ว่าเป็นบัญชีใคร — ไปล็อกอินที่แท็บ “ฉัน” ก่อนนะ' });
+    showToast({ title: 'ต้องล็อกอินก่อน', body: '' });
     return;
   }
   const code = makeLineCode();
@@ -60,11 +60,11 @@ async function checkLineLinked() {
     // ขั้นที่ลึกที่สุดของกรวย — คนที่มาถึงตรงนี้คือคนที่แอปทำงานให้ได้จริงโดยเขาไม่ต้องพิมพ์
     if (typeof funnelMark === 'function') { funnelMark('lineLinkedAt'); save(); }
     showToast({ title: 'เชื่อมกลุ่ม LINE สำเร็จ 🎉',
-      body: 'งานที่ครูสั่งในกลุ่มนั้นจะไหลเข้ากล่องเข้าให้เอง ไม่ต้องพิมพ์อีกแล้ว' });
+      body: '' });
     pullInbox();
   } else {
     showToast({ title: 'รหัสหมดอายุแล้ว',
-      body: 'ยังไม่มีกลุ่มไหนใช้รหัสนี้ — กดขอรหัสใหม่แล้วพิมพ์ในกลุ่มได้เลย' });
+      body: 'ยังไม่มีกลุ่มไหนใช้รหัสนี้' });
   }
 }
 
@@ -102,7 +102,7 @@ async function unlinkLineRoom(roomId) {
   await sb.from('line_links').delete().eq('room_id', roomId);
   await loadLineLinks();
   renderAll();
-  showToast({ title: 'เลิกเชื่อมกลุ่มนี้แล้ว', body: 'ข้อความจากกลุ่มนี้จะไม่เข้าแอปอีก' });
+  showToast({ title: 'เลิกเชื่อมกลุ่มนี้แล้ว', body: '' });
 }
 
 // ---------- ดึงของดิบเข้ากล่องเข้า ----------
@@ -157,19 +157,19 @@ function inboxPullToast(t) {
   if (t.cancelled) {
     return {
       title: `ครูยกเลิกงาน ${t.cancelled} ใบ`,
-      body: 'ย้ายไปถังขยะให้แล้ว กู้คืนได้ถ้าคิดว่ายังต้องทำ',
+      body: 'ย้ายไปถังขยะแล้ว',
     };
   }
   if (t.updated && !t.added) {
-    return { title: `งานถูกแก้ ${t.updated} ใบ`, body: 'อัปเดตกำหนดส่งให้ตามต้นทางแล้ว' };
+    return { title: `งานถูกแก้ ${t.updated} ใบ`, body: 'อัปเดตกำหนดส่งแล้ว' };
   }
   const bits = [];
   if (t.added) bits.push(`ของใหม่ ${t.added} รายการ`);
   if (t.updated) bits.push(`แก้ไข ${t.updated} รายการ`);
   return {
     title: 'มีงานเข้ามาใหม่ · ' + bits.join(' · '),
-    body: wait ? `เข้าแผนให้แล้วบางส่วน · เหลือ ${wait} รายการที่อยากให้คุณดูก่อน`
-               : 'เข้าแผนให้เรียบร้อยแล้ว ไม่ต้องกรอกอะไรเพิ่ม',
+    body: wait ? `รอตรวจ ${wait} รายการ`
+               : 'เข้าแผนแล้ว',
   };
 }
 
@@ -207,7 +207,7 @@ function lineLinkPanel() {
     return `<div class="src-need">${icon('lock')}ยังไม่ได้ตั้งค่า Supabase — เชื่อม LINE ไม่ได้</div>`;
   }
   if (!currentUser) {
-    return `<div class="src-need">${icon('lock')}ต้องล็อกอินก่อน เพราะระบบต้องรู้ว่ากลุ่มนี้ส่งงานให้ใคร</div>
+    return `<div class="src-need">${icon('lock')}ต้องล็อกอินก่อน</div>
       <button class="ib-go" style="margin-top:10px" onclick="go('scr-profile')">ไปล็อกอิน</button>`;
   }
 

@@ -11394,3 +11394,6 @@ button.df-r:active .df-x { transform: scale(.985); }
 .login-wrap .tx-card { flex: 1 0 auto; display: flex; flex-direction: column; margin-bottom: 4px; }
 .tx-card > .tx-body:first-child { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; padding: 20px 20px; }
 .tx-card .lg-feats { gap: 16px; }
+
+/* toast ที่มีแค่หัวข้อ (ตัดคำอธิบายทิ้งแล้ว) — ไม่เหลือบรรทัดว่างใต้หัวข้อ */
+.toast .tb:empty { display: none; }

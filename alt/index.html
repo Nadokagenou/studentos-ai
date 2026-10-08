@@ -478,7 +478,6 @@
           <div class="ob-head">
             <img class="ob-mark" src="logo-splash-light.png" alt="">
             <h2 class="ob-h">รู้จักเราได้ยังไง</h2>
-            <p class="ob-p">ข้อนี้ข้ามได้ ถามไว้ปรับปรุงแอปเฉย ๆ</p>
           </div>
           <div class="ob-card"><div class="ob-chips ob-grid" id="obHear"></div></div>
           <div class="ob-act">
@@ -491,7 +490,6 @@
           <div class="ob-prog"><i class="on"></i><i class="on"></i><i></i><i></i></div>
           <div class="ob-head">
             <h2 class="ob-h">อยู่ชั้นไหน</h2>
-            <p class="ob-p">AI จะได้รู้ว่างานแบบไหนที่ควรเตือนล่วงหน้านานกว่าปกติ</p>
           </div>
           <div class="ob-card"><div class="ob-chips ob-grid" id="obGrade"></div></div>
           <div class="ob-act">
@@ -504,7 +502,6 @@
           <div class="ob-prog"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
           <div class="ob-head">
             <h2 class="ob-h">เรียกคุณว่าอะไรดี</h2>
-            <p class="ob-p">ทั้งแอปจะเรียกชื่อนี้ — ใส่ชื่อเล่นก็ได้</p>
           </div>
 
           <div class="ob-card">
@@ -545,7 +542,6 @@
           <div class="ob-prog"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
           <div class="ob-head">
             <h2 class="ob-h">วันธรรมดาของคุณเป็นยังไง</h2>
-            <p class="ob-p">ตอบ 3 ข้อ แล้ว AI จะรู้เองว่าคุณว่างช่วงไหนจริง ๆ ไม่ต้องเดาให้</p>
           </div>
 
           <div class="ob-card">
@@ -593,7 +589,7 @@
               <span class="vh-ring"><span class="ring"></span><svg viewBox="0 0 24 24"><use href="#lu-mic"/></svg></span>
               <span class="vh-txt">
                 <span class="t" id="voiceLabel">พูดใส่ไมค์</span>
-                <span class="s" id="voiceSub">เร็วที่สุด — 5 วินาทีเสร็จ</span>
+                <span class="s" id="voiceSub"></span>
               </span>
               <svg class="vh-ch" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
@@ -631,10 +627,8 @@
                (ออฟไลน์ · ยังไม่ล็อกอิน · ไม่ยินยอม · AI ล้ม) ปกติ AI อ่านเป็นหลักตั้งแต่แรก (8 ต.ค. 69) -->
           <div class="cloud-ocr" id="cloudOcrBox" hidden>
             <p class="co-h">อ่านได้ไม่ตรงใช่ไหม?</p>
-            <p class="co-s">ให้ AI ดูรูปเดิมอีกรอบ — เข้าใจว่างานคืออะไร กรอกวิชา กำหนดส่งให้ และอ่านลายมือได้</p>
             <button class="co-btn" id="cloudOcrBtn" onclick="cloudOcrRetry()">🤖 ให้ AI วิเคราะห์รูปนี้</button>
             <p class="co-why" id="cloudOcrWhy" hidden></p>
-            <p class="co-warn">ต้องใช้เน็ต และรูปจะถูกส่งออกจากเครื่อง · การอ่านในเครื่องไม่ส่งรูปไปไหน</p>
           </div>
 
           <div class="scan-paste">
@@ -662,7 +656,6 @@
           <div class="sticky-head row sh-inline">
             <div>
               <h2 class="sh-title">ถ่ายรูปใบงาน</h2>
-              <p class="sh-sub">ถ่ายแล้ว AI อ่านโจทย์ให้เอง</p>
             </div>
             <button class="sh-btn" onclick="closeShot()" aria-label="ปิดกล้อง">
               <svg viewBox="0 0 24 24"><use href="#lu-x"/></svg></button>
@@ -694,7 +687,7 @@
               <span class="h bl"></span><span class="h br"></span>
             </div>
           </div>
-          <p class="crop-hint" id="cropHint">ลากในรูปเพื่อวาดกรอบใหม่ · ลากมุมเพื่อปรับขนาด</p>
+          <p class="crop-hint" id="cropHint">ลากเพื่อปรับกรอบ</p>
           <div class="crop-act">
             <button class="fm-save" onclick="confirmCrop(false)">อ่านเฉพาะกรอบนี้</button>
             <button class="fm-cancel" onclick="confirmCrop(true)">อ่านทั้งรูป</button>
@@ -841,9 +834,7 @@
           <section class="fm-sec">
             <div class="fs-head">
               <h3 class="fs-h">รายละเอียด</h3>
-              <span class="fs-badge">ไม่จำเป็นต้องระบุ</span>
             </div>
-            <p class="fs-note">ช่องที่ไม่ได้กรอก น้องไซเดาให้เอง</p>
 
             <details class="fm-row" id="fTeacherWrap">
               <summary><span class="rw-l">ครูผู้สั่ง</span><span class="rw-v" id="rvTeacher">ยังไม่ระบุ</span></summary>
@@ -1047,7 +1038,6 @@
         <div class="sticky-head row">
           <div>
             <h2 class="sh-title">ตารางวันนี้</h2>
-            <p class="sh-sub">คาบเรียนกับงานทั้งวันเรียงตามเวลา</p>
           </div>
           <button class="sh-btn" onclick="goTasksTab()" aria-label="กลับไปที่งาน">
             <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
@@ -1100,7 +1090,6 @@
         <div class="sticky-head row">
           <div>
             <h2 class="sh-title">ตัวเชื่อม</h2>
-            <p class="sh-sub">แอปที่ส่งงานเข้ามาให้เอง โดยที่ไม่ต้องพิมพ์</p>
           </div>
           <button class="sh-btn" onclick="go('scr-inbox')" aria-label="กลับกล่องเข้า">
             <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
@@ -1377,7 +1366,6 @@
           <div class="sticky-head row sh-inline">
             <div>
               <h2 class="sh-title">สแกนตารางเรียน</h2>
-              <p class="sh-sub">ถ่ายรูปตารางมา แล้วตรวจก่อนบันทึก</p>
             </div>
             <button class="sh-btn" onclick="go('scr-context')" aria-label="กลับ">
               <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
@@ -1607,7 +1595,7 @@
             </div>
             <div class="set-row">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg></span>
-              <span class="set-lb">นั่งทำงานไหวต่อวัน<i>เพดานที่ AI จะไม่วางงานเกิน</i></span>
+              <span class="set-lb">นั่งทำงานไหวต่อวัน</span>
               <!-- 8 ต.ค. 69 · เจ้าของ: "แก้ให้สวยกว่านี้" — เดิมเป็นช่องตัวเลขเปล่ามีลูกศรขึ้นลงเล็ก ๆ ของเบราว์เซอร์
                    ตอนนี้เป็นปุ่ม − ตัวเลข + แบบแคปซูล กดทีละครึ่งชั่วโมง (stepFree) · ช่องตัวเลขยังพิมพ์เองได้ -->
               <span class="stp" role="group" aria-label="ชั่วโมงที่นั่งทำงานไหวต่อวัน">
@@ -1726,7 +1714,7 @@
             <div class="set-row col" id="aiPrefRow">
               <span class="set-hd">
                 <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
-                <span class="set-lb">ผู้ช่วย AI<i>น้องไซเห็นงาน ตารางเรียน และเวลาว่างของคุณ</i></span>
+                <span class="set-lb">ผู้ช่วย AI</span>
               </span>
               <div class="set-btns">
                 <button type="button" onclick="aiShowContext()">
@@ -1746,7 +1734,7 @@
             <div class="set-row col" id="codeRow" hidden>
               <span class="set-hd">
                 <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
-                <span class="set-lb">ใส่โค้ด<i>ถ้ามีโค้ดอยู่ในมือ พิมพ์ลงช่องนี้ได้เลย</i></span>
+                <span class="set-lb">ใส่โค้ด</span>
               </span>
               <div class="code-tools">
                 <input type="text" id="codeInput" placeholder="พิมพ์โค้ด" maxlength="64"
@@ -1776,7 +1764,7 @@
                  ทั้งนักเรียนและผู้ปกครองถาม และตอนนี้ทั้งแอปไม่มีที่ไหนตอบเลย -->
             <div class="set-row" id="modInfoRow">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
-              <span class="set-lb">การกรองเนื้อหา<i>ตรวจรูปและข้อความอัตโนมัติ · รายงานได้จากปุ่ม ···</i></span>
+              <span class="set-lb">การกรองเนื้อหา</span>
             </div>
           </div>
 
@@ -1901,7 +1889,7 @@
               </div>
               <div class="wg-extra" id="wgNoteWrap" hidden>
                 <textarea id="wgNoteInput" rows="3" maxlength="240"
-                  placeholder="จดอะไรไว้ก็ได้ — เลขห้องสอบ ของที่ต้องเอาไปส่ง อะไรที่ลืมบ่อย"
+                  placeholder="เช่น เลขห้องสอบ ของที่ต้องเอาไป"
                   onchange="saveWidgetNote()"></textarea>
               </div>
               <div class="wg-extra" id="wgPhotoWrap" hidden>
@@ -1962,7 +1950,6 @@
                   <span class="val" id="bgDimVal">55%</span></div>
                 <input type="range" id="bgDim" min="0" max="85" step="5" value="55"
                   oninput="setBgDim(this.value)">
-                <p class="bg-note">จางมาก = อ่านง่ายขึ้น · จางน้อย = เห็นภาพชัดขึ้น</p>
               </div>
             </div>
       </div></div>
@@ -1982,7 +1969,7 @@
       <div class="ig-sheet">
         <div class="ig-icon"><img src="logo-splash-light.png" alt=""></div>
         <div class="ig-title">ติดตั้ง Student OS</div>
-        <p class="ig-sub">ติดตั้งเป็นแอปเพื่อเปิดเต็มจอและรับการแจ้งเตือนได้ — ใช้เวลาแค่ 10 วินาที</p>
+        <p class="ig-sub">ติดตั้งเพื่อรับการแจ้งเตือน</p>
         <div class="ig-step"><span class="ig-num">1</span>แตะปุ่ม <b>แชร์</b> <span class="ig-share">⬆️</span> ที่แถบด้านล่างจอ Safari</div>
         <div class="ig-step"><span class="ig-num">2</span>เลื่อนหาแล้วแตะ <b>“เพิ่มไปยังหน้าจอโฮม”</b></div>
         <div class="ig-step"><span class="ig-num">3</span>แตะ <b>“เพิ่ม”</b> มุมขวาบน แล้วเปิดแอปจากไอคอนใหม่</div>

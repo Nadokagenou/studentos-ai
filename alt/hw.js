@@ -257,7 +257,7 @@ function hwStrip(t) {
     if (t.id !== hwAskId()) return '';
     return `<div class="hw hw-ask" onclick="event.stopPropagation()">
       <p>รู้ไหมว่ามีเพื่อนร่วมห้องอีกกี่คนที่ยังไม่ได้ทำงานชิ้นนี้</p>
-      <span class="hw-fine">เพื่อนจะเห็นแค่ว่าเธอมีงานวิชานี้ ส่งวันไหน และเสร็จหรือยัง — ไม่เห็นอย่างอื่น</span>
+      <span class="hw-fine">เพื่อนเห็นแค่วิชา วันส่ง และสถานะ</span>
       <div class="hw-ask-row">
         <button class="hw-no" onclick="hwSet(false)">ไม่เอา</button>
         <button class="hw-yes" onclick="hwSet(true)">เปิดใช้</button>
@@ -272,7 +272,6 @@ function hwStrip(t) {
   if (hwNoRoom) {
     if (t.id !== hwAskId()) return '';
     return `<div class="hw hw-link" onclick="event.stopPropagation();go('scr-sources')">
-      <span class="hw-n">เพื่อนที่มีงานชิ้นเดียวกันคุยกันได้ที่นี่</span>
       <span class="hw-go">เชื่อมห้องเรียน ${icon('chevron')}</span>
     </div>`;
   }
@@ -398,7 +397,7 @@ function renderHwRoom() {
     </div>
 
     ${closed
-      ? '<p class="hw-shut">งานชิ้นนี้เลยกำหนดส่งแล้ว ห้องจึงปิดรับข้อความ</p>'
+      ? '<p class="hw-shut">เลยกำหนดส่งแล้ว ปิดรับข้อความ</p>'
       : `<div class="hw-bar">
           <input id="hwIn" type="text" maxlength="1000" placeholder="ติดข้อไหน"
                  onkeydown="if(event.key==='Enter')sendHw()">
