@@ -1125,7 +1125,8 @@ function renderProfileHead() {
         buttons: `<div class="ig-btns">
           <button class="pri" onclick="setLoginView('root');go('scr-login')">${icon('user')}เข้าสู่ระบบ</button>
         </div>`,
-        extra: '<i>ยังไม่ล็อกอิน</i>' });
+        // 8 ต.ค. 69 · ป้ายสถานะมีจุดสี (.ig-off) แทนตัวเอียงจาง ๆ · ข้อความสั้นตามรอบตัดข้อความอธิบายของ 1C50
+        extra: '<i class="ig-off">ยังไม่ล็อกอิน</i>' });
     return;
   }
 
@@ -1305,8 +1306,21 @@ let userAnswers = null;       // null = ยังไม่เคยโหลด
 let answersBusy = false;
 
 function switchUserTab(t) {
+  const from = userTab;
   userTab = t;
   renderUser();
+  // ก้อนสีเลื่อนจากแท็บเดิมไปแท็บใหม่ (จอวาดใหม่ทั้งก้อน จึงตั้งตำแหน่งเดิมก่อนแล้วค่อยปล่อย) + เนื้อหาเลื่อนเข้าจากฝั่งที่กด
+  const tabs = document.querySelector('#userBody .ig-tabs');
+  const body = document.querySelector('#userBody .ig-tabbody');
+  if (tabs && from !== t) {
+    tabs.classList.add('hold');
+    tabs.style.setProperty('--i', from === 'posts' ? 0 : 1);
+    void tabs.offsetWidth;
+    tabs.classList.remove('hold');
+    tabs.style.setProperty('--i', t === 'posts' ? 0 : 1);
+    if (body) { body.dataset.dir = t === 'posts' ? 'l' : 'r'; body.classList.add('swap'); }
+    if (typeof haptic === 'function') haptic('arm');
+  }
   if (t === 'answers' && userAnswers === null) loadUserAnswers();
 }
 
@@ -1383,26 +1397,48 @@ function renderUser() {
           ? `<p class="so-why give">กำลังจม<b>${esc(u.give.join(' · '))}</b> ซึ่งคุณช่วยได้</p>` : ''}
       </div>` : ''}
 
-      <div class="ig-tabs">
-        <button class="${userTab === 'posts' ? 'on' : ''}" onclick="switchUserTab('posts')">
-          ${icon('type')}โพสต์</button>
-        <button class="${userTab === 'answers' ? 'on' : ''}" onclick="switchUserTab('answers')">
-          ${icon('chat')}คำตอบ</button>
+      <!-- 8 ต.ค. 69 · แท็บเป็นแคปซูลมีก้อนสีเลื่อน (เจ้าของ: "จัดตรงโพสต์กับคำตอบให้มันสวยกว่านี้ และมีอนิเมชันสักหน่อย")
+           --i = แท็บที่เลือก · switchUserTab สั่งเลื่อนจากแท็บเดิมหลังวาดใหม่ · เนื้อหาเลื่อนเข้าจากฝั่งที่กด -->
+      <div class="ig-tabs" role="tablist" style="--i:${userTab === 'posts' ? 0 : 1}">
+        <span class="ig-tab-ind" aria-hidden="true"></span>
+        <button class="${userTab === 'posts' ? 'on' : ''}" role="tab" aria-selected="${userTab === 'posts'}" onclick="switchUserTab('posts')">
+          ${icon('type')}โพสต์${theUserPosts.length ? `<i>${theUserPosts.length}</i>` : ''}</button>
+        <button class="${userTab === 'answers' ? 'on' : ''}" role="tab" aria-selected="${userTab === 'answers'}" onclick="switchUserTab('answers')">
+          ${icon('chat')}คำตอบ${userAnswers && userAnswers.length ? `<i>${userAnswers.length}</i>` : ''}</button>
       </div>
 
       <div class="ig-tabbody">${userTab === 'posts' ? userPostsHTML(u, name) : userAnswersHTML(u)}</div>
     </div>`;
 }
 
+// 8 ต.ค. 69 · โพสต์บนหน้าโปรไฟล์เป็นตารางสองคอลัมน์แบบ TweetGrid (เจ้าของส่งเดโม TweetGrid + GradientHeading มา:
+// "ตอนหน้าคนในแชทให้มีคล้ายแบบนี้") — หัวข้อตัวใหญ่ไล่สี + การ์ดเล็กแบบทวีตเรียงแบบก่ออิฐ (สูงไม่เท่ากันได้)
+// การ์ดย่อจาก postCard: หัว (รูป ชื่อ เวลา) · วิชา · ข้อความ (ตัดที่ 7 บรรทัด) · รูป · จำนวนคำตอบ · แตะ = เปิดโพสต์เต็ม
+// ฟีดหลักยังเป็นการ์ดเต็มแถวเหมือนเดิม — ตารางมีไว้กวาดตาดูว่าคนนี้โพสต์เรื่องอะไรบ้าง
+function tweetCard(p, u, name, i) {
+  const anon = !!p.anon;
+  const who = anon ? 'ไม่ระบุชื่อ' : name;
+  const av = (!anon && u.avatar)
+    ? `<img class="twg-av" src="${esc(u.avatar)}" alt="">`
+    : `<div class="twg-av${anon ? ' anon' : ''}"${anon ? '' : ` style="${faceTint(u)}"`}>${anon ? '?' : esc(faceLetter(u))}</div>`;
+  return `<article class="twg-card" style="--i:${i}" onclick="openPost('${esc(p.id)}')">
+    <div class="twg-h">${av}<div class="twg-who"><b>${esc(who)}</b><i>${esc(ago(p.created_at))}</i></div></div>
+    ${p.subject ? `<span class="twg-subj ${typeof subjClass === 'function' ? subjClass(p.subject) : ''}">${esc(p.subject)}</span>` : ''}
+    ${String(p.body || '').trim() ? `<p class="twg-body">${esc(p.body)}</p>` : ''}
+    ${p.image ? `<img class="twg-img" src="${esc(postImageUrl(p.image))}" alt="รูปที่แนบมากับโพสต์" loading="lazy">` : ''}
+    <div class="twg-f">${icon('chat')}${p.reply_count ? p.reply_count + ' คำตอบ' : 'ยังไม่มีใครตอบ'}</div>
+  </article>`;
+}
+
 function userPostsHTML(u, name) {
   if (theUserPosts.length) {
-    return theUserPosts.map(p => postCard(Object.assign({}, p, {
-      display_name: p.anon ? null : name, avatar: u.avatar, author: u.id, for_me: false,
-    }))).join('');
+    return `<h3 class="twg-head">${u.mine ? 'โพสต์ของฉัน' : 'โพสต์ของ ' + esc(name)}</h3>
+      <div class="twg-grid">${[0, 1].map(c => `<div class="twg-col">${theUserPosts
+        .map((p, i) => i % 2 === c ? tweetCard(p, u, name, i) : '').join('')}</div>`).join('')}</div>`;
+    // สองคอลัมน์จริง (คู่ซ้าย คี่ขวา) ไม่ใช่ CSS columns — กล่องแท็บมีความสูงจำกัด columns เลยแตกเป็นหลายคอลัมน์เลื่อนข้าง
   }
-  return `<p class="so-hint">${u.mine
-    ? 'โพสต์ของคุณจะมาอยู่ตรงนี้'
-    : 'เขายังไม่เคยโพสต์อะไรที่คุณเห็นได้'}</p>`;
+  return `<div class="ig-empty"><span>${icon('type')}</span><b>${u.mine ? 'ยังไม่มีโพสต์' : 'ยังไม่มีโพสต์ให้ดู'}</b>
+    <p>${u.mine ? 'โพสต์ของคุณจะมาอยู่ตรงนี้' : 'เขายังไม่เคยโพสต์อะไรที่คุณเห็นได้'}</p></div>`;
 }
 
 // แท็บคำตอบทำให้ตัวเลข "ช่วยแล้ว" กดดูได้ ไม่ใช่เลขลอย ๆ
@@ -1411,9 +1447,8 @@ function userAnswersHTML(u) {
   if (answersBusy && userAnswers === null) return '<p class="so-hint">กำลังโหลด…</p>';
   const rows = userAnswers || [];
   if (!rows.length) {
-    return `<p class="so-hint">${u.mine
-      ? 'ยังไม่มีคำตอบ'
-      : 'เขายังไม่เคยตอบใครในที่ที่คุณเห็นได้'}</p>`;
+    return `<div class="ig-empty"><span>${icon('chat')}</span><b>ยังไม่มีคำตอบ</b>${u.mine ? ''
+      : '<p>เขายังไม่เคยตอบใครในที่ที่คุณเห็นได้</p>'}</div>`;
   }
   return rows.map(r => `<div class="ig-ans" onclick="${r.kind === 'topic'
       ? `openTThread('${esc(r.ref)}')` : `openPost('${esc(r.ref)}')`}">

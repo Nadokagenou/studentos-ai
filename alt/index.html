@@ -1782,9 +1782,20 @@
                  รอบแรกสลับป้ายตามสถานะล็อกอิน (ไม่ล็อกอิน = ยังเป็น "ล้างข้อมูลทั้งหมด") เจ้าของเห็นป้ายเดิมเลยสั่งซ้ำ
                  ตอนนี้เป็น "ออกจากระบบ" เสมอ · ไม่ได้ล็อกอิน = logout() พากลับจอเข้าสู่ระบบ (ข้อมูลในเครื่องอยู่ครบ)
                  ปุ่มล้างข้อมูลทั้งหมด (clearAll) ไม่มีทางเข้าจากจอนี้แล้ว — คนมีบัญชีลบได้จาก "ลบบัญชีและข้อมูลทั้งหมด" ในแท็บฉัน -->
+            <!-- 8 ต.ค. 69 · เจ้าของวงลิงก์สามบรรทัดเหนือการ์ด (ออกจากระบบ · เราเก็บอะไรของคุณบ้าง · ลบบัญชีและข้อมูลทั้งหมด):
+                 "ลบตรงนี้ออก แล้วเอามารวมกันกับปุ่ม" — สองอันที่ไม่ซ้ำย้ายมาเป็นแถวในการ์ดนี้ · ลิงก์ออกจากระบบที่ซ้ำกับแถวล่างถูกถอด
+                 สองแถวนี้มีความหมายเฉพาะตอนมีบัญชี → ซ่อนไว้ก่อน renderProfile เปิดให้เมื่อล็อกอินอยู่ -->
+            <button type="button" class="set-row go" id="setPrivRow" hidden onclick="go('scr-privacy'); renderPrivacy()">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
+              <span class="set-lb">เราเก็บอะไรของคุณบ้าง</span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
             <button type="button" class="set-row go danger" id="setOutRow" onclick="logout()">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-logout"/></svg></span>
               <span class="set-lb">ออกจากระบบ</span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <button type="button" class="set-row go danger" id="setDelRow" hidden onclick="deleteAccount()">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg></span>
+              <span class="set-lb">ลบบัญชีและข้อมูลทั้งหมด</span>
               <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
           </div>
         </div>

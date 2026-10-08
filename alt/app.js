@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C49';                 // สายเลขของแอป
+const APP_VERSION = '1C50';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -1080,6 +1080,8 @@ function go(id) {
   // คืนบล็อกตัวเลือกกลับที่พักก่อนออกจากหน้าย่อยของตั้งค่า — ทางออกมีหลายทาง
   // (ปุ่มกลับ · แท็บล่าง · ปุ่มย้อนของเครื่อง) ตกทางใดทางหนึ่งแล้วบล็อกหาย
   if (curScreen === 'scr-setopt' && id !== 'scr-setopt') stashSetOpt();
+  if (typeof statDayClose === 'function') statDayClose(true);
+  if (typeof aiChatsClose === 'function') aiChatsClose(true);
   const dir = navDirection(curScreen, id);
   // ออกจากจอสุ่มเมื่อไหร่ ทิ้งผลรอบเดิม กลับเข้ามาจะได้เริ่มใหม่สะอาด ๆ
   if (id !== 'scr-wheel') { drawSettle(); drawResults = []; drawOpen = []; gcAuraOff(); applyDrawLock(); }
@@ -1121,8 +1123,9 @@ function go(id) {
   // เพราะจอนั้นบังคับให้ฟังจนจบ · พอเป็นจอเลื่อนที่ออกได้ทุกเมื่อ การซ่อนแถบล่าง
   // กลายเป็นการกักคนไว้โดยไม่มีเหตุผลอะไรรองรับ
   document.body.classList.toggle('chat-mode',
-    id === 'scr-chat' || id === 'scr-hw' || id === 'scr-topic'
-    || id === 'scr-tthread' || id === 'scr-dm');
+    // 8 ต.ค. 69 · scr-chat กับ scr-dm ออกจากรายการนี้ (เจ้าของ: "ทำให้มีปุ่มเมนูกลับมาข้างล่าง")
+    // ช่องพิมพ์ของห้องแชทยกขึ้นพ้นแถบล่างใน alt.css แทน — ไม่ต้องซ่อนแถบเพื่อให้กดช่องพิมพ์โดนแล้ว
+    id === 'scr-hw' || id === 'scr-topic' || id === 'scr-tthread');
   document.body.classList.toggle('compose-mode',
     id === 'scr-compose' || id === 'scr-post' || id === 'scr-user');
   // ออกจากฟีดเมื่อไหร่ ปิดช่องรับโพสต์สดกับ presence — ทั้งคู่กินโควตา realtime
@@ -3077,7 +3080,9 @@ function addSheetHTML() {
   if (addSheetView === 'connectors') {
     const c = typeof connectorCount === 'function' ? connectorCount() : { on: 0, all: 0 };
     return `<div class="as-grip"></div>
-      <button type="button" class="as-h as-back" onclick="openAddSheet('root')" aria-label="กลับไปเมนูเพิ่มงาน">
+      <!-- 8 ต.ค. 69 · aria-label ห้ามขึ้นต้นด้วย "กลับ" — กฎปุ่มกลับลอยของทุกจอ (button[aria-label^="กลับ"] ท้าย alt.css)
+           จับปุ่มนี้ไปทำเป็นวงกลมลอยมุมซ้ายบน ทับคำว่า "ตัวเชื่อม" (เจ้าของ: "ทำให้ตรงแล้วถูกต้อง") -->
+      <button type="button" class="as-h as-back" onclick="openAddSheet('root')" aria-label="ย้อนไปเมนูเพิ่มงาน">
         <span class="as-bk">${icon('chevron')}</span>ตัวเชื่อม
         <span class="as-cnt">เปิดอยู่ ${c.on}/${c.all}</span>
       </button>
@@ -3157,8 +3162,16 @@ function openAddSheet(view) {
   addSheetView = view === 'connectors' ? 'connectors' : 'root';
 
   // เปิดอยู่แล้ว = แค่สลับหน้าในแผ่นเดิม ห้ามวาดใหม่ทั้งก้อน ไม่งั้นแผ่นเลื่อนลงแล้วขึ้นใหม่
+  // 8 ต.ค. 69 · ของในหน้าใหม่เลื่อนเข้าจากฝั่งที่ไป (.swap · ไปหน้าตัวเชื่อม = จากขวา · กลับ = จากซ้าย)
+  // ใส่เฉพาะตอนสลับหน้า — กดสวิตช์ (refreshAddSheet) ไม่เล่นซ้ำ
   if (!el.hidden) {
     refreshAddSheet();
+    const card = el.querySelector('.as-card');
+    if (card) {
+      card.dataset.dir = addSheetView === 'connectors' ? 'r' : 'l';
+      card.classList.remove('swap'); void card.offsetWidth; card.classList.add('swap');
+      setTimeout(() => card.classList.remove('swap'), 600);
+    }
     haptic('tap');
     return;
   }
@@ -4394,9 +4407,206 @@ function aiLog() {
 function aiLogSave(list) {
   try { localStorage.setItem(AI_LOG_KEY, JSON.stringify(list.slice(-AI_LOG_CAP))); } catch (_) {}
 }
-function aiClear() {
-  if (!confirm('เริ่มแชทใหม่? ข้อความเดิมจะถูกล้าง')) return;
+// ---------- กล่องยืนยันของแอปเอง (แทน confirm() ของเบราว์เซอร์) ----------
+// 8 ต.ค. 69 · เจ้าของกดปุ่ม "เริ่มแชทใหม่" แล้ว "มันทำอะไรไม่ได้เลย"
+// สาเหตุ: confirm() ของเบราว์เซอร์ถูกปิดในบางที่ (หน้าต่างพรีวิวในแอป Claude · เบราว์เซอร์ในแอปแชทบางตัว · PWA บางเครื่อง)
+// มันคืน false ทันทีโดยไม่โชว์อะไรเลย (วัดได้ 11ms) ปุ่มที่ถามก่อนลบทุกปุ่มจึงเงียบเหมือนกดไม่ติด
+// ตัวนี้วาดเองบนจอ ใช้ได้ทุกที่ · คืน Promise<boolean> — ผู้เรียกเขียน if (!(await appConfirm({...}))) return;
+//   title · body · ok (ป้ายปุ่มยืนยัน) · danger (ปุ่มยืนยันเป็นสีแดง = ลบ/ล้าง)
+// แผ่นเลื่อนขึ้นจากล่างแบบ action sheet · แตะพื้นข้างหลัง / Esc / ยกเลิก = ไม่ทำ · โฟกัสเริ่มที่ "ยกเลิก" กันกด Enter พลาดแล้วลบ
+function appConfirm({ title, body = '', ok = 'ตกลง', danger = false } = {}) {
+  return new Promise(resolve => {
+    const host = document.querySelector('.phone') || document.body;
+    const scrim = document.createElement('div');
+    scrim.className = 'ac-scrim';
+    const box = document.createElement('div');
+    box.className = 'ac-sheet';
+    box.setAttribute('role', 'alertdialog');
+    box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-label', title || '');
+    box.innerHTML = `<div class="ac-tx"><b>${esc(title || '')}</b>${body ? `<p>${esc(body).replace(/\n/g, '<br>')}</p>` : ''}</div>
+      <div class="ac-btns"><button type="button" class="ac-no">ยกเลิก</button>
+        <button type="button" class="ac-ok${danger ? ' danger' : ''}">${esc(ok)}</button></div>`;
+    host.appendChild(scrim);
+    host.appendChild(box);
+    let settled = false;
+    const finish = v => {
+      if (settled) return;
+      settled = true;
+      document.removeEventListener('keydown', onKey, true);
+      scrim.classList.remove('open'); box.classList.remove('open');
+      setTimeout(() => { scrim.remove(); box.remove(); }, 260);
+      resolve(v);
+    };
+    const onKey = e => { if (e.key === 'Escape') { e.preventDefault(); finish(false); } };
+    scrim.onclick = () => finish(false);
+    box.querySelector('.ac-no').onclick = () => finish(false);
+    box.querySelector('.ac-ok').onclick = () => { if (typeof haptic === 'function') haptic(danger ? 'snooze' : 'arm'); finish(true); };
+    document.addEventListener('keydown', onKey, true);
+    void box.offsetWidth;
+    scrim.classList.add('open'); box.classList.add('open');
+    try { box.querySelector('.ac-no').focus({ preventScroll: true }); } catch (_) {}
+  });
+}
+
+async function aiClear() {
+  // ปุ่ม "ล้างประวัติแชท" ในตั้งค่า — ล้างทั้งแชทที่คุยอยู่และแชทเก่าทั้งหมด (คำว่า "ประวัติ" ต้องหมายถึงทั้งหมดจริง)
+  const old = aiChats().length;
+  if (!(await appConfirm({ title: 'ล้างประวัติแชททั้งหมด?',
+    body: 'ข้อความกับน้องไซ' + (old ? ' รวมแชทเก่าอีก ' + old + ' แชท' : '') + ' จะถูกลบ กู้คืนไม่ได้',
+    ok: 'ล้างทั้งหมด', danger: true }))) return;
+  try { localStorage.removeItem(AI_LOG_KEY); localStorage.removeItem(AI_CHATS_KEY); } catch (_) {}
+  aiChatsClose(true);
+  renderAi();
+}
+
+// ============================================================
+// แชทกับน้องไซหลายห้อง — ปุ่มดินสอบนหัวจอเปิดรายการแชท (แบบแถบ "ล่าสุด" ของแอปแชท AI ทั่วไป)
+// ------------------------------------------------------------
+// 8 ต.ค. 69 · เจ้าของส่งรูปรายการแชทแบบ "ล่าสุด" มา: "ทำให้กดมีคล้ายแบบนี้ และทำอนิเมชันกดคล้ายตอนกดแท่งเมื่อกี้"
+// เดิมปุ่มดินสอ = ล้างแชททิ้ง (ข้อความหายถาวร) · ตอนนี้ "แชทใหม่" เก็บแชทเดิมเข้ารายการก่อนเสมอ ไม่มีอะไรหาย
+// ที่เก็บ: แชทที่คุยอยู่ยังอยู่ที่ AI_LOG_KEY เหมือนเดิม (ไม่ย้ายคีย์ — ข้อมูลเก่าของทุกเครื่องยังอยู่)
+//          แชทเก่าอยู่ที่คีย์ใหม่ studentos.alt.aiChats = [{ id, title, at, log }] ใหม่สุดก่อน เก็บได้ 30 แชท
+// ชื่อแชท = คำถามแรกที่พิมพ์ (ตัดที่ 48 ตัว) · แผงงอกจากปุ่มดินสอแบบเดียวกับแผงของแท่งกราฟ (FLIP)
+// ระหว่างน้องไซกำลังตอบ (aiBusy) ห้ามสลับห้อง — คำตอบที่ไหลเข้ามาจะไปตกผิดห้อง
+// ============================================================
+const AI_CHATS_KEY = 'studentos.alt.aiChats';
+const AI_CHATS_CAP = 30;
+
+function aiChats() {
+  try { const v = JSON.parse(localStorage.getItem(AI_CHATS_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (_) { return []; }
+}
+function aiChatsSave(list) {
+  try { localStorage.setItem(AI_CHATS_KEY, JSON.stringify(list.slice(0, AI_CHATS_CAP))); } catch (_) {}
+}
+function aiChatTitle(log) {
+  const first = (log.find(m => m.role === 'user' || m.role === 'offer') || {}).text || '';
+  const s = String(first).replace(/\s+/g, ' ').trim();
+  return s ? (s.length > 48 ? s.slice(0, 47) + '…' : s) : 'แชทไม่มีชื่อ';
+}
+function aiChatWhen(iso) {
+  const d = new Date(iso), now = new Date();
+  const day = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 8.64e7);
+  const hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  return day <= 0 ? 'วันนี้ ' + hm : day === 1 ? 'เมื่อวาน ' + hm : d.getDate() + ' ' + MONTH_SHORT[d.getMonth()];
+}
+// แชทที่คุยอยู่ → เข้ารายการ (เฉพาะที่มีคำถามจริงอย่างน้อยหนึ่งข้อ — ห้องว่างไม่ต้องเก็บ)
+function aiArchiveCurrent() {
+  const log = aiLog();
+  if (!log.some(m => m.role === 'user' || m.role === 'offer')) return false;
+  const list = aiChats();
+  list.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title: aiChatTitle(log), at: new Date().toISOString(), log });
+  aiChatsSave(list);
+  return true;
+}
+
+function aiChatsListHTML() {
+  const cur = aiLog();
+  const curHas = cur.some(m => m.role === 'user' || m.role === 'offer');
+  const list = aiChats();
+  const rows = (curHas ? `<div class="fp-row ch-row on" style="--k:0">
+      <span class="ch-dot"></span>
+      <span class="fp-tx"><b>${esc(aiChatTitle(cur))}</b><i class="ch-now">กำลังคุยอยู่</i></span></div>` : '')
+    + list.map((c, k) => `<div class="fp-row ch-row" style="--k:${k + (curHas ? 1 : 0)}" role="button" tabindex="0"
+        onclick="aiOpenChat('${c.id}')" onkeydown="if(event.key==='Enter')aiOpenChat('${c.id}')">
+      <span class="fp-tx"><b>${esc(c.title || 'แชทไม่มีชื่อ')}</b><i class="ch-at">${esc(aiChatWhen(c.at))}</i></span>
+      <button type="button" class="ch-del" onclick="event.stopPropagation();aiDeleteChat('${c.id}')" aria-label="ลบแชทนี้">${icon('x')}</button>
+    </div>`).join('');
+  return rows || `<p class="fp-empty">ยังไม่มีแชทเก่า — กด "แชทใหม่" แล้วแชทนี้จะมาอยู่ตรงนี้</p>`;
+}
+
+function aiChatsOpen(btn) {
+  aiChatsClose(true);
+  const phone = document.querySelector('.phone') || document.body;
+  const scrim = document.createElement('div');
+  scrim.className = 'fp-scrim ch-scrim';
+  scrim.onclick = () => aiChatsClose();
+  const panel = document.createElement('div');
+  panel.className = 'fp ch-panel';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-label', 'แชทกับน้องไซ');
+  panel.innerHTML = `<div class="fp-in">
+      <div class="fp-h"><b>แชทกับน้องไซ</b><i>เก็บไว้ในเครื่องนี้ · ${aiChats().length} แชทเก่า</i></div>
+      <button type="button" class="ch-new" onclick="aiNewChat()">${icon('pencil')}แชทใหม่</button>
+      <div class="ch-sec">ล่าสุด</div>
+      <div class="fp-list ch-list">${aiChatsListHTML()}</div>
+    </div>`;
+  phone.appendChild(scrim);
+  phone.appendChild(panel);
+  const pr = phone.getBoundingClientRect();
+  const br = btn ? btn.getBoundingClientRect() : null;
+  panel.style.top = (br ? br.bottom - pr.top + 8 : 70) + 'px';
+  if (typeof haptic === 'function') haptic('arm');
+  scrim.classList.add('open');
+  document.addEventListener('keydown', aiChatsEsc, true);
+  if (!br || !panel.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) { panel.classList.add('open'); return; }
+  const fr = panel.getBoundingClientRect();
+  panel.animate([
+    { transform: `translate(${br.left - fr.left}px, ${br.top - fr.top}px) scale(${br.width / fr.width}, ${br.height / fr.height})`,
+      borderRadius: '999px', background: 'var(--fill)' },
+    { transform: 'none', borderRadius: '24px', background: 'var(--card)' },
+  ], { duration: 460, easing: 'cubic-bezier(.3, 1.15, .4, 1)' });
+  setTimeout(() => panel.classList.add('open'), 200);
+}
+function aiChatsEsc(e) { if (e.key === 'Escape' && !document.querySelector('.ac-sheet')) aiChatsClose(); }
+
+function aiChatsClose(instant) {
+  document.removeEventListener('keydown', aiChatsEsc, true);
+  const panel = document.querySelector('.ch-panel');
+  const scrim = document.querySelector('.ch-scrim');
+  if (!panel) { if (scrim) scrim.remove(); return; }
+  let gone = false;
+  const done = () => { if (gone) return; gone = true; panel.remove(); if (scrim) scrim.remove(); };
+  const btn = document.querySelector('#aiBody .sh-new');
+  if (instant || !btn || !btn.offsetParent || !panel.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return done();
+  const br = btn.getBoundingClientRect(), fr = panel.getBoundingClientRect();
+  panel.classList.remove('open');
+  if (scrim) scrim.classList.remove('open');
+  panel.animate([
+    { transform: 'none', borderRadius: '24px', background: 'var(--card)' },
+    { transform: `translate(${br.left - fr.left}px, ${br.top - fr.top}px) scale(${br.width / fr.width}, ${br.height / fr.height})`,
+      borderRadius: '999px', background: 'var(--fill)', opacity: .4 },
+  ], { duration: 320, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' }).onfinish = done;
+  setTimeout(done, 380);
+}
+
+function aiBusyNote() {
+  showToast({ title: 'รอน้องไซตอบให้จบก่อนนะ', body: 'กำลังตอบอยู่ ถ้าสลับแชทตอนนี้คำตอบจะไปตกผิดห้อง' });
+}
+
+function aiNewChat() {
+  if (aiBusy) return aiBusyNote();
+  const kept = aiArchiveCurrent();
   try { localStorage.removeItem(AI_LOG_KEY); } catch (_) {}
+  aiChatsClose();
+  renderAi();
+  const box = document.getElementById('aiInput');
+  if (box) setTimeout(() => box.focus(), 350);
+  if (kept) showToast({ title: 'เริ่มแชทใหม่แล้ว', body: 'แชทเมื่อกี้เก็บไว้ในรายการ กดปุ่มดินสอเพื่อกลับไปดูได้' });
+}
+
+function aiOpenChat(id) {
+  if (aiBusy) return aiBusyNote();
+  const list = aiChats();
+  const c = list.find(x => x.id === id);
+  if (!c) return;
+  aiArchiveCurrent();
+  aiChatsSave(aiChats().filter(x => x.id !== id));
+  aiLogSave(Array.isArray(c.log) ? c.log : []);
+  aiChatsClose();
+  renderAi();
+  if (typeof aiScrollDown === 'function') requestAnimationFrame(aiScrollDown);
+}
+
+async function aiDeleteChat(id) {
+  const c = aiChats().find(x => x.id === id);
+  if (!c) return;
+  if (!(await appConfirm({ title: 'ลบแชทนี้?', body: '"' + (c.title || 'แชทไม่มีชื่อ') + '" จะหายไป กู้คืนไม่ได้', ok: 'ลบแชท', danger: true }))) return;
+  aiChatsSave(aiChats().filter(x => x.id !== id));
+  const list = document.querySelector('.ch-panel .ch-list');
+  if (list) list.innerHTML = aiChatsListHTML();
+  const sub = document.querySelector('.ch-panel .fp-h i');
+  if (sub) sub.textContent = 'เก็บไว้ในเครื่องนี้ · ' + aiChats().length + ' แชทเก่า';
   renderAi();
 }
 
@@ -4842,7 +5052,7 @@ function renderAi() {
         (pend.length ? 'เห็นงาน ' + pend.length + ' ใบ' : 'ยังไม่เห็นงานค้าง')
         + (nCls ? ' · ตาราง ' + nCls + ' คาบ' : ''))}</p>
     </div>
-    ${log.length ? `<button class="sh-new" onclick="aiClear()" aria-label="เริ่มแชทใหม่">${
+    ${log.length || aiChats().length ? `<button class="sh-new" onclick="aiChatsOpen(this)" aria-label="แชทใหม่ · แชทเก่า">${
       icon('pencil')}</button>` : ''}
   </header>`;
   // 1C40 · ปุ่มรูปคนมุมขวาบนถูกถอด — หัวจอแชทแบบ Claude / ChatGPT มีแค่ทางกลับกับปุ่มแชทใหม่
@@ -5991,16 +6201,16 @@ function restoreTask(id) {
   save(); renderAll();
   showToast({ title: 'กู้คืนแล้ว ↩', body: taskTitle(t).replace(/<[^>]*>/g, '') });
 }
-function purgeTask(id) {
+async function purgeTask(id) {
   const t = state.tasks.find(x => x.id === id);
   if (!t) return;
-  if (!confirm('ลบถาวร กู้คืนไม่ได้อีก แน่ใจนะ?')) return;
+  if (!(await appConfirm({ title: 'ลบงานนี้ถาวร?', body: 'กู้คืนไม่ได้อีก', ok: 'ลบถาวร', danger: true }))) return;
   state.tasks = state.tasks.filter(x => x.id !== id);
   save(); renderAll();
 }
-function emptyBin() {
+async function emptyBin() {
   const n = state.tasks.filter(t => t.deleted).length;
-  if (!n || !confirm(`ลบถาวรทั้ง ${n} รายการ กู้คืนไม่ได้อีก แน่ใจนะ?`)) return;
+  if (!n || !(await appConfirm({ title: `ลบถาวรทั้ง ${n} รายการ?`, body: 'กู้คืนไม่ได้อีก', ok: 'ล้างถังขยะ', danger: true }))) return;
   state.tasks = liveTasks();
   save();
   setFilter('pending');
@@ -6942,9 +7152,9 @@ function renderProfile() {
       // ออกจากระบบ · อ่านว่าเราเก็บอะไร · ลบบัญชีถาวร
       // สามอย่างนี้ต้องอยู่ด้วยกัน เพราะเป็นชุดเดียวกันในหัวคน: "ฉันจะถอนตัวยังไง"
       // และการซ่อนปุ่มลบไว้ลึก ๆ คือการทำให้สิทธิ์ที่กฎหมายให้ไว้ใช้ไม่ได้จริง
-      acc.innerHTML = `<button class="pf-quiet" onclick="logout()">${icon('chevron')}ออกจากระบบ</button>
-        <button class="pf-quiet" onclick="go('scr-privacy'); renderPrivacy()">${icon('lock')}เราเก็บอะไรของคุณบ้าง</button>
-        <button class="pf-quiet pf-danger" onclick="deleteAccount()">${icon('trash')}ลบบัญชีและข้อมูลทั้งหมด</button>`;
+      // 8 ต.ค. 69 · ย้ายไปเป็นแถวในการ์ดเดียวกับ "ออกจากระบบ" แล้ว (#setPrivRow · #setDelRow ใน index.html)
+      // ยังอยู่ครบทั้งสามอย่างและอยู่ด้วยกันเหมือนเดิม แค่ไม่ใช่ลิงก์ลอยเหนือการ์ด
+      acc.innerHTML = '';
     } else {
       // ปุ่มนี้เคยเรียก loginGoogle() ตรง ๆ ซึ่งยิงเข้า Google ทันทีโดยไม่ผ่านจอล็อกอิน
       // ผลคือคนที่กด "ใช้แบบไม่ล็อกอินไปก่อน" ไปแล้ว ไม่มีทางกลับมาเห็นจอนั้นอีกเลยทั้งแอป
@@ -6954,6 +7164,10 @@ function renderProfile() {
         ${icon('user')}เข้าสู่ระบบเพื่อซิงก์ข้ามเครื่อง</button>`;
     }
   }
+
+  // แถวบัญชีในการ์ดล่างของตั้งค่า — โผล่เฉพาะตอนมีบัญชีและเชื่อม cloud อยู่
+  const hasAcct = !!(currentUser && typeof cloudConfigured === 'function' && cloudConfigured());
+  ['setPrivRow', 'setDelRow'].forEach(id => { const r = document.getElementById(id); if (r) r.hidden = !hasAcct; });
 
   applyTheme(); // ให้ปุ่มธีมที่เลือกไว้สว่างตรงกับที่ใช้จริงเสมอ
   renderAppearance(); // ALT: ขนาดตัวอักษร + พื้นหลังภาพของผู้ใช้
@@ -7218,7 +7432,7 @@ async function answerReq(id, yes) {
   await loadFriends();
 }
 async function removeFriend(id, name) {
-  if (!confirm('เอา ' + (name || 'คนนี้') + ' ออกจากรายชื่อเพื่อน?')) return;
+  if (!(await appConfirm({ title: 'เอา ' + (name || 'คนนี้') + ' ออกจากรายชื่อเพื่อน?', ok: 'เอาออก', danger: true }))) return;
   const { error } = await sb.rpc('drop_friend', { p_other: id });
   if (error) { showToast({ title: 'เอาออกไม่ได้', body: error.message || 'ลองใหม่อีกที' }); return; }
   await loadFriends();
@@ -8446,8 +8660,8 @@ function ctxSavePref(key, val) {
   renderAll();
 }
 
-function ctxWipe() {
-  if (!confirm('ลบตารางเรียน กิจวัตร และเวลาประจำวันทั้งหมด? (งานของคุณไม่หาย)')) return;
+async function ctxWipe() {
+  if (!(await appConfirm({ title: 'ลบบริบททั้งหมด?', body: 'ตารางเรียน กิจวัตร และเวลาประจำวันจะถูกลบ (งานของคุณไม่หาย)', ok: 'ลบบริบท', danger: true }))) return;
   ctxClear();
   ctxEditing = null;
   renderAll();
@@ -10028,11 +10242,12 @@ function renderStats() {
         <button class="st-open-go" onclick="go('scr-stats')">ดูทั้งหมด${icon('chevron')}</button>
       </div>
       <div class="st-bars">
-        ${days.map(d => `<div class="st-bar${d.today ? ' now' : ''}${d.n ? ' has' : ''}">
+        ${days.map((d, i) => `<button type="button" class="st-bar${d.today ? ' now' : ''}${d.n ? ' has' : ''}"
+          onclick="statDayOpen(${6 - i}, this)" aria-label="${d.label} เสร็จ ${d.n} งาน — ดูว่ามีงานอะไรบ้าง">
           <span class="n mono">${d.n || ''}</span>
           <span class="trk"><span class="bar" style="height:${d.n ? Math.max(14, Math.round(d.n / peak * 100)) : 0}%"></span></span>
           <span class="d">${d.label}</span>
-        </div>`).join('')}
+        </button>`).join('')}
       </div>
     </div>`;
 
@@ -10055,6 +10270,100 @@ function growBars(scr) {
     sets.forEach(b => { b.classList.remove(cls(b)); void b.offsetWidth; b.classList.add(cls(b)); });
     barsTimer = setTimeout(() => sets.forEach(b => b.classList.remove(cls(b))), 1400);
   });
+}
+
+// ---------- แตะแท่งกราฟ 7 วัน = ดูว่าวันนั้นทำงานอะไรเสร็จไปบ้าง ----------
+// 8 ต.ค. 69 · เจ้าของ: "เมื่อกดไปยังแท่งกราฟ ให้อธิบายด้วยว่าทำงานอะไรไปบ้าง" + ส่งเดโม FloatingPanel (motion-primitives) มา
+// ต้นฉบับ: ปุ่มกาง "กลายเป็น" แผงลอยด้วย layoutId เดียวกัน · ที่นี่ไม่มี framer-motion จึงทำ FLIP เอง:
+//   วางแผงที่ตำแหน่งจริงก่อน → วัดกรอบ → ใส่ transform ให้แผงหดลงไปเท่ากรอบรางของแท่งที่แตะ → ปล่อยให้คลายกลับแบบสปริง
+//   (แผงเริ่มเป็นสีเน้นทึบเหมือนแท่ง แล้วค่อยเป็นพื้นการ์ด ตัวหนังสือโผล่ทีหลังตอนแผงกางเสร็จ — กลางทางไม่เห็นตัวหนังสือเบี้ยว)
+//   รายการไล่ลงทีละแถว (แบบ QuickActions ในเดโม) · ปิด = ย้อนทางเดิมกลับเข้าแท่ง
+// back = กี่วันก่อนวันนี้ (0 = วันนี้) · แตะแถวงาน = เปิดฟอร์มงานใบนั้น
+let statDayBack = null;
+function statDayOpen(back, el) {
+  const phone = document.querySelector('.phone') || document.body;
+  statDayClose(true);
+  statDayBack = back;
+  const day = addDays(new Date(), -back);
+  const list = liveTasks()
+    .filter(t => t.done && t.doneAt && new Date(t.doneAt).toDateString() === day.toDateString())
+    .sort((a, b) => new Date(a.doneAt) - new Date(b.doneAt));
+  const est = list.reduce((s, t) => s + (t.estMin || 0), 0);
+  const head = back === 0 ? 'วันนี้' : back === 1 ? 'เมื่อวาน'
+    : 'วัน' + WD_FULL[day.getDay()] + 'ที่ ' + day.getDate() + ' ' + MONTH_SHORT[day.getMonth()];
+  const sub = list.length ? 'เสร็จ ' + list.length + ' งาน' + (est ? ' · ประเมินรวม ' + humanMin(est) : '') : 'ยังไม่มีงานที่ติ๊กเสร็จ';
+  const rows = list.length ? list.map((t, k) => {
+    const subj = (t.subject || '').trim();
+    const at = new Date(t.doneAt);
+    return `<button type="button" class="fp-row" style="--k:${k}" onclick="statDayClose();openForm('${t.id}')">
+      <span class="fp-ck">${icon('check')}</span>
+      <span class="fp-tx">${subj && subj !== 'อื่น ๆ' ? `<i class="${subjClass(subj)}">${esc(subj)}</i>` : ''}<b>${esc(t.detail || taskTitleText(t))}</b></span>
+      <span class="fp-at mono">${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}</span>
+    </button>`;
+  }).join('') : `<p class="fp-empty">${back === 0 ? 'ติ๊กงานเสร็จสักใบ แล้วมันจะมาขึ้นตรงนี้' : 'วันนั้นไม่ได้ติ๊กงานไหนเสร็จ'}</p>`;
+
+  const scrim = document.createElement('div');
+  scrim.className = 'fp-scrim';
+  scrim.onclick = () => statDayClose();
+  const panel = document.createElement('div');
+  panel.className = 'fp';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-label', head + ' · ' + sub);
+  panel.innerHTML = `<div class="fp-in">
+      <div class="fp-h"><b>${esc(head)}</b><i>${esc(sub)}</i></div>
+      <div class="fp-list">${rows}</div>
+      <div class="fp-foot"><button type="button" class="fp-x" onclick="statDayClose()">${icon('x')}ปิด</button></div>
+    </div>`;
+  phone.appendChild(scrim);
+  phone.appendChild(panel);
+
+  // ตำแหน่ง: ขอบล่างของแผงตรงกับขอบล่างของแท่ง (แผงงอกขึ้นจากตรงที่แตะ) แต่ห้ามล้นขอบบนของจอ
+  const src = (el && el.querySelector('.trk')) || el;
+  const pr = phone.getBoundingClientRect();
+  const br = src ? src.getBoundingClientRect() : null;
+  const h = panel.offsetHeight;
+  const top = br ? Math.max(pr.top + 64, Math.min(br.bottom - h, pr.bottom - h - 96)) - pr.top : 120;
+  panel.style.top = top + 'px';
+  if (typeof haptic === 'function') haptic('arm');
+  if (!br || !panel.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    panel.classList.add('open'); scrim.classList.add('open'); return;
+  }
+  const fr = panel.getBoundingClientRect();
+  const from = `translate(${br.left - fr.left}px, ${br.top - fr.top}px) scale(${br.width / fr.width}, ${br.height / fr.height})`;
+  scrim.classList.add('open');
+  panel.animate([
+    { transform: from, borderRadius: '10px', background: 'var(--fill)' },
+    { transform: 'none', borderRadius: '24px', background: 'var(--card)' },
+  ], { duration: 460, easing: 'cubic-bezier(.3, 1.15, .4, 1)' });
+  setTimeout(() => panel.classList.add('open'), 200);
+  document.addEventListener('keydown', statDayEsc, true);
+}
+
+function statDayEsc(e) { if (e.key === 'Escape') statDayClose(); }
+
+function statDayClose(instant) {
+  document.removeEventListener('keydown', statDayEsc, true);
+  const panel = document.querySelector('.fp');
+  const scrim = document.querySelector('.fp-scrim');
+  if (!panel) return;
+  const back = statDayBack;
+  statDayBack = null;
+  const bars = document.querySelectorAll('#statsBox .st-bar');
+  const bar = back != null ? bars[6 - back] : null;
+  const src = bar && (bar.querySelector('.trk') || bar);
+  // ลบได้ซ้ำไม่พัง · มีนาฬิกากันเหนียว — แท็บที่อยู่เบื้องหลังหยุดนับอนิเมชัน onfinish จึงอาจไม่มาเลย
+  let gone = false;
+  const done = () => { if (gone) return; gone = true; panel.remove(); if (scrim) scrim.remove(); };
+  if (instant || !src || !src.offsetParent || !panel.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return done();
+  const br = src.getBoundingClientRect(), fr = panel.getBoundingClientRect();
+  panel.classList.remove('open');
+  if (scrim) scrim.classList.remove('open');
+  panel.animate([
+    { transform: 'none', borderRadius: '24px', background: 'var(--card)' },
+    { transform: `translate(${br.left - fr.left}px, ${br.top - fr.top}px) scale(${br.width / fr.width}, ${br.height / fr.height})`,
+      borderRadius: '10px', background: 'var(--fill)', opacity: .4 },
+  ], { duration: 320, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' }).onfinish = done;
+  setTimeout(done, 380);
 }
 
 // ---------- ผลของฉัน ฉบับเต็ม — จอวิเคราะห์ ----------
@@ -13858,13 +14167,15 @@ function renderCloudOcr() {
 }
 
 // ask = true: ผู้ใช้กดปุ่มเอง — ถามใหม่ได้แม้เคยปฏิเสธไว้
-function cloudOcrConsent(ask) {
+// 8 ต.ค. 69 (ตอนรวมกับ 1C50) · confirm() → appConfirm — confirm() ถูกปิดในบางเบราว์เซอร์ (หน้าต่างพรีวิว · เบราว์เซอร์ในแอปแชท)
+// มันตอบ "ยกเลิก" ให้เองทันที แล้วบรรทัดล่างจด '0' ถาวร = AI อ่านรูปไม่ทำงานตลอดไปบนเครื่องนั้นโดยไม่เคยถามจริง
+async function cloudOcrConsent(ask) {
   let v = null;
   try { v = localStorage.getItem(CLOUD_OCR_OK_KEY); } catch (_) {}
   if (v === '1') return true;
   if (v === '0' && !ask) return false;
-  const ok = confirm(
-    'ให้ AI อ่านรูปใบงาน?\n\nรูปจะถูกส่งขึ้นเซิร์ฟเวอร์\nกด "ยกเลิก" = อ่านในเครื่องเท่านั้น');
+  const ok = await appConfirm({ title: 'ให้ AI อ่านรูปใบงาน?',
+    body: 'รูปจะถูกส่งขึ้นเซิร์ฟเวอร์\nกด "ยกเลิก" = อ่านในเครื่องเท่านั้น', ok: 'ให้ AI อ่าน' });
   try { localStorage.setItem(CLOUD_OCR_OK_KEY, ok ? '1' : '0'); } catch (_) {}
   return ok;
 }
@@ -13872,7 +14183,7 @@ function cloudOcrConsent(ask) {
 // ---------- ทางเข้าเดียวของรูปที่จะอ่าน (กล้องในแอป · คลังภาพ · กล้องของระบบ หลังครอบกรอบ) ----------
 async function readPhoto(canvas, how) {
   rememberScan(canvas);
-  if (cloudOcrState() === 'ready' && cloudOcrConsent(false)) {
+  if (cloudOcrState() === 'ready' && await cloudOcrConsent(false)) {
     const r = await aiReadPhoto();
     if (r !== 'fail') return;
     // AI ล้มไม่ใช่ทางตัน — อ่านในเครื่องให้ต่อเลย ผู้ใช้ไม่ต้องกดอะไรเพิ่ม
@@ -14010,7 +14321,7 @@ function aiTaskParsed(task, text) {
 async function cloudOcrRetry() {
   const st = cloudOcrState();
   if (st !== 'ready') { renderCloudOcr(); return; }
-  if (!cloudOcrConsent(true)) return;
+  if (!(await cloudOcrConsent(true))) return;
   const r = await aiReadPhoto();
   if (r === 'fail') {
     scanNotice('AI วิเคราะห์รูปไม่สำเร็จ', [
@@ -14762,8 +15073,8 @@ function loadSample() {
   save(); go('scr-home');
 }
 
-function clearAll() {
-  if (confirm('ลบข้อมูลทุกอย่าง (งานทั้งหมด + การตั้งค่า) แน่ใจนะ?')) {
+async function clearAll() {
+  if (await appConfirm({ title: 'ลบข้อมูลทุกอย่าง?', body: 'งานทั้งหมดและการตั้งค่าจะหายไป กู้คืนไม่ได้', ok: 'ลบทุกอย่าง', danger: true })) {
     localStorage.removeItem(STORE_KEY);
     // บริบทเป็นข้อมูลชีวิตประจำวัน (เรียนกี่โมง นอนกี่โมง ซ้อมบอลวันไหน)
     // "ล้างข้อมูลทุกอย่าง" ที่ไม่ล้างของพวกนี้ด้วยคือคำโกหก — และเป็นข้อมูลที่อ่อนไหวที่สุดที่แอปเก็บ
@@ -16094,7 +16405,8 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     bar.appendChild(mir);
     bar.classList.add('ha-on');
     const line = mir.firstChild, ph = mir.lastChild;
-    const phrases = [inp.getAttribute('placeholder') || 'ถามน้องไซ…'].concat(RM ? [] : EXAMPLES);
+    // ช่องอื่นนอกจากหน้าแรก (ช่องพิมพ์ห้องแชท) ไม่วนตัวอย่างคำถาม — ข้อความชวนพิมพ์ของมันเองไหลเข้ามาครั้งเดียว
+    const phrases = [inp.getAttribute('placeholder') || 'ถามน้องไซ…'].concat(RM || inp.id !== 'hmAsk' ? [] : EXAMPLES);
     let shown = [], pi = 0, cycle = 0;
 
     function place() {
@@ -16156,14 +16468,20 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     if (phrases.length > 1) cycle = setInterval(tick, 3600);
   }
 
+  // 8 ต.ค. 69 · ช่องพิมพ์ห้องแชทกับเพื่อน (#chatIn) ได้ชั้นเงาตัวเดียวกัน
+  // (เจ้าของ: "ใส่อนิเมชันตอนพิมพ์ เหมือนตอนแชทกับน้องไซ") — ตัวที่พิมพ์ค่อย ๆ ชัดขึ้นทีละตัว
   function scan() {
-    const inp = document.getElementById('hmAsk');
-    if (inp && !inp.__ha) attach(inp);
+    ['hmAsk', 'chatIn'].forEach(id => {
+      const inp = document.getElementById(id);
+      if (inp && !inp.__ha) attach(inp);
+    });
   }
   function start() {
     const root = document.getElementById('scr-menu');
     if (!root) return setTimeout(start, 300);
     new MutationObserver(scan).observe(root, { childList: true, subtree: true });
+    const chat = document.getElementById('scr-chat');
+    if (chat) new MutationObserver(scan).observe(chat, { childList: true, subtree: true });
     scan();
     window.addEventListener('resize', () => {
       const m = document.querySelector('.td-ask .ha-mir'), inp = document.getElementById('hmAsk');

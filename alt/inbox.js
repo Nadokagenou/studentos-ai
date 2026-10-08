@@ -108,6 +108,17 @@ function srcToggle(id, quiet) {
   renderSources();
   // เมนู + วาดสวิตช์ชุดเดียวกัน ต้องอัปเดตด้วย ไม่งั้นกดแล้วสวิตช์ไม่ขยับ
   if (typeof refreshAddSheet === 'function') refreshAddSheet();
+  // 8 ต.ค. 69 · วาดใหม่ทั้งแผ่น = ปุ่มกลมในสวิตช์กระโดดไปอีกฝั่งทันที — ให้มันไถลไปแบบสปริงแทน
+  // และแถวที่กดกะพริบพื้นอมสีหนึ่งที (เจ้าของ: "มีอนิเมชันตอนกด")
+  const row = document.querySelector(`#addSheet .as-tgl[data-sid="${id}"]`);
+  const knob = row && row.querySelector('.tg-k');
+  if (knob && knob.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const on = srcEnabled(id);
+    knob.animate([{ transform: `translateX(${on ? 0 : 17}px)` }, { transform: `translateX(${on ? 17 : 0}px)` }],
+      { duration: 380, easing: 'cubic-bezier(.3, 1.5, .5, 1)' });
+    row.classList.add('pulse');
+    setTimeout(() => row.classList.remove('pulse'), 500);
+  }
   if (typeof haptic === 'function') haptic('tap');
   if (quiet) return;
   showToast(srcEnabled(id)
@@ -126,7 +137,7 @@ function connectorMenuRows() {
   const list = SOURCES.filter(s => s.kind === 'connector' && s.state === 'live' && !s.connect);
   return list.map(s => {
     const on = srcEnabled(s.id);
-    return `<div class="as-row as-tgl ${on ? '' : 'off'}" onclick="srcToggle('${s.id}', true)">
+    return `<div class="as-row as-tgl ${on ? '' : 'off'}" data-sid="${s.id}" onclick="srcToggle('${s.id}', true)">
       <span class="as-ic">${icon(s.icon)}</span>
       <span class="as-tx"><b>${esc(s.name)}</b></span>
       <button class="tg ${on ? 'on' : ''}" role="switch" aria-checked="${on}"
