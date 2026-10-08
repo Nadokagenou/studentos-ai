@@ -119,6 +119,57 @@ function normalizeOcrText(text) {
     .trim();
 }
 
+// ---------- 0.55) ทิ้งขยะที่ OCR ในเครื่องพ่นออกมา ----------
+// รูปมืด/เบลอ/หน้าหนังสือ ทำให้ Tesseract พ่นละตินมั่ว ๆ ปนไทย ("NAN We 8 weaLT ¥ pay")
+// แล้วมันไหลตรงเข้าช่อง "งานที่ต้องทำ" — เจ้าของเห็นแล้วถามว่า "มันพิมพ์ภาษาเอเลี่ยนหรอ" (8 ต.ค. 69)
+//
+// ตัดสินทีละคำ แล้วตัด "คำอ่อน" (ตัวเลข · ไทยสั้น · ละติน) ที่ถูกขยะล้อมทั้งสองข้างตามไปด้วย
+// เพราะในสายขยะ เศษที่หน้าตาเหมือนของจริง ("8" "ลม" "wall") ก็เป็นขยะเหมือนกัน
+// ส่วนคำอ่อนที่มีคำจริงอยู่ข้าง ๆ ("ม.4/2" "16:00" "Unit 3") ไม่ถูกแตะ
+//
+// กฎละตินใช้เฉพาะเอกสารที่ไทยเป็นหลัก — ใบงานอังกฤษล้วนมี "and" "by" เป็นคำจริงทั้งนั้น
+// เคสวัดอยู่ใน devtools/parsebench.js กลุ่ม junk — ไม่ได้ใช้ใน benchReal เพราะเรียกหลังอ่านจบ
+const OCR_TH_LETTER = /[ก-๎]/g;
+const OCR_TH_BADSTART = /^[ะ-ฺๅ็-๎]|^ๆ./;   // สระหลัง/วรรณยุกต์ขึ้นต้นคำไม่ได้
+const OCR_SYM_OK = new Set(['-', '–', '—', '•', '*', '·', '/', ':', '+', '&']);
+const OCR_NUM = /^[\d๐-๙][\d๐-๙.,:/%\-–]*$/;
+const OCR_LATIN_OK = /^(?:[A-Z][a-z]{3,}|[a-z]{4,}|[A-Z]{4,}|AI|PDF|IT|OK|A4|AM|PM|[A-Za-z]{1,4}\.?\d+[A-Za-z]?|[A-Z]-[A-Z])$/;
+
+function ocrDropJunk(text) {
+  const src = String(text || '');
+  const th = (src.match(OCR_TH_LETTER) || []).length;
+  const lat = (src.match(/[A-Za-z]/g) || []).length;
+  const thaiDoc = th > 0 && th >= lat;
+  // 0 = ขยะ · 1 = คำอ่อน · 2 = คำจริง
+  const grade = tok => {
+    const core = tok.replace(/^[("'“‘\[]+|[)"'”’\],.;:!?]+$/g, '');
+    if (!core) return OCR_SYM_OK.has(tok) ? 1 : 0;
+    const nTh = (core.match(OCR_TH_LETTER) || []).length;
+    if (nTh) return OCR_TH_BADSTART.test(core) ? 0 : nTh >= 3 ? 2 : 1;
+    if (OCR_NUM.test(core)) return 1;
+    if (!/[A-Za-z]/.test(core)) return OCR_SYM_OK.has(core) ? 1 : 0;
+    if (/[^A-Za-z0-9.\-]/.test(core)) return 0;                      // ละตินปนสัญลักษณ์ ("=m" "w/")
+    if (!thaiDoc) return 2;
+    return OCR_LATIN_OK.test(core) ? 1 : 0;
+  };
+  return src.split('\n').map(line => {
+    const toks = line.trim().split(/\s+/).filter(Boolean);
+    const g = toks.map(grade);
+    if (!g.includes(0)) return line.trim();
+    // ดูเป็น "ช่วง" ของคำที่ไม่ใช่ขยะติดกัน — ช่วงที่ไม่มีคำจริงเลยและมีขยะ (หรือขอบบรรทัด) ขนาบ
+    // ทั้งสองข้าง ทิ้งทั้งช่วง ("7 ลม" ในสายขยะ ช่วยกันบังได้ถ้าดูทีละคำ)
+    // ขอบบรรทัดนับเป็นขยะเฉพาะบรรทัดที่มีขยะอยู่แล้ว (เข้าเงื่อนไขข้างบนมาแล้ว)
+    for (let i = 0; i < g.length;) {
+      if (!g[i]) { i++; continue; }
+      let j = i;
+      while (j < g.length && g[j]) j++;
+      if (!g.slice(i, j).includes(2)) for (let k = i; k < j; k++) g[k] = 0;
+      i = j;
+    }
+    return toks.filter((_, i) => g[i]).join(' ');
+  }).filter(l => /[ก-๎A-Za-z0-9๐-๙]/.test(l)).join('\n');
+}
+
 // ---------- 0.6) จับคำแบบทนตัวอักษรเพี้ยน (ใช้กับข้อความจากรูปเท่านั้น) ----------
 // OCR พลาดตัวเดียว includes() ก็หาไม่เจอทั้งคำ — ของจริงที่วัดมา "ฟิสิกส์" ถูกอ่านเป็น "แฟสักส"
 // วิธีเทียบ: ตัดสระบน-ล่างกับวรรณยุกต์ทิ้ง → ยุบตัวอักษรที่หน้าตาใกล้กันให้เป็นตัวแทนเดียว
