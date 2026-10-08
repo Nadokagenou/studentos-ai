@@ -12014,3 +12014,31 @@ button.df-r:active .df-x { transform: scale(.985); }
 @media (prefers-reduced-motion: reduce) {
   #addSheet .as-card.swap > *, #addSheet .as-tgl.pulse { animation: none; }
 }
+
+/* ============================================================
+   โหมดเครื่องเบา — :root[data-lite] (ติดจาก liteProbe() ใน app.js · หรือแรม ≤2GB ใน <head>)
+   ------------------------------------------------------------
+   เจ้าของ 8 ต.ค. 69: "เอาบั๊กที่ทำให้เครื่องค้างออกไปสำหรับคนโทรศัพท์ไม่แรง"
+   ถอดเฉพาะของที่กินการ์ดจอต่อเนื่อง — สี ธีม ตัวหนังสือ ปุ่ม เหมือนเดิมทุกอย่าง
+   • กระจกฝ้า (backdrop-filter) ทุกชิ้น: เบลอสิ่งที่อยู่ข้างหลังใหม่ทุกครั้งที่ข้างหลังขยับหรือเลื่อนจอ
+     หน้าแรกอย่างเดียวมี 11 ชิ้น (ไอคอนกริด 8 · แถบล่าง · กระดิ่ง · ช่องถามน้องไซ)
+   • ฉากเคลื่อนไหวของธีม (.fx · .starfield) · วงแสงหมุน (ha/hf-spin) · น้องไซลอย — หยุดค้างไว้ที่เฟรมแรก
+     ใช้ paused ไม่ใช่ none: ของที่เริ่มจากโปร่งใส/นอกจอในเฟรมแรกยังอยู่ที่เดิมที่ออกแบบไว้ ไม่โผล่มาผิดที่
+   ที่ไม่แตะ: อนิเมชันที่บอกสถานะ (กำลังโหลด · กำลังอัดเสียง · จับเวลาอยู่) — หยุดแล้วคนจะคิดว่าแอปค้าง
+   ============================================================ */
+:root[data-lite] *, :root[data-lite] *::before, :root[data-lite] *::after {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+:root[data-lite] .fx, :root[data-lite] .fx *, :root[data-lite] .fx *::before, :root[data-lite] .fx *::after,
+:root[data-lite] .starfield, :root[data-lite] .starfield *, :root[data-lite] .starfield *::before, :root[data-lite] .starfield *::after,
+:root[data-lite] #menuBody .td-ask::before,
+:root[data-lite] .ep .ep-f > input[type="text"], :root[data-lite] .ep .ep-f > textarea, :root[data-lite] .ep .ep-at,
+:root[data-lite] #dmBody .dm-find input, :root[data-lite] #chatBody .ch-field,
+:root[data-lite] .saih-face, :root[data-lite] .saip-chibi {
+  animation-play-state: paused !important;
+}
+/* จอเอฟเฟกต์งานเสร็จเคยเป็นกระจกฝ้าเต็มจอ (พื้น 90%) — ไม่มีเบลอแล้ว หน้าแรกข้างหลังจะลอดมาคม ๆ · ทึบไปเลย */
+:root[data-lite] .hoop-ov { background: var(--scr) !important; }
+/* ชิ้นกระจกที่ "มีของเลื่อนผ่านข้างหลัง" — ไม่มีเบลอแล้วตัวหนังสือข้างหลังลอดมาอ่านชนกัน (แถบล่างพื้น 30–62%)
+   ทึบด้วยสีการ์ดของธีม · ชิ้นกระจกอื่น (ปุ่ม การ์ด) วางบนพื้นไล่สีเรียบ ๆ ไม่มีเบลอก็ดูเหมือนเดิม จึงไม่แตะ */
+:root[data-lite] .tabbar, :root[data-lite] #checkin, :root[data-lite] #installGuide { background: var(--card) !important; }

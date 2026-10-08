@@ -15993,7 +15993,41 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   });
 }
 
+// ============================================================
+// โหมดเครื่องเบา (data-lite บน <html>) — เจ้าของ 8 ต.ค. 69: "เอาบั๊กที่ทำให้เครื่องค้างออกไปสำหรับคนโทรศัพท์ไม่แรง"
+// ------------------------------------------------------------
+// ของที่ถอดอยู่ใน alt.css (ค้นหา data-lite): กระจกฝ้าทุกชิ้น · ฉากเคลื่อนไหวของธีม · วงแสงหมุน · น้องไซลอย
+// + 3D เริ่มที่ภาพธรรมดา (fx3dStrong) · ตัวหนังสือ ปุ่ม สี ธีม ยังเหมือนเดิมทุกอย่าง
+//
+// ทำไมวัดเอา ไม่เดาจากสเปก: มือถือราคาห้าพันส่วนใหญ่บอกว่ามี 8 คอร์ 4GB เท่ากับเครื่องกลาง ๆ
+// ตัวที่ต่างจริงคือการ์ดจอ ซึ่งเว็บถามไม่ได้ · วัดเวลาวาดจอแรกของจริงแทน ด้วยของหนักชุดเดียวกับที่ทำให้ค้าง
+// 3 วิหลังเปิดแอป (พ้นช่วงโหลด) นับ 90 เฟรม ใช้ค่ากลาง (median) — เฟรมสะดุดตอนโหลดไม่กี่เฟรมไม่ทำให้ตัดสินผิด
+// ค่ากลางช้ากว่า 26ms (ต่ำกว่า ~38fps) = เบา แล้วจำไว้ถาวร (studentos.alt.lite)
+// ไม่สลับกลับเอง — พอเบาแล้วเครื่องจะลื่น วัดใหม่ก็ผ่านทุกครั้ง แล้วก็กลับไปค้างอีก
+// iPhone ที่เปิดโหมดประหยัดแบตตอนวัด (จำกัด 30fps) จะได้โหมดนี้ด้วย — ยอมรับได้ คนที่ประหยัดแบตอยากได้ของเบาอยู่แล้ว
+// ล้างธง: localStorage.removeItem('studentos.alt.lite') แล้วเปิดใหม่
+function liteProbe() {
+  if (document.documentElement.dataset.lite) return;
+  if (document.hidden) { document.addEventListener('visibilitychange', () => setTimeout(liteProbe, 1500), { once: true }); return; }
+  const gaps = [];
+  let last = 0;
+  const step = now => {
+    if (document.hidden) return;                 // พับแอประหว่างวัด = ทิ้งรอบนี้ วัดใหม่ตอนเปิดครั้งหน้า
+    if (last) { const g = now - last; if (g < 250) gaps.push(g); }
+    last = now;
+    if (gaps.length < 90) { requestAnimationFrame(step); return; }
+    gaps.sort((a, b) => a - b);
+    if (gaps[45] > 26) liteOn();
+  };
+  requestAnimationFrame(step);
+}
+function liteOn() {
+  document.documentElement.dataset.lite = '1';
+  try { localStorage.setItem('studentos.alt.lite', '1'); } catch (_) {}
+}
+
 (async function initApp() {
+  setTimeout(liteProbe, 3000);
   load();
   purgeOldTrash(); // ของในถังขยะที่เกิน 30 วัน ทิ้งถาวรตอนเปิดแอป
   funnelOpen();    // นับการเปิดแอป — ต้องอยู่หลัง load() ไม่งั้นนับทับก้อนเปล่า

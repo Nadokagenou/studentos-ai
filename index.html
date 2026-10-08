@@ -39,6 +39,12 @@
         ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
         : 'light');
       document.documentElement.dataset.theme = t;
+      // โหมดเครื่องเบา — ต้องติดก่อนวาดจอแรก ไม่งั้นเครื่องช้าได้วาดของหนักไปหนึ่งรอบก่อนถูกถอด
+      // ธงมาจากการวัดจริงรอบก่อน (liteProbe ใน app.js) · แรม ≤2GB (Chrome บอกได้) = เบาตั้งแต่ครั้งแรก
+      try {
+        if (localStorage.getItem('studentos.alt.lite') === '1' || (navigator.deviceMemory && navigator.deviceMemory <= 2))
+          document.documentElement.dataset.lite = '1';
+      } catch (e) {}
       var m = document.querySelector('meta[name=theme-color]');
       if (m) m.content = BAR[t];
     })();

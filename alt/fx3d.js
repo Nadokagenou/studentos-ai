@@ -41,6 +41,8 @@ function fx3dAddon(name) {
   return FX3D_ADD[name] || (FX3D_ADD[name] = import('./vendor/pp/' + name + '.js'));
 }
 function fx3dStrong() {
+  // โหมดเครื่องเบา (liteProbe ใน app.js วัดแล้วว่าจอธรรมดายังวาดไม่ทัน) = ไม่มีทางไหวกับแสงฟุ้ง · ข้ามการเดาจากสเปก
+  if (document.documentElement.dataset.lite) return false;
   const c = navigator.hardwareConcurrency || 4, m = navigator.deviceMemory || 4;
   return c >= 6 && m >= 4;
 }
@@ -139,7 +141,8 @@ function fx3dSetup(run, T) {
   const R = new T.WebGLRenderer({ canvas: run.cv, antialias: true, powerPreference: 'low-power' });
   // เครื่องแรง: คมเต็มจอ + เงาละเอียด · เครื่องเล็ก: ลดความคม/เงาลงให้ลื่น (ลื่นสำคัญกว่าสวยในเกมจับจังหวะ)
   const strong = fx3dStrong();
-  R.setPixelRatio(Math.min(strong ? 2 : 1.5, window.devicePixelRatio || 1));
+  const lite = !!document.documentElement.dataset.lite;
+  R.setPixelRatio(Math.min(strong ? 2 : lite ? 1 : 1.5, window.devicePixelRatio || 1));
   R.shadowMap.enabled = true;
   R.shadowMap.type = T.PCFSoftShadowMap;
   R.toneMapping = T.ACESFilmicToneMapping;
