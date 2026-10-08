@@ -60,6 +60,8 @@ function saiTick() {
   // ไม่มีเวทีบนจอ = หยุดลูปทิ้ง · saiStart() จะปลุกใหม่เองตอนมีเวทีโผล่
   // ลูปที่เดินต่อไปเรื่อย ๆ ทั้งที่ไม่มีอะไรให้ขยับ คือแบตที่หายไปโดยไม่มีใครได้อะไร
   if (!els.length) { saiLoop = false; return; }
+  // จอเอฟเฟกต์งานเสร็จ (กระจกฝ้าเต็มจอ) เปิดทับอยู่ — ขยับข้างหลัง = เบลอใหม่ทั้งจอ · รอจนปิดค่อยขยับต่อ
+  if (typeof fxRun !== 'undefined' && fxRun) { requestAnimationFrame(saiTick); return; }
 
   // ไม่เคยมีนิ้วแตะเลย (เปิดแอปทิ้งไว้ · เครื่องที่ไม่มีเมาส์) — แกว่งเองช้า ๆ
   // มาสคอตที่นิ่งสนิทจนกว่าจะมีคนแตะ คือรูปติดผนัง ไม่ใช่ตัวละคร
@@ -71,8 +73,16 @@ function saiTick() {
 
   saiCX += (saiPX - saiCX) * 0.09;
   saiCY += (saiPY - saiCY) * 0.09;
-  const sx = saiCX.toFixed(3), sy = saiCY.toFixed(3);
-  els.forEach(el => { el.style.setProperty('--sx', sx); el.style.setProperty('--sy', sy); });
+  // เขียนเฉพาะตอนค่าเปลี่ยนจริง — ทุกครั้งที่เขียน --sx/--sy เบราว์เซอร์คิดสไตล์ใหม่และวาดหน้าเธอใหม่
+  // (object-position ขยับบน compositor ไม่ได้) · เดิมเขียนทุกเฟรม 60 ครั้ง/วิ ตลอดเวลาที่อยู่หน้าแรก
+  // แม้ตอนหยุดนิ่งแล้ว · ทศนิยม 2 ตำแหน่ง = เอียง 0.06° ต่อขั้น ตาแยกไม่ออก
+  // ตอนแกว่งเองค่าเปลี่ยนแค่ ~15 ครั้ง/วิ · แตะแล้วปล่อยจนนิ่ง = ไม่เขียนเลย
+  const sx = saiCX.toFixed(2), sy = saiCY.toFixed(2);
+  els.forEach(el => {
+    if (el._sx === sx && el._sy === sy) return;
+    el._sx = sx; el._sy = sy;
+    el.style.setProperty('--sx', sx); el.style.setProperty('--sy', sy);
+  });
   requestAnimationFrame(saiTick);
 }
 

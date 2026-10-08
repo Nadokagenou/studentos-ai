@@ -11153,6 +11153,9 @@ function renderRunBar() {
   const bar = document.getElementById('runBar');
   if (!bar) return;
   const r = runningWork();
+  // ไม่มีงานจับเวลาอยู่และแถบเก็บไปแล้ว = ไม่ต้องแตะ DOM · ฟังก์ชันนี้ถูกเรียกทุกวินาที
+  // เดิมล้าง innerHTML / ตั้ง hidden ซ้ำทุกวินาทีทั้งที่ไม่มีอะไรเปลี่ยน
+  if (!r && bar.hidden && !bar.firstChild) return;
   // ล้าง dataset.for ทุกครั้งที่เก็บแถบ ไม่งั้นพอเริ่มจับเวลา "งานใบเดิม" อีกรอบ
   // เงื่อนไขข้างล่างจะคิดว่าโครงยังอยู่ทั้งที่ innerHTML ถูกล้างไปแล้ว แล้ว .rb-el เป็น null
   if (!r) { bar.hidden = true; bar.innerHTML = ''; delete bar.dataset.for; return; }

@@ -11293,19 +11293,23 @@ button.df-r:active .df-x { transform: scale(.985); }
     var(--fill), color-mix(in srgb, var(--fill) 45%, #F472B6), color-mix(in srgb, var(--fill) 40%, #38BDF8),
     color-mix(in srgb, var(--fill) 60%, #A78BFA), var(--fill));
   filter: blur(8px); opacity: .7;
-  animation: ha-spin 9s linear infinite;
+  /* steps ไม่ใช่ linear — มุมใน conic-gradient ขยับบน compositor ไม่ได้ ทุกครั้งที่ขยับคือวาดใหม่ + เบลอใหม่ทั้งวง
+     และไอคอนกระจกฝ้าข้างล่าง (.tg-ic) ต้องเบลอพื้นหลังใหม่ตามด้วยเพราะแสงฟุ้งไปถึง
+     linear = 60 ครั้ง/วิ ตลอดเวลาที่อยู่หน้าแรก → มือถือค้าง (เจ้าของ 8 ต.ค. 69) · 15 ครั้ง/วิ ตาแยกไม่ออกเพราะวงเบลออยู่แล้ว */
+  animation: ha-spin 9s steps(135) infinite;
   transition: opacity .35s ease, filter .35s ease, inset .35s ease;
 }
 #menuBody .td-ask::after {
   /* พื้นกระจกฝ้าของแคปซูลอยู่ชั้นนี้ ไม่ใช่บนตัวกล่อง — ใน stacking context ลูกที่ z-index ติดลบวาดทับพื้นของตัวกล่อง
      ถ้าพื้นอยู่บนกล่อง วงรัศมี (::before) จะวาดทับข้างในจนตัวหนังสือจาง · ::after มาทีหลัง ::before จึงวาดทับวงได้ */
   content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  /* ไม่มี backdrop-filter — ของที่อยู่ข้างหลังชั้นนี้คือวงรัศมีที่หมุนอยู่ ทุกเฟรมที่วงขยับ กระจกฝ้าต้องเบลอใหม่ทั้งแคปซูล
+     และวงก็เบลอ 8px มาแล้ว สีที่ลอดผ่านพื้น 84% จึงฟุ้งเหมือนกระจกฝ้าอยู่แล้วโดยไม่ต้องจ่ายซ้ำ */
   background: color-mix(in srgb, var(--card) 84%, transparent);
-  -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 0 0 1px color-mix(in srgb, var(--fill) 22%, transparent);
   transition: background .3s ease, box-shadow .3s ease;
 }
-#menuBody .td-ask:focus-within::before { opacity: .95; filter: blur(11px); inset: -5px; animation-duration: 4.5s; }
+#menuBody .td-ask:focus-within::before { opacity: .95; filter: blur(11px); inset: -5px; animation-duration: 4.5s; animation-timing-function: steps(68); }
 #menuBody .td-ask:focus-within::after { background: var(--card); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 0 0 1px color-mix(in srgb, var(--fill) 40%, transparent); }
 @keyframes ha-spin { to { --ha-a: 360deg; } }
 #menuBody .td-ask, #menuBody .td-ask:focus-within { background: transparent; border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
@@ -11557,8 +11561,11 @@ button.df-r:active .df-x { transform: scale(.985); }
     linear-gradient(var(--card), var(--card)) padding-box,
     conic-gradient(from var(--hf-a), var(--hf-c1), var(--hf-c2), var(--hf-c3), var(--hf-c1)) border-box;
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--fill) 12%, transparent), 0 10px 26px -14px color-mix(in srgb, var(--fill) 70%, transparent);
-  animation: hf-spin 4s linear infinite;
+  animation: hf-spin 4s steps(60) infinite;
 }
+/* hf-spin ทุกที่ใช้ steps (~15 ครั้ง/วิ) ไม่ใช่ linear — เหตุผลเดียวกับ ha-spin บนหน้าแรก:
+   มุมของ conic-gradient ขยับ = วาดใหม่ทั้งช่อง + กระจกฝ้า (backdrop-filter) ของช่องเบลอใหม่ทุกครั้ง
+   linear คือ 60 ครั้ง/วิ ตลอดเวลาที่จออยู่ · ตัวไหนเปลี่ยนแค่ animation-duration ต้องใส่ steps ใหม่คู่กันด้วย */
 @keyframes hf-spin { to { --hf-a: 360deg; } }
 .ep .ep-f > input[type="text"], .ep .ep-f > textarea { padding: 13px 15px; }
 .ep .ep-at { padding-left: 14px; gap: 4px; }
@@ -11584,11 +11591,11 @@ button.df-r:active .df-x { transform: scale(.985); }
   --hf-c3: color-mix(in srgb, #38BDF8 55%, transparent);
   border-width: 2px;
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--fill) 6%, transparent), 0 8px 22px -16px color-mix(in srgb, var(--fill) 60%, transparent);
-  animation: hf-spin 12s linear infinite;
+  animation: hf-spin 12s steps(180) infinite;
 }
 .ep .ep-f > input[type="text"]:focus, .ep .ep-f > textarea:focus, .ep .ep-at:focus-within {
   box-shadow: 0 0 0 5px color-mix(in srgb, var(--fill) 15%, transparent), 0 12px 30px -12px color-mix(in srgb, var(--fill) 75%, transparent);
-  animation: hf-spin 3.5s linear infinite;
+  animation: hf-spin 3.5s steps(53) infinite;
 }
 /* ผิดกติกา: ขอบแดงทึบ ไม่วน · แสงรอบเป็นแดง */
 .ep .ep-at.invalid, .ep .ep-at.invalid:focus-within {
@@ -11686,7 +11693,7 @@ button.df-r:active .df-x { transform: scale(.985); }
     conic-gradient(from var(--hf-a), var(--hf-c1), var(--hf-c2), var(--hf-c3), var(--hf-c1)) border-box;
   -webkit-backdrop-filter: blur(12px) saturate(150%); backdrop-filter: blur(12px) saturate(150%);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--fill) 6%, transparent), 0 10px 26px -16px color-mix(in srgb, var(--fill) 60%, transparent);
-  animation: hf-spin 12s linear infinite; animation-delay: var(--hf-ph, 0s);
+  animation: hf-spin 12s steps(180) infinite; animation-delay: var(--hf-ph, 0s);
   transition: color .2s ease, transform .2s ease, box-shadow .3s ease;
 }
 #dmBody .dm-find input:focus {
@@ -11698,7 +11705,7 @@ button.df-r:active .df-x { transform: scale(.985); }
     linear-gradient(var(--card), var(--card)) padding-box,
     conic-gradient(from var(--hf-a), var(--hf-c1), var(--hf-c2), var(--hf-c3), var(--hf-c1)) border-box;
   box-shadow: 0 0 0 5px color-mix(in srgb, var(--fill) 14%, transparent), 0 12px 30px -12px color-mix(in srgb, var(--fill) 75%, transparent);
-  animation-duration: 4s;
+  animation-duration: 4s; animation-timing-function: steps(60);
 }
 .phone #dmBody .dm-find input:focus-visible { outline: none !important; }
 #dmBody .dm-find-ic { left: 29px; z-index: 1; color: color-mix(in srgb, var(--ink) 55%, transparent); transition: color .25s ease; }
@@ -11712,7 +11719,7 @@ button.df-r:active .df-x { transform: scale(.985); }
   --hf-c1: var(--fill);
   --hf-c2: color-mix(in srgb, var(--fill) 40%, #F472B6);
   --hf-c3: color-mix(in srgb, var(--fill) 40%, #38BDF8);
-  animation-duration: 1.4s;
+  animation-duration: 1.4s; animation-timing-function: steps(21);
 }
 .dm-find-load {
   position: absolute; right: 28px; top: 50%; transform: translateY(-40%); pointer-events: none;
@@ -11771,7 +11778,7 @@ button.df-r:active .df-x { transform: scale(.985); }
     conic-gradient(from var(--hf-a), var(--hf-c1), var(--hf-c2), var(--hf-c3), var(--hf-c1)) border-box;
   -webkit-backdrop-filter: blur(12px) saturate(150%); backdrop-filter: blur(12px) saturate(150%);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--fill) 6%, transparent), 0 10px 24px -16px color-mix(in srgb, var(--fill) 60%, transparent);
-  animation: hf-spin 12s linear infinite;
+  animation: hf-spin 12s steps(180) infinite;
   transition: box-shadow .3s ease;
 }
 #chatBody .ch-field:focus-within {
@@ -11783,7 +11790,7 @@ button.df-r:active .df-x { transform: scale(.985); }
     linear-gradient(var(--card), var(--card)) padding-box,
     conic-gradient(from var(--hf-a), var(--hf-c1), var(--hf-c2), var(--hf-c3), var(--hf-c1)) border-box;
   box-shadow: 0 0 0 5px color-mix(in srgb, var(--fill) 14%, transparent), 0 12px 28px -12px color-mix(in srgb, var(--fill) 70%, transparent);
-  animation-duration: 4s;
+  animation-duration: 4s; animation-timing-function: steps(60);
 }
 .phone #chatBody .ch-field input:focus-visible { outline: none !important; }
 #chatBody .ch-field input { font-size: 15px; padding: 9px 0; color: var(--ink); }

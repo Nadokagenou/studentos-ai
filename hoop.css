@@ -16,6 +16,14 @@
   user-select: none; -webkit-user-select: none;
 }
 .hoop-ov.out { opacity: 0; transition: opacity .2s ease; pointer-events: none; }
+/* ระหว่างเล่น: หยุดทุกอนิเมชันของจอข้างหลัง (.fx-on ใส่/ถอดใน fxShell · closeFx)
+   จอนี้เป็นกระจกฝ้าเต็มจอ — ของข้างหลังขยับครั้งเดียว (วงแสงหมุนของช่องถามน้องไซ · ไอคอนลอย ๆ) =
+   เบลอ 16px ใหม่ทั้งจอ ซ้อนกับเกม 3D ที่วาดอยู่พร้อมกัน → มือถือค้าง (8 ต.ค. 69)
+   ข้างหลังเบลอจนมองไม่ออกอยู่แล้ว หยุดไว้ก็ไม่มีใครเห็นความต่าง · ปิดจอแล้วเดินต่อจากจุดเดิม */
+.phone.fx-on .screen, .phone.fx-on .screen *, .phone.fx-on .screen *::before, .phone.fx-on .screen *::after,
+.phone.fx-on .tabbar, .phone.fx-on .tabbar *, .phone.fx-on .tabbar *::before, .phone.fx-on .tabbar *::after {
+  animation-play-state: paused !important;
+}
 @keyframes hpIn { from { opacity: 0; } to { opacity: 1; } }
 /* เศษกระดาษของ celebrate() ถูกต่อท้าย .phone หลังจอนี้ — ต้องลอยเหนือจอ ไม่งั้นมองไม่เห็นเลย */
 .hoop-ov ~ .particle { z-index: 97; }

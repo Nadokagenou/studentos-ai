@@ -111,6 +111,11 @@ async function open3D(id, title, onClose, preview) {
   if (fxRun !== run) return;
   run.msg.className = 'hp-msg';
   run.T = T;
+  // ผูก cleanup ทันทีที่มี renderer — ไม่ใช่รอจนฉากโหลดเสร็จ
+  // เดิมผูกท้ายฟังก์ชัน หลังรอภาพถ่าย/โมเดลได้ถึง 4 วิ · ปิดจอตอน "กำลังโหลดฉาก…" (เน็ตมือถือช้า = บ่อย)
+  // closeFx() เลยไม่มีอะไรให้เรียก → WebGL context + เงา + PMREM ค้างอยู่ในการ์ดจอ สะสมทุกครั้งที่เปิดแล้วปิด
+  // จนเครื่องค้าง (ทดสอบ 8 ต.ค. 69: หน่วงภาพ 3 วิ ปิดที่ 1.2 วิ → isContextLost() = false)
+  run.cleanup = () => fx3dDispose(run);
   try { fx3dSetup(run, T); G.init(run, T); try { fx3dPost(run); } catch (_) { run.comp = null; } }
   catch (e) {
     console.warn('fx3d', e);
@@ -126,8 +131,7 @@ async function open3D(id, title, onClose, preview) {
   }
   fxBindPointer(run);
   fx3dLoop(run);
-  run.cleanup = () => fx3dDispose(run);
-  run.rs = () => { if (fxRun === run) fx3dResize(run); };
+  run.rs =() => { if (fxRun === run) fx3dResize(run); };
   window.addEventListener('resize', run.rs);
 }
 
@@ -174,10 +178,39 @@ function fx3dResize(run) {
   if (run.G && run.G.layout) run.G.layout(run);
 }
 
+// ---------- ลดคุณภาพเองเมื่อเครื่องวาดไม่ทัน ----------
+// fx3dStrong() เดาจากจำนวนคอร์กับแรม — มือถือราคาห้าพันส่วนใหญ่มี 8 คอร์ 4GB จึงถูกนับเป็น "เครื่องแรง"
+// ได้แสงฟุ้ง (bloom หลายรอบเต็มจอ) + ความคม 2 เท่า ทั้งที่การ์ดจอเป็นรุ่นเล็ก → เฟรมละ 50–100ms เครื่องค้าง
+// การเดาจากสเปกแก้ไม่จบ (ชิปเดียวกันแรงไม่เท่ากันตามความร้อน) · วัดเวลาวาดจริงแทน:
+// ข้าม 20 เฟรมแรก (คอมไพล์ shader) แล้วดูค่าเฉลี่ยทีละ 40 เฟรม ช้ากว่า ~38fps = ลดหนึ่งขั้น
+//   ขั้น 1: ถอดแสงฟุ้ง/เกรดสี + ความคมเหลือ 1.25 · ขั้น 2: ความคม 1 · เกินนั้นไม่ลดต่อ (เงายังอยู่)
+// ลดแล้วไม่เพิ่มกลับ — ภาพที่สลับไปมาระหว่างเล่นแย่กว่าภาพที่เรียบตลอด
+function fx3dGovern(run, ms) {
+  const q = run.q || (run.q = { n: 0, sum: 0, lvl: 0 });
+  if (q.lvl >= 2) return;
+  // เฟรมที่ห่างเกิน 250ms = แอปถูกพับ/สลับแอป หรือภาพถ่ายเพิ่งโหลดเสร็จกลางเกม (สะดุดครั้งเดียว) ไม่ใช่เครื่องช้า
+  if (ms > 250) return;
+  if (++q.n <= 20) return;
+  q.sum += ms;
+  if (q.n < 60) return;
+  const avg = q.sum / 40;
+  q.n = 20; q.sum = 0;
+  if (avg < 26) return;
+  q.lvl++;
+  const dpr = window.devicePixelRatio || 1;
+  if (q.lvl === 1) {
+    if (run.comp) { try { run.comp.passes.forEach(p => p.dispose && p.dispose()); run.comp.dispose && run.comp.dispose(); } catch (_) {} }
+    run.comp = null; run.bloom = null;
+    run.R.setPixelRatio(Math.min(1.25, dpr));
+  } else run.R.setPixelRatio(1);
+  fx3dResize(run);
+}
+
 function fx3dLoop(run) {
   let last = performance.now();
   const tick = now => {
     if (fxRun !== run) return;
+    fx3dGovern(run, now - last);
     const dt = Math.min(0.033, (now - last) / 1000); last = now;
     run.t += dt;
     run.G.step(run, dt);

@@ -378,6 +378,7 @@ function fxShell(title, onClose, preview, aria, hint) {
       <span class="hp-try mono"></span>
     </div>`;
   phone.appendChild(ov);
+  phone.classList.add('fx-on');   // หยุดอนิเมชันของจอข้างหลัง — เหตุผลอยู่ที่ .fx-on ใน hoop.css
 
   const $ = q => ov.querySelector(q);
   const run = fxRun = {
@@ -675,6 +676,8 @@ function closeFx(silent) {
   const run = fxRun;
   if (!run) return;
   fxRun = null;
+  const ph = document.querySelector('.phone');
+  if (ph) ph.classList.remove('fx-on');
   cancelAnimationFrame(run.raf);
   clearTimeout(run.msgT);
   document.removeEventListener('keydown', run.key);
