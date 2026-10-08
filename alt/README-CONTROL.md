@@ -28,6 +28,8 @@ supabase/migrations/20260912120000_app_config.sql
 | `app_config_versions` | ประวัติทุกครั้งที่เผยแพร่ · trigger เขียนให้เอง |
 | `admin_stats()` | ยอดรวมสำหรับหน้า Analytics · คืน `null` ถ้าไม่ใช่แอดมิน |
 
+> หน้า Analytics เต็มรูปต้องรันอีกไฟล์: `supabase/migrations/20261008120000_admin_analytics.sql`
+
 ### 2. ตั้งแอดมินคนแรก
 
 หา user id ที่ **Authentication → Users** แล้วรันใน SQL Editor:
@@ -249,7 +251,7 @@ Control Center  ──เผยแพร่──▶  app_config (Supabase)
 | **Content Manager** | `sosText()` — สามจุดที่ต่อไว้: `askPh` · `railTitle` · `toolsLink` |
 | **Feature Manager** | `sosFeature()` — `ocr` · `social` · `ttscan` · `shop` |
 | **เส้นบันทึกเอง + สวิตช์** | `autoAcceptBar()` / `autoAcceptOn()` ใน `inbox.js` (ขั้นต่ำล็อกที่ 50%) |
-| **Analytics** | `admin_stats()` — ยอดรวมจริง ไม่มีแถวของใครหลุดออกมา |
+| **Analytics** | `admin_analytics()` (migration `20261008120000_admin_analytics.sql`) — คนใช้รายวัน · กรวย · งานเข้าทางไหน · รายคนด้วยรหัสย่อ · คืนแค่ตัวเลข ไม่มีชื่องาน/อีเมล · ยังไม่รัน migration = ถอยไปใช้ `admin_stats()` |
 | **ประวัติเวอร์ชัน** | `app_config_versions` — ย้อนกลับได้ทุกเวอร์ชัน |
 
 ### ✅ ฝั่งเซิร์ฟเวอร์ — มีผลภายใน 1 นาทีหลังเผยแพร่

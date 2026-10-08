@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C47';                 // สายเลขของแอป
+const APP_VERSION = '1C48';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -136,6 +136,57 @@ function funnel() {
   if (!state.funnel) state.funnel = {};
   return state.funnel;
 }
+const FUNNEL_DAYLOG_CAP = 120;   // สี่เดือนพอสำหรับทุกคำถามที่หลังบ้านถาม · ก้อนไม่บวมเกิน ~1.5KB
+
+// ก้อนที่ส่งขึ้น cloud — ⚠️ ก่อนรุ่นนี้ funnel ไม่เคยถูกส่งขึ้นไปเลย (pushToCloud ไม่ได้ใส่ไว้ใน body)
+// ทั้งที่คอมเมนต์ข้างบนเขียนว่า "ขึ้น cloud ตามไปเอง" · หน้า Analytics จึงไม่มีอะไรให้อ่าน
+// ตัด opens / lastOpen ออก เพราะสองตัวนี้เปลี่ยน "ทุกครั้งที่เปิด" — ใส่ไปด้วยเมื่อไหร่
+// ก้อน ~50KB จะถูกส่งซ้ำทุกการเปิดแอป (กติกาเดียวกับ push.seen ที่ตั้งใจให้เปลี่ยนวันละครั้ง)
+// เวลาใช้งานล่าสุดหลังบ้านอ่านจาก user_state.updated_at แทน
+function funnelExport() {
+  const f = Object.assign({}, state.funnel || {});
+  delete f.opens; delete f.lastOpen;
+  return f;
+}
+
+// รวม funnel จากอีกเครื่อง — ตัวนับเป็นของ "บัญชี" ไม่ใช่ของเครื่อง
+// กติกาเลือกให้ "นับขาดได้ แต่ห้ามนับเกิน": ตัวนับใช้ค่ามากสุด (บวกกันแล้วจะนับซ้ำทุกรอบซิงก์)
+// ครั้งแรกใช้ค่าเก่าสุด · จอที่เคยเปิด/วันที่เปิดใช้รวมกัน
+function funnelMerge(remote) {
+  if (!remote || typeof remote !== 'object') return;
+  const f = funnel();
+  const iso = v => typeof v === 'string' && v ? v : null;
+  for (const k of ['firstOpen', 'firstTask', 'firstDone', 'notifAskedAt', 'lineLinkedAt']) {
+    const a = iso(f[k]), b = iso(remote[k]);
+    if (b && (!a || b < a)) {
+      f[k] = b;
+      if (k === 'firstOpen' && remote.firstVer) f.firstVer = remote.firstVer;
+    }
+  }
+  for (const k of ['tasksEver', 'doneEver', 'days']) {
+    const n = Number(remote[k]) || 0;
+    if (n > (f[k] || 0)) f[k] = n;
+  }
+  if (remote.via && typeof remote.via === 'object') {
+    f.via = f.via || {};
+    for (const k in remote.via) f.via[k] = Math.max(f.via[k] || 0, Number(remote.via[k]) || 0);
+  }
+  if (remote.screens && typeof remote.screens === 'object') {
+    f.screens = f.screens || {};
+    for (const k in remote.screens) {
+      const d = iso(remote.screens[k]);
+      if (d && (!f.screens[k] || d < f.screens[k])) f.screens[k] = d;
+    }
+  }
+  if (Array.isArray(remote.dayLog)) {
+    const isDay = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+    f.dayLog = Array.from(new Set((f.dayLog || []).concat(remote.dayLog).filter(isDay)))
+      .sort().slice(-FUNNEL_DAYLOG_CAP);
+    if (f.dayLog.length > (f.days || 0)) f.days = f.dayLog.length;
+  }
+  if (iso(remote.lastDay) && (!f.lastDay || remote.lastDay > f.lastDay)) f.lastDay = remote.lastDay;
+  if (remote.backfilled && !f.backfilled) f.backfilled = remote.backfilled;
+}
 
 // วันแบบเวลาท้องถิ่น — ห้ามใช้ toISOString() ตรง ๆ เพราะไทยเป็น UTC+7
 // วันของ UTC จะเปลี่ยนตอนเจ็ดโมงเช้าบ้านเรา คนที่เปิดแอปตอนตีหนึ่งกับสิบโมงจะถูกนับคนละวัน
@@ -220,7 +271,12 @@ function funnelOpen() {
   funnelBump('opens');
   // นับ "จำนวนวันที่เปิด" ไม่ใช่ "จำนวนครั้ง" — สลับแอปไปมาสิบรอบใน 5 นาทีไม่ใช่สิบวัน
   // ตัวเลขที่เราต้องตอบให้ได้คือ "มีกี่คนเปิดแอป 7 วันติด" ซึ่งต้องนับเป็นวันเท่านั้น
-  if (f.lastDay !== day) { funnelBump('days'); f.lastDay = day; }
+  if (f.lastDay !== day) {
+    funnelBump('days'); f.lastDay = day;
+    // รายชื่อวันที่เปิด — ตัวเลข days บอกได้แค่ "กี่วัน" แต่ตอบไม่ได้ว่า "วันไหน"
+    // ซึ่งหลังบ้านต้องใช้วาดกราฟคนใช้รายวันกับนับว่าใครกลับมาครบ 7 วัน
+    f.dayLog = (f.dayLog || []).concat(day).slice(-FUNNEL_DAYLOG_CAP);
+  }
   f.lastOpen = now.toISOString();
   f.ver = APP_VERSION;
   save();
@@ -1223,6 +1279,7 @@ async function syncFromCloud() {
       for (const m of (state.marks || [])) mById[m.id] = m;
       for (const m of (remote.marks || [])) mById[m.id] = m;
       state.marks = Object.values(mById);
+      funnelMerge(remote.funnel);
       // ใช้ตัวเดียวกับ save() — ถ้าเครื่องเต็มตรงนี้แล้วปล่อยให้ throw จะร้ายกว่าที่อื่น
       // เพราะบรรทัดที่เหลือของ syncFromCloud (บริบท · ของสะสม · กล่องเข้า LINE · renderAll)
       // จะไม่ได้ทำงานเลยสักบรรทัด แปลว่าดึงของจาก cloud มาแล้วแต่หน้าจอไม่รู้เรื่องด้วย
@@ -1306,7 +1363,7 @@ function pushToCloud(immediate) {
         sessions: state.sessions || [],
         marks: state.marks || [],
         ctx: typeof ctxExport === 'function' ? ctxExport() : undefined,
-        vault, push };
+        vault, push, funnel: funnelExport() };
       const json = JSON.stringify(body);
       const hash = cheapHash(json);
       const avatarChanged = avatar !== lastPushedAvatar;
@@ -10868,6 +10925,8 @@ function finishFocus() {
   const t = state.tasks.find(x => x.id === focusId);
   if (!t) { closeFocus(); return; }
   stopWork(true);
+  // ทางนี้คือปลายลูกโซ่หลัก (เริ่มทำ → ทำเสร็จ) แต่เดิมไม่ได้นับ doneEver เลย — ตัวเลขทำเสร็จจึงต่ำกว่าจริง
+  if (!t.done) funnelDone();
   t.done = true;
   t.progress = 100;
   t.doneAt = new Date().toISOString();

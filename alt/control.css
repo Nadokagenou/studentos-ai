@@ -292,3 +292,30 @@ th{color:var(--cfaint);font-size:11px;text-transform:uppercase;letter-spacing:.0
 .ver .tx{flex:1;min-width:0}
 .ver .tx b{display:block;font-size:13px;font-weight:600}
 .ver .tx small{color:var(--cmuted);font-size:11.5px}
+
+/* ---------- Analytics ---------- */
+.seg{display:inline-flex;background:var(--ccard2);border:1px solid var(--cline);border-radius:11px;padding:3px}
+.seg button{border:0;background:none;padding:5px 11px;border-radius:8px;font-weight:650;font-size:12.5px;color:var(--cmuted)}
+.seg button.on{background:var(--ccard);color:var(--cink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.ana-chart{display:flex;align-items:flex-end;gap:2px;height:150px;padding-top:18px;position:relative}
+.ana-col{flex:1;min-width:0;height:100%;display:flex;align-items:flex-end;gap:1px;position:relative}
+.ana-col:hover{background:var(--cline2);border-radius:4px}
+.ana-bar{flex:1;min-height:1px;border-radius:3px 3px 0 0;background:var(--cacc)}
+.ana-bar.b2{background:var(--cgood)}
+.ana-bar.zero{background:var(--cline)}
+.ana-col .tip{display:none;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);
+  background:var(--cink);color:var(--cscr);font-size:11px;padding:4px 7px;border-radius:6px;white-space:nowrap;z-index:2;pointer-events:none}
+.ana-col:hover .tip{display:block}
+.ana-axis{display:flex;justify-content:space-between;color:var(--cfaint);font-size:11px;margin-top:5px}
+.ana-max{position:absolute;top:0;left:0;color:var(--cfaint);font-size:11px}
+.ana-key{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 4px 0 2px;vertical-align:-1px;background:var(--cacc)}
+.ana-key.k2{background:var(--cgood)}
+.ana-hrow{display:grid;grid-template-columns:minmax(90px,38%) 1fr auto;align-items:center;gap:10px;padding:5px 0;font-size:13px}
+.ana-hrow .tr{height:10px;background:var(--ccard2);border-radius:99px;overflow:hidden}
+.ana-hrow .fl{height:100%;background:var(--cacc);border-radius:99px}
+.ana-hrow .n{font-variant-numeric:tabular-nums;font-weight:700;min-width:64px;text-align:right}
+.ana-hrow .n small{color:var(--cfaint);font-weight:500;margin-left:4px}
+#anaUsers th{cursor:pointer;white-space:nowrap;user-select:none}
+#anaUsers td{white-space:nowrap;font-variant-numeric:tabular-nums}
+#anaUsers tr.me td{background:var(--cacc-soft)}
+#anaUsers td.bad{color:var(--calert);font-weight:700}

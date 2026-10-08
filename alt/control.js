@@ -384,7 +384,10 @@
     }
   }
 
-  /* ==================== Analytics ==================== */
+  /* ==================== Analytics ====================
+     อ่านจาก admin_analytics() ตัวเดียว (migration 20261008120000) — ฟังก์ชันคิดทุกอย่างฝั่งเซิร์ฟเวอร์
+     แล้วคืนเฉพาะตัวเลข ไม่มีชื่องาน/อีเมล/ชื่อคนหลุดมาถึงหน้านี้ ถึงจะเปิด DevTools ดูก็ไม่มี
+     ยังไม่ได้รัน migration ใหม่ = ถอยไปใช้ admin_stats() ตัวเดิม (นับแถวอย่างเดียว) แล้วบอกตรง ๆ */
   var STAT_META = [
     ['users', 'ผู้ใช้ที่มีข้อมูลบนคลาวด์', 'แถวใน user_state'],
     ['push', 'เครื่องที่เปิดแจ้งเตือน', 'push_subscriptions'],
@@ -394,32 +397,208 @@
     ['inbox', 'ของที่ไหลเข้ากล่องเข้า', 'inbox_items'],
     ['versions', 'ครั้งที่เผยแพร่ค่าตั้ง', 'app_config_versions'],
   ];
+  var VIA_NAME = { manual: 'พิมพ์เอง', scan: 'สแกน / AI อ่านให้', line: 'กลุ่ม LINE', sync: 'Classroom / ปฏิทิน (ซิงก์)', inbox: 'กล่องเข้า' };
+  var SCREEN_NAME = {
+    'scr-menu': 'หน้าแรก', 'scr-home': 'รายการงาน (เก่า)', 'scr-tasks': 'งานทั้งหมด', 'scr-form': 'ฟอร์มเพิ่มงาน',
+    'scr-scan': 'สแกน', 'scr-parsing': 'กำลังอ่านรูป', 'scr-inbox': 'กล่องเข้า', 'scr-plan': 'แผน', 'scr-timeline': 'เส้นเวลา',
+    'scr-stats': 'สถิติ', 'scr-settings': 'ตั้งค่า', 'scr-profile': 'ฉัน', 'scr-shop': 'ร้านค้า', 'scr-sai': 'ไซ (AI)',
+    'scr-ai': 'ถาม AI', 'scr-why': 'ทำไมใบนี้', 'scr-context': 'ตารางเรียน', 'scr-ctxwiz': 'ตั้งตารางเรียน',
+    'scr-ttscan': 'สแกนตารางเรียน', 'scr-sources': 'ตัวเชื่อม', 'scr-login': 'ล็อกอิน', 'scr-onboard': 'เริ่มต้นใช้',
+    'scr-hw': 'ห้องการบ้าน', 'scr-room': 'ห้อง', 'scr-mates': 'เพื่อนร่วมห้อง', 'scr-people': 'คน', 'scr-chat': 'แชท',
+    'scr-dm': 'ข้อความส่วนตัว', 'scr-topic': 'หัวข้อ', 'scr-badges': 'เหรียญ', 'scr-notif': 'แจ้งเตือน', 'scr-privacy': 'เราเก็บอะไร',
+  };
+  var anaDays = 30, anaData = null, anaSort = { k: 'last', dir: -1 };
+  var fmtN = function (v) { return v == null ? '—' : Number(v).toLocaleString('th-TH'); };
+  var pct = function (a, b) { return b ? Math.round(a * 100 / b) + '%' : '—'; };
+  var thDay = function (iso) {
+    if (!iso) return '—';
+    var d = new Date(String(iso).length === 10 ? iso + 'T00:00:00' : iso);
+    return isNaN(d) ? '—' : d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+  };
+  var ago = function (iso) {
+    var ms = Date.now() - new Date(iso).getTime();
+    if (!isFinite(ms)) return '—';
+    var m = Math.round(ms / 60000);
+    if (m < 60) return m + ' นาทีก่อน';
+    if (m < 60 * 24) return Math.round(m / 60) + ' ชม.ก่อน';
+    return Math.round(m / 1440) + ' วันก่อน';
+  };
+  var tile = function (k, v, s) {
+    return '<div class="stat"><div class="k">' + esc(k) + '</div><div class="v">' + v + '</div>'
+      + '<div class="s">' + s + '</div></div>';
+  };
+
   async function loadStats() {
+    $('#anaAt').textContent = 'กำลังโหลด…';
+    var r = await sb.rpc('admin_analytics', { p_days: anaDays });
+    if (!r.error && r.data) { anaData = r.data; renderAnalytics(); return; }
+    // ยังไม่มีฟังก์ชันใหม่ → ใช้ตัวนับแถวเดิมไปก่อน
+    var missing = r.error && /admin_analytics|function|schema cache/i.test(r.error.message || '');
+    await loadStatsLegacy(missing ? null : (r.error ? r.error.message : 'ฟังก์ชันคืนค่าว่าง (ไม่ใช่แอดมิน?)'));
+  }
+
+  async function loadStatsLegacy(err) {
     var el = $('#anaTiles');
+    $('#anaAt').textContent = '';
+    ['#anaActive', '#anaFlow', '#anaFunnel', '#anaVia', '#anaScreens', '#anaVer', '#anaUsers']
+      .forEach(function (s) { $(s).innerHTML = '<p class="hint">ยังไม่มีข้อมูล</p>'; });
+    $('#anaNote').innerHTML = '<div class="warn">' + (err ? 'อ่าน admin_analytics() ไม่ได้: ' + esc(err)
+      : 'ยังไม่ได้รัน migration <code>20261008120000_admin_analytics.sql</code> — เอาไปวางใน Supabase → SQL Editor → Run แล้วกด ↻ โหลดใหม่')
+      + '<br>ตอนนี้แสดงได้แค่จำนวนแถวจาก <code>admin_stats()</code></div>';
     try {
       var r = await sb.rpc('admin_stats');
       if (r.error) throw r.error;
       if (!r.data) throw new Error('ฟังก์ชันคืนค่าว่าง (ไม่ใช่แอดมิน?)');
       el.innerHTML = STAT_META.map(function (s) {
-        var v = r.data[s[0]];
-        return '<div class="stat"><div class="k">' + esc(s[1]) + '</div>'
-          + '<div class="v">' + (v == null ? '—' : Number(v).toLocaleString('th-TH')) + '</div>'
-          + '<div class="s mono">' + esc(s[2]) + '</div></div>';
+        return tile(s[1], fmtN(r.data[s[0]]), '<span class="mono">' + esc(s[2]) + '</span>');
       }).join('');
-      $('#anaWhy').innerHTML =
-        'ตัวเลขข้างบนนับจากฐานข้อมูลจริงผ่านฟังก์ชัน <code>admin_stats()</code> '
-        + 'ซึ่งคืนเฉพาะ "ยอดรวม" — ไม่มีแถวของผู้ใช้คนไหนหลุดออกมาสักแถว เพราะ RLS '
-        + 'ของทุกตารางเป็น "อ่านได้เฉพาะของตัวเอง" และนั่นถูกแล้ว<br><br>'
-        + 'สิ่งที่ยังตอบไม่ได้คือ <b>พฤติกรรม</b> — ทำงานเสร็จกี่ชิ้น · ใช้ OCR กี่ครั้ง · '
-        + 'ฟีเจอร์ไหนถูกเปิดบ่อยสุด · ทั้งหมดนี้ต้องมีตารางเก็บ event ซึ่งยังไม่มี '
-        + 'และการเดาตัวเลขมาโชว์แย่กว่าการไม่โชว์';
     } catch (e) {
       el.innerHTML = '<div class="stat" style="grid-column:1/-1"><div class="k">อ่านไม่ได้</div>'
         + '<div class="v" style="font-size:15px;line-height:1.6">' + esc(e.message || e) + '</div>'
         + '<div class="s">ยังไม่ได้รัน migration app_config หรือยังไม่มีฟังก์ชัน admin_stats()</div></div>';
-      $('#anaWhy').textContent = 'รัน migration 20260912120000_app_config.sql ก่อน แล้วรีเฟรชหน้านี้';
     }
   }
+
+  function renderAnalytics() {
+    var d = anaData, k = d.kpi || {};
+    $('#anaAt').textContent = 'คิดเมื่อ ' + new Date(d.generated_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    $('#anaCsv').disabled = !(d.users && d.users.length);
+    // ตัวนับการเปิดแอป/จอ เพิ่งเริ่มขึ้นมากับรุ่นนี้ — บอกไว้ ไม่งั้นอ่าน "จอที่เคยเปิด = 0" แล้วสรุปผิด
+    $('#anaNote').innerHTML = k.users && k.with_funnel < k.users
+      ? '<div class="warn">' + fmtN(k.users - k.with_funnel) + ' จาก ' + fmtN(k.users)
+        + ' คน ยังไม่ได้เปิดแอปรุ่นที่ส่งตัวนับการใช้งานขึ้นมา — ตัวเลขงาน/การจับเวลาย้อนหลังได้ครบ '
+        + 'แต่ "จอที่เคยเปิด" กับ "รุ่นแอป" จะค่อย ๆ เต็มเมื่อแต่ละคนเปิดแอปครั้งถัดไป</div>'
+      : '';
+
+    $('#anaTiles').innerHTML = [
+      tile('ใช้วันนี้', fmtN(k.active_today), 'จากผู้ใช้ล็อกอิน ' + fmtN(k.users) + ' คน'),
+      tile('ใช้ใน 7 วัน', fmtN(k.active_7), '30 วัน: ' + fmtN(k.active_30) + ' · ใหม่ 7 วัน: ' + fmtN(k.new_7)),
+      tile('งานเข้า 7 วัน', fmtN(k.created_7), 'ทำเสร็จ 7 วัน: ' + fmtN(k.done_7)),
+      tile('จับเวลา 7 วัน', fmtN(Math.round((k.focus_7 || 0) / 60 * 10) / 10) + ' <small style="font-size:14px">ชม.</small>', fmtN(k.focus_7) + ' นาทีรวมทุกคน'),
+      tile('งานค้างตอนนี้', fmtN(k.pending), 'เลยกำหนดแล้ว ' + fmtN(k.overdue) + ' ชิ้น'),
+      tile('เสร็จทันกำหนด', pct(k.on_time, k.rated), 'จากงานที่มีวันส่ง ' + fmtN(k.rated) + ' ชิ้น'),
+      tile('งานทั้งหมดบนคลาวด์', fmtN(k.tasks_live), 'ไม่นับถังขยะ'),
+      tile('เปิดแจ้งเตือน', fmtN(k.push), 'คน (push_subscriptions)'),
+    ].join('');
+
+    var s = d.series || [];
+    $('#anaActive').innerHTML = barChart(s, [['active', '']], function (x) { return thDay(x.day) + ' · ' + x.active + ' คน'; });
+    $('#anaFlow').innerHTML = barChart(s, [['created', ''], ['done', 'b2']], function (x) { return thDay(x.day) + ' · เข้า ' + x.created + ' · เสร็จ ' + x.done; });
+
+    var f = d.funnel || {}, base = f.signed_in || 0;
+    $('#anaFunnel').innerHTML = hbars([
+      ['ล็อกอิน', f.signed_in], ['สร้างงานอย่างน้อย 1 ชิ้น', f.made_task], ['ทำงานเสร็จอย่างน้อย 1 ชิ้น', f.did_task],
+      ['กลับมาใช้ 2 วันขึ้นไป', f.days_2], ['ใช้ 7 วันขึ้นไป', f.days_7],
+    ], base, true);
+
+    var via = d.via || {}, vt = 0;
+    Object.keys(via).forEach(function (x) { vt += via[x]; });
+    $('#anaVia').innerHTML = hbars(Object.keys(via).map(function (x) { return [VIA_NAME[x] || x, via[x]]; }), vt, true);
+
+    var sc = d.screens || {};
+    $('#anaScreens').innerHTML = hbars(Object.keys(sc).map(function (x) {
+      return [(SCREEN_NAME[x] || x), sc[x]];
+    }), k.with_funnel || 0, true);
+
+    var vr = d.versions || {};
+    $('#anaVer').innerHTML = hbars(Object.keys(vr).map(function (x) { return [x, vr[x]]; }), k.users || 0, true);
+
+    renderUsers();
+  }
+
+  // กราฟแท่งรายวัน — CSS ล้วน ไม่ต้องโหลดไลบรารีมาวาดแท่งไม่กี่สิบแท่ง
+  function barChart(rows, keys, tip) {
+    var max = 0;
+    rows.forEach(function (r) { keys.forEach(function (kk) { max = Math.max(max, r[kk[0]] || 0); }); });
+    var cols = rows.map(function (r) {
+      return '<div class="ana-col"><span class="tip">' + esc(tip(r)) + '</span>' + keys.map(function (kk) {
+        var v = r[kk[0]] || 0;
+        return '<div class="ana-bar ' + kk[1] + (v ? '' : ' zero') + '" style="height:' + (max ? Math.max(v / max * 100, v ? 2 : 0) : 0) + '%"></div>';
+      }).join('') + '</div>';
+    }).join('');
+    return '<div class="ana-chart"><span class="ana-max">' + fmtN(max) + '</span>' + cols + '</div>'
+      + '<div class="ana-axis"><span>' + (rows[0] ? thDay(rows[0].day) : '') + '</span><span>วันนี้</span></div>';
+  }
+
+  function hbars(list, base, showPct) {
+    if (!list.length) return '<p class="hint">ยังไม่มีข้อมูล</p>';
+    var max = 0;
+    list.forEach(function (x) { max = Math.max(max, x[1] || 0); });
+    return list.map(function (x) {
+      return '<div class="ana-hrow"><span>' + esc(x[0]) + '</span>'
+        + '<div class="tr"><div class="fl" style="width:' + (max ? (x[1] || 0) / max * 100 : 0) + '%"></div></div>'
+        + '<span class="n">' + fmtN(x[1]) + (showPct && base ? '<small>' + pct(x[1] || 0, base) + '</small>' : '') + '</span></div>';
+    }).join('');
+  }
+
+  var USER_COLS = [
+    ['id', 'รหัส'], ['last', 'ซิงก์ล่าสุด'], ['first', 'วันแรก'], ['days', 'วันที่ใช้'], ['days7', '7 วัน'],
+    ['made', 'สร้างงาน'], ['done', 'ทำเสร็จ'], ['pending', 'ค้าง'], ['overdue', 'เลยกำหนด'],
+    ['made7', 'เข้า 7 วัน'], ['done7', 'เสร็จ 7 วัน'], ['focus7', 'จับเวลา 7 วัน (นาที)'], ['onTime', 'ทันกำหนด'], ['ver', 'รุ่น'],
+  ];
+  function renderUsers() {
+    var list = (anaData.users || []).slice();
+    var key = anaSort.k;
+    list.sort(function (a, b) {
+      var x = key === 'onTime' ? (a.rated ? a.onTime / a.rated : -1) : a[key];
+      var y = key === 'onTime' ? (b.rated ? b.onTime / b.rated : -1) : b[key];
+      if (x == null) return 1;
+      if (y == null) return -1;
+      return (x > y ? 1 : x < y ? -1 : 0) * anaSort.dir;
+    });
+    var head = '<tr>' + USER_COLS.map(function (c) {
+      return '<th data-k="' + c[0] + '">' + esc(c[1]) + (anaSort.k === c[0] ? (anaSort.dir > 0 ? ' ▲' : ' ▼') : '') + '</th>';
+    }).join('') + '</tr>';
+    var body = list.map(function (u) {
+      return '<tr' + (u.me ? ' class="me"' : '') + '>'
+        + '<td class="mono">' + esc(u.id) + (u.me ? ' · คุณ' : '') + '</td>'
+        + '<td title="' + esc(u.last) + '">' + ago(u.last) + '</td>'
+        + '<td>' + thDay(u.first) + '</td>'
+        + '<td>' + fmtN(u.days) + '</td><td>' + fmtN(u.days7) + '</td>'
+        + '<td>' + fmtN(u.made) + '</td><td>' + fmtN(u.done) + '</td>'
+        + '<td>' + fmtN(u.pending) + '</td><td' + (u.overdue ? ' class="bad"' : '') + '>' + fmtN(u.overdue) + '</td>'
+        + '<td>' + fmtN(u.made7) + '</td><td>' + fmtN(u.done7) + '</td><td>' + fmtN(u.focus7) + '</td>'
+        + '<td>' + pct(u.onTime, u.rated) + '</td><td class="mono">' + esc(u.ver || '?') + '</td></tr>';
+    }).join('');
+    var t = $('#anaUsers');
+    t.innerHTML = '<thead>' + head + '</thead><tbody>' + (body || '<tr><td colspan="14" class="hint">ยังไม่มีใครล็อกอิน</td></tr>') + '</tbody>';
+    Array.prototype.forEach.call(t.querySelectorAll('th'), function (th) {
+      th.onclick = function () {
+        var k2 = th.dataset.k;
+        anaSort = { k: k2, dir: anaSort.k === k2 ? -anaSort.dir : (k2 === 'id' || k2 === 'ver' ? 1 : -1) };
+        renderUsers();
+      };
+    });
+  }
+
+  // CSV รายคน — ตัวเลขชุดเดียวกับตาราง ไม่มีอะไรมากกว่าที่จอเห็น (ไว้เอาไปทำกราฟในชีตตอนสรุปผลทดลอง)
+  $('#anaCsv').onclick = function () {
+    if (!anaData || !anaData.users) return;
+    var cols = ['id', 'last', 'first', 'days', 'days7', 'made', 'done', 'live', 'pending', 'overdue',
+      'made7', 'done7', 'focus7', 'rated', 'onTime', 'ver', 'via'];
+    var cell = function (v) {
+      if (v != null && typeof v === 'object') v = Object.keys(v).map(function (x) { return x + ':' + v[x]; }).join(' ');
+      v = v == null ? '' : String(v);
+      return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+    };
+    var csv = [cols.join(',')].concat(anaData.users.map(function (u) {
+      return cols.map(function (c) { return cell(u[c]); }).join(',');
+    })).join('\n');
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'studentos-users-' + anaData.today + '.csv';
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  };
+  $('#anaReload').onclick = function () { loadStats(); };
+  Array.prototype.forEach.call(document.querySelectorAll('#anaRange button'), function (b) {
+    b.onclick = function () {
+      Array.prototype.forEach.call(document.querySelectorAll('#anaRange button'), function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+      anaDays = Number(b.dataset.d);
+      loadStats();
+    };
+  });
 
   /* ==================== ส่วนประกอบที่ใช้ซ้ำ ==================== */
   function toggleRow(name, sub, get, set, disabled) {
@@ -467,8 +646,11 @@
       seen[b.id] = 1;
       out.push({ id: b.id, on: b.on !== false });
     });
+    // ต้องกรองด้วย BLOCK_META ฝั่งค่าเริ่มต้นด้วย — DEFAULTS ยังมี toolsLink (ถูกลบไปตั้งแต่ 1C12)
+    // ไม่กรอง = drawBlocks() อ่าน m[0] ของ undefined แล้ว boot() ล้มกลางทาง
+    // ทุกอย่างหลัง renderAll() (ประวัติเวอร์ชัน · Analytics) จึงไม่เคยโหลดเลยตั้งแต่ 19 ก.ย.
     DEFAULTS.home.blocks.forEach(function (b) {
-      if (!seen[b.id]) out.push({ id: b.id, on: true });
+      if (!seen[b.id] && BLOCK_META[b.id]) { seen[b.id] = 1; out.push({ id: b.id, on: true }); }
     });
     draft.home.blocks = out;
     return out;

@@ -304,10 +304,50 @@
 
     <!-- ---------- ANALYTICS ---------- -->
     <section class="page" id="p-ana">
-      <div class="ph"><h1>Analytics</h1><p>ตัวเลขที่อ่านได้จริงจากฐานข้อมูลตอนนี้</p></div>
+      <div class="ph"><h1>Analytics</h1><p>นักเรียนที่ล็อกอินใช้แอปยังไง — คิดจากข้อมูลที่ซิงก์ขึ้นมาจริง
+        เห็นแค่ตัวเลข ไม่เห็นชื่องานหรือชื่อคน</p></div>
+      <div class="row" style="margin-bottom:14px">
+        <div class="seg" id="anaRange">
+          <button data-d="7">7 วัน</button><button data-d="30" class="on">30 วัน</button><button data-d="90">90 วัน</button>
+        </div>
+        <button class="btn sm" id="anaReload">↻ โหลดใหม่</button>
+        <button class="btn sm" id="anaCsv" disabled>⇩ CSV รายคน</button>
+        <span class="hint" id="anaAt" style="margin:0"></span>
+      </div>
+      <div id="anaNote"></div>
       <div class="grid4" id="anaTiles"></div>
-      <div class="card" style="margin-top:14px"><h3>ทำไมมีแค่นี้</h3>
-        <p id="anaWhy">กำลังตรวจว่าอ่านอะไรได้บ้าง…</p></div>
+
+      <div class="grid2" style="margin-top:14px">
+        <div class="card"><h3>คนใช้รายวัน</h3>
+          <p>นับคนที่มีร่องรอยว่าเปิดแอปวันนั้น (เปิดแอป · สร้างงาน · ติ๊กเสร็จ · จับเวลา · ซิงก์)</p>
+          <div id="anaActive"></div></div>
+        <div class="card"><h3>งานเข้า vs งานเสร็จ</h3>
+          <p><span class="ana-key k1"></span>สร้างใหม่ <span class="ana-key k2"></span>ทำเสร็จ · รายวัน</p>
+          <div id="anaFlow"></div></div>
+      </div>
+
+      <div class="grid2">
+        <div class="card"><h3>กรวย — ล็อกอินแล้วไปถึงไหน</h3>
+          <p>ทุกขั้นนับเทียบกับ "คนที่ล็อกอิน" ทั้งหมด · ขั้นที่ร่วงเยอะที่สุดคือที่ต้องแก้ก่อน</p>
+          <div id="anaFunnel"></div></div>
+        <div class="card"><h3>งานเข้ามาทางไหน</h3>
+          <p>จากงานทุกใบที่ยังอยู่บนคลาวด์ (รวมถังขยะ) — ตอบว่าทางไหนใช้ได้จริง</p>
+          <div id="anaVia"></div></div>
+      </div>
+
+      <div class="grid2">
+        <div class="card"><h3>จอที่เคยถูกเปิด</h3>
+          <p>กี่คนเคยเปิดจอนี้อย่างน้อยหนึ่งครั้ง — แยก "หาไม่เจอ" ออกจาก "เจอแล้วไม่ใช้"</p>
+          <div id="anaScreens"></div></div>
+        <div class="card"><h3>รุ่นแอปที่ใช้อยู่</h3>
+          <p>ตามที่เครื่องแจ้งไว้ล่าสุด · "?" = ยังไม่ได้อัปเดตเป็นรุ่นที่ส่งตัวนับขึ้นมา</p>
+          <div id="anaVer"></div></div>
+      </div>
+
+      <div class="card"><h3>รายคน</h3>
+        <p>รหัสย่อ = 8 ตัวแรกของ user id (ดูว่าเป็นใครได้ที่ Supabase → Authentication → Users) ·
+          เรียงจากซิงก์ล่าสุด · แตะหัวคอลัมน์เพื่อเรียง</p>
+        <div style="overflow-x:auto"><table id="anaUsers"></table></div></div>
     </section>
 
     <!-- ---------- A/B ---------- -->
