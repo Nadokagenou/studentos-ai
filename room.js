@@ -407,7 +407,7 @@ function renderRoom() {
     <div class="page-head">
       <div class="eyebrow mono">${esc(fmtThaiDate(new Date()))}</div>
       <h1 class="page-title">ห้องของฉัน</h1>
-      <p class="page-sub">ที่ที่เป็นของเธอคนเดียว — แต่งยังไงก็ได้ แล้วเดี๋ยวเปิดให้เพื่อนเข้ามาดู</p>
+      
     </div>
 
     <!-- ป้ายไฟกับป้ายหน้าห้องอยู่ใต้ฉาก ไม่ลอยทับ — ของที่วางไว้มุมล่างซ้ายของห้อง
@@ -430,7 +430,7 @@ function renderRoom() {
       </label>
       <label class="rm-fld">
         <span>ป้ายหน้าห้อง</span>
-        <input id="rmStatus" type="text" maxlength="60" placeholder="เขียนอะไรก็ได้ที่อยากให้คนอ่าน"
+        <input id="rmStatus" type="text" maxlength="60" placeholder="สถานะ"
                value="${esc(r.status)}" onchange="roomSetText('status', this.value)">
       </label>
     </div>
@@ -462,9 +462,7 @@ function renderRoom() {
         </button>`;
       }).join('')}
     </div>
-
-    <p class="rm-note">ของที่ซื้อแล้วอยู่กับเธอตลอด เปลี่ยนสลับไปมาได้ไม่เสียโทเคนเพิ่ม ·
-      โทเคนได้จากการเช็คอินทุกวันและกล่องสุ่ม</p>`;
+`;
 }
 
 // รูปย่อในปุ่มเลือก — วาดฉากจริงย่อส่วนแล้วครอปเฉพาะช่องนั้น
@@ -530,6 +528,6 @@ function roomBuy(kind, id) {
 
   haptic('done');
   if (typeof splashBurst === 'function') splashBurst(12, 'egg-star');
-  showToast({ title: 'ได้ ' + it.name + ' มาแล้ว', body: 'วางไว้ในห้องให้เรียบร้อยแล้ว · เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
+  showToast({ title: 'ได้ ' + it.name + ' มาแล้ว', body: 'เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
   renderRoom();
 }

@@ -241,9 +241,7 @@ function cohortBlock() {
       ${GRADE_BANDS.map(g => `<button class="ch-chip${cohort.grade === g ? ' on' : ''}"
         onclick="setCohort('${g}')">${g}</button>`).join('')}
     </div>
-    <p class="ch-fine">${cohort.grade
-      ? 'ใช้จับคู่กับคนที่เรียนเรื่องเดียวกันทั้งประเทศ — แท็บ "ทั่วประเทศ" ในฟีด'
-      : 'ยังไม่ได้เลือก · แท็บ "ทั่วประเทศ" ในฟีดจะยังว่างอยู่จนกว่าจะเลือก'}</p>`;
+`;
 }
 
 async function setCohort(g) {
@@ -367,7 +365,7 @@ function renderMates() {
         <div class="so-chips row">${known.map(n => chip(n, 'need', c.weak.includes(n))).join('')}</div>
       </div>` : ''}
 
-      <p class="ep-fine">${icon('lock')}เพื่อนเห็นแค่ชื่อ รูป แนะนำตัว และวิชาที่เลือก · งานกับตารางเรียนไม่ได้ส่งขึ้นไป</p>
+      <p class="ep-fine">${icon('lock')}เพื่อนเห็นแค่ชื่อ รูป แนะนำตัว และวิชา</p>
 
       <!-- ปุ่มเดียว เขียนว่า "บันทึก" ตรง ๆ · ของเดิมเขียนว่า "เผยแพร่"
            ซึ่งฟังดูเหมือนทำอย่างอื่นที่ไม่ใช่การบันทึกสิ่งที่เพิ่งพิมพ์ไป -->
@@ -393,13 +391,11 @@ function renderMates() {
       </div>
       <div class="so-empty">
         <p class="so-empty-h">ล็อกอินเพื่อเจอคนจริง</p>
-        <p class="so-empty-p">ห้องเรียนต้องรู้ว่าใครเป็นใคร ตรงนี้จึงต้องมีบัญชี ·
-          วิชาที่เลือกไว้ข้างบนถูกเก็บในเครื่องแล้ว ล็อกอินเสร็จจะกลับมาที่หน้านี้เอง</p>
         <button class="btn google" onclick="loginFromMates()"><span class="g-badge">G</span>
           เข้าสู่ระบบด้วย Google</button>
       </div>`;
   } else if (!s.pubAt) {
-    list = `<p class="so-hint">เผยแพร่โปรไฟล์ก่อน แล้วจะเห็นว่าใครในห้องช่วยเรื่องอะไรได้บ้าง</p>`;
+    list = `<p class="so-hint">เผยแพร่โปรไฟล์ก่อน</p>`;
   } else if (matesBusy) {
     list = `<p class="so-hint">กำลังดูว่าใครอยู่ห้องเดียวกับคุณ…</p>`;
   } else if (matesErr) {
@@ -428,7 +424,6 @@ function matesHead() {
   return `<div class="page-head">
     <div class="eyebrow mono">${esc(fmtThaiDate(new Date()))}</div>
     <h1 class="page-title">เพื่อนร่วมห้อง</h1>
-    <p class="page-sub">บอกว่าคุณช่วยเรื่องอะไรได้ แล้วแอปจะหาคนที่ตรงกันให้</p>
   </div>`;
 }
 
@@ -535,7 +530,7 @@ async function saveProfileEdit() {
   if (!currentUser) {
     if (btn) { btn.disabled = false; btn.textContent = 'บันทึก'; }
     if (typeof renderAll === 'function') renderAll();
-    showToast({ title: 'บันทึกในเครื่องแล้ว', body: 'เข้าบัญชีเพื่อให้เพื่อนเห็นด้วย' });
+    showToast({ title: 'บันทึกในเครื่องแล้ว', body: '' });
     return;
   }
 
@@ -578,7 +573,7 @@ async function doPublish() {
     return;
   }
   haptic('done');
-  showToast({ title: 'เผยแพร่แล้ว', body: 'เพื่อนร่วมห้องเห็นโปรไฟล์ของคุณได้แล้ว' });
+  showToast({ title: 'เผยแพร่แล้ว', body: '' });
   renderMates();
   loadMates();
 }
@@ -790,7 +785,7 @@ function renderChat() {
     </div>
 
     ${gotAsked ? `<div class="ch-req">
-      <p>คนนี้ยังไม่ใช่เพื่อนของคุณ — เขาส่งคำขอทักมา</p>
+      <p>ขอทักคุณ</p>
       <div class="ch-req-row">
         <button class="ch-req-no" onclick="declineDm('${esc(chatThread.id)}', false)">ไม่รับ</button>
         <button class="ch-req-block" onclick="declineDm('${esc(chatThread.id)}', true)">บล็อก</button>
@@ -798,14 +793,14 @@ function renderChat() {
       </div>
     </div>` : ''}
     ${asked ? `<p class="ch-wait">${usedUp
-        ? 'ส่งคำขอแล้ว — ส่งได้อีกครั้งเมื่อเขาตอบกลับ'
-        : 'คนนี้ยังไม่ใช่เพื่อนของคุณ ข้อความแรกจะไปอยู่ในกล่องคำขอของเขา'}</p>` : ''}
+        ? 'ส่งคำขอแล้ว'
+        : 'ยังไม่ใช่เพื่อน'}</p>` : ''}
 
     <div class="ch-list" id="chatList">
       ${chatMsgs.length ? rows : `<div class="ch-blank">
           ${chatAvatar()}
           <b>${esc(chatThread.name)}</b>
-          <p>ยังไม่มีใครพิมพ์อะไร — ประโยคแรกยากที่สุดเสมอ</p>
+          <p>ยังไม่มีข้อความ</p>
         </div>`}
     </div>
 
@@ -1268,9 +1263,9 @@ function renderDmInboxInner() {
           ${dmFindBusy ? '<p class="so-hint">กำลังค้นหา…</p>' : ''}
           ${others.length
             ? others.map(p => pickRow(p, p.rel === 'friends' ? 'เพื่อนของคุณ'
-                : 'ยังไม่ใช่เพื่อน — ข้อความแรกจะไปอยู่ในกล่องคำขอของเขา')).join('')
+                : 'ยังไม่ใช่เพื่อน')).join('')
             : (dmFindBusy ? '' : '<p class="so-hint">ไม่เจอใครที่ตรงกับคำนี้</p>')}`
-          : '<p class="so-hint">พิมพ์อีกสักตัวเพื่อค้นหาคนทั้งแอป</p>'}
+          : ''}
       </div>` + fab;
     return;
   }
@@ -1332,7 +1327,7 @@ async function declineDm(id, block) {
   go('scr-dm');
   renderDmInbox();
   showToast({ title: block ? 'บล็อกแล้ว' : 'ไม่รับคำขอแล้ว',
-    body: block ? 'เขาจะทักคุณไม่ได้อีก และไม่รู้ว่าถูกบล็อก' : 'เขาไม่ได้รับแจ้งอะไร' });
+    body: '' });
 }
 
 // ---------- ล็อกอินแล้วต้องกลับมาที่หน้านี้ ----------

@@ -148,7 +148,7 @@ async function openTopicForTask(taskId) {
   if (best && best.hits >= 2) return openTopic(best.id);
   if (!rows.length) {
     showToast({ title: 'ยังไม่มีหัวข้อของวิชานี้',
-      body: 'ลองพิมพ์ชื่อเรื่องที่ติดในช่องค้นหาดู' });
+      body: '' });
     return;
   }
   topicPick = { rows, subject: (t.subject || '').trim(), title: t.detail || '' };
@@ -259,7 +259,7 @@ function renderTopic() {
                 <span class="tp-pick-tag${r.universal ? ' world' : ''}">${
                   r.universal ? 'ทั่วโลก' : 'ในประเทศ'}</span>
               </button>`).join('')
-            : '<p class="tp-empty">ไม่เจอหัวข้อที่ตรง — ลองคำสั้นลง เช่น "ลิมิต" แทน "หาลิมิตของฟังก์ชัน"</p>'}
+            : '<p class="tp-empty">ไม่เจอหัวข้อ ลองคำที่สั้นลง</p>'}
         </div>`;
     return;
   }
@@ -278,7 +278,7 @@ function renderTopic() {
       ${world
         ? `<p class="tp-fine">คนที่ตอบคือคนที่ผ่านเรื่องนี้ไปแล้ว — ตอนนี้ดึกที่ไทย
              แต่เป็นกลางวันของอีกครึ่งโลก</p>`
-        : `<p class="tp-fine">วิชานี้เป็นของหลักสูตรไทย หัวข้อจึงอยู่ในประเทศเท่านั้น</p>`}
+        : ''}
     </div>
 
     <button class="tp-ask" onclick="openTopicAsk()">
@@ -354,7 +354,7 @@ function openTopicAsk() {
   sheet.innerHTML = `<div class="tp-sheet-card" role="dialog" aria-label="ถามในหัวข้อนี้">
     <div class="tp-sheet-h">ถามเรื่อง${esc(topicNow.name)}</div>
     <textarea id="tpAsk" rows="4" maxlength="1000"
-      placeholder="ติดตรงไหน เขียนให้คนที่ไม่เห็นใบงานของเราเข้าใจได้ — เช่น ไล่ผังงานถึงกล่องเงื่อนไขแล้วไม่รู้ว่าเส้นไหนคือใช่"></textarea>
+      placeholder="ติดตรงไหน"></textarea>
     <label class="tp-anon"><input type="checkbox" id="tpAnon">
       <span>ไม่ระบุชื่อ</span></label>
     <div class="tp-sheet-row">

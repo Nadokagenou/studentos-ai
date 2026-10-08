@@ -105,7 +105,7 @@ function persistState() {
       quotaWarned = true;
       showToast({
         title: 'ที่เก็บในเครื่องเต็ม 😅',
-        body: 'งานยังขึ้น cloud ให้อยู่ถ้าล็อกอินไว้ — ลบภาพพื้นหลังหรือภาพวิดเจ็ตออกสักอันแล้วจะเก็บในเครื่องได้อีก',
+        body: 'ลบภาพพื้นหลังหรือภาพวิดเจ็ตออกก่อน',
       });
     }
     return false;
@@ -1310,7 +1310,7 @@ function syncFailNotice(kind) {
   const off = navigator.onLine === false;
   showToast({
     title: off ? 'ออฟไลน์อยู่ — ยังไม่ได้ซิงก์' : 'ซิงก์ไม่สำเร็จ',
-    body: 'งานทั้งหมดยังอยู่ในเครื่องนี้ครบ · ' + (off ? 'ต่อเน็ตแล้วจะซิงก์ให้เอง' : 'ลองใหม่ได้เลย'),
+    body: off ? 'ต่อเน็ตแล้วจะซิงก์ให้เอง' : 'ลองใหม่อีกครั้ง',
     action: off ? null : { label: 'ลองใหม่', fn: () => { syncFailShown = false; kind === 'pull' ? syncFromCloud() : pushToCloud(true); } },
   });
 }
@@ -1532,7 +1532,7 @@ function renderLoginCopy() {
   // (บรรทัดเหตุผลใต้ปุ่มล็อกอิน .lg-why ถูกถอดออกไปแล้ว — จอเข้าสู่ระบบรอบ "ไม่รก")
   // บรรทัดนี้จึงเหลือหน้าที่เดียว: บอกว่าจอนี้คือแอปอะไร / ของยังอยู่ไหม
   p.textContent = back
-    ? 'งานกับตารางของคุณอยู่ที่เดิม'
+    ? ''
     : 'จัดคิวงานให้เอง รู้ว่าควรทำอะไรก่อน';
 }
 
@@ -2077,7 +2077,7 @@ function replanBanner(sp, now) {
     <div class="tr-head">${icon('clock')}<b>จัดแผนที่เหลือใหม่ให้แล้ว</b></div>
     <p class="tr-body">ช่วง ${hm(m.since)} ที่วางไว้ผ่านไปแล้ว ${humanMin(m.lostMin)}
       — ${esc(names)}${m.tasks.length > 2 ? ' และอีก ' + (m.tasks.length - 2) + ' งาน' : ''}
-      ${still ? 'ถูกย้ายลงเวลาที่เหลือของวันนี้แล้ว' : 'ไม่มีเวลาเหลือในวันนี้แล้ว — ดูตรงกล่องสีแดงข้างล่าง'}</p>
+      ${still ? 'ถูกย้ายลงเวลาที่เหลือของวันนี้แล้ว' : 'ไม่มีเวลาเหลือในวันนี้แล้ว'}</p>
     <button class="tr-ok" onclick="dismissReplan(${m.lostMin})">เข้าใจแล้ว</button>
   </section>`;
 }
@@ -2124,7 +2124,7 @@ function todayHead(sp, now) {
   // ดันให้ทั้งบรรทัดตกไปสองบรรทัด ทั้งที่ตัวเลขคือของชิ้นเดียวที่ต้องอ่าน
   const sub = sp.now
     ? `ว่าง ${esc(humanMin(win.budgetMin))} · ค้าง ${pend.length} งาน`
-    : pend.length ? `${pend.length} รายการรออยู่ — ไม่มีงานที่ต้องเจียดเวลา`
+    : pend.length ? `${pend.length} รายการรออยู่`
     : 'ไม่มีอะไรค้าง — วันนี้พักได้';
 
   const notifN = typeof notifUnread === 'function' ? notifUnread() : wait;
@@ -2699,10 +2699,10 @@ function todayEmpty(now, hasRem) {
       <span class="tc-tx">
         <b>${doneToday ? 'เคลียร์หมดแล้ววันนี้'
           : hasRem ? 'ไม่มีงานที่ต้องนั่งทำ' : everHad ? 'ไม่มีงานค้าง' : 'วันนี้ยังไม่มีงาน'}</b>
-        <p>${doneToday ? 'ทำเสร็จไป ' + doneToday + ' งาน — วันนี้พักได้เต็มที่'
-          : hasRem ? 'เหลือแต่ของที่ถึงเวลาแล้วต้องไป — อยู่ข้างล่างนี้'
-          : everHad ? 'ครูสั่งอะไรมาใหม่ก็โยนเข้ามาได้เลย'
-          : 'ถ่ายรูปใบงานที่ครูสั่ง แล้วจะได้แผนแรกภายในไม่กี่วินาที'}</p>
+        <p>${doneToday ? 'ทำเสร็จไป ' + doneToday + ' งาน'
+          : hasRem ? 'เหลือแต่นัดตามเวลา'
+          : everHad ? 'มีงานใหม่ก็เพิ่มได้เลย'
+          : 'ถ่ายรูปใบงานเพื่อเริ่ม'}</p>
       </span>
       ${doneToday ? `<span class="tc-badge">${icon('check')}${doneToday}</span>` : ''}
     </div>
@@ -2725,7 +2725,7 @@ function noTimeLeft(sp, now) {
     <b>${icon('clock')}วันนี้หมดเวลาแล้ว</b>
     <p>เลย ${esc(ctxPrefs().noWorkAfter)} น. ซึ่งเป็นเวลาที่คุณตั้งไว้ว่าจะหยุดทำงาน${
       nf ? ` — ว่างอีกทีตอน ${esc(nf.fromHm)} ${nf.dayOffset === 1 ? 'พรุ่งนี้' : 'อีก ' + nf.dayOffset + ' วัน'}` : ''}</p>
-    <button class="tn-ask" onclick="go('scr-context')">${icon('clock')}อยากยืดเวลาทำงานคืนนี้? แก้ได้ที่ตารางชีวิต${icon('chevron')}</button>
+    <button class="tn-ask" onclick="go('scr-context')">${icon('clock')}แก้เวลาว่างคืนนี้${icon('chevron')}</button>
   </section>`;
 }
 
@@ -2990,7 +2990,7 @@ function renderMenu() {
 // ถ้าหน่วงไปแล้ว "การกด" หมดอายุ เบราว์เซอร์จะไม่ยอมเปิดไมค์
 const ADD_ACTIONS = [
   ['camera', 'ถ่ายรูปใบงาน', 'AI อ่านให้ทั้งใบ', "openShot()"],
-  ['mic', 'พูดเพิ่มงาน', 'เร็วที่สุด — 5 วินาที', "go('scr-scan');toggleVoice()"],
+  ['mic', 'พูดเพิ่มงาน', 'แตะแล้วพูด', "go('scr-scan');toggleVoice()"],
   ['type', 'แปะข้อความจากครู', 'วางแล้วให้ AI แกะ', "go('scr-scan')"],
   ['pencil', 'พิมพ์เองทีละช่อง', 'งานที่ไม่มีข้อความต้นทาง', "openForm(null)"],
   ['book', 'เพิ่มวันสอบ', 'แล้วผมแบ่งรอบอ่านให้', "openForm(null);setTimeout(()=>typeof setFormType==='function'&&setFormType('exam'),60)"],
@@ -3009,7 +3009,6 @@ function addSheetHTML() {
         <span class="as-bk">${icon('chevron')}</span>ตัวเชื่อม
         <span class="as-cnt">เปิดอยู่ ${c.on}/${c.all}</span>
       </button>
-      <p class="as-sub">เปิดไว้แล้วงานไหลเข้าเอง ไม่ต้องพิมพ์ ไม่ต้องกดอะไรอีก</p>
       ${typeof integMenuRows === 'function' ? integMenuRows() : ''}
       ${typeof connectorMenuRows === 'function' ? connectorMenuRows() : ''}
       <button class="as-row as-more" onclick="closeAddSheet();go('scr-sources')">
@@ -3045,7 +3044,6 @@ function addSheetHTML() {
       ${hero.map(a => `<button class="as-hero" onclick="closeAddSheet();${a[3]}">
         <span class="as-hero-ic">${icon(a[0])}</span>
         <b>${esc(a[1])}</b>
-        <span>${esc(a[2])}</span>
       </button>`).join('')}
       <!-- 1B93 · ท่าที่สาม: ไม่รู้ว่าจะเพิ่มอะไร ให้ถามก่อน (เจ้าของขอปุ่ม AI ในแผ่นนี้)
            อยู่ในกริดเดียวกันแต่กิน 1/-1 จึงเป็นแถวเต็มใต้สองอันบน (ดู .as-hero.wide)
@@ -3056,19 +3054,18 @@ function addSheetHTML() {
         <span class="as-hero-ic">${icon('sparkles')}</span>
         <span class="as-tx">
           <b>ถามน้องไซ</b>
-          <span>ยังไม่รู้ว่าจะเพิ่มอะไร — ถามก่อนได้</span>
         </span>
       </button>
     </div>
     <div class="as-or">หรือใส่เอง</div>
     ${rest.map(a => `<button class="as-row slim" onclick="closeAddSheet();${a[3]}">
       <span class="as-ic">${icon(a[0])}</span>
-      <span class="as-tx"><b>${esc(a[1])}</b><span>${esc(a[2])}</span></span>
+      <span class="as-tx"><b>${esc(a[1])}</b></span>
       <span class="as-go">${icon('chevron')}</span>
     </button>`).join('')}
     <button class="as-row as-conn" onclick="openAddSheet('connectors')">
       <span class="as-ic">${icon('share')}</span>
-      <span class="as-tx"><b>ตัวเชื่อม</b><span>ให้แอปอื่นส่งงานเข้ามาเอง — ไม่ต้องเพิ่มทีละอัน</span></span>
+      <span class="as-tx"><b>ตัวเชื่อม</b></span>
       ${c && c.all ? `<span class="as-cnt sm">${c.on}/${c.all}</span>` : ''}
       <span class="as-go">${icon('chevron')}</span>
     </button>`;
@@ -3213,7 +3210,7 @@ function openMySubjects() {
   setTimeout(() => {
     const el = document.getElementById('epSubj');
     // บล็อกวิชาโผล่เฉพาะตอนมีวิชาให้เลือก (หน้าแก้โปรไฟล์ไม่อธิบายช่องที่ใช้ไม่ได้แล้ว) — บอกตรงนี้แทน
-    if (!el) { showToast({ title: 'ยังไม่มีวิชาให้เลือก', body: 'เพิ่มงานสักสองสามชิ้นก่อน แล้ววิชาจะขึ้นมาให้เลือกเอง' }); return; }
+    if (!el) { showToast({ title: 'ยังไม่มีวิชาให้เลือก', body: 'เพิ่มงานก่อน' }); return; }
     try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     catch (_) { el.scrollIntoView(); }
   }, 60);
@@ -3230,8 +3227,7 @@ const SOON_SHEETS = {
   community: {
     icon: 'users',
     title: 'ชุมชนกำลังจะเปิด',
-    body: 'ถามการบ้านกับเพื่อนร่วมห้อง เพื่อนทั้งโรงเรียน '
-        + 'หรือนักเรียนทั้งประเทศที่ติดบทเดียวกับคุณ',
+    body: 'ถามการบ้านกับเพื่อนในห้องและทั้งประเทศ',
     // ทางที่ใช้ได้จริงวันนี้ — แผ่นที่บอกแค่ว่า "ยังไม่เปิด" คือทางตันที่สุภาพ
     goLabel: 'ทักเพื่อนตรง ๆ ที่ “ข้อความ”',
     go: "closeSoonSheet();openDmInbox('scr-profile')",
@@ -3321,7 +3317,7 @@ function closeAiHub() {
 const AI_HUB_TOOLS = [
   ['book', 'ช่วยการบ้าน', 'อธิบายทีละขั้น ไม่เฉลยให้ลอก',
     "aiHubAsk('อธิบายการบ้านที่ค้างอยู่ให้เข้าใจหน่อย ผมยังไม่รู้จะเริ่มตรงไหน')"],
-  ['calendar', 'วางแผนเวลา', 'จัดวันนี้ให้ · คิดในเครื่อง ไม่กินโควตา',
+  ['calendar', 'วางแผนเวลา', 'จัดวันนี้ให้',
     "closeAiHub();go('scr-plan')"],
   ['type', 'สรุป · ช่วยเรียน', 'ย่อบทเรียน ทำชุดทบทวนก่อนสอบ',
     "aiHubAsk('ช่วยสรุปเนื้อหาที่ต้องอ่านสำหรับสอบให้หน่อย')"],
@@ -3494,19 +3490,19 @@ function renderHome() {
 // nm = ชื่อที่ผู้ใช้บอกไว้ตอนทำความรู้จัก (ว่างได้ ถ้ากดข้าม)
 const CLEARED_COPY = nm => [
   { h: nm ? `เคลียร์หมดแล้ว ${nm} 🎉` : 'เคลียร์หมดแล้ว 🎉',
-    p: `ไม่เหลืองานค้างสักงาน — เวลาที่เหลือของวันนี้เป็นของ${nm || 'คุณ'}ล้วน ๆ` },
+    p: 'ไม่เหลืองานค้าง' },
   { h: 'ว่างจริง ไม่ได้ลืม',
-    p: `ตรวจทุกงานให้แล้ว ไม่มีอะไรค้าง ${nm ? nm + ' ' : ''}พักได้แบบไม่ต้องแอบรู้สึกผิด` },
+    p: 'ไม่มีอะไรค้าง พักได้เลย' },
   { h: nm ? `เก่งมากวันนี้ ${nm} 💙` : 'เก่งมากวันนี้ 💙',
-    p: 'งานหมดเกลี้ยง — จำความรู้สึกนี้ไว้ แล้วพรุ่งนี้ทำอีกรอบ' },
+    p: 'งานหมดเกลี้ยง' },
   { h: 'สบายใจได้เลย',
-    p: `ทุกอย่างที่ต้องส่งถูกเคลียร์หมดแล้ว ${nm ? nm + ' ' : ''}เหลือแค่ไปพักให้เต็มที่` },
+    p: 'พักให้เต็มที่' },
 ];
 const FRESH_COPY = nm => [
   { h: nm ? `เริ่มวันแบบสบาย ๆ นะ ${nm}` : 'เริ่มวันแบบสบาย ๆ',
-    p: 'ยังไม่มีงานในระบบ — ครูสั่งอะไรมา แปะข้อความหรือถ่ายรูปใบงานมาได้เลย' },
+    p: 'แปะข้อความหรือถ่ายรูปใบงานเพื่อเริ่ม' },
   { h: 'พร้อมรับงานแรกแล้ว',
-    p: `เพิ่มงานเข้ามาสักงาน เดี๋ยว AI จัดลำดับให้${nm || 'คุณ'}เองว่าควรทำอะไรก่อน` },
+    p: 'เพิ่มงานแรกได้เลย' },
 ];
 
 function emptyDay(doneCount, now) {
@@ -3715,7 +3711,7 @@ function notNow(id) {
   showToast({
     title: 'พักงานนี้ไว้ก่อน 3 ชม.',
     body: sp.now ? 'เลื่อน "' + taskTitleText(sp.now.task) + '" ขึ้นมาแทนแล้ว'
-      : 'กำหนดส่งยังเป็นเหมือนเดิม — เจอกันอีกทีตอนเย็น',
+      : 'กำหนดส่งยังเหมือนเดิม',
     undo: () => { Object.assign(t, prev); save(); renderAll(); },
   });
 }
@@ -4770,7 +4766,7 @@ function renderAi() {
     ${saiFace('big')}
     <div class="sh-id">
       <h1 class="sh-name">น้องไซ<span class="sh-badge">AI</span></h1>
-      <p class="sh-role">${fresh ? 'ผู้ช่วยของคุณ' : esc(
+      <p class="sh-role">${fresh ? '' : esc(
         (pend.length ? 'เห็นงาน ' + pend.length + ' ใบ' : 'ยังไม่เห็นงานค้าง')
         + (nCls ? ' · ตาราง ' + nCls + ' คาบ' : ''))}</p>
     </div>
@@ -4907,7 +4903,7 @@ function renderAi() {
     ${dayCard}
     <div class="ai-starters">${AI_QUICK.map(q => `<button class="ai-st"
         onclick="aiAsk('${esc(q[2]).replace(/'/g, "\\'")}')"${aiBusy ? ' disabled' : ''}>
-        ${icon(q[0])}<b>${esc(q[1])}</b><span>${esc(q[2])}</span></button>`).join('')}</div>
+        ${icon(q[0])}<b>${esc(q[1])}</b></button>`).join('')}</div>
     ${priv}` : '';
 
   // กล่องในต้องมีจริง — ดัน .at-in ด้วย margin-top:auto แทน justify-content:flex-end
@@ -5015,7 +5011,7 @@ function aiVoice() {
   if (aiVoiceOn) { try { aiRecog.stop(); } catch (_) {} return; }
   if (!speechSupported()) {
     showToast({ title: 'เบราว์เซอร์นี้ยังพูดใส่ไม่ได้',
-      body: 'ลองใช้ Chrome (Android) หรือ Safari (iPhone) · ระหว่างนี้พิมพ์เอาได้เลย' });
+      body: 'ลองใช้ Chrome หรือ Safari' });
     return;
   }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -5277,7 +5273,7 @@ function todayBoard(now) {
       ? '<button class="tb-nudge" onclick="openTtScan()">'
         + '<span class="tb-nd-ic">' + icon('camera') + '</span>'
         + '<span class="tb-nd-tx"><b>ยังไม่รู้ตารางเรียนของคุณ</b>'
-        + '<span>ถ่ายรูปตารางทีเดียว แล้วแผนทุกวันจะลงช่องว่างจริง ไม่ใช่ที่เดาไว้</span></span>'
+        + '<span>ถ่ายรูปตารางเรียน</span></span>'
         + '<span class="tb-nd-go">' + icon('chevron') + '</span></button>'
       : '<div class="tb-cls quiet">' + icon('calendar') + 'วันนี้ไม่มีคาบเรียน</div>';
   } else if (ongoing) {
@@ -5322,11 +5318,10 @@ function todayBoard(now) {
       + icon('play') + 'เริ่มทำ</button></div>';
   } else if (pendingTasks().length) {
     focus = '<div class="tb-focus flat">' + icon('pin')
-      + '<b>วันนี้ไม่มีช่องว่างให้เจียดแล้ว</b>'
-      + '<span>งานที่ค้างอยู่ยังอยู่ครบ — ดูได้ที่โหมดสัปดาห์</span></div>';
+      + '<b>วันนี้ไม่มีช่องว่างให้เจียดแล้ว</b>' + '</div>';
   } else {
     focus = '<button class="tb-focus flat tap" onclick="openAddSheet()">' + icon('camera')
-      + '<b>ไม่มีอะไรค้าง</b><span>วันนี้พักได้ — หรือเพิ่มงานใหม่ไว้ก่อน</span></button>';
+      + '<b>ไม่มีอะไรค้าง</b></button>';
   }
 
   // ---- ไทม์ไลน์ย่อ: สามแถวแรกที่ยังไม่ถึงเวลา ----
@@ -5771,7 +5766,7 @@ function tasksEmpty(now, days) {
     return `<div class="fr-empty">
       ${icon('search')}
       <b>ไม่เจองานที่ตรงกับ “${esc(taskQ.trim())}”</b>
-      <p>ลองพิมพ์ชื่อวิชา หรือคำที่อยู่ในชื่องาน</p>
+      
       <button class="fr-empty-go" onclick="clearTaskSearch()">${icon('x')}ล้างคำค้น</button>
     </div>`;
   }
@@ -5787,7 +5782,7 @@ function tasksEmpty(now, days) {
   return `<div class="fr-empty">
     ${icon('check-circle')}
     <b>ไม่มีงานค้างเลย</b>
-    <p>เคลียร์หมดแล้ว — เพิ่มงานใหม่ได้ด้วยการพูด ถ่ายรูป หรือพิมพ์เอง</p>
+    <p>เคลียร์หมดแล้ว</p>
     <button class="fr-empty-go" onclick="openAddSheet()">${icon('type')}เพิ่มงาน</button>
   </div>`;
 }
@@ -5868,7 +5863,7 @@ function binView(bin) {
         <button class="del" onclick="purgeTask('${t.id}')" aria-label="ลบถาวร">${icon('trash')}</button>
       </div>
     </div>`).join('');
-  return head + rows + `<p class="bin-note">ของในถังขยะจะถูกลบถาวรเองหลังครบ 30 วัน</p>`;
+  return head + rows + `<p class="bin-note">ลบถาวรเองหลัง 30 วัน</p>`;
 }
 
 function binWhen(t) {
@@ -6384,7 +6379,7 @@ function calHtml(now) {
 
   const hint = (typeof ctxIsEmpty === 'function' && ctxIsEmpty())
     ? `<button class="tl-hint" onclick="go('scr-context')">
-        ${icon('clock')}<span>ยังไม่รู้ตารางเรียน — เวลาว่างเป็นค่าเริ่มต้น</span>
+        ${icon('clock')}<span>ใส่ตารางเรียน</span>
         <b>บอกตาราง</b>${icon('chevron')}
       </button>` : '';
 
@@ -6533,12 +6528,12 @@ function renderTimeline() {
   // ย่อเป็นบรรทัดเดียวใต้คำตัดสิน: ยังกดได้ ยังบอกครบ แต่ไม่แย่งสายตา
   const ctxNudge = (typeof ctxIsEmpty === 'function' && ctxIsEmpty())
     ? `<button class="tl-hint" onclick="go('scr-context')">
-        ${icon('clock')}<span>ยังไม่รู้ตารางเรียน — เวลานี้ยังเป็นการเดา</span>
+        ${icon('clock')}<span>ยังไม่ได้ใส่ตารางเรียน</span>
         <b>บอกตาราง</b>${icon('chevron')}
       </button>` : '';
 
   const future = !isToday
-    ? `<p class="tl-far">แผนรายชั่วโมงมีเฉพาะวันนี้ — วันอื่นแสดงตารางเรียนกับกำหนดส่งไว้ก่อน</p>` : '';
+    ? '' : '';
 
   // หมุดของวันนั้นอยู่เหนือเส้น ไม่ใช่ในเส้น เพราะมันไม่มีเวลาของตัวเอง
   // ยัดลงเส้นต้องสมมติเวลาให้มัน ซึ่งเป็นการโกหกว่า "สอบกลางภาค 08:00"
@@ -6588,7 +6583,7 @@ function tlOpen(i) {
     const rel = pendingTasks().filter(t => t.subject && it.label && t.subject === it.label);
     why = rel.length
       ? ['งานจากวิชานี้', rel.map(t => taskTitleText(t) + ' · ' + fmtDue(t.due, now, t)).join('\n')]
-      : ['ทำไมไม่มีงานตรงนี้', 'ช่วงนี้ถูกกันไว้เป็นเวลาที่ทำงานไม่ได้ ระบบจะไม่วางงานทับ'];
+      : null;
     cta = `<button class="daysheet-go" onclick="tlClose();go('scr-context')">${icon('clock')}แก้ตารางนี้</button>`;
   } else if (it.kind === 'classes') {
     // ก้อนนี้ย่อคาบเรียนทั้งวันไว้แถวเดียว รายคาบจึงต้องกางครบตรงนี้ ไม่งั้นคือการซ่อน
@@ -6606,9 +6601,7 @@ function tlOpen(i) {
     const p = ctxPrefs();
     tag = 'เวลาประจำวัน'; h = it.label;
     chips = [[min2hm(it.min), '']];
-    why = it.kind === 'stop'
-      ? ['ทำไมต้องหยุด', 'ชั่วโมงก่อนนอนถูกกันไว้เป็นเวลาของคุณ ระบบจะไม่วางงานทับ']
-      : ['ตั้งค่าที่ไหน', 'แก้เวลาตื่นกับเวลานอนได้ในแท็บ “ฉัน” → ตารางเรียนและเวลาว่าง'];
+    why = null;
     cta = `<button class="daysheet-go" onclick="tlClose();go('scr-context')">${icon('clock')}แก้เวลา</button>`;
   }
 
@@ -6681,7 +6674,7 @@ function renderPlan() {
       <span class="pn-ic">${icon('clock')}</span>
       <span class="pn-tx">
         <b>ตอนนี้แผนเดาว่าคุณเริ่ม 19:00</b>
-        <span>ใส่ตารางเรียน แผนจะตรงกับวันจริง</span>
+        <span>ใส่ตารางเรียน</span>
       </span>
       <span class="pn-go">${icon('chevron')}</span>
     </button>`;
@@ -6765,7 +6758,7 @@ function renderPlan() {
         <div class="tt">${taskTitle(o.task)}</div>
         <div class="ln">ยังต้องใช้ ~${o.need} นาที · ${esc(fmtDue(o.task.due, now, o.task))}</div>
       </div>`).join('')}
-      <div class="povf-tip">ทำเท่าที่ทำได้คืนนี้ · ขยับเวลานอนในแท็บ “ฉัน” · หรือบอกครูตั้งแต่ตอนนี้</div>
+      
     </div>`;
   }
   if (movable.length) {
@@ -6815,7 +6808,7 @@ function renderProfile() {
   if (priv) priv.innerHTML = '';
 
   // การ์ดตัวตนบนหัวจอตั้งค่า — ข้อมูลชุดเดียวกับหน้า "ฉัน" ต้องไม่มีทางขัดกันเอง
-  const sub = currentUser ? (currentUser.email || 'ซิงก์ข้ามเครื่องอยู่') : 'ยังไม่ล็อกอิน — ข้อมูลอยู่ในเครื่องนี้';
+  const sub = currentUser ? (currentUser.email || 'ซิงก์ข้ามเครื่องอยู่') : 'ยังไม่ล็อกอิน';
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
   set('setNm', name);
   set('setSb', sub);
@@ -6977,7 +6970,7 @@ function renderProfile() {
     // ซึ่งเดิมถูกนับรวมเป็น 'on' แล้วจอก็สัญญาเกินกว่าที่ระบบทำได้จริง
     if (pushState === 'on' && currentUser) st.textContent = 'เตือนก่อนถึงกำหนด แม้ปิดแอป';
     else if (pushState === 'local' && currentUser) st.textContent = 'เตือนตอนเปิดแอป · ยังเชื่อมกับเซิร์ฟเวอร์ไม่ได้';
-    else if (pushState === 'on' || pushState === 'local') st.textContent = 'เตือนตอนเปิดแอป · ล็อกอินเพื่อเตือนแม้ปิดแอป';
+    else if (pushState === 'on' || pushState === 'local') st.textContent = 'เตือนตอนเปิดแอป';
     else st.textContent = 'เตือนตอนเปิดแอป';
     // 'local' ต้องมีปุ่มให้กดลองใหม่ — สถานะที่บอกว่าพังแต่ไม่มีอะไรให้กด คือทางตัน
     if (nb) {
@@ -7075,7 +7068,7 @@ async function saveHandle() {
   }
   frHandle = data;
   haptic('done');
-  showToast({ title: 'ชื่อผู้ใช้คือ @' + data, body: 'บอกชื่อนี้ให้เพื่อน แล้วให้เขาค้นหาคุณ' });
+  showToast({ title: 'ชื่อผู้ใช้คือ @' + data, body: '' });
   paintFriendParts();
 }
 async function copyHandle() {
@@ -7083,7 +7076,7 @@ async function copyHandle() {
   try {
     await navigator.clipboard.writeText('@' + frHandle);
     haptic('arm');
-    showToast({ title: 'ก๊อปแล้ว 📋', body: 'ส่งให้เพื่อนไปค้นในหน้า “เพื่อน” ของเขา' });
+    showToast({ title: 'ก๊อปแล้ว 📋', body: '' });
   } catch (_) {
     const el = document.getElementById('frHandle');
     if (el) { el.focus(); el.select(); }
@@ -7099,10 +7092,10 @@ async function addPerson(id) {
   if (frHits) { const hit = frHits.find(x => x.id === id); if (hit) hit.rel = data; }
   haptic('done');
   if (data === 'friends') {
-    showToast({ title: 'เป็นเพื่อนกันแล้ว 🎉', body: 'เขาเคยส่งคำขอมาก่อน การกดของคุณคือการตอบรับ' });
+    showToast({ title: 'เป็นเพื่อนกันแล้ว 🎉', body: '' });
     loadFriends();
   } else {
-    showToast({ title: 'ส่งคำขอแล้ว', body: 'รอเขากดรับ แล้วถึงจะเห็นกันในรายชื่อเพื่อน' });
+    showToast({ title: 'ส่งคำขอแล้ว', body: 'รอเขากดรับ' });
     paintFriendParts();
   }
 }
@@ -7277,7 +7270,7 @@ function paintFriendParts() {
   const hits = document.getElementById('frHits');
   if (hits) {
     if (frHits === null) hits.innerHTML = '';
-    else if (!frHits.length) hits.innerHTML = `<p class="fr-note">ไม่เจอใครชื่อนี้ — ลองถามเพื่อนว่าชื่อผู้ใช้ของเขาสะกดยังไง</p>`;
+    else if (!frHits.length) hits.innerHTML = `<p class="fr-note">ไม่เจอชื่อนี้</p>`;
     else hits.innerHTML = frHits.map(p => `<div class="fr-card">
         ${frAv(p)}
         <div class="fr-bd">${frName(p)}</div>
@@ -7334,7 +7327,7 @@ function paintFriendParts() {
       : `<div class="fr-empty">
           ${icon('users')}
           <b>ยังไม่มีเพื่อน</b>
-          <p>ส่งชื่อผู้ใช้ของคุณให้เพื่อน หรือค้นหาชื่อของเขาในช่องด้านบน</p>
+          
           <button class="fr-empty-go" onclick="copyHandle()">${icon('copy')}ก๊อป @${esc(frHandle || '…')}</button>
         </div>`;
   }
@@ -7361,7 +7354,7 @@ function paintFriendParts() {
     // อยู่บนสุดเหมือนเดิม (แก้เรื่องหาเจอ) แต่เบาลงเป็นบรรทัดเดียว (คืนที่ให้เนื้อหา)
     : `<button class="fr-me-line" onclick="copyHandle()">
         <span class="fr-me-at">@${esc(frHandle || '…')}</span>
-        <span class="fr-me-hint">ชื่อของคุณ · แตะเพื่อก๊อปส่งให้เพื่อน</span>
+        <span class="fr-me-hint">แตะเพื่อก๊อป</span>
         ${icon('copy')}
         <i class="fr-me-edit" onclick="event.stopPropagation();frEditing=true;paintFriendParts();document.getElementById('frHandle').focus()"
           role="button" aria-label="เปลี่ยนชื่อผู้ใช้">${icon('pencil')}</i>
@@ -7416,14 +7409,12 @@ function abBlock(p) {
     <div class="pf-list">
       <div class="pf-row">
         <span class="tile">${icon('calendar')}</span>
-        <span class="bd"><span class="lb">ตารางไม่ซ้ำทุกสัปดาห์</span>
-          <span class="sb">โรงเรียนที่ใช้สัปดาห์ A / สัปดาห์ B</span></span>
+        <span class="bd"><span class="lb">ตารางไม่ซ้ำทุกสัปดาห์</span></span>
         <button class="ctx-sw${on ? ' on' : ''}" role="switch" aria-checked="${on}"
           onclick="ctxToggleAb()" aria-label="ตารางสลับสัปดาห์"><i></i></button>
       </div>
       ${on ? `<div class="pf-row ab-pick">
-        <span class="bd"><span class="lb">สัปดาห์นี้คือ</span>
-          <span class="sb">ตั้งผิดแล้วตารางจะสลับกันทั้งเทอมโดยที่หน้าจอดูปกติ</span></span>
+        <span class="bd"><span class="lb">สัปดาห์นี้คือ</span></span>
         <div class="ab-btns">
           <button class="ab${nowW === 'A' ? ' on' : ''}" onclick="ctxSetThisWeek('A')">A</button>
           <button class="ab${nowW === 'B' ? ' on' : ''}" onclick="ctxSetThisWeek('B')">B</button>
@@ -7452,7 +7443,7 @@ function ctxSetThisWeek(w) {
   ctxSetPrefs({ weekMode: 'ab', weekAnchor: ymdLocal(d) });
   renderContext(); renderAll();
   showToast({ title: 'สัปดาห์นี้คือสัปดาห์ ' + w,
-    body: 'คาบที่ตั้งไว้เฉพาะสัปดาห์อีกฝั่งจะไม่ขึ้นในเวลาว่างของสัปดาห์นี้' });
+    body: '' });
 }
 
 function ymdLocal(d) {
@@ -7646,7 +7637,7 @@ function ctxBarHtml(weekday, opts = {}) {
     <p class="cb-p">${bar.freeMin
       ? `เหลือ <b>${esc(ctxHours(bar.freeMin))}</b> ที่วางงานได้จริง${first
           ? ` · เริ่มได้ตั้งแต่ ${esc(min2hm(first.from))}` : ''}`
-      : 'วันนี้เต็มทั้งวัน — งานจะถูกย้ายไปวันอื่นให้'}</p>
+      : 'วันนี้เต็มทั้งวัน'}</p>
   </section>`;
 }
 
@@ -7903,22 +7894,18 @@ function renderCtxWiz() {
   if (step === 1) {
     const real = ctxHasRealTimetable();
     body = `<h2 class="wz-q">เลิกเรียนกี่โมง</h2>
-      <p class="wz-sb">${real
-        ? 'อ่านจากตารางเรียนที่คุณใส่ไว้ — ไม่ตรงก็แก้ได้'
-        : 'ทุกอย่างหลังจากนี้เดาจากเวลานี้ ตอบให้ใกล้ของจริงที่สุด'}</p>
       <div class="wz-chips">${WIZ_OUT.map(v => `<button type="button"
         class="wz-chip${wiz.outHm === v ? ' on' : ''}" onclick="wizSetOut('${v}')">${v}</button>`).join('')}</div>
       <div class="wz-row">
         <span class="wz-lb">เข้าเรียน</span>
         <input type="time" value="${esc(wiz.inHm)}" onchange="wizSetIn(this.value)"${real ? ' disabled' : ''}>
       </div>
-      ${real ? `<p class="wz-note">${icon('check')}มีตารางเรียนรายวิชาอยู่แล้ว เวลาเข้าเรียนจึงอ่านจากตารางนั้น</p>` : ''}`;
+`;
   }
 
   if (step === 2) {
     const guess = wizGuess();
     body = `<h2 class="wz-q">วันธรรมดาของคุณประมาณนี้ไหม</h2>
-      <p class="wz-sb">เดาจากเวลาเรียนของคุณ — อันไหนไม่ใช่ แตะกากบาททิ้งได้ เวลาแก้ได้ตรงนั้น</p>
       <div class="wz-list">${guess.map(g => {
         const e = wiz.edit[g.key] || {};
         const off = !!wiz.drop[g.key];
@@ -7945,16 +7932,15 @@ function renderCtxWiz() {
 
   if (step === 3) {
     body = `<h2 class="wz-q">มีอะไรที่ทำประจำอีกไหม</h2>
-      <p class="wz-sb">แตะเลือกได้หลายอัน — เวลาเดาให้แล้ว ไปแก้ในหน้าถัดไป</p>
+      <p class="wz-sb">เลือกได้หลายอัน</p>
       <div class="wz-chips wrap">${WIZ_CHIPS.map(c => `<button type="button"
         class="wz-chip${wiz.picks[c.key] ? ' on' : ''}" onclick="wizChip('${c.key}')">${esc(c.title)}</button>`).join('')}</div>
-      <p class="wz-note">${icon('clock')}ไม่มีก็ข้ามได้ — เพิ่มทีหลังในหน้าบริบทได้ตลอด</p>`;
+`;
   }
 
   if (step === 4) {
     const keys = Object.keys(wiz.picks);
     body = `<h2 class="wz-q">อันละกี่โมง</h2>
-      <p class="wz-sb">เดาไว้ว่าอยู่ช่วงหลังกลับบ้าน จ–ศ — แก้วันกับเวลาได้ตามจริง</p>
       <div class="wz-list">${keys.map(k => {
         const c = WIZ_CHIPS.find(x => x.key === k), v = wiz.picks[k];
         const bad = hm2min(v.end) <= hm2min(v.start);
@@ -7970,15 +7956,14 @@ function renderCtxWiz() {
             <span>ถึง</span>
             <input type="time" value="${esc(v.end)}" onchange="wizPickTime('${k}','end',this.value)">
           </div>
-          ${bad ? '<p class="wz-bad">เวลาจบต้องอยู่หลังเวลาเริ่ม — อันนี้จะยังไม่ถูกบันทึก</p>' : ''}
-          ${clash ? `<p class="wz-warn">${icon('clock')}ทับกับ "${esc(clash)}" อยู่ — ตั้งใจแบบนี้ก็ได้ ไม่ได้ก็ขยับเวลา</p>` : ''}
+          ${bad ? '<p class="wz-bad">เวลาจบต้องอยู่หลังเวลาเริ่ม</p>' : ''}
+          ${clash ? `<p class="wz-warn">${icon('clock')}ทับกับ "${esc(clash)}"</p>` : ''}
         </div>`;
       }).join('')}</div>`;
   }
 
   if (step === WIZ_LAST) {
     body = `<h2 class="wz-q">นี่คือวันจันทร์ของคุณ</h2>
-      <p class="wz-sb">บันทึกให้แล้ว — แก้ได้ตลอดในหน้าบริบท</p>
       ${ctxBarHtml(1, { pick: false })}
       <p class="wz-note">${icon('sparkles')}จากนี้ AI จะวางงานลงเฉพาะช่องสีทอง
         ไม่ใช่ "ว่างวันละ 2 ชั่วโมง" ที่เดาเอาเองอีกต่อไป</p>`;
@@ -8118,7 +8103,7 @@ function ctxWeekHtml() {
 
   if (!all.length) {
     return `<div class="ctx-list">
-      <p class="ctx-empty">ยังไม่ได้ใส่ตารางเรียน — ใส่แล้ว AI จะเลิกวางงานทับเวลาเรียน</p>
+      <p class="ctx-empty">ยังไม่ได้ใส่ตารางเรียน</p>
       ${form}</div>`;
   }
 
@@ -8162,7 +8147,7 @@ function ctxWeekHtml() {
   // คาบซ้ำ ๆ ที่กระจายอยู่หลายวันนับหัวยาก บอกยอดรวมไว้ให้เห็นว่าใส่ครบหรือยัง
   const total = all.reduce((s, x) => s + ctxDayCount(x), 0);
   return `<div class="ctx-week">
-    <p class="ctx-weeksum">${days.length} วันเรียน · ${total} คาบต่อสัปดาห์ — แตะวันเพื่อดูรายคาบ</p>
+    <p class="ctx-weeksum">${days.length} วันเรียน · ${total} คาบต่อสัปดาห์</p>
     ${blocks}${form}</div>`;
 }
 
@@ -8180,8 +8165,8 @@ function ctxListHtml(kind) {
       <button class="ctx-del" onclick="ctxDelete('${kind}','${x.id}')" aria-label="ลบ">${icon('trash')}</button>
     </div>`).join('')}
     ${sorted.length ? '' : `<p class="ctx-empty">${kind === 'class'
-      ? 'ยังไม่ได้ใส่ตารางเรียน — ใส่แล้ว AI จะเลิกวางงานทับเวลาเรียน'
-      : 'ยังไม่ได้ใส่กิจวัตร — กินข้าว เดินทาง ซ้อมกีฬา เรียนพิเศษ ใส่ตรงนี้'}</p>`}
+      ? 'ยังไม่ได้ใส่ตารางเรียน'
+      : 'ยังไม่ได้ใส่กิจวัตร'}</p>`}
     ${open ? ctxFormHtml(kind) : `<button class="ctx-add" onclick="ctxOpenForm('${kind}')">
       + เพิ่ม${kind === 'class' ? 'คาบเรียน' : 'กิจวัตร'}</button>`}
   </div>`;
@@ -8261,7 +8246,7 @@ function ctxSubmit() {
   if (!draft.name.trim()) return fail('ยังไม่ได้ใส่ชื่อ');
   if (a == null || b == null) return fail('เวลาไม่ถูกต้อง');
   // ข้ามเที่ยงคืนยังไม่รองรับ — บอกตรง ๆ ดีกว่าเก็บข้อมูลที่คำนวณไม่ได้แล้วเงียบ
-  if (b <= a) return fail('เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม (ยังไม่รองรับกิจกรรมข้ามเที่ยงคืน)');
+  if (b <= a) return fail('เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม');
 
   const days = draft.days.slice().sort();
   const rec = {
@@ -8296,7 +8281,7 @@ function ctxWipe() {
   ctxClear();
   ctxEditing = null;
   renderAll();
-  showToast({ title: 'ลบบริบทแล้ว', body: 'AI กลับไปใช้เวลาว่างแบบเดาเหมือนเดิม' });
+  showToast({ title: 'ลบบริบทแล้ว' });
 }
 
 // ---------- ALT 1A6M3: เหรียญตรา ----------
@@ -8895,7 +8880,7 @@ function openDailyCheck(auto) {
       <div class="ck-cal">${dailyCal(day, claimed)}</div>
       ${pending
         ? `<button class="ck-cta" id="ckCta" onclick="claimDailyFromSheet(this)">รับเลย</button>`
-        : `<p class="ck-done">${icon('check')}รับของวันนี้ไปแล้ว — กลับมาใหม่พรุ่งนี้ 6 โมงเช้า</p>`}
+        : `<p class="ck-done">${icon('check')}รับของวันนี้แล้ว · พรุ่งนี้ 6 โมงเช้า</p>`}
       <button class="ck-close" onclick="closeDailyCheck()">ปิด</button>
     </div>`;
 }
@@ -9418,7 +9403,7 @@ function proNotify() {
   try { localStorage.setItem(PRO_NOTIFY_KEY, '1'); } catch (_) {}
   haptic('done');
   renderPro();
-  showToast({ title: 'จดไว้แล้ว', body: 'เปิดขายเมื่อไหร่จะบอกก่อน — ตอนนี้ใช้ฟรีได้ทุกอย่างเหมือนเดิม' });
+  showToast({ title: 'จดไว้แล้ว', body: 'เปิดขายเมื่อไหร่จะบอก' });
 }
 
 function renderPro() {
@@ -9430,8 +9415,6 @@ function renderPro() {
   box.innerHTML = `<div class="page-head">
       <div class="eyebrow">แผนราคา <span class="pe-wip">ยังไม่เปิดขาย</span></div>
       <h1 class="page-title">StudentOS Pro</h1>
-      <p class="page-sub">ถ้าวันหนึ่งมีของขาย จะขายแค่ของที่มีค่าใช้จ่ายจริงต่อการใช้ —
-        การจัดลำดับงานคำนวณในเครื่อง ต้นทุนเป็นศูนย์ อันนั้นฟรีตลอดไป</p>
     </div>
 
     <div class="pro-grid">
@@ -9455,9 +9438,7 @@ function renderPro() {
       ${icon(want ? 'check' : 'sparkles')}${want ? 'จะบอกเมื่อเปิดขาย' : 'บอกฉันเมื่อเปิดขาย'}
     </button>
 
-    <p class="pro-note">ตอนนี้ยังไม่เปิดขาย และ<b>ทุกฟีเจอร์ในแอปใช้ได้ฟรีทั้งหมด</b> —
-      ไม่มีอะไรถูกล็อกอยู่จริงในรุ่นนี้ จอนี้มีไว้บอกแผนล่วงหน้าเท่านั้น
-      ไม่มีการเก็บเงิน ไม่มีการขอเลขบัตร และไม่มีการต่ออายุอัตโนมัติ</p>`;
+    <p class="pro-note"><b>ทุกฟีเจอร์ใช้ได้ฟรี</b></p>`;
 }
 
 // ---------- ร้านค้า ----------
@@ -9539,7 +9520,7 @@ function renderShop() {
         return `<div class="tb-row${own ? ' own' : ''}">
           <span class="tb-sw fxi">${fxIcon(id)}</span>
           <span class="tb-bd"><b>${esc(f.name)}${fx3dOwned(id) ? ' <span class="fx-3dtag">3D</span>' : ''}</b><i>${own
-            ? (doneFxPref() === id ? 'มีแล้ว · ใช้อยู่' : 'มีแล้ว · เปิดได้ที่ตั้งค่า › ธีมสี')
+            ? (doneFxPref() === id ? 'มีแล้ว · ใช้อยู่' : 'มีแล้ว')
             : (fx3dOwned(id) ? 'มี 3D แล้ว · ซื้อเพื่อปลดล็อก · ' : '') + f.cost + ' โทเคน · ' + esc(f.desc)}</i></span>
           <button class="tb-try" onclick="previewFx('${id}')">ลอง</button>
           ${own ? `<span class="tb-ok">${icon('check')}</span>`
@@ -9596,10 +9577,6 @@ function renderShop() {
       <div><div class="v mono">${s.best || 0}</div><div class="k">สถิติต่อเนื่อง</div></div>
       <div><div class="v mono">${s.days || 0}</div><div class="k">เช็คอินรวม</div></div>
       <div><div class="v mono">${Object.values(skins).reduce((a, b) => a + b, 0)}</div><div class="k">ธีมที่สุ่มได้</div></div>
-    </div>
-    <div class="tk-soon">
-      <div class="lb">ของอื่นในร้านยังไม่เปิด</div>
-      <p>ตอนนี้มีธีม เอฟเฟกต์ กับการสุ่มก่อน — โทเคนที่สะสมไว้จะยังอยู่ครบเมื่อของอื่นเปิด</p>
     </div>`;
 }
 // ---------- ALT 1A6M3: ป้ายเตือนบนแถบเมนู ----------
@@ -9680,9 +9657,8 @@ function weekReviewCard(now) {
       ${r.snoozeCount ? `<span><b>${r.snoozeCount}</b> งานถูกเลื่อน</span>` : ''}
     </div>
     ${r.insights.length ? `<div class="wk-lb">สิ่งที่ระบบเรียนรู้เกี่ยวกับคุณ</div>
-      <ul class="wk-list">${r.insights.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
-      <p class="wk-note">ข้อสังเกตพวกนี้ถูกใช้กันเวลาในแผนของสัปดาห์หน้าให้เองแล้ว</p>`
-      : `<p class="wk-note">จับเวลาอีกสัก 2–3 งาน แล้วระบบจะเริ่มบอกได้ว่าคุณใช้เวลาจริงต่างจากที่ประเมินไว้แค่ไหน</p>`}
+      <ul class="wk-list">${r.insights.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`
+      : ''}
   </div>`;
 }
 
@@ -9848,7 +9824,7 @@ function renderStats() {
     <div class="st-card">
       ${privNums}
       <div class="st-h st-h-row">
-        <span>${icon('lock')}งานที่ติ๊กเสร็จ 7 วันล่าสุด</span>
+        <span></span>
         <button class="st-open-go" onclick="go('scr-stats')">ดูทั้งหมด${icon('chevron')}</button>
       </div>
       <div class="st-bars">
@@ -9975,7 +9951,7 @@ function renderStatFull(now, d) {
           <span class="d">${x.label}</span>
         </div>`).join('')}
       </div>
-      <p class="st-foot">ชั่วโมงที่กดจับเวลาไว้จริง ไม่ใช่เวลาที่ประเมิน</p>
+
     </div>` : ''}
 
     ${subjRows.length ? `<div class="st-card">
@@ -10009,7 +9985,7 @@ function renderStatFull(now, d) {
     ${wr.insights.length ? `<div class="an-ai">
       <div class="an-ai-h">${icon('sparkles')}น้องไซวิเคราะห์</div>
       <ul>${wr.insights.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
-      <p class="an-ai-note">ข้อสังเกตพวกนี้ถูกใช้กันเวลาในแผนของสัปดาห์หน้าให้เองแล้ว</p>
+
     </div>` : ''}
 
     ${workStatsHtml(now)}
@@ -10026,8 +10002,7 @@ function renderStatFull(now, d) {
     </div>` : ''}
 
     ${d.onTimePct == null && !subjRows.length && !totalMin7 ? `<div class="st-card soft">
-      <div class="st-line">${icon('check-circle')}ยังไม่มีอะไรให้วิเคราะห์ —
-        ติ๊กงานให้เสร็จสักสองสามใบ แล้วกดจับเวลาตอนนั่งทำ หน้านี้จะเริ่มมีของ</div>
+      <div class="st-line">${icon('check-circle')}ยังไม่มีข้อมูล</div>
     </div>` : ''}`;
 }
 
@@ -10051,8 +10026,7 @@ function workStatsHtml(now) {
   const all = sessions();
   if (all.length < WORK_MIN_SESSIONS) {
     return `<div class="st-card soft">
-      <div class="st-line">${icon('clock')}จับเวลาอีก <b>${WORK_MIN_SESSIONS - all.length}</b> รอบ
-        จะรู้ว่าคุณทำงานได้ดีช่วงไหน</div>
+      <div class="st-line">${icon('clock')}จับเวลาอีก <b>${WORK_MIN_SESSIONS - all.length}</b> รอบ</div>
     </div>`;
   }
 
@@ -10102,12 +10076,10 @@ function workStatsHtml(now) {
     ${ratio ? `<div class="st-card">
       <div class="st-h">ประเมินเวลาแม่นแค่ไหน</div>
       <div class="st-line">${ratio > 1.15
-        ? `ใช้จริงมากกว่าที่ประเมินไว้ <b>${Math.round((ratio - 1) * 100)}%</b> —
-           เผื่อเวลาเพิ่มอีกหน่อยตอนกรอกงานใหม่ แผนจะได้ไม่พังกลางทาง`
+        ? `ใช้จริงมากกว่าที่ประเมินไว้ <b>${Math.round((ratio - 1) * 100)}%</b>`
         : ratio < 0.85
-        ? `ใช้จริงน้อยกว่าที่ประเมินไว้ <b>${Math.round((1 - ratio) * 100)}%</b> —
-           ประเมินเผื่อไว้เยอะ กล้าใส่งานเพิ่มในวันเดียวกันได้`
-        : `ประเมินได้ใกล้เคียงของจริงมาก (คลาดเคลื่อนไม่ถึง 15%) — เชื่อตัวเลขตัวเองได้เลย`}
+        ? `ใช้จริงน้อยกว่าที่ประเมินไว้ <b>${Math.round((1 - ratio) * 100)}%</b>`
+        : `ประเมินได้ใกล้เคียงของจริง`}
         <span class="soft">· จาก ${rows.length} งานที่จับเวลาไว้</span></div>
     </div>` : ''}`;
 }
@@ -10295,7 +10267,7 @@ async function ttPick(input) {
 async function ttRead(dataUrl) {
   if (!currentUser) {
     ttState = { phase: 'pick', rows: [], note: '', shot: '',
-      error: 'ตัวอ่านตารางทำงานบนเซิร์ฟเวอร์ ต้องล็อกอินก่อนถึงจะใช้ได้ — กรอกเองในหน้าบริบทได้ตามปกติ' };
+      error: 'ต้องล็อกอินก่อน' };
     renderTtScan();
     return;
   }
@@ -10344,7 +10316,7 @@ function ttSave() {
   renderAll();
   go('scr-context');
   showToast({ title: `บันทึก ${keep.length} คาบเรียนแล้ว`,
-    body: 'แผนวันนี้จะเลี่ยงเวลาเรียนให้เองตั้งแต่ตอนนี้' });
+    body: '' });
 }
 
 function renderTtScan() {
@@ -10371,7 +10343,7 @@ function renderTtScan() {
     if (hint) hint.textContent =
       phase === 'reading' ? 'กำลังไล่อ่านทีละคาบ…'
       : ttCamOn() ? 'วางตารางให้เต็มกรอบ แล้วกดปุ่มกลม'
-      : ttCam === 'denied' ? 'ยังไม่ได้สิทธิ์ใช้กล้อง — เลือกรูปจากคลังภาพก็ได้'
+      : ttCam === 'denied' ? 'ยังไม่ได้สิทธิ์ใช้กล้อง'
       : 'เลือกรูปตารางจากคลังภาพได้เลย';
   }
 
@@ -10381,8 +10353,7 @@ function renderTtScan() {
         <div class="tts done">${icon('check')}<span>ส่งรูปให้ตัวอ่านแล้ว</span></div>
         <div class="tts now"><i></i><span>ไล่เส้นตารางกับชื่อวัน</span></div>
         <div class="tts"><i></i><span>จับเวลาเริ่ม–เลิกแต่ละคาบ</span></div>
-      </div>
-      <p class="tt-foot">ปกติไม่เกิน 10 วินาที · รูปถูกส่งไปอ่านครั้งเดียวแล้วทิ้ง ไม่ได้ถูกเก็บไว้ที่ไหน</p>`;
+      </div>`;
     return;
   }
 
@@ -10455,7 +10426,6 @@ function renderTtScan() {
     <div class="fm-bar tt-bar">
       <button class="fm-save" onclick="ttSave()" ${on ? '' : 'disabled'}>
         <span class="fb-t">บันทึก ${on} คาบเข้าบริบท</span>
-        <span class="fb-s">แผนวันนี้จะเลี่ยงเวลาเรียนให้เอง</span>
       </button>
     </div>`;
 }
@@ -10864,7 +10834,7 @@ function tickFocus() {
     const target = (focusStep(t) || {}).min || t.estMin || 30;
     const spent = Math.round((Date.now() - new Date(r.start)) / 60000);
     cap.hidden = spent <= target;
-    if (spent > target) cap.textContent = `เลยที่ตั้งใจไว้ ${spent - target} นาที — พักสักหน่อยหรือปิดตรงนี้ก่อนก็ได้`;
+    if (spent > target) cap.textContent = `เลยที่ตั้งใจไว้ ${spent - target} นาที`;
   }
 }
 
@@ -11108,7 +11078,7 @@ function removeTask(id) {
   t.deleted = true;
   t.deletedAt = new Date().toISOString();
   save(); renderAll();
-  showToast({ title: 'ย้ายไปถังขยะแล้ว 🗑', body: 'กู้คืนได้ที่ปุ่มถังขยะท้ายหน้า “งาน”' });
+  showToast({ title: 'ย้ายไปถังขยะแล้ว 🗑', body: '' });
 }
 
 // ---------- เอฟเฟกต์ฉลองตอนเช็คงานเสร็จ ----------
@@ -11280,14 +11250,14 @@ function openForm(id, parsed) {
       const sum = parsed._ai.summary;
       okBadge.className = 'fm-ok show' + (noTask ? ' shaky' : '');
       okBadge.innerHTML = noTask
-        ? `${icon('sparkles')}AI ไม่เจอคำสั่งงานในรูปนี้${sum ? ' — ' + esc(sum) : ''} · ตรวจชื่องานก่อนบันทึก`
-        : `${icon('sparkles')}AI วิเคราะห์แล้ว · ได้ ${got.length} จาก ${fields.length} ช่อง${sum ? ' — ' + esc(sum) : ''}`;
+        ? `${icon('sparkles')}ไม่เจอคำสั่งงานในรูปนี้`
+        : `${icon('sparkles')}AI อ่านแล้ว`;
     } else if (okBadge) {
       // ALT: ถ้ามาจากรูปแล้ว OCR ไม่ค่อยมั่นใจ ให้ป้ายเปลี่ยนโทนเป็นเตือน แทนที่จะบอกว่าสำเร็จเฉย ๆ
       const shaky = lastOcrConfidence != null && lastOcrConfidence < OCR_CONF_OK;
       okBadge.className = 'fm-ok show' + (shaky ? ' shaky' : '');
       okBadge.innerHTML = shaky
-        ? `${icon('image')}อ่านจากรูปได้ ${got.length} จาก ${fields.length} ช่อง · มั่นใจ ${lastOcrConfidence}% — ตรวจให้ดีก่อนบันทึก`
+        ? `${icon('image')}อ่านไม่ชัด ตรวจอีกที`
         : `${icon('check-circle')}AI อ่านได้ ${got.length} จาก ${fields.length} ช่อง`;
     }
     lastOcrConfidence = null; // ใช้ครั้งเดียวต่อการสแกน ไม่ให้ค้างไปเตือนงานที่พิมพ์เอง
@@ -11933,7 +11903,7 @@ function saveForm() {
   const late = data.due && new Date(data.due) < new Date();
   setTimeout(() => showToast({
     title: wasEdit ? 'แก้ไขแล้ว' : 'บันทึกเข้าแผนแล้ว ✓',
-    body: late ? 'กำหนดส่งเลยมาแล้ว — ดูได้ในแท็บ “งาน”'
+    body: late ? 'เลยกำหนดส่งแล้ว'
       : data.due ? 'ส่ง ' + fmtThaiDate(new Date(data.due)) + ' · ' + detail.slice(0, 40)
       : detail.slice(0, 60),
   }), 250);
@@ -12009,7 +11979,7 @@ function setVoiceUI({ recording, text, dim }) {
   const txt = document.getElementById('voiceText');
   if (btn) btn.classList.toggle('rec', !!recording);
   if (label) label.textContent = recording ? 'กำลังฟัง…' : 'พูดใส่ไมค์';
-  if (sub) sub.textContent = recording ? 'แตะอีกครั้งเพื่อหยุด' : 'เร็วที่สุด — 5 วินาทีเสร็จ';
+  if (sub) sub.textContent = recording ? 'แตะอีกครั้งเพื่อหยุด' : '';
   if (box) box.classList.toggle('idle', !recording);
   if (text != null && box && txt) {
     box.hidden = false;
@@ -12022,7 +11992,7 @@ function toggleVoice() {
   if (recogActive) { try { recog.stop(); } catch (_) {} return; }
   if (!speechSupported()) {
     setVoiceUI({ recording: false, dim: true,
-      text: 'เบราว์เซอร์นี้ยังไม่รองรับการพูด — ลองใช้ Chrome (Android) หรือ Safari (iPhone) · ระหว่างนี้แปะข้อความแทนได้เลย' });
+      text: 'เบราว์เซอร์นี้พูดไม่ได้ — ลองใช้ Chrome หรือ Safari' });
     return;
   }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -12247,7 +12217,7 @@ const mb = n => (n / 1048576).toFixed(1);
 function ocrLangProgress(p, got, total) {
   const st = document.getElementById('ocrStatus');
   const wrap = document.getElementById('ocrBarWrap');
-  const msg = `📦 โหลดโมเดลอ่านภาษาไทย ${mb(got)}/${mb(total)} MB (ครั้งแรกครั้งเดียว)`;
+  const msg = `📦 โหลดโมเดลอ่านภาษาไทย ${mb(got)}/${mb(total)} MB`;
   // กำลังอ่านอยู่ = ตัวเลขขึ้นบนแถบโหลด (4–12% คือช่วงโหลดโมเดล) · โหลดล่วงหน้าเงียบ ๆ (ยังไม่มีแถบ) = บรรทัดสถานะเดิม
   if (wrap && !wrap.hidden) ocrHalo(msg, 4 + p * 8);
   else if (st) st.textContent = msg;
@@ -13190,7 +13160,7 @@ function saveWidgetPhoto(canvas) {
   try {
     localStorage.setItem(WG_PHOTO_KEY, data);
   } catch (_) {
-    showToast({ title: 'ภาพใหญ่เกินไป 😅', body: 'ที่เก็บในเครื่องเต็ม — ลองครอบให้แคบลงหรือเลือกภาพที่เล็กกว่านี้' });
+    showToast({ title: 'ภาพใหญ่เกินไป 😅', body: 'ครอบให้แคบลงหรือเลือกภาพที่เล็กกว่านี้' });
     go('scr-profile');
     return;
   }
@@ -13198,7 +13168,7 @@ function saveWidgetPhoto(canvas) {
   renderMenu(); renderAppearance();
   haptic('done');
   go('scr-menu');
-  showToast({ title: 'ตั้งภาพวิดเจ็ตแล้ว 🖼', body: 'เปลี่ยนหรือเอาออกได้ที่แท็บ “ฉัน”' });
+  showToast({ title: 'ตั้งภาพวิดเจ็ตแล้ว 🖼', body: '' });
 }
 
 // ============================================================
@@ -13501,7 +13471,7 @@ const OCR_STAGE_TEXT = {
   // ข้อความของขั้น lang ถูกเขียนทับด้วยตัวเลขเมกะไบต์จริงจาก ocrLangProgress ทันที
   // ที่ต้องมีไว้เพราะจังหวะแรกสุด (ตอนเปิดแคชอยู่) ยังไม่มีตัวเลขให้โชว์
   lang: '📦 กำลังเตรียมโมเดลอ่านภาษาไทย…',
-  model: '⏳ กำลังเตรียมโมเดล OCR… (ครั้งแรกอาจรอนานหน่อย)',
+  model: '⏳ กำลังเตรียมโมเดล OCR…',
   read: '📖 AI กำลังอ่านใบงาน…',
   alt: '🔁 ลองอ่านอีกแบบให้ชัดขึ้น…',
   psm6: '🔁 ลองมองหน้ากระดาษอีกแบบ…',
@@ -13566,18 +13536,15 @@ async function runOcrOn(source, how) {
     if (text.length < 5 || (conf < OCR_CONF_MIN && !r.fields)) {
       lastOcrConfidence = null;
       renderCloudOcr();     // รูปยังอยู่ — ทางที่อ่านลายมือได้ยังเปิดอยู่ ให้เห็นปุ่มไว้
-      scanNotice('อ่านตัวหนังสือจากรูปนี้ไม่ค่อยออก (ความมั่นใจ ' + conf + '%)', [
-        'ถ่ายให้เห็นเฉพาะส่วนที่เป็นโจทย์ · วางกล้องขนานกับกระดาษ · เลี่ยงเงามือทับตัวหนังสือ',
-        'กด "ให้ AI วิเคราะห์รูปนี้" — AI อ่านลายมือได้ และเข้าใจว่างานคืออะไร',
-        'หรือใช้ "แปะข้อความ" ข้างล่าง — เร็วกว่าและแม่นกว่า']);
+      scanNotice('อ่านรูปนี้ไม่ออก', ['ถ่ายใหม่ให้ชัดขึ้น หรือแปะข้อความแทน']);
       return;
     }
     if (conf < OCR_CONF_OK) {
       showToast(r.fields
         ? { title: 'อ่านได้บางส่วน 🤔',
-            body: `แกะได้ ${r.fields} ช่อง แต่ความมั่นใจ ${conf}% — ช่วยตรวจก่อนกดบันทึกนะ` }
+            body: 'ช่วยตรวจก่อนบันทึก' }
         : { title: 'อ่านได้ แต่ไม่ค่อยมั่นใจ 🤔',
-            body: 'ความมั่นใจ ' + conf + '% — ช่วยตรวจให้ดีก่อนกดบันทึกนะ' });
+            body: 'ช่วยตรวจก่อนบันทึก' });
     }
     renderCloudOcr();     // อ่านในเครื่องจบแล้ว ค่อยเสนอทางเลือกที่แม่นกว่า
     runParsing(text, 'ocr');
@@ -13593,9 +13560,7 @@ async function runOcrOn(source, how) {
     dropOcrWorker();
     // รูปยังอยู่ในมือ — เสนอทางที่ยังเดินต่อได้ แทนที่จะบอกแค่ว่าพัง
     renderCloudOcr();
-    scanNotice('อ่านรูปไม่สำเร็จ', [
-        'ลองใหม่อีกครั้งได้เลย (เตรียมเครื่องมือใหม่ให้แล้ว)',
-        'หรือใช้ปุ่ม "ให้ AI วิเคราะห์รูปนี้" / "แปะข้อความ" แทนก็ได้'], e.message);
+    scanNotice('อ่านรูปไม่สำเร็จ', ['ลองใหม่อีกครั้ง'], e.message);
   } finally {
     ocrRunning = false;
   }
@@ -13650,8 +13615,8 @@ function cloudOcrState() {
 const CLOUD_OCR_WHY = {
   'no-image': 'ยังไม่มีรูปที่สแกนไว้',
   'no-cloud': 'รุ่นนี้ยังไม่ได้เปิดใช้การอ่านด้วย AI บนเซิร์ฟเวอร์',
-  'need-login': 'เข้าสู่ระบบก่อน แล้ว AI จะวิเคราะห์รูปให้ทุกครั้ง',
-  'offline': 'ตอนนี้ไม่ได้ต่อเน็ต — AI ต้องใช้เน็ต เลยอ่านในเครื่องให้ก่อน',
+  'need-login': 'ต้องเข้าสู่ระบบก่อน',
+  'offline': 'ไม่ได้ต่อเน็ต',
 };
 
 function renderCloudOcr() {
@@ -13674,10 +13639,7 @@ function cloudOcrConsent(ask) {
   if (v === '1') return true;
   if (v === '0' && !ask) return false;
   const ok = confirm(
-    'ให้ AI ช่วยวิเคราะห์รูปใบงาน?\n\n'
-    + '• AI จะอ่านแล้วกรอกชื่องาน วิชา กำหนดส่ง ให้เอง — เข้าใจกว่าการอ่านในเครื่องมาก อ่านลายมือได้\n'
-    + '• รูปจะถูกส่งไปประมวลผลบนเซิร์ฟเวอร์ และต้องใช้อินเทอร์เน็ต\n\n'
-    + 'กด "ยกเลิก" = อ่านในเครื่องเท่านั้น รูปไม่ออกไปไหน');
+    'ให้ AI อ่านรูปใบงาน?\n\nรูปจะถูกส่งขึ้นเซิร์ฟเวอร์\nกด "ยกเลิก" = อ่านในเครื่องเท่านั้น');
   try { localStorage.setItem(CLOUD_OCR_OK_KEY, ok ? '1' : '0'); } catch (_) {}
   return ok;
 }
@@ -13689,7 +13651,7 @@ async function readPhoto(canvas, how) {
     const r = await aiReadPhoto();
     if (r !== 'fail') return;
     // AI ล้มไม่ใช่ทางตัน — อ่านในเครื่องให้ต่อเลย ผู้ใช้ไม่ต้องกดอะไรเพิ่ม
-    showToast({ title: 'AI ไม่ว่างตอนนี้ 😅', body: 'อ่านในเครื่องให้แทน — ตรวจให้ดีก่อนบันทึกนะ' });
+    showToast({ title: 'AI ไม่ว่างตอนนี้ 😅', body: 'อ่านในเครื่องแทน' });
   }
   await runOcrOn(canvas, how);
 }
@@ -13731,9 +13693,7 @@ async function aiReadPhoto() {
     console.debug(`[ALT OCR/ai] provider=${payload.provider} kind=${task?.kind ?? '-'} `
       + `ms=${payload.ms} chars=${text.length}`);
     if (!(task && task.title) && text.trim().length < 5) {
-      scanNotice('AI ไม่เจอตัวหนังสือในรูปนี้', [
-        'ถ่ายให้เห็นตัวหนังสือชัด ๆ · เปิดไฟให้สว่างขึ้น · ถือนิ่ง ๆ',
-        'หรือใช้ "แปะข้อความ" ข้างล่างแทน']);
+      scanNotice('ไม่เจอตัวหนังสือในรูปนี้', ['ถ่ายใหม่ให้ชัดขึ้น หรือแปะข้อความแทน']);
       return 'empty';
     }
     lastOcrConfidence = null;   // AI ไม่ได้ให้เลขความมั่นใจ — ห้ามเอาเลขของรอบในเครื่องมาเตือนผิดใบ
@@ -13970,7 +13930,7 @@ function toggleNotifPref(key) {
              : 'การทักเมื่อหายไปหลายวัน';
   showToast(on
     ? { title: 'เปิดแล้ว 🔔', body: name + ' จะกลับมาทำงานตามปกติ' }
-    : { title: 'ปิดแล้ว', body: name + ' จะไม่ถูกส่งอีก — เปิดกลับได้ตรงนี้ทุกเมื่อ' });
+    : { title: 'ปิดแล้ว', body: '' });
 }
 
 // เอาไปโชว์บนปุ่มและซ่อน/แสดงแถว · เรียกจาก renderProfile
@@ -14003,7 +13963,7 @@ async function enableNotif() {
   if (perm !== 'granted') { renderProfile(); return; }
   // ยิงของจริงทันทีหนึ่งดอก — ผู้ใช้จะได้เห็นกับตาว่ามันทำงาน ไม่ใช่แค่ปุ่มเปลี่ยนสี
   await notify('เปิดแจ้งเตือนแล้ว 🔔',
-    (who() ? who() + ' ' : '') + 'จะเตือนก่อนถึงกำหนดส่ง — ลองกด "ทดสอบ" ได้ทุกเมื่อ', 'studentos-alt-on');
+    (who() ? who() + ' ' : '') + 'จะเตือนก่อนถึงกำหนดส่ง', 'studentos-alt-on');
   try {
     const ok = await subscribePush();
     // 1B99 · ยืนยันจากของจริงก่อนจะพูดว่า "แม้ปิดแอป" — subscribePush คืน true ได้
@@ -14011,17 +13971,17 @@ async function enableNotif() {
     // ประโยคที่สัญญาเกินกว่าที่ระบบทำได้ คือประโยคที่ทำให้เขาไม่ไปตั้งอย่างอื่นเผื่อไว้
     await refreshPushState();
     if (!ok) {
-      showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'แต่ยังตั้งการเตือนนอกแอปไม่ได้ — ลองใหม่ที่ปุ่มในหน้านี้' });
+      showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเตือนนอกแอปไม่ได้' });
     } else if (pushState === 'on') {
       showToast({ title: 'เปิดการเตือนแล้ว 🔔', body: 'จะเตือนก่อนถึงกำหนดส่ง แม้ปิดแอปอยู่' });
     } else if (!(sb && currentUser)) {
-      showToast({ title: 'เปิดการเตือนแล้ว 🔔', body: 'ล็อกอินด้วย Google เพิ่ม เพื่อให้เตือนได้แม้ปิดแอป' });
+      showToast({ title: 'เปิดการเตือนแล้ว 🔔', body: 'ล็อกอินเพื่อให้เตือนตอนปิดแอปได้' });
     } else {
-      showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเชื่อมกับเซิร์ฟเวอร์ไม่ได้ — จะลองใหม่ให้เองตอนเปิดแอปครั้งหน้า' });
+      showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเตือนนอกแอปไม่ได้' });
     }
   } catch (e) {
     console.warn('[push] subscribe failed:', e.message);
-    showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'แต่ยังตั้งการเตือนนอกแอปไม่ได้ ลองใหม่อีกครั้งภายหลัง' });
+    showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเตือนนอกแอปไม่ได้' });
   }
   renderProfile();
   checkReminders();
@@ -14039,7 +13999,7 @@ function reminderCopy(t, now) {
   const h = t.due ? (new Date(t.due) - now) / 3.6e6 : null;
   const title = taskTitleText(t);   // วิชา · รายละเอียด — วิชาอย่างเดียวแยกไม่ออกถ้ามีสองใบ
   if (h == null) return { title, body: 'ยังค้างอยู่' };
-  if (h < 0) return { title, body: 'เลยกำหนดแล้ว · ส่งช้ายังดีกว่าไม่ส่ง' };
+  if (h < 0) return { title, body: 'เลยกำหนดแล้ว' };
   const when = fmtDue(t.due, now, t);
   if (h <= 3) return { title, body: when + ' · เหลือ ' + Math.max(1, Math.round(h)) + ' ชม.' };
   return { title, body: when };
@@ -14078,7 +14038,7 @@ function showToast(copy) {
   // ไม่ยุบแล้วกางใหม่ — ข้อความเปลี่ยนในเกาะเดิม
   const wasOn = el.classList.contains('show');
   el.querySelector('.tt').textContent = copy.title;
-  el.querySelector('.tb').textContent = copy.body;
+  el.querySelector('.tb').textContent = copy.body || '';
   if (wasOn) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
   // ปุ่มเดียวในการ์ดทำได้สองหน้าที่: "เลิกทำ" (undo) หรือการกระทำถัดไป (action: {label, fn})
   const undo = el.querySelector('.tu');
@@ -14144,12 +14104,12 @@ async function testServerPush() {
   }
   if (res.queued) {
     showToast({ title: `จะเด้งใน ${res.delay} วินาที 🔔`,
-      body: 'ส่งจากเซิร์ฟเวอร์จริง — ปิดแอปหรือล็อกจอรอได้เลย' + (res.devices > 1 ? ` (${res.devices} เครื่อง)` : '') });
+      body: res.devices > 1 ? `${res.devices} เครื่อง` : '' });
     return;
   }
   showToast(res.ok
     ? { title: 'ส่งจากเซิร์ฟเวอร์แล้ว ✅', body: `ถึง ${res.sent}/${res.devices} เครื่อง` }
-    : { title: 'เซิร์ฟเวอร์ส่งไม่ถึงเครื่องนี้', body: 'ลงทะเบียนใหม่ให้แล้วตอนเปิดแอปครั้งหน้า — ลองกดทดสอบอีกครั้ง' });
+    : { title: 'เซิร์ฟเวอร์ส่งไม่ถึงเครื่องนี้', body: 'ลองกดทดสอบอีกครั้ง' });
 }
 
 async function testNotify() {
@@ -14157,7 +14117,7 @@ async function testNotify() {
   if (pushState === 'on' && sb && currentUser) { testServerPush(); return; }
   const tag = 'studentos-alt-test';
   const ok = await notify('ทดสอบแจ้งเตือน 🔔',
-    (who() ? who() + ' ' : '') + 'ถ้าเห็นข้อความนี้แปลว่าแจ้งเตือนใช้งานได้แล้ว', tag);
+    (who() ? who() + ' ' : '') + 'แจ้งเตือนใช้งานได้แล้ว', tag);
 
   // 1B99 · showNotification() ที่ resolve แล้ว **ไม่ได้แปลว่าการ์ดขึ้นจริง**
   // มันแปลว่า "เบราว์เซอร์รับเรื่องไว้แล้ว" เท่านั้น · ระบบปฏิบัติการยังปัดทิ้งต่อได้อีกชั้น
@@ -14174,12 +14134,12 @@ async function testNotify() {
 
   if (!ok || shown === false) {
     showToast({ title: 'ยังส่งไม่ได้',
-      body: 'เครื่องนี้ปัดการแจ้งเตือนทิ้ง — เช็คโหมดห้ามรบกวน และสิทธิ์แจ้งเตือนของแอปในตั้งค่าเครื่อง' });
+      body: 'เช็คสิทธิ์แจ้งเตือนในตั้งค่าเครื่อง' });
     return;
   }
   showToast(shown === true
-    ? { title: 'ขึ้นแล้ว ✅', body: 'การ์ดแจ้งเตือนขึ้นจริงบนเครื่องนี้ ระบบพร้อมใช้งาน' }
-    : { title: 'ส่งแจ้งเตือนแล้ว', body: 'ถ้าไม่เห็น ลองเช็คการตั้งค่าแจ้งเตือนของเครื่อง/เบราว์เซอร์' });
+    ? { title: 'ขึ้นแล้ว ✅', body: '' }
+    : { title: 'ส่งแจ้งเตือนแล้ว', body: '' });
 }
 
 // ============================================================
@@ -14448,7 +14408,7 @@ async function socialWatch(force) {
         const nm = String((fresh[0].display_name || '').trim()) || 'มีคน';
         // แท็ก studentos-friend ตัวเดียวกันทุกดอก — คำขอที่สองมาทับใบแรก ไม่ใช่กองสิบใบ
         notifyAway(fresh.length > 1 ? 'มีคำขอเป็นเพื่อน ' + fresh.length + ' คน' : nm + ' ขอเป็นเพื่อน',
-          fresh.length > 1 ? 'เปิดแอปเพื่อกดรับ' : 'กดรับแล้วเห็นผลและตารางของกันและกัน',
+          fresh.length > 1 ? 'เปิดแอปเพื่อกดรับ' : 'แตะเพื่อกดรับ',
           // แท็กต้องตรงกับที่ send-reminders ใช้เป๊ะ ('friend' / 'dm')
           // ทั้งสองท่ออาจเห็นเหตุการณ์เดียวกันคนละจังหวะ (แอปเปิดอยู่ตอนที่ cron ยิงพอดี)
           // แท็กเดียวกัน = ใบใหม่ทับใบเก่า เหลือการ์ดเดียว · แท็กต่างกัน = ได้สองใบซ้อน
@@ -14601,7 +14561,7 @@ async function redeemCode() {
   let gift = null;
   try { gift = CODE_GIFT[await codeFingerprint(raw.toLowerCase())] || null; } catch (_) { gift = null; }
   if (gift && gift.theme) {
-    if (codeThemeOwned(gift.theme)) { say('มีธีมนี้อยู่แล้ว — เลือกใช้ได้ที่ ธีมสี', true); input.select(); return; }
+    if (codeThemeOwned(gift.theme)) { say('มีธีมนี้อยู่แล้ว', true); input.select(); return; }
     input.value = '';
     say('');
     codeUnlockTheme(gift.theme);
@@ -14648,7 +14608,7 @@ function codeUnlockTheme(id) {
   haptic('done');
   splashBurst(22, 'egg-star');
   renderAll();
-  showToast({ title: 'ปลดล็อกธีม ' + (THEME_NAME[id] || id) + ' ✦', body: 'เปลี่ยนให้แล้ว · เลือกธีมอื่นได้ที่ ธีมสี' });
+  showToast({ title: 'ปลดล็อกธีม ' + (THEME_NAME[id] || id) + ' ✦', body: '' });
 }
 
 // เปิด/ปิดโชคเพิ่ม — เก็บเป็นธงในเครื่อง ไม่ผูกกับยอดโทเคน
@@ -14805,10 +14765,10 @@ function renderInstallCard() {
   if (isStandalone()) { card.hidden = true; return; } // ติดตั้งแล้ว ไม่ต้องโชว์
   if (deferredInstallPrompt) {
     card.hidden = false; btn.style.display = 'block'; btn.textContent = 'ติดตั้งเลย';
-    hint.textContent = 'ติดตั้งแล้วเปิดเร็วขึ้น เต็มจอ และรับการแจ้งเตือนได้';
+    hint.textContent = '';
   } else if (isIOS()) {
     card.hidden = false; btn.style.display = 'block'; btn.textContent = 'ดูวิธีติดตั้ง';
-    hint.textContent = 'บน iPhone ต้องติดตั้งก่อนถึงจะรับการแจ้งเตือนได้';
+    hint.textContent = 'ต้องติดตั้งก่อนจึงรับแจ้งเตือนได้';
   } else {
     card.hidden = true; // เบราว์เซอร์อื่นที่ยังตรวจไม่ได้ว่าติดตั้งได้ไหม ไม่ต้องกวนใจ
   }
@@ -15020,12 +14980,12 @@ async function applyJoinToken() {
     try { localStorage.removeItem(JOIN_KEY); } catch (_) {}
     if (!data) {
       showToast({ title: 'ลิงก์นี้ใช้ไม่ได้แล้ว',
-        body: 'ขอลิงก์ใหม่ได้โดยพิมพ์ “ลิงก์” ในกลุ่มห้อง' });
+        body: 'พิมพ์ “ลิงก์” ในกลุ่มห้องเพื่อขอใหม่' });
       return;
     }
     if (typeof funnelMark === 'function') { funnelMark('lineLinkedAt'); save(); }
     showToast({ title: 'เข้าร่วมห้องแล้ว 🎉',
-      body: 'งานที่ครูสั่งในกลุ่มนั้นจะเข้ามาให้เอง ไม่ต้องพิมพ์เอง' });
+      body: '' });
     if (typeof loadLineLinks === 'function') await loadLineLinks();
     if (typeof pullInbox === 'function') await pullInbox();
   } catch (e) {
@@ -15260,8 +15220,7 @@ function renderObDay() {
   const peek = document.getElementById('obPeek');
   if (!peek) return;
   peek.innerHTML = free < 30
-    ? `<span class="obp-h">${icon('clock')}วันธรรมดาแทบไม่เหลือเวลาเลย</span>
-       <span class="obp-p">ไม่เป็นไร — AI จะกันงานหนักไว้เสาร์อาทิตย์ให้แทน</span>`
+    ? `<span class="obp-h">${icon('clock')}วันธรรมดาแทบไม่เหลือเวลาเลย</span>`
     : `<span class="obp-h">${icon('clock')}วันธรรมดาคุณว่าง
          <b>${esc(home)}–${esc(min2hm(stop))}</b></span>
        <span class="obp-p">ประมาณ ${Math.round(free / 6) / 10} ชม. — AI จะวางงานลงช่วงนี้
@@ -15348,8 +15307,8 @@ function showWelcome(name, gotDay) {
   // คนที่อุตส่าห์ตอบเรื่องตารางมา ต้องได้ยินทันทีว่าคำตอบนั้นถูกใช้ทำอะไร
   // ไม่งั้นการถามสามคำถามก็เป็นแค่ด่านที่ต้องผ่านก่อนเข้าแอป
   document.getElementById('obwSub').textContent = gotDay
-    ? 'รู้ตารางของ ' + name + ' แล้ว — จากนี้แค่บอกว่าครูสั่งอะไรมา เดี๋ยวจัดลงช่วงที่ว่างจริงให้เอง'
-    : 'จากนี้ ' + name + ' แค่บอกว่าครูสั่งอะไรมา เดี๋ยวจัดลำดับให้เองว่าต้องทำอะไรก่อน';
+    ? 'ได้ตารางของ ' + name + ' แล้ว'
+    : 'พร้อมแล้ว';
   w.hidden = false;
   setTimeout(() => w.classList.add('on'), 20);
   setTimeout(() => {
@@ -15362,8 +15321,8 @@ function showWelcome(name, gotDay) {
     showToast({
       title: 'ยินดีที่ได้รู้จัก ' + name + ' 👋',
       body: gotDay && slot
-        ? `ช่วงว่างถัดไปของคุณคือ ${slot.fromHm}–${slot.toHm} — เพิ่มงานแรกได้เลย`
-        : 'ตั้งค่าเรียบร้อย — เพิ่มงานแรกได้เลย เดี๋ยวช่วยจัดลำดับให้',
+        ? `ว่างถัดไป ${slot.fromHm}–${slot.toHm}`
+        : 'เพิ่มงานแรกได้เลย',
     });
   }, 2300);
 }
@@ -15486,10 +15445,10 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     const off = r && r.status === 'off';
     go(off ? 'scr-sources' : 'scr-inbox');
     setTimeout(() => showToast(
-      off ? { title: 'ปิด "แชร์จากแอปอื่น" ไว้อยู่', body: 'เปิดสวิตช์แล้วแชร์เข้ามาใหม่อีกที' }
+      off ? { title: 'ปิด "แชร์จากแอปอื่น" ไว้อยู่', body: '' }
       : r && r.status === 'noise'
-        ? { title: 'เก็บไว้ในบันทึกแล้ว', body: 'อ่านแล้วไม่เหมือนงานที่ครูสั่ง เลยไม่เอาขึ้นเป็นคำถาม' }
-        : { title: 'รับข้อความแล้ว 📥', body: 'ดูในกล่องเข้าได้เลยว่าแกะออกมาเป็นงานอะไร' }), 700);
+        ? { title: 'เก็บไว้ในบันทึกแล้ว', body: 'ไม่ใช่งาน' }
+        : { title: 'รับข้อความแล้ว 📥', body: '' }), 700);
   }
 
   // ขากลับจากหน้าอนุญาตของ Google — ต้องมีข้อความบอกผลเสมอ
@@ -15518,7 +15477,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     setTimeout(() => showToast({
       title: 'มีการจับเวลาค้างไว้',
       body: (st ? taskTitleText(st) : 'งานหนึ่ง') + ' เริ่มไว้ตั้งแต่ ' +
-        fmtClock(new Date(stale.start)) + ' แต่ไม่ได้กดหยุด — รอบนั้นไม่ถูกบันทึก',
+        fmtClock(new Date(stale.start)) + ' แต่ไม่ได้กดหยุด — ไม่ถูกบันทึก',
     }), 3200);
   }
   // เช็คบ่อยขึ้น (นาทีละครั้ง) + เช็คทุกครั้งที่กลับมาที่แอป

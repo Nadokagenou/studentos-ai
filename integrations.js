@@ -89,8 +89,8 @@ async function integConnectIcs(url) {
     // ของรอบแรกถูกซิงก์ไปแล้วฝั่งเซิร์ฟเวอร์ — ลากลงมาเลย ไม่ต้องรอรอบ poll ถัดไป
     if (typeof pullInbox === 'function') await pullInbox();
     showToast(d.found
-      ? { title: 'เชื่อมปฏิทินแล้ว', body: `เจอ ${d.found} รายการในปฏิทิน — ที่ยังไม่ถึงกำหนดจะทยอยเข้าแผนให้` }
-      : { title: 'เชื่อมปฏิทินแล้ว', body: 'ตอนนี้ยังไม่มีงานในปฏิทิน มีเมื่อไหร่จะเข้ามาเอง' });
+      ? { title: 'เชื่อมปฏิทินแล้ว', body: `เจอ ${d.found} รายการ` }
+      : { title: 'เชื่อมปฏิทินแล้ว', body: 'ยังไม่มีงานในปฏิทิน' });
     return true;
   } catch (e) {
     showToast({ title: 'เชื่อมไม่สำเร็จ', body: e.message });
@@ -112,8 +112,8 @@ async function integConnectIcs(url) {
 //   3. Google ให้ติ๊กสิทธิ์ทีละช่อง → ไม่ติ๊กครบ เชื่อมผ่านแต่ดึงงานไม่ได้
 // prompt=consent แปลว่าเจอหน้าพวกนี้ทุกครั้งที่กดเชื่อม แผ่นนี้จึงโผล่ทุกครั้งเหมือนกัน
 const GOOGLE_GUIDE = {
-  google_classroom: { acct: 'เลือกบัญชีที่ใช้เข้า Classroom (ส่วนมากคืออีเมลโรงเรียน)' },
-  google_calendar:  { acct: 'เลือกบัญชีที่มีปฏิทินของโรงเรียน' },
+  google_classroom: { acct: 'เลือกบัญชีโรงเรียน' },
+  google_calendar:  { acct: 'เลือกบัญชีโรงเรียน' },
 };
 
 function integGoogleGuide(provider) {
@@ -129,8 +129,8 @@ function integGoogleGuide(provider) {
       <ol class="gg-steps">
         <li>${esc(g.acct)}</li>
         <li>ถ้าขึ้นว่า <b>“Google ยังไม่ได้ยืนยันแอปนี้”</b> ให้กด <b>ขั้นสูง</b>
-          แล้วกดลิงก์ <b>ไปที่ … (ไม่ปลอดภัย)</b> ข้างล่าง · แอปขอแค่อ่าน ไม่แก้อะไรใน Classroom</li>
-        <li><b>ติ๊กทุกช่อง</b> แล้วกดดำเนินการต่อ · ขาดช่องไหนจะดึงงานไม่ได้</li>
+          แล้วกดลิงก์ <b>ไปที่ … (ไม่ปลอดภัย)</b> ข้างล่าง</li>
+        <li><b>ติ๊กทุกช่อง</b> แล้วกดดำเนินการต่อ</li>
       </ol>
       <p class="gg-note">ถ้าขึ้นว่าถูกบล็อกหรือต้องให้ผู้ดูแลอนุมัติ แปลว่าโรงเรียนปิดกั้นแอปภายนอก
         ใช้ปุ่มแชร์ใน Classroom ส่งงานเข้าแอปนี้แทนได้</p>
@@ -168,8 +168,7 @@ async function integDisconnect(id) {
   // งานที่เข้าแผนไปแล้วไม่หายตาม — ต้องเขียนไว้ในคำถาม ไม่งั้นคนจะไม่กล้ากดตัด
   // ทั้งที่อยากตัด เพราะกลัวว่างานทั้งเทอมจะหายไปด้วย
   if (!confirm(`ตัดการเชื่อม${row.account ? ' ' + row.account : ''}?\n\n`
-    + 'งานที่เข้าแผนไปแล้วยังอยู่ครบ — หยุดแค่ของใหม่ที่จะไหลเข้ามา\n'
-    + 'สิทธิ์ที่เคยให้ไว้จะถูกถอนคืนที่ฝั่งผู้ให้บริการด้วย')) return;
+    + 'งานที่เข้าแผนไปแล้วยังอยู่ครบ')) return;
 
   integ.busy = id;
   if (typeof renderSources === 'function') renderSources();
@@ -218,7 +217,7 @@ function integBootNotice() {
   if (!st) return;
 
   if (st === 'ok') {
-    showToast({ title: 'เชื่อมบัญชีแล้ว', body: 'กำลังดึงงานรอบแรกให้ — อาจใช้เวลาสักครู่' });
+    showToast({ title: 'เชื่อมบัญชีแล้ว', body: 'กำลังดึงงาน…' });
     // ฝั่งเซิร์ฟเวอร์เพิ่งสั่งซิงก์รอบแรกไปตอนที่เรากำลังเดินทางกลับ ยังไม่เสร็จแน่ ๆ
     // รอสั้น ๆ แล้วค่อยลากของลงมา ดีกว่าลากทันทีแล้วได้ของว่าง
     setTimeout(() => { if (typeof pullInbox === 'function') pullInbox(); }, 4000);
@@ -228,7 +227,7 @@ function integBootNotice() {
   } else {
     // รายละเอียดเป็นศัพท์ของระบบ ไม่เอามาโชว์ตรง ๆ แต่เขียนลง console ไว้ให้ไล่ตามได้
     console.warn('[integrations] เชื่อมไม่สำเร็จ:', q.get('detail') || '');
-    showToast({ title: 'เชื่อมไม่สำเร็จ', body: 'ลองใหม่อีกครั้งจากหน้าตัวเชื่อม' });
+    showToast({ title: 'เชื่อมไม่สำเร็จ', body: 'ลองใหม่อีกครั้ง' });
   }
 }
 
@@ -284,7 +283,7 @@ function integStatusText(row) {
   if (!row) return '';
   if (row.status === 'needs_reauth') return row.error_msg || 'ต้องเชื่อมใหม่';
   if (row.status === 'paused') return 'พักไว้';
-  if (row.status === 'error') return 'ต้นทางมีปัญหา กำลังลองใหม่ให้เอง';
+  if (row.status === 'error') return 'ต้นทางมีปัญหา กำลังลองใหม่';
   if (!row.last_sync_at) return 'กำลังดึงรอบแรก';
   const mins = Math.round((Date.now() - new Date(row.last_sync_at).getTime()) / 60000);
   if (!isFinite(mins) || mins < 0) return 'ทำงานอยู่';

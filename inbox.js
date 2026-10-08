@@ -28,8 +28,7 @@
 const SOURCES = [
   { id: 'line', name: 'LINE (บอทในกลุ่มห้อง)', icon: 'chat',
     kind: 'connector', state: 'live', toggle: true, link: 'line', viaInbox: true,
-    desc: 'ครูสั่งงานในกลุ่มครั้งเดียว เข้าระบบให้ทุกคนที่เชื่อมไว้พร้อมกัน',
-    note: 'LINE ไม่เปิดให้อ่านแชทส่วนตัวของใครทั้งนั้น — บอทเห็นเฉพาะข้อความในกลุ่มที่ถูกเชิญเข้าไปเท่านั้น' },
+    desc: 'งานที่ครูสั่งในกลุ่มห้อง' },
 
   // ตัวเชื่อมที่ครอบทุกแอปที่ไม่มี API ให้ต่อ — และเป็นตัวเดียวที่ใช้ได้ "วันนี้" โดยไม่ต้องรออนุมัติใคร
   // ของนี้ทำงานอยู่แล้วตั้งแต่มี share_target ใน manifest แต่ไม่เคยถูกโชว์ว่ามีอยู่
@@ -53,19 +52,17 @@ const SOURCES = [
   { id: 'ics', name: 'ปฏิทินของโรงเรียน (Canvas · Moodle)', shortName: 'ปฏิทินของโรงเรียน',
     icon: 'calendar',
     kind: 'connector', state: 'live', viaInbox: true, connect: 'ics',
-    desc: 'วางลิงก์ปฏิทินจากระบบของโรงเรียน แล้วกำหนดส่งไหลเข้ามาเอง',
-    note: 'เป็นลิงก์ที่ระบบของโรงเรียนออกให้นักเรียนเองอยู่แล้ว — ไม่ต้องขอใครอนุมัติ และไม่ต้องบอกรหัสผ่านกับใคร' },
+    desc: 'วางลิงก์ปฏิทินของโรงเรียน' },
 
   { id: 'google_classroom', name: 'Google Classroom', icon: 'book',
     kind: 'connector', state: 'oauth', viaInbox: true, connect: 'google',
-    desc: 'ดึงงานที่ครูมอบหมาย กำหนดส่ง และสถานะว่าส่งไปแล้วหรือยัง',
-    note: 'ขอสิทธิ์อ่านอย่างเดียว และเฉพาะงานของตัวเอง — ไม่เห็นงานหรือคะแนนของเพื่อนร่วมห้อง',
-    blocker: 'ต้องตั้งกุญแจ Google ฝั่งเซิร์ฟเวอร์ก่อน (Google Cloud project + OAuth consent screen)' },
+    desc: 'งานและกำหนดส่งจาก Classroom',
+    blocker: 'ยังไม่เปิดให้ใช้' },
 
   { id: 'google_calendar', name: 'Google Calendar', icon: 'calendar',
     kind: 'connector', state: 'oauth', viaInbox: true, connect: 'google',
-    desc: 'วันสอบและกิจกรรมที่โรงเรียนลงปฏิทินไว้',
-    blocker: 'ใช้กุญแจดอกเดียวกับ Classroom — ตั้งครั้งเดียวได้ทั้งคู่' },
+    desc: 'วันสอบและกิจกรรม',
+    blocker: 'ยังไม่เปิดให้ใช้' },
 
   // Microsoft เปิด API ให้จริง (Graph · EduAssignments) แต่ล็อกไว้ที่ชั้นที่เราข้ามไม่ได้:
   // สิทธิ์ชุดนั้นเป็นแบบ "ต้องให้แอดมินอนุมัติ" ทั้งโดเมน นักเรียนกดยอมรับเองไม่ได้เลยสักคน
@@ -73,22 +70,22 @@ const SOURCES = [
   { id: 'ms_teams', name: 'Microsoft Teams (งานในห้องเรียน)', icon: 'users',
     kind: 'connector', state: 'admin', viaInbox: true,
     desc: 'งานที่ครูสั่งผ่าน Teams Assignments',
-    blocker: 'Microsoft บังคับให้ผู้ดูแลระบบของโรงเรียนอนุมัติแอปก่อน นักเรียนกดเชื่อมเองไม่ได้ — ไม่ใช่ข้อจำกัดของเรา',
+    blocker: 'โรงเรียนต้องอนุมัติก่อน',
     insteadOf: 'share' },
 
   // เขียนไว้ให้ชัดว่า "ไม่ใช่ยังไม่ทำ" แต่ "ทำไม่ได้" — คนที่รอฟีเจอร์นี้จะได้ไม่รอเปล่า
   { id: 'notes', name: 'โน้ต (Apple · Samsung · Keep)', icon: 'pencil',
     kind: 'connector', state: 'noapi',
-    desc: 'จดงานไว้ในโน้ตแล้วอยากให้เข้าแอปเอง',
-    blocker: 'Apple · Samsung · Google ไม่เปิด API ให้ใครอ่านโน้ตของผู้ใช้เลยสักเจ้า — ไม่ใช่ข้อจำกัดของเรา',
+    desc: 'งานที่จดไว้ในโน้ต',
+    blocker: 'ยังเชื่อมไม่ได้ ใช้ปุ่มแชร์แทน',
     insteadOf: 'share' },
 
   { id: 'scan',  name: 'สแกน/ถ่ายรูป', icon: 'camera', kind: 'manual', state: 'live',
     desc: 'ใบงาน ตารางเรียนที่จด ประกาศหน้าห้อง' },
   { id: 'voice', name: 'พูดใส่ไมค์',    icon: 'mic',    kind: 'manual', state: 'live',
-    desc: 'พูด 5 วินาที ได้งานหนึ่งชิ้น' },
+    desc: 'พูดงานที่ต้องทำ' },
   { id: 'text',  name: 'แปะข้อความ',    icon: 'type',   kind: 'manual', state: 'live',
-    desc: 'ก๊อปมาจากที่ไหนก็ได้ แล้ววาง' },
+    desc: 'ก๊อปแล้ววาง' },
 ];
 const sourceById = id => SOURCES.find(s => s.id === id) || SOURCES[0];
 
@@ -114,8 +111,8 @@ function srcToggle(id, quiet) {
   if (typeof haptic === 'function') haptic('tap');
   if (quiet) return;
   showToast(srcEnabled(id)
-    ? { title: 'เปิด ' + s.name + ' แล้ว', body: 'ของใหม่จากทางนี้จะเข้ากล่องเข้าตามปกติ' }
-    : { title: 'ปิด ' + s.name + ' แล้ว', body: 'ของที่เข้าแผนไปแล้วยังอยู่ครบ — ปิดแค่ของใหม่ที่จะเข้ามา' });
+    ? { title: 'เปิด ' + s.name + ' แล้ว' }
+    : { title: 'ปิด ' + s.name + ' แล้ว' });
 }
 
 // ---------- แถวตัวเชื่อมในเมนู + ----------
@@ -131,7 +128,7 @@ function connectorMenuRows() {
     const on = srcEnabled(s.id);
     return `<div class="as-row as-tgl ${on ? '' : 'off'}" onclick="srcToggle('${s.id}', true)">
       <span class="as-ic">${icon(s.icon)}</span>
-      <span class="as-tx"><b>${esc(s.name)}</b><span>${esc(s.desc)}</span></span>
+      <span class="as-tx"><b>${esc(s.name)}</b></span>
       <button class="tg ${on ? 'on' : ''}" role="switch" aria-checked="${on}"
         aria-label="${on ? 'ปิด' : 'เปิด'} ${esc(s.name)}"
         onclick="event.stopPropagation();srcToggle('${s.id}', true)"><span class="tg-k"></span></button>
@@ -743,8 +740,8 @@ function inboxIgnore(id) {
   if (brainExamples() <= BRAIN_MIN_EXAMPLES + 2) {
     const need = brainNeeds();
     showToast({ title: 'จำไว้แล้ว',
-      body: brainReady() ? 'ข้อความแนวนี้จะถูกคัดออกให้เองตั้งแต่ต้นทาง'
-        : need.pos ? `ขอตัวอย่างงานจริงอีก ${need.pos} ครั้งด้วย จะได้ไม่เหมาเอาว่าทุกอย่างคือขยะ`
+      body: brainReady() ? ''
+        : need.pos ? `ขอตัวอย่างงานจริงอีก ${need.pos} ครั้ง`
         : `สอนอีก ${BRAIN_MIN_EXAMPLES - brainExamples()} ครั้ง จะเริ่มคัดให้เอง` });
   }
 }
@@ -779,7 +776,7 @@ function renderInbox() {
     // ยังไม่เคยมีอะไรเข้ามา = "เข้าแผนเองแล้ว 0" ไม่ได้บอกอะไรเลย · บอกว่าจอนี้คืออะไรแทน
     sub.textContent = waitN
       ? `รอตรวจ ${waitN} · เข้าแผนเองแล้ว ${auto}`
-      : all.length ? `เข้าแผนเองแล้ว ${auto} รายการ` : 'งานที่ไหลเข้ามาเองจากแหล่งต่าง ๆ';
+      : all.length ? `เข้าแผนเองแล้ว ${auto} รายการ` : '';
   }
 
   // ---- 1C40 · การ์ดสถานะแทนหัวจอซ้ำ ----
@@ -794,9 +791,7 @@ function renderInbox() {
       <span class="ib2-hero-ic">${icon(waitN ? 'bell' : all.length ? 'check-circle' : 'sparkles')}</span>
       <div>
         <div class="ib2-hero-t">${waitN ? `รอคุณดู ${waitN} งาน` : all.length ? 'ไม่มีอะไรค้าง' : 'ยังไม่มีอะไรเข้ามา'}</div>
-        <p class="ib2-hero-p">${waitN ? 'AI ไม่แน่ใจ เลยถามก่อนเข้าแผน — ที่เหลือเข้าให้เองแล้ว'
-          : all.length ? 'ของที่ AI มั่นใจ เข้าแผนไปเองหมดแล้ว'
-          : 'เชื่อมแหล่งงานข้างล่างไว้ แล้วงานจะไหลเข้าแผนเอง ไม่ต้องพิมพ์'}</p>
+        ${waitN ? '<p class="ib2-hero-p">AI ไม่แน่ใจ ช่วยตรวจหน่อย</p>' : ''}
       </div>
     </div>
     ${all.length ? `<div class="ib2-stats">
@@ -996,14 +991,13 @@ function renderSources() {
     const on = srcEnabled(s.id);
     // คำเตือนของ "แชร์จากแอปอื่น" ต่างกันตามเครื่อง เพราะข้อจำกัดคนละเรื่องกัน
     const warn = s.id !== 'share' ? ''
-      : isIOS ? 'iOS ยังไม่รองรับปุ่มแชร์เข้าเว็บแอป — ใช้ "แปะข้อความ" แทนไปก่อน'
-      : !installed ? 'ต้องติดตั้งแอปลงจอโฮมก่อน ปุ่มแชร์ของเครื่องถึงจะเห็นชื่อ Student OS'
+      : isIOS ? 'iPhone ยังไม่รองรับ ใช้ "แปะข้อความ" แทน'
+      : !installed ? 'ติดตั้งแอปก่อน'
       : '';
     return `<div class="src ${on ? 'on' : 'muted'}">
       <span class="src-ic">${icon(s.icon)}</span>
       <span class="src-bd">
         <span class="t">${esc(s.name)}</span>
-        <span class="s">${esc(s.desc)}</span>
         ${s.how && on ? `<span class="src-how">${s.how.map((h, i) =>
           `<span><b>${i + 1}</b>${esc(h)}</span>`).join('')}</span>` : ''}
         ${warn && on ? `<span class="src-warn">${icon('flag')}${esc(warn)}</span>` : ''}
@@ -1025,10 +1019,7 @@ function renderSources() {
       <span class="src-ic off">${icon(s.icon)}</span>
       <span class="src-bd">
         <span class="t">${esc(s.name)}</span>
-        <span class="s">${esc(s.desc)}</span>
         <span class="src-need">${icon(s.state === 'noapi' ? 'unplug' : 'lock')}${esc(s.blocker)}</span>
-        ${alt ? `<span class="src-alt">${icon(alt.icon)}ใช้ "${esc(alt.name)}" แทนได้เลย —
-          ได้ผลเหมือนกันทุกอย่าง ต่างแค่กดแชร์เอง</span>` : ''}
       </span>
       <span class="src-tag ${s.state}">${DEAD_TAG[s.state] || 'รอตั้งค่า'}</span>
     </div>`;
@@ -1075,7 +1066,7 @@ function renderSources() {
     const serverDown = typeof integ !== 'undefined' && !!integ.err;
     let action;
     if (!signedIn) {
-      action = `<div class="src-need">${icon('lock')}ต้องล็อกอินก่อน เพราะต้องรู้ว่างานที่ดึงมาเป็นของใคร</div>
+      action = `<div class="src-need">${icon('lock')}ต้องล็อกอินก่อน</div>
         <button class="ib-go" style="margin-top:10px; align-self:flex-start"
           onclick="go('scr-profile')">ไปล็อกอิน</button>`;
     } else if (serverDown) {
@@ -1106,7 +1097,6 @@ function renderSources() {
       <span class="src-ic">${icon(s.icon)}</span>
       <span class="src-bd">
         <span class="t">${esc(s.name)}</span>
-        <span class="s">${esc(s.desc)}</span>
         ${s.note ? `<span class="src-note">${esc(s.note)}</span>` : ''}
         ${action}
       </span>
@@ -1122,10 +1112,7 @@ function renderSources() {
   const onN = live.filter(s => srcEnabled(s.id)).length;
 
   body.innerHTML = `<div class="page-head">
-      <div class="eyebrow">แอปที่ส่งงานเข้ามาให้เอง</div>
       <h1 class="page-title">ตัวเชื่อม</h1>
-      <p class="page-sub">เชื่อมครั้งเดียว แล้วไม่ต้องพิมพ์อะไรอีกเลย —
-        งานที่ครูสั่งไหลเข้ามาเอง แอปอ่านให้ก่อน แล้วถามเฉพาะตอนที่ไม่มั่นใจ</p>
     </div>
 
     ${accts.length ? `<div class="sec-title">บัญชีที่เชื่อมไว้ ${accts.length}</div>
@@ -1141,17 +1128,11 @@ function renderSources() {
     ${dead.map(deadRow).join('')}
 
     <div class="sec-title">ทางที่คุณส่งเข้ามาเอง</div>
-    <p class="src-sub">ไม่ต้องเชื่อมอะไร ใช้ได้เลยทุกเครื่อง</p>
     ${manual.map(s => `<div class="src on">
       <span class="src-ic">${icon(s.icon)}</span>
-      <span class="src-bd"><span class="t">${esc(s.name)}</span><span class="s">${esc(s.desc)}</span></span>
+      <span class="src-bd"><span class="t">${esc(s.name)}</span></span>
       ${counts[s.id] ? `<span class="src-n">${counts[s.id]}</span>` : ''}
-    </div>`).join('')}
-
-    <p class="src-foot">ที่ขึ้นว่า <b>รอโรงเรียนอนุมัติ</b> คือเจ้าของระบบเปิดให้ต่อได้จริง
-      แต่ต้องให้ผู้ดูแลระบบของโรงเรียนกดอนุญาตก่อน รอเราไปทำก็ไม่ได้<br>
-      ที่ขึ้นว่า <b>ต่อไม่ได้</b> คือเจ้าของแอปนั้นไม่เปิดให้ใครต่อเลย รอไปก็ไม่ได้ —
-      แต่ทุกตัวในนั้นส่งเข้ามาได้ด้วยปุ่มแชร์ของเครื่องอยู่แล้ว</p>`;
+    </div>`).join('')}`;
 }
 
 // ============================================================
@@ -1354,14 +1335,12 @@ function renderNotif() {
   const empty = `<section class="nt-empty">
     <span class="nt-empty-ic">${icon('bell')}</span>
     <div class="nt-empty-t">${notifFilter === 'dm' ? 'ยังไม่มีข้อความใหม่' : notifFilter === 'work' ? 'ยังไม่มีงานเข้ามา' : 'ยังไม่มีอะไรใหม่'}</div>
-    <p class="nt-empty-p">ข้อความจากเพื่อน และงานที่ครูสั่งในกลุ่ม LINE จะมาขึ้นที่นี่ทันทีที่เข้ามา</p>
   </section>`;
   // ไม่ได้ล็อกอิน = ข้อความจากเพื่อนมาไม่ถึงเครื่องนี้เลย · บอกตรง ๆ ดีกว่าให้รอสิ่งที่ไม่มีวันมา
   const login = !loggedIn && notifFilter !== 'work' && typeof cloudConfigured === 'function' && cloudConfigured()
     ? `<button class="nt-login" onclick="go('scr-login')">
         <span class="nt-av src">${icon('user')}</span>
-        <span class="nt-bd"><span class="nt-t"><b>เข้าสู่ระบบ</b> เพื่อรับข้อความจากเพื่อน</span>
-          <span class="nt-p">ตอนนี้แจ้งได้เฉพาะงานที่เข้ากล่องในเครื่องนี้</span></span>
+        <span class="nt-bd"><span class="nt-t"><b>เข้าสู่ระบบ</b> เพื่อรับข้อความจากเพื่อน</span></span>
         ${icon('chevron')}
       </button>` : '';
 

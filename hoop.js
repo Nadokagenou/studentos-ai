@@ -123,7 +123,7 @@ function buyFx(id) {
   haptic('done');
   splashBurst(18, 'egg-star');
   renderAll();
-  showToast({ title: 'ได้เอฟเฟกต์' + f.name + 'แล้ว ' + (f.emoji || '✨'), body: 'เปิดใช้ให้แล้ว · เปลี่ยนได้ที่ตั้งค่า › ธีมสี · เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
+  showToast({ title: 'ได้เอฟเฟกต์' + f.name + 'แล้ว ' + (f.emoji || '✨'), body: 'เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
 }
 
 // ส่วน "เอฟเฟกต์ตอนงานเสร็จ" ในหน้าธีมสี — โผล่เมื่อมีเอฟเฟกต์อย่างน้อยหนึ่งชิ้นเท่านั้น
@@ -159,8 +159,8 @@ function renderFxPick() {
         <button type="button" class="active" onclick="previewFx('${cur}')">2D</button>
         <button type="button" class="lock" onclick="previewFx3d('${cur}')" aria-label="3D ยังไม่ได้ปลดล็อก — ดูตัวอย่าง">🔒 3D</button>
       </div>
-      <p class="fx-wait">3D สุ่มได้ในกาชา (ตัวละ 0.1%) · แตะ 🔒 3D เพื่อลองเล่นตัวอย่างก่อน</p>` : '')
-      + (waiting.length ? `<p class="fx-wait">มี 3D รอปลดล็อก: ${waiting.map(id => esc(FX_SHOP[id].name)).join(' · ')} — ซื้อเอฟเฟกต์ปกติในร้านค้าก่อน</p>` : '');
+      <p class="fx-wait">3D สุ่มได้ในกาชา (ตัวละ 0.1%)</p>` : '')
+      + (waiting.length ? `<p class="fx-wait">มี 3D รอปลดล็อก: ${waiting.map(id => esc(FX_SHOP[id].name)).join(' · ')}</p>` : '');
   }
   const tr = document.getElementById('fxTry');
   if (tr) tr.hidden = cur === 'confetti';
