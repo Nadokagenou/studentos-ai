@@ -35,6 +35,11 @@ function fx3dLoadPP() {
   return Promise.all(['EffectComposer', 'RenderPass', 'UnrealBloomPass', 'OutputPass', 'ShaderPass'].map(n => import(b + n + '.js')))
     .then(ms => (FX3D_PP = Object.assign({}, ...ms)));
 }
+// addon อื่นที่ต้องใช้บางเกม (ตัวโหลดโมเดลคน · พื้นจากภาพถ่าย) — โหลดเมื่อเกมนั้นขอเท่านั้น
+const FX3D_ADD = {};
+function fx3dAddon(name) {
+  return FX3D_ADD[name] || (FX3D_ADD[name] = import('./vendor/pp/' + name + '.js'));
+}
 function fx3dStrong() {
   const c = navigator.hardwareConcurrency || 4, m = navigator.deviceMemory || 4;
   return c >= 6 && m >= 4;
@@ -60,7 +65,9 @@ function fx3dPost(run) {
   const comp = new PP.EffectComposer(run.R);
   comp.addPass(new PP.RenderPass(run.S, run.C));
   // กลางวันแสงฟุ้งเฉพาะจุดที่จ้าจริง (ดวงอาทิตย์ สะท้อนแสง) · กลางคืนฟุ้งรอบไฟสนาม/นีออนชัด
-  const bloom = new PP.UnrealBloomPass(new T.Vector2(run.W / 2, run.H / 2), P.night ? 0.8 : 0.16, 0.5, P.night ? 0.6 : 0.94);
+  // ภาพถ่ายจริงสว่างอยู่แล้ว — ฟุ้งแบบกลางคืนจะทำหอประชุมขาวโพลนทั้งจอ
+  const glowN = P.night && !run.photo;
+  const bloom = new PP.UnrealBloomPass(new T.Vector2(run.W / 2, run.H / 2), glowN ? 0.8 : 0.16, 0.5, glowN ? 0.6 : 0.94);
   comp.addPass(bloom);
   const grade = new PP.ShaderPass(FX3D_GRADE);
   const tint = { sunset: [1.06, 0.98, 0.94], golden: [1.05, 1.0, 0.92], night: [0.94, 0.98, 1.06], nebula: [1.0, 0.96, 1.06],
@@ -109,6 +116,13 @@ async function open3D(id, title, onClose, preview) {
     console.warn('fx3d', e);
     if (fxRun === run) { closeFx(true); fx3dFallback(id, title, onClose, preview, 'เปิด 3D ไม่สำเร็จ — เล่นแบบ 2D'); }
     return;
+  }
+  // ภาพถ่ายพื้นหลัง / โมเดลคน — รอได้ไม่เกิน 4 วิ ช้ากว่านั้นเริ่มเล่นด้วยฉากที่สร้างเองไปก่อน (ภาพมาแทนทีหลังเอง)
+  if (G.load) {
+    say(run, 'กำลังโหลดฉาก…'); clearTimeout(run.msgT);
+    try { await Promise.race([G.load(run, T), new Promise(r => setTimeout(r, 4000))]); } catch (_) {}
+    if (fxRun !== run) return;
+    run.msg.className = 'hp-msg';
   }
   fxBindPointer(run);
   fx3dLoop(run);
@@ -250,14 +264,14 @@ function fx3dEnv(run, T, o = {}) {
   const domeG = new T.SphereGeometry(170, 32, 16);
   if (!o.indoor) {
     const dome = new T.Mesh(domeG, new T.MeshBasicMaterial({ map: skyTex, side: T.BackSide, fog: false, depthWrite: false }));
-    dome.renderOrder = -10; S.add(dome);
+    dome.renderOrder = -10; S.add(dome); fx3dProc(run, dome);
     env.add(new T.Mesh(domeG, new T.MeshBasicMaterial({ map: skyTex, side: T.BackSide })));
     S.background = null;
     S.fog = new T.Fog(P.hor, o.fogNear || 30, o.fogFar || 120);
     // ดวงอาทิตย์ / ดวงจันทร์
     const disc = new T.Sprite(new T.SpriteMaterial({ map: run.dot, color: P.night ? '#E8EEFF' : P.sun, fog: false, depthWrite: false,
       blending: T.AdditiveBlending, transparent: true }));
-    disc.position.copy(dir).multiplyScalar(160); disc.scale.setScalar(P.night ? 9 : P.elev < 20 ? 34 : 22); S.add(disc);
+    disc.position.copy(dir).multiplyScalar(160); disc.scale.setScalar(P.night ? 9 : P.elev < 20 ? 34 : 22); S.add(disc); fx3dProc(run, disc);
     const sunE = disc.clone(); sunE.material = disc.material.clone(); env.add(sunE);
     if (!P.night) {
       const cloudTex = fx3dTex(T, 256, 128, (g, w, h) => {
@@ -273,7 +287,7 @@ function fx3dEnv(run, T, o = {}) {
         const c = new T.Sprite(new T.SpriteMaterial({ map: cloudTex, color: P.mood === 'sunset' ? '#FFD2C2' : '#FFFFFF', fog: false, depthWrite: false, transparent: true, opacity: 0.7 }));
         const a = -Math.PI / 2 + (i - 2.5) * 0.42 + Math.random() * 0.2;
         c.position.set(Math.cos(a) * 155, 38 + Math.random() * 30, Math.sin(a) * 155); c.scale.set(30 + Math.random() * 22, 10 + Math.random() * 6, 1);
-        S.add(c);
+        S.add(c); fx3dProc(run, c);
       }
     }
     if (P.stars) {
@@ -283,12 +297,12 @@ function fx3dEnv(run, T, o = {}) {
         pos.set([v.x, v.y, v.z], i * 3);
       }
       const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3));
-      S.add(new T.Points(g, new T.PointsMaterial({ color: '#FFFFFF', size: 1.6, sizeAttenuation: false, fog: false, transparent: true, opacity: P.stars, depthWrite: false })));
+      S.add(fx3dProc(run, new T.Points(g, new T.PointsMaterial({ color: '#FFFFFF', size: 1.6, sizeAttenuation: false, fog: false, transparent: true, opacity: P.stars, depthWrite: false }))));
     }
     if (P.glow) {
       const neb = new T.Sprite(new T.SpriteMaterial({ map: run.dot, color: P.accent, fog: false, depthWrite: false, blending: T.AdditiveBlending, transparent: true, opacity: 0.55 }));
-      neb.position.set(40, 40, -150); neb.scale.set(190, 110, 1); S.add(neb);
-      const neb2 = neb.clone(); neb2.material = neb.material.clone(); neb2.material.opacity = 0.35; neb2.position.set(-70, 25, -140); neb2.scale.set(140, 90, 1); S.add(neb2);
+      neb.position.set(40, 40, -150); neb.scale.set(190, 110, 1); S.add(neb); fx3dProc(run, neb);
+      const neb2 = neb.clone(); neb2.material = neb.material.clone(); neb2.material.opacity = 0.35; neb2.position.set(-70, 25, -140); neb2.scale.set(140, 90, 1); S.add(neb2); fx3dProc(run, neb2);
     }
   } else {
     // ห้อง: ผนังสีธีมอ่อน ๆ + แผงไฟเพดาน — เอาไว้ทำแสงสะท้อน
@@ -310,9 +324,9 @@ function fx3dEnv(run, T, o = {}) {
     for (const [x, z] of o.stadium) {
       const sl = new T.SpotLight('#FFF4E0', 380, 90, 0.55, 0.6, 1.6);
       sl.position.set(x, 26, z); sl.target.position.set(o.target ? o.target.x : 0, 0, o.target ? o.target.z : -6);
-      S.add(sl, sl.target);
+      S.add(sl, sl.target); fx3dProc(run, sl);
       const bulb = new T.Sprite(new T.SpriteMaterial({ map: run.dot, color: '#FFF8E8', blending: T.AdditiveBlending, transparent: true, depthWrite: false, fog: false }));
-      bulb.position.set(x, 26, z); bulb.scale.setScalar(5); S.add(bulb);
+      bulb.position.set(x, 26, z); bulb.scale.setScalar(5); S.add(bulb); fx3dProc(run, bulb);
     }
     run.hemi.intensity += 0.25;
   }
@@ -399,6 +413,115 @@ function fx3dCrowd(T, P, w = 1024, h = 256) {
     }
   });
 }
+
+// ---------- พื้นหลังภาพถ่ายจริง (Poly Haven · CC0) ----------
+// เจ้าของ: "พื้นหลังบางอันแปลก ๆ … ลองไปหาดูใน google เยอะ ๆ" — ฉากที่วาดเองด้วยโค้ด (ผนังเรียบ เนินเขาปลอม
+// อัฒจันทร์ลายตาราง) ขัดตาเมื่ออยู่ข้างวัตถุสมจริง · ภาพพาโนรามา 360° ของสถานที่จริงแก้ได้ทั้งฉากหลังและแสง
+// ภาพย่อเหลือ 2048×1024 (~0.3–0.75MB) อยู่ใน vendor/hdri · โหลดเฉพาะภาพของเกมที่เปิด
+// ธีม → ช่วงเวลา: เลือกภาพกลางวัน / เย็น / กลางคืน ตามบรรยากาศ · ไม่มีภาพของช่วงไหน = ใช้ฉากที่สร้างเองแบบเดิม
+// ground: ฉายพื้นของภาพลงเป็นพื้นจริง (GroundedSkybox) ใช้กับห้อง — โต๊ะ/เสาตั้งบนพื้นของภาพได้ ไม่ลอย
+function fx3dPhotoName(run, photos) {
+  const m = run.pal.mood;
+  const b = (m === 'night' || m === 'nebula' || m === 'neon' || m === 'twilight') ? 'night'
+    : (m === 'sunset' || m === 'golden') ? 'sunset' : 'day';
+  return photos[b] || null;
+}
+function fx3dPhoto(run, T, photos, o = {}) {
+  const name = fx3dPhotoName(run, photos);
+  if (!name) return Promise.resolve(false);
+  const ldr = new T.TextureLoader();
+  const wait = new Promise(res => ldr.load('./vendor/hdri/' + name + '.jpg', res, undefined, () => res(null)));
+  const ground = o.ground ? fx3dAddon('GroundedSkybox').catch(() => null) : Promise.resolve(null);
+  return Promise.all([wait, ground]).then(([tex, GS]) => {
+    if (!tex || fxRun !== run) return false;
+    tex.mapping = T.EquirectangularReflectionMapping;
+    tex.colorSpace = T.SRGBColorSpace;
+    const S = run.S;
+    const pm = new T.PMREMGenerator(run.R);
+    const rt = pm.fromEquirectangular(tex);
+    pm.dispose();
+    if (run.envRT) run.envRT.dispose();
+    run.envRT = rt;
+    S.environment = rt.texture;
+    S.environmentIntensity = o.envI || 1;
+    const rotY = (typeof o.rot === 'object' ? (o.rot[name] || 0) : (o.rot || 0)) * Math.PI / 180;   // หมุนแยกต่อภาพได้
+    if (o.ground && GS) {
+      const sky = new GS.GroundedSkybox(tex, o.height || 1.6, o.radius || 14);
+      sky.position.y = (o.height || 1.6) - 0.004;
+      sky.rotation.y = rotY;
+      S.add(sky); run.skyMesh = sky;
+      // ห้องกลางคืน: ใช้ห้องเดิมแต่หรี่ไฟ (ภาพห้องกลางคืนที่มีอยู่เป็นมุมแคบ ผนังลายหินชิดหน้า ดูไม่ออกว่าเป็นห้อง)
+      if (o.nightTint && run.pal.night) { sky.material.color.set(o.nightTint); S.environmentIntensity *= 0.7; }
+      S.background = null;
+    } else {
+      S.background = tex;
+      S.backgroundRotation.set(0, rotY, 0);
+      S.backgroundIntensity = o.bgI || 1;
+    }
+    S.environmentRotation.set(0, rotY, 0);
+    S.fog = o.fog ? new T.Fog(o.fog, 30, 160) : null;
+    run.hemi.intensity *= 0.45;                 // แสงรอบตัวมาจากภาพถ่ายแล้ว
+    (run.proc || []).forEach(m => { m.visible = false; });
+    run.photo = name;
+    if (run.bloom) { run.bloom.strength = 0.16; run.bloom.threshold = 0.94; }
+    return true;
+  });
+}
+// ---------- ผู้รักษาประตูเป็นหุ่นคนสัดส่วนจริง ----------
+// Quaternius Universal Animation Library (CC0) — ตัดเหลือ 6 ท่า (vendor/models/keeper.glb · 1.5MB)
+// เจ้าของ: "พวกที่มันมีคนอยู่ … แปลก" — หุ่นแคปซูลต่อกันอ่านเป็นตุ๊กตา · หุ่นนี้มีกระดูกและท่าทางจริง
+// โหลดไม่ได้ = ใช้หุ่นแคปซูลเดิมต่อ (ไม่ทำให้เกมพัง)
+function fx3dKeeper(run, T) {
+  return fx3dAddon('GLTFLoader')
+    .then(M => new Promise(res => new M.GLTFLoader().load('./vendor/models/keeper.glb', res, undefined, () => res(null))))
+    .then(g => {
+      if (!g || fxRun !== run) return false;
+      const model = g.scene;
+      model.updateMatrixWorld(true);
+      const box = new T.Box3().setFromObject(model);
+      model.scale.setScalar(1.88 / (box.max.y - box.min.y));          // ผู้รักษาประตูสูง ~1.88 ม.
+      model.updateMatrixWorld(true);
+      model.position.y -= new T.Box3().setFromObject(model).min.y;
+      // ชุดผู้รักษาประตูสีเขียวสะท้อนแสง (กติกา: ต้องต่างจากทุกคนในสนาม) · ข้อต่อสีดำเหมือนถุงมือ/สนับ
+      const kit = fx3dStd(T, 0xB8E83A, { roughness: 0.72 }), dark = fx3dStd(T, 0x1A1F2B, { roughness: 0.55 });
+      model.traverse(o => {
+        if (!o.isMesh) return;
+        o.castShadow = true; o.frustumCulled = false;
+        o.material = /joint/i.test(o.material.name || '') ? dark : kit;
+      });
+      run.K.children.slice().forEach(c => run.K.remove(c));
+      run.K.add(model);
+      run.mixer = new T.AnimationMixer(model);
+      run.acts = {};
+      g.animations.forEach(a => { run.acts[a.name] = run.mixer.clipAction(a); });
+      fx3dKeeperPose(run, 'Crouch_Idle_Loop');
+      return true;
+    }).catch(() => false);
+}
+function fx3dKeeperPose(run, name, once) {
+  const a = run.acts && run.acts[name];
+  if (!a || run.kPose === name) return;
+  const prev = run.kPose && run.acts[run.kPose];
+  a.reset(); a.setLoop(once ? run.T.LoopOnce : run.T.LoopRepeat); a.clampWhenFinished = !!once;
+  a.play();
+  if (prev) prev.crossFadeTo(a, 0.18, false);
+  run.kPose = name;
+}
+
+// ขอบพื้นจาง: พื้นที่สร้างเอง (ลานเล่น) ค่อย ๆ หายเข้าไปในพื้นของภาพถ่าย — ไม่ตัดเป็นเส้นแข็ง
+// (รุ่นแรกหญ้าที่วาดชนภาพเป็นเส้นตรง ดูออกทันทีว่าเป็นของสองอย่างแปะกัน)
+function fx3dFade(T, inner = 0.18, outer = 0.45) {
+  const t = fx3dTex(T, 256, 256, (g, w, h) => {
+    const gr = g.createRadialGradient(w / 2, h / 2, w * inner, w / 2, h / 2, w * outer);
+    gr.addColorStop(0, '#FFFFFF'); gr.addColorStop(1, '#000000');
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  });
+  t.colorSpace = T.NoColorSpace;
+  return t;
+}
+
+// ของที่สร้างเองซึ่งภาพถ่ายมาแทน (ฟ้า เมฆ อัฒจันทร์ ต้นไม้ เนิน ผนัง) — ซ่อนเมื่อโหลดภาพสำเร็จ
+function fx3dProc(run, ...objs) { (run.proc || (run.proc = [])).push(...objs); return objs[0]; }
 
 // ---------- พื้นผิวจาก canvas ----------
 function fx3dTex(T, w, h, draw, rep) {
@@ -520,6 +643,8 @@ function fx3dChip(run, g, pos, dy = 28) {
 // ============================================================
 FX3D_GAMES.hoop = {
   aria: 'โยนงานที่เสร็จลงห่วง', hint: 'ดึงลงแล้วปล่อย เพื่อโยนลงห่วง', easy: 'ใบ้ให้แล้ว — ดูเส้นจุดตอนดึง',
+  // หอประชุมโรงเรียนพื้นไม้ (ภาพจริง) — ทุกช่วงเวลา (ในร่มเปิดไฟ) · สีธีมอยู่ที่สีในสนามกับเบาะเสา
+  load(run, T) { return fx3dPhoto(run, T, { day: 'school_hall', sunset: 'school_hall', night: 'school_hall' }, { ground: true, height: 1.7, radius: 18, rot: 180, envI: 0.9 }); },
   RIM_Y: 3.05, RIM_R: 0.23, BALL_R: 0.12, HZ: -4.6, MAXP: 140,
   init(run, T) {
     const S = run.S;
@@ -561,17 +686,17 @@ FX3D_GAMES.hoop = {
     // ผนังยิม: ธีมกลางวัน = สีทีมอ่อน (ยิมเปิดไฟสว่าง) · ธีมกลางคืน = สีทีมเข้ม (อารีน่าปิดไฟอัฒจันทร์)
     const wallC = P.night ? new T.Color(P.deep).lerp(new T.Color('#141A28'), 0.6) : new T.Color(P.accent).lerp(new T.Color('#E4E7EC'), 0.6);
     const wall = new T.Mesh(new T.PlaneGeometry(30, 12), fx3dStd(T, wallC, { roughness: 0.9 }));
-    wall.position.set(0, 6, -7.5); S.add(wall);
+    wall.position.set(0, 6, -7.5); S.add(wall); fx3dProc(run, wall);
     const banner = fx3dTex(T, 1024, 96, (g, w, h) => {
       g.fillStyle = P.accent; g.fillRect(0, 0, w, h);
       g.fillStyle = 'rgba(255,255,255,.92)'; g.font = `800 ${h * 0.5}px ${run.font}`; g.textBaseline = 'middle';
       for (let x = 20; x < w; x += 360) g.fillText('STUDENT OS', x, h / 2);
     });
     const bn = new T.Mesh(new T.BoxGeometry(30, 0.55, 0.12), fx3dStd(T, 0xffffff, { map: banner, roughness: 0.6 }));
-    bn.position.set(0, 0.28, -7.2); S.add(bn);          // ป้ายเตี้ยข้างสนาม (แบบ LED board ริมสนามจริง)
+    bn.position.set(0, 0.28, -7.2); S.add(bn); fx3dProc(run, bn);   // ป้ายข้างสนาม — ซ่อนเมื่อใช้ภาพหอประชุมจริง (ลอยกลางห้อง)
     for (let i = 0; i < 6; i++) {
       const lamp = new T.Mesh(new T.BoxGeometry(1.6, 0.06, 0.5), new T.MeshBasicMaterial({ color: '#FFF8EC' }));
-      lamp.position.set((i % 3 - 1) * 4.5, 9, -5 + Math.floor(i / 3) * 5); S.add(lamp);
+      lamp.position.set((i % 3 - 1) * 4.5, 9, -5 + Math.floor(i / 3) * 5); S.add(lamp); fx3dProc(run, lamp);
     }
     // ---------- แป้น ห่วง ตาข่าย (ขนาดจริงตามกติกา FIBA) ----------
     const steel = fx3dStd(T, 0x2C323D, { metalness: 0.85, roughness: 0.35 });
@@ -772,6 +897,9 @@ FX3D_GAMES.hoop = {
 // ============================================================
 FX3D_GAMES.goal = {
   aria: 'เตะงานที่เสร็จเข้าประตู', hint: 'ปัดลูกขึ้นไปทางประตู · หลบผู้รักษาประตู', easy: 'ผู้รักษาประตูเหนื่อยแล้ว — ช้าลงนะ',
+  // สนามฟุตบอลจริง (ภาพถ่าย) ตอนกลางวัน · เย็น/กลางคืนใช้สนามที่สร้างเอง (ไม่มีภาพสนามตอนกลางคืนที่เป็น CC0)
+  // + ผู้รักษาประตูเป็นหุ่นคนสัดส่วนจริงมีท่าทาง (Quaternius · CC0) แทนหุ่นแคปซูล
+  load(run, T) { return Promise.all([fx3dPhoto(run, T, { day: 'stadium_01' }, { rot: 90, envI: 0.9 }), fx3dKeeper(run, T)]); },
   GZ: -11, GW: 7.32, GH: 2.44, BR: 0.11,
   init(run, T) {
     const S = run.S;
@@ -803,6 +931,7 @@ FX3D_GAMES.goal = {
     const wallS = new T.Mesh(new T.BoxGeometry(110, 1.2, 0.4), fx3dStd(T, 0x2A3140)); wallS.position.set(0, 0.6, gz - 15.5); S.add(wallS);
     const roof = new T.Mesh(new T.BoxGeometry(110, 0.5, 12), fx3dStd(T, 0x2A3140, { metalness: 0.5, roughness: 0.5 }));
     roof.position.set(0, 18, gz - 33); roof.rotation.x = 0.08; S.add(roof);
+    fx3dProc(run, stand, wallS, roof);
     const ad = fx3dTex(T, 1024, 64, (g, w, h) => {
       g.fillStyle = P.accent; g.fillRect(0, 0, w, h);
       g.fillStyle = '#FFFFFF'; g.font = `800 ${h * 0.6}px ${run.font}`; g.textBaseline = 'middle';
@@ -869,6 +998,7 @@ FX3D_GAMES.goal = {
     run.ball.position.set(0, this.BR, 0);
     Object.assign(run, { v: new run.T.Vector3(), fly: false, held: false, saved: false, after: false, kTarget: null, ft: 0, scored: false, kdive: 0 });
     run.K.rotation.z = 0; run.K.position.y = 0;
+    fx3dKeeperPose(run, 'Crouch_Idle_Loop');
   },
   down(run, p) {
     const s = fx3dToScreen(run, run.ball.position);
@@ -899,10 +1029,13 @@ FX3D_GAMES.goal = {
       const maxV = run.tries >= 3 ? 4 : 6.5;
       const d = run.kTarget - run.kx;
       run.kx += Math.sign(d) * Math.min(Math.abs(d), maxV * dt);
+      if (!run.kdive) fx3dKeeperPose(run, 'Jump_Loop');          // พุ่งตัว: ท่าลอยกลางอากาศ + เอียงทั้งตัว
       run.kdive = Math.min(1, run.kdive + dt * 4);
+      if (run.mixer) K.position.y = Math.sin(run.kdive * Math.PI) * 0.35;
       K.rotation.z = -Math.sign(d || 1) * run.kdive * 0.9 * Math.min(1, Math.abs(run.kTarget) / 2);
     }
     K.position.x = run.kx;
+    if (run.mixer) run.mixer.update(dt);
     if (run.netT != null) {
       run.netT += dt;
       const pos = run.netBack.geometry.attributes.position, a = pos.array, base = run.netBase;
@@ -952,10 +1085,12 @@ FX3D_GAMES.goal = {
       if (b.y > H) { run.after = true; return fxMiss(run, 'ข้ามคาน — ปัดเบาลงนิด', reset, { delay: 1100 }); }
       if (kHit) {
         FXS.glove(); v.z = Math.abs(v.z) * 0.35; v.x = (b.x - run.kx) * 6; v.y = 2.5; run.after = true;
+        fx3dKeeperPose(run, 'Jump_Land', true);
         return fxMiss(run, 'โดนเซฟ! เล็งหนีผู้รักษาประตู', reset, { delay: 1200 });
       }
       run.scored = true; run.netT = 0; run.netHit = { x: b.x, y: b.y };
       FXS.cheer();
+      fx3dKeeperPose(run, 'Hit_Chest', true);       // ผู้รักษาประตูเสียใจ
       const far = Math.abs(b.x - run.kx) > 1.6;
       fx3dWin(run, far ? 'โกลสวย ๆ!' : 'โกล!!', b.clone(), { clean: far });
     }
@@ -975,6 +1110,7 @@ FX3D_GAMES.goal = {
 // ============================================================
 FX3D_GAMES.bat = {
   aria: 'ตีงานที่เสร็จกระเด็นออกสนาม', hint: 'แตะจอตอนลูกเข้ากรอบ เพื่อเหวี่ยงไม้', easy: 'ลูกช้าลงแล้ว ใจเย็น ๆ',
+  load(run, T) { return fx3dPhoto(run, T, { day: 'stadium_01' }, { rot: 90, envI: 0.9 }); },   // มุมที่เห็นป้ายคะแนน
   PZ: -18.4,
   init(run, T) {
     const S = run.S;
@@ -1009,26 +1145,55 @@ FX3D_GAMES.bat = {
     }, [6, 1]);
     const crowd2 = fx3dCrowd(T, P); crowd2.wrapS = crowd2.wrapT = T.RepeatWrapping; crowd2.repeat.set(10, 4);
     const stands = new T.Mesh(new T.CylinderGeometry(135, 118, 26, 64, 1, true, Math.PI * 0.75, Math.PI * 0.5), fx3dStd(T, 0xffffff, { map: crowd2, side: T.DoubleSide, roughness: 1 }));
-    stands.position.set(0, 15, 0); S.add(stands);
+    stands.position.set(0, 15, 0); S.add(stands); fx3dProc(run, stands);
     // ป้ายบนรั้วนอกสนาม (สีธีม)
     const ad = fx3dTex(T, 1024, 64, (g, w, h) => { g.fillStyle = P.accent; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.font = `800 ${h * 0.6}px ${run.font}`; g.textBaseline = 'middle'; for (let x = 10; x < w; x += 260) g.fillText('STUDENT OS', x, h / 2 + 2); }, [8, 1]);
     const adR = new T.Mesh(new T.CylinderGeometry(109.8, 109.8, 1.2, 64, 1, true, Math.PI * 0.75, Math.PI * 0.5), new T.MeshBasicMaterial({ map: ad, side: T.DoubleSide }));
-    adR.position.set(0, 3.2, 0); S.add(adR);
-    // พิทเชอร์ ~1.9 ม. · หมวก/แถบเสื้อสีทีม (สีธีม) · ถุงมือหนัง
-    const uni = fx3dStd(T, 0xF2F2F2, { roughness: 0.75 });
-    const body = new T.Mesh(new T.CapsuleGeometry(0.28, 0.6, 6, 12), uni); body.position.y = 1.15; body.castShadow = true;
-    const head = new T.Mesh(new T.SphereGeometry(0.16, 16, 12), fx3dStd(T, 0xF1C27D)); head.position.y = 1.78;
-    const cap = new T.Mesh(new T.SphereGeometry(0.17, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), fx3dStd(T, P.accent)); cap.position.y = 1.8;
-    const bill = new T.Mesh(new T.CylinderGeometry(0.11, 0.11, 0.015, 16, 1, false, 0, Math.PI), fx3dStd(T, P.accent)); bill.position.set(0, 1.81, 0.1); bill.rotation.y = Math.PI / 2;
-    const glove = new T.Mesh(new T.SphereGeometry(0.11, 12, 10), fx3dStd(T, 0x6B3E1F, { roughness: 0.7 })); glove.scale.set(1, 1.2, 0.6); glove.position.set(-0.36, 1.25, 0.12);
-    const stripe = new T.Mesh(new T.CylinderGeometry(0.285, 0.285, 0.06, 16), fx3dStd(T, P.accent)); stripe.position.y = 1.3;
-    const legs = new T.Mesh(new T.BoxGeometry(0.4, 0.75, 0.22), fx3dStd(T, 0x20242E)); legs.position.y = 0.42; legs.castShadow = true;
-    const arm = new T.Group(); arm.position.set(0.3, 1.45, 0);
-    const armM = new T.Mesh(new T.CapsuleGeometry(0.07, 0.55, 4, 8), uni); armM.position.y = 0.32; arm.add(armM);
-    const Pt = new T.Group();
-    Pt.add(body, head, cap, bill, glove, stripe, legs, arm);
-    Pt.position.set(0, 0.25, this.PZ); Pt.rotation.y = Math.PI; S.add(Pt);
-    run.P = Pt; run.parm = arm;
+    adR.position.set(0, 3.2, 0); S.add(adR); fx3dProc(run, adR, fence);
+    // เครื่องยิงลูกแบบ 2 ล้อ (ใช้ซ้อมตีจริง) บนขาตั้งสามขา + ตาข่ายกันลูกรูปตัว L ข้างหน้า
+    // เจ้าของ: "พวกที่มันมีคนอยู่ … แปลก" — คนจากแคปซูลอ่านเป็นตุ๊กตา · การซ้อมตีจริงก็ใช้เครื่องแบบนี้
+    const steel = fx3dStd(T, 0x2C323D, { metalness: 0.75, roughness: 0.38 });
+    const rubber = fx3dStd(T, 0x15171C, { roughness: 0.9 });
+    const Mch = new T.Group();
+    [0, 2.1, 4.2].forEach(a => {
+      const l = new T.Mesh(new T.CylinderGeometry(0.018, 0.018, 1.15, 8), steel);
+      l.position.set(Math.cos(a) * 0.28, 0.52, Math.sin(a) * 0.28); l.rotation.set(Math.sin(a) * 0.45, 0, -Math.cos(a) * 0.45); l.castShadow = true; Mch.add(l);
+    });
+    const post = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.4, 10), steel); post.position.y = 1.05; Mch.add(post);
+    const housing = new T.Mesh(new T.BoxGeometry(0.16, 0.62, 0.3), fx3dStd(T, P.accent, { metalness: 0.35, roughness: 0.45 }));
+    housing.position.set(-0.17, 1.42, 0); housing.castShadow = true; Mch.add(housing);
+    const wheels = [];
+    [1.27, 1.57].forEach(y => {
+      const w = new T.Group();
+      const tire = new T.Mesh(new T.TorusGeometry(0.15, 0.045, 12, 32), rubber);
+      const hub = new T.Mesh(new T.CylinderGeometry(0.11, 0.11, 0.05, 24), fx3dStd(T, 0xBFC5CF, { metalness: 0.9, roughness: 0.25 }));
+      hub.rotation.x = Math.PI / 2;
+      w.add(tire, hub); w.position.set(0, y, 0.02); w.rotation.y = Math.PI / 2; w.castShadow = true;
+      Mch.add(w); wheels.push(w);
+    });
+    const chute = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 0.5, 12, 1, true), fx3dStd(T, 0xD8DCE2, { metalness: 0.6, roughness: 0.3, side: T.DoubleSide }));
+    chute.position.set(0, 1.42, -0.32); chute.rotation.x = 1.2; Mch.add(chute);
+    const bucket = new T.Mesh(new T.CylinderGeometry(0.16, 0.13, 0.36, 20, 1, true), fx3dStd(T, 0xF2F2F2, { roughness: 0.6, side: T.DoubleSide }));
+    bucket.position.set(0.55, 0.18, -0.2); bucket.castShadow = true; Mch.add(bucket);
+    for (let i = 0; i < 7; i++) { const bb = new T.Mesh(new T.SphereGeometry(0.037, 12, 8), fx3dStd(T, 0xF7F5EF)); bb.position.set(0.55 + fxRand(-0.08, 0.08), 0.34 + (i % 2) * 0.03, -0.2 + fxRand(-0.08, 0.08)); Mch.add(bb); }
+    const lamp = new T.Mesh(new T.SphereGeometry(0.02, 10, 8), new T.MeshBasicMaterial({ color: 0x2BD46A }));
+    lamp.position.set(-0.17, 1.76, 0.12); Mch.add(lamp);
+    Mch.position.set(0, 0.25, this.PZ);
+    Mch.rotation.y = Math.PI;
+    S.add(Mch);
+    // ตาข่ายกันลูกรูปตัว L (ช่องว่างตรงที่ลูกออก)
+    const netT = fx3dTex(T, 128, 128, (g, w, h) => { g.strokeStyle = 'rgba(40,40,40,.55)'; g.lineWidth = 1.5; for (let i = 0; i <= 10; i++) { g.beginPath(); g.moveTo(i * w / 10, 0); g.lineTo(i * w / 10, h); g.stroke(); g.beginPath(); g.moveTo(0, i * h / 10); g.lineTo(w, i * h / 10); g.stroke(); } }, [6, 6]);
+    const netM = new T.MeshStandardMaterial({ map: netT, transparent: true, side: T.DoubleSide, depthWrite: false, roughness: 1 });
+    const scr = new T.Group();
+    const low = new T.Mesh(new T.PlaneGeometry(2.0, 1.05), netM); low.position.set(0, 0.52, 0);
+    const side = new T.Mesh(new T.PlaneGeometry(0.75, 1.05), netM); side.position.set(-0.62, 1.57, 0);
+    const pipeM = fx3dStd(T, 0xA9B0BA, { metalness: 0.8, roughness: 0.35 });      // ท่ออะลูมิเนียมบาง (ของจริง)
+    const pipe = (w, h, x, y, rz) => { const m = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, w, 8), pipeM); m.position.set(x, y, 0); m.rotation.z = rz; m.castShadow = true; scr.add(m); };
+    pipe(2.1, 0, -1.0, 1.05, 0); pipe(1.05, 0, 1.0, 0.52, 0); pipe(2.0, 0, 0, 0.02, Math.PI / 2); pipe(2.0, 0, 0, 1.05, Math.PI / 2); pipe(0.75, 0, -0.62, 2.1, Math.PI / 2); pipe(1.05, 0, -0.25, 1.57, 0);
+    scr.add(low, side);
+    scr.position.set(0.15, 0.25, this.PZ + 1.3);
+    S.add(scr);
+    run.machine = Mch; run.wheels = wheels; run.lamp = lamp;
     // กรอบสไตรค์
     // กรอบสไตรค์ขนาดจริง: กว้างเท่าเพลต 43 ซม. · สูงเข่า (~0.5 ม.) ถึงกลางอก (~1.1 ม.)
     const zone = new T.LineSegments(new T.EdgesGeometry(new T.PlaneGeometry(0.43, 0.6)), new T.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 }));
@@ -1071,10 +1236,10 @@ FX3D_GAMES.bat = {
     Object.assign(run, { st: 'wind', wt: 0, p: 0, swung: false, swT: -1, hit: null, early: false,
       PT: fxRand(0.95, 1.15) * (run.tries >= 3 ? 1.35 : 1), ex: fxRand(-0.16, 0.16), ey: fxRand(0.65, 1.05), curve: fxRand(-0.35, 0.35) });
     run.ball.visible = false;
-    run.parm.rotation.x = 0;
+    if (run.lamp) run.lamp.material.color.set(0x2BD46A);
   },
   ballAt(run, p) {
-    const s = new run.T.Vector3(0.25, 1.85, this.PZ + 0.8), e = new run.T.Vector3(run.ex, run.ey, 0.3);
+    const s = new run.T.Vector3(0, 1.67, this.PZ + 0.3), e = new run.T.Vector3(run.ex, run.ey, 0.3);   // ลูกออกจากช่องระหว่างล้อ
     const q = s.clone().lerp(e, p);
     q.y += Math.sin(Math.PI * Math.min(1, p)) * 0.35;
     q.x += Math.sin(Math.PI * Math.min(1, p)) * run.curve;
@@ -1121,11 +1286,13 @@ FX3D_GAMES.bat = {
     }
     const e = k * k * (3 - 2 * k);
     run.batYaw.rotation.y = fxLerp(Y0, Y1, e);
+    if (run.wheels) run.wheels.forEach((w, i) => { w.rotation.z += dt * (i ? -38 : 38); });   // ล้อเครื่องหมุนตลอด
     run.bat.rotation.z = fxLerp(L0, L1, Math.min(1, e * 1.6));
     if (run.st === 'wind') {
       run.wt += dt;
-      run.parm.rotation.x = -Math.min(1, run.wt / 0.9) * 2.6;
-      if (run.wt > 0.9) { run.st = 'pitch'; run.p = 0; run.ball.visible = true; FXS.pitch(); run.parm.rotation.x = 0.6; }
+      // ไฟเครื่องกะพริบเหลืองก่อนยิง (สัญญาณจริงของเครื่องยิงลูก) · ยิงแล้วมีเสียง "ป๊อก" จากล้อ
+      if (run.lamp) run.lamp.material.color.set(run.wt > 0.45 && Math.sin(run.wt * 30) > 0 ? 0xFFC23D : 0x2BD46A);
+      if (run.wt > 0.9) { run.st = 'pitch'; run.p = 0; run.ball.visible = true; FXS.pitch(); HSFX.tone('sine', 120, 70, 0.3, 0.002, 0.1); }
     } else if (run.st === 'pitch') {
       run.p += dt / run.PT;
       run.ball.position.copy(this.ballAt(run, run.p));
@@ -1157,6 +1324,11 @@ FX3D_GAMES.bat = {
 // ============================================================
 FX3D_GAMES.golf = {
   aria: 'พัตต์งานที่เสร็จลงหลุม', hint: 'ดึงลูกถอยหลังแล้วปล่อย · ดูทางลาดด้วย', easy: 'หลุมใหญ่ขึ้น + เห็นเส้นทางจริงแล้ว',
+  // สนามกอล์ฟจริง 3 ช่วงเวลา: กลางวัน (ลิมโปโป) · พระอาทิตย์ตก (แฟร์เวย์) · กลางคืนแสงจันทร์
+  load(run, T) {
+    return fx3dPhoto(run, T, { day: 'limpopo_golf_course', sunset: 'sunset_fairway', night: 'moonlit_golf' }, { ground: true, height: 1.7, radius: 70, rot: 0 })
+      .then(ok => { if (ok && run.rough) { const a = fx3dFade(T, 0.1, 0.2); a.repeat.set(1 / 80, 1 / 80); a.offset.set(0.5, 0.5); run.rough.material.alphaMap = a; run.rough.material.transparent = true; run.rough.material.depthWrite = false; run.rough.material.needsUpdate = true; } return ok; });
+  },
   BR: 0.02135, FR: 0.65, MAXP: 120,     // ลูกจริง · ความหน่วงกรีนแข่ง (stimp ~10)
   init(run, T) {
     const S = run.S;
@@ -1175,7 +1347,7 @@ FX3D_GAMES.golf = {
     const gs = new T.Shape(); gs.absellipse(0, 3.0, 5.2, 6.8, 0, Math.PI * 2, false);
     rough.holes.push(gs);
     const roughM = new T.Mesh(new T.ShapeGeometry(rough, 48), fx3dStd(T, 0xffffff, { map: grassTex('#3F7F3A', '#468A40', [40, 40], 30000), roughness: 1 }));
-    roughM.rotation.x = -Math.PI / 2; roughM.receiveShadow = true; S.add(roughM);
+    roughM.rotation.x = -Math.PI / 2; roughM.receiveShadow = true; S.add(roughM); run.rough = roughM;
     const fringe = new T.Shape(); fringe.absellipse(0, 3.0, 5.2, 6.8, 0, Math.PI * 2, false);
     const inner = new T.Path(); inner.absellipse(0, 3.0, 4.6, 6.2, 0, Math.PI * 2, true); fringe.holes.push(inner);
     const fr = new T.Mesh(new T.ShapeGeometry(fringe, 64), fx3dStd(T, 0xffffff, { map: grassTex('#559B48', '#5CA24E', [10, 10], 20000), roughness: 0.95 }));
@@ -1196,7 +1368,7 @@ FX3D_GAMES.golf = {
       const a = -Math.PI * 0.12 - i * 0.07 * Math.PI;
       const d = 13 + (i % 3) * 4;
       tr.position.set(Math.cos(a) * d, 0, -5 + Math.sin(a) * d); tr.scale.setScalar(0.9 + (i % 4) * 0.15);
-      S.add(tr);
+      S.add(tr); fx3dProc(run, tr);
     }
     // ธง: ก้านไฟเบอร์ลายขาวสลับสี สูง 2.13 ม. · ผืน 50 × 36 ซม. สีธีม · ปักกลางหลุม
     const stripes = fx3dTex(T, 16, 256, (g, w, h) => { for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#FFFFFF' : P.accent; g.fillRect(0, i * h / 8, w, h / 8); } });
@@ -1550,6 +1722,10 @@ FX3D_GAMES.slice = {
 // ============================================================
 FX3D_GAMES.bomb = {
   aria: 'ปาระเบิดใส่งานที่เสร็จ', hint: 'ดึงระเบิดถอยหลังแล้วปล่อย ให้ตกใส่กองงาน', easy: 'ระเบิดลูกใหญ่ขึ้น + เส้นจุดยาวถึงพื้นแล้ว',
+  load(run, T) {
+    return fx3dPhoto(run, T, { day: 'meadow', sunset: 'sunset_meadow_path', night: 'moonlit_golf' }, { ground: true, height: 1.7, radius: 60, rot: 0 })
+      .then(ok => { if (ok && run.ground) { const m = run.ground.material; m.alphaMap = fx3dFade(T, 0.08, 0.2); m.transparent = true; m.depthWrite = false; m.needsUpdate = true; } return ok; });
+  },
   MAXP: 130, G: 9.8,
   init(run, T) {
     const S = run.S;
@@ -1561,10 +1737,10 @@ FX3D_GAMES.bomb = {
       for (let i = 0; i < 30000; i++) { g.fillStyle = Math.random() < 0.5 ? 'rgba(25,70,15,.18)' : 'rgba(170,215,120,.12)'; g.fillRect(Math.random() * w, Math.random() * h, 1, 2 + Math.random() * 3); }
     }, [30, 30]);
     const ground = new T.Mesh(new T.PlaneGeometry(120, 120), fx3dStd(T, 0xffffff, { map: gt, roughness: 1 }));
-    ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; S.add(ground);
+    ground.rotation.x = -Math.PI / 2; ground.position.y = 0.003; ground.receiveShadow = true; S.add(ground); run.ground = ground;
     for (let i = 0; i < 6; i++) {
       const hill = new T.Mesh(new T.SphereGeometry(fxRand(6, 11), 24, 12), fx3dStd(T, [0x7FB76A, 0x6FAE5E, 0x8CC478][i % 3], { roughness: 1 }));
-      hill.scale.y = 0.35; hill.position.set(fxRand(-35, 35), -1, fxRand(-60, -35)); S.add(hill);
+      hill.scale.y = 0.35; hill.position.set(fxRand(-35, 35), -1, fxRand(-60, -35)); S.add(hill); fx3dProc(run, hill);
     }
     // กองงานขนาดจริง: รีมกระดาษ A4 (21 × 29.7 × 5 ซม.) สลับแฟ้มสีธีม ซ้อนเบี้ยว ๆ บนโต๊ะพับ
     const pile = new T.Group();
@@ -1587,7 +1763,7 @@ FX3D_GAMES.bomb = {
     }
     pile.position.set(run.tx, 0, run.tz); S.add(pile);
     run.pile = pile; run.pileTop = y;
-    for (let i = 0; i < 7; i++) { const t = fx3dTree(T, i + 3); t.position.set(-16 + i * 5.3 + fxRand(-1, 1), 0, -22 - fxRand(0, 8)); t.scale.setScalar(fxRand(1.1, 1.6)); S.add(t); }
+    for (let i = 0; i < 7; i++) { const t = fx3dTree(T, i + 3); t.position.set(-16 + i * 5.3 + fxRand(-1, 1), 0, -22 - fxRand(0, 8)); t.scale.setScalar(fxRand(1.1, 1.6)); S.add(t); fx3dProc(run, t); }
     // ระเบิดลูกกลมเหล็กหล่อ Ø 24 ซม. (ทรงการ์ตูนคลาสสิก แต่วัสดุจริง: ผิวหล่อขรุขระ · ปากเกลียวทองเหลือง · ชนวนเชือก)
     const castBump = fx3dTex(T, 256, 128, (g, w, h) => { g.fillStyle = '#808080'; g.fillRect(0, 0, w, h); for (let i = 0; i < 5000; i++) { g.fillStyle = Math.random() < 0.5 ? '#6A6A6A' : '#979797'; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 1 + Math.random() * 2, 0, 7); g.fill(); } });
     const bomb = new T.Group();
@@ -1759,6 +1935,8 @@ FX3D_GAMES.bomb = {
 // ============================================================
 FX3D_GAMES.crumple = {
   aria: 'ขยำงานที่เสร็จแล้วปาลงถัง', hint: 'ถูนิ้วไปมาบนกระดาษเพื่อขยำ', easy: 'ถังใบใหญ่ขึ้นแล้ว',
+  // ห้องจริง (ภาพถ่าย) ฉายพื้นลงมา — โต๊ะกับถังตั้งบนพื้นห้องจริง · กลางคืนเป็นห้องเปิดไฟ
+  load(run, T) { return fx3dPhoto(run, T, { day: 'small_empty_room_1', sunset: 'small_empty_room_1', night: 'small_empty_room_1' }, { ground: true, height: 1.5, radius: 5, rot: 90, envI: 0.8, nightTint: '#8A93AA' }); },
   RUB: 1400, BIN_R: 0.14, BIN_H: 0.36, PB: 0.035,   // ถังพลาสติก Ø 28 × 36 ซม. · ก้อนกระดาษ A4 ขยำ Ø ~7 ซม.
   init(run, T) {
     const S = run.S;
@@ -1767,12 +1945,13 @@ FX3D_GAMES.crumple = {
       for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { g.fillStyle = (i + j) % 2 ? '#D9CFC0' : '#CFC4B3'; g.fillRect(i * w / 4, j * h / 4, w / 4, h / 4); }
     }, [8, 8]);
     const floor = new T.Mesh(new T.PlaneGeometry(30, 30), fx3dStd(T, 0xffffff, { map: floorT, roughness: 0.9 }));
-    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; S.add(floor);
+    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; S.add(floor); fx3dProc(run, floor);
     // ผนังทาสีธีมอ่อน (สีห้องจริง ไม่ใช่สีจัด) + บัวพื้น
     const wallC = new T.Color(P.accent).lerp(new T.Color('#F3EFE8'), 0.78);
     const wall = new T.Mesh(new T.PlaneGeometry(30, 10), fx3dStd(T, wallC, { roughness: 0.95 }));
     wall.position.set(0, 5, -3.2); S.add(wall);
     const skirt = new T.Mesh(new T.BoxGeometry(30, 0.1, 0.02), fx3dStd(T, 0xF4F1EC, { roughness: 0.6 })); skirt.position.set(0, 0.05, -3.19); S.add(skirt);
+    fx3dProc(run, wall, skirt);
     const woodT = fx3dTex(T, 1024, 512, (g, w, h) => { g.fillStyle = '#9C6A3A'; g.fillRect(0, 0, w, h); for (let i = 0; i < 160; i++) { g.strokeStyle = `rgba(${50 + Math.random() * 40},25,8,${0.08 + Math.random() * 0.16})`; g.lineWidth = 1 + Math.random() * 2; const y = Math.random() * h; g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(w * 0.3, y + 14, w * 0.6, y - 14, w, y + 6); g.stroke(); } });
     const desk = new T.Mesh(new T.BoxGeometry(2.6, 0.06, 1.3), fx3dStd(T, 0xffffff, { map: woodT, roughness: 0.6 }));
     desk.position.set(0, 0.75, 0.15); desk.receiveShadow = true; desk.castShadow = true; S.add(desk);
