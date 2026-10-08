@@ -10399,15 +10399,31 @@ function camClose(stream, videoId) {
 }
 
 // จับเฟรมปัจจุบันมาเป็น canvas ที่ย่อแล้ว — คืน null ถ้าภาพยังไม่มา
+//
+// **เก็บเฉพาะส่วนที่เห็นในกรอบ** (เจ้าของ 8 ต.ค. 69: "แสกนเราอัตราส่วนไม่อยู่ตรงกลาง")
+// วิดีโอแสดงแบบ object-fit: cover — กล้องมือถือส่งภาพ 9:16 มา แต่กรอบเป็น 3:4
+// ส่วนบน-ล่างของเฟรมจึงถูกตัดออกจากจอ เดิมเราเก็บทั้งเฟรม ภาพที่ได้จึงไม่ใช่ภาพที่เล็งไว้
+// (มีของนอกกรอบติดมา และใบงานไม่อยู่ตรงกลางภาพ) — ตอนนี้คิดกลับแบบเดียวกับ cover
+// แล้วตัดเฉพาะสี่เหลี่ยมที่ผู้ใช้เห็น: ถ่ายได้ตรงกับที่เล็งทุกพิกเซล
 function camGrab(videoId, maxLong) {
   const v = document.getElementById(videoId);
   if (!v || !v.videoWidth) return null;
-  const long = Math.max(v.videoWidth, v.videoHeight);
+  const vw = v.videoWidth, vh = v.videoHeight;
+  let sx = 0, sy = 0, sw = vw, sh = vh;
+  const box = v.getBoundingClientRect();
+  if (box.width > 0 && box.height > 0) {
+    const k = Math.max(box.width / vw, box.height / vh);   // สเกลของ cover
+    sw = Math.min(vw, Math.round(box.width / k));
+    sh = Math.min(vh, Math.round(box.height / k));
+    sx = Math.round((vw - sw) / 2);
+    sy = Math.round((vh - sh) / 2);
+  }
+  const long = Math.max(sw, sh);
   const k = long > maxLong ? maxLong / long : 1;
   const c = document.createElement('canvas');
-  c.width = Math.round(v.videoWidth * k);
-  c.height = Math.round(v.videoHeight * k);
-  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  c.width = Math.round(sw * k);
+  c.height = Math.round(sh * k);
+  c.getContext('2d').drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
   return c;
 }
 
@@ -11481,7 +11497,17 @@ function openForm(id, parsed) {
     const miss = fields.filter(f => !f[0]);
     chips.innerHTML = got.map(f => `<span class="chip new">${icon('check')}${esc(f[1])}</span>`).join('')
       + (miss.length ? `<span class="chip">อีก ${miss.length} ช่องเติมเอง</span>` : '');
-    if (okBadge) {
+    if (okBadge && parsed._ai) {
+      // AI วิเคราะห์มาแล้ว — บอกด้วยประโยคของมันเองว่าเห็นรูปนี้เป็นอะไร
+      // คนตรวจจะรู้ทันทีว่า AI เข้าใจถูกเรื่องไหม ก่อนจะไล่ดูทีละช่อง
+      // รูปที่ไม่มีคำสั่งงาน (หน้าหนังสือ · ประกาศ) ขึ้นโทนเตือน — ชื่องานในช่องเป็นการเดาของ AI
+      const noTask = parsed._ai.kind !== 'task';
+      const sum = parsed._ai.summary;
+      okBadge.className = 'fm-ok show' + (noTask ? ' shaky' : '');
+      okBadge.innerHTML = noTask
+        ? `${icon('sparkles')}AI ไม่เจอคำสั่งงานในรูปนี้${sum ? ' — ' + esc(sum) : ''} · ตรวจชื่องานก่อนบันทึก`
+        : `${icon('sparkles')}AI วิเคราะห์แล้ว · ได้ ${got.length} จาก ${fields.length} ช่อง${sum ? ' — ' + esc(sum) : ''}`;
+    } else if (okBadge) {
       // ALT: ถ้ามาจากรูปแล้ว OCR ไม่ค่อยมั่นใจ ให้ป้ายเปลี่ยนโทนเป็นเตือน แทนที่จะบอกว่าสำเร็จเฉย ๆ
       const shaky = lastOcrConfidence != null && lastOcrConfidence < OCR_CONF_OK;
       okBadge.className = 'fm-ok show' + (shaky ? ' shaky' : '');
@@ -12280,7 +12306,7 @@ function toggleVoice() {
 }
 
 // ---------- scan: ข้อความ ----------
-// QA 6 ต.ค. 69 · ผลพลาดของการสแกนขึ้นเป็นการ์ดบนจอสแกน (ใต้ปุ่มกล้อง ข้างปุ่ม "อ่านให้แม่นขึ้น")
+// QA 6 ต.ค. 69 · ผลพลาดของการสแกนขึ้นเป็นการ์ดบนจอสแกน (ใต้ปุ่มกล้อง ข้างปุ่ม "ให้ AI วิเคราะห์รูปนี้")
 // แทน alert() ที่เด้งกลางจอ — คำแนะนำต้องอยู่ข้างปุ่มที่ใช้แก้ ไม่ใช่ในกล่องที่ต้องกดปิดก่อนถึงจะเห็นปุ่ม
 function scanNotice(title, lines, detail) {
   const st = document.getElementById('ocrStatus');
@@ -13293,8 +13319,7 @@ async function confirmCrop(whole) {
 
   if (mode === 'widget') { saveWidgetPhoto(c); return; }
   go('scr-scan');
-  rememberScan(c);          // เก็บไว้ให้ปุ่ม "อ่านให้แม่นขึ้น" ใช้ซ้ำ ผู้ใช้จะได้ไม่ต้องถ่ายใหม่
-  await runOcrOn(c, whole ? 'ทั้งรูป' : 'ครอบกรอบ');
+  await readPhoto(c, whole ? 'ทั้งรูป' : 'ครอบกรอบ');
 }
 
 // ---------- ALT: รูปโปรไฟล์ของตัวเอง ----------
@@ -13747,14 +13772,16 @@ async function runOcrOn(source, how) {
     stopFunFacts(document.getElementById('scanFact'));
     st.textContent = ''; barWrap.hidden = true;
 
-    const text = r.text;
+    // ทิ้งละตินมั่ว ๆ/สัญลักษณ์ที่ OCR พ่นออกมาก่อนถึงตัวแกะ (ocrDropJunk ใน engine.js)
+    // ไม่งั้นมันไหลตรงเข้าช่อง "งานที่ต้องทำ" เป็น "ภาษาเอเลี่ยน" ให้ผู้ใช้ต้องมานั่งลบเอง
+    const text = ocrDropJunk(r.text);
     const conf = r.conf;
     lastOcrConfidence = conf;
     lastOcrLowWords = r.lowWords;
     // บรรทัดเดียวก๊อปไปทำตารางวัดผลได้เลย (รอบวัดผลกับรูปจริง)
     console.debug(`[ALT OCR] conf=${conf}% ช่อง=${r.fields} คะแนน=${r.score} pass=${r.pass} รอบ=${r.passes} บล็อก=${r.blocks} `
       + `how=${how || '-'} chars=${text.length} lowWords=${r.lowWords.length} ms=${r.ms} `
-      + `size=${r.w}×${r.h} skew=${r.deg}°`);
+      + `size=${r.w}×${r.h} skew=${r.deg}° junk=${r.text.length - text.length}`);
 
     // ---------- ตัดสินว่า "ใช้ได้ไหม" ด้วยของที่แกะได้ ไม่ใช่ด้วยเลขความมั่นใจอย่างเดียว ----------
     // ของเดิมโยนผลทิ้งทันทีเมื่อ conf < 45 ซึ่งทิ้งรูปที่ใช้ได้จริงไปเยอะ:
@@ -13766,7 +13793,7 @@ async function runOcrOn(source, how) {
       renderCloudOcr();     // รูปยังอยู่ — ทางที่อ่านลายมือได้ยังเปิดอยู่ ให้เห็นปุ่มไว้
       scanNotice('อ่านตัวหนังสือจากรูปนี้ไม่ค่อยออก (ความมั่นใจ ' + conf + '%)', [
         'ถ่ายให้เห็นเฉพาะส่วนที่เป็นโจทย์ · วางกล้องขนานกับกระดาษ · เลี่ยงเงามือทับตัวหนังสือ',
-        'ถ้าเป็นลายมือ กด "อ่านให้แม่นขึ้น" — การอ่านในเครื่องอ่านลายมือไทยไม่ได้',
+        'กด "ให้ AI วิเคราะห์รูปนี้" — AI อ่านลายมือได้ และเข้าใจว่างานคืออะไร',
         'หรือใช้ "แปะข้อความ" ข้างล่าง — เร็วกว่าและแม่นกว่า']);
       return;
     }
@@ -13793,32 +13820,37 @@ async function runOcrOn(source, how) {
     renderCloudOcr();
     scanNotice('อ่านรูปไม่สำเร็จ', [
         'ลองใหม่อีกครั้งได้เลย (เตรียมเครื่องมือใหม่ให้แล้ว)',
-        'หรือใช้ปุ่ม "อ่านให้แม่นขึ้น" / "แปะข้อความ" แทนก็ได้'], e.message);
+        'หรือใช้ปุ่ม "ให้ AI วิเคราะห์รูปนี้" / "แปะข้อความ" แทนก็ได้'], e.message);
   } finally {
     ocrRunning = false;
   }
 }
 
 // ============================================================
-// ALT 1A7V: อ่านให้แม่นขึ้นด้วย AI บนเซิร์ฟเวอร์ (ผู้ใช้เลือกเอง)
+// ALT 1A7V → 8 ต.ค. 69: AI บนเซิร์ฟเวอร์อ่านรูปเป็นหลัก
 // ------------------------------------------------------------
-// Tesseract ในเครื่องอ่านลายมือไทยไม่ได้เลย — นั่นคือเพดานที่ปรับภาพเท่าไหร่ก็ไม่ผ่าน
-// ทางเดียวคือส่งรูปไปให้โมเดลบนเซิร์ฟเวอร์อ่าน
+// เดิม (1A7V) ตรงนี้เป็นปุ่มที่ผู้ใช้ต้องกดเองเท่านั้น และห้ามเป็นค่าเริ่มต้นเด็ดขาด
+// เพราะ "ออฟไลน์ + รูปไม่ออกจากเครื่อง" เป็นจุดขาย · **เจ้าของเปลี่ยนการตัดสินใจนี้เอง (8 ต.ค. 69)**
+// หลังถ่ายหน้าหนังสือในห้องมืดแล้วได้ "NAN We 8 weaLT ¥ pay" เต็มช่องงาน:
+// "มันอ่านรูปไม่เข้าใจ ต้องมี AI วิเคราะห์ด้วย … อยากให้ AI อ่านเป็นหลัก ให้มันเข้าใจ"
 //
-// **ต้องเป็นปุ่มที่ผู้ใช้กดเอง ห้ามเป็นค่าเริ่มต้นเด็ดขาด** เพราะแลกกับสามอย่าง:
-//   ต้องมีเน็ต · มีค่าใช้จ่ายต่อภาพ · และรูปออกจากเครื่องไป
-// การอ่านในเครื่องได้แบบออฟไลน์และรูปไม่ออกจากเครื่องเป็นจุดเด่นของแอปนี้ ห้ามทิ้ง
+// ลำดับตอนนี้: ต่อเน็ต + ล็อกอิน + ยินยอมแล้ว → AI วิเคราะห์ก่อน (mode: 'task' ใน ocr-assist)
+//   ได้ชื่องาน วิชา กำหนดส่ง คะแนน เวลาที่ใช้ — ไม่ใช่แค่ตัวอักษรดิบ
+// ออฟไลน์ · ยังไม่ล็อกอิน · ไม่ยินยอม · AI ล้ม → อ่านในเครื่องแบบเดิม (Tesseract) เป็นทางสำรอง
+// ทางสำรองยังอยู่ครบ จึงยังพูดได้ว่า "ไม่มีเน็ตก็ใช้ได้"
+//
+// ยังขอความยินยอมครั้งแรกครั้งเดียว — รูปออกจากเครื่องจริง และผู้ใช้เป็นนักเรียน
+// ปฏิเสธแล้วจำไว้ (ไม่ถามซ้ำทุกรูป) · ปุ่ม "ให้ AI วิเคราะห์" บนจอสแกนยังกดเองได้เสมอ และจะถามใหม่
 //
 // คีย์ของผู้ให้บริการอยู่ใน secret ของ Supabase เท่านั้น — repo นี้เป็นสาธารณะ
 // ฝั่งนี้รู้จักแค่ชื่อฟังก์ชัน `ocr-assist` กับรูปคำตอบ ไม่รู้ว่าเบื้องหลังเป็นเจ้าไหน
-// เปลี่ยนผู้ให้บริการทีหลังจึงไม่ต้องแก้อะไรในไฟล์นี้เลย
 // ============================================================
-const CLOUD_OCR_OK_KEY = 'studentos.alt.cloudocr.ok';   // ผู้ใช้รับทราบเงื่อนไขแล้วหรือยัง
+const CLOUD_OCR_OK_KEY = 'studentos.alt.cloudocr.ok';   // '1' ยินยอมแล้ว · '0' ขอไม่ส่งรูป · ว่าง = ยังไม่เคยถาม
 const CLOUD_OCR_LONG = 1600;   // ย่อก่อนส่งขึ้นเน็ต — ใหญ่กว่านี้เปลืองเน็ตโดยไม่ได้แม่นขึ้น
 
 let lastScanJpeg = null;       // รูปล่าสุดที่สแกน เก็บเป็น JPEG พร้อมส่ง (ไม่ถือ canvas ไว้ทั้งใบ)
 
-// เก็บรูปที่เพิ่งสแกนไว้ให้ปุ่ม "อ่านให้แม่นขึ้น" ใช้ซ้ำได้ โดยไม่ต้องให้ผู้ใช้ถ่ายใหม่
+// เก็บรูปที่เพิ่งสแกนไว้ให้ AI ใช้ และให้ปุ่ม "ให้ AI วิเคราะห์" ใช้ซ้ำได้ โดยไม่ต้องให้ผู้ใช้ถ่ายใหม่
 function rememberScan(canvas) {
   try {
     const scale = Math.min(1, CLOUD_OCR_LONG / Math.max(canvas.width, canvas.height));
@@ -13843,8 +13875,8 @@ function cloudOcrState() {
 const CLOUD_OCR_WHY = {
   'no-image': 'ยังไม่มีรูปที่สแกนไว้',
   'no-cloud': 'รุ่นนี้ยังไม่ได้เปิดใช้การอ่านด้วย AI บนเซิร์ฟเวอร์',
-  'need-login': 'ต้องเข้าสู่ระบบก่อนถึงจะใช้ได้',
-  'offline': 'ตอนนี้ไม่ได้ต่อเน็ต — วิธีนี้ต้องใช้เน็ต',
+  'need-login': 'เข้าสู่ระบบก่อน แล้ว AI จะวิเคราะห์รูปให้ทุกครั้ง',
+  'offline': 'ตอนนี้ไม่ได้ต่อเน็ต — AI ต้องใช้เน็ต เลยอ่านในเครื่องให้ก่อน',
 };
 
 function renderCloudOcr() {
@@ -13860,34 +13892,54 @@ function renderCloudOcr() {
   why.hidden = (st === 'ready');
 }
 
-async function cloudOcrRetry() {
-  const st = cloudOcrState();
-  if (st !== 'ready') { renderCloudOcr(); return; }
+// ask = true: ผู้ใช้กดปุ่มเอง — ถามใหม่ได้แม้เคยปฏิเสธไว้
+function cloudOcrConsent(ask) {
+  let v = null;
+  try { v = localStorage.getItem(CLOUD_OCR_OK_KEY); } catch (_) {}
+  if (v === '1') return true;
+  if (v === '0' && !ask) return false;
+  const ok = confirm(
+    'ให้ AI ช่วยวิเคราะห์รูปใบงาน?\n\n'
+    + '• AI จะอ่านแล้วกรอกชื่องาน วิชา กำหนดส่ง ให้เอง — เข้าใจกว่าการอ่านในเครื่องมาก อ่านลายมือได้\n'
+    + '• รูปจะถูกส่งไปประมวลผลบนเซิร์ฟเวอร์ และต้องใช้อินเทอร์เน็ต\n\n'
+    + 'กด "ยกเลิก" = อ่านในเครื่องเท่านั้น รูปไม่ออกไปไหน');
+  try { localStorage.setItem(CLOUD_OCR_OK_KEY, ok ? '1' : '0'); } catch (_) {}
+  return ok;
+}
 
-  // ขอความยินยอมแบบเต็มครั้งแรกครั้งเดียว — บอกให้ครบว่าเกิดอะไรขึ้นกับรูป
-  // ครั้งต่อ ๆ ไปการกดปุ่มเองคือการยินยอมอยู่แล้ว ไม่ต้องถามซ้ำจนน่ารำคาญ
-  let seen = false;
-  try { seen = localStorage.getItem(CLOUD_OCR_OK_KEY) === '1'; } catch (_) {}
-  if (!seen) {
-    const ok = confirm(
-      'ส่งรูปนี้ให้ AI บนเซิร์ฟเวอร์ช่วยอ่าน?\n\n'
-      + '• รูปจะถูกส่งออกจากเครื่องไปประมวลผลบนเซิร์ฟเวอร์\n'
-      + '• ต้องใช้อินเทอร์เน็ต\n'
-      + '• อ่านลายมือได้ และแม่นกว่าการอ่านในเครื่องมาก\n\n'
-      + 'การอ่านในเครื่อง (ค่าเริ่มต้น) ไม่ส่งรูปออกไปไหนเลย');
-    if (!ok) return;
-    try { localStorage.setItem(CLOUD_OCR_OK_KEY, '1'); } catch (_) {}
+// ---------- ทางเข้าเดียวของรูปที่จะอ่าน (กล้องในแอป · คลังภาพ · กล้องของระบบ หลังครอบกรอบ) ----------
+async function readPhoto(canvas, how) {
+  rememberScan(canvas);
+  if (cloudOcrState() === 'ready' && cloudOcrConsent(false)) {
+    const r = await aiReadPhoto();
+    if (r !== 'fail') return;
+    // AI ล้มไม่ใช่ทางตัน — อ่านในเครื่องให้ต่อเลย ผู้ใช้ไม่ต้องกดอะไรเพิ่ม
+    showToast({ title: 'AI ไม่ว่างตอนนี้ 😅', body: 'อ่านในเครื่องให้แทน — ตรวจให้ดีก่อนบันทึกนะ' });
   }
+  await runOcrOn(canvas, how);
+}
 
-  const st2 = document.getElementById('ocrStatus');
+// คืน 'ok' (เปิดหน้าตรวจแล้ว) · 'empty' (AI ดูแล้วไม่มีตัวหนังสือ — อ่านในเครื่องก็ไม่ดีกว่า) · 'fail'
+async function aiReadPhoto() {
+  if (ocrRunning) {
+    showToast({ title: 'กำลังอ่านใบก่อนหน้าอยู่ ⏳', body: 'รออีกนิดเดียว เดี๋ยวถึงคิวใบนี้' });
+    return 'empty';
+  }
+  ocrRunning = true;
+  const st = document.getElementById('ocrStatus');
+  const barWrap = document.getElementById('ocrBarWrap');
   const btn = document.getElementById('cloudOcrBtn');
   if (btn) btn.disabled = true;
-  if (st2) st2.textContent = '☁️ กำลังให้ AI บนเซิร์ฟเวอร์อ่าน…';
+  if (st) st.textContent = '';
+  if (barWrap) barWrap.hidden = false;
+  ocrHalo('🤖 AI กำลังวิเคราะห์ใบงาน…', null);
+  startFunFacts(document.getElementById('scanFact'));
   try {
     const b64 = lastScanJpeg.replace(/^data:[^,]+,/, '');
     const { data, error } = await withTimeout(
-      sb.functions.invoke('ocr-assist', { body: { image: b64, mime: 'image/jpeg' } }),
-      60_000, 'อ่านด้วย AI บนเซิร์ฟเวอร์');
+      sb.functions.invoke('ocr-assist', {
+        body: { image: b64, mime: 'image/jpeg', mode: 'task', today: ymdLocal(new Date()) } }),
+      60_000, 'AI วิเคราะห์ใบงาน');
 
     // supabase-js คืน error สำหรับสถานะที่ไม่ใช่ 2xx โดยเนื้อความจริงอยู่ใน context
     // ต้องแกะออกมา ไม่งั้นผู้ใช้จะเห็นแค่ "Edge Function returned a non-2xx status code"
@@ -13896,26 +13948,113 @@ async function cloudOcrRetry() {
       try { payload = await error.context.json(); } catch (_) { payload = null; }
     }
     if (!payload || payload.ok !== true) {
-      scanNotice('อ่านด้วย AI บนเซิร์ฟเวอร์ไม่สำเร็จ', [payload?.message || 'ลองใหม่อีกครั้ง หรือแปะข้อความแทน']);
-      return;
+      console.warn('[ALT OCR/ai]', payload?.code || error?.message || 'no payload');
+      return 'fail';
     }
     const text = normalizeOcrText(payload.text || '');
-    if (text.trim().length < 5) {
-      scanNotice('เซิร์ฟเวอร์อ่านรูปนี้ไม่ออกเหมือนกัน', ['ลองถ่ายใหม่ให้ชัดขึ้น หรือแปะข้อความแทน']);
-      return;
-    }
-    console.debug(`[ALT OCR/cloud] provider=${payload.provider} conf=${payload.conf}% `
+    const task = payload.task || null;
+    console.debug(`[ALT OCR/ai] provider=${payload.provider} kind=${task?.kind ?? '-'} `
       + `ms=${payload.ms} chars=${text.length}`);
-    lastOcrConfidence = payload.conf ?? null;
-    lastOcrLowWords = [];       // ฝั่งเซิร์ฟเวอร์ไม่ได้ให้คะแนนรายคำ อย่าเอาของรอบก่อนมาปน
-    runParsing(text, 'ocr');
+    if (!(task && task.title) && text.trim().length < 5) {
+      scanNotice('AI ไม่เจอตัวหนังสือในรูปนี้', [
+        'ถ่ายให้เห็นตัวหนังสือชัด ๆ · เปิดไฟให้สว่างขึ้น · ถือนิ่ง ๆ',
+        'หรือใช้ "แปะข้อความ" ข้างล่างแทน']);
+      return 'empty';
+    }
+    lastOcrConfidence = null;   // AI ไม่ได้ให้เลขความมั่นใจ — ห้ามเอาเลขของรอบในเครื่องมาเตือนผิดใบ
+    lastOcrLowWords = [];
+    let parsed;
+    if (task) parsed = aiTaskParsed(task, text);
+    else {
+      // เซิร์ฟเวอร์รุ่นเก่ายังไม่มีโหมดวิเคราะห์ — ได้ข้อความสะอาดจาก AI ก็ยังดีกว่าในเครื่องมาก
+      parsed = parseAssignment(text, new Date(), {});
+      parsed._src = 'ocr-ai';
+      parsed._low = [];
+    }
+    if (barWrap) barWrap.hidden = true;
+    stopFunFacts(document.getElementById('scanFact'));
+    openForm(null, parsed);
+    return 'ok';
   } catch (e) {
-    console.error('[ALT OCR/cloud]', e);
-    scanNotice('อ่านด้วย AI บนเซิร์ฟเวอร์ไม่สำเร็จ', [
-      navigator.onLine === false ? 'ตอนนี้ออฟไลน์อยู่ — ต่อเน็ตแล้วลองใหม่' : 'ลองใหม่อีกครั้ง หรือแปะข้อความแทน'], e.message);
+    console.warn('[ALT OCR/ai]', e);
+    return 'fail';
   } finally {
-    if (st2) st2.textContent = '';
+    ocrRunning = false;
+    if (barWrap) barWrap.hidden = true;
+    stopFunFacts(document.getElementById('scanFact'));
     renderCloudOcr();
+  }
+}
+
+// ผล AI → ก้อนเดียวกับที่ parseAssignment คืน (openForm รับได้ทันที ไม่ต้องรู้ว่ามาจากไหน)
+//
+// วันส่ง: แกะ "คำของครู" (dueText) ด้วย parseAssignment ก่อน เพราะตัวแกะนั้นวัดไว้แล้วทุกเคส
+// ส่วนวันที่ที่โมเดลคิดมาเองใช้เป็นทางสำรองตอนตัวแกะไม่เข้าใจคำนั้น
+function aiTaskParsed(task, text) {
+  const now = new Date();
+  let base;
+  try { base = parseAssignment(text || task.title || '', now, {}); }
+  catch (_) { base = parseAssignment('', now, {}); }
+
+  const type = TASK_TYPES[task.type] ? task.type : base.type;
+  const dueText = String(task.dueText || '');
+  const timeSaid = !!task.dueTime || /\d{1,2}[:.]\d{2}|โมง|ทุ่ม|เที่ยง|น\./.test(dueText);
+  let due = null;
+  if (dueText) {
+    try {
+      const d = parseAssignment(dueText, now, {});
+      if (d.detected.due && d.due) due = new Date(d.due);
+    } catch (_) {}
+  }
+  if (!due && /^\d{4}-\d{2}-\d{2}$/.test(task.dueDate || '')) {
+    let [y, m, d] = task.dueDate.split('-').map(Number);
+    if (y > 2400) y -= 543;                                 // โมเดลลืมแปลง พ.ศ.
+    const x = new Date(y, m - 1, d, 23, 59);
+    // วันที่ที่ไกลเกินจริงคือคิดผิด ไม่ใช่งานจริง — ปล่อยว่างให้คนเลือกดีกว่าใส่วันมั่ว
+    if (!isNaN(x) && x > now - 30 * 864e5 && x < +now + 400 * 864e5) due = x;
+  }
+  if (due && task.dueTime && /^\d{2}:\d{2}$/.test(task.dueTime)) {
+    const [hh, mm] = task.dueTime.split(':').map(Number);
+    if (hh < 24 && mm < 60) due.setHours(hh, mm, 0, 0);
+  }
+  // กฎเดียวกับ parseAssignment: สอบที่ไม่ได้บอกเวลา = 08:00 ไม่ใช่ 23:59
+  if (due && type === 'exam' && !timeSaid) {
+    const morning = new Date(due); morning.setHours(8, 0, 0, 0);
+    if (morning > now) due = morning;
+  }
+
+  const subject = (task.subject && task.subject !== 'อื่น ๆ' && SUBJECTS.some(s => s.name === task.subject))
+    ? task.subject : base.subject;
+  const teacher = String(task.teacher || base.teacher || '').slice(0, 40);
+  const scorePct = task.score || base.scorePct || null;
+  const estMin = task.estMin || (base.detected.est ? base.estMin
+    : type === 'exam' ? 120 : (type === 'activity' || type === 'reminder') ? 15 : 30);
+  // ช่องนี้คือชื่องานบนการ์ดทุกจอ — ใช้ title ของ AI อย่างเดียว
+  // ลองกับ Gemini จริง (8 ต.ค. 69) แล้ว task.detail ซ้ำกับ title เกือบทั้งก้อน
+  // ("ทำแบบฝึกหัด 2.3 … — ใบงานที่ 4 เรื่องเซต … ทำลงในสมุด") ต่อกันแล้วยาวสองเท่าโดยไม่ได้อะไรเพิ่ม
+  const detail = String(task.title || task.detail || base.detail || '').trim().slice(0, 200);
+
+  return {
+    subject, teacher, scorePct,
+    due: due ? due.toISOString() : null,
+    estMin, type, isExam: type === 'exam', detail, raw: text,
+    detected: { type: true, subject: subject !== 'อื่น ๆ', teacher: !!teacher, due: !!due,
+      score: !!scorePct, est: !!task.estMin, detail: !!detail },
+    _src: 'ocr-ai',
+    _low: [],
+    _ai: { kind: task.kind || 'task', summary: String(task.summary || '').slice(0, 160) },
+  };
+}
+
+// ปุ่ม "ให้ AI วิเคราะห์รูปนี้" บนจอสแกน — โผล่หลังอ่านในเครื่องไปแล้ว (ออฟไลน์/ไม่ยินยอม/AI ล้ม)
+async function cloudOcrRetry() {
+  const st = cloudOcrState();
+  if (st !== 'ready') { renderCloudOcr(); return; }
+  if (!cloudOcrConsent(true)) return;
+  const r = await aiReadPhoto();
+  if (r === 'fail') {
+    scanNotice('AI วิเคราะห์รูปไม่สำเร็จ', [
+      navigator.onLine === false ? 'ตอนนี้ออฟไลน์อยู่ — ต่อเน็ตแล้วลองใหม่' : 'ลองใหม่อีกครั้ง หรือแปะข้อความแทน']);
   }
 }
 

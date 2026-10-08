@@ -627,11 +627,12 @@
           </div>
           <p class="scan-fact" id="scanFact" hidden></p>
 
-          <!-- อ่านให้แม่นขึ้นด้วยเซิร์ฟเวอร์ — โผล่หลังสแกนแล้วเท่านั้น และผู้ใช้ต้องกดเอง -->
+          <!-- ให้ AI วิเคราะห์รูปเดิม — โผล่เฉพาะตอนรูปถูกอ่านในเครื่องไปแล้ว
+               (ออฟไลน์ · ยังไม่ล็อกอิน · ไม่ยินยอม · AI ล้ม) ปกติ AI อ่านเป็นหลักตั้งแต่แรก (8 ต.ค. 69) -->
           <div class="cloud-ocr" id="cloudOcrBox" hidden>
             <p class="co-h">อ่านได้ไม่ตรงใช่ไหม?</p>
-            <p class="co-s">ให้ AI บนเซิร์ฟเวอร์ช่วยอ่านรูปเดิมอีกรอบ — แม่นกว่า และอ่านลายมือได้</p>
-            <button class="co-btn" id="cloudOcrBtn" onclick="cloudOcrRetry()">☁️ อ่านให้แม่นขึ้น</button>
+            <p class="co-s">ให้ AI ดูรูปเดิมอีกรอบ — เข้าใจว่างานคืออะไร กรอกวิชา กำหนดส่งให้ และอ่านลายมือได้</p>
+            <button class="co-btn" id="cloudOcrBtn" onclick="cloudOcrRetry()">🤖 ให้ AI วิเคราะห์รูปนี้</button>
             <p class="co-why" id="cloudOcrWhy" hidden></p>
             <p class="co-warn">ต้องใช้เน็ต และรูปจะถูกส่งออกจากเครื่อง · การอ่านในเครื่องไม่ส่งรูปไปไหน</p>
           </div>

@@ -8125,13 +8125,20 @@ button.df-r:active { background: var(--surface); }
 #scr-ttscan { padding-bottom: 0; }
 .tt-body { padding-bottom: 8px; gap: 14px; }
 
+/* width: 100% ต้องเขียนตรง ๆ (เจ้าของ 8 ต.ค. 69: "แสกนเราอัตราส่วนไม่อยู่ตรงกลาง")
+   aspect-ratio + max-height โดยไม่บอกความกว้าง Chrome ยืดเต็มแถว แต่ Safari หดความกว้างตามสัดส่วน
+   แล้วชิดซ้าย — บน iPhone เวทีจึงเหลือ 3/4 ของจอ เบี้ยวไปทางซ้าย ขวาโล่ง
+   บอกความกว้างแล้วทั้งสองเจ้าคิดเหมือนกัน: กว้างเต็ม สูง 4/3 ของความกว้างจนชนเพดาน
+   ภาพที่ถ่ายได้ตัดตามกรอบจริงอยู่แล้ว (camGrab) สัดส่วนกรอบจะเพี้ยนจาก 3:4 นิดหน่อยก็ไม่เป็นไร
+   เพดานขยับ 46 → 54vh: ใต้ชิปคำแนะนำยังว่างอยู่ราวหนึ่งนิ้ว กรอบใหญ่ขึ้น = ตัวหนังสือในภาพใหญ่ขึ้น */
 .tt-stage {
   position: relative;
   border-radius: 20px;
   overflow: hidden;
   background: #0B1220;
+  width: 100%;
   aspect-ratio: 3 / 4;
-  max-height: 46vh;
+  max-height: 54vh;
   display: flex; align-items: center; justify-content: center;
 }
 .tt-stage[hidden] { display: none; }
@@ -8153,6 +8160,10 @@ button.df-r:active { background: var(--surface); }
   position: absolute; width: 26px; height: 26px; border: 3px solid var(--neon, #4DA3FF);
   filter: drop-shadow(0 0 6px rgba(77,163,255,.55));
 }
+/* มุมซ้ายบนเคยต่ำกว่ามุมขวา 18px และมีขีดฟ้าโผล่ข้างใน — คลาส .tl ชนกับ "เส้นเวลา" (.tl ข้างบน)
+   ที่ใส่ margin-top/padding/::before ให้ทุกตัวที่ชื่อ tl · กรอบครอบรูปเจอบั๊กเดียวกันและแก้ไปแล้ว (.crop-box .h) */
+.tt-stage .ttf { margin: 0; padding: 0; }
+.tt-stage .ttf::before { content: none; }
 .ttf.tl { top: 12px; left: 12px; border-right: none; border-bottom: none; border-radius: 9px 0 0 0; }
 .ttf.tr { top: 12px; right: 12px; border-left: none; border-bottom: none; border-radius: 0 9px 0 0; }
 .ttf.bl { bottom: 12px; left: 12px; border-right: none; border-top: none; border-radius: 0 0 0 9px; }

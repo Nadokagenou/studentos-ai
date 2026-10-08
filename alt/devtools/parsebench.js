@@ -286,6 +286,32 @@ const PARSE_CASES = [
   { g: 'split', id: 'สองบรรทัดสองงาน ไม่มีขีดไม่มีหัวเรื่อง',
     text: 'ครูสั่งงานคณิต แบบฝึกหัด 2.3 ข้อ 1-10 ส่งพรุ่งนี้ก่อน 8 โมง\nรายงานวิทย์เรื่องเซลล์ ส่งวันศุกร์',
     want: { segments: 2 } },
+
+  // ---------- ตัวกรองขยะจาก OCR ในเครื่อง (ocrDropJunk) ----------
+  // วัดด้วย keep (ต้องยังอยู่) กับ drop (ต้องหายไป) — เขียนจากสิ่งที่คนอ่านแล้วรู้ว่าเป็นขยะ
+  // เคสแรกคือของจริงจากเครื่องเจ้าของ 8 ต.ค. 69 ("มันพิมพ์ภาษาเอเลี่ยนหรอ"):
+  // ถ่ายหน้าหนังสือเรื่องตลาดทุนในห้องมืด Tesseract พ่นละตินมั่ว ๆ ปนไทยลงช่อง "งานที่ต้องทำ"
+  { g: 'junk', id: 'หน้าหนังสือในที่มืด (ของจริง 8 ต.ค. 69)',
+    text: 'าโณ = NAN We 8 weaLT 7 ลม w/ SE NYSE\nร k rN ¥ ¥ pay ; a wall AN, iF fA 7" A Wy A\n'
+      + '๑1 » =m _— a 10U ครั้งประวัติศาสตร์ตลาด\nทุนไทย จับมือตลาดหุ้นนิวยอร์ก นา\n'
+      + 'ผลิตภัณฑ์ร่วมกันหรือเรื่อง Dual Listi ! พจร\nแพรว',
+    want: { keep: ['ครั้งประวัติศาสตร์ตลาด', 'ทุนไทย', 'จับมือตลาดหุ้นนิวยอร์ก', 'Dual Listi'],
+            drop: ['NAN', 'weaLT', '¥', 'pay', 'iF', 'fA', 'Wy', '=m', '10U', 'าโณ', 'NYSE', 'wall'] } },
+  { g: 'junk', id: 'ใบงานไทยที่อ่านชัด ต้องไม่หายสักคำ',
+    text: 'ใบงานที่ 3 เรื่องเซต ม.4/2\nทำข้อ 1-10 ส่งวันศุกร์ 16:00 คะแนน 10%\nครูสมศรี',
+    want: { keep: ['ใบงานที่ 3', 'ม.4/2', '1-10', '16:00', '10%', 'ครูสมศรี'], drop: [] } },
+  { g: 'junk', id: 'คำอังกฤษจริงในใบงานไทย',
+    text: 'การบ้านภาษาอังกฤษ Unit 3 Reading p.24 ข้อ A-D ส่งพรุ่งนี้',
+    want: { keep: ['Unit 3', 'Reading', 'p.24', 'A-D', 'ส่งพรุ่งนี้'], drop: [] } },
+  { g: 'junk', id: 'ใบงานภาษาอังกฤษล้วน ไม่แตะคำสั้น',
+    text: 'Read chapter 5 and answer questions 1-8 by Friday',
+    want: { keep: ['Read chapter 5 and answer questions 1-8 by Friday'], drop: [] } },
+  { g: 'junk', id: 'บรรทัดสัญลักษณ์ล้วน',
+    text: 'งานคณิต\n~ ° ¢ § _ =\nส่งพรุ่งนี้',
+    want: { keep: ['งานคณิต', 'ส่งพรุ่งนี้'], drop: ['°', '¢', '§'] } },
+  { g: 'junk', id: 'ขีดหน้ารายการต้องอยู่ (ตัวตัดหลายงานใช้)',
+    text: '- คณิต แบบฝึกหัด 2.3 ส่งพรุ่งนี้\n- วิทย์ รายงานเซลล์ ส่งศุกร์',
+    want: { keep: ['- คณิต', '- วิทย์', '2.3'], drop: [] } },
 ];
 
 // ---------- ตัวเทียบ ----------
@@ -309,6 +335,13 @@ function checkOne(c) {
     if (c.want.header != null && !!s.header !== c.want.header) {
       bad.push(`header: ได้ ${JSON.stringify(s.header)} · ควรมีหัวเรื่อง=${c.want.header}`);
     }
+    return { got: s, bad };
+  }
+  if (c.want.keep) {
+    const s = ocrDropJunk(c.text);
+    const bad = [];
+    for (const k of c.want.keep) if (!s.includes(k)) bad.push(`หาย: ${JSON.stringify(k)}`);
+    for (const k of c.want.drop) if (s.includes(k)) bad.push(`ยังอยู่: ${JSON.stringify(k)}`);
     return { got: s, bad };
   }
   const got = parseAssignment(c.text, NOW);
