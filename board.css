@@ -1,248 +1,190 @@
 /* ============================================================
    กระดานอันดับ (scr-board) — วาดจาก board.js
    ------------------------------------------------------------
-   รอบที่ห้า (9 ต.ค. 69) — วิเคราะห์จากภาพอ้างอิงของเจ้าของว่าทำไมของเรายัง "แปลก/น่าเบื่อ":
-   ภาพประกอบครองจอ · เป็นฉากเต็มขอบ ไม่ใช่การ์ด · สีชุดเดียว · ทรงแคปซูลเดียว · คะแนนเด่นสุด
-   รอบนี้ทำตามห้าข้อนั้นด้วยของของเราเอง (น้องฮูก + ถ้วย SVG) ไม่ได้ลอกภาพของเขา
-
-   สีชุดเดียว: ทุกสีบนจอผสมจาก --blue (สีหลักของธีม) กับพื้นของธีม — เปลี่ยนธีมแล้วทั้งจอเปลี่ยนตาม
-   ทองมีที่เดียวคือที่ 1 กับรางวัล (ทอง = สำเร็จแล้ว)
+   แบบ A "ตัวเราก่อน" ที่เจ้าของเลือก (9 ต.ค. 69) — รอบแรกเป็นฉากเกาะลอยพาสเทล
+   ลอกจากภาพอ้างอิง แล้วถูกตีกลับว่า "ไม่สวยเลย อย่าก็อป"
+   รอบนี้ไม่มีสีของตัวเองเลยสักสีนอกจากทองของที่ 1 — ทุกอย่างอ่านจากโทเคนของธีม
+   หัวจอ/ปุ่มกลับ/ระยะห่างยืมจากจอเหรียญตรา (.bg-body · .page-head) ให้เป็นตระกูลเดียวกัน
    ============================================================ */
-.bd-body {
-  --bd-tint: color-mix(in srgb, var(--blue) 14%, var(--card));
-  --bd-tint2: color-mix(in srgb, var(--blue) 24%, var(--card));
-  --bd-ink: color-mix(in srgb, var(--blue-deep, var(--blue)) 60%, var(--ink));
-  --bd-soft: color-mix(in srgb, var(--bd-ink) 60%, transparent);
-  --bd-r: 24px;
-  position: relative; isolation: isolate;
-  padding: 0 0 calc(88px + var(--tabgap, 0px)); gap: 0;
-}
-/* ฉากเต็มขอบจอ — ไล่จากสีหลักจาง ๆ ลงไปหาพื้น แล้วแผ่นรายชื่อโค้งขึ้นมาทับ */
-.bd-body::before {
-  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 520px; z-index: -1;
-  background:
-    radial-gradient(70% 45% at 50% 40%, color-mix(in srgb, #FFD45C 26%, transparent), transparent 70%),
-    radial-gradient(120% 70% at 50% -10%, color-mix(in srgb, var(--blue) 34%, var(--scr)), transparent 75%),
-    linear-gradient(180deg, color-mix(in srgb, var(--blue) 22%, var(--scr)), color-mix(in srgb, var(--blue) 8%, var(--scr)));
-}
 
-/* ---------- แถวบน: กลับ · สลับกระดาน ---------- */
-.bd-top {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 18px 0;
+/* ---------- สลับ ทั้งหมด / เพื่อน — ก้อนเลื่อนได้ ---------- */
+.bd-seg {
+  position: relative; display: grid; grid-template-columns: 1fr 1fr;
+  padding: 4px; border-radius: 999px;
+  background: var(--card2); border: 1px solid var(--line);
 }
-.bd-swap {
-  display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px;
-  border-radius: 999px; cursor: pointer;
-  border: 1px solid color-mix(in srgb, #fff 70%, transparent);
-  background: color-mix(in srgb, var(--card) 72%, transparent);
-  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
-  box-shadow: 0 6px 16px -10px var(--bd-ink);
-  color: var(--bd-ink); font-family: inherit; font-size: 13.5px; font-weight: 800;
+.bd-seg-k {
+  position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px);
+  border-radius: 999px; background: var(--card); box-shadow: var(--shadow);
+  transition: transform .32s cubic-bezier(.3, 1.3, .5, 1);
 }
-.bd-swap svg { width: 16px; height: 16px; }
-.bd-swap:active { transform: scale(.97); }
+.bd-seg.r .bd-seg-k { transform: translateX(100%); }
+.bd-seg button {
+  position: relative; min-height: 36px; border: none; background: none; cursor: pointer;
+  color: var(--muted); font-family: inherit; font-size: 14px; font-weight: 700;
+  transition: color .2s;
+}
+.bd-seg button.on { color: var(--ink); }
 
-/* ---------- ฉากสามอันดับแรก ---------- */
-.bd-scene {
-  position: relative; overflow: hidden;
-  display: grid; grid-template-columns: 1fr 1.2fr 1fr; align-items: end; gap: 2px;
-  padding: 18px 10px 54px; min-height: 300px;
-}
-.bd-pc { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; }
-.bd-pc.p2, .bd-pc.p3 { padding-bottom: 6px; }
-.bd-art {
-  position: relative; width: 100%; height: 132px;
-  display: flex; align-items: flex-end; justify-content: center;
-}
-.bd-pc.p1 .bd-art { height: 178px; }
-/* แสงนวลหลังภาพ */
-.bd-glow {
-  position: absolute; left: 50%; bottom: 14px; width: 120px; height: 120px; transform: translateX(-50%);
-  border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, #fff 70%, transparent), transparent);
-}
-.bd-pc.p1 .bd-glow { width: 170px; height: 170px; background: radial-gradient(closest-side, rgba(255, 214, 92, .55), transparent); }
-/* แผ่นรองนุ่ม ๆ ใต้ภาพ ให้ภาพ "ยืน" ไม่ลอย */
-.bd-disc {
-  position: absolute; left: 50%; bottom: 6px; width: 92px; height: 22px; transform: translateX(-50%); z-index: 0;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--bd-ink) 28%, transparent), transparent);
-}
-.bd-pc.p1 .bd-disc { width: 130px; height: 28px; }
-.bd-cup { position: relative; z-index: 1; width: 76px; height: auto; margin-bottom: 14px;
-  filter: drop-shadow(0 10px 12px rgba(0, 0, 0, .18)); }
-.bd-pc.p1 .bd-cup { position: absolute; z-index: 2; left: 50%; bottom: 18px; width: 58px; margin: 0 0 0 -6px; }
-.bd-pet {
-  position: relative; z-index: 1; height: 150px; width: auto; margin-bottom: 12px;
-  filter: drop-shadow(0 12px 14px rgba(0, 0, 0, .22));
-}
-/* ฟองอันดับที่มุมบนของภาพ — เล็ก ไม่แย่งคะแนน */
-.bd-place {
-  position: absolute; top: 10px; z-index: 3;
-  width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
-  background: color-mix(in srgb, var(--bd-ink) 78%, transparent); color: var(--card);
-  font-size: 13.5px; font-weight: 900; box-shadow: 0 0 0 2.5px color-mix(in srgb, #fff 80%, transparent);
-}
-.bd-pc.p2 .bd-place { left: 8px; }
-.bd-pc.p3 .bd-place { right: 8px; }
-.bd-pc.p1 .bd-place {
-  left: 18px; top: 18px; width: 34px; height: 34px; font-size: 17px;
-  background: linear-gradient(180deg, #FFE38A, #E9B33A); color: #5A3D00;
-}
-/* คะแนน — ชิ้นที่เด่นที่สุดของแต่ละคน ทับขอบล่างของภาพ */
-.bd-score {
-  position: absolute; left: 50%; bottom: -12px; z-index: 3; transform: translateX(-50%);
-  padding: 5px 13px; border-radius: 999px; white-space: nowrap;
-  background: color-mix(in srgb, var(--bd-ink) 86%, transparent); color: var(--card);   /* ตัวหนังสือสีตรงข้ามกับพื้นในทุกธีม (ธีมมืด --bd-ink สว่าง) */
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-  font-size: 12px; font-weight: 700; box-shadow: 0 8px 16px -8px rgba(0, 0, 0, .5);
-}
-.bd-score b { font-size: 16px; font-weight: 900; font-variant-numeric: tabular-nums; }
-.bd-pc.p1 .bd-score {
-  padding: 6px 16px; background: linear-gradient(180deg, #FFE38A, #EDB93E); color: #4E3400;
-}
-.bd-pc.p1 .bd-score b { font-size: 19px; }
-.bd-pc.empty .bd-score { background: color-mix(in srgb, var(--card) 70%, transparent); color: var(--bd-soft); }
-.bd-pc.empty .bd-cup { opacity: .35; filter: grayscale(1); }
+/* ============================================================
+   11 ต.ค. 69 · จัดลำดับสายตาใหม่ทั้งจอ
+   เจ้าของ: "การ์ดไม่สวย ยังจัดลำดับสายตาผิดทั้งหมดอยู่ ข้อความอื่น ๆ ด้วย"
+   ขนาดตัวอักษรบนจอนี้มีแค่สี่ชั้น และแต่ละชั้นมีหน้าที่เดียว:
+     ใหญ่ 20–22 หนา  = ตัวเลขที่ต้องอ่าน (คะแนนบนแท่น · อันดับเรา)
+     กลาง 16–17 หนา  = ประโยคที่ต้องอ่าน (เป้าถัดไป) · คะแนนในแถว
+     ปกติ 15         = ชื่อคนในแถว
+     เล็ก 12–12.5 จาง = ข้อมูลประกอบ (ชื่อบนแท่น · ซีซัน · วันติด · "งาน")
+   ============================================================ */
 
-/* รูปคนเล็ก + ชื่อ อยู่ใต้ภาพ (ภาพเป็นพระเอก คนเป็นป้ายกำกับ) */
-.bd-who { position: relative; margin-top: 22px; line-height: 0; min-height: 40px; }
-.bd-who .fr-av { width: 40px; height: 40px; font-size: 16px;
-  box-shadow: 0 0 0 2.5px var(--card), 0 6px 12px -6px rgba(0, 0, 0, .45); }
-.bd-pc.p1 .bd-who .fr-av { width: 46px; height: 46px; box-shadow: 0 0 0 2.5px #F2C34B, 0 6px 12px -6px rgba(0, 0, 0, .45); }
-.bd-who .bd-fire { position: absolute; left: -14px; top: -4px; box-shadow: 0 0 0 2px var(--card); }
+/* ---------- แท่นสามอันดับแรก: รูป(+ช่อ) → คะแนน → ชื่อ → แท่นเปล่า ---------- */
+.bd-podium {
+  display: grid; grid-template-columns: 1fr 1.12fr 1fr; align-items: end; gap: 8px;
+  padding-top: 30px;
+}
+.bd-pc { --m: #B9C3D3; --m-ink: #3E4A5E; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.bd-pc.p1 { --m: var(--gold); --m-ink: #5A3D00; }
+.bd-pc.p3 { --m: #D49464; --m-ink: #5A2E10; }
+.bd-pc-av { position: relative; line-height: 0; }
+.bd-pc-av .fr-av { width: 50px; height: 50px; font-size: 19px; }
+.bd-pc.p1 .bd-pc-av .fr-av { width: 64px; height: 64px; font-size: 24px; }
+.bd-medal {
+  position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%);
+  min-width: 22px; height: 22px; padding: 0 5px; border-radius: 999px;
+  display: grid; place-items: center; font-style: normal;
+  background: var(--m); color: var(--m-ink); box-shadow: 0 0 0 2.5px var(--scr);
+  font-size: 12px; font-weight: 900; line-height: 1;
+}
+.bd-crown {
+  position: absolute; top: -20px; left: 50%; transform: translateX(-50%) rotate(-10deg);
+  color: #E9B93C; line-height: 0; filter: drop-shadow(0 3px 4px rgba(150, 100, 0, .35));
+}
+.bd-crown svg { width: 26px; height: 26px; stroke-width: 2.6; }
+.bd-pc-n {
+  margin-top: 22px; line-height: 1.1; white-space: nowrap;
+  font-size: 12px; font-weight: 600; color: var(--muted);
+}
+.bd-pc-n b { font-size: 19px; font-weight: 900; color: var(--ink); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.bd-pc.p1 .bd-pc-n b { font-size: 23px; color: var(--gold-text); }
 .bd-pc-nm {
-  max-width: 100%; margin-top: 6px; padding: 0 2px;
-  font-size: 12.5px; font-weight: 700; color: var(--bd-soft); text-align: center;
+  max-width: 100%; margin-top: 2px; padding: 0 2px;
+  font-size: 12.5px; font-weight: 600; color: var(--muted); text-align: center;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.bd-pc.p1 .bd-pc-nm { font-size: 14px; color: var(--bd-ink); font-weight: 800; }
-.bd-pc.me .bd-pc-nm { color: var(--blue); }
+.bd-pc.me .bd-pc-nm { color: var(--blue); font-weight: 800; }
+.bd-pc-base {
+  position: relative; width: 100%; margin-top: 10px; border-radius: 16px 16px 8px 8px; overflow: hidden;
+  background: linear-gradient(180deg, var(--card), var(--card2));
+  border: 1px solid var(--line); box-shadow: var(--shadow), inset 0 1px 0 var(--lg-hi, rgba(255, 255, 255, .8));
+}
+.bd-pc-base::before {   /* ขอบสีเหรียญด้านบนของแท่น — สีเดียวกับช่อ/วงแหวน */
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--m);
+}
+.bd-pc.p1 .bd-pc-base { height: 58px; background: linear-gradient(180deg, var(--gold-soft), var(--card)); }
+.bd-pc.p2 .bd-pc-base { height: 40px; }
+.bd-pc.p3 .bd-pc-base { height: 28px; }
+.bd-pc.empty { opacity: .6; }
+.bd-pc.empty .fr-av { background: var(--card2); }
 
-/* พลุกระดาษ — ร่วงครั้งเดียวตอนเพิ่งเข้าจอ */
-.bd-confetti { position: absolute; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
-.bd-confetti i {
-  position: absolute; top: -12px; left: var(--x); width: 7px; height: 11px; border-radius: 2px; opacity: 0;
-  background: #FFD45C; transform: rotate(var(--r));
+/* ---------- การ์ดของเรา: เป้าถัดไป → ลู่วิ่ง → ข้อมูลประกอบ ---------- */
+.bd-me {
+  padding: 16px 16px 14px; border-radius: 22px;
+  background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow);
 }
-.bd-confetti i:nth-child(4n+1) { background: var(--blue); }
-.bd-confetti i:nth-child(4n+2) { background: #FF8FB1; width: 6px; height: 6px; border-radius: 50%; }
-.bd-confetti i:nth-child(4n+3) { background: #8EE6B0; }
-.bd-anim .bd-confetti i { animation: bd-fall 2s var(--d) cubic-bezier(.25, .6, .4, 1) both; }
-@keyframes bd-fall {
-  0% { opacity: 0; transform: translateY(0) rotate(var(--r)); }
-  10% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(320px) rotate(calc(var(--r) + 300deg)); }
-}
-
-/* ---------- แผ่นล่าง — โค้งขึ้นมาทับฉาก ---------- */
-.bd-sheet {
-  position: relative; margin-top: -26px; padding: 18px 16px 0;
-  border-radius: 32px 32px 0 0; background: var(--scr);
-  box-shadow: 0 -10px 30px -18px var(--bd-ink);
-  display: flex; flex-direction: column; gap: 10px;
-}
-
-/* การ์ดซีซัน — ชื่อกระดาน · เป้าถัดไป · ซีซัน · นับถอยหลัง · รางวัล */
-.bd-season {
-  position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
-  padding: 16px 16px 16px 18px; border-radius: var(--bd-r);
-  border: 2px solid transparent;
-  background:
-    linear-gradient(var(--card), var(--card)) padding-box,
-    linear-gradient(120deg, var(--blue), color-mix(in srgb, var(--blue) 25%, var(--card)) 45%, color-mix(in srgb, #F2C34B 70%, var(--blue)) 100%) border-box;
-  box-shadow: 0 14px 30px -18px var(--bd-ink);
-}
-.bd-season.top {
-  background:
-    linear-gradient(var(--card), var(--card)) padding-box,
-    linear-gradient(120deg, #F2C34B, var(--gold-soft) 50%, #F2C34B) border-box;
-}
-.bd-s-main { flex: 1; min-width: 0; }
-.bd-s-title { display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 900; color: var(--bd-ink); letter-spacing: -.01em; }
-.bd-orb { width: 16px; height: 16px; flex: none; border-radius: 50%;
-  background: conic-gradient(var(--blue), #F2C34B, #FF8FB1, var(--blue)); }
-.bd-s-goal { margin-top: 6px; font-size: 15.5px; font-weight: 800; color: var(--bd-ink); line-height: 1.35; }
-.bd-s-sub { margin-top: 2px; font-size: 12.5px; font-weight: 600; color: var(--bd-soft); }
-.bd-s-left {
-  display: inline-block; margin-top: 10px; padding: 4px 12px; border-radius: 999px;
-  background: var(--bd-tint); color: var(--bd-ink); font-size: 12.5px; font-weight: 700;
-}
-.bd-s-left b { font-size: 15px; font-weight: 900; }
-.bd-prize {
-  width: 66px; height: 66px; flex: none; border-radius: 50%;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-  background: var(--bd-tint); color: var(--bd-ink);
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bd-ink) 12%, transparent);
-}
-.bd-prize b { font-size: 14px; font-weight: 900; line-height: 1; }
-.bd-prize:not(.on) .tok { filter: grayscale(.5) opacity(.8); }
-.bd-prize.on { background: var(--gold-soft); color: var(--gold-text); box-shadow: inset 0 0 0 2px #F2C34B; }
-.bd-join {
-  flex-basis: 100%; min-height: 46px; border: none; border-radius: 999px; cursor: pointer;
+.bd-me-hd { display: flex; align-items: center; gap: 12px; }
+.bd-me-rk {
+  width: 52px; height: 52px; flex: none; border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
   background: var(--grad-brand); color: var(--on-accent); box-shadow: var(--shadow-brand);
-  font-family: inherit; font-size: 15px; font-weight: 800;
 }
-.bd-join:active { transform: scale(.98); }
+.bd-me-rk b { font-size: 20px; font-weight: 900; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.bd-me-rk small { margin-top: 2px; font-size: 9.5px; font-weight: 700; opacity: .85; }
+.bd-me-rk.gold { background: linear-gradient(160deg, #FFE38A, #E9B33A); color: #4E3400; box-shadow: 0 8px 18px -8px rgba(185, 132, 32, .7); }
+.bd-me-goal { flex: 1; min-width: 0; font-size: 16.5px; font-weight: 800; line-height: 1.35; color: var(--ink); }
+.bd-me-prize {
+  flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px;
+  background: var(--gold-soft); color: var(--gold-text); font-size: 12.5px; font-weight: 800;
+}
+.bd-me-meta {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 0; margin-top: 10px;
+  font-size: 12.5px; font-weight: 600; color: var(--faint);
+}
+.bd-me-meta svg { width: 12px; height: 12px; margin-right: 2px; vertical-align: -1px; color: #F0782C; }
+.bd-dot { width: 3px; height: 3px; margin: 0 8px; border-radius: 50%; background: currentColor; opacity: .6; }
 
-/* ---------- ที่เหลือ — แคปซูลทรงเดียวกันทุกแถว ---------- */
-.bd-list { display: flex; flex-direction: column; gap: 8px; }
-.bd-row {
-  display: flex; align-items: center; gap: 12px; min-height: 64px;
-  padding: 10px 18px 10px 14px; border-radius: var(--bd-r);
-  background: var(--card);
-  box-shadow: 0 1px 0 color-mix(in srgb, #fff 60%, transparent) inset, 0 10px 22px -18px var(--bd-ink);
+/* ลู่วิ่ง — บนพื้นการ์ดขาว: รางจุดสีจาง · แถบสีหลัก · รูปเราเกาะปลายแถบ · รูปเป้าหมายรอที่เส้นชัย */
+.bd-race-track {
+  position: relative; height: 6px; margin: 22px 18px 10px 14px; border-radius: 99px;
+  background: repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 11px);
 }
-.bd-row.me { background: var(--bd-tint); box-shadow: inset 0 0 0 2px var(--blue), 0 12px 24px -16px var(--blue); }
-.bd-rk { width: 28px; flex: none; text-align: center; font-size: 16px; font-weight: 900; color: var(--bd-soft); font-variant-numeric: tabular-nums; }
+.bd-race-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: var(--grad-brand); }
+.bd-race-me, .bd-race-tg, .bd-race-flag { position: absolute; top: 50%; transform: translate(-50%, -50%); line-height: 0; }
+.bd-race-me .fr-av { width: 28px; height: 28px; font-size: 12px; box-shadow: 0 0 0 2.5px var(--card), 0 0 0 4.5px var(--blue); }
+.bd-race-tg { left: 100%; }
+.bd-race-tg .fr-av { width: 24px; height: 24px; font-size: 11px; opacity: .85; box-shadow: 0 0 0 2px var(--card); }
+.bd-race-flag { left: 100%; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--card2); color: var(--muted); }
+.bd-race-flag svg { width: 13px; height: 13px; }
+.bd-join {
+  display: block; width: 100%; min-height: 44px; margin-top: 12px; border: none; border-radius: 999px;
+  background: var(--grad-brand); color: var(--on-accent); box-shadow: var(--shadow-brand);
+  font-family: inherit; font-size: 15px; font-weight: 800; cursor: pointer;
+}
+
+/* ---------- ที่เหลือ: แถวเดียวจบ ---------- */
+.bd-list { display: flex; flex-direction: column; gap: 7px; }
+.bd-row {
+  display: flex; align-items: center; gap: 12px; min-height: 60px;
+  padding: 8px 16px 8px 12px; border-radius: 18px;
+  background: var(--card); border: 1px solid var(--line);
+}
+.bd-row.me { background: var(--blue-soft); border-color: var(--blue); }
+.bd-rk { width: 24px; flex: none; text-align: center; font-size: 14px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
 .bd-row.me .bd-rk { color: var(--blue); }
-.bd-rav .fr-av { width: 42px; height: 42px; font-size: 16px; box-shadow: 0 0 0 2.5px var(--bd-tint2); }
+.bd-rav .fr-av { width: 38px; height: 38px; font-size: 15px; }
 .bd-rnm {
-  flex: 1; min-width: 0; font-size: 15.5px; font-weight: 800; color: var(--bd-ink);
+  flex: 1; min-width: 0; font-size: 15px; font-weight: 600; color: var(--ink);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.bd-rn { flex: none; font-size: 12.5px; font-weight: 700; color: var(--bd-soft); white-space: nowrap; }
-.bd-rn b { font-size: 17px; font-weight: 900; color: var(--bd-ink); font-variant-numeric: tabular-nums; }
+.bd-row.me .bd-rnm { font-weight: 800; }
+.bd-rn { flex: none; font-size: 12px; font-weight: 600; color: var(--faint); white-space: nowrap; }
+.bd-rn b { font-size: 16px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
 .bd-gap { display: flex; justify-content: center; gap: 5px; padding: 2px 0; }
-.bd-gap i { width: 5px; height: 5px; border-radius: 50%; background: var(--bd-soft); opacity: .5; }
-
-/* วันติดกัน — เปลวไฟในฟองสีหลัก (ไม่ใช้แดง: สีชุดเดียวทั้งจอ) */
-.bd-fire {
-  display: inline-flex; align-items: center; gap: 2px; flex: none; font-style: normal;
-  padding: 3px 8px 3px 6px; border-radius: 999px;
-  background: var(--bd-tint2); color: var(--bd-ink); font-size: 12px; font-weight: 900;
-}
-.bd-fire svg { width: 12px; height: 12px; color: #F08A2C; }
+.bd-gap i { width: 5px; height: 5px; border-radius: 50%; background: var(--faint); opacity: .5; }
 
 .bd-leave {
   align-self: center; margin-top: 2px; padding: 10px 14px;
   border: none; background: none; cursor: pointer;
-  color: var(--bd-soft); font-family: inherit; font-size: 12.5px;
+  color: var(--faint); font-family: inherit; font-size: 12.5px;
 }
 
 /* ---------- ไล่ขึ้นทีละชิ้น (เฉพาะตอนเพิ่งเข้าจอ — ดู boardAnim) ---------- */
-.bd-anim .bd-in { animation: bd-up .5s cubic-bezier(.2, .9, .3, 1.05) both; animation-delay: calc(min(var(--i, 0), 10) * 45ms + .15s); }
-.bd-anim .bd-art { animation: bd-pop .6s cubic-bezier(.2, 1.3, .4, 1) both; }
-.bd-anim .bd-pc.p2 .bd-art { animation-delay: .08s; }
-.bd-anim .bd-pc.p3 .bd-art { animation-delay: .16s; }
-.bd-pet { animation: bd-bob 3.6s ease-in-out infinite; }
+.bd-anim .bd-in { animation: bd-up .5s cubic-bezier(.2, .9, .3, 1.05) both; animation-delay: calc(min(var(--i, 0), 10) * 45ms); }
+.bd-anim .bd-race-fill { animation: bd-grow .9s .3s cubic-bezier(.2, .8, .2, 1) both; }
+.bd-anim .bd-race-me { animation: bd-run .9s .3s cubic-bezier(.2, .8, .2, 1) both; }
+.bd-anim .bd-pc-base { animation: bd-rise .55s cubic-bezier(.2, .9, .3, 1.1) both; transform-origin: bottom; }
+.bd-anim .bd-pc.p1 .bd-pc-base { animation-delay: .12s; }
+.bd-anim .bd-pc.p3 .bd-pc-base { animation-delay: .06s; }
 @keyframes bd-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-@keyframes bd-pop { from { opacity: 0; transform: translateY(18px) scale(.85); } to { opacity: 1; transform: none; } }
-@keyframes bd-bob { 50% { transform: translateY(-5px); } }
+@keyframes bd-grow { from { width: 0; } }
+@keyframes bd-run { from { left: 0; } }
+@keyframes bd-rise { from { transform: scaleY(.2); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .bd-anim .bd-in, .bd-anim .bd-art, .bd-pet, .bd-anim .bd-confetti i { animation: none; }
-  .bd-confetti { display: none; }
+  .bd-anim .bd-in, .bd-anim .bd-race-fill, .bd-anim .bd-race-me, .bd-anim .bd-pc-base { animation: none; }
 }
 
 /* ---------- ยังไม่ล็อกอิน / ยังไม่เปิด / โหลดพลาด ---------- */
 .bd-gate {
   display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
-  padding: 30px 22px; border-radius: var(--bd-r); background: var(--card);
+  padding: 30px 22px; border-radius: var(--r-card, 22px);
+  background: var(--card); border: 1px solid var(--line);
 }
 .bd-gate > svg { width: 28px; height: 28px; color: var(--blue); }
-.bd-gate b { font-size: 16px; color: var(--bd-ink); }
-.bd-scene.bd-skel { min-height: 300px; }
-.bd-season.bd-skel { min-height: 130px; background: var(--card2); border: none; }
+.bd-gate b { font-size: 16px; color: var(--ink); }
+
+/* โครงระหว่างรอ */
+.bd-skel { background: var(--card2); box-shadow: none; border-color: transparent; }
+.bd-podium.bd-skel { min-height: 230px; border-radius: 22px; }
+.bd-me.bd-skel { min-height: 130px; }
 
 /* ---------- ปุ่มถ้วยบนหัวหน้าแรก (ข้างกระดิ่ง) ---------- */
 .th-rank {
@@ -273,3 +215,64 @@
 .bd-entry-tx i { display: block; font-style: normal; font-size: 12px; font-weight: 600; color: var(--muted); }
 .bd-entry > svg { width: 18px; height: 18px; color: var(--faint); }
 .bd-entry:active { transform: scale(.985); }
+
+/* ============================================================
+   11 ต.ค. 69 · กรอบรูปหรู + ป้ายไฟเรืองแสง
+   ------------------------------------------------------------
+   รอบ "เวทีเต็มจอ + น้องฮูกถือถ้วย" ถูกตีกลับว่า "แย่มาก" (ดูเด็ก สีจืด) → ถอยกลับมาที่แบบที่ขึ้นเว็บ
+   แล้วเพิ่มเฉพาะสองอย่างที่เจ้าของเลือกว่าชอบจากภาพอ้างอิง: "กรอบรูปคนหรู ๆ" กับ "ป้ายเลเวล/ไฟเรืองแสง"
+   ============================================================ */
+
+/* รูปตัวอักษรย่อให้มีมิติ — เงาสว่างด้านบน เงาเข้มด้านล่าง (ทุกรูปบนจอนี้) */
+.bd-body .fr-av { position: relative; overflow: hidden; }
+.bd-body .fr-av::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(160deg, rgba(255, 255, 255, .32) 0%, rgba(255, 255, 255, 0) 45%, rgba(0, 0, 0, .18) 100%);
+}
+
+/* ---- สามอันดับแรก: ช่อใบไม้โลหะ + วงแหวนโลหะเงาวาว ---- */
+.bd-pc-av { isolation: isolate; }
+.bd-laurel {
+  position: absolute; left: 50%; top: 50%; width: 168%; height: 168%; z-index: -2;
+  transform: translate(-50%, -46%);
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .25));
+}
+.bd-ring {
+  position: absolute; inset: -6px; z-index: 1; border-radius: 50%; pointer-events: none;
+  background: conic-gradient(from 0deg, var(--m), #fff, var(--m), rgba(0, 0, 0, .25), var(--m), #fff, var(--m));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4.5px), #000 calc(100% - 4px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 4.5px), #000 calc(100% - 4px));
+  animation: bd-spin 7s linear infinite;
+}
+.bd-pc-av .fr-av { box-shadow: 0 10px 20px -8px rgba(15, 27, 45, .5); }
+.bd-pc.p1 .bd-ring { inset: -7px; box-shadow: 0 0 22px 2px rgba(255, 200, 70, .55); }
+.bd-pc-av .bd-medal { z-index: 2; }
+.bd-crown { z-index: 3; top: -30px; }
+.bd-pc-av .bd-fire { position: absolute; left: -14px; top: -4px; z-index: 3; min-width: 0; padding: 2px 7px 2px 5px; font-size: 11px; animation: none; box-shadow: 0 0 0 2px var(--card), 0 0 10px rgba(255, 94, 98, .5); }
+@keyframes bd-spin { to { transform: rotate(360deg); } }
+
+/* ---- ป้ายไฟวันติด: เรืองแสงแบบป้ายเลเวลในเกม ---- */
+.bd-fire {
+  display: inline-flex; align-items: center; gap: 2px; flex: none; font-style: normal;
+  min-width: 34px; justify-content: center; padding: 3px 8px 3px 6px; border-radius: 999px;
+  background: linear-gradient(135deg, #FFB547, #FF5E62 55%, #E0388A);
+  color: #fff; font-size: 12px; font-weight: 900; text-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+  box-shadow: 0 0 0 2px var(--card), 0 0 14px rgba(255, 94, 98, .65);
+  animation: bd-glow 2.2s ease-in-out infinite;
+}
+.bd-fire svg { width: 13px; height: 13px; color: #FFF3C4; fill: #FFD27A; }
+@keyframes bd-glow { 50% { box-shadow: 0 0 0 2px var(--card), 0 0 22px rgba(255, 94, 98, .9); } }
+
+/* ---- แถวที่เหลือ: วงแหวนสีหลักรอบรูป · 10 อันดับแรกเรืองแสง ---- */
+.bd-rav { position: relative; line-height: 0; border-radius: 50%; padding: 2.5px;
+  background: conic-gradient(var(--blue), color-mix(in srgb, var(--blue) 30%, #fff), var(--blue)); }
+.bd-rav .fr-av { box-shadow: 0 0 0 2px var(--card); }
+
+
+/* ในแถวรายชื่อ ป้ายอยู่ในช่องชื่อที่ตัดล้น (overflow: hidden) — แสงเรืองจะโดนตัดเป็นกรอบสี่เหลี่ยม
+   จึงเหลือแค่วงขอบ ไม่มีแสงฟุ้ง */
+.bd-row .bd-fire { box-shadow: none; animation: none; padding: 2px 7px 2px 5px; font-size: 11.5px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bd-ring, .bd-fire { animation: none; }
+}
