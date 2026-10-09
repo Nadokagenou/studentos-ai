@@ -276,3 +276,91 @@
 @media (prefers-reduced-motion: reduce) {
   .bd-ring, .bd-fire { animation: none; }
 }
+
+/* ============================================================
+   11 ต.ค. 69 · สองชั้น: พื้นหลังสีสด + แผ่นทับครึ่งล่าง
+   ------------------------------------------------------------
+   เจ้าของ: "ดีขึ้นแต่ขาดสีสัน ลองจัดองค์ประกอบเหมือนรอบนั้นใหม่ ... มี 2 เลย์เยอร์ พื้นหลังกับที่ทับ
+   พื้นหลังอยู่ด้านครึ่งจอล่าง ... อย่าก็อป เอามาประยุกต์กับเรา"
+   สีพื้นหลังผูกกับสีหลักของธีม (--blue) แล้วเติมชมพูกับส้มอมทองเป็นแสงสามจุด
+   — เปลี่ยนธีมแล้วพื้นเปลี่ยนตาม แต่ยังมีสีสันทุกธีม ไม่ใช่ฟ้าซีดสีเดียวแบบรอบเวทีเต็มจอ
+   ============================================================ */
+.bd-body { padding: 0 0 calc(88px + var(--tabgap, 0px)) !important; gap: 0 !important; position: relative; }
+
+/* ---------- ชั้นหลัง ---------- */
+.bd-bg {
+  position: relative; overflow: hidden; isolation: isolate;
+  padding: 14px 16px 100px; color: #fff;
+  background:
+    radial-gradient(70% 55% at 12% 8%, color-mix(in srgb, var(--blue) 45%, transparent) 0%, transparent 60%),
+    radial-gradient(70% 60% at 94% 20%, rgba(255, 111, 181, .78) 0%, transparent 64%),
+    radial-gradient(90% 60% at 30% 100%, rgba(255, 168, 92, .6) 0%, transparent 66%),
+    var(--grad-hero);   /* พื้นเข้มของธีม — ทุกธีมออกแบบให้ตัวหนังสือขาวอ่านได้บนนี้ (ธีม magic สีหลักเป็นทองอ่อน ใช้ --blue ตรง ๆ แล้วตัวขาวจม) */
+}
+/* เส้นโค้งจาง ๆ พาดฉาก — ให้พื้นมีชั้นมีจังหวะ ไม่ใช่สีไล่แผ่นเดียว */
+.bd-bg-arc {
+  position: absolute; left: -30%; right: -30%; top: 86px; height: 260px; z-index: -1; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, .14), rgba(255, 255, 255, .05) 70%, transparent 71%);
+}
+.bd-bg-spark {
+  position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(2px 2px at 14% 30%, #fff, transparent), radial-gradient(1.5px 1.5px at 82% 14%, #fff, transparent),
+    radial-gradient(2px 2px at 68% 40%, rgba(255, 236, 170, .95), transparent), radial-gradient(1.5px 1.5px at 30% 58%, #fff, transparent),
+    radial-gradient(2.5px 2.5px at 90% 62%, rgba(255, 255, 255, .8), transparent), radial-gradient(1.5px 1.5px at 8% 76%, rgba(255, 236, 170, .9), transparent);
+  animation: bd-twinkle 3s ease-in-out infinite alternate;
+}
+@keyframes bd-twinkle { from { opacity: .35; } to { opacity: 1; } }
+
+.bd-topbar { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
+.bd-title { margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -.02em; color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, .25); }
+.bd-swap {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 14px;
+  border-radius: 999px; cursor: pointer; border: 1px solid rgba(255, 255, 255, .45);
+  background: rgba(255, 255, 255, .18); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  color: #fff; font-family: inherit; font-size: 13.5px; font-weight: 800;
+}
+.bd-swap svg { width: 16px; height: 16px; }
+.bd-swap:active { transform: scale(.97); }
+.bd-bg .sh-btn { color: #fff !important; }
+
+/* ---------- แท่นบนพื้นหลัง: ลำแสงสีเหรียญแทนแท่นกล่อง · ที่ 1 ยกสูงกว่า ---------- */
+.bd-bg .bd-podium { padding-top: 58px; align-items: end; }
+.bd-bg .bd-pc { position: relative; padding-bottom: 0; }
+.bd-bg .bd-pc.p1 { padding-bottom: 30px; }
+.bd-beam {
+  position: absolute; left: 50%; bottom: -64px; width: 120%; height: 230px; transform: translateX(-50%); z-index: -1;
+  background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--m) 55%, transparent) 55%, transparent 100%);
+  -webkit-mask: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent);
+          mask: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent);
+  opacity: .55; pointer-events: none;
+}
+.bd-pc.p1 .bd-beam { opacity: .8; height: 280px; }
+.bd-bg .bd-medal { box-shadow: 0 0 0 2.5px rgba(255, 255, 255, .9); }
+.bd-bg .bd-pc-n {
+  margin-top: 22px; padding: 4px 12px; border-radius: 999px;
+  background: rgba(15, 20, 45, .32); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, .85); border: 1px solid rgba(255, 255, 255, .22);
+}
+.bd-bg .bd-pc-n b { color: #fff; font-size: 18px; }
+.bd-bg .bd-pc.p1 .bd-pc-n { background: linear-gradient(180deg, #FFE38A, #EDB93E); color: #6A4A00; border-color: transparent;
+  box-shadow: 0 8px 20px -8px rgba(185, 132, 32, .8); }
+.bd-bg .bd-pc.p1 .bd-pc-n b { color: #4E3400; font-size: 22px; }
+.bd-bg .bd-pc-nm { margin-top: 6px; color: rgba(255, 255, 255, .88); text-shadow: 0 1px 6px rgba(0, 0, 0, .3); }
+.bd-bg .bd-pc.me .bd-pc-nm { color: #FFE58A; }
+.bd-bg .bd-pc.empty { opacity: .55; }
+.bd-bg .bd-pc.empty .fr-av { background: rgba(255, 255, 255, .2); }
+.bd-bg .bd-podium.bd-skel { min-height: 220px; background: none; }
+
+/* ---------- ชั้นหน้า: แผ่นโค้งทับครึ่งล่าง · การ์ดของเราคร่อมขอบแผ่น ---------- */
+.bd-sheet {
+  position: relative; z-index: 1; margin-top: -34px; padding: 0 16px;
+  display: flex; flex-direction: column; gap: 10px;
+  border-radius: 30px 30px 0 0; background: var(--scr);
+  box-shadow: 0 -12px 30px -14px rgba(15, 20, 45, .35);
+}
+.bd-sheet > .bd-me { margin-top: -26px; border: none;
+  box-shadow: 0 18px 36px -18px rgba(15, 20, 45, .45), 0 0 0 1px var(--line); }
+.bd-sheet > .bd-gate, .bd-sheet > .bd-me.bd-skel { margin-top: 18px; }
+@media (prefers-reduced-motion: reduce) { .bd-bg-spark { animation: none; } }

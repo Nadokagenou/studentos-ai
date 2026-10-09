@@ -141,36 +141,26 @@ function renderBoard() {
   const err = boardErr[boardScope];
   const isAll = boardScope === 'all';
 
-  // 11 ต.ค. 69 · ลำดับสายตา (เจ้าของ: "ยังจัดลำดับสายตาผิดทั้งหมด ... ข้อความอื่น ๆ ด้วย")
-  //   1) แท่นสามอันดับ: รูป(+ช่อ) → คะแนน → ชื่อ
-  //   2) เป้าถัดไปของเรา "อีก 2 งาน แซง ต้นกล้า"
-  //   3) อันดับของเรา
-  //   4) ที่เหลือ
-  //   5) ข้อมูลประกอบ (ซีซัน · วันที่เหลือ · วันติด) — ตัวเล็กสีจาง อยู่บรรทัดเดียวในการ์ดเรา
-  // หัวจอเหลือชื่อจอกับตัวสลับ — เดิมวันที่ซีซันอยู่เหนือชื่อจอ ตาจึงอ่านวันที่ก่อนทุกอย่าง
-  const head = `<div class="sticky-head row sh-inline">
-      <div></div>
+  // 11 ต.ค. 69 · สองชั้นแบบภาพอ้างอิง (เจ้าของ: "มี 2 เลย์เยอร์ พื้นหลังกับที่ทับพื้นหลังอยู่ครึ่งจอล่าง
+  // ... แต่อย่าก็อป เอามาประยุกต์กับเรา") + "ขาดสีสัน"
+  //   ชั้นหลัง (.bd-bg) — พื้นสีสดเต็มขอบจอ: ปุ่มกลับ · ชื่อจอ · ตัวสลับ · แท่นสามอันดับ (ตัวหนังสือขาว)
+  //   ชั้นหน้า (.bd-sheet) — แผ่นโค้งทับครึ่งล่าง: การ์ดของเรา (คร่อมขอบแผ่น) → รายชื่อ
+  // ลำดับสายตาเหมือนรอบก่อน: สามอันดับ → เป้าถัดไป → อันดับเรา → ที่เหลือ → ข้อมูลประกอบ
+  const top = `<div class="bd-topbar">
       <button class="sh-btn" onclick="go(boardBack)" aria-label="กลับ">
         <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
-    </div>
-    <div class="page-head"><h1 class="page-title">อันดับ</h1></div>
-    ${currentUser ? `<div class="bd-seg${isAll ? '' : ' r'}" role="tablist">
-      <i class="bd-seg-k"></i>
-      <button role="tab" aria-selected="${isAll}" class="${isAll ? 'on' : ''}" onclick="boardScopeSet('all')">ทั้งหมด</button>
-      <button role="tab" aria-selected="${!isAll}" class="${isAll ? '' : 'on'}" onclick="boardScopeSet('friends')">เพื่อน</button>
-    </div>` : ''}`;
+      <h1 class="bd-title">อันดับ</h1>
+      ${currentUser ? `<button class="bd-swap" onclick="boardScopeSet('${isAll ? 'friends' : 'all'}')">${
+        isAll ? `${icon('users')}เพื่อน` : `${icon('trophy')}ทั้งหมด`}</button>` : '<span></span>'}
+    </div>`;
 
-  if (!sb || !currentUser) {
-    body.innerHTML = head + `<div class="bd-gate">${icon('trophy')}
-        <b>เข้าบัญชีก่อนถึงจะขึ้นกระดานได้</b>
-        <button class="fr-gate-go" onclick="loginFromFriends()">เข้าสู่ระบบ</button></div>`;
-    return;
-  }
-  if (!d) {
-    body.innerHTML = head + (err
-      ? `<div class="bd-gate">${icon('trophy')}<b>${err === 'soon' ? 'กระดานอันดับยังไม่เปิด' : 'โหลดไม่สำเร็จ'}</b>
-          ${err === 'net' ? '<button class="fr-gate-go" onclick="loadBoard()">ลองใหม่</button>' : ''}</div>`
-      : `<div class="bd-podium bd-skel"></div><div class="bd-me bd-skel"></div>`);
+  if (!sb || !currentUser || !d) {
+    const msg = !sb || !currentUser
+      ? `<b>เข้าบัญชีก่อนถึงจะขึ้นกระดานได้</b><button class="fr-gate-go" onclick="loginFromFriends()">เข้าสู่ระบบ</button>`
+      : err ? `<b>${err === 'soon' ? 'กระดานอันดับยังไม่เปิด' : 'โหลดไม่สำเร็จ'}</b>${
+          err === 'net' ? '<button class="fr-gate-go" onclick="loadBoard()">ลองใหม่</button>' : ''}` : '';
+    body.innerHTML = `<div class="bd-bg">${top}<div class="bd-podium ${msg ? '' : 'bd-skel'}"></div></div>
+      <div class="bd-sheet">${msg ? `<div class="bd-gate">${icon('trophy')}${msg}</div>` : '<div class="bd-me bd-skel"></div>'}</div>`;
     return;
   }
 
@@ -182,11 +172,15 @@ function renderBoard() {
 
   body.classList.toggle('bd-anim', boardAnim);
   boardAnim = false;
-  body.innerHTML = head
-    + boardPodium(rows, step())
-    + boardMine(d, me, rows, isAll, step())
-    + (rest.length ? `<div class="bd-list">${boardList(rest, step)}</div>` : '')
-    + (d.hidden ? '' : `<button class="bd-leave" onclick="boardToggleHide()">ซ่อนชื่อฉันจากกระดาน</button>`);
+  body.innerHTML = `<div class="bd-bg">
+      <i class="bd-bg-arc" aria-hidden="true"></i><i class="bd-bg-spark" aria-hidden="true"></i>
+      ${top}${boardPodium(rows, step())}
+    </div>
+    <div class="bd-sheet">
+      ${boardMine(d, me, rows, isAll, step())}
+      ${rest.length ? `<div class="bd-list">${boardList(rest, step)}</div>` : ''}
+      ${d.hidden ? '' : `<button class="bd-leave" onclick="boardToggleHide()">ซ่อนชื่อฉันจากกระดาน</button>`}
+    </div>`;
 }
 
 function boardScopeSet(scope) {
@@ -271,12 +265,12 @@ function boardPodium(rows, st) {
     if (!r) return `<div class="bd-pc p${place} empty">
         <div class="bd-pc-av"><div class="fr-av"></div><i class="bd-medal">${place}</i></div>
         <div class="bd-pc-n">&nbsp;</div><div class="bd-pc-nm">ว่าง</div>
-        <div class="bd-pc-base"></div></div>`;
+        </div>`;
     return `<div class="bd-pc p${place}${r.me ? ' me' : ''}">
+        <i class="bd-beam" aria-hidden="true"></i>
         <div class="bd-pc-av">${boardLaurel(place)}<i class="bd-ring" aria-hidden="true"></i>${place === 1 ? `<i class="bd-crown">${icon('crown')}</i>` : ''}${boardAv(r)}<i class="bd-medal">${r.rank}</i>${boardStreak(r)}</div>
         <div class="bd-pc-n"><b>${r.n}</b> งาน</div>
         <div class="bd-pc-nm">${r.me ? 'คุณ' : esc(boardName(r))}</div>
-        <div class="bd-pc-base"></div>
       </div>`;
   };
   return `<div class="bd-podium bd-in" ${st}>${col(2)}${col(1)}${col(3)}</div>`;
