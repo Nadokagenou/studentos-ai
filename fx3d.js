@@ -92,7 +92,7 @@ function fx3dFallback(id, title, onClose, preview, why) {
 
 async function open3D(id, title, onClose, preview) {
   const G = FX3D_GAMES[id];
-  if (!G || !fx3dSupported()) return fx3dFallback(id, title, onClose, preview, G ? 'เครื่องนี้เปิด 3D ไม่ได้ — เล่นแบบ 2D' : '');
+  if (!G || !fx3dSupported()) return fx3dFallback(id, title, onClose, preview, G ? 'เครื่องนี้เปิด 3D ไม่ได้ เล่นแบบ 2D' : '');
   const run = fxShell(title, onClose, preview, G.aria + ' แบบ 3D', G.hint);
   if (!run) return;
   Object.assign(run, { id, G, label: fxLabel(title), parts: [], bodies: [], sprites: [], shake: 0, t: 0, is3d: true });
@@ -107,7 +107,7 @@ async function open3D(id, title, onClose, preview) {
   let T;
   try { T = await fx3dLoad(); await fx3dLoadPP().catch(() => null); }
   catch (_) {
-    if (fxRun === run) { closeFx(true); fx3dFallback(id, title, onClose, preview, 'โหลด 3D ไม่ได้ — เล่นแบบ 2D แทน'); }
+    if (fxRun === run) { closeFx(true); fx3dFallback(id, title, onClose, preview, 'โหลด 3D ไม่ได้ เล่นแบบ 2D แทน'); }
     return;
   }
   if (fxRun !== run) return;
@@ -121,7 +121,7 @@ async function open3D(id, title, onClose, preview) {
   try { fx3dSetup(run, T); G.init(run, T); try { fx3dPost(run); } catch (_) { run.comp = null; } }
   catch (e) {
     console.warn('fx3d', e);
-    if (fxRun === run) { closeFx(true); fx3dFallback(id, title, onClose, preview, 'เปิด 3D ไม่สำเร็จ — เล่นแบบ 2D'); }
+    if (fxRun === run) { closeFx(true); fx3dFallback(id, title, onClose, preview, 'เปิด 3D ไม่สำเร็จ เล่นแบบ 2D'); }
     return;
   }
   // ภาพถ่ายพื้นหลัง / โมเดลคน — รอได้ไม่เกิน 4 วิ ช้ากว่านั้นเริ่มเล่นด้วยฉากที่สร้างเองไปก่อน (ภาพมาแทนทีหลังเอง)
@@ -678,7 +678,7 @@ function fx3dChip(run, g, pos, dy = 28) {
 // ขอบห่วงเป็นวงแหวนที่ชนได้จริงรอบวง · ชนแป้นได้ · ลงห่วงได้เฉพาะขาลง
 // ============================================================
 FX3D_GAMES.hoop = {
-  aria: 'โยนงานที่เสร็จลงห่วง', hint: 'ดึงลงแล้วปล่อย เพื่อโยนลงห่วง', easy: 'ใบ้ให้แล้ว — ดูเส้นจุดตอนดึง',
+  aria: 'โยนงานที่เสร็จลงห่วง', hint: 'ดึงลงแล้วปล่อย เพื่อโยนลงห่วง', easy: 'ใบ้ให้แล้ว ดูเส้นจุดตอนดึง',
   // หอประชุมโรงเรียนพื้นไม้ (ภาพจริง) — ทุกช่วงเวลา (ในร่มเปิดไฟ) · สีธีมอยู่ที่สีในสนามกับเบาะเสา
   load(run, T) { return fx3dPhoto(run, T, { day: 'school_hall', sunset: 'school_hall', night: 'school_hall' }, { ground: true, height: 1.7, radius: 18, rot: 180, envI: 0.9 }); },
   RIM_Y: 3.05, RIM_R: 0.23, BALL_R: 0.12, HZ: -4.6, MAXP: 140,
@@ -912,7 +912,7 @@ FX3D_GAMES.hoop = {
   miss(run) {
     if (run.missing || run.done) return;
     const short = run.apex < this.RIM_Y + 0.05;
-    fxMiss(run, run.touched ? 'โดนขอบ! เกือบแล้ว' : run.board ? 'ชนแป้น — เบาลงนิด' : short ? 'แรงไม่ถึง — ดึงยาวอีกนิด' : 'ออกข้าง — ลองเล็งใหม่',
+    fxMiss(run, run.touched ? 'โดนขอบ! เกือบแล้ว' : run.board ? 'ชนแป้น เบาลงนิด' : short ? 'แรงไม่ถึง ดึงยาวอีกนิด' : 'ออกข้าง ลองเล็งใหม่',
       () => this.reset(run), { delay: 1100 });
     setTimeout(() => { if (fxRun === run) run.fly = false; }, 1000);
   },
@@ -932,7 +932,7 @@ FX3D_GAMES.hoop = {
 // ผู้รักษาประตูเดินไปมา แล้ว "พุ่งตามลูก" หลังเตะ 0.18 วิ ด้วยความเร็วจำกัด — มุมไกลยังเอาชนะได้
 // ============================================================
 FX3D_GAMES.goal = {
-  aria: 'เตะงานที่เสร็จเข้าประตู', hint: 'ปัดลูกขึ้นไปทางประตู · หลบผู้รักษาประตู', easy: 'ผู้รักษาประตูเหนื่อยแล้ว — ช้าลงนะ',
+  aria: 'เตะงานที่เสร็จเข้าประตู', hint: 'ปัดลูกขึ้นไปทางประตู · หลบผู้รักษาประตู', easy: 'ผู้รักษาประตูเหนื่อยแล้ว ช้าลงนะ',
   // สนามฟุตบอลจริง (ภาพถ่าย) ตอนกลางวัน · เย็น/กลางคืนใช้สนามที่สร้างเอง (ไม่มีภาพสนามตอนกลางคืนที่เป็น CC0)
   // + ผู้รักษาประตูเป็นหุ่นคนสัดส่วนจริงมีท่าทาง (Quaternius · CC0) แทนหุ่นแคปซูล
   load(run, T) { return Promise.all([fx3dPhoto(run, T, { day: 'stadium_01' }, { rot: 90, envI: 0.9 }), fx3dKeeper(run, T)]); },
@@ -1045,7 +1045,7 @@ FX3D_GAMES.goal = {
     run.held = false;
     if (v.y > -300) { say(run, 'ปัด<b>ขึ้น</b>ไปทางประตู'); return; }
     const s = Math.hypot(v.x, v.y);
-    if (s < 500) { say(run, 'เบาไป — ปัดแรงกว่านี้'); return; }
+    if (s < 500) { say(run, 'เบาไป ปัดแรงกว่านี้'); return; }
     const vf = fxClamp(14 + (s - 800) / 120, 12, 30);
     const vy = fxClamp((s - 500) / 1900, 0, 1.35) * 8.5;
     // ทิศซ้ายขวา: ยิงรังสีจากจอไปหาเส้นประตูจริง (มุมมองไกลใกล้) — ไม่คูณอัตราส่วนบนจอตรง ๆ
@@ -1117,8 +1117,8 @@ FX3D_GAMES.goal = {
         HSFX.rim(1); v.z = -v.z * 0.5; v.x *= -0.6; run.after = true;
         return fxMiss(run, postHit ? 'ชนเสา! เกือบแล้ว' : 'ชนคาน!', reset, { delay: 1200 });
       }
-      if (ax > W / 2) { run.after = true; return fxMiss(run, 'ออกข้าง — เล็งเข้ากรอบ', reset, { delay: 1100 }); }
-      if (b.y > H) { run.after = true; return fxMiss(run, 'ข้ามคาน — ปัดเบาลงนิด', reset, { delay: 1100 }); }
+      if (ax > W / 2) { run.after = true; return fxMiss(run, 'ออกข้าง เล็งเข้ากรอบ', reset, { delay: 1100 }); }
+      if (b.y > H) { run.after = true; return fxMiss(run, 'ข้ามคาน ปัดเบาลงนิด', reset, { delay: 1100 }); }
       if (kHit) {
         FXS.glove(); v.z = Math.abs(v.z) * 0.35; v.x = (b.x - run.kx) * 6; v.y = 2.5; run.after = true;
         fx3dKeeperPose(run, 'Jump_Land', true);
@@ -1132,7 +1132,7 @@ FX3D_GAMES.goal = {
     }
     if (run.scored && b.z < gz - 1.7) { b.z = gz - 1.7; v.z = 0; }
     if (b.z < gz - 3 || run.ft > 3) {
-      if (!run.scored && !run.after) { run.after = true; fxMiss(run, 'เบาไป — ลูกกลิ้งไม่ถึงประตู', () => this.reset(run)); }
+      if (!run.scored && !run.after) { run.after = true; fxMiss(run, 'เบาไป ลูกกลิ้งไม่ถึงประตู', () => this.reset(run)); }
     }
   },
   draw2d(run, g) { if (!run.fly && !run.done && !run.missing) fx3dChip(run, g, run.ball.position, 26); },
@@ -1337,7 +1337,7 @@ FX3D_GAMES.bat = {
       if (run.p > 1.12) {
         run.st = 'caught';
         FXS.glove();
-        fxMiss(run, !run.swung ? 'สไตรค์! แตะจอตอนลูกเข้ากรอบ' : run.early ? 'เร็วไป — รอให้ลูกถึงกรอบก่อน' : 'ช้าไป — แตะเร็วขึ้นนิด', () => this.reset(run), { delay: 1100 });
+        fxMiss(run, !run.swung ? 'สไตรค์! แตะจอตอนลูกเข้ากรอบ' : run.early ? 'เร็วไป รอให้ลูกถึงกรอบก่อน' : 'ช้าไป แตะเร็วขึ้นนิด', () => this.reset(run), { delay: 1100 });
       }
     }
     if (run.hit) {
@@ -1509,8 +1509,8 @@ FX3D_GAMES.golf = {
     if (sp < 0.02 || Math.abs(b.x) > 7 || b.z < -12 || b.z > 4) {
       run.roll = false;
       const past = b.z < run.hz - 0.1;
-      fxMiss(run, run.fastNear ? 'แรงไป — ลูกข้ามหลุม' : past ? 'แรงไปนิด เลยหลุม' : run.near < 0.4 ? 'เกือบแล้ว! อีกนิดเดียว'
-        : b.z > run.hz + 0.6 ? 'สั้นไป — ดึงยาวขึ้น' : 'เลี้ยวตามลาด — เล็งเผื่อด้วย', () => this.reset(run));
+      fxMiss(run, run.fastNear ? 'แรงไป ลูกข้ามหลุม' : past ? 'แรงไปนิด เลยหลุม' : run.near < 0.4 ? 'เกือบแล้ว! อีกนิดเดียว'
+        : b.z > run.hz + 0.6 ? 'สั้นไป ดึงยาวขึ้น' : 'เลี้ยวตามลาด เล็งเผื่อด้วย', () => this.reset(run));
     }
   },
   draw2d(run, g) {
@@ -1893,7 +1893,7 @@ FX3D_GAMES.bomb = {
     const lp = run.pile.position;
     const direct = Math.abs(b.x - lp.x) < 0.48 && Math.abs(b.z - lp.z) < 0.34 && b.y < run.pileTop + 0.1;
     if (direct || b.y < 0.12) this.explode(run, direct);
-    else if (Math.abs(b.x) > 14 || b.z < -30) { run.fly = false; run.bomb.visible = false; fxMiss(run, 'ปาเลยไปไกล — ดึงเบาลง', () => this.reset(run)); }
+    else if (Math.abs(b.x) > 14 || b.z < -30) { run.fly = false; run.bomb.visible = false; fxMiss(run, 'ปาเลยไปไกล ดึงเบาลง', () => this.reset(run)); }
   },
   explode(run, direct) {
     const T = run.T;
@@ -1950,7 +1950,7 @@ FX3D_GAMES.bomb = {
       fx3dWin(run, direct ? 'ตูม!! ตรงเป้า' : 'ตูม!!', lp.clone().add(new T.Vector3(0, 0.8, 0)), { clean: direct, burstDelay: 200, hold: 2000 });
     } else {
       const far = (c.z < lp.z);
-      fxMiss(run, 'พลาดเป้า — ' + (far ? 'เลยไป ดึงเบาลง' : Math.abs(c.x - lp.x) > 1.5 ? 'เบี้ยวไป เล็งใหม่' : 'ไม่ถึง ดึงแรงขึ้น'), () => this.reset(run), { delay: 1400, quiet: true });
+      fxMiss(run, 'พลาดเป้า ' + (far ? 'เลยไป ดึงเบาลง' : Math.abs(c.x - lp.x) > 1.5 ? 'เบี้ยวไป เล็งใหม่' : 'ไม่ถึง ดึงแรงขึ้น'), () => this.reset(run), { delay: 1400, quiet: true });
       setTimeout(() => { if (fxRun === run && !run.done) HSFX.miss(); }, 350);
     }
   },
@@ -2141,7 +2141,7 @@ FX3D_GAMES.crumple = {
       if (!run.missing && !run.done) {
         FXS.paperLand();
         const short = b.z > run.binZ + bw, long = b.z < run.binZ - bw;
-        fxMiss(run, run.touched ? 'โดนขอบถัง! เกือบแล้ว' : short ? 'ไม่ลง — แรงไม่ถึง' : long ? 'ไม่ลง — แรงไป' : 'ไม่ลง — เบี้ยวไป', () => {
+        fxMiss(run, run.touched ? 'โดนขอบถัง! เกือบแล้ว' : short ? 'ไม่ลง แรงไม่ถึง' : long ? 'ไม่ลง แรงไป' : 'ไม่ลง เบี้ยวไป', () => {
           run.fly = false; run.paper.position.copy(run.p0); run.paper.rotation.set(0, 0, 0);
         }, { delay: 1100 });
       }
@@ -2271,7 +2271,7 @@ FX3D_GAMES.glass = {
     run.glass.rotation.set(Math.PI / 2, 0, fxRand(-1, 1));
     run.glass.position.y = 0.045;
     FXS.clink();
-    fxMiss(run, 'เบาไป แก้วไม่แตก — ปาแรงกว่านี้', () => this.reset(run), { delay: 1150 });
+    fxMiss(run, 'เบาไป แก้วไม่แตก ปาแรงกว่านี้', () => this.reset(run), { delay: 1150 });
   },
   smash(run, at) {
     const T = run.T;

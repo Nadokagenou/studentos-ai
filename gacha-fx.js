@@ -182,11 +182,11 @@ function gcRevealShow(r) {
   ov.className = 'gc-rv b-' + r.rarity;
   let note = '';
   if (r.kind === 'fx3d') {
-    note = r.duplicate ? 'มีอยู่แล้ว — คืน ' + fmtTok(r.amount) + ' โทเคน'
+    note = r.duplicate ? 'มีอยู่แล้ว คืนให้ ' + fmtTok(r.amount) + ' โทเคน'
       : r.locked ? 'ซื้อเอฟเฟกต์ "' + FX3D_NAME[r.fx] + '" ในร้านค้า (10 โทเคน) แล้ว 3D ใช้ได้ทันที'
       : 'สลับเป็น 3D ได้ที่ ตั้งค่า › ธีมสี';
   } else if (r.kind === 'skin') {
-    note = r.duplicate ? 'มีอยู่แล้ว — คืน ' + fmtTok(r.amount) + ' โทเคน' : 'เลือกใช้ได้ที่ ตั้งค่า › ธีมสี';
+    note = r.duplicate ? 'มีอยู่แล้ว คืนให้ ' + fmtTok(r.amount) + ' โทเคน' : 'เลือกใช้ได้ที่ ตั้งค่า › ธีมสี';
   }
   ov.innerHTML = `<i class="gcr-bg"></i><i class="gcr-rays"></i><i class="gcr-rays r2"></i><i class="gcr-ring"></i>
     <div class="gcr-hd">${r.kind === 'fx3d' ? 'MYTHIC · เอฟเฟกต์ 3D' : GC_LABEL[r.rarity]}</div>

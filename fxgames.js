@@ -441,7 +441,7 @@ const FXS = {
 FX_GAMES.goal = {
   aria: 'เตะงานที่เสร็จเข้าประตู',
   hint: 'ปัดลูกขึ้นไปทางประตู · หลบผู้รักษาประตู',
-  easy: 'ผู้รักษาประตูเหนื่อยแล้ว — ช้าลงนะ',
+  easy: 'ผู้รักษาประตูเหนื่อยแล้ว ช้าลงนะ',
   init(r) { r.kph = fxRand(0, 6); this.layout(r); this.reset(r); },
   layout(r) {
     r.gw = Math.min(r.W * 0.74, 280); r.gh = r.gw * 0.36;
@@ -499,7 +499,7 @@ FX_GAMES.goal = {
     const reset = () => this.reset(r);
     if (f.weak) {
       r.after = { t: 0, vx: 0, vy: 0, vh: 0, vs: 0 };
-      return fxMiss(r, 'เบาไป — ปัดแรงกว่านี้', reset);
+      return fxMiss(r, 'เบาไป ปัดแรงกว่านี้', reset);
     }
     if (Math.abs(Math.abs(dx) - half) < rr + 3 && f.h < r.gh) {
       HSFX.rim(0.9);
@@ -508,12 +508,12 @@ FX_GAMES.goal = {
     }
     if (Math.abs(dx) > half) {
       r.after = { t: 0, vx: Math.sign(dx) * 200, vy: -60, vh: 0, vs: -0.3 };
-      return fxMiss(r, 'ออกข้าง — เล็งเข้ากรอบ', reset);
+      return fxMiss(r, 'ออกข้าง เล็งเข้ากรอบ', reset);
     }
     if (f.h > r.gh - rr) {
       if (f.h < r.gh + rr) HSFX.rim(0.7);
       r.after = { t: 0, vx: dx * 0.2, vy: -40, vh: 260, vs: -0.4 };
-      return fxMiss(r, f.h < r.gh + rr ? 'ชนคาน!' : 'ข้ามคาน — ปัดเบาลงนิด', reset);
+      return fxMiss(r, f.h < r.gh + rr ? 'ชนคาน!' : 'ข้ามคาน ปัดเบาลงนิด', reset);
     }
     const kReach = r.tries >= 3 ? 20 : 30;
     if (Math.abs(f.tx - r.kx) < kReach + rr && f.h < r.gh * 0.78) {
@@ -675,7 +675,7 @@ FX_GAMES.bat = {
         r.st = 'caught';
         FXS.glove();
         const reset = () => this.reset(r);
-        fxMiss(r, !r.swung ? 'สไตรค์! แตะจอตอนลูกเข้ากรอบ' : r.early ? 'เร็วไป — รอให้ลูกถึงกรอบก่อน' : 'ช้าไป — แตะเร็วขึ้นนิด', reset, { delay: 1100 });
+        fxMiss(r, !r.swung ? 'สไตรค์! แตะจอตอนลูกเข้ากรอบ' : r.early ? 'เร็วไป รอให้ลูกถึงกรอบก่อน' : 'ช้าไป แตะเร็วขึ้นนิด', reset, { delay: 1100 });
       }
     }
     if (r.hitBall) {
@@ -845,7 +845,7 @@ FX_GAMES.golf = {
       r.roll = false;
       const reset = () => this.reset(r);
       const past = r.by < r.hy - 6;
-      fxMiss(r, r.fastNear ? 'แรงไป — ลูกข้ามหลุม' : past ? 'แรงไปนิด เลยหลุม' : r.near < 40 ? 'เกือบแล้ว! สั้นไปนิดเดียว' : r.by > r.hy + 30 ? 'สั้นไป — ดึงยาวขึ้น' : 'เบี้ยวไป — เล็งตรงหลุม', reset);
+      fxMiss(r, r.fastNear ? 'แรงไป ลูกข้ามหลุม' : past ? 'แรงไปนิด เลยหลุม' : r.near < 40 ? 'เกือบแล้ว! สั้นไปนิดเดียว' : r.by > r.hy + 30 ? 'สั้นไป ดึงยาวขึ้น' : 'เบี้ยวไป เล็งตรงหลุม', reset);
     }
   },
   draw(r, g) {
@@ -1084,7 +1084,7 @@ FX_GAMES.bomb = {
     if (direct || r.by >= r.gy - 12) return this.explode(r, direct);
     if (r.bx > r.W + 40 || r.bx < -40) {
       r.fly = false; r.gone = true;
-      fxMiss(r, 'ปาเลยจอไป — ดึงเบาลง', () => this.reset(r));
+      fxMiss(r, 'ปาเลยจอไป ดึงเบาลง', () => this.reset(r));
     }
   },
   explode(r, direct) {
@@ -1106,7 +1106,7 @@ FX_GAMES.bomb = {
       for (let i = 0; i < 26; i++) fxPart(r, { kind: 'paper', x: tcx + fxRand(-26, 26), y: tcy + fxRand(-30, 30), vx: fxRand(-260, 260), vy: fxRand(-620, -260), g: 520, drag: 0.9, size: fxRand(8, 14), vr: fxRand(-9, 9), life: 2.4 });
       fxWin(r, direct ? 'ตูม!! ตรงเป้า' : 'ตูม!!', tcx, tcy, { clean: direct, burstDelay: 200, hold: 1900 });
     } else {
-      fxMiss(r, 'พลาดเป้า — ' + (x < tcx ? 'ไม่ถึง ดึงแรงขึ้น' : 'เลยไป ดึงเบาลง'), () => this.reset(r), { delay: 1300, quiet: true });
+      fxMiss(r, 'พลาดเป้า ' + (x < tcx ? 'ไม่ถึง ดึงแรงขึ้น' : 'เลยไป ดึงเบาลง'), () => this.reset(r), { delay: 1300, quiet: true });
       setTimeout(() => { if (fxRun === r && !r.done) HSFX.miss(); }, 350);
     }
   },
@@ -1271,7 +1271,7 @@ FX_GAMES.crumple = {
       return fxMiss(r, 'โดนขอบถัง! เกือบแล้ว', reset);
     }
     FXS.paperLand();
-    fxMiss(r, 'ไม่ลง — ' + (dy > 0 ? 'แรงไม่ถึง' : dy < 0 && !depthOK ? 'แรงไป' : 'เบี้ยวไป'), reset);
+    fxMiss(r, 'ไม่ลง ' + (dy > 0 ? 'แรงไม่ถึง' : dy < 0 && !depthOK ? 'แรงไป' : 'เบี้ยวไป'), reset);
   },
   draw(r, g) {
     const W = r.W, H = r.H;
@@ -1403,7 +1403,7 @@ FX_GAMES.glass = {
   drop(r) {
     r.lay = true; r.grot = Math.PI / 2;
     FXS.clink();
-    fxMiss(r, 'เบาไป แก้วไม่แตก — ปาแรงกว่านี้', () => this.reset(r), { delay: 1150 });
+    fxMiss(r, 'เบาไป แก้วไม่แตก ปาแรงกว่านี้', () => this.reset(r), { delay: 1150 });
   },
   smash(r, f) {
     r.broken = true; r.shake = 6;

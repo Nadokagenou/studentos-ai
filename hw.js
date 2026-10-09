@@ -323,7 +323,7 @@ async function openHwRoom(key) {
         const who = (hwRoom.people || []).find(x => x.id === p.new.author);
         hwRoom.msgs.push({
           id: p.new.id, author: p.new.author, ai: p.new.is_ai, body: p.new.body,
-          at: p.new.created_at, name: (who && who.name) || (p.new.is_ai ? 'น้องไซ' : 'เพื่อนร่วมห้อง'),
+          at: p.new.created_at, name: (who && who.name) || (p.new.is_ai ? (typeof mName === 'function' ? mName() : 'น้องฮูก') : 'เพื่อนร่วมห้อง'),
           avatar: (who && who.avatar) || null,
         });
         renderHwRoom();
@@ -393,7 +393,7 @@ function renderHwRoom() {
             </div>
           </div>`).join('')
         : `<p class="hw-empty">ยังไม่มีใครพิมพ์อะไร<br>
-             ห้องนี้มีไว้ถามเรื่องงานชิ้นนี้อย่างเดียว — ถามข้อไหนที่ติดได้เลย</p>`}
+             ห้องนี้มีไว้ถามเรื่องงานชิ้นนี้อย่างเดียว ถามข้อไหนที่ติดได้เลย</p>`}
     </div>
 
     ${closed

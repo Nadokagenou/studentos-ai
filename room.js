@@ -320,7 +320,7 @@ function roomSceneSVG(r, opts) {
   };
 
   return `<svg class="rm-scene" viewBox="0 0 320 240" role="img"
-    aria-label="ห้องที่แต่งไว้${esc(r.name ? ' — ' + r.name : '')}">
+    aria-label="ห้องที่แต่งไว้${esc(r.name ? ' ' + r.name : '')}">
     <defs>
       <pattern id="rp-dots" width="16" height="16" patternUnits="userSpaceOnUse">
         <circle cx="8" cy="8" r="2" fill="#C9A9D8" opacity=".55"/></pattern>
@@ -437,7 +437,7 @@ function renderRoom() {
 
     <div class="rm-bar">
       <span class="rm-ttl">${esc(title)}</span>
-      <span class="rm-bal">${icon('bag')}${fmtTok(bal)} โทเคน</span>
+      <span class="rm-bal">${icon('bag')}<span data-tok="${bal}">${fmtTok(bal)}</span> โทเคน</span>
     </div>
 
     <div class="rm-tabs" role="tablist">
@@ -454,7 +454,7 @@ function renderRoom() {
           : `<span class="rm-mini">${roomThumb(roomTab, it)}</span>`;
         return `<button class="rm-opt${active ? ' on' : ''}${owned ? '' : ' locked'}"
           onclick="roomPick('${roomTab}','${it.id}')"
-          aria-label="${esc(it.name)}${owned ? '' : ' — ' + it.cost + ' โทเคน'}">
+          aria-label="${esc(it.name)}${owned ? '' : ' ' + it.cost + ' โทเคน'}">
           ${sw}
           <span class="rm-nm">${esc(it.name)}</span>
           ${owned ? (active ? '<span class="rm-on">ใช้อยู่</span>' : '')
@@ -514,7 +514,7 @@ function roomBuy(kind, id) {
   if ((s.bal || 0) < it.cost) {
     haptic('snooze');
     showToast({ title: 'โทเคนไม่พอ',
-      body: esc(it.name) + ' ราคา ' + it.cost + ' โทเคน — ยังขาดอีก ' + fmtTok(it.cost - (s.bal || 0)) });
+      body: esc(it.name) + ' ราคา ' + it.cost + ' โทเคน ยังขาดอีก ' + fmtTok(it.cost - (s.bal || 0)) });
     return;
   }
   s.bal = Math.round((s.bal - it.cost) * 10) / 10;

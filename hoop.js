@@ -112,7 +112,7 @@ function buyFx(id) {
   const s = tokenState();
   if ((s.bal || 0) < f.cost) {
     haptic('snooze');
-    showToast({ title: 'โทเคนไม่พอ', body: 'เอฟเฟกต์' + f.name + ' ราคา ' + f.cost + ' โทเคน — ยังขาดอีก ' + fmtTok(f.cost - (s.bal || 0)) });
+    showToast({ title: 'โทเคนไม่พอ', body: 'เอฟเฟกต์' + f.name + ' ราคา ' + f.cost + ' โทเคน ยังขาดอีก ' + fmtTok(f.cost - (s.bal || 0)) });
     return;
   }
   s.bal = Math.round((s.bal - f.cost) * 10) / 10;
@@ -157,7 +157,7 @@ function renderFxPick() {
       </div>` : cur !== 'confetti' ? `<div class="fx-seg" role="group" aria-label="โหมดภาพ">
         <span class="fx-seg-lb">ภาพ</span>
         <button type="button" class="active" onclick="previewFx('${cur}')">2D</button>
-        <button type="button" class="lock" onclick="previewFx3d('${cur}')" aria-label="3D ยังไม่ได้ปลดล็อก — ดูตัวอย่าง">🔒 3D</button>
+        <button type="button" class="lock" onclick="previewFx3d('${cur}')" aria-label="3D ยังไม่ได้ปลดล็อก ดูตัวอย่าง">🔒 3D</button>
       </div>
       <p class="fx-wait">3D สุ่มได้ในกาชา (ตัวละ 0.1%)</p>` : '')
       + (waiting.length ? `<p class="fx-wait">มี 3D รอปลดล็อก: ${waiting.map(id => esc(FX_SHOP[id].name)).join(' · ')}</p>` : '');
@@ -646,11 +646,11 @@ function missHoop(run) {
   HSFX.miss();
   const short = run.apexY > run.rimY - 6;
   say(run, run.touched ? 'โดนขอบ! เกือบแล้ว'
-    : run.over ? 'แรงไป — ข้ามกระดานเลย'
-    : short ? 'แรงไม่ถึง — ดึงยาวอีกนิด'
-    : 'ออกข้าง — ลองเล็งใหม่');
+    : run.over ? 'แรงไป ข้ามกระดานเลย'
+    : short ? 'แรงไม่ถึง ดึงยาวอีกนิด'
+    : 'ออกข้าง ลองเล็งใหม่');
   if (run.tries === HOOP.HINT_AFTER) setTimeout(() => {
-    if (fxRun === run && !run.done) say(run, 'ใบ้ให้แล้ว — ดูเส้นจุดตอนดึง');
+    if (fxRun === run && !run.done) say(run, 'ใบ้ให้แล้ว ดูเส้นจุดตอนดึง');
   }, 1600);
   // 900ms: ให้ "แป่ว แป๊ว" จบก่อนลูกเด้งกลับ ไม่งั้นเสียงป๊อปทับโน้ตสุดท้าย
   setTimeout(() => { if (fxRun === run && !run.done) resetBall(run, false); }, 900);
