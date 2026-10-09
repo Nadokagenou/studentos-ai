@@ -146,12 +146,13 @@ function renderBoard() {
   //   ชั้นหลัง (.bd-bg) — พื้นสีสดเต็มขอบจอ: ปุ่มกลับ · ชื่อจอ · ตัวสลับ · แท่นสามอันดับ (ตัวหนังสือขาว)
   //   ชั้นหน้า (.bd-sheet) — แผ่นโค้งทับครึ่งล่าง: การ์ดของเรา (คร่อมขอบแผ่น) → รายชื่อ
   // ลำดับสายตาเหมือนรอบก่อน: สามอันดับ → เป้าถัดไป → อันดับเรา → ที่เหลือ → ข้อมูลประกอบ
-  const top = `<div class="bd-topbar">
-      <button class="sh-btn" onclick="go(boardBack)" aria-label="กลับ">
-        <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
-      <h1 class="bd-title">อันดับ</h1>
+  // แถวบนสุดของชั้นหลัง: แถบสถานะของตัวเอง (ประยุกต์จากแถบบนของภาพอ้างอิง) แล้วค่อยปุ่มนำทาง
+  // ปุ่มมีป้ายคำเต็ม "กลับ" / "กระดานเพื่อน" — เจ้าของ: "อธิบายชัดกว่า" ไอคอนเปล่า
+  const top = `${d ? boardStatus(d, d.me || {}) : ''}
+    <div class="bd-topbar">
+      <button class="bd-backpill" onclick="go(boardBack)" aria-label="กลับ">${icon('chevron')}<span>กลับ</span></button>
       ${currentUser ? `<button class="bd-swap" onclick="boardScopeSet('${isAll ? 'friends' : 'all'}')">${
-        isAll ? `${icon('users')}เพื่อน` : `${icon('trophy')}ทั้งหมด`}</button>` : '<span></span>'}
+        isAll ? `${icon('users')}กระดานเพื่อน` : `${icon('trophy')}กระดานหลัก`}</button>` : ''}
     </div>`;
 
   if (!sb || !currentUser || !d) {
@@ -191,6 +192,35 @@ function boardScopeSet(scope) {
   if (!boardData[boardScope]) loadBoard();
 }
 
+// ---------- แถบสถานะของตัวเอง (บนสุดของจอ) ----------
+// ประยุกต์จากแถบ "เทพ 70% — 30% มาร" + "การ์ด · รูป · แต้ม" ของภาพอ้างอิง ด้วยข้อมูลที่แอปเรามีจริง:
+//   ซ้าย  = ส่งตรงเวลากี่ % ของงานที่ทำเสร็จในซีซันนี้ (มีกำหนดส่ง) — คิดจากงานในเครื่อง ไม่ต้องถามเซิร์ฟเวอร์
+//   ขวา   = วันติด · รูปเรา · โทเคน
+// ยังไม่มีงานที่มีกำหนดส่งเสร็จในซีซันนี้ = บอกตรง ๆ ว่ายังไม่มี ไม่โชว์ 0% ที่อ่านเหมือนสอบตก
+function boardStatus(d, me) {
+  const t0 = d.season ? new Date(d.season.start + 'T00:00:00+07:00') : new Date(0);
+  const done = (state.tasks || []).filter(t => t.done && !t.deleted && t.doneAt && t.due && new Date(t.doneAt) >= t0);
+  const on = done.filter(t => new Date(t.doneAt) <= new Date(t.due)).length;
+  const pct = done.length ? Math.round(on / done.length * 100) : null;
+  const face = typeof headFace === 'function' ? headFace() : '';
+  const meRow = (d.rows || []).find(r => r.me) || { id: 'me', name: (state.settings && state.settings.name) || 'คุณ' };
+  const av = face ? `<div class="fr-av"><img src="${esc(face)}" alt=""></div>` : boardAv(meRow);
+  const tok = typeof tokenBalance === 'function' ? tokenBalance() : 0;
+  return `<div class="bd-status">
+      <div class="bd-meter" title="ส่งตรงเวลา ${pct == null ? '-' : pct + '%'} ของงานที่ทำเสร็จในซีซันนี้">
+        ${pct == null ? '<span>ส่งตรงเวลา</span><b class="na">ยังไม่มีงาน</b>' : `
+        <span>ตรงเวลา</span><b>${pct}%</b>
+        <i class="bd-meter-bar"><i style="width:${pct}%"></i></i>
+        <b class="late">${100 - pct}%</b><span>ช้า</span>`}
+      </div>
+      <div class="bd-mepill">
+        <span class="bd-mp-st">${icon('flame')}${me.streak || 0}</span>
+        ${av}
+        <span class="bd-mp-tok">${typeof coin === 'function' ? coin(16) : ''}${Number.isFinite(tok) ? tok : '∞'}</span>
+      </div>
+    </div>`;
+}
+
 // ---------- การ์ดของเรา ----------
 // สามบรรทัด ลำดับชัด: เป้าถัดไป (ใหญ่สุด) → ลู่วิ่ง (รูปเราไล่รูปเขา) → ข้อมูลประกอบ (เล็กจาง)
 // อันดับของเราอยู่ในป้ายกลมทางซ้าย · ถอดน้องฮูก เลขจางตัวโต และชิปออก — แย่งสายตากันเอง
@@ -213,9 +243,9 @@ function boardMine(d, me, rows, isAll, st) {
   const meta = [
     me.n ? `${me.n} งาน` : '',
     me.streak > 1 ? `${icon('flame')}${me.streak} วันติด` : '',
-    `เหลือ ${boardDaysLeft(d.season)} วัน`,
   ].filter(Boolean).join('<i class="bd-dot"></i>');
   return `<div class="bd-me bd-in" ${st}>
+      <div class="bd-me-title"><b>${isAll ? 'กระดานหลัก' : 'กระดานเพื่อน'}</b><span>${boardSeasonLabel(d.season)} · เหลือ ${boardDaysLeft(d.season)} วัน</span></div>
       <div class="bd-me-hd">
         <div class="bd-me-rk${prize ? ' gold' : ''}"><b>${me.n && !d.hidden ? me.rank : '–'}</b><small>${me.n && !d.hidden ? 'จาก ' + d.total : 'อันดับ'}</small></div>
         <div class="bd-me-goal">${goal}</div>
