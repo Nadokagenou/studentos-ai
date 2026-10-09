@@ -31,9 +31,75 @@ const SYN_FACES = {
   sleepy:  'sai-face-sleepy.webp',
   sulk:    'sai-face-sulk.webp',
 };
-const SYN_CHIBI = 'sai-chibi.webp';
 
-function synFace(key) { return SYN_FACES[key] || SYN_FACES.normal; }
+// ============================================================
+// เลือกมาสคอต — น้องฮูก (Hook) หรือ น้องไซ
+// ------------------------------------------------------------
+// เจ้าของสั่ง (9 ต.ค. 2569): "สร้างมาสคอตตัวใหม่แทนน้องไซ อาจจะให้คนเลือกได้
+// บางคนชอบไม่เหมือนกัน" · ค่าเริ่มต้นคือน้องฮูก · น้องไซยังเลือกกลับได้ที่ ตั้งค่า → ผู้ช่วย AI
+//
+// น้องฮูกมีภาพเดียว (ไม่มีชีตสีหน้าแบบน้องไซ) — สีหน้าทั้งหกแบบจึงมาจากท่าทาง CSS
+// ที่เกาะ data-mood บนกรอบ (ดู sai.css · "น้องฮูก: ท่าแทนสีหน้า") ไม่ได้มาจากไฟล์ภาพ
+// วันที่ได้ภาพสีหน้าครบ ใส่ faces ให้ hook เหมือน sai แล้วท่าทางยังซ้อนทับได้ตามเดิม
+//
+// เก็บแยกคีย์ของตัวเอง (แบบเดียวกับธีม) ไม่ได้เขียนลง state ก้อนหลัก — เป็นของ "หน้าตา"
+// ของเครื่องนี้ ไม่ใช่ข้อมูลงานที่ต้องตามไปทุกเครื่อง
+// ============================================================
+const MASCOT_KEY = 'studentos.alt.mascot';
+const MASCOTS = {
+  hook: {
+    name: 'น้องฮูก', en: 'Hook',
+    avatar: 'hook-avatar.png', body: 'hook-body.webp',
+    faces: null, face: 'hook-face.webp',
+  },
+  sai: {
+    name: 'น้องไซ', en: 'Synara',
+    avatar: 'sai-avatar.png', body: 'sai-chibi.webp',
+    faces: SYN_FACES, face: SYN_FACES.normal,
+  },
+};
+const MASCOT_DEFAULT = 'hook';
+
+function mascotId() {
+  let v = null;
+  try { v = localStorage.getItem(MASCOT_KEY); } catch (_) {}
+  return MASCOTS[v] ? v : MASCOT_DEFAULT;
+}
+function mascot() { return MASCOTS[mascotId()]; }
+function mName() { return mascot().name; }
+
+function synFace(key) {
+  const m = mascot();
+  return (m.faces && m.faces[key]) || m.face;
+}
+function synBody() { return mascot().body; }
+
+// ป้ายชื่อกับรูปที่อยู่ใน index.html ตรง ๆ (แถบล่าง · จอล็อกอิน · ปุ่ม "…เห็นอะไร")
+// ไม่ได้ถูกวาดใหม่ทุกครั้งเหมือนจอที่สร้างจาก JS — ต้องมีคนไปเปลี่ยนให้
+function applyMascot() {
+  const id = mascotId(), m = MASCOTS[id];
+  document.documentElement.dataset.mascot = id;
+  document.querySelectorAll('[data-mname]').forEach(el => { el.textContent = m.name; });
+  document.querySelectorAll('img[data-mav]').forEach(el => { el.src = m.avatar; });
+  document.querySelectorAll('#mascotPick button').forEach(b => {
+    const on = b.dataset.mascot === id;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+function setMascot(id) {
+  if (!MASCOTS[id]) return;
+  try { localStorage.setItem(MASCOT_KEY, id); } catch (_) {}
+  applyMascot();
+  if (typeof haptic === 'function') haptic('arm');
+  // จอที่เปิดอยู่ตอนนี้ต้องเปลี่ยนตามทันที ไม่งั้นกลับไปหน้าแรกแล้วยังเจอตัวเก่าค้าง
+  if (typeof renderAll === 'function') { try { renderAll(); } catch (_) {} }
+}
+
+// sai.js อยู่ท้าย <body> — ป้ายใน index.html ถูกแกะครบแล้วตอนไฟล์นี้รัน เปลี่ยนเลยก่อนจอแรกจะวาด
+// (รอ DOMContentLoaded = คนที่เลือกน้องไซเห็นชื่อน้องฮูกบนแถบล่างแวบหนึ่งทุกครั้งที่เปิดแอป)
+applyMascot();
 
 // ============================================================
 // การหันตาม
@@ -167,11 +233,11 @@ function saiHero(ctx) {
     <span class="saih-bubble">
       <b>${esc(line)}</b>
       ${sub ? `<span>${esc(sub)}</span>` : ''}
-      <span class="saih-go">เข้าห้องน้องไซ</span>
+      <span class="saih-go">เข้าห้อง${esc(mName())}</span>
     </span>
-    <span class="saih-stage">
+    <span class="saih-stage" data-mood="${mood}">
       ${dot ? '<span class="saih-dot"></span>' : ''}
-      <img class="saih-face" src="${synFace(mood)}" alt="น้องไซ" width="76" height="76">
+      <img class="saih-face" src="${synFace(mood)}" alt="${esc(mName())}" width="76" height="76">
     </span>
   </button>`;
 }
@@ -446,9 +512,9 @@ function renderSaiPlan() {
 
   el.innerHTML = ''
     + '<section class="sai-hi">'
-    + '  <div class="saip-stage">'
-    + '    <img class="saip-chibi' + (mood === 'sleepy' ? ' dim' : '') + '" src="' + SYN_CHIBI
-    + '" alt="น้องไซ" width="92" height="159">'
+    + '  <div class="saip-stage" data-mood="' + mood + '">'
+    + '    <img class="saip-chibi' + (mood === 'sleepy' ? ' dim' : '') + '" src="' + synBody()
+    + '" alt="' + esc(mName()) + '" width="92" height="159">'
     + '  </div>'
     + '  <p class="sai-say">' + esc(say) + '</p>'
     + '</section>'
@@ -460,7 +526,7 @@ function renderSaiPlan() {
         + icon('play') + 'เริ่มทำเลย</button>'
       : '')
     + '<button class="sai-tour" onclick="saiTourStart()">'
-      + icon('sparkles') + 'ให้น้องไซเล่าให้ฟังทีละข้อ</button>';
+      + icon('sparkles') + 'ให้' + esc(mName()) + 'เล่าให้ฟังทีละข้อ</button>';
 
   saiStart();
 }
@@ -559,15 +625,15 @@ function renderSaiTour() {
   const last = i >= saiTourSteps.length - 1;
 
   const sub = document.getElementById('saiSub');
-  if (sub) sub.textContent = 'น้องไซเล่าให้ฟัง · ข้อ ' + (i + 1) + ' จาก ' + saiTourSteps.length;
+  if (sub) sub.textContent = mName() + 'เล่าให้ฟัง · ข้อ ' + (i + 1) + ' จาก ' + saiTourSteps.length;
 
   el.innerHTML = ''
     + '<div class="st-dots">'
     + saiTourSteps.map((_, n) => '<i class="' + (n <= i ? 'on' : '') + '"></i>').join('')
     + '</div>'
     + '<div class="st-mid">'
-    + '  <div class="saip-stage st-stage">'
-    + '    <img class="saip-chibi" src="' + SYN_CHIBI + '" alt="น้องไซ" width="130" height="224">'
+    + '  <div class="saip-stage st-stage" data-mood="' + (s.face || 'normal') + '">'
+    + '    <img class="saip-chibi" src="' + synBody() + '" alt="' + esc(mName()) + '" width="130" height="224">'
     + '  </div>'
     + '  <div class="st-say saip-in">'
     + '    <h3>' + esc(s.head || '') + '</h3>'

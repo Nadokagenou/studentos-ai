@@ -1789,10 +1789,10 @@ function coin(px, cls) {
 // วาดทั้งรูปและไอคอนสำรองซ้อนกันไว้ แล้วให้ onerror เป็นคนตัดสิน —
 // เช็คด้วย JS ก่อนวาดไม่ได้ เพราะรูปยังโหลดไม่เสร็จตอนวาดจอครั้งแรก
 // และถ้ารอให้โหลดเสร็จก่อนค่อยวาด ฟองแชทจะกระพริบทุกครั้งที่พิมพ์
-const SAI_FACE = 'sai-avatar.png';
+// รูปมาจากมาสคอตที่ผู้ใช้เลือก (mascot() ใน sai.js) — น้องฮูกเป็นค่าเริ่มต้น
 function saiFace(cls) {
   return `<span class="ai-av${cls ? ' ' + cls : ''}">
-    <img src="${SAI_FACE}" alt="น้องไซ" loading="lazy" decoding="async"
+    <img src="${mascot().avatar}" alt="${esc(mName())}" loading="lazy" decoding="async"
       onerror="this.parentNode.classList.add('no-face');this.remove()">
     <i class="ai-av-fb">${icon('sparkles')}</i>
   </span>`;
@@ -2707,7 +2707,7 @@ function toolsGrid() {
 function askBar() {
   return `<section class="td-ask">
     <input id="hmAsk" class="tk-in" type="text" maxlength="500" enterkeyhint="send"
-      placeholder="${esc(typeof sosText === 'function' ? sosText('askPh', 'ถามน้องไซ…') : 'ถามน้องไซ…')}"
+      placeholder="${esc((typeof sosText === 'function' ? sosText('askPh', 'ถามน้องไซ…') : 'ถามน้องไซ…').replace(/น้องไซ/g, mName()))}"
       onkeydown="if(event.key==='Enter'){event.preventDefault();homeAsk();}">
     <!-- 8 ต.ค. 69 · ปุ่มล้างแบบ HaloSearchInput (เจ้าของส่งเดโมมา: "ใช้ในหน้านี้") — โผล่เมื่อมีตัวหนังสือ · ตัวอักษรปลิวออกก่อนช่องว่าง -->
     <button class="ha-x" type="button" onclick="homeAskClear()" aria-label="ล้างข้อความ"><svg viewBox="0 0 24 24" aria-hidden="true"
@@ -2765,7 +2765,7 @@ function todayEmpty(now, hasRem) {
     : 'sai-face-normal.webp';
   return `<section class="td-clear ${mood}">
     <div class="tc-top">
-      <span class="tc-art"><img src="${face}" alt="" aria-hidden="true" loading="lazy" decoding="async"
+      <span class="tc-art" data-mood="${{ first: 'wow', done: 'happy', rest: 'sleepy', rem: 'normal' }[mood]}"><img src="${face}" alt="" aria-hidden="true" loading="lazy" decoding="async"
         onerror="this.parentNode.classList.add('no-img');this.remove()"><i class="tc-fb">${icon('sparkles')}</i></span>
       <span class="tc-tx">
         <b>${doneToday ? 'เคลียร์หมดแล้ววันนี้'
@@ -3130,7 +3130,7 @@ function addSheetHTML() {
       <button class="as-hero wide" onclick="closeAddSheet();go('scr-ai')">
         <span class="as-hero-ic">${icon('sparkles')}</span>
         <span class="as-tx">
-          <b>ถามน้องไซ</b>
+          <b>ถาม${esc(mName())}</b>
         </span>
       </button>
     </div>
@@ -4218,9 +4218,9 @@ async function askSai(question, history) {
   try {
     const { data, error } = await withTimeout(
       sb.functions.invoke('ask-sai', {
-        body: { question, context: aiContext(), history: history || [] },
+        body: { question, context: aiContext(), history: history || [], mascot: mascotId() },
       }),
-      45_000, 'ถามน้องไซ');
+      45_000, 'ถาม' + mName());
 
     // supabase-js คืน error สำหรับทุกสถานะที่ไม่ใช่ 2xx โดยเนื้อความจริงอยู่ใน context
     // ไม่แกะออกมา ผู้ใช้จะเห็นแค่ "Edge Function returned a non-2xx status code"
@@ -4229,7 +4229,7 @@ async function askSai(question, history) {
       try { payload = await error.context.json(); } catch (_) { payload = null; }
     }
     if (!payload || payload.ok !== true) {
-      return { ok: false, message: payload?.message || 'น้องไซตอบไม่ได้ตอนนี้ ลองใหม่อีกครั้ง' };
+      return { ok: false, message: payload?.message || mName() + 'ตอบไม่ได้ตอนนี้ ลองใหม่อีกครั้ง' };
     }
     return { ok: true, answer: String(payload.answer || '').trim() };
   } catch (e) {
@@ -4273,6 +4273,8 @@ async function askSaiStream(question, history, onChunk) {
       signal: ctl.signal,
       body: JSON.stringify({
         question, context: aiContext(), history: history || [], stream: true,
+        // บุคลิกของคนที่ตอบตามมาสคอตที่เลือก · เซิร์ฟเวอร์รุ่นเก่าไม่รู้จักช่องนี้ก็แค่ตอบเป็นน้องไซเหมือนเดิม
+        mascot: mascotId(),
       }),
     });
 
@@ -4308,7 +4310,7 @@ async function askSaiStream(question, history, onChunk) {
     }
 
     if (failed) return { ok: false, message: failed };
-    if (!text.trim()) return { ok: false, message: 'น้องไซตอบไม่ได้ตอนนี้ ลองใหม่อีกครั้ง' };
+    if (!text.trim()) return { ok: false, message: mName() + 'ตอบไม่ได้ตอนนี้ ลองใหม่อีกครั้ง' };
     return { ok: true, answer: text.trim() };
   } catch (e) {
     // ยกเลิกเพราะหมดเวลา กับเน็ตหลุด ผู้ใช้ทำอย่างเดียวกันคือลองใหม่ ข้อความจึงก้อนเดียวพอ
@@ -4453,7 +4455,7 @@ async function aiClear() {
   // ปุ่ม "ล้างประวัติแชท" ในตั้งค่า — ล้างทั้งแชทที่คุยอยู่และแชทเก่าทั้งหมด (คำว่า "ประวัติ" ต้องหมายถึงทั้งหมดจริง)
   const old = aiChats().length;
   if (!(await appConfirm({ title: 'ล้างประวัติแชททั้งหมด?',
-    body: 'ข้อความกับน้องไซ' + (old ? ' รวมแชทเก่าอีก ' + old + ' แชท' : '') + ' จะถูกลบ กู้คืนไม่ได้',
+    body: 'ข้อความกับ' + mName() + (old ? ' รวมแชทเก่าอีก ' + old + ' แชท' : '') + ' จะถูกลบ กู้คืนไม่ได้',
     ok: 'ล้างทั้งหมด', danger: true }))) return;
   try { localStorage.removeItem(AI_LOG_KEY); localStorage.removeItem(AI_CHATS_KEY); } catch (_) {}
   aiChatsClose(true);
@@ -4524,9 +4526,9 @@ function aiChatsOpen(btn) {
   const panel = document.createElement('div');
   panel.className = 'fp ch-panel';
   panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-label', 'แชทกับน้องไซ');
+  panel.setAttribute('aria-label', 'แชทกับ' + mName());
   panel.innerHTML = `<div class="fp-in">
-      <div class="fp-h"><b>แชทกับน้องไซ</b><i>เก็บไว้ในเครื่องนี้ · ${aiChats().length} แชทเก่า</i></div>
+      <div class="fp-h"><b>แชทกับ${esc(mName())}</b><i>เก็บไว้ในเครื่องนี้ · ${aiChats().length} แชทเก่า</i></div>
       <button type="button" class="ch-new" onclick="aiNewChat()">${icon('pencil')}แชทใหม่</button>
       <div class="ch-sec">ล่าสุด</div>
       <div class="fp-list ch-list">${aiChatsListHTML()}</div>
@@ -4571,7 +4573,7 @@ function aiChatsClose(instant) {
 }
 
 function aiBusyNote() {
-  showToast({ title: 'รอน้องไซตอบให้จบก่อนนะ', body: 'กำลังตอบอยู่ ถ้าสลับแชทตอนนี้คำตอบจะไปตกผิดห้อง' });
+  showToast({ title: 'รอ' + mName() + 'ตอบให้จบก่อนนะ', body: 'กำลังตอบอยู่ ถ้าสลับแชทตอนนี้คำตอบจะไปตกผิดห้อง' });
 }
 
 function aiNewChat() {
@@ -4792,7 +4794,7 @@ const SGA_TABS = [   // เรียงตาม AI_QUICK ช่องต่อ�
 ];
 const SGA_TEXT = 'ได้เลย มาไล่ทีละขั้นกันนะ ขั้นแรกอ่านโจทย์แล้วขีดเส้นใต้ว่าโจทย์ถามหาอะไร '
   + 'ขั้นที่สองจดสิ่งที่โจทย์ให้มาไว้ข้าง ๆ ขั้นที่สามหาสูตรหรือหลักที่เชื่อมสองอย่างนี้เข้าหากัน '
-  + 'ลองทำขั้นแรกแล้วส่งมาให้ดูก่อน เดี๋ยวน้องไซช่วยดูว่ามาถูกทางไหม';
+  + 'ลองทำขั้นแรกแล้วส่งมาให้ดูก่อน เดี๋ยวเราช่วยดูว่ามาถูกทางไหม';
 const SGA_DAYS = ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.'];
 // เส้นแสงบนโลกโครงลวด — พิกัดชุดเดียวกับต้นฉบับ · c คือสีที่ 1–4 ของธีม (--sga-t1..4 ใน alt.css)
 // ต้นฉบับใช้เหลือง/เขียว/ส้มตายตัว ที่นี่สีมาจากธีม และไม่มีสีทอง เพราะทองสงวนไว้ให้ของที่ทำสำเร็จแล้ว
@@ -4900,8 +4902,8 @@ function sgaHTML(busy) {
     </div>`;
   }).join('');
   // วาดใหม่กลางรอบ (renderAi) ห้ามเล่นท่าเข้าซ้ำ — เล่นเฉพาะช่วงแรกของแท็บ
-  return `<section class="sga" aria-label="น้องไซช่วยอะไรได้บ้าง"><div class="sga-in">
-    <h3 class="sga-h">น้องไซช่วยอะไรได้บ้าง</h3>
+  return `<section class="sga" aria-label="${esc(mName())}ช่วยอะไรได้บ้าง"><div class="sga-in">
+    <h3 class="sga-h">${esc(mName())}ช่วยอะไรได้บ้าง</h3>
     <div class="sga-tabs" role="tablist">${tabs}</div>
     <span class="sga-dv" aria-hidden="true"></span>
     <div class="sga-r"><div class="sga-stage${e < 300 ? ' in' : ''}" role="tabpanel"
@@ -4914,7 +4916,7 @@ function sgaHTML(busy) {
 function sgaWait(q) {
   const k = /แบ่งเวลา|จัดเวลา|ทันสอบ|กี่ชั่วโมง|กี่ชม/.test(q) ? 3 : /สรุป|ย่อ/.test(q) ? 2 : 0;
   const cap = k === 3 ? 'กำลังแบ่งเวลาให้' : k === 2 ? 'กำลังสรุปให้'
-    : /วางแผน|ทำอะไรก่อน|เรียงลำดับ|ควรทำ/.test(q) ? 'กำลังจัดลำดับให้' : 'น้องไซกำลังคิด';
+    : /วางแผน|ทำอะไรก่อน|เรียงลำดับ|ควรทำ/.test(q) ? 'กำลังจัดลำดับให้' : mName() + 'กำลังคิด';
   if (SGA.q !== q || SGA.i !== k || !SGA.t0) { SGA.q = q; SGA.i = k; SGA.t0 = performance.now(); SGA.held = null; }
   const e = sgaElapsed();
   return `<div class="ai-msg sai"><section class="sga sga-wait" aria-live="polite" aria-label="${cap}">
@@ -5047,7 +5049,7 @@ function renderAi() {
       <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
     ${saiFace('big')}
     <div class="sh-id">
-      <h1 class="sh-name">น้องไซ<span class="sh-badge">AI</span></h1>
+      <h1 class="sh-name">${esc(mName())}<span class="sh-badge">AI</span></h1>
       <p class="sh-role">${fresh ? '' : esc(
         (pend.length ? 'เห็นงาน ' + pend.length + ' ใบ' : 'ยังไม่เห็นงานค้าง')
         + (nCls ? ' · ตาราง ' + nCls + ' คาบ' : ''))}</p>
@@ -5112,7 +5114,7 @@ function renderAi() {
   // นี่คือจุดที่แอปตอบคำถาม "AI เห็นอะไรของฉันบ้าง" ด้วยของจริง ไม่ใช่ด้วยคำสัญญา
   const priv = `<button class="ai-priv" onclick="aiShowContext()">
     <span class="ai-priv-ic">${icon('lock')}</span>
-    <span class="ai-priv-tx">น้องไซเห็นงาน ${pend.length} ใบ${
+    <span class="ai-priv-tx">${esc(mName())}เห็นงาน ${pend.length} ใบ${
       nCls ? ' · ตารางเรียน ' + nCls + ' คาบ' : ''} · เวลาว่างของคุณ</span>
     <span class="ai-priv-go">ดูว่าเห็นอะไร</span>
   </button>`;
@@ -5121,7 +5123,7 @@ function renderAi() {
   // 1C40 · หน้าตาแบบแอปแชท AI (Claude · ChatGPT · Grok): ข้อความเราเป็นฟองเทาชิดขวา
   // คำตอบของน้องไซไม่มีฟอง — เป็นตัวหนังสือเต็มความกว้างใต้ป้ายชื่อ อ่านเหมือนเอกสารสั้น ๆ
   // ไม่ใช่แชทเพื่อน · คำตอบยาว (ขั้นตอน · รายการ) อ่านง่ายกว่ามากเมื่อไม่ถูกบีบอยู่ในฟอง 84%
-  const saiHead = `<div class="am-head">${saiFace()}<b>น้องไซ</b></div>`;
+  const saiHead = `<div class="am-head">${saiFace()}<b>${esc(mName())}</b></div>`;
   // คำตอบใหม่โผล่ครั้งแรก = ท่าเข้าของต้นฉบับ (panelIn) · วาดซ้ำระหว่างไหลไม่เล่นซ้ำ
   const enter = aiReveal && !aiReveal.entered && (aiBusy ? !!aiPartial : aiReveal.i >= 0) ? ' am-enter' : '';
   if (enter) aiReveal.entered = true;
@@ -5179,7 +5181,7 @@ function renderAi() {
   // การ์ดภาพรวมวันนี้ยังอยู่ — ปุ่ม "เริ่มทำ" คือปลายทางที่จอนี้มีไว้พาไป
   const hello = fresh ? `<section class="ai-hello">
       ${saiFace('hello')}
-      <h2>วันนี้ให้น้องไซช่วยอะไรดี?</h2>
+      <h2>วันนี้ให้${esc(mName())}ช่วยอะไรดี?</h2>
       <p>${esc(aiOpener(sp))}</p>
     </section>
     ${dayCard}
@@ -5197,7 +5199,7 @@ function renderAi() {
   // คือจุดที่คนส่วนใหญ่ปิดทิ้งเพราะไม่รู้ว่าถามอะไรได้ และความไม่รู้นั้นไม่ได้หายไปหลังถามครั้งแรก
   const quick = fresh ? '' : `<div class="sai-qa">
     ${fresh ? '' : `<button class="qa-priv" onclick="aiShowContext()">${
-      icon('lock')}น้องไซเห็นอะไร</button>`}
+      icon('lock')}${esc(mName())}เห็นอะไร</button>`}
     ${AI_QUICK.map(q => `<button onclick="aiAsk('${esc(q[2]).replace(/'/g, "\\'")}')"${
       aiBusy ? ' disabled' : ''}>${icon(q[0])}${esc(q[1])}</button>`).join('')}
   </div>`;
@@ -5208,7 +5210,7 @@ function renderAi() {
   // คลาส .sai-bar คงไว้ เพราะฮาโลท้าย app.js เกาะกล่องนี้ด้วยชื่อคลาส
   const bar = `<div class="sai-bar sai-cmp">
     <textarea id="aiInput" class="ai-in" rows="1" maxlength="2000"
-      placeholder="ถามน้องไซ…" ${aiBusy ? 'disabled' : ''}
+      placeholder="ถาม${esc(mName())}…" ${aiBusy ? 'disabled' : ''}
       oninput="autoGrow(this);aiInputState(this)"
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiAsk();}"></textarea>
     <div class="cmp-row">
@@ -9769,14 +9771,15 @@ const PRO_NOTIFY_KEY = 'studentos.alt.proNotify';
 const PRO_PLANS = [
   {
     id: 'pro', name: 'Pro', price: 49, tag: '',
-    line: 'พอสำหรับคนที่ถามน้องไซทุกวัน',
-    feats: ['ถามน้องไซได้ 100 คำถาม/เดือน', 'สแกนใบงานด้วย AI ไม่จำกัด', 'ธีมในร้านค้าทั้งหมด'],
+    // getter — ชื่อมาสคอตเปลี่ยนได้ตามที่ผู้ใช้เลือก ตัวหนังสือในแผนจึงต้องอ่านชื่อตอนวาด ไม่ใช่ตอนโหลดไฟล์
+    get line() { return 'พอสำหรับคนที่ถาม' + mName() + 'ทุกวัน'; },
+    get feats() { return ['ถาม' + mName() + 'ได้ 100 คำถาม/เดือน', 'สแกนใบงานด้วย AI ไม่จำกัด', 'ธีมในร้านค้าทั้งหมด']; },
   },
   {
     id: 'max', name: 'Pro Max', price: 67, tag: 'แนะนำ',
     line: 'ไม่ต้องนับว่าเหลือกี่คำถาม',
-    feats: ['ถามน้องไซไม่จำกัด', 'อ่านตารางเรียนจากรูปด้วย AI', 'สำรองข้อมูลข้ามเครื่อง',
-      'ธีมลับทั้งหมด ไม่ต้องสุ่ม'],
+    get feats() { return ['ถาม' + mName() + 'ไม่จำกัด', 'อ่านตารางเรียนจากรูปด้วย AI', 'สำรองข้อมูลข้ามเครื่อง',
+      'ธีมลับทั้งหมด ไม่ต้องสุ่ม']; },
   },
 ];
 let proPick = 'max';
@@ -10510,7 +10513,7 @@ function renderStatFull(now, d) {
     </div>` : ''}
 
     ${wr.insights.length ? `<div class="an-ai">
-      <div class="an-ai-h">${icon('sparkles')}น้องไซวิเคราะห์</div>
+      <div class="an-ai-h">${icon('sparkles')}${esc(mName())}วิเคราะห์</div>
       <ul>${wr.insights.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
 
     </div>` : ''}
@@ -11504,7 +11507,7 @@ function finishFocus() {
       </div>
       <div class="fw-stats">${stats.map(([v, k]) =>
         `<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>
-      <img class="fw-sai" src="sai-avatar.png" alt="" aria-hidden="true">
+      <img class="fw-sai" src="${mascot().avatar}" alt="" aria-hidden="true">
     </div>
 
     ${nxt ? `<div class="fw-next">
@@ -16322,7 +16325,7 @@ function liteOn() {
     glow.innerHTML='<div class="hs-wrap"><div class="hs-b hs-b1"></div><div class="hs-b hs-b2"></div><div class="hs-b hs-b3"></div></div>';
     bar.insertBefore(glow,bar.firstChild);
     var ph=document.createElement('span'); ph.className='hs-ph'; bar.appendChild(ph);
-    var phText=ta.getAttribute('placeholder')||'ถามน้องไซ…', busy=ta.disabled, prev=ta.value, shown='';
+    var phText=ta.getAttribute('placeholder')||('ถาม'+mName()+'…'), busy=ta.disabled, prev=ta.value, shown='';
     bar.classList.toggle('hs-load',busy);
     function place(){
       var cs=getComputedStyle(ta);
@@ -16443,7 +16446,7 @@ function liteOn() {
     bar.classList.add('ha-on');
     const line = mir.firstChild, ph = mir.lastChild;
     // ช่องอื่นนอกจากหน้าแรก (ช่องพิมพ์ห้องแชท) ไม่วนตัวอย่างคำถาม — ข้อความชวนพิมพ์ของมันเองไหลเข้ามาครั้งเดียว
-    const phrases = [inp.getAttribute('placeholder') || 'ถามน้องไซ…'].concat(RM || inp.id !== 'hmAsk' ? [] : EXAMPLES);
+    const phrases = [inp.getAttribute('placeholder') || 'ถาม' + mName() + '…'].concat(RM || inp.id !== 'hmAsk' ? [] : EXAMPLES);
     let shown = [], pi = 0, cycle = 0;
 
     function place() {

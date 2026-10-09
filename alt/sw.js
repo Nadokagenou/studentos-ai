@@ -23,7 +23,9 @@ const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.cs
   // ใบไหนไม่ได้แคชไว้ = เปิดแอปออฟไลน์แล้วมาสคอตกลายเป็นกรอบเปล่า ซึ่งแย่กว่าไม่มี
   'sai-face-normal.webp', 'sai-face-happy.webp', 'sai-face-wow.webp',
   'sai-face-serious.webp', 'sai-face-sleepy.webp', 'sai-face-sulk.webp',
-  'sai-chibi.webp'];
+  'sai-chibi.webp',
+  // น้องฮูก (Hook) — มาสคอตค่าเริ่มต้นตั้งแต่ 9 ต.ค. 69 · ภาพเดียวตัดเป็นสามขนาด สีหน้ามาจาก CSS
+  'hook-avatar.png', 'hook-face.webp', 'hook-body.webp'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
