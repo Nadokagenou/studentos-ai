@@ -310,10 +310,10 @@ function pnrText(r, now = new Date()) {
   // ซึ่งเป็นอาการเดียวกับที่ทั้งโปรเจกต์นี้พยายามเลิกทำ — จอเดียวห้ามพูดสองอย่าง
   if (!r.pnr) {
     return r.pnrHard && r.pnrHard > now
-      ? 'ต้องใช้เวลาว่างที่เหลือแทบทุกนาที — ช้ากว่า ' + simWhen(r.pnrHard, now) + ' คือไม่ทันแน่'
+      ? 'ต้องใช้เวลาว่างที่เหลือแทบทุกนาที ช้ากว่า ' + simWhen(r.pnrHard, now) + ' คือไม่ทันแน่'
       : 'เวลาว่างที่เหลือไม่พอทำให้เสร็จทันแล้ว';
   }
-  if (r.pnr <= now) return 'เลยจุดที่เริ่มแล้วทันไปแล้ว — เหลือทางเดียวคือยืมเวลาจากอย่างอื่น';
+  if (r.pnr <= now) return 'เลยจุดที่เริ่มแล้วทันไปแล้ว เหลือทางเดียวคือยืมเวลาจากอย่างอื่น';
 
   const h = (r.pnr - now) / 3.6e6;
   if (h < 1) return 'ต้องเริ่มภายใน ' + Math.max(1, Math.round(h * 60)) + ' นาที';
@@ -364,7 +364,7 @@ function oddsText(r) {
   const pct = Math.round(r.odds * 100);
   if (r.verdict === 'lost') return 'ไม่ทันแล้วถ้าไม่เปลี่ยนอะไร';
   if (r.verdict === 'critical') return 'โอกาสเสร็จทัน ' + pct + '%';
-  if (r.verdict === 'tight') return 'ค่อนข้างตึง — โอกาสเสร็จทัน ' + pct + '%';
+  if (r.verdict === 'tight') return 'ค่อนข้างตึง โอกาสเสร็จทัน ' + pct + '%';
   return 'เวลาพอสบาย';
 }
 

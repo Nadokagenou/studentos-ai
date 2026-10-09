@@ -372,7 +372,7 @@ function feedListHTML() {
     </div>`;
   }
   if (feedBusy && !feedRows) return `<p class="so-hint">กำลังโหลดฟีด…</p>`;
-  if (feedErr) return `<p class="so-hint err">เปิดฟีดไม่ได้ — ${esc(feedErr)}
+  if (feedErr) return `<p class="so-hint err">เปิดฟีดไม่ได้ ${esc(feedErr)}
     <button class="so-retry" onclick="loadFeed()">ลองใหม่</button></p>`;
   if (feedRows && !feedRows.length) {
     // สถานะว่างที่บอกแค่ "ไม่มีข้อมูล" ทำให้คนปิดแอป · อันนี้ต้องชวนให้ลงมือ
@@ -380,7 +380,7 @@ function feedListHTML() {
     return `<div class="fd-blank">
       <div class="fd-blank-ic">${icon('chat')}</div>
       <p class="fd-blank-h">${feedScope === 'room' ? 'ห้องนี้ยังเงียบอยู่' : 'ยังไม่มีใครโพสต์'}</p>
-      <p class="fd-blank-p">โพสต์แรกมักเป็นตัวที่ทำให้คนอื่นกล้าโพสต์ตาม —
+      <p class="fd-blank-p">โพสต์แรกมักเป็นตัวที่ทำให้คนอื่นกล้าโพสต์ตาม
         ถามอะไรที่ติดอยู่จริง ๆ ก็ได้ ไม่ต้องคิดนาน</p>
       <button class="fd-blank-go" onclick="openCompose()">เขียนโพสต์แรก</button>
       ${feedScope !== 'all'
@@ -1123,7 +1123,8 @@ function renderProfileHead() {
         post_count: 0, friend_count: 0, help_count: 0 },
       { mine: true,
         buttons: `<div class="ig-btns">
-          <button class="pri" onclick="setLoginView('root');go('scr-login')">${icon('user')}เข้าสู่ระบบ</button>
+          <!-- 9 ต.ค. 69 · รูปคนทึบสีขาว (#lu-user-f) แทนรูปคนเส้นบาง — แบบเดียวกับแถว "ชุมชน" ในรายการข้างล่าง (เจ้าของวงทั้งสองจุดมาเทียบ) -->
+          <button class="pri" onclick="setLoginView('root');go('scr-login')">${icon('user-f')}เข้าสู่ระบบ</button>
         </div>`,
         // 8 ต.ค. 69 · ป้ายสถานะมีจุดสี (.ig-off) แทนตัวเอียงจาง ๆ · ข้อความสั้นตามรอบตัดข้อความอธิบายของ 1C50
         extra: '<i class="ig-off">ยังไม่ล็อกอิน</i>' });

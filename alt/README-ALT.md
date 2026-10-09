@@ -1,4 +1,4 @@
-# StudentOS AI — Version 1C52
+# StudentOS AI — Version 1C53
 
 > รุ่นปัจจุบันดูที่ `PATCHNOTES.md` (บนสุด) · ชื่อรุ่น “Verbessert” เริ่มใช้ตั้งแต่ 1A7V2
 

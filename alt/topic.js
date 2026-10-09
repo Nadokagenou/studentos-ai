@@ -276,7 +276,7 @@ function renderTopic() {
         world ? 'ถามได้ทั้งโลก' : 'เฉพาะในประเทศ'}</span>
       ${topicNow.blurb ? `<p class="tp-blurb">${esc(topicNow.blurb)}</p>` : ''}
       ${world
-        ? `<p class="tp-fine">คนที่ตอบคือคนที่ผ่านเรื่องนี้ไปแล้ว — ตอนนี้ดึกที่ไทย
+        ? `<p class="tp-fine">คนที่ตอบคือคนที่ผ่านเรื่องนี้ไปแล้ว ตอนนี้ดึกที่ไทย
              แต่เป็นกลางวันของอีกครึ่งโลก</p>`
         : ''}
     </div>
@@ -291,8 +291,8 @@ function renderTopic() {
         : `<div class="tp-blank">
              <div class="tp-blank-ic">${icon('chat')}</div>
              <p class="tp-blank-h">ยังไม่มีใครถามเรื่องนี้</p>
-             <p class="tp-blank-p">คำถามแรกมักเป็นตัวที่ทำให้คนอื่นกล้าถามตาม —
-               และถ้าไม่มีใครตอบใน 10 นาที น้องไซจะเข้ามาช่วยก่อน</p>
+             <p class="tp-blank-p">คำถามแรกมักเป็นตัวที่ทำให้คนอื่นกล้าถามตาม
+               และถ้าไม่มีใครตอบใน 10 นาที ${typeof mName === 'function' ? mName() : 'น้องฮูก'}จะเข้ามาช่วยก่อน</p>
            </div>`}
     </div>`;
 }
@@ -423,7 +423,7 @@ async function openTThread(id) {
         tthread.msgs = (tthread.msgs || []).concat([{
           id: p.new.id, body: p.new.body, lang: p.new.lang, ai: p.new.is_ai,
           mine: p.new.author === currentUser.id,
-          name: p.new.is_ai ? 'น้องไซ' : 'เพื่อนร่วมหัวข้อ',
+          name: p.new.is_ai ? (typeof mName === 'function' ? mName() : 'น้องฮูก') : 'เพื่อนร่วมหัวข้อ',
           avatar: null, at: p.new.created_at,
         }]);
         renderTThread();
@@ -492,7 +492,7 @@ function renderTThread() {
               </div>
             </div>`;
           }).join('')
-        : `<p class="tp-empty">ยังไม่มีใครตอบ<br>ถ้าเงียบครบสิบนาที น้องไซจะเข้ามาช่วยก่อน
+        : `<p class="tp-empty">ยังไม่มีใครตอบ<br>ถ้าเงียบครบสิบนาที ${(typeof mName === 'function' ? mName() : 'น้องฮูก')}จะเข้ามาช่วยก่อน
              แล้วค่อยรอคนที่ผ่านเรื่องนี้มาแล้ว</p>`}
     </div>
 
@@ -557,7 +557,7 @@ function trShow(src, id) {
 }
 function trNote(id, shown) {
   if (!shown.has) {
-    return `<span class="tp-tr off">${icon('unplug')}ยังแปลไม่ได้ — นี่คือต้นฉบับ</span>`;
+    return `<span class="tp-tr off">${icon('unplug')}ยังแปลไม่ได้ นี่คือต้นฉบับ</span>`;
   }
   return `<button class="tp-tr" onclick="event.stopPropagation();toggleSrc('${esc(String(id))}')">
     ${shown.translated ? 'แปลอัตโนมัติ · ดูต้นฉบับ' : 'กำลังดูต้นฉบับ · ดูคำแปล'}</button>`;

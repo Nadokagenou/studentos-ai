@@ -407,12 +407,12 @@ function renderMates() {
   } else if (matesBusy) {
     list = `<p class="so-hint">กำลังดูว่าใครอยู่ห้องเดียวกับคุณ…</p>`;
   } else if (matesErr) {
-    list = `<p class="so-hint err">เปิดรายชื่อไม่ได้ — ${esc(matesErr)}
+    list = `<p class="so-hint err">เปิดรายชื่อไม่ได้ ${esc(matesErr)}
       <button class="so-retry" onclick="loadMates()">ลองใหม่</button></p>`;
   } else if (mates && !mates.length) {
     list = `<div class="so-empty">
         <p class="so-empty-h">ยังไม่มีใครในห้องเลย</p>
-        <p class="so-empty-p">รายชื่อนี้มาจากกลุ่ม LINE ที่บอทอยู่ — ถ้าเพื่อนยังไม่ได้กดลิงก์เข้าร่วม
+        <p class="so-empty-p">รายชื่อนี้มาจากกลุ่ม LINE ที่บอทอยู่ ถ้าเพื่อนยังไม่ได้กดลิงก์เข้าร่วม
           พวกเขาจะยังไม่โผล่ตรงนี้</p>
         <button class="so-retry" onclick="go('scr-sources')">ไปหน้าตัวเชื่อม</button>
       </div>`;
@@ -553,9 +553,9 @@ function epHandleCheck(leaving) {
   if (!inp || !err) return true;
   const v = inp.value.trim().replace(/^@/, '').toLowerCase();
   let msg = '';
-  if (v && /[^ก-๙a-z0-9_]/.test(v)) msg = /\s/.test(v) ? 'ห้ามเว้นวรรค — ใช้ _ แทนได้' : 'ใช้ได้แค่ ก-๙ a-z 0-9 และ _';
-  else if (v.length > 15) msg = 'ยาวไป — ไม่เกิน 15 ตัว (ตอนนี้ ' + v.length + ')';
-  else if (leaving && v && v.length < 3) msg = 'สั้นไป — ต้อง 3 ตัวขึ้นไป';
+  if (v && /[^ก-๙a-z0-9_]/.test(v)) msg = /\s/.test(v) ? 'ห้ามเว้นวรรค ใช้ _ แทนได้' : 'ใช้ได้แค่ ก-๙ a-z 0-9 และ _';
+  else if (v.length > 15) msg = 'ยาวไป ไม่เกิน 15 ตัว (ตอนนี้ ' + v.length + ')';
+  else if (leaving && v && v.length < 3) msg = 'สั้นไป ต้อง 3 ตัวขึ้นไป';
   err.hidden = !msg;
   err.textContent = msg;
   inp.closest('.ep-at').classList.toggle('invalid', !!msg);
@@ -1311,7 +1311,7 @@ function renderDmInboxInner() {
             ? 'ช่วยได้เรื่อง' + esc(p.strong.slice(0, 2).join(' · '))
             : (p.bio || 'แตะเพื่อเริ่มคุย'))).join('')}`
           : (dmFriends === null ? '<p class="so-hint">กำลังโหลด…</p>'
-            : `<p class="so-hint">ยังไม่มีเพื่อน — ปิดหน้านี้แล้วพิมพ์ @ชื่อผู้ใช้ในช่องค้นหาด้านบน
+            : `<p class="so-hint">ยังไม่มีเพื่อน ปิดหน้านี้แล้วพิมพ์ @ชื่อผู้ใช้ในช่องค้นหาด้านบน
                  หรือส่ง @ชื่อผู้ใช้ของคุณให้เพื่อนที่หน้า "เพื่อนฉัน"</p>`)}
       </div>`;
     return;
