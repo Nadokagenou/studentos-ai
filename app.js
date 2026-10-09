@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C52';                 // สายเลขของแอป
+const APP_VERSION = '1C54';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -104,7 +104,7 @@ function persistState() {
     if (!quotaWarned && typeof showToast === 'function') {
       quotaWarned = true;
       showToast({
-        title: 'ที่เก็บในเครื่องเต็ม 😅',
+        title: 'ที่เก็บในเครื่องเต็ม',
         body: 'ลบภาพพื้นหลังหรือภาพวิดเจ็ตออกก่อน',
       });
     }
@@ -321,7 +321,7 @@ const THEME_NAME = {
 const SECRETS = {
   ocean: {
     store: 'studentos.alt.deepUnlocked', flag: 'deep', theme: 'deepocean', fx: 'egg-bub', taps: 5,
-    title: 'ปลดล็อกธีมทะเลลึก 🦈', body: 'ดำลงไปอีกชั้น — มีฉลามกับหมึกยักษ์ว่ายอยู่ข้างหลัง',
+    title: 'ปลดล็อกธีมทะเลลึก 🦈', body: 'ดำลงไปอีกชั้น มีฉลามกับหมึกยักษ์ว่ายอยู่ข้างหลัง',
   },
   earth: {
     store: 'studentos.alt.earth2Unlocked', flag: 'earth2', theme: 'earth2', fx: 'egg-leaf', taps: 5,
@@ -375,7 +375,7 @@ function checkGenesisUnlock() {
   haptic('done');
   splashBurst(24, 'egg-star');
   setTheme('genesis');
-  showToast({ title: 'Crystal', body: 'ครบทุกเหรียญแล้ว — ธีมสุดท้ายเปิดให้แล้ว' });
+  showToast({ title: 'Crystal', body: 'ครบทุกเหรียญแล้ว ธีมสุดท้ายเปิดให้แล้ว' });
   return true;
 }
 
@@ -390,7 +390,7 @@ let glitchHeld = [];   // ตัวหนังสือที่กำลัง
 // เขียนให้ดูเหมือนระบบภายในกำลังรวน ไม่ใช่ข้อความสุ่มที่อ่านไม่รู้เรื่อง
 const GL_ERRORS = [
   'ตัวจัดลำดับงานตอบสนองช้ากว่าปกติ · กำลังลองใหม่',
-  'อ่านรายการงานไม่สำเร็จ — ข้อมูลบางส่วนอาจไม่ตรง',
+  'อ่านรายการงานไม่สำเร็จ ข้อมูลบางส่วนอาจไม่ตรง',
   'การเชื่อมต่อกับตัวช่วย AI ขาดช่วง',
   'คำนวณความสำคัญของงานไม่สมบูรณ์ · ข้ามไปก่อน',
   'นาฬิกาของเครื่องกับเซิร์ฟเวอร์ไม่ตรงกัน',
@@ -595,6 +595,30 @@ function applyTheme() {
   if (typeof renderShowcase === 'function' && document.getElementById('showBox')) renderShowcase();
 }
 
+// ---------- เปลี่ยนธีมแบบวงกลมแผ่ออกจากจุดที่แตะ (9 ต.ค. 69) ----------
+// View Transition ของเบราว์เซอร์: ถ่ายจอเก่าไว้ วาดธีมใหม่ แล้วเปิดจอใหม่เป็นวงกลมจากปลายนิ้วจนเต็มจอ
+// เครื่องที่ไม่มี startViewTransition (Firefox · Safari เก่า) · ลดการเคลื่อนไหว · โหมดเครื่องเบา = เปลี่ยนทันทีแบบเดิม
+// ธีมเดิมกดซ้ำ (เช่นกดรัวหาของลับ) ไม่มีอะไรให้เปิด จึงไม่เล่น · จำจุดแตะล่าสุดไว้เพราะ setTheme ถูกเรียกจาก onclick ที่ไม่ส่ง event มา
+let lastTapXY = null;
+document.addEventListener('pointerdown', e => { lastTapXY = { x: e.clientX, y: e.clientY, t: performance.now() }; },
+  { capture: true, passive: true });
+function themeReveal(update) {
+  const root = document.documentElement;
+  const before = root.dataset.theme;
+  const pref = themePref();
+  const next = pref === 'system' ? (systemDark() ? 'dark' : 'light') : pref;
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches || root.dataset.lite === '1';
+  if (!document.startViewTransition || still || next === before) { update(); return; }
+  const tap = lastTapXY && performance.now() - lastTapXY.t < 1500 ? lastTapXY : { x: innerWidth / 2, y: innerHeight / 2 };
+  const r = Math.hypot(Math.max(tap.x, innerWidth - tap.x), Math.max(tap.y, innerHeight - tap.y));
+  let vt;
+  try { vt = document.startViewTransition(update); } catch (_) { update(); return; }
+  vt.ready.then(() => {
+    root.animate({ clipPath: [`circle(0px at ${tap.x}px ${tap.y}px)`, `circle(${r}px at ${tap.x}px ${tap.y}px)`] },
+      { duration: 680, easing: 'cubic-bezier(.22, 1, .36, 1)', pseudoElement: '::view-transition-new(root)' });
+  }).catch(() => {});
+}
+
 function setTheme(pref) {
   // กันเลือกธีมที่ยังไม่ได้เป็นเจ้าของ (เช่นกดจากที่อื่นหรือค่าค้างใน localStorage)
   // ธีมที่ใช้อยู่ตอนนี้ผ่านได้เสมอ — ไม่ยึดของที่เขาใช้อยู่คืน
@@ -618,7 +642,7 @@ function setTheme(pref) {
     tapCount = 0; tapTheme = '';
   }
   try { localStorage.setItem(THEME_KEY, THEMES.includes(pref) ? pref : 'system'); } catch (_) {}
-  applyTheme();
+  themeReveal(applyTheme);
 }
 
 // ผู้ใช้เลือก "ตามระบบ" แล้วเครื่องสลับธีมกลางทาง → เปลี่ยนตามทันที ไม่ต้องรีเปิดแอป
@@ -806,8 +830,24 @@ function setBgDim(v) {
   document.documentElement.style.setProperty('--bg-veil', Math.max(0, Math.min(85, +v)) / 100);
 }
 
+// สถานะของกล่องวางรูป (#bgZone · แบบ HaloDropzone) — .busy ระหว่างย่อ · .ok เด้งเครื่องหมายถูกแวบหนึ่งตอนเสร็จ
+let bgOkTimer = 0;
+function bgZoneState(st) {
+  const z = document.getElementById('bgZone');
+  if (!z) return;
+  z.classList.toggle('busy', st === 'busy');
+  clearTimeout(bgOkTimer);
+  z.classList.remove('ok');
+  if (st === 'ok') { void z.offsetWidth; z.classList.add('ok'); bgOkTimer = setTimeout(() => z.classList.remove('ok'), 1800); }
+}
+
 function readUserBg(file) {
   if (!file) return;
+  if (file.type && !/^image\//.test(file.type)) {
+    showToast({ title: 'ไฟล์นี้ไม่ใช่ภาพ', body: 'ลากหรือเลือกไฟล์ภาพ (JPG หรือ PNG)' });
+    return;
+  }
+  bgZoneState('busy');
   const url = URL.createObjectURL(file);
   const img = new Image();
   img.onload = () => {
@@ -821,16 +861,19 @@ function readUserBg(file) {
     try {
       localStorage.setItem(BG_KEY, data);
     } catch (_) {
-      showToast({ title: 'ภาพใหญ่เกินไป 😅', body: 'ที่เก็บในเครื่องเต็ม — ลองเลือกภาพที่เล็กลงอีกหน่อย' });
+      bgZoneState(null);
+      showToast({ title: 'ภาพใหญ่เกินไป', body: 'ที่เก็บในเครื่องเต็ม ลองเลือกภาพที่เล็กลงอีกหน่อย' });
       return;
     }
     applyUserBg();
     renderAppearance();
+    bgZoneState('ok');
     haptic('done');
-    showToast({ title: 'เปลี่ยนพื้นหลังแล้ว 🖼', body: 'ปรับ “ความจางของภาพ” ได้ถ้าตัวหนังสืออ่านยาก' });
+    showToast({ title: 'เปลี่ยนพื้นหลังแล้ว', body: 'ปรับ “ความจางของภาพ” ได้ถ้าตัวหนังสืออ่านยาก' });
   };
   img.onerror = () => {
     URL.revokeObjectURL(url);
+    bgZoneState(null);
     showToast({ title: 'เปิดภาพนี้ไม่ได้', body: 'ลองเลือกไฟล์ภาพอื่น (JPG หรือ PNG)' });
   };
   img.src = url;
@@ -933,11 +976,24 @@ function renderAppearance() {
   if (del) del.hidden = !has;
   const dimWrap = document.getElementById('bgDimWrap');
   if (dimWrap) dimWrap.hidden = !has;
+  // กล่องวางรูป: มีภาพแล้ว = ภาพนั้นเป็นพื้นของกล่อง · ป้ายบอกวิธีตามอุปกรณ์ (มือถือลากไฟล์ไม่ได้ ไม่ต้องพูดถึง)
+  const canDrag = matchMedia('(hover: hover) and (pointer: fine)').matches;
   const pickLabel = document.getElementById('bgPickLabel');
-  if (pickLabel) pickLabel.textContent = has ? 'เปลี่ยนภาพ' : 'เลือกภาพ';
+  if (pickLabel) pickLabel.textContent = has
+    ? (canDrag ? 'ลากรูปใหม่มาวาง หรือคลิกเพื่อเปลี่ยน' : 'แตะเพื่อเปลี่ยนภาพ')
+    : (canDrag ? 'ลากรูปมาวาง หรือคลิกเพื่อเลือก' : 'แตะเพื่อเลือกภาพ');
+  const zone = document.getElementById('bgZone');
+  if (zone) zone.classList.toggle('has', has);
+  const prev = document.getElementById('bgPrev');
+  if (prev) {
+    const src = has ? localStorage.getItem(BG_KEY) : '';
+    if (prev.getAttribute('src') !== src) { if (src) prev.src = src; else prev.removeAttribute('src'); }
+    prev.hidden = !has;
+  }
   const dim = document.getElementById('bgDim');
   if (dim) { dim.value = bgDim(); const l = document.getElementById('bgDimVal'); if (l) l.textContent = bgDim() + '%'; }
   if (typeof renderFxPick === 'function') renderFxPick();   // ส่วนเอฟเฟกต์ในหน้าธีมสี (hoop.js)
+  syncLiteRow();
   syncSetVals();
 }
 
@@ -1111,6 +1167,8 @@ function go(id) {
   scr.classList.add('just-in');
   enterTimer = setTimeout(() => scr.classList.remove('just-in'), 520);
   growBars(scr);
+  screenFx(scr);
+  if (typeof saiStart === 'function') saiStart();   // ลูปมาสคอตหยุดเองตอนอยู่จออื่น — กลับมาจอที่มีมาสคอตต้องปลุก
   // ซ่อนแถบล่างในจอที่ยังไม่ได้เข้าแอปจริง (บัญชี / ทำความรู้จัก)
   document.body.classList.toggle('login-mode', id === 'scr-login' || id === 'scr-onboard');
   // ปุ่มช่องทางล็อกอินวาดด้วย JS (รายชื่อมาจาก config) และต้องรีเซ็ตกลับหน้าแรกของมัน
@@ -1316,7 +1374,7 @@ function syncFailNotice(kind) {
   syncFailShown = true;
   const off = navigator.onLine === false;
   showToast({
-    title: off ? 'ออฟไลน์อยู่ — ยังไม่ได้ซิงก์' : 'ซิงก์ไม่สำเร็จ',
+    title: off ? 'ออฟไลน์อยู่ ยังไม่ได้ซิงก์' : 'ซิงก์ไม่สำเร็จ',
     body: off ? 'ต่อเน็ตแล้วจะซิงก์ให้เอง' : 'ลองใหม่อีกครั้ง',
     action: off ? null : { label: 'ลองใหม่', fn: () => { syncFailShown = false; kind === 'pull' ? syncFromCloud() : pushToCloud(true); } },
   });
@@ -2087,7 +2145,7 @@ function replanBanner(sp, now) {
   return `<section class="td-replan">
     <div class="tr-head">${icon('clock')}<b>จัดแผนที่เหลือใหม่ให้แล้ว</b></div>
     <p class="tr-body">ช่วง ${hm(m.since)} ที่วางไว้ผ่านไปแล้ว ${humanMin(m.lostMin)}
-      — ${esc(names)}${m.tasks.length > 2 ? ' และอีก ' + (m.tasks.length - 2) + ' งาน' : ''}
+      · ${esc(names)}${m.tasks.length > 2 ? ' และอีก ' + (m.tasks.length - 2) + ' งาน' : ''}
       ${still ? 'ถูกย้ายลงเวลาที่เหลือของวันนี้แล้ว' : 'ไม่มีเวลาเหลือในวันนี้แล้ว'}</p>
     <button class="tr-ok" onclick="dismissReplan(${m.lostMin})">เข้าใจแล้ว</button>
   </section>`;
@@ -2136,7 +2194,7 @@ function todayHead(sp, now) {
   const sub = sp.now
     ? `ว่าง ${esc(humanMin(win.budgetMin))} · ค้าง ${pend.length} งาน`
     : pend.length ? `${pend.length} รายการรออยู่`
-    : 'ไม่มีอะไรค้าง — วันนี้พักได้';
+    : 'ไม่มีอะไรค้าง วันนี้พักได้';
 
   const notifN = typeof notifUnread === 'function' ? notifUnread() : wait;
   if (typeof notifKick === 'function') notifKick();
@@ -2158,7 +2216,7 @@ function todayHead(sp, now) {
     <!-- 1C40 · กระดิ่งพาไปจอการแจ้งเตือน (ข้อความจากเพื่อน + งานเข้ากล่อง) แทนกล่องเข้าอย่างเดียว
          จุดแดงนับทั้งสองสาย · ตัวเลขยังไม่ใส่ ด้วยเหตุผลเดิมของ .th-dot -->
     <button class="th-bell" onclick="go('scr-notif')"
-      aria-label="${notifN ? 'การแจ้งเตือน — ใหม่ ' + notifN + ' รายการ' : 'การแจ้งเตือน'}">
+      aria-label="${notifN ? 'การแจ้งเตือน ใหม่ ' + notifN + ' รายการ' : 'การแจ้งเตือน'}">
       ${icon('bell')}${notifN ? '<span class="th-dot"></span>' : ''}
     </button>
   </header>`;
@@ -2215,7 +2273,7 @@ function nowCard(sp, now) {
   // ตอนนี้เส้นตายถูกพูดที่นี่ที่เดียว และพูดเป็นระยะเวลาเมื่อเลยมาแล้ว ("เลยกำหนดมา 4 วัน")
   // เพราะวันที่ในวงเล็บบังคับให้ผู้ใช้คำนวณเองว่ามันคือกี่วันที่แล้ว
   const late = t.due && new Date(t.due) < now;
-  const why = noDue ? 'ยังไม่รู้กำหนดส่ง — เลือกให้จากงานที่ค้างนานที่สุด'
+  const why = noDue ? 'ยังไม่รู้กำหนดส่ง เลือกให้จากงานที่ค้างนานที่สุด'
     : late ? 'เลยกำหนดมา ' + overdueFor(now - new Date(t.due))
     : topReason(info);
   const whyBits = [why];
@@ -2754,6 +2812,9 @@ function todayEmpty(now, hasRem) {
   const doneToday = liveTasks().filter(t => t.done && t.doneAt &&
     new Date(t.doneAt).toDateString() === now.toDateString()).length;
   const everHad = liveTasks().length > 0;
+  // 9 ต.ค. 69 · "ไม่มีงานค้าง" ใช้ได้เฉพาะตอนค้างศูนย์จริง — เดิมขึ้นคำนี้ทั้งที่แถวตัวเลขใต้มันบอก "1 งานค้าง"
+  // (ของที่ค้างคือเตือนความจำวันหลัง ไม่ใช่งานต้องนั่งทำวันนี้) · มีของรออยู่ = บอกว่ารอกี่อย่าง
+  const waiting = pendingTasks().length;
   // 1C40 · การ์ดแทนไอคอนลอย ๆ (เจ้าของ: "เอาให้ดูน่าสนใจกว่านี้")
   // น้องไซอยู่ในวงแสงเป็นตัวเอกของจอว่าง หน้าเปลี่ยนตามสถานการณ์ — มาสคอตที่ทำหน้าเดียวตลอด
   // คือสติกเกอร์ ไม่ใช่ตัวละคร · ครั้งแรก = หน้าตื่นเต้น (wow) พร้อมสามขั้นว่าแอปทำอะไร
@@ -2769,9 +2830,10 @@ function todayEmpty(now, hasRem) {
         onerror="this.parentNode.classList.add('no-img');this.remove()"><i class="tc-fb">${icon('sparkles')}</i></span>
       <span class="tc-tx">
         <b>${doneToday ? 'เคลียร์หมดแล้ววันนี้'
-          : hasRem ? 'ไม่มีงานที่ต้องนั่งทำ' : everHad ? 'ไม่มีงานค้าง' : 'วันนี้ยังไม่มีงาน'}</b>
+          : hasRem ? 'ไม่มีงานที่ต้องนั่งทำ' : waiting ? 'ตอนนี้ไม่มีงานต้องทำ' : everHad ? 'ไม่มีงานค้าง' : 'วันนี้ยังไม่มีงาน'}</b>
         <p>${doneToday ? 'ทำเสร็จไป ' + doneToday + ' งาน'
           : hasRem ? 'เหลือแต่นัดตามเวลา'
+          : waiting ? 'อีก ' + waiting + ' อย่างรออยู่ในแท็บงาน'
           : everHad ? 'มีงานใหม่ก็เพิ่มได้เลย'
           : 'ถ่ายรูปใบงานเพื่อเริ่ม'}</p>
       </span>
@@ -2784,6 +2846,8 @@ function todayEmpty(now, hasRem) {
     </div>` : ''}
     ${hasRem ? '' : `<button class="tc-cta" onclick="openAddSheet()">${icon('camera')}${
       everHad ? 'เพิ่มงาน' : 'สแกนใบงานแรก'}</button>`}
+    ${everHad && typeof openSaiPlan === 'function' ? `<button class="tc-room" onclick="openSaiPlan()">ดูทั้งวันกับ${
+      esc(typeof mName === 'function' ? mName() : 'น้องฮูก')}${icon('chevron')}</button>` : ''}
   </section>`;
 }
 
@@ -2795,7 +2859,7 @@ function noTimeLeft(sp, now) {
   return `<section class="td-note">
     <b>${icon('clock')}วันนี้หมดเวลาแล้ว</b>
     <p>เลย ${esc(ctxPrefs().noWorkAfter)} น. ซึ่งเป็นเวลาที่คุณตั้งไว้ว่าจะหยุดทำงาน${
-      nf ? ` — ว่างอีกทีตอน ${esc(nf.fromHm)} ${nf.dayOffset === 1 ? 'พรุ่งนี้' : 'อีก ' + nf.dayOffset + ' วัน'}` : ''}</p>
+      nf ? ` ว่างอีกทีตอน ${esc(nf.fromHm)} ${nf.dayOffset === 1 ? 'พรุ่งนี้' : 'อีก ' + nf.dayOffset + ' วัน'}` : ''}</p>
     <button class="tn-ask" onclick="go('scr-context')">${icon('clock')}แก้เวลาว่างคืนนี้${icon('chevron')}</button>
   </section>`;
 }
@@ -2924,7 +2988,10 @@ const HOME_BLOCKS = {
   // 1C18 · น้องไซตัวเป็น ๆ ใต้ช่องถาม — ทางเข้าห้องคุยแผน
   // sai.js อาจโหลดไม่ขึ้น (เน็ตหลุดกลางคัน · แคชเก่า) จึงต้องเช็คก่อนเรียกเสมอ
   // เหมือน hwNowBlock · บล็อกที่หายไปเงียบ ๆ ดีกว่าหน้าแรกที่ว่างทั้งจอ
-  saiHero:    ctx => (typeof saiHero === 'function' ? saiHero(ctx) : ''),
+  // 9 ต.ค. 69 · วันที่ไม่มีงาน (การ์ดบนเป็นจอว่างที่มีน้องฮูกอยู่แล้ว) ไม่วาดใบนี้ซ้ำ
+  // สองใบเคยพูดเรื่องเดียวกัน ("ไม่มีงานค้าง" + "วันนี้โล่งมากเลย") ด้วยหน้ามาสคอตสองหน้า
+  // ทางเข้าห้องแผนย้ายไปเป็นลิงก์ใต้การ์ดจอว่าง (.tc-room ใน todayEmpty) จึงไม่หายไปไหน
+  saiHero:    ctx => (typeof saiHero === 'function' && ctx.sp.now ? saiHero(ctx) : ''),
   // การ์ด "ตอนนี้" กับจอว่างเป็นบล็อกเดียวกัน เพราะมันคือของสองหน้าของคำถามเดียวกัน:
   // มีอะไรให้ทำไหม · แยกเป็นสองบล็อกเมื่อไหร่ จะมีวันที่จอโชว์ทั้งคู่หรือไม่โชว์เลย
   nowCard:    ctx => ctx.sp.now
@@ -3066,9 +3133,9 @@ function renderMenu() {
 const ADD_ACTIONS = [
   ['camera', 'ถ่ายรูปใบงาน', 'AI อ่านให้ทั้งใบ', "openShot()"],
   ['mic', 'พูดเพิ่มงาน', 'แตะแล้วพูด', "go('scr-scan');toggleVoice()"],
-  ['type', 'แปะข้อความจากครู', 'วางแล้วให้ AI แกะ', "go('scr-scan')"],
+  ['clipboard', 'แปะข้อความจากครู', 'วางแล้วให้ AI แกะ', "go('scr-scan')"],
   ['pencil', 'พิมพ์เองทีละช่อง', 'งานที่ไม่มีข้อความต้นทาง', "openForm(null)"],
-  ['book', 'เพิ่มวันสอบ', 'แล้วผมแบ่งรอบอ่านให้', "openForm(null);setTimeout(()=>typeof setFormType==='function'&&setFormType('exam'),60)"],
+  ['book', 'เพิ่มวันสอบ', 'แล้วผมแบ่งรอบอ่านให้', "openForm(null);setTypePick('exam')"],   // 9 ต.ค. 69 · เดิมเรียก setFormType ซึ่งไม่มีอยู่ (ถูกกันไว้ด้วย typeof จึงเงียบ) — ได้ฟอร์ม "การบ้าน" แทนทุกครั้ง
 ];
 
 // เมนู + มีสองหน้า: หน้าหลัก กับ หน้าตัวเชื่อม
@@ -3141,7 +3208,7 @@ function addSheetHTML() {
       <span class="as-go">${icon('chevron')}</span>
     </button>`).join('')}
     <button class="as-row as-conn" onclick="openAddSheet('connectors')">
-      <span class="as-ic">${icon('share')}</span>
+      <span class="as-ic">${icon('plug')}</span>
       <span class="as-tx"><b>ตัวเชื่อม</b></span>
       ${c && c.all ? `<span class="as-cnt sm">${c.on}/${c.all}</span>` : ''}
       <span class="as-go">${icon('chevron')}</span>
@@ -3404,7 +3471,7 @@ const AI_HUB_TOOLS = [
     "aiHubAsk('อธิบายการบ้านที่ค้างอยู่ให้เข้าใจหน่อย ผมยังไม่รู้จะเริ่มตรงไหน')"],
   ['plan', 'วางแผนเวลา', 'จัดวันนี้ให้',
     "closeAiHub();go('scr-plan')"],
-  ['type', 'สรุป · ช่วยเรียน', 'ย่อบทเรียน ทำชุดทบทวนก่อนสอบ',
+  ['notes', 'สรุป · ช่วยเรียน', 'ย่อบทเรียน ทำชุดทบทวนก่อนสอบ',
     "aiHubAsk('ช่วยสรุปเนื้อหาที่ต้องอ่านสำหรับสอบให้หน่อย')"],
 ];
 
@@ -3563,7 +3630,7 @@ function renderHome() {
     + `<div class="sw-hint"><span class="l">ทำเสร็จ${icon('chevron')}</span>
         <span class="r">${icon('chevron')}เลื่อนพรุ่งนี้</span></div>`
     + top.map((t, i) => rankCard(t, i + 1, now)).join('')
-    + (snoozed.length ? `<div class="sec-label soft">${icon('clock')}เลื่อนไว้ — ยังอยู่ในแผน</div>`
+    + (snoozed.length ? `<div class="sec-label soft">${icon('clock')}เลื่อนไว้ ยังอยู่ในแผน</div>`
         + snoozed.map(t => rankCard(t, pending.indexOf(t) + 1, now)).join('') : '')
     + (rest > 0 ? `<button class="ghost-wide" onclick="go('scr-tasks')">
         ดูงานที่เหลืออีก ${rest} งาน${icon('chevron')}</button>` : '');
@@ -3574,11 +3641,11 @@ function renderHome() {
 // จึงไม่ปล่อยให้เป็นจอว่าง แต่พูดกับเขาตรง ๆ ว่าที่ว่างเพราะเคลียร์หมดแล้ว
 // nm = ชื่อที่ผู้ใช้บอกไว้ตอนทำความรู้จัก (ว่างได้ ถ้ากดข้าม)
 const CLEARED_COPY = nm => [
-  { h: nm ? `เคลียร์หมดแล้ว ${nm} 🎉` : 'เคลียร์หมดแล้ว 🎉',
+  { h: nm ? `เคลียร์หมดแล้ว ${nm}` : 'เคลียร์หมดแล้ว',
     p: 'ไม่เหลืองานค้าง' },
   { h: 'ว่างจริง ไม่ได้ลืม',
     p: 'ไม่มีอะไรค้าง พักได้เลย' },
-  { h: nm ? `เก่งมากวันนี้ ${nm} 💙` : 'เก่งมากวันนี้ 💙',
+  { h: nm ? `วันนี้ครบแล้ว ${nm}` : 'วันนี้ครบแล้ว',
     p: 'งานหมดเกลี้ยง' },
   { h: 'สบายใจได้เลย',
     p: 'พักให้เต็มที่' },
@@ -3759,8 +3826,8 @@ function snoozeToTomorrow(id) {
   setTimeout(() => {
     renderAll();
     showToast({
-      title: locked ? 'เลื่อนไม่ได้ — วันนี้เป็นวันสุดท้าย ⚠' : 'ย้ายไปแผนพรุ่งนี้แล้ว 🕓',
-      body: (t.subject && t.subject !== 'อื่น ๆ' ? t.subject + ' — ' : '') +
+      title: locked ? 'เลื่อนไม่ได้ วันนี้เป็นวันสุดท้าย ⚠' : 'ย้ายไปแผนพรุ่งนี้แล้ว',
+      body: (t.subject && t.subject !== 'อื่น ๆ' ? t.subject + ' · ' : '') +
         (locked
           ? 'ถ้าไม่ทำวันนี้จะไม่มีเวลาว่างพอก่อน' + fmtDue(t.due, new Date(), t) + ' อีกแล้ว'
           : 'กำหนดส่งยังเป็น ' + fmtDue(t.due, new Date(), t) + ' เหมือนเดิม'),
@@ -3991,7 +4058,7 @@ function whyReasonsHTML(t, now) {
   let rest = null;
   try {
     const d = typeof decideFor === 'function' ? decideFor(now, t.id) : null;
-    if (d && d.rest && d.rest.wins) rest = 'คืนนี้พักได้ — พรุ่งนี้เช้าคุ้มกว่า';
+    if (d && d.rest && d.rest.wins) rest = 'คืนนี้พักได้ พรุ่งนี้เช้าคุ้มกว่า';
   } catch (_) { rest = null; }
   if (!rs.length && !rest) return '';
   return `<section class="wy2-card">
@@ -4139,7 +4206,7 @@ function aiContext(now = new Date()) {
 
   const cls = typeof ctxClasses === 'function' ? ctxClasses() : [];
   L.push('## ตารางเรียน (' + cls.length + ' คาบ)');
-  if (!cls.length) L.push('- ยังไม่ได้บอกตารางเรียน — เวลาว่างข้างบนเป็นค่าเดา ไม่ใช่ของจริง');
+  if (!cls.length) L.push('- ยังไม่ได้บอกตารางเรียน เวลาว่างข้างบนเป็นค่าเดา ไม่ใช่ของจริง');
   for (const c of cls) {
     const wd = c.weekday == null ? 'ทุกวัน'
       : (Array.isArray(c.weekday) ? c.weekday : [c.weekday]).map(d => WEEKDAY_SHORT[d]).join(',');
@@ -4214,7 +4281,7 @@ function aiContext(now = new Date()) {
 // คืน { ok, answer } หรือ { ok: false, message } — ข้อความเป็นไทยพร้อมโชว์
 // ทุก error path ต้องได้ message ที่ผู้ใช้อ่านรู้เรื่อง เพราะจอนี้ไม่มีทางอื่นให้เขาเดาเอง
 async function askSai(question, history) {
-  if (!sb) return { ok: false, message: 'ยังต่อเซิร์ฟเวอร์ไม่ได้ — เช็คอินเทอร์เน็ตแล้วลองใหม่' };
+  if (!sb) return { ok: false, message: 'ยังต่อเซิร์ฟเวอร์ไม่ได้ เช็คอินเทอร์เน็ตแล้วลองใหม่' };
   try {
     const { data, error } = await withTimeout(
       sb.functions.invoke('ask-sai', {
@@ -4246,7 +4313,7 @@ async function askSai(question, history) {
 //
 // onChunk ถูกเรียกทุกครั้งที่มีข้อความเพิ่ม — ฝั่งจอเอาไปต่อท้ายฟองแชทได้เลย
 async function askSaiStream(question, history, onChunk) {
-  if (!sb) return { ok: false, message: 'ยังต่อเซิร์ฟเวอร์ไม่ได้ — เช็คอินเทอร์เน็ตแล้วลองใหม่' };
+  if (!sb) return { ok: false, message: 'ยังต่อเซิร์ฟเวอร์ไม่ได้ เช็คอินเทอร์เน็ตแล้วลองใหม่' };
 
   const cfg = window.SUPABASE_CONFIG || {};
   if (!cfg.url || !cfg.anonKey) return await askSai(question, history);
@@ -4514,7 +4581,7 @@ function aiChatsListHTML() {
       <span class="fp-tx"><b>${esc(c.title || 'แชทไม่มีชื่อ')}</b><i class="ch-at">${esc(aiChatWhen(c.at))}</i></span>
       <button type="button" class="ch-del" onclick="event.stopPropagation();aiDeleteChat('${c.id}')" aria-label="ลบแชทนี้">${icon('x')}</button>
     </div>`).join('');
-  return rows || `<p class="fp-empty">ยังไม่มีแชทเก่า — กด "แชทใหม่" แล้วแชทนี้จะมาอยู่ตรงนี้</p>`;
+  return rows || `<p class="fp-empty">ยังไม่มีแชทเก่า กด "แชทใหม่" แล้วแชทนี้จะมาอยู่ตรงนี้</p>`;
 }
 
 function aiChatsOpen(btn) {
@@ -4753,7 +4820,7 @@ function aiShowContext() {
 const AI_QUICK = [
   ['sparkles', 'ช่วยวางแผนวันนี้', 'วันนี้ควรทำอะไรก่อน แล้วเรียงลำดับยังไงดี'],
   ['book',     'อธิบายการบ้าน',    'อธิบายการบ้านที่ค้างอยู่ให้เข้าใจหน่อย ผมยังไม่รู้จะเริ่มตรงไหน'],
-  ['type',     'สรุปเนื้อหา',      'ช่วยสรุปเนื้อหาที่ต้องอ่านสำหรับสอบให้หน่อย'],
+  ['notes',    'สรุปเนื้อหา',      'ช่วยสรุปเนื้อหาที่ต้องอ่านสำหรับสอบให้หน่อย'],
   ['clock',    'จัดเวลาให้ฉัน',    'ช่วยแบ่งเวลาอ่านหนังสือให้ทันสอบหน่อย'],
 ];
 
@@ -4763,9 +4830,9 @@ const AI_QUICK = [
 // เพราะประโยคแรกคือที่ที่ผู้ช่วยพิสูจน์ว่ามันรู้จักวันของเราจริงหรือแค่ทักทายเป็น
 function aiOpener(sp) {
   const name = who();
-  const hi = 'สวัสดี' + (name ? ' ' + name : '') + ' 👋';
+  const hi = 'สวัสดี' + (name ? ' ' + name : '');
   if (!sp.now) {
-    return hi + ' ตอนนี้ไม่มีงานค้างที่ต้องเจียดเวลาให้ — ติดเรื่องเรียนอะไรถามได้เลย';
+    return hi + ' ตอนนี้ไม่มีงานค้างที่ต้องเจียดเวลาให้ ติดเรื่องเรียนอะไรถามได้เลย';
   }
   const t = sp.now.task;
   const why = topReason(sp.now.info);
@@ -5199,7 +5266,7 @@ function renderAi() {
   // คือจุดที่คนส่วนใหญ่ปิดทิ้งเพราะไม่รู้ว่าถามอะไรได้ และความไม่รู้นั้นไม่ได้หายไปหลังถามครั้งแรก
   const quick = fresh ? '' : `<div class="sai-qa">
     ${fresh ? '' : `<button class="qa-priv" onclick="aiShowContext()">${
-      icon('lock')}${esc(mName())}เห็นอะไร</button>`}
+      icon('eye')}${esc(mName())}เห็นอะไร</button>`}
     ${AI_QUICK.map(q => `<button onclick="aiAsk('${esc(q[2]).replace(/'/g, "\\'")}')"${
       aiBusy ? ' disabled' : ''}>${icon(q[0])}${esc(q[1])}</button>`).join('')}
   </div>`;
@@ -5345,8 +5412,8 @@ function aiVoice() {
   aiRecog.onerror = e => {
     aiVoiceOn = false;
     const msg = {
-      'not-allowed': 'ยังไม่ได้อนุญาตให้ใช้ไมค์ — เปิดสิทธิ์ไมโครโฟนให้เว็บนี้ก่อนนะ',
-      'service-not-allowed': 'ยังไม่ได้อนุญาตให้ใช้ไมค์ — เปิดสิทธิ์ไมโครโฟนให้เว็บนี้ก่อนนะ',
+      'not-allowed': 'ยังไม่ได้อนุญาตให้ใช้ไมค์ เปิดสิทธิ์ไมโครโฟนให้เว็บนี้ก่อนนะ',
+      'service-not-allowed': 'ยังไม่ได้อนุญาตให้ใช้ไมค์ เปิดสิทธิ์ไมโครโฟนให้เว็บนี้ก่อนนะ',
       'no-speech': 'ไม่ได้ยินเสียงเลย ลองพูดใหม่อีกครั้ง',
       'audio-capture': 'หาไมโครโฟนไม่เจอ',
       'network': 'ต้องต่อเน็ตเพื่อแปลงเสียงเป็นข้อความ',
@@ -5409,12 +5476,22 @@ let taskQ = '';
 const TASK_VIEWS = ['today', 'week', 'list'];
 let taskView = 'today';
 
+// 9 ต.ค. 69 · เนื้อหาใต้แท็บเลื่อนเข้าจากฝั่งที่กด (ส่วน "direction-aware" ของ Direction Aware Tabs · Cult UI)
+// กดไปทางขวา (วันนี้ → สัปดาห์ → รายการ) = เข้าจากขวา · ย้อนซ้าย = เข้าจากซ้าย · ก้อนสปริงบนแท็บ (tkThumb) ยังเป็นตัวเดิม
+let tkSwapTimer = 0;
 function setTaskView(v) {
   const next = TASK_VIEWS.includes(v) ? v : 'today';
   if (next === taskView) return;
+  const dir = TASK_VIEWS.indexOf(next) > TASK_VIEWS.indexOf(taskView) ? 1 : -1;
   taskView = next;
   haptic('tap');
   renderTasks();
+  const el = document.getElementById('taskList');
+  if (!el) return;
+  el.dataset.swap = dir;
+  el.classList.remove('tk-swap'); void el.offsetWidth; el.classList.add('tk-swap');
+  clearTimeout(tkSwapTimer);
+  tkSwapTimer = setTimeout(() => el.classList.remove('tk-swap'), 520);
 }
 
 // ---------- ก้อนเลื่อนของแท็บโหมด (แบบ HaloToggleGroup) ----------
@@ -5558,7 +5635,8 @@ function todayBoard(now) {
   // (เจ้าของสั่งเอง: "เปิดหน้านี้ตอนเช้าแล้วต้องเข้าใจสถานการณ์ภายใน 3–5 วินาที")
   //
   // ตัวเลขยังอยู่ครบทั้งสามตัว ไม่ได้ตัดอะไรทิ้ง — เปลี่ยนแค่น้ำหนักกับลำดับ
-  const stats = '<div class="tb-strip">'
+  // 9 ต.ค. 69 · ศูนย์ทั้งสามช่อง ("0 · 0 · 0:00") ไม่ได้บอกอะไรเลย — ไม่วาดจนกว่าจะมีตัวเลขจริงสักช่อง
+  const stats = (!classes.length && !planTasks.size && !used) ? '' : '<div class="tb-strip">'
     + [[String(classes.length), 'คาบเรียน'],
        [String(planTasks.size), 'งานวันนี้'],
        [usedTx, 'ต้องใช้เวลา']].map(function (c) {
@@ -5620,7 +5698,7 @@ function todayBoard(now) {
       + '<button class="tb-fc-go" onclick="startFocus(\'' + t.id + '\')">'
       + icon('play') + 'เริ่มทำ</button></div>';
   } else if (pendingTasks().length) {
-    focus = '<div class="tb-focus flat">' + icon('pin')
+    focus = '<div class="tb-focus flat">' + icon('clock')
       + '<b>วันนี้ไม่มีช่องว่างให้เจียดแล้ว</b>' + '</div>';
   } else {
     focus = '<button class="tb-focus flat tap" onclick="openAddSheet()">' + icon('camera')
@@ -6099,7 +6177,7 @@ function tasksEmpty(now, days) {
     return `<div class="fr-empty">
       ${icon('calendar')}
       <b>${d ? esc(fmtThaiDate(d.d)) : 'วันนี้'}ไม่มีงานถึงกำหนด</b>
-      <p>วันอื่นอาจมีอยู่ — กดดูทุกวันได้</p>
+      <p>วันอื่นอาจมีอยู่ กดดูทุกวันได้</p>
       <button class="fr-empty-go" onclick="setTaskDay(null)">${icon('calendar')}ดูทุกวัน</button>
     </div>`;
   }
@@ -6107,7 +6185,7 @@ function tasksEmpty(now, days) {
     ${icon('check-circle')}
     <b>ไม่มีงานค้างเลย</b>
     <p>เคลียร์หมดแล้ว</p>
-    <button class="fr-empty-go" onclick="openAddSheet()">${icon('type')}เพิ่มงาน</button>
+    <button class="fr-empty-go" onclick="openAddSheet()">${icon('plus')}เพิ่มงาน</button>
   </div>`;
 }
 
@@ -6236,7 +6314,7 @@ function purgeOldTrash() {
 // ตอนนี้แต่ละวันวาดจาก context: แถบรูปร่างของวัน (เรียน/กิจวัตร/ช่องว่าง) + เวลาว่างรวม
 // แล้วเทียบกับงานที่ต้องส่งวันนั้น สะสมมาตั้งแต่วันนี้ วันไหนเวลาไม่พอจะติดป้ายเตือน
 const TL_DAYS = 7;
-const TL_PIN_ICON = { homework: 'type', exam: 'book', activity: 'calendar', reminder: 'clock' };
+const TL_PIN_ICON = { homework: 'pencil', exam: 'book', activity: 'calendar', reminder: 'bell' };   // ตรงกับปุ่มชนิดงานในฟอร์ม
 
 function humanLeft(ms) {
   if (ms < 0) return 'เลยมาแล้ว';
@@ -6666,7 +6744,7 @@ function calHtml(now) {
         `<button type="button" class="sj-${c}${calEdit.color === c ? ' on' : ''}"
           onclick="calSetColor(${c})" aria-label="สี ${c}"></button>`).join('')}</div>
       <button type="button" class="cal-big${calEdit.big ? ' on' : ''}" onclick="calToggleBig()">
-        ${icon('flag')}<span>สำคัญมาก — ระบายทั้งช่องในปฏิทิน</span>
+        ${icon('flag')}<span>สำคัญมาก ระบายทั้งช่องในปฏิทิน</span>
         <i class="cal-big-x">${calEdit.big ? icon('check') : ''}</i></button>
       <p class="ctx-err" id="calMarkErr" hidden></p>
       <div class="cal-form-a">
@@ -6762,7 +6840,7 @@ function renderTimeline() {
       verdict = `<div class="dayvd bad">
         <div class="dayvd-h">${tkChip('ไม่ทัน', 'hot')}<b>${missed.length} งานเสี่ยงเลยกำหนดวันนี้</b></div>
         <p>${missed.map(t => `<b class="vd-t">${esc(taskTitleText(t))}</b>`).join('<i class="vd-sep">·</i>')}${nf
-          ? ' — ช่องว่างถัดไปคือ' + (nf.dayOffset === 1 ? 'พรุ่งนี้ ' : 'วัน' + THAI_DAY[nf.date.getDay()] + ' ') + nf.fromHm
+          ? ' ช่องว่างถัดไปคือ' + (nf.dayOffset === 1 ? 'พรุ่งนี้ ' : 'วัน' + THAI_DAY[nf.date.getDay()] + ' ') + nf.fromHm
           : ''}</p></div>`;
     } else if (plan.overflow.length || left < 30) {
       verdict = `<div class="dayvd warn">
@@ -6972,7 +7050,7 @@ function renderPlan() {
   const pending = pendingTasks();
   if (!pending.length) {
     sub.textContent = '';
-    list.innerHTML = `<div class="card empty">ไม่มีงานค้าง — วันนี้พักได้เต็มที่ 🎉</div>`;
+    list.innerHTML = `<div class="card empty">ไม่มีงานค้าง วันนี้พักได้เต็มที่</div>`;
     return;
   }
   // อ่านแผนก้อนเดียวกับหน้าแรก — ห้ามเรียก buildDayPlan เองที่นี่
@@ -6983,7 +7061,7 @@ function renderPlan() {
   // หน่วยต้องเป็นนาทีเมื่อต่ำกว่าหนึ่งชั่วโมง — "ว่างอีก 0.3 ชม." ไม่มีใครแปลงในหัวทัน
   // และ 1.8 ชม. ก็ไม่ได้ช่วยกว่า "1 ชม. 48 นาที" สักเท่าไหร่ (humanMin ทำให้แล้วทั้งสองแบบ)
   sub.textContent = win.mode === 'none'
-    ? 'วันนี้หมดเวลาแล้ว — แผนนี้กันไว้ให้พรุ่งนี้เช้า'
+    ? 'วันนี้หมดเวลาแล้ว แผนนี้กันไว้ให้พรุ่งนี้เช้า'
     : `ว่างอีก ${humanMin(win.windowMin)}` +
       (win.capped ? ` · ตั้งเพดานไว้ ${humanMin(win.capMin)}` : '') +
       ` · จัดให้แล้ว ${humanMin(plan.usedMin)}`;
@@ -7002,7 +7080,7 @@ function renderPlan() {
       <span class="pn-go">${icon('chevron')}</span>
     </button>`;
   } else if (win.mode === 'late') {
-    html += `<div class="pctx-note">${icon('clock')}เลย ${esc(ctxPrefs().noWorkAfter)} น. มาแล้ว —
+    html += `<div class="pctx-note">${icon('clock')}เลย ${esc(ctxPrefs().noWorkAfter)} น. มาแล้ว
       นี่คือเวลาที่ยืมมาจากการนอน ทำเท่าที่จำเป็นพอ</div>`;
   }
 
@@ -7076,7 +7154,7 @@ function renderPlan() {
       : 'ไม่เหลือช่องว่างก่อนกำหนดส่งอีกแล้ว';
     html += `<div class="povf danger">
       <div class="povf-head">${icon('clock')}<span>ทำไม่ทันถ้าไม่ทำวันนี้</span></div>
-      <div class="povf-why">${esc(when)} — ${missed.length > 1 ? 'งานพวกนี้' : 'งานนี้'}เลยกำหนดส่งไปก่อนถึงตอนนั้น</div>
+      <div class="povf-why">${esc(when)} ${missed.length > 1 ? 'งานพวกนี้' : 'งานนี้'}เลยกำหนดส่งไปก่อนถึงตอนนั้น</div>
       ${missed.map(o => `<div class="it">
         <div class="tt">${taskTitle(o.task)}</div>
         <div class="ln">ยังต้องใช้ ~${o.need} นาที · ${esc(fmtDue(o.task.due, now, o.task))}</div>
@@ -7086,7 +7164,7 @@ function renderPlan() {
   }
   if (movable.length) {
     html += `<div class="povf">
-      <div class="povf-head">${icon('clock')}<span>เวลาวันนี้ไม่พอ — ย้ายไปวันหลังได้</span></div>
+      <div class="povf-head">${icon('clock')}<span>เวลาวันนี้ไม่พอ ย้ายไปวันหลังได้</span></div>
       ${movable.map(o => `<div class="it">
         <div class="tt">${taskTitle(o.task)}</div>
         <div class="ln">ต้องใช้ ~${o.need} นาที · ${esc(fmtDue(o.task.due, now, o.task))}</div>
@@ -7096,12 +7174,12 @@ function renderPlan() {
   if (!plan.slots.length && !plan.events.length) {
     // มีงานค้างอยู่แต่วางไม่ลง ≠ ไม่มีอะไรต้องทำ — สองอย่างนี้พูดสลับกันไม่ได้เด็ดขาด
     html += missed.length
-      ? `<div class="card empty">วันนี้ไม่เหลือช่องว่างให้วางงานแล้ว —
+      ? `<div class="card empty">วันนี้ไม่เหลือช่องว่างให้วางงานแล้ว
            แต่งานข้างบนรอถึงพรุ่งนี้ไม่ได้ ดูว่าพอยืมเวลาจากตรงไหนได้บ้าง</div>`
       : plan.overflow.length
-        ? `<div class="card empty">วันนี้ไม่เหลือช่องว่างให้วางงานแล้ว —
+        ? `<div class="card empty">วันนี้ไม่เหลือช่องว่างให้วางงานแล้ว
              งานข้างบนถูกกันไว้ให้พรุ่งนี้เช้าเรียบร้อย</div>`
-        : `<div class="card empty">วันนี้ไม่มีอะไรต้องนั่งทำ — พักได้เต็มที่ 🎉</div>`;
+        : `<div class="card empty">วันนี้ไม่มีอะไรต้องนั่งทำ พักได้เต็มที่</div>`;
   }
   list.innerHTML = html;
 }
@@ -7267,8 +7345,8 @@ function renderProfile() {
   // (กฎเดิมของจอนี้ตั้งแต่ 1B71: ตัวเลขเดียวกันห้ามโผล่สองที่ในจอเดียว)
   const ps = document.getElementById('peShopCt');
   if (ps) {
-    ps.textContent = (typeof fmtTok === 'function' ? fmtTok(tokenBalance()) : tokenBalance())
-      + ' โทเคน';
+    ps.innerHTML = '<span data-tok="' + tokenBalance() + '">'
+      + (typeof fmtTok === 'function' ? fmtTok(tokenBalance()) : tokenBalance()) + '</span> โทเคน';
   }
   const ver = document.getElementById('appVer');
   if (ver) ver.textContent = 'StudentOS Version ' + APP_VERSION + (APP_CODENAME ? ' “' + APP_CODENAME + '”' : '');
@@ -7295,15 +7373,18 @@ function renderProfile() {
   } else if (Notification.permission === 'granted') {
     // 1B99 · สามสถานะ ไม่ใช่สอง — 'local' คือ "เบราว์เซอร์พร้อม แต่เซิร์ฟเวอร์ยังส่งไม่ถึง"
     // ซึ่งเดิมถูกนับรวมเป็น 'on' แล้วจอก็สัญญาเกินกว่าที่ระบบทำได้จริง
+    // 9 ต.ค. 69 · 'off' (อนุญาตแล้วแต่ไม่มี subscription) เคยเขียนว่า "เตือนตอนเปิดแอป" เหมือน
+    // สถานะปกติ — คนอ่านไม่มีทางรู้ว่าการเตือนตอนปิดแอปตายอยู่ ต้องพูดตรง ๆ ว่า "นอกแอป: ยังไม่ทำงาน"
+    const why = pushErr ? ' · ' + pushErr : '';
     if (pushState === 'on' && currentUser) st.textContent = 'เตือนก่อนถึงกำหนด แม้ปิดแอป';
-    else if (pushState === 'local' && currentUser) st.textContent = 'เตือนตอนเปิดแอป · ยังเชื่อมกับเซิร์ฟเวอร์ไม่ได้';
-    else if (pushState === 'on' || pushState === 'local') st.textContent = 'เตือนตอนเปิดแอป';
-    else st.textContent = 'เตือนตอนเปิดแอป';
-    // 'local' ต้องมีปุ่มให้กดลองใหม่ — สถานะที่บอกว่าพังแต่ไม่มีอะไรให้กด คือทางตัน
+    else if (!currentUser) st.textContent = 'เตือนตอนเปิดแอป · ล็อกอินเพื่อเตือนนอกแอป';
+    else if (pushState === 'unsupported') st.textContent = 'เตือนตอนเปิดแอป · เครื่องนี้เตือนนอกแอปไม่ได้';
+    else if (pushState === 'local') st.textContent = 'นอกแอป: ยังเชื่อมกับเซิร์ฟเวอร์ไม่ได้' + why;
+    else st.textContent = 'นอกแอป: ยังไม่ทำงาน' + why;
+    // สถานะที่บอกว่าพังแต่ไม่มีอะไรให้กด คือทางตัน — ทุกสถานะที่ยังไม่ 'on' ต้องมีปุ่มต่อใหม่
     if (nb) {
-      const stuck = pushState === 'local' && currentUser;
-      nb.style.display = (pushState === 'on' || pushState === 'unsupported') ? 'none' : 'block';
-      if (stuck) nb.textContent = 'ลองเชื่อมใหม่';
+      nb.style.display = (pushState === 'on' || pushState === 'unsupported' || !currentUser) ? 'none' : 'block';
+      nb.textContent = 'ต่อใหม่';
     }
   } else if (Notification.permission === 'denied') {
     st.textContent = 'ถูกปิดไว้ในเบราว์เซอร์';
@@ -7403,7 +7484,7 @@ async function copyHandle() {
   try {
     await navigator.clipboard.writeText('@' + frHandle);
     haptic('arm');
-    showToast({ title: 'ก๊อปแล้ว 📋', body: '' });
+    showToast({ title: 'ก๊อปแล้ว', body: '' });
   } catch (_) {
     const el = document.getElementById('frHandle');
     if (el) { el.focus(); el.select(); }
@@ -7419,7 +7500,7 @@ async function addPerson(id) {
   if (frHits) { const hit = frHits.find(x => x.id === id); if (hit) hit.rel = data; }
   haptic('done');
   if (data === 'friends') {
-    showToast({ title: 'เป็นเพื่อนกันแล้ว 🎉', body: '' });
+    showToast({ title: 'เป็นเพื่อนกันแล้ว', body: '' });
     loadFriends();
   } else {
     showToast({ title: 'ส่งคำขอแล้ว', body: 'รอเขากดรับ' });
@@ -7463,7 +7544,7 @@ function renderFriends(force) {
     body.innerHTML = `<div class="fr-gate">
         ${icon('lock')}
         <b>เข้าบัญชีก่อนถึงจะเพิ่มเพื่อนได้</b>
-        <p>เพื่อนผูกอยู่กับบัญชี ไม่ใช่กับเครื่อง — เปลี่ยนเครื่องแล้วรายชื่อยังอยู่ครบ
+        <p>เพื่อนผูกอยู่กับบัญชี ไม่ใช่กับเครื่อง เปลี่ยนเครื่องแล้วรายชื่อยังอยู่ครบ
            และเพื่อนถึงจะค้นหาคุณเจอ</p>
         <button class="fr-gate-go" onclick="loginFromFriends()">เข้าสู่ระบบ</button>
       </div>`;
@@ -8313,7 +8394,7 @@ function renderCtxWiz() {
           </div>
         </div>`;
       }).join('')}</div>
-      ${guess.length ? '' : '<p class="wz-note">ยังเดาไม่ได้ — ย้อนกลับไปใส่เวลาเรียนก่อน</p>'}`;
+      ${guess.length ? '' : '<p class="wz-note">ยังเดาไม่ได้ ย้อนกลับไปใส่เวลาเรียนก่อน</p>'}`;
   }
 
   if (step === 3) {
@@ -8701,7 +8782,7 @@ const BADGES = [
     desc: 'โลกทั้งใบถูกสร้างขึ้นมา ไม่มีอะไรจริงสักอย่าง แต่ก็ยืนอยู่บนนั้นได้',
     skin: 'meta', postGenesis: true },
   { id: 'err404', tone: 'glitch', mark: '!', name: 'Erorr 404',
-    desc: 'ไม่พบสิ่งที่ตามหา — แต่ไปเจออย่างอื่นเข้าแทน',
+    desc: 'ไม่พบสิ่งที่ตามหา แต่ไปเจออย่างอื่นเข้าแทน',
     skin: 'glitch', postGenesis: true },
 ];
 
@@ -8822,7 +8903,7 @@ function craftTheme(id) {
   const s = tokenState();
   if ((s.bal || 0) < c.cost) {
     haptic('snooze');
-    showToast({ title: 'โทเคนไม่พอ', body: 'คราฟธีม' + c.name + 'ใช้ ' + c.cost + ' โทเคน — ยังขาดอีก ' + fmtTok(c.cost - (s.bal || 0)) });
+    showToast({ title: 'โทเคนไม่พอ', body: 'คราฟธีม' + c.name + 'ใช้ ' + c.cost + ' โทเคน ยังขาดอีก ' + fmtTok(c.cost - (s.bal || 0)) });
     return;
   }
   s.bal = Math.round((s.bal - c.cost) * 10) / 10;
@@ -8865,7 +8946,7 @@ function buyTheme(id) {
   const s = tokenState();
   if ((s.bal || 0) < t.cost) {
     haptic('snooze');
-    showToast({ title: 'โทเคนไม่พอ', body: 'ธีม' + t.name + ' ราคา ' + t.cost + ' โทเคน — ยังขาดอีก ' + fmtTok(t.cost - (s.bal || 0)) });
+    showToast({ title: 'โทเคนไม่พอ', body: 'ธีม' + t.name + ' ราคา ' + t.cost + ' โทเคน ยังขาดอีก ' + fmtTok(t.cost - (s.bal || 0)) });
     return;
   }
   s.bal -= t.cost;
@@ -8875,7 +8956,7 @@ function buyTheme(id) {
   splashBurst(18, 'egg-star');
   applyThemeLocks();
   renderAll();
-  showToast({ title: 'ได้ธีม' + t.name + 'แล้ว 🎨', body: 'เลือกใช้ได้ที่จอตั้งค่า · เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
+  showToast({ title: 'ได้ธีม' + t.name + 'แล้ว', body: 'เลือกใช้ได้ที่จอตั้งค่า · เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
 }
 
 // ---------- ตารางรางวัลของการสุ่ม ----------
@@ -8908,6 +8989,49 @@ function fmtTok(n) {
   const v = Math.round((n || 0) * 10) / 10;
   return Number.isInteger(v) ? String(v) : v.toFixed(1);
 }
+
+// ---------- ยอดโทเคนหมุนไปหาค่าใหม่ (9 ต.ค. 69) ----------
+// ทุกที่ที่โชว์ยอดติดป้าย data-tok="ยอดจริง" (หน้าฉัน ×2 · ร้านค้า · หน้าสุ่ม · ห้อง) · data-tok-int = โชว์เป็นจำนวนเต็ม
+// ตัวเฝ้า DOM ตัวเดียวคอยดูว่ายอดบนจอเปลี่ยนจากที่โชว์ไว้ล่าสุดไหม — เปลี่ยน = หมุนจากค่าเก่าไปค่าใหม่
+// ด้วยสปริงเดียวกับตัวเลขหน้าแรก (rollNumbers · Rolling Number ของ Cult UI) · เห็นทันทีว่าได้/เสียไปเท่าไหร่
+// ครั้งแรกที่เห็นยอดไม่หมุน (ไม่มีค่าเก่าให้เทียบ) · ∞ ของแอดมินไม่หมุน · ลดการเคลื่อนไหว = เปลี่ยนเฉย ๆ
+let tokShown = null, tokAnimX = null, tokRaf = 0, tokScanQ = 0;
+function tokText(el, x) { return el.hasAttribute('data-tok-int') ? String(Math.round(x)) : fmtTok(x); }
+// ยอดจริงมาจากข้อมูล (tokenBalance) ไม่ใช่จากจอ — จอเดียวกันมีตัวเลขยอดหลายจุด และจุดที่ยังไม่ถูกวาดใหม่
+// ยังโชว์ยอดเก่าอยู่ (เคยอ่านจากตัวแรกในหน้าแล้วได้ยอดเก่า จนไม่หมุนเลย) · หมุนเฉพาะจุดที่โชว์ยอดใหม่แล้ว
+// ยังไม่มีจุดไหนโชว์ยอดใหม่ = ยังไม่นับว่า "เห็นแล้ว" — เปิดจอร้านค้าทีหลังก็ยังได้เห็นมันหมุนจากยอดเก่า
+const tokFresh = v => [...document.querySelectorAll('[data-tok]')].filter(el => Math.abs(parseFloat(el.dataset.tok) - v) < .05);
+function tokRollScan() {
+  if (!document.querySelector('[data-tok]') || typeof tokenBalance !== 'function') return;
+  const v = tokenBalance();
+  if (!isFinite(v)) { tokShown = null; return; }
+  if (!tokFresh(v).length) return;
+  if (tokShown === null || matchMedia('(prefers-reduced-motion: reduce)').matches) { tokShown = v; return; }
+  if (Math.abs(v - tokShown) < 0.05) return;
+  const from = tokAnimX != null ? tokAnimX : tokShown;   // ยอดเปลี่ยนซ้อนระหว่างหมุน = หมุนต่อจากจุดที่อยู่
+  tokShown = v;
+  cancelAnimationFrame(tokRaf);
+  const paint = x => tokFresh(v).forEach(el => { el.textContent = tokText(el, x); });
+  let x = from, vel = 0, last = 0;
+  const step = now => {
+    const dt = last ? Math.min(.032, (now - last) / 1000) : .016;
+    last = now;
+    vel += (100 * (v - x) - 40 * vel) * dt;
+    x += vel * dt;
+    if (Math.abs(v - x) < Math.max(.05, Math.abs(v - from) * .015)) { tokAnimX = null; paint(v); return; }
+    tokAnimX = x;
+    paint(x);
+    tokRaf = requestAnimationFrame(step);
+  };
+  paint(from);
+  tokRaf = requestAnimationFrame(step);
+}
+new MutationObserver(recs => {
+  if (tokScanQ) return;
+  // ตัวหนังสือเปลี่ยนอย่างเดียว (รวมที่ตัวมันเองหมุนอยู่) = ข้าม · ยอดใหม่มากับ element ใหม่หรือป้าย data-tok ที่เปลี่ยน
+  if (!recs.some(r => r.type === 'attributes' || [...r.addedNodes].some(n => n.nodeType === 1))) return;
+  tokScanQ = requestAnimationFrame(() => { tokScanQ = 0; tokRollScan(); });
+}).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-tok'] });
 
 // ---------- โชคเพิ่ม ----------
 // เปิดด้วยโค้ด ปิดด้วยอีกโค้ดหนึ่ง · คูณน้ำหนักของทุกอย่างที่ไม่ใช่ Common ขึ้น 10 เท่า
@@ -9288,7 +9412,7 @@ function claimDailyFromSheet(btn) {
     if (got.prize === 'spin') {
       closeDailyCheck();
       go('scr-wheel');
-      showToast({ title: 'ครบ 7 วันแล้ว 🎡', body: 'ได้สิทธิ์สุ่มสกินฟรี 1 ใบ' });
+      showToast({ title: 'ครบ 7 วันแล้ว', body: 'ได้สิทธิ์สุ่มสกินฟรี 1 ใบ' });
       return;
     }
     showToast({ title: '+' + got.prize + ' โทเคน', body: 'เช็คอินต่อเนื่อง ' + got.streak + ' วัน · รวม ' + fmtTok(got.bal) + ' โทเคน' });
@@ -9606,7 +9730,7 @@ function flipCard(i) {
   } else if (r.rarity === 'legendary') {
     setTimeout(() => showToast({
       title: 'LEGENDARY ✦ ' + r.label,
-      body: r.duplicate ? 'ซ้ำ — คืน ' + fmtTok(r.amount) + ' โทเคน' : 'ปลดล็อกธีม' + r.label + 'แล้ว',
+      body: r.duplicate ? 'ได้ซ้ำ คืนให้ ' + fmtTok(r.amount) + ' โทเคน' : 'ปลดล็อกธีม' + r.label + 'แล้ว',
     }), 620);
   } else if (r.kind === 'skin' && !r.duplicate) {
     setTimeout(() => showToast({ title: 'ได้ธีมใหม่ · ' + r.label, body: 'เลือกใช้ได้ที่จอตั้งค่า' }), 620);
@@ -9651,7 +9775,7 @@ function renderWheel() {
         <div class="eyebrow">สุ่มสกิน</div>
         <h1 class="page-title gc-title">${free ? 'เปิดฟรี ' + free + ' ใบ' : 'แตะสำรับเพื่อเปิด'}</h1>
       </div>
-      <span class="tk-chip" id="gcBal">${coin(15)}<b class="mono">${fmtTok(s.bal)}</b></span>
+      <span class="tk-chip" id="gcBal">${coin(15)}<b class="mono" data-tok="${s.bal}">${fmtTok(s.bal)}</b></span>
     </div>
     <!-- ที่ว่างเดิมมีแค่ประกายจาง ๆ กับข้อความบอกให้ไปกดปุ่มข้างล่าง = ไม่มีอะไรให้อยากแตะ
          วางสำรับคว่ำแผ่ไว้ตั้งแต่ยังไม่กด ของมันอยู่ตรงนี้ ไม่ต้องบอกว่าอยู่ตรงไหน -->
@@ -9703,7 +9827,7 @@ function refreshDrawHead() {
   const free = s.freeSpins || 0;
   // เขียนทับเฉพาะตัวเลขในชิป — ไม่ใช่ทั้งชิป ไม่งั้นเหรียญข้าง ๆ หายไปด้วย
   const bal = document.querySelector('#gcBal b');
-  if (bal) bal.textContent = fmtTok(s.bal);
+  if (bal) { bal.dataset.tok = s.bal; bal.textContent = fmtTok(s.bal); }
   const b1 = document.getElementById('gcGo1s');
   if (b1) b1.textContent = free ? 'ใช้สิทธิ์ฟรี' : SPIN_COST_1 + ' โทเคน';
   // สิทธิ์ฟรีหมดเมื่อไหร่ ปุ่มนำต้องย้ายไปอยู่ที่ปุ่ม 10 ใบทันที
@@ -9722,7 +9846,7 @@ async function doSpin(n) {
   const pay = paySpin(n);
   if (!pay.ok) {
     haptic('snooze');
-    showToast({ title: 'โทเคนไม่พอ', body: 'ต้องใช้ ' + pay.cost + ' โทเคน — ยังขาดอีก ' + fmtTok(pay.short) });
+    showToast({ title: 'โทเคนไม่พอ', body: 'ต้องใช้ ' + pay.cost + ' โทเคน ยังขาดอีก ' + fmtTok(pay.short) });
     return;
   }
   drawing = true;
@@ -9891,7 +10015,7 @@ function renderShop() {
       <div class="tk-top">
         ${coin(52)}
         <div class="tk-bd">
-          <div class="tk-bal mono">${fmtTok(s.bal)}</div>
+          <div class="tk-bal mono" data-tok="${s.bal}">${fmtTok(s.bal)}</div>
           <div class="tk-unit">โทเคน${pill}</div>
         </div>
       </div>
@@ -10156,7 +10280,7 @@ function renderShowcase() {
   // และอยู่ในจอเดียวกัน — ทางเข้าสองทางไปที่เดียวกันไม่ใช่ทางเลือก มันคือความสับสน
   // (เหตุผลเดียวกับที่ 1A9g ถอดแถวท้ายบล็อกผลของฉันทิ้งเพราะซ้ำกับปุ่ม "ดูทั้งหมด")
   box.innerHTML = `<div class="shw-row shw-4">
-      ${tile("go('scr-room')", 'image', put > 0, 'ห้องของฉัน',
+      ${tile("go('scr-room')", 'sofa', put > 0, 'ห้องของฉัน',
         rs.name || (put ? 'วางไว้ ' + put + ' ชิ้น' : 'ยังไม่ได้แต่ง'), 'room')}
       ${tile("go('scr-badges')", 'medal', got > 0, 'เหรียญตรา',
         got ? got + ' จาก ' + all : 'ยังไม่มีเหรียญ', 'badge')}
@@ -10222,7 +10346,7 @@ function renderStats() {
   const privNums = `<div class="num-row st-priv">
       <div><b>${done.length}</b><span>งานเสร็จ</span></div>
       <div><b>${week.length}</b><span>ใน 7 วัน</span></div>
-      <div><b>${tkS.bal === Infinity ? '∞' : Math.round(tkS.bal || 0)}</b><span>โทเคน</span></div>
+      <div><b data-tok="${tkS.bal || 0}" data-tok-int>${tkS.bal === Infinity ? '∞' : Math.round(tkS.bal || 0)}</b><span>โทเคน</span></div>
     </div>`;
 
   // 1C08 · หัวข้อ "ผลของฉัน · เห็นคนเดียว" ถูกถอดทั้งบรรทัด
@@ -10246,7 +10370,7 @@ function renderStats() {
       </div>
       <div class="st-bars">
         ${days.map((d, i) => `<button type="button" class="st-bar${d.today ? ' now' : ''}${d.n ? ' has' : ''}"
-          onclick="statDayOpen(${6 - i}, this)" aria-label="${d.label} เสร็จ ${d.n} งาน — ดูว่ามีงานอะไรบ้าง">
+          onclick="statDayOpen(${6 - i}, this)" aria-label="${d.label} เสร็จ ${d.n} งาน ดูว่ามีงานอะไรบ้าง">
           <span class="n mono">${d.n || ''}</span>
           <span class="trk"><span class="bar" style="height:${d.n ? Math.max(14, Math.round(d.n / peak * 100)) : 0}%"></span></span>
           <span class="d">${d.label}</span>
@@ -10263,6 +10387,69 @@ function renderStats() {
 // รอหนึ่งเฟรมก่อนติดคลาส: go() บางทางวาดจอใหม่ต่อจากนี้ ถ้าติดก่อน แท่งชุดใหม่จะไม่มีคลาส
 // วาดใหม่ระหว่างอยู่ในจอ (ติ๊กงาน · ซิงก์) ไม่งอกซ้ำ — งอกเฉพาะตอนเพิ่งเข้าจอ
 let barsTimer = null;
+// ---------- แอนิเมชันตอนเพิ่งเข้าจอ (แบบ Cult UI) ----------
+// 9 ต.ค. 69 · เจ้าของ: "จัดการเลย เอาให้สวย ที่สวยเอาอนิเมชันจากเว็บ Cult UI ได้"
+// .fx-in ติดบนจอ 1.4 วิหลังเข้า (ยาวกว่า .just-in ที่ถูกถอดตอน 520ms ซึ่งสั้นเกินกว่าแถบจะยืดจบ)
+// กฎใน alt.css: บริบท (แถบเวลา · แท่ง 7 วัน) · เหรียญ (แถบความคืบหน้า · เหรียญที่ได้แล้วเด้งมีวงแสง) · กล่องเข้า (แถวไล่ขึ้น)
+let fxTimer = 0;
+function screenFx(scr) {
+  clearTimeout(fxTimer);
+  scr.classList.remove('fx-in'); void scr.offsetWidth; scr.classList.add('fx-in');
+  fxTimer = setTimeout(() => scr.classList.remove('fx-in'), 1400);
+  requestAnimationFrame(() => rollNumbers(scr));
+}
+
+// คำทักทายบนหน้าแรก ("สวัสดีตอนบ่าย") ค่อย ๆ ชัดขึ้นทีละคำ — Text Animate ของ Cult UI (blur in + ลอยขึ้น)
+// เล่นครั้งเดียวต่อการเปิดแอป ตอนจอเปิดแอปจางออก (เรียกจาก index.html) · เปิดมาที่จออื่น = ไม่เล่น
+// ตัดคำด้วย Intl.Segmenter แบบคำ (ไทยไม่มีเว้นวรรคระหว่างคำ) · หน้าแรกวาดใหม่เมื่อไหร่ก็กลับเป็นข้อความธรรมดา
+function greetIn() {
+  const g = document.querySelector('#scr-menu.on .th-greet');
+  if (!g || g.dataset.anim || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const text = g.textContent;
+  const words = (typeof Intl !== 'undefined' && Intl.Segmenter)
+    ? Array.from(new Intl.Segmenter('th', { granularity: 'word' }).segment(text), s => s.segment)
+    : text.split(/(\s+)/);
+  g.dataset.anim = '1';
+  g.innerHTML = words.map((w, k) => /^\s+$/.test(w) ? w : `<span class="tw" style="--k:${k}">${esc(w)}</span>`).join('');
+}
+
+// ตัวเลขหมุนเข้าหาค่าจริงด้วยสปริง — Rolling Number ของ Cult UI (Motion spring: mass 1 · stiffness 100 · damping 40)
+// ใช้กับแถวตัวเลขหน้าแรก (.td-stats) กับไทล์บนสุดของผลของฉัน (#statFull .at-v)
+// แตะเฉพาะข้อความตัวเลขตัวแรกของช่อง (หน่วยใน <i> ไม่ขยับ) · รูปแบบที่รู้จัก: 12 · +5 · -3 · 2:30 (ชั่วโมง:นาที)
+// ไม่ใช่ตัวเลขพวกนี้ = ปล่อยไว้เฉย ๆ · ลดการเคลื่อนไหว = ไม่หมุน
+function rollNumbers(scope) {
+  if (!scope || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  scope.querySelectorAll('.td-stats .ts > b, #statFull .at-v').forEach(el => {
+    const node = [...el.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim());
+    if (!node) return;
+    const raw = node.nodeValue.trim();
+    const m = /^([+-]?)(\d+)(?::(\d{2}))?$/.exec(raw);
+    if (!m) return;
+    const clock = m[3] != null;
+    const target = clock ? (+m[2]) * 60 + (+m[3]) : +m[2];
+    if (!target) return;
+    const fmt = x => {
+      const n = Math.round(x);
+      return m[1] + (clock ? Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0') : String(n));
+    };
+    let x = 0, v = 0, last = 0;
+    node.nodeValue = fmt(0);
+    const step = now => {
+      if (!node.isConnected) return;               // จอถูกวาดใหม่แล้ว — ค่าใหม่เขียนเองครบ
+      const dt = last ? Math.min(.032, (now - last) / 1000) : .016;
+      last = now;
+      v += (100 * (target - x) - 40 * v) * dt;     // k · ระยะ − c · ความเร็ว (mass 1)
+      x += v * dt;
+      // สปริงนี้หน่วงหนัก (damping 40) ปลายทางจึงคืบช้ามาก — "99%" ค้างอยู่เกือบวินาทีก่อนเป็น 100
+      // เข้าใกล้ภายใน 1.5% ของค่าจริง = จบ ใส่ค่าจริงเลย
+      if (Math.abs(target - x) < Math.max(.5, target * .015)) { node.nodeValue = raw; return; }
+      node.nodeValue = fmt(x);
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+}
+
 function growBars(scr) {
   clearTimeout(barsTimer);
   requestAnimationFrame(() => {
@@ -10405,10 +10592,10 @@ function renderStatFull(now, d) {
     k: 'เปิดแอปต่อเนื่อง' });
   if (d.onTimePct != null) tiles.push({ ic: 'check-circle', v: d.onTimePct, u: '%',
     k: 'ส่งทันกำหนด · ' + d.onTime + '/' + d.rated + ' งาน', tone: 'ok' });
-  if (delta != null) tiles.push({ ic: delta >= 0 ? 'medal' : 'clock',
+  if (delta != null) tiles.push({ ic: delta >= 0 ? 'trend-up' : 'trend-down',
     v: (delta >= 0 ? '+' : '') + delta, u: '%', k: 'เทียบสัปดาห์ก่อน',
     tone: delta >= 0 ? 'up' : 'down' });
-  else if (deltaAbs != null) tiles.push({ ic: deltaAbs > 0 ? 'medal' : 'clock',
+  else if (deltaAbs != null) tiles.push({ ic: deltaAbs > 0 ? 'trend-up' : 'trend-down',
     v: (deltaAbs > 0 ? '+' : '') + deltaAbs, u: 'งาน', k: 'เทียบสัปดาห์ก่อน',
     tone: deltaAbs > 0 ? 'up' : 'down' });
 
@@ -10600,7 +10787,7 @@ function workStatsHtml(now) {
           <span class="ct mono">${Math.round(min / 6) / 10} ชม.</span>
         </div>`).join('')}
       </div>
-      <div class="st-line soft">ลงมือได้มากที่สุด<b>${esc(topBand[0])}</b> —
+      <div class="st-line soft">ลงมือได้มากที่สุด<b>${esc(topBand[0])}</b>
         ถ้าเลือกได้ กันงานหนักไว้ช่วงนั้น</div>` : ''}
     </div>
     ${ratio ? `<div class="st-card">
@@ -10811,7 +10998,7 @@ async function ttRead(dataUrl) {
     const rows = (data && data.classes || []).map(r => ({ ...r, on: true }));
     ttState = { phase: rows.length ? 'review' : 'pick', rows, shot: dataUrl,
       note: (data && data.note) || '',
-      error: rows.length ? '' : ((data && data.note) || 'อ่านตารางจากรูปนี้ไม่ได้ — ลองถ่ายให้ตรงและชัดขึ้น') };
+      error: rows.length ? '' : ((data && data.note) || 'อ่านตารางจากรูปนี้ไม่ได้ ลองถ่ายให้ตรงและชัดขึ้น') };
   } catch (e) {
     ttState = { phase: 'pick', rows: [], note: '', shot: '', error: e.message };
   }
@@ -10944,7 +11131,7 @@ function renderTtScan() {
         <h3 class="fs-h">อ่านได้ ${rows.length} คาบ</h3>
         <span class="fs-badge req">เลือกไว้ ${on}</span>
       </div>
-      <p class="fs-note">ตรวจเวลาให้ครบก่อนบันทึก — คาบที่ผิดจะไปกินเวลาว่างในแผนทุกสัปดาห์${
+      <p class="fs-note">ตรวจเวลาให้ครบก่อนบันทึก คาบที่ผิดจะไปกินเวลาว่างในแผนทุกสัปดาห์${
         ttState.note ? `<br>${esc(ttState.note)}` : ''}</p>
     </section>
     ${groups.map(([d, g]) => `<section class="fm-sec tt-day">
@@ -11114,7 +11301,7 @@ function stopWork(quiet) {
     const cmp = est ? (total > est ? ` · เกินที่ประเมินไว้ ${total - est} นาที`
       : ` · ยังเหลือโควตาอีก ${est - total} นาที`) : '';
     showToast({ title: `จับเวลาไว้ ${min} นาที`,
-      body: (t ? taskTitleText(t) : 'งานนี้') + ` — รวมทำไปแล้ว ${total} นาที${cmp}` });
+      body: (t ? taskTitleText(t) : 'งานนี้') + ` รวมทำไปแล้ว ${total} นาที${cmp}` });
   }
   haptic('tap');
   renderAll();
@@ -11307,8 +11494,11 @@ document.addEventListener('keydown', e => {
   el.click();
 });
 let tagTimer = 0;
-new MutationObserver(() => {
+// 9 ต.ค. 69 · ตัวเลขหมุน / นาฬิกาโฟกัส / ช่องที่ AI พิมพ์ให้ เปลี่ยนตัวหนังสือทุกเฟรม — เดิมปลุกตัวนี้ให้ไล่ค้นทั้งหน้าทุก 120ms
+// ตลอดที่หมุน · ไม่มี element ใหม่ = ไม่มีอะไรใหม่ให้ติดป้าย ข้ามไปเลย
+new MutationObserver(recs => {
   if (tagTimer) return;
+  if (!recs.some(r => [...r.addedNodes].some(n => n.nodeType === 1))) return;
   tagTimer = setTimeout(() => { tagTimer = 0; tagClickables(); }, 120);
 }).observe(document.documentElement, { childList: true, subtree: true });
 
@@ -11357,18 +11547,59 @@ function tickFocus() {
   const r = runningWork();
   const el = document.getElementById('fcElapsed');
   if (!el) return;
-  if (!r) { el.textContent = 'หยุดอยู่'; return; }
-  el.textContent = fmtElapsed(Date.now() - new Date(r.start));
+  const dial = document.getElementById('fcDial');
+  if (dial) dial.classList.toggle('run', !!r);
+  if (!r) { el.textContent = 'หยุดอยู่'; delete el.dataset.v; el.classList.remove('long'); return; }
+  const ms = Date.now() - new Date(r.start);
+  rollClock(el, fmtElapsed(ms));
 
   // เลยเวลาที่ตั้งใจไว้ = ข้อมูล ไม่ใช่คำตำหนิ · ใช้บอกให้พักหรือปิดงานตรงนี้ก่อน
   const t = state.tasks.find(x => x.id === focusId);
   const cap = document.getElementById('fcOver');
+  const target = t ? ((focusStep(t) || {}).min || t.estMin || 30) : 0;
   if (t && cap) {
-    const target = (focusStep(t) || {}).min || t.estMin || 30;
-    const spent = Math.round((Date.now() - new Date(r.start)) / 60000);
+    const spent = Math.round(ms / 60000);
     cap.hidden = spent <= target;
     if (spent > target) cap.textContent = `เลยที่ตั้งใจไว้ ${spent - target} นาที`;
   }
+  // 9 ต.ค. 69 · วงแหวนรอบนาฬิกา = เดินไปแล้วกี่ส่วนของเวลาที่ตั้งใจไว้ (เต็มวง = ถึงเวลาแล้ว)
+  // เปิดจอครั้งแรกวงค่อย ๆ วิ่งจากศูนย์มาถึงจุดปัจจุบัน (.intro) · หลังจากนั้นขยับทีละวินาทีแบบเส้นตรง
+  if (t && dial) {
+    const p = Math.min(100, ms / 60000 / target * 100).toFixed(2);
+    dial.classList.toggle('over', ms / 60000 > target);
+    if (!dial.dataset.ready) {
+      dial.dataset.ready = '1';
+      dial.classList.add('intro');
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        dial.style.setProperty('--p', p);
+        setTimeout(() => dial.classList.remove('intro'), 1300);
+      }));
+    } else dial.style.setProperty('--p', p);
+  }
+}
+
+// นาฬิกาโหมดโฟกัส: หลักที่เปลี่ยนเลื่อนขึ้น (ตัวเก่าเลื่อนออกด้านบน ตัวใหม่ตามขึ้นมาจากด้านล่าง) แบบ Timer ของ Cult UI
+// หลักที่ไม่เปลี่ยนอยู่นิ่ง · จำนวนหลักเปลี่ยน (9:59 → 10:00) = วาดใหม่ทั้งแถว · ลดการเคลื่อนไหว = แค่เปลี่ยนตัวเลข
+function rollClock(el, txt) {
+  const prev = el.dataset.v;
+  el.dataset.v = txt;
+  el.classList.toggle('long', txt.length > 5);
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!prev || prev.length !== txt.length || still || el.children.length !== txt.length) {
+    el.innerHTML = [...txt].map(c => c === ':' ? '<span class="fc-colon">:</span>'
+      : '<span class="fd"><i>' + c + '</i></span>').join('');
+    return;
+  }
+  [...txt].forEach((c, k) => {
+    if (c === prev[k] || c === ':') return;
+    const cell = el.children[k];
+    const old = cell.lastElementChild;
+    if (old) { old.className = 'out'; setTimeout(() => old.remove(), 360); }
+    const n = document.createElement('i');
+    n.className = 'in';
+    n.textContent = c;
+    cell.appendChild(n);
+  });
 }
 
 function focusStep(t) {
@@ -11412,7 +11643,14 @@ function renderFocus() {
     </div>
 
     <div class="fc-clock">
-      <div class="fc-el mono" id="fcElapsed">0:00</div>
+      <!-- 9 ต.ค. 69 · วงแหวนเติมตามเวลาที่ตั้งใจไว้ (tickFocus ใส่ --p) · .run = แสงหายใจตอนนาฬิกาเดิน · .over = เลยเวลา -->
+      <div class="fc-dial" id="fcDial">
+        <svg class="fc-ring" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="fr-bg" cx="60" cy="60" r="54" pathLength="100"></circle>
+          <circle class="fr-fg" cx="60" cy="60" r="54" pathLength="100"></circle>
+        </svg>
+        <div class="fc-el mono" id="fcElapsed">0:00</div>
+      </div>
       <div class="fc-target">ตั้งใจไว้ ~${target} นาที</div>
     </div>
     <div class="fc-over" id="fcOver" hidden></div>
@@ -11580,7 +11818,7 @@ function toggleDone(id, el) {
     // บอกด้วยว่ารอบถัดไปถูกตั้งให้แล้ว ไม่งั้นงานที่เพิ่ง "หายไป" จะดูเหมือนหายจริง
     // (จังหวะเดิม: 470ms หลังคำชม — มีจอโยนก็นับจากตอนจอนั้นปิด)
     const spawnToast = () => { if (spawned) setTimeout(() => showToast({
-      title: 'ตั้งรอบถัดไปให้แล้ว 🔁',
+      title: 'ตั้งรอบถัดไปให้แล้ว',
       body: taskTitle(spawned).replace(/<[^>]*>/g, '') + ' · ' + fmtThaiDate(new Date(spawned.due)),
     }), hoop ? 470 : 900); };
     if (!hoop) spawnToast();
@@ -11590,8 +11828,9 @@ function toggleDone(id, el) {
       // คำชมที่ไม่บอกว่างานถัดไปคืออะไร คือคำชมที่ทำให้ต้องกลับไปนั่งเลือกใหม่เอง
       // ลูกโซ่ เริ่ม → เสร็จ → ต่อ ขาดตรงนี้มาตลอด ทั้งที่ตัวจัดแผนรู้คำตอบอยู่แล้ว
       const sp = focusPlan(new Date());   // ตัวเดียวกับการ์ดโฟกัส — ไม่เสนอเตือนความจำเป็นงานถัดไป
-      showToast(cleared || !sp.now ? celebrateCopy(true) : {
-        title: 'เยี่ยม! เสร็จอีกงาน 💪',
+      // ยังมีงานค้างแต่แผนไม่มีอะไรให้ทำตอนนี้ (เช่น เลยเวลาทำงานของวันแล้ว) — ห้ามบอกว่า "งานหมดแล้ว"
+      showToast(cleared ? celebrateCopy(true) : !sp.now ? celebrateCopy(false, pendingTasks().length) : {
+        title: 'เสร็จไปอีกงาน',
         body: 'ต่อไป: ' + taskTitleText(sp.now.task) + ' · ~' + (sp.now.task.estMin || 30) + ' นาที',
         // ติ๊กจากหน้าแรกต้องไปต่อได้ในแตะเดียวเหมือนจอ "เสร็จแล้ว" ของโหมดโฟกัส
         action: { label: 'เริ่มเลย', fn: () => startFocus(sp.now.task.id) },
@@ -11618,7 +11857,7 @@ function removeTask(id) {
   t.deleted = true;
   t.deletedAt = new Date().toISOString();
   save(); renderAll();
-  showToast({ title: 'ย้ายไปถังขยะแล้ว 🗑', body: '' });
+  showToast({ title: 'ย้ายไปถังขยะแล้ว', body: '' });
 }
 
 // ---------- เอฟเฟกต์ฉลองตอนเช็คงานเสร็จ ----------
@@ -11780,8 +12019,10 @@ function openForm(id, parsed) {
       [d.teacher,'ครูผู้สั่ง'],[d.due,'กำหนดส่ง'],[d.score,'คะแนน'],[d.est,'เวลาที่ใช้']];
     const got = fields.filter(f => f[0]);
     const miss = fields.filter(f => !f[0]);
-    chips.innerHTML = got.map(f => `<span class="chip new">${icon('check')}${esc(f[1])}</span>`).join('')
-      + (miss.length ? `<span class="chip">อีก ${miss.length} ช่องเติมเอง</span>` : '');
+    // 9 ต.ค. 69 · ป้ายเด้งขึ้นทีละอัน (.ai-in · --k = ลำดับ) — เห็นว่า AI อ่านอะไรได้บ้างทีละอย่าง
+    chips.innerHTML = got.map((f, k) => `<span class="chip new" style="--k:${k}">${icon('check')}${esc(f[1])}</span>`).join('')
+      + (miss.length ? `<span class="chip" style="--k:${got.length}">อีก ${miss.length} ช่องเติมเอง</span>` : '');
+    chips.classList.remove('ai-in'); void chips.offsetWidth; chips.classList.add('ai-in');
     if (okBadge && parsed._ai) {
       // AI วิเคราะห์มาแล้ว — บอกด้วยประโยคของมันเองว่าเห็นรูปนี้เป็นอะไร
       // คนตรวจจะรู้ทันทีว่า AI เข้าใจถูกเรื่องไหม ก่อนจะไล่ดูทีละช่อง
@@ -11862,6 +12103,7 @@ function openForm(id, parsed) {
   const due = t?.due ? new Date(t.due) : new Date(Date.now() + 8.64e7); // default พรุ่งนี้
   f.date.value = due.getFullYear() + '-' + String(due.getMonth() + 1).padStart(2, '0') + '-' + String(due.getDate()).padStart(2, '0');
   f.time.value = String(due.getHours()).padStart(2, '0') + ':' + String(due.getMinutes()).padStart(2, '0');
+  closeTimeDial();
 
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
   document.getElementById('scr-form').classList.add('on');
@@ -11880,6 +12122,44 @@ function openForm(id, parsed) {
   dueCustom = false;
   syncFormUI();
   autoGrow(f.detail);
+  // ค่ามาจาก AI/การสแกน = ช่อง "งานที่ต้องทำ" พิมพ์ตัวเองเข้ามา (typeInto) · พิมพ์เองหรือแก้งานเดิม = โผล่ครบทันที
+  if (parsed) typeInto(f.detail);
+}
+
+// ---------- ช่องที่ AI กรอกให้พิมพ์ตัวเองเข้ามา (Typewriter ของ Cult UI) ----------
+// 9 ต.ค. 69 · ตัดตามพยางค์ไทย (สระ/วรรณยุกต์ไม่หลุดจากพยัญชนะ) · ยาวแค่ไหนก็จบภายใน 0.48 วิ ไม่ให้ใครต้องรอ
+// ค่าจริงทั้งข้อความอยู่ในตัวแปร ไม่ได้อยู่ในช่องระหว่างพิมพ์ — แตะช่อง · กดบันทึก (saveForm เรียก typeFlush)
+// หรือเปิดฟอร์มใบใหม่ = เติมครบทันที จึงไม่มีทางบันทึกข้อความครึ่งเดียว
+let typeJob = null;
+function typeFlush() { if (typeJob) typeJob(); }
+function typeInto(el) {
+  typeFlush();
+  const full = el.value;
+  if (!full || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const g = (typeof Intl !== 'undefined' && Intl.Segmenter)
+    ? Array.from(new Intl.Segmenter('th', { granularity: 'grapheme' }).segment(full), s => s.segment)
+    : Array.from(full);
+  const dur = Math.min(480, Math.max(200, g.length * 16));
+  let t0 = 0, raf = 0;
+  const finish = () => {
+    cancelAnimationFrame(raf);
+    el.value = full;
+    el.classList.remove('ai-typing');
+    el.removeEventListener('focus', finish);
+    typeJob = null;
+  };
+  typeJob = finish;
+  el.addEventListener('focus', finish);
+  el.classList.add('ai-typing');
+  el.value = '';
+  const step = now => {
+    if (!t0) t0 = now;
+    const k = Math.min(g.length, Math.ceil((now - t0) / dur * g.length));
+    el.value = g.slice(0, k).join('');
+    if (k >= g.length) { finish(); return; }
+    raf = requestAnimationFrame(step);
+  };
+  raf = requestAnimationFrame(step);
 }
 
 // 1B43 · ป้ายนับข้อย่อยข้างหัวช่อง — บอกว่าพิมพ์ไปกี่ข้อแล้วโดยไม่ต้องนับเอง
@@ -12275,6 +12555,215 @@ function pickDueCustom() {
   }, 60);
 }
 
+// ---------- เวลาส่ง: หน้าปัด 24 ชม. + พิมพ์เอง ----------
+// เทสเตอร์ (9 ต.ค. 69): "อยากตั้งเวลาที่แต่ละงานง่ายกว่านี้ มีกรอกเวลาเอง กับเลื่อนเหมือนนาฬิกาปลุก"
+// ส่งภาพหน้าปัดเวลานอนของ iPhone มา — วงเดียว 0 อยู่บน 12 อยู่ล่าง ลากปุ่มไปรอบวง
+// ตัวเลือกเวลาของเบราว์เซอร์ (<input type=time>) เป็นวงล้อสามช่องบน iPhone และแต่งไม่ได้
+// ลาก = ทีละ 5 นาที (ลากทีละนาทีบนวงขนาดนี้นิ้วคุมไม่อยู่) · ตัวเลขตรงกลางพิมพ์ได้ทุกนาที
+// ลากผ่านเที่ยงคืนจากฝั่งดึก = 23:59 ไม่ใช่ 00:00 — "ส่งเที่ยงคืน" คือปลายสุดของวันนั้น (Key Decisions)
+// ค่าจริงยังอยู่ใน #fTime (ซ่อนไว้) — saveForm() กับ updateFormSummary() ไม่ต้องรู้อะไรเพิ่ม
+const TD_STEP = 5;
+const TD_C = 130, TD_R = 106;               // จุดกลางกับรัศมีวงลาก (หน่วยของ viewBox 260)
+const TD_QUICK = ['08:00', '12:00', '16:30', '20:00', '23:59'];
+
+function tdMin() {
+  const [h, m] = ((document.getElementById('fTime') || {}).value || '23:59').split(':');
+  return (+h || 0) * 60 + (+m || 0);
+}
+function tdFmt(m) { return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+function tdXY(m, r) {
+  const a = m / 1440 * 2 * Math.PI;
+  return [TD_C + r * Math.sin(a), TD_C - r * Math.cos(a)];
+}
+function tdIsOpen() {
+  const w = document.getElementById('timeDial');
+  return !!(w && !w.hidden);
+}
+
+function renderTimeDial(w) {
+  let ticks = '', nums = '';
+  for (let i = 0; i < 96; i++) {           // ขีดทุก 15 นาที · ขีดยาวทุกชั่วโมง
+    const m = i * 15, hr = i % 4 === 0;
+    const [x1, y1] = tdXY(m, 86), [x2, y2] = tdXY(m, hr ? 79 : 83);
+    ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"${hr ? ' class="hr"' : ''}/>`;
+  }
+  for (let h = 0; h < 24; h += 3) {
+    const [x, y] = tdXY(h * 60, 67);
+    nums += `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}">${h}</text>`;
+  }
+  const sun = Array.from({ length: 8 }, (_, i) => {
+    const a = i * Math.PI / 4;
+    return `<line x1="${(7 * Math.sin(a)).toFixed(1)}" y1="${(7 * Math.cos(a)).toFixed(1)}" x2="${(10 * Math.sin(a)).toFixed(1)}" y2="${(10 * Math.cos(a)).toFixed(1)}"/>`;
+  }).join('');
+  w.innerHTML = `<div class="td-dial">
+      <svg viewBox="0 0 260 260" role="slider" tabindex="0" aria-label="เวลาส่ง" aria-valuemin="0" aria-valuemax="1439">
+        <circle class="td-track" cx="${TD_C}" cy="${TD_C}" r="${TD_R}"/>
+        <path class="td-arc" d=""/>
+        <circle class="td-face" cx="${TD_C}" cy="${TD_C}" r="90"/>
+        <g class="td-ticks">${ticks}</g>
+        <g class="td-nums">${nums}</g>
+        <path class="td-moon" d="M${TD_C + 3} ${TD_C - 52}a9 9 0 1 0 9 11a7 7 0 0 1 -9 -11z"/>
+        <g class="td-sun" transform="translate(${TD_C} ${TD_C + 44})"><circle r="4.5"/>${sun}</g>
+        <g class="td-knob"><circle r="17"/><circle class="td-knob-dot" r="5"/></g>
+      </svg>
+      <div class="td-mid">
+        <input id="tdH" inputmode="numeric" enterkeyhint="next" autocomplete="off" aria-label="ชั่วโมง"
+          oninput="tdTyped('h', this)" onblur="tdCommit('h', this)" onfocus="this.select()" onkeydown="if(event.key==='Enter')this.blur()">
+        <b>:</b>
+        <input id="tdM" inputmode="numeric" enterkeyhint="done" maxlength="2" autocomplete="off" aria-label="นาที"
+          oninput="tdTyped('m', this)" onblur="tdCommit('m', this)" onfocus="this.select()" onkeydown="if(event.key==='Enter')this.blur()">
+      </div>
+    </div>
+    <div class="td-quick">${TD_QUICK.map(t => `<button type="button" data-t="${t}" onclick="tdPick('${t}')">${t}</button>`).join('')}</div>`;
+  tdBind(w.querySelector('svg'));
+}
+
+// วาดเฉพาะของที่ขยับ (ปุ่ม · ส่วนโค้ง · ตัวเลข) — ไม่วาดใหม่ทั้งหน้าปัดทุกครั้งที่นิ้วขยับ
+function tdPaint() {
+  const w = document.getElementById('timeDial');
+  if (!w || !w.firstChild) return;
+  const m = tdMin();
+  const [x, y] = tdXY(m, TD_R);
+  w.querySelector('.td-knob').setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+  const [sx, sy] = tdXY(0, TD_R);
+  w.querySelector('.td-arc').setAttribute('d', m < 1
+    ? '' : `M${sx} ${sy}A${TD_R} ${TD_R} 0 ${m > 720 ? 1 : 0} 1 ${x.toFixed(1)} ${y.toFixed(1)}`);
+  const svg = w.querySelector('svg');
+  svg.setAttribute('aria-valuenow', m);
+  svg.setAttribute('aria-valuetext', tdFmt(m));
+  const h = document.getElementById('tdH'), mm = document.getElementById('tdM');
+  // ช่องที่กำลังพิมพ์อยู่ห้ามเขียนทับ — พิมพ์ "1" แล้วกลายเป็น "01" ทันทีคือพิมพ์ "18" ไม่ได้
+  if (h && document.activeElement !== h) h.value = tdFmt(m).slice(0, 2);
+  if (mm && document.activeElement !== mm) mm.value = tdFmt(m).slice(3);
+  const cur = tdFmt(m);
+  w.querySelectorAll('.td-quick button').forEach(b => b.classList.toggle('on', b.dataset.t === cur));
+}
+
+function tdSet(m, fromDrag) {
+  m = Math.max(0, Math.min(1439, Math.round(m)));
+  const f = document.getElementById('fTime');
+  if (!f) return;
+  const before = tdMin();
+  if (f.value !== tdFmt(m)) {
+    f.value = tdFmt(m);
+    if (fromDrag && Math.floor(before / 60) !== Math.floor(m / 60)) haptic('arm');
+  }
+  updateFormSummary();   // เรียก tdPaint() ให้เองตอนหน้าปัดกางอยู่
+}
+
+function tdPick(t) {
+  const [h, m] = t.split(':');
+  tdSet(+h * 60 + +m);
+}
+
+// มุมจากจุดกลาง → นาที · คืนระยะจากจุดกลางด้วย (หน่วย viewBox) ไว้ตัดสินว่าแตะโดนวงหรือเปล่า
+function tdFromPoint(svg, cx, cy) {
+  const r = svg.getBoundingClientRect();
+  const k = 260 / r.width;
+  const x = (cx - r.left) * k - TD_C, y = (cy - r.top) * k - TD_C;
+  let a = Math.atan2(x, -y);
+  if (a < 0) a += 2 * Math.PI;
+  return { raw: a / (2 * Math.PI) * 1440, dist: Math.hypot(x, y) };
+}
+function tdSnap(raw, prev) {
+  const m = Math.round(raw / TD_STEP) * TD_STEP;
+  // ยอดวงคือรอยต่อของวัน — มาจากฝั่งดึกได้ 23:59 · มาจากฝั่งเช้ามืดได้ 00:00
+  if (m >= 1440) return prev < 240 ? 0 : 1439;
+  if (m === 0 && prev >= 1200) return 1439;
+  return m;
+}
+// แตะได้เฉพาะแถบวงนอก (กับปุ่มที่อยู่บนวง) — แตะกลางหน้าปัดคือจะพิมพ์ ไม่ใช่จะลาก
+// และนิ้วที่ปัดผ่านหน้าปัดเพื่อเลื่อนฟอร์ม ต้องเลื่อนฟอร์มได้ตามปกติ
+function tdOnRing(dist) { return dist >= TD_R - 30 && dist <= TD_R + 28; }
+
+function tdBind(svg) {
+  let dragging = false;
+  // touchstart ต้องไม่ passive จึงสั่ง preventDefault ได้ — ห้ามจอเลื่อนเฉพาะตอนนิ้วลงบนวง
+  svg.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    if (t && tdOnRing(tdFromPoint(svg, t.clientX, t.clientY).dist)) e.preventDefault();
+  }, { passive: false });
+  svg.addEventListener('pointerdown', e => {
+    const p = tdFromPoint(svg, e.clientX, e.clientY);
+    if (!tdOnRing(p.dist)) return;
+    dragging = true;
+    try { svg.setPointerCapture(e.pointerId); } catch (_) {}
+    svg.classList.add('drag');
+    const a = document.activeElement;
+    if (a && (a.id === 'tdH' || a.id === 'tdM')) a.blur();
+    tdSet(tdSnap(p.raw, tdMin()), true);
+  });
+  svg.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    tdSet(tdSnap(tdFromPoint(svg, e.clientX, e.clientY).raw, tdMin()), true);
+  });
+  const end = () => { dragging = false; svg.classList.remove('drag'); };
+  svg.addEventListener('pointerup', end);
+  svg.addEventListener('pointercancel', end);
+  svg.addEventListener('keydown', e => {
+    const step = { ArrowUp: TD_STEP, ArrowRight: TD_STEP, ArrowDown: -TD_STEP, ArrowLeft: -TD_STEP, PageUp: 60, PageDown: -60 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    tdSet((tdMin() + step + 1440) % 1440);
+  });
+}
+
+// พิมพ์ชั่วโมงครบ (สองหลัก หรือหลักเดียวที่เกิน 2 เช่น "9") แล้วกระโดดไปช่องนาทีเอง
+// นาทีครบแล้วปิดคีย์บอร์ด — พิมพ์ "1830" รวดเดียวจบโดยไม่ต้องแตะอะไรเพิ่ม
+function tdTyped(which, el) {
+  const all = el.value.replace(/\D/g, '');
+  // วาง "1830" หรือ "930" ลงช่องชั่วโมงทีเดียว (คีย์บอร์ดเดาคำ · วางจากแชท) = ได้ทั้งชั่วโมงและนาที
+  if (which === 'h' && all.length > 2) {
+    const hh = +all[0] > 2 ? all.slice(0, 1) : all.slice(0, 2);
+    const mm = all.slice(hh.length, hh.length + 2).padEnd(2, '0');
+    el.value = hh;
+    tdSet(Math.min(23, +hh) * 60 + Math.min(59, +mm));
+    el.blur();
+    return;
+  }
+  const d = all.slice(0, 2);
+  if (el.value !== d) el.value = d;
+  if (!d) return;
+  const cur = tdMin();
+  if (which === 'h') {
+    if (d.length < 2 && +d <= 2) return;
+    tdSet(Math.min(23, +d) * 60 + cur % 60);
+    const m = document.getElementById('tdM');
+    if (m) { m.focus(); m.select(); }
+  } else {
+    if (d.length < 2 && +d <= 5) return;
+    tdSet(Math.floor(cur / 60) * 60 + Math.min(59, +d));
+    el.blur();
+  }
+}
+function tdCommit(which, el) {
+  const d = el.value.replace(/\D/g, '');
+  const cur = tdMin();
+  if (d !== '') {
+    tdSet(which === 'h' ? Math.min(23, +d) * 60 + cur % 60 : Math.floor(cur / 60) * 60 + Math.min(59, +d));
+  }
+  tdPaint();   // เติมศูนย์หน้า ("9" → "09") หรือคืนค่าเดิมถ้าลบจนว่าง
+}
+
+function openTimeDial() {
+  const w = document.getElementById('timeDial'), b = document.getElementById('fTimeBtn');
+  if (!w) return;
+  if (!w.firstChild) renderTimeDial(w);
+  w.hidden = false;
+  if (b) { b.setAttribute('aria-expanded', 'true'); b.classList.add('up'); }
+  w.classList.remove('dcal-open'); void w.offsetWidth; w.classList.add('dcal-open');
+  tdPaint();
+  setTimeout(() => {
+    try { w.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (_) { w.scrollIntoView(false); }
+  }, 60);
+}
+function closeTimeDial() {
+  const w = document.getElementById('timeDial'), b = document.getElementById('fTimeBtn');
+  if (w) w.hidden = true;
+  if (b) { b.setAttribute('aria-expanded', 'false'); b.classList.remove('up'); }
+}
+function toggleTimeDial() { tdIsOpen() ? closeTimeDial() : openTimeDial(); }
+
 // ---------- แถวสรุปของช่องที่ข้ามได้ + บรรทัดล่างของปุ่มบันทึก ----------
 function selText(id) {
   const el = document.getElementById(id);
@@ -12297,6 +12786,8 @@ function updateFormSummary() {
   setRow('rvRepeat', v('fRepeat') ? selText('fRepeat') : 'ไม่ซ้ำ');
   setRow('fProgressVal', (v('fProgress') || 0) + '%');
   setRow('rvGot', v('fGot') === '' ? 'ยังไม่รู้ผล' : v('fGot') + '/' + (v('fGotMax') || '?'));
+  setRow('fTimeVal', v('fTime') || '23:59');
+  if (tdIsOpen()) tdPaint();
   updateSubsCount();
 
   // บรรทัดล่างปุ่มบันทึก — ปุ่มที่ติดขอบจอตลอดต้องบอกได้ว่ากำลังจะบันทึกเป็นของวันไหน
@@ -12360,6 +12851,7 @@ function spawnRepeat(t) {
 }
 
 function saveForm() {
+  typeFlush();   // ช่องที่ AI ยังพิมพ์ไม่จบ = เติมให้ครบก่อนอ่านค่า
   const detailEl = document.getElementById('fDetail');
   const detailErr = document.getElementById('fDetailErr');
   const detail = detailEl.value.trim();
@@ -12511,7 +13003,28 @@ function speechSupported() {
   return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 }
 
+// คลื่นเสียงสีรุ้ง (เจ้าของส่งรูปตัวอย่างมา) — 36 แท่ง ไล่สีเขียว→ฟ้า→ม่วง→ชมพู→แดง→ส้ม
+// ความสูงเป็นสามลูกคลื่น (--h) แล้วแต่ละแท่งเต้นช้ากว่าแท่งก่อนหน้านิดเดียว (--i) จึงดูเหมือนคลื่นวิ่ง
+// ไม่ได้อ่านระดับเสียงจริง: เปิด getUserMedia ซ้อนกับตัวแปลงเสียงทำให้ Chrome บน Android ฟังไม่ติด
+// แทนด้วยการ "เด้ง" ทุกครั้งที่ได้คำใหม่ (voiceWaveKick) — คลื่นจึงยังตอบสนองตอนพูดจริง
+function voiceWave() {
+  const w = document.querySelector('#voiceBox .vw');
+  if (!w || w.childElementCount) return;
+  const N = 36;
+  w.innerHTML = Array.from({ length: N }, (_, i) => {
+    const h = 0.22 + 0.78 * Math.abs(Math.sin((i + 0.5) / N * Math.PI * 3));
+    const hue = Math.round(80 + i * 310 / (N - 1)) % 360;
+    return `<i style="--i:${i};--h:${h.toFixed(2)};--c:hsl(${hue} 70% 55%)"></i>`;
+  }).join('');
+}
+function voiceWaveKick() {
+  const box = document.getElementById('voiceBox');
+  if (!box) return;
+  box.classList.remove('kick'); void box.offsetWidth; box.classList.add('kick');
+}
+
 function setVoiceUI({ recording, text, dim }) {
+  if (recording) voiceWave();
   const btn = document.getElementById('voiceBtn');
   const label = document.getElementById('voiceLabel');
   const sub = document.getElementById('voiceSub');
@@ -12532,7 +13045,7 @@ function toggleVoice() {
   if (recogActive) { try { recog.stop(); } catch (_) {} return; }
   if (!speechSupported()) {
     setVoiceUI({ recording: false, dim: true,
-      text: 'เบราว์เซอร์นี้พูดไม่ได้ — ลองใช้ Chrome หรือ Safari' });
+      text: 'เบราว์เซอร์นี้พูดไม่ได้ ลองใช้ Chrome หรือ Safari' });
     return;
   }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -12559,13 +13072,13 @@ function toggleVoice() {
     }
     lastInterim = interim;
     const shown = (finalText + interim).trim();
-    if (shown) setVoiceUI({ recording: true, text: shown, dim: false });
+    if (shown) { setVoiceUI({ recording: true, text: shown, dim: false }); voiceWaveKick(); }
   };
   recog.onerror = e => {
     recogActive = false;
     const msg = {
-      'not-allowed': 'ยังไม่ได้อนุญาตให้ใช้ไมค์ — เปิดสิทธิ์ไมโครโฟนให้เว็บนี้ก่อนนะ',
-      'service-not-allowed': 'ยังไม่ได้อนุญาตให้ใช้ไมค์ — เปิดสิทธิ์ไมโครโฟนให้เว็บนี้ก่อนนะ',
+      'not-allowed': 'ยังไม่ได้อนุญาตให้ใช้ไมค์ เปิดสิทธิ์ไมโครโฟนให้เว็บนี้ก่อนนะ',
+      'service-not-allowed': 'ยังไม่ได้อนุญาตให้ใช้ไมค์ เปิดสิทธิ์ไมโครโฟนให้เว็บนี้ก่อนนะ',
       'no-speech': 'ไม่ได้ยินเสียงเลย ลองพูดใหม่อีกครั้ง',
       'audio-capture': 'หาไมโครโฟนไม่เจอ',
       'network': 'ต้องต่อเน็ตเพื่อแปลงเสียงเป็นข้อความ',
@@ -12690,7 +13203,7 @@ function loadTesseract() {
     const s = document.createElement('script');
     s.src = TESSERACT_BASE + 'tesseract.min.js';
     s.onload = res;
-    s.onerror = () => rej(new Error('โหลดไลบรารี OCR ไม่ได้ — เช็คอินเทอร์เน็ตแล้วลองใหม่'));
+    s.onerror = () => rej(new Error('โหลดไลบรารี OCR ไม่ได้ เช็คอินเทอร์เน็ตแล้วลองใหม่'));
     document.head.appendChild(s);
   });
   // **ต้องล้างทิ้งเมื่อล้ม** — ของเดิมล้างเฉพาะตอน onerror แต่ตัวที่ล้มบ่อยกว่าคือหมดเวลา
@@ -12757,7 +13270,7 @@ const mb = n => (n / 1048576).toFixed(1);
 function ocrLangProgress(p, got, total) {
   const st = document.getElementById('ocrStatus');
   const wrap = document.getElementById('ocrBarWrap');
-  const msg = `📦 โหลดโมเดลอ่านภาษาไทย ${mb(got)}/${mb(total)} MB`;
+  const msg = `โหลดโมเดลอ่านภาษาไทย ${mb(got)}/${mb(total)} MB`;
   // กำลังอ่านอยู่ = ตัวเลขขึ้นบนแถบโหลด (4–12% คือช่วงโหลดโมเดล) · โหลดล่วงหน้าเงียบ ๆ (ยังไม่มีแถบ) = บรรทัดสถานะเดิม
   if (wrap && !wrap.hidden) ocrHalo(msg, 4 + p * 8);
   else if (st) st.textContent = msg;
@@ -12804,7 +13317,7 @@ function warmOcr() {
       .finally(() => {
         // เก็บกวาดข้อความของตัวเอง — ห้ามทิ้งบรรทัด "กำลังโหลด" ค้างไว้บนจอ
         const st = document.getElementById('ocrStatus');
-        if (st && st.textContent.startsWith('📦')) st.textContent = '';
+        if (st && st.textContent.startsWith('โหลดโมเดลอ่านภาษาไทย')) st.textContent = '';
       });
   };
   if (window.requestIdleCallback) requestIdleCallback(start, { timeout: 3000 });
@@ -12814,7 +13327,7 @@ function warmOcr() {
 function withTimeout(promise, ms, label) {
   return Promise.race([
     promise,
-    new Promise((_, rej) => setTimeout(() => rej(new Error(label + ' ใช้เวลานานเกินไป — เน็ตอาจช้าหรือหลุด')), ms)),
+    new Promise((_, rej) => setTimeout(() => rej(new Error(label + ' ใช้เวลานานเกินไป เน็ตอาจช้าหรือหลุด')), ms)),
   ]);
 }
 
@@ -12833,7 +13346,7 @@ function withStallGuard(run, stallMs, label) {
   const watch = new Promise((_, rej) => {
     const tick = () => {
       const idle = Date.now() - last;
-      if (idle >= stallMs) { rej(new Error(label + ' หยุดค้าง — เน็ตอาจหลุด ลองใหม่อีกครั้ง')); return; }
+      if (idle >= stallMs) { rej(new Error(label + ' หยุดค้าง เน็ตอาจหลุด ลองใหม่อีกครั้ง')); return; }
       timer = setTimeout(tick, Math.max(500, stallMs - idle));
     };
     timer = setTimeout(tick, stallMs);
@@ -13668,7 +14181,7 @@ async function pickAvatar(file) {
   const data = out.toDataURL('image/jpeg', 0.82);
   try { localStorage.setItem(AV_KEY, data); }
   catch (_) {
-    showToast({ title: 'ที่เก็บในเครื่องเต็ม 😅', body: 'ลบภาพพื้นหลังหรือภาพวิดเจ็ตออกสักอันแล้วลองใหม่' });
+    showToast({ title: 'ที่เก็บในเครื่องเต็ม', body: 'ลบภาพพื้นหลังหรือภาพวิดเจ็ตออกสักอันแล้วลองใหม่' });
     return;
   }
   haptic('done');
@@ -13676,7 +14189,7 @@ async function pickAvatar(file) {
   renderProfile();
   // ดันขึ้นให้เพื่อนเห็นทันที — ไม่มีใครเดาได้ว่าต้องเดินไปกดปุ่มเผยแพร่อีกรอบ
   if (typeof syncPublicFace === 'function') syncPublicFace(true);
-  showToast({ title: 'เปลี่ยนรูปโปรไฟล์แล้ว 🖼', body: 'เพื่อนจะเห็นรูปใหม่นี้ด้วย' });
+  showToast({ title: 'เปลี่ยนรูปโปรไฟล์แล้ว', body: 'เพื่อนจะเห็นรูปใหม่นี้ด้วย' });
 }
 
 function clearAvatar() {
@@ -13700,7 +14213,7 @@ function saveWidgetPhoto(canvas) {
   try {
     localStorage.setItem(WG_PHOTO_KEY, data);
   } catch (_) {
-    showToast({ title: 'ภาพใหญ่เกินไป 😅', body: 'ครอบให้แคบลงหรือเลือกภาพที่เล็กกว่านี้' });
+    showToast({ title: 'ภาพใหญ่เกินไป', body: 'ครอบให้แคบลงหรือเลือกภาพที่เล็กกว่านี้' });
     go('scr-profile');
     return;
   }
@@ -13708,7 +14221,7 @@ function saveWidgetPhoto(canvas) {
   renderMenu(); renderAppearance();
   haptic('done');
   go('scr-menu');
-  showToast({ title: 'ตั้งภาพวิดเจ็ตแล้ว 🖼', body: '' });
+  showToast({ title: 'ตั้งภาพวิดเจ็ตแล้ว', body: '' });
 }
 
 // ============================================================
@@ -14007,15 +14520,15 @@ async function ocrReadBlocks(prep, worker, opt = {}) {
 }
 
 const OCR_STAGE_TEXT = {
-  prep: '🖼 กำลังปรับภาพให้อ่านง่ายขึ้น…',
+  prep: 'กำลังปรับภาพให้อ่านง่ายขึ้น…',
   // ข้อความของขั้น lang ถูกเขียนทับด้วยตัวเลขเมกะไบต์จริงจาก ocrLangProgress ทันที
   // ที่ต้องมีไว้เพราะจังหวะแรกสุด (ตอนเปิดแคชอยู่) ยังไม่มีตัวเลขให้โชว์
-  lang: '📦 กำลังเตรียมโมเดลอ่านภาษาไทย…',
+  lang: 'กำลังเตรียมโมเดลอ่านภาษาไทย…',
   model: '⏳ กำลังเตรียมโมเดล OCR…',
-  read: '📖 AI กำลังอ่านใบงาน…',
-  alt: '🔁 ลองอ่านอีกแบบให้ชัดขึ้น…',
-  psm6: '🔁 ลองมองหน้ากระดาษอีกแบบ…',
-  blocks: '🔎 กำลังเก็บตกหัวข้อกับคำชี้แจง…',
+  read: 'AI กำลังอ่านใบงาน…',
+  alt: 'ลองอ่านอีกแบบให้ชัดขึ้น…',
+  psm6: 'ลองมองหน้ากระดาษอีกแบบ…',
+  blocks: 'กำลังเก็บตกหัวข้อกับคำชี้แจง…',
 };
 
 // สแกนได้ทีละใบเท่านั้น
@@ -14038,11 +14551,11 @@ async function runOcrOn(source, how) {
     // ไม่งั้นข้อความเดียวกันขึ้นสองที่ · บรรทัดสถานะยังใช้กับข้อความนอกช่วงอ่าน (โหลดล่วงหน้า · ผิดพลาด · cloud)
     st.textContent = '';
     barWrap.hidden = false;
-    ocrHalo('🖼 กำลังเริ่ม…', null);
+    ocrHalo('กำลังเริ่ม…', null);
     startFunFacts(document.getElementById('scanFact')); // มีอะไรให้อ่านระหว่างรอ OCR
     ocrProgress = m => {
       if (m.status === 'recognizing text') {
-        ocrHalo('📖 AI กำลังอ่านใบงาน…', 15 + Math.round(m.progress * 80));
+        ocrHalo('AI กำลังอ่านใบงาน…', 15 + Math.round(m.progress * 80));
       } else if (m.status) {
         ocrHalo('⏳ ' + m.status + '…');
       }
@@ -14081,9 +14594,9 @@ async function runOcrOn(source, how) {
     }
     if (conf < OCR_CONF_OK) {
       showToast(r.fields
-        ? { title: 'อ่านได้บางส่วน 🤔',
+        ? { title: 'อ่านได้บางส่วน',
             body: 'ช่วยตรวจก่อนบันทึก' }
-        : { title: 'อ่านได้ แต่ไม่ค่อยมั่นใจ 🤔',
+        : { title: 'อ่านได้ แต่ไม่ค่อยมั่นใจ',
             body: 'ช่วยตรวจก่อนบันทึก' });
     }
     renderCloudOcr();     // อ่านในเครื่องจบแล้ว ค่อยเสนอทางเลือกที่แม่นกว่า
@@ -14193,7 +14706,7 @@ async function readPhoto(canvas, how) {
     const r = await aiReadPhoto();
     if (r !== 'fail') return;
     // AI ล้มไม่ใช่ทางตัน — อ่านในเครื่องให้ต่อเลย ผู้ใช้ไม่ต้องกดอะไรเพิ่ม
-    showToast({ title: 'AI ไม่ว่างตอนนี้ 😅', body: 'อ่านในเครื่องแทน' });
+    showToast({ title: 'AI ไม่ว่างตอนนี้', body: 'อ่านในเครื่องแทน' });
   }
   await runOcrOn(canvas, how);
 }
@@ -14211,7 +14724,7 @@ async function aiReadPhoto() {
   if (btn) btn.disabled = true;
   if (st) st.textContent = '';
   if (barWrap) barWrap.hidden = false;
-  ocrHalo('🤖 AI กำลังวิเคราะห์ใบงาน…', null);
+  ocrHalo('AI กำลังวิเคราะห์ใบงาน…', null);
   startFunFacts(document.getElementById('scanFact'));
   try {
     const b64 = lastScanJpeg.replace(/^data:[^,]+,/, '');
@@ -14331,7 +14844,7 @@ async function cloudOcrRetry() {
   const r = await aiReadPhoto();
   if (r === 'fail') {
     scanNotice('AI วิเคราะห์รูปไม่สำเร็จ', [
-      navigator.onLine === false ? 'ตอนนี้ออฟไลน์อยู่ — ต่อเน็ตแล้วลองใหม่' : 'ลองใหม่อีกครั้ง หรือแปะข้อความแทน']);
+      navigator.onLine === false ? 'ตอนนี้ออฟไลน์อยู่ ต่อเน็ตแล้วลองใหม่' : 'ลองใหม่อีกครั้ง หรือแปะข้อความแทน']);
   }
 }
 
@@ -14409,7 +14922,7 @@ async function refreshPushState() {
     if (data) { pushState = 'on'; return; }
     // แถวหาย — สมัครใหม่ให้เงียบ ๆ ตรงนี้เลย ไม่ต้องให้ผู้ใช้ไปกดปุ่มที่เขาไม่รู้ว่าต้องกด
     pushState = (await subscribePush().catch(() => false)) ? 'on' : 'local';
-  } catch (_) { pushState = 'off'; }
+  } catch (e) { pushState = 'off'; pushErr = pushErrText(e); }
 }
 
 // กุญแจของ subscription ที่มีอยู่ ตรงกับกุญแจที่แอปถืออยู่ตอนนี้ไหม
@@ -14427,9 +14940,14 @@ function subKeyMatches(sub) {
   } catch (_) { return true; }
 }
 
+// เหตุผลล่าสุดที่ลงทะเบียนไม่สำเร็จ — โชว์ในจอตั้งค่า ให้เทสเตอร์ถ่ายภาพส่งมาได้เลย
+// ไม่งั้น "แจ้งเตือนไม่ขึ้น" เป็นอาการเดียวของสาเหตุห้าแบบที่แยกจากกันไม่ออก
+let pushErr = '';
+
 async function subscribePush() {
   if (!pushSupported()) return false;
-  const reg = await navigator.serviceWorker.ready;
+  // ready ค้างได้ตลอดกาลถ้า SW ตัวเก่าติดอยู่ (ดู refreshPushState) — ค้างที่นี่ = ปุ่มกดแล้วเงียบ
+  const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ลงทะเบียนแจ้งเตือน');
   let sub = await reg.pushManager.getSubscription();
 
   // subscription ที่สร้างไว้ด้วยกุญแจ VAPID คนละดอกกับที่เซิร์ฟเวอร์ถืออยู่ จะถูกปฏิเสธ 403
@@ -14437,7 +14955,7 @@ async function subscribePush() {
   // ผลคือคนคนนั้นไม่ได้รับการเตือนอีกเลยตลอดกาล โดยไม่มีอะไรบนจอบอกสักตัว
   // (เกิดขึ้นจริงกับผู้ใช้หนึ่งคน 3 เครื่อง หลังเปลี่ยน VAPID_PUBLIC_KEY เมื่อ 23 ส.ค.)
   if (sub && !subKeyMatches(sub)) {
-    console.warn('[push] กุญแจ VAPID ไม่ตรง — สมัครใหม่');
+    console.warn('[push] กุญแจ VAPID ไม่ตรง สมัครใหม่');
     try { await sub.unsubscribe(); } catch (_) {}
     // ลบแถวเก่าออกจาก cloud ด้วย ไม่งั้นค้างเป็นขยะที่ถูกยิงพลาดทุกครึ่งชั่วโมง
     if (sb && currentUser) {
@@ -14463,10 +14981,49 @@ async function subscribePush() {
       tz_offset: -new Date().getTimezoneOffset(),
       updated_at: new Date().toISOString(),
     }, { onConflict: 'endpoint' });
-    if (error) { console.warn('[push] save failed:', error.message); return false; }
+    if (error) { console.warn('[push] save failed:', error.message); pushErr = 'บันทึกขึ้นเซิร์ฟเวอร์ไม่ได้'; return false; }
   }
   pushState = 'on';
+  pushErr = '';
   return true;
+}
+
+// ============================================================
+// 9 ต.ค. 69 · เทสเตอร์ + เจ้าของ: "แจ้งเตือนนอกแอปไม่ขึ้นมาเลย"
+// ------------------------------------------------------------
+// ตรวจฝั่งเซิร์ฟเวอร์แล้ว: send-reminders ยิงทุกครึ่งชั่วโมงจริง และ Apple/Google ตอบรับทุกดอก
+// (คืนนั้น 20:30 ส่ง 5 ดอก ไม่มี error) — แต่แถว push_subscriptions ของทั้งสองบัญชี
+// ไม่ถูกต่ออายุมาตั้งแต่ 4 และ 7 ต.ค. ทั้งที่เปิดแอปทุกวัน ซึ่งแปลว่าเครื่องที่ใช้อยู่ตอนนี้
+// "ไม่ได้ลงทะเบียน" — การ์ดถูกส่งไปที่ปลายทางเก่า (ติดตั้งแอปใหม่ · ล้างข้อมูล) ซึ่งไม่มีจอให้ขึ้น
+//
+// ทางเดิมพลาดได้สองจุด (จุดแรกยังเป็นข้อสันนิษฐาน — ยังไม่ได้จับ error จากเครื่องจริง):
+//   1. subscribe() ถูกเรียกหลัง await สองชั้น (ขออนุญาต → ยิงการ์ดทดสอบ) — Safari บน iPhone
+//      ผูกการสมัครไว้กับ "จังหวะที่นิ้วกดปุ่ม" ยิ่งห่างจากการกดยิ่งเสี่ยงโดนปฏิเสธ แล้ว catch กลืนไปเงียบ ๆ
+//   2. อนุญาตแล้วแต่ไม่มี subscription (pushState 'off') จอเขียนว่า "เตือนตอนเปิดแอป" เฉย ๆ
+//      ไม่มีอะไรบอกว่าการเตือนตอนปิดแอปตายอยู่ และไม่มีปุ่มให้ต่อใหม่
+// แก้: สมัครเป็นอย่างแรกสุดในจังหวะกด · จอบอกตรง ๆ ว่านอกแอปยังไม่ทำงาน + ปุ่มต่อใหม่ + เหตุผล
+// ============================================================
+function pushErrText(e) {
+  const n = (e && e.name) || '';
+  if (n === 'NotAllowedError') return 'เครื่องไม่อนุญาต';
+  if (n === 'AbortError') return 'ระบบแจ้งเตือนของเครื่องไม่ตอบ';
+  if (n === 'InvalidStateError') return 'ต้องเปิดจากไอคอนบนจอโฮม';
+  return (e && e.message) ? String(e.message).slice(0, 60) : 'ไม่ทราบสาเหตุ';
+}
+async function reconnectPush() {
+  let ok = false;
+  try { ok = await subscribePush(); }
+  catch (e) { pushErr = pushErrText(e); console.warn('[push] subscribe failed:', e); }
+  await refreshPushState();
+  renderProfile();
+  if (ok && pushState === 'on') {
+    showToast({ title: 'เตือนนอกแอปได้แล้ว 🔔', body: 'จะเตือนแม้ปิดแอปอยู่' });
+  } else if (!(sb && currentUser)) {
+    showToast({ title: 'ยังเตือนนอกแอปไม่ได้', body: 'ล็อกอินก่อน' });
+  } else {
+    showToast({ title: 'ยังเตือนนอกแอปไม่ได้', body: pushErr || 'ลองใหม่อีกครั้ง' });
+  }
+  return ok;
 }
 
 // ---------- เลือกชนิดการแจ้งเตือน ----------
@@ -14510,6 +15067,8 @@ async function enableNotif() {
     if (isIOS() && !isStandalone()) { showInstallGuide(); return; } // สาเหตุคือยังไม่ได้ติดตั้ง แก้ตรงนี้ทันที
     return;
   }
+  // อนุญาตไว้แล้ว = กดปุ่มนี้เพื่อต่อการเตือนนอกแอปใหม่ — สมัครทันทีในจังหวะกด ไม่ทำอย่างอื่นก่อน
+  if (Notification.permission === 'granted') { await reconnectPush(); checkReminders(); return; }
   const perm = await Notification.requestPermission();
   // จุดร่วงที่ใหญ่ที่สุดจุดหนึ่ง — คนที่กดปฏิเสธตรงนี้จะไม่ได้รับการเตือนอีกเลย
   // และกล่องโต้ตอบของเบราว์เซอร์ขอซ้ำไม่ได้ ถ้าไม่บันทึกไว้เราจะไม่มีทางรู้ว่าเขาเคยมาถึงตรงนี้
@@ -14517,11 +15076,15 @@ async function enableNotif() {
   funnel().notif = perm;
   save();
   if (perm !== 'granted') { renderProfile(); return; }
+  // สมัครก่อน แล้วค่อยยิงการ์ดทดสอบ (เดิมกลับกัน — ดูหมายเหตุที่ reconnectPush)
+  let subErr = null;
+  const subTry = subscribePush().catch(e => { subErr = e; return false; });
   // ยิงของจริงทันทีหนึ่งดอก — ผู้ใช้จะได้เห็นกับตาว่ามันทำงาน ไม่ใช่แค่ปุ่มเปลี่ยนสี
   await notify('เปิดแจ้งเตือนแล้ว 🔔',
     (who() ? who() + ' ' : '') + 'จะเตือนก่อนถึงกำหนดส่ง', 'studentos-alt-on');
   try {
-    const ok = await subscribePush();
+    const ok = await subTry;
+    if (subErr) throw subErr;
     // 1B99 · ยืนยันจากของจริงก่อนจะพูดว่า "แม้ปิดแอป" — subscribePush คืน true ได้
     // ทั้งตอนที่บันทึกขึ้น cloud สำเร็จ และตอนที่ยังไม่ได้ล็อกอิน (ซึ่งส่งไม่ถึงแน่ ๆ)
     // ประโยคที่สัญญาเกินกว่าที่ระบบทำได้ คือประโยคที่ทำให้เขาไม่ไปตั้งอย่างอื่นเผื่อไว้
@@ -14536,8 +15099,9 @@ async function enableNotif() {
       showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเตือนนอกแอปไม่ได้' });
     }
   } catch (e) {
-    console.warn('[push] subscribe failed:', e.message);
-    showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเตือนนอกแอปไม่ได้' });
+    console.warn('[push] subscribe failed:', e);
+    pushErr = pushErrText(e);
+    showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเตือนนอกแอปไม่ได้ · ' + pushErr });
   }
   renderProfile();
   checkReminders();
@@ -14561,19 +15125,19 @@ function reminderCopy(t, now) {
   return { title, body: when };
 }
 
-function celebrateCopy(allDone) {
+function celebrateCopy(allDone, left) {
   const nm = who();
   const hey = nm ? nm + ' ' : '';
+  // 9 ต.ค. 69 · เจ้าของ: "ตรวจสิ่งที่ยังเหมือน AI" — คำชมกว้าง ๆ ("ก้าวเล็ก ๆ สู่เป้าหมาย" "ภูมิใจในตัวเอง"
+  // "สู้ ๆ!") ใช้ได้กับทุกแอปเลยไม่มีความหมาย · พูดแค่สิ่งที่เกิดขึ้นจริง: เสร็จแล้ว เหลือเท่าไหร่
+  // left = จำนวนงานที่ยังค้าง (ใช้เมื่อ allDone เป็น false)
   return allDone
-    ? { title: nm ? `เคลียร์หมดแล้ว ${nm}! 🎉` : 'เคลียร์หมดแล้ว! 🎉', body: pick([
-        `เก่งมาก${hey ? ' ' + nm : ''}! งานหมดเกลี้ยง วันนี้พักได้เต็มที่เลย`,
-        `สุดยอด! ${hey}ไม่เหลืองานค้างสักงาน ภูมิใจในตัวเองได้เลย 💙`,
+    ? { title: nm ? `งานหมดแล้ว ${nm}` : 'งานหมดแล้ว', body: pick([
+        'ไม่มีงานค้างแล้ว วันนี้พักได้',
+        'เคลียร์ครบทุกงานแล้ว',
       ]) }
-    : { title: 'เยี่ยม! เสร็จอีกงาน 💪', body: pick([
-        `${hey}ทำได้ดีมาก ไปต่องานถัดไปกันเลย!`,
-        `อีกนิดเดียว ${hey}ใกล้เคลียร์หมดแล้ว สู้ ๆ!`,
-        `เก่งจัง${nm ? ' ' + nm : ''}! ทุกงานที่เสร็จคือก้าวเล็ก ๆ สู่เป้าหมาย ✨`,
-      ]) };
+    : { title: 'เสร็จไปอีกงาน',
+        body: left ? 'เหลืออีก ' + left + ' งาน' : 'ไม่มีงานค้างแล้ว' };
 }
 
 // ---------- toast ในแอป ----------
@@ -14705,13 +15269,13 @@ async function testServerPush() {
     res = r.data; err = r.error;
   } catch (e) { err = e; }
   if (err || !res) {
-    showToast({ title: 'ส่งจากเซิร์ฟเวอร์ไม่ได้', body: 'เน็ตหลุดหรือเซิร์ฟเวอร์ไม่ตอบ — ลองใหม่อีกครั้ง' });
+    showToast({ title: 'ส่งจากเซิร์ฟเวอร์ไม่ได้', body: 'เน็ตหลุดหรือเซิร์ฟเวอร์ไม่ตอบ ลองใหม่อีกครั้ง' });
     return;
   }
   if (!res.devices) {
     // แถวหาย (เซิร์ฟเวอร์ลบทิ้งเพราะส่งไม่ถึง) — สมัครใหม่ให้เลย แล้วให้กดใหม่
     await subscribePush().catch(() => false);
-    showToast({ title: 'เครื่องนี้ยังไม่ได้ลงทะเบียน', body: 'ลงทะเบียนใหม่ให้แล้ว — กด "ทดสอบ" อีกครั้ง' });
+    showToast({ title: 'เครื่องนี้ยังไม่ได้ลงทะเบียน', body: 'ลงทะเบียนใหม่ให้แล้ว กด "ทดสอบ" อีกครั้ง' });
     return;
   }
   if (res.queued) {
@@ -14720,7 +15284,7 @@ async function testServerPush() {
     return;
   }
   showToast(res.ok
-    ? { title: 'ส่งจากเซิร์ฟเวอร์แล้ว ✅', body: `ถึง ${res.sent}/${res.devices} เครื่อง` }
+    ? { title: 'ส่งจากเซิร์ฟเวอร์แล้ว ✓', body: `ถึง ${res.sent}/${res.devices} เครื่อง` }
     : { title: 'เซิร์ฟเวอร์ส่งไม่ถึงเครื่องนี้', body: 'ลองกดทดสอบอีกครั้ง' });
 }
 
@@ -14750,7 +15314,7 @@ async function testNotify() {
     return;
   }
   showToast(shown === true
-    ? { title: 'ขึ้นแล้ว ✅', body: '' }
+    ? { title: 'ขึ้นแล้ว ✓', body: '' }
     : { title: 'ส่งแจ้งเตือนแล้ว', body: '' });
 }
 
@@ -15147,6 +15711,9 @@ const CODE_TOKEN_GRANT = 1000;
 const CODE_GIFT = {
   '5c774939904173ffdc62b2f78e88d8fdbce4074c636cd887c0b4f6700fdc4e33': { id: 'g1', tokens: 10000 },
   'dd5ffe1c63293b21d17dfc192de4ec660e5aa2467bba77e930fbbe639d5c0866': { id: 'astral', theme: 'astral' },
+  // 9 ต.ค. 69 · โค้ด "ได้ทุกอย่าง ยกเว้นธีม Astral Black" — เจ้าของตั้งชื่อโค้ดเอง (ตัวโค้ดไม่อยู่ใน repo ตามกฎ)
+  // ใส่ซ้ำได้ไม่เสียหาย (ของที่มีแล้วไม่ซ้อน) จึงไม่ใช้ธง "ใช้แล้ว" · ดู codeGrantAllButAstral
+  'd0d6428a8d4915cfc07084ff980daeb70966c9a2092f87ec3333bb5659f5b589': { id: 'all', all: true },
 };
 const CODE_GIFT_USED = 'studentos.alt.codeGift.';
 
@@ -15172,6 +15739,12 @@ async function redeemCode() {
 
   let gift = null;
   try { gift = CODE_GIFT[await codeFingerprint(raw.toLowerCase())] || null; } catch (_) { gift = null; }
+  if (gift && gift.all) {
+    input.value = '';
+    say('');
+    codeGrantAllButAstral();
+    return;
+  }
   if (gift && gift.theme) {
     if (codeThemeOwned(gift.theme)) { say('มีธีมนี้อยู่แล้ว', true); input.select(); return; }
     input.value = '';
@@ -15232,7 +15805,7 @@ function codeSetLuck(on) {
   renderAll();
   const od = currentOdds();
   showToast(on
-    ? { title: 'โชคเพิ่มขึ้นแล้ว ✦', body: 'โอกาสได้ของหายากขึ้นเป็น 10 เท่า — ตอนนี้ Rare ' + od.rare.toFixed(1) + '%' }
+    ? { title: 'โชคเพิ่มขึ้นแล้ว ✦', body: 'โอกาสได้ของหายากขึ้นเป็น 10 เท่า ตอนนี้ Rare ' + od.rare.toFixed(1) + '%' }
     : { title: 'โชคกลับเป็นปกติ', body: 'อัตราการสุ่มกลับไปเท่าเดิมทุกระดับ' });
 }
 
@@ -15256,13 +15829,37 @@ function codeGrantEverything() {
   setTimeout(() => showToast({ title: 'ปลดล็อกครบทุกอย่างจริง ๆ ✦', body: 'รวมของที่ไม่ได้บอกว่ามีด้วย' }), 900);
 }
 
+// โค้ด "ได้ทุกอย่าง ยกเว้น Astral Black" (CODE_GIFT · all) — 9 ต.ค. 69
+// ทุกอย่างที่ปลดล็อกได้ในแอป: เหรียญตราครบ · ธีมซื้อ/สุ่มครบรวมระดับลับ · ธีมลับที่ต้องกดรัว · Crystal
+// · เอฟเฟกต์งานเสร็จทั้ง 8 แบบ พร้อมรุ่น 3D · ของแต่งห้องทุกชิ้น
+// ไม่แตะ: ธีม Astral Black (THEME_CODE.astral — ได้จากโค้ดของมันเองเท่านั้น) · ยอดโทเคน (ไม่ใช่ของ) · โชคเพิ่ม (เป็นตัวตั้งค่า)
+function codeGrantAllButAstral() {
+  codeGrantAll();          // เหรียญ · ธีมซื้อ/สุ่มที่ไม่ใช่ระดับลับ · ธีมลับกดรัว · Crystal (และเปลี่ยนเป็นธีม Crystal ให้)
+  grantThemes(true);       // + ธีมสุ่มระดับลับ
+  const ts = tokenState();
+  if (typeof FX_SHOP === 'object') ts.fx = [...new Set([...(ts.fx || []), ...Object.keys(FX_SHOP)])];
+  if (typeof FX3D_IDS === 'object') {
+    ts.fx3d = ts.fx3d || {};
+    FX3D_IDS.forEach(id => { ts.fx3d[id] = Math.max(1, ts.fx3d[id] || 0); });
+  }
+  saveTokenState(ts);
+  if (typeof roomState === 'function' && typeof ROOM_ITEMS === 'object' && typeof saveRoom === 'function') {
+    const r = roomState();
+    r.owned = [...new Set([...r.owned, ...ROOM_ITEMS.filter(i => i.cost).map(i => i.slot + ':' + i.id)])];
+    saveRoom(r);
+  }
+  renderAll();
+  setTimeout(() => showToast({ title: 'ได้ครบทุกอย่างแล้ว ✦',
+    body: 'ธีม เหรียญ เอฟเฟกต์งานเสร็จ (รวม 3D) และของแต่งห้องทุกชิ้น · ยกเว้นธีม Astral Black' }), 900);
+}
+
 // โค้ดโทเคน — เติมยอดให้ก้อนใหญ่ ไว้ลองสุ่มสกินโดยไม่ต้องรอเช็คอินหลายวัน
 function codeGrantTokens(n = CODE_TOKEN_GRANT) {
   const bal = addTokens(n);
   haptic('done');
   splashBurst(22, 'egg-star');
   renderAll();
-  showToast({ title: '+' + n.toLocaleString() + ' โทเคน ✦', body: 'ตอนนี้มี ' + bal + ' โทเคน — ลองสุ่มสกินได้เลย' });
+  showToast({ title: '+' + n.toLocaleString() + ' โทเคน ✦', body: 'ตอนนี้มี ' + bal + ' โทเคน ลองสุ่มสกินได้เลย' });
 }
 
 // โค้ดที่ 1 — เปิดทุกอย่างในแอปให้เลย: เหรียญครบทุกอัน + ธีมลับครบทุกโทน
@@ -15393,7 +15990,7 @@ const FUN_FACTS = [
   'ชื่อรุ่นของแอปได้แรงบันดาลใจมาจากรถถังซีรีส์ Leopard',
   'ผู้พัฒนาชอบกินเงาะ',
   'You Cannot Beat Us — We Are STUDENTOS',
-  'น้ำผึ้งไม่เน่าเสีย — เคยมีคนเจอน้ำผึ้งในสุสานอียิปต์อายุกว่า 3,000 ปี ที่ยังกินได้',
+  'น้ำผึ้งไม่เน่าเสีย เคยมีคนเจอน้ำผึ้งในสุสานอียิปต์อายุกว่า 3,000 ปี ที่ยังกินได้',
   'หมึกยักษ์มีหัวใจ 3 ดวง และเลือดของมันเป็นสีฟ้า',
   'กล้วยนับเป็นผลเบอร์รีตามนิยามพฤกษศาสตร์ แต่สตรอว์เบอร์รีไม่ใช่',
   'ดาวศุกร์หมุนรอบตัวเองช้ามาก จน 1 วันของมันยาวกว่า 1 ปีของมันเอง',
@@ -15402,7 +15999,7 @@ const FUN_FACTS = [
   'ไม้ไผ่บางชนิดโตได้เกือบ 1 เมตรภายในวันเดียว',
   'มดไม่มีปอด มันหายใจผ่านรูเล็ก ๆ ข้างลำตัวแทน',
   'ทะเลทรายซาฮาราเคยเป็นทุ่งหญ้าเขียวที่มีทะเลสาบ เมื่อราว 6,000 ปีก่อน',
-  'พระอาทิตย์ตกบนดาวอังคารเป็นสีฟ้า — ตรงข้ามกับบนโลกพอดี',
+  'พระอาทิตย์ตกบนดาวอังคารเป็นสีฟ้า ตรงข้ามกับบนโลกพอดี',
 ];
 
 // ---------- ALT: เกร็ดเฉพาะธีมลับ ----------
@@ -15410,15 +16007,15 @@ const FUN_FACTS = [
 // จะเจอเนื้อหาที่คนอื่นไม่เคยเห็น ไม่ใช่แค่เปลี่ยนสีจอเฉย ๆ
 const THEME_FACTS = {
   deepocean: [
-    'จุดที่ลึกที่สุดในมหาสมุทรชื่อ Challenger Deep ลึกราว 10,900 เมตร — เอายอดเขาเอเวอเรสต์หย่อนลงไปยังจมมิด',
+    'จุดที่ลึกที่สุดในมหาสมุทรชื่อ Challenger Deep ลึกราว 10,900 เมตร เอายอดเขาเอเวอเรสต์หย่อนลงไปยังจมมิด',
     'ใต้ทะเลลึก 1,000 เมตรลงไปไม่มีแสงอาทิตย์เหลือแล้ว แสงเกือบทั้งหมดที่เห็นมาจากตัวสัตว์ที่เรืองแสงเอง',
     'ปลาหมึกยักษ์มีเซลล์ประสาทสองในสามอยู่ที่หนวด แต่ละหนวดจึงตัดสินใจเองได้โดยไม่ต้องรอสมอง',
     'แรงดันที่ก้นร่องลึกมาเรียนามากกว่าที่ผิวน้ำราว 1,000 เท่า',
-    'ฉลามมีอยู่บนโลกมาก่อนต้นไม้ — ฉลามเก่าแก่กว่าต้นไม้ราว 50 ล้านปี',
+    'ฉลามมีอยู่บนโลกมาก่อนต้นไม้ ฉลามเก่าแก่กว่าต้นไม้ราว 50 ล้านปี',
   ],
   earth2: [
     'ต้นไม้ในป่าส่งอาหารและสัญญาณเตือนถึงกันผ่านเครือข่ายเชื้อราใต้ดิน',
-    'ต้นไม้ที่เก่าแก่ที่สุดที่ยังมีชีวิตอยู่คือสนบริสเซิลโคน อายุกว่า 4,800 ปี — แก่กว่าพีระมิดบางแห่ง',
+    'ต้นไม้ที่เก่าแก่ที่สุดที่ยังมีชีวิตอยู่คือสนบริสเซิลโคน อายุกว่า 4,800 ปี แก่กว่าพีระมิดบางแห่ง',
     'ป่าแอมะซอนสร้างฝนให้ตัวเอง ไอน้ำที่ต้นไม้คายออกมากลายเป็นเมฆแล้วตกกลับลงมา',
     'ใบไม้เปลี่ยนสีในฤดูใบไม้ร่วงเพราะคลอโรฟิลล์สลายไป สีเหลืองส้มอยู่ในใบมาตลอดแต่ถูกสีเขียวบังไว้',
     'รากของต้นไม้ใหญ่แผ่กว้างกว่าเรือนยอดของมันเอง แต่ส่วนใหญ่ลึกไม่ถึง 1 เมตร',
@@ -15427,7 +16024,7 @@ const THEME_FACTS = {
     'สายรุ้งเป็นวงกลมเต็มวงเสมอ เราเห็นแค่ครึ่งเดียวเพราะพื้นดินบังอีกครึ่งไว้',
     'ดาวเสาร์มีความหนาแน่นน้อยกว่าน้ำ ถ้าหาอ่างที่ใหญ่พอได้ มันจะลอย',
     'วงแหวนของดาวเสาร์หนาเฉลี่ยไม่ถึง 1 กิโลเมตร ทั้งที่กว้างเป็นแสนกิโลเมตร',
-    'สีชมพูไม่มีความยาวคลื่นเป็นของตัวเองในสเปกตรัม — สมองสร้างมันขึ้นมาจากแสงสีแดงกับม่วง',
+    'สีชมพูไม่มีความยาวคลื่นเป็นของตัวเองในสเปกตรัม สมองสร้างมันขึ้นมาจากแสงสีแดงกับม่วง',
     'มีดาวเคราะห์ที่ฝนตกเป็นแก้วและพัดในแนวนอนด้วยความเร็วกว่า 7,000 กม./ชม. ชื่อ HD 189733b',
   ],
   genesis: [
@@ -15596,7 +16193,7 @@ async function applyJoinToken() {
       return;
     }
     if (typeof funnelMark === 'function') { funnelMark('lineLinkedAt'); save(); }
-    showToast({ title: 'เข้าร่วมห้องแล้ว 🎉',
+    showToast({ title: 'เข้าร่วมห้องแล้ว',
       body: '' });
     if (typeof loadLineLinks === 'function') await loadLineLinks();
     if (typeof pullInbox === 'function') await pullInbox();
@@ -15863,7 +16460,7 @@ function renderObDay() {
     ? `<span class="obp-h">${icon('clock')}วันธรรมดาแทบไม่เหลือเวลาเลย</span>`
     : `<span class="obp-h">${icon('clock')}วันธรรมดาคุณว่าง
          <b>${esc(home)}–${esc(min2hm(stop))}</b></span>
-       <span class="obp-p">ประมาณ ${Math.round(free / 6) / 10} ชม. — AI จะวางงานลงช่วงนี้
+       <span class="obp-p">ประมาณ ${Math.round(free / 6) / 10} ชม. AI จะวางงานลงช่วงนี้
          และเว้นชั่วโมงสุดท้ายก่อนนอนไว้ให้</span>`;
 }
 
@@ -15959,7 +16556,7 @@ function showWelcome(name, gotDay) {
     const win = typeof dayWindows === 'function' ? dayWindows(state.settings, new Date()) : null;
     const slot = win && win.slots[0];
     showToast({
-      title: 'ยินดีที่ได้รู้จัก ' + name + ' 👋',
+      title: 'ยินดีที่ได้รู้จัก ' + name,
       body: gotDay && slot
         ? `ว่างถัดไป ${slot.fromHm}–${slot.toHm}`
         : 'เพิ่มงานแรกได้เลย',
@@ -15991,6 +16588,21 @@ document.getElementById('bgInput').addEventListener('change', e => {
   if (e.target.files[0]) readUserBg(e.target.files[0]);
   e.target.value = '';
 });
+// ลากรูปมาวางบนกล่อง (คอม) — dragenter/leave ยิงซ้ำทุกครั้งที่ผ่านลูกข้างใน จึงนับชั้นไว้ ไม่งั้นแสงกะพริบ
+(function dragBgZone() {
+  const z = document.getElementById('bgZone');
+  if (!z) return;
+  let depth = 0;
+  const off = () => { depth = 0; z.classList.remove('drag'); };
+  z.addEventListener('dragenter', e => { e.preventDefault(); depth++; z.classList.add('drag'); });
+  z.addEventListener('dragover', e => { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'; });
+  z.addEventListener('dragleave', () => { if (--depth <= 0) off(); });
+  z.addEventListener('drop', e => {
+    e.preventDefault(); off();
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) readUserBg(f);
+  });
+})();
 
 // ALT 1A6M3: ภาพของวิดเจ็ต — ช่องเลือกมี 2 ที่ (ในตั้งค่า และบนตัววิดเจ็ตเอง
 // ซึ่งถูกวาดใหม่ทุกครั้ง) จึงดักที่ document ทีเดียวจบ
@@ -16031,8 +16643,15 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 // ไม่สลับกลับเอง — พอเบาแล้วเครื่องจะลื่น วัดใหม่ก็ผ่านทุกครั้ง แล้วก็กลับไปค้างอีก
 // iPhone ที่เปิดโหมดประหยัดแบตตอนวัด (จำกัด 30fps) จะได้โหมดนี้ด้วย — ยอมรับได้ คนที่ประหยัดแบตอยากได้ของเบาอยู่แล้ว
 // ล้างธง: localStorage.removeItem('studentos.alt.lite') แล้วเปิดใหม่
+// 9 ต.ค. 69 · เจ้าของ: "ลองคุมให้ได้ 60 fps หน่อย จะได้ไม่ค้าง ต่อให้เครื่องจะไม่ดี"
+// • เกณฑ์เข้มขึ้น: เดิมเปิดโหมดเบาเมื่อเฟรมกลางช้ากว่า 26ms (ต่ำกว่า ~38fps) — เครื่องที่วิ่ง 40–50fps กระตุกให้เห็นแต่ไม่โดน
+//   ตอนนี้ เฟรมกลางช้ากว่า 20ms (ต่ำกว่า ~50fps) หรือหนึ่งในสี่ของเฟรมช้ากว่า 28ms = เปิด
+// • วัดตอนเปิดแอปผ่าน = ไม่ได้แปลว่าลื่นตอนใช้ · liteWatch ดูต่อตอนแตะ/เลื่อนจริงสี่รอบแรก (รอบละ 60 เฟรม)
+//   สองรอบกระตุก (≥ 15 จาก 60 เฟรมช้ากว่า 25ms) = เปิดโหมดเบากลางทาง
+// • ผู้ใช้ปิดเองในตั้งค่า (ธง '0') = ไม่เปิดให้อีก — ตัววัดเดาผิดได้ คนใช้ต้องเป็นคนตัดสินสุดท้าย
+function liteUserOff() { try { return localStorage.getItem('studentos.alt.lite') === '0'; } catch (_) { return false; } }
 function liteProbe() {
-  if (document.documentElement.dataset.lite) return;
+  if (document.documentElement.dataset.lite || liteUserOff()) return;
   if (document.hidden) { document.addEventListener('visibilitychange', () => setTimeout(liteProbe, 1500), { once: true }); return; }
   const gaps = [];
   let last = 0;
@@ -16042,13 +16661,56 @@ function liteProbe() {
     last = now;
     if (gaps.length < 90) { requestAnimationFrame(step); return; }
     gaps.sort((a, b) => a - b);
-    if (gaps[45] > 26) liteOn();
+    if (gaps[45] > 20 || gaps[67] > 28) liteOn(true);
+    else liteWatch();
   };
   requestAnimationFrame(step);
 }
-function liteOn() {
+function liteWatch() {
+  const evs = ['touchstart', 'scroll', 'wheel'];
+  let rounds = 0, bad = 0, busy = false;
+  const off = () => evs.forEach(e => document.removeEventListener(e, onUse, true));
+  function onUse() {
+    if (busy) return;
+    if (rounds >= 4 || document.documentElement.dataset.lite || liteUserOff()) { off(); return; }
+    busy = true;
+    const gaps = [];
+    let last = 0;
+    const step = now => {
+      if (document.hidden) { busy = false; return; }
+      if (last) { const g = now - last; if (g < 250) gaps.push(g); }
+      last = now;
+      if (gaps.length < 60) { requestAnimationFrame(step); return; }
+      busy = false; rounds++;
+      if (gaps.filter(g => g > 25).length >= 15) bad++;
+      if (bad >= 2) { off(); liteOn(true); }
+      else if (rounds >= 4) off();
+    };
+    requestAnimationFrame(step);
+  }
+  evs.forEach(e => document.addEventListener(e, onUse, { capture: true, passive: true }));
+}
+function liteOn(auto) {
   document.documentElement.dataset.lite = '1';
   try { localStorage.setItem('studentos.alt.lite', '1'); } catch (_) {}
+  if (typeof syncLiteRow === 'function') syncLiteRow();
+  // เปิดให้เองกลางทาง = บอกครั้งเดียวว่าเกิดอะไรและปิดได้ที่ไหน · ไม่งั้นคนจะคิดว่าแอปเปลี่ยนหน้าตาเอง
+  if (auto) showToast({ title: 'เปิดโหมดลื่นให้แล้ว', body: 'เครื่องนี้กระตุกเลยลดเอฟเฟกต์บางอย่างลง ปิดได้ที่ ตั้งค่า › โหมดลื่น' });
+}
+// สวิตช์ในตั้งค่า — ปิด = ธง '0' (ตัววัดจะไม่เปิดให้อีก) · เปิด = ธง '1'
+function toggleLite() {
+  const on = !document.documentElement.dataset.lite;
+  if (on) document.documentElement.dataset.lite = '1'; else delete document.documentElement.dataset.lite;
+  try { localStorage.setItem('studentos.alt.lite', on ? '1' : '0'); } catch (_) {}
+  syncLiteRow();
+  haptic('tap');
+  showToast(on ? { title: 'เปิดโหมดลื่นแล้ว', body: 'ลดเอฟเฟกต์ที่กินแรงเครื่อง ให้เลื่อนและแตะลื่นขึ้น' }
+    : { title: 'ปิดโหมดลื่นแล้ว', body: 'เอฟเฟกต์กลับมาครบ ถ้าเครื่องกระตุกเปิดใหม่ได้ที่นี่' });
+}
+function syncLiteRow() {
+  const on = !!document.documentElement.dataset.lite;
+  const b = document.getElementById('liteBtn');
+  if (b) { b.textContent = on ? 'เปิดอยู่' : 'ปิดอยู่'; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }
 }
 
 (async function initApp() {
@@ -16107,6 +16769,8 @@ function liteOn() {
   // ที่เหลือ (ฟอนต์จาก CDN · บัญชี · การแจ้งเตือน) เติมเข้ามาทีหลังได้โดยไม่ต้องให้ใครรอ
   const guessedSignedIn = hasStoredSession();
   routeStart();
+  // จอแรกวาดเสร็จแล้ว → จอเปิดแอป (#boot ใน index.html) เติมแถบให้เต็มแล้วจางออก · ไม่รออะไรข้างล่างนี้
+  if (typeof window.bootDone === 'function') window.bootDone();
   watchOverlays();
 
   // ข้อความที่แชร์เข้ามาจากแอปอื่น — ทำหลังวาดจอแรก จะได้เห็นผลทันทีว่ามันเข้าแล้ว
@@ -16122,7 +16786,7 @@ function liteOn() {
       off ? { title: 'ปิด "แชร์จากแอปอื่น" ไว้อยู่', body: '' }
       : r && r.status === 'noise'
         ? { title: 'เก็บไว้ในบันทึกแล้ว', body: 'ไม่ใช่งาน' }
-        : { title: 'รับข้อความแล้ว 📥', body: '' }), 700);
+        : { title: 'รับข้อความแล้ว', body: '' }), 700);
   }
 
   // ขากลับจากหน้าอนุญาตของ Google — ต้องมีข้อความบอกผลเสมอ
@@ -16151,7 +16815,7 @@ function liteOn() {
     setTimeout(() => showToast({
       title: 'มีการจับเวลาค้างไว้',
       body: (st ? taskTitleText(st) : 'งานหนึ่ง') + ' เริ่มไว้ตั้งแต่ ' +
-        fmtClock(new Date(stale.start)) + ' แต่ไม่ได้กดหยุด — ไม่ถูกบันทึก',
+        fmtClock(new Date(stale.start)) + ' แต่ไม่ได้กดหยุด ไม่ถูกบันทึก',
     }), 3200);
   }
   // เช็คบ่อยขึ้น (นาทีละครั้ง) + เช็คทุกครั้งที่กลับมาที่แอป
@@ -16200,7 +16864,8 @@ function liteOn() {
   await refreshPushState();
   // เคยกดอนุญาตไว้แล้ว + ล็อกอินอยู่ → ต่อ push ให้อัตโนมัติ (เผื่อ subscription หลุด)
   if ('Notification' in window && Notification.permission === 'granted' && currentUser) {
-    subscribePush().then(() => renderProfile()).catch(() => {});
+    subscribePush().then(() => renderProfile())
+      .catch(e => { pushErr = pushErrText(e); renderProfile(); });
   }
   // 1C38 · รายงานตัวกับเซิร์ฟเวอร์ — รอบเย็นจะได้ไม่เด้งใส่คนที่เพิ่งเห็นการ์ดบนจอ (ดู pushHeartbeat)
   // ยิงทั้งตอนเข้าและตอนออก (ไม่เกินสิบนาทีครั้ง) — ด่านของเซิร์ฟเวอร์คือหนึ่งชั่วโมง ละเอียดแค่นี้พอ

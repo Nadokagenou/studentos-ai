@@ -120,7 +120,7 @@ function quickToast(r) {
 // ============================================================
 const QUICK_KEY_STORE = 'studentos.alt.quickKey';
 // remote: ฝั่งเซิร์ฟเวอร์มีกุญแจของบัญชีนี้ไหม · null = ยังไม่ได้ถาม · busy กันกดซ้ำระหว่างรอ
-const quick = { remote: null, asked: '', busy: false };
+const quick = { remote: null, asked: '', busy: false, showUrl: false };
 
 function quickLocal() {
   try {
@@ -155,27 +155,71 @@ async function quickCheckRemote() {
   if (typeof renderSources === 'function') renderSources();
 }
 
-async function quickCreate() {
-  if (quick.busy || !sb || !currentUser) return;
-  // มีลิงก์อยู่แล้ว (ในเครื่องนี้หรือเครื่องอื่น) — สร้างใหม่ = ปุ่มที่ตั้งไว้ใน iPhone ใช้ไม่ได้จนกว่าจะวางลิงก์ใหม่
-  if ((quickLocal() || quick.remote) && !(await appConfirm({
-    title: 'สร้างลิงก์ใหม่?', body: 'ลิงก์เดิมจะใช้ไม่ได้', ok: 'สร้างใหม่' }))) return;
+// สร้างกุญแจดอกใหม่ (ดอกเดิมตาย) · คืนลิงก์ หรือ null ถ้าไม่สำเร็จ — ไม่ถาม ผู้เรียกถามเอง
+async function quickMakeKey() {
   quick.busy = true; renderSources();
   const key = quickNewKey();
   const { error } = await sb.from('quick_keys').upsert(
     { user_id: currentUser.id, key_hash: await quickHash(key), created_at: new Date().toISOString(), last_used_at: null },
     { onConflict: 'user_id' });
   quick.busy = false;
-  if (error) { renderSources(); showToast({ title: 'สร้างลิงก์ไม่สำเร็จ', body: error.message }); return; }
+  if (error) { renderSources(); showToast({ title: 'สร้างลิงก์ไม่สำเร็จ', body: error.message }); return null; }
   try { localStorage.setItem(QUICK_KEY_STORE, JSON.stringify({ key, uid: currentUser.id, at: Date.now() })); } catch (_) {}
   quick.remote = true;
   renderSources();
-  quickCopy();
+  return quickUrl(key);
+}
+
+async function quickCreate() {
+  if (quick.busy || !sb || !currentUser) return;
+  // สร้างใหม่ = คำสั่งลัดที่ติดตั้งไว้แล้วใช้ไม่ได้จนกว่าจะติดตั้งใหม่
+  if (!(await appConfirm({ title: 'สร้างลิงก์ใหม่?', body: 'ต้องติดตั้งคำสั่งลัดใหม่', ok: 'สร้างใหม่' }))) return;
+  if (await quickMakeKey()) showToast({ title: 'สร้างลิงก์ใหม่แล้ว', body: 'กดติดตั้งบน iPhone อีกครั้ง' });
+}
+
+// คัดลอกข้อความที่ "ยังไม่มี" ได้ภายในการแตะครั้งเดียว — Safari ยอมให้เขียนคลิปบอร์ดเฉพาะตอนที่นิ้วแตะอยู่
+// แต่กุญแจต้องรอเซิร์ฟเวอร์ก่อน · ClipboardItem รับ Promise ได้ จึงจองคลิปบอร์ดไว้ก่อนแล้วเติมทีหลัง
+function quickClipboard(textP) {
+  try {
+    if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+      const blob = textP.then(t => { if (!t) throw new Error('empty'); return new Blob([t], { type: 'text/plain' }); });
+      return navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]).then(() => true, () => false);
+    }
+  } catch (_) {}
+  return textP.then(t => t ? navigator.clipboard.writeText(t).then(() => true) : false).catch(() => false);
+}
+
+// ไฟล์คำสั่งลัดที่เซ็นแล้ว (alt/devtools/make-quick-shortcut.py) — ถามลิงก์ตอนติดตั้ง
+function quickShortcutFile() { return new URL('quick-add.shortcut', location.href).href; }
+
+// ปุ่มเดียวจบ: สร้างลิงก์ (ถ้ายังไม่มี) → คัดลอก → เปิดแอปคำสั่งลัดที่หน้าติดตั้ง
+// ผู้ใช้เหลือแค่ "วาง" กับ "เพิ่มคำสั่งลัด" — แทนการสร้างคำสั่งเองห้าขั้น ซึ่งเจ้าของลองแล้วไม่ผ่าน (9 ต.ค. 69)
+async function quickInstall() {
+  if (quick.busy || !sb || !currentUser) return;
+  const v = quickLocal();
+  // มีลิงก์บนเครื่องอื่น — สร้างใหม่แล้วของเครื่องนั้นตาย ต้องถามก่อน (และการถามทำให้คลิปบอร์ดหลุดจากการแตะ)
+  if (!v && quick.remote && !(await appConfirm({
+    title: 'สร้างลิงก์ใหม่?', body: 'ลิงก์บนเครื่องอื่นจะใช้ไม่ได้', ok: 'สร้างใหม่' }))) return;
+  const urlP = v ? Promise.resolve(quickUrl(v.key)) : quickMakeKey();
+  const copied = await quickClipboard(urlP);
+  const url = await urlP;
+  if (!url) return;
+  if (!copied) {
+    quick.showUrl = true; renderSources();
+    showToast({ title: 'กดคัดลอกลิงก์ แล้วกดติดตั้งอีกครั้ง', body: '' });
+    return;
+  }
+  showToast({ title: 'คัดลอกลิงก์แล้ว', body: 'วางในหน้าติดตั้ง' });
+  const custom = typeof sosCfg === 'function' ? sosCfg('quick.iosShortcut', '') : '';
+  setTimeout(() => {
+    location.href = custom || 'shortcuts://import-shortcut?url=' + encodeURIComponent(quickShortcutFile())
+      + '&name=' + encodeURIComponent('เพิ่มงาน');
+  }, 500);
 }
 
 async function quickRevoke() {
   if (quick.busy || !sb || !currentUser) return;
-  if (!(await appConfirm({ title: 'ปิดปุ่มลัดบน iPhone?', body: 'ลิงก์เดิมจะใช้ไม่ได้', ok: 'ปิด', danger: true }))) return;
+  if (!(await appConfirm({ title: 'ปิดปุ่มลัดบน iPhone?', body: 'คำสั่งลัดที่ติดตั้งไว้จะใช้ไม่ได้', ok: 'ปิด', danger: true }))) return;
   quick.busy = true; renderSources();
   const { error } = await sb.from('quick_keys').delete().eq('user_id', currentUser.id);
   quick.busy = false;
@@ -188,18 +232,13 @@ async function quickRevoke() {
 function quickCopy() {
   const v = quickLocal();
   if (!v) return;
-  const url = quickUrl(v.key);
-  const ok = () => showToast({ title: 'คัดลอกลิงก์แล้ว', body: '' });
-  try {
-    navigator.clipboard.writeText(url).then(ok, () => quickCopyFallback(url));
-  } catch (_) { quickCopyFallback(url); }
-}
-
-// เบราว์เซอร์ไม่ให้สิทธิ์คลิปบอร์ด — เลือกข้อความในช่องให้ ผู้ใช้กดคัดลอกเองได้
-function quickCopyFallback() {
-  const el = document.getElementById('qaUrl');
-  if (el) { el.focus(); el.select(); }
-  showToast({ title: 'กดค้างที่ลิงก์แล้วเลือกคัดลอก', body: '' });
+  quickClipboard(Promise.resolve(quickUrl(v.key))).then(ok => {
+    if (ok) { showToast({ title: 'คัดลอกลิงก์แล้ว', body: '' }); return; }
+    quick.showUrl = true; renderSources();
+    const el = document.getElementById('qaUrl');
+    if (el) { el.focus(); el.select(); }
+    showToast({ title: 'กดค้างที่ลิงก์แล้วเลือกคัดลอก', body: '' });
+  });
 }
 
 // ---------- แผงในจอ "ตัวเชื่อม" (แถว "ปุ่มลัดเพิ่มงาน") ----------
@@ -224,27 +263,17 @@ function quickPanel() {
   } else {
     quickCheckRemote();
     const v = quickLocal();
-    const ready = typeof sosCfg === 'function' ? sosCfg('quick.iosShortcut', '') : '';
     const busy = quick.busy ? ' disabled' : '';
-    ios = v
-      ? `<input class="src-in" id="qaUrl" readonly value="${esc(quickUrl(v.key))}" onclick="this.select()">
-        <div class="ib-act">
-          <button class="ib-go" onclick="quickCopy()"${busy}>${icon('copy')}คัดลอกลิงก์</button>
-          ${ready ? `<button onclick="window.open('${esc(ready)}','_blank')">ติดตั้งคำสั่งลัด</button>` : ''}
-        </div>
-        ${ready ? steps(['คัดลอกลิงก์', 'กด <b>ติดตั้งคำสั่งลัด</b> แล้ววางลิงก์', 'การตั้งค่า → การช่วยการเข้าถึง → สัมผัส → <b>แตะด้านหลัง</b> → แตะสองครั้ง → เลือกคำสั่งนี้'])
-          : steps(['แอปคำสั่งลัด → สร้างคำสั่งใหม่',
-            '<b>ถามหาข้อมูลเข้า</b> (Ask for Input)',
-            '<b>รับเนื้อหาของ URL</b> (Get Contents of URL) · วางลิงก์ · วิธี POST · เนื้อหา JSON: <b>text</b> = ข้อมูลเข้าที่ระบุ',
-            '<b>แสดงการแจ้งเตือน</b> (Show Notification) · เนื้อหาของ URL',
-            'การตั้งค่า → การช่วยการเข้าถึง → สัมผัส → <b>แตะด้านหลัง</b> → แตะสองครั้ง → เลือกคำสั่งนี้'])}
-        <div class="ib-act">
+    ios = `<button class="ib-go qa-install" onclick="quickInstall()"${busy}>${icon('sparkles')}${quick.busy ? 'กำลังเตรียม…' : 'ติดตั้งบน iPhone'}</button>
+      ${steps(['กด <b>ติดตั้งบน iPhone</b> → วางลิงก์ → <b>เพิ่มคำสั่งลัด</b>',
+        'การตั้งค่า → การช่วยการเข้าถึง → สัมผัส → <b>แตะด้านหลัง</b> → <b>แตะสองครั้ง</b> → <b>เพิ่มงาน</b>'])}
+      ${v && quick.showUrl ? `<input class="src-in" id="qaUrl" readonly value="${esc(quickUrl(v.key))}" onclick="this.select()">` : ''}
+      ${v ? `<div class="qa-mini">
+          <button onclick="quickCopy()">คัดลอกลิงก์</button>
+          <a href="${esc(quickShortcutFile())}">ไฟล์คำสั่งลัด</a>
           <button onclick="quickCreate()"${busy}>สร้างลิงก์ใหม่</button>
           <button onclick="quickRevoke()"${busy}>ปิด</button>
-        </div>`
-      : `${quick.remote ? `<div class="src-need">${icon('flag')}มีลิงก์บนเครื่องอื่นอยู่แล้ว</div>` : ''}
-        <button class="ib-go" style="margin-top:10px; align-self:flex-start" onclick="quickCreate()"${busy}>
-          ${quick.busy ? 'กำลังสร้าง…' : quick.remote ? 'สร้างลิงก์ใหม่' : 'สร้างลิงก์'}</button>`;
+        </div>` : ''}`;
   }
 
   const iosBlock = ios ? `<div class="qa-p"><span class="qa-h">iPhone</span>${ios}</div>` : '';

@@ -9,7 +9,7 @@
   <link rel="canonical" href="https://nadokagenou.github.io/studentos-ai/alt/">
 
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Student OS — รู้ว่าต้องทำอะไรก่อน เสมอ">
+  <meta property="og:title" content="Student OS — เปิดมาแล้วรู้ว่าต้องทำอะไรก่อน">
   <meta property="og:description" content="AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงาน จัดลำดับความสำคัญพร้อมเหตุผล">
   <meta property="og:url" content="https://nadokagenou.github.io/studentos-ai/alt/">
   <meta property="og:image" content="https://nadokagenou.github.io/studentos-ai/alt/icon-512.png">
@@ -42,7 +42,8 @@
       // โหมดเครื่องเบา — ต้องติดก่อนวาดจอแรก ไม่งั้นเครื่องช้าได้วาดของหนักไปหนึ่งรอบก่อนถูกถอด
       // ธงมาจากการวัดจริงรอบก่อน (liteProbe ใน app.js) · แรม ≤2GB (Chrome บอกได้) = เบาตั้งแต่ครั้งแรก
       try {
-        if (localStorage.getItem('studentos.alt.lite') === '1' || (navigator.deviceMemory && navigator.deviceMemory <= 2))
+        var lf = localStorage.getItem('studentos.alt.lite');   // '0' = ผู้ใช้ปิดเองในตั้งค่า
+        if (lf === '1' || (lf !== '0' && navigator.deviceMemory && navigator.deviceMemory <= 2))
           document.documentElement.dataset.lite = '1';
       } catch (e) {}
       var m = document.querySelector('meta[name=theme-color]');
@@ -117,6 +118,75 @@
   <link rel="stylesheet" href="custom.css">
 </head>
 <body>
+
+<!-- ============ จอเปิดแอป (แบบไอจี) ============
+     9 ต.ค. 69 · เจ้าของ: "ทำโหลดแอปก่อนเข้าให้หน่อย เอาให้คล้ายตอนเข้าไอจี แต่ตอนโหลดให้ใช้อนิเมชันนี้" (เดโม HaloProgress)
+     พื้นเรียบสีเดียวกับธีม · โลโก้กลางจอ · "from Masterpiece" ชิดล่าง · ใต้โลโก้เป็นแถบ HaloProgress (.hprog ชุดเดียวกับจอสแกน)
+
+     เคยมีฉากเปิดแอปมาแล้วและถูกถอดออก เพราะบังคับนั่งรอขั้นต่ำ 3.6 วินาทีทุกครั้ง (ดูคอมเมนต์เหนือ hasStoredSession ใน app.js)
+     รอบนี้จึงต่างกันตรงที่:
+     • เป็นแค่ชั้นบัง — แอปบูตตามปกติข้างใต้ ไม่มีอะไรรอจอนี้
+     • แถบวิ่งตามของจริง ไม่วิ่งนำ: ไฟล์ที่โหลดเสร็จ (สูงสุด 70%) → อ่านหน้าเสร็จ (78%) → วาดจอแรกเสร็จ (100% · bootDone ใน initApp)
+     • จำกัดความเร็วแถบไว้ที่ 0→100 ใน 0.7 วินาที — โหลดจากแคชเร็วแค่ไหนก็ยังเห็นแถบวิ่งเต็ม แต่ไม่ช้ากว่านั้น
+     • กันค้าง: สคริปต์ล้มกลางทางก็ยังเข้าแอปได้ (หน้าโหลดเสร็จ = จบ · 10 วินาที = จบแน่นอน) -->
+<div id="boot" class="boot" aria-hidden="true">
+  <div class="boot-mid">
+    <img class="boot-mark" src="logo-mark.png" alt="" width="92" height="92" decoding="async">
+    <!-- เหลือแค่แถบ — ป้าย "กำลังเปิดแอป" กับตัวเลข % ถูกตัดออก (เจ้าของ: "จัดการเลย" ต่อข้อเสนอให้ดูสบายตาขึ้น)
+         ตัวหนังสือเล็กสองชิ้นนั้นอ่านไม่ทันอยู่แล้ว แถบที่วิ่งบอกได้ครบว่ากำลังโหลด -->
+    <div class="hprog boot-bar">
+      <div class="hp-track"><div class="hp-fill"></div></div>
+    </div>
+  </div>
+  <p class="boot-from"><span>from</span><b>Masterpiece</b></p>
+</div>
+<script>
+  (function () {
+    var el = document.getElementById('boot');
+    if (!el) return;
+    var bar = el.querySelector('.boot-bar'), fill = el.querySelector('.hp-fill');
+    // 9 ต.ค. 69 · เจ้าของ: "แก้ให้มันเป็นหน้าโหลดขาวอย่างเดียว" — พื้นขาวเสมอทุกธีม (เดิมใช้สีพื้นของธีม)
+    // แถบสถานะของเครื่อง (theme-color) ขาวตามระหว่างหน้าโหลด แล้วคืนสีของธีมตอนหน้าโหลดจางออก (out)
+    var m = document.querySelector('meta[name=theme-color]');
+    var barColor = m && m.content;
+    if (m) m.content = '#FFFFFF';
+
+    var FULL_MS = 700;           // แถบวิ่ง 0→100 ได้เร็วสุดเท่านี้
+    var target = 4, shown = 0, done = false, last = 0, n = 0;
+    function to(p) { if (p > target) target = p; }
+    try {
+      new PerformanceObserver(function (l) { n += l.getEntries().length; to(8 + 62 * (1 - Math.exp(-n / 12))); })
+        .observe({ type: 'resource', buffered: true });
+    } catch (e) { to(40); }
+    document.addEventListener('DOMContentLoaded', function () { to(78); });
+    window.bootDone = function () { to(100); done = true; };
+    window.addEventListener('load', function () { window.bootDone(); });
+    setTimeout(function () { window.bootDone(); }, 10000);
+
+    // ออก: จอนี้จางหาย พร้อมกับจอแรกของแอปเลื่อนขึ้นนิดหนึ่งและจางเข้า (.boot-reveal ใน alt.css)
+    // ถอดคลาสทิ้งหลังเล่นจบ ไม่ให้แอนิเมชันค้างอยู่บนจอ
+    function out() {
+      var root = document.documentElement;
+      root.classList.add('boot-reveal');
+      el.classList.add('out');
+      if (m && barColor) m.content = barColor;
+      if (typeof rollNumbers === 'function') rollNumbers(document.querySelector('.screen.on'));
+      if (typeof greetIn === 'function') greetIn();
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 450);
+      setTimeout(function () { root.classList.remove('boot-reveal'); }, 700);
+    }
+    function frame(now) {
+      if (!last) last = now;
+      shown = Math.min(target, shown + (now - last) / FULL_MS * 100);
+      last = now;
+      fill.style.transform = 'scaleX(' + (shown / 100) + ')';
+      bar.style.setProperty('--p', shown);
+      if (done && shown >= 100) { setTimeout(out, 140); return; }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  })();
+</script>
 
 <!-- โลโก้ S เป็น SVG กลาง — ใช้ซ้ำได้ทั้ง splash และหน้า login -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -254,6 +324,21 @@
     <g id="lu-chart" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"></path><path d="M8 17v-4"></path><path d="M13 17V9"></path><path d="M18 17V5"></path></g>
     <!-- ประตูมีลูกศรออก (lucide log-out · ISC) — แถว "ออกจากระบบ" ในตั้งค่า -->
     <g id="lu-logout" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></g>
+    <!-- 9 ต.ค. 69 · ไอคอนเพิ่มสำหรับป้ายที่ไอคอนเดิมไม่ตรงความหมาย (เจ้าของ: "ปรับโลโก้ทุกอันให้ตรงตามหัวข้อ ถ้าตรงอยู่แล้วไม่ต้องเปลี่ยน") — Lucide: square-plus · armchair · trending-up/down · eye · download · key-round · shield · clipboard · plug · file-text · panel-bottom -->
+    <g id="lu-plus" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M8 12h8"></path><path d="M12 8v8"></path></g>
+    <g id="lu-sofa" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"></path><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z"></path><path d="M5 18v2"></path><path d="M19 18v2"></path></g>
+    <g id="lu-trend-up" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7 13.5 15.5 8.5 10.5 2 17"></path><path d="M16 7h6v6"></path></g>
+    <g id="lu-trend-down" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17 13.5 8.5 8.5 13.5 2 7"></path><path d="M16 17h6v-6"></path></g>
+    <g id="lu-eye" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></g>
+    <g id="lu-download" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></g>
+    <g id="lu-key" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle></g>
+    <g id="lu-shield" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></g>
+    <g id="lu-clipboard" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path></g>
+    <g id="lu-plug" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"></path><path d="M9 8V2"></path><path d="M15 8V2"></path><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z"></path></g>
+    <g id="lu-notes" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></g>
+    <g id="lu-upload" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></g>
+    <g id="lu-zap" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path></g>
+    <g id="lu-panel" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 15h18"></path></g>
     <g id="lu-unplug" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M19 5 5 19"></path><path d="M9 5.5 5.5 9l3 3 3.5-3.5z"></path><path d="M15.5 12l3 3L15 18.5l-3-3z"></path>
     </g>
@@ -531,7 +616,7 @@
                 <button type="button" onclick="setObFree(3,true)">3 ชม.</button>
                 <button type="button" onclick="setObFree(4,true)">4 ชม.</button>
               </div>
-              <p class="ob-note">เป็นเพดานต่อวัน ไม่ใช่เวลาที่ต้องนั่งครบ — เดี๋ยวบอกตารางเรียนเพิ่มได้
+              <p class="ob-note">นับเป็นเวลาสูงสุดต่อวัน ไม่ต้องนั่งครบทุกวัน ถ้าบอกตารางเรียนเพิ่ม
                 แล้ว AI จะรู้เองว่าคุณว่างช่วงไหนจริง ๆ · แก้ทีหลังได้ในแท็บ “ฉัน”</p>
             </div>
           </div>
@@ -600,6 +685,13 @@
               <svg class="vh-ch" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
 
+            <!-- 9 ต.ค. 69 · กล่องคำที่ได้ยินอยู่ใต้ปุ่มไมค์ทันที (เดิมอยู่ใต้ปุ่มกล้อง — เจ้าของชี้ให้ย้ายขึ้น)
+                 คลื่นเสียงสีรุ้ง 36 แท่ง สร้างใน voiceWave() ตอนเริ่มฟังครั้งแรก -->
+            <div class="voice-box" id="voiceBox" hidden>
+              <div class="wave vw" aria-hidden="true"></div>
+              <div class="voice-text" id="voiceText"></div>
+            </div>
+
             <div class="scan-pair">
               <!-- 1C17 · เปิดกล้องในแอป ไม่ใช่ <label for="cameraInput"> ที่เด้งกล้องของระบบ
                    (ช่อง #cameraInput ยังอยู่ข้างล่าง — เป็นทางถอยตอนกล้องในแอปใช้ไม่ได้) -->
@@ -616,10 +708,6 @@
             </div>
           </div>
 
-          <div class="voice-box" id="voiceBox" hidden>
-            <div class="wave"><i></i><i></i><i></i><i></i><i></i></div>
-            <div class="voice-text" id="voiceText"></div>
-          </div>
           <div class="scan-status" id="ocrStatus"></div>
           <!-- แถบโหลดแบบ HaloProgress (เจ้าของส่งตัวอย่างมา) — ป้ายขั้นซ้าย ตัวเลขขวา แถบไล่สีมีหัวเรือง
                ขั้นที่ไม่รู้ว่าจะนานแค่ไหน (เตรียมภาพ · เตรียมโมเดล) วนเป็นแถบวิ่งแทนตัวเลขที่นิ่ง — ดู ocrHalo() -->
@@ -633,7 +721,7 @@
                (ออฟไลน์ · ยังไม่ล็อกอิน · ไม่ยินยอม · AI ล้ม) ปกติ AI อ่านเป็นหลักตั้งแต่แรก (8 ต.ค. 69) -->
           <div class="cloud-ocr" id="cloudOcrBox" hidden>
             <p class="co-h">อ่านได้ไม่ตรงใช่ไหม?</p>
-            <button class="co-btn" id="cloudOcrBtn" onclick="cloudOcrRetry()">🤖 ให้ AI วิเคราะห์รูปนี้</button>
+            <button class="co-btn" id="cloudOcrBtn" onclick="cloudOcrRetry()">ให้ AI วิเคราะห์รูปนี้</button>
             <p class="co-why" id="cloudOcrWhy" hidden></p>
           </div>
 
@@ -779,13 +867,13 @@
             </div>
             <div class="pick-rows" id="typePick">
               <button type="button" class="tp" data-type="homework" onclick="setTypePick('homework')">
-                <span class="pk-dot"></span><svg viewBox="0 0 24 24"><use href="#lu-type"/></svg>การบ้าน</button>
+                <span class="pk-dot"></span><svg viewBox="0 0 24 24"><use href="#lu-pencil"/></svg>การบ้าน</button>
               <button type="button" class="tp" data-type="exam" onclick="setTypePick('exam')">
                 <span class="pk-dot"></span><svg viewBox="0 0 24 24"><use href="#lu-book"/></svg>สอบ</button>
               <button type="button" class="tp" data-type="activity" onclick="setTypePick('activity')">
                 <span class="pk-dot"></span><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg>กิจกรรม</button>
               <button type="button" class="tp" data-type="reminder" onclick="setTypePick('reminder')">
-                <span class="pk-dot"></span><svg viewBox="0 0 24 24"><use href="#lu-clock"/></svg>อื่น ๆ</button>
+                <span class="pk-dot"></span><svg viewBox="0 0 24 24"><use href="#lu-bell"/></svg>อื่น ๆ</button>
             </div>
           </section>
 
@@ -824,10 +912,15 @@
               <input type="date" id="fDate" hidden tabindex="-1" aria-hidden="true">
               <div class="dcal" id="dueCal"></div>
             </div>
+            <!-- เวลาส่ง: หน้าปัด 24 ชม. ลากแบบนาฬิกาปลุก + พิมพ์เลขเองตรงกลาง (เทสเตอร์ 9 ต.ค. 69)
+                 #fTime ยังเป็นที่เก็บค่าจริงที่ saveForm() อ่าน แค่ซ่อนไว้ · วาดจาก renderTimeDial() ใน app.js -->
             <div class="due-time">
               <span class="dt-l">เวลา</span>
-              <input type="time" id="fTime">
+              <button type="button" class="dt-btn" id="fTimeBtn" onclick="toggleTimeDial()" aria-expanded="false" aria-controls="timeDial">
+                <span id="fTimeVal">23:59</span><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-chevron"/></svg></button>
+              <input type="time" id="fTime" hidden tabindex="-1" aria-hidden="true">
             </div>
+            <div class="tdial-wrap" id="timeDial" hidden></div>
           </section>
 
           <!-- ============================================================
@@ -1629,7 +1722,7 @@
                ต่อหนึ่งคน ไม่ใช่ของที่ปรับตามอารมณ์เหมือนธีมหรือขนาดตัวอักษร -->
           <div class="set-card">
             <div class="set-row" id="notifRow">
-              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg></span>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-bell"/></svg></span>
               <span class="set-lb">การแจ้งเตือน<i id="notifStatus">ยังไม่ได้เปิด</i></span>
               <button class="btn secondary sm" id="notifTest" style="width:auto;min-height:34px;padding:0 12px;display:none"
                 onclick="testNotify()">ทดสอบ</button>
@@ -1640,7 +1733,7 @@
                  ซึ่งปิดแล้วปิดเลย เบราว์เซอร์ไม่ถามซ้ำ แล้วเขาจะไม่ได้รับของด่วนไปด้วยตลอดกาล
                  สวิตช์ที่ย้อนกลับได้ตรงนี้ ถูกกว่าการเสียคนหนึ่งคนไปถาวรมาก -->
             <div class="set-row" id="prefDueRow" hidden>
-              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-bell"/></svg></span>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg></span>
               <span class="set-lb">เตือนงานใกล้ถึงกำหนด<i>เช้าวันส่ง · 3 ชม. ก่อนส่ง · เลยกำหนด</i></span>
               <button class="btn secondary sm" id="prefDueBtn" style="width:auto;min-height:34px;padding:0 14px"
                 onclick="toggleNotifPref('notifDue')">เปิดอยู่</button>
@@ -1658,7 +1751,7 @@
                  (ดู wantSocial ใน supabase/functions/send-reminders) จึงคุมได้ทั้งสองท่อ
                  ด้วยสวิตช์เดียว ไม่ต้องมีที่ตั้งค่าสองที่ให้ขัดกันเอง -->
             <div class="set-row" id="prefSocialRow" hidden>
-              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-message"/></svg></span>
               <span class="set-lb">ข้อความและคำขอเป็นเพื่อน<i>เด้งแม้ปิดแอป · ไม่เกินวันละ 6 ครั้ง</i></span>
               <button class="btn secondary sm" id="prefSocialBtn" style="width:auto;min-height:34px;padding:0 14px"
                 onclick="toggleNotifPref('notifSocial')">เปิดอยู่</button>
@@ -1691,7 +1784,7 @@
               <span class="set-val" id="setValFont"></span>
               <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
             <button type="button" class="set-row go" onclick="openSetOpt('nav')">
-              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-flag"/></svg></span>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-panel"/></svg></span>
               <span class="set-lb">ตำแหน่งแถบเมนู</span>
               <span class="set-val" id="setValNav"></span>
               <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
@@ -1700,6 +1793,14 @@
               <span class="set-lb">พื้นหลังภาพ</span>
               <span class="set-val" id="setValBg"></span>
               <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <!-- 9 ต.ค. 69 · โหมดลื่น (โหมดเครื่องเบา) — แอปเปิดให้เองเมื่อวัดได้ว่าเครื่องกระตุก (liteProbe/liteWatch)
+                 สวิตช์นี้ให้คนใช้ตัดสินเองได้ทั้งสองทาง · ปิดเอง = ตัววัดจะไม่เปิดให้อีก -->
+            <div class="set-row" id="liteRow">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-zap"/></svg></span>
+              <span class="set-lb">โหมดลื่น<i>ลดเอฟเฟกต์ที่กินแรง ให้เครื่องไม่แรงลื่นขึ้น</i></span>
+              <button class="btn secondary sm" id="liteBtn" style="width:auto;min-height:34px;padding:0 14px"
+                onclick="toggleLite()" aria-pressed="false">ปิดอยู่</button>
+            </div>
           </div>
 
           <!-- การ์ดที่สองของหมวด Student OS — ของที่เป็นเรื่องของ "ตัวแอป"
@@ -1734,13 +1835,13 @@
               </div>
               <div class="set-btns">
                 <button type="button" onclick="aiShowContext()">
-                  <svg viewBox="0 0 24 24"><use href="#lu-search"/></svg><span><span data-mname>น้องฮูก</span>เห็นอะไร</span></button>
+                  <svg viewBox="0 0 24 24"><use href="#lu-eye"/></svg><span><span data-mname>น้องฮูก</span>เห็นอะไร</span></button>
                 <button type="button" class="warn" onclick="aiClear()">
                   <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg>ล้างประวัติแชท</button>
               </div>
             </div>
             <div class="set-row" id="installCard" hidden>
-              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-check-circle"/></svg></span>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-download"/></svg></span>
               <span class="set-lb">ติดตั้งเป็นแอป<i id="installHint"></i></span>
               <button class="btn primary sm" id="installBtn" style="width:auto;min-height:34px;padding:0 14px" onclick="handleInstallClick()">ติดตั้ง</button>
             </div>
@@ -1749,7 +1850,7 @@
                  คนที่ได้โค้ดมาเท่านั้นถึงจะรู้ว่าต้องพิมพ์อะไร -->
             <div class="set-row col" id="codeRow" hidden>
               <span class="set-hd">
-                <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
+                <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-key"/></svg></span>
                 <span class="set-lb">ใส่โค้ด</span>
               </span>
               <div class="code-tools">
@@ -1779,12 +1880,10 @@
                  สิ่งที่แถวนี้ทำจริงคือตอบคำถาม "มีใครดูแลอยู่ไหม" ซึ่งเป็นคำถามที่
                  ทั้งนักเรียนและผู้ปกครองถาม และตอนนี้ทั้งแอปไม่มีที่ไหนตอบเลย -->
             <div class="set-row" id="modInfoRow">
-              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-shield"/></svg></span>
               <span class="set-lb">การกรองเนื้อหา</span>
             </div>
-          </div>
-
-          <div class="set-card">
+            <!-- 9 ต.ค. 69 · เจ้าของ: "เอามารวมกัน" — แถวการกรองเนื้อหาเคยอยู่การ์ดเดี่ยวของตัวเอง ตอนนี้เป็นแถวแรกของการ์ดล่าง -->
             <button type="button" class="set-row go" onclick="loadSample()">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-book"/></svg></span>
               <span class="set-lb">โหลดข้อมูลตัวอย่าง</span>
@@ -1802,7 +1901,7 @@
                  "ลบตรงนี้ออก แล้วเอามารวมกันกับปุ่ม" — สองอันที่ไม่ซ้ำย้ายมาเป็นแถวในการ์ดนี้ · ลิงก์ออกจากระบบที่ซ้ำกับแถวล่างถูกถอด
                  สองแถวนี้มีความหมายเฉพาะตอนมีบัญชี → ซ่อนไว้ก่อน renderProfile เปิดให้เมื่อล็อกอินอยู่ -->
             <button type="button" class="set-row go" id="setPrivRow" hidden onclick="go('scr-privacy'); renderPrivacy()">
-              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-shield"/></svg></span>
               <span class="set-lb">เราเก็บอะไรของคุณบ้าง</span>
               <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
             <button type="button" class="set-row go danger" id="setOutRow" onclick="logout()">
@@ -1965,13 +2064,21 @@
                 <span class="bd"><span class="lb">พื้นหลังภาพของตัวเอง</span>
                   <span class="sb" id="bgNow">ยังไม่ได้ตั้ง</span></span>
               </span>
-              <div class="bg-tools">
-                <label class="bg-pick" for="bgInput">
-                  <svg viewBox="0 0 24 24"><use href="#lu-image"/></svg><span id="bgPickLabel">เลือกภาพ</span></label>
-                <input type="file" id="bgInput" accept="image/*" hidden>
-                <button type="button" class="bg-del" id="bgDel" onclick="clearUserBg()" hidden>
-                  <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg></button>
-              </div>
+              <!-- 9 ต.ค. 69 · กล่องวางรูปแบบ HaloDropzone (Cult UI · เจ้าของส่งเดโมมา: "ลองเอามาปรับใช้ดู")
+                   แทนปุ่ม "เลือกภาพ" เดิม · ทั้งกล่องคือ <label> ของช่องเลือกไฟล์ — แตะตรงไหนก็เปิดคลังภาพ
+                   คอม: ลากรูปมาวางได้ (dragBgZone ใน app.js) · สถานะบนกล่อง: .drag ลากค้าง · .busy กำลังย่อรูป · .ok เพิ่งเสร็จ · .has มีภาพอยู่แล้ว
+                   ปุ่มลบย้ายลงไปเป็นแถวใต้กล่อง — ปุ่มซ้อนอยู่ในป้ายของช่องไฟล์ไม่ได้ -->
+              <label class="hdz" id="bgZone" for="bgInput">
+                <img class="hdz-prev" id="bgPrev" alt="" hidden>
+                <span class="hdz-halo" aria-hidden="true"></span>
+                <span class="hdz-ic"><svg class="hdz-up" viewBox="0 0 24 24"><use href="#lu-upload"/></svg><svg class="hdz-ok" viewBox="0 0 24 24"><use href="#lu-check"/></svg></span>
+                <b id="bgPickLabel">เลือกภาพ</b>
+                <i class="hdz-hint" id="bgHint">JPG หรือ PNG · ย่อให้เองก่อนเก็บในเครื่อง</i>
+                <span class="hdz-bar" aria-hidden="true"><i></i></span>
+              </label>
+              <input type="file" id="bgInput" accept="image/*" hidden>
+              <button type="button" class="hdz-del" id="bgDel" onclick="clearUserBg()" hidden>
+                <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg>เอาพื้นหลังออก</button>
               <div class="bg-dim" id="bgDimWrap" hidden>
                 <div class="fld-head"><label for="bgDim">ความจางของภาพ</label>
                   <span class="val" id="bgDimVal">55%</span></div>
@@ -2110,8 +2217,8 @@
   </div>
 
   <p class="stage-note">
-    Student OS — ข้อมูลเก็บในเครื่อง (localStorage) · Scan รูปใช้ OCR ในเบราว์เซอร์ ·
-    การจัดลำดับคำนวณจาก deadline × คะแนน × ขนาดงาน พร้อมเหตุผลกำกับทุกงาน
+    Student OS · งานเก็บในเครื่องของคุณ · AI อ่านรูปใบงานให้ ถ้าไม่มีเน็ตก็อ่านในเครื่องได้ ·
+    ลำดับงานคิดจากกำหนดส่ง คะแนน และขนาดงาน ทุกงานบอกเหตุผล
   </p>
 </div>
 

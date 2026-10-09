@@ -883,7 +883,7 @@ function priorityInfo(task, now = new Date()) {
       else if (dayDiff <= 0) { reasons.push(ti.verb + 'วันนี้'); }
       else if (dayDiff === 1) { reasons.push(ti.verb + 'พรุ่งนี้'); }
       else if (type === 'exam' && hoursLeft <= ti.prepHours) {
-        reasons.push('สอบใน ' + Math.max(1, Math.round(hoursLeft / 24)) + ' วัน — ควรเริ่มอ่านแล้ว');
+        reasons.push('สอบใน ' + Math.max(1, Math.round(hoursLeft / 24)) + ' วัน ควรเริ่มอ่านแล้ว');
       }
       else if (dayDiff <= 6) { reasons.push(ti.verb + 'ใน ' + dayDiff + ' วัน'); }
       else                   { reasons.push('ยังพอมีเวลา'); }
@@ -916,7 +916,7 @@ function priorityInfo(task, now = new Date()) {
     const need = remainingMin(task);
     const far = hoursLeft != null && hoursLeft > 48;
     const w = (far ? 0.5 : 1) * wSize;
-    if (need >= 90)      { score += 15 * w; reasons.push((type === 'exam' ? 'อ่าน' : 'งานใหญ่') + ' ~' + Math.round(need / 60 * 10) / 10 + ' ชม. — ควรเริ่มก่อน'); }
+    if (need >= 90)      { score += 15 * w; reasons.push((type === 'exam' ? 'อ่าน' : 'งานใหญ่') + ' ~' + Math.round(need / 60 * 10) / 10 + ' ชม. ควรเริ่มก่อน'); }
     else if (need >= 45) { score += 9 * w;  reasons.push('ใช้เวลา ~' + need + ' นาที'); }
     else                 { score += 4 * w;  reasons.push('~' + need + ' นาที'); }
     score = Math.round(score);
@@ -993,7 +993,7 @@ function aiGreeting(pending, settings, now = new Date()) {
   // ALT: เรียกชื่อที่ผู้ใช้บอกไว้ตอนทำความรู้จัก — ประโยคของ AI จะได้พูดกับ "คนคนนี้"
   const nm = (settings.name || '').trim();
   const hey = nm ? nm + ' ' : '';
-  if (!pending.length) return hey + 'ตอนนี้ไม่มีงานค้างเลย 🎉 ถ้าครูสั่งงานใหม่ กด Scan เพิ่มได้ทันที';
+  if (!pending.length) return hey + 'ตอนนี้ไม่มีงานค้างเลย ถ้าครูสั่งงานใหม่ กดปุ่ม "เพิ่ม" ได้เลย';
 
   const sorted = sortByPriority(pending, now);
   const top = sorted[0];
@@ -1016,7 +1016,7 @@ function aiGreeting(pending, settings, now = new Date()) {
   const first = win.slots[0];
   // จุดที่แอปนี้ตอบได้แต่ to-do list อื่นตอบไม่ได้: "เริ่มกี่โมง" ไม่ใช่แค่ "ทำอะไรก่อน"
   const span = first ? first.fromHm + '–' + first.toHm : '';
-  const when = !first ? 'วันนี้ไม่เหลือช่องแล้ว — กันไว้พรุ่งนี้เช้า'
+  const when = !first ? 'วันนี้ไม่เหลือช่องแล้ว กันไว้พรุ่งนี้เช้า'
     : win.mode !== 'late' ? 'ช่องว่างถัดไป ' + span
     : win.slots.length === 1 ? 'เหลือช่องสุดท้าย ' + span + ' ก่อนนอน'
     : 'เลยเวลาปกติแล้ว เหลือ ' + span;
@@ -1025,7 +1025,7 @@ function aiGreeting(pending, settings, now = new Date()) {
     : win.mode === 'late'
       ? 'งานรวม ~' + totalH + ' ชม. · เหลือถึงเวลานอน ~' + freeH + ' ชม.'
       : 'งานรวม ~' + totalH + ' ชม. · ว่าง ~' + freeH + ' ชม. พอสบาย';
-  return hey + 'เริ่มที่' + label + 'ก่อน — ' + why + ' · ' + when + ' · ' + fit;
+  return hey + 'เริ่มที่' + label + 'ก่อน ' + why + ' · ' + when + ' · ' + fit;
 }
 
 function timelineInsight(pending, now = new Date()) {
@@ -1042,7 +1042,7 @@ function timelineInsight(pending, now = new Date()) {
       const d = addDays(now, +diff);
       const dayName = +diff === 0 ? 'วันนี้' : +diff === 1 ? 'พรุ่งนี้' : 'วัน' + THAI_DAY[d.getDay()];
       const biggest = list.reduce((a, b) => (a.estMin > b.estMin ? a : b));
-      return dayName + 'มีงานชน ' + list.length + ' งาน — แนะนำเริ่ม ' + taskPhrase(biggest) + ' (งานใหญ่สุด) ล่วงหน้าตั้งแต่วันนี้';
+      return dayName + 'มีงานชน ' + list.length + ' งาน แนะนำเริ่ม ' + taskPhrase(biggest) + ' (งานใหญ่สุด) ล่วงหน้าตั้งแต่วันนี้';
     }
   }
   return null;
@@ -1247,7 +1247,7 @@ function buildDayPlan(pending, settings, now = new Date(), opts = {}) {
     s.note = next
       ? 'ทำต่อช่วง ' + fmtClock(next.start) + ' อีก ' + next.min + ' นาที'
       : rest && rest.missed
-        ? '⚠ วันนี้ทำได้ ' + s.min + ' จาก ' + full + ' นาที — ที่เหลือไม่มีเวลาว่างก่อนกำหนดแล้ว'
+        ? '⚠ วันนี้ทำได้ ' + s.min + ' จาก ' + full + ' นาที ที่เหลือไม่มีเวลาว่างก่อนกำหนดแล้ว'
         : 'วันนี้ ' + s.min + ' จาก ' + full + ' นาที';
   }
 

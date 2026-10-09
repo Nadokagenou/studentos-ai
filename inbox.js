@@ -84,11 +84,11 @@ const SOURCES = [
     desc: 'ใบงาน ตารางเรียนที่จด ประกาศหน้าห้อง' },
   { id: 'voice', name: 'พูดใส่ไมค์',    icon: 'mic',    kind: 'manual', state: 'live',
     desc: 'พูดงานที่ต้องทำ' },
-  { id: 'text',  name: 'แปะข้อความ',    icon: 'type',   kind: 'manual', state: 'live',
+  { id: 'text',  name: 'แปะข้อความ',    icon: 'clipboard',   kind: 'manual', state: 'live',
     desc: 'ก๊อปแล้ววาง' },
   // ปุ่มลัดเพิ่มงานจากตัวเครื่อง (quickadd.js) — Android: กดค้างที่ไอคอนแอป · iPhone: แตะหลังเครื่อง
   // ไม่มีสวิตช์ เพราะเป็นทางที่ผู้ใช้กดเองทุกครั้ง · panel = แผงตั้งค่าที่ quickPanel() วาด
-  { id: 'quick', name: 'ปุ่มลัดเพิ่มงาน', icon: 'sparkles', kind: 'manual', state: 'live',
+  { id: 'quick', name: 'ปุ่มลัดเพิ่มงาน', icon: 'plus', kind: 'manual', state: 'live',
     desc: 'เพิ่มงานจากตัวเครื่อง', panel: 'quick' },
 ];
 const sourceById = id => SOURCES.find(s => s.id === id) || SOURCES[0];
@@ -751,7 +751,7 @@ function inboxAccept(id) {
   item.status = 'accepted'; item.taskId = t.id;
   brainLearn(item.raw, true);
   save(); renderAll();
-  showToast({ title: 'เพิ่มเข้าแผนแล้ว', body: `${t.subject} — ${t.detail}` });
+  showToast({ title: 'เพิ่มเข้าแผนแล้ว', body: `${t.subject} · ${t.detail}` });
 }
 
 function inboxIgnore(id) {
@@ -813,7 +813,9 @@ function renderInbox() {
   const mood = waitN ? 'wait' : all.length ? 'clear' : 'fresh';
   const hero = `<section class="ib2-hero ${mood}">
     <div class="ib2-hero-top">
-      <span class="ib2-hero-ic">${icon(waitN ? 'bell' : all.length ? 'check-circle' : 'sparkles')}</span>
+      <!-- 8 ต.ค. 69 · ตอนยังไม่มีอะไรเข้ามา ใช้รูปถาดกล่องเข้า (#lu-inbox ไอคอนเดียวกับไทล์ "กล่องเข้า") แทนประกาย
+           (เจ้าของ: "ทำให้ตรงโลโก้มันตรงกับหัวข้อ") — ประกายไม่ได้บอกว่านี่คือกล่องที่ของจะไหลเข้ามา -->
+      <span class="ib2-hero-ic">${icon(waitN ? 'bell' : all.length ? 'check-circle' : 'inbox')}</span>
       <div>
         <div class="ib2-hero-t">${waitN ? `รอคุณดู ${waitN} งาน` : all.length ? 'ไม่มีอะไรค้าง' : 'ยังไม่มีอะไรเข้ามา'}</div>
         ${waitN ? '<p class="ib2-hero-p">AI ไม่แน่ใจ ช่วยตรวจหน่อย</p>' : ''}
@@ -936,9 +938,9 @@ function renderInbox() {
   const logRow = it => {
     const s = sourceById(it.source);
     const label = it.status === 'accepted' ? 'เข้าแผนเอง'
-      : it.status === 'duplicate' ? 'ซ้ำกับที่มีอยู่ — ไม่เพิ่มให้'
+      : it.status === 'duplicate' ? 'ซ้ำกับที่มีอยู่ เลยไม่เพิ่ม'
       : it.status === 'noise' ? (it.why === 'learned'
-          ? 'ไม่ใช่งาน — จำได้จากที่คุณเคยลบ' : 'ไม่ใช่งาน — ข้ามให้เอง')
+          ? 'ไม่ใช่งาน (เคยลบแบบนี้ไปแล้ว)' : 'ไม่ใช่งาน ข้ามให้แล้ว')
       : 'ข้ามไป';
 
     // ก้อนที่จบไปแล้ว บอกเป็นตัวเลขว่าเข้าไปกี่ใบ ข้ามกี่ใบ
@@ -1097,7 +1099,7 @@ function renderSources() {
     } else if (serverDown) {
       // ถามเซิร์ฟเวอร์ไม่ได้เลย (ยังไม่ได้ deploy · เน็ตหลุด) — ต้องไม่โชว์ปุ่มที่กดแล้วพัง
       // และต้องไม่โชว์ว่า "ยังไม่ได้เชื่อมอะไร" ทั้งที่จริง ๆ แค่ถามไม่ได้
-      action = `<div class="src-need">${icon('flag')}ตอนนี้ยังต่อกับเซิร์ฟเวอร์ตัวเชื่อมไม่ได้ —
+      action = `<div class="src-need">${icon('flag')}ตอนนี้ยังต่อกับเซิร์ฟเวอร์ตัวเชื่อมไม่ได้
         ลองใหม่อีกครั้งภายหลัง</div>`;
     } else if (s.connect === 'ics') {
       action = `<input class="src-in" id="icsUrl" inputmode="url" spellcheck="false"
@@ -1250,7 +1252,7 @@ function notifPaintBell() {
   let dot = b.querySelector('.th-dot');
   if (n && !dot) { dot = document.createElement('span'); dot.className = 'th-dot'; b.appendChild(dot); }
   if (!n && dot) dot.remove();
-  b.setAttribute('aria-label', n ? `การแจ้งเตือน — ใหม่ ${n} รายการ` : 'การแจ้งเตือน');
+  b.setAttribute('aria-label', n ? `การแจ้งเตือน ใหม่ ${n} รายการ` : 'การแจ้งเตือน');
 }
 
 // ---------- ป้ายเด้งเมื่อมีข้อความเข้ามา ----------

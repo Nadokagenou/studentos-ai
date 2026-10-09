@@ -240,7 +240,7 @@ function decide(state, now = new Date(), opts = {}) {
     // สองอย่างนี้ไม่เหมือนกัน และการเขียนสลับกันคือการโกหกต่อหน้าจอที่มีงานอีกสี่ใบอยู่
     // ไม่เห็นด้วยกับการ์ดหน้าแรกเมื่อไหร่ ต้องพูดเป็นอย่างแรก ไม่ใช่ซ่อนไว้ท้ายจอ
     task: disagree
-      ? 'แผนวันนี้จัดคิวให้' + nm(focusScen.task) + 'ก่อน เพราะเส้นตายใกล้กว่า — '
+      ? 'แผนวันนี้จัดคิวให้' + nm(focusScen.task) + 'ก่อน เพราะเส้นตายใกล้กว่า '
         + 'แต่พอเดินอนาคตดูทั้งกอง ' + nm(best.task) + 'ให้ผลดีกว่า '
         + n1(focusScen.regret) + ' คะแนน'
       : !runnerUp
@@ -249,11 +249,11 @@ function decide(state, now = new Date(), opts = {}) {
           : 'ใบอื่นยังไม่ถึงเวลาที่ต้องแย่งช่วงนี้ไป')
       : tie
         ? (runnerUp.regret < 0.05
-            ? 'ทางนี้กับ' + nm(runnerUp.task) + 'ให้ผลเท่ากัน — เลือกใบไหนก่อนก็ได้ '
+            ? 'ทางนี้กับ' + nm(runnerUp.task) + 'ให้ผลเท่ากัน เลือกใบไหนก่อนก็ได้ '
               + 'เวลาที่ใช้ตัดสินใจแพงกว่าผลต่างของสองทางนี้'
             : 'ทางนี้กับ' + nm(runnerUp.task) + 'แทบไม่ต่างกัน (ห่างกัน '
-              + n1(runnerUp.regret) + ' คะแนน) — เลือกใบไหนก่อนก็ได้ อย่าเสียเวลาตัดสินใจ')
-        : 'ลดความเสียหายที่คาดไว้ได้มากที่สุด — ดีกว่าทางรองลงมา '
+              + n1(runnerUp.regret) + ' คะแนน) เลือกใบไหนก่อนก็ได้ อย่าเสียเวลาตัดสินใจ')
+        : 'ลดความเสียหายที่คาดไว้ได้มากที่สุด ดีกว่าทางรองลงมา '
           + n1(runnerUp.regret) + ' คะแนนของทั้งเทอม',
 
     now: risk && risk.pnr && typeof pnrText === 'function'
@@ -264,7 +264,7 @@ function decide(state, now = new Date(), opts = {}) {
     // ซึ่งอ่านแล้วเหมือนแอปพัง และห้ามแต่งให้ดูน่ากลัวกว่าที่คำนวณได้ด้วย
     // "รอได้อีกชั่วโมงโดยไม่เสียอะไร" เป็นข้อมูลที่มีค่าพอ ๆ กับ "ต้องเริ่มเดี๋ยวนี้"
     delayed: (delay.total - best.sum.total < 0.15)
-      ? 'เลื่อนไปอีก ' + delayTx + ' แทบไม่ต่าง (' + n1(delay.total) + ' คะแนน) — ยังทันสบาย'
+      ? 'เลื่อนไปอีก ' + delayTx + ' แทบไม่ต่าง (' + n1(delay.total) + ' คะแนน) ยังทันสบาย'
       : 'เลื่อนไปอีก ' + delayTx + ' ความเสียหายที่คาดไว้ขึ้นเป็น ' + n1(delay.total)
         + ' คะแนน (จาก ' + n1(best.sum.total) + ')'
         + (vsDelay && vsDelay.d > 0.05
@@ -277,18 +277,18 @@ function decide(state, now = new Date(), opts = {}) {
     avoided: !vsDelay || vsDelay.d <= 0.05
       ? 'กันไม่ให้งานไปกองรวมกันในวันเดียวข้างหน้า'
       : best.sum.missP[vsDelay.i] < 0.5
-        ? 'กัน' + nm(vsDelay.task) + 'ไม่ให้หลุด — เหลือโอกาสพลาด ' + pct(vsDelay.best)
+        ? 'กัน' + nm(vsDelay.task) + 'ไม่ให้หลุด เหลือโอกาสพลาด ' + pct(vsDelay.best)
           + ' แทนที่จะเป็น ' + pct(vsDelay.other) + ' ถ้าเลื่อน'
         : 'ลดความเสียหายของ' + nm(vsDelay.task) + 'ลงได้ (โอกาสพลาด ' + pct(vsDelay.other)
-          + ' → ' + pct(vsDelay.best) + ') แต่ยังไม่ปลอดภัย — ควรหาทางยืมเวลาเพิ่มด้วย',
+          + ' → ' + pct(vsDelay.best) + ') แต่ยังไม่ปลอดภัย ควรหาทางยืมเวลาเพิ่มด้วย',
 
     opened: 'ความแน่นของวันข้างหน้าคิดเป็น ' + n1(best.sum.stress) + ' คะแนน'
       + (delay.stress > best.sum.stress + 0.1
-        ? ' — น้อยกว่าทางที่เลื่อนอยู่ ' + n1(delay.stress - best.sum.stress) : '')
+        ? ' น้อยกว่าทางที่เลื่อนอยู่ ' + n1(delay.stress - best.sum.stress) : '')
       + (best.sum.sleep > 0.1 ? ' · ยังต้องยืมเวลานอนอยู่บ้าง' : ' · ไม่ต้องยืมเวลานอน'),
 
     instead: disagree
-      ? 'ย้ายไปเริ่ม' + nm(best.task) + 'แทนได้ — ลดความเสียหายที่คาดไว้ลง '
+      ? 'ย้ายไปเริ่ม' + nm(best.task) + 'แทนได้ ลดความเสียหายที่คาดไว้ลง '
         + n1(focusScen.regret) + ' คะแนน · ' + nm(focusScen.task) + 'ยังมีคิวในวันถัดไป'
       : !runnerUp
       ? (prep.items.length <= 1 ? 'ยังไม่มีใบอื่นที่ลงมือได้ในช่วงนี้'
@@ -296,10 +296,10 @@ function decide(state, now = new Date(), opts = {}) {
       : runnerUp.regret < 0.05
         // ปัดแล้วเป็นศูนย์ = ไม่มีผลต่าง · เขียน "แพงกว่า 0 คะแนน" คือประโยคที่อ่านแล้วงง
         // และทำให้คนไม่เชื่อตัวเลขอื่นบนจอเดียวกันไปด้วย
-        ? 'เลือก' + nm(runnerUp.task) + 'แทนก็ได้ผลเท่ากัน — ทั้งสองใบยังทันสบายทั้งคู่'
+        ? 'เลือก' + nm(runnerUp.task) + 'แทนก็ได้ผลเท่ากัน ทั้งสองใบยังทันสบายทั้งคู่'
         : 'ถ้าเลือก' + nm(runnerUp.task) + 'แทน จะแพงกว่า ' + n1(runnerUp.regret) + ' คะแนน'
           + (vsRunner && vsRunner.d > 0.05
-            ? ' — ' + nm(vsRunner.task) + 'โอกาสพลาดจะขึ้นเป็น ' + pct(vsRunner.other) : ''),
+            ? ' ' + nm(vsRunner.task) + 'โอกาสพลาดจะขึ้นเป็น ' + pct(vsRunner.other) : ''),
   };
 
   // ทางที่การ์ดหน้าแรกชี้อยู่ · null เมื่อผู้เรียกไม่ได้บอกมา
@@ -339,7 +339,7 @@ function sacrificeText(d) {
   if (!d || !d.sacrifice) return null;
   const nm = t => (typeof taskPhrase === 'function' ? taskPhrase(t) : (t.subject || 'งานนี้'));
   const s = d.sacrifice;
-  return 'เวลาที่เหลือไม่พอสำหรับทุกใบจริง ๆ — ถ้ายอมปล่อย' + nm(s.task)
+  return 'เวลาที่เหลือไม่พอสำหรับทุกใบจริง ๆ ถ้ายอมปล่อย' + nm(s.task)
     + ' (โอกาสทำไม่ทันอยู่ที่ ' + Math.round(s.miss * 100) + '% อยู่แล้ว) '
     + 'เวลาที่คืนมาจะช่วยใบที่เหลือได้ ' + (Math.round(s.saved * 10) / 10) + ' คะแนนของทั้งเทอม';
 }
@@ -357,7 +357,7 @@ function fragileText(d) {
     bits.push('ถ้าเพื่อนในกลุ่มส่งช้า ขึ้นอีก ' + (Math.round(f.partner.extra * 10) / 10) + ' คะแนน');
   }
   if (!bits.length) return null;
-  return bits.join(' · ') + ' — เผื่อเวลาไว้ก่อนดีกว่า';
+  return bits.join(' · ') + ' เผื่อเวลาไว้ก่อนดีกว่า';
 }
 
 // ---------- แปลงเป็นสามการ์ด A / B / C ----------

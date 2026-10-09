@@ -122,7 +122,9 @@ function saiAim(x, y) {
 }
 
 function saiTick() {
-  const els = document.querySelectorAll('.saih-stage, .saip-stage');
+  // 9 ต.ค. 69 · นับเฉพาะเวทีบนจอที่เห็นอยู่ — หน้าแรกไม่เคยถูกลบออกจากหน้า (แค่ซ่อน) ลูปจึงเคยเดิน 60 ครั้ง/วิ
+  // ตลอดทั้งรอบที่เปิดแอป แม้อยู่จออื่น · go() ปลุกใหม่ทุกครั้งที่เปลี่ยนจอ
+  const els = [...document.querySelectorAll('.saih-stage, .saip-stage')].filter(el => el.closest('.screen.on'));
   // ไม่มีเวทีบนจอ = หยุดลูปทิ้ง · saiStart() จะปลุกใหม่เองตอนมีเวทีโผล่
   // ลูปที่เดินต่อไปเรื่อย ๆ ทั้งที่ไม่มีอะไรให้ขยับ คือแบตที่หายไปโดยไม่มีใครได้อะไร
   if (!els.length) { saiLoop = false; return; }
@@ -466,7 +468,7 @@ function renderSaiPlan() {
     say = 'เริ่มจาก ' + (typeof taskTitleText === 'function' ? taskTitleText(sp.now.task) : 'ใบแรก')
       + (when ? ' ตอน ' + when : '') + ' นะ';
   } else if (pay.mine > 0) {
-    say = 'วันนี้ไม่มีงานที่ต้องนั่งทำ' + (name ? ' ' + name : '') + ' — เวลาที่เหลือเป็นของเราล้วน ๆ';
+    say = 'วันนี้ไม่มีงานที่ต้องนั่งทำ' + (name ? ' ' + name : '') + ' เวลาที่เหลือเป็นของเราล้วน ๆ';
   } else {
     say = 'วันนี้เต็มไปหมดแล้ว พรุ่งนี้เริ่มใหม่ได้เต็มวันนะ';
   }
@@ -474,11 +476,12 @@ function renderSaiPlan() {
   // ---- เส้นเวลาทั้งวัน สูงตามเวลาจริง ----
   const rows = saiDayRows(now);
   let markedNow = false;
+  let rowN = 0;
   const list = rows.map(r => {
     let pre = '';
     if (!markedNow && r.at > nowMin) {
       markedNow = true;
-      pre = '<div class="sd-now"><span>' + esc(min2hm(nowMin))
+      pre = '<div class="sd-now"><span><em></em>' + esc(min2hm(nowMin))
         + '</span><i></i></div>';
     }
     const past = (r.to != null ? r.to : r.at) <= nowMin;
@@ -501,9 +504,14 @@ function renderSaiPlan() {
     // ของเดิมเวลาเป็นตัวเทาขนาด 12px อยู่ข้างเส้นราง แล้วทุกแถวหน้าตาเหมือนกันหมด
     // ตอนนี้เวลาเป็นตัวหนา 17px คอลัมน์ซ้าย และก้อนขวามีพื้นสีตามหมวด
     // ราง 2px กลายเป็นของที่ไม่ได้บอกอะไรเพิ่ม เพราะคอลัมน์เวลาเรียงเป็นเส้นให้อยู่แล้ว
-    return pre + '<div class="sd-r sd-' + r.kind + (past ? ' past' : '') + '">'
+    // 9 ต.ค. 69 · ตื่น/นอนมีรูปพระอาทิตย์/พระจันทร์ · ช่องว่างมีป้ายนาฬิกา (เจ้าของ: "ทำให้ดูสวยและเป็นระเบียบ")
+    const ic = r.kind === 'wake' ? '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>' : r.kind === 'sleep' ? '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z"/></svg>'
+      : r.kind === 'free' ? '<span class="sd-tag"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>' : '';
+    rowN++;
+    return pre + '<div class="sd-r sd-' + r.kind + (past ? ' past' : '') + '" style="--n:' + rowN + '">'
       + '<span class="sd-t">' + esc(min2hm(r.at)) + '</span>'
       + '<span class="sd-x"' + (h ? ' style="min-height:' + h + 'px"' : '') + '>'
+      + (r.kind === 'wake' || r.kind === 'sleep' ? '<span class="sd-ic">' + ic + '</span>' : ic)
       + '<b>' + esc(r.title) + '</b>'
       + (r.sub ? '<i>' + esc(r.sub) + '</i>' : '')
       + (kids ? '<span class="sd-jobs">' + kids + '</span>' : '')
@@ -516,7 +524,8 @@ function renderSaiPlan() {
     + '    <img class="saip-chibi' + (mood === 'sleepy' ? ' dim' : '') + '" src="' + synBody()
     + '" alt="' + esc(mName()) + '" width="92" height="159">'
     + '  </div>'
-    + '  <p class="sai-say">' + esc(say) + '</p>'
+    // 9 ต.ค. 69 · คำพูดอยู่ในฟองที่มีหางชี้หามาสคอต (เจ้าของ: "ทำให้ดูมีความสวยและเป็นระเบียบ")
+    + '  <p class="sai-say"><span>' + esc(say).replace(/ ๆ/g, '&nbsp;ๆ') + '</span></p>'
     + '</section>'
     + hero
     + '<div class="sec-label">ทั้งวันของคุณ</div>'
@@ -526,7 +535,8 @@ function renderSaiPlan() {
         + icon('play') + 'เริ่มทำเลย</button>'
       : '')
     + '<button class="sai-tour" onclick="saiTourStart()">'
-      + icon('sparkles') + 'ให้' + esc(mName()) + 'เล่าให้ฟังทีละข้อ</button>';
+      // 9 ต.ค. 69 · ถอดดาวหน้าป้ายออก (เจ้าของวงแดง: "ลบดาวนี้ออก")
+      + 'ให้' + esc(mName()) + 'เล่าให้ฟังทีละข้อ</button>';
 
   saiStart();
 }
@@ -545,15 +555,27 @@ let saiTourSteps = [];
 function saiTourStart() {
   saiTourSteps = saiTourBuild(new Date());
   saiTour = 0;
+  saiTourDir = 0;
   renderSaiPlan();
 }
 function saiTourEnd() { saiTour = -1; renderSaiPlan(); }
+// ทิศที่เพิ่งกด (1 = ต่อไป · -1 = ก่อนหน้า · 0 = เพิ่งเปิด) — renderSaiTour ใช้เลือกฝั่งที่ของในข้อใหม่เลื่อนเข้ามา
+let saiTourDir = 0;
 function saiTourGo(d) {
   const n = saiTour + d;
   if (n < 0) { saiTourEnd(); return; }
   if (n >= saiTourSteps.length) { saiTourEnd(); return; }
   saiTour = n;
+  saiTourDir = d;
   renderSaiTour();
+}
+
+// ป้ายปุ่มแบบ HaloButton — ตัวอักษรไล่ขึ้นทีละตัว (ตัดพยางค์ไทยไม่ให้สระหลุดจากพยัญชนะ)
+function saiHaloLabel(text) {
+  const seg = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('th', { granularity: 'grapheme' }) : null;
+  const g = seg ? Array.from(seg.segment(text), s => s.segment) : String(text).split('');
+  return '<span class="hb-lb" aria-label="' + esc(text) + '">'
+    + g.map((c, k) => '<span aria-hidden="true" style="--k:' + k + '">' + esc(c) + '</span>').join('') + '</span>';
 }
 
 function saiTourBuild(now) {
@@ -631,7 +653,8 @@ function renderSaiTour() {
     + '<div class="st-dots">'
     + saiTourSteps.map((_, n) => '<i class="' + (n <= i ? 'on' : '') + '"></i>').join('')
     + '</div>'
-    + '<div class="st-mid">'
+    // 9 ต.ค. 69 · data-dir = ทิศที่เพิ่งกด → ของในข้อใหม่เลื่อนเข้าจากฝั่งนั้น (เจ้าของ: "ทำอนิเมชันเลื่อนให้หน่อย")
+    + '<div class="st-mid" data-dir="' + saiTourDir + '">'
     + '  <div class="saip-stage st-stage" data-mood="' + (s.face || 'normal') + '">'
     + '    <img class="saip-chibi" src="' + synBody() + '" alt="' + esc(mName()) + '" width="130" height="224">'
     + '  </div>'
@@ -646,10 +669,11 @@ function renderSaiTour() {
         + icon(s.ctaIc || 'play') + esc(s.cta || 'เริ่มทำเลย') + '</button>'
       : '')
     + '  <div class="st-nav">'
-    + '    <button class="st-back" onclick="saiTourGo(-1)">' + icon('chevron')
-    +        (i === 0 ? 'ออก' : 'ก่อนหน้า') + '</button>'
-    + '    <button class="st-next" onclick="' + (last ? 'saiTourEnd()' : 'saiTourGo(1)') + '">'
-    +        (last ? 'ดูแผนทั้งวัน' : 'ต่อไป') + icon('chevron') + '</button>'
+    // ปุ่มแบบ HaloButton (เจ้าของส่งเดโมมา) — ต่อไป = ทึบมีรัศมีไล่สีวนรอบ · ออก/ก่อนหน้า = แบบโปร่ง (translucent) ขอบไล่สี
+    + '    <button class="st-back hb hb-glass" onclick="saiTourGo(-1)">' + icon('chevron')
+    +        saiHaloLabel(i === 0 ? 'ออก' : 'ก่อนหน้า') + '</button>'
+    + '    <button class="st-next hb" onclick="' + (last ? 'saiTourEnd()' : 'saiTourGo(1)') + '">'
+    +        saiHaloLabel(last ? 'ดูแผนทั้งวัน' : 'ต่อไป') + icon('chevron') + '</button>'
     + '  </div>'
     + '</div>';
 
