@@ -125,15 +125,15 @@ function boardStreak(r) {
 }
 
 // ---------- จอ ----------
-// รอบที่สี่ (9 ต.ค. 69) · เจ้าของ: "ดีขึ้นนะ แต่ก็ยังไม่สวย ... เหมือนข้อความมันกระจัดกระจาย
-// หรือองค์ประกอบแปลก ๆ อยู่" + ให้หยิบจากภาพอ้างอิงแรกมาใช้ได้
-// สิ่งที่กระจัดกระจายในรอบก่อน และที่แก้:
-//   · เลขอันดับโผล่สองที่ (เหรียญบนรูป + เลขบนแท่น) → เหลือที่เดียวคือเหรียญ
-//   · คะแนนลอยแยกจากแท่น → คะแนนอยู่ "ในแท่น" แบบภาพอ้างอิง
-//   · การ์ดของเรามีหกชิ้นแยกกัน (ป้าย · เลข · ชิป · ลู่วิ่ง · มาสคอต · ปุ่ม) → การ์ดเดียวแบบ
-//     "การ์ดซีซัน" ของภาพอ้างอิง: เหรียญอันดับซ้าย · เป้าถัดไป + ซีซันกลาง · วงรางวัลขวา · แถบใต้
-//   · แถวรายชื่อมีแถบเทียบและ "งาน" ซ้อนใต้ตัวเลข → แถวเรียบเท่ากันทุกแถว
-// ลำดับ: แท่นสามอันดับก่อน (เรื่องหลักของกระดาน) → การ์ดของเรา → ที่เหลือ
+// รอบที่ห้า (9 ต.ค. 69) · เจ้าของ: "ยังไม่ชอบ ลองวิเคราะห์จากรูปนี้แล้วดูของเราว่าต่างกันยังไง"
+// สิ่งที่ภาพอ้างอิงทำแล้วของเราไม่ได้ทำ (และรอบนี้ทำตาม — โดยไม่ลอกภาพของเขา):
+//   1) ภาพประกอบครองครึ่งบนของจอ → น้องฮูกถือถ้วยทองบนที่ 1 · ถ้วยเงิน/ทองแดง (SVG) บนที่ 2–3
+//      เจ้าของเลือก "น้องฮูกถือถ้วย" · ใช้มาสคอตที่ผู้ใช้เลือกไว้ (synBody)
+//   2) เป็น "ฉาก" เต็มขอบจอ ไม่ใช่การ์ดในหน้า → พื้นไล่สีทั้งหัวจอ แผ่นรายชื่อโค้งขึ้นมาทับจากล่าง
+//   3) สีชุดเดียวทั้งจอ → ทุกอย่างผสมจากสีหลักของธีม ทองเหลือแค่ที่ 1 กับรางวัล
+//   4) ทุกชิ้นทรงแคปซูลเดียวกัน
+//   5) คะแนนเด่นสุด · อันดับเป็นฟองเล็กที่มุม · รูปกับชื่อเล็กอยู่ใต้ภาพ
+// หัวข้อใหญ่ "อันดับ" ถูกถอด — ชื่อกระดานอยู่ในการ์ดซีซันแทน (แบบภาพอ้างอิง) ฉากจะได้เริ่มจากบนสุด
 let boardAnim = true;   // ไล่ขึ้นทีละชิ้นเฉพาะตอนเพิ่งเข้าจอ/สลับกระดาน ไม่ใช่ทุกครั้งที่วาดใหม่
 
 function renderBoard() {
@@ -143,29 +143,24 @@ function renderBoard() {
   const err = boardErr[boardScope];
   const isAll = boardScope === 'all';
 
-  const head = `<div class="sticky-head row sh-inline">
-      <div></div>
+  const head = `<div class="bd-top">
       <button class="sh-btn" onclick="go(boardBack)" aria-label="กลับ">
         <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
-    </div>
-    <div class="page-head bd-head"><h1 class="page-title">อันดับ</h1></div>
-    ${currentUser ? `<div class="bd-seg${isAll ? '' : ' r'}" role="tablist">
-      <i class="bd-seg-k"></i>
-      <button role="tab" aria-selected="${isAll}" class="${isAll ? 'on' : ''}" onclick="boardScopeSet('all')">ทั้งหมด</button>
-      <button role="tab" aria-selected="${!isAll}" class="${isAll ? '' : 'on'}" onclick="boardScopeSet('friends')">เพื่อน</button>
-    </div>` : ''}`;
+      ${currentUser ? `<button class="bd-swap" onclick="boardScopeSet('${isAll ? 'friends' : 'all'}')">${
+        isAll ? `${icon('users')}กระดานเพื่อน` : `${icon('trophy')}กระดานหลัก`}</button>` : ''}
+    </div>`;
 
   if (!sb || !currentUser) {
-    body.innerHTML = head + `<div class="bd-gate">${icon('trophy')}
+    body.innerHTML = head + `<div class="bd-sheet"><div class="bd-gate">${icon('trophy')}
         <b>เข้าบัญชีก่อนถึงจะขึ้นกระดานได้</b>
-        <button class="fr-gate-go" onclick="loginFromFriends()">เข้าสู่ระบบ</button></div>`;
+        <button class="fr-gate-go" onclick="loginFromFriends()">เข้าสู่ระบบ</button></div></div>`;
     return;
   }
   if (!d) {
     body.innerHTML = head + (err
-      ? `<div class="bd-gate">${icon('trophy')}<b>${err === 'soon' ? 'กระดานอันดับยังไม่เปิด' : 'โหลดไม่สำเร็จ'}</b>
-          ${err === 'net' ? '<button class="fr-gate-go" onclick="loadBoard()">ลองใหม่</button>' : ''}</div>`
-      : `<div class="bd-stage bd-skel"></div><div class="bd-mine bd-skel"></div>`);
+      ? `<div class="bd-sheet"><div class="bd-gate">${icon('trophy')}<b>${err === 'soon' ? 'กระดานอันดับยังไม่เปิด' : 'โหลดไม่สำเร็จ'}</b>
+          ${err === 'net' ? '<button class="fr-gate-go" onclick="loadBoard()">ลองใหม่</button>' : ''}</div></div>`
+      : `<div class="bd-scene bd-skel"></div><div class="bd-sheet"><div class="bd-season bd-skel"></div></div>`);
     return;
   }
 
@@ -178,10 +173,12 @@ function renderBoard() {
   body.classList.toggle('bd-anim', boardAnim);
   boardAnim = false;
   body.innerHTML = head
-    + boardStage(rows, step())
-    + boardMine(d, me, rows, isAll, step())
-    + (rest.length ? `<div class="bd-list">${boardList(rest, step)}</div>` : '')
-    + (d.hidden ? '' : `<button class="bd-leave" onclick="boardToggleHide()">ซ่อนชื่อฉันจากกระดาน</button>`);
+    + boardScene(rows)
+    + `<div class="bd-sheet">
+        ${boardSeason(d, me, rows, isAll, step())}
+        ${rest.length ? `<div class="bd-list">${boardList(rest, step)}</div>` : ''}
+        ${d.hidden ? '' : `<button class="bd-leave" onclick="boardToggleHide()">ซ่อนชื่อฉันจากกระดาน</button>`}
+      </div>`;
 }
 
 function boardScopeSet(scope) {
@@ -192,61 +189,96 @@ function boardScopeSet(scope) {
   if (!boardData[boardScope]) loadBoard();
 }
 
-// ---------- แท่นสามอันดับแรก ----------
-// แต่ละคนมีสามอย่างเรียงลงมาเป็นแกนเดียว: รูป(+เหรียญ) → ชื่อ → แท่นที่มีคะแนนอยู่ข้างใน
-function boardStage(rows, st) {
+// ---------- ถ้วยรางวัล (SVG) ----------
+// วาดเองทั้งใบ ไม่ใช้ไอคอนเส้น — ถ้วยต้องมีเนื้อ มีแสง มีเงา ถึงจะเป็น "ภาพ" ไม่ใช่ "ไอคอน"
+const BOARD_CUP = {
+  1: ['#FFF3C4', '#F5C542', '#B7811A'],
+  2: ['#FFFFFF', '#C9D2E3', '#8592AA'],
+  3: ['#FCE3CF', '#E0A271', '#9C5A2C'],
+};
+function boardTrophy(place) {
+  const [hi, mid, lo] = BOARD_CUP[place];
+  const g = 'bdcup' + place;
+  return `<svg class="bd-cup" viewBox="0 0 64 76" aria-hidden="true">
+    <defs>
+      <linearGradient id="${g}" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="${mid}"/><stop offset=".35" stop-color="${hi}"/>
+        <stop offset=".7" stop-color="${mid}"/><stop offset="1" stop-color="${lo}"/>
+      </linearGradient>
+      <linearGradient id="${g}b" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="${mid}"/><stop offset="1" stop-color="${lo}"/>
+      </linearGradient>
+    </defs>
+    <path d="M15 12H8.5a5.5 5.5 0 0 0 0 11c3.4 0 6.3-1.4 8.2-3.6M49 12h6.5a5.5 5.5 0 0 1 0 11c-3.4 0-6.3-1.4-8.2-3.6"
+      fill="none" stroke="${lo}" stroke-width="4" stroke-linecap="round"/>
+    <path d="M13 6h38v15c0 11.6-8.5 21-19 21S13 32.6 13 21z" fill="url(#${g})"/>
+    <path d="M13 6h38v4H13z" fill="${lo}" opacity=".25"/>
+    <path d="M19 11c0 10 3 17 8 21" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".6"/>
+    <path d="M32 15.5l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4-3.9-3.8 5.4-.8z" fill="#fff" opacity=".85"/>
+    <rect x="28" y="41" width="8" height="10" fill="url(#${g}b)"/>
+    <rect x="19" y="51" width="26" height="8" rx="3" fill="url(#${g})"/>
+    <rect x="14" y="59" width="36" height="11" rx="4" fill="url(#${g}b)"/>
+    <rect x="24" y="62.5" width="16" height="4" rx="2" fill="#fff" opacity=".45"/>
+  </svg>`;
+}
+
+// ---------- ฉาก: สามอันดับแรก ----------
+// แต่ละคน: ภาพ (มาสคอต/ถ้วย) → ป้ายคะแนนทับขอบล่างของภาพ → รูปคนเล็ก → ชื่อ · อันดับเป็นฟองที่มุมภาพ
+function boardScene(rows) {
+  const pet = typeof synBody === 'function' ? synBody() : '';
   const col = place => {
     const r = rows.find(x => x.pos === place);
-    if (!r) return `<div class="bd-pc p${place} empty">
-        <div class="bd-pc-av"><div class="fr-av"></div><i class="bd-medal">${place}</i></div>
-        <div class="bd-pc-nm">ว่าง</div>
-        <div class="bd-pc-base"><span class="bd-pc-sc">—</span></div></div>`;
-    return `<div class="bd-pc p${place}${r.me ? ' me' : ''}">
-        <div class="bd-pc-av">${place === 1 ? `<i class="bd-crown">${icon('crown')}</i>` : ''}${boardAv(r)}<i class="bd-medal">${r.rank}</i></div>
-        <div class="bd-pc-nm">${r.me ? 'คุณ' : esc(boardName(r))}</div>
-        <div class="bd-pc-base"><span class="bd-pc-sc"><b>${r.n}</b> งาน</span></div>
+    const art = place === 1 && pet
+      ? `<img class="bd-pet" src="${pet}" alt="" aria-hidden="true">${boardTrophy(1)}`
+      : boardTrophy(place);
+    return `<div class="bd-pc p${place}${r ? '' : ' empty'}${r && r.me ? ' me' : ''}">
+        <div class="bd-art">
+          <i class="bd-glow" aria-hidden="true"></i>
+          ${art}
+          <i class="bd-disc" aria-hidden="true"></i>
+          <span class="bd-place">${r ? r.rank : place}</span>
+          <span class="bd-score">${r ? `<b>${r.n}</b> งาน` : 'ว่าง'}</span>
+        </div>
+        ${r ? `<div class="bd-who">${boardAv(r)}${boardStreak(r)}</div>
+        <div class="bd-pc-nm">${r.me ? 'คุณ' : esc(boardName(r))}</div>` : '<div class="bd-who"></div><div class="bd-pc-nm">&nbsp;</div>'}
       </div>`;
   };
-  // ฉากหลัง (แสงหมุน · ประกาย · แสงส่องที่ 1) กับพลุกระดาษ เป็นของตกแต่งล้วน — aria-hidden
   const confetti = Array.from({ length: 14 }, (_, k) =>
-    `<i style="--x:${(k * 37) % 100}%;--d:${(k % 5) * 0.12}s;--r:${(k * 53) % 360}deg;--c:${k % 4}"></i>`).join('');
-  return `<div class="bd-stage bd-in" ${st}>
-      <i class="bd-rays" aria-hidden="true"></i><i class="bd-spark" aria-hidden="true"></i>
+    `<i style="--x:${(k * 37) % 100}%;--d:${(k % 5) * 0.12}s;--r:${(k * 53) % 360}deg"></i>`).join('');
+  return `<div class="bd-scene">
       <span class="bd-confetti" aria-hidden="true">${confetti}</span>
       ${col(2)}${col(1)}${col(3)}
     </div>`;
 }
 
-// ---------- การ์ดของเรา (ทรงการ์ดซีซันของภาพอ้างอิง) ----------
-function boardMine(d, me, rows, isAll, st) {
+// ---------- การ์ดซีซัน (ทรงเดียวกับการ์ด "กระดานหลัก" ของภาพอ้างอิง) ----------
+function boardSeason(d, me, rows, isAll, st) {
   const above = rows.filter(r => r.pos < me.pos && r.n > me.n).pop();
   const below = rows.find(r => r.pos === me.pos + 1);
-  let goal, pct;
-  if (d.hidden) { goal = 'ชื่อคุณซ่อนอยู่'; pct = 0; }
-  else if (!me.n) { goal = 'ทำงานเสร็จ 1 ใบ เพื่อขึ้นกระดาน'; pct = 0; }
-  else if (above) { goal = `อีก ${above.n - me.n + 1} งาน แซง ${esc(boardName(above))}`; pct = me.n / (above.n + 1); }
-  else if (below && below.n < me.n) { goal = `นำที่ ${below.rank} อยู่ ${me.n - below.n} งาน`; pct = 1; }
-  else if (below) { goal = 'อีก 1 งาน ขึ้นนำคนเดียว'; pct = me.n / (me.n + 1); }
-  else { goal = 'คุณนำอยู่'; pct = 1; }
-  pct = Math.round(Math.max(0, Math.min(1, pct)) * 100);
+  let goal;
+  if (d.hidden) goal = 'ชื่อคุณซ่อนอยู่';
+  else if (!me.n) goal = 'ทำงานเสร็จ 1 ใบ → ขึ้นกระดาน';
+  else if (above) goal = `อีก ${above.n - me.n + 1} งาน → แซง ${esc(boardName(above))}`;
+  else if (below && below.n < me.n) goal = `นำที่ ${below.rank} อยู่ ${me.n - below.n} งาน`;
+  else if (below) goal = 'อีก 1 งาน → ขึ้นนำคนเดียว';
+  else goal = 'คุณนำอยู่';
 
   const top3 = isAll && me.n && me.rank <= 3 && !d.hidden;
   const prize = isAll ? (top3 ? BOARD_PRIZE[me.rank] : BOARD_PRIZE[3]) : 0;
-  return `<div class="bd-mine bd-in${top3 ? ' top' : ''}" ${st}>
-      <div class="bd-mine-row">
-        <div class="bd-mine-rk"><small>อันดับ</small><b>${me.n && !d.hidden ? me.rank : '–'}</b></div>
-        <div class="bd-mine-tx">
-          <b>${goal}</b>
-          <span>${boardSeasonLabel(d.season)} · เหลือ ${boardDaysLeft(d.season)} วัน${me.streak > 1 ? ` · <i title="ทำงานเสร็จติดกัน ${me.streak} วัน">${icon('flame')}${me.streak}</i>` : ''}</span>
-        </div>
-        ${prize ? `<div class="bd-mine-prize${top3 ? ' on' : ''}">${typeof coin === 'function' ? coin(20) : ''}<b>+${prize}</b>${top3 ? '' : '<small>ถ้าติด Top 3</small>'}</div>` : ''}
+  const rankTx = me.n && !d.hidden ? `อันดับ ${me.rank} จาก ${d.total}` : '';
+  return `<div class="bd-season bd-in${top3 ? ' top' : ''}" ${st}>
+      <div class="bd-s-main">
+        <b class="bd-s-title"><i class="bd-orb"></i>${isAll ? 'กระดานหลัก' : 'กระดานเพื่อน'}</b>
+        <div class="bd-s-goal">${goal}</div>
+        <div class="bd-s-sub">${boardSeasonLabel(d.season)}${rankTx ? ' · ' + rankTx : ''}</div>
+        <span class="bd-s-left">จบซีซันใน <b>${boardDaysLeft(d.season)}</b> วัน</span>
       </div>
-      <div class="bd-mine-bar"><i style="width:${pct}%"></i></div>
+      ${prize ? `<div class="bd-prize${top3 ? ' on' : ''}">${typeof coin === 'function' ? coin(22) : ''}<b>+${prize}</b></div>` : ''}
       ${d.hidden ? `<button class="bd-join" onclick="boardToggleHide()">แสดงชื่อฉันบนกระดาน</button>` : ''}
     </div>`;
 }
 
-// ---------- ที่เหลือ — แถวเรียบเท่ากันทุกแถว ----------
+// ---------- ที่เหลือ ----------
 function boardList(rest, step) {
   let out = '', prev = 3;
   for (const r of rest) {
