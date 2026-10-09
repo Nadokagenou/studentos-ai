@@ -100,7 +100,7 @@ async function boardPayout(cur) {
     if (error || !data) return;
     state.settings.boardPaid = prev;
     const me = data.me;
-    const prize = me && me.n > 0 && data.joined ? BOARD_PRIZE[me.rank] : 0;
+    const prize = me && me.n > 0 && !data.hidden ? BOARD_PRIZE[me.rank] : 0;
     if (prize && typeof addTokens === 'function') {
       addTokens(prize);
       showToast({ title: `จบซีซันที่อันดับ ${me.rank}`, body: `+${prize} โทเคน` });
@@ -183,7 +183,7 @@ function renderBoard() {
     + boardHero(d, me, rows, isAll, step())
     + boardPodium(rows, step())
     + (rest.length ? `<div class="bd-list">${boardList(rest, lead, step)}</div>` : '')
-    + (d.joined ? `<button class="bd-leave" onclick="boardToggleJoin()">ออกจากกระดาน</button>` : '');
+    + (d.hidden ? '' : `<button class="bd-leave" onclick="boardToggleHide()">ซ่อนชื่อฉันจากกระดาน</button>`);
 }
 
 function boardScopeSet(scope) {
@@ -210,7 +210,7 @@ function boardHero(d, me, rows, isAll, st) {
   else { goal = 'นำอยู่'; pct = 1; }
   pct = Math.round(Math.max(0, Math.min(1, pct)) * 100);
 
-  const prize = isAll && me.n ? (BOARD_PRIZE[me.rank] || 0) : 0;
+  const prize = isAll && me.n && !d.hidden ? (BOARD_PRIZE[me.rank] || 0) : 0;
   const pet = typeof synBody === 'function' ? synBody() : '';
   return `<div class="bd-hero bd-in" ${st}>
       <span class="bd-hero-wm" aria-hidden="true">${me.n ? me.rank : ''}</span>
@@ -230,7 +230,7 @@ function boardHero(d, me, rows, isAll, st) {
           ${target ? `<span class="bd-race-tg">${boardAv(target)}</span>` : `<span class="bd-race-flag">${icon('flag')}</span>`}
         </div>
       </div>
-      ${d.joined ? '' : `<button class="bd-join" onclick="boardToggleJoin()">ขึ้นกระดาน</button>`}
+      ${d.hidden ? `<button class="bd-join" onclick="boardToggleHide()">แสดงชื่อฉันบนกระดาน</button>` : ''}
     </div>`;
 }
 
@@ -273,14 +273,17 @@ function boardList(rest, lead, step) {
   return out;
 }
 
-// เข้าร่วม/ออก — ค่าเริ่มต้นคือไม่อยู่บนกระดาน (ดูเหตุผลในไฟล์ SQL: สัญญาในจอยินยอม)
+// ซ่อน/แสดงตัว — ค่าเริ่มต้นคืออยู่บนกระดาน (เจ้าของเลือก 9 ต.ค. 69 · ดู 20261009190000_board_everyone.sql)
+// รอบแรกเป็น "กดเข้าร่วมเอง" แล้วกระดานจริงมีแต่เจ้าของคนเดียว · ซ่อนแล้วหายจากทั้งสองกระดาน
 // ธงอยู่ใน state.settings จึงขึ้น cloud ไปกับก้อนเดียวกับงาน — loadBoard ส่งขึ้นก่อนถามอันดับเสมอ
-function boardToggleJoin() {
+function boardToggleHide() {
   if (!state.settings) state.settings = {};
   const d = boardData[boardScope];
-  state.settings.boardJoin = !(d && d.joined);
+  state.settings.boardHide = !(d && d.hidden);
+  delete state.settings.boardJoin;   // ธงของรอบแรก ไม่มีใครอ่านแล้ว
   save();
   boardData.all = null; boardData.friends = null;
+  boardAnim = true;
   renderBoard();
   loadBoard();
 }
