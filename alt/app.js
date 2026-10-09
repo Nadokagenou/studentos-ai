@@ -7373,15 +7373,18 @@ function renderProfile() {
   } else if (Notification.permission === 'granted') {
     // 1B99 · สามสถานะ ไม่ใช่สอง — 'local' คือ "เบราว์เซอร์พร้อม แต่เซิร์ฟเวอร์ยังส่งไม่ถึง"
     // ซึ่งเดิมถูกนับรวมเป็น 'on' แล้วจอก็สัญญาเกินกว่าที่ระบบทำได้จริง
+    // 9 ต.ค. 69 · 'off' (อนุญาตแล้วแต่ไม่มี subscription) เคยเขียนว่า "เตือนตอนเปิดแอป" เหมือน
+    // สถานะปกติ — คนอ่านไม่มีทางรู้ว่าการเตือนตอนปิดแอปตายอยู่ ต้องพูดตรง ๆ ว่า "นอกแอป: ยังไม่ทำงาน"
+    const why = pushErr ? ' · ' + pushErr : '';
     if (pushState === 'on' && currentUser) st.textContent = 'เตือนก่อนถึงกำหนด แม้ปิดแอป';
-    else if (pushState === 'local' && currentUser) st.textContent = 'เตือนตอนเปิดแอป · ยังเชื่อมกับเซิร์ฟเวอร์ไม่ได้';
-    else if (pushState === 'on' || pushState === 'local') st.textContent = 'เตือนตอนเปิดแอป';
-    else st.textContent = 'เตือนตอนเปิดแอป';
-    // 'local' ต้องมีปุ่มให้กดลองใหม่ — สถานะที่บอกว่าพังแต่ไม่มีอะไรให้กด คือทางตัน
+    else if (!currentUser) st.textContent = 'เตือนตอนเปิดแอป · ล็อกอินเพื่อเตือนนอกแอป';
+    else if (pushState === 'unsupported') st.textContent = 'เตือนตอนเปิดแอป · เครื่องนี้เตือนนอกแอปไม่ได้';
+    else if (pushState === 'local') st.textContent = 'นอกแอป: ยังเชื่อมกับเซิร์ฟเวอร์ไม่ได้' + why;
+    else st.textContent = 'นอกแอป: ยังไม่ทำงาน' + why;
+    // สถานะที่บอกว่าพังแต่ไม่มีอะไรให้กด คือทางตัน — ทุกสถานะที่ยังไม่ 'on' ต้องมีปุ่มต่อใหม่
     if (nb) {
-      const stuck = pushState === 'local' && currentUser;
-      nb.style.display = (pushState === 'on' || pushState === 'unsupported') ? 'none' : 'block';
-      if (stuck) nb.textContent = 'ลองเชื่อมใหม่';
+      nb.style.display = (pushState === 'on' || pushState === 'unsupported' || !currentUser) ? 'none' : 'block';
+      nb.textContent = 'ต่อใหม่';
     }
   } else if (Notification.permission === 'denied') {
     st.textContent = 'ถูกปิดไว้ในเบราว์เซอร์';
@@ -12100,6 +12103,7 @@ function openForm(id, parsed) {
   const due = t?.due ? new Date(t.due) : new Date(Date.now() + 8.64e7); // default พรุ่งนี้
   f.date.value = due.getFullYear() + '-' + String(due.getMonth() + 1).padStart(2, '0') + '-' + String(due.getDate()).padStart(2, '0');
   f.time.value = String(due.getHours()).padStart(2, '0') + ':' + String(due.getMinutes()).padStart(2, '0');
+  closeTimeDial();
 
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
   document.getElementById('scr-form').classList.add('on');
@@ -12551,6 +12555,215 @@ function pickDueCustom() {
   }, 60);
 }
 
+// ---------- เวลาส่ง: หน้าปัด 24 ชม. + พิมพ์เอง ----------
+// เทสเตอร์ (9 ต.ค. 69): "อยากตั้งเวลาที่แต่ละงานง่ายกว่านี้ มีกรอกเวลาเอง กับเลื่อนเหมือนนาฬิกาปลุก"
+// ส่งภาพหน้าปัดเวลานอนของ iPhone มา — วงเดียว 0 อยู่บน 12 อยู่ล่าง ลากปุ่มไปรอบวง
+// ตัวเลือกเวลาของเบราว์เซอร์ (<input type=time>) เป็นวงล้อสามช่องบน iPhone และแต่งไม่ได้
+// ลาก = ทีละ 5 นาที (ลากทีละนาทีบนวงขนาดนี้นิ้วคุมไม่อยู่) · ตัวเลขตรงกลางพิมพ์ได้ทุกนาที
+// ลากผ่านเที่ยงคืนจากฝั่งดึก = 23:59 ไม่ใช่ 00:00 — "ส่งเที่ยงคืน" คือปลายสุดของวันนั้น (Key Decisions)
+// ค่าจริงยังอยู่ใน #fTime (ซ่อนไว้) — saveForm() กับ updateFormSummary() ไม่ต้องรู้อะไรเพิ่ม
+const TD_STEP = 5;
+const TD_C = 130, TD_R = 106;               // จุดกลางกับรัศมีวงลาก (หน่วยของ viewBox 260)
+const TD_QUICK = ['08:00', '12:00', '16:30', '20:00', '23:59'];
+
+function tdMin() {
+  const [h, m] = ((document.getElementById('fTime') || {}).value || '23:59').split(':');
+  return (+h || 0) * 60 + (+m || 0);
+}
+function tdFmt(m) { return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+function tdXY(m, r) {
+  const a = m / 1440 * 2 * Math.PI;
+  return [TD_C + r * Math.sin(a), TD_C - r * Math.cos(a)];
+}
+function tdIsOpen() {
+  const w = document.getElementById('timeDial');
+  return !!(w && !w.hidden);
+}
+
+function renderTimeDial(w) {
+  let ticks = '', nums = '';
+  for (let i = 0; i < 96; i++) {           // ขีดทุก 15 นาที · ขีดยาวทุกชั่วโมง
+    const m = i * 15, hr = i % 4 === 0;
+    const [x1, y1] = tdXY(m, 86), [x2, y2] = tdXY(m, hr ? 79 : 83);
+    ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"${hr ? ' class="hr"' : ''}/>`;
+  }
+  for (let h = 0; h < 24; h += 3) {
+    const [x, y] = tdXY(h * 60, 67);
+    nums += `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}">${h}</text>`;
+  }
+  const sun = Array.from({ length: 8 }, (_, i) => {
+    const a = i * Math.PI / 4;
+    return `<line x1="${(7 * Math.sin(a)).toFixed(1)}" y1="${(7 * Math.cos(a)).toFixed(1)}" x2="${(10 * Math.sin(a)).toFixed(1)}" y2="${(10 * Math.cos(a)).toFixed(1)}"/>`;
+  }).join('');
+  w.innerHTML = `<div class="td-dial">
+      <svg viewBox="0 0 260 260" role="slider" tabindex="0" aria-label="เวลาส่ง" aria-valuemin="0" aria-valuemax="1439">
+        <circle class="td-track" cx="${TD_C}" cy="${TD_C}" r="${TD_R}"/>
+        <path class="td-arc" d=""/>
+        <circle class="td-face" cx="${TD_C}" cy="${TD_C}" r="90"/>
+        <g class="td-ticks">${ticks}</g>
+        <g class="td-nums">${nums}</g>
+        <path class="td-moon" d="M${TD_C + 3} ${TD_C - 52}a9 9 0 1 0 9 11a7 7 0 0 1 -9 -11z"/>
+        <g class="td-sun" transform="translate(${TD_C} ${TD_C + 44})"><circle r="4.5"/>${sun}</g>
+        <g class="td-knob"><circle r="17"/><circle class="td-knob-dot" r="5"/></g>
+      </svg>
+      <div class="td-mid">
+        <input id="tdH" inputmode="numeric" enterkeyhint="next" autocomplete="off" aria-label="ชั่วโมง"
+          oninput="tdTyped('h', this)" onblur="tdCommit('h', this)" onfocus="this.select()" onkeydown="if(event.key==='Enter')this.blur()">
+        <b>:</b>
+        <input id="tdM" inputmode="numeric" enterkeyhint="done" maxlength="2" autocomplete="off" aria-label="นาที"
+          oninput="tdTyped('m', this)" onblur="tdCommit('m', this)" onfocus="this.select()" onkeydown="if(event.key==='Enter')this.blur()">
+      </div>
+    </div>
+    <div class="td-quick">${TD_QUICK.map(t => `<button type="button" data-t="${t}" onclick="tdPick('${t}')">${t}</button>`).join('')}</div>`;
+  tdBind(w.querySelector('svg'));
+}
+
+// วาดเฉพาะของที่ขยับ (ปุ่ม · ส่วนโค้ง · ตัวเลข) — ไม่วาดใหม่ทั้งหน้าปัดทุกครั้งที่นิ้วขยับ
+function tdPaint() {
+  const w = document.getElementById('timeDial');
+  if (!w || !w.firstChild) return;
+  const m = tdMin();
+  const [x, y] = tdXY(m, TD_R);
+  w.querySelector('.td-knob').setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+  const [sx, sy] = tdXY(0, TD_R);
+  w.querySelector('.td-arc').setAttribute('d', m < 1
+    ? '' : `M${sx} ${sy}A${TD_R} ${TD_R} 0 ${m > 720 ? 1 : 0} 1 ${x.toFixed(1)} ${y.toFixed(1)}`);
+  const svg = w.querySelector('svg');
+  svg.setAttribute('aria-valuenow', m);
+  svg.setAttribute('aria-valuetext', tdFmt(m));
+  const h = document.getElementById('tdH'), mm = document.getElementById('tdM');
+  // ช่องที่กำลังพิมพ์อยู่ห้ามเขียนทับ — พิมพ์ "1" แล้วกลายเป็น "01" ทันทีคือพิมพ์ "18" ไม่ได้
+  if (h && document.activeElement !== h) h.value = tdFmt(m).slice(0, 2);
+  if (mm && document.activeElement !== mm) mm.value = tdFmt(m).slice(3);
+  const cur = tdFmt(m);
+  w.querySelectorAll('.td-quick button').forEach(b => b.classList.toggle('on', b.dataset.t === cur));
+}
+
+function tdSet(m, fromDrag) {
+  m = Math.max(0, Math.min(1439, Math.round(m)));
+  const f = document.getElementById('fTime');
+  if (!f) return;
+  const before = tdMin();
+  if (f.value !== tdFmt(m)) {
+    f.value = tdFmt(m);
+    if (fromDrag && Math.floor(before / 60) !== Math.floor(m / 60)) haptic('arm');
+  }
+  updateFormSummary();   // เรียก tdPaint() ให้เองตอนหน้าปัดกางอยู่
+}
+
+function tdPick(t) {
+  const [h, m] = t.split(':');
+  tdSet(+h * 60 + +m);
+}
+
+// มุมจากจุดกลาง → นาที · คืนระยะจากจุดกลางด้วย (หน่วย viewBox) ไว้ตัดสินว่าแตะโดนวงหรือเปล่า
+function tdFromPoint(svg, cx, cy) {
+  const r = svg.getBoundingClientRect();
+  const k = 260 / r.width;
+  const x = (cx - r.left) * k - TD_C, y = (cy - r.top) * k - TD_C;
+  let a = Math.atan2(x, -y);
+  if (a < 0) a += 2 * Math.PI;
+  return { raw: a / (2 * Math.PI) * 1440, dist: Math.hypot(x, y) };
+}
+function tdSnap(raw, prev) {
+  const m = Math.round(raw / TD_STEP) * TD_STEP;
+  // ยอดวงคือรอยต่อของวัน — มาจากฝั่งดึกได้ 23:59 · มาจากฝั่งเช้ามืดได้ 00:00
+  if (m >= 1440) return prev < 240 ? 0 : 1439;
+  if (m === 0 && prev >= 1200) return 1439;
+  return m;
+}
+// แตะได้เฉพาะแถบวงนอก (กับปุ่มที่อยู่บนวง) — แตะกลางหน้าปัดคือจะพิมพ์ ไม่ใช่จะลาก
+// และนิ้วที่ปัดผ่านหน้าปัดเพื่อเลื่อนฟอร์ม ต้องเลื่อนฟอร์มได้ตามปกติ
+function tdOnRing(dist) { return dist >= TD_R - 30 && dist <= TD_R + 28; }
+
+function tdBind(svg) {
+  let dragging = false;
+  // touchstart ต้องไม่ passive จึงสั่ง preventDefault ได้ — ห้ามจอเลื่อนเฉพาะตอนนิ้วลงบนวง
+  svg.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    if (t && tdOnRing(tdFromPoint(svg, t.clientX, t.clientY).dist)) e.preventDefault();
+  }, { passive: false });
+  svg.addEventListener('pointerdown', e => {
+    const p = tdFromPoint(svg, e.clientX, e.clientY);
+    if (!tdOnRing(p.dist)) return;
+    dragging = true;
+    try { svg.setPointerCapture(e.pointerId); } catch (_) {}
+    svg.classList.add('drag');
+    const a = document.activeElement;
+    if (a && (a.id === 'tdH' || a.id === 'tdM')) a.blur();
+    tdSet(tdSnap(p.raw, tdMin()), true);
+  });
+  svg.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    tdSet(tdSnap(tdFromPoint(svg, e.clientX, e.clientY).raw, tdMin()), true);
+  });
+  const end = () => { dragging = false; svg.classList.remove('drag'); };
+  svg.addEventListener('pointerup', end);
+  svg.addEventListener('pointercancel', end);
+  svg.addEventListener('keydown', e => {
+    const step = { ArrowUp: TD_STEP, ArrowRight: TD_STEP, ArrowDown: -TD_STEP, ArrowLeft: -TD_STEP, PageUp: 60, PageDown: -60 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    tdSet((tdMin() + step + 1440) % 1440);
+  });
+}
+
+// พิมพ์ชั่วโมงครบ (สองหลัก หรือหลักเดียวที่เกิน 2 เช่น "9") แล้วกระโดดไปช่องนาทีเอง
+// นาทีครบแล้วปิดคีย์บอร์ด — พิมพ์ "1830" รวดเดียวจบโดยไม่ต้องแตะอะไรเพิ่ม
+function tdTyped(which, el) {
+  const all = el.value.replace(/\D/g, '');
+  // วาง "1830" หรือ "930" ลงช่องชั่วโมงทีเดียว (คีย์บอร์ดเดาคำ · วางจากแชท) = ได้ทั้งชั่วโมงและนาที
+  if (which === 'h' && all.length > 2) {
+    const hh = +all[0] > 2 ? all.slice(0, 1) : all.slice(0, 2);
+    const mm = all.slice(hh.length, hh.length + 2).padEnd(2, '0');
+    el.value = hh;
+    tdSet(Math.min(23, +hh) * 60 + Math.min(59, +mm));
+    el.blur();
+    return;
+  }
+  const d = all.slice(0, 2);
+  if (el.value !== d) el.value = d;
+  if (!d) return;
+  const cur = tdMin();
+  if (which === 'h') {
+    if (d.length < 2 && +d <= 2) return;
+    tdSet(Math.min(23, +d) * 60 + cur % 60);
+    const m = document.getElementById('tdM');
+    if (m) { m.focus(); m.select(); }
+  } else {
+    if (d.length < 2 && +d <= 5) return;
+    tdSet(Math.floor(cur / 60) * 60 + Math.min(59, +d));
+    el.blur();
+  }
+}
+function tdCommit(which, el) {
+  const d = el.value.replace(/\D/g, '');
+  const cur = tdMin();
+  if (d !== '') {
+    tdSet(which === 'h' ? Math.min(23, +d) * 60 + cur % 60 : Math.floor(cur / 60) * 60 + Math.min(59, +d));
+  }
+  tdPaint();   // เติมศูนย์หน้า ("9" → "09") หรือคืนค่าเดิมถ้าลบจนว่าง
+}
+
+function openTimeDial() {
+  const w = document.getElementById('timeDial'), b = document.getElementById('fTimeBtn');
+  if (!w) return;
+  if (!w.firstChild) renderTimeDial(w);
+  w.hidden = false;
+  if (b) { b.setAttribute('aria-expanded', 'true'); b.classList.add('up'); }
+  w.classList.remove('dcal-open'); void w.offsetWidth; w.classList.add('dcal-open');
+  tdPaint();
+  setTimeout(() => {
+    try { w.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (_) { w.scrollIntoView(false); }
+  }, 60);
+}
+function closeTimeDial() {
+  const w = document.getElementById('timeDial'), b = document.getElementById('fTimeBtn');
+  if (w) w.hidden = true;
+  if (b) { b.setAttribute('aria-expanded', 'false'); b.classList.remove('up'); }
+}
+function toggleTimeDial() { tdIsOpen() ? closeTimeDial() : openTimeDial(); }
+
 // ---------- แถวสรุปของช่องที่ข้ามได้ + บรรทัดล่างของปุ่มบันทึก ----------
 function selText(id) {
   const el = document.getElementById(id);
@@ -12573,6 +12786,8 @@ function updateFormSummary() {
   setRow('rvRepeat', v('fRepeat') ? selText('fRepeat') : 'ไม่ซ้ำ');
   setRow('fProgressVal', (v('fProgress') || 0) + '%');
   setRow('rvGot', v('fGot') === '' ? 'ยังไม่รู้ผล' : v('fGot') + '/' + (v('fGotMax') || '?'));
+  setRow('fTimeVal', v('fTime') || '23:59');
+  if (tdIsOpen()) tdPaint();
   updateSubsCount();
 
   // บรรทัดล่างปุ่มบันทึก — ปุ่มที่ติดขอบจอตลอดต้องบอกได้ว่ากำลังจะบันทึกเป็นของวันไหน
@@ -14707,7 +14922,7 @@ async function refreshPushState() {
     if (data) { pushState = 'on'; return; }
     // แถวหาย — สมัครใหม่ให้เงียบ ๆ ตรงนี้เลย ไม่ต้องให้ผู้ใช้ไปกดปุ่มที่เขาไม่รู้ว่าต้องกด
     pushState = (await subscribePush().catch(() => false)) ? 'on' : 'local';
-  } catch (_) { pushState = 'off'; }
+  } catch (e) { pushState = 'off'; pushErr = pushErrText(e); }
 }
 
 // กุญแจของ subscription ที่มีอยู่ ตรงกับกุญแจที่แอปถืออยู่ตอนนี้ไหม
@@ -14725,9 +14940,14 @@ function subKeyMatches(sub) {
   } catch (_) { return true; }
 }
 
+// เหตุผลล่าสุดที่ลงทะเบียนไม่สำเร็จ — โชว์ในจอตั้งค่า ให้เทสเตอร์ถ่ายภาพส่งมาได้เลย
+// ไม่งั้น "แจ้งเตือนไม่ขึ้น" เป็นอาการเดียวของสาเหตุห้าแบบที่แยกจากกันไม่ออก
+let pushErr = '';
+
 async function subscribePush() {
   if (!pushSupported()) return false;
-  const reg = await navigator.serviceWorker.ready;
+  // ready ค้างได้ตลอดกาลถ้า SW ตัวเก่าติดอยู่ (ดู refreshPushState) — ค้างที่นี่ = ปุ่มกดแล้วเงียบ
+  const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ลงทะเบียนแจ้งเตือน');
   let sub = await reg.pushManager.getSubscription();
 
   // subscription ที่สร้างไว้ด้วยกุญแจ VAPID คนละดอกกับที่เซิร์ฟเวอร์ถืออยู่ จะถูกปฏิเสธ 403
@@ -14761,10 +14981,49 @@ async function subscribePush() {
       tz_offset: -new Date().getTimezoneOffset(),
       updated_at: new Date().toISOString(),
     }, { onConflict: 'endpoint' });
-    if (error) { console.warn('[push] save failed:', error.message); return false; }
+    if (error) { console.warn('[push] save failed:', error.message); pushErr = 'บันทึกขึ้นเซิร์ฟเวอร์ไม่ได้'; return false; }
   }
   pushState = 'on';
+  pushErr = '';
   return true;
+}
+
+// ============================================================
+// 9 ต.ค. 69 · เทสเตอร์ + เจ้าของ: "แจ้งเตือนนอกแอปไม่ขึ้นมาเลย"
+// ------------------------------------------------------------
+// ตรวจฝั่งเซิร์ฟเวอร์แล้ว: send-reminders ยิงทุกครึ่งชั่วโมงจริง และ Apple/Google ตอบรับทุกดอก
+// (คืนนั้น 20:30 ส่ง 5 ดอก ไม่มี error) — แต่แถว push_subscriptions ของทั้งสองบัญชี
+// ไม่ถูกต่ออายุมาตั้งแต่ 4 และ 7 ต.ค. ทั้งที่เปิดแอปทุกวัน ซึ่งแปลว่าเครื่องที่ใช้อยู่ตอนนี้
+// "ไม่ได้ลงทะเบียน" — การ์ดถูกส่งไปที่ปลายทางเก่า (ติดตั้งแอปใหม่ · ล้างข้อมูล) ซึ่งไม่มีจอให้ขึ้น
+//
+// ทางเดิมพลาดได้สองจุด (จุดแรกยังเป็นข้อสันนิษฐาน — ยังไม่ได้จับ error จากเครื่องจริง):
+//   1. subscribe() ถูกเรียกหลัง await สองชั้น (ขออนุญาต → ยิงการ์ดทดสอบ) — Safari บน iPhone
+//      ผูกการสมัครไว้กับ "จังหวะที่นิ้วกดปุ่ม" ยิ่งห่างจากการกดยิ่งเสี่ยงโดนปฏิเสธ แล้ว catch กลืนไปเงียบ ๆ
+//   2. อนุญาตแล้วแต่ไม่มี subscription (pushState 'off') จอเขียนว่า "เตือนตอนเปิดแอป" เฉย ๆ
+//      ไม่มีอะไรบอกว่าการเตือนตอนปิดแอปตายอยู่ และไม่มีปุ่มให้ต่อใหม่
+// แก้: สมัครเป็นอย่างแรกสุดในจังหวะกด · จอบอกตรง ๆ ว่านอกแอปยังไม่ทำงาน + ปุ่มต่อใหม่ + เหตุผล
+// ============================================================
+function pushErrText(e) {
+  const n = (e && e.name) || '';
+  if (n === 'NotAllowedError') return 'เครื่องไม่อนุญาต';
+  if (n === 'AbortError') return 'ระบบแจ้งเตือนของเครื่องไม่ตอบ';
+  if (n === 'InvalidStateError') return 'ต้องเปิดจากไอคอนบนจอโฮม';
+  return (e && e.message) ? String(e.message).slice(0, 60) : 'ไม่ทราบสาเหตุ';
+}
+async function reconnectPush() {
+  let ok = false;
+  try { ok = await subscribePush(); }
+  catch (e) { pushErr = pushErrText(e); console.warn('[push] subscribe failed:', e); }
+  await refreshPushState();
+  renderProfile();
+  if (ok && pushState === 'on') {
+    showToast({ title: 'เตือนนอกแอปได้แล้ว 🔔', body: 'จะเตือนแม้ปิดแอปอยู่' });
+  } else if (!(sb && currentUser)) {
+    showToast({ title: 'ยังเตือนนอกแอปไม่ได้', body: 'ล็อกอินก่อน' });
+  } else {
+    showToast({ title: 'ยังเตือนนอกแอปไม่ได้', body: pushErr || 'ลองใหม่อีกครั้ง' });
+  }
+  return ok;
 }
 
 // ---------- เลือกชนิดการแจ้งเตือน ----------
@@ -14808,6 +15067,8 @@ async function enableNotif() {
     if (isIOS() && !isStandalone()) { showInstallGuide(); return; } // สาเหตุคือยังไม่ได้ติดตั้ง แก้ตรงนี้ทันที
     return;
   }
+  // อนุญาตไว้แล้ว = กดปุ่มนี้เพื่อต่อการเตือนนอกแอปใหม่ — สมัครทันทีในจังหวะกด ไม่ทำอย่างอื่นก่อน
+  if (Notification.permission === 'granted') { await reconnectPush(); checkReminders(); return; }
   const perm = await Notification.requestPermission();
   // จุดร่วงที่ใหญ่ที่สุดจุดหนึ่ง — คนที่กดปฏิเสธตรงนี้จะไม่ได้รับการเตือนอีกเลย
   // และกล่องโต้ตอบของเบราว์เซอร์ขอซ้ำไม่ได้ ถ้าไม่บันทึกไว้เราจะไม่มีทางรู้ว่าเขาเคยมาถึงตรงนี้
@@ -14815,11 +15076,15 @@ async function enableNotif() {
   funnel().notif = perm;
   save();
   if (perm !== 'granted') { renderProfile(); return; }
+  // สมัครก่อน แล้วค่อยยิงการ์ดทดสอบ (เดิมกลับกัน — ดูหมายเหตุที่ reconnectPush)
+  let subErr = null;
+  const subTry = subscribePush().catch(e => { subErr = e; return false; });
   // ยิงของจริงทันทีหนึ่งดอก — ผู้ใช้จะได้เห็นกับตาว่ามันทำงาน ไม่ใช่แค่ปุ่มเปลี่ยนสี
   await notify('เปิดแจ้งเตือนแล้ว 🔔',
     (who() ? who() + ' ' : '') + 'จะเตือนก่อนถึงกำหนดส่ง', 'studentos-alt-on');
   try {
-    const ok = await subscribePush();
+    const ok = await subTry;
+    if (subErr) throw subErr;
     // 1B99 · ยืนยันจากของจริงก่อนจะพูดว่า "แม้ปิดแอป" — subscribePush คืน true ได้
     // ทั้งตอนที่บันทึกขึ้น cloud สำเร็จ และตอนที่ยังไม่ได้ล็อกอิน (ซึ่งส่งไม่ถึงแน่ ๆ)
     // ประโยคที่สัญญาเกินกว่าที่ระบบทำได้ คือประโยคที่ทำให้เขาไม่ไปตั้งอย่างอื่นเผื่อไว้
@@ -14834,8 +15099,9 @@ async function enableNotif() {
       showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเตือนนอกแอปไม่ได้' });
     }
   } catch (e) {
-    console.warn('[push] subscribe failed:', e.message);
-    showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเตือนนอกแอปไม่ได้' });
+    console.warn('[push] subscribe failed:', e);
+    pushErr = pushErrText(e);
+    showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเตือนนอกแอปไม่ได้ · ' + pushErr });
   }
   renderProfile();
   checkReminders();
@@ -16598,7 +16864,8 @@ function syncLiteRow() {
   await refreshPushState();
   // เคยกดอนุญาตไว้แล้ว + ล็อกอินอยู่ → ต่อ push ให้อัตโนมัติ (เผื่อ subscription หลุด)
   if ('Notification' in window && Notification.permission === 'granted' && currentUser) {
-    subscribePush().then(() => renderProfile()).catch(() => {});
+    subscribePush().then(() => renderProfile())
+      .catch(e => { pushErr = pushErrText(e); renderProfile(); });
   }
   // 1C38 · รายงานตัวกับเซิร์ฟเวอร์ — รอบเย็นจะได้ไม่เด้งใส่คนที่เพิ่งเห็นการ์ดบนจอ (ดู pushHeartbeat)
   // ยิงทั้งตอนเข้าและตอนออก (ไม่เกินสิบนาทีครั้ง) — ด่านของเซิร์ฟเวอร์คือหนึ่งชั่วโมง ละเอียดแค่นี้พอ

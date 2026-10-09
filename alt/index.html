@@ -912,10 +912,15 @@
               <input type="date" id="fDate" hidden tabindex="-1" aria-hidden="true">
               <div class="dcal" id="dueCal"></div>
             </div>
+            <!-- เวลาส่ง: หน้าปัด 24 ชม. ลากแบบนาฬิกาปลุก + พิมพ์เลขเองตรงกลาง (เทสเตอร์ 9 ต.ค. 69)
+                 #fTime ยังเป็นที่เก็บค่าจริงที่ saveForm() อ่าน แค่ซ่อนไว้ · วาดจาก renderTimeDial() ใน app.js -->
             <div class="due-time">
               <span class="dt-l">เวลา</span>
-              <input type="time" id="fTime">
+              <button type="button" class="dt-btn" id="fTimeBtn" onclick="toggleTimeDial()" aria-expanded="false" aria-controls="timeDial">
+                <span id="fTimeVal">23:59</span><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-chevron"/></svg></button>
+              <input type="time" id="fTime" hidden tabindex="-1" aria-hidden="true">
             </div>
+            <div class="tdial-wrap" id="timeDial" hidden></div>
           </section>
 
           <!-- ============================================================

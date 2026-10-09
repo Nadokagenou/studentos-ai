@@ -8063,6 +8063,71 @@ button.df-r:active { background: var(--surface); }
 .due-time .dt-l { flex: 1; font-size: 14px; font-weight: 600; color: var(--muted); }
 .due-time input[type=time] { width: auto; max-width: 132px; }
 
+/* ---- เวลาส่ง: ปุ่มเวลา + หน้าปัด 24 ชม. (renderTimeDial ใน app.js) ----
+   แบบหน้าปัดเวลานอนของ iPhone ที่เทสเตอร์ส่งมา: 0 บน 12 ล่าง ลากปุ่มรอบวง ส่วนโค้งนับจากเที่ยงคืน
+   ตัวเลขกลางวงคือช่องพิมพ์จริง ไม่ใช่ป้าย */
+.due-time .dt-btn {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  min-height: 40px; padding: 0 10px 0 14px; border: 0; border-radius: 12px;
+  background: var(--card2); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line);
+  font-family: inherit; font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums;
+  cursor: pointer; transition: transform .15s ease-out, box-shadow .15s ease, color .15s ease;
+}
+.dt-btn svg { width: 15px; height: 15px; color: var(--faint); transform: rotate(90deg); transition: transform .16s ease; }
+.dt-btn.up { color: var(--blue); box-shadow: inset 0 0 0 1.5px var(--blue); }
+.dt-btn.up svg { color: var(--blue); transform: rotate(-90deg); }
+.dt-btn:active { transform: scale(.96); }
+.tdial-wrap[hidden] { display: none; }
+.tdial-wrap {
+  margin-top: 10px; padding: 14px 10px 10px; border-radius: 18px;
+  border: 1.5px solid var(--line); background: var(--card2);
+}
+#scr-form .tdial-wrap.dcal-open { animation: dcal-open .32s cubic-bezier(.22, 1, .36, 1) both; }
+.td-dial { position: relative; width: min(100%, 264px); aspect-ratio: 1; margin: 0 auto; }
+.td-dial svg {
+  display: block; width: 100%; height: 100%; overflow: visible;
+  user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; outline: none;
+}
+.td-dial svg:focus-visible .td-track { stroke: color-mix(in srgb, var(--blue) 18%, var(--scr)); }
+.td-track { fill: none; stroke: var(--scr); stroke-width: 34; }
+.td-arc { fill: none; stroke: color-mix(in srgb, var(--blue) 30%, transparent); stroke-width: 34; }
+.td-face { fill: var(--card); }
+.td-ticks line { stroke: var(--faint); stroke-width: 1; opacity: .45; stroke-linecap: round; }
+.td-ticks line.hr { stroke-width: 1.6; opacity: .8; }
+.td-nums text {
+  fill: var(--muted); font-family: inherit; font-size: 12.5px; font-weight: 700;
+  text-anchor: middle; dominant-baseline: central;
+}
+.td-moon { fill: color-mix(in srgb, var(--blue) 70%, var(--muted)); }
+.td-sun circle { fill: var(--warn); }
+.td-sun line { stroke: var(--warn); stroke-width: 1.8; stroke-linecap: round; }
+.td-knob circle { fill: var(--blue); stroke: var(--card); stroke-width: 3; }
+.td-knob .td-knob-dot { fill: var(--on-accent); stroke: none; }
+.td-knob { cursor: grab; }
+.td-dial svg.drag .td-knob circle:first-child { r: 19; }
+.td-dial svg.drag { cursor: grabbing; }
+.td-mid {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  display: flex; align-items: center; gap: 1px;
+}
+.td-mid b { font-size: 26px; font-weight: 800; color: var(--muted); line-height: 1; padding-bottom: 3px; }
+#scr-form .td-mid input {
+  width: 46px; height: 46px; min-height: 0; padding: 0; margin: 0;
+  border: 0; border-radius: 10px; background: transparent; box-shadow: none;
+  font-family: inherit; font-size: 30px; font-weight: 800; color: var(--ink); text-align: center;
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em; caret-color: var(--blue);
+}
+#scr-form .td-mid input:focus { outline: none; background: var(--blue-soft); color: var(--blue); }
+.td-quick { display: flex; gap: 6px; margin-top: 8px; }
+.td-quick button {
+  flex: 1; min-width: 0; min-height: 36px; padding: 0; border: 0; border-radius: 10px;
+  background: var(--card); color: var(--muted); box-shadow: inset 0 0 0 1px var(--line);
+  font-family: inherit; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer;
+}
+.td-quick button.on { background: var(--blue); color: var(--on-accent); box-shadow: none; }
+.td-quick button:active { transform: scale(.95); }
+@media (prefers-reduced-motion: reduce) { #scr-form .tdial-wrap.dcal-open { animation: none; } }
+
 /* ---- แถวสรุปของช่องที่ข้ามได้ (<details>) ----
    ปิดอยู่ = อ่านได้ว่าค่าปัจจุบันคืออะไรโดยไม่ต้องเปิด
    ซึ่งเป็นเหตุผลที่ยุบได้โดยไม่ทำให้ใครหาช่องไม่เจอ */
