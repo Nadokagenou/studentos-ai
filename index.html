@@ -404,7 +404,7 @@
                  สี่เหลี่ยมจัตุรัส 192px วางดิบ ๆ ในใบแล้วอ่านเป็นรูปที่แปะทับ ไม่ใช่ตัวละคร
                  ที่อยู่ในนั้น · และการคร่อมขอบทำให้ใบพระเอกกับรายการข้างล่างเชื่อมกัน
                  แทนที่จะเป็นสองก้อนที่บังเอิญวางเรียงกัน -->
-            <img class="lg-sai" src="sai-avatar.png" alt="" aria-hidden="true">
+            <img class="lg-sai" src="hook-avatar.png" data-mav alt="" aria-hidden="true">
           </div>
 
           <!-- L2 · ชิปสามใบ "ฟรีตลอดไป · ไม่ต้องผูกบัตร · ไม่มีโฆษณา" ถูกถอดออก (เจ้าของวงให้ลบ
@@ -1032,7 +1032,7 @@
         <div class="sticky-head row">
           <div>
             <h2 class="sh-title">แผนวันนี้</h2>
-            <p class="sh-sub" id="saiSub">น้องไซจัดให้แล้ว ตั้งแต่ตื่นจนเข้านอน</p>
+            <p class="sh-sub" id="saiSub"><span data-mname>น้องฮูก</span>จัดให้แล้ว ตั้งแต่ตื่นจนเข้านอน</p>
           </div>
           <button class="sh-btn" onclick="go('scr-menu')" aria-label="กลับ">
             <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
@@ -1722,9 +1722,19 @@
                 <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
                 <span class="set-lb">ผู้ช่วย AI</span>
               </span>
+              <!-- 9 ต.ค. 69 · เลือกมาสคอต — เจ้าของ: "ให้คนเลือกได้ บางคนชอบไม่เหมือนกัน"
+                   ค่าเริ่มต้นน้องฮูก · กดแล้วเปลี่ยนทั้งรูป ชื่อ และบุคลิกตอนคุย (ดู setMascot ใน sai.js) -->
+              <div class="msc-pick" id="mascotPick" role="group" aria-label="เลือกมาสคอต">
+                <button type="button" data-mascot="hook" onclick="setMascot('hook')">
+                  <img src="hook-avatar.png" alt="" width="56" height="56" loading="lazy" decoding="async">
+                  <b>น้องฮูก</b></button>
+                <button type="button" data-mascot="sai" onclick="setMascot('sai')">
+                  <img src="sai-avatar.png" alt="" width="56" height="56" loading="lazy" decoding="async">
+                  <b>น้องไซ</b></button>
+              </div>
               <div class="set-btns">
                 <button type="button" onclick="aiShowContext()">
-                  <svg viewBox="0 0 24 24"><use href="#lu-search"/></svg>น้องไซเห็นอะไร</button>
+                  <svg viewBox="0 0 24 24"><use href="#lu-search"/></svg><span><span data-mname>น้องฮูก</span>เห็นอะไร</span></button>
                 <button type="button" class="warn" onclick="aiClear()">
                   <svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg>ล้างประวัติแชท</button>
               </div>
@@ -2085,7 +2095,7 @@
            สัญลักษณ์ #tb-ai / #tb-ai-f ยังอยู่ครบใน <defs> ตั้งแต่รอบนั้น ไม่ต้องวาดใหม่ -->
       <button class="tab" data-scr="scr-ai" onclick="go('scr-ai')">
         <svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-ai"/></svg>
-        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-ai-f"/></svg><span>น้องไซ</span></button>
+        <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-ai-f"/></svg><span data-mname>น้องฮูก</span></button>
       <button class="tab" data-scr="scr-profile" onclick="go('scr-profile')">
         <span class="ic-wrap"><svg class="ic ic-l" viewBox="0 0 24 24"><use href="#tb-profile"/></svg>
           <svg class="ic ic-f" viewBox="0 0 24 24"><use href="#tb-profile-f"/></svg>
