@@ -12099,3 +12099,10 @@ button.df-r:active .df-x { transform: scale(.985); }
   background: color-mix(in srgb, var(--fill) 14%, transparent); color: var(--ink);
 }
 .qa-try svg { width: 16px; height: 16px; }
+.qa-how { list-style: none; margin: 4px 0 0; padding: 10px 12px; border-radius: 14px; display: flex; flex-direction: column; gap: 8px;
+  background: var(--card2); }
+.qa-how li { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; line-height: 1.55; color: var(--muted); }
+.qa-how i { flex: none; width: 18px; height: 18px; margin-top: 1px; border-radius: 50%; display: grid; place-items: center;
+  font-style: normal; font-size: 11px; font-weight: 800; background: var(--blue-soft); color: var(--blue); }
+.qa-how div { min-width: 0; overflow-wrap: anywhere; }
+.qa-how b { font-weight: 800; color: var(--ink); }

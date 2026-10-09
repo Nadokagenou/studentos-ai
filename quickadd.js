@@ -206,7 +206,9 @@ function quickCopyFallback() {
 function quickPanel() {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || '')
     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const steps = list => `<span class="src-how">${list.map((h, i) => `<span><b>${i + 1}</b>${h}</span>`).join('')}</span>`;
+  // ไม่ใช้ .src-how ของจอตัวเชื่อม — ที่นั่น <b> คือวงกลมตัวเลข และ span ทุกตัวเป็น flex
+  // คำตัวหนาในขั้นตอนเลยกลายเป็นวงกลมเล็ก ๆ แล้วข้อความแตกเป็นคอลัมน์ (เจ้าของส่งภาพจาก iPhone 9 ต.ค. 69)
+  const steps = list => `<ol class="qa-how">${list.map((h, i) => `<li><i>${i + 1}</i><div>${h}</div></li>`).join('')}</ol>`;
 
   const android = `<div class="qa-p">
       <span class="qa-h">Android</span>
