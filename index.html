@@ -115,6 +115,7 @@
   <link rel="stylesheet" href="fxgames.css">
   <!-- หน้าการ์ด + เอฟเฟกต์โชว์ของการสุ่มสกิน -->
   <link rel="stylesheet" href="gacha-fx.css">
+  <link rel="stylesheet" href="board.css">
   <link rel="stylesheet" href="custom.css">
 </head>
 <body>
@@ -247,6 +248,8 @@
     <g id="lu-target" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1.4"></circle></g>
     <g id="lu-check" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></g>
     <g id="lu-chevron" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></g>
+    <g id="lu-crown" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"></path></g>
+    <g id="lu-trophy" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></g>
     <g id="lu-flame" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"></path></g>
     <g id="lu-clock" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></g>
     <g id="lu-calendar" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path></g>
@@ -1379,6 +1382,12 @@
               <em class="pe-v" id="peFriendCt"></em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
+            <button class="pe" onclick="openBoard('scr-profile')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-trophy"/></svg></span>
+              <span class="pe-tx"><b>อันดับ</b></span>
+              <em class="pe-v" id="peBoardCt"></em>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
             <button class="pe" id="peCtx" onclick="go('scr-context')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-clock"/></svg></span>
               <span class="pe-tx"><b>บริบทของฉัน</b></span>
@@ -1631,6 +1640,12 @@
           </div>
           <div id="wheelBody"></div>
         </div>
+      </div>
+
+      <!-- ============ SCREEN: กระดานอันดับ — ใครทำงานเสร็จมากที่สุด ============
+           วาดทั้งจอจาก renderBoard() (board.js) รวมปุ่มกลับ · ทางเข้า: จอเพื่อน · แท็บ "ฉัน" -->
+      <div class="screen flush" id="scr-board">
+        <div class="scr-body bg-body bd-body" id="boardBody"></div>
       </div>
 
       <!-- ============ SCREEN: เหรียญตรา (ALT 1A6M3) ============ -->
@@ -2283,6 +2298,7 @@
 <script src="gacha-fx.js"></script>
 <!-- ปุ่มลัดเพิ่มงานจากตัวเครื่อง (แผ่นเพิ่มงานด่วน + กุญแจคำสั่งลัด iPhone) -->
 <script src="quickadd.js"></script>
+<script src="board.js"></script>
 <script src="app.js"></script>
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────

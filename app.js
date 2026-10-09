@@ -1047,7 +1047,9 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
   'scr-sai': 'scr-menu',
   // ห้องการบ้านเข้าจากรายการงาน จึงคืนไฟให้แท็บนั้น ไม่ใช่แท็บเพื่อน
   'scr-hw': 'scr-tasks',
-  'scr-compose': 'scr-menu', 'scr-post': 'scr-menu', 'scr-user': 'scr-menu' };
+  'scr-compose': 'scr-menu', 'scr-post': 'scr-menu', 'scr-user': 'scr-menu',
+  // กระดานอันดับเข้าจากจอเพื่อน (ซึ่งยืมไฟแท็บ "วันนี้") หรือแท็บ "ฉัน" — ยืมไฟตามจอเพื่อน
+  'scr-board': 'scr-menu' };
 
 // ---------- 1A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
 // บนมือถือ การสลับไปแอปอื่นแล้วกลับมามักทำให้ระบบโหลดหน้าใหม่ทั้งหน้า
@@ -1069,7 +1071,9 @@ const NO_RESUME = ['scr-crop', 'scr-parsing', 'scr-form', 'scr-login', 'scr-onbo
   // 1C18 · ห้องคุยแผนวาดจาก openSaiPlan() ล้วน ๆ · กลับเข้าแอปแล้วถูกพามาที่นี่ตรง ๆ
   // จะได้จอเปล่าที่ไม่มีแม้แต่ปุ่มย้อนกลับ · และ "แผนวันนี้" ที่เล่าค้างไว้เมื่อครึ่งชั่วโมงก่อน
   // ก็ไม่ใช่สิ่งที่ใครอยากกลับมาเจอต่อจากข้อที่สามอยู่แล้ว
-  'scr-sai'];
+  'scr-sai',
+  // กระดานอันดับวาดจาก renderBoard() ทั้งจอ รวมปุ่มกลับ — กลับเข้าแอปมาตรงนี้ = จอเปล่าออกไม่ได้
+  'scr-board'];
 
 // ---------- ตาข่ายรองรับชั้นที่สอง ----------
 // NO_RESUME กันทางที่เจอจริงไปแล้ว แต่ยังมีทางอื่นที่พาเข้าจอพวกนี้โดยไม่มีใครสั่งวาด
@@ -1092,6 +1096,7 @@ const LIVE_ONLY = {
   // แต่ยังต้องมีตาข่ายรองไว้ เพราะทางเข้าจอพวกนี้มีหลายทางและเพิ่มได้เรื่อย ๆ
   'scr-user':    { body: 'userBody',    back: 'scr-profile' },
   'scr-post':    { body: 'postBody',    back: 'scr-mates' },
+  'scr-board':   { body: 'boardBody',   back: 'scr-mates' },
   // ทางเข้าห้องคุยแผนมีทางเดียวคือ openSaiPlan() แต่ปุ่มย้อนของเครื่องพาเข้ามาได้
   'scr-sai':     { body: 'saiBody',     back: 'scr-menu' },
 };
@@ -7568,6 +7573,7 @@ function renderFriends(force) {
   // อย่าพับกลับอีกจนกว่าจะมีคนใช้จริงที่มีเพื่อนกันแล้วเป็นสิบคน
   body.innerHTML = `
     <div id="frMeRow"></div>
+    <div id="frBoardRow"></div>
     <div class="fr-search big" id="frSearchBox">
       ${icon('search')}
       <input id="frQ" autocomplete="off" autocapitalize="off" spellcheck="false"
@@ -7580,6 +7586,8 @@ function renderFriends(force) {
     <div id="frListBox"></div>`;
   body.dataset.built = '1';
   paintFriendParts();
+  // การ์ด "อันดับ" (board.js) — โหลดอันดับของเราไว้เงียบ ๆ ให้การ์ดบอกตัวเลขได้เลย
+  if (typeof paintBoardEntry === 'function') { paintBoardEntry(); boardWarm(); }
 }
 
 // ช่องค้นหาไม่พับแล้ว (1B64) ปุ่มแว่นขยายจึงถูกถอดออกจากหัวจอ
