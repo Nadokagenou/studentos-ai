@@ -445,3 +445,25 @@
 .bd-anim .bd-me-bar > i { animation: bd-grow .9s .3s cubic-bezier(.2, .8, .2, 1) both; }
 .bd-anim .bd-me-bar > span { animation: bd-run .9s .3s cubic-bezier(.2, .8, .2, 1) both; }
 @media (prefers-reduced-motion: reduce) { .bd-anim .bd-me-bar > i, .bd-anim .bd-me-bar > span { animation: none; } }
+
+/* ============================================================
+   11 ต.ค. 69 · แผ่นชั้นหน้าเป็นสีอ่อน ไม่ใช่ขาวล้วน
+   เจ้าของ: "ปรับสีให้หน่อย ขาว ๆ ที่เลเยอร์ 2 ให้มันเป็นสีอ่อน ๆ"
+   แผ่นไล่จากชมพูอ่อน (รับแสงชมพูของพื้นหลัง) ลงไปหาสีหลักของธีมอ่อน ๆ
+   การ์ดกับแถวบนแผ่นเป็นขาวโปร่งนิด ๆ + ขอบขาว — ยังแยกชั้นจากแผ่นได้โดยไม่กลับไปขาวโพลน
+   ============================================================ */
+.bd-sheet {
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, #FF6FB5 22%, var(--scr)) 0%,
+      color-mix(in srgb, #A78BFA 20%, var(--scr)) 340px,
+      color-mix(in srgb, var(--blue) 16%, var(--scr)) 100%);
+}
+.bd-sheet .bd-row {
+  background: color-mix(in srgb, var(--card) 62%, transparent);
+  border-color: color-mix(in srgb, #fff 60%, transparent);
+  box-shadow: 0 8px 20px -16px color-mix(in srgb, var(--blue) 60%, #000);
+}
+.bd-sheet .bd-row.me { background: color-mix(in srgb, var(--blue) 14%, var(--card)); border-color: var(--blue); }
+.bd-sheet > .bd-me { background: var(--card); }   /* ทึบ — การ์ดคร่อมขอบแผ่น ส่วนบนอยู่บนพื้นหลังสีเข้ม ถ้าโปร่งจะเป็นแถบเทา */
+.bd-sheet .bd-me-bar { background: color-mix(in srgb, var(--blue) 12%, var(--card2)); }
