@@ -225,38 +225,38 @@ function boardStatus(d, me) {
 // สามบรรทัด ลำดับชัด: เป้าถัดไป (ใหญ่สุด) → ลู่วิ่ง (รูปเราไล่รูปเขา) → ข้อมูลประกอบ (เล็กจาง)
 // อันดับของเราอยู่ในป้ายกลมทางซ้าย · ถอดน้องฮูก เลขจางตัวโต และชิปออก — แย่งสายตากันเอง
 function boardMine(d, me, rows, isAll, st) {
-  const mine = rows.find(r => r.me) || { id: 'me', name: 'คุณ' };
+  // 11 ต.ค. 69 · เจ้าของ: "ปรับการ์ดตรงกลางหน่อย มันยังดูแปลก ๆ"
+  // ต้นเหตุ: ของในการ์ดเริ่มคนละขอบซ้ายถึงห้าแนว และวงกลมอันดับก้อนใหญ่แย่งประโยคเป้าหมาย
+  // ตอนนี้: ข้อความทุกบรรทัดกับแถบเริ่มขอบเดียวกัน · อันดับเป็นวงแหวนทางขวา (ตำแหน่งเดียวกับวงรางวัล
+  // ในการ์ดของภาพอ้างอิง) · วันติดไม่อยู่ในการ์ดแล้ว (แถบสถานะบนสุดมีอยู่แล้ว)
   const above = rows.filter(r => r.pos < me.pos && r.n > me.n).pop();
   const below = rows.find(r => r.pos === me.pos + 1);
-  let goal, pct, target = null;
+  let goal, pct;
   if (d.hidden) { goal = 'ชื่อคุณซ่อนอยู่'; pct = 0; }
-  else if (!me.n) { goal = 'ทำงานเสร็จ 1 ใบ เพื่อขึ้นกระดาน'; pct = 0; }
-  else if (above) {
-    goal = `อีก ${above.n - me.n + 1} งาน แซง ${esc(boardName(above))}`;
-    pct = me.n / (above.n + 1); target = above;
-  } else if (below && below.n < me.n) { goal = `นำที่ ${below.rank} อยู่ ${me.n - below.n} งาน`; pct = 1; }
-  else if (below) { goal = 'อีก 1 งาน ขึ้นนำคนเดียว'; pct = me.n / (me.n + 1); }
+  else if (!me.n) { goal = 'ทำงานเสร็จ 1 ใบ → ขึ้นกระดาน'; pct = 0; }
+  else if (above) { goal = `อีก ${above.n - me.n + 1} งาน → แซง ${esc(boardName(above))}`; pct = me.n / (above.n + 1); }
+  else if (below && below.n < me.n) { goal = `นำที่ ${below.rank} อยู่ ${me.n - below.n} งาน`; pct = 1; }
+  else if (below) { goal = 'อีก 1 งาน → ขึ้นนำคนเดียว'; pct = me.n / (me.n + 1); }
   else { goal = 'คุณนำอยู่'; pct = 1; }
   pct = Math.round(Math.max(0, Math.min(1, pct)) * 100);
 
-  const prize = isAll && me.n && !d.hidden ? (BOARD_PRIZE[me.rank] || 0) : 0;
-  const meta = [
-    me.n ? `${me.n} งาน` : '',
-    me.streak > 1 ? `${icon('flame')}${me.streak} วันติด` : '',
-  ].filter(Boolean).join('<i class="bd-dot"></i>');
-  return `<div class="bd-me bd-in" ${st}>
-      <div class="bd-me-title"><b>${isAll ? 'กระดานหลัก' : 'กระดานเพื่อน'}</b><span>${boardSeasonLabel(d.season)} · เหลือ ${boardDaysLeft(d.season)} วัน</span></div>
-      <div class="bd-me-hd">
-        <div class="bd-me-rk${prize ? ' gold' : ''}"><b>${me.n && !d.hidden ? me.rank : '–'}</b><small>${me.n && !d.hidden ? 'จาก ' + d.total : 'อันดับ'}</small></div>
-        <div class="bd-me-goal">${goal}</div>
-        ${prize ? `<span class="bd-me-prize">${typeof coin === 'function' ? coin(16) : ''}+${prize}</span>` : ''}
+  const ranked = me.n && !d.hidden;
+  const prize = isAll && ranked ? (BOARD_PRIZE[me.rank] || 0) : 0;
+  const mine = rows.find(r => r.me) || { id: 'me', name: 'คุณ' };
+  return `<div class="bd-me bd-in${prize ? ' top' : ''}" ${st}>
+      <div class="bd-me-main">
+        <div class="bd-me-tx">
+          <div class="bd-me-title">${isAll ? 'กระดานหลัก' : 'กระดานเพื่อน'}</div>
+          <div class="bd-me-goal">${goal}</div>
+          <div class="bd-me-sub">${boardSeasonLabel(d.season)}${me.n ? ` · ทำแล้ว ${me.n} งาน` : ''}</div>
+        </div>
+        <div class="bd-me-rk"><small>อันดับ</small><b>${ranked ? me.rank : '–'}</b>${ranked ? `<small>จาก ${d.total}</small>` : ''}</div>
       </div>
-      <div class="bd-race-track">
-        <i class="bd-race-fill" style="width:${pct}%"></i>
-        <span class="bd-race-me" style="left:${pct}%">${boardAv(mine)}</span>
-        ${target ? `<span class="bd-race-tg">${boardAv(target)}</span>` : `<span class="bd-race-flag">${icon('flag')}</span>`}
+      <div class="bd-me-bar"><i style="width:${pct}%"></i><span style="left:${pct}%">${boardAv(mine)}</span></div>
+      <div class="bd-me-foot">
+        <span class="bd-me-chip">จบซีซันใน <b>${boardDaysLeft(d.season)}</b> วัน</span>
+        ${prize ? `<span class="bd-me-chip gold">${typeof coin === 'function' ? coin(15) : ''}+${prize} ตอนจบซีซัน</span>` : ''}
       </div>
-      <div class="bd-me-meta">${meta}</div>
       ${d.hidden ? `<button class="bd-join" onclick="boardToggleHide()">แสดงชื่อฉันบนกระดาน</button>` : ''}
     </div>`;
 }

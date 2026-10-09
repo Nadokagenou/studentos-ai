@@ -408,3 +408,40 @@
 .bd-me-title { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
 .bd-me-title b { font-size: 13px; font-weight: 900; color: var(--blue); letter-spacing: .01em; }
 .bd-me-title span { font-size: 12px; font-weight: 600; color: var(--faint); }
+
+/* ============================================================
+   11 ต.ค. 69 · การ์ดตรงกลางรอบใหม่ — ขอบซ้ายเดียว · อันดับเป็นวงแหวนขวา
+   ============================================================ */
+.bd-me { padding: 18px 18px 16px; }
+.bd-me-main { display: flex; align-items: center; gap: 14px; }
+.bd-me-tx { flex: 1; min-width: 0; }
+.bd-me .bd-me-title { display: block; margin: 0; font-size: 12.5px; font-weight: 800; color: var(--blue); letter-spacing: .01em; }
+.bd-me-goal { margin-top: 3px; font-size: 17px; font-weight: 800; line-height: 1.35; color: var(--ink); }
+.bd-me-sub { margin-top: 3px; font-size: 12.5px; font-weight: 600; color: var(--faint); }
+.bd-me .bd-me-rk {
+  width: 66px; height: 66px; flex: none; border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05;
+  background: var(--card); color: var(--ink); box-shadow: none;
+  border: 3px solid transparent;
+  background: linear-gradient(var(--card), var(--card)) padding-box, var(--grad-brand) border-box;
+}
+.bd-me .bd-me-rk b { font-size: 22px; font-weight: 900; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.bd-me .bd-me-rk small { font-size: 9.5px; font-weight: 700; color: var(--faint); opacity: 1; margin: 0; }
+.bd-me.top .bd-me-rk { background: linear-gradient(var(--gold-soft), var(--gold-soft)) padding-box, linear-gradient(160deg, #FFE38A, #E9B33A) border-box; }
+.bd-me.top .bd-me-rk b { color: var(--gold-text); }
+
+.bd-me-bar { position: relative; height: 8px; margin: 16px 12px 0 0; border-radius: 99px; background: var(--card2); }
+.bd-me-bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: var(--grad-brand); }
+.bd-me-bar > span { position: absolute; top: 50%; transform: translate(-50%, -50%); line-height: 0; }
+.bd-me-bar > span .fr-av { width: 22px; height: 22px; font-size: 10px; box-shadow: 0 0 0 2.5px var(--card), 0 0 0 4px var(--blue); }
+
+.bd-me-foot { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.bd-me-chip {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 11px; border-radius: 999px;
+  background: var(--blue-soft); color: var(--blue-deep, var(--blue)); font-size: 12px; font-weight: 700;
+}
+.bd-me-chip b { font-weight: 900; }
+.bd-me-chip.gold { background: var(--gold-soft); color: var(--gold-text); }
+.bd-anim .bd-me-bar > i { animation: bd-grow .9s .3s cubic-bezier(.2, .8, .2, 1) both; }
+.bd-anim .bd-me-bar > span { animation: bd-run .9s .3s cubic-bezier(.2, .8, .2, 1) both; }
+@media (prefers-reduced-motion: reduce) { .bd-anim .bd-me-bar > i, .bd-anim .bd-me-bar > span { animation: none; } }
