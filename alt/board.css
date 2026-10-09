@@ -26,192 +26,157 @@
 }
 .bd-seg button.on { color: var(--ink); }
 
-/* ---------- การ์ดของเรา ---------- */
-.bd-hero {
-  position: relative; isolation: isolate; overflow: hidden;
-  padding: 18px 18px 18px; border-radius: 26px;
-  background:
-    radial-gradient(120% 90% at 100% 0%, rgba(255, 255, 255, .22), transparent 55%),
-    radial-gradient(80% 70% at 0% 100%, rgba(255, 255, 255, .10), transparent 60%),
-    var(--grad-hero);
-  color: #fff; box-shadow: var(--shadow-brand), inset 0 1px 0 rgba(255, 255, 255, .25);
-}
-/* เลขอันดับจาง ๆ ตัวโตหลังการ์ด — ให้การ์ดมีมิติโดยไม่ต้องเพิ่มข้อความ */
-.bd-hero-wm {
-  position: absolute; right: -10px; bottom: -46px; z-index: -1;
-  font-size: 180px; font-weight: 900; line-height: 1; letter-spacing: -.06em;
-  color: rgba(255, 255, 255, .07); font-variant-numeric: tabular-nums; pointer-events: none;
-}
-.bd-hero-pet {
-  position: absolute; right: 8px; top: 12px; width: 86px; height: auto; z-index: -1;
-  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .28));
-  transform: rotate(6deg);
-  animation: bd-bob 4.2s ease-in-out infinite;
-}
-@keyframes bd-bob { 0%, 100% { transform: rotate(6deg) translateY(0); } 50% { transform: rotate(3deg) translateY(-5px); } }
-.bd-hero-lb { font-size: 12.5px; font-weight: 600; opacity: .78; }
-.bd-hero-rk { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; }
-.bd-hero-rk b {
-  font-size: 52px; font-weight: 800; line-height: 1; letter-spacing: -.045em;
-  font-variant-numeric: tabular-nums; text-shadow: 0 4px 18px rgba(0, 0, 0, .18);
-}
-.bd-hero-rk small { font-size: 14px; font-weight: 600; opacity: .75; }
-.bd-hero-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-right: 84px; }
-.bd-chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 4px 10px; border-radius: 999px;
-  background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .22);
-  font-size: 12px; font-weight: 700; white-space: nowrap;
-}
-.bd-chip svg { width: 13px; height: 13px; }
-.bd-chip.gold { background: var(--gold-soft); border-color: transparent; color: var(--gold-text); }
-
-/* ลู่วิ่ง */
-.bd-race {
-  margin-top: 16px; padding: 12px 14px 14px; border-radius: 18px;
-  background: rgba(0, 0, 0, .16); border: 1px solid rgba(255, 255, 255, .12);
-}
-.bd-race-goal { font-size: 14.5px; font-weight: 600; }
-.bd-race-goal b { font-size: 17px; font-weight: 800; }
-.bd-race-track {
-  position: relative; height: 8px; margin: 18px 22px 8px 4px; border-radius: 99px;
-  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .28) 0 6px, transparent 6px 11px);
-}
-.bd-race-fill {
-  position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px;
-  background: #fff; box-shadow: 0 0 12px rgba(255, 255, 255, .55);
-}
-.bd-race-me, .bd-race-tg, .bd-race-flag {
-  position: absolute; top: 50%; transform: translate(-50%, -50%); line-height: 0;
-}
-.bd-race-me .fr-av { width: 30px; height: 30px; font-size: 13px; box-shadow: 0 0 0 2.5px #fff, 0 4px 10px rgba(0, 0, 0, .3); }
-.bd-race-tg { left: 100%; }
-.bd-race-tg .fr-av { width: 26px; height: 26px; font-size: 12px; opacity: .9; box-shadow: 0 0 0 2px rgba(255, 255, 255, .5); }
-.bd-race-flag { left: 100%; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .2); }
-.bd-race-flag svg { width: 14px; height: 14px; }
-
-.bd-join {
-  display: flex; align-items: center; justify-content: center; width: 100%; min-height: 46px; margin-top: 14px;
-  border: none; border-radius: 999px; cursor: pointer;
-  background: #fff; color: #0F1B2D; box-shadow: 0 8px 20px -8px rgba(0, 0, 0, .45);
-  font-family: inherit; font-size: 15px; font-weight: 800;
-}
-.bd-join:active { transform: scale(.98); }
+/* หัวจอ: ชื่อจอเฉย ๆ — ซีซันกับวันที่เหลือย้ายไปอยู่ในการ์ดของเรา (ที่เดียว ไม่ซ้ำ) */
+.bd-head { padding-bottom: 0; }
 
 /* ---------- แท่นสามอันดับแรก ---------- */
-.bd-podium {
-  display: grid; grid-template-columns: 1fr 1.12fr 1fr; align-items: end; gap: 6px;
-  padding-top: 18px;
+/* พื้นแผ่นเดียวรองทั้งสามคน — ให้แท่นยืนอยู่บน "เวที" ไม่ใช่ลอยกลางจอ */
+.bd-stage {
+  position: relative; overflow: hidden;
+  display: grid; grid-template-columns: 1fr 1.15fr 1fr; align-items: end; gap: 8px;
+  padding: 26px 12px 0; border-radius: 26px;
+  background:
+    radial-gradient(90% 70% at 50% 0%, var(--blue-soft), transparent 70%),
+    linear-gradient(180deg, var(--card), var(--card2));
+  border: 1px solid var(--line); box-shadow: var(--shadow);
 }
-.bd-pc { --m: #B9C3D3; --m-ink: #3E4A5E; display: flex; flex-direction: column; align-items: center; min-width: 0; }
-.bd-pc.p1 { --m: var(--gold); --m-ink: #5A3D00; }
-.bd-pc.p3 { --m: #D49464; --m-ink: #5A2E10; }
+.bd-pc { --m: #AEB9CC; --m-ink: #3B475B; --m-top: #E9EEF6; --m-bot: #C9D3E2;
+  display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.bd-pc.p1 { --m: #E9B93C; --m-ink: #5E4100; --m-top: #FFE9A8; --m-bot: #F1C75A; }
+.bd-pc.p3 { --m: #D39466; --m-ink: #5B2F12; --m-top: #F6D8C1; --m-bot: #DFA77E; }
 .bd-pc-av { position: relative; line-height: 0; }
 .bd-pc-av .fr-av {
-  width: 48px; height: 48px; font-size: 19px;
-  box-shadow: 0 0 0 3px var(--scr), 0 0 0 5.5px var(--m), 0 10px 20px -8px rgba(15, 27, 45, .45);
+  width: 52px; height: 52px; font-size: 20px;
+  box-shadow: 0 0 0 3px var(--card), 0 0 0 5.5px var(--m), 0 10px 18px -8px rgba(15, 27, 45, .45);
 }
-.bd-pc.p1 .bd-pc-av .fr-av { width: 60px; height: 60px; font-size: 23px; }
+.bd-pc.p1 .bd-pc-av .fr-av { width: 64px; height: 64px; font-size: 24px; }
 .bd-medal {
-  position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%);
-  min-width: 22px; height: 22px; padding: 0 5px; border-radius: 999px;
+  position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%);
+  width: 22px; height: 22px; border-radius: 50%;
   display: grid; place-items: center; font-style: normal;
-  background: var(--m); color: var(--m-ink); box-shadow: 0 0 0 2.5px var(--scr);
+  background: var(--m); color: var(--m-ink); box-shadow: 0 0 0 2.5px var(--card);
   font-size: 12px; font-weight: 900; line-height: 1;
 }
 .bd-crown {
-  position: absolute; top: -20px; left: 50%; transform: translateX(-50%) rotate(-10deg);
-  color: var(--gold); line-height: 0; filter: drop-shadow(0 3px 4px rgba(150, 100, 0, .35));
+  position: absolute; top: -21px; left: 50%; transform: translateX(-50%) rotate(-10deg);
+  line-height: 0; filter: drop-shadow(0 3px 4px rgba(150, 100, 0, .3));
 }
-.bd-crown svg { width: 26px; height: 26px; fill: var(--gold); stroke: #B98420; }
+.bd-crown { color: #E9B93C; }   /* ไอคอนในสไปรต์เป็นเส้น (stroke = currentColor) จึงคุมด้วย color */
+.bd-crown svg { width: 26px; height: 26px; stroke-width: 2.6; }
 .bd-pc-nm {
-  max-width: 100%; margin-top: 16px; padding: 0 2px;
-  font-size: 12.5px; font-weight: 700; color: var(--ink);
+  max-width: 100%; margin: 15px 0 8px; padding: 0 2px;
+  font-size: 13px; font-weight: 700; color: var(--ink); text-align: center;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.bd-pc-n { font-size: 11.5px; font-weight: 600; color: var(--muted); }
-.bd-pc-n b { font-size: 15px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
-.bd-pc.p1 .bd-pc-n b { color: var(--gold-text); font-size: 17px; }
-.bd-pc-base {
-  position: relative; width: 100%; margin-top: 8px; border-radius: 18px 18px 10px 10px; overflow: hidden;
-  display: grid; place-items: center;
-  background: linear-gradient(180deg, var(--card), var(--card2));
-  border: 1px solid var(--line); box-shadow: var(--shadow), inset 0 1px 0 var(--lg-hi, rgba(255, 255, 255, .8));
-}
-.bd-pc-base::before {   /* ขอบสีเหรียญด้านบนของแท่น */
-  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--m); opacity: .9;
-}
-.bd-pc-base span {
-  font-size: 30px; font-weight: 900; letter-spacing: -.04em; line-height: 1;
-  color: var(--m); opacity: .55;
-}
-.bd-pc.p1 .bd-pc-base { height: 84px; background: linear-gradient(180deg, var(--gold-soft), var(--card)); }
-.bd-pc.p1 .bd-pc-base span { font-size: 38px; opacity: .8; }
-.bd-pc.p2 .bd-pc-base { height: 62px; }
-.bd-pc.p3 .bd-pc-base { height: 48px; }
 .bd-pc.me .bd-pc-nm { color: var(--blue); }
-.bd-pc.empty .fr-av { background: var(--card2); color: var(--faint); }
+/* แท่น — คะแนนอยู่ในแท่น (ภาพอ้างอิง) · สีเหรียญไล่จากบนลงล่าง ขอบบนสว่างให้มีมิติ */
+.bd-pc-base {
+  width: 100%; border-radius: 16px 16px 0 0;
+  display: flex; justify-content: center; padding-top: 12px;
+  background: linear-gradient(180deg, var(--m-top), var(--m-bot));
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .7), inset 0 -10px 18px -12px rgba(0, 0, 0, .25);
+}
+.bd-pc-sc {
+  height: fit-content; padding: 4px 11px; border-radius: 999px;
+  background: rgba(255, 255, 255, .62); color: var(--m-ink);
+  font-size: 11.5px; font-weight: 700; white-space: nowrap;
+}
+.bd-pc-sc b { font-size: 15px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.bd-pc.p1 .bd-pc-base { height: 96px; }
+.bd-pc.p2 .bd-pc-base { height: 70px; }
+.bd-pc.p3 .bd-pc-base { height: 54px; }
+.bd-pc.empty { opacity: .55; }
+.bd-pc.empty .fr-av { background: var(--card2); }
 .bd-pc.empty .bd-pc-nm { color: var(--faint); font-weight: 600; }
-.bd-pc.empty { opacity: .7; }
 
-/* ---------- ที่เหลือ ---------- */
-.bd-list { display: flex; flex-direction: column; gap: 7px; margin-top: 4px; }
+/* ---------- การ์ดของเรา — ทรงการ์ดซีซันของภาพอ้างอิง ---------- */
+.bd-mine {
+  padding: 14px 14px 14px 12px; border-radius: 22px;
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(120deg, var(--blue), var(--blue-soft) 50%, var(--blue)) border-box;
+  box-shadow: var(--shadow);
+}
+.bd-mine.top {
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(120deg, #F2C34B, var(--gold-soft) 50%, #F2C34B) border-box;
+}
+.bd-mine-row { display: flex; align-items: center; gap: 12px; }
+.bd-mine-rk {
+  width: 54px; height: 54px; flex: none; border-radius: 18px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
+  background: var(--grad-brand); color: var(--on-accent); box-shadow: var(--shadow-brand);
+}
+.bd-mine-rk small { font-size: 9.5px; font-weight: 700; opacity: .85; }
+.bd-mine-rk b { margin-top: 2px; font-size: 22px; font-weight: 900; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.bd-mine-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.bd-mine-tx b { font-size: 15px; font-weight: 800; color: var(--ink); line-height: 1.3; }
+.bd-mine-tx span { display: flex; align-items: center; gap: 3px; white-space: nowrap; overflow: hidden; font-size: 12px; font-weight: 600; color: var(--muted); }
+.bd-mine-tx span i { display: inline-flex; align-items: center; gap: 1px; font-style: normal; color: var(--pri-red-text); font-weight: 800; }
+.bd-mine-tx span svg { width: 12px; height: 12px; color: var(--pri-red-text); }
+.bd-mine-prize {
+  width: 52px; height: 52px; flex: none; border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1;
+  border: 2px solid var(--line); color: var(--muted); font-size: 13px; font-weight: 800;
+}
+.bd-mine-prize small { font-size: 9px; font-weight: 700; }
+.bd-mine-prize.on { border-color: #F2C34B; background: var(--gold-soft); color: var(--gold-text); }
+.bd-mine-bar { height: 6px; margin: 12px 2px 0; border-radius: 99px; background: var(--card2); overflow: hidden; }
+.bd-mine-bar i { display: block; height: 100%; border-radius: 99px; background: var(--grad-brand); }
+.bd-join {
+  display: block; width: 100%; min-height: 44px; margin-top: 12px; border: none; border-radius: 999px;
+  background: var(--grad-brand); color: var(--on-accent); box-shadow: var(--shadow-brand);
+  font-family: inherit; font-size: 15px; font-weight: 800; cursor: pointer;
+}
+.bd-join:active { transform: scale(.98); }
+
+/* ---------- ที่เหลือ — แถวเรียบ ทรงเดียวกันทุกแถว ---------- */
+.bd-list { display: flex; flex-direction: column; gap: 6px; }
 .bd-row {
-  display: flex; align-items: center; gap: 11px;
-  padding: 10px 14px 10px 8px; border-radius: 18px;
-  background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow);
+  display: flex; align-items: center; gap: 12px; min-height: 58px;
+  padding: 8px 16px 8px 10px; border-radius: 18px;
+  background: var(--card); border: 1px solid var(--line);
 }
-.bd-row.me {
-  border-color: transparent;
-  box-shadow: 0 0 0 2px var(--blue), 0 10px 24px -12px var(--blue);
-}
-.bd-rk {
-  width: 30px; height: 30px; flex: none; border-radius: 10px; display: grid; place-items: center;
-  background: var(--card2); color: var(--muted);
-  font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums;
-}
-.bd-row.me .bd-rk { background: var(--blue); color: var(--on-accent); }
-.bd-rav .fr-av { width: 36px; height: 36px; font-size: 15px; }
-.bd-rmid { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.bd-row.me { background: var(--blue-soft); border-color: var(--blue); }
+.bd-rk { width: 26px; flex: none; text-align: center; font-size: 15px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bd-row.me .bd-rk { color: var(--blue); }
+.bd-rav .fr-av { width: 38px; height: 38px; font-size: 15px; }
 .bd-rnm {
-  display: flex; align-items: center; gap: 6px; min-width: 0;
-  font-size: 14.5px; font-weight: 700; color: var(--ink);
+  flex: 1; min-width: 0; font-size: 15px; font-weight: 600; color: var(--ink);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.bd-rbar { height: 5px; border-radius: 99px; background: var(--card2); overflow: hidden; }
-.bd-rbar i { display: block; height: 100%; border-radius: 99px; background: var(--blue); opacity: .55; }
-.bd-row.me .bd-rbar i { opacity: 1; }
-.bd-rn { flex: none; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1;
-  font-size: 10.5px; font-weight: 600; color: var(--faint); }
-.bd-rn b { font-size: 17px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
-.bd-gap { display: flex; justify-content: center; gap: 5px; padding: 4px 0; }
+.bd-row.me .bd-rnm { font-weight: 800; }
+.bd-rn { flex: none; font-size: 12px; font-weight: 600; color: var(--faint); white-space: nowrap; }
+.bd-rn b { font-size: 16px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.bd-gap { display: flex; justify-content: center; gap: 5px; padding: 3px 0; }
 .bd-gap i { width: 5px; height: 5px; border-radius: 50%; background: var(--faint); opacity: .5; }
 
 .bd-fire {
   display: inline-flex; align-items: center; gap: 2px; flex: none; font-style: normal;
-  color: var(--pri-red-text); font-size: 12px; font-weight: 700;
+  padding: 2px 7px 2px 5px; border-radius: 999px;
+  background: var(--pri-red-soft); color: var(--pri-red-text); font-size: 11.5px; font-weight: 800;
 }
-.bd-fire svg { width: 13px; height: 13px; }
+.bd-fire svg { width: 12px; height: 12px; }
 
 .bd-leave {
-  align-self: center; margin-top: 6px; padding: 10px 14px;
+  align-self: center; margin-top: 2px; padding: 10px 14px;
   border: none; background: none; cursor: pointer;
   color: var(--faint); font-family: inherit; font-size: 12.5px;
 }
 
 /* ---------- ไล่ขึ้นทีละชิ้น (เฉพาะตอนเพิ่งเข้าจอ — ดู boardAnim) ---------- */
 .bd-anim .bd-in { animation: bd-up .5s cubic-bezier(.2, .9, .3, 1.05) both; animation-delay: calc(min(var(--i, 0), 10) * 45ms); }
-.bd-anim .bd-race-fill { animation: bd-grow .9s .25s cubic-bezier(.2, .8, .2, 1) both; }
-.bd-anim .bd-race-me { animation: bd-run .9s .25s cubic-bezier(.2, .8, .2, 1) both; }
-.bd-anim .bd-pc-base { animation: bd-rise .55s cubic-bezier(.2, .9, .3, 1.1) both; transform-origin: bottom; }
-.bd-anim .bd-pc.p1 .bd-pc-base { animation-delay: .12s; }
-.bd-anim .bd-pc.p3 .bd-pc-base { animation-delay: .06s; }
+.bd-anim .bd-pc-base { animation: bd-rise .6s cubic-bezier(.2, .9, .3, 1.1) both; transform-origin: bottom; }
+.bd-anim .bd-pc.p2 .bd-pc-base { animation-delay: .08s; }
+.bd-anim .bd-pc.p1 .bd-pc-base { animation-delay: .16s; }
+.bd-anim .bd-mine-bar i { animation: bd-grow .9s .3s cubic-bezier(.2, .8, .2, 1) both; }
 @keyframes bd-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes bd-rise { from { transform: scaleY(.15); } to { transform: none; } }
 @keyframes bd-grow { from { width: 0; } }
-@keyframes bd-run { from { left: 0; } }
-@keyframes bd-rise { from { transform: scaleY(.2); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .bd-anim .bd-in, .bd-anim .bd-race-fill, .bd-anim .bd-race-me, .bd-anim .bd-pc-base, .bd-hero-pet { animation: none; }
+  .bd-anim .bd-in, .bd-anim .bd-pc-base, .bd-anim .bd-mine-bar i { animation: none; }
 }
 
 /* ---------- ยังไม่ล็อกอิน / ยังไม่เปิด / โหลดพลาด ---------- */
@@ -225,8 +190,8 @@
 
 /* โครงระหว่างรอ */
 .bd-skel { background: var(--card2); box-shadow: none; border-color: transparent; }
-.bd-hero.bd-skel { min-height: 230px; background: var(--card2); }
-.bd-podium.bd-skel { min-height: 190px; border-radius: 22px; }
+.bd-stage.bd-skel { min-height: 250px; background: var(--card2); border-color: transparent; }
+.bd-mine.bd-skel { min-height: 96px; background: var(--card2); border-color: transparent; }
 
 /* ---------- การ์ดทางเข้าในจอเพื่อน ---------- */
 .bd-entry {

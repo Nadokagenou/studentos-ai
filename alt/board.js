@@ -125,13 +125,15 @@ function boardStreak(r) {
 }
 
 // ---------- จอ ----------
-// 9 ต.ค. 69 · แบบ A "ตัวเราก่อน" ที่เจ้าของเลือก — รอบแรกลอกฉากเกาะลอยจากภาพอ้างอิง
-// ถูกตีกลับว่า "ไม่สวยเลย อย่าก็อป" · รอบสองแบน ๆ ถูกขอ "สวยกว่านี้" → รอบนี้
-// ลำดับบนจอ = ลำดับความสำคัญของคนที่เปิดจอ:
-//   1) เราอยู่ตรงไหน และอีกกี่งานถึงจะแซงใคร (ลู่วิ่ง: รูปเราไล่ตามรูปเขา)
-//   2) แท่นสามอันดับแรก — เป้าที่ไกลกว่า
-//   3) ที่เหลือ พร้อมแถบเทียบกับที่ 1
-// สีมาจากโทเคนของธีมทั้งหมด ยกเว้นสีเหรียญเงิน/ทองแดง (ทองใช้ --gold ของแอป)
+// รอบที่สี่ (9 ต.ค. 69) · เจ้าของ: "ดีขึ้นนะ แต่ก็ยังไม่สวย ... เหมือนข้อความมันกระจัดกระจาย
+// หรือองค์ประกอบแปลก ๆ อยู่" + ให้หยิบจากภาพอ้างอิงแรกมาใช้ได้
+// สิ่งที่กระจัดกระจายในรอบก่อน และที่แก้:
+//   · เลขอันดับโผล่สองที่ (เหรียญบนรูป + เลขบนแท่น) → เหลือที่เดียวคือเหรียญ
+//   · คะแนนลอยแยกจากแท่น → คะแนนอยู่ "ในแท่น" แบบภาพอ้างอิง
+//   · การ์ดของเรามีหกชิ้นแยกกัน (ป้าย · เลข · ชิป · ลู่วิ่ง · มาสคอต · ปุ่ม) → การ์ดเดียวแบบ
+//     "การ์ดซีซัน" ของภาพอ้างอิง: เหรียญอันดับซ้าย · เป้าถัดไป + ซีซันกลาง · วงรางวัลขวา · แถบใต้
+//   · แถวรายชื่อมีแถบเทียบและ "งาน" ซ้อนใต้ตัวเลข → แถวเรียบเท่ากันทุกแถว
+// ลำดับ: แท่นสามอันดับก่อน (เรื่องหลักของกระดาน) → การ์ดของเรา → ที่เหลือ
 let boardAnim = true;   // ไล่ขึ้นทีละชิ้นเฉพาะตอนเพิ่งเข้าจอ/สลับกระดาน ไม่ใช่ทุกครั้งที่วาดใหม่
 
 function renderBoard() {
@@ -146,10 +148,7 @@ function renderBoard() {
       <button class="sh-btn" onclick="go(boardBack)" aria-label="กลับ">
         <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
     </div>
-    <div class="page-head">
-      ${d && d.season ? `<div class="eyebrow mono">${boardSeasonLabel(d.season)} · เหลือ ${boardDaysLeft(d.season)} วัน</div>` : ''}
-      <h1 class="page-title">อันดับ</h1>
-    </div>
+    <div class="page-head bd-head"><h1 class="page-title">อันดับ</h1></div>
     ${currentUser ? `<div class="bd-seg${isAll ? '' : ' r'}" role="tablist">
       <i class="bd-seg-k"></i>
       <button role="tab" aria-selected="${isAll}" class="${isAll ? 'on' : ''}" onclick="boardScopeSet('all')">ทั้งหมด</button>
@@ -166,13 +165,12 @@ function renderBoard() {
     body.innerHTML = head + (err
       ? `<div class="bd-gate">${icon('trophy')}<b>${err === 'soon' ? 'กระดานอันดับยังไม่เปิด' : 'โหลดไม่สำเร็จ'}</b>
           ${err === 'net' ? '<button class="fr-gate-go" onclick="loadBoard()">ลองใหม่</button>' : ''}</div>`
-      : `<div class="bd-hero bd-skel"></div><div class="bd-podium bd-skel"></div>`);
+      : `<div class="bd-stage bd-skel"></div><div class="bd-mine bd-skel"></div>`);
     return;
   }
 
   const rows = d.rows || [];
   const me = d.me || { rank: 0, n: 0, pos: 0, streak: 0 };
-  const lead = (rows.find(r => r.pos === 1) || {}).n || 1;
   const rest = rows.filter(r => r.pos > 3);
   let i = 0;
   const step = () => `style="--i:${i++}"`;
@@ -180,9 +178,9 @@ function renderBoard() {
   body.classList.toggle('bd-anim', boardAnim);
   boardAnim = false;
   body.innerHTML = head
-    + boardHero(d, me, rows, isAll, step())
-    + boardPodium(rows, step())
-    + (rest.length ? `<div class="bd-list">${boardList(rest, lead, step)}</div>` : '')
+    + boardStage(rows, step())
+    + boardMine(d, me, rows, isAll, step())
+    + (rest.length ? `<div class="bd-list">${boardList(rest, step)}</div>` : '')
     + (d.hidden ? '' : `<button class="bd-leave" onclick="boardToggleHide()">ซ่อนชื่อฉันจากกระดาน</button>`);
 }
 
@@ -194,80 +192,65 @@ function boardScopeSet(scope) {
   if (!boardData[boardScope]) loadBoard();
 }
 
-// ---------- การ์ดของเรา ----------
-// ลู่วิ่ง: รูปเราวิ่งอยู่บนแถบ รูปคนที่จะแซงรออยู่ปลายแถบ — "อีก 2 งาน" กลายเป็นภาพที่เห็นระยะจริง
-function boardHero(d, me, rows, isAll, st) {
-  const mine = rows.find(r => r.me) || { id: 'me', name: 'คุณ' };
+// ---------- แท่นสามอันดับแรก ----------
+// แต่ละคนมีสามอย่างเรียงลงมาเป็นแกนเดียว: รูป(+เหรียญ) → ชื่อ → แท่นที่มีคะแนนอยู่ข้างใน
+function boardStage(rows, st) {
+  const col = place => {
+    const r = rows.find(x => x.pos === place);
+    if (!r) return `<div class="bd-pc p${place} empty">
+        <div class="bd-pc-av"><div class="fr-av"></div><i class="bd-medal">${place}</i></div>
+        <div class="bd-pc-nm">ว่าง</div>
+        <div class="bd-pc-base"><span class="bd-pc-sc">—</span></div></div>`;
+    return `<div class="bd-pc p${place}${r.me ? ' me' : ''}">
+        <div class="bd-pc-av">${place === 1 ? `<i class="bd-crown">${icon('crown')}</i>` : ''}${boardAv(r)}<i class="bd-medal">${r.rank}</i></div>
+        <div class="bd-pc-nm">${r.me ? 'คุณ' : esc(boardName(r))}</div>
+        <div class="bd-pc-base"><span class="bd-pc-sc"><b>${r.n}</b> งาน</span></div>
+      </div>`;
+  };
+  return `<div class="bd-stage bd-in" ${st}>${col(2)}${col(1)}${col(3)}</div>`;
+}
+
+// ---------- การ์ดของเรา (ทรงการ์ดซีซันของภาพอ้างอิง) ----------
+function boardMine(d, me, rows, isAll, st) {
   const above = rows.filter(r => r.pos < me.pos && r.n > me.n).pop();
   const below = rows.find(r => r.pos === me.pos + 1);
-  let goal, pct, target = null;
-  if (!me.n) { goal = 'ทำงานเสร็จ <b>1</b> ใบ เพื่อขึ้นกระดาน'; pct = 0; }
-  else if (above) {
-    goal = `อีก <b>${above.n - me.n + 1}</b> งาน แซง ${esc(boardName(above))}`;
-    pct = me.n / (above.n + 1); target = above;
-  } else if (below && below.n < me.n) { goal = `นำที่ ${below.rank} อยู่ <b>${me.n - below.n}</b> งาน`; pct = 1; }
-  else if (below) { goal = 'อีก <b>1</b> งาน ขึ้นนำคนเดียว'; pct = me.n / (me.n + 1); }
-  else { goal = 'นำอยู่'; pct = 1; }
+  let goal, pct;
+  if (d.hidden) { goal = 'ชื่อคุณซ่อนอยู่'; pct = 0; }
+  else if (!me.n) { goal = 'ทำงานเสร็จ 1 ใบ เพื่อขึ้นกระดาน'; pct = 0; }
+  else if (above) { goal = `อีก ${above.n - me.n + 1} งาน แซง ${esc(boardName(above))}`; pct = me.n / (above.n + 1); }
+  else if (below && below.n < me.n) { goal = `นำที่ ${below.rank} อยู่ ${me.n - below.n} งาน`; pct = 1; }
+  else if (below) { goal = 'อีก 1 งาน ขึ้นนำคนเดียว'; pct = me.n / (me.n + 1); }
+  else { goal = 'คุณนำอยู่'; pct = 1; }
   pct = Math.round(Math.max(0, Math.min(1, pct)) * 100);
 
-  const prize = isAll && me.n && !d.hidden ? (BOARD_PRIZE[me.rank] || 0) : 0;
-  const pet = typeof synBody === 'function' ? synBody() : '';
-  return `<div class="bd-hero bd-in" ${st}>
-      <span class="bd-hero-wm" aria-hidden="true">${me.n ? me.rank : ''}</span>
-      ${pet ? `<img class="bd-hero-pet" src="${pet}" alt="" aria-hidden="true">` : ''}
-      <div class="bd-hero-lb">อันดับของคุณ · ${isAll ? 'ทั้งหมด' : 'เพื่อน'}</div>
-      <div class="bd-hero-rk">${me.n ? `<b>#${me.rank}</b><small>จาก ${d.total} คน</small>` : '<b>—</b>'}</div>
-      <div class="bd-hero-chips">
-        <span class="bd-chip">${icon('check')}${me.n} งาน</span>
-        ${me.streak > 1 ? `<span class="bd-chip">${icon('flame')}${me.streak} วันติด</span>` : ''}
-        ${prize ? `<span class="bd-chip gold">${typeof coin === 'function' ? coin(16) : ''}+${prize}</span>` : ''}
-      </div>
-      <div class="bd-race">
-        <div class="bd-race-goal">${goal}</div>
-        <div class="bd-race-track">
-          <i class="bd-race-fill" style="width:${pct}%"></i>
-          <span class="bd-race-me" style="left:${pct}%">${boardAv(mine)}</span>
-          ${target ? `<span class="bd-race-tg">${boardAv(target)}</span>` : `<span class="bd-race-flag">${icon('flag')}</span>`}
+  const top3 = isAll && me.n && me.rank <= 3 && !d.hidden;
+  const prize = isAll ? (top3 ? BOARD_PRIZE[me.rank] : BOARD_PRIZE[3]) : 0;
+  return `<div class="bd-mine bd-in${top3 ? ' top' : ''}" ${st}>
+      <div class="bd-mine-row">
+        <div class="bd-mine-rk"><small>อันดับ</small><b>${me.n && !d.hidden ? me.rank : '–'}</b></div>
+        <div class="bd-mine-tx">
+          <b>${goal}</b>
+          <span>${boardSeasonLabel(d.season)} · เหลือ ${boardDaysLeft(d.season)} วัน${me.streak > 1 ? ` · <i title="ทำงานเสร็จติดกัน ${me.streak} วัน">${icon('flame')}${me.streak}</i>` : ''}</span>
         </div>
+        ${prize ? `<div class="bd-mine-prize${top3 ? ' on' : ''}">${top3 ? '' : '<small>Top 3</small>'}+${prize}</div>` : ''}
       </div>
+      <div class="bd-mine-bar"><i style="width:${pct}%"></i></div>
       ${d.hidden ? `<button class="bd-join" onclick="boardToggleHide()">แสดงชื่อฉันบนกระดาน</button>` : ''}
     </div>`;
 }
 
-// ---------- แท่นสามอันดับแรก ----------
-// ที่ 1 กลาง สูงสุด · ทองของแอปใช้เฉพาะที่ 1 (ทอง = สำเร็จแล้ว) · ที่ 2 เงิน · ที่ 3 ทองแดง
-function boardPodium(rows, st) {
-  const col = place => {
-    const r = rows.find(x => x.pos === place);
-    if (!r) return `<div class="bd-pc p${place} empty">
-        <div class="bd-pc-av"><div class="fr-av">?</div><i class="bd-medal">${place}</i></div>
-        <div class="bd-pc-nm">ว่าง</div><div class="bd-pc-n">&nbsp;</div>
-        <div class="bd-pc-base"><span>${place}</span></div></div>`;
-    return `<div class="bd-pc p${place}${r.me ? ' me' : ''}">
-        <div class="bd-pc-av">${place === 1 ? `<i class="bd-crown">${icon('crown')}</i>` : ''}${boardAv(r)}<i class="bd-medal">${r.rank}</i></div>
-        <div class="bd-pc-nm">${r.me ? 'คุณ' : esc(boardName(r))}</div>
-        <div class="bd-pc-n"><b>${r.n}</b> งาน</div>
-        <div class="bd-pc-base"><span>${r.rank}</span></div>
-      </div>`;
-  };
-  return `<div class="bd-podium bd-in" ${st}>${col(2)}${col(1)}${col(3)}</div>`;
-}
-
-// ---------- ที่เหลือ ----------
-function boardList(rest, lead, step) {
+// ---------- ที่เหลือ — แถวเรียบเท่ากันทุกแถว ----------
+function boardList(rest, step) {
   let out = '', prev = 3;
   for (const r of rest) {
     if (r.pos > prev + 1) out += `<div class="bd-gap" aria-hidden="true"><i></i><i></i><i></i></div>`;
     prev = r.pos;
-    const w = Math.max(4, Math.round(r.n / lead * 100));
     out += `<div class="bd-row bd-in${r.me ? ' me' : ''}" ${step()}>
         <span class="bd-rk">${r.rank}</span>
         <span class="bd-rav">${boardAv(r)}</span>
-        <span class="bd-rmid">
-          <span class="bd-rnm">${r.me ? 'คุณ' : esc(boardName(r))}${boardStreak(r)}</span>
-          <span class="bd-rbar"><i style="width:${w}%"></i></span>
-        </span>
-        <span class="bd-rn"><b>${r.n}</b>งาน</span>
+        <span class="bd-rnm">${r.me ? 'คุณ' : esc(boardName(r))}</span>
+        ${boardStreak(r)}
+        <span class="bd-rn"><b>${r.n}</b> งาน</span>
       </div>`;
   }
   return out;
