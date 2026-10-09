@@ -2220,6 +2220,12 @@ function todayHead(sp, now) {
          ซึ่งเป็นทางที่เร็วกว่าด้วย (ถ่ายรูปตารางทีเดียวจบ แทนการกรอกทีละคาบ) -->
     <!-- 1C40 · กระดิ่งพาไปจอการแจ้งเตือน (ข้อความจากเพื่อน + งานเข้ากล่อง) แทนกล่องเข้าอย่างเดียว
          จุดแดงนับทั้งสองสาย · ตัวเลขยังไม่ใส่ ด้วยเหตุผลเดิมของ .th-dot -->
+    <!-- 9 ต.ค. 69 · ทางเข้ากระดานอันดับบนหน้าแรก (เจ้าของ: "อยู่หน้าฉันด้วย หายาก ต้องมาอยู่หน้าวันนี้")
+         อยู่ในหัวจอข้างกระดิ่ง ไม่กินความสูงสักพิกเซล — หน้าแรกต้องไม่ต้องเลื่อน
+         ป้าย #อันดับ ขึ้นเมื่อโหลดอันดับแล้วเท่านั้น (board.js · boardRankLabel) ไม่เดา -->
+    ${typeof openBoard === 'function' && currentUser && (typeof sosFeature !== 'function' || sosFeature('social'))
+      ? `<button class="th-rank" onclick="openBoard('scr-menu')" aria-label="อันดับ">${icon('trophy')}<span id="thRank">${
+          typeof boardRankLabel === 'function' ? boardRankLabel() : ''}</span></button>` : ''}
     <button class="th-bell" onclick="go('scr-notif')"
       aria-label="${notifN ? 'การแจ้งเตือน ใหม่ ' + notifN + ' รายการ' : 'การแจ้งเตือน'}">
       ${icon('bell')}${notifN ? '<span class="th-dot"></span>' : ''}

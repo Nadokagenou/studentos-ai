@@ -207,7 +207,14 @@ function boardStage(rows, st) {
         <div class="bd-pc-base"><span class="bd-pc-sc"><b>${r.n}</b> งาน</span></div>
       </div>`;
   };
-  return `<div class="bd-stage bd-in" ${st}>${col(2)}${col(1)}${col(3)}</div>`;
+  // ฉากหลัง (แสงหมุน · ประกาย · แสงส่องที่ 1) กับพลุกระดาษ เป็นของตกแต่งล้วน — aria-hidden
+  const confetti = Array.from({ length: 14 }, (_, k) =>
+    `<i style="--x:${(k * 37) % 100}%;--d:${(k % 5) * 0.12}s;--r:${(k * 53) % 360}deg;--c:${k % 4}"></i>`).join('');
+  return `<div class="bd-stage bd-in" ${st}>
+      <i class="bd-rays" aria-hidden="true"></i><i class="bd-spark" aria-hidden="true"></i>
+      <span class="bd-confetti" aria-hidden="true">${confetti}</span>
+      ${col(2)}${col(1)}${col(3)}
+    </div>`;
 }
 
 // ---------- การ์ดของเรา (ทรงการ์ดซีซันของภาพอ้างอิง) ----------
@@ -232,7 +239,7 @@ function boardMine(d, me, rows, isAll, st) {
           <b>${goal}</b>
           <span>${boardSeasonLabel(d.season)} · เหลือ ${boardDaysLeft(d.season)} วัน${me.streak > 1 ? ` · <i title="ทำงานเสร็จติดกัน ${me.streak} วัน">${icon('flame')}${me.streak}</i>` : ''}</span>
         </div>
-        ${prize ? `<div class="bd-mine-prize${top3 ? ' on' : ''}">${top3 ? '' : '<small>Top 3</small>'}+${prize}</div>` : ''}
+        ${prize ? `<div class="bd-mine-prize${top3 ? ' on' : ''}">${typeof coin === 'function' ? coin(20) : ''}<b>+${prize}</b>${top3 ? '' : '<small>ถ้าติด Top 3</small>'}</div>` : ''}
       </div>
       <div class="bd-mine-bar"><i style="width:${pct}%"></i></div>
       ${d.hidden ? `<button class="bd-join" onclick="boardToggleHide()">แสดงชื่อฉันบนกระดาน</button>` : ''}
@@ -282,7 +289,16 @@ function boardEntryHTML() {
       ${icon('chevron')}
     </button>`;
 }
+// ป้ายบนปุ่มถ้วยหน้าแรก — "#3" เมื่อรู้อันดับแล้ว · ยังไม่รู้ = ป้าย "อันดับ" เฉย ๆ
+function boardRankLabel() {
+  if (!boardWarmed && typeof sb !== 'undefined' && sb && currentUser) setTimeout(boardWarm, 1500);
+  const d = boardData.all;
+  return d && d.me && d.me.n && !d.hidden ? '#' + d.me.rank : 'อันดับ';
+}
+
 function paintBoardEntry() {
+  const th = document.getElementById('thRank');
+  if (th) th.textContent = boardRankLabel();
   const el = document.getElementById('frBoardRow');
   if (el) el.innerHTML = boardEntryHTML();
   // แถว "อันดับ" ในแท็บ "ฉัน" — โชว์อันดับเมื่อเคยโหลดแล้วเท่านั้น ไม่เดา

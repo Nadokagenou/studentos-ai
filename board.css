@@ -29,65 +29,121 @@
 /* หัวจอ: ชื่อจอเฉย ๆ — ซีซันกับวันที่เหลือย้ายไปอยู่ในการ์ดของเรา (ที่เดียว ไม่ซ้ำ) */
 .bd-head { padding-bottom: 0; }
 
-/* ---------- แท่นสามอันดับแรก ---------- */
-/* พื้นแผ่นเดียวรองทั้งสามคน — ให้แท่นยืนอยู่บน "เวที" ไม่ใช่ลอยกลางจอ */
+/* ---------- แท่นสามอันดับแรก — เวทีแบบเกม ---------- */
+/* พื้นเวทีใช้ไล่สีเข้มของธีม (--grad-hero) · แสงหมุน + ประกาย + แสงส่องที่ 1 ทำให้มี "บรรยากาศ"
+   โดยไม่ต้องมีภาพวาดของใคร (รอบแรกลอกฉากเกาะลอยมา แล้วเจ้าของบอกอย่าก็อป) */
 .bd-stage {
-  position: relative; overflow: hidden;
+  position: relative; overflow: hidden; isolation: isolate;
   display: grid; grid-template-columns: 1fr 1.15fr 1fr; align-items: end; gap: 8px;
-  padding: 26px 12px 0; border-radius: 26px;
+  padding: 34px 12px 0; border-radius: 28px; min-height: 268px;
   background:
-    radial-gradient(90% 70% at 50% 0%, var(--blue-soft), transparent 70%),
-    linear-gradient(180deg, var(--card), var(--card2));
-  border: 1px solid var(--line); box-shadow: var(--shadow);
+    radial-gradient(60% 55% at 50% 30%, rgba(255, 214, 102, .32), transparent 70%),
+    var(--grad-hero);
+  color: #fff;
+  box-shadow: var(--shadow-brand), inset 0 1px 0 rgba(255, 255, 255, .22);
 }
-.bd-pc { --m: #AEB9CC; --m-ink: #3B475B; --m-top: #E9EEF6; --m-bot: #C9D3E2;
-  display: flex; flex-direction: column; align-items: center; min-width: 0; }
-.bd-pc.p1 { --m: #E9B93C; --m-ink: #5E4100; --m-top: #FFE9A8; --m-bot: #F1C75A; }
-.bd-pc.p3 { --m: #D39466; --m-ink: #5B2F12; --m-top: #F6D8C1; --m-bot: #DFA77E; }
+.bd-rays {
+  position: absolute; left: 50%; top: 32%; width: 640px; height: 640px; margin: -320px 0 0 -320px; z-index: -1;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 255, 255, .09) 0 9deg, transparent 9deg 24deg);
+  -webkit-mask: radial-gradient(closest-side, #000 20%, transparent 75%);
+          mask: radial-gradient(closest-side, #000 20%, transparent 75%);
+  animation: bd-spin 60s linear infinite;
+}
+.bd-spark {
+  position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(2px 2px at 12% 22%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 84% 16%, #fff, transparent),
+    radial-gradient(2px 2px at 72% 44%, rgba(255, 230, 150, .95), transparent),
+    radial-gradient(1.5px 1.5px at 24% 52%, #fff, transparent),
+    radial-gradient(2.5px 2.5px at 92% 58%, rgba(255, 255, 255, .8), transparent),
+    radial-gradient(1.5px 1.5px at 6% 70%, rgba(255, 230, 150, .9), transparent),
+    radial-gradient(2px 2px at 40% 12%, rgba(255, 255, 255, .9), transparent);
+  animation: bd-twinkle 3.2s ease-in-out infinite alternate;
+}
+@keyframes bd-spin { to { transform: rotate(360deg); } }
+@keyframes bd-twinkle { from { opacity: .35; } to { opacity: 1; } }
+
+.bd-pc { --m: #C3CCDB; --m-ink: #333F52; --m-top: #F4F7FC; --m-front: #CBD4E3; --m-deep: #9DA9BD;
+  position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.bd-pc.p1 { --m: #F2C34B; --m-ink: #563A00; --m-top: #FFF1C2; --m-front: #F4C752; --m-deep: #C9921C; }
+.bd-pc.p3 { --m: #DE9C6B; --m-ink: #55290C; --m-top: #FBE2CF; --m-front: #E3A777; --m-deep: #B26B3C; }
 .bd-pc-av { position: relative; line-height: 0; }
 .bd-pc-av .fr-av {
   width: 52px; height: 52px; font-size: 20px;
-  box-shadow: 0 0 0 3px var(--card), 0 0 0 5.5px var(--m), 0 10px 18px -8px rgba(15, 27, 45, .45);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, .9), 0 0 0 6px var(--m), 0 12px 22px -8px rgba(0, 0, 0, .55);
 }
-.bd-pc.p1 .bd-pc-av .fr-av { width: 64px; height: 64px; font-size: 24px; }
+.bd-pc.p1 .bd-pc-av .fr-av {
+  width: 66px; height: 66px; font-size: 25px;
+  box-shadow: 0 0 0 3px #fff, 0 0 0 6.5px var(--m), 0 0 28px 6px rgba(255, 205, 80, .55);
+  animation: bd-halo 2.6s ease-in-out infinite;
+}
+@keyframes bd-halo {
+  50% { box-shadow: 0 0 0 3px #fff, 0 0 0 6.5px var(--m), 0 0 40px 12px rgba(255, 205, 80, .7); }
+}
 .bd-medal {
-  position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%);
-  width: 22px; height: 22px; border-radius: 50%;
+  position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%);
+  width: 24px; height: 24px; border-radius: 50%;
   display: grid; place-items: center; font-style: normal;
-  background: var(--m); color: var(--m-ink); box-shadow: 0 0 0 2.5px var(--card);
-  font-size: 12px; font-weight: 900; line-height: 1;
+  background: radial-gradient(circle at 35% 30%, var(--m-top), var(--m) 60%, var(--m-deep));
+  color: var(--m-ink); box-shadow: 0 0 0 2.5px #fff, 0 3px 6px rgba(0, 0, 0, .3);
+  font-size: 12.5px; font-weight: 900; line-height: 1;
 }
 .bd-crown {
-  position: absolute; top: -21px; left: 50%; transform: translateX(-50%) rotate(-10deg);
-  line-height: 0; filter: drop-shadow(0 3px 4px rgba(150, 100, 0, .3));
+  position: absolute; top: -24px; left: 50%; transform: translateX(-50%) rotate(-10deg);
+  line-height: 0; color: #FFD45C; filter: drop-shadow(0 2px 6px rgba(255, 190, 40, .8));
+  animation: bd-crown 2.6s ease-in-out infinite;
 }
-.bd-crown { color: #E9B93C; }   /* ไอคอนในสไปรต์เป็นเส้น (stroke = currentColor) จึงคุมด้วย color */
-.bd-crown svg { width: 26px; height: 26px; stroke-width: 2.6; }
+.bd-crown svg { width: 28px; height: 28px; stroke-width: 2.6; }
+@keyframes bd-crown { 50% { transform: translateX(-50%) rotate(-4deg) translateY(-3px); } }
 .bd-pc-nm {
-  max-width: 100%; margin: 15px 0 8px; padding: 0 2px;
-  font-size: 13px; font-weight: 700; color: var(--ink); text-align: center;
+  max-width: 100%; margin: 16px 0 9px; padding: 0 2px;
+  font-size: 13px; font-weight: 700; color: #fff; text-align: center;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, .35);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.bd-pc.me .bd-pc-nm { color: var(--blue); }
-/* แท่น — คะแนนอยู่ในแท่น (ภาพอ้างอิง) · สีเหรียญไล่จากบนลงล่าง ขอบบนสว่างให้มีมิติ */
+.bd-pc.p1 .bd-pc-nm { font-size: 14px; font-weight: 800; }
+.bd-pc.me .bd-pc-nm { color: #FFE58A; }
+/* แท่นสามมิติ: หน้าบนสว่าง (::before) + หน้าตรงไล่สีลงเข้ม + เงาด้านใน */
 .bd-pc-base {
-  width: 100%; border-radius: 16px 16px 0 0;
-  display: flex; justify-content: center; padding-top: 12px;
-  background: linear-gradient(180deg, var(--m-top), var(--m-bot));
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .7), inset 0 -10px 18px -12px rgba(0, 0, 0, .25);
+  position: relative; width: 100%; border-radius: 6px 6px 0 0;
+  display: flex; justify-content: center; padding-top: 18px;
+  background: linear-gradient(180deg, var(--m-front), var(--m-deep));
+  box-shadow: inset 0 -14px 20px -14px rgba(0, 0, 0, .35), inset 2px 0 0 rgba(255, 255, 255, .25), inset -2px 0 0 rgba(0, 0, 0, .08);
+}
+.bd-pc-base::before {
+  content: ''; position: absolute; left: 0; right: 0; top: -9px; height: 18px; border-radius: 50%;
+  background: linear-gradient(180deg, #fff, var(--m-top));
+  box-shadow: 0 2px 0 rgba(0, 0, 0, .06);
 }
 .bd-pc-sc {
-  height: fit-content; padding: 4px 11px; border-radius: 999px;
-  background: rgba(255, 255, 255, .62); color: var(--m-ink);
+  position: relative; height: fit-content; padding: 4px 11px; border-radius: 999px;
+  background: rgba(255, 255, 255, .78); color: var(--m-ink);
   font-size: 11.5px; font-weight: 700; white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .12);
 }
 .bd-pc-sc b { font-size: 15px; font-weight: 900; font-variant-numeric: tabular-nums; }
-.bd-pc.p1 .bd-pc-base { height: 96px; }
-.bd-pc.p2 .bd-pc-base { height: 70px; }
-.bd-pc.p3 .bd-pc-base { height: 54px; }
-.bd-pc.empty { opacity: .55; }
-.bd-pc.empty .fr-av { background: var(--card2); }
-.bd-pc.empty .bd-pc-nm { color: var(--faint); font-weight: 600; }
+.bd-pc.p1 .bd-pc-base { height: 98px; }
+.bd-pc.p2 .bd-pc-base { height: 72px; }
+.bd-pc.p3 .bd-pc-base { height: 56px; }
+.bd-pc.empty .bd-pc-av, .bd-pc.empty .bd-pc-nm { opacity: .55; }
+.bd-pc.empty .fr-av { background: rgba(255, 255, 255, .15); }
+
+/* พลุกระดาษ — ร่วงครั้งเดียวตอนเพิ่งเข้าจอ (bd-anim) */
+.bd-confetti { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
+.bd-confetti i {
+  position: absolute; top: -12px; left: var(--x); width: 7px; height: 11px; border-radius: 2px; opacity: 0;
+  background: #FFD45C; transform: rotate(var(--r));
+}
+.bd-confetti i:nth-child(4n+1) { background: #7CC4FF; }
+.bd-confetti i:nth-child(4n+2) { background: #FF8FB1; width: 6px; height: 6px; border-radius: 50%; }
+.bd-confetti i:nth-child(4n+3) { background: #8EE6B0; }
+.bd-anim .bd-confetti i { animation: bd-fall 1.9s var(--d) cubic-bezier(.25, .6, .4, 1) both; }
+@keyframes bd-fall {
+  0% { opacity: 0; transform: translateY(0) rotate(var(--r)); }
+  10% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(300px) rotate(calc(var(--r) + 300deg)); }
+}
 
 /* ---------- การ์ดของเรา — ทรงการ์ดซีซันของภาพอ้างอิง ---------- */
 .bd-mine {
@@ -117,14 +173,26 @@
 .bd-mine-tx span i { display: inline-flex; align-items: center; gap: 1px; font-style: normal; color: var(--pri-red-text); font-weight: 800; }
 .bd-mine-tx span svg { width: 12px; height: 12px; color: var(--pri-red-text); }
 .bd-mine-prize {
-  width: 52px; height: 52px; flex: none; border-radius: 50%;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1;
-  border: 2px solid var(--line); color: var(--muted); font-size: 13px; font-weight: 800;
+  width: 60px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.1;
+  color: var(--muted); text-align: center;
 }
-.bd-mine-prize small { font-size: 9px; font-weight: 700; }
-.bd-mine-prize.on { border-color: #F2C34B; background: var(--gold-soft); color: var(--gold-text); }
+.bd-mine-prize b { font-size: 14px; font-weight: 900; color: var(--ink); }
+.bd-mine-prize small { font-size: 9.5px; font-weight: 700; }
+.bd-mine-prize .tok { filter: drop-shadow(0 3px 5px rgba(185, 132, 32, .35)); }
+.bd-mine-prize:not(.on) .tok { filter: grayscale(.6) opacity(.7); }
+.bd-mine-prize.on b { color: var(--gold-text); }
 .bd-mine-bar { height: 6px; margin: 12px 2px 0; border-radius: 99px; background: var(--card2); overflow: hidden; }
-.bd-mine-bar i { display: block; height: 100%; border-radius: 99px; background: var(--grad-brand); }
+.bd-mine-bar i {
+  position: relative; display: block; height: 100%; border-radius: 99px; overflow: hidden;
+  background: var(--grad-brand);
+}
+.bd-mine-bar i::after {   /* แสงวิ่งผ่านแถบ — บอกว่ายังไปต่อได้ */
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, .55) 50%, transparent 80%);
+  transform: translateX(-100%); animation: bd-shine 2.8s 1s ease-in-out infinite;
+}
+@keyframes bd-shine { 60%, 100% { transform: translateX(100%); } }
+.bd-mine-bar { height: 8px; }
 .bd-join {
   display: block; width: 100%; min-height: 44px; margin-top: 12px; border: none; border-radius: 999px;
   background: var(--grad-brand); color: var(--on-accent); box-shadow: var(--shadow-brand);
@@ -176,7 +244,9 @@
 @keyframes bd-rise { from { transform: scaleY(.15); } to { transform: none; } }
 @keyframes bd-grow { from { width: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .bd-anim .bd-in, .bd-anim .bd-pc-base, .bd-anim .bd-mine-bar i { animation: none; }
+  .bd-anim .bd-in, .bd-anim .bd-pc-base, .bd-anim .bd-mine-bar i, .bd-rays, .bd-spark,
+  .bd-pc.p1 .bd-pc-av .fr-av, .bd-crown, .bd-mine-bar i::after, .bd-anim .bd-confetti i { animation: none; }
+  .bd-confetti { display: none; }
 }
 
 /* ---------- ยังไม่ล็อกอิน / ยังไม่เปิด / โหลดพลาด ---------- */
@@ -190,8 +260,20 @@
 
 /* โครงระหว่างรอ */
 .bd-skel { background: var(--card2); box-shadow: none; border-color: transparent; }
-.bd-stage.bd-skel { min-height: 250px; background: var(--card2); border-color: transparent; }
+.bd-stage.bd-skel { min-height: 268px; background: var(--card2); box-shadow: none; }
 .bd-mine.bd-skel { min-height: 96px; background: var(--card2); border-color: transparent; }
+
+/* ---------- ปุ่มถ้วยบนหัวหน้าแรก (ข้างกระดิ่ง) ---------- */
+.th-rank {
+  flex: none; display: inline-flex; align-items: center; gap: 5px;
+  height: 36px; padding: 0 12px 0 10px; margin-right: 2px; border-radius: 999px; cursor: pointer;
+  border: 1px solid color-mix(in srgb, #E9B93C 45%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, #FFE9A8 55%, var(--card)), var(--card));
+  color: var(--gold-text); font-family: inherit; font-size: 13px; font-weight: 800;
+  box-shadow: 0 6px 14px -8px rgba(185, 132, 32, .55);
+}
+.th-rank svg { width: 17px; height: 17px; color: #D9A21F; }
+.th-rank:active { transform: scale(.96); }
 
 /* ---------- การ์ดทางเข้าในจอเพื่อน ---------- */
 .bd-entry {
