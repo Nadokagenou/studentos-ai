@@ -15638,15 +15638,37 @@ function takeSharedText() {
 // 1B47 · 'timeline' ชี้มาที่ scr-tasks แล้ว — จอเส้นเวลาไม่มีทางเข้าจากผังหลักอีก
 // ลิงก์เก่าจากหน้า land.html ที่ส่ง ?start=timeline มายังต้องพาไปที่ที่มีของให้ดู
 // ไม่ใช่จอที่ออกไปไหนไม่ได้นอกจากกดแถบล่าง
-const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-tasks' };
-function shortcutTarget() {
+// 'quick' = ปุ่มลัด "เพิ่มงานด่วน" (quickadd.js) — ไปหน้าแรกแล้วเด้งแผ่นพิมพ์งานทับ
+const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-tasks', quick: 'scr-menu' };
+// อ่านจาก BOOT_Q ไม่ใช่ location.search — initApp() ล้าง URL ทิ้งก่อน routeStart() จะถูกเรียก
+// เดิมอ่าน location.search ตรง ๆ จึงเจอ URL เปล่าทุกครั้ง ปุ่มลัดทุกปุ่มพาไปหน้าแรกเงียบ ๆ (พบ 9 ต.ค. 69)
+// ใช้ได้ครั้งเดียว — routeStart() รอบสองต้องไม่เด้งแผ่นซ้ำ หรือดึงคนกลับจากจอที่เขาเดินไปแล้ว
+//
+// เปิดครั้งแรกหลังอัปเดต service worker ตัวใหม่สั่งรีโหลดหน้าหนึ่งรอบ (controllerchange)
+// รอบที่สอง URL ว่างแล้ว ปุ่มลัดจึงหายในการกดที่ "ครั้งแรกหลังอัปเดต" พอดี (เจอตอนทดสอบ 9 ต.ค. 69)
+// → จดไว้ใน sessionStorage ตอนโหลดไฟล์ (อยู่ข้ามการรีโหลดในแท็บเดียวกัน ไม่ค้างข้ามการเปิดแอปครั้งถัดไป)
+// แบบเดียวกับ stashSharedText · อายุ 30 วิ กันรีเฟรชเองทีหลังแล้วแผ่นเด้งซ้ำ
+const SHORTCUT_KEY = 'studentos.alt.shortcut';
+(() => {
   try {
-    const g = new URLSearchParams(location.search).get('go');
-    if (!g || !SHORTCUT_SCREENS[g]) return null;
-    // ล้าง query ทิ้ง กันค้างอยู่ใน URL แล้วรีเฟรชทีไรก็เด้งไปจอเดิมทุกที
-    history.replaceState(null, '', location.pathname);
-    return SHORTCUT_SCREENS[g];
-  } catch (_) { return null; }
+    const g = BOOT_Q.get('go');
+    if (g && SHORTCUT_SCREENS[g]) sessionStorage.setItem(SHORTCUT_KEY, JSON.stringify({ g, t: Date.now() }));
+  } catch (_) {}
+})();
+let shortcutUsed = false;
+function shortcutTarget() {
+  if (shortcutUsed) return null;
+  let g = BOOT_Q.get('go');   // ที่เก็บถูกปิด (โหมดส่วนตัวบางเครื่อง) ยังใช้ได้ในรอบที่ไม่ได้รีโหลด
+  try {
+    const s = JSON.parse(sessionStorage.getItem(SHORTCUT_KEY) || 'null');
+    if (!g && s && Date.now() - s.t < 30000) g = s.g;
+  } catch (_) {}
+  if (!g || !SHORTCUT_SCREENS[g]) return null;
+  // ไม่ลบที่จดไว้ตรงนี้ — รีโหลดของ service worker มักมาหลังแผ่นเด้งไปแล้ว ลบตอนนี้ = แผ่นหายพร้อมรีโหลด
+  // แผ่นเพิ่มงานด่วนลบเองตอนส่ง/ปิด (quickClose) · ปุ่มลัดอื่นหมดอายุเองใน 30 วิ
+  shortcutUsed = true;
+  if (g === 'quick' && typeof quickOpen === 'function') setTimeout(quickOpen, 80);
+  return SHORTCUT_SCREENS[g];
 }
 
 // หน้าแนะนำ (land.html) ส่ง ?start=google|guest มา — คนกดเลือกไปแล้วที่หน้านั้น

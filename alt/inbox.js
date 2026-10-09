@@ -86,6 +86,10 @@ const SOURCES = [
     desc: 'พูดงานที่ต้องทำ' },
   { id: 'text',  name: 'แปะข้อความ',    icon: 'type',   kind: 'manual', state: 'live',
     desc: 'ก๊อปแล้ววาง' },
+  // ปุ่มลัดเพิ่มงานจากตัวเครื่อง (quickadd.js) — Android: กดค้างที่ไอคอนแอป · iPhone: แตะหลังเครื่อง
+  // ไม่มีสวิตช์ เพราะเป็นทางที่ผู้ใช้กดเองทุกครั้ง · panel = แผงตั้งค่าที่ quickPanel() วาด
+  { id: 'quick', name: 'ปุ่มลัดเพิ่มงาน', icon: 'sparkles', kind: 'manual', state: 'live',
+    desc: 'เพิ่มงานจากตัวเครื่อง', panel: 'quick' },
 ];
 const sourceById = id => SOURCES.find(s => s.id === id) || SOURCES[0];
 
@@ -362,6 +366,15 @@ function cutAssignments(text) {
   return cut;
 }
 
+// "พรุ่งนี้" ต้องนับจากตอนที่พิมพ์ ไม่ใช่ตอนที่แอปดึงมาอ่าน
+// ปุ่มลัดบน iPhone ส่งงานไปรอที่เซิร์ฟเวอร์ — พิมพ์ "ส่งพรุ่งนี้" ตอนห้าทุ่ม แล้วเปิดแอปเช้าวันถัดไป
+// ถ้านับจากตอนเปิดแอป กำหนดส่งจะเลื่อนไปหนึ่งวันเงียบ ๆ ซึ่งคือการส่งงานช้าที่แอปเป็นคนทำ
+// meta.sentAt มาจากเซิร์ฟเวอร์ (quick-add) · ไม่มี/อ่านไม่ได้/อยู่ในอนาคต = ใช้เวลาตอนนี้เหมือนเดิม
+function inboxNow(meta) {
+  const t = meta && meta.sentAt ? Date.parse(meta.sentAt) : NaN;
+  return isFinite(t) && t <= Date.now() ? new Date(t) : new Date();
+}
+
 function inboxAdd(rawText, sourceId = 'text', meta = {}) {
   const text = String(rawText || '').trim();
   if (!text) return { status: 'empty' };
@@ -375,7 +388,7 @@ function inboxAdd(rawText, sourceId = 'text', meta = {}) {
   const cut = cutAssignments(text);
   if (cut.multi) return inboxAddBatch(text, cut, sourceId, meta);
 
-  const parsed = parseAssignment(text);
+  const parsed = parseAssignment(text, inboxNow(meta));
   const conf = inboxConfidence(parsed);
   const dup = findDuplicate(parsed);
 
@@ -560,7 +573,8 @@ function inboxAddSynced(meta, sourceId) {
 // การเห็นสิบเอ็ดการ์ดที่ไม่รู้ว่ามาจากที่เดียวกัน แล้วต้องกดสิบเอ็ดครั้ง
 // คือการย้ายงานกรอกข้อมูลจากคีย์บอร์ดไปไว้ที่นิ้วโป้ง ไม่ได้แก้ปัญหาอะไรเลย
 function inboxAddBatch(text, cut, sourceId, meta) {
-  const parts = cut.segments.map(seg => ({ seg, parsed: parseAssignment(seg) }));
+  const now = inboxNow(meta);
+  const parts = cut.segments.map(seg => ({ seg, parsed: parseAssignment(seg, now) }));
 
   // ---- บริบทของทั้งก้อนมาก่อนการตัดสินทีละบรรทัด ----
   // ประตูคัดขยะถูกออกแบบมาสำหรับข้อความเดี่ยว ๆ ที่ลอยมาในกลุ่ม จึงต้องการหลักฐานในตัวมันเอง
@@ -1141,7 +1155,8 @@ function renderSources() {
     <div class="sec-title">ทางที่คุณส่งเข้ามาเอง</div>
     ${manual.map(s => `<div class="src on">
       <span class="src-ic">${icon(s.icon)}</span>
-      <span class="src-bd"><span class="t">${esc(s.name)}</span></span>
+      <span class="src-bd"><span class="t">${esc(s.name)}</span>
+        ${s.panel === 'quick' && typeof quickPanel === 'function' ? quickPanel() : ''}</span>
       ${counts[s.id] ? `<span class="src-n">${counts[s.id]}</span>` : ''}
     </div>`).join('')}`;
 }
