@@ -41,6 +41,17 @@
   ],
   "shortcuts": [
     {
+      "name": "เพิ่มงานด่วน",
+      "short_name": "เพิ่มงานด่วน",
+      "url": "./?go=quick",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
       "name": "เพิ่มงานใหม่",
       "url": "./?go=scan",
       "icons": [

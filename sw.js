@@ -8,7 +8,7 @@
 const CACHE = 'studentos-1c51';   // ขึ้นเวอร์ชันทุกครั้งที่ปล่อย ของเก่าถูกลบตอน activate
 const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'room.css', 'social.css', 'feed.css', 'safety.css', 'hw.css', 'topic.css', 'custom.css',
   'engine.js', 'context.js', 'planner.js', 'facts.js', 'profile.js', 'simulate.js', 'calibrate.js', 'loss.js', 'decide.js', 'brain.js', 'inbox.js', 'linelink.js', 'room.js', 'social.js', 'feed.js', 'hw.js', 'topic.js', 'safety.js', 'app.js', 'config.js', 'remote-config.js',
-  'integrations.js', 'sai.css', 'sai.js', 'sai-face-normal.webp', 'sai-face-happy.webp', 'sai-face-wow.webp', 'sai-face-serious.webp', 'sai-face-sleepy.webp', 'sai-face-sulk.webp', 'sai-chibi.webp', 'hoop.css', 'hoop.js', 'fxgames.css', 'gacha-fx.css', 'fxgames.js', 'fx3d.js', 'gacha-fx.js', 'hook-avatar.png', 'hook-body.webp', 'hook-face.webp', 'manifest.json',
+  'integrations.js', 'sai.css', 'sai.js', 'sai-face-normal.webp', 'sai-face-happy.webp', 'sai-face-wow.webp', 'sai-face-serious.webp', 'sai-face-sleepy.webp', 'sai-face-sulk.webp', 'sai-chibi.webp', 'hoop.css', 'hoop.js', 'fxgames.css', 'gacha-fx.css', 'fxgames.js', 'fx3d.js', 'gacha-fx.js', 'hook-avatar.png', 'hook-body.webp', 'hook-face.webp', 'quickadd.js', 'manifest.json',
   'icon-192.png', 'icon-512.png', 'logo-mark.png', 'logo-splash.png', 'logo-splash-light.png',
   // หน้าน้องไซบนฟองแชท — ต้องอยู่ในแคชด้วย ไม่งั้นเปิดแอปตอนไม่มีเน็ตแล้วมาสคอตหายไปทั้งจอ
   'sai-avatar.png'];
