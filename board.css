@@ -453,11 +453,17 @@
    การ์ดกับแถวบนแผ่นเป็นขาวโปร่งนิด ๆ + ขอบขาว — ยังแยกชั้นจากแผ่นได้โดยไม่กลับไปขาวโพลน
    ============================================================ */
 .bd-sheet {
-  background:
-    linear-gradient(180deg,
-      color-mix(in srgb, #FF6FB5 22%, var(--scr)) 0%,
-      color-mix(in srgb, #A78BFA 20%, var(--scr)) 340px,
-      color-mix(in srgb, var(--blue) 16%, var(--scr)) 100%);
+  /* สีแผ่นผสมจากสีหลักของธีมเป็นหลัก — เดิมกำหนดชมพู/ม่วงตายตัว แล้วธีมเขียวกับฟ้าได้แผ่นชมพูใต้พื้นหลังเขียว
+     (เจ้าของถามว่าธีมอื่นเป็นยังไง → เจอตอนไล่ดูครบ 15 ธีม) ชมพูมีเฉพาะธีมที่สีหลักเป็นโทนชมพู-ม่วงอยู่แล้ว */
+  --bd-s1: color-mix(in srgb, var(--blue) 20%, var(--scr));
+  --bd-s2: color-mix(in srgb, var(--blue) 15%, var(--scr));
+  --bd-s3: color-mix(in srgb, var(--blue) 10%, var(--scr));
+  background: linear-gradient(180deg, var(--bd-s1) 0%, var(--bd-s2) 340px, var(--bd-s3) 100%);
+}
+:root:is([data-theme="light"], [data-theme="warm"], [data-theme="sweet"]) .bd-sheet {
+  --bd-s1: color-mix(in srgb, #FF6FB5 22%, var(--scr));
+  --bd-s2: color-mix(in srgb, #A78BFA 20%, var(--scr));
+  --bd-s3: color-mix(in srgb, var(--blue) 16%, var(--scr));
 }
 .bd-sheet .bd-row {
   background: color-mix(in srgb, var(--card) 62%, transparent);
