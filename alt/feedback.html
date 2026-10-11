@@ -77,6 +77,9 @@ button { font-family: inherit; }
 .who { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--line); padding: 10px 22px; }
 .who b { color: var(--ink); font-weight: 600; }
 .req-note { color: var(--err); font-size: 13.5px; }
+/* แอปบนจอโฮมของ iPhone ไม่มีปุ่มย้อนของเบราว์เซอร์ — ต้องมีทางกลับเอง */
+.back { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-weight: 600; font-size: 14.5px; text-decoration: none; padding: 4px 6px; }
+.who a { color: var(--accent); font-weight: 600; text-decoration: none; margin-left: auto; white-space: nowrap; }
 
 /* ---------- progress ---------- */
 .prog { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); padding: 2px 4px; }
@@ -238,6 +241,7 @@ textarea.line-in { resize: none; min-height: 34px; overflow: hidden; }
 </head>
 <body>
 <div class="form" id="app">
+  <a class="back" href="./">‹ กลับแอป</a>
   <div class="card head">
     <div class="banner" aria-hidden="true">
       <span class="blob b1"></span><span class="blob b2"></span>
@@ -558,6 +562,8 @@ textarea.line-in { resize: none; min-height: 34px; overflow: hidden; }
         sentAt = new Date(r.data.updated_at);
         if (!hadDraft) answers = r.data.answers || {};
         $('who').innerHTML += ' · ส่งแล้วเมื่อ ' + sentAt.toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' แก้แล้วส่งใหม่ได้';
+        // ตอบแบบหลักแล้ว = ที่เหลือคือเช็คอินทุกเย็น · ทางเข้าในแอปมีแถวเดียว จึงพาต่อจากตรงนี้
+        if (MODE === 'main') $('who').innerHTML += '<a href="feedback.html#daily">เช็คอินวันนี้ ›</a>';
       }
     } catch (e) {}
     render();
