@@ -42,11 +42,17 @@ revoke all on public.board_seen from public, anon, authenticated;
 -- ---------- เติมของเก่า (ครั้งเดียว) ----------
 -- งานที่มีอยู่ก่อนวันนี้ไม่มีใครเห็นตอนเกิด — ใช้เวลาจากเครื่องแทน และคงกฎของรอบสองไว้:
 -- ไม่มี createdAt (มาจากกล่องเข้า/ซิงก์) = นับได้ จึงตั้งเวลาเกิดย้อนไว้ก่อนเวลาเสร็จพอดีห้านาที
--- เวลาในอนาคตถูกดึงกลับมาที่ตอนนี้ — ปลอมไว้ล่วงหน้าแล้วจะได้ไม่ไปโผล่ในซีซันหน้า
+-- ใบที่ติ๊กเสร็จแต่ไม่มี doneAt หรือ doneAt อยู่ในอนาคตเกินสิบนาที — กฎเดิมไม่เคยนับ จึงต้องไม่นับต่อ
+-- ตั้งเวลาเสร็จ = เวลาเกิด (ห่างกัน 0 นาที ไม่ผ่านกฎ 5 นาที) ไม่ใช่ "ตอนนี้"
+-- ไม่งั้นงานที่สร้างตั้งแต่ ก.ค. กลายเป็นเสร็จวันที่รัน migration (เจอจริงตอนลองรันแบบยกเลิกทิ้ง: สองบัญชีคะแนนเพิ่มเอง)
+-- ต้องไม่ปล่อยเป็น null ด้วย — trigger จะเติม now() ให้ตอนซิงก์รอบหน้าแล้วได้ผลเดียวกัน
 insert into public.board_seen (uid, task_id, first_at, done_at)
 select uid, tid,
        least(coalesce(c_at, d_at - interval '5 minutes', now()), now()),
-       case when done then least(coalesce(d_at, now()), now()) end
+       case when done then
+         case when d_at is not null and d_at <= now() + interval '10 minutes' then least(d_at, now())
+              else least(coalesce(c_at, d_at - interval '5 minutes', now()), now()) end
+       end
   from (
     select distinct on (s.id, x->>'id')
            s.id as uid, x->>'id' as tid,
