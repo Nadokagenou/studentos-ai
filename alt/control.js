@@ -432,6 +432,7 @@
     $('#anaAt').textContent = 'กำลังโหลด…';
     var r = await sb.rpc('admin_analytics', { p_days: anaDays });
     loadPushHealth();
+    loadFeedback();
     if (!r.error && r.data) { anaData = r.data; renderAnalytics(); return; }
     // ยังไม่มีฟังก์ชันใหม่ → ใช้ตัวนับแถวเดิมไปก่อน
     var missing = r.error && /admin_analytics|function|schema cache/i.test(r.error.message || '');
@@ -476,6 +477,83 @@
           return '<tr><td class="mono">' + esc(u.id) + '</td><td>' + (HN[u.health] || esc(u.health)) + '</td><td>'
             + esc(u.checkin ? ago(u.checkin) : '—') + '</td><td>' + dv + '</td></tr>';
         }).join('') + '</table></div>';
+    }
+    el.innerHTML = html;
+  }
+
+  // ============================================================
+  // 11 ต.ค. 69 · ฟีดแบ็กเทสเตอร์ (feedback.html → tester_feedback)
+  // คำถามมาจาก feedback-questions.js ไฟล์เดียวกับฟอร์ม · แอดมินอ่านได้ทุกแถวผ่าน RLS (is_app_admin)
+  // capture rate = ใส่เข้าแอป ÷ ครูสั่ง — จากเช็คอินรายวัน (D1) และจากแบบหลัก (1.1) แยกกัน
+  // ============================================================
+  var FB_URL = 'https://nadokagenou.github.io/studentos-ai/feedback.html';
+  async function loadFeedback() {
+    var el = $('#anaFbBody');
+    if (!el) return;
+    var F = window.SOS_FEEDBACK;
+    var r = await sb.from('tester_feedback').select('user_id, kind, day, answers, dev, updated_at').order('updated_at', { ascending: false }).limit(1000);
+    if (r.error) {
+      el.innerHTML = '<div class="warn">' + (/tester_feedback|relation|schema cache/i.test(r.error.message || '')
+        ? 'ยังไม่ได้รัน migration <code>20261011140000_tester_feedback.sql</code>' : esc(r.error.message)) + '</div>';
+      return;
+    }
+    var rows = r.data || [];
+    var main = rows.filter(function (x) { return x.kind === 'main'; });
+    var daily = rows.filter(function (x) { return x.kind === 'daily'; });
+    var who = function (x) { return String(x.user_id).slice(0, 8); };
+    var cap = function (list, key) {
+      var a = 0, b = 0;
+      list.forEach(function (x) { var v = x.answers && x.answers[key]; if (Array.isArray(v) && v[0] != null && v[1] != null) { a += +v[1]; b += +v[0]; } });
+      return b ? Math.round(a * 100 / b) + '%' : '—';
+    };
+    var dUsers = {}; daily.forEach(function (x) { dUsers[x.user_id] = 1; });
+    var html = '<p class="hint" style="margin:0 0 10px">ลิงก์ส่งเทสเตอร์: <span class="mono">' + esc(FB_URL) + '</span> · เช็คอินทุกเย็น: <span class="mono">' + esc(FB_URL) + '#daily</span></p>'
+      + '<div class="grid4">'
+      + tile('ตอบแบบหลัก', fmtN(main.length) + ' <small style="font-size:14px">คน</small>', 'คนละหนึ่งชุด แก้ได้')
+      + tile('เช็คอินรายวัน', fmtN(daily.length) + ' <small style="font-size:14px">ครั้ง</small>', 'จาก ' + fmtN(Object.keys(dUsers).length) + ' คน')
+      + tile('Capture rate (รายวัน)', cap(daily, 'D1'), 'ใส่เข้าแอป ÷ ครูสั่ง')
+      + tile('Capture rate (แบบหลัก)', cap(main, '1.1'), 'ตัวเลขสัปดาห์ที่เทสเตอร์กะเอง')
+      + '</div>';
+    if (!rows.length) { el.innerHTML = html + '<p class="hint">ยังไม่มีใครตอบ</p>'; return; }
+
+    function block(q, list) {
+      var vals = list.map(function (x) { return { u: who(x), a: x.answers || {} }; }).filter(function (x) { return x.a[q.id] != null && x.a[q.id] !== '' && !(Array.isArray(x.a[q.id]) && !x.a[q.id].length); });
+      var h = '<div style="margin-top:16px"><b>' + esc(q.id + ' ' + q.t) + '</b> <span class="hint" style="margin:0">' + fmtN(vals.length) + ' คนตอบ</span>';
+      if (q.why) h += '<div class="hint" style="margin:2px 0 6px">' + esc(q.why) + '</div>';
+      if (q.type === 'one' || q.type === 'many') {
+        var cnt = {};
+        (q.o || []).forEach(function (o) { cnt[o] = 0; });
+        var others = [];
+        vals.forEach(function (x) {
+          [].concat(x.a[q.id]).forEach(function (o) {
+            if (o === '__other') { others.push(x.u + ': ' + (x.a[q.id + '_other'] || '')); cnt['อื่น ๆ'] = (cnt['อื่น ๆ'] || 0) + 1; }
+            else cnt[o] = (cnt[o] || 0) + 1;
+          });
+        });
+        h += hbars(Object.keys(cnt).map(function (k) { return [k, cnt[k]]; }), vals.length, true);
+        if (others.length) h += '<div class="hint" style="margin-top:4px">อื่น ๆ — ' + others.map(esc).join(' · ') + '</div>';
+      } else if (q.type === 'scale') {
+        var sum = 0; vals.forEach(function (x) { sum += +x.a[q.id]; });
+        h += '<div>เฉลี่ย <b>' + (vals.length ? (sum / vals.length).toFixed(1) : '—') + '</b> จาก ' + q.max + ' · ' + vals.map(function (x) { return esc(x.u) + '=' + x.a[q.id]; }).join(' · ') + '</div>';
+      } else if (q.type === 'nums') {
+        h += '<div class="mono" style="font-size:13px">' + vals.map(function (x) { return esc(x.u) + ': ' + x.a[q.id].map(function (n) { return n == null ? '–' : n; }).join(' / '); }).join(' · ') + '</div>';
+      } else {
+        h += vals.length ? '<ul style="margin:4px 0 0;padding-left:18px">' + vals.map(function (x) { return '<li><span class="mono">' + esc(x.u) + '</span> ' + esc(x.a[q.id]) + '</li>'; }).join('') + '</ul>' : '';
+      }
+      // ช่องพิมพ์ต่อท้าย (เพราะอะไร / รุ่นมือถือ)
+      var notes = list.filter(function (x) { return x.answers && x.answers[q.id + '_note']; });
+      if (notes.length) h += '<div class="hint" style="margin-top:4px">' + esc(q.follow || 'หมายเหตุ') + ' — ' + notes.map(function (x) { return esc(who(x) + ': ' + x.answers[q.id + '_note']); }).join(' · ') + '</div>';
+      return h + '</div>';
+    }
+    if (main.length) {
+      F.sections.forEach(function (s) {
+        html += '<h4 style="margin:22px 0 0">' + esc(s.title) + '</h4>';
+        s.qs.forEach(function (q) { html += block(q, main); });
+      });
+    }
+    if (daily.length) {
+      html += '<h4 style="margin:22px 0 0">เช็คอินรายวัน</h4>';
+      F.daily.forEach(function (q) { html += block(q, daily); });
     }
     el.innerHTML = html;
   }

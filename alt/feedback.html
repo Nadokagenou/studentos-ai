@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ฟีดแบ็ก · Student OS</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#2F5BD3">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+<style>
+/* ============================================================
+   ฟอร์มฟีดแบ็กเทสเตอร์ — หน้าตาแบบ Google Form แต่ใช้สีและหน้าตาของแอป
+   คำถามมาจาก feedback-questions.js · คำตอบไปที่ตาราง tester_feedback (Supabase)
+   ภาพประกอบเป็น HTML/CSS ที่ลอกจากจอจริง ไม่ใช่ภาพถ่ายหน้าจอ — ไม่มีข้อมูลของใครติดมา
+   และวงจุดที่ถามด้วยกรอบสีส้ม (แบบเดียวกับที่เจ้าของวงปากกาในภาพหน้าจอ)
+   ============================================================ */
+:root {
+  --bg: #e9eefa;
+  --card: #ffffff;
+  --ink: #1b2233;
+  --muted: #5d6680;
+  --line: #d7ddeb;
+  --accent: #2f5bd3;
+  --accent-ink: #ffffff;
+  --accent-soft: #e5ecfd;
+  --err: #d93025;
+  --mark: #ff8a00;
+  --app-bg: #f4f7fd;
+  --app-card: #ffffff;
+  --app-blue: #2f5bd3;
+  --app-blue2: #4a73e8;
+  --app-chip: #e8eefc;
+  --app-sq: #eef1f7;
+  --font: "IBM Plex Sans Thai", "Leelawadee UI", "Noto Sans Thai", -apple-system, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1220; --card: #171c2e; --ink: #e7eaf5; --muted: #9aa2bf; --line: #2a3150;
+    --accent: #7c9cff; --accent-ink: #0e1220; --accent-soft: #1f2947; --err: #ff7b72; --mark: #ffa53d;
+    --app-bg: #10162a; --app-card: #1a2138; --app-blue: #3a62d8; --app-blue2: #5279ea;
+    --app-chip: #26304f; --app-sq: #232b45;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.6;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  -webkit-text-size-adjust: 100%;
+}
+.form { max-width: 680px; margin: 0 auto; padding: 14px 12px 64px; display: flex; flex-direction: column; gap: 12px; }
+button { font-family: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- header card ---------- */
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+.head { overflow: hidden; border-top: 10px solid var(--accent); }
+.banner {
+  position: relative; height: 132px; overflow: hidden;
+  background: linear-gradient(120deg, #2f5bd3 0%, #4a73e8 55%, #7aa2ff 100%);
+}
+.banner .blob { position: absolute; border-radius: 50%; background: rgba(255,255,255,.14); }
+.banner .b1 { width: 180px; height: 180px; right: -40px; top: -60px; }
+.banner .b2 { width: 110px; height: 110px; left: 30%; bottom: -60px; }
+.banner img { position: absolute; right: 18px; bottom: -6px; height: 128px; filter: drop-shadow(0 6px 14px rgba(0,0,0,.18)); }
+.banner .tag { position: absolute; left: 20px; top: 18px; color: #fff; font-weight: 600; font-size: 13px; letter-spacing: .02em; background: rgba(255,255,255,.18); padding: 3px 10px; border-radius: 999px; }
+.banner .big { position: absolute; left: 20px; bottom: 18px; color: #fff; font-weight: 700; font-size: 22px; line-height: 1.25; max-width: 60%; }
+.head-body { padding: 18px 22px 16px; display: flex; flex-direction: column; gap: 8px; }
+.head-body h1 { margin: 0; font-size: 26px; line-height: 1.3; font-weight: 700; text-wrap: balance; }
+.head-body p { margin: 0; color: var(--muted); }
+.who { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--line); padding: 10px 22px; }
+.who b { color: var(--ink); font-weight: 600; }
+.req-note { color: var(--err); font-size: 13.5px; }
+
+/* ---------- progress ---------- */
+.prog { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); padding: 2px 4px; }
+.prog-bar { flex: 1; height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.prog-bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .3s; }
+
+/* ---------- section header ---------- */
+.sec { border-top: 0; overflow: hidden; }
+.sec-tab { display: inline-block; background: var(--accent); color: var(--accent-ink); font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 12px 0 10px 0; }
+.sec-body { padding: 12px 22px 16px; }
+.sec-body h2 { margin: 0; font-size: 19px; font-weight: 700; }
+.sec-body p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+
+/* ---------- question card ---------- */
+.q { padding: 20px 22px 18px; display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 16px; }
+.q.bad { border-color: var(--err); box-shadow: inset 4px 0 0 var(--err); }
+.q-t { font-size: 16px; font-weight: 500; }
+.q-t .star { color: var(--err); margin-left: 4px; }
+.q-err { display: none; color: var(--err); font-size: 13px; align-items: center; gap: 6px; }
+.q.bad .q-err { display: flex; }
+.opts { display: flex; flex-direction: column; gap: 2px; }
+.opt { display: flex; align-items: center; gap: 12px; padding: 8px 6px; border-radius: 8px; cursor: pointer; }
+.opt:hover { background: var(--accent-soft); }
+.opt input[type=radio], .opt input[type=checkbox] { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.mark { flex: none; width: 20px; height: 20px; border: 2px solid var(--muted); border-radius: 50%; display: grid; place-items: center; transition: border-color .15s; }
+.mark.sq { border-radius: 4px; }
+.opt input:checked + .mark { border-color: var(--accent); }
+.opt input:checked + .mark::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.opt input:checked + .mark.sq { background: var(--accent); }
+.opt input:checked + .mark.sq::after { width: 10px; height: 6px; border-radius: 0; background: none; border: solid var(--accent-ink); border-width: 0 0 2px 2px; transform: rotate(-45deg) translate(1px, -1px); }
+.opt input:focus-visible + .mark { outline: 2px solid var(--accent); outline-offset: 2px; }
+.opt .other-in { flex: 1; min-width: 0; }
+.line-in {
+  width: 100%; font: inherit; color: var(--ink); background: transparent; border: 0; border-bottom: 1px solid var(--line);
+  padding: 6px 2px; outline: none; transition: border-color .15s;
+}
+.line-in:focus { border-bottom: 2px solid var(--accent); padding-bottom: 5px; }
+textarea.line-in { resize: none; min-height: 34px; overflow: hidden; }
+.nums { display: flex; gap: 18px; flex-wrap: wrap; }
+.nums label { flex: 1 1 140px; display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--muted); }
+.nums input { font-size: 18px; font-variant-numeric: tabular-nums; }
+.follow { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+.scale { display: flex; flex-direction: column; gap: 8px; }
+.scale-row { display: grid; grid-template-columns: repeat(11, 1fr); gap: 6px; }
+.scale-row label { position: relative; display: grid; place-items: center; height: 40px; border: 1px solid var(--line); border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; font-variant-numeric: tabular-nums; }
+.scale-row label:hover { background: var(--accent-soft); }
+.scale-row input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.scale-row label:has(input:checked) { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.scale-row label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scale-ends { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); }
+@media (max-width: 520px) { .scale-row { grid-template-columns: repeat(6, 1fr); } }
+
+/* ---------- nav ---------- */
+.nav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 4px 2px; }
+.btn { font-size: 15px; font-weight: 600; border-radius: 8px; padding: 9px 22px; cursor: pointer; border: 1px solid transparent; }
+.btn.fill { background: var(--accent); color: var(--accent-ink); }
+.btn.ghost { background: var(--card); color: var(--accent); border-color: var(--line); }
+.btn:disabled { opacity: .55; cursor: default; }
+.link { margin-left: auto; background: none; border: 0; color: var(--accent); font-size: 14px; cursor: pointer; padding: 6px; }
+.status { font-size: 13px; color: var(--muted); }
+.foot { text-align: center; font-size: 12.5px; color: var(--muted); padding-top: 8px; }
+
+/* ---------- center states ---------- */
+.state { padding: 26px 22px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.state h2 { margin: 0; font-size: 20px; }
+.state p { margin: 0; color: var(--muted); }
+.state img { height: 96px; }
+
+/* ============================================================
+   ภาพประกอบ — ลอกหน้าตาจากแอปจริง (การ์ด "วันนี้" · หัวจอ · แผ่นเพิ่มงาน · จอเสร็จแล้ว · แจ้งเตือน)
+   ============================================================ */
+.pic { background: var(--app-bg); border-radius: 14px; padding: 30px 16px 18px; display: flex; justify-content: center; overflow: hidden; }
+.pic > * { width: 100%; max-width: 340px; }
+.hl { position: relative; outline: 3px solid var(--mark); outline-offset: 3px; border-radius: 12px; }
+.hl::after {
+  content: "ตรงนี้"; position: absolute; right: -6px; top: -26px; background: var(--mark); color: #fff;
+  font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 6px; white-space: nowrap; line-height: 1.6;
+}
+/* ป้ายไว้ใต้กรอบ — สำหรับของเล็กที่มีข้อความอื่นอยู่ข้างบน (ป้ายบนจะทับ) */
+.hl.below::after { top: auto; bottom: -26px; right: auto; left: 0; }
+.pic.pad-b { padding-bottom: 36px; }
+/* การ์ด "ตอนนี้" */
+.mk-card { border-radius: 20px; background: var(--app-card); box-shadow: 0 6px 20px rgba(30,60,140,.10); overflow: visible; }
+.mk-top { background: linear-gradient(140deg, var(--app-blue), var(--app-blue2)); color: #fff; border-radius: 20px 20px 0 0; padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 6px; }
+.mk-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; }
+.mk-sub { display: flex; align-items: center; gap: 6px; opacity: .95; }
+.mk-sub i { width: 16px; height: 16px; border-radius: 50%; background: #fff; display: inline-block; box-shadow: inset 0 0 0 4px var(--app-blue); }
+.mk-urg { background: #e0463f; border-radius: 999px; padding: 1px 9px; font-weight: 600; font-size: 11px; white-space: nowrap; }
+.mk-title { font-size: 19px; font-weight: 700; line-height: 1.3; }
+.mk-time { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 2px 4px; }
+.mk-time b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.mk-time span { flex: 1; text-align: center; border-top: 1px dashed rgba(255,255,255,.55); line-height: 0; padding-top: 1px; }
+.mk-time span em { font-style: normal; background: var(--app-blue2); padding: 0 6px; position: relative; top: -1px; font-size: 11.5px; opacity: .9; }
+.mk-bot { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.mk-why { align-self: flex-start; background: var(--app-chip); color: var(--ink); font-size: 12.5px; font-weight: 600; padding: 4px 12px; border-radius: 999px; }
+.mk-btns { display: flex; gap: 8px; }
+.mk-start { flex: 1; background: var(--app-blue); color: #fff; border-radius: 14px; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 11px 0; }
+.mk-sq { width: 46px; border-radius: 14px; background: var(--app-sq); display: grid; place-items: center; color: var(--muted); font-size: 17px; }
+.mk-sq.ok { color: #2e9e5b; }
+/* หัวจอ */
+.mk-head { display: flex; align-items: center; gap: 8px; background: var(--app-bg); }
+.mk-av { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #ffcf8a, #ff9a7b); display: grid; place-items: center; color: #fff; font-weight: 700; flex: none; }
+.mk-hi { flex: 1; min-width: 0; }
+.mk-hi b { display: block; font-size: 15px; }
+.mk-hi span { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.mk-hi .free { color: var(--ink); font-weight: 600; padding: 0 2px; }
+.mk-tro { background: #fff3cc; color: #8a5a00; border: 1px solid #f2d27a; border-radius: 999px; padding: 4px 10px; font-weight: 700; font-size: 13px; display: flex; gap: 4px; align-items: center; }
+.mk-bell { width: 36px; height: 36px; border-radius: 50%; background: var(--app-card); display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+/* แผ่นเพิ่มงาน */
+.mk-sheet { background: var(--app-card); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 6px 20px rgba(30,60,140,.10); }
+.mk-sheet .grip { align-self: center; width: 36px; height: 4px; border-radius: 9px; background: var(--line); }
+.mk-sheet h4 { margin: 0; font-size: 15px; }
+.mk-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mk-tile { background: var(--app-blue); color: #fff; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 14px; font-weight: 700; font-size: 13.5px; }
+.mk-tile svg { width: 26px; height: 26px; background: rgba(255,255,255,.18); border-radius: 8px; padding: 4px; }
+.mk-list { display: flex; flex-direction: column; }
+.mk-li { display: flex; align-items: center; gap: 10px; padding: 8px 4px; font-size: 13.5px; border-top: 1px solid var(--line); }
+.mk-li:first-child { border-top: 0; }
+.mk-li > span:not(.mk-ic) { flex: 1; }
+.mk-li em { font-style: normal; font-size: 11.5px; background: var(--app-chip); border-radius: 99px; padding: 0 8px; color: var(--accent); font-weight: 600; }
+.mk-ic { flex: none; width: 26px; height: 26px; border-radius: 8px; background: var(--app-chip); display: grid; place-items: center; color: var(--app-blue); }
+/* จอเสร็จแล้ว */
+.mk-done { background: var(--app-card); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 6px 20px rgba(30,60,140,.10); }
+.mk-done-hero { display: flex; align-items: center; gap: 12px; }
+.mk-ring { width: 48px; height: 48px; border-radius: 50%; background: #2e9e5b; color: #fff; display: grid; place-items: center; font-size: 24px; flex: none; }
+.mk-done-hero b { display: block; font-size: 18px; }
+.mk-done-hero span { font-size: 12.5px; color: var(--muted); }
+.mk-next { background: var(--app-bg); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; }
+.mk-lb { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+.mk-next b { font-size: 15px; }
+.mk-next span { font-size: 12px; color: var(--muted); }
+.mk-act { display: flex; gap: 8px; }
+.mk-act .mk-start { padding: 9px 0; font-size: 14px; }
+.mk-later { padding: 9px 12px; border-radius: 14px; background: var(--app-sq); font-size: 13px; color: var(--muted); display: grid; place-items: center; }
+/* แจ้งเตือนบนจอล็อก */
+.mk-lock { border-radius: 20px; padding: 18px 12px 16px; background: linear-gradient(160deg, #23365f, #4a3a72 55%, #a3567a); display: flex; flex-direction: column; align-items: center; gap: 12px; color: #fff; }
+.mk-clock { font-size: 42px; font-weight: 600; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.mk-date { font-size: 12.5px; opacity: .85; margin-top: -6px; }
+.mk-banner { width: 100%; background: rgba(255,255,255,.82); color: #111; border-radius: 16px; padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.mk-banner img { width: 34px; height: 34px; border-radius: 8px; flex: none; }
+.mk-banner .t { flex: 1; min-width: 0; font-size: 13px; line-height: 1.4; }
+.mk-banner .t .app { display: flex; justify-content: space-between; font-size: 11.5px; color: #555; }
+.mk-banner .t b { display: block; }
+/* น้องฮูก */
+.mk-hook { display: flex; align-items: flex-end; gap: 10px; }
+.mk-hook img { width: 56px; height: 56px; object-fit: cover; flex: none; border-radius: 50%; background: var(--app-card); }
+.mk-bub { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 30px; }
+.mk-say { align-self: flex-start; background: var(--app-card); border-radius: 16px 16px 16px 4px; padding: 8px 12px; font-size: 13px; line-height: 1.45; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
+.mk-ask { background: var(--app-card); border: 1px solid var(--line); border-radius: 999px; padding: 7px 8px 7px 14px; font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+.mk-ask i { width: 26px; height: 26px; border-radius: 50%; background: #1b2233; color: #fff; display: grid; place-items: center; font-style: normal; font-size: 13px; }
+@media (max-width: 420px) {
+  .q, .head-body, .sec-body { padding-left: 16px; padding-right: 16px; }
+  .banner .big { font-size: 19px; }
+  .banner img { height: 112px; }
+  .pic { padding: 14px 10px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="form" id="app">
+  <div class="card head">
+    <div class="banner" aria-hidden="true">
+      <span class="blob b1"></span><span class="blob b2"></span>
+      <span class="tag" id="bannerTag">User test · 7 วัน</span>
+      <span class="big" id="bannerBig">ช่วยบอกหน่อย<br>แอปเป็นยังไงบ้าง</span>
+      <img src="hook-body.webp" alt="">
+    </div>
+    <div class="head-body">
+      <h1 id="formTitle">ฟีดแบ็ก Student OS</h1>
+      <p id="formDesc">ตอบจากที่ใช้จริงในสัปดาห์นี้ ไม่มีถูกผิด ตอบตรง ๆ ช่วยได้มากที่สุด ใช้เวลาประมาณ 10 นาที</p>
+      <span class="req-note">* จำเป็นต้องตอบ</span>
+    </div>
+    <div class="who" id="who">กำลังเช็คบัญชี…</div>
+  </div>
+  <div id="body"></div>
+  <p class="foot">คำตอบเก็บกับบัญชี Student OS ของคุณ เห็นได้แค่คุณกับทีมผู้พัฒนา</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="feedback-questions.js"></script>
+<script>
+(function () {
+  var Q = window.SOS_FEEDBACK;
+  var MODE = location.hash === '#daily' ? 'daily' : 'main';
+  var today = (function () { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
+  var DAY = MODE === 'daily' ? today : '';
+  var DRAFT_KEY = 'studentos.alt.fbDraft.' + MODE + (DAY ? '.' + DAY : '');
+  var sb = null, user = null, answers = {}, page = 0, sentAt = null;
+
+  // หน้าของฟอร์ม: หลัก = หนึ่งส่วนต่อหน้า · รายวัน = หน้าเดียว
+  var PAGES = MODE === 'daily'
+    ? [{ id: 'daily', title: 'เช็คอินวันนี้', desc: 'ไม่ถึงนาที ตอบทุกเย็นจนครบ 7 วัน', qs: Q.daily }]
+    : Q.sections;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+
+  if (MODE === 'daily') {
+    $('bannerTag').textContent = 'เช็คอินทุกเย็น';
+    $('bannerBig').innerHTML = 'วันนี้เป็นยังไง<br>บ้าง?';
+    $('formTitle').textContent = 'เช็คอินวันนี้';
+    $('formDesc').textContent = 'ใช้คิดว่าแต่ละวันงานเข้าแอปครบแค่ไหน';
+    document.title = 'เช็คอินวันนี้ · Student OS';
+  }
+
+  // ---------- ภาพประกอบ ----------
+  var ICON = {
+    cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+    mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+    clip: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9z"/></svg>',
+    pen: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20l4-1 11-11-3-3L5 16z"/></svg>',
+    plug: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 3v5M15 3v5M7 8h10v3a5 5 0 0 1-10 0zM12 16v5"/></svg>',
+    bell: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/></svg>',
+    trophy: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M9 20h6"/></svg>',
+  };
+  function hl(on, k) { return on === k ? ' hl' : ''; }
+  var MOCKS = {
+    card: function (k) {
+      return '<div class="mk-card">'
+        + '<div class="mk-top"><div class="mk-row"><span class="mk-sub"><i></i>ฟิสิกส์</span><span class="mk-urg">★★★★★ ด่วนมาก</span></div>'
+        + '<div class="mk-title">ทำโจทย์บทที่ 4 ข้อ 1–10</div>'
+        + '<div class="mk-time' + hl(k, 'time') + '"><b>21:25</b><span><em>40 นาที</em></span><b>22:05</b></div></div>'
+        + '<div class="mk-bot"><span class="mk-why' + hl(k, 'why') + '">ทำไมอันนี้ก่อน ›</span>'
+        + '<div class="mk-btns"><span class="mk-start' + hl(k, 'start') + '">▶ เริ่มทำเลย</span><span class="mk-sq ok">✓</span><span class="mk-sq">◷</span></div></div></div>';
+    },
+    header: function (k) {
+      return '<div class="mk-head"><span class="mk-av">ม</span><span class="mk-hi"><b>สวัสดี มายด์</b>'
+        + '<span><span class="free' + (k === 'free' ? ' hl below' : '') + '">ว่าง 1 ชม. 5 นาที</span> · ค้าง 6 งาน</span></span>'
+        + '<span class="mk-tro' + hl(k, 'trophy') + '">' + ICON.trophy + '#2</span></div>';
+    },
+    add: function (k) {
+      return '<div class="mk-sheet"><span class="grip"></span><h4>เพิ่มอะไร?</h4>'
+        + '<div class="mk-tiles"><span class="mk-tile' + hl(k, 'photo') + '">' + ICON.cam + 'ถ่ายรูปใบงาน</span>'
+        + '<span class="mk-tile' + hl(k, 'voice') + '">' + ICON.mic + 'พูดเพิ่มงาน</span></div>'
+        + '<div class="mk-list"><span class="mk-li"><span class="mk-ic">' + ICON.clip + '</span><span>แปะข้อความจากครู</span>›</span>'
+        + '<span class="mk-li"><span class="mk-ic">' + ICON.pen + '</span><span>พิมพ์เองทีละช่อง</span>›</span>'
+        + '<span class="mk-li' + hl(k, 'link') + '"><span class="mk-ic">' + ICON.plug + '</span><span>ตัวเชื่อม</span><em>LINE · Classroom</em>›</span></div></div>';
+    },
+    done: function () {
+      return '<div class="mk-done"><div class="mk-done-hero"><span class="mk-ring">✓</span><span><b>เสร็จแล้ว</b><span>ฟิสิกส์ · ทำโจทย์บทที่ 4 ข้อ 1–10</span></span></div>'
+        + '<div class="mk-next hl"><span class="mk-lb">งานถัดไป</span><b>คณิตศาสตร์ · แบบฝึกหัด 2.3</b><span>~30 นาที · ส่งพรุ่งนี้เช้า</span></div>'
+        + '<div class="mk-act"><span class="mk-start">▶ ทำต่อเลย</span><span class="mk-later">พอแค่นี้ก่อน</span></div></div>';
+    },
+    notif: function () {
+      return '<div class="mk-lock"><span class="mk-clock">18:30</span><span class="mk-date">วันอังคาร 13 ตุลาคม</span>'
+        + '<div class="mk-banner hl"><img src="icon-192.png" alt=""><span class="t"><span class="app"><span>Student OS</span><span>ตอนนี้</span></span>'
+        + '<b>ฟิสิกส์ · ทำโจทย์บทที่ 4</b>วันนี้ 23:59 · เหลือ 5 ชม.</span></div></div>';
+    },
+    hook: function () {
+      return '<div class="mk-hook"><img src="hook-avatar.png" alt=""><div class="mk-bub">'
+        + '<span class="mk-say">เย็นนี้ว่างชั่วโมงนึง ทำฟิสิกส์ก่อนดีไหม</span>'
+        + '<span class="mk-ask hl">ถามน้องฮูก…<i>↑</i></span></div></div>';
+    },
+  };
+  function picHTML(pic) {
+    if (!pic || !MOCKS[pic[0]]) return '';
+    return '<div class="pic' + (pic[1] === 'free' ? ' pad-b' : '') + '" aria-hidden="true">' + MOCKS[pic[0]](pic[1] || '') + '</div>';
+  }
+
+  // ---------- วาดคำถาม ----------
+  function qHTML(q) {
+    var name = 'q' + q.id.replace(/\W/g, '_');
+    var h = '<div class="card q" id="' + name + '" data-id="' + esc(q.id) + '">'
+      + '<div class="q-t">' + esc(q.t) + (q.req ? '<span class="star" aria-label="จำเป็น">*</span>' : '') + '</div>'
+      + picHTML(q.pic);
+    var v = answers[q.id];
+    if (q.type === 'one' || q.type === 'many') {
+      var multi = q.type === 'many', sel = multi ? (Array.isArray(v) ? v : []) : v;
+      h += '<div class="opts" role="' + (multi ? 'group' : 'radiogroup') + '">';
+      q.o.forEach(function (o, i) {
+        var on = multi ? sel.indexOf(o) >= 0 : sel === o;
+        h += '<label class="opt"><input type="' + (multi ? 'checkbox' : 'radio') + '" name="' + name + '" value="' + esc(o) + '"' + (on ? ' checked' : '') + '>'
+          + '<span class="mark' + (multi ? ' sq' : '') + '"></span><span>' + esc(o) + '</span></label>';
+      });
+      if (q.other) {
+        var ov = answers[q.id + '_other'] || '';
+        var oon = multi ? sel.indexOf('__other') >= 0 : sel === '__other';
+        h += '<label class="opt"><input type="' + (multi ? 'checkbox' : 'radio') + '" name="' + name + '" value="__other"' + (oon ? ' checked' : '') + '>'
+          + '<span class="mark' + (multi ? ' sq' : '') + '"></span><span>อื่น ๆ:</span>'
+          + '<input class="line-in other-in" data-k="' + esc(q.id) + '_other" value="' + esc(ov) + '" aria-label="อื่น ๆ"></label>';
+      }
+      h += '</div>';
+    } else if (q.type === 'text') {
+      h += '<input class="line-in" data-k="' + esc(q.id) + '" value="' + esc(v || '') + '" placeholder="คำตอบของคุณ">';
+    } else if (q.type === 'long') {
+      h += '<textarea class="line-in" rows="1" data-k="' + esc(q.id) + '" placeholder="คำตอบของคุณ">' + esc(v || '') + '</textarea>';
+    } else if (q.type === 'nums') {
+      var arr = Array.isArray(v) ? v : [];
+      h += '<div class="nums">' + q.fields.map(function (f, i) {
+        return '<label>' + esc(f) + '<input class="line-in" type="number" inputmode="numeric" min="0" max="200" data-k="' + esc(q.id) + '" data-i="' + i + '" value="' + esc(arr[i] == null ? '' : arr[i]) + '"></label>';
+      }).join('') + '</div>';
+    } else if (q.type === 'scale') {
+      h += '<div class="scale"><div class="scale-row" role="radiogroup">';
+      for (var n = q.min; n <= q.max; n++) {
+        h += '<label><input type="radio" name="' + name + '" value="' + n + '"' + (v === n ? ' checked' : '') + '>' + n + '</label>';
+      }
+      h += '</div><div class="scale-ends"><span>' + q.min + ' = ' + esc(q.lo) + '</span><span>' + q.max + ' = ' + esc(q.hi) + '</span></div></div>';
+    }
+    if (q.follow) {
+      h += '<label class="follow">' + esc(q.follow) + '<textarea class="line-in" rows="1" data-k="' + esc(q.id) + '_note">' + esc(answers[q.id + '_note'] || '') + '</textarea></label>';
+    }
+    h += '<div class="q-err" role="alert">⚠ ข้อนี้จำเป็นต้องตอบ</div></div>';
+    return h;
+  }
+
+  function render() {
+    var p = PAGES[page], total = PAGES.length;
+    var h = '';
+    if (total > 1) {
+      h += '<div class="prog"><span>หน้า ' + (page + 1) + ' จาก ' + total + '</span><span class="prog-bar"><i style="width:' + Math.round((page + 1) / total * 100) + '%"></i></span></div>';
+    }
+    h += '<div class="card sec"><span class="sec-tab">' + (total > 1 ? 'ส่วนที่ ' + (page + 1) : 'วันนี้ ' + thDate(today)) + '</span>'
+      + '<div class="sec-body"><h2>' + esc(p.title) + '</h2>' + (p.desc ? '<p>' + esc(p.desc) + '</p>' : '') + '</div></div>';
+    p.qs.forEach(function (q) { h += qHTML(q); });
+    var last = page === total - 1;
+    h += '<div class="nav">'
+      + (page > 0 ? '<button class="btn ghost" id="prev" type="button">กลับ</button>' : '')
+      + '<button class="btn fill" id="next" type="button">' + (last ? (sentAt ? 'ส่งคำตอบใหม่' : 'ส่ง') : 'ถัดไป') + '</button>'
+      + '<span class="status" id="status" role="status" aria-live="polite"></span>'
+      + '<button class="link" id="clear" type="button">ล้างแบบฟอร์ม</button></div>';
+    $('body').innerHTML = h;
+    $('body').querySelectorAll('textarea').forEach(grow);
+    if ($('prev')) $('prev').onclick = function () { page--; render(); scrollTo(0, 0); };
+    $('next').onclick = function () { if (!check()) return; if (last) submit(); else { page++; render(); scrollTo(0, 0); } };
+    $('clear').onclick = clearForm;
+  }
+
+  function thDate(s) {
+    var m = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    var p = s.split('-'); return (+p[2]) + ' ' + m[+p[1] - 1];
+  }
+  function grow(t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }
+
+  // ---------- เก็บคำตอบจากฟอร์ม ----------
+  function qById(id) {
+    for (var i = 0; i < PAGES.length; i++) for (var j = 0; j < PAGES[i].qs.length; j++) if (PAGES[i].qs[j].id === id) return PAGES[i].qs[j];
+    return null;
+  }
+  $('body').addEventListener('input', onChange);
+  $('body').addEventListener('change', onChange);
+  function onChange(e) {
+    var t = e.target, card = t.closest('.q');
+    if (t.tagName === 'TEXTAREA') grow(t);
+    if (!card) return;
+    var q = qById(card.dataset.id);
+    if (t.dataset.k) {
+      if (t.type === 'number') {
+        var arr = Array.isArray(answers[q.id]) ? answers[q.id].slice() : [];
+        arr[+t.dataset.i] = t.value === '' ? null : Math.max(0, Math.min(200, Math.round(+t.value)));
+        answers[q.id] = arr;
+      } else {
+        answers[t.dataset.k] = t.value.slice(0, 1500);
+        // พิมพ์ในช่อง "อื่น ๆ" = เลือก "อื่น ๆ" ให้เลย
+        if (/_other$/.test(t.dataset.k) && t.value) {
+          var box = card.querySelector('input[value="__other"]');
+          if (box && !box.checked) { box.checked = true; readChoice(card, q); }
+        }
+      }
+    } else if (t.name) {
+      readChoice(card, q);
+    }
+    card.classList.remove('bad');
+    saveDraft();
+  }
+  function readChoice(card, q) {
+    var ins = card.querySelectorAll('input[name]');
+    if (q.type === 'many') {
+      answers[q.id] = Array.prototype.filter.call(ins, function (i) { return i.checked; }).map(function (i) { return i.value; });
+    } else if (q.type === 'scale') {
+      var c = card.querySelector('input[name]:checked'); answers[q.id] = c ? +c.value : null;
+    } else {
+      var c2 = card.querySelector('input[name]:checked'); answers[q.id] = c2 ? c2.value : null;
+    }
+  }
+  function answered(q) {
+    var v = answers[q.id];
+    if (q.type === 'many') return Array.isArray(v) && v.length > 0 && (v.indexOf('__other') < 0 || !!(answers[q.id + '_other'] || '').trim());
+    if (q.type === 'nums') return Array.isArray(v) && q.fields.every(function (_, i) { return v[i] != null; });
+    if (q.type === 'one' && v === '__other') return !!(answers[q.id + '_other'] || '').trim();
+    if (q.type === 'scale') return typeof v === 'number';
+    return v != null && String(v).trim() !== '';
+  }
+  function check() {
+    var first = null;
+    PAGES[page].qs.forEach(function (q) {
+      if (!q.req) return;
+      var card = $('q' + q.id.replace(/\W/g, '_'));
+      var ok = answered(q);
+      card.classList.toggle('bad', !ok);
+      if (!ok && !first) first = card;
+    });
+    if (first) { first.scrollIntoView({ behavior: 'smooth', block: 'start' }); return false; }
+    return true;
+  }
+
+  // ---------- ร่างในเครื่อง ----------
+  function saveDraft() { try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ answers: answers, page: page })); } catch (e) {} }
+  function loadDraft() {
+    try { var d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); if (d && d.answers) { answers = d.answers; page = Math.min(d.page || 0, PAGES.length - 1); return true; } } catch (e) {}
+    return false;
+  }
+  function clearForm() {
+    answers = {}; page = 0;
+    try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+    render(); scrollTo(0, 0);
+  }
+
+  // ---------- ส่ง ----------
+  function devTag() {
+    var ua = navigator.userAgent;
+    var d = /iPhone|iPad/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : 'desktop';
+    var app = (matchMedia('(display-mode: standalone)').matches || navigator.standalone) ? 'app' : 'web';
+    return d + '·' + app;
+  }
+  async function submit() {
+    var btn = $('next'), st = $('status');
+    btn.disabled = true; st.textContent = 'กำลังส่ง…';
+    try {
+      var r = await sb.from('tester_feedback').upsert({
+        user_id: user.id, kind: MODE, day: DAY, answers: answers, dev: devTag(), updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,kind,day' });
+      if (r.error) throw r.error;
+      try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+      sentAt = new Date();
+      showDone();
+    } catch (e) {
+      btn.disabled = false;
+      st.textContent = navigator.onLine ? 'ส่งไม่สำเร็จ ลองกดส่งอีกครั้ง' : 'ไม่มีเน็ต · คำตอบยังอยู่ในเครื่อง ต่อเน็ตแล้วกดส่งอีกครั้ง';
+      console.warn('[feedback] submit failed:', e && e.message);
+    }
+  }
+  function showDone() {
+    var daily = MODE === 'daily';
+    $('body').innerHTML = '<div class="card state"><img src="hook-avatar.png" alt="">'
+      + '<h2>' + (daily ? 'บันทึกเช็คอินวันนี้แล้ว' : 'ส่งคำตอบแล้ว ขอบคุณมาก') + '</h2>'
+      + '<p>' + (daily ? 'พรุ่งนี้เย็นกลับมาตอบอีกครั้งนะ' : 'ทุกคำตอบถูกอ่านจริง และเอาไปแก้แอปรอบถัดไป') + '</p>'
+      + '<div class="nav"><button class="btn ghost" id="edit" type="button">แก้คำตอบ</button>'
+      + (daily ? '' : '<a class="btn fill" href="feedback.html#daily" id="toDaily" style="text-decoration:none">เช็คอินวันนี้</a>')
+      + '<a class="btn ' + (daily ? 'fill' : 'ghost') + '" href="./" style="text-decoration:none">กลับไปที่แอป</a></div></div>';
+    $('edit').onclick = function () { page = 0; render(); scrollTo(0, 0); };
+    var td = $('toDaily'); if (td) td.onclick = function () { setTimeout(function () { location.reload(); }, 0); };
+    scrollTo(0, 0);
+  }
+  function showLogin(msg) {
+    $('who').textContent = 'ยังไม่ได้ล็อกอิน';
+    $('body').innerHTML = '<div class="card state"><img src="hook-avatar.png" alt="">'
+      + '<h2>ล็อกอินในแอปก่อน</h2><p>' + esc(msg || 'คำตอบจะผูกกับบัญชี Student OS ของคุณ เปิดแอป ล็อกอิน แล้วกลับมาที่ลิงก์นี้อีกครั้ง') + '</p>'
+      + '<div class="nav"><a class="btn fill" href="./" style="text-decoration:none">เปิดแอป</a>'
+      + '<button class="btn ghost" type="button" onclick="location.reload()">ล็อกอินแล้ว ลองใหม่</button></div></div>';
+  }
+
+  // ---------- เริ่ม ----------
+  async function boot() {
+    // ดูหน้าตาฟอร์มบนเครื่องผู้พัฒนาโดยไม่ต้องล็อกอิน (ส่งไม่ได้) — localhost/?preview เท่านั้น
+    if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /preview/.test(location.search)) {
+      user = { id: 'preview' }; $('who').innerHTML = 'ดูตัวอย่าง · <b>ส่งจริงไม่ได้</b>';
+      sb = { from: function () { return { upsert: async function () { return { error: { message: 'preview' } }; } }; } };
+      loadDraft(); render(); return;
+    }
+    var c = window.SUPABASE_CONFIG || {};
+    if (!c.url || typeof supabase === 'undefined') { showLogin('เชื่อมต่อระบบบัญชีไม่ได้ ลองเปิดใหม่อีกครั้ง'); return; }
+    // ตั้งค่าเดียวกับแอป (app.js initCloud) — ใช้ session ที่แอปเก็บไว้ในเครื่องได้เลย ไม่ต้องล็อกอินซ้ำ
+    sb = supabase.createClient(c.url, c.anonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storage: window.localStorage } });
+    var session = null;
+    try { session = (await sb.auth.getSession()).data.session; } catch (e) {}
+    if (!session) { showLogin(); return; }
+    user = session.user;
+    var name = '';
+    try { name = ((JSON.parse(localStorage.getItem('studentos.alt.v1') || '{}').settings) || {}).name || ''; } catch (e) {}
+    name = name || (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || user.email || 'บัญชีนี้';
+    $('who').innerHTML = 'ตอบในชื่อ <b>' + esc(name) + '</b>';
+
+    var hadDraft = loadDraft();
+    try {
+      var r = await sb.from('tester_feedback').select('answers, updated_at').eq('user_id', user.id).eq('kind', MODE).eq('day', DAY).maybeSingle();
+      if (r.data) {
+        sentAt = new Date(r.data.updated_at);
+        if (!hadDraft) answers = r.data.answers || {};
+        $('who').innerHTML += ' · ส่งแล้วเมื่อ ' + sentAt.toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' แก้แล้วส่งใหม่ได้';
+      }
+    } catch (e) {}
+    render();
+  }
+  addEventListener('hashchange', function () { location.reload(); });
+  boot();
+})();
+</script>
+</body>
+</html>
