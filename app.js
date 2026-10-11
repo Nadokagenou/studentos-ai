@@ -15572,9 +15572,69 @@ function ensurePush() {
       _ensuring = null;
       recordPushDiag();
       renderProfile();
+      askPushFix();
     }
   })();
   return _ensuring;
+}
+
+// ============================================================
+// ซ่อมเองไม่ได้ → ขอให้แตะหนึ่งที
+// ------------------------------------------------------------
+// ensurePush ซ่อมได้เกือบทุกอย่างเองเงียบ ๆ ยกเว้นสองอย่างที่เบราว์เซอร์บังคับว่าต้องมี "นิ้วแตะ":
+//   · ขอสิทธิ์แจ้งเตือน (ลบแอปแล้วเพิ่มลงจอโฮมใหม่ — iPhone รีเซ็ตสิทธิ์เป็น default)
+//   · สมัคร subscription ใหม่บน Safari เมื่อตัวเก่าหาย
+// เดิมทางซ่อมมีแค่ปุ่ม "ต่อใหม่" ในตั้งค่า ซึ่งไม่มีใครเข้าไปดู — เครื่องจึงหลุดเงียบไปหลายวัน
+// การ์ดแจ้งในแอปที่มีปุ่ม = การแตะนั้นคือ user gesture ที่ Safari ต้องการพอดี
+// วันละครั้งต่อเครื่อง (ยังไม่เคยอนุญาต = 3 วันครั้ง และเฉพาะคนที่มีงานมีกำหนดส่ง) · ไม่ทับการ์ดอื่น
+// ============================================================
+// ============================================================
+// เจ้าของต้องรู้ก่อนผู้ใช้ — สัญญาณเตือนเมื่อแจ้งเตือนนอกแอปไม่ถึงคน
+// ------------------------------------------------------------
+// รอบ 11 ต.ค. แจ้งเตือนไม่ถึงใครเลย 4–7 วัน เจ้าของรู้เพราะเจอเองกับมือ ไม่มีอะไรฟ้องสักตัว
+// (send-reminders ตอบ ok ทุกรอบ · ไทล์ใน Control Center นับแถวเก่าด้วยจึงดูปกติ)
+// บัญชีแอดมิน (TOKEN_ADMIN) เปิดแอปเมื่อไหร่ ถาม admin_push_health() วันละครั้ง
+// ส่งถึงไม่ถึงครึ่งของคนที่ใช้แอปใน 3 วัน = ขึ้นการ์ดบอกพร้อมปุ่มไปดูว่าใครติดอะไร
+// ============================================================
+const PUSH_HEALTH_KEY = 'studentos.alt.pushHealthAt';
+async function adminPushAlarm() {
+  if (!tokenAdmin || !sb || !currentUser || document.hidden) return;
+  let last = 0;
+  try { last = +localStorage.getItem(PUSH_HEALTH_KEY) || 0; } catch (_) {}
+  if (Date.now() - last < 864e5) return;
+  try {
+    const { data: h, error } = await withTimeout(sb.rpc('admin_push_health'), 8000, 'สุขภาพแจ้งเตือน');
+    if (error || !h) return;                 // ยังไม่ได้รัน migration / ไม่ได้อยู่ใน app_admins
+    try { localStorage.setItem(PUSH_HEALTH_KEY, String(Date.now())); } catch (_) {}
+    if (!h.active || h.ok * 2 >= h.active) return;
+    const t = document.getElementById('appToast');
+    if (t && t.classList.contains('show')) { try { localStorage.removeItem(PUSH_HEALTH_KEY); } catch (_) {} return; }
+    showToast({ title: 'แจ้งเตือนส่งถึง ' + h.ok + '/' + h.active + ' คน', body: 'ใช้แอปใน 3 วัน',
+      action: { label: 'ดู', fn: () => window.open(location.pathname.includes('/alt/') ? 'control.html' : 'alt/control.html', '_blank') } });
+  } catch (_) {}
+}
+
+const PUSH_FIX_KEY = 'studentos.alt.pushFixAt';
+function askPushFix() {
+  if (!currentUser || !pushSupported() || pushState === 'on') return;
+  if (!navigator.onLine || document.hidden) return;
+  if (isIOS() && !isStandalone()) return;             // ยังไม่ได้ติดตั้ง — push ไม่มีทางทำงาน
+  const perm = ('Notification' in window) ? Notification.permission : 'denied';
+  if (perm === 'denied') return;                       // เปลี่ยนจากในแอปไม่ได้ — จอตั้งค่าบอกไว้แล้ว
+  const asking = perm !== 'granted';
+  if (asking && !pendingTasks().some(t => t.due)) return;
+  let last = 0;
+  try { last = +localStorage.getItem(PUSH_FIX_KEY) || 0; } catch (_) {}
+  if (Date.now() - last < (asking ? 3 : 1) * 864e5) return;
+  setTimeout(() => {
+    if (pushState === 'on' || document.hidden) return;
+    const t = document.getElementById('appToast');
+    if (t && t.classList.contains('show')) return;     // มีการ์ดอื่นพูดอยู่ — รอบหน้าค่อยถาม
+    try { localStorage.setItem(PUSH_FIX_KEY, String(Date.now())); } catch (_) {}
+    showToast(asking
+      ? { title: 'เปิดแจ้งเตือน', body: 'เตือนก่อนถึงกำหนดส่ง', action: { label: 'เปิด', fn: () => enableNotif() } }
+      : { title: 'แจ้งเตือนนอกแอปหลุด', body: pushErr || '', action: { label: 'ต่อใหม่', fn: () => reconnectPush() } });
+  }, 4000);
 }
 
 // สิทธิ์จริงของ push — Notification.permission อย่างเดียวไม่พอ
@@ -16973,6 +17033,8 @@ function syncLiteRow() {
   // ยังไม่ล็อกอินก็ต้องผ่านตรงนี้ — pushState ต้องได้ค่าจริงไว้ให้จอตั้งค่าใช้
   await ensurePush();
   _beatAt = Date.now();
+  // ให้การ์ดขาเข้า (ของรางวัล · ซ่อม push) พูดจบก่อน · tokenAdmin คิดแบบ async ต้องรอให้เสร็จด้วย
+  setTimeout(adminPushAlarm, 12000);
   // 1C38 · รายงานตัวกับเซิร์ฟเวอร์ — รอบเย็นจะได้ไม่เด้งใส่คนที่เพิ่งเห็นการ์ดบนจอ (ดู pushHeartbeat)
   // ยิงทั้งตอนเข้าและตอนออก (ไม่เกินสิบนาทีครั้ง) — ด่านของเซิร์ฟเวอร์คือหนึ่งชั่วโมง ละเอียดแค่นี้พอ
   // 11 ต.ค. 69 · กลับเข้าแอป = ลงทะเบียนซ้ำด้วย (iPhone ปลุกแอปแทนการเปิดใหม่ initApp จึงไม่ได้รัน)
