@@ -7407,6 +7407,13 @@ function renderProfile() {
     ps.innerHTML = '<span data-tok="' + tokenBalance() + '">'
       + (typeof fmtTok === 'function' ? fmtTok(tokenBalance()) : tokenBalance()) + '</span> โทเคน';
   }
+  // แถว "ส่งฟีดแบ็ก" — ชิปรางวัลจนกว่าจะได้รับจริง (ดู feedbackPayout) · ได้แล้วเหลือแค่ "ส่งแล้ว"
+  const pfb = document.getElementById('peFbCt');
+  if (pfb) {
+    const paid = !!state.settings.fbPaid;
+    pfb.classList.toggle('pe-reward', !paid);
+    pfb.innerHTML = paid ? 'ส่งแล้ว ✓' : coin(16) + '<span>+' + FB_REWARD + '</span>';
+  }
   const ver = document.getElementById('appVer');
   if (ver) ver.textContent = 'StudentOS Version ' + APP_VERSION + (APP_CODENAME ? ' “' + APP_CODENAME + '”' : '');
   const pn = document.getElementById('pName'); if (pn) pn.value = state.settings.name || '';
@@ -15744,6 +15751,40 @@ async function adminPushAlarm() {
   } catch (_) {}
 }
 
+// ============================================================
+// 11 ต.ค. 69 · รางวัลตอบฟีดแบ็ก — เจ้าของ: "ติดป้ายไว้ด้วยว่า กรอก จะได้รับ 100 โทเคน"
+// ------------------------------------------------------------
+// ฟอร์มอยู่หน้าแยก (feedback.html) จึงไม่จ่ายเอง — แอปเป็นคนจ่าย หลังถามเซิร์ฟเวอร์ว่ามีแถวคำตอบจริง
+// ครั้งเดียวต่อบัญชี: ธง state.settings.fbPaid ซิงก์ตามบัญชี (แบบเดียวกับ boardPaid ใน board.js)
+// เรียกหลัง syncFromCloud เสมอ — เครื่องใหม่ต้องได้ธงจาก cloud ก่อน ไม่งั้นจ่ายซ้ำ
+// ถามเซิร์ฟเวอร์ไม่เกิน 6 ชม.ครั้ง ยกเว้นกลับมาจากปุ่มในฟอร์ม (?fb) ซึ่งถามทันที
+// ============================================================
+const FB_REWARD = 100;
+const FB_CHECK_KEY = 'studentos.alt.fbCheckAt';
+let fbPaying = false;
+async function feedbackPayout(force) {
+  if (!sb || !currentUser || fbPaying || state.settings.fbPaid) return;
+  let last = 0;
+  try { last = +localStorage.getItem(FB_CHECK_KEY) || 0; } catch (_) {}
+  if (!force && Date.now() - last < 6 * 3.6e6) return;
+  fbPaying = true;
+  try {
+    try { localStorage.setItem(FB_CHECK_KEY, String(Date.now())); } catch (_) {}
+    const { data, error } = await sb.from('tester_feedback').select('updated_at')
+      .eq('user_id', currentUser.id).eq('kind', 'main').eq('day', '').maybeSingle();
+    if (error || !data || state.settings.fbPaid) return;
+    state.settings.fbPaid = new Date().toISOString();
+    const bal = addTokens(FB_REWARD);
+    save();
+    renderAll();
+    whenToastQuiet(400, () => true, () => {
+      haptic('done');
+      splashBurst(24, 'egg-star');
+      showToast({ title: '+' + FB_REWARD + ' โทเคน ✦', body: 'ขอบคุณที่ส่งฟีดแบ็ก · ตอนนี้มี ' + bal + ' โทเคน' });
+    });
+  } catch (_) { /* รอบหน้าค่อยถามใหม่ */ } finally { fbPaying = false; }
+}
+
 const PUSH_FIX_KEY = 'studentos.alt.pushFixAt';
 function askPushFix() {
   if (!currentUser || !pushSupported() || pushState === 'on' || !notifOn()) return;
@@ -17178,6 +17219,8 @@ function syncLiteRow() {
   _beatAt = Date.now();
   // ให้การ์ดขาเข้า (ของรางวัล · ซ่อม push) พูดจบก่อน · tokenAdmin คิดแบบ async ต้องรอให้เสร็จด้วย
   setTimeout(adminPushAlarm, 12000);
+  // กลับมาจากฟอร์มฟีดแบ็ก (?fb) = จ่ายรางวัลทันที · เปิดแอปปกติ = เช็คแบบเว้นระยะ
+  feedbackPayout(BOOT_Q.has('fb'));
   // 1C38 · รายงานตัวกับเซิร์ฟเวอร์ — รอบเย็นจะได้ไม่เด้งใส่คนที่เพิ่งเห็นการ์ดบนจอ (ดู pushHeartbeat)
   // ยิงทั้งตอนเข้าและตอนออก (ไม่เกินสิบนาทีครั้ง) — ด่านของเซิร์ฟเวอร์คือหนึ่งชั่วโมง ละเอียดแค่นี้พอ
   // 11 ต.ค. 69 · กลับเข้าแอป = ลงทะเบียนซ้ำด้วย (iPhone ปลุกแอปแทนการเปิดใหม่ initApp จึงไม่ได้รัน)

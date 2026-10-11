@@ -81,6 +81,70 @@ button { font-family: inherit; }
 .back { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-weight: 600; font-size: 14.5px; text-decoration: none; padding: 4px 6px; }
 .who a { color: var(--accent); font-weight: 600; text-decoration: none; margin-left: auto; white-space: nowrap; }
 
+/* ============================================================
+   รางวัล +100 โทเคน — เจ้าของ: "ติดป้ายไว้ว่ากรอกจะได้ 100 โทเคน · ขอสวยๆเท่ๆ"
+   ก่อนส่ง: แถบสีแบรนด์เข้ม + เหรียญ + แสงวาบ (ไม่ใช้ตัวอักษรทอง — ทองสงวนให้ของที่ได้แล้วจริง)
+   หลังส่ง: จอฉลองเหรียญหมุน + รัศมี + เศษดาว และ "+100" เป็นทองได้ เพราะได้แล้ว
+   ============================================================ */
+.reward {
+  position: relative; overflow: hidden; isolation: isolate;
+  margin: 2px 22px 16px; border-radius: 14px; padding: 12px 14px;
+  display: flex; align-items: center; gap: 12px;
+  background: radial-gradient(120% 140% at 0% 0%, #3d6cf0 0%, #2347b8 45%, #142a73 100%);
+  color: #fff; box-shadow: 0 8px 24px rgba(35, 71, 184, .28), inset 0 1px 0 rgba(255,255,255,.18);
+}
+.reward::before {   /* ลายจุดดาวจาง ๆ */
+  content: ""; position: absolute; inset: 0; z-index: -1; opacity: .35;
+  background-image: radial-gradient(rgba(255,255,255,.55) 1px, transparent 1.4px);
+  background-size: 14px 14px; mask-image: linear-gradient(90deg, transparent, #000 60%);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 60%);
+}
+.reward::after {    /* แสงวาบวิ่งผ่าน */
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.28) 50%, transparent 65%);
+  transform: translateX(-110%); animation: sheen 3.6s ease-in-out infinite;
+}
+@keyframes sheen { 0%, 50% { transform: translateX(-110%); } 85%, 100% { transform: translateX(110%); } }
+.reward .coin { width: 46px; height: 46px; flex: none; filter: drop-shadow(0 4px 8px rgba(0,0,0,.35)); animation: bob 3s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-3px) rotate(6deg); } }
+.reward .rw-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.reward .rw-amt { font-size: 24px; font-weight: 700; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.reward .rw-amt small { font-size: 14px; font-weight: 600; opacity: .9; margin-left: 4px; }
+.reward .rw-sub { font-size: 12.5px; opacity: .82; }
+.reward .rw-tag { flex: none; font-size: 11.5px; font-weight: 700; letter-spacing: .04em; padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.28); }
+.reward.paid { background: linear-gradient(135deg, #23304f, #1a2440); box-shadow: none; }
+.reward.paid::after, .reward.paid .coin { animation: none; }
+.btn .coin-s { width: 18px; height: 18px; vertical-align: -4px; margin-right: 6px; }
+
+/* จอฉลองหลังส่ง */
+.cele { position: relative; overflow: hidden; isolation: isolate; padding: 30px 22px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px;
+  background: radial-gradient(90% 70% at 50% 0%, rgba(255, 196, 77, .22), transparent 70%), var(--card); }
+.cele-stage { position: relative; width: 150px; height: 150px; display: grid; place-items: center; }
+.cele-rays { position: absolute; inset: -30px; z-index: -1; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 196, 77, .38) 0deg 8deg, transparent 8deg 22deg);
+  mask-image: radial-gradient(circle, #000 25%, transparent 68%); -webkit-mask-image: radial-gradient(circle, #000 25%, transparent 68%);
+  animation: spin 14s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.cele-coin { width: 112px; height: 112px; filter: drop-shadow(0 10px 18px rgba(181, 118, 12, .45)); animation: flip 1.1s cubic-bezier(.2,.8,.2,1) both, float 3s ease-in-out 1.1s infinite; }
+@keyframes flip { 0% { transform: scale(.2) rotateY(0); opacity: 0; } 60% { transform: scale(1.12) rotateY(540deg); opacity: 1; } 100% { transform: scale(1) rotateY(720deg); } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.cele-amt { font-size: 44px; font-weight: 700; line-height: 1.05; letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #ffe7a3, #edb13f 55%, #b5760c); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(122, 78, 5, .25)); animation: pop .5s .55s cubic-bezier(.2,1.4,.4,1) both; }
+.cele-amt small { font-size: 20px; margin-left: 6px; }
+@keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.cele h2 { margin: 4px 0 0; font-size: 20px; }
+.cele p { margin: 0; color: var(--muted); max-width: 34ch; }
+.cele .nav { justify-content: center; margin-top: 8px; }
+.spark { position: absolute; left: 50%; top: 105px; width: 9px; height: 9px; z-index: 1; pointer-events: none;
+  background: #ffcf5c; clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation: burst 1.2s .45s cubic-bezier(.15,.7,.3,1) both; }
+@keyframes burst { from { transform: translate(-50%, -50%) scale(.3); opacity: 1; } to { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1) rotate(160deg); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .reward::after, .reward .coin, .cele-rays, .cele-coin, .cele-amt { animation: none !important; }
+  .spark { display: none; }
+}
+
 /* ---------- progress ---------- */
 .prog { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); padding: 2px 4px; }
 .prog-bar { flex: 1; height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
@@ -240,6 +304,22 @@ textarea.line-in { resize: none; min-height: 34px; overflow: hidden; }
 </style>
 </head>
 <body>
+<!-- เหรียญโทเคนตัวเดียวกับในแอป (index.html #tok-coin) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="tok-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE7A3"/><stop offset=".48" stop-color="#EDB13F"/><stop offset="1" stop-color="#B5760C"/></linearGradient>
+    <linearGradient id="tok-face" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF4CE"/><stop offset="1" stop-color="#E2A02A"/></linearGradient>
+    <symbol id="tok-coin" viewBox="0 0 48 48">
+      <circle cx="24" cy="24" r="22.5" fill="url(#tok-rim)"/>
+      <circle cx="24" cy="24" r="21" fill="none" stroke="#8A5606" stroke-width="1.4" stroke-dasharray="1.6 2.4" opacity=".55"/>
+      <circle cx="24" cy="24" r="18" fill="#B5760C" opacity=".55"/>
+      <circle cx="24" cy="24" r="16.6" fill="url(#tok-face)"/>
+      <path d="M24 11.4c1.05 8 4.6 11.55 12.6 12.6-8 1.05-11.55 4.6-12.6 12.6-1.05-8-4.6-11.55-12.6-12.6 8-1.05 11.55-4.6 12.6-12.6Z" fill="#7A4E05" opacity=".92"/>
+      <path d="M24 14.6c.78 6 3.4 8.6 9.4 9.4-6 .78-8.6 3.4-9.4 9.4-.78-6-3.4-8.6-9.4-9.4 6-.8 8.62-3.4 9.4-9.4Z" fill="#FFF6D8" opacity=".5"/>
+      <path d="M10.5 17.5A15.4 15.4 0 0 1 20 9.6" fill="none" stroke="#FFFDF2" stroke-width="2.4" stroke-linecap="round" opacity=".62"/>
+    </symbol>
+  </defs>
+</svg>
 <div class="form" id="app">
   <a class="back" href="./">‹ กลับแอป</a>
   <div class="card head">
@@ -253,6 +333,11 @@ textarea.line-in { resize: none; min-height: 34px; overflow: hidden; }
       <h1 id="formTitle">ฟีดแบ็ก Student OS</h1>
       <p id="formDesc">ตอบจากที่ใช้จริงในสัปดาห์นี้ ไม่มีถูกผิด ตอบตรง ๆ ช่วยได้มากที่สุด ใช้เวลาประมาณ 10 นาที</p>
       <span class="req-note">* จำเป็นต้องตอบ</span>
+    </div>
+    <div class="reward" id="reward">
+      <svg class="coin" viewBox="0 0 48 48" aria-hidden="true"><use href="#tok-coin"/></svg>
+      <span class="rw-tx"><span class="rw-amt">+100<small>โทเคน</small></span><span class="rw-sub" id="rwSub">ตอบครบ รับทันที</span></span>
+      <span class="rw-tag" id="rwTag">รางวัล</span>
     </div>
     <div class="who" id="who">กำลังเช็คบัญชี…</div>
   </div>
@@ -279,6 +364,19 @@ textarea.line-in { resize: none; min-height: 34px; overflow: hidden; }
 
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+
+  // ได้รางวัลไปแล้วไหม — อ่านจากข้อมูลแอปในเครื่อง (origin เดียวกัน) · แอปเป็นคนจ่ายจริง (feedbackPayout)
+  var REWARD = 100;
+  var paid = false;
+  try { paid = !!((JSON.parse(localStorage.getItem('studentos.alt.v1') || '{}').settings || {}).fbPaid); } catch (e) {}
+  function paintReward() {
+    var r = $('reward'); if (!r) return;
+    if (MODE === 'daily') { r.hidden = true; return; }
+    r.classList.toggle('paid', paid);
+    $('rwSub').textContent = paid ? 'รับไปแล้ว ขอบคุณที่ช่วย' : 'ตอบครบ รับทันที';
+    $('rwTag').textContent = paid ? 'รับแล้ว ✓' : 'รางวัล';
+  }
+  paintReward();
 
   if (MODE === 'daily') {
     $('bannerTag').textContent = 'เช็คอินทุกเย็น';
@@ -400,7 +498,10 @@ textarea.line-in { resize: none; min-height: 34px; overflow: hidden; }
     var last = page === total - 1;
     h += '<div class="nav">'
       + (page > 0 ? '<button class="btn ghost" id="prev" type="button">กลับ</button>' : '')
-      + '<button class="btn fill" id="next" type="button">' + (last ? (sentAt ? 'ส่งคำตอบใหม่' : 'ส่ง') : 'ถัดไป') + '</button>'
+      + '<button class="btn fill" id="next" type="button">' + (last
+          ? (sentAt ? 'ส่งคำตอบใหม่' : (MODE === 'main' && !paid
+            ? '<svg class="coin-s" viewBox="0 0 48 48" aria-hidden="true"><use href="#tok-coin"/></svg>ส่ง · รับ ' + REWARD + ' โทเคน' : 'ส่ง'))
+          : 'ถัดไป') + '</button>'
       + '<span class="status" id="status" role="status" aria-live="polite"></span>'
       + '<button class="link" id="clear" type="button">ล้างแบบฟอร์ม</button></div>';
     $('body').innerHTML = h;
@@ -516,6 +617,7 @@ textarea.line-in { resize: none; min-height: 34px; overflow: hidden; }
   }
   function showDone() {
     var daily = MODE === 'daily';
+    if (!daily && !paid) { showCelebrate(); return; }
     $('body').innerHTML = '<div class="card state"><img src="hook-avatar.png" alt="">'
       + '<h2>' + (daily ? 'บันทึกเช็คอินวันนี้แล้ว' : 'ส่งคำตอบแล้ว ขอบคุณมาก') + '</h2>'
       + '<p>' + (daily ? 'พรุ่งนี้เย็นกลับมาตอบอีกครั้งนะ' : 'ทุกคำตอบถูกอ่านจริง และเอาไปแก้แอปรอบถัดไป') + '</p>'
@@ -526,6 +628,26 @@ textarea.line-in { resize: none; min-height: 34px; overflow: hidden; }
     var td = $('toDaily'); if (td) td.onclick = function () { setTimeout(function () { location.reload(); }, 0); };
     scrollTo(0, 0);
   }
+  // ส่งแบบหลักครั้งแรก — จอฉลอง · ปุ่มพากลับแอปพร้อม ?fb ให้แอปจ่ายทันที (feedbackPayout)
+  function showCelebrate() {
+    var sparks = '';
+    for (var i = 0; i < 14; i++) {
+      var a = (i / 14) * Math.PI * 2, d = 70 + (i % 3) * 22;
+      sparks += '<i class="spark" style="--dx:' + Math.round(Math.cos(a) * d) + 'px;--dy:' + Math.round(Math.sin(a) * d) + 'px;animation-delay:' + (0.45 + (i % 4) * 0.04) + 's"></i>';
+    }
+    $('body').innerHTML = '<div class="card cele">' + sparks
+      + '<div class="cele-stage"><span class="cele-rays"></span><svg class="cele-coin" viewBox="0 0 48 48" aria-hidden="true"><use href="#tok-coin"/></svg></div>'
+      + '<div class="cele-amt">+' + REWARD + '<small>โทเคน</small></div>'
+      + '<h2>ส่งแล้ว ขอบคุณมาก</h2>'
+      + '<p>กดปุ่มข้างล่าง โทเคนจะเข้ากระเป๋าในแอปทันที</p>'
+      + '<div class="nav"><a class="btn fill" href="./?fb=1" style="text-decoration:none">'
+      + '<svg class="coin-s" viewBox="0 0 48 48" aria-hidden="true"><use href="#tok-coin"/></svg>รับ ' + REWARD + ' โทเคนในแอป</a>'
+      + '<a class="btn ghost" href="feedback.html#daily" id="toDaily" style="text-decoration:none">เช็คอินวันนี้</a></div></div>';
+    var td = $('toDaily'); if (td) td.onclick = function () { setTimeout(function () { location.reload(); }, 0); };
+    $('rwSub').textContent = 'กดปุ่มข้างล่างเพื่อรับ'; $('rwTag').textContent = 'รอรับในแอป';
+    var c = document.querySelector('.cele'); if (c) c.scrollIntoView({ block: 'start' });
+  }
+
   function showLogin(msg) {
     $('who').textContent = 'ยังไม่ได้ล็อกอิน';
     $('body').innerHTML = '<div class="card state"><img src="hook-avatar.png" alt="">'
@@ -538,8 +660,8 @@ textarea.line-in { resize: none; min-height: 34px; overflow: hidden; }
   async function boot() {
     // ดูหน้าตาฟอร์มบนเครื่องผู้พัฒนาโดยไม่ต้องล็อกอิน (ส่งไม่ได้) — localhost/?preview เท่านั้น
     if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /preview/.test(location.search)) {
-      user = { id: 'preview' }; $('who').innerHTML = 'ดูตัวอย่าง · <b>ส่งจริงไม่ได้</b>';
-      sb = { from: function () { return { upsert: async function () { return { error: { message: 'preview' } }; } }; } };
+      user = { id: 'preview' }; $('who').innerHTML = 'ดูตัวอย่าง · <b>ไม่ได้ส่งจริง</b>';
+      sb = { from: function () { return { upsert: async function () { return { error: null }; } }; } };   // ไม่ได้ส่งไปไหน — แค่ให้เห็นจอหลังส่ง
       loadDraft(); render(); return;
     }
     var c = window.SUPABASE_CONFIG || {};
