@@ -15032,6 +15032,7 @@ async function reconnectPush() {
   try { ok = await subscribePush(); }
   catch (e) { pushErr = pushErrText(e); console.warn('[push] subscribe failed:', e); }
   await refreshPushState();
+  recordPushDiag();   // 11 ต.ค. · ไม่จดตรงนี้ = cloud ค้างว่า "ยังไม่อนุญาต" ทั้งที่เพิ่งต่อสำเร็จ (เจอจริงกับเครื่องเจ้าของ)
   renderProfile();
   if (ok && pushState === 'on') {
     showToast({ title: 'เตือนนอกแอปได้แล้ว 🔔', body: 'จะเตือนแม้ปิดแอปอยู่' });
@@ -15092,7 +15093,7 @@ async function enableNotif() {
   funnelMark('notifAskedAt');
   funnel().notif = perm;
   save();
-  if (perm !== 'granted') { renderProfile(); return; }
+  if (perm !== 'granted') { recordPushDiag(); renderProfile(); return; }
   // สมัครก่อน แล้วค่อยยิงการ์ดทดสอบ (เดิมกลับกัน — ดูหมายเหตุที่ reconnectPush)
   let subErr = null;
   const subTry = subscribePush().catch(e => { subErr = e; return false; });
@@ -15120,6 +15121,7 @@ async function enableNotif() {
     pushErr = pushErrText(e);
     showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเตือนนอกแอปไม่ได้ · ' + pushErr });
   }
+  recordPushDiag();
   renderProfile();
   checkReminders();
 }
@@ -15607,10 +15609,9 @@ async function adminPushAlarm() {
     if (error || !h) return;                 // ยังไม่ได้รัน migration / ไม่ได้อยู่ใน app_admins
     try { localStorage.setItem(PUSH_HEALTH_KEY, String(Date.now())); } catch (_) {}
     if (!h.active || h.ok * 2 >= h.active) return;
-    const t = document.getElementById('appToast');
-    if (t && t.classList.contains('show')) { try { localStorage.removeItem(PUSH_HEALTH_KEY); } catch (_) {} return; }
-    showToast({ title: 'แจ้งเตือนส่งถึง ' + h.ok + '/' + h.active + ' คน', body: 'ใช้แอปใน 3 วัน',
-      action: { label: 'ดู', fn: () => window.open(location.pathname.includes('/alt/') ? 'control.html' : 'alt/control.html', '_blank') } });
+    whenToastQuiet(0, () => true, () => showToast({ title: 'แจ้งเตือนส่งถึง ' + h.ok + '/' + h.active + ' คน', body: 'ใช้แอปใน 3 วัน',
+      action: { label: 'ดู', fn: () => window.open(location.pathname.includes('/alt/') ? 'control.html' : 'alt/control.html', '_blank') } }),
+      () => { try { localStorage.removeItem(PUSH_HEALTH_KEY); } catch (_) {} });   // พูดไม่ทัน = เปิดแอปรอบหน้าถามใหม่
   } catch (_) {}
 }
 
@@ -15626,15 +15627,32 @@ function askPushFix() {
   let last = 0;
   try { last = +localStorage.getItem(PUSH_FIX_KEY) || 0; } catch (_) {}
   if (Date.now() - last < (asking ? 3 : 1) * 864e5) return;
-  setTimeout(() => {
-    if (pushState === 'on' || document.hidden) return;
-    const t = document.getElementById('appToast');
-    if (t && t.classList.contains('show')) return;     // มีการ์ดอื่นพูดอยู่ — รอบหน้าค่อยถาม
+  if (_fixWaiting) return;
+  _fixWaiting = true;
+  whenToastQuiet(3000, () => pushState !== 'on', () => {
+    _fixWaiting = false;
     try { localStorage.setItem(PUSH_FIX_KEY, String(Date.now())); } catch (_) {}
     showToast(asking
       ? { title: 'เปิดแจ้งเตือน', body: 'เตือนก่อนถึงกำหนดส่ง', action: { label: 'เปิด', fn: () => enableNotif() } }
       : { title: 'แจ้งเตือนนอกแอปหลุด', body: pushErr || '', action: { label: 'ต่อใหม่', fn: () => reconnectPush() } });
-  }, 4000);
+  }, () => { _fixWaiting = false; });
+}
+let _fixWaiting = false;
+
+// รอให้ toast ใบอื่นพูดจบก่อน แล้วค่อยพูด — toast มีใบเดียว ใครมาทีหลังทับใบเดิมเสมอ
+// 11 ต.ค. · การ์ดซ่อมแจ้งเตือนเคย "ข้ามไปเลย" ถ้ามีการ์ดอื่นอยู่ — ของรางวัลรายวันเด้งตอนเปิดแอปแทบทุกวัน
+// การ์ดซ่อมจึงไม่เคยได้ขึ้นบนเครื่องเจ้าของ · ตอนนี้รอ (สูงสุดราว 40 วิ) แล้วเว้นจังหวะ 1.2 วิหลังใบก่อนปิด
+// still() = ยังควรพูดอยู่ไหม (เช่น ระหว่างรอ เครื่องต่อสำเร็จไปแล้ว) · พับแอปหนีระหว่างรอ = เลิก
+function whenToastQuiet(delay, still, say, giveUp) {
+  let tries = 0, quiet = false;
+  const tick = () => {
+    if (!still() || document.hidden || ++tries > 40) { if (giveUp) giveUp(); return; }
+    const t = document.getElementById('appToast');
+    if (t && t.classList.contains('show')) { quiet = false; setTimeout(tick, 1000); return; }
+    if (!quiet) { quiet = true; setTimeout(tick, 1200); return; }
+    say();
+  };
+  setTimeout(tick, delay);
 }
 
 // สิทธิ์จริงของ push — Notification.permission อย่างเดียวไม่พอ
