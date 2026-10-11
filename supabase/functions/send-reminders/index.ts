@@ -815,6 +815,9 @@ Deno.serve(async (req: Request) => {
         // เทียบกับ false ตรง ๆ ไม่ใช่เช็คว่ามีค่าไหม เพราะคนที่ยังไม่ได้อัปเดตแอป
         // จะไม่มีคีย์นี้เลย และเขาต้องได้รับการเตือนเหมือนเดิม ไม่ใช่เงียบไปเฉย ๆ
         const prefs = prefsByUser.get(sub.user_id) ?? {};
+        // สวิตช์ใหญ่ในตั้งค่า "รับการแจ้งเตือน" — แอปถอน subscription ของเครื่องที่เปิดอยู่เองแล้ว
+        // ด่านนี้กันเครื่องอื่นของคนเดียวกันที่ยังไม่ได้เปิดแอปมารับค่าใหม่
+        if (prefs?.notifOff === true) continue;
         const wantDue = prefs?.notifDue !== false;
         const wantNudge = prefs?.notifNudge !== false;
         const wantSocial = prefs?.notifSocial !== false;

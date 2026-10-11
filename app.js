@@ -11,7 +11,7 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C53';                 // สายเลขของแอป
+const APP_VERSION = '1C55';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
@@ -1047,7 +1047,9 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
   'scr-sai': 'scr-menu',
   // ห้องการบ้านเข้าจากรายการงาน จึงคืนไฟให้แท็บนั้น ไม่ใช่แท็บเพื่อน
   'scr-hw': 'scr-tasks',
-  'scr-compose': 'scr-menu', 'scr-post': 'scr-menu', 'scr-user': 'scr-menu' };
+  'scr-compose': 'scr-menu', 'scr-post': 'scr-menu', 'scr-user': 'scr-menu',
+  // กระดานอันดับเข้าจากจอเพื่อน (ซึ่งยืมไฟแท็บ "วันนี้") หรือแท็บ "ฉัน" — ยืมไฟตามจอเพื่อน
+  'scr-board': 'scr-menu' };
 
 // ---------- 1A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
 // บนมือถือ การสลับไปแอปอื่นแล้วกลับมามักทำให้ระบบโหลดหน้าใหม่ทั้งหน้า
@@ -1069,7 +1071,9 @@ const NO_RESUME = ['scr-crop', 'scr-parsing', 'scr-form', 'scr-login', 'scr-onbo
   // 1C18 · ห้องคุยแผนวาดจาก openSaiPlan() ล้วน ๆ · กลับเข้าแอปแล้วถูกพามาที่นี่ตรง ๆ
   // จะได้จอเปล่าที่ไม่มีแม้แต่ปุ่มย้อนกลับ · และ "แผนวันนี้" ที่เล่าค้างไว้เมื่อครึ่งชั่วโมงก่อน
   // ก็ไม่ใช่สิ่งที่ใครอยากกลับมาเจอต่อจากข้อที่สามอยู่แล้ว
-  'scr-sai'];
+  'scr-sai',
+  // กระดานอันดับวาดจาก renderBoard() ทั้งจอ รวมปุ่มกลับ — กลับเข้าแอปมาตรงนี้ = จอเปล่าออกไม่ได้
+  'scr-board'];
 
 // ---------- ตาข่ายรองรับชั้นที่สอง ----------
 // NO_RESUME กันทางที่เจอจริงไปแล้ว แต่ยังมีทางอื่นที่พาเข้าจอพวกนี้โดยไม่มีใครสั่งวาด
@@ -1092,6 +1096,7 @@ const LIVE_ONLY = {
   // แต่ยังต้องมีตาข่ายรองไว้ เพราะทางเข้าจอพวกนี้มีหลายทางและเพิ่มได้เรื่อย ๆ
   'scr-user':    { body: 'userBody',    back: 'scr-profile' },
   'scr-post':    { body: 'postBody',    back: 'scr-mates' },
+  'scr-board':   { body: 'boardBody',   back: 'scr-mates' },
   // ทางเข้าห้องคุยแผนมีทางเดียวคือ openSaiPlan() แต่ปุ่มย้อนของเครื่องพาเข้ามาได้
   'scr-sai':     { body: 'saiBody',     back: 'scr-menu' },
 };
@@ -1275,15 +1280,15 @@ async function initCloud() {
   // จึงไม่เคยเข้าบล็อกนั้นเลย และปุ่ม "เชื่อมด้วย Google" ก็ไม่เคยโผล่
   // เจอตอนทดสอบบนเครื่องจริงหลัง deploy ไม่ใช่ตอนอ่านโค้ด
   if (currentUser && typeof integLoad === 'function') integLoad(true);
+  // ลงทะเบียน push ทันทีที่รู้ว่าล็อกอิน — ไม่ต่อคิวหลังซิงก์ (ดูหมายเหตุที่ ensurePush)
+  if (currentUser) ensurePush();
   sb.auth.onAuthStateChange((event, sess) => {
     const wasLoggedIn = !!currentUser;
     currentUser = sess ? sess.user : null;
     syncTokenAdmin();
     if (currentUser && !wasLoggedIn) {
       // เพิ่งล็อกอินเสร็จ (รวมถึงกลับมาจากหน้า Google)
-      if ('Notification' in window && Notification.permission === 'granted') {
-        subscribePush().catch(() => {}); // ผูก push กับบัญชีที่เพิ่งล็อกอิน
-      }
+      ensurePush(); // ผูก push กับบัญชีที่เพิ่งล็อกอิน
       // token จากลิงก์กลุ่มถูกเก็บไว้ตั้งแต่ก่อนล็อกอิน — จังหวะนี้คือจังหวะที่ใช้ได้แล้ว
       // (ทางกลับจาก Google เป็นการโหลดหน้าใหม่ ตัว initApp ก็เรียกให้อีกทาง เรียกซ้ำได้ปลอดภัย)
       // คำขอเป็นเพื่อนที่ค้างอยู่ต้องขึ้นจุดแดงได้โดยไม่ต้องรอให้คนเปิดหน้าเพื่อนก่อน
@@ -1345,6 +1350,8 @@ async function syncFromCloud() {
       for (const m of (remote.marks || [])) mById[m.id] = m;
       state.marks = Object.values(mById);
       funnelMerge(remote.funnel);
+      // สถานะ push ของเครื่องอื่น — เก็บไว้ส่งกลับขึ้นไปพร้อมของเครื่องนี้ (ดู pushDiagExport)
+      if (remote.pushDiag && typeof remote.pushDiag === 'object') pushDiagRemote = remote.pushDiag;
       // ใช้ตัวเดียวกับ save() — ถ้าเครื่องเต็มตรงนี้แล้วปล่อยให้ throw จะร้ายกว่าที่อื่น
       // เพราะบรรทัดที่เหลือของ syncFromCloud (บริบท · ของสะสม · กล่องเข้า LINE · renderAll)
       // จะไม่ได้ทำงานเลยสักบรรทัด แปลว่าดึงของจาก cloud มาแล้วแต่หน้าจอไม่รู้เรื่องด้วย
@@ -1428,7 +1435,8 @@ function pushToCloud(immediate) {
         sessions: state.sessions || [],
         marks: state.marks || [],
         ctx: typeof ctxExport === 'function' ? ctxExport() : undefined,
-        vault, push, funnel: funnelExport() };
+        vault, push, funnel: funnelExport(),
+        pushDiag: typeof pushDiagExport === 'function' ? pushDiagExport() : undefined };
       const json = JSON.stringify(body);
       const hash = cheapHash(json);
       const avatarChanged = avatar !== lastPushedAvatar;
@@ -2215,6 +2223,12 @@ function todayHead(sp, now) {
          ซึ่งเป็นทางที่เร็วกว่าด้วย (ถ่ายรูปตารางทีเดียวจบ แทนการกรอกทีละคาบ) -->
     <!-- 1C40 · กระดิ่งพาไปจอการแจ้งเตือน (ข้อความจากเพื่อน + งานเข้ากล่อง) แทนกล่องเข้าอย่างเดียว
          จุดแดงนับทั้งสองสาย · ตัวเลขยังไม่ใส่ ด้วยเหตุผลเดิมของ .th-dot -->
+    <!-- 9 ต.ค. 69 · ทางเข้ากระดานอันดับบนหน้าแรก (เจ้าของ: "อยู่หน้าฉันด้วย หายาก ต้องมาอยู่หน้าวันนี้")
+         อยู่ในหัวจอข้างกระดิ่ง ไม่กินความสูงสักพิกเซล — หน้าแรกต้องไม่ต้องเลื่อน
+         ป้าย #อันดับ ขึ้นเมื่อโหลดอันดับแล้วเท่านั้น (board.js · boardRankLabel) ไม่เดา -->
+    ${typeof openBoard === 'function' && currentUser && (typeof sosFeature !== 'function' || sosFeature('social'))
+      ? `<button class="th-rank" onclick="openBoard('scr-menu')" aria-label="อันดับ">${icon('trophy')}<span id="thRank">${
+          typeof boardRankLabel === 'function' ? boardRankLabel() : ''}</span></button>` : ''}
     <button class="th-bell" onclick="go('scr-notif')"
       aria-label="${notifN ? 'การแจ้งเตือน ใหม่ ' + notifN + ' รายการ' : 'การแจ้งเตือน'}">
       ${icon('bell')}${notifN ? '<span class="th-dot"></span>' : ''}
@@ -7418,15 +7432,18 @@ function renderProfile() {
   } else if (Notification.permission === 'granted') {
     // 1B99 · สามสถานะ ไม่ใช่สอง — 'local' คือ "เบราว์เซอร์พร้อม แต่เซิร์ฟเวอร์ยังส่งไม่ถึง"
     // ซึ่งเดิมถูกนับรวมเป็น 'on' แล้วจอก็สัญญาเกินกว่าที่ระบบทำได้จริง
+    // 9 ต.ค. 69 · 'off' (อนุญาตแล้วแต่ไม่มี subscription) เคยเขียนว่า "เตือนตอนเปิดแอป" เหมือน
+    // สถานะปกติ — คนอ่านไม่มีทางรู้ว่าการเตือนตอนปิดแอปตายอยู่ ต้องพูดตรง ๆ ว่า "นอกแอป: ยังไม่ทำงาน"
+    const why = pushErr ? ' · ' + pushErr : '';
     if (pushState === 'on' && currentUser) st.textContent = 'เตือนก่อนถึงกำหนด แม้ปิดแอป';
-    else if (pushState === 'local' && currentUser) st.textContent = 'เตือนตอนเปิดแอป · ยังเชื่อมกับเซิร์ฟเวอร์ไม่ได้';
-    else if (pushState === 'on' || pushState === 'local') st.textContent = 'เตือนตอนเปิดแอป';
-    else st.textContent = 'เตือนตอนเปิดแอป';
-    // 'local' ต้องมีปุ่มให้กดลองใหม่ — สถานะที่บอกว่าพังแต่ไม่มีอะไรให้กด คือทางตัน
+    else if (!currentUser) st.textContent = 'เตือนตอนเปิดแอป · ล็อกอินเพื่อเตือนนอกแอป';
+    else if (pushState === 'unsupported') st.textContent = 'เตือนตอนเปิดแอป · เครื่องนี้เตือนนอกแอปไม่ได้';
+    else if (pushState === 'local') st.textContent = 'นอกแอป: ยังเชื่อมกับเซิร์ฟเวอร์ไม่ได้' + why;
+    else st.textContent = 'นอกแอป: ยังไม่ทำงาน' + why;
+    // สถานะที่บอกว่าพังแต่ไม่มีอะไรให้กด คือทางตัน — ทุกสถานะที่ยังไม่ 'on' ต้องมีปุ่มต่อใหม่
     if (nb) {
-      const stuck = pushState === 'local' && currentUser;
-      nb.style.display = (pushState === 'on' || pushState === 'unsupported') ? 'none' : 'block';
-      if (stuck) nb.textContent = 'ลองเชื่อมใหม่';
+      nb.style.display = (pushState === 'on' || pushState === 'unsupported' || !currentUser) ? 'none' : 'block';
+      nb.textContent = 'ต่อใหม่';
     }
   } else if (Notification.permission === 'denied') {
     st.textContent = 'ถูกปิดไว้ในเบราว์เซอร์';
@@ -7610,6 +7627,7 @@ function renderFriends(force) {
   // อย่าพับกลับอีกจนกว่าจะมีคนใช้จริงที่มีเพื่อนกันแล้วเป็นสิบคน
   body.innerHTML = `
     <div id="frMeRow"></div>
+    <div id="frBoardRow"></div>
     <div class="fr-search big" id="frSearchBox">
       ${icon('search')}
       <input id="frQ" autocomplete="off" autocapitalize="off" spellcheck="false"
@@ -7622,6 +7640,8 @@ function renderFriends(force) {
     <div id="frListBox"></div>`;
   body.dataset.built = '1';
   paintFriendParts();
+  // การ์ด "อันดับ" (board.js) — โหลดอันดับของเราไว้เงียบ ๆ ให้การ์ดบอกตัวเลขได้เลย
+  if (typeof paintBoardEntry === 'function') { paintBoardEntry(); boardWarm(); }
 }
 
 // ช่องค้นหาไม่พับแล้ว (1B64) ปุ่มแว่นขยายจึงถูกถอดออกจากหัวจอ
@@ -12162,6 +12182,7 @@ function openForm(id, parsed) {
   const due = t?.due ? new Date(t.due) : new Date(Date.now() + 8.64e7); // default พรุ่งนี้
   f.date.value = due.getFullYear() + '-' + String(due.getMonth() + 1).padStart(2, '0') + '-' + String(due.getDate()).padStart(2, '0');
   f.time.value = String(due.getHours()).padStart(2, '0') + ':' + String(due.getMinutes()).padStart(2, '0');
+  closeTimeDial();
 
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
   document.getElementById('scr-form').classList.add('on');
@@ -12613,6 +12634,215 @@ function pickDueCustom() {
   }, 60);
 }
 
+// ---------- เวลาส่ง: หน้าปัด 24 ชม. + พิมพ์เอง ----------
+// เทสเตอร์ (9 ต.ค. 69): "อยากตั้งเวลาที่แต่ละงานง่ายกว่านี้ มีกรอกเวลาเอง กับเลื่อนเหมือนนาฬิกาปลุก"
+// ส่งภาพหน้าปัดเวลานอนของ iPhone มา — วงเดียว 0 อยู่บน 12 อยู่ล่าง ลากปุ่มไปรอบวง
+// ตัวเลือกเวลาของเบราว์เซอร์ (<input type=time>) เป็นวงล้อสามช่องบน iPhone และแต่งไม่ได้
+// ลาก = ทีละ 5 นาที (ลากทีละนาทีบนวงขนาดนี้นิ้วคุมไม่อยู่) · ตัวเลขตรงกลางพิมพ์ได้ทุกนาที
+// ลากผ่านเที่ยงคืนจากฝั่งดึก = 23:59 ไม่ใช่ 00:00 — "ส่งเที่ยงคืน" คือปลายสุดของวันนั้น (Key Decisions)
+// ค่าจริงยังอยู่ใน #fTime (ซ่อนไว้) — saveForm() กับ updateFormSummary() ไม่ต้องรู้อะไรเพิ่ม
+const TD_STEP = 5;
+const TD_C = 130, TD_R = 106;               // จุดกลางกับรัศมีวงลาก (หน่วยของ viewBox 260)
+const TD_QUICK = ['08:00', '12:00', '16:30', '20:00', '23:59'];
+
+function tdMin() {
+  const [h, m] = ((document.getElementById('fTime') || {}).value || '23:59').split(':');
+  return (+h || 0) * 60 + (+m || 0);
+}
+function tdFmt(m) { return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+function tdXY(m, r) {
+  const a = m / 1440 * 2 * Math.PI;
+  return [TD_C + r * Math.sin(a), TD_C - r * Math.cos(a)];
+}
+function tdIsOpen() {
+  const w = document.getElementById('timeDial');
+  return !!(w && !w.hidden);
+}
+
+function renderTimeDial(w) {
+  let ticks = '', nums = '';
+  for (let i = 0; i < 96; i++) {           // ขีดทุก 15 นาที · ขีดยาวทุกชั่วโมง
+    const m = i * 15, hr = i % 4 === 0;
+    const [x1, y1] = tdXY(m, 86), [x2, y2] = tdXY(m, hr ? 79 : 83);
+    ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"${hr ? ' class="hr"' : ''}/>`;
+  }
+  for (let h = 0; h < 24; h += 3) {
+    const [x, y] = tdXY(h * 60, 67);
+    nums += `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}">${h}</text>`;
+  }
+  const sun = Array.from({ length: 8 }, (_, i) => {
+    const a = i * Math.PI / 4;
+    return `<line x1="${(7 * Math.sin(a)).toFixed(1)}" y1="${(7 * Math.cos(a)).toFixed(1)}" x2="${(10 * Math.sin(a)).toFixed(1)}" y2="${(10 * Math.cos(a)).toFixed(1)}"/>`;
+  }).join('');
+  w.innerHTML = `<div class="td-dial">
+      <svg viewBox="0 0 260 260" role="slider" tabindex="0" aria-label="เวลาส่ง" aria-valuemin="0" aria-valuemax="1439">
+        <circle class="td-track" cx="${TD_C}" cy="${TD_C}" r="${TD_R}"/>
+        <path class="td-arc" d=""/>
+        <circle class="td-face" cx="${TD_C}" cy="${TD_C}" r="90"/>
+        <g class="td-ticks">${ticks}</g>
+        <g class="td-nums">${nums}</g>
+        <path class="td-moon" d="M${TD_C + 3} ${TD_C - 52}a9 9 0 1 0 9 11a7 7 0 0 1 -9 -11z"/>
+        <g class="td-sun" transform="translate(${TD_C} ${TD_C + 44})"><circle r="4.5"/>${sun}</g>
+        <g class="td-knob"><circle r="17"/><circle class="td-knob-dot" r="5"/></g>
+      </svg>
+      <div class="td-mid">
+        <input id="tdH" inputmode="numeric" enterkeyhint="next" autocomplete="off" aria-label="ชั่วโมง"
+          oninput="tdTyped('h', this)" onblur="tdCommit('h', this)" onfocus="this.select()" onkeydown="if(event.key==='Enter')this.blur()">
+        <b>:</b>
+        <input id="tdM" inputmode="numeric" enterkeyhint="done" maxlength="2" autocomplete="off" aria-label="นาที"
+          oninput="tdTyped('m', this)" onblur="tdCommit('m', this)" onfocus="this.select()" onkeydown="if(event.key==='Enter')this.blur()">
+      </div>
+    </div>
+    <div class="td-quick">${TD_QUICK.map(t => `<button type="button" data-t="${t}" onclick="tdPick('${t}')">${t}</button>`).join('')}</div>`;
+  tdBind(w.querySelector('svg'));
+}
+
+// วาดเฉพาะของที่ขยับ (ปุ่ม · ส่วนโค้ง · ตัวเลข) — ไม่วาดใหม่ทั้งหน้าปัดทุกครั้งที่นิ้วขยับ
+function tdPaint() {
+  const w = document.getElementById('timeDial');
+  if (!w || !w.firstChild) return;
+  const m = tdMin();
+  const [x, y] = tdXY(m, TD_R);
+  w.querySelector('.td-knob').setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+  const [sx, sy] = tdXY(0, TD_R);
+  w.querySelector('.td-arc').setAttribute('d', m < 1
+    ? '' : `M${sx} ${sy}A${TD_R} ${TD_R} 0 ${m > 720 ? 1 : 0} 1 ${x.toFixed(1)} ${y.toFixed(1)}`);
+  const svg = w.querySelector('svg');
+  svg.setAttribute('aria-valuenow', m);
+  svg.setAttribute('aria-valuetext', tdFmt(m));
+  const h = document.getElementById('tdH'), mm = document.getElementById('tdM');
+  // ช่องที่กำลังพิมพ์อยู่ห้ามเขียนทับ — พิมพ์ "1" แล้วกลายเป็น "01" ทันทีคือพิมพ์ "18" ไม่ได้
+  if (h && document.activeElement !== h) h.value = tdFmt(m).slice(0, 2);
+  if (mm && document.activeElement !== mm) mm.value = tdFmt(m).slice(3);
+  const cur = tdFmt(m);
+  w.querySelectorAll('.td-quick button').forEach(b => b.classList.toggle('on', b.dataset.t === cur));
+}
+
+function tdSet(m, fromDrag) {
+  m = Math.max(0, Math.min(1439, Math.round(m)));
+  const f = document.getElementById('fTime');
+  if (!f) return;
+  const before = tdMin();
+  if (f.value !== tdFmt(m)) {
+    f.value = tdFmt(m);
+    if (fromDrag && Math.floor(before / 60) !== Math.floor(m / 60)) haptic('arm');
+  }
+  updateFormSummary();   // เรียก tdPaint() ให้เองตอนหน้าปัดกางอยู่
+}
+
+function tdPick(t) {
+  const [h, m] = t.split(':');
+  tdSet(+h * 60 + +m);
+}
+
+// มุมจากจุดกลาง → นาที · คืนระยะจากจุดกลางด้วย (หน่วย viewBox) ไว้ตัดสินว่าแตะโดนวงหรือเปล่า
+function tdFromPoint(svg, cx, cy) {
+  const r = svg.getBoundingClientRect();
+  const k = 260 / r.width;
+  const x = (cx - r.left) * k - TD_C, y = (cy - r.top) * k - TD_C;
+  let a = Math.atan2(x, -y);
+  if (a < 0) a += 2 * Math.PI;
+  return { raw: a / (2 * Math.PI) * 1440, dist: Math.hypot(x, y) };
+}
+function tdSnap(raw, prev) {
+  const m = Math.round(raw / TD_STEP) * TD_STEP;
+  // ยอดวงคือรอยต่อของวัน — มาจากฝั่งดึกได้ 23:59 · มาจากฝั่งเช้ามืดได้ 00:00
+  if (m >= 1440) return prev < 240 ? 0 : 1439;
+  if (m === 0 && prev >= 1200) return 1439;
+  return m;
+}
+// แตะได้เฉพาะแถบวงนอก (กับปุ่มที่อยู่บนวง) — แตะกลางหน้าปัดคือจะพิมพ์ ไม่ใช่จะลาก
+// และนิ้วที่ปัดผ่านหน้าปัดเพื่อเลื่อนฟอร์ม ต้องเลื่อนฟอร์มได้ตามปกติ
+function tdOnRing(dist) { return dist >= TD_R - 30 && dist <= TD_R + 28; }
+
+function tdBind(svg) {
+  let dragging = false;
+  // touchstart ต้องไม่ passive จึงสั่ง preventDefault ได้ — ห้ามจอเลื่อนเฉพาะตอนนิ้วลงบนวง
+  svg.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    if (t && tdOnRing(tdFromPoint(svg, t.clientX, t.clientY).dist)) e.preventDefault();
+  }, { passive: false });
+  svg.addEventListener('pointerdown', e => {
+    const p = tdFromPoint(svg, e.clientX, e.clientY);
+    if (!tdOnRing(p.dist)) return;
+    dragging = true;
+    try { svg.setPointerCapture(e.pointerId); } catch (_) {}
+    svg.classList.add('drag');
+    const a = document.activeElement;
+    if (a && (a.id === 'tdH' || a.id === 'tdM')) a.blur();
+    tdSet(tdSnap(p.raw, tdMin()), true);
+  });
+  svg.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    tdSet(tdSnap(tdFromPoint(svg, e.clientX, e.clientY).raw, tdMin()), true);
+  });
+  const end = () => { dragging = false; svg.classList.remove('drag'); };
+  svg.addEventListener('pointerup', end);
+  svg.addEventListener('pointercancel', end);
+  svg.addEventListener('keydown', e => {
+    const step = { ArrowUp: TD_STEP, ArrowRight: TD_STEP, ArrowDown: -TD_STEP, ArrowLeft: -TD_STEP, PageUp: 60, PageDown: -60 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    tdSet((tdMin() + step + 1440) % 1440);
+  });
+}
+
+// พิมพ์ชั่วโมงครบ (สองหลัก หรือหลักเดียวที่เกิน 2 เช่น "9") แล้วกระโดดไปช่องนาทีเอง
+// นาทีครบแล้วปิดคีย์บอร์ด — พิมพ์ "1830" รวดเดียวจบโดยไม่ต้องแตะอะไรเพิ่ม
+function tdTyped(which, el) {
+  const all = el.value.replace(/\D/g, '');
+  // วาง "1830" หรือ "930" ลงช่องชั่วโมงทีเดียว (คีย์บอร์ดเดาคำ · วางจากแชท) = ได้ทั้งชั่วโมงและนาที
+  if (which === 'h' && all.length > 2) {
+    const hh = +all[0] > 2 ? all.slice(0, 1) : all.slice(0, 2);
+    const mm = all.slice(hh.length, hh.length + 2).padEnd(2, '0');
+    el.value = hh;
+    tdSet(Math.min(23, +hh) * 60 + Math.min(59, +mm));
+    el.blur();
+    return;
+  }
+  const d = all.slice(0, 2);
+  if (el.value !== d) el.value = d;
+  if (!d) return;
+  const cur = tdMin();
+  if (which === 'h') {
+    if (d.length < 2 && +d <= 2) return;
+    tdSet(Math.min(23, +d) * 60 + cur % 60);
+    const m = document.getElementById('tdM');
+    if (m) { m.focus(); m.select(); }
+  } else {
+    if (d.length < 2 && +d <= 5) return;
+    tdSet(Math.floor(cur / 60) * 60 + Math.min(59, +d));
+    el.blur();
+  }
+}
+function tdCommit(which, el) {
+  const d = el.value.replace(/\D/g, '');
+  const cur = tdMin();
+  if (d !== '') {
+    tdSet(which === 'h' ? Math.min(23, +d) * 60 + cur % 60 : Math.floor(cur / 60) * 60 + Math.min(59, +d));
+  }
+  tdPaint();   // เติมศูนย์หน้า ("9" → "09") หรือคืนค่าเดิมถ้าลบจนว่าง
+}
+
+function openTimeDial() {
+  const w = document.getElementById('timeDial'), b = document.getElementById('fTimeBtn');
+  if (!w) return;
+  if (!w.firstChild) renderTimeDial(w);
+  w.hidden = false;
+  if (b) { b.setAttribute('aria-expanded', 'true'); b.classList.add('up'); }
+  w.classList.remove('dcal-open'); void w.offsetWidth; w.classList.add('dcal-open');
+  tdPaint();
+  setTimeout(() => {
+    try { w.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (_) { w.scrollIntoView(false); }
+  }, 60);
+}
+function closeTimeDial() {
+  const w = document.getElementById('timeDial'), b = document.getElementById('fTimeBtn');
+  if (w) w.hidden = true;
+  if (b) { b.setAttribute('aria-expanded', 'false'); b.classList.remove('up'); }
+}
+function toggleTimeDial() { tdIsOpen() ? closeTimeDial() : openTimeDial(); }
+
 // ---------- แถวสรุปของช่องที่ข้ามได้ + บรรทัดล่างของปุ่มบันทึก ----------
 function selText(id) {
   const el = document.getElementById(id);
@@ -12635,6 +12865,8 @@ function updateFormSummary() {
   setRow('rvRepeat', v('fRepeat') ? selText('fRepeat') : 'ไม่ซ้ำ');
   setRow('fProgressVal', (v('fProgress') || 0) + '%');
   setRow('rvGot', v('fGot') === '' ? 'ยังไม่รู้ผล' : v('fGot') + '/' + (v('fGotMax') || '?'));
+  setRow('fTimeVal', v('fTime') || '23:59');
+  if (tdIsOpen()) tdPaint();
   updateSubsCount();
 
   // บรรทัดล่างปุ่มบันทึก — ปุ่มที่ติดขอบจอตลอดต้องบอกได้ว่ากำลังจะบันทึกเป็นของวันไหน
@@ -14769,7 +15001,7 @@ async function refreshPushState() {
     if (data) { pushState = 'on'; return; }
     // แถวหาย — สมัครใหม่ให้เงียบ ๆ ตรงนี้เลย ไม่ต้องให้ผู้ใช้ไปกดปุ่มที่เขาไม่รู้ว่าต้องกด
     pushState = (await subscribePush().catch(() => false)) ? 'on' : 'local';
-  } catch (_) { pushState = 'off'; }
+  } catch (e) { pushState = 'off'; pushErr = pushErrText(e); }
 }
 
 // กุญแจของ subscription ที่มีอยู่ ตรงกับกุญแจที่แอปถืออยู่ตอนนี้ไหม
@@ -14787,9 +15019,14 @@ function subKeyMatches(sub) {
   } catch (_) { return true; }
 }
 
+// เหตุผลล่าสุดที่ลงทะเบียนไม่สำเร็จ — โชว์ในจอตั้งค่า ให้เทสเตอร์ถ่ายภาพส่งมาได้เลย
+// ไม่งั้น "แจ้งเตือนไม่ขึ้น" เป็นอาการเดียวของสาเหตุห้าแบบที่แยกจากกันไม่ออก
+let pushErr = '';
+
 async function subscribePush() {
   if (!pushSupported()) return false;
-  const reg = await navigator.serviceWorker.ready;
+  // ready ค้างได้ตลอดกาลถ้า SW ตัวเก่าติดอยู่ (ดู refreshPushState) — ค้างที่นี่ = ปุ่มกดแล้วเงียบ
+  const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ลงทะเบียนแจ้งเตือน');
   let sub = await reg.pushManager.getSubscription();
 
   // subscription ที่สร้างไว้ด้วยกุญแจ VAPID คนละดอกกับที่เซิร์ฟเวอร์ถืออยู่ จะถูกปฏิเสธ 403
@@ -14823,10 +15060,50 @@ async function subscribePush() {
       tz_offset: -new Date().getTimezoneOffset(),
       updated_at: new Date().toISOString(),
     }, { onConflict: 'endpoint' });
-    if (error) { console.warn('[push] save failed:', error.message); return false; }
+    if (error) { console.warn('[push] save failed:', error.message); pushErr = 'บันทึกขึ้นเซิร์ฟเวอร์ไม่ได้'; return false; }
   }
   pushState = 'on';
+  pushErr = '';
   return true;
+}
+
+// ============================================================
+// 9 ต.ค. 69 · เทสเตอร์ + เจ้าของ: "แจ้งเตือนนอกแอปไม่ขึ้นมาเลย"
+// ------------------------------------------------------------
+// ตรวจฝั่งเซิร์ฟเวอร์แล้ว: send-reminders ยิงทุกครึ่งชั่วโมงจริง และ Apple/Google ตอบรับทุกดอก
+// (คืนนั้น 20:30 ส่ง 5 ดอก ไม่มี error) — แต่แถว push_subscriptions ของทั้งสองบัญชี
+// ไม่ถูกต่ออายุมาตั้งแต่ 4 และ 7 ต.ค. ทั้งที่เปิดแอปทุกวัน ซึ่งแปลว่าเครื่องที่ใช้อยู่ตอนนี้
+// "ไม่ได้ลงทะเบียน" — การ์ดถูกส่งไปที่ปลายทางเก่า (ติดตั้งแอปใหม่ · ล้างข้อมูล) ซึ่งไม่มีจอให้ขึ้น
+//
+// ทางเดิมพลาดได้สองจุด (จุดแรกยังเป็นข้อสันนิษฐาน — ยังไม่ได้จับ error จากเครื่องจริง):
+//   1. subscribe() ถูกเรียกหลัง await สองชั้น (ขออนุญาต → ยิงการ์ดทดสอบ) — Safari บน iPhone
+//      ผูกการสมัครไว้กับ "จังหวะที่นิ้วกดปุ่ม" ยิ่งห่างจากการกดยิ่งเสี่ยงโดนปฏิเสธ แล้ว catch กลืนไปเงียบ ๆ
+//   2. อนุญาตแล้วแต่ไม่มี subscription (pushState 'off') จอเขียนว่า "เตือนตอนเปิดแอป" เฉย ๆ
+//      ไม่มีอะไรบอกว่าการเตือนตอนปิดแอปตายอยู่ และไม่มีปุ่มให้ต่อใหม่
+// แก้: สมัครเป็นอย่างแรกสุดในจังหวะกด · จอบอกตรง ๆ ว่านอกแอปยังไม่ทำงาน + ปุ่มต่อใหม่ + เหตุผล
+// ============================================================
+function pushErrText(e) {
+  const n = (e && e.name) || '';
+  if (n === 'NotAllowedError') return 'เครื่องไม่อนุญาต';
+  if (n === 'AbortError') return 'ระบบแจ้งเตือนของเครื่องไม่ตอบ';
+  if (n === 'InvalidStateError') return 'ต้องเปิดจากไอคอนบนจอโฮม';
+  return (e && e.message) ? String(e.message).slice(0, 60) : 'ไม่ทราบสาเหตุ';
+}
+async function reconnectPush() {
+  let ok = false;
+  try { ok = await subscribePush(); }
+  catch (e) { pushErr = pushErrText(e); console.warn('[push] subscribe failed:', e); }
+  await refreshPushState();
+  recordPushDiag();   // 11 ต.ค. · ไม่จดตรงนี้ = cloud ค้างว่า "ยังไม่อนุญาต" ทั้งที่เพิ่งต่อสำเร็จ (เจอจริงกับเครื่องเจ้าของ)
+  renderProfile();
+  if (ok && pushState === 'on') {
+    showToast({ title: 'เตือนนอกแอปได้แล้ว 🔔', body: 'จะเตือนแม้ปิดแอปอยู่' });
+  } else if (!(sb && currentUser)) {
+    showToast({ title: 'ยังเตือนนอกแอปไม่ได้', body: 'ล็อกอินก่อน' });
+  } else {
+    showToast({ title: 'ยังเตือนนอกแอปไม่ได้', body: pushErr || 'ลองใหม่อีกครั้ง' });
+  }
+  return ok;
 }
 
 // ---------- เลือกชนิดการแจ้งเตือน ----------
@@ -14834,6 +15111,64 @@ async function subscribePush() {
 // เก็บใน state.settings จึงขึ้น cloud เองผ่าน pushToCloud() แล้ว send-reminders อ่านได้ทันที
 // ไม่ต้องมีตารางใหม่ ไม่ต้องมีทางซิงก์เส้นที่สอง
 function notifPref(key) { return state.settings[key] !== false; }
+
+// ============================================================
+// 11 ต.ค. 69 · เจ้าของ: "ต้องไปเปิดเองก่อนซึ่งมันหายาก อยากให้เปิดอัตโนมัติ ถ้าจะปิดก็ไปตรงตั้งค่า"
+// ------------------------------------------------------------
+// ค่าเริ่มต้น = เปิด · สวิตช์ใหญ่ตัวเดียวในตั้งค่า (notifOff) ปิดได้ทั้งสองท่อ:
+//   ในแอป → notify() ไม่ยิง · นอกแอป → ถอน subscription ของเครื่องนี้ + send-reminders ข้ามคนนี้
+// เบราว์เซอร์ไม่ยอมให้เว็บให้สิทธิ์ตัวเอง — ต้องผ่านกล่องถามของระบบ และกล่องนั้นต้องเกิดจาก "นิ้วแตะ"
+// (Safari บน iPhone ปฏิเสธเงียบ ๆ · Chrome ย่อกล่องเหลือไอคอนเล็ก ๆ ถ้าถามโดยไม่มีการแตะ)
+// จึงขอในจังหวะแตะครั้งแรกของวันที่ไหนก็ได้ในแอป แทนที่จะรอให้คนไปหาปุ่ม "เปิด" ในตั้งค่าเอง
+// วันละครั้งพอ: Chrome นับการปัดกล่องทิ้ง ปัดบ่อยเกินจะถูกบล็อกเอง
+// ============================================================
+function notifOn() { return state.settings.notifOff !== true; }
+
+const NOTIF_AUTO_KEY = 'studentos.alt.notifAutoAt';
+function autoAskNotif(e) {
+  if (!notifOn() || !('Notification' in window) || Notification.permission !== 'default') return;
+  if (curScreen === 'scr-login' || curScreen === 'scr-onboard') return;
+  // แตะที่ช่องกรอก / ปุ่มเลือกรูป — กล่องของระบบจะเด้งทับคีย์บอร์ดหรือที่เลือกรูปพอดี ข้ามไปแตะถัดไป
+  const el = e && e.target && e.target.closest
+    && e.target.closest('input, textarea, select, label, [onclick*=".click()"], #notifRow, #notifAllRow');
+  if (el) return;
+  let last = 0;
+  try { last = +localStorage.getItem(NOTIF_AUTO_KEY) || 0; } catch (_) {}
+  if (Date.now() - last < 864e5) return;
+  try { localStorage.setItem(NOTIF_AUTO_KEY, String(Date.now())); } catch (_) {}
+  enableNotif();
+}
+
+// ถอน push ของเครื่องนี้ — ทั้งในเบราว์เซอร์และแถวบน cloud (ไม่งั้นเซิร์ฟเวอร์ยังยิงมาได้)
+async function dropPush() {
+  if (!pushSupported()) return;
+  try {
+    const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ปิดแจ้งเตือน');
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) return;
+    if (sb && currentUser) {
+      try { await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); } catch (_) {}
+    }
+    await sub.unsubscribe();
+  } catch (e) { console.warn('[push] drop failed:', e); }
+}
+
+async function toggleNotifAll() {
+  const on = !notifOn();
+  state.settings.notifOff = !on;
+  save();
+  renderProfile();
+  if (!on) {
+    showToast({ title: 'ปิดแจ้งเตือนแล้ว', body: '' });
+    await dropPush();
+    await refreshPushState();
+    renderProfile();
+    return;
+  }
+  // จังหวะนี้คือนิ้วแตะ — ยังไม่เคยอนุญาตก็ขอเลย · อนุญาตแล้วก็สมัคร push ใหม่ทันที
+  if (('Notification' in window) && Notification.permission !== 'denied') { enableNotif(); return; }
+  showToast({ title: 'เปิดแจ้งเตือนแล้ว 🔔', body: '' });
+}
 
 function toggleNotifPref(key) {
   const on = !notifPref(key);
@@ -14851,7 +15186,13 @@ function toggleNotifPref(key) {
 
 // เอาไปโชว์บนปุ่มและซ่อน/แสดงแถว · เรียกจาก renderProfile
 function renderNotifPrefs() {
-  const granted = ('Notification' in window) && Notification.permission === 'granted';
+  const granted = ('Notification' in window) && Notification.permission === 'granted' && notifOn();
+  const all = document.getElementById('notifAllRow'), allB = document.getElementById('notifAllBtn');
+  // เครื่องที่ไม่มีระบบแจ้งเตือน (iPhone ที่ยังไม่ติดตั้ง) — แถวสถานะข้างล่างพาไปวิธีติดตั้งแทน
+  if (all) all.hidden = !('Notification' in window);
+  if (allB) allB.textContent = notifOn() ? 'เปิดอยู่' : 'ปิดอยู่';
+  const row = document.getElementById('notifRow');
+  if (row) row.hidden = ('Notification' in window) && !notifOn();
   for (const [key, row, btn] of [
     ['notifDue', 'prefDueRow', 'prefDueBtn'],
     ['notifPlan', 'prefPlanRow', 'prefPlanBtn'],
@@ -14870,18 +15211,24 @@ async function enableNotif() {
     if (isIOS() && !isStandalone()) { showInstallGuide(); return; } // สาเหตุคือยังไม่ได้ติดตั้ง แก้ตรงนี้ทันที
     return;
   }
+  // อนุญาตไว้แล้ว = กดปุ่มนี้เพื่อต่อการเตือนนอกแอปใหม่ — สมัครทันทีในจังหวะกด ไม่ทำอย่างอื่นก่อน
+  if (Notification.permission === 'granted') { await reconnectPush(); checkReminders(); return; }
   const perm = await Notification.requestPermission();
   // จุดร่วงที่ใหญ่ที่สุดจุดหนึ่ง — คนที่กดปฏิเสธตรงนี้จะไม่ได้รับการเตือนอีกเลย
   // และกล่องโต้ตอบของเบราว์เซอร์ขอซ้ำไม่ได้ ถ้าไม่บันทึกไว้เราจะไม่มีทางรู้ว่าเขาเคยมาถึงตรงนี้
   funnelMark('notifAskedAt');
   funnel().notif = perm;
   save();
-  if (perm !== 'granted') { renderProfile(); return; }
+  if (perm !== 'granted') { recordPushDiag(); renderProfile(); return; }
+  // สมัครก่อน แล้วค่อยยิงการ์ดทดสอบ (เดิมกลับกัน — ดูหมายเหตุที่ reconnectPush)
+  let subErr = null;
+  const subTry = subscribePush().catch(e => { subErr = e; return false; });
   // ยิงของจริงทันทีหนึ่งดอก — ผู้ใช้จะได้เห็นกับตาว่ามันทำงาน ไม่ใช่แค่ปุ่มเปลี่ยนสี
   await notify('เปิดแจ้งเตือนแล้ว 🔔',
     (who() ? who() + ' ' : '') + 'จะเตือนก่อนถึงกำหนดส่ง', 'studentos-alt-on');
   try {
-    const ok = await subscribePush();
+    const ok = await subTry;
+    if (subErr) throw subErr;
     // 1B99 · ยืนยันจากของจริงก่อนจะพูดว่า "แม้ปิดแอป" — subscribePush คืน true ได้
     // ทั้งตอนที่บันทึกขึ้น cloud สำเร็จ และตอนที่ยังไม่ได้ล็อกอิน (ซึ่งส่งไม่ถึงแน่ ๆ)
     // ประโยคที่สัญญาเกินกว่าที่ระบบทำได้ คือประโยคที่ทำให้เขาไม่ไปตั้งอย่างอื่นเผื่อไว้
@@ -14896,9 +15243,11 @@ async function enableNotif() {
       showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเตือนนอกแอปไม่ได้' });
     }
   } catch (e) {
-    console.warn('[push] subscribe failed:', e.message);
-    showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเตือนนอกแอปไม่ได้' });
+    console.warn('[push] subscribe failed:', e);
+    pushErr = pushErrText(e);
+    showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเตือนนอกแอปไม่ได้ · ' + pushErr });
   }
+  recordPushDiag();
   renderProfile();
   checkReminders();
 }
@@ -15032,7 +15381,7 @@ function toastSwipe(el) {
 const NOTIF_BRAND = 'Student OS';
 
 async function notify(title, body, tag) {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return false;
+  if (!('Notification' in window) || Notification.permission !== 'granted' || !notifOn()) return false;
   // 1C33 · ไม่เติมชื่อแอปแล้ว — มือถือพิมพ์ชื่อแอปบนการ์ดให้เอง (ตรงกับ sw.js)
   title = title || NOTIF_BRAND;
   const opt = {
@@ -15309,17 +15658,183 @@ function pushHints(now = new Date()) {
 // (ตีความใหม่: updated_at = ครั้งล่าสุดที่เครื่องนี้ "รายงานตัว" · send-reminders อ่านตามนี้)
 const BEAT_GAP_MS = 10 * 60000;
 let _beatAt = 0;
-async function pushHeartbeat() {
-  if (pushState !== 'on' || !sb || !currentUser) return;
+// 11 ต.ค. 69 · รายงานตัว = ลงทะเบียนซ้ำ (ดู ensurePush) · เดิม update เฉพาะตอน pushState 'on'
+// ซึ่งตัดสินครั้งเดียวตอนเปิดแอปแบบเย็น — ตัดสินพลาดรอบนั้นรอบเดียว เครื่องนี้ก็ไม่รายงานตัวอีกเลย
+function pushHeartbeat() {
   if (Date.now() - _beatAt < BEAT_GAP_MS) return;
   _beatAt = Date.now();
+  ensurePush();
+}
+
+// ============================================================
+// 11 ต.ค. 69 · เจ้าของ: "แอปไม่แจ้งเตือนอีกแล้ว" (รอบที่ห้า)
+// ------------------------------------------------------------
+// วัดจากฐานข้อมูลจริง: send-reminders ยิงครบทุกครึ่งชั่วโมง Apple/Google ตอบรับทุกดอก ไม่มี error
+// แต่ push_subscriptions **ไม่มีเครื่องไหนลงทะเบียนเลยตั้งแต่ 7 ต.ค.** ทั้งที่มีคนเปิดแอปทุกวัน
+// (แถวของเจ้าของค้างที่ 4 ต.ค. · ของเทสเตอร์ Android ค้างที่ 10 ก.ย.) = การ์ดไปถึงปลายทางเก่าที่ไม่มีจอ
+//
+// ทำไมเครื่องที่เปิดทุกวันไม่ลงทะเบียน: ทางเดียวที่ลงทะเบียนคือ "ท้าย initApp" ซึ่ง
+//   1. รันเฉพาะตอนเปิดแอปแบบเย็น — แอปบนจอโฮมของ iPhone ส่วนใหญ่ถูก "ปลุก" ไม่ได้ถูกเปิดใหม่
+//      เปิดทุกวันแต่ initApp อาจไม่ได้รันเลยหลายวัน
+//   2. รอคิวหลัง syncFromCloud · ดึงงาน LINE · กล่องเข้า — ช้าหรือค้างตรงไหน ก็ไปไม่ถึง
+//   3. พลาดแล้วเงียบ — ไม่มีอะไรส่งกลับมาบอกว่าเครื่องนี้ติดตรงไหน เราจึงเดาสาเหตุมาสี่รอบ
+//
+// แก้: ensurePush() ตัวเดียว เรียกทันทีที่รู้ว่าล็อกอิน (ไม่รอซิงก์) + ทุกครั้งที่กลับเข้าแอป
+// มันลงทะเบียนซ้ำทุกครั้ง (upsert = รายงานตัวในตัว) · แล้วจดสถานะของเครื่องนี้ขึ้น cloud
+// ใน user_state.data.pushDiag ให้รอบหน้าอ่านจากฐานข้อมูลได้เลยว่าเครื่องไหนติดอะไร ไม่ต้องเดา
+// ============================================================
+let _ensuring = null;
+function ensurePush() {
+  if (_ensuring) return _ensuring;
+  _ensuring = (async () => {
+    try {
+      if (!pushSupported()) { pushState = 'unsupported'; return; }
+      const granted = await pushGranted();
+      // ปิดไว้ในตั้งค่า (อาจปิดจากเครื่องอื่น — settings ซิงก์มา) = ถอนเครื่องนี้ด้วย ไม่ใช่สมัครซ้ำ
+      if (!notifOn()) await dropPush();
+      else if (granted && sb && currentUser) {
+        try { await subscribePush(); }
+        catch (e) { pushErr = pushErrText(e); console.warn('[push] subscribe failed:', e); }
+      }
+      await refreshPushState();
+    } catch (e) { pushErr = pushErrText(e); }
+    finally {
+      _ensuring = null;
+      recordPushDiag();
+      renderProfile();
+      askPushFix();
+    }
+  })();
+  return _ensuring;
+}
+
+// ============================================================
+// ซ่อมเองไม่ได้ → ขอให้แตะหนึ่งที
+// ------------------------------------------------------------
+// ensurePush ซ่อมได้เกือบทุกอย่างเองเงียบ ๆ ยกเว้นสองอย่างที่เบราว์เซอร์บังคับว่าต้องมี "นิ้วแตะ":
+//   · ขอสิทธิ์แจ้งเตือน (ลบแอปแล้วเพิ่มลงจอโฮมใหม่ — iPhone รีเซ็ตสิทธิ์เป็น default)
+//   · สมัคร subscription ใหม่บน Safari เมื่อตัวเก่าหาย
+// เดิมทางซ่อมมีแค่ปุ่ม "ต่อใหม่" ในตั้งค่า ซึ่งไม่มีใครเข้าไปดู — เครื่องจึงหลุดเงียบไปหลายวัน
+// การ์ดแจ้งในแอปที่มีปุ่ม = การแตะนั้นคือ user gesture ที่ Safari ต้องการพอดี
+// วันละครั้งต่อเครื่อง · ไม่ทับการ์ดอื่น
+// (ยังไม่เคยอนุญาต ไม่ถามที่นี่แล้ว — autoAskNotif ขอเองตอนแตะครั้งแรกของวัน)
+// ============================================================
+// ============================================================
+// เจ้าของต้องรู้ก่อนผู้ใช้ — สัญญาณเตือนเมื่อแจ้งเตือนนอกแอปไม่ถึงคน
+// ------------------------------------------------------------
+// รอบ 11 ต.ค. แจ้งเตือนไม่ถึงใครเลย 4–7 วัน เจ้าของรู้เพราะเจอเองกับมือ ไม่มีอะไรฟ้องสักตัว
+// (send-reminders ตอบ ok ทุกรอบ · ไทล์ใน Control Center นับแถวเก่าด้วยจึงดูปกติ)
+// บัญชีแอดมิน (TOKEN_ADMIN) เปิดแอปเมื่อไหร่ ถาม admin_push_health() วันละครั้ง
+// ส่งถึงไม่ถึงครึ่งของคนที่ใช้แอปใน 3 วัน = ขึ้นการ์ดบอกพร้อมปุ่มไปดูว่าใครติดอะไร
+// ============================================================
+const PUSH_HEALTH_KEY = 'studentos.alt.pushHealthAt';
+async function adminPushAlarm() {
+  if (!tokenAdmin || !sb || !currentUser || document.hidden) return;
+  let last = 0;
+  try { last = +localStorage.getItem(PUSH_HEALTH_KEY) || 0; } catch (_) {}
+  if (Date.now() - last < 864e5) return;
   try {
-    const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'รายงานตัว');
+    const { data: h, error } = await withTimeout(sb.rpc('admin_push_health'), 8000, 'สุขภาพแจ้งเตือน');
+    if (error || !h) return;                 // ยังไม่ได้รัน migration / ไม่ได้อยู่ใน app_admins
+    try { localStorage.setItem(PUSH_HEALTH_KEY, String(Date.now())); } catch (_) {}
+    if (!h.active || h.ok * 2 >= h.active) return;
+    whenToastQuiet(0, () => true, () => showToast({ title: 'แจ้งเตือนส่งถึง ' + h.ok + '/' + h.active + ' คน', body: 'ใช้แอปใน 3 วัน',
+      action: { label: 'ดู', fn: () => window.open(location.pathname.includes('/alt/') ? 'control.html' : 'alt/control.html', '_blank') } }),
+      () => { try { localStorage.removeItem(PUSH_HEALTH_KEY); } catch (_) {} });   // พูดไม่ทัน = เปิดแอปรอบหน้าถามใหม่
+  } catch (_) {}
+}
+
+const PUSH_FIX_KEY = 'studentos.alt.pushFixAt';
+function askPushFix() {
+  if (!currentUser || !pushSupported() || pushState === 'on' || !notifOn()) return;
+  if (!navigator.onLine || document.hidden) return;
+  if (isIOS() && !isStandalone()) return;             // ยังไม่ได้ติดตั้ง — push ไม่มีทางทำงาน
+  // denied = เปลี่ยนจากในแอปไม่ได้ (จอตั้งค่าบอกไว้แล้ว) · default = autoAskNotif ดูแล
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  let last = 0;
+  try { last = +localStorage.getItem(PUSH_FIX_KEY) || 0; } catch (_) {}
+  if (Date.now() - last < 864e5) return;
+  if (_fixWaiting) return;
+  _fixWaiting = true;
+  whenToastQuiet(3000, () => pushState !== 'on' && notifOn(), () => {
+    _fixWaiting = false;
+    try { localStorage.setItem(PUSH_FIX_KEY, String(Date.now())); } catch (_) {}
+    showToast({ title: 'แจ้งเตือนนอกแอปหลุด', body: pushErr || '', action: { label: 'ต่อใหม่', fn: () => reconnectPush() } });
+  }, () => { _fixWaiting = false; });
+}
+let _fixWaiting = false;
+
+// รอให้ toast ใบอื่นพูดจบก่อน แล้วค่อยพูด — toast มีใบเดียว ใครมาทีหลังทับใบเดิมเสมอ
+// 11 ต.ค. · การ์ดซ่อมแจ้งเตือนเคย "ข้ามไปเลย" ถ้ามีการ์ดอื่นอยู่ — ของรางวัลรายวันเด้งตอนเปิดแอปแทบทุกวัน
+// การ์ดซ่อมจึงไม่เคยได้ขึ้นบนเครื่องเจ้าของ · ตอนนี้รอ (สูงสุดราว 40 วิ) แล้วเว้นจังหวะ 1.2 วิหลังใบก่อนปิด
+// still() = ยังควรพูดอยู่ไหม (เช่น ระหว่างรอ เครื่องต่อสำเร็จไปแล้ว) · พับแอปหนีระหว่างรอ = เลิก
+function whenToastQuiet(delay, still, say, giveUp) {
+  let tries = 0, quiet = false;
+  const tick = () => {
+    if (!still() || document.hidden || ++tries > 40) { if (giveUp) giveUp(); return; }
+    const t = document.getElementById('appToast');
+    if (t && t.classList.contains('show')) { quiet = false; setTimeout(tick, 1000); return; }
+    if (!quiet) { quiet = true; setTimeout(tick, 1200); return; }
+    say();
+  };
+  setTimeout(tick, delay);
+}
+
+// สิทธิ์จริงของ push — Notification.permission อย่างเดียวไม่พอ
+// pushManager.permissionState คือคำตอบของตัวที่ส่ง push เอง · ข้อใดข้อหนึ่งบอก granted = ลองลงทะเบียน
+async function pushGranted() {
+  if (('Notification' in window) && Notification.permission === 'granted') return true;
+  try {
+    const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ตรวจสิทธิ์แจ้งเตือน');
+    return (await reg.pushManager.permissionState({ userVisibleOnly: true })) === 'granted';
+  } catch (_) { return false; }
+}
+
+// ---------- สถานะ push ของแต่ละเครื่อง → cloud ----------
+// ไม่มีเวลาเป็นนาทีในก้อน — เปลี่ยนเฉพาะตอนสถานะเปลี่ยนหรือข้ามวัน ไม่งั้น pushToCloud
+// จะส่งก้อน ~50KB ทุกครั้งที่กลับเข้าแอปเพียงเพราะนาฬิกาเดิน (ดู cheapHash)
+const PUSH_DIAG_MAX = 5;
+let pushDiagRemote = {};   // ของเครื่องอื่นจากรอบดึงล่าสุด — ไม่งั้นแต่ละเครื่องเขียนทับกันเอง
+let pushDiagMine = null;
+function pushDevId() {
+  try {
+    let id = localStorage.getItem('studentos.alt.devId');
+    if (!id) { id = Math.random().toString(36).slice(2, 8); localStorage.setItem('studentos.alt.devId', id); }
+    return id;
+  } catch (_) { return 'nostore'; }
+}
+async function recordPushDiag() {
+  const d = {
+    day: funnelDay(),
+    ver: APP_VERSION,
+    path: location.pathname.includes('/alt/') ? 'alt' : 'root',
+    dev: isIOS() ? 'ios' : /Android/.test(navigator.userAgent) ? 'android' : 'desktop',
+    app: isStandalone() ? 1 : 0,
+    perm: ('Notification' in window) ? Notification.permission : 'none',
+    state: pushState,
+    err: pushErr || '',
+    user: currentUser ? 1 : 0,
+  };
+  try {
+    const reg = await withTimeout(navigator.serviceWorker.ready, 3000, 'สถานะเครื่อง');
+    d.pm = await reg.pushManager.permissionState({ userVisibleOnly: true });
     const sub = await reg.pushManager.getSubscription();
-    if (!sub) return;
-    await sb.from('push_subscriptions').update({ updated_at: new Date().toISOString() })
-      .eq('endpoint', sub.endpoint);
-  } catch (_) { /* ออฟไลน์ — ผลแย่สุดคือได้การ์ดรอบเย็นทั้งที่เพิ่งปิดแอป ไม่ใช่พลาดอะไร */ }
+    // ท้าย endpoint หกตัว — พอจับคู่กับแถวใน push_subscriptions ได้ โดยไม่เก็บ endpoint เต็ม
+    d.sub = sub ? sub.endpoint.split('/')[2].split('.')[0] + '…' + sub.endpoint.slice(-6) : '';
+  } catch (e) { d.sw = pushErrText(e); }
+  const changed = JSON.stringify(d) !== JSON.stringify(pushDiagMine);
+  pushDiagMine = d;
+  // ยังไม่เคยดึงจาก cloud รอบนี้ = ยังไม่รู้ของเครื่องอื่น ส่งตอนนี้จะลบของเขาทิ้ง
+  // syncFromCloud ส่งก้อนขึ้นไปเองอยู่แล้วหลังดึงเสร็จ ของเครื่องนี้ติดไปด้วย
+  if (changed && sb && currentUser && lastSeenRev !== -1) pushToCloud();
+}
+function pushDiagExport() {
+  const all = Object.assign({}, pushDiagRemote);
+  if (pushDiagMine) all[pushDevId()] = pushDiagMine;
+  const keep = Object.entries(all)
+    .sort((a, b) => String(b[1].day).localeCompare(String(a[1].day)))
+    .slice(0, PUSH_DIAG_MAX);
+  return keep.length ? Object.fromEntries(keep) : undefined;
 }
 
 // ============================================================
@@ -16657,15 +17172,19 @@ function syncLiteRow() {
   }
   // ตอนนี้รู้แล้วว่าล็อกอินสำเร็จจริงไหม — ถ้ามี token ค้างจากลิงก์กลุ่ม ใช้ตรงนี้
   await applyJoinToken();
-  await refreshPushState();
   // เคยกดอนุญาตไว้แล้ว + ล็อกอินอยู่ → ต่อ push ให้อัตโนมัติ (เผื่อ subscription หลุด)
-  if ('Notification' in window && Notification.permission === 'granted' && currentUser) {
-    subscribePush().then(() => renderProfile()).catch(() => {});
-  }
+  // ยังไม่ล็อกอินก็ต้องผ่านตรงนี้ — pushState ต้องได้ค่าจริงไว้ให้จอตั้งค่าใช้
+  await ensurePush();
+  _beatAt = Date.now();
+  // ให้การ์ดขาเข้า (ของรางวัล · ซ่อม push) พูดจบก่อน · tokenAdmin คิดแบบ async ต้องรอให้เสร็จด้วย
+  setTimeout(adminPushAlarm, 12000);
   // 1C38 · รายงานตัวกับเซิร์ฟเวอร์ — รอบเย็นจะได้ไม่เด้งใส่คนที่เพิ่งเห็นการ์ดบนจอ (ดู pushHeartbeat)
   // ยิงทั้งตอนเข้าและตอนออก (ไม่เกินสิบนาทีครั้ง) — ด่านของเซิร์ฟเวอร์คือหนึ่งชั่วโมง ละเอียดแค่นี้พอ
-  pushHeartbeat();
+  // 11 ต.ค. 69 · กลับเข้าแอป = ลงทะเบียนซ้ำด้วย (iPhone ปลุกแอปแทนการเปิดใหม่ initApp จึงไม่ได้รัน)
   document.addEventListener('visibilitychange', () => pushHeartbeat());
+  addEventListener('pageshow', e => { if (e.persisted) pushHeartbeat(); });
+  // แจ้งเตือนเปิดเองเป็นค่าเริ่มต้น — ขอสิทธิ์ตอนแตะครั้งแรกของวัน (ดู autoAskNotif)
+  document.addEventListener('click', autoAskNotif, true);
 
   // หน้าต่างเช็คอินไม่เด้งเองอีกแล้ว
   // ของรางวัลรายวันเคยเป็นสิ่งแรกที่ผู้ใช้เห็นตอนเปิดแอป — แผ่นเต็มจอทับหน้าแรกไว้ทั้งใบ

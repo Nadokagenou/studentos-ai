@@ -431,10 +431,53 @@
   async function loadStats() {
     $('#anaAt').textContent = 'กำลังโหลด…';
     var r = await sb.rpc('admin_analytics', { p_days: anaDays });
+    loadPushHealth();
     if (!r.error && r.data) { anaData = r.data; renderAnalytics(); return; }
     // ยังไม่มีฟังก์ชันใหม่ → ใช้ตัวนับแถวเดิมไปก่อน
     var missing = r.error && /admin_analytics|function|schema cache/i.test(r.error.message || '');
     await loadStatsLegacy(missing ? null : (r.error ? r.error.message : 'ฟังก์ชันคืนค่าว่าง (ไม่ใช่แอดมิน?)'));
+  }
+
+  // ============================================================
+  // 11 ต.ค. 69 · แจ้งเตือนนอกแอปตายเงียบ 4–7 วันโดยไม่มีอะไรฟ้อง — การ์ดนี้คือสัญญาณเตือนตัวนั้น
+  // ok = มีเครื่องรายงานตัวใน 3 วัน · stale = มีแต่แถวเก่า (การ์ดไปปลายทางที่ไม่มีจอ) · none = ไม่เคยลงทะเบียน
+  // diag = สถานะที่เครื่องจดขึ้นมาเอง (pushDiag ใน app.js) — บอกว่าติดตรงไหน
+  // ============================================================
+  async function loadPushHealth() {
+    var el = $('#anaPushBody');
+    if (!el) return;
+    var r = await sb.rpc('admin_push_health');
+    if (r.error || !r.data) {
+      el.innerHTML = '<div class="warn">' + (r.error && /admin_push_health|function|schema cache/i.test(r.error.message || '')
+        ? 'ยังไม่ได้รัน migration <code>20261011120000_admin_push_health.sql</code>'
+        : esc(r.error ? r.error.message : 'ฟังก์ชันคืนค่าว่าง (ไม่ใช่แอดมิน?)')) + '</div>';
+      return;
+    }
+    var d = r.data, bad = (d.stale || 0) + (d.none || 0);
+    var html = '';
+    if (d.active && d.ok === 0) {
+      html += '<div class="warn">ไม่มีใครได้รับแจ้งเตือนนอกแอปเลย — เครื่องรายงานตัวล่าสุด ' + esc(ago(d.last_checkin)) + '</div>';
+    }
+    html += '<div class="grid4">'
+      + tile('ส่งถึงจริง', fmtN(d.ok) + ' <small style="font-size:14px">/ ' + fmtN(d.active) + '</small>', 'คนที่ใช้แอปใน 3 วัน')
+      + tile('แถวค้าง', fmtN(d.stale), 'ส่งไปเครื่องเก่า')
+      + tile('ไม่ได้ลงทะเบียน', fmtN(d.none), 'ไม่มีเครื่องเลย')
+      + tile('รายงานตัวล่าสุด', esc(ago(d.last_checkin)), 'ทุกเครื่อง')
+      + '</div>';
+    var rows = (d.users || []).filter(function (u) { return u.health !== 'ok'; });
+    if (bad && rows.length) {
+      var HN = { stale: 'แถวค้าง', none: 'ไม่ได้ลงทะเบียน' };
+      html += '<div style="overflow-x:auto;margin-top:10px"><table><tr><th>ผู้ใช้</th><th>สถานะ</th><th>รายงานตัว</th><th>เครื่อง (จดเอง)</th></tr>'
+        + rows.map(function (u) {
+          var dv = u.diag ? Object.keys(u.diag).map(function (k) {
+            var x = u.diag[k] || {};
+            return esc([x.dev, x.app ? 'แอป' : 'เว็บ', x.path, 'สิทธิ์ ' + x.perm, x.state, x.sub ? 'มี sub' : 'ไม่มี sub', x.err, x.day].filter(Boolean).join(' · '));
+          }).join('<br>') : '<span class="hint" style="margin:0">ยังไม่ได้เปิดรุ่นที่จดสถานะ</span>';
+          return '<tr><td class="mono">' + esc(u.id) + '</td><td>' + (HN[u.health] || esc(u.health)) + '</td><td>'
+            + esc(u.checkin ? ago(u.checkin) : '—') + '</td><td>' + dv + '</td></tr>';
+        }).join('') + '</table></div>';
+    }
+    el.innerHTML = html;
   }
 
   async function loadStatsLegacy(err) {
@@ -478,7 +521,8 @@
       tile('งานค้างตอนนี้', fmtN(k.pending), 'เลยกำหนดแล้ว ' + fmtN(k.overdue) + ' ชิ้น'),
       tile('เสร็จทันกำหนด', pct(k.on_time, k.rated), 'จากงานที่มีวันส่ง ' + fmtN(k.rated) + ' ชิ้น'),
       tile('งานทั้งหมดบนคลาวด์', fmtN(k.tasks_live), 'ไม่นับถังขยะ'),
-      tile('เปิดแจ้งเตือน', fmtN(k.push), 'คน (push_subscriptions)'),
+      // นับแถว รวมแถวค้างจากเครื่องเก่า — ตัวนี้ปกติได้ทั้งที่ไม่มีใครได้รับการ์ดเลย (ดูการ์ด "ส่งถึงจริงไหม")
+      tile('มีแถวแจ้งเตือน', fmtN(k.push), 'คน · รวมเครื่องเก่า ดูการ์ดข้างล่าง'),
     ].join('');
 
     var s = d.series || [];
