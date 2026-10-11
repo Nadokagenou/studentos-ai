@@ -38,28 +38,48 @@ function openBoard(from) {
   loadBoard();
 }
 
+// 11 ต.ค. 69 · เจ้าของ: "ตอนเข้ามันค้างก่อน"
+// เดิมรอส่งงานขึ้น cloud ให้เสร็จก่อน (สูงสุด 4 วิ) แล้วค่อยถามอันดับ — ทุกครั้งที่เพิ่งติ๊กงานมา
+// จอจึงเป็นโครงเทานิ่ง ๆ ทั้งที่การวาดจริงใช้ไม่ถึง 20ms
+// ตอนนี้ถามอันดับทันทีพร้อมกับส่งงานขึ้นไป · ถ้ามีของใหม่ขึ้นไปจริง (ลายนิ้วมือก้อนเปลี่ยน) ค่อยถามซ้ำเงียบ ๆ
+// ใบที่เพิ่งติ๊กจึงยังโผล่ในตัวเลข แค่ช้ากว่าหน้าจอครึ่งจังหวะ
 async function loadBoard(scope) {
   scope = scope || boardScope;
   if (!sb || !currentUser || boardLoading) return;
   boardLoading = true;
+  const before = typeof lastPushedHash === 'string' ? lastPushedHash : '';
+  const pushed = typeof pushToCloud === 'function'
+    ? Promise.race([pushToCloud(true), new Promise(r => setTimeout(r, 4000))]) : null;
+  const paint = changed => {
+    if (changed && curScreen === 'scr-board') renderBoard();
+    paintBoardEntry();
+  };
+  paint(await boardFetch(scope));
+  if (pushed) {
+    await pushed;
+    if (typeof lastPushedHash === 'string' && lastPushedHash !== before) paint(await boardFetch(scope));
+  }
+  boardLoading = false;
+  // สลับกระดานระหว่างที่อีกกระดานกำลังโหลด — คำขอรอบนั้นถูกข้ามไป ต้องตามเก็บตรงนี้
+  if (curScreen === 'scr-board' && !boardData[boardScope] && !boardErr[boardScope]) loadBoard();
+}
+
+// ถามเซิร์ฟเวอร์หนึ่งรอบ · คืน true เมื่อจอต้องวาดใหม่ (ตัวเลขเปลี่ยน หรือเพิ่งพัง)
+// ตัวเลขเหมือนเดิมเป๊ะ = ไม่วาดทับ — วาดทับทั้งจอทำให้รูปกะพริบโดยไม่มีอะไรเปลี่ยน
+async function boardFetch(scope) {
   try {
-    // ส่งงานล่าสุดขึ้นไปก่อน — เพิ่งติ๊กเสร็จแล้วเปิดกระดาน ต้องเห็นตัวเลขที่รวมใบนั้นแล้ว
-    if (typeof pushToCloud === 'function') await Promise.race([
-      pushToCloud(true), new Promise(r => setTimeout(r, 4000))]);
     const { data, error } = await sb.rpc('board', { p_scope: scope });
     if (error) throw error;
+    const same = !!boardData[scope] && JSON.stringify(data) === JSON.stringify(boardData[scope]);
     boardData[scope] = data;
     boardErr[scope] = '';
     if (scope === 'all') boardPayout(data);
+    return !same;
   } catch (e) {
     console.warn('[board]', e.message);
     boardErr[scope] = typeof rpcMissing === 'function' && rpcMissing(e) ? 'soon' : 'net';
+    return true;
   }
-  boardLoading = false;
-  if (curScreen === 'scr-board') renderBoard();
-  paintBoardEntry();
-  // สลับกระดานระหว่างที่อีกกระดานกำลังโหลด — คำขอรอบนั้นถูกข้ามไป ต้องตามเก็บตรงนี้
-  if (curScreen === 'scr-board' && !boardData[boardScope] && !boardErr[boardScope]) loadBoard();
 }
 
 // จอเพื่อนเปิดเมื่อไหร่ โหลดกระดานหลักไว้เงียบ ๆ ครั้งเดียวต่อรอบเปิดแอป
@@ -92,9 +112,12 @@ function boardPrevKey(key) {
 // ---------- รางวัลท้ายซีซัน ----------
 // เช็คครั้งเดียวต่อซีซันที่จบไปแล้ว · ธงอยู่ใน state.settings จึงซิงก์ตามบัญชี
 // (ลบแอปแล้วติดตั้งใหม่ต้องรับซ้ำไม่ได้)
+// boardPaying กันจ่ายซ้ำ — loadBoard ถามได้สองรอบติดกัน และธงจ่ายแล้วถูกตั้งหลังรอเซิร์ฟเวอร์ตอบ
+let boardPaying = false;
 async function boardPayout(cur) {
   const prev = boardPrevKey(cur && cur.season && cur.season.key);
-  if (!prev || !state.settings || state.settings.boardPaid === prev) return;
+  if (!prev || !state.settings || state.settings.boardPaid === prev || boardPaying) return;
+  boardPaying = true;
   try {
     const { data, error } = await sb.rpc('board', { p_scope: 'all', p_season: prev });
     if (error || !data) return;
@@ -106,7 +129,7 @@ async function boardPayout(cur) {
       showToast({ title: `จบซีซันที่อันดับ ${me.rank}`, body: `+${prize} โทเคน` });
     }
     save();
-  } catch (_) { /* ไม่ได้รอบนี้ เปิดกระดานครั้งหน้าค่อยเช็คใหม่ */ }
+  } catch (_) { /* ไม่ได้รอบนี้ เปิดกระดานครั้งหน้าค่อยเช็คใหม่ */ } finally { boardPaying = false; }
 }
 
 // ---------- ชื่อ / รูป ----------
@@ -160,8 +183,12 @@ function renderBoard() {
       ? `<b>เข้าบัญชีก่อนถึงจะขึ้นกระดานได้</b><button class="fr-gate-go" onclick="loginFromFriends()">เข้าสู่ระบบ</button>`
       : err ? `<b>${err === 'soon' ? 'กระดานอันดับยังไม่เปิด' : 'โหลดไม่สำเร็จ'}</b>${
           err === 'net' ? '<button class="fr-gate-go" onclick="loadBoard()">ลองใหม่</button>' : ''}` : '';
-    body.innerHTML = `<div class="bd-bg">${top}<div class="bd-podium ${msg ? '' : 'bd-skel'}"></div></div>
-      <div class="bd-sheet">${msg ? `<div class="bd-gate">${icon('trophy')}${msg}</div>` : '<div class="bd-me bd-skel"></div>'}</div>`;
+    // ระหว่างรอ: โครงรูปทรงเดียวกับจอจริง + แสงวิ่ง — โครงเทานิ่ง ๆ อ่านเหมือนแอปค้าง ไม่ใช่กำลังโหลด
+    const slot = p => `<div class="bd-pc p${p} bd-sk"><div class="bd-pc-av"><div class="fr-av"></div></div><i class="bd-sk-pill"></i></div>`;
+    const skRow = '<div class="bd-row bd-sk"><i class="bd-sk-c"></i><i class="bd-sk-l"></i></div>';
+    body.innerHTML = `<div class="bd-bg">${top}<div class="bd-podium">${msg ? '' : slot(2) + slot(1) + slot(3)}</div></div>
+      <div class="bd-sheet">${msg ? `<div class="bd-gate">${icon('trophy')}${msg}</div>`
+        : `<div class="bd-me bd-skel bd-sk"></div><div class="bd-list">${skRow.repeat(4)}</div>`}</div>`;
     return;
   }
 
