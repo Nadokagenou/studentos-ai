@@ -46,6 +46,15 @@
         if (lf === '1' || (lf !== '0' && navigator.deviceMemory && navigator.deviceMemory <= 2))
           document.documentElement.dataset.lite = '1';
       } catch (e) {}
+      // 11 ต.ค. 69 · iPhone ซูมจอเข้าเองทุกครั้งที่แตะช่องพิมพ์ที่ตัวหนังสือเล็กกว่า 16px แล้วค้างซูมไว้หลังพิมพ์เสร็จ
+      // (ในแอปมี 24 ช่อง เช่น "ถามน้องฮูก" 14px · ฟอร์มเพิ่มงาน 15px) — ปุ่มล้นขอบจอ ต้องถ่างนิ้วกลับเอง
+      // maximum-scale=1 หยุดการซูมเองตอนแตะช่อง · iOS ยังให้ถ่างนิ้วซูมได้เหมือนเดิม (ไม่สนค่านี้ตั้งแต่ iOS 10)
+      // ใส่เฉพาะ iPhone/iPad — Android เคารพค่านี้จริง ใส่แล้วจะซูมไม่ได้เลย ซึ่งคนสายตาไม่ดีต้องใช้
+      try {
+        var ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        var vp = document.querySelector('meta[name=viewport]');
+        if (ios && vp && vp.content.indexOf('maximum-scale') < 0) vp.content += ', maximum-scale=1';
+      } catch (e) {}
       var m = document.querySelector('meta[name=theme-color]');
       if (m) m.content = BAR[t];
     })();
@@ -163,18 +172,28 @@
     window.bootDone = function () { to(100); done = true; };
     window.addEventListener('load', function () { window.bootDone(); });
     setTimeout(function () { window.bootDone(); }, 10000);
+    // 11 ต.ค. 69 · ทางออกปกติต้องมีเฟรมเดิน (requestAnimationFrame ข้างล่าง) — "10 วินาที = จบแน่นอน" ข้างบนไม่จริง
+    // ถ้าเฟรมไม่เดิน (แท็บถูกซ่อนตอนโหลด · เครื่องค้างหนัก) ชั้นนี้ค้างทับแอปทั้งจอ แตะอะไรก็ไม่ติด
+    // เจอจริงตอนตรวจ: ค้างทับอยู่ราวสามนาที · 12 วินาที = ออกเลยด้วยตัวจับเวลา ไม่รอเฟรม
+    setTimeout(function () { out(); }, 12000);
 
     // ออก: จอนี้จางหาย พร้อมกับจอแรกของแอปเลื่อนขึ้นนิดหนึ่งและจางเข้า (.boot-reveal ใน alt.css)
     // ถอดคลาสทิ้งหลังเล่นจบ ไม่ให้แอนิเมชันค้างอยู่บนจอ
+    var gone = false;
     function out() {
+      if (gone) return;
+      gone = true;
       var root = document.documentElement;
       root.classList.add('boot-reveal');
       el.classList.add('out');
       if (m && barColor) m.content = barColor;
-      if (typeof rollNumbers === 'function') rollNumbers(document.querySelector('.screen.on'));
-      if (typeof greetIn === 'function') greetIn();
+      // ตั้งเวลาถอดชั้นนี้ก่อนเรียกของแอป — ถ้าตัวเลขหมุน/คำทักทายล้มกลางทาง ชั้นนี้ต้องยังหายไปตามเวลา
       setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 450);
       setTimeout(function () { root.classList.remove('boot-reveal'); }, 700);
+      try {
+        if (typeof rollNumbers === 'function') rollNumbers(document.querySelector('.screen.on'));
+        if (typeof greetIn === 'function') greetIn();
+      } catch (e) {}
     }
     function frame(now) {
       if (!last) last = now;

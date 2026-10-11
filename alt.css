@@ -12843,3 +12843,37 @@ button.df-r:active .df-x { transform: scale(.985); }
 .dn-in .dn-day:nth-child(n+5) .dn-list > * { animation: none; }
 :root[data-lite] .dn-in .dn-hero, :root[data-lite] .dn-in .dn-medal, :root[data-lite] .dn-in .dn-mini span,
 :root[data-lite] .dn-in .dn-dh, :root[data-lite] .dn-in .dn-list::before, :root[data-lite] .dn-in .dn-list > * { animation: none; }
+
+/* ============================================================
+   เฟรมเรต · การแตะ (11 ต.ค. 69)
+   ------------------------------------------------------------
+   เจ้าของ: "ยังมีบัคอะไรที่เกี่ยวกับการใช้แอปอีกบ้าง เช่นพวกเฟรมเรต การกดแอป ความเสถียร"
+   ตรวจทุกจอ (44 จอ · 375×812): หาแอนิเมชันวนไม่รู้จบที่ขยับด้วยค่าที่การ์ดจอทำแทนไม่ได้ (left/top)
+   = เบราว์เซอร์ต้องคำนวณหน้าใหม่และวาดใหม่ทุกเฟรมตลอดเวลาที่อยู่จอนั้น · เปลี่ยนเป็น transform ให้การ์ดจอเลื่อนภาพเดิม
+   ============================================================ */
+
+/* แตะปุ่มบน Android แล้วมีกรอบสี่เหลี่ยมสีฟ้า/เทาของเบราว์เซอร์แวบขึ้นทับ — มุมเหลี่ยมทับปุ่มมน ดูเหมือนกดพลาดที่
+   ทุกปุ่มในแอปมีท่าตอนกดของตัวเองอยู่แล้ว (ยุบ · สว่างขึ้น) จึงปิดของเบราว์เซอร์ทั้งแอป */
+html { -webkit-tap-highlight-color: transparent; }
+
+/* แสงสามก้อนใต้ช่องพิมพ์ในจอแชทน้องไซ — เดิมเลื่อนด้วย left
+   = คำนวณตำแหน่งใหม่ + วาดก้อนเบลอ 16–24px ใหม่ 60 ครั้ง/วิ ตลอดเวลาที่เปิดแชท
+   ระยะทางเท่าเดิม (cqw = % ของความกว้างแถบ เหมือน left %) · เบราว์เซอร์เก่าที่ไม่รู้จัก cqw = แสงนิ่งที่จุดเริ่ม ไม่พัง */
+.hs-wrap { container-type: inline-size; }
+.hs-b1 { left: -5%; } .hs-b2 { left: 65%; } .hs-b3 { left: 25%; }
+@keyframes hsA { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(80cqw); } }
+@keyframes hsB { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-55cqw); } }
+@keyframes hsC { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(30cqw); } }
+
+/* เส้นกวาดบนจอกล้อง (ถ่ายใบงาน · สแกนตารางเรียน) — เดิมเลื่อนด้วย top = คำนวณหน้าใหม่ทุกเฟรม
+   ระหว่างที่กล้องเปิดภาพสดอยู่ ซึ่งเป็นช่วงที่เครื่องหนักที่สุดอยู่แล้ว
+   ตอนนี้กล่องสูงเท่าระยะที่เส้นวิ่ง (12% → 84% ของเวที) ตัวเส้นอยู่ขอบบนของกล่อง (::before)
+   แล้วเลื่อนทั้งกล่องลง 100% ของความสูงตัวเอง = เส้นผ่านจุดเดิมทุกจุด แต่การ์ดจอทำให้ทั้งหมด */
+.tt-sweep { top: 12%; height: 72%; background: none; box-shadow: none; pointer-events: none; }
+.tt-sweep::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: var(--neon, #4DA3FF); box-shadow: 0 0 14px 2px rgba(77,163,255,.65);
+}
+:root[data-theme="astral"] .tt-sweep { background: none; box-shadow: none; }
+:root[data-theme="astral"] .tt-sweep::before { background: #FFFFFF; box-shadow: 0 0 14px 2px rgba(255,255,255,.55); }
+@keyframes ttSweep { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(100%); } }
