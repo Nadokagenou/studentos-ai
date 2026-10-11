@@ -1280,15 +1280,15 @@ async function initCloud() {
   // จึงไม่เคยเข้าบล็อกนั้นเลย และปุ่ม "เชื่อมด้วย Google" ก็ไม่เคยโผล่
   // เจอตอนทดสอบบนเครื่องจริงหลัง deploy ไม่ใช่ตอนอ่านโค้ด
   if (currentUser && typeof integLoad === 'function') integLoad(true);
+  // ลงทะเบียน push ทันทีที่รู้ว่าล็อกอิน — ไม่ต่อคิวหลังซิงก์ (ดูหมายเหตุที่ ensurePush)
+  if (currentUser) ensurePush();
   sb.auth.onAuthStateChange((event, sess) => {
     const wasLoggedIn = !!currentUser;
     currentUser = sess ? sess.user : null;
     syncTokenAdmin();
     if (currentUser && !wasLoggedIn) {
       // เพิ่งล็อกอินเสร็จ (รวมถึงกลับมาจากหน้า Google)
-      if ('Notification' in window && Notification.permission === 'granted') {
-        subscribePush().catch(() => {}); // ผูก push กับบัญชีที่เพิ่งล็อกอิน
-      }
+      ensurePush(); // ผูก push กับบัญชีที่เพิ่งล็อกอิน
       // token จากลิงก์กลุ่มถูกเก็บไว้ตั้งแต่ก่อนล็อกอิน — จังหวะนี้คือจังหวะที่ใช้ได้แล้ว
       // (ทางกลับจาก Google เป็นการโหลดหน้าใหม่ ตัว initApp ก็เรียกให้อีกทาง เรียกซ้ำได้ปลอดภัย)
       // คำขอเป็นเพื่อนที่ค้างอยู่ต้องขึ้นจุดแดงได้โดยไม่ต้องรอให้คนเปิดหน้าเพื่อนก่อน
@@ -1350,6 +1350,8 @@ async function syncFromCloud() {
       for (const m of (remote.marks || [])) mById[m.id] = m;
       state.marks = Object.values(mById);
       funnelMerge(remote.funnel);
+      // สถานะ push ของเครื่องอื่น — เก็บไว้ส่งกลับขึ้นไปพร้อมของเครื่องนี้ (ดู pushDiagExport)
+      if (remote.pushDiag && typeof remote.pushDiag === 'object') pushDiagRemote = remote.pushDiag;
       // ใช้ตัวเดียวกับ save() — ถ้าเครื่องเต็มตรงนี้แล้วปล่อยให้ throw จะร้ายกว่าที่อื่น
       // เพราะบรรทัดที่เหลือของ syncFromCloud (บริบท · ของสะสม · กล่องเข้า LINE · renderAll)
       // จะไม่ได้ทำงานเลยสักบรรทัด แปลว่าดึงของจาก cloud มาแล้วแต่หน้าจอไม่รู้เรื่องด้วย
@@ -1433,7 +1435,8 @@ function pushToCloud(immediate) {
         sessions: state.sessions || [],
         marks: state.marks || [],
         ctx: typeof ctxExport === 'function' ? ctxExport() : undefined,
-        vault, push, funnel: funnelExport() };
+        vault, push, funnel: funnelExport(),
+        pushDiag: typeof pushDiagExport === 'function' ? pushDiagExport() : undefined };
       const json = JSON.stringify(body);
       const hash = cheapHash(json);
       const avatarChanged = avatar !== lastPushedAvatar;
@@ -15527,17 +15530,108 @@ function pushHints(now = new Date()) {
 // (ตีความใหม่: updated_at = ครั้งล่าสุดที่เครื่องนี้ "รายงานตัว" · send-reminders อ่านตามนี้)
 const BEAT_GAP_MS = 10 * 60000;
 let _beatAt = 0;
-async function pushHeartbeat() {
-  if (pushState !== 'on' || !sb || !currentUser) return;
+// 11 ต.ค. 69 · รายงานตัว = ลงทะเบียนซ้ำ (ดู ensurePush) · เดิม update เฉพาะตอน pushState 'on'
+// ซึ่งตัดสินครั้งเดียวตอนเปิดแอปแบบเย็น — ตัดสินพลาดรอบนั้นรอบเดียว เครื่องนี้ก็ไม่รายงานตัวอีกเลย
+function pushHeartbeat() {
   if (Date.now() - _beatAt < BEAT_GAP_MS) return;
   _beatAt = Date.now();
+  ensurePush();
+}
+
+// ============================================================
+// 11 ต.ค. 69 · เจ้าของ: "แอปไม่แจ้งเตือนอีกแล้ว" (รอบที่ห้า)
+// ------------------------------------------------------------
+// วัดจากฐานข้อมูลจริง: send-reminders ยิงครบทุกครึ่งชั่วโมง Apple/Google ตอบรับทุกดอก ไม่มี error
+// แต่ push_subscriptions **ไม่มีเครื่องไหนลงทะเบียนเลยตั้งแต่ 7 ต.ค.** ทั้งที่มีคนเปิดแอปทุกวัน
+// (แถวของเจ้าของค้างที่ 4 ต.ค. · ของเทสเตอร์ Android ค้างที่ 10 ก.ย.) = การ์ดไปถึงปลายทางเก่าที่ไม่มีจอ
+//
+// ทำไมเครื่องที่เปิดทุกวันไม่ลงทะเบียน: ทางเดียวที่ลงทะเบียนคือ "ท้าย initApp" ซึ่ง
+//   1. รันเฉพาะตอนเปิดแอปแบบเย็น — แอปบนจอโฮมของ iPhone ส่วนใหญ่ถูก "ปลุก" ไม่ได้ถูกเปิดใหม่
+//      เปิดทุกวันแต่ initApp อาจไม่ได้รันเลยหลายวัน
+//   2. รอคิวหลัง syncFromCloud · ดึงงาน LINE · กล่องเข้า — ช้าหรือค้างตรงไหน ก็ไปไม่ถึง
+//   3. พลาดแล้วเงียบ — ไม่มีอะไรส่งกลับมาบอกว่าเครื่องนี้ติดตรงไหน เราจึงเดาสาเหตุมาสี่รอบ
+//
+// แก้: ensurePush() ตัวเดียว เรียกทันทีที่รู้ว่าล็อกอิน (ไม่รอซิงก์) + ทุกครั้งที่กลับเข้าแอป
+// มันลงทะเบียนซ้ำทุกครั้ง (upsert = รายงานตัวในตัว) · แล้วจดสถานะของเครื่องนี้ขึ้น cloud
+// ใน user_state.data.pushDiag ให้รอบหน้าอ่านจากฐานข้อมูลได้เลยว่าเครื่องไหนติดอะไร ไม่ต้องเดา
+// ============================================================
+let _ensuring = null;
+function ensurePush() {
+  if (_ensuring) return _ensuring;
+  _ensuring = (async () => {
+    try {
+      if (!pushSupported()) { pushState = 'unsupported'; return; }
+      const granted = await pushGranted();
+      if (granted && sb && currentUser) {
+        try { await subscribePush(); }
+        catch (e) { pushErr = pushErrText(e); console.warn('[push] subscribe failed:', e); }
+      }
+      await refreshPushState();
+    } catch (e) { pushErr = pushErrText(e); }
+    finally {
+      _ensuring = null;
+      recordPushDiag();
+      renderProfile();
+    }
+  })();
+  return _ensuring;
+}
+
+// สิทธิ์จริงของ push — Notification.permission อย่างเดียวไม่พอ
+// pushManager.permissionState คือคำตอบของตัวที่ส่ง push เอง · ข้อใดข้อหนึ่งบอก granted = ลองลงทะเบียน
+async function pushGranted() {
+  if (('Notification' in window) && Notification.permission === 'granted') return true;
   try {
-    const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'รายงานตัว');
+    const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ตรวจสิทธิ์แจ้งเตือน');
+    return (await reg.pushManager.permissionState({ userVisibleOnly: true })) === 'granted';
+  } catch (_) { return false; }
+}
+
+// ---------- สถานะ push ของแต่ละเครื่อง → cloud ----------
+// ไม่มีเวลาเป็นนาทีในก้อน — เปลี่ยนเฉพาะตอนสถานะเปลี่ยนหรือข้ามวัน ไม่งั้น pushToCloud
+// จะส่งก้อน ~50KB ทุกครั้งที่กลับเข้าแอปเพียงเพราะนาฬิกาเดิน (ดู cheapHash)
+const PUSH_DIAG_MAX = 5;
+let pushDiagRemote = {};   // ของเครื่องอื่นจากรอบดึงล่าสุด — ไม่งั้นแต่ละเครื่องเขียนทับกันเอง
+let pushDiagMine = null;
+function pushDevId() {
+  try {
+    let id = localStorage.getItem('studentos.alt.devId');
+    if (!id) { id = Math.random().toString(36).slice(2, 8); localStorage.setItem('studentos.alt.devId', id); }
+    return id;
+  } catch (_) { return 'nostore'; }
+}
+async function recordPushDiag() {
+  const d = {
+    day: funnelDay(),
+    ver: APP_VERSION,
+    path: location.pathname.includes('/alt/') ? 'alt' : 'root',
+    dev: isIOS() ? 'ios' : /Android/.test(navigator.userAgent) ? 'android' : 'desktop',
+    app: isStandalone() ? 1 : 0,
+    perm: ('Notification' in window) ? Notification.permission : 'none',
+    state: pushState,
+    err: pushErr || '',
+    user: currentUser ? 1 : 0,
+  };
+  try {
+    const reg = await withTimeout(navigator.serviceWorker.ready, 3000, 'สถานะเครื่อง');
+    d.pm = await reg.pushManager.permissionState({ userVisibleOnly: true });
     const sub = await reg.pushManager.getSubscription();
-    if (!sub) return;
-    await sb.from('push_subscriptions').update({ updated_at: new Date().toISOString() })
-      .eq('endpoint', sub.endpoint);
-  } catch (_) { /* ออฟไลน์ — ผลแย่สุดคือได้การ์ดรอบเย็นทั้งที่เพิ่งปิดแอป ไม่ใช่พลาดอะไร */ }
+    // ท้าย endpoint หกตัว — พอจับคู่กับแถวใน push_subscriptions ได้ โดยไม่เก็บ endpoint เต็ม
+    d.sub = sub ? sub.endpoint.split('/')[2].split('.')[0] + '…' + sub.endpoint.slice(-6) : '';
+  } catch (e) { d.sw = pushErrText(e); }
+  const changed = JSON.stringify(d) !== JSON.stringify(pushDiagMine);
+  pushDiagMine = d;
+  // ยังไม่เคยดึงจาก cloud รอบนี้ = ยังไม่รู้ของเครื่องอื่น ส่งตอนนี้จะลบของเขาทิ้ง
+  // syncFromCloud ส่งก้อนขึ้นไปเองอยู่แล้วหลังดึงเสร็จ ของเครื่องนี้ติดไปด้วย
+  if (changed && sb && currentUser && lastSeenRev !== -1) pushToCloud();
+}
+function pushDiagExport() {
+  const all = Object.assign({}, pushDiagRemote);
+  if (pushDiagMine) all[pushDevId()] = pushDiagMine;
+  const keep = Object.entries(all)
+    .sort((a, b) => String(b[1].day).localeCompare(String(a[1].day)))
+    .slice(0, PUSH_DIAG_MAX);
+  return keep.length ? Object.fromEntries(keep) : undefined;
 }
 
 // ============================================================
@@ -16875,16 +16969,15 @@ function syncLiteRow() {
   }
   // ตอนนี้รู้แล้วว่าล็อกอินสำเร็จจริงไหม — ถ้ามี token ค้างจากลิงก์กลุ่ม ใช้ตรงนี้
   await applyJoinToken();
-  await refreshPushState();
   // เคยกดอนุญาตไว้แล้ว + ล็อกอินอยู่ → ต่อ push ให้อัตโนมัติ (เผื่อ subscription หลุด)
-  if ('Notification' in window && Notification.permission === 'granted' && currentUser) {
-    subscribePush().then(() => renderProfile())
-      .catch(e => { pushErr = pushErrText(e); renderProfile(); });
-  }
+  // ยังไม่ล็อกอินก็ต้องผ่านตรงนี้ — pushState ต้องได้ค่าจริงไว้ให้จอตั้งค่าใช้
+  await ensurePush();
+  _beatAt = Date.now();
   // 1C38 · รายงานตัวกับเซิร์ฟเวอร์ — รอบเย็นจะได้ไม่เด้งใส่คนที่เพิ่งเห็นการ์ดบนจอ (ดู pushHeartbeat)
   // ยิงทั้งตอนเข้าและตอนออก (ไม่เกินสิบนาทีครั้ง) — ด่านของเซิร์ฟเวอร์คือหนึ่งชั่วโมง ละเอียดแค่นี้พอ
-  pushHeartbeat();
+  // 11 ต.ค. 69 · กลับเข้าแอป = ลงทะเบียนซ้ำด้วย (iPhone ปลุกแอปแทนการเปิดใหม่ initApp จึงไม่ได้รัน)
   document.addEventListener('visibilitychange', () => pushHeartbeat());
+  addEventListener('pageshow', e => { if (e.persisted) pushHeartbeat(); });
 
   // หน้าต่างเช็คอินไม่เด้งเองอีกแล้ว
   // ของรางวัลรายวันเคยเป็นสิ่งแรกที่ผู้ใช้เห็นตอนเปิดแอป — แผ่นเต็มจอทับหน้าแรกไว้ทั้งใบ
