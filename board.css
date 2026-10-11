@@ -452,15 +452,18 @@
    แผ่นไล่จากชมพูอ่อน (รับแสงชมพูของพื้นหลัง) ลงไปหาสีหลักของธีมอ่อน ๆ
    การ์ดกับแถวบนแผ่นเป็นขาวโปร่งนิด ๆ + ขอบขาว — ยังแยกชั้นจากแผ่นได้โดยไม่กลับไปขาวโพลน
    ============================================================ */
-.bd-sheet {
+/* ตัวแปรสีแผ่นอยู่ที่ตัวจอ ไม่ใช่ที่แผ่น — พื้นของจอ (ตอนเด้งเลยขอบล่าง) ต้องหยิบสีเดียวกันได้ */
+#scr-board {
   /* สีแผ่นผสมจากสีหลักของธีมเป็นหลัก — เดิมกำหนดชมพู/ม่วงตายตัว แล้วธีมเขียวกับฟ้าได้แผ่นชมพูใต้พื้นหลังเขียว
      (เจ้าของถามว่าธีมอื่นเป็นยังไง → เจอตอนไล่ดูครบ 15 ธีม) ชมพูมีเฉพาะธีมที่สีหลักเป็นโทนชมพู-ม่วงอยู่แล้ว */
   --bd-s1: color-mix(in srgb, var(--blue) 20%, var(--scr));
   --bd-s2: color-mix(in srgb, var(--blue) 15%, var(--scr));
   --bd-s3: color-mix(in srgb, var(--blue) 10%, var(--scr));
+}
+.bd-sheet {
   background: linear-gradient(180deg, var(--bd-s1) 0%, var(--bd-s2) 340px, var(--bd-s3) 100%);
 }
-:root:is([data-theme="light"], [data-theme="warm"], [data-theme="sweet"]) .bd-sheet {
+:root:is([data-theme="light"], [data-theme="warm"], [data-theme="sweet"]) #scr-board {
   --bd-s1: color-mix(in srgb, #FF6FB5 22%, var(--scr));
   --bd-s2: color-mix(in srgb, #A78BFA 20%, var(--scr));
   --bd-s3: color-mix(in srgb, var(--blue) 16%, var(--scr));
@@ -473,3 +476,52 @@
 .bd-sheet .bd-row.me { background: color-mix(in srgb, var(--blue) 14%, var(--card)); border-color: var(--blue); }
 .bd-sheet > .bd-me { background: var(--card); }   /* ทึบ — การ์ดคร่อมขอบแผ่น ส่วนบนอยู่บนพื้นหลังสีเข้ม ถ้าโปร่งจะเป็นแถบเทา */
 .bd-sheet .bd-me-bar { background: color-mix(in srgb, var(--blue) 12%, var(--card2)); }
+
+/* ============================================================
+   11 ต.ค. 69 · เลื่อนลงล่างสุดแล้วสีไม่เท่ากัน
+   เจ้าของ: "พอเลื่อนไปด้านล่างมันสีไม่เท่ากัน"
+   ต้นเหตุ: แผ่นชั้นหน้าจบที่ปุ่ม "ซ่อนชื่อ" แต่ที่เว้นให้แถบเมนูล่าง (~90px) เป็น padding ของตัวจอ
+   อยู่นอกแผ่น จึงเป็นแถบสีพื้นแอปคนละสีโผล่ใต้แผ่น · รายชื่อสั้นยิ่งเห็นเป็นแผ่นใหญ่
+   ตอนนี้: ตัวจอสูงอย่างน้อยเต็มจอ · แผ่นยืดลงไปจนสุด และเป็นเจ้าของที่เว้นแถบเมนูเอง
+   พื้นของจอครึ่งล่างเป็นสีปลายแผ่น — เด้งเลยขอบล่าง (iPhone) ก็ยังสีเดียวกัน
+   ============================================================ */
+#scr-board { background: linear-gradient(180deg, transparent 50%, var(--bd-s3) 50%); }
+.bd-body { min-height: 100%; padding-bottom: 0 !important; }
+.bd-sheet { flex: 1 0 auto; padding-bottom: calc(88px + var(--tabgap, 0px)); }
+:root[data-nav="side"] .bd-sheet { padding-bottom: 28px; }   /* จอกว้าง: เมนูอยู่ข้าง ไม่มีแถบล่างให้หลบ */
+/* มือถือ: ตัวจอเว้นที่ให้แถบเมนูไว้แล้ว (alt.css · .screens > .screen) — แผ่นเว้นซ้ำจะเป็นที่ว่างสองชั้น
+   ที่เว้นของตัวจออยู่นอกแผ่นก็จริง แต่พื้นครึ่งล่างของจอเป็นสีปลายแผ่นแล้ว จึงต่อกันเนียน */
+@media (max-width: 768px), (display-mode: standalone) {
+  :root:not([data-nav="side"]) .bd-sheet { padding-bottom: 16px; }
+}
+
+/* ============================================================
+   11 ต.ค. 69 · ตอนเข้าจอ "ค้างก่อน"
+   ------------------------------------------------------------
+   1) ระหว่างรอ: โครงรูปทรงเดียวกับจอจริง + แสงวิ่งผ่าน (board.js · renderBoard)
+   2) เบาลงบนมือถือ: เบลอฉากหลัง (backdrop-filter) บนป้ายหกจุดต้องคำนวณใหม่ทุกเฟรม เพราะใต้ป้าย
+      มีประกายดาวกะพริบอยู่ตลอด — พื้นข้างหลังเป็นสีไล่นุ่ม ๆ อยู่แล้ว เบลอแล้วหน้าตาแทบไม่ต่าง
+      จึงถอดเบลอ แล้วเพิ่มความทึบพื้นป้ายนิดเดียวแทน · วงแหวนหมุนขอชั้นของตัวเอง (will-change)
+   ============================================================ */
+.bd-bg .bd-meter, .bd-bg .bd-mepill, .bd-bg .bd-swap, .bd-bg .bd-pc-n {
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.bd-bg .bd-meter, .bd-bg .bd-mepill, .bd-bg .bd-swap { background: rgba(255, 255, 255, .2); }
+.bd-ring { will-change: transform; }
+
+.bd-sk .fr-av, .bd-sk-pill, .bd-sk-c, .bd-sk-l, .bd-me.bd-sk { position: relative; overflow: hidden; }
+.bd-bg .bd-sk .fr-av { background: rgba(255, 255, 255, .2); }
+.bd-sk-pill { display: block; width: 64px; height: 26px; margin-top: 18px; border-radius: 999px; background: rgba(255, 255, 255, .18); }
+.bd-pc.p1.bd-sk { padding-bottom: 30px; }
+.bd-row.bd-sk { gap: 14px; }
+.bd-sk-c { width: 38px; height: 38px; flex: none; margin-left: 30px; border-radius: 50%; background: var(--card2); }
+.bd-sk-l { flex: 1; max-width: 140px; height: 12px; border-radius: 99px; background: var(--card2); }
+.bd-sk .fr-av::before, .bd-sk-pill::after, .bd-sk-c::after, .bd-sk-l::after, .bd-me.bd-sk::after {
+  content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .35), transparent);
+  animation: bd-shim 1.3s ease-in-out infinite;
+}
+@keyframes bd-shim { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .bd-sk .fr-av::before, .bd-sk-pill::after, .bd-sk-c::after, .bd-sk-l::after, .bd-me.bd-sk::after { animation: none; }
+}
