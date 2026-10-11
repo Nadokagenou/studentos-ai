@@ -4167,11 +4167,28 @@ function taskCard(t, now, focus) {
 // ของที่ลบไม่หายทันที แต่ไปนอนในถังขยะที่ซ่อนไว้ท้ายหน้า กดเปิดเองได้
 let taskFilter = 'pending'; // pending | done | all | bin
 let taskDay = null;         // null = ทุกวัน · 'YYYY-M-D' = เฉพาะวันนั้น
+// doneEnter = เพิ่งกดเข้าหน้า "เสร็จแล้ว" — แอนิเมชันเข้าจอเล่นรอบนี้รอบเดียว
+// (renderTasks วาดหน้านี้ใหม่ทุกครั้งที่ข้อมูลเปลี่ยน เช่นกดเอางานกลับ — ไม่ให้ทุกอย่างเด้งซ้ำ)
+let doneEnter = false;
+// 11 ต.ค. 69 · เจ้าของ: "เครื่องสเปคต่ำหรือกลาง ค้างและกดไม่ได้สองสามนาที" — หน้านี้วาดทีละช่วง
+// คนที่ใช้มาทั้งเทอมมีงานเสร็จเป็นร้อยใบ วาดทุกใบในรอบเดียว = ค้างตอนกดเข้า
+// (วัดบนคอม: 800 ใบใช้ ~170ms ก่อนจอขยับได้ · มือถือช้ากว่านั้นหลายเท่า และทุกใบเป็นกระจกเบลอ)
+// เริ่มที่ 40 ใบล่าสุด · ปุ่มท้ายจอวาดต่ออีก 80 · ตัวเลขบนการ์ดสรุปกับป้ายจำนวนของแต่ละวันนับจากทุกใบเสมอ
+const DONE_PAGE = 40;
+let doneShow = DONE_PAGE;
+function doneMore() { doneShow += DONE_PAGE * 2; renderTasks(); }
 function setFilter(f) {
+  doneEnter = f === 'done' && taskFilter !== 'done';
+  if (doneEnter) doneShow = DONE_PAGE;
   taskFilter = f;
   renderTasks();
   const s = document.getElementById('scr-tasks');
   if (s) s.scrollTop = 0;
+  if (doneEnter) {
+    doneEnter = false;
+    if (s && typeof rollNumbers === 'function') requestAnimationFrame(() => rollNumbers(s));
+    setTimeout(() => { const w = s && s.querySelector('.dn-wrap'); if (w) w.classList.remove('dn-in'); }, 1800);
+  }
 }
 function setTaskDay(k) {
   taskDay = (taskDay === k) ? null : k;   // กดวันเดิมซ้ำ = เลิกกรอง
@@ -5504,7 +5521,7 @@ function setTaskView(v) {
 //   ตอนถึง (ท่าเดียวกับ dock/ก้อนกระจกของ iOS) · เด้งเกินนิดหนึ่งเพราะหน่วงไม่เต็ม
 // • renderTasks วาดจอใหม่ทั้งก้อนบ่อย (ทุกนาที · ข้อมูลเปลี่ยน) — ตำแหน่ง/ความเร็วเก็บไว้นอก DOM
 //   วาดใหม่กลางทางก็วิ่งต่อจากจุดเดิม ไม่สะดุด
-const TK_THUMB = { il: null, ir: null, vl: 0, vr: 0, to: 0, raf: 0, t: 0 };
+const TK_THUMB = { il: null, ir: null, vl: 0, vr: 0, to: 0, raf: 0, t: 0, t0: 0 };
 function tkThumbPaint() {
   const th = document.querySelector('#scr-tasks .tk-thumb');
   if (!th) return;
@@ -5527,24 +5544,30 @@ function tkThumbMount() {
   TK_THUMB.to = to;
   tkThumbPaint();
   if ((TK_THUMB.il !== to || TK_THUMB.ir !== to) && !TK_THUMB.raf) {
-    TK_THUMB.t = 0;
+    TK_THUMB.t = TK_THUMB.t0 = 0;
     TK_THUMB.raf = requestAnimationFrame(tkThumbStep);
   }
 }
 function tkThumbStep(ts) {
   const S = TK_THUMB;
-  const dt = S.t ? Math.min(1 / 30, (ts - S.t) / 1000) : 1 / 60;
+  // เวลาจริงซอยเป็นก้าวละ 1/60 วิ (เหมือน springRoll) — เดิมเฟรมละไม่เกิน 1/30 วิ เครื่องช้าจึงเลื่อนนานตามจำนวนเฟรม
+  let left = S.t ? Math.min(.25, (ts - S.t) / 1000) : 1 / 60;
   S.t = ts;
+  if (!S.t0) S.t0 = ts;
   // ขอบที่อยู่ฝั่งปลายทางคือขอบนำ: ไปขวา = ขอบขวานำ · ไปซ้าย = ขอบซ้ายนำ
   const right = S.to > (S.il + S.ir) / 2;
   const LEAD = [560, 30], TRAIL = [300, 24];      // [ความแข็ง, ความหน่วง] — หน่วงไม่เต็ม = เด้งเกินนิด
   const [kl, cl] = right ? TRAIL : LEAD, [kr, cr] = right ? LEAD : TRAIL;
-  S.vl += (-kl * (S.il - S.to) - cl * S.vl) * dt; S.il += S.vl * dt;
-  S.vr += (-kr * (S.ir - S.to) - cr * S.vr) * dt; S.ir += S.vr * dt;
-  // ขอบซ้ายห้ามข้ามขอบขวา (ก้อนพลิกกลับด้าน)
-  if (S.il > S.ir) { const m = (S.il + S.ir) / 2; S.il = S.ir = m; }
-  const done = Math.abs(S.il - S.to) < 0.002 && Math.abs(S.ir - S.to) < 0.002
-    && Math.abs(S.vl) < 0.02 && Math.abs(S.vr) < 0.02;
+  while (left > 1e-4) {
+    const dt = Math.min(1 / 60, left);
+    left -= dt;
+    S.vl += (-kl * (S.il - S.to) - cl * S.vl) * dt; S.il += S.vl * dt;
+    S.vr += (-kr * (S.ir - S.to) - cr * S.vr) * dt; S.ir += S.vr * dt;
+    // ขอบซ้ายห้ามข้ามขอบขวา (ก้อนพลิกกลับด้าน)
+    if (S.il > S.ir) { const m = (S.il + S.ir) / 2; S.il = S.ir = m; }
+  }
+  const done = (Math.abs(S.il - S.to) < 0.002 && Math.abs(S.ir - S.to) < 0.002
+    && Math.abs(S.vl) < 0.02 && Math.abs(S.vr) < 0.02) || ts - S.t0 > 900;
   if (done) { S.il = S.ir = S.to; S.vl = S.vr = 0; }
   tkThumbPaint();
   S.raf = done ? 0 : requestAnimationFrame(tkThumbStep);
@@ -6232,12 +6255,34 @@ function doneView(done) {
     const k = t.doneAt ? fmtThaiDate(new Date(t.doneAt)) : 'ไม่รู้วันที่';
     (groups[k] = groups[k] || []).push(t);
   }
-  const body = Object.entries(groups).map(([k, list]) =>
-    `<div class="sec-label soft">${icon('check')}${esc(k)} · ${list.length} งาน</div>`
-    + list.map(t => taskCard(t, now, false)).join('')).join('');
+  // 9 ต.ค. 69 · เจ้าของ: "ตกแต่งหน่อย แล้วก็ใส่อนิเมชันตอนกดเข้าไป"
+  // การ์ดสรุปบนสุด (รวม · วันนี้ · 7 วัน — นับจาก doneAt จริง) + แต่ละวันเป็นช่วงบนเส้นเวลา
+  // สีทองได้ เพราะทุกอย่างในหน้านี้คือของที่ทำสำเร็จแล้วจริง (กฎทองของโปรเจกต์)
+  const DAY = 8.64e7;
+  const today = done.filter(t => t.doneAt && new Date(t.doneAt).toDateString() === now.toDateString()).length;
+  const week = done.filter(t => t.doneAt && now - new Date(t.doneAt) < 7 * DAY).length;
+  const hero = `<section class="dn-hero">
+      <span class="dn-medal">${icon('check')}</span>
+      <div class="dn-tx"><b class="dn-n">${done.length}</b><span>งานที่ทำเสร็จทั้งหมด</span></div>
+      <div class="dn-mini"><span><b>${today}</b>วันนี้</span><span><b>${week}</b>ใน 7 วัน</span></div>
+    </section>`;
+  // วาดแค่ doneShow ใบแรก (ดู DONE_PAGE) · ตัดกลางวันได้ — ป้าย "N งาน" ยังเป็นจำนวนของทั้งวัน กดดูต่อแล้ววันเดิมต่อกันเอง
+  let budget = doneShow;
+  const body = Object.entries(groups).map(([k, list], gi) => {
+    if (budget <= 0) return '';
+    const part = list.slice(0, budget);
+    budget -= part.length;
+    return `<section class="dn-day" style="--d:${Math.min(gi, 6)}">
+      <div class="dn-dh"><i></i><span>${esc(k)}</span><em>${list.length} งาน</em></div>
+      <div class="dn-list">${part.map(t => taskCard(t, now, false)).join('')}</div>
+    </section>`;
+  }).join('');
+  const rest = done.length - Math.min(done.length, doneShow);
+  const more = rest > 0
+    ? `<button class="dn-more" type="button" onclick="doneMore()">ดูงานที่เสร็จก่อนหน้านี้ · อีก ${rest} งาน</button>` : '';
 
   // บรรทัดท้ายจอ "งานที่เสร็จไม่หายไปไหน …" ถูกถอดออก (8 ต.ค. 69 · เจ้าของวงแล้วสั่งลบ)
-  return head + body;
+  return head + `<div class="dn-wrap${doneEnter ? ' dn-in' : ''}">` + hero + body + more + '</div>';
 }
 
 // ---------- ถังขยะ ----------
@@ -8992,8 +9037,15 @@ function fmtTok(n) {
 // ตัวเฝ้า DOM ตัวเดียวคอยดูว่ายอดบนจอเปลี่ยนจากที่โชว์ไว้ล่าสุดไหม — เปลี่ยน = หมุนจากค่าเก่าไปค่าใหม่
 // ด้วยสปริงเดียวกับตัวเลขหน้าแรก (rollNumbers · Rolling Number ของ Cult UI) · เห็นทันทีว่าได้/เสียไปเท่าไหร่
 // ครั้งแรกที่เห็นยอดไม่หมุน (ไม่มีค่าเก่าให้เทียบ) · ∞ ของแอดมินไม่หมุน · ลดการเคลื่อนไหว = เปลี่ยนเฉย ๆ
-let tokShown = null, tokAnimX = null, tokRaf = 0, tokScanQ = 0;
+let tokShown = null, tokAnimX = null, tokStop = () => {}, tokScanQ = 0;
 function tokText(el, x) { return el.hasAttribute('data-tok-int') ? String(Math.round(x)) : fmtTok(x); }
+// เขียนทับตัวหนังสือเดิม (เปลี่ยนแค่ข้อความ) แทน textContent ที่ถอดโหนดทิ้งแล้วใส่ใหม่ทุกเฟรม
+// ถอดใส่โหนด = ตัวเฝ้า DOM ทั้งแอปตื่นทุกเฟรม · เปลี่ยนแค่ข้อความเบากว่ามาก (11 ต.ค. 69 · เครื่องสเปคต่ำ)
+function tokSet(el, s) {
+  const n = el.firstChild;
+  if (n && n.nodeType === 3 && !n.nextSibling) { if (n.nodeValue !== s) n.nodeValue = s; }
+  else el.textContent = s;
+}
 // ยอดจริงมาจากข้อมูล (tokenBalance) ไม่ใช่จากจอ — จอเดียวกันมีตัวเลขยอดหลายจุด และจุดที่ยังไม่ถูกวาดใหม่
 // ยังโชว์ยอดเก่าอยู่ (เคยอ่านจากตัวแรกในหน้าแล้วได้ยอดเก่า จนไม่หมุนเลย) · หมุนเฉพาะจุดที่โชว์ยอดใหม่แล้ว
 // ยังไม่มีจุดไหนโชว์ยอดใหม่ = ยังไม่นับว่า "เห็นแล้ว" — เปิดจอร้านค้าทีหลังก็ยังได้เห็นมันหมุนจากยอดเก่า
@@ -9003,25 +9055,17 @@ function tokRollScan() {
   const v = tokenBalance();
   if (!isFinite(v)) { tokShown = null; return; }
   if (!tokFresh(v).length) return;
-  if (tokShown === null || matchMedia('(prefers-reduced-motion: reduce)').matches) { tokShown = v; return; }
+  if (tokShown === null || document.documentElement.dataset.lite
+    || matchMedia('(prefers-reduced-motion: reduce)').matches) { tokShown = v; return; }
   if (Math.abs(v - tokShown) < 0.05) return;
   const from = tokAnimX != null ? tokAnimX : tokShown;   // ยอดเปลี่ยนซ้อนระหว่างหมุน = หมุนต่อจากจุดที่อยู่
   tokShown = v;
-  cancelAnimationFrame(tokRaf);
-  const paint = x => tokFresh(v).forEach(el => { el.textContent = tokText(el, x); });
-  let x = from, vel = 0, last = 0;
-  const step = now => {
-    const dt = last ? Math.min(.032, (now - last) / 1000) : .016;
-    last = now;
-    vel += (100 * (v - x) - 40 * vel) * dt;
-    x += vel * dt;
-    if (Math.abs(v - x) < Math.max(.05, Math.abs(v - from) * .015)) { tokAnimX = null; paint(v); return; }
-    tokAnimX = x;
-    paint(x);
-    tokRaf = requestAnimationFrame(step);
-  };
+  tokStop();
+  const paint = x => tokFresh(v).forEach(el => tokSet(el, tokText(el, x)));
   paint(from);
-  tokRaf = requestAnimationFrame(step);
+  tokStop = springRoll(from, v, Math.max(.05, Math.abs(v - from) * .015),
+    x => { tokAnimX = x; paint(x); },
+    () => { tokAnimX = null; paint(v); });
 }
 new MutationObserver(recs => {
   if (tokScanQ) return;
@@ -10414,9 +10458,36 @@ function greetIn() {
 // ใช้กับแถวตัวเลขหน้าแรก (.td-stats) กับไทล์บนสุดของผลของฉัน (#statFull .at-v)
 // แตะเฉพาะข้อความตัวเลขตัวแรกของช่อง (หน่วยใน <i> ไม่ขยับ) · รูปแบบที่รู้จัก: 12 · +5 · -3 · 2:30 (ชั่วโมง:นาที)
 // ไม่ใช่ตัวเลขพวกนี้ = ปล่อยไว้เฉย ๆ · ลดการเคลื่อนไหว = ไม่หมุน
+// สปริงตัวเลข (mass 1 · stiffness 100 · damping 40) ที่เดินตาม "เวลาจริง" ไม่ใช่ตามจำนวนเฟรม
+// 11 ต.ค. 69 · เจ้าของ: "เครื่องสเปคต่ำหรือกลาง ค้างและกดไม่ได้สองสามนาที"
+// เดิมแต่ละเฟรมเดินเวลาสปริงได้ไม่เกิน 32ms — เครื่องเร็วหมุนจบใน ~1.5 วิ แต่เครื่องที่เฟรมละครึ่งวิ
+// ต้องใช้จำนวนเฟรมเท่าเดิม (~50 เฟรม) = หมุนค้างอยู่ 25 วิ และทุกเฟรมคืองานที่แย่งเวลากับการแตะ
+// ตอนนี้เวลาที่ผ่านไปจริงถูกซอยเป็นก้าวละ 16ms (สปริงไม่เด้งหลุด) · ครบ 1.6 วิเมื่อไหร่ (เท่าที่เครื่องเร็วหมุนจบอยู่แล้ว) = วางค่าจริงทันที
+// paint คืน false = หยุดเงียบ ๆ (เช่นจอถูกวาดใหม่ไปแล้ว) · คืนฟังก์ชันสำหรับยกเลิก
+function springRoll(from, to, near, paint, done) {
+  let x = from, v = 0, last = 0, t0 = 0, raf = 0;
+  const step = now => {
+    if (!t0) t0 = last = now - 16;
+    let left = Math.min(.25, (now - last) / 1000);
+    last = now;
+    while (left > 1e-4) {
+      const dt = Math.min(.016, left);
+      left -= dt;
+      v += (100 * (to - x) - 40 * v) * dt;          // k · ระยะ − c · ความเร็ว
+      x += v * dt;
+    }
+    if (Math.abs(to - x) < near || now - t0 > 1600) { done(); return; }
+    if (paint(x) === false) return;
+    raf = requestAnimationFrame(step);
+  };
+  raf = requestAnimationFrame(step);
+  return () => cancelAnimationFrame(raf);
+}
+
 function rollNumbers(scope) {
-  if (!scope || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  scope.querySelectorAll('.td-stats .ts > b, #statFull .at-v').forEach(el => {
+  // โหมดลื่น = ไม่หมุน ตัวเลขจริงอยู่บนจออยู่แล้ว
+  if (!scope || document.documentElement.dataset.lite || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  scope.querySelectorAll('.td-stats .ts > b, #statFull .at-v, .dn-in .dn-n, .dn-in .dn-mini b').forEach(el => {
     const node = [...el.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim());
     if (!node) return;
     const raw = node.nodeValue.trim();
@@ -10429,21 +10500,12 @@ function rollNumbers(scope) {
       const n = Math.round(x);
       return m[1] + (clock ? Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0') : String(n));
     };
-    let x = 0, v = 0, last = 0;
     node.nodeValue = fmt(0);
-    const step = now => {
-      if (!node.isConnected) return;               // จอถูกวาดใหม่แล้ว — ค่าใหม่เขียนเองครบ
-      const dt = last ? Math.min(.032, (now - last) / 1000) : .016;
-      last = now;
-      v += (100 * (target - x) - 40 * v) * dt;     // k · ระยะ − c · ความเร็ว (mass 1)
-      x += v * dt;
-      // สปริงนี้หน่วงหนัก (damping 40) ปลายทางจึงคืบช้ามาก — "99%" ค้างอยู่เกือบวินาทีก่อนเป็น 100
-      // เข้าใกล้ภายใน 1.5% ของค่าจริง = จบ ใส่ค่าจริงเลย
-      if (Math.abs(target - x) < Math.max(.5, target * .015)) { node.nodeValue = raw; return; }
-      node.nodeValue = fmt(x);
-      requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
+    // สปริงนี้หน่วงหนัก (damping 40) ปลายทางจึงคืบช้ามาก — "99%" ค้างอยู่เกือบวินาทีก่อนเป็น 100
+    // เข้าใกล้ภายใน 1.5% ของค่าจริง = จบ ใส่ค่าจริงเลย · จอถูกวาดใหม่แล้ว = หยุด (ค่าใหม่เขียนเองครบ)
+    springRoll(0, target, Math.max(.5, target * .015),
+      x => { if (!node.isConnected) return false; node.nodeValue = fmt(x); },
+      () => { node.nodeValue = raw; });
   });
 }
 
