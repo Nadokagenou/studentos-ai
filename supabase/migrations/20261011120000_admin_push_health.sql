@@ -66,4 +66,6 @@ begin
 end;
 $$;
 revoke all on function public.admin_push_health() from public;
+-- Supabase ให้ anon รันฟังก์ชันใหม่ใน public ได้เองโดยตรง (ไม่ผ่าน public) — ถอนแยก
+revoke execute on function public.admin_push_health() from anon;
 grant execute on function public.admin_push_health() to authenticated;

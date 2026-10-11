@@ -1736,9 +1736,16 @@
           <!-- การแจ้งเตือนอยู่ในหมวด "บัญชี" ตามที่สั่ง — มันคือของที่ตั้งครั้งเดียว
                ต่อหนึ่งคน ไม่ใช่ของที่ปรับตามอารมณ์เหมือนธีมหรือขนาดตัวอักษร -->
           <div class="set-card">
-            <div class="set-row" id="notifRow">
+            <!-- สวิตช์ใหญ่ — ค่าเริ่มต้นเปิด แอปขอสิทธิ์เองตอนแตะครั้งแรก (autoAskNotif) · ปิดแล้วปิดทั้งในและนอกแอป -->
+            <div class="set-row" id="notifAllRow">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-bell"/></svg></span>
-              <span class="set-lb">การแจ้งเตือน<i id="notifStatus">ยังไม่ได้เปิด</i></span>
+              <span class="set-lb">รับการแจ้งเตือน</span>
+              <button class="btn secondary sm" id="notifAllBtn" style="width:auto;min-height:34px;padding:0 14px"
+                onclick="toggleNotifAll()">เปิดอยู่</button>
+            </div>
+            <div class="set-row" id="notifRow">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-plug"/></svg></span>
+              <span class="set-lb">สถานะ<i id="notifStatus">ยังไม่ได้เปิด</i></span>
               <button class="btn secondary sm" id="notifTest" style="width:auto;min-height:34px;padding:0 12px;display:none"
                 onclick="testNotify()">ทดสอบ</button>
               <button class="btn secondary sm" id="notifBtn" style="width:auto;min-height:34px;padding:0 14px" onclick="enableNotif()">เปิด</button>

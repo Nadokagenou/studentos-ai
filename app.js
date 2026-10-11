@@ -15032,6 +15032,7 @@ async function reconnectPush() {
   try { ok = await subscribePush(); }
   catch (e) { pushErr = pushErrText(e); console.warn('[push] subscribe failed:', e); }
   await refreshPushState();
+  recordPushDiag();   // 11 ต.ค. · ไม่จดตรงนี้ = cloud ค้างว่า "ยังไม่อนุญาต" ทั้งที่เพิ่งต่อสำเร็จ (เจอจริงกับเครื่องเจ้าของ)
   renderProfile();
   if (ok && pushState === 'on') {
     showToast({ title: 'เตือนนอกแอปได้แล้ว 🔔', body: 'จะเตือนแม้ปิดแอปอยู่' });
@@ -15049,6 +15050,64 @@ async function reconnectPush() {
 // ไม่ต้องมีตารางใหม่ ไม่ต้องมีทางซิงก์เส้นที่สอง
 function notifPref(key) { return state.settings[key] !== false; }
 
+// ============================================================
+// 11 ต.ค. 69 · เจ้าของ: "ต้องไปเปิดเองก่อนซึ่งมันหายาก อยากให้เปิดอัตโนมัติ ถ้าจะปิดก็ไปตรงตั้งค่า"
+// ------------------------------------------------------------
+// ค่าเริ่มต้น = เปิด · สวิตช์ใหญ่ตัวเดียวในตั้งค่า (notifOff) ปิดได้ทั้งสองท่อ:
+//   ในแอป → notify() ไม่ยิง · นอกแอป → ถอน subscription ของเครื่องนี้ + send-reminders ข้ามคนนี้
+// เบราว์เซอร์ไม่ยอมให้เว็บให้สิทธิ์ตัวเอง — ต้องผ่านกล่องถามของระบบ และกล่องนั้นต้องเกิดจาก "นิ้วแตะ"
+// (Safari บน iPhone ปฏิเสธเงียบ ๆ · Chrome ย่อกล่องเหลือไอคอนเล็ก ๆ ถ้าถามโดยไม่มีการแตะ)
+// จึงขอในจังหวะแตะครั้งแรกของวันที่ไหนก็ได้ในแอป แทนที่จะรอให้คนไปหาปุ่ม "เปิด" ในตั้งค่าเอง
+// วันละครั้งพอ: Chrome นับการปัดกล่องทิ้ง ปัดบ่อยเกินจะถูกบล็อกเอง
+// ============================================================
+function notifOn() { return state.settings.notifOff !== true; }
+
+const NOTIF_AUTO_KEY = 'studentos.alt.notifAutoAt';
+function autoAskNotif(e) {
+  if (!notifOn() || !('Notification' in window) || Notification.permission !== 'default') return;
+  if (curScreen === 'scr-login' || curScreen === 'scr-onboard') return;
+  // แตะที่ช่องกรอก / ปุ่มเลือกรูป — กล่องของระบบจะเด้งทับคีย์บอร์ดหรือที่เลือกรูปพอดี ข้ามไปแตะถัดไป
+  const el = e && e.target && e.target.closest
+    && e.target.closest('input, textarea, select, label, [onclick*=".click()"], #notifRow, #notifAllRow');
+  if (el) return;
+  let last = 0;
+  try { last = +localStorage.getItem(NOTIF_AUTO_KEY) || 0; } catch (_) {}
+  if (Date.now() - last < 864e5) return;
+  try { localStorage.setItem(NOTIF_AUTO_KEY, String(Date.now())); } catch (_) {}
+  enableNotif();
+}
+
+// ถอน push ของเครื่องนี้ — ทั้งในเบราว์เซอร์และแถวบน cloud (ไม่งั้นเซิร์ฟเวอร์ยังยิงมาได้)
+async function dropPush() {
+  if (!pushSupported()) return;
+  try {
+    const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ปิดแจ้งเตือน');
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) return;
+    if (sb && currentUser) {
+      try { await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); } catch (_) {}
+    }
+    await sub.unsubscribe();
+  } catch (e) { console.warn('[push] drop failed:', e); }
+}
+
+async function toggleNotifAll() {
+  const on = !notifOn();
+  state.settings.notifOff = !on;
+  save();
+  renderProfile();
+  if (!on) {
+    showToast({ title: 'ปิดแจ้งเตือนแล้ว', body: '' });
+    await dropPush();
+    await refreshPushState();
+    renderProfile();
+    return;
+  }
+  // จังหวะนี้คือนิ้วแตะ — ยังไม่เคยอนุญาตก็ขอเลย · อนุญาตแล้วก็สมัคร push ใหม่ทันที
+  if (('Notification' in window) && Notification.permission !== 'denied') { enableNotif(); return; }
+  showToast({ title: 'เปิดแจ้งเตือนแล้ว 🔔', body: '' });
+}
+
 function toggleNotifPref(key) {
   const on = !notifPref(key);
   state.settings[key] = on;
@@ -15065,7 +15124,13 @@ function toggleNotifPref(key) {
 
 // เอาไปโชว์บนปุ่มและซ่อน/แสดงแถว · เรียกจาก renderProfile
 function renderNotifPrefs() {
-  const granted = ('Notification' in window) && Notification.permission === 'granted';
+  const granted = ('Notification' in window) && Notification.permission === 'granted' && notifOn();
+  const all = document.getElementById('notifAllRow'), allB = document.getElementById('notifAllBtn');
+  // เครื่องที่ไม่มีระบบแจ้งเตือน (iPhone ที่ยังไม่ติดตั้ง) — แถวสถานะข้างล่างพาไปวิธีติดตั้งแทน
+  if (all) all.hidden = !('Notification' in window);
+  if (allB) allB.textContent = notifOn() ? 'เปิดอยู่' : 'ปิดอยู่';
+  const row = document.getElementById('notifRow');
+  if (row) row.hidden = ('Notification' in window) && !notifOn();
   for (const [key, row, btn] of [
     ['notifDue', 'prefDueRow', 'prefDueBtn'],
     ['notifPlan', 'prefPlanRow', 'prefPlanBtn'],
@@ -15092,7 +15157,7 @@ async function enableNotif() {
   funnelMark('notifAskedAt');
   funnel().notif = perm;
   save();
-  if (perm !== 'granted') { renderProfile(); return; }
+  if (perm !== 'granted') { recordPushDiag(); renderProfile(); return; }
   // สมัครก่อน แล้วค่อยยิงการ์ดทดสอบ (เดิมกลับกัน — ดูหมายเหตุที่ reconnectPush)
   let subErr = null;
   const subTry = subscribePush().catch(e => { subErr = e; return false; });
@@ -15120,6 +15185,7 @@ async function enableNotif() {
     pushErr = pushErrText(e);
     showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเตือนนอกแอปไม่ได้ · ' + pushErr });
   }
+  recordPushDiag();
   renderProfile();
   checkReminders();
 }
@@ -15253,7 +15319,7 @@ function toastSwipe(el) {
 const NOTIF_BRAND = 'Student OS';
 
 async function notify(title, body, tag) {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return false;
+  if (!('Notification' in window) || Notification.permission !== 'granted' || !notifOn()) return false;
   // 1C33 · ไม่เติมชื่อแอปแล้ว — มือถือพิมพ์ชื่อแอปบนการ์ดให้เอง (ตรงกับ sw.js)
   title = title || NOTIF_BRAND;
   const opt = {
@@ -15562,7 +15628,9 @@ function ensurePush() {
     try {
       if (!pushSupported()) { pushState = 'unsupported'; return; }
       const granted = await pushGranted();
-      if (granted && sb && currentUser) {
+      // ปิดไว้ในตั้งค่า (อาจปิดจากเครื่องอื่น — settings ซิงก์มา) = ถอนเครื่องนี้ด้วย ไม่ใช่สมัครซ้ำ
+      if (!notifOn()) await dropPush();
+      else if (granted && sb && currentUser) {
         try { await subscribePush(); }
         catch (e) { pushErr = pushErrText(e); console.warn('[push] subscribe failed:', e); }
       }
@@ -15586,7 +15654,8 @@ function ensurePush() {
 //   · สมัคร subscription ใหม่บน Safari เมื่อตัวเก่าหาย
 // เดิมทางซ่อมมีแค่ปุ่ม "ต่อใหม่" ในตั้งค่า ซึ่งไม่มีใครเข้าไปดู — เครื่องจึงหลุดเงียบไปหลายวัน
 // การ์ดแจ้งในแอปที่มีปุ่ม = การแตะนั้นคือ user gesture ที่ Safari ต้องการพอดี
-// วันละครั้งต่อเครื่อง (ยังไม่เคยอนุญาต = 3 วันครั้ง และเฉพาะคนที่มีงานมีกำหนดส่ง) · ไม่ทับการ์ดอื่น
+// วันละครั้งต่อเครื่อง · ไม่ทับการ์ดอื่น
+// (ยังไม่เคยอนุญาต ไม่ถามที่นี่แล้ว — autoAskNotif ขอเองตอนแตะครั้งแรกของวัน)
 // ============================================================
 // ============================================================
 // เจ้าของต้องรู้ก่อนผู้ใช้ — สัญญาณเตือนเมื่อแจ้งเตือนนอกแอปไม่ถึงคน
@@ -15607,34 +15676,46 @@ async function adminPushAlarm() {
     if (error || !h) return;                 // ยังไม่ได้รัน migration / ไม่ได้อยู่ใน app_admins
     try { localStorage.setItem(PUSH_HEALTH_KEY, String(Date.now())); } catch (_) {}
     if (!h.active || h.ok * 2 >= h.active) return;
-    const t = document.getElementById('appToast');
-    if (t && t.classList.contains('show')) { try { localStorage.removeItem(PUSH_HEALTH_KEY); } catch (_) {} return; }
-    showToast({ title: 'แจ้งเตือนส่งถึง ' + h.ok + '/' + h.active + ' คน', body: 'ใช้แอปใน 3 วัน',
-      action: { label: 'ดู', fn: () => window.open(location.pathname.includes('/alt/') ? 'control.html' : 'alt/control.html', '_blank') } });
+    whenToastQuiet(0, () => true, () => showToast({ title: 'แจ้งเตือนส่งถึง ' + h.ok + '/' + h.active + ' คน', body: 'ใช้แอปใน 3 วัน',
+      action: { label: 'ดู', fn: () => window.open(location.pathname.includes('/alt/') ? 'control.html' : 'alt/control.html', '_blank') } }),
+      () => { try { localStorage.removeItem(PUSH_HEALTH_KEY); } catch (_) {} });   // พูดไม่ทัน = เปิดแอปรอบหน้าถามใหม่
   } catch (_) {}
 }
 
 const PUSH_FIX_KEY = 'studentos.alt.pushFixAt';
 function askPushFix() {
-  if (!currentUser || !pushSupported() || pushState === 'on') return;
+  if (!currentUser || !pushSupported() || pushState === 'on' || !notifOn()) return;
   if (!navigator.onLine || document.hidden) return;
   if (isIOS() && !isStandalone()) return;             // ยังไม่ได้ติดตั้ง — push ไม่มีทางทำงาน
-  const perm = ('Notification' in window) ? Notification.permission : 'denied';
-  if (perm === 'denied') return;                       // เปลี่ยนจากในแอปไม่ได้ — จอตั้งค่าบอกไว้แล้ว
-  const asking = perm !== 'granted';
-  if (asking && !pendingTasks().some(t => t.due)) return;
+  // denied = เปลี่ยนจากในแอปไม่ได้ (จอตั้งค่าบอกไว้แล้ว) · default = autoAskNotif ดูแล
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
   let last = 0;
   try { last = +localStorage.getItem(PUSH_FIX_KEY) || 0; } catch (_) {}
-  if (Date.now() - last < (asking ? 3 : 1) * 864e5) return;
-  setTimeout(() => {
-    if (pushState === 'on' || document.hidden) return;
-    const t = document.getElementById('appToast');
-    if (t && t.classList.contains('show')) return;     // มีการ์ดอื่นพูดอยู่ — รอบหน้าค่อยถาม
+  if (Date.now() - last < 864e5) return;
+  if (_fixWaiting) return;
+  _fixWaiting = true;
+  whenToastQuiet(3000, () => pushState !== 'on' && notifOn(), () => {
+    _fixWaiting = false;
     try { localStorage.setItem(PUSH_FIX_KEY, String(Date.now())); } catch (_) {}
-    showToast(asking
-      ? { title: 'เปิดแจ้งเตือน', body: 'เตือนก่อนถึงกำหนดส่ง', action: { label: 'เปิด', fn: () => enableNotif() } }
-      : { title: 'แจ้งเตือนนอกแอปหลุด', body: pushErr || '', action: { label: 'ต่อใหม่', fn: () => reconnectPush() } });
-  }, 4000);
+    showToast({ title: 'แจ้งเตือนนอกแอปหลุด', body: pushErr || '', action: { label: 'ต่อใหม่', fn: () => reconnectPush() } });
+  }, () => { _fixWaiting = false; });
+}
+let _fixWaiting = false;
+
+// รอให้ toast ใบอื่นพูดจบก่อน แล้วค่อยพูด — toast มีใบเดียว ใครมาทีหลังทับใบเดิมเสมอ
+// 11 ต.ค. · การ์ดซ่อมแจ้งเตือนเคย "ข้ามไปเลย" ถ้ามีการ์ดอื่นอยู่ — ของรางวัลรายวันเด้งตอนเปิดแอปแทบทุกวัน
+// การ์ดซ่อมจึงไม่เคยได้ขึ้นบนเครื่องเจ้าของ · ตอนนี้รอ (สูงสุดราว 40 วิ) แล้วเว้นจังหวะ 1.2 วิหลังใบก่อนปิด
+// still() = ยังควรพูดอยู่ไหม (เช่น ระหว่างรอ เครื่องต่อสำเร็จไปแล้ว) · พับแอปหนีระหว่างรอ = เลิก
+function whenToastQuiet(delay, still, say, giveUp) {
+  let tries = 0, quiet = false;
+  const tick = () => {
+    if (!still() || document.hidden || ++tries > 40) { if (giveUp) giveUp(); return; }
+    const t = document.getElementById('appToast');
+    if (t && t.classList.contains('show')) { quiet = false; setTimeout(tick, 1000); return; }
+    if (!quiet) { quiet = true; setTimeout(tick, 1200); return; }
+    say();
+  };
+  setTimeout(tick, delay);
 }
 
 // สิทธิ์จริงของ push — Notification.permission อย่างเดียวไม่พอ
@@ -17040,6 +17121,8 @@ function syncLiteRow() {
   // 11 ต.ค. 69 · กลับเข้าแอป = ลงทะเบียนซ้ำด้วย (iPhone ปลุกแอปแทนการเปิดใหม่ initApp จึงไม่ได้รัน)
   document.addEventListener('visibilitychange', () => pushHeartbeat());
   addEventListener('pageshow', e => { if (e.persisted) pushHeartbeat(); });
+  // แจ้งเตือนเปิดเองเป็นค่าเริ่มต้น — ขอสิทธิ์ตอนแตะครั้งแรกของวัน (ดู autoAskNotif)
+  document.addEventListener('click', autoAskNotif, true);
 
   // หน้าต่างเช็คอินไม่เด้งเองอีกแล้ว
   // ของรางวัลรายวันเคยเป็นสิ่งแรกที่ผู้ใช้เห็นตอนเปิดแอป — แผ่นเต็มจอทับหน้าแรกไว้ทั้งใบ
