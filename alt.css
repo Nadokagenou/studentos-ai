@@ -12902,3 +12902,43 @@ html { -webkit-tap-highlight-color: transparent; }
 @keyframes peRewardSheen { 0%, 55% { transform: translateX(-120%); } 85%, 100% { transform: translateX(120%); } }
 @media (prefers-reduced-motion: reduce) { .phone .pe .pe-v.pe-reward::after { animation: none; display: none; } }
 :root[data-lite] .phone .pe .pe-v.pe-reward::after { animation: none; display: none; }
+
+/* ============================================================
+   11 ต.ค. 69 · การ์ดรางวัลฟีดแบ็กใต้หัวแท็บ "ฉัน" — เจ้าของ: "เห็นยากอยู่นะ" · "ขอสวยๆเท่ๆ"
+   พื้นเป็นสีแบรนด์ของธีม (--grad-brand) + เงามืดมุมขวา + ลายจุดดาว + แสงวาบ · เหรียญลอยขยับ
+   ไม่ใช้ทองกับตัวอักษร (ยังไม่ได้รับ) · เคลื่อนไหวหยุดเองเมื่อลดการเคลื่อนไหวหรือโหมดเครื่องเบา
+   ============================================================ */
+.phone .fb-promo {
+  position: relative; overflow: hidden; isolation: isolate; width: 100%;
+  display: flex; align-items: center; gap: 12px; text-align: left;
+  padding: 14px 14px 14px 12px; border: 0; border-radius: 20px; cursor: pointer;
+  background: var(--grad-brand, var(--fill)); color: #fff; font-family: inherit;
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--fill) 32%, transparent), inset 0 1px 0 rgba(255,255,255,.22);
+}
+.phone .fb-promo[hidden] { display: none; }
+.phone .fb-promo::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background:
+    radial-gradient(rgba(255,255,255,.5) 1px, transparent 1.4px) 0 0 / 14px 14px,
+    radial-gradient(120% 120% at 100% 100%, rgba(0,0,0,.32), transparent 60%);
+  -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,.35), #000 70%); mask-image: linear-gradient(90deg, rgba(0,0,0,.35), #000 70%);
+}
+.phone .fb-promo::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.3) 50%, transparent 65%);
+  transform: translateX(-110%); animation: fbpSheen 3.6s ease-in-out infinite;
+}
+@keyframes fbpSheen { 0%, 50% { transform: translateX(-110%); } 85%, 100% { transform: translateX(110%); } }
+.phone .fb-promo .fbp-coin { flex: none; filter: drop-shadow(0 4px 8px rgba(0,0,0,.3)); animation: fbpBob 3s ease-in-out infinite; }
+@keyframes fbpBob { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-3px) rotate(6deg); } }
+.phone .fb-promo .fbp-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.phone .fb-promo .fbp-tx b { font-size: 21px; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.phone .fb-promo .fbp-tx span { font-size: 13px; font-weight: 600; opacity: .88; }
+.phone .fb-promo .fbp-go {
+  flex: none; font-size: 13.5px; font-weight: 700; color: var(--fill);
+  background: #fff; border-radius: 999px; padding: 7px 14px; box-shadow: 0 3px 10px rgba(0,0,0,.18);
+}
+.phone .fb-promo:active { transform: scale(.985); }
+@media (prefers-reduced-motion: reduce) { .phone .fb-promo::after, .phone .fb-promo .fbp-coin { animation: none; } .phone .fb-promo::after { display: none; } }
+:root[data-lite] .phone .fb-promo::after, :root[data-lite] .phone .fb-promo .fbp-coin { animation: none; }
+:root[data-lite] .phone .fb-promo::after { display: none; }

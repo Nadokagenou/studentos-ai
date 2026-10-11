@@ -7408,6 +7408,8 @@ function renderProfile() {
       + (typeof fmtTok === 'function' ? fmtTok(tokenBalance()) : tokenBalance()) + '</span> โทเคน';
   }
   // แถว "ส่งฟีดแบ็ก" — ชิปรางวัลจนกว่าจะได้รับจริง (ดู feedbackPayout) · ได้แล้วเหลือแค่ "ส่งแล้ว"
+  const fbp = document.getElementById('fbPromo');
+  if (fbp) fbp.hidden = !currentUser || !!state.settings.fbPaid;
   const pfb = document.getElementById('peFbCt');
   if (pfb) {
     const paid = !!state.settings.fbPaid;
@@ -10222,7 +10224,9 @@ function renderTabBadges() {
     // ของที่รอให้กดอยู่หลังปุ่มเดียวกัน ต้องใช้สัญญาณเดียวกัน ไม่งั้นครึ่งหนึ่งเงียบหาย
     const waiting = (typeof dailyPending === 'function' && dailyPending())
       || (Array.isArray(frReqs) && frReqs.length > 0)
-      || (typeof dmPending === 'number' && dmPending > 0);
+      || (typeof dmPending === 'number' && dmPending > 0)
+      // 11 ต.ค. 69 · รางวัลฟีดแบ็กที่ยังไม่ได้รับ ก็คือของที่รออยู่หลังแท็บนี้เหมือนกัน
+      || (!!currentUser && !state.settings.fbPaid);
     dot.hidden = !waiting;
     dot.setAttribute('aria-label', waiting ? 'มีของรออยู่ในแท็บฉัน' : '');
   }
@@ -15785,6 +15789,20 @@ async function feedbackPayout(force) {
   } catch (_) { /* รอบหน้าค่อยถามใหม่ */ } finally { fbPaying = false; }
 }
 
+// ชวนตอบบนหน้าแรก — toast วันละครั้ง ไม่ใช่การ์ดถาวร (หน้าแรกต้องไม่เลื่อน) · รับรางวัลแล้วเลิกชวน
+const FB_NUDGE_KEY = 'studentos.alt.fbNudgeDay';
+function feedbackNudge() {
+  if (!currentUser || state.settings.fbPaid || document.hidden) return;
+  let day = '';
+  try { day = localStorage.getItem(FB_NUDGE_KEY) || ''; } catch (_) {}
+  if (day === funnelDay()) return;
+  whenToastQuiet(0, () => !state.settings.fbPaid, () => {
+    try { localStorage.setItem(FB_NUDGE_KEY, funnelDay()); } catch (_) {}
+    showToast({ title: '+' + FB_REWARD + ' โทเคน', body: 'ตอบแบบสอบถาม ~10 นาที',
+      action: { label: 'ตอบเลย', fn: () => { location.href = 'feedback.html'; } } });
+  });
+}
+
 const PUSH_FIX_KEY = 'studentos.alt.pushFixAt';
 function askPushFix() {
   if (!currentUser || !pushSupported() || pushState === 'on' || !notifOn()) return;
@@ -17221,6 +17239,7 @@ function syncLiteRow() {
   setTimeout(adminPushAlarm, 12000);
   // กลับมาจากฟอร์มฟีดแบ็ก (?fb) = จ่ายรางวัลทันที · เปิดแอปปกติ = เช็คแบบเว้นระยะ
   feedbackPayout(BOOT_Q.has('fb'));
+  setTimeout(feedbackNudge, 6000);
   // 1C38 · รายงานตัวกับเซิร์ฟเวอร์ — รอบเย็นจะได้ไม่เด้งใส่คนที่เพิ่งเห็นการ์ดบนจอ (ดู pushHeartbeat)
   // ยิงทั้งตอนเข้าและตอนออก (ไม่เกินสิบนาทีครั้ง) — ด่านของเซิร์ฟเวอร์คือหนึ่งชั่วโมง ละเอียดแค่นี้พอ
   // 11 ต.ค. 69 · กลับเข้าแอป = ลงทะเบียนซ้ำด้วย (iPhone ปลุกแอปแทนการเปิดใหม่ initApp จึงไม่ได้รัน)
