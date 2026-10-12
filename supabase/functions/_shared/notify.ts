@@ -49,6 +49,10 @@ export function isQuietHours(ms: number = Date.now()): boolean {
 }
 
 export type PushPayload = { title: string; body: string; tag?: string; url?: string };
+/** ความด่วนกับอายุของ push · ไม่ใส่ = ค่าปริยายของ web-push (normal · 4 สัปดาห์)
+ *  ของที่ต้องเด้งตอนนี้ (แชท) ต้องใส่ urgency high ไม่งั้น Android ที่ประหยัดแบตพักไว้
+ *  จนกว่าจะหยิบเครื่องขึ้นมา (เหตุผลเต็มอยู่ที่ pushOpts ใน send-reminders) */
+export type PushOpts = { urgency?: 'very-low' | 'low' | 'normal' | 'high'; TTL?: number };
 
 /** ส่งให้ทุกเครื่องของผู้ใช้คนนี้ · คืนจำนวนเครื่องที่ส่งสำเร็จ
  *  ไม่เคยโยน error — การแจ้งเตือนล้มต้องไม่ทำให้งานที่เรียกมันล้มตามไปด้วย */
@@ -57,6 +61,7 @@ export async function pushToUser(
   db: any,
   userId: string,
   payload: PushPayload,
+  opts?: PushOpts,
 ): Promise<number> {
   if (!pushReady()) return 0;
 
@@ -72,6 +77,7 @@ export async function pushToUser(
       await webpush.sendNotification(
         { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
         JSON.stringify({ url: './', ...payload }),
+        opts,
       );
       ok++;
     } catch (e) {
