@@ -816,7 +816,7 @@ function renderChat() {
           ? `<span class="ch-bub${startsRun ? ' first' : ''}${endsRun ? ' tail' : ''}">${esc(m.body)}</span>`
           : ''}
         ${endsRun ? `<span class="ch-when">${esc(chatTime(m.created_at))}${
-          mine ? ` · <button class="ch-del" onclick="unsendChat('${esc(String(m.id))}')"
+          mine ? ` · <button class="ch-unsend" onclick="unsendChat('${esc(String(m.id))}')"
                      aria-label="ลบข้อความนี้">ลบ</button>` : ''}</span>` : ''}
       </span>
     </div>`;
