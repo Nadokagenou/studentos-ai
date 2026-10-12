@@ -9221,9 +9221,13 @@ button.df-r:active { background: var(--surface); }
   background: radial-gradient(130% 90% at 50% 42%, rgba(255,255,255,.2), transparent 70%);
   box-shadow: inset 0 0 120px 34px rgba(255,255,255,.75), inset 0 0 0 2px rgba(255,255,255,.8);
 }
-/* ภาพประกอบที่วาดด้วยสีเต็ม (เหรียญโทเคน · เหรียญตรา · หน้าการ์ดสุ่ม · การ์ดสกิน · หัวข้อไล่สี ·
-   วงรอบรูปคนที่ออนไลน์) — ลดเป็นขาวดำทั้งชิ้น ดีกว่าไล่เขียนสีใหม่ทีละชิ้นแล้วตกหล่น */
-:root[data-theme="astral"] :is(.tok, .bg-mark, .bg-nm.fancy, .gc-face, .gc-title, .tk-skin, .tk-aura,
+/* ภาพประกอบที่วาดด้วยสีเต็ม (เหรียญตรา · หน้าการ์ดสุ่ม · การ์ดสกิน · หัวข้อไล่สี ·
+   วงรอบรูปคนที่ออนไลน์) — ลดเป็นขาวดำทั้งชิ้น ดีกว่าไล่เขียนสีใหม่ทีละชิ้นแล้วตกหล่น
+   12 ต.ค. 69 · เหรียญโทเคน (.tok) ถอดออกจากรายชื่อนี้ — เป็นสีเดิมทุกธีม
+   เจ้าของส่งภาพชิป "+100" (เหรียญสีทอง) คู่กับกระดานอันดับในธีมนี้ (เหรียญเทา) แล้วถามว่า "ไหนอะ"
+   เหรียญเทาบนป้ายเทากลืนหายจนดูไม่ออกว่าเป็นโทเคน · และในธีมเดียวกันมีบางที่เป็นทอง บางที่เป็นเทา
+   เหรียญโทเคนคือโลโก้ของเงินในแอป — ข้อยกเว้นแบบเดียวกับโลโก้ Google ที่ธีมนี้ไม่แตะอยู่แล้ว */
+:root[data-theme="astral"] :is(.bg-mark, .bg-nm.fancy, .gc-face, .gc-title, .tk-skin, .tk-aura,
     .fd-on-ring, .an-tile, .ab-mark) {
   filter: grayscale(1);
 }
@@ -12942,3 +12946,457 @@ html { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) { .phone .fb-promo::after, .phone .fb-promo .fbp-coin { animation: none; } .phone .fb-promo::after { display: none; } }
 :root[data-lite] .phone .fb-promo::after, :root[data-lite] .phone .fb-promo .fbp-coin { animation: none; }
 :root[data-lite] .phone .fb-promo::after { display: none; }
+
+/* ============================================================
+   จอว่างทั้งแอป (emptyState ใน app.js) — 12 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ: "ลองแก้ไขหรือตกแต่งเพิ่มเติม อันไหนควรตกแต่งเพิ่ม ควรปรับให้พอดี"
+   ใช้ที่: หน้างานโหมดวันนี้ · แผนวันนี้ · เสร็จแล้ว · ถังขยะ · จอเพื่อนตอนยังไม่เข้าบัญชี
+   • กล่องไอคอน: ทรงเดียวกับจอแจ้งเตือนตอนว่าง (.nt-empty-ic ใน inbox.css) — แอปมีหน้าตาจอว่างแบบเดียว
+   • ลายจุดจาง ๆ หลังไอคอน ไล่หายออกขอบ (Empty States ของ Aceternity) — ภาพนิ่ง ไม่วาดใหม่
+   • เด้งเข้า: ไอคอนเด้ง → หัวข้อ → คำอธิบาย → ปุ่ม (stagger แบบ Text Animate ของ Cult UI)
+     เฉพาะตอนเพิ่งเปิดจอ (.fx-in) · โหมดลื่น/ลดการเคลื่อนไหว = ไม่เด้ง
+   ============================================================ */
+.es {
+  position: relative; isolation: isolate; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: 28px 20px 22px; border-radius: 24px;
+  background: color-mix(in srgb, var(--card) 80%, transparent);
+  border: 1px solid var(--line); box-shadow: var(--shadow);
+}
+.es::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background-image: radial-gradient(color-mix(in srgb, var(--ink) 16%, transparent) 1px, transparent 1.5px);
+  background-size: 16px 16px; background-position: center 8px;
+  -webkit-mask: radial-gradient(65% 55% at 50% 22%, #000 0%, transparent 78%);
+          mask: radial-gradient(65% 55% at 50% 22%, #000 0%, transparent 78%);
+}
+.es-ic {
+  width: 58px; height: 58px; margin-bottom: 14px; border-radius: 20px; flex: none;
+  display: grid; place-items: center;
+  background-color: var(--fill); color: var(--on-fill);
+  background-image: radial-gradient(120% 90% at 22% -10%, rgba(255, 255, 255, .45), rgba(255, 255, 255, .06) 48%, transparent 66%);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .55), inset 0 -2px 3px rgba(0, 0, 0, .12),
+    0 12px 22px -10px color-mix(in srgb, var(--fill) 75%, transparent);
+}
+/* เรื่องสบาย ๆ: กล่องสีอ่อน ไอคอนสีหลัก — ไม่ตะโกนเท่าเรื่องที่ต้องลงมือ */
+.es-ic.soft {
+  background-color: color-mix(in srgb, var(--fill) 16%, var(--card2)); color: var(--fill);
+  background-image: radial-gradient(120% 90% at 22% -10%, rgba(255, 255, 255, .28), transparent 62%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 0 0 1px color-mix(in srgb, var(--fill) 22%, transparent),
+    0 10px 20px -12px color-mix(in srgb, var(--fill) 55%, transparent);
+}
+.es-ic svg { width: 28px; height: 28px; }
+.es-t { margin: 0; font-size: 17px; font-weight: 800; line-height: 1.35; letter-spacing: -.02em; color: var(--ink); }
+.es-p { margin: 6px auto 0; max-width: 30ch; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.es-list { list-style: none; margin: 14px 0 0; padding: 0; width: 100%; display: grid; gap: 7px; text-align: left; }
+.es-list li {
+  display: flex; align-items: center; gap: 11px; padding: 10px 13px; border-radius: 14px;
+  background: color-mix(in srgb, var(--fill) 7%, var(--card2));
+  font-size: 13px; font-weight: 700; line-height: 1.45; color: var(--ink);
+}
+.es-list li > svg { flex: none; width: 19px; height: 19px; color: var(--fill); }
+.es-go {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 44px; margin-top: 16px; padding: 0 22px; border: none; border-radius: 999px; cursor: pointer;
+  background: var(--blue); color: var(--on-accent, #fff);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, 0) 60%);
+  font: inherit; font-size: 14.5px; font-weight: 800; box-shadow: var(--shadow-brand);
+  transition: transform .16s cubic-bezier(.23, 1, .32, 1);
+}
+.es-list + .es-go { align-self: stretch; }
+.es-go.ghost {
+  background: color-mix(in srgb, var(--blue) 12%, var(--card2)); background-image: none;
+  color: var(--blue-deep, var(--blue)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--blue) 22%, transparent);
+}
+.es-go svg { width: 17px; height: 17px; }
+.es-go:active { transform: scale(.97); }
+
+/* เด้งเข้า — เฉพาะตอนเพิ่งเปิดจอ */
+.fx-in .es > * { animation: es-up .45s cubic-bezier(.23, 1, .32, 1) backwards; }
+.fx-in .es > .es-ic { animation: es-pop .55s cubic-bezier(.3, 1.5, .5, 1) backwards; }
+.fx-in .es > :nth-child(2) { animation-delay: .06s; }
+.fx-in .es > :nth-child(3) { animation-delay: .12s; }
+.fx-in .es > :nth-child(4) { animation-delay: .18s; }
+.fx-in .es > :nth-child(5) { animation-delay: .24s; }
+@keyframes es-up { from { opacity: 0; transform: translateY(8px); } }
+@keyframes es-pop { from { opacity: 0; transform: scale(.6); } }
+:root[data-lite] .fx-in .es > * { animation: none; }
+@media (prefers-reduced-motion: reduce) { .fx-in .es > * { animation: none; } }
+
+/* ============================================================
+   ตัวตนของแต่ละธีม — 12 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ: "ลองแก้ไขหรือสร้าง UI ในแต่ละธีมให้มีความแตกต่างกัน ให้มีเอกลักษณ์ในแต่ละธีม แต่งให้สวย"
+   ไล่ดูหน้าแรกครบ 15 ธีม: สีกับฉากหลังต่างกันอยู่แล้ว แต่ "รูปทรง" ของทุกอย่างเหมือนกันหมด
+   (มุมการ์ด 22–26px · ไอคอนสี่เหลี่ยมมน · ปุ่มแคปซูล · แท็บก้อนมน) — ทุกธีมจึงดูเป็นแอปเดียวกันที่เปลี่ยนสี
+   ตอนนี้แต่ละธีมมี "ภาษารูปทรง" ของตัวเองหกจุด ที่เห็นทุกจอ:
+     ① ทรงกล่องไอคอน (กริดหน้าแรก · จอว่าง · จอแจ้งเตือนตอนว่าง)  ② ทรงปุ่มหลัก + ผิวของปุ่ม
+     ③ ทรงแท็บที่เลือกอยู่บนแถบล่าง  ④ มุมการ์ด (--r-card/--r-tile)  ⑤ หัวข้อจอ  ⑥ ลายหลังไอคอนในจอว่าง
+   ที่มาของแต่ละแบบ (ตามคลังที่เรียนไว้):
+     ชมพู · หวานแหว = ปุ่ม 3 มิติแบบ Uiverse (ขอบล่างทึบ กดแล้วยุบลง) + ทรงเยลลี่ (Jelly Radio ของ React Bits)
+     โลก · ต้นไม้โลก = ทรงใบไม้ (Organic Button ของ Cult UI)
+     มหาสมุทร · ทะเลลึก = หยดน้ำ/ฟองอากาศ + แสงเรืองใต้น้ำ (Glow Button ของ Cult UI)
+     อวกาศ · กาแล็กซี = วงโคจรรอบไอคอน · แสงเนบิวลา (Border Beam / Shine Border ของ Magic UI แบบนิ่ง)
+     เวทมนตร์ = ทรงซุ้มประตูโค้ง + วงแหวนทองสองชั้น
+     Crystal = ทรงเหลี่ยมเพชร (มุมสลับแหลม/มน) + ขอบปริซึม
+     Metaverse = HUD: มุมเกือบเหลี่ยม เส้นนีออนบาง ตาราง (Grid/Scales ของ Aceternity)
+     Glitch = มุมแหลม เงาแยกสีแดง/ฟ้า เส้นสแกน
+   ไม่แตะ: สว่าง/มืด (ฐานของแอป แบบ Halo ของ Cult UI) · Astral Black (มีชุดของตัวเองครบแล้ว)
+   ทุกอย่างเป็นภาพนิ่ง — ไม่มีแอนิเมชันวนเพิ่ม ไม่กินเครื่อง · ขนาดทุกชิ้นเท่าเดิม หน้าแรกไม่เลื่อนเหมือนเดิม
+   ทรงทำด้วย border-radius เท่านั้น ไม่ใช้ clip-path — ป้ายตัวเลขบนไอคอน (.tg-ct) อยู่ในกล่อง จะโดนตัด
+   ============================================================ */
+
+/* ---------- โทเคนของแต่ละธีม ----------
+   --id-tile  ทรงกล่องไอคอน        --id-chip  ทรงชิปขาวในกล่องไอคอน
+   --id-btn   ทรงปุ่มหลัก          --id-tab   ทรงแท็บที่เลือกอยู่ */
+:root[data-theme="warm"]      { --id-tile: 24px; --id-chip: 999px; --id-btn: 999px; --id-tab: 999px; --r-card: 28px; --r-tile: 20px; }
+:root[data-theme="sweet"]     { --id-tile: 46% 54% 48% 52% / 52% 46% 54% 48%; --id-chip: 999px; --id-btn: 999px; --id-tab: 999px; --r-card: 30px; --r-tile: 22px; }
+:root[data-theme="earth"]     { --id-tile: 24px 7px 24px 7px; --id-chip: 12px 4px 12px 4px; --id-btn: 22px 7px 22px 7px; --id-tab: 16px 5px 16px 5px; --r-card: 26px; --r-tile: 16px; }
+:root[data-theme="earth2"]    { --id-tile: 7px 24px 7px 24px; --id-chip: 4px 12px 4px 12px; --id-btn: 7px 22px 7px 22px; --id-tab: 5px 16px 5px 16px; --r-card: 26px; --r-tile: 16px; }
+:root[data-theme="ocean"]     { --id-tile: 50% 50% 50% 18%; --id-chip: 50%; --id-btn: 999px; --id-tab: 999px; --r-card: 26px; --r-tile: 20px; }
+:root[data-theme="deepocean"] { --id-tile: 50%; --id-chip: 50%; --id-btn: 999px; --id-tab: 999px; --r-card: 28px; --r-tile: 20px; }
+:root[data-theme="space"]     { --id-tile: 50%; --id-chip: 50%; --id-btn: 999px; --id-tab: 999px; --r-card: 20px; --r-tile: 14px; }
+:root[data-theme="galaxy"]    { --id-tile: 22px; --id-chip: 50%; --id-btn: 999px; --id-tab: 999px; --r-card: 24px; --r-tile: 16px; }
+:root[data-theme="magic"]     { --id-tile: 50% 50% 14px 14px / 42% 42% 14px 14px; --id-chip: 50% 50% 8px 8px / 44% 44% 8px 8px; --id-btn: 18px 18px 10px 10px; --id-tab: 14px 14px 6px 6px; --r-card: 22px; --r-tile: 14px; }
+:root[data-theme="genesis"]   { --id-tile: 6px 22px 6px 22px; --id-chip: 4px 12px 4px 12px; --id-btn: 6px 18px 6px 18px; --id-tab: 4px 14px 4px 14px; --r-card: 20px; --r-tile: 12px; }
+:root[data-theme="meta"]      { --id-tile: 10px; --id-chip: 6px; --id-btn: 10px; --id-tab: 8px; --r-card: 14px; --r-tile: 10px; }
+:root[data-theme="glitch"]    { --id-tile: 5px; --id-chip: 3px; --id-btn: 4px; --id-tab: 3px; --r-card: 10px; --r-tile: 6px; }
+
+/* ---------- ① ทรงกล่องไอคอน ---------- */
+/* 12 ต.ค. 69 · เจ้าของ (ส่งภาพกริดแปดปุ่มหน้าแรก): "ในปุ่มนี้ให้มีรูปทรงแบบเดิมทุกธีม"
+   ปุ่มกริดหน้าแรก (.tg-ic) ถอดออกจากชุดนี้ทั้งหมด — ทรง ชิปขาวข้างใน และวงรอบไอคอน (::after) กลับเป็นแบบเดิมทุกธีม
+   ที่ยังเปลี่ยนตามธีม: ไอคอนในจอว่าง · จอแจ้งเตือนตอนว่าง · แถวตั้งค่า/แท็บฉัน (ดูรอบสองข้างล่าง) */
+:root:is([data-theme=warm],[data-theme=sweet],[data-theme=earth],[data-theme=earth2],[data-theme=ocean],[data-theme=deepocean],
+  [data-theme=space],[data-theme=galaxy],[data-theme=magic],[data-theme=genesis],[data-theme=meta],[data-theme=glitch])
+  .phone :is(.es-ic, .nt-empty-ic) { border-radius: var(--id-tile) !important; }
+
+/* ---------- ② ปุ่มหลัก: ทรง + ผิว ---------- */
+:root:is([data-theme=warm],[data-theme=sweet],[data-theme=earth],[data-theme=earth2],[data-theme=ocean],[data-theme=deepocean],
+  [data-theme=space],[data-theme=galaxy],[data-theme=magic],[data-theme=genesis],[data-theme=meta],[data-theme=glitch])
+  .phone :is(.tc-cta, .btn.primary, .fm-save, .sai-cta, .ck-cta, .pro-cta, .ep-save, .ai-read, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go, .fr-go, .gc-go) {
+  border-radius: var(--id-btn) !important;
+}
+/* ชมพู: นุ่มแบบหมอนอิง — ขอบบนสว่าง เงาชมพูฟุ้ง */
+:root[data-theme="warm"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .6), inset 0 -2px 4px rgba(140, 20, 70, .18), 0 12px 24px -10px rgba(206, 63, 121, .6) !important;
+}
+/* หวานแหว: ปุ่มลูกอม 3 มิติ — ขอบล่างทึบ กดแล้วยุบลงจริง (แทนการหด) */
+:root[data-theme="sweet"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .55), 0 5px 0 color-mix(in srgb, var(--fill) 58%, #4A1460), 0 12px 20px -8px color-mix(in srgb, var(--fill) 55%, transparent) !important;
+}
+:root[data-theme="sweet"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go):active {
+  transform: translateY(4px) !important;
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .55), 0 1px 0 color-mix(in srgb, var(--fill) 58%, #4A1460) !important;
+}
+/* ทะเลลึก: เรืองแสงฟ้าใต้น้ำ */
+:root[data-theme="deepocean"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 0 0 1px rgba(56, 189, 248, .45), 0 0 24px -4px rgba(56, 189, 248, .7) !important;
+}
+/* อวกาศ: แสงดาวขาวอมฟ้า */
+:root[data-theme="space"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), 0 0 0 1px rgba(200, 214, 255, .35), 0 0 26px -6px rgba(170, 190, 255, .7) !important;
+}
+/* กาแล็กซี: แสงเนบิวลาชมพูใต้ปุ่ม */
+:root[data-theme="galaxy"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 0 0 1px rgba(255, 255, 255, .16), 0 12px 28px -8px rgba(236, 72, 153, .7) !important;
+}
+/* เวทมนตร์: วงแหวนทองสองชั้นรอบปุ่ม */
+:root[data-theme="magic"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 0 0 2px var(--card), 0 0 0 3.5px rgba(232, 194, 90, .75), 0 14px 24px -10px rgba(139, 92, 246, .7) !important;
+}
+/* Crystal: ขอบปริซึม */
+:root[data-theme="genesis"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .85), inset 0 0 0 1px rgba(183, 245, 255, .6), 0 12px 24px -10px rgba(76, 87, 201, .65) !important;
+}
+/* Metaverse: เส้นนีออน + ตัวอักษรห่างแบบหน้าจอ HUD */
+:root[data-theme="meta"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  letter-spacing: .04em;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25), 0 0 0 1px rgba(56, 232, 255, .7), 0 0 20px -4px rgba(56, 232, 255, .6) !important;
+}
+/* Glitch: เงาแยกสี */
+:root[data-theme="glitch"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: 3px 0 0 rgba(255, 45, 111, .85), -3px 0 0 rgba(45, 240, 255, .85) !important;
+}
+
+/* ---------- ③ แท็บที่เลือกอยู่บนแถบล่าง ---------- */
+:root:is([data-theme=warm],[data-theme=sweet],[data-theme=earth],[data-theme=earth2],[data-theme=ocean],[data-theme=deepocean],
+  [data-theme=space],[data-theme=galaxy],[data-theme=magic],[data-theme=genesis],[data-theme=meta],[data-theme=glitch]):not([data-nav="side"])
+  .phone .tabbar .tab.active:not(.scan) { border-radius: var(--id-tab); }
+:root[data-theme="deepocean"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: 0 0 18px -2px rgba(56, 189, 248, .7) !important; }
+:root[data-theme="meta"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: 0 0 0 1px rgba(56, 232, 255, .75), 0 0 16px -3px rgba(56, 232, 255, .65) !important; }
+:root[data-theme="glitch"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: 2px 0 0 rgba(255, 45, 111, .85), -2px 0 0 rgba(45, 240, 255, .85) !important; }
+:root[data-theme="sweet"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .55), 0 3px 0 color-mix(in srgb, var(--fill) 58%, #4A1460) !important; }
+:root[data-theme="magic"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: 0 0 0 1.5px rgba(232, 194, 90, .8) !important; }
+
+/* ---------- ⑤ หัวข้อจอ ---------- */
+/* ไล่สีบนตัวหนังสือ — ใช้กับหัวข้อจอ (ตัวหนังสือล้วน) เท่านั้น ไม่ใช้กับคำทักทายหน้าแรก
+   คำทักทายแตกเป็นคำ ๆ ที่ลอยเข้าทีละคำ (greetIn) ไล่สีแบบตัดตามตัวหนังสือจะหลุดตอนคำลอย */
+:root:is([data-theme=sweet],[data-theme=galaxy],[data-theme=magic],[data-theme=genesis],[data-theme=ocean],[data-theme=earth2])
+  .phone :is(.page-title, .fd-title) {
+  background-image: var(--id-title-ink); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+:root[data-theme="sweet"]   { --id-title-ink: linear-gradient(100deg, #E24FA6, #9B6BF0); }
+:root[data-theme="galaxy"]  { --id-title-ink: linear-gradient(100deg, #F9A8D4, #C4B5FD 55%, #A855F7); }
+:root[data-theme="magic"]   { --id-title-ink: linear-gradient(100deg, #F5DC96, #E8C25A 50%, #C9A7FF); }
+:root[data-theme="genesis"] { --id-title-ink: linear-gradient(100deg, #4C57C9, #6F7FE8 50%, #38B6D0); }
+:root[data-theme="ocean"]   { --id-title-ink: linear-gradient(100deg, #0A5170, #0E8FB8); }
+:root[data-theme="earth2"]  { --id-title-ink: linear-gradient(100deg, #1E5B2E, #4F9A3A); }
+/* แสงบนตัวหนังสือ — ใช้กับคำทักทายหน้าแรกได้ด้วย (text-shadow ตามไปกับทุกคำ) */
+:root[data-theme="meta"] .phone :is(.page-title, .fd-title, .th-greet) { text-shadow: 0 0 14px rgba(56, 232, 255, .55); letter-spacing: .01em; }
+:root[data-theme="glitch"] .phone :is(.page-title, .fd-title, .th-greet) { text-shadow: 1.5px 0 0 rgba(255, 45, 111, .8), -1.5px 0 0 rgba(45, 240, 255, .8); }
+:root[data-theme="deepocean"] .phone :is(.page-title, .fd-title, .th-greet) { text-shadow: 0 0 16px rgba(56, 189, 248, .6); }
+:root[data-theme="space"] .phone :is(.page-title, .fd-title, .th-greet) { text-shadow: 0 0 14px rgba(200, 214, 255, .5); }
+:root[data-theme="galaxy"] .phone .th-greet { text-shadow: 0 0 16px rgba(236, 72, 153, .45); }
+:root[data-theme="magic"] .phone .th-greet { text-shadow: 0 0 14px rgba(232, 194, 90, .45); }
+
+/* ---------- ⑥ ลายหลังไอคอนในจอว่าง ---------- */
+:root[data-theme="meta"] .es::before {
+  background-image: linear-gradient(rgba(56, 232, 255, .22) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 232, 255, .22) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+:root[data-theme="glitch"] .es::before {
+  background-image: repeating-linear-gradient(0deg, rgba(45, 240, 255, .14) 0 1px, transparent 1px 4px);
+  background-size: auto;
+}
+:root[data-theme="sweet"] .es::before {
+  background-image: repeating-linear-gradient(135deg, rgba(226, 79, 166, .14) 0 6px, transparent 6px 16px);
+  background-size: auto;
+}
+:root:is([data-theme=space],[data-theme=galaxy]) .es::before {
+  background-image: radial-gradient(rgba(255, 255, 255, .55) 1px, transparent 1.6px), radial-gradient(rgba(255, 255, 255, .3) .8px, transparent 1.3px);
+  background-size: 34px 34px, 13px 13px; background-position: 4px 6px, 0 0;
+}
+:root[data-theme="ocean"] .es::before {
+  background-image: radial-gradient(circle at 50% 100%, transparent 7px, rgba(14, 110, 146, .2) 7.5px, rgba(14, 110, 146, .2) 8.5px, transparent 9px);
+  background-size: 20px 10px;
+}
+:root[data-theme="deepocean"] .es::before {
+  background-image: radial-gradient(circle, transparent 2px, rgba(56, 189, 248, .35) 2.5px, transparent 3.2px), radial-gradient(circle, rgba(56, 189, 248, .25) 1px, transparent 1.6px);
+  background-size: 26px 26px, 11px 11px; background-position: 3px 2px, 0 0;
+}
+:root:is([data-theme=earth],[data-theme=earth2]) .es::before {
+  background-image: radial-gradient(ellipse 2.2px 1.2px, color-mix(in srgb, var(--fill) 45%, transparent) 99%, transparent);
+  background-size: 15px 15px;
+}
+:root[data-theme="magic"] .es::before {
+  background-image:
+    radial-gradient(circle, rgba(232, 194, 90, .55) 1px, transparent 1.6px),
+    radial-gradient(circle, rgba(201, 167, 255, .35) .8px, transparent 1.4px);
+  background-size: 22px 22px, 9px 9px; background-repeat: repeat;
+}
+:root[data-theme="genesis"] .es::before {
+  background-image: linear-gradient(45deg, rgba(111, 127, 232, .16) 1px, transparent 1px), linear-gradient(-45deg, rgba(111, 127, 232, .16) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+:root[data-theme="warm"] .es::before {
+  background-image: radial-gradient(circle, transparent 2.5px, rgba(206, 63, 121, .22) 3px, transparent 3.6px);
+  background-size: 18px 18px;
+}
+
+/* ============================================================
+   ตัวตนของแต่ละธีม รอบสอง: ทุกหน้า + ท่าเคลื่อนไหว — 12 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ: "ออกแบบในหน้าอื่นด้วย พวกอนิเมชันก็ปรับแต่งด้วยนะ ออกแบบในทุกหน้า แต่ถ้าไหนควรต้องเหมือนกันก็ให้เหมือน"
+   รอบแรกแต่งของบนหน้าแรก · รอบนี้แต่ง "ของที่ใช้ร่วมกันทุกหน้า" ภาษารูปทรงของธีมจึงตามไปทุกจอเอง:
+     ปุ่มกลับ (มีแทบทุกจอย่อย) · กรอบแถบล่าง · ตัวบอกแท็บที่เลือก (วันนี้/สัปดาห์/รายการ · ตัวกรองแจ้งเตือน
+     · ตัวสลับกระดาน) · ชิป · ช่องค้นหา/ช่องถามน้องฮูก/ช่องแชท · ไอคอนในแถวตั้งค่า แท็บฉัน และแผ่นเพิ่มงาน
+   + ท่าเปลี่ยนจอของแต่ละธีม + ท่าตอนกดไอคอนของแต่ละธีม
+   ที่ "ต้องเหมือนกัน" ทุกธีม (ไม่แตะโดยตั้งใจ):
+     ผังจอ ระยะห่าง ขนาดตัวอักษร · สีบอกสถานะ (แดง=เลย/ลบ · เขียว=เสร็จ · ทอง=สำเร็จจริง) · ปุ่มติ๊กงาน · ดาวความสำคัญ
+     · โหมดโฟกัส (จอนิ่งให้ใจจดจ่อ) · ฟอร์มเพิ่มงาน · แจ้งเตือนแบบ Dynamic Island (ดำทุกธีมโดยตั้งใจ เหมือนของเครื่องจริง)
+     · ทิศของท่าเปลี่ยนจอ (เดินหน้า = เข้าจากขวา · ถอย = เข้าจากซ้าย) — ทิศคือข้อมูลว่ากำลังไปไหน ไม่ใช่ของตกแต่ง
+   ทุกท่าใช้ transform/opacity · ลดการเคลื่อนไหว = ไม่ขยับ
+   ============================================================ */
+:root[data-theme="warm"]      { --id-bar: 30px; --id-back: 50%; --id-ctl: 999px; }
+:root[data-theme="sweet"]     { --id-bar: 32px; --id-back: 46% 54% 48% 52% / 52% 46% 54% 48%; --id-ctl: 999px; }
+:root[data-theme="earth"]     { --id-bar: 26px 10px 26px 10px; --id-back: 18px 6px 18px 6px; --id-ctl: 12px 4px 12px 4px; --id-in: 18px 6px 18px 6px; }
+:root[data-theme="earth2"]    { --id-bar: 10px 26px 10px 26px; --id-back: 6px 18px 6px 18px; --id-ctl: 4px 12px 4px 12px; --id-in: 6px 18px 6px 18px; }
+:root[data-theme="ocean"]     { --id-bar: 30px; --id-back: 50% 50% 50% 18%; --id-ctl: 999px; }
+:root[data-theme="deepocean"] { --id-bar: 30px; --id-back: 50%; --id-ctl: 999px; }
+:root[data-theme="space"]     { --id-bar: 30px; --id-back: 50%; --id-ctl: 999px; }
+:root[data-theme="galaxy"]    { --id-bar: 28px; --id-back: 16px; --id-ctl: 999px; }
+:root[data-theme="magic"]     { --id-bar: 24px 24px 14px 14px; --id-back: 50% 50% 12px 12px / 42% 42% 12px 12px; --id-ctl: 12px 12px 5px 5px; --id-in: 16px 16px 8px 8px; }
+:root[data-theme="genesis"]   { --id-bar: 8px 26px 8px 26px; --id-back: 5px 16px 5px 16px; --id-ctl: 4px 12px 4px 12px; --id-in: 5px 16px 5px 16px; }
+:root[data-theme="meta"]      { --id-bar: 12px; --id-back: 9px; --id-ctl: 7px; --id-in: 9px; }
+:root[data-theme="glitch"]    { --id-bar: 5px; --id-back: 4px; --id-ctl: 3px; --id-in: 3px; }
+
+/* ---------- ปุ่มกลับ (ทุกจอย่อย) — ปุ่ม "‹ กลับ" ของกระดานอันดับเป็นแคปซูลมีคำ คงไว้ (กฎ id ชนะ) ---------- */
+:root:is([data-theme=warm],[data-theme=sweet],[data-theme=earth],[data-theme=earth2],[data-theme=ocean],[data-theme=deepocean],[data-theme=space],[data-theme=galaxy],[data-theme=magic],[data-theme=genesis],[data-theme=meta],[data-theme=glitch]) .phone :is(.sh-btn,.set-back,.ch-back,.hw-back,.tp-back,.sh-back,.lg-back,.rp-back,.back,.fc-x,button[aria-label^="กลับ"]) { border-radius: var(--id-back) !important; }
+:root[data-theme="meta"] .phone :is(.sh-btn,.set-back,.ch-back,.hw-back,.tp-back,.sh-back,.lg-back,.rp-back,.back,.fc-x,button[aria-label^="กลับ"]) { box-shadow: inset 0 0 0 1px rgba(56, 232, 255, .55), 0 0 12px -4px rgba(56, 232, 255, .5) !important; }
+:root[data-theme="glitch"] .phone :is(.sh-btn,.set-back,.ch-back,.hw-back,.tp-back,.sh-back,.lg-back,.rp-back,.back,.fc-x,button[aria-label^="กลับ"]) { box-shadow: 2px 0 0 rgba(255, 45, 111, .7), -2px 0 0 rgba(45, 240, 255, .7) !important; }
+:root[data-theme="deepocean"] .phone :is(.sh-btn,.set-back,.ch-back,.hw-back,.tp-back,.sh-back,.lg-back,.rp-back,.back,.fc-x,button[aria-label^="กลับ"]) { box-shadow: 0 0 0 1px rgba(56, 189, 248, .4), 0 0 14px -3px rgba(56, 189, 248, .55) !important; }
+:root[data-theme="magic"] .phone :is(.sh-btn,.set-back,.ch-back,.hw-back,.tp-back,.sh-back,.lg-back,.rp-back,.back,.fc-x,button[aria-label^="กลับ"]) { box-shadow: 0 0 0 1px rgba(232, 194, 90, .7) !important; }
+
+/* ---------- กรอบแถบล่าง ---------- */
+:root:is([data-theme=warm],[data-theme=sweet],[data-theme=earth],[data-theme=earth2],[data-theme=ocean],[data-theme=deepocean],[data-theme=space],[data-theme=galaxy],[data-theme=magic],[data-theme=genesis],[data-theme=meta],[data-theme=glitch]) .phone .tabbar { border-radius: var(--id-bar) !important; }
+:root[data-theme="meta"] .phone .tabbar { border-color: rgba(56, 232, 255, .5) !important; }
+:root[data-theme="glitch"] .phone .tabbar { border-color: rgba(45, 240, 255, .45) !important; }
+
+/* ---------- ตัวบอกแท็บที่เลือก + ชิป (ของชิ้นเล็กที่เลือกได้) ---------- */
+:root:is([data-theme=warm],[data-theme=sweet],[data-theme=earth],[data-theme=earth2],[data-theme=ocean],[data-theme=deepocean],[data-theme=space],[data-theme=galaxy],[data-theme=magic],[data-theme=genesis],[data-theme=meta],[data-theme=glitch]) .phone :is(.tk-thumb, .tk-mode.on, .gbg-ind, .bd-seg-k, .fd-scope.on, .chip, .cp-chip, .so-chip, .cx2-chip, .sp) {
+  border-radius: var(--id-ctl) !important;
+}
+:root:is([data-theme=earth],[data-theme=earth2],[data-theme=magic],[data-theme=genesis],[data-theme=meta],[data-theme=glitch]) .phone :is(.tk-modes, .gbg, .bd-seg) { border-radius: var(--id-ctl) !important; }
+:root[data-theme="meta"] .phone :is(.tk-thumb, .gbg-ind, .bd-seg-k) { box-shadow: inset 0 0 0 1px rgba(56, 232, 255, .6), 0 0 12px -3px rgba(56, 232, 255, .55) !important; }
+:root[data-theme="glitch"] .phone :is(.tk-thumb, .gbg-ind, .bd-seg-k) { box-shadow: 2px 0 0 rgba(255, 45, 111, .75), -2px 0 0 rgba(45, 240, 255, .75) !important; }
+
+/* ---------- ช่องพิมพ์ (ธีมที่ตัวตนอยู่ที่รูปทรง) ---------- */
+:root:is([data-theme=earth],[data-theme=earth2],[data-theme=magic],[data-theme=genesis],[data-theme=meta],[data-theme=glitch]) .phone :is(.fr-search, .sai-bar, #menuBody .td-ask, .ep .ep-f > input[type="text"], .set-row input[type="text"]) {
+  border-radius: var(--id-in) !important;
+}
+:root[data-theme="meta"] .phone :is(.fr-search, .sai-bar) { box-shadow: inset 0 0 0 1px rgba(56, 232, 255, .45) !important; }
+
+/* ---------- ไอคอนในแถว (ตั้งค่า · แท็บฉัน · แผ่นเพิ่มงาน · ทางเข้ากระดาน) — ทรงเดียวกับไอคอนหน้าแรก ---------- */
+:root:is([data-theme=warm],[data-theme=sweet],[data-theme=earth],[data-theme=earth2],[data-theme=ocean],[data-theme=deepocean],[data-theme=space],[data-theme=galaxy],[data-theme=magic],[data-theme=genesis],[data-theme=meta],[data-theme=glitch]) .phone :is(.set-ic, .pe-ic, .as-ic, .tb-nd-ic, .soon-ic, .bd-entry-ic, .bd-guest-ic, .fd-blank-ic, .dm-blank-ic) {
+  border-radius: var(--id-tile) !important;
+}
+:root[data-theme="meta"] .phone :is(.set-ic, .pe-ic, .as-ic) { box-shadow: inset 0 0 0 1px rgba(56, 232, 255, .55) !important; }
+:root[data-theme="glitch"] .phone :is(.set-ic, .pe-ic, .as-ic) { box-shadow: 1.5px 0 0 rgba(255, 45, 111, .7), -1.5px 0 0 rgba(45, 240, 255, .7) !important; }
+:root[data-theme="magic"] .phone :is(.set-ic, .pe-ic, .as-ic) { box-shadow: 0 0 0 1px rgba(232, 194, 90, .6) !important; }
+:root[data-theme="deepocean"] .phone :is(.set-ic, .pe-ic, .as-ic) { box-shadow: 0 0 10px -2px rgba(56, 189, 248, .6) !important; }
+
+/* ============================================================
+   ท่าเปลี่ยนจอของแต่ละธีม
+   ทิศเหมือนเดิมทุกธีม (--id-dx: เดินหน้า +26 · ถอย −22 · สลับแท็บ 0) — ต่างกันที่ "นิสัย" ของท่า
+   12 ต.ค. 69 · เจ้าของ: "ตอนเปลี่ยนหน้าในเมนูหลัก มันมีอนิเมชันเปลี่ยน … มันรู้สึกเวียนหัว"
+   รอบแรกหมุนทั้งจอ (กาแล็กซี) · ซูมเข้า 5% (อวกาศ) · หดเหลือ 90% (เวทมนตร์) · กระตุก 8px (Glitch)
+   ทั้งจอขยับแบบนี้ทุกครั้งที่กดแท็บล่าง = เวียนหัวจริง (การหมุนกับซูมทั้งจอคือตัวกระตุ้นอาการเมารถบนจอที่รู้กัน)
+   ตอนนี้: กดแท็บล่าง (lat) ใช้ท่าเดิม scr-lat เหมือนกันทุกธีม — ไปมาบ่อยที่สุด ต้องนิ่งที่สุด
+   ท่าของธีมเหลือเฉพาะตอนเข้าจอย่อย/ถอยกลับ และเบาลงทุกท่า: ไม่หมุน · ซูมไม่เกิน 1–2.5% · กะพริบ/กระตุกเบา
+   ============================================================ */
+body[data-godir="fwd"]  { --id-dx: 26px; }
+body[data-godir="back"] { --id-dx: -22px; }
+body[data-godir="lat"]  { --id-dx: 0px; }
+/* ชมพู: นุ่ม ช้าลงนิด */
+:root[data-theme="warm"] body:not([data-godir="lat"]) .screen.on { animation: id-soft .4s cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes id-soft { from { opacity: 0; transform: translate3d(calc(var(--id-dx) * .6), 10px, 0) scale(.99); } }
+/* หวานแหว: เยลลี่ — เด้งเกินแล้วกลับเข้าที่ */
+:root[data-theme="sweet"] body:not([data-godir="lat"]) .screen.on { animation: id-jelly .52s cubic-bezier(.3, 1, .4, 1) both; }
+@keyframes id-jelly {
+  0% { opacity: 0; transform: translate3d(var(--id-dx), 0, 0) scale(.975); }
+  60% { opacity: 1; transform: translate3d(0, 0, 0) scale(1.005, .997); }
+  100% { opacity: 1; transform: none; }
+}
+/* โลก · ต้นไม้โลก: งอกขึ้นจากพื้น */
+:root:is([data-theme=earth],[data-theme=earth2]) body:not([data-godir="lat"]) .screen.on { animation: id-sprout .44s cubic-bezier(.22, 1, .36, 1) both; transform-origin: 50% 100%; }
+@keyframes id-sprout { from { opacity: 0; transform: translate3d(calc(var(--id-dx) * .5), 8px, 0) scaleY(.99); } }
+/* มหาสมุทร: ลอยขึ้นจากน้ำ */
+:root[data-theme="ocean"] body:not([data-godir="lat"]) .screen.on { animation: id-float .5s cubic-bezier(.16, 1, .3, 1) both; }
+@keyframes id-float { from { opacity: 0; transform: translate3d(calc(var(--id-dx) * .5), 10px, 0); } }
+/* ทะเลลึก: โผล่ขึ้นมาจากความลึก */
+:root[data-theme="deepocean"] body:not([data-godir="lat"]) .screen.on { animation: id-emerge .5s cubic-bezier(.16, 1, .3, 1) both; }
+@keyframes id-emerge { from { opacity: 0; transform: translate3d(calc(var(--id-dx) * .4), 8px, 0) scale(.985); } }
+/* อวกาศ: วาร์ป — ซูมเข้าหาจากไกล */
+:root[data-theme="space"] body:not([data-godir="lat"]) .screen.on { animation: id-warp .38s cubic-bezier(.2, .9, .2, 1) both; }
+@keyframes id-warp { from { opacity: 0; transform: translate3d(calc(var(--id-dx) * .4), 0, 0) scale(1.012); } }
+/* กาแล็กซี: หมุนวนเข้ามานิดหนึ่ง */
+:root[data-theme="galaxy"] body:not([data-godir="lat"]) .screen.on { animation: id-swirl .46s cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes id-swirl { from { opacity: 0; transform: translate3d(calc(var(--id-dx) * .5), 6px, 0) scale(.985); } }
+/* เวทมนตร์: เสก — โผล่จากเล็กแล้วเด้งเกินนิด */
+:root[data-theme="magic"] body:not([data-godir="lat"]) .screen.on { animation: id-conjure .5s cubic-bezier(.3, 1, .4, 1) both; }
+@keyframes id-conjure {
+  0% { opacity: 0; transform: translate3d(calc(var(--id-dx) * .4), 0, 0) scale(.975); }
+  60% { opacity: 1; transform: scale(1.004); }
+  100% { opacity: 1; transform: none; }
+}
+/* Crystal: เข้าเร็ว คม */
+:root[data-theme="genesis"] body:not([data-godir="lat"]) .screen.on { animation: id-crystal .26s cubic-bezier(.2, .9, .1, 1) both; }
+@keyframes id-crystal { from { opacity: 0; transform: translate3d(calc(var(--id-dx) * .4), 0, 0) scale(.985); } }
+/* Metaverse: เปิดจอ HUD — กะพริบสองจังหวะก่อนติดเต็ม */
+:root[data-theme="meta"] body:not([data-godir="lat"]) .screen.on { animation: id-hud .34s linear both; }
+@keyframes id-hud {
+  0% { opacity: 0; transform: translate3d(calc(var(--id-dx) * .4), -3px, 0); }
+  35% { opacity: .8; transform: translate3d(calc(var(--id-dx) * .15), -1px, 0); }
+  50% { opacity: .62; }
+  75% { opacity: 1; transform: none; }
+  100% { opacity: 1; transform: none; }
+}
+/* Glitch: กระตุกซ้ายขวาก่อนเข้าที่ */
+:root[data-theme="glitch"] body:not([data-godir="lat"]) .screen.on { animation: id-jitter .3s steps(1, end) both; }
+@keyframes id-jitter {
+  0% { opacity: 0; transform: translate3d(calc(var(--id-dx) * .3), 0, 0); }
+  30% { opacity: 1; transform: translate3d(2px, 0, 0); }
+  60% { transform: translate3d(-1.5px, 0, 0); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* ---------- ท่าตอนกดไอคอนหน้าแรก ---------- */
+:root[data-theme="sweet"] .phone .tg-t:active .tg-ic { transform: scale(1.07, .88) !important; }
+:root:is([data-theme=earth],[data-theme=earth2]) .phone .tg-t:active .tg-ic { transform: rotate(-4deg) scale(.95) !important; }
+:root:is([data-theme=ocean],[data-theme=deepocean]) .phone .tg-t:active .tg-ic { transform: translateY(3px) scale(.95) !important; }
+:root:is([data-theme=space],[data-theme=galaxy]) .phone .tg-t:active .tg-ic { transform: scale(.88) !important; }
+:root[data-theme="magic"] .phone .tg-t:active .tg-ic { transform: rotate(3deg) scale(.93) !important; }
+:root[data-theme="genesis"] .phone .tg-t:active .tg-ic { transform: scale(.93) rotate(-2deg) !important; }
+:root[data-theme="meta"] .phone .tg-t:active .tg-ic { transform: scale(.95) !important; filter: brightness(1.3); }
+:root[data-theme="glitch"] .phone .tg-t:active .tg-ic { transform: translateX(2px) scale(.95) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme] body[data-godir] .screen.on { animation: none !important; }
+  :root[data-theme] .phone .tg-t:active .tg-ic { transform: none !important; }
+}
+/* ตัวบอกตัวกรองบนจอแจ้งเตือน (.gbg-ind) มีวงแหวนสีกับช่องว่างซ้อนอยู่ข้างใน — ต้องเปลี่ยนทรงตามกรอบนอก
+   ไม่งั้นได้วงแหวนมนอยู่ในกรอบเหลี่ยม (เจอใน Glitch กับเวทมนตร์) */
+:root:is([data-theme=warm],[data-theme=sweet],[data-theme=earth],[data-theme=earth2],[data-theme=ocean],[data-theme=deepocean],
+  [data-theme=space],[data-theme=galaxy],[data-theme=magic],[data-theme=genesis],[data-theme=meta],[data-theme=glitch])
+  .phone .gbg-ind :is(.gbg-ring, .gbg-gap) { border-radius: inherit; }
+
+/* ============================================================
+   ตัวตนของ Astral Black (ธีมขาว–ดำ) — 12 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ: "ในธีมที่มีแค่สีขาวกับดำ" (ต่อจากการแต่งตัวตนให้ทุกธีม ซึ่งรอบแรกเว้นธีมนี้ไว้)
+   ยังเป็นขาว ดำ เทา ล้วนตามที่เจ้าของสั่งไว้ตั้งแต่ 1C40 — ไม่มีสีอิ่มเพิ่มแม้แต่จุดเดียว
+   แนวของธีมนี้ (ภาพอ้างอิงเดิมของเจ้าของ): อวกาศขาวดำ · ดาวเคราะห์ · โลหะเงิน
+     ① ไอคอนเป็นดาวเคราะห์กลม มีวงโคจรเส้นเงินบางรอบตัวกับ "ดวงจันทร์" จุดเดียวบนวง
+        (ต่างจากอวกาศที่เป็นวงเส้นประ) — ใช้ทั้งหน้าแรก แถวตั้งค่า แท็บฉัน แผ่นเพิ่มงาน และจอว่าง
+     ② ปุ่มหลักเป็นโลหะเงินขัดเงา (แบบ Metal Button ของ Cult UI · ไล่ขาว→เงิน→เทา + ขอบสะท้อนบน/ล่าง)
+     ③ ปุ่มกลับกลม ขอบเส้นเงินบาง · แถบล่างขอบเส้นเงิน แท็บที่เลือกเป็นเงินขัดเงา
+     ④ หัวข้อจอเป็นตัวหนังสือโครเมียม (ขาวไล่ลงเทา)
+     ⑤ ลายหลังไอคอนในจอว่างเป็นวงโคจรซ้อนกันบาง ๆ
+     ⑥ ท่าเปลี่ยนจอ "สุริยุปราคา" — ค่อย ๆ สว่างขึ้นจากดำ ช้าและนิ่งแบบภาพยนตร์ (ทิศเข้า/ถอยเหมือนทุกธีม)
+   ============================================================ */
+:root[data-theme="astral"] { --r-card: 18px; --r-tile: 12px; }
+
+/* ① ดาวเคราะห์ + วงโคจรมีดวงจันทร์ */
+:root[data-theme="astral"] .phone :is(.es-ic, .nt-empty-ic, .set-ic, .pe-ic, .as-ic, .tb-nd-ic, .soon-ic, .bd-entry-ic, .bd-guest-ic, .fd-blank-ic, .dm-blank-ic) { border-radius: 50% !important; }
+
+/* ② ปุ่มหลักโลหะเงิน */
+:root[data-theme="astral"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  border-radius: 999px !important;
+  background: linear-gradient(180deg, #FFFFFF 0%, #DCDCDC 42%, #B4B4B4 58%, #E6E6E6 100%) !important;
+  color: #0A0A0A !important;
+  box-shadow: inset 0 1px 0 #FFFFFF, inset 0 -1px 0 rgba(0, 0, 0, .28), 0 0 0 1px rgba(255, 255, 255, .3),
+    0 12px 26px -14px rgba(255, 255, 255, .4) !important;
+}
+
+/* ③ ปุ่มกลับ · แถบล่าง */
+:root[data-theme="astral"] .phone :is(.sh-btn,.set-back,.ch-back,.hw-back,.tp-back,.sh-back,.lg-back,.rp-back,.back,.fc-x,button[aria-label^="กลับ"]) { border-radius: 50% !important; box-shadow: 0 0 0 1px rgba(255, 255, 255, .3) !important; }
+:root[data-theme="astral"] .phone .tabbar { border-color: rgba(255, 255, 255, .26) !important; }
+:root[data-theme="astral"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) {
+  background-image: linear-gradient(180deg, #FFFFFF 0%, #DCDCDC 45%, #B9B9B9 100%) !important;
+  color: #0A0A0A !important;
+  box-shadow: inset 0 1px 0 #FFFFFF, inset 0 -1px 0 rgba(0, 0, 0, .25) !important;
+}
+
+/* ④ หัวข้อโครเมียม */
+:root[data-theme="astral"] .phone :is(.page-title, .fd-title) {
+  background-image: linear-gradient(180deg, #FFFFFF 30%, #A3A3A3 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+}
+
+/* ⑤ จอว่าง: วงโคจรซ้อน */
+:root[data-theme="astral"] .es::before {
+  background-image: repeating-radial-gradient(circle at 50% 30%, transparent 0 15px, rgba(255, 255, 255, .09) 15px 16px);
+  background-size: auto;
+}
+
+/* ⑥ ท่าเปลี่ยนจอ + ท่าตอนกด */
+:root[data-theme="astral"] body:not([data-godir="lat"]) .screen.on { animation: id-eclipse .46s cubic-bezier(.16, 1, .3, 1) both; }
+@keyframes id-eclipse {
+  0% { opacity: 0; transform: translate3d(calc(var(--id-dx) * .3), 0, 0) scale(.99); }
+  40% { opacity: .55; }
+  100% { opacity: 1; transform: none; }
+}
+:root[data-theme="astral"] .phone .tg-t:active .tg-ic { transform: scale(.92) !important; }
+

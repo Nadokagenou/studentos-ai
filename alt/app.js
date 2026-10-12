@@ -400,7 +400,12 @@ const GL_ERRORS = [
 ];
 function glMessage() { return GL_ERRORS[Math.floor(Math.random() * GL_ERRORS.length)]; }
 
+// 12 ต.ค. 69 · บั๊ก: glitchLoop ตั้งเวลายิงครั้งแรกไว้ (0.9 วิ · 2.6 วิ) แบบไม่เก็บตัวจับเวลา
+// เปลี่ยนออกจากธีมก่อนเวลานั้น = กล่อง "SERVER INFO" สีแดงกับจอสั่นโผล่ในธีมใหม่ (เจอตอนไล่ดูทุกธีม)
+// ทุกตัวที่เกิดจาก Glitch จึงเช็คก่อนว่ายังอยู่ในธีมนี้จริง
+const glitchOn = () => document.documentElement.dataset.theme === 'glitch';
 function glitchError() {
+  if (!glitchOn()) return;
   const phone = document.querySelector('.phone');
   if (!phone || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const el = document.createElement('div');
@@ -424,7 +429,7 @@ const GL_TEXT_SEL = '.screen.on .page-title, .screen.on .mt-lb, .screen.on .rc-t
   + '.screen.on .wg-title, .screen.on .bg-nm, .screen.on .tk-bal';
 
 function glitchTextBurst() {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!glitchOn() || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const els = [...document.querySelectorAll(GL_TEXT_SEL)]
     .filter(e => e.children.length === 0 && e.textContent.trim().length > 1 && !e.dataset.glx);
   if (!els.length) return;
@@ -462,14 +467,14 @@ function glitchTextRestore() {
 // หน่วงภาพทั้งจอสั้น ๆ ให้เหมือนเครื่องค้าง แล้วปล่อย — ไม่ได้หยุดโค้ดจริง
 // ใช้ CSS ล้วน ๆ จึงไม่มีทางไปค้างการทำงานของแอปหรือทำให้กดอะไรไม่ได้จริง
 function glitchStutter() {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!glitchOn() || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const root = document.documentElement;
   root.dataset.gstut = 'on';
   setTimeout(() => root.removeAttribute('data-gstut'), 260 + Math.random() * 220);
 }
 
 function glitchShake(strong) {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!glitchOn() || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const root = document.documentElement;
   root.dataset.gfx = strong ? 'hard' : 'on';
   if (navigator.vibrate) { try { navigator.vibrate(strong ? [18, 40, 14, 30, 10] : [12, 40, 8]); } catch (_) {} }
@@ -2816,6 +2821,23 @@ function homeAsk() {
   if (t) t.focus();
 }
 
+// ---------- จอว่างทั้งแอป ----------
+// 12 ต.ค. 69 · เจ้าของ: "ลองแก้ไขหรือตกแต่งเพิ่มเติม อันไหนควรตกแต่งเพิ่ม ควรปรับให้พอดี"
+// จอว่างหลายจอเคยเป็นกล่องเทาบรรทัดเดียว ("ถังขยะว่าง" · "วันนี้ไม่มีอะไรต้องนั่งทำ พักได้เต็มที่")
+// ไม่บอกว่าที่นี่คืออะไร และต่อไปทำอะไรได้ · ตอนนี้ใช้ทรงเดียวกันหมด:
+//   ไอคอนในกล่องสี (ทรงเดียวกับจอแจ้งเตือนตอนว่าง .nt-empty ที่มีอยู่แล้ว · ขอบแสงแบบ Halo ของ Cult UI)
+//   → หัวข้อ → บรรทัดอธิบาย → ปุ่มเดียว (ถ้ามีอะไรให้ทำต่อจริง) · หลังไอคอนมีลายจุดจาง ๆ (Empty States ของ Aceternity)
+// soft = เรื่องสบาย ๆ (พักได้ · ไม่มีอะไรค้าง) กล่องไอคอนสีอ่อน ไม่ตะโกน · extra = รายการเพิ่มเติมใต้คำอธิบาย
+// เด้งเข้าเฉพาะตอนเพิ่งเปิดจอ (.fx-in จาก screenFx) — จอแผนวาดใหม่ทุกนาที ถ้าเด้งทุกครั้งจะกระตุกเอง
+function emptyState({ ic, title, sub = '', go = '', goLabel = '', ghost = false, soft = false, extra = '' }) {
+  return `<section class="es">
+    <span class="es-ic${soft ? ' soft' : ''}">${icon(ic)}</span>
+    <h2 class="es-t">${title}</h2>
+    ${sub ? `<p class="es-p">${sub}</p>` : ''}${extra}
+    ${go ? `<button class="es-go${ghost ? ' ghost' : ''}" type="button" onclick="${go}">${goLabel}</button>` : ''}
+  </section>`;
+}
+
 // ---------- ยังไม่มีงาน ----------
 // จอว่างมีสองแบบ และต้องพูดคนละอย่าง
 //   เคลียร์หมดแล้ว = ข่าวดี ต้องฉลองสั้น ๆ แล้วปล่อยเขาไป
@@ -4849,7 +4871,9 @@ function aiShowContext() {
 // ป้ายว่า "สรุปเนื้อหา" อ่านง่ายกว่า "ช่วยสรุปเนื้อหาที่ต้องอ่านสำหรับสอบให้หน่อย"
 // แต่ถ้าส่งคำสั้นไปจริง ๆ จะได้คำตอบกว้าง ๆ ที่ไม่รู้ว่าพูดถึงวิชาไหน
 const AI_QUICK = [
-  ['sparkles', 'ช่วยวางแผนวันนี้', 'วันนี้ควรทำอะไรก่อน แล้วเรียงลำดับยังไงดี'],
+  // 12 ต.ค. 69 · เจ้าของ: "เปลี่ยนโลโก้ให้ตรง" — เดิมเป็นประกาย (sparkles) ซึ่งไม่ได้บอกว่า "วางแผน"
+  // ใช้ปฏิทินมีเครื่องหมายถูก ตัวเดียวกับไอคอน "แผนวันนี้" บนหน้าแรก — เรื่องเดียวกันใช้ไอคอนเดียวกัน
+  ['plan',     'ช่วยวางแผนวันนี้', 'วันนี้ควรทำอะไรก่อน แล้วเรียงลำดับยังไงดี'],
   ['book',     'อธิบายการบ้าน',    'อธิบายการบ้านที่ค้างอยู่ให้เข้าใจหน่อย ผมยังไม่รู้จะเริ่มตรงไหน'],
   ['notes',    'สรุปเนื้อหา',      'ช่วยสรุปเนื้อหาที่ต้องอ่านสำหรับสอบให้หน่อย'],
   ['clock',    'จัดเวลาให้ฉัน',    'ช่วยแบ่งเวลาอ่านหนังสือให้ทันสอบหน่อย'],
@@ -5735,11 +5759,22 @@ function todayBoard(now) {
       + '<button class="tb-fc-go" onclick="startFocus(\'' + t.id + '\')">'
       + icon('play') + 'เริ่มทำ</button></div>';
   } else if (pendingTasks().length) {
-    focus = '<div class="tb-focus flat">' + icon('clock')
-      + '<b>วันนี้ไม่มีช่องว่างให้เจียดแล้ว</b>' + '</div>';
+    // 12 ต.ค. 69 · บั๊ก: เดิมขึ้น "วันนี้ไม่มีช่องว่างให้เจียดแล้ว" ทุกครั้งที่ตอนนี้ไม่มีงานให้ลงมือ
+    // ทั้งที่หัวจอเดียวกันบอก "ว่าง 2 ชม. 30 นาที" — ของที่ค้างอยู่เป็นเตือนความจำวันหลัง ไม่ใช่เวลาหมด
+    // แยกสองกรณีตามเวลาว่างจริงของแผน (ตัวเลขเดียวกับหัวจอ) · คำเดียวกับหน้าแรก (todayEmpty)
+    const n = pendingTasks().length;
+    const free = plan.windows ? (plan.windows.budgetMin || 0) : 0;
+    focus = emptyState(free > 0
+      ? { ic: 'check-circle', soft: true, title: 'ตอนนี้ไม่มีงานต้องทำ',
+          sub: 'อีก ' + n + ' อย่างรออยู่ ดูได้ในมุมมองสัปดาห์',
+          go: "setTaskView('week')", goLabel: 'ดูทั้งสัปดาห์', ghost: true }
+      : { ic: 'clock', title: 'วันนี้ไม่มีช่องว่างให้เจียดแล้ว',
+          sub: 'อีก ' + n + ' อย่างรออยู่ ดูได้ในมุมมองสัปดาห์',
+          go: "setTaskView('week')", goLabel: 'ดูทั้งสัปดาห์', ghost: true });
   } else {
-    focus = '<button class="tb-focus flat tap" onclick="openAddSheet()">' + icon('camera')
-      + '<b>ไม่มีอะไรค้าง</b></button>';
+    focus = emptyState({ ic: 'sofa', soft: true, title: 'ไม่มีอะไรค้าง',
+      sub: 'มีงานใหม่ ถ่ายรูปใบงานหรือพิมพ์เพิ่มเองได้เลย',
+      go: 'openAddSheet()', goLabel: icon('plus') + 'เพิ่มงาน' });
   }
 
   // ---- ไทม์ไลน์ย่อ: สามแถวแรกที่ยังไม่ถึงเวลา ----
@@ -6260,7 +6295,8 @@ function doneView(done) {
         <div class="page-title" style="font-size:21px;margin-top:2px">เสร็จแล้ว</div>
       </div>
     </div>`;
-  if (!done.length) return head + `<div class="card empty">ยังไม่มีงานที่ทำเสร็จ</div>`;
+  if (!done.length) return head + emptyState({ ic: 'check', soft: true, title: 'ยังไม่มีงานที่ทำเสร็จ',
+    sub: 'ติ๊กงานเสร็จเมื่อไหร่ จะมาเก็บไว้ที่นี่ เรียงตามวัน' });
 
   const now = new Date();
   // จัดกลุ่มตามวันที่ทำเสร็จ — "เสร็จไปแล้วกี่ใบ" อ่านง่ายกว่าตอนเห็นเป็นวัน ๆ ไป
@@ -6309,7 +6345,8 @@ function binView(bin) {
       </div>
       ${bin.length ? `<div class="bin-act"><button class="del" onclick="emptyBin()">ล้างทั้งหมด</button></div>` : ''}
     </div>`;
-  if (!bin.length) return head + `<div class="card empty">ถังขยะว่าง</div>`;
+  if (!bin.length) return head + emptyState({ ic: 'trash', soft: true, title: 'ถังขยะว่าง',
+    sub: 'งานที่ลบจะพักอยู่ที่นี่ กู้คืนได้ภายใน 30&nbsp;วัน ก่อนหายถาวร' });
   const rows = bin
     .slice()
     .sort((a, b) => (b.deletedAt || '').localeCompare(a.deletedAt || ''))
@@ -7109,7 +7146,9 @@ function renderPlan() {
   const pending = pendingTasks();
   if (!pending.length) {
     sub.textContent = '';
-    list.innerHTML = `<div class="card empty">ไม่มีงานค้าง วันนี้พักได้เต็มที่</div>`;
+    list.innerHTML = emptyState({ ic: 'sofa', soft: true, title: 'วันนี้พักได้เต็มที่',
+      sub: 'ไม่มีงานค้างเลยสักใบ มีงานใหม่เมื่อไหร่ แผนจะจัดให้เอง',
+      go: 'openAddSheet()', goLabel: icon('plus') + 'เพิ่มงาน', ghost: true });
     return;
   }
   // อ่านแผนก้อนเดียวกับหน้าแรก — ห้ามเรียก buildDayPlan เองที่นี่
@@ -7233,12 +7272,12 @@ function renderPlan() {
   if (!plan.slots.length && !plan.events.length) {
     // มีงานค้างอยู่แต่วางไม่ลง ≠ ไม่มีอะไรต้องทำ — สองอย่างนี้พูดสลับกันไม่ได้เด็ดขาด
     html += missed.length
-      ? `<div class="card empty">วันนี้ไม่เหลือช่องว่างให้วางงานแล้ว
-           แต่งานข้างบนรอถึงพรุ่งนี้ไม่ได้ ดูว่าพอยืมเวลาจากตรงไหนได้บ้าง</div>`
+      ? emptyState({ ic: 'clock', title: 'วันนี้ไม่เหลือช่องว่างให้วางงานแล้ว',
+          sub: 'แต่งานข้างบนรอถึงพรุ่งนี้ไม่ได้ ดูว่าพอยืมเวลาจากตรงไหนได้บ้าง' })
       : plan.overflow.length
-        ? `<div class="card empty">วันนี้ไม่เหลือช่องว่างให้วางงานแล้ว
-             งานข้างบนถูกกันไว้ให้พรุ่งนี้เช้าเรียบร้อย</div>`
-        : `<div class="card empty">วันนี้ไม่มีอะไรต้องนั่งทำ พักได้เต็มที่</div>`;
+        ? emptyState({ ic: 'clock', soft: true, title: 'วันนี้ไม่เหลือช่องว่างให้วางงานแล้ว',
+            sub: 'งานข้างบนถูกกันไว้ให้พรุ่งนี้เช้าเรียบร้อย' })
+        : emptyState({ ic: 'sofa', soft: true, title: 'วันนี้ไม่มีอะไรต้องนั่งทำ', sub: 'พักได้เต็มที่' });
   }
   list.innerHTML = html;
 }
@@ -7609,13 +7648,16 @@ function renderFriends(force) {
   // ล้วนต้องรู้ว่าเป็นบัญชีไหน) จอจึงต้องบอกตั้งแต่แรก ไม่ใช่โชว์ช่องให้กรอกครบทุกช่อง
   // แล้วค่อยไปบอกตอนกดบันทึก — ผู้ใช้พิมพ์ชื่อที่ตั้งใจไว้ทิ้งไปหนึ่งรอบฟรี ๆ
   if (!sb || !currentUser) {
-    body.innerHTML = `<div class="fr-gate">
-        ${icon('lock')}
-        <b>เข้าบัญชีก่อนถึงจะเพิ่มเพื่อนได้</b>
-        <p>เพื่อนผูกอยู่กับบัญชี ไม่ใช่กับเครื่อง เปลี่ยนเครื่องแล้วรายชื่อยังอยู่ครบ
-           และเพื่อนถึงจะค้นหาคุณเจอ</p>
-        <button class="fr-gate-go" onclick="loginFromFriends()">เข้าสู่ระบบ</button>
-      </div>`;
+    // 12 ต.ค. 69 · ทรงจอว่างเดียวกับทั้งแอป (emptyState) + ได้อะไรหลังเข้าบัญชีสามข้อ (ของที่มีจริงในจอนี้ทั้งหมด:
+    // ชื่อผู้ใช้ให้ค้นหา · ป้ายออนไลน์บอกวิชาที่เพื่อนจับเวลาอยู่ · กระดานอันดับแบบเฉพาะเพื่อน)
+    body.innerHTML = emptyState({ ic: 'users', title: 'เข้าบัญชีก่อนถึงจะเพิ่มเพื่อนได้',
+      sub: 'เพื่อนผูกอยู่กับบัญชี ไม่ใช่กับเครื่อง เปลี่ยนเครื่องแล้วรายชื่อยังอยู่ครบ',
+      extra: `<ul class="es-list">
+          <li>${icon('search')}<span>ตั้งชื่อผู้ใช้ ให้เพื่อนค้นหาคุณเจอ</span></li>
+          <li>${icon('zap')}<span>เห็นว่าเพื่อนคนไหนออนไลน์ และกำลังทำวิชาอะไร</span></li>
+          <li>${icon('trophy')}<span>แข่งกระดานอันดับเฉพาะกลุ่มเพื่อน</span></li>
+        </ul>`,
+      go: 'loginFromFriends()', goLabel: 'เข้าสู่ระบบ' });
     body.dataset.built = '';   // ล็อกอินเสร็จต้องวาดของจริงทับ ไม่ใช่คิดว่าโครงเดิมยังอยู่
     return;
   }
