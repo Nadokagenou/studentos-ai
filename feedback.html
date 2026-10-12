@@ -607,6 +607,8 @@ textarea.line-in { resize: none; min-height: 34px; overflow: hidden; }
       }, { onConflict: 'user_id,kind,day' });
       if (r.error) throw r.error;
       try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+      // บอกแอปว่าส่งแล้ว — แอปจ่าย 100 โทเคนทันทีที่กลับเข้าแอป ไม่ว่าจะกลับทางไหน (feedbackPayout)
+      if (MODE === 'main') { try { localStorage.setItem('studentos.alt.fbSent', user.id); } catch (e) {} }
       sentAt = new Date();
       showDone();
     } catch (e) {
