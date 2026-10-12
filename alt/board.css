@@ -525,3 +525,125 @@
 @media (prefers-reduced-motion: reduce) {
   .bd-sk .fr-av::before, .bd-sk-pill::after, .bd-sk-c::after, .bd-sk-l::after, .bd-me.bd-sk::after { animation: none; }
 }
+
+/* ============================================================
+   11 ต.ค. 69 · ยังไม่ได้เข้าบัญชี (boardGuestHTML ใน board.js)
+   ------------------------------------------------------------
+   เจ้าของ: "ลองตกแต่งหน้านี้ให้ดูหน่อย" — จอเดิม: การ์ดเล็กใบเดียว พื้นหลังสีสดว่างครึ่งจอ
+   และแผ่นชั้นหน้าจบกลางจอ ข้างใต้เป็นพื้นจอสีเข้มอีกครึ่ง
+   • ชั้นหลัง: ชื่อจอ + แท่นสามอันดับแบบโครง (รูปเส้นประ · เหรียญขาว · รางวัลจริงของแต่ละที่) ลอยขึ้นลงช้า ๆ
+   • ชั้นหน้า: การ์ดคร่อมขอบแผ่น · ถ้วยลอยบนขอบการ์ด · กติกาจริงสามข้อ · ปุ่มเข้าสู่ระบบมีแสงวาบ
+   ท่าเคลื่อนไหวทุกชิ้นใช้ transform/opacity (การ์ดจอทำ) · โหมดลื่นหยุดที่เฟรมแรก · ลดการเคลื่อนไหว = ไม่ขยับ
+   ทองไม่ได้ใช้ที่ไหนเลยบนจอนี้ — ยังไม่มีใครทำอะไรสำเร็จบนจอนี้ (กฎทองของโปรเจกต์)
+   ============================================================ */
+
+/* สีปลายแผ่น (--bd-s3) ต้องประกาศที่ตัวจอด้วย — พื้นครึ่งล่างของจอข้างบน (#scr-board · linear-gradient … var(--bd-s3))
+   อ่านตัวแปรนี้ แต่เดิมมันประกาศไว้ที่ .bd-sheet ซึ่งเป็นลูก ตัวแปรไม่ไหลขึ้นไปหาพ่อ → ค่าว่าง พื้นครึ่งล่างจึงโปร่งใส
+   (เจอตอนรวมกับงานอีกสาย 12 ต.ค. 69) · ค่าเดียวกับที่ .bd-sheet ใช้ทุกธีม */
+#scr-board { --bd-s3: color-mix(in srgb, var(--blue) 10%, var(--scr)); }
+:root:is([data-theme="light"], [data-theme="warm"], [data-theme="sweet"]) #scr-board { --bd-s3: color-mix(in srgb, var(--blue) 16%, var(--scr)); }
+
+/* ---------- ชั้นหลัง ---------- */
+.bd-guest-head { margin-top: 4px; text-align: center; color: #fff; }
+.bd-guest-head b { display: block; font-size: 22px; font-weight: 900; letter-spacing: -.02em; text-shadow: 0 2px 10px rgba(0, 0, 0, .25); }
+.bd-guest-head span { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 700; opacity: .82; }
+.bd-bg .bd-guest-head + .bd-podium { padding-top: 46px; }
+
+.bd-ghost .bd-pc-av .fr-av {
+  display: grid; place-items: center; color: rgba(255, 255, 255, .9);
+  background: rgba(255, 255, 255, .14); border: 1.5px dashed rgba(255, 255, 255, .6);
+  box-shadow: 0 10px 22px -10px rgba(0, 0, 0, .45);
+}
+.bd-ghost .bd-pc-av .fr-av svg { width: 52%; height: 52%; }
+.bd-bg .bd-ghost .bd-medal { background: rgba(255, 255, 255, .92); color: #3E4A5E; box-shadow: 0 0 0 2.5px rgba(255, 255, 255, .35); }
+.bd-ghost .bd-crown { color: rgba(255, 255, 255, .92); filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .3)); }
+.bd-ghost .bd-beam { --m: #fff; opacity: .26; }
+.bd-ghost.p1 .bd-beam { opacity: .36; }
+.bd-bg .bd-ghost .bd-pc-n, .bd-bg .bd-ghost.p1 .bd-pc-n {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(255, 255, 255, .16); border-color: rgba(255, 255, 255, .3); color: #fff; box-shadow: none;
+}
+.bd-bg .bd-ghost .bd-pc-n b, .bd-bg .bd-ghost.p1 .bd-pc-n b { color: #fff; font-size: 15px; }
+.bd-bg .bd-ghost.p1 .bd-pc-n b { font-size: 17px; }
+/* ลอยขึ้นลงคนละจังหวะ — แท่นที่นิ่งสนิทดูเป็นภาพตัวอย่างที่ค้าง ไม่ใช่ที่ว่างรอคน */
+.bd-ghost .bd-pc-av { animation: bd-float 3.6s ease-in-out infinite; }
+.bd-ghost.p1 .bd-pc-av { animation-delay: -1.2s; }
+.bd-ghost.p3 .bd-pc-av { animation-delay: -2.4s; }
+@keyframes bd-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+/* ---------- ชั้นหน้า ---------- */
+.bd-guest {
+  position: relative; margin-top: -26px; padding: 0 18px 18px; border-radius: 26px; text-align: center;
+  background: var(--card);
+  box-shadow: 0 18px 36px -18px rgba(15, 20, 45, .45), 0 0 0 1px var(--line);
+}
+/* ถ้วยลอยคร่อมขอบบนของการ์ด + วงคลื่นแผ่ออกเป็นจังหวะ */
+.bd-guest-ic {
+  position: relative; width: 58px; height: 58px; margin: 0 auto 12px; transform: translateY(-26px); margin-bottom: -14px;
+  display: grid; place-items: center; border-radius: 50%;
+  background: var(--blue); color: var(--on-accent, #fff);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, 0) 60%);
+  box-shadow: 0 0 0 5px var(--card), 0 14px 26px -10px color-mix(in srgb, var(--blue) 75%, transparent);
+}
+.bd-guest-ic svg { width: 28px; height: 28px; }
+.bd-guest-ic::after {
+  content: ''; position: absolute; inset: -5px; border-radius: 50%; pointer-events: none;
+  border: 2px solid color-mix(in srgb, var(--blue) 60%, transparent);
+  animation: bd-ping 2.8s cubic-bezier(.23, 1, .32, 1) infinite;
+}
+@keyframes bd-ping { 0% { transform: scale(1); opacity: .9; } 70%, 100% { transform: scale(1.5); opacity: 0; } }
+.bd-guest-t { margin: 0; font-size: 19px; font-weight: 900; line-height: 1.3; letter-spacing: -.01em; color: var(--ink); }
+.bd-guest-s { margin: 6px auto 0; max-width: 34ch; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+
+.bd-guest-list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 8px; text-align: left; }
+.bd-guest-list li {
+  display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 16px;
+  background: color-mix(in srgb, var(--blue) 8%, var(--card2));
+}
+.bd-guest-list li > svg { flex: none; width: 22px; height: 22px; color: var(--blue); }
+.bd-guest-list li > svg.tok { width: 22px; height: 22px; }
+.bd-guest-list span { display: flex; flex-direction: column; min-width: 0; font-size: 12px; font-weight: 600; line-height: 1.45; color: var(--faint); }
+.bd-guest-list b { font-size: 14px; font-weight: 800; color: var(--ink); }
+
+/* ปุ่มเข้าสู่ระบบ: แสงวาบพาดผ่านทุกราว 3.6 วิ (แบบ Shimmer Button ของ Magic UI แต่เลื่อนด้วย transform ล้วน) */
+.bd-guest-go {
+  position: relative; overflow: hidden; isolation: isolate;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; min-height: 50px; margin-top: 16px; border: none; border-radius: 999px; cursor: pointer;
+  background: var(--blue); color: var(--on-accent, #fff);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 60%);
+  font: inherit; font-size: 15.5px; font-weight: 800;
+  box-shadow: 0 14px 28px -14px color-mix(in srgb, var(--blue) 85%, transparent);
+  transition: transform .16s cubic-bezier(.23, 1, .32, 1);
+}
+.bd-guest-go svg { width: 18px; height: 18px; }
+.bd-guest-go:active { transform: scale(.97); }
+.bd-guest-go::after {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, .4) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: bd-sheen 3.6s cubic-bezier(.4, 0, .2, 1) 1.2s infinite;
+}
+@keyframes bd-sheen { 0% { transform: translateX(-120%); } 32%, 100% { transform: translateX(120%); } }
+.bd-guest-note { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 12px 0 0; font-size: 12px; font-weight: 600; color: var(--faint); }
+.bd-guest-note svg { width: 15px; height: 15px; flex: none; }
+
+/* กดเข้า: ชื่อจอ → แท่น → การ์ด (ใช้ .bd-in ชุดเดิม) แล้วกติกาไล่ขึ้นทีละแถว */
+.bd-anim .bd-guest-list li { animation: bd-up .5s cubic-bezier(.2, .9, .3, 1.05) both; animation-delay: calc(var(--i, 0) * 60ms + 200ms); }
+
+:root[data-lite] .bd-ghost .bd-pc-av, :root[data-lite] .bd-guest-ic::after, :root[data-lite] .bd-guest-go::after { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .bd-ghost .bd-pc-av, .bd-guest-ic::after, .bd-guest-go::after, .bd-anim .bd-guest-list li { animation: none; }
+}
+
+/* Astral Black (ขาว ดำ เทา ล้วน) — แสงชมพู/ส้มของพื้นหลังกระดานเป็นแสงเงินแทน
+   12 ต.ค. 69 · เจอตอนเจ้าของส่งภาพกระดานในธีมนี้มา (แสงชมพูมุมขวาบน · ส้มด้านล่าง หลุดจากกฎของธีม)
+   ตัวพื้นยังเป็น --grad-hero ของธีม · เหรียญโทเคนบนป้ายรางวัลยังเป็นสีของเหรียญ (โลโก้ของเงินในแอป) */
+:root[data-theme="astral"] .bd-bg {
+  background:
+    radial-gradient(70% 55% at 12% 8%, rgba(255, 255, 255, .16) 0%, transparent 60%),
+    radial-gradient(70% 60% at 94% 20%, rgba(255, 255, 255, .2) 0%, transparent 64%),
+    radial-gradient(90% 60% at 30% 100%, rgba(255, 255, 255, .09) 0%, transparent 66%),
+    var(--grad-hero);
+}
+

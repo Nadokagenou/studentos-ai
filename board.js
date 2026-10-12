@@ -178,11 +178,17 @@ function renderBoard() {
         isAll ? `${icon('users')}กระดานเพื่อน` : `${icon('trophy')}กระดานหลัก`}</button>` : ''}
     </div>`;
 
-  if (!sb || !currentUser || !d) {
-    const msg = !sb || !currentUser
-      ? `<b>เข้าบัญชีก่อนถึงจะขึ้นกระดานได้</b><button class="fr-gate-go" onclick="loginFromFriends()">เข้าสู่ระบบ</button>`
-      : err ? `<b>${err === 'soon' ? 'กระดานอันดับยังไม่เปิด' : 'โหลดไม่สำเร็จ'}</b>${
-          err === 'net' ? '<button class="fr-gate-go" onclick="loadBoard()">ลองใหม่</button>' : ''}` : '';
+  // ยังไม่ได้เข้าบัญชี — จอชวนเข้าร่วมของตัวเอง (boardGuestHTML) แทนการ์ดข้อความใบเดียว
+  if (!sb || !currentUser) {
+    body.classList.toggle('bd-anim', boardAnim);
+    boardAnim = false;
+    body.innerHTML = boardGuestHTML(top);
+    return;
+  }
+
+  if (!d) {
+    const msg = err ? `<b>${err === 'soon' ? 'กระดานอันดับยังไม่เปิด' : 'โหลดไม่สำเร็จ'}</b>${
+      err === 'net' ? '<button class="fr-gate-go" onclick="loadBoard()">ลองใหม่</button>' : ''}` : '';
     // ระหว่างรอ: โครงรูปทรงเดียวกับจอจริง + แสงวิ่ง — โครงเทานิ่ง ๆ อ่านเหมือนแอปค้าง ไม่ใช่กำลังโหลด
     const slot = p => `<div class="bd-pc p${p} bd-sk"><div class="bd-pc-av"><div class="fr-av"></div></div><i class="bd-sk-pill"></i></div>`;
     const skRow = '<div class="bd-row bd-sk"><i class="bd-sk-c"></i><i class="bd-sk-l"></i></div>';
@@ -208,6 +214,52 @@ function renderBoard() {
       ${boardMine(d, me, rows, isAll, step())}
       ${rest.length ? `<div class="bd-list">${boardList(rest, step)}</div>` : ''}
       ${d.hidden ? '' : `<button class="bd-leave" onclick="boardToggleHide()">ซ่อนชื่อฉันจากกระดาน</button>`}
+    </div>`;
+}
+
+// ---------- ยังไม่ได้เข้าบัญชี ----------
+// 11 ต.ค. 69 · เจ้าของ: "ลองตกแต่งหน้านี้ให้ดูหน่อย" — เดิมเป็นการ์ดใบเดียว "เข้าบัญชีก่อนถึงจะขึ้นกระดานได้"
+// พื้นหลังว่างครึ่งจอ และแผ่นล่างจบกลางจอ (ข้างใต้เป็นพื้นจอสีเข้ม)
+// ตอนนี้ชั้นหลังเป็นแท่นสามอันดับแบบโครง (ไม่มีชื่อ ไม่มีคะแนนปลอม — มีแค่รางวัลจริงของแต่ละที่)
+// ชั้นหน้าบอกกติกาจริงสามข้อแล้วค่อยปุ่มเข้าสู่ระบบ · ตัวเลขทุกตัวมาจากกติกาจริง (BOARD_PRIZE · ซีซันตามไตรมาส)
+// ซีซัน = ไตรมาสตามเวลาไทย ตรงกับ board() บนเซิร์ฟเวอร์ (date_trunc('quarter') · Asia/Bangkok)
+// คิดในเครื่องเฉพาะป้ายบนจอนี้ ตอนเข้าบัญชีแล้วใช้ค่าจากเซิร์ฟเวอร์เหมือนเดิม
+function boardSeasonNow() {
+  const th = new Date(Date.now() + 7 * 36e5);              // เวลาไทยอ่านผ่าน getUTC*
+  const y = th.getUTCFullYear(), m0 = Math.floor(th.getUTCMonth() / 3) * 3;
+  const end = Date.UTC(y, m0 + 3, 1) - 7 * 36e5;            // เที่ยงคืนไทยของวันแรกซีซันถัดไป
+  return {
+    label: `${BOARD_MON[m0]}–${BOARD_MON[m0 + 2]} ${String((y + 543) % 100).padStart(2, '0')}`,
+    left: Math.max(1, Math.ceil((end - Date.now()) / 864e5)),
+  };
+}
+
+function boardGuestHTML(top) {
+  const s = boardSeasonNow();
+  const ghost = place => `<div class="bd-pc p${place} bd-ghost">
+      <i class="bd-beam" aria-hidden="true"></i>
+      <div class="bd-pc-av">${place === 1 ? `<i class="bd-crown">${icon('crown')}</i>` : ''}<div class="fr-av">${icon('user')}</div><i class="bd-medal">${place}</i></div>
+      <div class="bd-pc-n">${coin(14)}<b>+${BOARD_PRIZE[place]}</b></div>
+    </div>`;
+  return `<div class="bd-bg">
+      <i class="bd-bg-arc" aria-hidden="true"></i><i class="bd-bg-spark" aria-hidden="true"></i>
+      ${top}
+      <div class="bd-guest-head bd-in" style="--i:0"><b>กระดานอันดับ</b><span>ใครทำงานเสร็จมากที่สุด</span></div>
+      <div class="bd-podium bd-in" style="--i:1" aria-hidden="true">${ghost(2)}${ghost(1)}${ghost(3)}</div>
+    </div>
+    <div class="bd-sheet">
+      <div class="bd-guest bd-in" style="--i:2">
+        <span class="bd-guest-ic">${icon('trophy')}</span>
+        <h2 class="bd-guest-t">ขึ้นกระดานกับเพื่อนทั้งแอป</h2>
+        <p class="bd-guest-s">งานที่ทำเสร็จจะนับเป็นคะแนนให้เอง</p>
+        <ul class="bd-guest-list">
+          <li style="--i:0">${icon('calendar')}<span><b>ซีซันนี้ ${s.label}</b>เหลืออีก ${s.left} วัน</span></li>
+          <li style="--i:1">${coin(22)}<span><b>ที่ 1–3 ได้ ${BOARD_PRIZE[1]} / ${BOARD_PRIZE[2]} / ${BOARD_PRIZE[3]} โทเคน</b>รับตอนจบซีซัน</span></li>
+          <li style="--i:2">${icon('users')}<span><b>มีกระดานเพื่อนแยกให้ด้วย</b>ดูว่าในกลุ่มเพื่อนใครนำอยู่</span></li>
+        </ul>
+        <button class="bd-guest-go" onclick="loginFromFriends()"><span>เข้าสู่ระบบ</span>${icon('chevron')}</button>
+        <p class="bd-guest-note">${icon('eye')}ไม่อยากให้ใครเห็น ซ่อนชื่อตัวเองได้ทุกเมื่อ</p>
+      </div>
     </div>`;
 }
 
