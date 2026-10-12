@@ -9231,8 +9231,10 @@ button.df-r:active { background: var(--surface); }
     .fd-on-ring, .an-tile, .ab-mark) {
   filter: grayscale(1);
 }
-/* รูปย่อของคนที่ไม่มีรูป (ตัวอักษรบนพื้นสีประจำตัว — สีมาจาก JS เป็น style ในบรรทัด) */
-:root[data-theme="astral"] :is(.ch-face, .dm-av, .ep-av, .fd-av, .fr-av, .ig-av, .nt-av, .tp-av):not(img):not(.src) {
+/* รูปย่อของคนที่ไม่มีรูป (ตัวอักษรบนพื้นสีประจำตัว — สีมาจาก JS เป็น style ในบรรทัด)
+   12 ต.ค. 69 · ยกเว้น .ch-face.ghost (ที่ว่างแทนรูปในฟองที่ไม่ใช่ฟองสุดท้ายของก้อน) — เดิมโดนทาเทาด้วย
+   ห้องแชทในธีมนี้จึงมีวงกลมเทาว่าง ๆ หน้าข้อความ (เจอตอนทำตัวอย่างห้องแชทแบบ IG) */
+:root[data-theme="astral"] :is(.ch-face, .dm-av, .ep-av, .fd-av, .fr-av, .ig-av, .nt-av, .tp-av):not(img):not(.src):not(.ghost) {
   background: #2B2B2B !important; color: #F0F0F0 !important;
 }
 /* บรรทัดบนหัวจอ (วัน · วันที่ · เวลาว่าง / ค้างกี่งาน) กับแท็บโหมด "วันนี้ / สัปดาห์ / รายการ"
@@ -9451,7 +9453,13 @@ body.focus-on .top-friends { visibility: hidden; }
 /* #4 · หน้าแรกต้องพอดี 375×812 — ไทล์ไม่ต้องเป็นสี่เหลี่ยมจัตุรัสบนจอแคบ (ประหยัด ~40px)
    และช่องไฟระหว่างบล็อกลดจาก 22 → 16 · จอกว้างกว่า 620 ใช้กติกาเดิมใน today.css */
 @media (max-width: 619px) {
-  .tg-ic { aspect-ratio: auto; height: 60px; border-radius: 17px; }
+  /* 12 ต.ค. 69 · เจ้าของ (ส่งภาพเทียบสองรูป): "ทำให้ปุ่มพวกนี้ไม่เปลี่ยนรูปไปเอง คงรูปเดิมแบบรูปสอง"
+     เดิมสูง 60 แต่กว้างเต็มช่อง (width 100% จาก today.css) — จอ 375 ได้ไทล์ 79×60 ทรงผืนผ้าแบน
+     และทรงเปลี่ยนตามความกว้างจอเอง (จอยิ่งกว้างยิ่งแบน · เกิน 620 กลับเป็นจัตุรัส)
+     ตอนนี้จัตุรัส 60×60 ทุกความกว้าง — สูงเท่าเดิมเป๊ะ หน้าแรกจึงไม่ยาวขึ้นแม้แต่พิกเซลเดียว
+     ต้องมี .tg-grid นำหน้า: today.css โหลดหลังไฟล์นี้ width: 100% ของมันจึงชนะตัวเลือกที่แรงเท่ากัน */
+  .tg-ic { height: 60px; border-radius: 17px; }
+  .tg-grid .tg-ic { width: 60px; aspect-ratio: 1; }
   .tg-ic svg { width: 21px; height: 21px; padding: 7px; }
   .tg-grid { gap: 10px 6px; }
   .tg-lb2 { min-height: 2.5em; }
@@ -11906,12 +11914,10 @@ button.df-r:active .df-x { transform: scale(.985); }
   font-weight: 700; box-shadow: 0 0 0 1px color-mix(in srgb, var(--fill) 14%, transparent);
 }
 #chatBody .ch-img { border-radius: 18px; box-shadow: 0 8px 20px -12px rgba(0,0,0,.4); }
-/* ฟองใหม่ (ข้อความล่าสุด) เด้งเข้ามา */
-#chatBody .ch-msg.last:last-child { animation: chm-in .35s cubic-bezier(.3, 1.3, .5, 1); }
-@keyframes chm-in { from { opacity: 0; transform: translateY(8px) scale(.97); } }
+/* ฟองใหม่เด้งเข้ามา — 12 ต.ค. 69 ย้ายไปเป็นคลาส .in-me/.in-them (ท้ายไฟล์ · "ห้องแชทแบบ IG")
+   เดิมผูกกับ :last-child ซึ่งเล่นซ้ำทุกครั้งที่วาดรายการใหม่ (รูปเพิ่งได้ลิงก์ · มีคนพิมพ์) ทั้งที่ไม่ใช่ข้อความใหม่ */
 @media (prefers-reduced-motion: reduce) {
   #chatBody .ch-field { animation: none; }
-  #chatBody .ch-msg.last:last-child { animation: none; }
 }
 :root[data-theme="astral"] #chatBody .ch-field { filter: grayscale(1); }
 
@@ -13143,6 +13149,24 @@ html { -webkit-tap-highlight-color: transparent; }
 :root[data-theme="genesis"] { --id-title-ink: linear-gradient(100deg, #4C57C9, #6F7FE8 50%, #38B6D0); }
 :root[data-theme="ocean"]   { --id-title-ink: linear-gradient(100deg, #0A5170, #0E8FB8); }
 :root[data-theme="earth2"]  { --id-title-ink: linear-gradient(100deg, #1E5B2E, #4F9A3A); }
+/* 12 ต.ค. 69 · เจ้าของส่งภาพ "วันนี" "งานทังหมด" "สัปดาห์นี" — วรรณยุกต์กับสระบนหายไป ("มันหายไปแก้ด้วย")
+   ต้นเหตุ: ไล่สีแบบตัดตามตัวหนังสือ (background-clip: text + ตัวอักษรโปร่ง) วาดสีได้แค่ในกรอบของหัวข้อ
+   หัวข้อสูงบรรทัด 1.2–1.24 · ไม้โท/ไม้หันอากาศที่ซ้อนกัน (ทั้ง · นี้) ยื่นพ้นขอบบนของกรอบ → ตรงนั้นไม่มีสี = มองไม่เห็น
+   แก้: ขยายกรอบขึ้น-ลง .3em ด้วย padding · ยกกลับขึ้น .3em ด้วย position: relative · คืนที่ด้วย margin-bottom −.6em
+   ไม่แตะ margin-top เลย — รอบแรกหักคืนด้วย margin-top ติดลบ แล้วหัวข้อเลื่อนลง 4px ในจอที่มีป้ายเล็กข้างบน
+   (margin 5px ของหัวข้อ "ยุบรวม" กับ 4px ของป้ายเป็น 5 · ค่าติดลบยุบรวมแบบบวกลบกัน ได้ไม่เท่าเดิม) — วัดเจอตอนเทสต์
+   ด้านล่าง: margin ติดลบรวมกับ margin บวกของของถัดไปแบบบวกกันพอดี ของข้างล่างจึงอยู่ที่เดิม
+   ธีมขาวดำ (หัวข้อโครเมียม ④ ข้างล่าง) ใช้เทคนิคเดียวกัน จึงอยู่ในรายชื่อนี้ด้วย */
+:root:is([data-theme=sweet],[data-theme=galaxy],[data-theme=magic],[data-theme=genesis],[data-theme=ocean],[data-theme=earth2],[data-theme=astral])
+  .phone :is(.page-title, .fd-title) { padding-block: .3em; position: relative; top: -.3em; margin-bottom: -.6em; }
+/* หัวจองานตั้ง margin: 0 ด้วย id (แรงกว่ากฎข้างบน) — ต้องเขียนซ้ำด้วยความแรงเท่ากัน ไม่งั้นแถวหัวจอสูงขึ้น .6em */
+:root:is([data-theme=sweet],[data-theme=galaxy],[data-theme=magic],[data-theme=genesis],[data-theme=ocean],[data-theme=earth2],[data-theme=astral])
+  .phone #scr-tasks .tk-head-row .page-title { margin-bottom: -.6em; }
+/* ตัวหนังสือไล่สีตัวอื่นที่เป็นไทยและบรรทัดชิด — บั๊กเดียวกัน ไล่ดูตอนแก้หัวข้อจอ (ทุกธีม ไม่ใช่เฉพาะชุดข้างบน)
+   หัวจอสุ่มสกิน "แตะสำรับเพื่อเปิด" (.gc-title · ไล่สีทองทุกธีม) · หัวโพสต์ในโปรไฟล์ (.twg-head · margin ล่างเดิม 14px)
+   ชื่อธีมตัวพิเศษในหน้าเลือกธีม (.bg-nm.fancy) */
+.phone :is(.gc-title, .bg-nm.fancy) { padding-block: .3em; position: relative; top: -.3em; margin-bottom: -.6em; }
+.phone .twg-head { padding-block: .3em; position: relative; top: -.3em; margin-bottom: calc(14px - .6em); }
 /* แสงบนตัวหนังสือ — ใช้กับคำทักทายหน้าแรกได้ด้วย (text-shadow ตามไปกับทุกคำ) */
 :root[data-theme="meta"] .phone :is(.page-title, .fd-title, .th-greet) { text-shadow: 0 0 14px rgba(56, 232, 255, .55); letter-spacing: .01em; }
 :root[data-theme="glitch"] .phone :is(.page-title, .fd-title, .th-greet) { text-shadow: 1.5px 0 0 rgba(255, 45, 111, .8), -1.5px 0 0 rgba(45, 240, 255, .8); }
@@ -13400,3 +13424,312 @@ body[data-godir="lat"]  { --id-dx: 0px; }
 }
 :root[data-theme="astral"] .phone .tg-t:active .tg-ic { transform: scale(.92) !important; }
 
+/* ============================================================
+   ห้องแชทแบบ IG แต่เป็นของเราเอง (12 ต.ค. 69 · คู่กับ social.js หัวข้อเดียวกัน)
+   ------------------------------------------------------------
+   เจ้าของ (ส่งภาพห้องแชทในธีมดำ): "แก้ไขในหน้านี้หน่อยให้ดูแบบแชทคล้ายไอจี มีอนิเมชันคล้าย ๆ กันแต่อย่าเหมือนกัน"
+   • รายการ: ไม่มีแถบเลื่อน (ภาพที่ส่งมามีแถบเลื่อนเทาพร้อมลูกศรกินขอบขวา) · ขอบบนจางใต้หัวจอแทนการตัดขาด
+   • ฟองของเรา: ไล่สีตามตำแหน่งบนจอ — บนสุด = สีเน้นหมุนเฉด 48° · ล่างสุด = สีเน้นของธีม (social.js · chatPaint)
+     IG ใช้ม่วง→น้ำเงินตายตัว ของเราเปลี่ยนตามธีม (น้ำเงิน→ม่วง · เขียว→เขียวอมฟ้า · ธีมขาวดำ = ขาว→เงิน)
+   • อิโมจิล้วนไม่เกินสามตัว = ตัวใหญ่ไม่มีฟอง
+   • ท่าเข้า: ของเขาโผล่จากฝั่งรูป ของเราลอยออกจากช่องพิมพ์ (JS) · สปริงเกินนิดเดียว (.2, 1.2, .32, 1)
+   • กดค้าง: ฟองยุบ 4% ระหว่างรอ → จอหรี่ ฟองยกขึ้น เมนูเด้งออกจากมุมของฟอง
+   • กำลังพิมพ์: จุดสามจุดเป็นคลื่นสีเน้นของธีม · ข้อความใหม่ตอนอ่านของเก่า = ป้ายลอยเหนือช่องพิมพ์
+   โหมดลื่น: ไม่เบลอ ไม่มีขอบจาง ไม่ไล่สีตามตำแหน่ง · ลดการเคลื่อนไหว: จางเข้าอย่างเดียว
+   ============================================================ */
+#chatBody { position: relative; }
+.ch-reqs { display: contents; }
+#chatBody .ch-list {
+  position: relative; scrollbar-width: none; overscroll-behavior: contain;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 14px);
+}
+#chatBody .ch-list::-webkit-scrollbar { display: none; }
+
+/* ฟองกดค้างได้ — ปิดเมนูเลือกข้อความของเครื่อง (เมนูของเรามีปุ่มคัดลอกให้แทน) */
+#chatBody :is(.ch-bub, .ch-img) {
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation;
+  transition: transform .2s cubic-bezier(.23, 1, .32, 1), opacity .2s ease;
+}
+#chatBody :is(.ch-bub, .ch-img).pressing { transform: scale(.96); }
+#chatBody .ch-bub:focus-visible { outline: 2px solid var(--fill); outline-offset: 2px; }
+
+@supports (color: oklch(from red l c h)) {
+  #chatBody { --chg-top: oklch(from var(--fill) calc(l + .05) c calc(h + 48)); --chg-bot: var(--fill); }
+  #chatBody .ch-msg.me .ch-bub:not(.ch-emoji) {
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--chg-top), var(--chg-bot) var(--g0, 70%)),
+      color-mix(in oklab, var(--chg-top), var(--chg-bot) var(--g1, 82%)));
+  }
+  /* ธีมขาวดำ: สีเน้นเป็นขาว หมุนเฉดไม่มีผล — ไล่ขาว → เงินแทน */
+  :root[data-theme="astral"] #chatBody { --chg-top: #FFFFFF; --chg-bot: #BDBDBD; }
+}
+
+#chatBody .ch-bub.ch-emoji {
+  background: none !important; box-shadow: none !important; border: 0;
+  padding: 0 2px; font-size: 38px; line-height: 1.15; letter-spacing: 2px;
+}
+#chatBody .ch-msg.sending :is(.ch-bub, .ch-img) { opacity: .62; }
+
+/* ---------- ท่าเข้า ---------- */
+#chatBody .ch-msg.me .ch-col { transform-origin: 100% 100%; }
+#chatBody .ch-msg:not(.me) .ch-col { transform-origin: 0 100%; }
+#chatBody .ch-msg.in-them .ch-col { animation: chm-them .46s cubic-bezier(.2, 1.2, .32, 1) both; }
+#chatBody .ch-msg.in-them > .ch-face:not(.ghost) { animation: chm-face .42s cubic-bezier(.2, 1.3, .32, 1) both; }
+#chatBody .ch-msg.in-me .ch-col { animation: chm-me .42s cubic-bezier(.2, 1.2, .32, 1) both; }
+@keyframes chm-them { from { opacity: 0; transform: translate3d(-14px, 10px, 0) scale(.88); } }
+@keyframes chm-me { from { opacity: 0; transform: translate3d(14px, 10px, 0) scale(.88); } }
+@keyframes chm-face { from { opacity: 0; transform: scale(.4); } }
+
+/* ---------- อีกฝ่ายกำลังพิมพ์ ---------- */
+#chatBody .ch-typing .ch-bub { display: inline-flex; align-items: center; gap: 4px; padding: 13px 15px; color: var(--fill); }
+#chatBody .ch-typing .ch-bub i {
+  width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .35;
+  animation: chm-dot 1.1s ease-in-out infinite;
+}
+#chatBody .ch-typing .ch-bub i:nth-child(2) { animation-delay: .14s; }
+#chatBody .ch-typing .ch-bub i:nth-child(3) { animation-delay: .28s; }
+@keyframes chm-dot { 0%, 60%, 100% { transform: translateY(0); opacity: .35; } 30% { transform: translateY(-4px); opacity: 1; } }
+#chatBody .ch-typing.out .ch-col { animation: chm-out .2s ease forwards; }
+@keyframes chm-out { to { opacity: 0; transform: scale(.8); } }
+
+/* ---------- ป้าย "ข้อความใหม่" ---------- */
+#chatBody .ch-bar { position: relative; }
+#chatBody .ch-jump {
+  position: absolute; left: 50%; bottom: calc(100% + 8px); z-index: 2;
+  display: inline-flex; align-items: center; gap: 4px; padding: 7px 11px 7px 14px;
+  border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--fill); color: var(--on-fill, #fff); font: inherit; font-size: 12.5px; font-weight: 800;
+  box-shadow: 0 8px 20px -8px var(--fill);
+  transform: translateX(-50%); animation: chm-jump .34s cubic-bezier(.2, 1.3, .32, 1) both;
+}
+#chatBody .ch-jump svg { width: 14px; height: 14px; transform: rotate(90deg); }
+@keyframes chm-jump { from { opacity: 0; transform: translate(-50%, 8px) scale(.85); } }
+
+/* ---------- เมนูกดค้าง ---------- */
+#chatBody .ch-hold { position: absolute; inset: 0; z-index: 30; }
+#chatBody .ch-hold-dim {
+  position: absolute; inset: 0; opacity: 0; transition: opacity .2s ease;
+  background: color-mix(in srgb, #000 40%, transparent);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+#chatBody .ch-hold.on .ch-hold-dim { opacity: 1; }
+#chatBody .ch-hold-row { position: absolute; margin: 0; pointer-events: none; }
+#chatBody .ch-hold-row .ch-col { max-width: none; width: 100%; }
+#chatBody .ch-hold-row :is(.ch-bub, .ch-img) { transition: transform .34s cubic-bezier(.2, 1.3, .32, 1), box-shadow .34s ease; }
+#chatBody .ch-hold.on .ch-hold-row :is(.ch-bub, .ch-img) { transform: scale(1.04); box-shadow: 0 18px 36px -14px rgba(0, 0, 0, .6); }
+#chatBody .ch-hold-menu {
+  position: absolute; min-width: 196px; padding: 6px; border-radius: 18px;
+  background: color-mix(in srgb, var(--card) 94%, transparent); color: var(--ink);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 9%, transparent), 0 18px 40px -16px rgba(0, 0, 0, .55);
+  -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%);
+  opacity: 0; transform: scale(.82);
+  transition: opacity .16s ease, transform .32s cubic-bezier(.2, 1.25, .32, 1);
+}
+#chatBody .ch-hold.on .ch-hold-menu { opacity: 1; transform: none; }
+#chatBody .ch-hold-when {
+  margin: 5px 10px 5px; font-size: 11.5px; font-weight: 700;
+  color: color-mix(in srgb, var(--ink) 55%, transparent); font-variant-numeric: tabular-nums;
+}
+#chatBody .ch-hold-menu button {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%;
+  padding: 11px 12px; border: 0; border-radius: 12px; background: none; cursor: pointer;
+  color: var(--ink); font: inherit; font-size: 14.5px; font-weight: 700; text-align: left;
+}
+#chatBody .ch-hold-menu button svg { width: 18px; height: 18px; flex: none; }
+#chatBody .ch-hold-menu button:is(:hover, :focus-visible) { background: color-mix(in srgb, var(--ink) 8%, transparent); outline: none; }
+#chatBody .ch-hold-menu button.bad { color: #EF4444; }
+
+:root[data-lite] #chatBody .ch-list { -webkit-mask-image: none; mask-image: none; }
+:root[data-lite] #chatBody :is(.ch-hold-dim, .ch-hold-menu) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-lite] #chatBody .ch-hold-menu { background: var(--card); }
+:root[data-lite] #chatBody .ch-typing .ch-bub i { animation-play-state: paused; opacity: .7; }
+@media (prefers-reduced-motion: reduce) {
+  #chatBody .ch-msg:is(.in-them, .in-me) .ch-col, #chatBody .ch-jump { animation: boot-fade .2s ease both; }
+  #chatBody .ch-msg.in-them > .ch-face { animation: none; }
+  #chatBody .ch-typing .ch-bub i { animation: none; opacity: .7; }
+  #chatBody .ch-hold-menu, #chatBody .ch-hold.on .ch-hold-row :is(.ch-bub, .ch-img) { transform: none; }
+}
+
+/* ============================================================
+   เมนูข้อความแบบ IG (ต่อจาก "ห้องแชทแบบ IG" ข้างบน · คู่กับ social.js chatHoldOpen)
+   ------------------------------------------------------------
+   เจ้าของส่งภาพแถบ หน้ายิ้ม / ตอบกลับ / ⋮ กับเมนู Edit · Forward · Copy · Translate · Pin · Unsend แล้วบอก "ใช้ระบบนี้ด้วย"
+   • คอม: เอาเมาส์ชี้ฟอง = ปุ่มสามปุ่มโผล่ข้างฟอง (ฝั่งตรงข้ามกับที่ฟองชิด) · มือถือ: กดค้าง
+   • เมนูเดิม (.ch-hold-menu) ได้ไอคอนเส้นตามแบบ IG · แถบปฏิกิริยาลอยเหนือฟอง
+   • ตอบกลับ: ข้อความต้นทางเป็นฟองจางเหนือฟองตอบ · แถบ "ตอบกลับ…/กำลังแก้ไข…" เหนือช่องพิมพ์
+   • ปักหมุด: แถบบนสุดของห้อง แตะแล้วเลื่อนไปหา · ปฏิกิริยา: เม็ดอิโมจิเกาะมุมล่างของฟอง
+   ============================================================ */
+/* ---------- ปุ่มข้างฟอง (เมาส์เท่านั้น) ---------- */
+#chatBody .ch-tools { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  #chatBody .ch-tools {
+    display: inline-flex; align-self: center; gap: 2px; flex: none;
+    opacity: 0; transition: opacity .15s ease;
+  }
+  #chatBody .ch-msg:hover > .ch-tools, #chatBody .ch-tools:focus-within { opacity: 1; }
+  #chatBody .ch-tools button {
+    width: 30px; height: 30px; display: grid; place-items: center; padding: 0;
+    border: 0; border-radius: 50%; background: none; cursor: pointer;
+    color: color-mix(in srgb, var(--ink) 55%, transparent);
+    transition: background .15s ease, color .15s ease, transform .15s ease;
+  }
+  #chatBody .ch-tools button svg { width: 18px; height: 18px; }
+  #chatBody .ch-tools button:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 9%, transparent); }
+  #chatBody .ch-tools button:active { transform: scale(.9); }
+}
+
+/* ---------- แถบปฏิกิริยาเหนือฟอง ---------- */
+#chatBody .ch-hold-rx {
+  position: absolute; display: flex; gap: 2px; padding: 5px 6px; border-radius: 999px;
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 9%, transparent), 0 14px 32px -14px rgba(0, 0, 0, .55);
+  -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%);
+  opacity: 0; transform: scale(.7);
+  transition: opacity .16s ease, transform .34s cubic-bezier(.2, 1.3, .32, 1);
+}
+#chatBody .ch-hold.on .ch-hold-rx { opacity: 1; transform: none; }
+#chatBody .ch-hold-rx button {
+  width: 40px; height: 40px; border: 0; border-radius: 50%; background: none; cursor: pointer;
+  font-size: 24px; line-height: 1; display: grid; place-items: center; padding: 0;
+  transition: transform .2s cubic-bezier(.2, 1.4, .32, 1), background .15s ease;
+}
+#chatBody .ch-hold-rx button:hover, #chatBody .ch-hold-rx button:focus-visible { transform: scale(1.22) translateY(-3px); outline: none; }
+#chatBody .ch-hold-rx button.on { background: color-mix(in srgb, var(--ink) 12%, transparent); }
+/* แต่ละอิโมจิเด้งเข้าไล่กัน (ตามท่า stagger ของ React Bits — 25ms ต่อตัว) */
+#chatBody .ch-hold.on .ch-hold-rx button { animation: chm-rx .36s cubic-bezier(.2, 1.4, .32, 1) both; }
+#chatBody .ch-hold.on .ch-hold-rx button:nth-child(2) { animation-delay: .025s; }
+#chatBody .ch-hold.on .ch-hold-rx button:nth-child(3) { animation-delay: .05s; }
+#chatBody .ch-hold.on .ch-hold-rx button:nth-child(4) { animation-delay: .075s; }
+#chatBody .ch-hold.on .ch-hold-rx button:nth-child(5) { animation-delay: .1s; }
+#chatBody .ch-hold.on .ch-hold-rx button:nth-child(6) { animation-delay: .125s; }
+@keyframes chm-rx { from { opacity: 0; transform: translateY(8px) scale(.5); } }
+
+/* ---------- ฟองที่เป็นการตอบกลับ ---------- */
+#chatBody .ch-quote {
+  display: flex; flex-direction: column; gap: 2px; max-width: 100%; margin: 0 0 -10px; padding: 0;
+  border: 0; background: none; font: inherit; color: inherit; text-align: inherit; cursor: pointer;
+}
+#chatBody .ch-msg.me .ch-quote { align-items: flex-end; }
+#chatBody .ch-quote:disabled { cursor: default; }
+#chatBody .ch-quote i {
+  display: inline-flex; align-items: center; gap: 4px; padding: 0 6px;
+  font-style: normal; font-size: 11px; font-weight: 700; color: color-mix(in srgb, var(--ink) 58%, transparent);
+}
+#chatBody .ch-quote i svg { width: 12px; height: 12px; }
+#chatBody .ch-quote span {
+  max-width: 100%; padding: 8px 13px 18px; border-radius: 16px;
+  background: color-mix(in srgb, var(--ink) 9%, transparent); color: color-mix(in srgb, var(--ink) 70%, transparent);
+  font-size: 13px; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+#chatBody .ch-quote + .ch-edited + .ch-bub, #chatBody .ch-quote + .ch-bub { position: relative; }
+#chatBody .ch-edited {
+  padding: 0 6px 2px; font-size: 11px; font-weight: 600; color: color-mix(in srgb, var(--ink) 50%, transparent);
+}
+#chatBody .ch-msg.flash .ch-col > :is(.ch-bub, .ch-img) { animation: chm-flash 1.4s ease; }
+@keyframes chm-flash { 0%, 35% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--fill) 70%, transparent); } }
+
+/* ---------- คำแปล ---------- */
+#chatBody .ch-bub.tr { font-style: normal; }
+#chatBody .ch-trsw {
+  margin: 3px 4px 0; padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 11px; font-weight: 700; color: var(--fill);
+}
+
+/* ---------- เม็ดปฏิกิริยาใต้ฟอง ---------- */
+#chatBody .ch-rx {
+  position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 3px;
+  margin: -9px 8px 0; padding: 2px 7px; border-radius: 999px; cursor: pointer;
+  border: 2px solid var(--bg, #000); background: var(--card2, var(--card)); color: var(--ink);
+  font: inherit; font-size: 14px; line-height: 1.3;
+  animation: chm-rxin .32s cubic-bezier(.2, 1.4, .32, 1) both;
+}
+#chatBody .ch-rx b { font-size: 11px; font-weight: 800; }
+#chatBody .ch-rx.mine { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--fill) 70%, transparent); }
+@keyframes chm-rxin { from { transform: scale(.3); opacity: 0; } }
+/* แตะสองที = หัวใจพองขึ้นกลางฟองแล้วจางไป */
+#chatBody .ch-col { position: relative; }
+#chatBody .ch-burst {
+  position: absolute; left: 50%; top: 50%; z-index: 3; pointer-events: none;
+  font-size: 44px; line-height: 1; transform: translate(-50%, -50%);
+  animation: chm-burst .75s cubic-bezier(.2, 1.3, .32, 1) forwards;
+}
+@keyframes chm-burst {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.2); }
+  35% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  60% { transform: translate(-50%, -50%) scale(.95); }
+  100% { opacity: 0; transform: translate(-50%, -80%) scale(1); }
+}
+
+/* ---------- แถบข้อความที่ปักหมุด ---------- */
+#chatBody .ch-pinbar {
+  display: flex; align-items: center; gap: 10px; margin: 0 12px 4px; padding: 8px 12px;
+  border: 0; border-radius: 14px; cursor: pointer; text-align: left; flex: none;
+  background: color-mix(in srgb, var(--card) 88%, transparent); color: var(--ink); font: inherit;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+}
+#chatBody .ch-pinbar > svg { width: 16px; height: 16px; flex: none; color: var(--fill); }
+#chatBody .ch-pinbar span { display: grid; min-width: 0; }
+#chatBody .ch-pinbar b { font-size: 11.5px; font-weight: 800; color: var(--fill); }
+#chatBody .ch-pinbar i { font-style: normal; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- แถบ ตอบกลับ / กำลังแก้ไข เหนือช่องพิมพ์ ---------- */
+#chatBody .ch-ctx {
+  display: flex; align-items: center; gap: 10px; flex: none; margin: 0 12px; padding: 8px 6px 8px 12px;
+  border-radius: 14px 14px 0 0; background: color-mix(in srgb, var(--card) 90%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent);
+  animation: chm-ctx .26s cubic-bezier(.2, 1.2, .32, 1) both;
+}
+#chatBody .ch-ctx[hidden] { display: none; }
+@keyframes chm-ctx { from { opacity: 0; transform: translateY(10px); } }
+#chatBody .ch-ctx-ic { color: var(--fill); display: grid; }
+#chatBody .ch-ctx-ic svg { width: 18px; height: 18px; }
+#chatBody .ch-ctx-tx { display: grid; min-width: 0; flex: 1; }
+#chatBody .ch-ctx-tx b { font-size: 12px; font-weight: 800; color: var(--ink); }
+#chatBody .ch-ctx-tx i {
+  font-style: normal; font-size: 12.5px; color: color-mix(in srgb, var(--ink) 60%, transparent);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#chatBody .ch-ctx-x {
+  width: 32px; height: 32px; flex: none; display: grid; place-items: center; padding: 0;
+  border: 0; border-radius: 50%; background: none; cursor: pointer; color: color-mix(in srgb, var(--ink) 60%, transparent);
+}
+#chatBody .ch-ctx-x svg { width: 16px; height: 16px; }
+#chatBody .ch-ctx-x:hover { background: color-mix(in srgb, var(--ink) 9%, transparent); }
+
+/* ---------- ส่งต่อ ---------- */
+#chatBody .ch-fwd { position: absolute; inset: 0; z-index: 31; }
+#chatBody .ch-fwd.on .ch-hold-dim { opacity: 1; }
+#chatBody .ch-fwd-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; max-height: 72%; display: flex; flex-direction: column;
+  padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px)); border-radius: 22px 22px 0 0;
+  background: var(--card); color: var(--ink); box-shadow: 0 -18px 40px -20px rgba(0, 0, 0, .5);
+  transform: translateY(100%); transition: transform .34s cubic-bezier(.2, 1, .32, 1);
+}
+#chatBody .ch-fwd.on .ch-fwd-sheet { transform: none; }
+#chatBody .ch-fwd-head { display: flex; align-items: center; justify-content: space-between; }
+#chatBody .ch-fwd-head b { font-size: 16px; font-weight: 800; }
+#chatBody .ch-fwd-msg {
+  margin: 8px 0 10px; padding: 9px 12px; border-radius: 12px; font-size: 13px; line-height: 1.45;
+  background: color-mix(in srgb, var(--ink) 7%, transparent); color: color-mix(in srgb, var(--ink) 75%, transparent);
+}
+#chatBody .ch-fwd-list { overflow-y: auto; display: grid; gap: 2px; }
+#chatBody .ch-fwd-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; }
+#chatBody .ch-fwd-av {
+  width: 40px; height: 40px; flex: none; border-radius: 50%; object-fit: cover;
+  display: grid; place-items: center; font-size: 15px; font-weight: 700; background: var(--card2); color: var(--muted);
+}
+#chatBody .ch-fwd-nm { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#chatBody .ch-fwd-go {
+  padding: 7px 16px; border: 0; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 800;
+  background: var(--fill); color: var(--on-fill, #fff); transition: background .2s ease, color .2s ease;
+}
+#chatBody .ch-fwd-go.done, #chatBody .ch-fwd-go:disabled { background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--ink); cursor: default; }
+#chatBody .ch-fwd-none { margin: 16px 0; text-align: center; font-size: 13px; color: var(--muted); }
+
+:root[data-lite] #chatBody :is(.ch-hold-rx, .ch-pinbar) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+@media (prefers-reduced-motion: reduce) {
+  #chatBody .ch-hold-rx, #chatBody .ch-hold.on .ch-hold-rx button, #chatBody .ch-rx, #chatBody .ch-ctx { animation: none; transform: none; }
+  #chatBody .ch-fwd-sheet { transition: none; }
+}

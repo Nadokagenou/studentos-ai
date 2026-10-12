@@ -639,6 +639,19 @@ async function doPublish() {
 let chatThread = null;     // { id, name, subject }
 let chatMsgs = [];
 let chatSub = null;        // ช่องรับข้อความสด — ต้องปิดทุกครั้งที่ออกจากจอ
+// 12 ต.ค. 69 · ห้องแชทแบบ IG (ดูหัวข้อ "ห้องแชทแบบ IG แต่เป็นของเราเอง" ท้ายส่วนนี้) — ของที่ต้องจำข้ามการวาดแต่ละรอบ
+let chatSeen = new Set();  // id ที่วาดไปแล้ว — ฟองที่ไม่อยู่ในนี้คือของใหม่ ได้ท่าเข้า
+let chatPrimed = false;    // ยังโหลดประวัติไม่เสร็จ = ฟองชุดแรกไม่มีท่าเข้า (ไม่งั้นทั้งห้องเด้งพร้อมกันตอนเปิด)
+let chatFly = new Set();   // ฟองที่เราเพิ่งกดส่ง — ลอยออกจากช่องพิมพ์ด้วย JS (chatFlyIn) แทนท่าเข้าปกติ
+let chatTypingUntil = 0;   // อีกฝ่ายกำลังพิมพ์อยู่จนถึงเวลานี้ (ms)
+let chatTypingSent = 0;    // เราส่งสัญญาณ "กำลังพิมพ์" ไปครั้งล่าสุดเมื่อไหร่
+// 12 ต.ค. 69 · เมนูข้อความแบบ IG (ตอบกลับ · แก้ไข · ส่งต่อ · แปล · ปักหมุด · ปฏิกิริยา) — ดู chatHoldOpen
+let chatV2 = false;          // ฐานข้อมูลรัน migration dm_actions แล้ว (มี reply_to/edited_at/pinned_at + dm_reactions)
+let chatReacts = new Map();  // id ข้อความ → Map(uid → อิโมจิ)
+let chatReply = null;        // ข้อความที่กำลังตอบกลับ
+let chatEdit = null;         // ข้อความที่กำลังแก้
+let chatEditDraft = '';      // ที่พิมพ์ค้างไว้ก่อนกดแก้ — ยกเลิกแก้แล้วคืนให้
+const chatTr = new Map();    // id ข้อความ → { text, show } คำแปลที่ขอไว้ (อยู่ในหน่วยความจำ ไม่ได้เก็บลงเครื่อง)
 
 async function pokeMate(id, topic, name) {
   if (!sb || !currentUser) return;
@@ -666,7 +679,10 @@ async function pokeMate(id, topic, name) {
 
 async function openChat() {
   if (!chatThread) return;
-  renderChat();
+  chatSeen = new Set(); chatPrimed = false; chatFly.clear(); chatTypingUntil = 0;
+  chatReply = null; chatEdit = null; chatEditDraft = ''; chatTr.clear(); chatReacts = new Map();
+  chatHoldClose();
+  renderChat({ full: true });
   // 1C40 · เปิดห้องแล้ว = เห็นข้อความแล้ว · จุดแดงในจอการแจ้งเตือนต้องดับตาม
   if (typeof notifSeenDm === 'function') notifSeenDm(chatThread.id);
 
@@ -693,35 +709,62 @@ async function openChat() {
       chatThread.name = (typeof personName === 'function' ? personName(u) : u.display_name)
         || chatThread.name;
       chatThread.avatar = u.avatar || null;
+      chatThread.handle = u.handle || chatThread.handle || '';
       renderChat();
     }
   }
 
-  const { data, error } = await sb.from('dm_messages')
-    .select('id, sender, body, image, created_at')
+  // 12 ต.ค. 69 · สองเรื่อง:
+  // • เดิมเรียงเก่า→ใหม่แล้วตัด 200 = ได้ 200 ข้อความ "แรกสุด" ของห้อง · ห้องที่คุยเกิน 200 จึงไม่เห็นข้อความล่าสุดเลย
+  //   ตอนนี้ขอใหม่→เก่า 200 ข้อความ แล้วกลับลำดับเอง
+  // • ลองอ่านคอลัมน์ของ migration dm_actions ก่อน — ยังไม่ได้รัน = อ่านไม่ผ่าน → ถอยไปชุดเดิม
+  //   แล้วซ่อน ตอบกลับ / แก้ไข / ปักหมุด / ปฏิกิริยา (chatV2 = false) แชทเดิมทำงานต่อได้ครบ
+  const page = cols => sb.from('dm_messages').select(cols)
     .eq('thread', chatThread.id)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(200);
-  if (!error) chatMsgs = data || [];
-  renderChat();
+  let q = await page('id, sender, body, image, created_at, reply_to, edited_at, pinned_at');
+  chatV2 = !q.error;
+  if (q.error) q = await page('id, sender, body, image, created_at');
+  if (!q.error) chatMsgs = (q.data || []).reverse();
+  if (chatV2) {
+    const r = await sb.from('dm_reactions').select('msg, uid, emoji').eq('thread', chatThread.id);
+    if (r.error) chatV2 = false;
+    else (r.data || []).forEach(chatReactSet);
+  }
+  renderChat({ bottom: true });
+  chatPrimed = true;   // ประวัติวาดครบแล้ว — ฟองที่มาหลังจากนี้คือของใหม่จริง ได้ท่าเข้า
+  chatHoldTip();
 
   // ข้อความใหม่เด้งเข้าเอง — ไม่ต้องปัดลงรีเฟรช
   closeChat();
-  chatSub = sb.channel('dm:' + chatThread.id)
+  const flt = 'thread=eq.' + chatThread.id;
+  let ch = sb.channel('dm:' + chatThread.id)
     .on('postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'dm_messages',
-        filter: 'thread=eq.' + chatThread.id },
-      p => {
-        if (chatMsgs.some(m => m.id === p.new.id)) return;   // ของตัวเองที่เพิ่งส่งไป
-        chatMsgs.push(p.new);
-        renderChat();
-      })
-    .subscribe();
+      { event: 'INSERT', schema: 'public', table: 'dm_messages', filter: flt },
+      p => chatIncoming(p.new))
+    // 12 ต.ค. 69 · แก้ไข/ปักหมุดของอีกฝั่ง (และ reply_to ที่กลายเป็น null ตอนต้นทางถูกลบ) มาเป็น UPDATE
+    .on('postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'dm_messages', filter: flt },
+      p => chatUpdated(p.new))
+    // 12 ต.ค. 69 · "กำลังพิมพ์…" — สัญญาณลอยผ่านช่องเดียวกัน ไม่ได้เขียนลงฐานข้อมูล (ดู chatTyping)
+    .on('broadcast', { event: 'typing' }, p => chatTheyType(p && p.payload));
+  // ฟังตารางปฏิกิริยาเฉพาะตอนมีตารางแล้ว — ขอฟังตารางที่ไม่มีอยู่ อาจทำให้ทั้งช่องเข้าร่วมไม่สำเร็จ (ข้อความใหม่ไม่เด้งด้วย)
+  if (chatV2) {
+    ['INSERT', 'UPDATE'].forEach(ev => {
+      ch = ch.on('postgres_changes', { event: ev, schema: 'public', table: 'dm_reactions', filter: flt },
+        p => { chatReactSet(p.new); renderChat(); });
+    });
+  }
+  chatSub = ch.subscribe();
 }
 
 // ต้องเรียกทุกครั้งที่ออกจากจอแชท — ช่องที่เปิดค้างไว้กินเน็ตและกินโควตา
 // realtime ของ Supabase นับจำนวนช่องที่เปิดพร้อมกัน ไม่ใช่จำนวนข้อความ
 function closeChat() {
+  chatHoldClose();
+  chatForwardClose();
+  chatTypingUntil = 0;
   if (chatSub) { try { sb.removeChannel(chatSub); } catch (_) {} chatSub = null; }
   // ข้อความที่เข้ามาระหว่างนั่งอยู่ในห้องก็เห็นแล้วเหมือนกัน
   if (chatThread && typeof notifSeenDm === 'function') notifSeenDm(chatThread.id);
@@ -770,7 +813,8 @@ function chatAvatar() {
                                              : (chatThread.name || '?').slice(0, 1))}</span>`;
 }
 
-function renderChat() {
+function renderChat(opt) {
+  opt = opt || {};
   const box = document.getElementById('chatBody');
   if (!box || !chatThread) return;
   const me = currentUser && currentUser.id;
@@ -783,6 +827,18 @@ function renderChat() {
   const asked = pending && chatThread.mineReq;
   const gotAsked = pending && !chatThread.mineReq;
   const usedUp = asked && chatMsgs.some(m => m.sender === me);
+
+  // 12 ต.ค. 69 · วาดใหม่เฉพาะหัวจอกับรายการ — แถบพิมพ์อยู่กับที่
+  // เดิมวาดทั้งจอใหม่ทุกครั้งที่มีข้อความเข้า รวมช่องพิมพ์ด้วย: ตัวหนังสือที่พิมพ์ค้างหายกลางประโยค
+  // และคีย์บอร์ดมือถือหุบลงเพราะช่องที่โฟกัสอยู่ถูกลบทิ้ง · วาดทั้งจอเฉพาะตอนเปลี่ยนห้อง หรือแถบพิมพ์ต้องโผล่/หาย
+  const old = document.getElementById('chatList');
+  const barKey = usedUp ? '0' : '1';
+  const same = !opt.full && !!old && box.dataset.thread === String(chatThread.id) && box.dataset.bar === barKey;
+  // เลื่อนขึ้นไปอ่านของเก่าอยู่ = ไม่ดึงลงก้นจอตอนมีของเข้า (มีป้าย "ข้อความใหม่" ให้กดแทน)
+  // อยู่ก้นจออยู่แล้ว · เพิ่งส่งเอง · เพิ่งเปิดห้อง = ตามลงไปก้นจอ
+  const stick = opt.bottom || !same || chatNearBottom(old);
+  const keepTop = old ? old.scrollTop : 0;
+  let freshThem = false;
 
   // ---------- จับข้อความติด ๆ กันเป็นก้อน ----------
   // เกณฑ์: คนเดียวกัน และห่างกันไม่เกิน 5 นาที · เกินนั้นถือว่าเป็นคนละจังหวะการคุย
@@ -800,29 +856,56 @@ function renderChat() {
     const dayHead = day && day !== lastDay ? `<div class="ch-day"><span>${esc(day)}</span></div>` : '';
     lastDay = day || lastDay;
 
+    // ท่าเข้าเฉพาะฟองที่ยังไม่เคยวาด — วาดซ้ำ (รูปเพิ่งได้ลิงก์ · มีคนพิมพ์ตอบ) ฟองเดิมต้องนิ่ง
+    const id = String(m.id);
+    const fresh = chatPrimed && !chatSeen.has(id);
+    if (fresh && !mine) freshThem = true;
+    const anim = !fresh ? '' : chatFly.has(id) ? ' fly' : mine ? ' in-me' : ' in-them';
+    const text = String(m.body || '').trim();
+    // อิโมจิล้วนไม่เกินสามตัว = ตัวใหญ่ไม่มีฟอง (แบบ IG) · "💯💯" ในฟองเล็ก ๆ อ่านเป็นตัวหนังสือ ไม่ใช่ความรู้สึก
+    const big = !m.image && chatBigEmoji(text);
+    const tr = chatTr.get(id);
+    const shown = tr && tr.show ? tr.text : m.body;
+
     // เวลาโผล่ใต้ฟองสุดท้ายของก้อน ไม่ใช่ทุกฟอง (ผู้ใช้ขอ "ให้บอกเวลาพิมพ์ด้วย")
     // ทุกฟองมีเวลา = ตัวเลขเรียงลงมาสิบบรรทัดที่บอกเรื่องเดียวกัน
     // ก้อนหนึ่งคือหนึ่งจังหวะการพิมพ์อยู่แล้ว เวลาเดียวต่อก้อนจึงพอ
-    return dayHead + `<div class="ch-msg${mine ? ' me' : ''}${endsRun ? ' last' : ''}">
+    // 12 ต.ค. 69 · ปุ่ม "ลบ" ข้างเวลาย้ายไปอยู่ในเมนูกดค้าง (chatHoldOpen) — แบบ IG และไม่ต้องมีขีดเส้นใต้ทุกก้อน
+    return dayHead + `<div class="ch-msg${mine ? ' me' : ''}${endsRun ? ' last' : ''}${m.pending ? ' sending' : ''}${anim}" data-id="${esc(id)}">
       ${mine ? '' : (endsRun ? chatAvatar() : '<span class="ch-face ghost"></span>')}
       <span class="ch-col">
+        ${m.reply_to ? chatQuoteHtml(m, mine) : ''}
+        ${m.edited_at ? '<span class="ch-edited">แก้ไขแล้ว</span>' : ''}
         ${m.image ? (() => {
           const u = dmImageUrl(m.image);
           return u ? `<img class="ch-img" loading="lazy" alt="รูปที่ส่งมา" src="${esc(u)}"
                         onclick="openFace('${esc(u)}','')">`
                    : '<span class="ch-img wait"></span>';
         })() : ''}
-        ${String(m.body || '').trim()
-          ? `<span class="ch-bub${startsRun ? ' first' : ''}${endsRun ? ' tail' : ''}">${esc(m.body)}</span>`
+        ${text
+          ? `<span class="ch-bub${big ? ' ch-emoji' : ''}${startsRun ? ' first' : ''}${endsRun ? ' tail' : ''}" tabindex="0">${esc(shown)}</span>`
           : ''}
-        ${endsRun ? `<span class="ch-when">${esc(chatTime(m.created_at))}${
-          mine ? ` · <button class="ch-del" onclick="unsendChat('${esc(String(m.id))}')"
-                     aria-label="ลบข้อความนี้">ลบ</button>` : ''}</span>` : ''}
+        ${tr ? `<button type="button" class="ch-trsw" onclick="chatTrToggle('${esc(id)}')">${tr.show ? 'แปลแล้ว · ดูต้นฉบับ' : 'ดูคำแปล'}</button>` : ''}
+        ${chatRxHtml(id)}
+        ${endsRun ? `<span class="ch-when">${m.pending ? 'กำลังส่ง…' : esc(chatTime(m.created_at))}</span>` : ''}
       </span>
     </div>`;
   }).join('');
+  chatMsgs.forEach(m => chatSeen.add(String(m.id)));
 
-  box.innerHTML = `
+  const listHtml = chatMsgs.length
+    ? rows + (Date.now() < chatTypingUntil ? chatTypingHtml(false) : '')
+    : `<div class="ch-blank">
+          ${chatAvatar()}
+          <b>${esc(chatThread.name)}</b>
+          <p>ยังไม่มีข้อความ</p>
+        </div>`;
+
+  // IG มีชื่อผู้ใช้ใต้ชื่อเล่นบนหัวจอ — ตอบคำถาม "คนนี้คนเดียวกับที่ฉันรู้จักไหม" (ชื่อเล่นซ้ำกันได้ ชื่อผู้ใช้ซ้ำไม่ได้)
+  const hd = String(chatThread.handle || '').trim();
+  const sub = chatThread.subject ? `<i>เรื่อง${esc(chatThread.subject)}</i>`
+    : hd && hd !== chatThread.name ? `<i>@${esc(hd)}</i>` : '';
+  const topHtml = `
     <div class="ch-top">
       <button class="ch-back" onclick="chatBack()" aria-label="กลับ">${icon('chevron')}</button>
       <!-- รูป+ชื่อแตะแล้วไปโปรไฟล์ เหมือน IG · จอแชทที่ไม่มีทางไปหาตัวตนของอีกฝ่าย
@@ -832,14 +915,19 @@ function renderChat() {
         ${chatAvatar()}
         <span class="ch-who-tx">
           <b>${esc(chatThread.name)}${chatThread.other ? icon('chevron') : ''}</b>
-          ${chatThread.subject ? `<i>เรื่อง${esc(chatThread.subject)}</i>` : ''}
+          ${sub}
         </span>
       </button>
       ${chatThread.other ? `<button class="ch-more" aria-label="รายงานหรือบล็อก"
         onclick="openReport('user','${esc(chatThread.other)}')">${icon('flag')}</button>` : ''}
-    </div>
+    </div>`;
 
-    ${gotAsked ? `<div class="ch-req">
+  // ข้อความที่ปักหมุดล่าสุด = แถบบนสุดของห้อง แตะแล้วเลื่อนไปหา (แบบ IG)
+  const pin = chatV2 ? chatMsgs.filter(m => m.pinned_at)
+    .sort((a, b) => new Date(b.pinned_at) - new Date(a.pinned_at))[0] : null;
+  const pinHtml = pin ? `<button type="button" class="ch-pinbar" onclick="chatGoto('${esc(String(pin.id))}')">
+      ${CH_IC.pin}<span><b>ข้อความที่ปักหมุด</b><i>${esc(chatSnip(pin))}</i></span></button>` : '';
+  const reqHtml = pinHtml + `${gotAsked ? `<div class="ch-req">
       <p>ขอทักคุณ</p>
       <div class="ch-req-row">
         <button class="ch-req-no" onclick="declineDm('${esc(chatThread.id)}', false)">ไม่รับ</button>
@@ -849,20 +937,24 @@ function renderChat() {
     </div>` : ''}
     ${asked ? `<p class="ch-wait">${usedUp
         ? 'ส่งคำขอแล้ว'
-        : 'ยังไม่ใช่เพื่อน'}</p>` : ''}
+        : 'ยังไม่ใช่เพื่อน'}</p>` : ''}`;
 
-    <div class="ch-list" id="chatList">
-      ${chatMsgs.length ? rows : `<div class="ch-blank">
-          ${chatAvatar()}
-          <b>${esc(chatThread.name)}</b>
-          <p>ยังไม่มีข้อความ</p>
-        </div>`}
-    </div>
+  if (same) {
+    const t = box.querySelector('.ch-top');
+    if (t) t.outerHTML = topHtml;
+    const r = box.querySelector('.ch-reqs');
+    if (r) r.innerHTML = reqHtml;
+    old.innerHTML = listHtml;
+  } else {
+    chHold = null;   // เมนูกดค้าง (ถ้ามี) อยู่ใน #chatBody — ถูกล้างไปกับการวาดทั้งจอ
+    box.innerHTML = topHtml + `<div class="ch-reqs">${reqHtml}</div>
+    <div class="ch-list" id="chatList">${listHtml}</div>
 
     ${usedUp ? '' : `
       <div class="ch-emo" id="chEmo" hidden>
         ${CHAT_EMOJI.map(e => `<button onclick="addEmoji('${e}')" aria-label="ใส่ ${e}">${e}</button>`).join('')}
       </div>
+      <div class="ch-ctx" id="chCtx" hidden></div>
       <div class="ch-bar">
         <input type="file" id="chFile" accept="image/*" hidden onchange="pickChatImage(this)">
         <button class="ch-plus" onclick="document.getElementById('chFile').click()"
@@ -872,18 +964,28 @@ function renderChat() {
                  autocomplete="off"
                  value="${chatMsgs.length || !chatThread.subject ? ''
                          : esc(chatThread.subject + 'ขอถามหน่อยได้ป่ะ')}"
-                 oninput="chatTyping()"
-                 onkeydown="if(event.key==='Enter')sendChat()">
+                 oninput="chatTyping(true)"
+                 onkeydown="if(event.key==='Enter')sendChat();else if(event.key==='Escape'&&(chatReply||chatEdit))chatCtxClose()">
           <!-- 8 ต.ค. 69 · เจ้าของ: "ลบดาวออก" — ดาวคือปุ่มเปิดแถบอิโมจิ จึงเปลี่ยนเป็นรูปหน้ายิ้ม (ปุ่มยังทำงานเดิม) -->
           <button class="ch-emo-btn" onclick="toggleEmoji()" aria-label="อิโมจิ"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9.5h.01M15 9.5h.01"/></svg></button>
           <button class="ch-send" id="chSend" onclick="sendChat()" aria-label="ส่ง"><svg viewBox="0 0 24 24" aria-hidden="true"
             fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
         </div>
       </div>`}`;
+    box.dataset.thread = String(chatThread.id);
+    box.dataset.bar = barKey;
+    chatTyping();
+    chatCtxRender();
+  }
 
-  chatTyping();
   const list = document.getElementById('chatList');
-  if (list) list.scrollTop = list.scrollHeight;
+  if (list) {
+    list.scrollTop = stick ? list.scrollHeight : keepTop;
+    list.__atBottom = stick || chatNearBottom(list);
+    if (freshThem && !stick) chatJump(true);
+  }
+  chatWire(box, list);
+  chatPaint();
 }
 
 
@@ -981,11 +1083,23 @@ function dmImageUrl(path) {
 
 // ปุ่มส่งโผล่ตอนมีตัวอักษรเท่านั้น (เหมือน IG)
 // ปุ่มที่ค้างอยู่ตลอดทั้งที่กดไปก็ไม่เกิดอะไร คือปุ่มที่สอนให้คนเลิกเชื่อปุ่ม
-function chatTyping() {
+function chatTyping(user) {
   const el = document.getElementById('chatIn');
   const btn = document.getElementById('chSend');
   if (!el || !btn) return;
-  btn.classList.toggle('on', !!el.value.trim());
+  const has = !!el.value.trim();
+  btn.classList.toggle('on', has);
+  // 12 ต.ค. 69 · บอกอีกฝ่ายว่ากำลังพิมพ์ (ฟองจุดสามจุดฝั่งเขา · chatTheyType)
+  // ส่งเฉพาะตอนพิมพ์จริง (user = มาจาก oninput ไม่ใช่ตอนวาดจอ) · ห้องที่ยังเป็นคำขอไม่ส่ง
+  // ไม่เกินสองวินาทีครึ่งครั้ง · เป็นสัญญาณลอยผ่าน realtime ไม่ได้เขียนลงฐานข้อมูล และไม่มีตัวหนังสือที่พิมพ์ติดไปด้วย
+  if (user && has && chatSub && chatThread && chatThread.state !== 'pending'
+      && Date.now() - chatTypingSent > 2500) {
+    chatTypingSent = Date.now();
+    try {
+      const r = chatSub.send({ type: 'broadcast', event: 'typing', payload: { u: currentUser && currentUser.id } });
+      if (r && typeof r.catch === 'function') r.catch(() => {});
+    } catch (_) {}
+  }
 }
 
 // ส่งผ่าน dm_say เสมอ ไม่ insert ตรงอีกแล้ว
@@ -1025,14 +1139,34 @@ async function refreshDmRows() {
 
 async function sendChat(imagePath) {
   const el = document.getElementById('chatIn');
-  if (!chatThread) return;
+  if (!chatThread || !sb || !currentUser) return;
   const body = el ? el.value.trim() : '';
   if (!body && !imagePath) return;
+  if (chatEdit && !imagePath) return chatEditSend();
+  // ตอบกลับต้องมีที่เก็บฝั่งเซิร์ฟเวอร์ (chatV2) · ฟองต้นทางที่ยังส่งไม่ถึงยังไม่มี id จริง ตอบไม่ได้
+  const reply = chatV2 && chatReply && !chatReply.pending ? chatReply : null;
+  chatReply = null;
+  chatCtxRender();
+  // 12 ต.ค. 69 · ฟองขึ้นทันทีที่กดส่ง (แบบ IG) ไม่รอเซิร์ฟเวอร์ — เดิมกดแล้วจอนิ่งจนเน็ตตอบ คนเลยกดซ้ำ
+  // ฟองลอยออกจากช่องพิมพ์ขึ้นไปเข้าที่ (chatFlyIn) · ระหว่างรอ ใต้ฟองเขียนว่า "กำลังส่ง…"
+  // ส่งไม่ผ่าน = ฟองหาย ข้อความกลับเข้าช่องพิมพ์เหมือนเดิม (ไม่กลืนหายไปเฉย ๆ)
+  const field = document.querySelector('#chatBody .ch-field');
+  const from = field ? field.getBoundingClientRect() : null;
   if (el) el.value = '';
+  chatTyping();
   const emo = document.getElementById('chEmo');
   if (emo) emo.hidden = true;
-  let { data, error } = await sb.rpc('dm_say',
-    { p_thread: chatThread.id, p_body: body, p_image: imagePath || null });
+  const tmp = { id: 'tmp' + Date.now(), sender: currentUser.id, body, image: imagePath || null,
+                reply_to: reply ? reply.id : null,
+                created_at: new Date().toISOString(), pending: true };
+  chatMsgs.push(tmp);
+  chatFly.add(tmp.id);
+  renderChat({ bottom: true });
+  chatFlyIn(tmp.id, from);
+
+  const args = { p_thread: chatThread.id, p_body: body, p_image: imagePath || null };
+  if (reply) args.p_reply = Number(reply.id);
+  let { data, error } = await sb.rpc('dm_say', args);
   // ยังไม่ได้ apply migration 25 (dm_say ยังรับสองพารามิเตอร์) — ลองแบบเดิมอีกรอบ
   // ส่งรูปจะไม่ได้ แต่ข้อความยังส่งได้ตามปกติ ซึ่งสำคัญกว่า
   if (error && /p_image|function public\.dm_say/i.test(error.message || '')) {
@@ -1053,23 +1187,742 @@ async function sendChat(imagePath) {
     error = r.error;
   }
   if (error) {
-    if (el) el.value = body;               // คืนข้อความให้ ไม่ใช่กลืนหายไปเฉย ๆ
+    chatMsgs = chatMsgs.filter(m => m !== tmp);
+    renderChat();
+    const back = document.getElementById('chatIn');
+    if (back && !back.value) { back.value = body; chatTyping(); }   // คืนข้อความให้ ไม่ใช่กลืนหายไปเฉย ๆ
+    if (reply && !chatReply && !chatEdit) { chatReply = reply; chatCtxRender(); }
     haptic('snooze');
     showToast({ title: 'ส่งไม่สำเร็จ', body: error.message });
     return;
   }
   const row = Array.isArray(data) ? data[0] : data;
-  chatMsgs.push({
-    id: (row && row.id) || Date.now(), sender: currentUser.id, body,
-    image: imagePath || null,
-    created_at: (row && row.created_at) || new Date().toISOString(),
-  });
+  // ช่องสดอาจส่งแถวจริงมาถึงก่อนคำตอบนี้ — chatIncoming จับคู่กับฟองนี้ไปแล้ว (pending = false)
+  if (tmp.pending) {
+    const id = (row && row.id) || tmp.id;
+    if (chatMsgs.some(m => m !== tmp && String(m.id) === String(id))) chatMsgs = chatMsgs.filter(m => m !== tmp);
+    else Object.assign(tmp, { id, created_at: (row && row.created_at) || tmp.created_at, pending: false });
+    chatSeen.add(String(id));
+  }
   // ข้อความขึ้นไปแล้ว สแกนตามหลังโดยไม่รอผล (กติกาที่ผู้ใช้เคาะไว้)
   if (typeof guardText === 'function' && row && row.id) guardText('dm', row.id, body);
   // ปลายทางพิมพ์ตอบ = ห้องเปิดแล้วฝั่งเซิร์ฟเวอร์ · ฝั่งนี้ต้องตามให้ทัน
   // ไม่งั้นแบนเนอร์ "คำขอ" ยังค้างอยู่ทั้งที่คุยกันได้แล้ว
   if (chatThread.state === 'pending' && !chatThread.mineReq) chatThread.state = 'open';
   renderChat();
+}
+
+// ============================================================
+// ห้องแชทแบบ IG แต่เป็นของเราเอง (12 ต.ค. 69)
+// ------------------------------------------------------------
+// เจ้าของ (ส่งภาพห้องแชทในธีมดำ): "แก้ไขในหน้านี้หน่อยให้ดูแบบแชทคล้ายไอจี มีอนิเมชันคล้าย ๆ กันแต่อย่าเหมือนกัน"
+//
+// ของที่ยืม "ท่า" มาจาก IG แต่ทำเป็นแบบของเรา:
+//   • ฟองของเราไล่สีตามตำแหน่งบนจอ (IG: ม่วง→น้ำเงินตายตัว · ของเรา: สีเน้นของธีม → หมุนเฉดไป 48° ด้านบน) — chatPaint
+//   • กดส่ง = ฟองลอยออกจากช่องพิมพ์ไปเข้าที่แบบสปริง (IG: เด้งขึ้นที่เดิม) — chatFlyIn
+//   • กดค้างที่ฟอง = จอหรี่ ฟองยกตัว เมนูเด้งออกจากฟอง (IG: แถบอิโมจิ · ของเรา: เวลาที่ส่ง + คัดลอก/ลบ/รายงาน) — chatHoldOpen
+//     ท่ากดค้างตามสูตรใน React Bits (ระยะเผื่อนิ้วสั่น · pointercancel = ยกเลิก · กลืนคลิกที่ตามมาหลังกดค้าง)
+//     จอหรี่ + ของที่เลือกยกขึ้นมาเหนือชั้นหรี่ = ท่า focus ของ Expandable Card (Aceternity) ทำใหม่ด้วย CSS ล้วน
+//   • อีกฝ่ายกำลังพิมพ์ = ฟองจุดสามจุดเป็นคลื่น สีเน้นของธีม (ท่าจุดสามจุดของ Uiverse) — chatTheyType
+//   • อ่านของเก่าอยู่แล้วมีข้อความเข้า = ป้าย "ข้อความใหม่" ลอยเหนือช่องพิมพ์ ไม่ดึงจอลงเอง — chatJump
+// ที่ไม่ทำ: ปฏิกิริยาหัวใจ กับ "เห็นแล้ว" — ต้องมีที่เก็บฝั่งเซิร์ฟเวอร์ซึ่งยังไม่มี ทำแค่ในเครื่องเดียว = อีกฝ่ายไม่เห็น = โกหก
+// ============================================================
+function chatNearBottom(list) {
+  return !list || list.scrollHeight - list.scrollTop - list.clientHeight < 90;
+}
+
+const chatSeg = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('th', { granularity: 'grapheme' }) : null;
+function chatBigEmoji(t) {
+  const x = String(t || '').replace(/\s+/g, '');
+  if (!x || x.length > 40) return false;
+  const g = chatSeg ? Array.from(chatSeg.segment(x), p => p.segment) : Array.from(x);
+  return g.length <= 3 && g.every(c => /\p{Extended_Pictographic}/u.test(c));
+}
+
+// ข้อความเข้าทางช่องสด
+function chatIncoming(n) {
+  if (!n || chatMsgs.some(m => String(m.id) === String(n.id))) return;
+  const me = currentUser && currentUser.id;
+  if (n.sender === me) {
+    // แถวจริงของฟองที่เรากดส่งมาถึงก่อนคำตอบของ dm_say = จับคู่กับฟองนั้น ไม่ใช่ฟองซ้ำอีกใบ
+    const t = chatMsgs.find(m => m.pending && (m.body || '') === (n.body || '') && (m.image || null) === (n.image || null));
+    if (t) { chatSeen.add(String(n.id)); Object.assign(t, n, { pending: false }); renderChat(); return; }
+  } else {
+    chatTypingUntil = 0;   // เขาส่งแล้ว = เลิกพิมพ์แล้ว
+  }
+  chatMsgs.push(n);
+  renderChat();
+}
+
+// แก้ไข/ปักหมุดจากอีกฝั่ง (หรือจากเครื่องอื่นของเราเอง) · reply_to กลายเป็น null ตอนต้นทางถูกลบ
+function chatUpdated(n) {
+  if (!n) return;
+  const m = chatMsgs.find(x => String(x.id) === String(n.id));
+  if (!m) return;
+  if (m.body !== n.body) chatTr.delete(String(m.id));   // คำแปลเก่าไม่ตรงกับข้อความใหม่แล้ว
+  Object.assign(m, { body: n.body, edited_at: n.edited_at || null, pinned_at: n.pinned_at || null,
+                     reply_to: n.reply_to === undefined ? m.reply_to : n.reply_to });
+  renderChat();
+}
+
+// ---------- อีกฝ่ายกำลังพิมพ์ ----------
+function chatTheyType(p) {
+  if (!p || !chatThread || p.u === (currentUser && currentUser.id)) return;
+  chatTypingUntil = Date.now() + 4500;   // เงียบไปเกินนี้ = เลิกพิมพ์ (ฝั่งนั้นยิงทุกสองวินาทีครึ่งตอนยังพิมพ์อยู่)
+  chatTypingShow();
+}
+function chatTypingHtml(anim) {
+  return `<div class="ch-msg ch-typing last${anim ? ' in-them' : ''}" id="chTyping" role="status"
+    aria-label="${esc(chatThread.name)} กำลังพิมพ์">
+    ${chatAvatar()}<span class="ch-col"><span class="ch-bub first tail"><i></i><i></i><i></i></span></span>
+  </div>`;
+}
+function chatTypingShow() {
+  clearTimeout(chatTypingShow.t);
+  const list = document.getElementById('chatList');
+  if (!list || !chatMsgs.length) return;
+  const el = document.getElementById('chTyping');
+  if (Date.now() < chatTypingUntil) {
+    if (!el) {
+      const near = chatNearBottom(list);
+      list.insertAdjacentHTML('beforeend', chatTypingHtml(true));
+      if (near) list.scrollTop = list.scrollHeight;
+    }
+    chatTypingShow.t = setTimeout(chatTypingShow, chatTypingUntil - Date.now() + 40);
+  } else if (el) {
+    el.classList.add('out');
+    setTimeout(() => { if (el.isConnected) el.remove(); }, 220);
+  }
+}
+
+// ---------- ฟองลอยออกจากช่องพิมพ์ ----------
+// วัดกรอบช่องพิมพ์ก่อนวาด แล้วเริ่มฟองใหม่จากตรงนั้นขยับเข้าที่ (FLIP) · transform ล้วน การ์ดจอทำเอง
+// ฟองโผล่จากขอบล่างของรายการ (รายการตัดของที่ล้นออกไป) จึงเห็นเป็นฟองที่ลอยขึ้นมาจากช่องพิมพ์
+function chatFlyIn(id, from) {
+  const row = document.querySelector('#chatList .ch-msg[data-id="' + id + '"]');
+  const col = row && row.querySelector('.ch-col');
+  if (!col || typeof col.animate !== 'function') return;
+  const still = document.documentElement.dataset.lite || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!from || still) { col.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' }); return; }
+  const to = col.getBoundingClientRect();
+  const dx = Math.round(from.right - 10 - to.right);
+  const dy = Math.round(from.top + from.height / 2 - (to.top + to.height / 2));
+  col.animate([
+    { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(.86)', opacity: .2 },
+    { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+  ], { duration: 480, easing: 'cubic-bezier(.2, 1.2, .32, 1)' });
+}
+
+// ---------- สีฟองของเราไล่ตามตำแหน่งบนจอ ----------
+// ฟองบนสุดของจอได้สีเฉดหมุน ฟองล่างสุดได้สีเน้นของธีม · เลื่อนจอแล้วสีของฟองเดิมเปลี่ยนตามที่มันอยู่
+// อ่านกรอบทุกฟองก่อน แล้วค่อยเขียนทีเดียว (ไม่สลับอ่าน-เขียน = เครื่องไม่ต้องคำนวณผังซ้ำทุกฟอง)
+// เขียนเฉพาะฟองที่อยู่บนจอ · โหมดลื่นไม่ทำ (ฟองได้สีกลาง ๆ คงที่จาก CSS)
+function chatPaint() {
+  const list = document.getElementById('chatList');
+  if (!list || document.documentElement.dataset.lite) return;
+  const lr = list.getBoundingClientRect();
+  if (!lr.height) return;
+  const bs = Array.from(list.querySelectorAll('.ch-msg.me .ch-bub:not(.ch-emoji)'));
+  const rs = bs.map(b => b.getBoundingClientRect());
+  const pct = y => (Math.min(1, Math.max(0, (y - lr.top) / lr.height)) * 100).toFixed(1) + '%';
+  bs.forEach((b, i) => {
+    const r = rs[i];
+    if (r.bottom < lr.top - 40 || r.top > lr.bottom + 40) return;
+    b.style.setProperty('--g0', pct(r.top));
+    b.style.setProperty('--g1', pct(r.bottom));
+  });
+}
+
+// ---------- ป้าย "ข้อความใหม่" ----------
+function chatJump(show) {
+  const list = document.getElementById('chatList');
+  const bar = document.querySelector('#chatBody .ch-bar');
+  if (!list || !bar) return;
+  const p = bar.querySelector('.ch-jump');
+  if (show === true) {
+    if (!p && !chatNearBottom(list)) {
+      bar.insertAdjacentHTML('afterbegin',
+        `<button class="ch-jump" type="button" onclick="chatToBottom()">ข้อความใหม่${icon('chevron')}</button>`);
+    }
+    return;
+  }
+  if (p && chatNearBottom(list)) p.remove();
+}
+function chatToBottom() {
+  const list = document.getElementById('chatList');
+  if (!list) return;
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  list.scrollTo({ top: list.scrollHeight, behavior: still ? 'auto' : 'smooth' });
+}
+
+// ---------- กดค้างที่ฟอง = เมนู ----------
+let chHold = null;      // { b, ov, m } เมนูที่เปิดอยู่
+let chHoldAt = null;    // { x, y, b } นิ้วที่กดค้างอยู่ (ยังไม่ถึงเวลา)
+let chHoldTimer = 0;
+let chHoldSkip = false; // กลืนคลิกที่ตามมาหลังยกนิ้ว — ไม่งั้นกดค้างที่รูปแล้วปล่อย = เปิดรูปซ้อนเมนู
+
+function chatHit(t) {
+  const b = t && t.closest ? t.closest('#chatList .ch-bub, #chatList .ch-img') : null;
+  if (!b || b.closest('.ch-typing') || b.classList.contains('wait')) return null;
+  return b.closest('.ch-msg[data-id]') ? b : null;
+}
+function chatHoldCancel() {
+  clearTimeout(chHoldTimer);
+  if (chHoldAt) chHoldAt.b.classList.remove('pressing');
+  chHoldAt = null;
+}
+function chatWire(box, list) {
+  if (!box.__chWired) {
+    box.__chWired = true;
+    box.addEventListener('pointerdown', e => {
+      if (e.button > 0 || chHold) return;   // คลิกขวาไปทาง contextmenu
+      const b = chatHit(e.target);
+      if (!b) return;
+      chatHoldCancel();
+      chHoldAt = { x: e.clientX, y: e.clientY, b };
+      b.classList.add('pressing');
+      chHoldTimer = setTimeout(() => { chatHoldCancel(); chHoldSkip = true; chatHoldOpen(b); }, 420);
+    });
+    // นิ้วขยับเกิน 8px = กำลังเลื่อนจอ ไม่ใช่กดค้าง
+    box.addEventListener('pointermove', e => {
+      if (chHoldAt && Math.hypot(e.clientX - chHoldAt.x, e.clientY - chHoldAt.y) > 8) chatHoldCancel();
+    });
+    box.addEventListener('pointerup', () => {
+      // ยกนิ้วก่อนถึงเวลากดค้าง และนิ้วไม่ขยับ = แตะ · แตะสองทีติดกันที่ฟองตัวหนังสือ = ❤️ (แบบ IG)
+      const tapped = chHoldAt && chHoldAt.b;
+      chatHoldCancel();
+      if (chHoldSkip) setTimeout(() => { chHoldSkip = false; }, 80);
+      if (tapped && chatV2 && tapped.classList.contains('ch-bub')) chatDoubleTap(tapped);
+    });
+    // เมาส์ชี้ฟองไหน ปุ่ม หน้ายิ้ม · ตอบกลับ · ⋮ ไปโผล่ข้างฟองนั้น (มือถือไม่มี — ใช้กดค้างแทน)
+    box.addEventListener('pointerover', e => {
+      if (e.pointerType !== 'mouse' || chHold) return;
+      const row = e.target.closest && e.target.closest('#chatList .ch-msg[data-id]');
+      if (row && !row.classList.contains('ch-typing') && !row.classList.contains('sending')) chatToolsAt(row);
+    });
+    box.addEventListener('pointercancel', chatHoldCancel);
+    box.addEventListener('click', e => {
+      if (!chHoldSkip) return;
+      chHoldSkip = false;
+      e.stopPropagation(); e.preventDefault();
+    }, true);
+    // คลิกขวาบนคอม · กดค้างบน Android ก็ยิงอันนี้ด้วย — เปิดเมนูของเราแทนเมนูเครื่อง
+    box.addEventListener('contextmenu', e => {
+      const b = chatHit(e.target);
+      if (!b) return;
+      e.preventDefault();
+      chatHoldCancel();
+      if (!chHold) chatHoldOpen(b);
+    });
+    // คีย์บอร์ด: ฟองโฟกัสได้ (tabindex) · Enter/เว้นวรรค = เปิดเมนู · Esc = ปิด
+    box.addEventListener('keydown', e => {
+      if (chHold) { if (e.key === 'Escape') { e.preventDefault(); chatHoldClose(); } return; }
+      const b = chatHit(e.target);
+      if (b && (e.key === 'Enter' || e.key === ' ' || e.key === 'ContextMenu')) { e.preventDefault(); chatHoldOpen(b); }
+    });
+  }
+  if (list && !list.__chWired) {
+    list.__chWired = true;
+    let raf = 0;
+    list.addEventListener('scroll', () => {
+      if (chHoldAt) chatHoldCancel();
+      if (raf) return;
+      raf = requestAnimationFrame(() => { raf = 0; list.__atBottom = chatNearBottom(list); chatPaint(); chatJump(); });
+    }, { passive: true });
+    // รูปในห้องไม่มีความสูงจนกว่าจะโหลดเสร็จ — โหลดเสร็จแล้วรายการยาวขึ้น ข้อความล่าสุดถูกดันพ้นก้นจอ
+    // (เจอตอนเทสต์: เปิดห้องที่มีรูปแล้วไม่เห็นข้อความล่าสุด) · อยู่ก้นจออยู่ก่อนรูปโหลด = ตามลงไปก้นจอต่อ
+    list.addEventListener('load', e => {
+      if (e.target.tagName !== 'IMG' || !list.__atBottom) return;
+      list.scrollTop = list.scrollHeight;
+      chatPaint();
+    }, true);
+  }
+}
+
+function chatStamp(m) {
+  if (m.pending) return 'กำลังส่ง…';
+  const d = chatDayLabel(m.created_at), t = chatTime(m.created_at);
+  return (d ? d + ' · ' : '') + t;
+}
+
+// ไอคอนที่ชุด Lucide ใน index.html ไม่มี — วาดเส้นแบบเดียวกัน (Lucide · ISC) ฝังไว้ตรงนี้
+const CH_SVG = p => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const CH_IC = {
+  reply: CH_SVG('<path d="M9 17 4 12l5-5"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>'),
+  fwd: CH_SVG('<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>'),
+  tr: CH_SVG('<path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/>'),
+  unsend: CH_SVG('<circle cx="12" cy="12" r="9.5"/><path d="m9.5 8.5-3 3 3 3"/><path d="M6.5 11.5h6.5a3 3 0 0 1 0 6H12"/>'),
+  smile: CH_SVG('<circle cx="12" cy="12" r="9.5"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9.5h.01M15 9.5h.01"/>'),
+  more: CH_SVG('<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>'),
+  // หมุดปัก (ไม่ใช่หมุดแผนที่ #lu-pin ในชุดไอคอนของแอป ซึ่งอ่านว่า "สถานที่")
+  pin: CH_SVG('<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>'),
+};
+const CH_RX = ['❤️', '😂', '😮', '😢', '😡', '👍'];
+const CH_EDIT_MS = 15 * 60 * 1000;   // แก้ได้ภายใน 15 นาที — ต้องตรงกับ dm_edit ใน migration dm_actions
+
+// เมนูข้อความ — ลำดับตาม IG: เวลา · ตอบกลับ · แก้ไข · ส่งต่อ · คัดลอก · แปล · ปักหมุด · ยกเลิกการส่ง/รายงาน
+// เปิดได้สามทาง: กดค้าง (มือถือ) · ปุ่ม ⋮ ที่โผล่ข้างฟองตอนเอาเมาส์ไปชี้ (คอม) · คลิกขวา/Enter
+// opt.rxOnly = ปุ่มหน้ายิ้มข้างฟอง → แถบปฏิกิริยาอย่างเดียว ไม่มีเมนู
+function chatHoldOpen(b, opt) {
+  opt = opt || {};
+  const box = document.getElementById('chatBody');
+  const row = b && b.closest('.ch-msg[data-id]');
+  if (!box || !row || chHold) return;
+  const m = chatMsgs.find(x => String(x.id) === row.dataset.id);
+  if (!m) return;
+  const me = currentUser && currentUser.id;
+  const mine = row.classList.contains('me');
+  const text = String(m.body || '').trim();
+  const real = !m.pending && !String(m.id).startsWith('tmp');
+  const v2 = chatV2 && real;
+  const acts = [];
+  if (!opt.rxOnly) {
+    if (v2) acts.push(['reply', 'ตอบกลับ', CH_IC.reply]);
+    if (v2 && mine && text && !m.image && Date.now() - new Date(m.created_at) < CH_EDIT_MS) acts.push(['edit', 'แก้ไข', icon('pencil')]);
+    if (real && text && !m.image) acts.push(['fwd', 'ส่งต่อ', CH_IC.fwd]);
+    if (text && b.classList.contains('ch-bub')) acts.push(['copy', 'คัดลอก', icon('copy')]);
+    if (real && text) acts.push(['tr', chatTr.has(String(m.id)) && chatTr.get(String(m.id)).show ? 'ดูต้นฉบับ' : 'แปล', CH_IC.tr]);
+    if (v2) acts.push(['pin', m.pinned_at ? 'เลิกปักหมุด' : 'ปักหมุด', CH_IC.pin]);
+    if (mine && real) acts.push(['del', 'ยกเลิกการส่ง', CH_IC.unsend, true]);
+    if (!mine && chatThread && chatThread.other) acts.push(['report', 'รายงาน', icon('flag'), true]);
+  }
+  const rxOn = v2;
+  if (!acts.length && !rxOn) return;
+  const mineRx = (chatReacts.get(String(m.id)) || new Map()).get(me) || '';
+
+  const br = b.getBoundingClientRect(), xr = box.getBoundingClientRect();
+  const ov = document.createElement('div');
+  ov.className = 'ch-hold';
+  ov.innerHTML = `<div class="ch-hold-dim"></div>
+    <div class="ch-msg${mine ? ' me' : ''} ch-hold-row"><span class="ch-col"></span></div>
+    ${rxOn ? `<div class="ch-hold-rx" role="group" aria-label="ใส่ปฏิกิริยา">${CH_RX.map(e =>
+      `<button type="button" data-rx="${e}"${e === mineRx ? ' class="on" aria-pressed="true"' : ''} aria-label="${e}">${e}</button>`).join('')}</div>` : ''}
+    ${acts.length ? `<div class="ch-hold-menu" role="menu" aria-label="ตัวเลือกข้อความ">
+      <p class="ch-hold-when">${esc(chatStamp(m))}${m.edited_at ? ' · แก้ไขแล้ว' : ''}</p>
+      ${acts.map(([k, lb, ic, bad]) => `<button type="button" role="menuitem" data-act="${k}"${bad ? ' class="bad"' : ''}>
+        <span>${esc(lb)}</span>${ic}</button>`).join('')}
+    </div>` : ''}`;
+  // สำเนาของฟองยกขึ้นเหนือชั้นหรี่ ตรงตำแหน่งเดิมเป๊ะ · ห่อด้วย .ch-msg(.me) ให้สีและทรงตามกฎเดิมทุกอย่าง
+  const clone = b.cloneNode(true);
+  clone.removeAttribute('tabindex');
+  clone.removeAttribute('onclick');
+  clone.classList.remove('pressing');
+  const wrap = ov.querySelector('.ch-hold-row');
+  wrap.querySelector('.ch-col').appendChild(clone);
+  // กว้างเผื่อ 6px แล้วชิดฝั่งเดิมของฟอง — กว้างเท่าเป๊ะ ทศนิยมปัดลงนิดเดียวคำท้ายก็ตกบรรทัด (เจอตอนเทสต์)
+  wrap.style.left = (br.left - xr.left - (mine ? 6 : 0)) + 'px';
+  wrap.style.top = (br.top - xr.top) + 'px';
+  wrap.style.width = (br.width + 6) + 'px';
+  box.appendChild(ov);
+
+  // แถบปฏิกิริยาอยู่เหนือฟอง (ไม่มีที่ = ใต้ฟอง) · เมนูอยู่ใต้ฟอง/ใต้แถบ (ไม่มีที่ = ขึ้นไปอยู่บน)
+  // ชิดฝั่งเดียวกับฟองทั้งคู่ (ของเราขวา ของเขาซ้าย)
+  const side = (el, w) => {
+    const l = mine ? br.right - xr.left - w : br.left - xr.left;
+    return Math.max(12, Math.min(xr.width - w - 12, l));
+  };
+  const strip = ov.querySelector('.ch-hold-rx');
+  let below = br.bottom - xr.top + 8, stripUp = true;
+  if (strip) {
+    const sh = strip.offsetHeight, sw = strip.offsetWidth;
+    let st = br.top - xr.top - sh - 10;
+    if (st < 8) { st = br.bottom - xr.top + 10; stripUp = false; below = st + sh + 8; }
+    strip.style.top = st + 'px';
+    strip.style.left = side(strip, sw) + 'px';
+    strip.style.transformOrigin = (mine ? 'right ' : 'left ') + (stripUp ? 'bottom' : 'top');
+  }
+  const menu = ov.querySelector('.ch-hold-menu');
+  if (menu) {
+    const mh = menu.offsetHeight, mw = menu.offsetWidth;
+    let top = below, up = false;
+    if (top + mh > xr.height - 8) {
+      top = (strip && stripUp ? parseFloat(strip.style.top) : br.top - xr.top) - mh - 8;
+      up = true;
+    }
+    menu.style.top = Math.max(8, top) + 'px';
+    menu.style.left = side(menu, mw) + 'px';
+    menu.style.transformOrigin = (mine ? 'right ' : 'left ') + (up ? 'bottom' : 'top');
+    menu.addEventListener('click', e => {
+      const k = e.target.closest('[data-act]');
+      if (k) chatHoldAct(k.dataset.act);
+    });
+  }
+  if (strip) strip.addEventListener('click', e => {
+    const k = e.target.closest('[data-rx]');
+    if (!k) return;
+    const id = String(m.id);
+    chatHoldClose();
+    chatReact(id, k.dataset.rx, { burst: true });
+  });
+
+  b.style.visibility = 'hidden';
+  chHold = { b, ov, m };
+  ov.querySelector('.ch-hold-dim').addEventListener('click', chatHoldClose);
+  if (typeof haptic === 'function') haptic('tap');
+  requestAnimationFrame(() => ov.classList.add('on'));
+  const first = ov.querySelector('.ch-hold-menu button, .ch-hold-rx button');
+  if (first) first.focus({ preventScroll: true });
+}
+
+function chatHoldClose() {
+  const h = chHold;
+  if (!h) return;
+  chHold = null;
+  h.ov.classList.remove('on');
+  setTimeout(() => {
+    // คืนโฟกัสให้ฟองเฉพาะตอนโฟกัสยังอยู่ในเมนู (ปิดด้วย Esc/แตะพื้นหลัง) — ถ้าเมนูส่งโฟกัสไปช่องพิมพ์แล้ว
+    // (ตอบกลับ · แก้ไข) ห้ามดึงกลับ ไม่งั้นคีย์บอร์ดมือถือหุบทันทีที่เพิ่งเด้งขึ้น (เจอตอนเทสต์)
+    const a = document.activeElement;
+    const back = !a || a === document.body || h.ov.contains(a);
+    h.ov.remove();
+    if (h.b.isConnected) { h.b.style.visibility = ''; if (back) h.b.focus({ preventScroll: true }); }
+  }, 200);
+}
+
+function chatHoldAct(k) {
+  const h = chHold;
+  if (!h) return;
+  const m = h.m;
+  chatHoldClose();
+  if (k === 'reply') chatStartReply(m);
+  else if (k === 'edit') chatStartEdit(m);
+  else if (k === 'fwd') chatForwardOpen(m);
+  else if (k === 'copy') chatCopy(String(m.body || ''));
+  else if (k === 'tr') chatTranslate(m);
+  else if (k === 'pin') chatPin(m);
+  else if (k === 'del') unsendChat(String(m.id));
+  else if (k === 'report' && chatThread && chatThread.other) openReport('user', chatThread.other);
+}
+
+// ---------- ตอบกลับ / แก้ไข: แถบเหนือช่องพิมพ์ ----------
+function chatSnip(m) {
+  const t = String((m && m.body) || '').trim();
+  if (t) return t.length > 70 ? t.slice(0, 70) + '…' : t;
+  return m && m.image ? 'รูปภาพ' : '';
+}
+function chatCtxRender() {
+  const el = document.getElementById('chCtx');
+  if (!el) return;
+  const m = chatEdit || chatReply;
+  if (!m || !chatThread) { el.hidden = true; el.innerHTML = ''; return; }
+  const me = currentUser && currentUser.id;
+  const title = chatEdit ? 'กำลังแก้ไขข้อความ'
+    : 'ตอบกลับ' + (m.sender === me ? 'ตัวเอง' : ' ' + chatThread.name);
+  el.hidden = false;
+  el.innerHTML = `<span class="ch-ctx-ic">${chatEdit ? icon('pencil') : CH_IC.reply}</span>
+    <span class="ch-ctx-tx"><b>${esc(title)}</b><i>${esc(chatSnip(m))}</i></span>
+    <button type="button" class="ch-ctx-x" onclick="chatCtxClose()" aria-label="ยกเลิก">${icon('x')}</button>`;
+}
+function chatCtxClose() {
+  const wasEdit = !!chatEdit;
+  chatReply = null; chatEdit = null;
+  chatCtxRender();
+  if (wasEdit) {
+    const el = document.getElementById('chatIn');
+    if (el) { el.value = chatEditDraft; chatTyping(); }
+    chatEditDraft = '';
+  }
+}
+function chatStartReply(m) {
+  if (chatEdit) chatCtxClose();
+  chatReply = m;
+  chatCtxRender();
+  const el = document.getElementById('chatIn');
+  if (el) el.focus();
+}
+function chatStartEdit(m) {
+  const el = document.getElementById('chatIn');
+  if (!el) return;
+  if (!chatEdit) chatEditDraft = el.value;
+  chatReply = null;
+  chatEdit = m;
+  chatCtxRender();
+  el.value = String(m.body || '');
+  chatTyping();
+  el.focus();
+}
+async function chatEditSend() {
+  const el = document.getElementById('chatIn');
+  const m = chatEdit;
+  const body = el ? el.value.trim() : '';
+  if (!m || !body) return;
+  chatEdit = null;
+  chatCtxRender();
+  if (el) { el.value = chatEditDraft; chatTyping(); }
+  chatEditDraft = '';
+  if (body === String(m.body || '').trim()) return;
+  const old = { body: m.body, edited_at: m.edited_at };
+  m.body = body;
+  m.edited_at = new Date().toISOString();
+  chatTr.delete(String(m.id));
+  renderChat();
+  const { data, error } = await sb.rpc('dm_edit', { p_msg: Number(m.id), p_body: body });
+  if (error) {
+    Object.assign(m, old);
+    renderChat();
+    if (typeof haptic === 'function') haptic('snooze');
+    showToast({ title: 'แก้ไม่สำเร็จ', body: error.message });
+    return;
+  }
+  if (data) m.edited_at = data;
+  // แก้แล้วต้องผ่านตัวกรองอีกรอบ — ไม่งั้นส่งข้อความธรรมดาแล้วค่อยแก้เป็นอย่างอื่น = เลี่ยงตัวกรองได้
+  if (typeof guardText === 'function') guardText('dm', m.id, body);
+  renderChat();
+}
+
+// ข้อความต้นทางเหนือฟองที่เป็นการตอบกลับ — แตะแล้วเลื่อนไปหา
+function chatQuoteHtml(m, mine) {
+  const o = chatMsgs.find(x => String(x.id) === String(m.reply_to));
+  const me = currentUser && currentUser.id;
+  const nm = chatThread.name;
+  let label = (mine ? 'คุณ' : nm + ' ') + 'ตอบกลับ';
+  if (o) label += o.sender === m.sender ? 'ตัวเอง' : o.sender === me ? 'คุณ' : ' ' + nm;
+  return `<button type="button" class="ch-quote"${o ? ` onclick="chatGoto('${esc(String(o.id))}')"` : ' disabled'}>
+    <i>${CH_IC.reply}${esc(label)}</i><span>${o ? esc(chatSnip(o)) : 'ข้อความก่อนหน้านี้'}</span></button>`;
+}
+function chatGoto(id) {
+  const row = document.querySelector('#chatList .ch-msg[data-id="' + id + '"]');
+  if (!row) return;
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  row.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+  row.classList.remove('flash');
+  void row.offsetWidth;
+  row.classList.add('flash');
+  setTimeout(() => row.classList.remove('flash'), 1500);
+}
+
+// ---------- ปฏิกิริยา ----------
+// คนละหนึ่งอันต่อข้อความ (เลือกใหม่ = แทนอันเดิม · กดอันเดิมซ้ำ = เอาออก) · แตะสองทีที่ฟอง = ❤️
+function chatReactSet(r) {
+  if (!r) return;
+  const k = String(r.msg);
+  let mm = chatReacts.get(k);
+  if (!mm) chatReacts.set(k, mm = new Map());
+  if (r.emoji) mm.set(r.uid, r.emoji); else mm.delete(r.uid);
+}
+function chatRxHtml(id) {
+  const mm = chatReacts.get(id);
+  if (!mm || !mm.size) return '';
+  const me = currentUser && currentUser.id;
+  const es = [...new Set(mm.values())];
+  return `<button type="button" class="ch-rx${mm.has(me) ? ' mine' : ''}" onclick="chatRxTap('${esc(id)}')"
+    aria-label="ปฏิกิริยา ${esc(es.join(' '))}${mm.has(me) ? ' · แตะเพื่อเอาของคุณออก' : ''}">${esc(es.join(''))}${mm.size > 1 ? `<b>${mm.size}</b>` : ''}</button>`;
+}
+function chatRxTap(id) {
+  const mm = chatReacts.get(id);
+  const me = currentUser && currentUser.id;
+  if (!mm || !mm.size) return;
+  chatReact(id, mm.has(me) ? '' : [...mm.values()][0]);
+}
+async function chatReact(id, emoji, opt) {
+  opt = opt || {};
+  if (!chatV2 || !sb || !currentUser || String(id).startsWith('tmp')) return;
+  const me = currentUser.id;
+  const before = (chatReacts.get(String(id)) || new Map()).get(me) || '';
+  if (before === emoji) {
+    if (opt.keep) { chatBurst(id); return; }   // แตะสองทีซ้ำบนฟองที่ใจอยู่แล้ว = ไม่เอาออก (แบบ IG)
+    emoji = '';                                 // กดอันเดิมซ้ำในแถบ = เอาออก
+  }
+  chatReactSet({ msg: id, uid: me, emoji });
+  renderChat();
+  if (emoji && opt.burst) chatBurst(id);
+  if (emoji && typeof haptic === 'function') haptic('tap');
+  const { error } = await sb.rpc('dm_react', { p_msg: Number(id), p_emoji: emoji });
+  if (error) {
+    chatReactSet({ msg: id, uid: me, emoji: before });
+    renderChat();
+    showToast({ title: 'ใส่ปฏิกิริยาไม่สำเร็จ', body: error.message });
+  }
+}
+function chatBurst(id) {
+  const col = document.querySelector('#chatList .ch-msg[data-id="' + id + '"] .ch-col');
+  if (!col || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const s = document.createElement('span');
+  s.className = 'ch-burst';
+  s.textContent = '❤️';
+  s.setAttribute('aria-hidden', 'true');
+  col.appendChild(s);
+  setTimeout(() => s.remove(), 800);
+}
+let chTap = null;
+function chatDoubleTap(b) {
+  const row = b.closest('.ch-msg[data-id]');
+  if (!row || row.classList.contains('sending')) return;
+  const id = row.dataset.id, now = Date.now();
+  if (chTap && chTap.id === id && now - chTap.t < 320) {
+    chTap = null;
+    chatReact(id, '❤️', { keep: true, burst: true });
+    return;
+  }
+  chTap = { id, t: now };
+}
+
+// ---------- ปุ่มข้างฟองตอนเอาเมาส์ไปชี้ (คอม) ----------
+// ปุ่มชุดเดียวทั้งห้อง ย้ายไปอยู่แถวที่เมาส์ชี้ — ไม่สร้างสามปุ่มให้ทุกข้อความ (200 ข้อความ = 600 ปุ่ม)
+function chatToolsAt(row) {
+  const col = row.querySelector('.ch-col');
+  if (!col) return;
+  let t = document.getElementById('chTools');
+  if (!t) {
+    t = document.createElement('span');
+    t.id = 'chTools';
+    t.className = 'ch-tools';
+    t.addEventListener('click', e => {
+      const btn = e.target.closest('button[data-tool]');
+      const r = t.closest('.ch-msg[data-id]');
+      if (!btn || !r) return;
+      const m = chatMsgs.find(x => String(x.id) === r.dataset.id);
+      const bub = r.querySelector('.ch-bub, .ch-img:not(.wait)');
+      if (!m || !bub) return;
+      if (btn.dataset.tool === 'reply') chatStartReply(m);
+      else chatHoldOpen(bub, { rxOnly: btn.dataset.tool === 'react' });
+    });
+  }
+  const html = (chatV2 ? `<button type="button" data-tool="react" aria-label="ใส่ปฏิกิริยา">${CH_IC.smile}</button>`
+    + `<button type="button" data-tool="reply" aria-label="ตอบกลับ">${CH_IC.reply}</button>` : '')
+    + `<button type="button" data-tool="more" aria-label="ตัวเลือกเพิ่มเติม">${CH_IC.more}</button>`;
+  if (t.__html !== html) { t.innerHTML = html; t.__html = html; }
+  if (row.classList.contains('me')) { if (t.nextSibling !== col) row.insertBefore(t, col); }
+  else if (col.nextSibling !== t) col.after(t);
+}
+
+// ---------- ส่งต่อ ----------
+// ส่งต่อได้เฉพาะข้อความตัวหนังสือ — รูปในแชทผูกกับไฟล์ของคนส่งเดิม ถ้าเขายกเลิกการส่ง ไฟล์ถูกลบ
+// รูปที่ส่งต่อไปแล้วจะกลายเป็นกรอบเปล่าในห้องอื่นโดยไม่มีใครรู้ว่าทำไม
+let chFwdText = '';
+async function chatForwardOpen(m) {
+  const box = document.getElementById('chatBody');
+  const text = String(m.body || '').trim();
+  if (!box || !text || !sb || !currentUser) return;
+  chFwdText = text;
+  if (!dmRows.length) {
+    try { const { data } = await sb.rpc('dm_inbox'); dmRows = data || []; } catch (_) {}
+  }
+  // ห้องที่ยังเป็นคำขอส่งต่อไม่ได้ (คนขอส่งได้ข้อความเดียว · คนรับยังไม่ได้ตอบรับ)
+  const rows = dmRows.filter(r => r.id !== chatThread.id && r.state !== 'pending');
+  const av = r => r.avatar ? `<img class="ch-fwd-av" src="${esc(r.avatar)}" alt="">`
+    : `<span class="ch-fwd-av" style="${typeof faceTint === 'function' ? faceTint(r) : ''}">${
+        esc(typeof faceLetter === 'function' ? faceLetter(r) : String(r.display_name || '?').slice(0, 1))}</span>`;
+  const nm = r => typeof personName === 'function' ? personName(r) : (r.display_name || r.handle || 'นักเรียน');
+  const ov = document.createElement('div');
+  ov.className = 'ch-fwd';
+  ov.innerHTML = `<div class="ch-hold-dim" onclick="chatForwardClose()"></div>
+    <div class="ch-fwd-sheet" role="dialog" aria-label="ส่งต่อข้อความ">
+      <div class="ch-fwd-head"><b>ส่งต่อ</b>
+        <button type="button" class="ch-ctx-x" onclick="chatForwardClose()" aria-label="ปิด">${icon('x')}</button></div>
+      <p class="ch-fwd-msg">${esc(chatSnip(m))}</p>
+      <div class="ch-fwd-list">${rows.length ? rows.map(r => `<div class="ch-fwd-row">
+          ${av(r)}<span class="ch-fwd-nm">${esc(nm(r))}</span>
+          <button type="button" class="ch-fwd-go" onclick="chatForwardSend(this,'${esc(r.id)}')">ส่ง</button>
+        </div>`).join('') : '<p class="ch-fwd-none">ยังไม่มีห้องคุยอื่นให้ส่งต่อ</p>'}</div>
+    </div>`;
+  chatForwardClose();
+  box.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.add('on'));
+}
+function chatForwardClose() {
+  const ov = document.querySelector('#chatBody .ch-fwd');
+  if (!ov) return;
+  ov.classList.remove('on');
+  setTimeout(() => ov.remove(), 220);
+}
+async function chatForwardSend(btn, threadId) {
+  if (!chFwdText || !sb || btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = 'กำลังส่ง…';
+  const { data, error } = await sb.rpc('dm_say', { p_thread: threadId, p_body: chFwdText, p_image: null });
+  if (error) {
+    btn.disabled = false;
+    btn.textContent = 'ส่ง';
+    showToast({ title: 'ส่งต่อไม่สำเร็จ', body: error.message });
+    return;
+  }
+  btn.textContent = 'ส่งแล้ว';
+  btn.classList.add('done');
+  const row = Array.isArray(data) ? data[0] : data;
+  if (typeof guardText === 'function' && row && row.id) guardText('dm', row.id, chFwdText);
+  refreshDmRows();
+}
+
+// ---------- แปล ----------
+// ใช้ฟังก์ชัน translate ตัวเดียวกับเธรดหัวข้อ (Gemini) · ข้อความไทย → อังกฤษ · ภาษาอื่น → ไทย
+// ส่งข้อความเฉพาะตอนเจ้าตัวกดแปลเองเท่านั้น · คำแปลอยู่ในหน่วยความจำ (chatTr) ปิดห้องแล้วหาย
+// ฝั่งเซิร์ฟเวอร์เก็บแคชด้วยค่าแฮชของข้อความ (topic_tr ไม่มี policy อ่าน) — ไม่มีใครค้นย้อนหาข้อความได้
+async function chatTranslate(m) {
+  const id = String(m.id);
+  const have = chatTr.get(id);
+  if (have) { have.show = !have.show; renderChat(); return; }
+  const text = String(m.body || '').trim();
+  if (!text || !sb || !currentUser) return;
+  const thai = typeof looksThai === 'function' ? looksThai(text) : /[\u0E00-\u0E7F]/.test(text);
+  showToast({ title: 'กำลังแปล…', body: '' });
+  let out = null, status = 0;
+  try {
+    const { data, error } = await sb.functions.invoke('translate', { body: { texts: [text], to: thai ? 'en' : 'th' } });
+    out = !error && data && Array.isArray(data.out) ? data.out[0] : null;
+    status = error && error.context ? error.context.status : 0;
+  } catch (_) { out = null; }
+  if (!out) {
+    showToast({ title: 'แปลไม่ได้', body: status === 501 ? 'ตัวแปลยังไม่ได้เปิดใช้' : 'ลองใหม่อีกครั้ง' });
+    return;
+  }
+  chatTr.set(id, { text: out, show: true });
+  const t = document.getElementById('appToast');
+  if (t) t.classList.remove('show');
+  renderChat();
+}
+function chatTrToggle(id) {
+  const t = chatTr.get(id);
+  if (!t) return;
+  t.show = !t.show;
+  renderChat();
+}
+
+// ---------- ปักหมุด ----------
+async function chatPin(m) {
+  if (!chatV2 || !sb) return;
+  const on = !m.pinned_at;
+  const before = m.pinned_at;
+  m.pinned_at = on ? new Date().toISOString() : null;
+  renderChat();
+  const { error } = await sb.rpc('dm_pin', { p_msg: Number(m.id), p_on: on });
+  if (error) {
+    m.pinned_at = before;
+    renderChat();
+    showToast({ title: 'ปักหมุดไม่สำเร็จ', body: error.message });
+    return;
+  }
+  showToast({ title: on ? 'ปักหมุดแล้ว' : 'เลิกปักหมุดแล้ว', body: '' });
+}
+
+function chatCopy(t) {
+  const ok = () => showToast({ title: 'คัดลอกแล้ว', body: '' });
+  const old = () => {
+    const a = document.createElement('textarea');
+    a.value = t; a.setAttribute('readonly', '');
+    a.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(a);
+    a.select();
+    let r = false;
+    try { r = document.execCommand('copy'); } catch (_) {}
+    a.remove();
+    if (r) ok(); else showToast({ title: 'คัดลอกไม่ได้', body: 'เครื่องนี้ไม่ให้แอปเขียนคลิปบอร์ด' });
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, old);
+  else old();
+}
+
+// ปุ่มลบเคยอยู่ข้างเวลาให้เห็นตลอด — ย้ายเข้าเมนูกดค้างแล้ว จึงบอกครั้งเดียวตอนเปิดห้องที่มีข้อความของเรา
+function chatHoldTip() {
+  const me = currentUser && currentUser.id;
+  if (!chatMsgs.some(m => m.sender === me)) return;
+  try {
+    if (localStorage.getItem('studentos.alt.chHoldTip')) return;
+    localStorage.setItem('studentos.alt.chHoldTip', '1');
+  } catch (_) { return; }
+  setTimeout(() => {
+    if (curScreen === 'scr-chat') showToast({ title: 'กดค้างที่ข้อความ', body: 'ตอบกลับ ส่งต่อ คัดลอก แปล หรือยกเลิกการส่งได้จากเมนูที่เด้งขึ้นมา' });
+  }, 900);
 }
 
 // ============================================================

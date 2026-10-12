@@ -15340,9 +15340,20 @@ function celebrateCopy(allDone, left) {
 
 // ---------- toast ในแอป ----------
 let toastTimer = null;
+// 12 ต.ค. 69 · หน้าโหลดบังจอนานขึ้นบนเครื่องช้า (รอเครื่องว่างก่อนปล่อยเข้า) — toast ที่ยิงระหว่างนั้น
+// (ข้อความที่แชร์มา · ผลเชื่อมบัญชี · การจับเวลาที่ค้าง) จะขึ้นใต้หน้าโหลดแล้วหมดเวลาไปโดยไม่มีใครเห็น
+// พักใบล่าสุดไว้ (toast มีช่องเดียว ใบหลังทับใบก่อนอยู่แล้ว) แล้วโชว์ตอนหน้าโหลดจางออก — index.html เรียก bootToastFlush
+let bootToast = null;
+function bootToastFlush() {
+  const c = bootToast;
+  bootToast = null;
+  if (c) setTimeout(() => showToast(c), 380);   // รอหน้าโหลดจางเกือบหมดก่อน ไม่ให้เลื่อนลงมาใต้ฝ้า
+}
 function showToast(copy) {
   const phone = document.querySelector('.phone');
   if (!phone) return;
+  const boot = document.getElementById('boot');
+  if (boot && !boot.classList.contains('out')) { bootToast = copy; return; }
   let el = document.getElementById('appToast');
   if (!el) {
     el = document.createElement('div');
@@ -17181,7 +17192,9 @@ function syncLiteRow() {
   // ที่เหลือ (ฟอนต์จาก CDN · บัญชี · การแจ้งเตือน) เติมเข้ามาทีหลังได้โดยไม่ต้องให้ใครรอ
   const guessedSignedIn = hasStoredSession();
   routeStart();
-  // จอแรกวาดเสร็จแล้ว → จอเปิดแอป (#boot ใน index.html) เติมแถบให้เต็มแล้วจางออก · ไม่รออะไรข้างล่างนี้
+  // จอแรกวาดเสร็จแล้ว → แถบหน้าโหลด (#boot ใน index.html) ขึ้น 55%
+  // 12 ต.ค. 69 · หน้าโหลดไม่ออกตรงนี้แล้ว — รอฟอนต์ เครื่องว่าง และข้อมูลบัญชีข้างล่างก่อน (ต้องถึง 75% ถึงเข้าได้ · ดู index.html)
+  // แอปข้างใต้ยังบูตต่อตามปกติ ไม่มีบรรทัดไหนในนี้รอหน้าโหลด
   if (typeof window.bootDone === 'function') window.bootDone();
   watchOverlays();
 
@@ -17210,6 +17223,7 @@ function syncLiteRow() {
   if (document.fonts && document.fonts.ready) {
     await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 2500))]).catch(() => {});
   }
+  if (typeof window.bootStep === 'function') window.bootStep('fonts');   // หน้าโหลด 65%
 
   tickClock();
   setInterval(tickClock, 30_000);
@@ -17271,6 +17285,9 @@ function syncLiteRow() {
       guessedSignedIn !== !!currentUser && (currentUser || sessionAnswered)) {
     routeStart();
   }
+  // ข้อมูลบัญชีเข้าแล้ว (และแก้จอแล้วถ้าเดาผิด) → หน้าโหลด 92% · ทั้งการรวมข้อมูลกับการวาดใหม่เกิดใต้หน้าโหลด
+  // ไม่ใช่ตอนที่คนเพิ่งเข้าแอปมาแล้วกำลังจะแตะ
+  if (typeof window.bootStep === 'function') window.bootStep('cloud');
   // ตอนนี้รู้แล้วว่าล็อกอินสำเร็จจริงไหม — ถ้ามี token ค้างจากลิงก์กลุ่ม ใช้ตรงนี้
   await applyJoinToken();
   // เคยกดอนุญาตไว้แล้ว + ล็อกอินอยู่ → ต่อ push ให้อัตโนมัติ (เผื่อ subscription หลุด)

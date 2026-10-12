@@ -136,9 +136,9 @@
      เคยมีฉากเปิดแอปมาแล้วและถูกถอดออก เพราะบังคับนั่งรอขั้นต่ำ 3.6 วินาทีทุกครั้ง (ดูคอมเมนต์เหนือ hasStoredSession ใน app.js)
      รอบนี้จึงต่างกันตรงที่:
      • เป็นแค่ชั้นบัง — แอปบูตตามปกติข้างใต้ ไม่มีอะไรรอจอนี้
-     • แถบวิ่งตามของจริง ไม่วิ่งนำ: ไฟล์ที่โหลดเสร็จ (สูงสุด 70%) → อ่านหน้าเสร็จ (78%) → วาดจอแรกเสร็จ (100% · bootDone ใน initApp)
+     • แถบวิ่งตามของจริง ไม่วิ่งนำ — ขั้นทั้งหมดอยู่ในสคริปต์ข้างล่าง (12 ต.ค. 69 · ต้องถึง 75% ก่อนถึงจะเข้าแอปได้)
      • จำกัดความเร็วแถบไว้ที่ 0→100 ใน 0.7 วินาที — โหลดจากแคชเร็วแค่ไหนก็ยังเห็นแถบวิ่งเต็ม แต่ไม่ช้ากว่านั้น
-     • กันค้าง: สคริปต์ล้มกลางทางก็ยังเข้าแอปได้ (หน้าโหลดเสร็จ = จบ · 10 วินาที = จบแน่นอน) -->
+     • กันค้าง: สคริปต์ล้มกลางทางก็ยังเข้าแอปได้ (ดูทางหนีไฟในสคริปต์ · 12 วินาที = ออกแน่นอน) -->
 <div id="boot" class="boot" aria-hidden="true">
   <div class="boot-mid">
     <img class="boot-mark" src="logo-mark.png" alt="" width="92" height="92" decoding="async">
@@ -161,17 +161,50 @@
     var barColor = m && m.content;
     if (m) m.content = '#FFFFFF';
 
+    // 12 ต.ค. 69 · เจ้าของ: "แก้ไขให้ในหน้าโหลดก่อนเข้าแอปคือการโหลดข้อมูลแอปก่อนเพื่อไม่ให้แอปมันค้าง
+    //   ให้ได้ 75 เปอร์เซ็นต์ขึ้นไปถึงจะโหลดเข้าแอปได้ เพื่อลดปัญหาค้างตอนเปิดแอปในอุปกรณ์ที่สเปคค่อนข้างช้า"
+    // เดิม: วาดจอแรกเสร็จ = 100% แล้วออกทันที — แต่งานหนักของการเปิดแอปยังไม่จบ
+    //   (ฟอนต์ไทยสลับเข้ามาแล้วจัดหน้าใหม่ทั้งจอ · ดึงข้อมูลบัญชีแล้ววาดทั้งแอปใหม่อีกรอบ)
+    //   เครื่องช้าจึงเข้าแอปมาเจอจอที่แตะไม่ติดอยู่หลายวินาที — งานพวกนั้นเกิดหลังหน้าโหลดหายไปแล้ว
+    // ตอนนี้แถบเดินตามขั้นจริง และหน้านี้บังไว้จนกว่างานหนักจะผ่านไป:
+    //   ไฟล์แอป (≤30) → อ่านหน้าเสร็จ (40) → ข้อมูลในเครื่อง + วาดจอแรก (55) → ฟอนต์พร้อม (65)
+    //   → เครื่องว่าง: เฟรมลื่นติดกัน 6 เฟรม (75 = ประตู) → ข้อมูลบัญชีจาก cloud (92) → ว่างอีกรอบหลังวาดข้อมูลบัญชี (100)
+    // ขั้นต้องผ่านตามลำดับ — ข้อมูลบัญชีมาก่อนเครื่องว่าง แถบก็ยังไม่ข้าม 65
+    // ออกได้เมื่อ: ถึง 75 แล้ว และ (ครบ 100 หรือรอข้อมูลบัญชีครบ 1.5 วินาทีนับจากถึง 75)
+    //   ข้อมูลบัญชีช้าเพราะเน็ต ไม่ใช่เพราะเครื่อง — ไม่ให้คนนั่งรอเน็ตบนหน้านี้ แอปซิงก์ต่อเองข้างหลังเหมือนเดิม
+    // เครื่องที่ไม่ว่างเลย (เฟรมช้าตลอด) ถูกนับว่าผ่าน 75 เองหลังวาดจอแรก 4 วินาที — หน้านี้ห้ามขังคนไว้
     var FULL_MS = 700;           // แถบวิ่ง 0→100 ได้เร็วสุดเท่านี้
-    var target = 4, shown = 0, done = false, last = 0, n = 0;
-    function to(p) { if (p > target) target = p; }
+    var GATE = 75;               // ต่ำกว่านี้ไม่ปล่อยเข้าแอป (ยกเว้นทางหนีไฟ 12 วินาที)
+    var NET_WAIT = 1500;         // ถึงประตูแล้ว รอข้อมูลบัญชีต่อได้ไม่เกินนี้
+    var STEPS = [['dom', 40], ['render', 55], ['fonts', 65], ['idle', 75], ['cloud', 92], ['calm', 100]];
+    var has = {}, res = 4, shown = 0, last = 0, n = 0, calm = 0, painted = -1;
+    var renderAt = 0, gateAt = 0, cloudAt = 0, forced = false;
+    function level() {
+      var p = res;
+      for (var i = 0; i < STEPS.length && has[STEPS[i][0]]; i++) p = STEPS[i][1];
+      return p;
+    }
+    // ผ่านขั้นไหนแล้วนับเฟรมลื่นใหม่ — ความว่างที่นับต้องเป็นความว่าง "หลัง" งานของขั้นนั้น
+    function step(k) {
+      if (has[k]) return;
+      has[k] = true; calm = 0;
+      // ทุกขั้นทิ้งรอยไว้ในไทม์ไลน์ของเบราว์เซอร์ (performance.getEntriesByType('mark')) — ไว้วัดบนเครื่องจริงว่าช้าที่ขั้นไหน
+      try { performance.mark('boot:' + k); } catch (e) {}
+      if (k === 'render') renderAt = performance.now();
+      if (k === 'cloud') cloudAt = performance.now();
+    }
+    function all() { for (var i = 0; i < STEPS.length; i++) step(STEPS[i][0]); }
+    window.bootStep = step;                                  // initApp เรียก 'fonts' กับ 'cloud'
+    window.bootDone = function () { step('render'); };       // ชื่อเดิม — initApp เรียกหลังวาดจอแรก
     try {
-      new PerformanceObserver(function (l) { n += l.getEntries().length; to(8 + 62 * (1 - Math.exp(-n / 12))); })
+      new PerformanceObserver(function (l) { n += l.getEntries().length; res = 4 + 26 * (1 - Math.exp(-n / 12)); })
         .observe({ type: 'resource', buffered: true });
-    } catch (e) { to(40); }
-    document.addEventListener('DOMContentLoaded', function () { to(78); });
-    window.bootDone = function () { to(100); done = true; };
-    window.addEventListener('load', function () { window.bootDone(); });
-    setTimeout(function () { window.bootDone(); }, 10000);
+    } catch (e) { res = 30; }
+    document.addEventListener('DOMContentLoaded', function () { step('dom'); });
+    // ทางหนีไฟ: หน้าเว็บโหลดครบแล้ว 3 วินาทียังไม่มีจอแรก = สคริปต์แอปล้ม — ปล่อยเข้าไปเห็นของที่มี ดีกว่าค้างที่โลโก้
+    // (เดิมหน้าโหลดครบ = 100% ทันที ซึ่งปล่อยคนเข้าก่อนแอปพร้อม)
+    window.addEventListener('load', function () { setTimeout(function () { if (!has.render) all(); }, 3000); });
+    setTimeout(all, 10000);
     // 11 ต.ค. 69 · ทางออกปกติต้องมีเฟรมเดิน (requestAnimationFrame ข้างล่าง) — "10 วินาที = จบแน่นอน" ข้างบนไม่จริง
     // ถ้าเฟรมไม่เดิน (แท็บถูกซ่อนตอนโหลด · เครื่องค้างหนัก) ชั้นนี้ค้างทับแอปทั้งจอ แตะอะไรก็ไม่ติด
     // เจอจริงตอนตรวจ: ค้างทับอยู่ราวสามนาที · 12 วินาที = ออกเลยด้วยตัวจับเวลา ไม่รอเฟรม
@@ -183,6 +216,7 @@
     function out() {
       if (gone) return;
       gone = true;
+      try { performance.mark('boot:out@' + Math.round(shown)); } catch (e) {}
       var root = document.documentElement;
       root.classList.add('boot-reveal');
       el.classList.add('out');
@@ -193,15 +227,33 @@
       try {
         if (typeof rollNumbers === 'function') rollNumbers(document.querySelector('.screen.on'));
         if (typeof greetIn === 'function') greetIn();
+        if (typeof bootToastFlush === 'function') bootToastFlush();   // toast ที่ยิงมาระหว่างหน้าโหลดยังบังอยู่
       } catch (e) {}
     }
     function frame(now) {
+      var gap = last ? now - last : 0;
       if (!last) last = now;
-      shown = Math.min(target, shown + (now - last) / FULL_MS * 100);
+      // เฟรมห่างเกิน 50ms (ต่ำกว่า 20fps) = เครื่องยังยุ่งอยู่ นับใหม่ · เครื่อง 30fps (33ms) ยังนับว่าลื่น
+      if (gap) calm = gap < 50 ? calm + 1 : 0;
+      if (has.render && !has.idle) {
+        if (now - renderAt > 4000) { forced = true; step('fonts'); step('idle'); }
+        else if (has.fonts && calm >= 6) step('idle');
+      }
+      if (has.cloud && !has.calm && calm >= 6) step('calm');
+      var tgt = level();
+      if (tgt >= GATE && !gateAt) gateAt = now;
+      shown = Math.min(tgt, shown + (now - last) / FULL_MS * 100);
       last = now;
-      fill.style.transform = 'scaleX(' + (shown / 100) + ')';
-      bar.style.setProperty('--p', shown);
-      if (done && shown >= 100) { setTimeout(out, 140); return; }
+      // ค้างที่ขั้นไหน = ไม่ต้องเขียนค่าเดิมซ้ำทุกเฟรม (ไม่ให้หน้าโหลดเองไปแย่งเครื่องตอนรอเครื่องว่าง)
+      if (shown !== painted) {
+        painted = shown;
+        fill.style.transform = 'scaleX(' + (shown / 100) + ')';
+        bar.style.setProperty('--p', shown);
+      }
+      // หลังถึงประตู: ข้อมูลบัญชียังไม่มา = รอได้อีก 1.5 วินาที · มาแล้วแต่เครื่องยังไม่ว่าง = รอได้อีก 1 วินาที
+      // ประตูที่ผ่านเพราะครบ 4 วินาที (forced · เครื่องไม่ว่างเลย) ไม่รอความว่างรอบสอง — รอไปก็ไม่มา
+      var until = !has.cloud ? gateAt + NET_WAIT : forced ? gateAt : Math.max(gateAt, cloudAt) + 1000;
+      if (shown >= 100 || (gateAt && shown >= GATE && now >= until)) { setTimeout(out, 140); return; }
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
