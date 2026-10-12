@@ -15178,16 +15178,30 @@ function notifPref(key) { return state.settings[key] !== false; }
 function notifOn() { return state.settings.notifOff !== true; }
 
 const NOTIF_AUTO_KEY = 'studentos.alt.notifAutoAt';
+function autoAskReady() {
+  if (!notifOn() || !('Notification' in window) || Notification.permission !== 'default') return false;
+  if (curScreen === 'scr-login' || curScreen === 'scr-onboard') return false;
+  let last = 0;
+  try { last = +localStorage.getItem(NOTIF_AUTO_KEY) || 0; } catch (_) {}
+  return Date.now() - last >= 864e5;
+}
 function autoAskNotif(e) {
-  if (!notifOn() || !('Notification' in window) || Notification.permission !== 'default') return;
-  if (curScreen === 'scr-login' || curScreen === 'scr-onboard') return;
+  if (!autoAskReady()) return;
   // แตะที่ช่องกรอก / ปุ่มเลือกรูป — กล่องของระบบจะเด้งทับคีย์บอร์ดหรือที่เลือกรูปพอดี ข้ามไปแตะถัดไป
   const el = e && e.target && e.target.closest
     && e.target.closest('input, textarea, select, label, [onclick*=".click()"], #notifRow, #notifAllRow');
   if (el) return;
-  let last = 0;
-  try { last = +localStorage.getItem(NOTIF_AUTO_KEY) || 0; } catch (_) {}
-  if (Date.now() - last < 864e5) return;
+  try { localStorage.setItem(NOTIF_AUTO_KEY, String(Date.now())); } catch (_) {}
+  enableNotif();
+}
+
+// 12 ต.ค. 69 · เจ้าของ: "ให้แอปแจ้งเตือนอัตโนมัติ ตอนนี้เหมือนต้องไปกดก่อนในแอป"
+// เบราว์เซอร์ตระกูล Chrome (Chrome/Edge/Samsung Internet ทั้งมือถือและคอม) ยอมให้ถามได้ตั้งแต่เปิดแอป
+// ไม่ต้องรอนิ้วแตะ — ถามเลย · ส่วน iPhone/Safari/Firefox ปฏิเสธเงียบถ้าไม่มีการแตะ จึงยังใช้ autoAskNotif
+// userAgentData มีเฉพาะตระกูล Chrome — แม่นกว่าเดาจาก userAgent (Chrome บน iPhone ก็คือ Safari ข้างใน)
+// ใช้คีย์วันละครั้งร่วมกับทางแตะ: ปัดกล่องทิ้งตอนเปิดแล้ว ไม่ถามซ้ำตอนแตะในวันเดียวกัน (Chrome บล็อกเองถ้าปัดบ่อย)
+function autoAskNotifOpen() {
+  if (isIOS() || !navigator.userAgentData || document.hidden || !autoAskReady()) return;
   try { localStorage.setItem(NOTIF_AUTO_KEY, String(Date.now())); } catch (_) {}
   enableNotif();
 }
@@ -17287,7 +17301,10 @@ function syncLiteRow() {
   // 11 ต.ค. 69 · กลับเข้าแอป = ลงทะเบียนซ้ำด้วย (iPhone ปลุกแอปแทนการเปิดใหม่ initApp จึงไม่ได้รัน)
   document.addEventListener('visibilitychange', () => pushHeartbeat());
   addEventListener('pageshow', e => { if (e.persisted) pushHeartbeat(); });
-  // แจ้งเตือนเปิดเองเป็นค่าเริ่มต้น — ขอสิทธิ์ตอนแตะครั้งแรกของวัน (ดู autoAskNotif)
+  // แจ้งเตือนเปิดเองเป็นค่าเริ่มต้น — ตระกูล Chrome ถามทันทีที่เปิด/กลับเข้าแอป (autoAskNotifOpen)
+  // ที่เหลือขอสิทธิ์ตอนแตะครั้งแรกของวัน (autoAskNotif) · เว้น 1.5 วิ ให้หน้าแรกขึ้นก่อนกล่องของระบบ
+  setTimeout(autoAskNotifOpen, 1500);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(autoAskNotifOpen, 800); });
   document.addEventListener('click', autoAskNotif, true);
 
   // หน้าต่างเช็คอินไม่เด้งเองอีกแล้ว
