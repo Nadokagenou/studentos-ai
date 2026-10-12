@@ -2,7 +2,7 @@
 let handler = null;
 globalThis.Deno = {
   env: { get: k => ({ SUPABASE_URL: 'http://x', SUPABASE_SERVICE_ROLE_KEY: 'k',
-                      VAPID_PUBLIC_KEY: 'pub', VAPID_PRIVATE_KEY: 'priv' })[k] },
+                      VAPID_PUBLIC_KEY: 'pub', VAPID_PRIVATE_KEY: 'priv', DM_GUARD_WAIT_MS: '0' })[k] },
   serve: h => { handler = h; },
 };
 const sb = await import('./sb.mjs');
@@ -15,7 +15,7 @@ const ago = min => iso(Date.now() - min * 60000);
 function base() {
   return {
     dm_threads: [{ id: 'th1', a: 'u1', b: 'u3', state: 'open', opener: 'u3' }],
-    dm_messages: [{ id: 1, thread: 'th1', sender: 'u3', body: 'SECRETTEXT', image: null, created_at: ago(0.1) }],
+    dm_messages: [{ id: 1, thread: 'th1', sender: 'u3', body: 'พรุ่งนี้ส่งการบ้านเลขนะ', image: null, hidden: false, created_at: ago(0.1) }],
     push_subscriptions: [{ endpoint: 'ep1', user_id: 'u1', p256dh: 'p', auth: 'a' },
                          { endpoint: 'ep2', user_id: 'u1', p256dh: 'p', auth: 'a' },
                          { endpoint: 'ep3', user_id: 'u3', p256dh: 'p', auth: 'a' }],
@@ -40,7 +40,7 @@ const check = (name, cond, detail) => results.push({ name, pass: !!cond, detail 
   const r = await run(t);
   check('new DM -> every device of the recipient', r.sent.length === 2 && r.sent.every(s => s.endpoint !== 'ep3'), JSON.stringify(r.sent));
   check('card names the sender', r.sent[0] && r.sent[0].title === 'BOSS', JSON.stringify(r.sent[0]));
-  check('card carries no message text', !/SECRETTEXT/.test(JSON.stringify(r.sent)), JSON.stringify(r.sent[0]));
+  check('card shows what the friend typed', r.sent[0] && r.sent[0].body === 'พรุ่งนี้ส่งการบ้านเลขนะ', JSON.stringify(r.sent[0]));
   check('tag is per chat room', r.sent[0] && r.sent[0].tag === 'dm-th1', r.sent[0] && r.sent[0].tag);
   check('urgency high (Android does not hold it)', r.sent[0] && r.sent[0].opts && r.sent[0].opts.urgency === 'high', JSON.stringify(r.sent[0] && r.sent[0].opts));
   const key = 'dm::th1::' + t.dm_messages[0].created_at;
@@ -70,7 +70,8 @@ const check = (name, cond, detail) => results.push({ name, pass: !!cond, detail 
     { id: 5, thread: 'th1', sender: 'u3', body: 'd', created_at: ago(0.1) },
   ];
   const r = await run(t, 5);
-  check('counts messages since the last reply', r.sent[0] && r.sent[0].body === '3 ข้อความใหม่', JSON.stringify(r.sent[0]));
+  check('title counts messages since the last reply', r.sent[0] && r.sent[0].title === 'BOSS (3)', JSON.stringify(r.sent[0]));
+  check('body is the latest message', r.sent[0] && r.sent[0].body === 'd', JSON.stringify(r.sent[0]));
 }
 
 {
@@ -82,7 +83,19 @@ const check = (name, cond, detail) => results.push({ name, pass: !!cond, detail 
 {
   const t = base(); t.dm_threads[0].state = 'pending';
   const r = await run(t);
-  check('message request -> "ขอคุยกับคุณ"', r.sent[0] && r.sent[0].body === 'ขอคุยกับคุณ', JSON.stringify(r.sent[0]));
+  check('message request from a stranger -> no text, "ขอคุยกับคุณ"', r.sent[0] && r.sent[0].body === 'ขอคุยกับคุณ', JSON.stringify(r.sent[0]));
+}
+
+{
+  const t = base(); t.dm_messages[0].hidden = true;
+  const r = await run(t);
+  check('message hidden by guard -> no text on lock screen', r.sent[0] && r.sent[0].body === 'ส่งข้อความถึงคุณ', JSON.stringify(r.sent[0]));
+}
+
+{
+  const t = base(); t.dm_messages[0].body = 'ก'.repeat(400) + '\n\nบรรทัดใหม่';
+  const r = await run(t);
+  check('long text cut to one short card', r.sent[0] && r.sent[0].body.length === 150 && r.sent[0].body.endsWith('…'), r.sent[0] && r.sent[0].body.length);
 }
 
 {

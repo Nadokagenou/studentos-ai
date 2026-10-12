@@ -10,7 +10,9 @@
 // ทางใหม่: trigger บน dm_messages (migration 20261012120000_dm_push.sql) ยิง { id }
 // มาที่นี่ทันทีที่ข้อความลงตาราง → ส่งเข้ามือถือผู้รับทุกเครื่อง
 //   - ทุกเวลา รวมกลางคืน — เจ้าของเลือกเอง ("เด้งเลย") ทั้งที่รู้ว่ากฎเดิมเงียบกลางดึก
-//   - ไม่ใส่เนื้อข้อความลงการ์ด (การ์ดขึ้นจอล็อก ใครหยิบเครื่องก็อ่านได้ · กฎเดิมของ dmCopy)
+//   - การ์ดโชว์ข้อความที่เพื่อนพิมพ์ — เจ้าของสั่งเอง ("เอาข้อความที่พิมพ์ส่งไปเลย")
+//     กลับกฎเดิมของ dmCopy ที่ไม่ใส่เนื้อแชทเพราะการ์ดขึ้นจอล็อก · ยกเว้นสองกรณีที่ยังซ่อน:
+//     ข้อความที่ตัวกรอง (guard) ซ่อนแล้ว และคำขอคุยจากคนที่ยังไม่ได้รับ (คนแปลกหน้า)
 //   - tag ต่อห้อง — คุยรัว ๆ แล้วการ์ดของห้องเดียวกันแทนที่กันเอง ไม่กองเต็มจอ
 //   - คีย์กันซ้ำเป็นรูปเดียวกับ send-reminders (dm::ห้อง::เวลา) ทั้งสองทางจึงไม่ส่งซ้ำกัน
 //     และถ้าทางนี้ล้ม รอบ 30 นาทียังเก็บตกให้เหมือนเดิม
@@ -25,6 +27,11 @@ import { pushReady, pushToUser } from '../_shared/notify.ts';
 
 const FRESH_MS = 10 * 60000;       // ข้อความเก่ากว่านี้ไม่เด้งแล้ว (กันคนยิงซ้ำ id เก่า)
 const COUNT_BACK_MS = 6 * 3.6e6;   // นับ "กี่ข้อความใหม่" ย้อนได้ไกลสุดเท่านี้
+const TEXT_MAX = 150;              // ยาวกว่านี้ตัด — การ์ดโชว์ได้ไม่กี่บรรทัดอยู่แล้ว
+// guard ตรวจข้อความ "หลังส่ง" (แอปเรียกหลัง dm_say สำเร็จ · Gemini ใช้ ~1–3 วิ)
+// รอให้มันทันก่อนค่อยอ่าน hidden — ไม่งั้นข้อความที่กำลังจะโดนซ่อนขึ้นจอล็อกไปก่อนแล้ว
+// เอาคืนไม่ได้ · แลกกับการ์ดช้าลงไม่กี่วินาที
+const GUARD_WAIT_MS = Number(Deno.env.get('DM_GUARD_WAIT_MS') ?? 3000);
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -36,12 +43,18 @@ function client() {
   return db;
 }
 
-/** ข้อความบนการ์ด — ชื่อคนส่งเป็นหัว เพราะ "มีข้อความใหม่" ปัดทิ้งได้ "มายด์" ปัดทิ้งไม่ลง */
-export function dmCard(name: string, n: number, opts: { image?: boolean; request?: boolean } = {}) {
-  const title = name.trim() || 'เพื่อน';
-  if (opts.request) return { title, body: 'ขอคุยกับคุณ' };
-  if (n > 1) return { title, body: `${n} ข้อความใหม่` };
-  return { title, body: opts.image ? 'ส่งรูปมา' : 'ส่งข้อความถึงคุณ' };
+/** ข้อความบนการ์ด — หัว = ชื่อคนส่ง (+ จำนวนถ้าหลายข้อความ) · เนื้อ = สิ่งที่พิมพ์มา */
+export function dmCard(
+  name: string, n: number,
+  opts: { image?: boolean; request?: boolean; text?: string } = {},
+) {
+  const who = name.trim() || 'เพื่อน';
+  const title = n > 1 ? `${who} (${n})` : who;
+  if (opts.request) return { title: who, body: 'ขอคุยกับคุณ' };
+  const text = String(opts.text ?? '').replace(/\s+/g, ' ').trim();
+  if (text) return { title, body: text.length > TEXT_MAX ? text.slice(0, TEXT_MAX - 1) + '…' : text };
+  if (opts.image) return { title, body: 'ส่งรูปมา' };
+  return { title, body: n > 1 ? `${n} ข้อความใหม่` : 'ส่งข้อความถึงคุณ' };
 }
 
 Deno.serve(async (req) => {
@@ -53,9 +66,8 @@ Deno.serve(async (req) => {
 
   try {
     const db = client();
-    // ไม่ดึง body — ฟังก์ชันนี้ไม่มีเหตุให้ต้องเห็นเนื้อแชทของใคร
     const { data: m, error } = await db.from('dm_messages')
-      .select('thread, sender, image, created_at, dm_threads!inner(a, b, state, opener)')
+      .select('thread, sender, body, image, created_at, dm_threads!inner(a, b, state, opener)')
       .eq('id', id).maybeSingle();
     if (error) throw new Error('dm_messages: ' + error.message);
     if (!m) return json({ ok: true, skipped: 'gone' });
@@ -90,11 +102,16 @@ Deno.serve(async (req) => {
       .reduce((mx, r) => Math.max(mx, Date.parse(r.created_at)), 0);
     const n = Math.max(1, rows.filter(r => r.sender === m.sender && Date.parse(r.created_at) > lastReply).length);
 
+    const request = th.state === 'pending' && th.opener === m.sender;
+    let text = request ? '' : String(m.body || '');
+    if (text) {
+      if (GUARD_WAIT_MS > 0) await new Promise(r => setTimeout(r, GUARD_WAIT_MS));
+      const { data: h } = await db.from('dm_messages').select('hidden').eq('id', id).maybeSingle();
+      if (!h || h.hidden) text = '';   // ถูกซ่อน/ถูกลบไปแล้ว = ไม่โชว์เนื้อ
+    }
+
     const { data: pr } = await db.from('profiles').select('display_name').eq('id', m.sender).maybeSingle();
-    const card = dmCard(String(pr?.display_name || ''), n, {
-      image: !!m.image,
-      request: th.state === 'pending' && th.opener === m.sender,
-    });
+    const card = dmCard(String(pr?.display_name || ''), n, { image: !!m.image, request, text });
 
     // TTL 3 ชม. เท่ากับเรื่องสังคมใน send-reminders · ส่งไม่ถึงในเวลานั้น = ข้อความเก่าไปแล้ว
     const sent = await pushToUser(db, to, { ...card, tag: 'dm-' + m.thread, url: './' },
