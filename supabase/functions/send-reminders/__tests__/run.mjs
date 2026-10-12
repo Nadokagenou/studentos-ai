@@ -106,7 +106,7 @@ const check = (name, cond, detail) => { results.push({ name, pass: !!cond, detai
 
 {
   const t = base();
-  t.push_sent.push({ user_id: 'u1', task_id: 'dm::old::x', sent_at: iso(Date.now() - 5 * 60000) });
+  t.push_sent.push({ user_id: 'u1', task_id: 'fr::old::x', sent_at: iso(Date.now() - 5 * 60000) });
   t.dm_threads.push({ id: 'th2', a: 'u1', b: 'u3', last_at: iso(Date.now()) });
   t.dm_messages.push({ id: 9, thread: 'th2', sender: 'u3', body: 'y', created_at: iso(Date.now() - 60000) });
   const r = await run(t);
@@ -119,11 +119,21 @@ const check = (name, cond, detail) => { results.push({ name, pass: !!cond, detai
 {
   const t = base();
   for (let i = 0; i < 6; i++)
-    t.push_sent.push({ user_id: 'u1', task_id: 'dm::cap' + i + '::x', sent_at: iso(Date.now() - (60 + i) * 60000) });
+    t.push_sent.push({ user_id: 'u1', task_id: 'fr::cap' + i + '::x', sent_at: iso(Date.now() - (60 + i) * 60000) });
   t.dm_threads.push({ id: 'th3', a: 'u1', b: 'u3', last_at: iso(Date.now()) });
   t.dm_messages.push({ id: 20, thread: 'th3', sender: 'u3', body: 'z', created_at: iso(Date.now() - 60000) });
   const r = await run(t);
   check('daily cap holds', r.sent.length === 0, JSON.stringify(r.sent));
+}
+
+// ---- แชทที่เด้งทันที (notify-dm) ไม่กินเพดาน/ช่องว่างของคำขอเป็นเพื่อน ----
+{
+  const t = base();
+  for (let i = 0; i < 8; i++)
+    t.push_sent.push({ user_id: 'u1', task_id: 'dm::live' + i + '::x', sent_at: iso(Date.now() - (2 + i) * 60000) });
+  t.friendships.push({ a: 'u1', b: 'u2', asked_by: 'u2', status: 'pending', created_at: iso(Date.now() - 3 * 60000) });
+  const r = await run(t);
+  check('instant DM pushes do not block friend request', r.sent.length === 1 && r.sent[0].tag === 'friend', JSON.stringify(r.sent));
 }
 
 {

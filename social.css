@@ -667,13 +667,13 @@
    และปุ่มลอยข้างฟองต้องกันที่ว่างไว้ตลอดเวลา ซึ่งทำให้ฟองทุกใบแคบลงเพื่อของ
    ที่แทบไม่มีใครกด
    ============================================================ */
-.ch-del {
+.ch-unsend {
   border: 0; background: none; padding: 0 2px;
   font: inherit; font-size: 10.5px;
   color: var(--faint); cursor: pointer;
   text-decoration: underline; text-underline-offset: 2px;
 }
-.ch-del:hover { color: var(--bad, #c0392b); }
+.ch-unsend:hover { color: var(--bad, #c0392b); }
 
 /* รูปใน bucket ปิดต้องรอลิงก์ชั่วคราวก่อนถึงจะโหลดได้ ระหว่างนั้นกันที่ไว้
    ขนาดเท่ารูปจริง ไม่งั้นพอรูปมาถึง ข้อความทั้งหน้าจะกระโดดลงไปหนึ่งช่วง */

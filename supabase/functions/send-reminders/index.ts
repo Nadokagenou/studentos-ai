@@ -720,6 +720,10 @@ Deno.serve(async (req: Request) => {
           const uid = (r as any).user_id, key = (r as any).task_id;
           sentKeys.add(`${uid}::${key}`);
           if (key.startsWith('fr::') || key.startsWith('dm::')) {
+            // ตั้งแต่ 12 ต.ค. แชทเด้งทันทีทีละข้อความผ่าน notify-dm (คีย์ dm:: รูปเดียวกัน)
+            // ถ้ายังนับเข้าช่องว่าง/เพดานตรงนี้ คุยกันหกข้อความ = คำขอเป็นเพื่อนเงียบทั้งวัน
+            // จึงนับเฉพาะคำขอเพื่อน · คีย์ dm:: ยังอยู่ใน sentKeys ข้างบน กันส่งซ้ำได้ตามเดิม
+            if (!key.startsWith('fr::')) continue;
             const at = Date.parse((r as any).sent_at || '');
             if (!Number.isFinite(at)) continue;
             if (at > (socialLastAt.get(uid) ?? 0)) socialLastAt.set(uid, at);

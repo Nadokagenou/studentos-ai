@@ -18,6 +18,10 @@ verify_jwt = false
 [functions.send-reminders]
 verify_jwt = true
 
+# แชทเด้งทันที — trigger บน dm_messages ยิงมาพร้อม publishable key (ดู migration dm_push)
+[functions.notify-dm]
+verify_jwt = true
+
 # อ่านรูปด้วย AI บนเซิร์ฟเวอร์ — ยิงจากแอปโดยผู้ใช้ที่ล็อกอินแล้วเท่านั้น
 # verify_jwt = true จงใจ ไม่ใช่ค่าปริยายที่ลืมแก้:
 #   โควตาฟรีของผู้ให้บริการ OCR นับเป็นจำนวนภาพต่อเดือน ถ้าเปิดให้เรียกโดยไม่ต้องล็อกอิน

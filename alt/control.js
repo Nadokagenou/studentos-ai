@@ -491,7 +491,7 @@
     var el = $('#anaFbBody');
     if (!el) return;
     var F = window.SOS_FEEDBACK;
-    var r = await sb.from('tester_feedback').select('user_id, kind, day, answers, dev, updated_at').order('updated_at', { ascending: false }).limit(1000);
+    var r = await sb.from('tester_feedback').select('user_id, kind, day, answers, dev, updated_at, rewarded_at').order('updated_at', { ascending: false }).limit(1000);
     if (r.error) {
       el.innerHTML = '<div class="warn">' + (/tester_feedback|relation|schema cache/i.test(r.error.message || '')
         ? 'ยังไม่ได้รัน migration <code>20261011140000_tester_feedback.sql</code>' : esc(r.error.message)) + '</div>';
@@ -509,7 +509,7 @@
     var dUsers = {}; daily.forEach(function (x) { dUsers[x.user_id] = 1; });
     var html = '<p class="hint" style="margin:0 0 10px">ลิงก์ส่งเทสเตอร์: <span class="mono">' + esc(FB_URL) + '</span> · เช็คอินทุกเย็น: <span class="mono">' + esc(FB_URL) + '#daily</span></p>'
       + '<div class="grid4">'
-      + tile('ตอบแบบหลัก', fmtN(main.length) + ' <small style="font-size:14px">คน</small>', 'คนละหนึ่งชุด แก้ได้')
+      + tile('ตอบแบบหลัก', fmtN(main.length) + ' <small style="font-size:14px">คน</small>', 'รับ 100 โทเคนแล้ว ' + fmtN(main.filter(function (x) { return x.rewarded_at; }).length) + ' คน')
       + tile('เช็คอินรายวัน', fmtN(daily.length) + ' <small style="font-size:14px">ครั้ง</small>', 'จาก ' + fmtN(Object.keys(dUsers).length) + ' คน')
       + tile('Capture rate (รายวัน)', cap(daily, 'D1'), 'ใส่เข้าแอป ÷ ครูสั่ง')
       + tile('Capture rate (แบบหลัก)', cap(main, '1.1'), 'ตัวเลขสัปดาห์ที่เทสเตอร์กะเอง')

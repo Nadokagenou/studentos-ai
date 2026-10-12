@@ -1294,6 +1294,8 @@ async function initCloud() {
     if (currentUser && !wasLoggedIn) {
       // เพิ่งล็อกอินเสร็จ (รวมถึงกลับมาจากหน้า Google)
       ensurePush(); // ผูก push กับบัญชีที่เพิ่งล็อกอิน
+      // รางวัลฟีดแบ็กหลังซิงก์เสร็จ (ต้องได้ธงจาก cloud ก่อน) — เปิดแอปตอนเน็ตช้าแล้วล็อกอินตามมาทีหลังก็ได้
+      setTimeout(() => feedbackPayout(true), 4000);
       // token จากลิงก์กลุ่มถูกเก็บไว้ตั้งแต่ก่อนล็อกอิน — จังหวะนี้คือจังหวะที่ใช้ได้แล้ว
       // (ทางกลับจาก Google เป็นการโหลดหน้าใหม่ ตัว initApp ก็เรียกให้อีกทาง เรียกซ้ำได้ปลอดภัย)
       // คำขอเป็นเพื่อนที่ค้างอยู่ต้องขึ้นจุดแดงได้โดยไม่ต้องรอให้คนเปิดหน้าเพื่อนก่อน
@@ -9361,7 +9363,9 @@ function tokenBalance() { return tokenState().bal || 0; }
 function loginStreak() { return tokenState().streak || 0; }
 function skinsOwned() { return tokenState().skins || {}; }
 function addTokens(n) {
-  const s = tokenState();
+  // 12 ต.ค. 69 · ยอดจริง ไม่ใช่ยอดที่โชว์ — บัญชีแอดมินโชว์ ∞ (tokenState) แล้ว ∞ + 100 ถูกเขียนกลับ
+  // เป็นยอดเดิมใน saveTokenState = ของรางวัลหายเงียบ ๆ (เจอกับรางวัลฟีดแบ็กของบัญชีเจ้าของ)
+  const s = rawTokenState();
   s.bal = Math.max(0, (s.bal || 0) + n);
   saveTokenState(s);
   return s.bal;
@@ -15178,16 +15182,30 @@ function notifPref(key) { return state.settings[key] !== false; }
 function notifOn() { return state.settings.notifOff !== true; }
 
 const NOTIF_AUTO_KEY = 'studentos.alt.notifAutoAt';
+function autoAskReady() {
+  if (!notifOn() || !('Notification' in window) || Notification.permission !== 'default') return false;
+  if (curScreen === 'scr-login' || curScreen === 'scr-onboard') return false;
+  let last = 0;
+  try { last = +localStorage.getItem(NOTIF_AUTO_KEY) || 0; } catch (_) {}
+  return Date.now() - last >= 864e5;
+}
 function autoAskNotif(e) {
-  if (!notifOn() || !('Notification' in window) || Notification.permission !== 'default') return;
-  if (curScreen === 'scr-login' || curScreen === 'scr-onboard') return;
+  if (!autoAskReady()) return;
   // แตะที่ช่องกรอก / ปุ่มเลือกรูป — กล่องของระบบจะเด้งทับคีย์บอร์ดหรือที่เลือกรูปพอดี ข้ามไปแตะถัดไป
   const el = e && e.target && e.target.closest
     && e.target.closest('input, textarea, select, label, [onclick*=".click()"], #notifRow, #notifAllRow');
   if (el) return;
-  let last = 0;
-  try { last = +localStorage.getItem(NOTIF_AUTO_KEY) || 0; } catch (_) {}
-  if (Date.now() - last < 864e5) return;
+  try { localStorage.setItem(NOTIF_AUTO_KEY, String(Date.now())); } catch (_) {}
+  enableNotif();
+}
+
+// 12 ต.ค. 69 · เจ้าของ: "ให้แอปแจ้งเตือนอัตโนมัติ ตอนนี้เหมือนต้องไปกดก่อนในแอป"
+// เบราว์เซอร์ตระกูล Chrome (Chrome/Edge/Samsung Internet ทั้งมือถือและคอม) ยอมให้ถามได้ตั้งแต่เปิดแอป
+// ไม่ต้องรอนิ้วแตะ — ถามเลย · ส่วน iPhone/Safari/Firefox ปฏิเสธเงียบถ้าไม่มีการแตะ จึงยังใช้ autoAskNotif
+// userAgentData มีเฉพาะตระกูล Chrome — แม่นกว่าเดาจาก userAgent (Chrome บน iPhone ก็คือ Safari ข้างใน)
+// ใช้คีย์วันละครั้งร่วมกับทางแตะ: ปัดกล่องทิ้งตอนเปิดแล้ว ไม่ถามซ้ำตอนแตะในวันเดียวกัน (Chrome บล็อกเองถ้าปัดบ่อย)
+function autoAskNotifOpen() {
+  if (isIOS() || !navigator.userAgentData || document.hidden || !autoAskReady()) return;
   try { localStorage.setItem(NOTIF_AUTO_KEY, String(Date.now())); } catch (_) {}
   enableNotif();
 }
@@ -15818,28 +15836,75 @@ async function adminPushAlarm() {
 // ============================================================
 const FB_REWARD = 100;
 const FB_CHECK_KEY = 'studentos.alt.fbCheckAt';
+const FB_SENT_KEY = 'studentos.alt.fbSent';      // feedback.html ตั้งตอนส่งแบบหลักสำเร็จ = id บัญชี
+const FB_TRY_KEY = 'studentos.alt.fbPayTry';     // เวลาที่เครื่องนี้ส่งไปปัก rewarded_at (ดูหมายเหตุข้างล่าง)
+const FB_GAP_MS = 10 * 60000;
 let fbPaying = false;
+// ============================================================
+// 12 ต.ค. 69 · เจ้าของ: "ให้ได้ 100 โทเคนจริงๆนะ"
+// ------------------------------------------------------------
+// วัดจากฐานข้อมูลจริง: สองคนส่งแบบหลักแล้ว (เจ้าของ 09:32 · tokisaki 15:07) และ **ยังไม่มีใครได้โทเคนสักคน**
+// รูที่เจอ 4 ข้อ:
+//   1. เช็คได้ 6 ชม.ครั้ง — เปิดแอปก่อนไปตอบ = ใช้สิทธิ์เช็คไปแล้ว · กลับมาทางอื่นที่ไม่ใช่ปุ่ม (?fb) ต้องรอ 6 ชม.
+//      → feedback.html จดธง FB_SENT_KEY ไว้ในเครื่อง · แอปเห็นธง = เช็คทันที ไม่ว่าจะกลับมาทางไหน
+//      → เช็คตอนกลับเข้าแอป (visibilitychange/pageshow) และตอนล็อกอินเสร็จด้วย · เว้นแค่ 10 นาที
+//   2. ธง fbPaid อยู่ในก้อน settings ที่หลายเครื่องเขียนทับกันได้ → ความจริงย้ายไปเซิร์ฟเวอร์
+//      update rewarded_at where rewarded_at is null — ปักได้ครั้งเดียว เครื่องที่ปักติดคือเครื่องที่จ่าย
+//   3. คำตอบของ update หายกลางทาง (ปักติดแล้วแต่เครื่องไม่รู้) = ไม่ได้โทเคนเลย
+//      → ส่งเวลาของตัวเองลงไป และจำไว้ที่ FB_TRY_KEY ก่อนส่ง · รอบหน้าเห็นเวลาตรงกัน = จ่ายตามหลัง
+//   4. บัญชีแอดมินโชว์ยอด ∞ — addTokens เดิมบวกเข้า ∞ แล้วทิ้ง ยอดจริงไม่ขยับ (แก้ที่ addTokens)
+// ============================================================
 async function feedbackPayout(force) {
-  if (!sb || !currentUser || fbPaying || state.settings.fbPaid) return;
-  let last = 0;
-  try { last = +localStorage.getItem(FB_CHECK_KEY) || 0; } catch (_) {}
-  if (!force && Date.now() - last < 6 * 3.6e6) return;
+  if (!sb || !currentUser || fbPaying) return;
+  let sent = false, last = 0, tried = '';
+  try {
+    sent = localStorage.getItem(FB_SENT_KEY) === currentUser.id;
+    last = +localStorage.getItem(FB_CHECK_KEY) || 0;
+    tried = localStorage.getItem(FB_TRY_KEY) || '';
+  } catch (_) {}
+  if (state.settings.fbPaid && !tried) { if (sent) fbClear(FB_SENT_KEY); return; }
+  if (!force && !sent && !tried && Date.now() - last < FB_GAP_MS) return;
   fbPaying = true;
   try {
-    try { localStorage.setItem(FB_CHECK_KEY, String(Date.now())); } catch (_) {}
-    const { data, error } = await sb.from('tester_feedback').select('updated_at')
+    // ---- ปักบนเซิร์ฟเวอร์ (ครั้งเดียวต่อบัญชี) ----
+    if (!state.settings.fbPaid) {
+      const at = tried || new Date().toISOString();
+      try { localStorage.setItem(FB_TRY_KEY, at); } catch (_) {}
+      const { data, error } = await sb.from('tester_feedback').update({ rewarded_at: at })
+        .eq('user_id', currentUser.id).eq('kind', 'main').eq('day', '').is('rewarded_at', null)
+        .select('rewarded_at');
+      if (error) return;                                   // เน็ต/เซิร์ฟเวอร์ — รอบหน้าลองใหม่ (FB_TRY_KEY ยังอยู่)
+      if (data && data.length) { fbPay(at); return; }
+    }
+    // ---- ปักไม่ติด: ยังไม่ได้ส่ง · หรือมีคนปักไปแล้ว (เครื่องนี้เองรอบก่อน หรือเครื่องอื่น) ----
+    const { data: row, error: e2 } = await sb.from('tester_feedback').select('rewarded_at')
       .eq('user_id', currentUser.id).eq('kind', 'main').eq('day', '').maybeSingle();
-    if (error || !data || state.settings.fbPaid) return;
-    state.settings.fbPaid = new Date().toISOString();
-    const bal = addTokens(FB_REWARD);
-    save();
-    renderAll();
-    whenToastQuiet(400, () => true, () => {
-      haptic('done');
-      splashBurst(24, 'egg-star');
-      showToast({ title: '+' + FB_REWARD + ' โทเคน ✦', body: 'ขอบคุณที่ส่งฟีดแบ็ก · ตอนนี้มี ' + bal + ' โทเคน' });
-    });
+    if (e2) return;
+    try { localStorage.setItem(FB_CHECK_KEY, String(Date.now())); } catch (_) {}
+    if (!row) { fbClear(FB_TRY_KEY); return; }             // ยังไม่ได้ส่งแบบหลัก
+    if (row.rewarded_at && tried && sameInstant(row.rewarded_at, tried) && !state.settings.fbPaid) {
+      fbPay(tried); return;                                // ข้อ 3 — เครื่องนี้ปักไว้แต่ไม่ได้ยินคำตอบ
+    }
+    if (row.rewarded_at && !state.settings.fbPaid) {       // จ่ายจากเครื่องอื่นไปแล้ว — แค่ตามธงให้ตรง
+      state.settings.fbPaid = row.rewarded_at; save(); renderAll();
+    }
+    fbClear(FB_TRY_KEY); fbClear(FB_SENT_KEY);
   } catch (_) { /* รอบหน้าค่อยถามใหม่ */ } finally { fbPaying = false; }
+}
+function fbClear(k) { try { localStorage.removeItem(k); } catch (_) {} }
+function sameInstant(a, b) { return Math.abs(new Date(a) - new Date(b)) < 1000; }
+function fbPay(at) {
+  state.settings.fbPaid = at;
+  const bal = addTokens(FB_REWARD);
+  fbClear(FB_TRY_KEY); fbClear(FB_SENT_KEY);
+  save();
+  renderAll();
+  whenToastQuiet(400, () => true, () => {
+    haptic('done');
+    splashBurst(24, 'egg-star');
+    showToast({ title: '+' + FB_REWARD + ' โทเคน ✦',
+      body: 'ขอบคุณที่ส่งฟีดแบ็ก · ตอนนี้มี ' + (tokenAdmin ? '∞' : bal.toLocaleString()) + ' โทเคน' });
+  });
 }
 
 // ชวนตอบบนหน้าแรก — toast วันละครั้ง ไม่ใช่การ์ดถาวร (หน้าแรกต้องไม่เลื่อน) · รับรางวัลแล้วเลิกชวน
@@ -17298,13 +17363,19 @@ function syncLiteRow() {
   setTimeout(adminPushAlarm, 12000);
   // กลับมาจากฟอร์มฟีดแบ็ก (?fb) = จ่ายรางวัลทันที · เปิดแอปปกติ = เช็คแบบเว้นระยะ
   feedbackPayout(BOOT_Q.has('fb'));
+  // กลับจากฟอร์มด้วยทางไหนก็ได้ (ปัดกลับ · สลับแอป · หน้าเก่าจาก bfcache) ต้องได้รางวัลทันที
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) feedbackPayout(false); });
+  addEventListener('pageshow', e => { if (e.persisted) feedbackPayout(false); });
   setTimeout(feedbackNudge, 6000);
   // 1C38 · รายงานตัวกับเซิร์ฟเวอร์ — รอบเย็นจะได้ไม่เด้งใส่คนที่เพิ่งเห็นการ์ดบนจอ (ดู pushHeartbeat)
   // ยิงทั้งตอนเข้าและตอนออก (ไม่เกินสิบนาทีครั้ง) — ด่านของเซิร์ฟเวอร์คือหนึ่งชั่วโมง ละเอียดแค่นี้พอ
   // 11 ต.ค. 69 · กลับเข้าแอป = ลงทะเบียนซ้ำด้วย (iPhone ปลุกแอปแทนการเปิดใหม่ initApp จึงไม่ได้รัน)
   document.addEventListener('visibilitychange', () => pushHeartbeat());
   addEventListener('pageshow', e => { if (e.persisted) pushHeartbeat(); });
-  // แจ้งเตือนเปิดเองเป็นค่าเริ่มต้น — ขอสิทธิ์ตอนแตะครั้งแรกของวัน (ดู autoAskNotif)
+  // แจ้งเตือนเปิดเองเป็นค่าเริ่มต้น — ตระกูล Chrome ถามทันทีที่เปิด/กลับเข้าแอป (autoAskNotifOpen)
+  // ที่เหลือขอสิทธิ์ตอนแตะครั้งแรกของวัน (autoAskNotif) · เว้น 1.5 วิ ให้หน้าแรกขึ้นก่อนกล่องของระบบ
+  setTimeout(autoAskNotifOpen, 1500);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(autoAskNotifOpen, 800); });
   document.addEventListener('click', autoAskNotif, true);
 
   // หน้าต่างเช็คอินไม่เด้งเองอีกแล้ว
