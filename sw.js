@@ -25,14 +25,14 @@ self.addEventListener('activate', e => {
 });
 
 // ---------- Web Push: เตือนได้แม้ปิดแอป ----------
-// ชื่อแอปต้องอยู่บนสุดของการ์ดเสมอ — บนเครื่องที่ยังไม่ได้ติดตั้งเป็นแอป
-// เบราว์เซอร์จะขึ้นชื่อโดเมนดิบ ๆ แทน ซึ่งไม่มีใครรู้ว่าคืออะไร
-// ใส่ที่นี่ที่เดียว ข้อความทุกอันฝั่งเซิร์ฟเวอร์จึงไม่ต้องพกชื่อแอปติดตัวไปด้วย
+// 1C33 · ไม่เติมชื่อแอปหน้าหัวการ์ดแล้ว — ตรงกับ alt/sw.js (root ค้างรุ่นเก่ามาจนถึง 12 ต.ค.)
+// iPhone เติม "from Student OS" ให้ทุกการ์ดของเว็บแอปเองอยู่แล้ว · Android มีแถวชื่อแอปบนสุด
+// เติมเองอีกจึงกลายเป็นชื่อแอปซ้ำ และการ์ดแชทกลายเป็น "Student OS · ชื่อเพื่อน" สามบรรทัด
 const APP_NAME = 'Student OS';
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : '' }; }
-  const title = d.title ? APP_NAME + ' · ' + d.title : APP_NAME;
+  const title = d.title || APP_NAME;
   e.waitUntil(self.registration.showNotification(title, {
     body: d.body || '',
     icon: 'icon-192.png',
