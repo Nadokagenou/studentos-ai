@@ -11900,7 +11900,7 @@ button.df-r:active .df-x { transform: scale(.985); }
 }
 #chatBody .ch-bub { font-size: 15px; line-height: 1.5; padding: 10px 15px; }
 #chatBody .ch-when { font-size: 11px; font-weight: 600; color: color-mix(in srgb, var(--ink) 62%, transparent); }
-#chatBody .ch-del { color: color-mix(in srgb, var(--ink) 62%, transparent); }
+#chatBody .ch-unsend { color: color-mix(in srgb, var(--ink) 62%, transparent); }
 #chatBody .ch-day span {
   background: color-mix(in srgb, var(--card) 88%, transparent); color: color-mix(in srgb, var(--ink) 75%, transparent);
   font-weight: 700; box-shadow: 0 0 0 1px color-mix(in srgb, var(--fill) 14%, transparent);
