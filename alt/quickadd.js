@@ -264,7 +264,7 @@ function quickPanel() {
     quickCheckRemote();
     const v = quickLocal();
     const busy = quick.busy ? ' disabled' : '';
-    ios = `<button class="ib-go qa-install" onclick="quickInstall()"${busy}>${icon('sparkles')}${quick.busy ? 'กำลังเตรียม…' : 'ติดตั้งบน iPhone'}</button>
+    ios = `<button class="ib-go qa-install" onclick="quickInstall()"${busy}>${icon('download')}${quick.busy ? 'กำลังเตรียม…' : 'ติดตั้งบน iPhone'}</button>
       ${steps(['กด <b>ติดตั้งบน iPhone</b> → วางลิงก์ → <b>เพิ่มคำสั่งลัด</b>',
         'การตั้งค่า → การช่วยการเข้าถึง → สัมผัส → <b>แตะด้านหลัง</b> → <b>แตะสองครั้ง</b> → <b>เพิ่มงาน</b>'])}
       ${v && quick.showUrl ? `<input class="src-in" id="qaUrl" readonly value="${esc(quickUrl(v.key))}" onclick="this.select()">` : ''}
@@ -280,6 +280,6 @@ function quickPanel() {
   // แสดงของเครื่องตัวเองก่อน — คนส่วนใหญ่ตั้งค่าบนเครื่องที่ถืออยู่
   return `<div class="qa-panel">
       ${isIOS ? iosBlock + android : android + iosBlock}
-      <button class="qa-try" onclick="quickOpen()">${icon('sparkles')}ลองเลย</button>
+      <button class="qa-try" onclick="quickOpen()">${icon('play')}ลองเลย</button>
     </div>`;
 }

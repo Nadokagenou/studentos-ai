@@ -320,6 +320,13 @@
     <g id="lu-check" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></g>
     <g id="lu-chevron" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></g>
     <g id="lu-crown" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"></path></g>
+    <!-- 13 ต.ค. 69 · เจ้าของ: "แก้อันไหนที่ยังดูเป็น AI อยู่" — ประกายสี่แฉก (sparkles) คือไอคอนที่แอป AI ทุกตัวใช้ ไม่ได้บอกว่าปุ่มทำอะไร
+         ฟีเจอร์ผู้ช่วยใช้หน้าน้องฮูกแทน (ตัวละครของแอปเอง) · Pro ใช้มงกุฎ · ที่เหลือใช้ไอคอนตามงานที่ทำ (อ่านรูป = สแกน ฯลฯ) -->
+    <g id="lu-owl" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5l3.4 2.3A8 8 0 0 1 12 5.5a8 8 0 0 1 4.6 1.3L20 4.5V13a8 8 0 0 1-16 0z"></path><circle cx="9" cy="11.5" r="2"></circle><circle cx="15" cy="11.5" r="2"></circle><path d="M11 15.2l1 1.4 1-1.4"></path></g>
+    <g id="sf-crown" fill="currentColor"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"></path><rect x="5" y="19" width="14" height="2.2" rx="1.1"></rect></g>
+    <g id="lu-arrow-up" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></g>
+    <g id="lu-signal" fill="currentColor"><rect x="2" y="15" width="3.5" height="6" rx="1"></rect><rect x="7.5" y="11" width="3.5" height="10" rx="1"></rect><rect x="13" y="7" width="3.5" height="14" rx="1"></rect><rect x="18.5" y="3" width="3.5" height="18" rx="1"></rect></g>
+    <g id="lu-battery"><rect x="1.5" y="6.5" width="19" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"></rect><rect x="3.6" y="8.6" width="14.8" height="6.8" rx="1.6" fill="currentColor"></rect><path d="M22.4 10v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></g>
     <g id="lu-trophy" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></g>
     <g id="lu-flame" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"></path></g>
     <g id="lu-clock" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></g>
@@ -494,7 +501,7 @@
     </div>
     <!-- ALT: พื้นหลังภาพของผู้ใช้เอง (ตั้งในแท็บ "ฉัน") — ม่านหรี่ทับให้ตัวหนังสืออ่านออก -->
     <div class="userbg" id="userBg" aria-hidden="true"><span class="ub-veil"></span></div>
-    <div class="statusbar"><span id="clock">--:--</span><span>📶 🔋</span></div>
+    <div class="statusbar"><span id="clock">--:--</span><span class="sb-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-signal"/></svg><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-battery"/></svg></span></div>
     <!-- ป้ายบอกรุ่นเคยอยู่ตรงนี้ (กลางบนจอ) — เอาออกแล้ว
          เลขรุ่นเป็นข้อมูลของคนทำแอป ไม่ใช่ของนักเรียน และมันนั่งทับตำแหน่งที่มีค่าที่สุดของจอ
          คนที่อยากรู้เลขรุ่นยังดูได้ที่แท็บ "ฉัน" (#appVer) ซึ่งบอกครบกว่าเดิมอยู่แล้ว -->
@@ -807,7 +814,7 @@
               <span class="ob-err paste-err" id="pasteErr" role="alert" hidden>แปะข้อความก่อนนะ</span>
               <div class="pc-act">
                 <button class="ai-read" onclick="scanFromText()">
-                  <svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg>ให้ AI อ่าน</button>
+                  <svg viewBox="0 0 24 24"><use href="#lu-scan"/></svg>ให้ AI อ่าน</button>
               </div>
             </div>
             <button class="manual" onclick="openForm(null)">
@@ -869,7 +876,7 @@
         <div class="scr-body parse-body">
           <div>
             <div class="pr-head">
-              <span class="pr-dot"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+              <span class="pr-dot"><svg viewBox="0 0 24 24"><use href="#lu-scan"/></svg></span>
               <h2 class="pr-h">AI กำลังอ่าน…</h2>
             </div>
           </div>
@@ -1500,7 +1507,7 @@
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
             <button class="pe pe-pro" onclick="go('scr-pro')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-sparkles"/></svg></span>
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-crown"/></svg></span>
               <span class="pe-tx"><b>StudentOS Pro</b></span>
               <em class="pe-v">ยังไม่เปิดขาย</em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
@@ -1771,7 +1778,7 @@
             <button type="button" onclick="openFeed('friends')">
               <svg viewBox="0 0 24 24"><use href="#lu-users"/></svg><span>เพื่อน</span></button>
             <button type="button" onclick="go('scr-pro')">
-              <svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg><span>Pro</span></button>
+              <svg viewBox="0 0 24 24"><use href="#lu-crown"/></svg><span>Pro</span></button>
           </div>
 
           <!-- ============================================================
@@ -1928,7 +1935,7 @@
                  (โครงเดียวกับแถว "ใส่โค้ด" ข้างล่าง) · ป้ายปุ่มบอกครบว่ากดแล้วได้อะไร ไม่ต้องเดาจากคำสั้น ๆ -->
             <div class="set-row col" id="aiPrefRow">
               <span class="set-hd">
-                <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+                <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-owl"/></svg></span>
                 <span class="set-lb">ผู้ช่วย AI</span>
               </span>
               <!-- 9 ต.ค. 69 · เลือกมาสคอต — เจ้าของ: "ให้คนเลือกได้ บางคนชอบไม่เหมือนกัน"
@@ -2212,7 +2219,7 @@
         <div class="ig-icon"><img src="logo-splash-light.png" alt=""></div>
         <div class="ig-title">ติดตั้ง Student OS</div>
         <p class="ig-sub">ติดตั้งเพื่อรับการแจ้งเตือน</p>
-        <div class="ig-step"><span class="ig-num">1</span>แตะปุ่ม <b>แชร์</b> <span class="ig-share">⬆️</span> ที่แถบด้านล่างจอ Safari</div>
+        <div class="ig-step"><span class="ig-num">1</span>แตะปุ่ม <b>แชร์</b> <span class="ig-share"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-share"/></svg></span> ที่แถบด้านล่างจอ Safari</div>
         <div class="ig-step"><span class="ig-num">2</span>เลื่อนหาแล้วแตะ <b>“เพิ่มไปยังหน้าจอโฮม”</b></div>
         <div class="ig-step"><span class="ig-num">3</span>แตะ <b>“เพิ่ม”</b> มุมขวาบน แล้วเปิดแอปจากไอคอนใหม่</div>
         <button class="btn primary sm" onclick="dismissInstallGuide()">เข้าใจแล้ว</button>

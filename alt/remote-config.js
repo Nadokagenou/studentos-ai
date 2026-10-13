@@ -365,6 +365,18 @@
         if (!rows || !rows.length || !rows[0].data) return false;
         var data = rows[0].data;
         delete data.__label;
+        /* 13 ต.ค. 69 · ค่าเดิมเป๊ะ = ไม่ต้องประกาศ · announce ทำให้แอปวาดใหม่ทุกจอ (renderAll)
+           ไฟล์นี้โหลดทุกครั้งที่กลับเข้าแอป — เดิมกลับเข้าแอปทีไรวาดทั้งแอปใหม่ทุกรอบแม้ค่าไม่เปลี่ยนสักตัว
+           เครื่องช้ากระตุกตอนกลับเข้าแอป และช่องพิมพ์ในห้องน้องฮูกถูกสร้างใหม่ (ข้อความชวนพิมพ์หาย/ที่พิมพ์ค้างหาย)
+           ค่าที่แคชไว้ตอนเปิดแอปคือก้อนเดียวกับที่ได้จากเซิร์ฟเวอร์รอบก่อน จึงเทียบด้วย JSON ตรง ๆ ได้ */
+        var same = false;
+        try { same = JSON.stringify(data) === JSON.stringify(overrides); } catch (e) {}
+        if (same) {
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ data: data, version: rows[0].version, at: Date.now() }));
+          } catch (e) {}
+          return true;
+        }
         overrides = data;
         window.SOSCFG = merge(clone(DEFAULTS), overrides);
         try {

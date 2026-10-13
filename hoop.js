@@ -123,7 +123,7 @@ function buyFx(id) {
   haptic('done');
   splashBurst(18, 'egg-star');
   renderAll();
-  showToast({ title: 'ได้เอฟเฟกต์' + f.name + 'แล้ว ' + (f.emoji || '✨'), body: 'เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
+  showToast({ title: 'ได้เอฟเฟกต์' + f.name + 'แล้ว' + (f.emoji ? ' ' + f.emoji : ''), body: 'เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
 }
 
 // ส่วน "เอฟเฟกต์ตอนงานเสร็จ" ในหน้าธีมสี — โผล่เมื่อมีเอฟเฟกต์อย่างน้อยหนึ่งชิ้นเท่านั้น
@@ -157,7 +157,7 @@ function renderFxPick() {
       </div>` : cur !== 'confetti' ? `<div class="fx-seg" role="group" aria-label="โหมดภาพ">
         <span class="fx-seg-lb">ภาพ</span>
         <button type="button" class="active" onclick="previewFx('${cur}')">2D</button>
-        <button type="button" class="lock" onclick="previewFx3d('${cur}')" aria-label="3D ยังไม่ได้ปลดล็อก ดูตัวอย่าง">🔒 3D</button>
+        <button type="button" class="lock" onclick="previewFx3d('${cur}')" aria-label="3D ยังไม่ได้ปลดล็อก ดูตัวอย่าง">${icon('lock')}3D</button>
       </div>
       <p class="fx-wait">3D สุ่มได้ในกาชา (ตัวละ 0.1%)</p>` : '')
       + (waiting.length ? `<p class="fx-wait">มี 3D รอปลดล็อก: ${waiting.map(id => esc(FX_SHOP[id].name)).join(' · ')}</p>` : '');

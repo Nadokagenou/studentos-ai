@@ -339,7 +339,7 @@ function closeHwRoom(keepKey) {
 }
 
 function hwAv(m) {
-  if (m.ai) return `<span class="hw-av ai">${icon('sparkles')}</span>`;
+  if (m.ai) return `<span class="hw-av ai">${icon('owl')}</span>`;
   const name = m.name || '?';
   if (m.avatar) return `<span class="hw-av" style="background-image:url('${esc(m.avatar)}')"></span>`;
   const st = typeof avStyle === 'function' ? avStyle(name) : '';

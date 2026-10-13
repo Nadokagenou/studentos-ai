@@ -46,7 +46,9 @@ const FEED_SCOPES = [
 // (ปุ่มแถบล่าง → ฟีด · ปุ่มลอยมุมขวาบน → รายชื่อ · แถวในแท็บ "ฉัน" → รายชื่อ)
 // ผู้ใช้กดหารายชื่อเพื่อนไม่เจอสามรอบ ซึ่งเป็นหลักฐานพอแล้วว่าการแยกจอนี้ผิด
 // ในหัวนักเรียน "เพื่อนร่วมห้อง" กับ "เพื่อนของฉัน" ไม่ใช่คนละเรื่อง
-let feedView = 'feed';    // 'feed' | 'friends'
+// 13 ต.ค. 69 · ชุมชนปิด = ไม่มีโหมดฟีด · เริ่มที่ 'feed' ทำให้ทางเข้าที่ไม่ผ่าน openFeed (กลับจากห้องแชท · เปิดจอค้างจากครั้งก่อน)
+// ได้จอ "เพื่อนของฉัน" ที่ข้างในเป็นการ์ดฟีด "ล็อกอินเพื่อเห็นฟีด" แทนหน้าเพื่อน (เจอตอนไล่จอที่ดูแปลก)
+let feedView = COMMUNITY_LIVE ? 'feed' : 'friends';    // 'feed' | 'friends'
 let feedScope = 'all';
 let feedRows = null;      // null = ยังไม่เคยโหลด
 let feedErr = null;
@@ -263,7 +265,7 @@ function renderFeed() {
            ข้อความจากคนที่ไม่ได้อยู่ในรายชื่อไหนเลยต้องมีที่ไปรวมกัน ไม่งั้นไม่มีทางถูกเห็น -->
       <!-- ปุ่มข้อความย้ายลงไปลอยมุมล่างขวาตั้งแต่ 1B68 (ดู feedFab)
            ผู้ใช้วาดลูกศรจากไอคอนบนหัวจอชี้ลงมุมล่าง แล้วบอกว่า "อยากให้เห็นชัดกว่านี้" -->
-      <button class="fd-people" onclick="go('scr-people'); renderMates()" aria-label="วิชาของฉันกับคนในห้อง">
+      <button class="fd-people" onclick="openPeople()" aria-label="วิชาของฉันกับคนในห้อง">
         ${icon('users')}
       </button>
     </div>
@@ -351,7 +353,7 @@ function renderFreshPill() {
   if (!el) return;
   el.innerHTML = feedFresh
     ? `<button class="fd-fresh" onclick="loadFeed()">
-         ${icon('sparkles')}มีโพสต์ใหม่ ${feedFresh > 9 ? '9+' : feedFresh}</button>`
+         ${icon('arrow-up')}มีโพสต์ใหม่ ${feedFresh > 9 ? '9+' : feedFresh}</button>`
     : '';
 }
 
@@ -401,7 +403,7 @@ function postCard(p) {
 
   const tapHead = !anon && p.author;
   return `<article class="fd-post${p.for_me ? ' for-me' : ''}" onclick="openPost('${esc(p.id)}')">
-    ${p.for_me ? `<div class="fd-flag">${icon('sparkles')}เขาถามวิชาที่เธอเก่ง</div>` : ''}
+    ${p.for_me ? `<div class="fd-flag">${icon('target')}เขาถามวิชาที่เธอเก่ง</div>` : ''}
     <div class="fd-head${tapHead ? ' tap' : ''}"${!tapHead ? '' :
       ` onclick="event.stopPropagation();openUser('${esc(p.author)}')" role="link" tabindex="0"`}>
       ${av}
@@ -642,7 +644,7 @@ function renderCompose() {
              นี่คือข้อที่ฟอรัมถาม-ตอบระดับโลกทุกเจ้าทำไม่ได้ เพราะต้องรอให้ผู้ใช้พิมพ์แท็กเอง -->
         ${typeof topicReady !== 'undefined' && topicReady
           ? `<button class="cp-add" id="cpTopic" onclick="topicFromCompose()">
-              ${icon('sparkles')}ถามคนทั้งโลกจากรูปนี้แทน
+              ${icon('users')}ถามคนทั้งโลกจากรูปนี้แทน
             </button>` : ''}` : ''}
 
       <button class="cp-add" onclick="document.getElementById('cpFile').click()">
@@ -888,7 +890,7 @@ function paintFeedFab() {
   const n = usable && typeof dmPending === 'number' ? dmPending : 0;
   // ไอคอนหลักเป็นประกาย ไม่ใช่ลูกโป่งคำพูด — ปุ่มนี้เปิดสองอย่าง ถ้ายังเป็นลูกโป่ง
   // คนจะอ่านว่ามันคือแชท แล้วเมนูที่กางออกมาจะกลายเป็นเรื่องเซอร์ไพรส์ทุกครั้ง
-  fab.innerHTML = icon('sparkles') + (n ? `<i>${n > 9 ? '9+' : n}</i>` : '');
+  fab.innerHTML = icon('message') + (n ? `<i>${n > 9 ? '9+' : n}</i>` : '');
   fab.classList.toggle('has-req', !!n);
 }
 
@@ -1153,7 +1155,7 @@ function renderProfileHead() {
   box.innerHTML = profileHeadHTML(u, {
     mine: true,
     buttons: `<div class="ig-btns">
-      <button class="pri" onclick="go('scr-people'); renderMates()">${icon('pencil')}แก้ไขโปรไฟล์</button>
+      <button class="pri" onclick="openPeople('edit')">${icon('pencil')}แก้ไขโปรไฟล์</button>
       <!-- ปุ่มนี้คือหัวใจของการรวมสองหน้า — กดแล้วเห็นของจริงที่เพื่อนเห็น
            ไม่ใช่ภาพจำลอง เพราะมันเปิดหน้าเดียวกับที่เพื่อนเปิดจริง ๆ -->
       <button onclick="openMyPublic()">${icon('users')}ดูแบบที่เพื่อนเห็น</button>

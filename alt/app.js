@@ -321,18 +321,18 @@ const THEME_NAME = {
 const SECRETS = {
   ocean: {
     store: 'studentos.alt.deepUnlocked', flag: 'deep', theme: 'deepocean', fx: 'egg-bub', taps: 5,
-    title: 'ปลดล็อกธีมทะเลลึก 🦈', body: 'ดำลงไปอีกชั้น มีฉลามกับหมึกยักษ์ว่ายอยู่ข้างหลัง',
+    title: 'ปลดล็อกธีมทะเลลึก', body: 'ดำลงไปอีกชั้น มีฉลามกับหมึกยักษ์ว่ายอยู่ข้างหลัง',
   },
   earth: {
     store: 'studentos.alt.earth2Unlocked', flag: 'earth2', theme: 'earth2', fx: 'egg-leaf', taps: 5,
-    title: 'ปลดล็อกธีมต้นไม้โลก 🌳', body: 'มีลม มีนกบินผ่าน มีต้นไม้ใหญ่กลางจอ และหญ้าไหวอยู่ก้นจอ',
+    title: 'ปลดล็อกธีมต้นไม้โลก', body: 'มีลม มีนกบินผ่าน มีต้นไม้ใหญ่กลางจอ และหญ้าไหวอยู่ก้นจอ',
   },
   // ย้ายมาจากปุ่มชมพู (เดิมต้องกด 22 ครั้ง) — กาแล็กซีเป็นธีมอวกาศอยู่แล้ว
   // ของที่ซ่อนอยู่ข้างหลังจึงเป็นจักรวาลอีกใบ เข้ากันกว่าและนับ 5 ครั้งเท่าอันอื่น
   // ที่เก็บ (store) ยังเป็นคีย์เดิม คนที่ปลดล็อกไปแล้วจึงไม่หลุด
   galaxy: {
     store: 'studentos.alt.sweetUnlocked', flag: 'sweet', theme: 'sweet', fx: 'egg-star', taps: 5,
-    title: 'ปลดล็อกธีมจักรวาลหวานแหว 🌈', body: 'ก้อนเมฆพาสเทล สายรุ้ง และดาวเคราะห์มีวงแหวน',
+    title: 'ปลดล็อกธีมจักรวาลหวานแหว', body: 'ก้อนเมฆพาสเทล สายรุ้ง และดาวเคราะห์มีวงแหวน',
   },
 };
 let tapTheme = '', tapCount = 0, tapAt = 0;
@@ -1867,7 +1867,7 @@ function saiFace(cls) {
   return `<span class="ai-av${cls ? ' ' + cls : ''}">
     <img src="${mascot().avatar}" alt="${esc(mName())}" loading="lazy" decoding="async"
       onerror="this.parentNode.classList.add('no-face');this.remove()">
-    <i class="ai-av-fb">${icon('sparkles')}</i>
+    <i class="ai-av-fb">${icon('owl')}</i>
   </span>`;
 }
 
@@ -2865,7 +2865,7 @@ function todayEmpty(now, hasRem) {
   return `<section class="td-clear ${mood}">
     <div class="tc-top">
       <span class="tc-art" data-mood="${{ first: 'wow', done: 'happy', rest: 'sleepy', rem: 'normal' }[mood]}"><img src="${face}" alt="" aria-hidden="true" loading="lazy" decoding="async"
-        onerror="this.parentNode.classList.add('no-img');this.remove()"><i class="tc-fb">${icon('sparkles')}</i></span>
+        onerror="this.parentNode.classList.add('no-img');this.remove()"><i class="tc-fb">${icon('owl')}</i></span>
       <span class="tc-tx">
         <b>${doneToday ? 'เคลียร์หมดแล้ววันนี้'
           : hasRem ? 'ไม่มีงานที่ต้องนั่งทำ' : waiting ? 'ตอนนี้ไม่มีงานต้องทำ' : everHad ? 'ไม่มีงานค้าง' : 'วันนี้ยังไม่มีงาน'}</b>
@@ -2879,7 +2879,7 @@ function todayEmpty(now, hasRem) {
     </div>
     ${mood === 'first' ? `<div class="tc-steps">
       <span>${icon('camera')}ถ่ายรูป</span>${icon('chevron')}
-      <span>${icon('sparkles')}AI อ่าน</span>${icon('chevron')}
+      <span>${icon('scan')}AI อ่าน</span>${icon('chevron')}
       <span>${icon('target')}ได้แผน</span>
     </div>` : ''}
     ${hasRem ? '' : `<button class="tc-cta" onclick="openAddSheet()">${icon('camera')}${
@@ -3233,7 +3233,7 @@ function addSheetHTML() {
            การยัดเข้าไปจะดันท่า "พูดเพิ่มงาน" ตกลงไปเป็นรายการเงียบ ๆ ข้างล่าง
            ซึ่งเป็นท่าที่เร็วที่สุด (ห้าวินาที) — ห้ามให้มันเสียที่ไทล์ใหญ่ -->
       <button class="as-hero wide" onclick="closeAddSheet();go('scr-ai')">
-        <span class="as-hero-ic">${icon('sparkles')}</span>
+        <span class="as-hero-ic">${icon('owl')}</span>
         <span class="as-tx">
           <b>ถาม${esc(mName())}</b>
         </span>
@@ -3369,7 +3369,7 @@ function toggleFabHub() {
     <div class="fh-scrim" onclick="closeFabHub()"></div>
     <button class="fh-op" style="--d:.04s;--y:52px" onclick="closeFabHub();openAiHub()">
       <span class="fh-lb">ผู้ช่วย AI</span>
-      <span class="fh-cir">${icon('sparkles')}</span>
+      <span class="fh-cir">${icon('owl')}</span>
     </button>
     <button class="fh-op" style="--d:0s;--y:98px" onclick="closeFabHub();openDmInbox()">
       <span class="fh-lb">ข้อความ</span>
@@ -3395,8 +3395,8 @@ function toggleFabHub() {
 // ต้องรอหนึ่งจังหวะก่อน scroll — renderMates() เพิ่งเขียน innerHTML ทั้งก้อน
 // เบราว์เซอร์ยังไม่ได้จัดผังใหม่ ตำแหน่งของบล็อกจึงยังเป็นของผังเก่า (หรือยังไม่มี)
 function openMySubjects() {
-  go('scr-people');
-  if (typeof renderMates === 'function') renderMates();
+  if (typeof openPeople === 'function') openPeople('edit');
+  else { go('scr-people'); if (typeof renderMates === 'function') renderMates(); }
   setTimeout(() => {
     const el = document.getElementById('epSubj');
     // บล็อกวิชาโผล่เฉพาะตอนมีวิชาให้เลือก (หน้าแก้โปรไฟล์ไม่อธิบายช่องที่ใช้ไม่ได้แล้ว) — บอกตรงนี้แทน
@@ -3582,7 +3582,7 @@ function briefCard(pending, now) {
   const label = typeof taskLabel === 'function' && top ? taskLabel(top) : (top && top.subject);
   if (label) msg = msg.replace(esc(label), '<b>' + esc(label) + '</b>');
   return `<div class="brief">
-    <div class="brief-head"><span class="brief-mark">${icon('sparkles')}</span><b>STUDENTOS AI</b></div>
+    <div class="brief-head"><span class="brief-mark">${icon('owl')}</span><b>STUDENTOS AI</b></div>
     <p class="brief-body">${msg}</p>
     <button class="brief-cta" onclick="go('scr-plan')">${icon('plan')}ให้ AI วางแผนเวลาวันนี้</button>
   </div>`;
@@ -3864,7 +3864,7 @@ function snoozeToTomorrow(id) {
   setTimeout(() => {
     renderAll();
     showToast({
-      title: locked ? 'เลื่อนไม่ได้ วันนี้เป็นวันสุดท้าย ⚠' : 'ย้ายไปแผนพรุ่งนี้แล้ว',
+      title: locked ? 'เลื่อนไม่ได้ วันนี้เป็นวันสุดท้าย' : 'ย้ายไปแผนพรุ่งนี้แล้ว',
       body: (t.subject && t.subject !== 'อื่น ๆ' ? t.subject + ' · ' : '') +
         (locked
           ? 'ถ้าไม่ทำวันนี้จะไม่มีเวลาว่างพอก่อน' + fmtDue(t.due, new Date(), t) + ' อีกแล้ว'
@@ -5860,7 +5860,7 @@ function renderDayFull() {
 
   const dateLine = WEEKDAY_SHORT[now.getDay()].replace('.', '') + ' ' + now.getDate()
     + ' ' + MONTH_SHORT[now.getMonth()];
-  const free = typeof freeMinutes === 'function' ? freeMinutes(now, now) : 0;
+  const free = typeof usableMin === 'function' ? usableMin(now, now) : 0;   // 13 ต.ค. 69 · เลขเดียวกับหน้าแรก
 
   // ชื่อจอกับปุ่มย้อนกลับอยู่ในหัวจอติดหนึบของ index.html แล้ว — ตรงนี้เติมแค่บรรทัดรอง
   // วาดหัวซ้ำอีกชุดจะได้คำว่า "ตารางวันนี้" สองครั้งซ้อนกันห่างกันไม่ถึงนิ้ว
@@ -5947,7 +5947,8 @@ function renderTasks() {
   if (typeof freeMinutes === 'function') {
     for (let i = 0; i < 7; i++) {
       const dd = addDays(now, i);
-      try { freeWk += freeMinutes(dd, i === 0 ? now : null); } catch (_) {}
+      // 13 ต.ค. 69 · ผลรวมของเลขเดียวกับที่แถววันข้างล่างโชว์ (usableMin) — เดิมรวมจาก freeMinutes ตรง ๆ
+      try { freeWk += usableMin(dd, now); } catch (_) {}
     }
   }
   // ช่วงวันเขียนแบบสั้น "5–11 ก.ย." ไม่ใช่ "5 ก.ย. 2569–11 ก.ย. 2569"
@@ -6226,12 +6227,42 @@ function freeLabel(d, now) {
   if (typeof freeMinutes === 'function') {
     try {
       const isToday = now && d.toDateString() === now.toDateString();
-      const m = freeMinutes(d, isToday ? now : null);
+      const m = usableMin(d, now);
       if (m > 0) return 'ว่าง ' + humanMin(m);
       if (isToday) return 'หมดเวลาว่างของวันนี้แล้ว';
     } catch (_) {}
   }
   return 'ไม่มีอะไรถึงกำหนด';
+}
+
+// ---------- 13 ต.ค. 69 · "ว่าง" ต้องเป็นเลขชุดเดียวกันทุกจอ ----------
+// เจ้าของเห็นสามเลขในวันเดียว: หน้าแรก "ว่าง 2:30" · จอวันนี้ "ว่างอีก 11 ชม. 10 นาที" (การ์ดใต้มันบอก 2 ชม. 30 นาที)
+// · สัปดาห์ "ว่าง 15 ชม. 30 นาที" ทุกวัน — ต้นเหตุคือสองสูตร:
+//   หน้าแรก/แผน อ่าน planWindows (context.js) ซึ่งตอนยังไม่รู้ตารางเรียน เดาว่าเริ่มหลังมื้อเย็น (EVENING_START)
+//   และไม่เกิน "นั่งทำงานไหวต่อวัน" · จออื่นเรียก freeMinutes ตรง ๆ ซึ่งยังไม่รู้ตาราง = นับตื่นยันนอนว่างหมด
+//   ตัวเลขหลังคือของที่แต่งขึ้น — แอปไม่รู้ว่าเขาเรียนกี่โมง (คอมเมนต์ใน planWindows ห้ามเดาแบบนี้ไว้อยู่แล้ว)
+// ตอนนี้ "ว่าง" บนจอ = เวลาที่แผนเอาไปวางงานได้จริง:
+//   วันนี้ = windows.budgetMin ของแผนก้อนเดียวกับหน้าแรก (todayPlan → studyPlan)
+//   วันอื่น = ช่องว่างของวันนั้น (ยังไม่รู้ตาราง = ช่วงหัวค่ำแบบเดียวกับที่แผนเดา) ไม่เกินแรงที่ไหวต่อวัน
+// ตัวคิดลำดับงาน (freeMinutesBefore ฯลฯ) ไม่ได้แตะ — เปลี่ยนแค่ตัวเลขที่โชว์
+function usableMin(d, now) {
+  const isToday = !!now && d.toDateString() === now.toDateString();
+  if (isToday && typeof todayPlan === 'function') {
+    const tp = todayPlan(now);
+    const w = tp && tp.plan && tp.plan.windows;
+    if (w) return w.mode === 'none' ? 0 : (w.budgetMin || 0);
+  }
+  if (typeof freeMinutes !== 'function') return 0;
+  const cap = Math.round(Math.max(0.5, +state.settings.freeHours || 2) * 60);
+  let m;
+  if (typeof ctxIsEmpty === 'function' && ctxIsEmpty()) {
+    const p = typeof ctxPrefs === 'function' ? ctxPrefs() : {};
+    const end = (typeof hm2min === 'function' ? hm2min(p.noWorkAfter) : null) ?? 21 * 60 + 30;
+    m = Math.max(0, end - (typeof EVENING_START !== 'undefined' ? EVENING_START : 19 * 60));
+  } else {
+    m = freeMinutes(d, isToday ? now : null);
+  }
+  return Math.min(m, cap);
 }
 
 // ---------- จอว่าง ----------
@@ -6377,7 +6408,7 @@ function restoreTask(id) {
   if (!t) return;
   delete t.deleted; delete t.deletedAt;
   save(); renderAll();
-  showToast({ title: 'กู้คืนแล้ว ↩', body: taskTitle(t).replace(/<[^>]*>/g, '') });
+  showToast({ title: 'กู้คืนแล้ว', body: taskTitle(t).replace(/<[^>]*>/g, '') });
 }
 async function purgeTask(id) {
   const t = state.tasks.find(x => x.id === id);
@@ -7047,7 +7078,8 @@ function renderTimeline() {
 
 function tlDaySub(day, isToday, now, plan) {
   const p = typeof ctxPrefs === 'function' ? ctxPrefs() : {};
-  const free = typeof freeMinutes === 'function' ? freeMinutes(day, isToday ? now : null) : 0;
+  // 13 ต.ค. 69 · เลขเดียวกับหน้าแรกและการ์ดใต้หัวนี้ (usableMin) — เดิม "ว่างอีก 11 ชม. 10 นาที" ขณะที่การ์ดบอก 2 ชม. 30 นาที
+  const free = typeof usableMin === 'function' ? usableMin(day, now) : 0;
   const bits = ['ตื่น ' + (p.wake || '—'), 'นอน ' + (p.sleep || '—')];
   bits.push(isToday ? 'ว่างอีก ' + humanMin(free) : 'ว่าง ' + humanMin(free));
   return bits.join(' · ');
@@ -7164,7 +7196,8 @@ function renderPlan() {
     ? 'วันนี้หมดเวลาแล้ว แผนนี้กันไว้ให้พรุ่งนี้เช้า'
     : `ว่างอีก ${humanMin(win.windowMin)}` +
       (win.capped ? ` · ตั้งเพดานไว้ ${humanMin(win.capMin)}` : '') +
-      ` · จัดให้แล้ว ${humanMin(plan.usedMin)}`;
+      // 13 ต.ค. 69 · ยังไม่ได้จัดอะไร = ไม่ต้องเขียน "จัดให้แล้ว 0 นาที" (จอว่างข้างล่างบอกอยู่แล้ว)
+      (plan.usedMin > 0 ? ` · จัดให้แล้ว ${humanMin(plan.usedMin)}` : '');
 
   let html = '';
 
@@ -7455,7 +7488,7 @@ function renderProfile() {
   if (pfb) {
     const paid = !!state.settings.fbPaid;
     pfb.classList.toggle('pe-reward', !paid);
-    pfb.innerHTML = paid ? 'ส่งแล้ว ✓' : coin(16) + '<span>+' + FB_REWARD + '</span>';
+    pfb.innerHTML = paid ? icon('check') + '<span>ส่งแล้ว</span>' : coin(16) + '<span>+' + FB_REWARD + '</span>';
   }
   const ver = document.getElementById('appVer');
   if (ver) ver.textContent = 'StudentOS Version ' + APP_VERSION + (APP_CODENAME ? ' “' + APP_CODENAME + '”' : '');
@@ -7496,7 +7529,9 @@ function renderProfile() {
       nb.textContent = 'ต่อใหม่';
     }
   } else if (Notification.permission === 'denied') {
-    st.textContent = 'ถูกปิดไว้ในเบราว์เซอร์';
+    // 13 ต.ค. 69 · เดิม "ถูกปิดไว้ในเบราว์เซอร์" ใต้สวิตช์ที่เขียนว่า "เปิดอยู่" อ่านเหมือนสองบรรทัดเถียงกัน
+    // สวิตช์คือค่าของแอป บรรทัดนี้คือสิทธิ์ของเบราว์เซอร์ — บอกให้ชัดว่าใครบล็อก และไปเปิดคืนที่ไหน (แอปขอซ้ำเองไม่ได้)
+    st.textContent = 'เบราว์เซอร์บล็อกไว้ · เปิดคืนได้ในตั้งค่าเว็บไซต์ของเบราว์เซอร์';
     if (nb) nb.style.display = 'none';
   } else {
     st.textContent = 'ยังไม่ได้เปิด';
@@ -8094,7 +8129,9 @@ function ctxHeroHtml(weekday, now, todayLeft) {
     : (pastPct >= 100 ? `<span class="cx2-past" style="width:100%"></span>` : '');
   return `<section class="cx2-card cx2-hero">
     <div class="cx2-cap">
-      <span>${isToday ? 'ว่างวันนี้' : 'ว่างวัน' + WD_FULL[weekday]}</span>
+      <!-- 13 ต.ค. 69 · "ช่องว่างในตาราง" ไม่ใช่ "ว่าง" — จอนี้นับช่องที่ตารางเรียน/กิจวัตรเหลือไว้ (ใส่ตารางที่นี่)
+           ส่วน "ว่าง" บนจออื่นคือเวลาที่แผนวางงานได้จริง (usableMin · ไม่เกินแรงที่ไหวต่อวัน) สองเลขนี้ไม่ใช่ของเดียวกัน -->
+      <span>${isToday ? 'ช่องว่างในตารางวันนี้' : 'ช่องว่างในตารางวัน' + WD_FULL[weekday]}</span>
       <!-- 8 ต.ค. 69 · เจ้าของ: "ปรับหน่อย ไม่สวยเลย มีอนิเมชันตอนกดด้วย" — เดิมเป็น <select> ซึ่งรายการที่กางออกเป็นของระบบ
            (กล่องเหลี่ยมพื้นขาว แถบน้ำเงิน) แต่งไม่ได้ · ตอนนี้เป็นเมนูของแอปเอง กางแบบสปริงจากมุมขวาบน (ctxDdToggle) -->
       <div class="cx2-dd">
@@ -8125,7 +8162,7 @@ function ctxWeekBarsHtml(now) {
   const median = sorted[3];
   const short = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
   return `<div class="cx2-wk">
-    <div class="cx2-cap"><span>สัปดาห์นี้</span><b>ว่างรวม ${esc(ctxHours(sum))}</b></div>
+    <div class="cx2-cap"><span>สัปดาห์นี้</span><b>ช่องว่างรวม ${esc(ctxHours(sum))}</b></div>
     <div class="cx2-week">${days.map((x, i) => {
       const cls = x.d === ctxBarDay ? ' on' : (median && x.min < median * 0.65 ? ' low' : '');
       return `<button type="button" class="cx2-day${cls}" onclick="ctxPickDay(${x.d})"
@@ -8547,7 +8584,7 @@ function renderCtxWiz() {
   if (step === WIZ_LAST) {
     body = `<h2 class="wz-q">นี่คือวันจันทร์ของคุณ</h2>
       ${ctxBarHtml(1, { pick: false })}
-      <p class="wz-note">${icon('sparkles')}จากนี้ AI จะวางงานลงเฉพาะช่องสีทอง
+      <p class="wz-note">${icon('calendar')}จากนี้ AI จะวางงานลงเฉพาะช่องสีทอง
         ไม่ใช่ "ว่างวันละ 2 ชั่วโมง" ที่เดาเอาเองอีกต่อไป</p>`;
   }
 
@@ -8626,7 +8663,7 @@ function ctxLearnHtml() {
     ? `<button class="btn sm" onclick="ctxLearnApply()">ขยับ${esc(hit.block.title)}ให้</button>`
     : `<button class="btn sm" onclick="ctxLearnApply()">ขยายถึง ${esc(min2hm((hit.hour + 1) * 60))}</button>`;
   return `<section class="ctx-learn">
-    <div class="cl-h">${icon('sparkles')}<span>แอปสังเกตเห็นอย่างหนึ่ง</span></div>
+    <div class="cl-h">${icon('eye')}<span>แอปสังเกตเห็นอย่างหนึ่ง</span></div>
     <p class="cl-p">${esc(hit.msg)}</p>
     <div class="cl-act">${act}
       <button class="btn ghost sm" onclick="ctxLearnNo()">ไม่ต้อง</button></div>
@@ -9030,7 +9067,7 @@ function craftTheme(id) {
   splashBurst(20, SECRETS[c.secret].fx);
   renderAll();
   setTimeout(checkBadges, 600);   // ธีมลับพวกนี้มีเหรียญของตัวเอง
-  showToast({ title: 'คราฟธีม' + c.name + 'สำเร็จ ✦', body: 'เลือกใช้ได้ที่จอตั้งค่า · เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
+  showToast({ title: 'คราฟธีม' + c.name + 'สำเร็จ', body: 'เลือกใช้ได้ที่จอตั้งค่า · เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
 }
 
 function themeLocked(id) { return THEME_GACHA.includes(id) || !!THEME_SHOP[id] || !!THEME_CODE[id]; }
@@ -9845,7 +9882,7 @@ function flipCard(i) {
     // จอโชว์เต็มจอ (gacha-fx.js) บอกรายละเอียดเองแล้ว — toast ซ้ำจะซ้อนอยู่บนจอโชว์
   } else if (r.rarity === 'legendary') {
     setTimeout(() => showToast({
-      title: 'LEGENDARY ✦ ' + r.label,
+      title: 'Legendary · ' + r.label,
       body: r.duplicate ? 'ได้ซ้ำ คืนให้ ' + fmtTok(r.amount) + ' โทเคน' : 'ปลดล็อกธีม' + r.label + 'แล้ว',
     }), 620);
   } else if (r.kind === 'skin' && !r.duplicate) {
@@ -10210,7 +10247,7 @@ function renderShop() {
         // แตะการ์ด = ลองเล่นตัวอย่าง 3D ได้ทุกคน — คนเห็นของจริงก่อนถึงจะอยากสุ่ม (แบบเกมที่ให้ลองสกิน)
         return `<div class="tk-skin r-mythic${got ? ' got' : ''}" role="button" tabindex="0"
           onclick="previewFx3d('${fx}')" onkeydown="if(event.key==='Enter')previewFx3d('${fx}')">
-          <div class="ts-rar">${got && !fxOwned(fx) ? '🔒 ซื้อปกติก่อน' : 'Mythic 3D'}</div>
+          <div class="ts-rar">${got && !fxOwned(fx) ? icon('lock') + 'ซื้อปกติก่อน' : 'Mythic 3D'}</div>
           <div class="ts-nm">${esc(FX3D_NAME[fx])}</div>
           <div class="ts-ct mono">${n ? '×' + n : got ? 'แอดมิน' : '— — —'}</div>
           <div class="ts-try">▶ ลองเล่น</div>
@@ -10308,7 +10345,7 @@ function weekReviewCard(now) {
   const r = weeklyReview(state, now);
   if (!r.enough) return '';
   return `<div class="st-card wk">
-    <div class="st-h">${icon('sparkles')}สัปดาห์นี้</div>
+    <div class="st-h">${icon('chart')}สัปดาห์นี้</div>
     <div class="wk-nums">
       <span><b>${r.doneCount}</b> งานเสร็จ</span>
       <span><b>${humanMin(r.workedMin)}</b> ที่จับเวลาไว้</span>
@@ -10464,7 +10501,8 @@ function renderStats() {
   const privNums = `<div class="num-row st-priv">
       <div><b>${done.length}</b><span>งานเสร็จ</span></div>
       <div><b>${week.length}</b><span>ใน 7 วัน</span></div>
-      <div><b data-tok="${tkS.bal || 0}" data-tok-int>${tkS.bal === Infinity ? '∞' : Math.round(tkS.bal || 0)}</b><span>โทเคน</span></div>
+      <!-- 13 ต.ค. 69 · ทศนิยมเดียวกับแถวร้านค้าในจอเดียวกัน (fmtTok) — เดิมปัดเป็นจำนวนเต็ม ได้ "8969" คู่กับ "8969.4" -->
+      <div><b data-tok="${tkS.bal || 0}">${fmtTok(tkS.bal || 0)}</b><span>โทเคน</span></div>
     </div>`;
 
   // 1C08 · หัวข้อ "ผลของฉัน · เห็นคนเดียว" ถูกถอดทั้งบรรทัด
@@ -10514,7 +10552,7 @@ function screenFx(scr) {
   clearTimeout(fxTimer);
   scr.classList.remove('fx-in'); void scr.offsetWidth; scr.classList.add('fx-in');
   fxTimer = setTimeout(() => scr.classList.remove('fx-in'), 1400);
-  requestAnimationFrame(() => rollNumbers(scr));
+  requestAnimationFrame(() => { rollNumbers(scr); titleIn(scr); });
 }
 
 // คำทักทายบนหน้าแรก ("สวัสดีตอนบ่าย") ค่อย ๆ ชัดขึ้นทีละคำ — Text Animate ของ Cult UI (blur in + ลอยขึ้น)
@@ -10529,6 +10567,33 @@ function greetIn() {
     : text.split(/(\s+)/);
   g.dataset.anim = '1';
   g.innerHTML = words.map((w, k) => /^\s+$/.test(w) ? w : `<span class="tw" style="--k:${k}">${esc(w)}</span>`).join('');
+}
+
+// 13 ต.ค. 69 · เจ้าของเลือกแบบ A "หัวจอค่อย ๆ ชัดทีละคำ" (BlurText ของ React Bits) — ท่าเดียวกับคำทักทายข้างบน
+// และหัวเรื่องหน้าแนะนำ (land.html) · ตัดคำไทยด้วย Intl.Segmenter แบบคำ · ไม่แยกทีละตัวอักษร เพราะสระบน/วรรณยุกต์จะหลุด
+// เล่นจบแล้ว (1.1 วิ) คืนเป็นข้อความธรรมดา — หัวข้อที่ไล่สีด้วย background-clip:text ต้องเป็นข้อความต่อเนื่องถึงจะระบายสีได้
+// ข้าม: Astral (มีแสงวิ่งผ่านหัวข้อของตัวเองอยู่แล้ว) · หัวข้อที่ไล่สีอยู่ (ชิ้นที่ขยับจะระบายสีไม่ติด = หายไปทั้งคำ)
+// หัวข้อที่มีลูกเป็น element (ไม่ใช่ข้อความล้วน) · โหมดลื่น · ลดการเคลื่อนไหว
+function titleIn(scr) {
+  const root = document.documentElement;
+  if (!scr || root.dataset.lite || root.dataset.theme === 'astral' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  scr.querySelectorAll('.page-title, .sh-title, .fd-title').forEach(el => {
+    if (el.children.length || el.dataset.twIn || !el.getBoundingClientRect().width) return;
+    const cs = getComputedStyle(el);
+    if (cs.webkitBackgroundClip === 'text' || cs.backgroundClip === 'text') return;
+    const text = el.textContent;
+    if (!text.trim()) return;
+    const words = (typeof Intl !== 'undefined' && Intl.Segmenter)
+      ? Array.from(new Intl.Segmenter('th', { granularity: 'word' }).segment(text), x => x.segment)
+      : text.split(/(\s+)/);
+    el.dataset.twIn = '1';
+    el.innerHTML = words.map((w, k) => /^\s+$/.test(w) ? w : `<span class="tw-t" style="--k:${k}">${esc(w)}</span>`).join('');
+    setTimeout(() => {
+      // วาดใหม่ระหว่างเล่น (ข้อความเปลี่ยนแล้ว) = ปล่อยไว้ · ยังเป็นชิ้นที่เราห่อไว้ = คืนเป็นข้อความเดิม
+      if (el.isConnected && el.querySelector('.tw-t') && el.textContent === text) el.textContent = text;
+      delete el.dataset.twIn;
+    }, 1100);
+  });
 }
 
 // ตัวเลขหมุนเข้าหาค่าจริงด้วยสปริง — Rolling Number ของ Cult UI (Motion spring: mass 1 · stiffness 100 · damping 40)
@@ -10564,18 +10629,27 @@ function springRoll(from, to, near, paint, done) {
 function rollNumbers(scope) {
   // โหมดลื่น = ไม่หมุน ตัวเลขจริงอยู่บนจออยู่แล้ว
   if (!scope || document.documentElement.dataset.lite || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  scope.querySelectorAll('.td-stats .ts > b, #statFull .at-v, .dn-in .dn-n, .dn-in .dn-mini b').forEach(el => {
+  // 13 ต.ค. 69 · เจ้าของเลือกแบบ C "ตัวเลขนับขึ้น" (NumberTicker ของ Magic UI) → เพิ่มยอดโทเคน (ร้านค้า · แท็บฉัน)
+  // ตัวเลขสามช่องในร้าน · ตัวเลขกลางโดนัท — ใช้สปริงตัวเดิม · รูปแบบเพิ่ม: ทศนิยม (8969.4 · 2.5) และจุลภาค (1,250)
+  scope.querySelectorAll('.td-stats .ts > b, #statFull .at-v, .dn-in .dn-n, .dn-in .dn-mini b, .st-priv b, .tk-bal, .tk-stats .v, .dn-mid b').forEach(el => {
     const node = [...el.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim());
     if (!node) return;
     const raw = node.nodeValue.trim();
-    const m = /^([+-]?)(\d+)(?::(\d{2}))?$/.exec(raw);
+    const m = /^([+-]?)(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?(?::(\d{2}))?$/.exec(raw);
     if (!m) return;
-    const clock = m[3] != null;
-    const target = clock ? (+m[2]) * 60 + (+m[3]) : +m[2];
+    const clock = m[4] != null;
+    if (clock && m[3] != null) return;
+    const dec = m[3] ? m[3].length : 0;
+    const comma = m[2].includes(',');
+    const whole = +m[2].replace(/,/g, '');
+    const target = clock ? whole * 60 + (+m[4]) : whole + (dec ? +('0.' + m[3]) : 0);
     if (!target) return;
     const fmt = x => {
-      const n = Math.round(x);
-      return m[1] + (clock ? Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0') : String(n));
+      if (clock) { const n = Math.round(x); return m[1] + Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0'); }
+      const v = dec ? x.toFixed(dec) : String(Math.round(x));
+      if (!comma) return m[1] + v;
+      const [i, f] = v.split('.');
+      return m[1] + i.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (f ? '.' + f : '');
     };
     node.nodeValue = fmt(0);
     // สปริงนี้หน่วงหนัก (damping 40) ปลายทางจึงคืบช้ามาก — "99%" ค้างอยู่เกือบวินาทีก่อนเป็น 100
@@ -10836,7 +10910,7 @@ function renderStatFull(now, d) {
     </div>` : ''}
 
     ${wr.insights.length ? `<div class="an-ai">
-      <div class="an-ai-h">${icon('sparkles')}${esc(mName())}วิเคราะห์</div>
+      <div class="an-ai-h">${icon('owl')}${esc(mName())}วิเคราะห์</div>
       <ul>${wr.insights.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
 
     </div>` : ''}
@@ -11644,7 +11718,13 @@ new MutationObserver(recs => {
 const overlayReturn = new WeakMap();
 function watchOverlays() {
   const ids = ['checkin', 'focusWrap', 'addSheet', 'soonSheet', 'aiSheet', 'fabMenu', 'reportSheet'];
+  // 13 ต.ค. 69 · แผ่นล่างเปิดอยู่ = body.sheet-up → จอข้างหลังยุบลงนิดหนึ่ง (CSS ท้าย alt.css · "มีมิติ" ①)
+  // ใช้ตัวเฝ้าเดิมตัวนี้ ไม่ใช้ :has() ใน CSS — :has() เคยทำให้ทั้งเอกสารคำนวณสไตล์ใหม่ทุกครั้งที่ DOM เปลี่ยน
+  const SHEETS = ['addSheet', 'soonSheet', 'aiSheet', 'reportSheet'];
+  const syncSheetUp = () => document.body.classList.toggle('sheet-up',
+    SHEETS.some(id => { const el = document.getElementById(id); return !!el && !el.hidden; }));
   const mo = new MutationObserver(recs => {
+    syncSheetUp();
     for (const r of recs) {
       const el = r.target;
       if (!el.hidden) {
@@ -11943,6 +12023,10 @@ function toggleDone(id, el) {
   if (!wasDone && t.done) {
     // ให้เห็นจังหวะฉลองก่อน แล้วค่อยวาดรายการใหม่ (ไม่งั้นปุ่มหายไปก่อนดูจบ)
     if (el) { el.classList.add('on', 'pop'); }
+    // 13 ต.ค. 69 · Spring Check (React Bits): ติ๊กพองเกินแล้วยุบ เครื่องหมายถูกวาดเส้น ชื่องานถูกขีดฆ่า การ์ดจางยุบ
+    // ก่อนรายการวาดใหม่ 430ms ข้างล่าง · ปัดการ์ดมาจนเสร็จ (การ์ดค้างตำแหน่งที่ปัดอยู่) ไม่ต้องยุบซ้ำ
+    const doneCard = el && el.closest('.tk, .rank-card');
+    if (doneCard && !doneCard.style.transform) doneCard.classList.add('just-done');
     // เอฟเฟกต์ตอนงานเสร็จ (โยนลงห่วง · ยิงประตู · … ซื้อจากร้านค้า · hoop.js) — งานบันทึกว่าเสร็จไปแล้วข้างบน
     // จอเกมเป็นแค่ฉลอง ทุกอย่างที่ตามหลังการติ๊ก (วาดใหม่ · บอกงานถัดไป) รอจนจอนั้นปิด
     // ไม่งั้น toast "ต่อไป: …" จะเด้งไปซ่อนอยู่ใต้จอโยนแล้วหมดเวลาก่อนมีใครเห็น
@@ -12008,16 +12092,19 @@ function celebrate(el) {
   const y0 = r ? r.top - pr.top + r.height / 2 : pr.height / 2;
 
   const cs = getComputedStyle(document.documentElement);
-  const colors = ['--pri-green', '--pri-yellow', '--pri-red', '--blue']
+  // 13 ต.ค. 69 · ธีมที่มีสัญลักษณ์ประจำธีม (--motif ท้าย alt.css) — เศษกระดาษเป็นรูปสัญลักษณ์ ไม่ใช่สี่เหลี่ยม/วงกลมสุ่ม
+  const motif = themeMotif();
+  const colors = (motif && motifColors(cs)) || ['--pri-green', '--pri-yellow', '--pri-red', '--blue']
     .map(v => cs.getPropertyValue(v).trim()).filter(Boolean).concat('#FFFFFF');
 
   for (let i = 0; i < 20; i++) {
     const p = document.createElement('i');
-    p.className = 'particle';
-    const size = 4 + Math.random() * 6;
+    p.className = motif ? 'particle tm-glyph' : 'particle';
+    // รูปสัญลักษณ์เล็กกว่า 7px อ่านไม่ออกว่าเป็นอะไร เลยใหญ่กว่าเศษแบบเดิมนิดหนึ่ง
+    const size = motif ? 7 + Math.random() * 7 : 4 + Math.random() * 6;
     p.style.background = colors[Math.floor(Math.random() * colors.length)];
     p.style.width = p.style.height = size + 'px';
-    p.style.borderRadius = Math.random() > .5 ? '50%' : '2px';
+    if (!motif) p.style.borderRadius = Math.random() > .5 ? '50%' : '2px';
     p.style.left = x0 + 'px';
     p.style.top = y0 + 'px';
     phone.appendChild(p);
@@ -12167,8 +12254,8 @@ function openForm(id, parsed) {
       const sum = parsed._ai.summary;
       okBadge.className = 'fm-ok show' + (noTask ? ' shaky' : '');
       okBadge.innerHTML = noTask
-        ? `${icon('sparkles')}ไม่เจอคำสั่งงานในรูปนี้`
-        : `${icon('sparkles')}AI อ่านแล้ว`;
+        ? `${icon('scan')}ไม่เจอคำสั่งงานในรูปนี้`
+        : `${icon('check')}AI อ่านแล้ว`;
     } else if (okBadge) {
       // ALT: ถ้ามาจากรูปแล้ว OCR ไม่ค่อยมั่นใจ ให้ป้ายเปลี่ยนโทนเป็นเตือน แทนที่จะบอกว่าสำเร็จเฉย ๆ
       const shaky = lastOcrConfidence != null && lastOcrConfidence < OCR_CONF_OK;
@@ -13070,7 +13157,7 @@ function saveForm() {
   // QA 6 ต.ค. 69 · บันทึกแล้วต้องมีคำยืนยัน — เดิมเงียบจนไม่แน่ใจว่างานเข้าแผนหรือยัง (ลบมี toast แต่บันทึกไม่มี)
   const late = data.due && new Date(data.due) < new Date();
   setTimeout(() => showToast({
-    title: wasEdit ? 'แก้ไขแล้ว' : 'บันทึกเข้าแผนแล้ว ✓',
+    title: wasEdit ? 'แก้ไขแล้ว' : 'บันทึกเข้าแผนแล้ว',
     body: late ? 'เลยกำหนดส่งแล้ว'
       : data.due ? 'ส่ง ' + fmtThaiDate(new Date(data.due)) + ' · ' + detail.slice(0, 40)
       : detail.slice(0, 60),
@@ -14660,7 +14747,7 @@ const OCR_STAGE_TEXT = {
   // ข้อความของขั้น lang ถูกเขียนทับด้วยตัวเลขเมกะไบต์จริงจาก ocrLangProgress ทันที
   // ที่ต้องมีไว้เพราะจังหวะแรกสุด (ตอนเปิดแคชอยู่) ยังไม่มีตัวเลขให้โชว์
   lang: 'กำลังเตรียมโมเดลอ่านภาษาไทย…',
-  model: '⏳ กำลังเตรียมโมเดล OCR…',
+  model: 'กำลังเตรียมโมเดล OCR…',
   read: 'AI กำลังอ่านใบงาน…',
   alt: 'ลองอ่านอีกแบบให้ชัดขึ้น…',
   psm6: 'ลองมองหน้ากระดาษอีกแบบ…',
@@ -14678,7 +14765,7 @@ async function runOcrOn(source, how) {
   const st = document.getElementById('ocrStatus');
   const barWrap = document.getElementById('ocrBarWrap');
   if (ocrRunning) {
-    showToast({ title: 'กำลังอ่านใบก่อนหน้าอยู่ ⏳', body: 'รออีกนิดเดียว เดี๋ยวถึงคิวใบนี้' });
+    showToast({ title: 'กำลังอ่านใบก่อนหน้าอยู่', body: 'รออีกนิดเดียว เดี๋ยวถึงคิวใบนี้' });
     return;
   }
   ocrRunning = true;
@@ -14693,7 +14780,7 @@ async function runOcrOn(source, how) {
       if (m.status === 'recognizing text') {
         ocrHalo('AI กำลังอ่านใบงาน…', 15 + Math.round(m.progress * 80));
       } else if (m.status) {
-        ocrHalo('⏳ ' + m.status + '…');
+        ocrHalo(m.status + '…');
       }
     };
     // ปรับภาพก่อน แล้วค่อยโหลดโมเดล — ผู้ใช้จะได้เห็นความคืบหน้าตั้งแต่วินาทีแรก
@@ -14850,7 +14937,7 @@ async function readPhoto(canvas, how) {
 // คืน 'ok' (เปิดหน้าตรวจแล้ว) · 'empty' (AI ดูแล้วไม่มีตัวหนังสือ — อ่านในเครื่องก็ไม่ดีกว่า) · 'fail'
 async function aiReadPhoto() {
   if (ocrRunning) {
-    showToast({ title: 'กำลังอ่านใบก่อนหน้าอยู่ ⏳', body: 'รออีกนิดเดียว เดี๋ยวถึงคิวใบนี้' });
+    showToast({ title: 'กำลังอ่านใบก่อนหน้าอยู่', body: 'รออีกนิดเดียว เดี๋ยวถึงคิวใบนี้' });
     return 'empty';
   }
   ocrRunning = true;
@@ -15005,7 +15092,7 @@ function saveProfile() {
   if (typeof syncPublicFace === 'function') syncPublicFace(true);
   state.settings.freeHours = Math.max(0.5, +document.getElementById('pFree').value || 2);
   save(); renderAll();
-  showToast({ title: 'บันทึกแล้ว ✓', body: 'ชื่อและเวลาว่างต่อวันอัปเดตแล้ว' });
+  showToast({ title: 'บันทึกแล้ว', body: 'ชื่อและเวลาว่างต่อวันอัปเดตแล้ว' });
 }
 
 // ---------- Web Push: สมัครรับการเตือนแม้ปิดแอป ----------
@@ -15154,7 +15241,7 @@ async function reconnectPush() {
   recordPushDiag();   // 11 ต.ค. · ไม่จดตรงนี้ = cloud ค้างว่า "ยังไม่อนุญาต" ทั้งที่เพิ่งต่อสำเร็จ (เจอจริงกับเครื่องเจ้าของ)
   renderProfile();
   if (ok && pushState === 'on') {
-    showToast({ title: 'เตือนนอกแอปได้แล้ว 🔔', body: 'จะเตือนแม้ปิดแอปอยู่' });
+    showToast({ title: 'เตือนนอกแอปได้แล้ว', body: 'จะเตือนแม้ปิดแอปอยู่' });
   } else if (!(sb && currentUser)) {
     showToast({ title: 'ยังเตือนนอกแอปไม่ได้', body: 'ล็อกอินก่อน' });
   } else {
@@ -15238,7 +15325,7 @@ async function toggleNotifAll() {
   }
   // จังหวะนี้คือนิ้วแตะ — ยังไม่เคยอนุญาตก็ขอเลย · อนุญาตแล้วก็สมัคร push ใหม่ทันที
   if (('Notification' in window) && Notification.permission !== 'denied') { enableNotif(); return; }
-  showToast({ title: 'เปิดแจ้งเตือนแล้ว 🔔', body: '' });
+  showToast({ title: 'เปิดแจ้งเตือนแล้ว', body: '' });
 }
 
 function toggleNotifPref(key) {
@@ -15251,7 +15338,7 @@ function toggleNotifPref(key) {
              : key === 'notifSocial' ? 'การเตือนข้อความและคำขอเป็นเพื่อน'
              : 'การทักเมื่อหายไปหลายวัน';
   showToast(on
-    ? { title: 'เปิดแล้ว 🔔', body: name + ' จะกลับมาทำงานตามปกติ' }
+    ? { title: 'เปิดแล้ว', body: name + ' จะกลับมาทำงานตามปกติ' }
     : { title: 'ปิดแล้ว', body: '' });
 }
 
@@ -15295,7 +15382,7 @@ async function enableNotif() {
   let subErr = null;
   const subTry = subscribePush().catch(e => { subErr = e; return false; });
   // ยิงของจริงทันทีหนึ่งดอก — ผู้ใช้จะได้เห็นกับตาว่ามันทำงาน ไม่ใช่แค่ปุ่มเปลี่ยนสี
-  await notify('เปิดแจ้งเตือนแล้ว 🔔',
+  await notify('เปิดแจ้งเตือนแล้ว',
     (who() ? who() + ' ' : '') + 'จะเตือนก่อนถึงกำหนดส่ง', 'studentos-alt-on');
   try {
     const ok = await subTry;
@@ -15307,9 +15394,9 @@ async function enableNotif() {
     if (!ok) {
       showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเตือนนอกแอปไม่ได้' });
     } else if (pushState === 'on') {
-      showToast({ title: 'เปิดการเตือนแล้ว 🔔', body: 'จะเตือนก่อนถึงกำหนดส่ง แม้ปิดแอปอยู่' });
+      showToast({ title: 'เปิดการเตือนแล้ว', body: 'จะเตือนก่อนถึงกำหนดส่ง แม้ปิดแอปอยู่' });
     } else if (!(sb && currentUser)) {
-      showToast({ title: 'เปิดการเตือนแล้ว 🔔', body: 'ล็อกอินเพื่อให้เตือนตอนปิดแอปได้' });
+      showToast({ title: 'เปิดการเตือนแล้ว', body: 'ล็อกอินเพื่อให้เตือนตอนปิดแอปได้' });
     } else {
       showToast({ title: 'เปิดการเตือนในแอปแล้ว', body: 'ยังเตือนนอกแอปไม่ได้' });
     }
@@ -15506,12 +15593,12 @@ async function testServerPush() {
     return;
   }
   if (res.queued) {
-    showToast({ title: `จะเด้งใน ${res.delay} วินาที 🔔`,
+    showToast({ title: `จะเด้งใน ${res.delay} วินาที`,
       body: res.devices > 1 ? `${res.devices} เครื่อง` : '' });
     return;
   }
   showToast(res.ok
-    ? { title: 'ส่งจากเซิร์ฟเวอร์แล้ว ✓', body: `ถึง ${res.sent}/${res.devices} เครื่อง` }
+    ? { title: 'ส่งจากเซิร์ฟเวอร์แล้ว', body: `ถึง ${res.sent}/${res.devices} เครื่อง` }
     : { title: 'เซิร์ฟเวอร์ส่งไม่ถึงเครื่องนี้', body: 'ลองกดทดสอบอีกครั้ง' });
 }
 
@@ -15519,7 +15606,7 @@ async function testNotify() {
   if (Notification.permission !== 'granted') { enableNotif(); return; }
   if (pushState === 'on' && sb && currentUser) { testServerPush(); return; }
   const tag = 'studentos-alt-test';
-  const ok = await notify('ทดสอบแจ้งเตือน 🔔',
+  const ok = await notify('ทดสอบแจ้งเตือน',
     (who() ? who() + ' ' : '') + 'แจ้งเตือนใช้งานได้แล้ว', tag);
 
   // 1B99 · showNotification() ที่ resolve แล้ว **ไม่ได้แปลว่าการ์ดขึ้นจริง**
@@ -15541,7 +15628,7 @@ async function testNotify() {
     return;
   }
   showToast(shown === true
-    ? { title: 'ขึ้นแล้ว ✓', body: '' }
+    ? { title: 'ขึ้นแล้ว', body: '' }
     : { title: 'ส่งแจ้งเตือนแล้ว', body: '' });
 }
 
@@ -15902,7 +15989,7 @@ function fbPay(at) {
   whenToastQuiet(400, () => true, () => {
     haptic('done');
     splashBurst(24, 'egg-star');
-    showToast({ title: '+' + FB_REWARD + ' โทเคน ✦',
+    showToast({ title: '+' + FB_REWARD + ' โทเคน',
       body: 'ขอบคุณที่ส่งฟีดแบ็ก · ตอนนี้มี ' + (tokenAdmin ? '∞' : bal.toLocaleString()) + ' โทเคน' });
   });
 }
@@ -16166,7 +16253,7 @@ function relockSecrets() {
   tapCount = 0; tapTheme = '';
   renderProfile();
   // ไม่บอกวิธีปลดล็อกซ้ำ — ของลับที่บอกวิธีไว้ข้าง ๆ ก็ไม่ใช่ของลับแล้ว
-  showToast({ title: 'ล็อกธีมลับกลับแล้ว 🔒', body: 'ธีมลับหายไปจากรายการเรียบร้อย' });
+  showToast({ title: 'ล็อกธีมลับกลับแล้ว', body: 'ธีมลับหายไปจากรายการเรียบร้อย' });
 }
 
 // ---------- ALT 1A6M3: ช่องใส่โค้ดในหน้าตั้งค่า ----------
@@ -16281,7 +16368,7 @@ function codeUnlockTheme(id) {
   haptic('done');
   splashBurst(22, 'egg-star');
   renderAll();
-  showToast({ title: 'ปลดล็อกธีม ' + (THEME_NAME[id] || id) + ' ✦', body: '' });
+  showToast({ title: 'ปลดล็อกธีม ' + (THEME_NAME[id] || id) + '', body: '' });
 }
 
 // เปิด/ปิดโชคเพิ่ม — เก็บเป็นธงในเครื่อง ไม่ผูกกับยอดโทเคน
@@ -16293,7 +16380,7 @@ function codeSetLuck(on) {
   renderAll();
   const od = currentOdds();
   showToast(on
-    ? { title: 'โชคเพิ่มขึ้นแล้ว ✦', body: 'โอกาสได้ของหายากขึ้นเป็น 10 เท่า ตอนนี้ Rare ' + od.rare.toFixed(1) + '%' }
+    ? { title: 'โชคเพิ่มขึ้นแล้ว', body: 'โอกาสได้ของหายากขึ้นเป็น 10 เท่า ตอนนี้ Rare ' + od.rare.toFixed(1) + '%' }
     : { title: 'โชคกลับเป็นปกติ', body: 'อัตราการสุ่มกลับไปเท่าเดิมทุกระดับ' });
 }
 
@@ -16314,7 +16401,7 @@ function codeGrantEverything() {
   codeGrantAll();
   grantThemes(true);
   renderAll();
-  setTimeout(() => showToast({ title: 'ปลดล็อกครบทุกอย่างจริง ๆ ✦', body: 'รวมของที่ไม่ได้บอกว่ามีด้วย' }), 900);
+  setTimeout(() => showToast({ title: 'ปลดล็อกครบทุกอย่างจริง ๆ', body: 'รวมของที่ไม่ได้บอกว่ามีด้วย' }), 900);
 }
 
 // โค้ด "ได้ทุกอย่าง ยกเว้น Astral Black" (CODE_GIFT · all) — 9 ต.ค. 69
@@ -16337,7 +16424,7 @@ function codeGrantAllButAstral() {
     saveRoom(r);
   }
   renderAll();
-  setTimeout(() => showToast({ title: 'ได้ครบทุกอย่างแล้ว ✦',
+  setTimeout(() => showToast({ title: 'ได้ครบทุกอย่างแล้ว',
     body: 'ธีม เหรียญ เอฟเฟกต์งานเสร็จ (รวม 3D) และของแต่งห้องทุกชิ้น · ยกเว้นธีม Astral Black' }), 900);
 }
 
@@ -16347,7 +16434,7 @@ function codeGrantTokens(n = CODE_TOKEN_GRANT) {
   haptic('done');
   splashBurst(22, 'egg-star');
   renderAll();
-  showToast({ title: '+' + n.toLocaleString() + ' โทเคน ✦', body: 'ตอนนี้มี ' + bal + ' โทเคน ลองสุ่มสกินได้เลย' });
+  showToast({ title: '+' + n.toLocaleString() + ' โทเคน', body: 'ตอนนี้มี ' + bal + ' โทเคน ลองสุ่มสกินได้เลย' });
 }
 
 // โค้ดที่ 1 — เปิดทุกอย่างในแอปให้เลย: เหรียญครบทุกอัน + ธีมลับครบทุกโทน
@@ -16369,7 +16456,7 @@ function codeGrantAll() {
   splashBurst(26, 'egg-star');
   setTheme('genesis');
   renderAll();
-  showToast({ title: 'ปลดล็อกครบทุกอย่างแล้ว ✦', body: 'เหรียญตราครบทุกอัน และธีมลับเปิดให้หมดแล้ว' });
+  showToast({ title: 'ปลดล็อกครบทุกอย่างแล้ว', body: 'เหรียญตราครบทุกอัน และธีมลับเปิดให้หมดแล้ว' });
 }
 
 // โค้ดที่ 2 — ล้างทุกอย่างแล้วเด้งออก เปิดกลับมาได้แอปเปล่าเหมือนเพิ่งติดตั้ง
@@ -17558,6 +17645,132 @@ function syncLiteRow() {
 })();
 
 // ============================================================
+// 13 ต.ค. 69 · การ์ดบนสุดของหน้าแรกมีมิติ (เจ้าของ: "ใส่อนิเมชันแล้วจะดูมีมิติขึ้น")
+// ------------------------------------------------------------
+// ท่า 3D Card ของ Aceternity (การ์ดเอียง ลูกข้างในลอยคนละระดับ) + Tilted Card ของ React Bits (สปริงกลับที่)
+// + Glare ของ Aceternity (แสงสะท้อนวงรีตามจุดที่ชี้) — เขียนใหม่ด้วย JS ธรรมดา ไม่ได้ก๊อปโค้ดของเขา
+//   มือถือ: แตะค้าง = การ์ดเอียงลงตรงมุมที่กด ยกนิ้ว = สปริงกลับ · เลื่อนจอ = ปล่อยทันที (pointercancel)
+//   คอม: เอียงตามเมาส์ระหว่างชี้ · ออกนอกการ์ด = กลับที่
+// ลูกข้างในไม่ใช้ 3D จริง: การ์ดเป็นกระจก (backdrop-filter) ซึ่งทำให้ preserve-3d แบนลง
+//   จึงเลื่อน 2D ตามทิศที่เอียงแทน (น้องไซ/ไอคอนมากสุด · ปุ่มสวนทางนิดหนึ่ง) ตาอ่านเป็นความลึกเหมือนกัน
+// โหมดลื่น · ลดการเคลื่อนไหว = ไม่ทำ · transform ล้วน · หยุดวาดทันทีที่นิ่ง (ไม่มีลูปค้าง)
+// ============================================================
+(function () {
+  const SEL = '#menuBody .td-now, #menuBody .td-clear';
+  const VARS = ['--rx', '--ry', '--ts', '--px', '--py', '--gx', '--gy', '--ga'];
+  const still = () => !!document.documentElement.dataset.lite || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let card = null, raf = 0, down = false, max = 5;
+  let cur = { x: 0, y: 0, s: 1, g: 0 }, tgt = { x: 0, y: 0, s: 1, g: 0 }, gx = 50, gy = 50;
+
+  function reset(el) {
+    if (!el) return;
+    el.classList.remove('tilt-on');
+    VARS.forEach(p => el.style.removeProperty(p));
+  }
+  function take(el) {
+    if (card === el) return;
+    reset(card);
+    card = el;
+    cur = { x: 0, y: 0, s: 1, g: 0 };
+    card.classList.add('tilt-on');
+  }
+  function aim(e, press) {
+    const r = card.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const nx = Math.max(-1, Math.min(1, (e.clientX - r.left) / r.width * 2 - 1));
+    const ny = Math.max(-1, Math.min(1, (e.clientY - r.top) / r.height * 2 - 1));
+    max = press ? 4 : 5;
+    tgt = { x: nx, y: ny, s: press ? .985 : 1, g: 1 };
+    gx = (nx + 1) * 50; gy = (ny + 1) * 50;
+    run();
+  }
+  function release() { if (card) { tgt = { x: 0, y: 0, s: 1, g: 0 }; run(); } }
+  function run() { if (!raf) raf = requestAnimationFrame(step); }
+  function step() {
+    raf = 0;
+    if (!card || !card.isConnected) { card = null; return; }   // หน้าแรกวาดใหม่ (ทุกนาที) — การ์ดใบใหม่เริ่มนิ่ง
+    cur.x += (tgt.x - cur.x) * .16; cur.y += (tgt.y - cur.y) * .16;
+    cur.s += (tgt.s - cur.s) * .24; cur.g += (tgt.g - cur.g) * .2;
+    const st = card.style;
+    st.setProperty('--rx', (-cur.y * max).toFixed(2) + 'deg');
+    st.setProperty('--ry', (cur.x * max).toFixed(2) + 'deg');
+    st.setProperty('--ts', cur.s.toFixed(4));
+    st.setProperty('--px', cur.x.toFixed(3));
+    st.setProperty('--py', cur.y.toFixed(3));
+    st.setProperty('--gx', gx.toFixed(1) + '%');
+    st.setProperty('--gy', gy.toFixed(1) + '%');
+    st.setProperty('--ga', cur.g.toFixed(3));
+    const moving = Math.abs(tgt.x - cur.x) > .003 || Math.abs(tgt.y - cur.y) > .003
+      || Math.abs(tgt.s - cur.s) > .0006 || Math.abs(tgt.g - cur.g) > .006;
+    if (moving) { run(); return; }
+    if (!tgt.g) { reset(card); card = null; }               // กลับที่สนิทแล้ว = ถอดทุกอย่างออก การ์ดกลับเป็นของปกติ
+  }
+
+  document.addEventListener('pointerdown', e => {
+    if (still() || e.button > 0) return;
+    const el = e.target.closest && e.target.closest(SEL);
+    if (!el) return;
+    down = true;
+    take(el); aim(e, true);
+  }, { passive: true });
+  document.addEventListener('pointermove', e => {
+    if (still() || e.pointerType !== 'mouse') return;        // นิ้วลาก = เลื่อนจอ ไม่ตาม
+    const el = e.target.closest && e.target.closest(SEL);
+    if (!el) { if (card && !down) release(); return; }
+    take(el); aim(e, down);
+  }, { passive: true });
+  ['pointerup', 'pointercancel'].forEach(n => document.addEventListener(n, e => {
+    down = false;
+    if (!card) return;
+    if (e.type === 'pointerup' && e.pointerType === 'mouse' && e.target.closest && e.target.closest(SEL)) aim(e, false);
+    else release();
+  }, { passive: true }));
+  window.addEventListener('blur', () => { down = false; release(); });
+})();
+
+// ============================================================
+// 13 ต.ค. 69 · Astral Black: แตะปุ่ม = ประกายดาว (เจ้าของ: "สร้างอนิเมชันให้เข้ากับธีม ... ไม่เอาให้มันรกเกินไป")
+// ------------------------------------------------------------
+// วงแหวนบางขยายออกแล้วจาง + ประกายสี่แฉกหมุนครึ่งรอบ ตรงจุดที่นิ้วแตะ (CSS .as-flare ท้าย alt.css)
+// ฟังที่ click ไม่ใช่ pointerdown — นิ้วที่แตะแล้วลากเลื่อนจอจะไม่ได้ประกาย (มีแค่การกดจริง)
+// และ click จากคีย์บอร์ด (detail = 0 · ไม่มีจุดแตะ) ไม่เล่น · ชิ้นเดียวทั้งแอป ย้ายไปตามจุดแตะ ไม่ยุ่งกับผังของปุ่ม
+// เฉพาะธีมนี้ · โหมดลื่น/ลดการเคลื่อนไหว = ไม่เล่น · transform/opacity ล้วนผ่าน Web Animations (ไม่บังคับจัดผังใหม่)
+// ============================================================
+(function () {
+  let el = null;
+  document.addEventListener('click', e => {
+    const root = document.documentElement;
+    if (root.dataset.theme !== 'astral' || root.dataset.lite || !e.detail) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const b = e.target.closest && e.target.closest('button, .btn, [role="button"], .tab, .tg-t, .shw');
+    const phone = document.querySelector('.phone');
+    if (!b || b.disabled || !phone || !phone.contains(b)) return;
+    if (!el || !el.isConnected) {
+      el = document.createElement('span');
+      el.className = 'as-flare';
+      el.setAttribute('aria-hidden', 'true');
+      el.innerHTML = '<i></i><b></b>';
+      phone.appendChild(el);
+    }
+    // กรอบโทรศัพท์บนจอกว้างอาจถูกย่อ — แปลงพิกัดจอเป็นพิกัดในกรอบ
+    const pr = phone.getBoundingClientRect();
+    const k = pr.width / (phone.offsetWidth || pr.width) || 1;
+    el.style.left = ((e.clientX - pr.left) / k) + 'px';
+    el.style.top = ((e.clientY - pr.top) / k) + 'px';
+    const [ring, star] = el.children;
+    ring.getAnimations().forEach(a => a.cancel());
+    star.getAnimations().forEach(a => a.cancel());
+    ring.animate([{ transform: 'scale(.25)', opacity: .95 }, { transform: 'scale(1)', opacity: 0 }],
+      { duration: 520, easing: 'cubic-bezier(.2, .8, .3, 1)' });
+    star.animate([
+      { transform: 'scale(.3) rotate(0deg)', opacity: 1 },
+      { transform: 'scale(1.15) rotate(45deg)', opacity: .9, offset: .35 },
+      { transform: 'scale(.6) rotate(90deg)', opacity: 0 },
+    ], { duration: 480, easing: 'ease-out' });
+  }, true);
+})();
+
+// ============================================================
 // หัวจอ — ชื่อจออยู่แค่บนสุด ปุ่มกลับ/กากบาทลอยตามจอตลอด
 // ============================================================
 // เริ่มที่ฟอร์มเพิ่มงาน (เจ้าของ: "มันอยู่แค่ข้างบน พอเลื่อนลงมาจะไม่เจอ ส่วนปุ่มกากบาทให้ไปอยู่ด้านซ้าย")
@@ -17723,3 +17936,64 @@ function syncLiteRow() {
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
+
+// ============================================================
+// 13 ต.ค. 69 · สัญลักษณ์ประจำธีม (เจ้าของ: "ตกแต่งแต่ละธีมให้มีความเฉพาะหน่อย")
+// ------------------------------------------------------------
+// หนึ่งธีม = หนึ่งสัญลักษณ์ (รูปอยู่ใน --motif ท้าย alt.css) แล้วไปโผล่สามที่: การ์ดใหญ่หน้าแรก (CSS ล้วน)
+// ตอนแตะปุ่ม (ข้างล่าง) · เศษกระดาษตอนติ๊กงานเสร็จ (celebrate) · ธีมสว่าง/มืด = ธีมกลาง ไม่มีสัญลักษณ์
+// ============================================================
+const MOTIF_THEMES = new Set(['warm', 'space', 'earth', 'ocean', 'magic', 'galaxy', 'deepocean', 'earth2', 'sweet', 'genesis', 'meta', 'glitch', 'astral']);
+function themeMotif() {
+  const t = document.documentElement.dataset.theme;
+  return MOTIF_THEMES.has(t) ? t : '';
+}
+
+// สีของเศษสัญลักษณ์ตอนติ๊กงานเสร็จ ในธีมที่มีสัญลักษณ์ — คืน array ของสี (CSS color) หรือ null = ใช้สีชุดเดิม
+// cs = getComputedStyle(document.documentElement) · อ่านโทเคนของธีมได้ เช่น cs.getPropertyValue('--fill')
+function motifColors(cs) {
+  // TODO(human)
+  return null;
+}
+
+// ตอนแตะปุ่ม — วงแหวนบางขยายจาง + สัญลักษณ์สามชิ้นกระเด็นออกคนละทาง (ห่างกัน 120°) แล้วจาง
+// ท่าเดียวกับประกายดาวของ Astral (ฟัง click ไม่ใช่ pointerdown · คีย์บอร์ดไม่เล่น · ชิ้นเดียวทั้งแอป)
+// Astral ใช้ของเดิม (.as-flare) · โหมดลื่น/ลดการเคลื่อนไหว = ไม่เล่น
+(function () {
+  let host = null;
+  document.addEventListener('click', e => {
+    const root = document.documentElement;
+    const th = themeMotif();
+    if (!th || th === 'astral' || root.dataset.lite || !e.detail) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const b = e.target.closest && e.target.closest('button, .btn, [role="button"], .tab, .tg-t, .shw');
+    const phone = document.querySelector('.phone');
+    if (!b || b.disabled || !phone || !phone.contains(b)) return;
+    if (!host || !host.isConnected) {
+      host = document.createElement('span');
+      host.className = 'tm-tap';
+      host.setAttribute('aria-hidden', 'true');
+      host.innerHTML = '<i></i><b></b><b></b><b></b>';
+      phone.appendChild(host);
+    }
+    const pr = phone.getBoundingClientRect();
+    const k = pr.width / (phone.offsetWidth || pr.width) || 1;
+    host.style.left = ((e.clientX - pr.left) / k) + 'px';
+    host.style.top = ((e.clientY - pr.top) / k) + 'px';
+    const [ring, ...bits] = host.children;
+    for (const n of host.children) n.getAnimations().forEach(a => a.cancel());
+    ring.animate([{ transform: 'scale(.3)', opacity: .7 }, { transform: 'scale(1)', opacity: 0 }],
+      { duration: 480, easing: 'cubic-bezier(.2, .8, .3, 1)' });
+    const base = Math.random() * Math.PI * 2;
+    bits.forEach((n, i) => {
+      const a = base + i * (Math.PI * 2 / 3);
+      const d = 22 + Math.random() * 10;
+      const r0 = Math.round(Math.random() * 60 - 30);
+      n.animate([
+        { transform: `translate(0, 0) scale(.4) rotate(${r0}deg)`, opacity: 1 },
+        { transform: `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d - 6}px) scale(1) rotate(${r0 + 40}deg)`, opacity: 0 },
+      ], { duration: 560, easing: 'cubic-bezier(.2, .7, .3, 1)' });
+    });
+  }, true);
+})();
+

@@ -62,7 +62,7 @@ function topicStrip(t) {
   const subj = (t.subject || '').trim();
   if (!subj || subj === 'อื่น ๆ') return '';
   return `<div class="tp-strip" onclick="event.stopPropagation();openTopicForTask('${esc(t.id)}')">
-    <span class="tp-strip-ic">${icon('sparkles')}</span>
+    <span class="tp-strip-ic">${icon('users')}</span>
     <span class="tp-strip-tx">ถามคนที่ผ่านเรื่องนี้มาแล้ว</span>
     <span class="tp-strip-go">${icon('chevron')}</span>
   </div>`;
@@ -180,7 +180,7 @@ async function topicFromCompose() {
   try {
     r = await topicFromImage(composeImg.blob, subjBtn ? subjBtn.dataset.subj : null);
   } catch (_) { r = null; }
-  if (btn) { btn.disabled = false; btn.innerHTML = icon('sparkles') + 'ถามคนทั้งโลกจากรูปนี้แทน'; }
+  if (btn) { btn.disabled = false; btn.innerHTML = icon('users') + 'ถามคนทั้งโลกจากรูปนี้แทน'; }
 
   topicFrom = 'scr-compose';
   // มั่นใจไม่พอก็ไม่เปิดเลย — เปิดหัวข้อผิดแล้วให้เขาถามลงไปในนั้น แปลว่าคำถาม

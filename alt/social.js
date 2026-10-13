@@ -428,10 +428,18 @@ function renderMates() {
     + (s.pubAt ? '<div class="sec-label">คนในห้องของคุณ</div>' : '') + list;
 }
 
+// 13 ต.ค. 69 · จอนี้มีสามทางเข้า: ปุ่ม "แก้ไขโปรไฟล์" · แถว "วิชาของฉัน" · ไอคอนคนบนหัวจอเพื่อน
+// สองทางแรกคือมาแก้โปรไฟล์ แต่หัวจอเขียน "เพื่อนร่วมห้อง" ตายตัว (เจ้าของ: จอที่ดูแปลก) — หัวจอตามทางที่เข้ามา
+let matesTitle = 'เพื่อนร่วมห้อง';
+function openPeople(mode) {
+  matesTitle = mode === 'edit' ? 'แก้ไขโปรไฟล์' : 'เพื่อนร่วมห้อง';
+  go('scr-people');
+  renderMates();
+}
 function matesHead() {
   return `<div class="page-head">
     <div class="eyebrow mono">${esc(fmtThaiDate(new Date()))}</div>
-    <h1 class="page-title">เพื่อนร่วมห้อง</h1>
+    <h1 class="page-title">${esc(matesTitle)}</h1>
   </div>`;
 }
 

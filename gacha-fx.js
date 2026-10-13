@@ -112,7 +112,7 @@ function gcArt(r) {
 function gcType(r) {
   if (r.kind === 'token') return 'เข้ากระเป๋าแล้ว';
   if (r.duplicate) return 'ซ้ำ · คืน ' + fmtTok(r.amount) + ' โทเคน';
-  if (r.kind === 'fx3d') return r.locked ? '🔒 ซื้อเอฟเฟกต์ปกติก่อน' : 'เอฟเฟกต์ 3D · ใช้ได้เลย';
+  if (r.kind === 'fx3d') return r.locked ? 'ต้องซื้อเอฟเฟกต์ปกติก่อน' : 'เอฟเฟกต์ 3D · ใช้ได้เลย';
   return 'ธีมใหม่';
 }
 // r ต้องผ่าน grantPrize แล้ว (รู้ duplicate/amount/locked)
