@@ -14182,3 +14182,177 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 @media (prefers-reduced-motion: reduce) {
   .tw-t, .screen.fx-in :is(#menuBody .td-now .tn-title, .wy2-hero h3) { animation: none; }
 }
+
+/* ============================================================
+   จอการแจ้งเตือนแบบหน้าแจ้งเตือนจริง (14 ต.ค. 69)
+   ------------------------------------------------------------
+   เจ้าของ: "ให้มันเป็นหน้าแจ้งเตือน ไม่เอาคำว่าเข้าแผนแล้ว จัดลำดับให้ถูก · เข้าไปแล้วเปลี่ยนเป็นอ่านแล้ว ·
+            กระดิ่งขึ้นจำนวนเลข ไม่มีก็ไม่ต้องขึ้น · ปรับหน้าให้สวยกว่านี้" (JS อยู่ในบล็อก 1C40 ของ inbox.js)
+   แถว: บรรทัดแรก = ของที่เข้ามาจริง (ตัวงาน · ชื่อคน) ตัวหนา · บรรทัดสอง = รายละเอียด · บรรทัดสาม = ที่มา · เวลา
+        แบบแถวแจ้งเตือนของ IG / iOS · สถานะอยู่ที่ป้ายมุมไอคอน ไม่ใช่ประโยคขึ้นต้นแถว
+   กลุ่ม: ใหม่ → วันนี้ → เมื่อวาน → 7 วันที่ผ่านมา → ก่อนหน้านี้ (แบบ IG)
+   ปุ่มกรอง = GradientButtonGroup ของ Cult UI (มีอยู่แล้ว) · แถวไล่เข้าทีละแถว = AnimatedList ของ Magic UI (มีอยู่แล้ว)
+   กระดิ่ง = Bell Toggle ของ React Bits · ป้ายเลขเด้ง = Pulse Heart ของ React Bits (ทั้งคู่ JS ใน inbox.js)
+   ============================================================ */
+#notifBody .ib2-sec { margin: 20px 6px 8px; }
+#notifBody .ib2-sec span { font-size: 14px; font-weight: 700; color: var(--ink); letter-spacing: 0; }
+#notifBody .nt-chips + .ib2-sec, #notifBody .nt-login + .ib2-sec { margin-top: 16px; }
+
+#notifBody .nt-row { gap: 13px; padding: 14px 15px; align-items: flex-start; transition: background-color .2s ease; }
+@media (hover: hover) and (pointer: fine) {
+  #notifBody .nt-row:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+  #notifBody .nt-row.new:hover { background: color-mix(in srgb, var(--fill) 11%, transparent); }
+}
+#notifBody .nt-row:active { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+#notifBody .nt-row:focus-visible { outline: 2px solid var(--fill); outline-offset: -2px; }
+#notifBody .nt-bd { gap: 2px; padding-top: 0; }
+#notifBody .nt-t {
+  font-size: 14.5px; line-height: 1.4; font-weight: 700; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+#notifBody .nt-p {
+  font-size: 13px; line-height: 1.45; color: var(--muted);
+  -webkit-line-clamp: 2;
+}
+#notifBody .nt-row.new .nt-p { color: color-mix(in srgb, var(--ink) 82%, var(--muted)); }
+#notifBody .nt-meta {
+  display: flex; align-items: center; gap: 5px; margin-top: 3px; min-width: 0;
+  font-size: 12px; line-height: 1.3; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#notifBody .nt-meta i { font-style: normal; color: var(--muted); opacity: .9; }
+/* จุด "ใหม่" ตรงแนวบรรทัดแรก (เดิมอยู่ต่ำกว่าหัวแถว) · ปุ่ม "ตรวจ / ดูคำขอ" กลางแถว */
+#notifBody .nt-dot { width: 9px; height: 9px; margin: 7px 2px 0 0; }
+#notifBody .nt-av { width: 46px; height: 46px; }
+
+/* กระดิ่งหน้าแรก: ป้ายตัวเลขแทนจุด — ศูนย์ = ไม่มีป้าย (inbox.js ถอดทิ้ง) · เกิน 9 = "9+"
+   ตัวเลขในป้ายเป็นข้อยกเว้นเดียวของขั้นต่ำ 11px (DESIGN.md ข้อ 3) · ตัวเลขกว้างเท่ากัน ป้ายไม่ยืดหดตามเลข */
+.th-bell .th-dot.n {
+  width: auto; height: 18px; min-width: 18px; padding: 0 5px; top: 1px; right: 0;
+  display: grid; place-items: center; border-radius: 999px;
+  font: 700 11px/1 'Outfit', 'Sarabun', sans-serif; font-variant-numeric: tabular-nums;
+  color: #FFFFFF; background: var(--pri-red); border: 2px solid var(--scr); box-sizing: border-box;
+}
+
+/* ============================================================
+   ชนวนนับถอยหลังของแจ้งเตือน — Swipe Toast ของ React Bits (14 ต.ค. 69)
+   ------------------------------------------------------------
+   เส้นบางขอบล่างของเกาะ หดเข้าหาขอบซ้ายจนหมด = แจ้งเตือนปิด (toastFuse ใน app.js)
+   ชี้เมาส์ · โฟกัส · ลาก · สลับแอป = เส้นหยุด · ขาวจาง 40% บนพื้นดำของเกาะ ไม่แย่งสายตาจากข้อความ
+   ลดการเคลื่อนไหว = ซ่อนเส้น (ตัวจับเวลายังเดิน เพราะเป็นตัวเดียวกัน)
+   ============================================================ */
+#appToast .tfuse {
+  position: absolute; left: 26px; right: 26px; bottom: 5px; height: 2px; border-radius: 2px;
+  background: rgba(255, 255, 255, .4); transform-origin: left center; pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) { #appToast .tfuse { visibility: hidden; } }
+
+/* ---------- กดแจ้งเตือนงาน = พาไปที่งานชิ้นนั้นในกล่องเข้า (14 ต.ค. 69 · notifOpenItem ใน inbox.js) ----------
+   Pointer Highlight ของ Aceternity: วงสีธีมวาดรอบการ์ดแล้วจาง · เส้นด้านใน (inset) เพราะรายการตัดขอบมนอยู่ เส้นด้านนอกจะโดนตัด
+   เล่นครั้งเดียว 1.6 วิ (เงาเปลี่ยนสั้น ๆ ได้ ไม่ใช่ของวนไม่จบ) · ลดการเคลื่อนไหว = พื้นจางขึ้นแล้วหาย ไม่มีวงขยับ */
+#scr-inbox .ib-spot { animation: ib-spot 1.6s cubic-bezier(.22, 1, .36, 1); }
+/* สีพื้นใส่แค่จังหวะกลาง (ต้นกับปลายใช้สีเดิมของการ์ด) และผสมกับ --card ให้ทึบ — ไม่งั้นการ์ดขาวจะใสวูบ */
+@keyframes ib-spot {
+  0%   { box-shadow: inset 0 0 0 0 transparent; }
+  18%  { box-shadow: inset 0 0 0 2px var(--fill); background-color: color-mix(in srgb, var(--fill) 10%, var(--card)); }
+  100% { box-shadow: inset 0 0 0 2px transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #scr-inbox .ib-spot { animation: ib-spot-still 1.6s ease; }
+  @keyframes ib-spot-still { 20% { background-color: color-mix(in srgb, var(--fill) 10%, var(--card)); } }
+}
+
+/* ============================================================
+   จอตัวเชื่อมให้แน่นขึ้น (14 ต.ค. 69)
+   ------------------------------------------------------------
+   เจ้าของ: "จัดตรงข้อความให้สวยกว่านี้ มันยังห่างไป"
+   วัดแล้ว: ระหว่างการ์ด 33px (#srcBody gap 24 + margin การ์ด 9 ซ้อนกัน) · การ์ดสูง 150px เพราะป้ายล็อกกับปุ่มเรียงลงคนละบรรทัด ·
+   ชื่อจอ "ตัวเชื่อม" ซ้ำสองที่ (หัวจอ + ในเนื้อหา) แล้วตัวในเนื้อหาเลื่อนไปซ้อนใต้ปุ่มกลับ
+   แถวแบบ Item ของ shadcn (บน 21st): รูป · ชื่อ · สถานะกับปุ่มบรรทัดเดียวกัน — CSS ล้วน ไม่แตะ renderSources ใน inbox.js
+   ============================================================ */
+#srcBody { gap: 0; }
+#srcBody > .page-head { display: none; }                    /* ชื่อจออยู่บนหัวจอแล้ว */
+/* หัวกลุ่ม: เดิม 11px ยืดตัวอักษร .07em แบบหัวข้อภาษาอังกฤษตัวพิมพ์ใหญ่ — ภาษาไทยไม่ยืด (กติกาเดียวกับทั้งแอป) */
+#srcBody > .sec-title { margin: 22px 4px 9px; font-size: 12.5px; letter-spacing: 0; text-transform: none; }
+#srcBody > .sec-title:first-of-type { margin-top: 6px; }
+#srcBody > .src { margin: 0 0 8px; padding: 13px 14px; gap: 12px; align-items: flex-start; }
+#srcBody .src-ic { margin-top: 1px; }
+#srcBody .src-bd { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 10px; row-gap: 5px; }
+#srcBody .src-bd > * { flex-basis: 100%; }
+#srcBody .src-bd > .t { line-height: 1.35; }
+/* สถานะ ("ต้องล็อกอินก่อน") เป็นบรรทัดเล็กข้างปุ่ม ไม่ใช่กล่องเหลืองเต็มแถว */
+#srcBody .src-bd > .src-need {
+  flex: 1 1 0; min-width: 0; margin: 0; padding: 0; background: none; border-radius: 0;
+  align-items: center; gap: 6px; font-size: 12.5px; line-height: 1.35; font-weight: 600; color: var(--warn);
+}
+#srcBody .src-bd > .ib-go {
+  flex: 0 0 auto; margin-top: 0 !important; align-self: center !important;
+  min-height: 36px; padding: 0 15px; font-size: 13px;
+}
+#srcBody .src-bd > .src-in + .ib-go { margin-top: 2px !important; }
+
+/* ---------- จอตัวเชื่อม: อนิเมชัน (14 ต.ค. 69 · เจ้าของ: "ทำอนิเมชันด้วย") ----------
+   ① เปิดจอ = หัวกลุ่มกับการ์ดไล่ขึ้นทีละชิ้น (AnimatedList ของ Magic UI · ท่า fx-up ชุดเดียวกับรายการอื่นในแอป) · 35ms ต่อชิ้น
+   ② สวิตช์ = Squish Switch ของ React Bits (JS ท้าย app.js)
+   ③ กดปุ่ม = ยุบ .96 แล้วคืน (press feedback ของ React Bits · 160ms ease-out) */
+.screen.fx-in #srcBody > :is(.sec-title, .src) { animation: fx-up .45s cubic-bezier(.22, 1, .36, 1) backwards; }
+.screen.fx-in #srcBody > :nth-child(2) { animation-delay: 0.04s; }
+.screen.fx-in #srcBody > :nth-child(3) { animation-delay: 0.07s; }
+.screen.fx-in #srcBody > :nth-child(4) { animation-delay: 0.11s; }
+.screen.fx-in #srcBody > :nth-child(5) { animation-delay: 0.14s; }
+.screen.fx-in #srcBody > :nth-child(6) { animation-delay: 0.18s; }
+.screen.fx-in #srcBody > :nth-child(7) { animation-delay: 0.21s; }
+.screen.fx-in #srcBody > :nth-child(8) { animation-delay: 0.25s; }
+.screen.fx-in #srcBody > :nth-child(9) { animation-delay: 0.28s; }
+.screen.fx-in #srcBody > :nth-child(10) { animation-delay: 0.32s; }
+.screen.fx-in #srcBody > :nth-child(11) { animation-delay: 0.35s; }
+.screen.fx-in #srcBody > :nth-child(12) { animation-delay: 0.39s; }
+.screen.fx-in #srcBody > :nth-child(n+13) { animation-delay: .42s; }
+#srcBody .ib-go { transition: transform .16s cubic-bezier(.23, 1, .32, 1); }
+#srcBody .ib-go:active { transform: scale(.96); }
+:root[data-lite] .screen.fx-in #srcBody > * { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .screen.fx-in #srcBody > * { animation: boot-fade .25s ease backwards; }
+  #srcBody .ib-go:active { transform: none; }
+}
+
+/* ---------- แผงเพิ่มงานด่วน: ปุ่มเต็มแถว (14 ต.ค. 69 · เจ้าของ: "ให้มันเต็ม") ----------
+   กล่อง "ต้องล็อกอินก่อน" กว้างเต็มแถว แต่ปุ่ม "ไปล็อกอิน" กับ "ลองเลย" เป็นเม็ดเล็กชิดซ้าย — สามชิ้นซ้อนกันคนละความกว้าง ดูไม่เป็นชุด
+   → ปุ่มกว้างเต็มแถวเท่ากล่อง สูง 44px (ขั้นต่ำของเป้ากดใน DESIGN.md) · ปุ่ม "ไปล็อกอิน" ติดกล่องล็อก (ชุดเดียวกัน)
+   ส่วน "ลองเลย" เว้นห่างกว่า (คนละเรื่อง) · ปุ่ม "ติดตั้งบน iPhone" เต็มแถวอยู่แล้ว · CSS ล้วน (quickadd.js ทีมอื่นเขียน) */
+#srcBody .qa-panel :is(.ib-go, .qa-try) {
+  align-self: stretch !important; width: 100%; min-height: 44px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+}
+/* รอบสอง (เจ้าของ: "ให้มันเต็มหน้า") — แผงยื่นไปใต้ไอคอน กว้างเต็มการ์ด (ไอคอน 38px + ช่อง 12px = 50px)
+   เริ่มใต้ไอคอนพอดี ไม่ทับ (เดิมแผงเริ่มต่ำกว่าชื่อ 15px แต่ไอคอนสูงกว่าชื่อ ต้องเลื่อนลงอีกนิด) · ที่จอ 375: 255 → 305px */
+#srcBody .src-bd > .qa-panel { margin: 24px 0 0 -50px; flex: 0 0 calc(100% + 50px); max-width: none; }   /* แถวนี้เป็น flex ห่อบรรทัด — ความกว้างคุมด้วย flex-basis ไม่ใช่ width */
+#srcBody .qa-p > .src-need { margin: 0; }
+/* ขั้นตอนสีเดียวทั้งบรรทัด (เจ้าของ: "ให้มันสีเหมือนกันสิ") — เดิมข้อความเทา (--muted) แต่คำตัวหนาเข้ม (--ink) บรรทัดเดียวมีสองสี
+   ใช้สีเข้มทั้งหมด เพราะนี่คือขั้นตอนที่ต้องอ่านแล้วทำตาม ไม่ใช่ข้อความรอง · คำที่ต้องกดยังเป็นตัวหนา (น้ำหนักบอก ไม่ใช่สีบอก) */
+#srcBody .qa-how li { color: var(--ink); }
+#srcBody .qa-how b { color: inherit; }
+/* ขั้นตอนของ "แชร์จากแอปอื่น" (.src-how) ในจอเดียวกัน ให้สีเดียวกับขั้นตอนข้างบน — วงตัวเลข (<b>) คงสีของมันเอง */
+#srcBody .src-how > span { color: var(--ink); }
+#srcBody .qa-p > .src-need + .ib-go { margin-top: 2px !important; }
+#srcBody .qa-panel > .qa-try { margin-top: 2px; transition: transform .16s cubic-bezier(.23, 1, .32, 1); }
+#srcBody .qa-panel > .qa-try:active { transform: scale(.97); }
+@media (prefers-reduced-motion: reduce) { #srcBody .qa-panel > .qa-try:active { transform: none; } }
+
+/* ---------- ป้ายไฟในห้อง = สวิตช์ไฟ (14 ต.ค. 69 · roomLampToggle ใน app.js) ----------
+   หน้าตาบอกว่ากดได้: เคอร์เซอร์มือ · กดแล้วยุบ (press feedback ของ React Bits) · วงโฟกัสเมื่อใช้คีย์บอร์ด
+   ไฟที่เปิดเอง = จุดฟ้านิ่ง (ไม่กระพริบ — การกระพริบสงวนไว้ให้ "กำลังทำงานอยู่จริง") · ไม่ใช้สีเหลือง/ทอง (ทองสงวนให้ของที่สำเร็จ) */
+#roomBody .rm-lamp[role="switch"] {
+  cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none;
+  transition: transform .16s cubic-bezier(.23, 1, .32, 1), background-color .25s ease, color .25s ease;
+}
+#roomBody .rm-lamp[role="switch"]:active { transform: scale(.95); }
+#roomBody .rm-lamp[role="switch"]:focus-visible { outline: 2px solid var(--fill); outline-offset: 2px; }
+#roomBody .rm-lamp.rm-manual { color: var(--ink); background: var(--blue-soft); border-color: transparent; }
+#roomBody .rm-lamp.rm-manual .rm-dot { background: var(--blue); box-shadow: none; animation: none; }
+@media (prefers-reduced-motion: reduce) { #roomBody .rm-lamp[role="switch"]:active { transform: none; } }
+
+/* ---------- จอกว้าง: เนื้อหาเต็มความกว้าง (14 ต.ค. 69 · เจ้าของส่งภาพจอน้องฮูก: "ให้มันเต็มหน้าจอ") ----------
+   จอกว้าง (แถบเมนูด้านข้าง) ตั้ง margin-inline:auto + max-width:720px ให้เนื้อหาอยู่กลาง — แต่จอที่เป็น flex (เช่น #aiBody ที่ flex:1)
+   ขอบซ้ายขวา auto ทำให้ลูก flex หดเหลือแค่ความกว้างของเนื้อหา: จอน้องฮูกเลยกว้างแค่ 372px กลางจอ 764px
+   → ให้กว้างเต็มก่อน (width:100%) แล้วเพดาน 720px ยังคุมอยู่ · มือถือไม่โดน (กฎเดิมมีเฉพาะจอกว้าง) */
+:root[data-nav="side"] :is(.home-body, .scr-body) { width: 100%; box-sizing: border-box; }

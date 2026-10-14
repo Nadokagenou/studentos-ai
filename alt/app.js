@@ -1184,6 +1184,8 @@ function go(id) {
   // ปุ่มช่องทางล็อกอินวาดด้วย JS (รายชื่อมาจาก config) และต้องรีเซ็ตกลับหน้าแรกของมัน
   // ทุกครั้งที่กลับเข้าจอนี้ — ไม่ใช่ค้างอยู่ที่ช่องกรอกรหัสของรอบที่แล้ว
   if (id === 'scr-login') { loginView = 'root'; renderLoginOpts(); loginNote(''); }
+  // เปิดจอการแจ้งเตือน = อ่านแล้ว (renderNotif จดเวลาเอง) · ต้องวาดตอนนี้ ไม่รอ renderAll รอบถัดไป
+  if (id === 'scr-notif' && typeof renderNotif === 'function') renderNotif();
   // จอแชทซ่อนแถบล่างเหมือนจอล็อกอิน — ช่องพิมพ์ต้องติดก้นจอจริง ๆ
   // ไม่ใช่ลอยอยู่หลังแถบล่างจนกดไม่โดน · ออกจากจอนี้ได้ทางปุ่มย้อนกลับในหัวจอ
   // 1C19 · scr-sai ถูกถอดออกจากรายการนี้ — เจ้าของสั่งว่า "อยากให้เป็นเหมือน
@@ -2238,7 +2240,7 @@ function todayHead(sp, now) {
           typeof boardRankLabel === 'function' ? boardRankLabel() : ''}</span></button>` : ''}
     <button class="th-bell" onclick="go('scr-notif')"
       aria-label="${notifN ? 'การแจ้งเตือน ใหม่ ' + notifN + ' รายการ' : 'การแจ้งเตือน'}">
-      ${icon('bell')}${notifN ? '<span class="th-dot"></span>' : ''}
+      ${icon('bell')}${notifN ? `<span class="th-dot n">${notifN > 9 ? '9+' : notifN}</span>` : ''}
     </button>
   </header>`;
 }
@@ -15464,12 +15466,18 @@ function showToast(copy) {
     el = document.createElement('div');
     el.id = 'appToast'; el.className = 'toast';
     // ALT: มีปุ่ม "เลิกทำ" เพิ่มมา — ปัดพลาดแล้วต้องย้อนได้ในที่เดียวกับที่แจ้งผล
-    el.innerHTML = `<img class="tav" src="logo-splash-light.png" alt=""><div class="tc"><div class="tt"></div><div class="tb"></div></div><button class="tu" type="button" hidden>เลิกทำ</button>`;
+    el.innerHTML = `<img class="tav" src="logo-splash-light.png" alt=""><div class="tc"><div class="tt"></div><div class="tb"></div></div><button class="tu" type="button" hidden>เลิกทำ</button><i class="tfuse" aria-hidden="true"></i>`;
     el.onclick = e => {
       if (el._dragged) { el._dragged = false; return; }
       if (!e.target.closest('.tu')) el.classList.remove('show');
     };
     toastSwipe(el);
+    // นับถอยหลังหยุดเมื่อชี้เมาส์ค้าง (เครื่องที่มีเมาส์) หรือโฟกัสด้วยคีย์บอร์ดอยู่ในการ์ด
+    el.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') toastHold(el, 'hover', true); });
+    el.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') toastHold(el, 'hover', false); });
+    el.addEventListener('focusin', () => toastHold(el, 'focus', true));
+    el.addEventListener('focusout', () => toastHold(el, 'focus', false));
+    document.addEventListener('visibilitychange', () => toastHold(el, 'away', document.hidden));
     phone.appendChild(el);
   }
   // มีแจ้งเตือนค้างอยู่แล้วแล้วมีอันใหม่มา = เกาะเด้งรับหนึ่งที (แบบ Dynamic Island ของ iPhone 15)
@@ -15487,8 +15495,31 @@ function showToast(copy) {
   undo.onclick = act ? () => { act.fn(); el.classList.remove('show'); } : null;
   void el.offsetWidth; // บังคับ reflow ให้ transition ทำงาน
   setTimeout(() => el.classList.add('show'), 30);
+  toastFuse(el, 6000);
+}
+
+// 14 ต.ค. 69 · Swipe Toast ของ React Bits — ส่วนที่ยังขาดคือ "ชนวนนับถอยหลัง"
+// เดิมปิดเองด้วย setTimeout 6 วิตายตัว: ชี้เมาส์อ่านอยู่ก็หาย · สลับไปแอปอื่นแล้วกลับมาก็หายไปแล้วโดยไม่เคยเห็น
+// ตอนนี้ตัวจับเวลาคือเส้นบางขอบล่างที่หดจากเต็มเหลือศูนย์ (WAAPI scaleX 1→0) · เส้นหดจบ = ปิด (onfinish)
+// เส้นหยุดเมื่อมีเหตุใดเหตุหนึ่ง (ชี้เมาส์ · โฟกัส · ลากอยู่ · แอปถูกซ่อน) และเดินต่อจากที่ค้างเมื่อหมดทุกเหตุ
+// เส้นเป็นทั้งตัวจับเวลาและภาพในชิ้นเดียว — ไม่มีทางที่เส้นบอกอย่างแต่การ์ดปิดอีกเวลา
+function toastFuse(el, ms) {
+  const f = el.querySelector('.tfuse');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 6000);
+  if (el._fuse) el._fuse.cancel();
+  if (!f) { toastTimer = setTimeout(() => el.classList.remove('show'), ms); return; }
+  const a = f.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }],
+    { duration: ms, easing: 'linear', fill: 'forwards' });
+  a.onfinish = () => { if (el._fuse === a) el.classList.remove('show'); };
+  el._fuse = a;
+  if (el._holds && el._holds.size) a.pause();
+}
+function toastHold(el, why, on) {
+  el._holds = el._holds || new Set();
+  if (on) el._holds.add(why); else el._holds.delete(why);
+  const a = el._fuse;
+  if (!a || a.playState === 'finished' || a.playState === 'idle') return;
+  if (el._holds.size) a.pause(); else a.play();
 }
 
 // 8 ต.ค. 69 · เจ้าของ: "ทำให้เมื่อเลื่อนขึ้นปิดได้ เหมือนกับแจ้งเตือน แล้วเลื่อนทิ้งได้เลย"
@@ -15498,11 +15529,10 @@ function showToast(copy) {
 // แตะเฉย ๆ (ไม่ลาก) ยังปิดเหมือนเดิม · ลากแล้วปล่อยไม่นับเป็นการแตะ (el._dragged)
 function toastSwipe(el) {
   let y0 = 0, t0 = 0, dy = 0, on = false;
-  const hideAfter = ms => { clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), ms); };
   el.addEventListener('pointerdown', e => {
     if (!el.classList.contains('show') || e.target.closest('.tu')) return;
     on = true; y0 = e.clientY; t0 = performance.now(); dy = 0; el._dragged = false;
-    clearTimeout(toastTimer);
+    toastHold(el, 'drag', true);
     el.style.transition = 'none';
     try { el.setPointerCapture(e.pointerId); } catch (_) {}
   });
@@ -15522,6 +15552,8 @@ function toastSwipe(el) {
       el.style.transition = 'transform .26s cubic-bezier(.3, .7, .4, 1), opacity .22s ease';
       el.style.transform = 'translateY(calc(-100% - 24px))';
       el.style.opacity = '0';
+      if (el._fuse) el._fuse.cancel();
+      toastHold(el, 'drag', false);
       if (typeof haptic === 'function') haptic('arm');
       setTimeout(() => {
         // ซ่อนทันทีแบบไม่มีอนิเมชันหด (การ์ดออกจากจอไปแล้ว) แล้วคืนค่าทุกอย่างให้รอบหน้า
@@ -15535,7 +15567,9 @@ function toastSwipe(el) {
       el.style.transition = 'transform .45s cubic-bezier(.32, 1.3, .44, 1), opacity .2s ease';
       el.style.transform = ''; el.style.opacity = '';
       setTimeout(() => { if (!on) el.style.transition = ''; }, 460);
-      hideAfter(3500);
+      // ปล่อยก่อนถึงระยะปิด = เด้งกลับ แล้วนับใหม่สั้นลง (ผู้ใช้อ่านไปแล้วส่วนหนึ่ง)
+      toastHold(el, 'drag', false);
+      toastFuse(el, 3500);
     }
   };
   el.addEventListener('pointerup', end);
@@ -17997,3 +18031,205 @@ function motifColors(cs) {
   }, true);
 })();
 
+// ============================================================
+// 14 ต.ค. 69 · สวิตช์ตัวเชื่อมแบบ Squish Switch ของ React Bits (เจ้าของ: "ทำอนิเมชันด้วย" ต่อจากจอตัวเชื่อม)
+// ------------------------------------------------------------
+// srcToggle (inbox.js · ทีมอื่น) วาดจอใหม่ทั้งก้อนทุกครั้งที่สลับ ปุ่มกลมเลยกระโดดไปฝั่งใหม่เฉย ๆ ไม่มีการเคลื่อน
+// ห่อจากที่นี่ ไม่แก้ไฟล์นั้น: จดตำแหน่งปุ่มกลมก่อนวาด → หลังวาดหาปุ่มกลมตัวใหม่ของตัวเชื่อมเดียวกัน
+// → เล่นจากตำแหน่งเดิมไปตำแหน่งใหม่ (FLIP) · กลางทางยืดตามแนววิ่ง หดตามแนวตั้ง ปริมาตรคงที่ (sx · 1/sx) แล้วเข้าที่
+// โหมดลื่น / ลดการเคลื่อนไหว = สลับเฉย ๆ เหมือนเดิม
+// ============================================================
+(function () {
+  if (typeof srcToggle !== 'function') return;
+  const orig = srcToggle;
+  const knobsOf = id => [...document.querySelectorAll('.tg')]
+    .filter(b => (b.getAttribute('onclick') || '').includes(`srcToggle('${id}'`))
+    .map(b => b.querySelector('.tg-k')).filter(Boolean);
+  window.srcToggle = function (id, quiet) {
+    const root = document.documentElement;
+    const still = root.dataset.lite || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const before = still ? [] : knobsOf(id).map(k => k.getBoundingClientRect().left);
+    const out = orig.apply(this, arguments);
+    if (!before.length) return out;
+    knobsOf(id).forEach((k, i) => {
+      const dx = before[i] - k.getBoundingClientRect().left;
+      if (before[i] == null || Math.abs(dx) < 1) return;
+      // ตำแหน่ง "เปิด" ของปุ่มกลมใช้ transform: translateX(17px) (inbox.css) — เล่นด้วย translate/scale แยก
+      // ซึ่งซ้อนบน transform ได้ ไม่ทับตำแหน่งจริง (ถ้าเล่น transform ตรง ๆ ปุ่มจะกระตุกตอนจบ)
+      k.animate([
+        { translate: `${dx}px 0`, scale: '1 1' },
+        { translate: `${dx * .45}px 0`, scale: '1.28 .78', offset: .45 },
+        { translate: '0 0', scale: '.94 1.06', offset: .78 },
+        { translate: '0 0', scale: '1 1' },
+      ], { duration: 380, easing: 'cubic-bezier(.23, 1, .32, 1)' });
+    });
+    return out;
+  };
+})();
+
+// ============================================================
+// 14 ต.ค. 69 · แถบหมวดในห้องของฉัน (ผนัง · พื้น · แสง · หน้าต่าง · โปสเตอร์) — เจ้าของ: "ให้มันเลื่อนได้เป็นอนิเมชัน"
+// ------------------------------------------------------------
+// roomGo (room.js · ทีมอื่น) วาดห้องใหม่ทั้งก้อน แถบหมวดเลยเด้งกลับซ้ายสุดทุกครั้ง — เลือก "โปสเตอร์" ที่อยู่ขวาสุดแล้ว
+// หมวดที่เลือกหลุดออกนอกแถบ · ห่อจากที่นี่ ไม่แก้ไฟล์นั้น:
+//   ① จำตำแหน่งที่เลื่อนไว้ แล้วเลื่อนนุ่ม ๆ ให้หมวดที่เลือกอยู่กลางแถบ
+//   ② Jelly Radio ของ React Bits: ชิปที่เลือกพองแล้วหดเข้าที่ · ชิปข้าง ๆ ถูกดันออก 6px แล้วเด้งกลับ ไล่เป็นระลอก 22ms ต่อชิป
+//      เล่นด้วย translate/scale แยก — ไม่ทับ transform ของตอนกด (:active) และไม่แตะหน้าตาแคปซูลกระจกของแต่ละธีม
+// โหมดลื่น / ลดการเคลื่อนไหว = ไม่พอง ไม่ดัน และกระโดดไปหาหมวดที่เลือกเลย (ไม่เลื่อนนุ่ม)
+// ============================================================
+// ⓪ (เจ้าของ: "เมื่อกดซื้อ จะเด้งไปจุดแรก ให้มันไม่เด้ง") — ซื้อ · ใส่ของ · เปลี่ยนชื่อห้อง เรียก renderRoom ตรง ๆ ไม่ผ่าน roomGo
+//    วัดแล้ว: แถบหมวดเด้งกลับหมวดแรก (scrollLeft 150 → 0) ทุกครั้งที่ห้องวาดใหม่ · ตัวจอไม่เด้ง (แต่จดไว้ด้วยกันเผื่อของสูงเปลี่ยน)
+//    → ห่อ renderRoom: จดตำแหน่งแถบกับจอไว้ก่อนวาด คืนให้หลังวาด — ครอบทุกทางที่วาดห้องใหม่ รวม renderAll
+(function () {
+  if (typeof renderRoom !== 'function') return;
+  const origRender = renderRoom;
+  window.renderRoom = function () {
+    const scr = document.getElementById('scr-room');
+    const row0 = document.querySelector('#roomBody .rm-tabs');
+    const left0 = row0 ? row0.scrollLeft : 0, top0 = scr ? scr.scrollTop : 0;
+    const out = origRender.apply(this, arguments);
+    const row = document.querySelector('#roomBody .rm-tabs');
+    if (row && left0) row.scrollLeft = left0;
+    if (scr && scr.scrollTop !== top0) scr.scrollTop = top0;
+    roomLampDecorate();
+    return out;
+  };
+})();
+(function () {
+  if (typeof roomGo !== 'function') return;
+  const orig = roomGo;
+  window.roomGo = function () {
+    const root = document.documentElement;
+    const still = root.dataset.lite || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const row0 = document.querySelector('#roomBody .rm-tabs');
+    const left0 = row0 ? row0.scrollLeft : 0;
+    const out = orig.apply(this, arguments);
+    const row = document.querySelector('#roomBody .rm-tabs');
+    const tabs = row ? [...row.querySelectorAll('.rm-tab')] : [];
+    const at = tabs.findIndex(t => t.classList.contains('on'));
+    if (at < 0) return out;
+    row.scrollLeft = left0;                                   // แถบใหม่เริ่มจากที่ผู้ใช้เลื่อนค้างไว้ ไม่ใช่ซ้ายสุด
+    const on = tabs[at];
+    const target = Math.max(0, on.offsetLeft - (row.clientWidth - on.offsetWidth) / 2);
+    row.scrollTo({ left: target, behavior: still ? 'auto' : 'smooth' });
+    if (still) return out;
+    on.animate([
+      { scale: '1' }, { scale: '1.12', offset: .35 }, { scale: '.97', offset: .7 }, { scale: '1' },
+    ], { duration: 420, easing: 'cubic-bezier(.23, 1, .32, 1)' });
+    tabs.forEach((t, i) => {
+      const d = i - at;
+      if (!d || Math.abs(d) > 3) return;
+      const push = Math.sign(d) * 6 / Math.abs(d);              // ใกล้ชิปที่เลือก = ถูกดันแรงกว่า
+      t.animate([
+        { translate: '0 0', scale: '1' },
+        { translate: `${push}px 0`, scale: '.96', offset: .35 },
+        { translate: '0 0', scale: '1' },
+      ], { duration: 380, delay: (Math.abs(d) - 1) * 22, easing: 'cubic-bezier(.23, 1, .32, 1)' });
+    });
+    return out;
+  };
+})();
+
+// ============================================================
+// 14 ต.ค. 69 · ป้ายไฟในห้อง = สวิตช์ไฟ (เจ้าของ: "อันนี้เป็นปุ่มปิดเปิดไฟ" → เลือก "กดเองได้ + ติดเองตอนทำงาน")
+// ------------------------------------------------------------
+// เดิมป้ายนี้เป็นสถานะล้วน ไฟติดเฉพาะตอนจับเวลาทำงานอยู่ (room.css: "ชิ้นเดียวในจอที่ไม่ได้มาจากการกดเลือก")
+// ตอนนี้: กดเปิด/ปิดไฟเองได้ (ไฟตกแต่งห้อง) · ระหว่างจับเวลาทำงาน ไฟติดเองและกดปิดไม่ได้
+// ป้ายบอกความจริงแยกสามแบบ — เพื่อนที่จะเห็นห้องนี้ในอนาคตยังแยกออกว่าไฟเปิดเพราะทำงานจริง หรือแค่เปิดไว้:
+//   ไฟปิดอยู่ · ไฟเปิดอยู่ (จุดฟ้านิ่ง) · ไฟเปิด · กำลังทำงาน (จุดเขียวกระพริบ = ของสด)
+// ค่าที่กดเองเก็บในเครื่องด้วยคีย์ใหม่ studentos.alt.roomLamp (ไม่แตะคีย์ของห้อง) · ห่อจากที่นี่ ไม่แก้ room.js
+// ============================================================
+// var ไม่ใช่ const — renderRoom (ห่อไว้ข้างบน) อาจถูกเรียกตอนบูตก่อนบรรทัดนี้ทำงาน const จะโยน error (TDZ) แล้วแอปเปิดไม่ขึ้น
+var ROOM_LAMP_KEY = 'studentos.alt.roomLamp';
+function roomLampPref() { try { return localStorage.getItem(ROOM_LAMP_KEY) === '1'; } catch (_) { return false; } }
+function roomWorking() { try { return typeof runningWork === 'function' && !!runningWork(); } catch (_) { return false; } }
+if (typeof roomLightsOn === 'function') window.roomLightsOn = () => roomWorking() || roomLampPref();
+
+function roomLampDecorate() {
+  const el = document.querySelector('#roomBody .rm-lamp');
+  if (!el) return;
+  const work = roomWorking(), on = work || roomLampPref();
+  el.classList.toggle('on', on);
+  // ชื่อ rm-manual ไม่ใช่ manual — .manual มีอยู่แล้วใน style.css (min-height 44px) ป้ายเลยสูงขึ้นตอนเปิดไฟเอง การ์ดยาวขึ้น
+  el.classList.toggle('rm-manual', on && !work);
+  el.setAttribute('role', 'switch');
+  el.setAttribute('aria-checked', String(on));
+  el.setAttribute('aria-label', work ? 'ไฟในห้อง เปิดอยู่เพราะกำลังจับเวลาทำงาน' : 'ไฟในห้อง');
+  el.tabIndex = 0;
+  el.innerHTML = '<span class="rm-dot"></span>' + (work ? 'ไฟเปิด · กำลังทำงาน' : on ? 'ไฟเปิดอยู่' : 'ไฟปิดอยู่');
+}
+function roomLampToggle() {
+  if (roomWorking()) {
+    showToast({ title: 'ไฟเปิดเองระหว่างจับเวลาทำงาน', body: 'หยุดจับเวลาแล้วค่อยปิดไฟได้' });
+    return;
+  }
+  const next = !roomLampPref();
+  // แสงโคมของภาพเดิม (ก่อนวาดใหม่) — ตอนปิดไฟ ภาพใหม่ไม่มีแสงแล้ว ต้องเอาของเดิมมาค่อย ๆ ดับ
+  const svg0 = document.querySelector('#roomBody .rm-stage svg');
+  const glow0 = svg0 ? [...svg0.querySelectorAll(ROOM_GLOW_SEL)].map(n => n.cloneNode(true)) : [];
+  try { localStorage.setItem(ROOM_LAMP_KEY, next ? '1' : '0'); } catch (_) {}
+  if (typeof haptic === 'function') haptic('arm');
+  renderRoom();
+  roomLampAnimate(next, glow0);
+}
+
+// อนิเมชันตอนกดไฟ (เจ้าของ: "สร้างอนิเมชันตอนกดไฟด้วย") — เดิมแค่ทั้งห้องสว่าง/หรี่นิดเดียว ดูไม่ออก
+// เปิด: แสงจากโคม (กรวยแสง + วงเรือง) กะพริบติดแบบหลอดไฟจริง แล้วม่านมืดของห้องค่อย ๆ จางออก
+// ปิด: แสงเดิมกะพริบครั้งหนึ่งแล้วดับ ม่านมืดค่อย ๆ คลุมห้อง
+// ป้าย: ข้อความสลับแบบจาง+เบลอ 2px (ท่าสลับข้อความของ React Bits) · จุดเด้งหนึ่งที
+// ชิ้นในภาพไม่มีชื่อคลาส (room.js วาดสด) — หาด้วยรูปทรงที่วาดไว้ · กรวยแสงมี opacity ".20" ในตัว
+// เล่นค่า opacity เป็นสัดส่วนของค่าเดิมเสมอ ไม่งั้นกรวยแสงจะทึบเต็ม · โหมดลื่น / ลดการเคลื่อนไหว = เปลี่ยนเลย
+var ROOM_GLOW_SEL = 'path[d^="M250 94"], ellipse[cx="250"][cy="90"]';
+function roomLampAnimate(on, glow0) {
+  const root = document.documentElement;
+  if (root.dataset.lite || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const svg = document.querySelector('#roomBody .rm-stage svg');
+  const lamp = document.querySelector('#roomBody .rm-lamp');
+  if (lamp) {
+    lamp.animate([{ opacity: .2, filter: 'blur(2px)' }, { opacity: 1, filter: 'blur(0)' }], { duration: 220, easing: 'ease-out' });
+    const dot = lamp.querySelector('.rm-dot');
+    if (dot) dot.animate([{ scale: '1' }, { scale: '1.7', offset: .4 }, { scale: '1' }], { duration: 380, easing: 'cubic-bezier(.34, 1.56, .64, 1)' });
+  }
+  if (!svg) return;
+  const NS = 'http://www.w3.org/2000/svg';
+  const base = n => parseFloat(n.getAttribute('opacity') || '1');
+  if (on) {
+    // กรวยแสงกับวงเรืองกะพริบติด: ติด → วูบ → ติด → วูบเบา → ติดเต็ม
+    svg.querySelectorAll(ROOM_GLOW_SEL).forEach(n => {
+      const b = base(n);
+      n.animate([
+        { opacity: 0 }, { opacity: b, offset: .14 }, { opacity: b * .15, offset: .26 },
+        { opacity: b, offset: .42 }, { opacity: b * .55, offset: .56 }, { opacity: b },
+      ], { duration: 620, easing: 'linear' });
+    });
+    // ม่านมืดชิ้นชั่วคราว (ค่าเดียวกับห้องตอนปิดไฟใน room.js) คลุมไว้ก่อน แล้วจางออกหลังไฟติดได้ครึ่งทาง
+    const dark = document.createElementNS(NS, 'rect');
+    ['x', 'y'].forEach(k => dark.setAttribute(k, '0'));
+    dark.setAttribute('width', '320'); dark.setAttribute('height', '240'); dark.setAttribute('fill', '#1B2340');
+    dark.style.opacity = '.26'; dark.style.pointerEvents = 'none';
+    svg.appendChild(dark);
+    const a = dark.animate([{ opacity: .26 }, { opacity: .26, offset: .3 }, { opacity: 0 }],
+      { duration: 760, easing: 'cubic-bezier(.23, 1, .32, 1)', fill: 'forwards' });
+    a.onfinish = () => dark.remove();
+  } else {
+    const shade = svg.querySelector('rect[fill="#1B2340"]');
+    if (shade) shade.animate([{ opacity: 0 }, { opacity: 0, offset: .25 }, { opacity: base(shade) }],
+      { duration: 620, easing: 'cubic-bezier(.23, 1, .32, 1)' });
+    // แสงเดิมวางกลับชั่วคราวใต้ม่าน แล้ววูบครั้งหนึ่งก่อนดับ
+    glow0.forEach(n => {
+      if (shade) svg.insertBefore(n, shade); else svg.appendChild(n);
+      const b = base(n);
+      const fade = n.animate([{ opacity: b }, { opacity: b * .25, offset: .3 }, { opacity: b * .8, offset: .45 }, { opacity: 0 }],
+        { duration: 480, easing: 'ease-out', fill: 'forwards' });
+      fade.onfinish = () => n.remove();
+    });
+  }
+}
+document.addEventListener('click', e => {
+  if (e.target.closest && e.target.closest('#roomBody .rm-lamp')) roomLampToggle();
+});
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('#roomBody .rm-lamp')) {
+    e.preventDefault(); roomLampToggle();
+  }
+});

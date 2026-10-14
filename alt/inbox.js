@@ -894,10 +894,10 @@ function renderInbox() {
     const picked = kids.filter(c => c.pick && c.status === 'new').length;
     const shown = it.expanded ? kids : kids.slice(0, CHILD_PREVIEW);
     const more = kids.length - shown.length;
-    return `<article class="ib ib-batch">
+    return `<article class="ib ib-batch" data-ib="${esc(it.id)}">
       <div class="ib-top">
         <span class="ib-src">${icon(s.icon)}${esc(s.name)}</span>
-        <span class="ib-batch-n">${icon('sparkles')}เจอ ${kids.length} งานในข้อความเดียว</span>
+        <span class="ib-batch-n">${icon('tasks-alt')}เจอ ${kids.length} งานในข้อความเดียว</span>
       </div>
       <div class="ib-title">${esc(it.header || it.raw.split('\n')[0].slice(0, 60))}</div>
       <div class="ib-rows">${shown.map(c => childRow(it, c)).join('')}</div>
@@ -914,7 +914,7 @@ function renderInbox() {
     if (it.kind === 'batch') return batchCard(it);
     const p = it.parsed, s = sourceById(it.source);
     const pct = Math.round(it.confidence * 100);
-    return `<article class="ib">
+    return `<article class="ib" data-ib="${esc(it.id)}">
       <div class="ib-top">
         <span class="ib-src">${icon(s.icon)}${esc(s.name)}</span>
         <span class="ib-conf ${it.confidence >= 0.6 ? 'ok' : 'low'}">มั่นใจ ${pct}%</span>
@@ -951,7 +951,7 @@ function renderInbox() {
       const dup = kids.filter(c => c.status === 'duplicate').length;
       const skip = kids.length - took - dup;
       const parts = [took ? `เข้าแผน ${took}` : '', dup ? `ซ้ำ ${dup}` : '', skip ? `ข้าม ${skip}` : ''];
-      return `<div class="ib-log ${it.status}">
+      return `<div class="ib-log ${it.status}" data-ib="${esc(it.id)}">
         <span class="ib-log-ic">${icon(s.icon)}</span>
         <span class="ib-log-bd">
           <span class="t">${esc(it.header || it.raw.split('\n')[0].slice(0, 40))} · ${kids.length} งาน</span>
@@ -959,7 +959,7 @@ function renderInbox() {
         </span>
       </div>`;
     }
-    return `<div class="ib-log ${it.status}">
+    return `<div class="ib-log ${it.status}" data-ib="${esc(it.id)}">
       <span class="ib-log-ic">${icon(s.icon)}</span>
       <span class="ib-log-bd">
         <span class="t">${esc([it.parsed.subject, it.parsed.detail || it.raw.slice(0, 40)].filter(Boolean).join(' · '))}</span>
@@ -1178,6 +1178,11 @@ const NOTIF_KEY = 'studentos.alt.notifSeen';
 let notifFilter = 'all';        // all · dm · work
 let notifLoadedAt = 0;
 let notifKickAt = 0;
+// 14 ต.ค. 69 · เจ้าของ: "เมื่อเข้าไปแล้ว จะเปลี่ยนจากยังไม่ได้อ่านเป็นอ่านแล้ว"
+// เปิดจอ = อ่านแล้วทั้งหมด (แบบ IG) แต่รายการที่ "ใหม่" ตอนเปิดยังไฮไลต์ไว้ตลอดการเปิดครั้งนั้น
+// ไม่งั้นกดเข้ามาแล้วทุกแถวกลายเป็นอ่านแล้วต่อหน้า ไม่รู้ว่าอันไหนเพิ่งเข้ามา · ออกจากจอ = ล้าง
+let notifVisit = null;
+function notifKey(n) { return (n.row ? 'd:' + n.row.id : 'i:' + n.item.id) + ':' + n.at; }
 
 function notifTs(v) { const n = Date.parse(v || ''); return isNaN(n) ? 0 : n; }
 function notifSeen() {
@@ -1235,6 +1240,23 @@ function notifSetFilter(f) {
   g.style.setProperty('--i', keys.indexOf(f));
 }
 
+// 14 ต.ค. 69 · เจ้าของ: "ปรับหน้าเมื่อกดเข้าไปข้างใน" — กดแจ้งเตือนงานแล้วเคยไปแค่หัวกล่องเข้า ต้องเลื่อนหาเอง
+// ตอนนี้: เปิดกล่องเข้า → เลื่อนให้การ์ดชิ้นนั้นอยู่กลางจอ → วงสีธีมวาดรอบการ์ดแล้วจาง (Pointer Highlight ของ Aceternity)
+// ไม่เจอชิ้นนั้นในจอ (ถูกเก็บไปแล้ว) = อยู่หัวกล่องเข้าเหมือนเดิม · ลดการเคลื่อนไหว = กระโดดไปเลย ไม่เลื่อนนุ่ม
+function notifOpenItem(id) {
+  go('scr-inbox');
+  if (typeof renderInbox === 'function') renderInbox();
+  // รอให้จอที่เพิ่งเปิดจัดผังเสร็จ (ไม่ผูกกับเฟรม — เครื่องที่วาดช้าก็ยังเลื่อนไปถูกที่)
+  setTimeout(() => {
+    const el = [...document.querySelectorAll('#scr-inbox [data-ib]')].find(x => x.dataset.ib === String(id));
+    if (!el) return;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+    el.classList.remove('ib-spot'); void el.offsetWidth; el.classList.add('ib-spot');
+    setTimeout(() => el.classList.remove('ib-spot'), 1900);
+  }, 60);
+}
+
 function notifOpenDm(id) {
   const r = (typeof dmRows !== 'undefined' ? dmRows : []).find(x => x.id === id);
   if (!r || typeof openDmRow !== 'function') return;
@@ -1244,15 +1266,42 @@ function notifOpenDm(id) {
   if (typeof chatReturn !== 'undefined') chatReturn = 'scr-notif';
 }
 
-// จุดแดงบนกระดิ่ง — แก้ตรงที่ปุ่ม ไม่วาดหน้าแรกใหม่ทั้งจอเพราะจุดเดียว
+// ตัวเลขบนกระดิ่ง — แก้ตรงที่ปุ่ม ไม่วาดหน้าแรกใหม่ทั้งจอเพราะเลขตัวเดียว
+// 14 ต.ค. 69 · เจ้าของ: "ตรงกระดิ่งจะขึ้นจำนวนเลขตามข้อความที่ยังไม่ได้อ่าน เมื่อไม่มีก็ไม่ต้องแจ้งเตือน"
+// เดิมเป็นจุดแดงไม่มีเลข · ศูนย์ = ไม่มีป้ายเลย · เกิน 9 = "9+"
 function notifPaintBell() {
   const b = document.querySelector('.th-bell');
   if (!b) return;
   const n = notifUnread();
   let dot = b.querySelector('.th-dot');
-  if (n && !dot) { dot = document.createElement('span'); dot.className = 'th-dot'; b.appendChild(dot); }
+  if (n && !dot) { dot = document.createElement('span'); dot.className = 'th-dot n'; b.appendChild(dot); }
+  if (n) { dot.classList.add('n'); dot.textContent = n > 9 ? '9+' : String(n); }
   if (!n && dot) dot.remove();
   b.setAttribute('aria-label', n ? `การแจ้งเตือน ใหม่ ${n} รายการ` : 'การแจ้งเตือน');
+  // เลขเพิ่มขึ้น (มีของใหม่เข้ามา) = กระดิ่งแกว่ง + ป้ายเลขเด้ง · เปิดแอปครั้งแรก (ยังไม่รู้เลขเดิม) ไม่แกว่ง
+  if (notifBellN >= 0 && n > notifBellN) notifRing(b, dot);
+  notifBellN = n;
+}
+// Bell Toggle ของ React Bits (Micro): หมุนรอบหูกระดิ่งด้านบน มุมสลับซ้ายขวาและเบาลงทุกรอบ (สร้างมุมใน JS)
+// ป้ายเลขเด้งแบบ Pulse Heart ของ React Bits: ease-out ถึง 40% แล้วตกลงที่ด้วยการเด้งเกินเล็กน้อย
+// โหมดลื่น / ลดการเคลื่อนไหว = ไม่แกว่ง (เลขเปลี่ยนเฉย ๆ)
+let notifBellN = -1;
+function notifRing(b, dot) {
+  const root = document.documentElement;
+  if (root.dataset.lite || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const svg = b.querySelector('svg');
+  if (svg) {
+    const k = [{ transform: 'rotate(0deg)' }];
+    for (let i = 0, a = 16; i < 6; i++, a *= .62) k.push({ transform: `rotate(${i % 2 ? -a : a}deg)` });
+    k.push({ transform: 'rotate(0deg)' });
+    svg.style.transformOrigin = '50% 8%';
+    svg.animate(k, { duration: 720, easing: 'ease-out' });
+  }
+  if (dot) dot.animate([
+    { transform: 'scale(1)' },
+    { transform: 'scale(1.32)', offset: .4, easing: 'cubic-bezier(.34, 1.56, .64, 1)' },
+    { transform: 'scale(1)' },
+  ], { duration: 460 });
 }
 
 // ---------- ป้ายเด้งเมื่อมีข้อความเข้ามา ----------
@@ -1328,47 +1377,70 @@ function renderNotif() {
   }
 
   const all = notifItems();
+  const onScr = curScreen === 'scr-notif';
+  if (!onScr) notifVisit = null;
+  else {
+    // อยู่ในจอนี้ = เห็นแล้ว ทั้งตอนเพิ่งเปิดและของที่เด้งเข้ามาระหว่างเปิดอยู่
+    if (!notifVisit) notifVisit = new Set();
+    const unseen = all.filter(n => n.unread);
+    if (unseen.length) {
+      unseen.forEach(n => notifVisit.add(notifKey(n)));
+      const sn = notifSeen(); sn.all = Date.now(); notifSaveSeen(sn);
+    }
+    notifPaintBell();
+  }
+  const isNew = n => n.unread || !!(notifVisit && notifVisit.has(notifKey(n)));
   const isDm = n => n.kind === 'dm' || n.kind === 'req';
   const list = all.filter(n => notifFilter === 'all' || (notifFilter === 'dm' ? isDm(n) : !isDm(n)));
-  const unread = all.filter(n => n.unread).length;
+  const nNew = list.filter(isNew).length;
   const sub = document.getElementById('notifSub');
-  if (sub) sub.textContent = unread ? `ยังไม่ได้อ่าน ${unread}` : 'อ่านครบแล้ว';
+  if (sub) sub.textContent = nNew ? `ใหม่ ${nNew} รายการ` : 'อ่านครบแล้ว';
 
+  // 14 ต.ค. 69 · เจ้าของ: "ให้มันเป็นหน้าแจ้งเตือน ไม่เอาคำว่าเข้าแผนแล้ว จัดลำดับให้ถูก"
+  // บรรทัดแรก = ของที่เข้ามาจริง (ตัวงาน · ชื่อคน) · บรรทัดสอง = รายละเอียด · บรรทัดสาม = มาจากไหน · เมื่อไหร่
+  // เดิมบรรทัดแรกเป็นสถานะ ("เข้าแผนให้แล้ว จาก …") ตัวงานไปอยู่บรรทัดรอง — อ่านกลับหัว
+  // สถานะยังบอกอยู่ที่ป้ายมุมไอคอน (ถูก = อยู่ในแผนแล้ว · กระดิ่ง = รอตรวจ) กับปุ่ม "ตรวจ" ทางขวา
   const row = n => {
-    const t = notifAgo(n.at);
+    const t = notifAgo(n.at), nw = isNew(n);
+    const dot = nw ? '<span class="nt-dot" aria-label="ใหม่"></span>' : '';
     if (isDm(n)) {
       const r = n.row;
-      return `<button class="nt-row ${n.unread ? 'new' : ''}" onclick="notifOpenDm('${esc(r.id)}')">
+      return `<button class="nt-row${nw ? ' new' : ''}" onclick="notifOpenDm('${esc(r.id)}')">
         <span class="nt-ic">${notifAvatar(r)}<span class="nt-ic-b dm">${icon('chat')}</span></span>
         <span class="nt-bd">
-          <span class="nt-t"><b>${esc(notifName(r))}</b> ${n.kind === 'req' ? 'ขอทักคุณ' : 'ส่งข้อความถึงคุณ'}</span>
-          <span class="nt-p">${esc(notifPreview(r))}</span>
-          <span class="nt-time">${esc(t)}</span>
+          <span class="nt-t">${esc(notifName(r))}</span>
+          <span class="nt-p">${n.kind === 'req' ? 'ขอทักคุณ' : esc(notifPreview(r))}</span>
+          <span class="nt-meta">${n.kind === 'req' ? 'คำขอข้อความ' : 'ข้อความ'}<i aria-hidden="true">·</i>${esc(t)}</span>
         </span>
-        ${n.kind === 'req' ? '<span class="nt-go">ดูคำขอ</span>' : n.unread ? '<span class="nt-dot"></span>' : ''}
+        ${n.kind === 'req' ? '<span class="nt-go">ดูคำขอ</span>' : dot}
       </button>`;
     }
     const i = n.item, s = sourceById(i.source);
     // ชื่อเต็มของแหล่งมีวงเล็บอธิบาย ("LINE (บอทในกลุ่มห้อง)") ซึ่งดันประโยคให้ตกบรรทัด — ที่นี่พอแค่ชื่อ
     const srcName = s.shortName || s.name.replace(/\s*\(.*\)\s*$/, '');
-    const what = i.kind === 'batch'
-      ? `${(i.header || i.raw.split('\n')[0]).slice(0, 50)} · ${(i.children || []).length} งาน`
-      : [i.parsed && i.parsed.subject, i.parsed && i.parsed.detail].filter(Boolean).join(' · ') || i.raw.slice(0, 60);
-    return `<button class="nt-row ${n.unread ? 'new' : ''}" onclick="go('scr-inbox')">
+    const pz = i.parsed || {};
+    let title, note;
+    if (i.kind === 'batch') {
+      title = (i.header || i.raw.split('\n')[0]).slice(0, 70);
+      note = `${(i.children || []).length} งาน`;
+    } else {
+      title = pz.detail || pz.subject || i.raw.slice(0, 80);
+      // "อื่น ๆ" คือวิชาที่ AI ไม่รู้ — ไม่ใช่ข้อมูล ไม่ต้องขึ้น
+      note = pz.detail && pz.subject && pz.subject !== 'อื่น ๆ' ? pz.subject : '';
+    }
+    return `<button class="nt-row${nw ? ' new' : ''}" onclick="notifOpenItem('${esc(i.id)}')">
       <span class="nt-ic"><span class="nt-av src">${icon(s.icon)}</span><span class="nt-ic-b ${n.kind}">${
         icon(n.kind === 'wait' ? 'bell' : 'check')}</span></span>
       <span class="nt-bd">
-        <span class="nt-t">${n.kind === 'wait'
-          ? `<b>งานใหม่</b> จาก ${esc(srcName)} รอคุณดู`
-          : `<b>เข้าแผนให้แล้ว</b> จาก ${esc(srcName)}`}</span>
-        <span class="nt-p">${esc(what)}</span>
-        <span class="nt-time">${esc(t)}</span>
+        <span class="nt-t">${esc(title)}</span>
+        ${note ? `<span class="nt-p">${esc(note)}</span>` : ''}
+        <span class="nt-meta">${esc(srcName)}<i aria-hidden="true">·</i>${esc(t)}</span>
       </span>
-      ${n.kind === 'wait' ? '<span class="nt-go">ตรวจ</span>' : n.unread ? '<span class="nt-dot"></span>' : ''}
+      ${n.kind === 'wait' ? '<span class="nt-go">ตรวจ</span>' : dot}
     </button>`;
   };
 
-  const fresh = list.filter(n => n.unread), older = list.filter(n => !n.unread);
+  const fresh = list.filter(isNew), older = list.filter(n => !isNew(n));
   // 7 ต.ค. 69 · ปุ่มกรองเป็นแบบ GradientButtonGroup (cult-ui · MIT) — เจ้าของ: "เอามาใช้ในหน้านี้"
   // ถาดยุบลง → แผงนูน → ปุ่มที่เลือกจมเป็นหลุม มีวงแหวนไล่สีหมุนรอบ · ตัวบอกปุ่มที่เลือกเป็นก้อนเดียว (.gbg-ind)
   // ที่เลื่อนไปหาปุ่มใหม่แบบสปริง (notifSetFilter สั่งเลื่อนจากตำแหน่งเดิม หลังวาดจอใหม่)
@@ -1393,11 +1465,15 @@ function renderNotif() {
         ${icon('chevron')}
       </button>` : '';
 
+  // กลุ่มแบบ IG: ใหม่ → วันนี้ → เมื่อวาน → 7 วันที่ผ่านมา → ก่อนหน้านี้ · ในกลุ่มเรียงใหม่สุดก่อน (notifItems เรียงไว้แล้ว)
+  // ไม่มีปุ่ม "อ่านทั้งหมด" แล้ว — เปิดจอก็อ่านแล้ว
+  const d0 = new Date(); d0.setHours(0, 0, 0, 0);
+  const today0 = d0.getTime(), yest0 = today0 - 864e5, week0 = today0 - 6 * 864e5;
+  const bucket = n => n.at >= today0 ? 'วันนี้' : n.at >= yest0 ? 'เมื่อวาน' : n.at >= week0 ? '7 วันที่ผ่านมา' : 'ก่อนหน้านี้';
+  const groups = [['ใหม่', fresh]];
+  for (const name of ['วันนี้', 'เมื่อวาน', '7 วันที่ผ่านมา', 'ก่อนหน้านี้']) groups.push([name, older.filter(n => bucket(n) === name)]);
   body.innerHTML = chips + login
     + (!list.length ? empty : '')
-    + (fresh.length ? `<div class="ib2-sec"><span>ใหม่</span>
-        <button onclick="notifReadAll()">อ่านทั้งหมด</button></div>
-        <div class="ib2-list">${fresh.map(row).join('')}</div>` : '')
-    + (older.length ? `<div class="ib2-sec"><span>ก่อนหน้านี้</span></div>
-        <div class="ib2-list">${older.map(row).join('')}</div>` : '');
+    + groups.filter(g => g[1].length).map(([name, items]) =>
+        `<div class="ib2-sec"><span>${name}</span></div><div class="ib2-list">${items.map(row).join('')}</div>`).join('');
 }
