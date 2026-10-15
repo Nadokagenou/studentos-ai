@@ -1125,7 +1125,9 @@ function renderSources() {
 
   const acctRow = r => {
     const s = SOURCES.find(x => x.id === r.provider) || { name: r.provider, icon: 'calendar' };
-    const bad = r.status === 'needs_reauth';
+    const why = typeof integEmptyReason === 'function' ? integEmptyReason(r) : null;
+    // บัญชีที่เชื่อมผ่านแต่ไม่อยู่ในห้องเรียนไหน = ต้องให้คนแก้เหมือนกุญแจหมดอายุ (เชื่อมบัญชีที่ถูก)
+    const bad = r.status === 'needs_reauth' || !!(why && why.warn);
     const busy = busyId === r.id;
     // ปุ่ม "เชื่อมใหม่" พาไปคนละทางตามชนิดของตัวเชื่อม: ฝั่ง Google พาออกไปหน้าอนุญาตใหม่
     // ส่วนปฏิทินต้องให้คนไปก๊อปลิงก์ใหม่มาเอง เพราะลิงก์เดิมถูกเพิกถอนไปแล้ว
@@ -1141,7 +1143,7 @@ function renderSources() {
       </span>
       <button onclick="integDisconnect('${esc(r.id)}')"${busy ? ' disabled' : ''}>ตัดการเชื่อม</button>
       <div class="ib-act" style="width:100%">
-        ${bad ? `<button class="ib-go" style="flex:1" onclick="${again}">เชื่อมใหม่</button>` : ''}
+        ${bad ? `<button class="ib-go" style="flex:1" onclick="${again}">${why && why.warn ? 'เชื่อมบัญชีอื่น' : 'เชื่อมใหม่'}</button>` : ''}
         <button onclick="integSyncNow('${esc(r.id)}')"${busy ? ' disabled' : ''}>
           ${busy ? 'กำลังซิงก์…' : 'ซิงก์เดี๋ยวนี้'}</button>
       </div>
