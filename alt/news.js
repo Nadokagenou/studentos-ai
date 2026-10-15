@@ -17,8 +17,12 @@
 // คีย์ใหม่สองตัว ไม่แตะคีย์เดิม: studentos.alt.newsCache (สำเนาไฟล์ ล้างได้เสมอ)
 //   · studentos.alt.newsSeen (ประกาศไหนเปิดดูแล้ว)
 // ============================================================
-const NEWS_URL = 'news/announcements.json';
-const NEWS_DRAFT_URL = 'news/drafts.json';
+// ไฟล์ข่าวมีที่เดียวคือ alt/news/ — บิลด์รากอ่านไฟล์เดียวกันข้ามโฟลเดอร์ ไม่ก๊อปเป็นสองชุด
+// (สองชุด = เพิ่มข่าวทีต้องแก้สองที่ แล้ววันหนึ่งมือถือที่ติดตั้งแอปเห็นข่าวไม่ตรงกับเว็บ)
+// sync-to-root.py เปลี่ยนบรรทัดนี้เป็น 'alt/' ตอนก๊อปขึ้นราก (ตาราง IDENTITY) — ห้ามแก้หน้าตาบรรทัดนี้โดยไม่แก้ตารางนั้น
+const NEWS_BASE = '';
+const NEWS_URL = NEWS_BASE + 'news/announcements.json';
+const NEWS_DRAFT_URL = NEWS_BASE + 'news/drafts.json';
 const NEWS_CACHE_KEY = 'studentos.alt.newsCache';
 const NEWS_SEEN_KEY = 'studentos.alt.newsSeen';
 // ประกาศเก่ากว่านี้ไม่นับเป็น "ใหม่" แม้ยังไม่เคยเปิด — คนเพิ่งติดตั้งไม่ต้องเจอเลขค้างสิบอัน
