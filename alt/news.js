@@ -109,6 +109,7 @@ async function newsLoad(force) {
   }
   newsPaintRow();
   if (typeof curScreen !== 'undefined' && curScreen === 'scr-news') renderNews();
+  if (typeof staffNewsLoad === 'function') void staffNewsLoad();
 }
 
 function newsSeen() {
