@@ -53,7 +53,8 @@ export function makeDb(tables, log) {
 
         if (st.op === 'insert') {
           const list = Array.isArray(st.payload) ? st.payload : [st.payload];
-          for (const p of list) { rows().push({ ...p }); log.push(`insert ${name}`); }
+          // created_at = ค่าปริยายของฐานข้อมูลจริง (now()) · ใช้นาฬิกาที่ถูกหยุดไว้ เทสต์จะได้คุมเวลาได้
+          for (const p of list) { rows().push({ created_at: new Date(Date.now()).toISOString(), ...p }); log.push(`insert ${name}`); }
           return { data: null, error: null };
         }
 

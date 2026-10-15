@@ -233,6 +233,53 @@ freezeThaiHour(14);
   CLASSROOM_WORK = [];
 }
 
+// ---- 13) 15 ต.ค. 69 · ของที่เข้ามากลางดึกต้องถูกแจ้งตอนเช้า ไม่ใช่หายเงียบ ----
+// ข้อมูลจริง: งานโพสต์ ~21:30 น. · บัญชีที่ซิงก์รอบ 22:00 ไม่เคยได้ดอกแจ้งเตือนเลย
+const again = (t) => { t.integrations[0].next_sync_at = iso(REAL() - DAY); return run(t); };
+{
+  freezeThaiHour(22);
+  FEED = feed([{ uid: 'late1', summary: 'ใบงานฟิสิกส์', due: Date.now() + 3 * DAY }]);
+  const t = base();
+  const r1 = await run(t);
+  check('22:00 → ไม่ push · ไม่ปักหมุด', r1.sent.length === 0 && t.push_sent.length === 0, JSON.stringify([r1.sent, t.push_sent]));
+  freezeThaiHour(23);
+  const r2 = await again(t);
+  check('23:00 ไม่มีของใหม่ → ยังเงียบ', r2.sent.length === 0, JSON.stringify(r2.sent));
+  // เช้าวันรุ่งขึ้น 07:00 · ไม่มีของใหม่ในรอบนั้นเลย
+  const d = new Date(REAL()); d.setUTCHours(0, 0, 0, 0);   // 07:00 ไทย = 00:00 UTC
+  Date.now = () => d.getTime() + DAY;
+  t.inbox_items[0].created_at = iso(d.getTime() + DAY - 9 * 3.6e6);   // เข้ามาตอน 22:00 คืนก่อน
+  const r3 = await again(t);
+  check('07:00 → แจ้งของที่ค้างจากเมื่อคืน', r3.sent.length === 1 && /ใบงานฟิสิกส์/.test(r3.sent[0].body), JSON.stringify(r3.sent));
+  check('07:00 → ปักหมุดแล้ว', t.push_sent.some(p => /late1/.test(p.task_id)), JSON.stringify(t.push_sent));
+  const r4 = await again(t);
+  check('รอบถัดไป → ไม่แจ้งซ้ำ', r4.sent.length === 0, JSON.stringify(r4.sent));
+  freezeThaiHour(14);
+}
+{
+  // เพิ่งกดเชื่อม: ไม่แจ้ง และรอบถัดไปต้องไม่กวาดทั้งปฏิทินมาแจ้งทีหลัง
+  FEED = feed([{ uid: 'f1', summary: 'งานแรก', due: Date.now() + 3 * DAY }, { uid: 'f2', summary: 'งานสอง', due: Date.now() + 4 * DAY }]);
+  const t = base();
+  t.integrations[0].last_sync_at = null;
+  const r1 = await run(t);
+  check('รอบแรก → ไม่ push แต่ปักหมุดครบ', r1.sent.length === 0 && t.push_sent.length === 2, JSON.stringify(t.push_sent));
+  const r2 = await again(t);
+  check('รอบถัดจากรอบแรก → ไม่กวาดของรอบแรกมาแจ้ง', r2.sent.length === 0, JSON.stringify(r2.sent));
+}
+{
+  // ของค้างจากเมื่อคืน + ของใหม่ตอนเช้า → ดอกเดียวรวมกัน
+  freezeThaiHour(23);
+  FEED = feed([{ uid: 'n1', summary: 'ใบงานคืนนี้', due: Date.now() + 3 * DAY }]);
+  const t = base();
+  await run(t);
+  freezeThaiHour(14);
+  t.inbox_items[0].created_at = iso(Date.now() - 6 * 3.6e6);
+  FEED = feed([{ uid: 'n1', summary: 'ใบงานคืนนี้', due: Date.now() + 3 * DAY },
+               { uid: 'm1', summary: 'ใบงานเช้านี้', due: Date.now() + 2 * DAY }]);
+  const r = await again(t);
+  check('ค้าง + ใหม่ → ดอกเดียว 2 ชิ้น', r.sent.length === 1 && /2 ชิ้น/.test(r.sent[0].title), JSON.stringify(r.sent));
+}
+
 unfreeze();
 
 // ============================================================
