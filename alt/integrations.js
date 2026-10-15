@@ -310,6 +310,8 @@ function integEmptyReason(row) {
       ? { warn: true, text: 'บัญชีนี้เป็นครูในห้องเรียน ไม่ใช่นักเรียน · เชื่อมบัญชีที่ใช้เรียนแทน' }
       : { warn: true, text: 'บัญชีนี้ยังไม่อยู่ในห้องเรียนไหน · ตอบรับคำเชิญใน Classroom หรือเชื่อมบัญชีที่ใช้เข้าห้อง' };
   }
-  if (d.work && d.turnedIn >= d.work) return { warn: false, text: 'ส่งงานครบทุกชิ้นแล้ว' };
+  // done = ส่งจริง (กดส่ง + ครูคืนหลังส่ง) · diag รุ่นแรกยังไม่มีช่องนี้ ใช้ turnedIn แทน
+  const done = d.done != null ? d.done : d.turnedIn;
+  if (d.work && done >= d.work) return { warn: false, text: 'ส่งงานครบทุกชิ้นแล้ว' };
   return null;
 }

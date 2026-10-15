@@ -358,6 +358,31 @@ async function runBody(tables, body) {
   check('ตีสอง → นัดลองใหม่ 07:xx น. ไทย', thHour === 7 && next.getTime() > REAL(), t.integrations[0].next_sync_at);
   freezeThaiHour(14);
 }
+// ---- 17) ครูกด "คืน" ทั้งที่นักเรียนไม่เคยส่ง → ยังเป็นงานค้าง ต้องเข้าแผน ----
+// เดิมนับ RETURNED ว่าส่งแล้วทุกใบ — บัญชีจริง (15 ต.ค. 69) ขึ้น "ส่งแล้ว 20/20" ซึ่งแยกไม่ออกว่ามีแบบนี้ปนไหม
+{
+  const TI = { stateHistory: { state: 'TURNED_IN', stateTimestamp: posted } };
+  const RT = { stateHistory: { state: 'RETURNED', stateTimestamp: posted } };
+  const CR = { stateHistory: { state: 'CREATED', stateTimestamp: posted } };
+  GOOGLE = { 'rt-r': { email: 'r@gmail.com', courses: [{ id: 'c-r', name: 'ฟิสิกส์' }],
+    work: { 'c-r': ['w-ti', 'w-ret-sub', 'w-ret-nosub', 'w-ret-nohist', 'w-new'].map((id, i) =>
+      ({ id, title: 'งาน ' + id, state: 'PUBLISHED', creationTime: posted, dueDate: dueIn(i + 1) })) },
+    subs: { 'c-r': [
+      { courseWorkId: 'w-ti', state: 'TURNED_IN', submissionHistory: [CR, TI] },
+      { courseWorkId: 'w-ret-sub', state: 'RETURNED', submissionHistory: [CR, TI, RT] },
+      { courseWorkId: 'w-ret-nosub', state: 'RETURNED', submissionHistory: [CR, RT] },
+      { courseWorkId: 'w-ret-nohist', state: 'RETURNED' },
+      { courseWorkId: 'w-new', state: 'CREATED', submissionHistory: [CR] },
+    ] } } };
+  const t = await gTables([await gRow('ir', 'ur', 'rt-r')]);
+  const r = await runBody(t, {});
+  const got = r.tables.inbox_items.map(x => x.meta.sourceId.split(':')[1]).sort();
+  check('คืนโดยไม่เคยส่ง → เข้าแผน · ส่งแล้ว/คืนหลังส่ง → ไม่เข้า',
+    JSON.stringify(got) === JSON.stringify(['w-new', 'w-ret-nosub']), JSON.stringify(got));
+  const d = t.integrations[0].meta.diag || {};
+  check('diag แยกสามแบบถูก', d.work === 5 && d.turnedIn === 1 && d.returned === 2
+    && d.returnedUnsubmitted === 1 && d.done === 3 && d.returnedNoHistory === 1, JSON.stringify(d));
+}
 GOOGLE = null;
 
 unfreeze();

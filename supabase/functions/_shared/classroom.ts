@@ -190,7 +190,8 @@ export async function fetchClassroom(refreshToken: string): Promise<{
   const diag: ClassroomDiag = {
     at: new Date().toISOString(),
     coursesStudent: courses.length, coursesTeacher: 0,
-    work: 0, turnedIn: 0, untitled: 0, subsFailed: 0,
+    work: 0, done: 0, turnedIn: 0, returned: 0, returnedUnsubmitted: 0, returnedNoHistory: 0,
+    untitled: 0, subsFailed: 0,
   };
   // บัญชีที่ "เชื่อมแล้ว · ไม่มีงานเลยสักใบ" มีได้สามเหตุผลที่ต่างกันมากสำหรับผู้ใช้:
   // ไม่ได้เป็นนักเรียนในห้องไหน · เป็นครูของห้องนั้น · หรือส่งงานครบแล้วจริง ๆ
@@ -213,20 +214,25 @@ export async function fetchClassroom(refreshToken: string): Promise<{
 
     // สถานะส่งของ "ฉัน" ทั้งคอร์สในคำขอเดียว (courseWorkId = '-')
     // ไม่ดึงตรงนี้ = งานที่ส่งไปแล้วจะโผล่เป็นงานค้างในแผน ซึ่งทำลายความเชื่อถือทั้งระบบ
-    const done = new Set<string>();
+    const done = new Map<string, 'turnedIn' | 'returned'>();
+    const unsubmittedReturn = new Set<string>();
     try {
       const subs = await pages(token, `courses/${courseId}/courseWork/-/studentSubmissions`,
         'studentSubmissions', { userId: 'me' });
       for (const s of subs) {
-        const st = String(s.state || '');
-        if (st === 'TURNED_IN' || st === 'RETURNED') done.add(String(s.courseWorkId));
+        if (s.state === 'RETURNED' && !Array.isArray(s.submissionHistory)) diag.returnedNoHistory++;
+        const k = submissionDone(s);
+        if (k === 'returnedUnsubmitted') unsubmittedReturn.add(String(s.courseWorkId));
+        else if (k) done.set(String(s.courseWorkId), k);
       }
     } catch { diag.subsFailed++; /* คอร์สที่อ่านสถานะไม่ได้ ยังดีกว่าไม่ได้งานเลย */ }
 
     diag.work += work.length;
     for (const w of work) {
       const id = String(w.id);
-      if (done.has(id)) { diag.turnedIn++; continue; }   // ส่งไปแล้ว ไม่ต้องเอาเข้าแผน
+      const how = done.get(id);
+      if (how) { diag[how]++; diag.done++; continue; }   // ส่งไปแล้ว ไม่ต้องเอาเข้าแผน
+      if (unsubmittedReturn.has(id)) diag.returnedUnsubmitted++;   // ครูคืนแต่ไม่เคยส่ง = ยังค้าง
       const title = clip(w.title, 140);
       if (!title) { diag.untitled++; continue; }
       tasks.push({
@@ -250,13 +256,34 @@ export async function fetchClassroom(refreshToken: string): Promise<{
   return { tasks, account, diag };
 }
 
+/** งานใบนี้ "ส่งแล้ว" จริงไหม — ตัดสินจากสถานะของ studentSubmission ของฉัน
+ *
+ *  RETURNED ไม่ได้แปลว่าส่งแล้วเสมอไป: ครูกด "คืน" ให้ทั้งห้องได้ รวมคนที่ไม่เคยส่ง
+ *  (มักทำตอนให้คะแนน) · เดิมนับ RETURNED ว่าเสร็จทุกใบ = งานที่ยังค้างจริงหายจากแผนเงียบ ๆ
+ *  ประวัติการส่ง (submissionHistory) บอกได้ว่าเคยมีจังหวะ TURNED_IN ไหม
+ *  ไม่มีประวัติมาให้ตรวจ = ถือว่าเสร็จเหมือนเดิม — ตัดสินแบบนี้ผิดยังดีกว่าเทงานเก่าทั้งเทอมเข้าแผน
+ *  (งานที่เลยกำหนดไปแล้วโดนด่าน "เก่าเกิน" ใน sync-integrations กันไว้อีกชั้นอยู่แล้ว) */
+export function submissionDone(s: Record<string, any>): 'turnedIn' | 'returned' | 'returnedUnsubmitted' | null {
+  const st = String(s?.state || '');
+  if (st === 'TURNED_IN') return 'turnedIn';
+  if (st !== 'RETURNED') return null;
+  const hist = s?.submissionHistory;
+  if (!Array.isArray(hist)) return 'returned';
+  const everTurnedIn = hist.some(h => h?.stateHistory?.state === 'TURNED_IN');
+  return everTurnedIn ? 'returned' : 'returnedUnsubmitted';
+}
+
 /** ตัวเลขล้วน ไม่มีชื่องาน ไม่มีชื่อห้อง — เก็บลง integrations.meta ไว้ตอบว่า "ทำไมไม่มีงานเข้า" */
 export type ClassroomDiag = {
   at: string;
   coursesStudent: number;   // ห้องที่บัญชีนี้เป็นนักเรียน (ACTIVE)
   coursesTeacher: number;   // ห้องที่บัญชีนี้เป็นครู — ถามเฉพาะตอน coursesStudent = 0
   work: number;             // งานที่ครูเผยแพร่แล้วทั้งหมดที่บัญชีนี้เห็น
-  turnedIn: number;         // ส่งแล้ว/ครูคืนแล้ว — ไม่เอาเข้าแผน
+  done: number;             // = turnedIn + returned — ไม่เอาเข้าแผน
+  turnedIn: number;         // นักเรียนกดส่งแล้ว (ครูยังไม่คืน)
+  returned: number;         // ครูคืนแล้ว หลังจากที่นักเรียนเคยส่ง (หรือไม่มีประวัติให้ตรวจ)
+  returnedUnsubmitted: number; // ครูกดคืนทั้งที่ไม่เคยส่ง — ยังค้าง จึงเข้าแผน
+  returnedNoHistory: number;   // RETURNED ที่ Google ไม่ส่งประวัติมา (ตัดสินไม่ได้ จึงถือว่าเสร็จ) — ควรเป็น 0
   untitled: number;
   subsFailed: number;       // ห้องที่อ่านสถานะการส่งไม่ได้
 };
