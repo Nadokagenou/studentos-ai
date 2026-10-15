@@ -16,6 +16,11 @@ import android.widget.Toast;
 public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
+        android.net.Uri target = getIntent().getData();
+        if (target == null || !"studentos".equals(target.getScheme()) || !"setup".equals(target.getHost())) {
+            if (Routes.open(this,"today",null)) finish();
+            return;
+        }
         LinearLayout body = Ui.page(this);
         Ui.text(this, body, "Student OS\nทางลัด Android", 28);
         Ui.text(this, body, "รุ่นทดลอง • เปิดเว็บหลักด้วยเบราว์เซอร์ที่คุณใช้อยู่", 15);

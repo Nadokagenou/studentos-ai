@@ -16,53 +16,41 @@
 // ============================================================
 
 // ---------- แผ่นเพิ่มงานด่วน ----------
-let quickEl = null;
-
-function quickOpen() {
-  if (quickEl) return;
-  const host = document.querySelector('.phone') || document.body;
-  const scrim = document.createElement('div');
-  scrim.className = 'qa-scrim';
-  const box = document.createElement('div');
-  box.className = 'qa-sheet';
-  box.setAttribute('role', 'dialog');
-  box.setAttribute('aria-modal', 'true');
-  box.setAttribute('aria-label', 'เพิ่มงานด่วน');
-  box.innerHTML = `<form class="qa-row" onsubmit="event.preventDefault();quickSend()">
-      <input id="qaIn" class="qa-in" type="text" enterkeyhint="send" autocomplete="off"
-        placeholder="รายงานชีวะ ส่งศุกร์" aria-label="งานที่ต้องทำ" maxlength="500">
-      <button type="submit" class="qa-go" aria-label="เพิ่มงาน"><svg viewBox="0 0 24 24" width="20" height="20"
-        fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
-    </form>
-    <div class="qa-chips" id="qaChips"></div>`;
-  host.appendChild(scrim);
-  host.appendChild(box);
-  quickEl = { scrim, box };
-
-  const inp = box.querySelector('#qaIn');
-  inp.addEventListener('input', quickPreview);
-  if (typeof shortcutDraftApply === 'function') shortcutDraftApply('quick');
-  scrim.onclick = () => quickClose();
-  document.addEventListener('keydown', quickKey, true);
-  void box.offsetWidth;
-  scrim.classList.add('open'); box.classList.add('open');
-  // เปิดจากปุ่มลัดของเครื่อง = มาเพื่อพิมพ์อย่างเดียว · บางเครื่องไม่ยอมเปิดคีย์บอร์ดให้โดยไม่มีการแตะ
-  // ก็ไม่เป็นไร — ช่องอยู่บนสุดของจอ แตะทีเดียวถึง
-  try { inp.focus({ preventScroll: true }); } catch (_) {}
+let quickPlusDraft = '';
+function quickPlusInput() {
+  quickPlusDraft = document.getElementById('qaIn')?.value || '';
+  quickPreview();
 }
 
-function quickKey(e) { if (e.key === 'Escape') { e.preventDefault(); quickClose(); } }
+function androidShortcutsHTML() {
+  return `<div class="as-grip"></div>
+    <button type="button" class="as-h as-back" onclick="openAddSheet('root')" aria-label="ย้อนไปเมนูเพิ่มงาน"><span class="as-bk">${icon('chevron')}</span>ปุ่มลัด Android</button>
+    <p class="as-setup-intro">ใช้ในแอปนี้ได้เลย ไม่ต้องเปิดหน้าทดลองแยก</p>
+    <button class="as-row" onclick="quickOpen()"><span class="as-ic">${icon('plus')}</span><span class="as-tx"><b>เพิ่มงานตอนนี้</b><span>พิมพ์ประโยคเดียว แล้วกด ＋</span></span><span class="as-go">${icon('chevron')}</span></button>
+    <button class="as-row" onclick="closeAddSheet();go('scr-ai')"><span class="as-ic">${icon('owl')}</span><span class="as-tx"><b>ถามผู้ช่วยตอนนี้</b><span>คุยในแอปเดิม</span></span><span class="as-go">${icon('chevron')}</span></button>
+    <div class="as-setup-box"><b>อยากเรียกจากนอกแอป?</b>
+      <p>ติดตั้งส่วนเสริมครั้งเดียว เพื่อเพิ่มปุ่มข้าง Wi‑Fi หรือเลือก Student OS เป็นผู้ช่วยของเครื่อง ครั้งต่อไปกดปุ่มลัดแล้วเข้าแอปหลักได้เลย</p>
+      <a class="btn primary" href="android-shortcuts/studentos-shortcuts-preview.apk" download>ติดตั้งส่วนเสริม Android</a>
+      <a class="btn" href="intent://setup#Intent;scheme=studentos;package=io.studentos.shortcuts;end">ติดตั้งแล้ว · เปิดตั้งค่าปุ่มมือถือ</a>
+      <small>APK ทดลองสำหรับ Android 8 ขึ้นไป ยังไม่ได้ทดสอบบนมือถือจริง การเพิ่มปุ่มและเลือกผู้ช่วยต้องกดยืนยันในเครื่องเอง</small>
+    </div>
+    <details class="as-setup-help"><summary>วิธีตั้งค่าครั้งแรก</summary><ol>
+      <li>ข้าง Wi‑Fi: เปิดตั้งค่าปุ่มมือถือ → เพิ่มปุ่มในแผงด่วน หรือแก้ไขแผงแล้วลาก “เพิ่มงาน Student OS” เข้ามา</li>
+      <li>ผู้ช่วย: เปิดตั้งค่าปุ่มมือถือ → เลือกแอปผู้ช่วย → Student OS เปลี่ยนกลับเป็น Gemini ได้ในตั้งค่าเครื่อง</li>
+      <li>กดไอคอนค้าง: เลือกเพิ่มงาน ถามผู้ช่วย งานของฉัน หรือวันนี้ หากติดตั้งเว็บเป็นแอปไว้แล้ว เมนูอาจต้องรอ Chrome อัปเดต</li>
+    </ol></details>`;
+}
+function quickOpen() {
+  openAddSheet('root');
+  const inp = document.getElementById('qaIn');
+  if (typeof shortcutDraftApply === 'function') shortcutDraftApply('quick');
+  try { inp?.focus({ preventScroll: true }); } catch (_) {}
+}
 
 function quickClose() {
-  if (!quickEl) return;
-  const { scrim, box } = quickEl;
-  quickEl = null;
-  // ปิดแผ่นแล้ว = ปุ่มลัดที่พามาถูกใช้จบแล้ว · รีโหลดหลังจากนี้ต้องไม่เด้งแผ่นซ้ำ (ดู shortcutTarget)
   try { sessionStorage.removeItem('studentos.alt.shortcut'); } catch (_) {}
-  document.removeEventListener('keydown', quickKey, true);
   try { document.activeElement && document.activeElement.blur(); } catch (_) {}
-  scrim.classList.remove('open'); box.classList.remove('open');
-  setTimeout(() => { scrim.remove(); box.remove(); }, 260);
+  closeAddSheet();
 }
 
 // ป้ายใต้ช่อง: บอกว่าแอปอ่านได้อะไรระหว่างพิมพ์ — วิชา · วันส่ง
@@ -93,7 +81,12 @@ function quickSend() {
     return;
   }
   const r = inboxAdd(text, 'quick', { via: 'sheet' });
+  if (!r || !['accepted', 'pending', 'duplicate'].includes(r.status)) {
+    showToast(quickToast(r));
+    return;
+  }
   if (typeof haptic === 'function') haptic('arm');
+  quickPlusDraft = '';
   quickClose();
   if (typeof renderAll === 'function') renderAll();
   showToast(quickToast(r));
@@ -253,7 +246,7 @@ function quickPanel() {
   const android = `<div class="qa-p">
       <span class="qa-h">Android</span>
       ${steps(['กดค้างที่ไอคอน Student OS', 'เลือก <b>เพิ่มงานด่วน</b> · ลากไปวางบนจอได้'])}
-      <a class="qa-try" href="android-shortcuts/">ปุ่มแผงด่วนและผู้ช่วย Android</a>
+      <button type="button" class="qa-try" onclick="openAddSheet('shortcuts')">ปุ่มแผงด่วนและผู้ช่วย Android</button>
     </div>`;
 
   let ios;

@@ -57,3 +57,15 @@ test('main service worker preserves ALT caches and ignores ALT requests',async()
  assert.deepEqual(deleted,['studentos-1c57','studentos-main-1c57-old']);
  handlers.fetch({request:{method:'GET',url:'https://example.test/studentos-ai/alt/app.js'},respondWith(){handled=true;}});assert.equal(handled,false);
 });
+test('quick entry failure keeps input and sheet open for retry',()=>{
+ const source=fs.readFileSync(new URL('quickadd.js',root),'utf8');
+ const send=source.slice(source.indexOf('function quickSend()'),source.indexOf('function quickToast('));
+ let closed=false;let rendered=false;const input={value:'รายงานชีวะ ส่งพรุ่งนี้'};
+ const ctx={document:{getElementById(){return input}},inboxAdd(){return {status:'failed'}},quickToast(){return {}},showToast(){},quickClose(){closed=true},renderAll(){rendered=true},quickPlusDraft:input.value};
+ vm.runInNewContext(send+';quickSend();',ctx);assert.equal(closed,false);assert.equal(rendered,false);assert.equal(input.value,'รายงานชีวะ ส่งพรุ่งนี้');assert.equal(ctx.quickPlusDraft,input.value);
+});
+test('accepted inline capture clears draft and closes once without navigating',()=>{
+ const source=fs.readFileSync(new URL('quickadd.js',root),'utf8');const send=source.slice(source.indexOf('function quickSend()'),source.indexOf('function quickToast('));
+ let closed=0;let saved=0;const ctx={document:{getElementById(){return {value:'รายงานชีวะ ส่งพรุ่งนี้'}}},inboxAdd(){saved++;return {status:'accepted'}},quickToast(){return {}},showToast(){},quickClose(){closed++},renderAll(){},quickPlusDraft:'old'};
+ vm.runInNewContext(send+';quickSend();',ctx);assert.equal(saved,1);assert.equal(closed,1);assert.equal(ctx.quickPlusDraft,'');
+});

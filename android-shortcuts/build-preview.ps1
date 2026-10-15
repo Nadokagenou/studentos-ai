@@ -10,7 +10,7 @@ Run-Tool "$BuildTools/aapt2.exe" @('compile','--dir',"$sourceDir/res",'-o',"$bui
 $manualManifest = [xml](Get-Content -LiteralPath "$sourceDir/AndroidManifest.xml" -Raw -Encoding UTF8)
 $manualManifest.DocumentElement.SetAttribute('package','io.studentos.shortcuts')
 $manualManifest.Save("$buildDir/AndroidManifest.xml")
-Run-Tool "$BuildTools/aapt2.exe" @('link','-o',"$buildDir/resources.apk",'-I',$AndroidJar,'--manifest',"$buildDir/AndroidManifest.xml",'--java',"$buildDir/generated",'--min-sdk-version','26','--target-sdk-version','35','--version-code','1','--version-name','preview','--debug-mode',"$buildDir/resources.zip")
+Run-Tool "$BuildTools/aapt2.exe" @('link','-o',"$buildDir/resources.apk",'-I',$AndroidJar,'--manifest',"$buildDir/AndroidManifest.xml",'--java',"$buildDir/generated",'--min-sdk-version','26','--target-sdk-version','35','--version-code','2','--version-name','preview','--debug-mode',"$buildDir/resources.zip")
 $sources=@(Get-ChildItem -LiteralPath "$sourceDir/java","$buildDir/generated" -Recurse -Filter '*.java' | ForEach-Object {$_.FullName})
 Run-Tool "$javaDir/javac.exe" (@('-encoding','UTF-8','-source','8','-target','8','-bootclasspath',"$AndroidJar;$BuildTools/core-lambda-stubs.jar",'-d',"$buildDir/classes") + $sources)
 Run-Tool "$javaDir/jar.exe" @('cf',"$buildDir/classes.jar",'-C',"$buildDir/classes",'.')

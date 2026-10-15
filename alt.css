@@ -12171,6 +12171,19 @@ button.df-r:active .df-x { transform: scale(.985); }
 
 /* แผงตั้งค่าในจอตัวเชื่อม (แถว "ปุ่มลัดเพิ่มงาน") */
 .qa-panel { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+/* Capture and Android setup stay inside the existing + sheet. */
+.as-quick-form { margin: 4px 0 16px; }
+.as-quick-form label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 8px; }
+.as-quick-row { display: flex; gap: 8px; }
+.as-quick-row .qa-in { width: 0; }
+.as-setup-intro { margin: 8px 0 14px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.as-setup-box { padding: 16px; border-radius: 18px; background: color-mix(in srgb,var(--fill) 8%,var(--card)); margin-top: 14px; }
+.as-setup-box p,.as-setup-help { font-size: 13px; line-height: 1.8; }
+.as-setup-box .btn { display: flex; width: 100%; min-height: 48px; margin-top: 10px; text-align: center; text-decoration: none; justify-content: center; align-items: center; white-space: normal; }
+.as-setup-box small { display: block; margin-top: 12px; font-size: 11px; line-height: 1.8; color: var(--muted); }
+.as-setup-help { margin-top: 16px; }
+.as-setup-help summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 700; }
+.as-setup-help ol { padding-left: 20px; }
 .qa-p { display: flex; flex-direction: column; gap: 6px; }
 .qa-h { font-size: 12px; font-weight: 800; letter-spacing: .02em; color: color-mix(in srgb, var(--ink) 60%, transparent); }
 .qa-p .src-in { font-size: 12px; }
