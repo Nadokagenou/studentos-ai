@@ -2802,10 +2802,84 @@ function toolsGrid() {
 //
 // ช่องนี้ไม่ใช่แชทซ้อน — พิมพ์แล้วส่งจะพาไปที่จอน้องไซพร้อมคำถามนั้น
 // ให้บทสนทนามีที่อยู่ที่เดียว ไม่ใช่สองที่ที่จำคนละเรื่อง
+// หน้าแรกฉบับเรียบ: งานถัดไปมาจากแผนก้อนเดียวกับการ์ดตอนนี้
+function homeNext(sp, split, now) {
+  const current = sp.now && sp.now.task;
+  const next = sp.next && !isRemindKind(sp.next.task) ? sp.next.slot : null;
+  const reminders = split.reminders.length;
+  const inbox = typeof inboxPending === 'function' ? inboxPending().length : 0;
+  const empty = pendingTasks().some(t => !isRemindKind(t) && (!current || t.id !== current.id))
+    ? 'งานที่เหลือยังไม่มีช่วงเวลาว่าง · ดูแผนเพื่อปรับเวลา'
+    : current ? 'ไม่มีงานถัดไปในแผนวันนี้' : 'พร้อมเมื่อมีงานใหม่';
+  return `<section class="home-next" aria-label="งานถัดไป">
+    <div class="hn-head"><b>ถัดไป</b><button onclick="go('scr-plan')">ดูแผนทั้งหมด${icon('chevron')}</button></div>
+    ${next ? `<button class="hn-task" onclick="go('scr-plan')">
+      <span class="hn-icon">${icon('book')}</span><span class="hn-copy"><b>${esc(next.task.detail || next.task.subject || 'งานถัดไป')}</b>
+      <span>${esc(next.task.subject || 'งาน')} · ${next.min} นาที · ${fmtClock(next.start)}</span></span>${icon('chevron')}</button>`
+      : `<p class="hn-empty">${esc(empty)}</p>`}
+    ${reminders || inbox ? `<div class="hn-pending">${reminders ? `<button onclick="go('scr-plan')">${icon('clock')}เตือนความจำ ${reminders} รายการ</button>` : ''}${inbox ? `<button onclick="go('scr-inbox')">${icon('inbox')}กล่องเข้า ${inbox} รายการ</button>` : ''}</div>` : ''}
+  </section>`;
+}
+
+function homeAssistant() {
+  const name = typeof mName === 'function' ? mName() : 'น้องฮูก';
+  const face = typeof synFace === 'function' ? synFace('normal') : 'sai-face-normal.webp';
+  return `<section class="home-assistant" aria-label="ถาม${esc(name)}">
+    <div class="ha-heading"><img src="${esc(face)}" alt="" width="36" height="36"><div><b>ให้${esc(name)}ช่วยคิด</b><span>ถามเรื่องงาน หรือปรับแผนวันนี้</span></div></div>
+    ${askBar()}
+  </section>`;
+}
+
+// ภาพรวมฟีเจอร์แยกจากหน้าแรกและโปรไฟล์ เลือกทีละหมวดหรือค้นหาข้ามหมวด
+let exploreFrom = 'scr-menu';
+let exploreGroup = '';
+const EXPLORE_NAMES = { learn: 'เรียนและวางแผน', friends: 'เพื่อนและการคุย', rewards: 'ของฉันและรางวัล', help: 'ข่าวสารและช่วยเหลือ' };
+function openExplore(group = '') {
+  if (curScreen !== 'scr-explore') exploreFrom = curScreen === 'scr-profile' ? 'scr-profile' : 'scr-menu';
+  go('scr-explore');
+  selectExplore(group);
+}
+function closeExplore() { go(exploreFrom); }
+function selectExplore(group) {
+  exploreGroup = Object.hasOwn(EXPLORE_NAMES, group) ? group : '';
+  const input = document.getElementById('exploreSearch');
+  if (input) input.value = '';
+  filterExplore('');
+  const screen = document.getElementById('scr-explore');
+  if (screen) screen.scrollTop = 0;
+}
+function filterExplore(value) {
+  const q = String(value || '').trim().toLocaleLowerCase('th');
+  const overview = !q && !exploreGroup;
+  document.getElementById('exploreOverview').hidden = !overview;
+  document.getElementById('exploreIntro').hidden = !overview || liveTasks().length > 0;
+  document.getElementById('exploreSelected').hidden = overview;
+  document.getElementById('exploreGroupTitle').textContent = q ? 'ผลการค้นหา' : EXPLORE_NAMES[exploreGroup] || '';
+  let found = 0;
+  document.querySelectorAll('.explore-section').forEach(section => {
+    let count = 0;
+    section.querySelectorAll('.pe').forEach(row => {
+      const feature = row.dataset.exploreFeature;
+      const allowed = !feature || typeof sosFeature !== 'function' || sosFeature(feature);
+      const matches = !q || row.textContent.toLocaleLowerCase('th').includes(q)
+        || (q.includes('โทเคน') && section.dataset.group === 'rewards');
+      row.hidden = !allowed || !matches;
+      if (!row.hidden) count++;
+    });
+    section.hidden = overview || (!q && section.dataset.group !== exploreGroup) || !count;
+    if (!section.hidden) found += count;
+  });
+  document.getElementById('exploreNoResults').hidden = overview || found > 0;
+}
+
+function homeDiscover() {
+  return `<button class="home-discover" onclick="openExplore()">${icon('search')}<span><b>สำรวจแอป</b><span>แผน · เพื่อน · ของสะสม และอื่น ๆ</span></span>${icon('chevron')}</button>`;
+}
+
 function askBar() {
   return `<section class="td-ask">
     <input id="hmAsk" class="tk-in" type="text" maxlength="500" enterkeyhint="send"
-      placeholder="${esc((typeof sosText === 'function' ? sosText('askPh', 'ถามน้องไซ…') : 'ถามน้องไซ…').replace(/น้องไซ/g, mName()))}"
+      aria-label="คำถามถึง${esc(mName())}" placeholder="${esc((typeof sosText === 'function' ? sosText('askPh', 'ถามน้องไซ…') : 'ถามน้องไซ…').replace(/น้องไซ/g, mName()))}"
       onkeydown="if(event.key==='Enter'){event.preventDefault();homeAsk();}">
     <!-- 8 ต.ค. 69 · ปุ่มล้างแบบ HaloSearchInput (เจ้าของส่งเดโมมา: "ใช้ในหน้านี้") — โผล่เมื่อมีตัวหนังสือ · ตัวอักษรปลิวออกก่อนช่องว่าง -->
     <button class="ha-x" type="button" onclick="homeAskClear()" aria-label="ล้างข้อความ"><svg viewBox="0 0 24 24" aria-hidden="true"
@@ -3041,7 +3115,8 @@ const HOME_BLOCKS = {
   // ราง + แถบตัวเลข + กริด ล้นจอ 375×812 ราว 160px · รางคือ "ทำอะไรต่อ" ซึ่งสำคัญกว่าตัวเลขซ้ำ
   // การ์ด "วันนี้หมดเวลาแล้ว" (outOfTime) ก็เป็นบล็อกเพิ่มแบบเดียวกัน — หลบให้ด้วยเหตุผลเดียวกัน
   todayStats: ctx => (ctx.outOfTime || dayRail(ctx.sp, ctx.split, ctx.now) ? '' : todayStats(ctx.sp, ctx.now)),
-  askBar:     ()  => askBar(),
+  askBar:     ()  => homeAssistant(),
+  discover:   ()  => homeDiscover(),
   // 1C18 · น้องไซตัวเป็น ๆ ใต้ช่องถาม — ทางเข้าห้องคุยแผน
   // sai.js อาจโหลดไม่ขึ้น (เน็ตหลุดกลางคัน · แคชเก่า) จึงต้องเช็คก่อนเรียกเสมอ
   // เหมือน hwNowBlock · บล็อกที่หายไปเงียบ ๆ ดีกว่าหน้าแรกที่ว่างทั้งจอ
@@ -3054,7 +3129,7 @@ const HOME_BLOCKS = {
   nowCard:    ctx => ctx.sp.now
     ? nowCard(ctx.sp, ctx.now) + (ctx.outOfTime ? noTimeLeft(ctx.sp, ctx.now) : '')
     : todayEmpty(ctx.now, ctx.hasReminders),
-  dayRail:    ctx => dayRail(ctx.sp, ctx.split, ctx.now),
+  dayRail:    ctx => homeNext(ctx.sp, ctx.split, ctx.now),
   // 1B40 · ของที่มาเติมครึ่งล่างที่ว่างลงหลัง 1B39 (เจ้าของเลือกเอง: "เพื่อนกำลังทำอะไรอยู่"
   // วางใต้ "ที่เหลือของวันนี้") · ไฟล์ hw.js อาจโหลดไม่ขึ้น จึงต้องเช็คก่อนเรียกเสมอ
   // ตัวมันเองคืนค่าว่างเมื่อไม่มีใครอยู่ — จอจึงกลับไปเป็นแบบ 1B39 เป๊ะตอนไม่มีข่าว
@@ -3068,7 +3143,7 @@ const HOME_BLOCKS = {
 // คำตอบว่า "ทำอะไรตอนนี้" คือสิ่งที่แอปขาย จึงต้องเป็นของแรกที่ตาเจอ · หัวจอ (โลโก้ · คำทัก · กระดิ่ง) ยังอยู่บนสุดของจอ
 // แล้วแถวตัวเลข (เวลาว่าง · งานค้าง · วันต่อเนื่อง) ตามขึ้นมาอยู่ใต้การ์ด "ตอนนี้" — เจ้าของวาดลูกศรอีกรอบ
 // (ต้องตรงกับ home.blocks ใน remote-config.js — saiHero ไม่อยู่ในค่านั้น homeLayout() แทรกต่อหลัง todayStats ตามลำดับนี้)
-const HOME_ORDER = ['todayHead', 'nowCard', 'todayStats', 'saiHero', 'askBar', 'dayRail', 'hwNowBlock', 'toolsGrid'];
+const HOME_ORDER = ['todayHead', 'nowCard', 'dayRail', 'askBar', 'discover'];
 
 // QA 6 ต.ค. 69 · แถบตัวเลขปิดไว้เป็นค่าเริ่มต้น — "ว่าง 45 นาที · ค้าง 1 งาน" บนหัวจอพูดเลขชุดเดียวกันอยู่แล้ว
 // สองช่องซ้ำกันกิน 125px ที่ทำให้หน้าแรกล้นจอ 375×812 จนกริดไทล์จมใต้แถบล่าง (ผิดกฎ "หน้าแรกไม่ต้องเลื่อน")
@@ -3106,7 +3181,9 @@ function homeLayout() {
 
 // บล็อกใบเดียวพังต้องไม่ทำให้ทั้งหน้าแรกว่าง — จอขาวคืออาการที่ผู้ใช้กู้เองไม่ได้
 function renderHomeBlocks(ctx) {
-  return homeLayout()
+  // กรองค่า layout รุ่นเดิมด้วย เพื่อไม่ให้กริด/มาสคอตซ้ำกลับมาในหน้าแรกฉบับนี้
+  return homeLayout().filter(b => HOME_ORDER.includes(b.id))
+    .sort((a, b) => HOME_ORDER.indexOf(a.id) - HOME_ORDER.indexOf(b.id))
     .filter(b => b.on)
     .map(b => {
       try { return HOME_BLOCKS[b.id](ctx) || ''; }
@@ -3118,6 +3195,7 @@ function renderHomeBlocks(ctx) {
 function renderMenu() {
   const body = document.getElementById('menuBody');
   if (!body) return;
+  body.classList.add('home-simple');
   const now = new Date();
   const sp = focusPlan(now);   // การ์ดโฟกัสต้องเป็นงานที่ลงมือทำได้จริง — ดู focusPlan()
   const split = homeSplit(sp, now);
@@ -7503,6 +7581,8 @@ function renderProfile() {
   }
   // 15 ต.ค. 69 · เลขข่าวจากทีมที่ยังไม่เปิดดู — นับใน news.js ที่เดียว
   if (typeof newsPaintRow === 'function') newsPaintRow();
+  const ttEntry = document.getElementById('peTtScan');
+  if (ttEntry) ttEntry.hidden = typeof sosFeature === 'function' && !sosFeature('ttscan');
   // ตัวเลขบนปุ่มทางเข้าใหญ่ 3 ปุ่ม
   const pb = document.getElementById('peBadgeCt');
   if (pb) pb.textContent = badgesEarned().length + ' จาก ' + BADGES.length + ' เหรียญ';
@@ -7530,6 +7610,8 @@ function renderProfile() {
   // เพราะเลขเดียวกันเป็นช่อง "ต่อเนื่อง" ของแถบโชว์ที่อยู่เหนือขึ้นไปในจอเดียวกัน
   // (กฎเดิมของจอนี้ตั้งแต่ 1B71: ตัวเลขเดียวกันห้ามโผล่สองที่ในจอเดียว)
   const ps = document.getElementById('peShopCt');
+  const compactBalance = document.getElementById('pfTokenBalance');
+  if (compactBalance) compactBalance.textContent = fmtTok(tokenBalance()) + ' โทเคน';
   if (ps) {
     ps.innerHTML = '<span data-tok="' + tokenBalance() + '">'
       + (typeof fmtTok === 'function' ? fmtTok(tokenBalance()) : tokenBalance()) + '</span> โทเคน';
@@ -11138,6 +11220,7 @@ function renderAll() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline(); renderAi();
   renderWhy();
   renderProfile(); renderShowcase(); renderStats(); renderPlan(); renderFriends(); renderBadges();
+  if (curScreen === 'scr-explore') filterExplore(document.getElementById('exploreSearch').value);
   renderShop(); renderPro(); renderWheel(); renderRestoredDraw(); renderInstallCard(); renderTabBadges(); renderContext();
   renderRunBar();
   // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น
