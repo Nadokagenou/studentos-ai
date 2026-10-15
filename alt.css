@@ -12171,6 +12171,12 @@ button.df-r:active .df-x { transform: scale(.985); }
 
 /* แผงตั้งค่าในจอตัวเชื่อม (แถว "ปุ่มลัดเพิ่มงาน") */
 .qa-panel { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+/* Capture and Android setup stay inside the existing + sheet. */
+.as-capture-form { margin: 14px 0; }
+.as-capture-form label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 8px; }
+.as-capture-form .qa-in { width: 100%; }
+.as-capture-form .btn { width: 100%; margin-top: 14px; min-height: 48px; }
+
 .qa-p { display: flex; flex-direction: column; gap: 6px; }
 .qa-h { font-size: 12px; font-weight: 800; letter-spacing: .02em; color: color-mix(in srgb, var(--ink) 60%, transparent); }
 .qa-p .src-in { font-size: 12px; }

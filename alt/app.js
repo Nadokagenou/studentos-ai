@@ -4014,6 +4014,12 @@ function dueTone(t, now) {
   return '';
 }
 
+// "ทำ 20:00" · "ทำ พรุ่งนี้ 20:00" · "ทำ 18 ต.ค. 20:00" — สั้นพอจะอยู่แถวเดียวกับกำหนดส่ง
+function doChipText(d, now) {
+  const days = Math.round((atTime(d, 0, 0) - atTime(new Date(now), 0, 0)) / 864e5);
+  const day = days === 0 ? ' ' : days === 1 ? ' พรุ่งนี้ ' : ' ' + d.getDate() + ' ' + MONTH_SHORT[d.getMonth()] + ' ';
+  return 'ทำ' + day + fmtClock(d);
+}
 function tkChip(text, tone) {
   return `<span class="tk-chip${tone ? ' ' + tone : ''}">${esc(text)}</span>`;
 }
@@ -4252,6 +4258,8 @@ function taskCard(t, now, focus) {
     // 1B76 — มาหลังกำหนดส่งโดยตั้งใจ: กำหนดส่งคือข้อเท็จจริงที่ครูให้มา
     // ส่วนนาฬิกานี้คือสิ่งที่แอปคำนวณให้ · เรียงตามลำดับนั้นเพื่อไม่ให้สับสนว่าอันไหนมาจากไหน
     riskChips(t, now),
+    // นัดที่ตั้งเอง — โผล่เฉพาะนัดที่ยังมาไม่ถึง (นัดที่ผ่านไปแล้วไม่ได้บอกอะไรอีก)
+    t.doAt && new Date(t.doAt) > now ? tkChip(doChipText(new Date(t.doAt), now), '') : '',
     t.scorePct != null ? tkChip('คะแนน ' + t.scorePct + '%', '') : '',
     gotTx ? tkChip('ได้ ' + gotTx, 'good') : '',
     t.repeatDays ? tkChip(t.repeatDays === 7 ? 'ซ้ำทุกสัปดาห์'
@@ -12377,6 +12385,55 @@ function setStarPick(n) {
   if (typeof updateFormSummary === 'function') updateFormSummary();
 }
 
+// ---- 15 ต.ค. 69 · "เตือนให้ทำตอน" (t.doAt) — นัดของตัวเอง ดู doAtTick() ----
+// วันเป็นปุ่ม ไม่ใช่ปฏิทิน: นัดลงมือทำแทบทุกครั้งคือคืนนี้หรือพรุ่งนี้ ปฏิทินคือสองแตะที่ไม่จำเป็น
+// งานเดิมที่นัดไว้ไกลกว่ามะรืนได้ปุ่มของวันนั้นเพิ่มเข้ามา — เปิดฟอร์มแก้ชื่อแล้วนัดต้องไม่หาย
+let formDoDay = '';   // '' = ไม่ตั้ง · '0' '1' '2' … = อีกกี่วันนับจากวันนี้
+function doDayLabel(n) { return n === 0 ? 'วันนี้' : n === 1 ? 'พรุ่งนี้' : n === 2 ? 'มะรืน' : 'อีก ' + n + ' วัน'; }
+function renderDoPick() {
+  const box = document.getElementById('doPick');
+  if (!box) return;
+  const cur = formDoDay === '' ? null : +formDoDay;
+  const days = [0, 1, 2];
+  if (cur != null && !days.includes(cur)) days.push(cur);
+  box.innerHTML = `<button type="button" class="sp${cur == null ? ' active' : ''}" onclick="setDoDay('')">ไม่ตั้ง</button>`
+    + days.map(n => `<button type="button" class="sp${cur === n ? ' active' : ''}" onclick="setDoDay('${n}')">${doDayLabel(n)}</button>`).join('');
+}
+function setDoDay(v) { formDoDay = v; renderDoPick(); updateFormSummary(); }
+function formDoAtFrom(day) {
+  if (day === '' || day == null) return null;
+  const m = /^(\d{1,2}):(\d{2})$/.exec((document.getElementById('fDoTime') || {}).value || '');
+  if (!m) return null;
+  const d = new Date();
+  d.setDate(d.getDate() + (+day));
+  d.setHours(+m[1], +m[2], 0, 0);
+  return d;
+}
+// หมุนเวลาโดยยังไม่ได้เลือกวัน = อยากตั้งนัดแล้ว · วันนี้ถ้าเวลานั้นยังมาไม่ถึง ไม่งั้นพรุ่งนี้
+function doTimeTouched() {
+  if (formDoDay === '') {
+    const today = formDoAtFrom('0');
+    formDoDay = today && today > new Date() ? '0' : '1';
+    renderDoPick();
+  }
+  updateFormSummary();
+}
+// นัดที่เลยไปแล้วไม่ถูกเติมกลับเข้าฟอร์ม — ไม่งั้นแค่เปิดแก้ชื่องานแล้วกดบันทึก ก็ได้นัดที่ผ่านไปแล้วคืนมา
+function fillDoForm(iso) {
+  const el = document.getElementById('fDoTime');
+  const d = iso ? new Date(iso) : null;
+  if (d && !isNaN(d) && d > new Date()) {
+    formDoDay = String(Math.round((atTime(d, 0, 0) - atTime(new Date(), 0, 0)) / 864e5));
+    if (el) el.value = fmtClock(d);
+  } else {
+    formDoDay = '';
+    if (el) el.value = '20:00';
+  }
+  renderDoPick();
+  const wrap = document.getElementById('fDoWrap');
+  if (wrap) wrap.open = formDoDay !== '';
+}
+
 function fillSubjectSelect() {
   document.getElementById('fSubject').innerHTML =
     SUBJECTS.map(s => `<option>${s.name}</option>`).join('');
@@ -12511,6 +12568,7 @@ function openForm(id, parsed) {
   setTypePick(t ? taskType(t) : 'homework');
   dueCalView = null;   // ปฏิทินเลือกวันเริ่มที่เดือนของใบนี้เสมอ ไม่ค้างเดือนที่เลื่อนไปดูตอนเปิดใบก่อน
   setStarPick(t?.userStars || 0);
+  fillDoForm(t?.doAt || null);   // parsed.doAt มาจาก "ทำ 2 ทุ่ม" ในข้อความ (readDoClock ใน engine.js)
   f.subject.value = t?.subject || 'อื่น ๆ';
   f.detail.value = t?.detail || '';
   f.teacher.value = t?.teacher || '';
@@ -13221,6 +13279,10 @@ function updateFormSummary() {
   setRow('fProgressVal', (v('fProgress') || 0) + '%');
   setRow('rvGot', v('fGot') === '' ? 'ยังไม่รู้ผล' : v('fGot') + '/' + (v('fGotMax') || '?'));
   setRow('fTimeVal', v('fTime') || '23:59');
+  const doAt = formDoAtFrom(formDoDay);
+  setRow('rvDo', !doAt ? 'ไม่ได้ตั้ง'
+    : doAt <= new Date() ? 'เวลานี้ผ่านไปแล้ว'
+    : doDayLabel(+formDoDay) + ' ' + fmtClock(doAt));
   if (tdIsOpen()) tdPaint();
   updateSubsCount();
 
@@ -13278,6 +13340,9 @@ function spawnRepeat(t) {
     snoozedAt: null, snoozeCount: 0, remindedAt: null, remindedStage: null,
     createdAt: new Date().toISOString(),
     due: next.toISOString(),
+    // นัดเลื่อนไปพร้อมกำหนดส่ง — การบ้านทุกสัปดาห์ที่ทำทุกพุธสองทุ่ม ตั้งครั้งเดียวจบ
+    doAt: t.doAt ? new Date(new Date(t.doAt).getTime() + t.repeatDays * 864e5).toISOString() : null,
+    doAtShown: null,
     subs: Array.isArray(t.subs) ? t.subs.map(x => ({ text: x.text, done: false })) : [],
   });
   state.tasks.push(copy);
@@ -13325,6 +13390,9 @@ function saveForm() {
     progress: ti.schedulable ? (+document.getElementById('fProgress').value || 0) : 0,
     due: due ? due.toISOString() : null,
   };
+  // นัดที่เลยไปแล้วตอนกดบันทึก = ไม่มีนัด (ไม่ใช่เด้งทันทีที่บันทึก)
+  const doAt = formDoAtFrom(formDoDay);
+  data.doAt = doAt && doAt > new Date() ? doAt.toISOString() : null;
 
   // ---- 1B43 · F2 งานย่อย ----
   // เก็บสถานะติ๊กของข้อเดิมไว้ถ้าข้อความยังเหมือนเดิม — คนที่เข้ามาแก้ชื่องานใหญ่
@@ -13355,6 +13423,7 @@ function saveForm() {
       data.snoozedAt = null; data.snoozeCount = 0;
       data.remindedAt = null; data.remindedStage = null; // กำหนดใหม่ = ต้องเตือนใหม่ได้
     }
+    if (target.doAt !== data.doAt) data.doAtShown = null;   // นัดใหม่ = ต้องเด้งได้อีกครั้ง
     Object.assign(target, data);
   } else {
     const nt = Object.assign({ id: uid(), done: false, createdAt: new Date().toISOString(), fromScan: formFromScan }, data);
@@ -13372,11 +13441,16 @@ function saveForm() {
   go(back);
   // QA 6 ต.ค. 69 · บันทึกแล้วต้องมีคำยืนยัน — เดิมเงียบจนไม่แน่ใจว่างานเข้าแผนหรือยัง (ลบมี toast แต่บันทึกไม่มี)
   const late = data.due && new Date(data.due) < new Date();
+  // ตั้งนัดไว้แต่เครื่องนี้ยังไม่อนุญาตแจ้งเตือน = นัดจะเงียบตอนปิดแอป · บอกตอนนี้ ตอนที่ยังแก้ได้
+  const doMute = data.doAt && !(('Notification' in window) && Notification.permission === 'granted' && notifOn());
   setTimeout(() => showToast({
     title: wasEdit ? 'แก้ไขแล้ว' : 'บันทึกเข้าแผนแล้ว',
-    body: late ? 'เลยกำหนดส่งแล้ว'
+    body: doMute ? 'เปิดการแจ้งเตือนก่อน นัด ' + fmtClock(new Date(data.doAt)) + ' ถึงจะเด้ง'
+      : data.doAt ? 'จะเตือนให้ทำตอน ' + fmtClock(new Date(data.doAt)) + ' · ' + detail.slice(0, 30)
+      : late ? 'เลยกำหนดส่งแล้ว'
       : data.due ? 'ส่ง ' + fmtThaiDate(new Date(data.due)) + ' · ' + detail.slice(0, 40)
       : detail.slice(0, 60),
+    action: doMute ? { label: 'เปิด', fn: () => enableNotif() } : null,
   }), 250);
 }
 
@@ -15960,6 +16034,84 @@ function checkReminders() {
 }
 
 // ============================================================
+// 15 ต.ค. 69 · นัดที่ตั้งเอง (t.doAt) — ถึงเวลาแล้วบอกทันที ทีละงาน
+// ------------------------------------------------------------
+// เจ้าของ: "เมื่อถึงเวลาทำงานให้แจ้งเตือนเลย เช่นทำ 2 ทุ่มก็แจ้งเตือน มีกี่งานก็ตามเวลาเลย"
+// นี่ไม่ใช่การเตือนที่ระบบเลือกพูดเอง (checkReminders · send-reminders รอบปกติ) จึงไม่มีช่วงเงียบ
+// ไม่มีเพดาน และไม่เว้นกลางดึก — เหมือนนาฬิกาปลุกที่เจ้าตัวตั้งไว้
+//
+// สองท่อ แบ่งกันตามสภาพเครื่อง (กฎ 1C28: คนที่มองแอปอยู่ไม่ต้องได้แจ้งเตือนของระบบ):
+//   · เปิดแอปอยู่            → การ์ดในแอปตรงนาที + ปุ่มเริ่มเลย · ปัก t.doAtShown
+//                              ให้ send-reminders ข้าม (ไม่งั้นได้ push ตามมาอีกดอกในห้านาที)
+//   · ซ่อนอยู่ + push 'on'   → ไม่ทำอะไร ปล่อยเซิร์ฟเวอร์ (runDoAt · ช้าไม่เกิน 5 นาที)
+//                              มือถือแช่แข็ง JS ของแอปที่ซ่อนอยู่ ท่อนี้จึงพึ่งไม่ได้
+//   · ซ่อนอยู่ + ไม่มี push  → ยิงเองผ่าน service worker (ได้เท่าที่เครื่องยังไม่แช่แข็งแอป)
+// กลับเข้าแอปแล้วเจอว่าเซิร์ฟเวอร์ส่งไปแล้ว (การ์ดยังค้างอยู่บนเครื่อง) = ปักเงียบ ๆ ไม่ขึ้นซ้ำ
+// ============================================================
+const DO_LATE_MS = 30 * 60e3;   // ต้องตรงกับ DO_LATE_MS ใน send-reminders — เลยกว่านี้ไม่พูดแล้ว
+let doAwayTimer = null;
+
+function doAtCopy(t) {
+  const d = new Date(t.doAt);
+  const min = Math.round(+t.estMin || 0);
+  return { title: taskTitleText(t), body: 'ถึงเวลาทำแล้ว · ' + fmtClock(d) + (min > 0 ? ' · ~' + min + ' นาที' : '') };
+}
+
+// แท็กของการ์ดที่ยังค้างอยู่บนเครื่อง — ถามไม่ได้ = เซตว่าง (ถือว่ายังไม่มีใครส่ง)
+async function shownTags() {
+  try {
+    if (!('serviceWorker' in navigator)) return new Set();
+    const reg = await navigator.serviceWorker.ready;
+    return new Set((await reg.getNotifications()).map(n => n.tag));
+  } catch (_) { return new Set(); }
+}
+
+async function doAtTick() {
+  const now = Date.now();
+  const hit = [];
+  let touched = false;
+  for (const t of pendingTasks()) {
+    if (!t.doAt || t.doAtShown === t.doAt) continue;
+    const at = Date.parse(t.doAt);
+    if (!Number.isFinite(at) || at > now) continue;
+    // เลยไปนานแล้ว (ปิดเครื่องอยู่ทั้งคืน ฯลฯ) — นัดหมดความหมาย ปักเงียบ ๆ
+    if (now - at > DO_LATE_MS) { t.doAtShown = t.doAt; touched = true; continue; }
+    hit.push(t);
+  }
+  if (hit.length) {
+    if (appInView()) {
+      const tags = await shownTags();
+      const fresh = hit.filter(t => !tags.has('do-' + t.id));
+      for (const t of hit) t.doAtShown = t.doAt;
+      touched = true;
+      if (fresh.length) {
+        const first = fresh[0];
+        showToast({
+          title: fresh.length > 1 ? `ถึงเวลาทำ ${fresh.length} งานแล้ว` : 'ถึงเวลาทำแล้ว',
+          body: taskTitleText(first) + (fresh.length > 1 ? ` · และอีก ${fresh.length - 1} งาน` : ''),
+          action: { label: 'เริ่มเลย', fn: () => startFocus(first.id) },
+        });
+        if (typeof haptic === 'function') haptic('arm');
+      }
+    } else if (pushState !== 'on' && !doAwayTimer) {
+      // รอเช็คซ้ำก่อนยิง — จังหวะปลุกเครื่องขึ้นมา document.hidden ยังเป็น true อยู่ครู่หนึ่ง (ดู notifyAway)
+      doAwayTimer = setTimeout(async () => {
+        doAwayTimer = null;
+        if (appInView()) { doAtTick(); return; }
+        let any = false;
+        for (const t of hit) {
+          if (t.doAtShown === t.doAt) continue;
+          const c = doAtCopy(t);
+          if (await notify(c.title, c.body, 'do-' + t.id)) { t.doAtShown = t.doAt; any = true; }
+        }
+        if (any) save();
+      }, AWAY_CONFIRM_MS);
+    }
+  }
+  if (touched) save();
+}
+
+// ============================================================
 // 1C38 · ของที่ฝากให้เซิร์ฟเวอร์ใช้ทำ "รอบเย็น" — data.push ใน user_state
 // ------------------------------------------------------------
 // send-reminders ยิงการ์ด "เย็นนี้เริ่มอันนี้" วันละครั้ง ตรงเวลาที่เด็กคนนี้มักเริ่มทำงาน
@@ -17650,6 +17802,10 @@ function syncLiteRow() {
   setInterval(checkReminders, 60_000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) checkReminders(); });
   checkReminders();
+  // นัดที่ตั้งเอง — ถี่กว่ารอบเตือนปกติ เพราะ "ทำ 2 ทุ่ม" ต้องขึ้นตอนสองทุ่ม ไม่ใช่สองทุ่มหนึ่งนาที
+  setInterval(doAtTick, 15_000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) doAtTick(); });
+  doAtTick();
 
   // 1C37 · ของรางวัลรายวัน: เด้งชวนตอนเข้าแอปวันใหม่ ให้กดรับเอง — ดู dailyPromptOnOpen()
   // หน่วงก่อนยิงครั้งแรก ให้จอแรกวาดเสร็จและ toast ของขาเข้า (ข้อความที่แชร์มา ·

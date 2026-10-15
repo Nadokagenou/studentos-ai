@@ -258,7 +258,12 @@ async function reconcile(row: Row, tasks: StandardTask[]) {
     if (upErr) throw upErr;
   }
 
-  if (!deliver.length) return { sent: 0 };
+  // ไม่มีของใหม่รอบนี้ ก็ยังต้องดูของที่ค้างจากกลางดึก — รอบ 07:00 ส่วนใหญ่ไม่มีของใหม่เลย
+  // ถ้าออกตรงนี้ไปเฉย ๆ ของที่เข้ามาตอนสี่ทุ่มจะไม่มีวันถูกแจ้ง (ดู heldTasks)
+  if (!deliver.length) {
+    const pushed = await notifyNewItems(row, []).catch(() => 0);
+    return { sent: 0, pushed };
+  }
 
   // ---------- หย่อนลงท่อเดิม ----------
   const rows = deliver.map(d => ({
@@ -318,10 +323,11 @@ async function reconcile(row: Row, tasks: StandardTask[]) {
 //
 //   1. **ดอกเดียวต่อรอบ ไม่ใช่ดอกต่องาน** — เชื่อมปฏิทินครั้งแรกได้ 133 รายการ
 //      ยิงทีละใบคือการสอนให้คนปิดการแจ้งเตือนภายในสิบวินาที
-//   2. **เงียบตอนกลางคืน** — ของยังอยู่ในกล่องเข้าครบ แค่ไม่มีดอก และ send-reminders
-//      จะเจอมันเองตอนใกล้กำหนด · ไม่ต้องมีคิวรอส่ง เพราะไม่มีอะไรหาย
+//   2. **เงียบตอนกลางคืน แล้วแจ้งตอนเช้า** — ของยังอยู่ในกล่องเข้าครบ แค่ยังไม่มีดอก
+//      รอบแรกหลัง 07:00 กวาดไปรวมแจ้ง (heldTasks · 15 ต.ค. 69 — เดิมปล่อยหายเงียบ)
 //   3. **ไม่แจ้งตอนซิงก์รอบแรก** — คนที่เพิ่งกดเชื่อมกำลังมองจออยู่และเห็น toast
 //      ในแอปไปแล้ว ("เจอ 133 รายการ") · ดอกที่สองคือการพูดซ้ำเรื่องที่เพิ่งพูดจบ
+//      (ปักหมุดไว้เลย ไม่งั้นการกวาดของข้อ 2 จะลากทั้ง 133 ใบมาแจ้งในรอบถัดไป)
 //   4. **เฉพาะ op = 'new'** — งานที่ครูแก้กำหนดส่งกับงานที่ถูกยกเลิก ฝั่งแอปขึ้น
 //      ข้อความให้ตอนเปิดอยู่แล้ว (inboxPullToast) ยังไม่มีหลักฐานว่าต้องดังถึงขั้น push
 // ============================================================
@@ -335,24 +341,73 @@ async function wantsTaskPush(userId: string): Promise<boolean> {
   return (data as { settings?: { notifDue?: boolean } } | null)?.settings?.notifDue !== false;
 }
 
+// ============================================================
+// 15 ต.ค. 69 · ของที่เข้ามาช่วงกลางดึกต้องถูกแจ้งตอนเช้า ไม่ใช่หายเงียบ
+// ------------------------------------------------------------
+// เจ้าของ: "ระบบแจ้งเตือนผ่าน Classroom ไม่เข้าแอป" · ข้อมูลจริงคืนนี้ (อ่านแบบอ่านอย่างเดียว):
+// ครูโพสต์งานในห้องเดียวกันราว 21:30 น. · บัญชีที่ซิงก์ทันรอบ 21:30 ได้ดอกแจ้งเตือน
+// อีกสองบัญชีซิงก์รอบ 22:00 ซึ่งเป็นช่วงห้ามส่ง → งานเข้าแอปเงียบ ๆ และไม่เคยถูกแจ้งเลย
+// ข้อ 2 ข้างบนเคยเชื่อว่า "send-reminders จะเจอมันเองตอนใกล้กำหนด" — แต่งานใบนั้นไม่มีกำหนดส่ง
+// และต่อให้มี การรู้ตอนใกล้กำหนดคือรู้ช้าไปหลายวันสำหรับงานที่ครูสั่งล่วงหน้า
+//
+// ทางแก้ไม่ต้องมีคิวหรือตารางใหม่: กลางดึกยังไม่ปักหมุดเหมือนเดิม แล้วรอบแรกที่พ้นช่วงเงียบ
+// กวาดของใน inbox_items ย้อนหลัง HELD_HOURS ที่ยังไม่มีหมุด มารวมในดอกเดียวกับของรอบนั้น
+// ราคาของการกวาด: ของรอบแรก (เพิ่งกดเชื่อม) ที่ตั้งใจไม่แจ้ง ต้องถูกปักหมุดทันที
+// ไม่งั้นรอบถัดไปจะกวาดทั้งปฏิทิน 133 ใบมาแจ้งซ้ำกับ toast ที่เขาเพิ่งเห็น
+// ============================================================
+const HELD_HOURS = 12;   // ช่วงห้ามส่งยาว 9 ชม. (22:00–07:00) · เผื่อรอบที่ล้มหรือเลื่อน
+
+type Fresh = { task: StandardTask };
+
+async function heldTasks(row: Row, skip: Set<string>): Promise<Fresh[]> {
+  const since = new Date(Date.now() - HELD_HOURS * 3.6e6).toISOString();
+  const { data, error } = await db.from('inbox_items')
+    .select('meta, created_at')
+    .eq('user_id', row.user_id).eq('source', row.provider)
+    .gte('created_at', since);
+  if (error) return [];
+  const out: Fresh[] = [];
+  for (const r of (data ?? []) as { meta?: Record<string, any> }[]) {
+    const m = r.meta;
+    if (!m || m.op !== 'new' || !m.sourceId || skip.has(m.sourceId)) continue;
+    skip.add(m.sourceId);
+    out.push({ task: {
+      sourceId: m.sourceId, title: m.task?.title ?? '', subject: m.task?.subject ?? '',
+      due: m.task?.due ?? null, type: m.task?.type ?? 'homework',
+    } as StandardTask });
+  }
+  return out;
+}
+
 async function notifyNewItems(
   row: Row,
   deliver: { task: StandardTask; op: string; fp: string }[],
 ): Promise<number> {
-  if (!pushReady() || isQuietHours()) return 0;
-  if (row.first_sync) return 0;
+  if (!pushReady()) return 0;
+  const keyOf = (d: Fresh) => `sync-new::${row.provider}::${d.task.sourceId}`;
+  const fresh: Fresh[] = deliver.filter(d => d.op === 'new' && !d.task.cancelled);
 
-  const fresh = deliver.filter(d => d.op === 'new' && !d.task.cancelled);
-  if (!fresh.length) return 0;
+  // รอบแรก: ไม่แจ้ง (แอปขึ้น toast ให้แล้ว) แต่ปักหมุดไว้ ไม่ให้รอบเช้ากวาดไปแจ้งทีหลัง
+  if (row.first_sync) {
+    await markSent(db, row.user_id, fresh.map(keyOf));
+    return 0;
+  }
+  // กลางดึก: ไม่ส่ง และไม่ปัก — รอบแรกหลัง 07:00 จะกวาดไปแจ้ง (heldTasks)
+  if (isQuietHours()) return 0;
+
+  const all = fresh.concat(await heldTasks(row, new Set(fresh.map(d => d.task.sourceId))));
+  if (!all.length) return 0;
   if (!(await wantsTaskPush(row.user_id))) return 0;
 
   // กันซ้ำถาวรต่องานหนึ่งใบ — ไม่ผูกกับ integration_id เพราะตัดการเชื่อมแล้วเชื่อมใหม่
   // ไม่ควรได้ดอกเดิมซ้ำทั้งปฏิทิน (เหตุผลเดียวกับที่ srcKey ใช้ provider)
-  const keys = fresh.map(d => `sync-new::${row.provider}::${d.task.sourceId}`);
-  const todo = await unsentKeys(db, row.user_id, keys);
+  const todo = await unsentKeys(db, row.user_id, all.map(keyOf));
   if (!todo.length) return 0;
+  // ดอกนี้พูดถึงเฉพาะของที่ยังไม่เคยแจ้ง — ของที่กวาดมาแล้วเคยแจ้งไป ไม่นับรวมในจำนวน
+  const left = new Set(todo);
+  const pending = all.filter(d => left.has(keyOf(d)));
 
-  const ok = await pushToUser(db, row.user_id, newItemsCopy(fresh, row.account));
+  const ok = await pushToUser(db, row.user_id, newItemsCopy(pending, row.account));
   // ปักหมุดแม้ส่งไม่สำเร็จสักเครื่อง — ไม่งั้นคนที่ไม่มีเครื่องรับ push เลยจะถูกคิดใหม่
   // ทุกรอบตลอดไป และวันที่เขาเปิด push ครั้งแรกจะโดนของเก่าทั้งเทอมรวดเดียว
   await markSent(db, row.user_id, todo);

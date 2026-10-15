@@ -592,6 +592,90 @@ async function testCall(tables, { jwt, body = { test: true }, method = 'POST' } 
   check('test push: dead subscription reported and removed', r.json && r.json.ok === false && /410/.test(r.json.errors[0]) && t.push_subscriptions.length === 0, r.text);
 }
 
+// ============================================================
+// 15 ต.ค. 69 · นัดที่ตั้งเอง (t.doAt) — "ทำ 2 ทุ่มก็แจ้งเตือน มีกี่งานก็ตามเวลาเลย"
+// ============================================================
+async function atBody(ms, tables, body) {
+  const real = Date.now;
+  Date.now = () => ms;
+  try {
+    sb.__setTables(tables);
+    wp.__sent.length = 0;
+    const res = await handler(new Request('http://x', { method: 'POST', body: JSON.stringify(body) }));
+    return { body: await res.json(), sent: wp.__sent.map(s => ({ title: s.title, body: s.body, tag: s.tag, opts: s.opts })) };
+  } finally { Date.now = real; }
+}
+const doTask = (id, doMs, extra = {}) => hw(id, TH(9, 23, 59), { doAt: iso(doMs), estMin: 30, ...extra });
+{
+  const t = rhythm({ tasks: [doTask('a', TH(6, 20, 0)), doTask('b', TH(6, 20, 30)), doTask('c', TH(6, 21, 0))] });
+  const r1 = await atBody(TH(6, 20, 0), t, { only: 'doAt' });
+  check('doAt: 20:00 fires only the 20:00 task', r1.sent.length === 1 && r1.sent[0].tag === 'do-a', JSON.stringify(r1.sent));
+  check('doAt: card says it is time + clock', /ถึงเวลาทำแล้ว · 20:00/.test(r1.sent[0] && r1.sent[0].body), r1.sent[0] && r1.sent[0].body);
+  check('doAt: high urgency, TTL = late window', r1.sent[0] && r1.sent[0].opts.urgency === 'high' && r1.sent[0].opts.TTL === 1800,
+    JSON.stringify(r1.sent[0] && r1.sent[0].opts));
+  const r1b = await atBody(TH(6, 20, 5), t, { only: 'doAt' });
+  check('doAt: not repeated next 5-min round', r1b.sent.length === 0, JSON.stringify(r1b.sent));
+  const r2 = await atBody(TH(6, 20, 30), t, { only: 'doAt' });
+  const r3 = await atBody(TH(6, 21, 0), t, { only: 'doAt' });
+  check('doAt: three tasks -> three pushes on their own times',
+    r2.sent.length === 1 && r2.sent[0].tag === 'do-b' && r3.sent.length === 1 && r3.sent[0].tag === 'do-c',
+    JSON.stringify([r2.sent, r3.sent]));
+  check('doAt: never moves the quiet clock', t.push_subscriptions.every(s => s.last_sent_at === null),
+    JSON.stringify(t.push_subscriptions));
+}
+{
+  const t = rhythm({ tasks: [doTask('x', TH(6, 20, 0)), doTask('y', TH(6, 20, 0)), doTask('z', TH(6, 20, 0))] });
+  const r = await atBody(TH(6, 20, 2), t, { only: 'doAt' });
+  check('doAt: same minute, three tasks -> three pushes', r.sent.length === 3 && new Set(r.sent.map(s => s.tag)).size === 3,
+    JSON.stringify(r.sent));
+}
+{
+  // ตั้งไว้สามนัดวันนี้ (ส่งไปแล้ว) — การเตือนงานเลยกำหนดต้องยังออกได้ ไม่ติดเพดานวันละ 3 (ทางที่ผ่านด่าน capOk)
+  const t = rhythm({ tasks: [hw('due1', TH(6, 12, 0))] });
+  for (const k of ['a', 'b', 'c'])
+    t.push_sent.push({ user_id: 'u1', task_id: `do::${k}::x`, sent_at: iso(TH(6, 9 + ['a', 'b', 'c'].indexOf(k), 0)) });
+  const r = await at(TH(6, 16, 0), t);
+  check('doAt: own alarms do not eat the daily cap', r.sent.some(s => /due1/.test(s.title)), JSON.stringify(r.sent));
+}
+{
+  const t = rhythm({ tasks: [doTask('n', TH(6, 23, 30))] });
+  const r = await at(TH(6, 23, 31), t);
+  check('doAt: fires even in quiet night hours (user picked it)', r.body.skipped === 'night' && r.sent.length === 1,
+    JSON.stringify(r.body) + JSON.stringify(r.sent));
+}
+{
+  const at20 = iso(TH(6, 20, 0));
+  const t = rhythm({ tasks: [
+    doTask('shown', TH(6, 20, 0), { doAtShown: at20 }),
+    doTask('done', TH(6, 20, 0), { done: true }),
+    doTask('late', TH(6, 19, 20)),
+    doTask('early', TH(6, 20, 3)),
+  ] });
+  const r = await atBody(TH(6, 20, 0), t, { only: 'doAt' });
+  check('doAt: skips shown-in-app / done / >30 min late / not yet', r.sent.length === 0, JSON.stringify(r.sent));
+  const r2 = await atBody(TH(6, 20, 2) + 30000, t, { only: 'doAt' });
+  check('doAt: up to a minute early is fine', r2.sent.length === 1 && r2.sent[0].tag === 'do-early', JSON.stringify(r2.sent));
+}
+{
+  const t = rhythm({ tasks: [doTask('off', TH(6, 20, 0))], settings: { notifOff: true } });
+  const r = await atBody(TH(6, 20, 0), t, { only: 'doAt' });
+  check('doAt: master switch off -> silent', r.sent.length === 0, JSON.stringify(r.sent));
+}
+{
+  const t = rhythm({ tasks: [doTask('flaky', TH(6, 20, 0))] });
+  wp.__setFail(() => Object.assign(new Error('busy'), { statusCode: 503 }));
+  await atBody(TH(6, 20, 0), t, { only: 'doAt' });
+  wp.__setFail(null);
+  const r = await atBody(TH(6, 20, 5), t, { only: 'doAt' });
+  check('doAt: transient failure retried next round', r.sent.length === 1 && r.sent[0].tag === 'do-flaky', JSON.stringify(r.sent));
+}
+{
+  // รอบ 5 นาทีห้ามแตะรอบปกติ — งานใกล้กำหนดไม่ถูกเตือนจากรอบนี้
+  const t = rhythm({ tasks: [hw('soon1', TH(6, 18, 0))] });
+  const r = await atBody(TH(6, 16, 5), t, { only: 'doAt' });
+  check('doAt-only round leaves regular reminders alone', r.sent.length === 0 && t.push_sent.length === 0, JSON.stringify(r.sent));
+}
+
 for (const r of results) console.log((r.pass ? 'PASS  ' : 'FAIL  ') + r.name + (r.pass ? '' : '   >> ' + r.detail));
 const failed = results.filter(r => !r.pass);
 console.log('');

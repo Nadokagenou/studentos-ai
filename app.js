@@ -3188,6 +3188,14 @@ const ADD_ACTIONS = [
 let addSheetView = 'root';
 
 function addSheetHTML() {
+  if (addSheetView === 'quick') return `<div class="as-grip"></div>
+    <button type="button" class="as-h as-back" onclick="openAddSheet('root')" aria-label="ย้อนไปเมนูเพิ่มงาน"><span class="as-bk">${icon('chevron')}</span>เพิ่มงานด่วน</button>
+    <form class="as-capture-form" onsubmit="event.preventDefault();quickSend()">
+      <label for="qaIn">งานที่ต้องทำ</label>
+      <input id="qaIn" class="qa-in" maxlength="500" autocomplete="off" enterkeyhint="send" placeholder="รายงานชีวะ ส่งศุกร์" value="${esc(typeof quickPlusDraft === 'string' ? quickPlusDraft : '')}" oninput="quickPlusInput()">
+      <div class="qa-chips" id="qaChips" aria-live="polite"></div>
+      <button type="submit" class="btn primary">เพิ่มงาน</button>
+    </form>`;
   if (addSheetView === 'connectors') {
     const c = typeof connectorCount === 'function' ? connectorCount() : { on: 0, all: 0 };
     return `<div class="as-grip"></div>
@@ -3251,6 +3259,7 @@ function addSheetHTML() {
       <span class="as-tx"><b>${esc(a[1])}</b></span>
       <span class="as-go">${icon('chevron')}</span>
     </button>`).join('')}
+
     <button class="as-row as-conn" onclick="openAddSheet('connectors')">
       <span class="as-ic">${icon('plug')}</span>
       <span class="as-tx"><b>ตัวเชื่อม</b></span>
@@ -3270,7 +3279,7 @@ function refreshAddSheet() {
 function openAddSheet(view) {
   const el = document.getElementById('addSheet');
   if (!el) { go('scr-scan'); return; }
-  addSheetView = view === 'connectors' ? 'connectors' : 'root';
+  addSheetView = ['connectors', 'quick'].includes(view) ? view : 'root';
 
   // เปิดอยู่แล้ว = แค่สลับหน้าในแผ่นเดิม ห้ามวาดใหม่ทั้งก้อน ไม่งั้นแผ่นเลื่อนลงแล้วขึ้นใหม่
   // 8 ต.ค. 69 · ของในหน้าใหม่เลื่อนเข้าจากฝั่งที่ไป (.swap · ไปหน้าตัวเชื่อม = จากขวา · กลับ = จากซ้าย)
@@ -3279,7 +3288,7 @@ function openAddSheet(view) {
     refreshAddSheet();
     const card = el.querySelector('.as-card');
     if (card) {
-      card.dataset.dir = addSheetView === 'connectors' ? 'r' : 'l';
+      card.dataset.dir = addSheetView !== 'root' ? 'r' : 'l';
       card.classList.remove('swap'); void card.offsetWidth; card.classList.add('swap');
       setTimeout(() => card.classList.remove('swap'), 600);
     }
@@ -3330,6 +3339,7 @@ function plusTap(btn) {
 function closeAddSheet() {
   const el = document.getElementById('addSheet');
   if (!el) return;
+  try { sessionStorage.removeItem('studentos.alt.shortcut'); } catch (_) {}
   el.classList.remove('on');
   document.body.classList.remove('as-open');
   addSheetView = 'root';   // เปิดครั้งหน้าต้องเริ่มที่หน้าหลักเสมอ ไม่ใช่ค้างอยู่หน้าตัวเชื่อม
@@ -5366,7 +5376,12 @@ function renderAi() {
   const oldTh = el.querySelector('.ai-thread');
   const stick = !oldTh || oldTh.scrollHeight - oldTh.scrollTop - oldTh.clientHeight < 80;
   const oldTop = oldTh ? oldTh.scrollTop : 0;
+  // Keep an unsent shortcut draft when cloud refresh redraws the chat.
+  const unsent = el.querySelector('#aiInput')?.value || '';
   el.innerHTML = head + thread + quick + bar;
+  const newInput = el.querySelector('#aiInput');
+  if (newInput && unsent) { newInput.value = unsent; aiInputState(newInput); }
+  if (typeof curScreen !== 'undefined' && curScreen === 'scr-ai' && typeof shortcutDraftApply === 'function') shortcutDraftApply('assistant');
   const th = el.querySelector('.ai-thread');
   if (th) th.scrollTop = stick ? th.scrollHeight : oldTop;
   sgaMount();
@@ -11627,7 +11642,7 @@ const OVERLAYS = [
   { sel: '#checkin',         close: () => closeDailyCheck() },
   { sel: '#soonSheet',       close: () => closeSoonSheet() },
   // หน้าตัวเชื่อมในแผ่นเพิ่มงาน ถอยกลับหน้าหลักของแผ่นก่อน ไม่ใช่ปิดทั้งแผ่น
-  { sel: '#addSheet',        close: () => addSheetView === 'connectors' ? openAddSheet('root') : closeAddSheet() },
+  { sel: '#addSheet',        close: () => addSheetView !== 'root' ? openAddSheet('root') : closeAddSheet() },
   { sel: '#aiSheet',         close: () => closeAiHub() },
   { sel: '#fabMenu',         close: () => closeFabHub() },
   // ออกจากโหมดโฟกัสด้วยทางลัด = นาฬิกายังเดินต่อในแถบล่าง (เหมือน "พักก่อน" ไม่ใช่ "ทิ้งงาน")
@@ -16858,7 +16873,7 @@ function takeSharedText() {
 // ลิงก์เก่าจากหน้า land.html ที่ส่ง ?start=timeline มายังต้องพาไปที่ที่มีของให้ดู
 // ไม่ใช่จอที่ออกไปไหนไม่ได้นอกจากกดแถบล่าง
 // 'quick' = ปุ่มลัด "เพิ่มงานด่วน" (quickadd.js) — ไปหน้าแรกแล้วเด้งแผ่นพิมพ์งานทับ
-const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-tasks', quick: 'scr-menu' };
+const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-tasks', quick: 'scr-menu', assistant: 'scr-ai', today: 'scr-menu' };
 // อ่านจาก BOOT_Q ไม่ใช่ location.search — initApp() ล้าง URL ทิ้งก่อน routeStart() จะถูกเรียก
 // เดิมอ่าน location.search ตรง ๆ จึงเจอ URL เปล่าทุกครั้ง ปุ่มลัดทุกปุ่มพาไปหน้าแรกเงียบ ๆ (พบ 9 ต.ค. 69)
 // ใช้ได้ครั้งเดียว — routeStart() รอบสองต้องไม่เด้งแผ่นซ้ำ หรือดึงคนกลับจากจอที่เขาเดินไปแล้ว
@@ -16877,7 +16892,7 @@ const SHORTCUT_KEY = 'studentos.alt.shortcut';
 let shortcutUsed = false;
 function shortcutTarget() {
   if (shortcutUsed) return null;
-  let g = BOOT_Q.get('go');   // ที่เก็บถูกปิด (โหมดส่วนตัวบางเครื่อง) ยังใช้ได้ในรอบที่ไม่ได้รีโหลด
+  let g = BOOT_Q.get('go') || (typeof shortcutDraftRoute === 'function' ? shortcutDraftRoute() : null);
   try {
     const s = JSON.parse(sessionStorage.getItem(SHORTCUT_KEY) || 'null');
     if (!g && s && Date.now() - s.t < 30000) g = s.g;
@@ -16962,7 +16977,7 @@ function routeAfterLogin() {
     openDmInbox('scr-menu');
     return;
   }
-  go('scr-menu');
+  go(shortcutTarget() || 'scr-menu');
 }
 
 function openOnboard() {
@@ -17152,7 +17167,7 @@ function finishOnboard(skipDay) {
 
 function skipOnboard() {
   localStorage.setItem(ONBOARD_SKIP_KEY, '1'); // ข้ามแล้วไม่ต้องถามซ้ำทุกครั้งที่เปิด
-  go('scr-menu');
+  go(shortcutTarget() || 'scr-menu');
 }
 
 // ฉาก "ยินดีที่ได้รู้จัก ___" — จังหวะเดียวที่แอปได้ทักผู้ใช้ด้วยชื่อเขาเป็นครั้งแรก
@@ -17172,7 +17187,7 @@ function showWelcome(name, gotDay) {
   setTimeout(() => w.classList.add('on'), 20);
   setTimeout(() => {
     w.classList.remove('on');
-    go('scr-menu');
+    go(shortcutTarget() || 'scr-menu');
     setTimeout(() => { w.hidden = true; }, 300);
     // ตัวเลขในข้อความนี้คำนวณสดจากบริบทที่เพิ่งเขียนไป ไม่ใช่ค่าที่พิมพ์ทิ้งไว้
     const win = typeof dayWindows === 'function' ? dayWindows(state.settings, new Date()) : null;

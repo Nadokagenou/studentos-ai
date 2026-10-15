@@ -42,32 +42,45 @@
   "shortcuts": [
     {
       "name": "เพิ่มงานด่วน",
-      "short_name": "เพิ่มงานด่วน",
       "url": "./?go=quick",
       "icons": [
         {
           "src": "icon-192.png",
-          "sizes": "192x192"
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
     {
-      "name": "เพิ่มงานใหม่",
-      "url": "./?go=scan",
+      "name": "ถามผู้ช่วย",
+      "url": "./?go=assistant",
       "icons": [
         {
           "src": "icon-192.png",
-          "sizes": "192x192"
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
     {
-      "name": "ตารางงาน",
-      "url": "./?go=home",
+      "name": "งานของฉัน",
+      "url": "./?go=tasks",
       "icons": [
         {
           "src": "icon-192.png",
-          "sizes": "192x192"
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "วันนี้ทำอะไร",
+      "url": "./?go=today",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     }

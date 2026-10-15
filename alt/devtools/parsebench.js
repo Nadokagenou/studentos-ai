@@ -322,6 +322,22 @@ const PARSE_CASES = [
   { g: 'junk', id: 'ขีดหน้ารายการต้องอยู่ (ตัวตัดหลายงานใช้)',
     text: '- คณิต แบบฝึกหัด 2.3 ส่งพรุ่งนี้\n- วิทย์ รายงานเซลล์ ส่งศุกร์',
     want: { keep: ['- คณิต', '- วิทย์', '2.3'], drop: [] } },
+
+  // ---- 15 ต.ค. 69 · "ทำตอน" (doAt) — เวลาที่จะลงมือทำ ไม่ใช่เวลาส่ง ----
+  // เจ้าของ: "ทำ 2 ทุ่มก็แจ้งเตือน" · คำว่า ทำ/เริ่มทำ ที่ตามด้วยเวลาทันที = นัดของตัวเอง
+  // ห้ามไหลไปเป็นกำหนดส่ง — ไม่งั้น "ทำ 2 ทุ่ม" กลายเป็นงานที่ส่ง 2 ทุ่มคืนนี้ แล้วแผนทั้งวันเพี้ยน
+  { g: 'doAt', id: 'ทำ 2 ทุ่ม = นัด ไม่ใช่กำหนดส่ง',
+    text: 'สรุปบทที่ 3 ทำ 2 ทุ่ม', want: { doAt: D(0, 20, 0), due: null, detail: 'สรุปบทที่ 3' } },
+  { g: 'doAt', id: 'ส่งพรุ่งนี้ + ทำตอนสองทุ่ม',
+    text: 'การบ้านคณิต ส่งพรุ่งนี้ ทำตอนสองทุ่ม', want: { doAt: D(0, 20, 0), due: D(1) } },
+  { g: 'doAt', id: 'ส่งพรุ่งนี้ 16:00 + เริ่มทำ 19:30',
+    text: 'รายงานเคมี ส่งพรุ่งนี้ 16:00 เริ่มทำ 19:30', want: { doAt: D(0, 19, 30), due: D(1, 16, 0) } },
+  { g: 'doAt', id: 'ทำโจทย์ ... ส่ง 2 ทุ่ม ไม่ใช่นัด',
+    text: 'ทำโจทย์ข้อ 1-10 ส่ง 2 ทุ่ม', want: { doAt: null, due: D(0, 20, 0) } },
+  { g: 'doAt', id: 'เวลาที่เลยไปแล้ววันนี้ = พรุ่งนี้',
+    text: 'อ่านบทที่ 2 ทำ 8 โมงเช้า', want: { doAt: D(1, 8, 0) } },
+  { g: 'doAt', id: 'นัดหลังกำหนดส่ง = ทิ้งนัด',
+    text: 'ใบงานสังคม ส่งวันนี้ 18:00 ทำ 2 ทุ่ม', want: { doAt: null, due: D(0, 18, 0) } },
 ];
 
 // ---------- ตัวเทียบ ----------
@@ -357,9 +373,10 @@ function checkOne(c) {
   const got = parseAssignment(c.text, NOW);
   const bad = [];
   for (const [k, want] of Object.entries(c.want)) {
-    if (k === 'due') {
-      if (!sameDue(got.due, want)) {
-        bad.push(`due: ได้ ${got.due ? new Date(got.due).toLocaleString('th-TH') : 'null'} · ควรเป็น ${want ? want.toLocaleString('th-TH') : 'null'}`);
+    if (k === 'due' || k === 'doAt') {
+      const g = got[k] == null ? null : got[k];
+      if (!sameDue(g, want)) {
+        bad.push(`${k}: ได้ ${g ? new Date(g).toLocaleString('th-TH') : 'null'} · ควรเป็น ${want ? want.toLocaleString('th-TH') : 'null'}`);
       }
     } else if (got[k] !== want) {
       bad.push(`${k}: ได้ ${JSON.stringify(got[k])} · ควรเป็น ${JSON.stringify(want)}`);
