@@ -1,0 +1,5 @@
+{
+  "schema": 1,
+  "note": "ประกาศที่ผู้ใช้เห็นในจอ \"ข่าวสาร\" — แก้ผ่าน PR เท่านั้น และต้องผ่าน node alt/devtools/news.mjs check ก่อน merge",
+  "items": []
+}
