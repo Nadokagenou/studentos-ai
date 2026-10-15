@@ -39,6 +39,7 @@ type Row = {
   id: string; user_id: string; provider: string; account: string;
   secret: string | null; meta: Record<string, unknown>; fail_count: number;
   last_sync_at: string | null;
+  updated_at?: string | null;   // ขยับทุกครั้งที่กดเชื่อมใหม่ = รุ่นของกุญแจ (ใช้กันแจ้งเตือนซ้ำ)
   // รอบนี้เป็นการซิงก์ครั้งแรกของการเชื่อมเส้นนี้ไหม — ต้องอ่านก่อนที่ syncOne
   // จะเขียน last_sync_at ทับ ไม่งั้นทุกอย่างดูเหมือนไม่ใช่ครั้งแรกไปหมด
   first_sync?: boolean;
@@ -53,7 +54,7 @@ Deno.serve(async (req) => {
     const only = typeof body?.integration_id === 'string' ? body.integration_id : null;
 
     let q = db.from('integrations')
-      .select('id, user_id, provider, account, secret, meta, fail_count, last_sync_at');
+      .select('id, user_id, provider, account, secret, meta, fail_count, last_sync_at, updated_at');
     q = only
       ? q.eq('id', only)
       // paused = ผู้ใช้ปิดไว้เอง · needs_reauth = ลองใหม่เองอีกกี่รอบก็ไม่หาย ต้องรอคนมากด
@@ -122,13 +123,46 @@ async function syncOne(row: Row) {
 }
 
 async function markReauth(row: Row, msg: string) {
+  // ⚠️ ทำไมต้องบอกเจ้าตัว (15 ต.ค. 69): การเชื่อม Google ของนักเรียนตายเงียบ ๆ จริง
+  // ข้อมูล production: การเชื่อมที่ออกกุญแจ 18 ก.ย. 05:46 ตายด้วย invalid_grant ในรอบ cron
+  // 25 ก.ย. 06:00 — ครบ 7 วันพอดี ทั้ง Classroom และ Calendar พร้อมกัน · นั่นคืออายุ refresh token
+  // ของแอปที่ OAuth consent screen ยังเป็นโหมด Testing (แก้ที่ Google Cloud Console ไม่ใช่ที่โค้ด)
+  // แต่ไม่ว่าสาเหตุคืออะไร ผลคืองานจากครูหยุดไหลโดยที่นักเรียนไม่รู้ตัวเลย เพราะจอเดียวที่บอก
+  // คือจอตัวเชื่อมซึ่งไม่มีใครเปิดดูทุกวัน · คนพัฒนาไม่เจอเพราะกดเชื่อมใหม่บ่อยจนกุญแจไม่เคยแก่
+  const quiet = isQuietHours();
   await db.from('integrations').update({
     status: 'needs_reauth', error_msg: msg.slice(0, 300),
     last_sync_at: new Date().toISOString(),
     // ไม่ต้องยิงซ้ำอีกจนกว่าคนจะมากดเชื่อมใหม่ — ตั้งไว้ไกล ๆ แทนการปิดสวิตช์
     // เผื่อกรณีที่ต้นทางหายชั่วคราวแล้วกลับมาเอง จะได้ลองอีกครั้งในวันรุ่งขึ้น
-    next_sync_at: minutesFromNow(1440),
+    // ตายตอนกลางดึก = ลองใหม่ตอนเช้าแทน ไม่งั้น +24 ชม. ก็ตกกลางดึกอีก แล้วไม่มีวันได้แจ้ง
+    next_sync_at: quiet ? morningAfterQuiet() : minutesFromNow(1440),
   }).eq('id', row.id);
+  if (!quiet) await notifyReauth(row).catch(() => 0);
+}
+
+/** ดอกเดียวต่อกุญแจหนึ่งชุด — คีย์ผูกกับ updated_at ซึ่ง oauth-callback ขยับทุกครั้งที่กดเชื่อมใหม่
+ *  กุญแจชุดใหม่ตายอีกรอบจึงได้แจ้งอีกครั้ง แต่ชุดเดิมที่ถูกลองซ้ำวันละครั้งไม่ดังซ้ำ */
+async function notifyReauth(row: Row): Promise<number> {
+  if (!pushReady()) return 0;
+  const key = `reauth::${row.id}::${row.updated_at || ''}`;
+  if (!(await unsentKeys(db, row.user_id, [key])).length) return 0;
+  const name = row.provider === 'google_classroom' ? 'Google Classroom'
+             : row.provider === 'google_calendar' ? 'Google Calendar' : 'ปฏิทินของโรงเรียน';
+  const ok = await pushToUser(db, row.user_id, {
+    title: `${name} หยุดส่งงานเข้ามาแล้ว`,
+    body: `${row.account ? row.account + ' · ' : ''}เปิดแอปแล้วกด "เชื่อมใหม่" งานจากครูจะกลับมาเอง`,
+    tag: 'integ-reauth',
+  });
+  await markSent(db, row.user_id, [key]);
+  return ok;
+}
+
+/** 07:05 น. เวลาไทย = 00:05 UTC — ช่วงเงียบ (22:00–07:00 ไทย) อยู่ใน 15:00–24:00 UTC ทั้งหมด */
+function morningAfterQuiet(): string {
+  const d = new Date(Date.now());   // นาฬิกาเดียวกับ isQuietHours — ไม่ใช่ new Date() เปล่า ๆ
+  d.setUTCHours(24, 5, 0, 0);
+  return d.toISOString();
 }
 
 // ---------- ทะเบียนตัวเชื่อม ----------
@@ -153,7 +187,7 @@ async function pull(row: Row, secret: string): Promise<{
   if (row.provider === 'google_classroom') {
     if (!classroomReady()) throw new Error('ยังไม่ได้ตั้งกุญแจ Google ฝั่งเซิร์ฟเวอร์');
     const r = await fetchClassroom(secret);
-    return { tasks: r.tasks, account: r.account || undefined };
+    return { tasks: r.tasks, account: r.account || undefined, meta: { diag: r.diag } };
   }
 
   if (row.provider === 'google_calendar') {
@@ -473,8 +507,14 @@ function humanLine(t: StandardTask): string {
   return isNaN(d.getTime()) ? bits : `${bits} (ส่ง ${d.toISOString().slice(0, 16).replace('T', ' ')})`;
 }
 
+// ⚠️ ต้องนัดให้ "ก่อน" ถึงรอบ cron ถัดไปเล็กน้อย (15 ต.ค. 69 · ข้อมูลจริง)
+// cron ยิงตรง :00 กับ :30 แต่แถวถูกซิงก์เสร็จตอน :00:10 · นัด +30 นาทีพอดี = :30:10
+// ซึ่งช้ากว่ารอบ :30:00 อยู่สิบวินาที → ถูกข้ามไปรอบหนึ่งเสมอ ทุกบัญชีจึงได้ซิงก์ชั่วโมงละครั้ง
+// แทนที่จะเป็นทุก 30 นาที (นัด 13:00:10 ไม่ถูกซิงก์ในรอบ 13:00 · นัด 12:30:09 มาถูกซิงก์ตอน 13:00)
+// หักไว้ 2 นาทีพอกินเวลาที่ฟังก์ชันใช้ในรอบหนึ่ง โดยไม่ทำให้ซิงก์ถี่ขึ้นเกินตั้งใจ
+const CRON_SLACK_MS = 2 * 60_000;
 function minutesFromNow(min: number): string {
-  return new Date(Date.now() + min * 60_000).toISOString();
+  return new Date(Date.now() + min * 60_000 - CRON_SLACK_MS).toISOString();
 }
 
 function json(body: unknown, status = 200): Response {
