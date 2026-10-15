@@ -1,0 +1,9 @@
+project_id = "studentos-staff"
+
+[functions.staff-console]
+# The handler verifies the Supabase JWT with auth.getUser AND GitHub identity/access.
+verify_jwt = false
+
+[functions.staff-notify]
+# Worker requires the exact service-role bearer secret; it rejects client JWTs.
+verify_jwt = false

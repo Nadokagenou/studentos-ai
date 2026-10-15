@@ -6,7 +6,7 @@
 // จะเสิร์ฟโลโก้เก่าจากแคชต่อไปโดยไม่มีอะไรบอกว่ามีของใหม่
 // แยกชื่อแคช ALT จากเว็บหลัก: ปล่อยเฉพาะ ALT ต้องไม่ล้างแคชของเว็บหลักบน origin เดียวกัน
 const CACHE_PREFIX = 'studentos-alt-';
-const CACHE = CACHE_PREFIX + '1c58-do-at-20261015'; // เตือนให้ทำตามเวลาที่ตั้งเอง + แจ้งงาน Classroom ที่เข้ามากลางคืน
+const CACHE = CACHE_PREFIX + '1c58-do-at-staff-20261015'; // 1C58 เตือนให้ทำตามเวลาที่ตั้งเอง + แจ้งงาน Classroom กลางคืน · รวมชุดเชื่อม Control Room
 // ทุกไฟล์ที่ index.html อ้างถึงต้องอยู่ในรายการนี้ — ไฟล์ที่หน้าเรียกแต่ไม่ได้แคชไว้
 // จะหายไปเงียบ ๆ ตอนออฟไลน์ โดยไม่มีอะไรบอกว่าหายไปไหน (icon-alt-* เลิกใช้ในหน้าแล้วตั้งแต่ QA 6 ต.ค. 69 · คงไว้ให้ index.html เก่าในแคชของเครื่องที่ยังไม่อัปเดต)
 //
@@ -16,7 +16,7 @@ const CACHE = CACHE_PREFIX + '1c58-do-at-20261015'; // เตือนให้�
 // ได้ "หน้าแม่ใหม่ + ตัวแก้ดีไซน์เก่า" ซึ่งอาการคือกดแล้วไม่มีอะไรเกิดขึ้น
 const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'room.css', 'social.css', 'feed.css', 'safety.css', 'hw.css', 'topic.css', 'sai.css', 'hoop.css', 'fxgames.css', 'gacha-fx.css', 'board.css', 'custom.css',
   'engine.js', 'context.js', 'planner.js', 'facts.js', 'profile.js', 'simulate.js', 'calibrate.js', 'loss.js', 'decide.js', 'brain.js', 'inbox.js', 'linelink.js', 'integrations.js', 'room.js', 'social.js', 'feed.js', 'hw.js', 'topic.js', 'safety.js', 'sai.js', 'fxgames.js', 'fx3d.js', 'hoop.js', 'gacha-fx.js', 'quickadd.js', 'board.js', 'news.js', 'app.js', 'config.js', 'remote-config.js',
-  'manifest.json',
+  'manifest.json', 'staff-news.js',
   // 15 ต.ค. 69 · ข่าวสารจากทีม — แคชไว้ให้เปิดจอข่าวตอนออฟไลน์ได้ (drafts.json ไม่แคช: แอปไม่ได้โหลดมัน)
   'news/announcements.json',
   'icon-alt-192.png', 'icon-alt-512.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png',
@@ -68,7 +68,13 @@ self.addEventListener('notificationclick', e => {
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const c of list) {
-        if (c.url.includes(self.registration.scope) && 'focus' in c) return c.focus();
+        if (c.url.includes(self.registration.scope) && !c.url.includes('/staff/') && 'focus' in c) {
+          const next = new URL(target, self.registration.scope);
+          if (next.origin === new URL(self.registration.scope).origin && next.href.startsWith(self.registration.scope)) {
+            return c.navigate(next.href).then(() => c.focus());
+          }
+          return c.focus();
+        }
       }
       return self.clients.openWindow(target);
     })
@@ -80,6 +86,8 @@ self.addEventListener('fetch', e => {
   // ปล่อยให้คำขอข้ามโดเมนผ่านตรง ไม่ผ่าน SW เลย — กัน CDN ของ OCR (Tesseract.js,
   // wasm, ไฟล์ภาษา) พังเวลาเน็ตสะดุดแล้วตกไปหา cache ที่ไม่เคยเก็บไฟล์เหล่านี้ไว้
   if (new URL(e.request.url).origin !== location.origin) return;
+  // เว็บแอดมินแยก ไม่เก็บไว้ในแคชแอปนักเรียน
+  if (new URL(e.request.url).pathname.includes('/staff/')) return;
   // cache: 'no-store' สำคัญกว่าที่เห็น — network-first เฉย ๆ ยังไม่พอ
   // เพราะ HTTP cache ของเบราว์เซอร์นั่งขวางอยู่หน้า fetch() ของ SW อีกชั้น
   // GitHub Pages ส่ง max-age=600 มาด้วย แปลว่าอัปเดตแล้วผู้ใช้จะยังเห็นของเก่า
