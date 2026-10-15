@@ -2,7 +2,7 @@
 
 ## อัปเดตการเข้าถึง Supabase
 
-ผู้ใช้อนุมัติ “เอาเลย” หลังตรวจชุดติดตั้งแล้ว ติดตั้ง migration `studentos_staff_control_room` ในโปรเจกต์ `yunbytxtgghizrdqftvj` สำเร็จ และ deploy `staff-console` / `staff-notify` รุ่น 1 สถานะ ACTIVE ทั้งคู่แล้ว GitHub Provider เปิดและล็อกอินจริงผ่านแล้ว ยังไม่มี cron ของ staff-notify
+ผู้ใช้อนุมัติ “เอาเลย” หลังตรวจชุดติดตั้งแล้ว ติดตั้ง migration `studentos_staff_control_room` ในโปรเจกต์ `yunbytxtgghizrdqftvj` สำเร็จ `staff-console` รุ่น 1 และ `staff-notify` รุ่น 2 ACTIVE GitHub Provider เปิดและล็อกอินจริงผ่านแล้ว cron `studentos-staff-notify` เปิดรันทุกนาทีแล้ว
 
 ## ผลตรวจระบบจริงล่าสุด
 
@@ -13,14 +13,19 @@
 - ระหว่างตรวจพบ SQL alias `n` ชนกับตัวแปรใน users/notices; เพิ่มกรณีทดสอบให้เห็นข้อผิดพลาดก่อนแก้ แล้วติดตั้ง `fix_staff_user_pagination` และ `fix_staff_notice_list_alias` สำเร็จ
 - หลังแก้ users คืน 20 รายการ, notices 0, issues 2, audit 0; หน้า users โหลดจริงได้ 20 แถวโดยไม่มีข้อความผิดพลาด ชุดทดสอบรวมผ่าน 29/29
 - เพิ่มข้อความเมื่อ OAuth กลับมาพร้อม error และล้าง error ออกจาก URL โดยไม่สะท้อนข้อความดิบจาก provider
-- เตรียมฟอร์ม Vault ชื่อ `studentos_service_role_key` และแท็บ API Keys (Legacy) ให้ผู้ใช้คัดลอกค่า service_role ภายใน Supabase เอง ยังไม่ได้เปิดดูหรือคัดลอกกุญแจเข้าแชท รอผู้ใช้เพิ่ม Vault ก่อนติดตั้ง cron
+- ผู้ใช้เพิ่ม Vault `studentos_service_role_key` ภายใน Supabase ด้วยตนเองแล้ว ไม่เปิดดูหรือคัดลอกกุญแจเข้าแชท ตรวจเฉพาะ role/project/expiry และ HTTP สิทธิ์เข้าถึงตารางแบบ 0 แถว พบว่าเป็น service_role ของโปรเจกต์นี้และใช้ได้จริง
+- ติดตั้ง migration `schedule_studentos_staff_notifications` เปิด cron ทุกนาที รุ่นแรกเทียบค่า key ใน runtime ตรงตัวแล้วปฏิเสธ dashboard service JWT ที่ใช้งานได้ จึงพัก cron ระหว่างแก้
+- `staff-notify` รุ่น 2 ยอมรับ runtime key เดิม หรือให้ Supabase ตรวจ caller Authorization ผ่าน HEAD staff_audit แบบไม่อ่านข้อมูล ซึ่งอนุญาต SELECT เฉพาะ service_role ไม่เชื่อ role claim ที่ decode เอง และไม่เปิด client grants เพิ่ม
+- ตรวจ HTTP จริงของ worker รุ่น 2: ไม่ส่ง token / token ปลอม / signed anon JWT ได้ 401 ทั้งหมด; service_role จาก Vault ได้ 200 `processed:0, accepted:0, retry_or_failed:0` (net request 4164) คิวว่างและไม่มีการส่ง Push จริง จากนั้นเปิด cron active=true แล้ว
+- ตรวจการรันอัตโนมัติหลังเปิด cron: job_run_details สถานะ succeeded และ HTTP responses 4165/4166 ได้ 200 พร้อม processed=0 accepted=0 retry_or_failed=0
+- รุ่น 2 ผ่าน Node syntax check และทดสอบจริงบน Supabase; Deno check รุ่น 1 ผ่านก่อนหน้านี้ แต่ครั้งล่าสุดตัวเรียก Deno ในเครื่องไม่พบ executable จึงไม่อ้างว่า type-check รุ่น 2 สำเร็จ
 
 - ตารางใหม่ทั้ง 5 เปิด RLS และ anon/authenticated ไม่มีสิทธิ์ SELECT
 - RPC จัดการ/แจกโทเคน/claim push และ trigger function ให้ EXECUTE เฉพาะ service_role; public notices RPC เปิดอ่านเฉพาะข่าวเผยแพร่แล้วตามที่ออกแบบ
 - ตรวจ HTTP จริง: ไม่ล็อกอิน/เซสชันปลอม 401, origin นอก allowlist 403, worker ไม่มีสิทธิ์ 401, ตาราง audit 401, public notices 200 และเป็นรายการว่าง
 - trigger `staff_reconcile_tokens` ติดตั้งแล้ว ตารางหลังบ้านทั้ง 5 ยังว่าง ไม่มีการแจกโทเคน/ประกาศ/Push จริงระหว่างตรวจ
 - Security Advisor มีรายการเพิ่มตามการออกแบบ: RLS ไม่มี policy บนตาราง server-only 5 ตาราง และ public notices SECURITY DEFINER RPC สำหรับ anon/authenticated อย่างละ 1; คำเตือนเดิมยังอยู่ ไม่ได้อ้างว่าทั้งโปรเจกต์ปลอดช่องโหว่
-- Vault ไม่มี secret ชื่อ service/staff และยังไม่มี staff cron จึงยังไม่ได้เปิดตัวส่ง Push อัตโนมัติ
+- Vault และ staff cron พร้อมแล้ว ดูผลตรวจ worker รุ่น 2 ด้านบน
 
 ## ขึ้นเว็บแล้ว
 

@@ -15,8 +15,27 @@ const json = (value: unknown, status = 200) =>
   });
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
-  if (!role || req.headers.get("authorization") !== `Bearer ${role}`)
+  const authorization = req.headers.get("authorization");
+  if (!role || !authorization?.startsWith("Bearer ") || authorization.length > 8192)
     return json({ error: "Unauthorized" }, 401);
+  if (authorization !== `Bearer ${role}`) {
+    // The dashboard service JWT and runtime service key can differ. Supabase
+    // validates the caller's token; only service_role has SELECT on staff_audit.
+    // A zero-row HEAD request proves permission without reading any audit data.
+    const caller = createClient(Deno.env.get("SUPABASE_URL")!, role, {
+      global: { headers: { Authorization: authorization } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    try {
+      const { error } = await caller
+        .from("staff_audit")
+        .select("id", { head: true })
+        .limit(0);
+      if (error) return json({ error: "Unauthorized" }, 401);
+    } catch {
+      return json({ error: "Authorization unavailable" }, 503);
+    }
+  }
   const publicKey = Deno.env.get("VAPID_PUBLIC_KEY"),
     privateKey = Deno.env.get("VAPID_PRIVATE_KEY");
   if (!publicKey || !privateKey)

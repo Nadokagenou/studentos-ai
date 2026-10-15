@@ -122,6 +122,7 @@ test("anonymous and normal users cannot grant, read staff tables or edit audit",
     await db.exec("reset role");
   }
   await db.exec("set role service_role");
+  assert.deepEqual((await db.query("select id from staff_audit limit 0")).rows, []);
   await assert.rejects(() => db.exec("delete from staff_audit"));
   await db.exec("reset role");
 });

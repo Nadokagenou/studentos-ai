@@ -1,6 +1,6 @@
 # Student OS · Control Room
 
-สถานะ 15 ต.ค. 2569: **ติดตั้งฐานข้อมูล/Edge Functions เผยแพร่หน้าเว็บ และล็อกอิน GitHub เข้าแอดมินจริงได้แล้ว** ตรวจสิทธิ์ผ่านและแก้หน้ารายชื่อ/ข่าวสารแล้ว ยังรอเพิ่ม Vault secret เพื่อตั้ง cron ดูรายละเอียดใน [STATUS.md](STATUS.md)
+สถานะ 15 ต.ค. 2569: **ติดตั้งฐานข้อมูล/Edge Functions เผยแพร่หน้าเว็บ ล็อกอิน GitHub เข้าแอดมิน และเปิด cron ส่งแจ้งเตือนแล้ว** ตรวจสิทธิ์และ worker คิวว่างผ่าน ยังไม่ได้ส่ง Push ไปเครื่องจริงหรือแจกโทเคนจริงระหว่างตรวจ ดูรายละเอียดใน [STATUS.md](STATUS.md)
 
 หน้าแรกและสำรวจแอปที่เจ้าของอนุมัติ เผยแพร่ ALT แล้วด้วย commit `4b65292` การเปลี่ยนแปลงหลังบ้านชุดนี้แยกจากชุดนั้น
 
@@ -39,11 +39,11 @@
    supabase --workdir alt/staff/backend functions deploy staff-notify --project-ref yunbytxtgghizrdqftvj --no-verify-jwt
    ```
 
-   Gateway JWT ถูกปิดเพราะ handler ตรวจเอง: `staff-console` เรียก Auth.getUser และ GitHub ทุกครั้ง ส่วน `staff-notify` รับเฉพาะ service-role bearer ของโปรเจกต์ ตรวจนี้ห้ามถอด
+   Gateway JWT ถูกปิดเพราะ handler ตรวจเอง: `staff-console` เรียก Auth.getUser และ GitHub ทุกครั้ง ส่วน `staff-notify` รับ runtime service key หรือให้ Supabase ตรวจ bearer ของผู้เรียกผ่าน HEAD แบบ 0 แถวบน staff_audit ซึ่งให้ SELECT เฉพาะ service_role การตรวจนี้ห้ามถอดหรือเปิด SELECT ตารางนี้ให้ anon/authenticated
 6. ตรวจ Secrets เดิมว่ามี `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` ตรงกับแอปเดิม ไม่ต้องสร้างกุญแจ VAPID ชุดใหม่ เพราะเครื่องผู้ใช้ลงทะเบียนกับชุดเดิมแล้ว
    - `STAFF_ALLOWED_ORIGINS` ค่าเริ่มต้น `https://nadokagenou.github.io` รองรับหลาย origin คั่นด้วย comma
    - จะทดสอบหน้าจอในเครื่องกับระบบจริง ต้องใส่ origin localhost ที่ใช้จริงเป็นรายการอนุญาตด้วย ไม่ใช้ `*`
-7. ตั้ง worker ทุกนาทีตาม [backend/schedule.sql](backend/schedule.sql) โดยเจ้าของเก็บ service-role key ลง Supabase Vault ด้วยชื่อที่ระบุไว้ก่อน ไม่ใส่ key จริงลงไฟล์ SQL ใน repo
+7. **เสร็จแล้ว**: ผู้ใช้เก็บ service-role key ลง Vault ด้วยตนเอง และเปิด worker ทุกนาทีตาม [backend/schedule.sql](backend/schedule.sql) ไม่ใส่ key จริงลงไฟล์ SQL ใน repo ถ้าปรับกุญแจในอนาคตต้องอัปเดต Vault ให้ตรงและทดสอบ worker อีกครั้ง
 8. **เผยแพร่แล้วและ collaborator เข้าได้จริงแล้ว** ที่ `/alt/staff/` การทดสอบบัญชีไม่มีสิทธิ์ผ่านชุดจำลอง แต่ยังไม่ได้สลับล็อกอินบัญชีอื่นจริง
 
 ## ทดสอบยอมรับก่อนเปิดใช้งานจริง
