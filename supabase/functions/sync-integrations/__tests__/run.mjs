@@ -383,6 +383,20 @@ async function runBody(tables, body) {
   check('diag แยกสามแบบถูก', d.work === 5 && d.turnedIn === 1 && d.returned === 2
     && d.returnedUnsubmitted === 1 && d.done === 3 && d.returnedNoHistory === 1, JSON.stringify(d));
 }
+// ---- 18) รอบถัดไปต้องไม่ถูกข้าม: นัดต้องมาก่อนรอบ cron ที่ห่างไป 30 นาที ----
+// ซิงก์เสร็จช้ากว่าเวลาที่ cron ยิงเสมอ (เทสต์นี้: cron ยิง 14:00:00 · ซิงก์เสร็จ 14:00:10)
+// ถ้านัดไว้ 14:30:10 รอบ 14:30:00 จะข้ามแถวนี้ไป แล้วได้ซิงก์ชั่วโมงละครั้ง
+{
+  const tick = Date.now();
+  Date.now = () => tick + 10_000;
+  GOOGLE = { 'rt-g': { email: 'g@gmail.com', courses: [] } };
+  const t = await gTables([await gRow('ig', 'ug', 'rt-g')]);
+  await runBody(t, {});
+  const next = Date.parse(t.integrations[0].next_sync_at);
+  check('นัดรอบถัดไปไม่เลยรอบ cron +30 นาที', next <= tick + 30 * 60_000, new Date(next).toISOString());
+  check('และไม่ถี่เกินตั้งใจ (ไม่เร็วกว่า +25 นาที)', next >= tick + 25 * 60_000, new Date(next).toISOString());
+  Date.now = () => tick;
+}
 GOOGLE = null;
 
 unfreeze();

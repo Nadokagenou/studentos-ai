@@ -452,8 +452,14 @@ function humanLine(t: StandardTask): string {
   return isNaN(d.getTime()) ? bits : `${bits} (ส่ง ${d.toISOString().slice(0, 16).replace('T', ' ')})`;
 }
 
+// ⚠️ ต้องนัดให้ "ก่อน" ถึงรอบ cron ถัดไปเล็กน้อย (15 ต.ค. 69 · ข้อมูลจริง)
+// cron ยิงตรง :00 กับ :30 แต่แถวถูกซิงก์เสร็จตอน :00:10 · นัด +30 นาทีพอดี = :30:10
+// ซึ่งช้ากว่ารอบ :30:00 อยู่สิบวินาที → ถูกข้ามไปรอบหนึ่งเสมอ ทุกบัญชีจึงได้ซิงก์ชั่วโมงละครั้ง
+// แทนที่จะเป็นทุก 30 นาที (นัด 13:00:10 ไม่ถูกซิงก์ในรอบ 13:00 · นัด 12:30:09 มาถูกซิงก์ตอน 13:00)
+// หักไว้ 2 นาทีพอกินเวลาที่ฟังก์ชันใช้ในรอบหนึ่ง โดยไม่ทำให้ซิงก์ถี่ขึ้นเกินตั้งใจ
+const CRON_SLACK_MS = 2 * 60_000;
 function minutesFromNow(min: number): string {
-  return new Date(Date.now() + min * 60_000).toISOString();
+  return new Date(Date.now() + min * 60_000 - CRON_SLACK_MS).toISOString();
 }
 
 function json(body: unknown, status = 200): Response {
