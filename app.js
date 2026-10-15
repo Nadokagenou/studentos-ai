@@ -3188,7 +3188,14 @@ const ADD_ACTIONS = [
 let addSheetView = 'root';
 
 function addSheetHTML() {
-  if (addSheetView === 'shortcuts' && typeof androidShortcutsHTML === 'function') return androidShortcutsHTML();
+  if (addSheetView === 'quick') return `<div class="as-grip"></div>
+    <button type="button" class="as-h as-back" onclick="openAddSheet('root')" aria-label="ย้อนไปเมนูเพิ่มงาน"><span class="as-bk">${icon('chevron')}</span>เพิ่มงานด่วน</button>
+    <form class="as-capture-form" onsubmit="event.preventDefault();quickSend()">
+      <label for="qaIn">งานที่ต้องทำ</label>
+      <input id="qaIn" class="qa-in" maxlength="500" autocomplete="off" enterkeyhint="send" placeholder="รายงานชีวะ ส่งศุกร์" value="${esc(typeof quickPlusDraft === 'string' ? quickPlusDraft : '')}" oninput="quickPlusInput()">
+      <div class="qa-chips" id="qaChips" aria-live="polite"></div>
+      <button type="submit" class="btn primary">เพิ่มงาน</button>
+    </form>`;
   if (addSheetView === 'connectors') {
     const c = typeof connectorCount === 'function' ? connectorCount() : { on: 0, all: 0 };
     return `<div class="as-grip"></div>
@@ -3229,12 +3236,6 @@ function addSheetHTML() {
   const rest = live.slice(2);
   return `<div class="as-grip"></div>
     <div class="as-h">เพิ่มอะไร?</div>
-    <form class="as-quick-form" onsubmit="event.preventDefault();quickSend()">
-      <label for="qaIn">พิมพ์งานประโยคเดียว</label>
-      <div class="as-quick-row"><input id="qaIn" class="qa-in" maxlength="500" autocomplete="off" enterkeyhint="send" placeholder="รายงานชีวะ ส่งศุกร์" value="${esc(typeof quickPlusDraft === 'string' ? quickPlusDraft : '')}" oninput="quickPlusInput()">
-      <button type="submit" class="qa-go" aria-label="เพิ่มงานด่วน">${icon('plus')}</button></div>
-      <div class="qa-chips" id="qaChips" aria-live="polite"></div>
-    </form>
     <div class="as-heroes">
       ${hero.map(a => `<button class="as-hero" onclick="closeAddSheet();${a[3]}">
         <span class="as-hero-ic">${icon(a[0])}</span>
@@ -3258,11 +3259,7 @@ function addSheetHTML() {
       <span class="as-tx"><b>${esc(a[1])}</b></span>
       <span class="as-go">${icon('chevron')}</span>
     </button>`).join('')}
-    <button class="as-row as-shortcuts" onclick="openAddSheet('shortcuts')">
-      <span class="as-ic">${icon('cog')}</span>
-      <span class="as-tx"><b>ปุ่มลัด Android</b><span>ตั้งครั้งเดียว เรียกจากมือถือได้เลย</span></span>
-      <span class="as-go">${icon('chevron')}</span>
-    </button>
+
     <button class="as-row as-conn" onclick="openAddSheet('connectors')">
       <span class="as-ic">${icon('plug')}</span>
       <span class="as-tx"><b>ตัวเชื่อม</b></span>
@@ -3282,7 +3279,7 @@ function refreshAddSheet() {
 function openAddSheet(view) {
   const el = document.getElementById('addSheet');
   if (!el) { go('scr-scan'); return; }
-  addSheetView = ['connectors', 'shortcuts'].includes(view) ? view : 'root';
+  addSheetView = ['connectors', 'quick'].includes(view) ? view : 'root';
 
   // เปิดอยู่แล้ว = แค่สลับหน้าในแผ่นเดิม ห้ามวาดใหม่ทั้งก้อน ไม่งั้นแผ่นเลื่อนลงแล้วขึ้นใหม่
   // 8 ต.ค. 69 · ของในหน้าใหม่เลื่อนเข้าจากฝั่งที่ไป (.swap · ไปหน้าตัวเชื่อม = จากขวา · กลับ = จากซ้าย)
@@ -16876,7 +16873,7 @@ function takeSharedText() {
 // ลิงก์เก่าจากหน้า land.html ที่ส่ง ?start=timeline มายังต้องพาไปที่ที่มีของให้ดู
 // ไม่ใช่จอที่ออกไปไหนไม่ได้นอกจากกดแถบล่าง
 // 'quick' = ปุ่มลัด "เพิ่มงานด่วน" (quickadd.js) — ไปหน้าแรกแล้วเด้งแผ่นพิมพ์งานทับ
-const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-tasks', quick: 'scr-menu', assistant: 'scr-ai', today: 'scr-menu', shortcuts: 'scr-menu' };
+const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-tasks', quick: 'scr-menu', assistant: 'scr-ai', today: 'scr-menu' };
 // อ่านจาก BOOT_Q ไม่ใช่ location.search — initApp() ล้าง URL ทิ้งก่อน routeStart() จะถูกเรียก
 // เดิมอ่าน location.search ตรง ๆ จึงเจอ URL เปล่าทุกครั้ง ปุ่มลัดทุกปุ่มพาไปหน้าแรกเงียบ ๆ (พบ 9 ต.ค. 69)
 // ใช้ได้ครั้งเดียว — routeStart() รอบสองต้องไม่เด้งแผ่นซ้ำ หรือดึงคนกลับจากจอที่เขาเดินไปแล้ว
@@ -16905,7 +16902,6 @@ function shortcutTarget() {
   // แผ่นเพิ่มงานด่วนลบเองตอนส่ง/ปิด (quickClose) · ปุ่มลัดอื่นหมดอายุเองใน 30 วิ
   shortcutUsed = true;
   if (g === 'quick' && typeof quickOpen === 'function') setTimeout(quickOpen, 80);
-  if (g === 'shortcuts') setTimeout(() => openAddSheet('shortcuts'), 80);
   return SHORTCUT_SCREENS[g];
 }
 

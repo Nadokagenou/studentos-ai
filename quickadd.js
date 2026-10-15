@@ -22,26 +22,8 @@ function quickPlusInput() {
   quickPreview();
 }
 
-function androidShortcutsHTML() {
-  return `<div class="as-grip"></div>
-    <button type="button" class="as-h as-back" onclick="openAddSheet('root')" aria-label="ย้อนไปเมนูเพิ่มงาน"><span class="as-bk">${icon('chevron')}</span>ปุ่มลัด Android</button>
-    <p class="as-setup-intro">ใช้ในแอปนี้ได้เลย ไม่ต้องเปิดหน้าทดลองแยก</p>
-    <button class="as-row" onclick="quickOpen()"><span class="as-ic">${icon('plus')}</span><span class="as-tx"><b>เพิ่มงานตอนนี้</b><span>พิมพ์ประโยคเดียว แล้วกด ＋</span></span><span class="as-go">${icon('chevron')}</span></button>
-    <button class="as-row" onclick="closeAddSheet();go('scr-ai')"><span class="as-ic">${icon('owl')}</span><span class="as-tx"><b>ถามผู้ช่วยตอนนี้</b><span>คุยในแอปเดิม</span></span><span class="as-go">${icon('chevron')}</span></button>
-    <div class="as-setup-box"><b>อยากเรียกจากนอกแอป?</b>
-      <p>ติดตั้งส่วนเสริมครั้งเดียว เพื่อเพิ่มปุ่มข้าง Wi‑Fi หรือเลือก Student OS เป็นผู้ช่วยของเครื่อง ครั้งต่อไปกดปุ่มลัดแล้วเข้าแอปหลักได้เลย</p>
-      <a class="btn primary" href="android-shortcuts/studentos-shortcuts-preview.apk" download>ติดตั้งส่วนเสริม Android</a>
-      <a class="btn" href="intent://setup#Intent;scheme=studentos;package=io.studentos.shortcuts;end">ติดตั้งแล้ว · เปิดตั้งค่าปุ่มมือถือ</a>
-      <small>APK ทดลองสำหรับ Android 8 ขึ้นไป ยังไม่ได้ทดสอบบนมือถือจริง การเพิ่มปุ่มและเลือกผู้ช่วยต้องกดยืนยันในเครื่องเอง</small>
-    </div>
-    <details class="as-setup-help"><summary>วิธีตั้งค่าครั้งแรก</summary><ol>
-      <li>ข้าง Wi‑Fi: เปิดตั้งค่าปุ่มมือถือ → เพิ่มปุ่มในแผงด่วน หรือแก้ไขแผงแล้วลาก “เพิ่มงาน Student OS” เข้ามา</li>
-      <li>ผู้ช่วย: เปิดตั้งค่าปุ่มมือถือ → เลือกแอปผู้ช่วย → Student OS เปลี่ยนกลับเป็น Gemini ได้ในตั้งค่าเครื่อง</li>
-      <li>กดไอคอนค้าง: เลือกเพิ่มงาน ถามผู้ช่วย งานของฉัน หรือวันนี้ หากติดตั้งเว็บเป็นแอปไว้แล้ว เมนูอาจต้องรอ Chrome อัปเดต</li>
-    </ol></details>`;
-}
 function quickOpen() {
-  openAddSheet('root');
+  openAddSheet('quick');
   const inp = document.getElementById('qaIn');
   if (typeof shortcutDraftApply === 'function') shortcutDraftApply('quick');
   try { inp?.focus({ preventScroll: true }); } catch (_) {}
@@ -246,7 +228,6 @@ function quickPanel() {
   const android = `<div class="qa-p">
       <span class="qa-h">Android</span>
       ${steps(['กดค้างที่ไอคอน Student OS', 'เลือก <b>เพิ่มงานด่วน</b> · ลากไปวางบนจอได้'])}
-      <button type="button" class="qa-try" onclick="openAddSheet('shortcuts')">ปุ่มแผงด่วนและผู้ช่วย Android</button>
     </div>`;
 
   let ios;

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-const root = new URL('../../',import.meta.url);
+const root = new URL('../',import.meta.url);
 const source = fs.readFileSync(new URL('shortcut-draft.js',root),'utf8');
 function harness({route='assistant',text='เซต A ∪ B <script>alert(1)</script>',cached=null,storageFails=false}={}) {
   const records = new Map(cached ? [['studentos.shortcutDraft',JSON.stringify(cached)]] : []);
