@@ -58,8 +58,10 @@ Deno.serve(async (req) => {
 
   try {
     if (action === 'list') {
+      // meta ทั้งก้อนไม่ส่งลงเบราว์เซอร์ (ของ ICS มี etag ฯลฯ ที่ไม่ใช่ธุระของจอ)
+      // หยิบเฉพาะ diag ซึ่งเป็นตัวเลขล้วน — มันคือคำตอบของ "เชื่อมแล้วทำไมไม่มีงานเข้า"
       const { data, error } = await db.from('integrations')
-        .select(SAFE).eq('user_id', uid).order('created_at', { ascending: true });
+        .select(SAFE + ', diag:meta->diag').eq('user_id', uid).order('created_at', { ascending: true });
       if (error) throw error;
       return json({ ok: true, items: data ?? [], ready: { google: classroomReady() } });
     }

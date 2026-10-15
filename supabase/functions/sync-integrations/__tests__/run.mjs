@@ -21,9 +21,34 @@ globalThis.Deno = { env: { get: k => ENV[k] }, serve: h => { handler = h; } };
 let FEED = '';
 // ห้องเรียนที่ Classroom API จะตอบกลับมา — คอร์สเดียว งานเปลี่ยนได้รายเทสต์
 let CLASSROOM_WORK = [];
-const json = o => new Response(JSON.stringify(o), { status: 200, headers: { 'content-type': 'application/json' } });
-globalThis.fetch = async (input) => {
+// บัญชี Google หลายบัญชีพร้อมกัน — เลือกชุดข้อมูลจาก refresh token ที่ถอดรหัสได้
+// (refresh token → access token "at:<rt>" → header Authorization ของทุกคำขอ Classroom)
+// null = ใช้ของชุดเดียวข้างบนเหมือนเดิม · ใช้พิสูจน์ว่างานของบัญชีหนึ่งไม่ไหลไปอีกบัญชี
+//   { [refreshToken]: { email, courses: [...], teacherCourses: [...],
+//                       work: { courseId: [...] }, subs: { courseId: [...] }, tokenError } }
+let GOOGLE = null;
+const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json' } });
+globalThis.fetch = async (input, init) => {
   const url = String(input instanceof Request ? input.url : input);
+  if (GOOGLE) {
+    if (url.startsWith('https://oauth2.googleapis.com/token')) {
+      const rt = new URLSearchParams(String(init?.body ?? '')).get('refresh_token');
+      const a = GOOGLE[rt];
+      if (!a || a.tokenError) return json({ error: a?.tokenError || 'invalid_grant' }, 400);
+      return json({ access_token: 'at:' + rt });
+    }
+    const auth = String(init?.headers?.Authorization ?? '');
+    const a = GOOGLE[auth.replace(/^Bearer at:/, '')];
+    if (!a) return json({ error: { message: 'no such token' } }, 401);
+    const u = new URL(url);
+    if (url.includes('userinfo')) return json({ email: a.email });
+    const course = (url.match(/courses\/([^/]+)\//) || [])[1];
+    if (url.includes('/studentSubmissions')) return json({ studentSubmissions: (a.subs || {})[course] || [] });
+    if (url.includes('/courseWork')) return json({ courseWork: (a.work || {})[course] || [] });
+    if (url.includes('classroom.googleapis.com/v1/courses')) {
+      return json({ courses: u.searchParams.get('teacherId') === 'me' ? (a.teacherCourses || []) : (a.courses || []) });
+    }
+  }
   if (url.startsWith('https://oauth2.googleapis.com/token')) return json({ access_token: 'at' });
   if (url.includes('googleapis.com/oauth2') || url.includes('userinfo')) return json({ email: 'student@example.com' });
   // studentSubmissions ต้องมาก่อน courseWork เพราะ URL ของมันมีคำว่า courseWork อยู่ด้วย
@@ -233,7 +258,7 @@ freezeThaiHour(14);
   CLASSROOM_WORK = [];
 }
 
-// ---- 13) 15 ต.ค. 69 · ของที่เข้ามากลางดึกต้องถูกแจ้งตอนเช้า ไม่ใช่หายเงียบ ----
+// ---- 12b) 15 ต.ค. 69 · ของที่เข้ามากลางดึกต้องถูกแจ้งตอนเช้า ไม่ใช่หายเงียบ ----
 // ข้อมูลจริง: งานโพสต์ ~21:30 น. · บัญชีที่ซิงก์รอบ 22:00 ไม่เคยได้ดอกแจ้งเตือนเลย
 const again = (t) => { t.integrations[0].next_sync_at = iso(REAL() - DAY); return run(t); };
 {
@@ -280,21 +305,161 @@ const again = (t) => { t.integrations[0].next_sync_at = iso(REAL() - DAY); retur
   check('ค้าง + ใหม่ → ดอกเดียว 2 ชิ้น', r.sent.length === 1 && /2 ชิ้น/.test(r.sent[0].title), JSON.stringify(r.sent));
 }
 
-// ---- 14) รอบถัดไปต้องไม่ถูกข้าม: นัดต้องมาก่อนรอบ cron ที่ห่างไป 30 นาที (commit 7f06070) ----
+// ============================================================
+// หลายบัญชี (15 ต.ค. 69) — "บัญชีผมได้งาน แต่บัญชีนักเรียนคนอื่นไม่ได้"
+// ============================================================
+const dueIn = days => (d => ({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() }))(new Date(Date.now() + days * DAY));
+const posted = iso(Date.now() - DAY);
+const gRow = async (id, user, rt, over = {}) => ({
+  id, user_id: user, provider: 'google_classroom', account: rt.replace(/^rt-/, '') + '@gmail.com',
+  secret: await crypto32.seal(rt), meta: {}, fail_count: 0, status: 'active',
+  next_sync_at: iso(REAL() - DAY), last_sync_at: iso(REAL() - DAY),
+  updated_at: '2026-10-14T13:50:00.000Z', ...over,
+});
+const gTables = async rows => base({
+  integrations: rows,
+  push_subscriptions: [...new Set(rows.map(r => r.user_id))].map(u => ({ endpoint: 'ep-' + u, user_id: u, p256dh: 'p', auth: 'a' })),
+  user_state: [...new Set(rows.map(r => r.user_id))].map(u => ({ id: u, data: { settings: {} } })),
+});
+async function runBody(tables, body) {
+  sb.__setTables(tables);
+  wp.__sent.length = 0;
+  const res = await handler(new Request('http://x', { method: 'POST', body: JSON.stringify(body) }));
+  return { body: await res.json(), tables, sent: wp.__sent.map(s => ({ endpoint: s.endpoint, title: s.title, body: s.body, tag: s.tag })) };
+}
+
+// ---- 13) สามบัญชีในรอบ cron เดียวกัน · แต่ละคนต้องได้งานของตัวเองครบ และไม่ได้ของคนอื่น ----
+{
+  GOOGLE = {
+    // A: อยู่สองห้อง (ห้องร่วม + ห้องของตัวเอง)
+    'rt-a': { email: 'a@gmail.com', courses: [{ id: 'c-shared', name: 'คณิต' }, { id: 'c-a', name: 'เคมี' }],
+      work: { 'c-shared': [{ id: 'w1', title: 'แบบฝึกหัด 1', state: 'PUBLISHED', creationTime: posted, dueDate: dueIn(2) },
+                           { id: 'w2', title: 'แบบฝึกหัด 2', state: 'PUBLISHED', creationTime: posted, dueDate: dueIn(3) }],
+              'c-a': [{ id: 'wa', title: 'รายงานเคมีของ A', state: 'PUBLISHED', creationTime: posted, dueDate: dueIn(4) }] } },
+    // B: ห้องร่วมห้องเดียว และส่ง w2 ไปแล้ว
+    'rt-b': { email: 'b@gmail.com', courses: [{ id: 'c-shared', name: 'คณิต' }],
+      work: { 'c-shared': [{ id: 'w1', title: 'แบบฝึกหัด 1', state: 'PUBLISHED', creationTime: posted, dueDate: dueIn(2) },
+                           { id: 'w2', title: 'แบบฝึกหัด 2', state: 'PUBLISHED', creationTime: posted, dueDate: dueIn(3) }] },
+      subs: { 'c-shared': [{ courseWorkId: 'w2', state: 'TURNED_IN' }] } },
+    // C: เชื่อมผ่าน แต่บัญชีนี้ไม่ได้เป็นนักเรียนในห้องไหน (อาการของบัญชีที่ได้ศูนย์งานบน production)
+    'rt-c': { email: 'c@gmail.com', courses: [], teacherCourses: [] },
+  };
+  const t = await gTables([await gRow('ia', 'ua', 'rt-a'), await gRow('ib', 'ub', 'rt-b'), await gRow('ic', 'uc', 'rt-c')]);
+  const r = await runBody(t, {});
+  const inboxOf = u => r.tables.inbox_items.filter(x => x.user_id === u).map(x => x.meta.task.title).sort();
+  check('หลายบัญชี → ซิงก์ครบ 3 เส้น', r.body.ran === 3, JSON.stringify(r.body));
+  check('A ได้งานของ A ครบ 3 ใบ', JSON.stringify(inboxOf('ua')) === JSON.stringify(['รายงานเคมีของ A', 'แบบฝึกหัด 1', 'แบบฝึกหัด 2']), inboxOf('ua'));
+  check('B ได้ห้องร่วมเฉพาะที่ยังไม่ส่ง', JSON.stringify(inboxOf('ub')) === JSON.stringify(['แบบฝึกหัด 1']), inboxOf('ub'));
+  check('ไม่รั่ว: งานห้อง c-a ไม่ไปถึงใครนอกจาก A',
+    r.tables.inbox_items.filter(x => String(x.meta.sourceId).startsWith('c-a:')).every(x => x.user_id === 'ua'),
+    JSON.stringify(r.tables.inbox_items.map(x => [x.user_id, x.meta.sourceId])));
+  check('ไม่รั่ว: ทะเบียนทุกแถวเป็นของเจ้าของเส้นนั้น',
+    r.tables.integration_items.every(x => x.user_id === t.integrations.find(i => i.id === x.integration_id).user_id),
+    JSON.stringify(r.tables.integration_items.map(x => [x.integration_id, x.user_id])));
+  check('ไม่รั่ว: แถว inbox บอกบัญชีต้นทางถูก',
+    r.tables.inbox_items.every(x => x.meta.account === t.integrations.find(i => i.user_id === x.user_id).account),
+    JSON.stringify(r.tables.inbox_items.map(x => [x.user_id, x.meta.account])));
+  check('C ได้ศูนย์งาน', inboxOf('uc').length === 0, inboxOf('uc'));
+  const dc = t.integrations.find(i => i.id === 'ic').meta.diag || {};
+  check('C → diag บอกว่าไม่อยู่ในห้องไหน', dc.coursesStudent === 0 && dc.coursesTeacher === 0, JSON.stringify(dc));
+  const db_ = t.integrations.find(i => i.id === 'ib').meta.diag || {};
+  check('B → diag นับงาน 2 ส่งแล้ว 1', db_.coursesStudent === 1 && db_.work === 2 && db_.turnedIn === 1, JSON.stringify(db_));
+  check('ไม่มีใครถูกตีว่าต้องเชื่อมใหม่', t.integrations.every(i => i.status === 'active'), t.integrations.map(i => i.status));
+}
+
+// ---- 14) บัญชีที่เป็น "ครู" ของห้อง → diag แยกออกจาก "ไม่อยู่ห้องไหน" ----
+{
+  GOOGLE = { 'rt-t': { email: 't@gmail.com', courses: [], teacherCourses: [{ id: 'c-shared' }] } };
+  const t = await gTables([await gRow('it', 'ut', 'rt-t')]);
+  await runBody(t, {});
+  const d = t.integrations[0].meta.diag || {};
+  check('ครู → coursesTeacher = 1', d.coursesStudent === 0 && d.coursesTeacher === 1, JSON.stringify(d));
+}
+
+// ---- 15) กุญแจหมดอายุ (invalid_grant) ตอนกลางวัน → ต้องเชื่อมใหม่ + แจ้งเจ้าตัวดอกเดียว ----
+{
+  GOOGLE = { 'rt-x': { email: 'x@gmail.com', tokenError: 'invalid_grant' } };
+  const t = await gTables([await gRow('ix', 'ux', 'rt-x')]);
+  const r = await runBody(t, {});
+  check('invalid_grant → needs_reauth', t.integrations[0].status === 'needs_reauth', t.integrations[0].status);
+  check('invalid_grant → แจ้งเจ้าตัว 1 ดอก', r.sent.length === 1 && r.sent[0].tag === 'integ-reauth', JSON.stringify(r.sent));
+  check('แจ้งถึงเครื่องของเจ้าของเท่านั้น', r.sent.every(s => s.endpoint === 'ep-ux'), JSON.stringify(r.sent));
+  // วันรุ่งขึ้นลองใหม่แล้วยังตาย (กุญแจชุดเดิม) → ต้องไม่ดังซ้ำ
+  const r2 = await runBody(t, { integration_id: 'ix' });
+  check('กุญแจชุดเดิมตายซ้ำ → ไม่ดังซ้ำ', r2.sent.length === 0, JSON.stringify(r2.sent));
+  // กดเชื่อมใหม่ (updated_at ขยับ) แล้วกุญแจชุดใหม่ตายอีก → แจ้งได้อีกครั้ง
+  t.integrations[0].updated_at = '2026-10-21T13:50:00.000Z';
+  const r3 = await runBody(t, { integration_id: 'ix' });
+  check('กุญแจชุดใหม่ตาย → แจ้งอีกครั้ง', r3.sent.length === 1, JSON.stringify(r3.sent));
+}
+
+// ---- 16) กุญแจหมดอายุตอนตีสอง → ไม่ปลุก และนัดลองใหม่ตอนเช้า (ไม่ใช่ +24 ชม. ที่ตกกลางดึกอีก) ----
+{
+  freezeThaiHour(2);
+  GOOGLE = { 'rt-y': { email: 'y@gmail.com', tokenError: 'invalid_grant' } };
+  const t = await gTables([await gRow('iy', 'uy', 'rt-y')]);
+  const r = await runBody(t, {});
+  const next = new Date(t.integrations[0].next_sync_at);
+  const thHour = (next.getUTCHours() + 7) % 24;
+  check('ตีสอง → ไม่ push', r.sent.length === 0, JSON.stringify(r.sent));
+  check('ตีสอง → นัดลองใหม่ 07:xx น. ไทย', thHour === 7 && next.getTime() > REAL(), t.integrations[0].next_sync_at);
+  freezeThaiHour(14);
+}
+// ---- 17) ครูกด "คืน" ทั้งที่นักเรียนไม่เคยส่ง → ยังเป็นงานค้าง ต้องเข้าแผน ----
+// เดิมนับ RETURNED ว่าส่งแล้วทุกใบ — บัญชีจริง (15 ต.ค. 69) ขึ้น "ส่งแล้ว 20/20" ซึ่งแยกไม่ออกว่ามีแบบนี้ปนไหม
+{
+  const TI = { stateHistory: { state: 'TURNED_IN', stateTimestamp: posted } };
+  const RT = { stateHistory: { state: 'RETURNED', stateTimestamp: posted } };
+  const CR = { stateHistory: { state: 'CREATED', stateTimestamp: posted } };
+  GOOGLE = { 'rt-r': { email: 'r@gmail.com', courses: [{ id: 'c-r', name: 'ฟิสิกส์' }],
+    work: { 'c-r': ['w-ti', 'w-ret-sub', 'w-ret-nosub', 'w-ret-nohist', 'w-new'].map((id, i) =>
+      ({ id, title: 'งาน ' + id, state: 'PUBLISHED', creationTime: posted, dueDate: dueIn(i + 1) })) },
+    subs: { 'c-r': [
+      { courseWorkId: 'w-ti', state: 'TURNED_IN', submissionHistory: [CR, TI] },
+      { courseWorkId: 'w-ret-sub', state: 'RETURNED', submissionHistory: [CR, TI, RT] },
+      { courseWorkId: 'w-ret-nosub', state: 'RETURNED', submissionHistory: [CR, RT] },
+      { courseWorkId: 'w-ret-nohist', state: 'RETURNED' },
+      { courseWorkId: 'w-new', state: 'CREATED', submissionHistory: [CR] },
+    ] } } };
+  const t = await gTables([await gRow('ir', 'ur', 'rt-r')]);
+  const r = await runBody(t, {});
+  const got = r.tables.inbox_items.map(x => x.meta.sourceId.split(':')[1]).sort();
+  check('คืนโดยไม่เคยส่ง → เข้าแผน · ส่งแล้ว/คืนหลังส่ง → ไม่เข้า',
+    JSON.stringify(got) === JSON.stringify(['w-new', 'w-ret-nosub']), JSON.stringify(got));
+  const d = t.integrations[0].meta.diag || {};
+  check('diag แยกสามแบบถูก', d.work === 5 && d.turnedIn === 1 && d.returned === 2
+    && d.returnedUnsubmitted === 1 && d.done === 3 && d.returnedNoHistory === 1, JSON.stringify(d));
+  check('ไม่มีประวัติ + ยังไม่เลยกำหนด → นับว่าอาจหายผิด 1 ใบ', d.returnedNoHistoryOpen === 1, JSON.stringify(d));
+}
+
+// ---- 17b) ไม่มีประวัติ แต่เลยกำหนดไปแล้ว → ไม่นับ (ต่อให้ค้างก็ไม่เข้าแผนอยู่ดี) ----
+{
+  GOOGLE = { 'rt-o': { email: 'o@gmail.com', courses: [{ id: 'c-o', name: 'ไทย' }],
+    work: { 'c-o': [
+      { id: 'w-old', title: 'งานเก่า', state: 'PUBLISHED', creationTime: iso(Date.now() - 30 * DAY), dueDate: dueIn(-10) },
+      { id: 'w-old-nodue', title: 'งานเก่าไม่มีกำหนด', state: 'PUBLISHED', creationTime: iso(Date.now() - 30 * DAY) },
+    ] },
+    subs: { 'c-o': [{ courseWorkId: 'w-old', state: 'RETURNED' }, { courseWorkId: 'w-old-nodue', state: 'RETURNED' }] } } };
+  const t = await gTables([await gRow('io', 'uo', 'rt-o')]);
+  await runBody(t, {});
+  const d = t.integrations[0].meta.diag || {};
+  check('ไม่มีประวัติ + เลยกำหนดแล้ว → ไม่นับ', d.returnedNoHistory === 2 && d.returnedNoHistoryOpen === 0, JSON.stringify(d));
+}
+// ---- 18) รอบถัดไปต้องไม่ถูกข้าม: นัดต้องมาก่อนรอบ cron ที่ห่างไป 30 นาที ----
 // ซิงก์เสร็จช้ากว่าเวลาที่ cron ยิงเสมอ (เทสต์นี้: cron ยิง 14:00:00 · ซิงก์เสร็จ 14:00:10)
 // ถ้านัดไว้ 14:30:10 รอบ 14:30:00 จะข้ามแถวนี้ไป แล้วได้ซิงก์ชั่วโมงละครั้ง
-// ข้อมูลจริง 15 ต.ค. 22:30 น.: สามในสี่บัญชีนัดไว้ 22:30:09–22:30:33 แล้วไม่ถูกซิงก์ในรอบนั้น
 {
   const tick = Date.now();
   Date.now = () => tick + 10_000;
-  FEED = feed([{ uid: 'slack1', summary: 'ใบงาน', due: tick + 3 * DAY }]);
-  const t = base();
-  await run(t);
+  GOOGLE = { 'rt-g': { email: 'g@gmail.com', courses: [] } };
+  const t = await gTables([await gRow('ig', 'ug', 'rt-g')]);
+  await runBody(t, {});
   const next = Date.parse(t.integrations[0].next_sync_at);
   check('นัดรอบถัดไปไม่เลยรอบ cron +30 นาที', next <= tick + 30 * 60_000, new Date(next).toISOString());
   check('และไม่ถี่เกินตั้งใจ (ไม่เร็วกว่า +25 นาที)', next >= tick + 25 * 60_000, new Date(next).toISOString());
   Date.now = () => tick;
 }
+GOOGLE = null;
 
 unfreeze();
 
