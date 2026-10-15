@@ -249,11 +249,13 @@ function integMenuRows() {
   for (const r of integItems()) {
     const s = src(r.provider) || { name: r.provider, icon: 'calendar' };
     const bad = r.status === 'needs_reauth';
+    const why = integEmptyReason(r);
+    const warn = bad || !!(why && why.warn);
     html += `<div class="as-row as-tgl" onclick="closeAddSheet();go('scr-sources')">
       <span class="as-ic">${icon(s.icon)}</span>
       <span class="as-tx"><b>${esc(s.shortName || s.name)}</b>
         <span>${esc(r.account || integStatusText(r))}</span></span>
-      <span class="as-cnt ${bad ? 'bad' : 'ok'}">${icon(bad ? 'flag' : 'check')}${bad ? 'ต้องเชื่อมใหม่' : 'เชื่อมแล้ว'}</span>
+      <span class="as-cnt ${warn ? 'bad' : 'ok'}">${icon(warn ? 'flag' : 'check')}${bad ? 'ต้องเชื่อมใหม่' : warn ? 'ไม่มีห้องเรียน' : 'เชื่อมแล้ว'}</span>
     </div>`;
   }
 
@@ -282,6 +284,8 @@ function integMenuRows() {
 function integStatusText(row) {
   if (!row) return '';
   if (row.status === 'needs_reauth') return row.error_msg || 'ต้องเชื่อมใหม่';
+  const why = integEmptyReason(row);
+  if (why) return why.text;
   if (row.status === 'paused') return 'พักไว้';
   if (row.status === 'error') return 'ต้นทางมีปัญหา กำลังลองใหม่';
   if (!row.last_sync_at) return 'กำลังดึงรอบแรก';
@@ -291,4 +295,21 @@ function integStatusText(row) {
   if (mins < 60) return `อัปเดตเมื่อ ${mins} นาทีที่แล้ว`;
   const hrs = Math.round(mins / 60);
   return hrs < 24 ? `อัปเดตเมื่อ ${hrs} ชม.ที่แล้ว` : 'อัปเดตเมื่อวานหรือก่อนหน้า';
+}
+
+// ---------- เชื่อมแล้ว · ซิงก์ผ่าน · แต่ไม่มีงานเข้าเลยสักใบ ----------
+// เจอจริง 15 ต.ค. 69: บัญชีนักเรียนหนึ่งเชื่อมผ่าน ซิงก์ผ่านทุก 30 นาที สถานะ "อัปเดตเมื่อสักครู่"
+// แต่ Google ตอบกลับมาศูนย์งานทุกรอบ — จอบอกว่าทุกอย่างปกติ ทั้งที่งานจากครูไม่เคยมาถึงเลย
+// ตัวซิงก์จด diag (ตัวเลขล้วน) ไว้ให้แล้ว · ตรงนี้แปลเป็นคำที่บอกว่าต้องทำอะไรต่อ
+// warn = ต้องให้คนแก้ (บัญชีผิด/ยังไม่เข้าห้อง) · ไม่ warn = ปกติจริง แค่ไม่มีงานค้าง
+function integEmptyReason(row) {
+  const d = row && row.diag;
+  if (!d || row.status !== 'active' || row.provider !== 'google_classroom') return null;
+  if (!d.coursesStudent) {
+    return d.coursesTeacher
+      ? { warn: true, text: 'บัญชีนี้เป็นครูในห้องเรียน ไม่ใช่นักเรียน · เชื่อมบัญชีที่ใช้เรียนแทน' }
+      : { warn: true, text: 'บัญชีนี้ยังไม่อยู่ในห้องเรียนไหน · ตอบรับคำเชิญใน Classroom หรือเชื่อมบัญชีที่ใช้เข้าห้อง' };
+  }
+  if (d.work && d.turnedIn >= d.work) return { warn: false, text: 'ส่งงานครบทุกชิ้นแล้ว' };
+  return null;
 }

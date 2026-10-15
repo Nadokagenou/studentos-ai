@@ -178,7 +178,7 @@ function dueOf(w: Record<string, any>): string | null {
 
 /** ดึงงานทั้งหมดที่บัญชีนี้มีสิทธิ์เห็น แล้วแปลงเป็นรูปแบบของ StudentOS */
 export async function fetchClassroom(refreshToken: string): Promise<{
-  tasks: StandardTask[]; account: string;
+  tasks: StandardTask[]; account: string; diag: ClassroomDiag;
 }> {
   const token = await accessToken(refreshToken);
 
@@ -186,6 +186,22 @@ export async function fetchClassroom(refreshToken: string): Promise<{
 
   const courses = await pages(token, 'courses', 'courses',
     { studentId: 'me', courseStates: 'ACTIVE' });
+
+  const diag: ClassroomDiag = {
+    at: new Date().toISOString(),
+    coursesStudent: courses.length, coursesTeacher: 0,
+    work: 0, turnedIn: 0, untitled: 0, subsFailed: 0,
+  };
+  // บัญชีที่ "เชื่อมแล้ว · ไม่มีงานเลยสักใบ" มีได้สามเหตุผลที่ต่างกันมากสำหรับผู้ใช้:
+  // ไม่ได้เป็นนักเรียนในห้องไหน · เป็นครูของห้องนั้น · หรือส่งงานครบแล้วจริง ๆ
+  // ไม่จดไว้ = ฝั่งเราเห็นแค่เลขศูนย์ แล้วต้องเดาว่าพังตรงไหน (เจอจริง 15 ต.ค. 69)
+  // ถามเฉพาะตอนไม่เจอห้องเรียนในฐานะนักเรียน — ปกติไม่ต้องเสียคำขอเพิ่ม
+  if (!courses.length) {
+    try {
+      diag.coursesTeacher = (await pages(token, 'courses', 'courses',
+        { teacherId: 'me', courseStates: 'ACTIVE' })).length;
+    } catch { /* ป้ายวินิจฉัย ไม่ใช่เหตุให้รอบซิงก์ล้ม */ }
+  }
 
   const tasks: StandardTask[] = [];
   for (const c of courses) {
@@ -205,13 +221,14 @@ export async function fetchClassroom(refreshToken: string): Promise<{
         const st = String(s.state || '');
         if (st === 'TURNED_IN' || st === 'RETURNED') done.add(String(s.courseWorkId));
       }
-    } catch { /* คอร์สที่อ่านสถานะไม่ได้ ยังดีกว่าไม่ได้งานเลย */ }
+    } catch { diag.subsFailed++; /* คอร์สที่อ่านสถานะไม่ได้ ยังดีกว่าไม่ได้งานเลย */ }
 
+    diag.work += work.length;
     for (const w of work) {
       const id = String(w.id);
-      if (done.has(id)) continue;      // ส่งไปแล้ว ไม่ต้องเอาเข้าแผน
+      if (done.has(id)) { diag.turnedIn++; continue; }   // ส่งไปแล้ว ไม่ต้องเอาเข้าแผน
       const title = clip(w.title, 140);
-      if (!title) continue;
+      if (!title) { diag.untitled++; continue; }
       tasks.push({
         sourceId: `${courseId}:${id}`,
         title,
@@ -230,8 +247,19 @@ export async function fetchClassroom(refreshToken: string): Promise<{
       // จึงไม่ส่งมาเลย ดีกว่าส่งตัวเลขที่หน้าตาเหมือนใช่แต่ไม่ใช่
     }
   }
-  return { tasks, account };
+  return { tasks, account, diag };
 }
+
+/** ตัวเลขล้วน ไม่มีชื่องาน ไม่มีชื่อห้อง — เก็บลง integrations.meta ไว้ตอบว่า "ทำไมไม่มีงานเข้า" */
+export type ClassroomDiag = {
+  at: string;
+  coursesStudent: number;   // ห้องที่บัญชีนี้เป็นนักเรียน (ACTIVE)
+  coursesTeacher: number;   // ห้องที่บัญชีนี้เป็นครู — ถามเฉพาะตอน coursesStudent = 0
+  work: number;             // งานที่ครูเผยแพร่แล้วทั้งหมดที่บัญชีนี้เห็น
+  turnedIn: number;         // ส่งแล้ว/ครูคืนแล้ว — ไม่เอาเข้าแผน
+  untitled: number;
+  subsFailed: number;       // ห้องที่อ่านสถานะการส่งไม่ได้
+};
 
 /** ค่าที่ oauth-start ใช้ประกอบ URL หน้าขออนุญาตของ Google */
 export function authorizeUrl(opts: {
