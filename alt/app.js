@@ -1040,6 +1040,8 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
   // 1B94 · ตารางเต็มวันเข้าจากโหมด "วันนี้" ของแท็บงาน จึงคืนไฟให้แท็บนั้น
   'scr-dayfull': 'scr-tasks',
   'scr-settings': 'scr-profile', 'scr-setopt': 'scr-profile', 'scr-stats': 'scr-profile',
+  // 15 ต.ค. 69 · ข่าวสารจากทีมเข้าจากแท็บ "ฉัน"
+  'scr-news': 'scr-profile',
   // จอแชทซ่อนแถบล่างอยู่แล้ว แต่ต้องผูกเจ้าของไว้ด้วย — ไม่งั้นตอนกดย้อนกลับ
   // ออกมา จะไม่มีแท็บไหนติดไฟสักอัน ซึ่งอ่านว่า "หลงอยู่ที่ไหนไม่รู้"
   // 1B93 · แท็บ "เพื่อน" ถูกแทนด้วยน้องไซ จอตระกูลฟีดจึงไม่มีแท็บของตัวเองอีกแล้ว
@@ -1186,6 +1188,8 @@ function go(id) {
   if (id === 'scr-login') { loginView = 'root'; renderLoginOpts(); loginNote(''); }
   // เปิดจอการแจ้งเตือน = อ่านแล้ว (renderNotif จดเวลาเอง) · ต้องวาดตอนนี้ ไม่รอ renderAll รอบถัดไป
   if (id === 'scr-notif' && typeof renderNotif === 'function') renderNotif();
+  // 15 ต.ค. 69 · จอข่าวสารจากทีมวาดด้วย JS ทั้งจอ — go() เปล่า ๆ ได้จอว่าง (news.js)
+  if (id === 'scr-news' && typeof newsEnter === 'function') newsEnter();
   // จอแชทซ่อนแถบล่างเหมือนจอล็อกอิน — ช่องพิมพ์ต้องติดก้นจอจริง ๆ
   // ไม่ใช่ลอยอยู่หลังแถบล่างจนกดไม่โดน · ออกจากจอนี้ได้ทางปุ่มย้อนกลับในหัวจอ
   // 1C19 · scr-sai ถูกถอดออกจากรายการนี้ — เจ้าของสั่งว่า "อยากให้เป็นเหมือน
@@ -7452,6 +7456,8 @@ function renderProfile() {
     pdm.hidden = !n;
     pdm.textContent = n > 9 ? '9+' : String(n);
   }
+  // 15 ต.ค. 69 · เลขข่าวจากทีมที่ยังไม่เปิดดู — นับใน news.js ที่เดียว
+  if (typeof newsPaintRow === 'function') newsPaintRow();
   // ตัวเลขบนปุ่มทางเข้าใหญ่ 3 ปุ่ม
   const pb = document.getElementById('peBadgeCt');
   if (pb) pb.textContent = badgesEarned().length + ' จาก ' + BADGES.length + ' เหรียญ';

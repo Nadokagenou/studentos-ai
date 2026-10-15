@@ -11,6 +11,7 @@ AI Decision Assistant สำหรับนักเรียนมัธยม 
 3. `alt/PATCHNOTES.md` — ประวัติทุกรุ่น **รุ่นใหม่อยู่บนสุด** (อ่าน 120 บรรทัดแรกพอ)
 
 เสริมเมื่อต้องใช้: `alt/README-ALT.md` · `alt/AUDIT-2026-08-15.md` · `docs/supabase-setup.md`
+· **ร่างข่าวสารถึงผู้ใช้ (จอ "ข่าวสาร")** → `alt/news/README.md` — ทุกประโยคต้องมีหลักฐาน และต้องผ่าน `node alt/devtools/news.mjs check`
 
 ---
 
