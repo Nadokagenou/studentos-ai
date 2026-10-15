@@ -57,6 +57,11 @@ IDENTITY = [
     ('app.js',
      "icon: 'icon-alt-192.png', badge: 'icon-alt-192.png',",
      "icon: 'icon-192.png', badge: 'icon-192.png',"),
+    # ข่าวสารจากทีม (15 ต.ค. 69) — ไฟล์ข่าวอยู่ที่ alt/news/ ที่เดียว ตัวจริงต้องอ่านข้ามโฟลเดอร์
+    # ไม่ก๊อป news/ ขึ้นราก: สองชุด = เพิ่มข่าวทีต้องซิงก์ทุกครั้ง ไม่งั้นมือถือเห็นข่าวไม่ตรงกับเว็บ
+    ('news.js',
+     "const NEWS_BASE = '';",
+     "const NEWS_BASE = 'alt/';"),
 ]
 
 
@@ -173,10 +178,15 @@ def main():
         if '\r\n' in s:
             alt_text = alt_text.replace('\n', '\r\n')
             root_text = root_text.replace('\n', '\r\n')
+        if alt_text not in s and root_text in s:
+            # ฝั่ง alt เลิกเขียนแบบ alt ไปแล้ว (เช่น icon-alt-* ถูกถอดตั้งแต่ QA 6 ต.ค. 69)
+            # และไฟล์ที่ก๊อปมาก็มีหน้าตาของตัวจริงอยู่แล้ว = ไม่มีอะไรต้องแก้กลับ ไม่ใช่ปัญหา
+            # (15 ต.ค. 69 · เดิมฟ้องสามข้อนี้ทุกรอบแล้วจบด้วย exit 1 ทั้งที่ผลถูก — ฟ้องผิดบ่อย ๆ = วันหนึ่งคนเลิกอ่าน)
+            continue
         if alt_text not in s:
             # ของที่หาไม่เจอแปลว่าไฟล์ฝั่ง alt เปลี่ยนหน้าตาไปแล้ว — ต้องรู้ทันที
             # ไม่ใช่ปล่อยผ่านเงียบ ๆ แล้วไปเจอตอนตัวจริงขึ้นชื่อว่า ALT บนเว็บ
-            problems.append('index.html ยังหาข้อความที่ต้องแก้กลับไม่เจอ: ' + alt_text[:60])
+            problems.append(name + ' ยังหาข้อความที่ต้องแก้กลับไม่เจอ: ' + alt_text[:60])
             continue
         io.open(p, 'w', encoding='utf-8', newline='').write(s.replace(alt_text, root_text))
 
