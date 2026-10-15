@@ -3,6 +3,24 @@
   "note": "ประกาศที่ผู้ใช้เห็นในจอ \"ข่าวสาร\" — แก้ผ่าน PR เท่านั้น และต้องผ่าน node alt/devtools/news.mjs check ก่อน merge",
   "items": [
     {
+      "id": "hello-2026-10-15",
+      "date": "2026-10-15",
+      "kind": "notice",
+      "title": "สวัสดี ผู้ใช้งานทุกคน",
+      "body": "ขอให้โชคดี!",
+      "evidence": [
+        {
+          "for": [
+            "title",
+            "body"
+          ],
+          "source": "owner",
+          "said": "2026-10-15",
+          "quote": "ไหนลองส่ง สวัสดี ผู้ใช้งานทุกคน ขอให้โชกดี!"
+        }
+      ]
+    },
+    {
       "id": "1c57-notif-source-logo",
       "date": "2026-10-15",
       "release": "1C57",
