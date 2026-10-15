@@ -12196,6 +12196,8 @@ let formReturn = 'scr-home';
 
 function openForm(id, parsed) {
   editingId = id;
+  // ฟอร์มที่เปิดจากแจ้งเตือนรอตรวจ ตั้งค่านี้เองหลังเรียก (notifOpenItem) — ทางอื่นต้องไม่พามันติดมา
+  if (typeof inboxFormItem !== 'undefined') inboxFormItem = null;
   // งานใบนี้มาจาก "AI อ่านให้" หรือ "พิมพ์เองทีละช่อง"
   //
   // ตัวเลขนี้คือ capture rate — สัดส่วนงานที่เข้าระบบโดยผู้ใช้ไม่ต้องพิมพ์
@@ -13148,8 +13150,13 @@ function saveForm() {
     }
     Object.assign(target, data);
   } else {
-    state.tasks.push(Object.assign({ id: uid(), done: false, createdAt: new Date().toISOString(), fromScan: formFromScan }, data));
-    funnelTask(formFromScan ? 'scan' : 'manual');
+    const nt = Object.assign({ id: uid(), done: false, createdAt: new Date().toISOString(), fromScan: formFromScan }, data);
+    state.tasks.push(nt);
+    // ตรวจจากแจ้งเตือน = งานไหลเข้ามาเอง ไม่ได้พิมพ์ — นับเป็นกล่องเข้า ไม่ใช่ "พิมพ์เอง" (capture rate)
+    const viaInbox = typeof inboxFormItem !== 'undefined' && !!inboxFormItem;
+    funnelTask(viaInbox ? 'inbox' : formFromScan ? 'scan' : 'manual');
+    // มาจากแจ้งเตือนที่รอตรวจ = ปิดรายการในกล่องเข้าให้ชี้มาที่งานใบนี้ (inbox.js)
+    if (typeof inboxFormSaved === 'function') inboxFormSaved(nt);
   }
   const back = formReturn;
   const wasEdit = !!target;
