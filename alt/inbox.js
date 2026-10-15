@@ -754,6 +754,8 @@ function inboxToTask(item) {
     estMin: p.estMin || 30,
     type: p.type || 'homework',
     due: p.due || null,
+    // "ทำ 2 ทุ่ม" ที่พิมพ์ในช่องเพิ่มด่วน — นัดของตัวเอง ถึงเวลาแล้วเด้ง (doAtTick ใน app.js)
+    doAt: p.doAt || null,
     done: false, progress: 0,
     // จำไว้ว่างานนี้มาจากไหน — ใช้ตอบคำถาม "งานนี้โผล่มาจากไหน" และใช้กรองในชั้นหนังสือ
     sourceId: item.source, sourceText: item.raw, fromInbox: item.id,

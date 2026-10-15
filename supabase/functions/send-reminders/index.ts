@@ -595,6 +595,128 @@ async function handleTest(req: Request, body: any): Promise<Response> {
   return json({ ok: r.sent > 0, devices: subs.length, delay, ...r });
 }
 
+// ============================================================
+// 15 ต.ค. 69 · เตือนตรงเวลาที่นักเรียนตั้งเองว่า "จะทำตอนนี้" (t.doAt)
+// ------------------------------------------------------------
+// เจ้าของ: "เมื่อถึงเวลาทำงานให้แจ้งเตือนเลย เช่นทำ 2 ทุ่มก็แจ้งเตือน มีกี่งานก็ตามเวลาเลย"
+//
+// ทุกเสียงอื่นในไฟล์นี้เป็นเสียงที่ "ระบบเลือกพูดเอง" จึงต้องมีช่วงเงียบ เพดานต่อวัน
+// และหนึ่งดอกต่อรอบ — ไม่งั้นแอปกลายเป็นเครื่องยิงแจ้งเตือน · แต่ doAt คือนัดที่เจ้าตัวตั้งเอง
+// เหมือนนาฬิกาปลุก: ตั้งสามงาน 20:00 · 20:30 · 21:00 ต้องได้สามดอกตรงเวลา ไม่ใช่ดอกเดียวแล้วเงียบ
+// จึงแยกออกมาเป็นรอบของตัวเอง ที่ไม่ผ่านด่านใดของรอบปกติเลย:
+//   · ไม่ผ่านด่าน SQL ของ last_sent_at · ไม่นับเพดานต่อวัน (คีย์ do:: ถูกข้ามใน taskShots)
+//   · ไม่ขยับ last_sent_at — นัดที่ตั้งเองต้องไม่ไปเลื่อนการเตือนกำหนดส่ง
+//   · ไม่เว้นกลางดึก ไม่เว้นเวลาเรียน ไม่สนหน้าต่างเวลาส่งของเจ้าของระบบ — เขาเลือกเวลานั้นเอง
+//   · ปิดสวิตช์ใหญ่ "รับการแจ้งเตือน" (notifOff) ยังเงียบตามเดิม
+//
+// cron ตัวหลักยิงทุก 30 นาที ซึ่งหยาบเกินไปสำหรับนัด · cron ตัวที่สองยิง { only: 'doAt' }
+// ทุก 5 นาทีในนาทีที่เหลือ (migration 20261015120000) → ช้ากว่าเวลาที่ตั้งไม่เกิน 5 นาที
+// ส่วนตอนเปิดแอปอยู่ แอปขึ้นการ์ดเองตรงนาที แล้วปัก t.doAtShown ให้รอบนี้ข้าม (doAtTick ใน app.js)
+// ============================================================
+const DO_KEY = 'do::';
+const DO_EARLY_MS = 60_000;            // ส่งก่อนเวลาได้ไม่เกินนาทีเดียว (cron ไม่ได้ยิงตรงวินาที)
+const DO_LATE_MS = 30 * 60_000;        // ช้ากว่านี้ทิ้ง — "ถึงเวลาทำแล้ว" ตอนเลยไปครึ่งชั่วโมงไม่จริงแล้ว
+
+function doAtMs(t: any): number {
+  return typeof t?.doAt === 'string' ? Date.parse(t.doAt) : NaN;
+}
+
+function doAtCopy(t: any): { title: string; body: string } {
+  const d = thDate(doAtMs(t));
+  const hhmm = String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0');
+  const min = Math.round(Number(t?.estMin) || 0);
+  return {
+    title: taskName(t),
+    body: `ถึงเวลาทำแล้ว · ${hhmm}` + (min > 0 ? ` · ~${min} นาที` : ''),
+  };
+}
+
+async function runDoAt(now: number, errors: string[]): Promise<{ sent: number; due: number }> {
+  let sent = 0, due = 0;
+  for (let page = 0; ; page++) {
+    const { data: subs, error: subErr } = await db
+      .from('push_subscriptions')
+      .select('endpoint, user_id, p256dh, auth')
+      .order('endpoint')
+      .range(page * PAGE, page * PAGE + PAGE - 1);
+    if (subErr) { errors.push('doAt subs: ' + subErr.message); break; }
+    if (!subs?.length) break;
+
+    const byUser = new Map<string, any[]>();
+    for (const s of subs) (byUser.get(s.user_id) ?? byUser.set(s.user_id, []).get(s.user_id)!).push(s);
+    const userIds = [...byUser.keys()];
+
+    // งานที่ถึงนัดในรอบนี้ ต่อคน
+    const dueByUser = new Map<string, any[]>();
+    for (const ids of chunk(userIds, ID_CHUNK)) {
+      const { data: rows, error } = await db
+        .from('user_state').select('id, tasks:data->tasks, settings:data->settings').in('id', ids);
+      if (error) { errors.push('doAt user_state: ' + error.message); continue; }
+      for (const r of rows ?? []) {
+        if ((r as any).settings?.notifOff === true) continue;
+        const list = ((r as any).tasks ?? []).filter((t: any) => {
+          if (!t || t.done || t.deleted) return false;
+          const at = doAtMs(t);
+          if (!Number.isFinite(at) || at > now + DO_EARLY_MS || at < now - DO_LATE_MS) return false;
+          return t.doAtShown !== t.doAt;   // แอปขึ้นการ์ดให้เองไปแล้วตอนเปิดอยู่
+        });
+        if (list.length) dueByUser.set((r as any).id, list);
+      }
+    }
+    if (!dueByUser.size) { if (subs.length < PAGE) break; continue; }
+
+    const already = new Set<string>();
+    for (const ids of chunk([...dueByUser.keys()], ID_CHUNK)) {
+      const { data: rows } = await db.from('push_sent').select('user_id, task_id').in('user_id', ids);
+      for (const r of rows ?? []) {
+        if (String((r as any).task_id).startsWith(DO_KEY)) already.add(`${(r as any).user_id}::${(r as any).task_id}`);
+      }
+    }
+
+    // หนึ่งงาน = หนึ่งดอก (แท็กแยกต่องาน ดอกที่สองไม่ทับดอกแรกบนหน้าจอล็อก) · ส่งทุกเครื่องของเจ้าตัว
+    const jobs: { uid: string; t: any; key: string }[] = [];
+    for (const [uid, list] of dueByUser) {
+      for (const t of list) {
+        const key = `${DO_KEY}${t.id}::${t.doAt}`;
+        if (!already.has(`${uid}::${key}`)) jobs.push({ uid, t, key });
+      }
+    }
+    due += jobs.length;
+
+    await pool(jobs, PUSH_CONCURRENCY, async ({ uid, t, key }) => {
+      let ok = 0, dead = 0;
+      const devices = byUser.get(uid) ?? [];
+      for (const sub of devices) {
+        try {
+          await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            JSON.stringify({ ...doAtCopy(t), tag: 'do-' + t.id, url: './' }),
+            // ปลุกเครื่องทันที · เลยครึ่งชั่วโมงแล้วยังส่งไม่ถึงก็ทิ้ง (ตรงกับ DO_LATE_MS)
+            { urgency: 'high', TTL: DO_LATE_MS / 1000 },
+          );
+          ok++;
+        } catch (e: any) {
+          const host = String(sub.endpoint).split('/')[2] ?? '';
+          errors.push(`doAt ${uid}: ${e?.statusCode ?? ''} ${host} ${String(e?.body ?? e?.message ?? e).slice(0, 120)}`);
+          if (e?.statusCode === 403 || e?.statusCode === 404 || e?.statusCode === 410) {
+            dead++;
+            await db.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+          }
+        }
+      }
+      sent += ok;
+      // ส่งไม่ถึงสักเครื่องเพราะเน็ต/ปลายทางล่มชั่วคราว = ไม่ปัก รอบ 5 นาทีถัดไปลองใหม่ (จนพ้น DO_LATE_MS)
+      // ส่วนเครื่องที่ตายแล้วไม่มีวันรับได้ — ปักไว้ ไม่งั้นจะวนลองซ้ำทุกรอบไปจนหมดเวลา
+      if (ok > 0 || dead === devices.length) {
+        await db.from('push_sent').upsert({ user_id: uid, task_id: key, sent_at: new Date(now).toISOString() });
+      }
+    });
+
+    if (subs.length < PAGE) break;
+  }
+  return { sent, due };
+}
+
 Deno.serve(async (req: Request) => {
   ensureInit();
   if (initErr) {
@@ -623,6 +745,19 @@ Deno.serve(async (req: Request) => {
   const errors: string[] = [];
   let truncated = false;
 
+  // นัดที่นักเรียนตั้งเอง (t.doAt) มาก่อนทุกด่านข้างล่าง เพราะมันไม่อยู่ใต้ด่านพวกนั้นเลย (ดู runDoAt)
+  // ห่อ try ไว้: นัดพัง การเตือนกำหนดส่งต้องออกตามปกติ
+  let doAt = { sent: 0, due: 0 };
+  try { doAt = await runDoAt(now, errors); }
+  catch (e: any) { errors.push('doAt: ' + ((e && e.message) || String(e))); }
+  // cron ตัวที่สอง (ทุก 5 นาที) มาเพื่อนัดอย่างเดียว — รอบปกติยังเป็นจังหวะ 30 นาทีเท่าเดิม
+  // ไม่งั้นรอบเย็น/รอบเช้าที่ผูกกับ :00/:30 จะถูกประเมินถี่ขึ้นหกเท่าโดยไม่มีใครตั้งใจ
+  if (body?.only === 'doAt') {
+    return new Response(JSON.stringify({
+      ok: true, doAt, errors: errors.slice(0, 20), ms: Date.now() - startedAt,
+    }), { headers: { 'Content-Type': 'application/json' } });
+  }
+
   // ต้องอ่านค่าตั้งก่อนทุกการตัดสินใจ — เวลาห้ามส่งกับหน้าต่างเวลาส่งมาจากที่นี่
   // ล้มเหลว = ใช้ค่าคงที่ในไฟล์นี้ (ดู _shared/appconfig.ts) ไม่มีทางทำให้รอบนี้พัง
   await loadNotiConfig();
@@ -632,7 +767,7 @@ Deno.serve(async (req: Request) => {
   // รอบเช้าจะเจอมันอีกครั้งแล้วส่งตอนที่คนตื่นอยู่และทำอะไรได้จริง
   if (isNight(now)) {
     return new Response(JSON.stringify({
-      ok: true, sent: 0, scanned: 0, skipped: 'night',
+      ok: true, sent: 0, scanned: 0, skipped: 'night', doAt,
       thaiHour: thHour(now), ms: Date.now() - startedAt,
     }), { headers: { 'Content-Type': 'application/json' } });
   }
@@ -642,7 +777,7 @@ Deno.serve(async (req: Request) => {
   // ไม่ได้ตั้งไว้ = ส่งตามจังหวะของงานเหมือนเดิม (พฤติกรรมเริ่มต้น)
   if (!inSendWindow(now)) {
     return new Response(JSON.stringify({
-      ok: true, sent: 0, scanned: 0, skipped: 'outside-window',
+      ok: true, sent: 0, scanned: 0, skipped: 'outside-window', doAt,
       thaiHour: thHour(now), windows: cfgTimes, ms: Date.now() - startedAt,
     }), { headers: { 'Content-Type': 'application/json' } });
   }
@@ -728,7 +863,10 @@ Deno.serve(async (req: Request) => {
             if (!Number.isFinite(at)) continue;
             if (at > (socialLastAt.get(uid) ?? 0)) socialLastAt.set(uid, at);
             if ((r as any).sent_at >= dayStart) socialToday.set(uid, (socialToday.get(uid) ?? 0) + 1);
-          } else if (!key.startsWith('nudge-') && String((r as any).sent_at || '') >= dayStart) {
+          } else if (!key.startsWith('nudge-') && !key.startsWith(DO_KEY)
+            && String((r as any).sent_at || '') >= dayStart) {
+            // do:: = เวลาที่นักเรียนตั้งเองว่า "จะทำตอนนี้" (ดู runDoAt) — ไม่ใช่เสียงที่ระบบเลือกพูดเอง
+            // ถ้านับเข้าเพดาน ตั้งไว้สามงานคืนนี้ = การเตือนกำหนดส่งเงียบทั้งวัน
             const m = taskShots.get(uid) ?? taskShots.set(uid, new Map()).get(uid)!;
             const at = String((r as any).sent_at);
             m.set(at, (m.get(at) ?? false) || key.endsWith('::last'));
@@ -1127,7 +1265,7 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(JSON.stringify({
-      ok: true, sent, scanned, truncated,
+      ok: true, sent, scanned, truncated, doAt,
       ms: Date.now() - startedAt,
       // ตัดรายการ error ก่อนตอบกลับ — cron เก็บ return_message ลงตาราง
       // ถ้าปล่อยให้ยาวตามจำนวนคน วันที่พังพร้อมกันหมดจะได้แถวขนาดหลาย MB

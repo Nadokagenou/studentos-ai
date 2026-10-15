@@ -1016,6 +1016,18 @@
               <h3 class="fs-h">รายละเอียด</h3>
             </div>
 
+            <!-- 15 ต.ค. 69 · นัดของตัวเอง — ถึงเวลาแล้วเด้งเตือนทันที ตั้งกี่งานก็เด้งครบทุกงาน
+                 (doAtTick ใน app.js ตอนเปิดแอป · runDoAt ใน send-reminders ตอนปิดแอป)
+                 ปุ่มวันวาดจาก renderDoPick() · ค่าจริงอยู่ที่ formDoDay + #fDoTime -->
+            <details class="fm-row" id="fDoWrap">
+              <summary><span class="rw-l">เตือนให้ทำตอน</span><span class="rw-v" id="rvDo">ไม่ได้ตั้ง</span></summary>
+              <div class="rw-body">
+                <div class="star-pick do-pick" id="doPick"></div>
+                <div class="fld do-time"><input type="time" id="fDoTime" value="20:00" aria-label="เวลาที่จะเริ่มทำ"
+                  oninput="doTimeTouched()"></div>
+              </div>
+            </details>
+
             <details class="fm-row" id="fTeacherWrap">
               <summary><span class="rw-l">ครูผู้สั่ง</span><span class="rw-v" id="rvTeacher">ยังไม่ระบุ</span></summary>
               <div class="rw-body fld"><input type="text" id="fTeacher" placeholder="เช่น ครูสมชาย"></div>
