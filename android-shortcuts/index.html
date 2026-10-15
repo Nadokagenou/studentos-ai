@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#176f63"><title>ปุ่มลัด Android · Student OS</title><link rel="icon" href="../icon-192.png"><link rel="stylesheet" href="preview.css"></head>
+<body><main>
+  <a class="back" href="../">← กลับ Student OS</a>
+  <div class="eyebrow">STUDENT OS · ANDROID</div>
+  <h1>นึกงานขึ้นได้<br>ก็เรียกใช้ได้เลย</h1>
+  <p class="lead">เพิ่มงาน ถามผู้ช่วย หรือดูงานวันนี้ ผ่านปุ่มลัดที่หยิบใช้ได้สะดวก</p>
+  <div class="label">ไฟล์ติดตั้งทดลอง · Android 8 ขึ้นไป</div>
+  <a class="primary" href="studentos-shortcuts-preview.apk" download>ดาวน์โหลดแอปทางลัด Android</a>
+  <p class="fine">ต้องติดตั้ง APK เอง อาจมีขั้นตอนอนุญาตติดตั้งจากเบราว์เซอร์ รุ่นนี้ยังไม่ได้ทดสอบบนมือถือจริง และยังไม่อยู่ใน Play Store</p>
+  <div class="tabs" role="tablist" aria-label="รูปแบบปุ่มลัด">
+    <button role="tab" id="tab-tile" aria-selected="true" aria-controls="feature" data-mode="tile">ข้าง Wi‑Fi</button>
+    <button role="tab" id="tab-assistant" aria-selected="false" aria-controls="feature" data-mode="assistant" tabindex="-1">แผงผู้ช่วย</button>
+    <button role="tab" id="tab-launcher" aria-selected="false" aria-controls="feature" data-mode="launcher" tabindex="-1">กดไอคอนค้าง</button>
+  </div>
+  <section id="feature" role="tabpanel" aria-labelledby="tab-tile" tabindex="0">
+    <div class="phone" aria-label="ภาพจำลองปุ่มลัด Android">
+      <div class="status"><span>15:29</span><span>● ▰</span></div>
+      <div id="stage"></div>
+      <div class="homebar"></div>
+    </div>
+    <div class="explain"><span class="label">ภาพจำลอง · กดทดลองได้</span><h2 id="featureTitle"></h2><p id="description"></p><ol id="steps"></ol><p id="limitation" class="fine"></p></div>
+  </section>
+  <section class="note"><h2>ใช้บัญชี Student OS เดิม</h2><p>แอปทางลัดเปิดเว็บหลักในเบราว์เซอร์ ไม่สร้างบัญชีหรือกระเป๋าโทเคนใหม่ ใช้เบราว์เซอร์เดียวกับที่ล็อกอินไว้ หากเปิดคนละเบราว์เซอร์ให้เข้าสู่ระบบอีกครั้ง</p><p>ข้อความที่พิมพ์หรือพูดเป็นร่าง ให้ตรวจแล้วกดยืนยันในเว็บก่อนส่ง ไม่อ่านหน้าจอแอปอื่นและไม่มีการฟังเสียงตลอดเวลา</p></section>
+</main><dialog id="panel" aria-labelledby="panelTitle"><form method="dialog" class="panel-content"><div class="panel-head"><img src="../icon-192.png" width="40" height="40" alt=""><div><strong id="panelTitle">ผู้ช่วย Student OS</strong><small>ตัวอย่างหน้าตา · ยังไม่ส่งข้อมูล</small></div><button value="cancel" aria-label="ปิด">×</button></div><label for="draft">งานหรือคำถามของคุณ</label><textarea id="draft" rows="3" maxlength="2000" placeholder="วันนี้ควรเริ่มงานไหนก่อน?"></textarea><div class="panel-actions"><button type="button" id="mic">พูดแทนพิมพ์</button><button type="button" id="continue" class="primary">ไปตรวจในแอป →</button></div><p id="voiceHint" class="fine">ปุ่มไมค์ตัวอย่างจะแนะนำวิธีใช้บน Android</p><div class="route-actions"><button type="button" data-go="quick">＋ เพิ่มงานด่วน</button><button type="button" data-go="today">วันนี้ทำอะไร</button><button type="button" data-go="tasks">งานของฉัน</button></div></form></dialog><script src="preview.js"></script></body></html>

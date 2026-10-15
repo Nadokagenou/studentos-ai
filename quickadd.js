@@ -41,6 +41,7 @@ function quickOpen() {
 
   const inp = box.querySelector('#qaIn');
   inp.addEventListener('input', quickPreview);
+  if (typeof shortcutDraftApply === 'function') shortcutDraftApply('quick');
   scrim.onclick = () => quickClose();
   document.addEventListener('keydown', quickKey, true);
   void box.offsetWidth;
@@ -252,6 +253,7 @@ function quickPanel() {
   const android = `<div class="qa-p">
       <span class="qa-h">Android</span>
       ${steps(['กดค้างที่ไอคอน Student OS', 'เลือก <b>เพิ่มงานด่วน</b> · ลากไปวางบนจอได้'])}
+      <a class="qa-try" href="android-shortcuts/">ปุ่มแผงด่วนและผู้ช่วย Android</a>
     </div>`;
 
   let ios;
