@@ -29,7 +29,12 @@ const NEWS_KINDS = {
   theme:   ['ธีมใหม่', 'contrast'],
   update:  ['อัปเดตแอป', 'download'],
   fix:     ['แก้ไข', 'check'],
+  // 15 ต.ค. 69 · เจ้าของ: "ข้อมูลสำคัญเหมือนแอปทั่วไป … ขาดรายงานผ่านพวกเรา" → เลือก "ทีมเขียนประกาศเองได้"
+  // ปิดปรับปรุง · เปลี่ยนนโยบายข้อมูล · กิจกรรม — ไม่ได้มาจากรุ่นแอป จึงไม่มี release และปักไว้บนสุด
+  notice:  ['ประกาศสำคัญ', 'flag'],
 };
+// ประกาศสำคัญที่ไม่ได้ตั้งวันหมดอายุ (until) ปักไว้บนสุดกี่วัน แล้วค่อยลงไปเรียงตามวันที่เหมือนข่าวอื่น
+const NEWS_PIN_DAYS = 7;
 // จอที่ปุ่มในประกาศพาไปได้ — ต้องเป็นจอที่ go() เปล่า ๆ วาดเนื้อหาเองได้
 // (ดูความจำ render-screens-need-their-open-fn) · news.mjs check อ่านรายการนี้ ประกาศที่ชี้จออื่นไม่ผ่าน
 const NEWS_OPEN = ['scr-notif', 'scr-room', 'scr-shop', 'scr-settings', 'scr-tasks'];
@@ -54,12 +59,22 @@ let newsVisit = null;       // ประกาศที่ "ใหม่" ตอ
 function newsValid(it) {
   return !!it && typeof it.id === 'string' && typeof it.title === 'string' && it.title.trim()
     && typeof it.body === 'string' && NEWS_KINDS[it.kind] && !isNaN(Date.parse(it.date))
+    && (it.until == null || !isNaN(Date.parse(it.until)))
     && Array.isArray(it.evidence) && it.evidence.length > 0;
 }
 function newsClean(doc) {
   const list = doc && doc.schema === 1 && Array.isArray(doc.items) ? doc.items.filter(newsValid) : [];
   return list.sort((a, b) => String(b.date).localeCompare(String(a.date)));
 }
+// ประกาศที่ตั้ง until ไว้ (เช่น ปิดปรับปรุงคืนวันเสาร์) พ้นเวลาแล้ว = ไม่แสดงเลย — เรื่องที่จบไปแล้วไม่ใช่ข่าว
+function newsLive(it) {
+  return !(it.until && Date.now() > Date.parse(it.until));
+}
+function newsPinned(it) {
+  if (it.kind !== 'notice') return false;
+  return it.until ? Date.now() <= Date.parse(it.until) : Date.now() - Date.parse(it.date) < NEWS_PIN_DAYS * 864e5;
+}
+function newsShown() { return (newsItems || []).filter(newsLive); }
 
 function newsFromCache() {
   try {
@@ -106,7 +121,7 @@ function newsIsFresh(it) {
 }
 function newsUnreadList() {
   const ids = new Set(newsSeen().ids);
-  return (newsItems || []).filter(it => !ids.has(it.id) && newsIsFresh(it));
+  return newsShown().filter(it => !ids.has(it.id) && (newsIsFresh(it) || newsPinned(it)));
 }
 
 // เลขบนแถว "ข่าวสาร" ในแท็บฉัน — ทรงเดียวกับเลขข้อความค้าง (.pe-n)
@@ -116,7 +131,9 @@ function newsPaintRow() {
   if (b) { b.hidden = !n; b.textContent = n > 9 ? '9+' : String(n); }
   const v = document.getElementById('peNewsCt');
   // คอลัมน์ขวาบอกรุ่นของประกาศล่าสุด — ไม่ใช่ APP_VERSION เพราะสองอย่างนี้ไม่ได้ขยับพร้อมกัน
-  if (v) v.textContent = newsItems && newsItems.length ? 'รุ่น ' + newsItems[0].release : '';
+  // ประกาศสำคัญที่ปักอยู่ชนะ — มันคือเหตุผลที่ควรกดเข้าไปตอนนี้ ไม่ใช่เลขรุ่น
+  const shown = newsShown(), pin = shown.find(newsPinned), rel = shown.find(it => it.release);
+  if (v) v.textContent = pin ? 'ประกาศสำคัญ' : rel ? 'รุ่น ' + rel.release : '';
   const row = document.getElementById('peNews');
   if (row) row.setAttribute('aria-label', n ? `ข่าวสารจากทีม ใหม่ ${n} เรื่อง` : 'ข่าวสารจากทีม');
 }
@@ -136,7 +153,9 @@ function newsCard(it, isNew, draft) {
   const [kName, kIc] = NEWS_KINDS[it.kind];
   const pts = (it.points || []).filter(p => typeof p === 'string' && p.trim());
   const a = it.action && NEWS_OPEN.includes(it.action.screen) && document.getElementById(it.action.screen) ? it.action : null;
-  return `<article class="nw-card${isNew ? ' new' : ''}${draft ? ' draft' : ''}">
+  // ข่าวจากรุ่นแอปบอกเลขรุ่น · ประกาศที่ทีมเขียนเองบอกว่าใครเขียน
+  const from = it.kind === 'notice' ? 'จาก' + (it.by || 'ทีม StudentOS') : 'รุ่น ' + (it.release || '');
+  return `<article class="nw-card${isNew ? ' new' : ''}${draft ? ' draft' : ''}${it.kind === 'notice' ? ' notice' : ''}">
     <div class="nw-top">
       <span class="nw-kind">${icon(kIc)}<b>${kName}</b></span>
       ${draft ? '<span class="nw-tag draft">ร่าง · ยังไม่เผยแพร่</span>' : isNew ? '<span class="nw-tag">ใหม่</span>' : ''}
@@ -145,7 +164,7 @@ function newsCard(it, isNew, draft) {
     <p class="nw-b">${esc(it.body)}</p>
     ${pts.length ? `<ul class="nw-pts">${pts.map(p => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}
     <div class="nw-foot">
-      <span class="nw-meta">รุ่น ${esc(it.release || '')}<i aria-hidden="true">·</i>${esc(newsDate(it.date))}</span>
+      <span class="nw-meta">${esc(from)}<i aria-hidden="true">·</i>${esc(newsDate(it.date))}</span>
       ${a ? `<button class="nw-go" onclick="newsGo('${esc(a.screen)}')">${esc(a.label)}${icon('chevron')}</button>` : ''}
     </div>
   </article>`;
@@ -164,7 +183,7 @@ function renderNews() {
   const onScr = typeof curScreen !== 'undefined' && curScreen === 'scr-news';
   if (onScr && Date.now() - newsLoadedAt > 30000) newsLoad(true);   // วาดของที่มีก่อน ไฟล์ใหม่มาแล้ววาดซ้ำเอง
 
-  const items = newsItems || [];
+  const items = newsShown();
   if (!onScr) newsVisit = null;
   else {
     // เปิดจอ = อ่านแล้ว แต่ของที่ใหม่ตอนเข้ามายังติดป้าย "ใหม่" จนออกจากจอ
@@ -195,8 +214,10 @@ function renderNews() {
         : 'มีฟีเจอร์ใหม่ ธีมใหม่ หรืออัปเดตแอปเมื่อไหร่ ทีมจะมาบอกที่นี่'}</p>
     </section>`;
   } else {
-    const fresh = items.filter(isNew), older = items.filter(it => !isNew(it));
-    main = [['ใหม่', fresh], ['ก่อนหน้านี้', older]].filter(g => g[1].length).map(([name, list]) =>
+    // ปักหมุดอยู่บนสุดเสมอ ไม่ว่าอ่านแล้วหรือยัง — ปิดปรับปรุงคืนนี้ยังสำคัญแม้เห็นไปแล้วเมื่อเช้า
+    const pinned = items.filter(newsPinned), rest = items.filter(it => !newsPinned(it));
+    const fresh = rest.filter(isNew), older = rest.filter(it => !isNew(it));
+    main = [['ปักหมุด', pinned], ['ใหม่', fresh], ['ก่อนหน้านี้', older]].filter(g => g[1].length).map(([name, list]) =>
       `<div class="ib2-sec"><span>${name}</span></div>
        <div class="nw-list">${list.map(it => newsCard(it, isNew(it), false)).join('')}</div>`).join('');
   }

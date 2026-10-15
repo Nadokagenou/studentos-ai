@@ -27,10 +27,13 @@ const ROOT = join(ALT, '..');
 const PATCHNOTES = join(ALT, 'PATCHNOTES.md');
 const FILES = [join(ALT, 'news', 'announcements.json'), join(ALT, 'news', 'drafts.json')];
 
-const KINDS = ['feature', 'theme', 'update', 'fix'];
+const KINDS = ['feature', 'theme', 'update', 'fix', 'notice'];
+// notice = ประกาศสำคัญที่ทีมเขียนเอง (ปิดปรับปรุง · นโยบายข้อมูล · กิจกรรม) — ไม่ได้มาจากรุ่นแอป
 // คำที่สัญญาของที่ยังไม่มี — ประกาศพูดได้แค่สิ่งที่ปล่อยไปแล้ว
 const FUTURE = ['เร็ว ๆ นี้', 'เร็วๆ นี้', 'เร็วๆนี้', 'กำลังจะมา', 'เตรียมพบ', 'รอติดตาม', 'เร็ว ๆ', 'ในอนาคต',
   'จะเปิดให้', 'จะมีให้', 'coming soon', 'soon'];
+// ประกาศสำคัญพูดถึงเวลาข้างหน้าได้ ("ปิดปรับปรุงคืนวันเสาร์") แต่ห้ามแง้มฟีเจอร์ที่ยังไม่มี
+const TEASE = ['เร็ว ๆ นี้', 'เร็วๆ นี้', 'เร็วๆนี้', 'กำลังจะมา', 'เตรียมพบ', 'รอติดตาม', 'coming soon'];
 
 function git(args) {
   return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -156,7 +159,14 @@ function check(only) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(it.date || '') || isNaN(Date.parse(it.date))) bad('date ต้องเป็น YYYY-MM-DD');
       else if (Date.parse(it.date) > Date.now() + 864e5) bad('date อยู่ในอนาคต — ประกาศได้แค่ของที่ปล่อยแล้ว');
       if (!KINDS.includes(it.kind)) bad(`kind ต้องเป็นหนึ่งใน ${KINDS.join(' · ')}`);
-      if (!map.has(it.release)) bad(`release "${it.release}" ไม่มีในแพตช์โน้ต`);
+      const notice = it.kind === 'notice';
+      if (notice ? it.release != null && !map.has(it.release) : !map.has(it.release)) bad(`release "${it.release}" ไม่มีในแพตช์โน้ต`);
+      if (it.until != null) {
+        if (isNaN(Date.parse(it.until))) bad('until ต้องเป็นวันเวลา เช่น 2026-10-18T23:00:00+07:00');
+        else if (Date.parse(it.until) <= Date.parse(it.date)) bad('until ต้องหลัง date');
+        else if (Date.parse(it.until) < Date.now()) warns.push(`${at}: until พ้นไปแล้ว — แอปจะไม่แสดงประกาศนี้`);
+      }
+      if (it.by != null && (typeof it.by !== 'string' || !it.by.trim() || it.by.length > 30)) bad('by (ใครเขียน) ไม่เกิน 30 ตัวอักษร');
       if (typeof it.title !== 'string' || it.title.length < 4 || it.title.length > 60) bad('title 4–60 ตัวอักษร');
       if (typeof it.body !== 'string' || !it.body.trim() || it.body.length > 280) bad('body ต้องมี และไม่เกิน 280 ตัวอักษร');
       const points = it.points || [];
@@ -175,7 +185,7 @@ function check(only) {
         ...(it.action ? [['action', it.action.label]] : [])];
       for (const [f, t] of texts) {
         const low = String(t || '').toLowerCase();
-        const hit = FUTURE.find(w => low.includes(w));
+        const hit = (notice ? TEASE : FUTURE).find(w => low.includes(w));
         if (hit) bad(`${f} มีคำว่า "${hit}" — ประกาศพูดได้แค่ของที่ใช้ได้แล้ว`);
       }
 
@@ -195,7 +205,15 @@ function check(only) {
           const msg = msgOf(e.source.slice(7));
           if (msg == null) bad(`${where}: ไม่มีคอมมิต ${e.source.slice(7)}`);
           else { ok = norm(msg).includes(q); if (!ok) bad(`${where}: หาคำพูดนี้ไม่เจอในข้อความคอมมิต — "${e.quote.slice(0, 60)}"`); }
-        } else bad(`${where}: source ต้องเป็น "patchnotes" หรือ "commit:<sha>"`);
+        } else if (e.source === 'owner') {
+          // คำพูดของเจ้าของที่สั่งให้ประกาศ — เครื่องพิสูจน์ไม่ได้ว่าเจ้าของพูดจริง ด่านนี้คือเจ้าของตอนอนุมัติ
+          if (!notice) bad(`${where}: source "owner" ใช้ได้กับประกาศสำคัญ (notice) เท่านั้น — ข่าวจากรุ่นแอปต้องอ้างแพตช์โน้ตหรือคอมมิต`);
+          else if (!/^\d{4}-\d{2}-\d{2}$/.test(e.said || '')) bad(`${where}: ต้องมี "said" (วันที่เจ้าของสั่ง YYYY-MM-DD)`);
+          else {
+            ok = true;
+            warns.push(`${at} ${where}: อ้างคำพูดเจ้าของ (${e.said}) — เครื่องยืนยันไม่ได้ เจ้าของต้องอ่านเองก่อนเผยแพร่`);
+          }
+        } else bad(`${where}: source ต้องเป็น "patchnotes" · "commit:<sha>" · หรือ "owner" (เฉพาะประกาศสำคัญ)`);
         if (ok) {
           if (/ยังไม่/.test(q)) warns.push(`${at} ${where}: ยกมาจากประโยคที่มีคำว่า "ยังไม่" — เช็คว่าไม่ได้ประกาศของที่ยังไม่เสร็จ`);
           for (const f of [].concat(e.for || [])) covered.add(f);

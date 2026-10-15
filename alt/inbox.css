@@ -486,3 +486,9 @@
 .nw-draftbar{margin:4px 2px 12px; padding:10px 12px; border-radius:14px; border:1px dashed var(--line);
   background:var(--surface); font-size:12.5px; line-height:1.5; color:var(--muted)}
 .nw-draftbar + .nw-list{margin-bottom:8px}
+
+/* ประกาศสำคัญที่ทีมเขียนเอง (kind: notice) — ปักไว้บนสุด
+   ใช้ --warn (อำพัน) ไม่ใช่ทอง: ทองแปลว่า "ทำสำเร็จ" ส่วนนี่แปลว่า "ควรรู้" · ทุกธีมนิยาม --warn/--warn-soft ไว้ครบ
+   ไม่ทำแถบสีข้างการ์ด (Impeccable จับว่าเป็นท่าของหน้าตาแบบ AI) — กรอบทั้งใบกับชิปพอ */
+.nw-card.notice{border-color:color-mix(in srgb, var(--warn) 55%, var(--line))}
+.nw-card.notice .nw-kind{background:var(--warn-soft); color:var(--warn)}
