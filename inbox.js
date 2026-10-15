@@ -93,6 +93,39 @@ const SOURCES = [
 ];
 const sourceById = id => SOURCES.find(s => s.id === id) || SOURCES[0];
 
+// 15 ต.ค. 69 · เจ้าของ: "ตรงโลโก้ควรเป็นรูปแอปที่แจ้งเตือนมา เช่น classroom ก็เป็นโลโก้ classroom"
+// ไอคอนเส้นสีธีม (หนังสือ · ฟองแชท) บอกแค่ "ประเภท" — คนกวาดตาหาแอปจากสีกับรูปทรงของแอปนั้นเอง
+// วาดเป็นเครื่องหมายแบบย่อ ไม่ใช่ไฟล์โลโก้จริง (repo สาธารณะ · ไม่โหลดรูปจากเว็บอื่น) · พื้นสีของแบรนด์ทึบเต็มกล่อง
+// เลยไม่ขึ้นกับธีม — โลโก้แอปบนมือถือก็ไม่เปลี่ยนสีตามธีมเหมือนกัน · แหล่งที่ไม่มีแบรนด์ (สแกน · แปะ · ปฏิทินโรงเรียน) ใช้ไอคอนเส้นเดิม
+const SRC_LOGO = {
+  google_classroom: `<svg viewBox="0 0 48 48" aria-hidden="true">
+    <rect width="48" height="48" rx="12" fill="#F9AB00"/>
+    <rect x="5" y="5" width="38" height="30" rx="3.5" fill="#1E8E3E"/>
+    <circle cx="13" cy="18.5" r="3" fill="#81C995"/><path d="M7.4 29.5c0-3.4 2.5-5.6 5.6-5.6s5.6 2.2 5.6 5.6z" fill="#81C995"/>
+    <circle cx="35" cy="18.5" r="3" fill="#81C995"/><path d="M29.4 29.5c0-3.4 2.5-5.6 5.6-5.6s5.6 2.2 5.6 5.6z" fill="#81C995"/>
+    <circle cx="24" cy="16.5" r="4.2" fill="#fff"/><path d="M15.6 30c0-4.6 3.8-7.6 8.4-7.6s8.4 3 8.4 7.6z" fill="#fff"/>
+    <rect x="27" y="38.5" width="12" height="3.6" rx="1.8" fill="#fff"/></svg>`,
+  line: `<svg viewBox="0 0 48 48" aria-hidden="true">
+    <rect width="48" height="48" rx="12" fill="#06C755"/>
+    <path d="M24 9.5c-8.8 0-15.8 5.7-15.8 12.8 0 6.3 5.6 11.6 13.2 12.6.5.1 1.2.3 1.4.8.2.4.1 1.1.1 1.5l-.2 1.4c-.1.4-.3 1.6 1.4.9 1.7-.7 9-5.3 12.3-9.1 2.3-2.5 3.4-5 3.4-8.1 0-7.1-7-12.8-15.8-12.8z" fill="#fff"/>
+    <text x="24" y="25.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="8.4" letter-spacing=".2" fill="#06C755">LINE</text></svg>`,
+  google_calendar: `<svg viewBox="0 0 48 48" aria-hidden="true">
+    <rect width="48" height="48" rx="12" fill="#fff"/>
+    <rect x="9" y="9" width="30" height="30" rx="4" fill="#fff" stroke="#4285F4" stroke-width="3"/>
+    <path d="M9 13a4 4 0 0 1 4-4h22a4 4 0 0 1 4 4v3H9z" fill="#4285F4"/>
+    <path d="M30 39h5a4 4 0 0 0 4-4v-5z" fill="#EA4335"/>
+    <text x="24" y="33" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="13" fill="#1A73E8">31</text></svg>`,
+  ms_teams: `<svg viewBox="0 0 48 48" aria-hidden="true">
+    <rect width="48" height="48" rx="12" fill="#5B5FC7"/>
+    <path d="M14 14h20v5h-7.5v16h-5V19H14z" fill="#fff"/></svg>`,
+};
+// กล่องไอคอนของแหล่ง — มีโลโก้ = กล่องแบรนด์ · ไม่มี = กล่องสีธีมกับไอคอนเส้นแบบเดิม
+function srcMark(s) {
+  return SRC_LOGO[s.id]
+    ? `<span class="nt-av src brand">${SRC_LOGO[s.id]}</span>`
+    : `<span class="nt-av src">${icon(s.icon)}</span>`;
+}
+
 // ---------- สวิตช์เปิด/ปิดตัวเชื่อม ----------
 // เก็บเฉพาะตัวที่ "ถูกปิด" ไม่ใช่เก็บทั้งหมด — ตัวเชื่อมที่เพิ่มมาทีหลังจะได้เปิดอยู่โดยปริยาย
 // ถ้าเก็บกลับด้าน ทุกตัวที่เพิ่มใหม่จะเงียบสนิทในเครื่องของคนที่ใช้อยู่แล้ว โดยไม่มีอะไรบอก
@@ -771,6 +804,39 @@ function inboxIgnore(id) {
   }
 }
 
+// ---------- ตรวจในฟอร์มแล้วค่อยรับ (15 ต.ค. 69 · กดแจ้งเตือนที่รอตรวจ) ----------
+// ต่างจาก inboxEdit ตรงที่ไม่ปิดรายการก่อน — รายการในกล่องเข้าจบหน้าที่เมื่อ "บันทึก" จริงเท่านั้น
+// กดย้อนกลับจากฟอร์ม = ยังรอตรวจอยู่ที่เดิม ไม่หายไปเงียบ ๆ แบบที่ inboxEdit ทำ
+let inboxFormItem = null;
+// saveForm เรียกหลังสร้างงานใหม่ (ไม่ใช่ตอนแก้งานเดิม) · openForm ล้าง inboxFormItem ทุกครั้งที่เปิด
+function inboxFormSaved(t) {
+  const item = inboxFormItem && (state.inbox || []).find(i => i.id === inboxFormItem);
+  inboxFormItem = null;
+  if (!item || item.status !== 'new' || !t) return;
+  item.status = 'accepted'; item.taskId = t.id;
+  // ของที่ซิงก์จากแอปต้นทางต้องพากุญแจต้นทางไปด้วย ไม่งั้นรอบซิงก์ถัดไปสร้างงานซ้ำอีกใบ
+  if (item.sync) {
+    t.srcKey = item.sync.srcKey; t.sourceUrl = item.sync.sourceUrl || null; t.srcSubject = item.sync.srcSubject || '';
+  }
+  brainLearn(item.raw, true);
+}
+
+// ปุ่มติ๊กบนแถวแจ้งเตือน — รับเข้าแผนเลยโดยไม่ออกจากจอ · ก้อนหลายงานรับเฉพาะบรรทัดที่ติ๊กไว้ (ค่าเริ่มต้นคือที่ AI คิดว่าเป็นงาน)
+function notifAccept(id) {
+  const item = (state.inbox || []).find(i => i.id === id);
+  if (!item || item.status !== 'new') return;
+  if (item.kind === 'batch') inboxAcceptBatch(id); else inboxAccept(id);
+  if (typeof haptic === 'function') haptic('tap');
+  if (curScreen !== 'scr-notif') return;
+  renderNotif();
+  // ป้ายมุมไอคอนพลิกจากกระดิ่งเป็นติ๊ก — เด้งหนึ่งที ให้เห็นว่าแถวไหนเพิ่งเข้าแผน
+  const b = document.querySelector(`#notifBody .nt-row[data-nt="${id}"] .nt-ic-b`);
+  if (b && b.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    b.animate([{ transform: 'scale(.3)' }, { transform: 'scale(1.3)', offset: .55 }, { transform: 'scale(1)' }],
+      { duration: 420, easing: 'cubic-bezier(.34, 1.56, .64, 1)' });
+  }
+}
+
 // แก้ก่อนรับ — ส่งเข้าฟอร์มเดิมที่มีอยู่ แล้วให้ฟอร์มเป็นคนบันทึก
 function inboxEdit(id) {
   const item = (state.inbox || []).find(i => i.id === id);
@@ -1243,7 +1309,22 @@ function notifSetFilter(f) {
 // 14 ต.ค. 69 · เจ้าของ: "ปรับหน้าเมื่อกดเข้าไปข้างใน" — กดแจ้งเตือนงานแล้วเคยไปแค่หัวกล่องเข้า ต้องเลื่อนหาเอง
 // ตอนนี้: เปิดกล่องเข้า → เลื่อนให้การ์ดชิ้นนั้นอยู่กลางจอ → วงสีธีมวาดรอบการ์ดแล้วจาง (Pointer Highlight ของ Aceternity)
 // ไม่เจอชิ้นนั้นในจอ (ถูกเก็บไปแล้ว) = อยู่หัวกล่องเข้าเหมือนเดิม · ลดการเคลื่อนไหว = กระโดดไปเลย ไม่เลื่อนนุ่ม
+//
+// 15 ต.ค. 69 · เจ้าของ: "พอกดเข้าไปแล้วก็เหมือนเชื่อมเป็นงานเลย" — แจ้งเตือนหนึ่งใบ = งานหนึ่งชิ้น
+//   เข้าแผนแล้ว → เปิดงานชิ้นนั้นเลย (ใบงานเดียวกับที่กดจากรายการงาน)
+//   รอตรวจ    → เปิดฟอร์ม "ตรวจก่อนบันทึก" ที่เติมให้แล้ว กดบันทึก = เข้าแผน · ย้อนกลับ = ยังรออยู่ที่เดิม ไม่หาย
+//   ก้อนหลายงาน (LINE) หรืองานถูกลบไปแล้ว → กล่องเข้าที่การ์ดชิ้นนั้นเหมือนเดิม (ติ๊กเลือกทีละบรรทัดได้ที่นั่นที่เดียว)
 function notifOpenItem(id) {
+  const item = (state.inbox || []).find(i => i.id === id);
+  if (item && item.kind !== 'batch' && typeof openForm === 'function') {
+    const t = item.taskId && (state.tasks || []).find(x => x.id === item.taskId);
+    if (item.status === 'accepted' && t) { openForm(t.id); return; }
+    if (item.status === 'new' && item.parsed && item.parsed.detected) {
+      openForm(null, item.parsed);
+      inboxFormItem = item.id;   // ตั้งหลัง openForm — openForm ล้างค่านี้ทุกครั้งที่ถูกเปิดจากทางอื่น
+      return;
+    }
+  }
   go('scr-inbox');
   if (typeof renderInbox === 'function') renderInbox();
   // รอให้จอที่เพิ่งเปิดจัดผังเสร็จ (ไม่ผูกกับเฟรม — เครื่องที่วาดช้าก็ยังเลื่อนไปถูกที่)
@@ -1428,16 +1509,24 @@ function renderNotif() {
       // "อื่น ๆ" คือวิชาที่ AI ไม่รู้ — ไม่ใช่ข้อมูล ไม่ต้องขึ้น
       note = pz.detail && pz.subject && pz.subject !== 'อื่น ๆ' ? pz.subject : '';
     }
-    return `<button class="nt-row${nw ? ' new' : ''}" onclick="notifOpenItem('${esc(i.id)}')">
-      <span class="nt-ic"><span class="nt-av src">${icon(s.icon)}</span><span class="nt-ic-b ${n.kind}">${
+    // 15 ต.ค. 69 · เจ้าของ: "พอกดเข้าไปแล้วก็เหมือนเชื่อมเป็นงานเลย ... ให้เขาเข้าไปติกก่อนก็ได้ แล้วเข้าแผน"
+    // ของที่รอตรวจมีปุ่มติ๊กกลมทางขวา = เข้าแผนในแตะเดียวโดยไม่ต้องออกจากจอ · กดตัวแถว = เข้าไปดูก่อน (notifOpenItem)
+    // ปุ่มติ๊กอยู่นอกปุ่มแถว (ปุ่มซ้อนปุ่มใช้ไม่ได้) จึงห่อทั้งคู่ด้วย .nt-wrap แล้ววางปุ่มทับขอบขวา
+    const rowBtn = `<button class="nt-row${nw ? ' new' : ''}${n.kind === 'wait' ? ' has-tick' : ''}" data-nt="${esc(i.id)}"
+        onclick="notifOpenItem('${esc(i.id)}')">
+      <span class="nt-ic">${srcMark(s)}<span class="nt-ic-b ${n.kind}">${
         icon(n.kind === 'wait' ? 'bell' : 'check')}</span></span>
       <span class="nt-bd">
         <span class="nt-t">${esc(title)}</span>
         ${note ? `<span class="nt-p">${esc(note)}</span>` : ''}
         <span class="nt-meta">${esc(srcName)}<i aria-hidden="true">·</i>${esc(t)}</span>
       </span>
-      ${n.kind === 'wait' ? '<span class="nt-go">ตรวจ</span>' : dot}
+      ${n.kind === 'wait' ? '' : dot}
     </button>`;
+    return n.kind === 'wait'
+      ? `<div class="nt-wrap">${rowBtn}<button class="nt-tick" onclick="notifAccept('${esc(i.id)}')"
+          aria-label="เข้าแผน: ${esc(title)}">${icon('check')}<span>เข้าแผน</span></button></div>`
+      : rowBtn;
   };
 
   const fresh = list.filter(isNew), older = list.filter(n => !isNew(n));
