@@ -1263,6 +1263,21 @@
         <div class="scr-body" id="notifBody"></div>
       </div>
 
+      <!-- ============ SCREEN: ข่าวสารจากทีม (15 ต.ค. 69) ============ -->
+      <!-- ประกาศจากทีมพัฒนา (ฟีเจอร์ใหม่ · ธีมใหม่ · อัปเดตแอป) — แยกจากการแจ้งเตือนงานโดยตั้งใจ
+           ไม่นับบนกระดิ่ง · เข้าจากแท็บ "ฉัน" · วาดใน renderNews (news.js) จาก news/announcements.json -->
+      <div class="screen flush" id="scr-news">
+        <div class="sticky-head row">
+          <div>
+            <h2 class="sh-title">ข่าวสาร</h2>
+            <p class="sh-sub" id="newsSub"></p>
+          </div>
+          <button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับ">
+            <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+        </div>
+        <div class="scr-body" id="newsBody"></div>
+      </div>
+
       <!-- ============ SCREEN: ตัวเชื่อม ============ -->
       <!-- บอกตรง ๆ ว่าตัวไหนต่อได้แล้ว ตัวไหนติดอะไรอยู่
            และตัวไหนที่เจ้าของแอปนั้นไม่เปิดให้ใครต่อเลย -->
@@ -1481,6 +1496,14 @@
             </button>
             <!-- 11 ต.ค. 69 · ฟอร์มฟีดแบ็กเทสเตอร์ (feedback.html) — เจ้าของถาม "อยู่ตรงไหนในแอป"
                  อยู่แท็บ "ฉัน" ไม่ใช่หน้าแรก: ไม่เกี่ยวกับ "ตอนนี้ควรทำอะไร" และหน้าแรกต้องไม่เลื่อน -->
+            <!-- 15 ต.ค. 69 · ข่าวจากทีมพัฒนา — อยู่แท็บ "ฉัน" ไม่ใช่หน้าแรก/กระดิ่ง: ไม่ได้ขอให้ตัดสินใจอะไร
+                 เลขบนแถว = ประกาศที่ยังไม่เปิดดู (newsPaintRow ใน news.js) -->
+            <button class="pe" id="peNews" onclick="go('scr-news')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-flag"/></svg></span>
+              <span class="pe-tx"><b>ข่าวสารจากทีม<span class="pe-n" id="peNewsN" hidden></span></b></span>
+              <em class="pe-v" id="peNewsCt"></em>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
             <button class="pe" onclick="location.href='feedback.html'">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-message"/></svg></span>
               <span class="pe-tx"><b>ส่งฟีดแบ็ก</b></span>
@@ -2399,6 +2422,8 @@
 <!-- ปุ่มลัดเพิ่มงานจากตัวเครื่อง (แผ่นเพิ่มงานด่วน + กุญแจคำสั่งลัด iPhone) -->
 <script src="quickadd.js"></script>
 <script src="board.js"></script>
+<!-- 15 ต.ค. 69 · ข่าวสารจากทีม — ไม่มีอะไรพึ่งมันตอนบูต จึงอยู่ท้ายแถวได้ (ต้องมาก่อน app.js เพราะ renderProfile เรียก newsPaintRow) -->
+<script src="news.js"></script>
 <script src="app.js"></script>
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────

@@ -447,3 +447,48 @@
 .nt-bn-tx em{font-style:normal; font-weight:700; color:var(--fill)}
 .nt-banner:not(.show){pointer-events:none}
 @media (prefers-reduced-motion: reduce){ .nt-banner{transition:opacity .2s ease; transform:none} }
+
+/* ============================================================
+   15 ต.ค. 69 · ข่าวสารจากทีม (scr-news · news.js)
+   ------------------------------------------------------------
+   การ์ดใบละประกาศ ไม่ใช่แถวในรายการแบบจอแจ้งเตือน — ข่าวมีเนื้อความกับข้อย่อยให้อ่าน
+   ประเภทข่าวบอกด้วยไอคอน + คำ (ไม่พึ่งสีอย่างเดียว · ทุกประเภทใช้สีตระกูลเดียวของธีม)
+   ไม่ใช้ทองที่ไหนเลย — ทองสงวนไว้ให้ของที่ผู้ใช้ทำสำเร็จ ประกาศจากทีมไม่ใช่ความสำเร็จของเขา
+   แถวที่มีทั้งข้อความกับป้ายใช้ grid ไม่ใช้ flex (span ที่เป็น flex item ใน alt/ กว้าง 0)
+   ============================================================ */
+.nw-list{display:grid; gap:12px}
+.nw-card{padding:16px 16px 14px; border-radius:20px; background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow)}
+.nw-card.new{border-color:color-mix(in srgb, var(--fill) 45%, var(--line))}
+.nw-card.draft{border-style:dashed}
+.nw-top{display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px}
+.nw-kind{display:inline-grid; grid-auto-flow:column; align-items:center; gap:6px; justify-self:start;
+  padding:4px 10px 4px 8px; border-radius:999px; background:var(--blue-soft); color:var(--blue-deep)}
+.nw-kind svg{width:14px; height:14px}
+.nw-kind b{font-size:12px; font-weight:700; line-height:1.3}
+.nw-tag{padding:3px 9px; border-radius:999px; background:var(--fill); color:var(--on-fill);
+  font-size:11px; font-weight:700; line-height:1.4}
+.nw-tag.draft{background:var(--surface); color:var(--muted); border:1px dashed var(--line)}
+.nw-t{margin:11px 0 0; font-size:16px; font-weight:800; line-height:1.4; color:var(--ink)}
+.nw-b{margin:6px 0 0; font-size:13.5px; line-height:1.6; color:var(--ink)}
+.nw-pts{margin:10px 0 0; padding:0 0 0 18px; display:grid; gap:5px}
+.nw-pts li{font-size:13px; line-height:1.55; color:var(--muted)}
+.nw-pts li::marker{color:var(--fill)}
+.nw-foot{display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; margin-top:13px;
+  padding-top:11px; border-top:1px solid var(--line)}
+.nw-meta{font-size:12px; color:var(--muted)}
+.nw-meta i{font-style:normal; margin:0 6px}
+.nw-go{display:inline-grid; grid-auto-flow:column; align-items:center; gap:2px; min-height:34px; padding:6px 8px 6px 13px;
+  border:0; border-radius:999px; background:var(--blue-soft); color:var(--blue-deep);
+  font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer; -webkit-tap-highlight-color:transparent}
+.nw-go svg{width:16px; height:16px}
+.nw-go:active{transform:scale(.96)}
+.nw-go:focus-visible{outline:2px solid var(--fill); outline-offset:2px}
+.nw-draftbar{margin:4px 2px 12px; padding:10px 12px; border-radius:14px; border:1px dashed var(--line);
+  background:var(--surface); font-size:12.5px; line-height:1.5; color:var(--muted)}
+.nw-draftbar + .nw-list{margin-bottom:8px}
+
+/* ประกาศสำคัญที่ทีมเขียนเอง (kind: notice) — ปักไว้บนสุด
+   ใช้ --warn (อำพัน) ไม่ใช่ทอง: ทองแปลว่า "ทำสำเร็จ" ส่วนนี่แปลว่า "ควรรู้" · ทุกธีมนิยาม --warn/--warn-soft ไว้ครบ
+   ไม่ทำแถบสีข้างการ์ด (Impeccable จับว่าเป็นท่าของหน้าตาแบบ AI) — กรอบทั้งใบกับชิปพอ */
+.nw-card.notice{border-color:color-mix(in srgb, var(--warn) 55%, var(--line))}
+.nw-card.notice .nw-kind{background:var(--warn-soft); color:var(--warn)}
