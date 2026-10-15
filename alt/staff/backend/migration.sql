@@ -116,15 +116,15 @@ begin
       from public.user_state s left join public.profiles p on p.id=s.id
       where q='' or s.id::text ilike '%'||q||'%' or coalesce(p.handle,'') ilike '%'||ltrim(q,'@')||'%' or coalesce(p.display_name,'') ilike '%'||q||'%'
       order by s.updated_at desc,s.id limit 21 offset off_n)x;
-    return result||jsonb_build_object('items',coalesce((select jsonb_agg(x.value) from jsonb_array_elements(result->'items') with ordinality x(value,n) where n<=20),'[]'::jsonb));
+    return result||jsonb_build_object('items',coalesce((select jsonb_agg(x.value) from jsonb_array_elements(result->'items') with ordinality x(value,n) where x.n<=20),'[]'::jsonb));
   elsif p_action='audit' then
     return jsonb_build_object('items',coalesce((select jsonb_agg(x) from (select action,detail,actor_login,created_at from public.staff_audit order by created_at desc limit 100)x),'[]'::jsonb));
   elsif p_action='issues' then
     return jsonb_build_object('items',coalesce((select jsonb_agg(x) from (select r.id,r.kind,r.reason,r.note,r.created_at,coalesce(t.status,'open') status,coalesce(t.note,'') staff_note from public.reports r left join public.staff_report_triage t on t.report_id=r.id order by (coalesce(t.status,'open')='closed'),r.created_at desc limit 100)x),'[]'::jsonb));
   elsif p_action='notices' then
-    return jsonb_build_object('items',coalesce((select jsonb_agg(x) from (select n.*,
-      case when n.push_requested then (select count(*) filter(where j.status='accepted')::text||' ตอบรับ / '||count(*)::text||' บัญชีในคิว' from public.staff_push_jobs j where j.notice_id=n.id) else 'ไม่ส่ง Push' end push_status
-      from public.staff_notices n order by n.created_at desc limit 100)x),'[]'::jsonb));
+    return jsonb_build_object('items',coalesce((select jsonb_agg(x) from (select notice_row.*,
+      case when notice_row.push_requested then (select count(*) filter(where j.status='accepted')::text||' ตอบรับ / '||count(*)::text||' บัญชีในคิว' from public.staff_push_jobs j where j.notice_id=notice_row.id) else 'ไม่ส่ง Push' end push_status
+      from public.staff_notices notice_row order by notice_row.created_at desc limit 100)x),'[]'::jsonb));
   end if;
   -- Serialise mutations per operator, including daily limits and retry keys.
   perform pg_advisory_xact_lock(hashtextextended(p_actor::text,0));

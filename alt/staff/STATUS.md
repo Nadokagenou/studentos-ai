@@ -2,7 +2,18 @@
 
 ## อัปเดตการเข้าถึง Supabase
 
-ผู้ใช้อนุมัติ “เอาเลย” หลังตรวจชุดติดตั้งแล้ว ติดตั้ง migration `studentos_staff_control_room` ในโปรเจกต์ `yunbytxtgghizrdqftvj` สำเร็จ และ deploy `staff-console` / `staff-notify` รุ่น 1 สถานะ ACTIVE ทั้งคู่แล้ว ยังไม่ถือว่าเปิดใช้งานครบ เพราะ GitHub Provider ยังปิดอยู่และยังไม่มี cron ของ staff-notify
+ผู้ใช้อนุมัติ “เอาเลย” หลังตรวจชุดติดตั้งแล้ว ติดตั้ง migration `studentos_staff_control_room` ในโปรเจกต์ `yunbytxtgghizrdqftvj` สำเร็จ และ deploy `staff-console` / `staff-notify` รุ่น 1 สถานะ ACTIVE ทั้งคู่แล้ว GitHub Provider เปิดและล็อกอินจริงผ่านแล้ว ยังไม่มี cron ของ staff-notify
+
+## ผลตรวจระบบจริงล่าสุด
+
+- ผู้ใช้สร้าง GitHub OAuth App และกรอก Client ID/Secret ใน Supabase ด้วยตนเอง ครั้งแรก Auth logs แจ้ง incorrect_client_credentials; หลังผู้ใช้แก้ Secret ล็อกอินสำเร็จ
+- เพิ่ม redirect URL แบบตรงตัว `https://nadokagenou.github.io/studentos-ai/alt/staff/` และคง Site URL เดิม
+- ผู้ใช้อนุญาตหน้าขอสิทธิ์ OAuth แล้ว ตรวจ GitHub write permission ผ่าน บัญชี @tanapat1604-cmd เข้า Control Room จริงได้
+- ภาพรวมแสดงบัญชีที่เคยซิงก์ 20 บัญชี ซิงก์ใน 24 ชั่วโมง 6 บัญชี และรายงานที่ยังไม่ปิด 2 รายการ ณ เวลาตรวจ ไม่ใช่จำนวนออนไลน์
+- ระหว่างตรวจพบ SQL alias `n` ชนกับตัวแปรใน users/notices; เพิ่มกรณีทดสอบให้เห็นข้อผิดพลาดก่อนแก้ แล้วติดตั้ง `fix_staff_user_pagination` และ `fix_staff_notice_list_alias` สำเร็จ
+- หลังแก้ users คืน 20 รายการ, notices 0, issues 2, audit 0; หน้า users โหลดจริงได้ 20 แถวโดยไม่มีข้อความผิดพลาด ชุดทดสอบรวมผ่าน 29/29
+- เพิ่มข้อความเมื่อ OAuth กลับมาพร้อม error และล้าง error ออกจาก URL โดยไม่สะท้อนข้อความดิบจาก provider
+- เตรียมฟอร์ม Vault ชื่อ `studentos_service_role_key` และแท็บ API Keys (Legacy) ให้ผู้ใช้คัดลอกค่า service_role ภายใน Supabase เอง ยังไม่ได้เปิดดูหรือคัดลอกกุญแจเข้าแชท รอผู้ใช้เพิ่ม Vault ก่อนติดตั้ง cron
 
 - ตารางใหม่ทั้ง 5 เปิด RLS และ anon/authenticated ไม่มีสิทธิ์ SELECT
 - RPC จัดการ/แจกโทเคน/claim push และ trigger function ให้ EXECUTE เฉพาะ service_role; public notices RPC เปิดอ่านเฉพาะข่าวเผยแพร่แล้วตามที่ออกแบบ
@@ -16,18 +27,20 @@
 หน้าแรกฉบับเรียบ หน้า “ฉัน” แบบสี่หมวด และหน้าสำรวจฟีเจอร์: ALT commit `4b65292`
 ตรวจไฟล์ app.js, index.html, alt.css, sw.js จากเว็บจริงตรงกับ commit นี้แล้ว เว็บหลักรากไม่ถูกแก้ใน release นี้
 
-## ส่วนเว็บยังอยู่ในเครื่อง
+## เว็บแอดมินเผยแพร่แล้ว
+
+เผยแพร่ชุดแรก commit `dba8dd0b3685ab1275ed03d36254306e4283558b` ขึ้น main หลังรวมงานล่าสุดจากเพื่อน (`d8d8895`) GitHub Pages run `38759526371` สำเร็จ เปิดได้ที่ https://nadokagenou.github.io/studentos-ai/alt/staff/ ตรวจ SHA-256 ของ index.html, staff.js, staff.css, staff-news.js, app.js และ sw.js บนเว็บจริงตรงกับ commit ทั้ง 6 ไฟล์ ณ ตอนเผยแพร่ ช่วงแรกยังปิด Provider แต่ตอนนี้เปิดและยืนยันเข้าใช้งานจริงแล้ว
 
 - เว็บแยก Student OS Control Room และตัวอย่างข้อมูลจำลอง
 - Edge Functions `staff-console`, `staff-notify` และ migration ฐานข้อมูลติดตั้งจริงแล้ว
 - สะพานข่าวสาร/ยอดเครดิตสำหรับ ALT, เปิดหน้าข่าวจากการกด Push, แยกแคชหน้าแอดมินจากแอปนักเรียน
-- ยังไม่ได้เปิด GitHub Provider ตั้ง cron หรือเผยแพร่ไฟล์เว็บชุดหลังบ้านนี้
-- ตรวจ Auth settings จริงแล้ว GitHub Provider ยังปิด; public notices RPC ตอบ 200
-- Dashboard ในเบราว์เซอร์ยังต้องล็อกอิน การกด Continue with GitHub ถูก automatic approval review ปฏิเสธเพราะต้องมีการอนุญาต sign-in บัญชีนี้โดยเฉพาะ ไม่ได้ข้ามข้อจำกัดนี้ ตัวเชื่อม Supabase ใช้งานได้แยกจาก session ในเบราว์เซอร์
+- GitHub Provider เปิดแล้ว; ไฟล์เว็บเผยแพร่แล้ว (preview.html ข้อมูลจำลองไม่ถูกเผยแพร่)
+- ตรวจ Auth settings จริงแล้ว GitHub เป็น true; public notices RPC ตอบ 200
+- ผู้ใช้ล็อกอิน Dashboard และกรอกกุญแจด้วยตัวเองหลังอนุญาตขั้นตอนเฉพาะแล้ว ไม่มีการข้าม automatic approval review
 
 ## ตรวจแล้ว
 
-- Security/PostgreSQL/news/credit bridge: **28/28 ผ่าน** ใช้ฐานข้อมูลจำลอง ไม่มีข้อมูลนักเรียนจริง
+- Security/PostgreSQL/news/credit bridge: **29/29 ผ่าน** ใช้ฐานข้อมูลจำลอง ไม่มีข้อมูลนักเรียนจริง
 - ติดตั้ง migration ซ้ำได้ในฐานข้อมูลจำลอง
 - Deno check ผ่านทั้งสอง Edge Functions (Supabase JS 2.117.3 / web-push 3.6.7)
 - แอปเดิม: parser 100/100, draw recovery 10/10, AI plan context 3/3 ผ่าน
@@ -38,8 +51,8 @@
 - ไม่พบ console error ในแท็บตัวอย่างที่ตรวจ
 - ตรวจ layout บนจอ desktop และจอแคบ 711px ไม่มีล้นแนวนอน; การบังคับ viewport 375px ของเครื่องมือไม่ยึดกับแท็บนี้ จึงยังไม่อ้างว่าผ่านขนาดมือถือ 375px หรืออุปกรณ์ Android จริง
 
-## ยังต้องตรวจหลังเจ้าของติดตั้งจริง
+## ยังต้องตรวจต่อ
 
-OAuth GitHub/สิทธิ์ collaborator, เพิ่มโทเคนบัญชีทดสอบและซิงก์หลายอุปกรณ์จริง, ข่าวจากฐานข้อมูลจริง, Push ถึงเครื่องจริง/quiet hours/cron และการถูกถอนสิทธิ์ GitHub
+เพิ่มโทเคนบัญชีทดสอบและซิงก์หลายอุปกรณ์จริง, ประกาศที่เผยแพร่จากฐานข้อมูลจริง, Push ถึงเครื่องจริง/cron และการถูกถอนสิทธิ์ GitHub ไม่แจกโทเคนหรือเผยแพร่ข่าวจริงระหว่างตรวจแบบอ่านอย่างเดียว
 
 ข้อจำกัดสำคัญ: เครดิตแอดมินมี ledger และ receipt กันคำขอซ้ำ แต่ wallet เดิมของแอปยังรับยอดจาก client ไม่ใช่ระบบบัญชีโทเคนฝั่งเซิร์ฟเวอร์ที่กันโกงครบถ้วน ดู INSTALL-TH.md ก่อนเปิดใช้จริง

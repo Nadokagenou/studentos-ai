@@ -500,6 +500,19 @@ async function start() {
     gate("โหลดระบบเข้าสู่ระบบไม่ได้ กรุณาตรวจการเชื่อมต่อ");
     return;
   }
+  const callback = new URL(location.href);
+  const callbackHash = new URLSearchParams(callback.hash.slice(1));
+  const callbackError =
+    callback.searchParams.get("error") || callbackHash.get("error");
+  if (callbackError) {
+    gate(
+      callbackError === "access_denied"
+        ? "ยังไม่ได้อนุญาตให้เข้าสู่ระบบ GitHub กดเข้าสู่ระบบเพื่อลองใหม่ได้ครับ"
+        : "เชื่อม GitHub ไม่สำเร็จ ให้ผู้ดูแลตรวจ Client ID และ Client Secret ใน Supabase แล้วลองใหม่ครับ",
+    );
+    // Show a fixed explanation, never reflect provider error text or keep it in the URL.
+    history.replaceState(null, "", location.pathname);
+  }
   client = window.supabase.createClient(
     window.SUPABASE_CONFIG.url,
     window.SUPABASE_CONFIG.anonKey,

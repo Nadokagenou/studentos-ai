@@ -43,6 +43,32 @@ async function bal() {
     )
   ).rows[0].bal;
 }
+test("user search paginates real rows and returns only permitted profile fields", async () => {
+  await db.exec("begin");
+  try {
+    await db.exec(`
+      insert into auth.users select ('44444444-4444-4444-8444-' || lpad(i::text,12,'0'))::uuid from generate_series(1,21) i;
+      insert into profiles select id,'Page Student ' || right(id::text,2), 'page_student' || right(id::text,2)::integer from auth.users where id::text like '44444444-%';
+      insert into user_state select id,'{"vault":{"tokens":{"bal":3}}}',now() from auth.users where id::text like '44444444-%';
+    `);
+    const first = await cmd("users", { query: "", offset: 0 });
+    const second = await cmd("users", { query: "", offset: 20 });
+    assert.equal(first.items.length, 20);
+    assert.equal(first.has_more, true);
+    assert.equal(second.items.length, 2);
+    assert.equal(second.has_more, false);
+    assert.equal(new Set([...first.items, ...second.items].map(x => x.id)).size, 22);
+    const search = await cmd("users", { query: "@page_student7", offset: 0 });
+    assert.equal(search.items.length, 1);
+    assert.equal(search.items[0].handle, "page_student7");
+    assert.equal(search.items[0].balance, 3);
+    assert.deepEqual(Object.keys(search.items[0]).sort(), ["balance", "display_name", "handle", "id", "last_sync"]);
+    assert.deepEqual((await cmd("users", { query: "missing_account", offset: 0 })).items, []);
+  } finally {
+    await db.exec("rollback");
+  }
+});
+
 test("grant is atomic, idempotent, and preserves task data", async () => {
   const payload = {
     request_id: req(1),
@@ -100,6 +126,7 @@ test("anonymous and normal users cannot grant, read staff tables or edit audit",
   await db.exec("reset role");
 });
 test("public news excludes drafts, withdrawn and expired copy; push jobs deduplicate", async () => {
+  assert.deepEqual((await cmd("notices", {})).items, []);
   const id = req(2);
   await cmd("draft", {
     request_id: id,
@@ -107,6 +134,10 @@ test("public news excludes drafts, withdrawn and expired copy; push jobs dedupli
     body: "Approved copy",
     until: null,
   });
+  const draftList = (await cmd("notices", {})).items;
+  assert.equal(draftList.length, 1);
+  assert.equal(draftList[0].status, "draft");
+  assert.equal(draftList[0].title, "Test announcement");
   assert.deepEqual(
     (await db.query("select staff_public_notices() r")).rows[0].r,
     [],
@@ -114,6 +145,9 @@ test("public news excludes drafts, withdrawn and expired copy; push jobs dedupli
   const publish = { request_id: req(3), id, push: true };
   await cmd("publish", publish);
   await cmd("publish", publish);
+  const publishedList = (await cmd("notices", {})).items;
+  assert.equal(publishedList[0].status, "published");
+  assert.match(publishedList[0].push_status, /1 บัญชีในคิว/);
   assert.equal(
     (await db.query("select count(*)::int n from staff_push_jobs")).rows[0].n,
     1,
