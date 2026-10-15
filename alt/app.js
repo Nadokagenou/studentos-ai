@@ -1152,7 +1152,8 @@ function go(id) {
   if (typeof aiChatsClose === 'function') aiChatsClose(true);
   const dir = navDirection(curScreen, id);
   // ออกจากจอสุ่มเมื่อไหร่ ทิ้งผลรอบเดิม กลับเข้ามาจะได้เริ่มใหม่สะอาด ๆ
-  if (id !== 'scr-wheel') { drawSettle(); drawResults = []; drawOpen = []; gcAuraOff(); applyDrawLock(); }
+  if (id !== 'scr-wheel') { drawSettle(); clearCompletedDraw(); drawResults = []; drawOpen = []; gcAuraOff(); applyDrawLock(); }
+  else restorePendingDraw();
   // จอเหรียญตราเข้าได้สามทาง (หน้าแรก · แท็บฉัน · ผลของฉัน) — ปุ่มกลับต้องกลับไปที่เดิม
   if (id === 'scr-badges' && ['scr-menu', 'scr-profile', 'scr-stats'].includes(curScreen)) badgesReturn = curScreen;
   curScreen = id;
@@ -2435,15 +2436,23 @@ function nowCard(sp, now) {
     // จอเต็มยังอยู่ที่ลิงก์ท้ายแผง เพราะการเทียบกับงานอื่นยาวเกินจะยัดลงการ์ด
     whyGo: `<button class="tn-why-go${NOW_WHY_OPEN ? ' open' : ''}" aria-expanded="${NOW_WHY_OPEN}"
         onclick="toggleNowWhy(this)">ทำไมอันนี้ก่อน${icon('chevron')}</button>
-      <div class="tn-why-pane${NOW_WHY_OPEN ? ' open' : ''}"><div class="tn-why-in">${nowWhyHTML(t, now)}</div></div>`,
+      <div class="tn-why-pane${NOW_WHY_OPEN ? ' open' : ''}" aria-hidden="${!NOW_WHY_OPEN}"${NOW_WHY_OPEN ? '' : ' inert'}><div class="tn-why-in">${nowWhyHTML(t, now)}</div></div>`,
   };
 
   const head = partsHtml('now', NOW_PARTS, 'head', P);
   const body = partsHtml('now', NOW_PARTS, 'body', P);
 
+  // อ่านก้อนแผนเดิม คำเตือนต้องอยู่ใกล้ปุ่มเริ่ม ไม่ซ่อนในหน้ารายละเอียด
+  const overflow = (sp.plan.overflow || []).find(o => o.task.id === t.id && o.missed);
+  const noContext = typeof ctxClasses === 'function' && !ctxClasses().length;
+  const note = overflow
+    ? `<button class="tn-plan-note warn" onclick="go('scr-plan')">${icon('clock')}เวลาว่างขาดอีก ${humanMin(overflow.need)} · ดูแผน${icon('chevron')}</button>`
+    : noContext
+      ? `<button class="tn-plan-note" onclick="go('scr-context')">${icon('calendar')}เวลายังเป็นค่าประเมิน · เพิ่มตารางเรียน${icon('chevron')}</button>` : '';
+
   return `<section class="td-now ${tone}${running ? ' running' : ''}">
     <div class="tn-head">${head}</div>
-    <div class="tn-body">${body}</div>
+    <div class="tn-body">${note}${body}</div>
   </section>`;
 }
 
@@ -2460,7 +2469,7 @@ function nowWhyHTML(t, now) {
   const due = t.due ? new Date(t.due) : null;
   const late = due && due < now;
   const stat2 = late ? null
-    : pnr ? [fmtClock(pnr), whyDayWord(pnr, now) + ' · เริ่มช้าสุด']
+    : pnr ? [fmtClock(pnr), whyDayWord(pnr, now) + ' · เริ่มช้าสุด (ประมาณ)']
     : due ? [fmtClock(due), whyDayWord(due, now) + ' · กำหนดส่ง'] : null;
   const rs = priorityInfo(t, now).reasons.map(x => String(x).replace(/^⚠\s*/, ''));
   return `<div class="tw-stats">
@@ -2478,7 +2487,11 @@ function toggleNowWhy(btn) {
   btn.classList.toggle('open', NOW_WHY_OPEN);
   btn.setAttribute('aria-expanded', NOW_WHY_OPEN);
   const pane = card.querySelector('.tn-why-pane');
-  if (pane) pane.classList.toggle('open', NOW_WHY_OPEN);
+  if (pane) {
+    pane.classList.toggle('open', NOW_WHY_OPEN);
+    pane.inert = !NOW_WHY_OPEN;
+    pane.setAttribute('aria-hidden', !NOW_WHY_OPEN);
+  }
   if (typeof haptic === 'function') haptic('arm');
 }
 
@@ -4250,12 +4263,33 @@ function setTaskDay(k) {
 function aiContext(now = new Date()) {
   const L = [];
   const p = typeof ctxPrefs === 'function' ? ctxPrefs() : {};
-  const pend = sortByPriority(pendingTasks(), now);
+  // คำแนะนำต้องมาจากแผนเดียวกับการ์ดหน้าแรก ไม่จัดใหม่จากคะแนนลอย ๆ
+  const sp = focusPlan(now);
+  const pending = pendingTasks();
+  const planned = [sp.now && sp.now.task,
+    ...sp.plan.slots.filter(s => !s.break).map(s => s.task),
+    ...sp.later, ...pending].filter(Boolean);
+  const seen = new Set();
+  const pend = planned.filter(t => {
+    if (seen.has(t.id)) return false;
+    seen.add(t.id);
+    return pending.some(p => p.id === t.id);
+  });
   const live = liveTasks();
 
   L.push('## ตัวผู้ใช้');
   L.push('- ชื่อที่ใช้เรียก: ' + (who() || 'ยังไม่ได้บอกชื่อ'));
   L.push('- วันนี้: ' + fmtThaiDate(now) + ' เวลา ' + fmtClock(now));
+
+  L.push('## คำแนะนำจากแผนกลางเดียวกับหน้าแรก');
+  L.push('- เมื่อถามว่าควรทำอะไรก่อน ให้ยึดงานแรกด้านล่าง ไม่จัดลำดับใหม่จากแค่เส้นตายหรือคะแนน');
+  L.push('- ถ้าผู้ใช้เพิ่มเงื่อนไขใหม่ ให้บอกให้ชัดว่าเป็นข้อเสนอใหม่ที่ต่างจากแผนเดิม');
+  L.push('- งานแรก: ' + (sp.now ? taskTitleText(sp.now.task) : 'ยังไม่มีงานที่แผนเสนอให้ทำตอนนี้'));
+  if (sp.now) L.push('- เหตุผลของแผน: ' + whyList(sp.now.info).join(' · '));
+  if (sp.now && sp.now.slot) L.push('- ช่วงที่แผนจัดไว้: ' + fmtClock(new Date(sp.now.slot.start))
+    + '–' + fmtClock(new Date(sp.now.slot.end)));
+  if (sp.next) L.push('- งานถัดไป: ' + taskTitleText(sp.next.task));
+  L.push('- เวลาบนแผนเป็นค่าประเมินจากข้อมูลที่มี ไม่ใช่การรับประกันว่าจะทำทัน');
 
   L.push('## เวลาประจำวัน');
   L.push('- ตื่น ' + (p.wake || '—') + ' · เข้านอน ' + (p.sleep || '—')
@@ -4829,6 +4863,16 @@ function aiAsk(preset, opts) {
       return;
     }
   }
+  // ออนไลน์ต้องใช้ session แต่แผนในเครื่องยังตอบได้ ไม่ส่งข้อมูล guest ไปให้รอ error
+  if (!currentUser) {
+    log.push({ role: 'user', text: q });
+    log.push({ role: 'model', local: true, text: 'คำแนะนำจากแผนในเครื่อง\n\n' + aiOpener(focusPlan(new Date()))
+      + '\n\nตอนนี้ยังไม่ได้เข้าสู่ระบบ จึงยังถามผู้ช่วยออนไลน์ไม่ได้ ดูแผนและเริ่มงานได้ตามปกติ หรือเข้าสู่ระบบที่แท็บฉันเพื่อถามเรื่องอื่น' });
+    aiLogSave(log);
+    if (box) box.value = '';
+    renderAi(); aiScrollDown();
+    return;
+  }
   log.push({ role: 'user', text: q });
   aiLogSave(log);
   if (box) box.value = '';
@@ -4871,7 +4915,8 @@ function aiAsk(preset, opts) {
 // เปิดให้ดูว่าส่งอะไรไปจริง ๆ — ไม่ใช่คำอธิบายว่า "เราเก็บข้อมูลเท่าที่จำเป็น"
 // แต่เป็นตัวข้อความก้อนเดียวกันกับที่ถูกส่ง คนอ่านแล้วตรวจได้เองว่าตรงกับที่บอกไหม
 function aiShowContext() {
-  alert('นี่คือข้อความที่ถูกส่งไปพร้อมคำถามของคุณ:\n\n' + aiContext());
+  alert((currentUser ? 'บริบทที่จะส่งเมื่อถามผู้ช่วยออนไลน์:\n\n'
+    : 'ยังไม่ล็อกอิน คำแนะนำจากแผนในเครื่องไม่ส่งบริบทนี้ไปบริการ AI:\n\n') + aiContext());
 }
 
 // ---------- ปุ่มทางลัด 4 ปุ่ม ----------
@@ -9227,6 +9272,16 @@ function rollPrize() {
 function grantPrize(r) {
   if (r.granted) return r;
   const s = tokenState();
+  // ผลกับยอดอยู่ในก้อนเดียวกัน: เปิดซ้ำหลังรีโหลดต้องไม่แจกซ้ำ
+  const pending = s.pendingDraw;
+  if (r.drawId) {
+    if (!pending || pending.id !== r.drawId) return null;
+    const saved = pending.results[r.drawIndex];
+    if (!saved) return null;
+    if (saved.granted) return Object.assign(r, saved);
+  }
+  const prize = r;
+  r = Object.assign({}, r);
   if (r.kind === 'token') {
     s.bal = Math.round(((s.bal || 0) + r.amount) * 10) / 10;
   } else if (r.kind === 'fx3d') {
@@ -9249,23 +9304,32 @@ function grantPrize(r) {
       s.bal = Math.round(((s.bal || 0) + r.amount) * 10) / 10;
     }
   }
-  saveTokenState(s);
   r.granted = true;
-  return r;
+  if (pending && r.drawId === pending.id) pending.results[r.drawIndex] = r;
+  if (!saveTokenState(s)) return null;
+  return Object.assign(prize, r);
 }
 
 // n = จำนวนใบ · คิดเงินก่อนสุ่ม ถ้าไม่พอไม่สุ่มเลยสักใบ (ไม่หักครึ่ง ๆ กลาง ๆ)
-function paySpin(n) {
+function paySpin(n, results) {
   const s = tokenState();
+  if (s.pendingDraw && s.pendingDraw.results.some(r => !r.granted)) {
+    return { ok: false, pending: true };
+  }
+  const id = uid();
+  const pendingDraw = { id, results: results.map((r, i) => Object.assign({}, r, { drawId: id, drawIndex: i })) };
   if (n === 1 && (s.freeSpins || 0) > 0) {
     s.freeSpins -= 1;
-    saveTokenState(s);
+    s.pendingDraw = pendingDraw;
+    if (!saveTokenState(s)) return { ok: false, storage: true };
     return { ok: true, free: true, cost: 0 };
   }
   const cost = n === 10 ? SPIN_COST_10 : SPIN_COST_1 * n;
   if ((s.bal || 0) < cost) return { ok: false, cost, short: Math.round((cost - (s.bal || 0)) * 10) / 10 };
   s.bal = Math.round((s.bal - cost) * 10) / 10;
-  saveTokenState(s);
+  // หักยอดและเก็บการ์ดครั้งเดียว ก่อนเริ่มเอฟเฟกต์ มือถือปิดหน้าระหว่างนี้ของจึงยังอยู่
+  s.pendingDraw = pendingDraw;
+  if (!saveTokenState(s)) return { ok: false, storage: true };
   return { ok: true, free: false, cost };
 }
 
@@ -9398,11 +9462,16 @@ function tokenState() {
 function saveTokenState(s, quiet) {
   // ∞ แปลงเป็น JSON ไม่ได้ (กลายเป็น null = ยอดหาย) — เขียนยอดจริงที่มีอยู่กลับลงไปแทน
   if (!Number.isFinite(s.bal)) s = Object.assign({}, s, { bal: rawTokenState().bal || 0 });
-  try { localStorage.setItem(TOKEN_KEY, JSON.stringify(s)); } catch (_) {}
+  try { localStorage.setItem(TOKEN_KEY, JSON.stringify(s)); }
+  catch (_) {
+    showToast({ title: 'บันทึกโทเคนไม่ได้', body: 'ยังไม่หักโทเคนหรือรับรางวัล ลองเพิ่มพื้นที่ว่างแล้วเปิดใหม่' });
+    return false;
+  }
   // quiet = กำลังเขียนของที่เพิ่งดึงลงมาจาก cloud ห้ามประทับเวลาใหม่
   // ไม่งั้นเครื่องที่แค่ "รับ" ของมา จะกลายเป็นเครื่องที่มีของใหม่ที่สุดทันที
   if (!quiet) { try { localStorage.setItem(VAULT_AT_KEY, String(Date.now())); } catch (_) {} }
   if (!quiet && typeof pushToCloud === 'function') pushToCloud();
+  return true;
 }
 function tokenBalance() { return tokenState().bal || 0; }
 function loginStreak() { return tokenState().streak || 0; }
@@ -9647,6 +9716,20 @@ let drawResults = [];
 let drawOpen = [];
 let drawing = false;
 
+function restorePendingDraw() {
+  const p = rawTokenState().pendingDraw;
+  if (!p || !Array.isArray(p.results) || !p.results.length) { drawResults = []; drawOpen = []; return; }
+  drawResults = p.results;
+  drawOpen = p.results.map(r => !!r.granted);
+}
+
+function clearCompletedDraw() {
+  const s = rawTokenState();
+  if (!s.pendingDraw || s.pendingDraw.results.some(r => !r.granted)) return;
+  delete s.pendingDraw;
+  saveTokenState(s);
+}
+
 // ---------- 1C40 · วงการ์ด 3D (แบบ ThreeDPhotoCarousel) ----------
 // การ์ดเรียงรอบทรงกระบอก ลากซ้าย-ขวาแล้ววงหมุนตามนิ้ว ปล่อยแล้วไหลต่อตามแรงส่ง แล้วเข้าล็อกใบที่ใกล้ที่สุด
 // วงถูกดันถอยหลังเท่ารัศมี (translateZ(-r)) ใบหน้าสุดจึงขนาดเท่าการ์ดจริง ไม่ขยายเข้าหาตา
@@ -9800,13 +9883,15 @@ function drawBusy() { return drawResults.length > 0 && drawOpen.some(v => !v); }
 function drawSettle() {
   if (!drawBusy()) return;
   let tok = 0, fresh = 0;
+  let failed = false;
   drawResults.forEach((r, i) => {
     if (drawOpen[i]) return;
+    if (!grantPrize(r)) { failed = true; return; }
     drawOpen[i] = true;
-    grantPrize(r);
     tok += r.amount || 0;
     if ((r.kind === 'skin' || r.kind === 'fx3d') && !r.duplicate) fresh++;
   });
+  if (failed) return false;
   if (typeof applyThemeLocks === 'function') applyThemeLocks();
   showToast({
     title: 'เก็บการ์ดที่ยังไม่ได้หงายให้แล้ว',
@@ -9829,7 +9914,7 @@ function cardFace(r) {
 
 function drawCardsHtml() {
   return `<div class="gc-stage"></div>
-    <div class="gc-ring${drawResults.length > 1 ? ' multi' : ''}" id="gcRing">
+    <div class="gc-ring${drawResults.length > 1 ? ' multi' : ''}" id="gcRing" data-draw-id="${drawResults[0].drawId || ''}">
      <div class="gc-cyl" id="gcCyl">
       ${drawResults.map((r, i) => `
         <button class="gc" data-i="${i}" onclick="gcTap(${i})"
@@ -9869,8 +9954,9 @@ const RANK = { common: 0, rare: 1, legendary: 2, secret: 3, mythic: 4 };
 
 function flipCard(i) {
   if (drawOpen[i]) return;
-  drawOpen[i] = true;
   const r = grantPrize(drawResults[i]);     // ของเข้ากระเป๋าตอนนี้ ไม่ใช่ตอนกดปุ่ม
+  if (!r) return;
+  drawOpen[i] = true;
   const el = document.querySelector('.gc[data-i="' + i + '"]');
   if (el) {
     el.querySelector('.gc-face').innerHTML = cardFace(r);   // เติมหน้าการ์ดตอนจะพลิกเท่านั้น
@@ -9928,7 +10014,7 @@ function oddsText(rarity) {
 function renderWheel() {
   const box = document.getElementById('wheelBody');
   if (!box) return;
-  if (drawResults.length && curScreen === 'scr-wheel') return;  // กำลังโชว์การ์ดอยู่ ห้ามวาดทับ
+  if (drawResults.length && curScreen === 'scr-wheel' && box.querySelector('#gcRing')?.dataset.drawId === drawResults[0].drawId) return;
   const s = tokenState();
   const free = s.freeSpins || 0;
   box.innerHTML = `<div class="page-head gc-head">
@@ -9976,6 +10062,23 @@ function renderWheel() {
     </div>`;
 }
 
+// ตอนเปิดใหม่ต้องวาดการ์ดเดิม ไม่สุ่มใหม่และไม่หักยอดซ้ำ
+function renderRestoredDraw() {
+  if (!drawResults.length || curScreen !== 'scr-wheel') return;
+  const area = document.getElementById('gcArea');
+  if (!area || area.querySelector('#gcRing')?.dataset.drawId === drawResults[0].drawId) return;
+  area.className = '';
+  area.innerHTML = drawCardsHtml();
+  drawResults.forEach((r, i) => {
+    if (!r.granted) return;
+    const el = area.querySelector('.gc[data-i="' + i + '"]');
+    el.querySelector('.gc-face').innerHTML = cardFace(r);
+    el.classList.add('open', 'lit-' + r.rarity);
+  });
+  ringStop(); ringLayout(); ringBind(); gcRot = 0; ringPaint();
+  refreshDrawHead(); refreshDrawFooter(); applyDrawLock();
+}
+
 // ความกว้างของแถบอัตรา — ต่างจาก oddsText ตรงที่ต้องเป็นตัวเลขล้วนและมีพื้นขั้นต่ำ
 // Legendary 1% กว้าง 1% คือเส้นบางกว่า 2px บนจอมือถือ = มองไม่เห็นว่ามีอยู่
 function oddsPct(rarity) {
@@ -10004,8 +10107,14 @@ function refreshDrawHead() {
 
 async function doSpin(n) {
   if (drawing || drawBusy()) return;
-  const pay = paySpin(n);
+  const pay = paySpin(n, Array.from({ length: n }, () => rollPrize()));
   if (!pay.ok) {
+    if (pay.storage) return;
+    if (pay.pending) {
+      restorePendingDraw(); renderWheel(); renderRestoredDraw();
+      showToast({ title: 'ยังมีการ์ดรอเปิด', body: 'เปิดรอบเดิมให้ครบก่อน ไม่หักโทเคนเพิ่ม' });
+      return;
+    }
     haptic('snooze');
     showToast({ title: 'โทเคนไม่พอ', body: 'ต้องใช้ ' + pay.cost + ' โทเคน ยังขาดอีก ' + fmtTok(pay.short) });
     return;
@@ -10015,12 +10124,18 @@ async function doSpin(n) {
   document.getElementById('gcGo10').disabled = true;
 
   // ล็อกผลไว้ตั้งแต่ตอนนี้ (ยุติธรรม — หงายช้าเร็วไม่เปลี่ยนของ) แต่ยังไม่ให้ของ
-  drawResults = Array.from({ length: n }, () => rollPrize());
-  drawOpen = drawResults.map(() => false);
+  restorePendingDraw();
+  const roundId = drawResults[0].drawId;
   applyDrawLock();
 
   // ดาวตกก่อน — สีของมันบอกของที่ดีที่สุดในรอบนี้ ก่อนจะเห็นการ์ด (gacha-fx.js · แตะข้ามได้)
   if (typeof gcIntro === 'function') await gcIntro(drawResults);
+
+  // ระหว่างดาวตกผู้ใช้อาจไปจออื่นแล้ว อย่าวาดรอบเก่าทับหน้าที่เพิ่งเปิด
+  if (curScreen !== 'scr-wheel' || !drawResults.length || drawResults[0].drawId !== roundId) {
+    drawing = false;
+    return;
+  }
 
   const area = document.getElementById('gcArea');
   area.className = '';
@@ -11023,7 +11138,7 @@ function renderAll() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline(); renderAi();
   renderWhy();
   renderProfile(); renderShowcase(); renderStats(); renderPlan(); renderFriends(); renderBadges();
-  renderShop(); renderPro(); renderWheel(); renderInstallCard(); renderTabBadges(); renderContext();
+  renderShop(); renderPro(); renderWheel(); renderRestoredDraw(); renderInstallCard(); renderTabBadges(); renderContext();
   renderRunBar();
   // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น
   // (กันแอปพังทั้งจอถ้าไฟล์ inbox.js/linelink.js โหลดไม่ขึ้น)
@@ -13011,7 +13126,7 @@ function setRow(id, text) {
 function updateFormSummary() {
   const v = id => (document.getElementById(id) || {}).value || '';
   setRow('rvTeacher', v('fTeacher').trim() || 'ยังไม่ระบุ');
-  setRow('rvScore', v('fScore') ? v('fScore') + ' คะแนน' : 'ให้ AI เดา');
+  setRow('rvScore', v('fScore') ? v('fScore') + '%' : 'ยังไม่ระบุ');
   setRow('rvStars', formUserStars ? '★' + formUserStars : 'AI จัดให้');
   setRow('fEstVal', (v('fEst') || 30) + ' นาที');
   setRow('rvLate', v('fLate') ? selText('fLate') : 'ให้ AI เดา');
@@ -17338,6 +17453,7 @@ function syncLiteRow() {
 (async function initApp() {
   setTimeout(liteProbe, 3000);
   load();
+  restorePendingDraw();
   purgeOldTrash(); // ของในถังขยะที่เกิน 30 วัน ทิ้งถาวรตอนเปิดแอป
   funnelOpen();    // นับการเปิดแอป — ต้องอยู่หลัง load() ไม่งั้นนับทับก้อนเปล่า
   stashJoinToken();  // เก็บ token จากลิงก์กลุ่มไว้ก่อน ใช้จริงหลังล็อกอิน

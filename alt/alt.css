@@ -9482,6 +9482,34 @@ body.focus-on .top-friends { visibility: hidden; }
   #menuBody { padding-bottom: 12px; }
 }
 
+/* สำเนาทดลอง: คำเตือนของแผนใช้สีความหมายเดิม และอยู่ติดปุ่มลงมือ */
+.tn-plan-note { display: flex; align-items: center; gap: 6px; width: 100%; padding: 7px 8px;
+  margin: 0 0 8px; border: 0; border-radius: 10px; background: var(--card2); color: var(--muted);
+  font: inherit; font-size: 12px; text-align: left; line-height: 1.45; cursor: pointer; }
+.tn-plan-note svg { width: 15px; height: 15px; flex: 0 0 15px; }
+.tn-plan-note svg:last-child { margin-left: auto; }
+.tn-plan-note.warn { background: var(--alert-soft); color: var(--alert); }
+.fm-score-help { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+
+/* บนมือถือสั้น ตัวเลขซ้ำกับหัวจอหลบให้ปุ่มใช้งาน แต่ไทล์ทั้งแปดใบยังอยู่ครบ */
+@media (max-width: 619px) and (max-height: 860px) {
+  :root:not([data-nav="side"]) body:not(.login-mode) .screens > #scr-menu.screen { padding-bottom: var(--tb-under); }
+  .phone #menuBody { gap: 4px; padding-bottom: 10px; }
+  .phone #menuBody .td-stats { display: none; }
+  .phone #menuBody .saih { min-height: 0; height: 56px; padding: 6px 12px; }
+  .phone #menuBody .saih-stage { width: 44px; height: 44px; flex: 0 0 44px; }
+  .phone #menuBody .saih-face { width: 44px; height: 44px; }
+  .phone #menuBody .saih-go { font-size: 11px; }
+  .phone #menuBody:has(.td-railwrap) .saih { display: none; }
+  .phone #menuBody .td-railwrap { margin-top: 8px; }
+  .phone #menuBody .rl-lb { min-height: 0; height: 20px; line-height: 20px; margin-bottom: 4px; }
+  .phone #menuBody .rl-lb b { font-size: 14px; line-height: 20px; }
+  .phone #menuBody .td-rail { max-height: 80px; overflow-y: auto; }
+  .phone #menuBody .dr-row.end { display: none; }
+  .phone #menuBody > .td-now, .phone #menuBody > .td-empty { margin-top: 12px; }
+  .phone #menuBody .td-tiles { margin-top: 12px; }
+}
+
 /* #14 · ปุ่มส่งของช่องพิมพ์น้องไซจางเกิน (≈2.2:1 ในธีมมืด) — ไอคอนต้องได้ 3:1 ขึ้นไป */
 .phone .sai-bar .sb-send, .phone #aiBody .sai-bar.sai-cmp .sb-send { color: var(--muted) !important; }
 :is([data-theme=dark],[data-theme=space],[data-theme=magic],[data-theme=galaxy],[data-theme=deepocean],[data-theme=meta],[data-theme=glitch],[data-theme=astral])

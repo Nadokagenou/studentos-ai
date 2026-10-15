@@ -424,7 +424,7 @@ function parseAssignment(text, now = new Date(), opts = {}) {
 
   // วันส่ง — dueText เก็บคำที่ใช้ตัดสิน ไว้เอาไปหักออกจากรายละเอียดทีหลัง
   let due = null, dueText = '';
-  if (/วันนี้/.test(t)) { due = atTime(now, hh, mm); dueText = 'วันนี้'; }
+  if (/(?:วันนี้|คืนนี้)/.test(t)) { due = atTime(now, hh, mm); dueText = t.match(/วันนี้|คืนนี้/)[0]; }
   else if (/พรุ่งนี้/.test(t)) { due = atTime(addDays(now, 1), hh, mm); dueText = 'พรุ่งนี้'; }
   else if (/มะรืน/.test(t)) { due = atTime(addDays(now, 2), hh, mm); dueText = 'มะรืน'; }
   else {
@@ -455,7 +455,8 @@ function parseAssignment(text, now = new Date(), opts = {}) {
       // (แบบมีจุดไม่ต้องกัน เพราะจุดเองเป็นตัวจบคำอยู่แล้ว — "25 ก.ค.นี้" ต้องยังผ่าน)
       const dotted = mon.replace(/\./g, '\\.');
       const bare = mon.replace(/\./g, '');
-      const re = new RegExp('(?:วันที่\\s*)?(\\d{1,2})\\s*(?:' + dotted + '|' + bare + '\\.?(?![ก-๙]))');
+      // ปีที่ตามวันส่งหักออกพร้อมวันที่ โดยไม่แตะเลขปีในเนื้องาน
+      const re = new RegExp('(?:วันที่\\s*)?(\\d{1,2})\\s*(?:' + dotted + '|' + bare + '\\.?(?![ก-๙]))(?:\\s*(?:พ\\.?\\s*ศ\\.?\\s*|ค\\.?\\s*ศ\\.?\\s*)?(?:25\\d{2}|20\\d{2})(?!\\d))?');
       const m = t.match(re);
       if (m) {
         let d = new Date(now.getFullYear(), idx, +m[1], hh, mm);

@@ -1022,8 +1022,9 @@
             </details>
 
             <details class="fm-row" id="fScoreWrap">
-              <summary><span class="rw-l">คะแนน</span><span class="rw-v" id="rvScore">ให้ AI เดา</span></summary>
-              <div class="rw-body fld"><input type="number" id="fScore" min="0" max="100" placeholder="20"></div>
+              <summary><span class="rw-l">คะแนนเก็บ (%)</span><span class="rw-v" id="rvScore">ยังไม่ระบุ</span></summary>
+              <div class="rw-body fld"><input type="number" id="fScore" min="0" max="100" placeholder="เช่น 20" aria-label="สัดส่วนคะแนนรวม (%)">
+                <p class="fm-score-help">ใส่สัดส่วนของคะแนนรวม เช่น งานนี้คิดเป็น 20% ไม่ใช่คะแนนดิบ 20 คะแนน · ไม่ทราบให้เว้นว่าง</p></div>
             </details>
 
             <!-- แถวที่มี data-hsel = ตัวเลือกตายตัว → แตะแล้วเปิดเมนูแบบ HaloSelect (hselOpen ใน app.js)
@@ -1157,7 +1158,7 @@
             <h2 class="sh-title">แผนวันนี้</h2>
             <p class="sh-sub" id="planSub"></p>
           </div>
-          <button class="sh-btn" onclick="go('scr-home')" aria-label="กลับหน้าแรก">
+          <button class="sh-btn" onclick="go('scr-menu')" aria-label="กลับหน้าแรก">
             <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
         </div>
         <div class="scr-body plan-body" id="planList"></div>
