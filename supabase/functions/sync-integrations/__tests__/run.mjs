@@ -382,6 +382,21 @@ async function runBody(tables, body) {
   const d = t.integrations[0].meta.diag || {};
   check('diag แยกสามแบบถูก', d.work === 5 && d.turnedIn === 1 && d.returned === 2
     && d.returnedUnsubmitted === 1 && d.done === 3 && d.returnedNoHistory === 1, JSON.stringify(d));
+  check('ไม่มีประวัติ + ยังไม่เลยกำหนด → นับว่าอาจหายผิด 1 ใบ', d.returnedNoHistoryOpen === 1, JSON.stringify(d));
+}
+
+// ---- 17b) ไม่มีประวัติ แต่เลยกำหนดไปแล้ว → ไม่นับ (ต่อให้ค้างก็ไม่เข้าแผนอยู่ดี) ----
+{
+  GOOGLE = { 'rt-o': { email: 'o@gmail.com', courses: [{ id: 'c-o', name: 'ไทย' }],
+    work: { 'c-o': [
+      { id: 'w-old', title: 'งานเก่า', state: 'PUBLISHED', creationTime: iso(Date.now() - 30 * DAY), dueDate: dueIn(-10) },
+      { id: 'w-old-nodue', title: 'งานเก่าไม่มีกำหนด', state: 'PUBLISHED', creationTime: iso(Date.now() - 30 * DAY) },
+    ] },
+    subs: { 'c-o': [{ courseWorkId: 'w-old', state: 'RETURNED' }, { courseWorkId: 'w-old-nodue', state: 'RETURNED' }] } } };
+  const t = await gTables([await gRow('io', 'uo', 'rt-o')]);
+  await runBody(t, {});
+  const d = t.integrations[0].meta.diag || {};
+  check('ไม่มีประวัติ + เลยกำหนดแล้ว → ไม่นับ', d.returnedNoHistory === 2 && d.returnedNoHistoryOpen === 0, JSON.stringify(d));
 }
 // ---- 18) รอบถัดไปต้องไม่ถูกข้าม: นัดต้องมาก่อนรอบ cron ที่ห่างไป 30 นาที ----
 // ซิงก์เสร็จช้ากว่าเวลาที่ cron ยิงเสมอ (เทสต์นี้: cron ยิง 14:00:00 · ซิงก์เสร็จ 14:00:10)
