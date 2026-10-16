@@ -1325,69 +1325,186 @@ async function initCloud() {
   if (currentUser) await syncFromCloud();
 }
 
-// ดึงข้อมูลจาก cloud มารวมกับในเครื่อง (รวมงานตาม id — ฝั่ง cloud ชนะเมื่อซ้ำ)
+// ดึงข้อมูลจาก cloud มารวมกับในเครื่อง แล้วส่งก้อนที่รวมแล้วกลับขึ้นไป
+// (การรวมอยู่ใน cloudPull · ใครชนะเมื่อซ้ำ ดู syncMergeById)
 async function syncFromCloud() {
   if (!sb || !currentUser) return;
   try {
-    // ถาม rev ก่อนว่าของบน cloud ใหม่กว่าที่เครื่องนี้เห็นล่าสุดไหม — ตัวเลขตัวเดียว
-    // ไม่กี่ไบต์ ถูกกว่าลากก้อน 26KB ลงมาเทียบเองทุกครั้งที่เปิดแอปหลายสิบเท่า
-    // (เปิดแอปส่วนใหญ่ไม่มีอะไรเปลี่ยนบน cloud เพราะเครื่องนี้เองเป็นคนเขียนล่าสุด)
-    const { data: head, error: headErr } = await sb.from('user_state')
-      .select('rev').eq('id', currentUser.id).maybeSingle();
-    if (headErr) throw headErr;
-    const remoteRev = head ? head.rev : null;
-    const skipPull = head && remoteRev === lastSeenRev;
-
-    const { data, error } = skipPull ? { data: null } : await sb.from('user_state')
-      .select('data, avatar, rev').eq('id', currentUser.id).maybeSingle();
-    if (error) throw error;
-    if (data && data.data) {
-      const remote = data.data;
-      lastSeenRev = data.rev;
-      // รูปโปรไฟล์ย้ายมาอยู่คอลัมน์ของตัวเองแล้ว — ประกอบกลับเข้า vault ให้ vaultImport
-      // ทำงานเหมือนเดิม ตัวมันไม่ต้องรู้ว่าข้างล่างเก็บแยกกันแล้ว
-      if (remote.vault && data.avatar) remote.vault.avatar = data.avatar;
-      const byId = {};
-      for (const t of (state.tasks || [])) byId[t.id] = t;
-      for (const t of (remote.tasks || [])) byId[t.id] = t;
-      state.tasks = Object.values(byId);
-      state.settings = Object.assign({}, state.settings, remote.settings || {});
-      // รอบจับเวลารวมตาม id เหมือนงาน — แต่ละรอบเกิดบนเครื่องเดียวและไม่เคยถูกแก้ทีหลัง
-      // เครื่องไหนบันทึกไว้ก็ของจริงทั้งคู่ เอามารวมกันแล้วเรียงตามเวลาเริ่ม
-      const sById = {};
-      for (const s of (state.sessions || [])) sById[s.id] = s;
-      for (const s of (remote.sessions || [])) sById[s.id] = s;
-      state.sessions = Object.values(sById)
-        .sort((a, b) => (a.start || '').localeCompare(b.start || ''))
-        .slice(-SESSION_CAP);
-      // หมุดปฏิทินรวมตาม id เหมือนงาน — ปักจากเครื่องไหนก็เป็นของจริงทั้งคู่
-      const mById = {};
-      for (const m of (state.marks || [])) mById[m.id] = m;
-      for (const m of (remote.marks || [])) mById[m.id] = m;
-      state.marks = Object.values(mById);
-      funnelMerge(remote.funnel);
-      // สถานะ push ของเครื่องอื่น — เก็บไว้ส่งกลับขึ้นไปพร้อมของเครื่องนี้ (ดู pushDiagExport)
-      if (remote.pushDiag && typeof remote.pushDiag === 'object') pushDiagRemote = remote.pushDiag;
-      // ใช้ตัวเดียวกับ save() — ถ้าเครื่องเต็มตรงนี้แล้วปล่อยให้ throw จะร้ายกว่าที่อื่น
-      // เพราะบรรทัดที่เหลือของ syncFromCloud (บริบท · ของสะสม · กล่องเข้า LINE · renderAll)
-      // จะไม่ได้ทำงานเลยสักบรรทัด แปลว่าดึงของจาก cloud มาแล้วแต่หน้าจอไม่รู้เรื่องด้วย
-      persistState();
-      // บริบท (ตารางเรียน/กิจวัตร) ยังอยู่ใน user_state ก้อนเดียวกันไปก่อน
-      // ฝั่ง cloud ชนะทั้งก้อน ไม่ merge รายตัว เพราะมันคือ "ตารางของสัปดาห์นี้"
-      // ที่ต้องสอดคล้องกันทั้งชุด ไม่ใช่รายการงานที่เพิ่มทีละใบจากหลายเครื่อง
-      if (remote.ctx && typeof ctxImport === 'function') ctxImport(remote.ctx);
-      // ของสะสมรวมทีหลัง ctx เพราะมันไม่เกี่ยวกัน แต่ต้องมาก่อน renderAll() ข้างล่าง
-      // ไม่งั้นหน้าจอวาดยอดโทเคนเก่าไปแล้วค่อยเปลี่ยนเลขต่อหน้าต่อตา
-      if (typeof vaultImport === 'function') vaultImport(remote.vault);
-      if (typeof staffApplyCredits === 'function') staffApplyCredits(remote.vault);
-    }
-    await pushToCloud(true);
+    await syncSerial(cloudPull);
+  } catch (e) { console.warn('[sync] pull failed:', e.message); syncFailNotice('pull'); return; }
+  // ส่งพังไม่ทำให้ส่วนที่เหลือหยุด — pushToCloud บอกผู้ใช้เองแล้ว (เหมือนเดิม)
+  await pushToCloud(true);
+  try {
     // ของที่บอท LINE หย่อนไว้ตอนแอปปิดอยู่ — ดึงมาทีเดียวตอนเปิด
     await loadLineLinks();
     await pullInbox();
     renderAll();
   } catch (e) { console.warn('[sync] pull failed:', e.message); syncFailNotice('pull'); }
 }
+
+// ============================================================
+// 16 ต.ค. 69 · ดึงก่อนส่งเสมอ (ข้อ 2 ของการไล่ Classroom ปลายทางถึงปลายทาง)
+// ------------------------------------------------------------
+// เดิมดึงจาก cloud แค่ตอนเปิดแอป/ล็อกอิน แต่ส่ง "ทั้งก้อน" ขึ้นไปทุกครั้งที่ save()
+// PWA บนมือถือไม่ได้เปิดใหม่ — มันถูกปลุก · เครื่อง B ที่ค้างมาสามวันจึงส่งรายการงานเมื่อสามวันก่อน
+// ขึ้นไปทับทันทีที่ติ๊กอะไรสักอย่าง งานที่เครื่อง A เพิ่มระหว่างนั้น (รวมงาน Classroom ที่ A รับจาก
+// inbox_items ไปแล้ว ซึ่งจะไม่ถูกส่งมาซ้ำอีก) หายถาวร · หลักฐานจริง: บัญชี a3c789b0 มีแถว Classroom
+// ที่ถูกรับไปแล้วตอน 23:30 น. ของ 15 ต.ค. แต่ไม่มีงานใบนั้นใน user_state
+//
+// ตอนนี้: ก่อนส่งทุกครั้งถาม rev (ตัวเลขตัวเดียว) — ถ้า cloud ขยับไปจากที่เครื่องนี้เห็นล่าสุด ดึงมารวมก่อน
+// และกลับเข้าแอปเมื่อไหร่ถาม rev หนึ่งครั้ง · save() ที่ไม่ได้เปลี่ยนอะไรยังไม่ยิงเน็ตเลยเหมือนเดิม
+//
+// การรวมเป็นแบบสามทาง: จำไว้ว่า cloud มีอะไร ณ ตอนที่ซิงก์กันล่าสุด (syncBase) แล้วตัดสินทีละชิ้น
+//   ชิ้นที่เครื่องนี้แก้ตั้งแต่ซิงก์ล่าสุด → ของเครื่องนี้ชนะ (เพิ่งติ๊กเสร็จ ต้องไม่ถูกของเก่าบน cloud ทับ)
+//   ชิ้นที่เครื่องนี้ไม่ได้แตะ → ของ cloud ชนะ
+//   ชิ้นที่หายไปจากฝั่งหนึ่ง → ถูกลบถาวรที่ฝั่งนั้น ยกเว้นอีกฝั่งเพิ่งแก้มัน (เก็บไว้ ไม่ทิ้งของที่มีคนแตะ)
+// ยังไม่เคยซิงก์ในรอบเปิดแอปนี้ (syncBase ว่าง) → กติกาเดิม: รวมทุกอย่าง cloud ชนะเมื่อซ้ำ
+// ============================================================
+let syncBase = null;       // { uid, tasks, sessions, marks, settings, ctx } — ลายนิ้วมือของสิ่งที่ cloud มี
+let syncChain = Promise.resolve();
+
+// ดึงกับส่งต้องไม่ซ้อนกัน — ส่งที่เริ่มก่อนดึงจบจะเอาก้อนเก่ากลับขึ้นไปทับสิ่งที่เพิ่งดึงมา
+// fn ห้ามเรียก syncSerial ซ้ำข้างใน (รอตัวเอง = ค้างตลอดไป)
+function syncSerial(fn) {
+  const run = syncChain.then(() => fn());
+  syncChain = run.catch(() => {});
+  return run;
+}
+
+// JSON ที่เรียงคีย์ — jsonb ของ Postgres ไม่เก็บลำดับคีย์ งานใบเดียวกันที่ไปกลับ cloud มาแล้ว
+// จะ stringify ออกมาไม่เหมือนกับในเครื่อง ถ้าไม่เรียงก่อน ทุกใบจะดูเหมือน "ถูกแก้"
+function stableJson(v) {
+  if (Array.isArray(v)) return '[' + v.map(x => x === undefined ? 'null' : stableJson(x)).join(',') + ']';
+  if (v && typeof v === 'object') {
+    return '{' + Object.keys(v).sort().filter(k => v[k] !== undefined)
+      .map(k => JSON.stringify(k) + ':' + stableJson(v[k])).join(',') + '}';
+  }
+  return v === undefined ? 'null' : JSON.stringify(v);
+}
+const syncFp = v => cheapHash(stableJson(v));
+
+function syncBaseFrom(body) {
+  const ids = arr => {
+    const m = {};
+    for (const x of arr || []) if (x && x.id != null) m[x.id] = syncFp(x);
+    return m;
+  };
+  const keys = o => {
+    const m = {};
+    for (const k of Object.keys(o || {})) m[k] = syncFp(o[k]);
+    return m;
+  };
+  return { uid: currentUser && currentUser.id, tasks: ids(body.tasks), sessions: ids(body.sessions),
+    marks: ids(body.marks), settings: keys(body.settings), ctx: body.ctx ? syncFp(body.ctx) : null };
+}
+
+// ฐานของบัญชีอื่นใช้ไม่ได้ — สลับบัญชีแล้วใช้ฐานเดิม งานของบัญชีใหม่จะดูเหมือน "ถูกลบที่ cloud"
+function syncBaseNow() {
+  return syncBase && currentUser && syncBase.uid === currentUser.id ? syncBase : null;
+}
+
+// รวมรายการที่มี id (งาน · รอบจับเวลา · หมุดปฏิทิน) · base = { id: ลายนิ้วมือ } หรือ null
+function syncMergeById(local, remote, base) {
+  const L = new Map(), R = new Map();
+  for (const x of local || []) if (x && x.id != null) L.set(x.id, x);
+  for (const x of remote || []) if (x && x.id != null) R.set(x.id, x);
+  const out = [];
+  for (const [id, l] of L) {
+    const r = R.get(id);
+    if (!base) { out.push(r || l); continue; }             // กติกาเดิม: cloud ชนะเมื่อซ้ำ
+    const was = base[id];
+    const dirty = was === undefined || syncFp(l) !== was;  // เครื่องนี้สร้าง/แก้หลังซิงก์ล่าสุด
+    if (r) out.push(dirty && was !== undefined ? l : r);
+    else if (dirty) out.push(l);                           // ใหม่ในเครื่องนี้ หรือแก้อยู่ตอนที่อีกเครื่องลบ
+    // ไม่ได้แตะเลย และ cloud ไม่มีแล้ว = อีกเครื่องลบถาวร → ตามไปลบ
+  }
+  for (const [id, r] of R) {
+    if (L.has(id)) continue;
+    if (!base) { out.push(r); continue; }
+    const was = base[id];
+    // เครื่องนี้ลบถาวรไปแล้ว — เอากลับมาเฉพาะถ้าอีกเครื่องแก้มันหลังจากนั้น
+    if (was === undefined || syncFp(r) !== was) out.push(r);
+  }
+  return out;
+}
+
+// รวมช่องตั้งค่าทีละคีย์ ด้วยกติกาเดียวกับข้างบน
+function syncMergeKeys(local, remote, base) {
+  local = local || {}; remote = remote || {};
+  if (!base) return Object.assign({}, local, remote);
+  const out = {};
+  for (const k of new Set([...Object.keys(local), ...Object.keys(remote)])) {
+    const inL = k in local, inR = k in remote, was = base[k];
+    const lDirty = inL && (was === undefined || syncFp(local[k]) !== was);
+    if (inL && inR) out[k] = lDirty && was !== undefined ? local[k] : remote[k];
+    else if (inL) { if (lDirty) out[k] = local[k]; }
+    else if (was === undefined || syncFp(remote[k]) !== was) out[k] = remote[k];
+  }
+  return out;
+}
+
+// ถาม rev · ถ้า cloud ขยับไปจากที่เห็นล่าสุด ลากก้อนลงมารวม · คืน true เมื่อรวมแล้ว (ผู้เรียก renderAll เอง)
+// เรียกผ่าน syncSerial เท่านั้น
+async function cloudPull() {
+  // ถาม rev ก่อนว่าของบน cloud ใหม่กว่าที่เครื่องนี้เห็นล่าสุดไหม — ตัวเลขตัวเดียว
+  // ไม่กี่ไบต์ ถูกกว่าลากก้อน 26KB ลงมาเทียบเองทุกครั้งที่เปิดแอปหลายสิบเท่า
+  // (เปิดแอปส่วนใหญ่ไม่มีอะไรเปลี่ยนบน cloud เพราะเครื่องนี้เองเป็นคนเขียนล่าสุด)
+  if (!sb || !currentUser) return false;
+  const { data: head, error: headErr } = await sb.from('user_state')
+    .select('rev').eq('id', currentUser.id).maybeSingle();
+  if (headErr) throw headErr;
+  if (!head) { lastSeenRev = -1; return false; }   // ยังไม่มีแถว — pushRound จะสร้างให้
+  if (head.rev === lastSeenRev) return false;
+
+  const { data, error } = await sb.from('user_state')
+    .select('data, avatar, rev').eq('id', currentUser.id).maybeSingle();
+  if (error) throw error;
+  if (!data || !data.data) return false;
+  const remote = data.data;
+  lastSeenRev = data.rev;
+  const base = syncBaseNow();
+  // รูปโปรไฟล์ย้ายมาอยู่คอลัมน์ของตัวเองแล้ว — ประกอบกลับเข้า vault ให้ vaultImport
+  // ทำงานเหมือนเดิม ตัวมันไม่ต้องรู้ว่าข้างล่างเก็บแยกกันแล้ว
+  if (remote.vault && data.avatar) remote.vault.avatar = data.avatar;
+  state.tasks = syncMergeById(state.tasks, remote.tasks, base && base.tasks);
+  state.settings = syncMergeKeys(state.settings, remote.settings, base && base.settings);
+  // รอบจับเวลารวมตาม id เหมือนงาน — แต่ละรอบเกิดบนเครื่องเดียวและไม่เคยถูกแก้ทีหลัง
+  // เครื่องไหนบันทึกไว้ก็ของจริงทั้งคู่ เอามารวมกันแล้วเรียงตามเวลาเริ่ม
+  state.sessions = syncMergeById(state.sessions, remote.sessions, base && base.sessions)
+    .sort((a, b) => (a.start || '').localeCompare(b.start || ''))
+    .slice(-SESSION_CAP);
+  // หมุดปฏิทินรวมตาม id เหมือนงาน — ปักจากเครื่องไหนก็เป็นของจริงทั้งคู่
+  state.marks = syncMergeById(state.marks, remote.marks, base && base.marks);
+  funnelMerge(remote.funnel);
+  // สถานะ push ของเครื่องอื่น — เก็บไว้ส่งกลับขึ้นไปพร้อมของเครื่องนี้ (ดู pushDiagExport)
+  if (remote.pushDiag && typeof remote.pushDiag === 'object') pushDiagRemote = remote.pushDiag;
+  // ใช้ตัวเดียวกับ save() — ถ้าเครื่องเต็มตรงนี้แล้วปล่อยให้ throw จะร้ายกว่าที่อื่น
+  // เพราะบรรทัดที่เหลือ (บริบท · ของสะสม) จะไม่ได้ทำงานเลยสักบรรทัด
+  persistState();
+  // บริบท (ตารางเรียน/กิจวัตร) ยังอยู่ใน user_state ก้อนเดียวกันไปก่อน
+  // ฝั่ง cloud ชนะทั้งก้อน ไม่ merge รายตัว เพราะมันคือ "ตารางของสัปดาห์นี้"
+  // ที่ต้องสอดคล้องกันทั้งชุด ไม่ใช่รายการงานที่เพิ่มทีละใบจากหลายเครื่อง
+  // ยกเว้นเครื่องนี้เพิ่งแก้ตารางหลังซิงก์ล่าสุด — ทั้งก้อนของเครื่องนี้ชนะแทน
+  const localCtx = typeof ctxExport === 'function' ? ctxExport() : null;
+  const ctxDirty = !!(base && base.ctx && localCtx && syncFp(localCtx) !== base.ctx);
+  if (remote.ctx && !ctxDirty && typeof ctxImport === 'function') ctxImport(remote.ctx);
+  // ของสะสมรวมทีหลัง ctx เพราะมันไม่เกี่ยวกัน แต่ต้องมาก่อน renderAll() ของผู้เรียก
+  // ไม่งั้นหน้าจอวาดยอดโทเคนเก่าไปแล้วค่อยเปลี่ยนเลขต่อหน้าต่อตา
+  if (typeof vaultImport === 'function') vaultImport(remote.vault);
+  if (typeof staffApplyCredits === 'function') staffApplyCredits(remote.vault);
+  syncBase = syncBaseFrom(remote);
+  return true;
+}
+
+// กลับเข้าแอป = ถาม rev หนึ่งครั้ง · ไม่ขยับ = ไม่โหลดอะไรเลย
+// ไม่ส่งตรงนี้ — ของที่ค้างส่งอยู่ ส่งเองตามรอบ save()/ต่อเน็ตกลับ และรอให้รอบนี้จบก่อนเสมอ (syncSerial)
+// ล้มเงียบ ๆ: กลับเข้าแอปตอนเน็ตยังไม่มาเป็นเรื่องปกติ · ส่งล้มเมื่อไหร่ pushToCloud บอกเอง
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden || !sb || !currentUser) return;
+  syncSerial(cloudPull)
+    .then(pulled => { if (pulled) renderAll(); })
+    .catch(e => console.warn('[sync] resume pull failed:', e.message));
+});
 
 // QA 6 ต.ค. 69 · ซิงก์ล้มต้องมีคนรู้ — เดิมมีแค่ console.warn ผู้ใช้จึงเชื่อว่างานไปถึงอีกเครื่องแล้ว
 // บอกครั้งเดียวต่อรอบปัญหา (สำเร็จครั้งถัดไปเมื่อไหร่ค่อยนับใหม่) ไม่งั้น toast เด้งทุก 1.5 วิตอนเน็ตหลุด
@@ -1436,50 +1553,80 @@ function cheapHash(s) {
   return h.toString(36) + ':' + s.length;
 }
 
+// ก้อนที่จะส่ง ณ ตอนนี้ — แยกออกมาเพราะต้องคิดใหม่หลังดึงของอีกเครื่องมารวม
+function pushSnapshot() {
+  const vault = typeof vaultExport === 'function' ? vaultExport() : undefined;
+  // รูปไม่ไปกับก้อนหลักอีกแล้ว — ดึงออกก่อนคิดลายนิ้วมือ
+  const avatar = (vault && vault.avatar) || null;
+  if (vault) delete vault.avatar;
+
+  // 1C38 · ของฝากให้รอบเย็นของ send-reminders (ดู pushHints) — คิดพังต้องไม่พาการซิงก์งานพังตาม
+  let push;
+  try { push = pushHints(); } catch (e) { console.warn('[sync] hints failed:', e.message); }
+  const body = { tasks: state.tasks, settings: state.settings,
+    sessions: state.sessions || [],
+    marks: state.marks || [],
+    ctx: typeof ctxExport === 'function' ? ctxExport() : undefined,
+    vault, push, funnel: funnelExport(),
+    pushDiag: typeof pushDiagExport === 'function' ? pushDiagExport() : undefined };
+  const json = JSON.stringify(body);
+  return { body, avatar, hash: cheapHash(json), avatarChanged: avatar !== lastPushedAvatar };
+}
+
+// เรียกผ่าน syncSerial เท่านั้น · โยน error ให้ pushToCloud บอกผู้ใช้
+async function pushRound() {
+  if (!sb || !currentUser) return;
+  let snap = pushSnapshot();
+  // ไม่มีอะไรเปลี่ยนเลยก็ไม่ต้องเสีย bandwidth — แต่ต้องเคยส่งสำเร็จมาก่อน
+  // ('' แปลว่ายังไม่เคยส่งรอบนี้ ต้องส่งเสมอ ไม่งั้นเครื่องใหม่จะไม่ push อะไรเลย)
+  // เช็คนี้มาก่อนถาม rev — save() ที่ไม่ได้เปลี่ยนอะไรจึงยังไม่ยิงเน็ตเลยสักไบต์
+  if (lastPushedHash && snap.hash === lastPushedHash && !snap.avatarChanged) return;
+
+  // 16 ต.ค. 69 · มีของจะส่ง → ถาม rev ก่อน (ดูหัวข้อ "ดึงก่อนส่งเสมอ" ข้างบน)
+  // อีกเครื่องเขียนไปแล้ว = ดึงมารวมก่อน แล้วคิดก้อนใหม่ ไม่งั้นส่งขึ้นไปทับงานของเครื่องนั้น
+  // แล้วเขียนแบบมีเงื่อนไข "rev บน cloud ยังเป็นเลขที่เพิ่งเห็น" — อีกเครื่องเขียนแทรกระหว่างถามกับเขียน
+  // (ช่องว่างหนึ่งรอบเน็ต · เทสต์จับได้จริง) จะไม่มีแถวไหนตรงเงื่อนไข → ดึงมารวมแล้วลองใหม่ ไม่ทับ
+  let back = null, body, avatar, hash, nextBase;
+  for (let attempt = 0; ; attempt++) {
+    if (attempt === 3) throw new Error('cloud keeps changing — will retry on next save');
+    if (await cloudPull()) {
+      renderAll();
+      snap = pushSnapshot();
+    }
+    ({ body, avatar, hash } = snap);
+    // ลายนิ้วมือของสิ่งที่กำลังจะไปอยู่บน cloud — คิดตอนนี้ ก่อน await
+    // ระหว่างรอคำตอบผู้ใช้อาจติ๊กงานอีกใบ ถ้าคิดหลังจากนั้นใบนั้นจะดูเหมือนส่งไปแล้ว
+    nextBase = syncBaseFrom(body);
+
+    const row = { id: currentUser.id, data: body, updated_at: new Date().toISOString() };
+    // ส่งคอลัมน์รูปเฉพาะตอนที่รูปเปลี่ยน — ไม่ใส่ = ค่าเดิมบน cloud ไม่ถูกแตะ
+    if (snap.avatarChanged) row.avatar = avatar;
+
+    // ขอ rev ใหม่กลับมาด้วยเลย (ไม่กี่ไบต์) — ถ้าปล่อยให้ค่าที่จำไว้เป็นโมฆะ
+    // การเปิดแอปครั้งถัดไปจะต้องลากทั้งก้อนลงมาเทียบใหม่ทั้งที่เครื่องนี้เองเป็นคนเขียน
+    // lastSeenRev = -1 คือ cloud ยังไม่มีแถวของบัญชีนี้ (cloudPull บอก) — สร้างใหม่ด้วย upsert แบบเดิม
+    const res = lastSeenRev < 0
+      ? await sb.from('user_state').upsert(row).select('rev,vault:data->vault').maybeSingle()
+      : await sb.from('user_state').update(row).eq('id', currentUser.id).eq('rev', lastSeenRev)
+          .select('rev,vault:data->vault').maybeSingle();
+    if (res.error) throw res.error;
+    back = res.data;
+    if (back) break;
+  }
+  lastPushedHash = hash;
+  lastPushedAvatar = avatar;
+  syncBase = nextBase;
+  if (back && typeof back.rev === 'number') lastSeenRev = back.rev;
+  if (back && typeof staffApplyCredits === 'function') staffApplyCredits(back.vault);
+  lastSync = new Date();
+  renderProfile();
+  syncFailShown = false;   // สำเร็จแล้ว — รอบหน้าที่พังต้องได้บอกใหม่
+}
+
 function pushToCloud(immediate) {
   if (!sb || !currentUser) return;
-  const doPush = async () => {
-    try {
-      const vault = typeof vaultExport === 'function' ? vaultExport() : undefined;
-      // รูปไม่ไปกับก้อนหลักอีกแล้ว — ดึงออกก่อนคิดลายนิ้วมือ
-      const avatar = (vault && vault.avatar) || null;
-      if (vault) delete vault.avatar;
-
-      // 1C38 · ของฝากให้รอบเย็นของ send-reminders (ดู pushHints) — คิดพังต้องไม่พาการซิงก์งานพังตาม
-      let push;
-      try { push = pushHints(); } catch (e) { console.warn('[sync] hints failed:', e.message); }
-      const body = { tasks: state.tasks, settings: state.settings,
-        sessions: state.sessions || [],
-        marks: state.marks || [],
-        ctx: typeof ctxExport === 'function' ? ctxExport() : undefined,
-        vault, push, funnel: funnelExport(),
-        pushDiag: typeof pushDiagExport === 'function' ? pushDiagExport() : undefined };
-      const json = JSON.stringify(body);
-      const hash = cheapHash(json);
-      const avatarChanged = avatar !== lastPushedAvatar;
-
-      // ไม่มีอะไรเปลี่ยนเลยก็ไม่ต้องเสีย bandwidth — แต่ต้องเคยส่งสำเร็จมาก่อน
-      // ('' แปลว่ายังไม่เคยส่งรอบนี้ ต้องส่งเสมอ ไม่งั้นเครื่องใหม่จะไม่ push อะไรเลย)
-      if (lastPushedHash && hash === lastPushedHash && !avatarChanged) return;
-
-      const row = { id: currentUser.id, data: body, updated_at: new Date().toISOString() };
-      // ส่งคอลัมน์รูปเฉพาะตอนที่รูปเปลี่ยน — ไม่ใส่ = ค่าเดิมบน cloud ไม่ถูกแตะ
-      if (avatarChanged) row.avatar = avatar;
-
-      // ขอ rev ใหม่กลับมาด้วยเลย (ไม่กี่ไบต์) — ถ้าปล่อยให้ค่าที่จำไว้เป็นโมฆะ
-      // การเปิดแอปครั้งถัดไปจะต้องลากทั้งก้อนลงมาเทียบใหม่ทั้งที่เครื่องนี้เองเป็นคนเขียน
-      const { data: back, error } = await sb.from('user_state')
-        .upsert(row).select('rev,vault:data->vault').maybeSingle();
-      if (error) throw error;
-      lastPushedHash = hash;
-      lastPushedAvatar = avatar;
-      if (back && typeof back.rev === 'number') lastSeenRev = back.rev;
-      if (back && typeof staffApplyCredits === 'function') staffApplyCredits(back.vault);
-      lastSync = new Date();
-      renderProfile();
-      syncFailShown = false;   // สำเร็จแล้ว — รอบหน้าที่พังต้องได้บอกใหม่
-    } catch (e) { console.warn('[sync] push failed:', e.message); syncFailNotice('push'); }
-  };
+  const doPush = () => syncSerial(pushRound)
+    .catch(e => { console.warn('[sync] push failed:', e.message); syncFailNotice('push'); });
   if (immediate) return doPush();
   clearTimeout(syncTimer);
   syncTimer = setTimeout(doPush, 1500);

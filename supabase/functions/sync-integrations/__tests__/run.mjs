@@ -459,6 +459,149 @@ async function runBody(tables, body) {
   check('และไม่ถี่เกินตั้งใจ (ไม่เร็วกว่า +25 นาที)', next >= tick + 25 * 60_000, new Date(next).toISOString());
   Date.now = () => tick;
 }
+
+// ============================================================
+// 16 ต.ค. 69 · ตรวจทั้งท่อ end-to-end — ข้อบกพร่องที่จำลองด้วยบันเดิลจริงแล้วเจอ
+// ทุกเทสต์ข้างล่างตกกับโค้ดก่อนแก้ (ดูผลรันใน commit message) ไม่ใช่แค่ผ่านอยู่แล้ว
+// ============================================================
+// ถึงคิวทุกครั้ง — next_sync_at ถูกนัดด้วยนาฬิกาที่หยุดไว้ แต่ตัวกรองใช้นาฬิกาจริง (ดูหมายเหตุนาฬิกาสองเรือน)
+const rerun = t => { for (const i of t.integrations) i.next_sync_at = iso(REAL() - DAY); return runBody(t, {}); };
+const pWork = (id, days) => ({ id, title: 'งาน ' + id, state: 'PUBLISHED', creationTime: posted, dueDate: dueIn(days) });
+const inboxFor = (t, wid) => t.inbox_items.filter(x => x.meta.sourceId === 'c-p:' + wid);
+const ledgerOf = (t, wid) => t.integration_items.find(x => x.source_id === 'c-p:' + wid);
+
+// ---- 19) งานที่ปิดทะเบียนไปแล้วกลับมาค้างอีก → ต้องส่งกลับเข้าแอป ----
+// เดิม: ลายนิ้วมือเท่าเดิม + เคยส่งแล้ว → ข้ามตลอดไป ทะเบียนค้างเป็น cancelled ทั้งที่งานกลับมาแล้ว
+// เกิดได้จริงเมื่อนักเรียนกด "ยกเลิกการส่ง" · ครูคืนงานให้แก้ · หรือ Classroom ตอบห้องหนึ่งหายไปชั่วคราว
+{
+  GOOGLE = { 'rt-p': { email: 'p@gmail.com', courses: [{ id: 'c-p', name: 'คณิต' }],
+    work: { 'c-p': [pWork('w1', 3), pWork('w2', 4)] }, subs: { 'c-p': [] } } };
+  const t = await gTables([await gRow('ip', 'up', 'rt-p')]);
+  await rerun(t);
+  // รอบ 2: นักเรียนกดส่ง w1 · ครูลบ w2 ทิ้ง
+  GOOGLE['rt-p'].subs['c-p'] = [{ courseWorkId: 'w1', state: 'TURNED_IN' }];
+  GOOGLE['rt-p'].work['c-p'] = [pWork('w1', 3)];
+  await rerun(t);
+  check('กดส่งใน Classroom → ทะเบียนจดว่า done ไม่ใช่ cancelled', ledgerOf(t, 'w1')?.state === 'done', ledgerOf(t, 'w1')?.state);
+  const c1 = inboxFor(t, 'w1').find(x => x.meta.op === 'cancel');
+  check('กดส่งใน Classroom → แนบเหตุผล turned_in ไปกับแถวที่ส่งให้แอป', c1?.meta.reason === 'turned_in', JSON.stringify(c1?.meta));
+  const c2 = inboxFor(t, 'w2').find(x => x.meta.op === 'cancel');
+  check('ครูลบงาน → ยังเป็น cancel ธรรมดา ไม่มีเหตุผล turned_in', c2 && c2.meta.reason !== 'turned_in' && ledgerOf(t, 'w2')?.state === 'cancelled',
+    JSON.stringify([c2?.meta, ledgerOf(t, 'w2')?.state]));
+  // รอบ 3: นักเรียนกดยกเลิกการส่ง w1 · ครูเอา w2 กลับมา
+  GOOGLE['rt-p'].subs['c-p'] = [{ courseWorkId: 'w1', state: 'RECLAIMED_BY_STUDENT' }];
+  GOOGLE['rt-p'].work['c-p'] = [pWork('w1', 3), pWork('w2', 4)];
+  const r3 = await rerun(t);
+  const back1 = inboxFor(t, 'w1').at(-1), back2 = inboxFor(t, 'w2').at(-1);
+  check('งานที่ส่งแล้วกลับมาค้าง → ส่งกลับเข้าแอป', back1?.meta.op === 'update', JSON.stringify(inboxFor(t, 'w1').map(x => x.meta.op)));
+  check('งานที่ถูกลบกลับมา → ส่งกลับเข้าแอป', back2?.meta.op === 'update', JSON.stringify(inboxFor(t, 'w2').map(x => x.meta.op)));
+  check('กลับมาแล้ว → ทะเบียนกลับเป็น active', ledgerOf(t, 'w1')?.state === 'active' && ledgerOf(t, 'w2')?.state === 'active',
+    JSON.stringify([ledgerOf(t, 'w1')?.state, ledgerOf(t, 'w2')?.state]));
+  check('งานที่กลับมา → ไม่ push (ไม่ใช่งานใหม่)', r3.sent.length === 0, JSON.stringify(r3.sent));
+  const r4 = await rerun(t);
+  check('รอบถัดไป → ไม่ส่งซ้ำ', t.inbox_items.length === inboxFor(t, 'w1').length + inboxFor(t, 'w2').length && r4.body.results[0].sent === 0,
+    JSON.stringify(r4.body));
+}
+
+// ---- 19b) ต้นทางส่งงานมาพร้อมธง "ยกเลิก" (ICS STATUS:CANCELLED) ทุกรอบ → แจ้งแอปครั้งเดียวพอ ----
+// กันข้อ 19 ไม่ให้ตีความใบที่ยังถูกยกเลิกอยู่ว่า "กลับมาแล้ว" แล้วส่ง cancel ซ้ำทุก 30 นาทีไปตลอด
+{
+  const due = Date.now() + 3 * DAY;
+  const stamp = d => new Date(d).toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+  const cal = status => ['BEGIN:VCALENDAR', 'BEGIN:VEVENT', 'UID:uid-cx', 'DTSTART:' + stamp(due),
+    'SUMMARY:ทัศนศึกษา', ...(status ? ['STATUS:' + status] : []), 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+  GOOGLE = null;   // ไม่งั้นตัวจำลองตอบ 401 ให้ลิงก์ปฏิทิน
+  const t = base();
+  FEED = cal('');
+  await rerun(t);
+  FEED = cal('CANCELLED');
+  await rerun(t);
+  await rerun(t);
+  await rerun(t);
+  const ops = t.inbox_items.map(x => x.meta.op);
+  check('ยกเลิกค้างอยู่หลายรอบ → ส่ง cancel แค่ครั้งเดียว', JSON.stringify(ops) === JSON.stringify(['new', 'cancel']), JSON.stringify(ops));
+}
+
+// ---- 20) รอบที่ล้มหลังจดทะเบียนแต่ก่อนเขียนกล่องเข้า → รอบหน้าต้องส่งเป็น "ของใหม่" และแจ้งเตือน ----
+// เดิม: ทะเบียนมีแถวแล้ว (ยังไม่เคยส่ง) → รอบหน้าส่งเป็น op 'update' → แอปยังสร้างงานให้ แต่ไม่มีดอกแจ้งเตือนเลย
+{
+  GOOGLE = { 'rt-p': { email: 'p@gmail.com', courses: [{ id: 'c-p', name: 'คณิต' }],
+    work: { 'c-p': [pWork('w9', 3)] }, subs: { 'c-p': [] } } };
+  const t = await gTables([await gRow('ip', 'up', 'rt-p')]);
+  await rerun(t);
+  // จำลองรอบที่ล้มกลางทาง: ทะเบียนจดแล้ว แต่กล่องเข้า · หมุดกันซ้ำ · sent_fingerprint ไม่ถูกเขียน
+  t.inbox_items.length = 0; t.push_sent.length = 0;
+  for (const x of t.integration_items) { x.sent_fingerprint = null; x.sent_at = null; }
+  const r = await rerun(t);
+  check('ล้มกลางทาง → รอบหน้าส่งเป็นของใหม่', inboxFor(t, 'w9')[0]?.meta.op === 'new', JSON.stringify(inboxFor(t, 'w9').map(x => x.meta.op)));
+  check('ล้มกลางทาง → รอบหน้าได้แจ้งเตือน', r.sent.length === 1 && /งาน w9/.test(r.sent[0].body), JSON.stringify(r.sent));
+}
+
+// ---- 21) push ล้มชั่วคราวทุกเครื่อง → ห้ามปักหมุดว่าแจ้งแล้ว และรอบหน้าต้องลองใหม่ ----
+// เดิม: ปักหมุดเสมอแม้ส่งไม่ถึงสักเครื่อง → ดอกนั้นหายถาวร โดยไม่มีอะไรบันทึกไว้เลย
+{
+  GOOGLE = { 'rt-p': { email: 'p@gmail.com', courses: [{ id: 'c-p', name: 'คณิต' }],
+    work: { 'c-p': [pWork('wf', 3)] }, subs: { 'c-p': [] } } };
+  const t = await gTables([await gRow('ip', 'up', 'rt-p')]);
+  wp.__setFail(() => Object.assign(new Error('fcm down'), { statusCode: 500 }));
+  const r1 = await rerun(t);
+  wp.__setFail(null);
+  check('500 ทุกเครื่อง → ไม่ปักหมุด', !t.push_sent.some(p => /wf/.test(p.task_id)), JSON.stringify(t.push_sent));
+  check('500 ทุกเครื่อง → subscription ยังอยู่', t.push_subscriptions.length === 1, t.push_subscriptions.length);
+  const r2 = await rerun(t);
+  check('รอบหน้า (FCM กลับมา) → ได้ดอกที่ค้าง', r2.sent.length === 1 && /งาน wf/.test(r2.sent[0].body), JSON.stringify(r2.sent));
+  check('ส่งถึงแล้ว → ปักหมุด', t.push_sent.some(p => /wf/.test(p.task_id)), JSON.stringify(t.push_sent));
+  const r3 = await rerun(t);
+  check('รอบถัดไป → ไม่ดังซ้ำ', r3.sent.length === 0, JSON.stringify(r3.sent));
+}
+{
+  // เครื่องหนึ่งถึง อีกเครื่องล้ม → ปักหมุด (ไม่งั้นเครื่องที่ได้แล้วโดนซ้ำ)
+  GOOGLE = { 'rt-p': { email: 'p@gmail.com', courses: [{ id: 'c-p', name: 'คณิต' }],
+    work: { 'c-p': [pWork('wh', 3)] }, subs: { 'c-p': [] } } };
+  const t = await gTables([await gRow('ip', 'up', 'rt-p')]);
+  t.push_subscriptions.push({ endpoint: 'ep-up-2', user_id: 'up', p256dh: 'p', auth: 'a' });
+  wp.__setFail(s => s.endpoint === 'ep-up-2' ? Object.assign(new Error('x'), { statusCode: 503 }) : null);
+  await rerun(t);
+  wp.__setFail(null);
+  check('ถึงบางเครื่อง → ปักหมุด', t.push_sent.some(p => /wh/.test(p.task_id)), JSON.stringify(t.push_sent));
+}
+{
+  // ทุกเครื่องตายถาวร (410) → ลบเครื่อง + ปักหมุด ไม่วนลองทุกรอบตลอดไป
+  GOOGLE = { 'rt-p': { email: 'p@gmail.com', courses: [{ id: 'c-p', name: 'คณิต' }],
+    work: { 'c-p': [pWork('wg', 3)] }, subs: { 'c-p': [] } } };
+  const t = await gTables([await gRow('ip', 'up', 'rt-p')]);
+  wp.__setFail(() => Object.assign(new Error('gone'), { statusCode: 410 }));
+  await rerun(t);
+  wp.__setFail(null);
+  check('410 ทุกเครื่อง → ปักหมุด (ไม่ใช่ล้มชั่วคราว)', t.push_sent.some(p => /wg/.test(p.task_id)), JSON.stringify(t.push_sent));
+}
+
+// ---- 22) บันทึกผลรอบซิงก์รายบัญชี — cron หมดเวลา 5 วิทุกรอบ ผลจึงไม่เคยถูกเก็บที่ไหนเลย ----
+{
+  GOOGLE = { 'rt-p': { email: 'p@gmail.com', courses: [{ id: 'c-p', name: 'คณิต' }],
+    work: { 'c-p': [pWork('wl', 3)] }, subs: { 'c-p': [] } } };
+  const t = await gTables([await gRow('ip', 'up', 'rt-p')]);
+  t.push_subscriptions.push({ endpoint: 'ep-up-2', user_id: 'up', p256dh: 'p', auth: 'a' });
+  wp.__setFail(s => s.endpoint === 'ep-up-2' ? Object.assign(new Error('x'), { statusCode: 503 }) : null);
+  const logs = [];
+  const orig = console.log;
+  console.log = (...a) => logs.push(a.join(' '));
+  await rerun(t);
+  console.log = orig;
+  wp.__setFail(null);
+  const lr = t.integrations[0].meta.last_run || {};
+  check('last_run ถูกเขียนลง meta', lr.status === 'ok' && typeof lr.at === 'string' && typeof lr.ms === 'number', JSON.stringify(lr));
+  check('last_run นับงาน/ส่งเข้ากล่อง', lr.tasks === 1 && lr.delivered === 1, JSON.stringify(lr));
+  check('last_run บอกผลส่ง push รายเครื่อง', lr.push?.devices === 2 && lr.push?.ok === 1 && lr.push?.failed === 1
+    && (lr.push?.codes || []).includes(503), JSON.stringify(lr.push));
+  check('log หนึ่งบรรทัดต่อบัญชี (อ่านได้จาก Function logs)', logs.some(l => l.startsWith('[sync-run]') && l.includes('"integration":"ip"')), JSON.stringify(logs));
+  // รอบที่ล้ม → last_run บอกว่าล้มเพราะอะไร
+  GOOGLE['rt-p'].tokenError = 'server_error';
+  await rerun(t);
+  const lr2 = t.integrations[0].meta.last_run || {};
+  check('รอบที่ล้ม → last_run.status = error พร้อมข้อความ', lr2.status === 'error' && /server_error/.test(lr2.error || ''), JSON.stringify(lr2));
+  check('รอบที่ล้ม → ไม่ลบ diag เดิมทิ้ง', !!t.integrations[0].meta.diag, JSON.stringify(t.integrations[0].meta));
+}
 GOOGLE = null;
 
 unfreeze();

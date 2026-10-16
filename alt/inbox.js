@@ -488,9 +488,29 @@ function inboxAdd(rawText, sourceId = 'text', meta = {}) {
 // ชนิดของงานฝั่งเรามีสี่แบบ (engine.js · TASK_TYPES) ตัวเชื่อมรู้จักแค่สาม
 const SYNC_TYPES = { homework: 'homework', exam: 'exam', event: 'activity' };
 
+// 16 ต.ค. 69 · หาใบที่อยู่ในถังขยะด้วย — เดิมข้ามใบที่ deleted ทิ้ง ผลคือสองอย่างที่ผิด:
+//   1. ทาง "ต้นทางเอางานที่ยกเลิกกลับมา" ข้างล่างไม่เคยถูกเรียกเลย (หาใบในถังไม่เจอตั้งแต่ต้น)
+//      ครูเปิดงานคืน = ได้ใบใหม่ซ้อนกับใบเดิมที่ค้างในถัง
+//   2. นักเรียนลบงานเองแล้วครูแก้กำหนดส่ง = งานใบนั้นเกิดใหม่ทั้งที่เขาตั้งใจลบ
+// ใบที่ยังไม่ลบมาก่อนเสมอ — srcKey เดียวกันอาจมีทั้งใบในถัง (ของเก่าจากข้อ 1) และใบที่ใช้อยู่
 function taskBySrcKey(key) {
   if (!key) return null;
-  return (state.tasks || []).find(t => t.srcKey === key && !t.deleted) || null;
+  const all = (state.tasks || []).filter(t => t.srcKey === key);
+  return all.find(t => !t.deleted) || all[0] || null;
+}
+
+// ต้นทางบอกว่านักเรียนกดส่งงานในแพลตฟอร์มนั้นแล้ว — งานเสร็จจริง ทองได้
+// ทำสิ่งเดียวกับการติ๊กเสร็จในแอป (app.js · toggleDone) เท่าที่เกี่ยวกับงานที่มาจากต้นทาง
+// srcTurnedIn = ใบนี้ "ต้นทาง" เป็นคนติ๊ก ไม่ใช่นักเรียน · ใช้ตอนต้นทางถอนการส่ง (ข้างล่าง)
+function syncMarkTurnedIn(t) {
+  const r = typeof runningWork === 'function' && runningWork();
+  if (r && r.taskId === t.id && typeof stopWork === 'function') stopWork(true);
+  t.done = true;
+  t.progress = 100;
+  t.doneAt = new Date().toISOString();
+  t.srcTurnedIn = true;
+  if (Array.isArray(t.subs)) t.subs.forEach(x => { x.done = true; });
+  if (typeof funnelDone === 'function') funnelDone();
 }
 
 // ชื่อคอร์สจากต้นทางเป็นข้อความอิสระ ("ว31101 เคมี ม.4/2" · "Mathematics 4/2")
@@ -533,7 +553,15 @@ function inboxAddSynced(meta, sourceId) {
   // ไม่ลบทิ้งเอง — ย้ายไปถังขยะ (deleted) ซึ่งเป็นกลไกที่แอปมีอยู่แล้วและกู้คืนได้
   // ลบถาวรแทนคนคือการตัดสินใจแทนเขาในเรื่องที่เขาอาจทำไปแล้วครึ่งทาง
   if (meta.op === 'cancel') {
-    if (!existing || existing.done) return { status: 'gone' };
+    if (!existing || existing.done || existing.deleted) return { status: 'gone' };
+    // 16 ต.ค. 69 · Classroom ส่ง op 'cancel' มาพร้อม reason 'turned_in' เมื่อนักเรียนกดส่งงานแล้ว
+    // (op ยังเป็น cancel เพื่อให้แอปรุ่นเก่าเอาออกจากแผนได้ · ดู sync-integrations)
+    // เดิมแอปรุ่นนี้ย้ายไปถังขยะแล้วขึ้นว่า "ครูยกเลิกงาน" ทั้งที่เด็กเพิ่งส่งงานเสร็จ
+    if (meta.reason === 'turned_in') {
+      syncMarkTurnedIn(existing);
+      save();
+      return { status: 'turnedIn', task: existing };
+    }
     existing.deleted = true;
     existing.deletedAt = new Date().toISOString();
     existing.srcCancelled = true;
@@ -543,6 +571,8 @@ function inboxAddSynced(meta, sourceId) {
 
   // ---------- ต้นทางแก้ของเดิม ----------
   if (existing) {
+    // นักเรียนลบใบนี้ทิ้งเอง — การตัดสินใจของเขา ต้นทางแก้อะไรมาก็ไม่พากลับ
+    if (existing.deleted && !existing.srcCancelled) return { status: 'same', task: existing };
     // ฝั่งต้นทางเป็นเจ้าของ "ข้อเท็จจริงของงาน" (ชื่อ · กำหนดส่ง · วิชา)
     // ฝั่งนักเรียนเป็นเจ้าของ "การลงมือ" (ติ๊กเสร็จ · ความคืบหน้า · เวลาที่ประเมินเอง · งานย่อย)
     // เส้นแบ่งนี้คือเหตุผลที่การซิงก์ไม่ลบความพยายามของใครทิ้ง
@@ -558,6 +588,13 @@ function inboxAddSynced(meta, sourceId) {
     // ต้นทางเอางานที่เคยยกเลิกกลับมา — พากลับออกจากถังขยะให้ด้วย
     if (existing.deleted && existing.srcCancelled) {
       existing.deleted = false; existing.srcCancelled = false; changed = true;
+    }
+    // ต้นทางส่งงานที่เคยบอกว่า "ส่งแล้ว" กลับมาอีก = นักเรียนถอนการส่ง (unsubmit) ในต้นทาง
+    // ปลดติ๊กเฉพาะใบที่ต้นทางเป็นคนติ๊ก — ใบที่นักเรียนติ๊กเองในแอปไม่แตะ (การลงมือเป็นของเขา)
+    if (existing.done && existing.srcTurnedIn) {
+      existing.done = false; existing.doneAt = null; existing.srcTurnedIn = false;
+      if (existing.progress === 100) existing.progress = 0;
+      changed = true;
     }
     if (!changed) return { status: 'same', task: existing };
     save();
