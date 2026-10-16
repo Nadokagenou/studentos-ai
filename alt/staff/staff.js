@@ -36,6 +36,7 @@ const labels = {
   report_restore: "กู้คืนรายงาน",
 };
 const demo = location.pathname.endsWith("/preview.html");
+const reportWrites = new Set(['triage', 'bug_triage', 'report_trash', 'report_restore']);
 if (window.top !== window.self) {
   document.body.textContent = "กรุณาเปิด Control Room โดยตรง";
   throw Error("Embedding is disabled");
@@ -158,7 +159,14 @@ async function demoApi(action, p) {
       has_more: false,
     };
   if (action === "notices") return { items: demoNotices };
-  if (['bugs','issues','triage','bug_triage','report_trash','report_restore'].includes(action) && window.StudentOSBugDemo) return window.StudentOSBugDemo.staff(action,p);
+  if (action === 'reports' && !window.StudentOSBugDemo) {
+    const [bugs, issues] = await Promise.allSettled([
+      demoApi('bugs', { bucket: p.bucket, offset: p.bug_offset }),
+      demoApi('issues', { bucket: p.bucket, offset: p.issue_offset }),
+    ]);
+    return { ...p, bugs, issues };
+  }
+  if (['reports','bugs','issues','triage','bug_triage','report_trash','report_restore'].includes(action) && window.StudentOSBugDemo) return window.StudentOSBugDemo.staff(action,p);
   if (action === "issues") { const bucket = p.bucket || 'pending'; return { items: demoIssues.filter(x => bucket === 'trash' ? x.deleted_at : !x.deleted_at && (bucket === 'resolved' ? x.status === 'closed' : x.status !== 'closed')) }; }
   if (action === "bugs" || action === "bug_triage") return window.StudentOSBugDemo?.staff(action, p) || { items: [], open_count: 0 };
   if (action === "audit") return { items: demoAudit };
@@ -224,20 +232,18 @@ function auditHTML(items) {
     : empty();
 }
 function issuesHTML(items, compact = false) { return renderIssues(items, { compact, bucket: reportBucket }); }
-async function loadReports() {
-  const bucket = reportBucket, seq = ++reportLoadSeq;
-  const results = await Promise.allSettled([
-    api('bugs', { bucket, offset: bugPage * 20 }),
-    api('issues', { bucket, offset: issuePage * 20 }),
-  ]);
-  if (seq !== reportLoadSeq || bucket !== reportBucket) return;
+function currentReportView() {
+  return { bucket: reportBucket, bug_offset: bugPage * 20, issue_offset: issuePage * 20 };
+}
+function paintReports(result) {
+  const bucket = reportBucket;
   const sections = [
-    { result: results[0], list: 'bugIssueList', count: 'bugCount', prev: 'staffBugsPrev', next: 'staffBugsNext', page: bugPage, render: items => renderBugs(items, bucket) },
-    { result: results[1], list: 'issueList', count: 'contentReportCount', prev: 'staffIssuesPrev', next: 'staffIssuesNext', page: issuePage, render: items => renderIssues(items, { bucket }) },
+    { result: result.bugs, list: 'bugIssueList', count: 'bugCount', prev: 'staffBugsPrev', next: 'staffBugsNext', page: bugPage, render: items => renderBugs(items, bucket) },
+    { result: result.issues, list: 'issueList', count: 'contentReportCount', prev: 'staffIssuesPrev', next: 'staffIssuesNext', page: issuePage, render: items => renderIssues(items, { bucket }) },
   ];
   for (const section of sections) {
     $(section.prev).disabled = section.page === 0;
-    if (section.result.status === 'fulfilled') {
+    if (section.result?.status === 'fulfilled') {
       const result = section.result.value;
       $(section.list).innerHTML = section.render(result.items || []);
       $(section.count).textContent = (result.counts?.[bucket] ?? result.items?.length ?? 0) + ' เรื่อง';
@@ -246,6 +252,29 @@ async function loadReports() {
       $(section.list).textContent = 'ยังโหลดรายงานส่วนนี้ไม่ได้ กรุณาลองรีเฟรชอีกครั้ง';
       $(section.count).textContent = ''; $(section.next).disabled = true;
     }
+  }
+  $('reportSections').setAttribute('aria-busy', 'false');
+}
+async function loadReports() {
+  const context = currentReportView(), seq = ++reportLoadSeq;
+  $('reportSections').setAttribute('aria-busy', 'true');
+  for (const id of ['bugIssueList', 'issueList']) $(id).innerHTML = empty('กำลังโหลดรายงาน…');
+  for (const id of ['bugCount', 'contentReportCount']) $(id).textContent = '';
+  for (const id of ['staffBugsPrev', 'staffBugsNext', 'staffIssuesPrev', 'staffIssuesNext']) $(id).disabled = true;
+  let result;
+  try { result = await api('reports', context); }
+  catch { result = {}; }
+  if (seq !== reportLoadSeq) return;
+  paintReports(result);
+}
+async function refreshAfterReportSave(result) {
+  if (!result || view !== 'issues') return;
+  const context = currentReportView(), reports = result.reports;
+  if (reports && Object.keys(context).every(key => context[key] === reports[key])) {
+    ++reportLoadSeq; // Discard any list request started before this committed save.
+    paintReports(reports);
+  } else {
+    await loadReports();
   }
 }
 async function load() {
@@ -343,9 +372,13 @@ async function mutate(action, payload, success) {
   if (busy) return;
   busy = true;
   const req = requestId(action, payload);
-  document.querySelectorAll("form button").forEach((b) => (b.disabled = true));
+  message('กำลังบันทึก…');
+  const buttons = [...document.querySelectorAll('form button, [data-report-action], [data-triage]')].map(button => ({ button, disabled: button.disabled }));
+  buttons.forEach(({button}) => button.disabled = true);
   try {
-    const r = await api(action, { ...payload, request_id: req });
+    const r = await api(action, { ...payload, request_id: req,
+      ...(reportWrites.has(action) && view === 'issues' ? { report_view: currentReportView() } : {}),
+    });
     pending = null;
     message(success);
     return r;
@@ -354,9 +387,7 @@ async function mutate(action, payload, success) {
     return null;
   } finally {
     busy = false;
-    document
-      .querySelectorAll("form button")
-      .forEach((b) => (b.disabled = false));
+    buttons.forEach(({button, disabled}) => button.disabled = disabled);
   }
 }
 document.addEventListener("click", async (e) => {
@@ -377,12 +408,12 @@ document.addEventListener("click", async (e) => {
       const action = kind === 'bug' ? 'bug_triage' : 'triage';
       const payload = kind === 'bug' ? { id, status: 'reviewing', reply: 'ทีมเปิดตรวจเรื่องนี้เพิ่มเติมอีกครั้งครับ' } : { id, status: 'reviewing', note: 'เปิดตรวจเรื่องนี้เพิ่มเติม' };
       const result = await mutate(action, payload, 'เปิดตรวจใหม่แล้ว ดูได้ที่หมวดรอดำเนินการ');
-      if (result) await loadReports(); return;
+      await refreshAfterReportSave(result); return;
     }
     const trash = b.dataset.reportAction === 'trash';
     if (trash && !(await confirm('ลบเรื่องที่แก้เสร็จแล้วออกจากรายการ?', 'เรื่องนี้จะย้ายไปถังขยะและกู้คืนได้ ไม่ลบโพสต์ บัญชี หรือประวัติของผู้รายงาน', 'ย้ายไปถังขยะ'))) return;
     const result = await mutate(trash ? 'report_trash' : 'report_restore', { kind, id }, trash ? 'ย้ายไปถังขยะแล้ว' : 'กู้คืนไปหมวดแก้เสร็จแล้ว');
-    if (result) await loadReports(); return;
+    await refreshAfterReportSave(result); return;
   }
   if (b.dataset.target) {
     target = data.users.find((x) => x.id === b.dataset.target);
@@ -431,7 +462,8 @@ document.addEventListener("click", async (e) => {
       },
       "บันทึกสถานะแล้ว",
     );
-    if (result) await reloadData();
+    if (view === 'issues') await refreshAfterReportSave(result);
+    else if (result) await reloadData();
     return;
   }
 });
@@ -443,9 +475,9 @@ document.addEventListener('submit', async (e) => {
   if (['needs_info', 'resolved'].includes(status) && reply.length < 5) {
     message('กรุณาเขียนข้อความถึงผู้รายงานอย่างน้อย 5 ตัวอักษร', true); return;
   }
-  await mutate('bug_triage', { id: form.dataset.bugForm, status, reply }, 'บันทึกแล้ว ผู้รายงานดูข้อความได้ในเรื่องของฉัน');
+  const result = await mutate('bug_triage', { id: form.dataset.bugForm, status, reply }, 'บันทึกแล้ว ผู้รายงานดูข้อความได้ในเรื่องของฉัน');
   // Keep a failed response draft and retry key intact.
-  if (!pending) await loadReports();
+  await refreshAfterReportSave(result);
 });
 $('staffBugsPrev').onclick = () => { bugPage = Math.max(0, bugPage - 1); loadReports(); };
 $('staffBugsNext').onclick = () => { bugPage++; loadReports(); };

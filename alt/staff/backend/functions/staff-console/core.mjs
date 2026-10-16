@@ -1,7 +1,25 @@
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const READ = new Set(["overview", "users", "notices", "issues", "audit", "bugs"]);
+const READ = new Set(["overview", "users", "notices", "issues", "audit", "bugs", "reports"]);
 const WRITE = new Set(["grant", "draft", "publish", "withdraw", "triage", "bug_triage", "report_trash", "report_restore"]);
+const REPORT_WRITE = new Set(["triage", "bug_triage", "report_trash", "report_restore"]);
+const offset = value => Math.max(0, Math.min(100000, Math.floor(Number(value) || 0)));
+function reportView(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new HttpError(400, 'รูปแบบหมวดรายงานไม่ถูกต้อง');
+  const bucket = input.bucket ?? 'pending';
+  if (!['pending', 'resolved', 'trash'].includes(bucket)) throw new HttpError(400, 'ไม่พบหมวดรายงาน');
+  return { bucket, bug_offset: offset(input.bug_offset), issue_offset: offset(input.issue_offset) };
+}
+async function readReports(command, actor, context) {
+  const [bugs, issues] = await Promise.allSettled([
+    command(actor, 'bugs', { bucket: context.bucket, offset: context.bug_offset }),
+    command(actor, 'issues', { bucket: context.bucket, offset: context.issue_offset }),
+  ]);
+  // A refresh failure must not turn an already committed save into a failed save.
+  // Return no internal errors; each section can show its own retry message.
+  const section = result => result.status === 'fulfilled' ? result : { status: 'rejected' };
+  return { ...context, bugs: section(bugs), issues: section(issues) };
+}
 export class HttpError extends Error {
   constructor(status, message) {
     super(message);
@@ -15,6 +33,7 @@ export function validate(input) {
   if (action === "session") return { action, payload: {} };
   if (!READ.has(action) && !WRITE.has(action))
     throw new HttpError(400, "ไม่พบคำสั่ง");
+  if (action === 'reports') return { action, payload: reportView(input) };
   if (action === 'bugs' || action === 'issues') {
     const bucket = input.bucket ?? 'pending';
     if (!['pending', 'resolved', 'trash'].includes(bucket)) throw new HttpError(400, 'ไม่พบหมวดรายงาน');
@@ -120,7 +139,10 @@ export function validate(input) {
       throw new HttpError(400, "ตรวจสถานะและข้อความถึงผู้รายงานอีกครั้ง");
     Object.assign(payload, { id: input.id, status: input.status, reply: input.reply.trim() });
   }
-  return { action, payload };
+  const refresh = REPORT_WRITE.has(action) && input.report_view !== undefined
+    ? reportView(input.report_view) : undefined;
+  // Keep refresh context out of the mutation payload and idempotency ledger.
+  return { action, payload, ...(refresh ? { reportView: refresh } : {}) };
 }
 
 export async function authorize({
@@ -138,12 +160,19 @@ export async function authorize({
   const identity = user.identities?.find((x) => x.provider === "github");
   if (!identity)
     throw new HttpError(403, "บัญชีนี้ยังไม่ได้ยืนยันตัวตนด้วย GitHub");
-  const profile = await github("/user", githubToken);
+  // Both GitHub reads are independent; all checks still run for every request.
+  const [profileResult, repoResult] = await Promise.allSettled([
+    github("/user", githubToken),
+    github(`/repos/${repository}`, githubToken),
+  ]);
+  if (profileResult.status === 'rejected') throw profileResult.reason;
+  const profile = profileResult.value;
   const identityId =
     identity.identity_data?.provider_id ?? identity.identity_data?.sub;
   if (!profile.id || String(profile.id) !== String(identityId))
     throw new HttpError(403, "บัญชี GitHub ไม่ตรงกับผู้ที่เข้าสู่ระบบ");
-  const repo = await github(`/repos/${repository}`, githubToken);
+  if (repoResult.status === 'rejected') throw repoResult.reason;
+  const repo = repoResult.value;
   if (
     repo.full_name?.toLowerCase() !== repository.toLowerCase() ||
     repo.archived ||
@@ -199,7 +228,7 @@ export function createHandler({
       } catch {
         throw new HttpError(400, "ข้อมูล JSON ไม่ถูกต้อง");
       }
-      const { action, payload } = validate(input);
+      const { action, payload, reportView: refresh } = validate(input);
       const actor = await authorize({
         authorization: request.headers.get("authorization"),
         githubToken: request.headers.get("x-github-token"),
@@ -209,11 +238,13 @@ export function createHandler({
       });
       if (action === "session")
         return reply(200, { login: actor.login, repo: repository });
+      if (action === 'reports') return reply(200, await readReports(command, actor, payload));
       const result = await command(actor, action, payload);
       // Only after the database commits and authorization succeeds. A failed
       // wake-up must not turn a successful grant into an apparent failed grant.
       try { afterCommand?.(action, payload, result); }
       catch { console.warn('[staff-notify] dispatch deferred to cron'); }
+      if (refresh) return reply(200, { ...result, reports: await readReports(command, actor, refresh) });
       return reply(200, result);
     } catch (e) {
       return reply(e.status || 500, {
