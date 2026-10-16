@@ -84,7 +84,7 @@ test('invalid refresh context is rejected before any mutation; old clients keep 
 });
 
 let source = await readFile(new URL('../staff.js', import.meta.url), 'utf8');
-source = source.replace(/^import .*?;\r?\n/, '').replace(/start\(\)\.catch\([^\n]+\);\s*$/, '');
+source = source.replace(/^import .*?;\r?\n/gm, '').replace(/start\(\)\.catch\([^\n]+\);\s*$/, '');
 function ui(api) {
   const elements = new Map();
   const get = id => {

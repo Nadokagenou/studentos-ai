@@ -1,4 +1,5 @@
 import { renderIssues, renderBugs } from './report-ui.mjs';
+import { createStaffSessionStorage, STAFF_AUTH_KEY } from './staff-auth.mjs';
 const $ = (id) => document.getElementById(id);
 const esc = (v) =>
   String(v ?? "").replace(
@@ -49,6 +50,7 @@ let client,
   target = null,
   busy = false;
 let pending = null;
+let staffAuth, authEpoch = 0;
 let bugPage = 0, issuePage = 0, reportBucket = 'pending', reportLoadSeq = 0;
 const data = { users: [], notices: [], issues: [], audit: [] };
 const demoUsers = Array.from({ length: 12 }, (_, i) => ({
@@ -105,8 +107,13 @@ function requestId(action, payload) {
 }
 async function api(action, payload = {}) {
   if (demo) return demoApi(action, payload);
+  // Read through the SDK so an expired access token is refreshed before use.
+  const { data: current, error } = await client.auth.getSession();
+  if (error) throw Error('ต่ออายุการเข้าสู่ระบบไม่ได้ กรุณาลองใหม่');
+  adoptSession(current.session);
   if (!session || !providerToken)
     throw Error("กรุณาเข้าสู่ระบบด้วย GitHub อีกครั้ง");
+  const epoch = authEpoch;
   const r = await fetch(
     `${window.SUPABASE_CONFIG.url}/functions/v1/staff-console`,
     {
@@ -127,9 +134,12 @@ async function api(action, payload = {}) {
   } catch {
     throw Error("หลังบ้านยังไม่พร้อมใช้งาน กรุณาตรวจการติดตั้ง staff-console");
   }
+  if (epoch !== authEpoch) throw Error('บัญชีเปลี่ยนแล้ว กรุณาเปิดรายการใหม่');
   if (!r.ok) {
-    if (r.status === 401 || r.status === 403)
+    if (r.status === 401 || r.status === 403) {
+      if (r.status === 401) staffAuth.forgetProvider();
       gate(body.error || "บัญชีนี้เข้า Control Room ไม่ได้");
+    }
     throw Error(body.error || "ทำรายการไม่ได้ กรุณาลองใหม่");
   }
   return body;
@@ -571,12 +581,25 @@ $("signIn").onclick = async () => {
 };
 $("signOut").onclick = async () => {
   if (demo) return location.reload();
-  sessionStorage.removeItem("studentos.staff.github");
-  await client.auth.signOut({ scope: "local" });
-  session = null;
-  providerToken = null;
-  gate("ออกจากระบบแล้ว");
+  adoptSession(null);
+  gate('ออกจากระบบแล้ว');
+  try { await client.auth.signOut({ scope: 'local' }); }
+  finally { staffAuth.clear(); }
 };
+function adoptSession(next) {
+  const previous = session?.user?.id || null;
+  const changed = previous !== (next?.user?.id || null);
+  if (changed) { ++authEpoch; ++reportLoadSeq; }
+  if (changed && previous) {
+    target = null; pending = null;
+    for (const key of Object.keys(data)) data[key] = [];
+    for (const id of ['identity', 'metrics', 'usersRows', 'noticeList', 'bugIssueList', 'issueList', 'auditList', 'overviewIssues', 'overviewAudit']) $(id).innerHTML = '';
+    document.querySelectorAll('form input, form textarea').forEach(el => el.value = '');
+    gate('บัญชีเปลี่ยนแล้ว กรุณาเปิด Control Room อีกครั้ง');
+  }
+  session = next;
+  providerToken = staffAuth?.providerToken(next) || null;
+}
 async function start() {
   if (demo) {
     $("demoBanner").hidden = false;
@@ -603,25 +626,41 @@ async function start() {
     // Show a fixed explanation, never reflect provider error text or keep it in the URL.
     history.replaceState(null, "", location.pathname);
   }
+  let persistent, tab;
+  try { persistent = window.localStorage; } catch {}
+  try { tab = window.sessionStorage; } catch {}
+  staffAuth = createStaffSessionStorage({ persistent, tab });
+  $('sessionHint').textContent = staffAuth.persistentAvailable
+    ? 'จำการเข้าสู่ระบบบนเครื่องนี้ · กดออกจากระบบเมื่อเลิกใช้เครื่องร่วมกัน'
+    : 'เบราว์เซอร์นี้จำการเข้าสู่ระบบได้เฉพาะแท็บที่เปิดอยู่';
   client = window.supabase.createClient(
     window.SUPABASE_CONFIG.url,
     window.SUPABASE_CONFIG.anonKey,
     {
       auth: {
-        storage: sessionStorage,
-        storageKey: "studentos.staff.auth",
+        storage: staffAuth.storage,
+        storageKey: STAFF_AUTH_KEY,
         flowType: "pkce",
         detectSessionInUrl: true,
         persistSession: true,
+        autoRefreshToken: true,
       },
     },
   );
+  // Register before awaiting session recovery, and keep this callback synchronous.
+  client.auth.onAuthStateChange((event, s) => {
+    adoptSession(s);
+    if (event === 'SIGNED_OUT') {
+      staffAuth.clear();
+      gate('ออกจากระบบแล้ว');
+    }
+  });
   const { data: r, error } = await client.auth.getSession();
   if (error) {
     gate("ตรวจการเข้าสู่ระบบไม่ได้ กรุณาลองใหม่");
     return;
   }
-  session = r.session;
+  adoptSession(r.session);
   if (!session) {
     try {
       const settings = await fetch(
@@ -640,10 +679,6 @@ async function start() {
     } catch {}
     return;
   }
-  providerToken =
-    session.provider_token || sessionStorage.getItem("studentos.staff.github");
-  if (session.provider_token)
-    sessionStorage.setItem("studentos.staff.github", session.provider_token);
   if (!providerToken) {
     gate("กรุณาเข้าสู่ระบบด้วย GitHub อีกครั้งเพื่อตรวจสิทธิ์รีโป");
     return;
@@ -657,12 +692,5 @@ async function start() {
   } catch (e) {
     gate(e.message);
   }
-  client.auth.onAuthStateChange((event, s) => {
-    session = s;
-    if (event === "SIGNED_OUT") {
-      providerToken = null;
-      gate("ออกจากระบบแล้ว");
-    }
-  });
 }
 start().catch(() => gate("เริ่ม Control Room ไม่สำเร็จ กรุณารีเฟรช"));
