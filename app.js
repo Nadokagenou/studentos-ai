@@ -1462,6 +1462,10 @@ async function syncFromCloud() {
   // รวมกับ cloud ของบัญชีนี้แล้ว — ตั้งแต่นี้ข้อมูลในเครื่องเป็นของบัญชีนี้ และส่งขึ้นไปได้
   setLocalOwner(currentUser.id);
   dropAccountBackup(currentUser.id);
+  // รายงานสถานะเครื่องเก็บตอนเปิดแอป ก่อนที่ฐานรอบนี้จะถูกจด — เติมตัวเลขฐานให้ทันรอบส่งข้างล่าง
+  if (typeof pushDiagMine !== 'undefined' && pushDiagMine && typeof baseDiag === 'function') {
+    pushDiagMine = Object.assign({}, pushDiagMine, baseDiag());
+  }
   // ส่งพังไม่ทำให้ส่วนที่เหลือหยุด — pushToCloud บอกผู้ใช้เองแล้ว (เหมือนเดิม)
   await pushToCloud(true);
   try {
@@ -1564,6 +1568,15 @@ function syncBaseNow() {
   }
   syncBase = b;
   return b;
+}
+
+// ตัวเลขสองตัวสำหรับรายงานสถานะเครื่อง (pushDiag) — ให้ตรวจจากฐานข้อมูลได้ว่าเครื่องนี้จำฐานไว้แล้วไหม
+// base = งานที่ฐานของบัญชีนี้จำไว้ · baseOk = ฐานผ่านด่านและจะถูกใช้รวมรอบหน้า · ไม่มีชื่องาน ไม่มี id
+function baseDiag() {
+  let b = null;
+  try { b = JSON.parse(localStorage.getItem(SYNC_BASE_KEY) || 'null'); } catch (_) {}
+  const mine = !!(b && currentUser && b.uid === currentUser.id && b.tasks);
+  return { base: mine ? Object.keys(b.tasks).length : 0, baseOk: mine && !!syncBaseNow() };
 }
 
 // รวมรายการที่มี id (งาน · รอบจับเวลา · หมุดปฏิทิน) · base = { id: ลายนิ้วมือ } หรือ null
@@ -16708,6 +16721,7 @@ async function recordPushDiag() {
     state: pushState,
     err: pushErr || '',
     user: currentUser ? 1 : 0,
+    ...(typeof baseDiag === 'function' ? baseDiag() : {}),
   };
   try {
     const reg = await withTimeout(navigator.serviceWorker.ready, 3000, 'สถานะเครื่อง');

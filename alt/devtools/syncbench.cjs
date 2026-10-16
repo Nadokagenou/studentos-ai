@@ -35,7 +35,8 @@ ${block}
   get lastSeenRev() { return lastSeenRev; }, get syncBase() { return syncBase; }, get lastPushedHash() { return lastPushedHash; },
   syncFromCloud, pushToCloud, cloudPull, syncSerial, syncFp, save() { pushToCloud(); }, get renders() { return renders; },
   setCtx(c) { ctxStore = c; }, get ctx() { return ctxStore; }, toasts,
-  resetMemory() { syncBase = null; lastSeenRev = -1; lastPushedHash = ''; } })`;
+  resetMemory() { syncBase = null; lastSeenRev = -1; lastPushedHash = ''; },
+  baseDiag: typeof baseDiag === 'function' ? baseDiag : () => ({}) })`;
 const lsStore = {};
 const localStorage = { getItem: k => (k in lsStore ? lsStore[k] : null), setItem: (k, v) => { lsStore[k] = String(v); },
   removeItem: k => { delete lsStore[k]; }, key: i => Object.keys(lsStore)[i] ?? null, get length() { return Object.keys(lsStore).length; } };
@@ -225,6 +226,12 @@ const results = []; const check = (name, ok, info) => results.push(`${ok ? 'PASS
   app.resetMemory();
   await app.syncFromCloud();
   check('p: a task created offline before the restart reaches the cloud', cloud.row.data.tasks.some(t => t.id === 'r9'), ids(cloud.row.data.tasks));
+
+  // (q) รายงานสถานะเครื่องบอกได้ว่าเครื่องนี้จำฐานไว้แล้ว — ใช้ตรวจจากฐานข้อมูลก่อนลบของที่ปนข้ามบัญชี
+  const dg = app.baseDiag();
+  check('q: device diag reports the remembered base', dg.base === app.state.tasks.length && dg.baseOk === true, JSON.stringify(dg) + ' tasks=' + app.state.tasks.length);
+  app.state = { tasks: [], settings: {}, sessions: [], marks: [] }; app.resetMemory();
+  check('q: device diag says the base will not be used when local tasks are gone', app.baseDiag().baseOk === false, JSON.stringify(app.baseDiag()));
 
   console.log(results.join('\n'));
   console.log(`\n${results.filter(r => r.startsWith('PASS')).length}/${results.length} passed`);
