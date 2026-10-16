@@ -110,6 +110,7 @@
   <link rel="stylesheet" href="feed.css">
   <!-- ชุดความปลอดภัย: รายงาน · ยินยอม · นโยบาย -->
   <link rel="stylesheet" href="safety.css">
+  <link rel="stylesheet" href="bug-reports.css">
   <!-- ห้องการบ้าน: แถวใต้การ์ดงาน + จอห้อง -->
   <link rel="stylesheet" href="hw.css">
 
@@ -1299,6 +1300,30 @@
            ห้ามเอา div เปล่ากลับมาไว้ตรงนี้ เพราะ id ซ้ำสองที่แปลว่า renderFriends()
            จะไปวาดใส่ตัวที่ซ่อนอยู่ แล้วจอที่ผู้ใช้มองอยู่ว่างเปล่าโดยไม่มี error -->
 
+      <div class="screen flush" id="scr-bugs">
+        <div class="sticky-head row"><h2 class="sh-title">รายงานปัญหาแอป</h2><button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับหน้าฉัน"><svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button></div>
+        <div class="scr-body bug-body">
+          <p class="bug-intro">บอกสิ่งที่ติดขัด ทีม Student OS จะรับเรื่องและอัปเดตความคืบหน้าให้ดูที่นี่ครับ</p>
+          <section class="bug-panel"><h2>แจ้งปัญหา</h2>
+            <p class="bug-intro">กรอกเฉพาะอาการของแอป ไม่ใส่รหัสผ่าน ข้อมูลการบ้าน หรือบทสนทนาส่วนตัวครับ</p>
+            <p id="bugLoginHint">เข้าสู่ระบบก่อนส่งเรื่องครับ</p>
+            <form id="bugForm" onsubmit="submitBugReport(event)">
+              <label for="bugCategory">หมวดปัญหา<select id="bugCategory" required><option value="tasks">งานและแผน</option><option value="scan">สแกนและเพิ่มงาน</option><option value="sync">บัญชีและการซิงก์</option><option value="notifications">แจ้งเตือน</option><option value="display">หน้าจอและการใช้งาน</option><option value="other">อื่น ๆ</option></select></label>
+              <label for="bugPage">หน้าที่พบ<select id="bugPage" required><option>หน้าแรก</option><option>งานของฉัน</option><option>แผนวันนี้</option><option>สแกนและเพิ่มงาน</option><option>ตัวเชื่อม</option><option>แจ้งเตือน</option><option>ผู้ช่วย</option><option>เพื่อนและแชต</option><option>ร้านค้าและของฉัน</option><option>บัญชีและตั้งค่า</option><option>อื่น ๆ</option></select></label>
+              <label for="bugSummary">สรุปปัญหาสั้น ๆ<input id="bugSummary" required minlength="5" maxlength="120" placeholder="เช่น กดเปิดงานแล้วหน้าจอว่าง"></label>
+              <label for="bugDetail">เกิดอะไรขึ้น<textarea id="bugDetail" required minlength="10" maxlength="2000" rows="3" placeholder="สิ่งที่เห็น และเกิดทุกครั้งหรือบางครั้ง"></textarea></label>
+              <label for="bugSteps">ทำอะไรก่อนพบปัญหา<textarea id="bugSteps" required minlength="5" maxlength="2000" rows="3" placeholder="เช่น 1. เปิดงานของฉัน 2. แตะการ์ดงาน"></textarea></label>
+              <label for="bugExpected">อยากให้เกิดอะไรขึ้น (ไม่บังคับ)<textarea id="bugExpected" maxlength="1000" rows="2"></textarea></label>
+              <label class="bug-consent"><input id="bugDiagnostics" type="checkbox"><span>ยินยอมแนบรุ่นแอปและโหมดเปิดใช้งาน (เบราว์เซอร์/แอปที่ติดตั้ง) เพื่อช่วยตรวจปัญหา</span></label>
+              <p class="bug-intro">ทีมเห็นข้อความที่คุณกรอกและบัญชีผู้ส่ง เพื่อรับเรื่องและตอบกลับ ไม่มีรางวัลโทเคนสำหรับการแจ้งปัญหาครับ</p>
+              <button class="bug-button bug-primary" id="bugSend" type="submit" disabled>ส่งเรื่องให้ทีม</button>
+              <p id="bugMessage" role="status" aria-live="polite"></p>
+            </form>
+          </section>
+          <section aria-labelledby="bugMineTitle"><div class="bug-heading"><h2 id="bugMineTitle">เรื่องของฉัน</h2><button class="bug-button" onclick="loadBugReports()">อัปเดตสถานะ</button></div><div id="bugList" aria-live="polite"></div><div class="bug-pagination"><button class="bug-button" id="bugPrev" onclick="bugPage(-1)" disabled>ก่อนหน้า</button><button class="bug-button" id="bugNext" onclick="bugPage(1)" disabled>ถัดไป</button></div></section>
+        </div>
+      </div>
+
       <!-- ============ SCREEN: PROFILE ============ -->
       <div class="screen flush" id="scr-profile">
         <div class="scr-body pf-body">
@@ -1498,6 +1523,11 @@
                  อยู่แท็บ "ฉัน" ไม่ใช่หน้าแรก: ไม่เกี่ยวกับ "ตอนนี้ควรทำอะไร" และหน้าแรกต้องไม่เลื่อน -->
             <!-- 15 ต.ค. 69 · ข่าวจากทีมพัฒนา — อยู่แท็บ "ฉัน" ไม่ใช่หน้าแรก/กระดิ่ง: ไม่ได้ขอให้ตัดสินใจอะไร
                  เลขบนแถว = ประกาศที่ยังไม่เปิดดู (newsPaintRow ใน news.js) -->
+            <button class="pe" id="peBugReports" onclick="openBugReports()">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-message"/></svg></span>
+              <span class="pe-tx"><b>รายงานปัญหาแอป</b><small>แจ้งบั๊กและติดตามเรื่อง</small></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
             <button class="pe" id="peNews" onclick="go('scr-news')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-flag"/></svg></span>
               <span class="pe-tx"><b>ข่าวสารจากทีม<span class="pe-n" id="peNewsN" hidden></span></b></span>
@@ -2426,6 +2456,7 @@
 <!-- 15 ต.ค. 69 · ข่าวสารจากทีม — ไม่มีอะไรพึ่งมันตอนบูต จึงอยู่ท้ายแถวได้ (ต้องมาก่อน app.js เพราะ renderProfile เรียก newsPaintRow) -->
 <script src="news.js"></script>
 <script src="staff-news.js"></script>
+<script src="bug-reports.js"></script>
 <script src="app.js"></script>
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────

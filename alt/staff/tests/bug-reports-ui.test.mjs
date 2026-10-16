@@ -1,9 +1,11 @@
-import { test } from 'node:test';
+import { test as runTest } from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
-const source = await readFile(new URL('../../bug-reports.js', import.meta.url), 'utf8');
+for (const build of ['../..','../../..']) {
+const test = (name, fn) => runTest(`${build}: ${name}`, fn);
+const source = await readFile(new URL(`${build}/bug-reports.js`, import.meta.url), 'utf8');
 function fixture(rpc) {
   const elements = new Map(); let resets = 0;
   const get = id => {
@@ -67,3 +69,4 @@ test('all report and team text renders escaped; latest question is visible witho
   assert.ok(html.includes('&lt;b&gt;question&lt;/b&gt;'));
   assert.ok(html.indexOf('ข้อความล่าสุดจากทีม') < html.indexOf('<details>'));
 });
+}
