@@ -64,6 +64,8 @@ const crypto32 = await import('./crypto.mjs');   // seal() ตัวเดีย
 await import('./fn.mjs');
 
 const DAY = 86400000;
+// ผู้เรียกที่เชื่อได้ (cron · ฟังก์ชัน integrations) ถือกุญแจ service — ค่าเดียวกับ ENV ข้างบน
+const SERVICE = { Authorization: 'Bearer ' + ENV.SUPABASE_SERVICE_ROLE_KEY };
 const iso = ms => new Date(ms).toISOString();
 // ⚠️ นาฬิกาสองเรือนในเทสต์นี้ และมันเคยทำให้เทสต์ตกทั้งชุดโดยที่โค้ดไม่ผิดเลย:
 // เราหยุด Date.now() ไว้เพื่อคุมชั่วโมงไทย แต่ `new Date()` (ไม่มีอาร์กิวเมนต์)
@@ -109,7 +111,7 @@ function base(over = {}) {
 async function run(tables) {
   sb.__setTables(tables);
   wp.__sent.length = 0;
-  const res = await handler(new Request('http://x', { method: 'POST', body: '{}' }));
+  const res = await handler(new Request('http://x', { method: 'POST', body: '{}', headers: SERVICE }));
   const body = await res.json();
   return { body, tables, sent: wp.__sent.map(s => ({ title: s.title, body: s.body, tag: s.tag })) };
 }
@@ -324,7 +326,7 @@ const gTables = async rows => base({
 async function runBody(tables, body) {
   sb.__setTables(tables);
   wp.__sent.length = 0;
-  const res = await handler(new Request('http://x', { method: 'POST', body: JSON.stringify(body) }));
+  const res = await handler(new Request('http://x', { method: 'POST', body: JSON.stringify(body), headers: SERVICE }));
   return { body: await res.json(), tables, sent: wp.__sent.map(s => ({ endpoint: s.endpoint, title: s.title, body: s.body, tag: s.tag })) };
 }
 
@@ -601,6 +603,24 @@ const ledgerOf = (t, wid) => t.integration_items.find(x => x.source_id === 'c-p:
   const lr2 = t.integrations[0].meta.last_run || {};
   check('รอบที่ล้ม → last_run.status = error พร้อมข้อความ', lr2.status === 'error' && /server_error/.test(lr2.error || ''), JSON.stringify(lr2));
   check('รอบที่ล้ม → ไม่ลบ diag เดิมทิ้ง', !!t.integrations[0].meta.diag, JSON.stringify(t.integrations[0].meta));
+}
+// ---- 23) แยกรายบัญชีฝั่งเซิร์ฟเวอร์: คนที่ไม่ได้ถือกุญแจ service สั่งซิงก์ "บัญชีของคนอื่น" ไม่ได้ และไม่เห็นผลรายบัญชี ----
+// กุญแจ publishable อยู่ใน repo สาธารณะ · เดิมใครก็ส่ง integration_id ของคนอื่นมาสั่งซิงก์ได้ และคำตอบมี id + ตัวเลขของทุกบัญชี
+{
+  GOOGLE = { 'rt-p': { email: 'p@gmail.com', courses: [{ id: 'c-p', name: 'คณิต' }], work: { 'c-p': [pWork('wz', 3)] }, subs: { 'c-p': [] } } };
+  const t = await gTables([await gRow('ip', 'up', 'rt-p')]);
+  const call = async (body, headers) => { sb.__setTables(t); for (const i of t.integrations) i.next_sync_at = iso(REAL() - DAY);
+    const res = await handler(new Request('http://x', { method: 'POST', body: JSON.stringify(body), headers }));
+    return { status: res.status, body: await res.json() }; };
+  const r1 = await call({ integration_id: 'ip' }, { Authorization: 'Bearer sb_publishable_xxx' });
+  check('integration_id จากผู้เรียกทั่วไป → ปฏิเสธ 403', r1.status === 403, JSON.stringify(r1));
+  check('integration_id จากผู้เรียกทั่วไป → ไม่ได้ซิงก์', t.inbox_items.length === 0 && !t.integrations[0].last_run_seen, JSON.stringify(t.inbox_items));
+  const r2 = await call({}, { Authorization: 'Bearer sb_publishable_xxx' });
+  check('รอบ cron ด้วยกุญแจทั่วไป → ยังซิงก์ได้', r2.status === 200 && t.inbox_items.length === 1, JSON.stringify(r2));
+  check('รอบ cron ด้วยกุญแจทั่วไป → คำตอบไม่มีรายบัญชี (ไม่มี id)', !('results' in r2.body) && !JSON.stringify(r2.body).includes('"ip"'), JSON.stringify(r2.body));
+  check('รอบ cron ด้วยกุญแจทั่วไป → ยังมีตัวเลขรวมให้ตรวจ', r2.body.ran === 1 && r2.body.ok_count === 1 && r2.body.error_count === 0, JSON.stringify(r2.body));
+  const r3 = await call({ integration_id: 'ip' }, SERVICE);
+  check('integration_id จากกุญแจ service → ซิงก์ได้และเห็นผล', r3.status === 200 && Array.isArray(r3.body.results), JSON.stringify(r3.body));
 }
 GOOGLE = null;
 

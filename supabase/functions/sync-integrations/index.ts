@@ -53,6 +53,12 @@ Deno.serve(async (req) => {
     }
     const body = await req.json().catch(() => ({}));
     const only = typeof body?.integration_id === 'string' ? body.integration_id : null;
+    // 16 ต.ค. 69 · แยกรายบัญชีฝั่งเซิร์ฟเวอร์ — กุญแจ publishable อยู่ใน repo สาธารณะ และ verify_jwt รับมัน
+    // เดิมใครก็ส่ง integration_id ของคนอื่นมาสั่งซิงก์ได้ และคำตอบบอก id + ตัวเลขของทุกบัญชี
+    // สั่งซิงก์รายเส้นได้เฉพาะผู้ถือกุญแจ service (ฟังก์ชัน integrations ตรวจเจ้าของแล้วค่อยเรียก)
+    // รอบ cron ยังเรียกด้วยกุญแจ publishable ได้เหมือนเดิม แต่ได้แค่ตัวเลขรวม — รายบัญชีอยู่ใน meta.last_run
+    const trusted = (req.headers.get('Authorization') ?? '') === `Bearer ${SERVICE_KEY}`;
+    if (only && !trusted) return json({ ok: false, error: 'ต้องเรียกผ่านฟังก์ชัน integrations' }, 403);
 
     let q = db.from('integrations')
       .select('id, user_id, provider, account, secret, meta, fail_count, last_sync_at, updated_at');
@@ -69,7 +75,10 @@ Deno.serve(async (req) => {
     for (const row of (data || []) as Row[]) {
       out.push(await syncOne({ ...row, first_sync: !row.last_sync_at }));
     }
-    return json({ ok: true, ran: out.length, results: out });
+    const okCount = out.filter(r => r.status === 'ok' || r.status === 'unchanged').length;
+    return json(trusted
+      ? { ok: true, ran: out.length, results: out }
+      : { ok: true, ran: out.length, ok_count: okCount, error_count: out.length - okCount });
   } catch (e) {
     console.error('[sync] รอบนี้ล้มทั้งรอบ:', e instanceof Error ? e.message : e);
     return json({ ok: false, error: String(e instanceof Error ? e.message : e) }, 500);
