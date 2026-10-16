@@ -6,9 +6,13 @@ AI Decision Assistant สำหรับนักเรียนมัธยม 
 > เวอร์ชันนี้**ทำงานได้จริง** ไม่ใช่ mockup: เพิ่ม/แก้/ลบ/ติ๊กเสร็จงานได้จริง,
 > ข้อมูลเก็บในเครื่อง (localStorage), AI อ่านข้อความ/รูปใบงานได้จริง
 
-## 🌐 ใช้งานจริง (สำหรับทุกคน)
+## 🌐 ลิงก์เข้าใช้งาน
 
-**https://nadokagenou.github.io/studentos-ai/**
+| เว็บไซต์ | ลิงก์ | สำหรับ |
+|---|---|---|
+| เว็บหลัก | [เปิด Student OS](https://nadokagenou.github.io/studentos-ai/) | ผู้ใช้งานทั่วไป |
+| เว็บทดลอง (ALT) | [เปิด Student OS ALT](https://nadokagenou.github.io/studentos-ai/alt/) | ทดลองฟีเจอร์และตรวจงานก่อนนำขึ้นเว็บหลัก |
+| เว็บแอดมิน | [เปิด Student OS Control Room](https://nadokagenou.github.io/studentos-ai/alt/staff/) | ทีมพัฒนาที่มีสิทธิ์เขียนในรีโปนี้ ต้องเข้าสู่ระบบด้วย GitHub |
 
 - เปิดจากมือถือได้เลย — ไม่ต้องติดตั้งอะไร
 - ติดตั้งเป็นแอปได้: Chrome/Android → เมนู ⋮ → **"เพิ่มลงในหน้าจอหลัก"** · iPhone/Safari → Share → **"Add to Home Screen"**
