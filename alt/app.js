@@ -13,6 +13,8 @@
 
 const APP_VERSION = '1C59';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
+// รับการแจ้งเตือนจากแอปหลักที่เดียว ไม่แก้ค่าตั้งร่วมที่ซิงก์ไปแอปหลัก
+const ALT_SYSTEM_NOTIFICATIONS = false;
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -7798,6 +7800,12 @@ function renderProfile() {
     ('Notification' in window && Notification.permission === 'granted') ? 'block' : 'none';
   renderNotifPrefs();
   if (!st) return;
+  if (!ALT_SYSTEM_NOTIFICATIONS) {
+    st.textContent = pushErr ? 'ยังหยุดแจ้งเตือน ALT ไม่สำเร็จ · เปิด ALT ออนไลน์แล้วลองใหม่' : 'รับแจ้งเตือนจากแอปหลักเท่านั้น · ALT ไม่ส่งซ้ำ';
+    if (ntest) ntest.style.display = 'none';
+    if (nb) { nb.style.display = pushErr ? 'block' : 'none'; nb.textContent = 'ลองใหม่'; }
+    return;
+  }
   if (!('Notification' in window)) {
     if (isIOS() && !isStandalone()) {
       st.textContent = 'ต้องติดตั้งเป็นแอปก่อน';
@@ -15555,6 +15563,7 @@ function pushSupported() {
 }
 
 async function refreshPushState() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) { pushState = 'main_only'; return; }
   if (!pushSupported()) { pushState = 'unsupported'; return; }
   try {
     // serviceWorker.ready ไม่รีเจ็กต์เองถ้า SW ตัวเก่าติดค้างอยู่ — มันค้างเงียบ ๆ ตลอดไป
@@ -15608,6 +15617,7 @@ function subKeyMatches(sub) {
 let pushErr = '';
 
 async function subscribePush() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) return false;
   if (!pushSupported()) return false;
   // ready ค้างได้ตลอดกาลถ้า SW ตัวเก่าติดอยู่ (ดู refreshPushState) — ค้างที่นี่ = ปุ่มกดแล้วเงียบ
   const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ลงทะเบียนแจ้งเตือน');
@@ -15674,6 +15684,7 @@ function pushErrText(e) {
   return (e && e.message) ? String(e.message).slice(0, 60) : 'ไม่ทราบสาเหตุ';
 }
 async function reconnectPush() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) { await dropPush(); renderProfile(); return false; }
   let ok = false;
   try { ok = await subscribePush(); }
   catch (e) { pushErr = pushErrText(e); console.warn('[push] subscribe failed:', e); }
@@ -15706,7 +15717,7 @@ function notifPref(key) { return state.settings[key] !== false; }
 // จึงขอในจังหวะแตะครั้งแรกของวันที่ไหนก็ได้ในแอป แทนที่จะรอให้คนไปหาปุ่ม "เปิด" ในตั้งค่าเอง
 // วันละครั้งพอ: Chrome นับการปัดกล่องทิ้ง ปัดบ่อยเกินจะถูกบล็อกเอง
 // ============================================================
-function notifOn() { return state.settings.notifOff !== true; }
+function notifOn() { return ALT_SYSTEM_NOTIFICATIONS && state.settings.notifOff !== true; }
 
 const NOTIF_AUTO_KEY = 'studentos.alt.notifAutoAt';
 function autoAskReady() {
@@ -15739,6 +15750,18 @@ function autoAskNotifOpen() {
 
 // ถอน push ของเครื่องนี้ — ทั้งในเบราว์เซอร์และแถวบน cloud (ไม่งั้นเซิร์ฟเวอร์ยังยิงมาได้)
 async function dropPush() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) {
+    try {
+      const { retireAltSubscription } = await import('./notification-policy.mjs');
+      await withTimeout(retireAltSubscription({
+        serviceWorker: navigator.serviceWorker,
+        scope: new URL('./', location.href).href,
+        removeEndpoint: sb && currentUser ? endpoint => sb.from('push_subscriptions').delete().eq('endpoint', endpoint) : null,
+      }), 5000, 'หยุดแจ้งเตือน ALT');
+      pushErr = '';
+      return true;
+    } catch (e) { pushErr = 'หยุดแจ้งเตือน ALT ไม่สำเร็จ'; return false; }
+  }
   if (!pushSupported()) return;
   try {
     const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ปิดแจ้งเตือน');
@@ -15752,6 +15775,7 @@ async function dropPush() {
 }
 
 async function toggleNotifAll() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) { showToast({ title: 'รับแจ้งเตือนที่แอปหลัก', body: 'ALT ไม่ส่งแจ้งเตือนซ้ำ' }); return; }
   const on = !notifOn();
   state.settings.notifOff = !on;
   save();
@@ -15787,10 +15811,10 @@ function renderNotifPrefs() {
   const granted = ('Notification' in window) && Notification.permission === 'granted' && notifOn();
   const all = document.getElementById('notifAllRow'), allB = document.getElementById('notifAllBtn');
   // เครื่องที่ไม่มีระบบแจ้งเตือน (iPhone ที่ยังไม่ติดตั้ง) — แถวสถานะข้างล่างพาไปวิธีติดตั้งแทน
-  if (all) all.hidden = !('Notification' in window);
+  if (all) all.hidden = !ALT_SYSTEM_NOTIFICATIONS || !('Notification' in window);
   if (allB) allB.textContent = notifOn() ? 'เปิดอยู่' : 'ปิดอยู่';
   const row = document.getElementById('notifRow');
-  if (row) row.hidden = ('Notification' in window) && !notifOn();
+  if (row) row.hidden = ALT_SYSTEM_NOTIFICATIONS && ('Notification' in window) && !notifOn();
   for (const [key, row, btn] of [
     ['notifDue', 'prefDueRow', 'prefDueBtn'],
     ['notifPlan', 'prefPlanRow', 'prefPlanBtn'],
@@ -15805,6 +15829,7 @@ function renderNotifPrefs() {
 }
 
 async function enableNotif() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) { await dropPush(); renderProfile(); return; }
   if (!('Notification' in window)) {
     if (isIOS() && !isStandalone()) { showInstallGuide(); return; } // สาเหตุคือยังไม่ได้ติดตั้ง แก้ตรงนี้ทันที
     return;
@@ -16047,6 +16072,7 @@ async function notify(title, body, tag) {
 // (กุญแจ VAPID ไม่ตรง · แถว subscription ถูกลบ · iPhone ที่ไม่ได้ติดตั้งแอป) · send-reminders { test: true }
 const SERVER_TEST_DELAY_S = 8;
 async function testServerPush() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) return;
   showToast({ title: 'กำลังส่งจากเซิร์ฟเวอร์…', body: 'รอสักครู่' });
   let res = null, err = null;
   try {
@@ -16075,6 +16101,7 @@ async function testServerPush() {
 }
 
 async function testNotify() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) return;
   if (Notification.permission !== 'granted') { enableNotif(); return; }
   if (pushState === 'on' && sb && currentUser) { testServerPush(); return; }
   const tag = 'studentos-alt-test';
