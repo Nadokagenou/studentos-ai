@@ -5,7 +5,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const src = fs.readFileSync(path.resolve(__dirname, '..', 'app.js'), 'utf8');
+// อาร์กิวเมนต์แรก = ไฟล์ app.js ที่จะตรวจ (บิลด์ราก) · ไม่ใส่ = alt/app.js
+const src = fs.readFileSync(process.argv[2] ? path.resolve(process.argv[2]) : path.resolve(__dirname, '..', 'app.js'), 'utf8')
+  .split('\r\n').join('\n');
 function grab(name) {
   const i = src.indexOf(`async function ${name}(`);
   if (i < 0) return null;
