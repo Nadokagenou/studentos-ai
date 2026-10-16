@@ -17930,11 +17930,40 @@ document.addEventListener('change', e => {
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
   // มีโค้ดรุ่นใหม่เข้าคุมเมื่อไหร่ รีโหลดเองครั้งเดียว (กันแอปที่ติดตั้งไว้ค้างรุ่นเก่า)
-  let swReloaded = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
+  //
+  // 16 ต.ค. 69 · เจ้าของ: "ทำให้แอปอัปเดตเองตอนกลับเข้ามา ไม่ต้องปิดแอปทุกครั้ง"
+  // มือถือแทบไม่เคยปิดแอปจริง — แตะไอคอนคือกลับไปหน้าเดิมที่ค้างในหน่วยความจำ
+  // เบราว์เซอร์เช็ค sw.js ใหม่เฉพาะตอนเปิดหน้าใหม่ หน้าที่ค้างอยู่จึงไม่รู้เลยว่ามีรุ่นใหม่
+  // (ฟอร์มสองขั้นขึ้นเว็บแล้ว แต่มือถือเจ้าของยังเห็นของเก่าจนปัดแอปทิ้งเอง)
+  // → กลับเข้าแอปเมื่อไหร่ สั่ง update() ให้ไปเทียบ sw.js กับบนเว็บ · ไม่ตรง = ตัวใหม่ลง
+  //   skipWaiting + clients.claim (sw.js) แล้ว controllerchange ข้างล่างรีโหลดให้
+  //   ทุกการปล่อยของจึงต้องเปลี่ยนอะไรสักอย่างใน sw.js (ชื่อ CACHE) ไม่งั้นไม่มีสัญญาณ
+  // กำลังพิมพ์ค้างอยู่ = ห้ามรีโหลดใส่ ข้อความหาย · รอจนสลับออกจากแอปแล้วค่อยรีโหลดเบื้องหลัง
+  let swReloaded = false, swReloadLater = false, swCheckedAt = 0;
+  const swBusy = () => {
+    const on = document.querySelector('.screen.on');
+    if (on && on.id === 'scr-form') return true;
+    const a = document.activeElement;
+    return !!(a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT' || a.isContentEditable) && (a.value || a.textContent));
+  };
+  const swReload = () => {
     if (swReloaded) return;
     swReloaded = true;
     location.reload();
+  };
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (swBusy()) { swReloadLater = true; return; }
+    swReload();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      if (swReloadLater) swReload();
+      return;
+    }
+    // สลับแอปไปมาถี่ ๆ ไม่ต้องถามทุกครั้ง — นาทีละครั้งพอ (คำขอเดียว ไฟล์ไม่กี่ KB)
+    if (Date.now() - swCheckedAt < 60000) return;
+    swCheckedAt = Date.now();
+    navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {});
   });
 }
 
