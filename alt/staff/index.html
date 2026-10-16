@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>Student OS · Control Room</title>
+    <link rel="stylesheet" href="staff.css?v=20261016-moderation" />
+  </head>
+  <body>
+    <main id="gate" class="gate">
+      <div class="gate-card">
+        <span class="brand-mark">S<span>OS</span></span>
+        <p class="eyebrow">STUDENT OS · CONTROL ROOM</p>
+        <h1>พื้นที่ของทีมพัฒนา</h1>
+        <p>
+          ดูแลผู้ใช้ โทเคน และข่าวสาร<br />เข้าได้เฉพาะผู้ร่วมพัฒนาที่มีสิทธิ์แก้ไขรีโป
+          Student OS
+        </p>
+        <button id="signIn" class="primary">เข้าสู่ระบบด้วย GitHub</button>
+        <p id="sessionHint" class="footnote">จำการเข้าสู่ระบบบนเครื่องนี้</p>
+        <p id="gateMessage" role="status"></p>
+        <a href="../">กลับ Student OS</a>
+      </div>
+    </main>
+    <div id="console" hidden>
+      <aside>
+        <div class="brand">
+          <span class="brand-mark">S<span>OS</span></span>
+          <div><b>Student OS</b><span>Control Room</span></div>
+        </div>
+        <nav aria-label="เมนูแอดมิน">
+          <button data-view="overview" class="selected">ภาพรวม</button
+          ><button data-view="users">ผู้ใช้งาน</button
+          ><button data-view="tokens">โทเคนและการแบน</button
+          ><button data-view="notices">ข่าวสารและแจ้งเตือน</button
+          ><button data-view="issues">รายงานและปัญหาแอป</button
+          ><button data-view="audit">ประวัติการจัดการ</button>
+        </nav>
+        <div class="side-bottom">
+          <span id="identity"></span><button id="signOut">ออกจากระบบ</button>
+        </div>
+      </aside>
+      <main class="workspace">
+        <header class="top">
+          <div>
+            <p class="eyebrow">STUDENT OS · ADMIN</p>
+            <h1 id="pageTitle">ภาพรวม</h1>
+          </div>
+          <div class="top-status">
+            <span id="modeBadge">เชื่อมต่อระบบจริง</span
+            ><button id="refresh">รีเฟรช</button>
+          </div>
+        </header>
+        <div id="demoBanner" class="demo-banner" hidden>
+          ตัวอย่างข้อมูลจำลอง ·
+          การกดปุ่มในหน้านี้ไม่เปลี่ยนบัญชีหรือส่งแจ้งเตือนจริง
+          <a href="https://nadokagenou.github.io/studentos-ai/alt/staff/">เปิด Control Room จริง</a>
+        </div>
+        <p id="message" class="message" role="status" hidden></p>
+        <section id="view-overview" class="view">
+          <div class="welcome">
+            <div>
+              <p class="eyebrow">วันนี้ทีมควรดูอะไร</p>
+              <h2>ดูแลแอปจากที่เดียว</h2>
+              <p>เห็นข้อมูลที่จำเป็น และตรวจย้อนหลังได้ทุกครั้งที่แก้ไข</p>
+            </div>
+            <span class="welcome-symbol">◎</span>
+          </div>
+          <div id="metrics" class="metrics"></div>
+          <div class="two-col">
+            <article class="panel">
+              <div class="panel-head">
+                <h2>สิ่งที่รอตรวจ</h2>
+                <button data-jump="issues">เปิดรายการ</button>
+              </div>
+              <div id="overviewIssues"></div>
+            </article>
+            <article class="panel">
+              <div class="panel-head">
+                <h2>การจัดการล่าสุด</h2>
+                <button data-jump="audit">ดูประวัติ</button>
+              </div>
+              <div id="overviewAudit"></div>
+            </article>
+          </div>
+          <p class="footnote">
+            จำนวนผู้ใช้ในหน้านี้นับบัญชีที่เคยซิงก์ข้อมูล
+            คนที่ใช้แบบไม่ล็อกอินยังนับรายคนไม่ได้
+          </p>
+        </section>
+        <section id="view-users" class="view" hidden>
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>บัญชีที่เคยซิงก์</h2>
+                <p>แสดงชื่อผู้ใช้ เวลาซิงก์ล่าสุด และยอดโทเคนที่ซิงก์ไว้</p>
+              </div>
+            </div>
+            <form id="searchUsers" class="search">
+              <input
+                id="userQuery"
+                aria-label="ค้นหาผู้ใช้"
+                placeholder="ค้นหา @ชื่อผู้ใช้ ชื่อ หรือรหัสบัญชี"
+                maxlength="100"
+              /><button type="submit">ค้นหา</button>
+            </form>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ผู้ใช้</th>
+                    <th>ซิงก์ล่าสุด</th>
+                    <th>โทเคนบนคลาวด์</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="usersRows"></tbody>
+              </table>
+            </div>
+            <div class="pager">
+              <button id="usersPrev">ก่อนหน้า</button
+              ><span id="usersPage"></span><button id="usersNext">ถัดไป</button>
+            </div>
+          </article>
+        </section>
+        <section id="view-tokens" class="view" hidden>
+          <div class="two-col">
+            <article class="panel">
+              <h2>จัดการโทเคน</h2>
+              <p>
+                เลือกบัญชีจากหน้าผู้ใช้งาน ทุกครั้งต้องระบุเหตุผลและมีประวัติ
+              </p>
+              <form id="grantForm" class="stack">
+                <label>รายการ<select id="tokenAction"><option value="grant">เพิ่มโทเคน</option><option value="deduct">หักโทเคน</option></select></label>
+                <label
+                  >บัญชีผู้รับ<input
+                    id="grantTarget"
+                    readonly
+                    required
+                    placeholder="เลือกผู้ใช้ก่อน" /></label
+                ><label
+                  >จำนวนโทเคน<input
+                    id="grantAmount"
+                    type="number"
+                    min="1"
+                    max="10000"
+                    step="1"
+                    value="100"
+                    required /></label
+                ><label
+                  >เหตุผล<textarea
+                    id="grantReason"
+                    minlength="5"
+                    maxlength="300"
+                    required
+                    placeholder="เช่น ชดเชยจากปัญหาระบบ หมายเลขรายงาน …"
+                  ></textarea></label
+                ><button type="submit" class="primary">
+                  ตรวจรายการโทเคน</button
+                ><button type="button" data-jump="users">เลือกผู้รับ</button>
+              </form>
+            </article>
+            <article class="panel soft">
+              <h2>ตรวจให้ครบก่อนยืนยัน</h2>
+              <ul>
+                <li>ชื่อและรหัสบัญชีของผู้รับ</li>
+                <li>จำนวน 1–10,000 โทเคนต่อรายการ</li>
+                <li>เหตุผลที่ทีมตรวจย้อนหลังได้</li>
+              </ul>
+              <p>
+                ระบบกันการส่งรายการเดิมซ้ำ และจำกัดยอดเพิ่มต่อแอดมินไว้ 100,000
+                โทเคนต่อวัน
+              </p>
+              <p>
+                ผู้รับต้องเชื่อมต่ออินเทอร์เน็ตและซิงก์ข้อมูล จึงจะเห็นยอดใหม่
+              </p>
+            </article>
+          </div>
+          <article class="panel">
+            <h2>แบนหรือปลดแบนบัญชี</h2>
+            <p id="banCurrent">เลือกบัญชีจากหน้าผู้ใช้งานก่อน</p>
+            <p>ระงับการเข้าสู่ระบบและการใช้งานข้อมูลออนไลน์ งานที่เก็บในเครื่องยังอยู่ แบนชั่วคราวหมดอายุเอง</p>
+            <form id="banForm" class="stack">
+              <label>รายการ<select id="banAction"><option value="1d">แบน 1 วัน</option><option value="2d">แบน 2 วัน</option><option value="permanent">แบนถาวร</option><option value="unban">ปลดแบน</option></select></label>
+              <label>เหตุผลที่ผู้ใช้จะเห็น<textarea id="banReason" required minlength="5" maxlength="300"></textarea></label>
+              <button type="submit">ตรวจรายการบัญชี</button>
+            </form>
+          </article>
+        </section>
+        <section id="view-notices" class="view" hidden>
+          <div class="two-col">
+            <article class="panel">
+              <h2>เขียนข่าวสาร</h2>
+              <form id="noticeForm" class="stack">
+                <label
+                  >หัวข้อ<input
+                    id="noticeTitle"
+                    minlength="4"
+                    maxlength="60"
+                    required
+                    placeholder="ข่าวอะไรที่ผู้ใช้ต้องรู้" /></label
+                ><label
+                  >ข้อความ<textarea
+                    id="noticeBody"
+                    maxlength="280"
+                    required
+                    placeholder="อธิบายให้สั้น ชัด และตรงกับสิ่งที่เกิดขึ้นจริง"
+                  ></textarea></label
+                ><label
+                  >หมดอายุเมื่อใด (ไม่บังคับ)<input
+                    id="noticeUntil"
+                    type="datetime-local" /></label
+                ><button type="submit">บันทึกเป็นร่าง</button>
+              </form>
+            </article>
+            <article class="panel soft">
+              <p class="eyebrow">ตัวอย่างที่ผู้ใช้จะเห็น</p>
+              <div class="notice-preview">
+                <span class="tag">ข่าวจากทีม Student OS</span>
+                <h2 id="previewTitle">หัวข้อประกาศ</h2>
+                <p id="previewBody">ข้อความที่เขียนจะแสดงตรงนี้</p>
+              </div>
+              <p class="footnote">
+                บันทึกร่างก่อน แล้วกดเผยแพร่จากรายการด้านล่าง
+                การแจ้งเตือนนอกแอปส่งเฉพาะเครื่องที่อนุญาตไว้ และพักช่วง
+                22:00–07:00 น.
+              </p>
+            </article>
+          </div>
+          <article class="panel">
+            <h2>ร่างและประกาศที่เผยแพร่</h2>
+            <div id="noticeList"></div>
+          </article>
+        </section>
+        <section id="view-issues" class="view" hidden>
+          <div class="report-buckets" role="tablist" aria-label="หมวดรายงาน">
+            <button role="tab" aria-selected="true" aria-controls="reportSections" data-report-bucket="pending">รอดำเนินการ</button>
+            <button role="tab" aria-selected="false" aria-controls="reportSections" data-report-bucket="resolved">แก้เสร็จแล้ว</button>
+            <button role="tab" aria-selected="false" aria-controls="reportSections" data-report-bucket="trash">ถังขยะ</button>
+          </div>
+          <p id="reportBucketHint">เรื่องที่ยังต้องตรวจหรือรอข้อมูลเพิ่มเติม</p>
+          <div id="reportSections">
+          <article class="panel">
+            <h2>ปัญหาแอป <span class="tag" id="bugCount"></span></h2>
+            <p>ข้อความตอบกลับและประวัติสถานะด้านล่าง ผู้รายงานจะเห็นในแอปเมื่อเปิด “เรื่องของฉัน”</p>
+            <div id="bugIssueList"></div>
+            <div class="actions"><button id="staffBugsPrev">ก่อนหน้า</button><button id="staffBugsNext">ถัดไป</button></div>
+          </article>
+          <article class="panel">
+            <h2>รายงานเนื้อหาและบัญชี</h2>
+            <p>
+              รับจากปุ่มรายงานโพสต์ คำตอบ หรือบัญชีในแอป เช่น สแปมหรือกลั่นแกล้ง เป็นคนละส่วนกับบั๊กของแอป
+            </p>
+            <p id="contentReportCount"></p>
+            <div id="issueList"></div>
+            <div class="actions"><button id="staffIssuesPrev">ก่อนหน้า</button><button id="staffIssuesNext">ถัดไป</button></div>
+          </article>
+          </div>
+        </section>
+        <section id="view-audit" class="view" hidden>
+          <article class="panel">
+            <h2>ประวัติการจัดการ</h2>
+            <p>
+              ใครทำอะไร เมื่อใด และกับบัญชีหรือประกาศใด
+              รายการที่บันทึกแล้วแก้ทับจากหน้านี้ไม่ได้
+            </p>
+            <div id="auditList"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+    <dialog id="confirmDialog">
+      <form method="dialog">
+        <h2 id="confirmTitle"></h2>
+        <div id="confirmBody"></div>
+        <div class="dialog-actions">
+          <button value="cancel">ยกเลิก</button
+          ><button id="confirmAction" value="confirm" class="primary">
+            ยืนยัน
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
+    <script src="../config.js"></script>
+    <script type="module" src="staff.js?v=20261016-moderation"></script>
+  </body>
+</html>

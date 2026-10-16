@@ -1,0 +1,5 @@
+backend/node_modules/
+backend/.temp/
+.env
+.env.*
+/preview.html

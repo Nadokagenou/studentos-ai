@@ -20,7 +20,8 @@ import type { StandardTask } from '../_shared/integrations.ts';
 import { fetchIcs } from '../_shared/ics.ts';
 import { classroomReady, fetchClassroom } from '../_shared/classroom.ts';
 import { fetchCalendar } from '../_shared/gcal.ts';
-import { isQuietHours, markSent, pushReady, pushToUser, unsentKeys } from '../_shared/notify.ts';
+import { isQuietHours, markSent, pushReady, pushToUser, pushToUserDetailed, unsentKeys } from '../_shared/notify.ts';
+import type { PushResult } from '../_shared/notify.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -35,13 +36,62 @@ const BATCH = 10;
 const BACKOFF_MIN = [30, 120, 480, 1440];
 const NORMAL_GAP_MIN = 30;
 
+// ============================================================
+// 16 ต.ค. 69 · Classroom ซิงก์ทุก 1 นาที (เจ้าของ: "ขอส่งแล้วเข้าเลย")
+// ------------------------------------------------------------
+// Google ไม่มีช่องทางแจ้งทันที — Pub/Sub ของ Classroom เองก็ "ปกติภายในไม่กี่นาที" ตามเอกสาร
+// การถามทุกนาทีจึงเร็วที่สุดที่ทำได้จริง · ปฏิทิน (ICS/Calendar) ยังทุก 30 นาทีเหมือนเดิม
+//
+// ราคาของการถามถี่ ต้องจ่ายสามอย่าง และแต่ละอย่างมีตัวกันของมัน:
+//   1. รอบซ้อนกัน — บัญชี 23 ห้องใช้ ~20 วิ ทุกนาทีจึงมีวันที่รอบใหม่เริ่มก่อนรอบเก่าจบ สองรอบซิงก์บัญชี
+//      เดียวกันพร้อมกัน = กล่องเข้าได้งานใบเดียวกันสองแถว (เทสต์จับได้จริง) → จองแถวก่อนซิงก์ (sync_lease_until)
+//   2. บัญชีใหญ่ถ่วงบัญชีอื่น → ซิงก์ขนานกันทีละ SYNC_PARALLEL บัญชี
+//   3. รอบถัดไปต้องไม่หลุดรอบ cron → นัดเทียบกับนาทีที่รอบนี้ "เริ่ม" ลบ 1 วิ ไม่ใช่เทียบกับตอนเสร็จ
+// ============================================================
+const GAP_MIN: Record<string, number> = { google_classroom: 1 };
+const gapFor = (provider: string) => GAP_MIN[provider] ?? NORMAL_GAP_MIN;
+const LEASE_MS = 3 * 60_000;   // รอบที่ตายกลางทางคืนแถวเองหลังนี้ · ยาวกว่ารอบที่ช้าที่สุดที่วัดได้ (~25 วิ) หลายเท่า
+const SYNC_PARALLEL = 4;
+
+/** นัดรอบถัดไปให้ตรงกับรอบ cron: ต้นนาทีที่รอบนี้เริ่ม + gap − 1 วิ · ไม่ขึ้นกับว่ารอบนี้เริ่มช้าหรือนานแค่ไหน */
+function nextTickAt(runStart: number, gapMin: number): string {
+  return new Date(Math.floor(runStart / 60_000) * 60_000 + gapMin * 60_000 - 1000).toISOString();
+}
+
+/** จองแถวก่อนซิงก์ · คืน false เมื่อมีรอบอื่นจองอยู่และยังไม่หมดอายุ (นาฬิกาเดียวกันทั้งตอนตั้งและตอนเทียบ) */
+async function claimRow(id: string): Promise<boolean> {
+  const now = Date.now();
+  const { data, error } = await db.from('integrations')
+    .update({ sync_lease_until: new Date(now + LEASE_MS).toISOString() })
+    .eq('id', id)
+    .or(`sync_lease_until.is.null,sync_lease_until.lt.${new Date(now).toISOString()}`)
+    .select('id');
+  if (error) throw error;
+  return !!(data && data.length);
+}
+async function releaseRow(id: string): Promise<void> {
+  await db.from('integrations').update({ sync_lease_until: null }).eq('id', id);
+}
+
+/** ทำงานพร้อมกันไม่เกิน limit ชิ้น · คืนผลตามลำดับเดิม */
+async function inPool<T, R>(items: T[], limit: number, fn: (x: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (i < items.length) { const k = i++; out[k] = await fn(items[k]); }
+  }));
+  return out;
+}
+
 type Row = {
   id: string; user_id: string; provider: string; account: string;
   secret: string | null; meta: Record<string, unknown>; fail_count: number;
   last_sync_at: string | null;
+  updated_at?: string | null;   // ขยับทุกครั้งที่กดเชื่อมใหม่ = รุ่นของกุญแจ (ใช้กันแจ้งเตือนซ้ำ)
   // รอบนี้เป็นการซิงก์ครั้งแรกของการเชื่อมเส้นนี้ไหม — ต้องอ่านก่อนที่ syncOne
   // จะเขียน last_sync_at ทับ ไม่งั้นทุกอย่างดูเหมือนไม่ใช่ครั้งแรกไปหมด
   first_sync?: boolean;
+  run_start?: number;   // เวลาที่รอบนี้เริ่ม — ใช้นัดรอบถัดไปให้ตรงกับรอบ cron (nextTickAt)
 };
 
 Deno.serve(async (req) => {
@@ -51,9 +101,15 @@ Deno.serve(async (req) => {
     }
     const body = await req.json().catch(() => ({}));
     const only = typeof body?.integration_id === 'string' ? body.integration_id : null;
+    // 16 ต.ค. 69 · แยกรายบัญชีฝั่งเซิร์ฟเวอร์ — กุญแจ publishable อยู่ใน repo สาธารณะ และ verify_jwt รับมัน
+    // เดิมใครก็ส่ง integration_id ของคนอื่นมาสั่งซิงก์ได้ และคำตอบบอก id + ตัวเลขของทุกบัญชี
+    // สั่งซิงก์รายเส้นได้เฉพาะผู้ถือกุญแจ service (ฟังก์ชัน integrations ตรวจเจ้าของแล้วค่อยเรียก)
+    // รอบ cron ยังเรียกด้วยกุญแจ publishable ได้เหมือนเดิม แต่ได้แค่ตัวเลขรวม — รายบัญชีอยู่ใน meta.last_run
+    const trusted = (req.headers.get('Authorization') ?? '') === `Bearer ${SERVICE_KEY}`;
+    if (only && !trusted) return json({ ok: false, error: 'ต้องเรียกผ่านฟังก์ชัน integrations' }, 403);
 
     let q = db.from('integrations')
-      .select('id, user_id, provider, account, secret, meta, fail_count, last_sync_at');
+      .select('id, user_id, provider, account, secret, meta, fail_count, last_sync_at, updated_at');
     q = only
       ? q.eq('id', only)
       // paused = ผู้ใช้ปิดไว้เอง · needs_reauth = ลองใหม่เองอีกกี่รอบก็ไม่หาย ต้องรอคนมากด
@@ -63,23 +119,52 @@ Deno.serve(async (req) => {
     const { data, error } = await q;
     if (error) throw error;
 
-    const out = [];
-    for (const row of (data || []) as Row[]) {
-      out.push(await syncOne({ ...row, first_sync: !row.last_sync_at }));
-    }
-    return json({ ok: true, ran: out.length, results: out });
+    const runStart = Date.now();
+    const ran = await inPool((data || []) as Row[], SYNC_PARALLEL, async row => {
+      // อีกรอบกำลังซิงก์บัญชีนี้อยู่ — ปล่อยให้รอบนั้นทำ ไม่ซ้อน (ดูหัวข้อ "ซิงก์ทุก 1 นาที")
+      if (!(await claimRow(row.id))) return null;
+      try { return await syncOne({ ...row, first_sync: !row.last_sync_at, run_start: runStart }); }
+      finally { await releaseRow(row.id).catch(() => {}); }
+    });
+    const out = ran.filter(r => r !== null);
+    const okCount = out.filter(r => r.status === 'ok' || r.status === 'unchanged').length;
+    return json(trusted
+      ? { ok: true, ran: out.length, results: out }
+      : { ok: true, ran: out.length, ok_count: okCount, error_count: out.length - okCount });
   } catch (e) {
     console.error('[sync] รอบนี้ล้มทั้งรอบ:', e instanceof Error ? e.message : e);
     return json({ ok: false, error: String(e instanceof Error ? e.message : e) }, 500);
   }
 });
 
+// ============================================================
+// 16 ต.ค. 69 · บันทึกผลรอบซิงก์รายบัญชี
+// ------------------------------------------------------------
+// ข้อมูลจริง: cron (pg_net) รอคำตอบแค่ 5 วินาที แต่รอบหนึ่งใช้ ~38 วิ (บัญชี 23 ห้องคนเดียว 20 วิ)
+// ทุกรอบจึงจบด้วย "Timeout of 5000 ms" แล้วผลที่ฟังก์ชันคืน (ส่งกี่ใบ · push ถึงกี่เครื่อง) หายหมด
+// ตอนเจ้าของถามว่า "แจ้งเตือนเด้งไหม" จึงไม่มีอะไรให้ตอบนอกจากเดา
+// ตอนนี้ทุกรอบเขียนสรุปลง integrations.meta.last_run (ของล่าสุดต่อบัญชี) และพิมพ์หนึ่งบรรทัดลง
+// Function logs ด้วย · เป็นตัวเลขล้วน ไม่มีชื่องาน ไม่มีอีเมล — อ่านใน dashboard ได้โดยไม่เห็นข้อมูลนักเรียน
+// ============================================================
+type RunLog = {
+  at: string; ms: number; status: string; error?: string;
+  tasks?: number; delivered?: number; push?: PushResult | null;
+};
+
 async function syncOne(row: Row) {
+  const t0 = Date.now();
+  // เวลาเป็นตัวเลขของรอบนี้ — ใช้นาฬิกาเดียวกับส่วนอื่นของไฟล์ (Date.now) ไม่ใช่ new Date() เปล่า ๆ
+  const done = (status: string, extra: Partial<RunLog> = {}): RunLog => {
+    const log: RunLog = { at: new Date(Date.now()).toISOString(), ms: Date.now() - t0, status, ...extra };
+    console.log('[sync-run] ' + JSON.stringify({ integration: row.id, provider: row.provider, ...log }));
+    return log;
+  };
   try {
     const secret = await unseal(row.secret);
     if (!secret) {
       // ถอดรหัสไม่ออก = กุญแจถูกเปลี่ยน หรือข้อมูลเสีย · ลองใหม่เองไม่มีทางหาย
-      await markReauth(row, 'กุญแจที่เก็บไว้ใช้ไม่ได้แล้ว ต้องเชื่อมใหม่');
+      await markReauth(row, 'กุญแจที่เก็บไว้ใช้ไม่ได้แล้ว ต้องเชื่อมใหม่',
+        done('needs_reauth', { error: 'unseal' }));
       return { id: row.id, status: 'needs_reauth' };
     }
 
@@ -87,28 +172,31 @@ async function syncOne(row: Row) {
     if (res.unchanged) {
       await db.from('integrations').update({
         last_sync_at: new Date().toISOString(),
-        next_sync_at: minutesFromNow(NORMAL_GAP_MIN),
+        next_sync_at: nextTickAt(row.run_start ?? t0, gapFor(row.provider)),
         status: 'active', error_msg: null, fail_count: 0,
+        meta: { ...row.meta, last_run: done('unchanged') },
       }).eq('id', row.id);
       return { id: row.id, status: 'unchanged' };
     }
 
-    const sent = await reconcile(row, res.tasks);
+    const sent = await reconcile(row, res.tasks, new Set(res.doneIds ?? []));
 
     await db.from('integrations').update({
       last_sync_at: new Date().toISOString(),
-      next_sync_at: minutesFromNow(NORMAL_GAP_MIN),
+      next_sync_at: nextTickAt(row.run_start ?? t0, gapFor(row.provider)),
       status: 'active', error_msg: null, fail_count: 0,
-      meta: { ...row.meta, ...res.meta },
+      meta: { ...row.meta, ...res.meta,
+        last_run: done('ok', { tasks: res.tasks.length, delivered: sent.sent, push: sent.push }) },
       ...(res.account ? { account: res.account } : {}),
     }).eq('id', row.id);
 
-    return { id: row.id, status: 'ok', ...sent };
+    return { id: row.id, status: 'ok', sent: sent.sent, pushed: sent.pushed };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    const log = done('error', { error: msg.slice(0, 200) });
     // reauth = ปัญหาที่ต้องให้คนมากด · ที่เหลือคือปัญหาชั่วคราวที่ถอยห่างแล้วลองใหม่เองได้
     if ((e as { reauth?: boolean })?.reauth) {
-      await markReauth(row, msg);
+      await markReauth(row, msg, { ...log, status: 'needs_reauth' });
       return { id: row.id, status: 'needs_reauth', error: msg };
     }
     const n = Math.min(row.fail_count + 1, BACKOFF_MIN.length);
@@ -116,25 +204,61 @@ async function syncOne(row: Row) {
       status: 'error', error_msg: msg.slice(0, 300), fail_count: n,
       last_sync_at: new Date().toISOString(),
       next_sync_at: minutesFromNow(BACKOFF_MIN[n - 1]),
+      meta: { ...row.meta, last_run: log },   // diag ของรอบที่สำเร็จล่าสุดยังอยู่
     }).eq('id', row.id);
     return { id: row.id, status: 'error', error: msg };
   }
 }
 
-async function markReauth(row: Row, msg: string) {
+async function markReauth(row: Row, msg: string, log?: RunLog) {
+  // ⚠️ ทำไมต้องบอกเจ้าตัว (15 ต.ค. 69): การเชื่อม Google ของนักเรียนตายเงียบ ๆ จริง
+  // ข้อมูล production: การเชื่อมที่ออกกุญแจ 18 ก.ย. 05:46 ตายด้วย invalid_grant ในรอบ cron
+  // 25 ก.ย. 06:00 — ครบ 7 วันพอดี ทั้ง Classroom และ Calendar พร้อมกัน · นั่นคืออายุ refresh token
+  // ของแอปที่ OAuth consent screen ยังเป็นโหมด Testing (แก้ที่ Google Cloud Console ไม่ใช่ที่โค้ด)
+  // แต่ไม่ว่าสาเหตุคืออะไร ผลคืองานจากครูหยุดไหลโดยที่นักเรียนไม่รู้ตัวเลย เพราะจอเดียวที่บอก
+  // คือจอตัวเชื่อมซึ่งไม่มีใครเปิดดูทุกวัน · คนพัฒนาไม่เจอเพราะกดเชื่อมใหม่บ่อยจนกุญแจไม่เคยแก่
+  const quiet = isQuietHours();
   await db.from('integrations').update({
     status: 'needs_reauth', error_msg: msg.slice(0, 300),
     last_sync_at: new Date().toISOString(),
     // ไม่ต้องยิงซ้ำอีกจนกว่าคนจะมากดเชื่อมใหม่ — ตั้งไว้ไกล ๆ แทนการปิดสวิตช์
     // เผื่อกรณีที่ต้นทางหายชั่วคราวแล้วกลับมาเอง จะได้ลองอีกครั้งในวันรุ่งขึ้น
-    next_sync_at: minutesFromNow(1440),
+    // ตายตอนกลางดึก = ลองใหม่ตอนเช้าแทน ไม่งั้น +24 ชม. ก็ตกกลางดึกอีก แล้วไม่มีวันได้แจ้ง
+    next_sync_at: quiet ? morningAfterQuiet() : minutesFromNow(1440),
+    ...(log ? { meta: { ...row.meta, last_run: log } } : {}),
   }).eq('id', row.id);
+  if (!quiet) await notifyReauth(row).catch(() => 0);
+}
+
+/** ดอกเดียวต่อกุญแจหนึ่งชุด — คีย์ผูกกับ updated_at ซึ่ง oauth-callback ขยับทุกครั้งที่กดเชื่อมใหม่
+ *  กุญแจชุดใหม่ตายอีกรอบจึงได้แจ้งอีกครั้ง แต่ชุดเดิมที่ถูกลองซ้ำวันละครั้งไม่ดังซ้ำ */
+async function notifyReauth(row: Row): Promise<number> {
+  if (!pushReady()) return 0;
+  const key = `reauth::${row.id}::${row.updated_at || ''}`;
+  if (!(await unsentKeys(db, row.user_id, [key])).length) return 0;
+  const name = row.provider === 'google_classroom' ? 'Google Classroom'
+             : row.provider === 'google_calendar' ? 'Google Calendar' : 'ปฏิทินของโรงเรียน';
+  const ok = await pushToUser(db, row.user_id, {
+    title: `${name} หยุดส่งงานเข้ามาแล้ว`,
+    body: `${row.account ? row.account + ' · ' : ''}เปิดแอปแล้วกด "เชื่อมใหม่" งานจากครูจะกลับมาเอง`,
+    tag: 'integ-reauth',
+  });
+  await markSent(db, row.user_id, [key]);
+  return ok;
+}
+
+/** 07:05 น. เวลาไทย = 00:05 UTC — ช่วงเงียบ (22:00–07:00 ไทย) อยู่ใน 15:00–24:00 UTC ทั้งหมด */
+function morningAfterQuiet(): string {
+  const d = new Date(Date.now());   // นาฬิกาเดียวกับ isQuietHours — ไม่ใช่ new Date() เปล่า ๆ
+  d.setUTCHours(24, 5, 0, 0);
+  return d.toISOString();
 }
 
 // ---------- ทะเบียนตัวเชื่อม ----------
 // เพิ่มเจ้าใหม่ = เขียนไฟล์ใน _shared/ แล้วต่ออีกหนึ่ง case ตรงนี้ · ที่เหลือไม่ต้องแตะ
 async function pull(row: Row, secret: string): Promise<{
   tasks: StandardTask[]; meta?: Record<string, unknown>; account?: string; unchanged?: boolean;
+  doneIds?: string[];   // งานที่ต้นทางบอกว่า "ส่งแล้ว" — มีแค่ Classroom
 }> {
   if (row.provider === 'ics') {
     const tz = String(row.meta?.tz || 'Asia/Bangkok');
@@ -153,7 +277,7 @@ async function pull(row: Row, secret: string): Promise<{
   if (row.provider === 'google_classroom') {
     if (!classroomReady()) throw new Error('ยังไม่ได้ตั้งกุญแจ Google ฝั่งเซิร์ฟเวอร์');
     const r = await fetchClassroom(secret);
-    return { tasks: r.tasks, account: r.account || undefined };
+    return { tasks: r.tasks, account: r.account || undefined, meta: { diag: r.diag }, doneIds: r.doneIds };
   }
 
   if (row.provider === 'google_calendar') {
@@ -167,7 +291,7 @@ async function pull(row: Row, secret: string): Promise<{
 
 // ---------- เทียบกับทะเบียน ----------
 // หัวใจของการ "ไม่ส่งซ้ำ" และ "ตามการแก้ไขให้ทัน" อยู่ที่นี่ที่เดียว
-async function reconcile(row: Row, tasks: StandardTask[]) {
+async function reconcile(row: Row, tasks: StandardTask[], doneIds: Set<string> = new Set()) {
   const { data: known, error } = await db.from('integration_items')
     .select('source_id, fingerprint, sent_fingerprint, state, title, due')
     .eq('integration_id', row.id);
@@ -196,7 +320,7 @@ async function reconcile(row: Row, tasks: StandardTask[]) {
   // ต้นทางที่ไม่บอกวันโพสต์ (ICS) ยังได้ทุกใบเหมือนเดิม — ไม่รู้ ดีกว่าเดาแล้วทิ้งงานจริง
   const UNDATED_STALE_MS = 14 * 24 * 3600_000;
   const undatedBefore = Date.now() - UNDATED_STALE_MS;
-  const deliver: { task: StandardTask; op: 'new' | 'update' | 'cancel'; fp: string }[] = [];
+  const deliver: { task: StandardTask; op: 'new' | 'update' | 'cancel'; fp: string; reason?: string }[] = [];
   const ledger: Record<string, unknown>[] = [];
   const seen = new Set<string>();
 
@@ -207,7 +331,12 @@ async function reconcile(row: Row, tasks: StandardTask[]) {
     const old = byId.get(t.sourceId);
 
     // ไม่มีอะไรเปลี่ยน และเคยส่งไปแล้ว — ข้ามไปเลย ไม่ต้องเขียนอะไรทั้งนั้น
-    if (old && old.fingerprint === fp && old.sent_fingerprint === fp) continue;
+    // ⚠️ ต้องยัง active อยู่ด้วย (16 ต.ค. 69) · ใบที่ทะเบียนปิดไปแล้ว (ส่งแล้ว/หายไป) แล้วกลับมา
+    // มีลายนิ้วมือเท่าเดิมเป๊ะ — เดิมถูกข้ามตรงนี้ตลอดไป ทะเบียนค้างเป็น cancelled และงานไม่กลับเข้าแอปอีกเลย
+    // (นักเรียนกด "ยกเลิกการส่ง" · ครูคืนให้แก้ · Classroom ตอบห้องหนึ่งหายไปชั่วคราว)
+    // ใบที่ต้นทางยังส่งมาพร้อมธงยกเลิก (ICS STATUS:CANCELLED) ไม่ใช่ "กลับมา" — ไม่งั้นส่ง cancel ซ้ำทุกรอบ
+    const reopened = !!old && old.state !== 'active' && !t.cancelled;
+    if (old && old.fingerprint === fp && old.sent_fingerprint === fp && !reopened) continue;
 
     // เก่าเกินกว่าจะเป็นงานที่ทำอะไรต่อได้ — จดไว้ในทะเบียนว่ารู้จักแล้ว แต่ไม่ส่งต่อ
     // จดด้วย sent_fingerprint เท่ากับของปัจจุบัน เพื่อไม่ต้องคิดใหม่ทุกรอบ sync
@@ -217,7 +346,10 @@ async function reconcile(row: Row, tasks: StandardTask[]) {
       ? new Date(t.due).getTime() < staleBefore
       : !!t.posted && new Date(t.posted).getTime() < undatedBefore);
 
-    if (!stale) deliver.push({ task: t, op: t.cancelled ? 'cancel' : (old ? 'update' : 'new'), fp });
+    // "ใหม่" = ยังไม่เคยไปถึงแอปจริง ไม่ใช่ "ยังไม่มีในทะเบียน" — รอบที่ล้มหลังจดทะเบียนแต่ก่อนเขียน
+    // กล่องเข้า ทิ้งแถวที่ไม่มี sent_fingerprint ไว้ · เดิมรอบหน้าส่งเป็น update ซึ่งแอปยังสร้างงานให้
+    // แต่ไม่มีดอกแจ้งเตือนเลย (แจ้งเฉพาะ op 'new') · ใบที่กลับมาหลังปิดทะเบียนเคยถึงแอปแล้ว จึงเป็น update
+    if (!stale) deliver.push({ task: t, op: t.cancelled ? 'cancel' : (old?.sent_fingerprint ? 'update' : 'new'), fp });
     ledger.push({
       integration_id: row.id, source_id: t.sourceId, user_id: row.user_id,
       fingerprint: fp, title: t.title.slice(0, 200), due: t.due ?? null, url: t.url ?? null,
@@ -235,20 +367,28 @@ async function reconcile(row: Row, tasks: StandardTask[]) {
   // "ส่งไปแล้วเมื่อเดือนที่แล้ว" หายจากฟีดพร้อมกันทีเดียวสิบใบ — ถ้าตีความว่าครูยกเลิก
   // นักเรียนจะได้แจ้งเตือน "งานถูกยกเลิก" สิบดอกรวดเรื่องงานที่เขาทำส่งไปนานแล้ว
   // จึงบอกแอปเฉพาะงานที่ **ยังไม่ถึงกำหนด** เท่านั้น ที่เหลือแค่ปิดทะเบียนเงียบ ๆ
+  //
+  // 16 ต.ค. 69 · "หายไป" มีสองแบบที่ต้องจดต่างกัน: Classroom ไม่ส่งงานที่นักเรียน "ส่งแล้ว" มาใน tasks
+  // (classroom.ts กรองออก) → เดิมถูกจดว่า cancelled และแอปขึ้นว่า "ครูยกเลิกงาน" ทั้งที่เด็กเพิ่งกดส่ง
+  // ตอนนี้จดเป็น done และแนบ reason: 'turned_in' · op ยังเป็น cancel เหมือนเดิมโดยตั้งใจ
+  // เพราะแอปรุ่นที่ใช้อยู่รู้จักแค่ cancel (เอาออกจากแผน = ผลที่ถูกแล้ว) · op ชนิดใหม่ที่แอปไม่รู้จัก
+  // จะกลายเป็น update ที่ไม่ทำอะไร แล้วงานที่ส่งไปแล้วจะค้างอยู่ในแผน — แย่กว่าข้อความผิด
+  // ข้อความในแอปเปลี่ยนตาม reason ได้ทีหลังโดยไม่ต้องแตะเซิร์ฟเวอร์อีก
   const cutoff = Date.now();
   for (const k of (known || [])) {
-    if (seen.has(k.source_id) || k.state === 'cancelled') continue;
+    if (seen.has(k.source_id) || k.state === 'cancelled' || k.state === 'done') continue;
+    const turnedIn = doneIds.has(k.source_id);
     ledger.push({
       integration_id: row.id, source_id: k.source_id, user_id: row.user_id,
       fingerprint: k.fingerprint, title: k.title, due: k.due,
-      state: 'cancelled', seen_at: now, updated_at: now,
+      state: turnedIn ? 'done' : 'cancelled', seen_at: now, updated_at: now,
     });
     // บอกแอปเฉพาะงานที่เคยส่งไปแล้วจริง และยังไม่ถึงกำหนด
     const pending = k.sent_fingerprint && k.due && new Date(k.due).getTime() > cutoff;
     if (!pending) continue;
     deliver.push({
       task: { sourceId: k.source_id, title: k.title || '', due: k.due, cancelled: true },
-      op: 'cancel', fp: k.fingerprint,
+      op: 'cancel', fp: k.fingerprint, ...(turnedIn ? { reason: 'turned_in' } : {}),
     });
   }
 
@@ -258,7 +398,12 @@ async function reconcile(row: Row, tasks: StandardTask[]) {
     if (upErr) throw upErr;
   }
 
-  if (!deliver.length) return { sent: 0 };
+  // ไม่มีของใหม่รอบนี้ ก็ยังต้องดูของที่ค้างจากกลางดึก — รอบ 07:00 ส่วนใหญ่ไม่มีของใหม่เลย
+  // ถ้าออกตรงนี้ไปเฉย ๆ ของที่เข้ามาตอนสี่ทุ่มจะไม่มีวันถูกแจ้ง (ดู heldTasks)
+  if (!deliver.length) {
+    const push = await notifyNewItems(row, []).catch(() => null);
+    return { sent: 0, pushed: push?.ok ?? 0, push };
+  }
 
   // ---------- หย่อนลงท่อเดิม ----------
   const rows = deliver.map(d => ({
@@ -269,6 +414,7 @@ async function reconcile(row: Row, tasks: StandardTask[]) {
       v: 1,
       structured: true,          // ฝั่งแอปเห็นธงนี้แล้วข้ามตัวแกะข้อความทั้งหมด
       op: d.op,
+      ...(d.reason ? { reason: d.reason } : {}),
       provider: row.provider,
       // กุญแจที่ฝั่งแอปใช้จับว่า "งานใบนี้คืองานใบเดิมที่เคยรับไปแล้ว"
       // ใช้ provider ไม่ใช่ integration_id เพราะถ้าผู้ใช้ตัดการเชื่อมแล้วเชื่อมใหม่
@@ -301,9 +447,9 @@ async function reconcile(row: Row, tasks: StandardTask[]) {
 
   // บอกเจ้าตัวว่ามีของใหม่เข้ามา — ทำหลังทุกอย่างสำเร็จแล้วเท่านั้น
   // ล้มตรงนี้ไม่ทำให้รอบ sync ล้ม งานยังอยู่ในกล่องเข้าครบ แค่ไม่มีดอกเตือน
-  const pushed = await notifyNewItems(row, deliver).catch(() => 0);
+  const push = await notifyNewItems(row, deliver).catch(() => null);
 
-  return { sent: deliver.length, pushed };
+  return { sent: deliver.length, pushed: push?.ok ?? 0, push };
 }
 
 // ============================================================
@@ -318,10 +464,11 @@ async function reconcile(row: Row, tasks: StandardTask[]) {
 //
 //   1. **ดอกเดียวต่อรอบ ไม่ใช่ดอกต่องาน** — เชื่อมปฏิทินครั้งแรกได้ 133 รายการ
 //      ยิงทีละใบคือการสอนให้คนปิดการแจ้งเตือนภายในสิบวินาที
-//   2. **เงียบตอนกลางคืน** — ของยังอยู่ในกล่องเข้าครบ แค่ไม่มีดอก และ send-reminders
-//      จะเจอมันเองตอนใกล้กำหนด · ไม่ต้องมีคิวรอส่ง เพราะไม่มีอะไรหาย
+//   2. **เงียบตอนกลางคืน แล้วแจ้งตอนเช้า** — ของยังอยู่ในกล่องเข้าครบ แค่ยังไม่มีดอก
+//      รอบแรกหลัง 07:00 กวาดไปรวมแจ้ง (heldTasks · 15 ต.ค. 69 — เดิมปล่อยหายเงียบ)
 //   3. **ไม่แจ้งตอนซิงก์รอบแรก** — คนที่เพิ่งกดเชื่อมกำลังมองจออยู่และเห็น toast
 //      ในแอปไปแล้ว ("เจอ 133 รายการ") · ดอกที่สองคือการพูดซ้ำเรื่องที่เพิ่งพูดจบ
+//      (ปักหมุดไว้เลย ไม่งั้นการกวาดของข้อ 2 จะลากทั้ง 133 ใบมาแจ้งในรอบถัดไป)
 //   4. **เฉพาะ op = 'new'** — งานที่ครูแก้กำหนดส่งกับงานที่ถูกยกเลิก ฝั่งแอปขึ้น
 //      ข้อความให้ตอนเปิดอยู่แล้ว (inboxPullToast) ยังไม่มีหลักฐานว่าต้องดังถึงขั้น push
 // ============================================================
@@ -335,28 +482,80 @@ async function wantsTaskPush(userId: string): Promise<boolean> {
   return (data as { settings?: { notifDue?: boolean } } | null)?.settings?.notifDue !== false;
 }
 
+// ============================================================
+// 15 ต.ค. 69 · ของที่เข้ามาช่วงกลางดึกต้องถูกแจ้งตอนเช้า ไม่ใช่หายเงียบ
+// ------------------------------------------------------------
+// เจ้าของ: "ระบบแจ้งเตือนผ่าน Classroom ไม่เข้าแอป" · ข้อมูลจริงคืนนี้ (อ่านแบบอ่านอย่างเดียว):
+// ครูโพสต์งานในห้องเดียวกันราว 21:30 น. · บัญชีที่ซิงก์ทันรอบ 21:30 ได้ดอกแจ้งเตือน
+// อีกสองบัญชีซิงก์รอบ 22:00 ซึ่งเป็นช่วงห้ามส่ง → งานเข้าแอปเงียบ ๆ และไม่เคยถูกแจ้งเลย
+// ข้อ 2 ข้างบนเคยเชื่อว่า "send-reminders จะเจอมันเองตอนใกล้กำหนด" — แต่งานใบนั้นไม่มีกำหนดส่ง
+// และต่อให้มี การรู้ตอนใกล้กำหนดคือรู้ช้าไปหลายวันสำหรับงานที่ครูสั่งล่วงหน้า
+//
+// ทางแก้ไม่ต้องมีคิวหรือตารางใหม่: กลางดึกยังไม่ปักหมุดเหมือนเดิม แล้วรอบแรกที่พ้นช่วงเงียบ
+// กวาดของใน inbox_items ย้อนหลัง HELD_HOURS ที่ยังไม่มีหมุด มารวมในดอกเดียวกับของรอบนั้น
+// ราคาของการกวาด: ของรอบแรก (เพิ่งกดเชื่อม) ที่ตั้งใจไม่แจ้ง ต้องถูกปักหมุดทันที
+// ไม่งั้นรอบถัดไปจะกวาดทั้งปฏิทิน 133 ใบมาแจ้งซ้ำกับ toast ที่เขาเพิ่งเห็น
+// ============================================================
+const HELD_HOURS = 12;   // ช่วงห้ามส่งยาว 9 ชม. (22:00–07:00) · เผื่อรอบที่ล้มหรือเลื่อน
+
+type Fresh = { task: StandardTask };
+
+async function heldTasks(row: Row, skip: Set<string>): Promise<Fresh[]> {
+  const since = new Date(Date.now() - HELD_HOURS * 3.6e6).toISOString();
+  const { data, error } = await db.from('inbox_items')
+    .select('meta, created_at')
+    .eq('user_id', row.user_id).eq('source', row.provider)
+    .gte('created_at', since);
+  if (error) return [];
+  const out: Fresh[] = [];
+  for (const r of (data ?? []) as { meta?: Record<string, any> }[]) {
+    const m = r.meta;
+    if (!m || m.op !== 'new' || !m.sourceId || skip.has(m.sourceId)) continue;
+    skip.add(m.sourceId);
+    out.push({ task: {
+      sourceId: m.sourceId, title: m.task?.title ?? '', subject: m.task?.subject ?? '',
+      due: m.task?.due ?? null, type: m.task?.type ?? 'homework',
+    } as StandardTask });
+  }
+  return out;
+}
+
 async function notifyNewItems(
   row: Row,
   deliver: { task: StandardTask; op: string; fp: string }[],
-): Promise<number> {
-  if (!pushReady() || isQuietHours()) return 0;
-  if (row.first_sync) return 0;
+): Promise<PushResult | null> {
+  if (!pushReady()) return null;
+  const keyOf = (d: Fresh) => `sync-new::${row.provider}::${d.task.sourceId}`;
+  const fresh: Fresh[] = deliver.filter(d => d.op === 'new' && !d.task.cancelled);
 
-  const fresh = deliver.filter(d => d.op === 'new' && !d.task.cancelled);
-  if (!fresh.length) return 0;
-  if (!(await wantsTaskPush(row.user_id))) return 0;
+  // รอบแรก: ไม่แจ้ง (แอปขึ้น toast ให้แล้ว) แต่ปักหมุดไว้ ไม่ให้รอบเช้ากวาดไปแจ้งทีหลัง
+  if (row.first_sync) {
+    await markSent(db, row.user_id, fresh.map(keyOf));
+    return null;
+  }
+  // กลางดึก: ไม่ส่ง และไม่ปัก — รอบแรกหลัง 07:00 จะกวาดไปแจ้ง (heldTasks)
+  if (isQuietHours()) return null;
+
+  const all = fresh.concat(await heldTasks(row, new Set(fresh.map(d => d.task.sourceId))));
+  if (!all.length) return null;
+  if (!(await wantsTaskPush(row.user_id))) return null;
 
   // กันซ้ำถาวรต่องานหนึ่งใบ — ไม่ผูกกับ integration_id เพราะตัดการเชื่อมแล้วเชื่อมใหม่
   // ไม่ควรได้ดอกเดิมซ้ำทั้งปฏิทิน (เหตุผลเดียวกับที่ srcKey ใช้ provider)
-  const keys = fresh.map(d => `sync-new::${row.provider}::${d.task.sourceId}`);
-  const todo = await unsentKeys(db, row.user_id, keys);
-  if (!todo.length) return 0;
+  const todo = await unsentKeys(db, row.user_id, all.map(keyOf));
+  if (!todo.length) return null;
+  // ดอกนี้พูดถึงเฉพาะของที่ยังไม่เคยแจ้ง — ของที่กวาดมาแล้วเคยแจ้งไป ไม่นับรวมในจำนวน
+  const left = new Set(todo);
+  const pending = all.filter(d => left.has(keyOf(d)));
 
-  const ok = await pushToUser(db, row.user_id, newItemsCopy(fresh, row.account));
-  // ปักหมุดแม้ส่งไม่สำเร็จสักเครื่อง — ไม่งั้นคนที่ไม่มีเครื่องรับ push เลยจะถูกคิดใหม่
-  // ทุกรอบตลอดไป และวันที่เขาเปิด push ครั้งแรกจะโดนของเก่าทั้งเทอมรวดเดียว
-  await markSent(db, row.user_id, todo);
-  return ok;
+  const res = await pushToUserDetailed(db, row.user_id, newItemsCopy(pending, row.account));
+  // ปักหมุดเมื่อถึงอย่างน้อยหนึ่งเครื่อง หรือไม่มีเครื่องให้ส่งจริง ๆ (ไม่มีเลย/ตายถาวรหมด)
+  // ไม่งั้นคนที่ไม่มีเครื่องรับ push เลยจะถูกคิดใหม่ทุกรอบตลอดไป และวันที่เขาเปิด push ครั้งแรก
+  // จะโดนของเก่าทั้งเทอมรวดเดียว
+  // ⚠️ 16 ต.ค. 69 · แต่ "ล้มชั่วคราวทุกเครื่อง" (5xx · 429 · เน็ต) ห้ามปัก — เดิมปักเสมอ ดอกนั้นจึงหาย
+  // ถาวรโดยไม่มีบันทึกที่ไหน · ไม่ปัก = รอบถัดไปกวาดมาแจ้งใหม่ผ่าน heldTasks (ย้อนได้ HELD_HOURS)
+  if (res.ok > 0 || res.failed === 0) await markSent(db, row.user_id, todo);
+  return res;
 }
 
 /** หนึ่งข้อความที่สรุปทั้งรอบ — เจาะจงพอที่จะปัดทิ้งไม่ลง แต่ไม่ยาวจนโดนตัดกลางคัน
@@ -418,8 +617,14 @@ function humanLine(t: StandardTask): string {
   return isNaN(d.getTime()) ? bits : `${bits} (ส่ง ${d.toISOString().slice(0, 16).replace('T', ' ')})`;
 }
 
+// ⚠️ ต้องนัดให้ "ก่อน" ถึงรอบ cron ถัดไปเล็กน้อย (15 ต.ค. 69 · ข้อมูลจริง)
+// cron ยิงตรง :00 กับ :30 แต่แถวถูกซิงก์เสร็จตอน :00:10 · นัด +30 นาทีพอดี = :30:10
+// ซึ่งช้ากว่ารอบ :30:00 อยู่สิบวินาที → ถูกข้ามไปรอบหนึ่งเสมอ ทุกบัญชีจึงได้ซิงก์ชั่วโมงละครั้ง
+// แทนที่จะเป็นทุก 30 นาที (นัด 13:00:10 ไม่ถูกซิงก์ในรอบ 13:00 · นัด 12:30:09 มาถูกซิงก์ตอน 13:00)
+// หักไว้ 2 นาทีพอกินเวลาที่ฟังก์ชันใช้ในรอบหนึ่ง โดยไม่ทำให้ซิงก์ถี่ขึ้นเกินตั้งใจ
+const CRON_SLACK_MS = 2 * 60_000;
 function minutesFromNow(min: number): string {
-  return new Date(Date.now() + min * 60_000).toISOString();
+  return new Date(Date.now() + min * 60_000 - CRON_SLACK_MS).toISOString();
 }
 
 function json(body: unknown, status = 200): Response {

@@ -178,7 +178,7 @@ function dueOf(w: Record<string, any>): string | null {
 
 /** ดึงงานทั้งหมดที่บัญชีนี้มีสิทธิ์เห็น แล้วแปลงเป็นรูปแบบของ StudentOS */
 export async function fetchClassroom(refreshToken: string): Promise<{
-  tasks: StandardTask[]; account: string;
+  tasks: StandardTask[]; account: string; diag: ClassroomDiag; doneIds: string[];
 }> {
   const token = await accessToken(refreshToken);
 
@@ -187,7 +187,28 @@ export async function fetchClassroom(refreshToken: string): Promise<{
   const courses = await pages(token, 'courses', 'courses',
     { studentId: 'me', courseStates: 'ACTIVE' });
 
+  const diag: ClassroomDiag = {
+    at: new Date().toISOString(),
+    coursesStudent: courses.length, coursesTeacher: 0,
+    work: 0, done: 0, turnedIn: 0, returned: 0, returnedUnsubmitted: 0,
+    returnedNoHistory: 0, returnedNoHistoryOpen: 0,
+    untitled: 0, subsFailed: 0,
+  };
+  // บัญชีที่ "เชื่อมแล้ว · ไม่มีงานเลยสักใบ" มีได้สามเหตุผลที่ต่างกันมากสำหรับผู้ใช้:
+  // ไม่ได้เป็นนักเรียนในห้องไหน · เป็นครูของห้องนั้น · หรือส่งงานครบแล้วจริง ๆ
+  // ไม่จดไว้ = ฝั่งเราเห็นแค่เลขศูนย์ แล้วต้องเดาว่าพังตรงไหน (เจอจริง 15 ต.ค. 69)
+  // ถามเฉพาะตอนไม่เจอห้องเรียนในฐานะนักเรียน — ปกติไม่ต้องเสียคำขอเพิ่ม
+  if (!courses.length) {
+    try {
+      diag.coursesTeacher = (await pages(token, 'courses', 'courses',
+        { teacherId: 'me', courseStates: 'ACTIVE' })).length;
+    } catch { /* ป้ายวินิจฉัย ไม่ใช่เหตุให้รอบซิงก์ล้ม */ }
+  }
+
   const tasks: StandardTask[] = [];
+  // งานที่ "ส่งแล้ว" ไม่อยู่ใน tasks — ตัวซิงก์เห็นแค่ว่ามันหายไป ซึ่งแยกไม่ออกจากครูลบงาน
+  // ส่งรายชื่อไปด้วยให้ทะเบียนจดให้ถูก (16 ต.ค. 69 · เดิมงานที่กดส่งถูกจดและแจ้งแอปว่า "ยกเลิก")
+  const doneIds: string[] = [];
   for (const c of courses) {
     const courseId = String(c.id);
     const subject = clip(c.name, 60);
@@ -197,21 +218,38 @@ export async function fetchClassroom(refreshToken: string): Promise<{
 
     // สถานะส่งของ "ฉัน" ทั้งคอร์สในคำขอเดียว (courseWorkId = '-')
     // ไม่ดึงตรงนี้ = งานที่ส่งไปแล้วจะโผล่เป็นงานค้างในแผน ซึ่งทำลายความเชื่อถือทั้งระบบ
-    const done = new Set<string>();
+    const done = new Map<string, 'turnedIn' | 'returned'>();
+    const unsubmittedReturn = new Set<string>();
+    const noHistory = new Set<string>();
     try {
       const subs = await pages(token, `courses/${courseId}/courseWork/-/studentSubmissions`,
         'studentSubmissions', { userId: 'me' });
       for (const s of subs) {
-        const st = String(s.state || '');
-        if (st === 'TURNED_IN' || st === 'RETURNED') done.add(String(s.courseWorkId));
+        if (s.state === 'RETURNED' && !Array.isArray(s.submissionHistory)) {
+          diag.returnedNoHistory++;
+          noHistory.add(String(s.courseWorkId));
+        }
+        const k = submissionDone(s);
+        if (k === 'returnedUnsubmitted') unsubmittedReturn.add(String(s.courseWorkId));
+        else if (k) done.set(String(s.courseWorkId), k);
       }
-    } catch { /* คอร์สที่อ่านสถานะไม่ได้ ยังดีกว่าไม่ได้งานเลย */ }
+    } catch { diag.subsFailed++; /* คอร์สที่อ่านสถานะไม่ได้ ยังดีกว่าไม่ได้งานเลย */ }
 
+    diag.work += work.length;
     for (const w of work) {
       const id = String(w.id);
-      if (done.has(id)) continue;      // ส่งไปแล้ว ไม่ต้องเอาเข้าแผน
+      const how = done.get(id);
+      if (how) {
+        diag[how]++; diag.done++;
+        // ตัดสินไม่ได้ว่าส่งจริงไหม และยังไม่เลยกำหนด = ใบที่ "อาจ" หายจากแผนผิด ๆ ได้จริง
+        // ใบที่เลยกำหนดแล้วไม่ต้องนับ เพราะต่อให้ยังค้าง ด่าน "เก่าเกิน" ก็ไม่ส่งมันเข้าแผนอยู่ดี
+        if (noHistory.has(id) && stillOpen(w)) diag.returnedNoHistoryOpen++;
+        doneIds.push(`${courseId}:${id}`);
+        continue;                                          // ส่งไปแล้ว ไม่ต้องเอาเข้าแผน
+      }
+      if (unsubmittedReturn.has(id)) diag.returnedUnsubmitted++;   // ครูคืนแต่ไม่เคยส่ง = ยังค้าง
       const title = clip(w.title, 140);
-      if (!title) continue;
+      if (!title) { diag.untitled++; continue; }
       tasks.push({
         sourceId: `${courseId}:${id}`,
         title,
@@ -230,8 +268,52 @@ export async function fetchClassroom(refreshToken: string): Promise<{
       // จึงไม่ส่งมาเลย ดีกว่าส่งตัวเลขที่หน้าตาเหมือนใช่แต่ไม่ใช่
     }
   }
-  return { tasks, account };
+  return { tasks, account, diag, doneIds };
 }
+
+/** งานใบนี้ "ส่งแล้ว" จริงไหม — ตัดสินจากสถานะของ studentSubmission ของฉัน
+ *
+ *  RETURNED ไม่ได้แปลว่าส่งแล้วเสมอไป: ครูกด "คืน" ให้ทั้งห้องได้ รวมคนที่ไม่เคยส่ง
+ *  (มักทำตอนให้คะแนน) · เดิมนับ RETURNED ว่าเสร็จทุกใบ = งานที่ยังค้างจริงหายจากแผนเงียบ ๆ
+ *  ประวัติการส่ง (submissionHistory) บอกได้ว่าเคยมีจังหวะ TURNED_IN ไหม
+ *  ไม่มีประวัติมาให้ตรวจ = ถือว่าเสร็จเหมือนเดิม — ตัดสินแบบนี้ผิดยังดีกว่าเทงานเก่าทั้งเทอมเข้าแผน
+ *  (งานที่เลยกำหนดไปแล้วโดนด่าน "เก่าเกิน" ใน sync-integrations กันไว้อีกชั้นอยู่แล้ว) */
+export function submissionDone(s: Record<string, any>): 'turnedIn' | 'returned' | 'returnedUnsubmitted' | null {
+  const st = String(s?.state || '');
+  if (st === 'TURNED_IN') return 'turnedIn';
+  if (st !== 'RETURNED') return null;
+  const hist = s?.submissionHistory;
+  if (!Array.isArray(hist)) return 'returned';
+  const everTurnedIn = hist.some(h => h?.stateHistory?.state === 'TURNED_IN');
+  return everTurnedIn ? 'returned' : 'returnedUnsubmitted';
+}
+
+/** งานใบนี้ยังผ่านด่าน "เก่าเกิน" ของ sync-integrations ไหม — กติกาเดียวกันเป๊ะ
+ *  (มีกำหนดส่ง: ไม่เลยมาเกิน 1 วัน · ไม่มีกำหนด: โพสต์ไม่เกิน 14 วัน · ไม่รู้วันโพสต์: ถือว่ายังเปิด)
+ *  ⚠️ แก้กติกาใน reconcile() เมื่อไหร่ ต้องแก้ตรงนี้ด้วย ไม่งั้นตัวนับจะโกหก */
+function stillOpen(w: Record<string, any>): boolean {
+  const due = dueOf(w);
+  if (due) return new Date(due).getTime() >= Date.now() - 24 * 3600_000;
+  if (typeof w.creationTime !== 'string') return true;
+  return new Date(w.creationTime).getTime() >= Date.now() - 14 * 24 * 3600_000;
+}
+
+/** ตัวเลขล้วน ไม่มีชื่องาน ไม่มีชื่อห้อง — เก็บลง integrations.meta ไว้ตอบว่า "ทำไมไม่มีงานเข้า" */
+export type ClassroomDiag = {
+  at: string;
+  coursesStudent: number;   // ห้องที่บัญชีนี้เป็นนักเรียน (ACTIVE)
+  coursesTeacher: number;   // ห้องที่บัญชีนี้เป็นครู — ถามเฉพาะตอน coursesStudent = 0
+  work: number;             // งานที่ครูเผยแพร่แล้วทั้งหมดที่บัญชีนี้เห็น
+  done: number;             // = turnedIn + returned — ไม่เอาเข้าแผน
+  turnedIn: number;         // นักเรียนกดส่งแล้ว (ครูยังไม่คืน)
+  returned: number;         // ครูคืนแล้ว หลังจากที่นักเรียนเคยส่ง (หรือไม่มีประวัติให้ตรวจ)
+  returnedUnsubmitted: number; // ครูกดคืนทั้งที่ไม่เคยส่ง — ยังค้าง จึงเข้าแผน
+  returnedNoHistory: number;   // RETURNED ที่ Google ไม่ส่งประวัติมา (ตัดสินไม่ได้ จึงถือว่าเสร็จ)
+                               // วัดจริง 15 ต.ค. 69: รายการของ Google ไม่มี submissionHistory เลย (6/6)
+  returnedNoHistoryOpen: number; // ในกลุ่มบน ใบที่ยังไม่เลยกำหนด — ใบที่อาจหายจากแผนผิด ๆ จริง · 0 = ไม่มีอะไรหาย
+  untitled: number;
+  subsFailed: number;       // ห้องที่อ่านสถานะการส่งไม่ได้
+};
 
 /** ค่าที่ oauth-start ใช้ประกอบ URL หน้าขออนุญาตของ Google */
 export function authorizeUrl(opts: {

@@ -11,8 +11,11 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C57';                 // สายเลขของแอป
+const APP_VERSION = '1C59';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
+// รับการแจ้งเตือนจากแอปหลักที่เดียว ไม่แก้ค่าตั้งร่วมที่ซิงก์ไปแอปหลัก
+// บิลด์รากคือแอปหลัก — ต้องเป็น true เสมอ (ALT ตั้ง false) ไม่งั้นมือถือที่ติดตั้งแอปไม่มีแจ้งเตือนเลย
+const ALT_SYSTEM_NOTIFICATIONS = true;
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -1041,7 +1044,7 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
   'scr-dayfull': 'scr-tasks',
   'scr-settings': 'scr-profile', 'scr-setopt': 'scr-profile', 'scr-stats': 'scr-profile',
   // 15 ต.ค. 69 · ข่าวสารจากทีมเข้าจากแท็บ "ฉัน"
-  'scr-news': 'scr-profile',
+  'scr-news': 'scr-profile', 'scr-bugs': 'scr-profile',
   // จอแชทซ่อนแถบล่างอยู่แล้ว แต่ต้องผูกเจ้าของไว้ด้วย — ไม่งั้นตอนกดย้อนกลับ
   // ออกมา จะไม่มีแท็บไหนติดไฟสักอัน ซึ่งอ่านว่า "หลงอยู่ที่ไหนไม่รู้"
   // 1B93 · แท็บ "เพื่อน" ถูกแทนด้วยน้องไซ จอตระกูลฟีดจึงไม่มีแท็บของตัวเองอีกแล้ว
@@ -1188,6 +1191,7 @@ function go(id) {
   if (id === 'scr-login') { loginView = 'root'; renderLoginOpts(); loginNote(''); }
   // เปิดจอการแจ้งเตือน = อ่านแล้ว (renderNotif จดเวลาเอง) · ต้องวาดตอนนี้ ไม่รอ renderAll รอบถัดไป
   if (id === 'scr-notif' && typeof renderNotif === 'function') renderNotif();
+  if (id === 'scr-bugs' && typeof bugReportsEnter === 'function') bugReportsEnter();
   // 15 ต.ค. 69 · จอข่าวสารจากทีมวาดด้วย JS ทั้งจอ — go() เปล่า ๆ ได้จอว่าง (news.js)
   if (id === 'scr-news' && typeof newsEnter === 'function') newsEnter();
   // จอแชทซ่อนแถบล่างเหมือนจอล็อกอิน — ช่องพิมพ์ต้องติดก้นจอจริง ๆ
@@ -1247,6 +1251,120 @@ function go(id) {
 
 // ---------- cloud: Supabase auth + sync ----------
 let sb = null, currentUser = null, syncTimer = null, lastSync = null;
+
+// ============================================================
+// 16 ต.ค. 69 · ข้อมูลในเครื่องเป็นของบัญชีไหน — สลับบัญชีแล้วต้องไม่คัดลอกงานข้ามบัญชี
+// ------------------------------------------------------------
+// ข้อมูลจริง (อ่านอย่างเดียว): บัญชีหนึ่งมีงาน 195 ใบ ซึ่ง 194 ใบมี id ตรงกับงานของอีกบัญชีที่เคยล็อกอิน
+// บนเครื่องเดียวกัน (งาน Classroom 73 ใบตรงกับทะเบียนของบัญชีเดิมทุกใบ) · อีกคู่บัญชีมี id ตรงกัน 10 ใบ
+// ต้นเหตุ: logout() ไม่ล้างงานในเครื่อง → syncFromCloud() ของบัญชีใหม่รวมงานในเครื่องทุกใบเข้าไป
+// แล้วส่งขึ้น cloud ของบัญชีใหม่ · บนเครื่องที่พี่น้องใช้ร่วมกัน = งานของเด็กคนหนึ่งไปอยู่ในบัญชีอีกคนถาวร
+//
+// จดไว้ว่าข้อมูลในเครื่องเป็นของบัญชีไหน (OWNER_KEY) แล้วแยกเด็ดขาดเป็นรายบัญชี:
+//   · ล็อกอินคนละบัญชี → เก็บของบัญชีเดิมเข้าที่สำรองของบัญชีนั้น (ไม่ลบ — ของที่ยังไม่ได้ซิงก์จะได้ไม่หาย)
+//     ล้างออกจากเครื่อง แล้วคืนที่สำรองของบัญชีที่เข้ามา (ถ้าเคยมี) ก่อนรวมกับ cloud ของเขา
+//   · ออกจากระบบ → ส่งที่ค้างขึ้นไปก่อน แล้วเก็บเข้าที่สำรองของบัญชีนั้น · เครื่องกลับเป็นเครื่องเปล่า
+//   · ยังไม่มีเจ้าของ (ใช้แบบไม่ล็อกอิน) = รวมเหมือนเดิม งานที่ทำไว้ก่อนล็อกอินต้องตามขึ้นบัญชีไป
+//   · สำรองไม่สำเร็จ (เครื่องเต็ม) → ไม่สลับ ไม่รวม ไม่ส่ง — ของบัญชีเดิมอยู่ครบ ของบัญชีใหม่ไม่ถูกแตะ
+// และห้ามส่งขึ้น cloud ของบัญชีที่ยังไม่ได้รวมข้อมูล — ไม่งั้นก้อนเปล่า (หรือก้อนของบัญชีเก่า) ทับ cloud ของเขา
+// "ของบัญชี" = state · ตารางเรียน · ของสะสม (โทเคน · เหรียญ · ธีมที่ปลดแล้ว · รูปโปรไฟล์) · ประวัติคุยกับ AI
+// · แผนที่คิดค้างไว้ · รายการแจ้งเตือนที่เห็นแล้ว · ธีม ขนาดตัวอักษร พื้นหลัง เป็นของเครื่อง อยู่ที่เดิม
+// ============================================================
+const OWNER_KEY = 'studentos.alt.owner';
+const ACCOUNT_BACKUP_PREFIX = 'studentos.alt.accountBackup.';
+
+function localOwner() {
+  try { return localStorage.getItem(OWNER_KEY) || ''; } catch (_) { return ''; }
+}
+function setLocalOwner(uid) {
+  try { if (uid) localStorage.setItem(OWNER_KEY, uid); else localStorage.removeItem(OWNER_KEY); } catch (_) {}
+}
+function cloudWritableFor(uid) {
+  return !!uid && localOwner() === uid;
+}
+// คีย์ในเครื่องที่เป็นของ "คน" — อ่านชื่อจากค่าคงที่ของแต่ละส่วน (ประกาศไว้ทั่วไฟล์) ไม่พิมพ์ชื่อซ้ำ
+function accountLocalKeys() {
+  const out = [];
+  const take = f => { try { const k = f(); if (typeof k === 'string' && k) out.push(k); } catch (_) {} };
+  [() => TOKEN_KEY, () => ALLBADGE_KEY, () => LUCK_KEY, () => GENESIS_KEY, () => VAULT_AT_KEY, () => AV_KEY,
+    () => AI_LOG_KEY, () => AI_CHATS_KEY, () => PLAN_KEY, () => NOTIF_KEY, () => SOCIAL_SEEN_KEY,
+    () => CHECKIN_ASKED_KEY, () => SYNC_BASE_KEY].forEach(take);
+  try { for (const k of Object.values(THEME_CODE)) out.push(k); } catch (_) {}
+  try { for (const s of Object.values(SECRETS)) if (s && s.store) out.push(s.store); } catch (_) {}
+  return [...new Set(out)];
+}
+// เก็บของบัญชี owner ลงที่สำรองของบัญชีนั้น · คืน false ถ้าเขียนไม่ลง (ผู้เรียกต้องไม่ล้างอะไร)
+function stashAccount(owner) {
+  if (!owner) return true;
+  const keys = {};
+  for (const k of accountLocalKeys()) {
+    try { const v = localStorage.getItem(k); if (v != null) keys[k] = v; } catch (_) {}
+  }
+  try {
+    localStorage.setItem(ACCOUNT_BACKUP_PREFIX + owner, JSON.stringify({
+      owner, at: new Date().toISOString(), state,
+      ctx: typeof ctxExport === 'function' ? ctxExport() : undefined, keys,
+    }));
+    return true;
+  } catch (e) { console.warn('[account] สำรองข้อมูลของบัญชีเดิมไม่สำเร็จ:', (e && e.message) || e); return false; }
+}
+// ล้างของบัญชีออกจากเครื่อง แล้วคืนที่สำรองของ uid ถ้ามี (uid ว่าง = เครื่องเปล่า)
+function swapInAccount(uid) {
+  for (const k of accountLocalKeys()) { try { localStorage.removeItem(k); } catch (_) {} }
+  state = { tasks: [], settings: { name: '', freeHours: 2 } };
+  let bk = null;
+  try { bk = uid ? JSON.parse(localStorage.getItem(ACCOUNT_BACKUP_PREFIX + uid) || 'null') : null; } catch (_) {}
+  if (bk && bk.owner === uid) {
+    if (bk.state && typeof bk.state === 'object') state = Object.assign({ tasks: [], settings: { name: '', freeHours: 2 } }, bk.state);
+    for (const [k, v] of Object.entries(bk.keys || {})) { try { localStorage.setItem(k, v); } catch (_) {} }
+  }
+  if (bk && bk.ctx && typeof ctxImport === 'function') ctxImport(bk.ctx);
+  else if (typeof ctxClear === 'function') ctxClear();
+  if (typeof stateRev === 'number') stateRev++;
+  persistState();
+  return !!bk;
+}
+// ที่สำรองของบัญชีนี้ถูกรวมกับ cloud ของเขาแล้ว — ทิ้งได้ (ไม่งั้นงานที่ลบจากอีกเครื่องจะฟื้นกลับมาทุกครั้งที่สลับ)
+function dropAccountBackup(uid) {
+  try { if (uid) localStorage.removeItem(ACCOUNT_BACKUP_PREFIX + uid); } catch (_) {}
+}
+// คืน 'same' · 'adopted' · 'blocked' (สำรองไม่ลง → ห้ามรวม ห้ามส่ง)
+function adoptAccountIfNeeded(uid) {
+  const prev = localOwner();
+  if (prev === uid) return 'same';
+  if (!prev) {
+    // ใช้แบบไม่ล็อกอินมาก่อน — ของในเครื่องตามขึ้นบัญชีนี้ (พฤติกรรมเดิม) และรวมที่สำรองของบัญชีนี้ (ถ้าเคยออกไว้)
+    let bk = null;
+    try { bk = JSON.parse(localStorage.getItem(ACCOUNT_BACKUP_PREFIX + uid) || 'null'); } catch (_) {}
+    if (bk && bk.owner === uid && bk.state) {
+      const byId = {};
+      for (const t of bk.state.tasks || []) byId[t.id] = t;
+      for (const t of state.tasks || []) byId[t.id] = t;
+      state.tasks = Object.values(byId);
+      for (const [k, v] of Object.entries(bk.keys || {})) {
+        try { if (localStorage.getItem(k) == null) localStorage.setItem(k, v); } catch (_) {}
+      }
+      // ตารางเรียน: คืนของบัญชีนี้ถ้าเครื่องยังไม่มีตารางที่กรอกไว้ (ตารางที่เพิ่งกรอกตอนไม่ล็อกอินชนะ)
+      const cur = typeof ctxExport === 'function' ? ctxExport() : null;
+      const empty = !cur || (!(cur.classes || []).length && !(cur.routines || []).length);
+      if (bk.ctx && empty && typeof ctxImport === 'function') ctxImport(bk.ctx);
+      persistState();
+    }
+    return 'same';
+  }
+  if (!stashAccount(prev)) return 'blocked';
+  swapInAccount(uid);
+  return 'adopted';
+}
+// ออกจากระบบ: เก็บของบัญชีนี้เข้าที่สำรอง แล้วเครื่องกลับเป็นเครื่องเปล่า (สำรองไม่ลง = คงไว้ตามเดิม ไม่ล้าง)
+function leaveAccount() {
+  const prev = localOwner();
+  if (!prev) return;
+  if (!stashAccount(prev)) return;
+  swapInAccount('');
+  setLocalOwner('');
+}
+// ---- end account owner
 // getSession() ตอบกลับมาแล้วหรือยัง — คนละเรื่องกับ "ตอบว่าไม่มี session"
 // เน็ตช้าจนหมดเวลา 6 วิ ไม่ใช่หลักฐานว่าเขาไม่ได้ล็อกอิน จึงห้ามเอาไปไล่คนไปจอบัญชี
 let sessionAnswered = false;
@@ -1278,6 +1396,8 @@ async function initCloud() {
     sessionAnswered = true;   // ได้คำตอบจริง — จะตอบว่ามีหรือไม่มีก็เชื่อได้ทั้งคู่
   } catch (e) { console.warn('[cloud] getSession failed:', e.message); }
   currentUser = session ? session.user : null;
+  // เครื่องที่ล็อกอินค้างไว้ตั้งแต่ก่อนรุ่นนี้ยังไม่เคยจดเจ้าของ — ข้อมูลในเครื่องเป็นของบัญชีที่ล็อกอินอยู่
+  if (currentUser && !localOwner()) setLocalOwner(currentUser.id);
   syncTokenAdmin();
   // ---------- ดันชื่อกับรูปขึ้นให้ตรงกับที่ตั้งไว้ในเครื่อง ----------
   // จำเป็นสำหรับคนที่ตั้งรูปไว้ก่อนรุ่น 1B69 — รูปของเขาไม่เคยขึ้นไปถึงเพื่อนเลย
@@ -1296,6 +1416,7 @@ async function initCloud() {
   sb.auth.onAuthStateChange((event, sess) => {
     const wasLoggedIn = !!currentUser;
     currentUser = sess ? sess.user : null;
+    if (typeof bugAccountChanged === 'function') bugAccountChanged();
     syncTokenAdmin();
     if (currentUser && !wasLoggedIn) {
       // เพิ่งล็อกอินเสร็จ (รวมถึงกลับมาจากหน้า Google)
@@ -1322,68 +1443,244 @@ async function initCloud() {
   if (currentUser) await syncFromCloud();
 }
 
-// ดึงข้อมูลจาก cloud มารวมกับในเครื่อง (รวมงานตาม id — ฝั่ง cloud ชนะเมื่อซ้ำ)
+// ดึงข้อมูลจาก cloud มารวมกับในเครื่อง แล้วส่งก้อนที่รวมแล้วกลับขึ้นไป
+// (การรวมอยู่ใน cloudPull · ใครชนะเมื่อซ้ำ ดู syncMergeById)
 async function syncFromCloud() {
   if (!sb || !currentUser) return;
+  // ข้อมูลในเครื่องเป็นของบัญชีอื่น → เก็บเข้าที่สำรอง แล้วเริ่มจากของบัญชีนี้ ต้องทำก่อน await แรก
+  const adopt = adoptAccountIfNeeded(currentUser.id);
+  if (adopt === 'blocked') {
+    // สำรองของบัญชีเดิมไม่ลง (เครื่องเต็ม) — ไม่สลับดีกว่าทำของใครหาย · ห้ามส่งด้วย (cloudWritableFor ยังเป็น false)
+    showToast({ title: 'สลับบัญชีไม่ได้ · ที่เก็บในเครื่องเต็ม',
+      body: 'ลบรูปพื้นหลังหรือรูปวิดเจ็ตออกก่อน แล้วเปิดแอปใหม่' });
+    return;
+  }
+  if (adopt === 'adopted') { lastSeenRev = -1; lastPushedHash = ''; }
   try {
-    // ถาม rev ก่อนว่าของบน cloud ใหม่กว่าที่เครื่องนี้เห็นล่าสุดไหม — ตัวเลขตัวเดียว
-    // ไม่กี่ไบต์ ถูกกว่าลากก้อน 26KB ลงมาเทียบเองทุกครั้งที่เปิดแอปหลายสิบเท่า
-    // (เปิดแอปส่วนใหญ่ไม่มีอะไรเปลี่ยนบน cloud เพราะเครื่องนี้เองเป็นคนเขียนล่าสุด)
-    const { data: head, error: headErr } = await sb.from('user_state')
-      .select('rev').eq('id', currentUser.id).maybeSingle();
-    if (headErr) throw headErr;
-    const remoteRev = head ? head.rev : null;
-    const skipPull = head && remoteRev === lastSeenRev;
-
-    const { data, error } = skipPull ? { data: null } : await sb.from('user_state')
-      .select('data, avatar, rev').eq('id', currentUser.id).maybeSingle();
-    if (error) throw error;
-    if (data && data.data) {
-      const remote = data.data;
-      lastSeenRev = data.rev;
-      // รูปโปรไฟล์ย้ายมาอยู่คอลัมน์ของตัวเองแล้ว — ประกอบกลับเข้า vault ให้ vaultImport
-      // ทำงานเหมือนเดิม ตัวมันไม่ต้องรู้ว่าข้างล่างเก็บแยกกันแล้ว
-      if (remote.vault && data.avatar) remote.vault.avatar = data.avatar;
-      const byId = {};
-      for (const t of (state.tasks || [])) byId[t.id] = t;
-      for (const t of (remote.tasks || [])) byId[t.id] = t;
-      state.tasks = Object.values(byId);
-      state.settings = Object.assign({}, state.settings, remote.settings || {});
-      // รอบจับเวลารวมตาม id เหมือนงาน — แต่ละรอบเกิดบนเครื่องเดียวและไม่เคยถูกแก้ทีหลัง
-      // เครื่องไหนบันทึกไว้ก็ของจริงทั้งคู่ เอามารวมกันแล้วเรียงตามเวลาเริ่ม
-      const sById = {};
-      for (const s of (state.sessions || [])) sById[s.id] = s;
-      for (const s of (remote.sessions || [])) sById[s.id] = s;
-      state.sessions = Object.values(sById)
-        .sort((a, b) => (a.start || '').localeCompare(b.start || ''))
-        .slice(-SESSION_CAP);
-      // หมุดปฏิทินรวมตาม id เหมือนงาน — ปักจากเครื่องไหนก็เป็นของจริงทั้งคู่
-      const mById = {};
-      for (const m of (state.marks || [])) mById[m.id] = m;
-      for (const m of (remote.marks || [])) mById[m.id] = m;
-      state.marks = Object.values(mById);
-      funnelMerge(remote.funnel);
-      // สถานะ push ของเครื่องอื่น — เก็บไว้ส่งกลับขึ้นไปพร้อมของเครื่องนี้ (ดู pushDiagExport)
-      if (remote.pushDiag && typeof remote.pushDiag === 'object') pushDiagRemote = remote.pushDiag;
-      // ใช้ตัวเดียวกับ save() — ถ้าเครื่องเต็มตรงนี้แล้วปล่อยให้ throw จะร้ายกว่าที่อื่น
-      // เพราะบรรทัดที่เหลือของ syncFromCloud (บริบท · ของสะสม · กล่องเข้า LINE · renderAll)
-      // จะไม่ได้ทำงานเลยสักบรรทัด แปลว่าดึงของจาก cloud มาแล้วแต่หน้าจอไม่รู้เรื่องด้วย
-      persistState();
-      // บริบท (ตารางเรียน/กิจวัตร) ยังอยู่ใน user_state ก้อนเดียวกันไปก่อน
-      // ฝั่ง cloud ชนะทั้งก้อน ไม่ merge รายตัว เพราะมันคือ "ตารางของสัปดาห์นี้"
-      // ที่ต้องสอดคล้องกันทั้งชุด ไม่ใช่รายการงานที่เพิ่มทีละใบจากหลายเครื่อง
-      if (remote.ctx && typeof ctxImport === 'function') ctxImport(remote.ctx);
-      // ของสะสมรวมทีหลัง ctx เพราะมันไม่เกี่ยวกัน แต่ต้องมาก่อน renderAll() ข้างล่าง
-      // ไม่งั้นหน้าจอวาดยอดโทเคนเก่าไปแล้วค่อยเปลี่ยนเลขต่อหน้าต่อตา
-      if (typeof vaultImport === 'function') vaultImport(remote.vault);
-    }
-    await pushToCloud(true);
+    await syncSerial(cloudPull);
+  } catch (e) { console.warn('[sync] pull failed:', e.message); syncFailNotice('pull'); return; }
+  // รวมกับ cloud ของบัญชีนี้แล้ว — ตั้งแต่นี้ข้อมูลในเครื่องเป็นของบัญชีนี้ และส่งขึ้นไปได้
+  setLocalOwner(currentUser.id);
+  dropAccountBackup(currentUser.id);
+  // รายงานสถานะเครื่องเก็บตอนเปิดแอป ก่อนที่ฐานรอบนี้จะถูกจด — เติมตัวเลขฐานให้ทันรอบส่งข้างล่าง
+  if (typeof pushDiagMine !== 'undefined' && pushDiagMine && typeof baseDiag === 'function') {
+    pushDiagMine = Object.assign({}, pushDiagMine, baseDiag());
+  }
+  // ส่งพังไม่ทำให้ส่วนที่เหลือหยุด — pushToCloud บอกผู้ใช้เองแล้ว (เหมือนเดิม)
+  await pushToCloud(true);
+  try {
     // ของที่บอท LINE หย่อนไว้ตอนแอปปิดอยู่ — ดึงมาทีเดียวตอนเปิด
     await loadLineLinks();
     await pullInbox();
     renderAll();
   } catch (e) { console.warn('[sync] pull failed:', e.message); syncFailNotice('pull'); }
 }
+
+// ============================================================
+// 16 ต.ค. 69 · ดึงก่อนส่งเสมอ (ข้อ 2 ของการไล่ Classroom ปลายทางถึงปลายทาง)
+// ------------------------------------------------------------
+// เดิมดึงจาก cloud แค่ตอนเปิดแอป/ล็อกอิน แต่ส่ง "ทั้งก้อน" ขึ้นไปทุกครั้งที่ save()
+// PWA บนมือถือไม่ได้เปิดใหม่ — มันถูกปลุก · เครื่อง B ที่ค้างมาสามวันจึงส่งรายการงานเมื่อสามวันก่อน
+// ขึ้นไปทับทันทีที่ติ๊กอะไรสักอย่าง งานที่เครื่อง A เพิ่มระหว่างนั้น (รวมงาน Classroom ที่ A รับจาก
+// inbox_items ไปแล้ว ซึ่งจะไม่ถูกส่งมาซ้ำอีก) หายถาวร · หลักฐานจริง: บัญชี a3c789b0 มีแถว Classroom
+// ที่ถูกรับไปแล้วตอน 23:30 น. ของ 15 ต.ค. แต่ไม่มีงานใบนั้นใน user_state
+//
+// ตอนนี้: ก่อนส่งทุกครั้งถาม rev (ตัวเลขตัวเดียว) — ถ้า cloud ขยับไปจากที่เครื่องนี้เห็นล่าสุด ดึงมารวมก่อน
+// และกลับเข้าแอปเมื่อไหร่ถาม rev หนึ่งครั้ง · save() ที่ไม่ได้เปลี่ยนอะไรยังไม่ยิงเน็ตเลยเหมือนเดิม
+//
+// การรวมเป็นแบบสามทาง: จำไว้ว่า cloud มีอะไร ณ ตอนที่ซิงก์กันล่าสุด (syncBase) แล้วตัดสินทีละชิ้น
+//   ชิ้นที่เครื่องนี้แก้ตั้งแต่ซิงก์ล่าสุด → ของเครื่องนี้ชนะ (เพิ่งติ๊กเสร็จ ต้องไม่ถูกของเก่าบน cloud ทับ)
+//   ชิ้นที่เครื่องนี้ไม่ได้แตะ → ของ cloud ชนะ
+//   ชิ้นที่หายไปจากฝั่งหนึ่ง → ถูกลบถาวรที่ฝั่งนั้น ยกเว้นอีกฝั่งเพิ่งแก้มัน (เก็บไว้ ไม่ทิ้งของที่มีคนแตะ)
+// ยังไม่เคยซิงก์ในรอบเปิดแอปนี้ (syncBase ว่าง) → กติกาเดิม: รวมทุกอย่าง cloud ชนะเมื่อซ้ำ
+// ============================================================
+let syncBase = null;       // { uid, tasks, sessions, marks, settings, ctx } — ลายนิ้วมือของสิ่งที่ cloud มี
+let syncChain = Promise.resolve();
+
+// ดึงกับส่งต้องไม่ซ้อนกัน — ส่งที่เริ่มก่อนดึงจบจะเอาก้อนเก่ากลับขึ้นไปทับสิ่งที่เพิ่งดึงมา
+// fn ห้ามเรียก syncSerial ซ้ำข้างใน (รอตัวเอง = ค้างตลอดไป)
+function syncSerial(fn) {
+  const run = syncChain.then(() => fn());
+  syncChain = run.catch(() => {});
+  return run;
+}
+
+// JSON ที่เรียงคีย์ — jsonb ของ Postgres ไม่เก็บลำดับคีย์ งานใบเดียวกันที่ไปกลับ cloud มาแล้ว
+// จะ stringify ออกมาไม่เหมือนกับในเครื่อง ถ้าไม่เรียงก่อน ทุกใบจะดูเหมือน "ถูกแก้"
+function stableJson(v) {
+  if (Array.isArray(v)) return '[' + v.map(x => x === undefined ? 'null' : stableJson(x)).join(',') + ']';
+  if (v && typeof v === 'object') {
+    return '{' + Object.keys(v).sort().filter(k => v[k] !== undefined)
+      .map(k => JSON.stringify(k) + ':' + stableJson(v[k])).join(',') + '}';
+  }
+  return v === undefined ? 'null' : JSON.stringify(v);
+}
+const syncFp = v => cheapHash(stableJson(v));
+
+function syncBaseFrom(body) {
+  const ids = arr => {
+    const m = {};
+    for (const x of arr || []) if (x && x.id != null) m[x.id] = syncFp(x);
+    return m;
+  };
+  const keys = o => {
+    const m = {};
+    for (const k of Object.keys(o || {})) m[k] = syncFp(o[k]);
+    return m;
+  };
+  return { uid: currentUser && currentUser.id, tasks: ids(body.tasks), sessions: ids(body.sessions),
+    marks: ids(body.marks), settings: keys(body.settings), ctx: body.ctx ? syncFp(body.ctx) : null };
+}
+
+// ============================================================
+// 16 ต.ค. 69 · ฐานต้องอยู่รอดข้ามการเปิดแอปใหม่และการสลับบัญชี
+// ------------------------------------------------------------
+// เดิมฐานอยู่แค่ในหน่วยความจำ — เปิดแอปใหม่ = ไม่มีฐาน = รวมทุกอย่าง → งานที่อีกเครื่องลบถาวร
+// ถูกเครื่องนี้ดันกลับขึ้น cloud ทุกครั้งที่เปิดแอป (ข้อมูลจริง: งานที่ปนข้ามบัญชี 74 ใบ ลบที่ cloud อย่างเดียว
+// ไม่ได้ เพราะ iPhone กับคอมที่ยังเก็บสำเนาไว้จะดันกลับ)
+//
+// ฐานเก็บในคีย์เดียว และเป็นหนึ่งใน "คีย์ของบัญชี" (accountLocalKeys) — ย้ายเข้าออกที่สำรองพร้อมงานเสมอ
+// จึงไม่มีวันที่เครื่องมีฐานของบัญชีหนึ่ง แต่ถืองานของอีกบัญชี (หรือไม่มีงานเลย)
+//
+// ⚠️ ด่านที่ห้ามถอด: ฐานที่โหลดจากเครื่องใช้ได้ต่อเมื่องานในฐานยังอยู่ในเครื่องอย่างน้อยครึ่งหนึ่ง
+// ไม่งั้นเครื่องที่งานหาย (ล้างข้อมูลบางส่วน · ไฟล์เสีย) จะถูกตีความว่า "ลบทุกใบ" แล้วลบงานทั้งบัญชีบน cloud
+// ไม่ผ่านด่าน = กลับไปกติกาเดิม (รวมทุกอย่าง) ซึ่งเสียแค่ "ของที่ลบแล้วฟื้น" ไม่เคยทำให้ของหาย
+// ============================================================
+const SYNC_BASE_KEY = 'studentos.alt.syncBase';
+
+function setSyncBase(b) {
+  syncBase = b;
+  try { if (b) localStorage.setItem(SYNC_BASE_KEY, JSON.stringify(b)); else localStorage.removeItem(SYNC_BASE_KEY); } catch (_) {}
+}
+
+// ฐานของบัญชีอื่นใช้ไม่ได้ — สลับบัญชีแล้วใช้ฐานเดิม งานของบัญชีใหม่จะดูเหมือน "ถูกลบที่ cloud"
+function syncBaseNow() {
+  if (!currentUser) return null;
+  if (syncBase && syncBase.uid === currentUser.id) return syncBase;
+  let b = null;
+  try { b = JSON.parse(localStorage.getItem(SYNC_BASE_KEY) || 'null'); } catch (_) {}
+  if (!b || b.uid !== currentUser.id || !b.tasks) return null;
+  const baseIds = Object.keys(b.tasks);
+  if (baseIds.length) {
+    const local = new Set((state.tasks || []).map(t => t && t.id));
+    const still = baseIds.filter(id => local.has(id)).length;
+    if (still * 2 < baseIds.length) return null;   // ดูด่านในหัวข้อข้างบน
+  }
+  syncBase = b;
+  return b;
+}
+
+// ตัวเลขสองตัวสำหรับรายงานสถานะเครื่อง (pushDiag) — ให้ตรวจจากฐานข้อมูลได้ว่าเครื่องนี้จำฐานไว้แล้วไหม
+// base = งานที่ฐานของบัญชีนี้จำไว้ · baseOk = ฐานผ่านด่านและจะถูกใช้รวมรอบหน้า · ไม่มีชื่องาน ไม่มี id
+function baseDiag() {
+  let b = null;
+  try { b = JSON.parse(localStorage.getItem(SYNC_BASE_KEY) || 'null'); } catch (_) {}
+  const mine = !!(b && currentUser && b.uid === currentUser.id && b.tasks);
+  return { base: mine ? Object.keys(b.tasks).length : 0, baseOk: mine && !!syncBaseNow() };
+}
+
+// รวมรายการที่มี id (งาน · รอบจับเวลา · หมุดปฏิทิน) · base = { id: ลายนิ้วมือ } หรือ null
+function syncMergeById(local, remote, base) {
+  const L = new Map(), R = new Map();
+  for (const x of local || []) if (x && x.id != null) L.set(x.id, x);
+  for (const x of remote || []) if (x && x.id != null) R.set(x.id, x);
+  const out = [];
+  for (const [id, l] of L) {
+    const r = R.get(id);
+    if (!base) { out.push(r || l); continue; }             // กติกาเดิม: cloud ชนะเมื่อซ้ำ
+    const was = base[id];
+    const dirty = was === undefined || syncFp(l) !== was;  // เครื่องนี้สร้าง/แก้หลังซิงก์ล่าสุด
+    if (r) out.push(dirty && was !== undefined ? l : r);
+    else if (dirty) out.push(l);                           // ใหม่ในเครื่องนี้ หรือแก้อยู่ตอนที่อีกเครื่องลบ
+    // ไม่ได้แตะเลย และ cloud ไม่มีแล้ว = อีกเครื่องลบถาวร → ตามไปลบ
+  }
+  for (const [id, r] of R) {
+    if (L.has(id)) continue;
+    if (!base) { out.push(r); continue; }
+    const was = base[id];
+    // เครื่องนี้ลบถาวรไปแล้ว — เอากลับมาเฉพาะถ้าอีกเครื่องแก้มันหลังจากนั้น
+    if (was === undefined || syncFp(r) !== was) out.push(r);
+  }
+  return out;
+}
+
+// รวมช่องตั้งค่าทีละคีย์ ด้วยกติกาเดียวกับข้างบน
+function syncMergeKeys(local, remote, base) {
+  local = local || {}; remote = remote || {};
+  if (!base) return Object.assign({}, local, remote);
+  const out = {};
+  for (const k of new Set([...Object.keys(local), ...Object.keys(remote)])) {
+    const inL = k in local, inR = k in remote, was = base[k];
+    const lDirty = inL && (was === undefined || syncFp(local[k]) !== was);
+    if (inL && inR) out[k] = lDirty && was !== undefined ? local[k] : remote[k];
+    else if (inL) { if (lDirty) out[k] = local[k]; }
+    else if (was === undefined || syncFp(remote[k]) !== was) out[k] = remote[k];
+  }
+  return out;
+}
+
+// ถาม rev · ถ้า cloud ขยับไปจากที่เห็นล่าสุด ลากก้อนลงมารวม · คืน true เมื่อรวมแล้ว (ผู้เรียก renderAll เอง)
+// เรียกผ่าน syncSerial เท่านั้น
+async function cloudPull() {
+  // ถาม rev ก่อนว่าของบน cloud ใหม่กว่าที่เครื่องนี้เห็นล่าสุดไหม — ตัวเลขตัวเดียว
+  // ไม่กี่ไบต์ ถูกกว่าลากก้อน 26KB ลงมาเทียบเองทุกครั้งที่เปิดแอปหลายสิบเท่า
+  // (เปิดแอปส่วนใหญ่ไม่มีอะไรเปลี่ยนบน cloud เพราะเครื่องนี้เองเป็นคนเขียนล่าสุด)
+  if (!sb || !currentUser) return false;
+  const { data: head, error: headErr } = await sb.from('user_state')
+    .select('rev').eq('id', currentUser.id).maybeSingle();
+  if (headErr) throw headErr;
+  if (!head) { lastSeenRev = -1; return false; }   // ยังไม่มีแถว — pushRound จะสร้างให้
+  if (head.rev === lastSeenRev) return false;
+
+  const { data, error } = await sb.from('user_state')
+    .select('data, avatar, rev').eq('id', currentUser.id).maybeSingle();
+  if (error) throw error;
+  if (!data || !data.data) return false;
+  const remote = data.data;
+  lastSeenRev = data.rev;
+  const base = syncBaseNow();
+  // รูปโปรไฟล์ย้ายมาอยู่คอลัมน์ของตัวเองแล้ว — ประกอบกลับเข้า vault ให้ vaultImport
+  // ทำงานเหมือนเดิม ตัวมันไม่ต้องรู้ว่าข้างล่างเก็บแยกกันแล้ว
+  if (remote.vault && data.avatar) remote.vault.avatar = data.avatar;
+  state.tasks = syncMergeById(state.tasks, remote.tasks, base && base.tasks);
+  state.settings = syncMergeKeys(state.settings, remote.settings, base && base.settings);
+  // รอบจับเวลารวมตาม id เหมือนงาน — แต่ละรอบเกิดบนเครื่องเดียวและไม่เคยถูกแก้ทีหลัง
+  // เครื่องไหนบันทึกไว้ก็ของจริงทั้งคู่ เอามารวมกันแล้วเรียงตามเวลาเริ่ม
+  state.sessions = syncMergeById(state.sessions, remote.sessions, base && base.sessions)
+    .sort((a, b) => (a.start || '').localeCompare(b.start || ''))
+    .slice(-SESSION_CAP);
+  // หมุดปฏิทินรวมตาม id เหมือนงาน — ปักจากเครื่องไหนก็เป็นของจริงทั้งคู่
+  state.marks = syncMergeById(state.marks, remote.marks, base && base.marks);
+  funnelMerge(remote.funnel);
+  // สถานะ push ของเครื่องอื่น — เก็บไว้ส่งกลับขึ้นไปพร้อมของเครื่องนี้ (ดู pushDiagExport)
+  if (remote.pushDiag && typeof remote.pushDiag === 'object') pushDiagRemote = remote.pushDiag;
+  // ใช้ตัวเดียวกับ save() — ถ้าเครื่องเต็มตรงนี้แล้วปล่อยให้ throw จะร้ายกว่าที่อื่น
+  // เพราะบรรทัดที่เหลือ (บริบท · ของสะสม) จะไม่ได้ทำงานเลยสักบรรทัด
+  persistState();
+  // บริบท (ตารางเรียน/กิจวัตร) ยังอยู่ใน user_state ก้อนเดียวกันไปก่อน
+  // ฝั่ง cloud ชนะทั้งก้อน ไม่ merge รายตัว เพราะมันคือ "ตารางของสัปดาห์นี้"
+  // ที่ต้องสอดคล้องกันทั้งชุด ไม่ใช่รายการงานที่เพิ่มทีละใบจากหลายเครื่อง
+  // ยกเว้นเครื่องนี้เพิ่งแก้ตารางหลังซิงก์ล่าสุด — ทั้งก้อนของเครื่องนี้ชนะแทน
+  const localCtx = typeof ctxExport === 'function' ? ctxExport() : null;
+  const ctxDirty = !!(base && base.ctx && localCtx && syncFp(localCtx) !== base.ctx);
+  if (remote.ctx && !ctxDirty && typeof ctxImport === 'function') ctxImport(remote.ctx);
+  // ของสะสมรวมทีหลัง ctx เพราะมันไม่เกี่ยวกัน แต่ต้องมาก่อน renderAll() ของผู้เรียก
+  // ไม่งั้นหน้าจอวาดยอดโทเคนเก่าไปแล้วค่อยเปลี่ยนเลขต่อหน้าต่อตา
+  if (typeof vaultImport === 'function') vaultImport(remote.vault);
+  if (typeof staffApplyCredits === 'function') staffApplyCredits(remote.vault);
+  setSyncBase(syncBaseFrom(remote));
+  return true;
+}
+
+// กลับเข้าแอป = ถาม rev หนึ่งครั้ง · ไม่ขยับ = ไม่โหลดอะไรเลย
+// ไม่ส่งตรงนี้ — ของที่ค้างส่งอยู่ ส่งเองตามรอบ save()/ต่อเน็ตกลับ และรอให้รอบนี้จบก่อนเสมอ (syncSerial)
+// ล้มเงียบ ๆ: กลับเข้าแอปตอนเน็ตยังไม่มาเป็นเรื่องปกติ · ส่งล้มเมื่อไหร่ pushToCloud บอกเอง
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden || !sb || !currentUser) return;
+  syncSerial(cloudPull)
+    .then(pulled => { if (pulled) renderAll(); })
+    .catch(e => console.warn('[sync] resume pull failed:', e.message));
+});
 
 // QA 6 ต.ค. 69 · ซิงก์ล้มต้องมีคนรู้ — เดิมมีแค่ console.warn ผู้ใช้จึงเชื่อว่างานไปถึงอีกเครื่องแล้ว
 // บอกครั้งเดียวต่อรอบปัญหา (สำเร็จครั้งถัดไปเมื่อไหร่ค่อยนับใหม่) ไม่งั้น toast เด้งทุก 1.5 วิตอนเน็ตหลุด
@@ -1432,49 +1729,83 @@ function cheapHash(s) {
   return h.toString(36) + ':' + s.length;
 }
 
+// ก้อนที่จะส่ง ณ ตอนนี้ — แยกออกมาเพราะต้องคิดใหม่หลังดึงของอีกเครื่องมารวม
+function pushSnapshot() {
+  const vault = typeof vaultExport === 'function' ? vaultExport() : undefined;
+  // รูปไม่ไปกับก้อนหลักอีกแล้ว — ดึงออกก่อนคิดลายนิ้วมือ
+  const avatar = (vault && vault.avatar) || null;
+  if (vault) delete vault.avatar;
+
+  // 1C38 · ของฝากให้รอบเย็นของ send-reminders (ดู pushHints) — คิดพังต้องไม่พาการซิงก์งานพังตาม
+  let push;
+  try { push = pushHints(); } catch (e) { console.warn('[sync] hints failed:', e.message); }
+  const body = { tasks: state.tasks, settings: state.settings,
+    sessions: state.sessions || [],
+    marks: state.marks || [],
+    ctx: typeof ctxExport === 'function' ? ctxExport() : undefined,
+    vault, push, funnel: funnelExport(),
+    pushDiag: typeof pushDiagExport === 'function' ? pushDiagExport() : undefined };
+  const json = JSON.stringify(body);
+  return { body, avatar, hash: cheapHash(json), avatarChanged: avatar !== lastPushedAvatar };
+}
+
+// เรียกผ่าน syncSerial เท่านั้น · โยน error ให้ pushToCloud บอกผู้ใช้
+async function pushRound() {
+  if (!sb || !currentUser) return;
+  // ข้อมูลในเครื่องเป็นของบัญชีอื่น = ห้ามส่ง จนกว่า syncFromCloud จะรับมาเป็นของบัญชีนี้ (adoptAccountIfNeeded)
+  // ยังไม่มีเจ้าของ (ใช้แบบไม่ล็อกอินมาก่อน) ส่งได้ — รอบนี้ดึงมารวมกับ cloud ก่อนเขียนอยู่แล้ว (cloudPull ข้างล่าง)
+  if (!cloudWritableFor(currentUser.id) && localOwner()) return;
+  let snap = pushSnapshot();
+  // ไม่มีอะไรเปลี่ยนเลยก็ไม่ต้องเสีย bandwidth — แต่ต้องเคยส่งสำเร็จมาก่อน
+  // ('' แปลว่ายังไม่เคยส่งรอบนี้ ต้องส่งเสมอ ไม่งั้นเครื่องใหม่จะไม่ push อะไรเลย)
+  // เช็คนี้มาก่อนถาม rev — save() ที่ไม่ได้เปลี่ยนอะไรจึงยังไม่ยิงเน็ตเลยสักไบต์
+  if (lastPushedHash && snap.hash === lastPushedHash && !snap.avatarChanged) return;
+
+  // 16 ต.ค. 69 · มีของจะส่ง → ถาม rev ก่อน (ดูหัวข้อ "ดึงก่อนส่งเสมอ" ข้างบน)
+  // อีกเครื่องเขียนไปแล้ว = ดึงมารวมก่อน แล้วคิดก้อนใหม่ ไม่งั้นส่งขึ้นไปทับงานของเครื่องนั้น
+  // แล้วเขียนแบบมีเงื่อนไข "rev บน cloud ยังเป็นเลขที่เพิ่งเห็น" — อีกเครื่องเขียนแทรกระหว่างถามกับเขียน
+  // (ช่องว่างหนึ่งรอบเน็ต · เทสต์จับได้จริง) จะไม่มีแถวไหนตรงเงื่อนไข → ดึงมารวมแล้วลองใหม่ ไม่ทับ
+  let back = null, body, avatar, hash, nextBase;
+  for (let attempt = 0; ; attempt++) {
+    if (attempt === 3) throw new Error('cloud keeps changing — will retry on next save');
+    if (await cloudPull()) {
+      renderAll();
+      snap = pushSnapshot();
+    }
+    ({ body, avatar, hash } = snap);
+    // ลายนิ้วมือของสิ่งที่กำลังจะไปอยู่บน cloud — คิดตอนนี้ ก่อน await
+    // ระหว่างรอคำตอบผู้ใช้อาจติ๊กงานอีกใบ ถ้าคิดหลังจากนั้นใบนั้นจะดูเหมือนส่งไปแล้ว
+    nextBase = syncBaseFrom(body);
+
+    const row = { id: currentUser.id, data: body, updated_at: new Date().toISOString() };
+    // ส่งคอลัมน์รูปเฉพาะตอนที่รูปเปลี่ยน — ไม่ใส่ = ค่าเดิมบน cloud ไม่ถูกแตะ
+    if (snap.avatarChanged) row.avatar = avatar;
+
+    // ขอ rev ใหม่กลับมาด้วยเลย (ไม่กี่ไบต์) — ถ้าปล่อยให้ค่าที่จำไว้เป็นโมฆะ
+    // การเปิดแอปครั้งถัดไปจะต้องลากทั้งก้อนลงมาเทียบใหม่ทั้งที่เครื่องนี้เองเป็นคนเขียน
+    // lastSeenRev = -1 คือ cloud ยังไม่มีแถวของบัญชีนี้ (cloudPull บอก) — สร้างใหม่ด้วย upsert แบบเดิม
+    const res = lastSeenRev < 0
+      ? await sb.from('user_state').upsert(row).select('rev,vault:data->vault').maybeSingle()
+      : await sb.from('user_state').update(row).eq('id', currentUser.id).eq('rev', lastSeenRev)
+          .select('rev,vault:data->vault').maybeSingle();
+    if (res.error) throw res.error;
+    back = res.data;
+    if (back) break;
+  }
+  lastPushedHash = hash;
+  lastPushedAvatar = avatar;
+  setSyncBase(nextBase);
+  if (back && typeof back.rev === 'number') lastSeenRev = back.rev;
+  if (back && typeof staffApplyCredits === 'function') staffApplyCredits(back.vault);
+  lastSync = new Date();
+  renderProfile();
+  syncFailShown = false;   // สำเร็จแล้ว — รอบหน้าที่พังต้องได้บอกใหม่
+}
+
 function pushToCloud(immediate) {
   if (!sb || !currentUser) return;
-  const doPush = async () => {
-    try {
-      const vault = typeof vaultExport === 'function' ? vaultExport() : undefined;
-      // รูปไม่ไปกับก้อนหลักอีกแล้ว — ดึงออกก่อนคิดลายนิ้วมือ
-      const avatar = (vault && vault.avatar) || null;
-      if (vault) delete vault.avatar;
-
-      // 1C38 · ของฝากให้รอบเย็นของ send-reminders (ดู pushHints) — คิดพังต้องไม่พาการซิงก์งานพังตาม
-      let push;
-      try { push = pushHints(); } catch (e) { console.warn('[sync] hints failed:', e.message); }
-      const body = { tasks: state.tasks, settings: state.settings,
-        sessions: state.sessions || [],
-        marks: state.marks || [],
-        ctx: typeof ctxExport === 'function' ? ctxExport() : undefined,
-        vault, push, funnel: funnelExport(),
-        pushDiag: typeof pushDiagExport === 'function' ? pushDiagExport() : undefined };
-      const json = JSON.stringify(body);
-      const hash = cheapHash(json);
-      const avatarChanged = avatar !== lastPushedAvatar;
-
-      // ไม่มีอะไรเปลี่ยนเลยก็ไม่ต้องเสีย bandwidth — แต่ต้องเคยส่งสำเร็จมาก่อน
-      // ('' แปลว่ายังไม่เคยส่งรอบนี้ ต้องส่งเสมอ ไม่งั้นเครื่องใหม่จะไม่ push อะไรเลย)
-      if (lastPushedHash && hash === lastPushedHash && !avatarChanged) return;
-
-      const row = { id: currentUser.id, data: body, updated_at: new Date().toISOString() };
-      // ส่งคอลัมน์รูปเฉพาะตอนที่รูปเปลี่ยน — ไม่ใส่ = ค่าเดิมบน cloud ไม่ถูกแตะ
-      if (avatarChanged) row.avatar = avatar;
-
-      // ขอ rev ใหม่กลับมาด้วยเลย (ไม่กี่ไบต์) — ถ้าปล่อยให้ค่าที่จำไว้เป็นโมฆะ
-      // การเปิดแอปครั้งถัดไปจะต้องลากทั้งก้อนลงมาเทียบใหม่ทั้งที่เครื่องนี้เองเป็นคนเขียน
-      const { data: back, error } = await sb.from('user_state')
-        .upsert(row).select('rev').maybeSingle();
-      if (error) throw error;
-      lastPushedHash = hash;
-      lastPushedAvatar = avatar;
-      if (back && typeof back.rev === 'number') lastSeenRev = back.rev;
-      lastSync = new Date();
-      renderProfile();
-      syncFailShown = false;   // สำเร็จแล้ว — รอบหน้าที่พังต้องได้บอกใหม่
-    } catch (e) { console.warn('[sync] push failed:', e.message); syncFailNotice('push'); }
-  };
+  const doPush = () => syncSerial(pushRound)
+    .catch(e => { console.warn('[sync] push failed:', e.message); syncFailNotice('push'); });
   if (immediate) return doPush();
   clearTimeout(syncTimer);
   syncTimer = setTimeout(doPush, 1500);
@@ -1724,8 +2055,18 @@ async function logout() {
   // 1B99 · signOut() ที่โยน error (เน็ตหลุด · โทเคนหมดอายุ) เคยทำให้ทั้งฟังก์ชันหยุดตรงนี้
   // แปลว่า "ออกจากระบบ" ตอนไม่มีเน็ตคือปุ่มที่กดแล้วไม่เกิดอะไรขึ้นเลย ทั้งที่ของที่ต้องล้าง
   // ทั้งหมดอยู่ในเครื่องและล้างได้โดยไม่ต้องถามใคร · ฝั่งเซิร์ฟเวอร์จะหมดอายุเองอยู่แล้ว
+  // แจ้งเตือนของบัญชีนี้ต้องไม่เด้งบนเครื่องนี้อีกหลังออก — ลบแถวก่อน signOut (ดู pushForgetDevice)
+  await pushForgetDevice();
+  // ส่งของที่ค้างขึ้นบัญชีนี้ก่อนออก — หลัง signOut ส่งไม่ได้แล้ว (ส่งไม่ทันก็ยังอยู่ในที่สำรองของบัญชีนี้)
+  try { await withTimeout(Promise.resolve(pushToCloud(true)), 4000, 'ส่งข้อมูลก่อนออก'); } catch (_) {}
+  // ช่องรับงานสดของบัญชีนี้ — ปิดก่อนออก (ดู inboxLiveEnsure ใน linelink.js)
+  if (typeof inboxLiveStop === 'function') inboxLiveStop();
   try { if (sb) await sb.auth.signOut(); } catch (_) {}
   currentUser = null; lastSync = null;
+  // 16 ต.ค. 69 · ของบัญชีนี้ต้องไม่ค้างให้คนถัดไปที่ใช้เครื่องเห็น หรือติดไปบัญชีถัดไป — เก็บเข้าที่สำรอง แล้วเครื่องเปล่า
+  leaveAccount();
+  lastSeenRev = -1; lastPushedHash = ''; syncBase = null;
+  if (typeof bugAccountChanged === 'function') bugAccountChanged();
   syncTokenAdmin();
   // เพื่อนเป็นของบัญชี ไม่ใช่ของเครื่อง — ออกจากบัญชีแล้วต้องไม่เหลือค้างบนจอ
   frHandle = null; frList = []; frReqs = []; frHits = null; frLoaded = false;
@@ -7527,6 +7868,12 @@ function renderProfile() {
     ('Notification' in window && Notification.permission === 'granted') ? 'block' : 'none';
   renderNotifPrefs();
   if (!st) return;
+  if (!ALT_SYSTEM_NOTIFICATIONS) {
+    st.textContent = pushErr ? 'ยังหยุดแจ้งเตือน ALT ไม่สำเร็จ · เปิด ALT ออนไลน์แล้วลองใหม่' : 'รับแจ้งเตือนจากแอปหลักเท่านั้น · ALT ไม่ส่งซ้ำ';
+    if (ntest) ntest.style.display = 'none';
+    if (nb) { nb.style.display = pushErr ? 'block' : 'none'; nb.textContent = 'ลองใหม่'; }
+    return;
+  }
   if (!('Notification' in window)) {
     if (isIOS() && !isStandalone()) {
       st.textContent = 'ต้องติดตั้งเป็นแอปก่อน';
@@ -11066,6 +11413,8 @@ function renderAll() {
   if (typeof hwSync === 'function') hwSync();
   // เช็คว่ามีคำตอบใหม่ในเธรดหัวข้อที่เราถามไว้หรือยัง · หน่วงเองภายใน 2 นาที
   if (typeof loadTopicNews === 'function') loadTopicNews();
+  if (typeof staffPersonalLoad === 'function') void staffPersonalLoad();
+  if (typeof staffNewsRoute === 'function') staffNewsRoute();
 }
 
 // ---------- ค่าตั้งจากเซิร์ฟเวอร์มาถึงทีหลัง ----------
@@ -12166,10 +12515,27 @@ let formUserStars = 0; // 0 = ให้ AI จัดให้
 let formType = 'homework';
 let formFromScan = false;  // งานใบที่กำลังกรอกอยู่ มาจาก AI อ่านให้หรือพิมพ์เอง (ดู openForm)
 
+// ---- 16 ต.ค. 69 · เพิ่มงานใหม่ด้วยมือ = สองขั้น (เจ้าของส่งคลิป "ฟอร์ม 10 ข้อ vs 3 ข้อ" มา) ----
+// ทุกช่องที่ต้องกรอกคือต้นทุนของคนกรอก ยิ่งยาวยิ่งเลิกกลางทาง (Interaction Cost)
+// จึงถามเท่าที่จำเป็นก่อน แล้วค่อยขอที่เหลือ (Progressive Disclosure) · คนที่กดบันทึกไปแล้ว
+// ยอมตอบเพิ่มอีกนิดง่ายกว่าคนที่ยังไม่ได้เริ่ม (Foot-in-the-door)
+//   0 = ไม่มีขั้น (แก้งานเดิม · ตรวจผล AI) ทุกบล็อกโผล่ครบเหมือนเดิม
+//   1 = งานอะไร + ส่งเมื่อไหร่ · กดบันทึก = งานเข้าแผนจริงทันที
+//   2 = ประเภท · วิชา · เวลา · รายละเอียด ของงานใบที่เพิ่งบันทึก · ข้ามได้ทั้งขั้น
+let formStep = 0;
+let formBaseType = 'homework';  // ประเภทที่ทางเข้าเลือกไว้ (ปุ่ม "เพิ่มวันสอบ" = exam) — ใช้เมื่อชื่องานไม่บอกประเภท
+let formParsing = false;        // setTypePick ที่ถูกเรียกจากตัวแกะ ไม่นับเป็นค่าตั้งต้นของทางเข้า
+let formParseT = 0;
+let formDueUser = false;        // คนแตะแถววันส่งเอง = ตัวแกะห้ามทับ
+let formDueAuto = false;        // วันส่งในช่องตอนนี้มาจากตัวแกะ (ลบคำออกแล้วต้องคืนค่าเดิม)
+let formDoAuto = false;
+let formDueDefault = null;      // { date, time } ตอนเปิดฟอร์ม
+
 // เลือกประเภท → ฟอร์มปรับหน้าตาตามธรรมชาติของสิ่งนั้น
 // (กิจกรรมไม่มีคะแนน/ครูผู้สั่ง · สอบเรียกว่า "วันสอบ" ไม่ใช่ "ส่งวันที่")
 function setTypePick(type) {
   formType = TASK_TYPES[type] ? type : 'homework';
+  if (!formParsing) formBaseType = formType;
   const ti = TASK_TYPES[formType];
   document.querySelectorAll('#typePick .tp').forEach(b =>
     b.classList.toggle('active', b.dataset.type === formType));
@@ -12178,7 +12544,8 @@ function setTypePick(type) {
   const isWork = ti.schedulable;                    // การบ้าน/สอบ = ต้องนั่งทำ
   const isHomework = formType === 'homework';
 
-  document.getElementById('fDateLabel').textContent = ti.dateLabel;
+  // ขั้น 2 วันส่งถูกตอบไปแล้วในขั้น 1 — บล็อกนี้เหลือแค่แถวเวลา หัวบล็อกจึงถามเวลา
+  document.getElementById('fDateLabel').textContent = formStep === 2 ? ti.verb + 'กี่โมง' : ti.dateLabel;
   document.getElementById('fDetailLabel').textContent =
     formType === 'exam' ? 'สอบเรื่องอะไร' : formType === 'activity' ? 'กิจกรรมอะไร' : formType === 'reminder' ? 'เรื่องอะไร' : 'งานที่ต้องทำ';
   document.getElementById('fEstLabel').textContent = formType === 'exam' ? 'ใช้เวลาอ่าน' : 'ใช้เวลา';
@@ -12384,6 +12751,105 @@ function openForm(id, parsed) {
   autoGrow(f.detail);
   // ค่ามาจาก AI/การสแกน = ช่อง "งานที่ต้องทำ" พิมพ์ตัวเองเข้ามา (typeInto) · พิมพ์เองหรือแก้งานเดิม = โผล่ครบทันที
   if (parsed) typeInto(f.detail);
+
+  // 16 ต.ค. 69 · สองขั้นเฉพาะงานใหม่ที่พิมพ์เอง — แก้งานเดิมกับตรวจผล AI มีค่าครบอยู่แล้ว ไม่มีอะไรให้ "ถามทีหลัง"
+  formDueUser = formDueAuto = formDoAuto = false;
+  formDueDefault = { date: f.date.value, time: f.time.value };
+  clearTimeout(formParseT);
+  formShowAuto([]);
+  setFormStep(!id && !parsed ? 1 : 0);
+}
+
+function setFormStep(n) {
+  formStep = n;
+  const scr = document.getElementById('scr-form');
+  scr.classList.toggle('fm-s1', n === 1);
+  scr.classList.toggle('fm-s2', n === 2);
+  const badge = document.getElementById('fmStep');
+  if (badge) { badge.hidden = !n; badge.textContent = 'ขั้น ' + n + '/2'; }
+  const t = document.getElementById('fmSaveT');
+  if (t) t.textContent = n === 2 ? 'เสร็จ' : 'บันทึกเข้าแผน';
+  const skip = document.getElementById('fmSkip');
+  if (skip) skip.hidden = n !== 2;
+  if (n === 2) document.getElementById('formTitle').textContent = 'บอกเพิ่มอีกนิดไหม';
+  formParsing = true;      // แค่วาดหัวบล็อกใหม่ (วันส่ง ↔ เวลาส่ง) ไม่ได้เปลี่ยนประเภทที่ทางเข้าเลือกไว้
+  setTypePick(formType);
+  formParsing = false;
+}
+
+// Enter = บันทึกในขั้น 1 (ชื่องานบรรทัดเดียวพอ — Shift+Enter ยังขึ้นบรรทัดใหม่ได้)
+// ฟอร์มแบบเต็มยังเป็น Ctrl/Cmd+Enter เพราะข้อความจาก OCR หลายบรรทัดต้องกด Enter ได้
+function formDetailKey(e) {
+  if (e.key !== 'Enter' || e.isComposing) return;
+  if (e.ctrlKey || e.metaKey || (formStep === 1 && !e.shiftKey)) {
+    e.preventDefault();
+    saveForm();
+  }
+}
+
+// ---- แกะชื่องานระหว่างพิมพ์ (ขั้น 1 เท่านั้น) ----
+// "สอบคณิต ศุกร์นี้" = ประเภทสอบ · วิชาคณิต · วันศุกร์ ลงช่องให้เลย ไม่ต้องไปเลือกเองในขั้น 2
+// ตัวแกะตัวเดียวกับข้อความที่แปะ/พูด (parseAssignment) · ชื่องานเก็บตามที่พิมพ์ ไม่ถูกตัดคำ
+// วันส่งที่คนแตะเลือกเองชนะเสมอ · ลบคำที่บอกวันออก = วันกลับเป็นค่าตอนเปิดฟอร์ม
+function formLiveParse() {
+  if (formStep !== 1 || typeof parseAssignment !== 'function') return;
+  clearTimeout(formParseT);
+  formParseT = setTimeout(formApplyParse, 200);
+}
+function formApplyParse() {
+  if (formStep !== 1) return;
+  const txt = ((document.getElementById('fDetail') || {}).value || '').trim();
+  let p = null;
+  try { p = txt ? parseAssignment(txt, new Date()) : null; } catch (_) { p = null; }
+  const d = (p && p.detected) || {};
+  const sel = document.getElementById('fSubject');
+  if (sel) sel.value = d.subject ? p.subject : 'อื่น ๆ';
+  formParsing = true;
+  setTypePick(d.type ? p.type : formBaseType);
+  formParsing = false;
+  const est = document.getElementById('fEst');
+  if (est) est.value = (d.est || d.type) && p.estMin ? p.estMin : 30;
+
+  const fDate = document.getElementById('fDate'), fTime = document.getElementById('fTime');
+  if (!formDueUser) {
+    if (d.due && p.due) {
+      const due = new Date(p.due);
+      fDate.value = dateInputValue(due);
+      fTime.value = String(due.getHours()).padStart(2, '0') + ':' + String(due.getMinutes()).padStart(2, '0');
+      formDueAuto = true;
+      dueCustom = false;
+    } else if (formDueAuto && formDueDefault) {
+      fDate.value = formDueDefault.date;
+      fTime.value = formDueDefault.time;
+      formDueAuto = false;
+    }
+  }
+  // บิลด์รากยังไม่มี "เตือนให้ทำตอน" (fillDoForm) — ข้ามเงียบ ๆ ไม่ให้ตัวแกะพังทั้งก้อน
+  if (typeof fillDoForm === 'function') {
+    if (d.doAt && p.doAt) { fillDoForm(p.doAt); formDoAuto = true; }
+    else if (formDoAuto) { fillDoForm(null); formDoAuto = false; }
+  }
+
+  // ป้ายเฉพาะสิ่งที่ขั้น 1 ไม่ได้โชว์ — วันส่งมีแถว "ตามที่พิมพ์" บอกอยู่แล้ว (renderDueRows)
+  const got = [];
+  if (d.type) got.push(TASK_TYPES[p.type].name);
+  if (d.subject) got.push(p.subject);
+  if (d.doAt && p.doAt && typeof fillDoForm === 'function') got.push('เตือน ' + fmtClock(new Date(p.doAt)));
+  formShowAuto(got);
+  syncFormUI();
+}
+function formShowAuto(items) {
+  const box = document.getElementById('fAuto');
+  if (!box) return;
+  // ได้ชุดเดิม = ไม่วาดใหม่ ไม่งั้นป้ายเด้งซ้ำทุกตัวอักษรที่พิมพ์
+  const key = items.join('|');
+  if (box.dataset.k === key) return;
+  box.dataset.k = key;
+  box.hidden = !items.length;
+  box.innerHTML = items.length
+    ? '<span class="fa-l">จับได้จากที่พิมพ์</span>'
+      + items.map(x => `<span class="chip">${icon('check')}${esc(x)}</span>`).join('')
+    : '';
 }
 
 // ---------- ช่องที่ AI กรอกให้พิมพ์ตัวเองเข้ามา (Typewriter ของ Cult UI) ----------
@@ -12727,6 +13193,7 @@ function pickDueDate(v) {
   f.value = v;
   dueCalFor = v;
   dueCustom = true;
+  formDueUser = true;
   const glide = !!(from && moved && !matchMedia('(prefers-reduced-motion: reduce)').matches);
   dueCalPop = glide ? '' : v;
   renderDueRows();
@@ -12770,17 +13237,20 @@ function renderDueRows() {
   // กด "เลือกวันเอง" แล้ว แถวนั้นต้องเป็นแถวที่เลือก แม้วันในช่องยังตรงกับปุ่มลัดอยู่
   // (เดิมจุดเลือกค้างที่ "มะรืนนี้" ทั้งที่ปฏิทินกางแล้ว — เจ้าของ: "กดเลือกวันแล้วมันยังอยู่ปุ่มก่อนหน้า")
   const hit = dueCustom ? null : presets.find(p => p.v === f.value);
+  // 16 ต.ค. 69 · วันที่แกะได้จากชื่องานในขั้น 1 (formApplyParse) — บอกเป็นแถวที่เลือกอยู่ ไม่กางปฏิทิน
+  // กางแล้วขั้นที่ตั้งใจให้สั้นที่สุดยาวเกินจอทันที · แตะแถวนี้ = เลือกวันเองตามปกติ
+  const autoQuiet = formStep === 1 && formDueAuto && !dueCustom && !hit;
   box.innerHTML = presets.map(p =>
     `<button type="button" class="pk${hit === p ? ' on' : ''}" onclick="pickDue(${p.n})">`
     + `<span class="pk-dot"></span>${p.label}<span class="pk-s">${p.sub}</span></button>`).join('')
     + `<button type="button" class="pk${hit ? '' : ' on'}" onclick="pickDueCustom()">`
-    + `<span class="pk-dot"></span>เลือกวันเอง`
+    + `<span class="pk-dot"></span>${autoQuiet ? 'ตามที่พิมพ์' : 'เลือกวันเอง'}`
     + (!hit && f.value ? `<span class="pk-s">${esc(thaiDateShort(f.value))}</span>` : '') + `</button>`;
   // ปฏิทินโผล่เมื่อคนขอเอง หรือเมื่อวันที่ในใบไม่ตรงกับปุ่มลัดอันไหนเลย
   // (รวมถึงตอนที่ OCR เดาวันมาแล้วไม่มั่นใจ — .unsure ตีกรอบไว้ที่กล่องนี้)
   if (exact) {
     const wasHidden = exact.hidden;
-    exact.hidden = !(dueCustom || !hit || exact.classList.contains('unsure'));
+    exact.hidden = autoQuiet || !(dueCustom || !hit || exact.classList.contains('unsure'));
     if (!exact.hidden) {
       renderDueCal();
       // เพิ่งกางออก = ท่าเข้าครั้งเดียว · วาดซ้ำตอนพิมพ์ช่องอื่นไม่เล่นซ้ำ
@@ -12799,6 +13269,7 @@ function pickDue(n) {
   const f = document.getElementById('fDate');
   if (!f) return;
   dueCustom = false;
+  formDueUser = true;
   f.value = dateInputValue(addDays(new Date(), n));
   renderDueRows();
   updateFormSummary();
@@ -12806,6 +13277,7 @@ function pickDue(n) {
 
 function pickDueCustom() {
   dueCustom = true;
+  formDueUser = true;
   dueCalView = null;   // เปิดใหม่ทุกครั้งที่เดือนของค่าปัจจุบัน (หรือเดือนนี้ถ้ายังไม่มีค่า)
   renderDueRows();
   // เดิมเรียก showPicker() เปิดป๊อปอัปของเบราว์เซอร์ — ตอนนี้ปฏิทินกางอยู่ในฟอร์มแล้ว แค่เลื่อนให้เห็นทั้งก้อน
@@ -13190,27 +13662,82 @@ function saveForm() {
     funnelTask(viaInbox ? 'inbox' : formFromScan ? 'scan' : 'manual');
     // มาจากแจ้งเตือนที่รอตรวจ = ปิดรายการในกล่องเข้าให้ชี้มาที่งานใบนี้ (inbox.js)
     if (typeof inboxFormSaved === 'function') inboxFormSaved(nt);
+    // 16 ต.ค. 69 · ขั้น 1 → บันทึกจริงแล้วค้างอยู่ในจอเดิมเป็นขั้น 2 ของงานใบนี้
+    // ปิดจอ/ข้ามตอนนี้ = งานอยู่ในแผนครบแล้ว ขั้น 2 แค่แก้งานใบเดิม (editingId)
+    if (formStep === 1) {
+      save();
+      formToStep2(nt);
+      return;
+    }
   }
   const back = formReturn;
-  const wasEdit = !!target;
+  const wasEdit = !!target && formStep !== 2;
   editingId = null;
+  formStep = 0;
   save();
   go(back);
-  // QA 6 ต.ค. 69 · บันทึกแล้วต้องมีคำยืนยัน — เดิมเงียบจนไม่แน่ใจว่างานเข้าแผนหรือยัง (ลบมี toast แต่บันทึกไม่มี)
+  savedToast(data, wasEdit ? 'แก้ไขแล้ว' : 'บันทึกเข้าแผนแล้ว');
+}
+
+// QA 6 ต.ค. 69 · บันทึกแล้วต้องมีคำยืนยัน — เดิมเงียบจนไม่แน่ใจว่างานเข้าแผนหรือยัง (ลบมี toast แต่บันทึกไม่มี)
+function savedToast(data, title) {
+  const detail = data.detail || '';
   const late = data.due && new Date(data.due) < new Date();
   setTimeout(() => showToast({
-    title: wasEdit ? 'แก้ไขแล้ว' : 'บันทึกเข้าแผนแล้ว',
+    title,
     body: late ? 'เลยกำหนดส่งแล้ว'
       : data.due ? 'ส่ง ' + fmtThaiDate(new Date(data.due)) + ' · ' + detail.slice(0, 40)
       : detail.slice(0, 60),
   }), 250);
 }
 
+function formToStep2(nt) {
+  clearTimeout(formParseT);
+  editingId = nt.id;
+  formShowAuto([]);
+  setFormStep(2);
+  const ok = document.getElementById('fmOk');
+  if (ok) {
+    ok.className = 'fm-ok';
+    void ok.offsetWidth;   // ถอดแล้วใส่ใหม่ = ท่าเด้งเล่นซ้ำ
+    ok.className = 'fm-ok show';
+    ok.innerHTML = `${icon('check-circle')}อยู่ในแผนแล้ว · ที่เหลือข้ามได้`;
+  }
+  syncFormUI();
+  const scr = document.getElementById('scr-form');
+  if (scr) scr.scrollTop = 0;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  haptic('tap');
+}
+
+function formToStep2(nt) {
+  clearTimeout(formParseT);
+  editingId = nt.id;
+  formShowAuto([]);
+  setFormStep(2);
+  const ok = document.getElementById('fmOk');
+  if (ok) {
+    ok.className = 'fm-ok';
+    void ok.offsetWidth;   // ถอดแล้วใส่ใหม่ = ท่าเด้งเล่นซ้ำ
+    ok.className = 'fm-ok show';
+    ok.innerHTML = `${icon('check-circle')}อยู่ในแผนแล้ว · ที่เหลือข้ามได้`;
+  }
+  syncFormUI();
+  const scr = document.getElementById('scr-form');
+  if (scr) scr.scrollTop = 0;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  haptic('tap');
+}
+
 // ยกเลิก = ทิ้งการแก้ทั้งหมด แล้วกลับจอที่มาจาก (ไม่ใช่เด้งไปหน้าแรกเสมอ)
 function cancelForm() {
   const back = formReturn;
+  // ขั้น 2 = งานบันทึกไปแล้วตั้งแต่ขั้น 1 · ปิด/ข้ามตอนนี้ทิ้งแค่สิ่งที่แก้ในขั้น 2
+  const kept = formStep === 2 ? state.tasks.find(x => x.id === editingId) : null;
   editingId = null;
+  formStep = 0;
   go(back);
+  if (kept) savedToast(kept, 'บันทึกเข้าแผนแล้ว');
 }
 
 // ลบจากหน้าแก้ไขงาน — แถวในรายการจึงไม่ต้องมีปุ่มถังขยะให้รกตา
@@ -15157,6 +15684,7 @@ function pushSupported() {
 }
 
 async function refreshPushState() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) { pushState = 'main_only'; return; }
   if (!pushSupported()) { pushState = 'unsupported'; return; }
   try {
     // serviceWorker.ready ไม่รีเจ็กต์เองถ้า SW ตัวเก่าติดค้างอยู่ — มันค้างเงียบ ๆ ตลอดไป
@@ -15210,6 +15738,7 @@ function subKeyMatches(sub) {
 let pushErr = '';
 
 async function subscribePush() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) return false;
   if (!pushSupported()) return false;
   // ready ค้างได้ตลอดกาลถ้า SW ตัวเก่าติดอยู่ (ดู refreshPushState) — ค้างที่นี่ = ปุ่มกดแล้วเงียบ
   const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ลงทะเบียนแจ้งเตือน');
@@ -15236,9 +15765,29 @@ async function subscribePush() {
     });
   }
   // เก็บ subscription ไว้บน cloud เพื่อให้เซิร์ฟเวอร์ส่ง push ได้ (ต้องล็อกอิน)
-  if (sb && currentUser) {
-    const j = sub.toJSON();
-    const { error } = await sb.from('push_subscriptions').upsert({
+  if (sb && currentUser && !(await pushSaveRow(sub.toJSON()))) return false;
+  pushState = 'on';
+  pushErr = '';
+  return true;
+}
+
+// ============================================================
+// 16 ต.ค. 69 · เครื่องที่สลับบัญชีต้องย้ายสิทธิ์รับแจ้งเตือนตามไป
+// ------------------------------------------------------------
+// ข้อมูลจริง: คอมเครื่องหนึ่งล็อกอินบัญชีหนึ่งอยู่ แต่แถว subscription ของมันเป็นของอีกบัญชี
+// ที่เคยล็อกอินบนเครื่องนั้น — upsert ตรงชน RLS ของแถวบัญชีเก่า ("บันทึกขึ้นเซิร์ฟเวอร์ไม่ได้")
+// แจ้งเตือนของคนที่ใช้เครื่องอยู่จึงไม่มา ส่วนของบัญชีเก่ายังเด้งบนเครื่องนี้ต่อ
+// claim_push_subscription (migration 20261016130000) ย้ายเจ้าของได้เมื่อส่งกุญแจของ subscription ตรง
+// ยังไม่ได้รัน migration = PostgREST ตอบ PGRST202 → ถอยไป upsert เดิม แอปไม่แย่ลงกว่าเดิม
+// ============================================================
+async function pushSaveRow(j) {
+  const { error } = await sb.rpc('claim_push_subscription', {
+    p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth,
+    p_tz: -new Date().getTimezoneOffset(),
+  });
+  if (!error) return true;
+  if (error.code === 'PGRST202') {
+    const { error: e2 } = await sb.from('push_subscriptions').upsert({
       user_id: currentUser.id,
       endpoint: j.endpoint,
       p256dh: j.keys.p256dh,
@@ -15246,11 +15795,26 @@ async function subscribePush() {
       tz_offset: -new Date().getTimezoneOffset(),
       updated_at: new Date().toISOString(),
     }, { onConflict: 'endpoint' });
-    if (error) { console.warn('[push] save failed:', error.message); pushErr = 'บันทึกขึ้นเซิร์ฟเวอร์ไม่ได้'; return false; }
+    if (!e2) return true;
+    console.warn('[push] save failed:', e2.message);
+  } else {
+    console.warn('[push] claim failed:', error.message);
   }
-  pushState = 'on';
-  pushErr = '';
-  return true;
+  pushErr = 'บันทึกขึ้นเซิร์ฟเวอร์ไม่ได้';
+  return false;
+}
+
+// ออกจากระบบ = ลบแถวของเครื่องนี้ออกจาก cloud ต้องทำ "ก่อน" signOut (หลังจากนั้น RLS ไม่ให้ลบแล้ว)
+// ไม่งั้นแจ้งเตือนของบัญชีที่ออกไป (ชื่องาน · ชื่อเพื่อนที่ทักมา) ยังเด้งบนเครื่องนี้ต่อไป
+// ไม่ถอน subscription ในเบราว์เซอร์ — บัญชีถัดไปที่ล็อกอินจะใช้ต่อได้โดยไม่ต้องขอสิทธิ์ใหม่
+async function pushForgetDevice() {
+  if (!sb || !currentUser || !pushSupported()) return;
+  try {
+    const reg = await withTimeout(navigator.serviceWorker.ready, 3000, 'ถอนแจ้งเตือน');
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) return;
+    await withTimeout(sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint), 3000, 'ถอนแจ้งเตือน');
+  } catch (e) { console.warn('[push] forget failed:', (e && e.message) || e); }
 }
 
 // ============================================================
@@ -15276,6 +15840,7 @@ function pushErrText(e) {
   return (e && e.message) ? String(e.message).slice(0, 60) : 'ไม่ทราบสาเหตุ';
 }
 async function reconnectPush() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) { await dropPush(); renderProfile(); return false; }
   let ok = false;
   try { ok = await subscribePush(); }
   catch (e) { pushErr = pushErrText(e); console.warn('[push] subscribe failed:', e); }
@@ -15308,7 +15873,7 @@ function notifPref(key) { return state.settings[key] !== false; }
 // จึงขอในจังหวะแตะครั้งแรกของวันที่ไหนก็ได้ในแอป แทนที่จะรอให้คนไปหาปุ่ม "เปิด" ในตั้งค่าเอง
 // วันละครั้งพอ: Chrome นับการปัดกล่องทิ้ง ปัดบ่อยเกินจะถูกบล็อกเอง
 // ============================================================
-function notifOn() { return state.settings.notifOff !== true; }
+function notifOn() { return ALT_SYSTEM_NOTIFICATIONS && state.settings.notifOff !== true; }
 
 const NOTIF_AUTO_KEY = 'studentos.alt.notifAutoAt';
 function autoAskReady() {
@@ -15341,6 +15906,18 @@ function autoAskNotifOpen() {
 
 // ถอน push ของเครื่องนี้ — ทั้งในเบราว์เซอร์และแถวบน cloud (ไม่งั้นเซิร์ฟเวอร์ยังยิงมาได้)
 async function dropPush() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) {
+    try {
+      const { retireAltSubscription } = await import('./notification-policy.mjs');
+      await withTimeout(retireAltSubscription({
+        serviceWorker: navigator.serviceWorker,
+        scope: new URL('./', location.href).href,
+        removeEndpoint: sb && currentUser ? endpoint => sb.from('push_subscriptions').delete().eq('endpoint', endpoint) : null,
+      }), 5000, 'หยุดแจ้งเตือน ALT');
+      pushErr = '';
+      return true;
+    } catch (e) { pushErr = 'หยุดแจ้งเตือน ALT ไม่สำเร็จ'; return false; }
+  }
   if (!pushSupported()) return;
   try {
     const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ปิดแจ้งเตือน');
@@ -15354,6 +15931,7 @@ async function dropPush() {
 }
 
 async function toggleNotifAll() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) { showToast({ title: 'รับแจ้งเตือนที่แอปหลัก', body: 'ALT ไม่ส่งแจ้งเตือนซ้ำ' }); return; }
   const on = !notifOn();
   state.settings.notifOff = !on;
   save();
@@ -15389,10 +15967,10 @@ function renderNotifPrefs() {
   const granted = ('Notification' in window) && Notification.permission === 'granted' && notifOn();
   const all = document.getElementById('notifAllRow'), allB = document.getElementById('notifAllBtn');
   // เครื่องที่ไม่มีระบบแจ้งเตือน (iPhone ที่ยังไม่ติดตั้ง) — แถวสถานะข้างล่างพาไปวิธีติดตั้งแทน
-  if (all) all.hidden = !('Notification' in window);
+  if (all) all.hidden = !ALT_SYSTEM_NOTIFICATIONS || !('Notification' in window);
   if (allB) allB.textContent = notifOn() ? 'เปิดอยู่' : 'ปิดอยู่';
   const row = document.getElementById('notifRow');
-  if (row) row.hidden = ('Notification' in window) && !notifOn();
+  if (row) row.hidden = ALT_SYSTEM_NOTIFICATIONS && ('Notification' in window) && !notifOn();
   for (const [key, row, btn] of [
     ['notifDue', 'prefDueRow', 'prefDueBtn'],
     ['notifPlan', 'prefPlanRow', 'prefPlanBtn'],
@@ -15407,6 +15985,7 @@ function renderNotifPrefs() {
 }
 
 async function enableNotif() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) { await dropPush(); renderProfile(); return; }
   if (!('Notification' in window)) {
     if (isIOS() && !isStandalone()) { showInstallGuide(); return; } // สาเหตุคือยังไม่ได้ติดตั้ง แก้ตรงนี้ทันที
     return;
@@ -15649,6 +16228,7 @@ async function notify(title, body, tag) {
 // (กุญแจ VAPID ไม่ตรง · แถว subscription ถูกลบ · iPhone ที่ไม่ได้ติดตั้งแอป) · send-reminders { test: true }
 const SERVER_TEST_DELAY_S = 8;
 async function testServerPush() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) return;
   showToast({ title: 'กำลังส่งจากเซิร์ฟเวอร์…', body: 'รอสักครู่' });
   let res = null, err = null;
   try {
@@ -15677,6 +16257,7 @@ async function testServerPush() {
 }
 
 async function testNotify() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) return;
   if (Notification.permission !== 'granted') { enableNotif(); return; }
   if (pushState === 'on' && sb && currentUser) { testServerPush(); return; }
   const tag = 'studentos-alt-test';
@@ -16152,6 +16733,7 @@ async function recordPushDiag() {
     state: pushState,
     err: pushErr || '',
     user: currentUser ? 1 : 0,
+    ...(typeof baseDiag === 'function' ? baseDiag() : {}),
   };
   try {
     const reg = await withTimeout(navigator.serviceWorker.ready, 3000, 'สถานะเครื่อง');
@@ -16295,6 +16877,8 @@ function loadSample() {
 async function clearAll() {
   if (await appConfirm({ title: 'ลบข้อมูลทุกอย่าง?', body: 'งานทั้งหมดและการตั้งค่าจะหายไป กู้คืนไม่ได้', ok: 'ลบทุกอย่าง', danger: true })) {
     localStorage.removeItem(STORE_KEY);
+    // ฐานการรวมต้องไปกับข้อมูล — ล้างข้อมูลแล้วเหลือฐานไว้ = รอบหน้าตีความว่า "เครื่องนี้ลบทุกใบ" (ดู syncBaseNow)
+    try { localStorage.removeItem(SYNC_BASE_KEY); } catch (_) {}
     // บริบทเป็นข้อมูลชีวิตประจำวัน (เรียนกี่โมง นอนกี่โมง ซ้อมบอลวันไหน)
     // "ล้างข้อมูลทุกอย่าง" ที่ไม่ล้างของพวกนี้ด้วยคือคำโกหก — และเป็นข้อมูลที่อ่อนไหวที่สุดที่แอปเก็บ
     if (typeof ctxClear === 'function') ctxClear();
@@ -17271,11 +17855,40 @@ document.addEventListener('change', e => {
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
   // มีโค้ดรุ่นใหม่เข้าคุมเมื่อไหร่ รีโหลดเองครั้งเดียว (กันแอปที่ติดตั้งไว้ค้างรุ่นเก่า)
-  let swReloaded = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
+  //
+  // 16 ต.ค. 69 · เจ้าของ: "ทำให้แอปอัปเดตเองตอนกลับเข้ามา ไม่ต้องปิดแอปทุกครั้ง"
+  // มือถือแทบไม่เคยปิดแอปจริง — แตะไอคอนคือกลับไปหน้าเดิมที่ค้างในหน่วยความจำ
+  // เบราว์เซอร์เช็ค sw.js ใหม่เฉพาะตอนเปิดหน้าใหม่ หน้าที่ค้างอยู่จึงไม่รู้เลยว่ามีรุ่นใหม่
+  // (ฟอร์มสองขั้นขึ้นเว็บแล้ว แต่มือถือเจ้าของยังเห็นของเก่าจนปัดแอปทิ้งเอง)
+  // → กลับเข้าแอปเมื่อไหร่ สั่ง update() ให้ไปเทียบ sw.js กับบนเว็บ · ไม่ตรง = ตัวใหม่ลง
+  //   skipWaiting + clients.claim (sw.js) แล้ว controllerchange ข้างล่างรีโหลดให้
+  //   ทุกการปล่อยของจึงต้องเปลี่ยนอะไรสักอย่างใน sw.js (ชื่อ CACHE) ไม่งั้นไม่มีสัญญาณ
+  // กำลังพิมพ์ค้างอยู่ = ห้ามรีโหลดใส่ ข้อความหาย · รอจนสลับออกจากแอปแล้วค่อยรีโหลดเบื้องหลัง
+  let swReloaded = false, swReloadLater = false, swCheckedAt = 0;
+  const swBusy = () => {
+    const on = document.querySelector('.screen.on');
+    if (on && on.id === 'scr-form') return true;
+    const a = document.activeElement;
+    return !!(a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT' || a.isContentEditable) && (a.value || a.textContent));
+  };
+  const swReload = () => {
     if (swReloaded) return;
     swReloaded = true;
     location.reload();
+  };
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (swBusy()) { swReloadLater = true; return; }
+    swReload();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      if (swReloadLater) swReload();
+      return;
+    }
+    // สลับแอปไปมาถี่ ๆ ไม่ต้องถามทุกครั้ง — นาทีละครั้งพอ (คำขอเดียว ไฟล์ไม่กี่ KB)
+    if (Date.now() - swCheckedAt < 60000) return;
+    swCheckedAt = Date.now();
+    navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {});
   });
 }
 

@@ -8269,6 +8269,39 @@ button.df-r:active { background: var(--surface); }
 .fb-t { font-size: 15.5px; font-weight: 700; letter-spacing: -.01em; }
 .fb-s { font-size: 11.5px; font-weight: 600; opacity: .85; font-variant-numeric: tabular-nums; }
 .fb-s:empty { display: none; }
+
+/* ---- 16 ต.ค. 69 · ฟอร์มเพิ่มงานสองขั้น (formStep ใน app.js) ----
+   ขั้น 1 เห็นแค่ .s1 (งานอะไร · ส่งวันไหน) · ขั้น 2 เห็นแค่ .s2 (ประเภท · วิชา · เวลา · รายละเอียด)
+   ไม่มีคลาสขั้นบนจอ (แก้งานเดิม · ตรวจผล AI) = ทุกบล็อกโผล่ครบเหมือนเดิม
+   !important เพราะ #fSubjectWrap ถูก setTypePick ตั้ง style.display ตรง ๆ */
+#scr-form.fm-s1 .s2, #scr-form.fm-s2 .s1 { display: none !important; }
+#scr-form.fm-s1 #fDetail { font-size: 18px; min-height: 58px; }
+.fm-step {
+  display: inline-block; vertical-align: 3px; margin-left: 8px;
+  padding: 3px 9px; border-radius: 999px;
+  background: var(--blue-soft); color: var(--ink);
+  font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+/* สิ่งที่แกะได้จากชื่องาน — แถวป้ายใต้ช่อง ไม่ใช่ช่องให้กรอก */
+.fm-auto { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fm-auto[hidden] { display: none; }
+.fm-auto .fa-l { font-size: 12px; font-weight: 600; color: var(--muted); margin-right: 2px; }
+.fm-auto .chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 999px;
+  background: var(--card2); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 12.5px; font-weight: 600;
+  animation: chip-pop .4s cubic-bezier(.3, 1.5, .5, 1) backwards;
+}
+.fm-auto .chip svg { width: 13px; height: 13px; color: var(--good); }
+@media (prefers-reduced-motion: reduce) { .fm-auto .chip { animation: none; } }
+/* ขั้น 2 · ปุ่มข้ามใต้ปุ่มเสร็จ — งานอยู่ในแผนแล้ว ข้ามจึงต้องดูปลอดภัยพอ ๆ กับกดเสร็จ */
+.fm-skip {
+  display: block; width: 100%; min-height: 44px; margin-top: 4px;
+  border: none; background: none; color: var(--muted);
+  font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.fm-skip[hidden] { display: none; }
 /* บนเครื่องจริง/จอแคบ แถบแท็บอยู่ในผัง (ดู 1A9n ข้างบน) .screens หดให้เองแล้ว
    ปุ่มจึงไม่ต้องเผื่อที่ให้แถบอีก — ถ้าเผื่อซ้ำจะเหลือช่องว่างใต้ปุ่มเกือบสองนิ้ว */
 @media (max-width: 768px), (display-mode: standalone) {

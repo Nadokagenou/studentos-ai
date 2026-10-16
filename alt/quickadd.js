@@ -80,6 +80,8 @@ function quickPreview() {
   chips.push(d.due && p.due
     ? `<span class="qa-chip">${esc(fmtDue(p.due, new Date(), p))}</span>`
     : `<span class="qa-chip warn">ยังไม่มีวันส่ง</span>`);
+  // "ทำ 2 ทุ่ม" — ให้เห็นก่อนกดส่งว่าแอปแยกออกเป็นนัด ไม่ได้เอาไปเป็นเวลาส่ง
+  if (p.doAt && typeof fmtClock === 'function') chips.push(`<span class="qa-chip">เตือน ${esc(fmtClock(new Date(p.doAt)))}</span>`);
   box.innerHTML = chips.join('');
 }
 

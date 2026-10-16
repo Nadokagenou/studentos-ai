@@ -63,15 +63,34 @@ export async function pushToUser(
   payload: PushPayload,
   opts?: PushOpts,
 ): Promise<number> {
-  if (!pushReady()) return 0;
+  return (await pushToUserDetailed(db, userId, payload, opts)).ok;
+}
+
+/** ผลส่งรายเครื่อง — devices = เครื่องที่มีตอนเริ่มส่ง · gone = ตายถาวร (403/404/410 ลบแถวแล้ว)
+ *  failed = ล้มแบบที่อาจหายเอง (5xx · 429 · เน็ต) · codes = รหัสที่เจอ ไว้ตอบว่า "ทำไมไม่เด้ง" */
+export type PushResult = { devices: number; ok: number; gone: number; failed: number; codes: number[] };
+
+/** เหมือน pushToUser แต่บอกด้วยว่าเครื่องที่ไม่ได้รับ ไม่ได้รับเพราะอะไร
+ *  16 ต.ค. 69 · ผู้เรียกที่ปักหมุดกันซ้ำต้องแยก "ล้มชั่วคราว" ออกจาก "ไม่มีเครื่องให้ส่ง"
+ *  ไม่งั้น FCM ล่มห้านาทีเดียว = ดอกนั้นถูกจดว่าแจ้งแล้ว และหายไปตลอดกาล */
+export async function pushToUserDetailed(
+  // deno-lint-ignore no-explicit-any
+  db: any,
+  userId: string,
+  payload: PushPayload,
+  opts?: PushOpts,
+): Promise<PushResult> {
+  const res: PushResult = { devices: 0, ok: 0, gone: 0, failed: 0, codes: [] };
+  if (!pushReady()) return res;
 
   const { data: subs, error } = await db
     .from('push_subscriptions')
     .select('endpoint, p256dh, auth')
     .eq('user_id', userId);
-  if (error || !subs?.length) return 0;
+  if (error) { res.failed = 1; return res; }   // อ่านรายชื่อเครื่องไม่ได้ = ยังไม่รู้ ไม่ใช่ "ไม่มีเครื่อง"
+  if (!subs?.length) return res;
+  res.devices = subs.length;
 
-  let ok = 0;
   for (const s of subs) {
     try {
       await webpush.sendNotification(
@@ -79,21 +98,25 @@ export async function pushToUser(
         JSON.stringify({ url: './', ...payload }),
         opts,
       );
-      ok++;
+      res.ok++;
     } catch (e) {
       // 404/410 = ถอนแอป/ล้างข้อมูล · 403 = กุญแจ VAPID คนละดอกกับที่เซิร์ฟเวอร์ถืออยู่
       // ทั้งสามอย่างไม่มีวันหายเอง ปล่อยไว้ = ยิงพลาดซ้ำตลอดกาลโดยเจ้าตัวไม่ได้รับอะไรเลย
       // ลบทิ้งเพื่อให้ฝั่งแอปสมัครใหม่ด้วยกุญแจปัจจุบันตอนเปิดครั้งถัดไป
       const code = (e as { statusCode?: number })?.statusCode;
+      if (!res.codes.includes(code ?? 0)) res.codes.push(code ?? 0);   // 0 = ไม่มีรหัส (เน็ต/หมดเวลา)
       if (code === 403 || code === 404 || code === 410) {
+        res.gone++;
         await db.from('push_subscriptions').delete().eq('endpoint', s.endpoint);
+      } else {
+        res.failed++;
       }
     }
   }
   // ⚠️ **ไม่แตะ push_subscriptions.last_sent_at** — คอลัมน์นั้นคือนาฬิกาช่วงเงียบ 4 ชม.
   // ของการเตือนงานใกล้กำหนดใน send-reminders · ขยับมันจากที่นี่ = เอาการแจ้งเตือน
   // เรื่องหนึ่งไปเลื่อนการเตือนอีกเรื่องหนึ่งออกไป ซึ่งเป็นบั๊กที่มองไม่เห็นจากฝั่งไหนเลย
-  return ok;
+  return res;
 }
 
 /** เคยแจ้งเรื่องพวกนี้ไปหรือยัง — คืนเฉพาะคีย์ที่ "ยังไม่เคยแจ้ง" */
