@@ -110,6 +110,7 @@
   <link rel="stylesheet" href="feed.css">
   <!-- ชุดความปลอดภัย: รายงาน · ยินยอม · นโยบาย -->
   <link rel="stylesheet" href="safety.css">
+  <link rel="stylesheet" href="bug-reports.css">
   <!-- ห้องการบ้าน: แถวใต้การ์ดงาน + จอห้อง -->
   <link rel="stylesheet" href="hw.css">
 
@@ -126,7 +127,6 @@
   <link rel="stylesheet" href="gacha-fx.css">
   <link rel="stylesheet" href="board.css">
   <link rel="stylesheet" href="custom.css">
-  <link rel="stylesheet" href="bug-reports.css">
 </head>
 <body>
 
@@ -1537,8 +1537,7 @@
                  อยู่แท็บ "ฉัน" ไม่ใช่หน้าแรก: ไม่เกี่ยวกับ "ตอนนี้ควรทำอะไร" และหน้าแรกต้องไม่เลื่อน -->
             <!-- 15 ต.ค. 69 · ข่าวจากทีมพัฒนา — อยู่แท็บ "ฉัน" ไม่ใช่หน้าแรก/กระดิ่ง: ไม่ได้ขอให้ตัดสินใจอะไร
                  เลขบนแถว = ประกาศที่ยังไม่เปิดดู (newsPaintRow ใน news.js) -->
-            <!-- 16 ต.ค. 69 · รายงานปัญหาแอป (bug-reports.js) — ALT อยู่หมวด "ข่าวสารและช่วยเหลือ" · รากยังเป็นรายการแบน -->
-            <button class="pe" onclick="openBugReports()">
+            <button class="pe" id="peBugReports" onclick="openBugReports()">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-message"/></svg></span>
               <span class="pe-tx"><b>รายงานปัญหาแอป</b><small>แจ้งบั๊กและติดตามเรื่อง</small></span>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
@@ -2456,7 +2455,6 @@
 <script src="hw.js"></script>
 <script src="topic.js"></script>
 <script src="safety.js"></script>
-<script src="bug-reports.js"></script>
 <script src="sai.js"></script>
 <!-- ฟังก์ชันล้วน ไม่รันอะไรตอนโหลด · ต้องมาก่อน app.js เพื่อให้การวาดรอบแรก
      (renderShop · renderAppearance) เห็น FX_SHOP แล้ว — ไม่งั้นแถวเอฟเฟกต์โผล่ช้าไปหนึ่งรอบ -->
@@ -2472,6 +2470,7 @@
 <!-- 15 ต.ค. 69 · ข่าวสารจากทีม — ไม่มีอะไรพึ่งมันตอนบูต จึงอยู่ท้ายแถวได้ (ต้องมาก่อน app.js เพราะ renderProfile เรียก newsPaintRow) -->
 <script src="news.js"></script>
 <script src="staff-news.js"></script>
+<script src="bug-reports.js"></script>
 <script src="app.js"></script>
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────
