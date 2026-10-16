@@ -1,7 +1,7 @@
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const READ = new Set(["overview", "users", "notices", "issues", "audit", "bugs"]);
-const WRITE = new Set(["grant", "draft", "publish", "withdraw", "triage", "bug_triage"]);
+const WRITE = new Set(["grant", "draft", "publish", "withdraw", "triage", "bug_triage", "report_trash", "report_restore"]);
 export class HttpError extends Error {
   constructor(status, message) {
     super(message);
@@ -15,6 +15,11 @@ export function validate(input) {
   if (action === "session") return { action, payload: {} };
   if (!READ.has(action) && !WRITE.has(action))
     throw new HttpError(400, "ไม่พบคำสั่ง");
+  if (action === 'bugs' || action === 'issues') {
+    const bucket = input.bucket ?? 'pending';
+    if (!['pending', 'resolved', 'trash'].includes(bucket)) throw new HttpError(400, 'ไม่พบหมวดรายงาน');
+    return { action, payload: { bucket, offset: Math.max(0, Math.min(100000, Math.floor(Number(input.offset) || 0))) } };
+  }
   if (READ.has(action))
     return {
       action,
@@ -32,6 +37,12 @@ export function validate(input) {
   if (!UUID.test(input.request_id || ""))
     throw new HttpError(400, "ต้องมีรหัสรายการ");
   const payload = { request_id: input.request_id };
+  if (action === 'report_trash' || action === 'report_restore') {
+    if (!['bug', 'content'].includes(input.kind)
+      || (input.kind === 'bug' ? !UUID.test(input.id || '') : !Number.isSafeInteger(input.id) || input.id < 1))
+      throw new HttpError(400, 'รหัสหรือชนิดรายงานไม่ถูกต้อง');
+    Object.assign(payload, { kind: input.kind, id: input.kind === 'bug' ? input.id.toLowerCase() : input.id });
+  }
   if (action === "grant") {
     if (
       !UUID.test(input.target || "") ||

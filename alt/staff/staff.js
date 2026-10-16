@@ -1,3 +1,4 @@
+import { renderIssues, renderBugs } from './report-ui.mjs';
 const $ = (id) => document.getElementById(id);
 const esc = (v) =>
   String(v ?? "").replace(
@@ -21,7 +22,7 @@ const titles = {
   users: "ผู้ใช้งาน",
   tokens: "เพิ่มโทเคน",
   notices: "ข่าวสารและแจ้งเตือน",
-  issues: "รายงานที่รอตรวจ",
+  issues: "รายงานและปัญหาแอป",
   audit: "ประวัติการจัดการ",
 };
 const labels = {
@@ -31,6 +32,8 @@ const labels = {
   withdraw: "ถอนประกาศ",
   triage: "เปลี่ยนสถานะรายงาน",
   bug_triage: "อัปเดตปัญหาแอป",
+  report_trash: "ย้ายรายงานไปถังขยะ",
+  report_restore: "กู้คืนรายงาน",
 };
 const demo = location.pathname.endsWith("/preview.html");
 if (window.top !== window.self) {
@@ -45,9 +48,7 @@ let client,
   target = null,
   busy = false;
 let pending = null;
-let bugPage = 0;
-const bugCategories = { tasks: 'งานและแผน', scan: 'สแกนและเพิ่มงาน', sync: 'บัญชีและการซิงก์', notifications: 'แจ้งเตือน', display: 'หน้าจอและการใช้งาน', other: 'อื่น ๆ' };
-const bugStatuses = { open: "ใหม่", reviewing: "กำลังตรวจ", needs_info: "ต้องการข้อมูลเพิ่ม", resolved: "แก้แล้ว" };
+let bugPage = 0, issuePage = 0, reportBucket = 'pending', reportLoadSeq = 0;
 const data = { users: [], notices: [], issues: [], audit: [] };
 const demoUsers = Array.from({ length: 12 }, (_, i) => ({
   id: `00000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`,
@@ -157,7 +158,8 @@ async function demoApi(action, p) {
       has_more: false,
     };
   if (action === "notices") return { items: demoNotices };
-  if (action === "issues") return { items: demoIssues };
+  if (['bugs','issues','triage','bug_triage','report_trash','report_restore'].includes(action) && window.StudentOSBugDemo) return window.StudentOSBugDemo.staff(action,p);
+  if (action === "issues") { const bucket = p.bucket || 'pending'; return { items: demoIssues.filter(x => bucket === 'trash' ? x.deleted_at : !x.deleted_at && (bucket === 'resolved' ? x.status === 'closed' : x.status !== 'closed')) }; }
   if (action === "bugs" || action === "bug_triage") return window.StudentOSBugDemo?.staff(action, p) || { items: [], open_count: 0 };
   if (action === "audit") return { items: demoAudit };
   if (action === "grant") {
@@ -221,29 +223,29 @@ function auditHTML(items) {
         .join("")
     : empty();
 }
-function issuesHTML(items, compact = false) {
-  return items.length
-    ? items
-        .map(
-          (x) =>
-            `<div class="item"><h3>รายงาน #${esc(x.id)} <span class="tag ${x.status === "closed" ? "dim" : "warn"}">${esc({ open: "รอตรวจ", reviewing: "กำลังตรวจ", closed: "ปิดเรื่อง" }[x.status] || "รอตรวจ")}</span></h3><p>${esc(x.kind)} · ${esc(x.reason)}</p><p>${esc(x.note || "ไม่มีหมายเหตุ")}</p><p>${esc(when(x.created_at))}</p>${compact ? "" : `<label class="issue-note">หมายเหตุทีม<input id="triageNote${esc(x.id)}" maxlength="300" value="${esc(x.staff_note || "")}" placeholder="สิ่งที่ตรวจพบหรือสิ่งที่ทีมถัดไปควรรู้"></label><div class="actions"><button data-triage="${esc(x.id)}" data-status="reviewing">รับเรื่อง</button><button data-triage="${esc(x.id)}" data-status="closed">ปิดเรื่อง</button><button data-triage="${esc(x.id)}" data-status="open">เปิดตรวจใหม่</button></div>`}</div>`,
-        )
-        .join("")
-    : empty("ไม่มีรายงานที่รอตรวจ");
-}
-function bugsHTML(items) {
-  return items.length ? items.map(x => `<div class="item"><h3>${esc(x.summary)} <span class="tag">${esc(bugStatuses[x.status])}</span></h3><p>#${esc(x.id.slice(0, 8))} · ${esc(bugCategories[x.category] || x.category)} · ${esc(x.page)} · ${esc(when(x.created_at))}</p><details><summary>รายละเอียดและประวัติ</summary><h4>อาการ</h4><p class="bug-detail">${esc(x.detail)}</p><h4>ขั้นตอนที่ทำ</h4><p class="bug-detail">${esc(x.steps)}</p>${x.expected ? `<h4>สิ่งที่คาดหวัง</h4><p class="bug-detail">${esc(x.expected)}</p>` : ''}<p>${x.diagnostics ? `ผู้ใช้ยินยอมแนบข้อมูล: ${esc(x.diagnostics.version)} · ${esc(x.diagnostics.display_mode)}` : 'ผู้ใช้ไม่แนบข้อมูลรุ่น/โหมด'}</p>${(x.events || []).map(e => `<div class="item"><b>${esc(e.author_kind === 'reporter' ? 'ผู้รายงาน' : 'ทีม Student OS')} · ${esc(bugStatuses[e.status])}</b><p>${esc(when(e.created_at))}</p><p class="bug-detail">${esc(e.reply)}</p></div>`).join('')}</details><form data-bug-form="${esc(x.id)}"><label>สถานะ<select name="status">${Object.entries(bugStatuses).map(([k, v]) => `<option value="${k}" ${k === x.status ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label><label>ข้อความถึงผู้รายงาน<textarea name="reply" maxlength="1500" rows="3" placeholder="เมื่อขอข้อมูลเพิ่มหรือแก้แล้ว กรุณาอธิบายอย่างน้อย 5 ตัวอักษร"></textarea></label><p class="footnote">ข้อความนี้ผู้รายงานเห็นได้ กรุณาไม่ใส่หมายเหตุภายในทีม</p><button type="submit">บันทึกและแจ้งในเรื่องของผู้รายงาน</button></form></div>`).join('') : empty('ยังไม่มีรายงานปัญหาแอป');
-}
-async function loadBugs() {
-  try {
-    const r = await api('bugs', { offset: bugPage * 20 });
-    $('bugIssueList').innerHTML = bugsHTML(r.items || []);
-    $('bugCount').textContent = `${r.open_count || 0} เรื่องยังไม่แก้`;
-    $('staffBugsPrev').disabled = bugPage === 0;
-    $('staffBugsNext').disabled = !r.has_more;
-  } catch {
-    $('bugIssueList').textContent = 'ยังโหลดปัญหาแอปไม่ได้ กรุณาลองอัปเดตอีกครั้ง หรือตรวจการติดตั้งระบบรายงานบั๊ก';
-    $('bugCount').textContent = ''; $('staffBugsNext').disabled = true;
+function issuesHTML(items, compact = false) { return renderIssues(items, { compact, bucket: reportBucket }); }
+async function loadReports() {
+  const bucket = reportBucket, seq = ++reportLoadSeq;
+  const results = await Promise.allSettled([
+    api('bugs', { bucket, offset: bugPage * 20 }),
+    api('issues', { bucket, offset: issuePage * 20 }),
+  ]);
+  if (seq !== reportLoadSeq || bucket !== reportBucket) return;
+  const sections = [
+    { result: results[0], list: 'bugIssueList', count: 'bugCount', prev: 'staffBugsPrev', next: 'staffBugsNext', page: bugPage, render: items => renderBugs(items, bucket) },
+    { result: results[1], list: 'issueList', count: 'contentReportCount', prev: 'staffIssuesPrev', next: 'staffIssuesNext', page: issuePage, render: items => renderIssues(items, { bucket }) },
+  ];
+  for (const section of sections) {
+    $(section.prev).disabled = section.page === 0;
+    if (section.result.status === 'fulfilled') {
+      const result = section.result.value;
+      $(section.list).innerHTML = section.render(result.items || []);
+      $(section.count).textContent = (result.counts?.[bucket] ?? result.items?.length ?? 0) + ' เรื่อง';
+      $(section.next).disabled = !result.has_more;
+    } else {
+      $(section.list).textContent = 'ยังโหลดรายงานส่วนนี้ไม่ได้ กรุณาลองรีเฟรชอีกครั้ง';
+      $(section.count).textContent = ''; $(section.next).disabled = true;
+    }
   }
 }
 async function load() {
@@ -286,9 +288,7 @@ async function load() {
     $("auditList").innerHTML = auditHTML(data.audit);
   }
   if (view === "issues") {
-    await loadBugs();
-    data.issues = (await api("issues")).items || [];
-    $("issueList").innerHTML = issuesHTML(data.issues);
+    await loadReports();
   }
   if (view === "notices") {
     data.notices = (await api("notices")).items || [];
@@ -364,6 +364,26 @@ document.addEventListener("click", async (e) => {
   if (!b) return;
   if (b.dataset.view || b.dataset.jump)
     return show(b.dataset.view || b.dataset.jump);
+  if (b.dataset.reportBucket) {
+    reportBucket = b.dataset.reportBucket; bugPage = 0; issuePage = 0;
+    document.querySelectorAll('[data-report-bucket]').forEach(el => el.setAttribute('aria-selected', String(el.dataset.reportBucket === reportBucket)));
+    $('reportBucketHint').textContent = { pending: 'เรื่องที่ยังต้องตรวจหรือรอข้อมูลเพิ่มเติม', resolved: 'เรื่องที่แก้เสร็จแล้ว ดูประวัติ เปิดตรวจใหม่ หรือลบจากรายการได้', trash: 'รายการที่ลบจาก Control Room กู้คืนไปหมวดแก้เสร็จแล้วได้ ประวัติของผู้รายงานยังอยู่' }[reportBucket];
+    return loadReports();
+  }
+  if (b.dataset.reportAction) {
+    if (busy) return;
+    const kind = b.dataset.reportKind, id = kind === 'content' ? Number(b.dataset.reportId) : b.dataset.reportId;
+    if (b.dataset.reportAction === 'reopen') {
+      const action = kind === 'bug' ? 'bug_triage' : 'triage';
+      const payload = kind === 'bug' ? { id, status: 'reviewing', reply: 'ทีมเปิดตรวจเรื่องนี้เพิ่มเติมอีกครั้งครับ' } : { id, status: 'reviewing', note: 'เปิดตรวจเรื่องนี้เพิ่มเติม' };
+      const result = await mutate(action, payload, 'เปิดตรวจใหม่แล้ว ดูได้ที่หมวดรอดำเนินการ');
+      if (result) await loadReports(); return;
+    }
+    const trash = b.dataset.reportAction === 'trash';
+    if (trash && !(await confirm('ลบเรื่องที่แก้เสร็จแล้วออกจากรายการ?', 'เรื่องนี้จะย้ายไปถังขยะและกู้คืนได้ ไม่ลบโพสต์ บัญชี หรือประวัติของผู้รายงาน', 'ย้ายไปถังขยะ'))) return;
+    const result = await mutate(trash ? 'report_trash' : 'report_restore', { kind, id }, trash ? 'ย้ายไปถังขยะแล้ว' : 'กู้คืนไปหมวดแก้เสร็จแล้ว');
+    if (result) await loadReports(); return;
+  }
   if (b.dataset.target) {
     target = data.users.find((x) => x.id === b.dataset.target);
     $("grantTarget").value =
@@ -402,7 +422,7 @@ document.addEventListener("click", async (e) => {
     return reloadData();
   }
   if (b.dataset.triage) {
-    await mutate(
+    const result = await mutate(
       "triage",
       {
         id: Number(b.dataset.triage),
@@ -411,7 +431,8 @@ document.addEventListener("click", async (e) => {
       },
       "บันทึกสถานะแล้ว",
     );
-    return reloadData();
+    if (result) await reloadData();
+    return;
   }
 });
 document.addEventListener('submit', async (e) => {
@@ -424,10 +445,12 @@ document.addEventListener('submit', async (e) => {
   }
   await mutate('bug_triage', { id: form.dataset.bugForm, status, reply }, 'บันทึกแล้ว ผู้รายงานดูข้อความได้ในเรื่องของฉัน');
   // Keep a failed response draft and retry key intact.
-  if (!pending) await loadBugs();
+  if (!pending) await loadReports();
 });
-$('staffBugsPrev').onclick = () => { bugPage = Math.max(0, bugPage - 1); loadBugs(); };
-$('staffBugsNext').onclick = () => { bugPage++; loadBugs(); };
+$('staffBugsPrev').onclick = () => { bugPage = Math.max(0, bugPage - 1); loadReports(); };
+$('staffBugsNext').onclick = () => { bugPage++; loadReports(); };
+$('staffIssuesPrev').onclick = () => { issuePage = Math.max(0, issuePage - 1); loadReports(); };
+$('staffIssuesNext').onclick = () => { issuePage++; loadReports(); };
 $("searchUsers").addEventListener("submit", (e) => {
   e.preventDefault();
   page = 0;
