@@ -27,6 +27,9 @@ let CLASSROOM_WORK = [];
 //   { [refreshToken]: { email, courses: [...], teacherCourses: [...],
 //                       work: { courseId: [...] }, subs: { courseId: [...] }, tokenError } }
 let GOOGLE = null;
+// Google ช้า (มิลลิวินาที) รายบัญชี + จำนวนคำขอที่ค้างพร้อมกันสูงสุด — ใช้พิสูจน์ว่าซิงก์หลายบัญชีขนานกัน
+let GOOGLE_DELAY = {};
+let inFlight = 0, maxInFlight = 0;
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json' } });
 globalThis.fetch = async (input, init) => {
   const url = String(input instanceof Request ? input.url : input);
@@ -38,8 +41,14 @@ globalThis.fetch = async (input, init) => {
       return json({ access_token: 'at:' + rt });
     }
     const auth = String(init?.headers?.Authorization ?? '');
-    const a = GOOGLE[auth.replace(/^Bearer at:/, '')];
+    const rtKey = auth.replace(/^Bearer at:/, '');
+    const a = GOOGLE[rtKey];
     if (!a) return json({ error: { message: 'no such token' } }, 401);
+    if (GOOGLE_DELAY[rtKey]) {
+      inFlight++; maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise(r => setTimeout(r, GOOGLE_DELAY[rtKey]));
+      inFlight--;
+    }
     const u = new URL(url);
     if (url.includes('userinfo')) return json({ email: a.email });
     const course = (url.match(/courses\/([^/]+)\//) || [])[1];
@@ -447,18 +456,26 @@ async function runBody(tables, body) {
   const d = t.integrations[0].meta.diag || {};
   check('ไม่มีประวัติ + เลยกำหนดแล้ว → ไม่นับ', d.returnedNoHistory === 2 && d.returnedNoHistoryOpen === 0, JSON.stringify(d));
 }
-// ---- 18) รอบถัดไปต้องไม่ถูกข้าม: นัดต้องมาก่อนรอบ cron ที่ห่างไป 30 นาที ----
-// ซิงก์เสร็จช้ากว่าเวลาที่ cron ยิงเสมอ (เทสต์นี้: cron ยิง 14:00:00 · ซิงก์เสร็จ 14:00:10)
-// ถ้านัดไว้ 14:30:10 รอบ 14:30:00 จะข้ามแถวนี้ไป แล้วได้ซิงก์ชั่วโมงละครั้ง
+// ---- 18) รอบถัดไปต้องไม่ถูกข้าม: นัดต้องมาก่อนรอบ cron ถัดไปเสมอ ไม่ว่ารอบนี้จะเริ่มช้าหรือนานแค่ไหน ----
+// 15 ต.ค. 69: นัด +30 นาทีจากตอนเสร็จ = ช้ากว่ารอบ cron ไปสิบวิ → ข้ามทุกรอบเว้นรอบ
+// 16 ต.ค. 69: Classroom ซิงก์ทุก 1 นาที · นัดเทียบกับนาทีที่รอบนี้เริ่ม ลบ 1 วิ (ไม่ใช่เทียบกับตอนเสร็จ)
 {
-  const tick = Date.now();
-  Date.now = () => tick + 10_000;
+  const tick = Math.floor(Date.now() / 60_000) * 60_000;   // cron ยิงตรงต้นนาที
+  Date.now = () => tick + 10_000;                           // เริ่ม/เสร็จช้าไปสิบวิ (cold start)
   GOOGLE = { 'rt-g': { email: 'g@gmail.com', courses: [] } };
   const t = await gTables([await gRow('ig', 'ug', 'rt-g')]);
   await runBody(t, {});
   const next = Date.parse(t.integrations[0].next_sync_at);
-  check('นัดรอบถัดไปไม่เลยรอบ cron +30 นาที', next <= tick + 30 * 60_000, new Date(next).toISOString());
-  check('และไม่ถี่เกินตั้งใจ (ไม่เร็วกว่า +25 นาที)', next >= tick + 25 * 60_000, new Date(next).toISOString());
+  check('Classroom: นัดรอบถัดไปไม่เลยรอบ cron +1 นาที', next <= tick + 60_000, new Date(next).toISOString());
+  check('Classroom: และไม่ถี่เกินตั้งใจ (ไม่เร็วกว่า +50 วิ)', next >= tick + 50_000, new Date(next).toISOString());
+  // ปฏิทินโรงเรียน (ICS) ยังเป็นทุก 30 นาที — ฟีดไม่ได้เปลี่ยนบ่อย และ ETag ทำให้รอบส่วนใหญ่ว่างเปล่า
+  GOOGLE = null;
+  FEED = feed([{ uid: 'cal1', summary: 'สอบ', due: Date.now() + 3 * DAY }]);
+  const ti = base();
+  await runBody(ti, {});
+  const nextI = Date.parse(ti.integrations[0].next_sync_at);
+  check('ICS: นัดรอบถัดไปไม่เลย +30 นาที', nextI <= tick + 30 * 60_000, new Date(nextI).toISOString());
+  check('ICS: และไม่เร็วกว่า +29 นาที', nextI >= tick + 29 * 60_000, new Date(nextI).toISOString());
   Date.now = () => tick;
 }
 
@@ -621,6 +638,57 @@ const ledgerOf = (t, wid) => t.integration_items.find(x => x.source_id === 'c-p:
   check('รอบ cron ด้วยกุญแจทั่วไป → ยังมีตัวเลขรวมให้ตรวจ', r2.body.ran === 1 && r2.body.ok_count === 1 && r2.body.error_count === 0, JSON.stringify(r2.body));
   const r3 = await call({ integration_id: 'ip' }, SERVICE);
   check('integration_id จากกุญแจ service → ซิงก์ได้และเห็นผล', r3.status === 200 && Array.isArray(r3.body.results), JSON.stringify(r3.body));
+}
+// ---- 24) ซิงก์ทุก 1 นาที: รอบที่ซ้อนกันต้องไม่ทำงานซ้ำ ไม่ส่งซ้ำ ไม่แจ้งซ้ำ ----
+// cron ทุกนาที + บัญชี 23 ห้องใช้ ~20 วิ = มีวันที่รอบใหม่เริ่มก่อนรอบเก่าจบ · สองรอบซิงก์บัญชีเดียวกันพร้อมกัน
+// = ทั้งคู่เห็นงานใหม่ใบเดียวกัน → กล่องเข้าได้สองแถว และ push สองดอก · กันด้วยการจองแถว (sync_lease_until)
+{
+  GOOGLE = { 'rt-p': { email: 'p@gmail.com', courses: [{ id: 'c-p', name: 'คณิต' }], work: { 'c-p': [pWork('wl1', 3)] }, subs: { 'c-p': [] } } };
+  GOOGLE_DELAY = { 'rt-p': 40 };
+  const t = await gTables([await gRow('ip', 'up', 'rt-p')]);
+  for (const i of t.integrations) i.next_sync_at = iso(REAL() - DAY);
+  sb.__setTables(t); wp.__sent.length = 0;
+  const call = () => handler(new Request('http://x', { method: 'POST', body: '{}', headers: SERVICE })).then(r => r.json());
+  const [a, b] = await Promise.all([call(), call()]);
+  GOOGLE_DELAY = {};
+  check('สองรอบพร้อมกัน → ซิงก์บัญชีนี้รอบเดียว', a.ran + b.ran === 1, JSON.stringify([a, b]));
+  check('สองรอบพร้อมกัน → กล่องเข้าได้แถวเดียว', inboxFor(t, 'wl1').length === 1, JSON.stringify(t.inbox_items.map(x => x.meta.sourceId)));
+  check('สองรอบพร้อมกัน → push ดอกเดียว', wp.__sent.length === 1, JSON.stringify(wp.__sent.map(x => x.title)));
+  check('จบรอบแล้วคืนการจอง', t.integrations[0].sync_lease_until == null, String(t.integrations[0].sync_lease_until));
+}
+{
+  // "ซิงก์เดี๋ยวนี้" ระหว่างที่ cron กำลังซิงก์บัญชีเดียวกันอยู่ → ไม่ซ้อน (ตอบว่ากำลังซิงก์อยู่)
+  GOOGLE = { 'rt-p': { email: 'p@gmail.com', courses: [{ id: 'c-p', name: 'คณิต' }], work: { 'c-p': [pWork('wl2', 3)] }, subs: { 'c-p': [] } } };
+  const t = await gTables([await gRow('ip', 'up', 'rt-p')]);
+  t.integrations[0].sync_lease_until = iso(Date.now() + 60_000);   // รอบ cron จองไว้อยู่ (นาฬิกาเดียวกับฟังก์ชัน)
+  const r = await runBody(t, { integration_id: 'ip' });
+  check('ซิงก์เดี๋ยวนี้ระหว่างที่จองอยู่ → ไม่ซิงก์ซ้อน', r.body.ran === 0 && t.inbox_items.length === 0, JSON.stringify(r.body));
+  t.integrations[0].sync_lease_until = iso(Date.now() - 1000);     // การจองที่ค้างจากรอบที่ตาย (หมดเวลาแล้ว)
+  const r2 = await runBody(t, { integration_id: 'ip' });
+  check('การจองที่หมดอายุแล้ว (รอบเก่าตายกลางทาง) → ซิงก์ต่อได้', r2.body.ran === 1 && inboxFor(t, 'wl2').length === 1, JSON.stringify(r2.body));
+}
+{
+  // ล้มกลางรอบ → ต้องคืนการจองด้วย ไม่งั้นบัญชีนั้นหยุดซิงก์จนกว่าการจองจะหมดอายุ
+  GOOGLE = { 'rt-p': { email: 'p@gmail.com', tokenError: 'server_error' } };
+  const t = await gTables([await gRow('ip', 'up', 'rt-p')]);
+  await rerun(t);
+  check('รอบที่ล้ม → คืนการจอง', t.integrations[0].sync_lease_until == null && t.integrations[0].status === 'error', JSON.stringify([t.integrations[0].sync_lease_until, t.integrations[0].status]));
+}
+{
+  // หลายบัญชีต้องซิงก์ขนานกัน — บัญชีใหญ่ (ช้า) ไม่ถ่วงบัญชีอื่น
+  GOOGLE = {};
+  const rows = [];
+  for (const k of ['a', 'b', 'c']) {
+    GOOGLE['rt-' + k] = { email: k + '@gmail.com', courses: [{ id: 'c-' + k, name: 'วิชา' }], work: { ['c-' + k]: [pWork('w' + k, 3)] }, subs: {} };
+    rows.push(await gRow('i' + k, 'u' + k, 'rt-' + k));
+  }
+  GOOGLE_DELAY = { 'rt-a': 30, 'rt-b': 30, 'rt-c': 30 };
+  maxInFlight = 0;
+  const t = await gTables(rows);
+  await rerun(t);
+  GOOGLE_DELAY = {};
+  check('หลายบัญชี → ซิงก์ขนานกัน (คำขอ Google ค้างพร้อมกัน > 1)', maxInFlight > 1, 'maxInFlight=' + maxInFlight);
+  check('หลายบัญชี → ทุกบัญชีได้งานของตัวเอง', ['a', 'b', 'c'].every(k => t.inbox_items.some(x => x.user_id === 'u' + k && x.meta.sourceId === 'c-' + k + ':w' + k)), JSON.stringify(t.inbox_items.map(x => [x.user_id, x.meta.sourceId])));
 }
 GOOGLE = null;
 

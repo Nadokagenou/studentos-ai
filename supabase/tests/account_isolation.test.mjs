@@ -28,6 +28,7 @@ await db.exec(`
   grant usage on schema auth to anon, authenticated;
   grant execute on function auth.uid() to anon, authenticated;
   grant usage on schema public to anon, authenticated;
+  create publication supabase_realtime;
 `);
 for (const f of ['20260823120000_user_state.sql', '20260823120100_push_subscriptions.sql',
   '20260823220000_push_sent.sql', '20260823120200_line.sql', '20260917090000_integrations.sql',
@@ -41,6 +42,9 @@ for (const f of ['20260823120000_user_state.sql', '20260823120100_push_subscript
   }
   await db.exec(mig(f));
 }
+const EVERYMIN = '20261016150000_sync_every_minute.sql';
+const hasEveryMin = fs.existsSync(path.join(here, '..', 'migrations', EVERYMIN));
+if (hasEveryMin) { await db.exec(mig(EVERYMIN)); await db.exec(mig(EVERYMIN)); }   // รันซ้ำได้
 const HARDEN = '20261016140000_account_isolation_hardening.sql';
 const hasHarden = fs.existsSync(path.join(here, '..', 'migrations', HARDEN));
 if (hasHarden) await db.exec(mig(HARDEN));
@@ -109,6 +113,14 @@ const c2 = await as(B, `select public.cleanup_integrations()`);
 check('ผู้ใช้ทั่วไปเรียก cleanup_integrations ไม่ได้', !!c2.error, JSON.stringify(c2));
 const c3 = await db.query(`select public.cleanup_integrations()`).then(() => ({ ok: true }), e => ({ error: e.message }));
 check('เจ้าของฟังก์ชัน (pg_cron = postgres) ยังเรียกได้', c3.ok === true, JSON.stringify(c3));
+
+// ---- ซิงก์ทุกนาที + realtime ----
+const col = (await db.query("select count(*)::int c from information_schema.columns where table_name='integrations' and column_name='sync_lease_until'")).rows[0].c;
+check('integrations มีคอลัมน์ sync_lease_until (ต้องมีก่อน deploy ฟังก์ชันที่จองแถว)', col === 1, col);
+const pub = (await db.query("select count(*)::int c from pg_publication_tables where pubname='supabase_realtime' and tablename='inbox_items'")).rows[0].c;
+check('inbox_items อยู่ใน publication ของ realtime ครั้งเดียว (รัน migration ซ้ำแล้ว)', pub === 1, pub);
+const leaseB = await as(B, "update integrations set sync_lease_until = now() returning id");
+check('B จองแถวการเชื่อมของ A ไม่ได้', n(leaseB) === 0 || !!leaseB.error, JSON.stringify(leaseB));
 
 const pass = results.filter(r => r.pass).length;
 for (const r of results) console.log((r.pass ? 'PASS  ' : 'FAIL  ') + r.name + (r.pass ? '' : '   → ' + (r.detail || '')));

@@ -117,9 +117,41 @@ async function unlinkLineRoom(roomId) {
 // สองรอบอ่านแถวชุดเดียวกันก่อนอีกรอบจะมาร์ค consumed → ข้อความ LINE เดียวเข้ากล่องสองครั้ง
 // รอบที่สองที่มาระหว่างรอบแรกยังไม่จบ รอผลรอบแรกแทน
 let inboxPullBusy = null;
+// 16 ต.ค. 69 · มีคนขอดึงระหว่างที่รอบหนึ่งกำลังดึงอยู่ (งานเข้ามาทาง realtime ตอนนั้นพอดี)
+// รอบที่กำลังดึงอาจอ่านแถวไปก่อนแถวใหม่จะเข้า — จดไว้แล้วดึงต่ออีกรอบเดียวหลังรอบนี้จบ ไม่ทิ้งให้รอ 45 วิ
+let inboxPullAgain = false;
 function pullInbox() {
-  if (!inboxPullBusy) inboxPullBusy = pullInboxOnce().finally(() => { inboxPullBusy = null; });
+  inboxLiveEnsure();
+  if (inboxPullBusy) { inboxPullAgain = true; return inboxPullBusy; }
+  inboxPullBusy = pullInboxOnce().finally(() => {
+    inboxPullBusy = null;
+    if (inboxPullAgain) { inboxPullAgain = false; pullInbox(); }
+  });
   return inboxPullBusy;
+}
+
+// ---------- รับงานทันทีที่เข้ากล่องเข้า (Supabase Realtime) ----------
+// 16 ต.ค. 69 · เจ้าของ: "ขอส่งแล้วเข้าเลย" — เดิมแอปที่เปิดอยู่รู้ว่ามีงานจาก Classroom/LINE เข้ามาก็ต่อเมื่อถึงรอบ 45 วิ
+// ตอนนี้ฟังการ INSERT ของ inbox_items แล้วดึงทันที (รอบ 45 วิยังอยู่ เป็นทางสำรองตอนช่องหลุด)
+// ช่องกรองด้วย user_id ของบัญชีนี้ และ realtime ใช้ RLS ของตารางอีกชั้น — ไม่มีทางได้ยินแถวของคนอื่น
+// ช่องผูกกับบัญชี: สลับบัญชี = ปิดช่องเดิมเปิดช่องใหม่ · ออกจากระบบ = ปิด · สัญญาณค้างจากช่องเก่าไม่ทำให้ดึง
+// เรียกซ้ำได้ทุกครั้ง (pullInbox เรียกทุกรอบ) — ไม่เปิดช่องซ้ำ เพราะโควตา realtime นับจำนวนช่องที่เปิดพร้อมกัน
+let inboxLive = null, inboxLiveUid = null;
+function inboxLiveEnsure() {
+  const uid = (typeof currentUser !== 'undefined' && currentUser && currentUser.id) || null;
+  if (inboxLive && inboxLiveUid === uid) return;
+  inboxLiveStop();
+  if (!uid || typeof sb === 'undefined' || !sb || typeof sb.channel !== 'function') return;
+  inboxLiveUid = uid;
+  inboxLive = sb.channel('inbox:' + uid)
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'inbox_items', filter: 'user_id=eq.' + uid },
+      () => { if (currentUser && currentUser.id === uid) pullInbox(); })
+    .subscribe();
+}
+function inboxLiveStop() {
+  if (inboxLive) { try { sb.removeChannel(inboxLive); } catch (_) {} }
+  inboxLive = null; inboxLiveUid = null;
 }
 
 // ตัวเชื่อมที่ผู้ใช้ปิดไว้ — คืนเป็นรายการสำหรับ PostgREST `in.(…)` (id เป็นคำล้วน ๆ ทุกตัว)

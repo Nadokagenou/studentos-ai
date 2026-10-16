@@ -2008,6 +2008,8 @@ async function logout() {
   await pushForgetDevice();
   // ส่งของที่ค้างขึ้นบัญชีนี้ก่อนออก — หลัง signOut ส่งไม่ได้แล้ว (ส่งไม่ทันก็ยังอยู่ในที่สำรองของบัญชีนี้)
   try { await withTimeout(Promise.resolve(pushToCloud(true)), 4000, 'ส่งข้อมูลก่อนออก'); } catch (_) {}
+  // ช่องรับงานสดของบัญชีนี้ — ปิดก่อนออก (ดู inboxLiveEnsure ใน linelink.js)
+  if (typeof inboxLiveStop === 'function') inboxLiveStop();
   try { if (sb) await sb.auth.signOut(); } catch (_) {}
   currentUser = null; lastSync = null;
   // 16 ต.ค. 69 · ของบัญชีนี้ต้องไม่ค้างให้คนถัดไปที่ใช้เครื่องเห็น หรือติดไปบัญชีถัดไป — เก็บเข้าที่สำรอง แล้วเครื่องเปล่า

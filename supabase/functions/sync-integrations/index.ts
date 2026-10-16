@@ -36,6 +36,53 @@ const BATCH = 10;
 const BACKOFF_MIN = [30, 120, 480, 1440];
 const NORMAL_GAP_MIN = 30;
 
+// ============================================================
+// 16 ต.ค. 69 · Classroom ซิงก์ทุก 1 นาที (เจ้าของ: "ขอส่งแล้วเข้าเลย")
+// ------------------------------------------------------------
+// Google ไม่มีช่องทางแจ้งทันที — Pub/Sub ของ Classroom เองก็ "ปกติภายในไม่กี่นาที" ตามเอกสาร
+// การถามทุกนาทีจึงเร็วที่สุดที่ทำได้จริง · ปฏิทิน (ICS/Calendar) ยังทุก 30 นาทีเหมือนเดิม
+//
+// ราคาของการถามถี่ ต้องจ่ายสามอย่าง และแต่ละอย่างมีตัวกันของมัน:
+//   1. รอบซ้อนกัน — บัญชี 23 ห้องใช้ ~20 วิ ทุกนาทีจึงมีวันที่รอบใหม่เริ่มก่อนรอบเก่าจบ สองรอบซิงก์บัญชี
+//      เดียวกันพร้อมกัน = กล่องเข้าได้งานใบเดียวกันสองแถว (เทสต์จับได้จริง) → จองแถวก่อนซิงก์ (sync_lease_until)
+//   2. บัญชีใหญ่ถ่วงบัญชีอื่น → ซิงก์ขนานกันทีละ SYNC_PARALLEL บัญชี
+//   3. รอบถัดไปต้องไม่หลุดรอบ cron → นัดเทียบกับนาทีที่รอบนี้ "เริ่ม" ลบ 1 วิ ไม่ใช่เทียบกับตอนเสร็จ
+// ============================================================
+const GAP_MIN: Record<string, number> = { google_classroom: 1 };
+const gapFor = (provider: string) => GAP_MIN[provider] ?? NORMAL_GAP_MIN;
+const LEASE_MS = 3 * 60_000;   // รอบที่ตายกลางทางคืนแถวเองหลังนี้ · ยาวกว่ารอบที่ช้าที่สุดที่วัดได้ (~25 วิ) หลายเท่า
+const SYNC_PARALLEL = 4;
+
+/** นัดรอบถัดไปให้ตรงกับรอบ cron: ต้นนาทีที่รอบนี้เริ่ม + gap − 1 วิ · ไม่ขึ้นกับว่ารอบนี้เริ่มช้าหรือนานแค่ไหน */
+function nextTickAt(runStart: number, gapMin: number): string {
+  return new Date(Math.floor(runStart / 60_000) * 60_000 + gapMin * 60_000 - 1000).toISOString();
+}
+
+/** จองแถวก่อนซิงก์ · คืน false เมื่อมีรอบอื่นจองอยู่และยังไม่หมดอายุ (นาฬิกาเดียวกันทั้งตอนตั้งและตอนเทียบ) */
+async function claimRow(id: string): Promise<boolean> {
+  const now = Date.now();
+  const { data, error } = await db.from('integrations')
+    .update({ sync_lease_until: new Date(now + LEASE_MS).toISOString() })
+    .eq('id', id)
+    .or(`sync_lease_until.is.null,sync_lease_until.lt.${new Date(now).toISOString()}`)
+    .select('id');
+  if (error) throw error;
+  return !!(data && data.length);
+}
+async function releaseRow(id: string): Promise<void> {
+  await db.from('integrations').update({ sync_lease_until: null }).eq('id', id);
+}
+
+/** ทำงานพร้อมกันไม่เกิน limit ชิ้น · คืนผลตามลำดับเดิม */
+async function inPool<T, R>(items: T[], limit: number, fn: (x: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (i < items.length) { const k = i++; out[k] = await fn(items[k]); }
+  }));
+  return out;
+}
+
 type Row = {
   id: string; user_id: string; provider: string; account: string;
   secret: string | null; meta: Record<string, unknown>; fail_count: number;
@@ -44,6 +91,7 @@ type Row = {
   // รอบนี้เป็นการซิงก์ครั้งแรกของการเชื่อมเส้นนี้ไหม — ต้องอ่านก่อนที่ syncOne
   // จะเขียน last_sync_at ทับ ไม่งั้นทุกอย่างดูเหมือนไม่ใช่ครั้งแรกไปหมด
   first_sync?: boolean;
+  run_start?: number;   // เวลาที่รอบนี้เริ่ม — ใช้นัดรอบถัดไปให้ตรงกับรอบ cron (nextTickAt)
 };
 
 Deno.serve(async (req) => {
@@ -71,10 +119,14 @@ Deno.serve(async (req) => {
     const { data, error } = await q;
     if (error) throw error;
 
-    const out = [];
-    for (const row of (data || []) as Row[]) {
-      out.push(await syncOne({ ...row, first_sync: !row.last_sync_at }));
-    }
+    const runStart = Date.now();
+    const ran = await inPool((data || []) as Row[], SYNC_PARALLEL, async row => {
+      // อีกรอบกำลังซิงก์บัญชีนี้อยู่ — ปล่อยให้รอบนั้นทำ ไม่ซ้อน (ดูหัวข้อ "ซิงก์ทุก 1 นาที")
+      if (!(await claimRow(row.id))) return null;
+      try { return await syncOne({ ...row, first_sync: !row.last_sync_at, run_start: runStart }); }
+      finally { await releaseRow(row.id).catch(() => {}); }
+    });
+    const out = ran.filter(r => r !== null);
     const okCount = out.filter(r => r.status === 'ok' || r.status === 'unchanged').length;
     return json(trusted
       ? { ok: true, ran: out.length, results: out }
@@ -120,7 +172,7 @@ async function syncOne(row: Row) {
     if (res.unchanged) {
       await db.from('integrations').update({
         last_sync_at: new Date().toISOString(),
-        next_sync_at: minutesFromNow(NORMAL_GAP_MIN),
+        next_sync_at: nextTickAt(row.run_start ?? t0, gapFor(row.provider)),
         status: 'active', error_msg: null, fail_count: 0,
         meta: { ...row.meta, last_run: done('unchanged') },
       }).eq('id', row.id);
@@ -131,7 +183,7 @@ async function syncOne(row: Row) {
 
     await db.from('integrations').update({
       last_sync_at: new Date().toISOString(),
-      next_sync_at: minutesFromNow(NORMAL_GAP_MIN),
+      next_sync_at: nextTickAt(row.run_start ?? t0, gapFor(row.provider)),
       status: 'active', error_msg: null, fail_count: 0,
       meta: { ...row.meta, ...res.meta,
         last_run: done('ok', { tasks: res.tasks.length, delivered: sent.sent, push: sent.push }) },

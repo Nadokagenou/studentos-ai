@@ -29,11 +29,23 @@ export function makeDb(tables, log) {
     const rows = () => tables[name] || (tables[name] = []);
     const st = { sel: '*', filters: [], limit: null, order: null, op: null, payload: null, conflict: null };
     const api = {
-      select(s) { if (s) st.sel = s; return api; },
+      select(s) { if (s) st.sel = s; st.selected = true; return api; },
       eq(c, v) { st.filters.push(r => r[c] === v); return api; },
       in(c, list) { const s = new Set(list); st.filters.push(r => s.has(r[c])); return api; },
       lte(c, v) { st.filters.push(r => String(r[c]) <= String(v)); return api; },
       gte(c, v) { st.filters.push(r => String(r[c]) >= String(v)); return api; },
+      // รูปเดียวที่ฟังก์ชันใช้: "col.is.null,col.lt.<iso>" (ทางเลือกแบบ OR ของ PostgREST)
+      or(expr) {
+        const parts = String(expr).split(',').map(x => x.split('.'));
+        st.filters.push(r => parts.some(([c, op, ...rest]) => {
+          const v = rest.join('.');
+          if (op === 'is' && v === 'null') return r[c] == null;
+          if (op === 'lt') return r[c] != null && String(r[c]) < v;
+          if (op === 'lte') return r[c] != null && String(r[c]) <= v;
+          return false;
+        }));
+        return api;
+      },
       not(c, op, v) {
         if (op === 'is' && v === null) st.filters.push(r => r[c] != null);
         return api;
@@ -73,7 +85,8 @@ export function makeDb(tables, log) {
 
         if (st.op === 'update') {
           for (const r of out) Object.assign(r, st.payload);
-          return { data: null, error: null };
+          // update().select() คืนแถวที่ถูกแก้ (ใช้จองแถวแบบมีเงื่อนไข)
+          return { data: st.selected ? out.map(r => pick(r, st.sel)) : null, error: null };
         }
 
         if (st.op === 'delete') {
