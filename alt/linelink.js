@@ -113,22 +113,45 @@ async function unlinkLineRoom(roomId) {
 // ท่อนี้ไม่ได้เป็นของ LINE อย่างเดียวแล้ว: ตัวซิงก์ฝั่งเซิร์ฟเวอร์ (sync-integrations)
 // หย่อนงานจาก Classroom และปฏิทินของโรงเรียนลงตารางเดียวกันนี้ · แถวที่มีธง
 // meta.structured คือของที่มีโครงมาจาก API แล้ว ต้องไม่เอาไปให้ตัวแกะข้อความเดาใหม่
-async function pullInbox() {
+// 16 ต.ค. 69 · กลับเข้าแอปทีเดียวเคยยิงสองทางพร้อมกัน (ตัวฟังข้างล่าง + syncFromCloud)
+// สองรอบอ่านแถวชุดเดียวกันก่อนอีกรอบจะมาร์ค consumed → ข้อความ LINE เดียวเข้ากล่องสองครั้ง
+// รอบที่สองที่มาระหว่างรอบแรกยังไม่จบ รอผลรอบแรกแทน
+let inboxPullBusy = null;
+function pullInbox() {
+  if (!inboxPullBusy) inboxPullBusy = pullInboxOnce().finally(() => { inboxPullBusy = null; });
+  return inboxPullBusy;
+}
+
+// ตัวเชื่อมที่ผู้ใช้ปิดไว้ — คืนเป็นรายการสำหรับ PostgREST `in.(…)` (id เป็นคำล้วน ๆ ทุกตัว)
+function inboxOffSources() {
+  const off = (typeof state !== 'undefined' && state.settings && state.settings.srcOff) || {};
+  return Object.keys(off).filter(k => off[k] && /^[\w-]+$/.test(k));
+}
+
+async function pullInboxOnce() {
   if (!lineReady()) return 0;
-  const { data, error } = await sb.from('inbox_items')
+  // 16 ต.ค. 69 · กรองตัวเชื่อมที่ปิดไว้ตั้งแต่ใน query — เดิมดึง 50 แถวเก่าสุดแล้วค่อยข้ามข้างล่าง
+  // แถวที่ข้ามไม่เคยถูกมาร์ค consumed (ตั้งใจ ดูหมายเหตุในลูป) จึงค้างเป็น 50 แถวเก่าสุดตลอดไป
+  // ปิด Classroom ไว้แล้วมีงานค้างครบ 50 ใบเมื่อไหร่ ข้อความ LINE ใหม่ทุกข้อความหลังจากนั้นไม่เคยถูกอ่านอีกเลย
+  // (source เป็น not null ในตาราง — not in ไม่ต้องกันกรณีค่าว่าง)
+  const off = inboxOffSources();
+  let q = sb.from('inbox_items')
     .select('id, source, raw, meta, created_at')
-    .eq('consumed', false)
+    .eq('consumed', false);
+  if (off.length) q = q.not('source', 'in', `(${off.join(',')})`);
+  const { data, error } = await q
     .order('created_at', { ascending: true })
     .limit(50);
   if (error || !data || !data.length) return 0;
 
-  const tally = { added: 0, updated: 0, cancelled: 0 };
+  const tally = { added: 0, updated: 0, cancelled: 0, turnedIn: 0 };
   const done = [];
   for (const row of data) {
     const src = row.source || 'line';
     // ปิดตัวเชื่อมไว้ = ไม่แตะแถวนั้นเลย ไม่ใช่ดึงมาแล้วทิ้ง
     // ทิ้งแล้วมาร์คว่าใช้แล้ว = ของช่วงที่ปิดไว้หายถาวร ต่อให้เปิดกลับมาทีหลังก็ไม่ได้คืน
     // (เดิมเช็คแค่ 'line' ตัวเดียวตายตัว ซึ่งจะบล็อกตัวเชื่อมอื่นทั้งหมดไปด้วย)
+    // query ข้างบนกรองไปแล้ว — บรรทัดนี้กันกรณีปิดตัวเชื่อมระหว่างที่คำขอยังวิ่งอยู่
     if (typeof srcEnabled === 'function' && !srcEnabled(src)) continue;
 
     const meta = row.meta || {};
@@ -139,11 +162,12 @@ async function pullInbox() {
     if (r.status === 'accepted' || r.status === 'pending') tally.added++;
     else if (r.status === 'updated') tally.updated++;
     else if (r.status === 'cancelled') tally.cancelled++;
+    else if (r.status === 'turnedIn') tally.turnedIn++;
     done.push(row.id);
   }
   if (done.length) await sb.from('inbox_items').update({ consumed: true }).in('id', done);
 
-  const total = tally.added + tally.updated + tally.cancelled;
+  const total = tally.added + tally.updated + tally.cancelled + tally.turnedIn;
   if (total) {
     renderAll();
     showToast(inboxPullToast(tally));
@@ -159,17 +183,22 @@ function inboxPullToast(t) {
   if (t.cancelled) {
     return {
       title: `ครูยกเลิกงาน ${t.cancelled} ใบ`,
-      body: 'ย้ายไปถังขยะแล้ว',
+      body: t.turnedIn ? `ย้ายไปถังขยะแล้ว · ส่งงานแล้วอีก ${t.turnedIn} ใบ` : 'ย้ายไปถังขยะแล้ว',
     };
   }
-  if (t.updated && !t.added) {
+  // 16 ต.ค. 69 · นักเรียนกดส่งงานใน Classroom แล้ว — เดิมรวมอยู่กับ "ครูยกเลิกงาน" ซึ่งผิดความหมายตรงข้าม
+  if (t.turnedIn && !t.added && !t.updated) {
+    return { title: `ส่งงานใน Classroom แล้ว ${t.turnedIn} ใบ`, body: 'ติ๊กเสร็จให้แล้ว' };
+  }
+  if (t.updated && !t.added && !t.turnedIn) {
     return { title: `งานถูกแก้ ${t.updated} ใบ`, body: 'อัปเดตกำหนดส่งแล้ว' };
   }
   const bits = [];
   if (t.added) bits.push(`ของใหม่ ${t.added} รายการ`);
   if (t.updated) bits.push(`แก้ไข ${t.updated} รายการ`);
+  if (t.turnedIn) bits.push(`ส่งแล้ว ${t.turnedIn} ใบ`);
   return {
-    title: 'มีงานเข้ามาใหม่ · ' + bits.join(' · '),
+    title: (t.added ? 'มีงานเข้ามาใหม่ · ' : 'อัปเดตงาน · ') + bits.join(' · '),
     body: wait ? `รอตรวจ ${wait} รายการ`
                : 'เข้าแผนแล้ว',
   };
