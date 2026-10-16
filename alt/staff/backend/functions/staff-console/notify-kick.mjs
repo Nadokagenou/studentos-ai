@@ -1,6 +1,6 @@
 export function createNotifyKick({ url, key, fetcher = fetch, waitUntil, warn = console.warn }) {
   return (action, payload, result) => {
-    if (result?.duplicate || !(action === 'grant' || (action === 'publish' && payload.push))) return;
+    if (result?.duplicate || !(['grant','deduct','ban','unban'].includes(action) || (action === 'publish' && payload.push))) return;
     const task = (async () => {
       try {
         const response = await fetcher(url + '/functions/v1/staff-notify', {

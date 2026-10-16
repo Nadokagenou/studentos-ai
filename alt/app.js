@@ -13,6 +13,8 @@
 
 const APP_VERSION = '1C59';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
+// รับการแจ้งเตือนจากแอปหลักที่เดียว ไม่แก้ค่าตั้งร่วมที่ซิงก์ไปแอปหลัก
+const ALT_SYSTEM_NOTIFICATIONS = false;
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -7938,6 +7940,12 @@ function renderProfile() {
     ('Notification' in window && Notification.permission === 'granted') ? 'block' : 'none';
   renderNotifPrefs();
   if (!st) return;
+  if (!ALT_SYSTEM_NOTIFICATIONS) {
+    st.textContent = pushErr ? 'ยังหยุดแจ้งเตือน ALT ไม่สำเร็จ · เปิด ALT ออนไลน์แล้วลองใหม่' : 'รับแจ้งเตือนจากแอปหลักเท่านั้น · ALT ไม่ส่งซ้ำ';
+    if (ntest) ntest.style.display = 'none';
+    if (nb) { nb.style.display = pushErr ? 'block' : 'none'; nb.textContent = 'ลองใหม่'; }
+    return;
+  }
   if (!('Notification' in window)) {
     if (isIOS() && !isStandalone()) {
       st.textContent = 'ต้องติดตั้งเป็นแอปก่อน';
@@ -12638,10 +12646,27 @@ let formUserStars = 0; // 0 = ให้ AI จัดให้
 let formType = 'homework';
 let formFromScan = false;  // งานใบที่กำลังกรอกอยู่ มาจาก AI อ่านให้หรือพิมพ์เอง (ดู openForm)
 
+// ---- 16 ต.ค. 69 · เพิ่มงานใหม่ด้วยมือ = สองขั้น (เจ้าของส่งคลิป "ฟอร์ม 10 ข้อ vs 3 ข้อ" มา) ----
+// ทุกช่องที่ต้องกรอกคือต้นทุนของคนกรอก ยิ่งยาวยิ่งเลิกกลางทาง (Interaction Cost)
+// จึงถามเท่าที่จำเป็นก่อน แล้วค่อยขอที่เหลือ (Progressive Disclosure) · คนที่กดบันทึกไปแล้ว
+// ยอมตอบเพิ่มอีกนิดง่ายกว่าคนที่ยังไม่ได้เริ่ม (Foot-in-the-door)
+//   0 = ไม่มีขั้น (แก้งานเดิม · ตรวจผล AI) ทุกบล็อกโผล่ครบเหมือนเดิม
+//   1 = งานอะไร + ส่งเมื่อไหร่ · กดบันทึก = งานเข้าแผนจริงทันที
+//   2 = ประเภท · วิชา · เวลา · รายละเอียด ของงานใบที่เพิ่งบันทึก · ข้ามได้ทั้งขั้น
+let formStep = 0;
+let formBaseType = 'homework';  // ประเภทที่ทางเข้าเลือกไว้ (ปุ่ม "เพิ่มวันสอบ" = exam) — ใช้เมื่อชื่องานไม่บอกประเภท
+let formParsing = false;        // setTypePick ที่ถูกเรียกจากตัวแกะ ไม่นับเป็นค่าตั้งต้นของทางเข้า
+let formParseT = 0;
+let formDueUser = false;        // คนแตะแถววันส่งเอง = ตัวแกะห้ามทับ
+let formDueAuto = false;        // วันส่งในช่องตอนนี้มาจากตัวแกะ (ลบคำออกแล้วต้องคืนค่าเดิม)
+let formDoAuto = false;
+let formDueDefault = null;      // { date, time } ตอนเปิดฟอร์ม
+
 // เลือกประเภท → ฟอร์มปรับหน้าตาตามธรรมชาติของสิ่งนั้น
 // (กิจกรรมไม่มีคะแนน/ครูผู้สั่ง · สอบเรียกว่า "วันสอบ" ไม่ใช่ "ส่งวันที่")
 function setTypePick(type) {
   formType = TASK_TYPES[type] ? type : 'homework';
+  if (!formParsing) formBaseType = formType;
   const ti = TASK_TYPES[formType];
   document.querySelectorAll('#typePick .tp').forEach(b =>
     b.classList.toggle('active', b.dataset.type === formType));
@@ -12650,7 +12675,8 @@ function setTypePick(type) {
   const isWork = ti.schedulable;                    // การบ้าน/สอบ = ต้องนั่งทำ
   const isHomework = formType === 'homework';
 
-  document.getElementById('fDateLabel').textContent = ti.dateLabel;
+  // ขั้น 2 วันส่งถูกตอบไปแล้วในขั้น 1 — บล็อกนี้เหลือแค่แถวเวลา หัวบล็อกจึงถามเวลา
+  document.getElementById('fDateLabel').textContent = formStep === 2 ? ti.verb + 'กี่โมง' : ti.dateLabel;
   document.getElementById('fDetailLabel').textContent =
     formType === 'exam' ? 'สอบเรื่องอะไร' : formType === 'activity' ? 'กิจกรรมอะไร' : formType === 'reminder' ? 'เรื่องอะไร' : 'งานที่ต้องทำ';
   document.getElementById('fEstLabel').textContent = formType === 'exam' ? 'ใช้เวลาอ่าน' : 'ใช้เวลา';
@@ -12906,6 +12932,102 @@ function openForm(id, parsed) {
   autoGrow(f.detail);
   // ค่ามาจาก AI/การสแกน = ช่อง "งานที่ต้องทำ" พิมพ์ตัวเองเข้ามา (typeInto) · พิมพ์เองหรือแก้งานเดิม = โผล่ครบทันที
   if (parsed) typeInto(f.detail);
+
+  // 16 ต.ค. 69 · สองขั้นเฉพาะงานใหม่ที่พิมพ์เอง — แก้งานเดิมกับตรวจผล AI มีค่าครบอยู่แล้ว ไม่มีอะไรให้ "ถามทีหลัง"
+  formDueUser = formDueAuto = formDoAuto = false;
+  formDueDefault = { date: f.date.value, time: f.time.value };
+  clearTimeout(formParseT);
+  formShowAuto([]);
+  setFormStep(!id && !parsed ? 1 : 0);
+}
+
+function setFormStep(n) {
+  formStep = n;
+  const scr = document.getElementById('scr-form');
+  scr.classList.toggle('fm-s1', n === 1);
+  scr.classList.toggle('fm-s2', n === 2);
+  const badge = document.getElementById('fmStep');
+  if (badge) { badge.hidden = !n; badge.textContent = 'ขั้น ' + n + '/2'; }
+  const t = document.getElementById('fmSaveT');
+  if (t) t.textContent = n === 2 ? 'เสร็จ' : 'บันทึกเข้าแผน';
+  const skip = document.getElementById('fmSkip');
+  if (skip) skip.hidden = n !== 2;
+  if (n === 2) document.getElementById('formTitle').textContent = 'บอกเพิ่มอีกนิดไหม';
+  formParsing = true;      // แค่วาดหัวบล็อกใหม่ (วันส่ง ↔ เวลาส่ง) ไม่ได้เปลี่ยนประเภทที่ทางเข้าเลือกไว้
+  setTypePick(formType);
+  formParsing = false;
+}
+
+// Enter = บันทึกในขั้น 1 (ชื่องานบรรทัดเดียวพอ — Shift+Enter ยังขึ้นบรรทัดใหม่ได้)
+// ฟอร์มแบบเต็มยังเป็น Ctrl/Cmd+Enter เพราะข้อความจาก OCR หลายบรรทัดต้องกด Enter ได้
+function formDetailKey(e) {
+  if (e.key !== 'Enter' || e.isComposing) return;
+  if (e.ctrlKey || e.metaKey || (formStep === 1 && !e.shiftKey)) {
+    e.preventDefault();
+    saveForm();
+  }
+}
+
+// ---- แกะชื่องานระหว่างพิมพ์ (ขั้น 1 เท่านั้น) ----
+// "สอบคณิต ศุกร์นี้" = ประเภทสอบ · วิชาคณิต · วันศุกร์ ลงช่องให้เลย ไม่ต้องไปเลือกเองในขั้น 2
+// ตัวแกะตัวเดียวกับข้อความที่แปะ/พูด (parseAssignment) · ชื่องานเก็บตามที่พิมพ์ ไม่ถูกตัดคำ
+// วันส่งที่คนแตะเลือกเองชนะเสมอ · ลบคำที่บอกวันออก = วันกลับเป็นค่าตอนเปิดฟอร์ม
+function formLiveParse() {
+  if (formStep !== 1 || typeof parseAssignment !== 'function') return;
+  clearTimeout(formParseT);
+  formParseT = setTimeout(formApplyParse, 200);
+}
+function formApplyParse() {
+  if (formStep !== 1) return;
+  const txt = ((document.getElementById('fDetail') || {}).value || '').trim();
+  let p = null;
+  try { p = txt ? parseAssignment(txt, new Date()) : null; } catch (_) { p = null; }
+  const d = (p && p.detected) || {};
+  const sel = document.getElementById('fSubject');
+  if (sel) sel.value = d.subject ? p.subject : 'อื่น ๆ';
+  formParsing = true;
+  setTypePick(d.type ? p.type : formBaseType);
+  formParsing = false;
+  const est = document.getElementById('fEst');
+  if (est) est.value = (d.est || d.type) && p.estMin ? p.estMin : 30;
+
+  const fDate = document.getElementById('fDate'), fTime = document.getElementById('fTime');
+  if (!formDueUser) {
+    if (d.due && p.due) {
+      const due = new Date(p.due);
+      fDate.value = dateInputValue(due);
+      fTime.value = String(due.getHours()).padStart(2, '0') + ':' + String(due.getMinutes()).padStart(2, '0');
+      formDueAuto = true;
+      dueCustom = false;
+    } else if (formDueAuto && formDueDefault) {
+      fDate.value = formDueDefault.date;
+      fTime.value = formDueDefault.time;
+      formDueAuto = false;
+    }
+  }
+  if (d.doAt && p.doAt) { fillDoForm(p.doAt); formDoAuto = true; }
+  else if (formDoAuto) { fillDoForm(null); formDoAuto = false; }
+
+  // ป้ายเฉพาะสิ่งที่ขั้น 1 ไม่ได้โชว์ — วันส่งมีแถว "ตามที่พิมพ์" บอกอยู่แล้ว (renderDueRows)
+  const got = [];
+  if (d.type) got.push(TASK_TYPES[p.type].name);
+  if (d.subject) got.push(p.subject);
+  if (d.doAt && p.doAt) got.push('เตือน ' + fmtClock(new Date(p.doAt)));
+  formShowAuto(got);
+  syncFormUI();
+}
+function formShowAuto(items) {
+  const box = document.getElementById('fAuto');
+  if (!box) return;
+  // ได้ชุดเดิม = ไม่วาดใหม่ ไม่งั้นป้ายเด้งซ้ำทุกตัวอักษรที่พิมพ์
+  const key = items.join('|');
+  if (box.dataset.k === key) return;
+  box.dataset.k = key;
+  box.hidden = !items.length;
+  box.innerHTML = items.length
+    ? '<span class="fa-l">จับได้จากที่พิมพ์</span>'
+      + items.map(x => `<span class="chip">${icon('check')}${esc(x)}</span>`).join('')
+    : '';
 }
 
 // ---------- ช่องที่ AI กรอกให้พิมพ์ตัวเองเข้ามา (Typewriter ของ Cult UI) ----------
@@ -13249,6 +13371,7 @@ function pickDueDate(v) {
   f.value = v;
   dueCalFor = v;
   dueCustom = true;
+  formDueUser = true;
   const glide = !!(from && moved && !matchMedia('(prefers-reduced-motion: reduce)').matches);
   dueCalPop = glide ? '' : v;
   renderDueRows();
@@ -13292,17 +13415,20 @@ function renderDueRows() {
   // กด "เลือกวันเอง" แล้ว แถวนั้นต้องเป็นแถวที่เลือก แม้วันในช่องยังตรงกับปุ่มลัดอยู่
   // (เดิมจุดเลือกค้างที่ "มะรืนนี้" ทั้งที่ปฏิทินกางแล้ว — เจ้าของ: "กดเลือกวันแล้วมันยังอยู่ปุ่มก่อนหน้า")
   const hit = dueCustom ? null : presets.find(p => p.v === f.value);
+  // 16 ต.ค. 69 · วันที่แกะได้จากชื่องานในขั้น 1 (formApplyParse) — บอกเป็นแถวที่เลือกอยู่ ไม่กางปฏิทิน
+  // กางแล้วขั้นที่ตั้งใจให้สั้นที่สุดยาวเกินจอทันที · แตะแถวนี้ = เลือกวันเองตามปกติ
+  const autoQuiet = formStep === 1 && formDueAuto && !dueCustom && !hit;
   box.innerHTML = presets.map(p =>
     `<button type="button" class="pk${hit === p ? ' on' : ''}" onclick="pickDue(${p.n})">`
     + `<span class="pk-dot"></span>${p.label}<span class="pk-s">${p.sub}</span></button>`).join('')
     + `<button type="button" class="pk${hit ? '' : ' on'}" onclick="pickDueCustom()">`
-    + `<span class="pk-dot"></span>เลือกวันเอง`
+    + `<span class="pk-dot"></span>${autoQuiet ? 'ตามที่พิมพ์' : 'เลือกวันเอง'}`
     + (!hit && f.value ? `<span class="pk-s">${esc(thaiDateShort(f.value))}</span>` : '') + `</button>`;
   // ปฏิทินโผล่เมื่อคนขอเอง หรือเมื่อวันที่ในใบไม่ตรงกับปุ่มลัดอันไหนเลย
   // (รวมถึงตอนที่ OCR เดาวันมาแล้วไม่มั่นใจ — .unsure ตีกรอบไว้ที่กล่องนี้)
   if (exact) {
     const wasHidden = exact.hidden;
-    exact.hidden = !(dueCustom || !hit || exact.classList.contains('unsure'));
+    exact.hidden = autoQuiet || !(dueCustom || !hit || exact.classList.contains('unsure'));
     if (!exact.hidden) {
       renderDueCal();
       // เพิ่งกางออก = ท่าเข้าครั้งเดียว · วาดซ้ำตอนพิมพ์ช่องอื่นไม่เล่นซ้ำ
@@ -13321,6 +13447,7 @@ function pickDue(n) {
   const f = document.getElementById('fDate');
   if (!f) return;
   dueCustom = false;
+  formDueUser = true;
   f.value = dateInputValue(addDays(new Date(), n));
   renderDueRows();
   updateFormSummary();
@@ -13328,6 +13455,7 @@ function pickDue(n) {
 
 function pickDueCustom() {
   dueCustom = true;
+  formDueUser = true;
   dueCalView = null;   // เปิดใหม่ทุกครั้งที่เดือนของค่าปัจจุบัน (หรือเดือนนี้ถ้ายังไม่มีค่า)
   renderDueRows();
   // เดิมเรียก showPicker() เปิดป๊อปอัปของเบราว์เซอร์ — ตอนนี้ปฏิทินกางอยู่ในฟอร์มแล้ว แค่เลื่อนให้เห็นทั้งก้อน
@@ -13723,18 +13851,31 @@ function saveForm() {
     funnelTask(viaInbox ? 'inbox' : formFromScan ? 'scan' : 'manual');
     // มาจากแจ้งเตือนที่รอตรวจ = ปิดรายการในกล่องเข้าให้ชี้มาที่งานใบนี้ (inbox.js)
     if (typeof inboxFormSaved === 'function') inboxFormSaved(nt);
+    // 16 ต.ค. 69 · ขั้น 1 → บันทึกจริงแล้วค้างอยู่ในจอเดิมเป็นขั้น 2 ของงานใบนี้
+    // ปิดจอ/ข้ามตอนนี้ = งานอยู่ในแผนครบแล้ว ขั้น 2 แค่แก้งานใบเดิม (editingId)
+    if (formStep === 1) {
+      save();
+      formToStep2(nt);
+      return;
+    }
   }
   const back = formReturn;
-  const wasEdit = !!target;
+  const wasEdit = !!target && formStep !== 2;
   editingId = null;
+  formStep = 0;
   save();
   go(back);
-  // QA 6 ต.ค. 69 · บันทึกแล้วต้องมีคำยืนยัน — เดิมเงียบจนไม่แน่ใจว่างานเข้าแผนหรือยัง (ลบมี toast แต่บันทึกไม่มี)
+  savedToast(data, wasEdit ? 'แก้ไขแล้ว' : 'บันทึกเข้าแผนแล้ว');
+}
+
+// QA 6 ต.ค. 69 · บันทึกแล้วต้องมีคำยืนยัน — เดิมเงียบจนไม่แน่ใจว่างานเข้าแผนหรือยัง (ลบมี toast แต่บันทึกไม่มี)
+function savedToast(data, title) {
+  const detail = data.detail || '';
   const late = data.due && new Date(data.due) < new Date();
   // ตั้งนัดไว้แต่เครื่องนี้ยังไม่อนุญาตแจ้งเตือน = นัดจะเงียบตอนปิดแอป · บอกตอนนี้ ตอนที่ยังแก้ได้
   const doMute = data.doAt && !(('Notification' in window) && Notification.permission === 'granted' && notifOn());
   setTimeout(() => showToast({
-    title: wasEdit ? 'แก้ไขแล้ว' : 'บันทึกเข้าแผนแล้ว',
+    title,
     body: doMute ? 'เปิดการแจ้งเตือนก่อน นัด ' + fmtClock(new Date(data.doAt)) + ' ถึงจะเด้ง'
       : data.doAt ? 'จะเตือนให้ทำตอน ' + fmtClock(new Date(data.doAt)) + ' · ' + detail.slice(0, 30)
       : late ? 'เลยกำหนดส่งแล้ว'
@@ -13744,11 +13885,34 @@ function saveForm() {
   }), 250);
 }
 
+function formToStep2(nt) {
+  clearTimeout(formParseT);
+  editingId = nt.id;
+  formShowAuto([]);
+  setFormStep(2);
+  const ok = document.getElementById('fmOk');
+  if (ok) {
+    ok.className = 'fm-ok';
+    void ok.offsetWidth;   // ถอดแล้วใส่ใหม่ = ท่าเด้งเล่นซ้ำ
+    ok.className = 'fm-ok show';
+    ok.innerHTML = `${icon('check-circle')}อยู่ในแผนแล้ว · ที่เหลือข้ามได้`;
+  }
+  syncFormUI();
+  const scr = document.getElementById('scr-form');
+  if (scr) scr.scrollTop = 0;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  haptic('tap');
+}
+
 // ยกเลิก = ทิ้งการแก้ทั้งหมด แล้วกลับจอที่มาจาก (ไม่ใช่เด้งไปหน้าแรกเสมอ)
 function cancelForm() {
   const back = formReturn;
+  // ขั้น 2 = งานบันทึกไปแล้วตั้งแต่ขั้น 1 · ปิด/ข้ามตอนนี้ทิ้งแค่สิ่งที่แก้ในขั้น 2
+  const kept = formStep === 2 ? state.tasks.find(x => x.id === editingId) : null;
   editingId = null;
+  formStep = 0;
   go(back);
+  if (kept) savedToast(kept, 'บันทึกเข้าแผนแล้ว');
 }
 
 // ลบจากหน้าแก้ไขงาน — แถวในรายการจึงไม่ต้องมีปุ่มถังขยะให้รกตา
@@ -15695,6 +15859,7 @@ function pushSupported() {
 }
 
 async function refreshPushState() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) { pushState = 'main_only'; return; }
   if (!pushSupported()) { pushState = 'unsupported'; return; }
   try {
     // serviceWorker.ready ไม่รีเจ็กต์เองถ้า SW ตัวเก่าติดค้างอยู่ — มันค้างเงียบ ๆ ตลอดไป
@@ -15748,6 +15913,7 @@ function subKeyMatches(sub) {
 let pushErr = '';
 
 async function subscribePush() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) return false;
   if (!pushSupported()) return false;
   // ready ค้างได้ตลอดกาลถ้า SW ตัวเก่าติดอยู่ (ดู refreshPushState) — ค้างที่นี่ = ปุ่มกดแล้วเงียบ
   const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ลงทะเบียนแจ้งเตือน');
@@ -15849,6 +16015,7 @@ function pushErrText(e) {
   return (e && e.message) ? String(e.message).slice(0, 60) : 'ไม่ทราบสาเหตุ';
 }
 async function reconnectPush() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) { await dropPush(); renderProfile(); return false; }
   let ok = false;
   try { ok = await subscribePush(); }
   catch (e) { pushErr = pushErrText(e); console.warn('[push] subscribe failed:', e); }
@@ -15881,7 +16048,7 @@ function notifPref(key) { return state.settings[key] !== false; }
 // จึงขอในจังหวะแตะครั้งแรกของวันที่ไหนก็ได้ในแอป แทนที่จะรอให้คนไปหาปุ่ม "เปิด" ในตั้งค่าเอง
 // วันละครั้งพอ: Chrome นับการปัดกล่องทิ้ง ปัดบ่อยเกินจะถูกบล็อกเอง
 // ============================================================
-function notifOn() { return state.settings.notifOff !== true; }
+function notifOn() { return ALT_SYSTEM_NOTIFICATIONS && state.settings.notifOff !== true; }
 
 const NOTIF_AUTO_KEY = 'studentos.alt.notifAutoAt';
 function autoAskReady() {
@@ -15914,6 +16081,18 @@ function autoAskNotifOpen() {
 
 // ถอน push ของเครื่องนี้ — ทั้งในเบราว์เซอร์และแถวบน cloud (ไม่งั้นเซิร์ฟเวอร์ยังยิงมาได้)
 async function dropPush() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) {
+    try {
+      const { retireAltSubscription } = await import('./notification-policy.mjs');
+      await withTimeout(retireAltSubscription({
+        serviceWorker: navigator.serviceWorker,
+        scope: new URL('./', location.href).href,
+        removeEndpoint: sb && currentUser ? endpoint => sb.from('push_subscriptions').delete().eq('endpoint', endpoint) : null,
+      }), 5000, 'หยุดแจ้งเตือน ALT');
+      pushErr = '';
+      return true;
+    } catch (e) { pushErr = 'หยุดแจ้งเตือน ALT ไม่สำเร็จ'; return false; }
+  }
   if (!pushSupported()) return;
   try {
     const reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'ปิดแจ้งเตือน');
@@ -15927,6 +16106,7 @@ async function dropPush() {
 }
 
 async function toggleNotifAll() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) { showToast({ title: 'รับแจ้งเตือนที่แอปหลัก', body: 'ALT ไม่ส่งแจ้งเตือนซ้ำ' }); return; }
   const on = !notifOn();
   state.settings.notifOff = !on;
   save();
@@ -15962,10 +16142,10 @@ function renderNotifPrefs() {
   const granted = ('Notification' in window) && Notification.permission === 'granted' && notifOn();
   const all = document.getElementById('notifAllRow'), allB = document.getElementById('notifAllBtn');
   // เครื่องที่ไม่มีระบบแจ้งเตือน (iPhone ที่ยังไม่ติดตั้ง) — แถวสถานะข้างล่างพาไปวิธีติดตั้งแทน
-  if (all) all.hidden = !('Notification' in window);
+  if (all) all.hidden = !ALT_SYSTEM_NOTIFICATIONS || !('Notification' in window);
   if (allB) allB.textContent = notifOn() ? 'เปิดอยู่' : 'ปิดอยู่';
   const row = document.getElementById('notifRow');
-  if (row) row.hidden = ('Notification' in window) && !notifOn();
+  if (row) row.hidden = ALT_SYSTEM_NOTIFICATIONS && ('Notification' in window) && !notifOn();
   for (const [key, row, btn] of [
     ['notifDue', 'prefDueRow', 'prefDueBtn'],
     ['notifPlan', 'prefPlanRow', 'prefPlanBtn'],
@@ -15980,6 +16160,7 @@ function renderNotifPrefs() {
 }
 
 async function enableNotif() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) { await dropPush(); renderProfile(); return; }
   if (!('Notification' in window)) {
     if (isIOS() && !isStandalone()) { showInstallGuide(); return; } // สาเหตุคือยังไม่ได้ติดตั้ง แก้ตรงนี้ทันที
     return;
@@ -16222,6 +16403,7 @@ async function notify(title, body, tag) {
 // (กุญแจ VAPID ไม่ตรง · แถว subscription ถูกลบ · iPhone ที่ไม่ได้ติดตั้งแอป) · send-reminders { test: true }
 const SERVER_TEST_DELAY_S = 8;
 async function testServerPush() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) return;
   showToast({ title: 'กำลังส่งจากเซิร์ฟเวอร์…', body: 'รอสักครู่' });
   let res = null, err = null;
   try {
@@ -16250,6 +16432,7 @@ async function testServerPush() {
 }
 
 async function testNotify() {
+  if (!ALT_SYSTEM_NOTIFICATIONS) return;
   if (Notification.permission !== 'granted') { enableNotif(); return; }
   if (pushState === 'on' && sb && currentUser) { testServerPush(); return; }
   const tag = 'studentos-alt-test';
@@ -17922,11 +18105,40 @@ document.addEventListener('change', e => {
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
   // มีโค้ดรุ่นใหม่เข้าคุมเมื่อไหร่ รีโหลดเองครั้งเดียว (กันแอปที่ติดตั้งไว้ค้างรุ่นเก่า)
-  let swReloaded = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
+  //
+  // 16 ต.ค. 69 · เจ้าของ: "ทำให้แอปอัปเดตเองตอนกลับเข้ามา ไม่ต้องปิดแอปทุกครั้ง"
+  // มือถือแทบไม่เคยปิดแอปจริง — แตะไอคอนคือกลับไปหน้าเดิมที่ค้างในหน่วยความจำ
+  // เบราว์เซอร์เช็ค sw.js ใหม่เฉพาะตอนเปิดหน้าใหม่ หน้าที่ค้างอยู่จึงไม่รู้เลยว่ามีรุ่นใหม่
+  // (ฟอร์มสองขั้นขึ้นเว็บแล้ว แต่มือถือเจ้าของยังเห็นของเก่าจนปัดแอปทิ้งเอง)
+  // → กลับเข้าแอปเมื่อไหร่ สั่ง update() ให้ไปเทียบ sw.js กับบนเว็บ · ไม่ตรง = ตัวใหม่ลง
+  //   skipWaiting + clients.claim (sw.js) แล้ว controllerchange ข้างล่างรีโหลดให้
+  //   ทุกการปล่อยของจึงต้องเปลี่ยนอะไรสักอย่างใน sw.js (ชื่อ CACHE) ไม่งั้นไม่มีสัญญาณ
+  // กำลังพิมพ์ค้างอยู่ = ห้ามรีโหลดใส่ ข้อความหาย · รอจนสลับออกจากแอปแล้วค่อยรีโหลดเบื้องหลัง
+  let swReloaded = false, swReloadLater = false, swCheckedAt = 0;
+  const swBusy = () => {
+    const on = document.querySelector('.screen.on');
+    if (on && on.id === 'scr-form') return true;
+    const a = document.activeElement;
+    return !!(a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT' || a.isContentEditable) && (a.value || a.textContent));
+  };
+  const swReload = () => {
     if (swReloaded) return;
     swReloaded = true;
     location.reload();
+  };
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (swBusy()) { swReloadLater = true; return; }
+    swReload();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      if (swReloadLater) swReload();
+      return;
+    }
+    // สลับแอปไปมาถี่ ๆ ไม่ต้องถามทุกครั้ง — นาทีละครั้งพอ (คำขอเดียว ไฟล์ไม่กี่ KB)
+    if (Date.now() - swCheckedAt < 60000) return;
+    swCheckedAt = Date.now();
+    navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {});
   });
 }
 

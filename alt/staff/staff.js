@@ -1,4 +1,5 @@
 import { renderIssues, renderBugs } from './report-ui.mjs';
+import { createStaffSessionStorage, STAFF_AUTH_KEY } from './staff-auth.mjs';
 const $ = (id) => document.getElementById(id);
 const esc = (v) =>
   String(v ?? "").replace(
@@ -20,13 +21,16 @@ const when = (v) =>
 const titles = {
   overview: "ภาพรวม",
   users: "ผู้ใช้งาน",
-  tokens: "เพิ่มโทเคน",
+  tokens: "โทเคนและการแบน",
   notices: "ข่าวสารและแจ้งเตือน",
   issues: "รายงานและปัญหาแอป",
   audit: "ประวัติการจัดการ",
 };
 const labels = {
   grant: "เพิ่มโทเคน",
+  deduct: "หักโทเคน",
+  ban: "แบนบัญชี",
+  unban: "ปลดแบนบัญชี",
   draft: "บันทึกร่าง",
   publish: "เผยแพร่ประกาศ",
   withdraw: "ถอนประกาศ",
@@ -36,6 +40,7 @@ const labels = {
   report_restore: "กู้คืนรายงาน",
 };
 const demo = location.pathname.endsWith("/preview.html");
+const reportWrites = new Set(['triage', 'bug_triage', 'report_trash', 'report_restore']);
 if (window.top !== window.self) {
   document.body.textContent = "กรุณาเปิด Control Room โดยตรง";
   throw Error("Embedding is disabled");
@@ -48,6 +53,7 @@ let client,
   target = null,
   busy = false;
 let pending = null;
+let staffAuth, authEpoch = 0;
 let bugPage = 0, issuePage = 0, reportBucket = 'pending', reportLoadSeq = 0;
 const data = { users: [], notices: [], issues: [], audit: [] };
 const demoUsers = Array.from({ length: 12 }, (_, i) => ({
@@ -104,8 +110,13 @@ function requestId(action, payload) {
 }
 async function api(action, payload = {}) {
   if (demo) return demoApi(action, payload);
+  // Read through the SDK so an expired access token is refreshed before use.
+  const { data: current, error } = await client.auth.getSession();
+  if (error) throw Error('ต่ออายุการเข้าสู่ระบบไม่ได้ กรุณาลองใหม่');
+  adoptSession(current.session);
   if (!session || !providerToken)
     throw Error("กรุณาเข้าสู่ระบบด้วย GitHub อีกครั้ง");
+  const epoch = authEpoch;
   const r = await fetch(
     `${window.SUPABASE_CONFIG.url}/functions/v1/staff-console`,
     {
@@ -126,9 +137,12 @@ async function api(action, payload = {}) {
   } catch {
     throw Error("หลังบ้านยังไม่พร้อมใช้งาน กรุณาตรวจการติดตั้ง staff-console");
   }
+  if (epoch !== authEpoch) throw Error('บัญชีเปลี่ยนแล้ว กรุณาเปิดรายการใหม่');
   if (!r.ok) {
-    if (r.status === 401 || r.status === 403)
+    if (r.status === 401 || r.status === 403) {
+      if (r.status === 401) staffAuth.forgetProvider();
       gate(body.error || "บัญชีนี้เข้า Control Room ไม่ได้");
+    }
     throw Error(body.error || "ทำรายการไม่ได้ กรุณาลองใหม่");
   }
   return body;
@@ -158,18 +172,33 @@ async function demoApi(action, p) {
       has_more: false,
     };
   if (action === "notices") return { items: demoNotices };
-  if (['bugs','issues','triage','bug_triage','report_trash','report_restore'].includes(action) && window.StudentOSBugDemo) return window.StudentOSBugDemo.staff(action,p);
+  if (action === 'reports' && !window.StudentOSBugDemo) {
+    const [bugs, issues] = await Promise.allSettled([
+      demoApi('bugs', { bucket: p.bucket, offset: p.bug_offset }),
+      demoApi('issues', { bucket: p.bucket, offset: p.issue_offset }),
+    ]);
+    return { ...p, bugs, issues };
+  }
+  if (['reports','bugs','issues','triage','bug_triage','report_trash','report_restore'].includes(action) && window.StudentOSBugDemo) return window.StudentOSBugDemo.staff(action,p);
   if (action === "issues") { const bucket = p.bucket || 'pending'; return { items: demoIssues.filter(x => bucket === 'trash' ? x.deleted_at : !x.deleted_at && (bucket === 'resolved' ? x.status === 'closed' : x.status !== 'closed')) }; }
   if (action === "bugs" || action === "bug_triage") return window.StudentOSBugDemo?.staff(action, p) || { items: [], open_count: 0 };
   if (action === "audit") return { items: demoAudit };
-  if (action === "grant") {
+  if (['ban','unban'].includes(action)) {
+    const u = demoUsers.find(x => x.id === p.target);
+    u.banned = action === 'ban'; u.ban_reason = p.reason;
+    u.ban_until = action === 'ban' && p.duration !== 'permanent' ? new Date(Date.now() + (p.duration === '2d' ? 2 : 1) * 86400000).toISOString() : null;
+    demoLog(action, `@${u.handle} · ${p.reason}`);
+    return { ban_until: u.ban_until };
+  }
+  if (action === "grant" || action === 'deduct') {
     const u = demoUsers.find((x) => x.id === p.target);
-    u.balance += p.amount;
+    if (action === 'deduct' && u.balance < p.amount) throw Error('ยอดโทเคนไม่พอ');
+    u.balance += (action === 'deduct' ? -1 : 1) * p.amount;
     demoAudit.unshift({
-      action: "grant",
+      action,
       amount: p.amount,
       actor_login: "demo_developer",
-      detail: `@${u.handle} +${p.amount} · ${p.reason}`,
+      detail: `@${u.handle} ${action === 'deduct' ? '-' : '+'}${p.amount} · ${p.reason}`,
       created_at: new Date().toISOString(),
     });
     return { balance: u.balance };
@@ -224,20 +253,18 @@ function auditHTML(items) {
     : empty();
 }
 function issuesHTML(items, compact = false) { return renderIssues(items, { compact, bucket: reportBucket }); }
-async function loadReports() {
-  const bucket = reportBucket, seq = ++reportLoadSeq;
-  const results = await Promise.allSettled([
-    api('bugs', { bucket, offset: bugPage * 20 }),
-    api('issues', { bucket, offset: issuePage * 20 }),
-  ]);
-  if (seq !== reportLoadSeq || bucket !== reportBucket) return;
+function currentReportView() {
+  return { bucket: reportBucket, bug_offset: bugPage * 20, issue_offset: issuePage * 20 };
+}
+function paintReports(result) {
+  const bucket = reportBucket;
   const sections = [
-    { result: results[0], list: 'bugIssueList', count: 'bugCount', prev: 'staffBugsPrev', next: 'staffBugsNext', page: bugPage, render: items => renderBugs(items, bucket) },
-    { result: results[1], list: 'issueList', count: 'contentReportCount', prev: 'staffIssuesPrev', next: 'staffIssuesNext', page: issuePage, render: items => renderIssues(items, { bucket }) },
+    { result: result.bugs, list: 'bugIssueList', count: 'bugCount', prev: 'staffBugsPrev', next: 'staffBugsNext', page: bugPage, render: items => renderBugs(items, bucket) },
+    { result: result.issues, list: 'issueList', count: 'contentReportCount', prev: 'staffIssuesPrev', next: 'staffIssuesNext', page: issuePage, render: items => renderIssues(items, { bucket }) },
   ];
   for (const section of sections) {
     $(section.prev).disabled = section.page === 0;
-    if (section.result.status === 'fulfilled') {
+    if (section.result?.status === 'fulfilled') {
       const result = section.result.value;
       $(section.list).innerHTML = section.render(result.items || []);
       $(section.count).textContent = (result.counts?.[bucket] ?? result.items?.length ?? 0) + ' เรื่อง';
@@ -246,6 +273,29 @@ async function loadReports() {
       $(section.list).textContent = 'ยังโหลดรายงานส่วนนี้ไม่ได้ กรุณาลองรีเฟรชอีกครั้ง';
       $(section.count).textContent = ''; $(section.next).disabled = true;
     }
+  }
+  $('reportSections').setAttribute('aria-busy', 'false');
+}
+async function loadReports() {
+  const context = currentReportView(), seq = ++reportLoadSeq;
+  $('reportSections').setAttribute('aria-busy', 'true');
+  for (const id of ['bugIssueList', 'issueList']) $(id).innerHTML = empty('กำลังโหลดรายงาน…');
+  for (const id of ['bugCount', 'contentReportCount']) $(id).textContent = '';
+  for (const id of ['staffBugsPrev', 'staffBugsNext', 'staffIssuesPrev', 'staffIssuesNext']) $(id).disabled = true;
+  let result;
+  try { result = await api('reports', context); }
+  catch { result = {}; }
+  if (seq !== reportLoadSeq) return;
+  paintReports(result);
+}
+async function refreshAfterReportSave(result) {
+  if (!result || view !== 'issues') return;
+  const context = currentReportView(), reports = result.reports;
+  if (reports && Object.keys(context).every(key => context[key] === reports[key])) {
+    ++reportLoadSeq; // Discard any list request started before this committed save.
+    paintReports(reports);
+  } else {
+    await loadReports();
   }
 }
 async function load() {
@@ -275,7 +325,7 @@ async function load() {
       ? data.users
           .map(
             (x) =>
-              `<tr><td><b>${esc(x.display_name || "ยังไม่มีชื่อ")}</b><small>@${esc(x.handle || x.id.slice(0, 8))}</small></td><td>${esc(when(x.last_sync))}</td><td>${fmt(x.balance)}</td><td><button data-target="${esc(x.id)}">เพิ่มโทเคน</button></td></tr>`,
+              `<tr><td><b>${esc(x.display_name || "ยังไม่มีชื่อ")}</b><small>@${esc(x.handle || x.id.slice(0, 8))}</small>${x.banned ? `<small>แบน${x.ban_until ? 'ถึง ' + esc(when(x.ban_until)) : 'ถาวร'}</small>` : ''}</td><td>${esc(when(x.last_sync))}</td><td>${fmt(x.balance)}</td><td><button data-target="${esc(x.id)}">จัดการบัญชี</button></td></tr>`,
           )
           .join("")
       : '<tr><td colspan="4">ไม่พบผู้ใช้</td></tr>';
@@ -343,9 +393,13 @@ async function mutate(action, payload, success) {
   if (busy) return;
   busy = true;
   const req = requestId(action, payload);
-  document.querySelectorAll("form button").forEach((b) => (b.disabled = true));
+  message('กำลังบันทึก…');
+  const buttons = [...document.querySelectorAll('form button, [data-report-action], [data-triage]')].map(button => ({ button, disabled: button.disabled }));
+  buttons.forEach(({button}) => button.disabled = true);
   try {
-    const r = await api(action, { ...payload, request_id: req });
+    const r = await api(action, { ...payload, request_id: req,
+      ...(reportWrites.has(action) && view === 'issues' ? { report_view: currentReportView() } : {}),
+    });
     pending = null;
     message(success);
     return r;
@@ -354,9 +408,7 @@ async function mutate(action, payload, success) {
     return null;
   } finally {
     busy = false;
-    document
-      .querySelectorAll("form button")
-      .forEach((b) => (b.disabled = false));
+    buttons.forEach(({button, disabled}) => button.disabled = disabled);
   }
 }
 document.addEventListener("click", async (e) => {
@@ -377,17 +429,21 @@ document.addEventListener("click", async (e) => {
       const action = kind === 'bug' ? 'bug_triage' : 'triage';
       const payload = kind === 'bug' ? { id, status: 'reviewing', reply: 'ทีมเปิดตรวจเรื่องนี้เพิ่มเติมอีกครั้งครับ' } : { id, status: 'reviewing', note: 'เปิดตรวจเรื่องนี้เพิ่มเติม' };
       const result = await mutate(action, payload, 'เปิดตรวจใหม่แล้ว ดูได้ที่หมวดรอดำเนินการ');
-      if (result) await loadReports(); return;
+      await refreshAfterReportSave(result); return;
     }
     const trash = b.dataset.reportAction === 'trash';
     if (trash && !(await confirm('ลบเรื่องที่แก้เสร็จแล้วออกจากรายการ?', 'เรื่องนี้จะย้ายไปถังขยะและกู้คืนได้ ไม่ลบโพสต์ บัญชี หรือประวัติของผู้รายงาน', 'ย้ายไปถังขยะ'))) return;
     const result = await mutate(trash ? 'report_trash' : 'report_restore', { kind, id }, trash ? 'ย้ายไปถังขยะแล้ว' : 'กู้คืนไปหมวดแก้เสร็จแล้ว');
-    if (result) await loadReports(); return;
+    await refreshAfterReportSave(result); return;
   }
   if (b.dataset.target) {
+    if (busy) return;
     target = data.users.find((x) => x.id === b.dataset.target);
     $("grantTarget").value =
       `${target.display_name || ""} · @${target.handle || target.id}`;
+    $('banCurrent').textContent = `${target.display_name || ''} · @${target.handle || target.id} · ${target.banned ? (target.ban_until ? 'แบนถึง ' + when(target.ban_until) : 'แบนถาวร') : 'ใช้งานปกติ'}`;
+    $('banAction').value = target.banned ? 'unban' : '1d';
+    $('banReason').value = ''; $('grantReason').value = '';
     return show("tokens");
   }
   if (b.dataset.publish || b.dataset.push) {
@@ -431,7 +487,8 @@ document.addEventListener("click", async (e) => {
       },
       "บันทึกสถานะแล้ว",
     );
-    if (result) await reloadData();
+    if (view === 'issues') await refreshAfterReportSave(result);
+    else if (result) await reloadData();
     return;
   }
 });
@@ -443,9 +500,9 @@ document.addEventListener('submit', async (e) => {
   if (['needs_info', 'resolved'].includes(status) && reply.length < 5) {
     message('กรุณาเขียนข้อความถึงผู้รายงานอย่างน้อย 5 ตัวอักษร', true); return;
   }
-  await mutate('bug_triage', { id: form.dataset.bugForm, status, reply }, 'บันทึกแล้ว ผู้รายงานดูข้อความได้ในเรื่องของฉัน');
+  const result = await mutate('bug_triage', { id: form.dataset.bugForm, status, reply }, 'บันทึกแล้ว ผู้รายงานดูข้อความได้ในเรื่องของฉัน');
   // Keep a failed response draft and retry key intact.
-  if (!pending) await loadReports();
+  await refreshAfterReportSave(result);
 });
 $('staffBugsPrev').onclick = () => { bugPage = Math.max(0, bugPage - 1); loadReports(); };
 $('staffBugsNext').onclick = () => { bugPage++; loadReports(); };
@@ -467,12 +524,15 @@ $("usersNext").onclick = () => {
 $("refresh").onclick = () => show(view);
 $("grantForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (busy) return;
   if (!target) {
     message("เลือกผู้รับจากหน้าผู้ใช้งานก่อนครับ", true);
     return;
   }
   const amount = Number($("grantAmount").value),
     reason = $("grantReason").value.trim();
+  const action = $('tokenAction').value === 'deduct' ? 'deduct' : 'grant';
+  const verb = action === 'deduct' ? 'หัก' : 'เพิ่ม';
   if (
     !Number.isInteger(amount) ||
     amount < 1 ||
@@ -484,18 +544,35 @@ $("grantForm").addEventListener("submit", async (e) => {
   }
   if (
     !(await confirm(
-      "ยืนยันเพิ่มโทเคน",
-      `ผู้รับ: ${target.display_name} (@${target.handle || target.id})\nรหัส: ${target.id}\nจำนวน: ${fmt(amount)} โทเคน\nเหตุผล: ${reason}`,
-      "เพิ่มโทเคน",
+      `ยืนยัน${verb}โทเคน`,
+      `บัญชี: ${target.display_name} (@${target.handle || target.id})\nรหัส: ${target.id}\n${verb}: ${fmt(amount)} โทเคน\nเหตุผล: ${reason}\nผู้ใช้จะได้รับข้อความส่วนตัวและเข้าคิว Push หากเปิดไว้`,
+      `${verb}โทเคน`,
     ))
   )
     return;
   const r = await mutate(
-    "grant",
+    action,
     { target: target.id, amount, reason },
-    `บันทึกเพิ่ม ${fmt(amount)} โทเคนแล้ว ผู้รับจะเห็นเมื่อซิงก์ข้อมูล`,
+    `บันทึก${verb} ${fmt(amount)} โทเคนแล้ว ผู้รับจะเห็นเมื่อซิงก์ข้อมูล`,
   );
-  if (r) $("grantReason").value = "";
+  if (r) { $("grantReason").value = ''; if (Number.isFinite(r.balance)) target.balance = r.balance; }
+});
+$('banForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (busy) return;
+  if (!target) return message('เลือกบัญชีจากหน้าผู้ใช้งานก่อนครับ', true);
+  const duration = $('banAction').value, reason = $('banReason').value.trim();
+  if (!['1d','2d','permanent','unban'].includes(duration) || reason.length < 5 || reason.length > 300)
+    return message('ตรวจระยะเวลาและเหตุผลอีกครั้ง', true);
+  const action = duration === 'unban' ? 'unban' : 'ban';
+  const label = { '1d':'แบน 1 วัน', '2d':'แบน 2 วัน', permanent:'แบนถาวร', unban:'ปลดแบน' }[duration];
+  if (!(await confirm(`ยืนยัน${label}`, `บัญชี: ${target.display_name} (@${target.handle || target.id})\nรหัส: ${target.id}\nเหตุผล: ${reason}\nผู้ใช้จะได้รับข้อความส่วนตัวและเข้าคิว Push หากเปิดไว้\nงานที่เก็บในเครื่องยังอยู่`, label))) return;
+  const r = await mutate(action, { target: target.id, reason, ...(action === 'ban' ? { duration } : {}) }, `บันทึก${label}แล้ว`);
+  if (r) {
+    target.banned = action === 'ban'; target.ban_until = r.ban_until;
+    $('banCurrent').textContent = `${target.display_name || ''} · @${target.handle || target.id} · ${target.banned ? (target.ban_until ? 'แบนถึง ' + when(target.ban_until) : 'แบนถาวร') : 'ใช้งานปกติ'}`;
+    $('banReason').value = ''; $('banAction').value = target.banned ? 'unban' : '1d';
+  }
 });
 $("noticeForm").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -539,12 +616,25 @@ $("signIn").onclick = async () => {
 };
 $("signOut").onclick = async () => {
   if (demo) return location.reload();
-  sessionStorage.removeItem("studentos.staff.github");
-  await client.auth.signOut({ scope: "local" });
-  session = null;
-  providerToken = null;
-  gate("ออกจากระบบแล้ว");
+  adoptSession(null);
+  gate('ออกจากระบบแล้ว');
+  try { await client.auth.signOut({ scope: 'local' }); }
+  finally { staffAuth.clear(); }
 };
+function adoptSession(next) {
+  const previous = session?.user?.id || null;
+  const changed = previous !== (next?.user?.id || null);
+  if (changed) { ++authEpoch; ++reportLoadSeq; }
+  if (changed && previous) {
+    target = null; pending = null;
+    for (const key of Object.keys(data)) data[key] = [];
+    for (const id of ['identity', 'metrics', 'usersRows', 'noticeList', 'bugIssueList', 'issueList', 'auditList', 'overviewIssues', 'overviewAudit']) $(id).innerHTML = '';
+    document.querySelectorAll('form input, form textarea').forEach(el => el.value = '');
+    gate('บัญชีเปลี่ยนแล้ว กรุณาเปิด Control Room อีกครั้ง');
+  }
+  session = next;
+  providerToken = staffAuth?.providerToken(next) || null;
+}
 async function start() {
   if (demo) {
     $("demoBanner").hidden = false;
@@ -571,25 +661,41 @@ async function start() {
     // Show a fixed explanation, never reflect provider error text or keep it in the URL.
     history.replaceState(null, "", location.pathname);
   }
+  let persistent, tab;
+  try { persistent = window.localStorage; } catch {}
+  try { tab = window.sessionStorage; } catch {}
+  staffAuth = createStaffSessionStorage({ persistent, tab });
+  $('sessionHint').textContent = staffAuth.persistentAvailable
+    ? 'จำการเข้าสู่ระบบบนเครื่องนี้ · กดออกจากระบบเมื่อเลิกใช้เครื่องร่วมกัน'
+    : 'เบราว์เซอร์นี้จำการเข้าสู่ระบบได้เฉพาะแท็บที่เปิดอยู่';
   client = window.supabase.createClient(
     window.SUPABASE_CONFIG.url,
     window.SUPABASE_CONFIG.anonKey,
     {
       auth: {
-        storage: sessionStorage,
-        storageKey: "studentos.staff.auth",
+        storage: staffAuth.storage,
+        storageKey: STAFF_AUTH_KEY,
         flowType: "pkce",
         detectSessionInUrl: true,
         persistSession: true,
+        autoRefreshToken: true,
       },
     },
   );
+  // Register before awaiting session recovery, and keep this callback synchronous.
+  client.auth.onAuthStateChange((event, s) => {
+    adoptSession(s);
+    if (event === 'SIGNED_OUT') {
+      staffAuth.clear();
+      gate('ออกจากระบบแล้ว');
+    }
+  });
   const { data: r, error } = await client.auth.getSession();
   if (error) {
     gate("ตรวจการเข้าสู่ระบบไม่ได้ กรุณาลองใหม่");
     return;
   }
-  session = r.session;
+  adoptSession(r.session);
   if (!session) {
     try {
       const settings = await fetch(
@@ -608,10 +714,6 @@ async function start() {
     } catch {}
     return;
   }
-  providerToken =
-    session.provider_token || sessionStorage.getItem("studentos.staff.github");
-  if (session.provider_token)
-    sessionStorage.setItem("studentos.staff.github", session.provider_token);
   if (!providerToken) {
     gate("กรุณาเข้าสู่ระบบด้วย GitHub อีกครั้งเพื่อตรวจสิทธิ์รีโป");
     return;
@@ -625,12 +727,5 @@ async function start() {
   } catch (e) {
     gate(e.message);
   }
-  client.auth.onAuthStateChange((event, s) => {
-    session = s;
-    if (event === "SIGNED_OUT") {
-      providerToken = null;
-      gate("ออกจากระบบแล้ว");
-    }
-  });
 }
 start().catch(() => gate("เริ่ม Control Room ไม่สำเร็จ กรุณารีเฟรช"));

@@ -16,12 +16,18 @@ async function staffPersonalLoad(force = false) {
   const user = typeof currentUser !== "undefined" ? currentUser?.id : null;
   if (user !== staffPersonalUser) {
     staffPersonalUser = user; staffPersonalRows = []; staffPersonalAt = 0;
+    staffAccountBanner(null);
   }
   if (!user || typeof sb === "undefined" || !sb || staffPersonalBusy || (!force && Date.now() - staffPersonalAt < 30000)) return;
   staffPersonalBusy = true; staffPersonalAt = Date.now();
   try {
-    const { data, error } = await sb.rpc("staff_personal_notices").abortSignal(AbortSignal.timeout(5000));
+    const [notices, account] = await Promise.allSettled([
+      sb.rpc("staff_personal_notices").abortSignal(AbortSignal.timeout(5000)),
+      sb.rpc('staff_account_status').abortSignal(AbortSignal.timeout(5000)),
+    ]);
+    const { data, error } = notices.status === 'fulfilled' ? notices.value : {error:true};
     if (!error && Array.isArray(data) && user === staffPersonalUser && user === currentUser?.id) staffPersonalRows = data;
+    if (account.status === 'fulfilled' && !account.value.error && user === currentUser?.id) staffAccountBanner(account.value.data);
   } catch {} finally {
     staffPersonalBusy = false; staffRefreshNotifs();
     if (user !== staffPersonalUser) void staffPersonalLoad(true);
@@ -42,22 +48,39 @@ function staffNotifOpen(id) {
   if (item?.staff.personal) { if (typeof go === "function") go("scr-shop"); }
   else if (typeof go === "function") go("scr-news");
 }
+function staffAccountBanner(status) {
+  if (typeof document === 'undefined' || !document.createElement) return;
+  let banner = document.getElementById('staffAccountBanner');
+  if (!status?.banned) { banner?.remove(); return; }
+  if (!banner) {
+    banner = document.createElement('aside'); banner.id = 'staffAccountBanner';
+    banner.setAttribute('role','alert');
+    banner.style.cssText = 'position:fixed;bottom:82px;left:12px;right:12px;z-index:9000;padding:14px;border-radius:16px;background:#fff1dc;color:#542e08;box-shadow:0 4px 20px #0002;font-size:14px';
+    document.body.append(banner);
+  }
+  const until = status.expires_at ? 'ถึง ' + new Date(status.expires_at).toLocaleString('th-TH') : 'ถาวร';
+  banner.textContent = `บัญชีถูกระงับออนไลน์${until} · ${status.reason || ''} · งานในเครื่องยังอยู่`;
+}
 // รับเฉพาะส่วนต่างเครดิตจาก ledger ลงยอดล่าสุดในเครื่อง ไม่ทับยอดที่ผู้ใช้
 // เพิ่งใช้ไประหว่างรอคำขอซิงก์ และใช้ตัวนับสะสมกันบวกซ้ำเมื่อ retry
 function staffApplyCredits(vault) {
   const minted = Number(vault?.tokens?.staffMinted);
-  if (!Number.isSafeInteger(minted) || minted < 0) return false;
+  const debited = Number(vault?.tokens?.staffDebited || 0);
+  if (!Number.isSafeInteger(minted) || minted < 0 || !Number.isSafeInteger(debited) || debited < 0) return false;
   const local = rawTokenState();
   const seen = Number.isSafeInteger(Number(local.staffMinted))
     ? Number(local.staffMinted)
     : 0;
-  if (minted <= seen) return false;
+  const seenDebited = Number.isSafeInteger(Number(local.staffDebited)) && Number(local.staffDebited) >= 0 ? Number(local.staffDebited) : 0;
+  // Older in-flight responses cannot roll either receipt backwards.
+  if (minted < seen || debited < seenDebited || (minted === seen && debited === seenDebited)) return false;
   const balance = Number(local.bal);
   const next = {
     ...local,
     bal:
-      (Number.isFinite(balance) && balance >= 0 ? balance : 0) + minted - seen,
+      Math.max(0, (Number.isFinite(balance) && balance >= 0 ? balance : 0) + minted - seen - debited + seenDebited),
     staffMinted: minted,
+    staffDebited: debited,
   };
   if (!saveTokenState(next, true)) return false;
   try {

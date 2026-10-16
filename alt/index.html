@@ -913,6 +913,8 @@
         <div class="sticky-head row fm-top">
           <div>
             <h2 class="sh-title" id="formTitle">เพิ่มงานใหม่</h2>
+            <!-- 16 ต.ค. 69 · ป้ายขั้น 1/2 · 2/2 — โผล่เฉพาะตอนเพิ่มงานใหม่ด้วยมือ (ดู formStep ใน app.js) -->
+            <span class="fm-step" id="fmStep" hidden></span>
           </div>
           <button class="sh-btn fm-x" onclick="cancelForm()" aria-label="ปิดโดยไม่บันทึก">
             <svg viewBox="0 0 24 24"><use href="#lu-x"/></svg></button>
@@ -922,8 +924,16 @@
           <div class="fm-ok" id="fmOk"></div>
           <div class="fm-chips" id="detectedChips"></div>
 
+          <!-- ============================================================
+               16 ต.ค. 69 · เพิ่มงานใหม่ด้วยมือ = สองขั้น (เจ้าของส่งคลิป "ฟอร์ม 10 ข้อ vs 3 ข้อ" มา)
+               ============================================================
+               ขั้น 1 (.s1) ถามแค่สองอย่างที่คนรู้อยู่แล้วตอนกดเข้ามา: งานอะไร · ส่งเมื่อไหร่
+               กดบันทึก = งานเข้าแผนจริงทันที ไม่มีอะไรหายถ้าปิดจอตรงนั้น
+               ขั้น 2 (.s2) ค่อยขอที่เหลือ (ประเภท · วิชา · เวลา · รายละเอียด) และข้ามได้ทั้งขั้น
+               วิชา/ประเภท/วันส่งที่พิมพ์อยู่ในชื่องาน ("สอบคณิต ศุกร์นี้") ถูกแกะใส่ช่องให้ตั้งแต่ขั้น 1 (formLiveParse)
+               แก้งานเดิม · ตรวจผล AI = ไม่มีขั้น ทุกบล็อกโผล่ครบเหมือนเดิม -->
           <!-- บล็อก 1 · สิ่งเดียวที่คนกรอกรู้อยู่แล้วตอนกดเข้ามา จึงอยู่บนสุด -->
-          <section class="fm-sec">
+          <section class="fm-sec s1">
             <div class="fs-head">
               <h3 class="fs-h" id="fDetailLabel">งานที่ต้องทำ</h3>
               <span class="fs-badge req">ต้องกรอก</span>
@@ -934,15 +944,17 @@
             <div class="fld" id="fDetailFld">
               <textarea id="fDetail" rows="1" placeholder="เช่น ทำโจทย์บทที่ 4 ข้อ 1–10"
                 aria-labelledby="fDetailLabel" aria-describedby="fDetailErr" aria-required="true"
-                onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();saveForm();}"></textarea>
+                oninput="formLiveParse()" onkeydown="formDetailKey(event)"></textarea>
             </div>
             <span class="ob-err paste-err" id="fDetailErr" role="alert" hidden>ใส่ชื่องานก่อนนะ</span>
+            <!-- สิ่งที่แกะได้จากชื่องานระหว่างพิมพ์ — บอกว่าไม่ต้องกรอกช่องพวกนี้เอง -->
+            <div class="fm-auto" id="fAuto" aria-live="polite" hidden></div>
             <button type="button" class="fs-alt" onclick="go('scr-scan')">
               <svg viewBox="0 0 24 24"><use href="#lu-mic"/></svg>พูดหรือถ่ายรูปแทนการพิมพ์</button>
           </section>
 
           <!-- บล็อก 2 · ประเภท — แถวเดียวต่อหนึ่งตัวเลือก มีจุดกลมบอกว่าเลือกอันไหนอยู่ -->
-          <section class="fm-sec">
+          <section class="fm-sec s2">
             <div class="fs-head">
               <h3 class="fs-h">ประเภท</h3>
               <span class="fs-badge">เลือก 1</span>
@@ -962,7 +974,7 @@
           <!-- บล็อก 3 · วิชา — วิชาที่เพิ่งใช้ขึ้นก่อน ที่เหลือซ่อนไว้หลังปุ่ม "ดูวิชาทั้งหมด"
                (18 วิชาเรียงเป็นแถวหมดคือบล็อกที่ยาวกว่าฟอร์มทั้งอันเดิม)
                #fSubject ยังอยู่ เป็นที่เก็บค่าจริงที่ saveForm() อ่าน — แถวข้างบนแค่เขียนใส่มัน -->
-          <section class="fm-sec" id="fSubjectWrap">
+          <section class="fm-sec s2" id="fSubjectWrap">
             <div class="fs-head">
               <h3 class="fs-h">วิชา</h3>
               <span class="fs-badge">เลือก 1</span>
@@ -981,28 +993,28 @@
 
           <!-- บล็อก 4 · กำหนดส่ง — สามวันที่ใช้จริงเกือบทุกใบเป็นแถวกดทีเดียว
                ปฏิทินยังอยู่ แต่ถอยไปอยู่หลังแถว "เลือกวันเอง" -->
-          <section class="fm-sec">
+          <section class="fm-sec" id="fDueSec">
             <div class="fs-head">
               <h3 class="fs-h" id="fDateLabel">กำหนดส่ง</h3>
-              <span class="fs-badge req">ต้องกรอก</span>
+              <span class="fs-badge req s1">ต้องกรอก</span>
             </div>
-            <div class="pick-rows" id="duePick"></div>
+            <div class="pick-rows s1" id="duePick"></div>
             <!-- ปฏิทินในแอปแทนตัวเลือกวันของเบราว์เซอร์ (เจ้าของ: "เปลี่ยนตรงนี้ให้ดูสวยขึ้น" — ป๊อปอัปของ Chrome
                  แต่งไม่ได้ เป็นภาษาอังกฤษ สีเทาเข้มทุกธีม) · #fDate ยังเป็นที่เก็บค่าจริงที่ saveForm() อ่าน แค่ซ่อนไว้
                  วาดจาก renderDueCal() ใน app.js -->
-            <div class="fld due-exact" id="dueExact" hidden>
+            <div class="fld due-exact s1" id="dueExact" hidden>
               <input type="date" id="fDate" hidden tabindex="-1" aria-hidden="true">
               <div class="dcal" id="dueCal"></div>
             </div>
             <!-- เวลาส่ง: หน้าปัด 24 ชม. ลากแบบนาฬิกาปลุก + พิมพ์เลขเองตรงกลาง (เทสเตอร์ 9 ต.ค. 69)
                  #fTime ยังเป็นที่เก็บค่าจริงที่ saveForm() อ่าน แค่ซ่อนไว้ · วาดจาก renderTimeDial() ใน app.js -->
-            <div class="due-time">
+            <div class="due-time s2">
               <span class="dt-l">เวลา</span>
               <button type="button" class="dt-btn" id="fTimeBtn" onclick="toggleTimeDial()" aria-expanded="false" aria-controls="timeDial">
                 <span id="fTimeVal">23:59</span><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-chevron"/></svg></button>
               <input type="time" id="fTime" hidden tabindex="-1" aria-hidden="true">
             </div>
-            <div class="tdial-wrap" id="timeDial" hidden></div>
+            <div class="tdial-wrap s2" id="timeDial" hidden></div>
           </section>
 
           <!-- ============================================================
@@ -1012,7 +1024,7 @@
                (<details> ของเบราว์เซอร์ ไม่ต้องมี JS คุมการเปิดปิด)
                ค่าเริ่มต้นคือปิดทุกแถว — งานหนึ่งใบบันทึกได้โดยไม่ต้องเปิดสักแถว
                และคนที่อยากแก้อันเดียว ไม่ต้องเลื่อนผ่านอีกเก้าช่องที่ไม่ได้ใช้ -->
-          <section class="fm-sec">
+          <section class="fm-sec s2">
             <div class="fs-head">
               <h3 class="fs-h">รายละเอียด</h3>
             </div>
@@ -1146,9 +1158,11 @@
              z-index ต่ำกว่าแถบแท็บ เพื่อไม่ให้พื้นของมันไปบังแคปซูลแท็บด้านล่าง -->
         <div class="fm-bar">
           <button class="fm-save" onclick="saveForm()">
-            <span class="fb-t">บันทึกเข้าแผน</span>
+            <span class="fb-t" id="fmSaveT">บันทึกเข้าแผน</span>
             <span class="fb-s" id="fmSaveSub"></span>
           </button>
+          <!-- ขั้น 2 เท่านั้น · งานอยู่ในแผนแล้วตั้งแต่ขั้น 1 การข้ามจึงไม่ทิ้งอะไร -->
+          <button type="button" class="fm-skip" id="fmSkip" onclick="cancelForm()" hidden>ข้าม ไว้ทีหลัง</button>
         </div>
       </div>
 
@@ -1808,6 +1822,7 @@
             <div class="set-row" id="notifRow">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-plug"/></svg></span>
               <span class="set-lb">สถานะ<i id="notifStatus">ยังไม่ได้เปิด</i></span>
+              <a class="btn secondary sm" style="width:auto;min-height:34px;padding:0 12px;flex-shrink:0" href="../">เปิดแอปหลัก</a>
               <button class="btn secondary sm" id="notifTest" style="width:auto;min-height:34px;padding:0 12px;display:none"
                 onclick="testNotify()">ทดสอบ</button>
               <button class="btn secondary sm" id="notifBtn" style="width:auto;min-height:34px;padding:0 14px" onclick="enableNotif()">เปิด</button>
@@ -2372,7 +2387,7 @@
 <script src="board.js"></script>
 <!-- 15 ต.ค. 69 · ข่าวสารจากทีม — ไม่มีอะไรพึ่งมันตอนบูต จึงอยู่ท้ายแถวได้ (ต้องมาก่อน app.js เพราะ renderProfile เรียก newsPaintRow) -->
 <script src="news.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=20261016-main-notifications"></script>
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────
      ปิดไปแล้ว — ปุ่ม "แก้ดีไซน์" ลอยทับชื่อผู้ใช้บนหัวจอของทุกคนที่เปิดแอป
