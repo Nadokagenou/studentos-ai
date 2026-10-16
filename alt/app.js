@@ -1729,6 +1729,8 @@ async function logout() {
   // 1B99 · signOut() ที่โยน error (เน็ตหลุด · โทเคนหมดอายุ) เคยทำให้ทั้งฟังก์ชันหยุดตรงนี้
   // แปลว่า "ออกจากระบบ" ตอนไม่มีเน็ตคือปุ่มที่กดแล้วไม่เกิดอะไรขึ้นเลย ทั้งที่ของที่ต้องล้าง
   // ทั้งหมดอยู่ในเครื่องและล้างได้โดยไม่ต้องถามใคร · ฝั่งเซิร์ฟเวอร์จะหมดอายุเองอยู่แล้ว
+  // แจ้งเตือนของบัญชีนี้ต้องไม่เด้งบนเครื่องนี้อีกหลังออก — ลบแถวก่อน signOut (ดู pushForgetDevice)
+  await pushForgetDevice();
   try { if (sb) await sb.auth.signOut(); } catch (_) {}
   currentUser = null; lastSync = null;
   syncTokenAdmin();
@@ -15487,9 +15489,29 @@ async function subscribePush() {
     });
   }
   // เก็บ subscription ไว้บน cloud เพื่อให้เซิร์ฟเวอร์ส่ง push ได้ (ต้องล็อกอิน)
-  if (sb && currentUser) {
-    const j = sub.toJSON();
-    const { error } = await sb.from('push_subscriptions').upsert({
+  if (sb && currentUser && !(await pushSaveRow(sub.toJSON()))) return false;
+  pushState = 'on';
+  pushErr = '';
+  return true;
+}
+
+// ============================================================
+// 16 ต.ค. 69 · เครื่องที่สลับบัญชีต้องย้ายสิทธิ์รับแจ้งเตือนตามไป
+// ------------------------------------------------------------
+// ข้อมูลจริง: คอมเครื่องหนึ่งล็อกอินบัญชีหนึ่งอยู่ แต่แถว subscription ของมันเป็นของอีกบัญชี
+// ที่เคยล็อกอินบนเครื่องนั้น — upsert ตรงชน RLS ของแถวบัญชีเก่า ("บันทึกขึ้นเซิร์ฟเวอร์ไม่ได้")
+// แจ้งเตือนของคนที่ใช้เครื่องอยู่จึงไม่มา ส่วนของบัญชีเก่ายังเด้งบนเครื่องนี้ต่อ
+// claim_push_subscription (migration 20261016130000) ย้ายเจ้าของได้เมื่อส่งกุญแจของ subscription ตรง
+// ยังไม่ได้รัน migration = PostgREST ตอบ PGRST202 → ถอยไป upsert เดิม แอปไม่แย่ลงกว่าเดิม
+// ============================================================
+async function pushSaveRow(j) {
+  const { error } = await sb.rpc('claim_push_subscription', {
+    p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth,
+    p_tz: -new Date().getTimezoneOffset(),
+  });
+  if (!error) return true;
+  if (error.code === 'PGRST202') {
+    const { error: e2 } = await sb.from('push_subscriptions').upsert({
       user_id: currentUser.id,
       endpoint: j.endpoint,
       p256dh: j.keys.p256dh,
@@ -15497,11 +15519,26 @@ async function subscribePush() {
       tz_offset: -new Date().getTimezoneOffset(),
       updated_at: new Date().toISOString(),
     }, { onConflict: 'endpoint' });
-    if (error) { console.warn('[push] save failed:', error.message); pushErr = 'บันทึกขึ้นเซิร์ฟเวอร์ไม่ได้'; return false; }
+    if (!e2) return true;
+    console.warn('[push] save failed:', e2.message);
+  } else {
+    console.warn('[push] claim failed:', error.message);
   }
-  pushState = 'on';
-  pushErr = '';
-  return true;
+  pushErr = 'บันทึกขึ้นเซิร์ฟเวอร์ไม่ได้';
+  return false;
+}
+
+// ออกจากระบบ = ลบแถวของเครื่องนี้ออกจาก cloud ต้องทำ "ก่อน" signOut (หลังจากนั้น RLS ไม่ให้ลบแล้ว)
+// ไม่งั้นแจ้งเตือนของบัญชีที่ออกไป (ชื่องาน · ชื่อเพื่อนที่ทักมา) ยังเด้งบนเครื่องนี้ต่อไป
+// ไม่ถอน subscription ในเบราว์เซอร์ — บัญชีถัดไปที่ล็อกอินจะใช้ต่อได้โดยไม่ต้องขอสิทธิ์ใหม่
+async function pushForgetDevice() {
+  if (!sb || !currentUser || !pushSupported()) return;
+  try {
+    const reg = await withTimeout(navigator.serviceWorker.ready, 3000, 'ถอนแจ้งเตือน');
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) return;
+    await withTimeout(sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint), 3000, 'ถอนแจ้งเตือน');
+  } catch (e) { console.warn('[push] forget failed:', (e && e.message) || e); }
 }
 
 // ============================================================
