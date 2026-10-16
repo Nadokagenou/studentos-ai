@@ -21,13 +21,16 @@ const when = (v) =>
 const titles = {
   overview: "ภาพรวม",
   users: "ผู้ใช้งาน",
-  tokens: "เพิ่มโทเคน",
+  tokens: "โทเคนและการแบน",
   notices: "ข่าวสารและแจ้งเตือน",
   issues: "รายงานและปัญหาแอป",
   audit: "ประวัติการจัดการ",
 };
 const labels = {
   grant: "เพิ่มโทเคน",
+  deduct: "หักโทเคน",
+  ban: "แบนบัญชี",
+  unban: "ปลดแบนบัญชี",
   draft: "บันทึกร่าง",
   publish: "เผยแพร่ประกาศ",
   withdraw: "ถอนประกาศ",
@@ -180,14 +183,22 @@ async function demoApi(action, p) {
   if (action === "issues") { const bucket = p.bucket || 'pending'; return { items: demoIssues.filter(x => bucket === 'trash' ? x.deleted_at : !x.deleted_at && (bucket === 'resolved' ? x.status === 'closed' : x.status !== 'closed')) }; }
   if (action === "bugs" || action === "bug_triage") return window.StudentOSBugDemo?.staff(action, p) || { items: [], open_count: 0 };
   if (action === "audit") return { items: demoAudit };
-  if (action === "grant") {
+  if (['ban','unban'].includes(action)) {
+    const u = demoUsers.find(x => x.id === p.target);
+    u.banned = action === 'ban'; u.ban_reason = p.reason;
+    u.ban_until = action === 'ban' && p.duration !== 'permanent' ? new Date(Date.now() + (p.duration === '2d' ? 2 : 1) * 86400000).toISOString() : null;
+    demoLog(action, `@${u.handle} · ${p.reason}`);
+    return { ban_until: u.ban_until };
+  }
+  if (action === "grant" || action === 'deduct') {
     const u = demoUsers.find((x) => x.id === p.target);
-    u.balance += p.amount;
+    if (action === 'deduct' && u.balance < p.amount) throw Error('ยอดโทเคนไม่พอ');
+    u.balance += (action === 'deduct' ? -1 : 1) * p.amount;
     demoAudit.unshift({
-      action: "grant",
+      action,
       amount: p.amount,
       actor_login: "demo_developer",
-      detail: `@${u.handle} +${p.amount} · ${p.reason}`,
+      detail: `@${u.handle} ${action === 'deduct' ? '-' : '+'}${p.amount} · ${p.reason}`,
       created_at: new Date().toISOString(),
     });
     return { balance: u.balance };
@@ -314,7 +325,7 @@ async function load() {
       ? data.users
           .map(
             (x) =>
-              `<tr><td><b>${esc(x.display_name || "ยังไม่มีชื่อ")}</b><small>@${esc(x.handle || x.id.slice(0, 8))}</small></td><td>${esc(when(x.last_sync))}</td><td>${fmt(x.balance)}</td><td><button data-target="${esc(x.id)}">เพิ่มโทเคน</button></td></tr>`,
+              `<tr><td><b>${esc(x.display_name || "ยังไม่มีชื่อ")}</b><small>@${esc(x.handle || x.id.slice(0, 8))}</small>${x.banned ? `<small>แบน${x.ban_until ? 'ถึง ' + esc(when(x.ban_until)) : 'ถาวร'}</small>` : ''}</td><td>${esc(when(x.last_sync))}</td><td>${fmt(x.balance)}</td><td><button data-target="${esc(x.id)}">จัดการบัญชี</button></td></tr>`,
           )
           .join("")
       : '<tr><td colspan="4">ไม่พบผู้ใช้</td></tr>';
@@ -426,9 +437,13 @@ document.addEventListener("click", async (e) => {
     await refreshAfterReportSave(result); return;
   }
   if (b.dataset.target) {
+    if (busy) return;
     target = data.users.find((x) => x.id === b.dataset.target);
     $("grantTarget").value =
       `${target.display_name || ""} · @${target.handle || target.id}`;
+    $('banCurrent').textContent = `${target.display_name || ''} · @${target.handle || target.id} · ${target.banned ? (target.ban_until ? 'แบนถึง ' + when(target.ban_until) : 'แบนถาวร') : 'ใช้งานปกติ'}`;
+    $('banAction').value = target.banned ? 'unban' : '1d';
+    $('banReason').value = ''; $('grantReason').value = '';
     return show("tokens");
   }
   if (b.dataset.publish || b.dataset.push) {
@@ -509,12 +524,15 @@ $("usersNext").onclick = () => {
 $("refresh").onclick = () => show(view);
 $("grantForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (busy) return;
   if (!target) {
     message("เลือกผู้รับจากหน้าผู้ใช้งานก่อนครับ", true);
     return;
   }
   const amount = Number($("grantAmount").value),
     reason = $("grantReason").value.trim();
+  const action = $('tokenAction').value === 'deduct' ? 'deduct' : 'grant';
+  const verb = action === 'deduct' ? 'หัก' : 'เพิ่ม';
   if (
     !Number.isInteger(amount) ||
     amount < 1 ||
@@ -526,18 +544,35 @@ $("grantForm").addEventListener("submit", async (e) => {
   }
   if (
     !(await confirm(
-      "ยืนยันเพิ่มโทเคน",
-      `ผู้รับ: ${target.display_name} (@${target.handle || target.id})\nรหัส: ${target.id}\nจำนวน: ${fmt(amount)} โทเคน\nเหตุผล: ${reason}`,
-      "เพิ่มโทเคน",
+      `ยืนยัน${verb}โทเคน`,
+      `บัญชี: ${target.display_name} (@${target.handle || target.id})\nรหัส: ${target.id}\n${verb}: ${fmt(amount)} โทเคน\nเหตุผล: ${reason}\nผู้ใช้จะได้รับข้อความส่วนตัวและเข้าคิว Push หากเปิดไว้`,
+      `${verb}โทเคน`,
     ))
   )
     return;
   const r = await mutate(
-    "grant",
+    action,
     { target: target.id, amount, reason },
-    `บันทึกเพิ่ม ${fmt(amount)} โทเคนแล้ว ผู้รับจะเห็นเมื่อซิงก์ข้อมูล`,
+    `บันทึก${verb} ${fmt(amount)} โทเคนแล้ว ผู้รับจะเห็นเมื่อซิงก์ข้อมูล`,
   );
-  if (r) $("grantReason").value = "";
+  if (r) { $("grantReason").value = ''; if (Number.isFinite(r.balance)) target.balance = r.balance; }
+});
+$('banForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (busy) return;
+  if (!target) return message('เลือกบัญชีจากหน้าผู้ใช้งานก่อนครับ', true);
+  const duration = $('banAction').value, reason = $('banReason').value.trim();
+  if (!['1d','2d','permanent','unban'].includes(duration) || reason.length < 5 || reason.length > 300)
+    return message('ตรวจระยะเวลาและเหตุผลอีกครั้ง', true);
+  const action = duration === 'unban' ? 'unban' : 'ban';
+  const label = { '1d':'แบน 1 วัน', '2d':'แบน 2 วัน', permanent:'แบนถาวร', unban:'ปลดแบน' }[duration];
+  if (!(await confirm(`ยืนยัน${label}`, `บัญชี: ${target.display_name} (@${target.handle || target.id})\nรหัส: ${target.id}\nเหตุผล: ${reason}\nผู้ใช้จะได้รับข้อความส่วนตัวและเข้าคิว Push หากเปิดไว้\nงานที่เก็บในเครื่องยังอยู่`, label))) return;
+  const r = await mutate(action, { target: target.id, reason, ...(action === 'ban' ? { duration } : {}) }, `บันทึก${label}แล้ว`);
+  if (r) {
+    target.banned = action === 'ban'; target.ban_until = r.ban_until;
+    $('banCurrent').textContent = `${target.display_name || ''} · @${target.handle || target.id} · ${target.banned ? (target.ban_until ? 'แบนถึง ' + when(target.ban_until) : 'แบนถาวร') : 'ใช้งานปกติ'}`;
+    $('banReason').value = ''; $('banAction').value = target.banned ? 'unban' : '1d';
+  }
 });
 $("noticeForm").addEventListener("submit", async (e) => {
   e.preventDefault();

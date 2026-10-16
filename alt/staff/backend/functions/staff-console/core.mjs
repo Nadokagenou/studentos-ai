@@ -1,7 +1,7 @@
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const READ = new Set(["overview", "users", "notices", "issues", "audit", "bugs", "reports"]);
-const WRITE = new Set(["grant", "draft", "publish", "withdraw", "triage", "bug_triage", "report_trash", "report_restore"]);
+const WRITE = new Set(["grant", "deduct", "ban", "unban", "draft", "publish", "withdraw", "triage", "bug_triage", "report_trash", "report_restore"]);
 const REPORT_WRITE = new Set(["triage", "bug_triage", "report_trash", "report_restore"]);
 const offset = value => Math.max(0, Math.min(100000, Math.floor(Number(value) || 0)));
 function reportView(input) {
@@ -62,7 +62,15 @@ export function validate(input) {
       throw new HttpError(400, 'รหัสหรือชนิดรายงานไม่ถูกต้อง');
     Object.assign(payload, { kind: input.kind, id: input.kind === 'bug' ? input.id.toLowerCase() : input.id });
   }
-  if (action === "grant") {
+  if (action === 'ban' || action === 'unban') {
+    if (!UUID.test(input.target || '') || typeof input.reason !== 'string'
+      || input.reason.trim().length < 5 || input.reason.length > 300
+      || (action === 'ban' && !['1d','2d','permanent'].includes(input.duration)))
+      throw new HttpError(400, 'ตรวจบัญชี ระยะเวลา และเหตุผลอีกครั้ง');
+    Object.assign(payload, { target: input.target, reason: input.reason.trim(),
+      ...(action === 'ban' ? { duration: input.duration } : {}) });
+  }
+  if (action === "grant" || action === 'deduct') {
     if (
       !UUID.test(input.target || "") ||
       !Number.isInteger(input.amount) ||
