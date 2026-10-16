@@ -1,7 +1,7 @@
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const READ = new Set(["overview", "users", "notices", "issues", "audit"]);
-const WRITE = new Set(["grant", "draft", "publish", "withdraw", "triage"]);
+const READ = new Set(["overview", "users", "notices", "issues", "audit", "bugs"]);
+const WRITE = new Set(["grant", "draft", "publish", "withdraw", "triage", "bug_triage"]);
 export class HttpError extends Error {
   constructor(status, message) {
     super(message);
@@ -19,7 +19,7 @@ export function validate(input) {
     return {
       action,
       payload:
-        action === "users"
+        action === "users" || action === "bugs"
           ? {
               query: String(input.query || "").slice(0, 100),
               offset: Math.max(
@@ -101,6 +101,13 @@ export function validate(input) {
       status: input.status,
       note: input.note || "",
     });
+  }
+  if (action === "bug_triage") {
+    if (!UUID.test(input.id || "") || !["open", "reviewing", "needs_info", "resolved"].includes(input.status)
+      || typeof input.reply !== "string" || input.reply.length > 1500
+      || (["needs_info", "resolved"].includes(input.status) && input.reply.trim().length < 5))
+      throw new HttpError(400, "ตรวจสถานะและข้อความถึงผู้รายงานอีกครั้ง");
+    Object.assign(payload, { id: input.id, status: input.status, reply: input.reply.trim() });
   }
   return { action, payload };
 }

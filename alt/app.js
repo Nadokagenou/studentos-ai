@@ -1191,6 +1191,7 @@ function go(id) {
   if (id === 'scr-notif' && typeof renderNotif === 'function') renderNotif();
   // 15 ต.ค. 69 · จอข่าวสารจากทีมวาดด้วย JS ทั้งจอ — go() เปล่า ๆ ได้จอว่าง (news.js)
   if (id === 'scr-news' && typeof newsEnter === 'function') newsEnter();
+  if (id === 'scr-bugs' && typeof bugReportsEnter === 'function') bugReportsEnter();
   // จอแชทซ่อนแถบล่างเหมือนจอล็อกอิน — ช่องพิมพ์ต้องติดก้นจอจริง ๆ
   // ไม่ใช่ลอยอยู่หลังแถบล่างจนกดไม่โดน · ออกจากจอนี้ได้ทางปุ่มย้อนกลับในหัวจอ
   // 1C19 · scr-sai ถูกถอดออกจากรายการนี้ — เจ้าของสั่งว่า "อยากให้เป็นเหมือน
@@ -1297,6 +1298,7 @@ async function initCloud() {
   sb.auth.onAuthStateChange((event, sess) => {
     const wasLoggedIn = !!currentUser;
     currentUser = sess ? sess.user : null;
+    if (typeof bugAccountChanged === 'function') bugAccountChanged();
     syncTokenAdmin();
     if (currentUser && !wasLoggedIn) {
       // เพิ่งล็อกอินเสร็จ (รวมถึงกลับมาจากหน้า Google)

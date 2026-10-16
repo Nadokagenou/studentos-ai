@@ -629,3 +629,6 @@ dialog::backdrop {
 .issue-note input {
   font-size: 12px;
 }
+.bug-detail { white-space: pre-wrap; overflow-wrap: anywhere; }
+[data-bug-form] { margin-top: 16px; display: grid; gap: 10px; }
+[data-bug-form] textarea { width: 100%; box-sizing: border-box; font: inherit; resize: vertical; }

@@ -30,6 +30,7 @@ const labels = {
   publish: "เผยแพร่ประกาศ",
   withdraw: "ถอนประกาศ",
   triage: "เปลี่ยนสถานะรายงาน",
+  bug_triage: "อัปเดตปัญหาแอป",
 };
 const demo = location.pathname.endsWith("/preview.html");
 if (window.top !== window.self) {
@@ -44,6 +45,9 @@ let client,
   target = null,
   busy = false;
 let pending = null;
+let bugPage = 0;
+const bugCategories = { tasks: 'งานและแผน', scan: 'สแกนและเพิ่มงาน', sync: 'บัญชีและการซิงก์', notifications: 'แจ้งเตือน', display: 'หน้าจอและการใช้งาน', other: 'อื่น ๆ' };
+const bugStatuses = { open: "ใหม่", reviewing: "กำลังตรวจ", needs_info: "ต้องการข้อมูลเพิ่ม", resolved: "แก้แล้ว" };
 const data = { users: [], notices: [], issues: [], audit: [] };
 const demoUsers = Array.from({ length: 12 }, (_, i) => ({
   id: `00000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`,
@@ -154,6 +158,7 @@ async function demoApi(action, p) {
     };
   if (action === "notices") return { items: demoNotices };
   if (action === "issues") return { items: demoIssues };
+  if (action === "bugs" || action === "bug_triage") return window.StudentOSBugDemo?.staff(action, p) || { items: [], open_count: 0 };
   if (action === "audit") return { items: demoAudit };
   if (action === "grant") {
     const u = demoUsers.find((x) => x.id === p.target);
@@ -226,13 +231,28 @@ function issuesHTML(items, compact = false) {
         .join("")
     : empty("ไม่มีรายงานที่รอตรวจ");
 }
+function bugsHTML(items) {
+  return items.length ? items.map(x => `<div class="item"><h3>${esc(x.summary)} <span class="tag">${esc(bugStatuses[x.status])}</span></h3><p>#${esc(x.id.slice(0, 8))} · ${esc(bugCategories[x.category] || x.category)} · ${esc(x.page)} · ${esc(when(x.created_at))}</p><details><summary>รายละเอียดและประวัติ</summary><h4>อาการ</h4><p class="bug-detail">${esc(x.detail)}</p><h4>ขั้นตอนที่ทำ</h4><p class="bug-detail">${esc(x.steps)}</p>${x.expected ? `<h4>สิ่งที่คาดหวัง</h4><p class="bug-detail">${esc(x.expected)}</p>` : ''}<p>${x.diagnostics ? `ผู้ใช้ยินยอมแนบข้อมูล: ${esc(x.diagnostics.version)} · ${esc(x.diagnostics.display_mode)}` : 'ผู้ใช้ไม่แนบข้อมูลรุ่น/โหมด'}</p>${(x.events || []).map(e => `<div class="item"><b>${esc(e.author_kind === 'reporter' ? 'ผู้รายงาน' : 'ทีม Student OS')} · ${esc(bugStatuses[e.status])}</b><p>${esc(when(e.created_at))}</p><p class="bug-detail">${esc(e.reply)}</p></div>`).join('')}</details><form data-bug-form="${esc(x.id)}"><label>สถานะ<select name="status">${Object.entries(bugStatuses).map(([k, v]) => `<option value="${k}" ${k === x.status ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label><label>ข้อความถึงผู้รายงาน<textarea name="reply" maxlength="1500" rows="3" placeholder="เมื่อขอข้อมูลเพิ่มหรือแก้แล้ว กรุณาอธิบายอย่างน้อย 5 ตัวอักษร"></textarea></label><p class="footnote">ข้อความนี้ผู้รายงานเห็นได้ กรุณาไม่ใส่หมายเหตุภายในทีม</p><button type="submit">บันทึกและแจ้งในเรื่องของผู้รายงาน</button></form></div>`).join('') : empty('ยังไม่มีรายงานปัญหาแอป');
+}
+async function loadBugs() {
+  try {
+    const r = await api('bugs', { offset: bugPage * 20 });
+    $('bugIssueList').innerHTML = bugsHTML(r.items || []);
+    $('bugCount').textContent = `${r.open_count || 0} เรื่องยังไม่แก้`;
+    $('staffBugsPrev').disabled = bugPage === 0;
+    $('staffBugsNext').disabled = !r.has_more;
+  } catch {
+    $('bugIssueList').textContent = 'ยังโหลดปัญหาแอปไม่ได้ กรุณาลองอัปเดตอีกครั้ง หรือตรวจการติดตั้งระบบรายงานบั๊ก';
+    $('bugCount').textContent = ''; $('staffBugsNext').disabled = true;
+  }
+}
 async function load() {
   if (view === "overview") {
     const r = await api("overview");
     $("metrics").innerHTML = [
       ["บัญชีที่เคยซิงก์", r.users, "ยังไม่นับผู้ใช้แบบไม่ล็อกอิน"],
       ["ซิงก์ใน 24 ชั่วโมง", r.synced_24h, "นับเวลาซิงก์ล่าสุด"],
-      ["รายงานที่ยังไม่ปิด", r.open_reports, "รับเรื่องและติดตามต่อได้"],
+      ["รายงานเนื้อหาที่ยังไม่ปิด", r.open_reports, "รับเรื่องและติดตามต่อได้"],
       ["เพิ่มโทเคนวันนี้", r.tokens_today, "ยอดรวมจากรายการแอดมิน"],
     ]
       .map(
@@ -266,6 +286,7 @@ async function load() {
     $("auditList").innerHTML = auditHTML(data.audit);
   }
   if (view === "issues") {
+    await loadBugs();
     data.issues = (await api("issues")).items || [];
     $("issueList").innerHTML = issuesHTML(data.issues);
   }
@@ -393,6 +414,20 @@ document.addEventListener("click", async (e) => {
     return reloadData();
   }
 });
+document.addEventListener('submit', async (e) => {
+  const form = e.target.closest('[data-bug-form]');
+  if (!form) return;
+  e.preventDefault();
+  const status = form.elements.status.value, reply = form.elements.reply.value.trim();
+  if (['needs_info', 'resolved'].includes(status) && reply.length < 5) {
+    message('กรุณาเขียนข้อความถึงผู้รายงานอย่างน้อย 5 ตัวอักษร', true); return;
+  }
+  await mutate('bug_triage', { id: form.dataset.bugForm, status, reply }, 'บันทึกแล้ว ผู้รายงานดูข้อความได้ในเรื่องของฉัน');
+  // Keep a failed response draft and retry key intact.
+  if (!pending) await loadBugs();
+});
+$('staffBugsPrev').onclick = () => { bugPage = Math.max(0, bugPage - 1); loadBugs(); };
+$('staffBugsNext').onclick = () => { bugPage++; loadBugs(); };
 $("searchUsers").addEventListener("submit", (e) => {
   e.preventDefault();
   page = 0;
