@@ -1,5 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import { createHandler, HttpError } from "./core.mjs";
+import { createNotifyKick } from "./notify-kick.mjs";
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 const url = Deno.env.get("SUPABASE_URL")!;
 const db = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -14,6 +16,10 @@ Deno.serve(
   createHandler({
     repository: "Nadokagenou/studentos-ai",
     allowedOrigins,
+    afterCommand: createNotifyKick({
+      url, key: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      waitUntil: (task: Promise<unknown>) => EdgeRuntime.waitUntil(task),
+    }),
     getUser: async (token: string) => {
       const { data, error } = await db.auth.getUser(token);
       return error ? null : data.user;

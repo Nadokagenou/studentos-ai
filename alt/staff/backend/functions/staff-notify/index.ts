@@ -1,6 +1,9 @@
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import webpush from "npm:web-push@3.6.7";
-import { safePushEndpoint } from "./push-policy.mjs";
+import { drainQueue, nextDrain } from "./queue.mjs";
+import { deliverJob } from "./delivery.mjs";
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
+const projectUrl = Deno.env.get("SUPABASE_URL")!;
 const role = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const db = createClient(Deno.env.get("SUPABASE_URL")!, role, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -47,109 +50,51 @@ Deno.serve(async (req) => {
     privateKey,
   );
   const input = await req.json().catch(() => ({}));
+  if (!input || typeof input !== "object" || Array.isArray(input)) return json({error:"Invalid input"},400);
   const testNotice = input.test_notice_id;
   if (testNotice != null && (typeof testNotice !== "string" || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(testNotice))) return json({error:"Invalid test notice"},400);
-  const { data: jobs, error } = testNotice
-    ? await db.rpc("staff_claim_test_push_job", {p_notice:testNotice})
-    : await db.rpc("staff_claim_push_jobs", {p_limit:10});
-  if (error) return json({ error: "Queue not available" }, 503);
-  let accepted = 0,
-    failed = 0;
-  for (const job of jobs || []) {
-    // Recheck withdrawal/expiry/preferences immediately before sending.
-    const { data: notice, error: noticeError } = await db
-      .from("staff_notices")
-      .select("status,until_at,audience_id")
-      .eq("id", job.notice_id)
-      .single();
-    const { data: state, error: stateError } = await db
-      .from("user_state")
-      .select("data")
-      .eq("id", job.user_id)
-      .single();
-    const live =
-      !noticeError &&
-      !stateError &&
-      notice?.status === "published" &&
-      (!notice.audience_id || notice.audience_id === job.user_id) &&
-      (!notice.until_at || Date.parse(notice.until_at) > Date.now()) &&
-      state?.data?.settings?.notif !== false;
-    if (!live) {
-      await db
-        .from("staff_push_jobs")
-        .update({
-          status: noticeError || stateError ? "pending" : "cancelled",
-          not_before: new Date(Date.now() + 900000).toISOString(),
-        })
-        .eq("notice_id", job.notice_id)
-        .eq("user_id", job.user_id);
-      continue;
+  const depth = input.drain_depth ?? 0;
+  if (!Number.isInteger(depth) || depth < 0 || depth > 10) return json({error:"Invalid drain depth"},400);
+  const run = async () => {
+    try {
+      let testClaimed = false;
+      const result = await drainQueue({
+        claim: async (limit: number) => {
+          if (testNotice && testClaimed) return [];
+          testClaimed = true;
+          const { data, error } = testNotice
+            ? await db.rpc("staff_claim_test_push_job", {p_notice:testNotice})
+            : await db.rpc("staff_claim_push_jobs", {p_limit:limit});
+          if (error) throw Error("Queue not available");
+          return data || [];
+        },
+        deliver: (job: Record<string, unknown>) => deliverJob(job, {
+          db, send: webpush.sendNotification.bind(webpush),
+          extraHosts: (Deno.env.get("STAFF_PUSH_EXTRA_HOSTS") || "").split(",").filter(Boolean),
+        }),
+      });
+      const next = nextDrain(result, depth, !!testNotice);
+      if (next) EdgeRuntime.waitUntil((async () => {
+        try {
+          const r = await fetch(projectUrl + "/functions/v1/staff-notify", {
+            method: "POST",
+            headers: {authorization: "Bearer " + role, "content-type":"application/json"},
+            body: JSON.stringify(next), signal: AbortSignal.timeout(10000),
+          });
+          await r.text();
+          if (!r.ok) console.warn("[staff-notify] continuation deferred to cron");
+        } catch { console.warn("[staff-notify] continuation deferred to cron"); }
+      })());
+      console.log(JSON.stringify({event:"staff_push_batch", ...result, drain_depth:depth}));
+      return json(result);
+    } catch {
+      console.warn("[staff-notify] queue unavailable; cron will retry");
+      return json({error:"Queue not available"},503);
     }
-    const { data: subs, error: subsError } = await db
-      .from("push_subscriptions")
-      .select("endpoint,p256dh,auth")
-      .eq("user_id", job.user_id)
-      .limit(10);
-    let ok = 0;
-    if (!subsError)
-      await Promise.all(
-        (subs || [])
-          .filter((s) =>
-            safePushEndpoint(
-              s.endpoint,
-              (Deno.env.get("STAFF_PUSH_EXTRA_HOSTS") || "")
-                .split(",")
-                .filter(Boolean),
-            ),
-          )
-          .map(async (s) => {
-            try {
-              await webpush.sendNotification(
-                {
-                  endpoint: s.endpoint,
-                  keys: { p256dh: s.p256dh, auth: s.auth },
-                },
-                JSON.stringify({
-                  title: job.title,
-                  body: job.body,
-                  tag: `staff-${job.notice_id}`,
-                  url: "https://nadokagenou.github.io/studentos-ai/?go=" +
-                    (job.audience_id ? "staff-notif" : "staff-news"),
-                }),
-                { TTL: 86400, urgency: "normal", timeout: 5000 },
-              );
-              ok++;
-            } catch (e) {
-              const code =
-                e && typeof e === "object" && "statusCode" in e
-                  ? Number(e.statusCode)
-                  : 0;
-              if ([404, 410].includes(code))
-                await db
-                  .from("push_subscriptions")
-                  .delete()
-                  .eq("endpoint", s.endpoint);
-            }
-          }),
-      );
-    const status = ok ? "accepted" : job.attempts >= 4 ? "failed" : "pending";
-    await db
-      .from("staff_push_jobs")
-      .update({
-        status,
-        finished_at:
-          ok || status === "failed" ? new Date().toISOString() : null,
-        not_before: new Date(Date.now() + 900000).toISOString(),
-      })
-      .eq("notice_id", job.notice_id)
-      .eq("user_id", job.user_id);
-    if (ok) accepted++;
-    else failed++;
+  };
+  if (input.background === true) {
+    EdgeRuntime.waitUntil(run());
+    return json({queued:true},202);
   }
-  // accepted means the Push service accepted delivery, not that a person read it.
-  return json({
-    processed: jobs?.length || 0,
-    accepted,
-    retry_or_failed: failed,
-  });
+  return await run();
 });

@@ -10,6 +10,7 @@
 - เพิ่มโทเคน 1–10,000 ต่อรายการ พร้อมเหตุผล ประวัติ และรหัสกันคำขอซ้ำ ยอดรวมต่อผู้จัดการไม่เกิน 100,000 ต่อวันไทย
 - บันทึกประกาศเป็นร่าง ตรวจข้อความก่อนเผยแพร่ ตั้งเวลาหมดอายุ ถอนประกาศ และเลือกส่ง Push ได้
 - คิว Push พัก 22:00–07:00 น. ลองส่งใหม่เมื่อชั่วคราวล้มเหลว แสดงยอดที่บริการ Push ตอบรับ ซึ่งไม่ใช่ยอดคนเปิดอ่าน
+- เริ่มส่งหลังเพิ่มโทเคน/เผยแพร่พร้อม Push สำเร็จทันที ส่งพร้อมกัน 8 บัญชี สูงสุด 24 คำขอส่งต่อ worker และดึงคิวชุดถัดไปต่อได้ มี cron รายนาทีเป็นสำรอง; ไม่รับประกันว่าโทรศัพท์ทุกเครื่องจะแสดงทันที
 - ดูรายงานเนื้อหา/บัญชีที่มีอยู่แล้ว รับเรื่อง ปิดเรื่อง หรือเปิดตรวจใหม่ พร้อมบันทึกประวัติ
 
 ## สิทธิ์ที่เจ้าของเลือก
@@ -70,11 +71,11 @@
 
 ```sh
 pnpm --dir alt/staff/backend install --frozen-lockfile --ignore-scripts
-node --test --test-isolation=none alt/staff/tests/security.test.mjs alt/staff/tests/database.test.mjs
+node --test --test-isolation=none alt/staff/tests/security.test.mjs alt/staff/tests/database.test.mjs alt/staff/tests/news-bridge.test.mjs alt/staff/tests/push-queue.test.mjs
 cd alt/staff/backend
 deno check --node-modules-dir=auto functions/staff-console/index.ts functions/staff-notify/index.ts
 ```
 
-ฐานข้อมูลทดสอบเป็น PostgreSQL จำลองด้วย PGlite ไม่ใช่ฐานข้อมูลจริง ไม่ได้ทดสอบ load หรือคำขอพร้อมกันหลายเครื่องจริง
+ฐานข้อมูลทดสอบเป็น PostgreSQL จำลองด้วย PGlite มีคิวทดสอบจำลอง 1,000 บัญชีโดยไม่ส่งข้อความออกนอกเครื่อง ไม่ใช่ load test ถึงมือถือจริง 1,000 เครื่อง ผลทดสอบส่งจริงดู STATUS.md
 
 อ้างอิงการตั้งค่า: [GitHub sign-in ของ Supabase](https://supabase.com/docs/guides/auth/social-login/auth-github), [Database Functions](https://supabase.com/docs/guides/database/functions), [สิทธิ์ RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)

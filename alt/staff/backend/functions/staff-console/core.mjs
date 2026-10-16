@@ -139,11 +139,12 @@ export async function authorize({
   return { id: user.id, login: profile.login };
 }
 
-/** @param {{getUser:Function,github:Function,command:Function,repository?:string,allowedOrigins?:string[]}} options */
+/** @param {{getUser:Function,github:Function,command:Function,afterCommand?:Function,repository?:string,allowedOrigins?:string[]}} options */
 export function createHandler({
   getUser,
   github,
   command,
+  afterCommand,
   repository = "Nadokagenou/studentos-ai",
   allowedOrigins = [],
 }) {
@@ -190,7 +191,12 @@ export function createHandler({
       });
       if (action === "session")
         return reply(200, { login: actor.login, repo: repository });
-      return reply(200, await command(actor, action, payload));
+      const result = await command(actor, action, payload);
+      // Only after the database commits and authorization succeeds. A failed
+      // wake-up must not turn a successful grant into an apparent failed grant.
+      try { afterCommand?.(action, payload, result); }
+      catch { console.warn('[staff-notify] dispatch deferred to cron'); }
+      return reply(200, result);
     } catch (e) {
       return reply(e.status || 500, {
         error: e.status
