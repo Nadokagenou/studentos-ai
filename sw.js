@@ -5,10 +5,10 @@
 // ⚠️ ทุกชื่อในลิสต์นี้ต้องมีไฟล์อยู่จริง — addAll จะล้มทั้งก้อนถ้ามีตัวใดตัวหนึ่ง 404
 //    แล้วแอปจะไม่มีแคชเลย (เปิดออฟไลน์ไม่ได้) โดยไม่มี error โผล่ให้เห็นที่หน้าจอ
 //    เคยพลาดมาแล้วตอนคัดลอกไฟล์จาก alt/ ขึ้นมา: ลิสต์ยังมี icon-alt-* ซึ่ง root ไม่มี
-const CACHE = 'studentos-main-1c59-classroom-diag-20261015'; // 1C59 Classroom บอกเหตุที่บัญชีไม่มีงาน + เตือนเมื่อการเชื่อม Google หลุด
+const CACHE = 'studentos-main-1c59-staff-20261016'; // เชื่อมหลังบ้าน ข่าวสาร และเครดิตแอดมิน
 const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'room.css', 'social.css', 'feed.css', 'safety.css', 'hw.css', 'topic.css', 'custom.css',
   'engine.js', 'context.js', 'planner.js', 'facts.js', 'profile.js', 'simulate.js', 'calibrate.js', 'loss.js', 'decide.js', 'brain.js', 'inbox.js', 'linelink.js', 'room.js', 'social.js', 'feed.js', 'hw.js', 'topic.js', 'safety.js', 'app.js', 'config.js', 'remote-config.js',
-  'integrations.js', 'sai.css', 'sai.js', 'sai-face-normal.webp', 'sai-face-happy.webp', 'sai-face-wow.webp', 'sai-face-serious.webp', 'sai-face-sleepy.webp', 'sai-face-sulk.webp', 'sai-chibi.webp', 'hoop.css', 'hoop.js', 'fxgames.css', 'gacha-fx.css', 'fxgames.js', 'fx3d.js', 'gacha-fx.js', 'hook-avatar.png', 'hook-body.webp', 'hook-face.webp', 'quickadd.js', 'board.css', 'board.js', 'news.js', 'manifest.json', 'shortcut-draft.js',
+  'integrations.js', 'sai.css', 'sai.js', 'sai-face-normal.webp', 'sai-face-happy.webp', 'sai-face-wow.webp', 'sai-face-serious.webp', 'sai-face-sleepy.webp', 'sai-face-sulk.webp', 'sai-chibi.webp', 'hoop.css', 'hoop.js', 'fxgames.css', 'gacha-fx.css', 'fxgames.js', 'fx3d.js', 'gacha-fx.js', 'hook-avatar.png', 'hook-body.webp', 'hook-face.webp', 'quickadd.js', 'board.css', 'board.js', 'news.js', 'staff-news.js', 'manifest.json', 'shortcut-draft.js',
   'icon-192.png', 'icon-512.png', 'logo-mark.png', 'logo-splash.png', 'logo-splash-light.png',
   // หน้าน้องไซบนฟองแชท — ต้องอยู่ในแคชด้วย ไม่งั้นเปิดแอปตอนไม่มีเน็ตแล้วมาสคอตหายไปทั้งจอ
   'sai-avatar.png'];
@@ -50,7 +50,12 @@ self.addEventListener('notificationclick', e => {
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const c of list) {
-        if (c.url.includes(self.registration.scope) && 'focus' in c) return c.focus();
+        const next = new URL(target, self.registration.scope);
+        const scope = new URL(self.registration.scope);
+        if (c.url.startsWith(scope.href) && !c.url.startsWith(scope.href+'alt/') && 'focus' in c) {
+          if (next.origin === scope.origin && next.href.startsWith(scope.href)) return c.navigate(next.href).then(() => c.focus());
+          return c.focus();
+        }
       }
       return self.clients.openWindow(target);
     })

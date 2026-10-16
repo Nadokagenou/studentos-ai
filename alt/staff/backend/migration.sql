@@ -31,6 +31,8 @@ create table if not exists public.staff_notices (
   push_requested boolean not null default false,
   created_at timestamptz not null default now()
 );
+alter table public.staff_notices add column if not exists audience_id uuid references auth.users(id) on delete cascade;
+create index if not exists staff_notices_audience on public.staff_notices(audience_id,published_at desc) where audience_id is not null;
 create table if not exists public.staff_report_triage (
   report_id bigint primary key references public.reports(id) on delete cascade,
   status text not null check(status in ('open','reviewing','closed')),
@@ -124,7 +126,7 @@ begin
   elsif p_action='notices' then
     return jsonb_build_object('items',coalesce((select jsonb_agg(x) from (select notice_row.*,
       case when notice_row.push_requested then (select count(*) filter(where j.status='accepted')::text||' ตอบรับ / '||count(*)::text||' บัญชีในคิว' from public.staff_push_jobs j where j.notice_id=notice_row.id) else 'ไม่ส่ง Push' end push_status
-      from public.staff_notices notice_row order by notice_row.created_at desc limit 100)x),'[]'::jsonb));
+      from public.staff_notices notice_row where notice_row.audience_id is null order by notice_row.created_at desc limit 100)x),'[]'::jsonb));
   end if;
   -- Serialise mutations per operator, including daily limits and retry keys.
   perform pg_advisory_xact_lock(hashtextextended(p_actor::text,0));
@@ -144,6 +146,11 @@ begin
     insert into public.staff_audit values(req,p_actor,p_login,p_action,target_id::text||' +'||amount_n||' · '||reason_s,p_payload,now());
     insert into public.staff_token_grants(id,target,amount) values(req,target_id,amount_n);
     update public.user_state set data=data,updated_at=now() where id=target_id;
+    insert into public.staff_notices(id,title,body,status,actor,published_at,push_requested,audience_id)
+      values(req,(case when reason_s like 'ทดสอบ%' then 'ทดสอบ: ' else '' end)||'ได้รับ '||amount_n||' โทเคนจากทีม Student OS','แอดมินเพิ่มโทเคนให้คุณแล้ว ยอดจะแสดงหลังซิงก์ข้อมูล','published',p_actor,now(),true,target_id);
+    insert into public.staff_push_jobs(notice_id,user_id)
+      select req,target_id from public.user_state s where s.id=target_id and coalesce(s.data#>>'{settings,notif}','true')<>'false'
+        and exists(select 1 from public.push_subscriptions p where p.user_id=target_id) on conflict do nothing;
     return jsonb_build_object('id',req,'target',target_id,'amount',amount_n);
   elsif p_action='draft' then
     if length(btrim(coalesce(p_payload->>'title','')))<4 or length(p_payload->>'title')>60 or length(btrim(coalesce(p_payload->>'body','')))<1 or length(p_payload->>'body')>280 then raise exception 'Invalid notice'; end if;
@@ -185,10 +192,19 @@ grant execute on function public.staff_command(uuid,text,text,jsonb) to service_
 create or replace function public.staff_public_notices()
 returns jsonb language sql stable security definer set search_path='' as $$
   select coalesce(jsonb_agg(x),'[]'::jsonb) from (select id,title,body,published_at,until_at from public.staff_notices
-    where status='published' and published_at<=now() and (until_at is null or until_at>now()) order by published_at desc limit 50)x;
+    where audience_id is null and status='published' and published_at<=now() and (until_at is null or until_at>now()) order by published_at desc limit 50)x;
 $$;
 revoke all on function public.staff_public_notices() from public;
 grant execute on function public.staff_public_notices() to anon,authenticated;
+
+-- Private credit notices are visible only to their signed-in recipient.
+create or replace function public.staff_personal_notices()
+returns jsonb language sql stable security definer set search_path='' as $$
+  select coalesce(jsonb_agg(x),'[]'::jsonb) from (select id,title,body,published_at,until_at from public.staff_notices
+    where audience_id=(select auth.uid()) and status='published' and published_at<=now() and (until_at is null or until_at>now()) order by published_at desc limit 50)x;
+$$;
+revoke all on function public.staff_personal_notices() from public,anon,authenticated;
+grant execute on function public.staff_personal_notices() to authenticated,service_role;
 
 create or replace function public.staff_claim_push_jobs(p_limit integer default 20)
 returns jsonb language plpgsql security definer set search_path='' as $$
@@ -200,10 +216,28 @@ begin
       and n.status='published' and (n.until_at is null or n.until_at>now()) order by j.not_before limit greatest(1,least(p_limit,50)) for update of j skip locked),
   claimed as (update public.staff_push_jobs j set status='sending',claimed_at=now(),attempts=j.attempts+1 from ready r
     where j.notice_id=r.notice_id and j.user_id=r.user_id returning j.*)
-  select coalesce(jsonb_agg(jsonb_build_object('notice_id',c.notice_id,'user_id',c.user_id,'attempts',c.attempts,'title',n.title,'body',n.body)),'[]'::jsonb)
+  select coalesce(jsonb_agg(jsonb_build_object('notice_id',c.notice_id,'user_id',c.user_id,'attempts',c.attempts,'title',n.title,'body',n.body,'audience_id',n.audience_id)),'[]'::jsonb)
     into result from claimed c join public.staff_notices n on n.id=c.notice_id;
   return result;
 end $$;
 revoke all on function public.staff_claim_push_jobs(integer) from public,anon,authenticated;
 grant execute on function public.staff_claim_push_jobs(integer) to service_role;
+
+-- Explicit developer tests may send one private test notice now. Public and
+-- normal credit notices always keep the standard quiet hours.
+create or replace function public.staff_claim_test_push_job(p_notice uuid)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare result jsonb;
+begin
+  with ready as (select j.notice_id,j.user_id from public.staff_push_jobs j join public.staff_notices n on n.id=j.notice_id
+    where j.notice_id=p_notice and n.audience_id=j.user_id and n.title like 'ทดสอบ%' and n.status='published'
+      and (n.until_at is null or n.until_at>now()) and j.status='pending' and j.attempts<4 for update of j skip locked),
+  claimed as (update public.staff_push_jobs j set status='sending',claimed_at=now(),attempts=j.attempts+1 from ready r
+    where j.notice_id=r.notice_id and j.user_id=r.user_id returning j.*)
+  select coalesce(jsonb_agg(jsonb_build_object('notice_id',c.notice_id,'user_id',c.user_id,'attempts',c.attempts,'title',n.title,'body',n.body,'audience_id',n.audience_id)),'[]'::jsonb)
+    into result from claimed c join public.staff_notices n on n.id=c.notice_id;
+  return result;
+end $$;
+revoke all on function public.staff_claim_test_push_job(uuid) from public,anon,authenticated;
+grant execute on function public.staff_claim_test_push_job(uuid) to service_role;
 commit;

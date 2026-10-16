@@ -15,7 +15,7 @@ function context(response) {
     AbortSignal,
     location: { search: "" },
     sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} },
-    localStorage: { setItem: (k, v) => cache.set(k, v) },
+    localStorage: { setItem: (k, v) => cache.set(k, v), getItem: k => cache.get(k) || null },
     window: {
       SUPABASE_CONFIG: {
         url: "https://example.supabase.co",
@@ -68,6 +68,49 @@ test("empty server publication list removes cached withdrawn notices", async () 
     Array.from(c.newsItems, (x) => x.id),
     ["file-notice"],
   );
+});
+
+test("refreshing file news within the throttle window preserves the current server notices", async () => {
+  const { c } = context({ok:true,json:async()=>[{id:"live",title:"Live",body:"Visible",published_at:new Date().toISOString()}]});
+  await vm.runInContext("staffNewsLoad()", c);
+  c.newsItems = [{id:"file-new"}];
+  await vm.runInContext("staffNewsLoad()", c);
+  assert.deepEqual(Array.from(c.newsItems,x=>x.id),["file-new","staff-live"]);
+});
+
+for (const build of ["../..", "../../.."]) {
+  const inbox = await readFile(new URL(build+"/inbox.js",import.meta.url),"utf8");
+  test(`published notices appear safely in the notification center (${build})`, async () => {
+    const {c} = context({ok:true,json:async()=>[{id:"live",title:"<script>test</script>",body:"Message & notice",published_at:new Date().toISOString()}]});
+    c.state={inbox:[]}; c.dmRows=[]; c.currentUser=null;
+    c.esc=x=>String(x).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    c.icon=()=>"";c.notifAgo=()=>"";c.notifKick=()=>{};c.notifPaintBell=()=>{};
+    const body={innerHTML:""},sub={textContent:""};
+    c.document={getElementById:id=>id==='notifBody'?body:id==='notifSub'?sub:null};
+    vm.runInContext(inbox.slice(inbox.indexOf("const NOTIF_KEY"),inbox.indexOf("function notifUnread")),c);
+    vm.runInContext(inbox.slice(inbox.indexOf("function renderNotif()")),c);
+    await vm.runInContext("staffNewsLoad()",c);
+    c.curScreen='scr-notif';
+    vm.runInContext("renderNotif()",c);
+    assert.match(body.innerHTML,/&lt;script&gt;test&lt;\/script&gt;/);
+    assert.match(body.innerHTML,/Message &amp; notice/);
+    assert.match(body.innerHTML,/staffNotifOpen/);
+    vm.runInContext("notifFilter='work';renderNotif()",c);
+    assert.doesNotMatch(body.innerHTML,/Message &amp; notice/);
+  });
+}
+
+test("private credit notices never remain visible after switching accounts or signing out",async()=>{
+  const {c}=context({ok:true,json:async()=>[]});
+  c.currentUser={id:'recipient'};
+  c.sb={rpc:()=>({abortSignal:async()=>({data:[{id:'credit',title:'Received 100 tokens',body:'For you',published_at:new Date().toISOString()}],error:null})})};
+  await vm.runInContext('staffPersonalLoad(true)',c);
+  assert.equal(vm.runInContext('staffNotifItems(0).length',c),1);
+  assert.equal(vm.runInContext('staffNotifItems(0)[0].staff.personal',c),true);
+  c.currentUser={id:'someone-else'};
+  assert.equal(vm.runInContext('staffNotifItems(0).length',c),0);
+  c.currentUser=null;
+  assert.equal(vm.runInContext('staffNotifItems(0).length',c),0);
 });
 function walletContext(initial, saveOK = true) {
   let wallet = { ...initial };

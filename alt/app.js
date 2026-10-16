@@ -11248,6 +11248,7 @@ function renderAll() {
   if (typeof staffNewsRoute === 'function') staffNewsRoute();
   // เช็คว่ามีคำตอบใหม่ในเธรดหัวข้อที่เราถามไว้หรือยัง · หน่วงเองภายใน 2 นาที
   if (typeof loadTopicNews === 'function') loadTopicNews();
+  if (typeof staffPersonalLoad === 'function') void staffPersonalLoad();
 }
 
 // ---------- ค่าตั้งจากเซิร์ฟเวอร์มาถึงทีหลัง ----------

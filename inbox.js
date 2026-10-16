@@ -1250,7 +1250,7 @@ let notifKickAt = 0;
 // เปิดจอ = อ่านแล้วทั้งหมด (แบบ IG) แต่รายการที่ "ใหม่" ตอนเปิดยังไฮไลต์ไว้ตลอดการเปิดครั้งนั้น
 // ไม่งั้นกดเข้ามาแล้วทุกแถวกลายเป็นอ่านแล้วต่อหน้า ไม่รู้ว่าอันไหนเพิ่งเข้ามา · ออกจากจอ = ล้าง
 let notifVisit = null;
-function notifKey(n) { return (n.row ? 'd:' + n.row.id : 'i:' + n.item.id) + ':' + n.at; }
+function notifKey(n) { if (n.staff) return 's:' + n.staff.id + ':' + n.at; return (n.row ? 'd:' + n.row.id : 'i:' + n.item.id) + ':' + n.at; }
 
 function notifTs(v) { const n = Date.parse(v || ''); return isNaN(n) ? 0 : n; }
 function notifSeen() {
@@ -1284,6 +1284,7 @@ function notifItems() {
     if (!at || ['noise', 'duplicate', 'ignored'].includes(i.status)) continue;
     out.push({ kind: i.status === 'new' ? 'wait' : 'auto', at, unread: at > cut, item: i });
   }
+  if (typeof staffNotifItems === 'function') out.push(...staffNotifItems(cut));
   return out.sort((a, b) => b.at - a.at).slice(0, 50);
 }
 function notifUnread() { return notifItems().filter(n => n.unread).length; }
@@ -1391,6 +1392,8 @@ function notifRing(b, dot) {
 // ถามเซิร์ฟเวอร์ห่างกันอย่างน้อย 45 วิ (จังหวะเดียวกับที่กล่องเข้าดึง LINE) และเฉพาะตอนจอเปิดอยู่
 // ป้ายขึ้นเฉพาะข้อความที่ใหม่กว่าป้ายใบล่าสุด — เปิดแอปครั้งแรกจะไม่เด้งข้อความเก่าทั้งกองใส่หน้า
 async function notifKick(force) {
+  if (typeof staffNewsLoad === 'function') void staffNewsLoad();
+  if (typeof staffPersonalLoad === 'function') void staffPersonalLoad(force);
   if (typeof sb === 'undefined' || !sb || typeof currentUser === 'undefined' || !currentUser) return;
   if (typeof loadDmDot !== 'function') return;
   if (!force && Date.now() - notifKickAt < 45000) return;
@@ -1474,7 +1477,7 @@ function renderNotif() {
   }
   const isNew = n => n.unread || !!(notifVisit && notifVisit.has(notifKey(n)));
   const isDm = n => n.kind === 'dm' || n.kind === 'req';
-  const list = all.filter(n => notifFilter === 'all' || (notifFilter === 'dm' ? isDm(n) : !isDm(n)));
+  const list = all.filter(n => notifFilter === 'all' || (notifFilter === 'dm' ? isDm(n) : !isDm(n) && n.kind !== 'staff'));
   const nNew = list.filter(isNew).length;
   const sub = document.getElementById('notifSub');
   if (sub) sub.textContent = nNew ? `ใหม่ ${nNew} รายการ` : 'อ่านครบแล้ว';
@@ -1498,6 +1501,10 @@ function renderNotif() {
         ${n.kind === 'req' ? '<span class="nt-go">ดูคำขอ</span>' : dot}
       </button>`;
     }
+    if (n.kind === 'staff') return `<button class="nt-row${nw ? ' new' : ''}" onclick="staffNotifOpen(${esc(JSON.stringify(n.staff.id))})">
+      <span class="nt-ic"><span class="nt-av src">${icon(n.staff.personal ? 'check' : 'flag')}</span></span>
+      <span class="nt-bd"><span class="nt-t">${esc(n.staff.title)}</span><span class="nt-p">${esc(n.staff.body)}</span>
+      <span class="nt-meta">ทีม Student OS<i aria-hidden="true">·</i>${esc(t)}</span></span>${dot}</button>`;
     const i = n.item, s = sourceById(i.source);
     // ชื่อเต็มของแหล่งมีวงเล็บอธิบาย ("LINE (บอทในกลุ่มห้อง)") ซึ่งดันประโยคให้ตกบรรทัด — ที่นี่พอแค่ชื่อ
     const srcName = s.shortName || s.name.replace(/\s*\(.*\)\s*$/, '');

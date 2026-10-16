@@ -2,6 +2,46 @@
 // ข้อความทั้งหมดผ่าน renderer ข่าวเดิมที่ escape HTML ก่อนแสดง
 let staffNewsAt = 0,
   staffNewsBusy = false;
+let staffPublicNews = null, staffPersonalRows = [], staffPersonalUser = null,
+  staffPersonalAt = 0, staffPersonalBusy = false;
+function staffRefreshNotifs() {
+  if (typeof notifPaintBell === "function") notifPaintBell();
+  if (typeof curScreen !== "undefined" && curScreen === "scr-notif" && typeof renderNotif === "function") renderNotif();
+}
+function staffMergeNews() {
+  if (!staffPublicNews) return;
+  newsItems = [...(newsItems || []).filter(x => !x.id.startsWith("staff-")), ...staffPublicNews];
+}
+async function staffPersonalLoad(force = false) {
+  const user = typeof currentUser !== "undefined" ? currentUser?.id : null;
+  if (user !== staffPersonalUser) {
+    staffPersonalUser = user; staffPersonalRows = []; staffPersonalAt = 0;
+  }
+  if (!user || typeof sb === "undefined" || !sb || staffPersonalBusy || (!force && Date.now() - staffPersonalAt < 30000)) return;
+  staffPersonalBusy = true; staffPersonalAt = Date.now();
+  try {
+    const { data, error } = await sb.rpc("staff_personal_notices").abortSignal(AbortSignal.timeout(5000));
+    if (!error && Array.isArray(data) && user === staffPersonalUser && user === currentUser?.id) staffPersonalRows = data;
+  } catch {} finally {
+    staffPersonalBusy = false; staffRefreshNotifs();
+    if (user !== staffPersonalUser) void staffPersonalLoad(true);
+  }
+}
+function staffNotifItems(cut) {
+  const user = typeof currentUser !== "undefined" ? currentUser?.id : null;
+  const publicRows = (typeof newsItems !== "undefined" ? newsItems || [] : []).filter(x => x.id.startsWith("staff-"))
+    .map(x => ({...x, published_at: x.published_at || x.date, until_at: x.until, personal: false}));
+  const personal = user && user === staffPersonalUser ? staffPersonalRows.map(x => ({...x, personal: true})) : [];
+  return [...publicRows, ...personal].filter(x => !x.until_at || Date.parse(x.until_at) > Date.now()).map(x => ({
+    kind: "staff", at: Date.parse(x.published_at), unread: Date.parse(x.published_at) > cut,
+    staff: {id:x.id,title:x.title,body:x.body,personal:x.personal}
+  })).filter(x => Number.isFinite(x.at));
+}
+function staffNotifOpen(id) {
+  const item = staffNotifItems(0).find(x => x.staff.id === id);
+  if (item?.staff.personal) { if (typeof go === "function") go("scr-shop"); }
+  else if (typeof go === "function") go("scr-news");
+}
 // รับเฉพาะส่วนต่างเครดิตจาก ledger ลงยอดล่าสุดในเครื่อง ไม่ทับยอดที่ผู้ใช้
 // เพิ่งใช้ไประหว่างรอคำขอซิงก์ และใช้ตัวนับสะสมกันบวกซ้ำเมื่อ retry
 function staffApplyCredits(vault) {
@@ -39,8 +79,13 @@ async function staffNewsLoad() {
     staffNewsBusy ||
     Date.now() - staffNewsAt < 60000 ||
     !window.SUPABASE_CONFIG?.url
-  )
+  ) {
+    if (staffPublicNews) {
+      staffMergeNews(); newsPaintRow(); staffRefreshNotifs();
+      if (typeof curScreen !== "undefined" && curScreen === "scr-news") renderNews();
+    }
     return;
+  }
   staffNewsBusy = true;
   staffNewsAt = Date.now();
   try {
@@ -75,6 +120,7 @@ async function staffNewsLoad() {
         title: x.title,
         body: x.body,
         date: new Date(x.published_at).toISOString().slice(0, 10),
+        published_at: x.published_at,
         until: x.until_at || undefined,
         by: "ทีม Student OS",
         evidence: [
@@ -84,10 +130,8 @@ async function staffNewsLoad() {
           },
         ],
       }));
-    newsItems = [
-      ...(newsItems || []).filter((x) => !x.id.startsWith("staff-")),
-      ...notices,
-    ];
+    staffPublicNews = notices;
+    staffMergeNews();
     try {
       localStorage.setItem(
         NEWS_CACHE_KEY,
@@ -95,6 +139,7 @@ async function staffNewsLoad() {
       );
     } catch {}
     newsPaintRow();
+    staffRefreshNotifs();
     if (typeof curScreen !== "undefined" && curScreen === "scr-news")
       renderNews();
   } catch {
@@ -102,19 +147,24 @@ async function staffNewsLoad() {
     staffNewsBusy = false;
   }
 }
-let staffNewsRequested = false;
+let staffNewsRequested = false, staffNotifRequested = false;
 try {
   if (new URLSearchParams(location.search).get("go") === "staff-news")
     sessionStorage.setItem("studentos.alt.staffNewsOpen", "1");
   staffNewsRequested =
     sessionStorage.getItem("studentos.alt.staffNewsOpen") === "1";
+  if (new URLSearchParams(location.search).get("go") === "staff-notif") sessionStorage.setItem("studentos.alt.staffNotifOpen", "1");
+  staffNotifRequested = sessionStorage.getItem("studentos.alt.staffNotifOpen") === "1";
 } catch {}
 function staffNewsRoute() {
-  if (!staffNewsRequested || ["scr-login", "scr-onboard"].includes(curScreen))
+  if ((!staffNewsRequested && !staffNotifRequested) || ["scr-login", "scr-onboard"].includes(curScreen))
     return;
   staffNewsRequested = false;
   try {
     sessionStorage.removeItem("studentos.alt.staffNewsOpen");
+    sessionStorage.removeItem("studentos.alt.staffNotifOpen");
   } catch {}
-  go("scr-news");
+  const screen = staffNotifRequested ? "scr-notif" : "scr-news";
+  staffNotifRequested = false;
+  go(screen);
 }

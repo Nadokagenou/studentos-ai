@@ -116,6 +116,7 @@ test("anonymous and normal users cannot grant, read staff tables or edit audit",
       "select * from staff_token_grants",
       "select * from staff_notices",
         "select staff_claim_push_jobs(10)",
+      `select staff_claim_test_push_job('${req(1)}')`,
       `select staff_command('${actor}','developer','overview','{}')`,
     ])
       await assert.rejects(() => db.query(sql));
@@ -125,6 +126,36 @@ test("anonymous and normal users cannot grant, read staff tables or edit audit",
   assert.deepEqual((await db.query("select id from staff_audit limit 0")).rows, []);
   await assert.rejects(() => db.exec("delete from staff_audit"));
   await db.exec("reset role");
+});
+
+test("credit notifications belong only to the recipient and stay out of public news", async () => {
+  await db.query("select set_config('request.jwt.claim.sub',$1,false)", [target]);
+  const mine = (await db.query("select staff_personal_notices() r")).rows[0].r;
+  assert.equal(mine.length, 1);
+  assert.equal(mine[0].id, req(1));
+  assert.match(mine[0].title, /1000/);
+  assert.deepEqual((await db.query("select staff_public_notices() r")).rows[0].r, []);
+  assert.deepEqual((await cmd("notices", {})).items, []);
+  assert.equal((await db.query("select count(*)::int n from staff_push_jobs where notice_id=$1 and user_id=$2", [req(1),target])).rows[0].n, 1);
+  await db.query("select set_config('request.jwt.claim.sub',$1,false)", [actor]);
+  assert.deepEqual((await db.query("select staff_personal_notices() r")).rows[0].r, []);
+  await db.exec("set role anon");
+  try { await assert.rejects(() => db.query("select staff_personal_notices()")); }
+  finally { await db.exec("reset role"); }
+  await db.query("select set_config('request.jwt.claim.sub','',false)");
+});
+
+test("immediate Push tests are confined to one private test notice",async()=>{
+  await db.exec("begin");
+  try {
+    assert.deepEqual((await db.query("select staff_claim_test_push_job($1) r",[req(1)])).rows[0].r,[]);
+    await db.query("insert into staff_notices(id,title,body,status,audience_id,published_at) values($1,'ทดสอบแจ้งเตือน','Private developer test','published',$2,now())",[req(900),target]);
+    await db.query("insert into staff_push_jobs(notice_id,user_id) values($1,$2)",[req(900),target]);
+    const jobs=(await db.query("select staff_claim_test_push_job($1) r",[req(900)])).rows[0].r;
+    assert.equal(jobs.length,1);assert.equal(jobs[0].user_id,target);assert.equal(jobs[0].audience_id,target);
+    assert.deepEqual((await db.query("select staff_claim_test_push_job($1) r",[req(900)])).rows[0].r,[]);
+    assert.deepEqual((await db.query("select staff_public_notices() r")).rows[0].r,[]);
+  } finally {await db.exec('rollback');}
 });
 test("public news excludes drafts, withdrawn and expired copy; push jobs deduplicate", async () => {
   assert.deepEqual((await cmd("notices", {})).items, []);
@@ -150,14 +181,14 @@ test("public news excludes drafts, withdrawn and expired copy; push jobs dedupli
   assert.equal(publishedList[0].status, "published");
   assert.match(publishedList[0].push_status, /1 บัญชีในคิว/);
   assert.equal(
-    (await db.query("select count(*)::int n from staff_push_jobs")).rows[0].n,
+    (await db.query("select count(*)::int n from staff_push_jobs where notice_id=$1", [id])).rows[0].n,
     1,
   );
   assert.equal(
     (await db.query("select staff_public_notices() r")).rows[0].r.length,
     1,
   );
-  const jobs = (await db.query('select staff_claim_push_jobs(10) r')).rows[0].r;
+  const jobs = (await db.query('select staff_claim_push_jobs(10) r')).rows[0].r.filter(j => j.notice_id === id);
   assert.ok(jobs.length === 0 || jobs.length === 1);
   if (jobs.length) {
     assert.equal(jobs[0].user_id, target);
@@ -170,7 +201,7 @@ test("public news excludes drafts, withdrawn and expired copy; push jobs dedupli
     [],
   );
   assert.equal(
-    (await db.query("select status from staff_push_jobs")).rows[0].status,
+    (await db.query("select status from staff_push_jobs where notice_id=$1", [id])).rows[0].status,
     jobs.length ? "sending" : "cancelled",
   );
 });

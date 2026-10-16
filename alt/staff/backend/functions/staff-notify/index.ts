@@ -46,9 +46,12 @@ Deno.serve(async (req) => {
     publicKey,
     privateKey,
   );
-  const { data: jobs, error } = await db.rpc("staff_claim_push_jobs", {
-    p_limit: 10,
-  });
+  const input = await req.json().catch(() => ({}));
+  const testNotice = input.test_notice_id;
+  if (testNotice != null && (typeof testNotice !== "string" || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(testNotice))) return json({error:"Invalid test notice"},400);
+  const { data: jobs, error } = testNotice
+    ? await db.rpc("staff_claim_test_push_job", {p_notice:testNotice})
+    : await db.rpc("staff_claim_push_jobs", {p_limit:10});
   if (error) return json({ error: "Queue not available" }, 503);
   let accepted = 0,
     failed = 0;
@@ -56,7 +59,7 @@ Deno.serve(async (req) => {
     // Recheck withdrawal/expiry/preferences immediately before sending.
     const { data: notice, error: noticeError } = await db
       .from("staff_notices")
-      .select("status,until_at")
+      .select("status,until_at,audience_id")
       .eq("id", job.notice_id)
       .single();
     const { data: state, error: stateError } = await db
@@ -68,6 +71,7 @@ Deno.serve(async (req) => {
       !noticeError &&
       !stateError &&
       notice?.status === "published" &&
+      (!notice.audience_id || notice.audience_id === job.user_id) &&
       (!notice.until_at || Date.parse(notice.until_at) > Date.now()) &&
       state?.data?.settings?.notif !== false;
     if (!live) {
@@ -109,7 +113,8 @@ Deno.serve(async (req) => {
                   title: job.title,
                   body: job.body,
                   tag: `staff-${job.notice_id}`,
-                  url: "https://nadokagenou.github.io/studentos-ai/alt/?go=staff-news",
+                  url: "https://nadokagenou.github.io/studentos-ai/?go=" +
+                    (job.audience_id ? "staff-notif" : "staff-news"),
                 }),
                 { TTL: 86400, urgency: "normal", timeout: 5000 },
               );

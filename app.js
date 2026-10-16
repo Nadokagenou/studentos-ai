@@ -1376,6 +1376,7 @@ async function syncFromCloud() {
       // ของสะสมรวมทีหลัง ctx เพราะมันไม่เกี่ยวกัน แต่ต้องมาก่อน renderAll() ข้างล่าง
       // ไม่งั้นหน้าจอวาดยอดโทเคนเก่าไปแล้วค่อยเปลี่ยนเลขต่อหน้าต่อตา
       if (typeof vaultImport === 'function') vaultImport(remote.vault);
+      if (typeof staffApplyCredits === 'function') staffApplyCredits(remote.vault);
     }
     await pushToCloud(true);
     // ของที่บอท LINE หย่อนไว้ตอนแอปปิดอยู่ — ดึงมาทีเดียวตอนเปิด
@@ -1465,10 +1466,11 @@ function pushToCloud(immediate) {
       // ขอ rev ใหม่กลับมาด้วยเลย (ไม่กี่ไบต์) — ถ้าปล่อยให้ค่าที่จำไว้เป็นโมฆะ
       // การเปิดแอปครั้งถัดไปจะต้องลากทั้งก้อนลงมาเทียบใหม่ทั้งที่เครื่องนี้เองเป็นคนเขียน
       const { data: back, error } = await sb.from('user_state')
-        .upsert(row).select('rev').maybeSingle();
+        .upsert(row).select('rev,vault:data->vault').maybeSingle();
       if (error) throw error;
       lastPushedHash = hash;
       lastPushedAvatar = avatar;
+      if (back && typeof staffApplyCredits === 'function') staffApplyCredits(back.vault);
       if (back && typeof back.rev === 'number') lastSeenRev = back.rev;
       lastSync = new Date();
       renderProfile();
@@ -11054,6 +11056,8 @@ function renderAll() {
   if (typeof hwSync === 'function') hwSync();
   // เช็คว่ามีคำตอบใหม่ในเธรดหัวข้อที่เราถามไว้หรือยัง · หน่วงเองภายใน 2 นาที
   if (typeof loadTopicNews === 'function') loadTopicNews();
+  if (typeof staffPersonalLoad === 'function') void staffPersonalLoad();
+  if (typeof staffNewsRoute === 'function') staffNewsRoute();
 }
 
 // ---------- ค่าตั้งจากเซิร์ฟเวอร์มาถึงทีหลัง ----------
