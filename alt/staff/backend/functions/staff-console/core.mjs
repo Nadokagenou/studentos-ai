@@ -162,17 +162,19 @@ export async function authorize({
 }) {
   if (!authorization?.startsWith("Bearer ") || !githubToken)
     throw new HttpError(401, "กรุณาเข้าสู่ระบบด้วย GitHub");
-  // getUser verifies the Supabase JWT with the Auth server, never client metadata.
-  const user = await getUser(authorization.slice(7));
+  // All three reads are independent. No privileged command runs until every
+  // original check passes, including Auth's current ban/session validation.
+  const [userResult, profileResult, repoResult] = await Promise.allSettled([
+    Promise.resolve().then(() => getUser(authorization.slice(7))),
+    Promise.resolve().then(() => github("/user", githubToken)),
+    Promise.resolve().then(() => github(`/repos/${repository}`, githubToken)),
+  ]);
+  if (userResult.status === 'rejected') throw userResult.reason;
+  const user = userResult.value;
   if (!user) throw new HttpError(401, "การเข้าสู่ระบบหมดอายุ");
   const identity = user.identities?.find((x) => x.provider === "github");
   if (!identity)
     throw new HttpError(403, "บัญชีนี้ยังไม่ได้ยืนยันตัวตนด้วย GitHub");
-  // Both GitHub reads are independent; all checks still run for every request.
-  const [profileResult, repoResult] = await Promise.allSettled([
-    github("/user", githubToken),
-    github(`/repos/${repository}`, githubToken),
-  ]);
   if (profileResult.status === 'rejected') throw profileResult.reason;
   const profile = profileResult.value;
   const identityId =

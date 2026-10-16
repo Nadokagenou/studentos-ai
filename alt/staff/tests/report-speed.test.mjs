@@ -33,6 +33,20 @@ test('independent GitHub checks start together and both must succeed, without ca
   assert.equal(userCalls, 2); assert.equal(paths.length, 4);
 });
 
+test('Auth and GitHub reads overlap, but no authorization succeeds before Auth validates', async () => {
+  let resolveUser, done=false;
+  const calls=[];
+  const pending=authorize({ authorization:'Bearer test', githubToken:'fake', repository:repo.full_name,
+    getUser:()=>new Promise(resolve=>{calls.push('auth');resolveUser=resolve;}),
+    github:async path=>{calls.push(path);return path==='/user'?profile:repo;},
+  });
+  pending.then(()=>{done=true;},()=>{});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.deepEqual(calls,['auth','/user','/repos/'+repo.full_name]);
+  assert.equal(done,false);
+  resolveUser(null); await assert.rejects(pending,{status:401});
+});
+
 test('a save returns current lists with one authorization and unchanged ledger payload', async () => {
   const calls = []; let authCalls = 0, kicks = 0;
   const handler = createHandler({ getUser: async () => { authCalls++; return user; }, github: async path => path === '/user' ? profile : repo,
