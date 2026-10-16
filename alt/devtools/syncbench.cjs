@@ -34,7 +34,8 @@ ${block}
 ;({ get state() { return state; }, set state(v) { state = v; }, setSb(v) { sb = v; }, setUser(v) { currentUser = v; },
   get lastSeenRev() { return lastSeenRev; }, get syncBase() { return syncBase; }, get lastPushedHash() { return lastPushedHash; },
   syncFromCloud, pushToCloud, cloudPull, syncSerial, syncFp, save() { pushToCloud(); }, get renders() { return renders; },
-  setCtx(c) { ctxStore = c; }, get ctx() { return ctxStore; }, toasts })`;
+  setCtx(c) { ctxStore = c; }, get ctx() { return ctxStore; }, toasts,
+  resetMemory() { syncBase = null; lastSeenRev = -1; lastPushedHash = ''; } })`;
 const lsStore = {};
 const localStorage = { getItem: k => (k in lsStore ? lsStore[k] : null), setItem: (k, v) => { lsStore[k] = String(v); },
   removeItem: k => { delete lsStore[k]; }, key: i => Object.keys(lsStore)[i] ?? null, get length() { return Object.keys(lsStore).length; } };
@@ -178,6 +179,52 @@ const results = []; const check = (name, ok, info) => results.push(`${ok ? 'PASS
   cloud.row.data.tasks = cloud.row.data.tasks.filter(t => t.id !== 'n1'); cloud.row.rev++;
   resume(); await wait(50);
   check('k: delete on A propagates to a task this device created (key order independent)', !app.state.tasks.some(t => t.id === 'n1'), ids(app.state.tasks));
+
+  // ============================================================
+  // 16 ต.ค. 69 · ฐานการรวมต้องอยู่รอดข้ามการเปิดแอปใหม่และการสลับบัญชี
+  // เดิมฐานอยู่แค่ในหน่วยความจำ — เปิดแอปใหม่ = รวมทุกอย่าง → งานที่ลบที่ cloud ถูกเครื่องนี้ดันกลับขึ้นไป
+  // (ข้อมูลจริง: งานที่ปนข้ามบัญชี 74 ใบ ลบที่ cloud อย่างเดียวไม่ได้ เพราะ iPhone กับคอมจะดันกลับ)
+  // ============================================================
+  const mkCloud = tasks => ({ rev: 1, data: jsonbify({ tasks, settings: {} }), avatar: null });
+  // (l) เปิดแอปใหม่ → งานที่อีกเครื่องลบถาวร (และเครื่องนี้ไม่ได้แตะ) ต้องหายตาม ไม่ถูกดันกลับ
+  delete lsStore['studentos.alt.owner'];
+  app.setUser({ id: 'u-r' }); app.state = { tasks: [mk('r1', 'r1'), mk('r2', 'r2'), mk('r3', 'r3')], settings: {}, sessions: [], marks: [] };
+  cloud.row = mkCloud([mk('r1', 'r1'), mk('r2', 'r2'), mk('r3', 'r3')]);
+  await app.syncFromCloud();
+  app.resetMemory();                                        // ปิดแอปแล้วเปิดใหม่
+  cloud.row.data.tasks = cloud.row.data.tasks.filter(t => t.id !== 'r2'); cloud.row.rev++;
+  await app.syncFromCloud();
+  check('l: fresh start follows a delete made on another device', !app.state.tasks.some(t => t.id === 'r2'), ids(app.state.tasks));
+  check('l: fresh start does not push the deleted task back to the cloud', !cloud.row.data.tasks.some(t => t.id === 'r2'), ids(cloud.row.data.tasks));
+  // (m) เปิดแอปใหม่ · เครื่องนี้แก้งานใบหนึ่งไว้ (ยังไม่ได้ส่ง) ขณะที่อีกเครื่องลบมัน → เก็บไว้ (ไม่ทิ้งของที่มีคนแตะ)
+  app.state.tasks.find(t => t.id === 'r1').detail = 'r1 แก้แบบออฟไลน์';
+  app.resetMemory();
+  cloud.row.data.tasks = cloud.row.data.tasks.filter(t => t.id !== 'r1'); cloud.row.rev++;
+  await app.syncFromCloud();
+  check('m: fresh start keeps a task edited here that another device deleted', app.state.tasks.some(t => t.id === 'r1' && t.detail === 'r1 แก้แบบออฟไลน์'), ids(app.state.tasks));
+  // (n) เปิดแอปใหม่ · งานในเครื่องหาย (ล้างข้อมูล/ไฟล์เสีย) แต่ฐานยังอยู่ → ต้องไม่ตีความว่า "เครื่องนี้ลบทุกใบ"
+  const before = ids(cloud.row.data.tasks);
+  app.state = { tasks: [], settings: {}, sessions: [], marks: [] };
+  app.resetMemory();
+  await app.syncFromCloud();
+  check('n: a device that lost its local tasks does not wipe the cloud', ids(cloud.row.data.tasks) === before, ids(cloud.row.data.tasks) + ' vs ' + before);
+  check('n: and it gets the tasks back from the cloud', ids(app.state.tasks) === before, ids(app.state.tasks));
+  // (o) สลับบัญชีออกแล้วกลับมา · ระหว่างนั้นอีกเครื่องลบงานของบัญชีแรก → กลับมาแล้วต้องหายตาม
+  const cloudR = cloud.row;
+  app.setUser({ id: 'u-s' }); cloud.row = mkCloud([mk('s1', 's1')]);
+  await app.syncFromCloud();
+  const cloudS = cloud.row;
+  cloudR.data.tasks = cloudR.data.tasks.filter(t => t.id !== 'r3'); cloudR.rev++;
+  app.setUser({ id: 'u-r' }); cloud.row = cloudR;
+  await app.syncFromCloud();
+  check('o: switching back follows a delete made while away', !app.state.tasks.some(t => t.id === 'r3'), ids(app.state.tasks));
+  check('o: switching back does not push the deleted task back', !cloudR.data.tasks.some(t => t.id === 'r3'), ids(cloudR.data.tasks));
+  check('o: the other account is untouched', ids(cloudS.data.tasks) === 's1', ids(cloudS.data.tasks));
+  // (p) เปิดแอปใหม่ · งานที่สร้างตอนออฟไลน์ (ไม่อยู่ในฐาน) → ต้องขึ้น cloud
+  app.state.tasks.push(mk('r9', 'r9 ออฟไลน์'));
+  app.resetMemory();
+  await app.syncFromCloud();
+  check('p: a task created offline before the restart reaches the cloud', cloud.row.data.tasks.some(t => t.id === 'r9'), ids(cloud.row.data.tasks));
 
   console.log(results.join('\n'));
   console.log(`\n${results.filter(r => r.startsWith('PASS')).length}/${results.length} passed`);

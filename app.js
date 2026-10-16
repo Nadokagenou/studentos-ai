@@ -1288,7 +1288,7 @@ function accountLocalKeys() {
   const take = f => { try { const k = f(); if (typeof k === 'string' && k) out.push(k); } catch (_) {} };
   [() => TOKEN_KEY, () => ALLBADGE_KEY, () => LUCK_KEY, () => GENESIS_KEY, () => VAULT_AT_KEY, () => AV_KEY,
     () => AI_LOG_KEY, () => AI_CHATS_KEY, () => PLAN_KEY, () => NOTIF_KEY, () => SOCIAL_SEEN_KEY,
-    () => CHECKIN_ASKED_KEY].forEach(take);
+    () => CHECKIN_ASKED_KEY, () => SYNC_BASE_KEY].forEach(take);
   try { for (const k of Object.values(THEME_CODE)) out.push(k); } catch (_) {}
   try { for (const s of Object.values(SECRETS)) if (s && s.store) out.push(s.store); } catch (_) {}
   return [...new Set(out)];
@@ -1528,9 +1528,42 @@ function syncBaseFrom(body) {
     marks: ids(body.marks), settings: keys(body.settings), ctx: body.ctx ? syncFp(body.ctx) : null };
 }
 
+// ============================================================
+// 16 ต.ค. 69 · ฐานต้องอยู่รอดข้ามการเปิดแอปใหม่และการสลับบัญชี
+// ------------------------------------------------------------
+// เดิมฐานอยู่แค่ในหน่วยความจำ — เปิดแอปใหม่ = ไม่มีฐาน = รวมทุกอย่าง → งานที่อีกเครื่องลบถาวร
+// ถูกเครื่องนี้ดันกลับขึ้น cloud ทุกครั้งที่เปิดแอป (ข้อมูลจริง: งานที่ปนข้ามบัญชี 74 ใบ ลบที่ cloud อย่างเดียว
+// ไม่ได้ เพราะ iPhone กับคอมที่ยังเก็บสำเนาไว้จะดันกลับ)
+//
+// ฐานเก็บในคีย์เดียว และเป็นหนึ่งใน "คีย์ของบัญชี" (accountLocalKeys) — ย้ายเข้าออกที่สำรองพร้อมงานเสมอ
+// จึงไม่มีวันที่เครื่องมีฐานของบัญชีหนึ่ง แต่ถืองานของอีกบัญชี (หรือไม่มีงานเลย)
+//
+// ⚠️ ด่านที่ห้ามถอด: ฐานที่โหลดจากเครื่องใช้ได้ต่อเมื่องานในฐานยังอยู่ในเครื่องอย่างน้อยครึ่งหนึ่ง
+// ไม่งั้นเครื่องที่งานหาย (ล้างข้อมูลบางส่วน · ไฟล์เสีย) จะถูกตีความว่า "ลบทุกใบ" แล้วลบงานทั้งบัญชีบน cloud
+// ไม่ผ่านด่าน = กลับไปกติกาเดิม (รวมทุกอย่าง) ซึ่งเสียแค่ "ของที่ลบแล้วฟื้น" ไม่เคยทำให้ของหาย
+// ============================================================
+const SYNC_BASE_KEY = 'studentos.alt.syncBase';
+
+function setSyncBase(b) {
+  syncBase = b;
+  try { if (b) localStorage.setItem(SYNC_BASE_KEY, JSON.stringify(b)); else localStorage.removeItem(SYNC_BASE_KEY); } catch (_) {}
+}
+
 // ฐานของบัญชีอื่นใช้ไม่ได้ — สลับบัญชีแล้วใช้ฐานเดิม งานของบัญชีใหม่จะดูเหมือน "ถูกลบที่ cloud"
 function syncBaseNow() {
-  return syncBase && currentUser && syncBase.uid === currentUser.id ? syncBase : null;
+  if (!currentUser) return null;
+  if (syncBase && syncBase.uid === currentUser.id) return syncBase;
+  let b = null;
+  try { b = JSON.parse(localStorage.getItem(SYNC_BASE_KEY) || 'null'); } catch (_) {}
+  if (!b || b.uid !== currentUser.id || !b.tasks) return null;
+  const baseIds = Object.keys(b.tasks);
+  if (baseIds.length) {
+    const local = new Set((state.tasks || []).map(t => t && t.id));
+    const still = baseIds.filter(id => local.has(id)).length;
+    if (still * 2 < baseIds.length) return null;   // ดูด่านในหัวข้อข้างบน
+  }
+  syncBase = b;
+  return b;
 }
 
 // รวมรายการที่มี id (งาน · รอบจับเวลา · หมุดปฏิทิน) · base = { id: ลายนิ้วมือ } หรือ null
@@ -1622,7 +1655,7 @@ async function cloudPull() {
   // ไม่งั้นหน้าจอวาดยอดโทเคนเก่าไปแล้วค่อยเปลี่ยนเลขต่อหน้าต่อตา
   if (typeof vaultImport === 'function') vaultImport(remote.vault);
   if (typeof staffApplyCredits === 'function') staffApplyCredits(remote.vault);
-  syncBase = syncBaseFrom(remote);
+  setSyncBase(syncBaseFrom(remote));
   return true;
 }
 
@@ -1748,7 +1781,7 @@ async function pushRound() {
   }
   lastPushedHash = hash;
   lastPushedAvatar = avatar;
-  syncBase = nextBase;
+  setSyncBase(nextBase);
   if (back && typeof back.rev === 'number') lastSeenRev = back.rev;
   if (back && typeof staffApplyCredits === 'function') staffApplyCredits(back.vault);
   lastSync = new Date();
@@ -16818,6 +16851,8 @@ function loadSample() {
 async function clearAll() {
   if (await appConfirm({ title: 'ลบข้อมูลทุกอย่าง?', body: 'งานทั้งหมดและการตั้งค่าจะหายไป กู้คืนไม่ได้', ok: 'ลบทุกอย่าง', danger: true })) {
     localStorage.removeItem(STORE_KEY);
+    // ฐานการรวมต้องไปกับข้อมูล — ล้างข้อมูลแล้วเหลือฐานไว้ = รอบหน้าตีความว่า "เครื่องนี้ลบทุกใบ" (ดู syncBaseNow)
+    try { localStorage.removeItem(SYNC_BASE_KEY); } catch (_) {}
     // บริบทเป็นข้อมูลชีวิตประจำวัน (เรียนกี่โมง นอนกี่โมง ซ้อมบอลวันไหน)
     // "ล้างข้อมูลทุกอย่าง" ที่ไม่ล้างของพวกนี้ด้วยคือคำโกหก — และเป็นข้อมูลที่อ่อนไหวที่สุดที่แอปเก็บ
     if (typeof ctxClear === 'function') ctxClear();
