@@ -1249,6 +1249,47 @@ function go(id) {
 
 // ---------- cloud: Supabase auth + sync ----------
 let sb = null, currentUser = null, syncTimer = null, lastSync = null;
+
+// ============================================================
+// 16 ต.ค. 69 · ข้อมูลในเครื่องเป็นของบัญชีไหน — สลับบัญชีแล้วต้องไม่คัดลอกงานข้ามบัญชี
+// ------------------------------------------------------------
+// ข้อมูลจริง (อ่านอย่างเดียว): บัญชีหนึ่งมีงาน 195 ใบ ซึ่ง 194 ใบมี id ตรงกับงานของอีกบัญชีที่เคยล็อกอิน
+// บนเครื่องเดียวกัน (งาน Classroom 73 ใบตรงกับทะเบียนของบัญชีเดิมทุกใบ) · อีกคู่บัญชีมี id ตรงกัน 10 ใบ
+// ต้นเหตุ: logout() ไม่ล้างงานในเครื่อง → syncFromCloud() ของบัญชีใหม่รวมงานในเครื่องทุกใบเข้าไป
+// แล้วส่งขึ้น cloud ของบัญชีใหม่ · บนเครื่องที่พี่น้องใช้ร่วมกัน = งานของเด็กคนหนึ่งไปอยู่ในบัญชีอีกคนถาวร
+//
+// จดไว้ว่าข้อมูลในเครื่องเป็นของบัญชีไหน · ล็อกอินคนละบัญชี = เก็บสำรองของเดิมไว้ในเครื่อง
+// (ไม่ลบ — ของที่ยังไม่ได้ซิงก์จะได้ไม่หาย) แล้วเริ่มจากของเปล่าก่อนรวมกับ cloud ของบัญชีใหม่
+// ยังไม่มีเจ้าของ (ใช้แบบไม่ล็อกอินมาก่อน) = รวมเหมือนเดิม งานที่ทำไว้ก่อนล็อกอินต้องตามขึ้นบัญชีไป
+// และห้ามส่งขึ้น cloud ของบัญชีที่ยังไม่ได้รวมข้อมูล — ไม่งั้นก้อนเปล่า (หรือก้อนของบัญชีเก่า) ทับ cloud ของเขา
+// ============================================================
+const OWNER_KEY = 'studentos.alt.owner';
+const OTHER_ACCOUNT_BACKUP_KEY = 'studentos.alt.otherAccountBackup';
+
+function localOwner() {
+  try { return localStorage.getItem(OWNER_KEY) || ''; } catch (_) { return ''; }
+}
+function setLocalOwner(uid) {
+  try { if (uid) localStorage.setItem(OWNER_KEY, uid); } catch (_) {}
+}
+function cloudWritableFor(uid) {
+  return !!uid && localOwner() === uid;
+}
+function adoptAccountIfNeeded(uid) {
+  const prev = localOwner();
+  if (!prev || prev === uid) return false;
+  try {
+    localStorage.setItem(OTHER_ACCOUNT_BACKUP_KEY, JSON.stringify({
+      owner: prev, at: new Date().toISOString(), state,
+      ctx: typeof ctxExport === 'function' ? ctxExport() : undefined,
+    }));
+  } catch (e) { console.warn('[sync] สำรองข้อมูลของบัญชีเดิมไม่สำเร็จ:', (e && e.message) || e); }
+  state = { tasks: [], settings: { name: '', freeHours: 2 } };
+  if (typeof ctxClear === 'function') ctxClear();
+  if (typeof stateRev === 'number') stateRev++;
+  persistState();
+  return true;
+}
 // getSession() ตอบกลับมาแล้วหรือยัง — คนละเรื่องกับ "ตอบว่าไม่มี session"
 // เน็ตช้าจนหมดเวลา 6 วิ ไม่ใช่หลักฐานว่าเขาไม่ได้ล็อกอิน จึงห้ามเอาไปไล่คนไปจอบัญชี
 let sessionAnswered = false;
@@ -1280,6 +1321,8 @@ async function initCloud() {
     sessionAnswered = true;   // ได้คำตอบจริง — จะตอบว่ามีหรือไม่มีก็เชื่อได้ทั้งคู่
   } catch (e) { console.warn('[cloud] getSession failed:', e.message); }
   currentUser = session ? session.user : null;
+  // เครื่องที่ล็อกอินค้างไว้ตั้งแต่ก่อนรุ่นนี้ยังไม่เคยจดเจ้าของ — ข้อมูลในเครื่องเป็นของบัญชีที่ล็อกอินอยู่
+  if (currentUser && !localOwner()) setLocalOwner(currentUser.id);
   syncTokenAdmin();
   // ---------- ดันชื่อกับรูปขึ้นให้ตรงกับที่ตั้งไว้ในเครื่อง ----------
   // จำเป็นสำหรับคนที่ตั้งรูปไว้ก่อนรุ่น 1B69 — รูปของเขาไม่เคยขึ้นไปถึงเพื่อนเลย
@@ -1328,6 +1371,8 @@ async function initCloud() {
 // ดึงข้อมูลจาก cloud มารวมกับในเครื่อง (รวมงานตาม id — ฝั่ง cloud ชนะเมื่อซ้ำ)
 async function syncFromCloud() {
   if (!sb || !currentUser) return;
+  // ข้อมูลในเครื่องเป็นของบัญชีอื่น → เริ่มจากของเปล่า ต้องทำก่อน await แรก (ดู adoptAccountIfNeeded)
+  if (adoptAccountIfNeeded(currentUser.id)) lastSeenRev = -1;
   try {
     // ถาม rev ก่อนว่าของบน cloud ใหม่กว่าที่เครื่องนี้เห็นล่าสุดไหม — ตัวเลขตัวเดียว
     // ไม่กี่ไบต์ ถูกกว่าลากก้อน 26KB ลงมาเทียบเองทุกครั้งที่เปิดแอปหลายสิบเท่า
@@ -1381,6 +1426,8 @@ async function syncFromCloud() {
       if (typeof vaultImport === 'function') vaultImport(remote.vault);
       if (typeof staffApplyCredits === 'function') staffApplyCredits(remote.vault);
     }
+    // รวมกับ cloud ของบัญชีนี้แล้ว — ตั้งแต่นี้ข้อมูลในเครื่องเป็นของบัญชีนี้ และส่งขึ้นไปได้
+    setLocalOwner(currentUser.id);
     await pushToCloud(true);
     // ของที่บอท LINE หย่อนไว้ตอนแอปปิดอยู่ — ดึงมาทีเดียวตอนเปิด
     await loadLineLinks();
@@ -1439,6 +1486,8 @@ function cheapHash(s) {
 function pushToCloud(immediate) {
   if (!sb || !currentUser) return;
   const doPush = async () => {
+    // ยังไม่ได้รวมกับ cloud ของบัญชีนี้ = ห้ามส่ง · syncFromCloud ส่งให้เองหลังรวมเสร็จ
+    if (!currentUser || !cloudWritableFor(currentUser.id)) return;
     try {
       const vault = typeof vaultExport === 'function' ? vaultExport() : undefined;
       // รูปไม่ไปกับก้อนหลักอีกแล้ว — ดึงออกก่อนคิดลายนิ้วมือ
