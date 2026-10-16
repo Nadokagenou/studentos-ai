@@ -178,7 +178,7 @@ function dueOf(w: Record<string, any>): string | null {
 
 /** ดึงงานทั้งหมดที่บัญชีนี้มีสิทธิ์เห็น แล้วแปลงเป็นรูปแบบของ StudentOS */
 export async function fetchClassroom(refreshToken: string): Promise<{
-  tasks: StandardTask[]; account: string; diag: ClassroomDiag;
+  tasks: StandardTask[]; account: string; diag: ClassroomDiag; doneIds: string[];
 }> {
   const token = await accessToken(refreshToken);
 
@@ -206,6 +206,9 @@ export async function fetchClassroom(refreshToken: string): Promise<{
   }
 
   const tasks: StandardTask[] = [];
+  // งานที่ "ส่งแล้ว" ไม่อยู่ใน tasks — ตัวซิงก์เห็นแค่ว่ามันหายไป ซึ่งแยกไม่ออกจากครูลบงาน
+  // ส่งรายชื่อไปด้วยให้ทะเบียนจดให้ถูก (16 ต.ค. 69 · เดิมงานที่กดส่งถูกจดและแจ้งแอปว่า "ยกเลิก")
+  const doneIds: string[] = [];
   for (const c of courses) {
     const courseId = String(c.id);
     const subject = clip(c.name, 60);
@@ -241,6 +244,7 @@ export async function fetchClassroom(refreshToken: string): Promise<{
         // ตัดสินไม่ได้ว่าส่งจริงไหม และยังไม่เลยกำหนด = ใบที่ "อาจ" หายจากแผนผิด ๆ ได้จริง
         // ใบที่เลยกำหนดแล้วไม่ต้องนับ เพราะต่อให้ยังค้าง ด่าน "เก่าเกิน" ก็ไม่ส่งมันเข้าแผนอยู่ดี
         if (noHistory.has(id) && stillOpen(w)) diag.returnedNoHistoryOpen++;
+        doneIds.push(`${courseId}:${id}`);
         continue;                                          // ส่งไปแล้ว ไม่ต้องเอาเข้าแผน
       }
       if (unsubmittedReturn.has(id)) diag.returnedUnsubmitted++;   // ครูคืนแต่ไม่เคยส่ง = ยังค้าง
@@ -264,7 +268,7 @@ export async function fetchClassroom(refreshToken: string): Promise<{
       // จึงไม่ส่งมาเลย ดีกว่าส่งตัวเลขที่หน้าตาเหมือนใช่แต่ไม่ใช่
     }
   }
-  return { tasks, account, diag };
+  return { tasks, account, diag, doneIds };
 }
 
 /** งานใบนี้ "ส่งแล้ว" จริงไหม — ตัดสินจากสถานะของ studentSubmission ของฉัน
