@@ -10718,10 +10718,12 @@ function statDayOpen(back, el) {
   const rows = list.length ? list.map((t, k) => {
     const subj = (t.subject || '').trim();
     const at = new Date(t.doneAt);
+    // 14 ต.ค. 69 · แถวเรียงเป็นเส้นเวลา: เวลาที่ติ๊กเสร็จอยู่หน้า → ติ๊ก (มีเส้นต่อไปยังงานถัดไป) → ชื่องาน
+    // เดิมเวลาไปอยู่ขวาสุด บนจอกว้างห่างจากชื่องานเกือบเต็มจอ อ่านไม่ออกว่าเวลาไหนของงานไหน
     return `<button type="button" class="fp-row" style="--k:${k}" onclick="statDayClose();openForm('${t.id}')">
+      <span class="fp-at mono">${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}</span>
       <span class="fp-ck">${icon('check')}</span>
       <span class="fp-tx">${subj && subj !== 'อื่น ๆ' ? `<i class="${subjClass(subj)}">${esc(subj)}</i>` : ''}<b>${esc(t.detail || taskTitleText(t))}</b></span>
-      <span class="fp-at mono">${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}</span>
     </button>`;
   }).join('') : `<p class="fp-empty">${back === 0 ? 'ติ๊กงานเสร็จสักใบ แล้วมันจะมาขึ้นตรงนี้' : 'วันนั้นไม่ได้ติ๊กงานไหนเสร็จ'}</p>`;
 
@@ -10732,13 +10734,23 @@ function statDayOpen(back, el) {
   panel.className = 'fp';
   panel.setAttribute('role', 'dialog');
   panel.setAttribute('aria-label', head + ' · ' + sub);
+  // ปุ่มปิดย้ายขึ้นมุมขวาบนของหัวแผง — เดิมมีแถวท้ายแผงทั้งแถวไว้ใส่ปุ่มเดียว แผงสูงเกินเนื้อหา
   panel.innerHTML = `<div class="fp-in">
-      <div class="fp-h"><b>${esc(head)}</b><i>${esc(sub)}</i></div>
-      <div class="fp-list">${rows}</div>
-      <div class="fp-foot"><button type="button" class="fp-x" onclick="statDayClose()">${icon('x')}ปิด</button></div>
+      <div class="fp-h"><div class="fp-ht"><b>${esc(head)}</b><i>${esc(sub)}</i></div>
+        <button type="button" class="fp-x" onclick="statDayClose()" aria-label="ปิด">${icon('x')}</button></div>
+      <div class="fp-list${list.length > 1 ? ' fp-tl' : ''}">${rows}</div>
     </div>`;
   phone.appendChild(scrim);
   phone.appendChild(panel);
+  // กว้างเท่าการ์ดกราฟที่แตะ ไม่ใช่เต็มกรอบแอป — บนจอกว้าง (แถบนำทางด้านข้าง) แผงเคยยืดเต็มหน้าต่าง 948px
+  // ทั้งที่เนื้อหาเป็นคอลัมน์แคบ · มือถือ: การ์ดกว้างเกือบเต็มจออยู่แล้ว ผลเหมือนเดิม
+  const card = el && el.closest('.st-card');
+  if (card) {
+    const cr = card.getBoundingClientRect(), pr0 = phone.getBoundingClientRect();
+    panel.style.left = (cr.left - pr0.left) + 'px';
+    panel.style.right = 'auto';
+    panel.style.width = cr.width + 'px';
+  }
 
   // ตำแหน่ง: ขอบล่างของแผงตรงกับขอบล่างของแท่ง (แผงงอกขึ้นจากตรงที่แตะ) แต่ห้ามล้นขอบบนของจอ
   const src = (el && el.querySelector('.trk')) || el;

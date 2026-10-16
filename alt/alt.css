@@ -801,6 +801,9 @@
 /* ============================================================
    ชั้นบรรยากาศของธีม (.fx) — พื้นหลังเคลื่อนไหวหลังเนื้อหา
    ทุกชั้นอยู่ z-index:0 ใต้ .screens (z-index:1) และไม่รับคลิก
+   ฉากขยับตลอดเวลาที่แอปเปิด — ขยับได้แค่ translate / rotate / scale / opacity (การ์ดจอทำเอง)
+   ห้าม background-position · margin · ขนาด · เงา · blur/drop-shadow — มือถือสเปคต่ำค้างเพราะสิ่งนี้มาแล้ว (16 ต.ค. 69)
+   แก้ฉากเสร็จต้องผ่าน: node alt/devtools/scene-check.cjs
    ============================================================ */
 .fx { display: none; }
 :root[data-theme="meta"] .fx,
@@ -877,12 +880,23 @@
 }
 :root[data-theme="genesis"] .fx-d {          /* หิมะ 2 ชั้น */
   left: 0; right: 0; top: -12%; bottom: -12%;
-  background-repeat: repeat;
-  background-size: 200px 320px, 150px 260px;
-  background-image:
-    radial-gradient(2.2px 2.2px at 30px 40px, rgba(255,255,255,.95), transparent),
-    radial-gradient(1.6px 1.6px at 120px 180px, rgba(226,244,255,.9), transparent);
-  animation: gen-snow 14s linear infinite;
+}
+/* 16 ต.ค. 69 · เดิมเลื่อน background-position ของกล่องสูงเกินจอ = วาดใหม่ทุกเฟรม (CPU ช้า 6 เท่า: หยุดหิมะลดเธรดหลักไป 15 จุด)
+   สองชั้นตกคนละทาง (ชั้นแรก: ขวา 40px ลง 640px · ชั้นสอง: ซ้าย 50px ลง 520px ต่อรอบ = ลงสองช่องลายพอดี)
+   → ชั้นละ ::before/::after ยาวเกินกล่องขึ้นไปเท่าระยะที่ตก แล้วเลื่อนทั้งชั้นด้วย translate
+   จุดเริ่มของลายตั้งให้ตรงของเดิม (40px 0 · 60px 0 = ตำแหน่งเดิมเมื่อนับจากมุมชั้นใหม่) · กระโดดตอนวนรอบเท่าของเดิมทุกอย่าง */
+:root[data-theme="genesis"] .fx-d::before,
+:root[data-theme="genesis"] .fx-d::after { content: ''; position: absolute; bottom: 0; background-repeat: repeat; animation: gen-snow-a 14s linear infinite; }
+:root[data-theme="genesis"] .fx-d::before {
+  left: -40px; right: 0; top: -640px;
+  background-image: radial-gradient(2.2px 2.2px at 30px 40px, rgba(255,255,255,.95), transparent);
+  background-size: 200px 320px; background-position: 40px 0;
+}
+:root[data-theme="genesis"] .fx-d::after {
+  left: 0; right: -50px; top: -520px;
+  background-image: radial-gradient(1.6px 1.6px at 120px 180px, rgba(226,244,255,.9), transparent);
+  background-size: 150px 260px; background-position: 60px 0;
+  animation-name: gen-snow-b;
 }
 :root[data-theme="genesis"] .fx-e {          /* เส้นตรง + สามเหลี่ยมพุ่งขึ้นจากพื้น */
   left: 0; right: 0; bottom: 0;
@@ -928,7 +942,8 @@
   animation-duration: 2.6s;                 /* ลมหมุนจัดขึ้นชัดเจน */
   opacity: 1;
 }
-:root[data-gevent="on"][data-theme="genesis"] .fx-d {
+:root[data-gevent="on"][data-theme="genesis"] .fx-d::before,
+:root[data-gevent="on"][data-theme="genesis"] .fx-d::after {
   animation-duration: 3.4s;                 /* หิมะตกเร็วขึ้น */
 }
 :root[data-gevent="on"][data-theme="genesis"] .fx-e {
@@ -948,9 +963,13 @@
   0%, 100% { opacity: .82; }
   50% { opacity: 1; }
 }
+/* 16 ต.ค. 69 · เดิมเงาเรืองแสง (drop-shadow) พองยุบไปพร้อมกัน — เบลอใหม่ทุกเฟรมบนเธรดหลัก
+   (CPU ช้า 6 เท่า: หยุดเพชรลดเธรดหลักไป 16 จุด · trace: "FilterRelatedPropertyMayMovePixels")
+   ตอนนี้เงาเรืองแสงนิ่งที่ค่ากลาง (กฎของ .fx-b: 26px) · เพชรยังลอยขึ้นลงและขยายเท่าเดิม — ขยายแล้วเงาก็ขยายตาม แสงยังดูหายใจอยู่
+   ตอนอีเวนต์ 20 วิ (gen-diamond-burst) ยังเรืองแสงแรงแบบเดิม — สั้นและนาน ๆ ครั้ง */
 @keyframes gen-diamond {
-  0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 22px rgba(190,230,255,.8)); }
-  50% { transform: translateY(-10px) scale(1.05); filter: drop-shadow(0 0 34px rgba(215,245,255,1)); }
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-10px) scale(1.05); }
 }
 @keyframes gen-diamond-burst {
   0% { transform: translateY(0) scale(1.12); filter: drop-shadow(0 0 30px rgba(215,245,255,.9)); }
@@ -959,10 +978,8 @@
   100% { transform: translateY(0) scale(1.12); filter: drop-shadow(0 0 30px rgba(215,245,255,.9)); }
 }
 @keyframes gen-wind { to { transform: rotate(360deg); } }
-@keyframes gen-snow {
-  from { background-position: 0 -320px, 60px -260px; }
-  to { background-position: 40px 320px, 10px 260px; }
-}
+@keyframes gen-snow-a { to { translate: 40px 640px; } }
+@keyframes gen-snow-b { to { translate: -50px 520px; } }
 @keyframes gen-rise {
   0% { opacity: 0; background-position: 16% 100%, 42% 100%, 76% 100%, 30% 100%, 62% 100%; }
   15% { opacity: .95; }
@@ -1070,7 +1087,7 @@
   background-size: 6px 6px, 5px 5px, 7px 7px;
   background-repeat: no-repeat;
   background-position: 26% 100%, 58% 100%, 86% 100%;
-  animation: sea-bubble 12s linear infinite;
+  --bub-t: 12s;
 }
 
 /* ---------- ต้นไม้โลก: ท้องฟ้า + ลม + นกบิน + ต้นไม้กลางจอ + หญ้า ---------- */
@@ -1201,12 +1218,14 @@
   background-size: 7px 5px, 5px 4px, 6px 5px;
   background-repeat: no-repeat;
   background-position: 22% 100%, 55% 100%, 82% 100%;
-  animation: sea-bubble 15s linear infinite;
+  --bub-t: 15s;
 }
+/* 16 ต.ค. 69 · เดิมขยับ background-position แนวนอนด้วย % ด้วย — แต่ริ้วลมกว้าง 100% เท่ากล่อง (background-size: 100% …)
+   ตามกติกา CSS ค่า % แนวนอนของภาพที่กว้างเท่ากล่องคิดเป็นศูนย์เสมอ ริ้วจึงไม่เคยเลื่อนจริง ตาเห็นแค่ความจางที่เปลี่ยน
+   แต่เบราว์เซอร์ยังวาดชั้นเต็มจอ (เบลอ 1px) ใหม่ทุกเฟรม · ตอนนี้เหลือแค่ความจาง = ภาพเหมือนเดิมทุกพิกเซล การ์ดจอทำเอง */
 @keyframes wind-blow {
-  0% { background-position: -60% 28%, -40% 44%, -80% 62%; opacity: .5; }
+  0%, 100% { opacity: .5; }
   50% { opacity: 1; }
-  100% { background-position: 160% 28%, 170% 44%, 150% 62%; opacity: .5; }
 }
 @keyframes tree-sway {
   0%, 100% { transform: rotate(-1.2deg); }
@@ -1302,7 +1321,7 @@
   background-size: 7px 7px, 5px 5px, 9px 9px;
   background-repeat: no-repeat;
   background-position: 14% 100%, 62% 100%, 84% 100%;
-  animation: sea-bubble 9s linear infinite;
+  --bub-t: 9s;
 }
 
 @keyframes sea-rays {
@@ -1311,19 +1330,28 @@
 }
 @keyframes sea-swim-r { from { transform: translateX(-16%); } to { transform: translateX(16%); } }
 @keyframes sea-swim-l { from { transform: translateX(16%); } to { transform: translateX(-16%); } }
+/* 16 ต.ค. 69 · เดิม margin-top = จัดผังใหม่ทุกเฟรม (ปลา · ดาวเคราะห์ · ใบไม้ ใน 5 ธีม) · translate ขยับระยะเท่ากัน แต่การ์ดจอทำเอง
+   translate เป็นคนละคุณสมบัติกับ transform จึงซ้อนกับท่าว่าย (sea-swim ใช้ transform) ได้โดยไม่ทับกัน */
 @keyframes sea-bob {
-  0%, 100% { margin-top: 0; }
-  50% { margin-top: 10px; }
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 10px; }
 }
 @keyframes sea-sway {
   0%, 100% { transform: rotate(-7deg); }
   50% { transform: rotate(8deg); }
 }
-@keyframes sea-bubble {
-  0%   { background-position: 14% 100%, 62% 100%, 84% 100%; opacity: 0; }
+/* ฟองลอยจากก้นจอถึงเลยขอบบน (-106% ของความสูงกล่อง) · +6px ชดเชยขนาดฟอง (ของเดิมวัดตำแหน่งจากขอบฟอง ไม่ใช่ขอบกล่อง) */
+@keyframes sea-bubble-a {
+  0%   { translate: 0 0; opacity: 0; }
   10%  { opacity: .9; }
   90%  { opacity: .5; }
-  100% { background-position: 17% -6%, 58% -6%, 88% -6%; opacity: 0; }
+  100% { translate: 3.5% calc(-106% + 6px); opacity: 0; }
+}
+@keyframes sea-bubble-b {
+  0%   { translate: 0 0; opacity: 0; }
+  10%  { opacity: .9; }
+  90%  { opacity: .5; }
+  100% { translate: -4% calc(-106% + 6px); opacity: 0; }
 }
 
 /* ---------- ทะเลลึก: น้ำมืด + ฉลาม + หมึกยักษ์ + แพลงก์ตอนเรืองแสง ---------- */
@@ -1407,8 +1435,28 @@
   background-size: 5px 5px, 3px 3px, 4px 4px, 3px 3px;
   background-repeat: no-repeat;
   background-position: 18% 100%, 44% 100%, 68% 100%, 88% 100%;
-  animation: sea-bubble 13s linear infinite;
+  --bub-t: 13s;
 }
+/* 16 ต.ค. 69 · ฟองอากาศ (ทะเล · ทะเลลึก · ต้นไม้โลก · หวานแหว) ลอยด้วยการ์ดจอ ไม่ใช่เธรดหลัก
+   เจ้าของ: "โทรศัพท์สเปค(ต่ำ) เริ่มใช้ไม่นานเครื่องจะค้างและกดอะไรไม่ได้"
+   เดิมขยับ background-position ของกล่องเต็มจอ = วาดทั้งจอใหม่ทุกเฟรม ตลอดเวลา + กระจกฝ้าทุกชิ้นที่ทับอยู่ต้องเบลอใหม่ตาม
+   วัดจริง (Chrome · CPU ช้าลง 6 เท่าเหมือนมือถือราคาถูก · วางเครื่องนิ่ง ไม่แตะ): ธีมทะเลเธรดหลักไม่ว่าง 69% · หยุดฟองอย่างเดียวเหลือ 15%
+   เธรดหลักคือตัวเดียวกับที่รับการแตะ — เต็มเมื่อไหร่ แตะแล้วต้องรอคิว = "ค้าง กดไม่ได้"
+   ตอนนี้: ฟองแต่ละลูกอยู่บนชั้นของตัวเอง (::before = ลูกที่ 1 กับ 3 ซึ่งลอยเฉียงทางเดียวกัน · ::after = ลูกที่ 2)
+   แล้วเลื่อนทั้งชั้นด้วย translate (การ์ดจอเลื่อนภาพที่วาดไว้แล้วเอง ไม่ต้องวาดใหม่)
+   ทางลอยเท่าเดิม: วัดตำแหน่งฟองเทียบของเดิมสี่จังหวะ ต่างไม่เกิน 4px · ความจางเท่าเดิมทุกจังหวะ
+   กล่องเดิมไม่วาดฟองเองแล้ว (ดันภาพพื้นหลังออกนอกกล่อง) · ภาพ ขนาด สีของฟองยังมาจากกฎของแต่ละธีมเหมือนเดิม (inherit) */
+:root:is([data-theme="ocean"], [data-theme="sweet"], [data-theme="earth2"], [data-theme="deepocean"]) .fx-shoot { background-position: -99px 0; }
+:root:is([data-theme="ocean"], [data-theme="sweet"], [data-theme="earth2"], [data-theme="deepocean"]) .fx-shoot::before,
+:root:is([data-theme="ocean"], [data-theme="sweet"], [data-theme="earth2"], [data-theme="deepocean"]) .fx-shoot::after {
+  content: ''; position: absolute; inset: 0;
+  background-image: inherit; background-size: inherit; background-repeat: no-repeat;
+  opacity: 0;
+  animation: sea-bubble-a var(--bub-t, 9s) linear infinite;
+}
+/* ภาพฟองชั้นที่ 4 ของทะเลลึก ใช้ตำแหน่งชุดแรกซ้ำ (กฎการวนรายการของ CSS) = ลอยไปกับลูกที่ 1 เหมือนของเดิม */
+:root:is([data-theme="ocean"], [data-theme="sweet"], [data-theme="earth2"], [data-theme="deepocean"]) .fx-shoot::before { background-position: 14% 100%, -99px 0, 84% 100%; }
+:root:is([data-theme="ocean"], [data-theme="sweet"], [data-theme="earth2"], [data-theme="deepocean"]) .fx-shoot::after { background-position: -99px 0, 62% 100%, -99px 0; animation-name: sea-bubble-b; }
 @keyframes deep-float {
   0%, 100% { transform: translate(0, 0); }
   30% { transform: translate(-6%, -8%); }
@@ -1531,8 +1579,12 @@
 }
 
 @keyframes fx-drift-x { from { transform: translateX(-8%); } to { transform: translateX(8%); } }
-@keyframes fx-spin { to { transform: rotate(360deg); } }
-@keyframes fx-breathe { 0%, 100% { opacity: .75; transform: scale(1); } 50% { opacity: 1; transform: scale(1.07); } }
+/* 16 ต.ค. 69 · เดิมทั้งสองท่าเขียน transform — ชิ้นที่ใช้คู่กัน (เนบิวลาของกาแล็กซี) Chrome ส่งให้การ์ดจอไม่ได้
+   (สองอนิเมชันแย่ง transform ตัวเดียวกัน · trace บอกเหตุผล "TargetHasIncompatibleAnimations") ทั้งคู่จึงไปวิ่งบนเธรดหลัก
+   บนชั้นใหญ่ 160% ของจอที่เบลอ 14px — วัด CPU ช้า 6 เท่า ธีมกาแล็กซีเธรดหลักไม่ว่าง 34% · หยุดชั้นนี้เหลือ 12%
+   แยกเป็น rotate กับ scale (คนละคุณสมบัติ ซ้อนกันได้ การ์ดจอทำเองทั้งคู่) · ทุกชิ้นที่ใช้สองท่านี้ไม่มี transform ตั้งไว้ถาวร ภาพจึงเหมือนเดิม */
+@keyframes fx-spin { to { rotate: 360deg; } }
+@keyframes fx-breathe { 0%, 100% { opacity: .75; scale: 1; } 50% { opacity: 1; scale: 1.07; } }
 @keyframes fx-lamp { 0%, 100% { opacity: .82; } 45% { opacity: 1; } }
 @keyframes fx-float {
   0%, 100% { transform: translate3d(0, 0, 0); }
@@ -1549,6 +1601,8 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .fx i, .fx span { animation: none !important; }
+  /* ฟองชั้นใหม่ (::before/::after) — หยุดนิ่งที่ก้นจอให้เห็นเหมือนตอนเป็นกล่องเดียว */
+  .fx span::before, .fx span::after { animation: none !important; opacity: 1; }
 }
 
 /* ============================================================
@@ -3619,14 +3673,23 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
    ไม่มีของเล็ก ๆ วิ่งตัดสายตา ให้รู้สึกเป็นบรรยากาศ ไม่ใช่ของที่ต้องมอง */
 
 /* แสงเหนือ 2 ผืนไหลสวนทางกัน — วิ่งกลับไปกลับมา จึงไม่มีรอยต่อตอนวนซ้ำ */
-:root[data-theme="genesis"] .fx-g {
-  inset: 0;
-  background-image:
-    linear-gradient(102deg, transparent 26%, rgba(183,245,255,.16) 42%, rgba(255,255,255,.10) 50%, transparent 66%),
-    linear-gradient(76deg, transparent 50%, rgba(142,155,232,.18) 66%, transparent 84%);
-  background-size: 220% 100%, 280% 100%;
-  background-repeat: no-repeat;
-  animation: gen-aurora 26s ease-in-out infinite alternate;
+/* 16 ต.ค. 69 · เดิมเลื่อน background-position ของกล่องเต็มจอ = วาดใหม่ทุกเฟรม (CPU ช้า 6 เท่า: หยุดชั้นนี้ลดเธรดหลักไป 13 จุด)
+   ผืนละชั้น กว้างเท่าภาพเดิม (220% · 280% ของจอ) แล้วเลื่อนทั้งผืนด้วย translate
+   ระยะเท่าของเดิม: ผืนแรก 0 → −120% ของจอ (= −54.545% ของความกว้างตัวเอง) · ผืนสอง −180% → 0 (= −64.286%) */
+:root[data-theme="genesis"] .fx-g { inset: 0; }
+:root[data-theme="genesis"] .fx-g::before,
+:root[data-theme="genesis"] .fx-g::after {
+  content: ''; position: absolute; left: 0; top: 0; height: 100%;
+  animation: gen-aurora-a 26s ease-in-out infinite alternate;
+}
+:root[data-theme="genesis"] .fx-g::before {
+  width: 220%;
+  background: linear-gradient(102deg, transparent 26%, rgba(183,245,255,.16) 42%, rgba(255,255,255,.10) 50%, transparent 66%);
+}
+:root[data-theme="genesis"] .fx-g::after {
+  width: 280%;
+  background: linear-gradient(76deg, transparent 50%, rgba(142,155,232,.18) 66%, transparent 84%);
+  animation-name: gen-aurora-b;
 }
 
 /* ชั้นหมู่ดาวถูกถอดออกแล้ว — radial ที่ตั้ง stop ไว้ 18% บนไทล์ 168×112
@@ -3634,16 +3697,16 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
    ธีมนี้ควรสะอาด เหลือเพชร ลม แสงเหนือ และหิมะเม็ดเล็ก ๆ ก็พอ */
 :root[data-theme="genesis"] .fx-h { display: none; }
 
-@keyframes gen-aurora {
-  from { background-position: 0% 0, 100% 0; }
-  to   { background-position: 100% 0, 0% 0; }
-}
+@keyframes gen-aurora-a { from { translate: 0 0; } to { translate: -54.545% 0; } }
+@keyframes gen-aurora-b { from { translate: -64.286% 0; } to { translate: 0 0; } }
 
 /* ตอนอีเวนต์ 99 วิ ชั้นนี้เร่งขึ้นพร้อมของเดิม */
-:root[data-gevent="on"][data-theme="genesis"] .fx-g { animation-duration: 7s; }
+:root[data-gevent="on"][data-theme="genesis"] .fx-g::before,
+:root[data-gevent="on"][data-theme="genesis"] .fx-g::after { animation-duration: 7s; }   /* :is() ใส่ ::before ไม่ได้ จึงแยกบรรทัด */
 
 @media (prefers-reduced-motion: reduce) {
-  :root[data-theme="genesis"] .fx-g { animation: none; }
+  :root[data-theme="genesis"] .fx-g, :root[data-theme="genesis"] .fx-g::before, :root[data-theme="genesis"] .fx-g::after,
+  :root[data-theme="genesis"] .fx-d::before, :root[data-theme="genesis"] .fx-d::after { animation: none; }
 }
 
 /* ============================================================
@@ -4700,19 +4763,30 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
   animation: mv-horizon 6s ease-in-out infinite alternate;
 }
 /* ผงข้อมูลลอยขึ้นช้า ๆ */
-:root[data-theme="meta"] .fx-f {
-  inset: 0;
-  background-image:
-    radial-gradient(1.6px 1.6px at 40px 60px, rgba(160,220,255,.8), transparent),
-    radial-gradient(1.2px 1.2px at 150px 200px, rgba(120,200,255,.6), transparent);
-  background-size: 220px 300px, 170px 260px;
-  animation: mv-rise 26s linear infinite;
+/* 16 ต.ค. 69 · เดิมเลื่อน background-position ของกล่องเต็มจอ = วาดทั้งจอใหม่ทุกเฟรม (CPU ช้า 6 เท่า: เธรดหลักไม่ว่าง 43% · หยุดชั้นนี้เหลือ 12%)
+   สองชั้นลอยคนละความเร็ว (ขึ้นหนึ่งช่องลายต่อรอบ: 300px กับ 260px) → แยกเป็น ::before/::after ยาวเกินกล่องลงไปหนึ่งช่องลาย
+   แล้วเลื่อนทั้งชั้นขึ้นด้วย translate · ลายซ้ำทุก 300/260px พอดี วนรอบจึงต่อกันสนิทเหมือนเดิม */
+:root[data-theme="meta"] .fx-f { inset: 0; }
+:root[data-theme="meta"] .fx-f::before,
+:root[data-theme="meta"] .fx-f::after { content: ''; position: absolute; left: 0; right: 0; top: 0; }
+:root[data-theme="meta"] .fx-f::before {
+  bottom: -300px;
+  background-image: radial-gradient(1.6px 1.6px at 40px 60px, rgba(160,220,255,.8), transparent);
+  background-size: 220px 300px;
+  animation: mv-rise-a 26s linear infinite;
+}
+:root[data-theme="meta"] .fx-f::after {
+  bottom: -260px;
+  background-image: radial-gradient(1.2px 1.2px at 150px 200px, rgba(120,200,255,.6), transparent);
+  background-size: 170px 260px;
+  animation: mv-rise-b 26s linear infinite;
 }
 @keyframes mv-dome    { from { transform: translateY(-8px) scale(1); } to { transform: translateY(4px) scale(1.03); } }
 @keyframes mv-nodes   { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
 @keyframes mv-scan    { 0%,100% { opacity: .35; transform: translateY(10%); } 50% { opacity: .9; transform: translateY(0); } }
 @keyframes mv-horizon { from { opacity: .45; } to { opacity: 1; } }
-@keyframes mv-rise    { from { background-position: 0 0, 0 0; } to { background-position: 0 -300px, 0 -260px; } }
+@keyframes mv-rise-a  { to { translate: 0 -300px; } }
+@keyframes mv-rise-b  { to { translate: 0 -260px; } }
 
 /* ---------- Glitch: สัญญาณเสีย ---------- */
 :root[data-theme="glitch"] {
@@ -4743,17 +4817,32 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
     radial-gradient(70% 46% at 80% 62%, rgba(120,60,220,.14), transparent 70%);
 }
 /* ก้อนสัญญาณเสียลอยอยู่ในความมืด — เลื่อนกระตุกเป็นช่วง ไม่ไหลลื่น */
-:root[data-theme="glitch"] .fx-b {
+/* 16 ต.ค. 69 · เดิมสามก้อนอยู่บนพื้นหลังของกล่องเดียว แล้วกระโดดด้วย background-position (steps 6 ครั้ง)
+   เธรดหลักยังต้องคิดสไตล์ชั้นเต็มจอนี้ทุกเฟรม (CPU ช้า 6 เท่า: 32% · หยุดชั้นนี้เหลือ 18%)
+   ตอนนี้ก้อนละชิ้น (.fx-b · .fx-g · .fx-h — สองช่องหลังธีมนี้ไม่เคยใช้) กระโดดด้วย translate จังหวะ steps เดิม
+   ระยะกระโดด = (ความกว้างจอ − ความกว้างก้อน) × ระยะ % ที่เดิมเลื่อน — สูตรเดียวกับที่ background-position คิด ภาพจึงตรงทุกขนาดจอ
+   เส้นสแกน/สัญญาณรบกวน (c–f) ยกขึ้นเหนือก้อนเหมือนเดิม — g/h อยู่ท้ายใน HTML ถ้าไม่ยกจะวาดทับเส้นสแกน */
+:root[data-theme="glitch"] :is(.fx-b, .fx-g, .fx-h) {
   inset: 0;
-  background-image:
-    linear-gradient(90deg, rgba(39,224,245,.5) 0 34px, transparent 34px 100%),
-    linear-gradient(90deg, rgba(157,243,255,.36) 0 60px, transparent 60px 100%),
-    linear-gradient(90deg, rgba(255,46,136,.28) 0 22px, transparent 22px 100%);
-  background-size: 340px 16px, 260px 9px, 420px 6px;
-  background-position: 12% 26%, 68% 44%, 34% 68%;
   background-repeat: no-repeat;
   animation: gl-slide 5.2s steps(6, end) infinite;
 }
+:root[data-theme="glitch"] .fx-b {
+  background-image: linear-gradient(90deg, rgba(39,224,245,.5) 0 34px, transparent 34px 100%);
+  background-size: 340px 16px; background-position: 12% 26%;
+  --gl-dx: calc((100% - 340px) * .66);
+}
+:root[data-theme="glitch"] .fx-g {
+  background-image: linear-gradient(90deg, rgba(157,243,255,.36) 0 60px, transparent 60px 100%);
+  background-size: 260px 9px; background-position: 68% 44%;
+  --gl-dx: calc((100% - 260px) * -.6);
+}
+:root[data-theme="glitch"] .fx-h {
+  background-image: linear-gradient(90deg, rgba(255,46,136,.28) 0 22px, transparent 22px 100%);
+  background-size: 420px 6px; background-position: 34% 68%;
+  --gl-dx: calc((100% - 420px) * .42);
+}
+:root[data-theme="glitch"] :is(.fx-c, .fx-d, .fx-e, .fx-f) { z-index: 1; }
 /* เส้นสแกนแนวนอนทั้งจอ */
 :root[data-theme="glitch"] .fx-c {
   inset: 0;
@@ -4782,7 +4871,7 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
   inset: 0;
   background: repeating-linear-gradient(90deg, transparent 0 3px, rgba(255,46,136,.05) 3px 4px);
 }
-@keyframes gl-slide { to { background-position: 78% 26%, 8% 44%, 76% 68%; } }
+@keyframes gl-slide { to { translate: var(--gl-dx) 0; } }
 @keyframes gl-sweep { to { transform: translateY(520%); } }
 @keyframes gl-noise { 0% { transform: translate(0,0); } 33% { transform: translate(-2px,1px); } 66% { transform: translate(2px,-1px); } }
 
@@ -4856,7 +4945,11 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
   :root[data-theme="meta"] .fx-d,
   :root[data-theme="meta"] .fx-e,
   :root[data-theme="meta"] .fx-f,
+  :root[data-theme="meta"] .fx-f::before,
+  :root[data-theme="meta"] .fx-f::after,
   :root[data-theme="glitch"] .fx-b,
+  :root[data-theme="glitch"] .fx-g,
+  :root[data-theme="glitch"] .fx-h,
   :root[data-theme="glitch"] .fx-d,
   :root[data-theme="glitch"] .fx-e { animation: none; }
   :root[data-gfx="on"] .phone { animation: none; }
@@ -11540,16 +11633,31 @@ button.df-r:active .df-x { transform: scale(.985); }
 }
 .fp-in { display: flex; flex-direction: column; min-height: 0; opacity: 0; transition: opacity .18s ease; }
 .fp.open .fp-in { opacity: 1; }
-.fp-h { padding: 16px 18px 10px; }
+.fp-h { display: flex; align-items: flex-start; gap: 10px; padding: 16px 12px 10px 18px; }
+.fp-ht { flex: 1; min-width: 0; }
 .fp-h b { display: block; font-size: 17px; font-weight: 800; color: var(--ink); }
-.fp-h i { display: block; margin-top: 2px; font-style: normal; font-size: 12.5px; font-weight: 600; color: color-mix(in srgb, var(--ink) 62%, transparent); }
-.fp-list { overflow-y: auto; padding: 2px 10px 6px; display: flex; flex-direction: column; gap: 4px; }
+/* 14 ต.ค. 69 · 62% → 70% — ต่ำกว่าเกณฑ์ 4.5:1 ของตัวหนังสือเล็กบนพื้นการ์ด */
+.fp-h i { display: block; margin-top: 2px; font-style: normal; font-size: 12.5px; font-weight: 600; color: color-mix(in srgb, var(--ink) 70%, transparent); }
+.fp-list { overflow-y: auto; padding: 2px 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+/* แถว = เวลา · ติ๊ก · ชื่องาน เรียงเป็นเส้นเวลา (Timeline ของ Aceternity ย่อเหลือแผงเดียว)
+   ไม่มีพื้นสีรายแถวแล้ว — แถวเป็นลำดับเหตุการณ์ ไม่ใช่การ์ดเท่ากันสามใบ · พื้นโผล่ตอนชี้/กดเท่านั้น */
 .fp-row {
-  display: flex; align-items: center; gap: 11px; width: 100%; padding: 10px 10px; border: 0; border-radius: 14px;
-  background: color-mix(in srgb, var(--fill) 6%, transparent); font: inherit; text-align: left; color: var(--ink); cursor: pointer;
+  --fp-at: 40px;
+  display: grid; grid-template-columns: var(--fp-at) 24px minmax(0, 1fr); align-items: center; column-gap: 10px;
+  position: relative; width: 100%; min-height: 48px; padding: 8px 10px; border: 0; border-radius: 14px;
+  background: transparent; font: inherit; text-align: left; color: var(--ink); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition: background .15s ease, transform .15s ease;
 }
+@media (hover: hover) and (pointer: fine) { .fp-row:hover { background: color-mix(in srgb, var(--fill) 7%, transparent); } }
 .fp-row:active { transform: scale(.98); background: color-mix(in srgb, var(--fill) 12%, transparent); }
+.fp-row:focus-visible { outline: 2px solid var(--fill); outline-offset: -2px; }
+/* เส้นต่อจากติ๊กนี้ลงไปติ๊กถัดไป (ศูนย์กลางถึงศูนย์กลาง) · แถวสุดท้ายไม่มี · ติ๊กวางทับเส้น */
+.fp-tl .fp-row:not(:last-child)::before {
+  content: ''; position: absolute; left: calc(10px + var(--fp-at) + 10px + 11px); top: 50%; width: 2px; height: calc(100% + 2px);
+  border-radius: 2px; background: color-mix(in srgb, #10B981 32%, transparent); transform-origin: top; pointer-events: none;
+}
+.fp-ck { position: relative; z-index: 1; }
 .fp.open .fp-row { animation: fp-row-in .38s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(var(--k, 0) * 45ms + 60ms); }
 @keyframes fp-row-in { from { opacity: 0; transform: translateY(-8px); } }
 .fp-ck {
@@ -11564,19 +11672,28 @@ button.df-r:active .df-x { transform: scale(.985); }
   background: color-mix(in srgb, var(--sj, var(--fill)) 14%, transparent);
 }
 .fp-tx b { font-size: 14px; font-weight: 700; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fp-at { flex: none; font-size: 12px; font-weight: 700; color: color-mix(in srgb, var(--ink) 55%, transparent); }
+/* เวลาอยู่หน้าแถว ชิดขวาของช่องตัวเอง ตัวเลขกว้างเท่ากัน (แนวเวลาตรงกันทุกแถว) · 55% → 70% เหตุผลเดียวกับบรรทัดรองของหัวแผง */
+.fp-at { font-size: 12px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--ink) 70%, transparent); }
 .fp-empty { margin: 4px 8px 8px; padding: 14px; border-radius: 14px; text-align: center; font-size: 13.5px; color: color-mix(in srgb, var(--ink) 62%, transparent); background: color-mix(in srgb, var(--fill) 6%, transparent); }
-.fp-foot { display: flex; justify-content: flex-end; padding: 8px 12px 12px; }
+/* ปุ่มปิดกลมมุมขวาบน · ตัวปุ่ม 34px แต่พื้นที่กด 44px (::after ยื่นออกรอบละ 5px) */
 .fp-x {
-  display: inline-flex; align-items: center; gap: 5px; padding: 8px 14px; border: 0; border-radius: 99px; cursor: pointer;
-  font: inherit; font-size: 13px; font-weight: 700; color: var(--ink); background: color-mix(in srgb, var(--ink) 7%, transparent);
+  position: relative; flex: none; width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%;
+  cursor: pointer; color: var(--ink); background: color-mix(in srgb, var(--ink) 7%, transparent);
+  -webkit-tap-highlight-color: transparent; transition: transform .16s cubic-bezier(.23, 1, .32, 1), background-color .15s ease;
 }
-.fp-x svg { width: 14px; height: 14px; }
-.fp-x:active { transform: scale(.95); }
+.fp-x::after { content: ''; position: absolute; inset: -5px; border-radius: 50%; }
+.fp-x svg { width: 15px; height: 15px; }
+@media (hover: hover) and (pointer: fine) { .fp-x:hover { background: color-mix(in srgb, var(--ink) 12%, transparent); } }
+.fp-x:active { transform: scale(.92); }
+.fp-x:focus-visible { outline: 2px solid var(--fill); outline-offset: 2px; }
+/* เส้นเวลาวาดลงทีละช่วงหลังแถวของมันโผล่ (ช่วงที่ k วาดเมื่อแถว k ขึ้นมาแล้ว) — จังหวะเดียวของแผงนี้ */
+.fp.open .fp-tl .fp-row:not(:last-child)::before { animation: fp-line .34s cubic-bezier(.23, 1, .32, 1) both; animation-delay: calc(var(--k, 0) * 45ms + 200ms); }
+@keyframes fp-line { from { transform: scaleY(0); } }
 @media (prefers-reduced-motion: reduce) {
   .fp-in, .fp-scrim { transition: none; }
-  .fp.open .fp-row { animation: none; }
+  .fp.open .fp-row, .fp.open .fp-tl .fp-row::before { animation: none; }
 }
+:root[data-lite] .fp.open .fp-tl .fp-row::before { animation: none; }
 
 /* ============================================================
    กล่องยืนยันของแอป (appConfirm ใน app.js) — แทน confirm() ของเบราว์เซอร์ที่ถูกปิดในบางที่
@@ -14515,4 +14632,22 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
   .phone #menuBody.home-simple { gap:8px; }
   #menuBody.home-simple:has(.hn-task) .tn-title { -webkit-line-clamp:2; }
   #scr-profile .feature-category { min-height:72px; }
+}
+
+/* ---------- จอกว้าง: จอเพื่อนของฉันเต็มความกว้าง (14 ต.ค. 69 · เจ้าของ: "ให้มันเต็มจอ") ----------
+   ① #feedBody (feed.css · ทีมอื่น) ตั้ง margin: 0 auto อยู่ในกล่อง flex ของ .scr-body — ลูก flex ที่ขอบซ้ายขวา auto หดเหลือความกว้างเนื้อหา
+     จอเพื่อนเลยกว้างแค่ 367px ทั้งที่คอลัมน์กว้าง 720 (โรคเดียวกับจอน้องฮูก) → width:100% แก้ทั้งฟีดและจอเพื่อน
+   ② เพดาน 560px ของ feed.css ตั้งใจไว้ให้ "ฟีด" อ่านเป็นโพสต์ (บรรทัดไม่ยาวเกิน) — ยังคงไว้สำหรับฟีด
+     แต่ตอนเปิดมุมมองเพื่อน (#friendsBody) ไม่ใช่ฟีด ปลดเพดานให้เต็มคอลัมน์เหมือนจออื่นในแอป
+     เบราว์เซอร์ที่ไม่รู้จัก :has() = ได้แค่ข้อ ① (กว้าง 560) ไม่พัง */
+:root[data-nav="side"] #feedBody { width: 100%; box-sizing: border-box; }
+:root[data-nav="side"] #feedBody:has(#friendsBody) { max-width: none; }
+
+/* ---------- ป้ายตัวเลขบนแถบเมนู: ฟอนต์เดียวกับป้ายกระดิ่ง (14 ต.ค. 69 · เจ้าของ: "ปรับฟอนหน่อย") ----------
+   เดิม Space Mono 9px — ฟอนต์พิมพ์ดีด เลข 1 มีขีดฐานแบบเครื่องพิมพ์ ตัวเล็กจนอ่านเป็นจุด และไม่เข้ากับฟอนต์ที่เหลือของแอป
+   → Outfit 700 ชุดเดียวกับป้ายตัวเลขบนกระดิ่งหน้าแรก (.th-bell .th-dot.n) · 10.5px ในป้าย 16px
+   ตัวเลขกว้างเท่ากัน ป้ายไม่ยืดหดเมื่อเลขเปลี่ยน · ตัวเลขในป้ายเป็นข้อยกเว้นของขั้นต่ำ 11px (เหตุผลเดียวกับป้ายกระดิ่ง) */
+.tab-badge {
+  min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;
+  font: 700 10.5px/16px 'Outfit', 'Sarabun', sans-serif; font-variant-numeric: tabular-nums; letter-spacing: 0;
 }

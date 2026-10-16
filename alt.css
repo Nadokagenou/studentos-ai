@@ -11512,16 +11512,31 @@ button.df-r:active .df-x { transform: scale(.985); }
 }
 .fp-in { display: flex; flex-direction: column; min-height: 0; opacity: 0; transition: opacity .18s ease; }
 .fp.open .fp-in { opacity: 1; }
-.fp-h { padding: 16px 18px 10px; }
+.fp-h { display: flex; align-items: flex-start; gap: 10px; padding: 16px 12px 10px 18px; }
+.fp-ht { flex: 1; min-width: 0; }
 .fp-h b { display: block; font-size: 17px; font-weight: 800; color: var(--ink); }
-.fp-h i { display: block; margin-top: 2px; font-style: normal; font-size: 12.5px; font-weight: 600; color: color-mix(in srgb, var(--ink) 62%, transparent); }
-.fp-list { overflow-y: auto; padding: 2px 10px 6px; display: flex; flex-direction: column; gap: 4px; }
+/* 14 ต.ค. 69 · 62% → 70% — ต่ำกว่าเกณฑ์ 4.5:1 ของตัวหนังสือเล็กบนพื้นการ์ด */
+.fp-h i { display: block; margin-top: 2px; font-style: normal; font-size: 12.5px; font-weight: 600; color: color-mix(in srgb, var(--ink) 70%, transparent); }
+.fp-list { overflow-y: auto; padding: 2px 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+/* แถว = เวลา · ติ๊ก · ชื่องาน เรียงเป็นเส้นเวลา (Timeline ของ Aceternity ย่อเหลือแผงเดียว)
+   ไม่มีพื้นสีรายแถวแล้ว — แถวเป็นลำดับเหตุการณ์ ไม่ใช่การ์ดเท่ากันสามใบ · พื้นโผล่ตอนชี้/กดเท่านั้น */
 .fp-row {
-  display: flex; align-items: center; gap: 11px; width: 100%; padding: 10px 10px; border: 0; border-radius: 14px;
-  background: color-mix(in srgb, var(--fill) 6%, transparent); font: inherit; text-align: left; color: var(--ink); cursor: pointer;
+  --fp-at: 40px;
+  display: grid; grid-template-columns: var(--fp-at) 24px minmax(0, 1fr); align-items: center; column-gap: 10px;
+  position: relative; width: 100%; min-height: 48px; padding: 8px 10px; border: 0; border-radius: 14px;
+  background: transparent; font: inherit; text-align: left; color: var(--ink); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition: background .15s ease, transform .15s ease;
 }
+@media (hover: hover) and (pointer: fine) { .fp-row:hover { background: color-mix(in srgb, var(--fill) 7%, transparent); } }
 .fp-row:active { transform: scale(.98); background: color-mix(in srgb, var(--fill) 12%, transparent); }
+.fp-row:focus-visible { outline: 2px solid var(--fill); outline-offset: -2px; }
+/* เส้นต่อจากติ๊กนี้ลงไปติ๊กถัดไป (ศูนย์กลางถึงศูนย์กลาง) · แถวสุดท้ายไม่มี · ติ๊กวางทับเส้น */
+.fp-tl .fp-row:not(:last-child)::before {
+  content: ''; position: absolute; left: calc(10px + var(--fp-at) + 10px + 11px); top: 50%; width: 2px; height: calc(100% + 2px);
+  border-radius: 2px; background: color-mix(in srgb, #10B981 32%, transparent); transform-origin: top; pointer-events: none;
+}
+.fp-ck { position: relative; z-index: 1; }
 .fp.open .fp-row { animation: fp-row-in .38s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(var(--k, 0) * 45ms + 60ms); }
 @keyframes fp-row-in { from { opacity: 0; transform: translateY(-8px); } }
 .fp-ck {
@@ -11536,19 +11551,28 @@ button.df-r:active .df-x { transform: scale(.985); }
   background: color-mix(in srgb, var(--sj, var(--fill)) 14%, transparent);
 }
 .fp-tx b { font-size: 14px; font-weight: 700; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fp-at { flex: none; font-size: 12px; font-weight: 700; color: color-mix(in srgb, var(--ink) 55%, transparent); }
+/* เวลาอยู่หน้าแถว ชิดขวาของช่องตัวเอง ตัวเลขกว้างเท่ากัน (แนวเวลาตรงกันทุกแถว) · 55% → 70% เหตุผลเดียวกับบรรทัดรองของหัวแผง */
+.fp-at { font-size: 12px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--ink) 70%, transparent); }
 .fp-empty { margin: 4px 8px 8px; padding: 14px; border-radius: 14px; text-align: center; font-size: 13.5px; color: color-mix(in srgb, var(--ink) 62%, transparent); background: color-mix(in srgb, var(--fill) 6%, transparent); }
-.fp-foot { display: flex; justify-content: flex-end; padding: 8px 12px 12px; }
+/* ปุ่มปิดกลมมุมขวาบน · ตัวปุ่ม 34px แต่พื้นที่กด 44px (::after ยื่นออกรอบละ 5px) */
 .fp-x {
-  display: inline-flex; align-items: center; gap: 5px; padding: 8px 14px; border: 0; border-radius: 99px; cursor: pointer;
-  font: inherit; font-size: 13px; font-weight: 700; color: var(--ink); background: color-mix(in srgb, var(--ink) 7%, transparent);
+  position: relative; flex: none; width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%;
+  cursor: pointer; color: var(--ink); background: color-mix(in srgb, var(--ink) 7%, transparent);
+  -webkit-tap-highlight-color: transparent; transition: transform .16s cubic-bezier(.23, 1, .32, 1), background-color .15s ease;
 }
-.fp-x svg { width: 14px; height: 14px; }
-.fp-x:active { transform: scale(.95); }
+.fp-x::after { content: ''; position: absolute; inset: -5px; border-radius: 50%; }
+.fp-x svg { width: 15px; height: 15px; }
+@media (hover: hover) and (pointer: fine) { .fp-x:hover { background: color-mix(in srgb, var(--ink) 12%, transparent); } }
+.fp-x:active { transform: scale(.92); }
+.fp-x:focus-visible { outline: 2px solid var(--fill); outline-offset: 2px; }
+/* เส้นเวลาวาดลงทีละช่วงหลังแถวของมันโผล่ (ช่วงที่ k วาดเมื่อแถว k ขึ้นมาแล้ว) — จังหวะเดียวของแผงนี้ */
+.fp.open .fp-tl .fp-row:not(:last-child)::before { animation: fp-line .34s cubic-bezier(.23, 1, .32, 1) both; animation-delay: calc(var(--k, 0) * 45ms + 200ms); }
+@keyframes fp-line { from { transform: scaleY(0); } }
 @media (prefers-reduced-motion: reduce) {
   .fp-in, .fp-scrim { transition: none; }
-  .fp.open .fp-row { animation: none; }
+  .fp.open .fp-row, .fp.open .fp-tl .fp-row::before { animation: none; }
 }
+:root[data-lite] .fp.open .fp-tl .fp-row::before { animation: none; }
 
 /* ============================================================
    กล่องยืนยันของแอป (appConfirm ใน app.js) — แทน confirm() ของเบราว์เซอร์ที่ถูกปิดในบางที่
@@ -14385,3 +14409,21 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
    ขอบซ้ายขวา auto ทำให้ลูก flex หดเหลือแค่ความกว้างของเนื้อหา: จอน้องฮูกเลยกว้างแค่ 372px กลางจอ 764px
    → ให้กว้างเต็มก่อน (width:100%) แล้วเพดาน 720px ยังคุมอยู่ · มือถือไม่โดน (กฎเดิมมีเฉพาะจอกว้าง) */
 :root[data-nav="side"] :is(.home-body, .scr-body) { width: 100%; box-sizing: border-box; }
+
+/* ---------- จอกว้าง: จอเพื่อนของฉันเต็มความกว้าง (14 ต.ค. 69 · เจ้าของ: "ให้มันเต็มจอ") ----------
+   ① #feedBody (feed.css · ทีมอื่น) ตั้ง margin: 0 auto อยู่ในกล่อง flex ของ .scr-body — ลูก flex ที่ขอบซ้ายขวา auto หดเหลือความกว้างเนื้อหา
+     จอเพื่อนเลยกว้างแค่ 367px ทั้งที่คอลัมน์กว้าง 720 (โรคเดียวกับจอน้องฮูก) → width:100% แก้ทั้งฟีดและจอเพื่อน
+   ② เพดาน 560px ของ feed.css ตั้งใจไว้ให้ "ฟีด" อ่านเป็นโพสต์ (บรรทัดไม่ยาวเกิน) — ยังคงไว้สำหรับฟีด
+     แต่ตอนเปิดมุมมองเพื่อน (#friendsBody) ไม่ใช่ฟีด ปลดเพดานให้เต็มคอลัมน์เหมือนจออื่นในแอป
+     เบราว์เซอร์ที่ไม่รู้จัก :has() = ได้แค่ข้อ ① (กว้าง 560) ไม่พัง */
+:root[data-nav="side"] #feedBody { width: 100%; box-sizing: border-box; }
+:root[data-nav="side"] #feedBody:has(#friendsBody) { max-width: none; }
+
+/* ---------- ป้ายตัวเลขบนแถบเมนู: ฟอนต์เดียวกับป้ายกระดิ่ง (14 ต.ค. 69 · เจ้าของ: "ปรับฟอนหน่อย") ----------
+   เดิม Space Mono 9px — ฟอนต์พิมพ์ดีด เลข 1 มีขีดฐานแบบเครื่องพิมพ์ ตัวเล็กจนอ่านเป็นจุด และไม่เข้ากับฟอนต์ที่เหลือของแอป
+   → Outfit 700 ชุดเดียวกับป้ายตัวเลขบนกระดิ่งหน้าแรก (.th-bell .th-dot.n) · 10.5px ในป้าย 16px
+   ตัวเลขกว้างเท่ากัน ป้ายไม่ยืดหดเมื่อเลขเปลี่ยน · ตัวเลขในป้ายเป็นข้อยกเว้นของขั้นต่ำ 11px (เหตุผลเดียวกับป้ายกระดิ่ง) */
+.tab-badge {
+  min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;
+  font: 700 10.5px/16px 'Outfit', 'Sarabun', sans-serif; font-variant-numeric: tabular-nums; letter-spacing: 0;
+}
