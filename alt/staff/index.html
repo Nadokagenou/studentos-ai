@@ -10,7 +10,7 @@
       content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'none'; form-action 'none'"
     />
     <title>Student OS · Control Room</title>
-    <link rel="stylesheet" href="staff.css" />
+    <link rel="stylesheet" href="staff.css?v=20261016-reports" />
   </head>
   <body>
     <main id="gate" class="gate">
@@ -38,7 +38,7 @@
           ><button data-view="users">ผู้ใช้งาน</button
           ><button data-view="tokens">เพิ่มโทเคน</button
           ><button data-view="notices">ข่าวสารและแจ้งเตือน</button
-          ><button data-view="issues">รายงานที่รอตรวจ</button
+          ><button data-view="issues">รายงานและปัญหาแอป</button
           ><button data-view="audit">ประวัติการจัดการ</button>
         </nav>
         <div class="side-bottom">
@@ -59,6 +59,7 @@
         <div id="demoBanner" class="demo-banner" hidden>
           ตัวอย่างข้อมูลจำลอง ·
           การกดปุ่มในหน้านี้ไม่เปลี่ยนบัญชีหรือส่งแจ้งเตือนจริง
+          <a href="https://nadokagenou.github.io/studentos-ai/alt/staff/">เปิด Control Room จริง</a>
         </div>
         <p id="message" class="message" role="status" hidden></p>
         <section id="view-overview" class="view">
@@ -226,6 +227,13 @@
           </article>
         </section>
         <section id="view-issues" class="view" hidden>
+          <div class="report-buckets" role="tablist" aria-label="หมวดรายงาน">
+            <button role="tab" aria-selected="true" aria-controls="reportSections" data-report-bucket="pending">รอดำเนินการ</button>
+            <button role="tab" aria-selected="false" aria-controls="reportSections" data-report-bucket="resolved">แก้เสร็จแล้ว</button>
+            <button role="tab" aria-selected="false" aria-controls="reportSections" data-report-bucket="trash">ถังขยะ</button>
+          </div>
+          <p id="reportBucketHint">เรื่องที่ยังต้องตรวจหรือรอข้อมูลเพิ่มเติม</p>
+          <div id="reportSections">
           <article class="panel">
             <h2>ปัญหาแอป <span class="tag" id="bugCount"></span></h2>
             <p>ข้อความตอบกลับและประวัติสถานะด้านล่าง ผู้รายงานจะเห็นในแอปเมื่อเปิด “เรื่องของฉัน”</p>
@@ -235,11 +243,13 @@
           <article class="panel">
             <h2>รายงานเนื้อหาและบัญชี</h2>
             <p>
-              แสดงรายงานเนื้อหา/บัญชีที่มีอยู่ในระบบ
-              แอดมินบันทึกสถานะและหมายเหตุได้
+              รับจากปุ่มรายงานโพสต์ คำตอบ หรือบัญชีในแอป เช่น สแปมหรือกลั่นแกล้ง เป็นคนละส่วนกับบั๊กของแอป
             </p>
+            <p id="contentReportCount"></p>
             <div id="issueList"></div>
+            <div class="actions"><button id="staffIssuesPrev">ก่อนหน้า</button><button id="staffIssuesNext">ถัดไป</button></div>
           </article>
+          </div>
         </section>
         <section id="view-audit" class="view" hidden>
           <article class="panel">
@@ -267,6 +277,6 @@
     </dialog>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
     <script src="../config.js"></script>
-    <script type="module" src="staff.js"></script>
+    <script type="module" src="staff.js?v=20261016-reports"></script>
   </body>
 </html>

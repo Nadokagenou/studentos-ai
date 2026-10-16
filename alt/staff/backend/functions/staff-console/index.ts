@@ -55,7 +55,8 @@ Deno.serve(
       action: string,
       payload: Record<string, unknown>,
     ) => {
-      const { data, error } = await db.rpc(action === "bugs" || action === "bug_triage" ? "staff_bug_command" : "staff_command", {
+      const reportActions = ["bugs", "issues", "triage", "bug_triage", "report_trash", "report_restore"];
+      const { data, error } = await db.rpc(reportActions.includes(action) ? "staff_report_command" : "staff_command", {
         p_actor: actor.id,
         p_login: actor.login,
         p_action: action,

@@ -632,3 +632,8 @@ dialog::backdrop {
 .bug-detail { white-space: pre-wrap; overflow-wrap: anywhere; }
 [data-bug-form] { margin-top: 16px; display: grid; gap: 10px; }
 [data-bug-form] textarea { width: 100%; box-sizing: border-box; font: inherit; resize: vertical; }
+.report-buckets { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.report-buckets [aria-selected="true"] { background: var(--accent); color: white; border-color: var(--accent); }
+.report-history { padding-left: 22px; }
+.report-history li { margin: 12px 0; overflow-wrap: anywhere; }
+details summary { cursor: pointer; min-height: 44px; padding: 10px 0; }
