@@ -1,5 +1,6 @@
 import { renderIssues, renderBugs } from './report-ui.mjs';
 import { createStaffSessionStorage, STAFF_AUTH_KEY } from './staff-auth.mjs';
+import { pushStatusHTML } from './push-status-ui.mjs';
 const $ = (id) => document.getElementById(id);
 const esc = (v) =>
   String(v ?? "").replace(
@@ -25,6 +26,7 @@ const titles = {
   notices: "ข่าวสารและแจ้งเตือน",
   issues: "รายงานและปัญหาแอป",
   audit: "ประวัติการจัดการ",
+  push_status: 'สถานะแจ้งเตือน',
 };
 const labels = {
   grant: "เพิ่มโทเคน",
@@ -53,6 +55,7 @@ let client,
   target = null,
   busy = false;
 let pending = null;
+let pushPage=0,pushLoadSeq=0;
 let staffAuth, authEpoch = 0;
 let bugPage = 0, issuePage = 0, reportBucket = 'pending', reportLoadSeq = 0;
 const data = { users: [], notices: [], issues: [], audit: [] };
@@ -148,6 +151,7 @@ async function api(action, payload = {}) {
   return body;
 }
 async function demoApi(action, p) {
+  if(action==='push_status') return {metrics:{pending:0,sending:0,accepted_24h:0,failed:0},items:[],generated_at:new Date().toISOString(),has_more:false};
   if (action === "session")
     return { login: "demo_developer", repo: "Nadokagenou/studentos-ai" };
   if (action === "overview")
@@ -288,6 +292,21 @@ async function loadReports() {
   if (seq !== reportLoadSeq) return;
   paintReports(result);
 }
+async function loadPushStatus() {
+  const seq=++pushLoadSeq;
+  $('pushRows').textContent='กำลังอ่านสถานะแจ้งเตือน…';
+  let result;
+  try { result=await api('push_status',{status:$('pushStatusFilter').value||'all',offset:pushPage*20}); }
+  catch(error) {
+    if(seq===pushLoadSeq && view==='push_status') $('pushRows').textContent='อ่านสถานะไม่ได้ กดรีเฟรชเพื่อลองอีกครั้งครับ';
+    throw error;
+  }
+  if(seq!==pushLoadSeq || view!=='push_status') return;
+  const html=pushStatusHTML(result);
+  $('pushMetrics').innerHTML=html.metrics; $('pushRows').innerHTML=html.rows;
+  $('pushUpdated').textContent=html.updated; $('pushHint').textContent=html.hint;
+  $('pushPrev').disabled=pushPage===0; $('pushNext').disabled=!result.has_more;
+}
 async function refreshAfterReportSave(result) {
   if (!result || view !== 'issues') return;
   const context = currentReportView(), reports = result.reports;
@@ -299,6 +318,7 @@ async function refreshAfterReportSave(result) {
   }
 }
 async function load() {
+  if(view==='push_status') return loadPushStatus();
   if (view === "overview") {
     const r = await api("overview");
     $("metrics").innerHTML = [
@@ -522,6 +542,9 @@ $("usersNext").onclick = () => {
   show("users");
 };
 $("refresh").onclick = () => show(view);
+$('pushStatusFilter').onchange=()=>{pushPage=0;show('push_status');};
+$('pushPrev').onclick=()=>{pushPage=Math.max(0,pushPage-1);show('push_status');};
+$('pushNext').onclick=()=>{pushPage++;show('push_status');};
 $("grantForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   if (busy) return;
@@ -624,9 +647,10 @@ $("signOut").onclick = async () => {
 function adoptSession(next) {
   const previous = session?.user?.id || null;
   const changed = previous !== (next?.user?.id || null);
-  if (changed) { ++authEpoch; ++reportLoadSeq; }
+  if (changed) { ++authEpoch; ++reportLoadSeq; ++pushLoadSeq; pushPage=0; }
   if (changed && previous) {
     target = null; pending = null;
+    for(const id of ['pushMetrics','pushRows','pushUpdated','pushHint']) $(id).textContent='';
     for (const key of Object.keys(data)) data[key] = [];
     for (const id of ['identity', 'metrics', 'usersRows', 'noticeList', 'bugIssueList', 'issueList', 'auditList', 'overviewIssues', 'overviewAudit']) $(id).innerHTML = '';
     document.querySelectorAll('form input, form textarea').forEach(el => el.value = '');

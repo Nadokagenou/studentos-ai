@@ -1,6 +1,6 @@
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const READ = new Set(["overview", "users", "notices", "issues", "audit", "bugs", "reports"]);
+const READ = new Set(["overview", "users", "notices", "issues", "audit", "bugs", "reports", "push_status"]);
 const WRITE = new Set(["grant", "deduct", "ban", "unban", "draft", "publish", "withdraw", "triage", "bug_triage", "report_trash", "report_restore"]);
 const REPORT_WRITE = new Set(["triage", "bug_triage", "report_trash", "report_restore"]);
 const offset = value => Math.max(0, Math.min(100000, Math.floor(Number(value) || 0)));
@@ -31,6 +31,11 @@ export function validate(input) {
     throw new HttpError(400, "รูปแบบคำขอไม่ถูกต้อง");
   const action = input.action;
   if (action === "session") return { action, payload: {} };
+  if (action === 'push_status') {
+    const status=input.status??'all';
+    if (!['all','pending','sending','accepted','failed','cancelled'].includes(status)) throw new HttpError(400,'ไม่พบหมวดแจ้งเตือน');
+    return {action,payload:{status,offset:offset(input.offset)}};
+  }
   if (!READ.has(action) && !WRITE.has(action))
     throw new HttpError(400, "ไม่พบคำสั่ง");
   if (action === 'reports') return { action, payload: reportView(input) };

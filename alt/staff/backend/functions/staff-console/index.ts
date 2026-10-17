@@ -57,7 +57,7 @@ Deno.serve(
     ) => {
       const reportActions = ["bugs", "issues", "triage", "bug_triage", "report_trash", "report_restore"];
       const moderation = ['users','deduct','ban','unban'].includes(action);
-      const { data, error } = await db.rpc(moderation ? 'staff_moderation_command' : reportActions.includes(action) ? "staff_report_command" : "staff_command", {
+      const { data, error } = await db.rpc(action === 'push_status' ? 'staff_push_dashboard' : moderation ? 'staff_moderation_command' : reportActions.includes(action) ? "staff_report_command" : "staff_command", {
         p_actor: actor.id,
         p_login: actor.login,
         p_action: action,

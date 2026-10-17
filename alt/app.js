@@ -1043,7 +1043,7 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
   'scr-dayfull': 'scr-tasks',
   'scr-settings': 'scr-profile', 'scr-setopt': 'scr-profile', 'scr-stats': 'scr-profile',
   // 15 ต.ค. 69 · ข่าวสารจากทีมเข้าจากแท็บ "ฉัน"
-  'scr-news': 'scr-profile',
+  'scr-news': 'scr-profile', 'scr-classrooms': 'scr-profile',
   // จอแชทซ่อนแถบล่างอยู่แล้ว แต่ต้องผูกเจ้าของไว้ด้วย — ไม่งั้นตอนกดย้อนกลับ
   // ออกมา จะไม่มีแท็บไหนติดไฟสักอัน ซึ่งอ่านว่า "หลงอยู่ที่ไหนไม่รู้"
   // 1B93 · แท็บ "เพื่อน" ถูกแทนด้วยน้องไซ จอตระกูลฟีดจึงไม่มีแท็บของตัวเองอีกแล้ว
@@ -1194,6 +1194,7 @@ function go(id) {
   // 15 ต.ค. 69 · จอข่าวสารจากทีมวาดด้วย JS ทั้งจอ — go() เปล่า ๆ ได้จอว่าง (news.js)
   if (id === 'scr-news' && typeof newsEnter === 'function') newsEnter();
   if (id === 'scr-bugs' && typeof bugReportsEnter === 'function') bugReportsEnter();
+  if (id === 'scr-classrooms' && typeof classroomsEnter === 'function') classroomsEnter();
   // จอแชทซ่อนแถบล่างเหมือนจอล็อกอิน — ช่องพิมพ์ต้องติดก้นจอจริง ๆ
   // ไม่ใช่ลอยอยู่หลังแถบล่างจนกดไม่โดน · ออกจากจอนี้ได้ทางปุ่มย้อนกลับในหัวจอ
   // 1C19 · scr-sai ถูกถอดออกจากรายการนี้ — เจ้าของสั่งว่า "อยากให้เป็นเหมือน
@@ -1417,6 +1418,7 @@ async function initCloud() {
     const wasLoggedIn = !!currentUser;
     currentUser = sess ? sess.user : null;
     if (typeof bugAccountChanged === 'function') bugAccountChanged();
+    if (typeof classroomAccountChanged === 'function') classroomAccountChanged();
     syncTokenAdmin();
     if (currentUser && !wasLoggedIn) {
       // เพิ่งล็อกอินเสร็จ (รวมถึงกลับมาจากหน้า Google)
@@ -1626,14 +1628,17 @@ async function cloudPull() {
   // ไม่กี่ไบต์ ถูกกว่าลากก้อน 26KB ลงมาเทียบเองทุกครั้งที่เปิดแอปหลายสิบเท่า
   // (เปิดแอปส่วนใหญ่ไม่มีอะไรเปลี่ยนบน cloud เพราะเครื่องนี้เองเป็นคนเขียนล่าสุด)
   if (!sb || !currentUser) return false;
+  const pullUser=currentUser.id;
   const { data: head, error: headErr } = await sb.from('user_state')
-    .select('rev').eq('id', currentUser.id).maybeSingle();
+    .select('rev').eq('id', pullUser).maybeSingle();
+  if (currentUser?.id!==pullUser) return false;
   if (headErr) throw headErr;
   if (!head) { lastSeenRev = -1; return false; }   // ยังไม่มีแถว — pushRound จะสร้างให้
   if (head.rev === lastSeenRev) return false;
 
   const { data, error } = await sb.from('user_state')
-    .select('data, avatar, rev').eq('id', currentUser.id).maybeSingle();
+    .select('data, avatar, rev').eq('id', pullUser).maybeSingle();
+  if (currentUser?.id!==pullUser) return false;
   if (error) throw error;
   if (!data || !data.data) return false;
   const remote = data.data;
@@ -1752,6 +1757,7 @@ function pushSnapshot() {
 // เรียกผ่าน syncSerial เท่านั้น · โยน error ให้ pushToCloud บอกผู้ใช้
 async function pushRound() {
   if (!sb || !currentUser) return;
+  const pushUser=currentUser.id;
   // ข้อมูลในเครื่องเป็นของบัญชีอื่น = ห้ามส่ง จนกว่า syncFromCloud จะรับมาเป็นของบัญชีนี้ (adoptAccountIfNeeded)
   // ยังไม่มีเจ้าของ (ใช้แบบไม่ล็อกอินมาก่อน) ส่งได้ — รอบนี้ดึงมารวมกับ cloud ก่อนเขียนอยู่แล้ว (cloudPull ข้างล่าง)
   if (!cloudWritableFor(currentUser.id) && localOwner()) return;
@@ -1768,7 +1774,9 @@ async function pushRound() {
   let back = null, body, avatar, hash, nextBase;
   for (let attempt = 0; ; attempt++) {
     if (attempt === 3) throw new Error('cloud keeps changing — will retry on next save');
-    if (await cloudPull()) {
+    const pulled=await cloudPull();
+    if (currentUser?.id!==pushUser) return;
+    if (pulled) {
       renderAll();
       snap = pushSnapshot();
     }
@@ -1777,7 +1785,7 @@ async function pushRound() {
     // ระหว่างรอคำตอบผู้ใช้อาจติ๊กงานอีกใบ ถ้าคิดหลังจากนั้นใบนั้นจะดูเหมือนส่งไปแล้ว
     nextBase = syncBaseFrom(body);
 
-    const row = { id: currentUser.id, data: body, updated_at: new Date().toISOString() };
+    const row = { id: pushUser, data: body, updated_at: new Date().toISOString() };
     // ส่งคอลัมน์รูปเฉพาะตอนที่รูปเปลี่ยน — ไม่ใส่ = ค่าเดิมบน cloud ไม่ถูกแตะ
     if (snap.avatarChanged) row.avatar = avatar;
 
@@ -1786,8 +1794,9 @@ async function pushRound() {
     // lastSeenRev = -1 คือ cloud ยังไม่มีแถวของบัญชีนี้ (cloudPull บอก) — สร้างใหม่ด้วย upsert แบบเดิม
     const res = lastSeenRev < 0
       ? await sb.from('user_state').upsert(row).select('rev,vault:data->vault').maybeSingle()
-      : await sb.from('user_state').update(row).eq('id', currentUser.id).eq('rev', lastSeenRev)
+      : await sb.from('user_state').update(row).eq('id', pushUser).eq('rev', lastSeenRev)
           .select('rev,vault:data->vault').maybeSingle();
+    if (currentUser?.id!==pushUser) return;
     if (res.error) throw res.error;
     back = res.data;
     if (back) break;
@@ -2063,6 +2072,7 @@ async function logout() {
   if (typeof inboxLiveStop === 'function') inboxLiveStop();
   try { if (sb) await sb.auth.signOut(); } catch (_) {}
   currentUser = null; lastSync = null;
+  if (typeof classroomAccountChanged === 'function') classroomAccountChanged();
   // 16 ต.ค. 69 · ของบัญชีนี้ต้องไม่ค้างให้คนถัดไปที่ใช้เครื่องเห็น หรือติดไปบัญชีถัดไป — เก็บเข้าที่สำรอง แล้วเครื่องเปล่า
   leaveAccount();
   lastSeenRev = -1; lastPushedHash = ''; syncBase = null;
