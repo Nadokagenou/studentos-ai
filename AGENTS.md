@@ -109,6 +109,48 @@ C:\Users\User\OneDrive\code\StudentOS-AI\     ← repo จริง (เคร�
 
 ---
 
+## Superpowers (ปลั๊กอิน · ติดตั้งระดับผู้ใช้ 17 ต.ค. 69)
+
+ปลั๊กอิน `superpowers@claude-plugins-official` รุ่น 6.3.0 บังคับให้ AI ถามก่อนทำ · ซอยงานเป็นชิ้นแล้วตรวจทีละชิ้น · เขียนเทสต์ก่อนโค้ด
+**กฎในไฟล์นี้ชนะ skill ทุกตัว** — skill เขียนมาสำหรับโปรเจกต์ npm ทั่วไป ที่นี่ไม่ใช่
+
+**แปล skill ให้เข้ากับ repo นี้:**
+
+| skill บอกว่า | ที่นี่ทำแบบนี้ |
+|---|---|
+| `npm test` / เขียนเทสต์ด้วย jest | ไม่มี npm ไม่มีชุดเทสต์รวม — เลือกชุดจากตารางข้างล่างตามไฟล์ที่แตะ · เทสต์ใหม่ = เพิ่มเคสลงชุดเดิม |
+| "เห็นเทสต์ตกก่อน" (RED) | ทำจริง — ถอดโค้ดที่เพิ่งเขียนออกแล้วรันให้เห็นว่าตก ถึงจะนับว่าเทสต์ใช้ได้ |
+| เก็บแผน/สเปกที่ `docs/superpowers/` | เก็บที่ `alt/docs/superpowers/` แทน (รากเป็นสายเก่า) · repo สาธารณะ ห้ามมีข้อมูลผู้ใช้หรือกุญแจ |
+| brainstorming ถามทีละข้อ | ถามเป็นภาษาไทย · งานหน้าจอให้ม็อกอัปก่อนลงมือ · หน้า "Home" ของเจ้าของ = แท็บ "ฉัน" |
+| finishing-a-development-branch: merge / push / PR | ห้าม push หรือเปิด PR จนกว่าเจ้าของสั่ง (push = ขึ้นเว็บจริง) · ชื่อเวอร์ชันเจ้าของตั้งเอง |
+| using-git-worktrees | แอป Claude สร้าง worktree ให้อยู่แล้ว ใช้อันที่มี ไม่ต้องสร้างซ้อน |
+
+**เทสต์ที่รันได้ด้วย `node` ตรง ๆ** (ตัดฟังก์ชันจริงจากไฟล์มารันใน vm · ทั้งชุดจบในไม่กี่วินาที):
+
+| แตะอะไร | รัน | ผล 17 ต.ค. 69 |
+|---|---|---|
+| ซิงก์ / merge ข้ามเครื่อง (app.js) | `node alt/devtools/syncbench.cjs` | 36/36 |
+| ล็อกอิน / สลับบัญชี (app.js) | `node alt/devtools/account-switch-check.cjs` | 33/33 |
+| สมัครรับแจ้งเตือน (app.js) | `node alt/devtools/push-claim-check.cjs` | 12/12 |
+| กล่องจดหมาย LINE (linelink.js) | `node alt/devtools/inbox-live-check.cjs` | 18/18 |
+| บริบทที่ส่งให้ AI รีวิวแผน | `node alt/devtools/review-check.cjs` | 3/3 |
+| ฉากพื้นหลังธีม (alt.css) | `node alt/devtools/scene-check.cjs` | ผ่าน |
+| service worker (sw.js) | `node alt/devtools/sw-check.cjs` | **ล้ม** — ตัวจำลอง `self` ไม่มี `registration` แต่ sw.js บรรทัด 44 อ่าน `self.registration.pushManager` |
+| ข่าวสาร (alt/news/) | `node alt/devtools/news.mjs check` | ผ่าน 6 ประกาศ |
+| ทางลัด (devtools/ ที่ราก) | `node --test devtools/shortcuts.test.mjs` | 10/10 |
+
+**เทสต์ที่ต้องฉีดเข้าแอปในพรีวิว** (`<script src>` เท่านั้น ห้าม `eval`) — parser · OCR · เอนจินตัดสินใจ:
+`parsebench.js` → `benchParse()` · `ocrbench.js` → `benchReal()` · `riskbench.js` → `benchRisk()` ·
+`decidebench.js` → `benchDecide()` · `profilebench.js` → `benchProfile()` · `factsbench.js` → `benchFacts()`
+แตะเอนจินเมื่อไหร่ **อ่านตัวเลขที่ออกมาด้วย** ไม่ใช่ดูแค่ผ่าน/ไม่ผ่าน (บั๊กแพงสุดของเอนจินรันผ่านหมดทุกตัว)
+
+**เทสต์ที่ต้องติดตั้งของก่อน** (ใช้ Postgres จำลอง PGlite · ไม่แตะ Supabase จริง):
+- ระบบทีมงาน `alt/staff/tests/` — วิธีรันอยู่ใน `alt/staff/INSTALL-TH.md` (ใช้ pnpm ติดตั้งใน `alt/staff/backend`)
+- RLS `supabase/tests/*.test.mjs` — วิธีรันเขียนไว้หัวไฟล์ (ติดตั้ง PGlite นอก repo แล้วส่ง path เข้าไป)
+- Edge Function `supabase/functions/*/__tests__/` — อ่าน `README.md` ในโฟลเดอร์ · ต้อง bundle `fn.mjs` ใหม่ทุกครั้งที่แก้ `index.ts`
+
+---
+
 ## Key Decisions (จำเหตุผล ไม่ใช่แค่ผล)
 
 | ตัดสินใจ | เพราะ |
