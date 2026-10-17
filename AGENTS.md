@@ -135,7 +135,7 @@ C:\Users\User\OneDrive\code\StudentOS-AI\     ← repo จริง (เคร�
 | กล่องจดหมาย LINE (linelink.js) | `node alt/devtools/inbox-live-check.cjs` | 18/18 |
 | บริบทที่ส่งให้ AI รีวิวแผน | `node alt/devtools/review-check.cjs` | 3/3 |
 | ฉากพื้นหลังธีม (alt.css) | `node alt/devtools/scene-check.cjs` | ผ่าน |
-| service worker (sw.js) | `node alt/devtools/sw-check.cjs` | **ล้ม** — ตัวจำลอง `self` ไม่มี `registration` แต่ sw.js บรรทัด 44 อ่าน `self.registration.pushManager` |
+| service worker (sw.js) | `node alt/devtools/sw-check.cjs` | 5/5 (แก้ตัวจำลองแล้ว · รวมเคสเบราว์เซอร์ไม่มี `pushManager`) |
 | ข่าวสาร (alt/news/) | `node alt/devtools/news.mjs check` | ผ่าน 6 ประกาศ |
 | ทางลัด (devtools/ ที่ราก) | `node --test devtools/shortcuts.test.mjs` | 10/10 |
 
