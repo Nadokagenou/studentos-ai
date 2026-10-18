@@ -115,4 +115,23 @@ check('ctxDayLines บอกปิดเทอมและวันเปิด�
   assert.match(lines, /ปิดเทอม/);
   assert.ok(lines.includes(run('ctxThaiDate(ctxAddDays(BTO, 1))')), lines);
 });
+// พบในพรีวิว 18 ต.ค. 69: คนที่ยังไม่กรอกตารางเรียนเลย แผนเดา "ว่างตั้งแต่ 19:00" แล้ววางงาน
+// ทับช่วง 18:30–21:00 ที่เพิ่งบอกว่าไปห้าง — ทางนี้ไม่ผ่าน freeSlots จึงไม่เห็นบันทึกรายวัน
+check('ยังไม่มีตารางเรียน: แผนหักช่วงที่ไม่อยู่ออก', () => {
+  run(`var N13 = new Date(MON); N13.setHours(13, 0, 0, 0);
+       ctxSetDay(MON, { blocks: [{ start: '18:30', end: '21:00', title: 'ไปห้าง' }] })`);
+  const w = run('JSON.stringify(planWindows({ freeHours: 2 }, N13).slots.map(s => s.fromHm + "-" + s.toHm))');
+  assert.equal(w, JSON.stringify(['21:00-21:30']));
+});
+check('ยังไม่มีตารางเรียน + ไม่ไปโรงเรียน: ว่างตั้งแต่ตอนนี้ ไม่ต้องรอหัวค่ำ', () => {
+  run(`ctxSetDay(MON, { school: false })`);
+  const w = run('JSON.stringify(planWindows({ freeHours: 2 }, N13).slots.map(s => s.fromHm + "-" + s.toHm))');
+  assert.equal(w, JSON.stringify(['13:00-21:30']));
+});
+check('ยังไม่มีตารางเรียน ไม่ได้บอกอะไร: เหมือนเดิมทุกอย่าง (เริ่ม 19:00)', () => {
+  const w = run('JSON.stringify(planWindows({ freeHours: 2 }, N13))');
+  const o = JSON.parse(w);
+  assert.equal(o.mode, 'default');
+  assert.deepEqual(o.slots.map(s => s.fromHm + '-' + s.toHm), ['19:00-21:30']);
+});
 console.log(`ctx-day: ${n}/${n}`);

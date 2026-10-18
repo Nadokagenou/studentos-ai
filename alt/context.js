@@ -464,10 +464,23 @@ function planWindows(settings = {}, now = new Date()) {
   let mode = 'context';
   let slots;
 
+  // 18 ต.ค. 69 · ยังไม่มีตารางเรียน แต่เขาบอกเรื่องวันนี้แล้ว (หรือปิดเทอมอยู่) = รู้มากกว่าการเดา
+  // ของเดิมเดา "ว่างตั้งแต่ 19:00" ทื่อ ๆ แล้ววางงานทับช่วง 18:30–21:00 ที่เพิ่งบอกว่าไปห้าง
+  // (เจอในพรีวิว · ทางนี้ไม่ผ่าน freeSlots จึงไม่เห็นบันทึกรายวันเลย)
+  // ไม่ไปโรงเรียน = ข้ออ้างของการรอหัวค่ำ ("ยังนั่งอยู่ในคาบ") หายไป จึงนับตั้งแต่ตอนนี้
+  const dayKnown = !!(ctxDay(now) || ctxBreakOn(now));
+
   if (ctxIsEmpty()) {
     mode = 'default';
-    const from = Math.max(nowMin, EVENING_START);
-    slots = from + 10 <= hardEnd ? [fmtSlot(from, hardEnd)] : [];
+    if (dayKnown) {
+      const from = ctxSchoolOn(now) ? Math.max(nowMin, EVENING_START) : nowMin;
+      slots = freeSlots(now, now, { minBlock: 10 })
+        .map(s => fmtSlot(Math.max(s.from, from), s.to))
+        .filter(s => s.min >= 10);
+    } else {
+      const from = Math.max(nowMin, EVENING_START);
+      slots = from + 10 <= hardEnd ? [fmtSlot(from, hardEnd)] : [];
+    }
   } else {
     slots = freeSlots(now, now);
   }
@@ -475,7 +488,7 @@ function planWindows(settings = {}, now = new Date()) {
   // ไม่เหลือช่องในกรอบปกติแล้ว — ยืมเวลาก่อนนอนมาให้ พร้อมป้ายบอกว่ายืมมา
   if (!slots.length && nowMin + 10 <= sleep) {
     mode = 'late';
-    slots = ctxIsEmpty()
+    slots = ctxIsEmpty() && !dayKnown
       ? [fmtSlot(nowMin, sleep)]
       : freeSlots(now, now, { hardEnd: sleep, minBlock: 10 });
     if (!slots.length) mode = 'none';

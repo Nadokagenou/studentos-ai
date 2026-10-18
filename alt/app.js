@@ -3460,6 +3460,9 @@ const STATS_PARTS = [
 // ค่าเริ่มต้นคือลำดับเดิมเป๊ะ (HOME_ORDER) จึงไม่มีอะไรขยับจนกว่าจะมีคนไปจัดใหม่จริง
 const HOME_BLOCKS = {
   todayHead:  ctx => todayHead(ctx.sp, ctx.now),
+  // 18 ต.ค. 69 · "วันนี้อยู่ไหน" — ปิดเทอม/อยู่บ้าน/ออกไปข้างนอก เปลี่ยนเวลาว่างของทั้งวัน
+  // อยู่เหนือการ์ด "ตอนนี้" เพราะคำตอบของมันเปลี่ยนสิ่งที่การ์ดนั้นพูด
+  dayCtx:     ctx => dayCtxBlock(ctx.now),
   // 1C41 · วันที่รางมีของ แถบตัวเลขหลบให้ (เจ้าของเลือก) — เลขชุดเดียวกันอยู่บนหัวจออยู่แล้ว
   // ราง + แถบตัวเลข + กริด ล้นจอ 375×812 ราว 160px · รางคือ "ทำอะไรต่อ" ซึ่งสำคัญกว่าตัวเลขซ้ำ
   // การ์ด "วันนี้หมดเวลาแล้ว" (outOfTime) ก็เป็นบล็อกเพิ่มแบบเดียวกัน — หลบให้ด้วยเหตุผลเดียวกัน
@@ -3492,7 +3495,7 @@ const HOME_BLOCKS = {
 // คำตอบว่า "ทำอะไรตอนนี้" คือสิ่งที่แอปขาย จึงต้องเป็นของแรกที่ตาเจอ · หัวจอ (โลโก้ · คำทัก · กระดิ่ง) ยังอยู่บนสุดของจอ
 // แล้วแถวตัวเลข (เวลาว่าง · งานค้าง · วันต่อเนื่อง) ตามขึ้นมาอยู่ใต้การ์ด "ตอนนี้" — เจ้าของวาดลูกศรอีกรอบ
 // (ต้องตรงกับ home.blocks ใน remote-config.js — saiHero ไม่อยู่ในค่านั้น homeLayout() แทรกต่อหลัง todayStats ตามลำดับนี้)
-const HOME_ORDER = ['todayHead', 'nowCard', 'dayRail', 'askBar', 'discover'];
+const HOME_ORDER = ['todayHead', 'dayCtx', 'nowCard', 'dayRail', 'askBar', 'discover'];
 
 // QA 6 ต.ค. 69 · แถบตัวเลขปิดไว้เป็นค่าเริ่มต้น — "ว่าง 45 นาที · ค้าง 1 งาน" บนหัวจอพูดเลขชุดเดียวกันอยู่แล้ว
 // สองช่องซ้ำกันกิน 125px ที่ทำให้หน้าแรกล้นจอ 375×812 จนกริดไทล์จมใต้แถบล่าง (ผิดกฎ "หน้าแรกไม่ต้องเลื่อน")
@@ -5004,6 +5007,221 @@ function dayApply(read, text, opts = {}) {
   dayChanged();
   haptic('done');
   showToast({ title: 'จดแล้ว', body: 'แผนวันนี้คิดใหม่ให้แล้ว' });
+}
+
+// ---------- บล็อกหน้าแรก "วันนี้อยู่ไหน" ----------
+// ยังไม่ตอบ = แถวเดียวมีสามชิป · ตอบแล้ว (หรือปิดเทอม) = ยุบเหลือบรรทัดเดียวพร้อม "แก้"
+// ไม่ตอบก็ไม่เป็นไร แผนใช้ตารางปกติ — แถบนี้ไม่ใช่ด่านที่ต้องผ่านก่อนใช้แอป
+function dayCtxLabel(d, brk) {
+  if (d && d.away) return 'วันนี้: ไม่อยู่ทั้งวัน';
+  if (d && d.blocks && d.blocks.length) {
+    const b = d.blocks[0];
+    return 'วันนี้: ' + b.title + ' ' + b.start + '–' + b.end + (d.blocks.length > 1 ? ' +' + (d.blocks.length - 1) : '');
+  }
+  if (d && d.school === false) return brk ? 'ปิดเทอม · อยู่บ้าน' : 'วันนี้: อยู่บ้าน';
+  if (d && d.school === true) return 'วันนี้: ไปโรงเรียน';
+  if (brk) return 'ปิดเทอม · เปิด ' + ctxThaiDate(ctxAddDays(brk.to, 1));
+  return '';
+}
+
+function dayCtxBlock(now) {
+  if (typeof ctxDay !== 'function') return '';
+  if (typeof breakAskDue === 'function' && breakAskDue(now)) return breakAskHtml();
+  const label = dayCtxLabel(ctxDay(now), ctxBreakOn(now));
+  if (label) {
+    return `<button type="button" class="dc-line" onclick="openDaySheet()">
+      ${icon('pin')}<span>${esc(label)}</span><i>แก้</i></button>`;
+  }
+  // แถวเดียวสูงเท่าบรรทัดยุบ — วัดจริง 18 ต.ค. 69: หน้าแรกที่มีงานพอดีจอ 375×812 อยู่แล้ว
+  // แบบสองแถว (หัว + ชิป 91px) ทำให้ล้น 50px · แถวเดียวยังแตะครั้งเดียวจบเหมือนเดิม
+  return `<section class="dc-ask" aria-label="วันนี้อยู่ไหน">
+    <b>${icon('pin')}วันนี้</b>
+    <button type="button" onclick="dayTap(true)">ไปเรียน</button>
+    <button type="button" onclick="dayTap(false)">อยู่บ้าน</button>
+    <button type="button" onclick="openDaySheet()">ข้างนอก…</button></section>`;
+}
+
+// ctxSetDay รวมกับของเดิม — ล้าง away เสมอ ไม่งั้นคนที่เคยกด "ไม่อยู่ทั้งวัน" แล้วเปลี่ยนใจ
+// กด "อยู่บ้าน" จะยังได้วันที่ไม่มีช่องว่างเลย · ช่วงเวลาที่จดไว้ (เช่น เย็นไปเรียนพิเศษ) เก็บไว้ตามเดิม
+function dayTap(school) {
+  ctxSetDay(new Date(), { school, away: false, src: 'tap' });
+  closeDaySheet();
+  dayChanged();
+  haptic('tap');
+}
+
+// ---------- แผ่น "วันนี้ไปไหน" ----------
+// phase: 'edit' พิมพ์/เลือก · 'busy' รอ AI · 'confirm' การ์ดยืนยัน · 'manual' เลือกเวลาเอง
+// ทางเลือกเวลาเองต้องมีเสมอ — ไม่มีเน็ต · ไม่ได้ล็อกอิน · AI ล่ม ยังจดวันนี้ได้
+let daySheet = null;
+
+function openDaySheet() {
+  const d = ctxDay(new Date());
+  daySheet = { phase: 'edit', text: (d && d.note) || '', read: null, err: '', trial: '', setBreak: true,
+    manual: { school: d ? d.school : null, blocks: d ? d.blocks.slice() : [] } };
+  const el = document.getElementById('daySheet');
+  if (!el) return;
+  el.innerHTML = `<div class="as-scrim" onclick="closeDaySheet()"></div>
+    <div class="as-card dc-card" role="dialog" aria-label="วันนี้ไปไหน"></div>`;
+  el.hidden = false;
+  renderDaySheet();
+  setTimeout(() => el.classList.add('on'), 16);   // setTimeout ไม่ใช่ rAF — เหตุผลเดียวกับ openAddSheet
+  haptic('tap');
+}
+
+function closeDaySheet() {
+  const el = document.getElementById('daySheet');
+  daySheet = null;
+  if (!el || el.hidden) return;
+  el.classList.remove('on');
+  setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
+}
+
+function renderDaySheet() {
+  const card = document.querySelector('#daySheet .as-card');
+  if (!card || !daySheet) return;
+  const s = daySheet;
+  const has = !!ctxDay(new Date());
+  const head = `<div class="as-grip"></div><h3 class="dc-h">วันนี้ไปไหน</h3>`;
+  const reset = has ? `<button type="button" class="dc-link" onclick="daySheetReset()">กลับเป็นปกติ</button>` : '';
+
+  if (s.phase === 'confirm' && s.read) {
+    const r = s.read;
+    const rows = [];
+    if (r.away) rows.push('ไม่อยู่ทั้งวัน');
+    for (const b of r.blocks) rows.push(b.start + '–' + b.end + ' ' + b.title);
+    if (!r.away && r.school === false) rows.push('ไม่ไปโรงเรียน');
+    if (!r.away && r.school === true) rows.push('ไปโรงเรียน');
+    const forDay = r.date !== ymdLocal(new Date()) ? `<p class="dc-sub">จดไว้สำหรับ ${esc(ctxThaiDate(r.date))}</p>` : '';
+    card.innerHTML = head + `<div class="dc-conf">
+      <b>${esc(mName())}จดแบบนี้ ถูกไหม</b>${forDay}
+      ${rows.length ? `<ul>${rows.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`
+        : `<p class="dc-sub">${esc(r.note || 'ไม่เจอเวลาในข้อความ')}</p>`}
+      ${r.advice ? `<p class="dc-adv">${icon('sparkles')}<span>${esc(r.advice)}</span></p>` : ''}
+      ${s.trial ? `<p class="dc-sub">งานแรกตอนนี้จะเป็น: <b>${esc(s.trial)}</b></p>` : ''}
+      ${r.breakUntil ? `<label class="dc-chk"><input type="checkbox" ${s.setBreak ? 'checked' : ''}
+          onchange="daySheet.setBreak=this.checked"><span>ตั้งเป็นช่วงปิดเทอมด้วย · เปิดเทอม ${esc(ctxThaiDate(r.breakUntil))}</span></label>` : ''}
+      <div class="dc-row">
+        <button type="button" class="dc-yes" onclick="daySheetAccept()">${icon('check')}ใช่ จดเลย</button>
+        <button type="button" class="dc-no" onclick="daySheetManual()">แก้เอง</button>
+      </div></div>`;
+    return;
+  }
+
+  if (s.phase === 'manual') {
+    const m = s.manual;
+    card.innerHTML = head + `<div class="dc-man">
+      <label class="dc-chk"><input type="checkbox" ${m.school === false ? 'checked' : ''}
+        onchange="daySheet.manual.school=this.checked?false:null"><span>วันนี้ไม่ไปโรงเรียน</span></label>
+      ${m.blocks.length ? `<ul>${m.blocks.map((b, i) => `<li><span>${esc(b.start + '–' + b.end + ' ' + b.title)}</span>
+        <button type="button" aria-label="ลบช่วงนี้" onclick="daySheetDelBlock(${i})">${icon('x')}</button></li>`).join('')}</ul>` : ''}
+      <div class="dc-add">
+        <input type="time" id="dcFrom" aria-label="เริ่ม"><input type="time" id="dcTo" aria-label="จบ">
+        <input type="text" id="dcTitle" maxlength="30" placeholder="ไปไหน เช่น ไปห้าง" aria-label="ไปไหน">
+        <button type="button" onclick="daySheetAddBlock()">${icon('plus')}เพิ่มช่วงนี้</button>
+      </div>
+      ${s.err ? `<p class="dc-err">${esc(s.err)}</p>` : ''}
+      <div class="dc-row">
+        <button type="button" class="dc-yes" onclick="daySheetSaveManual()">${icon('check')}บันทึก</button>
+        <button type="button" class="dc-no" onclick="daySheetBack()">ย้อน</button>
+      </div>${reset}</div>`;
+    return;
+  }
+
+  const busy = s.phase === 'busy';
+  // ชิปที่ตรงกับที่จดไว้ติดสถานะ "เลือกอยู่" — เปิดแผ่นมาแก้แล้วต้องเห็นว่าตอนนี้แอปเข้าใจว่าอะไร
+  const cur = ctxDay(new Date());
+  const on = k => (cur && (k === 'away' ? cur.away : !cur.away && cur.school === k) ? ' class="on" aria-pressed="true"' : '');
+  card.innerHTML = head + `<div class="dc-chips">
+      <button type="button"${on(true)} onclick="dayTap(true)">ไปโรงเรียน</button>
+      <button type="button"${on(false)} onclick="dayTap(false)">อยู่บ้าน</button>
+      <button type="button"${on('away')} onclick="daySheetAway()">ไม่อยู่ทั้งวัน</button></div>
+    <div class="dc-ai">
+      <textarea id="dcText" rows="2" maxlength="300" placeholder="เล่าสั้น ๆ เช่น ไปห้างกับเพื่อนบ่ายโมงถึงห้าโมง"
+        oninput="daySheet.text=this.value">${esc(s.text)}</textarea>
+      ${s.err ? `<p class="dc-err">${esc(s.err)}</p>` : ''}
+      <div class="dc-row">
+        <button type="button" class="dc-yes" onclick="daySheetRead()" ${busy ? 'disabled' : ''}>
+          ${icon('sparkles')}${busy ? 'กำลังอ่าน…' : 'ให้' + esc(mName()) + 'อ่าน'}</button>
+        <button type="button" class="dc-no" onclick="daySheetManual()">เลือกเวลาเอง</button>
+      </div>${reset}</div>`;
+}
+
+async function daySheetRead() {
+  if (!daySheet || daySheet.phase === 'busy') return;
+  const text = (daySheet.text || '').trim();
+  if (!text) { daySheet.err = 'พิมพ์ก่อนว่าวันนี้ไปไหน'; renderDaySheet(); return; }
+  daySheet.phase = 'busy'; daySheet.err = ''; renderDaySheet();
+  const r = await readDay(text);
+  if (!daySheet) return;                       // ปิดแผ่นไประหว่างรอ
+  if (!r.ok) { daySheet.phase = 'edit'; daySheet.err = r.message; renderDaySheet(); return; }
+  daySheet.read = r.read;
+  daySheet.trial = dayTrialFirst(r.read);
+  daySheet.phase = 'confirm';
+  renderDaySheet();
+}
+
+function daySheetAccept() {
+  if (!daySheet || !daySheet.read) return;
+  const { read, text, setBreak } = daySheet;
+  closeDaySheet();
+  dayApply(read, text, { setBreak });
+}
+
+// "แก้เอง" จากการ์ด AI = เปิดฟอร์มพร้อมช่วงที่ AI อ่านได้ ไม่ต้องกรอกใหม่หมด
+function daySheetManual() {
+  if (!daySheet) return;
+  if (daySheet.read) {
+    daySheet.manual = { school: daySheet.read.school, blocks: daySheet.read.blocks.slice() };
+  }
+  daySheet.phase = 'manual'; daySheet.err = '';
+  renderDaySheet();
+}
+
+function daySheetBack() {
+  if (!daySheet) return;
+  daySheet.phase = 'edit'; daySheet.err = '';
+  renderDaySheet();
+}
+
+function daySheetAddBlock() {
+  if (!daySheet) return;
+  const a = document.getElementById('dcFrom'), b = document.getElementById('dcTo'), t = document.getElementById('dcTitle');
+  const from = a && a.value, to = b && b.value;
+  if (hm2min(from) == null || hm2min(to) == null || hm2min(to) <= hm2min(from)) {
+    daySheet.err = 'ใส่เวลาเริ่มกับเวลาจบ และเวลาจบต้องหลังเวลาเริ่ม'; renderDaySheet(); return;
+  }
+  daySheet.err = '';
+  daySheet.manual.blocks.push({ start: from, end: to, title: (t && t.value.trim()) || 'ไม่อยู่' });
+  renderDaySheet();
+}
+
+function daySheetDelBlock(i) {
+  if (!daySheet) return;
+  daySheet.manual.blocks.splice(i, 1);
+  renderDaySheet();
+}
+
+function daySheetSaveManual() {
+  if (!daySheet) return;
+  const m = daySheet.manual;
+  ctxSetDay(new Date(), { school: m.school, away: false, blocks: m.blocks, src: 'manual' });
+  closeDaySheet();
+  dayChanged();
+  haptic('done');
+}
+
+function daySheetAway() {
+  ctxSetDay(new Date(), { away: true, school: false, blocks: [], src: 'tap' });
+  closeDaySheet();
+  dayChanged();
+  haptic('tap');
+}
+
+function daySheetReset() {
+  ctxClearDay(new Date());
+  closeDaySheet();
+  dayChanged();
 }
 
 // ---------- ประวัติแชท ----------
@@ -12293,6 +12511,7 @@ const OVERLAYS = [
   { sel: '#tpSheet',         close: () => closeTopicAsk() },
   { sel: '#checkin',         close: () => closeDailyCheck() },
   { sel: '#soonSheet',       close: () => closeSoonSheet() },
+  { sel: '#daySheet',        close: () => closeDaySheet() },
   // หน้าตัวเชื่อมในแผ่นเพิ่มงาน ถอยกลับหน้าหลักของแผ่นก่อน ไม่ใช่ปิดทั้งแผ่น
   { sel: '#addSheet',        close: () => addSheetView === 'connectors' ? openAddSheet('root') : closeAddSheet() },
   { sel: '#aiSheet',         close: () => closeAiHub() },
@@ -12392,10 +12611,10 @@ new MutationObserver(recs => {
 // ใช้ตัวเฝ้า hidden ไม่ใช่ไล่แก้ทุกฟังก์ชัน open* เพราะทางเปิดมีหลายสิบทาง
 const overlayReturn = new WeakMap();
 function watchOverlays() {
-  const ids = ['checkin', 'focusWrap', 'addSheet', 'soonSheet', 'aiSheet', 'fabMenu', 'reportSheet'];
+  const ids = ['checkin', 'focusWrap', 'addSheet', 'soonSheet', 'daySheet', 'aiSheet', 'fabMenu', 'reportSheet'];
   // 13 ต.ค. 69 · แผ่นล่างเปิดอยู่ = body.sheet-up → จอข้างหลังยุบลงนิดหนึ่ง (CSS ท้าย alt.css · "มีมิติ" ①)
   // ใช้ตัวเฝ้าเดิมตัวนี้ ไม่ใช้ :has() ใน CSS — :has() เคยทำให้ทั้งเอกสารคำนวณสไตล์ใหม่ทุกครั้งที่ DOM เปลี่ยน
-  const SHEETS = ['addSheet', 'soonSheet', 'aiSheet', 'reportSheet'];
+  const SHEETS = ['addSheet', 'soonSheet', 'daySheet', 'aiSheet', 'reportSheet'];
   const syncSheetUp = () => document.body.classList.toggle('sheet-up',
     SHEETS.some(id => { const el = document.getElementById(id); return !!el && !el.hidden; }));
   const mo = new MutationObserver(recs => {
