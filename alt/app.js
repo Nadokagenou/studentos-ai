@@ -4930,6 +4930,82 @@ async function askSaiStream(question, history, onChunk) {
   }
 }
 
+// ============================================================
+// 18 ต.ค. 69 · บริบทรายวัน — ฝั่งแอปของ read-day
+// ------------------------------------------------------------
+// AI อ่านข้อความ คืนช่วงเวลา + ข้อสังเกต → แอปโชว์การ์ดยืนยัน → ผู้ใช้กด → ค่อยบันทึก
+// งานแรกบนการ์ดคิดจาก studyPlan ในเครื่องหลัง "ลองใส่" ช่วงใหม่ (ctxWithDay ไม่เขียนอะไรลงที่เก็บ)
+// AI จึงพูดเรื่องเวลาได้ แต่คนตัดสินว่างานไหนก่อนยังเป็นเอนจินตัวเดียวกับหน้าแรก
+// สเปก: alt/docs/superpowers/specs/2026-10-18-daily-context-design.md
+// ============================================================
+
+// แผนแคชไว้นาทีละครั้งตาม stateRev ซึ่งไม่ขยับเมื่อบริบทเปลี่ยน — ต้องล้างเองทุกครั้ง
+// ไม่ล้าง = กด "อยู่บ้าน" แล้วการ์ด "ตอนนี้" ยังพูดตามตารางเรียนอยู่อีกเกือบหนึ่งนาที
+function dayChanged() {
+  _planCache = null;
+  renderAll();
+}
+
+function dayCtxSummary(now = new Date()) {
+  const L = [];
+  if (typeof ctxDayLines === 'function') for (const ln of ctxDayLines(now)) L.push('- ' + ln);
+  const slots = typeof freeSlots === 'function' ? freeSlots(now, now) : [];
+  L.push('- ช่วงว่างที่เหลือวันนี้: ' + (slots.length ? slots.map(s => s.fromHm + '–' + s.toHm).join(', ') : 'ไม่มี'));
+  const sp = focusPlan(now);
+  L.push('- งานแรกตอนนี้ (แอปเลือกแล้ว): ' + (sp.now ? taskTitleText(sp.now.task) : 'ไม่มี'));
+  for (const t of pendingTasks().slice(0, 5)) {
+    L.push('- งานค้าง: ' + taskTitleText(t) + ' · ส่ง ' + (t.due ? fmtDue(t.due, now, t).replace(/^⚠\s*/, '') : 'ไม่ระบุ')
+      + ' · ประเมิน ' + (t.estMin || '—') + ' นาที');
+  }
+  return L.join('\n');
+}
+
+async function readDay(text) {
+  const t = String(text || '').trim();
+  if (!t) return { ok: false, message: 'พิมพ์ก่อนว่าวันนี้ไปไหน' };
+  if (!sb || !currentUser) return { ok: false, message: 'ต้องเข้าสู่ระบบก่อนถึงจะให้' + mName() + 'อ่านได้ · เลือกเวลาเองได้เลย' };
+  const now = new Date();
+  try {
+    const { data, error } = await withTimeout(sb.functions.invoke('read-day', {
+      body: { text: t, today: ymdLocal(now), now: fmtClock(now), summary: dayCtxSummary(now) },
+    }), 30_000, 'อ่านวันนี้');
+    // supabase-js คืน error สำหรับทุกสถานะที่ไม่ใช่ 2xx — ข้อความไทยจริงอยู่ใน context (เหมือน askSai)
+    let payload = data;
+    if (error) { try { payload = await error.context.json(); } catch (_) { payload = null; } }
+    if (!payload || payload.ok !== true) {
+      return { ok: false, message: (payload && payload.message) || mName() + 'อ่านไม่สำเร็จ ลองเลือกเวลาเองแทนได้' };
+    }
+    return { ok: true, read: payload };
+  } catch (e) {
+    return { ok: false, message: (e && e.message) || 'ต่อไม่ติด ลองเลือกเวลาเองแทนได้' };
+  }
+}
+
+function dayRecOf(read, text, src) {
+  return { school: read.school, away: !!read.away, blocks: read.blocks || [],
+    note: String(text || '').slice(0, 120), advice: read.advice || '', src };
+}
+
+// ชื่องานแรกถ้ารับบันทึกนี้ — เฉพาะวันนี้ (วันอื่นยังไม่มีแผนรายชั่วโมง)
+// เรียก studyPlan ตรงเพราะต้องข้ามแคชของ todayPlan · ยังเป็นเอนจินตัวเดียวกับทุกจอ
+function dayTrialFirst(read) {
+  const now = new Date();
+  if (!read || read.date !== ymdLocal(now) || typeof ctxWithDay !== 'function') return '';
+  const sp = ctxWithDay(now, dayRecOf(read, '', 'ai'), () => studyPlan(state, now));
+  return sp && sp.now ? taskTitleText(sp.now.task) : '';
+}
+
+function dayApply(read, text, opts = {}) {
+  const date = new Date(read.date + 'T00:00:00');
+  ctxSetDay(date, dayRecOf(read, text, opts.src || 'ai'));
+  if (read.breakUntil && opts.setBreak !== false) {
+    ctxSetBreak(ctxDayKey(new Date()), ctxAddDays(read.breakUntil, -1));
+  }
+  dayChanged();
+  haptic('done');
+  showToast({ title: 'จดแล้ว', body: 'แผนวันนี้คิดใหม่ให้แล้ว' });
+}
+
 // ---------- ประวัติแชท ----------
 // เก็บในเครื่องเหมือนทุกอย่างในแอปนี้ — คนที่ถามเรื่องเดิมต่อพรุ่งนี้ต้องไม่ต้องเล่าใหม่
 // ตัดที่ 40 ข้อความ เพราะที่เก็บใน localStorage มีเพดาน และเกินนั้นก็ไม่มีใครเลื่อนขึ้นไปอ่าน
