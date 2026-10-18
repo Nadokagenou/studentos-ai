@@ -33,6 +33,7 @@
       /* ลำดับเดียวกับที่ renderMenu() ต่อสตริงอยู่ตอนนี้ (1B38) */
       blocks: [
         { id: 'todayHead',  on: true },
+        { id: 'dayCtx',     on: true },   // 18 ต.ค. 69 · วันนี้อยู่ไหน (ปิดเทอม · อยู่บ้าน · ออกไปข้างนอก)
         { id: 'nowCard',    on: true },   // 7 ต.ค. 69 · บนสุดใต้หัวจอ — เจ้าของสั่ง
         { id: 'todayStats', on: true },   // ตามมาใต้การ์ด "ตอนนี้" · saiHero แทรกต่อหลังแถวนี้เอง (HOME_ORDER ใน app.js)
         { id: 'askBar',     on: true },
