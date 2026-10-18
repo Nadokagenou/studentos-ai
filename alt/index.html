@@ -131,6 +131,7 @@
   <link rel="stylesheet" href="board.css">
   <link rel="stylesheet" href="custom.css">
   <link rel="stylesheet" href="bug-reports.css">
+  <link rel="stylesheet" href="classrooms.css">
 </head>
 <body>
 
@@ -1355,12 +1356,35 @@
         </div>
       </div>
 
+      <div class="screen flush" id="scr-classrooms">
+        <div class="sticky-head row"><h2 class="sh-title">ห้องเรียนและแชตกลุ่ม</h2><button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับหน้าฉัน"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button></div>
+        <div class="scr-body class-body">
+          <p id="classMessage" role="status" aria-live="polite"></p>
+          <button id="classRefresh" class="class-button">อัปเดต</button>
+          <div id="classListView">
+            <p>สร้างห้องแล้วแชร์รหัสเชิญ คุยกับสมาชิกและส่งการ์ดงานให้กดรับเข้าแผนของแต่ละคนได้</p>
+            <div id="classRooms"></div>
+            <section class="class-panel"><h3>สร้างห้อง</h3><form id="classCreateForm"><label>ชื่อห้อง<input id="className" required minlength="2" maxlength="80" placeholder="เช่น ม.4/2 หรือกลุ่มโครงงาน"></label><label>ประเภท<select id="classKind"><option value="classroom">ห้องเรียน</option><option value="group">แชตกลุ่ม</option></select></label><button type="submit" class="class-button class-primary">สร้างห้อง</button></form></section>
+            <section class="class-panel"><h3>เข้าร่วมห้อง</h3><form id="classJoinForm"><label>รหัสเชิญจากเจ้าของห้อง<input id="classCode" required minlength="12" maxlength="16" autocomplete="off" autocapitalize="characters" placeholder="รหัส 12 ตัว"></label><button type="submit" class="class-button">เข้าร่วมห้อง</button></form></section>
+          </div>
+          <div id="classRoomView" hidden>
+            <button id="classBack" class="class-button">กลับรายการห้อง</button><h3 id="classRoomName"></h3><p id="classRoomStatus"></p><p id="classInvite"></p>
+            <details class="class-panel"><summary>สมาชิกและการจัดการห้อง</summary><ul id="classMembers"></ul><div id="classOwnerTools" class="class-actions" hidden><button id="classRotate" class="class-button">เปลี่ยนรหัสเชิญ</button><button id="classClose" class="class-button">ปิดห้อง</button></div><button id="classLeave" class="class-button" hidden>ออกจากห้อง</button></details>
+            <button id="classOlder" class="class-button" hidden>อ่านข้อความก่อนหน้า</button>
+            <div id="classMessages" role="log" aria-label="ข้อความในห้อง" aria-live="polite"></div>
+            <form id="classTextForm"><label>ข้อความ<textarea id="classText" required maxlength="2000" rows="2" placeholder="พิมพ์คุยกับสมาชิกในห้อง"></textarea></label><div class="class-actions"><button id="classTextSend" type="submit" class="class-button class-primary">ส่งข้อความ</button><button id="classTaskOpen" type="button" class="class-button">ส่งการ์ดงาน</button></div></form>
+            <section id="classTaskBox" class="class-panel" hidden><h3>ส่งการ์ดงานให้สมาชิก</h3><p>สมาชิกเลือกกดรับเอง ส่งเฉพาะวิชา รายละเอียด กำหนดส่ง และเวลาโดยประมาณ</p><form id="classTaskForm"><label>เลือกจากงานของฉัน<select id="classTaskFrom"><option value="">เขียนงานใหม่</option></select></label><label>วิชา<input id="classTaskSubject" required maxlength="60" placeholder="เช่น คณิตศาสตร์"></label><label>รายละเอียดงาน<textarea id="classTaskDetail" required minlength="3" maxlength="2000" rows="3"></textarea></label><label>กำหนดส่ง (ไม่บังคับ)<input id="classTaskDue" type="datetime-local"></label><label>เวลาทำโดยประมาณ (นาที)<input id="classTaskMinutes" type="number" min="5" max="480" step="1" value="30" required></label><div class="class-actions"><button id="classTaskSend" type="submit" class="class-button class-primary">ส่งการ์ดงาน</button><button id="classTaskCancel" type="button" class="class-button">ยกเลิก</button></div></form></section>
+          </div>
+        </div>
+      </div>
+
       <!-- ============ SCREEN: PROFILE ============ -->
       <div class="screen flush" id="scr-profile">
         <div class="scr-body pf-body">
 
           <div id="pfHead"></div>
           <input type="file" id="avInput" accept="image/*" hidden>
+<div class="pf-entry"><button class="pe" onclick="openClassrooms()"><span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span><span class="pe-tx"><b>ห้องเรียนและแชตกลุ่ม</b><small>คุยและแชร์งานเข้าแผน</small></span><svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button></div>
 <div class="pf-feature-head"><b>ใช้งาน Student OS</b><button onclick="openExplore()">สำรวจทั้งหมด <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-chevron"/></svg></button></div><div class="feature-categories"><button class="feature-category" onclick="openExplore('learn')"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-book"/></svg><b>เรียนและวางแผน</b><span>แผนวันนี้ · สแกนตาราง · กล่องเข้า</span></button>
             <button class="feature-category" onclick="openExplore('friends')"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-users"/></svg><b>เพื่อนและการคุย</b><span>ข้อความ · เพื่อน · อันดับ</span></button>
             <button class="feature-category" onclick="openExplore('rewards')"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-medal"/></svg><b>ของฉันและรางวัล</b><span>สถิติ · ของสะสม · ร้านค้า</span></button>
@@ -2232,6 +2256,10 @@
          เป็นแผ่นเลื่อนขึ้น ไม่ใช่จอใหม่ เพราะการเพิ่มงานควรจบโดยไม่ต้องออกจากคำตอบที่กำลังดูอยู่ -->
     <div class="add-sheet" id="addSheet" hidden></div>
 
+    <!-- 18 ต.ค. 69 · แผ่น "วันนี้ไปไหน" — โครงเดียวกับแผ่นเพิ่มงาน (.as-scrim/.as-card) · วาดจาก renderDaySheet()
+         ต้องอยู่ใน HTML ตั้งแต่แรก: watchOverlays() ผูกตัวเฝ้ากับ id นี้ตอนเปิดแอป -->
+    <div class="add-sheet" id="daySheet" hidden></div>
+
     <!-- ============================================================
          1B70 · ปุ่มข้อความลอย — อยู่นอกกองจอเหมือน .tabbar
          ============================================================
@@ -2384,6 +2412,7 @@
 <script src="topic.js"></script>
 <script src="safety.js"></script>
 <script src="bug-reports.js"></script>
+<script src="classrooms.js"></script>
 <script src="sai.js"></script>
 <!-- ฟังก์ชันล้วน ไม่รันอะไรตอนโหลด · ต้องมาก่อน app.js เพื่อให้การวาดรอบแรก
      (renderShop · renderAppearance) เห็น FX_SHOP แล้ว — ไม่งั้นแถวเอฟเฟกต์โผล่ช้าไปหนึ่งรอบ -->

@@ -49,6 +49,9 @@ const CTX_DEFAULT = {
   },
   classes: [],
   routines: [],
+  // 18 ต.ค. 69 · ช่วงปิดเทอม กับบันทึก "วันนี้เป็นยังไง" รายวัน — ดูหัวข้อ "บริบทรายวัน" ข้างล่าง
+  breaks: [],
+  days: {},
 };
 
 // ---------- เวลาในหนึ่งวันเก็บเป็น "นาทีจากเที่ยงคืน" ----------
@@ -69,17 +72,27 @@ function min2hm(v) {
 // ---------- อ่าน/เขียน ----------
 let ctxCache = null;
 
+// ก้อนบริบทจากที่เก็บ/คลาวด์ → รูปที่โค้ดทั้งไฟล์เชื่อได้ · ช่องที่เสียหรือไม่มี = ค่าว่าง
+// ต้องผ่านที่นี่ทุกทาง (โหลด · นำเข้า · ล้าง) ไม่งั้นช่องใหม่จะหายเงียบ ๆ ทางใดทางหนึ่ง
+// (ก่อน 18 ต.ค. 69 ทั้งสามทางสร้างก้อนเองคนละที่ และทิ้งทุกช่องที่ไม่รู้จัก)
+function ctxShape(data) {
+  const days = data && data.days && typeof data.days === 'object' && !Array.isArray(data.days) ? data.days : {};
+  return {
+    prefs: Object.assign({}, CTX_DEFAULT.prefs, (data && data.prefs) || {}),
+    classes: Array.isArray(data && data.classes) ? data.classes : [],
+    routines: Array.isArray(data && data.routines) ? data.routines : [],
+    breaks: Array.isArray(data && data.breaks) ? data.breaks : [],
+    days,
+  };
+}
+
 function ctxLoad() {
   if (ctxCache) return ctxCache;
   let raw = null;
   try { raw = localStorage.getItem(CTX_KEY); } catch (_) {}
   let data = null;
   try { data = raw ? JSON.parse(raw) : null; } catch (_) { data = null; }
-  ctxCache = {
-    prefs: Object.assign({}, CTX_DEFAULT.prefs, (data && data.prefs) || {}),
-    classes: Array.isArray(data && data.classes) ? data.classes : [],
-    routines: Array.isArray(data && data.routines) ? data.routines : [],
-  };
+  ctxCache = ctxShape(data);
   return ctxCache;
 }
 
@@ -121,9 +134,188 @@ function ctxRemove(kind, id) {
 }
 // ลบบริบททั้งชุดโดยไม่แตะงานสักใบ — ปุ่มนี้ต้องมีอยู่จริงในจอตั้งค่า
 function ctxClear() {
-  ctxCache = { prefs: Object.assign({}, CTX_DEFAULT.prefs), classes: [], routines: [] };
+  ctxCache = ctxShape(null);
   try { localStorage.removeItem(CTX_KEY); } catch (_) {}
   if (typeof pushToCloud === 'function') pushToCloud();
+}
+
+// ============================================================
+// บริบทรายวัน + ปิดเทอม (18 ต.ค. 69)
+// ------------------------------------------------------------
+// ตารางเรียนกับกิจวัตรซ้ำทุกสัปดาห์ แต่ชีวิตจริงไม่ซ้ำ: ปิดเทอม · วันที่ไม่ได้ไปโรงเรียน
+// · บ่ายนี้ไปห้าง · ทั้งวันไปต่างจังหวัด · ก่อนหน้านี้แอปไม่มีที่ให้บอกเรื่องพวกนี้เลย
+// ผลคือปิดเทอมไปแล้วสองสัปดาห์ แผนยังวางคาบเรียนให้ทุกวันจันทร์–ศุกร์
+//
+// สองช่องในก้อนบริบทเดิม (คีย์เดิม ไม่ได้เปลี่ยน):
+//   breaks  ช่วงปิดเทอม {from, to} — to คือวันหยุดวันสุดท้าย (วันก่อนเปิดเทอม)
+//   days    บันทึกรายวันตามวันที่ — school/away/blocks ที่ผู้ใช้กดยืนยันแล้ว
+//
+// ทั้งสองถูกอ่านที่ busyBlocks() ที่เดียว แผน · ไทม์ไลน์ · ปฏิทิน · เวลาว่างจึงเปลี่ยนตามเอง
+// ============================================================
+const CTX_DAYS_KEEP = 14;     // บันทึกรายวันเก่ากว่านี้ไม่มีใครย้อนดู
+const CTX_BREAK_KEEP = 30;    // ปิดเทอมที่จบไปแล้วเกินนี้ทิ้งได้
+const CTX_YMD = /^\d{4}-\d{2}-\d{2}$/;
+const CTX_TH_MONTH = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+  'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+function ctxDayKey(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+    + '-' + String(d.getDate()).padStart(2, '0');
+}
+function ctxKeyDate(k) { return new Date(k + 'T00:00:00'); }
+function ctxAddDays(k, n) {
+  const d = ctxKeyDate(k);
+  d.setDate(d.getDate() + n);
+  return ctxDayKey(d);
+}
+function ctxThaiDate(k) {
+  const d = ctxKeyDate(k);
+  return isNaN(d) ? k : d.getDate() + ' ' + CTX_TH_MONTH[d.getMonth()];
+}
+
+function ctxBreaks() { return ctxLoad().breaks; }
+function ctxBreakOn(date) {
+  const k = ctxDayKey(date);
+  return ctxBreaks().find(b => b && b.from <= k && k <= b.to) || null;
+}
+function ctxDay(date) { return ctxLoad().days[ctxDayKey(date)] || null; }
+
+// ---------- เดาวันที่ยังไม่ได้บอก (แบบ ก ที่เจ้าของเลือก 18 ต.ค. 69: "เดาให้ แล้วแตะแก้") ----------
+// แอปเรียกรถไม่ถามทุกครั้งว่าจะไปไหน มันเดาจากประวัติแล้วให้แตะแก้ · ที่นี่ทำแบบเดียวกัน
+// ถามทุกเช้าด้วยปุ่มสามปุ่ม = เพิ่มการตัดสินใจให้นักเรียนทุกวัน ซึ่งสวนกับสิ่งที่แอปนี้ขาย
+//
+// kind ที่คืน:
+//   'set'     ผู้ใช้บอกแล้ว (rec)
+//   'break'   ช่วงปิดเทอม (brk)
+//   'carry'   วันเรียนก่อนหน้า (ย้อนไม่เกิน 3 วัน — ศุกร์ถึงจันทร์ได้) ตอบว่าไม่ไปโรงเรียน → เดาว่าวันนี้ก็ไม่ไป
+//   'class'   มีคาบตามตาราง ไม่มีอะไรบอกเป็นอย่างอื่น
+//   'free'    วันนี้ไม่มีคาบในตาราง (เสาร์–อาทิตย์)
+//   'unknown' ยังไม่มีตารางเรียนเลย
+//
+// เดาแค่ "ไปโรงเรียนไหม" เท่านั้น ไม่เดาช่วงเวลา ไม่ลาก "ไม่อยู่ทั้งวัน" ต่อ (ไปค่ายวันเดียวไม่ได้แปลว่าไปทั้งสัปดาห์)
+// ต้นทางต้องเป็นคำตอบจริง ไม่ใช่คำเดาอีกที — เดาซ้อนเดาจะลากไปเรื่อย ๆ จนทั้งเทอมไม่มีคาบโดยไม่มีใครยืนยันสักวัน
+// busyBlocks ที่เรียกในนี้เป็น typical เสมอ จึงไม่วนกลับมาที่ ctxSchoolOn
+function ctxHasClassTypical(date) {
+  return busyBlocks(date, { typical: true }).some(b => b.kind === 'class');
+}
+function ctxDayGuess(date) {
+  const rec = ctxDay(date);
+  if (rec) return { kind: 'set', rec };
+  const brk = ctxBreakOn(date);
+  if (brk) return { kind: 'break', brk };
+  if (!ctxClasses().length) return { kind: 'unknown' };
+  if (!ctxHasClassTypical(date)) return { kind: 'free' };
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  for (let i = 0; i < 3; i++) {
+    d.setDate(d.getDate() - 1);
+    if (!ctxHasClassTypical(d)) continue;          // ข้ามเสาร์–อาทิตย์
+    const pr = ctxDay(d);
+    if (pr && pr.school === false && !pr.away) return { kind: 'carry', school: false, fromKey: ctxDayKey(d) };
+    break;                                          // เจอวันเรียนก่อนหน้าแล้ว — ดูแค่วันเดียว
+  }
+  return { kind: 'class' };
+}
+
+// ไปโรงเรียนไหม: คำตอบของวันนั้นชนะเสมอ (ปิดเทอมแต่ถูกเรียกไปซ่อมเสริมก็มี)
+// ไม่ได้บอก = ปิดเทอมไม่ไป · เดาจากวันเรียนก่อนหน้า · ไม่งั้นตามตาราง
+function ctxSchoolOn(date) {
+  const d = ctxDay(date);
+  if (d && typeof d.school === 'boolean') return d.school;
+  if (ctxBreakOn(date)) return false;
+  return ctxDayGuess(date).kind !== 'carry';
+}
+
+// ของที่มาจาก AI หรือจากคลาวด์ต้องผ่านที่นี่ก่อนเสมอ — "25:70" ยังเป็นสตริงที่ถูกชนิดอยู่ดี
+function ctxCleanDay(raw) {
+  const r = raw && typeof raw === 'object' ? raw : {};
+  const blocks = [];
+  for (const b of Array.isArray(r.blocks) ? r.blocks : []) {
+    if (blocks.length >= 6) break;
+    const a = hm2min(b && b.start), e = hm2min(b && b.end);
+    if (a == null || e == null || e <= a) continue;
+    blocks.push({ start: min2hm(a), end: min2hm(e),
+      title: String((b && b.title) || 'ไม่อยู่').trim().slice(0, 30) || 'ไม่อยู่' });
+  }
+  blocks.sort((x, y) => hm2min(x.start) - hm2min(y.start));
+  return {
+    school: typeof r.school === 'boolean' ? r.school : null,
+    away: r.away === true,
+    blocks,
+    note: String(r.note || '').trim().slice(0, 120),
+    advice: String(r.advice || '').trim().slice(0, 160),
+    src: ['tap', 'ai', 'manual'].includes(r.src) ? r.src : 'manual',
+    at: +r.at || Date.now(),
+  };
+}
+
+function ctxPrune(c, now = new Date()) {
+  const dayCut = ctxAddDays(ctxDayKey(now), -CTX_DAYS_KEEP);
+  for (const k of Object.keys(c.days)) if (!CTX_YMD.test(k) || k < dayCut) delete c.days[k];
+  const brkCut = ctxAddDays(ctxDayKey(now), -CTX_BREAK_KEEP);
+  c.breaks = c.breaks.filter(b => b && CTX_YMD.test(b.from) && CTX_YMD.test(b.to) && b.to >= brkCut);
+}
+
+function ctxSetDay(date, patch) {
+  const c = ctxLoad();
+  const k = ctxDayKey(date);
+  c.days[k] = ctxCleanDay(Object.assign({}, c.days[k] || {}, patch || {}, { at: Date.now() }));
+  ctxPrune(c);
+  ctxSave();
+  return c.days[k];
+}
+function ctxClearDay(date) {
+  const c = ctxLoad();
+  delete c.days[ctxDayKey(date)];
+  ctxSave();
+}
+
+// ปิดเทอมที่ยังไม่จบมีได้ช่วงเดียว — ตั้งใหม่ = แทนของเดิม (คนแก้วันเปิดเทอมเพราะโรงเรียนเลื่อน)
+function ctxSetBreak(fromKey, toKey) {
+  if (!CTX_YMD.test(fromKey) || !CTX_YMD.test(toKey) || toKey < fromKey) return null;
+  const c = ctxLoad();
+  c.breaks = c.breaks.filter(b => b && b.to < fromKey);
+  const rec = { id: ctxUid(), from: fromKey, to: toKey, title: 'ปิดเทอม' };
+  c.breaks.push(rec);
+  ctxPrune(c);
+  ctxSave();
+  return rec;
+}
+// เปิดเทอมเร็วกว่าที่ตั้งไว้ — ตัดช่วงให้จบเมื่อวาน · ถ้าเพิ่งเริ่มวันนี้ก็ลบทิ้งทั้งช่วง
+function ctxEndBreak(date = new Date()) {
+  const c = ctxLoad();
+  const k = ctxDayKey(date), y = ctxAddDays(k, -1);
+  c.breaks = c.breaks
+    .map(b => (b.from <= k && k <= b.to ? Object.assign({}, b, { to: y }) : b))
+    .filter(b => b.to >= b.from);
+  ctxSave();
+}
+
+// ลองใส่บันทึกของวันชั่วคราวเพื่อดูว่าแผนจะเปลี่ยนเป็นอะไร (การ์ดยืนยันของ AI)
+// ไม่เรียก ctxSave — ห้ามมีอะไรลงที่เก็บหรือขึ้นคลาวด์ก่อนผู้ใช้กดยืนยัน
+function ctxWithDay(date, rec, fn) {
+  const c = ctxLoad();
+  const k = ctxDayKey(date);
+  const had = Object.prototype.hasOwnProperty.call(c.days, k);
+  const old = c.days[k];
+  c.days[k] = ctxCleanDay(rec);
+  try { return fn(); }
+  finally { if (had) c.days[k] = old; else delete c.days[k]; }
+}
+
+// บรรทัดภาษาไทยที่บอก "วันนั้นเป็นยังไง" — ใช้ทั้งในบริบทของน้องไซ และ summary ที่ส่งให้ read-day
+function ctxDayLines(date) {
+  const out = [];
+  const brk = ctxBreakOn(date);
+  const d = ctxDay(date);
+  if (brk) out.push('ปิดเทอมอยู่ · เปิดเทอม ' + ctxThaiDate(ctxAddDays(brk.to, 1)));
+  if (d && d.away) out.push('ไม่อยู่ทั้งวัน');
+  else if (d && d.school === true) out.push('ไปโรงเรียน');
+  else if (d && d.school === false) out.push('ไม่ไปโรงเรียน');
+  else if (!brk && ctxDayGuess(date).kind === 'carry') out.push('ไม่ไปโรงเรียน (แอปเดาจากวันเรียนก่อนหน้า ผู้ใช้ยังไม่ได้ยืนยัน)');
+  else if (!brk) out.push('ตามตารางปกติ (ยังไม่ได้บอกเพิ่ม)');
+  for (const b of (d && d.blocks) || []) out.push('ไม่ว่าง ' + b.start + '–' + b.end + ' ' + b.title);
+  if (d && d.note) out.push('ผู้ใช้เล่าว่า: ' + d.note);
+  return out;
 }
 
 // ---------- ช่วงเวลาที่ถูกจองไว้ในวันหนึ่ง ----------
@@ -168,21 +360,45 @@ function onDay(item, weekday, date) {
 // คืนช่วงที่ทำงานไม่ได้ เรียงตามเวลา และ **รวมช่วงที่ซ้อนกันแล้ว**
 // การรวมสำคัญมาก: เรียน 08:00–16:00 กับ เดินทาง 15:30–16:30 ซ้อนกันอยู่ 30 นาที
 // ถ้าไม่รวมก่อน ตัวลบจะเจอช่องว่างปลอมยาว −30 นาที แล้วคำนวณเวลาว่างเกินจริง
-function busyBlocks(date) {
+//
+// 18 ต.ค. 69 · อ่านช่วงปิดเทอมกับบันทึกรายวันด้วย (ดูหัวข้อ "บริบทรายวัน")
+// opts.typical = "สัปดาห์ปกติของเขา" ไม่สนปิดเทอมหรือบันทึกรายวัน
+// ใช้กับแท่ง "วันธรรมดาของคุณ" ในจอตั้งค่า กับ ctxLearn ซึ่งถามถึงนิสัย ไม่ใช่วันจริง
+function busyBlocks(date, opts = {}) {
   const c = ctxLoad();
   const wd = date.getDay();
   const out = [];
+  const typical = opts.typical === true;
+  const day = typical ? null : ctxDay(date);
+  const school = typical ? true : ctxSchoolOn(date);
 
-  for (const k of c.classes) {
-    const a = hm2min(k.start), b = hm2min(k.end);
-    if (a == null || b == null || b <= a || !onDay(k, wd, date)) continue;
-    out.push({ from: a, to: b, kind: 'class', title: k.subject || 'เรียน', id: k.id });
+  // ไม่อยู่ทั้งวัน = ก้อนเดียวตั้งแต่ตื่นถึงนอน · ไม่ต้องไล่อย่างอื่น
+  if (day && day.away) {
+    const p = c.prefs;
+    const a = hm2min(p.wake) ?? 6 * 60;
+    const b = Math.max(a + 5, hm2min(p.sleep) ?? 22 * 60 + 30);
+    return [{ from: a, to: b, kind: 'day', title: 'ไม่อยู่ทั้งวัน', id: 'day-away' }];
+  }
+
+  if (school) {
+    for (const k of c.classes) {
+      const a = hm2min(k.start), b = hm2min(k.end);
+      if (a == null || b == null || b <= a || !onDay(k, wd, date)) continue;
+      out.push({ from: a, to: b, kind: 'class', title: k.subject || 'เรียน', id: k.id });
+    }
   }
   for (const r of c.routines) {
+    // ไม่ไปโรงเรียน = ไม่มีการเดินทางไปโรงเรียน · กิจวัตรอื่น (กินข้าว ซ้อม) ยังอยู่
+    if (!school && r.kind === 'travel') continue;
     const a = hm2min(r.start), b = hm2min(r.end);
     if (a == null || b == null || b <= a || !onDay(r, wd)) continue;
     out.push({ from: a, to: b, kind: r.kind || 'routine', title: r.title || 'กิจวัตร', id: r.id });
   }
+  ((day && day.blocks) || []).forEach((x, i) => {
+    const a = hm2min(x.start), b = hm2min(x.end);
+    if (a == null || b == null || b <= a) return;
+    out.push({ from: a, to: b, kind: 'day', title: x.title, id: 'day-' + i });
+  });
   return out.sort((x, y) => x.from - y.from || x.to - y.to);
 }
 
@@ -286,10 +502,23 @@ function planWindows(settings = {}, now = new Date()) {
   let mode = 'context';
   let slots;
 
+  // 18 ต.ค. 69 · ยังไม่มีตารางเรียน แต่เขาบอกเรื่องวันนี้แล้ว (หรือปิดเทอมอยู่) = รู้มากกว่าการเดา
+  // ของเดิมเดา "ว่างตั้งแต่ 19:00" ทื่อ ๆ แล้ววางงานทับช่วง 18:30–21:00 ที่เพิ่งบอกว่าไปห้าง
+  // (เจอในพรีวิว · ทางนี้ไม่ผ่าน freeSlots จึงไม่เห็นบันทึกรายวันเลย)
+  // ไม่ไปโรงเรียน = ข้ออ้างของการรอหัวค่ำ ("ยังนั่งอยู่ในคาบ") หายไป จึงนับตั้งแต่ตอนนี้
+  const dayKnown = !!(ctxDay(now) || ctxBreakOn(now)) || ctxDayGuess(now).kind === 'carry';
+
   if (ctxIsEmpty()) {
     mode = 'default';
-    const from = Math.max(nowMin, EVENING_START);
-    slots = from + 10 <= hardEnd ? [fmtSlot(from, hardEnd)] : [];
+    if (dayKnown) {
+      const from = ctxSchoolOn(now) ? Math.max(nowMin, EVENING_START) : nowMin;
+      slots = freeSlots(now, now, { minBlock: 10 })
+        .map(s => fmtSlot(Math.max(s.from, from), s.to))
+        .filter(s => s.min >= 10);
+    } else {
+      const from = Math.max(nowMin, EVENING_START);
+      slots = from + 10 <= hardEnd ? [fmtSlot(from, hardEnd)] : [];
+    }
   } else {
     slots = freeSlots(now, now);
   }
@@ -297,7 +526,7 @@ function planWindows(settings = {}, now = new Date()) {
   // ไม่เหลือช่องในกรอบปกติแล้ว — ยืมเวลาก่อนนอนมาให้ พร้อมป้ายบอกว่ายืมมา
   if (!slots.length && nowMin + 10 <= sleep) {
     mode = 'late';
-    slots = ctxIsEmpty()
+    slots = ctxIsEmpty() && !dayKnown
       ? [fmtSlot(nowMin, sleep)]
       : freeSlots(now, now, { hardEnd: sleep, minBlock: 10 });
     if (!slots.length) mode = 'none';
@@ -475,7 +704,8 @@ function ctxGuessRoutines(spanIn) {
 // คืนทุกช่วงของวันเรียงต่อกันตั้งแต่ตื่นถึงเส้นห้ามวางงาน ไม่มีรู
 // ช่องที่ไม่มีอะไรจองคือช่องว่าง — แต่ช่องว่างที่สั้นกว่า minBlockMin ไม่นับเป็นที่ทำงาน
 // จึงติดป้ายแยก (kind 'gap') ไม่ใช่ 'free' ไม่งั้นแท่งจะสัญญาเวลาที่วางงานจริงไม่ได้
-function ctxDayBar(weekday) {
+// opts.real = ใช้วันจริง (ปิดเทอม + บันทึกรายวัน) · ไม่ใส่ = วันปกติของสัปดาห์ (18 ต.ค. 69)
+function ctxDayBar(weekday, opts = {}) {
   const p = ctxPrefs();
   const from = hm2min(p.wake) ?? 6 * 60;
   const to = hm2min(p.noWorkAfter) ?? hm2min(p.sleep) ?? 22 * 60;
@@ -491,7 +721,7 @@ function ctxDayBar(weekday) {
   //
   // ช่วงที่ซ้อนกันตัดให้ตัวที่มาก่อนถือครอง (คนเราทำสองอย่างพร้อมกันได้ แต่แท่งวาดซ้อนไม่ได้)
   // ตัวที่ถูกกลืนจนไม่เหลือเวลาก็ไม่ต้องขึ้นแท่ง — ก้อนกว้างศูนย์ไม่มีอะไรให้ดู
-  const raw = busyBlocks(ref)
+  const raw = busyBlocks(ref, { typical: opts.real !== true })
     .filter(b => b.to > from && b.from < to)
     .map(b => ({ from: Math.max(b.from, from), to: Math.min(b.to, to), title: b.title, of: b.kind }));
 
@@ -522,11 +752,7 @@ function ctxDayBar(weekday) {
 function ctxExport() { return ctxLoad(); }
 function ctxImport(data) {
   if (!data) return;
-  ctxCache = {
-    prefs: Object.assign({}, CTX_DEFAULT.prefs, data.prefs || {}),
-    classes: Array.isArray(data.classes) ? data.classes : [],
-    routines: Array.isArray(data.routines) ? data.routines : [],
-  };
+  ctxCache = ctxShape(data);
   try { localStorage.setItem(CTX_KEY, JSON.stringify(ctxCache)); } catch (_) {}
 }
 
@@ -535,5 +761,8 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = { hm2min, min2hm, busyBlocks, mergeRanges, freeSlots, freeMinutes,
     slotsBefore, freeMinutesBefore, nextFreeSlotAfterToday,
     ctxGaps, ctxKnow, ctxSchoolSpan, ctxGuessRoutines, ctxDayBar, ctxHasRealTimetable,
-    ctxLoad, ctxUpsert, ctxSetPrefs, ctxClear, CTX_DEFAULT };
+    ctxLoad, ctxUpsert, ctxSetPrefs, ctxClear, CTX_DEFAULT,
+    ctxDayKey, ctxAddDays, ctxThaiDate, ctxBreaks, ctxBreakOn, ctxDay, ctxSchoolOn, ctxCleanDay,
+    ctxDayGuess, ctxHasClassTypical,
+    ctxSetDay, ctxClearDay, ctxSetBreak, ctxEndBreak, ctxWithDay, ctxDayLines, ctxImport };
 }
