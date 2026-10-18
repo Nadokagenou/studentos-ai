@@ -137,6 +137,8 @@ C:\Users\User\OneDrive\code\StudentOS-AI\     ← repo จริง (เคร�
 | ฉากพื้นหลังธีม (alt.css) | `node alt/devtools/scene-check.cjs` | ผ่าน |
 | service worker (sw.js) | `node alt/devtools/sw-check.cjs` | 5/5 (แก้ตัวจำลองแล้ว · รวมเคสเบราว์เซอร์ไม่มี `pushManager`) |
 | ข่าวสาร (alt/news/) | `node alt/devtools/news.mjs check` | ผ่าน 6 ประกาศ |
+| บริบทรายวัน · ปิดเทอม · คำเดา (context.js + app.js) | `node alt/devtools/ctx-day-check.cjs` | 29/29 (18 ต.ค. 69) |
+| ตัวกรองผล read-day (Edge Function) | `node --test supabase/functions/read-day/__tests__/clean.test.mjs` | 6/6 (18 ต.ค. 69) |
 | ทางลัด (devtools/ ที่ราก) | `node --test devtools/shortcuts.test.mjs` | 10/10 |
 
 **เทสต์ที่ต้องฉีดเข้าแอปในพรีวิว** (`<script src>` เท่านั้น ห้าม `eval`) — parser · OCR · เอนจินตัดสินใจ:

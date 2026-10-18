@@ -9544,7 +9544,7 @@ button.as-back { background: none; border: 0; font: inherit; color: inherit; wid
 /* #17 · วงโฟกัสคีย์บอร์ดที่เห็นได้ทุกปุ่ม ทุกธีม — เฉพาะตอนใช้คีย์บอร์ด (ไม่ขึ้นตอนแตะนิ้ว) */
 .phone :is(button, a, [role="button"], [tabindex], input, textarea, select, label.scan-tile):focus-visible,
 #addSheet :focus-visible, #checkin :focus-visible, #focusWrap :focus-visible,
-#soonSheet :focus-visible, #aiSheet :focus-visible {
+#soonSheet :focus-visible, #daySheet :focus-visible, #aiSheet :focus-visible {
   outline: 2.5px solid var(--blue) !important; outline-offset: 2px !important;
 }
 
@@ -9571,7 +9571,7 @@ button.as-back { background: none; border: 0; font: inherit; color: inherit; wid
 .phone .dm-find-x { width: 32px; height: 32px; }
 
 /* #6 · ปุ่มเพื่อนมุมขวาบน (z 91) ลอยทับชั้นมืดของเช็คอิน/แผ่นต่าง ๆ — หลบเมื่อมีชั้นไหนเปิดอยู่ */
-body:has(#checkin:not([hidden]), #addSheet:not([hidden]), #soonSheet:not([hidden]),
+body:has(#checkin:not([hidden]), #addSheet:not([hidden]), #soonSheet:not([hidden]), #daySheet:not([hidden]),
   #aiSheet:not([hidden]), #reportSheet:not([hidden])) .top-friends,
 body.focus-on .top-friends { visibility: hidden; }
 
@@ -14684,3 +14684,89 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
   min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;
   font: 700 10.5px/16px 'Outfit', 'Sarabun', sans-serif; font-variant-numeric: tabular-nums; letter-spacing: 0;
 }
+
+/* ============================================================
+   18 ต.ค. 69 · วันนี้ — บรรทัดเดาบนหน้าแรก (.dc-line · แบบ ก "เดาให้ แล้วแตะแก้") + แผ่น #daySheet
+   ============================================================
+   แผ่นยืมโครง .add-sheet/.as-scrim/.as-card จาก today.css ทั้งก้อน (เหมือน #soonSheet)
+   ทุกแถวที่มีไอคอนข้างข้อความใช้ grid ไม่ใช่ flex — <span> ที่เป็น flex item ใน alt/ กว้างศูนย์
+   หัวข้อไทยไม่มี letter-spacing — ตัวสระแยกออกจากพยัญชนะ */
+.dc-line svg { width: 16px; height: 16px; color: var(--blue); }
+.dc-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.dc-chips button {
+  min-height: 40px; padding: 4px 4px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--card2); color: var(--ink); font-family: inherit; font-size: 12.5px; font-weight: 600;
+  line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+}
+.dc-chips button:active { transform: scale(.97); }
+.dc-chips button.on { border-color: var(--blue); background: var(--blue-soft); color: var(--ink); font-weight: 700; }
+.dc-line {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px;
+  width: 100%; box-sizing: border-box; margin: 0 0 10px; padding: 9px 12px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--card); color: var(--ink);
+  font-family: inherit; font-size: 13px; font-weight: 600; text-align: left; cursor: pointer;
+}
+.dc-line span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dc-line i { font-style: normal; font-weight: 700; color: var(--blue); }
+.dc-line small { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+
+.dc-card { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+.dc-h { margin: 4px 0 12px; font-size: 18px; font-weight: 800; color: var(--ink); }
+.dc-card .dc-chips { margin-bottom: 12px; }
+.dc-ai, .dc-conf, .dc-man { display: grid; gap: 10px; }
+.dc-ai textarea {
+  width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--card2); color: var(--ink); font-family: inherit; font-size: 15px; line-height: 1.5; resize: none;
+}
+.dc-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.dc-yes, .dc-no, .dc-add button {
+  min-height: 44px; padding: 8px 14px; border-radius: 14px;
+  font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.dc-yes {
+  display: grid; grid-template-columns: auto auto; justify-content: center; align-items: center; gap: 6px;
+  border: 0; background: var(--blue); color: var(--on-accent);
+}
+.dc-yes svg, .dc-add button svg { width: 16px; height: 16px; }
+.dc-no, .dc-add button { border: 1px solid var(--line); background: var(--card); color: var(--ink); }
+.dc-link {
+  justify-self: start; min-height: 40px; padding: 6px 0; border: 0; background: none;
+  font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer;
+}
+.dc-conf > b { font-size: 15px; color: var(--ink); }
+.dc-conf ul, .dc-man ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.dc-conf li, .dc-man li { font-size: 14px; color: var(--ink); }
+.dc-conf li { padding: 8px 10px; border-radius: 12px; background: var(--card2); }
+.dc-man li {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+  padding: 4px 4px 4px 10px; border-radius: 12px; background: var(--card2);
+}
+.dc-man li button { width: 36px; height: 36px; border: 0; background: none; color: var(--muted); cursor: pointer; }
+.dc-man li svg { width: 16px; height: 16px; }
+.dc-adv {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; margin: 0; padding: 10px 12px;
+  border-radius: 12px; background: var(--blue-soft); font-size: 13.5px; line-height: 1.55; color: var(--ink);
+}
+.dc-adv svg { width: 16px; height: 16px; margin-top: 2px; color: var(--blue); }
+.dc-sub { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.dc-sub b { color: var(--ink); }
+.dc-err { margin: 0; font-size: 13px; color: var(--alert); }
+.dc-chk { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: center; font-size: 14px; color: var(--ink); }
+.dc-chk input { width: 20px; height: 20px; accent-color: var(--blue); }
+.dc-add { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.dc-add input {
+  min-height: 42px; box-sizing: border-box; padding: 6px 10px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--card2); color: var(--ink); font-family: inherit; font-size: 15px;
+}
+.dc-add input[type="text"], .dc-add button { grid-column: 1 / -1; }
+.dc-add button { display: grid; grid-template-columns: auto auto; justify-content: center; align-items: center; gap: 6px; }
+.dc-brk-d {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px;
+  font-size: 14px; font-weight: 600; color: var(--ink);
+}
+.dc-brk-d input {
+  min-height: 42px; box-sizing: border-box; padding: 6px 10px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--card2); color: var(--ink); font-family: inherit; font-size: 15px;
+}
+.dc-brk-body { display: grid; gap: 10px; }
+.dc-brkq i { color: var(--blue); }
