@@ -5009,36 +5009,51 @@ function dayApply(read, text, opts = {}) {
   showToast({ title: 'จดแล้ว', body: 'แผนวันนี้คิดใหม่ให้แล้ว' });
 }
 
-// ---------- บล็อกหน้าแรก "วันนี้อยู่ไหน" ----------
-// ยังไม่ตอบ = แถวเดียวมีสามชิป · ตอบแล้ว (หรือปิดเทอม) = ยุบเหลือบรรทัดเดียวพร้อม "แก้"
-// ไม่ตอบก็ไม่เป็นไร แผนใช้ตารางปกติ — แถบนี้ไม่ใช่ด่านที่ต้องผ่านก่อนใช้แอป
-function dayCtxLabel(d, brk) {
-  if (d && d.away) return 'วันนี้: ไม่อยู่ทั้งวัน';
-  if (d && d.blocks && d.blocks.length) {
-    const b = d.blocks[0];
-    return 'วันนี้: ' + b.title + ' ' + b.start + '–' + b.end + (d.blocks.length > 1 ? ' +' + (d.blocks.length - 1) : '');
+// ---------- บล็อกหน้าแรก "วันนี้" — แบบ ก ที่เจ้าของเลือก 18 ต.ค. 69: เดาให้ แล้วแตะแก้ ----------
+// ของเดิม (แถวชิปสามปุ่ม) ถามทุกเช้าทั้งที่แอปรู้อยู่แล้วว่าปิดเทอม/เมื่อวานอยู่บ้าน
+// แบบเดียวกับแอปเรียกรถที่เดาที่หมายจากประวัติ: บรรทัดเดียวบอกว่าแอปเข้าใจวันนี้ว่าอะไร
+// เดาถูก = ไม่ต้องแตะเลย · ผิด = "เปลี่ยน" เปิดแผ่นเดิม · คำเดามาจาก ctxDayGuess() ใน context.js
+const DAY_TH = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสฯ', 'ศุกร์', 'เสาร์'];
+
+// คืน { ic, text, sub } — text คือสิ่งที่แอปเข้าใจ · sub คือที่มาของความเข้าใจนั้น
+function dayCtxView(now) {
+  const g = ctxDayGuess(now);
+  const brk = ctxBreakOn(now);
+  const open = brk ? 'เปิดเทอม ' + ctxThaiDate(ctxAddDays(brk.to, 1)) : '';
+  if (g.kind === 'set') {
+    const d = g.rec;
+    if (d.away) return { ic: 'pin', text: 'ไม่อยู่ทั้งวัน', sub: 'วันนี้ไม่วางงาน' };
+    if (d.blocks.length) {
+      const b = d.blocks[0];
+      return { ic: 'pin', text: b.title + ' ' + b.start + '–' + b.end,
+        sub: d.blocks.length > 1 ? 'อีก ' + (d.blocks.length - 1) + ' ช่วง' : (d.school === false ? 'ไม่ไปเรียน' : '') };
+    }
+    if (d.school === false) return { ic: 'sofa', text: brk ? 'ปิดเทอม · อยู่บ้าน' : 'อยู่บ้าน', sub: open };
+    return { ic: 'book', text: 'ไปเรียน', sub: brk ? 'ช่วงปิดเทอม' : '' };
   }
-  if (d && d.school === false) return brk ? 'ปิดเทอม · อยู่บ้าน' : 'วันนี้: อยู่บ้าน';
-  if (d && d.school === true) return 'วันนี้: ไปโรงเรียน';
-  if (brk) return 'ปิดเทอม · เปิด ' + ctxThaiDate(ctxAddDays(brk.to, 1));
-  return '';
+  if (g.kind === 'break') return { ic: 'sofa', text: 'ปิดเทอม · ไม่มีเรียน', sub: open };
+  if (g.kind === 'carry') {
+    const y = ctxAddDays(ctxDayKey(now), -1);
+    return { ic: 'sofa', text: 'อยู่บ้าน',
+      sub: g.fromKey === y ? 'เหมือนเมื่อวาน' : 'เหมือนวัน' + DAY_TH[new Date(g.fromKey + 'T00:00:00').getDay()] };
+  }
+  if (g.kind === 'class') {
+    const cls = busyBlocks(now, { typical: true }).filter(b => b.kind === 'class');
+    const span = cls.length ? min2hm(Math.min(...cls.map(c => c.from))) + '–' + min2hm(Math.max(...cls.map(c => c.to))) : '';
+    return { ic: 'book', text: 'ไปเรียน', sub: 'ตามตาราง' + (span ? ' ' + span : '') };
+  }
+  if (g.kind === 'free') return { ic: 'sofa', text: 'วันนี้ไม่มีเรียน', sub: '' };
+  return { ic: 'pin', text: 'วันนี้ไปไหน', sub: 'บอกแอปได้' };
 }
 
 function dayCtxBlock(now) {
-  if (typeof ctxDay !== 'function') return '';
+  if (typeof ctxDayGuess !== 'function') return '';
   if (typeof breakAskDue === 'function' && breakAskDue(now)) return breakAskHtml();
-  const label = dayCtxLabel(ctxDay(now), ctxBreakOn(now));
-  if (label) {
-    return `<button type="button" class="dc-line" onclick="openDaySheet()">
-      ${icon('pin')}<span>${esc(label)}</span><i>แก้</i></button>`;
-  }
-  // แถวเดียวสูงเท่าบรรทัดยุบ — วัดจริง 18 ต.ค. 69: หน้าแรกที่มีงานพอดีจอ 375×812 อยู่แล้ว
-  // แบบสองแถว (หัว + ชิป 91px) ทำให้ล้น 50px · แถวเดียวยังแตะครั้งเดียวจบเหมือนเดิม
-  return `<section class="dc-ask" aria-label="วันนี้อยู่ไหน">
-    <b>${icon('pin')}วันนี้</b>
-    <button type="button" onclick="dayTap(true)">ไปเรียน</button>
-    <button type="button" onclick="dayTap(false)">อยู่บ้าน</button>
-    <button type="button" onclick="openDaySheet()">ข้างนอก…</button></section>`;
+  const v = dayCtxView(now);
+  // สูงบรรทัดเดียวทุกสถานะ — วัดจริง 18 ต.ค. 69: หน้าแรกของ alt ที่มีงานพอดีจอ 375×812 อยู่แล้ว
+  // และหน้าแรกของรากล้นอยู่แล้ว 223px · ของที่เพิ่มบนหน้านี้ต้องไม่สูงกว่าหนึ่งบรรทัด
+  return `<button type="button" class="dc-line" onclick="openDaySheet()" aria-label="วันนี้: ${esc(v.text)} — เปลี่ยน">
+      ${icon(v.ic)}<span>${esc(v.text)}${v.sub ? ` <small>· ${esc(v.sub)}</small>` : ''}</span><i>เปลี่ยน</i></button>`;
 }
 
 // ctxSetDay รวมกับของเดิม — ล้าง away เสมอ ไม่งั้นคนที่เคยกด "ไม่อยู่ทั้งวัน" แล้วเปลี่ยนใจ

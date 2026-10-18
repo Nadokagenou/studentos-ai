@@ -180,12 +180,49 @@ function ctxBreakOn(date) {
 }
 function ctxDay(date) { return ctxLoad().days[ctxDayKey(date)] || null; }
 
+// ---------- เดาวันที่ยังไม่ได้บอก (แบบ ก ที่เจ้าของเลือก 18 ต.ค. 69: "เดาให้ แล้วแตะแก้") ----------
+// แอปเรียกรถไม่ถามทุกครั้งว่าจะไปไหน มันเดาจากประวัติแล้วให้แตะแก้ · ที่นี่ทำแบบเดียวกัน
+// ถามทุกเช้าด้วยปุ่มสามปุ่ม = เพิ่มการตัดสินใจให้นักเรียนทุกวัน ซึ่งสวนกับสิ่งที่แอปนี้ขาย
+//
+// kind ที่คืน:
+//   'set'     ผู้ใช้บอกแล้ว (rec)
+//   'break'   ช่วงปิดเทอม (brk)
+//   'carry'   วันเรียนก่อนหน้า (ย้อนไม่เกิน 3 วัน — ศุกร์ถึงจันทร์ได้) ตอบว่าไม่ไปโรงเรียน → เดาว่าวันนี้ก็ไม่ไป
+//   'class'   มีคาบตามตาราง ไม่มีอะไรบอกเป็นอย่างอื่น
+//   'free'    วันนี้ไม่มีคาบในตาราง (เสาร์–อาทิตย์)
+//   'unknown' ยังไม่มีตารางเรียนเลย
+//
+// เดาแค่ "ไปโรงเรียนไหม" เท่านั้น ไม่เดาช่วงเวลา ไม่ลาก "ไม่อยู่ทั้งวัน" ต่อ (ไปค่ายวันเดียวไม่ได้แปลว่าไปทั้งสัปดาห์)
+// ต้นทางต้องเป็นคำตอบจริง ไม่ใช่คำเดาอีกที — เดาซ้อนเดาจะลากไปเรื่อย ๆ จนทั้งเทอมไม่มีคาบโดยไม่มีใครยืนยันสักวัน
+// busyBlocks ที่เรียกในนี้เป็น typical เสมอ จึงไม่วนกลับมาที่ ctxSchoolOn
+function ctxHasClassTypical(date) {
+  return busyBlocks(date, { typical: true }).some(b => b.kind === 'class');
+}
+function ctxDayGuess(date) {
+  const rec = ctxDay(date);
+  if (rec) return { kind: 'set', rec };
+  const brk = ctxBreakOn(date);
+  if (brk) return { kind: 'break', brk };
+  if (!ctxClasses().length) return { kind: 'unknown' };
+  if (!ctxHasClassTypical(date)) return { kind: 'free' };
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  for (let i = 0; i < 3; i++) {
+    d.setDate(d.getDate() - 1);
+    if (!ctxHasClassTypical(d)) continue;          // ข้ามเสาร์–อาทิตย์
+    const pr = ctxDay(d);
+    if (pr && pr.school === false && !pr.away) return { kind: 'carry', school: false, fromKey: ctxDayKey(d) };
+    break;                                          // เจอวันเรียนก่อนหน้าแล้ว — ดูแค่วันเดียว
+  }
+  return { kind: 'class' };
+}
+
 // ไปโรงเรียนไหม: คำตอบของวันนั้นชนะเสมอ (ปิดเทอมแต่ถูกเรียกไปซ่อมเสริมก็มี)
-// ไม่ได้บอก = ตามปฏิทิน · ปิดเทอม = ไม่ไป
+// ไม่ได้บอก = ปิดเทอมไม่ไป · เดาจากวันเรียนก่อนหน้า · ไม่งั้นตามตาราง
 function ctxSchoolOn(date) {
   const d = ctxDay(date);
   if (d && typeof d.school === 'boolean') return d.school;
-  return !ctxBreakOn(date);
+  if (ctxBreakOn(date)) return false;
+  return ctxDayGuess(date).kind !== 'carry';
 }
 
 // ของที่มาจาก AI หรือจากคลาวด์ต้องผ่านที่นี่ก่อนเสมอ — "25:70" ยังเป็นสตริงที่ถูกชนิดอยู่ดี
@@ -274,6 +311,7 @@ function ctxDayLines(date) {
   if (d && d.away) out.push('ไม่อยู่ทั้งวัน');
   else if (d && d.school === true) out.push('ไปโรงเรียน');
   else if (d && d.school === false) out.push('ไม่ไปโรงเรียน');
+  else if (!brk && ctxDayGuess(date).kind === 'carry') out.push('ไม่ไปโรงเรียน (แอปเดาจากวันเรียนก่อนหน้า ผู้ใช้ยังไม่ได้ยืนยัน)');
   else if (!brk) out.push('ตามตารางปกติ (ยังไม่ได้บอกเพิ่ม)');
   for (const b of (d && d.blocks) || []) out.push('ไม่ว่าง ' + b.start + '–' + b.end + ' ' + b.title);
   if (d && d.note) out.push('ผู้ใช้เล่าว่า: ' + d.note);
@@ -468,7 +506,7 @@ function planWindows(settings = {}, now = new Date()) {
   // ของเดิมเดา "ว่างตั้งแต่ 19:00" ทื่อ ๆ แล้ววางงานทับช่วง 18:30–21:00 ที่เพิ่งบอกว่าไปห้าง
   // (เจอในพรีวิว · ทางนี้ไม่ผ่าน freeSlots จึงไม่เห็นบันทึกรายวันเลย)
   // ไม่ไปโรงเรียน = ข้ออ้างของการรอหัวค่ำ ("ยังนั่งอยู่ในคาบ") หายไป จึงนับตั้งแต่ตอนนี้
-  const dayKnown = !!(ctxDay(now) || ctxBreakOn(now));
+  const dayKnown = !!(ctxDay(now) || ctxBreakOn(now)) || ctxDayGuess(now).kind === 'carry';
 
   if (ctxIsEmpty()) {
     mode = 'default';
@@ -725,5 +763,6 @@ if (typeof module !== 'undefined' && module.exports) {
     ctxGaps, ctxKnow, ctxSchoolSpan, ctxGuessRoutines, ctxDayBar, ctxHasRealTimetable,
     ctxLoad, ctxUpsert, ctxSetPrefs, ctxClear, CTX_DEFAULT,
     ctxDayKey, ctxAddDays, ctxThaiDate, ctxBreaks, ctxBreakOn, ctxDay, ctxSchoolOn, ctxCleanDay,
+    ctxDayGuess, ctxHasClassTypical,
     ctxSetDay, ctxClearDay, ctxSetBreak, ctxEndBreak, ctxWithDay, ctxDayLines, ctxImport };
 }

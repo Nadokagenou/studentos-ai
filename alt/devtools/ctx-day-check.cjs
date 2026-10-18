@@ -134,4 +134,53 @@ check('ยังไม่มีตารางเรียน ไม่ได้
   assert.equal(o.mode, 'default');
   assert.deepEqual(o.slots.map(s => s.fromHm + '-' + s.toHm), ['19:00-21:30']);
 });
+// ---------- 18 ต.ค. 69 · เดาวันนี้ (แบบ ก ที่เจ้าของเลือก: เดาให้ แล้วแตะแก้) ----------
+// TUE = อังคารถัดจาก MON · คาบเรียนจันทร์–ศุกร์ เพื่อให้ "วันเรียนก่อนหน้า" มีความหมาย
+run(`var TUE = new Date(MON); TUE.setDate(TUE.getDate() + 1);
+  var SAT = new Date(MON); SAT.setDate(SAT.getDate() + 5);
+  var NMON = new Date(MON); NMON.setDate(NMON.getDate() + 7);
+  var FRI = new Date(MON); FRI.setDate(FRI.getDate() + 4);
+  function setupWeek() {
+    ctxUpsert('class', { subject: 'เรียน', start: '08:00', end: '15:00', weekday: [1,2,3,4,5] });
+    ctxUpsert('routine', { kind: 'travel', title: 'เดินทางไปโรงเรียน', start: '07:00', end: '08:00', weekday: [1,2,3,4,5] });
+  }`);
+check('เดา: วันเรียนปกติที่ไม่มีข้อมูล = ไปเรียนตามตาราง', () => {
+  run('setupWeek()');
+  assert.equal(run('ctxDayGuess(TUE).kind'), 'class');
+  assert.equal(run('ctxSchoolOn(TUE)'), true);
+});
+check('เดา: เมื่อวานตอบว่าอยู่บ้าน = วันนี้อยู่บ้านด้วย และแผนเชื่อคำเดา', () => {
+  run('setupWeek(); ctxSetDay(MON, { school: false })');
+  const g = run('ctxDayGuess(TUE)');
+  assert.equal(g.kind, 'carry');
+  assert.equal(g.fromKey, run('ctxDayKey(MON)'));
+  assert.equal(run('ctxSchoolOn(TUE)'), false);
+  assert.equal(run('kinds(TUE)'), '');
+});
+check('เดา: ไม่เดาซ้อนเดา (พุธไม่ตามคำเดาของอังคาร)', () => {
+  run('setupWeek(); ctxSetDay(MON, { school: false }); var WED = new Date(MON); WED.setDate(WED.getDate() + 2)');
+  assert.equal(run('ctxDayGuess(WED).kind'), 'class');
+});
+check('เดา: ข้ามสุดสัปดาห์ได้ (ศุกร์อยู่บ้าน → จันทร์อยู่บ้าน)', () => {
+  run('setupWeek(); ctxSetDay(FRI, { school: false })');
+  assert.equal(run('ctxDayGuess(NMON).kind'), 'carry');
+});
+check('เดา: ไม่ลากคำว่า "ไม่อยู่ทั้งวัน" ต่อ', () => {
+  run('setupWeek(); ctxSetDay(MON, { away: true, school: false })');
+  assert.equal(run('ctxDayGuess(TUE).kind'), 'class');
+});
+check('เดา: วันไม่มีคาบ = free · ไม่มีตารางเลย = unknown · ปิดเทอม = break · ตอบแล้ว = set', () => {
+  run('setupWeek()');
+  assert.equal(run('ctxDayGuess(SAT).kind'), 'free');
+  run('ctxSetBreak(ctxDayKey(TUE), ctxDayKey(TUE))');
+  assert.equal(run('ctxDayGuess(TUE).kind'), 'break');
+  run('ctxSetDay(TUE, { school: true })');
+  assert.equal(run('ctxDayGuess(TUE).kind'), 'set');
+  run('ctxClear()');
+  assert.equal(run('ctxDayGuess(TUE).kind'), 'unknown');
+});
+check('เดา: บริบทของน้องไซบอกว่าเป็นคำเดา', () => {
+  run('setupWeek(); ctxSetDay(MON, { school: false })');
+  assert.match(run('ctxDayLines(TUE).join(" | ")'), /ไม่ไปโรงเรียน.*เดา/);
+});
 console.log(`ctx-day: ${n}/${n}`);

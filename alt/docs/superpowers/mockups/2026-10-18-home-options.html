@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ม็อกอัปหน้าแรก · บริบทรายวัน</title>
+<!-- ม็อกอัปสำหรับให้เจ้าของเลือกแบบ (18 ต.ค. 69) · ไม่ใช่ของแอป · เปิดด้วย ?v=0 / 1 / 2 -->
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #E9EEF7; font-family: 'Sarabun', system-ui, sans-serif; color: #12233F; }
+  .phone { position: relative; width: 375px; height: 812px; margin: 0; overflow: hidden;
+    background: linear-gradient(180deg, #F3F6FC 0%, #EEF2FA 100%); }
+  .scroll { padding: 14px 16px 120px; }
+  .tag { position: absolute; top: 0; left: 0; right: 0; z-index: 5; padding: 6px 12px; font-size: 13px; font-weight: 800;
+    color: #fff; background: #12233F; text-align: center; }
+  .head { display: grid; grid-template-columns: 44px 1fr 40px; gap: 10px; align-items: center; margin: 28px 0 10px; }
+  .logo { width: 44px; height: 44px; border-radius: 50%; background: #fff; display: grid; place-items: center;
+    box-shadow: 0 2px 8px rgba(18,35,63,.08); font-weight: 800; color: #1F5BD8; }
+  .head b { display: block; font-size: 18px; font-weight: 800; }
+  .head small { display: block; font-size: 13px; color: #5B6B86; }
+  .bell { width: 40px; height: 40px; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(18,35,63,.08); }
+  .pill { display: inline-grid; grid-template-columns: auto auto auto; gap: 4px; align-items: center;
+    padding: 1px 8px; border-radius: 999px; background: #E3ECFF; color: #1F5BD8; font-weight: 700; font-size: 12.5px; }
+  .now { border-radius: 22px; overflow: hidden; background: #fff; box-shadow: 0 6px 18px rgba(18,35,63,.08); margin-bottom: 12px; }
+  .now .top { padding: 14px 16px; color: #fff; background: linear-gradient(135deg, #1F5BD8, #2E74E8); }
+  .now .sub { font-size: 12.5px; opacity: .85; }
+  .now h3 { margin: 4px 0 6px; font-size: 24px; font-weight: 800; }
+  .now .time { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; font-weight: 800; font-size: 20px; }
+  .now .time i { border-top: 2px dashed rgba(255,255,255,.5); }
+  .now .bot { padding: 12px 16px 14px; display: grid; grid-template-columns: 1fr 48px 48px; gap: 8px; }
+  .btn { height: 48px; border-radius: 14px; background: #1F5BD8; color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 15px; }
+  .sq { height: 48px; border-radius: 14px; background: #F1F4F9; border: 1px solid #E1E7F1; }
+  .card { background: #fff; border: 1px solid #E1E7F1; border-radius: 18px; padding: 12px 14px; margin-bottom: 12px; }
+  .sai { display: grid; grid-template-columns: 1fr 56px; align-items: center; }
+  .sai b { font-size: 15px; } .sai small { color: #5B6B86; font-size: 12.5px; display: block; }
+  .owl { width: 56px; height: 56px; border-radius: 50%; background: #E3ECFF; }
+  .ask { display: grid; grid-template-columns: 1fr 40px; align-items: center; gap: 8px; background: #fff; border: 1px solid #D5DEEC;
+    border-radius: 999px; padding: 6px 6px 6px 16px; margin-bottom: 8px; color: #8492A8; font-size: 14px; }
+  .ask.big { border: 2px solid #1F5BD8; box-shadow: 0 4px 14px rgba(31,91,216,.15); color: #5B6B86; }
+  .go { width: 40px; height: 40px; border-radius: 50%; background: #12233F; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .chip { display: inline-grid; grid-template-columns: auto auto; gap: 4px; align-items: center; padding: 6px 11px; border-radius: 999px;
+    background: #fff; border: 1px solid #D5DEEC; font-size: 13px; font-weight: 600; }
+  .chip .ic { color: #8492A8; }
+  .strip { display: grid; grid-template-columns: auto repeat(3, 1fr); gap: 5px; align-items: center; background: #fff;
+    border: 1px solid #E1E7F1; border-radius: 14px; padding: 3px 3px 3px 10px; margin-bottom: 10px; font-size: 13px; font-weight: 700; }
+  .strip span { text-align: center; padding: 5px 2px; border-radius: 999px; background: #EEF3FB; border: 1px solid #E1E7F1; font-weight: 600; font-size: 12.5px; }
+  .guess { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; background: #fff; border: 1px solid #E1E7F1;
+    border-radius: 14px; padding: 9px 12px; margin-bottom: 10px; font-size: 13.5px; font-weight: 700; }
+  .guess small { color: #8492A8; font-weight: 600; }
+  .guess a { color: #1F5BD8; font-weight: 800; }
+  .rail h4 { margin: 4px 0 8px; font-size: 17px; display: flex; justify-content: space-between; }
+  .rail h4 small { color: #8492A8; font-weight: 600; font-size: 13px; }
+  .row { display: grid; grid-template-columns: 48px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid #EEF2F8; font-size: 14px; }
+  .row b { color: #5B6B86; } .row small { color: #8492A8; display: block; }
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .tiles div { height: 64px; border-radius: 16px; background: #fff; border: 1px solid #E1E7F1; }
+  .tab { position: absolute; left: 8px; right: 8px; bottom: 8px; height: 64px; border-radius: 22px; background: #fff;
+    box-shadow: 0 -2px 16px rgba(18,35,63,.10); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center;
+    text-align: center; font-size: 11.5px; color: #5B6B86; z-index: 4; }
+  .tab .on { margin: 0 6px; padding: 8px 0; border-radius: 16px; background: #1F5BD8; color: #fff; font-weight: 700; }
+  .fold { position: absolute; left: 0; right: 0; top: 740px; border-top: 2px dashed #E0473A; z-index: 3; }
+  .fold span { position: absolute; right: 8px; top: -22px; background: #E0473A; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
+  .note { position: absolute; left: 12px; right: 12px; bottom: 80px; z-index: 6; background: #12233F; color: #fff; border-radius: 14px;
+    padding: 8px 12px; font-size: 12.5px; line-height: 1.5; }
+  .v { display: none; } body[data-v="0"] .v0, body[data-v="1"] .v1, body[data-v="2"] .v2 { display: block; }
+  .hl { outline: 3px solid #F5A524; outline-offset: 3px; border-radius: 14px; }
+</style>
+</head>
+<body>
+
+<!-- 0 · ตอนนี้: รากหลังใส่แถบชิ้นที่ 6 -->
+<div class="phone v v0">
+  <div class="tag">ตอนนี้ · แถบถามทุกวัน (ที่ทำไปแล้ว)</div>
+  <div class="scroll">
+    <div class="head"><div class="logo">S</div><div><b>สวัสดีตอนบ่าย</b><small>ว่าง 2 ชม. · ค้าง 3 งาน</small></div><div class="bell"></div></div>
+    <div class="strip hl">📍 วันนี้<span>ไปเรียน</span><span>อยู่บ้าน</span><span>ข้างนอก…</span></div>
+    <div class="now"><div class="top"><div class="sub">คณิต · ★★★★ สำคัญ</div><h3>แบบฝึกหัด 1-10</h3><div class="time">19:00<i></i>19:45</div></div>
+      <div class="bot"><div class="btn">▶ เริ่ม 14 นาทีแรก</div><div class="sq"></div><div class="sq"></div></div></div>
+    <div class="card sai"><div><b>วันนี้มีใบที่รอไม่ได้อยู่</b><small>เข้าห้องน้องฮูก</small></div><div class="owl"></div></div>
+    <div class="ask">ถามน้องฮูก…<div class="go"></div></div>
+    <div class="rail"><h4>ที่เหลือของวันนี้ <small>57 นาที</small></h4>
+      <div class="row"><b>19:45</b><div>รายงานเซลล์<small>ชีวะ · 40 นาที</small></div></div>
+      <div class="row"><b>20:35</b><div>เรียงความ<small>อังกฤษ · 17 นาที</small></div></div></div>
+    <div class="tiles"><div></div><div></div><div></div><div></div></div>
+  </div>
+  <div class="fold"><span>ขอบจอ · ล้น 261px</span></div>
+  <div class="tab"><div class="on">วันนี้</div><div>งาน</div><div>เพิ่ม</div><div>น้องฮูก</div><div>ฉัน</div></div>
+</div>
+
+<!-- 1 · ก: เดาให้ แล้วแตะแก้ -->
+<div class="phone v v1">
+  <div class="tag">ก · เดาให้ แล้วแตะแก้</div>
+  <div class="scroll">
+    <div class="head"><div class="logo">S</div><div><b>สวัสดีตอนบ่าย</b><small>ว่าง 5 ชม. · ค้าง 3 งาน</small></div><div class="bell"></div></div>
+    <div class="guess hl">🏠<span>ปิดเทอม · อยู่บ้าน <small>· เหมือนเมื่อวาน</small></span><a>เปลี่ยน</a></div>
+    <div class="now"><div class="top"><div class="sub">คณิต · ★★★★ สำคัญ</div><h3>แบบฝึกหัด 1-10</h3><div class="time">13:05<i></i>13:50</div></div>
+      <div class="bot"><div class="btn">▶ เริ่ม 14 นาทีแรก</div><div class="sq"></div><div class="sq"></div></div></div>
+    <div class="card sai"><div><b>วันนี้มีใบที่รอไม่ได้อยู่</b><small>เข้าห้องน้องฮูก</small></div><div class="owl"></div></div>
+    <div class="ask">ถามน้องฮูก…<div class="go"></div></div>
+    <div class="rail"><h4>ที่เหลือของวันนี้ <small>2 ชม.</small></h4>
+      <div class="row"><b>13:50</b><div>รายงานเซลล์<small>ชีวะ · 40 นาที</small></div></div>
+      <div class="row"><b>14:40</b><div>เรียงความ<small>อังกฤษ · 17 นาที</small></div></div></div>
+    <div class="tiles"><div></div><div></div><div></div><div></div></div>
+  </div>
+  <div class="fold"><span>ขอบจอ</span></div>
+  <div class="tab"><div class="on">วันนี้</div><div>งาน</div><div>เพิ่ม</div><div>น้องฮูก</div><div>ฉัน</div></div>
+</div>
+
+<!-- 2 · ข: ช่องเดียว ถามก็ได้ บอกก็ได้ -->
+<div class="phone v v2">
+  <div class="tag">ข · ช่องเดียว ถามก็ได้ บอกก็ได้</div>
+  <div class="scroll">
+    <div class="head"><div class="logo">S</div><div><b>สวัสดีตอนบ่าย</b><small><span class="pill">🏠 ปิดเทอม · อยู่บ้าน ▾</span> ว่าง 5 ชม.</small></div><div class="bell"></div></div>
+    <div class="now"><div class="top"><div class="sub">คณิต · ★★★★ สำคัญ</div><h3>แบบฝึกหัด 1-10</h3><div class="time">13:05<i></i>13:50</div></div>
+      <div class="bot"><div class="btn">▶ เริ่ม 14 นาทีแรก</div><div class="sq"></div><div class="sq"></div></div></div>
+    <div class="hl" style="margin-bottom:12px">
+      <div class="ask big">วันนี้มีอะไรเปลี่ยนไหม หรือถามน้องฮูก…<div class="go"></div></div>
+      <div class="chips" style="margin:0"><span class="chip"><span class="ic">🕘</span>เรียนพิเศษ 17–19</span><span class="chip"><span class="ic">🕘</span>ซ้อมบอล 16–18</span><span class="chip">ไม่อยู่ทั้งวัน</span></div>
+    </div>
+    <div class="card sai"><div><b>วันนี้มีใบที่รอไม่ได้อยู่</b><small>เข้าห้องน้องฮูก</small></div><div class="owl"></div></div>
+    <div class="rail"><h4>ที่เหลือของวันนี้ <small>2 ชม.</small></h4>
+      <div class="row"><b>13:50</b><div>รายงานเซลล์<small>ชีวะ · 40 นาที</small></div></div></div>
+    <div class="tiles"><div></div><div></div><div></div><div></div></div>
+  </div>
+  <div class="fold"><span>ขอบจอ</span></div>
+  <div class="tab"><div class="on">วันนี้</div><div>งาน</div><div>เพิ่ม</div><div>น้องฮูก</div><div>ฉัน</div></div>
+</div>
+
+<script>
+  const v = new URLSearchParams(location.search).get('v') || '0';
+  document.body.dataset.v = v;
+</script>
+</body>
+</html>

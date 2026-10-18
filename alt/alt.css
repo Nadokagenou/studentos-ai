@@ -14686,29 +14686,19 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 }
 
 /* ============================================================
-   18 ต.ค. 69 · วันนี้อยู่ไหน — บล็อกหน้าแรก (.dc-ask / .dc-line) + แผ่น #daySheet
+   18 ต.ค. 69 · วันนี้ — บรรทัดเดาบนหน้าแรก (.dc-line · แบบ ก "เดาให้ แล้วแตะแก้") + แผ่น #daySheet
    ============================================================
    แผ่นยืมโครง .add-sheet/.as-scrim/.as-card จาก today.css ทั้งก้อน (เหมือน #soonSheet)
    ทุกแถวที่มีไอคอนข้างข้อความใช้ grid ไม่ใช่ flex — <span> ที่เป็น flex item ใน alt/ กว้างศูนย์
    หัวข้อไทยไม่มี letter-spacing — ตัวสระแยกออกจากพยัญชนะ */
-.dc-ask {
-  display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)); align-items: center; gap: 5px;
-  margin: 0 0 10px; padding: 3px 3px 3px 10px; box-sizing: border-box;
-  border: 1px solid var(--line); border-radius: 14px; background: var(--card);
-}
-.dc-ask > b {
-  display: grid; grid-template-columns: auto auto; align-items: center; gap: 4px;
-  font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap;
-}
-.dc-ask > b svg, .dc-line svg { width: 16px; height: 16px; color: var(--blue); }
-.dc-ask > button, .dc-chips button {
-  min-height: 30px; padding: 4px 4px; border: 1px solid var(--line); border-radius: 999px;
+.dc-line svg { width: 16px; height: 16px; color: var(--blue); }
+.dc-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.dc-chips button {
+  min-height: 40px; padding: 4px 4px; border: 1px solid var(--line); border-radius: 999px;
   background: var(--card2); color: var(--ink); font-family: inherit; font-size: 12.5px; font-weight: 600;
   line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
 }
-.dc-ask > button:active, .dc-chips button:active { transform: scale(.97); }
-.dc-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-.dc-chips button { min-height: 40px; }
+.dc-chips button:active { transform: scale(.97); }
 .dc-chips button.on { border-color: var(--blue); background: var(--blue-soft); color: var(--ink); font-weight: 700; }
 .dc-line {
   display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px;
@@ -14718,6 +14708,7 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 }
 .dc-line span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dc-line i { font-style: normal; font-weight: 700; color: var(--blue); }
+.dc-line small { font-size: 12.5px; font-weight: 600; color: var(--muted); }
 
 .dc-card { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
 .dc-h { margin: 4px 0 12px; font-size: 18px; font-weight: 800; color: var(--ink); }
