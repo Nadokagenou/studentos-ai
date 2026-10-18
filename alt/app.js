@@ -8611,8 +8611,10 @@ function renderContext() {
 // ---------- 1C33 · ตัวเลขใหญ่ + แท่งวัน ----------
 // วันนี้ = นับจากตอนนี้ (ของที่ผ่านไปแล้วใช้ไม่ได้) · วันอื่น = ทั้งวัน
 function ctxHeroHtml(weekday, now, todayLeft) {
-  const bar = ctxDayBar(weekday);
   const isToday = weekday === now.getDay();
+  // วันนี้ = วันจริง (ปิดเทอม · บอกว่าอยู่บ้าน) ให้ตรงกับเลข todayLeft ที่มาจาก freeSlots
+  // วันอื่น = วันปกติของสัปดาห์ เพราะจอนี้คือที่ตั้งตารางประจำ ไม่ใช่ปฏิทิน
+  const bar = ctxDayBar(weekday, { real: isToday });
   const freeMin = isToday ? todayLeft : bar.freeMin;
   const span = Math.max(1, bar.to - bar.from);
   const seg = bar.blocks.map(b => {
@@ -9136,7 +9138,8 @@ function ctxLearn() {
   ref.setDate(ref.getDate() + ((topDay - ref.getDay()) + 7) % 7);
 
   const from = hour * 60, to = from + 60;
-  const busy = busyBlocks(ref).filter(b => b.from < to && b.to > from && b.kind !== 'class');
+  // typical: ถามถึงนิสัยของสัปดาห์ปกติ — ปิดเทอมหรือบันทึกรายวันต้องไม่ทำให้ข้อสังเกตนี้หายไปมา
+  const busy = busyBlocks(ref, { typical: true }).filter(b => b.from < to && b.to > from && b.kind !== 'class');
   if (busy.length) {
     return { type: 'clash', hour, n: topN, block: busy[0],
       msg: `คุณติ๊กงานเสร็จช่วง ${min2hm(from)}–${min2hm(to)} อยู่บ่อย (${topN} จาก ${done.length} งาน)
