@@ -3260,7 +3260,8 @@ function homeAsk() {
   // ถ้าไม่ล้าง ตัวคืนค่าใน renderMenu จะเอาคำถามที่ส่งไปแล้วกลับมาแปะไว้ในช่องอีกรอบ
   if (box) box.value = '';
   go('scr-ai');
-  if (q) { aiAsk(q); return; }
+  // typed: คนพิมพ์เอง — ให้ด่าน "เล่าเรื่องวันนี้" ใน aiAsk ทำงาน (ปุ่มทางลัดไม่ส่งธงนี้)
+  if (q) { aiAsk(q, { typed: true }); return; }
   const t = document.getElementById('aiInput');
   if (t) t.focus();
 }
@@ -5401,7 +5402,7 @@ function aiChatsSave(list) {
   try { localStorage.setItem(AI_CHATS_KEY, JSON.stringify(list.slice(0, AI_CHATS_CAP))); } catch (_) {}
 }
 function aiChatTitle(log) {
-  const first = (log.find(m => m.role === 'user' || m.role === 'offer') || {}).text || '';
+  const first = (log.find(m => m.role === 'user' || m.role === 'offer' || m.role === 'dayoffer') || {}).text || '';
   const s = String(first).replace(/\s+/g, ' ').trim();
   return s ? (s.length > 48 ? s.slice(0, 47) + '…' : s) : 'แชทไม่มีชื่อ';
 }
@@ -5414,7 +5415,7 @@ function aiChatWhen(iso) {
 // แชทที่คุยอยู่ → เข้ารายการ (เฉพาะที่มีคำถามจริงอย่างน้อยหนึ่งข้อ — ห้องว่างไม่ต้องเก็บ)
 function aiArchiveCurrent() {
   const log = aiLog();
-  if (!log.some(m => m.role === 'user' || m.role === 'offer')) return false;
+  if (!log.some(m => m.role === 'user' || m.role === 'offer' || m.role === 'dayoffer')) return false;
   const list = aiChats();
   list.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title: aiChatTitle(log), at: new Date().toISOString(), log });
   aiChatsSave(list);
@@ -5423,7 +5424,7 @@ function aiArchiveCurrent() {
 
 function aiChatsListHTML() {
   const cur = aiLog();
-  const curHas = cur.some(m => m.role === 'user' || m.role === 'offer');
+  const curHas = cur.some(m => m.role === 'user' || m.role === 'offer' || m.role === 'dayoffer');
   const list = aiChats();
   const rows = (curHas ? `<div class="fp-row ch-row on" style="--k:0">
       <span class="ch-dot"></span>
@@ -5598,6 +5599,40 @@ function aiOfferAsk(i) {
   aiAsk(m.text, { force: true });
 }
 
+// ---------- 18 ต.ค. 69 · ข้อความที่เล่าเรื่องวันนี้ → การ์ดจดบริบทรายวัน ----------
+// ด่านในเครื่องก่อน ไม่ยิง AI ทุกข้อความ: ต้องมีคำบอกวัน และคำบอกการไป/เวลา และไม่ใช่คำถาม
+// เดาผิดว่าเป็นการเล่า → เสียหนึ่งแตะ ("ไม่ใช่ ถามต่อ") · เดาผิดว่าเป็นคำถาม → เหมือนเดิมทุกอย่าง
+// (ตรรกะราคาไม่เท่ากันแบบเดียวกับ aiTaskOffer ข้างบน · เทสต์อยู่ใน devtools/ctx-day-check.cjs)
+const DAY_WHEN = /วันนี้|พรุ่งนี้|มะรืน|เสาร์นี้|อาทิตย์นี้|ปิดเทอม|เปิดเทอม|ไม่ไปโรงเรียน|ไม่ไปเรียน/;
+const DAY_WHAT = /ไป|ออก|อยู่บ้าน|ไม่อยู่|ธุระ|เที่ยว|ซ่อม|เรียนพิเศษ|ค่าย|ปิดเทอม|เปิดเทอม|\d{1,2}[:.]\d{2}|\d{1,2}\s*โมง|บ่าย|เที่ยง|ทุ่ม|ตี\s*\d/;
+function aiDayOffer(text) {
+  const t = String(text || '').trim();
+  if (t.length < 6) return false;
+  if (/[?？]\s*$|ยังไง|อย่างไร|ทำไม|เพราะอะไร|ช่วย|แนะนำ|ควร(?:จะ)?|ดีไหม|ไหมครับ|ไหมคะ/.test(t)) return false;
+  return DAY_WHEN.test(t) && DAY_WHAT.test(t);
+}
+
+// การ์ดหาด้วย id ไม่ใช่เลขลำดับ — aiLog() อ่านจากที่เก็บใหม่ทุกครั้งและถูกตัดเหลือ AI_LOG_CAP
+// ระหว่างรอ AI ตอบ ลำดับในรายการเลื่อนได้ แล้วผลอ่านจะไปแปะผิดข้อความ
+function aiDayFind(log, id) { return log.find(m => m.role === 'dayoffer' && m.id === id); }
+
+function aiDayAccept(id) {
+  const log = aiLog();
+  const m = aiDayFind(log, id);
+  if (!m || !m.read || m.done) return;
+  m.done = true; aiLogSave(log);
+  dayApply(m.read, m.text);
+  renderAi();
+}
+
+function aiDayAsk(id) {
+  const log = aiLog();
+  const m = aiDayFind(log, id);
+  if (!m) return;
+  m.done = 'asked'; aiLogSave(log); renderAi();
+  aiAsk(m.text, { force: true });
+}
+
 function aiAsk(preset, opts) {
   const box = document.getElementById('aiInput');
   const q = (preset || (box ? box.value : '') || '').trim();
@@ -5619,6 +5654,26 @@ function aiAsk(preset, opts) {
       aiScrollDown();
       return;
     }
+  }
+  // 18 ต.ค. 69 · เล่าเรื่องวันนี้ → อ่านด้วย read-day แล้วขึ้นการ์ดยืนยัน (ยังไม่จดจนกว่าจะกด)
+  // ช่องถามบนหน้าแรกส่งมาเป็น preset พร้อม typed — คนพิมพ์เอง ต่างจากปุ่มทางลัดที่ข้อความตายตัว
+  // ไม่ได้ล็อกอิน = read-day เรียกไม่ได้ ปล่อยไปทางเดิม (แผ่น "วันนี้ไปไหน" ยังเลือกเวลาเองได้)
+  if (!(opts && opts.force) && (!preset || (opts && opts.typed)) && currentUser && aiDayOffer(q)) {
+    if (box) box.value = '';
+    const id = 'd' + Date.now().toString(36);
+    log.push({ role: 'dayoffer', id, text: q, busy: true });
+    aiLogSave(log);
+    renderAi(); aiScrollDown();
+    readDay(q).then(r => {
+      const l2 = aiLog();
+      const m = aiDayFind(l2, id);
+      if (!m) return;                      // ล้างแชทไประหว่างรอ
+      m.busy = false;
+      if (r.ok) { m.read = r.read; m.trial = dayTrialFirst(r.read); }
+      else m.err = r.message;
+      aiLogSave(l2); renderAi(); aiScrollDown();
+    });
+    return;
   }
   // ออนไลน์ต้องใช้ session แต่แผนในเครื่องยังตอบได้ ไม่ส่งข้อมูล guest ไปให้รอ error
   if (!currentUser) {
@@ -6082,6 +6137,39 @@ function renderAi() {
             ${m.done ? '' : `<div class="ao-row">
               <button class="ao-yes" onclick="aiOfferAdd(${i})">${icon('check')}เพิ่มงานนี้</button>
               <button class="ao-no" onclick="aiOfferAsk(${i})">ไม่ใช่ ถามต่อ</button>
+            </div>`}
+          </div>
+        </div>`;
+    }
+    // 18 ต.ค. 69 · การ์ดจดบริบทรายวัน — โครงเดียวกับการ์ดเสนองานข้างบน
+    if (m.role === 'dayoffer') {
+      const r = m.read;
+      const rows = r ? [
+        ...(r.away ? ['ไม่อยู่ทั้งวัน'] : []),
+        ...(r.blocks || []).map(b => b.start + '–' + b.end + ' ' + b.title),
+        ...(!r.away && r.school === false ? ['ไม่ไปโรงเรียน'] : []),
+        ...(r.breakUntil ? ['ปิดเทอม · เปิดเทอม ' + ctxThaiDate(r.breakUntil)] : []),
+        ...(r.date && r.date !== ymdLocal(new Date()) ? ['สำหรับ ' + ctxThaiDate(r.date)] : []),
+      ] : [];
+      const head = m.busy ? 'กำลังอ่านว่าวันนี้ไปไหน…'
+        : m.err ? 'อ่านไม่สำเร็จ'
+        : m.done === 'asked' ? 'ได้ครับ ถามต่อเลย'
+        : m.done ? 'จดแล้ว แผนคิดใหม่ให้แล้ว'
+        : rows.length ? 'จดแบบนี้ ถูกไหม' : 'ไม่เจอเวลาในข้อความ';
+      const idArg = esc(JSON.stringify(m.id || ''));
+      return `<div class="ai-msg me"><div class="ai-bub">${esc(m.text)}</div></div>
+        <div class="ai-msg sai">
+          ${saiHead}
+          <div class="ai-offer${m.done ? ' spent' : ''}">
+            <b class="ao-h">${head}</b>
+            ${m.err ? `<div class="ao-t">${esc(m.err)}</div>` : ''}
+            ${rows.length ? `<div class="ao-chips">${rows.map(c => `<span>${esc(c)}</span>`).join('')}</div>` : ''}
+            ${r && r.advice ? `<div class="ao-t">${esc(r.advice)}</div>` : ''}
+            ${r && !rows.length && r.note ? `<div class="ao-t">${esc(r.note)}</div>` : ''}
+            ${m.trial && !m.done ? `<div class="ao-t">งานแรกตอนนี้จะเป็น: ${esc(m.trial)}</div>` : ''}
+            ${m.done || m.busy ? '' : `<div class="ao-row">
+              ${r && rows.length ? `<button class="ao-yes" onclick="aiDayAccept(${idArg})">${icon('check')}จดเลย</button>` : ''}
+              <button class="ao-no" onclick="aiDayAsk(${idArg})">ไม่ใช่ ถามต่อ</button>
             </div>`}
           </div>
         </div>`;

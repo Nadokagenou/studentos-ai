@@ -183,4 +183,19 @@ check('เดา: บริบทของน้องไซบอกว่า�
   run('setupWeek(); ctxSetDay(MON, { school: false })');
   assert.match(run('ctxDayLines(TUE).join(" | ")'), /ไม่ไปโรงเรียน.*เดา/);
 });
+// ---------- ชิ้นที่ 7 · ตัวคัดกรองข้อความในแชท (ตัดฟังก์ชันจริงจาก app.js) ----------
+// ด่านนี้ตัดสินว่าจะยิง read-day หรือส่งเป็นคำถามปกติ — ผิดทางเดียวเสียแค่หนึ่งแตะ ("ไม่ใช่ ถามต่อ")
+{
+  const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const a = app.indexOf('const DAY_WHEN'), b = app.indexOf('function aiDayAccept');
+  assert.ok(a > 0 && b > a, 'ไม่พบ aiDayOffer ใน app.js');
+  vm.runInContext(app.slice(a, b).replace(/^const /gm, 'var '), ctx);
+}
+check('แชท: ข้อความเล่าเรื่องวันนี้ถูกจับ · คำถามกับงานไม่ถูกจับ', () => {
+  const yes = ['วันนี้ไปห้างบ่ายโมงถึงห้าโมง', 'พรุ่งนี้ไม่ไปโรงเรียน', 'ปิดเทอมถึง 2 พ.ย.',
+    'วันนี้ไปเรียนพิเศษ 17:00-19:00', 'เสาร์นี้ไปค่ายทั้งวัน'];
+  const no = ['วันนี้ควรทำอะไรก่อน', 'สวัสดี', 'พรุ่งนี้ส่งการบ้านยังไงดี', 'ช่วยวางแผนวันนี้หน่อย', 'ไปห้าง'];
+  for (const t of yes) assert.equal(run(`aiDayOffer(${JSON.stringify(t)})`), true, t);
+  for (const t of no) assert.equal(run(`aiDayOffer(${JSON.stringify(t)})`), false, t);
+});
 console.log(`ctx-day: ${n}/${n}`);
