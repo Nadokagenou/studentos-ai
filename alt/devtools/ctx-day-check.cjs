@@ -198,4 +198,34 @@ check('แชท: ข้อความเล่าเรื่องวัน�
   for (const t of yes) assert.equal(run(`aiDayOffer(${JSON.stringify(t)})`), true, t);
   for (const t of no) assert.equal(run(`aiDayOffer(${JSON.stringify(t)})`), false, t);
 });
+// ---------- ชิ้นที่ 8 · แอปถามเองว่าปิดเทอมแล้วใช่ไหม ----------
+// สัญญาณ: วันเรียนก่อนหน้าตอบเองว่าไม่ไป + วันนี้ก็ไม่ไป (ตอบเอง หรือแอปเดาต่อจากเมื่อวาน)
+{
+  const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const a = app.indexOf('const BREAK_ASK_OFF'), b = app.indexOf('function breakAskHtml');
+  assert.ok(a > 0 && b > a, 'ไม่พบ breakAskDue ใน app.js');
+  vm.runInContext(app.slice(a, b).replace(/^const /gm, 'var '), ctx);
+}
+check('ปิดเทอม: ถามเมื่อเมื่อวานตอบอยู่บ้าน และวันนี้แอปเดาว่าอยู่บ้าน', () => {
+  run('setupWeek(); ctxSetDay(MON, { school: false })');
+  assert.equal(run('breakAskDue(TUE)'), true);
+});
+check('ปิดเทอม: ไม่ถามถ้าวันเรียนก่อนหน้าไปเรียน', () => {
+  run('setupWeek(); ctxSetDay(MON, { school: true }); ctxSetDay(TUE, { school: false })');
+  assert.equal(run('breakAskDue(TUE)'), false);
+});
+check('ปิดเทอม: ไม่ถามถ้าวันเรียนก่อนหน้าไม่ได้ตอบ (มีแค่วันนี้วันเดียว)', () => {
+  run('setupWeek(); ctxSetDay(TUE, { school: false })');
+  assert.equal(run('breakAskDue(TUE)'), false);
+});
+check('ปิดเทอม: ไม่ถามซ้ำ 7 วันหลังกด "ไม่ใช่" · ไม่ถามถ้าตั้งปิดเทอมแล้ว · ไม่ถามวันไม่มีเรียน', () => {
+  run('setupWeek(); ctxSetDay(MON, { school: false })');
+  run('localStorage.setItem(BREAK_ASK_OFF, String(Date.now()))');
+  assert.equal(run('breakAskDue(TUE)'), false);
+  data.delete('studentos.alt.breakAskOff');
+  run('ctxSetBreak(ctxDayKey(TUE), ctxDayKey(TUE))');
+  assert.equal(run('breakAskDue(TUE)'), false);
+  run('ctxClear(); setupWeek(); ctxSetDay(FRI, { school: false })');
+  assert.equal(run('breakAskDue(SAT)'), false);
+});
 console.log(`ctx-day: ${n}/${n}`);

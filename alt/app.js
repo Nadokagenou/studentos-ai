@@ -5071,9 +5071,10 @@ function dayTap(school) {
 // ทางเลือกเวลาเองต้องมีเสมอ — ไม่มีเน็ต · ไม่ได้ล็อกอิน · AI ล่ม ยังจดวันนี้ได้
 let daySheet = null;
 
-function openDaySheet() {
+// phase 'break' = เปิดมาที่หน้าตั้งวันเปิดเทอม (จากบรรทัด "ปิดเทอมแล้วใช่ไหม")
+function openDaySheet(phase) {
   const d = ctxDay(new Date());
-  daySheet = { phase: 'edit', text: (d && d.note) || '', read: null, err: '', trial: '', setBreak: true,
+  daySheet = { phase: phase === 'break' ? 'break' : 'edit', text: (d && d.note) || '', read: null, err: '', trial: '', setBreak: true,
     manual: { school: d ? d.school : null, blocks: d ? d.blocks.slice() : [] } };
   const el = document.getElementById('daySheet');
   if (!el) return;
@@ -5121,6 +5122,19 @@ function renderDaySheet() {
         <button type="button" class="dc-yes" onclick="daySheetAccept()">${icon('check')}ใช่ จดเลย</button>
         <button type="button" class="dc-no" onclick="daySheetManual()">แก้เอง</button>
       </div></div>`;
+    return;
+  }
+
+  if (s.phase === 'break') {
+    card.innerHTML = `<div class="as-grip"></div><h3 class="dc-h">ปิดเทอมแล้วใช่ไหม</h3>
+      <div class="dc-man">
+        <p class="dc-sub">ตั้งวันเปิดเทอม แล้วช่วงนี้แอปจะไม่วางคาบเรียนกับเวลาเดินทางไปโรงเรียนให้ ถึงวันเปิดเทอมตารางเรียนกลับมาเอง</p>
+        <label class="dc-brk-d"><span>เปิดเทอม</span><input type="date" id="brkAskDate" min="${ctxAddDays(ctxDayKey(new Date()), 1)}"></label>
+        ${s.err ? `<p class="dc-err">${esc(s.err)}</p>` : ''}
+        <div class="dc-row">
+          <button type="button" class="dc-yes" onclick="breakAskYes()">${icon('check')}ใช่ ปิดเทอม</button>
+          <button type="button" class="dc-no" onclick="breakAskNo()">ไม่ใช่</button>
+        </div></div>`;
     return;
   }
 
@@ -5238,6 +5252,72 @@ function daySheetReset() {
   ctxClearDay(new Date());
   closeDaySheet();
   dayChanged();
+}
+
+// ---------- 18 ต.ค. 69 · ปิดเทอม ----------
+// ตั้งเองได้ในจอบริบท และแอปถามเองเมื่อเห็นสัญญาณ: วันเรียนก่อนหน้าตอบเองว่าไม่ไปโรงเรียน
+// และวันนี้ก็ไม่ไป (ตอบเอง หรือแอปเดาต่อจากเมื่อวาน — แบบ ก ทำให้วันที่สองไม่ต้องแตะอะไร
+// สัญญาณจึงต้องนับคำเดาด้วย ไม่งั้นคำถามนี้จะไม่เคยขึ้นเลย)
+// ไม่ตั้งเองเงียบ ๆ — เดาผิดแปลว่าคาบเรียนหายจากแผนจนถึงวันที่เดาไว้โดยที่เขาไม่รู้ตัว
+// คำถามเป็นบรรทัดเดียวบนหน้าแรกเหมือนบรรทัด "วันนี้" (กติกาแบบ ก) · แตะแล้วตั้งวันในแผ่นเดิม
+const BREAK_ASK_OFF = 'studentos.alt.breakAskOff';
+
+function breakAskDue(now = new Date()) {
+  if (typeof ctxBreakOn !== 'function' || ctxBreakOn(now)) return false;
+  if (!ctxHasClassTypical(now) || ctxSchoolOn(now)) return false;
+  const rec = ctxDay(now);
+  if (rec && rec.away) return false;                 // ไปค่ายวันเดียวไม่ใช่สัญญาณปิดเทอม
+  try {
+    const off = +localStorage.getItem(BREAK_ASK_OFF) || 0;
+    if (Date.now() - off < 7 * 864e5) return false;
+  } catch (_) {}
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  for (let i = 0; i < 3; i++) {
+    d.setDate(d.getDate() - 1);
+    if (!ctxHasClassTypical(d)) continue;             // ข้ามเสาร์–อาทิตย์
+    const pr = ctxDay(d);
+    return !!pr && pr.school === false && !pr.away;   // ต้องเป็นคำตอบจริง ไม่ใช่คำเดา
+  }
+  return false;
+}
+
+function breakAskHtml() {
+  return `<button type="button" class="dc-line dc-brkq" onclick="openDaySheet('break')" aria-label="ปิดเทอมแล้วใช่ไหม — ตั้งวันเปิดเทอม">
+      ${icon('calendar')}<span>ปิดเทอมแล้วใช่ไหม <small>· ไม่ได้ไปเรียนสองวันแล้ว</small></span><i>ตั้ง</i></button>`;
+}
+
+// openKey = วันเปิดเทอม · ช่วงปิดเทอม = วันนี้ถึงวันก่อนเปิด
+function breakSetFromOpenDate(openKey) {
+  const today = ctxDayKey(new Date());
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(openKey || '') || openKey <= today) return false;
+  ctxSetBreak(today, ctxAddDays(openKey, -1));
+  dayChanged();
+  showToast({ title: 'ตั้งปิดเทอมแล้ว', body: 'เปิดเทอม ' + ctxThaiDate(openKey) + ' ตารางเรียนจะกลับมาเอง' });
+  return true;
+}
+
+function breakAskYes() {
+  const el = document.getElementById('brkAskDate');
+  if (breakSetFromOpenDate(el && el.value)) { closeDaySheet(); return; }
+  if (daySheet) { daySheet.err = 'เลือกวันเปิดเทอมที่ยังมาไม่ถึงก่อน'; renderDaySheet(); }
+}
+
+function breakAskNo() {
+  try { localStorage.setItem(BREAK_ASK_OFF, String(Date.now())); } catch (_) {}
+  closeDaySheet();
+  dayChanged();
+}
+
+// จอบริบท → แถว "ปิดเทอม"
+function ctxBreakStart() {
+  const el = document.getElementById('brkOpen');
+  if (!breakSetFromOpenDate(el && el.value)) showToast({ title: 'เลือกวันเปิดเทอมที่ยังมาไม่ถึงก่อน' });
+}
+
+function ctxBreakStop() {
+  ctxEndBreak(new Date());
+  dayChanged();
+  showToast({ title: 'ยกเลิกปิดเทอมแล้ว', body: 'ตารางเรียนกลับมาตั้งแต่วันนี้' });
 }
 
 // ---------- ประวัติแชท ----------
@@ -8977,6 +9057,9 @@ function renderContext() {
   // renderContext ถูกเรียกซ้ำทุกครั้งที่แก้คาบหรือกิจวัตร — จำว่าแถวไหนเปิดอยู่ ไม่ให้หุบเองต่อหน้า
   const openSec = new Set([...body.querySelectorAll('.cx2-sec[open]')].map(d => d.dataset.k));
   const nCls = ctxClasses().length, nRt = ctxRoutines().length;
+  // 18 ต.ค. 69 · แถวปิดเทอม — ช่วงที่ตารางเรียนข้างบนไม่ถูกใช้ (ตารางยังอยู่ครบ ไม่ได้ลบ)
+  const brkNow = ctxBreakOn(now);
+  const brkMin = ctxAddDays(ctxDayKey(now), 1);
   body.innerHTML = `
     ${ctxHeroHtml(ctxBarDay, now, total)}
 
@@ -9010,6 +9093,15 @@ function renderContext() {
       <details class="cx2-sec" data-k="rt"${openSec.has('rt') ? ' open' : ''}>
         <summary><span>กิจวัตรและกิจกรรม</span><i>${nRt ? nRt + ' อย่าง' : 'ยังไม่มี'}</i>${icon('chevron')}</summary>
         <div class="cx2-sec-body">${ctxListHtml('routine')}</div>
+      </details>
+      <details class="cx2-sec" data-k="brk"${openSec.has('brk') ? ' open' : ''}>
+        <summary><span>ปิดเทอม</span><i>${brkNow ? 'เปิด ' + esc(ctxThaiDate(ctxAddDays(brkNow.to, 1))) : 'ไม่ได้ตั้ง'}</i>${icon('chevron')}</summary>
+        <div class="cx2-sec-body dc-brk-body">${brkNow
+          ? `<p class="dc-sub">ช่วงนี้แอปไม่วางคาบเรียนกับเวลาเดินทางไปโรงเรียน ตารางเรียนยังอยู่ครบ</p>
+             <button type="button" class="dc-no" onclick="ctxBreakStop()">เปิดเทอมแล้ว · ยกเลิกปิดเทอม</button>`
+          : `<label class="dc-brk-d"><span>วันเปิดเทอม</span><input type="date" id="brkOpen" min="${brkMin}"></label>
+             <button type="button" class="dc-yes" onclick="ctxBreakStart()">${icon('check')}ตั้งปิดเทอม</button>`}
+        </div>
       </details>
     </div>
 

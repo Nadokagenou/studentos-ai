@@ -14760,3 +14760,13 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 }
 .dc-add input[type="text"], .dc-add button { grid-column: 1 / -1; }
 .dc-add button { display: grid; grid-template-columns: auto auto; justify-content: center; align-items: center; gap: 6px; }
+.dc-brk-d {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px;
+  font-size: 14px; font-weight: 600; color: var(--ink);
+}
+.dc-brk-d input {
+  min-height: 42px; box-sizing: border-box; padding: 6px 10px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--card2); color: var(--ink); font-family: inherit; font-size: 15px;
+}
+.dc-brk-body { display: grid; gap: 10px; }
+.dc-brkq i { color: var(--blue); }
