@@ -469,14 +469,14 @@ function glitchTextRestore() {
 // หน่วงภาพทั้งจอสั้น ๆ ให้เหมือนเครื่องค้าง แล้วปล่อย — ไม่ได้หยุดโค้ดจริง
 // ใช้ CSS ล้วน ๆ จึงไม่มีทางไปค้างการทำงานของแอปหรือทำให้กดอะไรไม่ได้จริง
 function glitchStutter() {
-  if (!glitchOn() || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!glitchOn() || document.documentElement.dataset.quality === 'low' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const root = document.documentElement;
   root.dataset.gstut = 'on';
   setTimeout(() => root.removeAttribute('data-gstut'), 260 + Math.random() * 220);
 }
 
 function glitchShake(strong) {
-  if (!glitchOn() || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!glitchOn() || document.documentElement.dataset.quality === 'low' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;   // กราฟิก "น้อย" — ไม่สั่นจอ
   const root = document.documentElement;
   root.dataset.gfx = strong ? 'hard' : 'on';
   if (navigator.vibrate) { try { navigator.vibrate(strong ? [18, 40, 14, 30, 10] : [12, 40, 8]); } catch (_) {} }
@@ -755,7 +755,14 @@ const kbTyping = () => { const a = document.activeElement; return !!(a && a.matc
 const kbNote = () => { if (!kbTyping()) kbTall[kbSide()] = Math.max(kbTall[kbSide()], innerHeight); };
 kbNote();
 addEventListener('resize', kbNote);
+// 17 ต.ค. 69 · ทำเฉพาะ iPhone/iPad (ตัวตรวจเดียวกับ index.html — iPad รุ่นใหม่แสดงตัวเป็น Mac จอสัมผัส)
+// เจ้าของ: "โทรศัพท์สเปคน้อย … ระบบรวน ปุ่มหายบ้าง" — บั๊กนี้เป็นของ WebKit แต่ตัวแก้เคยวิ่งบน Android ด้วย
+// Chrome/WebView รุ่นเก่า (มือถือราคาถูกยังใช้เยอะ) คีย์บอร์ดย่อทั้งหน้าต่าง · เครื่องช้า คีย์บอร์ดยังหดไม่เสร็จใน 150ms
+// → เงื่อนไขผ่าน → ซ่อนทั้งแอปแล้วโชว์คืน: อนิเมชันเข้าจอเล่นใหม่จากโปร่งใส ปุ่มทุกปุ่มในจอหายวูบ
+// วัดบนเครื่องจำลอง (CPU ช้า 8 เท่า): ปิดคีย์บอร์ดครั้งเดียว ซ่อน-โชว์ 2 รอบ · ปุ่มในจอจางหมด 7/7 และ 8/8 · การเลื่อนที่กำลังไหลโดนตัด
+const KB_WEBKIT_BUG = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 function healViewport() {
+  if (!KB_WEBKIT_BUG) return;
   if (kbTyping()) return; // โฟกัสย้ายไปอีกช่อง คีย์บอร์ดยังเปิดอยู่ — ยังไม่ถึงเวลา
   if (window.scrollY || window.scrollX) window.scrollTo(0, 0);
   const tall = kbTall[kbSide()];
@@ -1172,7 +1179,10 @@ function go(id) {
   // กลับถึงหน้าแรกแล้วค่อยชวนรับของรายวัน (ถ้ายังไม่ได้ชวนวันนี้) — ดู dailyPromptOnOpen
   if (id === 'scr-menu') setTimeout(dailyPromptOnOpen, 900);
   document.body.dataset.godir = dir;
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on', 'just-in'));
+  // 18 ต.ค. 69 · ถอด .fx-in ด้วย — screenFx ยกเลิกตัวจับเวลาที่ถอดคลาสนี้ของจอก่อนหน้า (clearTimeout)
+  // สลับเร็วกว่า 1.4 วิ คลาสจึงค้างบนจอที่เพิ่งผ่าน → กลับมาจอนั้นเข้าทาง "เล่นซ้ำ" ที่บังคับจัดผังทั้งหน้า
+  // ยิ่งสลับเร็ว จอที่ค้างคลาสยิ่งมาก = "สลับหน้าเร็ว ๆ แล้วเริ่มหน่วง" (เจ้าของ) · เทสต์: devtools/navcheck.js
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on', 'just-in', 'fx-in'));
   const scr = document.getElementById(id);
   scr.classList.add('on');
   // เนื้อหาไล่ขึ้นทีละชิ้นเฉพาะตอน "เพิ่งเข้าจอ" เท่านั้น
@@ -1246,7 +1256,7 @@ function go(id) {
     const el = document.getElementById(live.body);
     if (curScreen === id && (!el || !el.firstElementChild)) go(live.back);
   }, 0);
-  renderAll();
+  renderForScreen(id, true);   // true = มาจากการสลับจอ · จอที่ข้อมูลไม่เปลี่ยนไม่วาดซ้ำ (ดู markDataChanged)
 }
 
 // ---------- cloud: Supabase auth + sync ----------
@@ -3702,10 +3712,15 @@ function openAddSheet(view) {
   if (!el) { go('scr-scan'); return; }
   addSheetView = view === 'connectors' ? 'connectors' : 'root';
 
+  // 17 ต.ค. 69 · กำลังปิดอยู่ (ถอด .on แล้ว รอตัวจับเวลาซ่อน) แล้วกด + ซ้ำ = ยกเลิกการปิด แล้วเปิดใหม่เต็มรูปแบบข้างล่าง
+  // เดิมช่วงนั้นนับว่า "เปิดอยู่แล้ว" (ยังไม่ hidden) → ไม่ใส่ .on คืน → ตัวจับเวลาเดิมซ่อนแผ่นทิ้ง = กด + แล้วไม่ขึ้น
+  // มือถือช้า ตัวจับเวลา 200ms มาช้ากว่านั้นมาก ช่วงนี้จึงยาวพอให้กดซ้ำทันจริง (เทสต์: devtools/sheetcheck.js)
+  if (el._closeT) { clearTimeout(el._closeT); el._closeT = 0; }
+
   // เปิดอยู่แล้ว = แค่สลับหน้าในแผ่นเดิม ห้ามวาดใหม่ทั้งก้อน ไม่งั้นแผ่นเลื่อนลงแล้วขึ้นใหม่
   // 8 ต.ค. 69 · ของในหน้าใหม่เลื่อนเข้าจากฝั่งที่ไป (.swap · ไปหน้าตัวเชื่อม = จากขวา · กลับ = จากซ้าย)
   // ใส่เฉพาะตอนสลับหน้า — กดสวิตช์ (refreshAddSheet) ไม่เล่นซ้ำ
-  if (!el.hidden) {
+  if (!el.hidden && el.classList.contains('on')) {
     refreshAddSheet();
     const card = el.querySelector('.as-card');
     if (card) {
@@ -3763,7 +3778,8 @@ function closeAddSheet() {
   el.classList.remove('on');
   document.body.classList.remove('as-open');
   addSheetView = 'root';   // เปิดครั้งหน้าต้องเริ่มที่หน้าหลักเสมอ ไม่ใช่ค้างอยู่หน้าตัวเชื่อม
-  setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
+  clearTimeout(el._closeT);
+  el._closeT = setTimeout(() => { el._closeT = 0; el.hidden = true; el.innerHTML = ''; }, 200);
 }
 
 // ============================================================
@@ -3864,6 +3880,8 @@ function openSoonSheet(key) {
   const s = SOON_SHEETS[key];
   const el = document.getElementById('soonSheet');
   if (!s || !el) return;
+  // 17 ต.ค. 69 · ยกเลิกการปิดที่ค้างอยู่ — ไม่งั้นตัวจับเวลาของรอบก่อนมาล้างแผ่นใหม่ทิ้ง (เหตุผลเดียวกับ openAddSheet)
+  if (el._closeT) { clearTimeout(el._closeT); el._closeT = 0; }
   el.innerHTML = `<div class="as-scrim" onclick="closeSoonSheet()"></div>
     <div class="as-card soon-card" role="dialog" aria-label="${esc(s.title)}">
       <div class="as-grip"></div>
@@ -3884,7 +3902,8 @@ function closeSoonSheet() {
   const el = document.getElementById('soonSheet');
   if (!el || el.hidden) return;
   el.classList.remove('on');
-  setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
+  clearTimeout(el._closeT);
+  el._closeT = setTimeout(() => { el._closeT = 0; el.hidden = true; el.innerHTML = ''; }, 200);
 }
 
 function closeFabHub(instant) {
@@ -5833,14 +5852,26 @@ function renderAi() {
   // 8 ต.ค. 69 · เจ้าของ: "เมื่อกดเข้ามา ให้มาเห็นตรงแชทล่าสุดที่คุยกัน"
   // วาดใหม่ทั้งก้อน = กล่องบทสนทนาใหม่เริ่มที่บนสุดเสมอ · renderAll() เรียกจอนี้ทุกครั้งที่ข้อมูลเปลี่ยน
   // จึงจำตำแหน่งเดิมไว้: อยู่ล่างสุด (หรือยังไม่เคยวาด) = ไปล่างสุด · เลื่อนขึ้นไปอ่านอยู่ = คืนที่เดิม ไม่ดึงลง
-  const oldTh = el.querySelector('.ai-thread');
-  const stick = !oldTh || oldTh.scrollHeight - oldTh.scrollTop - oldTh.clientHeight < 80;
-  const oldTop = oldTh ? oldTh.scrollTop : 0;
+  // 18 ต.ค. 69 · เดิมวัดบทสนทนาเก่า (scrollHeight/scrollTop) ก่อนแทนที่ = บังคับคิดสไตล์+จัดผังเนื้อหาที่กำลังจะทิ้ง
+  // ทุกครั้งที่เข้าจอนี้ (CPU ช้า 6 เท่า ~110ms) → จำตำแหน่งไว้ตอนผู้ใช้เลื่อนเอง (aiScrollMemo) ไม่ต้องวัดตอนวาด
+  // เลื่อนลงล่างสุดทำในเฟรมถัดไป รวมกับการจัดผังปกติของเฟรมนั้น (ไม่ใช่บังคับกลางสคริปต์อีกรอบ) · เทสต์: devtools/navcheck.js
+  const stick = !window.aiScroll || aiScroll.stick, oldTop = window.aiScroll ? aiScroll.top : 0;
   el.innerHTML = head + thread + quick + bar;
+  if (!el.dataset.scrollMemo) {
+    el.dataset.scrollMemo = '1';
+    el.addEventListener('scroll', e => {
+      const t = e.target;
+      if (!t.classList || !t.classList.contains('ai-thread')) return;
+      aiScroll.stick = t.scrollHeight - t.scrollTop - t.clientHeight < 80;
+      aiScroll.top = t.scrollTop;
+    }, { capture: true, passive: true });
+  }
   const th = el.querySelector('.ai-thread');
-  if (th) th.scrollTop = stick ? th.scrollHeight : oldTop;
+  if (th) requestAnimationFrame(() => { if (th.isConnected) th.scrollTop = stick ? th.scrollHeight : oldTop; });
   sgaMount();
 }
+// ตำแหน่งเลื่อนของบทสนทนาน้องฮูก — อัปเดตตอนผู้ใช้เลื่อน · ยังไม่เคยวาด = ไปล่างสุด
+var aiScroll = { stick: true, top: 0 };   // var ไม่ใช่ const — ถูกเรียกก่อนบรรทัดนี้ = undefined แทน TDZ (แบบเดียวกับ SCREEN_RENDER)
 
 // ---------- 1C40 · จัดรูปคำตอบของน้องไซ ----------
 // คำตอบมาเป็นตัวหนังสือล้วนที่มีขึ้นบรรทัด "- " "1. " และ **ตัวหนา** แบบ markdown ย่อ
@@ -11108,7 +11139,11 @@ let barsTimer = null;
 let fxTimer = 0;
 function screenFx(scr) {
   clearTimeout(fxTimer);
-  scr.classList.remove('fx-in'); void scr.offsetWidth; scr.classList.add('fx-in');
+  // 17 ต.ค. 69 · บังคับจัดผังใหม่ (offsetWidth) เฉพาะตอนต้องเล่นซ้ำ (คลาสยังติดอยู่จากรอบก่อน)
+  // จอที่เพิ่งโผล่จาก display:none อนิเมชันเริ่มเองตอนถูกคิดสไตล์ครั้งแรกอยู่แล้ว — บังคับไว้ก่อน = คิดสไตล์ทั้งจอสองรอบต่อการแตะ
+  // (CPU ช้า 12 เท่า: บรรทัดนี้กิน 1.9 วิในการแตะแท็บ 8 ครั้ง)
+  if (scr.classList.contains('fx-in')) { scr.classList.remove('fx-in'); void scr.offsetWidth; }
+  scr.classList.add('fx-in');
   fxTimer = setTimeout(() => scr.classList.remove('fx-in'), 1400);
   requestAnimationFrame(() => { rollNumbers(scr); titleIn(scr); });
 }
@@ -11225,8 +11260,13 @@ function growBars(scr) {
     if (!sets.length) return;
     // .st-bars ได้ .grow (แท่งงอก) · #statFull ได้ .an-in (การ์ดไล่ขึ้น · โดนัทวาดเส้น · แถบวิชายืด)
     const cls = b => b.id === 'statFull' ? 'an-in' : 'grow';
-    sets.forEach(b => { b.classList.remove(cls(b)); void b.offsetWidth; b.classList.add(cls(b)); });
-    barsTimer = setTimeout(() => sets.forEach(b => b.classList.remove(cls(b))), 1400);
+    // 18 ต.ค. 69 · เดิม remove → offsetWidth → add ในเฟรมเดียว = บังคับคิดสไตล์+จัดผังทั้งหน้าทุกครั้งที่เข้าจอ
+    // (CPU ช้า 6 เท่า ~21ms ต่อครั้ง · จอไม่ได้วาดใหม่ก็ยังโดน) → ถอดเฟรมนี้ ใส่กลับเฟรมถัดไป อนิเมชันเริ่มใหม่เองโดยไม่ต้องบังคับ
+    sets.forEach(b => b.classList.remove(cls(b)));
+    requestAnimationFrame(() => {
+      sets.forEach(b => b.classList.add(cls(b)));
+      barsTimer = setTimeout(() => sets.forEach(b => b.classList.remove(cls(b))), 1400);
+    });
   });
 }
 
@@ -11581,7 +11621,34 @@ function workStatsHtml(now) {
     </div>` : ''}`;
 }
 
+// 17 ต.ค. 69 · ข้อมูลเปลี่ยน (ติ๊กงาน · ซิงก์จาก cloud · ค่าตั้งมาถึง) = วาดเฉพาะจอที่ผู้ใช้เห็นอยู่ + ของส่วนกลาง
+// จอที่ซ่อนอยู่ไม่ต้องวาดตอนนี้ — go() วาดจอปลายทางใหม่ทุกครั้งที่เปิด (renderForScreen) จึงไม่มีทางเห็นของเก่า
+// วัด (CPU ช้า 12 เท่า): renderAll เดิม 0.4–1.3 วิต่อครั้ง · เฉพาะจอที่เห็น 0.01–0.44 วิ — ติ๊กงาน/ซิงก์ทีละครั้งเคยค้างเกือบวินาที
+// จอที่ยังไม่อยู่ใน SCREEN_RENDER (และระหว่างบูตก่อนตารางพร้อม) = วาดทั้งหมดแบบเดิม · เทสต์: devtools/navcheck.js
+// ---------- กลับจอที่ข้อมูลไม่เปลี่ยน = ไม่วาดใหม่ (18 ต.ค. 69) ----------
+// เจ้าของ: "เมื่อสลับหน้าเร็ว ๆ จะเริ่มมีอาการหน่วง" · วาดใหม่ = DOM ใหม่ทั้งจอ ต้องคิดสไตล์+จัดผังใหม่หมด
+// (CPU ช้า 6 เท่า: กลับหน้าแรก ~106ms · หน้า "ฉัน" ~70ms ทุกครั้ง ทั้งที่หน้าตาเหมือนเดิมเป๊ะ)
+// รุ่นข้อมูล (dataVer) ขยับเมื่อ: renderAll() (ทุกทางที่ข้อมูลเปลี่ยน) · เขียน localStorage ที่ขึ้นต้น studentos.alt. (ตั้งค่าทุกอย่าง)
+// จอที่วาดไว้ด้วยรุ่นเดียวกันและไม่เกิน 30 วิ (ของที่ขึ้นกับเวลา) = กลับมาไม่วาดซ้ำ · เทสต์: devtools/navcheck.js
+var dataVer = 1, screenStamp = {};
+function markDataChanged() { dataVer++; }
+(function () {
+  // ไม่นับ: จอที่อยู่ล่าสุด (เขียนทุกครั้งที่สลับจอ) · แผนของวันที่จดไว้เทียบ (เขียนตอนวาดหน้าแรก คำนวณจากข้อมูลที่ผ่าน renderAll อยู่แล้ว)
+  const SKIP = new Set(['studentos.alt.lastScreen', 'studentos.alt.plan']);
+  const hit = k => { k = String(k); return k.startsWith('studentos.alt.') && !SKIP.has(k); };
+  try {
+    const set = Storage.prototype.setItem, del = Storage.prototype.removeItem;
+    Storage.prototype.setItem = function (k, v) { if (this === localStorage && hit(k)) dataVer++; return set.call(this, k, v); };
+    Storage.prototype.removeItem = function (k) { if (this === localStorage && hit(k)) dataVer++; return del.call(this, k); };
+  } catch (_) {}
+})();
 function renderAll() {
+  dataVer++;
+  const list = typeof SCREEN_RENDER === 'object' && SCREEN_RENDER && SCREEN_RENDER[curScreen];
+  if (list) { renderForScreen(curScreen); return; }
+  renderEverything();
+}
+function renderEverything() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline(); renderAi();
   renderWhy();
   renderProfile(); renderShowcase(); renderStats(); renderPlan(); renderFriends(); renderBadges();
@@ -11602,6 +11669,72 @@ function renderAll() {
   if (typeof hwSync === 'function') hwSync();
   if (typeof staffNewsRoute === 'function') staffNewsRoute();
   // เช็คว่ามีคำตอบใหม่ในเธรดหัวข้อที่เราถามไว้หรือยัง · หน่วงเองภายใน 2 นาที
+  if (typeof loadTopicNews === 'function') loadTopicNews();
+  if (typeof staffPersonalLoad === 'function') void staffPersonalLoad();
+}
+
+// ---------- สลับจอ = วาดเฉพาะจอที่กำลังจะแสดง ----------
+// 17 ต.ค. 69 · เจ้าของ: "โทรศัพท์สเปคน้อย ใช้ไปไม่นานเครื่องค้าง ระบบรวน ปุ่มหาย เลื่อนได้เรื่อย ๆ"
+// go() เคยเรียก renderAll() = แตะแท็บหนึ่งครั้ง วาดใหม่ 26 ตัววาด ทั้งที่เห็นแค่จอเดียว (จออื่น display:none)
+// ตัววาดหลายตัวถามขนาด/ตำแหน่งกลางคัน → คิดสไตล์+จัดผังซ้ำหลายรอบในการแตะครั้งเดียว
+// วัด (CPU ช้า 12 เท่า · โหมดลื่น): แตะแท็บละ 1.1–1.4 วิ · เธรดหลักไม่ว่าง 21 จาก 33 วิ
+// ระหว่างนั้นการเลื่อนจอยังไหล (ทำนอกเธรดหลัก) แต่ปุ่มกดไม่ติดและส่วนที่เพิ่งเลื่อนเข้ามายังวาดไม่ทัน = "ปุ่มหาย"
+// จอที่ซ่อนอยู่ถูกวาดไว้แล้วตอนข้อมูลเปลี่ยนครั้งล่าสุด (ทางนั้นยังเรียก renderAll ครบทุกจอ) จึงไม่ต้องวาดซ้ำตอนสลับจอ
+// จอที่ยังไม่อยู่ในตารางนี้ = วาดทั้งหมดแบบเดิม (ปลอดภัยไว้ก่อน) · เทสต์: alt/devtools/navcheck.js → navCheck()
+// var ไม่ใช่ const — ถ้ามีใครเรียก go() ระหว่างที่ไฟล์ยังโหลดไม่ถึงบรรทัดนี้ const จะพัง (TDZ) · var เป็น undefined → วาดทั้งหมดแบบเดิม
+var SCREEN_RENDER = {
+  'scr-menu': ['renderMenu'],
+  'scr-tasks': ['renderTasks'],
+  'scr-timeline': ['renderTimeline'],
+  'scr-ai': ['renderAi'],
+  'scr-why': ['renderWhy'],
+  'scr-profile': ['renderProfile', 'renderStats'],      // renderProfile วาดหัว · โทเคน · showBox (renderShowcase) เอง
+  'scr-settings': ['renderProfile', 'renderInstallCard'],
+  'scr-stats': ['renderStats'],
+  'scr-plan': ['renderPlan'],
+  'scr-badges': ['renderBadges'],
+  'scr-shop': ['renderShop'],
+  'scr-pro': ['renderPro'],
+  'scr-wheel': ['renderWheel', 'renderRestoredDraw'],
+  'scr-context': ['renderContext'],
+  'scr-inbox': ['renderInbox'],
+  'scr-notif': ['renderNotif'],
+  'scr-sources': ['renderSources'],
+  'scr-room': ['renderRoom'],
+  'scr-people': ['renderMates'],
+  'scr-mates': ['renderFeed'],                          // renderFeed เรียก renderFriends เอง
+  // 17 ต.ค. 69 · จอที่เหลือ — เดิมไม่อยู่ในตาราง = เปิดทีไรวาดทั้งหมด 26 ตัว (CPU ช้า 6 เท่า: ฟอร์มเพิ่มงาน/สำรวจ/ข่าว 150–412ms)
+  // วัดจริงว่าตัววาดใน renderEverything ตัวไหนเขียนลงจอไหน (MutationObserver ทั้งหน้า + อ่านโค้ดว่าเขียนลง id ไหน · สองทางตรงกัน)
+  'scr-home': ['renderHome'],
+  'scr-news': ['renderMenu'],
+  'scr-explore': ['renderMenu', 'renderProfile', 'renderContext', 'renderExploreList'],   // ป้ายตัวเลขบนไทล์ + รายการที่กรองอยู่
+  // จอเหล่านี้ไม่มีตัววาดตัวไหนใน renderEverything เขียนลงเลย — เนื้อหาวาดโดยโค้ดของจอเองตอนเปิด
+  'scr-form': [], 'scr-sai': [], 'scr-dayfull': [], 'scr-bugs': [], 'scr-ctxwiz': [], 'scr-compose': [], 'scr-consent': [],
+  'scr-privacy': [], 'scr-user': [], 'scr-post': [], 'scr-chat': [], 'scr-hw': [], 'scr-topic': [], 'scr-tthread': [],
+  'scr-dm': [], 'scr-board': [], 'scr-setopt': [],
+  // ไม่ใส่: ล็อกอิน · แนะนำแอป · สแกน/ครอบรูป/กำลังอ่าน — จังหวะพิเศษ ปล่อยวาดทั้งหมดแบบเดิม
+};
+// เดิม renderEverything กรองรายการสำรวจใหม่เมื่ออยู่จอนี้ — ห่อเป็นตัววาดให้ตารางเรียกได้
+function renderExploreList() {
+  const box = document.getElementById('exploreSearch');
+  if (typeof filterExplore === 'function') filterExplore(box ? box.value : '');
+}
+function renderForScreen(id, fromNav) {
+  const list = SCREEN_RENDER && SCREEN_RENDER[id];
+  if (!list) { renderEverything(); return; }
+  // มาจากการสลับจอ (go) + จอนี้วาดไว้ด้วยข้อมูลรุ่นเดียวกัน ไม่เกิน 30 วิ = ของบนจอยังตรง ข้ามการวาดจอ
+  const st = screenStamp[id], now = Date.now();
+  const fresh = fromNav && st && st.v === dataVer && now - st.t < 30000;
+  if (!fresh) {
+    // เรียกผ่าน window ทุกครั้ง — ไฟล์อื่น (เช่น app.js ท้ายไฟล์) ห่อตัววาดบางตัวไว้ ต้องได้ตัวที่ห่อแล้ว
+    list.forEach(n => { if (typeof window[n] === 'function') window[n](); });
+    screenStamp[id] = { v: dataVer, t: now };
+  }
+  // ของส่วนกลางนอกกองจอ (ป้ายบนแถบล่าง · แถบจับเวลา) + งานเบื้องหลังที่ renderAll เคยปลุกทุกครั้งที่สลับจอ
+  // (แต่ละตัวหน่วง/กันยิงถี่ของตัวเองอยู่แล้ว — เก็บไว้ให้จังหวะเรียกเหมือนเดิม)
+  renderTabBadges(); renderRunBar();
+  if (typeof hwSync === 'function') hwSync();
+  if (typeof staffNewsRoute === 'function') staffNewsRoute();
   if (typeof loadTopicNews === 'function') loadTopicNews();
   if (typeof staffPersonalLoad === 'function') void staffPersonalLoad();
 }
@@ -12187,6 +12320,10 @@ function startFocus(taskId) {
 // เรียงจากชั้นบนสุดลงล่าง — ปิดทีละชั้นต่อหนึ่งครั้งที่กด
 const OVERLAYS = [
   { sel: '.face-zoom',       close: el => el.remove() },
+  // 17 ต.ค. 69 · เอฟเฟกต์ฉลองงานเสร็จ (hoop.js · เต็มจอ) — เดิมไม่อยู่ในรายการ: กดย้อนกลับ = จอข้างหลังเปลี่ยนทั้งที่เอฟเฟกต์ยังค้าง
+  // และจอใหม่โปร่งใสค้าง (ระหว่างเอฟเฟกต์ .phone.fx-on หยุดอนิเมชันทุกจอ อนิเมชันเข้าจอเลยค้างที่เฟรมแรก)
+  // ย้อนกลับ = ปิดเอฟเฟกต์แบบเดียวกับกด "ข้าม" · :not(.out) = ไม่นับอันที่กำลังจางออก · เทสต์: devtools/backcheck.js
+  { sel: '.hoop-ov:not(.out)', close: () => closeFx() },
   { sel: '#reportSheet',     close: () => closeReport() },
   { sel: '#tpSheet',         close: () => closeTopicAsk() },
   { sel: '#checkin',         close: () => closeDailyCheck() },
@@ -12659,6 +12796,7 @@ function removeTask(id) {
 function celebrate(el) {
   const phone = document.querySelector('.phone');
   if (!phone || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (document.documentElement.dataset.quality === 'low') return;   // กราฟิก "น้อย" — ไม่มีพลุ (ดู setGfx)
   const pr = phone.getBoundingClientRect();
   const r = el ? el.getBoundingClientRect() : null;
   const x0 = r ? r.left - pr.left + r.width / 2 : pr.width / 2;
@@ -12687,12 +12825,21 @@ function celebrate(el) {
     let vx = Math.cos(ang) * vel, vy = Math.sin(ang) * vel - 1.5;
     let x = x0, y = y0, op = 1, rot = 0;
     const spin = (Math.random() - .5) * 16;
-    const step = () => {
-      x += vx; y += vy; vy += .17; vx *= .985;
-      op -= .017; rot += spin;
-      p.style.left = x + 'px'; p.style.top = y + 'px';
+    // 17 ต.ค. 69 · เดินตามเวลาจริง ไม่ใช่ตามจำนวนเฟรม — ค่าเดิมทุกตัวเขียนไว้ "ต่อหนึ่งเฟรมที่ 60fps"
+    // จึงคูณด้วย f = เฟรม 60fps ที่ผ่านไปจริง · เครื่องเร็วเห็นเหมือนเดิมทุกอย่าง (f ≈ 1)
+    // เดิมเครื่องช้าที่เหลือ 5fps พลุอยู่ ~12 วิ (59 เฟรม) และเขียน left/top ทุกเฟรม = เธรดหลักจัดผังวนทั้งหมดนั้น
+    // ตอนนี้จบใน ~1 วิเท่ากันทุกเครื่อง · บั๊กแบบเดียวกับตัวเลขหมุนที่แก้ใน 1C56 · เทสต์: devtools/celebratecheck.js
+    let last = performance.now();
+    const step = now => {
+      const t = typeof now === 'number' ? now : performance.now();
+      const f = Math.min(30, Math.max(0, (t - last) / (1000 / 60)));
+      last = t;
+      x += vx * f; y += vy * f; vy += .17 * f; vx *= Math.pow(.985, f);
+      op -= .017 * f; rot += spin * f;
+      // left/top อยู่ที่จุดเริ่มตลอด ขยับด้วย translate — เขียน left/top ทุกเฟรม = จัดผังใหม่ทุกเฟรม
+      // (วัด 17 ต.ค. CPU ช้า 6× พลุ 5 รอบ: จัดผัง 339ms → 25–43ms)
       p.style.opacity = op;
-      p.style.transform = `scale(${Math.max(0, op)}) rotate(${rot}deg)`;
+      p.style.transform = `translate(${x - x0}px,${y - y0}px) scale(${Math.max(0, op)}) rotate(${rot}deg)`;
       if (op > 0) requestAnimationFrame(step); else p.remove();
     };
     requestAnimationFrame(step);
@@ -17501,10 +17648,13 @@ function dismissInstallGuide(dontShowAgain) {
 
 async function handleInstallClick() {
   if (deferredInstallPrompt) {
-    deferredInstallPrompt.prompt();
-    await deferredInstallPrompt.userChoice;
+    // 17 ต.ค. 69 · ปล่อยตัวแปรก่อนเรียก — เหตุการณ์นี้เรียก prompt() ได้ครั้งเดียว
+    // เดิมล้างหลังผู้ใช้ตอบหน้าต่างเท่านั้น: แตะซ้ำตอนหน้าต่างยังเปิด (มือถือช้า คนแตะซ้ำบ่อย) = prompt() รอบสอง โยน error ที่ไม่มีใครจับ
+    // และถ้า prompt() ล้ม บรรทัดล้างไม่เคยทำงาน ปุ่มค้างเป็น "ติดตั้งเลย" แตะทีไรพังทุกที · เทสต์: devtools/installcheck.js
+    const ev = deferredInstallPrompt;
     deferredInstallPrompt = null;
-    renderProfile();
+    try { await ev.prompt(); await ev.userChoice; } catch (_) { /* ปิด/ล้ม = ไม่ติดตั้ง · ปุ่มหายไปจนกว่าเบราว์เซอร์จะเสนอใหม่ */ }
+    renderProfile(); renderInstallCard();
   } else if (isIOS()) {
     showInstallGuide();
   }
@@ -18264,27 +18414,46 @@ function liteWatch() {
   evs.forEach(e => document.addEventListener(e, onUse, { capture: true, passive: true }));
 }
 function liteOn(auto) {
-  document.documentElement.dataset.lite = '1';
-  try { localStorage.setItem('studentos.alt.lite', '1'); } catch (_) {}
-  if (typeof syncLiteRow === 'function') syncLiteRow();
-  // เปิดให้เองกลางทาง = บอกครั้งเดียวว่าเกิดอะไรและปิดได้ที่ไหน · ไม่งั้นคนจะคิดว่าแอปเปลี่ยนหน้าตาเอง
-  if (auto) showToast({ title: 'เปิดโหมดลื่นให้แล้ว', body: 'เครื่องนี้กระตุกเลยลดเอฟเฟกต์บางอย่างลง ปิดได้ที่ ตั้งค่า › โหมดลื่น' });
+  // ตัววัดเห็นว่ากระตุก = ลงมาที่ "กลาง" (โหมดลื่นเดิม) · ผู้ใช้เลือก "น้อย" ไว้แล้วไม่ดันขึ้น
+  if (gfxLevel() !== 'low') setGfx('mid');
+  // เปิดให้เองกลางทาง = บอกครั้งเดียวว่าเกิดอะไรและปรับได้ที่ไหน · ไม่งั้นคนจะคิดว่าแอปเปลี่ยนหน้าตาเอง
+  if (auto) showToast({ title: 'ปรับกราฟิกเป็น "กลาง" ให้แล้ว', body: 'เครื่องนี้กระตุกเลยลดเอฟเฟกต์บางอย่างลง ปรับได้ที่ ตั้งค่า › กราฟิก' });
 }
-// สวิตช์ในตั้งค่า — ปิด = ธง '0' (ตัววัดจะไม่เปิดให้อีก) · เปิด = ธง '1'
-function toggleLite() {
-  const on = !document.documentElement.dataset.lite;
-  if (on) document.documentElement.dataset.lite = '1'; else delete document.documentElement.dataset.lite;
-  try { localStorage.setItem('studentos.alt.lite', on ? '1' : '0'); } catch (_) {}
-  syncLiteRow();
-  haptic('tap');
-  showToast(on ? { title: 'เปิดโหมดลื่นแล้ว', body: 'ลดเอฟเฟกต์ที่กินแรงเครื่อง ให้เลื่อนและแตะลื่นขึ้น' }
-    : { title: 'ปิดโหมดลื่นแล้ว', body: 'เอฟเฟกต์กลับมาครบ ถ้าเครื่องกระตุกเปิดใหม่ได้ที่นี่' });
+
+// ---------- ระดับกราฟิก: น้อย · กลาง · มาก (19 ต.ค. 69) ----------
+// เจ้าของ: "ทำให้มีปุ่มสามารถปรับกราฟิกหรือความสวยได้หน่อย และก็ปรับตามนั้น มี น้อย กลาง มาก"
+// มาก = ครบทุกอย่าง (กระจกฝ้า · ฉากธีมขยับ · ตัวเลขหมุน · แท็บขยายแบบ dock · 3D เต็ม)
+// กลาง = โหมดลื่นเดิมทุกอย่าง (data-lite · ของที่ถอดดูกฎ :root[data-lite] ใน alt.css)
+// น้อย = กลาง + ไม่วาดฉากของธีม · ไม่มีอนิเมชันเข้าจอ · ไม่มีพลุตอนงานเสร็จ (data-quality="low" · ไม่ใช้ data-gfx เพราะธีม glitch ใช้ชื่อนั้นสั่นจออยู่แล้วและลบทิ้งทุกครั้งที่ตั้งธีม)
+// ทุกระดับ: สี ธีม ตัวหนังสือ ปุ่ม เหมือนกัน · อนิเมชันที่บอกสถานะ (กำลังโหลด · อัดเสียง · จับเวลา) ไม่ถูกปิด
+// เก็บที่ studentos.alt.gfx (ใหม่) + ธง studentos.alt.lite เดิม ('1' ลด · '0' ผู้ใช้เลือกเต็ม = ตัววัดไม่เปิดให้อีก)
+// <head> ของ index.html อ่านทั้งสองคีย์ก่อนวาดจอแรก · เทสต์: devtools/gfxcheck.js
+const GFX_HINT = { low: 'ลื่นที่สุด · ปิดฉากธีมและอนิเมชันเข้าจอ', mid: 'สมดุล · ปิดกระจกฝ้าและฉากที่ขยับ', high: 'สวยเต็มที่ · ลดลงถ้าเครื่องกระตุก' };
+function gfxLevel() {
+  const root = document.documentElement;
+  return root.dataset.quality === 'low' ? 'low' : root.dataset.lite ? 'mid' : 'high';
 }
-function syncLiteRow() {
-  const on = !!document.documentElement.dataset.lite;
-  const b = document.getElementById('liteBtn');
-  if (b) { b.textContent = on ? 'เปิดอยู่' : 'ปิดอยู่'; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }
+function setGfx(level, byUser) {
+  if (!GFX_HINT[level]) return;
+  const root = document.documentElement;
+  if (level === 'low') root.dataset.quality = 'low'; else delete root.dataset.quality;
+  if (level === 'high') delete root.dataset.lite; else root.dataset.lite = '1';
+  try { localStorage.setItem('studentos.alt.gfx', level); localStorage.setItem('studentos.alt.lite', level === 'high' ? '0' : '1'); } catch (_) {}
+  syncGfxRow();
+  if (byUser) haptic('tap');
 }
+function syncGfxRow() {
+  const cur = gfxLevel();
+  document.querySelectorAll('#gfxSeg button').forEach(b => {
+    const on = b.dataset.gfx === cur;
+    b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
+  });
+  const h = document.getElementById('gfxHint');
+  if (h) h.textContent = GFX_HINT[cur];
+}
+// ชื่อเดิม — โค้ดอื่นที่ยังเรียกอยู่ไม่พัง · สลับ = กลาง ↔ มาก แบบสวิตช์เดิม
+function toggleLite() { setGfx(gfxLevel() === 'high' ? 'mid' : 'high', true); }
+function syncLiteRow() { syncGfxRow(); }
 
 (async function initApp() {
   setTimeout(liteProbe, 3000);
@@ -18527,11 +18696,15 @@ function syncLiteRow() {
     // ทุกไอคอนห่างจากเมาส์เท่ากันหมด เลยขยายพร้อมกันทั้งแถบแล้วยกขึ้นทับกัน (เจ้าของส่งภาพมา)
     // แบบเดียวกับแถบล่าง: วัดระยะตามแกนของแถบ · ดันออกจากขอบจอ = ไปทางขวา (ต้นทางขยายอยู่ใน alt.css)
     var vert=c.cfg.flat && c.el.offsetHeight>c.el.offsetWidth;
-    var items=c.el.querySelectorAll(c.cfg.item), rowcy=null;
+    var items=Array.prototype.slice.call(c.el.querySelectorAll(c.cfg.item)), rowcy=null;
+    // 17 ต.ค. 69 · อ่านตำแหน่งให้ครบทุกตัวก่อน แล้วค่อยเขียน transform — เดิมอ่านตัวหนึ่ง เขียนตัวหนึ่ง สลับกันในลูปเดียว
+    // ทุกครั้งที่อ่านหลังเพิ่งเขียน เบราว์เซอร์ต้องคิดสไตล์+จัดผังทั้งหน้าใหม่ = 5–8 รอบต่อเฟรม ตลอดที่นิ้วแตะแถบ/กริด
+    // (CPU ช้า 12 เท่า: ลูปนี้กิน 2.5 วิในการแตะแท็บ 8 ครั้ง) · ค่าที่อ่านได้เท่าเดิม — ทุกตัวยังเป็นตำแหน่งของเฟรมก่อน
+    var rects=items.map(function(el){ return el.getBoundingClientRect(); });
     if(!c.cfg.flat && px!==null){ var best=1e9;
-      items.forEach(function(el){ var r=el.getBoundingClientRect(), d=Math.abs(py-(r.top+r.height/2)); if(d<best){best=d; rowcy=r.top+r.height/2;} }); }
-    items.forEach(function(el){
-      var r=el.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2, target=1;
+      rects.forEach(function(r){ var d=Math.abs(py-(r.top+r.height/2)); if(d<best){best=d; rowcy=r.top+r.height/2;} }); }
+    items.forEach(function(el,i){
+      var r=rects[i], cx=r.left+r.width/2, cy=r.top+r.height/2, target=1;
       if(px!==null && (c.cfg.flat || Math.abs(cy-rowcy)<12)) target=smooth(vert ? Math.abs(py-cy) : Math.abs(px-cx), c.cfg);
       var s=st.get(el)||1; s+=(target-s)*K;
       if(Math.abs(target-s)>.002) moving=true; else s=target;
@@ -18547,7 +18720,9 @@ function syncLiteRow() {
     for(var i=0;i<G.length;i++){ var el=t.closest(G[i].sel); if(el) return {el:el,cfg:G[i]}; }
     return null;
   }
-  function go(h,x,y){ cur=h; px=x; py=y; if(!raf) raf=requestAnimationFrame(tick); }
+  // 18 ต.ค. 69 · โหมดลื่น (เครื่องแรม < 4GB เปิดเอง) = ไม่ขยาย — ลูปนี้วัดตำแหน่งทุกเฟรม (บังคับจัดผัง) ตลอดที่นิ้วแตะแถบ
+  // เช็คทุกครั้งที่แตะ ไม่ใช่ตอนโหลด: เปิด/ปิดโหมดลื่นในตั้งค่าแล้วมีผลทันที · ทางออก (leave) ยังทำงาน คืนขนาดเดิมให้ครบ
+  function go(h,x,y){ if(document.documentElement.dataset.lite) return; cur=h; px=x; py=y; if(!raf) raf=requestAnimationFrame(tick); }
   function leave(){ px=null; py=null; if(cur&&!raf) raf=requestAnimationFrame(tick); }
   document.addEventListener('pointermove',function(e){
     if(e.pointerType==='touch') return;

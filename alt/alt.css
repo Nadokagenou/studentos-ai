@@ -2872,27 +2872,25 @@
    จอกว้างแล้ววางแถบไว้ล่างสุดคือเสียพื้นที่แนวตั้งฟรี ๆ
    ย้ายเป็นแถบตั้งด้านซ้าย เนื้อหาได้ความสูงคืนเต็ม ๆ
    ============================================================ */
+/* เมนูซ้าย = เต็มหน้าต่างเสมอ ไม่ต้องมีกรอบเครื่องจำลอง
+   เดิมเต็มจอเฉพาะหน้าต่างกว้างไม่เกิน 1120px (แท็บเล็ต/ไอแพด) · กว้างกว่านั้น (แล็ปท็อป · จอคอม) กลับไปเป็นกรอบเครื่องจำลอง
+   ของ style.css: กว้างแค่ 928px (ติดเพดาน .stage 960px) ขอบหนามุมมน · แถบสถานะปลอม (นาฬิกา · สัญญาณ · แบต)
+   · ข้อความใต้กรอบล้นจนทั้งหน้าเว็บเลื่อนได้และโดนตัดครึ่ง (1280×800: เลื่อนได้ 78px)
+   17 ต.ค. 69 · เจ้าของ: "ตอนที่ปุ่มอยู่ฝั่งซ้าย … หน้าไม่เต็มจอ" → ใช้กฎชุดเดียวกับแท็บเล็ตทุกขนาด
+   เนื้อหายังเป็นคอลัมน์กว้างสุด 720px อยู่กลาง (กฎข้างล่าง) จอใหญ่จึงได้พื้นหลังเต็มจอ ไม่ใช่บรรทัดยาวเกินอ่าน */
+:root[data-nav="side"] .stage { padding: 0; gap: 0; max-width: none; }
+:root[data-nav="side"] .stage-note { display: none; }
 :root[data-nav="side"] .phone {
-  width: min(1080px, 94vw);
-  height: min(820px, 90vh);
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
 }
-/* แท็บเล็ต/ไอแพด (รวมแนวตั้ง 768px): เต็มจอไปเลย ไม่ต้องมีกรอบมือถือจำลอง
-   ที่จอขนาดนี้กรอบจำลองไม่ได้ช่วยอะไร มีแต่กินพื้นที่ไปฟรี ๆ */
-@media (max-width: 1120px) {
-  :root[data-nav="side"] .stage { padding: 0; gap: 0; max-width: none; }
-  :root[data-nav="side"] .stage-note { display: none; }
-  :root[data-nav="side"] .phone {
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    max-width: none;
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
-  }
-  :root[data-nav="side"] .statusbar { display: none; }
-  :root[data-nav="side"] .tabbar { top: calc(14px + env(safe-area-inset-top)); }
-}
+:root[data-nav="side"] .statusbar { display: none; }
+:root[data-nav="side"] .tabbar { top: calc(14px + env(safe-area-inset-top)); }
 :root[data-nav="side"] .tabbar {
   top: 14px;
   bottom: 14px;
@@ -12940,11 +12938,11 @@ button.df-r:active .df-x { transform: scale(.985); }
    ------------------------------------------------------------
    • หน้าโหลด: แถบขยับด้วย transform (การ์ดจอทำเองบนเลเยอร์ของมัน) แทน width ที่ต้องคำนวณผังใหม่ทุกเฟรม
    • ของเบลอที่ขยับอยู่ตลอด (แสงฟุ้ง/ก้อนแสง) ให้มีเลเยอร์ของตัวเอง — ขยับแล้วไม่ต้องวาดเบลอใหม่
-   • โหมดลื่น (data-lite): ปุ่มสวิตช์ในตั้งค่าเป็นสีเน้นตอนเปิด
+   • โหมดลื่น (data-lite): เดิมเป็นสวิตช์ในตั้งค่า — ตอนนี้คือระดับ "กลาง" ของปุ่มกราฟิก
    ============================================================ */
 .boot .hp-fill { width: 100% !important; transform-origin: 0 50%; transform: scaleX(0); will-change: transform; }
 .hdz-halo, .hs-b { will-change: transform; }
-#liteBtn.on { background: var(--fill); color: var(--on-fill, #fff); border-color: transparent; }
+/* #liteBtn ถูกแทนด้วยปุ่มสามระดับ #gfxSeg (19 ต.ค. 69) — ดูบล็อก "ระดับกราฟิก" ท้ายไฟล์ */
 
 /* ============================================================
    หน้า "เสร็จแล้ว" (doneView · แท็บงาน › เสร็จแล้ว) — แต่งให้สวย + อนิเมชันตอนกดเข้า
@@ -14683,4 +14681,225 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 .tab-badge {
   min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;
   font: 700 10.5px/16px 'Outfit', 'Sarabun', sans-serif; font-variant-numeric: tabular-nums; letter-spacing: 0;
+}
+
+/* ---------- แผ่นเพิ่มงานที่กำลังปิด ต้องไม่บังการแตะ (17 ต.ค. 69 · คู่กับ openAddSheet/closeAddSheet ใน app.js) ----------
+   ตอนปิด แผ่นถอด .on แล้วรอตัวจับเวลา 200ms ถึงจะซ่อน — ระหว่างนั้นทั้งแผ่น (เต็มจอ · z-index 95) ยังรับการแตะ
+   ฉากหลังจางเป็น 0 แล้วจึงมองไม่เห็นว่ามีอะไรบังอยู่ · มือถือช้า ตัวจับเวลามาช้ากว่า 200ms มาก = แตะอะไรก็ไม่ติด
+   ไม่มี .on = ทะลุทั้งแผ่น · เทสต์: devtools/sheetcheck.js */
+.add-sheet:not(.on) { pointer-events: none; }
+
+/* ---------- เมนูซ้าย: แผ่นที่เลื่อนขึ้นจากล่างไม่ยืดเต็มหน้าต่าง ไม่ทับเมนู (17 ต.ค. 69) ----------
+   เจ้าของ: "ตอนที่ปุ่มอยู่ฝั่งซ้าย … อะไรต่าง ๆ ที่ยังเป็นปัญหาค้าง"
+   แผ่นทุกใบออกแบบมาสำหรับมือถือ (left:0 · right:0 / width:100%) — พอแอปเต็มหน้าต่างจอคอม แผ่นยืดตาม
+   วัดที่ 1920×1080: แผ่นเพิ่มงาน · กำลังจะเปิด · น้องฮูก · รายงาน · ติดตั้งแอป กว้าง 1920px · กล่องยืนยัน 1896px — ทุกใบทับเมนูซ้าย (x 14–106)
+   ปุ่มบนแผ่นยืดตามจนยาวเกือบเต็มจอ · ตอนนี้แผ่นอยู่ในพื้นที่ทางขวาของเมนู กว้างสุดเท่าคอลัมน์เนื้อหา (720px) อยู่กลาง
+   กล่องยืนยันแคบกว่า (480px) — คำถามสั้น ปุ่มสองปุ่ม กว้างกว่านี้ปุ่มห่างกันเกินสายตา */
+:root[data-nav="side"] :is(.as-card, .ah-card) { left: 106px; right: 0; max-width: 720px; margin-inline: auto; }
+:root[data-nav="side"] .ac-sheet { left: 106px; right: 0; max-width: 480px; margin-inline: auto; }
+:root[data-nav="side"] :is(.rp-sheet, #installGuide) { padding-left: 106px; justify-content: center; }
+:root[data-nav="side"] :is(.rp-card, .ig-sheet) { max-width: 720px; }
+
+/* ============================================================
+   ตัวหนังสืออ่านออกทุกธีม (17 ต.ค. 69)
+   ------------------------------------------------------------
+   เจ้าของ: "ตรวจสอบพวกฟอนต์หรือข้อความที่ยังไม่ชัดในแต่ละธีมและแก้ด้วย"
+   วัดด้วย devtools/textcheck.mjs — อ่านพิกเซลใต้ตัวอักษรจริง 15 ธีม × 16 จอ (~540 ชิ้นต่อธีม) เกณฑ์ DESIGN.md ข้อ 2–3
+   ก่อนแก้: สีจางเกินเกณฑ์ 77–129 ชิ้นต่อธีม · ตัวเล็กกว่า 11px 16 ชิ้น
+   รอบก่อน ๆ แก้เฉพาะธีมสว่าง/มืดทีละจุด — อีก 13 ธีมไม่เคยถูกวัด · รอบนี้แก้ที่ต้นเหตุ 5 แบบ ใช้โทเคนของธีม ไม่ไล่ใส่สีทีละธีม
+   ============================================================ */
+
+/* ① หรี่ทั้งแถวด้วย opacity เพื่อบอก "ยังไม่ได้ / ผ่านไปแล้ว / ซื้อไม่ได้" — ตัวหนังสือที่ต้องอ่านจางตามไปด้วย (1.4–2.6:1 ทุกธีม)
+     → แถวเต็มสี ตัวหนังสือใช้ --muted (≥4.5 บนการ์ดทุกธีม) · บอกสถานะด้วยเส้นประ/ไอคอนขาวดำแทน */
+.phone .tk-skin:not(.got) { opacity: 1; border-style: dashed; box-shadow: none; }
+.phone .tk-skin:not(.got) :is(.ts-nm, .ts-ct) { color: var(--muted); }
+.phone .bg-row:not(.on) { opacity: 1; }
+.phone .bg-row:not(.on) .bg-mark { filter: grayscale(1); }
+.phone .dayrow.past { opacity: 1; }
+.phone .dayrow.past :is(.dayrow-t, .dayrow-l) { color: var(--muted); font-weight: 400; }
+.phone .dayrow.past .dayrow-dot { opacity: .4; }
+.phone .tb-go.poor { opacity: 1; background: var(--card2); color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
+/* เส้นประกลางตั๋วจาง .55 ทั้งก้อน — ตัวเลขนาทีที่นั่งคร่อมเส้นจางตามไปด้วย → จางเฉพาะเส้น */
+.td-now .tk-line { opacity: 1; background: none; }
+.td-now .tk-line::before { content: ''; position: absolute; inset: 0; opacity: .55;
+  background: repeating-linear-gradient(to right, currentColor 0 4px, transparent 4px 8px); }
+.td-now .tk-line i { z-index: 1; }
+/* ป้ายเล็กบนพื้นสีเน้น (การ์ด "ทำก่อน" · การ์ดงานที่ควรทำก่อน) — เดิมจาง .72–.85 */
+.phone .wy2-k { opacity: .94; }
+.phone .wy2-stats span { opacity: .92; }
+.phone .tb-focus :is(.tb-fc-lb, .tb-fc-s) { opacity: 1; }
+
+/* ② ประกายกระจกของปุ่มหลัก/ชิปที่เลือก (1C40) ไหลลงมาถึงกลางปุ่ม = ตัวหนังสือนั่งบนพื้นที่ถูกทำให้สว่างขึ้น
+     ปุ่มหลักวัดได้ 3.8–4.2 ทั้งที่คู่สี --fill/--on-fill ของทุกธีมผ่าน 4.55+ → เก็บประกายไว้ที่ขอบบน · เงาเข้มบาง ๆ ใต้ตัวหนังสือ
+     (หน้าตากระจกเดิม: แสงมุมซ้ายบน + ไล่สว่างจากขอบบน — แค่ไม่ลงมาถึงบรรทัดตัวหนังสือ) */
+:root :is(.btn.primary, .fm-save, .sai-cta, .daysheet-go:not(.ghost), .ib-go, .fr-go, .ai-read, .cx2-scan,
+          .ep-save, .ep-face-go, .pro-cta:not(.done), .ig-btns button.pri, .ig-av-cam,
+          .cp-chip.on, .sp.active, .tk-mode.on, .rm-tab.on, .ds.on, .tg.on, .ctx-sw.on) {
+  background-image:
+    radial-gradient(110% 70% at 18% -18%, rgba(255,255,255,.42) 0%, rgba(255,255,255,.08) 45%, transparent 70%),
+    linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 32%, rgba(0,0,0,.06) 62%, rgba(0,0,0,.12)) !important;
+}
+.phone .ds.on .ds-d { color: color-mix(in srgb, var(--on-fill) 92%, transparent); }   /* "วันนี้" บนวันที่เลือก เดิม 72% */
+
+/* ③ สีตายตัวที่ไม่ตามธีม */
+.phone .td-now .tn-eyebrow { color: var(--on-fill); }   /* ชื่อวิชาบนหัวการ์ด "ตอนนี้" ขาว 80% ตายตัว — ธีมที่พื้นหัวการ์ดสว่าง (อวกาศ · Astral) มองแทบไม่เห็น 1.2:1 */
+.phone .tk-goal b { color: var(--gold-text); }   /* "10 โทเคน" อำพัน #E9A93C ตายตัว 2.0:1 → อำพันเข้มของธีม (สีเดิม เฉดอ่านออก) */
+:root:not([data-theme="astral"]) .tab-badge { background: color-mix(in srgb, var(--pri-red) 86%, #000); }   /* เลขบนจุดแดง 4.36 → แดงเข้มขึ้นนิดเดียว */
+
+/* ④ ตัวแดง/ส้มบนพื้นแดง/ส้มอ่อนของตัวเอง — คู่โทเคน --alert/--alert-soft ไม่ถึง 4.5 ใน 9 ธีม (sweet 3.6 · glitch 4.0)
+     ดึงสีตัวหนังสือเข้าหา --ink 28% — ธีมสว่างได้แดงเข้มขึ้น ธีมมืดได้แดงอ่อนลง ยังเป็นแดงเตือนเดิมทุกธีม */
+.phone :is(.tk-chip.hot, .nbadge.lv5, .tn-plan-note.warn, .wk-late-h i, .wy-sac, .bin-act .del) { color: color-mix(in srgb, var(--alert) 72%, var(--ink)); }
+.phone :is(.nbadge.lv4, .povf-head) { color: color-mix(in srgb, var(--warn) 68%, var(--ink)); }
+.phone .povf.danger .povf-head { color: color-mix(in srgb, var(--alert) 68%, var(--ink)); }
+
+/* ⑤ ตัวหนังสือที่วางบนฉากของธีมตรง ๆ (ไม่มีการ์ดรอง) — ดาวเคราะห์ · แมงกะพรุน · ปลา ลอยผ่านหลังตัวหนังสือ
+     (Astral: คำบรรยายหัวจอบนดาวเคราะห์สีเทา 1.7:1 · ทะเลลึก: "ดูแผนทั้งหมด" บนแมงกะพรุน 2.4:1)
+     → ขอบนุ่มสีพื้นจอรอบตัวอักษร (แบบชื่อสถานที่บนแผนที่) — พื้นเรียบไม่เห็นอะไรเปลี่ยน · มีของลอยผ่านตัวหนังสือยังอ่านออก */
+.phone :is(.page-head .page-sub, .hn-head > b, .hn-head > button, .home-discover b, .home-discover span span,
+           .povf-head, .tl-hint, .hn-empty) {
+  text-shadow: 0 0 1px var(--scr), 0 0 6px var(--scr), 0 0 12px var(--scr);
+}
+.phone .tl-hint b { color: var(--blue); }   /* "บอกตาราง" ใช้ --fill เป็นสีตัวหนังสือ (สีพื้นปุ่ม ไม่ใช่สีตัวหนังสือ) 3.5:1 ใน 3 ธีม */
+
+/* ตัวหนังสือจาง (--faint) บนพื้นรอง/กระจก — --faint ผ่านบนการ์ดทุกธีม แต่บน --card2 ไม่ถึง 4.5 ใน 6 ธีม → --muted */
+.phone :is(.ctx-empty, .dn-mid i, .shw i, .ab-ds, .bg-ct, .pslot .ptime .e) { color: var(--muted); }
+.phone .an-bd.got .ab-ds { opacity: 1; }   /* "ได้แล้ว" อำพันบนทองอ่อน จาง .8 */
+.phone .ai-priv-go { color: color-mix(in srgb, var(--blue) 62%, var(--ink)); }   /* ลิงก์ฟ้าบนแถบพื้นฟ้า 2.4:1 → ฟ้าที่ดึงเข้าหาสีตัวหนังสือ */
+.phone .pctx-nudge .pn-tx span { color: color-mix(in srgb, var(--ink) 74%, var(--blue)); }   /* บนพื้นฟ้าอ่อน 2.6:1 ในธีมมืด */
+
+/* ตัวหนังสือต่ำกว่า 11px ที่เป็นคำ (DESIGN.md ข้อ 3 · ต่ำกว่านี้ได้เฉพาะตัวเลขในแบดจ์) */
+.phone :is(.ts-rar, .bg-ct, .nbadge, .sh-badge, .ab-nm) { font-size: 11px; }
+#scr-profile .feature-category > span { font-size: 11px; }
+
+/* ---------- รอบ 2 (วัดซ้ำหลังรอบแรก: light 95→35 · warm 105→40 · ocean 127→74 · deepocean 90→29 · astral 77→27) ---------- */
+/* ป้ายบนแถบล่างกระจก — แถบเบลอเนื้อหาข้างหลัง: ฉากทะเลของ ocean (ป้ายเทาบนเขียวน้ำเงิน 2.0:1 ทุกจอ)
+   หรือปุ่มสีฟ้าที่เลื่อนไปอยู่หลังแถบ ("เพิ่ม" บนแสงฟ้า) → ขอบนุ่มสีการ์ดรอบตัวอักษร อ่านออกไม่ว่าอะไรอยู่ข้างหลัง */
+.tabbar .tab:not(.active) > span:last-child { text-shadow: 0 0 1px var(--card), 0 0 6px var(--card), 0 0 10px var(--card); }
+/* ชิ้นเล็กที่เลือกอยู่ (วันที่ · ปุ่มสลับมุมมอง · ชิป) — ตัวหนังสือชิดขอบบนที่มีประกาย · ธีมที่ใช้ตัวขาวเผื่อแค่ 4.55 (warm)
+   → ประกายเหลือแค่แถบบางที่ขอบบน · ป้ายบนวันที่เลือกเต็มสี (แยกลำดับด้วยขนาด ไม่ใช่ความจาง) */
+/* ต้องมี .phone — กฎกระจกของปุ่มใหญ่มี ".ig-btns button.pri" ในรายการ ความเฉพาะเลยเป็น (0,3,1)
+   ชนะกฎของชิ้นเล็ก (0,3,0) ที่เขียนทีหลัง → ชิ้นเล็กโดนประกาย/แสงในแบบปุ่มใหญ่มาตลอด (กฎ "ของชิ้นเล็ก" เดิมก็ไม่เคยทำงาน)
+   .tk-thumb = เม็ดเลื่อนของแถบสลับมุมมอง (ตัวปุ่มที่เลือกโปร่งใส สีพื้นมาจากเม็ดนี้) */
+:root .phone :is(.cp-chip.on, .sp.active, .tk-mode.on, .rm-tab.on, .ds.on, .tg.on, .ctx-sw.on, .tk-thumb) {
+  background-image: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 16%, rgba(0,0,0,.06) 55%, rgba(0,0,0,.12)) !important;
+}
+.phone .ds.on .ds-d { color: var(--on-fill); }
+/* ตัวหนังสือเล็กที่มุมสว่างของหัวการ์ดไล่สี (การ์ด "ตอนนี้" · การ์ด "ทำก่อน") — มุมซ้ายบนผสมขาว 22% ตามดีไซน์
+   ธีมตัวขาวทุกธีมได้ 3.3–3.7 ตรงนั้น (ชื่องานตัวใหญ่ผ่านเกณฑ์ตัวใหญ่อยู่แล้ว) · ลดมุมสว่างจนผ่านทุกธีม = ต้องเอามุมสว่างออกหมด
+   → คงไล่สีไว้ ใส่เงานุ่มสีเข้มของพื้นการ์ดเองใต้ตัวหนังสือเล็ก (แบบตัวขาวบนรูปถ่ายของ iOS)
+   เฉพาะ 8 ธีมที่ใช้ตัวขาวบนพื้นการ์ด — ธีมตัวเข้ม (อวกาศ · เวทมนตร์ · กาแล็กซี · ทะเลลึก · meta · glitch · Astral) มุมสว่าง = ยิ่งชัด
+   ใส่เงาเข้มใต้ตัวเข้มแล้วกลายเป็นรอยเปื้อน (ดูภาพแล้ว) · เพิ่มธีมตัวขาวใหม่ = เติมชื่อในรายการนี้ด้วย */
+:root:is(:not([data-theme]), [data-theme="light"], [data-theme="dark"], [data-theme="warm"], [data-theme="earth"],
+         [data-theme="ocean"], [data-theme="earth2"], [data-theme="sweet"], [data-theme="genesis"])
+  :is(.phone .td-now .tn-head .tn-eyebrow, .phone .wy2-hero .wy2-k) {
+  text-shadow: 0 0 1px color-mix(in srgb, var(--fill) 40%, #000), 0 0 3px color-mix(in srgb, var(--fill) 55%, #000), 0 0 8px color-mix(in srgb, var(--fill) 65%, #000);
+}
+/* วงสถิติ "รวม · ชม." — กฎของ #statFull ใช้ตัวหลักจาง 55% (3.9:1) ชนะกฎรวมข้างบนด้วย id */
+#statFull .dn-mid i { color: var(--muted); }
+/* เวลาในไทม์ไลน์ที่ยังไม่ใส่ตาราง ("06:00 ตื่นนอน") วางบนฉากตรง ๆ — ปลาในธีมทะเลว่ายผ่าน */
+.phone .dayrow :is(.dayrow-t, .dayrow-l) { text-shadow: 0 0 1px var(--scr), 0 0 6px var(--scr), 0 0 12px var(--scr); }
+/* ตัวรองบนพื้นอมสี/กระจกที่ได้ 4.2–4.45 (เฉียดเกณฑ์) — --muted เข้มขึ้นอีกนิด ยังเป็นระดับรองเหมือนเดิม */
+.phone :is(.ctx-empty, .pslot .ptime .e, .tk-chip:not(.hot), .sd-tx span, .st-tx span, .tb-grp > b, .tb-grp > button, .tn-plan-note:not(.warn), .sd-all, .sh-badge) {
+  color: color-mix(in srgb, var(--muted) 70%, var(--ink));
+}
+/* รอบ 3 · ชิ้นเล็กที่เลือก: เงาขาวด้านใน 12px ท่วมทั้งเม็ด (ปุ่มสูง ~32px) → ตัวหนังสือนั่งบนพื้นที่สว่างขึ้นทั้งเม็ด 3.5:1
+   → แสงในเหลือแค่ขอบ (6px · จางลง) ยังเห็นเป็นเม็ดกระจกเหมือนเดิม */
+:root .phone :is(.cp-chip.on, .sp.active, .tk-mode.on, .rm-tab.on, .ds.on, .tg.on, .ctx-sw.on, .ig-av-cam) {
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,.55), inset 0 -1.5px 3px rgba(0,0,0,.14),
+    inset 0 0 6px rgba(255,255,255,.06), 0 0 0 .5px var(--lgb-edge, transparent) !important;
+}
+/* เม็ดเลื่อน: แสงในเหลือแค่ขอบเหมือนกัน — ยกเว้น meta/glitch ที่ตั้งเรืองแสงนีออนของเม็ดไว้เป็นเอกลักษณ์ธีม */
+:root:not([data-theme="meta"]):not([data-theme="glitch"]) .phone .tk-thumb {
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,.55), inset 0 -1.5px 3px rgba(0,0,0,.14),
+    inset 0 0 6px rgba(255,255,255,.06), 0 0 0 .5px var(--lgb-edge, transparent) !important;
+}
+/* เม็ดเลื่อนที่ตั้งใจให้ปุ่มที่เลือกโปร่งใส — อย่าให้กฎบนไปใส่พื้นซ้อนให้ตัวปุ่ม (ปุ่มยังโปร่ง สีมาจากเม็ด) */
+:root .phone .tk-modes.has-thumb .tk-mode.on { background-image: none !important; box-shadow: none !important; }
+/* รอบ 3 · ข้อความรองที่วางบนฉากของธีมตรง ๆ — ฉากจริง (แสงลอดน้ำ · ไล่สีก้นจอ · ผลึกของ genesis) เข้มกว่าโทเคน --scr มาก
+   --muted ที่ผ่านบน --scr จึงไม่ผ่านบนฉากจริง (ocean "สำรวจแอป" 2.7 · earth "เข้านอน" 2.4 · genesis "บอกตาราง" 3.0)
+   → ดึงเข้าหาตัวหลัก (--ink) ครึ่งทาง ยังเบากว่าหัวข้อ · ขอบนุ่มสีพื้นจอจากรอบแรกยังอยู่ */
+.phone :is(.page-head .page-sub, .home-discover span span, .hn-head > button, .hn-empty, .dayrow-t, .dayrow-l, .th-sub, .sh-sub) {
+  color: color-mix(in srgb, var(--muted) 50%, var(--ink));
+}
+.phone .dayrow.past :is(.dayrow-t, .dayrow-l) { color: color-mix(in srgb, var(--muted) 62%, var(--ink)); }
+.phone .tl-hint b { color: color-mix(in srgb, var(--blue) 55%, var(--ink)); }
+/* หัวจอไล่สีของ genesis — คราม → ฟ้าอมเขียวอ่อน บนฉากลาเวนเดอร์ 1.1:1 (วัดหลังให้ตัววัดอ่านตัวหนังสือไล่สีได้)
+   → โทนเดิม (คราม · น้ำเงิน · ฟ้าอมเขียว) เฉดเข้มขึ้น ทุกจุดของไล่สีผ่านเกณฑ์ตัวใหญ่ 3:1 */
+:root[data-theme="genesis"] { --id-title-ink: linear-gradient(100deg, #1E2A8C, #2F3FB5 50%, #0B4A5E); }
+/* รอบ 4 · ป้ายเล็กบนหัวการ์ดไล่สี ("ทำก่อน" · "ที่ต้องใช้" · ชื่อวิชา) ยัง 3.5–4.0 ในธีมตัวขาว แม้มีเงารอง
+   → เต็มสี + มุมสว่างผสมขาวน้อยลง (22% → 12%) ทั้งสองการ์ดพร้อมกัน (เจ้าของสั่งให้สองใบนี้หน้าตาเดียวกัน) · มุมเข้มขวาล่างคงเดิม */
+.phone .wy2-k, .phone .wy2-stats span { opacity: 1; }
+.phone .td-now .tn-head, .phone .wy2-hero {
+  background: linear-gradient(140deg,
+    color-mix(in srgb, var(--fill) 88%, #fff) 0%,
+    var(--fill) 55%,
+    color-mix(in srgb, var(--fill) 78%, #000) 100%);
+}
+:root:is(:not([data-theme]), [data-theme="light"], [data-theme="dark"], [data-theme="warm"], [data-theme="earth"],
+         [data-theme="ocean"], [data-theme="earth2"], [data-theme="sweet"], [data-theme="genesis"]) .phone .wy2-hero .wy2-stats span { text-shadow: 0 0 1px color-mix(in srgb, var(--fill) 40%, #000), 0 0 6px color-mix(in srgb, var(--fill) 60%, #000); }
+/* แถวกิจวัตรในไทม์ไลน์ (ฉาก glitch/ทะเล/ผลึก) ยัง 3.7–4.2 → เข้าใกล้ตัวหลักอีก */
+.phone .dayrow :is(.dayrow-t, .dayrow-l), .phone .dayrow.past :is(.dayrow-t, .dayrow-l) { color: color-mix(in srgb, var(--muted) 30%, var(--ink)); }
+
+/* รอบ 5 (วัดครบ 15 ธีมไม่มีงานอื่นซ้อน: 1,494 → 330) */
+/* เงาใต้ "พรุ่งนี้ · กำหนดส่ง" เดิมใส่ทุกธีม — ธีมตัวเข้มได้เงาเข้มใต้ตัวเข้ม 2.8:1 → จำกัดเฉพาะธีมตัวขาว (แก้ที่กฎข้างบนแล้ว) */
+/* "เพิ่ม" บนแถบล่าง — เนื้อหาสีเข้มที่เลื่อนไปอยู่หลังกระจก (ปุ่มฟ้า "ถ่ายรูปตารางเรียน") ยังกลบได้ 2.5 → ขอบนุ่มหนาขึ้น */
+.tabbar .tab:not(.active) > span:last-child { text-shadow: 0 0 1px var(--card), 0 0 2px var(--card), 0 0 4px var(--card), 0 0 8px var(--card), 0 0 12px var(--card); }
+/* หัวจอไล่สีของ earth2 — ปลายเขียวอ่อน 2.7:1 (เกณฑ์ตัวใหญ่ 3) → เขียวเดิม เฉดเข้มขึ้น */
+:root[data-theme="earth2"] { --id-title-ink: linear-gradient(100deg, #1E5B2E, #3B7F2B); }
+/* ตัวรอง/ลิงก์ที่เหลือ 2.9–4.4 ในบางธีม — ดึงเข้าหาตัวหลัก */
+.phone :is(.ai-hello p, .pctx-note, .ai-priv-tx, .wy2-n, .tb-more, .sh-badge) { color: color-mix(in srgb, var(--muted) 45%, var(--ink)); }
+.phone :is(.ai-priv-go, .tl-hint b) { color: color-mix(in srgb, var(--blue) 45%, var(--ink)); }
+.phone .povf-head { color: color-mix(in srgb, var(--warn) 50%, var(--ink)); }
+.phone .tk-chip.warm { color: color-mix(in srgb, var(--warn) 60%, var(--ink)); }
+/* รอบ 6 · ป้าย "ไม่ทัน/แน่น" ในหัววันของไทม์ไลน์วางลอยบนฉากตรง ๆ พื้นป้ายโปร่ง 26% — ธีมมืดของในฉากลอยผ่านหลังป้าย 2.4:1
+   → พื้นป้ายทึบ (สีเตือนผสมพื้นการ์ด) ไม่ขึ้นกับฉาก */
+.phone .dayvd-h .tk-chip.hot { background: color-mix(in srgb, var(--alert) 22%, var(--card)); }
+.phone .dayvd-h .tk-chip.warm { background: color-mix(in srgb, var(--warn) 22%, var(--card)); }
+/* ป้ายแถบล่าง — แถบไม่มีสีพื้นของตัวเอง (โปร่ง + เบลอ + เร่งสี 2 เท่า) ปุ่มสีที่เลื่อนไปหลังแถบกลายเป็นพื้นสีสด
+   ขอบนุ่มอย่างเดียวได้ 2.7 → ตัวป้ายเข้มขึ้นหนึ่งระดับ (--faint → --muted) */
+:root:not([data-nav="side"]) .tabbar .tab:not(.active) { color: var(--muted); }
+
+/* ---------- ปุ่ม "เปิดแอปหลัก" (ตั้งค่า › แจ้งเตือน) · 18 ต.ค. 69 ----------
+   เจ้าของ: "แก้ให้ตรงและสวยหน่อย" — ปุ่มนี้เป็น <a> ตัวเดียวในแอปที่ใช้หน้าตา .btn
+   <button> จัดตัวหนังสือกึ่งกลางแนวตั้งให้เอง แต่ <a> เป็น display:block บรรทัดสูง 23px ในปุ่มสูง 34px
+   → ตัวหนังสือกองอยู่ข้างบน + มีขีดเส้นใต้ของลิงก์ติดมา
+   → จัดกึ่งกลางด้วย inline-flex เหมือนปุ่มข้าง ๆ · ลูกศรเฉียงขึ้น (↗) บอกว่าพาออกไปแอปอื่น */
+.phone a.btn.open-main {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  width: auto; min-height: 34px; padding: 0 12px 0 14px; flex-shrink: 0;
+  line-height: 1; white-space: nowrap; text-decoration: none;
+}
+.phone a.btn.open-main svg {
+  width: 13px; height: 13px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+  transform: rotate(45deg); opacity: .75;
+}
+
+/* ============================================================
+   ระดับกราฟิก น้อย · กลาง · มาก (ตั้งค่า › กราฟิก) · 19 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ: "ทำให้มีปุ่มสามารถปรับกราฟิกหรือความสวยได้หน่อย และก็ปรับตามนั้น มี น้อย กลาง มาก"
+   กลาง = กฎ :root[data-lite] เดิมทั้งหมด · น้อย = กลาง + ข้างล่างนี้ (:root[data-quality="low"] — ห้ามใช้ data-gfx: ธีม glitch ใช้สั่นจอแล้วลบทิ้ง) · ตัวควบคุมอยู่ที่ setGfx (app.js)
+   ปุ่มแบ่งช่องหน้าตาเดียวกับปุ่ม 2D/3D ของเอฟเฟกต์ (.fx-seg) และแถบสลับมุมมองงาน — แบบที่แอปใช้อยู่แล้ว ไม่ใช่ปุ่มแบบใหม่
+   ============================================================ */
+.gfx-row { flex-wrap: wrap; row-gap: 10px; }
+.gfx-row .set-lb { flex: 1; min-width: 0; }
+.gfx-seg { flex: 0 0 calc(100% - 48px); box-sizing: border-box; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 3px; margin-left: 48px;
+  border-radius: 999px; background: var(--card2); box-shadow: inset 0 0 0 1px var(--line); }
+.gfx-seg button { min-height: 36px; border: 0; border-radius: 999px; background: none; color: var(--muted);
+  font: 700 13.5px/1 'Sarabun', 'Leelawadee UI', sans-serif; cursor: pointer; transition: background-color .18s ease, color .18s ease; }
+.gfx-seg button.active { background: var(--fill); color: var(--on-fill); box-shadow: 0 2px 8px -4px color-mix(in srgb, var(--fill) 70%, transparent); }
+.gfx-seg button:active { transform: scale(.97); }
+:root[data-nav="side"] .gfx-seg { margin-left: 0; flex-basis: 100%; }
+
+/* น้อย: ไม่วาดฉากของธีมเลย (กลางแค่หยุดนิ่ง) — สีพื้นของธีมยังอยู่ */
+:root[data-quality="low"] :is(.fx, .starfield) { display: none !important; }
+/* น้อย: ไม่มีอนิเมชันเข้าจอ — จอใหม่โผล่ทันที
+   ชิ้นที่ไล่เข้าทีละชิ้น "เล่นจบทันที" (ไม่ใช่ animation:none) — บางชิ้นเริ่มจากโปร่งใสแล้วให้อนิเมชันพาให้เห็น
+   ปิดทิ้งเฉย ๆ จะค้างโปร่งใส · จบทันที = ไปอยู่ท่าสุดท้ายเสมอ */
+:root[data-quality="low"] .screen.on { animation: none !important; }
+:root[data-quality="low"] :is(.screen.just-in, .screen.fx-in) :is(*, *::before, *::after) {
+  animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important;
 }

@@ -40,10 +40,14 @@
         : 'light');
       document.documentElement.dataset.theme = t;
       // โหมดเครื่องเบา — ต้องติดก่อนวาดจอแรก ไม่งั้นเครื่องช้าได้วาดของหนักไปหนึ่งรอบก่อนถูกถอด
-      // ธงมาจากการวัดจริงรอบก่อน (liteProbe ใน app.js) · แรม ≤2GB (Chrome บอกได้) = เบาตั้งแต่ครั้งแรก
+      // ธงมาจากการวัดจริงรอบก่อน (liteProbe ใน app.js) · แรมต่ำกว่า 4GB (Chrome บอกได้) = เบาตั้งแต่ครั้งแรก
+      // Chrome ปัดแรมลงเป็นเลขยกกำลังสอง (3GB → 2 · เครื่องที่ขายว่า 4GB แต่ระบบเห็น 3.7 → 2) จึงได้แค่ 2 หรือ 4 — < 4 คือ "ต่ำกว่า 4GB" ตรงตัว
       try {
         var lf = localStorage.getItem('studentos.alt.lite');   // '0' = ผู้ใช้ปิดเองในตั้งค่า
-        if (lf === '1' || (lf !== '0' && navigator.deviceMemory && navigator.deviceMemory <= 2))
+        // 19 ต.ค. 69 · ระดับกราฟิก (ตั้งค่า › กราฟิก): low = ลดเพิ่มจากโหมดลื่น · mid = โหมดลื่น · high = เต็ม
+        var gf = localStorage.getItem('studentos.alt.gfx');
+        if (gf === 'low') document.documentElement.dataset.quality = 'low';
+        if (gf === 'low' || gf === 'mid' || (gf !== 'high' && (lf === '1' || (lf !== '0' && navigator.deviceMemory && navigator.deviceMemory < 4))))
           document.documentElement.dataset.lite = '1';
       } catch (e) {}
       // 11 ต.ค. 69 · iPhone ซูมจอเข้าเองทุกครั้งที่แตะช่องพิมพ์ที่ตัวหนังสือเล็กกว่า 16px แล้วค้างซูมไว้หลังพิมพ์เสร็จ
@@ -1822,7 +1826,7 @@
             <div class="set-row" id="notifRow">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-plug"/></svg></span>
               <span class="set-lb">สถานะ<i id="notifStatus">ยังไม่ได้เปิด</i></span>
-              <a class="btn secondary sm" style="width:auto;min-height:34px;padding:0 12px;flex-shrink:0" href="../">เปิดแอปหลัก</a>
+              <a class="btn secondary sm open-main" href="../">เปิดแอปหลัก<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-arrow-up"/></svg></a>
               <button class="btn secondary sm" id="notifTest" style="width:auto;min-height:34px;padding:0 12px;display:none"
                 onclick="testNotify()">ทดสอบ</button>
               <button class="btn secondary sm" id="notifBtn" style="width:auto;min-height:34px;padding:0 14px" onclick="enableNotif()">เปิด</button>
@@ -1894,11 +1898,16 @@
               <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
             <!-- 9 ต.ค. 69 · โหมดลื่น (โหมดเครื่องเบา) — แอปเปิดให้เองเมื่อวัดได้ว่าเครื่องกระตุก (liteProbe/liteWatch)
                  สวิตช์นี้ให้คนใช้ตัดสินเองได้ทั้งสองทาง · ปิดเอง = ตัววัดจะไม่เปิดให้อีก -->
-            <div class="set-row" id="liteRow">
+            <!-- 19 ต.ค. 69 · เจ้าของ: "ทำให้มีปุ่มปรับกราฟิกหรือความสวยได้ มี น้อย กลาง มาก"
+                 สวิตช์โหมดลื่นเดิม (เปิด/ปิด) กลายเป็นสามระดับ · กลาง = โหมดลื่นเดิมทุกอย่าง (ดู setGfx ใน app.js) -->
+            <div class="set-row gfx-row" id="liteRow">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-zap"/></svg></span>
-              <span class="set-lb">โหมดลื่น<i>ลดเอฟเฟกต์ที่กินแรง ให้เครื่องไม่แรงลื่นขึ้น</i></span>
-              <button class="btn secondary sm" id="liteBtn" style="width:auto;min-height:34px;padding:0 14px"
-                onclick="toggleLite()" aria-pressed="false">ปิดอยู่</button>
+              <span class="set-lb">กราฟิก<i id="gfxHint">สวยเต็มที่ · ลดลงถ้าเครื่องกระตุก</i></span>
+              <div class="gfx-seg" id="gfxSeg" role="group" aria-label="ระดับกราฟิก">
+                <button type="button" data-gfx="low" onclick="setGfx('low', true)" aria-pressed="false">น้อย</button>
+                <button type="button" data-gfx="mid" onclick="setGfx('mid', true)" aria-pressed="false">กลาง</button>
+                <button type="button" data-gfx="high" onclick="setGfx('high', true)" aria-pressed="false">มาก</button>
+              </div>
             </div>
           </div>
 
@@ -2321,6 +2330,8 @@
   </p>
 </div>
 
+<!-- มือถือรุ่นเก่า (iOS 15) — เติมของที่เบราว์เซอร์ไม่มี + คำนวณสี color-mix ให้ · เครื่องที่มีครบไม่ทำอะไร · ต้องมาก่อน staff-news.js -->
+<script src="compat.js"></script>
 <script src="staff-news.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>

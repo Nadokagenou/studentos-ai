@@ -22,7 +22,10 @@ const caches = {
 const ctx = vm.createContext({ URL, location: { origin: 'https://example.test' }, caches,
   fetch: async () => { throw new Error('offline'); },
   self: { addEventListener: (event, fn) => { handlers[event] = fn; },
-    skipWaiting: async () => {}, clients: { claim: async () => {} } },
+    skipWaiting: async () => {}, clients: { claim: async () => {} },
+    // 17 ต.ค. 69 · sw.js ตอน activate อ่าน self.registration.pushManager (ถอด push ของ ALT — 16 ต.ค. "รับแจ้งเตือนจากแอปหลักเท่านั้น")
+    // ตัวจำลองเดิมไม่มี registration เทสต์จึงพังตั้งแต่ activate ก่อนได้ตรวจอะไร · ไม่มี pushManager = เครื่องที่ไม่รองรับ push
+    registration: { pushManager: null } },
 });
 vm.runInContext(fs.readFileSync(path.join(base, 'sw.js'), 'utf8'), ctx);
 async function lifeCycle(event) {
