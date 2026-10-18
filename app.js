@@ -4605,12 +4605,33 @@ function setTaskDay(k) {
 function aiContext(now = new Date()) {
   const L = [];
   const p = typeof ctxPrefs === 'function' ? ctxPrefs() : {};
-  const pend = sortByPriority(pendingTasks(), now);
+  // คำแนะนำต้องมาจากแผนเดียวกับการ์ดหน้าแรก ไม่จัดใหม่จากคะแนนลอย ๆ
+  const sp = focusPlan(now);
+  const pending = pendingTasks();
+  const planned = [sp.now && sp.now.task,
+    ...sp.plan.slots.filter(s => !s.break).map(s => s.task),
+    ...sp.later, ...pending].filter(Boolean);
+  const seen = new Set();
+  const pend = planned.filter(t => {
+    if (seen.has(t.id)) return false;
+    seen.add(t.id);
+    return pending.some(p => p.id === t.id);
+  });
   const live = liveTasks();
 
   L.push('## ตัวผู้ใช้');
   L.push('- ชื่อที่ใช้เรียก: ' + (who() || 'ยังไม่ได้บอกชื่อ'));
   L.push('- วันนี้: ' + fmtThaiDate(now) + ' เวลา ' + fmtClock(now));
+
+  L.push('## คำแนะนำจากแผนกลางเดียวกับหน้าแรก');
+  L.push('- เมื่อถามว่าควรทำอะไรก่อน ให้ยึดงานแรกด้านล่าง ไม่จัดลำดับใหม่จากแค่เส้นตายหรือคะแนน');
+  L.push('- ถ้าผู้ใช้เพิ่มเงื่อนไขใหม่ ให้บอกให้ชัดว่าเป็นข้อเสนอใหม่ที่ต่างจากแผนเดิม');
+  L.push('- งานแรก: ' + (sp.now ? taskTitleText(sp.now.task) : 'ยังไม่มีงานที่แผนเสนอให้ทำตอนนี้'));
+  if (sp.now) L.push('- เหตุผลของแผน: ' + whyList(sp.now.info).join(' · '));
+  if (sp.now && sp.now.slot) L.push('- ช่วงที่แผนจัดไว้: ' + fmtClock(new Date(sp.now.slot.start))
+    + '–' + fmtClock(new Date(sp.now.slot.end)));
+  if (sp.next) L.push('- งานถัดไป: ' + taskTitleText(sp.next.task));
+  L.push('- เวลาบนแผนเป็นค่าประเมินจากข้อมูลที่มี ไม่ใช่การรับประกันว่าจะทำทัน');
 
   L.push('## เวลาประจำวัน');
   L.push('- ตื่น ' + (p.wake || '—') + ' · เข้านอน ' + (p.sleep || '—')
