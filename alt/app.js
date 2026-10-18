@@ -4734,10 +4734,23 @@ function aiContext(now = new Date()) {
     L.push('- เวลาว่างที่เหลือวันนี้: ' + humanMin(freeMinutes(now, now)));
   }
 
+  // 18 ต.ค. 69 · วันนี้ต่างจากสัปดาห์ปกติยังไง — ปิดเทอม · ไม่ไปโรงเรียน · ช่วงที่ไม่อยู่
+  // ไม่มีหัวข้อนี้ น้องไซเห็นแต่ตารางเรียนแล้วจัดวันให้เหมือนเปิดเทอมทุกวัน (เจ้าของเจอเองตอนปิดเทอม)
+  if (typeof ctxDayLines === 'function') {
+    L.push('## บริบทวันนี้');
+    for (const ln of ctxDayLines(now)) L.push('- ' + ln);
+  }
+  const brkNow = typeof ctxBreakOn === 'function' ? ctxBreakOn(now) : null;
+  const dayNow = typeof ctxDay === 'function' ? ctxDay(now) : null;
+  const onBreak = !!brkNow && !(dayNow && dayNow.school === true);
+
   const cls = typeof ctxClasses === 'function' ? ctxClasses() : [];
   L.push('## ตารางเรียน (' + cls.length + ' คาบ)');
-  if (!cls.length) L.push('- ยังไม่ได้บอกตารางเรียน เวลาว่างข้างบนเป็นค่าเดา ไม่ใช่ของจริง');
-  for (const c of cls) {
+  if (onBreak) {
+    L.push('- ปิดเทอมอยู่ถึงก่อนวันที่ ' + ctxThaiDate(ctxAddDays(brkNow.to, 1))
+      + ' ช่วงนี้ไม่มีคาบเรียน อย่าจัดเวลาให้ไปโรงเรียน');
+  } else if (!cls.length) L.push('- ยังไม่ได้บอกตารางเรียน เวลาว่างข้างบนเป็นค่าเดา ไม่ใช่ของจริง');
+  for (const c of onBreak ? [] : cls) {
     const wd = c.weekday == null ? 'ทุกวัน'
       : (Array.isArray(c.weekday) ? c.weekday : [c.weekday]).map(d => WEEKDAY_SHORT[d]).join(',');
     L.push('- ' + wd + ' ' + c.start + '–' + c.end + ' ' + (c.subject || 'เรียน'));

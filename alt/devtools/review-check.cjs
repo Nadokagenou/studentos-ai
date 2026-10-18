@@ -104,7 +104,7 @@ console.log(`Draw recovery: ${checks}/${checks}`);
 const english = { id: 'en', detail: 'เขียนเรียงความ', estMin: 30 };
 const math = { id: 'math', detail: 'คณิตข้อ 1-5', estMin: 20 };
 const future = { id: 'later', detail: 'อ่านสอบ', estMin: 60, scorePct: 25 };
-function contextFor(plan) {
+function contextFor(plan, extra = {}) {
   const ctx = vm.createContext({
     focusPlan: () => plan, pendingTasks: () => [math, english, future], liveTasks: () => [],
     sortByPriority() { throw new Error('AI ห้ามจัดลำดับแข่งกับแผนกลาง'); },
@@ -112,6 +112,7 @@ function contextFor(plan) {
     fmtClock: d => d.toISOString().slice(11, 16), taskTitleText: t => t.detail,
     priorityInfo: () => ({ stars: 3 }), priorityLabel: () => 'สำคัญ',
     whyList: info => info.reasons, humanMin: String, calKey: () => '2026-10-15',
+    ...extra,
   });
   vm.runInContext(section('function aiContext(', '// ---------- เรียกน้องไซ'), ctx);
   return vm.runInContext('aiContext(new Date("2026-10-15T07:00:00Z"))', ctx);
@@ -135,6 +136,19 @@ checkAI('งานนอกแผนยังอยู่ในบริบท�
 checkAI('เมื่อแผนไม่มีงานแรก AI ไม่แต่งงานแรกจากคะแนนเอง', () => {
   const s = contextFor({ now: null, next: null, plan: { slots: [] }, later: [math, english, future] });
   assert.ok(s.includes('- งานแรก: ยังไม่มีงานที่แผนเสนอให้ทำตอนนี้'));
+});
+checkAI('ช่วงปิดเทอม บริบท AI บอกวันนี้และไม่ลิสต์คาบเรียน', () => {
+  const s = contextFor(canonical, {
+    ctxClasses: () => [{ weekday: 1, start: '08:00', end: '15:00', subject: 'ฟิสิกส์' }],
+    ctxBreakOn: () => ({ from: '2026-10-01', to: '2026-11-01' }),
+    ctxDay: () => null,
+    ctxDayLines: () => ['ปิดเทอมอยู่ · เปิดเทอม 2 พ.ย.'],
+    ctxThaiDate: () => '2 พ.ย.', ctxAddDays: () => '2026-11-02',
+    WEEKDAY_SHORT: ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'],
+  });
+  assert.match(s, /## บริบทวันนี้/);
+  assert.match(s, /ปิดเทอม/);
+  assert.doesNotMatch(s, /ฟิสิกส์/);
 });
 console.log(`AI plan context: ${aiChecks}/${aiChecks}`);
 process.exitCode = parsed.fails.length ? 1 : 0;
