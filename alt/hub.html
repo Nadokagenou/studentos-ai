@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>StudentOS AI — ลิงก์ทั้งหมด</title>
 <meta name="description" content="ทางเข้าทุกอย่างของ StudentOS AI — เปิดแอป สมัครเป็นผู้ทดสอบใน Discord ติดตามใน Instagram / TikTok ทัก LINE และสนับสนุนค่าเซิร์ฟเวอร์">
-<meta name="theme-color" content="#F7F8FC">
+<meta name="theme-color" content="#EAF3FF">
 <link rel="icon" href="icon-192.png">
 <link rel="canonical" href="https://nadokagenou.github.io/studentos-ai/alt/hub.html">
 <meta property="og:type" content="website">
@@ -16,127 +16,207 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;800;900&family=Nunito:wght@700;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap">
 
 <style>
 /* ════════════════════════════════════════════════════════════
    หน้ารวมลิงก์ — ประตูหน้าสุด ใช้แปะใน bio ของ IG / TikTok
 
-   ยืมชุดสีกับรูปทรงจาก land.html ทั้งชุด (60/30/10 · น้ำเงินโลโก้เป็น 10%
-   ขอบเข้มหนา ปุ่มมีสันสามมิติ) เพื่อให้คนที่กดจากไบโอแล้วเด้งเข้าหน้าแนะนำ
-   ไม่รู้สึกว่าเดินข้ามไปคนละเว็บ · คัดลอกโทเคนมาไว้ในไฟล์นี้แทนที่จะแชร์ไฟล์
-   CSS เพราะหน้านี้ต้องโหลดจบก่อนคนกดปุ่มแรก และมันมีของอยู่ไม่กี่ชิ้น
+   19 ต.ค. 69 · เจ้าของ: "อยากให้ปรับ เอาคล้าย ๆ หน้า land ทำให้มันเข้ากัน"
+   รุ่นก่อนยืมชุดขอบดำหนา + ปุ่มสันสามมิติจาก land.html รุ่นแรก — แต่ land เปลี่ยนเป็น
+   "ฟ้าพาสเทลแบบในแอป" ไปตั้งแต่ 9 ต.ค. แล้ว คนกดจากไบโอเลยเด้งข้ามสองโลก
+   (หน้านี้ยังกลายเป็นธีมมืดตามเครื่องด้วย ขณะที่ land สว่างเสมอ)
+   ตอนนี้ยกภาษาภาพของ land มาทั้งชุด:
+   • พื้นฟ้าอ่อนไล่ลงขาว · ก้อนแสงฟ้าลอยช้า · เมฆ · ดาวเคราะห์มีวงแหวน · ประกายดาว
+   • ป้ายแคปซูลขอบไล่สี · คำว่า AI ไล่สีน้ำเงิน→ฟ้า (แบบคำสำคัญในหัวเรื่อง land)
+   • ปุ่มหลัก = ปุ่มสมัครของ land (ไล่สีน้ำเงิน + รัศมีวนรอบ)
+   • แถวลิงก์ = การ์ดกระจกขอบสว่าง ไอคอนเส้นในกล่องไล่สี (land ถอดอีโมจิออกจากการ์ดแล้ว)
+   • สว่างอย่างเดียว เหมือน land · ลดการเคลื่อนไหว = ทุกอย่างนิ่ง
+   • ฟอนต์ Sarabun ชุดเดียวกับ land และในแอป (เดิม Noto Sans Thai + Nunito) · หัวข้อไม่บีบระยะตัวอักษร — สระบน/วรรณยุกต์เบียดกัน
+   คัดลอกโทเคนมาไว้ในไฟล์นี้แทนที่จะแชร์ไฟล์ CSS — หน้านี้ต้องโหลดจบก่อนคนกดปุ่มแรก
    ════════════════════════════════════════════════════════════ */
 :root{
-  --scr:#F7F8FC; --card:#FFFFFF; --card2:#EDF1F9;
-  --ink:#1B2030; --muted:#666C7E;
-  --edge:#1B2030; --edge-w:2.5px;
-  --plate:#FFFFFF;
-  --acc:#0657DC; --acc-soft:#E3EBFF;
-  --cardacc:#0657DC; --on-cardacc:#FFFFFF; --on-cardacc-dim:rgba(255,255,255,.82);
+  color-scheme: light;
+  --ink:#0F1E3D; --muted:#55627E; --faint:#7A88A6;
+  --blue:#2563EB; --navy:#1D4ED8; --aqua:#22D3EE;
 }
-@media (prefers-color-scheme:dark){
-  :root{
-    --scr:#070C1A; --card:#16233F; --card2:#1F2F52;
-    --ink:#EDF1F8; --muted:#9AA6BE;
-    --edge:#00060F; --plate:#F4F6FB;
-    --acc:#2C6FEA; --acc-soft:rgba(78,146,255,.17);
-    --on-cardacc-dim:rgba(255,255,255,.80);
-  }
-}
+@property --ha { syntax:'<angle>'; inherits:false; initial-value:0deg; }
+@keyframes ha-spin { to { --ha:360deg; } }
 *{box-sizing:border-box}
+html{background:#F3F8FF}
 body{
-  margin:0; background:var(--scr); color:var(--ink); min-height:100vh;
-  font-family:'Noto Sans Thai','Nunito','IBM Plex Sans Thai',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  font-weight:600; line-height:1.6; -webkit-font-smoothing:antialiased;
-  padding:28px 18px 56px;
-}
-body::before{
-  content:''; position:fixed; inset:-30% 0 auto; height:70vh; z-index:-1; pointer-events:none;
-  background:radial-gradient(48% 46% at 50% 60%, var(--acc-soft), transparent 72%);
+  margin:0; min-height:100vh; position:relative; isolation:isolate; overflow-x:hidden;
+  background:linear-gradient(180deg,#EAF3FF 0%,#F6FAFF 34%,#FFFFFF 70%);
+  color:var(--ink);
+  font-family:'Sarabun','Leelawadee UI',-apple-system,'Segoe UI',sans-serif;
+  font-weight:500; line-height:1.55; -webkit-font-smoothing:antialiased;
+  padding:44px 18px 56px;
 }
 img{max-width:100%; display:block}
 a{text-decoration:none; color:inherit}
-h1{margin:0; font-size:26px; font-weight:900; letter-spacing:-.6px}
-.wrap{width:min(520px,100%); margin-inline:auto}
+.wrap{position:relative; z-index:1; width:min(480px,100%); margin-inline:auto}
 
-/* ── หัวหน้า ── */
-.head{text-align:center; margin-bottom:26px}
+/* ── ฉากหลัง (ชุดเดียวกับ .aura ของ land) · ตรึงกับจอ เลื่อนแล้วฉากอยู่ที่เดิม ── */
+.aura{position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none}
+.aura .blob{position:absolute; border-radius:50%; filter:blur(60px); opacity:.55; will-change:transform; animation:blob-drift 16s ease-in-out infinite alternate}
+.aura .b1{width:460px; height:460px; left:-160px; top:-120px; background:radial-gradient(circle,#BAE6FD,transparent 70%)}
+.aura .b2{width:520px; height:520px; right:-200px; top:120px; background:radial-gradient(circle,#93C5FD,transparent 70%); animation-duration:19s; animation-delay:-6s}
+.aura .b3{width:420px; height:420px; left:22%; top:62%; background:radial-gradient(circle,#BFDBFE,transparent 70%); animation-duration:22s; animation-delay:-11s; opacity:.45}
+@keyframes blob-drift{from{transform:translate(0,0) scale(1)} to{transform:translate(60px,40px) scale(1.12)}}
+.aura .cloud{position:absolute; width:120px; height:38px; border-radius:40px; background:#fff; opacity:.92;
+  box-shadow:0 10px 24px -14px rgba(37,99,235,.35); animation:cloud-drift 38s linear infinite alternate}
+.aura .cloud::before,.aura .cloud::after{content:''; position:absolute; background:#fff; border-radius:50%}
+.aura .cloud::before{width:56px; height:56px; left:18px; top:-26px}
+.aura .cloud::after{width:40px; height:40px; left:60px; top:-16px}
+.aura .c1{left:calc(50% - 470px); top:250px}
+.aura .c2{right:calc(50% - 480px); top:160px; transform:scale(.8); animation-duration:46s; animation-delay:-14s}
+.aura .c3{left:calc(50% - 420px); top:600px; transform:scale(.62); animation-duration:52s; animation-delay:-24s; opacity:.78}
+@keyframes cloud-drift{from{translate:-30px 0} to{translate:40px 0}}
+.aura .planet{position:absolute; right:calc(50% - 420px); top:380px; width:66px; height:66px; border-radius:50%;
+  background:radial-gradient(circle at 32% 30%,#FFFFFF 0%,#BAE6FD 30%,#93C5FD 62%,#93C5FD 100%);
+  box-shadow:inset -8px -10px 18px rgba(37,99,235,.35), 0 14px 30px -12px rgba(37,99,235,.6); animation:planet-bob 7s ease-in-out infinite}
+.aura .planet::after{content:''; position:absolute; left:-24px; right:-24px; top:42%; height:16px; border-radius:50%;
+  border:3px solid rgba(255,255,255,.85); transform:rotate(-14deg); box-shadow:0 0 12px rgba(147,197,253,.8)}
+@keyframes planet-bob{50%{transform:translateY(-12px) rotate(4deg)}}
+.aura .spark{position:absolute; width:14px; height:14px; background:#fff;
+  clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);
+  filter:drop-shadow(0 0 6px rgba(96,165,250,.9)); animation:spark-tw 3.2s ease-in-out infinite}
+.aura .s1{left:calc(50% - 300px); top:130px}
+.aura .s2{right:calc(50% - 310px); top:96px; animation-delay:-1s; transform:scale(.7)}
+.aura .s3{left:calc(50% - 360px); top:470px; animation-delay:-2s}
+.aura .s4{right:calc(50% - 330px); top:560px; animation-delay:-.6s; transform:scale(.8)}
+@keyframes spark-tw{0%,100%{opacity:.2; scale:.6} 50%{opacity:1; scale:1.1}}
+/* มือถือ: คอลัมน์เต็มจอ — ฉากเล็กลงและชิดขอบ ไม่ทับปุ่ม */
+@media (max-width:640px){
+  .aura .blob{filter:blur(44px)} .aura .b1{width:300px; height:300px} .aura .b2{width:320px; height:320px; right:-160px}
+  .aura .c1{left:-58px; top:118px; transform:scale(.7)} .aura .c2{display:none} .aura .c3{left:auto; right:-62px; top:286px; transform:scale(.55)}
+  .aura .planet{right:-10px; top:40px; width:46px; height:46px} .aura .planet::after{left:-16px; right:-16px; height:12px; border-width:2px}
+  .aura .s1{left:14%; top:40px} .aura .s2{right:26%; top:200px} .aura .s3{left:6%; top:330px} .aura .s4{display:none}
+}
+
+/* ── หัว ── */
+.head{text-align:center; margin-bottom:28px}
 .plate{
-  width:132px; margin:0 auto 16px; padding:14px 16px;
-  background:var(--plate); border:var(--edge-w) solid var(--edge);
-  border-radius:24px; box-shadow:0 5px 0 var(--edge);
+  width:112px; height:112px; margin:0 auto 18px; padding:12px; border-radius:28px; background:#fff;
+  display:grid; place-items:center;
+  box-shadow:0 0 0 1px rgba(37,99,235,.12), 0 18px 40px -18px rgba(29,78,216,.55);
 }
-.head .ai{color:var(--acc)}
+h1{margin:0; font-size:30px; font-weight:800; letter-spacing:0; line-height:1.2}
+h1 .ai{
+  background-image:linear-gradient(90deg,#1D4ED8,#2563EB 25%,#0EA5E9 50%,#22D3EE 75%,#1D4ED8);
+  background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:mark-flow 7s ease-in-out infinite alternate;
+}
+@keyframes mark-flow{from{background-position:0% 50%} to{background-position:100% 50%}}
+/* ป้าย: แคปซูลแบบ eyebrow ของ land · ธงอีโมจิเดิมขึ้นเป็นตัว "TH" บน Windows → จุดไล่สีแทน */
 .tag{
-  display:inline-block; margin-top:10px; font-size:13px; font-weight:900;
-  background:var(--card); color:var(--ink);
-  border:var(--edge-w) solid var(--edge); border-radius:99px;
-  padding:6px 15px; box-shadow:0 3px 0 var(--edge);
+  display:inline-flex; align-items:center; gap:7px; margin-top:14px; padding:6px 14px; border-radius:99px;
+  font-size:13.5px; font-weight:700; color:var(--navy);
+  background:linear-gradient(rgba(255,255,255,.75),rgba(255,255,255,.75)) padding-box, linear-gradient(90deg,#BFDBFE,#BFDBFE,#A5F3FC) border-box;
+  border:1.5px solid transparent; box-shadow:0 6px 16px -10px rgba(37,99,235,.6);
 }
-.blurb{margin:14px auto 0; max-width:34ch; color:var(--muted); font-size:15px}
+.tag::before{content:''; width:7px; height:7px; border-radius:50%; background:linear-gradient(135deg,var(--blue),var(--aqua)); box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+/* ตัดบรรทัดไทยเองไม่รู้จักคำ (เคยตัด "การ|บ้าน") — วลีที่ห้ามขาดห่อด้วย .nb */
+.nb{white-space:nowrap}
+.blurb{margin:14px auto 0; max-width:24em; color:var(--muted); font-size:16px; text-wrap:balance}
 
-/* ── ปุ่มหลัก ── */
+/* ── ปุ่มหลัก: ปุ่มสมัครของ land (ไล่สีน้ำเงิน + รัศมีวน) ── */
 .hero-btn{
-  display:block; background:var(--cardacc); color:var(--on-cardacc);
-  border:var(--edge-w) solid var(--edge); border-radius:24px;
-  padding:20px 22px; margin-bottom:26px; text-align:center;
-  box-shadow:0 6px 0 var(--edge);
-  transition:transform .08s ease, box-shadow .08s ease;
+  position:relative; isolation:isolate; display:block; text-align:center; color:#fff;
+  margin:0 0 34px; padding:17px 22px; border-radius:22px;
+  background:linear-gradient(135deg,#2563EB,#1D4ED8 60%,#1E40AF);   /* เริ่ม #2563EB ไม่ใช่ #3B82F6 — ตัวขาว 5.2:1 (land ข้อ ②) */
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 14px 30px -14px rgba(37,99,235,.95);
+  transition:transform .15s ease, box-shadow .2s ease;
 }
-.hero-btn:active{transform:translateY(6px); box-shadow:0 0 0 var(--edge)}
-.hero-btn b{display:block; font-size:19px; font-weight:900; letter-spacing:-.3px}
-.hero-btn span{display:block; font-size:14px; margin-top:3px; color:var(--on-cardacc-dim)}
-
-.lbl{
-  font-size:12.5px; font-weight:900; letter-spacing:.8px; text-transform:uppercase;
-  color:var(--muted); margin:0 0 11px 4px;
+.hero-btn::before{
+  content:''; position:absolute; inset:-4px; z-index:-1; border-radius:inherit; pointer-events:none;
+  background:conic-gradient(from var(--ha),#2563EB,#22D3EE,#38BDF8,#60A5FA,#2563EB);
+  filter:blur(10px); opacity:.6; animation:ha-spin 6s linear infinite;
 }
+.hero-btn:active{transform:scale(.98)}
+.hero-btn b{display:block; font-size:19px; font-weight:800}
+.hero-btn span{display:block; font-size:14px; margin-top:2px; color:rgba(255,255,255,.88); font-weight:500}
 
-/* ── แถวลิงก์ ──
-   ไอคอนอยู่ในกรอบของตัวเอง ไม่ใช่อิโมจิลอย ๆ ข้างข้อความ — ที่ความกว้าง
-   ระดับมือถือ อิโมจิลอยจะดูเหมือนเศษตัวอักษร ไม่ใช่ปุ่มที่กดได้ */
-.rows{display:grid; gap:11px; margin-bottom:26px}
+.lbl{font-size:13.5px; font-weight:700; color:var(--blue); margin:0 0 10px 6px}
+
+/* ── แถวลิงก์: การ์ดกระจกขอบสว่าง ── */
+.rows{display:grid; gap:10px; margin-bottom:26px}
 .row{
-  display:flex; align-items:center; gap:13px;
-  background:var(--card); color:var(--ink);
-  border:var(--edge-w) solid var(--edge); border-radius:18px;
-  padding:13px 15px; box-shadow:0 4px 0 var(--edge);
-  transition:transform .08s ease, box-shadow .08s ease;
+  display:flex; align-items:center; gap:14px; padding:13px 16px 13px 13px; border-radius:20px;
+  background:rgba(255,255,255,.74); border:1px solid rgba(255,255,255,.95);
+  -webkit-backdrop-filter:saturate(160%) blur(14px); backdrop-filter:saturate(160%) blur(14px);
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset, 0 10px 26px -18px rgba(29,78,216,.45);
+  transition:transform .4s cubic-bezier(.22,1,.36,1), box-shadow .4s ease;
 }
-.row:active{transform:translateY(4px); box-shadow:0 0 0 var(--edge)}
+.row:active{transform:scale(.985)}
 .row .ico{
-  width:42px; height:42px; flex:none; border-radius:13px;
-  display:grid; place-items:center; font-size:20px;
-  background:var(--acc-soft); border:2px solid var(--edge);
+  width:44px; height:44px; flex:none; border-radius:14px; display:grid; place-items:center;
+  background:linear-gradient(140deg,#60A5FA,#2563EB 55%,#1D4ED8);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 8px 16px -10px rgba(37,99,235,.9);
 }
+.row .ico svg{width:22px; height:22px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
 .row .txt{flex:1; min-width:0}
-.row b{display:block; font-size:15.5px; font-weight:900; letter-spacing:-.2px}
-.row small{display:block; font-size:12.5px; color:var(--muted); font-weight:600; line-height:1.45}
-.row .go{flex:none; font-size:19px; font-weight:900; color:var(--acc); font-style:normal}
+.row b{display:block; font-size:16px; font-weight:700; line-height:1.3}
+.row small{display:block; font-size:13px; color:var(--muted); line-height:1.45; margin-top:1px}
+.row .go{flex:none; width:22px; height:22px; color:var(--blue)}
+.row .go svg{width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; transition:transform .3s ease}
+@media (hover:hover) and (pointer:fine){
+  .row:not(.soon):hover{transform:translateY(-3px); box-shadow:0 1px 0 rgba(255,255,255,.9) inset, 0 20px 36px -20px rgba(29,78,216,.55)}
+  .row:not(.soon):hover .go svg{transform:translateX(3px)}
+  .hero-btn:hover{transform:translateY(-1px); box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 18px 34px -14px rgba(37,99,235,1)}
+}
 
-/* ลิงก์ที่ยังไม่ได้ใส่ที่อยู่จริง — บอกตรง ๆ ว่ายังไม่มี ดีกว่าปล่อยให้กดแล้วเงียบ */
-.row.soon{opacity:.62; cursor:default}
-.row.soon .go{font-size:11.5px; color:var(--muted); letter-spacing:.3px}
+/* ลิงก์ที่ยังไม่ได้ใส่ที่อยู่จริง — บอกตรง ๆ ว่ายังไม่มี ดีกว่าปล่อยให้กดแล้วเงียบ
+   ไม่จางทั้งแถวด้วย opacity (ตัวหนังสือจางจนอ่านยากบนพื้นฟ้า) — ไอคอนเป็นเทา และป้าย "เร็ว ๆ นี้" เป็นแคปซูล */
+.row.soon{cursor:default; background:rgba(255,255,255,.5); box-shadow:0 1px 0 rgba(255,255,255,.9) inset}
+.row.soon .ico{background:#E4ECF8; box-shadow:none}
+.row.soon .ico svg{stroke:#6F7E9C}
+.row.soon b{color:#3D4A66}
+.row .soon-tag{flex:none; font-size:12px; font-weight:700; color:var(--muted); background:#EEF3FB; border-radius:99px; padding:4px 10px; font-style:normal; white-space:nowrap}
 
-footer{text-align:center; color:var(--muted); font-size:13px; font-weight:700}
-footer a{color:var(--acc); font-weight:900}
+footer{text-align:center; color:var(--muted); font-size:13.5px; margin-top:8px}
+footer a{color:var(--blue); font-weight:700}
 
-@media (prefers-reduced-motion:reduce){ .row,.hero-btn{transition:none} }
+/* ── เปิดหน้า: ไล่ขึ้นทีละชิ้น ห่างกัน 60ms (ซ่อนได้ต่อเมื่อ JS ประกาศตัว — สคริปต์ล้มแล้วหน้ายังอยู่ครบ) ── */
+@keyframes up-in{from{opacity:0; transform:translateY(18px)} to{opacity:1; transform:none}}
+html.anim .head > *, html.anim .hero-btn, html.anim .lbl, html.anim .row, html.anim footer{animation:up-in .8s cubic-bezier(.22,1,.36,1) both; animation-delay:calc(var(--i,0) * 60ms)}
+@media (prefers-reduced-motion:reduce){
+  .aura *, h1 .ai, .hero-btn::before{animation:none !important}
+  html.anim .head > *, html.anim .hero-btn, html.anim .lbl, html.anim .row, html.anim footer{animation:none}
+  .row, .hero-btn{transition:none}
+}
 </style>
+<script>document.documentElement.classList.add('anim')</script>
 </head>
 <body>
+<div class="aura" aria-hidden="true">
+  <i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i>
+  <i class="cloud c1"></i><i class="cloud c2"></i><i class="cloud c3"></i>
+  <i class="planet"></i>
+  <i class="spark s1"></i><i class="spark s2"></i><i class="spark s3"></i><i class="spark s4"></i>
+</div>
+
+<!-- ไอคอนเส้นชุดเดียว (แบบการ์ดของ land) · ใช้ซ้ำด้วย <use> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-discord" viewBox="0 0 24 24"><path d="M8 17c-2.5-.4-4-1.3-5-2 0-4.5 1.2-8 3-10 1.4-.6 2.6-1 3.5-1l.5 1.2a14 14 0 0 1 4 0L14.5 4c.9 0 2.1.4 3.5 1 1.8 2 3 5.5 3 10-1 .7-2.5 1.6-5 2l-1-1.8"/><path d="M7.5 15.5c3 1.4 6 1.4 9 0"/><circle cx="9" cy="11.5" r="1.2"/><circle cx="15" cy="11.5" r="1.2"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M12 4c4.7 0 8.5 3 8.5 6.8 0 3.7-3.8 6.7-8.5 6.7-.8 0-1.6-.1-2.4-.3L5.5 19.5l.9-3.6C4.6 14.7 3.5 12.9 3.5 10.8 3.5 7 7.3 4 12 4Z"/><path d="M8.5 11h7"/></symbol>
+  <symbol id="i-insta" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M14 4v10.5a3.5 3.5 0 1 1-3.5-3.5H12"/><path d="M14 4c.6 2.4 2.4 4 5 4.2"/></symbol>
+  <symbol id="i-cup" viewBox="0 0 24 24"><path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5V9Z"/><path d="M16 10.5h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8.5 3.5v2.5M12 3.5v2.5"/></symbol>
+  <symbol id="i-go" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+</svg>
+
 <div class="wrap">
 
   <div class="head">
-    <div class="plate"><img src="logo-lockup.svg" data-fb="logo" alt="students OS"></div>
-    <h1>StudentOS <span class="ai">AI</span></h1>
-    <span class="tag">🇹🇭 สร้างโดยนักเรียนไทย เพื่อนักเรียนไทย</span>
-    <p class="blurb">แอปที่บอกว่าคืนนี้ควรทำการบ้านอันไหนก่อน และเพราะอะไร</p>
+    <div class="plate" style="--i:0"><img src="logo-lockup.svg" data-fb="logo" alt="students OS"></div>
+    <h1 style="--i:1">StudentOS <span class="ai">AI</span></h1>
+    <span class="tag" style="--i:2">สร้างโดยนักเรียนไทย เพื่อนักเรียนไทย</span>
+    <p class="blurb" style="--i:3"><span class="nb">แอปที่บอกว่าคืนนี้ควรทำการบ้านอันไหนก่อน</span> <span class="nb">และเพราะอะไร</span></p>
   </div>
 
-  <a class="hero-btn" href="land.html">
-    <b>เปิดแอป — ใช้ฟรี</b>
+  <a class="hero-btn" href="land.html" style="--i:4">
+    <b>เปิดแอป ใช้ฟรี</b>
     <span>ไม่ต้องติดตั้ง เปิดในเบราว์เซอร์ได้เลย</span>
   </a>
 
@@ -144,47 +224,48 @@ footer a{color:var(--acc); font-weight:900}
        ║  ใส่ลิงก์จริงตรงนี้
        ║  แถวไหนยังไม่มีที่อยู่ ให้คงคลาส "soon" กับ href="#" ไว้
        ║  พอมีลิงก์แล้ว: เปลี่ยน href · ลบ soon ออกจาก class
-       ║  และเปลี่ยน <i class="go">เร็ว ๆ นี้</i> เป็น <i class="go">›</i>
+       ║  และเปลี่ยน <i class="soon-tag">เร็ว ๆ นี้</i>
+       ║  เป็น <i class="go"><svg><use href="#i-go"/></svg></i>
        ╚═══════════════════════════════════════════════╝ -->
 
-  <p class="lbl">ชุมชน</p>
+  <p class="lbl" style="--i:5">ชุมชน</p>
   <div class="rows">
-    <a class="row" href="https://discord.gg/kMfYsvzFG" target="_blank" rel="noopener">
-      <span class="ico">💬</span>
-      <span class="txt"><b>Discord</b><small>สมัครเป็นผู้ทดสอบรุ่นแรก · ถามตอบกับทีม</small></span>
-      <i class="go">›</i>
+    <a class="row" href="https://discord.gg/kMfYsvzFG" target="_blank" rel="noopener" style="--i:6">
+      <span class="ico"><svg><use href="#i-discord"/></svg></span>
+      <span class="txt"><b>Discord</b><small>สมัครเป็นผู้ทดสอบรุ่นแรก · <span class="nb">ถามตอบกับทีม</span></small></span>
+      <i class="go"><svg><use href="#i-go"/></svg></i>
     </a>
-    <a class="row soon" href="#">
-      <span class="ico">💚</span>
+    <a class="row soon" href="#" style="--i:7">
+      <span class="ico"><svg><use href="#i-chat"/></svg></span>
       <span class="txt"><b>LINE Official</b><small>ทักมาถามอะไรก็ได้ ตอบเอง</small></span>
-      <i class="go">เร็ว ๆ นี้</i>
+      <i class="soon-tag">เร็ว ๆ นี้</i>
     </a>
   </div>
 
-  <p class="lbl">ติดตาม</p>
+  <p class="lbl" style="--i:8">ติดตาม</p>
   <div class="rows">
-    <a class="row" href="https://www.instagram.com/stu_dentos" target="_blank" rel="noopener">
-      <span class="ico">📸</span>
+    <a class="row" href="https://www.instagram.com/stu_dentos" target="_blank" rel="noopener" style="--i:9">
+      <span class="ico"><svg><use href="#i-insta"/></svg></span>
       <span class="txt"><b>Instagram</b><small>อัปเดตฟีเจอร์ใหม่ เบื้องหลังการทำแอป</small></span>
-      <i class="go">›</i>
+      <i class="go"><svg><use href="#i-go"/></svg></i>
     </a>
-    <a class="row soon" href="#">
-      <span class="ico">🎵</span>
+    <a class="row soon" href="#" style="--i:10">
+      <span class="ico"><svg><use href="#i-note"/></svg></span>
       <span class="txt"><b>TikTok</b><small>คลิปสั้น วิธีใช้แอปให้ทันส่งงาน</small></span>
-      <i class="go">เร็ว ๆ นี้</i>
+      <i class="soon-tag">เร็ว ๆ นี้</i>
     </a>
   </div>
 
-  <p class="lbl">สนับสนุน</p>
+  <p class="lbl" style="--i:11">สนับสนุน</p>
   <div class="rows">
-    <a class="row soon" href="#">
-      <span class="ico">☕</span>
+    <a class="row soon" href="#" style="--i:12">
+      <span class="ico"><svg><use href="#i-cup"/></svg></span>
       <span class="txt"><b>เลี้ยงค่าเซิร์ฟเวอร์</b><small>แอปฟรีตลอดไป ค่าเซิร์ฟเวอร์ไม่ฟรี</small></span>
-      <i class="go">เร็ว ๆ นี้</i>
+      <i class="soon-tag">เร็ว ๆ นี้</i>
     </a>
   </div>
 
-  <footer>
+  <footer style="--i:13">
     ทำในไทย เพื่อห้องเรียนไทย · <a href="land.html">อ่านว่าแอปทำอะไรได้</a>
   </footer>
 </div>

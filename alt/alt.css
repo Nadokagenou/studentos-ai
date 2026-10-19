@@ -14989,3 +14989,165 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 }
 .dc-brk-body { display: grid; gap: 10px; }
 .dc-brkq i { color: var(--blue); }
+
+/* ============================================================
+   แผนวันนี้ อ่านง่าย ใช้ง่าย (scr-sai · renderSaiPlan) · 19 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ: "ปรับหน้าแผนวันนี้ให้มันดูเข้าใจง่าย ใช้งานง่าย"
+   • การ์ดบน = มาสคอต + งานถัดไป + ปุ่มเริ่ม (เดิมปุ่มอยู่ท้ายจอ ใต้ทั้งวัน)
+   • ผลลัพธ์ = แถบบรรทัดเดียว ประโยคเดิม (เดิมการ์ดทึบสูงเกือบครึ่งจอ)
+   • เส้นเวลาเริ่มที่ตอนนี้ · ช่วงที่ผ่านไปแล้วพับไว้ใต้ปุ่ม .sd-pastbtn
+   ============================================================ */
+#saiBody .sai-next { grid-template-columns: 74px minmax(0, 1fr); align-items: center; padding: 14px 16px 16px 8px; }
+#saiBody .sai-next .saip-stage, #saiBody .sai-next .saip-chibi { width: 74px; height: 128px; }
+.sn-body { display: grid; gap: 2px; min-width: 0; }
+.sn-k {
+  justify-self: start; margin-bottom: 4px; padding: 3px 10px; border-radius: 99px;
+  font-size: 12.5px; font-weight: 800; line-height: 1.4;
+  color: color-mix(in srgb, var(--fill) 55%, var(--ink)); background: color-mix(in srgb, var(--fill) 13%, transparent);
+}
+.sn-t {
+  font-size: 18px; font-weight: 800; line-height: 1.35; color: var(--ink); overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.sn-m { font-style: normal; font-size: 13px; font-weight: 600; color: var(--muted); }
+#saiBody .sai-next .sai-cta { margin-top: 10px; padding: 12px; }
+
+/* ผลลัพธ์: แถบบรรทัดเดียวบนพื้นการ์ด — ไม่ใช่พื้นทึบ --fill อีกแล้ว ตัวหนังสือจึงกลับมาใช้ --ink */
+#saiBody .sp-hero {
+  display: flex; align-items: center; gap: 10px; margin: 10px 0 2px; padding: 12px 16px; border-radius: 16px;
+  background: color-mix(in srgb, var(--alert) 12%, var(--card)); color: var(--ink);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--alert) 22%, transparent);
+}
+#saiBody .sp-hero.ok {
+  background: color-mix(in srgb, var(--fill) 10%, var(--card));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--fill) 20%, transparent);
+}
+#saiBody .sp-hero::before, #saiBody .sp-hero::after { display: none; }
+#saiBody .sp-hero > svg {
+  width: 20px; height: 20px; flex: none; fill: none; stroke: var(--alert);
+  stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+}
+#saiBody .sp-hero.ok > svg { stroke: var(--fill); }
+#saiBody .sp-hero b { font-size: 15px; font-weight: 700; line-height: 1.4; letter-spacing: 0; color: var(--ink); }
+#saiBody .sp-hero b em { font-size: 16px; font-weight: 800; letter-spacing: 0; }
+
+/* ปุ่มดูช่วงที่ผ่านไปแล้ว */
+.sd-pastbtn {
+  display: inline-flex; align-items: center; min-height: 34px; margin: 0 0 8px; padding: 6px 14px;
+  border: 0; border-radius: 99px; cursor: pointer;
+  background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--muted);
+  font: inherit; font-size: 13px; font-weight: 700;
+}
+.sd-pastbtn:active { transform: scale(.97); }
+.sd-pastbtn { width: fit-content; }
+/* ธีม astral เป็นขาวดำทั้งแอป — แดงของ --alert กลายเป็นเทาอ่อน ตัวขาวบนป้าย "ตอนนี้" จมหาย → ตัวเข้มแทน */
+:root[data-theme="astral"] #saiBody .sd-now span { color: #111; }
+:root[data-theme="astral"] #saiBody .sd-now span em { background: #111; }
+#saiBody .sd-t-now { color: var(--alert); font-size: 14px; }
+:root[data-theme="astral"] #saiBody .sd-t-now { color: var(--ink); }
+#saiBody .sd-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; margin-bottom: 0; }
+#saiBody .sd-head .sd-pastbtn { margin: 0; min-height: 32px; padding: 5px 12px; font-size: 12.5px; }
+
+/* ============================================================
+   แผนวันนี้: ช่อง "ว่าง" ใช้สีของธีม · 19 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ: "ปรับสีให้ตรงแต่ละธีมด้วย" — เดิมฟ้าตายตัว (#3B82F6 → --sig-blue → #1748A8) ทุกธีม
+   ธีมเขียว (earth) ชมพู (warm/sweet) ม่วง (galaxy) ก็ยังได้ก้อนน้ำเงินกลางจอ
+   ตอนนี้ไล่จาก --fill ของธีม (สีเดียวกับปุ่ม "เริ่มทำเลย") · ไล่แค่นิดเดียว (+8% ขาว → +12% ดำ)
+   ให้ตัวหนังสือ --on-fill ได้คอนทราสต์เท่ากับบนปุ่ม — บางธีม on-fill เป็นตัวเข้ม (galaxy) ไล่เข้มมากจะจม
+   ⚠️ ตัวหนังสือบนก้อนนี้ต้องสืบจาก --on-fill ทุกตัว ห้ามขาวตายตัว
+   การ์ดงานสีขาวที่ซ้อนอยู่ข้างในคงเดิม — ตัวเข้มบนขาว อ่านได้บนพื้นทุกสี
+   ============================================================ */
+#saiBody .sd-free .sd-x {
+  background: linear-gradient(150deg, color-mix(in srgb, var(--fill) 92%, #fff), var(--fill) 50%, color-mix(in srgb, var(--fill) 88%, #000));
+  box-shadow: 0 14px 28px -16px color-mix(in srgb, var(--fill) 80%, transparent), inset 0 1px 0 rgba(255,255,255,.22);
+}
+#saiBody .sd-free .sd-x::after { background: radial-gradient(closest-side, color-mix(in srgb, var(--on-fill) 16%, transparent), transparent 70%); }
+#saiBody .sd-free .sd-x > b { color: var(--on-fill); }
+#saiBody .sd-free .sd-x > i { color: color-mix(in srgb, var(--on-fill) 84%, transparent); }
+#saiBody .sd-free .sd-tag {
+  color: var(--on-fill); background: color-mix(in srgb, var(--on-fill) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--on-fill) 26%, transparent);
+}
+#saiBody .sd-free .sd-job.brk { border-color: color-mix(in srgb, var(--on-fill) 40%, transparent); background: color-mix(in srgb, var(--on-fill) 6%, transparent); }
+#saiBody .sd-free .sd-job.brk .sd-jx b { color: var(--on-fill); }
+#saiBody .sd-free .sd-job.brk :is(.sd-jt, .sd-jx i) { color: color-mix(in srgb, var(--on-fill) 78%, transparent); }
+
+/* ============================================================
+   แท็บฉัน › "ห้อง · เหรียญ · สถิติ": การ์ดสถิติไม่ซ้อนกล่อง · 19 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ (ภาพการ์ดสถิติ + กราฟ 7 วัน): "มันไม่ตรงขอบ"
+   .pf-me เป็นการ์ดเต็มใบ (พื้น · ขอบ · เงา · มุม 24px) แล้วถูกห่อด้วยแผงพับ .pf-personal
+   ซึ่งเป็นการ์ดอีกใบ (มุม 16px · ห่าง 12px) — ได้ขอบสองชั้นที่โค้งไม่เท่ากัน ช่องไฟเลยไม่สม่ำเสมอ
+   กล่องในกล่องแบบที่ 1C08 เคยถอดไปแล้วด้วยเหตุผลเดียวกัน (ดูคอมเมนต์เหนือ .pf-me)
+   ในแผงพับ: การ์ดในเหลือแค่เส้นคั่นบาง ๆ · ขยายเต็มความกว้างแผง ให้ตัวเลขตรงแนวกับหัวแผง
+   ============================================================ */
+.pf-personal .pf-me {
+  margin-inline: -12px; background: none; border: 0; border-radius: 0; box-shadow: none;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 9%, transparent);
+}
+.pf-personal .pf-me .st-card { padding-bottom: 2px; }
+
+/* ============================================================
+   หน้าแรก › บรรทัด "วันนี้" (.dc-line) อ่านออกว่าคืออะไร กดตรงไหน · 19 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ (ภาพบรรทัด "ไปเรียน · เปลี่ยน"): "แก้หน้านี้หน่อย"
+   เดิม: กล่องเปล่าเต็มความกว้าง ไอคอนลอย · "ไปเรียน" ไม่มีบริบท · "เปลี่ยน" ตัวหนังสือฟ้าตายตัวสุดขอบขวา
+   ตอนนี้: พื้นเจือสีธีม · ไอคอนในวงกลม · "วันนี้" + คำเดาตัวหนา · "เปลี่ยน" เป็นแคปซูลที่ดูออกว่ากดได้
+   สีทั้งหมดจาก --fill ของธีม (เดิม --blue ทุกธีม) · สูง 36px เท่าเดิม — หน้าแรกห้ามต้องเลื่อน
+   ============================================================ */
+.dc-line {
+  gap: 9px; padding: 5px 5px 5px 6px; border-radius: 999px;
+  border-color: color-mix(in srgb, var(--fill) 20%, transparent);
+  background: color-mix(in srgb, var(--fill) 7%, var(--card));
+}
+.dc-line .dc-ic {
+  display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  background: color-mix(in srgb, var(--fill) 24%, transparent);
+}
+.dc-line .dc-ic svg { width: 14px; height: 14px; color: color-mix(in srgb, var(--fill) 70%, var(--ink)); }
+.dc-line .dc-tx { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dc-line .dc-tx em { font-style: normal; font-weight: 600; color: var(--muted); }
+.dc-line .dc-tx b { font-weight: 800; color: var(--ink); }
+.dc-line > i, .dc-brkq > i {
+  padding: 4px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; line-height: 1.3;
+  color: color-mix(in srgb, var(--fill) 60%, var(--ink)); background: color-mix(in srgb, var(--fill) 15%, transparent);
+}
+.dc-line:active { transform: scale(.985); }
+
+/* ---------- บรรทัด "วันนี้" ตอนแอปยังไม่รู้ (.dc-line.ask) · 19 ต.ค. 69 ----------
+   เจ้าของ: "ทำให้มันดูเห็นเป็นที่สะดุดตาว่าเราควรทำอะไร" → เลือก "แถบวันนี้ ตอนแอปยังไม่รู้"
+   พื้น --fill เต็ม ตัวหนังสือ --on-fill (ทุกตัว — บางธีม on-fill เป็นตัวเข้ม) · หมุดมีวงกระเพื่อม · ปุ่ม "บอกเลย" ขาว
+   ไม่ใช่สีทอง — ทองใช้เฉพาะของที่ทำสำเร็จแล้ว · สูง 36px เท่าเดิม (หน้าแรกห้ามต้องเลื่อน)
+   กราฟิกน้อย/ลดการเคลื่อนไหว = วงไม่กระเพื่อม สียังเด่นเหมือนเดิม */
+.dc-line.ask {
+  border-color: transparent; color: var(--on-fill);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--fill) 88%, #fff), var(--fill) 55%, color-mix(in srgb, var(--fill) 88%, #000));
+  box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--fill) 85%, transparent), inset 0 1px 0 rgba(255,255,255,.22);
+}
+.dc-line.ask .dc-ic { position: relative; background: color-mix(in srgb, var(--on-fill) 20%, transparent); }
+.dc-line.ask .dc-ic svg { color: var(--on-fill); }
+.dc-line.ask .dc-ic::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--on-fill) 55%, transparent);
+  animation: dc-ask-ping 1.8s cubic-bezier(.22, 1, .36, 1) infinite;
+}
+@keyframes dc-ask-ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--on-fill) 55%, transparent); } 80%, 100% { box-shadow: 0 0 0 9px transparent; } }
+.dc-line.ask .dc-tx b { color: var(--on-fill); }
+.dc-line.ask .dc-tx small { color: color-mix(in srgb, var(--on-fill) 82%, transparent); }
+.dc-line.ask > i { color: var(--fill); background: var(--on-fill); box-shadow: 0 2px 8px -3px rgba(0,0,0,.3); }
+@media (prefers-reduced-motion: reduce) { .dc-line.ask .dc-ic::after { animation: none; } }
+:root[data-lite] .dc-line.ask .dc-ic::after { animation: none; }
+/* คอนทราสต์ (textcheck 19 ต.ค. 69): ไล่สีขึ้นสว่างที่หัวแถบทำให้ตัวขาว 12.5–13px ได้แค่ 3.4–4.0:1 ใน 7 ธีม
+   ธีมที่ on-fill เป็นตัวขาว (light dark warm earth earth2 ocean sweet genesis) → ไล่จาก --fill ลงเข้ม
+   ธีมที่ on-fill เป็นตัวเข้ม (astral deepocean galaxy glitch magic meta space) → ไล่จากสว่างขึ้นมาที่ --fill
+   ทิศไล่สีต้องหนีจากสีตัวหนังสือเสมอ — ไล่ผิดทางแปลว่าตัวหนังสือจมลงในพื้นตัวเอง */
+.dc-line.ask { background: linear-gradient(135deg, var(--fill), color-mix(in srgb, var(--fill) 74%, #000)); }
+:root:is([data-theme="astral"], [data-theme="deepocean"], [data-theme="galaxy"], [data-theme="glitch"], [data-theme="magic"], [data-theme="meta"], [data-theme="space"]) .dc-line.ask {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--fill) 78%, #fff), var(--fill));
+}
+.dc-line.ask .dc-tx small { color: var(--on-fill); font-weight: 500; }
+
+/* จอแผน: โน้ตที่เอนจินติด ⚠ (ทำไม่ครบก่อนกำหนด) — เดิม ⚠ หลุดมาเป็นตัวอักษร · ตอนนี้ถอดตัวอักษรออก แล้วบอกด้วยสีแทน (19 ต.ค. 69) */
+.pslot .work .nt.hot { color: var(--alert); font-weight: 600; }
