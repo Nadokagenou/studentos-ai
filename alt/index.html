@@ -556,6 +556,9 @@
               และจอแรกที่คนเห็นคือที่ที่ตัวละครควรทักทายที่สุด -->
       <div class="screen" id="scr-login">
         <div class="login-wrap">
+          <!-- 20 ต.ค. 69 · ปุ่มกลับ — โผล่เฉพาะตอนเปิดจากในแอป (go() ตั้ง hidden ตาม backFrom) · ตอนเปิดแอปครั้งแรก/หลังออกจากระบบซ่อน -->
+          <button type="button" class="lg-back" onclick="goBack('scr-profile')" aria-label="กลับ" hidden>
+            <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
 
           <!-- L1 · ใบพระเอก — ใบเดียวของจอที่มีสี ตามกฎ 1C13
                ("ถ้ามีสองใบ มันเลิกแปลว่าสำคัญที่สุดทันที") -->

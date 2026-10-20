@@ -1139,6 +1139,40 @@ function resumeScreen() {
   } catch (_) { return null; }
 }
 
+// ---------- ปุ่มกลับพาไปจอที่เปิดมา (20 ต.ค. 69) ----------
+// เจ้าของ: "ตรวจดูว่าเมื่อกดปุ่มออกแล้วจะไปอยู่หน้าไหน … ไปอยู่หน้าที่ควรอยู่"
+// ไล่ทุกปุ่มที่พาไปจออื่นแล้วกดกลับ — 16 ทางไม่ถึงจอเดิม เพราะปุ่มกลับของจอพวกนี้เขียนปลายทางตายตัว
+// (หน้าแรก → บริบทของฉัน → กลับ = แท็บฉัน · ตั้งค่า → ร้านค้า → กลับ = แท็บฉัน · หน้าเข้าสู่ระบบจากในแอปไม่มีทางกลับ)
+// จำว่าจอไหนพาเข้ามา แล้วตัวดักคลิก (ใกล้ SCREEN_BACK_SEL) ส่งปุ่มกลับไปที่นั่นแทน — ไม่ต้องแก้ปุ่มทีละปุ่ม
+// รวมปุ่มในไฟล์ของอีกทีม (feed.js) · ไม่รู้ที่มา (เปิดแอปกลับมาที่จอนั้นตรง ๆ) = ปุ่มทำงานแบบเดิม
+// เทสต์: devtools/backroutecheck.js
+var backFrom = {};
+var goingBack = false;
+const RETURN_TO = new Set(['scr-context', 'scr-ttscan', 'scr-news', 'scr-pro', 'scr-shop', 'scr-mates',
+  'scr-setopt', 'scr-badges', 'scr-scan', 'scr-login']);
+// จอลูกกลับขึ้นมาหาจอแม่ด้วยปุ่มตายตัว (สุ่ม → go('scr-shop')) ไม่ใช่ "การพาเข้ามา" — จำแล้ววนกลับไปจอลูก
+function backIsChild(origin, id) {
+  if (backFrom[origin] === id) return true;
+  const el = document.getElementById(origin);
+  const b = el && el.querySelector('.sh-btn,.set-back,.sh-back,.back,button[aria-label^="กลับ"]');
+  return !!b && (b.getAttribute('onclick') || '').includes("'" + id + "'");
+}
+function rememberBackFrom(id) {
+  if (goingBack || !RETURN_TO.has(id) || id === curScreen || !curScreen) return;
+  const from = curScreen;
+  if (backIsChild(from, id)) return;                       // คงที่มาเดิมไว้
+  // หน้าเข้าสู่ระบบมีทางกลับเฉพาะคนที่ใช้แบบไม่สมัครอยู่แล้วกด "เข้าสู่ระบบ" จากในแอป
+  // ตอนเปิดแอปครั้งแรก / หลังออกจากระบบ (signOut ล้าง skipLogin ก่อนพามา) = ต้องเลือกก่อน ไม่มีทางกลับ
+  let skip = null; try { skip = localStorage.getItem('studentos.alt.skipLogin'); } catch (_) {}
+  if (from === 'scr-login' || from === 'scr-onboard' || (id === 'scr-login' && skip !== '1')) { delete backFrom[id]; return; }
+  backFrom[id] = from;
+}
+function goBack(fallback) {
+  const to = backFrom[curScreen];
+  goingBack = true;
+  try { go(to && to !== curScreen && document.getElementById(to) ? to : fallback); } finally { goingBack = false; }
+}
+
 function go2(id){ return go(id); }
 // scr-home กับ scr-tasks เป็นรายการงานสองจอที่ตอบคำถามเดียวกัน
 // แท็บ "ตารางงาน" ชี้มาที่ scr-tasks แล้ว — ทางเข้าเก่าที่ยังเรียก scr-home อยู่
@@ -1165,6 +1199,7 @@ function go(id) {
   else restorePendingDraw();
   // จอเหรียญตราเข้าได้สามทาง (หน้าแรก · แท็บฉัน · ผลของฉัน) — ปุ่มกลับต้องกลับไปที่เดิม
   if (id === 'scr-badges' && ['scr-menu', 'scr-profile', 'scr-stats'].includes(curScreen)) badgesReturn = curScreen;
+  rememberBackFrom(id);
   curScreen = id;
   // เข้าจอที่ลึกกว่าหน้าแรก = ปุ่มย้อนของเครื่องต้องพากลับในแอป ไม่ใช่ปิดแอป (ดู armBackTrap)
   if (id !== 'scr-menu' && id !== 'scr-login' && id !== 'scr-onboard') armBackTrap();
@@ -1198,7 +1233,8 @@ function go(id) {
   document.body.classList.toggle('login-mode', id === 'scr-login' || id === 'scr-onboard');
   // ปุ่มช่องทางล็อกอินวาดด้วย JS (รายชื่อมาจาก config) และต้องรีเซ็ตกลับหน้าแรกของมัน
   // ทุกครั้งที่กลับเข้าจอนี้ — ไม่ใช่ค้างอยู่ที่ช่องกรอกรหัสของรอบที่แล้ว
-  if (id === 'scr-login') { loginView = 'root'; renderLoginOpts(); loginNote(''); }
+  if (id === 'scr-login') { loginView = 'root'; renderLoginOpts(); loginNote('');
+    const lb = document.querySelector('#scr-login .lg-back'); if (lb) lb.hidden = !backFrom['scr-login']; }
   // เปิดจอการแจ้งเตือน = อ่านแล้ว (renderNotif จดเวลาเอง) · ต้องวาดตอนนี้ ไม่รอ renderAll รอบถัดไป
   if (id === 'scr-notif' && typeof renderNotif === 'function') renderNotif();
   // 15 ต.ค. 69 · จอข่าวสารจากทีมวาดด้วย JS ทั้งจอ — go() เปล่า ๆ ได้จอว่าง (news.js)
@@ -12793,13 +12829,32 @@ function renderRunBar() {
   if (!t) { state.running = null; save(); bar.hidden = true; bar.innerHTML = ''; delete bar.dataset.for; return; }
   if (bar.dataset.for !== r.taskId) {
     bar.dataset.for = r.taskId;
-    bar.innerHTML = `<span class="rb-dot"></span>
-      <span class="rb-tx"><b class="rb-tt"></b><span class="rb-el mono"></span></span>
+    // 20 ต.ค. 69 · เวลาที่เดินอยู่ย้ายเข้ามาในแคปซูลนาฬิกา (แบบ Timer ของ Cult UI · MIT) — เดิมเป็นตัวเล็ก 11.5px จาง ๆ ใต้ชื่องาน
+    bar.innerHTML = `<span class="rb-tx"><i class="rb-k">กำลังทำ</i><b class="rb-tt"></b></span>
+      ${runTimerPill('rb-timer')}
       <button class="rb-stop" onclick="stopWork()">หยุด</button>`;
     bar.querySelector('.rb-tt').textContent = taskTitleText(t);
   }
   bar.hidden = false;
-  bar.querySelector('.rb-el').textContent = fmtElapsed(Date.now() - new Date(r.start));
+  paintRunTimers(r);
+}
+
+// ---------- แคปซูลนาฬิกา (แบบ Timer ของ Cult UI · MIT · nolly-studio/cult-ui) ----------
+// ของต้นฉบับ: แคปซูล role="timer" · ไอคอนนาฬิกาหมุนตอนเดิน · ตัวเลขโมโน tabular-nums ไม่ให้ความกว้างกระตุกทุกวินาที
+// ที่ปรับ: หมุนเฉพาะเข็ม ไม่ใช่ทั้งไอคอน (หมุนทั้งไอคอนอ่านเป็น "กำลังโหลด") · ไม่ตั้ง aria-live=polite
+// (ตัวอ่านหน้าจอจะอ่านเลขทุกวินาที) · role="timer" ปิดการอ่านอัตโนมัติอยู่แล้ว
+// ทุกแคปซูลในหน้าอัปเดตจาก renderRunBar() ที่เรียกทุกวินาทีอยู่แล้ว — ไม่มีตัวจับเวลาเพิ่ม
+function runTimerPill(cls) {
+  return `<span class="run-timer ${cls || ''}" role="timer" data-run-el>`
+    + `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><g class="rt-hand"><path d="M12 12V7"/></g><path d="M12 12h3.5"/></svg>`
+    + `<b class="rt-n"></b></span>`;
+}
+function paintRunTimers(r) {
+  const txt = r ? fmtElapsed(Date.now() - new Date(r.start)) : '';
+  document.querySelectorAll('[data-run-el]').forEach(el => {
+    const n = el.querySelector('.rt-n');
+    if (n && n.textContent !== txt) n.textContent = txt;
+  });
 }
 
 // ============================================================
@@ -12876,15 +12931,31 @@ function dismissTopOverlay() {
 
 // ปุ่มย้อนในหัวจอของจอปัจจุบัน — ใช้ปุ่มที่จอนั้นมีอยู่แล้ว จะได้กลับไปที่เดียวกับที่แตะเอง
 // (แต่ละจอรู้ทางกลับของตัวเองดีกว่าตารางกลาง เช่นจอเหรียญที่เข้าได้สามทาง)
-const SCREEN_BACK_SEL = '.set-back,.ch-back,.hw-back,.tp-back,.sh-back,.lg-back,.back,button[aria-label^="กลับ"]';
+// .fm-x = ปุ่มปิดของฟอร์มเพิ่มงาน ("ปิดโดยไม่บันทึก" ไม่ขึ้นต้นด้วย "กลับ") — เดิมไม่อยู่ในรายการ
+// ปุ่มย้อนของเครื่องบนฟอร์มเลยหาปุ่มไม่เจอ ตกไปหน้าแรกทุกครั้ง ไม่ใช่จอที่เปิดฟอร์มมา (20 ต.ค. 69)
+const SCREEN_BACK_SEL = '.set-back,.ch-back,.hw-back,.tp-back,.sh-back,.lg-back,.back,.fm-x,button[aria-label^="กลับ"]';
 function backOneScreen() {
+  // หน้าเข้าสู่ระบบที่เปิดจากในแอป = ย้อนกลับได้ (เดิมกดแล้วไม่ทำอะไร — Android ปิดแอปทิ้ง)
+  if (curScreen === 'scr-login' && backFrom['scr-login']) { goBack('scr-profile'); return true; }
   if (curScreen === 'scr-menu' || curScreen === 'scr-login' || curScreen === 'scr-onboard') return false;
   const scr = document.getElementById(curScreen);
   const btn = scr && [...scr.querySelectorAll(SCREEN_BACK_SEL)].find(b => b.offsetParent !== null);
   if (btn) { btn.click(); return true; }
-  go('scr-menu');
+  // จอที่ไม่มีปุ่มกลับบนหัวจอ (พูด/ถ่ายรูปแทนพิมพ์) — กลับไปจอที่พามา ไม่ใช่หน้าแรกเสมอ
+  goBack('scr-menu');
   return true;
 }
+// ปุ่มกลับของจอใน RETURN_TO → จอที่พาเข้ามา (ดู rememberBackFrom) · ดักช่วงจับ (capture) ก่อน onclick ของปุ่มเอง
+document.addEventListener('click', e => {
+  const b = e.target && e.target.closest && e.target.closest(SCREEN_BACK_SEL);
+  if (!b) return;
+  const scr = b.closest('.screen');
+  if (!scr || scr.id !== curScreen || !RETURN_TO.has(scr.id)) return;
+  const to = backFrom[scr.id];
+  if (!to || to === scr.id || !document.getElementById(to)) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  goBack(to);
+}, true);
 
 // กับดักประวัติหนึ่งช่อง: ถือไว้หนึ่งรายการเสมอ กดย้อนแล้วเราได้ popstate แทนการออกจากหน้า
 // ไม่ push ทุกครั้งที่ย้ายจอ — ประวัติที่ยาวเท่าจำนวนจอที่เคยแตะ ทำให้กดย้อนวนอยู่ในแอปเป็นสิบครั้ง
@@ -13645,6 +13716,11 @@ function openForm(id, parsed) {
 
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
   document.getElementById('scr-form').classList.add('on');
+  // 20 ต.ค. 69 · สลับเองไม่ผ่าน go() → curScreen ค้างเป็นจอก่อนหน้า (เทสต์: devtools/backroutecheck.js)
+  // ปุ่มย้อนของเครื่องบนฟอร์ม = แอปคิดว่าอยู่หน้าแรก ไม่ทำอะไรและไม่วางกับดัก → กดซ้ำ Android ปิดแอปทั้งที่กรอกงานค้าง
+  // และจอที่เปิดต่อจากฟอร์ม (พูด/ถ่ายรูป) จำที่มาผิดเป็นจอก่อนฟอร์ม · ทางกลับของฟอร์มเองยังเป็น formReturn เหมือนเดิม
+  curScreen = 'scr-form';
+  armBackTrap();
   // 1C14 · จอนี้สลับเองไม่ผ่าน go() ของที่ go() เคยเรียกให้จึงต้องเรียกเองด้วย
   // ไม่งั้นปุ่มลอยมุมขวาล่างยังคิดว่าตัวเองอยู่บนจอก่อนหน้า แล้วลอยทับปุ่ม
   // "บันทึกเข้าแผน" ของจอนี้ (เจ้าของส่งภาพมา 20 ก.ย. 2569)
