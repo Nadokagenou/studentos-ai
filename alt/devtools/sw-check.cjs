@@ -38,6 +38,9 @@ function loadWorker(registration) {
     return { async unsubscribe() { unsubscribed.push(true); return true; } };
   } } });
   await sw.lifeCycle('install');
+  for (const f of ['desktop.css', 'desktop-entry.js', 'desktop.js', 'desktop-navigation.mjs']) {
+    assert.ok(sw.shell.includes(f), 'desktop offline shell missing: ' + f);
+  }
   for (const f of sw.shell) assert.ok(fs.existsSync(path.join(base, f)), 'SHELL ไม่มีไฟล์: ' + f);
   console.log('PASS ไฟล์ในแคชติดตั้งมีอยู่ครบ');
   await sw.lifeCycle('activate');
