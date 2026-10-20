@@ -15324,3 +15324,32 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 .dc-line.td-night .dc-ic { width: 22px; height: 22px; }
 .dc-line.td-night .dc-tx small { font-size: 12px; }
 .dc-line.td-night > i { padding: 3px 10px; font-size: 12px; }
+
+/* ============================================================
+   แผ่นแตะแถวงานในเส้นเวลาจอแผน (#planRowSheet) · 20 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ (ขอปรับหน้าแผนวันนี้ให้ใช้ง่ายขึ้น): แตะงานในเส้นเวลาแล้วอยากเริ่ม/ติ๊กเสร็จ/เลื่อนได้เลย
+   ไม่ใช่เด้งไปฟอร์มแก้ไข
+   ยืมโครง .add-sheet/.as-scrim/.as-card จาก today.css ทั้งก้อน (เหมือน #soonSheet) — ของใหม่มีแค่เนื้อใน
+   แถวไอคอน+ข้อความใช้ grid ไม่ใช่ flex (<span> ที่เป็น flex item ใน alt/ กว้างศูนย์)
+   ปุ่มหลักพื้น --fill ตัว --on-fill · ปุ่มอื่นพื้น --card2 ตัว --ink · "เสร็จแล้ว" ไม่ใช่สีทอง (ทองใช้เฉพาะของที่เสร็จจริงแล้ว) */
+.prs-card { padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
+.prs-h { display: grid; gap: 2px; margin: 2px 4px 12px; text-align: left; }
+.prs-h b {
+  font-size: 17px; font-weight: 800; line-height: 1.35; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.prs-h i { font-style: normal; font-size: 13px; font-weight: 600; color: var(--muted); }
+.prs-list { display: grid; gap: 8px; }
+.prs-b {
+  display: grid; grid-template-columns: 22px minmax(0, 1fr); align-items: center; gap: 12px;
+  width: 100%; min-height: 50px; box-sizing: border-box; padding: 8px 16px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--card2); color: var(--ink);
+  font-family: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer;
+}
+.prs-b svg { width: 20px; height: 20px; }
+.prs-b:active { transform: scale(.98); }
+.prs-b.primary { border-color: transparent; background: var(--fill); color: var(--on-fill); }
+.prs-b.quiet { border-color: transparent; background: none; color: var(--muted); font-weight: 600; }
+#planRowSheet :focus-visible { outline: 2.5px solid var(--blue) !important; outline-offset: 2px !important; }
+body:has(#planRowSheet:not([hidden])) .top-friends { visibility: hidden; }

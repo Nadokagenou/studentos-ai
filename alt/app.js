@@ -12906,6 +12906,7 @@ const OVERLAYS = [
   { sel: '#checkin',         close: () => closeDailyCheck() },
   { sel: '#soonSheet',       close: () => closeSoonSheet() },
   { sel: '#daySheet',        close: () => closeDaySheet() },
+  { sel: '#planRowSheet',    close: () => closePlanRowSheet() },   // 20 ต.ค. 69 · แผ่นแตะแถวงานจอแผน (sai.js)
   // หน้าตัวเชื่อมในแผ่นเพิ่มงาน ถอยกลับหน้าหลักของแผ่นก่อน ไม่ใช่ปิดทั้งแผ่น
   { sel: '#addSheet',        close: () => addSheetView === 'connectors' ? openAddSheet('root') : closeAddSheet() },
   { sel: '#aiSheet',         close: () => closeAiHub() },
@@ -13021,10 +13022,10 @@ new MutationObserver(recs => {
 // ใช้ตัวเฝ้า hidden ไม่ใช่ไล่แก้ทุกฟังก์ชัน open* เพราะทางเปิดมีหลายสิบทาง
 const overlayReturn = new WeakMap();
 function watchOverlays() {
-  const ids = ['checkin', 'focusWrap', 'addSheet', 'soonSheet', 'daySheet', 'aiSheet', 'fabMenu', 'reportSheet'];
+  const ids = ['checkin', 'focusWrap', 'addSheet', 'soonSheet', 'daySheet', 'planRowSheet', 'aiSheet', 'fabMenu', 'reportSheet'];
   // 13 ต.ค. 69 · แผ่นล่างเปิดอยู่ = body.sheet-up → จอข้างหลังยุบลงนิดหนึ่ง (CSS ท้าย alt.css · "มีมิติ" ①)
   // ใช้ตัวเฝ้าเดิมตัวนี้ ไม่ใช้ :has() ใน CSS — :has() เคยทำให้ทั้งเอกสารคำนวณสไตล์ใหม่ทุกครั้งที่ DOM เปลี่ยน
-  const SHEETS = ['addSheet', 'soonSheet', 'daySheet', 'aiSheet', 'reportSheet'];
+  const SHEETS = ['addSheet', 'soonSheet', 'daySheet', 'planRowSheet', 'aiSheet', 'reportSheet'];
   const syncSheetUp = () => document.body.classList.toggle('sheet-up',
     SHEETS.some(id => { const el = document.getElementById(id); return !!el && !el.hidden; }));
   const mo = new MutationObserver(recs => {

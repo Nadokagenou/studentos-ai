@@ -282,6 +282,83 @@ function openSaiPlan() {
 }
 
 // ============================================================
+// แผ่นแตะแถวงาน (20 ต.ค. 69)
+// ------------------------------------------------------------
+// เจ้าของ: แตะงานในเส้นเวลาแล้วอยากทำอะไรกับมันได้เลย ไม่ใช่เด้งไปฟอร์มแก้ไข
+// โครงแผ่นยืม #soonSheet/#daySheet (.add-sheet > .as-scrim + .as-card) · ลงทะเบียนใน OVERLAYS + watchOverlays ของ app.js
+// เพื่อให้ Esc / ปุ่มย้อนของ Android ปิดได้ · แถวของรายการ "ไม่ใช่วันนี้" (งานถัดไป) เรียกตัวเดียวกันนี้
+//
+// รายการปุ่มสร้างที่เดียว (planRowActions) — จะเพิ่มปุ่มใหม่ = เพิ่มหนึ่งแถวในอาร์เรย์นั้น ไม่ต้องแตะที่วาด
+// ทุกปุ่มทำงานผ่านฟังก์ชันเดิมของแอป (startFocus · toggleDone · snoozeToTomorrow · openForm)
+// ติ๊กเสร็จใช้ toggleDone ตัวเดียวกับปุ่ม ✓ บนการ์ดหน้าแรก — สตรีค/ฉลอง/ลูกโซ่ "งานถัดไป" จึงเหมือนกันทุกทาง
+let planRowSheetId = null;
+
+function planRowActions(t, now) {
+  // เลื่อนไม่ได้เมื่อวันนี้คือโอกาสสุดท้าย — snoozeToTomorrow ปฏิเสธอยู่แล้ว ไม่โชว์ปุ่มที่กดแล้วโดนตีกลับ
+  const canSnooze = !(typeof isLastChanceToday === 'function' && isLastChanceToday(t, now));
+  return [
+    { key: 'start', label: 'เริ่มทำ', ic: 'play', cls: 'primary', run: id => startFocus(id) },
+    { key: 'done', label: 'เสร็จแล้ว', ic: 'check', run: id => {
+      toggleDone(id);
+      // จอแผนไม่อยู่ในรายการวาดใหม่ของ renderAll (SCREEN_RENDER) — วาดเองหลังจังหวะฉลองของ toggleDone (430ms)
+      setTimeout(() => { if (curScreen === 'scr-sai') renderSaiPlan(); }, 470);
+    } },
+    canSnooze && { key: 'snooze', label: 'เลื่อนไปพรุ่งนี้', ic: 'clock', run: id => {
+      snoozeToTomorrow(id);
+      if (curScreen === 'scr-sai') renderSaiPlan();
+    } },
+    { key: 'edit', label: 'แก้ไขรายละเอียด', ic: 'pencil', cls: 'quiet', run: id => openForm(id) },
+  ].filter(Boolean);
+}
+
+// min = นาทีของช่องที่แถวนั้นแสดงอยู่ (ถ้าไม่ส่งมาใช้เวลาที่เหลือของงาน)
+function openPlanRowSheet(taskId, min) {
+  const t = state.tasks.find(x => x.id === taskId);
+  const el = document.getElementById('planRowSheet');
+  if (!t || t.done || !el) return;
+  const hm = m => (typeof humanMin === 'function' ? humanMin(m) : m + ' นาที');
+  const title = (t.detail || '').trim() || (typeof typeInfo === 'function' ? typeInfo(t).name : 'งาน');
+  const subj = t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '';
+  const mins = min > 0 ? min : (typeof remainingMin === 'function' ? remainingMin(t) : t.estMin || 0);
+  const sub = [subj, mins ? hm(mins) : ''].filter(Boolean).join(' · ');
+  planRowSheetId = taskId;
+  // ยกเลิกการปิดที่ค้างอยู่ — ไม่งั้นตัวจับเวลาของรอบก่อนมาล้างแผ่นที่เพิ่งเปิด (เหตุผลเดียวกับ openSoonSheet)
+  if (el._closeT) { clearTimeout(el._closeT); el._closeT = 0; }
+  const btns = planRowActions(t, new Date()).map(a =>
+    '<button type="button" class="prs-b' + (a.cls ? ' ' + a.cls : '') + '" data-act="' + a.key + '" onclick="planRowAct(\'' + a.key + '\')">'
+    + icon(a.ic) + '<span>' + esc(a.label) + '</span></button>').join('');
+  el.innerHTML = '<div class="as-scrim" onclick="closePlanRowSheet()"></div>'
+    + '<div class="as-card prs-card" role="dialog" aria-label="' + esc(title) + '">'
+    + '<div class="as-grip"></div>'
+    + '<div class="prs-h"><b>' + esc(title) + '</b>' + (sub ? '<i>' + esc(sub) + '</i>' : '') + '</div>'
+    + '<div class="prs-list">' + btns + '</div>'
+    + '</div>';
+  el.hidden = false;
+  setTimeout(() => el.classList.add('on'), 16);   // setTimeout ไม่ใช่ rAF — เหตุผลเดียวกับ openAddSheet
+  if (typeof haptic === 'function') haptic('tap');
+}
+
+// instant = ปิดทันทีไม่รอแอนิเมชัน — ใช้ตอนกดปุ่มที่พาไปชั้นอื่น (โหมดโฟกัส/ฟอร์ม) จะได้ไม่มีแผ่นค้างครึ่งทางทับกัน
+function closePlanRowSheet(instant) {
+  const el = document.getElementById('planRowSheet');
+  planRowSheetId = null;
+  if (!el || el.hidden) return;
+  el.classList.remove('on');
+  clearTimeout(el._closeT);
+  if (instant) { el._closeT = 0; el.hidden = true; el.innerHTML = ''; return; }
+  el._closeT = setTimeout(() => { el._closeT = 0; el.hidden = true; el.innerHTML = ''; }, 200);
+}
+
+function planRowAct(key) {
+  const id = planRowSheetId;
+  const t = id && state.tasks.find(x => x.id === id);
+  closePlanRowSheet(true);
+  if (!t) return;
+  const a = planRowActions(t, new Date()).find(x => x.key === key);
+  if (a) a.run(id);
+}
+
+// ============================================================
 // สามตัวเลขที่ปฏิทินให้ไม่ได้
 // ------------------------------------------------------------
 // นิยามที่ใช้ และเหตุผลที่เลือกนิยามนี้:
@@ -538,7 +615,8 @@ function renderSaiPlan() {
     const time = '<span class="dt-t">' + esc(min2hm(it.at)) + '</span>';
     if (it.kind === 'job') {
       return pre + '<div class="dt-r dt-job' + (it.hot ? ' hot' : '') + past + '"' + st + '>' + time
-        + '<button class="dt-c" onclick="openForm(\'' + it.id + '\')">'
+        // 20 ต.ค. 69 · แตะแถว = แผ่นล่างที่เริ่ม/เสร็จ/เลื่อนได้เลย (เดิมเปิดฟอร์มแก้ไข ไกลเกินสำหรับสิ่งที่ทำบ่อยสุด)
+        + '<button class="dt-c" onclick="openPlanRowSheet(\'' + it.id + '\',' + (it.to - it.at) + ')">'
         + '<span class="dt-x"><b>' + esc(it.title) + '</b><i>' + esc(it.sub) + '</i></span>'
         + (runId === it.id && typeof runTimerPill === 'function' ? runTimerPill('dt-timer')
           : it.hot ? '<em class="dt-tag">ทำก่อน</em>' : icon('chevron')) + '</button></div>';
