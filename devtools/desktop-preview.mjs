@@ -39,7 +39,7 @@ http.createServer(async(req,res)=>{
   let content=await readFile(target);
   if(pathname==='/index.html'||pathname==='/desktop-baseline.html'){
    let html=content.toString().replace('<head>','<head>'+fixture);
-   if(pathname==='/desktop-baseline.html')html=html.replace(/<link[^>]+href="desktop\.css"[^>]*>/,'').replace(/<script[^>]+src="desktop\.js[^>]*><\/script>/,'');
+   if(pathname==='/desktop-baseline.html')html=html.replace(/<link[^>]+href="desktop\.css"[^>]*>/,'').replace(/<script[^>]+src="desktop(?:-entry)?\.js[^>]*><\/script>/g,'');
    content=Buffer.from(html);
   }
   res.writeHead(200,{'Content-Type':types[path.extname(target)]||'application/octet-stream','Cache-Control':'no-store'});res.end(content);

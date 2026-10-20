@@ -10,7 +10,7 @@ document.getElementById('baseline').onclick=()=>{frame.width='375';frame.height=
 document.getElementById('measure').onclick=()=>{
  const doc=frame.contentDocument,view=frame.contentWindow,screen=doc.querySelector('.screen.on'),body=doc.querySelector('#menuBody');
  const rect=selector=>{const n=doc.querySelector(selector);return n?{...n.getBoundingClientRect().toJSON(),display:view.getComputedStyle(n).display}:null;};
- report.textContent=JSON.stringify({viewport:[view.innerWidth,view.innerHeight],desktop:view.matchMedia('(min-width:1024px)').matches,screen:screen?.id,horizontalOverflow:doc.documentElement.scrollWidth>view.innerWidth,homeScroll:body?{height:body.clientHeight,scroll:body.scrollHeight}:null,screenScroll:screen?{height:screen.clientHeight,scroll:screen.scrollHeight,overflowY:view.getComputedStyle(screen).overflowY}:null,phone:rect('.phone'),start:rect('.td-now .tn-cta'),tools:rect('.td-tiles'),tabbar:rect('.tabbar')},null,2);
+ report.textContent=JSON.stringify({viewport:[view.innerWidth,view.innerHeight],desktop:view.matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)').matches,screen:screen?.id,horizontalOverflow:doc.documentElement.scrollWidth>view.innerWidth,homeScroll:body?{height:body.clientHeight,scroll:body.scrollHeight}:null,screenScroll:screen?{height:screen.clientHeight,scroll:screen.scrollHeight,overflowY:view.getComputedStyle(screen).overflowY}:null,phone:rect('.phone'),start:rect('.td-now .tn-cta'),tools:rect('.td-tiles'),tabbar:rect('.tabbar')},null,2);
 };
 </script></html>
 

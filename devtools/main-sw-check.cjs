@@ -11,7 +11,7 @@ vm.runInNewContext(source,{URL,location:{origin:'https://example.test'},caches,f
  self:{addEventListener:(event,fn)=>{handlers[event]=fn;},skipWaiting:async()=>{},clients:{claim:async()=>{}},registration:{scope:'https://example.test/studentos-ai/'}}});
 const lifecycle=async event=>{const pending=[];handlers[event]({waitUntil(p){pending.push(p);}});await Promise.all(pending);};
 (async()=>{
- await lifecycle('install');assert.ok(shell.includes('desktop.css'),'desktop.css must install before going offline');console.log('PASS desktop stylesheet is precached');
+ await lifecycle('install');for(const file of ['desktop.css','desktop-entry.js','desktop.js','desktop-navigation.mjs'])assert.ok(shell.includes(file),file+' must install before going offline');console.log('PASS desktop stylesheet and controls are precached');
  for(const file of shell)assert.ok(fs.existsSync(path.join(root,file)),'Missing SHELL file: '+file);console.log('PASS all main shell files exist');
  await lifecycle('activate');assert.deepEqual(removed,['studentos-main-previous','studentos-1c57']);console.log('PASS update preserves ALT and other application caches');
  let response;handlers.fetch({request:{method:'GET',url:'https://example.test/studentos-ai/desktop.css?v=review'},respondWith(p){response=p;}});
