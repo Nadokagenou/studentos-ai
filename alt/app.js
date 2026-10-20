@@ -3381,14 +3381,12 @@ function todayEmpty(now, hasRem) {
 // มีงานค้างอยู่ แต่วันนี้ไม่เหลือเวลาให้จัดแล้ว — ต้องบอกว่าติดตรงไหน ไม่ใช่โชว์รางเวลาเปล่า
 // "AI จัดแผนไม่ได้" โดยไม่บอกเหตุผล คือคำตอบที่ทำให้ผู้ใช้เดาว่าแอปพัง
 function noTimeLeft(sp, now) {
-  const win = sp.plan.windows;
   const nf = typeof nextFreeSlotAfterToday === 'function' ? nextFreeSlotAfterToday(now) : null;
-  return `<section class="td-note">
-    <b>${icon('clock')}วันนี้หมดเวลาแล้ว</b>
-    <p>เลย ${esc(ctxPrefs().noWorkAfter)} น. ซึ่งเป็นเวลาที่คุณตั้งไว้ว่าจะหยุดทำงาน${
-      nf ? ` ว่างอีกทีตอน ${esc(nf.fromHm)} ${nf.dayOffset === 1 ? 'พรุ่งนี้' : 'อีก ' + nf.dayOffset + ' วัน'}` : ''}</p>
-    <button class="tn-ask" onclick="go('scr-context')">${icon('clock')}แก้เวลาว่างคืนนี้${icon('chevron')}</button>
-  </section>`;
+  // 20 ต.ค. 69 · แถบบรรทัดเดียว (เดิมเป็นการ์ดสูง 139px ที่ดันหน้าแรกเป็น 909 จาก 803 และพูดเหมือนเครื่องเขียน)
+  // ใช้ตระกูลเดียวกับบรรทัด "วันนี้" (.dc-line) · ปุ่มทำเหมือนเดิมคือไปหน้าตั้งเวลา
+  const when = nf ? ` <small>· ว่างอีกที ${esc(nf.fromHm)} ${nf.dayOffset === 1 ? 'พรุ่งนี้' : 'อีก ' + nf.dayOffset + ' วัน'}</small>` : '';
+  return `<button class="dc-line td-night" onclick="go('scr-context')">
+    <span class="dc-ic">${icon('clock')}</span><span class="dc-tx"><b>เลยเวลาทำงานแล้ว</b>${when}</span><i>ขยายเวลา</i></button>`;
 }
 
 // ---------- แผนต้องเดินตามเวลาจริง ----------

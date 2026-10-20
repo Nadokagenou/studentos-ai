@@ -15311,3 +15311,16 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
   color: #04130E; background: rgba(0,0,0,.12); box-shadow: inset 0 0 0 1px rgba(0,0,0,.14);
 }
 :root:is([data-theme="astral"], [data-theme="dark"], [data-theme="deepocean"], [data-theme="galaxy"], [data-theme="glitch"], [data-theme="magic"], [data-theme="meta"], [data-theme="space"], [data-theme="sweet"]) .runbar .rb-k { opacity: 1; }
+
+/* ============================================================
+   หน้าแรก › แถบ "เลยเวลาทำงานแล้ว" (.dc-line.td-night) · 20 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ: การ์ดหมดเวลาของคืนนี้ยาวเกินและอ่านเหมือนเครื่องเขียน — ให้เหลือบรรทัดเดียว
+   เดิมเป็นการ์ด .td-note สูง 139px ดันหน้าแรกเป็น 909 จาก 803 (หน้าแรกห้ามต้องเลื่อน)
+   ตอนนี้ยืมหน้าตาบรรทัด "วันนี้" (.dc-line) ทั้งก้อน แล้วบีบให้เตี้ยลงอีกนิด:
+   ข้อความ "ว่างอีกที 06:00 พรุ่งนี้" ยาวกว่า "ไปเรียน" มาก — ที่ 375px ต้องลดช่องไฟ/ตัวอักษร
+   ไม่งั้นโดนตัดท้าย · ไม่ใช่สีทอง (ทองใช้เฉพาะของที่ทำเสร็จแล้ว) */
+.dc-line.td-night { gap: 7px; padding: 3px 4px 3px 5px; font-size: 12.5px; }
+.dc-line.td-night .dc-ic { width: 22px; height: 22px; }
+.dc-line.td-night .dc-tx small { font-size: 12px; }
+.dc-line.td-night > i { padding: 3px 10px; font-size: 12px; }
