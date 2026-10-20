@@ -31,6 +31,11 @@
     width:100%; max-width:none; padding:25px clamp(24px,3vw,56px) 20px;
   }
   :root body:not(.login-mode) .sticky-head .sh-title { font-size:25px; line-height:1.5; }
+  /* Native side navigation offsets put back/close buttons inside the wider rail. */
+  :root body:not(.login-mode) .phone .sticky-head :is(.sh-btn,.fm-x),
+  :root body:not(.login-mode) .phone .fd-top>.fd-back {
+    position:static!important; inset:auto!important; flex:0 0 auto;
+  }
   /* Reuse the five native navigation buttons, including badges and add actions. */
   :root body:not(.login-mode) .stage .phone .tabbar {
     position:absolute; inset:0 auto 0 0; width:var(--desktop-expanded); height:100%;
@@ -99,6 +104,10 @@
   :root body:not(.login-mode) #aiBody { min-height:100%; padding-bottom:26px; }
   :root body:not(.login-mode) #scr-form { padding-bottom:32px; }
   :root body:not(.login-mode) #scr-form>:not(.sticky-head) { max-width:1000px; margin-inline:auto; }
+  :root body:not(.login-mode) #scr-form .fm-bar {
+    bottom:0; padding:12px clamp(24px,3vw,56px) 16px; margin-top:0;
+  }
+  :root body:not(.login-mode) #scr-form:not(.fm-s1):not(.fm-s2) .fm-step { display:none; }
   /* Overlays remain inside the full-size phone root, above the existing navigation. */
   :root body:not(.login-mode) #focusWrap { inset:0; width:100%; height:100dvh; overflow-y:auto; }
   :root body:not(.login-mode) #focusWrap .fc-sheet { max-width:760px; margin-inline:auto; padding:30px 48px; }
