@@ -1,5 +1,7 @@
 # คู่มือส่งต่องาน — StudentOS AI
 
+> **20 ต.ค. 2569 · ผังคอมบน ALT:** `desktop.css` จัดเต็มจอเฉพาะ ≥1024px + hover + pointer:fine; `desktop-entry.js` โหลด `desktop.js` เมื่อผ่านเงื่อนไขเท่านั้น ทางลัดเรียกฟังก์ชันเดิมผ่าน `desktop-navigation.mjs` ไม่แก้แผนหรือข้อมูลผู้ใช้ คีย์ใหม่ `studentos.desktop.sidebar` จำแค่สถานะเมนูข้าง การแก้ชุดนี้อยู่ใน `alt/` เท่านั้น ดูรายละเอียดและขอบเขต QA ใน PATCHNOTES; พรีวิวข้อมูลจำลอง `node alt/devtools/desktop-preview.mjs --port=4196` และหน้า `/alt/devtools/desktop-parity-review.html` ไม่ถูกโหลดหรือแคชโดยแอปจริง
+
 > ## ⚠️ อ่านก่อนอย่างอื่น (13 ส.ค. 2569)
 >
 > **สายนี้ถูกยกขึ้นเป็นตัวหลักแล้วตั้งแต่รุ่น 1A7V2 “Verbessert”** ป้าย ALT / Sandbox /
