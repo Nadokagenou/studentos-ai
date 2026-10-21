@@ -16,23 +16,52 @@
 // ============================================================
 
 // ---------- แผ่นเพิ่มงานด่วน ----------
-let quickPlusDraft = '';
-function quickPlusInput() {
-  quickPlusDraft = document.getElementById('qaIn')?.value || '';
-  quickPreview();
-}
+let quickEl = null;
 
 function quickOpen() {
-  openAddSheet('quick');
-  const inp = document.getElementById('qaIn');
-  if (typeof shortcutDraftApply === 'function') shortcutDraftApply('quick');
-  try { inp?.focus({ preventScroll: true }); } catch (_) {}
+  if (quickEl) return;
+  const host = document.querySelector('.phone') || document.body;
+  const scrim = document.createElement('div');
+  scrim.className = 'qa-scrim';
+  const box = document.createElement('div');
+  box.className = 'qa-sheet';
+  box.setAttribute('role', 'dialog');
+  box.setAttribute('aria-modal', 'true');
+  box.setAttribute('aria-label', 'เพิ่มงานด่วน');
+  box.innerHTML = `<form class="qa-row" onsubmit="event.preventDefault();quickSend()">
+      <input id="qaIn" class="qa-in" type="text" enterkeyhint="send" autocomplete="off"
+        placeholder="รายงานชีวะ ส่งศุกร์" aria-label="งานที่ต้องทำ" maxlength="500">
+      <button type="submit" class="qa-go" aria-label="เพิ่มงาน"><svg viewBox="0 0 24 24" width="20" height="20"
+        fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
+    </form>
+    <div class="qa-chips" id="qaChips"></div>`;
+  host.appendChild(scrim);
+  host.appendChild(box);
+  quickEl = { scrim, box };
+
+  const inp = box.querySelector('#qaIn');
+  inp.addEventListener('input', quickPreview);
+  scrim.onclick = () => quickClose();
+  document.addEventListener('keydown', quickKey, true);
+  void box.offsetWidth;
+  scrim.classList.add('open'); box.classList.add('open');
+  // เปิดจากปุ่มลัดของเครื่อง = มาเพื่อพิมพ์อย่างเดียว · บางเครื่องไม่ยอมเปิดคีย์บอร์ดให้โดยไม่มีการแตะ
+  // ก็ไม่เป็นไร — ช่องอยู่บนสุดของจอ แตะทีเดียวถึง
+  try { inp.focus({ preventScroll: true }); } catch (_) {}
 }
 
+function quickKey(e) { if (e.key === 'Escape') { e.preventDefault(); quickClose(); } }
+
 function quickClose() {
+  if (!quickEl) return;
+  const { scrim, box } = quickEl;
+  quickEl = null;
+  // ปิดแผ่นแล้ว = ปุ่มลัดที่พามาถูกใช้จบแล้ว · รีโหลดหลังจากนี้ต้องไม่เด้งแผ่นซ้ำ (ดู shortcutTarget)
   try { sessionStorage.removeItem('studentos.alt.shortcut'); } catch (_) {}
+  document.removeEventListener('keydown', quickKey, true);
   try { document.activeElement && document.activeElement.blur(); } catch (_) {}
-  closeAddSheet();
+  scrim.classList.remove('open'); box.classList.remove('open');
+  setTimeout(() => { scrim.remove(); box.remove(); }, 260);
 }
 
 // ป้ายใต้ช่อง: บอกว่าแอปอ่านได้อะไรระหว่างพิมพ์ — วิชา · วันส่ง
@@ -51,6 +80,8 @@ function quickPreview() {
   chips.push(d.due && p.due
     ? `<span class="qa-chip">${esc(fmtDue(p.due, new Date(), p))}</span>`
     : `<span class="qa-chip warn">ยังไม่มีวันส่ง</span>`);
+  // "ทำ 2 ทุ่ม" — ให้เห็นก่อนกดส่งว่าแอปแยกออกเป็นนัด ไม่ได้เอาไปเป็นเวลาส่ง
+  if (p.doAt && typeof fmtClock === 'function') chips.push(`<span class="qa-chip">เตือน ${esc(fmtClock(new Date(p.doAt)))}</span>`);
   box.innerHTML = chips.join('');
 }
 
@@ -63,12 +94,7 @@ function quickSend() {
     return;
   }
   const r = inboxAdd(text, 'quick', { via: 'sheet' });
-  if (!r || !['accepted', 'pending', 'duplicate'].includes(r.status)) {
-    showToast(quickToast(r));
-    return;
-  }
   if (typeof haptic === 'function') haptic('arm');
-  quickPlusDraft = '';
   quickClose();
   if (typeof renderAll === 'function') renderAll();
   showToast(quickToast(r));

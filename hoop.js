@@ -66,8 +66,8 @@ function setFx3dMode(id, on) {
   list = list.filter(x => x !== id);
   if (on) list.push(id);
   try { localStorage.setItem(DONEFX_3D_KEY, JSON.stringify(list)); } catch (_) {}
+  // 18 ต.ค. 69 · สลับโหมดอย่างเดียว ไม่เล่น — เล่นเมื่อกด "ลองเล่นดู" (ดู setDoneFx)
   renderFxPick();
-  previewFx(id);
 }
 function doneFxPref() {
   let v = 'confetti';
@@ -90,10 +90,14 @@ function openDoneFx(title, onClose, preview, id) {
   if (typeof FX_GAMES === 'object' && FX_GAMES[id]) return openFxGame(id, title, onClose, preview);
   if (onClose) onClose();
 }
-function previewFx(id) { openDoneFx('ตัวอย่าง · เล่นได้เลย', null, true, id); }
+// เกมตัวอย่างเปิดอยู่แล้ว = ไม่ทำอะไร — ทุกเกมเปิดผ่าน fxShell ซึ่งปิดของเดิมแล้วสร้างใหม่
+// แตะ "ลองเล่นดู" ซ้ำระหว่างเกมยังโหลด (เครื่องช้า · 3D) เดิมจึงปิด-สร้างวนไปเรื่อย ๆ
+const fxOpenNow = () => !!document.querySelector('.hoop-ov:not(.out)');
+function previewFx(id) { if (fxOpenNow()) return; openDoneFx('ตัวอย่าง · เล่นได้เลย', null, true, id); }
 // ดูตัวอย่าง 3D ได้ทุกคน แม้ยังสุ่มไม่ได้ — แบบเกมที่ให้ลองสกินก่อนสุ่ม (คนเห็นว่าของสวยแค่ไหนถึงอยากได้)
 // เล่นได้ครบ แต่เป็นโหมดตัวอย่าง: ไม่นับงานเสร็จ ไม่ปลดล็อกอะไร · ใช้จริงตอนงานเสร็จยังต้องสุ่มได้ก่อน
 function previewFx3d(id) {
+  if (fxOpenNow()) return;
   if (typeof open3D === 'function' && typeof FX3D_GAMES === 'object' && FX3D_GAMES[id])
     return open3D(id, fx3dUsable(id) ? 'ตัวอย่าง 3D · เล่นได้เลย' : 'ตัวอย่าง 3D · สุ่มได้ในกาชา', null, true);
   previewFx(id);
@@ -102,8 +106,11 @@ function previewFx3d(id) {
 function setDoneFx(id) {
   if (id !== 'confetti' && !fxOwned(id)) return;
   try { localStorage.setItem(DONEFX_KEY, id); } catch (_) {}
+  // 18 ต.ค. 69 · เจ้าของ: "ให้เลือกก่อนแล้วกดเล่น ไม่ใช่กดเลือกแล้วเล่นเลย"
+  // เดิมแตะชื่อทีไรเกมเปิดทันที — ไล่แตะดูหลายตัว = โหลดเกม (3D หนัก) ซ้ำ ๆ เครื่องช้าสะดุด
+  // ตอนนี้แตะ = เลือก (ขอบไฮไลต์ + ชื่อมุมขวาบน) · เล่นด้วยปุ่ม "ลองเล่นดู" · เทสต์: devtools/fxpickcheck.js
+  haptic('tap');
   renderFxPick();
-  if (id !== 'confetti') previewFx(id);
 }
 
 function buyFx(id) {
@@ -156,7 +163,7 @@ function renderFxPick() {
         <button type="button" class="${on3 ? 'active' : ''}" onclick="setFx3dMode('${cur}', true)">3D</button>
       </div>` : cur !== 'confetti' ? `<div class="fx-seg" role="group" aria-label="โหมดภาพ">
         <span class="fx-seg-lb">ภาพ</span>
-        <button type="button" class="active" onclick="previewFx('${cur}')">2D</button>
+        <button type="button" class="active" aria-pressed="true">2D</button>
         <button type="button" class="lock" onclick="previewFx3d('${cur}')" aria-label="3D ยังไม่ได้ปลดล็อก ดูตัวอย่าง">${icon('lock')}3D</button>
       </div>
       <p class="fx-wait">3D สุ่มได้ในกาชา (ตัวละ 0.1%)</p>` : '')

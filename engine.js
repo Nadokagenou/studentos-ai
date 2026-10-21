@@ -297,6 +297,27 @@ function readThaiClock(t) {
   return null;
 }
 
+// ---------- 0.75) "ทำตอน" — เวลาที่จะลงมือทำ ไม่ใช่เวลาส่ง (15 ต.ค. 69) ----------
+// เจ้าของ: "ทำ 2 ทุ่มก็แจ้งเตือน" · ก่อนหน้านี้ทุกเวลาในประโยคถูกตีเป็นเวลาส่ง
+// "สรุปบทที่ 3 ทำ 2 ทุ่ม" จึงกลายเป็นงานที่ส่งสองทุ่มคืนนี้ ซึ่งไม่มีใครพูดถึงเลย
+//
+// นับเป็นนัดเฉพาะตอนที่เวลา "ติดอยู่หลังคำว่าทำ/เริ่มทำ ทันที" (มีตอน/เวลา/ช่วง คั่นได้)
+// "ทำโจทย์ข้อ 1-10 ส่ง 2 ทุ่ม" มีคำว่าทำก็จริง แต่ที่ตามมาคือชื่องาน — 2 ทุ่มยังเป็นเวลาส่ง
+// อ่านแค่ 14 ตัวอักษรหลังคำ: readThaiClock() ไล่ตามชนิดของเวลา ไม่ได้ไล่ตามตำแหน่ง
+// ถ้าให้มันเห็นทั้งประโยค "ทำ 2 ทุ่ม ส่ง 16:00" จะได้ 16:00 เพราะรูป HH:MM ถูกลองก่อน
+const DO_MARK = /(?:จะ|เริ่ม|ลงมือ)?(?:ทำ(?:งาน)?|เริ่ม)[ ]?(?:ตอน|เวลา|ช่วง)?[ ]?/g;
+function readDoClock(t) {
+  DO_MARK.lastIndex = 0;
+  let m;
+  while ((m = DO_MARK.exec(t))) {
+    const from = m.index + m[0].length;
+    const after = t.slice(from, from + 14);
+    const c = readThaiClock(after);
+    if (c && after.indexOf(c.text) === 0) return { hh: c.hh, mm: c.mm, text: t.slice(m.index, from) + c.text };
+  }
+  return null;
+}
+
 // ---------- 0.8) ประโยคคำถาม ไม่ใช่ใบสั่งงาน ----------
 // กลุ่มห้องเรียนมีคนถามกันทั้งวัน และคำถามจำนวนมากมีครบทั้งชื่อวิชาและคำบอกเวลา
 // ("พรุ่งนี้เรียนฟิสิกส์ห้องไหนอะ") ซึ่งพอจะหลอกด่าน "เจอวิชา + เจอกำหนดส่ง" ให้ผ่านได้สบาย
@@ -419,12 +440,14 @@ function parseAssignment(text, now = new Date(), opts = {}) {
 
   // เวลา — ดู readThaiClock() ข้างบน · ไม่เจอเวลาเลยถึงจะตกมาที่ปลายวัน
   let hh = 23, mm = 59, hasTime = false, timeText = '';
-  const clock = readThaiClock(t);
+  // เวลานัด ("ทำ 2 ทุ่ม") ถูกหักออกก่อน ตัวแกะเวลาส่งจึงไม่เห็นมัน — ดู readDoClock()
+  const doClock = readDoClock(t);
+  const clock = readThaiClock(doClock ? t.replace(doClock.text, ' ') : t);
   if (clock) { hh = clock.hh; mm = clock.mm; hasTime = true; timeText = clock.text; }
 
   // วันส่ง — dueText เก็บคำที่ใช้ตัดสิน ไว้เอาไปหักออกจากรายละเอียดทีหลัง
   let due = null, dueText = '';
-  if (/วันนี้/.test(t)) { due = atTime(now, hh, mm); dueText = 'วันนี้'; }
+  if (/(?:วันนี้|คืนนี้)/.test(t)) { due = atTime(now, hh, mm); dueText = t.match(/วันนี้|คืนนี้/)[0]; }
   else if (/พรุ่งนี้/.test(t)) { due = atTime(addDays(now, 1), hh, mm); dueText = 'พรุ่งนี้'; }
   else if (/มะรืน/.test(t)) { due = atTime(addDays(now, 2), hh, mm); dueText = 'มะรืน'; }
   else {
@@ -455,7 +478,8 @@ function parseAssignment(text, now = new Date(), opts = {}) {
       // (แบบมีจุดไม่ต้องกัน เพราะจุดเองเป็นตัวจบคำอยู่แล้ว — "25 ก.ค.นี้" ต้องยังผ่าน)
       const dotted = mon.replace(/\./g, '\\.');
       const bare = mon.replace(/\./g, '');
-      const re = new RegExp('(?:วันที่\\s*)?(\\d{1,2})\\s*(?:' + dotted + '|' + bare + '\\.?(?![ก-๙]))');
+      // ปีที่ตามวันส่งหักออกพร้อมวันที่ โดยไม่แตะเลขปีในเนื้องาน
+      const re = new RegExp('(?:วันที่\\s*)?(\\d{1,2})\\s*(?:' + dotted + '|' + bare + '\\.?(?![ก-๙]))(?:\\s*(?:พ\\.?\\s*ศ\\.?\\s*|ค\\.?\\s*ศ\\.?\\s*)?(?:25\\d{2}|20\\d{2})(?!\\d))?');
       const m = t.match(re);
       if (m) {
         let d = new Date(now.getFullYear(), idx, +m[1], hh, mm);
@@ -618,7 +642,7 @@ function parseAssignment(text, now = new Date(), opts = {}) {
   // วิธีใหม่: เอาข้อความทั้งก้อน แล้ว "หักเฉพาะส่วนที่ถูกแยกไปช่องอื่นแล้ว" ออก
   // ที่เหลือคือสิ่งที่ผู้ใช้เขียนจริง ๆ และไม่มีอะไรหายไประหว่างทาง
   const escRe = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const cutOut = [dueText, mT && mT[0], scoreText, mMin && mMin[0], mDur && mDur[0], mHr && mHr[0]].filter(Boolean);
+  const cutOut = [doClock && doClock.text, dueText, mT && mT[0], scoreText, mMin && mMin[0], mDur && mDur[0], mHr && mHr[0]].filter(Boolean);
   if (timeText && !(dueText && dueText.includes(timeText))) cutOut.push(timeText);
 
   let rest = t;
@@ -670,9 +694,20 @@ function parseAssignment(text, now = new Date(), opts = {}) {
     if (morning > now) due = morning;
   }
 
+  // นัดวันนี้ ถ้าเวลานั้นผ่านไปแล้วคือพรุ่งนี้ (กฎเดียวกับเวลาส่งที่ไม่บอกวัน)
+  // นัดที่ตกหลังกำหนดส่ง = ทำไม่ทันแน่ ๆ ทิ้งดีกว่าไปปลุกตอนที่ส่งไม่ได้แล้ว
+  let doAt = null;
+  if (doClock) {
+    const today = atTime(now, doClock.hh, doClock.mm);
+    doAt = today > now ? today : atTime(addDays(now, 1), doClock.hh, doClock.mm);
+    if (due && doAt > due) doAt = null;
+    if (doAt) detected.doAt = true;
+  }
+
   return {
     subject, teacher, scorePct,
     due: due ? due.toISOString() : null,
+    doAt: doAt ? doAt.toISOString() : null,
     // ค่าปริยายของ "สอบ" ต้องเป็นเวลาอ่านหนังสือ ไม่ใช่ 30 นาทีเท่าการบ้านใบหนึ่ง
     // สอบทั้งบทที่อ่านจบใน 30 นาทีไม่มีอยู่จริง และตัวเลขนี้ไม่ได้อยู่เฉย ๆ —
     // มันคือจำนวนนาทีที่ตัวจัดแผนจะกันไว้ให้ ตั้งต่ำไว้ = แผนบอกว่าอ่านครึ่งชั่วโมงแล้วพอ
