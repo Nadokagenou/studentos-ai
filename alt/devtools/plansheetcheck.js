@@ -22,7 +22,11 @@ async function planSheetCheck() {
 
   // ----- ตั้งนาฬิกา 16:10 วันนี้ · จำของเดิมไว้คืน -----
   const RealDate = Date;
+  // จำ state ทั้งก้อน ไม่ใช่แค่ tasks — ติ๊กเสร็จแตะ funnel (firstDone · doneEver ที่ใช้วัด capture rate ของผู้ใช้จริง) · สตรีค · แต้ม
+  // ถ้าไม่คืน ตัวเลขที่ชี้เป็นชี้ตายของการทดสอบกับนักเรียนจะมีงานปลอมของเทสต์ปนอยู่
+  const origState = JSON.stringify(state);
   const origTasks = JSON.stringify(state.tasks);
+  const quietToast = () => { const tt = document.getElementById('appToast'); if (tt) tt.classList.remove('show'); };
   const t0 = new RealDate(); t0.setHours(16, 10, 0, 0);
   const off = t0 - RealDate.now();
   class ShiftDate extends RealDate {
@@ -78,6 +82,33 @@ async function planSheetCheck() {
     add('งานโอกาสสุดท้าย: สามปุ่ม ไม่มีเลื่อนไปพรุ่งนี้', isOpen() && acts().join(',') === 'start,done,edit', acts().join(','));
     await closeAll();
 
+    // ----- index.html เก่าจากแคช (ไม่มีกล่องแผ่น) → แตะแถวต้องไม่เงียบ ถอยไปเปิดฟอร์มเหมือนเดิม -----
+    add('แผ่นอยู่ใน .phone (วงโฟกัสคีย์บอร์ดของ .phone ครอบถึง)', !!s && !!s.closest('.phone'));
+    const holder = s.parentNode, nextSib = s.nextSibling;
+    s.remove();
+    openPlanRowSheet('psc-a', 40); await wait(250);
+    add('ไม่มีกล่องแผ่น (index.html เก่า) → ถอยไปเปิดฟอร์มแก้ไข', curScreen === 'scr-form', curScreen);
+    holder.insertBefore(s, nextSib);
+    await closeAll(); openSaiPlan(); await wait(500);
+
+    // ----- งานเสร็จไประหว่างที่แผ่นเปิดอยู่ → "เสร็จแล้ว" ต้องไม่ยกเลิกการเสร็จ -----
+    // (ใช้ A — ตอนเริ่ม C ยังไม่อยู่ในแผนวันนี้ เพราะเวลาว่างถูก A กับ B กินหมด)
+    const cc = rowBtn('psc-a'); if (cc) cc.click(); await wait(120);
+    const C0 = state.tasks.find(t => t.id === 'psc-a');
+    const sheetOpenedForGuard = isOpen();
+    C0.done = true; C0.doneAt = new ShiftDate().toISOString();   // เสร็จจากที่อื่น (ซิงก์) ระหว่างแผ่นเปิด
+    const dn0 = document.querySelector('#planRowSheet [data-act="done"]'); if (dn0) dn0.click(); await wait(700);
+    add('งานเสร็จไปแล้วระหว่างแผ่นเปิด → กด "เสร็จแล้ว" ไม่ยกเลิกการเสร็จ', sheetOpenedForGuard && C0.done === true && !isOpen(), 'done=' + C0.done);
+    C0.done = false; C0.doneAt = null; quietToast(); renderSaiPlan();
+
+    // ----- ข้ามเส้น "โอกาสสุดท้าย" ระหว่างแผ่นเปิด → ปุ่มที่เห็นต้องยังกดได้ (ใช้ชุดปุ่มที่วาดตอนเปิด) -----
+    const cd = rowBtn('psc-a'); if (cd) cd.click(); await wait(120);
+    const cDue = C0.due, cEst = C0.estMin;
+    C0.due = iso(3); C0.estMin = 60;   // กลายเป็นโอกาสสุดท้ายหลังเปิดแผ่น
+    const sn0 = document.querySelector('#planRowSheet [data-act="snooze"]'); if (sn0) sn0.click(); await wait(400);
+    add('เส้นโอกาสสุดท้ายถูกข้ามระหว่างแผ่นเปิด → ปุ่มเลื่อนที่เห็นยังทำงาน', !!sn0 && !!C0.plannedFor && !isOpen(), 'plannedFor=' + C0.plannedFor);
+    C0.due = cDue; C0.estMin = cEst; delete C0.plannedFor; delete C0.snoozedAt; delete C0.snoozeCount; quietToast(); renderSaiPlan();
+
     // ----- เลื่อนไปพรุ่งนี้ = หายจากแผนวันนี้ -----
     (rowBtn('psc-a') || a).click(); await wait(120);
     const sn = document.querySelector('#planRowSheet [data-act="snooze"]'); if (sn) sn.click(); await wait(500);
@@ -86,28 +117,40 @@ async function planSheetCheck() {
     add('กด "เลื่อนไปพรุ่งนี้" → แผ่นปิด', !isOpen());
     add('งานถูกตั้งแผนเป็นพรุ่งนี้ (plannedFor)', !!A2.plannedFor && new ShiftDate(A2.plannedFor).getTime() === tmr.getTime(), String(A2.plannedFor));
     add('งานหายจากเส้นเวลาของวันนี้ (วาดใหม่แล้ว)', curScreen === 'scr-sai' && !rowIds().includes('psc-a'), 'แถว: ' + rowIds().join(','));
-    // toast ของการเลื่อนปิดเอง/ปิดทิ้งก่อนไปขั้นต่อไป
-    document.querySelectorAll('.toast').forEach(x => x.remove());
+    // "เลิกทำ" ใน toast เรียก renderAll() — จอแผนต้องวาดตาม แถวที่หายต้องกลับมา (เดิมค้างจนกว่าจะเข้าจอใหม่)
+    const undoBtn = document.querySelector('#appToast .tu');
+    if (undoBtn && !undoBtn.hidden) undoBtn.click(); await wait(300);
+    add('กด "เลิกทำ" ใน toast หลังเลื่อน → แถวกลับมาบนจอแผน', !A2.plannedFor && rowIds().includes('psc-a'), 'plannedFor=' + A2.plannedFor + ' แถว: ' + rowIds().join(','));
+    quietToast();
 
     // ----- เสร็จแล้ว = ติ๊กเสร็จทางเดียวกับการ์ดหน้าแรก -----
+    // เลื่อน A อีกรอบให้เวลาว่างพอ C ขึ้นแผนวันนี้ (เลิกทำเมื่อกี้พา A กลับมาแล้ว)
+    (rowBtn('psc-a') || a).click(); await wait(120);
+    const sn2 = document.querySelector('#planRowSheet [data-act="snooze"]'); if (sn2) sn2.click(); await wait(400);
+    quietToast();
     const c = rowBtn('psc-c');
     if (c) { c.click(); await wait(120); const dn = document.querySelector('#planRowSheet [data-act="done"]'); if (dn) dn.click(); }
     await wait(900);
     const C2 = state.tasks.find(t => t.id === 'psc-c');
     add('กด "เสร็จแล้ว" → งานถูกติ๊กเสร็จ + แผ่นปิด', !!C2 && C2.done === true && !!C2.doneAt && !isOpen(), C2 ? 'done=' + C2.done : 'ไม่พบงาน');
     add('ติ๊กเสร็จแล้วงานหายจากเส้นเวลา', !rowIds().includes('psc-c'), 'แถว: ' + rowIds().join(','));
+    add('ติ๊กเสร็จแตะ funnel จริง (ตัวที่ต้องคืน)', JSON.stringify(state.funnel || {}) !== JSON.stringify(JSON.parse(origState).funnel || {}));
   } finally {
     // เอฟเฟกต์ฉลอง/ toast ที่ตามหลังติ๊กเสร็จ — เก็บให้เกลี้ยงก่อนคืนของ
     try { if (typeof closeFx === 'function') closeFx(true); } catch (_) {}
     await closeAll();
-    document.querySelectorAll('.toast').forEach(x => x.remove());
+    quietToast();
     window.Date = RealDate;
-    // คืนรายการงานเดิมทั้งก้อน (งานที่ทดสอบเลื่อน/ติ๊กเสร็จหายไปพร้อมกัน)
-    state.tasks.splice(0, state.tasks.length, ...JSON.parse(origTasks));
+    // คืน state ทั้งก้อน (tasks ใช้ splice คงตัวอาร์เรย์เดิม · คีย์ที่เทสต์เพิ่มเข้ามาลบทิ้ง)
+    const snap = JSON.parse(origState);
+    for (const k of Object.keys(state)) if (!(k in snap)) delete state[k];
+    for (const k of Object.keys(snap)) if (k !== 'tasks') state[k] = snap[k];
+    state.tasks.splice(0, state.tasks.length, ...snap.tasks);
     save();
     go('scr-menu'); await wait(150);
   }
   add('คืนรายการงานเดิมครบ', JSON.stringify(state.tasks) === origTasks);
+  add('คืน state ทั้งก้อน (รวม funnel) เหมือนก่อนเทสต์', JSON.stringify(state) === origState);
   const pass = rows.filter(r => r.ok).length;
   console.log(`planSheetCheck: ${pass}/${rows.length}`);
   return { pass, total: rows.length, rows };

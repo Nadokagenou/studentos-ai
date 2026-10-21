@@ -12203,7 +12203,13 @@ function markDataChanged() { dataVer++; }
 function renderAll() {
   dataVer++;
   const list = typeof SCREEN_RENDER === 'object' && SCREEN_RENDER && SCREEN_RENDER[curScreen];
-  if (list) { renderForScreen(curScreen); return; }
+  if (list) {
+    renderForScreen(curScreen);
+    // จอแผน (scr-sai: []) วาดเองตอนเปิด ไม่มีตัววาดในตาราง — แต่ต้องตามข้อมูลที่เปลี่ยน (เลื่อน/ติ๊ก/เลิกทำ/ซิงก์)
+    // ไม่งั้น "เลิกทำ" ใน toast เรียก renderAll แล้วแถวที่เพิ่งหายไม่กลับมาจนกว่าจะเข้าจอใหม่ (20 ต.ค. 69)
+    if (curScreen === 'scr-sai' && typeof renderSaiPlan === 'function') renderSaiPlan();
+    return;
+  }
   renderEverything();
 }
 function renderEverything() {

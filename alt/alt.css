@@ -9570,7 +9570,7 @@ button.as-back { background: none; border: 0; font: inherit; color: inherit; wid
 
 /* #6 · ปุ่มเพื่อนมุมขวาบน (z 91) ลอยทับชั้นมืดของเช็คอิน/แผ่นต่าง ๆ — หลบเมื่อมีชั้นไหนเปิดอยู่ */
 body:has(#checkin:not([hidden]), #addSheet:not([hidden]), #soonSheet:not([hidden]), #daySheet:not([hidden]),
-  #aiSheet:not([hidden]), #reportSheet:not([hidden])) .top-friends,
+  #planRowSheet:not([hidden]), #aiSheet:not([hidden]), #reportSheet:not([hidden])) .top-friends,
 body.focus-on .top-friends { visibility: hidden; }
 
 /* #5 · จอ "เสร็จแล้ว" ของโหมดโฟกัสเลื่อนแนวนอนได้ 32px (อวตารน้องไซยื่นออกขอบการ์ด) */
@@ -15351,5 +15351,3 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 .prs-b:active { transform: scale(.98); }
 .prs-b.primary { border-color: transparent; background: var(--fill); color: var(--on-fill); }
 .prs-b.quiet { border-color: transparent; background: none; color: var(--muted); font-weight: 600; }
-#planRowSheet :focus-visible { outline: 2.5px solid var(--blue) !important; outline-offset: 2px !important; }
-body:has(#planRowSheet:not([hidden])) .top-friends { visibility: hidden; }

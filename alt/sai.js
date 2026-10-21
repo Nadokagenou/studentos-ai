@@ -292,17 +292,15 @@ function openSaiPlan() {
 // ทุกปุ่มทำงานผ่านฟังก์ชันเดิมของแอป (startFocus · toggleDone · snoozeToTomorrow · openForm)
 // ติ๊กเสร็จใช้ toggleDone ตัวเดียวกับปุ่ม ✓ บนการ์ดหน้าแรก — สตรีค/ฉลอง/ลูกโซ่ "งานถัดไป" จึงเหมือนกันทุกทาง
 let planRowSheetId = null;
+let planRowSheetActs = [];   // รายการปุ่มที่วาดตอนเปิด — กดแล้วใช้ชุดนี้ ไม่คิดใหม่ (เวลาผ่านไประหว่างเปิดแผ่นอาจข้ามเส้น "โอกาสสุดท้าย" ทำให้ปุ่มที่เห็นหาไม่เจอ)
 
 function planRowActions(t, now) {
   // เลื่อนไม่ได้เมื่อวันนี้คือโอกาสสุดท้าย — snoozeToTomorrow ปฏิเสธอยู่แล้ว ไม่โชว์ปุ่มที่กดแล้วโดนตีกลับ
   const canSnooze = !(typeof isLastChanceToday === 'function' && isLastChanceToday(t, now));
   return [
     { key: 'start', label: 'เริ่มทำ', ic: 'play', cls: 'primary', run: id => startFocus(id) },
-    { key: 'done', label: 'เสร็จแล้ว', ic: 'check', run: id => {
-      toggleDone(id);
-      // จอแผนไม่อยู่ในรายการวาดใหม่ของ renderAll (SCREEN_RENDER) — วาดเองหลังจังหวะฉลองของ toggleDone (430ms)
-      setTimeout(() => { if (curScreen === 'scr-sai') renderSaiPlan(); }, 470);
-    } },
+    // จอแผนวาดใหม่เองใน renderAll() (ดู app.js) — toggleDone วาดหลังจังหวะฉลอง ส่วนเลื่อนวาดที่นี่ทันที ไม่ให้แถวค้าง 200ms
+    { key: 'done', label: 'เสร็จแล้ว', ic: 'check', run: id => toggleDone(id) },
     canSnooze && { key: 'snooze', label: 'เลื่อนไปพรุ่งนี้', ic: 'clock', run: id => {
       snoozeToTomorrow(id);
       if (curScreen === 'scr-sai') renderSaiPlan();
@@ -315,7 +313,10 @@ function planRowActions(t, now) {
 function openPlanRowSheet(taskId, min) {
   const t = state.tasks.find(x => x.id === taskId);
   const el = document.getElementById('planRowSheet');
-  if (!t || t.done || !el) return;
+  if (!t || t.done) return;
+  // index.html เก่าจากแคช service worker ไม่มีกล่องนี้ (sw.js ดึงทีละไฟล์) — ถอยไปเปิดฟอร์มแบบที่แถวนี้เคยทำ
+  // ดีกว่าแตะแล้วเงียบ (แบบเดียวกับ startFocus ที่ถอยไป startWork)
+  if (!el) { openForm(taskId); return; }
   const hm = m => (typeof humanMin === 'function' ? humanMin(m) : m + ' นาที');
   const title = (t.detail || '').trim() || (typeof typeInfo === 'function' ? typeInfo(t).name : 'งาน');
   const subj = t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '';
@@ -324,7 +325,8 @@ function openPlanRowSheet(taskId, min) {
   planRowSheetId = taskId;
   // ยกเลิกการปิดที่ค้างอยู่ — ไม่งั้นตัวจับเวลาของรอบก่อนมาล้างแผ่นที่เพิ่งเปิด (เหตุผลเดียวกับ openSoonSheet)
   if (el._closeT) { clearTimeout(el._closeT); el._closeT = 0; }
-  const btns = planRowActions(t, new Date()).map(a =>
+  planRowSheetActs = planRowActions(t, new Date());
+  const btns = planRowSheetActs.map(a =>
     '<button type="button" class="prs-b' + (a.cls ? ' ' + a.cls : '') + '" data-act="' + a.key + '" onclick="planRowAct(\'' + a.key + '\')">'
     + icon(a.ic) + '<span>' + esc(a.label) + '</span></button>').join('');
   el.innerHTML = '<div class="as-scrim" onclick="closePlanRowSheet()"></div>'
@@ -352,10 +354,11 @@ function closePlanRowSheet(instant) {
 function planRowAct(key) {
   const id = planRowSheetId;
   const t = id && state.tasks.find(x => x.id === id);
+  const a = planRowSheetActs.find(x => x.key === key);
   closePlanRowSheet(true);
-  if (!t) return;
-  const a = planRowActions(t, new Date()).find(x => x.key === key);
-  if (a) a.run(id);
+  // งานเสร็จไประหว่างที่แผ่นเปิดอยู่ (ซิงก์ · ติ๊กจากที่อื่น) — กด "เสร็จแล้ว" ซ้ำ toggleDone จะยกเลิกการเสร็จ
+  if (!t || t.done || !a) return;
+  a.run(id);
 }
 
 // ============================================================
