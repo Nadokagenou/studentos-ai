@@ -13,8 +13,9 @@
 # ไฟล์ที่ไม่ยุ่ง: manifest.json · config.js (แต่ละสายมีตัวตน/คีย์ของตัวเอง)
 #                sw.js ก๊อปไม่ได้ (SHELL คนละชุด) แต่สคริปต์ขึ้นเลข cache ให้
 # วิธีใช้:  python sync-to-root.py
+#          python sync-to-root.py --dry-run   ← ดูว่าจะก๊อปอะไร + ชื่อ cache โดยไม่เขียนไฟล์ไหนเลย
 # ============================================================
-import io, os, re, sys
+import io, os, re, sys, time
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 ALT = os.path.join(ROOT, 'alt')
@@ -25,6 +26,13 @@ PER_CHANNEL = {'manifest.json', 'config.js', 'sw.js'}
 # icon-alt-* คือไอคอนที่มีแถบ ALT คาด — ตัวจริงต้องได้ icon-*.png ธรรมดาแทน
 # (index.html ถูกแก้กลับให้อ้าง icon-192.png อยู่แล้วในตาราง IDENTITY ข้างล่าง)
 ALT_ONLY = {'visual-editor.js', 'icon-alt-192.png', 'icon-alt-512.png'}
+# ของที่ตัวจริงเป็นเจ้าของเอง — มีทั้งสองฝั่งแต่ห้ามก๊อปทับ
+# เจ้าของเลือกเก็บโต๊ะทำงานจอใหญ่ (desktop workspace) ของ ALT ไว้นอกเว็บหลัก (ดู 6c1813f)
+# ตัวจริงจึงใช้เลย์เอาต์จอใหญ่ชุดของตัวเอง · แต่ alt/index.html เรียก desktop.css กับ
+# desktop-entry.js อยู่ สคริปต์เลยเคยก๊อปสองตัวนั้นทับของตัวจริงเงียบ ๆ ทุกรอบ
+# (desktop.js กับ desktop-navigation.mjs ใส่ไว้ด้วย กันวันที่ alt เริ่มเรียกมันตรง ๆ)
+ROOT_OWNED = {'desktop.css', 'desktop.js', 'desktop-entry.js', 'desktop-navigation.mjs'}
+SKIP = PER_CHANNEL | ALT_ONLY | ROOT_OWNED
 
 # ⚠️ บทเรียนจากรอบ ca2694b (โลโก้ใหม่ขึ้นแต่ alt/ ตัวจริงค้างโลโก้เก่า 6 วัน):
 #    สคริปต์เคยก๊อปแค่ .js กับ .css รูปจึงไม่เคยตามขึ้นไป — และรูปเป็นของที่
@@ -100,6 +108,11 @@ def local_refs(html):
         v = m.group(1)
         if '/' in v or v.startswith(('http', '#', 'data:')):
             continue
+        # ⚠️ บทเรียน 21 ต.ค. 69: alt/index.html เรียก app.js?v=20261016-main-notifications
+        #    ตัว ?v= ทำให้ไม่ลงท้ายด้วย .js แล้ว app.js ถูกข้ามไปทั้งไฟล์ (การแก้ IDENTITY ก็ข้ามตาม)
+        #    ตัวจริงจึงได้ index.html ใหม่คู่กับ app.js เก่า · ตัด ?… และ #… ทิ้งก่อนเทียบ
+        #    แล้วคืนแค่ชื่อไฟล์เปล่า — ส่วน ?v= ใน index.html ยังอยู่เหมือนเดิม (ไม่ได้แก้หน้าเว็บ)
+        v = re.split(r'[?#]', v, maxsplit=1)[0]
         if v.endswith(ASSETS):
             out.append(v)
     return out
@@ -114,6 +127,21 @@ def linked_pages(html):
     return [m.group(1) for m in re.finditer(r'href="([^"/#]+\.html)"', live)]
 
 
+# ชื่อ cache ของตัวจริง — ต้องขึ้นต้นด้วย studentos-main- เสมอ
+# ⚠️ บทเรียน 21 ต.ค. 69: สคริปต์เคยเขียนทับเป็น studentos-<รุ่น> (เช่น studentos-1c60)
+#    แต่ sw.js ของตัวจริงใช้คำนำหน้า studentos-main- ไว้แยกตัวเองออกจาก studentos-alt-*
+#    ที่อยู่โดเมนเดียวกัน (devtools/main-sw-check.cjs เช็คข้อนี้) · ชื่อผิดคำนำหน้า =
+#    รอบหน้าตัวจริงอาจลบแคชผิดตัว หรือไม่ลบแคชเก่าของตัวเอง
+# ต่อท้ายด้วยวันที่ซิงก์ — รุ่นเดิมแต่ซิงก์ข้ามวัน ชื่อก็ยังเปลี่ยน เครื่องที่ติดตั้งไว้จึงได้ของใหม่
+def cache_name(app_js):
+    ver = re.search(r"APP_VERSION\s*=\s*'([^']+)'", app_js)
+    code = re.search(r"APP_CODENAME\s*=\s*'([^']*)'", app_js)   # ว่างได้ — รุ่นที่เจ้าของไม่ตั้งชื่อเล่น
+    if not (ver and code):
+        return None
+    parts = (ver.group(1).lower(), code.group(1).lower(), time.strftime('%Y%m%d'))
+    return 'studentos-main-' + '-'.join(x for x in parts if x)
+
+
 def main():
     # คอนโซล Windows ไทยเป็น cp874 พิมพ์คอมเมนต์ที่มีอักขระนอกตารางแล้วสคริปต์ตายกลางทาง
     try:
@@ -121,9 +149,10 @@ def main():
     except Exception:
         pass
 
+    dry = '--dry-run' in sys.argv[1:]
     alt_html = io.open(os.path.join(ALT, 'index.html'), encoding='utf-8', newline='').read()
     files = ['index.html'] + ALWAYS + [f for f in local_refs(alt_html)
-                                       if f not in PER_CHANNEL and f not in ALT_ONLY]
+                                       if f not in SKIP]
 
     # หน้าที่ถูกลิงก์ + ของที่หน้านั้นเรียกใช้เอง (เช่น land.html ใช้ logo-lockup.svg
     # ซึ่ง index.html ไม่ได้อ้างถึงเลย จึงไม่เคยถูกก๊อปตามขึ้นไป)
@@ -133,7 +162,7 @@ def main():
             continue
         files.append(pg)
         files += [f for f in local_refs(io.open(src, encoding='utf-8').read())
-                  if f not in PER_CHANNEL and f not in ALT_ONLY]
+                  if f not in SKIP]
 
     # ไฟล์สื่อที่โค้ดเรียกเองตอนรัน — ต้องหาให้เจอก่อนเริ่มก๊อป
     for js in [f for f in files if f.endswith('.js')]:
@@ -141,7 +170,7 @@ def main():
         if not os.path.exists(src):
             continue
         for a in js_assets(io.open(src, encoding='utf-8', errors='replace').read()):
-            if a in PER_CHANNEL or a in ALT_ONLY:
+            if a in SKIP:
                 continue
             if os.path.exists(os.path.join(ALT, a)):
                 files.append(a)
@@ -151,10 +180,22 @@ def main():
         if not os.path.exists(src):
             continue
         for a in css_assets(io.open(src, encoding='utf-8', errors='replace').read()):
-            if a in PER_CHANNEL or a in ALT_ONLY:
+            if a in SKIP:
                 continue
             if os.path.exists(os.path.join(ALT, a)):
                 files.append(a)
+
+    if dry:
+        # ดูอย่างเดียว ไม่เขียนอะไรลงดิสก์ · ชื่อ cache คิดจาก alt/app.js
+        # เพราะรอบจริง app.js ของรากจะถูกก๊อปทับด้วยตัวนี้ก่อนถึงขั้นขึ้นเลข cache
+        names = [n for n in dict.fromkeys(files) if os.path.exists(os.path.join(ALT, n))]
+        print('[dry-run] จะก๊อป %d ไฟล์ (ไม่ได้เขียนจริง):' % len(names))
+        for n in names:
+            print('   ' + n + ('' if os.path.exists(os.path.join(ROOT, n)) else '   ← ไฟล์ใหม่ที่ราก'))
+        print('[dry-run] ไม่ก๊อป (ตัวจริงเป็นเจ้าของ): ' + ', '.join(sorted(ROOT_OWNED)))
+        want = cache_name(io.open(os.path.join(ALT, 'app.js'), encoding='utf-8', newline='').read())
+        print('[dry-run] cache ของตัวจริงจะเป็น: ' + (want or '(หา APP_VERSION/APP_CODENAME ไม่เจอ — จะไม่ขึ้นเลข)'))
+        return
 
     copied, added = [], []
     for name in dict.fromkeys(files):          # กันชื่อซ้ำ แต่คงลำดับไว้
@@ -193,13 +234,10 @@ def main():
     # ---------- sw.js: ขึ้นเลข cache + SHELL ต้องครบ ----------
     # ก๊อปไฟล์ทับแล้วแต่ไม่ขึ้นเลข cache = เครื่องที่ติดตั้งแอปไว้แล้วเสิร์ฟของเก่าต่อไป
     # เงียบ ๆ ซึ่งคือ "แก้แล้วแต่บนมือถือเหมือนเดิม" ที่หาสาเหตุยากที่สุดในโปรเจกต์นี้
-    app = io.open(os.path.join(ROOT, 'app.js'), encoding='utf-8', newline='').read()
-    ver = re.search(r"APP_VERSION\s*=\s*'([^']+)'", app)
-    code = re.search(r"APP_CODENAME\s*=\s*'([^']*)'", app)   # ว่างได้ — รุ่นที่เจ้าของไม่ตั้งชื่อเล่น
+    want = cache_name(io.open(os.path.join(ROOT, 'app.js'), encoding='utf-8', newline='').read())
     swp = os.path.join(ROOT, 'sw.js')
     sw = io.open(swp, encoding='utf-8', newline='').read()
-    if ver and code:
-        want = 'studentos-' + '-'.join(x for x in (ver.group(1).lower(), code.group(1).lower()) if x)
+    if want:
         sw2 = re.sub(r"(const CACHE = ')[^']+(')", lambda m: m.group(1) + want + m.group(2), sw, count=1)
         if sw2 != sw:
             io.open(swp, 'w', encoding='utf-8', newline='').write(sw2)
