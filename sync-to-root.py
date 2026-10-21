@@ -12,8 +12,10 @@
 #
 # ไฟล์ที่ไม่ยุ่ง: manifest.json · config.js (แต่ละสายมีตัวตน/คีย์ของตัวเอง)
 #                sw.js ก๊อปไม่ได้ (SHELL คนละชุด) แต่สคริปต์ขึ้นเลข cache ให้
-# วิธีใช้:  python sync-to-root.py
-#          python sync-to-root.py --dry-run   ← ดูว่าจะก๊อปอะไร + ชื่อ cache โดยไม่เขียนไฟล์ไหนเลย
+# ⛔ ปิดแล้ว (21 ต.ค. 69 · เจ้าของสั่ง "อย่าเอา alt ไปรวมกับแอปหลัก")
+#    รันเฉย ๆ จะหยุดทันทีโดยไม่เขียนไฟล์ไหนเลย — ALT กับแอปหลักแยกกันเดินแล้ว
+#    เหลือไว้แค่ --dry-run (ดูอย่างเดียว) · จะเปิดกลับต้องให้เจ้าของสั่งเท่านั้น
+# วิธีใช้:  python sync-to-root.py --dry-run   ← ดูว่าจะก๊อปอะไร + ชื่อ cache โดยไม่เขียนไฟล์ไหนเลย
 # ============================================================
 import io, os, re, sys, time
 
@@ -150,6 +152,11 @@ def main():
         pass
 
     dry = '--dry-run' in sys.argv[1:]
+    if not dry:
+        # ด่านนี้ต้องอยู่ก่อนบรรทัดไหนก็ตามที่เขียนไฟล์ — ห้ามย้ายลงไปข้างล่าง
+        print('⛔ sync-to-root.py ถูกปิดแล้ว (21 ต.ค. 69): เจ้าของไม่ให้เอา ALT ไปรวมกับแอปหลัก')
+        print('   ไม่ได้ก๊อปหรือแก้ไฟล์ไหนเลย · ดูอย่างเดียวได้ด้วย --dry-run')
+        sys.exit(2)
     alt_html = io.open(os.path.join(ALT, 'index.html'), encoding='utf-8', newline='').read()
     files = ['index.html'] + ALWAYS + [f for f in local_refs(alt_html)
                                        if f not in SKIP]
