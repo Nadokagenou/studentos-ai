@@ -14,7 +14,8 @@
 const APP_VERSION = '1C60';                 // สายเลขของแอป
 const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 // รับการแจ้งเตือนจากแอปหลักที่เดียว ไม่แก้ค่าตั้งร่วมที่ซิงก์ไปแอปหลัก
-const ALT_SYSTEM_NOTIFICATIONS = false;
+// บิลด์รากคือแอปหลัก — ต้องเป็น true เสมอ (ALT ตั้ง false) ไม่งั้นมือถือที่ติดตั้งแอปไม่มีแจ้งเตือนเลย
+const ALT_SYSTEM_NOTIFICATIONS = true;
 const STORE_KEY = 'studentos.alt.v1';       // ที่เก็บข้อมูลหลัก — ดูหมายเหตุเรื่องชื่อคีย์ข้างบน
 
 let state = { tasks: [], settings: { name: '', freeHours: 2 } };
@@ -469,14 +470,14 @@ function glitchTextRestore() {
 // หน่วงภาพทั้งจอสั้น ๆ ให้เหมือนเครื่องค้าง แล้วปล่อย — ไม่ได้หยุดโค้ดจริง
 // ใช้ CSS ล้วน ๆ จึงไม่มีทางไปค้างการทำงานของแอปหรือทำให้กดอะไรไม่ได้จริง
 function glitchStutter() {
-  if (!glitchOn() || document.documentElement.dataset.quality === 'low' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!glitchOn() || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const root = document.documentElement;
   root.dataset.gstut = 'on';
   setTimeout(() => root.removeAttribute('data-gstut'), 260 + Math.random() * 220);
 }
 
 function glitchShake(strong) {
-  if (!glitchOn() || document.documentElement.dataset.quality === 'low' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;   // กราฟิก "น้อย" — ไม่สั่นจอ
+  if (!glitchOn() || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const root = document.documentElement;
   root.dataset.gfx = strong ? 'hard' : 'on';
   if (navigator.vibrate) { try { navigator.vibrate(strong ? [18, 40, 14, 30, 10] : [12, 40, 8]); } catch (_) {} }
@@ -755,14 +756,7 @@ const kbTyping = () => { const a = document.activeElement; return !!(a && a.matc
 const kbNote = () => { if (!kbTyping()) kbTall[kbSide()] = Math.max(kbTall[kbSide()], innerHeight); };
 kbNote();
 addEventListener('resize', kbNote);
-// 17 ต.ค. 69 · ทำเฉพาะ iPhone/iPad (ตัวตรวจเดียวกับ index.html — iPad รุ่นใหม่แสดงตัวเป็น Mac จอสัมผัส)
-// เจ้าของ: "โทรศัพท์สเปคน้อย … ระบบรวน ปุ่มหายบ้าง" — บั๊กนี้เป็นของ WebKit แต่ตัวแก้เคยวิ่งบน Android ด้วย
-// Chrome/WebView รุ่นเก่า (มือถือราคาถูกยังใช้เยอะ) คีย์บอร์ดย่อทั้งหน้าต่าง · เครื่องช้า คีย์บอร์ดยังหดไม่เสร็จใน 150ms
-// → เงื่อนไขผ่าน → ซ่อนทั้งแอปแล้วโชว์คืน: อนิเมชันเข้าจอเล่นใหม่จากโปร่งใส ปุ่มทุกปุ่มในจอหายวูบ
-// วัดบนเครื่องจำลอง (CPU ช้า 8 เท่า): ปิดคีย์บอร์ดครั้งเดียว ซ่อน-โชว์ 2 รอบ · ปุ่มในจอจางหมด 7/7 และ 8/8 · การเลื่อนที่กำลังไหลโดนตัด
-const KB_WEBKIT_BUG = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 function healViewport() {
-  if (!KB_WEBKIT_BUG) return;
   if (kbTyping()) return; // โฟกัสย้ายไปอีกช่อง คีย์บอร์ดยังเปิดอยู่ — ยังไม่ถึงเวลา
   if (window.scrollY || window.scrollX) window.scrollTo(0, 0);
   const tall = kbTall[kbSide()];
@@ -1050,7 +1044,7 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
   'scr-dayfull': 'scr-tasks',
   'scr-settings': 'scr-profile', 'scr-setopt': 'scr-profile', 'scr-stats': 'scr-profile',
   // 15 ต.ค. 69 · ข่าวสารจากทีมเข้าจากแท็บ "ฉัน"
-  'scr-news': 'scr-profile', 'scr-classrooms': 'scr-profile',
+  'scr-news': 'scr-profile', 'scr-bugs': 'scr-profile',
   // จอแชทซ่อนแถบล่างอยู่แล้ว แต่ต้องผูกเจ้าของไว้ด้วย — ไม่งั้นตอนกดย้อนกลับ
   // ออกมา จะไม่มีแท็บไหนติดไฟสักอัน ซึ่งอ่านว่า "หลงอยู่ที่ไหนไม่รู้"
   // 1B93 · แท็บ "เพื่อน" ถูกแทนด้วยน้องไซ จอตระกูลฟีดจึงไม่มีแท็บของตัวเองอีกแล้ว
@@ -1139,40 +1133,6 @@ function resumeScreen() {
   } catch (_) { return null; }
 }
 
-// ---------- ปุ่มกลับพาไปจอที่เปิดมา (20 ต.ค. 69) ----------
-// เจ้าของ: "ตรวจดูว่าเมื่อกดปุ่มออกแล้วจะไปอยู่หน้าไหน … ไปอยู่หน้าที่ควรอยู่"
-// ไล่ทุกปุ่มที่พาไปจออื่นแล้วกดกลับ — 16 ทางไม่ถึงจอเดิม เพราะปุ่มกลับของจอพวกนี้เขียนปลายทางตายตัว
-// (หน้าแรก → บริบทของฉัน → กลับ = แท็บฉัน · ตั้งค่า → ร้านค้า → กลับ = แท็บฉัน · หน้าเข้าสู่ระบบจากในแอปไม่มีทางกลับ)
-// จำว่าจอไหนพาเข้ามา แล้วตัวดักคลิก (ใกล้ SCREEN_BACK_SEL) ส่งปุ่มกลับไปที่นั่นแทน — ไม่ต้องแก้ปุ่มทีละปุ่ม
-// รวมปุ่มในไฟล์ของอีกทีม (feed.js) · ไม่รู้ที่มา (เปิดแอปกลับมาที่จอนั้นตรง ๆ) = ปุ่มทำงานแบบเดิม
-// เทสต์: devtools/backroutecheck.js
-var backFrom = {};
-var goingBack = false;
-const RETURN_TO = new Set(['scr-context', 'scr-ttscan', 'scr-news', 'scr-pro', 'scr-shop', 'scr-mates',
-  'scr-setopt', 'scr-badges', 'scr-scan', 'scr-login']);
-// จอลูกกลับขึ้นมาหาจอแม่ด้วยปุ่มตายตัว (สุ่ม → go('scr-shop')) ไม่ใช่ "การพาเข้ามา" — จำแล้ววนกลับไปจอลูก
-function backIsChild(origin, id) {
-  if (backFrom[origin] === id) return true;
-  const el = document.getElementById(origin);
-  const b = el && el.querySelector('.sh-btn,.set-back,.sh-back,.back,button[aria-label^="กลับ"]');
-  return !!b && (b.getAttribute('onclick') || '').includes("'" + id + "'");
-}
-function rememberBackFrom(id) {
-  if (goingBack || !RETURN_TO.has(id) || id === curScreen || !curScreen) return;
-  const from = curScreen;
-  if (backIsChild(from, id)) return;                       // คงที่มาเดิมไว้
-  // หน้าเข้าสู่ระบบมีทางกลับเฉพาะคนที่ใช้แบบไม่สมัครอยู่แล้วกด "เข้าสู่ระบบ" จากในแอป
-  // ตอนเปิดแอปครั้งแรก / หลังออกจากระบบ (signOut ล้าง skipLogin ก่อนพามา) = ต้องเลือกก่อน ไม่มีทางกลับ
-  let skip = null; try { skip = localStorage.getItem('studentos.alt.skipLogin'); } catch (_) {}
-  if (from === 'scr-login' || from === 'scr-onboard' || (id === 'scr-login' && skip !== '1')) { delete backFrom[id]; return; }
-  backFrom[id] = from;
-}
-function goBack(fallback) {
-  const to = backFrom[curScreen];
-  goingBack = true;
-  try { go(to && to !== curScreen && document.getElementById(to) ? to : fallback); } finally { goingBack = false; }
-}
-
 function go2(id){ return go(id); }
 // scr-home กับ scr-tasks เป็นรายการงานสองจอที่ตอบคำถามเดียวกัน
 // แท็บ "ตารางงาน" ชี้มาที่ scr-tasks แล้ว — ทางเข้าเก่าที่ยังเรียก scr-home อยู่
@@ -1195,11 +1155,9 @@ function go(id) {
   if (typeof aiChatsClose === 'function') aiChatsClose(true);
   const dir = navDirection(curScreen, id);
   // ออกจากจอสุ่มเมื่อไหร่ ทิ้งผลรอบเดิม กลับเข้ามาจะได้เริ่มใหม่สะอาด ๆ
-  if (id !== 'scr-wheel') { drawSettle(); clearCompletedDraw(); drawResults = []; drawOpen = []; gcAuraOff(); applyDrawLock(); }
-  else restorePendingDraw();
+  if (id !== 'scr-wheel') { drawSettle(); drawResults = []; drawOpen = []; gcAuraOff(); applyDrawLock(); }
   // จอเหรียญตราเข้าได้สามทาง (หน้าแรก · แท็บฉัน · ผลของฉัน) — ปุ่มกลับต้องกลับไปที่เดิม
   if (id === 'scr-badges' && ['scr-menu', 'scr-profile', 'scr-stats'].includes(curScreen)) badgesReturn = curScreen;
-  rememberBackFrom(id);
   curScreen = id;
   // เข้าจอที่ลึกกว่าหน้าแรก = ปุ่มย้อนของเครื่องต้องพากลับในแอป ไม่ใช่ปิดแอป (ดู armBackTrap)
   if (id !== 'scr-menu' && id !== 'scr-login' && id !== 'scr-onboard') armBackTrap();
@@ -1214,10 +1172,7 @@ function go(id) {
   // กลับถึงหน้าแรกแล้วค่อยชวนรับของรายวัน (ถ้ายังไม่ได้ชวนวันนี้) — ดู dailyPromptOnOpen
   if (id === 'scr-menu') setTimeout(dailyPromptOnOpen, 900);
   document.body.dataset.godir = dir;
-  // 18 ต.ค. 69 · ถอด .fx-in ด้วย — screenFx ยกเลิกตัวจับเวลาที่ถอดคลาสนี้ของจอก่อนหน้า (clearTimeout)
-  // สลับเร็วกว่า 1.4 วิ คลาสจึงค้างบนจอที่เพิ่งผ่าน → กลับมาจอนั้นเข้าทาง "เล่นซ้ำ" ที่บังคับจัดผังทั้งหน้า
-  // ยิ่งสลับเร็ว จอที่ค้างคลาสยิ่งมาก = "สลับหน้าเร็ว ๆ แล้วเริ่มหน่วง" (เจ้าของ) · เทสต์: devtools/navcheck.js
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on', 'just-in', 'fx-in'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on', 'just-in'));
   const scr = document.getElementById(id);
   scr.classList.add('on');
   // เนื้อหาไล่ขึ้นทีละชิ้นเฉพาะตอน "เพิ่งเข้าจอ" เท่านั้น
@@ -1233,14 +1188,12 @@ function go(id) {
   document.body.classList.toggle('login-mode', id === 'scr-login' || id === 'scr-onboard');
   // ปุ่มช่องทางล็อกอินวาดด้วย JS (รายชื่อมาจาก config) และต้องรีเซ็ตกลับหน้าแรกของมัน
   // ทุกครั้งที่กลับเข้าจอนี้ — ไม่ใช่ค้างอยู่ที่ช่องกรอกรหัสของรอบที่แล้ว
-  if (id === 'scr-login') { loginView = 'root'; renderLoginOpts(); loginNote('');
-    const lb = document.querySelector('#scr-login .lg-back'); if (lb) lb.hidden = !backFrom['scr-login']; }
+  if (id === 'scr-login') { loginView = 'root'; renderLoginOpts(); loginNote(''); }
   // เปิดจอการแจ้งเตือน = อ่านแล้ว (renderNotif จดเวลาเอง) · ต้องวาดตอนนี้ ไม่รอ renderAll รอบถัดไป
   if (id === 'scr-notif' && typeof renderNotif === 'function') renderNotif();
+  if (id === 'scr-bugs' && typeof bugReportsEnter === 'function') bugReportsEnter();
   // 15 ต.ค. 69 · จอข่าวสารจากทีมวาดด้วย JS ทั้งจอ — go() เปล่า ๆ ได้จอว่าง (news.js)
   if (id === 'scr-news' && typeof newsEnter === 'function') newsEnter();
-  if (id === 'scr-bugs' && typeof bugReportsEnter === 'function') bugReportsEnter();
-  if (id === 'scr-classrooms' && typeof classroomsEnter === 'function') classroomsEnter();
   // จอแชทซ่อนแถบล่างเหมือนจอล็อกอิน — ช่องพิมพ์ต้องติดก้นจอจริง ๆ
   // ไม่ใช่ลอยอยู่หลังแถบล่างจนกดไม่โดน · ออกจากจอนี้ได้ทางปุ่มย้อนกลับในหัวจอ
   // 1C19 · scr-sai ถูกถอดออกจากรายการนี้ — เจ้าของสั่งว่า "อยากให้เป็นเหมือน
@@ -1293,7 +1246,7 @@ function go(id) {
     const el = document.getElementById(live.body);
     if (curScreen === id && (!el || !el.firstElementChild)) go(live.back);
   }, 0);
-  renderForScreen(id, true);   // true = มาจากการสลับจอ · จอที่ข้อมูลไม่เปลี่ยนไม่วาดซ้ำ (ดู markDataChanged)
+  renderAll();
 }
 
 // ---------- cloud: Supabase auth + sync ----------
@@ -1464,7 +1417,6 @@ async function initCloud() {
     const wasLoggedIn = !!currentUser;
     currentUser = sess ? sess.user : null;
     if (typeof bugAccountChanged === 'function') bugAccountChanged();
-    if (typeof classroomAccountChanged === 'function') classroomAccountChanged();
     syncTokenAdmin();
     if (currentUser && !wasLoggedIn) {
       // เพิ่งล็อกอินเสร็จ (รวมถึงกลับมาจากหน้า Google)
@@ -1674,17 +1626,14 @@ async function cloudPull() {
   // ไม่กี่ไบต์ ถูกกว่าลากก้อน 26KB ลงมาเทียบเองทุกครั้งที่เปิดแอปหลายสิบเท่า
   // (เปิดแอปส่วนใหญ่ไม่มีอะไรเปลี่ยนบน cloud เพราะเครื่องนี้เองเป็นคนเขียนล่าสุด)
   if (!sb || !currentUser) return false;
-  const pullUser=currentUser.id;
   const { data: head, error: headErr } = await sb.from('user_state')
-    .select('rev').eq('id', pullUser).maybeSingle();
-  if (currentUser?.id!==pullUser) return false;
+    .select('rev').eq('id', currentUser.id).maybeSingle();
   if (headErr) throw headErr;
   if (!head) { lastSeenRev = -1; return false; }   // ยังไม่มีแถว — pushRound จะสร้างให้
   if (head.rev === lastSeenRev) return false;
 
   const { data, error } = await sb.from('user_state')
-    .select('data, avatar, rev').eq('id', pullUser).maybeSingle();
-  if (currentUser?.id!==pullUser) return false;
+    .select('data, avatar, rev').eq('id', currentUser.id).maybeSingle();
   if (error) throw error;
   if (!data || !data.data) return false;
   const remote = data.data;
@@ -1803,7 +1752,6 @@ function pushSnapshot() {
 // เรียกผ่าน syncSerial เท่านั้น · โยน error ให้ pushToCloud บอกผู้ใช้
 async function pushRound() {
   if (!sb || !currentUser) return;
-  const pushUser=currentUser.id;
   // ข้อมูลในเครื่องเป็นของบัญชีอื่น = ห้ามส่ง จนกว่า syncFromCloud จะรับมาเป็นของบัญชีนี้ (adoptAccountIfNeeded)
   // ยังไม่มีเจ้าของ (ใช้แบบไม่ล็อกอินมาก่อน) ส่งได้ — รอบนี้ดึงมารวมกับ cloud ก่อนเขียนอยู่แล้ว (cloudPull ข้างล่าง)
   if (!cloudWritableFor(currentUser.id) && localOwner()) return;
@@ -1820,9 +1768,7 @@ async function pushRound() {
   let back = null, body, avatar, hash, nextBase;
   for (let attempt = 0; ; attempt++) {
     if (attempt === 3) throw new Error('cloud keeps changing — will retry on next save');
-    const pulled=await cloudPull();
-    if (currentUser?.id!==pushUser) return;
-    if (pulled) {
+    if (await cloudPull()) {
       renderAll();
       snap = pushSnapshot();
     }
@@ -1831,7 +1777,7 @@ async function pushRound() {
     // ระหว่างรอคำตอบผู้ใช้อาจติ๊กงานอีกใบ ถ้าคิดหลังจากนั้นใบนั้นจะดูเหมือนส่งไปแล้ว
     nextBase = syncBaseFrom(body);
 
-    const row = { id: pushUser, data: body, updated_at: new Date().toISOString() };
+    const row = { id: currentUser.id, data: body, updated_at: new Date().toISOString() };
     // ส่งคอลัมน์รูปเฉพาะตอนที่รูปเปลี่ยน — ไม่ใส่ = ค่าเดิมบน cloud ไม่ถูกแตะ
     if (snap.avatarChanged) row.avatar = avatar;
 
@@ -1840,9 +1786,8 @@ async function pushRound() {
     // lastSeenRev = -1 คือ cloud ยังไม่มีแถวของบัญชีนี้ (cloudPull บอก) — สร้างใหม่ด้วย upsert แบบเดิม
     const res = lastSeenRev < 0
       ? await sb.from('user_state').upsert(row).select('rev,vault:data->vault').maybeSingle()
-      : await sb.from('user_state').update(row).eq('id', pushUser).eq('rev', lastSeenRev)
+      : await sb.from('user_state').update(row).eq('id', currentUser.id).eq('rev', lastSeenRev)
           .select('rev,vault:data->vault').maybeSingle();
-    if (currentUser?.id!==pushUser) return;
     if (res.error) throw res.error;
     back = res.data;
     if (back) break;
@@ -2118,10 +2063,10 @@ async function logout() {
   if (typeof inboxLiveStop === 'function') inboxLiveStop();
   try { if (sb) await sb.auth.signOut(); } catch (_) {}
   currentUser = null; lastSync = null;
-  if (typeof classroomAccountChanged === 'function') classroomAccountChanged();
   // 16 ต.ค. 69 · ของบัญชีนี้ต้องไม่ค้างให้คนถัดไปที่ใช้เครื่องเห็น หรือติดไปบัญชีถัดไป — เก็บเข้าที่สำรอง แล้วเครื่องเปล่า
   leaveAccount();
   lastSeenRev = -1; lastPushedHash = ''; syncBase = null;
+  if (typeof bugAccountChanged === 'function') bugAccountChanged();
   syncTokenAdmin();
   // เพื่อนเป็นของบัญชี ไม่ใช่ของเครื่อง — ออกจากบัญชีแล้วต้องไม่เหลือค้างบนจอ
   frHandle = null; frList = []; frReqs = []; frHits = null; frLoaded = false;
@@ -2831,23 +2776,15 @@ function nowCard(sp, now) {
     // จอเต็มยังอยู่ที่ลิงก์ท้ายแผง เพราะการเทียบกับงานอื่นยาวเกินจะยัดลงการ์ด
     whyGo: `<button class="tn-why-go${NOW_WHY_OPEN ? ' open' : ''}" aria-expanded="${NOW_WHY_OPEN}"
         onclick="toggleNowWhy(this)">ทำไมอันนี้ก่อน${icon('chevron')}</button>
-      <div class="tn-why-pane${NOW_WHY_OPEN ? ' open' : ''}" aria-hidden="${!NOW_WHY_OPEN}"${NOW_WHY_OPEN ? '' : ' inert'}><div class="tn-why-in">${nowWhyHTML(t, now)}</div></div>`,
+      <div class="tn-why-pane${NOW_WHY_OPEN ? ' open' : ''}"><div class="tn-why-in">${nowWhyHTML(t, now)}</div></div>`,
   };
 
   const head = partsHtml('now', NOW_PARTS, 'head', P);
   const body = partsHtml('now', NOW_PARTS, 'body', P);
 
-  // อ่านก้อนแผนเดิม คำเตือนต้องอยู่ใกล้ปุ่มเริ่ม ไม่ซ่อนในหน้ารายละเอียด
-  const overflow = (sp.plan.overflow || []).find(o => o.task.id === t.id && o.missed);
-  const noContext = typeof ctxClasses === 'function' && !ctxClasses().length;
-  const note = overflow
-    ? `<button class="tn-plan-note warn" onclick="go('scr-plan')">${icon('clock')}เวลาว่างขาดอีก ${humanMin(overflow.need)} · ดูแผน${icon('chevron')}</button>`
-    : noContext
-      ? `<button class="tn-plan-note" onclick="go('scr-context')">${icon('calendar')}เวลายังเป็นค่าประเมิน · เพิ่มตารางเรียน${icon('chevron')}</button>` : '';
-
   return `<section class="td-now ${tone}${running ? ' running' : ''}">
     <div class="tn-head">${head}</div>
-    <div class="tn-body">${note}${body}</div>
+    <div class="tn-body">${body}</div>
   </section>`;
 }
 
@@ -2864,7 +2801,7 @@ function nowWhyHTML(t, now) {
   const due = t.due ? new Date(t.due) : null;
   const late = due && due < now;
   const stat2 = late ? null
-    : pnr ? [fmtClock(pnr), whyDayWord(pnr, now) + ' · เริ่มช้าสุด (ประมาณ)']
+    : pnr ? [fmtClock(pnr), whyDayWord(pnr, now) + ' · เริ่มช้าสุด']
     : due ? [fmtClock(due), whyDayWord(due, now) + ' · กำหนดส่ง'] : null;
   const rs = priorityInfo(t, now).reasons.map(x => String(x).replace(/^⚠\s*/, ''));
   return `<div class="tw-stats">
@@ -2882,11 +2819,7 @@ function toggleNowWhy(btn) {
   btn.classList.toggle('open', NOW_WHY_OPEN);
   btn.setAttribute('aria-expanded', NOW_WHY_OPEN);
   const pane = card.querySelector('.tn-why-pane');
-  if (pane) {
-    pane.classList.toggle('open', NOW_WHY_OPEN);
-    pane.inert = !NOW_WHY_OPEN;
-    pane.setAttribute('aria-hidden', !NOW_WHY_OPEN);
-  }
+  if (pane) pane.classList.toggle('open', NOW_WHY_OPEN);
   if (typeof haptic === 'function') haptic('arm');
 }
 
@@ -3197,84 +3130,10 @@ function toolsGrid() {
 //
 // ช่องนี้ไม่ใช่แชทซ้อน — พิมพ์แล้วส่งจะพาไปที่จอน้องไซพร้อมคำถามนั้น
 // ให้บทสนทนามีที่อยู่ที่เดียว ไม่ใช่สองที่ที่จำคนละเรื่อง
-// หน้าแรกฉบับเรียบ: งานถัดไปมาจากแผนก้อนเดียวกับการ์ดตอนนี้
-function homeNext(sp, split, now) {
-  const current = sp.now && sp.now.task;
-  const next = sp.next && !isRemindKind(sp.next.task) ? sp.next.slot : null;
-  const reminders = split.reminders.length;
-  const inbox = typeof inboxPending === 'function' ? inboxPending().length : 0;
-  const empty = pendingTasks().some(t => !isRemindKind(t) && (!current || t.id !== current.id))
-    ? 'งานที่เหลือยังไม่มีช่วงเวลาว่าง · ดูแผนเพื่อปรับเวลา'
-    : current ? 'ไม่มีงานถัดไปในแผนวันนี้' : 'พร้อมเมื่อมีงานใหม่';
-  return `<section class="home-next" aria-label="งานถัดไป">
-    <div class="hn-head"><b>ถัดไป</b><button onclick="go('scr-plan')">ดูแผนทั้งหมด${icon('chevron')}</button></div>
-    ${next ? `<button class="hn-task" onclick="go('scr-plan')">
-      <span class="hn-icon">${icon('book')}</span><span class="hn-copy"><b>${esc(next.task.detail || next.task.subject || 'งานถัดไป')}</b>
-      <span>${esc(next.task.subject || 'งาน')} · ${next.min} นาที · ${fmtClock(next.start)}</span></span>${icon('chevron')}</button>`
-      : `<p class="hn-empty">${esc(empty)}</p>`}
-    ${reminders || inbox ? `<div class="hn-pending">${reminders ? `<button onclick="go('scr-plan')">${icon('clock')}เตือนความจำ ${reminders} รายการ</button>` : ''}${inbox ? `<button onclick="go('scr-inbox')">${icon('inbox')}กล่องเข้า ${inbox} รายการ</button>` : ''}</div>` : ''}
-  </section>`;
-}
-
-function homeAssistant() {
-  const name = typeof mName === 'function' ? mName() : 'น้องฮูก';
-  const face = typeof synFace === 'function' ? synFace('normal') : 'sai-face-normal.webp';
-  return `<section class="home-assistant" aria-label="ถาม${esc(name)}">
-    <div class="ha-heading"><img src="${esc(face)}" alt="" width="36" height="36"><div><b>ให้${esc(name)}ช่วยคิด</b><span>ถามเรื่องงาน หรือปรับแผนวันนี้</span></div></div>
-    ${askBar()}
-  </section>`;
-}
-
-// ภาพรวมฟีเจอร์แยกจากหน้าแรกและโปรไฟล์ เลือกทีละหมวดหรือค้นหาข้ามหมวด
-let exploreFrom = 'scr-menu';
-let exploreGroup = '';
-const EXPLORE_NAMES = { learn: 'เรียนและวางแผน', friends: 'เพื่อนและการคุย', rewards: 'ของฉันและรางวัล', help: 'ข่าวสารและช่วยเหลือ' };
-function openExplore(group = '') {
-  if (curScreen !== 'scr-explore') exploreFrom = curScreen === 'scr-profile' ? 'scr-profile' : 'scr-menu';
-  go('scr-explore');
-  selectExplore(group);
-}
-function closeExplore() { go(exploreFrom); }
-function selectExplore(group) {
-  exploreGroup = Object.hasOwn(EXPLORE_NAMES, group) ? group : '';
-  const input = document.getElementById('exploreSearch');
-  if (input) input.value = '';
-  filterExplore('');
-  const screen = document.getElementById('scr-explore');
-  if (screen) screen.scrollTop = 0;
-}
-function filterExplore(value) {
-  const q = String(value || '').trim().toLocaleLowerCase('th');
-  const overview = !q && !exploreGroup;
-  document.getElementById('exploreOverview').hidden = !overview;
-  document.getElementById('exploreIntro').hidden = !overview || liveTasks().length > 0;
-  document.getElementById('exploreSelected').hidden = overview;
-  document.getElementById('exploreGroupTitle').textContent = q ? 'ผลการค้นหา' : EXPLORE_NAMES[exploreGroup] || '';
-  let found = 0;
-  document.querySelectorAll('.explore-section').forEach(section => {
-    let count = 0;
-    section.querySelectorAll('.pe').forEach(row => {
-      const feature = row.dataset.exploreFeature;
-      const allowed = !feature || typeof sosFeature !== 'function' || sosFeature(feature);
-      const matches = !q || row.textContent.toLocaleLowerCase('th').includes(q)
-        || (q.includes('โทเคน') && section.dataset.group === 'rewards');
-      row.hidden = !allowed || !matches;
-      if (!row.hidden) count++;
-    });
-    section.hidden = overview || (!q && section.dataset.group !== exploreGroup) || !count;
-    if (!section.hidden) found += count;
-  });
-  document.getElementById('exploreNoResults').hidden = overview || found > 0;
-}
-
-function homeDiscover() {
-  return `<button class="home-discover" onclick="openExplore()">${icon('search')}<span><b>สำรวจแอป</b><span>แผน · เพื่อน · ของสะสม และอื่น ๆ</span></span>${icon('chevron')}</button>`;
-}
-
 function askBar() {
   return `<section class="td-ask">
     <input id="hmAsk" class="tk-in" type="text" maxlength="500" enterkeyhint="send"
-      aria-label="คำถามถึง${esc(mName())}" placeholder="${esc((typeof sosText === 'function' ? sosText('askPh', 'ถามน้องไซ…') : 'ถามน้องไซ…').replace(/น้องไซ/g, mName()))}"
+      placeholder="${esc((typeof sosText === 'function' ? sosText('askPh', 'ถามน้องไซ…') : 'ถามน้องไซ…').replace(/น้องไซ/g, mName()))}"
       onkeydown="if(event.key==='Enter'){event.preventDefault();homeAsk();}">
     <!-- 8 ต.ค. 69 · ปุ่มล้างแบบ HaloSearchInput (เจ้าของส่งเดโมมา: "ใช้ในหน้านี้") — โผล่เมื่อมีตัวหนังสือ · ตัวอักษรปลิวออกก่อนช่องว่าง -->
     <button class="ha-x" type="button" onclick="homeAskClear()" aria-label="ล้างข้อความ"><svg viewBox="0 0 24 24" aria-hidden="true"
@@ -3381,12 +3240,14 @@ function todayEmpty(now, hasRem) {
 // มีงานค้างอยู่ แต่วันนี้ไม่เหลือเวลาให้จัดแล้ว — ต้องบอกว่าติดตรงไหน ไม่ใช่โชว์รางเวลาเปล่า
 // "AI จัดแผนไม่ได้" โดยไม่บอกเหตุผล คือคำตอบที่ทำให้ผู้ใช้เดาว่าแอปพัง
 function noTimeLeft(sp, now) {
+  const win = sp.plan.windows;
   const nf = typeof nextFreeSlotAfterToday === 'function' ? nextFreeSlotAfterToday(now) : null;
-  // 20 ต.ค. 69 · แถบบรรทัดเดียว (เดิมเป็นการ์ดสูง 139px ที่ดันหน้าแรกเป็น 909 จาก 803 และพูดเหมือนเครื่องเขียน)
-  // ใช้ตระกูลเดียวกับบรรทัด "วันนี้" (.dc-line) · ปุ่มทำเหมือนเดิมคือไปหน้าตั้งเวลา
-  const when = nf ? ` <small>· ว่างอีกที ${esc(nf.fromHm)} ${nf.dayOffset === 1 ? 'พรุ่งนี้' : 'อีก ' + nf.dayOffset + ' วัน'}</small>` : '';
-  return `<button class="dc-line td-night" onclick="go('scr-context')">
-    <span class="dc-ic">${icon('clock')}</span><span class="dc-tx"><b>เลยเวลาทำงานแล้ว</b>${when}</span><i>ขยายเวลา</i></button>`;
+  return `<section class="td-note">
+    <b>${icon('clock')}วันนี้หมดเวลาแล้ว</b>
+    <p>เลย ${esc(ctxPrefs().noWorkAfter)} น. ซึ่งเป็นเวลาที่คุณตั้งไว้ว่าจะหยุดทำงาน${
+      nf ? ` ว่างอีกทีตอน ${esc(nf.fromHm)} ${nf.dayOffset === 1 ? 'พรุ่งนี้' : 'อีก ' + nf.dayOffset + ' วัน'}` : ''}</p>
+    <button class="tn-ask" onclick="go('scr-context')">${icon('clock')}แก้เวลาว่างคืนนี้${icon('chevron')}</button>
+  </section>`;
 }
 
 // ---------- แผนต้องเดินตามเวลาจริง ----------
@@ -3512,8 +3373,7 @@ const HOME_BLOCKS = {
   // ราง + แถบตัวเลข + กริด ล้นจอ 375×812 ราว 160px · รางคือ "ทำอะไรต่อ" ซึ่งสำคัญกว่าตัวเลขซ้ำ
   // การ์ด "วันนี้หมดเวลาแล้ว" (outOfTime) ก็เป็นบล็อกเพิ่มแบบเดียวกัน — หลบให้ด้วยเหตุผลเดียวกัน
   todayStats: ctx => (ctx.outOfTime || dayRail(ctx.sp, ctx.split, ctx.now) ? '' : todayStats(ctx.sp, ctx.now)),
-  askBar:     ()  => homeAssistant(),
-  discover:   ()  => homeDiscover(),
+  askBar:     ()  => askBar(),
   // 1C18 · น้องไซตัวเป็น ๆ ใต้ช่องถาม — ทางเข้าห้องคุยแผน
   // sai.js อาจโหลดไม่ขึ้น (เน็ตหลุดกลางคัน · แคชเก่า) จึงต้องเช็คก่อนเรียกเสมอ
   // เหมือน hwNowBlock · บล็อกที่หายไปเงียบ ๆ ดีกว่าหน้าแรกที่ว่างทั้งจอ
@@ -3526,7 +3386,7 @@ const HOME_BLOCKS = {
   nowCard:    ctx => ctx.sp.now
     ? nowCard(ctx.sp, ctx.now) + (ctx.outOfTime ? noTimeLeft(ctx.sp, ctx.now) : '')
     : todayEmpty(ctx.now, ctx.hasReminders),
-  dayRail:    ctx => homeNext(ctx.sp, ctx.split, ctx.now),
+  dayRail:    ctx => dayRail(ctx.sp, ctx.split, ctx.now),
   // 1B40 · ของที่มาเติมครึ่งล่างที่ว่างลงหลัง 1B39 (เจ้าของเลือกเอง: "เพื่อนกำลังทำอะไรอยู่"
   // วางใต้ "ที่เหลือของวันนี้") · ไฟล์ hw.js อาจโหลดไม่ขึ้น จึงต้องเช็คก่อนเรียกเสมอ
   // ตัวมันเองคืนค่าว่างเมื่อไม่มีใครอยู่ — จอจึงกลับไปเป็นแบบ 1B39 เป๊ะตอนไม่มีข่าว
@@ -3540,7 +3400,7 @@ const HOME_BLOCKS = {
 // คำตอบว่า "ทำอะไรตอนนี้" คือสิ่งที่แอปขาย จึงต้องเป็นของแรกที่ตาเจอ · หัวจอ (โลโก้ · คำทัก · กระดิ่ง) ยังอยู่บนสุดของจอ
 // แล้วแถวตัวเลข (เวลาว่าง · งานค้าง · วันต่อเนื่อง) ตามขึ้นมาอยู่ใต้การ์ด "ตอนนี้" — เจ้าของวาดลูกศรอีกรอบ
 // (ต้องตรงกับ home.blocks ใน remote-config.js — saiHero ไม่อยู่ในค่านั้น homeLayout() แทรกต่อหลัง todayStats ตามลำดับนี้)
-const HOME_ORDER = ['todayHead', 'dayCtx', 'nowCard', 'dayRail', 'askBar', 'discover'];
+const HOME_ORDER = ['todayHead', 'dayCtx', 'nowCard', 'todayStats', 'saiHero', 'askBar', 'dayRail', 'hwNowBlock', 'toolsGrid'];
 
 // QA 6 ต.ค. 69 · แถบตัวเลขปิดไว้เป็นค่าเริ่มต้น — "ว่าง 45 นาที · ค้าง 1 งาน" บนหัวจอพูดเลขชุดเดียวกันอยู่แล้ว
 // สองช่องซ้ำกันกิน 125px ที่ทำให้หน้าแรกล้นจอ 375×812 จนกริดไทล์จมใต้แถบล่าง (ผิดกฎ "หน้าแรกไม่ต้องเลื่อน")
@@ -3578,9 +3438,7 @@ function homeLayout() {
 
 // บล็อกใบเดียวพังต้องไม่ทำให้ทั้งหน้าแรกว่าง — จอขาวคืออาการที่ผู้ใช้กู้เองไม่ได้
 function renderHomeBlocks(ctx) {
-  // กรองค่า layout รุ่นเดิมด้วย เพื่อไม่ให้กริด/มาสคอตซ้ำกลับมาในหน้าแรกฉบับนี้
-  return homeLayout().filter(b => HOME_ORDER.includes(b.id))
-    .sort((a, b) => HOME_ORDER.indexOf(a.id) - HOME_ORDER.indexOf(b.id))
+  return homeLayout()
     .filter(b => b.on)
     .map(b => {
       try { return HOME_BLOCKS[b.id](ctx) || ''; }
@@ -3592,7 +3450,6 @@ function renderHomeBlocks(ctx) {
 function renderMenu() {
   const body = document.getElementById('menuBody');
   if (!body) return;
-  body.classList.add('home-simple');
   const now = new Date();
   const sp = focusPlan(now);   // การ์ดโฟกัสต้องเป็นงานที่ลงมือทำได้จริง — ดู focusPlan()
   const split = homeSplit(sp, now);
@@ -3676,6 +3533,14 @@ const ADD_ACTIONS = [
 let addSheetView = 'root';
 
 function addSheetHTML() {
+  if (addSheetView === 'quick') return `<div class="as-grip"></div>
+    <button type="button" class="as-h as-back" onclick="openAddSheet('root')" aria-label="ย้อนไปเมนูเพิ่มงาน"><span class="as-bk">${icon('chevron')}</span>เพิ่มงานด่วน</button>
+    <form class="as-capture-form" onsubmit="event.preventDefault();quickSend()">
+      <label for="qaIn">งานที่ต้องทำ</label>
+      <input id="qaIn" class="qa-in" maxlength="500" autocomplete="off" enterkeyhint="send" placeholder="รายงานชีวะ ส่งศุกร์" value="${esc(typeof quickPlusDraft === 'string' ? quickPlusDraft : '')}" oninput="quickPlusInput()">
+      <div class="qa-chips" id="qaChips" aria-live="polite"></div>
+      <button type="submit" class="btn primary">เพิ่มงาน</button>
+    </form>`;
   if (addSheetView === 'connectors') {
     const c = typeof connectorCount === 'function' ? connectorCount() : { on: 0, all: 0 };
     return `<div class="as-grip"></div>
@@ -3739,6 +3604,7 @@ function addSheetHTML() {
       <span class="as-tx"><b>${esc(a[1])}</b></span>
       <span class="as-go">${icon('chevron')}</span>
     </button>`).join('')}
+
     <button class="as-row as-conn" onclick="openAddSheet('connectors')">
       <span class="as-ic">${icon('plug')}</span>
       <span class="as-tx"><b>ตัวเชื่อม</b></span>
@@ -3758,21 +3624,16 @@ function refreshAddSheet() {
 function openAddSheet(view) {
   const el = document.getElementById('addSheet');
   if (!el) { go('scr-scan'); return; }
-  addSheetView = view === 'connectors' ? 'connectors' : 'root';
-
-  // 17 ต.ค. 69 · กำลังปิดอยู่ (ถอด .on แล้ว รอตัวจับเวลาซ่อน) แล้วกด + ซ้ำ = ยกเลิกการปิด แล้วเปิดใหม่เต็มรูปแบบข้างล่าง
-  // เดิมช่วงนั้นนับว่า "เปิดอยู่แล้ว" (ยังไม่ hidden) → ไม่ใส่ .on คืน → ตัวจับเวลาเดิมซ่อนแผ่นทิ้ง = กด + แล้วไม่ขึ้น
-  // มือถือช้า ตัวจับเวลา 200ms มาช้ากว่านั้นมาก ช่วงนี้จึงยาวพอให้กดซ้ำทันจริง (เทสต์: devtools/sheetcheck.js)
-  if (el._closeT) { clearTimeout(el._closeT); el._closeT = 0; }
+  addSheetView = ['connectors', 'quick'].includes(view) ? view : 'root';
 
   // เปิดอยู่แล้ว = แค่สลับหน้าในแผ่นเดิม ห้ามวาดใหม่ทั้งก้อน ไม่งั้นแผ่นเลื่อนลงแล้วขึ้นใหม่
   // 8 ต.ค. 69 · ของในหน้าใหม่เลื่อนเข้าจากฝั่งที่ไป (.swap · ไปหน้าตัวเชื่อม = จากขวา · กลับ = จากซ้าย)
   // ใส่เฉพาะตอนสลับหน้า — กดสวิตช์ (refreshAddSheet) ไม่เล่นซ้ำ
-  if (!el.hidden && el.classList.contains('on')) {
+  if (!el.hidden) {
     refreshAddSheet();
     const card = el.querySelector('.as-card');
     if (card) {
-      card.dataset.dir = addSheetView === 'connectors' ? 'r' : 'l';
+      card.dataset.dir = addSheetView !== 'root' ? 'r' : 'l';
       card.classList.remove('swap'); void card.offsetWidth; card.classList.add('swap');
       setTimeout(() => card.classList.remove('swap'), 600);
     }
@@ -3823,11 +3684,11 @@ function plusTap(btn) {
 function closeAddSheet() {
   const el = document.getElementById('addSheet');
   if (!el) return;
+  try { sessionStorage.removeItem('studentos.alt.shortcut'); } catch (_) {}
   el.classList.remove('on');
   document.body.classList.remove('as-open');
   addSheetView = 'root';   // เปิดครั้งหน้าต้องเริ่มที่หน้าหลักเสมอ ไม่ใช่ค้างอยู่หน้าตัวเชื่อม
-  clearTimeout(el._closeT);
-  el._closeT = setTimeout(() => { el._closeT = 0; el.hidden = true; el.innerHTML = ''; }, 200);
+  setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
 }
 
 // ============================================================
@@ -3928,8 +3789,6 @@ function openSoonSheet(key) {
   const s = SOON_SHEETS[key];
   const el = document.getElementById('soonSheet');
   if (!s || !el) return;
-  // 17 ต.ค. 69 · ยกเลิกการปิดที่ค้างอยู่ — ไม่งั้นตัวจับเวลาของรอบก่อนมาล้างแผ่นใหม่ทิ้ง (เหตุผลเดียวกับ openAddSheet)
-  if (el._closeT) { clearTimeout(el._closeT); el._closeT = 0; }
   el.innerHTML = `<div class="as-scrim" onclick="closeSoonSheet()"></div>
     <div class="as-card soon-card" role="dialog" aria-label="${esc(s.title)}">
       <div class="as-grip"></div>
@@ -3950,8 +3809,7 @@ function closeSoonSheet() {
   const el = document.getElementById('soonSheet');
   if (!el || el.hidden) return;
   el.classList.remove('on');
-  clearTimeout(el._closeT);
-  el._closeT = setTimeout(() => { el._closeT = 0; el.hidden = true; el.innerHTML = ''; }, 200);
+  setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
 }
 
 function closeFabHub(instant) {
@@ -4418,12 +4276,6 @@ function dueTone(t, now) {
   return '';
 }
 
-// "ทำ 20:00" · "ทำ พรุ่งนี้ 20:00" · "ทำ 18 ต.ค. 20:00" — สั้นพอจะอยู่แถวเดียวกับกำหนดส่ง
-function doChipText(d, now) {
-  const days = Math.round((atTime(d, 0, 0) - atTime(new Date(now), 0, 0)) / 864e5);
-  const day = days === 0 ? ' ' : days === 1 ? ' พรุ่งนี้ ' : ' ' + d.getDate() + ' ' + MONTH_SHORT[d.getMonth()] + ' ';
-  return 'ทำ' + day + fmtClock(d);
-}
 function tkChip(text, tone) {
   return `<span class="tk-chip${tone ? ' ' + tone : ''}">${esc(text)}</span>`;
 }
@@ -4662,8 +4514,6 @@ function taskCard(t, now, focus) {
     // 1B76 — มาหลังกำหนดส่งโดยตั้งใจ: กำหนดส่งคือข้อเท็จจริงที่ครูให้มา
     // ส่วนนาฬิกานี้คือสิ่งที่แอปคำนวณให้ · เรียงตามลำดับนั้นเพื่อไม่ให้สับสนว่าอันไหนมาจากไหน
     riskChips(t, now),
-    // นัดที่ตั้งเอง — โผล่เฉพาะนัดที่ยังมาไม่ถึง (นัดที่ผ่านไปแล้วไม่ได้บอกอะไรอีก)
-    t.doAt && new Date(t.doAt) > now ? tkChip(doChipText(new Date(t.doAt), now), '') : '',
     t.scorePct != null ? tkChip('คะแนน ' + t.scorePct + '%', '') : '',
     gotTx ? tkChip('ได้ ' + gotTx, 'good') : '',
     t.repeatDays ? tkChip(t.repeatDays === 7 ? 'ซ้ำทุกสัปดาห์'
@@ -5097,8 +4947,7 @@ function dayCtxView(now) {
     return { ic: 'book', text: 'ไปเรียน', sub: 'ตามตาราง' + (span ? ' ' + span : '') };
   }
   if (g.kind === 'free') return { ic: 'sofa', text: 'วันนี้ไม่มีเรียน', sub: '' };
-  // ask = แอปยังไม่รู้อะไรเลย ต้องให้นักเรียนตอบ · บรรทัดนี้กลายเป็นปุ่มชวนกด (19 ต.ค. 69)
-  return { ic: 'pin', text: 'วันนี้ไปไหน?', sub: 'บอกก่อน แผนจะตรง', ask: true };
+  return { ic: 'pin', text: 'วันนี้ไปไหน', sub: 'บอกแอปได้' };
 }
 
 function dayCtxBlock(now) {
@@ -5107,16 +4956,8 @@ function dayCtxBlock(now) {
   const v = dayCtxView(now);
   // สูงบรรทัดเดียวทุกสถานะ — วัดจริง 18 ต.ค. 69: หน้าแรกของ alt ที่มีงานพอดีจอ 375×812 อยู่แล้ว
   // และหน้าแรกของรากล้นอยู่แล้ว 223px · ของที่เพิ่มบนหน้านี้ต้องไม่สูงกว่าหนึ่งบรรทัด
-  // 19 ต.ค. 69 · เจ้าของ (ภาพบรรทัด "ไปเรียน · เปลี่ยน"): "แก้หน้านี้หน่อย"
-  // "ไปเรียน" ลอย ๆ ไม่บอกว่าเป็นคำเดาของแอปเรื่องวันนี้ · "เปลี่ยน" เป็นตัวหนังสือเล็กสุดขอบขวา ดูไม่ออกว่ากดได้
-  // ตอนนี้: ไอคอนในวงกลม · "วันนี้" นำหน้าคำเดา (เว้นคำที่ขึ้นต้นด้วยวันนี้อยู่แล้ว) · ปุ่ม "เปลี่ยน" เป็นแคปซูล · สูงเท่าเดิม 36px
-  const lead = /^วันนี้/.test(v.text) ? '' : '<em>วันนี้</em> ';
-  // ยังไม่รู้ (ask) — เจ้าของ: "ทำให้มันดูเห็นเป็นที่สะดุดตาว่าเราควรทำอะไร"
-  // พื้นสีเต็มของธีม · หมุดเต้นเป็นจังหวะ · ปุ่ม "บอกเลย" (ยังไม่มีอะไรให้ "เปลี่ยน") · สูงเท่าเดิม
-  // ตอบแล้ว/เดาได้ = บรรทัดเรียบแบบเดิม — ของที่สะดุดตาตลอดเวลาจะเลิกสะดุดตา
-  const go = v.ask ? 'บอกเลย' : 'เปลี่ยน';
-  return `<button type="button" class="dc-line${v.ask ? ' ask' : ''}" onclick="openDaySheet()" aria-label="วันนี้: ${esc(v.text)} · ${go}">
-      <span class="dc-ic">${icon(v.ic)}</span><span class="dc-tx">${lead}<b>${esc(v.text)}</b>${v.sub ? ` <small>· ${esc(v.sub)}</small>` : ''}</span><i>${go}</i></button>`;
+  return `<button type="button" class="dc-line" onclick="openDaySheet()" aria-label="วันนี้: ${esc(v.text)} — เปลี่ยน">
+      ${icon(v.ic)}<span>${esc(v.text)}${v.sub ? ` <small>· ${esc(v.sub)}</small>` : ''}</span><i>เปลี่ยน</i></button>`;
 }
 
 // ctxSetDay รวมกับของเดิม — ล้าง away เสมอ ไม่งั้นคนที่เคยกด "ไม่อยู่ทั้งวัน" แล้วเปลี่ยนใจ
@@ -5344,8 +5185,8 @@ function breakAskDue(now = new Date()) {
 }
 
 function breakAskHtml() {
-  return `<button type="button" class="dc-line dc-brkq ask" onclick="openDaySheet('break')" aria-label="ปิดเทอมแล้วใช่ไหม · ตั้งวันเปิดเทอม">
-      <span class="dc-ic">${icon('calendar')}</span><span class="dc-tx"><b>ปิดเทอมแล้วใช่ไหม</b> <small>· ไม่ได้ไปเรียนสองวันแล้ว</small></span><i>ตั้ง</i></button>`;
+  return `<button type="button" class="dc-line dc-brkq" onclick="openDaySheet('break')" aria-label="ปิดเทอมแล้วใช่ไหม — ตั้งวันเปิดเทอม">
+      ${icon('calendar')}<span>ปิดเทอมแล้วใช่ไหม <small>· ไม่ได้ไปเรียนสองวันแล้ว</small></span><i>ตั้ง</i></button>`;
 }
 
 // openKey = วันเปิดเทอม · ช่วงปิดเทอม = วันนี้ถึงวันก่อนเปิด
@@ -5817,16 +5658,6 @@ function aiAsk(preset, opts) {
     });
     return;
   }
-  // ออนไลน์ต้องใช้ session แต่แผนในเครื่องยังตอบได้ ไม่ส่งข้อมูล guest ไปให้รอ error
-  if (!currentUser) {
-    log.push({ role: 'user', text: q });
-    log.push({ role: 'model', local: true, text: 'คำแนะนำจากแผนในเครื่อง\n\n' + aiOpener(focusPlan(new Date()))
-      + '\n\nตอนนี้ยังไม่ได้เข้าสู่ระบบ จึงยังถามผู้ช่วยออนไลน์ไม่ได้ ดูแผนและเริ่มงานได้ตามปกติ หรือเข้าสู่ระบบที่แท็บฉันเพื่อถามเรื่องอื่น' });
-    aiLogSave(log);
-    if (box) box.value = '';
-    renderAi(); aiScrollDown();
-    return;
-  }
   log.push({ role: 'user', text: q });
   aiLogSave(log);
   if (box) box.value = '';
@@ -5869,8 +5700,7 @@ function aiAsk(preset, opts) {
 // เปิดให้ดูว่าส่งอะไรไปจริง ๆ — ไม่ใช่คำอธิบายว่า "เราเก็บข้อมูลเท่าที่จำเป็น"
 // แต่เป็นตัวข้อความก้อนเดียวกันกับที่ถูกส่ง คนอ่านแล้วตรวจได้เองว่าตรงกับที่บอกไหม
 function aiShowContext() {
-  alert((currentUser ? 'บริบทที่จะส่งเมื่อถามผู้ช่วยออนไลน์:\n\n'
-    : 'ยังไม่ล็อกอิน คำแนะนำจากแผนในเครื่องไม่ส่งบริบทนี้ไปบริการ AI:\n\n') + aiContext());
+  alert('นี่คือข้อความที่ถูกส่งไปพร้อมคำถามของคุณ:\n\n' + aiContext());
 }
 
 // ---------- ปุ่มทางลัด 4 ปุ่ม ----------
@@ -6395,26 +6225,19 @@ function renderAi() {
   // 8 ต.ค. 69 · เจ้าของ: "เมื่อกดเข้ามา ให้มาเห็นตรงแชทล่าสุดที่คุยกัน"
   // วาดใหม่ทั้งก้อน = กล่องบทสนทนาใหม่เริ่มที่บนสุดเสมอ · renderAll() เรียกจอนี้ทุกครั้งที่ข้อมูลเปลี่ยน
   // จึงจำตำแหน่งเดิมไว้: อยู่ล่างสุด (หรือยังไม่เคยวาด) = ไปล่างสุด · เลื่อนขึ้นไปอ่านอยู่ = คืนที่เดิม ไม่ดึงลง
-  // 18 ต.ค. 69 · เดิมวัดบทสนทนาเก่า (scrollHeight/scrollTop) ก่อนแทนที่ = บังคับคิดสไตล์+จัดผังเนื้อหาที่กำลังจะทิ้ง
-  // ทุกครั้งที่เข้าจอนี้ (CPU ช้า 6 เท่า ~110ms) → จำตำแหน่งไว้ตอนผู้ใช้เลื่อนเอง (aiScrollMemo) ไม่ต้องวัดตอนวาด
-  // เลื่อนลงล่างสุดทำในเฟรมถัดไป รวมกับการจัดผังปกติของเฟรมนั้น (ไม่ใช่บังคับกลางสคริปต์อีกรอบ) · เทสต์: devtools/navcheck.js
-  const stick = !window.aiScroll || aiScroll.stick, oldTop = window.aiScroll ? aiScroll.top : 0;
+  const oldTh = el.querySelector('.ai-thread');
+  const stick = !oldTh || oldTh.scrollHeight - oldTh.scrollTop - oldTh.clientHeight < 80;
+  const oldTop = oldTh ? oldTh.scrollTop : 0;
+  // Keep an unsent shortcut draft when cloud refresh redraws the chat.
+  const unsent = el.querySelector('#aiInput')?.value || '';
   el.innerHTML = head + thread + quick + bar;
-  if (!el.dataset.scrollMemo) {
-    el.dataset.scrollMemo = '1';
-    el.addEventListener('scroll', e => {
-      const t = e.target;
-      if (!t.classList || !t.classList.contains('ai-thread')) return;
-      aiScroll.stick = t.scrollHeight - t.scrollTop - t.clientHeight < 80;
-      aiScroll.top = t.scrollTop;
-    }, { capture: true, passive: true });
-  }
+  const newInput = el.querySelector('#aiInput');
+  if (newInput && unsent) { newInput.value = unsent; aiInputState(newInput); }
+  if (typeof curScreen !== 'undefined' && curScreen === 'scr-ai' && typeof shortcutDraftApply === 'function') shortcutDraftApply('assistant');
   const th = el.querySelector('.ai-thread');
-  if (th) requestAnimationFrame(() => { if (th.isConnected) th.scrollTop = stick ? th.scrollHeight : oldTop; });
+  if (th) th.scrollTop = stick ? th.scrollHeight : oldTop;
   sgaMount();
 }
-// ตำแหน่งเลื่อนของบทสนทนาน้องฮูก — อัปเดตตอนผู้ใช้เลื่อน · ยังไม่เคยวาด = ไปล่างสุด
-var aiScroll = { stick: true, top: 0 };   // var ไม่ใช่ const — ถูกเรียกก่อนบรรทัดนี้ = undefined แทน TDZ (แบบเดียวกับ SCREEN_RENDER)
 
 // ---------- 1C40 · จัดรูปคำตอบของน้องไซ ----------
 // คำตอบมาเป็นตัวหนังสือล้วนที่มีขึ้นบรรทัด "- " "1. " และ **ตัวหนา** แบบ markdown ย่อ
@@ -8263,8 +8086,8 @@ function renderPlan() {
       <span class="pn-go">${icon('chevron')}</span>
     </button>`;
   } else if (win.mode === 'late') {
-    // 19 ต.ค. 69 · "นี่คือเวลาที่ยืมมาจากการนอน" อ่านเป็นคำเปรียบแบบ AI — พูดตรง ๆ ว่าให้ทำอะไร
-    html += `<div class="pctx-note">${icon('clock')}เลย ${esc(ctxPrefs().noWorkAfter)} น. แล้ว ทำแค่ที่จำเป็น แล้วไปนอน</div>`;
+    html += `<div class="pctx-note">${icon('clock')}เลย ${esc(ctxPrefs().noWorkAfter)} น. มาแล้ว
+      นี่คือเวลาที่ยืมมาจากการนอน ทำเท่าที่จำเป็นพอ</div>`;
   }
 
   for (const e of plan.events) {
@@ -8311,7 +8134,7 @@ function renderPlan() {
             <span class="ndue">${s.min} นาที${did ? ` · ทำไปแล้ว ${did}` : ''}</span>
           </div>
           <div class="tt">${taskTitle(s.task)}</div>
-          ${s.note ? `<div class="nt${/^⚠/.test(s.note) ? ' hot' : ''}">${esc(s.note.replace(/^⚠\s*/, ''))}</div>` : ''}
+          ${s.note ? `<div class="nt">${esc(s.note)}</div>` : ''}
           <button class="wk-go${mine ? ' on' : ''}" ${busy ? 'disabled' : ''}
             onclick="${mine ? 'stopWork()' : `startWork('${s.task.id}')`}">
             ${icon(mine ? 'check' : 'clock')}${mine ? 'หยุดจับเวลา' : busy ? 'จับเวลางานอื่นอยู่' : 'เริ่มจับเวลา'}
@@ -8337,10 +8160,10 @@ function renderPlan() {
       : 'ไม่เหลือช่องว่างก่อนกำหนดส่งอีกแล้ว';
     html += `<div class="povf danger">
       <div class="povf-head">${icon('clock')}<span>ทำไม่ทันถ้าไม่ทำวันนี้</span></div>
-      <div class="povf-why">${esc(when)}${nf ? ' ช้ากว่ากำหนดส่งแล้ว' : ''}</div>
+      <div class="povf-why">${esc(when)} ${missed.length > 1 ? 'งานพวกนี้' : 'งานนี้'}เลยกำหนดส่งไปก่อนถึงตอนนั้น</div>
       ${missed.map(o => `<div class="it">
         <div class="tt">${taskTitle(o.task)}</div>
-        <div class="ln">ยังต้องใช้ ~${o.need} นาที · ${esc(wgDueText(o.task, now))}</div>
+        <div class="ln">ยังต้องใช้ ~${o.need} นาที · ${esc(fmtDue(o.task.due, now, o.task))}</div>
       </div>`).join('')}
       
     </div>`;
@@ -8350,7 +8173,7 @@ function renderPlan() {
       <div class="povf-head">${icon('clock')}<span>เวลาวันนี้ไม่พอ ย้ายไปวันหลังได้</span></div>
       ${movable.map(o => `<div class="it">
         <div class="tt">${taskTitle(o.task)}</div>
-        <div class="ln">ต้องใช้ ~${o.need} นาที · ${esc(wgDueText(o.task, now))}</div>
+        <div class="ln">ต้องใช้ ~${o.need} นาที · ${esc(fmtDue(o.task.due, now, o.task))}</div>
       </div>`).join('')}
     </div>`;
   }
@@ -8502,8 +8325,6 @@ function renderProfile() {
   }
   // 15 ต.ค. 69 · เลขข่าวจากทีมที่ยังไม่เปิดดู — นับใน news.js ที่เดียว
   if (typeof newsPaintRow === 'function') newsPaintRow();
-  const ttEntry = document.getElementById('peTtScan');
-  if (ttEntry) ttEntry.hidden = typeof sosFeature === 'function' && !sosFeature('ttscan');
   // ตัวเลขบนปุ่มทางเข้าใหญ่ 3 ปุ่ม
   const pb = document.getElementById('peBadgeCt');
   if (pb) pb.textContent = badgesEarned().length + ' จาก ' + BADGES.length + ' เหรียญ';
@@ -8531,8 +8352,6 @@ function renderProfile() {
   // เพราะเลขเดียวกันเป็นช่อง "ต่อเนื่อง" ของแถบโชว์ที่อยู่เหนือขึ้นไปในจอเดียวกัน
   // (กฎเดิมของจอนี้ตั้งแต่ 1B71: ตัวเลขเดียวกันห้ามโผล่สองที่ในจอเดียว)
   const ps = document.getElementById('peShopCt');
-  const compactBalance = document.getElementById('pfTokenBalance');
-  if (compactBalance) compactBalance.textContent = fmtTok(tokenBalance()) + ' โทเคน';
   if (ps) {
     ps.innerHTML = '<span data-tok="' + tokenBalance() + '">'
       + (typeof fmtTok === 'function' ? fmtTok(tokenBalance()) : tokenBalance()) + '</span> โทเคน';
@@ -8561,7 +8380,7 @@ function renderProfile() {
   renderNotifPrefs();
   if (!st) return;
   if (!ALT_SYSTEM_NOTIFICATIONS) {
-    st.textContent = pushErr ? 'ยังปิดแจ้งเตือนเดิมของแอปนี้ไม่สำเร็จ · ต่อเน็ตแล้วลองใหม่' : 'แจ้งเตือนมาจากแอปหลัก · ไม่ส่งซ้ำ';
+    st.textContent = pushErr ? 'ยังหยุดแจ้งเตือน ALT ไม่สำเร็จ · เปิด ALT ออนไลน์แล้วลองใหม่' : 'รับแจ้งเตือนจากแอปหลักเท่านั้น · ALT ไม่ส่งซ้ำ';
     if (ntest) ntest.style.display = 'none';
     if (nb) { nb.style.display = pushErr ? 'block' : 'none'; nb.textContent = 'ลองใหม่'; }
     return;
@@ -10296,16 +10115,6 @@ function rollPrize() {
 function grantPrize(r) {
   if (r.granted) return r;
   const s = tokenState();
-  // ผลกับยอดอยู่ในก้อนเดียวกัน: เปิดซ้ำหลังรีโหลดต้องไม่แจกซ้ำ
-  const pending = s.pendingDraw;
-  if (r.drawId) {
-    if (!pending || pending.id !== r.drawId) return null;
-    const saved = pending.results[r.drawIndex];
-    if (!saved) return null;
-    if (saved.granted) return Object.assign(r, saved);
-  }
-  const prize = r;
-  r = Object.assign({}, r);
   if (r.kind === 'token') {
     s.bal = Math.round(((s.bal || 0) + r.amount) * 10) / 10;
   } else if (r.kind === 'fx3d') {
@@ -10328,32 +10137,23 @@ function grantPrize(r) {
       s.bal = Math.round(((s.bal || 0) + r.amount) * 10) / 10;
     }
   }
+  saveTokenState(s);
   r.granted = true;
-  if (pending && r.drawId === pending.id) pending.results[r.drawIndex] = r;
-  if (!saveTokenState(s)) return null;
-  return Object.assign(prize, r);
+  return r;
 }
 
 // n = จำนวนใบ · คิดเงินก่อนสุ่ม ถ้าไม่พอไม่สุ่มเลยสักใบ (ไม่หักครึ่ง ๆ กลาง ๆ)
-function paySpin(n, results) {
+function paySpin(n) {
   const s = tokenState();
-  if (s.pendingDraw && s.pendingDraw.results.some(r => !r.granted)) {
-    return { ok: false, pending: true };
-  }
-  const id = uid();
-  const pendingDraw = { id, results: results.map((r, i) => Object.assign({}, r, { drawId: id, drawIndex: i })) };
   if (n === 1 && (s.freeSpins || 0) > 0) {
     s.freeSpins -= 1;
-    s.pendingDraw = pendingDraw;
-    if (!saveTokenState(s)) return { ok: false, storage: true };
+    saveTokenState(s);
     return { ok: true, free: true, cost: 0 };
   }
   const cost = n === 10 ? SPIN_COST_10 : SPIN_COST_1 * n;
   if ((s.bal || 0) < cost) return { ok: false, cost, short: Math.round((cost - (s.bal || 0)) * 10) / 10 };
   s.bal = Math.round((s.bal - cost) * 10) / 10;
-  // หักยอดและเก็บการ์ดครั้งเดียว ก่อนเริ่มเอฟเฟกต์ มือถือปิดหน้าระหว่างนี้ของจึงยังอยู่
-  s.pendingDraw = pendingDraw;
-  if (!saveTokenState(s)) return { ok: false, storage: true };
+  saveTokenState(s);
   return { ok: true, free: false, cost };
 }
 
@@ -10486,16 +10286,11 @@ function tokenState() {
 function saveTokenState(s, quiet) {
   // ∞ แปลงเป็น JSON ไม่ได้ (กลายเป็น null = ยอดหาย) — เขียนยอดจริงที่มีอยู่กลับลงไปแทน
   if (!Number.isFinite(s.bal)) s = Object.assign({}, s, { bal: rawTokenState().bal || 0 });
-  try { localStorage.setItem(TOKEN_KEY, JSON.stringify(s)); }
-  catch (_) {
-    showToast({ title: 'บันทึกโทเคนไม่ได้', body: 'ยังไม่หักโทเคนหรือรับรางวัล ลองเพิ่มพื้นที่ว่างแล้วเปิดใหม่' });
-    return false;
-  }
+  try { localStorage.setItem(TOKEN_KEY, JSON.stringify(s)); } catch (_) {}
   // quiet = กำลังเขียนของที่เพิ่งดึงลงมาจาก cloud ห้ามประทับเวลาใหม่
   // ไม่งั้นเครื่องที่แค่ "รับ" ของมา จะกลายเป็นเครื่องที่มีของใหม่ที่สุดทันที
   if (!quiet) { try { localStorage.setItem(VAULT_AT_KEY, String(Date.now())); } catch (_) {} }
   if (!quiet && typeof pushToCloud === 'function') pushToCloud();
-  return true;
 }
 function tokenBalance() { return tokenState().bal || 0; }
 function loginStreak() { return tokenState().streak || 0; }
@@ -10740,20 +10535,6 @@ let drawResults = [];
 let drawOpen = [];
 let drawing = false;
 
-function restorePendingDraw() {
-  const p = rawTokenState().pendingDraw;
-  if (!p || !Array.isArray(p.results) || !p.results.length) { drawResults = []; drawOpen = []; return; }
-  drawResults = p.results;
-  drawOpen = p.results.map(r => !!r.granted);
-}
-
-function clearCompletedDraw() {
-  const s = rawTokenState();
-  if (!s.pendingDraw || s.pendingDraw.results.some(r => !r.granted)) return;
-  delete s.pendingDraw;
-  saveTokenState(s);
-}
-
 // ---------- 1C40 · วงการ์ด 3D (แบบ ThreeDPhotoCarousel) ----------
 // การ์ดเรียงรอบทรงกระบอก ลากซ้าย-ขวาแล้ววงหมุนตามนิ้ว ปล่อยแล้วไหลต่อตามแรงส่ง แล้วเข้าล็อกใบที่ใกล้ที่สุด
 // วงถูกดันถอยหลังเท่ารัศมี (translateZ(-r)) ใบหน้าสุดจึงขนาดเท่าการ์ดจริง ไม่ขยายเข้าหาตา
@@ -10907,15 +10688,13 @@ function drawBusy() { return drawResults.length > 0 && drawOpen.some(v => !v); }
 function drawSettle() {
   if (!drawBusy()) return;
   let tok = 0, fresh = 0;
-  let failed = false;
   drawResults.forEach((r, i) => {
     if (drawOpen[i]) return;
-    if (!grantPrize(r)) { failed = true; return; }
     drawOpen[i] = true;
+    grantPrize(r);
     tok += r.amount || 0;
     if ((r.kind === 'skin' || r.kind === 'fx3d') && !r.duplicate) fresh++;
   });
-  if (failed) return false;
   if (typeof applyThemeLocks === 'function') applyThemeLocks();
   showToast({
     title: 'เก็บการ์ดที่ยังไม่ได้หงายให้แล้ว',
@@ -10938,7 +10717,7 @@ function cardFace(r) {
 
 function drawCardsHtml() {
   return `<div class="gc-stage"></div>
-    <div class="gc-ring${drawResults.length > 1 ? ' multi' : ''}" id="gcRing" data-draw-id="${drawResults[0].drawId || ''}">
+    <div class="gc-ring${drawResults.length > 1 ? ' multi' : ''}" id="gcRing">
      <div class="gc-cyl" id="gcCyl">
       ${drawResults.map((r, i) => `
         <button class="gc" data-i="${i}" onclick="gcTap(${i})"
@@ -10978,9 +10757,8 @@ const RANK = { common: 0, rare: 1, legendary: 2, secret: 3, mythic: 4 };
 
 function flipCard(i) {
   if (drawOpen[i]) return;
-  const r = grantPrize(drawResults[i]);     // ของเข้ากระเป๋าตอนนี้ ไม่ใช่ตอนกดปุ่ม
-  if (!r) return;
   drawOpen[i] = true;
+  const r = grantPrize(drawResults[i]);     // ของเข้ากระเป๋าตอนนี้ ไม่ใช่ตอนกดปุ่ม
   const el = document.querySelector('.gc[data-i="' + i + '"]');
   if (el) {
     el.querySelector('.gc-face').innerHTML = cardFace(r);   // เติมหน้าการ์ดตอนจะพลิกเท่านั้น
@@ -11038,7 +10816,7 @@ function oddsText(rarity) {
 function renderWheel() {
   const box = document.getElementById('wheelBody');
   if (!box) return;
-  if (drawResults.length && curScreen === 'scr-wheel' && box.querySelector('#gcRing')?.dataset.drawId === drawResults[0].drawId) return;
+  if (drawResults.length && curScreen === 'scr-wheel') return;  // กำลังโชว์การ์ดอยู่ ห้ามวาดทับ
   const s = tokenState();
   const free = s.freeSpins || 0;
   box.innerHTML = `<div class="page-head gc-head">
@@ -11086,23 +10864,6 @@ function renderWheel() {
     </div>`;
 }
 
-// ตอนเปิดใหม่ต้องวาดการ์ดเดิม ไม่สุ่มใหม่และไม่หักยอดซ้ำ
-function renderRestoredDraw() {
-  if (!drawResults.length || curScreen !== 'scr-wheel') return;
-  const area = document.getElementById('gcArea');
-  if (!area || area.querySelector('#gcRing')?.dataset.drawId === drawResults[0].drawId) return;
-  area.className = '';
-  area.innerHTML = drawCardsHtml();
-  drawResults.forEach((r, i) => {
-    if (!r.granted) return;
-    const el = area.querySelector('.gc[data-i="' + i + '"]');
-    el.querySelector('.gc-face').innerHTML = cardFace(r);
-    el.classList.add('open', 'lit-' + r.rarity);
-  });
-  ringStop(); ringLayout(); ringBind(); gcRot = 0; ringPaint();
-  refreshDrawHead(); refreshDrawFooter(); applyDrawLock();
-}
-
 // ความกว้างของแถบอัตรา — ต่างจาก oddsText ตรงที่ต้องเป็นตัวเลขล้วนและมีพื้นขั้นต่ำ
 // Legendary 1% กว้าง 1% คือเส้นบางกว่า 2px บนจอมือถือ = มองไม่เห็นว่ามีอยู่
 function oddsPct(rarity) {
@@ -11131,14 +10892,8 @@ function refreshDrawHead() {
 
 async function doSpin(n) {
   if (drawing || drawBusy()) return;
-  const pay = paySpin(n, Array.from({ length: n }, () => rollPrize()));
+  const pay = paySpin(n);
   if (!pay.ok) {
-    if (pay.storage) return;
-    if (pay.pending) {
-      restorePendingDraw(); renderWheel(); renderRestoredDraw();
-      showToast({ title: 'ยังมีการ์ดรอเปิด', body: 'เปิดรอบเดิมให้ครบก่อน ไม่หักโทเคนเพิ่ม' });
-      return;
-    }
     haptic('snooze');
     showToast({ title: 'โทเคนไม่พอ', body: 'ต้องใช้ ' + pay.cost + ' โทเคน ยังขาดอีก ' + fmtTok(pay.short) });
     return;
@@ -11148,18 +10903,12 @@ async function doSpin(n) {
   document.getElementById('gcGo10').disabled = true;
 
   // ล็อกผลไว้ตั้งแต่ตอนนี้ (ยุติธรรม — หงายช้าเร็วไม่เปลี่ยนของ) แต่ยังไม่ให้ของ
-  restorePendingDraw();
-  const roundId = drawResults[0].drawId;
+  drawResults = Array.from({ length: n }, () => rollPrize());
+  drawOpen = drawResults.map(() => false);
   applyDrawLock();
 
   // ดาวตกก่อน — สีของมันบอกของที่ดีที่สุดในรอบนี้ ก่อนจะเห็นการ์ด (gacha-fx.js · แตะข้ามได้)
   if (typeof gcIntro === 'function') await gcIntro(drawResults);
-
-  // ระหว่างดาวตกผู้ใช้อาจไปจออื่นแล้ว อย่าวาดรอบเก่าทับหน้าที่เพิ่งเปิด
-  if (curScreen !== 'scr-wheel' || !drawResults.length || drawResults[0].drawId !== roundId) {
-    drawing = false;
-    return;
-  }
 
   const area = document.getElementById('gcArea');
   area.className = '';
@@ -11697,11 +11446,7 @@ let barsTimer = null;
 let fxTimer = 0;
 function screenFx(scr) {
   clearTimeout(fxTimer);
-  // 17 ต.ค. 69 · บังคับจัดผังใหม่ (offsetWidth) เฉพาะตอนต้องเล่นซ้ำ (คลาสยังติดอยู่จากรอบก่อน)
-  // จอที่เพิ่งโผล่จาก display:none อนิเมชันเริ่มเองตอนถูกคิดสไตล์ครั้งแรกอยู่แล้ว — บังคับไว้ก่อน = คิดสไตล์ทั้งจอสองรอบต่อการแตะ
-  // (CPU ช้า 12 เท่า: บรรทัดนี้กิน 1.9 วิในการแตะแท็บ 8 ครั้ง)
-  if (scr.classList.contains('fx-in')) { scr.classList.remove('fx-in'); void scr.offsetWidth; }
-  scr.classList.add('fx-in');
+  scr.classList.remove('fx-in'); void scr.offsetWidth; scr.classList.add('fx-in');
   fxTimer = setTimeout(() => scr.classList.remove('fx-in'), 1400);
   requestAnimationFrame(() => { rollNumbers(scr); titleIn(scr); });
 }
@@ -11818,13 +11563,8 @@ function growBars(scr) {
     if (!sets.length) return;
     // .st-bars ได้ .grow (แท่งงอก) · #statFull ได้ .an-in (การ์ดไล่ขึ้น · โดนัทวาดเส้น · แถบวิชายืด)
     const cls = b => b.id === 'statFull' ? 'an-in' : 'grow';
-    // 18 ต.ค. 69 · เดิม remove → offsetWidth → add ในเฟรมเดียว = บังคับคิดสไตล์+จัดผังทั้งหน้าทุกครั้งที่เข้าจอ
-    // (CPU ช้า 6 เท่า ~21ms ต่อครั้ง · จอไม่ได้วาดใหม่ก็ยังโดน) → ถอดเฟรมนี้ ใส่กลับเฟรมถัดไป อนิเมชันเริ่มใหม่เองโดยไม่ต้องบังคับ
-    sets.forEach(b => b.classList.remove(cls(b)));
-    requestAnimationFrame(() => {
-      sets.forEach(b => b.classList.add(cls(b)));
-      barsTimer = setTimeout(() => sets.forEach(b => b.classList.remove(cls(b))), 1400);
-    });
+    sets.forEach(b => { b.classList.remove(cls(b)); void b.offsetWidth; b.classList.add(cls(b)); });
+    barsTimer = setTimeout(() => sets.forEach(b => b.classList.remove(cls(b))), 1400);
   });
 }
 
@@ -12179,45 +11919,11 @@ function workStatsHtml(now) {
     </div>` : ''}`;
 }
 
-// 17 ต.ค. 69 · ข้อมูลเปลี่ยน (ติ๊กงาน · ซิงก์จาก cloud · ค่าตั้งมาถึง) = วาดเฉพาะจอที่ผู้ใช้เห็นอยู่ + ของส่วนกลาง
-// จอที่ซ่อนอยู่ไม่ต้องวาดตอนนี้ — go() วาดจอปลายทางใหม่ทุกครั้งที่เปิด (renderForScreen) จึงไม่มีทางเห็นของเก่า
-// วัด (CPU ช้า 12 เท่า): renderAll เดิม 0.4–1.3 วิต่อครั้ง · เฉพาะจอที่เห็น 0.01–0.44 วิ — ติ๊กงาน/ซิงก์ทีละครั้งเคยค้างเกือบวินาที
-// จอที่ยังไม่อยู่ใน SCREEN_RENDER (และระหว่างบูตก่อนตารางพร้อม) = วาดทั้งหมดแบบเดิม · เทสต์: devtools/navcheck.js
-// ---------- กลับจอที่ข้อมูลไม่เปลี่ยน = ไม่วาดใหม่ (18 ต.ค. 69) ----------
-// เจ้าของ: "เมื่อสลับหน้าเร็ว ๆ จะเริ่มมีอาการหน่วง" · วาดใหม่ = DOM ใหม่ทั้งจอ ต้องคิดสไตล์+จัดผังใหม่หมด
-// (CPU ช้า 6 เท่า: กลับหน้าแรก ~106ms · หน้า "ฉัน" ~70ms ทุกครั้ง ทั้งที่หน้าตาเหมือนเดิมเป๊ะ)
-// รุ่นข้อมูล (dataVer) ขยับเมื่อ: renderAll() (ทุกทางที่ข้อมูลเปลี่ยน) · เขียน localStorage ที่ขึ้นต้น studentos.alt. (ตั้งค่าทุกอย่าง)
-// จอที่วาดไว้ด้วยรุ่นเดียวกันและไม่เกิน 30 วิ (ของที่ขึ้นกับเวลา) = กลับมาไม่วาดซ้ำ · เทสต์: devtools/navcheck.js
-var dataVer = 1, screenStamp = {};
-function markDataChanged() { dataVer++; }
-(function () {
-  // ไม่นับ: จอที่อยู่ล่าสุด (เขียนทุกครั้งที่สลับจอ) · แผนของวันที่จดไว้เทียบ (เขียนตอนวาดหน้าแรก คำนวณจากข้อมูลที่ผ่าน renderAll อยู่แล้ว)
-  const SKIP = new Set(['studentos.alt.lastScreen', 'studentos.alt.plan']);
-  const hit = k => { k = String(k); return k.startsWith('studentos.alt.') && !SKIP.has(k); };
-  try {
-    const set = Storage.prototype.setItem, del = Storage.prototype.removeItem;
-    Storage.prototype.setItem = function (k, v) { if (this === localStorage && hit(k)) dataVer++; return set.call(this, k, v); };
-    Storage.prototype.removeItem = function (k) { if (this === localStorage && hit(k)) dataVer++; return del.call(this, k); };
-  } catch (_) {}
-})();
 function renderAll() {
-  dataVer++;
-  const list = typeof SCREEN_RENDER === 'object' && SCREEN_RENDER && SCREEN_RENDER[curScreen];
-  if (list) {
-    renderForScreen(curScreen);
-    // จอแผน (scr-sai: []) วาดเองตอนเปิด ไม่มีตัววาดในตาราง — แต่ต้องตามข้อมูลที่เปลี่ยน (เลื่อน/ติ๊ก/เลิกทำ/ซิงก์)
-    // ไม่งั้น "เลิกทำ" ใน toast เรียก renderAll แล้วแถวที่เพิ่งหายไม่กลับมาจนกว่าจะเข้าจอใหม่ (20 ต.ค. 69)
-    if (curScreen === 'scr-sai' && typeof renderSaiPlan === 'function') renderSaiPlan();
-    return;
-  }
-  renderEverything();
-}
-function renderEverything() {
   renderMenu(); renderHome(); renderTasks(); renderTimeline(); renderAi();
   renderWhy();
   renderProfile(); renderShowcase(); renderStats(); renderPlan(); renderFriends(); renderBadges();
-  if (curScreen === 'scr-explore') filterExplore(document.getElementById('exploreSearch').value);
-  renderShop(); renderPro(); renderWheel(); renderRestoredDraw(); renderInstallCard(); renderTabBadges(); renderContext();
+  renderShop(); renderPro(); renderWheel(); renderInstallCard(); renderTabBadges(); renderContext();
   renderRunBar();
   // ระบบ LINE ของอีกสาย — เรียกเมื่อไฟล์ถูกโหลดจริงเท่านั้น
   // (กันแอปพังทั้งจอถ้าไฟล์ inbox.js/linelink.js โหลดไม่ขึ้น)
@@ -12231,76 +11937,10 @@ function renderEverything() {
   // เรียกจากที่นี่เพราะรายการงานเปลี่ยนได้จากสิบทาง (เพิ่ม · ติ๊กเสร็จ · เลื่อน · ซิงก์จาก cloud)
   // ตัว hwSync หน่วงและกันยิงถี่ไว้เองแล้ว จึงเรียกบ่อยได้โดยไม่กินเน็ต
   if (typeof hwSync === 'function') hwSync();
-  if (typeof staffNewsRoute === 'function') staffNewsRoute();
   // เช็คว่ามีคำตอบใหม่ในเธรดหัวข้อที่เราถามไว้หรือยัง · หน่วงเองภายใน 2 นาที
   if (typeof loadTopicNews === 'function') loadTopicNews();
   if (typeof staffPersonalLoad === 'function') void staffPersonalLoad();
-}
-
-// ---------- สลับจอ = วาดเฉพาะจอที่กำลังจะแสดง ----------
-// 17 ต.ค. 69 · เจ้าของ: "โทรศัพท์สเปคน้อย ใช้ไปไม่นานเครื่องค้าง ระบบรวน ปุ่มหาย เลื่อนได้เรื่อย ๆ"
-// go() เคยเรียก renderAll() = แตะแท็บหนึ่งครั้ง วาดใหม่ 26 ตัววาด ทั้งที่เห็นแค่จอเดียว (จออื่น display:none)
-// ตัววาดหลายตัวถามขนาด/ตำแหน่งกลางคัน → คิดสไตล์+จัดผังซ้ำหลายรอบในการแตะครั้งเดียว
-// วัด (CPU ช้า 12 เท่า · โหมดลื่น): แตะแท็บละ 1.1–1.4 วิ · เธรดหลักไม่ว่าง 21 จาก 33 วิ
-// ระหว่างนั้นการเลื่อนจอยังไหล (ทำนอกเธรดหลัก) แต่ปุ่มกดไม่ติดและส่วนที่เพิ่งเลื่อนเข้ามายังวาดไม่ทัน = "ปุ่มหาย"
-// จอที่ซ่อนอยู่ถูกวาดไว้แล้วตอนข้อมูลเปลี่ยนครั้งล่าสุด (ทางนั้นยังเรียก renderAll ครบทุกจอ) จึงไม่ต้องวาดซ้ำตอนสลับจอ
-// จอที่ยังไม่อยู่ในตารางนี้ = วาดทั้งหมดแบบเดิม (ปลอดภัยไว้ก่อน) · เทสต์: alt/devtools/navcheck.js → navCheck()
-// var ไม่ใช่ const — ถ้ามีใครเรียก go() ระหว่างที่ไฟล์ยังโหลดไม่ถึงบรรทัดนี้ const จะพัง (TDZ) · var เป็น undefined → วาดทั้งหมดแบบเดิม
-var SCREEN_RENDER = {
-  'scr-menu': ['renderMenu'],
-  'scr-tasks': ['renderTasks'],
-  'scr-timeline': ['renderTimeline'],
-  'scr-ai': ['renderAi'],
-  'scr-why': ['renderWhy'],
-  'scr-profile': ['renderProfile', 'renderStats'],      // renderProfile วาดหัว · โทเคน · showBox (renderShowcase) เอง
-  'scr-settings': ['renderProfile', 'renderInstallCard'],
-  'scr-stats': ['renderStats'],
-  'scr-plan': ['renderPlan'],
-  'scr-badges': ['renderBadges'],
-  'scr-shop': ['renderShop'],
-  'scr-pro': ['renderPro'],
-  'scr-wheel': ['renderWheel', 'renderRestoredDraw'],
-  'scr-context': ['renderContext'],
-  'scr-inbox': ['renderInbox'],
-  'scr-notif': ['renderNotif'],
-  'scr-sources': ['renderSources'],
-  'scr-room': ['renderRoom'],
-  'scr-people': ['renderMates'],
-  'scr-mates': ['renderFeed'],                          // renderFeed เรียก renderFriends เอง
-  // 17 ต.ค. 69 · จอที่เหลือ — เดิมไม่อยู่ในตาราง = เปิดทีไรวาดทั้งหมด 26 ตัว (CPU ช้า 6 เท่า: ฟอร์มเพิ่มงาน/สำรวจ/ข่าว 150–412ms)
-  // วัดจริงว่าตัววาดใน renderEverything ตัวไหนเขียนลงจอไหน (MutationObserver ทั้งหน้า + อ่านโค้ดว่าเขียนลง id ไหน · สองทางตรงกัน)
-  'scr-home': ['renderHome'],
-  'scr-news': ['renderMenu'],
-  'scr-explore': ['renderMenu', 'renderProfile', 'renderContext', 'renderExploreList'],   // ป้ายตัวเลขบนไทล์ + รายการที่กรองอยู่
-  // จอเหล่านี้ไม่มีตัววาดตัวไหนใน renderEverything เขียนลงเลย — เนื้อหาวาดโดยโค้ดของจอเองตอนเปิด
-  'scr-form': [], 'scr-sai': [], 'scr-dayfull': [], 'scr-bugs': [], 'scr-ctxwiz': [], 'scr-compose': [], 'scr-consent': [],
-  'scr-privacy': [], 'scr-user': [], 'scr-post': [], 'scr-chat': [], 'scr-hw': [], 'scr-topic': [], 'scr-tthread': [],
-  'scr-dm': [], 'scr-board': [], 'scr-setopt': [],
-  // ไม่ใส่: ล็อกอิน · แนะนำแอป · สแกน/ครอบรูป/กำลังอ่าน — จังหวะพิเศษ ปล่อยวาดทั้งหมดแบบเดิม
-};
-// เดิม renderEverything กรองรายการสำรวจใหม่เมื่ออยู่จอนี้ — ห่อเป็นตัววาดให้ตารางเรียกได้
-function renderExploreList() {
-  const box = document.getElementById('exploreSearch');
-  if (typeof filterExplore === 'function') filterExplore(box ? box.value : '');
-}
-function renderForScreen(id, fromNav) {
-  const list = SCREEN_RENDER && SCREEN_RENDER[id];
-  if (!list) { renderEverything(); return; }
-  // มาจากการสลับจอ (go) + จอนี้วาดไว้ด้วยข้อมูลรุ่นเดียวกัน ไม่เกิน 30 วิ = ของบนจอยังตรง ข้ามการวาดจอ
-  const st = screenStamp[id], now = Date.now();
-  const fresh = fromNav && st && st.v === dataVer && now - st.t < 30000;
-  if (!fresh) {
-    // เรียกผ่าน window ทุกครั้ง — ไฟล์อื่น (เช่น app.js ท้ายไฟล์) ห่อตัววาดบางตัวไว้ ต้องได้ตัวที่ห่อแล้ว
-    list.forEach(n => { if (typeof window[n] === 'function') window[n](); });
-    screenStamp[id] = { v: dataVer, t: now };
-  }
-  // ของส่วนกลางนอกกองจอ (ป้ายบนแถบล่าง · แถบจับเวลา) + งานเบื้องหลังที่ renderAll เคยปลุกทุกครั้งที่สลับจอ
-  // (แต่ละตัวหน่วง/กันยิงถี่ของตัวเองอยู่แล้ว — เก็บไว้ให้จังหวะเรียกเหมือนเดิม)
-  renderTabBadges(); renderRunBar();
-  if (typeof hwSync === 'function') hwSync();
   if (typeof staffNewsRoute === 'function') staffNewsRoute();
-  if (typeof loadTopicNews === 'function') loadTopicNews();
-  if (typeof staffPersonalLoad === 'function') void staffPersonalLoad();
 }
 
 // ---------- ค่าตั้งจากเซิร์ฟเวอร์มาถึงทีหลัง ----------
@@ -12833,32 +12473,13 @@ function renderRunBar() {
   if (!t) { state.running = null; save(); bar.hidden = true; bar.innerHTML = ''; delete bar.dataset.for; return; }
   if (bar.dataset.for !== r.taskId) {
     bar.dataset.for = r.taskId;
-    // 20 ต.ค. 69 · เวลาที่เดินอยู่ย้ายเข้ามาในแคปซูลนาฬิกา (แบบ Timer ของ Cult UI · MIT) — เดิมเป็นตัวเล็ก 11.5px จาง ๆ ใต้ชื่องาน
-    bar.innerHTML = `<span class="rb-tx"><i class="rb-k">กำลังทำ</i><b class="rb-tt"></b></span>
-      ${runTimerPill('rb-timer')}
+    bar.innerHTML = `<span class="rb-dot"></span>
+      <span class="rb-tx"><b class="rb-tt"></b><span class="rb-el mono"></span></span>
       <button class="rb-stop" onclick="stopWork()">หยุด</button>`;
     bar.querySelector('.rb-tt').textContent = taskTitleText(t);
   }
   bar.hidden = false;
-  paintRunTimers(r);
-}
-
-// ---------- แคปซูลนาฬิกา (แบบ Timer ของ Cult UI · MIT · nolly-studio/cult-ui) ----------
-// ของต้นฉบับ: แคปซูล role="timer" · ไอคอนนาฬิกาหมุนตอนเดิน · ตัวเลขโมโน tabular-nums ไม่ให้ความกว้างกระตุกทุกวินาที
-// ที่ปรับ: หมุนเฉพาะเข็ม ไม่ใช่ทั้งไอคอน (หมุนทั้งไอคอนอ่านเป็น "กำลังโหลด") · ไม่ตั้ง aria-live=polite
-// (ตัวอ่านหน้าจอจะอ่านเลขทุกวินาที) · role="timer" ปิดการอ่านอัตโนมัติอยู่แล้ว
-// ทุกแคปซูลในหน้าอัปเดตจาก renderRunBar() ที่เรียกทุกวินาทีอยู่แล้ว — ไม่มีตัวจับเวลาเพิ่ม
-function runTimerPill(cls) {
-  return `<span class="run-timer ${cls || ''}" role="timer" data-run-el>`
-    + `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><g class="rt-hand"><path d="M12 12V7"/></g><path d="M12 12h3.5"/></svg>`
-    + `<b class="rt-n"></b></span>`;
-}
-function paintRunTimers(r) {
-  const txt = r ? fmtElapsed(Date.now() - new Date(r.start)) : '';
-  document.querySelectorAll('[data-run-el]').forEach(el => {
-    const n = el.querySelector('.rt-n');
-    if (n && n.textContent !== txt) n.textContent = txt;
-  });
+  bar.querySelector('.rb-el').textContent = fmtElapsed(Date.now() - new Date(r.start));
 }
 
 // ============================================================
@@ -12903,18 +12524,13 @@ function startFocus(taskId) {
 // เรียงจากชั้นบนสุดลงล่าง — ปิดทีละชั้นต่อหนึ่งครั้งที่กด
 const OVERLAYS = [
   { sel: '.face-zoom',       close: el => el.remove() },
-  // 17 ต.ค. 69 · เอฟเฟกต์ฉลองงานเสร็จ (hoop.js · เต็มจอ) — เดิมไม่อยู่ในรายการ: กดย้อนกลับ = จอข้างหลังเปลี่ยนทั้งที่เอฟเฟกต์ยังค้าง
-  // และจอใหม่โปร่งใสค้าง (ระหว่างเอฟเฟกต์ .phone.fx-on หยุดอนิเมชันทุกจอ อนิเมชันเข้าจอเลยค้างที่เฟรมแรก)
-  // ย้อนกลับ = ปิดเอฟเฟกต์แบบเดียวกับกด "ข้าม" · :not(.out) = ไม่นับอันที่กำลังจางออก · เทสต์: devtools/backcheck.js
-  { sel: '.hoop-ov:not(.out)', close: () => closeFx() },
   { sel: '#reportSheet',     close: () => closeReport() },
   { sel: '#tpSheet',         close: () => closeTopicAsk() },
   { sel: '#checkin',         close: () => closeDailyCheck() },
   { sel: '#soonSheet',       close: () => closeSoonSheet() },
   { sel: '#daySheet',        close: () => closeDaySheet() },
-  { sel: '#planRowSheet',    close: () => closePlanRowSheet() },   // 20 ต.ค. 69 · แผ่นแตะแถวงานจอแผน (sai.js)
   // หน้าตัวเชื่อมในแผ่นเพิ่มงาน ถอยกลับหน้าหลักของแผ่นก่อน ไม่ใช่ปิดทั้งแผ่น
-  { sel: '#addSheet',        close: () => addSheetView === 'connectors' ? openAddSheet('root') : closeAddSheet() },
+  { sel: '#addSheet',        close: () => addSheetView !== 'root' ? openAddSheet('root') : closeAddSheet() },
   { sel: '#aiSheet',         close: () => closeAiHub() },
   { sel: '#fabMenu',         close: () => closeFabHub() },
   // ออกจากโหมดโฟกัสด้วยทางลัด = นาฬิกายังเดินต่อในแถบล่าง (เหมือน "พักก่อน" ไม่ใช่ "ทิ้งงาน")
@@ -12936,31 +12552,15 @@ function dismissTopOverlay() {
 
 // ปุ่มย้อนในหัวจอของจอปัจจุบัน — ใช้ปุ่มที่จอนั้นมีอยู่แล้ว จะได้กลับไปที่เดียวกับที่แตะเอง
 // (แต่ละจอรู้ทางกลับของตัวเองดีกว่าตารางกลาง เช่นจอเหรียญที่เข้าได้สามทาง)
-// .fm-x = ปุ่มปิดของฟอร์มเพิ่มงาน ("ปิดโดยไม่บันทึก" ไม่ขึ้นต้นด้วย "กลับ") — เดิมไม่อยู่ในรายการ
-// ปุ่มย้อนของเครื่องบนฟอร์มเลยหาปุ่มไม่เจอ ตกไปหน้าแรกทุกครั้ง ไม่ใช่จอที่เปิดฟอร์มมา (20 ต.ค. 69)
-const SCREEN_BACK_SEL = '.set-back,.ch-back,.hw-back,.tp-back,.sh-back,.lg-back,.back,.fm-x,button[aria-label^="กลับ"]';
+const SCREEN_BACK_SEL = '.set-back,.ch-back,.hw-back,.tp-back,.sh-back,.lg-back,.back,button[aria-label^="กลับ"]';
 function backOneScreen() {
-  // หน้าเข้าสู่ระบบที่เปิดจากในแอป = ย้อนกลับได้ (เดิมกดแล้วไม่ทำอะไร — Android ปิดแอปทิ้ง)
-  if (curScreen === 'scr-login' && backFrom['scr-login']) { goBack('scr-profile'); return true; }
   if (curScreen === 'scr-menu' || curScreen === 'scr-login' || curScreen === 'scr-onboard') return false;
   const scr = document.getElementById(curScreen);
   const btn = scr && [...scr.querySelectorAll(SCREEN_BACK_SEL)].find(b => b.offsetParent !== null);
   if (btn) { btn.click(); return true; }
-  // จอที่ไม่มีปุ่มกลับบนหัวจอ (พูด/ถ่ายรูปแทนพิมพ์) — กลับไปจอที่พามา ไม่ใช่หน้าแรกเสมอ
-  goBack('scr-menu');
+  go('scr-menu');
   return true;
 }
-// ปุ่มกลับของจอใน RETURN_TO → จอที่พาเข้ามา (ดู rememberBackFrom) · ดักช่วงจับ (capture) ก่อน onclick ของปุ่มเอง
-document.addEventListener('click', e => {
-  const b = e.target && e.target.closest && e.target.closest(SCREEN_BACK_SEL);
-  if (!b) return;
-  const scr = b.closest('.screen');
-  if (!scr || scr.id !== curScreen || !RETURN_TO.has(scr.id)) return;
-  const to = backFrom[scr.id];
-  if (!to || to === scr.id || !document.getElementById(to)) return;
-  e.preventDefault(); e.stopImmediatePropagation();
-  goBack(to);
-}, true);
 
 // กับดักประวัติหนึ่งช่อง: ถือไว้หนึ่งรายการเสมอ กดย้อนแล้วเราได้ popstate แทนการออกจากหน้า
 // ไม่ push ทุกครั้งที่ย้ายจอ — ประวัติที่ยาวเท่าจำนวนจอที่เคยแตะ ทำให้กดย้อนวนอยู่ในแอปเป็นสิบครั้ง
@@ -13028,10 +12628,10 @@ new MutationObserver(recs => {
 // ใช้ตัวเฝ้า hidden ไม่ใช่ไล่แก้ทุกฟังก์ชัน open* เพราะทางเปิดมีหลายสิบทาง
 const overlayReturn = new WeakMap();
 function watchOverlays() {
-  const ids = ['checkin', 'focusWrap', 'addSheet', 'soonSheet', 'daySheet', 'planRowSheet', 'aiSheet', 'fabMenu', 'reportSheet'];
+  const ids = ['checkin', 'focusWrap', 'addSheet', 'soonSheet', 'daySheet', 'aiSheet', 'fabMenu', 'reportSheet'];
   // 13 ต.ค. 69 · แผ่นล่างเปิดอยู่ = body.sheet-up → จอข้างหลังยุบลงนิดหนึ่ง (CSS ท้าย alt.css · "มีมิติ" ①)
   // ใช้ตัวเฝ้าเดิมตัวนี้ ไม่ใช้ :has() ใน CSS — :has() เคยทำให้ทั้งเอกสารคำนวณสไตล์ใหม่ทุกครั้งที่ DOM เปลี่ยน
-  const SHEETS = ['addSheet', 'soonSheet', 'daySheet', 'planRowSheet', 'aiSheet', 'reportSheet'];
+  const SHEETS = ['addSheet', 'soonSheet', 'daySheet', 'aiSheet', 'reportSheet'];
   const syncSheetUp = () => document.body.classList.toggle('sheet-up',
     SHEETS.some(id => { const el = document.getElementById(id); return !!el && !el.hidden; }));
   const mo = new MutationObserver(recs => {
@@ -13397,7 +12997,6 @@ function removeTask(id) {
 function celebrate(el) {
   const phone = document.querySelector('.phone');
   if (!phone || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  if (document.documentElement.dataset.quality === 'low') return;   // กราฟิก "น้อย" — ไม่มีพลุ (ดู setGfx)
   const pr = phone.getBoundingClientRect();
   const r = el ? el.getBoundingClientRect() : null;
   const x0 = r ? r.left - pr.left + r.width / 2 : pr.width / 2;
@@ -13426,21 +13025,12 @@ function celebrate(el) {
     let vx = Math.cos(ang) * vel, vy = Math.sin(ang) * vel - 1.5;
     let x = x0, y = y0, op = 1, rot = 0;
     const spin = (Math.random() - .5) * 16;
-    // 17 ต.ค. 69 · เดินตามเวลาจริง ไม่ใช่ตามจำนวนเฟรม — ค่าเดิมทุกตัวเขียนไว้ "ต่อหนึ่งเฟรมที่ 60fps"
-    // จึงคูณด้วย f = เฟรม 60fps ที่ผ่านไปจริง · เครื่องเร็วเห็นเหมือนเดิมทุกอย่าง (f ≈ 1)
-    // เดิมเครื่องช้าที่เหลือ 5fps พลุอยู่ ~12 วิ (59 เฟรม) และเขียน left/top ทุกเฟรม = เธรดหลักจัดผังวนทั้งหมดนั้น
-    // ตอนนี้จบใน ~1 วิเท่ากันทุกเครื่อง · บั๊กแบบเดียวกับตัวเลขหมุนที่แก้ใน 1C56 · เทสต์: devtools/celebratecheck.js
-    let last = performance.now();
-    const step = now => {
-      const t = typeof now === 'number' ? now : performance.now();
-      const f = Math.min(30, Math.max(0, (t - last) / (1000 / 60)));
-      last = t;
-      x += vx * f; y += vy * f; vy += .17 * f; vx *= Math.pow(.985, f);
-      op -= .017 * f; rot += spin * f;
-      // left/top อยู่ที่จุดเริ่มตลอด ขยับด้วย translate — เขียน left/top ทุกเฟรม = จัดผังใหม่ทุกเฟรม
-      // (วัด 17 ต.ค. CPU ช้า 6× พลุ 5 รอบ: จัดผัง 339ms → 25–43ms)
+    const step = () => {
+      x += vx; y += vy; vy += .17; vx *= .985;
+      op -= .017; rot += spin;
+      p.style.left = x + 'px'; p.style.top = y + 'px';
       p.style.opacity = op;
-      p.style.transform = `translate(${x - x0}px,${y - y0}px) scale(${Math.max(0, op)}) rotate(${rot}deg)`;
+      p.style.transform = `scale(${Math.max(0, op)}) rotate(${rot}deg)`;
       if (op > 0) requestAnimationFrame(step); else p.remove();
     };
     requestAnimationFrame(step);
@@ -13505,55 +13095,6 @@ function setStarPick(n) {
   document.querySelectorAll('#starPick .sp').forEach(b =>
     b.classList.toggle('active', +b.dataset.lv === n));
   if (typeof updateFormSummary === 'function') updateFormSummary();
-}
-
-// ---- 15 ต.ค. 69 · "เตือนให้ทำตอน" (t.doAt) — นัดของตัวเอง ดู doAtTick() ----
-// วันเป็นปุ่ม ไม่ใช่ปฏิทิน: นัดลงมือทำแทบทุกครั้งคือคืนนี้หรือพรุ่งนี้ ปฏิทินคือสองแตะที่ไม่จำเป็น
-// งานเดิมที่นัดไว้ไกลกว่ามะรืนได้ปุ่มของวันนั้นเพิ่มเข้ามา — เปิดฟอร์มแก้ชื่อแล้วนัดต้องไม่หาย
-let formDoDay = '';   // '' = ไม่ตั้ง · '0' '1' '2' … = อีกกี่วันนับจากวันนี้
-function doDayLabel(n) { return n === 0 ? 'วันนี้' : n === 1 ? 'พรุ่งนี้' : n === 2 ? 'มะรืน' : 'อีก ' + n + ' วัน'; }
-function renderDoPick() {
-  const box = document.getElementById('doPick');
-  if (!box) return;
-  const cur = formDoDay === '' ? null : +formDoDay;
-  const days = [0, 1, 2];
-  if (cur != null && !days.includes(cur)) days.push(cur);
-  box.innerHTML = `<button type="button" class="sp${cur == null ? ' active' : ''}" onclick="setDoDay('')">ไม่ตั้ง</button>`
-    + days.map(n => `<button type="button" class="sp${cur === n ? ' active' : ''}" onclick="setDoDay('${n}')">${doDayLabel(n)}</button>`).join('');
-}
-function setDoDay(v) { formDoDay = v; renderDoPick(); updateFormSummary(); }
-function formDoAtFrom(day) {
-  if (day === '' || day == null) return null;
-  const m = /^(\d{1,2}):(\d{2})$/.exec((document.getElementById('fDoTime') || {}).value || '');
-  if (!m) return null;
-  const d = new Date();
-  d.setDate(d.getDate() + (+day));
-  d.setHours(+m[1], +m[2], 0, 0);
-  return d;
-}
-// หมุนเวลาโดยยังไม่ได้เลือกวัน = อยากตั้งนัดแล้ว · วันนี้ถ้าเวลานั้นยังมาไม่ถึง ไม่งั้นพรุ่งนี้
-function doTimeTouched() {
-  if (formDoDay === '') {
-    const today = formDoAtFrom('0');
-    formDoDay = today && today > new Date() ? '0' : '1';
-    renderDoPick();
-  }
-  updateFormSummary();
-}
-// นัดที่เลยไปแล้วไม่ถูกเติมกลับเข้าฟอร์ม — ไม่งั้นแค่เปิดแก้ชื่องานแล้วกดบันทึก ก็ได้นัดที่ผ่านไปแล้วคืนมา
-function fillDoForm(iso) {
-  const el = document.getElementById('fDoTime');
-  const d = iso ? new Date(iso) : null;
-  if (d && !isNaN(d) && d > new Date()) {
-    formDoDay = String(Math.round((atTime(d, 0, 0) - atTime(new Date(), 0, 0)) / 864e5));
-    if (el) el.value = fmtClock(d);
-  } else {
-    formDoDay = '';
-    if (el) el.value = '20:00';
-  }
-  renderDoPick();
-  const wrap = document.getElementById('fDoWrap');
-  if (wrap) wrap.open = formDoDay !== '';
 }
 
 function fillSubjectSelect() {
@@ -13690,7 +13231,6 @@ function openForm(id, parsed) {
   setTypePick(t ? taskType(t) : 'homework');
   dueCalView = null;   // ปฏิทินเลือกวันเริ่มที่เดือนของใบนี้เสมอ ไม่ค้างเดือนที่เลื่อนไปดูตอนเปิดใบก่อน
   setStarPick(t?.userStars || 0);
-  fillDoForm(t?.doAt || null);   // parsed.doAt มาจาก "ทำ 2 ทุ่ม" ในข้อความ (readDoClock ใน engine.js)
   f.subject.value = t?.subject || 'อื่น ๆ';
   f.detail.value = t?.detail || '';
   f.teacher.value = t?.teacher || '';
@@ -13721,11 +13261,6 @@ function openForm(id, parsed) {
 
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
   document.getElementById('scr-form').classList.add('on');
-  // 20 ต.ค. 69 · สลับเองไม่ผ่าน go() → curScreen ค้างเป็นจอก่อนหน้า (เทสต์: devtools/backroutecheck.js)
-  // ปุ่มย้อนของเครื่องบนฟอร์ม = แอปคิดว่าอยู่หน้าแรก ไม่ทำอะไรและไม่วางกับดัก → กดซ้ำ Android ปิดแอปทั้งที่กรอกงานค้าง
-  // และจอที่เปิดต่อจากฟอร์ม (พูด/ถ่ายรูป) จำที่มาผิดเป็นจอก่อนฟอร์ม · ทางกลับของฟอร์มเองยังเป็น formReturn เหมือนเดิม
-  curScreen = 'scr-form';
-  armBackTrap();
   // 1C14 · จอนี้สลับเองไม่ผ่าน go() ของที่ go() เคยเรียกให้จึงต้องเรียกเองด้วย
   // ไม่งั้นปุ่มลอยมุมขวาล่างยังคิดว่าตัวเองอยู่บนจอก่อนหน้า แล้วลอยทับปุ่ม
   // "บันทึกเข้าแผน" ของจอนี้ (เจ้าของส่งภาพมา 20 ก.ย. 2569)
@@ -13816,14 +13351,17 @@ function formApplyParse() {
       formDueAuto = false;
     }
   }
-  if (d.doAt && p.doAt) { fillDoForm(p.doAt); formDoAuto = true; }
-  else if (formDoAuto) { fillDoForm(null); formDoAuto = false; }
+  // บิลด์รากยังไม่มี "เตือนให้ทำตอน" (fillDoForm) — ข้ามเงียบ ๆ ไม่ให้ตัวแกะพังทั้งก้อน
+  if (typeof fillDoForm === 'function') {
+    if (d.doAt && p.doAt) { fillDoForm(p.doAt); formDoAuto = true; }
+    else if (formDoAuto) { fillDoForm(null); formDoAuto = false; }
+  }
 
   // ป้ายเฉพาะสิ่งที่ขั้น 1 ไม่ได้โชว์ — วันส่งมีแถว "ตามที่พิมพ์" บอกอยู่แล้ว (renderDueRows)
   const got = [];
   if (d.type) got.push(TASK_TYPES[p.type].name);
   if (d.subject) got.push(p.subject);
-  if (d.doAt && p.doAt) got.push('เตือน ' + fmtClock(new Date(p.doAt)));
+  if (d.doAt && p.doAt && typeof fillDoForm === 'function') got.push('เตือน ' + fmtClock(new Date(p.doAt)));
   formShowAuto(got);
   syncFormUI();
 }
@@ -14499,7 +14037,7 @@ function setRow(id, text) {
 function updateFormSummary() {
   const v = id => (document.getElementById(id) || {}).value || '';
   setRow('rvTeacher', v('fTeacher').trim() || 'ยังไม่ระบุ');
-  setRow('rvScore', v('fScore') ? v('fScore') + '%' : 'ยังไม่ระบุ');
+  setRow('rvScore', v('fScore') ? v('fScore') + ' คะแนน' : 'ให้ AI เดา');
   setRow('rvStars', formUserStars ? '★' + formUserStars : 'AI จัดให้');
   setRow('fEstVal', (v('fEst') || 30) + ' นาที');
   setRow('rvLate', v('fLate') ? selText('fLate') : 'ให้ AI เดา');
@@ -14508,10 +14046,6 @@ function updateFormSummary() {
   setRow('fProgressVal', (v('fProgress') || 0) + '%');
   setRow('rvGot', v('fGot') === '' ? 'ยังไม่รู้ผล' : v('fGot') + '/' + (v('fGotMax') || '?'));
   setRow('fTimeVal', v('fTime') || '23:59');
-  const doAt = formDoAtFrom(formDoDay);
-  setRow('rvDo', !doAt ? 'ไม่ได้ตั้ง'
-    : doAt <= new Date() ? 'เวลานี้ผ่านไปแล้ว'
-    : doDayLabel(+formDoDay) + ' ' + fmtClock(doAt));
   if (tdIsOpen()) tdPaint();
   updateSubsCount();
 
@@ -14569,9 +14103,6 @@ function spawnRepeat(t) {
     snoozedAt: null, snoozeCount: 0, remindedAt: null, remindedStage: null,
     createdAt: new Date().toISOString(),
     due: next.toISOString(),
-    // นัดเลื่อนไปพร้อมกำหนดส่ง — การบ้านทุกสัปดาห์ที่ทำทุกพุธสองทุ่ม ตั้งครั้งเดียวจบ
-    doAt: t.doAt ? new Date(new Date(t.doAt).getTime() + t.repeatDays * 864e5).toISOString() : null,
-    doAtShown: null,
     subs: Array.isArray(t.subs) ? t.subs.map(x => ({ text: x.text, done: false })) : [],
   });
   state.tasks.push(copy);
@@ -14619,9 +14150,6 @@ function saveForm() {
     progress: ti.schedulable ? (+document.getElementById('fProgress').value || 0) : 0,
     due: due ? due.toISOString() : null,
   };
-  // นัดที่เลยไปแล้วตอนกดบันทึก = ไม่มีนัด (ไม่ใช่เด้งทันทีที่บันทึก)
-  const doAt = formDoAtFrom(formDoDay);
-  data.doAt = doAt && doAt > new Date() ? doAt.toISOString() : null;
 
   // ---- 1B43 · F2 งานย่อย ----
   // เก็บสถานะติ๊กของข้อเดิมไว้ถ้าข้อความยังเหมือนเดิม — คนที่เข้ามาแก้ชื่องานใหญ่
@@ -14652,7 +14180,6 @@ function saveForm() {
       data.snoozedAt = null; data.snoozeCount = 0;
       data.remindedAt = null; data.remindedStage = null; // กำหนดใหม่ = ต้องเตือนใหม่ได้
     }
-    if (target.doAt !== data.doAt) data.doAtShown = null;   // นัดใหม่ = ต้องเด้งได้อีกครั้ง
     Object.assign(target, data);
   } else {
     const nt = Object.assign({ id: uid(), done: false, createdAt: new Date().toISOString(), fromScan: formFromScan }, data);
@@ -14683,17 +14210,31 @@ function saveForm() {
 function savedToast(data, title) {
   const detail = data.detail || '';
   const late = data.due && new Date(data.due) < new Date();
-  // ตั้งนัดไว้แต่เครื่องนี้ยังไม่อนุญาตแจ้งเตือน = นัดจะเงียบตอนปิดแอป · บอกตอนนี้ ตอนที่ยังแก้ได้
-  const doMute = data.doAt && !(('Notification' in window) && Notification.permission === 'granted' && notifOn());
   setTimeout(() => showToast({
     title,
-    body: doMute ? 'เปิดการแจ้งเตือนก่อน นัด ' + fmtClock(new Date(data.doAt)) + ' ถึงจะเด้ง'
-      : data.doAt ? 'จะเตือนให้ทำตอน ' + fmtClock(new Date(data.doAt)) + ' · ' + detail.slice(0, 30)
-      : late ? 'เลยกำหนดส่งแล้ว'
+    body: late ? 'เลยกำหนดส่งแล้ว'
       : data.due ? 'ส่ง ' + fmtThaiDate(new Date(data.due)) + ' · ' + detail.slice(0, 40)
       : detail.slice(0, 60),
-    action: doMute ? { label: 'เปิด', fn: () => enableNotif() } : null,
   }), 250);
+}
+
+function formToStep2(nt) {
+  clearTimeout(formParseT);
+  editingId = nt.id;
+  formShowAuto([]);
+  setFormStep(2);
+  const ok = document.getElementById('fmOk');
+  if (ok) {
+    ok.className = 'fm-ok';
+    void ok.offsetWidth;   // ถอดแล้วใส่ใหม่ = ท่าเด้งเล่นซ้ำ
+    ok.className = 'fm-ok show';
+    ok.innerHTML = `${icon('check-circle')}อยู่ในแผนแล้ว · ที่เหลือข้ามได้`;
+  }
+  syncFormUI();
+  const scr = document.getElementById('scr-form');
+  if (scr) scr.scrollTop = 0;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  haptic('tap');
 }
 
 function formToStep2(nt) {
@@ -16917,7 +16458,7 @@ async function dropPush() {
 }
 
 async function toggleNotifAll() {
-  if (!ALT_SYSTEM_NOTIFICATIONS) { showToast({ title: 'รับแจ้งเตือนที่แอปหลัก', body: 'แอปนี้ไม่ส่งซ้ำ' }); return; }
+  if (!ALT_SYSTEM_NOTIFICATIONS) { showToast({ title: 'รับแจ้งเตือนที่แอปหลัก', body: 'ALT ไม่ส่งแจ้งเตือนซ้ำ' }); return; }
   const on = !notifOn();
   state.settings.notifOff = !on;
   save();
@@ -17348,84 +16889,6 @@ function checkReminders() {
     const c = reminderCopy(fire.t, now);
     // แท็กเดียวกับ send-reminders ('task-<id>') — ถ้าสองท่อเตือนงานเดียวกัน ใบใหม่ทับใบเก่า
     notifyAway(c.title, c.body, 'task-' + fire.t.id);
-  }
-  if (touched) save();
-}
-
-// ============================================================
-// 15 ต.ค. 69 · นัดที่ตั้งเอง (t.doAt) — ถึงเวลาแล้วบอกทันที ทีละงาน
-// ------------------------------------------------------------
-// เจ้าของ: "เมื่อถึงเวลาทำงานให้แจ้งเตือนเลย เช่นทำ 2 ทุ่มก็แจ้งเตือน มีกี่งานก็ตามเวลาเลย"
-// นี่ไม่ใช่การเตือนที่ระบบเลือกพูดเอง (checkReminders · send-reminders รอบปกติ) จึงไม่มีช่วงเงียบ
-// ไม่มีเพดาน และไม่เว้นกลางดึก — เหมือนนาฬิกาปลุกที่เจ้าตัวตั้งไว้
-//
-// สองท่อ แบ่งกันตามสภาพเครื่อง (กฎ 1C28: คนที่มองแอปอยู่ไม่ต้องได้แจ้งเตือนของระบบ):
-//   · เปิดแอปอยู่            → การ์ดในแอปตรงนาที + ปุ่มเริ่มเลย · ปัก t.doAtShown
-//                              ให้ send-reminders ข้าม (ไม่งั้นได้ push ตามมาอีกดอกในห้านาที)
-//   · ซ่อนอยู่ + push 'on'   → ไม่ทำอะไร ปล่อยเซิร์ฟเวอร์ (runDoAt · ช้าไม่เกิน 5 นาที)
-//                              มือถือแช่แข็ง JS ของแอปที่ซ่อนอยู่ ท่อนี้จึงพึ่งไม่ได้
-//   · ซ่อนอยู่ + ไม่มี push  → ยิงเองผ่าน service worker (ได้เท่าที่เครื่องยังไม่แช่แข็งแอป)
-// กลับเข้าแอปแล้วเจอว่าเซิร์ฟเวอร์ส่งไปแล้ว (การ์ดยังค้างอยู่บนเครื่อง) = ปักเงียบ ๆ ไม่ขึ้นซ้ำ
-// ============================================================
-const DO_LATE_MS = 30 * 60e3;   // ต้องตรงกับ DO_LATE_MS ใน send-reminders — เลยกว่านี้ไม่พูดแล้ว
-let doAwayTimer = null;
-
-function doAtCopy(t) {
-  const d = new Date(t.doAt);
-  const min = Math.round(+t.estMin || 0);
-  return { title: taskTitleText(t), body: 'ถึงเวลาทำแล้ว · ' + fmtClock(d) + (min > 0 ? ' · ~' + min + ' นาที' : '') };
-}
-
-// แท็กของการ์ดที่ยังค้างอยู่บนเครื่อง — ถามไม่ได้ = เซตว่าง (ถือว่ายังไม่มีใครส่ง)
-async function shownTags() {
-  try {
-    if (!('serviceWorker' in navigator)) return new Set();
-    const reg = await navigator.serviceWorker.ready;
-    return new Set((await reg.getNotifications()).map(n => n.tag));
-  } catch (_) { return new Set(); }
-}
-
-async function doAtTick() {
-  const now = Date.now();
-  const hit = [];
-  let touched = false;
-  for (const t of pendingTasks()) {
-    if (!t.doAt || t.doAtShown === t.doAt) continue;
-    const at = Date.parse(t.doAt);
-    if (!Number.isFinite(at) || at > now) continue;
-    // เลยไปนานแล้ว (ปิดเครื่องอยู่ทั้งคืน ฯลฯ) — นัดหมดความหมาย ปักเงียบ ๆ
-    if (now - at > DO_LATE_MS) { t.doAtShown = t.doAt; touched = true; continue; }
-    hit.push(t);
-  }
-  if (hit.length) {
-    if (appInView()) {
-      const tags = await shownTags();
-      const fresh = hit.filter(t => !tags.has('do-' + t.id));
-      for (const t of hit) t.doAtShown = t.doAt;
-      touched = true;
-      if (fresh.length) {
-        const first = fresh[0];
-        showToast({
-          title: fresh.length > 1 ? `ถึงเวลาทำ ${fresh.length} งานแล้ว` : 'ถึงเวลาทำแล้ว',
-          body: taskTitleText(first) + (fresh.length > 1 ? ` · และอีก ${fresh.length - 1} งาน` : ''),
-          action: { label: 'เริ่มเลย', fn: () => startFocus(first.id) },
-        });
-        if (typeof haptic === 'function') haptic('arm');
-      }
-    } else if (pushState !== 'on' && !doAwayTimer) {
-      // รอเช็คซ้ำก่อนยิง — จังหวะปลุกเครื่องขึ้นมา document.hidden ยังเป็น true อยู่ครู่หนึ่ง (ดู notifyAway)
-      doAwayTimer = setTimeout(async () => {
-        doAwayTimer = null;
-        if (appInView()) { doAtTick(); return; }
-        let any = false;
-        for (const t of hit) {
-          if (t.doAtShown === t.doAt) continue;
-          const c = doAtCopy(t);
-          if (await notify(c.title, c.body, 'do-' + t.id)) { t.doAtShown = t.doAt; any = true; }
-        }
-        if (any) save();
-      }, AWAY_CONFIRM_MS);
-    }
   }
   if (touched) save();
 }
@@ -18254,13 +17717,10 @@ function dismissInstallGuide(dontShowAgain) {
 
 async function handleInstallClick() {
   if (deferredInstallPrompt) {
-    // 17 ต.ค. 69 · ปล่อยตัวแปรก่อนเรียก — เหตุการณ์นี้เรียก prompt() ได้ครั้งเดียว
-    // เดิมล้างหลังผู้ใช้ตอบหน้าต่างเท่านั้น: แตะซ้ำตอนหน้าต่างยังเปิด (มือถือช้า คนแตะซ้ำบ่อย) = prompt() รอบสอง โยน error ที่ไม่มีใครจับ
-    // และถ้า prompt() ล้ม บรรทัดล้างไม่เคยทำงาน ปุ่มค้างเป็น "ติดตั้งเลย" แตะทีไรพังทุกที · เทสต์: devtools/installcheck.js
-    const ev = deferredInstallPrompt;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
     deferredInstallPrompt = null;
-    try { await ev.prompt(); await ev.userChoice; } catch (_) { /* ปิด/ล้ม = ไม่ติดตั้ง · ปุ่มหายไปจนกว่าเบราว์เซอร์จะเสนอใหม่ */ }
-    renderProfile(); renderInstallCard();
+    renderProfile();
   } else if (isIOS()) {
     showInstallGuide();
   }
@@ -18536,7 +17996,7 @@ function takeSharedText() {
 // ลิงก์เก่าจากหน้า land.html ที่ส่ง ?start=timeline มายังต้องพาไปที่ที่มีของให้ดู
 // ไม่ใช่จอที่ออกไปไหนไม่ได้นอกจากกดแถบล่าง
 // 'quick' = ปุ่มลัด "เพิ่มงานด่วน" (quickadd.js) — ไปหน้าแรกแล้วเด้งแผ่นพิมพ์งานทับ
-const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-tasks', quick: 'scr-menu' };
+const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-tasks', quick: 'scr-menu', assistant: 'scr-ai', today: 'scr-menu' };
 // อ่านจาก BOOT_Q ไม่ใช่ location.search — initApp() ล้าง URL ทิ้งก่อน routeStart() จะถูกเรียก
 // เดิมอ่าน location.search ตรง ๆ จึงเจอ URL เปล่าทุกครั้ง ปุ่มลัดทุกปุ่มพาไปหน้าแรกเงียบ ๆ (พบ 9 ต.ค. 69)
 // ใช้ได้ครั้งเดียว — routeStart() รอบสองต้องไม่เด้งแผ่นซ้ำ หรือดึงคนกลับจากจอที่เขาเดินไปแล้ว
@@ -18555,7 +18015,7 @@ const SHORTCUT_KEY = 'studentos.alt.shortcut';
 let shortcutUsed = false;
 function shortcutTarget() {
   if (shortcutUsed) return null;
-  let g = BOOT_Q.get('go');   // ที่เก็บถูกปิด (โหมดส่วนตัวบางเครื่อง) ยังใช้ได้ในรอบที่ไม่ได้รีโหลด
+  let g = BOOT_Q.get('go') || (typeof shortcutDraftRoute === 'function' ? shortcutDraftRoute() : null);
   try {
     const s = JSON.parse(sessionStorage.getItem(SHORTCUT_KEY) || 'null');
     if (!g && s && Date.now() - s.t < 30000) g = s.g;
@@ -18640,7 +18100,7 @@ function routeAfterLogin() {
     openDmInbox('scr-menu');
     return;
   }
-  go('scr-menu');
+  go(shortcutTarget() || 'scr-menu');
 }
 
 function openOnboard() {
@@ -18830,7 +18290,7 @@ function finishOnboard(skipDay) {
 
 function skipOnboard() {
   localStorage.setItem(ONBOARD_SKIP_KEY, '1'); // ข้ามแล้วไม่ต้องถามซ้ำทุกครั้งที่เปิด
-  go('scr-menu');
+  go(shortcutTarget() || 'scr-menu');
 }
 
 // ฉาก "ยินดีที่ได้รู้จัก ___" — จังหวะเดียวที่แอปได้ทักผู้ใช้ด้วยชื่อเขาเป็นครั้งแรก
@@ -18850,7 +18310,7 @@ function showWelcome(name, gotDay) {
   setTimeout(() => w.classList.add('on'), 20);
   setTimeout(() => {
     w.classList.remove('on');
-    go('scr-menu');
+    go(shortcutTarget() || 'scr-menu');
     setTimeout(() => { w.hidden = true; }, 300);
     // ตัวเลขในข้อความนี้คำนวณสดจากบริบทที่เพิ่งเขียนไป ไม่ใช่ค่าที่พิมพ์ทิ้งไว้
     const win = typeof dayWindows === 'function' ? dayWindows(state.settings, new Date()) : null;
@@ -19020,51 +18480,31 @@ function liteWatch() {
   evs.forEach(e => document.addEventListener(e, onUse, { capture: true, passive: true }));
 }
 function liteOn(auto) {
-  // ตัววัดเห็นว่ากระตุก = ลงมาที่ "กลาง" (โหมดลื่นเดิม) · ผู้ใช้เลือก "น้อย" ไว้แล้วไม่ดันขึ้น
-  if (gfxLevel() !== 'low') setGfx('mid');
-  // เปิดให้เองกลางทาง = บอกครั้งเดียวว่าเกิดอะไรและปรับได้ที่ไหน · ไม่งั้นคนจะคิดว่าแอปเปลี่ยนหน้าตาเอง
-  if (auto) showToast({ title: 'ปรับกราฟิกเป็น "กลาง" ให้แล้ว', body: 'เครื่องนี้กระตุกเลยลดเอฟเฟกต์บางอย่างลง ปรับได้ที่ ตั้งค่า › กราฟิก' });
+  document.documentElement.dataset.lite = '1';
+  try { localStorage.setItem('studentos.alt.lite', '1'); } catch (_) {}
+  if (typeof syncLiteRow === 'function') syncLiteRow();
+  // เปิดให้เองกลางทาง = บอกครั้งเดียวว่าเกิดอะไรและปิดได้ที่ไหน · ไม่งั้นคนจะคิดว่าแอปเปลี่ยนหน้าตาเอง
+  if (auto) showToast({ title: 'เปิดโหมดลื่นให้แล้ว', body: 'เครื่องนี้กระตุกเลยลดเอฟเฟกต์บางอย่างลง ปิดได้ที่ ตั้งค่า › โหมดลื่น' });
 }
-
-// ---------- ระดับกราฟิก: น้อย · กลาง · มาก (19 ต.ค. 69) ----------
-// เจ้าของ: "ทำให้มีปุ่มสามารถปรับกราฟิกหรือความสวยได้หน่อย และก็ปรับตามนั้น มี น้อย กลาง มาก"
-// มาก = ครบทุกอย่าง (กระจกฝ้า · ฉากธีมขยับ · ตัวเลขหมุน · แท็บขยายแบบ dock · 3D เต็ม)
-// กลาง = โหมดลื่นเดิมทุกอย่าง (data-lite · ของที่ถอดดูกฎ :root[data-lite] ใน alt.css)
-// น้อย = กลาง + ไม่วาดฉากของธีม · ไม่มีอนิเมชันเข้าจอ · ไม่มีพลุตอนงานเสร็จ (data-quality="low" · ไม่ใช้ data-gfx เพราะธีม glitch ใช้ชื่อนั้นสั่นจออยู่แล้วและลบทิ้งทุกครั้งที่ตั้งธีม)
-// ทุกระดับ: สี ธีม ตัวหนังสือ ปุ่ม เหมือนกัน · อนิเมชันที่บอกสถานะ (กำลังโหลด · อัดเสียง · จับเวลา) ไม่ถูกปิด
-// เก็บที่ studentos.alt.gfx (ใหม่) + ธง studentos.alt.lite เดิม ('1' ลด · '0' ผู้ใช้เลือกเต็ม = ตัววัดไม่เปิดให้อีก)
-// <head> ของ index.html อ่านทั้งสองคีย์ก่อนวาดจอแรก · เทสต์: devtools/gfxcheck.js
-const GFX_HINT = { low: 'ลื่นที่สุด · ปิดฉากธีมและอนิเมชันเข้าจอ', mid: 'สมดุล · ปิดกระจกฝ้าและฉากที่ขยับ', high: 'สวยเต็มที่ · ลดลงถ้าเครื่องกระตุก' };
-function gfxLevel() {
-  const root = document.documentElement;
-  return root.dataset.quality === 'low' ? 'low' : root.dataset.lite ? 'mid' : 'high';
+// สวิตช์ในตั้งค่า — ปิด = ธง '0' (ตัววัดจะไม่เปิดให้อีก) · เปิด = ธง '1'
+function toggleLite() {
+  const on = !document.documentElement.dataset.lite;
+  if (on) document.documentElement.dataset.lite = '1'; else delete document.documentElement.dataset.lite;
+  try { localStorage.setItem('studentos.alt.lite', on ? '1' : '0'); } catch (_) {}
+  syncLiteRow();
+  haptic('tap');
+  showToast(on ? { title: 'เปิดโหมดลื่นแล้ว', body: 'ลดเอฟเฟกต์ที่กินแรงเครื่อง ให้เลื่อนและแตะลื่นขึ้น' }
+    : { title: 'ปิดโหมดลื่นแล้ว', body: 'เอฟเฟกต์กลับมาครบ ถ้าเครื่องกระตุกเปิดใหม่ได้ที่นี่' });
 }
-function setGfx(level, byUser) {
-  if (!GFX_HINT[level]) return;
-  const root = document.documentElement;
-  if (level === 'low') root.dataset.quality = 'low'; else delete root.dataset.quality;
-  if (level === 'high') delete root.dataset.lite; else root.dataset.lite = '1';
-  try { localStorage.setItem('studentos.alt.gfx', level); localStorage.setItem('studentos.alt.lite', level === 'high' ? '0' : '1'); } catch (_) {}
-  syncGfxRow();
-  if (byUser) haptic('tap');
+function syncLiteRow() {
+  const on = !!document.documentElement.dataset.lite;
+  const b = document.getElementById('liteBtn');
+  if (b) { b.textContent = on ? 'เปิดอยู่' : 'ปิดอยู่'; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }
 }
-function syncGfxRow() {
-  const cur = gfxLevel();
-  document.querySelectorAll('#gfxSeg button').forEach(b => {
-    const on = b.dataset.gfx === cur;
-    b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
-  });
-  const h = document.getElementById('gfxHint');
-  if (h) h.textContent = GFX_HINT[cur];
-}
-// ชื่อเดิม — โค้ดอื่นที่ยังเรียกอยู่ไม่พัง · สลับ = กลาง ↔ มาก แบบสวิตช์เดิม
-function toggleLite() { setGfx(gfxLevel() === 'high' ? 'mid' : 'high', true); }
-function syncLiteRow() { syncGfxRow(); }
 
 (async function initApp() {
   setTimeout(liteProbe, 3000);
   load();
-  restorePendingDraw();
   purgeOldTrash(); // ของในถังขยะที่เกิน 30 วัน ทิ้งถาวรตอนเปิดแอป
   funnelOpen();    // นับการเปิดแอป — ต้องอยู่หลัง load() ไม่งั้นนับทับก้อนเปล่า
   stashJoinToken();  // เก็บ token จากลิงก์กลุ่มไว้ก่อน ใช้จริงหลังล็อกอิน
@@ -19175,10 +18615,6 @@ function syncLiteRow() { syncGfxRow(); }
   setInterval(checkReminders, 60_000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) checkReminders(); });
   checkReminders();
-  // นัดที่ตั้งเอง — ถี่กว่ารอบเตือนปกติ เพราะ "ทำ 2 ทุ่ม" ต้องขึ้นตอนสองทุ่ม ไม่ใช่สองทุ่มหนึ่งนาที
-  setInterval(doAtTick, 15_000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) doAtTick(); });
-  doAtTick();
 
   // 1C37 · ของรางวัลรายวัน: เด้งชวนตอนเข้าแอปวันใหม่ ให้กดรับเอง — ดู dailyPromptOnOpen()
   // หน่วงก่อนยิงครั้งแรก ให้จอแรกวาดเสร็จและ toast ของขาเข้า (ข้อความที่แชร์มา ·
@@ -19302,15 +18738,11 @@ function syncLiteRow() { syncGfxRow(); }
     // ทุกไอคอนห่างจากเมาส์เท่ากันหมด เลยขยายพร้อมกันทั้งแถบแล้วยกขึ้นทับกัน (เจ้าของส่งภาพมา)
     // แบบเดียวกับแถบล่าง: วัดระยะตามแกนของแถบ · ดันออกจากขอบจอ = ไปทางขวา (ต้นทางขยายอยู่ใน alt.css)
     var vert=c.cfg.flat && c.el.offsetHeight>c.el.offsetWidth;
-    var items=Array.prototype.slice.call(c.el.querySelectorAll(c.cfg.item)), rowcy=null;
-    // 17 ต.ค. 69 · อ่านตำแหน่งให้ครบทุกตัวก่อน แล้วค่อยเขียน transform — เดิมอ่านตัวหนึ่ง เขียนตัวหนึ่ง สลับกันในลูปเดียว
-    // ทุกครั้งที่อ่านหลังเพิ่งเขียน เบราว์เซอร์ต้องคิดสไตล์+จัดผังทั้งหน้าใหม่ = 5–8 รอบต่อเฟรม ตลอดที่นิ้วแตะแถบ/กริด
-    // (CPU ช้า 12 เท่า: ลูปนี้กิน 2.5 วิในการแตะแท็บ 8 ครั้ง) · ค่าที่อ่านได้เท่าเดิม — ทุกตัวยังเป็นตำแหน่งของเฟรมก่อน
-    var rects=items.map(function(el){ return el.getBoundingClientRect(); });
+    var items=c.el.querySelectorAll(c.cfg.item), rowcy=null;
     if(!c.cfg.flat && px!==null){ var best=1e9;
-      rects.forEach(function(r){ var d=Math.abs(py-(r.top+r.height/2)); if(d<best){best=d; rowcy=r.top+r.height/2;} }); }
-    items.forEach(function(el,i){
-      var r=rects[i], cx=r.left+r.width/2, cy=r.top+r.height/2, target=1;
+      items.forEach(function(el){ var r=el.getBoundingClientRect(), d=Math.abs(py-(r.top+r.height/2)); if(d<best){best=d; rowcy=r.top+r.height/2;} }); }
+    items.forEach(function(el){
+      var r=el.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2, target=1;
       if(px!==null && (c.cfg.flat || Math.abs(cy-rowcy)<12)) target=smooth(vert ? Math.abs(py-cy) : Math.abs(px-cx), c.cfg);
       var s=st.get(el)||1; s+=(target-s)*K;
       if(Math.abs(target-s)>.002) moving=true; else s=target;
@@ -19326,9 +18758,7 @@ function syncLiteRow() { syncGfxRow(); }
     for(var i=0;i<G.length;i++){ var el=t.closest(G[i].sel); if(el) return {el:el,cfg:G[i]}; }
     return null;
   }
-  // 18 ต.ค. 69 · โหมดลื่น (เครื่องแรม < 4GB เปิดเอง) = ไม่ขยาย — ลูปนี้วัดตำแหน่งทุกเฟรม (บังคับจัดผัง) ตลอดที่นิ้วแตะแถบ
-  // เช็คทุกครั้งที่แตะ ไม่ใช่ตอนโหลด: เปิด/ปิดโหมดลื่นในตั้งค่าแล้วมีผลทันที · ทางออก (leave) ยังทำงาน คืนขนาดเดิมให้ครบ
-  function go(h,x,y){ if(document.documentElement.dataset.lite) return; cur=h; px=x; py=y; if(!raf) raf=requestAnimationFrame(tick); }
+  function go(h,x,y){ cur=h; px=x; py=y; if(!raf) raf=requestAnimationFrame(tick); }
   function leave(){ px=null; py=null; if(cur&&!raf) raf=requestAnimationFrame(tick); }
   document.addEventListener('pointermove',function(e){
     if(e.pointerType==='touch') return;
