@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="th"><meta charset="utf-8"><title>StudentOS desktop parity review</title>
+<style>body{margin:0;font:13px system-ui;background:#ddd}header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:9px}button{padding:8px}iframe{display:block;border:0;background:#fff}main{overflow:auto}#baseline{position:absolute;left:-20000px;top:0}output{position:fixed;right:10px;top:58px;z-index:3;max-height:560px;max-width:390px;overflow:auto;padding:12px;white-space:pre-wrap;background:#fffef2eb;font:11px monospace}output:empty{display:none}</style>
+<header><b>Parity · local sample only</b><button data-size="375,812">375 × 812</button><button data-size="768,1024">768 × 1024</button><button data-size="1024,768">1024 × 768</button><button data-size="1280,720">1280 × 720</button><button data-size="1440,900">1440 × 900</button><button id="toggle">เปิด / ปิดเมนู</button><button id="check">ตรวจปุ่มและขนาด</button><button id="home">หน้าวันนี้ทั้งคู่</button><button id="login">หน้าล็อกอินเดิม</button></header>
+<output id="report"></output><main><iframe id="candidate" title="Desktop candidate" src="/" width="375" height="812"></iframe></main>
+<button id="auditRoutes">ตรวจหน้าจอย่อยบนคอม</button>
+<iframe id="baseline" title="Native baseline" src="/desktop-baseline.html" width="375" height="812"></iframe>
+<script>
+const candidate=document.getElementById('candidate'),baseline=document.getElementById('baseline'),report=document.getElementById('report');
+document.querySelectorAll('[data-size]').forEach(button=>button.onclick=()=>{
+ const [width,height]=button.dataset.size.split(',');
+ for(const frame of [candidate,baseline]){frame.width=width;frame.height=height;}
+});
+document.getElementById('toggle').onclick=()=>candidate.contentDocument.querySelector('#desktopNavToggle')?.click();
+document.getElementById('home').onclick=()=>{for(const frame of [candidate,baseline])frame.contentWindow.go('scr-menu');};
+document.getElementById('login').onclick=()=>{for(const frame of [candidate,baseline])frame.contentWindow.go('scr-login');};
+// Local fixture server only: visit native routes and inspect visible back buttons.
+document.getElementById('auditRoutes').onclick=async()=>{
+ if(location.hostname!=='127.0.0.1'||!candidate.contentDocument.querySelector('script[src="config.js"]'))return;
+ const results=[],doc=candidate.contentDocument,view=candidate.contentWindow;
+ for(const id of ['scr-menu','scr-tasks','scr-plan','scr-dayfull','scr-timeline','scr-ai','scr-sai','scr-inbox','scr-notif','scr-news','scr-sources','scr-profile','scr-stats','scr-context','scr-shop','scr-badges','scr-settings','scr-privacy','scr-board']){
+  view.go(id);await new Promise(resolve=>view.setTimeout(resolve,300));
+  const screen=doc.querySelector('.screen.on');
+  const buttons=[...screen.querySelectorAll('.sticky-head button,.fd-top button')].filter(n=>n.getBoundingClientRect().width>0).map(n=>{
+   const b=n.getBoundingClientRect(),hit=doc.elementFromPoint(b.x+b.width/2,b.y+b.height/2);
+   return {label:n.getAttribute('aria-label')||n.textContent.trim(),left:b.left,right:b.right,canHit:n===hit||n.contains(hit)};
+  });
+  results.push({route:id,active:screen.id,overflow:screen.scrollWidth>screen.clientWidth+1,buttons});
+ }
+ view.go('scr-menu');report.textContent=JSON.stringify({routeAudit:results},null,2);
+};
+function nativeControls(doc){
+ const counts={};
+ for(const node of doc.querySelectorAll('button[onclick],a[href],input[id],select[id],textarea[id]')){
+  if(node.closest('#desktopExtraNav,#desktopNavToggle'))continue;
+  const key=[node.tagName,node.getAttribute('id')||'',node.getAttribute('onclick')||'',node.getAttribute('href')||'',node.getAttribute('data-scr')||''].join('|');
+  counts[key]=(counts[key]||0)+1;
+ }
+ return counts;
+}
+function geometry(frame){
+ const doc=frame.contentDocument,view=frame.contentWindow;
+ const box=selector=>{const node=doc.querySelector(selector);return node?{...node.getBoundingClientRect().toJSON(),display:view.getComputedStyle(node).display,visibility:view.getComputedStyle(node).visibility}:null;};
+ return {width:view.innerWidth,height:view.innerHeight,sidebar:doc.documentElement.dataset.desktopSidebar||null,desktopControls:doc.querySelectorAll('#desktopExtraNav,#desktopNavToggle').length,desktopModuleLoaded:!!doc.querySelector('script[src^="desktop.js"]'),barInert:doc.querySelector('.tabbar').inert===true,overflowX:doc.documentElement.scrollWidth>view.innerWidth,phone:box('.phone'),bar:box('.tabbar'),start:box('.tn-cta'),homeHeight:doc.querySelector('#menuBody')?.scrollHeight};
+}
+document.getElementById('check').onclick=()=>{
+ const a=nativeControls(candidate.contentDocument),b=nativeControls(baseline.contentDocument);
+ const missing=Object.keys(b).filter(key=>(a[key]||0)<b[key]);
+ const baseScreens=[...baseline.contentDocument.querySelectorAll('.screen')].map(node=>node.id);
+ const missingScreens=baseScreens.filter(id=>!candidate.contentDocument.getElementById(id));
+ const current=geometry(candidate),original=geometry(baseline);
+ const equalMobile=current.width<1024&&['phone','bar','start','homeHeight'].every(key=>JSON.stringify(current[key])===JSON.stringify(original[key]));
+ report.textContent=JSON.stringify({nativeActionCount:Object.values(b).reduce((sum,n)=>sum+n,0),nativeScreenCount:baseScreens.length,missingNativeControls:missing,missingNativeScreens:missingScreens,mobileGeometryMatches:current.width<1024?equalMobile:null,current,baseline:original},null,2);
+};
+</script></html>
