@@ -1,4 +1,4 @@
-/* Desktop layout for StudentOS at /studentos-ai/alt/.
+/* Desktop layout for the main application at /studentos-ai/.
    Keep native screens, actions and theme tokens. No rules apply below 1024px. */
 @media (min-width:1024px) and (hover:hover) and (pointer:fine) {
   :root { --desktop-expanded:248px; --desktop-rail:var(--desktop-expanded); --desktop-gap:24px; }
@@ -72,27 +72,37 @@
   /* The existing home blocks become a workspace, without a second plan or data set. */
   :root body:not(.login-mode) #menuBody {
     display:grid; grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);
-    grid-template-areas:'head head' 'context context' 'focus next' 'focus assistant' 'discover discover';
+    grid-template-areas:'head head' 'context context' 'focus companion' 'focus rail' 'ask rail' 'tools tools';
     gap:var(--desktop-gap); align-content:start; align-items:start;
     height:auto!important; min-height:100%; overflow:visible!important;
   }
   :root body:not(.login-mode) #menuBody>* { min-width:0; width:100%; max-width:none; margin:0; }
-  :root body:not(.login-mode) #menuBody>:not(:is(.td-head,.dc-line,.break-ask,.td-now,.td-clear,.home-next,.home-assistant,.home-discover)) { grid-column:1 / -1; }
+  :root body:not(.login-mode) #menuBody>:not(:is(.td-head,.dc-line,.break-ask,.td-now,.td-clear,.saih,.td-ask,.td-railwrap,.td-tiles)) { grid-column:1 / -1; }
+  :root body:not(.login-mode) #menuBody:has(>.td-clear) { grid-template-areas:'head head' 'context context' 'focus focus' 'ask ask' 'tools tools'; }
+  :root body:not(.login-mode) #menuBody:has(>.td-note) { grid-template-areas:'head head' 'context context' 'focus companion' 'focus rail' 'notice rail' 'ask ask' 'tools tools'; }
   :root body:not(.login-mode) #menuBody>.td-head { grid-area:head; padding:0; }
   :root body:not(.login-mode) #menuBody .th-greet { font-size:28px; line-height:1.5; }
   :root body:not(.login-mode) #menuBody .th-sub { font-size:14px; margin-top:5px; }
   :root body:not(.login-mode) #menuBody>:is(.dc-line,.break-ask) { grid-area:context; min-height:42px; font-size:13px; }
   :root body:not(.login-mode) #menuBody>:is(.td-now,.td-clear) { grid-area:focus; }
-  :root body:not(.login-mode) #menuBody>.home-next { grid-area:next; padding:18px; border:1px solid var(--line); border-radius:20px; background:var(--card); }
-  :root body:not(.login-mode) #menuBody>.home-assistant { grid-area:assistant; padding:18px; }
-  :root body:not(.login-mode) #menuBody>.home-discover { grid-area:discover; padding:14px 18px; border:1px solid var(--line); background:var(--card); border-radius:16px; }
-  :root body:not(.login-mode) #menuBody .th-rank { display:flex; }
+  :root body:not(.login-mode) #menuBody>.saih { grid-area:companion; align-self:start; }
+  :root body:not(.login-mode) #menuBody>.td-ask { grid-area:ask; min-height:54px; }
+  :root body:not(.login-mode) #menuBody>.td-railwrap { grid-area:rail; }
+  :root body:not(.login-mode) #menuBody>.td-tiles { grid-area:tools; padding:0; }
+  :root body:not(.login-mode) #menuBody:has(>.td-note)>.td-note { grid-area:notice; }
   :root body:not(.login-mode) #menuBody>.td-now .tn-head { padding:22px 24px 18px; }
   :root body:not(.login-mode) #menuBody>.td-now .tn-body { padding:16px 24px 22px; }
   :root body:not(.login-mode) #menuBody>.td-now .tn-title { font-size:27px; line-height:1.5; }
   :root body:not(.login-mode) #menuBody>.td-now .tn-cta { min-height:52px; }
   :root body:not(.login-mode) #menuBody>.td-now .tn-why-pane:not(.open) { display:none; }
   :root body:not(.login-mode) #menuBody>.td-clear { min-height:300px; }
+  :root body:not(.login-mode) #menuBody>.saih .saih-title { font-size:17px; line-height:1.6; }
+  :root body:not(.login-mode) #menuBody .td-rail { max-height:400px; overflow-y:auto; scrollbar-width:thin; }
+  :root body:not(.login-mode) #menuBody .tg-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+  :root body:not(.login-mode) #menuBody .tg-t { height:64px; min-height:64px; padding:10px 12px; gap:10px; flex-direction:row; justify-content:flex-start; background:var(--card); border:1px solid var(--line); border-radius:14px; }
+  :root body:not(.login-mode) #menuBody .tg-ic { width:36px; height:36px; flex:none; aspect-ratio:1; border-radius:10px; }
+  :root body:not(.login-mode) #menuBody .tg-ic svg { width:19px; height:19px; padding:4px; }
+  :root body:not(.login-mode) #menuBody .tg-lb2 { min-height:0; font-size:12px; text-align:left; line-height:1.5; opacity:1; }
   /* Wide native task, calendar and conversation screens. */
   :root body:not(.login-mode) :is(#taskList,#timeline,#aiBody,#planList) { width:100%; max-width:none; margin-inline:auto; }
   :root body:not(.login-mode) :is(#taskList,#timeline) .page-title { font-size:30px; line-height:1.5; }

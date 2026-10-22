@@ -1,0 +1,26 @@
+/* This inspection shortcut belongs to ALT and is independent of app themes. */
+.alt-device-preview{position:fixed;right:14px;bottom:88px;z-index:96;display:flex;align-items:center;gap:7px;padding:8px 11px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:11px;box-shadow:0 4px 20px #0002;text-decoration:none;font:500 11px/1.2 Sarabun,sans-serif}
+.alt-device-preview svg{width:19px;height:19px}.alt-device-preview:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+@media(min-width:1024px){.alt-device-preview{bottom:16px}}
+
+.alt-lab-entry{display:block;margin:10px 0 14px;color:var(--blue);font-size:13px;text-decoration:none}
+@media(min-width:600px) and (max-width:1023px){
+ :root body:not(.login-mode) .stage{padding:0;display:block;width:100%;max-width:none;height:100dvh}
+ :root body:not(.login-mode) .phone{width:100%;max-width:none;height:100dvh;border:0;border-radius:0}
+ :root body:not(.login-mode) .stage-note{display:none}
+ :root body:not(.login-mode) .screen{padding-inline:clamp(28px,6vw,70px)}
+ :root body:not(.login-mode) .tabbar{max-width:650px;margin-inline:auto;left:0;right:0}
+ :root body:not(.login-mode) :is(.th-grid,.mt-grid){grid-template-columns:repeat(3,minmax(0,1fr))}
+ :root body:not(.login-mode) #menuBody{max-width:760px;margin-inline:auto}
+ :root body:not(.login-mode) .screens{margin-left:0!important}
+ :root body:not(.login-mode) .as-card{left:0;right:0;bottom:0;width:auto;max-width:none}
+ :root body:not(.login-mode) .tabbar{top:auto!important;bottom:14px!important;width:calc(100% - 56px)!important;height:68px!important;min-height:0;flex-direction:row!important;justify-content:space-around;padding:6px 10px!important;transform:none!important}
+ :root body:not(.login-mode) .tabbar .tab{flex:1;min-height:48px!important;height:auto!important;padding:3px!important;gap:3px!important}
+ :root body:not(.login-mode) .tabbar .scan-dot{width:38px;height:38px;margin:0!important}
+ :root body:not(.login-mode) #scr-menu{padding-bottom:96px!important}
+ :root body:not(.login-mode) #menuBody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 18px;padding:22px 30px}
+ :root body:not(.login-mode) #menuBody>:is(.td-head,.dc-line,.td-now,.td-clear,.td-ask,.td-tiles){grid-column:1/-1;margin-block:0}
+ :root body:not(.login-mode) #menuBody>.td-railwrap{margin:0;align-self:center}
+ :root body:not(.login-mode) #menuBody .tg-t{height:72px;min-height:0}
+ :root body:not(.login-mode) #menuBody .tg-ic{width:44px;height:44px}
+}

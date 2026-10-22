@@ -69,7 +69,7 @@ for (const f of files) {
 }
 
 // ชั้นฉาก = .fx เอง หรือชิ้นในนั้น (.fx-a … .fx-h · .fx-shoot) หรือชั้นดาวของธีมอวกาศ · ไม่ใช่ .fx-in (คลาสตอนเข้าจอ)
-const SCENE = /\.fx(?=[\s,:.\[>*]|$)|\.fx-(?:[a-h]|shoot)\b|\.starfield\b/;
+const SCENE = /\.fx(?=[\s,:.\[>*]|$)|\.fx-(?:[a-h]|shoot)\b|\.starfield\b|\.hw-(?:scene|night|haze|mist|spark|ghost|bats|candle|card-smoke|card-ghost|graveyard|wanderer|ground-fog)\b/;
 const EVENT_ONLY = /\[data-gevent|\[data-gfx/;
 const sceneRules = all.rules.filter(r =>
   !r.at.some(a => /prefers-reduced-motion/.test(a)) &&

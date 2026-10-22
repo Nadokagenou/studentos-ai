@@ -309,13 +309,13 @@ const THEME_BAR = {
   light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
   earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
   deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8', genesis: '#8E9BE8',
-  meta: '#050A16', glitch: '#04060A', astral: '#000000',
+  meta: '#050A16', glitch: '#04060A', astral: '#000000', halloween: '#100D1B',
 };
 const THEME_NAME = {
   system: 'ตามระบบ', light: 'สว่าง', dark: 'มืด', warm: 'ชมพู', space: 'อวกาศ',
   earth: 'โลก', ocean: 'มหาสมุทร', magic: 'เวทมนตร์', galaxy: 'กาแล็กซี',
   deepocean: 'ทะเลลึก', earth2: 'ต้นไม้โลก', sweet: 'จักรวาลหวานแหว', genesis: 'Crystal',
-  meta: 'Metaverse', glitch: 'Glitch', astral: 'Astral Black',
+  meta: 'Metaverse', glitch: 'Glitch', astral: 'Astral Black', halloween: 'Halloween',
 };
 // ---------- ALT 1A6M3: อีสเตอร์เอกก์ ธีมลับ ----------
 // กดปุ่มธีมเดิมซ้ำ 5 ครั้งรวด = ปลดล็อกธีมลับของโทนนั้น
@@ -2795,23 +2795,15 @@ function nowCard(sp, now) {
     // จอเต็มยังอยู่ที่ลิงก์ท้ายแผง เพราะการเทียบกับงานอื่นยาวเกินจะยัดลงการ์ด
     whyGo: `<button class="tn-why-go${NOW_WHY_OPEN ? ' open' : ''}" aria-expanded="${NOW_WHY_OPEN}"
         onclick="toggleNowWhy(this)">ทำไมอันนี้ก่อน${icon('chevron')}</button>
-      <div class="tn-why-pane${NOW_WHY_OPEN ? ' open' : ''}" aria-hidden="${!NOW_WHY_OPEN}"${NOW_WHY_OPEN ? '' : ' inert'}><div class="tn-why-in">${nowWhyHTML(t, now)}</div></div>`,
+      <div class="tn-why-pane${NOW_WHY_OPEN ? ' open' : ''}"><div class="tn-why-in">${nowWhyHTML(t, now)}</div></div>`,
   };
 
   const head = partsHtml('now', NOW_PARTS, 'head', P);
   const body = partsHtml('now', NOW_PARTS, 'body', P);
 
-  // อ่านก้อนแผนเดิม คำเตือนต้องอยู่ใกล้ปุ่มเริ่ม ไม่ซ่อนในหน้ารายละเอียด
-  const overflow = (sp.plan.overflow || []).find(o => o.task.id === t.id && o.missed);
-  const noContext = typeof ctxClasses === 'function' && !ctxClasses().length;
-  const note = overflow
-    ? `<button class="tn-plan-note warn" onclick="go('scr-plan')">${icon('clock')}เวลาว่างขาดอีก ${humanMin(overflow.need)} · ดูแผน${icon('chevron')}</button>`
-    : noContext
-      ? `<button class="tn-plan-note" onclick="go('scr-context')">${icon('calendar')}เวลายังเป็นค่าประเมิน · เพิ่มตารางเรียน${icon('chevron')}</button>` : '';
-
   return `<section class="td-now ${tone}${running ? ' running' : ''}">
     <div class="tn-head">${head}</div>
-    <div class="tn-body">${note}${body}</div>
+    <div class="tn-body">${body}</div>
   </section>`;
 }
 
@@ -2828,7 +2820,7 @@ function nowWhyHTML(t, now) {
   const due = t.due ? new Date(t.due) : null;
   const late = due && due < now;
   const stat2 = late ? null
-    : pnr ? [fmtClock(pnr), whyDayWord(pnr, now) + ' · เริ่มช้าสุด (ประมาณ)']
+    : pnr ? [fmtClock(pnr), whyDayWord(pnr, now) + ' · เริ่มช้าสุด']
     : due ? [fmtClock(due), whyDayWord(due, now) + ' · กำหนดส่ง'] : null;
   const rs = priorityInfo(t, now).reasons.map(x => String(x).replace(/^⚠\s*/, ''));
   return `<div class="tw-stats">
@@ -2846,11 +2838,7 @@ function toggleNowWhy(btn) {
   btn.classList.toggle('open', NOW_WHY_OPEN);
   btn.setAttribute('aria-expanded', NOW_WHY_OPEN);
   const pane = card.querySelector('.tn-why-pane');
-  if (pane) {
-    pane.classList.toggle('open', NOW_WHY_OPEN);
-    pane.inert = !NOW_WHY_OPEN;
-    pane.setAttribute('aria-hidden', !NOW_WHY_OPEN);
-  }
+  if (pane) pane.classList.toggle('open', NOW_WHY_OPEN);
   if (typeof haptic === 'function') haptic('arm');
 }
 
@@ -3238,7 +3226,7 @@ function homeDiscover() {
 function askBar() {
   return `<section class="td-ask">
     <input id="hmAsk" class="tk-in" type="text" maxlength="500" enterkeyhint="send"
-      aria-label="คำถามถึง${esc(mName())}" placeholder="${esc((typeof sosText === 'function' ? sosText('askPh', 'ถามน้องไซ…') : 'ถามน้องไซ…').replace(/น้องไซ/g, mName()))}"
+      placeholder="${esc((typeof sosText === 'function' ? sosText('askPh', 'ถามน้องไซ…') : 'ถามน้องไซ…').replace(/น้องไซ/g, mName()))}"
       onkeydown="if(event.key==='Enter'){event.preventDefault();homeAsk();}">
     <!-- 8 ต.ค. 69 · ปุ่มล้างแบบ HaloSearchInput (เจ้าของส่งเดโมมา: "ใช้ในหน้านี้") — โผล่เมื่อมีตัวหนังสือ · ตัวอักษรปลิวออกก่อนช่องว่าง -->
     <button class="ha-x" type="button" onclick="homeAskClear()" aria-label="ล้างข้อความ"><svg viewBox="0 0 24 24" aria-hidden="true"
@@ -3478,8 +3466,7 @@ const HOME_BLOCKS = {
   // ราง + แถบตัวเลข + กริด ล้นจอ 375×812 ราว 160px · รางคือ "ทำอะไรต่อ" ซึ่งสำคัญกว่าตัวเลขซ้ำ
   // การ์ด "วันนี้หมดเวลาแล้ว" (outOfTime) ก็เป็นบล็อกเพิ่มแบบเดียวกัน — หลบให้ด้วยเหตุผลเดียวกัน
   todayStats: ctx => (ctx.outOfTime || dayRail(ctx.sp, ctx.split, ctx.now) ? '' : todayStats(ctx.sp, ctx.now)),
-  askBar:     ()  => homeAssistant(),
-  discover:   ()  => homeDiscover(),
+  askBar:     ()  => askBar(),
   // 1C18 · น้องไซตัวเป็น ๆ ใต้ช่องถาม — ทางเข้าห้องคุยแผน
   // sai.js อาจโหลดไม่ขึ้น (เน็ตหลุดกลางคัน · แคชเก่า) จึงต้องเช็คก่อนเรียกเสมอ
   // เหมือน hwNowBlock · บล็อกที่หายไปเงียบ ๆ ดีกว่าหน้าแรกที่ว่างทั้งจอ
@@ -3492,7 +3479,7 @@ const HOME_BLOCKS = {
   nowCard:    ctx => ctx.sp.now
     ? nowCard(ctx.sp, ctx.now) + (ctx.outOfTime ? noTimeLeft(ctx.sp, ctx.now) : '')
     : todayEmpty(ctx.now, ctx.hasReminders),
-  dayRail:    ctx => homeNext(ctx.sp, ctx.split, ctx.now),
+  dayRail:    ctx => dayRail(ctx.sp, ctx.split, ctx.now),
   // 1B40 · ของที่มาเติมครึ่งล่างที่ว่างลงหลัง 1B39 (เจ้าของเลือกเอง: "เพื่อนกำลังทำอะไรอยู่"
   // วางใต้ "ที่เหลือของวันนี้") · ไฟล์ hw.js อาจโหลดไม่ขึ้น จึงต้องเช็คก่อนเรียกเสมอ
   // ตัวมันเองคืนค่าว่างเมื่อไม่มีใครอยู่ — จอจึงกลับไปเป็นแบบ 1B39 เป๊ะตอนไม่มีข่าว
@@ -3506,7 +3493,7 @@ const HOME_BLOCKS = {
 // คำตอบว่า "ทำอะไรตอนนี้" คือสิ่งที่แอปขาย จึงต้องเป็นของแรกที่ตาเจอ · หัวจอ (โลโก้ · คำทัก · กระดิ่ง) ยังอยู่บนสุดของจอ
 // แล้วแถวตัวเลข (เวลาว่าง · งานค้าง · วันต่อเนื่อง) ตามขึ้นมาอยู่ใต้การ์ด "ตอนนี้" — เจ้าของวาดลูกศรอีกรอบ
 // (ต้องตรงกับ home.blocks ใน remote-config.js — saiHero ไม่อยู่ในค่านั้น homeLayout() แทรกต่อหลัง todayStats ตามลำดับนี้)
-const HOME_ORDER = ['todayHead', 'dayCtx', 'nowCard', 'dayRail', 'askBar', 'discover'];
+const HOME_ORDER = ['todayHead', 'dayCtx', 'nowCard', 'todayStats', 'saiHero', 'askBar', 'dayRail', 'hwNowBlock', 'toolsGrid'];
 
 // QA 6 ต.ค. 69 · แถบตัวเลขปิดไว้เป็นค่าเริ่มต้น — "ว่าง 45 นาที · ค้าง 1 งาน" บนหัวจอพูดเลขชุดเดียวกันอยู่แล้ว
 // สองช่องซ้ำกันกิน 125px ที่ทำให้หน้าแรกล้นจอ 375×812 จนกริดไทล์จมใต้แถบล่าง (ผิดกฎ "หน้าแรกไม่ต้องเลื่อน")
@@ -3544,9 +3531,7 @@ function homeLayout() {
 
 // บล็อกใบเดียวพังต้องไม่ทำให้ทั้งหน้าแรกว่าง — จอขาวคืออาการที่ผู้ใช้กู้เองไม่ได้
 function renderHomeBlocks(ctx) {
-  // กรองค่า layout รุ่นเดิมด้วย เพื่อไม่ให้กริด/มาสคอตซ้ำกลับมาในหน้าแรกฉบับนี้
-  return homeLayout().filter(b => HOME_ORDER.includes(b.id))
-    .sort((a, b) => HOME_ORDER.indexOf(a.id) - HOME_ORDER.indexOf(b.id))
+  return homeLayout()
     .filter(b => b.on)
     .map(b => {
       try { return HOME_BLOCKS[b.id](ctx) || ''; }
@@ -3558,7 +3543,6 @@ function renderHomeBlocks(ctx) {
 function renderMenu() {
   const body = document.getElementById('menuBody');
   if (!body) return;
-  body.classList.add('home-simple');
   const now = new Date();
   const sp = focusPlan(now);   // การ์ดโฟกัสต้องเป็นงานที่ลงมือทำได้จริง — ดู focusPlan()
   const split = homeSplit(sp, now);
@@ -3642,6 +3626,14 @@ const ADD_ACTIONS = [
 let addSheetView = 'root';
 
 function addSheetHTML() {
+  if (addSheetView === 'quick') return `<div class="as-grip"></div>
+    <button type="button" class="as-h as-back" onclick="openAddSheet('root')" aria-label="ย้อนไปเมนูเพิ่มงาน"><span class="as-bk">${icon('chevron')}</span>เพิ่มงานด่วน</button>
+    <form class="as-capture-form" onsubmit="event.preventDefault();quickSend()">
+      <label for="qaIn">งานที่ต้องทำ</label>
+      <input id="qaIn" class="qa-in" maxlength="500" autocomplete="off" enterkeyhint="send" placeholder="รายงานชีวะ ส่งศุกร์" value="${esc(typeof quickPlusDraft === 'string' ? quickPlusDraft : '')}" oninput="quickPlusInput()">
+      <div class="qa-chips" id="qaChips" aria-live="polite"></div>
+      <button type="submit" class="btn primary">เพิ่มงาน</button>
+    </form>`;
   if (addSheetView === 'connectors') {
     const c = typeof connectorCount === 'function' ? connectorCount() : { on: 0, all: 0 };
     return `<div class="as-grip"></div>
@@ -3705,6 +3697,7 @@ function addSheetHTML() {
       <span class="as-tx"><b>${esc(a[1])}</b></span>
       <span class="as-go">${icon('chevron')}</span>
     </button>`).join('')}
+
     <button class="as-row as-conn" onclick="openAddSheet('connectors')">
       <span class="as-ic">${icon('plug')}</span>
       <span class="as-tx"><b>ตัวเชื่อม</b></span>
@@ -3724,21 +3717,16 @@ function refreshAddSheet() {
 function openAddSheet(view) {
   const el = document.getElementById('addSheet');
   if (!el) { go('scr-scan'); return; }
-  addSheetView = view === 'connectors' ? 'connectors' : 'root';
-
-  // 17 ต.ค. 69 · กำลังปิดอยู่ (ถอด .on แล้ว รอตัวจับเวลาซ่อน) แล้วกด + ซ้ำ = ยกเลิกการปิด แล้วเปิดใหม่เต็มรูปแบบข้างล่าง
-  // เดิมช่วงนั้นนับว่า "เปิดอยู่แล้ว" (ยังไม่ hidden) → ไม่ใส่ .on คืน → ตัวจับเวลาเดิมซ่อนแผ่นทิ้ง = กด + แล้วไม่ขึ้น
-  // มือถือช้า ตัวจับเวลา 200ms มาช้ากว่านั้นมาก ช่วงนี้จึงยาวพอให้กดซ้ำทันจริง (เทสต์: devtools/sheetcheck.js)
-  if (el._closeT) { clearTimeout(el._closeT); el._closeT = 0; }
+  addSheetView = ['connectors', 'quick'].includes(view) ? view : 'root';
 
   // เปิดอยู่แล้ว = แค่สลับหน้าในแผ่นเดิม ห้ามวาดใหม่ทั้งก้อน ไม่งั้นแผ่นเลื่อนลงแล้วขึ้นใหม่
   // 8 ต.ค. 69 · ของในหน้าใหม่เลื่อนเข้าจากฝั่งที่ไป (.swap · ไปหน้าตัวเชื่อม = จากขวา · กลับ = จากซ้าย)
   // ใส่เฉพาะตอนสลับหน้า — กดสวิตช์ (refreshAddSheet) ไม่เล่นซ้ำ
-  if (!el.hidden && el.classList.contains('on')) {
+  if (!el.hidden) {
     refreshAddSheet();
     const card = el.querySelector('.as-card');
     if (card) {
-      card.dataset.dir = addSheetView === 'connectors' ? 'r' : 'l';
+      card.dataset.dir = addSheetView !== 'root' ? 'r' : 'l';
       card.classList.remove('swap'); void card.offsetWidth; card.classList.add('swap');
       setTimeout(() => card.classList.remove('swap'), 600);
     }
@@ -3789,11 +3777,11 @@ function plusTap(btn) {
 function closeAddSheet() {
   const el = document.getElementById('addSheet');
   if (!el) return;
+  try { sessionStorage.removeItem('studentos.alt.shortcut'); } catch (_) {}
   el.classList.remove('on');
   document.body.classList.remove('as-open');
   addSheetView = 'root';   // เปิดครั้งหน้าต้องเริ่มที่หน้าหลักเสมอ ไม่ใช่ค้างอยู่หน้าตัวเชื่อม
-  clearTimeout(el._closeT);
-  el._closeT = setTimeout(() => { el._closeT = 0; el.hidden = true; el.innerHTML = ''; }, 200);
+  setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
 }
 
 // ============================================================
@@ -3894,8 +3882,6 @@ function openSoonSheet(key) {
   const s = SOON_SHEETS[key];
   const el = document.getElementById('soonSheet');
   if (!s || !el) return;
-  // 17 ต.ค. 69 · ยกเลิกการปิดที่ค้างอยู่ — ไม่งั้นตัวจับเวลาของรอบก่อนมาล้างแผ่นใหม่ทิ้ง (เหตุผลเดียวกับ openAddSheet)
-  if (el._closeT) { clearTimeout(el._closeT); el._closeT = 0; }
   el.innerHTML = `<div class="as-scrim" onclick="closeSoonSheet()"></div>
     <div class="as-card soon-card" role="dialog" aria-label="${esc(s.title)}">
       <div class="as-grip"></div>
@@ -3916,8 +3902,7 @@ function closeSoonSheet() {
   const el = document.getElementById('soonSheet');
   if (!el || el.hidden) return;
   el.classList.remove('on');
-  clearTimeout(el._closeT);
-  el._closeT = setTimeout(() => { el._closeT = 0; el.hidden = true; el.innerHTML = ''; }, 200);
+  setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
 }
 
 function closeFabHub(instant) {
@@ -6361,26 +6346,19 @@ function renderAi() {
   // 8 ต.ค. 69 · เจ้าของ: "เมื่อกดเข้ามา ให้มาเห็นตรงแชทล่าสุดที่คุยกัน"
   // วาดใหม่ทั้งก้อน = กล่องบทสนทนาใหม่เริ่มที่บนสุดเสมอ · renderAll() เรียกจอนี้ทุกครั้งที่ข้อมูลเปลี่ยน
   // จึงจำตำแหน่งเดิมไว้: อยู่ล่างสุด (หรือยังไม่เคยวาด) = ไปล่างสุด · เลื่อนขึ้นไปอ่านอยู่ = คืนที่เดิม ไม่ดึงลง
-  // 18 ต.ค. 69 · เดิมวัดบทสนทนาเก่า (scrollHeight/scrollTop) ก่อนแทนที่ = บังคับคิดสไตล์+จัดผังเนื้อหาที่กำลังจะทิ้ง
-  // ทุกครั้งที่เข้าจอนี้ (CPU ช้า 6 เท่า ~110ms) → จำตำแหน่งไว้ตอนผู้ใช้เลื่อนเอง (aiScrollMemo) ไม่ต้องวัดตอนวาด
-  // เลื่อนลงล่างสุดทำในเฟรมถัดไป รวมกับการจัดผังปกติของเฟรมนั้น (ไม่ใช่บังคับกลางสคริปต์อีกรอบ) · เทสต์: devtools/navcheck.js
-  const stick = !window.aiScroll || aiScroll.stick, oldTop = window.aiScroll ? aiScroll.top : 0;
+  const oldTh = el.querySelector('.ai-thread');
+  const stick = !oldTh || oldTh.scrollHeight - oldTh.scrollTop - oldTh.clientHeight < 80;
+  const oldTop = oldTh ? oldTh.scrollTop : 0;
+  // Keep an unsent shortcut draft when cloud refresh redraws the chat.
+  const unsent = el.querySelector('#aiInput')?.value || '';
   el.innerHTML = head + thread + quick + bar;
-  if (!el.dataset.scrollMemo) {
-    el.dataset.scrollMemo = '1';
-    el.addEventListener('scroll', e => {
-      const t = e.target;
-      if (!t.classList || !t.classList.contains('ai-thread')) return;
-      aiScroll.stick = t.scrollHeight - t.scrollTop - t.clientHeight < 80;
-      aiScroll.top = t.scrollTop;
-    }, { capture: true, passive: true });
-  }
+  const newInput = el.querySelector('#aiInput');
+  if (newInput && unsent) { newInput.value = unsent; aiInputState(newInput); }
+  if (typeof curScreen !== 'undefined' && curScreen === 'scr-ai' && typeof shortcutDraftApply === 'function') shortcutDraftApply('assistant');
   const th = el.querySelector('.ai-thread');
-  if (th) requestAnimationFrame(() => { if (th.isConnected) th.scrollTop = stick ? th.scrollHeight : oldTop; });
+  if (th) th.scrollTop = stick ? th.scrollHeight : oldTop;
   sgaMount();
 }
-// ตำแหน่งเลื่อนของบทสนทนาน้องฮูก — อัปเดตตอนผู้ใช้เลื่อน · ยังไม่เคยวาด = ไปล่างสุด
-var aiScroll = { stick: true, top: 0 };   // var ไม่ใช่ const — ถูกเรียกก่อนบรรทัดนี้ = undefined แทน TDZ (แบบเดียวกับ SCREEN_RENDER)
 
 // ---------- 1C40 · จัดรูปคำตอบของน้องไซ ----------
 // คำตอบมาเป็นตัวหนังสือล้วนที่มีขึ้นบรรทัด "- " "1. " และ **ตัวหนา** แบบ markdown ย่อ
@@ -8229,8 +8207,8 @@ function renderPlan() {
       <span class="pn-go">${icon('chevron')}</span>
     </button>`;
   } else if (win.mode === 'late') {
-    // 19 ต.ค. 69 · "นี่คือเวลาที่ยืมมาจากการนอน" อ่านเป็นคำเปรียบแบบ AI — พูดตรง ๆ ว่าให้ทำอะไร
-    html += `<div class="pctx-note">${icon('clock')}เลย ${esc(ctxPrefs().noWorkAfter)} น. แล้ว ทำแค่ที่จำเป็น แล้วไปนอน</div>`;
+    html += `<div class="pctx-note">${icon('clock')}เลย ${esc(ctxPrefs().noWorkAfter)} น. มาแล้ว
+      นี่คือเวลาที่ยืมมาจากการนอน ทำเท่าที่จำเป็นพอ</div>`;
   }
 
   for (const e of plan.events) {
@@ -8277,7 +8255,7 @@ function renderPlan() {
             <span class="ndue">${s.min} นาที${did ? ` · ทำไปแล้ว ${did}` : ''}</span>
           </div>
           <div class="tt">${taskTitle(s.task)}</div>
-          ${s.note ? `<div class="nt${/^⚠/.test(s.note) ? ' hot' : ''}">${esc(s.note.replace(/^⚠\s*/, ''))}</div>` : ''}
+          ${s.note ? `<div class="nt">${esc(s.note)}</div>` : ''}
           <button class="wk-go${mine ? ' on' : ''}" ${busy ? 'disabled' : ''}
             onclick="${mine ? 'stopWork()' : `startWork('${s.task.id}')`}">
             ${icon(mine ? 'check' : 'clock')}${mine ? 'หยุดจับเวลา' : busy ? 'จับเวลางานอื่นอยู่' : 'เริ่มจับเวลา'}
@@ -8303,10 +8281,10 @@ function renderPlan() {
       : 'ไม่เหลือช่องว่างก่อนกำหนดส่งอีกแล้ว';
     html += `<div class="povf danger">
       <div class="povf-head">${icon('clock')}<span>ทำไม่ทันถ้าไม่ทำวันนี้</span></div>
-      <div class="povf-why">${esc(when)}${nf ? ' ช้ากว่ากำหนดส่งแล้ว' : ''}</div>
+      <div class="povf-why">${esc(when)} ${missed.length > 1 ? 'งานพวกนี้' : 'งานนี้'}เลยกำหนดส่งไปก่อนถึงตอนนั้น</div>
       ${missed.map(o => `<div class="it">
         <div class="tt">${taskTitle(o.task)}</div>
-        <div class="ln">ยังต้องใช้ ~${o.need} นาที · ${esc(wgDueText(o.task, now))}</div>
+        <div class="ln">ยังต้องใช้ ~${o.need} นาที · ${esc(fmtDue(o.task.due, now, o.task))}</div>
       </div>`).join('')}
       
     </div>`;
@@ -8316,7 +8294,7 @@ function renderPlan() {
       <div class="povf-head">${icon('clock')}<span>เวลาวันนี้ไม่พอ ย้ายไปวันหลังได้</span></div>
       ${movable.map(o => `<div class="it">
         <div class="tt">${taskTitle(o.task)}</div>
-        <div class="ln">ต้องใช้ ~${o.need} นาที · ${esc(wgDueText(o.task, now))}</div>
+        <div class="ln">ต้องใช้ ~${o.need} นาที · ${esc(fmtDue(o.task.due, now, o.task))}</div>
       </div>`).join('')}
     </div>`;
   }
@@ -8468,8 +8446,6 @@ function renderProfile() {
   }
   // 15 ต.ค. 69 · เลขข่าวจากทีมที่ยังไม่เปิดดู — นับใน news.js ที่เดียว
   if (typeof newsPaintRow === 'function') newsPaintRow();
-  const ttEntry = document.getElementById('peTtScan');
-  if (ttEntry) ttEntry.hidden = typeof sosFeature === 'function' && !sosFeature('ttscan');
   // ตัวเลขบนปุ่มทางเข้าใหญ่ 3 ปุ่ม
   const pb = document.getElementById('peBadgeCt');
   if (pb) pb.textContent = badgesEarned().length + ' จาก ' + BADGES.length + ' เหรียญ';
@@ -8497,8 +8473,6 @@ function renderProfile() {
   // เพราะเลขเดียวกันเป็นช่อง "ต่อเนื่อง" ของแถบโชว์ที่อยู่เหนือขึ้นไปในจอเดียวกัน
   // (กฎเดิมของจอนี้ตั้งแต่ 1B71: ตัวเลขเดียวกันห้ามโผล่สองที่ในจอเดียว)
   const ps = document.getElementById('peShopCt');
-  const compactBalance = document.getElementById('pfTokenBalance');
-  if (compactBalance) compactBalance.textContent = fmtTok(tokenBalance()) + ' โทเคน';
   if (ps) {
     ps.innerHTML = '<span data-tok="' + tokenBalance() + '">'
       + (typeof fmtTok === 'function' ? fmtTok(tokenBalance()) : tokenBalance()) + '</span> โทเคน';
@@ -8527,7 +8501,7 @@ function renderProfile() {
   renderNotifPrefs();
   if (!st) return;
   if (!ALT_SYSTEM_NOTIFICATIONS) {
-    st.textContent = pushErr ? 'ยังปิดแจ้งเตือนเดิมของแอปนี้ไม่สำเร็จ · ต่อเน็ตแล้วลองใหม่' : 'แจ้งเตือนมาจากแอปหลัก · ไม่ส่งซ้ำ';
+    st.textContent = pushErr ? 'ยังหยุดแจ้งเตือน ALT ไม่สำเร็จ · เปิด ALT ออนไลน์แล้วลองใหม่' : 'รับแจ้งเตือนจากแอปหลักเท่านั้น · ALT ไม่ส่งซ้ำ';
     if (ntest) ntest.style.display = 'none';
     if (nb) { nb.style.display = pushErr ? 'block' : 'none'; nb.textContent = 'ลองใหม่'; }
     return;
@@ -14613,6 +14587,25 @@ function savedToast(data, title) {
       : detail.slice(0, 60),
     action: doMute ? { label: 'เปิด', fn: () => enableNotif() } : null,
   }), 250);
+}
+
+function formToStep2(nt) {
+  clearTimeout(formParseT);
+  editingId = nt.id;
+  formShowAuto([]);
+  setFormStep(2);
+  const ok = document.getElementById('fmOk');
+  if (ok) {
+    ok.className = 'fm-ok';
+    void ok.offsetWidth;   // ถอดแล้วใส่ใหม่ = ท่าเด้งเล่นซ้ำ
+    ok.className = 'fm-ok show';
+    ok.innerHTML = `${icon('check-circle')}อยู่ในแผนแล้ว · ที่เหลือข้ามได้`;
+  }
+  syncFormUI();
+  const scr = document.getElementById('scr-form');
+  if (scr) scr.scrollTop = 0;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  haptic('tap');
 }
 
 function formToStep2(nt) {
