@@ -2831,7 +2831,7 @@ function nowCard(sp, now) {
     // จอเต็มยังอยู่ที่ลิงก์ท้ายแผง เพราะการเทียบกับงานอื่นยาวเกินจะยัดลงการ์ด
     whyGo: `<button class="tn-why-go${NOW_WHY_OPEN ? ' open' : ''}" aria-expanded="${NOW_WHY_OPEN}"
         onclick="toggleNowWhy(this)">ทำไมอันนี้ก่อน${icon('chevron')}</button>
-      <div class="tn-why-pane${NOW_WHY_OPEN ? ' open' : ''}"><div class="tn-why-in">${nowWhyHTML(t, now)}</div></div>`,
+      <div class="tn-why-pane${NOW_WHY_OPEN ? ' open' : ''}" aria-hidden="${!NOW_WHY_OPEN}"${NOW_WHY_OPEN ? '' : ' inert'}><div class="tn-why-in">${nowWhyHTML(t, now)}</div></div>`,
   };
 
   const head = partsHtml('now', NOW_PARTS, 'head', P);
@@ -2874,7 +2874,11 @@ function toggleNowWhy(btn) {
   btn.classList.toggle('open', NOW_WHY_OPEN);
   btn.setAttribute('aria-expanded', NOW_WHY_OPEN);
   const pane = card.querySelector('.tn-why-pane');
-  if (pane) pane.classList.toggle('open', NOW_WHY_OPEN);
+  if (pane) {
+    pane.classList.toggle('open', NOW_WHY_OPEN);
+    pane.inert = !NOW_WHY_OPEN;
+    pane.setAttribute('aria-hidden', !NOW_WHY_OPEN);
+  }
   if (typeof haptic === 'function') haptic('arm');
 }
 
@@ -3262,7 +3266,7 @@ function homeDiscover() {
 function askBar() {
   return `<section class="td-ask">
     <input id="hmAsk" class="tk-in" type="text" maxlength="500" enterkeyhint="send"
-      placeholder="${esc((typeof sosText === 'function' ? sosText('askPh', 'ถามน้องไซ…') : 'ถามน้องไซ…').replace(/น้องไซ/g, mName()))}"
+      aria-label="คำถามถึง${esc(mName())}" placeholder="${esc((typeof sosText === 'function' ? sosText('askPh', 'ถามน้องไซ…') : 'ถามน้องไซ…').replace(/น้องไซ/g, mName()))}"
       onkeydown="if(event.key==='Enter'){event.preventDefault();homeAsk();}">
     <!-- 8 ต.ค. 69 · ปุ่มล้างแบบ HaloSearchInput (เจ้าของส่งเดโมมา: "ใช้ในหน้านี้") — โผล่เมื่อมีตัวหนังสือ · ตัวอักษรปลิวออกก่อนช่องว่าง -->
     <button class="ha-x" type="button" onclick="homeAskClear()" aria-label="ล้างข้อความ"><svg viewBox="0 0 24 24" aria-hidden="true"
@@ -3753,10 +3757,15 @@ function openAddSheet(view) {
   if (!el) { go('scr-scan'); return; }
   addSheetView = ['connectors', 'quick'].includes(view) ? view : 'root';
 
+  // 17 ต.ค. 69 · กำลังปิดอยู่ (ถอด .on แล้ว รอตัวจับเวลาซ่อน) แล้วกด + ซ้ำ = ยกเลิกการปิด แล้วเปิดใหม่เต็มรูปแบบข้างล่าง
+  // เดิมช่วงนั้นนับว่า "เปิดอยู่แล้ว" (ยังไม่ hidden) → ไม่ใส่ .on คืน → ตัวจับเวลาเดิมซ่อนแผ่นทิ้ง = กด + แล้วไม่ขึ้น
+  // มือถือช้า ตัวจับเวลา 200ms มาช้ากว่านั้นมาก ช่วงนี้จึงยาวพอให้กดซ้ำทันจริง (เทสต์: devtools/sheetcheck.js)
+  if (el._closeT) { clearTimeout(el._closeT); el._closeT = 0; }
+
   // เปิดอยู่แล้ว = แค่สลับหน้าในแผ่นเดิม ห้ามวาดใหม่ทั้งก้อน ไม่งั้นแผ่นเลื่อนลงแล้วขึ้นใหม่
   // 8 ต.ค. 69 · ของในหน้าใหม่เลื่อนเข้าจากฝั่งที่ไป (.swap · ไปหน้าตัวเชื่อม = จากขวา · กลับ = จากซ้าย)
   // ใส่เฉพาะตอนสลับหน้า — กดสวิตช์ (refreshAddSheet) ไม่เล่นซ้ำ
-  if (!el.hidden) {
+  if (!el.hidden && el.classList.contains('on')) {
     refreshAddSheet();
     const card = el.querySelector('.as-card');
     if (card) {
@@ -3815,7 +3824,8 @@ function closeAddSheet() {
   el.classList.remove('on');
   document.body.classList.remove('as-open');
   addSheetView = 'root';   // เปิดครั้งหน้าต้องเริ่มที่หน้าหลักเสมอ ไม่ใช่ค้างอยู่หน้าตัวเชื่อม
-  setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
+  clearTimeout(el._closeT);
+  el._closeT = setTimeout(() => { el._closeT = 0; el.hidden = true; el.innerHTML = ''; }, 200);
 }
 
 // ============================================================
@@ -3916,6 +3926,8 @@ function openSoonSheet(key) {
   const s = SOON_SHEETS[key];
   const el = document.getElementById('soonSheet');
   if (!s || !el) return;
+  // 17 ต.ค. 69 · ยกเลิกการปิดที่ค้างอยู่ — ไม่งั้นตัวจับเวลาของรอบก่อนมาล้างแผ่นใหม่ทิ้ง (เหตุผลเดียวกับ openAddSheet)
+  if (el._closeT) { clearTimeout(el._closeT); el._closeT = 0; }
   el.innerHTML = `<div class="as-scrim" onclick="closeSoonSheet()"></div>
     <div class="as-card soon-card" role="dialog" aria-label="${esc(s.title)}">
       <div class="as-grip"></div>
@@ -3936,7 +3948,8 @@ function closeSoonSheet() {
   const el = document.getElementById('soonSheet');
   if (!el || el.hidden) return;
   el.classList.remove('on');
-  setTimeout(() => { el.hidden = true; el.innerHTML = ''; }, 200);
+  clearTimeout(el._closeT);
+  el._closeT = setTimeout(() => { el._closeT = 0; el.hidden = true; el.innerHTML = ''; }, 200);
 }
 
 function closeFabHub(instant) {
@@ -6380,20 +6393,30 @@ function renderAi() {
   // 8 ต.ค. 69 · เจ้าของ: "เมื่อกดเข้ามา ให้มาเห็นตรงแชทล่าสุดที่คุยกัน"
   // วาดใหม่ทั้งก้อน = กล่องบทสนทนาใหม่เริ่มที่บนสุดเสมอ · renderAll() เรียกจอนี้ทุกครั้งที่ข้อมูลเปลี่ยน
   // จึงจำตำแหน่งเดิมไว้: อยู่ล่างสุด (หรือยังไม่เคยวาด) = ไปล่างสุด · เลื่อนขึ้นไปอ่านอยู่ = คืนที่เดิม ไม่ดึงลง
-  const oldTh = el.querySelector('.ai-thread');
-  const stick = !oldTh || oldTh.scrollHeight - oldTh.scrollTop - oldTh.clientHeight < 80;
-  const oldTop = oldTh ? oldTh.scrollTop : 0;
-  // Keep an unsent shortcut draft when cloud refresh redraws the chat.
+  // 18 ต.ค. 69 · เดิมวัดบทสนทนาเก่า (scrollHeight/scrollTop) ก่อนแทนที่ = บังคับคิดสไตล์+จัดผังเนื้อหาที่กำลังจะทิ้ง
+  // ทุกครั้งที่เข้าจอนี้ (CPU ช้า 6 เท่า ~110ms) → จำตำแหน่งไว้ตอนผู้ใช้เลื่อนเอง (aiScrollMemo) ไม่ต้องวัดตอนวาด
+  // เลื่อนลงล่างสุดทำในเฟรมถัดไป รวมกับการจัดผังปกติของเฟรมนั้น (ไม่ใช่บังคับกลางสคริปต์อีกรอบ) · เทสต์: devtools/navcheck.js
+  const stick = !window.aiScroll || aiScroll.stick, oldTop = window.aiScroll ? aiScroll.top : 0;
   const unsent = el.querySelector('#aiInput')?.value || '';
   el.innerHTML = head + thread + quick + bar;
   const newInput = el.querySelector('#aiInput');
   if (newInput && unsent) { newInput.value = unsent; aiInputState(newInput); }
   if (typeof curScreen !== 'undefined' && curScreen === 'scr-ai' && typeof shortcutDraftApply === 'function') shortcutDraftApply('assistant');
+  if (!el.dataset.scrollMemo) {
+    el.dataset.scrollMemo = '1';
+    el.addEventListener('scroll', e => {
+      const t = e.target;
+      if (!t.classList || !t.classList.contains('ai-thread')) return;
+      aiScroll.stick = t.scrollHeight - t.scrollTop - t.clientHeight < 80;
+      aiScroll.top = t.scrollTop;
+    }, { capture: true, passive: true });
+  }
   const th = el.querySelector('.ai-thread');
-  if (th) th.scrollTop = stick ? th.scrollHeight : oldTop;
+  if (th) requestAnimationFrame(() => { if (th.isConnected) th.scrollTop = stick ? th.scrollHeight : oldTop; });
   sgaMount();
 }
 
+var aiScroll = { stick: true, top: 0 };
 // ---------- 1C40 · จัดรูปคำตอบของน้องไซ ----------
 // คำตอบมาเป็นตัวหนังสือล้วนที่มีขึ้นบรรทัด "- " "1. " และ **ตัวหนา** แบบ markdown ย่อ
 // แปลงเฉพาะเท่านี้ — escape ก่อนทุกครั้ง จึงไม่มี HTML จากเซิร์ฟเวอร์หลุดมาวาดบนจอ
@@ -14689,25 +14712,6 @@ function formToStep2(nt) {
   haptic('tap');
 }
 
-function formToStep2(nt) {
-  clearTimeout(formParseT);
-  editingId = nt.id;
-  formShowAuto([]);
-  setFormStep(2);
-  const ok = document.getElementById('fmOk');
-  if (ok) {
-    ok.className = 'fm-ok';
-    void ok.offsetWidth;   // ถอดแล้วใส่ใหม่ = ท่าเด้งเล่นซ้ำ
-    ok.className = 'fm-ok show';
-    ok.innerHTML = `${icon('check-circle')}อยู่ในแผนแล้ว · ที่เหลือข้ามได้`;
-  }
-  syncFormUI();
-  const scr = document.getElementById('scr-form');
-  if (scr) scr.scrollTop = 0;
-  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-  haptic('tap');
-}
-
 // ยกเลิก = ทิ้งการแก้ทั้งหมด แล้วกลับจอที่มาจาก (ไม่ใช่เด้งไปหน้าแรกเสมอ)
 function cancelForm() {
   const back = formReturn;
@@ -18529,7 +18533,7 @@ function takeSharedText() {
 // ลิงก์เก่าจากหน้า land.html ที่ส่ง ?start=timeline มายังต้องพาไปที่ที่มีของให้ดู
 // ไม่ใช่จอที่ออกไปไหนไม่ได้นอกจากกดแถบล่าง
 // 'quick' = ปุ่มลัด "เพิ่มงานด่วน" (quickadd.js) — ไปหน้าแรกแล้วเด้งแผ่นพิมพ์งานทับ
-const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-tasks', quick: 'scr-menu' };
+const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-tasks', quick: 'scr-menu', assistant: 'scr-ai', today: 'scr-menu' };
 // อ่านจาก BOOT_Q ไม่ใช่ location.search — initApp() ล้าง URL ทิ้งก่อน routeStart() จะถูกเรียก
 // เดิมอ่าน location.search ตรง ๆ จึงเจอ URL เปล่าทุกครั้ง ปุ่มลัดทุกปุ่มพาไปหน้าแรกเงียบ ๆ (พบ 9 ต.ค. 69)
 // ใช้ได้ครั้งเดียว — routeStart() รอบสองต้องไม่เด้งแผ่นซ้ำ หรือดึงคนกลับจากจอที่เขาเดินไปแล้ว
@@ -18548,7 +18552,7 @@ const SHORTCUT_KEY = 'studentos.alt.shortcut';
 let shortcutUsed = false;
 function shortcutTarget() {
   if (shortcutUsed) return null;
-  let g = BOOT_Q.get('go');   // ที่เก็บถูกปิด (โหมดส่วนตัวบางเครื่อง) ยังใช้ได้ในรอบที่ไม่ได้รีโหลด
+  let g = BOOT_Q.get('go') || (typeof shortcutDraftRoute === 'function' ? shortcutDraftRoute() : null);
   try {
     const s = JSON.parse(sessionStorage.getItem(SHORTCUT_KEY) || 'null');
     if (!g && s && Date.now() - s.t < 30000) g = s.g;
@@ -18633,7 +18637,7 @@ function routeAfterLogin() {
     openDmInbox('scr-menu');
     return;
   }
-  go('scr-menu');
+  go(shortcutTarget() || 'scr-menu');
 }
 
 function openOnboard() {

@@ -77,7 +77,12 @@ function from(table) {
   return api;
 }
 const mk = (id, detail, x) => Object.assign({ id, subject: 'คณิต', detail, due: '2026-10-20T16:00:00.000Z', type: 'homework', done: false, doneAt: null, deleted: false, progress: 0 }, x || {});
-const wait = ms => new Promise(r => setTimeout(r, ms));
+// Debounce elapsed does not mean the async write/retry queue has settled.
+// Wait for that queue too so slow/busy hosts do not assert halfway through a push.
+const wait = async ms => {
+  await new Promise(r => setTimeout(r, ms));
+  await app.syncSerial(() => Promise.resolve());
+};
 const ids = arr => arr.map(t => t.id).sort().join(',');
 const results = []; const check = (name, ok, info) => results.push(`${ok ? 'PASS' : 'FAIL'}  ${name}${info ? '  — ' + info : ''}`);
 
@@ -235,4 +240,5 @@ const results = []; const check = (name, ok, info) => results.push(`${ok ? 'PASS
 
   console.log(results.join('\n'));
   console.log(`\n${results.filter(r => r.startsWith('PASS')).length}/${results.length} passed`);
+  if (results.some(r => r.startsWith('FAIL'))) process.exitCode = 1;
 })().catch(err => { console.error('HARNESS ERROR', err); process.exit(1); });

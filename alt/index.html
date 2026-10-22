@@ -40,10 +40,14 @@
         : 'light');
       document.documentElement.dataset.theme = t;
       // โหมดเครื่องเบา — ต้องติดก่อนวาดจอแรก ไม่งั้นเครื่องช้าได้วาดของหนักไปหนึ่งรอบก่อนถูกถอด
-      // ธงมาจากการวัดจริงรอบก่อน (liteProbe ใน app.js) · แรม ≤2GB (Chrome บอกได้) = เบาตั้งแต่ครั้งแรก
+      // ธงมาจากการวัดจริงรอบก่อน (liteProbe ใน app.js) · แรมต่ำกว่า 4GB (Chrome บอกได้) = เบาตั้งแต่ครั้งแรก
+      // Chrome ปัดแรมลงเป็นเลขยกกำลังสอง (3GB → 2 · เครื่องที่ขายว่า 4GB แต่ระบบเห็น 3.7 → 2) จึงได้แค่ 2 หรือ 4 — < 4 คือ "ต่ำกว่า 4GB" ตรงตัว
       try {
         var lf = localStorage.getItem('studentos.alt.lite');   // '0' = ผู้ใช้ปิดเองในตั้งค่า
-        if (lf === '1' || (lf !== '0' && navigator.deviceMemory && navigator.deviceMemory <= 2))
+        // 19 ต.ค. 69 · ระดับกราฟิก (ตั้งค่า › กราฟิก): low = ลดเพิ่มจากโหมดลื่น · mid = โหมดลื่น · high = เต็ม
+        var gf = localStorage.getItem('studentos.alt.gfx');
+        if (gf === 'low') document.documentElement.dataset.quality = 'low';
+        if (gf === 'low' || gf === 'mid' || (gf !== 'high' && (lf === '1' || (lf !== '0' && navigator.deviceMemory && navigator.deviceMemory < 4))))
           document.documentElement.dataset.lite = '1';
       } catch (e) {}
       // 11 ต.ค. 69 · iPhone ซูมจอเข้าเองทุกครั้งที่แตะช่องพิมพ์ที่ตัวหนังสือเล็กกว่า 16px แล้วค้างซูมไว้หลังพิมพ์เสร็จ
@@ -127,6 +131,7 @@
   <link rel="stylesheet" href="gacha-fx.css">
   <link rel="stylesheet" href="board.css">
   <link rel="stylesheet" href="custom.css">
+  <link rel="stylesheet" href="classrooms.css">
   <link rel="stylesheet" href="desktop.css" media="(min-width:1024px) and (hover:hover) and (pointer:fine)">
   <link rel="stylesheet" href="device-preview-controls.css">
   <link rel="stylesheet" href="halloween.css">
@@ -1035,7 +1040,7 @@
               <h3 class="fs-h">รายละเอียด</h3>
             </div>
 
-                        <!-- 15 ต.ค. 69 · นัดของตัวเอง — ถึงเวลาแล้วเด้งเตือนทันที ตั้งกี่งานก็เด้งครบทุกงาน
+            <!-- 15 ต.ค. 69 · นัดของตัวเอง — ถึงเวลาแล้วเด้งเตือนทันที ตั้งกี่งานก็เด้งครบทุกงาน
                  (doAtTick ใน app.js ตอนเปิดแอป · runDoAt ใน send-reminders ตอนปิดแอป)
                  ปุ่มวันวาดจาก renderDoPick() · ค่าจริงอยู่ที่ formDoDay + #fDoTime -->
             <details class="fm-row" id="fDoWrap">
@@ -1047,14 +1052,15 @@
               </div>
             </details>
 
-<details class="fm-row" id="fTeacherWrap">
+            <details class="fm-row" id="fTeacherWrap">
               <summary><span class="rw-l">ครูผู้สั่ง</span><span class="rw-v" id="rvTeacher">ยังไม่ระบุ</span></summary>
               <div class="rw-body fld"><input type="text" id="fTeacher" placeholder="เช่น ครูสมชาย"></div>
             </details>
 
             <details class="fm-row" id="fScoreWrap">
-              <summary><span class="rw-l">คะแนน</span><span class="rw-v" id="rvScore">ให้ AI เดา</span></summary>
-              <div class="rw-body fld"><input type="number" id="fScore" min="0" max="100" placeholder="20"></div>
+              <summary><span class="rw-l">คะแนนเก็บ (%)</span><span class="rw-v" id="rvScore">ยังไม่ระบุ</span></summary>
+              <div class="rw-body fld"><input type="number" id="fScore" min="0" max="100" placeholder="เช่น 20" aria-label="สัดส่วนคะแนนรวม (%)">
+                <p class="fm-score-help">ใส่สัดส่วนของคะแนนรวม เช่น งานนี้คิดเป็น 20% ไม่ใช่คะแนนดิบ 20 คะแนน · ไม่ทราบให้เว้นว่าง</p></div>
             </details>
 
             <!-- แถวที่มี data-hsel = ตัวเลือกตายตัว → แตะแล้วเปิดเมนูแบบ HaloSelect (hselOpen ใน app.js)
@@ -1190,7 +1196,7 @@
             <h2 class="sh-title">แผนวันนี้</h2>
             <p class="sh-sub" id="planSub"></p>
           </div>
-          <button class="sh-btn" onclick="go('scr-home')" aria-label="กลับหน้าแรก">
+          <button class="sh-btn" onclick="go('scr-menu')" aria-label="กลับหน้าแรก">
             <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
         </div>
         <div class="scr-body plan-body" id="planList"></div>
@@ -1353,6 +1359,28 @@
             </form>
           </section>
           <section aria-labelledby="bugMineTitle"><div class="bug-heading"><h2 id="bugMineTitle">เรื่องของฉัน</h2><button class="bug-button" onclick="loadBugReports()">อัปเดตสถานะ</button></div><div id="bugList" aria-live="polite"></div><div class="bug-pagination"><button class="bug-button" id="bugPrev" onclick="bugPage(-1)" disabled>ก่อนหน้า</button><button class="bug-button" id="bugNext" onclick="bugPage(1)" disabled>ถัดไป</button></div></section>
+        </div>
+      </div>
+
+      <div class="screen flush" id="scr-classrooms">
+        <div class="sticky-head row"><h2 class="sh-title">ห้องเรียนและแชตกลุ่ม</h2><button class="sh-btn" onclick="go('scr-profile')" aria-label="กลับหน้าฉัน"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button></div>
+        <div class="scr-body class-body">
+          <p id="classMessage" role="status" aria-live="polite"></p>
+          <button id="classRefresh" class="class-button">อัปเดต</button>
+          <div id="classListView">
+            <p>สร้างห้องแล้วแชร์รหัสเชิญ คุยกับสมาชิกและส่งการ์ดงานให้กดรับเข้าแผนของแต่ละคนได้</p>
+            <div id="classRooms"></div>
+            <section class="class-panel"><h3>สร้างห้อง</h3><form id="classCreateForm"><label>ชื่อห้อง<input id="className" required minlength="2" maxlength="80" placeholder="เช่น ม.4/2 หรือกลุ่มโครงงาน"></label><label>ประเภท<select id="classKind"><option value="classroom">ห้องเรียน</option><option value="group">แชตกลุ่ม</option></select></label><button type="submit" class="class-button class-primary">สร้างห้อง</button></form></section>
+            <section class="class-panel"><h3>เข้าร่วมห้อง</h3><form id="classJoinForm"><label>รหัสเชิญจากเจ้าของห้อง<input id="classCode" required minlength="12" maxlength="16" autocomplete="off" autocapitalize="characters" placeholder="รหัส 12 ตัว"></label><button type="submit" class="class-button">เข้าร่วมห้อง</button></form></section>
+          </div>
+          <div id="classRoomView" hidden>
+            <button id="classBack" class="class-button">กลับรายการห้อง</button><h3 id="classRoomName"></h3><p id="classRoomStatus"></p><p id="classInvite"></p>
+            <details class="class-panel"><summary>สมาชิกและการจัดการห้อง</summary><ul id="classMembers"></ul><div id="classOwnerTools" class="class-actions" hidden><button id="classRotate" class="class-button">เปลี่ยนรหัสเชิญ</button><button id="classClose" class="class-button">ปิดห้อง</button></div><button id="classLeave" class="class-button" hidden>ออกจากห้อง</button></details>
+            <button id="classOlder" class="class-button" hidden>อ่านข้อความก่อนหน้า</button>
+            <div id="classMessages" role="log" aria-label="ข้อความในห้อง" aria-live="polite"></div>
+            <form id="classTextForm"><label>ข้อความ<textarea id="classText" required maxlength="2000" rows="2" placeholder="พิมพ์คุยกับสมาชิกในห้อง"></textarea></label><div class="class-actions"><button id="classTextSend" type="submit" class="class-button class-primary">ส่งข้อความ</button><button id="classTaskOpen" type="button" class="class-button">ส่งการ์ดงาน</button></div></form>
+            <section id="classTaskBox" class="class-panel" hidden><h3>ส่งการ์ดงานให้สมาชิก</h3><p>สมาชิกเลือกกดรับเอง ส่งเฉพาะวิชา รายละเอียด กำหนดส่ง และเวลาโดยประมาณ</p><form id="classTaskForm"><label>เลือกจากงานของฉัน<select id="classTaskFrom"><option value="">เขียนงานใหม่</option></select></label><label>วิชา<input id="classTaskSubject" required maxlength="60" placeholder="เช่น คณิตศาสตร์"></label><label>รายละเอียดงาน<textarea id="classTaskDetail" required minlength="3" maxlength="2000" rows="3"></textarea></label><label>กำหนดส่ง (ไม่บังคับ)<input id="classTaskDue" type="datetime-local"></label><label>เวลาทำโดยประมาณ (นาที)<input id="classTaskMinutes" type="number" min="5" max="480" step="1" value="30" required></label><div class="class-actions"><button id="classTaskSend" type="submit" class="class-button class-primary">ส่งการ์ดงาน</button><button id="classTaskCancel" type="button" class="class-button">ยกเลิก</button></div></form></section>
+          </div>
         </div>
       </div>
 
@@ -1995,11 +2023,14 @@
               <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
             <!-- 9 ต.ค. 69 · โหมดลื่น (โหมดเครื่องเบา) — แอปเปิดให้เองเมื่อวัดได้ว่าเครื่องกระตุก (liteProbe/liteWatch)
                  สวิตช์นี้ให้คนใช้ตัดสินเองได้ทั้งสองทาง · ปิดเอง = ตัววัดจะไม่เปิดให้อีก -->
-            <div class="set-row" id="liteRow">
+            <div class="set-row gfx-row" id="liteRow">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-zap"/></svg></span>
-              <span class="set-lb">โหมดลื่น<i>ลดเอฟเฟกต์ที่กินแรง ให้เครื่องไม่แรงลื่นขึ้น</i></span>
-              <button class="btn secondary sm" id="liteBtn" style="width:auto;min-height:34px;padding:0 14px"
-                onclick="toggleLite()" aria-pressed="false">ปิดอยู่</button>
+              <span class="set-lb">กราฟิก<i id="gfxHint">สวยเต็มที่ · ลดลงถ้าเครื่องกระตุก</i></span>
+              <div class="gfx-seg" id="gfxSeg" role="group" aria-label="ระดับกราฟิก">
+                <button type="button" data-gfx="low" onclick="setGfx('low', true)" aria-pressed="false">น้อย</button>
+                <button type="button" data-gfx="mid" onclick="setGfx('mid', true)" aria-pressed="false">กลาง</button>
+                <button type="button" data-gfx="high" onclick="setGfx('high', true)" aria-pressed="false">มาก</button>
+              </div>
             </div>
           </div>
 
@@ -2431,6 +2462,7 @@
   </p>
 </div>
 
+<script src="compat.js"></script>
 <script src="shortcut-draft.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
@@ -2482,6 +2514,7 @@
 <script src="hw.js"></script>
 <script src="topic.js"></script>
 <script src="safety.js"></script>
+<script src="classrooms.js"></script>
 <script src="sai.js"></script>
 <!-- ฟังก์ชันล้วน ไม่รันอะไรตอนโหลด · ต้องมาก่อน app.js เพื่อให้การวาดรอบแรก
      (renderShop · renderAppearance) เห็น FX_SHOP แล้ว — ไม่งั้นแถวเอฟเฟกต์โผล่ช้าไปหนึ่งรอบ -->

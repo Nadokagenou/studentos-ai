@@ -11,6 +11,7 @@ const theme=themeArg?themeArg.slice(8):'light';
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.json':'application/json','.woff2':'font/woff2'};
 const fixture=`<script>
 (()=>{
+ window.addEventListener('error',e=>{const record=()=>{let box=document.getElementById('previewRuntimeErrors');if(!box){box=document.createElement('pre');box.id='previewRuntimeErrors';box.hidden=true;document.body.append(box);}box.textContent+=String(e.error?.stack||e.message)+String.fromCharCode(10);};if(document.body)record();else document.addEventListener('DOMContentLoaded',record,{once:true});});
  const key='studentos.alt.desktop.review.seeded';
  const RealDate=Date, target=RealDate.parse('2026-10-20T${sampleTime}:00+07:00'),offset=target-RealDate.now();
  window.Date=class extends RealDate{constructor(...args){super(...(args.length?args:[RealDate.now()+offset]))}static now(){return RealDate.now()+offset}};
