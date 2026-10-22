@@ -32,7 +32,7 @@
  add('cruor-quill','Cruor Quill','relic','Mystical','vampire','quill','ปากกาขนนกสีเลือดของ Mr. Dech ปลายเงินเขียนแสงแดงลงบนอากาศ',['รางวัล Quest 1 ของ Mr. Dech','ขนนกโลหะซ้อนละเอียด','หยดทับทิมและตราคฤหาสน์'],{source:'main-quest',questId:'dech-intruder-punishment'});
  add('dullahan-scythe','Scythe of Dullahan','relic','Mystical','graveyard','scythe','เคียวที่เกี่ยวแสงจันทร์แทนชีวิต ด้ามสีดำและคมแก้ววิญญาณของ Soul Reaper',['รางวัล Main Quest ของ Win, the Soul Reaper','เคียวทรงจันทร์เสี้ยว','โซ่ ผนึกและประกายวิญญาณ'],{source:'main-quest'});
  add('crown-of-midnight','เหรียญผู้สะสมแห่งรัตติกาล','badge','Collector','all','medal','เครื่องหมายของผู้ซื้อของครบตามรายการร้านอีเวนต์ รวมตราของทั้งสี่ไบโอมไว้ในเหรียญเดียว',['เงื่อนไขซื้อครบทุกอย่างในร้านอีเวนต์','กรอบทองดำและตราทั้งสี่ไบโอม','เก็บเป็นเหรียญถาวร'],{source:'complete-shop'});
- const themeBars={'halloween':'#170B36','hw-ghostship':'#101b24','hw-jackhollow':'#21151c','hw-vampire':'#1b1425','hw-graveyard':'#171728'};
- const themeNames={'halloween':'Halloween','hw-ghostship':'Dutchman','hw-jackhollow':"Jack’o Lantern",'hw-vampire':'Vampire Mansion','hw-graveyard':'Eternal Graveyard'};
+ const themeBars={'halloween':'#100D1B','moonlight':'#170B36','hw-ghostship':'#101b24','hw-jackhollow':'#21151c','hw-vampire':'#1b1425','hw-graveyard':'#171728'};
+ const themeNames={'halloween':'Halloween','moonlight':'Moon & Candle','hw-ghostship':'Dutchman','hw-jackhollow':"Jack’o Lantern",'hw-vampire':'Vampire Mansion','hw-graveyard':'Eternal Graveyard'};
  return Object.freeze({items:Object.freeze(items),biomes:Object.freeze(biomes),tiers:Object.freeze(tiers),themeBars:Object.freeze(themeBars),themeNames:Object.freeze(themeNames),find:id=>items.find(item=>item.id===id)});
 });
