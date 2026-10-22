@@ -24,7 +24,7 @@
       "id": "jacks-hollow-shovel",
       "name": "Shovel",
       "kind": "quest-item",
-      "source": null,
+      "source": "win-death-fragments",
       "rarity": null
     }
   ],
@@ -188,8 +188,8 @@
   "unresolved": [
     "เวลาโตและผลผลิตต่อรอบของ Pumpkin",
     "วิธีเล่นเคลียร์เถาวัลย์",
-    "แหล่งหาและระดับของ Shovel",
     "การใช้ Shovel แล้วหายหรือไม่",
-    "สิทธิ์ Plot หลังปิดอีเวนต์"
+    "สิทธิ์ Plot หลังปิดอีเวนต์",
+    "ระดับของ Shovel"
   ]
 }
