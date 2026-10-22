@@ -41,6 +41,11 @@
         ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
         : 'light');
       document.documentElement.dataset.theme = t;
+      // Halloween มีสองโทน (กลางคืน/แสงจันทร์) — ต้องติดก่อนวาดจอแรก ไม่งั้นโทนสว่างกะพริบเป็นมืดก่อน
+      // คีย์ต้องตรงกับ TONE_KEY ใน halloween/rewards/theme-main.js
+      var hwLight = false;
+      try { hwLight = localStorage.getItem('studentos.alt.halloween.tone') === 'light'; } catch (e) {}
+      if (hwLight) document.documentElement.dataset.hwTone = 'light';
       // โหมดเครื่องเบา — ต้องติดก่อนวาดจอแรก ไม่งั้นเครื่องช้าได้วาดของหนักไปหนึ่งรอบก่อนถูกถอด
       // ธงมาจากการวัดจริงรอบก่อน (liteProbe ใน app.js) · แรมต่ำกว่า 4GB (Chrome บอกได้) = เบาตั้งแต่ครั้งแรก
       // Chrome ปัดแรมลงเป็นเลขยกกำลังสอง (3GB → 2 · เครื่องที่ขายว่า 4GB แต่ระบบเห็น 3.7 → 2) จึงได้แค่ 2 หรือ 4 — < 4 คือ "ต่ำกว่า 4GB" ตรงตัว
@@ -62,7 +67,7 @@
         if (ios && vp && vp.content.indexOf('maximum-scale') < 0) vp.content += ', maximum-scale=1';
       } catch (e) {}
       var m = document.querySelector('meta[name=theme-color]');
-      if (m) m.content = BAR[t];
+      if (m) m.content = (t === 'halloween' && hwLight) ? '#F3EDFF' : BAR[t];
     })();
   </script>
   <link rel="manifest" href="manifest.json">

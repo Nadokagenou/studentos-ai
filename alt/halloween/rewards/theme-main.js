@@ -6,6 +6,9 @@
   const VOLUME_KEY = 'studentos.alt.halloween.volume';
   const MOTION_KEY = 'studentos.alt.halloween.motion';
   const MUSIC_KEY = 'studentos.alt.halloween.music';
+  // Night (dark) is the default tone; light swaps the palette tokens only. index.html reads the same key before first paint.
+  const TONE_KEY = 'studentos.alt.halloween.tone';
+  const TONE_BAR = { dark: '#170B36', light: '#F3EDFF' };
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const read = (key, fallback) => { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } };
   const write = (key, value) => { try { localStorage.setItem(key, String(value)); } catch {} };
@@ -13,12 +16,14 @@
   let volume = Math.max(0, Math.min(1, Number(read(VOLUME_KEY, '.35')) || 0));
   let motion = read(MOTION_KEY, reduced.matches ? 'still' : 'full');
   let musicEnabled = read(MUSIC_KEY, '1') === '1';
+  let paletteTone = read(TONE_KEY, 'dark') === 'light' ? 'light' : 'dark';
   let active = false, scene, controls, context, master, wind, windGain;
   let musicBus, musicTimer = 0, nextBarAt = 0, musicBar = 0;
   const musicVoices = new Set();
   let queued = false, lastTap = { x: innerWidth / 2, y: innerHeight / 2 }, lastSound = 0;
   const originals = new Map(), iconOriginals = new Map(), brandOriginals = new Map();
   root.dataset.hwMotion = motion;
+  root.dataset.hwTone = paletteTone;
   root.dataset.hwFramed = String(parent !== window);
   const ghost = '<svg viewBox="0 0 60 80" fill="none"><path d="M8 69V30a22 22 0 1 1 44 0v39l-9-7-9 9-10-8-8 9z" fill="#d7cfe8"/><ellipse cx="23" cy="34" rx="3" ry="5" fill="#362b49"/><ellipse cx="39" cy="34" rx="3" ry="5" fill="#362b49"/><ellipse cx="31" cy="49" rx="4" ry="5" fill="#6b577e"/></svg>';
   const soundSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m11 4-6 5H2v6h3l6 5zM15 8c3 2 3 6 0 8m3-11c5 4 5 10 0 14"/></svg>';
@@ -63,7 +68,8 @@
     const picker = document.getElementById('themePick');
     if (!picker || document.getElementById('hwPreferences')) return;
     const box = document.createElement('div'); box.id = 'hwPreferences'; box.className = 'hw-preferences';
-    box.innerHTML = '<div><span><b>บรรยากาศ Halloween</b><small>เปิดเสียงเพื่อฟังเพลงและเสียงประกอบ</small></span><button type="button" data-hw-pref-sound></button></div><label>ระดับเสียง <input aria-label="ระดับเสียง Halloween" type="range" min="0" max="100" value="' + Math.round(volume * 100) + '"></label><div><span>เพลงพื้นหลัง<small>Midnight Waltz · กล่องดนตรี</small></span><button type="button" data-hw-pref-music></button></div><div><span>ฉากเคลื่อนไหว</span><button type="button" data-hw-pref-motion></button></div>';
+    box.innerHTML = '<div><span><b>บรรยากาศ Halloween</b><small>เปิดเสียงเพื่อฟังเพลงและเสียงประกอบ</small></span><button type="button" data-hw-pref-sound></button></div><label>ระดับเสียง <input aria-label="ระดับเสียง Halloween" type="range" min="0" max="100" value="' + Math.round(volume * 100) + '"></label><div><span>เพลงพื้นหลัง<small>Midnight Waltz · กล่องดนตรี</small></span><button type="button" data-hw-pref-music></button></div><div><span>ฉากเคลื่อนไหว</span><button type="button" data-hw-pref-motion></button></div><div><span>โทนสี<small>กลางคืน (มืด) หรือแสงจันทร์ (สว่าง)</small></span><button type="button" data-hw-pref-tone></button></div>';
+    box.querySelector('[data-hw-pref-tone]').addEventListener('click', () => setTone(paletteTone === 'light' ? 'dark' : 'light'));
     box.querySelector('[data-hw-pref-sound]').addEventListener('click', () => sound(!enabled));
     box.querySelector('[data-hw-pref-motion]').addEventListener('click', toggleMotion);
     box.querySelector('[data-hw-pref-music]').addEventListener('click', () => setMusic(!musicEnabled));
@@ -221,6 +227,7 @@
     const moving = motion === 'full' && root.dataset.lite !== '1' && root.dataset.quality !== 'low';
     const m = document.querySelector('[data-hw-pref-motion]'); if (m) { m.textContent = moving ? 'หยุดภาพ' : 'เปิดภาพเคลื่อนไหว'; m.setAttribute('aria-pressed', String(moving)); }
     document.querySelectorAll('button[data-hw-motion]').forEach(button=>{const label=moving?'หยุดภาพเคลื่อนไหว Halloween':'เปิดภาพเคลื่อนไหว Halloween';button.textContent=moving?'Ⅱ':'▶';button.title=label;button.setAttribute('aria-label',label);button.setAttribute('aria-pressed',String(moving));});
+    const t = document.querySelector('[data-hw-pref-tone]'); if (t) { const light = root.dataset.hwTone === 'light'; t.textContent = light ? 'แสงจันทร์' : 'กลางคืน'; t.setAttribute('aria-pressed', String(light)); t.setAttribute('aria-label', light ? 'เปลี่ยนเป็นโทนกลางคืน' : 'เปลี่ยนเป็นโทนแสงจันทร์'); }
     const prefs = document.getElementById('hwPreferences'); if (prefs) prefs.hidden = !active;
     root.dataset.hwSound = enabled ? 'on' : 'off';
     if (parent !== window) { const screen = document.querySelector('.screen.on'); parent.postMessage({ type: 'studentos-halloween-status', sound: enabled, motion, active, audio: root.dataset.hwAudio || 'off', moving: active && getComputedStyle(document.querySelector('.hw-haze')).animationName !== 'none', ornaments: document.querySelectorAll('.hw-ornament').length, viewport: [innerWidth, innerHeight], overflow: document.documentElement.scrollWidth > innerWidth, screen: screen?.id, screenScroll: screen ? screen.scrollHeight - screen.clientHeight : 0 }, location.origin); }
@@ -232,6 +239,14 @@
     // Choosing motion explicitly also leaves the graphics mode that freezes it.
     if (motion === 'full' && typeof window.setGfx === 'function') window.setGfx('high', true);
     updateControls();
+  }
+  function setTone(value) {
+    paletteTone = value === 'light' ? 'light' : 'dark'; write(TONE_KEY, paletteTone); root.dataset.hwTone = paletteTone;
+    paintBar(); updateControls();
+  }
+  function paintBar() {
+    const meta = document.querySelector('meta[name=theme-color]');
+    if (meta && active) meta.content = TONE_BAR[paletteTone];
   }
   function toggleMotion() { setMotion(motion === 'full' && root.dataset.lite !== '1' && root.dataset.quality !== 'low' ? 'still' : 'full'); }
   function burst(x = lastTap.x, y = lastTap.y, count = 12) {
@@ -247,7 +262,7 @@
     const next = root.dataset.theme === 'halloween';
     if (next !== active) { active = next; if (active) { mount(); decorate(); } else { restore(); stopAudio(); } }
     if (scene) scene.hidden = !active;
-    updateControls();
+    paintBar(); updateControls();
   }
   function init() {
     mount(); preferences(); sync();
@@ -264,11 +279,12 @@
       if (e.origin !== location.origin || e.source !== parent || e.data?.type !== 'studentos-halloween-control') return;
       if (e.data.action === 'sound') sound(e.data.value);
       if (e.data.action === 'motion') setMotion(e.data.value);
+      if (e.data.action === 'tone') setTone(e.data.value);
       if (e.data.action === 'theme' && typeof window.setTheme === 'function') window.setTheme(e.data.value === 'light' ? 'light' : 'halloween');
       if (e.data.action === 'celebrate') { play('done'); burst(innerWidth / 2, innerHeight / 2, 20); }
       if (e.data.action === 'screen' && ['scr-menu','scr-tasks','scr-profile','scr-settings','scr-shop','scr-badges','scr-room'].includes(e.data.value)) window.go(e.data.value);
     });
-    window.HalloweenTheme = Object.freeze({ sound, music: setMusic, volume: setVolume, motion: setMotion, celebrate: () => { play('done'); burst(); } });
+    window.HalloweenTheme = Object.freeze({ sound, music: setMusic, volume: setVolume, motion: setMotion, tone: setTone, celebrate: () => { play('done'); burst(); } });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true }); else init();
 })();

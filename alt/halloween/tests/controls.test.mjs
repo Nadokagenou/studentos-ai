@@ -8,3 +8,11 @@ test('updating controls changes buttons while preserving the application root',(
  vm.runInNewContext(program+';updateControls();',context);
  assert.equal(root.textContent,'APPLICATION');assert.deepEqual(root.attrs,{});assert.equal(motion.textContent,'Ⅱ');assert.equal(sound.attrs['aria-pressed'],'false');
 });
+test('the tone toggle saves the choice and repaints the status bar only while Halloween is active',()=>{
+ const from=source.indexOf('  function setTone('),to=source.indexOf('  function toggleMotion(',from);
+ const run=active=>{const root={dataset:{}},saved=[],meta={content:'#F7FAFF'};const context={root,active,TONE_KEY:'studentos.alt.halloween.tone',TONE_BAR:{dark:'#170B36',light:'#F3EDFF'},write(k,v){saved.push([k,v]);},updateControls(){},document:{querySelector:s=>s==='meta[name=theme-color]'?meta:null}};
+  vm.runInNewContext('let paletteTone="dark";'+source.slice(from,to)+';setTone("light");',context);return {root,saved,meta};};
+ const on=run(true);
+ assert.equal(on.root.dataset.hwTone,'light');assert.deepEqual(on.saved,[['studentos.alt.halloween.tone','light']]);assert.equal(on.meta.content,'#F3EDFF');
+ assert.equal(run(false).meta.content,'#F7FAFF');
+});
