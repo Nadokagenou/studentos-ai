@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const source = fs.readFileSync(new URL('../halloween.js', import.meta.url), 'utf8');
+const source = fs.readFileSync(new URL('../rewards/theme-main.js', import.meta.url), 'utf8');
 const musicSource = source.slice(source.indexOf('  const MUSIC_SCORE ='), source.indexOf('  function tone('));
 function harness() {
   const intervals = new Map(), contexts = [], writes = [];

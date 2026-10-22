@@ -1,0 +1,262 @@
+{
+  "biome": "vampire-mansion",
+  "biomeName": "Vampire Mansion",
+  "npc": "Mr. Dech",
+  "status": "owner-confirmed-spec-with-open-quantities",
+  "updated": "2026-10-22",
+  "minigame": {
+    "id": "dech-house-spot-difference",
+    "name": "จับผิดภาพในบ้านเดช",
+    "kind": "spot-the-difference",
+    "location": "บ้านเดช",
+    "requiredClears": 1,
+    "rounds": null,
+    "differencesPerRound": null,
+    "timeLimitSeconds": null
+  },
+  "newDefinitions": [
+    {
+      "id": "pending-human-bone",
+      "name": "Human Bone",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-human-skull",
+      "name": "Human Skull",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-vampire-teeth",
+      "name": "Vampire teeth",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-mystic-mirror",
+      "name": "Mystic Mirror",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-pure-blood-skull",
+      "name": "Pure Blood Skull",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-bat-teeth",
+      "name": "Bat teeth",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-bat-wing",
+      "name": "Bat wing",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-monster-bone",
+      "name": "Monster Bone",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-zombie-arms",
+      "name": "Zombie Arms",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-garlic",
+      "name": "Garlic",
+      "rarity": null,
+      "sourceBiome": null
+    }
+  ],
+  "quests": [
+    {
+      "id": "dech-intruder-punishment",
+      "order": 1,
+      "name": "ผู้บุกรุกและบทลงโทษ",
+      "phases": [
+        {
+          "id": "first-test",
+          "requirements": {
+            "items": [
+              {
+                "id": "pending-human-bone",
+                "name": "Human Bone",
+                "quantity": 1
+              },
+              {
+                "id": "pending-human-skull",
+                "name": "Human Skull",
+                "quantity": 1
+              },
+              {
+                "id": "jacks-hollow-candle",
+                "name": "Candle",
+                "quantity": 1
+              }
+            ]
+          },
+          "acceptDialogue": "หือ? เจ้าเป็นใครกัน... ช่างกล้าดีอย่างไรถึงถือวิสาสะ บุกรุกเข้ามาในคฤหาสน์ของข้าโดยไม่ได้รับอนุญาตเช่นนี้! แต่เอาเถอะ... ข้าไม่อยากให้คราบเลือดเปรอะเปื้อนพรมหรูหรา หากไม่อยากกลายเป็นอาหารยามดึกของข้า จงไปนำ Human Bone 1 ชิ้น, Human Skull 1 ชิ้น และ Candle 1 เล่ม มาให้ข้าเพื่อใช้ในการทดสอบเสียดีๆ อย่าคิดจะตลบแตลงเชียวล่ะ!",
+          "completeDialogue": "อืม... ของครบถ้วนตรงตามที่ข้าต้องการ ถือว่าเจ้ายังพอมีประโยชน์อยู่นิดหน่อย รับ Cruor Quill ปากกาขนนกแห่งเลือดชิ้นนี้ไปซะ ถือว่าเป็นค่าตอบแทนที่ยอมทำตามคำสั่งข้า"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "cruor-quill",
+          "name": "Cruor Quill",
+          "quantity": 1,
+          "inventoryId": "vampire-mansion-cruor-quill"
+        }
+      ]
+    },
+    {
+      "id": "dech-rare-materials",
+      "order": 2,
+      "name": "วัตถุดิบหายากและการทดสอบสายตา",
+      "prerequisite": "dech-intruder-punishment",
+      "phases": [
+        {
+          "id": "material-and-sight-test",
+          "requirements": {
+            "items": [
+              {
+                "id": "pending-vampire-teeth",
+                "name": "Vampire teeth",
+                "quantity": null
+              },
+              {
+                "id": "pending-mystic-mirror",
+                "name": "Mystic Mirror",
+                "quantity": null
+              },
+              {
+                "id": "pending-pure-blood-skull",
+                "name": "Pure Blood Skull",
+                "quantity": null
+              }
+            ],
+            "minigame": {
+              "id": "dech-house-spot-difference",
+              "name": "จับผิดภาพในบ้านเดช",
+              "biome": "vampire-mansion",
+              "mustClear": true,
+              "clears": 1
+            }
+          },
+          "acceptDialogue": "การทดลองขั้นต่อไปของข้าต้องการส่วนผสมที่ลึกซึ้งและประณีตกว่าเดิม... เจ้าจงไปหา Vampire teeth, Mystic Mirror และ Pure Blood Skull มาให้ข้า! อ๊ะ... แล้วก็อย่าลืมไปทดสอบสายตาโดยการ เคลียร์มินิเกมจับผิดภาพ ในคฤหาสน์ของข้าให้จบสักรอบด้วย ข้าไม่ชอบทำงานกับพวกสายตาฝ้าฟาง!",
+          "completeDialogue": "ผ่านการทดสอบจับผิดภาพและหาของครบแล้วรึ? ดีมาก... แต่ผลการทดลองนี้ต้องใช้เวลาในการกลั่นสกัด จงไสหัวไปก่อน แล้วค่อยกลับมาหาข้าในวัฏจักรไบโอมรอบหน้า!",
+          "additionalCompleteDialogue": "เมื่อทำเสร็จทั้งหมดแล้ว... จงกลับไปพักผ่อนซะ แล้วค่อยกลับมาหาข้าใหม่ใน วัฏจักรไบโอมถัดไป"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "dech-next-cycle-access",
+          "name": "สิทธิ์รับเควสถัดไปในวัฏจักรไบโอมหน้า",
+          "quantity": 1,
+          "kind": "quest-access"
+        }
+      ],
+      "nextQuestGate": {
+        "kind": "next-biome-cycle",
+        "biome": "vampire-mansion",
+        "after": "quest-completion",
+        "mustWaitForNextOccurrence": true,
+        "totemCanAdvance": null
+      }
+    },
+    {
+      "id": "dech-wrong-letter",
+      "order": 3,
+      "name": "รายการที่ผิดพลาด... และค่าจ้างชั้นดี!",
+      "prerequisite": "dech-rare-materials",
+      "finalMainQuest": true,
+      "availability": {
+        "gate": "dech-rare-materials.nextQuestGate",
+        "mustWaitForNextOccurrence": true
+      },
+      "phases": [
+        {
+          "id": "real-ingredient-list",
+          "requirements": {
+            "items": [
+              {
+                "id": "jacks-hollow-rotten-pumpkin",
+                "name": "Rotten Pumpkin",
+                "quantity": null
+              },
+              {
+                "id": "pending-vampire-teeth",
+                "name": "Vampire teeth",
+                "quantity": null
+              },
+              {
+                "id": "pending-bat-teeth",
+                "name": "Bat teeth",
+                "quantity": null
+              },
+              {
+                "id": "pending-bat-wing",
+                "name": "Bat wing",
+                "quantity": null
+              },
+              {
+                "id": "pending-human-bone",
+                "name": "Human Bone",
+                "quantity": null
+              },
+              {
+                "id": "pending-human-skull",
+                "name": "Human Skull",
+                "quantity": null
+              },
+              {
+                "id": "pending-monster-bone",
+                "name": "Monster Bone",
+                "quantity": null
+              },
+              {
+                "id": "pending-zombie-arms",
+                "name": "Zombie Arms",
+                "quantity": null
+              },
+              {
+                "id": "pending-garlic",
+                "name": "Garlic",
+                "quantity": null
+              }
+            ]
+          },
+          "acceptDialogue": "อะแฮ่ม! เจ้ากลับมาแล้วรึ... คือว่านะ... ข้ามีเรื่องต้องบอก เจ้าอย่าเพิ่งอารมณ์เสียล่ะ! พอดีรายการวัตถุดิบที่ข้าให้เจ้าไปรอบก่อน... ข้าหยิบจดหมายผิดฉบับให้เจ้าน่ะ! (กระแอม) เอาเป็นว่า นี่คือ รายการของจริง ที่ข้าต้องการ!\nจงไปนำ Rotten Pumpkin, Vampire teeth, Bat teeth, Bat wing, Human Bone, Human Skull, Monster Bone, Zombie Arms และ... เอิ่ม... Garlic (กระเทียม) มาให้ข้าซะ! ใช่... กระเทียมนั่นแหละ อย่าถามมาก ไปหามาให้ครบ!",
+          "completeDialogue": "ในที่สุด! ทั้งหมดนี้แหละคือสิ่งจำเป็นสำหรับพิธีกรรมของข้า! (แอบหยิบกระเทียมโยนทิ้งไปไกลๆ)... เจ้าทำได้ไม่เลวเลยสำหรับผู้บุกรุกธรรมดาคนหนึ่ง เอานี่ไป 100 Candy และ ธีม Vampire Mansion ปรับแต่งสถานที่ให้งดงามและลึกลับเหมือนคฤหาสน์ของข้าได้ตามใจเจ้าเลย!"
+        }
+      ],
+      "grantRewardsAfterFinalPhaseOnly": true,
+      "rewards": [
+        {
+          "id": "candy",
+          "name": "Candy",
+          "quantity": 100,
+          "kind": "currency"
+        },
+        {
+          "id": "theme-vampire",
+          "name": "ธีม Vampire Mansion",
+          "quantity": 1
+        }
+      ]
+    }
+  ],
+  "unresolved": [
+    "จำนวนวัตถุดิบแต่ละชนิดใน Quest 2 และ Quest 3 (ยังไม่กำหนด จึงไม่ใส่ 1 ให้เอง)",
+    "ระดับและไบโอมต้นทางของวัตถุดิบใหม่ 10 ชนิด",
+    "Totem นับเป็นวัฏจักรไบโอมถัดไปหรือไม่",
+    "จำนวนรอบ จำนวนจุดแตกต่าง และเวลาจำกัดของมินิเกมจับผิดภาพ"
+  ]
+}

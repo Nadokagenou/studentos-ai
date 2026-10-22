@@ -7,6 +7,9 @@
  document.querySelectorAll('[data-device]').forEach(b=>b.addEventListener('click',()=>{device=b.dataset.device;try{localStorage.setItem('studentos.alt.preview.device',device);}catch{}fit();}));
  document.getElementById('theme').addEventListener('change',e=>{if(e.target.value!=='current')send('theme',e.target.value);});
  document.getElementById('screen').addEventListener('change',e=>send('screen',e.target.value));
+ const motionButton=document.getElementById('previewMotion');
+ motionButton.addEventListener('click',()=>send('motion',motionButton.getAttribute('aria-pressed')==='true'?'still':'full'));
+ window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==frame.contentWindow||e.data?.type!=='studentos-device-preview-status')return;motionButton.setAttribute('aria-pressed',String(!!e.data.moving));motionButton.textContent=e.data.moving?'หยุดแอนิเมชัน':'เปิดแอนิเมชัน';});
  window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==frame.contentWindow||e.data?.type!=='studentos-device-preview-status')return;dims.dataset.actual=e.data.viewport.join('x');dims.dataset.overflow=String(e.data.overflow);dims.dataset.screenScroll=String(e.data.screenScroll);const picker=document.getElementById('theme');picker.value=[...picker.options].some(o=>o.value===e.data.theme)?e.data.theme:'current';document.getElementById('screen').value=e.data.screen;});
  new ResizeObserver(fit).observe(stage);fit();
 })();

@@ -5,7 +5,7 @@
 :root[data-theme="halloween"] .screens{position:relative;z-index:1;background:transparent}
 :root[data-theme="halloween"] .screen{background:transparent}
 :root[data-theme="halloween"] .fx,:root[data-theme="halloween"] .starfield{display:none!important}
-.hw-night{position:absolute;inset:0;background:url('halloween-assets/night-academy.svg') center/cover no-repeat;opacity:.87}
+.hw-night{position:absolute;inset:0;background:url('theme-assets/night-academy.svg') center/cover no-repeat;opacity:.87}
 .hw-haze{position:absolute;inset:-12%;background:radial-gradient(ellipse at 15% 80%,#5fba9a23,transparent 40%),radial-gradient(ellipse at 82% 28%,#9e5fd92c,transparent 45%);animation:hw-haze 22s ease-in-out infinite alternate}
 .hw-mist{position:absolute;inset:50% -50% -25%;background:radial-gradient(ellipse at center,#9cbbad1c 0,transparent 60%);animation:hw-mist 30s ease-in-out infinite alternate}
 .hw-mist.second{inset:25% -80% 0;animation-duration:37s;animation-direction:alternate-reverse;opacity:.55}
@@ -17,7 +17,7 @@
 .hw-candle.right{left:auto;right:13px;height:28px}
 .hw-candle:before{content:"";position:absolute;bottom:calc(100% - 2px);left:-1px;width:11px;height:22px;border-radius:85% 10% 75% 50%;transform:rotate(-18deg);background:radial-gradient(ellipse at 50% 75%,#fff2cf,#e79351 55%,#bb573a00 75%);box-shadow:0 0 25px 8px #e994502a;animation:hw-flame 2s ease-in-out infinite alternate}
 .hw-candle.right:before{animation-delay:-1s}
-.hw-graveyard{position:absolute;left:0;right:0;bottom:0;height:245px;background:url('halloween-assets/graveyard.svg') center bottom/auto 100% no-repeat;opacity:.8}
+.hw-graveyard{position:absolute;left:0;right:0;bottom:0;height:245px;background:url('theme-assets/graveyard.svg') center bottom/auto 100% no-repeat;opacity:.8}
 .hw-wanderer{position:absolute;left:0;bottom:70px;width:45px;height:60px;opacity:.37;animation:hw-wander 38s linear infinite;filter:drop-shadow(0 0 14px #a7c5be55)}
 .hw-wanderer svg{width:100%;height:100%;animation:hw-walk-bob 2.8s ease-in-out infinite alternate}
 .hw-wanderer.distant{width:29px;height:39px;bottom:105px;opacity:.2;animation-duration:53s;animation-delay:-19s;animation-direction:reverse}
@@ -25,6 +25,12 @@
 @keyframes hw-wander{0%{transform:translate3d(-65px,0,0)}100%{transform:translate3d(calc(100vw + 65px),0,0)}}
 @keyframes hw-walk-bob{from{transform:translateY(4px) rotate(-5deg)}to{transform:translateY(-6px) rotate(5deg)}}
 @keyframes hw-ground-fog{from{transform:translate3d(-4%,0,0);opacity:.5}to{transform:translate3d(6%,-12px,0);opacity:1}}
+@keyframes hw-night-drift{from{transform:scale(1.035) translate3d(-.7%,0,0)}to{transform:scale(1.07) translate3d(.7%,-.5%,0)}}
+@media(max-width:599px){
+ :root[data-theme="halloween"] .hw-night{animation:hw-night-drift 24s ease-in-out infinite alternate}
+ :root[data-theme="halloween"] .hw-wanderer{animation-duration:24s;opacity:.47}
+ :root[data-theme="halloween"] .hw-wanderer.distant{animation-duration:36s;opacity:.26}
+}
 :root[data-theme="halloween"] :is(.page-title,.big-title,.sh-title,.th-greet,.tn-title,.set-hd,.pe-name){color:#f5e4d4;text-shadow:0 2px 20px #e39b6840;letter-spacing:.01em}
 :root[data-theme="halloween"] :is(.eyebrow,.sec-label,.tn-eyebrow){color:#d5a4ce;letter-spacing:.13em}
 :root[data-theme="halloween"] :is(.card,.hm-card,.tn-card,.tn-head,.tn-body,.tn-cells,.hm-rail,.hm-row,.mtile,.qa-card,.as-card,.set-blk,.set-block,.st-card,.tk-hero,.tk-cta,.tb-row,.fx-row,.profile-head,.ph-card,.bg-card,.show-tile,.set-row,.set-opt,.on-card,.r-card,.fd-post,.ai-panel,.qn-card,.sc-card,.cls-card){
@@ -309,3 +315,29 @@ html[data-theme="halloween"][data-lite="1"] button:after{animation:none!importan
 :root[data-theme="halloween"] .phone #themePick button:not(.active){background:#241b30!important;color:#d8c4df;border-color:#a7809a77!important;border-radius:13px 4px 13px 4px}
 :root[data-theme="halloween"] .phone #themePick button.active{background:linear-gradient(125deg,#403044,#243c35)!important;color:#f7eadd;border:1px solid #a9dbc0!important;border-radius:13px 4px 13px 4px;box-shadow:inset 0 0 0 2px #a9dbc01a,0 0 16px #8dbca31a}
 :root[data-theme="halloween"] #scr-settings [onclick="openSetOpt('theme')"]{background:linear-gradient(125deg,#38263e,#211a2d);border:1px solid #a7819855;color:#efdfed}
+
+/* Limited preview · Midnight Academy · theme registration */
+:root[data-theme="halloween"] {
+ color-scheme:dark;
+ --scr:#100D1B;--card:#261C2C;--card2:#302238;--surface:#302238;
+ --ink:#F4E8DA;--muted:#C2AFC6;--faint:#B69FB8;--line:rgba(183,139,153,.26);
+ --blue:#D7B6EB;--blue-soft:#3B2949;--blue-deep:#C5A3D8;--neon:#9DDDC0;
+ --fill:#D2B0E0;--fill-on:#201128;--on-accent:#201128;
+ --on-fill:#201128;--alert-soft:#FF9BA722;--warn-soft:#F4C28222;--good-soft:#A2DDB722;--fire:#FF9BA7;
+ --grad-brand:linear-gradient(125deg,#8B5B99,#9B5342);--grad-hero:linear-gradient(140deg,#3A253B,#1B1626);
+ --shadow-lg:0 20px 55px #04010888;--shadow-brand:0 8px 30px #a65b7b33;
+ --glass-line:#ad809044;--skel:#ffffff0c;--skel-hi:#ffffff18;
+ --pg-ink:#F4E8DA;--pg-muted:#C2AFC6;--frame:#100D1B;
+ --tint:#3B2949;--tint2:#392631;--shadow:0 12px 35px #06020b55;
+ --glass:#251b2de8;--pg:#100D1B;--alert:#FF9BA7;--warn:#F4C282;--good:#A2DDB7;
+ --soft-card:#261c2ced;--soft-shadow:0 3px 7px #04010844,0 16px 34px -12px #04010899;--soft-shadow-lg:0 8px 18px #04010855,0 30px 60px -18px #040108aa;
+}
+
+/* Owner direction: 60% midnight background, 30% card surfaces, 10% accents.
+   These are composition targets, not fixed screen-area measurements. */
+:root[data-theme="halloween"]{--hw-background:#100d1b;--hw-panel:#292331;--hw-panel-raised:#342c3e;--hw-accent:#dfb783;--scr:var(--hw-background);--card:var(--hw-panel);--card2:var(--hw-panel-raised);--surface:var(--hw-panel-raised);--fill:var(--hw-accent);--glass:#292331ed;--soft-card:#292331ed}
+:root[data-theme="halloween"] .hw-night{opacity:.64}
+:root[data-theme="halloween"] #menuBody :is(.td-now,.td-clear),:root[data-theme="halloween"] :is(.set-card,.set-row,.pf-me,.saih,.t-card,.ts-card,.tp-card){background:linear-gradient(135deg,#302938f5,#231d2cf5);border-color:#9e879b44}
+:root[data-theme="halloween"] #menuBody .tn-cta{background:linear-gradient(125deg,#76503a,#945e3f)!important;border-color:#dfb78399!important;color:#fff0de!important}
+:root[data-theme="halloween"] #menuBody .tg-ic{background:linear-gradient(145deg,#352c40,#282231)!important;border-color:#a089a755!important;box-shadow:inset 0 1px #ffffff10,0 4px 12px #08040e44!important}
+:root[data-theme="halloween"] #menuBody .tg-ic svg{color:#d2c2d9!important}

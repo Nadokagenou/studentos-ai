@@ -15351,20 +15351,3 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 .prs-b:active { transform: scale(.98); }
 .prs-b.primary { border-color: transparent; background: var(--fill); color: var(--on-fill); }
 .prs-b.quiet { border-color: transparent; background: none; color: var(--muted); font-weight: 600; }
-
-/* Limited preview · Midnight Academy · theme registration */
-:root[data-theme="halloween"] {
- color-scheme:dark;
- --scr:#100D1B;--card:#261C2C;--card2:#302238;--surface:#302238;
- --ink:#F4E8DA;--muted:#C2AFC6;--faint:#B69FB8;--line:rgba(183,139,153,.26);
- --blue:#D7B6EB;--blue-soft:#3B2949;--blue-deep:#C5A3D8;--neon:#9DDDC0;
- --fill:#D2B0E0;--fill-on:#201128;--on-accent:#201128;
- --on-fill:#201128;--alert-soft:#FF9BA722;--warn-soft:#F4C28222;--good-soft:#A2DDB722;--fire:#FF9BA7;
- --grad-brand:linear-gradient(125deg,#8B5B99,#9B5342);--grad-hero:linear-gradient(140deg,#3A253B,#1B1626);
- --shadow-lg:0 20px 55px #04010888;--shadow-brand:0 8px 30px #a65b7b33;
- --glass-line:#ad809044;--skel:#ffffff0c;--skel-hi:#ffffff18;
- --pg-ink:#F4E8DA;--pg-muted:#C2AFC6;--frame:#100D1B;
- --tint:#3B2949;--tint2:#392631;--shadow:0 12px 35px #06020b55;
- --glass:#251b2de8;--pg:#100D1B;--alert:#FF9BA7;--warn:#F4C282;--good:#A2DDB7;
- --soft-card:#261c2ced;--soft-shadow:0 3px 7px #04010844,0 16px 34px -12px #04010899;--soft-shadow-lg:0 8px 18px #04010855,0 30px 60px -18px #040108aa;
-}

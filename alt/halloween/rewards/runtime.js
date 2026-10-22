@@ -1,0 +1,39 @@
+/* Permanent reward presentation. Acquisition belongs to the removable event. */
+(() => {
+ 'use strict';
+ const C=window.StudentOSHalloweenRewards;if(!C)return;
+ const root=document.documentElement,base=new URL('.',document.currentScript.src),asset=item=>new URL(item.asset||'assets/'+item.id+'.svg',base).href;
+ let current=null,scene,fxTimer=0,lastRequest=null,queued=false;
+ const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const themes=C.items.filter(x=>x.kind==='theme');
+ function syncScene(){const item=themes.find(x=>x.theme===root.dataset.theme&&x.theme!=='halloween');if(!scene){scene=document.createElement('div');scene.className='hw-biome-scene';scene.setAttribute('aria-hidden','true');scene.innerHTML='<i class="hw-biome-view"></i><i class="hw-biome-fog"></i><i class="hw-biome-glints"></i>';document.querySelector('.phone')?.prepend(scene);}scene.hidden=!item;if(item){scene.style.setProperty('--biome-art','url("'+asset(item)+'")');scene.style.setProperty('--biome-glow',C.biomes[item.biome].color);}}
+ function clearPresentation(){clearTimeout(fxTimer);document.querySelectorAll('.hw-reward-fx,.hw-relic-inspect,.hw-room-item').forEach(x=>x.remove());}
+ function inspect(item){const layer=document.createElement('div');layer.className='hw-relic-inspect';layer.dataset.tier=item.rarity;layer.setAttribute('role','dialog');layer.setAttribute('aria-label',item.name);layer.setAttribute('aria-modal','true');layer.innerHTML='<button class="hw-reward-close" aria-label="ปิดตัวอย่าง">×</button><span class="hw-reward-eyebrow">'+escape(item.rarity+' · '+C.biomes[item.biome].name)+'</span><div class="hw-relic-ring"><img src="'+asset(item)+'" alt="'+escape(item.name)+'"></div><h2>'+escape(item.name)+'</h2><p>'+escape(item.kind==='badge'?'ตัวอย่างเหรียญ · ซื้อของครบตามรายการร้านอีเวนต์':'Main Quest · '+C.biomes[item.biome].npc)+'</p>';layer.querySelector('button').addEventListener('click',()=>layer.remove());document.querySelector('.phone').append(layer);layer.querySelector('button').focus({preventScroll:true});}
+ function effect(item){clearPresentation();const reduced=(matchMedia('(prefers-reduced-motion: reduce)').matches&&root.dataset.hwMotion!=='full')||root.dataset.hwMotion==='still'||root.dataset.lite==='1';const layer=document.createElement('div');layer.className='hw-reward-fx fx-'+item.effect+(item.rarity==='Legendary'?' legendary':'')+(reduced?' still':'');layer.style.setProperty('--reward-color',C.biomes[item.biome].color);layer.innerHTML='<button class="hw-reward-close">ข้าม</button><div class="hw-fx-aura"></div><div class="hw-fx-ring"></div><img class="hw-fx-object" src="'+asset(item)+'" alt=""><div class="hw-fx-particles">'+Array.from({length:item.rarity==='Legendary'?24:12},(_,i)=>'<i style="--i:'+i+';--angle:'+i*137.5+'deg;--travel:'+(50+i%5*23)+'px"></i>').join('')+'</div><div class="hw-fx-caption"><small>'+escape(item.rarity)+'</small><h2>'+escape(item.name)+'</h2><span>เสร็จอีกหนึ่งงานแล้ว</span></div>';layer.querySelector('button').addEventListener('click',()=>{clearTimeout(fxTimer);layer.remove();});document.querySelector('.phone').append(layer);fxTimer=setTimeout(()=>layer.remove(),reduced?2200:item.rarity==='Legendary'?6200:4200);}
+ function paintCostume(){if(!current||current.kind!=='costume')return;const prefix=current.mascot==='sai'?'sai':'hook';document.querySelectorAll('img').forEach(img=>{const src=img.getAttribute('src')||'';if((prefix==='sai'?/(?:^|\/)sai-(?:face-[\w-]+|chibi)\.webp$|(?:^|\/)sai-avatar\.png$/:/(?:^|\/)hook-(?:body|face)\.webp$|(?:^|\/)hook-avatar\.png$/).test(src)&&img.src!==asset(current)){img.src=asset(current);img.dataset.hwCostumePreview=current.id;}});}
+ function paintRoom(){if(!current||current.kind!=='room')return;const svg=document.querySelector('#roomBody .rm-scene');if(!svg||svg.querySelector('.hw-room-item'))return;const slots={desk:[89,113,100,92],shelf:[199,68,53,53],poster:[104,25,55,60],hanging:[162,0,100,95],pet:[208,156,91,80]},[x,y,w,h]=slots[current.slot];const image=document.createElementNS('http://www.w3.org/2000/svg','image');image.setAttribute('class','hw-room-item');for(const [key,value]of Object.entries({x,y,width:w,height:h,href:asset(current)}))image.setAttribute(key,value);svg.append(image);}
+ function queue(){if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;paintCostume();paintRoom();});}
+ function preview(id){if(!window.__HW_SHOWROOM__)return false;const item=C.find(id);if(!item)return false;clearPresentation();current=item;
+  if(item.kind==='theme'){setTheme(item.theme);go('scr-menu');syncScene();}
+  else if(item.kind==='costume'){setTheme('dark');if(typeof setMascot==='function')setMascot(item.mascot);go('scr-ai');queue();}
+  else if(item.kind==='room'){setTheme('dark');go('scr-room');queue();}
+  else if(item.kind==='effect'){setTheme('halloween');go('scr-menu');effect(item);}
+  else{setTheme('dark');go(item.kind==='badge'?'scr-badges':'scr-room');inspect(item);}
+  return true;
+ }
+ function init(){
+  syncScene();new MutationObserver(syncScene).observe(root,{attributes:true,attributeFilter:['data-theme']});
+  if(window.__HW_SHOWROOM__)new MutationObserver(queue).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['src']});
+  // The event switch is fetched separately. Removing event/ hides its entry.
+  if(!window.__HW_SHOWROOM__)fetch(new URL('../event/config.json',base),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(config=>{if(!config?.enabled)return;const entry=document.createElement('a');entry.className='hw-collection-entry';entry.href=new URL('../event/rewards.html',base);entry.innerHTML='<span>✧</span><span><b>Halloween Collection</b><small>ธีม ชุด ของแต่งห้อง และรางวัลทั้ง 4 ไบโอม</small></span><i>ดูรางวัล ↗</i>';const target=document.querySelector('#scr-profile .pf-body');target?.append(entry);}).catch(()=>{});
+  if(window.__HW_SHOWROOM__){
+   const originalHaptic=window.haptic;
+   if(typeof originalHaptic==='function')window.haptic=function(kind){const result=originalHaptic.apply(this,arguments);if(kind==='done'&&current?.kind==='effect')setTimeout(()=>effect(current),80);return result;};
+   const picker=document.getElementById('themePick');themes.forEach(item=>{if(picker?.querySelector('[data-th="'+item.theme+'"]'))return;const b=document.createElement('button');b.type='button';b.dataset.th=item.theme;b.innerHTML='<span class="sw sw-'+item.theme+'"></span><span class="nm">'+escape(item.name.split(' · ')[0])+'</span>';b.addEventListener('click',()=>setTheme(item.theme));picker?.append(b);});
+   window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==parent||parent===window||e.data?.type!=='studentos-halloween-reward-preview'||typeof e.data.id!=='string')return;const request=e.data.id+':'+e.data.request;if(request===lastRequest)return;lastRequest=request;preview(e.data.id);});
+   parent.postMessage({type:'studentos-halloween-reward-ready'},location.origin);
+  }
+  window.HalloweenRewards=Object.freeze({preview});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();

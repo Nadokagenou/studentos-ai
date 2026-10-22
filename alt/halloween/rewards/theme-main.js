@@ -54,8 +54,9 @@
     sprite.innerHTML = '<defs>' + Object.entries(icons).map(([name, paths]) => '<g id="hw-' + name + '" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + paths + '</g>').join('') + '</defs>';
     document.body.append(sprite);
     controls = document.createElement('div'); controls.className = 'hw-controls';
-    controls.innerHTML = '<button type="button" data-hw-sound aria-label="เปิดเสียง Halloween" title="เปิดเสียง Halloween">' + soundSvg + '</button>';
+    controls.innerHTML = '<button type="button" data-hw-motion aria-label="เปิดภาพเคลื่อนไหว Halloween" title="เปิดภาพเคลื่อนไหว Halloween">▶</button><button type="button" data-hw-sound aria-label="เปิดเสียง Halloween" title="เปิดเสียง Halloween">' + soundSvg + '</button>';
     controls.querySelector('[data-hw-sound]').addEventListener('click', () => sound(!enabled));
+    controls.querySelector('[data-hw-motion]').addEventListener('click', toggleMotion);
     document.body.append(controls);
   }
   function preferences() {
@@ -64,7 +65,7 @@
     const box = document.createElement('div'); box.id = 'hwPreferences'; box.className = 'hw-preferences';
     box.innerHTML = '<div><span><b>บรรยากาศ Halloween</b><small>เปิดเสียงเพื่อฟังเพลงและเสียงประกอบ</small></span><button type="button" data-hw-pref-sound></button></div><label>ระดับเสียง <input aria-label="ระดับเสียง Halloween" type="range" min="0" max="100" value="' + Math.round(volume * 100) + '"></label><div><span>เพลงพื้นหลัง<small>Midnight Waltz · กล่องดนตรี</small></span><button type="button" data-hw-pref-music></button></div><div><span>ฉากเคลื่อนไหว</span><button type="button" data-hw-pref-motion></button></div>';
     box.querySelector('[data-hw-pref-sound]').addEventListener('click', () => sound(!enabled));
-    box.querySelector('[data-hw-pref-motion]').addEventListener('click', () => setMotion(motion === 'full' ? 'still' : 'full'));
+    box.querySelector('[data-hw-pref-motion]').addEventListener('click', toggleMotion);
     box.querySelector('[data-hw-pref-music]').addEventListener('click', () => setMusic(!musicEnabled));
     box.querySelector('input').addEventListener('input', e => setVolume(Number(e.target.value) / 100));
     picker.after(box); updateControls();
@@ -81,15 +82,15 @@
       art.innerHTML = '<i class="hw-card-smoke"></i><i class="hw-card-blood"></i><i class="hw-card-ghost">' + ghost + '</i>';
       card.append(art);
     });
-    document.querySelectorAll('svg image.brand-light,svg image.brand-dark').forEach(mark => { if (!brandOriginals.has(mark)) brandOriginals.set(mark, mark.getAttribute('href')); mark.setAttribute('href', 'halloween-assets/app-icon.webp'); });
+    document.querySelectorAll('svg image.brand-light,svg image.brand-dark').forEach(mark => { if (!brandOriginals.has(mark)) brandOriginals.set(mark, mark.getAttribute('href')); mark.setAttribute('href', 'halloween/rewards/theme-assets/app-icon.webp'); });
     for (const [img] of originals) if (!img.isConnected) originals.delete(img);
     for (const [use] of iconOriginals) if (!use.isConnected) iconOriginals.delete(use);
     document.querySelectorAll('img').forEach(img => {
       const src = img.getAttribute('src') || '';
       let target;
-      if (/(?:^|\/)hook-(?:body|face)\.webp$|(?:^|\/)hook-avatar\.png$/.test(src)) target = 'halloween-assets/hook-mummy.webp';
-      if (/(?:^|\/)sai-(?:chibi|face-[\w-]+)\.webp$|(?:^|\/)sai-avatar\.png$/.test(src)) target = 'halloween-assets/sai-witch.webp';
-      if (/(?:^|\/)(?:logo-splash(?:-light)?|logo-mark|icon-(?:alt-)?192)\.png$/.test(src)) target = 'halloween-assets/app-icon.webp';
+      if (/(?:^|\/)hook-(?:body|face)\.webp$|(?:^|\/)hook-avatar\.png$/.test(src)) target = 'halloween/rewards/theme-assets/hook-mummy.webp';
+      if (/(?:^|\/)sai-(?:chibi|face-[\w-]+)\.webp$|(?:^|\/)sai-avatar\.png$/.test(src)) target = 'halloween/rewards/theme-assets/sai-witch.webp';
+      if (/(?:^|\/)(?:logo-splash(?:-light)?|logo-mark|icon-(?:alt-)?192)\.png$/.test(src)) target = 'halloween/rewards/theme-assets/app-icon.webp';
       if (target) { if (!originals.has(img)) originals.set(img, src); img.setAttribute('src', target); img.dataset.hwCharacter = 'true'; }
     });
     document.querySelectorAll('svg use').forEach(use => {
@@ -214,17 +215,25 @@
     else tone(440, 0, .085, .022, 'sine', 240);
   }
   function updateControls() {
-    document.querySelectorAll('[data-hw-sound]').forEach(button => { button.setAttribute('aria-label', enabled ? 'ปิดเสียง Halloween' : 'เปิดเสียง Halloween'); button.title = enabled ? 'ปิดเสียง Halloween' : 'เปิดเสียง Halloween'; button.setAttribute('aria-pressed', String(enabled)); });
+    document.querySelectorAll('button[data-hw-sound]').forEach(button => { button.setAttribute('aria-label', enabled ? 'ปิดเสียง Halloween' : 'เปิดเสียง Halloween'); button.title = enabled ? 'ปิดเสียง Halloween' : 'เปิดเสียง Halloween'; button.setAttribute('aria-pressed', String(enabled)); });
     const s = document.querySelector('[data-hw-pref-sound]'); if (s) s.textContent = enabled ? 'เสียงเปิดอยู่' : 'เปิดเสียง';
     const music = document.querySelector('[data-hw-pref-music]'); if (music) { music.textContent = musicEnabled ? 'เปิดไว้' : 'ปิดไว้'; music.setAttribute('aria-pressed', String(musicEnabled)); music.setAttribute('aria-label', musicEnabled ? 'ปิดเพลงพื้นหลัง Halloween' : 'เปิดเพลงพื้นหลัง Halloween'); }
-    const m = document.querySelector('[data-hw-pref-motion]'); if (m) m.textContent = motion === 'full' ? 'เคลื่อนไหว' : 'หยุดภาพ';
+    const moving = motion === 'full' && root.dataset.lite !== '1' && root.dataset.quality !== 'low';
+    const m = document.querySelector('[data-hw-pref-motion]'); if (m) { m.textContent = moving ? 'หยุดภาพ' : 'เปิดภาพเคลื่อนไหว'; m.setAttribute('aria-pressed', String(moving)); }
+    document.querySelectorAll('button[data-hw-motion]').forEach(button=>{const label=moving?'หยุดภาพเคลื่อนไหว Halloween':'เปิดภาพเคลื่อนไหว Halloween';button.textContent=moving?'Ⅱ':'▶';button.title=label;button.setAttribute('aria-label',label);button.setAttribute('aria-pressed',String(moving));});
     const prefs = document.getElementById('hwPreferences'); if (prefs) prefs.hidden = !active;
     root.dataset.hwSound = enabled ? 'on' : 'off';
     if (parent !== window) { const screen = document.querySelector('.screen.on'); parent.postMessage({ type: 'studentos-halloween-status', sound: enabled, motion, active, audio: root.dataset.hwAudio || 'off', moving: active && getComputedStyle(document.querySelector('.hw-haze')).animationName !== 'none', ornaments: document.querySelectorAll('.hw-ornament').length, viewport: [innerWidth, innerHeight], overflow: document.documentElement.scrollWidth > innerWidth, screen: screen?.id, screenScroll: screen ? screen.scrollHeight - screen.clientHeight : 0 }, location.origin); }
   }
   function sound(value) { enabled = !!value; write(SOUND_KEY, enabled ? '1' : '0'); if (enabled) play('enable'); else stopAudio(); updateControls(); }
   function setVolume(value) { volume = Math.max(0, Math.min(1, value)); write(VOLUME_KEY, volume); if (master && context) master.gain.setTargetAtTime(volume, context.currentTime, .03); }
-  function setMotion(value) { motion = value === 'still' ? 'still' : 'full'; write(MOTION_KEY, motion); root.dataset.hwMotion = motion; updateControls(); }
+  function setMotion(value) {
+    motion = value === 'still' ? 'still' : 'full'; write(MOTION_KEY, motion); root.dataset.hwMotion = motion;
+    // Choosing motion explicitly also leaves the graphics mode that freezes it.
+    if (motion === 'full' && typeof window.setGfx === 'function') window.setGfx('high', true);
+    updateControls();
+  }
+  function toggleMotion() { setMotion(motion === 'full' && root.dataset.lite !== '1' && root.dataset.quality !== 'low' ? 'still' : 'full'); }
   function burst(x = lastTap.x, y = lastTap.y, count = 12) {
     if (!active || motion === 'still' || root.dataset.lite === '1' || root.dataset.quality === 'low') return;
     for (let i = 0; i < count; i++) {
@@ -243,7 +252,7 @@
   function init() {
     mount(); preferences(); sync();
     new MutationObserver(queue).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
-    new MutationObserver(sync).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    new MutationObserver(sync).observe(root, { attributes: true, attributeFilter: ['data-theme','data-lite','data-quality'] });
     document.addEventListener('pointerdown', e => { lastTap = { x: e.clientX, y: e.clientY }; if (active && e.target.closest('button,a,[role=button]')) play('tap'); }, { passive: true });
     document.addEventListener('visibilitychange', () => { if (document.hidden) stopAudio(); });
     window.addEventListener('resize', () => requestAnimationFrame(updateControls));
