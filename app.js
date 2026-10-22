@@ -4947,7 +4947,8 @@ function dayCtxView(now) {
     return { ic: 'book', text: 'ไปเรียน', sub: 'ตามตาราง' + (span ? ' ' + span : '') };
   }
   if (g.kind === 'free') return { ic: 'sofa', text: 'วันนี้ไม่มีเรียน', sub: '' };
-  return { ic: 'pin', text: 'วันนี้ไปไหน', sub: 'บอกแอปได้' };
+  // ask = แอปยังไม่รู้อะไรเลย ต้องให้นักเรียนตอบ · บรรทัดนี้กลายเป็นปุ่มชวนกด (19 ต.ค. 69)
+  return { ic: 'pin', text: 'วันนี้ไปไหน?', sub: 'บอกก่อน แผนจะตรง', ask: true };
 }
 
 function dayCtxBlock(now) {
@@ -4956,8 +4957,16 @@ function dayCtxBlock(now) {
   const v = dayCtxView(now);
   // สูงบรรทัดเดียวทุกสถานะ — วัดจริง 18 ต.ค. 69: หน้าแรกของ alt ที่มีงานพอดีจอ 375×812 อยู่แล้ว
   // และหน้าแรกของรากล้นอยู่แล้ว 223px · ของที่เพิ่มบนหน้านี้ต้องไม่สูงกว่าหนึ่งบรรทัด
-  return `<button type="button" class="dc-line" onclick="openDaySheet()" aria-label="วันนี้: ${esc(v.text)} — เปลี่ยน">
-      ${icon(v.ic)}<span>${esc(v.text)}${v.sub ? ` <small>· ${esc(v.sub)}</small>` : ''}</span><i>เปลี่ยน</i></button>`;
+  // 19 ต.ค. 69 · เจ้าของ (ภาพบรรทัด "ไปเรียน · เปลี่ยน"): "แก้หน้านี้หน่อย"
+  // "ไปเรียน" ลอย ๆ ไม่บอกว่าเป็นคำเดาของแอปเรื่องวันนี้ · "เปลี่ยน" เป็นตัวหนังสือเล็กสุดขอบขวา ดูไม่ออกว่ากดได้
+  // ตอนนี้: ไอคอนในวงกลม · "วันนี้" นำหน้าคำเดา (เว้นคำที่ขึ้นต้นด้วยวันนี้อยู่แล้ว) · ปุ่ม "เปลี่ยน" เป็นแคปซูล · สูงเท่าเดิม 36px
+  const lead = /^วันนี้/.test(v.text) ? '' : '<em>วันนี้</em> ';
+  // ยังไม่รู้ (ask) — เจ้าของ: "ทำให้มันดูเห็นเป็นที่สะดุดตาว่าเราควรทำอะไร"
+  // พื้นสีเต็มของธีม · หมุดเต้นเป็นจังหวะ · ปุ่ม "บอกเลย" (ยังไม่มีอะไรให้ "เปลี่ยน") · สูงเท่าเดิม
+  // ตอบแล้ว/เดาได้ = บรรทัดเรียบแบบเดิม — ของที่สะดุดตาตลอดเวลาจะเลิกสะดุดตา
+  const go = v.ask ? 'บอกเลย' : 'เปลี่ยน';
+  return `<button type="button" class="dc-line${v.ask ? ' ask' : ''}" onclick="openDaySheet()" aria-label="วันนี้: ${esc(v.text)} · ${go}">
+      <span class="dc-ic">${icon(v.ic)}</span><span class="dc-tx">${lead}<b>${esc(v.text)}</b>${v.sub ? ` <small>· ${esc(v.sub)}</small>` : ''}</span><i>${go}</i></button>`;
 }
 
 // ctxSetDay รวมกับของเดิม — ล้าง away เสมอ ไม่งั้นคนที่เคยกด "ไม่อยู่ทั้งวัน" แล้วเปลี่ยนใจ
@@ -5185,8 +5194,8 @@ function breakAskDue(now = new Date()) {
 }
 
 function breakAskHtml() {
-  return `<button type="button" class="dc-line dc-brkq" onclick="openDaySheet('break')" aria-label="ปิดเทอมแล้วใช่ไหม — ตั้งวันเปิดเทอม">
-      ${icon('calendar')}<span>ปิดเทอมแล้วใช่ไหม <small>· ไม่ได้ไปเรียนสองวันแล้ว</small></span><i>ตั้ง</i></button>`;
+  return `<button type="button" class="dc-line dc-brkq ask" onclick="openDaySheet('break')" aria-label="ปิดเทอมแล้วใช่ไหม · ตั้งวันเปิดเทอม">
+      <span class="dc-ic">${icon('calendar')}</span><span class="dc-tx"><b>ปิดเทอมแล้วใช่ไหม</b> <small>· ไม่ได้ไปเรียนสองวันแล้ว</small></span><i>ตั้ง</i></button>`;
 }
 
 // openKey = วันเปิดเทอม · ช่วงปิดเทอม = วันนี้ถึงวันก่อนเปิด
