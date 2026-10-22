@@ -5084,7 +5084,7 @@ function renderDaySheet() {
       ${s.err ? `<p class="dc-err">${esc(s.err)}</p>` : ''}
       <div class="dc-row">
         <button type="button" class="dc-yes" onclick="daySheetRead()" ${busy ? 'disabled' : ''}>
-          ${icon('sparkles')}${busy ? 'กำลังอ่าน…' : 'ให้' + esc(mName()) + 'อ่าน'}</button>
+          ${busy ? 'กำลังอ่าน…' : 'ให้' + esc(mName()) + 'อ่าน'}</button>
         <button type="button" class="dc-no" onclick="daySheetManual()">เลือกเวลาเอง</button>
       </div>${reset}</div>`;
 }

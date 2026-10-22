@@ -14606,3 +14606,63 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
   background: linear-gradient(135deg, color-mix(in srgb, var(--fill) 78%, #fff), var(--fill));
 }
 .dc-line.ask .dc-tx small { color: var(--on-fill); font-weight: 500; }
+
+/* ============================================================
+   แผ่น "วันนี้ไปไหน" (#daySheet) · ปุ่มทั้งแผ่น · 22 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ (ภาพแผ่นนี้บนเว็บหลัก): "ลบดาวกับปรับปุ่มสักหน่อยในหน้านี้"
+   เดิม: ชิปสามตัวพื้นฟ้าจางขอบเทาเหมือนกันหมด · ปุ่มหลักฟ้าแบนมีดาวนำหน้า · "เลือกเวลาเอง" กล่องขาวคนละทรง
+   ตอนนี้ (ถอดดาวใน app.js แล้ว):
+   • ชิปสามตัว = แถวตัวเลือกแบบ FeaturePoll (cult-ui · MIT) ชุดเดียวกับฟอร์มเพิ่มงาน
+     กรอบมนเท่ากัน · ตัวที่เลือก = ขอบสีธีม + พื้นจาง + เงาบาง · ชี้แล้วขอบเจือสีธีม
+   • ปุ่มหลัก = พื้นสีเต็มของธีม สูตรเดียวกับแถบ .dc-line.ask ที่เปิดแผ่นนี้ขึ้นมา
+     (ทิศไล่สีแยกธีมตัวขาว/ตัวเข้ม — ไล่ผิดทางตัวหนังสือจม)
+   • ปุ่มรอง = ทรงและความสูงเท่าปุ่มหลัก พื้นเจือสีธีม · อ่านออกว่าเป็นอีกทาง ไม่ใช่ของแปลกปลอม
+   สีทั้งหมดจาก --fill/--on-fill (เดิม --blue ทุกธีม) · ไม่ใช่สีทอง (ทองเฉพาะของที่ทำสำเร็จ)
+   ============================================================ */
+#daySheet .dc-chips { gap: 8px; }
+#daySheet .dc-chips button {
+  min-height: 44px; padding: 6px 8px; border: 1.5px solid var(--line); border-radius: 14px;
+  background: var(--card); font-size: 13.5px; font-weight: 700;
+  transition: border-color .2s ease-out, background-color .2s ease-out, box-shadow .2s ease-out, transform .15s ease-out;
+}
+#daySheet .dc-chips button.on {
+  border-color: var(--fill); background: color-mix(in srgb, var(--fill) 10%, var(--card));
+  box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 6px 16px -10px color-mix(in srgb, var(--fill) 55%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  #daySheet .dc-chips button:not(.on):hover { border-color: color-mix(in srgb, var(--fill) 50%, var(--line)); }
+}
+#daySheet .dc-ai textarea { border-radius: 14px; transition: border-color .2s ease-out, box-shadow .2s ease-out; }
+#daySheet .dc-ai textarea:focus {
+  outline: none; border-color: var(--fill);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fill) 18%, transparent);
+}
+#daySheet .dc-row { gap: 10px; }
+#daySheet .dc-yes, #daySheet .dc-no { min-height: 48px; padding: 8px 18px; border-radius: 14px; font-size: 15px; }
+/* ไอคอนมีบ้างไม่มีบ้าง (ปุ่มบันทึกมีถูก · ปุ่มอ่านไม่มีแล้ว) — ไหลเป็นคอลัมน์เอง ไม่เว้นช่องว่างให้ไอคอนที่ไม่มี */
+#daySheet .dc-yes {
+  grid-template-columns: none; grid-auto-flow: column;
+  color: var(--on-fill);
+  background: linear-gradient(135deg, var(--fill), color-mix(in srgb, var(--fill) 74%, #000));
+  box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--fill) 85%, transparent), inset 0 1px 0 rgba(255,255,255,.22);
+  transition: transform .15s ease-out, filter .15s ease-out;
+}
+:root:is([data-theme="astral"], [data-theme="deepocean"], [data-theme="galaxy"], [data-theme="glitch"], [data-theme="magic"], [data-theme="meta"], [data-theme="space"]) #daySheet .dc-yes {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--fill) 78%, #fff), var(--fill));
+}
+#daySheet .dc-yes:disabled { cursor: default; filter: saturate(.6); opacity: .75; }
+#daySheet .dc-no {
+  border: 1.5px solid color-mix(in srgb, var(--fill) 24%, transparent);
+  background: color-mix(in srgb, var(--fill) 8%, var(--card));
+  color: color-mix(in srgb, var(--fill) 60%, var(--ink));
+  transition: transform .15s ease-out, border-color .2s ease-out;
+}
+#daySheet :is(.dc-yes, .dc-no, .dc-chips button):active { transform: scale(.97); }
+@media (hover: hover) and (pointer: fine) {
+  #daySheet .dc-yes:not(:disabled):hover { filter: brightness(1.06); }
+  #daySheet .dc-no:hover { border-color: color-mix(in srgb, var(--fill) 50%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #daySheet :is(.dc-yes, .dc-no, .dc-chips button):active { transform: none; }
+}
