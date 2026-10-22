@@ -15366,4 +15366,5 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
  --pg-ink:#F4E8DA;--pg-muted:#C2AFC6;--frame:#100D1B;
  --tint:#3B2949;--tint2:#392631;--shadow:0 12px 35px #06020b55;
  --glass:#251b2de8;--pg:#100D1B;--alert:#FF9BA7;--warn:#F4C282;--good:#A2DDB7;
+ --soft-card:#261c2ced;--soft-shadow:0 3px 7px #04010844,0 16px 34px -12px #04010899;--soft-shadow-lg:0 8px 18px #04010855,0 30px 60px -18px #040108aa;
 }

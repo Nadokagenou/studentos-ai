@@ -5,13 +5,17 @@
   const SOUND_KEY = 'studentos.alt.halloween.sound';
   const VOLUME_KEY = 'studentos.alt.halloween.volume';
   const MOTION_KEY = 'studentos.alt.halloween.motion';
+  const MUSIC_KEY = 'studentos.alt.halloween.music';
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const read = (key, fallback) => { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } };
   const write = (key, value) => { try { localStorage.setItem(key, String(value)); } catch {} };
   let enabled = read(SOUND_KEY, '0') === '1';
   let volume = Math.max(0, Math.min(1, Number(read(VOLUME_KEY, '.35')) || 0));
   let motion = read(MOTION_KEY, reduced.matches ? 'still' : 'full');
+  let musicEnabled = read(MUSIC_KEY, '1') === '1';
   let active = false, scene, controls, context, master, wind, windGain;
+  let musicBus, musicTimer = 0, nextBarAt = 0, musicBar = 0;
+  const musicVoices = new Set();
   let queued = false, lastTap = { x: innerWidth / 2, y: innerHeight / 2 }, lastSound = 0;
   const originals = new Map(), iconOriginals = new Map(), brandOriginals = new Map();
   root.dataset.hwMotion = motion;
@@ -58,9 +62,10 @@
     const picker = document.getElementById('themePick');
     if (!picker || document.getElementById('hwPreferences')) return;
     const box = document.createElement('div'); box.id = 'hwPreferences'; box.className = 'hw-preferences';
-    box.innerHTML = '<div><span><b>บรรยากาศ Halloween</b><small>เสียงและการเคลื่อนไหวของธีม</small></span><button type="button" data-hw-pref-sound></button></div><label>ระดับเสียง <input aria-label="ระดับเสียง Halloween" type="range" min="0" max="100" value="' + Math.round(volume * 100) + '"></label><div><span>ฉากเคลื่อนไหว</span><button type="button" data-hw-pref-motion></button></div>';
+    box.innerHTML = '<div><span><b>บรรยากาศ Halloween</b><small>เปิดเสียงเพื่อฟังเพลงและเสียงประกอบ</small></span><button type="button" data-hw-pref-sound></button></div><label>ระดับเสียง <input aria-label="ระดับเสียง Halloween" type="range" min="0" max="100" value="' + Math.round(volume * 100) + '"></label><div><span>เพลงพื้นหลัง<small>Midnight Waltz · กล่องดนตรี</small></span><button type="button" data-hw-pref-music></button></div><div><span>ฉากเคลื่อนไหว</span><button type="button" data-hw-pref-motion></button></div>';
     box.querySelector('[data-hw-pref-sound]').addEventListener('click', () => sound(!enabled));
     box.querySelector('[data-hw-pref-motion]').addEventListener('click', () => setMotion(motion === 'full' ? 'still' : 'full'));
+    box.querySelector('[data-hw-pref-music]').addEventListener('click', () => setMusic(!musicEnabled));
     box.querySelector('input').addEventListener('input', e => setVolume(Number(e.target.value) / 100));
     picker.after(box); updateControls();
   }
@@ -104,7 +109,71 @@
     brandOriginals.clear();
     originals.clear(); iconOriginals.clear();
   }
+  // Original eight-bar music-box waltz in A minor, with a bass and quiet chords.
+  // Schedule against the audio clock; the timer only fills the next short horizon.
+  const MUSIC_SCORE = [
+    { bass:45, chord:[57,60,64], melody:[81,null,84,83,81,76] },
+    { bass:41, chord:[53,57,60], melody:[77,null,81,79,77,76] },
+    { bass:38, chord:[50,53,57], melody:[74,null,77,76,74,72] },
+    { bass:40, chord:[52,56,59], melody:[76,80,83,null,81,80] },
+    { bass:45, chord:[57,60,64], melody:[81,84,88,84,83,81] },
+    { bass:41, chord:[53,57,60], melody:[81,null,79,77,76,72] },
+    { bass:38, chord:[50,53,57], melody:[74,77,81,79,77,74] },
+    { bass:40, chord:[52,56,59], melody:[76,80,83,80,76,null] },
+  ];
+  function stopMusic() {
+    if (musicTimer) clearInterval(musicTimer);
+    musicTimer = 0;
+    for (const voice of musicVoices) { try { voice.stop(); } catch {} voice.disconnect(); }
+    musicVoices.clear();
+    if (musicBus) musicBus.disconnect();
+    musicBus = null;
+    root.dataset.hwMusic = 'off';
+  }
+  function musicNote(midi, at, duration, gain, type = 'sine') {
+    if (!context || !musicBus) return;
+    const voice = context.createOscillator(), envelope = context.createGain();
+    voice.type = type;
+    voice.frequency.setValueAtTime(440 * Math.pow(2, (midi - 69) / 12), at);
+    envelope.gain.setValueAtTime(0, at);
+    envelope.gain.linearRampToValueAtTime(gain, at + Math.min(.035, duration / 5));
+    envelope.gain.exponentialRampToValueAtTime(.0001, at + duration);
+    voice.connect(envelope).connect(musicBus);
+    musicVoices.add(voice);
+    voice.onended = () => { musicVoices.delete(voice); voice.disconnect(); envelope.disconnect(); };
+    voice.start(at); voice.stop(at + duration + .03);
+  }
+  function startMusic() {
+    if (musicTimer || !musicEnabled || !context || !master || !active || !enabled || document.hidden) return;
+    musicBus = context.createGain(); musicBus.gain.value = .8; musicBus.connect(master);
+    const eighth = 60 / 70 / 2, barLength = eighth * 6;
+    musicBar = 0; nextBarAt = context.currentTime + .1;
+    const schedule = () => {
+      if (!context || document.hidden || !active || !enabled || !musicEnabled) { stopMusic(); return; }
+      // A throttled background timer must never replay a backlog of bars.
+      if (nextBarAt < context.currentTime) nextBarAt = context.currentTime + .05;
+      if (nextBarAt > context.currentTime + .45) return;
+      const bar = MUSIC_SCORE[musicBar++ % MUSIC_SCORE.length];
+      musicNote(bar.bass, nextBarAt, barLength * .85, .025, 'triangle');
+      bar.chord.forEach(note => musicNote(note, nextBarAt, barLength * .9, .009));
+      bar.melody.forEach((note, step) => {
+        if (note == null) return;
+        const at = nextBarAt + step * eighth;
+        musicNote(note, at, eighth * 1.6, step === 0 ? .075 : .06);
+        musicNote(note + 12, at, eighth * .8, .012);
+      });
+      nextBarAt += barLength;
+    };
+    schedule(); musicTimer = setInterval(schedule, 200);
+    root.dataset.hwMusic = 'playing';
+  }
+  function setMusic(value) {
+    musicEnabled = !!value; write(MUSIC_KEY, musicEnabled ? '1' : '0');
+    if (musicEnabled) audio(); else stopMusic();
+    updateControls();
+  }
   function stopAudio() {
+    stopMusic();
     if (wind) { try { wind.stop(); } catch {} wind = null; }
     if (context) { context.close().catch(() => {}); context = null; master = null; }
     root.dataset.hwAudio = 'off';
@@ -113,7 +182,7 @@
     if (!active || !enabled || document.hidden) return false;
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) return false;
-    if (!context) { context = new Ctx(); context.onstatechange = () => { root.dataset.hwAudio = context ? context.state : 'off'; updateControls(); }; master = context.createGain(); master.gain.value = volume; master.connect(context.destination); }
+    if (!context) { context = new Ctx(); const current = context; context.onstatechange = () => { if (context !== current) return; root.dataset.hwAudio = current.state; updateControls(); }; master = context.createGain(); master.gain.value = volume; master.connect(context.destination); }
     if (context.state === 'suspended') context.resume().catch(() => {});
     root.dataset.hwAudio = context.state;
     if (!wind) {
@@ -121,9 +190,10 @@
       let previous = 0; for (let i = 0; i < data.length; i++) { previous = (previous + (Math.random() * 2 - 1) * .025) / 1.025; data[i] = previous * 3; }
       wind = context.createBufferSource(); wind.buffer = buffer; wind.loop = true;
       const filter = context.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 360;
-      windGain = context.createGain(); windGain.gain.value = .045;
+      windGain = context.createGain(); windGain.gain.value = .008;
       wind.connect(filter).connect(windGain).connect(master); wind.start();
     }
+    startMusic();
     return true;
   }
   function tone(freq, start, duration, gain = .055, type = 'sine', end) {
@@ -140,12 +210,13 @@
     const now = performance.now(); if (kind === 'tap' && now - lastSound < 80) return; lastSound = now;
     if (kind === 'done') { [392, 523.25, 783.99, 1046.5].forEach((f, i) => tone(f, i * .075, .7, .06)); tone(196, 0, .7, .035, 'sine', 392); }
     else if (kind === 'page') { tone(261.63, 0, .32, .035); tone(392, .07, .48, .025); }
-    else if (kind === 'enable') { tone(261.63, 0, .7); tone(392, .14, .8); tone(622.25, .28, 1.1, .035); }
+    else if (kind === 'enable') { tone(440, 0, .7); tone(523.25, .14, .8); tone(659.25, .28, 1.1, .035); }
     else tone(440, 0, .085, .022, 'sine', 240);
   }
   function updateControls() {
     document.querySelectorAll('[data-hw-sound]').forEach(button => { button.setAttribute('aria-label', enabled ? 'ปิดเสียง Halloween' : 'เปิดเสียง Halloween'); button.title = enabled ? 'ปิดเสียง Halloween' : 'เปิดเสียง Halloween'; button.setAttribute('aria-pressed', String(enabled)); });
     const s = document.querySelector('[data-hw-pref-sound]'); if (s) s.textContent = enabled ? 'เสียงเปิดอยู่' : 'เปิดเสียง';
+    const music = document.querySelector('[data-hw-pref-music]'); if (music) { music.textContent = musicEnabled ? 'เปิดไว้' : 'ปิดไว้'; music.setAttribute('aria-pressed', String(musicEnabled)); music.setAttribute('aria-label', musicEnabled ? 'ปิดเพลงพื้นหลัง Halloween' : 'เปิดเพลงพื้นหลัง Halloween'); }
     const m = document.querySelector('[data-hw-pref-motion]'); if (m) m.textContent = motion === 'full' ? 'เคลื่อนไหว' : 'หยุดภาพ';
     const prefs = document.getElementById('hwPreferences'); if (prefs) prefs.hidden = !active;
     root.dataset.hwSound = enabled ? 'on' : 'off';
@@ -188,7 +259,7 @@
       if (e.data.action === 'celebrate') { play('done'); burst(innerWidth / 2, innerHeight / 2, 20); }
       if (e.data.action === 'screen' && ['scr-menu','scr-tasks','scr-profile','scr-settings','scr-shop','scr-badges','scr-room'].includes(e.data.value)) window.go(e.data.value);
     });
-    window.HalloweenTheme = Object.freeze({ sound, volume: setVolume, motion: setMotion, celebrate: () => { play('done'); burst(); } });
+    window.HalloweenTheme = Object.freeze({ sound, music: setMusic, volume: setVolume, motion: setMotion, celebrate: () => { play('done'); burst(); } });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true }); else init();
 })();

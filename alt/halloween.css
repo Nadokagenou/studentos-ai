@@ -65,7 +65,7 @@
 :root[data-theme="halloween"] :is(.tk-skin,.bg-card,.fx-row){background:linear-gradient(135deg,#322338,#18141e);border-color:#90677966}
 :root[data-theme="halloween"] :is(.tk-skin.got,.bg-card.got){border-color:#d1b47b99;box-shadow:inset 0 0 25px #c5a66c15,0 0 20px #c5a66c10}
 :root[data-theme="halloween"] :is(.fm-ring,.fm-face,.focus-ring){filter:drop-shadow(0 0 18px #b38ac630)}
-:root[data-theme="halloween"] .sw-halloween{background:conic-gradient(#d59069,#7f538e,#1f192d,#80c5a9,#d59069);border:1px solid #d5b097}
+.sw-halloween{background:conic-gradient(#d59069,#7f538e,#1f192d,#80c5a9,#d59069);border:1px solid #d5b097}
 .hw-preferences{margin:14px 0;padding:17px;border:1px solid var(--line);border-radius:16px;background:var(--card2);display:grid;gap:12px}
 .hw-preferences>div{display:flex;gap:12px;justify-content:space-between;align-items:center}.hw-preferences small{color:var(--muted);display:block;font-size:11px}.hw-preferences label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
 .hw-preferences button{font:inherit;padding:9px 14px;border:1px solid var(--line);border-radius:12px;color:var(--ink);background:var(--card);cursor:pointer}
@@ -295,3 +295,17 @@ html[data-theme="halloween"][data-lite="1"] button:after{animation:none!importan
 :root[data-theme="halloween"] .runbar{color:#04130e}
 :root[data-theme="halloween"] .runbar :is(.rb-stop,.rb-timer){color:#04130e;background:#0000001f;box-shadow:inset 0 0 0 1px #00000024}
 :root[data-theme="halloween"] .runbar .rb-k{opacity:1}
+
+/* Theme settings and the all-clear card use the same midnight surfaces. */
+:root[data-theme="halloween"] #menuBody .td-clear{background:radial-gradient(ellipse at 10% 0,#9f70962b,transparent 65%),linear-gradient(135deg,#302137,#1a1625);border:1px solid #ad859b66;border-radius:22px 7px 22px 7px;box-shadow:inset 0 0 0 3px #100b1b44,0 8px 24px #06030d55}
+:root[data-theme="halloween"] #menuBody .td-clear .tc-tx b{color:#f4e8da;text-shadow:0 2px 18px #b287a52e}
+:root[data-theme="halloween"] #menuBody .td-clear .tc-tx p{color:#d0bcd5}
+:root[data-theme="halloween"] #menuBody .td-clear .tc-badge{background:#254638;color:#c9eed8;border:1px solid #a5d4b866}
+:root[data-theme="halloween"] #menuBody .td-clear .tc-steps{background:#17112099;color:#ddcde4;border:1px solid #a37f9638}
+:root[data-theme="halloween"] #menuBody .td-clear .tc-room{color:#d8bbdf}
+:root[data-theme="halloween"] #setBlkTheme .hd{padding:12px;border:1px solid #a7819855;border-radius:16px 5px 16px 5px;background:linear-gradient(125deg,#39253e,#211a2d);color:#f4e8da}
+:root[data-theme="halloween"] #setBlkTheme :is(.lb,.nm){color:#efdfed}
+:root[data-theme="halloween"] #setBlkTheme :is(.sb,.alt-lab-entry){color:#cdb1d8}
+:root[data-theme="halloween"] .phone #themePick button:not(.active){background:#241b30!important;color:#d8c4df;border-color:#a7809a77!important;border-radius:13px 4px 13px 4px}
+:root[data-theme="halloween"] .phone #themePick button.active{background:linear-gradient(125deg,#403044,#243c35)!important;color:#f7eadd;border:1px solid #a9dbc0!important;border-radius:13px 4px 13px 4px;box-shadow:inset 0 0 0 2px #a9dbc01a,0 0 16px #8dbca31a}
+:root[data-theme="halloween"] #scr-settings [onclick="openSetOpt('theme')"]{background:linear-gradient(125deg,#38263e,#211a2d);border:1px solid #a7819855;color:#efdfed}
