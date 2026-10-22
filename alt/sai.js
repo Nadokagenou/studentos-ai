@@ -282,6 +282,86 @@ function openSaiPlan() {
 }
 
 // ============================================================
+// แผ่นแตะแถวงาน (20 ต.ค. 69)
+// ------------------------------------------------------------
+// เจ้าของ: แตะงานในเส้นเวลาแล้วอยากทำอะไรกับมันได้เลย ไม่ใช่เด้งไปฟอร์มแก้ไข
+// โครงแผ่นยืม #soonSheet/#daySheet (.add-sheet > .as-scrim + .as-card) · ลงทะเบียนใน OVERLAYS + watchOverlays ของ app.js
+// เพื่อให้ Esc / ปุ่มย้อนของ Android ปิดได้ · แถวของรายการ "ไม่ใช่วันนี้" (งานถัดไป) เรียกตัวเดียวกันนี้
+//
+// รายการปุ่มสร้างที่เดียว (planRowActions) — จะเพิ่มปุ่มใหม่ = เพิ่มหนึ่งแถวในอาร์เรย์นั้น ไม่ต้องแตะที่วาด
+// ทุกปุ่มทำงานผ่านฟังก์ชันเดิมของแอป (startFocus · toggleDone · snoozeToTomorrow · openForm)
+// ติ๊กเสร็จใช้ toggleDone ตัวเดียวกับปุ่ม ✓ บนการ์ดหน้าแรก — สตรีค/ฉลอง/ลูกโซ่ "งานถัดไป" จึงเหมือนกันทุกทาง
+let planRowSheetId = null;
+let planRowSheetActs = [];   // รายการปุ่มที่วาดตอนเปิด — กดแล้วใช้ชุดนี้ ไม่คิดใหม่ (เวลาผ่านไประหว่างเปิดแผ่นอาจข้ามเส้น "โอกาสสุดท้าย" ทำให้ปุ่มที่เห็นหาไม่เจอ)
+
+function planRowActions(t, now) {
+  // เลื่อนไม่ได้เมื่อวันนี้คือโอกาสสุดท้าย — snoozeToTomorrow ปฏิเสธอยู่แล้ว ไม่โชว์ปุ่มที่กดแล้วโดนตีกลับ
+  const canSnooze = !(typeof isLastChanceToday === 'function' && isLastChanceToday(t, now));
+  return [
+    { key: 'start', label: 'เริ่มทำ', ic: 'play', cls: 'primary', run: id => startFocus(id) },
+    // จอแผนวาดใหม่เองใน renderAll() (ดู app.js) — toggleDone วาดหลังจังหวะฉลอง ส่วนเลื่อนวาดที่นี่ทันที ไม่ให้แถวค้าง 200ms
+    { key: 'done', label: 'เสร็จแล้ว', ic: 'check', run: id => toggleDone(id) },
+    canSnooze && { key: 'snooze', label: 'เลื่อนไปพรุ่งนี้', ic: 'clock', run: id => {
+      snoozeToTomorrow(id);
+      if (curScreen === 'scr-sai') renderSaiPlan();
+    } },
+    { key: 'edit', label: 'แก้ไขรายละเอียด', ic: 'pencil', cls: 'quiet', run: id => openForm(id) },
+  ].filter(Boolean);
+}
+
+// min = นาทีของช่องที่แถวนั้นแสดงอยู่ (ถ้าไม่ส่งมาใช้เวลาที่เหลือของงาน)
+function openPlanRowSheet(taskId, min) {
+  const t = state.tasks.find(x => x.id === taskId);
+  const el = document.getElementById('planRowSheet');
+  if (!t || t.done) return;
+  // index.html เก่าจากแคช service worker ไม่มีกล่องนี้ (sw.js ดึงทีละไฟล์) — ถอยไปเปิดฟอร์มแบบที่แถวนี้เคยทำ
+  // ดีกว่าแตะแล้วเงียบ (แบบเดียวกับ startFocus ที่ถอยไป startWork)
+  if (!el) { openForm(taskId); return; }
+  const hm = m => (typeof humanMin === 'function' ? humanMin(m) : m + ' นาที');
+  const title = (t.detail || '').trim() || (typeof typeInfo === 'function' ? typeInfo(t).name : 'งาน');
+  const subj = t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '';
+  const mins = min > 0 ? min : (typeof remainingMin === 'function' ? remainingMin(t) : t.estMin || 0);
+  const sub = [subj, mins ? hm(mins) : ''].filter(Boolean).join(' · ');
+  planRowSheetId = taskId;
+  // ยกเลิกการปิดที่ค้างอยู่ — ไม่งั้นตัวจับเวลาของรอบก่อนมาล้างแผ่นที่เพิ่งเปิด (เหตุผลเดียวกับ openSoonSheet)
+  if (el._closeT) { clearTimeout(el._closeT); el._closeT = 0; }
+  planRowSheetActs = planRowActions(t, new Date());
+  const btns = planRowSheetActs.map(a =>
+    '<button type="button" class="prs-b' + (a.cls ? ' ' + a.cls : '') + '" data-act="' + a.key + '" onclick="planRowAct(\'' + a.key + '\')">'
+    + icon(a.ic) + '<span>' + esc(a.label) + '</span></button>').join('');
+  el.innerHTML = '<div class="as-scrim" onclick="closePlanRowSheet()"></div>'
+    + '<div class="as-card prs-card" role="dialog" aria-label="' + esc(title) + '">'
+    + '<div class="as-grip"></div>'
+    + '<div class="prs-h"><b>' + esc(title) + '</b>' + (sub ? '<i>' + esc(sub) + '</i>' : '') + '</div>'
+    + '<div class="prs-list">' + btns + '</div>'
+    + '</div>';
+  el.hidden = false;
+  setTimeout(() => el.classList.add('on'), 16);   // setTimeout ไม่ใช่ rAF — เหตุผลเดียวกับ openAddSheet
+  if (typeof haptic === 'function') haptic('tap');
+}
+
+// instant = ปิดทันทีไม่รอแอนิเมชัน — ใช้ตอนกดปุ่มที่พาไปชั้นอื่น (โหมดโฟกัส/ฟอร์ม) จะได้ไม่มีแผ่นค้างครึ่งทางทับกัน
+function closePlanRowSheet(instant) {
+  const el = document.getElementById('planRowSheet');
+  planRowSheetId = null;
+  if (!el || el.hidden) return;
+  el.classList.remove('on');
+  clearTimeout(el._closeT);
+  if (instant) { el._closeT = 0; el.hidden = true; el.innerHTML = ''; return; }
+  el._closeT = setTimeout(() => { el._closeT = 0; el.hidden = true; el.innerHTML = ''; }, 200);
+}
+
+function planRowAct(key) {
+  const id = planRowSheetId;
+  const t = id && state.tasks.find(x => x.id === id);
+  const a = planRowSheetActs.find(x => x.key === key);
+  closePlanRowSheet(true);
+  // งานเสร็จไประหว่างที่แผ่นเปิดอยู่ (ซิงก์ · ติ๊กจากที่อื่น) — กด "เสร็จแล้ว" ซ้ำ toggleDone จะยกเลิกการเสร็จ
+  if (!t || t.done || !a) return;
+  a.run(id);
+}
+
+// ============================================================
 // สามตัวเลขที่ปฏิทินให้ไม่ได้
 // ------------------------------------------------------------
 // นิยามที่ใช้ และเหตุผลที่เลือกนิยามนี้:
@@ -418,14 +498,7 @@ function saiDayRows(now) {
   return rows;
 }
 
-// ---------- ความสูงของบล็อก ----------
-// เชิงเส้นตรง ๆ แล้วคาบเรียนแปดชั่วโมงจะสูง 480 หน่วย ต้องเลื่อนจอสามรอบกว่าจะพ้น
-// ปิดเพดานไว้ที่ 128 และพื้นที่ 34 — ยังเห็นชัดว่าอะไรกินเวลามากกว่าอะไรหลายเท่า
-// โดยที่ทั้งวันยังอยู่ในจอเดียวครึ่ง ซึ่งเป็นจุดที่ "เห็นทั้งวัน" ยังเป็นจริง
-const SAI_PXMIN = 0.24, SAI_HMIN = 34, SAI_HMAX = 128;
-function saiBlockH(min) {
-  return Math.round(Math.max(SAI_HMIN, Math.min(SAI_HMAX, (min || 0) * SAI_PXMIN)));
-}
+// ความสูงของบล็อกตามเวลา (saiBlockH) ถูกถอดพร้อมเส้นเวลาแบบกล่องซ้อน (20 ต.ค. 69) — รายการแบบ ก ไม่ใช้ความสูงบอกความยาว
 
 function renderSaiPlan() {
   const el = document.getElementById('saiBody');
@@ -494,64 +567,71 @@ function renderSaiPlan() {
     say = 'วันนี้เต็มไปหมดแล้ว พรุ่งนี้เริ่มใหม่ได้เต็มวันนะ';
   }
 
-  // ---- เส้นเวลา: เริ่มที่ "ตอนนี้" ----
-  // เดิมเริ่มจากตื่นนอนเสมอ — เที่ยงแล้วจอยังขึ้น "ตื่นนอน 06:00 · ว่าง 15 ชม. 30 นาที ตั้งแต่ 06:00"
-  // ต้องเลื่อนผ่านช่วงที่ผ่านไปแล้ว และตัวเลขเวลาว่างนับรวมเวลาที่หมดไปแล้วด้วย
-  // ตอนนี้: แถวที่จบไปแล้วพับไว้ใต้ปุ่มเดียว · ช่องว่างที่กำลังอยู่ นับจากตอนนี้ (ของจริงที่เหลือ)
-  // แถวที่กำลังเกิด (คาบเรียนที่ยังไม่เลิก) ยังอยู่ — มันคือของที่ตอนนี้ต้องอยู่จริง
-  const allRows = saiDayRows(now);
-  const endOf = r => (r.to != null ? r.to : r.at);
-  const pastN = allRows.filter(r => endOf(r) <= nowMin && r.at < nowMin).length;
-  const rows = saiShowPast ? allRows : allRows
-    .filter(r => !(endOf(r) <= nowMin && r.at < nowMin))
-    .map(r => (r.kind === 'free' && !r.over && r.at < nowMin
-      ? Object.assign({}, r, { at: nowMin, title: 'ว่าง ' + hm(r.to - nowMin) })
-      : r));
-  let markedNow = false;
-  let rowN = 0;
-  const list = rows.map(r => {
-    let pre = '';
-    // แถวที่เริ่ม "ตอนนี้" พอดี (ช่องว่างที่ตัดมาเริ่มที่ตอนนี้) — ป้ายเวลาของแถวเขียนว่า ตอนนี้ แทนเส้นแดง
-    // เดิมขึ้นเวลาเดียวกันสองครั้งติดกัน: เส้น "17:47" แล้วแถว "17:47"
-    const isNow = !markedNow && r.at === nowMin && !saiShowPast;
-    if (!markedNow && r.at >= nowMin) {
-      markedNow = true;
-      if (!isNow) pre = '<div class="sd-now"><span><em></em>' + esc(min2hm(nowMin))
-        + '</span><i></i></div>';
+  // ---- ตารางทั้งวัน: รายการเรียงเวลาแถวเดียว (แบบ ก · เจ้าของเลือก 20 ต.ค. 69) ----
+  // เจ้าของ: "ลองแก้ข้างล่าง … ระบบอาจจะไม่ดี … มันคือแผนตารางเวลาทั้งวัน ต้องเป็นยังไง" → เลือกแบบ ก จากสามแบบ
+  // ของเดิมเป็นกล่องซ้อนสองชั้น: ก้อน "ว่าง X ชม." แล้วงานซ้อนอยู่ข้างใน · ความสูงแปรตามเวลาแต่มีเพดาน
+  // (เรียน 8 ชม. สูงพอ ๆ กับว่าง 2 ชม.) · ต้องอ่านสองระดับกว่าจะรู้ว่ากี่โมงทำอะไร
+  // ตอนนี้ทุกอย่างเป็นแถวเดียวเรียงตามเวลา: เวลาซ้าย · การ์ดขวา
+  //   งาน = การ์ดเต็ม (แตะเปิดได้) · งานที่การ์ดบนบอกให้ทำ = ไฮไลต์ "ทำก่อน"
+  //   เรียน/กิจวัตร = การ์ดจาง · พัก/ตื่น/นอน = บรรทัดเล็กไม่มีการ์ด
+  //   เวลาว่างที่ยังไม่ได้จัดอะไร = เส้นประบาง ๆ "ว่าง 20 นาที" คั่นระหว่างแถว (ไม่ใช่กล่อง)
+  //   เส้นแดง "ตอนนี้" อยู่ตรงตำแหน่งเวลาจริง · ของที่จบไปแล้วพับไว้ใต้ปุ่ม (เหมือนเดิม)
+  // ข้อมูลยังมาจาก saiDayRows() ชุดเดิม — เปลี่ยนแค่วิธีวาง
+  const GAP_MIN = 10;   // ว่างน้อยกว่านี้ไม่ต้องขึ้นเส้น — เศษเวลาระหว่างงานไม่ใช่ข้อมูล
+  const nowAt = sp && sp.now && sp.now.slot ? sp.now.slot.start.getHours() * 60 + sp.now.slot.start.getMinutes() : null;
+  const nowId = sp && sp.now ? sp.now.task.id : null;
+  const items = [];
+  for (const r of saiDayRows(now)) {
+    if (r.kind === 'free') {
+      const from = saiShowPast ? r.at : Math.max(r.at, nowMin);
+      let cur = from;
+      for (const k of r.kids || []) {
+        if (!r.over && k.at - cur >= GAP_MIN) items.push({ kind: 'gap', at: cur, to: k.at });
+        items.push(k.brk
+          ? { kind: 'brk', at: k.at, to: k.at + k.min, title: 'พัก ' + hm(k.min) }
+          : { kind: 'job', at: k.at, to: k.at + k.min, title: k.title, id: k.id,
+              sub: [k.subject, hm(k.min), r.over ? 'เลยเวลาว่าง' : ''].filter(Boolean).join(' · '),
+              hot: k.id === nowId && k.at === nowAt });
+        cur = Math.max(cur, k.at + k.min);
+      }
+      if (!r.over && r.to - cur >= GAP_MIN) items.push({ kind: 'gap', at: cur, to: r.to });
+    } else if (r.kind === 'class' || r.kind === 'rt') {
+      items.push({ kind: 'busy', at: r.at, to: r.to, title: r.title, sub: 'ถึง ' + min2hm(r.to) });
+    } else {
+      items.push({ kind: r.kind, at: r.at, to: r.to != null ? r.to : r.at, title: r.title, sub: r.sub, id: r.id });
     }
-    const past = (r.to != null ? r.to : r.at) <= nowMin;
-    const span = (r.to != null ? r.to : r.at) - r.at;
-    const h = r.kind === 'wake' || r.kind === 'sleep' || r.kind === 'ev'
-      ? 0 : saiBlockH(span);
-
-    const kids = (r.kids || []).map(k => {
-      const tag = k.id ? 'button' : 'div';
-      const on = k.id ? ' onclick="openForm(\'' + k.id + '\')"' : '';
-      const meta = k.subject ? k.subject + ' · ' + hm(k.min) : hm(k.min);
-      return '<' + tag + ' class="sd-job' + (k.brk ? ' brk' : '') + '"' + on + '>'
-        + '<span class="sd-jt mono">' + esc(min2hm(k.at)) + '</span>'
-        + '<span class="sd-jx"><b>' + esc(k.title) + '</b><i>' + esc(meta) + '</i></span>'
-        + (k.id ? icon('chevron') : '')
-        + '</' + tag + '>';
-    }).join('');
-
-    // ⚠️ ราง <i> ถูกถอดออกใน 1C21 · เจ้าของ: "เวลาต้องเด่นสุด ... แล้วสีด้วยองค์ประกอบ"
-    // ของเดิมเวลาเป็นตัวเทาขนาด 12px อยู่ข้างเส้นราง แล้วทุกแถวหน้าตาเหมือนกันหมด
-    // ตอนนี้เวลาเป็นตัวหนา 17px คอลัมน์ซ้าย และก้อนขวามีพื้นสีตามหมวด
-    // ราง 2px กลายเป็นของที่ไม่ได้บอกอะไรเพิ่ม เพราะคอลัมน์เวลาเรียงเป็นเส้นให้อยู่แล้ว
-    // 9 ต.ค. 69 · ตื่น/นอนมีรูปพระอาทิตย์/พระจันทร์ · ช่องว่างมีป้ายนาฬิกา (เจ้าของ: "ทำให้ดูสวยและเป็นระเบียบ")
-    const ic = r.kind === 'wake' ? '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>' : r.kind === 'sleep' ? '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z"/></svg>'
-      : r.kind === 'free' ? '<span class="sd-tag"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>' : '';
-    rowN++;
-    return pre + '<div class="sd-r sd-' + r.kind + (past ? ' past' : '') + '" style="--n:' + rowN + '">'
-      + (isNow ? '<span class="sd-t sd-t-now">ตอนนี้</span>' : '<span class="sd-t">' + esc(min2hm(r.at)) + '</span>')
-      + '<span class="sd-x"' + (h ? ' style="min-height:' + h + 'px"' : '') + '>'
-      + (r.kind === 'wake' || r.kind === 'sleep' ? '<span class="sd-ic">' + ic + '</span>' : ic)
-      + '<b>' + esc(r.title) + '</b>'
-      + (r.sub ? '<i>' + esc(r.sub) + '</i>' : '')
-      + (kids ? '<span class="sd-jobs">' + kids + '</span>' : '')
-      + '</span></div>';
-  }).join('');
+  }
+  items.sort((a, b) => a.at - b.at || (a.kind === 'gap') - (b.kind === 'gap'));
+  const endedBefore = it => it.to <= nowMin && it.at < nowMin;
+  const pastN = items.filter(it => it.kind !== 'gap' && endedBefore(it)).length;
+  const shown = saiShowPast ? items : items.filter(it => !endedBefore(it));
+  const runNow = typeof runningWork === 'function' ? runningWork() : null;
+  const runId = runNow ? runNow.taskId : null;
+  let markedNow = false;
+  const nowLine = '<div class="dt-now"><span><em></em>' + esc(min2hm(nowMin)) + '</span><i></i></div>';
+  const list = shown.map((it, i) => {
+    let pre = '';
+    if (!markedNow && it.at >= nowMin) { markedNow = true; pre = nowLine; }
+    const past = endedBefore(it) ? ' past' : '';
+    const st = ' style="--n:' + (i + 1) + '"';
+    if (it.kind === 'gap') return pre + '<div class="dt-gap' + past + '"' + st + '>ว่าง ' + esc(hm(it.to - it.at)) + '</div>';
+    const time = '<span class="dt-t">' + esc(min2hm(it.at)) + '</span>';
+    if (it.kind === 'job') {
+      return pre + '<div class="dt-r dt-job' + (it.hot ? ' hot' : '') + past + '"' + st + '>' + time
+        // 20 ต.ค. 69 · แตะแถว = แผ่นล่างที่เริ่ม/เสร็จ/เลื่อนได้เลย (เดิมเปิดฟอร์มแก้ไข ไกลเกินสำหรับสิ่งที่ทำบ่อยสุด)
+        + '<button class="dt-c" onclick="openPlanRowSheet(\'' + it.id + '\',' + (it.to - it.at) + ')">'
+        + '<span class="dt-x"><b>' + esc(it.title) + '</b><i>' + esc(it.sub) + '</i></span>'
+        + (runId === it.id && typeof runTimerPill === 'function' ? runTimerPill('dt-timer')
+          : it.hot ? '<em class="dt-tag">ทำก่อน</em>' : icon('chevron')) + '</button></div>';
+    }
+    if (it.kind === 'busy' || it.kind === 'ev') {
+      return pre + '<div class="dt-r dt-' + it.kind + past + '"' + st + '>' + time
+        + '<div class="dt-c"><span class="dt-x"><b>' + esc(it.title) + '</b>' + (it.sub ? '<i>' + esc(it.sub) + '</i>' : '') + '</span></div></div>';
+    }
+    // พัก · ตื่น · นอน — บรรทัดเล็ก ไม่มีการ์ด
+    return pre + '<div class="dt-r dt-line dt-' + it.kind + past + '"' + st + '>' + time
+      + '<span class="dt-l">' + esc(it.title) + '</span></div>';
+  }).join('') + (markedNow ? '' : nowLine);
 
   // ---- การ์ดบนสุด: งานถัดไป + ปุ่มเริ่ม ----
   // เดิมคำตอบ "ทำอะไรต่อ" อยู่ในฟองคำพูด (อ่านได้แต่กดไม่ได้) และปุ่มเริ่มอยู่ท้ายจอ ใต้ทั้งวัน
@@ -567,13 +647,21 @@ function renderSaiPlan() {
     const subj = t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '';
     const mins = (slot && slot.min) || t.estMin || 0;
     const when = slot && slot.start > now && typeof fmtClock === 'function' ? 'ต่อไป · ' + fmtClock(slot.start) : 'ทำตอนนี้เลย';
-    top = '<section class="sai-hi sai-next">' + stage
+    // 20 ต.ค. 69 · กำลังจับเวลางานนี้อยู่ — เดิมจอแผนไม่บอกเลย · ป้ายกลายเป็นแคปซูลนาฬิกาที่เดินจริง (แบบ Timer ของ Cult UI)
+    const run = typeof runningWork === 'function' ? runningWork() : null;
+    const isRun = !!run && run.taskId === t.id;
+    // 20 ต.ค. 69 · การ์ดสีเต็มของธีม (สูตรเดียวกับการ์ดงานหน้าแรกที่เจ้าของชอบ) · ปุ่มเริ่มเต็มความกว้าง
+    // แถบผลลัพธ์ ("คืนนี้ไม่แตะ พรุ่งนี้ +…") ย้ายเข้ามาเป็นท้ายการ์ด — เดิมเป็นก้อนแยกอีกก้อน แย่งสายตากับการ์ด
+    top = '<section class="sai-hi sai-next sn-hero">' + stage
       + '<div class="sn-body">'
-      + '<span class="sn-k">' + esc(when) + '</span>'
+      + (isRun && typeof runTimerPill === 'function' ? runTimerPill('sn-timer') : '<span class="sn-k">' + esc(when) + '</span>')
       + '<b class="sn-t">' + esc(title) + '</b>'
       + '<i class="sn-m">' + esc([subj, mins ? hm(mins) : ''].filter(Boolean).join(' · ')) + '</i>'
-      + '<button class="sai-cta" onclick="startFocus(\'' + t.id + '\')">' + icon('play') + 'เริ่มทำเลย</button>'
-      + '</div></section>';
+      + '</div>'
+      + '<button class="sai-cta sn-go" onclick="startFocus(\'' + t.id + '\')">' + icon('play') + (isRun ? 'ทำต่อ' : 'เริ่มทำเลย') + '</button>'
+      + hero
+      + '</section>';
+    hero = '';
   } else {
     // ไม่มีงานให้เริ่ม — คำพูดของมาสคอตกลับมาเป็นพระเอก (ฟองมีหางชี้หามาสคอต · 9 ต.ค. 69)
     top = '<section class="sai-hi">' + stage
@@ -591,11 +679,12 @@ function renderSaiPlan() {
         + (saiShowPast ? 'ซ่อนช่วงที่ผ่านไป' : 'ดูช่วงที่ผ่านไป (' + pastN + ')') + '</button>'
       : '')
     + '</div>'
-    + '<div class="sd-list">' + list + '</div>'
+    + '<div class="dt">' + list + '</div>'
     + '<button class="sai-tour" onclick="saiTourStart()">'
       // 9 ต.ค. 69 · ถอดดาวหน้าป้ายออก (เจ้าของวงแดง: "ลบดาวนี้ออก")
       + 'ให้' + esc(mName()) + 'เล่าให้ฟังทีละข้อ</button>';
 
+  if (typeof paintRunTimers === 'function') paintRunTimers(runNow);
   saiStart();
 }
 

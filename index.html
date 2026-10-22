@@ -552,6 +552,9 @@
               และจอแรกที่คนเห็นคือที่ที่ตัวละครควรทักทายที่สุด -->
       <div class="screen" id="scr-login">
         <div class="login-wrap">
+          <!-- 20 ต.ค. 69 · ปุ่มกลับ — โผล่เฉพาะตอนเปิดจากในแอป (go() ตั้ง hidden ตาม backFrom) · ตอนเปิดแอปครั้งแรก/หลังออกจากระบบซ่อน -->
+          <button type="button" class="lg-back" onclick="goBack('scr-profile')" aria-label="กลับ" hidden>
+            <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
 
           <!-- L1 · ใบพระเอก — ใบเดียวของจอที่มีสี ตามกฎ 1C13
                ("ถ้ามีสองใบ มันเลิกแปลว่าสำคัญที่สุดทันที") -->
@@ -2334,6 +2337,9 @@
          el.hidden ว่า "เปิดอยู่แล้ว" แล้วเรียก refreshAddSheet() ไปแก้เนื้อในของเดิม
          ถ้าใช้กล่องเดียวกัน มันจะไปไล่แก้เนื้อแผ่นนี้แทน แล้วได้แผ่นพังที่ไม่มีใครเข้าใจ -->
     <div class="add-sheet" id="soonSheet" hidden></div>
+    <!-- 20 ต.ค. 69 · แผ่นแตะแถวงานในเส้นเวลาจอแผน (เริ่ม/เสร็จ/เลื่อน/แก้) — วาดจาก openPlanRowSheet() ใน sai.js
+         ต้องอยู่ใน HTML ตั้งแต่แรก: watchOverlays() ผูกตัวเฝ้ากับ id นี้ตอนเปิดแอป -->
+    <div class="add-sheet" id="planRowSheet" hidden></div>
     <div class="ai-sheet" id="aiSheet" hidden></div>
 
     <!-- ============ TAB BAR ============ -->
