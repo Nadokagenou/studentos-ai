@@ -45,3 +45,12 @@ test('fitting room uses memory and blocks account configuration; ordinary app is
  const regular=run('');assert.equal(regular.window.localStorage,regular.original);assert.equal(regular.window.SUPABASE_CONFIG.url,'real-account');
  const fitting=run('?halloween-showroom=1');assert.notEqual(fitting.window.localStorage,fitting.original);assert.ok(fitting.window.__HW_SHOWROOM__);fitting.window.SUPABASE_CONFIG={url:'must-not-connect'};assert.equal(fitting.window.SUPABASE_CONFIG.url,undefined);assert.ok(fitting.window.localStorage.getItem('studentos.alt.v1').includes('hw-sample-math'));
 });
+test('the collection parent keeps the fitting room isolated after query cleanup and worker reload',()=>{
+ const source=fs.readFileSync(new URL('../rewards/preview-mode.js',import.meta.url),'utf8');
+ for(const flag of [true,false,'true']){
+  const real={getItem(){return 'REAL DATA';},setItem(){throw Error('real storage write');}},window={parent:{__STUDENTOS_HALLOWEEN_COLLECTION__:flag},localStorage:real,sessionStorage:real,SUPABASE_CONFIG:{url:'real-account'}},document={documentElement:{dataset:{}}};
+  vm.runInNewContext(source,{window,document,location:{search:''},URLSearchParams});
+  assert.equal(window.__HW_SHOWROOM__===true,flag===true);
+  if(flag===true){assert.notEqual(window.localStorage,real);assert.equal(window.SUPABASE_CONFIG.url,undefined);}else assert.equal(window.localStorage,real);
+ }
+});

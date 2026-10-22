@@ -1,5 +1,6 @@
 (() => {
  'use strict';
+ window.__STUDENTOS_HALLOWEEN_COLLECTION__=true;
  const C=window.StudentOSHalloweenRewards,grid=document.getElementById('rewardGrid'),dialog=document.getElementById('rewardDialog'),frame=document.getElementById('rewardApp');
  const kinds={all:'ทั้งหมด',room:'ของแต่งห้อง',costume:'ชุดมาสคอต',theme:'ธีม',effect:'เอฟเฟกต์',relic:'วัตถุ Mystical',badge:'เหรียญ'};
  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
