@@ -14972,4 +14972,6 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
   #menuBody > .dc-line + * { margin-top: 0; }
   #menuBody > .saih { margin-bottom: 0; }
   #menuBody > .saih + .td-ask { margin-top: 0; }
+  /* แถบตัวเลข (.td-stats) โผล่ใต้การ์ดงานบางวัน — เดิมห่าง 19 (gap 9 + margin บน 10) ให้เท่าก้อนอื่น */
+  #menuBody > .td-stats { margin-top: 0; }
 }
