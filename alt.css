@@ -14975,3 +14975,39 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
   /* แถบตัวเลข (.td-stats) โผล่ใต้การ์ดงานบางวัน — เดิมห่าง 19 (gap 9 + margin บน 10) ให้เท่าก้อนอื่น */
   #menuBody > .td-stats { margin-top: 0; }
 }
+
+/* ============================================================
+   หน้าแรกจอแท็บเล็ต/จอกลาง 600–1023px · ให้อยู่ในจอเดียวไม่ต้องเลื่อน · 23 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ (ภาพแอปหลักที่ ~900px · ไทล์จัตุรัส 144px ล้นจอ): "ทำให้มันอยู่ในหน้าจอสิ"
+   วัดจริงที่ 894×889: แอปหลักสูง 1100 (ล้น 211) · alt สูง 891 (พอดีจอ)
+   alt พอดีเพราะผังแท็บเล็ตใน alt/device-preview-controls.css (มากับ 1cfd5ca)
+   ยกมาเฉพาะผังแท็บเล็ต (กฎใน @media ชุดเดียวกัน ค่าเดียวกัน) — ไม่เอาปุ่ม/หน้า "ตรวจหน้าจอ ALT" มาด้วย
+   ไม่ใช่การซิงก์ alt · แก้ที่ alt แล้วต้องย้ายตามเองที่นี่
+   • จอเต็มความกว้าง ไม่มีกรอบมือถือ · แถบเมนูกลับมาเป็นแถบล่าง (แถบข้างซ้ายแคบเกินที่จอขนาดนี้)
+   • หน้าแรกสองคอลัมน์: แถบตัวเลขคู่กับการ์ดน้องฮูก · ไทล์ 44px แทนจัตุรัสเต็มช่อง
+   • มือถือ (ต่ำกว่า 600) กับจอใหญ่ (1024 ขึ้นไป · desktop.css) ไม่แตะ
+   ============================================================ */
+@media (min-width: 600px) and (max-width: 1023px) {
+ :root body:not(.login-mode) .stage{padding:0;display:block;width:100%;max-width:none;height:100dvh}
+ :root body:not(.login-mode) .phone{width:100%;max-width:none;height:100dvh;border:0;border-radius:0}
+ :root body:not(.login-mode) .stage-note{display:none}
+ :root body:not(.login-mode) .screen{padding-inline:clamp(28px,6vw,70px)}
+ :root body:not(.login-mode) .tabbar{max-width:650px;margin-inline:auto;left:0;right:0}
+ :root body:not(.login-mode) :is(.th-grid,.mt-grid){grid-template-columns:repeat(3,minmax(0,1fr))}
+ :root body:not(.login-mode) #menuBody{max-width:760px;margin-inline:auto}
+ :root body:not(.login-mode) .screens{margin-left:0!important}
+ :root body:not(.login-mode) .as-card{left:0;right:0;bottom:0;width:auto;max-width:none}
+ :root body:not(.login-mode) .tabbar{top:auto!important;bottom:14px!important;width:calc(100% - 56px)!important;height:68px!important;min-height:0;flex-direction:row!important;justify-content:space-around;padding:6px 10px!important;transform:none!important}
+ :root body:not(.login-mode) .tabbar .tab{flex:1;min-height:48px!important;height:auto!important;padding:3px!important;gap:3px!important}
+ :root body:not(.login-mode) .tabbar .scan-dot{width:38px;height:38px;margin:0!important}
+ :root body:not(.login-mode) #scr-menu{padding-bottom:96px!important}
+ :root body:not(.login-mode) #menuBody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 18px;padding:22px 30px}
+ :root body:not(.login-mode) #menuBody>:is(.td-head,.dc-line,.td-now,.td-clear,.td-ask,.td-tiles){grid-column:1/-1;margin-block:0}
+ :root body:not(.login-mode) #menuBody>.td-railwrap{margin:0;align-self:center}
+ :root body:not(.login-mode) #menuBody .tg-t{height:72px;min-height:0}
+ :root body:not(.login-mode) #menuBody .tg-ic{width:44px;height:44px}
+ /* ของแอปหลักเอง (alt ยังไม่มี): ก้อนเต็มแถวโดนเพดาน 620px (กฎ "ทุกก้อนกว้างเท่ากัน" ที่ 720px ขึ้นไป)
+    แต่คู่สองคอลัมน์รวมกันกว้าง 690 → การ์ดน้องฮูกยื่นเลยขอบขวาของก้อนอื่น · ปลดเพดานในผังนี้ ขอบขวาจึงตรงกันทุกก้อน */
+ :root body:not(.login-mode) #scr-menu .menu-body>*{max-width:none}
+}
