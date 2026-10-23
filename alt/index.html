@@ -41,6 +41,12 @@
         ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
         : 'light');
       document.documentElement.dataset.theme = t;
+      // ธีม Moon & Candle มีสองโทน (กลางคืน/แสงจันทร์) — ต้องติดก่อนวาดจอแรก ไม่งั้นโทนสว่างกะพริบเป็นมืดก่อน
+      // (CSS ของโทนอยู่ใต้ [data-theme="moonlight"] เท่านั้น ธีมอื่นไม่สนแอตทริบิวต์นี้)
+      // คีย์ต้องตรงกับ TONE_KEY ใน halloween/rewards/theme-main.js
+      var hwLight = false;
+      try { hwLight = localStorage.getItem('studentos.alt.halloween.tone') === 'light'; } catch (e) {}
+      if (hwLight) document.documentElement.dataset.hwTone = 'light';
       // โหมดเครื่องเบา — ต้องติดก่อนวาดจอแรก ไม่งั้นเครื่องช้าได้วาดของหนักไปหนึ่งรอบก่อนถูกถอด
       // ธงมาจากการวัดจริงรอบก่อน (liteProbe ใน app.js) · แรมต่ำกว่า 4GB (Chrome บอกได้) = เบาตั้งแต่ครั้งแรก
       // Chrome ปัดแรมลงเป็นเลขยกกำลังสอง (3GB → 2 · เครื่องที่ขายว่า 4GB แต่ระบบเห็น 3.7 → 2) จึงได้แค่ 2 หรือ 4 — < 4 คือ "ต่ำกว่า 4GB" ตรงตัว
@@ -62,7 +68,7 @@
         if (ios && vp && vp.content.indexOf('maximum-scale') < 0) vp.content += ', maximum-scale=1';
       } catch (e) {}
       var m = document.querySelector('meta[name=theme-color]');
-      if (m) m.content = BAR[t];
+      if (m) m.content = (t === 'moonlight' && hwLight) ? '#F3EDFF' : BAR[t];
     })();
   </script>
   <link rel="manifest" href="manifest.json">
@@ -139,6 +145,8 @@
   <link rel="stylesheet" href="halloween/rewards/theme-main.css">
   <link rel="stylesheet" href="halloween/rewards/biome-themes.css">
   <link rel="stylesheet" href="halloween/rewards/effect-games.css">
+  <!-- ธีมตัวอย่าง Moon & Candle — แยกจาก Halloween ทุกกฎ ให้ทีมพัฒนาต่อ (halloween/docs/moon-and-candle.md) -->
+  <link rel="stylesheet" href="halloween/rewards/theme-moonlight.css">
 </head>
 <body>
 
@@ -2177,6 +2185,7 @@
               <a class="alt-lab-entry" href="device-preview.html">ตรวจหน้าจอ ALT · มือถือ / แท็บเล็ต / คอม ↗</a>
               <div class="th-grid" id="themePick">
                 <button type="button" data-th="halloween" onclick="setTheme('halloween')"><span class="sw sw-halloween"></span><span class="nm">Halloween</span></button>
+                <button type="button" data-th="moonlight" onclick="setTheme('moonlight')"><span class="sw sw-moonlight"></span><span class="nm">Moon &amp; Candle</span></button>
                 <button type="button" class="th-sys" data-th="system" onclick="setTheme('system')">
                   <span class="sw sw-system"></span><span class="nm">ตามระบบ</span></button>
                 <button type="button" data-th="light" onclick="setTheme('light')">
