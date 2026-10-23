@@ -19,6 +19,15 @@
     const npc=NPCs.characters[id];if(!npc)return '';
     return '<span class="npc-sprite" role="img" aria-label="'+esc(npc.name)+'" data-npc-sprite="'+id+'" style="--sprite-x:'+(npc.sprite%4*100/3)+'%;--sprite-y:'+(npc.sprite<4?0:100)+'%"></span>';
   }
+  function weaponArt(type,color='#c7b3df'){
+    const index={spear:0,axe:1,quill:2,scythe:3}[type]??0;
+    return '<span class="weapon-sprite" aria-hidden="true" style="--weapon-x:'+index*100/3+'%"></span>';
+  }
+  function hero(c,weaponId=c.doc.event.equipment){
+    const status=c.Core.weaponStatus(c.doc,c.config,weaponId),w=status.usable?status.weapon:null;
+    return '<span class="hero-pixel" role="img" aria-label="นักผจญภัย'+(w?' ถือ '+esc(w.name):' ยังไม่มีอาวุธ')+'"><span class="rpg-sprite" aria-hidden="true" style="--atlas-x:'+(c.doc.event.secretEnding?100:0)+'%;--atlas-y:'+(c.doc.event.secretEnding?100:0)+'%"></span>'+(w?'<span class="hero-weapon" style="--weapon-color:'+w.color+'">'+weaponArt(w.type,w.color)+'</span>':'')+'</span>';
+  }
+  function player(c){return '<div class="world-player" aria-hidden="true">'+hero(c)+'</div>';}
   function npcSpot(id,attrs,x,y,mobile=[x,y]){
     const npc=NPCs.characters[id];
     return '<button class="world-spot npc-character npc-spot'+(x<25?' label-right':x>75?' label-left':'')+'" style="--x:'+x+'%;--y:'+y+'%;--px:'+mobile[0]+'%;--py:'+mobile[1]+'%" '+attrs+' aria-label="คุยกับ '+esc(npc.name)+'">'+portrait(id)+'<span class="spot-label">คุยกับ '+esc(npc.name)+'</span></button>';
@@ -28,7 +37,7 @@
     const meta=NPCs.rooms[id],npc=meta.npc;
     const positions={shop:[55,82],cauldron:[32,78],ritual:[79,76]};
     const p=positions[id],mobile={shop:[53,78],cauldron:[26,78],ritual:[79,79]}[id],props=id==='shop'?spot('คุยกับพ่อค้า · ขายผลผลิต','data-npc="morro" data-topic="garden"',20,46,'',[17,49])+spot('ตู้สินค้า','data-npc="morro"',87,51,'',[84,46]):id==='cauldron'?spot('เตาผสมของมอรา','data-npc="mora"',78,58,'',[79,56]):spot('วงเวทอัญเชิญ','data-npc="vesper"',48,65,'',[47,69]);
-    return '<section class="world-page room-page"><div class="world-title"><small>THE MIDNIGHT ACADEMY</small><h1>'+meta.name+'</h1></div>'+scene(id,meta.name,npcSpot(npc,'data-npc="'+npc+'"',p[0],p[1],mobile)+props,'room-scene room-'+id)+'<p class="scene-help">ชี้หรือแตะบริเวณที่สนใจเพื่อดูชื่อ · คลิกตัวละครเพื่อคุย</p></section>';
+    return '<section class="world-page room-page"><div class="world-title"><small>THE MIDNIGHT ACADEMY</small><h1>'+meta.name+'</h1></div>'+scene(id,meta.name,npcSpot(npc,'data-npc="'+npc+'"',p[0],p[1],mobile)+props+player(c)+(id==='ritual'?spot('บัลลังก์เที่ยงคืน','data-boss-list',68,35,'boss-sign',[70,37]):''),'room-scene room-'+id)+'<p class="scene-help">ชี้หรือแตะบริเวณที่สนใจเพื่อดูชื่อ · คลิกตัวละครเพื่อคุย</p></section>';
   }
   function pixelCrop(index){
     const stem='<path d="M7 11h2v12H7zM3 16h4v2H3zM9 14h4v2H9z" fill="#547c67"/>';
@@ -61,14 +70,15 @@
     if(i===1&&doc.event.quests['jack-clear-garden']?.phase!==1){gameAttrs=doc.event.quests['jack-clear-garden']?.complete?'data-route="garden"':'data-quest="jack-clear-garden"';gameLabel=doc.event.quests['jack-clear-garden']?.complete?'สวนพร้อมปลูกแล้ว':'คุยกับ Jack เพื่อเปิดสวน';}
     if(i===3&&!doc.event.quests['win-death-fragments']?.complete){gameAttrs='data-quest="win-death-fragments"';gameLabel='รับพลั่วจาก Win';}
     const ghostAttrs=!doc.event.quests['win-death-fragments']?.complete?'data-quest="win-death-fragments"':!doc.event.proofs['grave-digging']?.complete?'data-game="grave-digging"':'data-game="catch-all-ghosts"';
-    const extra=(i===3?spot('จับผี',ghostAttrs,74,34,'',[70,35]):'')+spot('นักเดินทาง','data-visitors',28,84,'',[43,84])+spot('หาของ · เคาะบ้าน','data-route="village"',12,35,'village-sign',[15,30]);
+    const boss=Object.entries(config.proposals.bosses||{}).find(([,b])=>b.biome===id),bossReady=boss&&doc.event.quests[boss[1].quest]?.complete;
+    const extra=(i===3?spot('จับผี',ghostAttrs,74,34,'',[70,35]):'')+spot('นักเดินทาง','data-visitors',28,84,'',[43,84])+spot('หาของ · เคาะบ้าน','data-route="village"',12,35,'village-sign',[15,30])+player(c)+(bossReady?spot((doc.event.bossWins?.[boss[0]]?'✓ พิชิตแล้ว · ':'ท้าบอส · ')+boss[1].name,'data-boss="'+boss[0]+'"',48,48,'boss-sign',[50,50]):'');
     return '<section class="world-page"><div class="world-title"><small>'+esc(meta.name)+'</small><h1>'+thai[i]+'</h1>'+(c.difficulty?.[id]?'<button class="biome-level" data-open-balance>ความยาก '+esc(c.difficulty[id])+' · ดูเกณฑ์</button>':'')+'</div>'+scene(shorts[i],thai[i],npc+spot(gameLabel,gameAttrs,games[2],games[3],'',[[72,42],[25,51],[70,41],[27,59]][i])+extra+spot('กลับไปปลูกที่สวนรัตติกาล','data-route="garden"',i===1?57:53,88,'',[56,87])+spot('อ่านเรื่องราวอีกครั้ง','data-story="'+id+'"',90,18,'',[88,35])+(i===0&&doc.event.repairs?spot('ซ่อมเรือ · '+doc.event.repairs+' Candy','data-action="repair"',62,57):''))+'</section>';
   }
   function cropState(c,id){
     const {Core,config,doc,now}=c,i=Core.BIOMES.indexOf(id),crop=config.proposals.crops[id];
     const g=(i===1?doc.event.garden:doc.event.gardens?.[id])||{plantedAt:null,watered:false};
     const planted=g.plantedAt!=null,until=planted?g.plantedAt+config.proposals.garden.growthMs:null;
-    return {id,index:i,crop,g,planted,until,ready:planted&&g.watered&&Core.moment(doc,now)>=until,unlocked:i!==1||doc.event.inventory['jacks-hollow-plot']>0,seeds:doc.event.inventory[crop.seed]||0,harvested:Math.min(doc.event.grown[crop.harvest]||0,doc.event.inventory[crop.harvest]||0)};
+    return {id,index:i,crop,g,planted,until,ready:planted&&g.watered&&Core.moment(doc,now)>=until,unlocked:Core.gardenUnlocked(doc),seeds:doc.event.inventory[crop.seed]||0,harvested:Math.min(doc.event.grown[crop.harvest]||0,doc.event.inventory[crop.harvest]||0)};
   }
   function garden(c){
     const {Core}=c;
@@ -80,10 +90,10 @@
   }
   function village(c){
     const {Core,config,doc,now,duration}=c,id=Core.biomeAt(doc,config,now).id;
-    return '<p class="village-intro">หมู่บ้านใน'+thai[Core.BIOMES.indexOf(id)]+' · แหล่งวัตถุดิบส่งเควส</p><p class="subtle">แนะนำ Treat: รับ 10 Candy และมีสิทธิ์สุ่มของ 60% (บางระดับยังไม่มีของ) ส่วน Trick ลุ้น 20/0 Candy ถ้าได้ 0 จะไม่ได้วัตถุดิบ ของที่สุ่มอาจไม่ใช่ชิ้นที่ต้องการ</p><section class="village-lane">'+Array.from({length:5},(_,n)=>{
+    return '<p class="village-intro">หมู่บ้านใน'+thai[Core.BIOMES.indexOf(id)]+' · แหล่งวัตถุดิบส่งเควส</p><p class="subtle">แนะนำ Treat: รับ 10 Candy และมีสิทธิ์สุ่มของ 60% ส่วน Trick ลุ้น 20/0 Candy ถ้าได้ 0 จะไม่ได้วัตถุดิบ ของที่สุ่มอาจไม่ใช่ชิ้นที่ต้องการ</p><section class="village-lane">'+Array.from({length:5},(_,n)=>{
       const a=Core.houseAvailability(doc,config,n+1,now),at=Core.moment(doc,now),wait=a.availableAt;
       return '<button class="village-door" data-knock="'+(n+1)+'" '+(!a.ready||doc.event.closed?'disabled':'')+'><span aria-hidden="true">⌂</span><b>บ้าน '+(n+1)+'</b><small data-house-status="'+(n+1)+'">'+(a.ready?'เคาะประตู':(a.remaining===0?'เปิดได้เร็วสุดอีก ':'เปิดอีก ')+duration(wait-at))+'</small></button>';
     }).join('')+'</section><p class="tiny">บ้านที่เคาะแล้วพัก 4 ชั่วโมง แยกแต่ละหลังและไบโอม · เพดานนับย้อนหลัง 24 ชั่วโมง</p><p class="subtle" data-house-limit></p><button class="secondary" data-open-balance>ดูโอกาสได้ของและความยาก</button>';
   }
-  return {gate,hub,biome,garden,room,portrait,cropState,shouldArm,village,thai,portraits};
+    return {gate,hub,biome,garden,room,portrait,hero,weaponArt,player,cropState,shouldArm,village,thai,portraits};
 });

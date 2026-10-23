@@ -52,7 +52,8 @@
     if(game)level=Math.max(level,timed?3:2);if(dependencies.size)level=Math.max(level,3);
     const nextCycle=!!q.availability?.mustWaitForNextOccurrence;
     if(nextCycle)level=Math.max(level,4);
-    return {level,label:labels[level-1],items,bottleneck,expectedDraws:draws,dependencies:[...dependencies],game,timed,nextCycle,candy};
+    const boss=!!q.bossId;if(boss)level=Math.max(level,4);
+    return {level,label:labels[level-1],items,bottleneck,expectedDraws:draws,dependencies:[...dependencies],game,timed,nextCycle,candy,boss};
   }
   function cooldownComparison(config,hours){
     const rules=config.materials.houseCandy,sets=Math.ceil(rules.maxHouseCandyPer24Hours/(rules.housesPerSet*rules.treat));

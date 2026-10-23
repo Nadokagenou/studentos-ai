@@ -9,17 +9,73 @@
     "itemSelection": "uniform",
     "emptyPool": "no-item"
   },
-  "garden": {"growthMs": 60000, "yield": 3, "seedCost": 1, "waterRequired": true, "consumeShovel": false},
-  "randomBiomePotion":{"price":25,"durationMs":900000,"excludeCurrent":true},
+  "garden": {
+    "growthMs": 60000,
+    "yield": 3,
+    "seedCost": 1,
+    "waterRequired": true,
+    "consumeShovel": false
+  },
+  "randomBiomePotion": {
+    "price": 25,
+    "durationMs": 900000,
+    "excludeCurrent": true
+  },
   "crops": {
-    "dutchmans-soul":{"name":"สาหร่ายแสงวิญญาณ","seed":"crop-soulkelp-seed","harvest":"crop-soulkelp","request":"dutchmans-soul-seaweed","questSeeds":3,"sellCandy":8,"symbol":"✧"},
-    "jacks-hollow":{"name":"ฟักทอง","seed":"jacks-hollow-pumpkin-seed","harvest":"jacks-hollow-pumpkin","request":"jacks-hollow-rotten-pumpkin","questSeeds":3,"sellCandy":10,"symbol":"◆"},
-    "vampire-mansion":{"name":"กุหลาบโลหิต","seed":"crop-bloodrose-seed","harvest":"crop-bloodrose","request":"pending-garlic","questSeeds":3,"sellCandy":12,"symbol":"✿"},
-    "eternal-graveyard":{"name":"ดอกจันทร์วิญญาณ","seed":"crop-moonflower-seed","harvest":"crop-moonflower","request":"pending-human-bone","questSeeds":3,"sellCandy":12,"symbol":"✦"}
+    "dutchmans-soul": {
+      "name": "สาหร่ายแสงวิญญาณ",
+      "seed": "crop-soulkelp-seed",
+      "harvest": "crop-soulkelp",
+      "request": "dutchmans-soul-seaweed",
+      "questSeeds": 3,
+      "sellCandy": 8,
+      "symbol": "✧"
+    },
+    "jacks-hollow": {
+      "name": "ฟักทอง",
+      "seed": "jacks-hollow-pumpkin-seed",
+      "harvest": "jacks-hollow-pumpkin",
+      "request": "jacks-hollow-rotten-pumpkin",
+      "questSeeds": 3,
+      "sellCandy": 10,
+      "symbol": "◆"
+    },
+    "vampire-mansion": {
+      "name": "กุหลาบโลหิต",
+      "seed": "crop-bloodrose-seed",
+      "harvest": "crop-bloodrose",
+      "request": "pending-garlic",
+      "questSeeds": 3,
+      "sellCandy": 12,
+      "symbol": "✿"
+    },
+    "eternal-graveyard": {
+      "name": "ดอกจันทร์วิญญาณ",
+      "seed": "crop-moonflower-seed",
+      "harvest": "crop-moonflower",
+      "request": "pending-human-bone",
+      "questSeeds": 3,
+      "sellCandy": 12,
+      "symbol": "✦"
+    }
   },
   "games": {
-    "shipStepSeconds": [15, 13, 11, 9, 7, 5],
-    "shipRepairCandy": [25, 30, 35, 40, 45, 50],
+    "shipStepSeconds": [
+      15,
+      13,
+      11,
+      9,
+      7,
+      5
+    ],
+    "shipRepairCandy": [
+      25,
+      30,
+      35,
+      40,
+      45,
+      50
+    ],
     "shipChestCandy": 35,
     "vines": 6,
     "differences": 5,
@@ -27,11 +83,23 @@
     "digSteps": 8,
     "ghostCount": 6
   },
-  "totem": {"durationMs": 900000, "price": 40, "advancesCycle": false},
+  "totem": {
+    "durationMs": 900000,
+    "price": 40,
+    "advancesCycle": false
+  },
   "taskCandy": 10,
   "taskDailyCap": 30,
-  "anonymousNpc": {"count": 2, "lifetimeMs": 3600000, "quantity": 2, "candy": 20},
-  "questQuantities": {"dech-rare-materials": 1, "dech-wrong-letter": 1},
+  "anonymousNpc": {
+    "count": 2,
+    "lifetimeMs": 3600000,
+    "quantity": 2,
+    "candy": 20
+  },
+  "questQuantities": {
+    "dech-rare-materials": 1,
+    "dech-wrong-letter": 1
+  },
   "shop": {
     "harbor-lantern": 40,
     "laughing-pumpkin": 40,
@@ -47,30 +115,214 @@
     "fx-soul-bloom": 160
   },
   "recipes": [
-    {"id":"brew-ship", "channel":"cauldron", "reward":"fx-dutchman-arrival", "candy":120, "items":[["dutchmans-soul-soul-anchor",2],["dutchmans-soul-seaweed",3]]},
-    {"id":"brew-jack", "channel":"cauldron", "reward":"fx-jacks-verdict", "candy":120, "items":[["jacks-hollow-jack-o-fire",2],["jacks-hollow-charcoal",1]]},
-    {"id":"brew-eclipse", "channel":"cauldron", "reward":"fx-crimson-eclipse", "candy":120, "items":[["pending-bat-wing",2],["pending-mystic-mirror",1]]},
-    {"id":"brew-gate", "channel":"cauldron", "reward":"fx-reaper-gate", "candy":120, "items":[["pending-soul-vessel",2],["pending-soul-stick",1]]},
-    {"id":"summon-sai", "channel":"ritual", "reward":"sai-witch", "candy":100, "items":[["jacks-hollow-fabric-scraps",3],["jacks-hollow-candle",2]]},
-    {"id":"summon-hook", "channel":"ritual", "reward":"hook-mummy", "candy":100, "items":[["pending-human-bone",3],["jacks-hollow-fabric-scraps",3]]},
-    {"id":"midnight", "channel":"ritual", "reward":"theme-midnight-academy", "candy":300, "items":[], "requiresAllMainQuests":true}
-  ],
-  "additionalPools": {
-    "vampire-mansion": {
-      "Common":["pending-human-bone","pending-human-skull","pending-garlic"],
-      "Uncommon":["pending-bat-teeth","pending-bat-wing"],
-      "Rare":["pending-vampire-teeth"],
-      "Epic":["pending-mystic-mirror"],
-      "Legendary":["pending-pure-blood-skull"],
-      "Secret":[]
+    {
+      "id": "brew-ship",
+      "channel": "cauldron",
+      "reward": "fx-dutchman-arrival",
+      "candy": 120,
+      "items": [
+        [
+          "dutchmans-soul-soul-anchor",
+          2
+        ],
+        [
+          "dutchmans-soul-seaweed",
+          3
+        ]
+      ]
     },
-    "eternal-graveyard": {
-      "Common":["pending-human-bone","pending-scrap-iron"],
-      "Uncommon":["pending-human-skull","pending-zombie-arms"],
-      "Rare":["pending-soul-vessel","pending-monster-bone"],
-      "Epic":["pending-grim-scythe"],
-      "Legendary":["pending-soul-stick"],
-      "Secret":[]
+    {
+      "id": "brew-jack",
+      "channel": "cauldron",
+      "reward": "fx-jacks-verdict",
+      "candy": 120,
+      "items": [
+        [
+          "jacks-hollow-jack-o-fire",
+          2
+        ],
+        [
+          "jacks-hollow-charcoal",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "brew-eclipse",
+      "channel": "cauldron",
+      "reward": "fx-crimson-eclipse",
+      "candy": 120,
+      "items": [
+        [
+          "pending-bat-wing",
+          2
+        ],
+        [
+          "pending-mystic-mirror",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "brew-gate",
+      "channel": "cauldron",
+      "reward": "fx-reaper-gate",
+      "candy": 120,
+      "items": [
+        [
+          "pending-soul-vessel",
+          2
+        ],
+        [
+          "pending-soul-stick",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "summon-sai",
+      "channel": "ritual",
+      "reward": "sai-witch",
+      "candy": 100,
+      "items": [
+        [
+          "jacks-hollow-fabric-scraps",
+          3
+        ],
+        [
+          "jacks-hollow-candle",
+          2
+        ]
+      ]
+    },
+    {
+      "id": "summon-hook",
+      "channel": "ritual",
+      "reward": "hook-mummy",
+      "candy": 100,
+      "items": [
+        [
+          "pending-human-bone",
+          3
+        ],
+        [
+          "jacks-hollow-fabric-scraps",
+          3
+        ]
+      ]
+    },
+    {
+      "id": "midnight",
+      "channel": "ritual",
+      "reward": "theme-midnight-academy",
+      "candy": 300,
+      "items": [],
+      "requiresAllMainQuests": true,
+      "requiresBoss": "midnight-sovereign"
+    }
+  ],
+  "additionalPools": {},
+  "weapons": {
+    "greater-spear": {
+      "name": "Greater Spear of Dutchman",
+      "type": "spear",
+      "power": 18,
+      "color": "#81c7bc"
+    },
+    "jacks-axe": {
+      "name": "Axe of Jack'o Lantern",
+      "type": "axe",
+      "power": 20,
+      "color": "#eab06d"
+    },
+    "cruor-quill": {
+      "name": "Cruor Quill",
+      "type": "quill",
+      "power": 17,
+      "color": "#db829e"
+    },
+    "dullahan-scythe": {
+      "name": "Scythe of Dullahan",
+      "type": "scythe",
+      "power": 22,
+      "color": "#c4b1e5"
+    }
+  },
+  "bosses": {
+    "drowned-admiral": {
+      "name": "พลเรือเอกจมน้ำ",
+      "biome": "dutchmans-soul",
+      "quest": "dutchman-ghost-commander",
+      "theme": "theme-ghostship",
+      "hp": 110,
+      "damage": 20,
+      "weapon": "greater-spear",
+      "color": "#81c7bc",
+      "shape": "admiral",
+      "level": "ยาก",
+      "intro": "เจ้าคิดว่ารวบรวมมรดกครบแล้วจะได้ครองน่านน้ำรึ? ยกหอกขึ้น แล้วพิสูจน์ต่อหน้าข้า!"
+    },
+    "hollow-king": {
+      "name": "ราชาฟักทองไร้หน้า",
+      "biome": "jacks-hollow",
+      "quest": "jack-sweet-surprise",
+      "theme": "theme-jackhollow",
+      "hp": 125,
+      "damage": 22,
+      "weapon": "jacks-axe",
+      "color": "#eab06d",
+      "shape": "pumpkin",
+      "level": "ยาก",
+      "intro": "หัวของเขาคืนมาแล้ว... แต่รากคำสาปยังไม่ตาย! เอาขวานที่ได้มาโค่นมันก่อนรับธีมของข้า ฮิๆ!"
+    },
+    "blood-countess": {
+      "name": "เคาน์เตสกระจกโลหิต",
+      "biome": "vampire-mansion",
+      "quest": "dech-wrong-letter",
+      "theme": "theme-vampire",
+      "hp": 120,
+      "damage": 23,
+      "weapon": "cruor-quill",
+      "color": "#db829e",
+      "shape": "vampire",
+      "level": "ยากมาก",
+      "intro": "จดหมายผิดฉบับปลุกสิ่งที่อยู่ในกระจก... ข้าขอให้เจ้าใช้ Cruor Quill ปิดผนึกมันเสียก่อน!"
+    },
+    "headless-warden": {
+      "name": "ผู้คุมสุสานไร้เศียร",
+      "biome": "eternal-graveyard",
+      "quest": "win-unbind-scythe",
+      "theme": "theme-graveyard",
+      "hp": 145,
+      "damage": 24,
+      "weapon": "dullahan-scythe",
+      "color": "#c4b1e5",
+      "shape": "reaper",
+      "level": "ยากมาก",
+      "intro": "เคียวปลดผนึกแล้ว เหลือเพียงผู้คุมคำสาป จงพิสูจน์ว่าเจ้าคู่ควรกับสุสานนิรันดร์!"
+    },
+    "midnight-sovereign": {
+      "name": "ราชันเที่ยงคืน",
+      "biome": null,
+      "requiresThemes": true,
+      "hp": 240,
+      "damage": 28,
+      "color": "#d7ba81",
+      "shape": "sovereign",
+      "level": "สุดโหด",
+      "intro": "สี่ตราแห่งชัยชนะเปิดบัลลังก์นี้ได้ แต่ไม่มีใครเคยเดินกลับออกไปพร้อมมงกุฎ..."
+    },
+    "nameless-afterlight": {
+      "name": "เงาไร้นามหลังรุ่งสาง",
+      "biome": null,
+      "requiresBoss": "midnight-sovereign",
+      "requiresTheme": "theme-midnight-academy",
+      "hp": 300,
+      "damage": 30,
+      "color": "#c6a4ef",
+      "shape": "shadow",
+      "level": "บอสลับ · สุดโหด",
+      "intro": "คิดว่าได้ธีมแล้วจะจบหรือ? ข้าคือเงาที่หลบอยู่หลังแสงสุดท้าย หยิบอาวุธขึ้นมาอีกครั้ง!"
     }
   }
 }

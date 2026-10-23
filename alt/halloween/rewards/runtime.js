@@ -43,7 +43,7 @@
   if(!window.__HW_SHOWROOM__)fetch(new URL('../event/config.json',base),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(config=>{
    if(!config?.enabled)return;
    const target=document.getElementById('halloweenEventEntry');if(!target)return;
-   const destination=new URL('../event/index.html',base);if(config.claimingEnabled!==true)destination.searchParams.set('preview','1');destination.searchParams.set('rev','portrait-20261023');
+   const destination=new URL('../event/index.html',base);if(config.claimingEnabled!==true)destination.searchParams.set('preview','1');destination.searchParams.set('rev','rpg-bosses-20261023');
    const entry=document.createElement('a');entry.className='hw-collection-entry';entry.href=destination.href;entry.setAttribute('aria-label','เข้าอีเวนต์ Halloween');
    entry.innerHTML='<span aria-hidden="true">✧</span><span><b>เข้าอีเวนต์ Halloween</b><small>ประตูรัตติกาล · สำรวจ เควส ปลูกสวน และร้านเวทมนตร์</small></span><i>'+(config.claimingEnabled===true?'เข้าเล่น →':'ห้องลอง →')+'</i>';
    target.replaceChildren(entry);

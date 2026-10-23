@@ -83,6 +83,8 @@
     if(!content)return;
     openDetail(dialogShell(PANEL_NAMES[id],content(),'<button class="secondary" data-close-detail>กลับฉาก</button>'),()=>history.replaceState(null,'','#'+route));
     activePanel=id;detail.dataset.scenePanel=['shop','cauldron','ritual'].includes(id)?'room':'menu';detail.dataset.room=activeRoom||'';
+    if(id==='vault'){const b=document.createElement('button');b.className='primary';b.dataset.equipment='';b.textContent='อาวุธ · ถือและสวมใส่';detail.querySelector('.inventory-tabs').prepend(b);}
+    if(id==='village'){const b=document.createElement('button');b.className='secondary';b.dataset.itemPools='';b.textContent='ดูตารางของและขั้นตอนสุ่ม';detail.querySelector('.village-intro').after(b);}
     audio.setScene(activeRoom||route);
   }
   function acquisition(ids,channel) {
@@ -100,7 +102,7 @@
     try {
       const tx = crypto.randomUUID();
       const saved = await store.transact(tx,document => Core.dispatch(document,config,action,{now:Date.now(),tx}));
-      const cue=({house:saved.result.candy?'coins':'ghost',quest:'magic',plant:'water',water:'water',harvest:'harvest','sell-crop':'coins','drink-biome-potion':'magic','enter-biome':'door','enter-room':'door','game-move':'tap'})[action.type];if(cue)audio.play(cue);
+      const cue=({house:saved.result.candy?'coins':'ghost',quest:'magic',plant:'water',water:'water',harvest:'harvest','sell-crop':'coins','drink-biome-potion':'magic','enter-biome':'door','enter-room':'door','game-move':'tap','equip-weapon':'magic','start-boss':'ghost','battle-move':saved.result.battle?.clear?'magic':action.move==='skill'?'magic':'tap'})[action.type];if(cue)audio.play(cue);
       updateWallet(); updateBanner();
       if (!silent) render();
       return saved.result;
@@ -140,16 +142,21 @@
     const info=Guide.instructions(activeRoom||route);prefs.guideSeen=true;rememberPrefs();
     openDetail(dialogShell(first?'ยินดีต้อนรับ · เริ่มเล่นตรงนี้':info.title,'<p class="guide-intro">ทุกอย่างกดจากในฉากได้ ถ้าหาของไม่เจอ ให้กด “ดูวิธีหา” ใต้ของที่เควสต้องการ</p><ol class="guide-steps">'+info.steps.map(s=>'<li><h3>'+esc(s.title)+'</h3><p>'+esc(s.text)+'</p>'+(s.route?'<button class="secondary" data-route="'+s.route+'">'+esc(s.action)+'</button>':s.village?'<button class="secondary" data-guide-village>ไปหาวัตถุดิบ</button>':'')+'</li>').join('')+'</ol><button class="quiet-button" data-open-balance>โอกาสได้ของ · ความยากแต่ละ NPC</button>',(first?'<button class="secondary" data-start-with-sound>เริ่มพร้อมเสียงและอนิเมชัน</button>':'')+'<button class="primary" data-close-detail>เข้าใจแล้ว</button>'));
     detail.dataset.guide='true';
+    const catalogButton=document.createElement('button');catalogButton.className='secondary';catalogButton.dataset.itemPools='';catalogButton.textContent='ตารางของ · Trick/Treat · Breakthrough';detail.querySelector('.guide-intro').after(catalogButton);
+    const combatGuide=document.createElement('p');combatGuide.className='subtle';combatGuide.textContent='เควสสุดท้ายให้สิทธิ์ท้าผู้พิทักษ์ ต้องชนะจึงได้ธีม อาวุธถือได้จากกระเป๋า หลังพิชิตทั้งสี่ให้ไปวงเวทท้าราชันเที่ยงคืนก่อนรับธีมสุดท้าย';detail.querySelector('.dialog-footer').before(combatGuide);
   }
   function sourceButton(id,attrs=''){return '<button class="item-source-button" data-item-source="'+esc(id)+'" '+attrs+'>ดูวิธีหา</button>';}
   function percent(value){return (value*100).toLocaleString('th-TH',{maximumFractionDigits:2})+'%';}
   function showSources(id,back={}){
     sourceReturn=back;const priority=s=>s.kind==='game'?-4:s.biome===currentBiome()?-3:0;
-    const sources=Guide.sources(config,id).sort((a,b)=>priority(a)-priority(b)),best=Balance.best(config,id);
+    const origin=Guide.sources(config,id),home=origin.filter(s=>s.kind==='house');
+    const farms=home.length?Core.BIOMES.map(b=>({kind:'house',biome:b,rarity:home[0].rarity,native:home.some(s=>s.biome===b)})):[];
+    const sources=[...farms,...origin.filter(s=>s.kind!=='house')].sort((a,b)=>priority(a)-priority(b)),best=Balance.best(config,id);
     const content=sources.map(s=>{
+      if(s.kind==='boss')return '<article class="source-card"><h3>รางวัลจาก '+esc(config.proposals.bosses[s.boss].name)+'</h3><button class="primary" data-boss="'+s.boss+'">ดูการท้าทาย</button></article>';
       if(s.kind==='house'){
         const open=Core.portalStatus(read(),config,s.biome,Date.now()).open,p=Balance.chance(config,id,s.biome);
-        return '<article class="source-card"><h3>เคาะบ้านใน'+Guide.names[s.biome]+'</h3><p>ระดับ '+s.rarity+' · เมื่อใช้ Treat มีโอกาสได้ชิ้นนี้ '+percent(p)+' ต่อการเคาะ 1 ครั้ง รวมโอกาสข้ามไบโอมแล้ว เฉลี่ยประมาณ '+(1/p).toLocaleString('th-TH',{maximumFractionDigits:1})+' ครั้งต่อ 1 ชิ้น ไม่รับประกันจำนวนครั้ง</p><p class="tiny">'+(open?'ประตูนี้เปิดอยู่':'ประตูยังปิด รอรอบหรือใช้ Totem เปิดเส้นทางส่วนตัว')+'</p>'+(open?'<button class="primary" data-source-village="'+s.biome+'">ไปเคาะบ้านที่นี่</button>':'<button class="secondary" data-route="totems">ดูเส้นทาง Totem</button>')+'</article>';
+        return '<article class="source-card"><h3>เคาะบ้านใน'+Guide.names[s.biome]+'</h3><p>'+(s.native?'เป็นพูลหลักของชิ้นนี้':'ต้องติด Breakthrough ไปยังพูล'+home.map(x=>Guide.names[x.biome]).join(' / '))+' · ระดับ '+s.rarity+' · เมื่อใช้ Treat มีโอกาสได้ชิ้นนี้ '+percent(p)+' ต่อการเคาะ 1 ครั้ง รวมโอกาสข้ามไบโอมแล้ว เฉลี่ยประมาณ '+(1/p).toLocaleString('th-TH',{maximumFractionDigits:1})+' ครั้งต่อ 1 ชิ้น ไม่รับประกันจำนวนครั้ง</p><p class="tiny">'+(open?'ประตูนี้เปิดอยู่':'ประตูยังปิด รอรอบหรือใช้ Totem เปิดเส้นทางส่วนตัว')+'</p>'+(open?'<button class="primary" data-source-village="'+s.biome+'">ไปเคาะบ้านที่นี่</button>':'<button class="secondary" data-route="totems">ดูเส้นทาง Totem</button>')+'</article>';
       }
       if(s.kind==='quest')return '<article class="source-card"><h3>'+(s.upgrade?'ปลดข้อจำกัดในเควส ':'รางวัลเควส ')+s.order+' · '+esc(s.npc)+'</h3><p>อยู่ใน'+Guide.names[s.biome]+' ทำตามคำขอและส่งเควสให้ครบเฟส'+(s.upgrade?' ต้องมีไอเท็มชิ้นเดิมก่อน ไม่ได้รับเพิ่มอีกชิ้น':'')+'</p><button class="secondary" data-quest="'+s.quest+'">อ่านเควสนี้</button></article>';
       if(s.kind==='game')return '<article class="source-card"><h3>ผ่านเกมล่าสมบัติเรือผี</h3><p>รับโคมจาก Tang ก่อน แล้วผ่านเกมเรือเพื่อรับ Soul Anchor 1 ชิ้นพร้อม Candy</p><button class="secondary" data-quest="dutchman-light-in-darkness">ดูเควสรับโคมกับ Tang</button></article>';
@@ -158,7 +165,7 @@
       const location={shop:['ร้านมอร์โร','shop'],cauldron:['เตาของมอรา','cauldron-recipes'],ritual:['วงเวทอัญเชิญ','ritual-recipes'],potion:['แม่มดมอรา','cauldron']}[s.kind];
       return location?'<article class="source-card"><h3>'+location[0]+'</h3><p>เตรียม Candy และวัตถุดิบตามรายการก่อนรับของ</p><button class="secondary" data-route="'+location[1]+'">ไปที่นี่</button></article>':'';
     }).join('');
-    openDetail(dialogShell('วิธีหา '+esc(name(id)),'<p class="guide-intro">'+esc(Guide.summary(config,id))+'</p>'+content+(!sources.length?'<p class="subtle">ไอเทมนี้ยังไม่มีจุดรับในกติกาที่เปิดอยู่</p>':'')+(best.chance?'<p class="tiny">แนะนำ Treat สำหรับหาวัตถุดิบ · บ้านที่เคาะแล้วพัก 4 ชั่วโมง · อัตราในชุดลองเล่นยังรอยืนยัน</p>':''),'<button class="secondary" data-source-back>กลับ</button>'));
+    openDetail(dialogShell('วิธีหา '+esc(name(id)),'<p class="guide-intro">'+esc(Guide.summary(config,id))+'</p>'+content+(!sources.length?'<p class="subtle">ไอเทมนี้ยังไม่มีจุดรับในกติกาที่เปิดอยู่</p>':'')+(best.chance?'<p class="tiny">แนะนำ Treat สำหรับหาวัตถุดิบ · บ้านที่เคาะแล้วพัก 4 ชั่วโมง · อัตราของตามรายการล่าสุด · เวลาและราคาอื่นยังเป็นค่าห้องลอง</p>':''),'<button class="secondary" data-source-back>กลับ</button>'));
   }
   async function goToVillage(biome=currentBiome()){
     if(!Core.portalStatus(read(),config,biome,Date.now()).open){toast('ไบโอมนี้ยังไม่เปิดในรอบนี้',true);return;}
@@ -169,10 +176,10 @@
   function showBalance(){
     const cards=Core.BIOMES.map(biome=>{
       const qs=config.quests.filter(q=>q.biome===biome),rows=qs.map(q=>({q,d:Balance.difficulty(config,q)})),hardest=rows.reduce((a,b)=>a.d.level>=b.d.level?a:b);
-      return '<article class="source-card"><h3>'+esc(qs[0].npc)+' · '+Guide.names[biome]+'</h3><span class="difficulty" data-level="'+hardest.d.level+'">'+hardest.d.label+'</span><p>โอกาสได้วัตถุดิบสักชิ้นจาก Treat '+percent(Balance.anyItemChance(config,biome))+' ต่อครั้ง รวมระดับที่ไม่มีของและโอกาสข้ามไบโอมแล้ว</p>'+rows.map(({q,d})=>'<p><b>เควส '+q.order+' · '+d.label+'</b><br>'+(d.bottleneck?'ของบ้านรวมเฉลี่ย '+Math.ceil(d.expectedDraws)+' ครั้ง · คอขวด '+esc(name(d.bottleneck.id))+' '+d.bottleneck.need+' ชิ้น':'เน้น'+(d.game?'มินิเกม':'ทำเงื่อนไขเควส'))+(d.nextCycle?' · ต้องรอไบโอมรอบถัดไป':'')+'</p>').join('')+'</article>';
+      return '<article class="source-card"><h3>'+esc(qs[0].npc)+' · '+Guide.names[biome]+'</h3><span class="difficulty" data-level="'+hardest.d.level+'">'+hardest.d.label+'</span><p>โอกาสได้วัตถุดิบสักชิ้นจาก Treat '+percent(Balance.anyItemChance(config,biome))+' ต่อครั้ง รวมโอกาสข้ามไบโอมแล้ว ทุกระดับมีของครบ</p>'+rows.map(({q,d})=>'<p><b>เควส '+q.order+' · '+d.label+'</b><br>'+(d.bottleneck?'ของบ้านรวมเฉลี่ย '+Math.ceil(d.expectedDraws)+' ครั้ง · คอขวด '+esc(name(d.bottleneck.id))+' '+d.bottleneck.need+' ชิ้น':'เน้น'+(d.game?'มินิเกม':'ทำเงื่อนไขเควส'))+(d.nextCycle?' · ต้องรอไบโอมรอบถัดไป':'')+(d.boss?' · ต้องชนะบอสก่อนรับธีม':'')+'</p>').join('')+'</article>';
     }).join('');
     const four=Balance.cooldownComparison(config,4),one=Balance.cooldownComparison(config,1);
-    openDetail(dialogShell('โอกาสได้ของและความยาก','<p class="guide-intro">คำนวณจากอัตราของชุดลองเล่น ใช้ Treat สมมติเปลี่ยนไบโอมได้ทันทีและไม่มีค่าเดินทาง คิดการสะสมของทุกชิ้นร่วมกัน เป็นค่าเฉลี่ยทางสถิติ ไม่ใช่เวลาที่รับประกันว่าจะจบเควส</p><p class="tiny">ตารางนี้เริ่มของจากศูนย์ ของแจกเริ่มต้นและของที่มีอยู่ช่วยลดภาระได้ ส่วนระดับในหน้าคุยเควสคิดจากของที่คุณยังขาดอยู่</p><div class="guide-grid">'+cards+'</div><h3>บ้านพัก 4 ชม. เทียบแนวคิด 1 ชม.</h3><p class="subtle">สมมติอยู่ไบโอมเดิมและเคาะครบ 5 หลังทุกรอบ: ทั้งสองแบบติดเพดาน 300 Candy หลัง Treat '+four.attempts+' ครั้ง ซึ่งมีจังหวะสุ่มของเฉลี่ย '+four.expectedDraws+' ครั้งก่อนหักระดับที่ไม่มีของ แบบ 4 ชม. ใช้ประมาณ '+four.capHours+' ชม. ส่วน 1 ชม. ใช้ '+one.capHours+' ชม. จึงใช้โควตาเร็วขึ้น แต่ไม่ได้เพิ่มโควตาของต่อ 24 ชม.</p><p class="tiny">1 ชั่วโมงยังไม่ยืนยัน · การหมุนไบโอมทุก 6 ชั่วโมงและค่า Totem อาจทำให้เวลาที่เล่นจริงต่างจากสมมติฐานนี้</p><h3>งาน StudentOS เป็นอีกทางหา Candy</h3><p class="subtle">งานวันนี้ในเกมยังเป็นตัวอย่าง รับงานละ '+config.proposals.taskCandy+' Candy เพดาน '+config.proposals.taskDailyCap+' Candy/วัน แยกจากเพดานบ้าน ยังไม่เชื่อมการทำงานเรียนจริงของบัญชี</p>','<button class="secondary" data-close-detail>กลับฉาก</button><button class="primary" data-route="tasks">ดูงานวันนี้</button>'));
+    openDetail(dialogShell('โอกาสได้ของและความยาก','<p class="guide-intro">คำนวณจากตารางของล่าสุด ใช้ Treat สมมติเปลี่ยนไบโอมได้ทันทีและไม่มีค่าเดินทาง คิดการสะสมของทุกชิ้นร่วมกัน เป็นค่าเฉลี่ยทางสถิติ ไม่ใช่เวลาที่รับประกันว่าจะจบเควส</p><p class="tiny">ตารางนี้เริ่มของจากศูนย์ ผู้เล่นใหม่เริ่มสะสมเอง ของที่มีอยู่ช่วยลดภาระได้ ส่วนระดับในหน้าคุยเควสคิดจากของที่คุณยังขาดอยู่</p><div class="guide-grid">'+cards+'</div><h3>บ้านพัก 4 ชม. เทียบแนวคิด 1 ชม.</h3><p class="subtle">สมมติอยู่ไบโอมเดิมและเคาะครบ 5 หลังทุกรอบ: ทั้งสองแบบติดเพดาน 300 Candy หลัง Treat '+four.attempts+' ครั้ง ซึ่งมีจังหวะสุ่มของเฉลี่ย '+four.expectedDraws+' ครั้งทุกระดับมีของแล้ว แบบ 4 ชม. ใช้ประมาณ '+four.capHours+' ชม. ส่วน 1 ชม. ใช้ '+one.capHours+' ชม. จึงใช้โควตาเร็วขึ้น แต่ไม่ได้เพิ่มโควตาของต่อ 24 ชม.</p><p class="tiny">1 ชั่วโมงยังไม่ยืนยัน · การหมุนไบโอมทุก 6 ชั่วโมงและค่า Totem อาจทำให้เวลาที่เล่นจริงต่างจากสมมติฐานนี้</p><h3>งาน StudentOS เป็นอีกทางหา Candy</h3><p class="subtle">งานวันนี้ในเกมยังเป็นตัวอย่าง รับงานละ '+config.proposals.taskCandy+' Candy เพดาน '+config.proposals.taskDailyCap+' Candy/วัน แยกจากเพดานบ้าน ยังไม่เชื่อมการทำงานเรียนจริงของบัญชี</p>','<button class="secondary" data-close-detail>กลับฉาก</button><button class="primary" data-route="tasks">ดูงานวันนี้</button>'));
   }
   function syncMotionUI(){document.documentElement.dataset.motion=reduced()?'still':'full';document.querySelectorAll('[data-toggle-scene-motion]').forEach(b=>{b.textContent=reduced()?'▶':'Ⅱ';b.setAttribute('aria-label',reduced()?'เปิดอนิเมชัน':'หยุดอนิเมชัน');});if(reduced())finishTyping();}
   function npcSpeech(id,line){
@@ -184,7 +191,31 @@
     const line=npc.topics[topic]?.line||npc.greeting;
     const choices='<div class="npc-topics">'+Object.entries(npc.topics).map(([key,t])=>'<button class="quiet-button" data-npc="'+id+'" data-topic="'+key+'">'+esc(t.label)+'</button>').join('')+'</div>';
     const actions=npc.actions.map(a=>'<button class="primary" '+(a.route?'data-route="'+a.route+'"':a.action==='potion'?'data-open-potion':'data-trade')+'>'+esc(a.label)+'</button>').join('');
-    openDetail(dialogShell(esc(npc.name),npcSpeech(id,line)+choices,'<button class="secondary" data-close-detail>ไว้คุยกันใหม่</button>'+actions));
+    openDetail(dialogShell(esc(npc.name),npcSpeech(id,line)+choices,'<button class="secondary" data-close-detail>ไว้คุยกันใหม่</button>'+actions+(id==='vesper'?'<button class="primary" data-boss-list>ถามถึงบัลลังก์เที่ยงคืน</button>':'')));
+  }
+  function showEquipment(){
+    const doc=read();
+    openDetail(dialogShell('อาวุธของนักผจญภัย','<div class="equipment-hero">'+window.HalloweenWorld.hero(worldContext())+'</div><p class="subtle">อาวุธที่ได้รับจากเควสถือได้จริงและใช้สู้บอส เปลี่ยนชิ้นที่ถือได้ที่นี่ อาวุธไม่หายเมื่อแพ้หรือถอยกลับ</p><div class="equipment-grid">'+Object.entries(config.proposals.weapons).map(([id,w])=>{
+      const s=Core.weaponStatus(doc,config,id),q=config.quests.find(q=>q.rewards.some(r=>r.id===id&&r.kind!=='upgrade-existing'));
+      return '<article class="equipment-card"><div class="weapon-preview">'+window.HalloweenWorld.weaponArt(w.type,w.color)+'</div><h3>'+esc(w.name)+'</h3><p>พลัง '+w.power+' · '+(s.usable?'พร้อมถือ':s.reason)+'</p>'+(s.usable?'<button class="primary" data-equip-weapon="'+id+'" '+(doc.event.equipment===id?'disabled':'')+'>'+(doc.event.equipment===id?'กำลังถือ':'ถืออาวุธนี้')+'</button>':'<button class="secondary" data-quest="'+(s.owned?'win-unbind-scythe':q.id)+'">ดูเควสรับ / ปลดผนึก</button>')+'</article>';
+    }).join('')+'</div>','<button class="secondary" data-route="vault">กลับกระเป๋า</button>'));
+  }
+  function showBoss(id){
+    const status=Core.bossStatus(read(),config,id,Date.now()),rule=status.rule;if(!rule)return;
+    const usable=Core.weaponStatus(read(),config,read().event.equipment).usable;
+    openDetail(dialogShell(esc(rule.name),'<div class="boss-card-head">'+window.HalloweenBattleUI.bossArt(rule)+'<div><span class="difficulty" data-level="5">'+esc(rule.level)+'</span><p>พลังชีวิต '+rule.hp+' · โจมตี '+rule.damage+'</p></div></div><p class="npc-line">'+esc(rule.intro)+'</p><p class="subtle">อ่านช่องโจมตีที่บอสบอก เลือกหลบ ตั้งรับ หรือใช้ท่าอาวุธ เป็นการต่อสู้ทีละเทิร์น แพ้ลองใหม่ได้โดยไม่เสียอาวุธ</p><p class="boss-unlock-note">'+(status.won?'✓ พิชิตและรับรางวัลแล้ว':!status.unlocked?esc(status.reason):!usable?'ต้องถืออาวุธที่ใช้ได้ก่อนเริ่มต่อสู้':rule.theme?'ชนะจึงได้รับธีม '+esc(config.rewards[rule.theme].name):id==='midnight-sovereign'?'ชนะเพื่อเปิดพิธีรับธีม Midnight Academy':'รางวัล: มงกุฎเงาไร้นาม และบทส่งท้ายลับ')+'</p>',
+      '<button class="secondary" data-close-detail>กลับฉาก</button><button class="secondary" data-equipment>เลือกอาวุธ</button>'+(!status.won?'<button class="primary" data-start-boss="'+id+'" '+(!status.unlocked||!usable||read().event.closed?'disabled':'')+'>เริ่มต่อสู้</button>':'')));
+  }
+  function showBossList(){
+    const doc=read(),ids=['midnight-sovereign'];if(doc.event.bossWins?.['midnight-sovereign']&&doc.rewards['theme-midnight-academy'])ids.push('nameless-afterlight');
+    openDetail(dialogShell('บัลลังก์เที่ยงคืน','<p class="subtle">จบเควสและชนะผู้พิทักษ์สี่ไบโอม รับธีมทั้งสี่ แล้วกลับมาท้าราชันก่อนทำพิธีธีมสุดท้าย</p><div class="boss-list">'+Object.entries(config.proposals.bosses).filter(([id,b])=>b.biome||ids.includes(id)).map(([id,b])=>{
+      const s=Core.bossStatus(doc,config,id,Date.now());return '<article class="boss-card"><div class="boss-card-head">'+window.HalloweenBattleUI.bossArt(b)+'<div><h3>'+esc(b.name)+'</h3><small>'+esc(b.level)+'</small></div></div><p>'+(s.won?'✓ พิชิตแล้ว':s.unlocked?'พร้อมท้าสู้':esc(s.reason))+'</p><button class="secondary" data-boss="'+id+'">ดูการท้าทาย</button></article>';
+    }).join('')+'</div>','<button class="secondary" data-close-detail>กลับวงเวท</button>'));
+  }
+  async function openBattle(id){
+    const biome=config.proposals.bosses[id]?.biome;
+    if(biome){if(!await perform({type:'enter-biome',biome},{silent:true}))return;activeRoom=null;route='biome';history.replaceState(null,'','#biome');render();}
+    await window.HalloweenBattleUI.open(id,{read,config,perform,context:worldContext,onClose:()=>{render();showBoss(id);},onRewards:ids=>acquisition(ids,'quest')});
   }
   function showPotion(){
     const quantity=read().event.inventory['random-biome-potion']||0,rule=config.proposals.randomBiomePotion,canBuy=activeRoom==='cauldron',closed=read().event.closed;
@@ -209,7 +240,7 @@
     const s=window.HalloweenWorld.cropState(worldContext(),id),attrs=' data-crop-biome="'+id+'"',doc=read(),first=config.quests.find(q=>q.biome===id),done=config.quests.some(q=>q.biome===id&&doc.event.quests[q.id]?.complete);
     const stage=!s.unlocked?'รับแปลงจาก Jack ก่อน':!s.planted?'แปลงว่าง พร้อมปลูก':s.ready?'โตเต็มที่แล้ว เก็บเกี่ยวได้':'กำลังเติบโต';
     const actions=!s.unlocked?'<button class="primary" data-quest="jack-clear-garden">ไปดูเควส Jack</button>':!s.planted?'<button class="primary" data-action="plant"'+attrs+' '+(!s.seeds||doc.event.closed?'disabled':'')+'>ปลูกเมล็ด</button>':'<button class="secondary" data-action="water"'+attrs+' '+(s.g.watered||doc.event.closed?'disabled':'')+'>รดน้ำ</button><button class="primary" data-action="harvest"'+attrs+' '+(!s.ready||doc.event.closed?'disabled':'')+'>เก็บเกี่ยว</button>';
-    const repeat=done?(currentBiome()===id?'<p>ส่ง '+esc(name(s.crop.request))+' 2 ชิ้นเพื่อทำเควสรับเมล็ดเพิ่ม 2 ชิ้น</p><button class="secondary" data-seed-quest="'+id+'">ส่งเควสรับเมล็ดเพิ่ม</button>':'<p>ผ่านเควสแล้ว ขอเมล็ดเพิ่มได้เมื่อ'+esc(biomeName(id))+' เปิดอยู่ ส่วนเมล็ดที่มีนำมาปลูกต่อได้ทันที</p><button class="secondary" data-route="totems">ดูเส้นทางไบโอม</button>'):'<p>ทำเควสกับ NPC ใน '+esc(biomeName(id))+' เพื่อรับเมล็ด</p><button class="secondary" data-quest="'+first.id+'">ดูเควสประจำไบโอม</button>';
+    const repeat=!s.unlocked?'<p>สวนทุกแปลงยังล็อกอยู่ จบ Jack Q1 ก่อน เมล็ดที่ได้รับจาก NPC คนอื่นจะเก็บรอไว้ในกระเป๋า</p>':done?(currentBiome()===id?'<p>ส่ง '+esc(name(s.crop.request))+' 2 ชิ้นเพื่อทำเควสรับเมล็ดเพิ่ม 2 ชิ้น</p><button class="secondary" data-seed-quest="'+id+'">ส่งเควสรับเมล็ดเพิ่ม</button>':'<p>ผ่านเควสแล้ว ขอเมล็ดเพิ่มได้เมื่อ'+esc(biomeName(id))+' เปิดอยู่ ส่วนเมล็ดที่มีนำมาปลูกต่อได้ทันที</p><button class="secondary" data-route="totems">ดูเส้นทางไบโอม</button>'):'<p>ทำเควสกับ NPC ใน '+esc(biomeName(id))+' เพื่อรับเมล็ด</p><button class="secondary" data-quest="'+first.id+'">ดูเควสประจำไบโอม</button>';
     openDetail(dialogShell('แปลง'+esc(s.crop.name),'<p class="plot-inventory">เมล็ด '+s.seeds+' · ผลผลิตที่เก็บแล้ว '+s.harvested+'</p><h3 class="crop-stage-title">'+stage+'</h3><p class="subtle">'+(!s.planted?'ปลูกด้วยเมล็ดจากเควส 1 ชิ้น รดน้ำแล้วรอให้โต':(s.g.watered?'รดน้ำแล้ว':'ยังไม่ได้รดน้ำ')+' · <span data-crop-countdown data-biome="'+id+'" data-until="'+s.until+'">'+duration(s.until-now())+'</span>')+'</p><div class="crop-actions">'+actions+'</div><div class="seed-request">'+repeat+'</div><p class="tiny">เวลาโต 1 นาที ผลผลิต 3 ชิ้นเป็นค่าห้องลอง</p>','<button class="secondary" data-close-detail>กลับสวน</button><button class="primary" data-route="shop">นำผลผลิตไปหาพ่อค้า</button>'));
     detail.dataset.plotBiome=id;
   }
@@ -239,7 +270,13 @@
       '<section class="collection-progress"><img src="' + image('crown-of-midnight') + '" alt="เหรียญผู้สะสมแห่งรัตติกาล"><div><b>คำขอบคุณจากร้านยามเที่ยงคืน</b><p>ซื้อครบรายการร้าน รับเหรียญถาวร · ไม่นับของจากเควส หม้อ หรือพิธี</p></div><span class="count">' + doc.event.purchases.length + ' / ' + Object.keys(config.proposals.shop).length + '</span></section>' + theatre();
   }
   function recipeCosts(recipe) {
-    return '<div class="recipe-cost"><span>◈ ' + recipe.candy + ' Candy</span>' + recipe.items.map(([id,n]) => '<button data-item-source="'+id+'" data-source-panel="'+(recipe.channel==='ritual'?'ritual-recipes':'cauldron-recipes')+'">' + esc(name(id)) + ' ×' + n + ' · วิธีหา</button>').join('') + (recipe.requiresAllMainQuests ? '<span>Main Quest ทั้ง 4 คน</span>' : '') + '</div>';
+    return '<div class="recipe-cost"><span>◈ ' + recipe.candy + ' Candy</span>' + recipe.items.map(([id,n]) => '<button data-item-source="'+id+'" data-source-panel="'+(recipe.channel==='ritual'?'ritual-recipes':'cauldron-recipes')+'">' + esc(name(id)) + ' ×' + n + ' · วิธีหา</button>').join('') + (recipe.requiresAllMainQuests ? '<span>Main Quest ทั้ง 4 คน</span>' : '')+(recipe.requiresBoss?'<span>ต้องชนะราชันเที่ยงคืน</span><button data-boss-list>ดูบอสที่วงเวท</button>':'') + '</div>';
+  }
+  function houseRuleSummary(){
+    return '<p class="guide-intro">ทุกไบโอมมีบ้าน 5 หลัง · Treat ได้ 10 Candy แน่นอน · Trick สุ่ม 50/50 ได้ 20 หรือ 0 Candy เฉพาะครั้งที่ได้ Candy จึงสุ่มของตามขั้นตอนนี้</p><ol class="guide-steps"><li><h3>1 · มีของตามมา 60%</h3><p>อีก 40% ได้ Candy อย่างเดียว ถ้า Trick ได้ 0 จะไม่สุ่มของ</p></li><li><h3>2 · สุ่มระดับไอเท็ม</h3><div class="house-rules">'+Object.entries(config.materials.houseItems.rarityWeightsPercent).map(([r,n])=>'<span>'+r+' '+n+'%</span>').join('')+'</div><p>Mystical ได้จากเควสหลักของ NPC เท่านั้น ไม่อยู่ในกล่องบ้าน</p></li><li><h3>3 · Breakthrough 10%</h3><p>ถ้าติด Breakthrough สุ่มปลายทางอีก 1 ใน 4 รวมไบโอมปัจจุบัน ถ้าไม่ติดใช้พูลไบโอมที่เคาะอยู่ จึงออกไบโอมเดิมรวม 92.5% และแต่ละไบโอมอื่น 2.5%</p></li></ol><p class="subtle">จากนั้นสุ่มของในระดับและไบโอมที่ได้เท่า ๆ กัน 1 ชิ้น ทุกระดับมีของครบทุกไบโอม วัตถุดิบชิ้นเดียวกันใช้ส่งเควส ผสม หรือทำพิธีได้เมื่อสูตรระบุไว้</p>';
+  }
+  function showItemPools(){
+    openDetail(dialogShell('ของที่หาได้ · กติกาบ้าน',houseRuleSummary()+'<div class="guide-grid">'+config.materials.biomes.map(b=>'<section class="source-card"><h3>'+esc(b.name)+'</h3>'+b.items.map(item=>'<div class="pool-row"><span>'+esc(item.name)+'</span><small>'+item.rarity+'</small>'+sourceButton(item.id)+'</div>').join('')+'</section>').join('')+'</div>','<button class="secondary" data-close-detail>กลับฉาก</button>'));
   }
   function recipes(channel) {
     const title = channel==='ritual' ? 'เมื่ออีกฟากตอบรับคำเรียก' : 'ผสมเรื่องเล่า ลงในหม้อเวท';
@@ -258,7 +295,7 @@
     return pageHead('FOUR STORIES TO REMEMBER','ทุกคำสัญญา มีเรื่องราว','คุยกับทั้งสี่ NPC ทำเควสทีละเฟส และเก็บของข้ามไบโอมไว้ส่งต่อกัน','14 เควส · 18 เฟส') + Core.BIOMES.map((biome,i) => {
       const meta = Catalog.biomes[Core.SHORT[i]], chain = config.quests.filter(q => q.biome===biome), done = chain.filter(q => doc.event.quests[q.id]?.complete).length;
       return '<section class="quest-chain" style="--biome:' + meta.color + ';--glow:' + meta.dark + '66"><div class="chain-head"><span class="chain-seal">' + biomeSymbols[i] + '</span><div><h2>' + esc(meta.npc) + '</h2><small>' + esc(meta.name) + '</small></div><span class="pill">' + done + ' / ' + chain.length + '</span></div>' + chain.map(q => {
-        const s = Core.questStatus(doc,config,q), status = s.complete ? 'รับรางวัลแล้ว' : !s.unlocked ? 'รอเควสก่อนหน้า' : q.biome!==currentBiome() ? 'อยู่ไบโอมอื่น' : 'เฟส ' + (s.phase+1) + '/' + q.phases.length;
+        const s = Core.questStatus(doc,config,q), status = s.complete ? (q.bossId&&!doc.event.bossWins?.[q.bossId]?'เควสสำเร็จ · รอชนะบอส':'รับรางวัลแล้ว') : !s.unlocked ? 'รอเควสก่อนหน้า' : q.biome!==currentBiome() ? 'อยู่ไบโอมอื่น' : 'เฟส ' + (s.phase+1) + '/' + q.phases.length;
         return '<button class="quest-row" data-quest="' + q.id + '"><span class="quest-order ' + (s.complete ? 'done' : '') + '">' + (s.complete ? '✓' : String(q.order).padStart(2,'0')) + '</span><div><h3>' + esc(q.name) + '</h3><p>' + q.rewards.map(r => esc(r.name)).join(' · ') + '</p></div><span class="quest-status ' + (s.complete ? 'done' : '') + '">' + status + '</span></button>';
       }).join('') + '</section>';
     }).join('');
@@ -294,6 +331,8 @@
     detail.querySelectorAll('[name=quest-offer]').forEach(r => r.addEventListener('change',() => showQuest(id,r.value)));
     const difficulty=Balance.difficulty(config,q,doc.event.inventory);const badge=document.createElement('p');badge.className='quest-difficulty';badge.innerHTML='<span class="difficulty" data-level="'+difficulty.level+'">ความยากตอนนี้: '+difficulty.label+'</span><button class="quiet-button" data-open-balance>ดูโอกาสและเกณฑ์</button>';detail.querySelector('.npc-dialogue').before(badge);
     const portrait=document.createElement('div');portrait.className='quest-npc-portrait';portrait.innerHTML=window.HalloweenWorld.portrait(window.HalloweenNPCs.biomeCharacters[biomeIndex(q.biome)]);detail.querySelector('.npc-dialogue').before(portrait);
+    if(status.complete&&q.bossId&&!doc.event.bossWins?.[q.bossId])detail.querySelector('.subtle').textContent='✓ เควสสำเร็จ อาวุธ / รางวัลเควสอยู่ในคลัง ธีมยังรอชนะบอส';
+    if(q.bossId){const p=document.createElement('div');p.className='boss-unlock-note';p.innerHTML='อาวุธ / รางวัลเควสรับเมื่อส่งครบ ธีมต้องชนะผู้พิทักษ์ก่อน'+(status.complete?'<br><button class="primary" data-boss="'+q.bossId+'">ท้าผู้พิทักษ์เพื่อรับธีม</button>':'');detail.querySelector('.dialog-footer').before(p);}
     if(!status.complete){const p=document.createElement('p');p.className='subtle';p.textContent='เมื่อเควสสำเร็จ จะได้รับเมล็ด'+config.proposals.crops[q.biome].name+' '+config.proposals.crops[q.biome].questSeeds+' ชิ้น';detail.querySelector('.dialog-footer').before(p);}
     detail.querySelector('[data-quest-game]')?.addEventListener('click',() => { detail.close(); openGame(game); });
     detail.querySelector('#submitQuest')?.addEventListener('click',async e => {
@@ -301,6 +340,8 @@
       const result = await perform({type:'quest',quest:id,branch});
       if (!result) { e.currentTarget.disabled=false; return; }
       openDetail(dialogShell(esc(result.npc),'<p class="npc-dialogue">' + esc(result.dialogue) + '</p>'+(result.seeds?'<p class="story-copy">❧ ได้รับ '+esc(name(result.seeds.id))+' ×'+result.seeds.quantity+'<br>นำไปปลูกในแปลงของไบโอมนี้ได้เลย</p>':''),'<button class="primary" data-close-detail>' + (result.rewards.length ? 'รับของที่สัญญาไว้ ✦' : 'เดินทางต่อ →') + '</button>'),() => acquisition(result.rewards,'quest'));
+      if(result.boss){const p=document.createElement('div');p.className='boss-unlock-note';p.innerHTML='รางวัลอาวุธ / Candy ได้รับแล้ว แต่ตราธีมถูกผู้พิทักษ์ผนึกไว้ ต้องชนะบอสก่อน<br><button class="primary" data-boss="'+result.boss+'">พบผู้พิทักษ์</button><button class="secondary" data-equipment>ดูอาวุธที่ถือ</button>';detail.querySelector('.dialog-footer').before(p);}
+      if(result.seeds&&!Core.gardenUnlocked(read())){const p=document.createElement('p');p.className='subtle';p.textContent='เก็บเมล็ดรอไว้ก่อน สวนทั้งหมดเปิดเมื่อจบ Jack Q1';detail.querySelector('.dialog-footer').before(p);}
     });
   }
   function showPurchase(id) {
@@ -320,7 +361,7 @@
       '<div class="shop-controls inventory-tabs"><button class="filter-button" data-vault-tab="rewards" aria-pressed="' + (vaultTab==='rewards') + '">รางวัล ' + owned.length + '</button><button class="filter-button" data-vault-tab="materials" aria-pressed="' + (vaultTab==='materials') + '">วัตถุดิบ ' + inventory.length + '</button><button class="filter-button" data-vault-tab="ledger" aria-pressed="' + (vaultTab==='ledger') + '">รับ–ใช้ Candy</button><button class="filter-button" data-open-potion>น้ำยาไบโอม</button><span class="tiny">รางวัลที่รับไว้เก็บถาวร</span></div>' +
       (vaultTab==='materials' ? '<div class="inventory-grid">' + inventory.map(([id,n]) => '<article class="material-card"><span class="material-icon">◈</span><div><b>' + esc(name(id)) + '</b><small>' + esc(config.items[id]?.rarity || 'ไอเท็มเควส / ระดับยังไม่กำหนด') + (doc.event.grown[id] ? ' · ปลูกเอง '+doc.event.grown[id] : '') + '</small></div><strong>' + n + '</strong></article>').join('') + '</div>' : vaultTab==='ledger' ? '<div class="ledger">' + [...doc.event.ledger].reverse().map(row => '<div class="ledger-row"><span>' + esc({'preview-supplies':'ชุดทดสอบ','house':'เคาะบ้าน','spend':'ส่งเควส / ผสม','quest':'รางวัลเควส','shop':'ร้านค้า','ship-chest':'กล่องจากเรือ','ship-repair':'ซ่อมเรือ','visitor':'นักเดินทาง','task':'งานตัวอย่าง','totem':'Totem'}[row.source] || row.source) + '</span><small>' + new Date(row.at).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}) + '</small><b>' + (row.amount>0 ? '+' : '') + row.amount + '</b></div>').join('') + '</div>' : owned.length ? '<div class="reward-grid">' + owned.map(id => {
         const item = config.rewards[id], restriction = doc.rewards[id].restriction;
-        return itemCard(item,'<button data-inspect="' + id + '">เปิดดูความทรงจำ ↗</button>',restriction ? '<span class="relic-restriction">Restricted · ใช้เฉพาะ Eternal Graveyard</span>' : item.kind==='relic' && id==='dullahan-scythe' ? '<span class="tiny" style="margin-bottom:12px">ปลดผนึกแล้ว · ใช้ได้ทุกไบโอม</span>' : '');
+        return itemCard(item,'<button data-inspect="' + id + '">เปิดดูความทรงจำ ↗</button>',restriction ? '<span class="relic-restriction">Restricted · ยังถือไม่ได้ รอ Win Q5</span>' : item.kind==='relic' && id==='dullahan-scythe' ? '<span class="tiny" style="margin-bottom:12px">ปลดผนึกแล้ว · ใช้ได้ทุกไบโอม</span>' : '');
       }).join('') + '</div>' : '<div class="empty-state"><span>◇</span><h2>รอเรื่องเล่าชิ้นแรกของเธอ</h2><p>เคาะบ้าน ทำเควส หรือแวะร้านยามเที่ยงคืน</p><button class="primary" data-route="shop">ไปเลือกรางวัล →</button></div>');
   }
   function tasks() {
@@ -337,7 +378,8 @@
   }
   function inspect(id) {
     const item = config.rewards[id], owned = read().rewards[id]; if (!item || !owned) return;
-    openDetail(dialogShell(esc(item.name),'<div class="buy-detail-art"><img src="' + asset(item) + '" alt="' + esc(item.name) + '"></div><span class="item-tier" style="' + tierStyle(item) + '">' + item.rarity + '</span><p class="subtle">' + esc(item.description) + '</p><p class="tiny">' + (owned.restriction ? 'Restricted · ใช้เฉพาะ Eternal Graveyard รอปลดผนึกใน Win Q5' : 'รางวัลถาวรในห้องลอง · ยังอยู่หลังจำลองปิดอีเวนต์') + '</p>', '<button class="secondary" data-close-detail>เก็บกลับเข้าคลัง</button>' + (['theme','costume','room','effect'].includes(item.kind) ? '<button class="primary" id="tryOwned">ลองใน StudentOS ↗</button>' : '')));
+    if(config.proposals.weapons?.[id]){showEquipment();return;}
+    openDetail(dialogShell(esc(item.name),'<div class="buy-detail-art"><img src="' + asset(item) + '" alt="' + esc(item.name) + '"></div><span class="item-tier" style="' + tierStyle(item) + '">' + item.rarity + '</span><p class="subtle">' + esc(item.description) + '</p><p class="tiny">' + (owned.restriction ? 'Restricted · ยังถือไม่ได้ รอ Win Q5 รอปลดผนึกใน Win Q5' : 'รางวัลถาวรในห้องลอง · ยังอยู่หลังจำลองปิดอีเวนต์') + '</p>', '<button class="secondary" data-close-detail>เก็บกลับเข้าคลัง</button>' + (['theme','costume','room','effect'].includes(item.kind) ? '<button class="primary" id="tryOwned">ลองใน StudentOS ↗</button>' : '')));
     detail.querySelector('#tryOwned')?.addEventListener('click',() => tryInApp(item));
   }
   function tryInApp(item) {
@@ -386,6 +428,7 @@
     const world=window.HalloweenWorld;
     const views = {gate:world.gate,hub:()=>world.hub(worldContext()),biome:()=>world.biome(worldContext()),garden:()=>world.garden(worldContext())};
     main.innerHTML = worldToolbar() + (views[route] || views.hub)();audio.setScene(activeRoom||route);if(previousPanel)showPanel(previousPanel);updateClock();
+    if(['hub','garden'].includes(route))main.querySelector('.world-scene')?.insertAdjacentHTML('beforeend',world.player(worldContext()));
   }
   function updateClock() {
     if (!store || !preview) return;
@@ -429,6 +472,12 @@
     if(button.hasAttribute('data-start-with-sound')){prefs.sound=true;prefs.motion='full';prefs.motionChosen=true;rememberPrefs();syncSoundUI();syncMotionUI();detail.close();return;}
     if(button.hasAttribute('data-open-guide')){showGuide();return;}
     if(button.hasAttribute('data-open-balance')){showBalance();return;}
+    if(button.hasAttribute('data-item-pools')){showItemPools();return;}
+    if(button.hasAttribute('data-equipment')){showEquipment();return;}
+    if(button.dataset.equipWeapon){if(await perform({type:'equip-weapon',weapon:button.dataset.equipWeapon})){showEquipment();toast('ถือ '+config.proposals.weapons[button.dataset.equipWeapon].name+' แล้ว');}return;}
+    if(button.hasAttribute('data-boss-list')){showBossList();return;}
+    if(button.dataset.boss){showBoss(button.dataset.boss);return;}
+    if(button.dataset.startBoss){await openBattle(button.dataset.startBoss);return;}
     if(button.hasAttribute('data-guide-village')){await goToVillage();return;}
     if(button.dataset.sourceVillage){await goToVillage(button.dataset.sourceVillage);return;}
     if(button.dataset.itemSource){showSources(button.dataset.itemSource,{quest:button.dataset.sourceQuest,branch:button.dataset.sourceBranch,panel:button.dataset.sourcePanel});return;}
@@ -486,7 +535,7 @@
       const result = await perform({type:'house',house:Number(button.dataset.house),choice:button.dataset.choice});
       if (result) {
         const found = result.item;
-        openDetail(dialogShell(result.candy ? 'ประตูเปิด พร้อมของขวัญเล็ก ๆ' : 'แกล้งผี… ผีแกล้งกลับ','<div class="buy-detail-copy"><p style="font:52px Georgia,serif;color:#e2bf90;margin:24px 0">' + (result.candy ? '+'+result.candy : '0') + '</p><span class="eyebrow">CANDY</span><p>' + (found ? 'และ ' + esc(name(found.id)) + ' ×'+found.quantity+' · '+found.rarity + (found.breakthrough ? '<br>✦ Breakthrough จาก '+esc(biomeName(found.biome)) : '') : result.candy ? 'รอบนี้ได้รับ Candy แต่ยังไม่พบวัตถุดิบ ลองแวะบ้านถัดไป' : 'รอบนี้ได้เสียงหัวเราะกลับมา ครั้งหน้าค่อยลองใหม่') + '</p></div>','<button class="secondary" data-close-detail>กลับฉาก</button><button class="primary" data-route="village">เคาะบ้านถัดไป</button>'));
+        openDetail(dialogShell(result.candy ? 'ประตูเปิด พร้อมของขวัญเล็ก ๆ' : 'แกล้งผี… ผีแกล้งกลับ','<div class="buy-detail-copy"><p style="font:52px Georgia,serif;color:#e2bf90;margin:24px 0">' + (result.candy ? '+'+result.candy : '0') + '</p><span class="eyebrow">CANDY</span><p>' + (found ? 'และ ' + esc(name(found.id)) + ' ×'+found.quantity+' · '+found.rarity + (found.breakthroughRoll ? '<br>✦ Breakthrough → '+esc(biomeName(found.biome)) : '') : result.candy ? 'รอบนี้สุ่มไม่ติดโอกาสของ 60% ได้ Candy อย่างเดียว ลองแวะบ้านถัดไป' : 'รอบนี้ได้เสียงหัวเราะกลับมา ครั้งหน้าค่อยลองใหม่') + '</p></div>','<button class="secondary" data-close-detail>กลับฉาก</button><button class="primary" data-route="village">เคาะบ้านถัดไป</button>'));
       }
       return;
     }
@@ -517,8 +566,7 @@
         const seedTime = Date.now();
         store = window.HalloweenOwnership.createStore({storage:localStorage,key:KEY,owner,season:config.season.id,locks:navigator.locks,initial:() => {
           const doc = Core.initial(config,owner,seedTime,crypto.getRandomValues(new Uint32Array(1))[0]);
-          doc.event.candy=260; doc.event.ledger.push({id:'review-welcome',source:'preview-supplies',amount:260,at:seedTime});
-          doc.event.inventory={'dutchmans-soul-abyssal-rock':2,'dutchmans-soul-dutchman-s-lantern':1,'jacks-hollow-rotten-pumpkin':2};
+          // New adventurers gather from houses; existing saves are never reset.
           return doc;
         }});
         read();

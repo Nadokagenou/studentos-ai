@@ -23,7 +23,7 @@
   function inspect(id){
     cleanup();cleanup=()=>{};
     const item=C.find(id),owned=rewards[id];if(!item||!owned)return;
-    dialog.innerHTML='<div class="detail-top"><h2 id="permanentHeading">'+esc(item.name)+'</h2><button data-close aria-label="ปิดรายละเอียด">×</button></div><img class="detail-art" src="'+asset(item)+'" alt="'+esc(item.name)+'"><div class="detail-body"><p>'+esc(item.description)+'</p><small class="'+(owned.restriction?'restriction':'')+'">'+(owned.restriction?'Restricted · ใช้เฉพาะ Eternal Graveyard':item.id==='dullahan-scythe'?'ปลดผนึกแล้ว · ใช้ได้ทุกไบโอม':'รางวัลถาวร · เก็บไว้หลังจบอีเวนต์')+'</small></div><div class="detail-actions"><button data-reveal="'+id+'">ชมฉากรางวัล</button>'+(['room','costume','theme','effect'].includes(item.kind)?'<button data-try="'+id+'">ลองใน StudentOS ↗</button>':'')+'</div>';
+    dialog.innerHTML='<div class="detail-top"><h2 id="permanentHeading">'+esc(item.name)+'</h2><button data-close aria-label="ปิดรายละเอียด">×</button></div><img class="detail-art" src="'+asset(item)+'" alt="'+esc(item.name)+'"><div class="detail-body"><p>'+esc(item.description)+'</p><small class="'+(owned.restriction?'restriction':'')+'">'+(owned.restriction?'Restricted · ยังถือไม่ได้ รอปลดผนึกกับ Win':item.id==='dullahan-scythe'?'ปลดผนึกแล้ว · ใช้ได้ทุกไบโอม':'รางวัลถาวร · เก็บไว้หลังจบอีเวนต์')+'</small></div><div class="detail-actions"><button data-reveal="'+id+'">ชมฉากรางวัล</button>'+(['room','costume','theme','effect'].includes(item.kind)?'<button data-try="'+id+'">ลองใน StudentOS ↗</button>':'')+'</div>';
     if(!dialog.open)dialog.showModal();
   }
   document.addEventListener('click',e=>{

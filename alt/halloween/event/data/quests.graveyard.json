@@ -3,7 +3,7 @@
   "biomeName": "Eternal Graveyard",
   "npc": "Win, the Soul Reaper",
   "status": "owner-confirmed-spec",
-  "updated": "2026-10-22",
+  "updated": "2026-10-23",
   "minigames": [
     {
       "id": "grave-digging",
@@ -200,7 +200,7 @@
             ]
           },
           "acceptDialogue": "ใบคมเคียวพร้อมแล้ว ต่อไปคือด้ามจับที่จะต้องรองรับพลังจากทั้งสี่ไบโอม! จงไปรวบรวมของจากทั่วทุกดินแดนมา... Abyssal rock 2 อัน จากทะเลลึก, Jack'o Wood 2 อัน จากป่าฟักทอง, Vampire teeth 2 อัน จากคฤหาสน์, Vine 1 เส้น สำหรับพันด้าม และ Soul Stick 1 อัน เพื่อเป็นแกนกลาง นำทั้งหมดมาให้ข้า!",
-          "completeDialogue": "เสร็จสิ้น! ดูความงดงามของ Scythe of Dullahan เล่มนี้สิ! ...แต่เดี๋ยวก่อน อย่าเพิ่งดีใจไป เคียวนี้นั้นทรงพลังและมีคำสาประดับสูง ตอนนี้มันถูกพันธนาการไว้ ทำให้ ไม่สามารถนำไปใช้นอกไบโอมนี้ได้ หากเจ้าอยากปลดผนึกพลังที่แท้จริง เจ้าต้องทำพิธีขั้นสุดท้ายก่อน!"
+          "completeDialogue": "เสร็จสิ้น! ดูความงดงามของ Scythe of Dullahan เล่มนี้สิ! ...แต่เดี๋ยวก่อน อย่าเพิ่งดีใจไป เคียวนี้นั้นทรงพลังและมีคำสาประดับสูง ตอนนี้มันถูกพันธนาการไว้ ทำให้ ไม่สามารถนำไปใช้ได้ หากเจ้าอยากปลดผนึกพลังที่แท้จริง เจ้าต้องทำพิธีขั้นสุดท้ายก่อน!"
         }
       ],
       "rewards": [
@@ -210,9 +210,7 @@
           "quantity": 1,
           "restriction": {
             "status": "Restricted",
-            "allowedBiomes": [
-              "eternal-graveyard"
-            ]
+            "allowedBiomes": []
           },
           "inventoryId": "eternal-graveyard-scythe-of-dullahan"
         }
@@ -258,10 +256,12 @@
         {
           "id": "theme-graveyard",
           "name": "ธีม Eternal Graveyard",
-          "quantity": 1
+          "quantity": 1,
+          "afterBoss": "headless-warden"
         }
       ],
-      "finalMainQuest": true
+      "finalMainQuest": true,
+      "bossId": "headless-warden"
     }
   ],
   "unresolved": [

@@ -28,6 +28,17 @@ const stock = doc => {
   for (const item of Object.values(Core.definitions(materials))) if (item.rarity!=='Mystical' && !['event-feature','tool'].includes(item.kind) && !['jacks-hollow-shovel','jacks-hollow-pumpkin'].includes(item.id)) doc.event.inventory[item.id]=40;
 };
 const quest = (h,id,branch) => h.apply({type:'quest',quest:id,branch});
+const unlockGarden=doc=>{doc.event.quests['jack-clear-garden']={complete:true,phase:2};doc.event.inventory['jacks-hollow-plot']=1;};
+async function winBoss(h,id){
+  const biome=h.config.proposals.bosses[id].biome;if(biome)await h.apply({type:'enter-biome',biome});
+  await h.apply({type:'start-boss',boss:id});
+  for(let n=0;n<100;n++){
+    const b=h.store.read().event.battle;if(b.finished){assert.equal(b.clear,true);return;}
+    const move=b.intent.kind==='hex'?'guard':'dodge-'+[0,1,2].find(i=>!b.intent.danger.includes(i));
+    await h.apply({type:'battle-move',session:b.session,move});
+  }
+  assert.fail('boss never finished');
+}
 
 test('only the active portal opens, and story acknowledgement persists across re-entry',async()=>{
   const h=harness();await h.biome(Core.BIOMES[0]);
@@ -50,7 +61,7 @@ test('quest completion awards biome seeds once without charging Candy for seeds'
 });
 test('all four crops require seeds, water and growth before harvest and sale',async()=>{
   for(const biome of Core.BIOMES){
-    const crop=proposals.crops[biome],h=harness({prepare:doc=>{doc.event.inventory[crop.seed]=1;doc.event.inventory['jacks-hollow-plot']=1;}});
+    const crop=proposals.crops[biome],h=harness({prepare:doc=>{doc.event.inventory[crop.seed]=1;unlockGarden(doc);}});
     await h.biome(Core.BIOMES[(Core.BIOMES.indexOf(biome)+1)%4]);
     await h.apply({type:'enter-room',room:'shop'});
     await assert.rejects(h.apply({type:'sell-crop',biome,quantity:1}),/เก็บแล้ว/);
@@ -69,7 +80,7 @@ test('all four crops require seeds, water and growth before harvest and sale',as
   }
 });
 test('unharvested or foreign inventory cannot be sold as homegrown crops',async()=>{
-  const biome=Core.BIOMES[2],crop=proposals.crops[biome],h=harness({prepare:doc=>{doc.event.inventory[crop.harvest]=10;}});
+  const biome=Core.BIOMES[2],crop=proposals.crops[biome],h=harness({prepare:doc=>{doc.event.inventory[crop.harvest]=10;unlockGarden(doc);}});
   await h.biome(biome);await h.apply({type:'enter-room',room:'shop'});await assert.rejects(h.apply({type:'sell-crop',biome,quantity:1}),/เก็บแล้ว/);
   await h.biome(Core.BIOMES[0]);await h.apply({type:'enter-room',room:'garden'});await assert.rejects(h.apply({type:'plant',biome}),/วัตถุดิบไม่พอ/);
 });
@@ -106,7 +117,7 @@ test('touch first reveals a target and the second tap activates; mouse and keybo
   assert.equal(World.shouldArm({pointerType:'touch',detail:1,armed:false,labelVisible:true}),false);
 });
 test('only the garden allows planting and only the shop accepts crop sales, including other biome crops',async()=>{
-  const crop=proposals.crops[Core.BIOMES[0]],h=harness({prepare:doc=>{doc.event.inventory[crop.seed]=1;doc.event.inventory[crop.harvest]=4;doc.event.grown[crop.harvest]=4;}});
+  const crop=proposals.crops[Core.BIOMES[0]],h=harness({prepare:doc=>{doc.event.inventory[crop.seed]=1;doc.event.inventory[crop.harvest]=4;doc.event.grown[crop.harvest]=4;unlockGarden(doc);}});
   await assert.rejects(h.apply({type:'enter-room',room:'missing'}),/ไม่พบห้อง/);
   await assert.rejects(h.apply({type:'plant',biome:Core.BIOMES[0]}),/สวนรัตติกาล/);
   await h.apply({type:'enter-room',room:'garden'});await h.apply({type:'plant',biome:Core.BIOMES[0]});
@@ -231,7 +242,8 @@ test('Jack accepts one offer and withholds the final reward until His head',asyn
   const h=harness({prepare:doc=>{stock(doc);doc.event.quests['jack-harvest-wisp']={complete:true,phase:1};}});await h.biome(Core.BIOMES[1]);
   await quest(h,'jack-sweet-surprise','candy-offer');let doc=h.store.read();
   assert.equal(doc.event.candy,19800);assert.equal(doc.event.inventory['jacks-hollow-pumpkin-seed'],40);assert.equal(doc.rewards['jacks-axe'],undefined);
-  await quest(h,'jack-sweet-surprise');doc=h.store.read();assert.ok(doc.rewards['jacks-axe']);assert.ok(doc.rewards['theme-jackhollow']);assert.equal(doc.event.inventory['jacks-hollow-his-head'],39);
+  await quest(h,'jack-sweet-surprise');doc=h.store.read();assert.ok(doc.rewards['jacks-axe']);assert.equal(doc.rewards['theme-jackhollow'],undefined);assert.equal(doc.event.inventory['jacks-hollow-his-head'],39);
+  await winBoss(h,'hollow-king');assert.ok(h.store.read().rewards['theme-jackhollow']);
 });
 test('Jack rejects a forged stock of pumpkins without player-grown provenance',async()=>{
   const h=harness({prepare:doc=>{stock(doc);doc.event.quests['jack-clear-garden']={complete:true,phase:2};doc.event.inventory['jacks-hollow-pumpkin']=3;doc.event.inventory['jacks-hollow-shovel']=1;}});await h.biome(Core.BIOMES[1]);
@@ -241,7 +253,7 @@ test('a harvest needs the unlocked plot, seed, watering and elapsed growth time'
   const h=harness({prepare:stock});
   await h.apply({type:'enter-room',room:'garden'});
   await assert.rejects(h.apply({type:'plant'}),/Jack Q1/);
-  const h2=harness({prepare:doc=>{stock(doc);doc.event.inventory['jacks-hollow-plot']=1;}});
+  const h2=harness({prepare:doc=>{stock(doc);unlockGarden(doc);}});
   await h2.apply({type:'enter-room',room:'garden'});
   await h2.apply({type:'plant'});await h2.apply({type:'preview-time',ms:60000});
   await assert.rejects(h2.apply({type:'harvest'}),/รดน้ำ/);
@@ -274,10 +286,11 @@ test('Win Q5 shows the Soul without consuming it and upgrades the existing scyth
   const h=harness({prepare:doc=>{stock(doc);doc.event.quests['win-restricted-scythe']={complete:true,phase:1};doc.event.inventory['dutchmans-soul-dutchman-s-soul']=1;doc.rewards['dullahan-scythe']={id:'dullahan-scythe',receivedAt:time-1000,receipt:'original',permanent:true,restriction:{status:'Restricted',allowedBiomes:[Core.BIOMES[3]]}};doc.event.inventory['eternal-graveyard-scythe-of-dullahan']=1;}});await h.biome(Core.BIOMES[3]);
   await quest(h,'win-unbind-scythe');const doc=h.store.read();
   assert.equal(doc.event.candy,19950);assert.equal(doc.event.inventory['dutchmans-soul-dutchman-s-soul'],1);assert.equal(doc.event.inventory['eternal-graveyard-scythe-of-dullahan'],1);
-  assert.equal(doc.rewards['dullahan-scythe'].receipt,'original');assert.equal(doc.rewards['dullahan-scythe'].restriction,null);assert.ok(doc.rewards['theme-graveyard']);
+  assert.equal(doc.rewards['dullahan-scythe'].receipt,'original');assert.equal(doc.rewards['dullahan-scythe'].restriction,null);assert.equal(doc.rewards['theme-graveyard'],undefined);
+  await winBoss(h,'headless-warden');assert.ok(h.store.read().rewards['theme-graveyard']);
 });
 test('a failing upgrade rolls the Candy debit back with the transaction',async()=>{
-  const h=harness({prepare:doc=>{stock(doc);doc.event.quests['win-restricted-scythe']={complete:true,phase:1};}});await h.biome(Core.BIOMES[3]);
+  const h=harness({prepare:doc=>{stock(doc);doc.event.inventory['dutchmans-soul-dutchman-s-soul']=1;doc.event.quests['win-restricted-scythe']={complete:true,phase:1};}});await h.biome(Core.BIOMES[3]);
   await assert.rejects(quest(h,'win-unbind-scythe'),/ยังไม่มีเคียว/);assert.equal(h.store.read().event.candy,20000);
 });
 test('the collector medal requires purchases of the defined shop list, not other grants',async()=>{
@@ -315,21 +328,23 @@ test('the totem cannot reset a house cooldown or advance a quest cycle',async()=
 test('the complete four-NPC journey, games, garden, shop and rituals yields exactly 28 review rewards',async()=>{
   const h=harness({prepare:stock});
   await h.biome(Core.BIOMES[0]);await quest(h,'dutchman-light-in-darkness');await winGame(h,'ghost-ship-hunt');await quest(h,'dutchman-repair-and-prove');await quest(h,'dutchman-ghost-commander');
-  assert.equal(h.store.read().rewards['greater-spear'],undefined);await quest(h,'dutchman-ghost-commander');
+  assert.equal(h.store.read().rewards['greater-spear'],undefined);await quest(h,'dutchman-ghost-commander');await winBoss(h,'drowned-admiral');
   await h.biome(Core.BIOMES[3]);await quest(h,'win-death-fragments');
   await h.biome(Core.BIOMES[1]);await quest(h,'jack-clear-garden');await winGame(h,'clear-jacks-garden-vines');await quest(h,'jack-clear-garden');
   await h.apply({type:'enter-room',room:'garden'});
   await h.apply({type:'plant'});await h.apply({type:'water'});await h.apply({type:'preview-time',ms:60000});await h.apply({type:'harvest'});
   await quest(h,'jack-harvest-wisp');assert.equal(h.store.read().event.inventory['jacks-hollow-shovel'],1);
-  await quest(h,'jack-sweet-surprise','harvest-offer');await quest(h,'jack-sweet-surprise');
+  await quest(h,'jack-sweet-surprise','harvest-offer');await quest(h,'jack-sweet-surprise');await winBoss(h,'hollow-king');
   await h.biome(Core.BIOMES[3]);await winGame(h,'grave-digging');await quest(h,'win-gravekeeper-trial');await winGame(h,'catch-all-ghosts');await quest(h,'win-gravekeeper-trial');
-  await quest(h,'win-forge-blade');await quest(h,'win-restricted-scythe');await quest(h,'win-unbind-scythe');
+  await quest(h,'win-forge-blade');await quest(h,'win-restricted-scythe');await quest(h,'win-unbind-scythe');await winBoss(h,'headless-warden');
   await h.biome(Core.BIOMES[2]);await quest(h,'dech-intruder-punishment');assert.ok(h.store.read().rewards['cruor-quill']);
   await winGame(h,'dech-house-spot-difference');await quest(h,'dech-rare-materials');
   await assert.rejects(quest(h,'dech-wrong-letter'),/วัฏจักรถัดไป/);
-  await h.apply({type:'preview-time',ms:Core.DAY});await quest(h,'dech-wrong-letter');
+  await h.apply({type:'preview-time',ms:Core.DAY});await quest(h,'dech-wrong-letter');await winBoss(h,'blood-countess');
   for(const item of Object.keys(proposals.shop)) await h.apply({type:'buy',item});
+  await h.apply({type:'enter-room',room:'ritual'});await winBoss(h,'midnight-sovereign');
   for(const recipe of proposals.recipes) await h.apply({type:'craft',recipe:recipe.id});
+  await winBoss(h,'nameless-afterlight');assert.equal(h.store.read().event.inventory['nameless-crown'],1);
   const doc=h.store.read();assert.equal(Object.keys(doc.rewards).length,28);assert.equal(configCompleted(h),14);
   const before=JSON.stringify(doc.rewards);await h.apply({type:'preview-close'});assert.equal(JSON.stringify(h.store.read().rewards),before);
 });

@@ -1,8 +1,8 @@
 /* กติกาที่ตรวจได้โดยไม่พึ่ง DOM; ตัวเลขเสนอใช้ได้เฉพาะ preview:true */
 (function(root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('../rewards/ownership.js'));
-  else root.HalloweenEventCore = factory(root.HalloweenOwnership);
-})(typeof globalThis === 'undefined' ? this : globalThis, Ownership => {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('../rewards/ownership.js'),require('./combat.js'));
+  else root.HalloweenEventCore = factory(root.HalloweenOwnership,root.HalloweenCombat);
+})(typeof globalThis === 'undefined' ? this : globalThis, (Ownership,Combat) => {
   'use strict';
   const BIOMES = ['dutchmans-soul', 'jacks-hollow', 'vampire-mansion', 'eternal-graveyard'];
   const SHORT = ['dutchman', 'jack', 'vampire', 'graveyard'];
@@ -22,10 +22,11 @@
     const items = definitions(materials), rewards = Object.fromEntries(catalog.items.map(x => [x.id, x]));
     if(preview)items['random-biome-potion']={id:'random-biome-potion',name:'น้ำยาหลงไบโอม',kind:'consumable'};
     if (preview) for (const crop of Object.values(proposals.crops || {})) {
-      items[crop.seed] = {id:crop.seed,name:'เมล็ด' + crop.name,kind:'seed'};
+      items[crop.seed] ||= {id:crop.seed,name:'เมล็ด' + crop.name,kind:'seed'};
       items[crop.harvest] ||= {id:crop.harvest,name:crop.name,kind:'crop'};
     }
     for (const quest of quests) for (const reward of quest.rewards) if (!rewards[reward.id] && !items[reward.id] && reward.id !== 'candy') items[reward.id] = {id:reward.id,name:reward.name,kind:'quest-progress'};
+    items['nameless-crown']={id:'nameless-crown',name:'มงกุฎเงาไร้นาม',kind:'trophy',rarity:'Secret',source:'secret-boss'};
     return {materials, quests, items, rewards, proposals: preview ? clone(proposals) : null, preview, season: {id:'halloween-2026', startAt:null, endAt:null, timezone:null, claimingEnabled:false, ...season}};
   }
   function initial(config, owner, now, seed = 246813579) {
@@ -78,6 +79,23 @@
   function questStatus(document, config, quest) {
     const progress = document.event.quests[quest.id];
     return {phase:progress?.phase || 0, complete:progress?.complete === true, unlocked:!quest.prerequisite || document.event.quests[quest.prerequisite]?.complete === true};
+  }
+  function gardenUnlocked(document){return document.event.quests['jack-clear-garden']?.complete===true;}
+  function weaponStatus(document,config,id){
+    const weapon=config.proposals?.weapons?.[id],owned=document.rewards[id];
+    return {weapon,owned:!!owned,usable:!!weapon&&!!owned&&!owned.restriction,reason:owned?.restriction?'ต้องปลดพันธนาการกับ Win Q5 ก่อน':!owned?'ยังไม่ได้รับอาวุธจากเควส':''};
+  }
+  function bossStatus(document,config,id,now=document.event.clock-document.event.timeOffset){
+    const rule=config.proposals?.bosses?.[id],event=document.event;
+    if(!rule)return {unlocked:false,reason:'ไม่พบบอส'};
+    const won=event.bossWins?.[id];
+    let reason='';
+    if(rule.quest&&!event.quests[rule.quest]?.complete)reason='ทำเควสสุดท้ายของ NPC ในไบโอมนี้ก่อน';
+    else if(rule.requiresThemes&&!Object.entries(config.proposals.bosses).filter(([,b])=>b.theme).every(([id,b])=>event.bossWins?.[id]&&document.rewards[b.theme]))reason='ชนะผู้พิทักษ์ทั้งสี่ไบโอมและรับธีมก่อน';
+    else if(rule.requiresBoss&&!event.bossWins?.[rule.requiresBoss])reason='โค่นราชันเที่ยงคืนก่อน';
+    else if(rule.requiresTheme&&!document.rewards[rule.requiresTheme])reason='ทำพิธีรับธีม Midnight Academy ก่อน';
+    else if(rule.biome&&biomeAt(document,config,now).id!==rule.biome)reason='บอสอยู่ในไบโอมอื่น';
+    return {unlocked:!reason,reason,won:!!won,rule};
   }
   function resolveRequirements(config, quest, requirements, branch) {
     let req = requirements;
@@ -137,12 +155,14 @@
       const existing = document.rewards[reward.id];
       if (!existing || existing.restriction?.status !== 'Restricted') fail('ยังไม่มีเคียวที่รอปลดผนึก');
       existing.restriction = null; existing.upgradedAt = now; existing.upgradeReceipt = tx;
+      if(config.proposals?.weapons?.[reward.id])event.equipment=reward.id;
       return reward.id;
     }
     if (item) {
       if (!positive(reward.quantity)) fail('จำนวนรางวัลไม่ถูกต้อง');
       Ownership.grant(document, {id:reward.id, restriction:reward.restriction}, tx, now);
       if (reward.inventoryId) addItem(event, reward.inventoryId, reward.quantity);
+      if(config.proposals?.weapons?.[reward.id]&&!reward.restriction)event.equipment=reward.id;
       return reward.id;
     }
     if (!positive(reward.quantity)) fail('จำนวนรางวัลไม่ถูกต้อง');
@@ -182,7 +202,7 @@
       requirePreview(config);
       if (action.type === 'preview-supplies') {
         addCandy(event, 1200, 'preview-supplies', at, tx);
-        for (const item of Object.values(config.items)) if (!['Mystical'].includes(item.rarity) && !['event-feature','tool'].includes(item.kind) && item.id !== 'jacks-hollow-pumpkin' && item.id !== 'jacks-hollow-shovel') addItem(event, item.id, 15);
+        for (const item of Object.values(config.items)) if (!['Mystical'].includes(item.rarity) && !['event-feature','tool','trophy'].includes(item.kind) && item.id !== 'jacks-hollow-pumpkin' && item.id !== 'jacks-hollow-shovel') addItem(event, item.id, 15);
       } else if (action.type === 'preview-biome') {
         if (!BIOMES.includes(action.biome)) fail('ไม่พบไบโอม');
         event.previewBiome = action.biome; event.totem = null;
@@ -220,18 +240,17 @@
       const rolled = action.choice === 'treat' ? 10 : (random(event) < .5 ? 20 : 0);
       const candy = Math.min(rolled, available.remaining);
       addCandy(event, candy, 'house', at, tx);
-      event.houses[current.id + ':' + action.house] = at + 4 * HOUR;
+      event.houses[current.id + ':' + action.house] = at + config.materials.houseCandy.initialCooldownHours * HOUR;
       result.candy = candy; result.item = null;
-      if (candy > 0 && random(event) < .6) {
+      if (candy > 0 && random(event) < config.materials.houseItems.dropChanceGivenCandy) {
         const roll = random(event) * 100; let acc = 0, rarity;
         for (const [tier, weight] of Object.entries(config.materials.houseItems.rarityWeightsPercent)) { acc += weight; if (roll < acc) { rarity = tier; break; } }
-        const destination = random(event) < .1 ? BIOMES[Math.floor(random(event) * 4)] : current.id;
-        const seedIds=Object.values(config.proposals.crops||{}).map(c=>c.seed);
-        const normal = config.materials.biomes.find(x => x.id === destination).items.filter(x => x.rarity === rarity && x.rarity !== 'Mystical' && !seedIds.includes(x.id)).map(x => x.id);
-        const pool = normal.length ? normal : (config.proposals.additionalPools[destination]?.[rarity] || []);
+        const breakthroughRoll=random(event)<config.materials.houseItems.breakthrough.triggerChance;
+        const destination = breakthroughRoll ? BIOMES[Math.floor(random(event) * BIOMES.length)] : current.id;
+        const pool = config.materials.biomes.find(x => x.id === destination).items.filter(x => x.source==='house-item-pool'&&x.rarity === rarity && x.rarity !== 'Mystical').map(x => x.id);
         if (pool.length) {
           const id = pool[Math.floor(random(event) * pool.length)]; addItem(event, id, rules.itemQuantity);
-          result.item = {id, quantity:rules.itemQuantity, rarity, biome:destination, breakthrough:destination !== current.id};
+          result.item = {id, quantity:rules.itemQuantity, rarity, biome:destination, breakthrough:destination !== current.id,breakthroughRoll};
         }
       }
     } else if (action.type === 'quest') {
@@ -256,6 +275,7 @@
         const crop = config.proposals?.crops?.[quest.biome];
         if (crop) { addItem(event,crop.seed,crop.questSeeds); result.seeds = {id:crop.seed,quantity:crop.questSeeds}; }
         for (const reward of quest.rewards) {
+          if(reward.afterBoss){result.boss=reward.afterBoss;continue;}
           if (existingLantern && reward.id === 'spectral-lantern') continue;
           const id = give(document, config, reward, at, tx); if (id) result.rewards.push(id);
         }
@@ -276,6 +296,7 @@
       const recipe = config.proposals.recipes.find(x => x.id === action.recipe) || fail('ยังไม่มีสูตรนี้');
       if (document.rewards[recipe.reward]) fail('มีรางวัลชิ้นนี้แล้ว');
       if (recipe.requiresAllMainQuests && !config.quests.filter(x => x.finalMainQuest).every(x => event.quests[x.id]?.complete)) fail('พิธีทดลองนี้ต้องผ่าน Main Quest ทั้งสี่คน');
+      if(recipe.requiresBoss&&!event.bossWins?.[recipe.requiresBoss])fail('ต้องชนะราชันเที่ยงคืนก่อนทำพิธีรับธีม');
       const requirements = {candy:recipe.candy, items:recipe.items.map(([id,quantity]) => ({id,quantity}))};
       consume(document, requirements, at, tx);
       Ownership.grant(document, {id:recipe.reward}, tx, at); event.crafts.push(recipe.id); result.rewards.push(recipe.reward);
@@ -290,6 +311,7 @@
       requirePreview(config);
       const biome = action.biome || BIOMES[1], crop = config.proposals.crops?.[biome];
       if (!crop) fail('ไม่พบพืชชนิดนี้');
+      if(action.type!=='sell-crop'&&!gardenUnlocked(document))fail('สวนทุกแปลงเปิดหลังส่ง Rotten Pumpkin เคลียร์เถาวัลย์ และจบ Jack Q1 เท่านั้น');
       const requiredRoom=action.type==='sell-crop'?'shop':'garden';
       if(event.location?.kind!=='room'||event.location.room!==requiredRoom) fail(requiredRoom==='shop'?'นำผลผลิตไปขายกับพ่อค้าในร้าน':'ไปปลูกและดูแลพืชที่สวนรัตติกาลก่อน');
       event.gardens ||= {};
@@ -302,7 +324,6 @@
         addItem(event,crop.harvest,-quantity); event.grown[crop.harvest]-=quantity;
         addCandy(event,quantity*crop.sellCandy,'crop-sale',at,tx); result.candy=quantity*crop.sellCandy;
       } else if (action.type==='plant') {
-        if (biome===BIOMES[1] && !(event.inventory['jacks-hollow-plot']>0)) fail('ทำ Jack Q1 เพื่อรับแปลงก่อน');
         if (garden.plantedAt!=null) fail('แปลงนี้กำลังปลูกอยู่');
         addItem(event,crop.seed,-rules.seedCost); save({plantedAt:at,watered:false});
       } else if (action.type==='water') {
@@ -312,6 +333,39 @@
         addItem(event,crop.harvest,rules.yield); event.grown[crop.harvest]=(event.grown[crop.harvest]||0)+rules.yield;
         save({plantedAt:null,watered:false}); result.harvest=rules.yield;
       }
+    } else if(action.type==='equip-weapon'){
+      requirePreview(config);
+      if(event.battle&&!event.battle.finished)fail('เปลี่ยนอาวุธได้เมื่อออกจากการต่อสู้');
+      const status=weaponStatus(document,config,action.weapon);
+      if(!status.usable)fail(status.reason||'อาวุธนี้ยังถือไม่ได้');
+      event.equipment=action.weapon;result.weapon=action.weapon;
+    } else if(action.type==='start-boss'){
+      requirePreview(config);
+      const status=bossStatus(document,config,action.boss,now);
+      if(!status.unlocked)fail(status.reason);
+      if(status.won)fail('รับรางวัลจากบอสตัวนี้แล้ว');
+      if(event.battle&&!event.battle.finished)fail('จบหรือถอยจากการต่อสู้เดิมก่อน');
+      if(status.rule.biome&&(event.location?.kind!=='biome'||event.location.biome!==status.rule.biome))fail('เดินทางเข้าฉากไบโอมของบอสก่อน');
+      if(!status.rule.biome&&(event.location?.kind!=='room'||event.location.room!=='ritual'))fail('ไปวงเวทในโถงกลางก่อนเข้าบัลลังก์');
+      const equipment=weaponStatus(document,config,event.equipment);
+      if(!equipment.usable)fail('ถืออาวุธที่ได้รับจากเควสและปลดผนึกแล้วก่อนสู้บอส');
+      event.battle=Combat.start({...status.rule,id:action.boss},event.equipment,tx,at,()=>random(event));
+      result.battle=clone(event.battle);
+    } else if(action.type==='battle-move'){
+      requirePreview(config);
+      const battle=event.battle;
+      if(!battle||battle.session!==action.session||battle.finished)fail('การต่อสู้รอบนี้จบแล้ว');
+      const rule=config.proposals.bosses[battle.id],weapon=weaponStatus(document,config,battle.weapon);
+      if(!weapon.usable)fail('อาวุธนี้ยังใช้ไม่ได้');
+      if(rule.biome&&rule.biome!==current.id&&action.move!=='retreat')fail('ไบโอมเปลี่ยนแล้ว ถอยกลับก่อนเริ่มใหม่');
+      Combat.move(battle,rule,weapon.weapon,action.move,at,()=>random(event));
+      if(battle.finished&&battle.clear){
+        event.bossWins||={};if(event.bossWins[battle.id])fail('รับรางวัลบอสแล้ว');
+        event.bossWins[battle.id]={at,tx,turns:battle.turn,weapon:battle.weapon};
+        if(rule.theme&&!document.rewards[rule.theme]){Ownership.grant(document,{id:rule.theme},tx,at);result.rewards.push(rule.theme);}
+        if(battle.id==='nameless-afterlight'){addItem(event,'nameless-crown',1);event.secretEnding=true;}
+      }
+      result.battle=clone(battle);
     } else if(action.type==='buy-biome-potion'){
       requirePreview(config);
       if(event.location?.room!=='cauldron')fail('ซื้อน้ำยากับมอราในห้องเตาผสมก่อน');
@@ -397,5 +451,5 @@
     event.clock = at;
     return result;
   }
-  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, biomeAt, portalStatus, questStatus, resolveRequirements, checkRequirements, houseAvailability, gameDefinition, dispatch});
+  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, biomeAt, portalStatus, questStatus, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, houseAvailability, gameDefinition, dispatch});
 });
