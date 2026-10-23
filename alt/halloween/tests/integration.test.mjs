@@ -23,7 +23,7 @@ test('Win retains the restricted scythe stage, non-consuming proof and permanent
  const spec=JSON.parse(fs.readFileSync(new URL('../event/data/quests.graveyard.json',import.meta.url),'utf8')),q=spec.quests;assert.equal(q.length,5);
  for(let i=1;i<q.length;i++)assert.equal(q[i].prerequisite,q[i-1].id);
  assert.equal(q[0].rewards[0].name,'Shovel');assert.equal(q[1].phases[1].requirements.minigame.timeLimitSeconds,30);assert.ok(q[1].grantRewardsAfterFinalPhaseOnly);
- assert.equal(q[3].rewards[0].restriction.status,'Restricted');assert.deepEqual(q[3].rewards[0].restriction.allowedBiomes,['eternal-graveyard']);
+ assert.equal(q[3].rewards[0].restriction.status,'Restricted');assert.deepEqual(q[3].rewards[0].restriction.allowedBiomes,[]);
  assert.equal(q[4].phases[0].requirements.candy,50);assert.equal(q[4].phases[0].requirements.items[0].consume,false);assert.equal(q[4].rewards[0].kind,'upgrade-existing');assert.ok(q[4].rewards[0].removeRestriction);assert.equal(q[4].rewards[1].id,'theme-graveyard');
 });
 test('native completion selection accepts Halloween without changing regular ownership',()=>{

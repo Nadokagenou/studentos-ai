@@ -1,7 +1,7 @@
 {
   "title": "StudentOS AI Halloween item catalog",
-  "updated": "2026-10-22",
-  "status": "design-spec-not-implemented",
+  "updated": "2026-10-23",
+  "status": "owner-confirmed-item-pools-2026-10-23",
   "usage": [
     "NPC quest turn-in according to recipe",
     "witch cauldron according to recipe",
@@ -65,70 +65,70 @@
           "name": "Abyssal rock",
           "rarity": "Common",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
-        },
-        {
-          "id": "dutchmans-soul-old-hook",
-          "name": "Old Hook",
-          "rarity": "Common",
-          "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "dutchmans-soul-seaweed",
           "name": "Seaweed",
           "rarity": "Common",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "jacks-hollow-fabric-scraps",
+          "name": "Fabric Scraps",
+          "rarity": "Uncommon",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "dutchmans-soul-soul-anchor",
           "name": "Soul Anchor",
           "rarity": "Uncommon",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
-        },
-        {
-          "id": "dutchmans-soul-dutchman-s-soul",
-          "name": "Dutchman's Soul",
-          "rarity": "Rare",
-          "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "dutchmans-soul-dutchman-s-lantern",
           "name": "Dutchman's Lantern",
           "rarity": "Rare",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "dutchmans-soul-captain-s-log",
           "name": "Captain's log",
           "rarity": "Epic",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "dutchmans-soul-dutchman-s-skull",
           "name": "Dutchman's Skull",
           "rarity": "Legendary",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "dutchmans-soul-mini-flying-dutchman",
           "name": "Mini Flying Dutchman",
           "rarity": "Secret",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "dutchmans-soul-dutchman-s-soul",
+          "name": "Dutchman's Soul",
+          "rarity": "Mystical",
+          "source": "biome-main-quest",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "dutchmans-soul-greater-spear-of-dutchman",
           "name": "Greater Spear of Dutchman",
           "rarity": "Mystical",
           "source": "biome-main-quest",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         }
       ]
     },
@@ -142,91 +142,84 @@
           "name": "Jack'o Wood",
           "rarity": "Common",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
-        },
-        {
-          "id": "jacks-hollow-fabric-scraps",
-          "name": "Fabric Scraps",
-          "rarity": "Common",
-          "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "jacks-hollow-rotten-pumpkin",
           "name": "Rotten Pumpkin",
           "rarity": "Common",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "jacks-hollow-jack-o-fire",
           "name": "Jack'o Fire",
           "rarity": "Uncommon",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "jacks-hollow-candle",
           "name": "Candle",
           "rarity": "Uncommon",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "jacks-hollow-pumpkin-seed",
           "name": "Pumpkin Seed",
           "rarity": "Rare",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "jacks-hollow-pumpkin-carved",
           "name": "Pumpkin carved",
           "rarity": "Rare",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "jacks-hollow-pumpkin-soup",
           "name": "Pumpkin soup",
           "rarity": "Epic",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "jacks-hollow-vine",
           "name": "Vine",
           "rarity": "Epic",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "jacks-hollow-charcoal",
           "name": "Charcoal",
           "rarity": "Legendary",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
-        },
-        {
-          "id": "jacks-hollow-will-o-the-wisp",
-          "name": "Will-o'-the-wisp",
-          "rarity": "Legendary",
-          "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "jacks-hollow-his-head",
           "name": "His head",
           "rarity": "Secret",
           "source": "house-item-pool",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "jacks-hollow-will-o-the-wisp",
+          "name": "Will-o'-the-wisp",
+          "rarity": "Mystical",
+          "source": "biome-main-quest",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         },
         {
           "id": "jacks-hollow-axe-of-jack-o-lantern",
           "name": "Axe of Jack'o Lantern",
           "rarity": "Mystical",
           "source": "biome-main-quest",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         }
       ]
     },
@@ -237,11 +230,74 @@
       "replaces": "Pumpkin Patch",
       "items": [
         {
+          "id": "pending-vampire-teeth",
+          "name": "Vampire teeth",
+          "rarity": "Common",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "pending-bat-teeth",
+          "name": "Bat teeth",
+          "rarity": "Common",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "pending-bat-wing",
+          "name": "Bat wing",
+          "rarity": "Uncommon",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "vampire-mansion-broken-crossbow",
+          "name": "Broken Crossbow",
+          "rarity": "Uncommon",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "pending-mystic-mirror",
+          "name": "Mystic Mirror",
+          "rarity": "Rare",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "vampire-mansion-magic-nail",
+          "name": "Magic nail",
+          "rarity": "Rare",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "vampire-mansion-vampire-skull",
+          "name": "Vampire Skull",
+          "rarity": "Epic",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "pending-pure-blood-skull",
+          "name": "Pure Blood Skull",
+          "rarity": "Legendary",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "pending-garlic",
+          "name": "Garlic",
+          "rarity": "Secret",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
           "id": "vampire-mansion-cruor-quill",
           "name": "Cruor Quill",
           "rarity": "Mystical",
           "source": "biome-main-quest",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         }
       ]
     },
@@ -251,17 +307,86 @@
       "mainNpc": "Win, the Soul Reaper",
       "items": [
         {
+          "id": "pending-human-bone",
+          "name": "Human Bone",
+          "rarity": "Common",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "pending-human-skull",
+          "name": "Human Skull",
+          "rarity": "Common",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "jacks-hollow-shovel",
+          "name": "Shovel",
+          "rarity": "Uncommon",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "pending-monster-bone",
+          "name": "Monster Bone",
+          "rarity": "Uncommon",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "pending-zombie-arms",
+          "name": "Zombie Arms",
+          "rarity": "Rare",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "eternal-graveyard-rotten-stick",
+          "name": "Rotten Stick",
+          "rarity": "Rare",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "pending-soul-stick",
+          "name": "Soul Stick",
+          "rarity": "Epic",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "pending-scrap-iron",
+          "name": "Scrap Iron",
+          "rarity": "Epic",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "pending-soul-vessel",
+          "name": "Soul Vessel",
+          "rarity": "Legendary",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
+          "id": "pending-grim-scythe",
+          "name": "Grim Scythe",
+          "rarity": "Secret",
+          "source": "house-item-pool",
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
+        },
+        {
           "id": "eternal-graveyard-scythe-of-dullahan",
           "name": "Scythe of Dullahan",
           "rarity": "Mystical",
           "source": "biome-main-quest",
-          "uses": "only as specified by approved recipe"
+          "uses": "quest, cauldron or ritual only when listed in its recipe"
         }
       ]
     }
   ],
   "unresolved": [
-    "Vampire Mansion and Eternal Graveyard have no non-Mystical item pools yet",
     "Item weights within the same rarity",
     "Quest, cauldron and ritual recipes",
     "Totem acquisition, duration and interaction rules",
@@ -299,95 +424,12 @@
       "rarity": null
     },
     {
-      "id": "jacks-hollow-shovel",
-      "name": "Shovel",
-      "kind": "quest-item",
-      "source": "win-death-fragments",
-      "rarity": null
-    },
-    {
-      "id": "pending-human-bone",
-      "name": "Human Bone",
-      "rarity": null,
-      "sourceBiome": null
-    },
-    {
-      "id": "pending-human-skull",
-      "name": "Human Skull",
-      "rarity": null,
-      "sourceBiome": null
-    },
-    {
-      "id": "pending-vampire-teeth",
-      "name": "Vampire teeth",
-      "rarity": null,
-      "sourceBiome": "vampire-mansion"
-    },
-    {
-      "id": "pending-mystic-mirror",
-      "name": "Mystic Mirror",
-      "rarity": null,
-      "sourceBiome": null
-    },
-    {
-      "id": "pending-pure-blood-skull",
-      "name": "Pure Blood Skull",
-      "rarity": null,
-      "sourceBiome": null
-    },
-    {
-      "id": "pending-bat-teeth",
-      "name": "Bat teeth",
-      "rarity": null,
-      "sourceBiome": null
-    },
-    {
-      "id": "pending-bat-wing",
-      "name": "Bat wing",
-      "rarity": null,
-      "sourceBiome": null
-    },
-    {
-      "id": "pending-monster-bone",
-      "name": "Monster Bone",
-      "rarity": null,
-      "sourceBiome": null
-    },
-    {
-      "id": "pending-zombie-arms",
-      "name": "Zombie Arms",
-      "rarity": null,
-      "sourceBiome": null
-    },
-    {
-      "id": "pending-garlic",
-      "name": "Garlic",
-      "rarity": null,
-      "sourceBiome": null
-    },
-    {
-      "id": "pending-soul-vessel",
-      "name": "Soul Vessel",
-      "rarity": null,
-      "sourceBiome": null
-    },
-    {
-      "id": "pending-grim-scythe",
-      "name": "Grim Scythe",
-      "rarity": null,
-      "sourceBiome": null
-    },
-    {
-      "id": "pending-scrap-iron",
-      "name": "Scrap Iron",
-      "rarity": null,
-      "sourceBiome": null
-    },
-    {
-      "id": "pending-soul-stick",
-      "name": "Soul Stick",
-      "rarity": null,
-      "sourceBiome": null
+      "id": "dutchmans-soul-old-hook",
+      "name": "Old Hook",
+      "rarity": "Common",
+      "source": "legacy-inventory",
+      "uses": "only as specified by approved recipe",
+      "legacy": true
     }
   ],
   "garden": {

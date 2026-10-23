@@ -6,14 +6,13 @@ const require=createRequire(import.meta.url),Core=require('../event/core.js'),Gu
 const load=x=>JSON.parse(fs.readFileSync(new URL('../event/data/'+x+'.json',import.meta.url),'utf8'));
 const config=Core.build({materials:load('materials'),chains:['dutchman','jack','vampire','graveyard'].map(x=>load('quests.'+x)),catalog:Catalog,proposals:load('preview-rules'),preview:true});
 const at=Date.parse('2026-10-23T10:00:00+07:00');
-test('Human Bone and Skull odds include their two source biomes and the breakthrough mixture',()=>{
-  assert.ok(Math.abs(Balance.chance(config,'pending-human-bone','vampire-mansion')-.077)<1e-12);
-  assert.ok(Math.abs(Balance.chance(config,'pending-human-skull','vampire-mansion')-.07625)<1e-12);
-  assert.ok(Math.abs(Balance.chance(config,'pending-human-bone','eternal-graveyard')-.113)<1e-12);
-  assert.ok(Math.abs(Balance.chance(config,'pending-human-skull','eternal-graveyard')-.08525)<1e-12);
-  assert.equal(Balance.chance(config,'pending-human-skull','vampire-mansion','trick'),.07625*.5);
-  assert.ok(Math.abs(Balance.anyItemChance(config,'vampire-mansion')-.5943)<1e-12);
-  assert.ok(Math.abs(Balance.anyItemChance(config,'dutchmans-soul')-.5997)<1e-12);
+test('Human Bone and Skull are Common in Graveyard and reach other biomes only through breakthrough',()=>{
+  for(const id of ['pending-human-bone','pending-human-skull']){
+    assert.ok(Math.abs(Balance.chance(config,id,'vampire-mansion')-.003)<1e-12);
+    assert.ok(Math.abs(Balance.chance(config,id,'eternal-graveyard')-.111)<1e-12);
+    assert.ok(Math.abs(Balance.chance(config,id,'vampire-mansion','trick')-.0015)<1e-12);
+  }
+  for(const biome of Core.BIOMES)assert.ok(Math.abs(Balance.anyItemChance(config,biome)-.6)<1e-12);
 });
 test('item-source instructions agree with actual house rolls and never promise quest-only relics from houses',()=>{
   let seed=987654321;
@@ -49,7 +48,7 @@ test('difficulty exposes material bottlenecks and the next-cycle gate without in
   for(const q of config.quests){const d=Balance.difficulty(config,q);assert.ok(d.level>=1&&d.level<=5);for(const item of d.items)assert.equal(item.expected,item.need/item.chance);}
   assert.equal(Balance.difficulty(config,config.quests.find(q=>q.id==='dech-wrong-letter')).nextCycle,true);
   assert.ok(Guide.summary(config,'crop-bloodrose').includes('ปลูก'));
-  assert.ok(Guide.summary(config,'jacks-hollow-shovel').includes('Win'));
-  const expected=1/.113+1/.08525-1/(.113+.08525);
+  assert.ok(Guide.sources(config,'jacks-hollow-shovel').some(s=>s.kind==='quest'&&s.npc.includes('Win')));
+  const expected=1/.111+1/.111-1/.222;
   assert.ok(Math.abs(Balance.expectedCollection(config,[{id:'pending-human-bone',need:1},{id:'pending-human-skull',need:1}])-expected)<1e-9);
 });

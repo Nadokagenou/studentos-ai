@@ -3,7 +3,7 @@
   "biomeName": "Vampire Mansion",
   "npc": "Mr. Dech",
   "status": "owner-confirmed-spec-with-open-quantities",
-  "updated": "2026-10-22",
+  "updated": "2026-10-23",
   "minigame": {
     "id": "dech-house-spot-difference",
     "name": "จับผิดภาพในบ้านเดช",
@@ -248,9 +248,11 @@
         {
           "id": "theme-vampire",
           "name": "ธีม Vampire Mansion",
-          "quantity": 1
+          "quantity": 1,
+          "afterBoss": "blood-countess"
         }
-      ]
+      ],
+      "bossId": "blood-countess"
     }
   ],
   "unresolved": [

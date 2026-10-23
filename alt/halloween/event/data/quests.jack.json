@@ -3,7 +3,7 @@
   "biomeName": "Jack's Hollow",
   "npc": "Jack'o Tigger",
   "status": "owner-confirmed-spec",
-  "updated": "2026-10-22",
+  "updated": "2026-10-23",
   "newDefinitions": [
     {
       "id": "jacks-hollow-plot",
@@ -135,12 +135,12 @@
                   {
                     "id": "jacks-hollow-pumpkin-seed",
                     "name": "Pumpkin Seed",
-                    "quantity": 3
+                    "quantity": 5
                   },
                   {
                     "id": "jacks-hollow-pumpkin-carved",
                     "name": "Pumpkin carved",
-                    "quantity": 1
+                    "quantity": 3
                   },
                   {
                     "id": "jacks-hollow-pumpkin-soup",
@@ -151,7 +151,7 @@
               }
             ]
           },
-          "acceptDialogue": "เอาล่ะเจ้าหนู! ข้าเห็นความสามารถของเจ้าแล้ว และข้ามีสุดยอดอาวุธอย่าง Axe of Jack'o Lantern จะมอบให้! แต่ของดีมันต้องมีสิ่งแลกเปลี่ยน... ข้าให้เจ้าเลือกได้สองทาง!\nทางเลือกที่ 1: จ่าย 200 Candy มาแลกแบบง่ายๆ\nทางเลือกที่ 2: สายแรงงาน! ไปหา Pumpkin Seed 3 ชิ้น, Pumpkin carved 1 ชิ้น และ Pumpkin soup อุ่นๆ 1 ชิ้น มาให้ข้า!\nเลือกเอาเลยว่าอยากจ่ายด้วยขนมหรือด้วยเหงื่อ!",
+          "acceptDialogue": "เอาล่ะเจ้าหนู! ข้าเห็นความสามารถของเจ้าแล้ว และข้ามีสุดยอดอาวุธอย่าง Axe of Jack'o Lantern จะมอบให้! แต่ของดีมันต้องมีสิ่งแลกเปลี่ยน... ข้าให้เจ้าเลือกได้สองทาง!\nทางเลือกที่ 1: จ่าย 200 Candy มาแลกแบบง่ายๆ\nทางเลือกที่ 2: สายแรงงาน! ไปหา Pumpkin Seed 5 ชิ้น, Pumpkin carved 3 ชิ้น และ Pumpkin soup อุ่นๆ 1 ชิ้น มาให้ข้า!\nเลือกเอาเลยว่าอยากจ่ายด้วยขนมหรือด้วยเหงื่อ!",
           "completeDialogue": "ฮ่าๆๆ! ยอดเยี่ยม! ไม่ว่าจะขนมหรือของกิน เจ้าก็หามาให้ข้าจนได้... แต่เอ๊ะ! เซอร์ไพรส์! คิดว่าจะได้ขวานไปง่ายๆ รึไง? ข้าลืมบอกไปเลยว่าพิธีกรรมปลุกเสกขวานเล่มนี้ มันยังขาดชิ้นส่วนสำคัญที่สุดอยู่... นั่นก็คือ His head (หัวของเขา) อีก 1 ชิ้น! ฮิๆๆ ไม่ต้องทำหน้าตื่นตกใจขนาดนั้น ไปหามาให้ข้าซะดีๆ!"
         },
         {
@@ -180,9 +180,11 @@
         {
           "id": "theme-jackhollow",
           "name": "ธีม Jack'o Lantern",
-          "quantity": 1
+          "quantity": 1,
+          "afterBoss": "hollow-king"
         }
-      ]
+      ],
+      "bossId": "hollow-king"
     }
   ],
   "unresolved": [

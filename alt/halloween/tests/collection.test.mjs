@@ -20,7 +20,7 @@ test('permanent offline files survive removal of event directory',()=>{
 test('Tang keeps revised recipe, existing craft and two-phase final rewards',()=>{
  const {quests:q}=json('quests.dutchman.json');assert.equal(q[0].phases[0].requirements.candy,50);assert.ok(q[0].preserveExistingCraft);
  assert.deepEqual(q[0].phases[0].requirements.items.map(x=>[x.name,x.quantity]),[['Abyssal rock',1],["Dutchman's Lantern",1]]);
- assert.ok(q[1].phases[0].requirements.minigame.mustClear);assert.equal(q[2].phases.length,2);assert.equal(q[2].phases[1].requirements.items[0].quantity,10);assert.ok(q[2].grantRewardsAfterFinalPhaseOnly);
+ assert.ok(q[1].phases[0].requirements.minigame.mustClear);assert.equal(q[2].phases.length,2);assert.equal(q[2].phases[1].requirements.items[0].quantity,15);assert.ok(q[2].grantRewardsAfterFinalPhaseOnly);
  assert.deepEqual(q[2].rewards.map(x=>x.id),['greater-spear','theme-ghostship']);
 });
 test('Jack requires player-grown pumpkins, then one offer followed by surprise head',()=>{
