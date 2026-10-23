@@ -23,6 +23,8 @@ const INVITE_KEY = 'studentos.alt.inviteCode';              // รหัสจ�
 const INVITE_CACHE_KEY = 'studentos.alt.inviteCache';       // ผลล่าสุดจากเซิร์ฟเวอร์ ไว้วาดตอนออฟไลน์
 const INVITE_SEEN_KEY = 'studentos.alt.inviteUnlockSeen';   // ฉลองปลดล็อกไปแล้ว (ครั้งเดียวต่อบัญชี)
 const INVITE_NEW_DAYS = 7;                                   // ต้องตรงกับ redeem_invite ฝั่ง SQL
+// "ชวนเพื่อน" = ชวนคนที่ไม่เคยใช้ StudentOS (เจ้าของสั่ง 23 ต.ค. 69) · ฝั่ง SQL ตัดสินจริง ฝั่งนี้แค่ซ่อนช่องให้ตรงกัน
+const INVITE_FIRST_GRACE = 864e5;                            // เปิดแอปก่อนสมัครได้ไม่เกิน 1 วัน (ต้องตรงกับ SQL)
 
 // ---------- เก็บรหัสจากลิงก์ทันทีที่โหลด ----------
 (function stashInviteCode() {
@@ -107,7 +109,7 @@ const INVITE_MSG = {
   self:      ['นี่คือรหัสของคุณเอง', 'ส่งรหัสนี้ให้เพื่อนใช้นะ'],
   already:   ['บัญชีนี้ใช้รหัสเชิญไปแล้ว', 'รหัสเชิญใช้ได้บัญชีละครั้ง'],
   full:      ['รหัสนี้มีคนใช้ครบแล้ว', 'ขอรหัสจากเพื่อนคนอื่นแทนได้'],
-  not_new:   ['รหัสเชิญใช้ได้กับบัญชีใหม่เท่านั้น', 'บัญชีนี้ใช้งานมาเกิน ' + INVITE_NEW_DAYS + ' วันแล้ว'],
+  not_new:   ['รหัสเชิญใช้ได้กับคนที่ไม่เคยใช้ StudentOS เท่านั้น', 'บัญชีนี้เคยใช้แอปมาก่อนแล้ว จึงนับเป็นเพื่อนที่ถูกชวนมาไม่ได้'],
   blocked:   ['ใช้รหัสนี้ไม่ได้', ''],
 };
 
@@ -274,7 +276,9 @@ function ivPaintSheet(sh, first) {
   const left = d ? Math.max(0, (Number(d.max_uses) || 0) - used) : null;
   const code = d && d.code ? d.code : '';
   const born = logged && currentUser.created_at ? Date.parse(currentUser.created_at) : 0;
-  const canRedeem = logged && d && !d.invited_by && born && Date.now() - born < INVITE_NEW_DAYS * 864e5;
+  const firstOpen = Date.parse(((typeof state !== 'undefined' && state && state.funnel) || {}).firstOpen || '');
+  const usedBefore = born && firstOpen && firstOpen < born - INVITE_FIRST_GRACE;
+  const canRedeem = logged && d && !d.invited_by && born && !usedBefore && Date.now() - born < INVITE_NEW_DAYS * 864e5;
   // ช่องที่กำลังพิมพ์ต้องไม่หายตอนวาดใหม่ (โหลดเสร็จ · QR มา)
   const typing = document.getElementById('ivRedeemIn');
   const typed = typing ? typing.value : '';
@@ -330,7 +334,7 @@ function ivPaintSheet(sh, first) {
           <div class="iv-q-t"><b>ชวนเพื่อนครบ ${INVITE_GOAL} คน</b>
             <small>${d && d.friends && d.friends.length
               ? d.friends.slice(0, 6).map(f => esc(f.handle ? '@' + f.handle : f.name)).join(' · ')
-              : 'นับเมื่อเพื่อนสมัครบัญชีใหม่แล้วใส่รหัสของคุณ'}</small></div>
+              : 'นับเมื่อเพื่อนที่ไม่เคยใช้ StudentOS สมัครแล้วใส่รหัสของคุณ'}</small></div>
           <div class="iv-q-n">${Math.min(used, INVITE_GOAL)}/${INVITE_GOAL}</div>
         </div>
         <div class="iv-q${taskOk ? ' done' : ''}">
@@ -358,7 +362,7 @@ function ivPaintSheet(sh, first) {
         </form>
       </details>` : ''}
       ${d && d.invited_by ? `<p class="iv-fine">คุณมาจากคำชวนของ ${esc(d.invited_by.handle ? '@' + d.invited_by.handle : d.invited_by.name)}</p>` : ''}
-      <p class="iv-fine">นับเฉพาะเพื่อนที่สมัครบัญชีใหม่ไม่เกิน ${INVITE_NEW_DAYS} วัน · ใช้รหัสแล้วเป็นเพื่อนกันในแอปอัตโนมัติ</p>
+      <p class="iv-fine">นับเฉพาะเพื่อนที่ไม่เคยใช้ StudentOS มาก่อน (ใส่รหัสภายใน ${INVITE_NEW_DAYS} วันหลังสมัคร) · ใช้รหัสแล้วเป็นเพื่อนกันในแอปอัตโนมัติ</p>
     </div>`;
 }
 

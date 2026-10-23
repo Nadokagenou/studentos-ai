@@ -8,6 +8,7 @@
 //
 // ที่ต้องพิสูจน์: จำนวน "เพื่อนที่ชวนมาได้" ปลอมไม่ได้จากเบราว์เซอร์ · บัญชีหนึ่งนับได้ครั้งเดียว
 // · ใช้รหัสตัวเอง/บัญชีเก่า/คนที่บล็อกกันไม่ได้ · รหัสเต็มแล้วรับเพิ่มไม่ได้
+// · คนที่เคยใช้แอปมาก่อนสมัคร (funnel.firstOpen เก่ากว่าวันสมัคร) ไม่นับ — ต้องเป็นคนที่ไม่เคยใช้
 // ============================================================
 import fs from 'node:fs';
 import path from 'node:path';
@@ -39,6 +40,7 @@ await db.exec(`
   await db.exec(`create table public.line_links (user_id uuid, room_id text, primary key (user_id, room_id));`);
   await db.exec(s.slice(from, to) + 'grant execute on function public.is_blocked(uuid, uuid) to authenticated;');
 }
+await db.exec(mig('20260823120000_user_state.sql'));
 await db.exec(mig('20260830170000_friends.sql'));
 await db.exec(mig('20260903120000_friend_handles.sql').split('-- ============================================================\n-- ค้นหาคน')[0]);
 await db.exec(mig('20261023150000_invites.sql'));
@@ -87,6 +89,21 @@ check('บัญชีเก่าเกิน 7 วัน → not_new', (await 
 await db.exec(`insert into public.blocks (blocker, blocked) values ('${A}', '${BAD}')`);
 check('บล็อกกันอยู่ → blocked', (await redeem(BAD, code)) === 'blocked');
 check('anon ใช้รหัสไม่ได้', !!(await as(null, 'select public.redeem_invite($1)', [code])).error);
+
+// ---- 2b) ไม่เคยใช้มาก่อน = ดูวันแรกที่เปิดแอป (funnel.firstOpen ใน user_state) ----
+{
+  const [P, Q, R, S, W] = [21, 22, 23, 24, 25].map(U);
+  await db.exec(`insert into auth.users (id) values ('${P}'), ('${Q}'), ('${R}'), ('${S}'), ('${W}');
+    insert into public.user_state (id, data) values
+      ('${P}', jsonb_build_object('funnel', jsonb_build_object('firstOpen', to_char((now() - interval '20 days') at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')))),
+      ('${Q}', jsonb_build_object('funnel', jsonb_build_object('firstOpen', to_char((now() - interval '3 hours') at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')))),
+      ('${R}', '{"funnel":{"firstOpen":"ไม่ใช่วันที่"}}'::jsonb);`);
+  const code2 = (await myInvite(W)).code;
+  check('บัญชีใหม่แต่เปิดแอปมา 20 วันก่อนสมัคร (เคยใช้แล้ว) → not_new', (await redeem(P, code2)) === 'not_new');
+  check('เปิดแอปครั้งแรก 3 ชม.ก่อนสมัคร (กดลิงก์แล้วลองก่อน) → ok', (await redeem(Q, code2)) === 'ok');
+  check('firstOpen อ่านไม่ออก → ไม่ล้ม · ok', (await redeem(R, code2)) === 'ok');
+  check('ยังไม่มี user_state เลย (เพิ่งสมัคร) → ok', (await redeem(S, code2)) === 'ok');
+}
 
 // ---- 3) เป็นเพื่อนกันทันที ----
 {

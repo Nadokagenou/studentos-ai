@@ -12,8 +12,14 @@
 -- กติกา (บังคับใน redeem_invite ที่เดียว · ห้ามเขียนตารางตรงจากเบราว์เซอร์):
 --   · บัญชีหนึ่งถูกชวนได้ครั้งเดียวตลอดไป (invitee เป็น primary key)
 --   · ใช้รหัสตัวเองไม่ได้ · ใช้รหัสของคนที่บล็อกกันไม่ได้
---   · ต้องเป็นบัญชีใหม่ (สร้างมาไม่เกิน 7 วัน) — "ชวนเพื่อนมาใช้" คือคนที่ยังไม่เคยใช้
---     ไม่งั้นทั้งห้องที่ใช้อยู่แล้วแค่แลกรหัสกันก็ครบภารกิจโดยไม่มีใครมาใหม่สักคน
+--   · ต้องเป็นคนที่ไม่เคยใช้ StudentOS มาก่อน (เจ้าของสั่ง 23 ต.ค. 69: "ชวนเพื่อนคือชวนคนที่ไม่เคยใช้ให้ใช้")
+--     ไม่งั้นทั้งห้องที่ใช้อยู่แล้วแค่แลกรหัสกันก็ครบภารกิจโดยไม่มีใครมาใหม่สักคน · ตรวจสองชั้น:
+--       1. บัญชีสร้างมาไม่เกิน 7 วัน (เวลาให้เพื่อนที่สมัครแล้วค่อยพิมพ์รหัสตามมาทีหลัง)
+--       2. วันแรกที่เปิดแอป (user_state.data.funnel.firstOpen · รวมทุกเครื่อง และรวมช่วงที่ใช้
+--          โดยไม่ล็อกอินด้วย เพราะข้อมูลในเครื่องถูกย้ายเข้าบัญชีตอนล็อกอินครั้งแรก) ต้องไม่ก่อน
+--          วันสมัครเกิน 1 วัน — คนที่ใช้แอปมานานแล้วเพิ่งสมัครบัญชี ไม่ใช่คนที่ถูกชวนมา
+--          (เผื่อ 1 วันให้คนที่กดลิงก์แล้วลองเล่นก่อนสมัคร)
+--     ที่ตรวจไม่ได้: คนเดิมสมัครบัญชีที่สองบนเครื่องที่สลับบัญชี (ข้อมูลเครื่องถูกแยกเก็บ เริ่มใหม่สะอาด)
 --   · รหัสหนึ่งใช้ได้ 6 คน (max_uses) — ภารกิจต้องการ 3 · ที่เหลือเผื่อชวนต่อ
 --   · ใช้รหัสแล้วเป็นเพื่อนกันทันที (ตอบรับแล้ว) — คนที่ชวนกันมาไม่ต้องค้นหากันอีกรอบ
 -- ============================================================
@@ -114,7 +120,7 @@ grant execute on function public.my_invite() to authenticated;
 --   self      รหัสของตัวเอง
 --   already   บัญชีนี้ใช้รหัสเชิญไปแล้ว (ของใครก็ตาม)
 --   full      รหัสนี้มีคนใช้ครบแล้ว
---   not_new   บัญชีเก่าเกิน 7 วัน
+--   not_new   เคยใช้ StudentOS มาก่อน (บัญชีเก่าเกิน 7 วัน หรือเปิดแอปมาก่อนสมัครนานแล้ว)
 --   blocked   บล็อกกันอยู่
 create or replace function public.redeem_invite(p_code text)
 returns text
@@ -122,7 +128,7 @@ language plpgsql volatile security definer set search_path = public as $fn$
 declare
   v_me uuid := auth.uid();
   v_key text := upper(regexp_replace(coalesce(p_code, ''), '[^A-Za-z]', '', 'g'));
-  v_owner uuid; v_max int; v_used int; v_born timestamptz;
+  v_owner uuid; v_max int; v_used int; v_born timestamptz; v_first timestamptz;
 begin
   if v_me is null then raise exception 'ต้องล็อกอินก่อน'; end if;
   if length(v_key) < 6 or length(v_key) > 30 then return 'not_found'; end if;
@@ -137,6 +143,14 @@ begin
 
   select u.created_at into v_born from auth.users u where u.id = v_me;
   if v_born is null or v_born < now() - interval '7 days' then return 'not_new'; end if;
+
+  -- เปิดแอปครั้งแรกนานก่อนสมัคร = เคยใช้แล้ว · ไม่มีข้อมูล/อ่านค่าไม่ได้ = ไม่มีหลักฐานว่าเคยใช้ ปล่อยผ่าน
+  begin
+    select (s.data #>> '{funnel,firstOpen}')::timestamptz into v_first
+      from public.user_state s where s.id = v_me;
+  exception when others then v_first := null;
+  end;
+  if v_first is not null and v_first < v_born - interval '1 day' then return 'not_new'; end if;
 
   select count(*) into v_used from public.invite_redemptions r where r.inviter = v_owner;
   if v_used >= v_max then return 'full'; end if;
