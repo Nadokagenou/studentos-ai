@@ -415,7 +415,7 @@
         if (event.repairs) fail('ซ่อมเรือก่อนออกเดินทาง');
         game.target = Math.floor(random(event)*3); game.deadline = at+15000;
       }
-      if (action.game === 'clear-jacks-garden-vines' && event.quests['jack-clear-garden']?.phase !== 1) fail('ส่ง Rotten Pumpkin ให้ Jack ก่อน');
+      if (action.game === 'clear-jacks-garden-vines' && event.quests['jack-clear-garden']?.phase !== 1 && !event.quests['jack-clear-garden']?.complete) fail('ส่ง Rotten Pumpkin ให้ Jack ก่อน');
       if (['grave-digging','catch-all-ghosts'].includes(action.game) && !event.quests['win-death-fragments']?.complete) fail('รับ Shovel จาก Win Q1 ก่อน');
       if (action.game === 'catch-all-ghosts' && !event.proofs['grave-digging']?.complete) fail('ขุดหลุมศพให้จบก่อน');
       const previous = event.games[action.game];

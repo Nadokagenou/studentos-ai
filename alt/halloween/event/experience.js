@@ -54,6 +54,7 @@
     finishTyping();activePanel=null;delete detail.dataset.scenePanel;detail.dataset.room=activeRoom||'';
     delete detail.dataset.guide;
     delete detail.dataset.plotBiome;
+    delete detail.dataset.gameInfo;
     detail.innerHTML = html; detailAfterClose = afterClose;
     detail.querySelectorAll('[data-close-detail]').forEach(b => b.addEventListener('click',() => detail.close()));
     if (!detail.open) detail.showModal();
@@ -392,7 +393,17 @@
     detailAfterClose = () => { window.removeEventListener('message',ready); frame.removeAttribute('src'); };
   }
   async function openGame(id) {
-    await window.HalloweenEventGames.open(id,{perform,read,now,reduced,toast,onClose:render});
+    await window.HalloweenEventGames.open(id,{perform,read,now,reduced,toast,onClose:()=>{render();if(detail.open&&detail.dataset.gameInfo)showGameInfo(detail.dataset.gameInfo);}});
+  }
+  function showGameInfo(id){
+    const info=window.HalloweenWorld.activity(worldContext(),id);if(!info)return;
+    let action;
+    if(info.quest)action='<button class="primary" data-quest="'+info.quest+'">ดูเควสที่ต้องทำก่อน</button>';
+    else if(info.game)action='<button class="primary" data-game-info="'+info.game+'">ไปดูเกมขุดหลุมศพ</button>';
+    else if(info.repair)action='<button class="primary" data-action="repair">ซ่อมเรือ · '+read().event.repairs+' Candy</button>';
+    else action='<button class="primary" data-game="'+id+'" '+(read().event.closed?'disabled':'')+'>'+(info.complete?'เล่นอีกครั้ง':'เริ่มมินิเกม')+'</button>';
+    openDetail(dialogShell(esc(info.name),'<span class="activity-tag">▶ มินิเกมในฉากนี้</span><p class="story-copy">'+esc(info.description)+'</p><p class="subtle">'+esc(info.instructions)+'</p><p class="activity-status '+(info.locked?'activity-locked':'')+'">'+esc(info.locked?'ยังไม่เปิด · '+info.reason:info.complete?'✓ ผ่านแล้ว · เล่นซ้ำได้':'พร้อมเล่น · กดเริ่มเมื่อพร้อม')+'</p>','<button class="secondary" data-close-detail>กลับฉาก</button>'+action));
+    detail.dataset.gameInfo=id;
   }
   function showPreferences() {
     const closed = preview && store && read().event.closed;
@@ -463,7 +474,7 @@
     if(e.target.closest('.npc-line[data-typing],.npc-dialogue[data-typing]')){finishTyping();return;}
     const button = e.target.closest('button,a'); if (!button) return;
     const mapTarget=button.matches('.world-scene .world-spot,.world-scene .world-portal,.world-scene .garden-bed');
-    if(mapTarget&&window.HalloweenWorld.shouldArm({pointerType:e.pointerType||lastPointerType,detail:e.detail,armed:button.dataset.armed==='true',labelVisible:button.matches('.village-sign,.portal-open')})){
+    if(mapTarget&&window.HalloweenWorld.shouldArm({pointerType:e.pointerType||lastPointerType,detail:e.detail,armed:button.dataset.armed==='true',labelVisible:button.matches('.village-sign,.portal-open'),markerVisible:button.matches('.scene-point,.npc-character,.garden-bed,.world-portal')})){
       e.preventDefault();document.querySelectorAll('[data-armed]').forEach(b=>delete b.dataset.armed);button.dataset.armed='true';return;
     }
     document.querySelectorAll('[data-armed]').forEach(b=>delete b.dataset.armed);
@@ -471,6 +482,7 @@
     if(button.hasAttribute('data-toggle-scene-sound')){prefs.sound=!prefs.sound;rememberPrefs();syncSoundUI();return;}
     if(button.hasAttribute('data-start-with-sound')){prefs.sound=true;prefs.motion='full';prefs.motionChosen=true;rememberPrefs();syncSoundUI();syncMotionUI();detail.close();return;}
     if(button.hasAttribute('data-open-guide')){showGuide();return;}
+    if(button.dataset.gameInfo){showGameInfo(button.dataset.gameInfo);return;}
     if(button.hasAttribute('data-open-balance')){showBalance();return;}
     if(button.hasAttribute('data-item-pools')){showItemPools();return;}
     if(button.hasAttribute('data-equipment')){showEquipment();return;}
@@ -551,7 +563,7 @@
     if (button.hasAttribute('data-visitor')) { if (await perform({type:'visitor',index:Number(button.dataset.visitor)})) {showVisitors();toast('ส่งของแล้ว นักเดินทางฝาก Candy ไว้ให้');} return; }
     if (button.dataset.task) { if (await perform({type:'task',task:button.dataset.task})) toast('งานตัวอย่างเสร็จแล้ว รับ Candy เรียบร้อย ✓'); return; }
     if (button.dataset.totem) { if (await perform({type:'totem',biome:button.dataset.totem})) { navigate('explore'); toast('Totem เปิดเส้นทางส่วนตัว 15 นาที'); } return; }
-    if (button.dataset.action) { if (await perform({type:button.dataset.action,biome:button.dataset.cropBiome})) {if(button.dataset.cropBiome)showPlot(button.dataset.cropBiome);toast(({harvest:'เก็บผลผลิตแล้ว นำไปขายกับพ่อค้าในร้านได้',water:'รดน้ำแล้ว รอผลผลิตได้เลย',plant:'ปลูกเมล็ดจากเควสแล้ว อย่าลืมรดน้ำ',repair:'ซ่อมเรือแล้ว ออกเดินทางได้เลย'})[button.dataset.action]);} }
+    if (button.dataset.action) { if (await perform({type:button.dataset.action,biome:button.dataset.cropBiome})) {if(button.dataset.cropBiome)showPlot(button.dataset.cropBiome);if(button.dataset.action==='repair'&&detail.dataset.gameInfo)showGameInfo(detail.dataset.gameInfo);toast(({harvest:'เก็บผลผลิตแล้ว นำไปขายกับพ่อค้าในร้านได้',water:'รดน้ำแล้ว รอผลผลิตได้เลย',plant:'ปลูกเมล็ดจากเควสแล้ว อย่าลืมรดน้ำ',repair:'ซ่อมเรือแล้ว ออกเดินทางได้เลย'})[button.dataset.action]);} }
   });
   document.getElementById('preferencesButton').addEventListener('click',showPreferences);
   window.addEventListener('storage',e => { if (e.key===KEY && preview) { try { updateWallet(); updateBanner(); render(); } catch { toast('อ่านการเปลี่ยนแปลงห้องลองไม่ได้',true); } } });

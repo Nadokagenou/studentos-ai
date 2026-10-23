@@ -9,7 +9,8 @@
   const hint=['ตามแสงโคม ล่าสมบัติบนเรือที่ไม่เคยกลับฝั่ง','ถางเถาวัลย์ ปลูกสวน และฟังคำขอของ Jack','เปิดประตูคฤหาสน์ มองหารายละเอียดที่เปลี่ยนไป','ขุดหลุมศพ แล้วนำวิญญาณกลับมาก่อนหมดเวลา'];
   const portraits={hub:['portrait-hub.png',0,0,1],dutchman:['portrait-biomes.png',0,0,2],jack:['portrait-biomes.png',1,0,2],vampire:['portrait-biomes.png',0,1,2],graveyard:['portrait-biomes.png',1,1,2],shop:['portrait-rooms.png',0,0,2],cauldron:['portrait-rooms.png',1,0,2],ritual:['portrait-rooms.png',0,1,2],garden:['portrait-rooms.png',1,1,2]};
   function spot(label,attrs,x,y,extra='',mobile=[x,y]){
-    return '<button class="world-spot '+extra+(x<20?' label-right':x>80?' label-left':'')+'" style="--x:'+x+'%;--y:'+y+'%;--px:'+mobile[0]+'%;--py:'+mobile[1]+'%" '+attrs+' aria-label="'+esc(label)+'"><span class="spot-dot" aria-hidden="true">✦</span><span class="spot-label">'+esc(label)+'</span></button>';
+    const activity=attrs.includes('data-game-info=');
+    return '<button class="world-spot scene-point '+extra+(activity?' activity-point':'')+(x<20?' label-right':x>80?' label-left':'')+'" style="--x:'+x+'%;--y:'+y+'%;--px:'+mobile[0]+'%;--py:'+mobile[1]+'%" '+attrs+' aria-label="'+esc(label)+'"><span class="spot-dot" aria-hidden="true">'+(activity?'▶':'?')+'</span>'+(activity?'<span class="spot-kind" aria-hidden="true">มินิเกม</span>':'')+'<span class="spot-label">'+esc(label)+'</span></button>';
   }
   function scene(key,label,contents,extra=''){
     const p=portraits[key];
@@ -32,7 +33,30 @@
     const npc=NPCs.characters[id];
     return '<button class="world-spot npc-character npc-spot'+(x<25?' label-right':x>75?' label-left':'')+'" style="--x:'+x+'%;--y:'+y+'%;--px:'+mobile[0]+'%;--py:'+mobile[1]+'%" '+attrs+' aria-label="คุยกับ '+esc(npc.name)+'">'+portrait(id)+'<span class="spot-label">คุยกับ '+esc(npc.name)+'</span></button>';
   }
-  function shouldArm({pointerType,detail,armed,labelVisible=false}){return detail!==0&&['touch','pen'].includes(pointerType)&&!armed&&!labelVisible;}
+  function shouldArm({pointerType,detail,armed,labelVisible=false,markerVisible=false}){return detail!==0&&['touch','pen'].includes(pointerType)&&!armed&&!labelVisible&&!markerVisible;}
+  function activity(c,id){
+    const {doc,config}=c,event=doc.event;
+    const games={
+      'ghost-ship-hunt':{name:'ล่าสมบัติเรือผี',description:'ใช้แสงโคมนำเรือฝ่าหมอก เลือกหน้า ซ้าย หรือขวาตามสัญญาณให้ถูก 6 ครั้ง ผิดหรือหมดเวลารวม 3 ครั้งเรือจะล่ม',instructions:'แต่ละช่วงมีเวลา 15 → 5 วินาที ผ่านแล้วได้ Candy และ Soul Anchor ถ้าเรือล่มต้องซ่อมก่อนออกใหม่'},
+      'clear-jacks-garden-vines':{name:'เคลียร์วัชพืชของ Jack',description:'ตัดเถาวัลย์ตามลำดับที่ส่องสัญญาณจนครบ '+config.proposals.games.vines+' จุด เพื่อคืนแปลงปลูกให้ Jack',instructions:'ผ่านแล้วกลับไปส่ง Jack Q1 เพื่อเปิดสวนทุกแปลง เล่นซ้ำได้ แต่ไม่รับ Plot หรือเมล็ดซ้ำจากการเล่นอย่างเดียว'},
+      'dech-house-spot-difference':{name:'จับผิดภาพในคฤหาสน์',description:'เทียบภาพต้นฉบับกับภาพที่เปลี่ยนไป หาให้ครบ '+config.proposals.games.differences+' จุดภายใน '+config.proposals.games.differenceSeconds+' วินาที',instructions:'มือถือสลับภาพได้ ผลผ่านใช้ส่ง Dech Q2'},
+      'grave-digging':{name:'ขุดหลุมศพ',description:'ขุดตามจุดที่มีสัญญาณจนครบ '+config.proposals.games.digSteps+' ชั้น เพื่อปลุกวิญญาณและผ่านบททดสอบแรกของ Win',instructions:'รับพลั่วจาก Win Q1 ก่อน ผลเกมใช้ส่งเควส ไม่ได้รับ Human Bone หรือ Human Skull จากเกมนี้ ของสองชิ้นนั้นสุ่มจากการเคาะบ้าน'},
+      'catch-all-ghosts':{name:'จับผี',description:'จับวิญญาณให้ครบ '+config.proposals.games.ghostCount+' ดวงภายใน 30 วินาที เพื่อผ่านบททดสอบยามเฝ้าสุสาน',instructions:'ผ่านขุดหลุมศพก่อน แล้วจับทุกดวงให้ทันเวลา ผลผ่านใช้ส่ง Win Q2'}
+    };
+    if(!games[id])return null;
+    const info={id,...games[id],complete:!!event.proofs[id]?.clear,locked:false};
+    const lock=(reason,quest,game,repair=false)=>Object.assign(info,{locked:true,reason,quest,game,repair});
+    if(id==='ghost-ship-hunt'){
+      if(!event.inventory['spectral-lantern'])lock('รับ Spectral Lantern จาก Tang Q1 ก่อน','dutchman-light-in-darkness');
+      else if(event.repairs)lock('ซ่อมเรือ '+event.repairs+' Candy ก่อนออกเดินทาง',null,null,true);
+    }
+    if(id==='clear-jacks-garden-vines'&&event.quests['jack-clear-garden']?.phase!==1&&!event.quests['jack-clear-garden']?.complete)lock('ส่ง Rotten Pumpkin 2 ชิ้นให้ Jack ในเฟสแรกก่อน','jack-clear-garden');
+    if(['grave-digging','catch-all-ghosts'].includes(id)){
+      if(!event.quests['win-death-fragments']?.complete)lock('จบ Win Q1 เพื่อรับพลั่วก่อน','win-death-fragments');
+      else if(id==='catch-all-ghosts'&&!event.proofs['grave-digging']?.complete)lock('เล่นขุดหลุมศพให้จบก่อน แล้วกลับมาจับผี',null,'grave-digging');
+    }
+    return info;
+  }
   function room(c,id){
     const meta=NPCs.rooms[id],npc=meta.npc;
     const positions={shop:[55,82],cauldron:[32,78],ritual:[79,76]};
@@ -58,21 +82,18 @@
       const open=Core.portalStatus(doc,config,id,now).open;
       return '<button class="world-portal '+(open?'portal-open':'portal-closed')+'" data-enter-biome="'+id+'" style="--left:'+(23+i*13.3)+'%;--px:'+(i%2?55:23)+'%;--py:'+(i<2?15:36)+'%;--pw:24%;--ph:'+(i<2?17:19)+'%;--portal-color:'+Catalog.biomes[shorts[i]].color+'" aria-label="'+thai[i]+' · '+(open?'เปิดเข้าได้':'ยังไม่เปิด')+'"><span class="portal-number" aria-hidden="true">'+(i+1)+'</span><span class="portal-label"><b>'+thai[i]+'</b><small>'+(open?'✦ เปิดเข้าได้':'◈ ยังไม่เปิด')+'</small></span></button>';
     }).join('');
-    return '<section class="world-page"><div class="world-title"><small>THE MIDNIGHT ACADEMY</small><h1>โถงกลาง</h1></div>'+scene('hub','โถงกลางพิกเซล ร้านค้าซ้าย เตาผสมขวา และประตูสี่ไบโอมด้านหน้า',portals+spot('ร้านยามเที่ยงคืน','data-route="shop"',12,60,'',[16,68])+spot('เตาผสมเวทมนตร์','data-route="cauldron"',87,60,'',[84,68])+spot('วงเวทอัญเชิญ','data-route="ritual"',50,72,'',[50,76])+spot('สวนรัตติกาล','data-route="garden"',33,88,'',[22,85]))+'<div class="world-caption"><button class="quiet-button" data-route="totems">Totem · เปิดเส้นทางส่วนตัว</button></div><p class="scene-help">ชี้เพื่อดูชื่อ · บนมือถือแตะเพื่อดูชื่อ แล้วแตะซ้ำเพื่อเข้า</p></section>';
+    return '<section class="world-page"><div class="world-title"><small>THE MIDNIGHT ACADEMY</small><h1>โถงกลาง</h1></div>'+scene('hub','โถงกลางพิกเซล ร้านค้าซ้าย เตาผสมขวา และประตูสี่ไบโอมด้านหน้า',portals+spot('ร้านยามเที่ยงคืน','data-route="shop"',12,60,'',[16,68])+spot('เตาผสมเวทมนตร์','data-route="cauldron"',87,60,'',[84,68])+spot('วงเวทอัญเชิญ','data-route="ritual"',50,72,'',[50,76])+spot('สวนรัตติกาล','data-route="garden"',33,82,'',[22,80]))+'<div class="world-caption"><button class="quiet-button" data-route="totems">Totem · เปิดเส้นทางส่วนตัว</button></div><p class="scene-help">แตะหมุด ? เพื่อดูสถานที่ · หมุด ▶ คือมินิเกม</p></section>';
   }
   function biome(c){
     const {Core,Catalog,config,doc,now}=c, id=Core.biomeAt(doc,config,now).id, i=Core.BIOMES.indexOf(id), meta=Catalog.biomes[shorts[i]];
     const quests=config.quests.filter(q=>q.biome===id), q=quests.find(q=>!doc.event.quests[q.id]?.complete)||quests.at(-1);
     const npc=npcSpot(NPCs.biomeCharacters[i],'data-quest="'+q.id+'"',i===0?23:i===1?80:i===2?21:81,i===2?76:75,[[24,79],[76,79],[25,79],[78,79]][i]);
     const games=[['ล่าสมบัติเรือผี','ghost-ship-hunt',73,33],['เคลียร์วัชพืช','clear-jacks-garden-vines',23,63],['จับผิดภาพในคฤหาสน์','dech-house-spot-difference',71,39],['ขุดหลุมศพ','grave-digging',26,65]][i];
-    let gameAttrs='data-game="'+games[1]+'"',gameLabel=games[0];
-    if(i===0&&!doc.event.inventory['spectral-lantern']){gameAttrs='data-quest="'+quests[0].id+'"';gameLabel='รับโคมก่อนออกเรือ';}
-    if(i===1&&doc.event.quests['jack-clear-garden']?.phase!==1){gameAttrs=doc.event.quests['jack-clear-garden']?.complete?'data-route="garden"':'data-quest="jack-clear-garden"';gameLabel=doc.event.quests['jack-clear-garden']?.complete?'สวนพร้อมปลูกแล้ว':'คุยกับ Jack เพื่อเปิดสวน';}
-    if(i===3&&!doc.event.quests['win-death-fragments']?.complete){gameAttrs='data-quest="win-death-fragments"';gameLabel='รับพลั่วจาก Win';}
-    const ghostAttrs=!doc.event.quests['win-death-fragments']?.complete?'data-quest="win-death-fragments"':!doc.event.proofs['grave-digging']?.complete?'data-game="grave-digging"':'data-game="catch-all-ghosts"';
+    const gameAttrs='data-game-info="'+games[1]+'"',gameLabel=games[0];
+    const ghostAttrs='data-game-info="catch-all-ghosts"';
     const boss=Object.entries(config.proposals.bosses||{}).find(([,b])=>b.biome===id),bossReady=boss&&doc.event.quests[boss[1].quest]?.complete;
-    const extra=(i===3?spot('จับผี',ghostAttrs,74,34,'',[70,35]):'')+spot('นักเดินทาง','data-visitors',28,84,'',[43,84])+spot('หาของ · เคาะบ้าน','data-route="village"',12,35,'village-sign',[15,30])+player(c)+(bossReady?spot((doc.event.bossWins?.[boss[0]]?'✓ พิชิตแล้ว · ':'ท้าบอส · ')+boss[1].name,'data-boss="'+boss[0]+'"',48,48,'boss-sign',[50,50]):'');
-    return '<section class="world-page"><div class="world-title"><small>'+esc(meta.name)+'</small><h1>'+thai[i]+'</h1>'+(c.difficulty?.[id]?'<button class="biome-level" data-open-balance>ความยาก '+esc(c.difficulty[id])+' · ดูเกณฑ์</button>':'')+'</div>'+scene(shorts[i],thai[i],npc+spot(gameLabel,gameAttrs,games[2],games[3],'',[[72,42],[25,51],[70,41],[27,59]][i])+extra+spot('กลับไปปลูกที่สวนรัตติกาล','data-route="garden"',i===1?57:53,88,'',[56,87])+spot('อ่านเรื่องราวอีกครั้ง','data-story="'+id+'"',90,18,'',[88,35])+(i===0&&doc.event.repairs?spot('ซ่อมเรือ · '+doc.event.repairs+' Candy','data-action="repair"',62,57):''))+'</section>';
+    const extra=(i===3?spot('จับผี',ghostAttrs,74,34,'',[70,35]):'')+spot('นักเดินทาง','data-visitors',28,84,'',[43,82])+spot('หาของ · เคาะบ้าน','data-route="village"',12,35,'village-sign',[15,30])+player(c)+(bossReady?spot((doc.event.bossWins?.[boss[0]]?'✓ พิชิตแล้ว · ':'ท้าบอส · ')+boss[1].name,'data-boss="'+boss[0]+'"',48,48,'boss-sign',[50,50]):'');
+    return '<section class="world-page"><div class="world-title"><small>'+esc(meta.name)+'</small><h1>'+thai[i]+'</h1>'+(c.difficulty?.[id]?'<button class="biome-level" data-open-balance>ความยาก '+esc(c.difficulty[id])+' · ดูเกณฑ์</button>':'')+'</div>'+scene(shorts[i],thai[i],npc+spot(gameLabel,gameAttrs,games[2],games[3],'',[[72,42],[25,51],[70,41],[27,59]][i])+extra+spot('กลับไปปลูกที่สวนรัตติกาล','data-route="garden"',i===1?57:53,82,'',[82,82])+spot('อ่านเรื่องราวอีกครั้ง','data-story="'+id+'"',90,18,'',[88,35])+(i===0&&doc.event.repairs?spot('ซ่อมเรือ · '+doc.event.repairs+' Candy','data-action="repair"',62,57):''))+'</section>';
   }
   function cropState(c,id){
     const {Core,config,doc,now}=c,i=Core.BIOMES.indexOf(id),crop=config.proposals.crops[id];
@@ -95,5 +116,5 @@
       return '<button class="village-door" data-knock="'+(n+1)+'" '+(!a.ready||doc.event.closed?'disabled':'')+'><span aria-hidden="true">⌂</span><b>บ้าน '+(n+1)+'</b><small data-house-status="'+(n+1)+'">'+(a.ready?'เคาะประตู':(a.remaining===0?'เปิดได้เร็วสุดอีก ':'เปิดอีก ')+duration(wait-at))+'</small></button>';
     }).join('')+'</section><p class="tiny">บ้านที่เคาะแล้วพัก 4 ชั่วโมง แยกแต่ละหลังและไบโอม · เพดานนับย้อนหลัง 24 ชั่วโมง</p><p class="subtle" data-house-limit></p><button class="secondary" data-open-balance>ดูโอกาสได้ของและความยาก</button>';
   }
-    return {gate,hub,biome,garden,room,portrait,hero,weaponArt,player,cropState,shouldArm,village,thai,portraits};
+    return {gate,hub,biome,garden,room,portrait,hero,weaponArt,player,cropState,shouldArm,activity,village,thai,portraits};
 });

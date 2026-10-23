@@ -108,6 +108,28 @@ test('the separate garden contains all four plots, and selling is offered by the
   assert.equal(new Set(Object.values(NPCs.characters).map(n=>n.sprite)).size,7);
   assert.ok(NPCs.characters.morro.actions.some(a=>a.action==='sell'));
 });
+test('every biome keeps its minigame pins visible before and after quest gates, with honest prerequisites',()=>{
+  const h=harness(),doc=h.store.read(),c={Core,Catalog,config:h.config,doc,now:time};
+  const games=['ghost-ship-hunt','clear-jacks-garden-vines','dech-house-spot-difference','grave-digging'];
+  for(let i=0;i<4;i++){
+    doc.event.previewBiome=Core.BIOMES[i];const before=World.biome(c);
+    assert.ok(before.includes('data-game-info="'+games[i]+'"'));
+    assert.match(before,/scene-point.*activity-point/);
+    for(const q of h.config.quests.filter(q=>q.biome===Core.BIOMES[i]))doc.event.quests[q.id]={complete:true,phase:q.phases.length};
+    const after=World.biome(c);assert.ok(after.includes('data-game-info="'+games[i]+'"'));
+  }
+  assert.equal(World.activity(c,'ghost-ship-hunt').quest,'dutchman-light-in-darkness');
+  doc.event.inventory['spectral-lantern']=1;assert.equal(World.activity(c,'ghost-ship-hunt').locked,false);
+  assert.equal(World.activity(c,'clear-jacks-garden-vines').locked,false);
+  assert.equal(World.activity(c,'catch-all-ghosts').game,'grave-digging');
+  doc.event.proofs['grave-digging']={complete:true,clear:true};assert.equal(World.activity(c,'catch-all-ghosts').locked,false);
+});
+test('Jack vines can be replayed after Q1 without granting another plot or seeds',async()=>{
+  const h=harness({prepare:doc=>{unlockGarden(doc);doc.event.inventory['jacks-hollow-pumpkin-seed']=3;}});await h.biome(Core.BIOMES[1]);
+  await winGame(h,'clear-jacks-garden-vines');const doc=h.store.read();
+  assert.equal(doc.event.inventory['jacks-hollow-plot'],1);assert.equal(doc.event.inventory['jacks-hollow-pumpkin-seed'],3);
+  assert.equal(doc.event.proofs['clear-jacks-garden-vines'].clear,true);
+});
 test('touch first reveals a target and the second tap activates; mouse and keyboard act immediately',()=>{
   assert.equal(World.shouldArm({pointerType:'touch',detail:1,armed:false}),true);
   assert.equal(World.shouldArm({pointerType:'touch',detail:1,armed:true}),false);
@@ -115,6 +137,7 @@ test('touch first reveals a target and the second tap activates; mouse and keybo
   assert.equal(World.shouldArm({pointerType:'mouse',detail:1,armed:false}),false);
   assert.equal(World.shouldArm({pointerType:'touch',detail:0,armed:false}),false);
   assert.equal(World.shouldArm({pointerType:'touch',detail:1,armed:false,labelVisible:true}),false);
+  assert.equal(World.shouldArm({pointerType:'touch',detail:1,armed:false,markerVisible:true}),false);
 });
 test('only the garden allows planting and only the shop accepts crop sales, including other biome crops',async()=>{
   const crop=proposals.crops[Core.BIOMES[0]],h=harness({prepare:doc=>{doc.event.inventory[crop.seed]=1;doc.event.inventory[crop.harvest]=4;doc.event.grown[crop.harvest]=4;unlockGarden(doc);}});
