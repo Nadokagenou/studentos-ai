@@ -1,0 +1,433 @@
+{
+  "title": "StudentOS AI Halloween item catalog",
+  "updated": "2026-10-22",
+  "status": "design-spec-not-implemented",
+  "usage": [
+    "NPC quest turn-in according to recipe",
+    "witch cauldron according to recipe",
+    "ritual according to recipe"
+  ],
+  "houseCandy": {
+    "treat": 10,
+    "trick": {
+      "successChance": 0.5,
+      "successCandy": 20,
+      "failureCandy": 0
+    },
+    "housesPerSet": 5,
+    "initialCooldownHours": 4,
+    "maxHouseCandyPer24Hours": 300,
+    "cooldownScope": null,
+    "capWindowDefinition": null
+  },
+  "houseItems": {
+    "requiresPositiveCandyReward": true,
+    "dropChanceGivenCandy": 0.6,
+    "rarityWeightsPercent": {
+      "Common": 40,
+      "Uncommon": 30,
+      "Rare": 15,
+      "Epic": 10,
+      "Legendary": 4,
+      "Secret": 1
+    },
+    "itemQuantityPerDrop": null,
+    "withinRarityItemWeights": null,
+    "emptyRarityPoolPolicy": null,
+    "breakthrough": {
+      "triggerChance": 0.1,
+      "destinationRule": "uniform-all-four-biomes-including-current",
+      "destinationProbability": 0.25,
+      "effectiveCurrentBiomeProbability": 0.925,
+      "effectiveEachOtherBiomeProbability": 0.025,
+      "effectiveDifferentBiomeProbability": 0.075
+    },
+    "mysticalSource": "owner-specified Main NPC quest phase; Cruor Quill is awarded in Dech Q1; excluded from house rarity draw"
+  },
+  "personalBiomeTotem": {
+    "confirmed": true,
+    "changesOnlyUserBiome": true,
+    "timeLimited": true,
+    "durationMinutes": null,
+    "source": null,
+    "consumable": null,
+    "biomeSelectionRule": null,
+    "cooldownAndCapResetPolicy": null
+  },
+  "biomes": [
+    {
+      "id": "dutchmans-soul",
+      "name": "Dutchman's Soul",
+      "mainNpc": "Tang The Sailor",
+      "items": [
+        {
+          "id": "dutchmans-soul-abyssal-rock",
+          "name": "Abyssal rock",
+          "rarity": "Common",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "dutchmans-soul-old-hook",
+          "name": "Old Hook",
+          "rarity": "Common",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "dutchmans-soul-seaweed",
+          "name": "Seaweed",
+          "rarity": "Common",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "dutchmans-soul-soul-anchor",
+          "name": "Soul Anchor",
+          "rarity": "Uncommon",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "dutchmans-soul-dutchman-s-soul",
+          "name": "Dutchman's Soul",
+          "rarity": "Rare",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "dutchmans-soul-dutchman-s-lantern",
+          "name": "Dutchman's Lantern",
+          "rarity": "Rare",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "dutchmans-soul-captain-s-log",
+          "name": "Captain's log",
+          "rarity": "Epic",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "dutchmans-soul-dutchman-s-skull",
+          "name": "Dutchman's Skull",
+          "rarity": "Legendary",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "dutchmans-soul-mini-flying-dutchman",
+          "name": "Mini Flying Dutchman",
+          "rarity": "Secret",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "dutchmans-soul-greater-spear-of-dutchman",
+          "name": "Greater Spear of Dutchman",
+          "rarity": "Mystical",
+          "source": "biome-main-quest",
+          "uses": "only as specified by approved recipe"
+        }
+      ]
+    },
+    {
+      "id": "jacks-hollow",
+      "name": "Jack's Hollow",
+      "mainNpc": "Jack'o Tigger",
+      "items": [
+        {
+          "id": "jacks-hollow-jack-o-wood",
+          "name": "Jack'o Wood",
+          "rarity": "Common",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "jacks-hollow-fabric-scraps",
+          "name": "Fabric Scraps",
+          "rarity": "Common",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "jacks-hollow-rotten-pumpkin",
+          "name": "Rotten Pumpkin",
+          "rarity": "Common",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "jacks-hollow-jack-o-fire",
+          "name": "Jack'o Fire",
+          "rarity": "Uncommon",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "jacks-hollow-candle",
+          "name": "Candle",
+          "rarity": "Uncommon",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "jacks-hollow-pumpkin-seed",
+          "name": "Pumpkin Seed",
+          "rarity": "Rare",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "jacks-hollow-pumpkin-carved",
+          "name": "Pumpkin carved",
+          "rarity": "Rare",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "jacks-hollow-pumpkin-soup",
+          "name": "Pumpkin soup",
+          "rarity": "Epic",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "jacks-hollow-vine",
+          "name": "Vine",
+          "rarity": "Epic",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "jacks-hollow-charcoal",
+          "name": "Charcoal",
+          "rarity": "Legendary",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "jacks-hollow-will-o-the-wisp",
+          "name": "Will-o'-the-wisp",
+          "rarity": "Legendary",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "jacks-hollow-his-head",
+          "name": "His head",
+          "rarity": "Secret",
+          "source": "house-item-pool",
+          "uses": "only as specified by approved recipe"
+        },
+        {
+          "id": "jacks-hollow-axe-of-jack-o-lantern",
+          "name": "Axe of Jack'o Lantern",
+          "rarity": "Mystical",
+          "source": "biome-main-quest",
+          "uses": "only as specified by approved recipe"
+        }
+      ]
+    },
+    {
+      "id": "vampire-mansion",
+      "name": "Vampire Mansion",
+      "mainNpc": "Mr. Dech",
+      "replaces": "Pumpkin Patch",
+      "items": [
+        {
+          "id": "vampire-mansion-cruor-quill",
+          "name": "Cruor Quill",
+          "rarity": "Mystical",
+          "source": "biome-main-quest",
+          "uses": "only as specified by approved recipe"
+        }
+      ]
+    },
+    {
+      "id": "eternal-graveyard",
+      "name": "Eternal Graveyard",
+      "mainNpc": "Win, the Soul Reaper",
+      "items": [
+        {
+          "id": "eternal-graveyard-scythe-of-dullahan",
+          "name": "Scythe of Dullahan",
+          "rarity": "Mystical",
+          "source": "biome-main-quest",
+          "uses": "only as specified by approved recipe"
+        }
+      ]
+    }
+  ],
+  "unresolved": [
+    "Vampire Mansion and Eternal Graveyard have no non-Mystical item pools yet",
+    "Item weights within the same rarity",
+    "Quest, cauldron and ritual recipes",
+    "Totem acquisition, duration and interaction rules",
+    "Guaranteed path to Spectral Lantern materials within 2–3 casual play days"
+  ],
+  "spectralLanternRecipe": {
+    "quest": "dutchman-light-in-darkness",
+    "candy": 50,
+    "items": [
+      {
+        "id": "dutchmans-soul-abyssal-rock",
+        "quantity": 1
+      },
+      {
+        "id": "dutchmans-soul-dutchman-s-lantern",
+        "quantity": 1
+      }
+    ],
+    "preserveExistingCraft": true
+  },
+  "newEventDefinitions": [
+    {
+      "id": "jacks-hollow-plot",
+      "name": "พื้นที่ปลูกฟักทอง (Plot)",
+      "kind": "event-feature",
+      "source": "jack-clear-garden",
+      "rarity": null,
+      "postEventPolicy": null
+    },
+    {
+      "id": "jacks-hollow-pumpkin",
+      "name": "Pumpkin",
+      "kind": "crop",
+      "source": "player-grown-pumpkin",
+      "rarity": null
+    },
+    {
+      "id": "jacks-hollow-shovel",
+      "name": "Shovel",
+      "kind": "quest-item",
+      "source": "win-death-fragments",
+      "rarity": null
+    },
+    {
+      "id": "pending-human-bone",
+      "name": "Human Bone",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-human-skull",
+      "name": "Human Skull",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-vampire-teeth",
+      "name": "Vampire teeth",
+      "rarity": null,
+      "sourceBiome": "vampire-mansion"
+    },
+    {
+      "id": "pending-mystic-mirror",
+      "name": "Mystic Mirror",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-pure-blood-skull",
+      "name": "Pure Blood Skull",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-bat-teeth",
+      "name": "Bat teeth",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-bat-wing",
+      "name": "Bat wing",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-monster-bone",
+      "name": "Monster Bone",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-zombie-arms",
+      "name": "Zombie Arms",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-garlic",
+      "name": "Garlic",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-soul-vessel",
+      "name": "Soul Vessel",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-grim-scythe",
+      "name": "Grim Scythe",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-scrap-iron",
+      "name": "Scrap Iron",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-soul-stick",
+      "name": "Soul Stick",
+      "rarity": null,
+      "sourceBiome": null
+    }
+  ],
+  "garden": {
+    "biome": "jacks-hollow",
+    "style": "Grow a Garden",
+    "crop": "Pumpkin",
+    "unlockQuest": "jack-clear-garden",
+    "questUse": {
+      "quest": "jack-harvest-wisp",
+      "quantity": 3,
+      "mustBePlayerGrown": true
+    },
+    "growthMinutes": null,
+    "watering": null,
+    "harvestYield": null
+  },
+  "minigames": {
+    "vampire": {
+      "id": "dech-house-spot-difference",
+      "name": "จับผิดภาพในบ้านเดช",
+      "kind": "spot-the-difference",
+      "location": "บ้านเดช",
+      "requiredClears": 1,
+      "rounds": null,
+      "differencesPerRound": null,
+      "timeLimitSeconds": null
+    },
+    "graveyard": [
+      {
+        "id": "grave-digging",
+        "name": "ขุดหลุมศพ",
+        "requiredCompletions": 1
+      },
+      {
+        "id": "catch-all-ghosts",
+        "name": "จับผีทั้งหมดภายในเวลา 30 วินาที",
+        "timeLimitSeconds": 30,
+        "requiredCatch": "all",
+        "ghostCount": null
+      }
+    ]
+  }
+}

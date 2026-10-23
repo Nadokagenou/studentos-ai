@@ -65,7 +65,11 @@ function mascotId() {
   try { v = localStorage.getItem(MASCOT_KEY); } catch (_) {}
   return MASCOTS[v] ? v : MASCOT_DEFAULT;
 }
-function mascot() { return MASCOTS[mascotId()]; }
+function mascot() {
+  const id = mascotId(), original = MASCOTS[id];
+  const outfit = window.HalloweenCosmetics?.costumeAsset(id);
+  return outfit ? { ...original, avatar: outfit, body: outfit, face: outfit, faces: null } : original;
+}
 function mName() { return mascot().name; }
 
 function synFace(key) {
@@ -77,7 +81,7 @@ function synBody() { return mascot().body; }
 // ป้ายชื่อกับรูปที่อยู่ใน index.html ตรง ๆ (แถบล่าง · จอล็อกอิน · ปุ่ม "…เห็นอะไร")
 // ไม่ได้ถูกวาดใหม่ทุกครั้งเหมือนจอที่สร้างจาก JS — ต้องมีคนไปเปลี่ยนให้
 function applyMascot() {
-  const id = mascotId(), m = MASCOTS[id];
+  const id = mascotId(), m = mascot();
   document.documentElement.dataset.mascot = id;
   document.querySelectorAll('[data-mname]').forEach(el => { el.textContent = m.name; });
   document.querySelectorAll('img[data-mav]').forEach(el => { el.src = m.avatar; });

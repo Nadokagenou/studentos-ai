@@ -21,6 +21,7 @@ function loadWorker(registration) {
     match() { throw new Error('ต้องไม่อ่านไฟล์จากแคชรวมที่อาจเก่า'); },
   };
   const ctx = vm.createContext({ URL, location: { origin: 'https://example.test' }, caches,
+    importScripts: file => vm.runInContext(fs.readFileSync(path.join(base,file),'utf8'),ctx),
     fetch: async () => { throw new Error('offline'); },
     self: { addEventListener: (event, fn) => { w.handlers[event] = fn; },
       skipWaiting: async () => {}, clients: { claim: async () => {} }, registration },
@@ -62,5 +63,9 @@ function loadWorker(registration) {
   assert.equal(sw.matches[0].cache, sw.selectedCache);
   assert.equal(sw.matches[0].opts.ignoreSearch, true);
   console.log('PASS ออฟไลน์ใช้ไฟล์จากแคช ALT ปัจจุบัน');
-  console.log('ALT service worker: 5/5');
+  let eventIntercepted=false;
+  sw.handlers.fetch({request:{method:'GET',url:'https://example.test/alt/halloween/event/config.json'},respondWith(p){eventIntercepted=true;Promise.resolve(p).catch(()=>{});}});
+  assert.equal(eventIntercepted,false,'ปิดอีเวนต์แล้วต้องไม่คืน enabled:true จากแคช');
+  console.log('PASS หน้าอีเวนต์และสวิตช์เปิดกิจกรรมไม่ย้อนอ่านจากแคช');
+  console.log('ALT service worker: 6/6');
 })().catch(e => { console.error(e); process.exitCode = 1; });

@@ -17,7 +17,7 @@ const assert = require('node:assert/strict');
 
 const root = path.resolve(__dirname, '..', '..');
 const files = process.argv.slice(2).length ? process.argv.slice(2)
-  : [path.join(root, 'alt', 'alt.css'), path.join(root, 'style.css')];
+  : [path.join(root, 'alt', 'alt.css'), path.join(root, 'style.css'), ...['theme-main.css','biome-themes.css','theme-moonlight.css'].map(name=>path.join(root,'alt','halloween','rewards',name))];
 
 // ยกเว้นทีละชื่อ ต้องมีตัวเลขที่วัดได้กำกับ — ไม่ใช่ที่ทิ้งของที่ขี้เกียจแก้
 const EXEMPT = {
@@ -69,7 +69,7 @@ for (const f of files) {
 }
 
 // ชั้นฉาก = .fx เอง หรือชิ้นในนั้น (.fx-a … .fx-h · .fx-shoot) หรือชั้นดาวของธีมอวกาศ · ไม่ใช่ .fx-in (คลาสตอนเข้าจอ)
-const SCENE = /\.fx(?=[\s,:.\[>*]|$)|\.fx-(?:[a-h]|shoot)\b|\.starfield\b/;
+const SCENE = /\.fx(?=[\s,:.\[>*]|$)|\.fx-(?:[a-h]|shoot)\b|\.starfield\b|\.hw-(?:scene|night|haze|mist|spark|ghost|bats|candle|card-smoke|card-ghost|graveyard|wanderer|ground-fog|biome-view|biome-fog|biome-glints)\b/;
 const EVENT_ONLY = /\[data-gevent|\[data-gfx/;
 const sceneRules = all.rules.filter(r =>
   !r.at.some(a => /prefers-reduced-motion/.test(a)) &&

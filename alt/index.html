@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <script src="halloween/rewards/preview-mode.js"></script>
+  <script src="halloween/rewards/catalog.js"></script>
   <meta name="google-site-verification" content="EL8HSk9rzF6WS9GYcfkFaYwxf00p2PzEKganiKXzDh0" />
   <title>Student OS — ผู้ช่วยจัดลำดับงานสำหรับนักเรียน</title>
   <meta name="description" content="Student OS คือ AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงานหรือแปะข้อความจาก LINE แล้ว AI จัดลำดับความสำคัญพร้อมเหตุผล ไม่ต้องเดาว่าจะทำอะไรก่อน">
@@ -25,7 +27,7 @@
       var BAR = { light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
         earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
         deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8', genesis: '#8E9BE8',
-        meta: '#050A16', glitch: '#04060A', astral: '#000000' };
+        meta: '#050A16', glitch: '#04060A', astral: '#000000', ...(window.StudentOSHalloweenRewards?.themeBars || {}) };
       var pref = null;
       try { pref = localStorage.getItem('studentos.alt.theme'); } catch (e) {} // ALT: คนละคีย์กับตัวจริง
       if (pref === 'library') pref = 'ocean'; // 1A6M3: ธีมห้องสมุดถูกแทนที่ด้วยมหาสมุทร
@@ -39,6 +41,12 @@
         ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
         : 'light');
       document.documentElement.dataset.theme = t;
+      // ธีม Moon & Candle มีสองโทน (กลางคืน/แสงจันทร์) — ต้องติดก่อนวาดจอแรก ไม่งั้นโทนสว่างกะพริบเป็นมืดก่อน
+      // (CSS ของโทนอยู่ใต้ [data-theme="moonlight"] เท่านั้น ธีมอื่นไม่สนแอตทริบิวต์นี้)
+      // คีย์ต้องตรงกับ TONE_KEY ใน halloween/rewards/theme-main.js
+      var hwLight = false;
+      try { hwLight = localStorage.getItem('studentos.alt.halloween.tone') === 'light'; } catch (e) {}
+      if (hwLight) document.documentElement.dataset.hwTone = 'light';
       // โหมดเครื่องเบา — ต้องติดก่อนวาดจอแรก ไม่งั้นเครื่องช้าได้วาดของหนักไปหนึ่งรอบก่อนถูกถอด
       // ธงมาจากการวัดจริงรอบก่อน (liteProbe ใน app.js) · แรมต่ำกว่า 4GB (Chrome บอกได้) = เบาตั้งแต่ครั้งแรก
       // Chrome ปัดแรมลงเป็นเลขยกกำลังสอง (3GB → 2 · เครื่องที่ขายว่า 4GB แต่ระบบเห็น 3.7 → 2) จึงได้แค่ 2 หรือ 4 — < 4 คือ "ต่ำกว่า 4GB" ตรงตัว
@@ -60,7 +68,7 @@
         if (ios && vp && vp.content.indexOf('maximum-scale') < 0) vp.content += ', maximum-scale=1';
       } catch (e) {}
       var m = document.querySelector('meta[name=theme-color]');
-      if (m) m.content = BAR[t];
+      if (m) m.content = (t === 'moonlight' && hwLight) ? '#F3EDFF' : BAR[t];
     })();
   </script>
   <link rel="manifest" href="manifest.json">
@@ -114,6 +122,7 @@
   <link rel="stylesheet" href="feed.css">
   <!-- ชุดความปลอดภัย: รายงาน · ยินยอม · นโยบาย -->
   <link rel="stylesheet" href="safety.css">
+  <link rel="stylesheet" href="bug-reports.css">
   <!-- ห้องการบ้าน: แถวใต้การ์ดงาน + จอห้อง -->
   <link rel="stylesheet" href="hw.css">
 
@@ -130,9 +139,14 @@
   <link rel="stylesheet" href="gacha-fx.css">
   <link rel="stylesheet" href="board.css">
   <link rel="stylesheet" href="custom.css">
-  <link rel="stylesheet" href="bug-reports.css">
   <link rel="stylesheet" href="classrooms.css">
   <link rel="stylesheet" href="desktop.css" media="(min-width:1024px) and (hover:hover) and (pointer:fine)">
+  <link rel="stylesheet" href="device-preview-controls.css">
+  <link rel="stylesheet" href="halloween/rewards/theme-main.css">
+  <link rel="stylesheet" href="halloween/rewards/biome-themes.css">
+  <link rel="stylesheet" href="halloween/rewards/effect-games.css">
+  <!-- ธีมตัวอย่าง Moon & Candle — แยกจาก Halloween ทุกกฎ ให้ทีมพัฒนาต่อ (halloween/docs/moon-and-candle.md) -->
+  <link rel="stylesheet" href="halloween/rewards/theme-moonlight.css">
 </head>
 <body>
 
@@ -1385,16 +1399,24 @@
       <!-- ============ SCREEN: PROFILE ============ -->
       <div class="screen flush" id="scr-profile">
         <div class="scr-body pf-body">
+          <!-- ============================================================
+               1B70 · หัวแท็บ "ฉัน" = หัวเดียวกับหน้าที่เพื่อนเปิดดู
+               ============================================================
+               ผู้ใช้สั่งเอง (10 ก.ย. 2569): "ตรงโปรไฟล์ฉันอยากให้มันเป็นอันเดียวกัน
+               ต้องเป็นอันเดียวกันตอนเพื่อนเปิดดูของเราก็จะเป็นหน้านี้"
 
+               ของเดิมเป็นการ์ดสีน้ำเงินที่มีตัวเลข เสร็จแล้ว/ต่อเนื่อง/โทเคน/เพื่อน
+               ซึ่งเป็นเรื่องส่วนตัวล้วน เพื่อนไม่เคยเห็นสักช่อง — เปิดหน้าตัวเองกับ
+               เปิดหน้าเพื่อนจึงเป็นคนละแอปกัน และไม่มีทางรู้ว่าคนอื่นเห็นเราเป็นยังไง
+
+               ตอนนี้หัวถูกวาดด้วย profileHeadHTML() ตัวเดียวกับ scr-user เป๊ะ
+               ต่างแค่ปุ่ม (แก้ไขโปรไฟล์ / ดูแบบที่เพื่อนเห็น แทน ทัก / เพิ่มเพื่อน)
+               ส่วนตัวเลขส่วนตัวย้ายลงใต้เส้นประ ติดป้ายว่าเห็นคนเดียว -->
           <div id="pfHead"></div>
+          <div id="halloweenEventEntry"></div>
           <input type="file" id="avInput" accept="image/*" hidden>
-<div class="pf-entry"><button class="pe" onclick="openClassrooms()"><span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-users"/></svg></span><span class="pe-tx"><b>ห้องเรียนและแชตกลุ่ม</b><small>คุยและแชร์งานเข้าแผน</small></span><svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button></div>
-<div class="pf-feature-head"><b>ใช้งาน Student OS</b><button onclick="openExplore()">สำรวจทั้งหมด <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-chevron"/></svg></button></div><div class="feature-categories"><button class="feature-category" onclick="openExplore('learn')"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-book"/></svg><b>เรียนและวางแผน</b><span>แผนวันนี้ · สแกนตาราง · กล่องเข้า</span></button>
-            <button class="feature-category" onclick="openExplore('friends')"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-users"/></svg><b>เพื่อนและการคุย</b><span>ข้อความ · เพื่อน · อันดับ</span></button>
-            <button class="feature-category" onclick="openExplore('rewards')"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-medal"/></svg><b>ของฉันและรางวัล</b><span>สถิติ · ของสะสม · ร้านค้า</span></button>
-            <button class="feature-category" onclick="openExplore('help')"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-message"/></svg><b>ข่าวสารและช่วยเหลือ</b><span>ข่าวจากทีม · รายงานปัญหา · ฟีดแบ็ก</span></button></div>
-
-
+          <!-- 11 ต.ค. 69 · การ์ดรางวัลฟีดแบ็ก — เจ้าของ: "เห็นยากอยู่นะ" (แถวในลิสต์อยู่ล่างเกินไป)
+               อยู่ใต้หัวโปรไฟล์ เปิดแท็บก็เห็น · ซ่อนเองเมื่อรับโทเคนแล้ว (renderProfile · state.settings.fbPaid) -->
           <button class="fb-promo" id="fbPromo" type="button" hidden onclick="location.href='feedback.html'">
             <svg class="tok fbp-coin" width="44" height="44" viewBox="0 0 48 48" aria-hidden="true"><use href="#tok-coin"/></svg>
             <span class="fbp-tx"><b>+100 โทเคน</b><span>ตอบแบบสอบถาม</span></span>
@@ -1402,10 +1424,34 @@
           </button>
           <div id="pfPriv"></div>
 
+          <!-- ============ โชว์ · พื้นที่ของฉัน (1B95) ============
+               คำถามที่ส่วนนี้ตอบคือ "ถ้าเพื่อนเปิดหน้าเรา เขาจะเห็นอะไร"
+               ไม่ใช่ "เราขยันแค่ไหน" — กราฟความขยันเป็นเรื่องส่วนตัว
+               อยู่ในการ์ดเห็นคนเดียวข้างล่างแล้ว
 
+               สามช่องนี้ย้ายมาจากลิสต์ทางเข้าข้างล่าง (ห้องของฉัน · เหรียญตรา)
+               กับจากบล็อกตัวเลขส่วนตัว (ต่อเนื่อง) — ไม่มีอะไรใหม่ที่ต้องกรอกเพิ่ม
+               ทุกช่องอ้างของที่เกิดขึ้นแล้วจริงเท่านั้น ไม่มี XP ไม่มีเลเวล
+               วาดจาก renderShowcase() -->
+          <div id="showBox"></div>
 
+          <!-- 1B96 · แถบเช็คอินรายวัน — ขึ้น "ตลอด" ไม่ว่าจะรับไปแล้วหรือยัง
+               ------------------------------------------------------------
+               เจ้าของบอกว่า "ล็อคอินประจำวันมันไม่ขึ้น มันต้องขึ้นตลอด"
+               ตรวจแล้วแถวนี้ขึ้นตลอดอยู่แล้ว — แต่ขึ้นอยู่ *ในร้านค้า* ซึ่งเป็นแถวล่างสุด
+               ของลิสต์ที่ต้องเลื่อนลงไปหา คนจึงไม่เจอ ซึ่งเท่ากับไม่ขึ้นในทางปฏิบัติ
 
+               **รับแล้วแถบไม่หาย** แต่เงียบลง (ขอบทองหาย · ป้ายเปลี่ยนเป็นเวลารอบหน้า)
+               ของที่หายไปเลยทำให้คนคิดว่าแอปพัง ไม่ใช่คิดว่า "รับไปแล้ว"
 
+               1C09 · ลงมาอยู่ใต้แถบโชว์ และเตี้ยลงจาก 68px เหลือแถวเดียว
+               เจ้าของสั่งเอง (18 ก.ย. 2569): "เช็คอินรายวันใหญ่เกินความสำคัญ ·
+               ถ้าไม่ใช่ core action ของวันนี้ ให้เลื่อนลงไปเป็น secondary content"
+               มันยังอยู่เหนือพับจอ (ไม่ต้องเลื่อนก็เห็น) และยังกดรับได้จากตรงนี้เลย
+               ซึ่งเป็นสองข้อที่ 1B96 ต้องการจริง ๆ — ข้อที่ไม่ได้ต้องการคือ "ใหญ่"
+
+               ยอดโทเคนออกจากแถบนี้ไปอยู่บรรทัดใต้ชื่อบนหัวจอ ซึ่งเห็นก่อนแถบนี้อีก
+               และยังอยู่บนแถวร้านค้าด้วย — ไม่ได้หายไปไหน -->
           <button class="pe-daily" id="peDaily" onclick="openDailyCheck(false)">
             <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-calendar"/></svg></span>
             <span class="pe-tx"><b>เช็คอินรายวัน</b></span>
@@ -1413,130 +1459,195 @@
             <span class="pe-daily-go" id="peDailyGo"></span>
           </button>
 
+          <!-- 1A9g: การ์ดชวนตั้งบริบท — ขึ้นเฉพาะตอนที่ยังไม่มีข้อมูล (วาดใน renderContext)
+               บริบทคือข้อมูลที่ทำให้การจัดตารางแม่น ถ้าผู้ใช้ยังไม่กรอก ทั้งแอปก็เดาเอา
+               มันจึงต้องดังกว่าแถวอื่น — แต่ดังตอนที่ยังจำเป็นเท่านั้น กรอกแล้วก็เงียบลง -->
+          <!-- ============================================================
+               1C08 · บรรทัด "รู้จักคุณแล้ว %" ยุบเข้าไปอยู่ในการ์ดเดียวกับผลงาน
+               ============================================================
+               เจ้าของวงมา (18 ก.ย. 2569): "มันมีบางอย่างเกินและไม่สมดุล"
+               วัดแล้วบรรทัดนี้สูง 21px แต่กินพื้นที่แนวตั้งรวม 68px — flex gap 24px
+               ของ .scr-body บวก margin ของ .pf-hint ทั้งบนและล่าง ก้อนที่ลอยเดี่ยว
+               ระหว่างสองก้อนใหญ่จึงได้ช่องว่างสองชั้นโดยไม่มีใครตั้งใจให้
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <details class="pf-personal"><summary><span><b>ห้อง · เหรียญ · สถิติ</b><span>เปิดดูพื้นที่และผลงานของฉัน</span></span><em id="pfTokenBalance"></em><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-chevron"/></svg></summary><div class="pf-personal-body"><div id="showBox"></div><div class="pf-me">
-
+               สองก้อนนี้เป็นเรื่องเดียวกันอยู่แล้ว: ทั้งคู่คือ "แอปรู้อะไรเกี่ยวกับคุณ"
+               อันบนคือสิ่งที่ยังไม่รู้ อันล่างคือสิ่งที่รู้แล้ว · ใบเดียวจึงถูกกว่าสองใบ
+               .pf-me เป็นตัวการ์ด ส่วน .st-card ข้างในถูกถอดกรอบออกไม่ให้ซ้อนสองชั้น -->
+          <!-- 1C10 · #ctxHero ถูกถอดออก เจ้าของชี้มาเองว่า "เอาออก" (19 ก.ย. 2569)
+               ทางเข้าบริบทเหลือแถว "บริบทของฉัน" ในลิสต์ ซึ่งบอก % ไว้บนแถวอยู่แล้ว
+               .pf-me ยังอยู่เพราะมันคือตัวการ์ด — .st-card ข้างในถูกถอดกรอบไว้ตั้งแต่ 1C08 -->
+          <div class="pf-me">
+            <!-- ALT 1A6M3: ผลของฉัน — สรุปจากข้อมูลที่แอปมีจริง วาดใน renderStats -->
             <div id="statsBox"></div>
-          </div></div></details>
-<p class="app-ver" id="appVer"></p>
-        </div>
-      </div>
+          </div>
 
+          <!-- ALT 1A6M3: ทางเข้าใหญ่ 3 ทาง — ตั้งค่าทั้งหมดย้ายไปอยู่หลังปุ่ม -->
+          <!-- รายการทางเข้าถูกจัดกลุ่มใน 1B20 — ของเดิมเป็นรายการแบน 7 แถวเรียงกันรวด
+               โดยที่ "ร้านค้า (กำลังทำ)" กับ "Pro (ยังไม่เปิดขาย)" นั่งแทรกอยู่กลางของที่ใช้ได้จริง
+               จอที่เอาของยังไม่เสร็จมาวางปนกับของที่เสร็จแล้ว ทำให้ทั้งจออ่านเหมือนยังไม่เสร็จ -->
+          <!-- ============================================================
+               1B93 · ยุบสี่กลุ่มเหลือก้อนเดียว — เจ้าของสั่งเอง (13 ก.ย. 2569)
+               ============================================================
+               "ด้านล่างยังจัดไม่ดี เหมือนอันหลักเรา มันดีกว่าและเป็นระบบกว่า"
+               บิลด์หลักวางทางเข้าทั้งหมดเป็นลิสต์เดียวไม่มีหัวข้อกลุ่ม แล้วจบในจอเดียว
+               ส่วน 1B20 หั่นมันเป็นสี่กลุ่ม ซึ่งเพิ่มหัวข้อ ~31px สี่อัน = สูงขึ้นกว่า 120px
+               โดยไม่ได้เพิ่มข้อมูลใหม่สักบรรทัด — แปดแถวไม่ได้เยอะพอที่จะต้องมีสารบัญ
 
-<div class="screen flush" id="scr-explore">
-  <div class="scr-body explore-body">
-    <header class="explore-header"><div><h2>สำรวจแอป</h2><p>Student OS ช่วยอะไรได้บ้าง</p></div><button class="explore-back" onclick="closeExplore()" aria-label="กลับจากสำรวจแอป"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-chevron"/></svg></button></header>
-    <label class="explore-search"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-search"/></svg><input id="exploreSearch" type="search" placeholder="ค้นหา เช่น ตารางเรียน เพื่อน โทเคน" aria-label="ค้นหาฟีเจอร์" oninput="filterExplore(this.value)"></label>
-    <div id="exploreIntro" class="explore-intro"><b>เริ่มจาก 3 อย่างนี้</b><span>เพิ่มงาน → ให้แอปจัดลำดับ → เริ่มโฟกัส</span><button onclick="openAddSheet()">เพิ่มงานแรก <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-plus"/></svg></button></div>
-    <div id="exploreOverview" class="feature-categories"><button class="feature-category" onclick="openExplore('learn')"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-book"/></svg><b>เรียนและวางแผน</b><span>แผนวันนี้ · สแกนตาราง · กล่องเข้า</span></button>
-            <button class="feature-category" onclick="openExplore('friends')"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-users"/></svg><b>เพื่อนและการคุย</b><span>ข้อความ · เพื่อน · อันดับ</span></button>
-            <button class="feature-category" onclick="openExplore('rewards')"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-medal"/></svg><b>ของฉันและรางวัล</b><span>สถิติ · ของสะสม · ร้านค้า</span></button>
-            <button class="feature-category" onclick="openExplore('help')"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-message"/></svg><b>ข่าวสารและช่วยเหลือ</b><span>ข่าวจากทีม · ฟีดแบ็ก · สิ่งที่กำลังมา</span></button></div>
-    <div class="explore-selected" id="exploreSelected" hidden><button onclick="selectExplore('')"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-chevron"/></svg>ทุกหมวด</button><b id="exploreGroupTitle"></b></div>
-    <section class="explore-section" data-group="learn" hidden><h3>เรียนและวางแผน</h3><div class="pf-entry"><button data-explore-feature="" class="pe" onclick="go('scr-plan')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-plan"/></svg></span>
-              <span class="pe-tx"><b>แผนวันนี้</b></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <button data-explore-feature="ttscan" class="pe" id="peTtScan" onclick="openTtScan()">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-scan"/></svg></span>
-              <span class="pe-tx"><b>สแกนตารางเรียน</b></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <button data-explore-feature="" class="pe" onclick="go('scr-inbox')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-inbox"/></svg></span>
-              <span class="pe-tx"><b>กล่องเข้า</b></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <button data-explore-feature="" class="pe" onclick="openMySubjects()">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-book"/></svg></span>
-              <span class="pe-tx"><b>วิชาของฉัน</b></span>
-              <em class="pe-v" id="peSubjCt"></em>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <button data-explore-feature="" class="pe" id="peCtx" onclick="go('scr-context')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-clock"/></svg></span>
-              <span class="pe-tx"><b>บริบทของฉัน</b></span>
-              <em class="pe-v" id="peCtxCt"></em>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <button class="pe" onclick="go('scr-ai')"><span class="pe-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-owl"/></svg></span><span class="pe-tx"><b>ถามน้องฮูก AI</b></span><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-chevron"/></svg></button>
-            <button class="pe" onclick="openAddSheet()"><span class="pe-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-plus"/></svg></span><span class="pe-tx"><b>เพิ่มงานใหม่</b></span><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-chevron"/></svg></button></div></section>
-    <section class="explore-section" data-group="friends" hidden><h3>เพื่อนและการคุย</h3><div class="pf-entry"><button data-explore-feature="social" class="pe" onclick="openDmInbox('scr-profile')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-chat"/></svg></span>
-              <span class="pe-tx"><b>ข้อความ<span class="pe-n" id="peDmN" hidden></span></b></span>
-              <em class="pe-v" id="peDmCt"></em>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <button data-explore-feature="social" class="pe" onclick="openFeed('friends')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-user"/></svg></span>
-              <span class="pe-tx"><b>เพื่อนของฉัน</b></span>
-              <em class="pe-v" id="peFriendCt"></em>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <button data-explore-feature="social" class="pe" onclick="openBoard('scr-profile')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-trophy"/></svg></span>
-              <span class="pe-tx"><b>อันดับ</b></span>
-              <em class="pe-v" id="peBoardCt"></em>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button></div></section>
-    <section class="explore-section" data-group="rewards" hidden><h3>ของฉันและรางวัล</h3><div class="pf-entry"><button data-explore-feature="" class="pe" onclick="go('scr-stats')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-chart"/></svg></span>
-              <span class="pe-tx"><b>สถิติการทำงาน</b></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <button data-explore-feature="" class="pe" onclick="go('scr-badges')">
-              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-medal"/></svg></span>
-              <span class="pe-tx"><b>ของสะสม</b></span>
-              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button>
-            <button data-explore-feature="shop" class="pe pe-shop" onclick="go('scr-shop')">
+               **สิ่งเดียวที่ 1B20 พูดถูกและต้องรักษาไว้:** ของที่ยังไม่เสร็จ (ร้านค้า · Pro)
+               ห้ามนั่งปนกลางของที่ใช้ได้จริง — คำเดิมคือ "ป้ายอย่างเดียวไม่พอถ้ามันยัง
+               นั่งปนอยู่กลางของที่ใช้ได้จริง" · คำสำคัญคือ "กลาง" ไม่ใช่ "ปน"
+               ย้ายมาไว้ท้ายสุดหลังของที่ใช้ได้ทั้งหมด แล้วคั่นด้วยเส้นผมเส้นเดียว
+               จึงได้ขอบเขตเดิมกลับมาในราคา 1px แทน 31px -->
+          <!-- ============================================================
+               1B95 · ลิสต์ถูกจัดใหม่ตามภาพร่างที่เจ้าของอนุมัติ (14 ก.ย. 2569)
+               ============================================================
+               สามอย่างที่เปลี่ยน:
+
+               1) "วิชาของฉัน" ขึ้นมาเป็นแถวแรก — ชิปวิชาถูกถอดออกจากหัวโปรไฟล์
+                  ("ตรงช่วยได้ อยากได้ ต้องไว้ตรงอื่น") แถวนี้คือที่ใหม่ของมัน
+                  บรรทัดรองบอกค่าที่ตั้งไว้ จึงเห็นค่าโดยไม่ต้องกดเข้าไป
+
+                  **ทำไมไม่ใช่ปุ่มซ้ำกับ "แก้ไขโปรไฟล์"** ทั้งที่ลงจอเดียวกัน:
+                  ปุ่มนั้นพาไปหัวฟอร์ม (รูป · ชื่อ · @ชื่อผู้ใช้) แถวนี้พาไปบล็อกวิชาโดยตรง
+                  และแถวนี้ "บอกค่า" ด้วย ซึ่งปุ่มไม่ได้ทำ — คนละงานกัน ไม่ใช่ทางเข้าซ้ำ
+
+               2) "ข้อความ" เป็นแถวของตัวเอง — ของเดิมซ่อนอยู่หลังปุ่มลอยในฟีดเท่านั้น
+                  แปลว่าจะคุยกับเพื่อนต้องเดินผ่านฟีดก่อน ซึ่งเป็นคนละระบบกัน
+
+               3) "เพื่อนร่วมห้อง" (ฟีดโพสต์) กลายเป็น "ชุมชน" ติดป้ายเร็ว ๆ นี้
+                  แล้วย้ายลงไปใต้เส้นคั่น กลุ่มเดียวกับร้านค้า/Pro ตามมติ 1B93
+                  ที่ว่าของยังไม่เสร็จห้ามนั่งปนกลางของที่ใช้ได้จริง
+
+               ห้องของฉัน กับ เหรียญตรา ย้ายขึ้นไปเป็นช่องในแถบ "โชว์" — ไม่ได้หายไป -->
+
+          <!-- 1B96 · ไอคอนมีสีประจำแถว (tone-*)
+               เจ้าของ: "ตรงสัญลักษณ์อยากให้ใส่สีไปด้วย ไม่ใช่กลมกับสีพื้นหลัง"
+               ของเดิมทุกใบเป็น --card2 ซึ่งบนธีมอวกาศห่างจากพื้นการ์ดแค่ไม่กี่หน่วย
+               สีมาจากโทเคนของธีม ไม่ใช่สีตายตัว — เปลี่ยนธีมแล้วสีตามไปเอง
+               และไม่มีธีมไหนที่สีจะหลุดโทน เพราะทุกธีมนิยาม --blue/--good/--warn ครบ -->
+          <!-- ============================================================
+               1B98 · ร้านค้าขึ้นมาอยู่บนสุด และเป็นการ์ดของตัวเอง
+               ============================================================
+               เจ้าของสั่งเอง (17 ก.ย. 2569): "เอาร้านค้าอยู่บนสุดของฟีเจอร์ให้เลือก
+               เน้นสีด้วย" · 1B93 เคยเถียงว่าของยังไม่เสร็จห้ามนั่งปนกลางของที่ใช้ได้
+               ซึ่งยังถูกอยู่ — แต่ข้อนั้นพูดถึง "กลางลิสต์" ไม่ใช่ "บนสุด"
+               ร้านค้าที่ออกมาเป็นการ์ดเดี่ยวเหนือลิสต์ ไม่ได้นั่งปนกับใครเลย
+               และมันคือที่เดียวที่โทเคนของเช็คอินรายวันเอาไปใช้ได้จริง
+               จึงต้องอยู่ติดกับแถบเช็คอิน ไม่ใช่ห่างกันคนละปลายจอ
+
+               1C09 · ยังอยู่บนสุดของฟีเจอร์ให้เลือกและยังเน้นสีอยู่ (ชิปทอง + ยอดโทเคน
+               สีทองคอลัมน์ขวา) แต่ย้ายเข้าไปเป็น "แถวแรกของลิสต์" แทนการ์ดเดี่ยว
+               เพราะทั้งจอเลิกเป็นการ์ดลอยเจ็ดใบแล้ว (ดูหมายเหตุ .pf-entry ใน alt.css) —
+               การ์ดเดี่ยวที่เหลืออยู่ใบเดียวกลางจอที่ไม่มีการ์ดอื่น อ่านเป็นของหลุดชุด
+               ไม่ใช่ของเน้น · ข้อกำหนดของ 1B98 คือ "บนสุด" กับ "เน้นสี" ซึ่งยังครบทั้งคู่ -->
+
+          <!-- ============================================================
+               1B98 · ลิสต์เหลือชื่อบรรทัดเดียว + ค่าชิดขวา
+               ============================================================
+               ของเดิมทุกแถวเป็นสองบรรทัด และบรรทัดล่างครึ่งหนึ่งเป็นคำโฆษณาที่พูดซ้ำ
+               กับชื่อแถวข้างบนมันเอง ("ข้อความ / คุยกับเพื่อนแบบตัวต่อตัว")
+               เจ็ดแถวคูณสองบรรทัดคือกำแพงตัวหนังสือที่ไม่มีบรรทัดไหนช่วยตัดสินใจ
+
+               แถวที่มี "ค่า" จริง (กี่วิชา · กี่คน · กี่ %) ค่าย้ายไปชิดขวาบรรทัดเดียวกับชื่อ
+               แถวที่ไม่มีค่า ก็ไม่มีบรรทัดที่สอง — ตากวาดคอลัมน์ขวาลงมาทีเดียวจบ
+
+               สีไอคอน: ตระกูลเดียวทั้งลิสต์ (ฟ้าของธีม) ตามที่เจ้าของเลือก
+               1B96 เคยแจกฟ้า/เขียว/เหลืองคนละแถวเพื่อให้ "มีสี" แต่สีพวกนั้นไม่ได้
+               แปลว่าอะไรเลย มันจึงอ่านเป็นสีมั่ว ไม่ใช่รหัสสี · สีที่แปลว่าอะไรจริง
+               ในจอนี้มีสีเดียวคือทองของร้านค้า ซึ่งตอนนี้ออกไปเป็นการ์ดข้างบนแล้ว -->
+          <div class="pf-entry">
+            <button class="pe pe-shop" onclick="go('scr-shop')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-bag"/></svg></span>
               <span class="pe-tx"><b>ร้านค้า</b></span>
               <em class="pe-v" id="peShopCt"></em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button class="pe" onclick="go('scr-room')"><span class="pe-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-sofa"/></svg></span><span class="pe-tx"><b>ห้องของฉัน</b></span><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-chevron"/></svg></button></div></section>
-    <section class="explore-section" data-group="help" hidden><h3>ข่าวสารและช่วยเหลือ</h3><div class="pf-entry"><button data-explore-feature="" class="pe" onclick="openBugReports()"><span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-message"/></svg></span><span class="pe-tx"><b>รายงานปัญหาแอป</b><small>แจ้งบั๊กและติดตามเรื่อง</small></span><svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button><button data-explore-feature="" class="pe" id="peNews" onclick="go('scr-news')">
+            <button class="pe" onclick="openMySubjects()">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-book"/></svg></span>
+              <span class="pe-tx"><b>วิชาของฉัน</b></span>
+              <em class="pe-v" id="peSubjCt"></em>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <button class="pe" onclick="openDmInbox('scr-profile')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-chat"/></svg></span>
+              <span class="pe-tx"><b>ข้อความ<span class="pe-n" id="peDmN" hidden></span></b></span>
+              <em class="pe-v" id="peDmCt"></em>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <button class="pe" onclick="openFeed('friends')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-user"/></svg></span>
+              <span class="pe-tx"><b>เพื่อนของฉัน</b></span>
+              <em class="pe-v" id="peFriendCt"></em>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <button class="pe" onclick="openBoard('scr-profile')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-trophy"/></svg></span>
+              <span class="pe-tx"><b>อันดับ</b></span>
+              <em class="pe-v" id="peBoardCt"></em>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <button class="pe" id="peCtx" onclick="go('scr-context')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-clock"/></svg></span>
+              <span class="pe-tx"><b>บริบทของฉัน</b></span>
+              <em class="pe-v" id="peCtxCt"></em>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <!-- 11 ต.ค. 69 · ฟอร์มฟีดแบ็กเทสเตอร์ (feedback.html) — เจ้าของถาม "อยู่ตรงไหนในแอป"
+                 อยู่แท็บ "ฉัน" ไม่ใช่หน้าแรก: ไม่เกี่ยวกับ "ตอนนี้ควรทำอะไร" และหน้าแรกต้องไม่เลื่อน -->
+            <!-- 15 ต.ค. 69 · ข่าวจากทีมพัฒนา — อยู่แท็บ "ฉัน" ไม่ใช่หน้าแรก/กระดิ่ง: ไม่ได้ขอให้ตัดสินใจอะไร
+                 เลขบนแถว = ประกาศที่ยังไม่เปิดดู (newsPaintRow ใน news.js) -->
+            <button class="pe" id="peBugReports" onclick="openBugReports()">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-message"/></svg></span>
+              <span class="pe-tx"><b>รายงานปัญหาแอป</b><small>แจ้งบั๊กและติดตามเรื่อง</small></span>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
+            <button class="pe" id="peNews" onclick="go('scr-news')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-flag"/></svg></span>
               <span class="pe-tx"><b>ข่าวสารจากทีม<span class="pe-n" id="peNewsN" hidden></span></b></span>
               <em class="pe-v" id="peNewsCt"></em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button data-explore-feature="" class="pe" onclick="location.href='feedback.html'">
+            <button class="pe" onclick="location.href='feedback.html'">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-message"/></svg></span>
               <span class="pe-tx"><b>ส่งฟีดแบ็ก</b></span>
               <em class="pe-v" id="peFbCt"></em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button data-explore-feature="" class="pe pe-soon" onclick="openSoonSheet('community')">
+            <!-- 1B98 · แถว "ธีมสี" ถูกถอดออกจากลิสต์ — ไปเป็นช่องที่สี่ของแถบ "โชว์"
+                 ช่องสีของมันเคยว่างเปล่าทุกธีม เพราะ `#scr-profile .pf-entry .pe-ic`
+                 (ความจำเพาะ 1,2,0) ทับ `.sw-light` / `.sw-space` (0,1,0) ทุกใบ
+                 ในแถบโชว์ไม่มีกฎนั้น ช่องสีจึงขึ้นจริง และใหญ่กว่าเดิมด้วย
+                 ทางเข้าเดิมในเฟือง → Student OS → ธีมสี ยังอยู่ครบไม่ได้ย้าย -->
+            <!-- 1C06 · เส้นคั่นก่อน "ชุมชน" ถูกถอด — เจ้าของสั่งให้ทุกแถวเท่ากัน
+                 และพอ ชุมชน/Pro ได้ชิปน้ำเงินเท่าแถวอื่นแล้ว เส้นนี้ก็ไม่ได้แบ่งอะไร
+                 สถานะ "เร็ว ๆ นี้ / ยังไม่เปิดขาย" ยังอยู่ครบในคอลัมน์ขวา
+                 ซึ่งเป็นที่เดียวที่บอกความจริงนั้นด้วยคำ ไม่ใช่ด้วยการทำให้จาง -->
+            <!-- ชุมชน = ฟีดโพสต์เดิม · โค้ดยังอยู่ครบ ปิดด้วยสวิตช์ COMMUNITY_LIVE ใน feed.js
+                 กดแล้วได้แผ่นอธิบายว่ามันจะเป็นอะไร ไม่ใช่ปุ่มที่กดแล้วเงียบ
+                 ป้าย .pe-wip ถูกถอด — สถานะไปอยู่คอลัมน์ขวาแล้ว ป้ายสีจึงเป็นเสียงซ้ำ
+                 ที่ดังกว่าแถวที่กดแล้วได้ของจริงข้างบนมัน -->
+            <button class="pe pe-soon" onclick="openSoonSheet('community')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-users"/></svg></span>
               <span class="pe-tx"><b>ชุมชน</b></span>
               <em class="pe-v">เร็ว ๆ นี้</em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
-            <button data-explore-feature="" class="pe pe-pro" onclick="go('scr-pro')">
+            <button class="pe pe-pro" onclick="go('scr-pro')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-crown"/></svg></span>
               <span class="pe-tx"><b>StudentOS Pro</b></span>
               <em class="pe-v">ยังไม่เปิดขาย</em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
-            </button></div></section>
-    <p id="exploreNoResults" class="explore-no-results" hidden>ยังไม่พบฟีเจอร์นี้ ลองคำว่า “เพื่อน” หรือ “ตารางเรียน”</p>
-  </div>
-</div>
+            </button>
+          </div>
+          <p class="app-ver" id="appVer"></p>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN: ผลของฉัน (ฉบับเต็ม) ============
+           หน้า "ฉัน" เหลือแค่ตัวเลขสรุปกับกราฟ 7 วัน · รายละเอียดที่ต้อง "อ่าน"
+           (ส่งทันกำหนด · แยกตามวิชา · ช่วงเวลาที่ทำงานได้ดี) ย้ายมาอยู่ที่นี่
+           เพราะมันเป็นของที่คนเข้ามาดูตอนอยากรู้ ไม่ใช่ของที่ต้องเลื่อนผ่านทุกครั้ง
+           วาดจาก renderStatFull() -->
       <div class="screen flush" id="scr-stats">
         <div class="scr-body pf-body">
           <div class="sticky-head row sh-inline">
@@ -1854,7 +1965,6 @@
             <div class="set-row" id="notifRow">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-plug"/></svg></span>
               <span class="set-lb">สถานะ<i id="notifStatus">ยังไม่ได้เปิด</i></span>
-              <a class="btn secondary sm open-main" href="../">เปิดแอปหลัก<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lu-arrow-up"/></svg></a>
               <button class="btn secondary sm" id="notifTest" style="width:auto;min-height:34px;padding:0 12px;display:none"
                 onclick="testNotify()">ทดสอบ</button>
               <button class="btn secondary sm" id="notifBtn" style="width:auto;min-height:34px;padding:0 14px" onclick="enableNotif()">เปิด</button>
@@ -1926,8 +2036,6 @@
               <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
             <!-- 9 ต.ค. 69 · โหมดลื่น (โหมดเครื่องเบา) — แอปเปิดให้เองเมื่อวัดได้ว่าเครื่องกระตุก (liteProbe/liteWatch)
                  สวิตช์นี้ให้คนใช้ตัดสินเองได้ทั้งสองทาง · ปิดเอง = ตัววัดจะไม่เปิดให้อีก -->
-            <!-- 19 ต.ค. 69 · เจ้าของ: "ทำให้มีปุ่มปรับกราฟิกหรือความสวยได้ มี น้อย กลาง มาก"
-                 สวิตช์โหมดลื่นเดิม (เปิด/ปิด) กลายเป็นสามระดับ · กลาง = โหมดลื่นเดิมทุกอย่าง (ดู setGfx ใน app.js) -->
             <div class="set-row gfx-row" id="liteRow">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-zap"/></svg></span>
               <span class="set-lb">กราฟิก<i id="gfxHint">สวยเต็มที่ · ลดลงถ้าเครื่องกระตุก</i></span>
@@ -2075,7 +2183,10 @@
                 <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-contrast"/></svg></span>
                 <span class="bd"><span class="lb">ธีมสี</span><span class="sb" id="themeNow"></span></span>
               </span>
+              <a class="alt-lab-entry" href="device-preview.html">ตรวจหน้าจอ ALT · มือถือ / แท็บเล็ต / คอม ↗</a>
               <div class="th-grid" id="themePick">
+                <button type="button" data-th="halloween" onclick="setTheme('halloween')"><span class="sw sw-halloween"></span><span class="nm">Halloween</span></button>
+                <button type="button" data-th="moonlight" onclick="setTheme('moonlight')"><span class="sw sw-moonlight"></span><span class="nm">Moon &amp; Candle</span></button>
                 <button type="button" class="th-sys" data-th="system" onclick="setTheme('system')">
                   <span class="sw sw-system"></span><span class="nm">ตามระบบ</span></button>
                 <button type="button" data-th="light" onclick="setTheme('light')">
@@ -2365,9 +2476,8 @@
   </p>
 </div>
 
-<!-- มือถือรุ่นเก่า (iOS 15) — เติมของที่เบราว์เซอร์ไม่มี + คำนวณสี color-mix ให้ · เครื่องที่มีครบไม่ทำอะไร · ต้องมาก่อน staff-news.js -->
 <script src="compat.js"></script>
-<script src="staff-news.js"></script>
+<script src="shortcut-draft.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
 <!-- remote-config.js ต้องมาก่อน engine.js — engine.js เรียก prioWeight() ตอนคิดคะแนน
@@ -2418,7 +2528,6 @@
 <script src="hw.js"></script>
 <script src="topic.js"></script>
 <script src="safety.js"></script>
-<script src="bug-reports.js"></script>
 <script src="classrooms.js"></script>
 <script src="sai.js"></script>
 <!-- ฟังก์ชันล้วน ไม่รันอะไรตอนโหลด · ต้องมาก่อน app.js เพื่อให้การวาดรอบแรก
@@ -2434,8 +2543,15 @@
 <script src="board.js"></script>
 <!-- 15 ต.ค. 69 · ข่าวสารจากทีม — ไม่มีอะไรพึ่งมันตอนบูต จึงอยู่ท้ายแถวได้ (ต้องมาก่อน app.js เพราะ renderProfile เรียก newsPaintRow) -->
 <script src="news.js"></script>
-<script src="app.js?v=20261016-main-notifications"></script>
+<script src="staff-news.js"></script>
+<script src="bug-reports.js"></script>
+<script src="app.js"></script>
 <script src="desktop-entry.js"></script>
+<script src="halloween/rewards/theme-main.js"></script>
+<script src="halloween/rewards/effect-games.js"></script>
+<script src="halloween/rewards/runtime.js"></script>
+<script src="halloween/rewards/integration.js"></script>
+<script src="device-preview-bridge.js"></script>
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────
      ปิดไปแล้ว — ปุ่ม "แก้ดีไซน์" ลอยทับชื่อผู้ใช้บนหัวจอของทุกคนที่เปิดแอป

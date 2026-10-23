@@ -6,7 +6,9 @@
 // จะเสิร์ฟโลโก้เก่าจากแคชต่อไปโดยไม่มีอะไรบอกว่ามีของใหม่
 // แยกชื่อแคช ALT จากเว็บหลัก: ปล่อยเฉพาะ ALT ต้องไม่ล้างแคชของเว็บหลักบน origin เดียวกัน
 const CACHE_PREFIX = 'studentos-alt-';
-const CACHE = CACHE_PREFIX + '1c60-desktop-audit-20261020'; // เก็บปุ่มกลับและแถบบันทึกผังคอม · ALT ไม่แจ้งเตือนซ้ำกับแอปหลัก
+const CACHE = CACHE_PREFIX + '1c60-halloween-portrait-guide-20261023'; // ฉากเต็มจอ คู่มือ และธีม Moon & Candle · เลขแอปคงเดิม
+let HALLOWEEN_FILES = [];
+try { importScripts('halloween/cache-manifest.js'); HALLOWEEN_FILES = self.HALLOWEEN_SHELL || []; } catch (_) {}
 // ทุกไฟล์ที่ index.html อ้างถึงต้องอยู่ในรายการนี้ — ไฟล์ที่หน้าเรียกแต่ไม่ได้แคชไว้
 // จะหายไปเงียบ ๆ ตอนออฟไลน์ โดยไม่มีอะไรบอกว่าหายไปไหน (icon-alt-* เลิกใช้ในหน้าแล้วตั้งแต่ QA 6 ต.ค. 69 · คงไว้ให้ index.html เก่าในแคชของเครื่องที่ยังไม่อัปเดต)
 //
@@ -17,7 +19,8 @@ const CACHE = CACHE_PREFIX + '1c60-desktop-audit-20261020'; // เก็บป�
 const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'room.css', 'social.css', 'feed.css', 'safety.css', 'hw.css', 'topic.css', 'sai.css', 'hoop.css', 'fxgames.css', 'gacha-fx.css', 'board.css', 'custom.css',
   'engine.js', 'context.js', 'planner.js', 'facts.js', 'profile.js', 'simulate.js', 'calibrate.js', 'loss.js', 'decide.js', 'brain.js', 'inbox.js', 'linelink.js', 'integrations.js', 'room.js', 'social.js', 'feed.js', 'hw.js', 'topic.js', 'safety.js', 'sai.js', 'fxgames.js', 'fx3d.js', 'hoop.js', 'gacha-fx.js', 'quickadd.js', 'board.js', 'news.js', 'app.js', 'config.js', 'remote-config.js',
   'manifest.json', 'compat.js', 'staff-news.js', 'bug-reports.js', 'bug-reports.css', 'classrooms.js', 'classrooms.css', 'notification-policy.mjs',
-  'desktop.css', 'desktop-entry.js', 'desktop.js', 'desktop-navigation.mjs',
+  'device-preview.html', 'device-preview.css', 'device-preview.js', 'device-preview-controls.css', 'device-preview-bridge.js', ...HALLOWEEN_FILES,
+  'shortcut-draft.js', 'desktop.css', 'desktop-entry.js', 'desktop.js', 'desktop-navigation.mjs',
   // 15 ต.ค. 69 · ข่าวสารจากทีม — แคชไว้ให้เปิดจอข่าวตอนออฟไลน์ได้ (drafts.json ไม่แคช: แอปไม่ได้โหลดมัน)
   'news/announcements.json',
   'icon-alt-192.png', 'icon-alt-512.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png',
@@ -92,6 +95,8 @@ self.addEventListener('fetch', e => {
   if (new URL(e.request.url).origin !== location.origin) return;
   // เว็บแอดมินแยก ไม่เก็บไว้ในแคชแอปนักเรียน
   if (new URL(e.request.url).pathname.includes('/staff/')) return;
+  // Temporary event pages must disappear when removed; never revive their switch offline.
+  if (new URL(e.request.url).pathname.includes('/halloween/event/')) return;
   // cache: 'no-store' สำคัญกว่าที่เห็น — network-first เฉย ๆ ยังไม่พอ
   // เพราะ HTTP cache ของเบราว์เซอร์นั่งขวางอยู่หน้า fetch() ของ SW อีกชั้น
   // GitHub Pages ส่ง max-age=600 มาด้วย แปลว่าอัปเดตแล้วผู้ใช้จะยังเห็นของเก่า

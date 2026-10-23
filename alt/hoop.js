@@ -39,11 +39,12 @@ const FX_SHOP = {
   glass:   { cost: 10, name: 'ปาแก้ว', desc: 'ปาแก้วใส่กำแพงให้แตกกระจาย', emoji: '🥂' },
 };
 function fxIcon(id) {
+  if (window.HalloweenCosmetics?.isEffect(id)) return window.HalloweenCosmetics.effectIcon(id);
   if (id === 'hoop') return HOOP_ICON;
   return (typeof FX_ICONS === 'object' && FX_ICONS[id]) || '';
 }
 
-function fxOwned(id) { return (tokenState().fx || []).includes(id); }
+function fxOwned(id) { return !!window.HalloweenCosmetics?.isEffect(id) || (tokenState().fx || []).includes(id); }
 
 // ---------- โหมด 3D (ได้จากการสุ่มเท่านั้น · fx3d.js) ----------
 // มี 3D แต่ยังไม่ได้ซื้อเอฟเฟกต์ปกติ = ยังใช้ไม่ได้ (เจ้าของสั่ง) — ของไม่หาย ซื้อเมื่อไหร่ใช้ได้ทันที
@@ -52,6 +53,7 @@ const DONEFX_3D_KEY = 'studentos.alt.doneFx3d';
 // บัญชีแอดมิน (TOKEN_ADMIN ใน app.js) มี 3D ครบทุกเกม — เจ้าของสั่งไว้ทดสอบบนมือถือ
 // อ่านสดจาก tokenAdmin เหมือนยอด ∞ ไม่เขียนลงข้อมูลจริง ออกจากระบบแล้วกลับเป็นของที่สุ่มได้จริง
 function fx3dOwned(id) {
+  if (window.HalloweenCosmetics?.isEffect(id)) return false;
   if (typeof tokenAdmin !== 'undefined' && tokenAdmin) return true;
   return ((tokenState().fx3d || {})[id] || 0) > 0;
 }
@@ -78,6 +80,7 @@ function doneFxPref() {
 function doneFxActive() {
   const id = doneFxPref();
   if (id === 'confetti') return false;
+  if (window.HalloweenCosmetics?.isEffect(id)) return !!document.querySelector('.phone');
   if (id !== 'hoop' && !(typeof FX_GAMES === 'object' && FX_GAMES[id])) return false;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
   return !!document.querySelector('.phone');
@@ -85,6 +88,7 @@ function doneFxActive() {
 // เปิดเอฟเฟกต์ที่เลือกไว้ · id ระบุเองได้ (ปุ่ม "ลอง")
 function openDoneFx(title, onClose, preview, id) {
   id = id || doneFxPref();
+  if (window.HalloweenCosmetics?.isEffect(id)) return window.HalloweenCosmetics.playEffect(id, onClose, title);
   if (id !== 'confetti' && fx3dMode(id) && fx3dUsable(id) && typeof open3D === 'function') return open3D(id, title, onClose, preview);
   if (id === 'hoop') return openHoop(title, onClose, preview);
   if (typeof FX_GAMES === 'object' && FX_GAMES[id]) return openFxGame(id, title, onClose, preview);
@@ -170,6 +174,7 @@ function renderFxPick() {
       + (waiting.length ? `<p class="fx-wait">มี 3D รอปลดล็อก: ${waiting.map(id => esc(FX_SHOP[id].name)).join(' · ')}</p>` : '');
   }
   const tr = document.getElementById('fxTry');
+  if (mode && window.HalloweenCosmetics?.isEffect(cur)) mode.innerHTML = '<p class="fx-wait">Halloween · ฉลองงานเสร็จ ข้ามได้ตลอดเวลา</p>';
   if (tr) tr.hidden = cur === 'confetti';
 }
 

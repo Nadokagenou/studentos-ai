@@ -6,11 +6,12 @@ const scenario=process.argv.includes('--empty')?'empty':process.argv.includes('-
 const portArg=process.argv.find(a=>/^--port=\d+$/.test(a));
 const port=portArg?Number(portArg.slice(7)):4196;
 const sampleTime=scenario==='late'?'22:30':'19:00';
-const themeArg=process.argv.find(a=>/^--theme=(light|dark|galaxy|magic)$/.test(a));
+const themeArg=process.argv.find(a=>/^--theme=(light|dark|galaxy|magic|halloween)$/.test(a));
 const theme=themeArg?themeArg.slice(8):'light';
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.json':'application/json','.woff2':'font/woff2'};
 const fixture=`<script>
 (()=>{
+ window.addEventListener('error',e=>{const record=()=>{let box=document.getElementById('previewRuntimeErrors');if(!box){box=document.createElement('pre');box.id='previewRuntimeErrors';box.hidden=true;document.body.append(box);}box.textContent+=String(e.error?.stack||e.message)+String.fromCharCode(10);};if(document.body)record();else document.addEventListener('DOMContentLoaded',record,{once:true});});
  const key='studentos.alt.desktop.review.seeded';
  const RealDate=Date, target=RealDate.parse('2026-10-20T${sampleTime}:00+07:00'),offset=target-RealDate.now();
  window.Date=class extends RealDate{constructor(...args){super(...(args.length?args:[RealDate.now()+offset]))}static now(){return RealDate.now()+offset}};
@@ -25,6 +26,7 @@ const fixture=`<script>
   localStorage.setItem('studentos.alt.skipLogin','1');localStorage.setItem('studentos.alt.onboardSkipped','1');localStorage.setItem('studentos.alt.lastScreen','scr-menu');
   localStorage.setItem('studentos.alt.checkinAsked',now.toISOString().slice(0,10));localStorage.setItem('studentos.alt.theme','${theme}');localStorage.setItem('studentos.alt.gfx','low');localStorage.setItem('studentos.alt.lite','1');localStorage.setItem(key,'1');
  }
+ if(new URLSearchParams(location.search).has('halloween-preview')) { localStorage.setItem('studentos.alt.theme','halloween');localStorage.setItem('studentos.alt.gfx','high');localStorage.setItem('studentos.alt.lite','0'); }
  document.addEventListener('DOMContentLoaded',()=>{const note=document.createElement('span');note.textContent='ข้อมูลจำลอง · ${sampleTime} · ไม่เชื่อมบัญชีจริง';note.style.cssText='position:fixed;right:12px;bottom:6px;z-index:9999;background:#fff8df;color:#5d4931;padding:3px 8px;border-radius:6px;font:10px Sarabun,sans-serif;pointer-events:none';document.body.appendChild(note)});
 })();
 </script>`;

@@ -9479,7 +9479,7 @@ button.as-back { background: none; border: 0; font: inherit; color: inherit; wid
 
 /* #6 · ปุ่มเพื่อนมุมขวาบน (z 91) ลอยทับชั้นมืดของเช็คอิน/แผ่นต่าง ๆ — หลบเมื่อมีชั้นไหนเปิดอยู่ */
 body:has(#checkin:not([hidden]), #addSheet:not([hidden]), #soonSheet:not([hidden]), #daySheet:not([hidden]),
-  #aiSheet:not([hidden]), #reportSheet:not([hidden])) .top-friends,
+  #planRowSheet:not([hidden]), #aiSheet:not([hidden]), #reportSheet:not([hidden])) .top-friends,
 body.focus-on .top-friends { visibility: hidden; }
 
 /* #5 · จอ "เสร็จแล้ว" ของโหมดโฟกัสเลื่อนแนวนอนได้ 32px (อวตารน้องไซยื่นออกขอบการ์ด) */
@@ -14547,6 +14547,296 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 .dc-brk-body { display: grid; gap: 10px; }
 .dc-brkq i { color: var(--blue); }
 
+/* ============================================================
+   21 ต.ค. 69 · ย้ายจาก alt ขึ้นแอปหลักเฉพาะที่เจ้าของเลือก (ไม่ใช่ซิงก์ทั้งก้อน)
+   ปุ่มกลับหน้าเข้าสู่ระบบ · จอแผนวันนี้แบบใหม่ · แถบกลางคืนบรรทัดเดียว · แคปซูลนาฬิกา + สีแถบจับเวลา
+   บล็อกข้างล่างก๊อปมาจาก alt/alt.css ตามต้นฉบับ — แก้ที่นั่นแล้วค่อยย้ายตาม
+   ============================================================ */
+/* ============================================================
+   แผนวันนี้ อ่านง่าย ใช้ง่าย (scr-sai · renderSaiPlan) · 19 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ: "ปรับหน้าแผนวันนี้ให้มันดูเข้าใจง่าย ใช้งานง่าย"
+   • การ์ดบน = มาสคอต + งานถัดไป + ปุ่มเริ่ม (เดิมปุ่มอยู่ท้ายจอ ใต้ทั้งวัน)
+   • ผลลัพธ์ = แถบบรรทัดเดียว ประโยคเดิม (เดิมการ์ดทึบสูงเกือบครึ่งจอ)
+   • เส้นเวลาเริ่มที่ตอนนี้ · ช่วงที่ผ่านไปแล้วพับไว้ใต้ปุ่ม .sd-pastbtn
+   ============================================================ */
+#saiBody .sai-next { grid-template-columns: 74px minmax(0, 1fr); align-items: center; padding: 14px 16px 16px 8px; }
+#saiBody .sai-next .saip-stage, #saiBody .sai-next .saip-chibi { width: 74px; height: 128px; }
+.sn-body { display: grid; gap: 2px; min-width: 0; }
+.sn-k {
+  justify-self: start; margin-bottom: 4px; padding: 3px 10px; border-radius: 99px;
+  font-size: 12.5px; font-weight: 800; line-height: 1.4;
+  color: color-mix(in srgb, var(--fill) 55%, var(--ink)); background: color-mix(in srgb, var(--fill) 13%, transparent);
+}
+.sn-t {
+  font-size: 18px; font-weight: 800; line-height: 1.35; color: var(--ink); overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.sn-m { font-style: normal; font-size: 13px; font-weight: 600; color: var(--muted); }
+#saiBody .sai-next .sai-cta { margin-top: 10px; padding: 12px; }
+
+/* ผลลัพธ์: แถบบรรทัดเดียวบนพื้นการ์ด — ไม่ใช่พื้นทึบ --fill อีกแล้ว ตัวหนังสือจึงกลับมาใช้ --ink */
+#saiBody .sp-hero {
+  display: flex; align-items: center; gap: 10px; margin: 10px 0 2px; padding: 12px 16px; border-radius: 16px;
+  background: color-mix(in srgb, var(--alert) 12%, var(--card)); color: var(--ink);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--alert) 22%, transparent);
+}
+#saiBody .sp-hero.ok {
+  background: color-mix(in srgb, var(--fill) 10%, var(--card));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--fill) 20%, transparent);
+}
+#saiBody .sp-hero::before, #saiBody .sp-hero::after { display: none; }
+#saiBody .sp-hero > svg {
+  width: 20px; height: 20px; flex: none; fill: none; stroke: var(--alert);
+  stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+}
+#saiBody .sp-hero.ok > svg { stroke: var(--fill); }
+#saiBody .sp-hero b { font-size: 15px; font-weight: 700; line-height: 1.4; letter-spacing: 0; color: var(--ink); }
+#saiBody .sp-hero b em { font-size: 16px; font-weight: 800; letter-spacing: 0; }
+
+/* ปุ่มดูช่วงที่ผ่านไปแล้ว */
+.sd-pastbtn {
+  display: inline-flex; align-items: center; min-height: 34px; margin: 0 0 8px; padding: 6px 14px;
+  border: 0; border-radius: 99px; cursor: pointer;
+  background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--muted);
+  font: inherit; font-size: 13px; font-weight: 700;
+}
+.sd-pastbtn:active { transform: scale(.97); }
+.sd-pastbtn { width: fit-content; }
+/* ธีม astral เป็นขาวดำทั้งแอป — แดงของ --alert กลายเป็นเทาอ่อน ตัวขาวบนป้าย "ตอนนี้" จมหาย → ตัวเข้มแทน */
+:root[data-theme="astral"] #saiBody .sd-now span { color: #111; }
+:root[data-theme="astral"] #saiBody .sd-now span em { background: #111; }
+#saiBody .sd-t-now { color: var(--alert); font-size: 14px; }
+:root[data-theme="astral"] #saiBody .sd-t-now { color: var(--ink); }
+#saiBody .sd-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; margin-bottom: 0; }
+#saiBody .sd-head .sd-pastbtn { margin: 0; min-height: 32px; padding: 5px 12px; font-size: 12.5px; }
+
+
+/* หน้าเข้าสู่ระบบ: ปุ่มกลับมุมซ้ายบน (เปิดจากในแอปเท่านั้น · 20 ต.ค. 69)
+   กฎปุ่มกลับกลางตั้ง display:inline-grid !important — ทับ [hidden] ของเบราว์เซอร์ ต้องซ่อนเองด้วย !important */
+/* อยู่ในแถวของตัวเองเหนือใบพระเอก (ไม่ลอยทับโลโก้มุมซ้ายบนของใบ) · ซ่อน = ไม่กินที่ · ลูกศรพลิกชี้ซ้ายแบบ .sh-btn */
+#scr-login .lg-back { align-self: flex-start; margin: 0 0 10px; }
+#scr-login .lg-back svg { transform: scaleX(-1); }
+.phone #scr-login .lg-back[hidden] { display: none !important; }
+
+
+/* ============================================================
+   แผนวันนี้ รอบสอง: การ์ดบนเป็นพระเอกสีเต็ม · 20 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ (ภาพจอแผนตอนดึก): "แก้ใหม่หน่อยให้มันดูง่ายและสนใจ ดูน่าใช้กว่านี้"
+   ที่รกในภาพ: งานเดียวกันขึ้นสองที่ (การ์ดบน + ก้อนเส้นเวลา) · ป้ายสี่ชิ้นตะโกนเท่ากัน · การ์ดบนเป็นกล่องเทา
+   • การ์ดบน = พื้น --fill ตัว --on-fill (สูตรการ์ดงานหน้าแรก) · ทิศไล่สีแยกตามธีมตัวขาว/ตัวเข้ม (เหมือน .dc-line.ask)
+   • ปุ่มเริ่ม = สีกลับด้าน (พื้น on-fill ตัว fill) เต็มความกว้าง — ของที่กดได้ชิ้นเดียวที่เด่นที่สุดในจอ
+   • แถบผลลัพธ์อยู่ท้ายการ์ด (ข้อความเดิมของเจ้าของ) · เส้นเวลาไม่ขึ้นงานที่การ์ดบนบอกแล้ว (sai.js)
+   • ปุ่ม "เล่าทีละข้อ" เบาลงเป็นลิงก์ — ไม่ใช่สิ่งที่ต้องทำ
+   ============================================================ */
+#saiBody .sn-hero {
+  grid-template-columns: 70px minmax(0, 1fr); row-gap: 12px; padding: 16px 16px 14px 8px; border: 0;
+  color: var(--on-fill);
+  background: linear-gradient(150deg, var(--fill), color-mix(in srgb, var(--fill) 76%, #000));
+  box-shadow: 0 18px 36px -20px color-mix(in srgb, var(--fill) 90%, transparent), inset 0 1px 0 rgba(255,255,255,.2);
+}
+:root:is([data-theme="astral"], [data-theme="deepocean"], [data-theme="galaxy"], [data-theme="glitch"], [data-theme="magic"], [data-theme="meta"], [data-theme="space"]) #saiBody .sn-hero {
+  background: linear-gradient(150deg, color-mix(in srgb, var(--fill) 80%, #fff), var(--fill));
+}
+#saiBody .sn-hero .saip-stage, #saiBody .sn-hero .saip-chibi { width: 70px; height: 121px; }
+#saiBody .sn-hero .sn-k { color: var(--on-fill); background: color-mix(in srgb, var(--on-fill) 16%, transparent); }
+#saiBody .sn-hero .sn-t { color: var(--on-fill); font-size: 21px; line-height: 1.3; }
+#saiBody .sn-hero .sn-m { color: var(--on-fill); opacity: .88; font-size: 13.5px; }
+#saiBody .sn-hero .sn-go {
+  grid-column: 1 / -1; margin: 0; padding: 14px; border-radius: 16px; font-size: 16px; font-weight: 800;
+  background: var(--on-fill) !important; color: var(--fill) !important;
+  box-shadow: 0 8px 18px -10px rgba(0,0,0,.45) !important;
+}
+#saiBody .sn-hero .sn-go svg { color: var(--fill); }
+/* แถบผลลัพธ์ในการ์ด — ไม่มีกรอบ ไม่มีพื้นแดง (บนพื้นสีเต็มแดงจะจม) · ไอคอนบอกดี/ไม่ดี */
+#saiBody .sn-hero .sp-hero {
+  grid-column: 1 / -1; margin: 0; padding: 10px 12px; border-radius: 14px; box-shadow: none;
+  background: color-mix(in srgb, var(--on-fill) 12%, transparent); color: var(--on-fill);
+}
+#saiBody .sn-hero .sp-hero b { color: var(--on-fill); font-size: 14px; }
+#saiBody .sn-hero .sp-hero b em { font-size: 15px; }
+#saiBody .sn-hero .sp-hero > svg { stroke: var(--on-fill); }
+/* ปุ่มเล่าทีละข้อ → ลิงก์เบา ๆ */
+#saiBody .sai-tour {
+  border: 0 !important; background: none !important; box-shadow: none !important; margin-top: 2px; padding: 12px;
+  color: var(--muted) !important; font-size: 14px; font-weight: 700; text-decoration: underline; text-underline-offset: 4px;
+}
+/* ช่องว่างในเส้นเวลา → เจือสีอ่อนของธีม (ไม่ใช่สีเต็ม) — การ์ดบนเป็นสีเต็มแล้ว สองก้อนสีเดียวกันแย่งกันเป็นพระเอก
+   ตัวหนังสือกลับมาเป็น --ink · การ์ดงานข้างในเป็น --card (ธีมมืดได้การ์ดมืด ไม่ใช่การ์ดขาวลอย) */
+#saiBody .sd-free .sd-x {
+  background: color-mix(in srgb, var(--fill) 13%, var(--card)) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 22%, transparent) !important;
+}
+#saiBody .sd-free .sd-x::after { display: none; }
+#saiBody .sd-free .sd-x > b { color: var(--ink); }
+#saiBody .sd-free .sd-x > i { color: var(--muted); }
+#saiBody .sd-free .sd-tag { color: color-mix(in srgb, var(--fill) 65%, var(--ink)); background: color-mix(in srgb, var(--fill) 16%, transparent); box-shadow: none; }
+#saiBody .sd-free .sd-job:not(.brk) { background: var(--card); box-shadow: 0 1px 0 color-mix(in srgb, var(--ink) 6%, transparent), 0 6px 14px -10px rgba(0,0,0,.35); }
+#saiBody .sd-free .sd-job:not(.brk) .sd-jx b { color: var(--ink); }
+#saiBody .sd-free .sd-job:not(.brk) :is(.sd-jt, .sd-jx i) { color: var(--muted); }
+#saiBody .sd-free .sd-job.brk { border-color: color-mix(in srgb, var(--ink) 18%, transparent); background: none; }
+#saiBody .sd-free .sd-job.brk .sd-jx b { color: var(--ink); }
+#saiBody .sd-free .sd-job.brk :is(.sd-jt, .sd-jx i) { color: var(--muted); }
+
+
+/* ============================================================
+   แผนวันนี้ · ตารางทั้งวันแบบ ก "รายการเรียงเวลา" (sai.js · .tl) · 20 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของเลือกแบบ ก จากสามแบบ (รายการ · แถบทั้งวัน+รายการ · ตารางชั่วโมงจริง)
+   แถวเดียวเรียงเวลา ไม่มีกล่องซ้อน: เวลาตัวหนาคอลัมน์ซ้าย (คงไว้ตามที่เจ้าของเคาะ "เวลาต้องเด่นสุด" · ไม่มีรางเส้นตั้ง)
+   งาน = การ์ด --card · ทำก่อน = เจือ --fill + ขอบ · เรียน/กิจวัตร = จาง · พัก/นอน = บรรทัดเล็ก · ว่าง = เส้นประ
+   ============================================================ */
+#saiBody .dt { display: grid; gap: 8px; margin: 2px 0 6px; }
+#saiBody .dt-r { display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: start; gap: 10px;
+  animation: sd-in .45s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(var(--n, 0) * 35ms); }
+#saiBody .dt-t { padding-top: 11px; text-align: right; font-size: 15px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+#saiBody .dt-c {
+  display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; min-height: 48px; padding: 9px 12px;
+  border: 0; border-radius: 16px; text-align: left; font: inherit; color: var(--ink);
+  background: var(--card); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent), 0 6px 14px -12px rgba(0,0,0,.35);
+}
+#saiBody button.dt-c { cursor: pointer; }
+#saiBody button.dt-c:active { transform: scale(.985); }
+#saiBody .dt-x { flex: 1; min-width: 0; }
+#saiBody .dt-x b { display: block; font-size: 14.5px; font-weight: 700; line-height: 1.35; color: var(--ink); overflow-wrap: anywhere; }
+#saiBody .dt-x i { display: block; margin-top: 1px; font-style: normal; font-size: 12.5px; color: var(--muted); }
+#saiBody .dt-c > svg { width: 16px; height: 16px; flex: none; color: var(--muted); }
+/* งานที่การ์ดบนบอกให้ทำ */
+#saiBody .dt-job.hot .dt-c {
+  background: color-mix(in srgb, var(--fill) 14%, var(--card));
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--fill) 55%, transparent), 0 8px 18px -12px color-mix(in srgb, var(--fill) 70%, transparent);
+}
+#saiBody .dt-job.hot .dt-t { color: color-mix(in srgb, var(--fill) 60%, var(--ink)); }
+#saiBody .dt-tag { flex: none; padding: 3px 9px; border-radius: 999px; font-style: normal; font-size: 12px; font-weight: 800;
+  color: var(--on-fill); background: var(--fill); }
+/* เรียน · กิจวัตร — ของที่ถูกกำหนดมาแล้ว ไม่ใช่สิ่งที่ต้องตัดสินใจ */
+#saiBody .dt-busy .dt-c { min-height: 42px; background: color-mix(in srgb, var(--ink) 5%, transparent); box-shadow: none; }
+#saiBody .dt-busy .dt-x b { font-weight: 600; color: color-mix(in srgb, var(--ink) 75%, transparent); }
+#saiBody .dt-busy .dt-t { font-weight: 600; color: var(--muted); }
+/* กิจกรรมที่ต้องไปให้ทัน */
+#saiBody .dt-ev .dt-c { box-shadow: inset 3px 0 0 var(--pri-yellow-text), 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent); border-radius: 4px 16px 16px 4px; }
+/* พัก · ตื่น · นอน — บรรทัดเล็ก */
+#saiBody .dt-line .dt-t { padding-top: 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+#saiBody .dt-l { font-size: 13px; font-weight: 600; color: var(--muted); }
+/* ว่าง — เส้นประบาง ๆ ระหว่างแถว */
+#saiBody .dt-gap { display: flex; align-items: center; gap: 8px; margin: -1px 0 -1px 62px; font-size: 12px; font-weight: 600; color: var(--muted); }
+#saiBody .dt-gap::after { content: ''; flex: 1; border-top: 1.5px dashed color-mix(in srgb, var(--ink) 16%, transparent); }
+/* ตอนนี้ */
+#saiBody .dt-now { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; align-items: center; margin: 2px 0; }
+#saiBody .dt-now span { justify-self: end; display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px 3px 7px; border-radius: 99px;
+  font-size: 12px; font-weight: 800; color: #fff; background: var(--alert); }
+#saiBody .dt-now span em { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: sd-blink 1.6s ease-in-out infinite; }
+#saiBody .dt-now i { height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--alert), color-mix(in srgb, var(--alert) 10%, transparent)); }
+:root[data-theme="astral"] #saiBody .dt-now span { color: #111; }
+:root[data-theme="astral"] #saiBody .dt-now span em { background: #111; }
+#saiBody .dt .past { opacity: .5; }
+@media (prefers-reduced-motion: reduce) { #saiBody .dt-r { animation: none; } }
+:root[data-quality="low"] #saiBody .dt-r { animation: none; }
+
+
+/* ============================================================
+   แคปซูลนาฬิกา .run-timer (แบบ Timer ของ Cult UI · MIT · nolly-studio/cult-ui) · 20 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของแปะตัวอย่าง Timer ของ Cult UI มา: "หน้าไหนที่ควรใช้ ลองเอาไปปรับใช้ดู"
+   ใช้สามที่ที่โชว์ "เวลาที่เดินอยู่": แถบจับเวลาเหนือเมนู · การ์ดบนของจอแผน · แถวงานในตารางทั้งวัน
+   ต้นฉบับ: แคปซูล rounded-full · ไอคอนนาฬิกา · ตัวเลข font-mono tabular-nums · variant ตามพื้นที่วาง
+   ปรับ: หมุนแค่เข็ม (transform ล้วน · 4 วิ/รอบ) · หยุดหมุนใน data-lite / ลดการเคลื่อนไหว
+   ============================================================ */
+.run-timer {
+  display: inline-flex; align-items: center; gap: 6px; flex: none; height: 30px; padding: 0 11px 0 8px;
+  border-radius: 999px; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.run-timer svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.run-timer .rt-hand { transform-box: view-box; transform-origin: 12px 12px; animation: rt-sweep 4s linear infinite; }
+@keyframes rt-sweep { to { transform: rotate(360deg); } }
+.run-timer .rt-n { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 15px; font-weight: 700; letter-spacing: -.02em; min-width: 4ch; }
+:root[data-lite] .run-timer .rt-hand { animation: none; }
+@media (prefers-reduced-motion: reduce) { .run-timer .rt-hand { animation: none; } }
+
+/* แถบจับเวลา (พื้นเขียว --good ตัวขาว) — variant "outline" บนพื้นสี */
+.runbar .rb-timer { color: #fff; background: rgba(255,255,255,.2); box-shadow: inset 0 0 0 1px rgba(255,255,255,.28); }
+.runbar .rb-k { display: block; font-style: normal; font-size: 11.5px; font-weight: 600; opacity: .9; }
+.runbar .rb-tt { font-size: 14px; }
+
+/* การ์ดบนของจอแผน (พื้น --fill ตัว --on-fill) */
+#saiBody .sn-timer { justify-self: start; margin-bottom: 4px; height: 28px; color: var(--on-fill); background: color-mix(in srgb, var(--on-fill) 16%, transparent); }
+#saiBody .sn-timer .rt-n { font-size: 14px; }
+
+/* แถวงานในตารางทั้งวัน (พื้น --card) */
+#saiBody .dt-timer { height: 28px; color: color-mix(in srgb, var(--fill) 60%, var(--ink)); background: color-mix(in srgb, var(--fill) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 30%, transparent); }
+#saiBody .dt-timer .rt-n { font-size: 13.5px; }
+/* แถบจับเวลา: ตัวขาวบน --good อ่านไม่ออกใน 9 ธีม (วัด 20 ต.ค. 69 · ของเดิมก่อนรอบนี้)
+   astral 2.4 · dark 1.7 · deepocean 1.8 · galaxy 1.5 · glitch 1.4 · magic 1.7 · meta 1.7 · space 1.8 · sweet 3.8 — ต้อง ≥ 4.5
+   ธีมเหล่านี้ --good เป็นเขียวสว่าง → ตัวเขียวเข้มเกือบดำแทน (ได้ ≥ 4.9 ทุกธีม) · ธีมที่ --good เข้มอยู่แล้ว (light earth ocean …) คงตัวขาว */
+:root:is([data-theme="astral"], [data-theme="dark"], [data-theme="deepocean"], [data-theme="galaxy"], [data-theme="glitch"], [data-theme="magic"], [data-theme="meta"], [data-theme="space"], [data-theme="sweet"]) .runbar { color: #04130E; }
+:root:is([data-theme="astral"], [data-theme="dark"], [data-theme="deepocean"], [data-theme="galaxy"], [data-theme="glitch"], [data-theme="magic"], [data-theme="meta"], [data-theme="space"], [data-theme="sweet"]) .runbar :is(.rb-stop, .rb-timer) {
+  color: #04130E; background: rgba(0,0,0,.12); box-shadow: inset 0 0 0 1px rgba(0,0,0,.14);
+}
+:root:is([data-theme="astral"], [data-theme="dark"], [data-theme="deepocean"], [data-theme="galaxy"], [data-theme="glitch"], [data-theme="magic"], [data-theme="meta"], [data-theme="space"], [data-theme="sweet"]) .runbar .rb-k { opacity: 1; }
+
+
+/* แถบกลางคืนพกทรงใหม่ของบรรทัด "วันนี้" (.dc-line) มาเองเฉพาะตัว (.td-night · 21 ต.ค. 69)
+   22 ต.ค. 69 บรรทัด "วันนี้" ของแอปหลักได้ทรงนี้ด้วยแล้ว (บล็อก .dc-line ท้ายไฟล์) — ค่าตรงกัน กฎสองชุดนี้จึงไม่ขัดกัน */
+.dc-line.td-night {
+  gap: 9px; padding: 5px 5px 5px 6px; border-radius: 999px;
+  border-color: color-mix(in srgb, var(--fill) 20%, transparent);
+  background: color-mix(in srgb, var(--fill) 7%, var(--card));
+}
+.dc-line.td-night .dc-ic {
+  display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  background: color-mix(in srgb, var(--fill) 24%, transparent);
+}
+.dc-line.td-night .dc-ic svg { width: 14px; height: 14px; color: color-mix(in srgb, var(--fill) 70%, var(--ink)); }
+.dc-line.td-night .dc-tx { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dc-line.td-night .dc-tx em { font-style: normal; font-weight: 600; color: var(--muted); }
+.dc-line.td-night .dc-tx b { font-weight: 800; color: var(--ink); }
+.dc-line.td-night > i {
+  padding: 4px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; line-height: 1.3;
+  color: color-mix(in srgb, var(--fill) 60%, var(--ink)); background: color-mix(in srgb, var(--fill) 15%, transparent);
+}
+.dc-line.td-night:active { transform: scale(.985); }
+
+/* ============================================================
+   หน้าแรก › แถบ "เลยเวลาทำงานแล้ว" (.dc-line.td-night) · 20 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ: การ์ดหมดเวลาของคืนนี้ยาวเกินและอ่านเหมือนเครื่องเขียน — ให้เหลือบรรทัดเดียว
+   เดิมเป็นการ์ด .td-note สูง 139px ดันหน้าแรกเป็น 909 จาก 803 (หน้าแรกห้ามต้องเลื่อน)
+   ตอนนี้ยืมหน้าตาบรรทัด "วันนี้" (.dc-line) ทั้งก้อน แล้วบีบให้เตี้ยลงอีกนิด:
+   ข้อความ "ว่างอีกที 06:00 พรุ่งนี้" ยาวกว่า "ไปเรียน" มาก — ที่ 375px ต้องลดช่องไฟ/ตัวอักษร
+   ไม่งั้นโดนตัดท้าย · ไม่ใช่สีทอง (ทองใช้เฉพาะของที่ทำเสร็จแล้ว) */
+.dc-line.td-night { gap: 7px; padding: 3px 4px 3px 5px; font-size: 12.5px; }
+.dc-line.td-night .dc-ic { width: 22px; height: 22px; }
+.dc-line.td-night .dc-tx small { font-size: 12px; }
+.dc-line.td-night > i { padding: 3px 10px; font-size: 12px; }
+
+
+/* ============================================================
+   แผ่นแตะแถวงานในเส้นเวลาจอแผน (#planRowSheet) · 20 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ (ขอปรับหน้าแผนวันนี้ให้ใช้ง่ายขึ้น): แตะงานในเส้นเวลาแล้วอยากเริ่ม/ติ๊กเสร็จ/เลื่อนได้เลย
+   ไม่ใช่เด้งไปฟอร์มแก้ไข
+   ยืมโครง .add-sheet/.as-scrim/.as-card จาก today.css ทั้งก้อน (เหมือน #soonSheet) — ของใหม่มีแค่เนื้อใน
+   แถวไอคอน+ข้อความใช้ grid ไม่ใช่ flex (<span> ที่เป็น flex item ใน alt/ กว้างศูนย์)
+   ปุ่มหลักพื้น --fill ตัว --on-fill · ปุ่มอื่นพื้น --card2 ตัว --ink · "เสร็จแล้ว" ไม่ใช่สีทอง (ทองใช้เฉพาะของที่เสร็จจริงแล้ว) */
+.prs-card { padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
+.prs-h { display: grid; gap: 2px; margin: 2px 4px 12px; text-align: left; }
+.prs-h b {
+  font-size: 17px; font-weight: 800; line-height: 1.35; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.prs-h i { font-style: normal; font-size: 13px; font-weight: 600; color: var(--muted); }
+.prs-list { display: grid; gap: 8px; }
+.prs-b {
+  display: grid; grid-template-columns: 22px minmax(0, 1fr); align-items: center; gap: 12px;
+  width: 100%; min-height: 50px; box-sizing: border-box; padding: 8px 16px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--card2); color: var(--ink);
+  font-family: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer;
+}
+.prs-b svg { width: 20px; height: 20px; }
+.prs-b:active { transform: scale(.98); }
+.prs-b.primary { border-color: transparent; background: var(--fill); color: var(--on-fill); }
+.prs-b.quiet { border-color: transparent; background: none; color: var(--muted); font-weight: 600; }
 /* ============================================================
    หน้าแรก › บรรทัด "วันนี้" (.dc-line) อ่านออกว่าคืออะไร กดตรงไหน · 19 ต.ค. 69
    ------------------------------------------------------------
