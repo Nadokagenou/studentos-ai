@@ -15010,4 +15010,9 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
  /* ของแอปหลักเอง (alt ยังไม่มี): ก้อนเต็มแถวโดนเพดาน 620px (กฎ "ทุกก้อนกว้างเท่ากัน" ที่ 720px ขึ้นไป)
     แต่คู่สองคอลัมน์รวมกันกว้าง 690 → การ์ดน้องฮูกยื่นเลยขอบขวาของก้อนอื่น · ปลดเพดานในผังนี้ ขอบขวาจึงตรงกันทุกก้อน */
  :root body:not(.login-mode) #scr-menu .menu-body>*{max-width:none}
+ /* 24 ต.ค. 69 · ตามรอบเดียวกับ alt/device-preview-controls.css: ตอนกลางคืนแถบตัวเลขไม่ขึ้น การ์ดน้องฮูกไม่มีคู่
+    ค้างครึ่งซ้าย · รายการ "ที่เหลือของวันนี้" ก็ครึ่งซ้ายเสมอ → ทุกก้อนเต็มแถว คู่กันเฉพาะตอนมีครบสองชิ้น · เต็มความกว้างจอ */
+ :root body:not(.login-mode) #menuBody{max-width:none;padding-inline:0}
+ :root body:not(.login-mode) #menuBody>*{grid-column:1/-1}
+ :root body:not(.login-mode) #menuBody>.td-stats:has(+ .saih),:root body:not(.login-mode) #menuBody>.td-stats+.saih{grid-column:auto}
 }
