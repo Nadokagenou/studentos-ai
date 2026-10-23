@@ -149,6 +149,7 @@ C:\Users\User\OneDrive\code\StudentOS-AI\     ← repo จริง (เคร�
 **เทสต์ที่ต้องติดตั้งของก่อน** (ใช้ Postgres จำลอง PGlite · ไม่แตะ Supabase จริง):
 - ระบบทีมงาน `alt/staff/tests/` — วิธีรันอยู่ใน `alt/staff/INSTALL-TH.md` (ใช้ pnpm ติดตั้งใน `alt/staff/backend`)
 - RLS `supabase/tests/*.test.mjs` — วิธีรันเขียนไว้หัวไฟล์ (ติดตั้ง PGlite นอก repo แล้วส่ง path เข้าไป)
+  · รหัสเชิญ/ภารกิจธีม Halloween `supabase/tests/invites.test.mjs` — 25/25 (23 ต.ค. 69)
 - Edge Function `supabase/functions/*/__tests__/` — อ่าน `README.md` ในโฟลเดอร์ · ต้อง bundle `fn.mjs` ใหม่ทุกครั้งที่แก้ `index.ts`
 
 ---
