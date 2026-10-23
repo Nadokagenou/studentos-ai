@@ -10,6 +10,7 @@ self.HALLOWEEN_SHELL = [
   "halloween/rewards/theme-main.css",
   "halloween/rewards/theme-main.js",
   "halloween/rewards/biome-themes.css",
+  "halloween/rewards/theme-moonlight.css",
   "halloween/rewards/ownership.js",
   "halloween/rewards/acquisition.js",
   "halloween/rewards/acquisition.css",

@@ -37,4 +37,3 @@ Precise lighting correction edit. Preserve EXACT composition, pixel art, archite
 ### Graveyard final
 
 Input is edit target. Keep exact composition and crisp pixel art. Moderately increase illumination 25 percent with mystical silver-blue moonlight and ghostly violet/cyan rim light, readable stone and earth. Beautiful ancient arcane haunted graveyard, scary but not pitch black. Keep deep shadows and fog. A few sparse dim amber lanterns only, do not add candles everywhere. No cozy festival, no new characters, no text or UI. Preserve positions and 3:2.
-
