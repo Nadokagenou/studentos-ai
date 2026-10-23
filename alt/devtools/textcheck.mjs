@@ -26,7 +26,10 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { inflateSync } from 'node:zlib';
-const ALL = ['light', 'dark', 'warm', 'space', 'earth', 'ocean', 'magic', 'galaxy', 'deepocean', 'earth2', 'sweet', 'genesis', 'meta', 'glitch', 'astral'];
+// 23 ต.ค. 69 · ธีมจากอีเวนต์ฮาโลวีน (alt/halloween/rewards) — เดิมไม่อยู่ในรายชื่อ จึงไม่เคยถูกตรวจ
+//   moonlight:light = Moon & Candle โทนแสงจันทร์ (ธีมเดียวมีสองชุดสี สลับด้วย data-hw-tone)
+const ALL = ['light', 'dark', 'warm', 'space', 'earth', 'ocean', 'magic', 'galaxy', 'deepocean', 'earth2', 'sweet', 'genesis', 'meta', 'glitch', 'astral',
+  'halloween', 'moonlight', 'moonlight:light', 'hw-ghostship', 'hw-jackhollow', 'hw-vampire', 'hw-graveyard'];
 const ARG_T = process.argv.slice(2).filter(a => ALL.includes(a));
 const THEMES = ARG_T.length ? ARG_T : ALL;
 const SCREENS = (process.env.SCREENS || 'scr-menu,scr-tasks,scr-timeline,scr-plan,scr-why,scr-ai,scr-profile,scr-settings,scr-stats,scr-context,scr-notif,scr-room,scr-shop,scr-badges,scr-explore,scr-news').split(',');
@@ -82,6 +85,9 @@ const COLLECT = `(() => {
     if (/^[★☆\\s]+$/.test(own)) continue;
     const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || cs.display === 'none') continue;
     if (el.closest('[aria-hidden="true"], :disabled, [aria-disabled="true"], .sr-only')) continue;
+    // ของใน <details> ที่ปิดอยู่: Chrome รุ่นใหม่ยังให้กรอบมีขนาด แต่ไม่วาดตัวอักษร → วัดได้พื้นทับพื้น ~1.0:1 ทั้งที่ไม่ได้โชว์
+    // (23 ต.ค. 69 · ปุ่ม "ตั้งปิดเทอม" ในจอบริบทฟ้อง 1.04 ทุกธีม · เปิดหัวข้อแล้วอ่านชัด)
+    { const d = el.closest('details'); if (d && !d.open && !el.closest('summary')) continue; }
     // ตัวหนังสือไล่สี (background-clip: text) — สีตัวหนังสือ = ทุกสีในไล่สี (เอาค่าที่แย่สุด) · ตอนถ่ายพื้นปิดไล่สีของชิ้นนี้ (data-tc-grad)
     let stops = null;
     if (/rgba[(]0, 0, 0, 0[)]/.test(cs.webkitTextFillColor) && /text/.test(cs.backgroundClip + cs.webkitBackgroundClip)) {
@@ -184,7 +190,10 @@ async function run() {
   };
   const res = {};
   for (const th of THEMES) {
-    await ev(`(()=>{ document.documentElement.dataset.theme = '${th}'; return 1 })()`);
+    const [thName, thTone] = th.split(':');
+    // ตั้งโทนก่อนธีม — theme-main.js ฟัง data-theme แล้ววาดฉากตามโทนที่ติดอยู่ตอนนั้น
+    const applied = await ev(`(()=>{ const r = document.documentElement; r.dataset.hwTone = '${thTone || 'dark'}'; r.dataset.theme = '${thName}'; return r.dataset.theme + ':' + r.dataset.hwTone })()`);
+    if (applied !== thName + ':' + (thTone || 'dark')) throw new Error('ธีมไม่ติด: ' + th + ' ได้ ' + applied);
     await sleep(400);
     res[th] = { checked: 0, gradText: 0, fails: [] };
     for (const id of SCREENS) {

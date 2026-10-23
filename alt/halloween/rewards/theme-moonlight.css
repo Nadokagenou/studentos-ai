@@ -413,3 +413,14 @@ html[data-lite="1"][data-theme="moonlight"] *{-webkit-backdrop-filter:none!impor
 :root[data-theme="moonlight"] #scr-profile :is(.hw-me-grp>.pe,.hw-me-feat>.pe-pro) .pe-ic svg{color:var(--hw-sky-text)!important}
 :root[data-theme="moonlight"] #scr-profile .hw-me-grp>.pe .pe-go{color:var(--hw-ink-3)}
 :root[data-theme="moonlight"] #scr-profile :is(.pe-soon,.pe-pro) .pe-v{background:none!important;color:var(--hw-ink-3)!important;font-weight:500}
+/* 23 ต.ค. 69 · textcheck — สองชิ้นที่เฉียดเกณฑ์ (4.4:1)
+   • เวลาจบในจอแผน (.ptime .e) นั่งบนภาพฉากจันทร์/เทียน ไม่มีการ์ดรอง → ขอบนุ่มสีพื้นจอ (สูตรเดียวกับเวลาในเส้นเวลา .dayrow-t)
+   • โทนแสงจันทร์: ตัวขาว (--on-fill) บนการ์ดน้ำเงิน แต่ป้าย "โอกาสเสร็จทัน" ทาขาวโปร่งทับ = พื้นสว่างขึ้นใต้ตัวขาว → ทาดำโปร่งแทน */
+:root[data-theme="moonlight"] .phone .pslot .ptime .e{text-shadow:0 0 1px var(--scr),0 0 6px var(--scr),0 0 12px var(--scr)}
+:root[data-theme="moonlight"][data-hw-tone="light"] .wy2-warn{background:rgba(0,0,0,.18)}
+/* กล่อง "ไม่ทัน" ในจอวันนี้: แดงจาง ~10% บนภาพฉากจันทร์ = ตัวหนังสือ 4.0:1 → รองพื้นการ์ดทึบใต้สีจางเดิม */
+:root[data-theme="moonlight"] .dayvd.bad{background:linear-gradient(var(--alert-soft),var(--alert-soft)),var(--hw-card)}
+/* โทนแสงจันทร์: ตัวรองชั้นสาม (--hw-ink-3 #4A5690) บนพื้นม่วงอ่อนได้ 4.2–4.5:1 (เฉียดเกณฑ์) ที่บรรทัดรุ่นแอปกับป้าย "เร็ว ๆ นี้" ในแท็บฉัน
+   → --hw-ink-2 ที่เข้มกว่าหนึ่งขั้น เฉพาะโทนนี้ (โทนกลางคืนผ่านอยู่แล้ว) */
+:root[data-theme="moonlight"][data-hw-tone="light"] .app-ver,
+:root[data-theme="moonlight"][data-hw-tone="light"] #scr-profile :is(.pe-soon,.pe-pro) .pe-v{color:var(--hw-ink-2)!important}

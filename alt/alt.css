@@ -14797,7 +14797,8 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 /* วงสถิติ "รวม · ชม." — กฎของ #statFull ใช้ตัวหลักจาง 55% (3.9:1) ชนะกฎรวมข้างบนด้วย id */
 #statFull .dn-mid i { color: var(--muted); }
 /* เวลาในไทม์ไลน์ที่ยังไม่ใส่ตาราง ("06:00 ตื่นนอน") วางบนฉากตรง ๆ — ปลาในธีมทะเลว่ายผ่าน */
-.phone .dayrow :is(.dayrow-t, .dayrow-l) { text-shadow: 0 0 1px var(--scr), 0 0 6px var(--scr), 0 0 12px var(--scr); }
+.phone .dayrow :is(.dayrow-t, .dayrow-l, .dayrow-due) { text-shadow: 0 0 1px var(--scr), 0 0 6px var(--scr), 0 0 12px var(--scr); }
+/* 23 ต.ค. 69 · .dayrow-due ("ถึงกำหนด · …") ถูกลืมไว้นอกกฎนี้ — บนฉากเรือผี/สุสานมันทับใบเรือสว่างได้ 2.05:1 */
 /* ตัวรองบนพื้นอมสี/กระจกที่ได้ 4.2–4.45 (เฉียดเกณฑ์) — --muted เข้มขึ้นอีกนิด ยังเป็นระดับรองเหมือนเดิม */
 .phone :is(.ctx-empty, .pslot .ptime .e, .tk-chip:not(.hot), .sd-tx span, .st-tx span, .tb-grp > b, .tb-grp > button, .tn-plan-note:not(.warn), .sd-all, .sh-badge) {
   color: color-mix(in srgb, var(--muted) 70%, var(--ink));
