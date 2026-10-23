@@ -1,5 +1,7 @@
 # คู่มือส่งต่องาน — StudentOS AI
 
+> **23 ต.ค. Halloween RPG ใน ALT:** เจ้าของอนุญาตส่งขึ้นเว็บเฉพาะ alt/ แล้ว ปุ่มเข้าอยู่ใต้หัวโปรไฟล์แท็บฉัน ฉาก event/index.html?preview=1 มีโถง/สี่ไบโอม สวนรวม NPC 7 ตัว ร้าน/เตา/วงเวทเป็นป๊อปอัป บทคุยเคลื่อนไหว น้ำยาสุ่มไบโอม และระบบรับของเดิม ข้อมูลเล่นแยกใน studentos.alt.halloween.preview.v1 ไม่ต่อบัญชีจริง; claimingEnabled ยัง false เพราะวันเปิด/กติกาบางจุดยังรอยืนยัน ห้ามนำค่าราคา/เวลาใน preview-rules.json ไปเปิดรับของจริงเอง ดู halloween/docs/IMPLEMENTATION-2026-10-23.md และเอกสารภาพในโฟลเดอร์เดียวกัน เลขแอปคง 1C60
+
 > **22 ต.ค. รอบต่อ:** ของตกแต่ง Halloween 23 แบบเปิดใช้ใน ALT แล้วผ่านตัวเลือกเดิม ดู halloween/README.md; integration.js เชื่อมชุด/ห้อง/ธีม/เอฟเฟกต์ ส่วน effect-games.js/css ให้เล่นแตะ/ลากได้ วัตถุ Mystical และเหรียญยังไม่เข้า inventory และรออีเวนต์ บันทึก NPC ครบ 4 คนรวม Win แล้ว อย่าใช้ haptic(done) เป็นตัวเรียกเกมจริง เพราะมีหลายการกระทำที่ใช้ haptic นี้ ให้ผ่าน doneFxActive/openDoneFx เพื่อเก็บลำดับงานถัดไป
 
 > **22 ต.ค. Halloween Collection:** อ่าน [halloween/README.md](halloween/README.md) หน้าแชร์ทีม /alt/halloween/event/rewards.html มี 28 แบบ แยก event/ ที่ลบได้กับ rewards/ ถาวร บท NPC 3 สายอยู่ halloween/docs/ และ event/data/ ห้องลองใช้หน่วยความจำ ไม่เปิดรับของหรือ Candy จริง ใช้หลักสี 60–30–10 การควบคุมอนิเมชันต้องเลือก button[data-hw-motion] เท่านั้น (root ก็มี data-hw-motion ห้ามแก้ textContent ของ root) เลขแอปคง 1C60

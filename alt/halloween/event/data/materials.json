@@ -42,7 +42,7 @@
       "effectiveEachOtherBiomeProbability": 0.025,
       "effectiveDifferentBiomeProbability": 0.075
     },
-    "mysticalSource": "clear biome Main Quest; excluded from house rarity draw"
+    "mysticalSource": "owner-specified Main NPC quest phase; Cruor Quill is awarded in Dech Q1; excluded from house rarity draw"
   },
   "personalBiomeTotem": {
     "confirmed": true,
@@ -321,7 +321,7 @@
       "id": "pending-vampire-teeth",
       "name": "Vampire teeth",
       "rarity": null,
-      "sourceBiome": null
+      "sourceBiome": "vampire-mansion"
     },
     {
       "id": "pending-mystic-mirror",

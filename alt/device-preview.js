@@ -1,6 +1,11 @@
 (() => {
  'use strict';
  const sizes={mobile:[375,812],tablet:[820,1180],desktop:[1440,900]},frame=document.getElementById('appPreview'),shell=document.getElementById('frameShell'),stage=document.getElementById('previewStage'),dims=document.getElementById('dimensions');
+ // เครื่องมือนี้ใช้ตรวจหน้าอื่นใน ALT ได้ด้วย โดยไม่ผูกกับอีเวนต์หรือยอมเปิดข้าม origin
+ const requested=new URLSearchParams(location.search).get('page');
+ let selectedPage=new URL(frame.dataset.src,location.href).href;
+ if(requested){try{const target=new URL(requested,location.href);if(target.origin===location.origin&&target.pathname.startsWith('/alt/')){selectedPage=target.href;document.getElementById('theme').closest('label').hidden=true;document.getElementById('screen').closest('label').hidden=true;document.getElementById('previewMotion').hidden=true;document.querySelector('.options a').href=target.href;}}catch{}}
+ frame.src=selectedPage;
  let device='mobile';try{const saved=localStorage.getItem('studentos.alt.preview.device');if(sizes[saved])device=saved;}catch{}
  function send(action,value){frame.contentWindow.postMessage({type:'studentos-device-preview-control',action,value},location.origin);}
  function fit(){const [width,height]=sizes[device],style=getComputedStyle(stage),available=stage.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)-2,scale=Math.min(1,available/width);Object.assign(frame.style,{width:width+'px',height:height+'px',transform:'scale('+scale+')'});Object.assign(shell.style,{width:width*scale+'px',height:height*scale+'px'});shell.className=device;dims.textContent=width+' × '+height;document.getElementById('fitLabel').textContent='แสดงผล '+Math.round(scale*100)+'% · ขนาดหน้าจอจริง '+width+' × '+height;document.querySelectorAll('[data-device]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.device===device)));}

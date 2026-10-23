@@ -1,6 +1,7 @@
 const fs=require('node:fs'),path=require('node:path');
 const hw=path.resolve(__dirname,'..'),team=path.resolve(hw,'../../../halloween');
-const hasTeam=fs.existsSync(path.join(team,'data/item-catalog.json'));
+// แหล่งใน repo เป็นหลัก ห้ามเครื่องมือเขียนย้อนออกไปทับเอกสารอ้างอิงของโปรเจกต์
+const hasTeam=false;
 const materialPath=hasTeam?path.join(team,'data/item-catalog.json'):path.join(hw,'event/data/materials.json'),materials=JSON.parse(fs.readFileSync(materialPath,'utf8'));
 const materialMap=new Map(materials.biomes.flatMap(x=>x.items).map(x=>[x.name,x]));
 const C=require('../rewards/catalog.js');

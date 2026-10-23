@@ -40,7 +40,14 @@
   syncScene();new MutationObserver(syncScene).observe(root,{attributes:true,attributeFilter:['data-theme']});
   if(window.__HW_SHOWROOM__)new MutationObserver(queue).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['src']});
   // The event switch is fetched separately. Removing event/ hides its entry.
-  if(!window.__HW_SHOWROOM__)fetch(new URL('../event/config.json',base),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(config=>{if(!config?.enabled)return;const entry=document.createElement('a');entry.className='hw-collection-entry';entry.href=new URL('../event/rewards.html',base);entry.innerHTML='<span>✧</span><span><b>Halloween Collection</b><small>ธีม ชุด ของแต่งห้อง และรางวัลทั้ง 4 ไบโอม</small></span><i>ดูรางวัล ↗</i>';const target=document.querySelector('#scr-profile .pf-body');target?.append(entry);}).catch(()=>{});
+  if(!window.__HW_SHOWROOM__)fetch(new URL('../event/config.json',base),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(config=>{
+   if(!config?.enabled)return;
+   const target=document.getElementById('halloweenEventEntry');if(!target)return;
+   const destination=new URL('../event/index.html',base);if(config.claimingEnabled!==true)destination.searchParams.set('preview','1');
+   const entry=document.createElement('a');entry.className='hw-collection-entry';entry.href=destination.href;entry.setAttribute('aria-label','เข้าอีเวนต์ Halloween');
+   entry.innerHTML='<span aria-hidden="true">✧</span><span><b>เข้าอีเวนต์ Halloween</b><small>ประตูรัตติกาล · สำรวจ เควส ปลูกสวน และร้านเวทมนตร์</small></span><i>'+(config.claimingEnabled===true?'เข้าเล่น →':'ห้องลอง →')+'</i>';
+   target.replaceChildren(entry);
+  }).catch(()=>{});
   if(window.__HW_SHOWROOM__){
    const originalHaptic=window.haptic;
    if(typeof originalHaptic==='function')window.haptic=function(kind){const result=originalHaptic.apply(this,arguments);if(kind==='done'&&current?.kind==='effect')setTimeout(()=>effect(current),80);return result;};

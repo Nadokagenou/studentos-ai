@@ -1,0 +1,400 @@
+/* กติกาที่ตรวจได้โดยไม่พึ่ง DOM; ตัวเลขเสนอใช้ได้เฉพาะ preview:true */
+(function(root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('../rewards/ownership.js'));
+  else root.HalloweenEventCore = factory(root.HalloweenOwnership);
+})(typeof globalThis === 'undefined' ? this : globalThis, Ownership => {
+  'use strict';
+  const BIOMES = ['dutchmans-soul', 'jacks-hollow', 'vampire-mansion', 'eternal-graveyard'];
+  const SHORT = ['dutchman', 'jack', 'vampire', 'graveyard'];
+  const DAY = 86400000, HOUR = 3600000;
+  const clone = x => JSON.parse(JSON.stringify(x));
+  const fail = message => { throw Error(message); };
+  const positive = x => Number.isSafeInteger(x) && x > 0;
+  function definitions(materials) {
+    const map = {};
+    for (const biome of materials.biomes) for (const item of biome.items) map[item.id] = {...item, biome: biome.id};
+    for (const item of materials.newEventDefinitions || []) map[item.id] = {...item};
+    map['spectral-lantern'] = {id:'spectral-lantern', name:'Spectral Lantern', kind:'tool'};
+    return map;
+  }
+  function build({materials, chains, catalog, proposals, preview = false, season = {}}) {
+    const quests = chains.flatMap(chain => chain.quests.map(q => ({...clone(q), biome: chain.biome, npc: chain.npc})));
+    const items = definitions(materials), rewards = Object.fromEntries(catalog.items.map(x => [x.id, x]));
+    if(preview)items['random-biome-potion']={id:'random-biome-potion',name:'น้ำยาหลงไบโอม',kind:'consumable'};
+    if (preview) for (const crop of Object.values(proposals.crops || {})) {
+      items[crop.seed] = {id:crop.seed,name:'เมล็ด' + crop.name,kind:'seed'};
+      items[crop.harvest] ||= {id:crop.harvest,name:crop.name,kind:'crop'};
+    }
+    for (const quest of quests) for (const reward of quest.rewards) if (!rewards[reward.id] && !items[reward.id] && reward.id !== 'candy') items[reward.id] = {id:reward.id,name:reward.name,kind:'quest-progress'};
+    return {materials, quests, items, rewards, proposals: preview ? clone(proposals) : null, preview, season: {id:'halloween-2026', startAt:null, endAt:null, timezone:null, claimingEnabled:false, ...season}};
+  }
+  function initial(config, owner, now, seed = 246813579) {
+    const document = Ownership.create(owner, config.season.id);
+    document.event = {candy:0, inventory:{}, grown:{}, ledger:[], houses:{}, quests:{}, proofs:{}, games:{}, purchases:[], crafts:[], garden:{plantedAt:null, watered:false}, totem:null, closed:false, timeOffset:0, clock:now, rng:seed >>> 0, repairs:0, taskClaims:{}, taskEarned:[], visitors:{}, visits:{hub:false,biomes:{},stories:{}}, location:{kind:'gate'}};
+    return document;
+  }
+  function random(event) {
+    let x = event.rng || 1; x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+    event.rng = x >>> 0; return event.rng / 4294967296;
+  }
+  function requirePreview(config) { if (!config.preview || !config.proposals) fail('ส่วนนี้ยังรอกติกายืนยัน เปิดทดลองได้เฉพาะห้องลอง'); }
+  function ensureOpen(document, config, now) {
+    if (document.event.closed) fail('อีเวนต์ปิดแล้ว รางวัลที่ได้รับยังอยู่ในคลัง');
+    if (config.preview) return;
+    const season = config.season;
+    if (!season.claimingEnabled || !season.startAt || !season.endAt || !season.timezone) fail('ยังไม่เปิดรับรางวัลจริง');
+    if (now < Date.parse(season.startAt) || now >= Date.parse(season.endAt)) fail('อยู่นอกช่วงกิจกรรม');
+    // การเปิดรับของจริงต้องมีตัวตัดสินธุรกรรมบนบริการที่ไว้ใจได้ ไม่ใช้ตัวสุ่มในห้องลอง
+    fail('ระบบรับของจริงยังไม่ได้เชื่อมผู้ตัดสินธุรกรรม');
+  }
+  function moment(document, now) { return now + document.event.timeOffset; }
+  function biomeAt(document, config, now) {
+    const at = moment(document, now), event = document.event;
+    if (config.preview) {
+      const cycle = Math.floor((at + 7 * HOUR) / DAY);
+      if (event.totem && at < event.totem.until) return {id:event.totem.biome, cycle, override:true};
+      if (event.previewBiome) return {id:event.previewBiome, cycle, override:true};
+      // ตารางนี้ใช้เดินห้องลองเท่านั้น ไม่แทนช่วงเวลาเจ้าของที่ยังรอระบุ timezone/วินาที
+      const hour = new Date(at + 7 * HOUR).getUTCHours();
+      return {id:BIOMES[Math.floor(hour / 6)], cycle:Math.floor((at + 7 * HOUR) / DAY), override:false};
+    }
+    return {id:null, cycle:null, override:false};
+  }
+  function addCandy(event, amount, source, at, tx) {
+    if (!Number.isSafeInteger(amount) || event.candy + amount < 0) fail('Candy ไม่พอ');
+    event.candy += amount;
+    if (amount) event.ledger.push({id:tx, source, amount, at});
+  }
+  function portalStatus(document, config, id, now) {
+    if (!BIOMES.includes(id)) return {open:false,reason:'unknown-biome'};
+    if (document.event.closed) return {open:false,reason:'event-closed'};
+    const active = biomeAt(document,config,now);
+    return {open:active.id===id,reason:active.id===id?'open':'waiting-cycle',personal:active.override===true,activeBiome:active.id};
+  }
+  function addItem(event, id, amount) {
+    if (!Number.isSafeInteger(amount) || (event.inventory[id] || 0) + amount < 0) fail('วัตถุดิบไม่พอ');
+    event.inventory[id] = (event.inventory[id] || 0) + amount;
+  }
+  function questStatus(document, config, quest) {
+    const progress = document.event.quests[quest.id];
+    return {phase:progress?.phase || 0, complete:progress?.complete === true, unlocked:!quest.prerequisite || document.event.quests[quest.prerequisite]?.complete === true};
+  }
+  function resolveRequirements(config, quest, requirements, branch) {
+    let req = requirements;
+    if (requirements.anyOf) {
+      req = requirements.anyOf.find(x => x.id === branch);
+      if (!req) fail('เลือกวิธีส่งเควสก่อน');
+    }
+    req = clone(req);
+    for (const item of req.items || []) {
+      if (item.consume === false && item.mustPossess) continue;
+      if (item.quantity == null) {
+        const n = config.preview && config.proposals.questQuantities[quest.id];
+        if (!positive(n)) fail('จำนวนวัตถุดิบเควสนี้ยังไม่กำหนด');
+        item.quantity = n;
+      }
+      if (item.id === 'jacks-hollow-shovel') {
+        if (!config.preview || typeof config.proposals.garden.consumeShovel !== 'boolean') fail('ยังรอกติกาการใช้ Shovel');
+        item.consume = config.proposals.garden.consumeShovel;
+      }
+    }
+    return req;
+  }
+  function checkRequirements(document, requirements) {
+    const event = document.event;
+    if (requirements.candy != null && (!Number.isSafeInteger(requirements.candy) || requirements.candy < 0)) fail('สูตร Candy ไม่ถูกต้อง');
+    if (event.candy < (requirements.candy || 0)) fail('Candy ไม่พอ');
+    const totals = {}, grown = {};
+    for (const item of requirements.items || []) {
+      const amount = item.consume === false && item.mustPossess ? 1 : item.quantity;
+      if (!positive(amount)) fail('จำนวนวัตถุดิบยังไม่กำหนด');
+      totals[item.id] = (totals[item.id] || 0) + amount;
+      if (item.mustBePlayerGrown) grown[item.id] = (grown[item.id] || 0) + amount;
+    }
+    for (const [id, amount] of Object.entries(totals)) if ((event.inventory[id] || 0) < amount) fail('ยังขาดวัตถุดิบที่ขอ');
+    for (const [id, amount] of Object.entries(grown)) if ((event.grown[id] || 0) < amount) fail('Pumpkin ต้องมาจากสวนที่ปลูกเอง');
+    if (requirements.objective && !event.proofs[requirements.objective.id]?.complete) fail('ยังไม่ได้เคลียร์เถาวัลย์');
+    const mini = requirements.minigame;
+    if (mini) {
+      const id = mini.id || 'ghost-ship-hunt', proof = event.proofs[id];
+      if (mini.mustClear && !proof?.clear) fail('ยังไม่ผ่านมินิเกมที่ขอ');
+      if (mini.mustComplete && !proof?.complete) fail('ยังเล่นมินิเกมไม่จบ');
+    }
+    return true;
+  }
+  function consume(document, requirements, now, tx) {
+    checkRequirements(document, requirements);
+    addCandy(document.event, -(requirements.candy || 0), 'spend', now, tx);
+    for (const item of requirements.items || []) if (item.consume !== false) {
+      addItem(document.event, item.id, -item.quantity);
+      if (item.mustBePlayerGrown) document.event.grown[item.id] -= item.quantity;
+    }
+  }
+  function give(document, config, reward, now, tx) {
+    const event = document.event, item = config.rewards[reward.id];
+    if (reward.kind === 'currency' || reward.id === 'candy') { addCandy(event, reward.quantity, 'quest', now, tx); return null; }
+    if (reward.kind === 'upgrade-existing') {
+      const existing = document.rewards[reward.id];
+      if (!existing || existing.restriction?.status !== 'Restricted') fail('ยังไม่มีเคียวที่รอปลดผนึก');
+      existing.restriction = null; existing.upgradedAt = now; existing.upgradeReceipt = tx;
+      return reward.id;
+    }
+    if (item) {
+      if (!positive(reward.quantity)) fail('จำนวนรางวัลไม่ถูกต้อง');
+      Ownership.grant(document, {id:reward.id, restriction:reward.restriction}, tx, now);
+      if (reward.inventoryId) addItem(event, reward.inventoryId, reward.quantity);
+      return reward.id;
+    }
+    if (!positive(reward.quantity)) fail('จำนวนรางวัลไม่ถูกต้อง');
+    addItem(event, reward.id, reward.quantity); return null;
+  }
+  function houseAvailability(document, config, id, now) {
+    const event = document.event, at = moment(document, now), biome = biomeAt(document, config, now).id;
+    const next = event.houses[biome + ':' + id] || 0;
+    const earned = event.ledger.filter(x => x.source === 'house' && x.amount > 0 && x.at > at - DAY && x.at <= at).reduce((n, x) => n + x.amount, 0);
+    return {nextAt:next, remaining:Math.max(0, 300 - earned), ready:at >= next && earned < 300};
+  }
+  function gameDefinition(id, config) {
+    const g = config.proposals?.games;
+    if (!g) fail('กติกามินิเกมยังไม่ครบ');
+    const defs = {
+      'ghost-ship-hunt': {biome:BIOMES[0], duration:0},
+      'clear-jacks-garden-vines': {biome:BIOMES[1], total:g.vines, duration:0},
+      'dech-house-spot-difference': {biome:BIOMES[2], total:g.differences, duration:g.differenceSeconds * 1000},
+      'grave-digging': {biome:BIOMES[3], total:g.digSteps, duration:0},
+      'catch-all-ghosts': {biome:BIOMES[3], total:g.ghostCount, duration:30000}
+    };
+    return defs[id] || fail('ไม่พบมินิเกม');
+  }
+  function finishGame(event, game, clear, now) {
+    game.finished = true; game.clear = clear; game.endedAt = now;
+    const prior = event.proofs[game.id] || {};
+    event.proofs[game.id] = {complete:true, clear:prior.clear || clear, at:now, session:game.session};
+  }
+  function dispatch(document, config, action, {now, tx}) {
+    if (!tx || !Number.isFinite(now)) fail('ธุรกรรมไม่มีเวลาอ้างอิง');
+    if (!document.event || document.season !== config.season.id) fail('ไม่พบข้อมูลฤดูกาล');
+    const event = document.event, at = moment(document, now);
+    if (at < event.clock) fail('เวลาเครื่องย้อนหลัง กรุณาตรวจเวลาแล้วลองใหม่');
+    const result = {at, type:action.type, rewards:[]};
+    if (action.type.startsWith('preview-')) {
+      requirePreview(config);
+      if (action.type === 'preview-supplies') {
+        addCandy(event, 1200, 'preview-supplies', at, tx);
+        for (const item of Object.values(config.items)) if (!['Mystical'].includes(item.rarity) && !['event-feature','tool'].includes(item.kind) && item.id !== 'jacks-hollow-pumpkin' && item.id !== 'jacks-hollow-shovel') addItem(event, item.id, 15);
+      } else if (action.type === 'preview-biome') {
+        if (!BIOMES.includes(action.biome)) fail('ไม่พบไบโอม');
+        event.previewBiome = action.biome; event.totem = null;
+      } else if (action.type === 'preview-time') {
+        if (!positive(action.ms) || action.ms > 2 * DAY) fail('เวลาทดลองไม่ถูกต้อง');
+        event.timeOffset += action.ms;
+      } else if (action.type === 'preview-close') event.closed = !event.closed;
+      else fail('ไม่พบเครื่องมือทดลอง');
+      event.clock = moment(document, now); result.at = event.clock; return result;
+    }
+    ensureOpen(document, config, at);
+    const current = biomeAt(document, config, now);
+    if (action.type === 'enter-hub') {
+      event.visits ||= {hub:false,biomes:{},stories:{}};
+      event.visits.hub = true; event.location = {kind:'hub'};
+    } else if (action.type === 'enter-room') {
+      if (!['shop','cauldron','ritual','garden'].includes(action.room)) fail('ไม่พบห้องนี้');
+      event.location={kind:'room',room:action.room};
+    } else if (action.type === 'enter-biome') {
+      if (!portalStatus(document,config,action.biome,now).open) fail('ประตูไบโอมนี้ยังไม่เปิด ลองกลับมาในรอบของมันหรือใช้ Totem');
+      event.visits ||= {hub:false,biomes:{},stories:{}};
+      event.visits.biomes[action.biome] = true; event.location = {kind:'biome',biome:action.biome};
+      result.firstStory = !event.visits.stories[action.biome]; result.biome = action.biome;
+    } else if (action.type === 'story-seen') {
+      if (!BIOMES.includes(action.biome) || !event.visits?.biomes[action.biome]) fail('เข้าไบโอมก่อนอ่านเรื่องราว');
+      event.visits.stories[action.biome] = true;
+    } else if (action.type === 'house') {
+      requirePreview(config);
+      if (!Number.isInteger(action.house) || action.house < 1 || action.house > 5 || !['treat','trick'].includes(action.choice)) fail('เลือกบ้านและ Trick/Treat ก่อน');
+      const rules = config.proposals.houses;
+      if (rules.cooldownScope !== 'house-per-biome' || rules.capWindow !== 'rolling-24h' || rules.capPayout !== 'clamp-positive-only') fail('กติกาบ้านยังไม่พร้อม');
+      const available = houseAvailability(document, config, action.house, now);
+      if (at < available.nextAt) fail('บ้านนี้ยังอยู่ในคูลดาวน์');
+      if (!available.remaining) fail('Candy จากบ้านครบ 300 ใน 24 ชั่วโมงแล้ว');
+      const rolled = action.choice === 'treat' ? 10 : (random(event) < .5 ? 20 : 0);
+      const candy = Math.min(rolled, available.remaining);
+      addCandy(event, candy, 'house', at, tx);
+      event.houses[current.id + ':' + action.house] = at + 4 * HOUR;
+      result.candy = candy; result.item = null;
+      if (candy > 0 && random(event) < .6) {
+        const roll = random(event) * 100; let acc = 0, rarity;
+        for (const [tier, weight] of Object.entries(config.materials.houseItems.rarityWeightsPercent)) { acc += weight; if (roll < acc) { rarity = tier; break; } }
+        const destination = random(event) < .1 ? BIOMES[Math.floor(random(event) * 4)] : current.id;
+        const seedIds=Object.values(config.proposals.crops||{}).map(c=>c.seed);
+        const normal = config.materials.biomes.find(x => x.id === destination).items.filter(x => x.rarity === rarity && x.rarity !== 'Mystical' && !seedIds.includes(x.id)).map(x => x.id);
+        const pool = normal.length ? normal : (config.proposals.additionalPools[destination]?.[rarity] || []);
+        if (pool.length) {
+          const id = pool[Math.floor(random(event) * pool.length)]; addItem(event, id, rules.itemQuantity);
+          result.item = {id, quantity:rules.itemQuantity, rarity, biome:destination, breakthrough:destination !== current.id};
+        }
+      }
+    } else if (action.type === 'quest') {
+      const quest = config.quests.find(x => x.id === action.quest) || fail('ไม่พบเควส');
+      const status = questStatus(document, config, quest);
+      if (status.complete) fail('รับรางวัลเควสนี้แล้ว');
+      if (!status.unlocked) fail('ต้องทำเควสก่อนหน้าให้ครบ');
+      if (quest.biome !== current.id) fail('NPC อยู่ในไบโอมอื่น');
+      const progress = event.quests[quest.id] || {phase:0, complete:false};
+      if (quest.availability?.mustWaitForNextOccurrence) {
+        const previous = event.quests[quest.prerequisite];
+        if (current.cycle <= previous.completedCycle) fail('ต้องรอไบโอมกลับมาในวัฏจักรถัดไป');
+        if (current.override && !config.preview) fail('ยังไม่กำหนดผลของ Totem ต่อวัฏจักร');
+      }
+      const phase = quest.phases[status.phase];
+      const existingLantern = quest.preserveExistingCraft && (event.inventory['spectral-lantern'] || 0) > 0;
+      if (!existingLantern) consume(document, resolveRequirements(config, quest, phase.requirements, action.branch), at, tx);
+      progress.phase++;
+      result.dialogue = phase.completeDialogue; result.npc = quest.npc;
+      if (progress.phase >= quest.phases.length) {
+        progress.complete = true; progress.completedAt = at; progress.completedCycle = current.cycle;
+        const crop = config.proposals?.crops?.[quest.biome];
+        if (crop) { addItem(event,crop.seed,crop.questSeeds); result.seeds = {id:crop.seed,quantity:crop.questSeeds}; }
+        for (const reward of quest.rewards) {
+          if (existingLantern && reward.id === 'spectral-lantern') continue;
+          const id = give(document, config, reward, at, tx); if (id) result.rewards.push(id);
+        }
+      }
+      event.quests[quest.id] = progress;
+    } else if (action.type === 'buy') {
+      requirePreview(config);
+      const price = config.proposals.shop[action.item];
+      if (!positive(price) || !config.rewards[action.item]) fail('ของชิ้นนี้ไม่ได้ขายในร้าน');
+      if (document.rewards[action.item] || event.purchases.includes(action.item)) fail('มีของชิ้นนี้แล้ว');
+      addCandy(event, -price, 'shop', at, tx);
+      Ownership.grant(document, {id:action.item}, tx, at); event.purchases.push(action.item); result.rewards.push(action.item);
+      if (Object.keys(config.proposals.shop).every(id => event.purchases.includes(id))) {
+        Ownership.grant(document, {id:'crown-of-midnight'}, tx, at); result.rewards.push('crown-of-midnight');
+      }
+    } else if (action.type === 'craft') {
+      requirePreview(config);
+      const recipe = config.proposals.recipes.find(x => x.id === action.recipe) || fail('ยังไม่มีสูตรนี้');
+      if (document.rewards[recipe.reward]) fail('มีรางวัลชิ้นนี้แล้ว');
+      if (recipe.requiresAllMainQuests && !config.quests.filter(x => x.finalMainQuest).every(x => event.quests[x.id]?.complete)) fail('พิธีทดลองนี้ต้องผ่าน Main Quest ทั้งสี่คน');
+      const requirements = {candy:recipe.candy, items:recipe.items.map(([id,quantity]) => ({id,quantity}))};
+      consume(document, requirements, at, tx);
+      Ownership.grant(document, {id:recipe.reward}, tx, at); event.crafts.push(recipe.id); result.rewards.push(recipe.reward);
+    } else if (action.type === 'seed-quest') {
+      requirePreview(config);
+      const crop = config.proposals.crops?.[action.biome];
+      if (!crop || action.biome !== current.id) fail('ไปหา NPC ในไบโอมนี้ก่อน');
+      if (!config.quests.some(q => q.biome===action.biome && event.quests[q.id]?.complete)) fail('ทำเควสแรกของ NPC ให้สำเร็จก่อน');
+      addItem(event,crop.request,-2); addItem(event,crop.seed,2);
+      result.seeds = {id:crop.seed,quantity:2};
+    } else if (action.type === 'plant' || action.type === 'water' || action.type === 'harvest' || action.type === 'sell-crop') {
+      requirePreview(config);
+      const biome = action.biome || BIOMES[1], crop = config.proposals.crops?.[biome];
+      if (!crop) fail('ไม่พบพืชชนิดนี้');
+      const requiredRoom=action.type==='sell-crop'?'shop':'garden';
+      if(event.location?.kind!=='room'||event.location.room!==requiredRoom) fail(requiredRoom==='shop'?'นำผลผลิตไปขายกับพ่อค้าในร้าน':'ไปปลูกและดูแลพืชที่สวนรัตติกาลก่อน');
+      event.gardens ||= {};
+      const garden = biome===BIOMES[1] ? event.garden : (event.gardens[biome] ||= {plantedAt:null,watered:false});
+      const save = value => { if (biome===BIOMES[1]) event.garden=value; else event.gardens[biome]=value; };
+      const rules = config.proposals.garden;
+      if (action.type==='sell-crop') {
+        const quantity = action.quantity;
+        if (!positive(quantity) || quantity>(event.grown[crop.harvest]||0) || quantity>(event.inventory[crop.harvest]||0)) fail('ขายได้เฉพาะผลผลิตที่ปลูกจนโตและเก็บแล้ว');
+        addItem(event,crop.harvest,-quantity); event.grown[crop.harvest]-=quantity;
+        addCandy(event,quantity*crop.sellCandy,'crop-sale',at,tx); result.candy=quantity*crop.sellCandy;
+      } else if (action.type==='plant') {
+        if (biome===BIOMES[1] && !(event.inventory['jacks-hollow-plot']>0)) fail('ทำ Jack Q1 เพื่อรับแปลงก่อน');
+        if (garden.plantedAt!=null) fail('แปลงนี้กำลังปลูกอยู่');
+        addItem(event,crop.seed,-rules.seedCost); save({plantedAt:at,watered:false});
+      } else if (action.type==='water') {
+        if (garden.plantedAt==null) fail('ปลูกเมล็ดก่อน'); garden.watered=true;
+      } else {
+        if (garden.plantedAt==null || at<garden.plantedAt+rules.growthMs || (rules.waterRequired&&!garden.watered)) fail('พืชยังโตไม่เต็มที่หรือยังไม่ได้รดน้ำ');
+        addItem(event,crop.harvest,rules.yield); event.grown[crop.harvest]=(event.grown[crop.harvest]||0)+rules.yield;
+        save({plantedAt:null,watered:false}); result.harvest=rules.yield;
+      }
+    } else if(action.type==='buy-biome-potion'){
+      requirePreview(config);
+      if(event.location?.room!=='cauldron')fail('ซื้อน้ำยากับมอราในห้องเตาผสมก่อน');
+      const rule=config.proposals.randomBiomePotion;
+      if(!positive(rule?.price)||!positive(rule.durationMs))fail('กติกาน้ำยายังไม่พร้อม');
+      addCandy(event,-rule.price,'potion-purchase',at,tx);addItem(event,'random-biome-potion',1);
+      result.quantity=1;
+    } else if(action.type==='drink-biome-potion'){
+      requirePreview(config);
+      const rule=config.proposals.randomBiomePotion;
+      if(!positive(rule?.durationMs)||rule.excludeCurrent!==true)fail('กติกาน้ำยายังไม่พร้อม');
+      addItem(event,'random-biome-potion',-1);
+      const pool=BIOMES.filter(id=>id!==current.id),biome=pool[Math.floor(random(event)*pool.length)];
+      event.totem={biome,until:at+rule.durationMs,source:'potion'};
+      event.visits ||= {hub:false,biomes:{},stories:{}};
+      event.visits.biomes[biome]=true;event.location={kind:'biome',biome};
+      result.biome=biome;result.previousBiome=current.id;result.firstStory=!event.visits.stories[biome];result.until=event.totem.until;
+    } else if (action.type === 'totem') {
+      requirePreview(config);
+      if (!BIOMES.includes(action.biome)) fail('เลือกไบโอมก่อน');
+      addCandy(event, -config.proposals.totem.price, 'totem', at, tx);
+      event.totem = {biome:action.biome, until:at + config.proposals.totem.durationMs};
+    } else if (action.type === 'visitor') {
+      requirePreview(config);
+      const index = action.index, rule = config.proposals.anonymousNpc, slot = Math.floor(at / rule.lifetimeMs);
+      if (!Number.isInteger(index) || index < 0 || index >= rule.count) fail('ไม่พบนักเดินทาง');
+      const key = slot + ':' + index;
+      if (event.visitors[key]) fail('ส่งของให้นักเดินทางคนนี้แล้ว');
+      const pool = config.materials.biomes.find(x => x.id === current.id).items.filter(x => x.rarity === 'Common');
+      const id = pool[index % pool.length]?.id || (index ? 'pending-human-skull' : 'pending-human-bone');
+      addItem(event, id, -rule.quantity); addCandy(event, rule.candy, 'visitor', at, tx); event.visitors[key] = true;
+    } else if (action.type === 'task') {
+      requirePreview(config);
+      if (!['review-task-1','review-task-2','review-task-3'].includes(action.task)) fail('ไม่พบงานตัวอย่าง');
+      if (event.taskClaims[action.task]) fail('งานนี้รับ Candy แล้ว');
+      const today = event.taskEarned.filter(x => x.at > at - DAY).reduce((sum,x) => sum+x.amount,0);
+      const amount = Math.min(config.proposals.taskCandy, config.proposals.taskDailyCap - today);
+      if (amount <= 0) fail('รางวัลงานตัวอย่างครบแล้ว');
+      addCandy(event, amount, 'task', at, tx); event.taskClaims[action.task] = true; event.taskEarned.push({at,amount});
+    } else if (action.type === 'start-game') {
+      requirePreview(config);
+      const rule = gameDefinition(action.game, config);
+      if (rule.biome !== current.id) fail('เกมนี้อยู่ในไบโอมอื่น');
+      const game = {id:action.game, session:tx, startAt:at, deadline:rule.duration ? at+rule.duration : null, total:rule.total, found:[], steps:0, mistakes:0, finished:false};
+      if (action.game === 'ghost-ship-hunt') {
+        if (!(event.inventory['spectral-lantern'] > 0)) fail('คราฟต์ Spectral Lantern กับ Tang ก่อน');
+        if (event.repairs) fail('ซ่อมเรือก่อนออกเดินทาง');
+        game.target = Math.floor(random(event)*3); game.deadline = at+15000;
+      }
+      if (action.game === 'clear-jacks-garden-vines' && event.quests['jack-clear-garden']?.phase !== 1) fail('ส่ง Rotten Pumpkin ให้ Jack ก่อน');
+      if (['grave-digging','catch-all-ghosts'].includes(action.game) && !event.quests['win-death-fragments']?.complete) fail('รับ Shovel จาก Win Q1 ก่อน');
+      if (action.game === 'catch-all-ghosts' && !event.proofs['grave-digging']?.complete) fail('ขุดหลุมศพให้จบก่อน');
+      const previous = event.games[action.game];
+      if (previous && !previous.finished) fail('เล่นรอบปัจจุบันให้จบหรือออกจากเกมก่อน');
+      event.games[action.game] = game; result.game = clone(game);
+    } else if (action.type === 'game-move') {
+      requirePreview(config);
+      const game = event.games[action.game];
+      if (!game || game.session !== action.session || game.finished) fail('รอบเกมนี้จบแล้ว');
+      if (action.move === 'abandon') { game.finished = true; game.abandoned = true; }
+      else if (game.id === 'ghost-ship-hunt') {
+        if (at >= game.deadline || action.move !== game.target) game.mistakes++;
+        else game.steps++;
+        if (game.mistakes >= 3) {
+          finishGame(event, game, false, at); event.repairs = config.proposals.games.shipRepairCandy[Math.min(5,game.steps)];
+        } else if (game.steps >= 6) {
+          finishGame(event, game, true, at); addCandy(event, config.proposals.games.shipChestCandy, 'ship-chest', at, tx);
+          addItem(event, 'dutchmans-soul-soul-anchor', 1);
+        } else { game.target = Math.floor(random(event)*3); game.deadline = at + config.proposals.games.shipStepSeconds[game.steps]*1000; }
+      } else if (game.deadline && at >= game.deadline) finishGame(event, game, false, at);
+      else {
+        if (!Number.isInteger(action.move) || action.move < 0 || action.move >= game.total) fail('เป้าหมายเกมไม่ถูกต้อง');
+        if (['clear-jacks-garden-vines','grave-digging'].includes(game.id) && !game.found.includes(action.move) && action.move !== game.found.length) fail('ตามลำดับสัญญาณที่แสดงก่อน');
+        if (!game.found.includes(action.move)) game.found.push(action.move);
+        if (game.found.length === game.total) finishGame(event, game, true, at);
+      }
+      result.game = clone(game);
+    } else if (action.type === 'repair') {
+      requirePreview(config);
+      if (!event.repairs) fail('เรือพร้อมอยู่แล้ว');
+      addCandy(event, -event.repairs, 'ship-repair', at, tx); event.repairs = 0;
+    } else fail('ไม่พบการกระทำ');
+    event.clock = at;
+    return result;
+  }
+  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, biomeAt, portalStatus, questStatus, resolveRequirements, checkRequirements, houseAvailability, gameDefinition, dispatch});
+});

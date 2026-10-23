@@ -31,7 +31,7 @@
       "id": "pending-vampire-teeth",
       "name": "Vampire teeth",
       "rarity": null,
-      "sourceBiome": null
+      "sourceBiome": "vampire-mansion"
     },
     {
       "id": "pending-mystic-mirror",
