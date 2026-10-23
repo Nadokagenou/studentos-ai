@@ -36,7 +36,9 @@ const INVITE_FIRST_GRACE = 864e5;                            // เปิดแ�
 
 let ivData = null;        // { code, max_uses, used, friends, invited_by } · null = ยังไม่รู้
 let ivLoading = null;     // promise ที่กำลังโหลดอยู่ (กันยิงซ้อน)
-let ivQrLib = null;       // promise โหลด vendor/qrcode-generator.js ครั้งเดียว
+let ivQrLib = null;       // promise โหลด qrcode-generator.js (โฟลเดอร์เดียวกับไฟล์นี้) ครั้งเดียว
+// ที่อยู่ของโฟลเดอร์นี้ — หาจากตัวสคริปต์เอง ไม่ผูกกับหน้าที่โหลด (index.html อยู่คนละชั้น)
+const IV_BASE = document.currentScript ? new URL('.', document.currentScript.src).href : 'halloween/invite-friend/';
 let ivFailed = false;     // โหลดรอบล่าสุดล้ม (ออฟไลน์ · ยังไม่ได้รัน migration) — แผ่นต้องไม่หมุนรอตลอดไป
 
 function ivUid() { return (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null; }
@@ -170,7 +172,7 @@ function ivLoadQr() {
   if (ivQrLib) return ivQrLib;
   ivQrLib = new Promise(res => {
     const s = document.createElement('script');
-    s.src = 'vendor/qrcode-generator.js';
+    s.src = IV_BASE + 'qrcode-generator.js';
     s.onload = () => res(typeof qrcode === 'function');
     s.onerror = () => { ivQrLib = null; res(false); };
     document.head.appendChild(s);

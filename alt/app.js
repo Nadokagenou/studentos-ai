@@ -223,7 +223,7 @@ function funnelTask(via) {
 function funnelDone() {
   funnelMark('firstDone');
   funnelBump('doneEver');
-  // ภารกิจธีม Halloween ข้อ 2 (invite.js) — ทุกทางที่ติ๊กงานเสร็จผ่านตรงนี้ จึงดักที่เดียวพอ
+  // ภารกิจธีม Halloween ข้อ 2 (halloween/invite-friend/invite-friend.js) — ทุกทางที่ติ๊กงานเสร็จผ่านตรงนี้ จึงดักที่เดียวพอ
   if (typeof inviteOnTaskDone === 'function') inviteOnTaskDone();
 }
 
@@ -575,7 +575,7 @@ function themePref() {
   // ต้องตรงกับสคริปต์ใน <head> ของ index.html เสมอ ไม่งั้นจอแรกกะพริบสลับโทน
   // ธีมจากโค้ดที่ยังไม่มีโค้ด (ค่าค้างจากรุ่นที่ยังฟรี · แก้ localStorage เอง) = ค่าเริ่มต้น ไม่ใช่ธีมนั้น
   if (THEME_CODE[v] && !codeThemeOwned(v)) return 'light';
-  // ธีมจากภารกิจชวนเพื่อน (invite.js) ที่ยังไม่ครบภารกิจ = ค่าเริ่มต้นเหมือนกัน
+  // ธีมจากภารกิจชวนเพื่อน (halloween/invite-friend/invite-friend.js) ที่ยังไม่ครบภารกิจ = ค่าเริ่มต้นเหมือนกัน
   if (typeof INVITE_THEME !== 'undefined' && v === INVITE_THEME && !inviteUnlocked()) return 'light';
   return THEMES.includes(v) ? v : 'light';
 }
@@ -8797,7 +8797,7 @@ function renderFriends(force) {
     <div id="frListBox"></div>`;
   body.dataset.built = '1';
   paintFriendParts();
-  // การ์ดชวนเพื่อน · ภารกิจธีม Halloween (invite.js) — วาดจากแคชก่อน แล้วถามเซิร์ฟเวอร์เงียบ ๆ
+  // การ์ดชวนเพื่อน · ภารกิจธีม Halloween (halloween/invite-friend/invite-friend.js) — วาดจากแคชก่อน แล้วถามเซิร์ฟเวอร์เงียบ ๆ
   if (typeof paintInviteEntry === 'function') { paintInviteEntry(); inviteRefresh(); }
   // การ์ด "อันดับ" (board.js) — โหลดอันดับของเราไว้เงียบ ๆ ให้การ์ดบอกตัวเลขได้เลย
   if (typeof paintBoardEntry === 'function') { paintBoardEntry(); boardWarm(); }
@@ -10156,7 +10156,7 @@ function craftTheme(id) {
   showToast({ title: 'คราฟธีม' + c.name + 'สำเร็จ', body: 'เลือกใช้ได้ที่จอตั้งค่า · เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
 }
 
-// ธีมจากภารกิจชวนเพื่อน (invite.js · INVITE_THEME) ล็อกจนกว่าจะครบสองภารกิจ
+// ธีมจากภารกิจชวนเพื่อน (halloween/invite-friend/invite-friend.js · INVITE_THEME) ล็อกจนกว่าจะครบสองภารกิจ
 function inviteThemeId(id) { return typeof INVITE_THEME !== 'undefined' && id === INVITE_THEME; }
 function themeLocked(id) { return THEME_GACHA.includes(id) || !!THEME_SHOP[id] || !!THEME_CODE[id] || inviteThemeId(id); }
 function themeOwned(id) {
@@ -19234,7 +19234,7 @@ function syncLiteRow() { syncGfxRow(); }
   if (typeof window.bootStep === 'function') window.bootStep('cloud');
   // ตอนนี้รู้แล้วว่าล็อกอินสำเร็จจริงไหม — ถ้ามี token ค้างจากลิงก์กลุ่ม ใช้ตรงนี้
   await applyJoinToken();
-  // รหัสเชิญจากลิงก์/QR ของเพื่อน (invite.js) ใช้จังหวะเดียวกัน · แล้วโหลดความคืบหน้าภารกิจ
+  // รหัสเชิญจากลิงก์/QR ของเพื่อน (halloween/invite-friend/invite-friend.js) ใช้จังหวะเดียวกัน · แล้วโหลดความคืบหน้าภารกิจ
   if (typeof applyInviteCode === 'function') { await applyInviteCode(); inviteRefresh(); }
   // เคยกดอนุญาตไว้แล้ว + ล็อกอินอยู่ → ต่อ push ให้อัตโนมัติ (เผื่อ subscription หลุด)
   // ยังไม่ล็อกอินก็ต้องผ่านตรงนี้ — pushState ต้องได้ค่าจริงไว้ให้จอตั้งค่าใช้
