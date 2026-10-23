@@ -151,8 +151,9 @@
   function houseAvailability(document, config, id, now) {
     const event = document.event, at = moment(document, now), biome = biomeAt(document, config, now).id;
     const next = event.houses[biome + ':' + id] || 0;
-    const earned = event.ledger.filter(x => x.source === 'house' && x.amount > 0 && x.at > at - DAY && x.at <= at).reduce((n, x) => n + x.amount, 0);
-    return {nextAt:next, remaining:Math.max(0, 300 - earned), ready:at >= next && earned < 300};
+    const receipts=event.ledger.filter(x => x.source === 'house' && x.amount > 0 && x.at > at - DAY && x.at <= at);
+    const earned=receipts.reduce((n,x)=>n+x.amount,0),capNextAt=receipts.length?Math.min(...receipts.map(x=>x.at))+DAY:0;
+    return {nextAt:next, capNextAt, availableAt:Math.max(next,earned>=300?capNextAt:0), remaining:Math.max(0, 300 - earned), ready:at >= next && earned < 300};
   }
   function gameDefinition(id, config) {
     const g = config.proposals?.games;

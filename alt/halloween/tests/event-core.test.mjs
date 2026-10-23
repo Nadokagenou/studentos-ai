@@ -103,6 +103,7 @@ test('touch first reveals a target and the second tap activates; mouse and keybo
   assert.equal(World.shouldArm({pointerType:'pen',detail:1,armed:false}),true);
   assert.equal(World.shouldArm({pointerType:'mouse',detail:1,armed:false}),false);
   assert.equal(World.shouldArm({pointerType:'touch',detail:0,armed:false}),false);
+  assert.equal(World.shouldArm({pointerType:'touch',detail:1,armed:false,labelVisible:true}),false);
 });
 test('only the garden allows planting and only the shop accepts crop sales, including other biome crops',async()=>{
   const crop=proposals.crops[Core.BIOMES[0]],h=harness({prepare:doc=>{doc.event.inventory[crop.seed]=1;doc.event.inventory[crop.harvest]=4;doc.event.grown[crop.harvest]=4;}});

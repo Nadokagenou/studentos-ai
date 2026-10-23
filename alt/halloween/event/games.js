@@ -22,7 +22,7 @@
   async function open(id, {perform, read, now, reduced, toast, onClose}) {
     const dialog = document.getElementById('gameDialog');
     if (active) return;
-    let timer, busy = false, localError = '', closed = false;
+    let timer, busy = false, localError = '', closed = false,comparisonView='altered';
     const getGame = () => read().event.games[id];
     let game = getGame();
     if (!game || game.finished) {
@@ -62,23 +62,25 @@
       if (id === 'grave-digging') return '<div class="game-arena"><p class="game-hint">ตามรอยพลั่ว เก็บชั้นดินให้ครบ ' + g.total + ' ชั้น</p><div class="dig-board">' + Array.from({length:g.total},(_,i) => '<button data-game-move="' + i + '" class="' + (g.found.includes(i) ? 'found' : '') + '" ' + (g.found.includes(i) ? 'disabled' : '') + ' aria-label="ขุดชั้นดิน ' + (i+1) + '">' + (g.found.includes(i) ? '·' : i === g.found.length ? '⚒' : '◇') + '</button>').join('') + '</div></div>';
       if (id === 'catch-all-ghosts') return '<div class="game-arena"><p class="game-hint">จับวิญญาณทั้งหมดให้ทัน 30 วินาที</p><div class="ghost-board">' + Array.from({length:g.total},(_,i) => '<button class="catch-ghost" style="--x:' + (8+i*31%70) + '%;--y:' + (i*37%67) + '%;--delay:-' + (i*.3) + 's" data-game-move="' + i + '" aria-label="จับวิญญาณ ' + (i+1) + '" ' + (g.found.includes(i) ? 'disabled' : '') + '><svg viewBox="0 0 60 80" aria-hidden="true"><path d="M8 69V30a22 22 0 1 1 44 0v39l-9-7-9 9-10-8-8 9z" fill="#d7cfe8"/><ellipse cx="23" cy="34" rx="3" ry="5" fill="#362b49"/><ellipse cx="39" cy="34" rx="3" ry="5" fill="#362b49"/><ellipse cx="31" cy="49" rx="4" ry="5" fill="#6b577e"/></svg></button>').join('') + '<small class="caught-label">' + g.found.length + ' / ' + g.total + ' วิญญาณ</small></div></div>';
       const spots = [{x:67,y:44,name:'หน้าต่างขวา'},{x:42,y:26,name:'นาฬิกา'},{x:10,y:64,name:'ดอกไม้'},{x:85,y:57,name:'โคมไฟ'},{x:32,y:7,name:'ปล่องไฟ'}];
-      return '<div class="game-arena"><p class="game-hint">ภาพขวาต่างจากภาพซ้าย ' + g.total + ' จุด · แตะตำแหน่งที่เปลี่ยนไป</p><div class="difference-pair"><div class="difference-picture"><span>ต้นฉบับ</span>' + mansion(false) + '</div><div class="difference-picture"><span>ภาพที่เปลี่ยนไป</span>' + mansion(true) + spots.slice(0,g.total).map((s,i) => '<button class="difference-hit ' + (g.found.includes(i) ? 'found' : '') + '" style="left:' + s.x + '%;top:' + s.y + '%" data-game-move="' + i + '" aria-label="ตรวจ' + s.name + '" ' + (g.found.includes(i) ? 'disabled' : '') + '></button>').join('') + '<button class="difference-hit decoy" style="left:43%;top:72%" data-game-decoy aria-label="ตรวจประตู"></button><button class="difference-hit decoy" style="left:17%;top:20%" data-game-decoy aria-label="ตรวจค้างคาว"></button></div></div></div>';
+      return '<div class="game-arena"><div class="comparison-controls"><button data-compare="original" aria-pressed="'+(comparisonView==='original')+'">ดูต้นฉบับ</button><button data-compare="altered" aria-pressed="'+(comparisonView==='altered')+'">ดูภาพที่เปลี่ยนไป</button></div><p class="game-hint">ภาพที่เปลี่ยนไปต่างจากต้นฉบับ ' + g.total + ' จุด · กดสลับภาพเพื่อเทียบ แล้วแตะจุดที่ต่าง</p><div class="difference-pair" data-view="'+comparisonView+'"><div class="difference-picture"><span>ต้นฉบับ</span>' + mansion(false) + '</div><div class="difference-picture"><span>ภาพที่เปลี่ยนไป</span>' + mansion(true) + spots.slice(0,g.total).map((s,i) => '<button class="difference-hit ' + (g.found.includes(i) ? 'found' : '') + '" style="left:' + s.x + '%;top:' + s.y + '%" data-game-move="' + i + '" aria-label="ตรวจ' + s.name + '" ' + (g.found.includes(i) ? 'disabled' : '') + '></button>').join('') + '<button class="difference-hit decoy" style="left:43%;top:72%" data-game-decoy aria-label="ตรวจประตู"></button><button class="difference-hit decoy" style="left:17%;top:20%" data-game-decoy aria-label="ตรวจค้างคาว"></button></div></div></div>';
     }
     function render() {
       const g = getGame();
       if (!g) return;
       const previousMove = dialog.querySelector(':focus')?.dataset.gameMove;
+      const previousCompare=dialog.querySelector(':focus')?.dataset.compare;
       const total = id === 'ghost-ship-hunt' ? 6 : g.total;
       const count = id === 'ghost-ship-hunt' ? g.steps : g.found.length;
       dialog.dataset.still = String(reduced());
       dialog.innerHTML = '<div class="game-top"><div><small>HALLOWEEN · MINIGAME</small><h2 id="gameHeading">' + esc(names[id]) + '</h2></div><button class="dialog-x" data-game-close aria-label="ออกจากมินิเกม">×</button></div><div class="game-stats"><span>' + count + ' / ' + total + (id === 'ghost-ship-hunt' ? ' ทิศที่ถูก' : ' สำเร็จ') + '</span>' + (id === 'ghost-ship-hunt' ? '<span>ผิด + หมดเวลา ' + g.mistakes + ' / 3</span>' : '') + '<span class="game-timer" data-game-clock></span></div>' + arena(g) + '<p class="game-note" role="status">' + esc(localError || (id === 'ghost-ship-hunt' ? 'ถูกครบ 6 ทิศถึงเกาะ · ผิดหรือหมดเวลารวม 3 ครั้ง เรือคว่ำกลับฝั่ง' : 'รายละเอียดด่านนี้เป็นค่าลองเล่น · ผลเกมผูกกับรอบปัจจุบันและบันทึกอัตโนมัติ')) + '</p>';
+      dialog.querySelectorAll('[data-compare]').forEach(b=>b.addEventListener('click',()=>{comparisonView=b.dataset.compare;render();}));
       dialog.querySelectorAll('[data-game-close]').forEach(b => b.addEventListener('click',close));
       dialog.querySelectorAll('[data-game-move]').forEach(b => b.addEventListener('click',() => move(Number(b.dataset.gameMove))));
       dialog.querySelectorAll('[data-game-decoy]').forEach(b => b.addEventListener('click',() => { localError = 'ตรงนี้เหมือนเดิม ลองดูรายละเอียดอื่น'; const note = dialog.querySelector('.game-note'); if (note) note.textContent = localError; }));
       updateClock();
       if (dialog.open) {
         const previous = previousMove == null ? null : dialog.querySelector('[data-game-move="' + previousMove + '"]:not(:disabled)');
-        (previous || dialog.querySelector('[data-game-move]:not(:disabled)') || dialog.querySelector('.primary'))?.focus({preventScroll:true});
+        (dialog.querySelector('[data-compare="'+previousCompare+'"]') || previous || dialog.querySelector('[data-game-move]:not(:disabled)') || dialog.querySelector('.primary'))?.focus({preventScroll:true});
       }
     }
     function updateClock() {

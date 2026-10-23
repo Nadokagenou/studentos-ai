@@ -1,6 +1,6 @@
 (() => {
  'use strict';
- const sizes={mobile:[375,812],tablet:[820,1180],desktop:[1440,900]},frame=document.getElementById('appPreview'),shell=document.getElementById('frameShell'),stage=document.getElementById('previewStage'),dims=document.getElementById('dimensions');
+ const sizes={mobile:[375,812],tablet:[820,1180],desktop:[1440,900],small:[320,568],large:[430,932],landscape:[812,375],ipad:[768,1024],ipadland:[1024,768],fullhd:[1920,1080],wide:[2560,1080]},frame=document.getElementById('appPreview'),shell=document.getElementById('frameShell'),stage=document.getElementById('previewStage'),dims=document.getElementById('dimensions');
  // เครื่องมือนี้ใช้ตรวจหน้าอื่นใน ALT ได้ด้วย โดยไม่ผูกกับอีเวนต์หรือยอมเปิดข้าม origin
  const requested=new URLSearchParams(location.search).get('page');
  let selectedPage=new URL(frame.dataset.src,location.href).href;
@@ -10,6 +10,7 @@
  function send(action,value){frame.contentWindow.postMessage({type:'studentos-device-preview-control',action,value},location.origin);}
  function fit(){const [width,height]=sizes[device],style=getComputedStyle(stage),available=stage.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)-2,scale=Math.min(1,available/width);Object.assign(frame.style,{width:width+'px',height:height+'px',transform:'scale('+scale+')'});Object.assign(shell.style,{width:width*scale+'px',height:height*scale+'px'});shell.className=device;dims.textContent=width+' × '+height;document.getElementById('fitLabel').textContent='แสดงผล '+Math.round(scale*100)+'% · ขนาดหน้าจอจริง '+width+' × '+height;document.querySelectorAll('[data-device]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.device===device)));}
  document.querySelectorAll('[data-device]').forEach(b=>b.addEventListener('click',()=>{device=b.dataset.device;try{localStorage.setItem('studentos.alt.preview.device',device);}catch{}fit();}));
+ document.getElementById('extraSize').addEventListener('change',e=>{if(!sizes[e.target.value])return;device=e.target.value;fit();});
  document.getElementById('theme').addEventListener('change',e=>{if(e.target.value!=='current')send('theme',e.target.value);});
  document.getElementById('screen').addEventListener('change',e=>send('screen',e.target.value));
  const motionButton=document.getElementById('previewMotion');

@@ -18,3 +18,70 @@ html,body{width:100%;height:100%;overflow:hidden;background:#080d15}.event-heade
 @media(max-width:600px){.hud-top{left:10px;right:10px;top:10px}.hud-wallet{font-size:13px;padding:12px}.hud-tools{bottom:12px;gap:4px;width:calc(100% - 20px);justify-content:center}.hud-tools button{flex:1;max-width:62px;min-width:44px;min-height:56px}.hud-tools small{font-size:8px}.world-title{top:70px;left:7%;right:7%}.world-title h1{font-size:20px}.event-dialog{padding:18px 15px;max-height:calc(100dvh - 35px)}.event-dialog[data-scene-panel=room]{padding:12px}.event-dialog .room-scene .npc-character{min-width:42px}.event-dialog[data-scene-panel=menu]{width:calc(100vw - 22px)}.event-dialog .shop-hero{min-height:145px}.event-dialog .shop-hero h1{font-size:25px}.hud-mode{font-size:9px;padding:6px}.potion-icon{height:96px;width:64px}}
 .event-dialog[data-scene-panel=room] .scene-shell{width:min(100%,calc(150dvh - 260px));margin:auto}.hud-tools button small{white-space:nowrap}
 #eventMain,.scene-shell,.world-scene{overflow:clip}
+
+/* ฉากกินพื้นที่เต็มจอ ภาพแนวตั้งจัดใหม่ทั้งฉาก จึงไม่ต้องเลื่อนหาจุดกด */
+.scene-shell{display:block;width:100%;height:100dvh;min-height:100dvh}
+.world-scene{width:100vw!important;max-width:none;max-height:none;height:100dvh;aspect-ratio:auto;margin:0;border:0}
+.scene-picture{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.scene-picture .scene-background{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:fill}
+.scene-backdrop{display:none}
+.event-dialog .world-scene{width:100%!important;height:auto;aspect-ratio:3/2}
+.event-dialog .scene-shell{height:auto;min-height:0}
+.hud-guide{font-size:13px!important;padding:8px 12px!important;white-space:nowrap}
+.hud-top [aria-pressed=true]{border-color:#becdb3;background:#263b36}
+.dialog-top h2{flex:1;min-width:0}
+.dialog-x{width:44px;height:44px;min-width:44px;min-height:44px;border-radius:2px}
+.world-scene .village-sign .spot-label{opacity:1!important;visibility:visible!important;left:0;bottom:100%;transform:none;font-size:12px;max-width:145px;color:#e7e6d3;border-color:#b3c5ae}
+.village-sign .spot-dot{opacity:1;color:#d6ddc4}
+.portal-open .portal-label{opacity:1!important;visibility:visible!important}
+.guide-intro{font-size:15px;line-height:1.9;color:#d2dccf}
+.guide-steps{list-style:none;counter-reset:guide;margin:18px 0;padding:0;display:grid;gap:16px}
+.guide-steps li{counter-increment:guide;position:relative;padding:0 0 18px 42px;border-bottom:1px solid #a6b6bc26}
+.guide-steps li:before{content:counter(guide);position:absolute;left:0;top:1px;display:grid;place-items:center;width:28px;height:28px;border:1px solid #b0c3b477;color:#dce3c9}
+.guide-steps h3,.source-card h3{font-size:16px;font-weight:400;line-height:1.7;margin:0 0 6px;color:#e5e3d4}
+.guide-steps p,.source-card p{font-size:14px;line-height:1.9;color:#b9c6cc;margin:6px 0 12px;overflow-wrap:anywhere}
+.guide-steps button,.source-card button{min-height:44px}
+.guide-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.source-card{padding:16px;border:1px solid #97adbc3d;background:#09111b40;margin:12px 0;min-width:0}
+.source-summary{display:block;font-size:12px;line-height:1.8;color:#9eb5c3;margin:4px 0}
+.item-source-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;border:1px solid #9ab9b766;border-radius:2px;background:#a3bfa00c;color:#c5d3bd;font-size:13px;margin-top:5px}
+.requirement>div{min-width:0;flex:1}.requirement b{align-self:start;padding-top:3px;font-size:13px}
+.recipe-cost button{min-height:44px;padding:8px 10px;background:#111b26;border:1px solid #809aa155;border-radius:2px;color:#c3cdd2;font-size:12px;text-align:left;line-height:1.8}
+.difficulty{display:inline-block;padding:4px 8px;border:1px solid #97b6a677;color:#c4d7c4;font-size:12px;line-height:1.6}
+.difficulty[data-level="3"]{color:#dfcc9f;border-color:#b7a16b66}.difficulty[data-level="4"],.difficulty[data-level="5"]{color:#e0b2b9;border-color:#b77d8b77}
+.quest-difficulty{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.quest-difficulty button{min-height:44px;font-size:12px}
+.village-intro{font-size:16px;line-height:1.8;color:#d3dccd}.village-door{min-height:125px;padding:14px 8px}.village-door small{font-size:12px;line-height:1.8;white-space:normal}.village-door:disabled{opacity:.72}
+.scene-tap{position:fixed;width:15px;height:15px;border:1px solid #d6dfc4;transform:translate(-50%,-50%);z-index:15;pointer-events:none;animation:scene-touch .5s ease-out both}
+@keyframes scene-touch{to{opacity:0;transform:translate(-50%,-50%) scale(3) rotate(45deg)}}
+.event-dialog:has([data-typing]) .npc-portrait .npc-sprite,.event-dialog:has([data-typing]) .quest-npc-portrait .npc-sprite{animation:npc-breathe 1.2s ease-in-out infinite}
+@media(orientation:portrait){
+  .world-scene{width:100vw!important;height:100dvh;aspect-ratio:auto}
+  .scene-picture .scene-background{inset:auto;width:var(--portrait-size);height:var(--portrait-size);left:var(--portrait-left);top:var(--portrait-top);object-fit:fill}
+  .world-spot,.garden-bed{left:var(--px,var(--x));top:var(--py,var(--y))}
+  .world-portal{left:var(--px);top:var(--py);width:var(--pw);height:var(--ph)}
+  .world-scene .portal-label{font-size:12px;min-width:0;max-width:145px}.world-scene .portal-label b{font-size:13px}
+  .npc-character,.room-scene .npc-character{width:23%;min-width:65px;max-width:180px}
+  .garden-bed{width:37%;height:16%;min-height:44px}
+  .world-title{top:max(70px,env(safe-area-inset-top));left:5%;right:5%}.world-title h1{font-size:22px}
+  .event-dialog[data-scene-panel=room]{width:100vw;height:100dvh;max-height:100dvh;max-width:none;margin:0;padding:0;inset:0;border:0;outline:0;overflow:clip}
+  .event-dialog[data-scene-panel=room] .world-page,.event-dialog[data-scene-panel=room] .scene-shell,.event-dialog[data-scene-panel=room] .world-scene{height:100dvh;min-height:100dvh;width:100vw!important;aspect-ratio:auto}
+  .event-dialog[data-scene-panel=room] .dialog-top{position:absolute;top:0;left:0;right:0;z-index:8;padding:16px;background:linear-gradient(#0c1326ee,#0c132650,transparent)}
+  .event-dialog[data-scene-panel=room] .dialog-footer{position:absolute;bottom:12px;left:16px;right:16px;z-index:8;margin:0}
+  .event-dialog[data-scene-panel=room] .room-scene .npc-character{min-width:65px;width:23%}
+  .world-scene.room-cauldron:after{left:62%;top:40%;width:34%;height:28%}.world-scene.room-ritual:after{left:20%;top:59%;width:56%;height:20%}
+  .guide-grid{grid-template-columns:1fr}.village-lane{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:600px){
+  .hud-top{top:max(8px,env(safe-area-inset-top));left:8px;right:8px;gap:5px}.hud-top button{min-width:44px;min-height:44px}.hud-top .hud-motion{display:none}.hud-wallet{padding:10px 8px;font-size:13px}.hud-guide{font-size:12px!important;padding:8px!important}
+  .hud-tools{bottom:max(10px,env(safe-area-inset-bottom));width:calc(100% - 16px);gap:3px}.hud-tools small{font-size:10px}.hud-tools button{min-width:42px;min-height:60px}
+  .world-title{top:68px}.world-title small{font-size:8px}.world-title h1{font-size:20px}
+  .event-dialog{width:100vw;max-width:100vw;max-height:100dvh;padding:18px 16px;outline:0;margin:auto;border-radius:0}
+  .event-dialog[data-scene-panel=menu]{width:100vw;max-height:100dvh}
+  .event-dialog p.subtle,.npc-line,.npc-dialogue,.story-copy{font-size:14px;line-height:1.95}.event-dialog .tiny{font-size:11px;line-height:1.9}.dialog-footer button{min-height:46px;font-size:14px}
+  .item-info h3{font-size:14px;min-height:0}.item-info p{font-size:12px;line-height:1.8}.item-info button{font-size:12px;min-height:44px}.reward-grid{gap:12px}.recipe-grid,.ritual-grid{grid-template-columns:1fr}.recipe-cost{gap:7px}.recipe-cost span{font-size:12px}.quest-row h3{font-size:14px}.quest-row p,.quest-status{font-size:12px}.quest-row{padding:15px 12px}.chain-head{padding:16px 12px;gap:10px}.chain-head h2{font-size:17px}.chain-head small{font-size:11px}.material-card b{font-size:13px}.material-card small{font-size:11px}.inventory-grid{grid-template-columns:1fr}.task-card b{font-size:14px}.task-card p{font-size:12px}.task-card button{min-height:44px}.produce-row b{font-size:13px}.produce-row small{font-size:12px}.produce-row button{font-size:12px;min-height:44px}
+  .guide-intro{font-size:14px}.guide-steps li{padding-left:36px}.guide-steps h3{font-size:15px}.source-card{padding:14px}.requirement{font-size:14px;padding:12px;gap:8px}.source-summary{font-size:12px}
+}
+@media(max-height:500px) and (orientation:landscape){.world-title{top:58px}.world-title h1{font-size:17px}.world-title small{display:none}.hud-tools{bottom:5px}.hud-tools button{min-height:48px}.hud-tools small{font-size:9px}.hud-tools button>span{font-size:18px}.hud-top{top:5px}}
+.comparison-controls{display:none;gap:8px;margin:8px 0}.comparison-controls button{flex:1;min-height:44px;font-size:13px;border:1px solid #9eafb65c;background:#0e1927;color:#c6d3d4;padding:8px}.comparison-controls [aria-pressed=true]{border-color:#d0c597;background:#35423d;color:#f0e4bf}
+.biome-level{pointer-events:auto;min-height:44px;font-size:12px;line-height:1.7;padding:6px 12px;border:1px solid #9cafa655;background:#0a1423d9;color:#d7d7c4;margin-top:6px}
+@media(max-width:600px) and (orientation:portrait){.comparison-controls{display:flex}.difference-pair{grid-template-columns:1fr;max-width:360px;margin:auto}.difference-pair[data-view=altered] .difference-picture:first-child,.difference-pair[data-view=original] .difference-picture:last-child{display:none}.difference-picture{height:auto;aspect-ratio:300/330}.difference-picture svg{height:100%;width:100%}.difference-hit{min-width:44px;min-height:44px}.game-hint,.game-note{font-size:13px;line-height:1.8}.game-dialog{padding:16px}.game-top h2{font-size:18px}}
