@@ -115,11 +115,13 @@
     queued = false;
     if (!active) return;
     mount(); preferences(); if (isMoon()) groupMe();
-    document.querySelectorAll('.td-now,.td-clear,.tn-cta,.tc-cta,.tk-cta,.fm-start,.main-btn,.btn-primary,.qa-save,.on-next,.td-rail,.sai-day,.sd-task,.as-card,.as-hero,.as-row,#scr-profile .shw,#scr-profile .pe,#scr-profile .pe-daily,#scr-profile .pf-me,#scr-profile .fb-promo,#scr-profile .pri,#scr-tasks .tb-focus,#scr-tasks .tk.sw-card,#scr-tasks .wk-row,#scr-tasks button:not(.tk-tick):not(.tk-sb):not(.fr-clear)').forEach(card => {
+    // 23 Oct 2026, owner: "too much on the buttons, it looks cluttered". Smoke, blood and a ghost used to go on
+    // every primary button, Me row and tasks-tab button. Now only the one "do this now" card per screen
+    // carries them; everything you tap stays plain. The scene behind the app still sets the mood.
+    document.querySelectorAll('.td-now,.td-clear,#scr-tasks .tb-focus').forEach(card => {
       card.classList.add('hw-art-host');
       if (card.querySelector(':scope > .hw-ornament')) return;
       const art = document.createElement('span'); art.className = 'hw-ornament'; art.setAttribute('aria-hidden', 'true');
-      if (card.matches('.as-row,#scr-profile .shw,#scr-profile .pe,#scr-profile .pe-daily,#scr-profile .fb-promo,#scr-profile .pri,#scr-tasks button')) art.classList.add('hw-ornament-mini');
       art.innerHTML = '<i class="hw-card-smoke"></i><i class="hw-card-blood"></i><i class="hw-card-ghost">' + ghost + '</i>';
       card.append(art);
     });
@@ -134,14 +136,9 @@
       if (/(?:^|\/)(?:logo-splash(?:-light)?|logo-mark|icon-(?:alt-)?192)\.png$/.test(src)) target = 'halloween/rewards/theme-assets/app-icon.webp';
       if (target) { if (!originals.has(img)) originals.set(img, src); img.setAttribute('src', target); img.dataset.hwCharacter = 'true'; }
     });
-    document.querySelectorAll('svg use').forEach(use => {
-      const href = use.getAttribute('href') || use.getAttribute('xlink:href') || '';
-      const aliases = {'tb-home':'home','tb-home-f':'home','tb-tasks':'tasks','tb-tasks-f':'tasks','tb-plus':'plus','tb-ai':'owl','tb-ai-f':'owl','tb-profile':'user','tb-profile-f':'user','lu-plan':'book','lu-message':'book','lu-users':'user','lu-scan':'grid','lu-inbox':'bag','lu-chart':'sparkles'};
-      const name = aliases[href.slice(1)] || href.replace('#lu-', '');
-      if (!icons[name] || (!href.startsWith('#lu-') && !aliases[href.slice(1)])) return;
-      if (!iconOriginals.has(use)) iconOriginals.set(use, href);
-      use.setAttribute('href', '#hw-' + name);
-    });
+    // Icons are no longer swapped for Halloween drawings. The swap turned "messages" and "today's plan" into the
+    // same book, "scan timetable" into a house and the tick into a sparkle, so a tile no longer said what it did.
+    // restore() still puts back any icon swapped by an older copy of this file.
   }
   function queue() { if (!queued && active) { queued = true; requestAnimationFrame(decorate); } }
   function restore() {

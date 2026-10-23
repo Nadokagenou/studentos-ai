@@ -24,3 +24,6 @@
  :root body:not(.login-mode) #menuBody .tg-t{height:72px;min-height:0}
  :root body:not(.login-mode) #menuBody .tg-ic{width:44px;height:44px}
 }
+/* 23 ต.ค. 69 · เจ้าของ: ปุ่มเยอะจนรก — ปุ่มลอย "ตรวจหน้าจอ" ทับป้ายไทล์หน้าแรกบนมือถือ/แท็บเล็ตทุกธีม
+   ซ่อนต่ำกว่า 1024px · ยังเข้าได้จากลิงก์ "ตรวจหน้าจอ ALT" ในจอตั้งค่า (.alt-lab-entry) */
+@media(max-width:1023px){.alt-device-preview{display:none}}
