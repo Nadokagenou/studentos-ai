@@ -1,0 +1,193 @@
+/* ============================================================
+   HUD ดันเจี้ยนพิกเซล · หน้าอีเวนต์ Halloween · 24 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ (ภาพหน้าประตู "หลังประตูนี้… มีใครรออยู่"): "แก้ ui ทั้งหมด แต่ให้อยู่ในแนวดันเจี้ยนหรือฮาโลวีน"
+   เดิม: ทุกชิ้นเป็นกล่องเหลี่ยมน้ำเงินดำ เส้นเทาบาง 1px + เงาออฟเซ็ต — หน้าตาเว็บทั่วไป ไม่เข้ากับฉากพิกเซลข้างหลัง
+   ตอนนี้: ทุกชิ้นเป็นวัตถุในดันเจี้ยนชุดเดียวกัน
+   • ปุ่มบน · ป้ายลูกอม = แผ่นหินกรอบเหล็ก มุมตัดเป็นขั้นพิกเซล · แสงขอบบน เงาขอบล่าง · กดแล้วยุบ 2px
+     (แบบ TextureButton ของ Cult UI · MIT — ขอบซ้อนหลายชั้นด้วยไล่สี/เงาใน ไม่เพิ่ม element)
+   • ป้าย "เปิดประตู" = ศิลาแขวนกรอบเหล็กสองชั้น หมุดสี่มุม แสงเทียนวูบเบา ๆ (แบบ TextureCard ของ Cult UI · MIT)
+   • แถบล่าง = แถบช่องเก็บของแบบเกม RPG แต่ละปุ่มเป็นช่องที่เว้าลงในแผ่นเหล็ก
+   • หัวเรื่อง = ตัวกระดาษเก่าขอบดำแบบพิกเซล (อ่านชัดบนฉากทุกสี)
+   สีเน้นของที่กดได้ = ไฟเทียน (ไม่ใช่ทอง — ทองของแอปใช้กับของที่ทำสำเร็จแล้วเท่านั้น)
+   โฟกัสคีย์บอร์ด = วงไฟเทียนด้านใน (outline ถูก clip-path ตัด จึงวาดด้วยเงาใน) · ลดการเคลื่อนไหว = ไม่วูบ ไม่ยุบ
+   ไฟล์นี้โหลดท้ายสุด ไม่แก้ CSS เดิม — ถอยกลับได้ด้วยการถอดไฟล์นี้ไฟล์เดียว
+   ============================================================ */
+:root {
+  --dg-stone-hi: #3a2f49;
+  --dg-stone: #261e31;
+  --dg-stone-lo: #17121f;
+  --dg-socket: #0d0a13;
+  --dg-iron: #5d5170;
+  --dg-iron-hi: #9c8db0;
+  --dg-ink: #f2e6cc;        /* กระดาษเก่า · บนหินเข้ม ≥ 12:1 */
+  --dg-dim: #cdbfdc;        /* ตัวรอง · บนหินเข้ม ≥ 8:1 */
+  --dg-candle: #f2a654;     /* ไฟเทียน · บนหินเข้ม ≥ 7:1 */
+  --dg-ember: #d8553f;
+  --dg-notch: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px);
+  --dg-notch-lg: polygon(8px 0, calc(100% - 8px) 0, calc(100% - 8px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%, 8px 100%, 8px calc(100% - 4px), 0 calc(100% - 4px), 0 4px, 8px 4px);
+}
+
+/* ---------- ไอคอน: เส้นชุดเดียว ปลายเหลี่ยม ---------- */
+.hud-ic { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter; }
+
+/* ---------- ปุ่มบน · ป้ายลูกอม: แผ่นหินกรอบเหล็ก ---------- */
+.hud-top button, .hud-top .hud-wallet {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  border: 0 !important; border-radius: 0 !important; clip-path: var(--dg-notch);
+  color: var(--dg-ink);
+  background: linear-gradient(180deg, var(--dg-stone-hi), var(--dg-stone) 55%, var(--dg-stone-lo)) !important;
+  box-shadow:
+    inset 0 0 0 2px var(--dg-iron),
+    inset 0 4px 0 -2px color-mix(in srgb, var(--dg-iron-hi) 55%, transparent),
+    inset 0 -4px 0 -2px #00000080 !important;
+  filter: drop-shadow(0 3px 0 #000000b3);
+  transition: transform .12s ease-out, filter .12s ease-out, color .15s ease-out;
+}
+.hud-top button { min-width: 46px; min-height: 46px; padding: 0 11px; }
+.hud-top .hud-guide { font-size: 14px !important; font-weight: 600; padding: 0 14px 0 11px !important; }
+.hud-top .hud-wallet { min-height: 46px; padding: 0 14px !important; font-size: 16px; font-weight: 700; color: var(--dg-ink); }
+.hud-top .hud-wallet .hud-ic { color: var(--dg-candle); }
+.hud-top button:hover { color: var(--dg-candle); }
+.hud-top button:active { transform: translateY(2px); filter: drop-shadow(0 1px 0 #000000b3); }
+.hud-top button:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--dg-candle), inset 0 0 0 4px var(--dg-stone-lo) !important; }
+.hud-top [aria-pressed=true] { color: var(--dg-candle); }
+
+/* ---------- หัวเรื่อง: ตัวกระดาษเก่า ขอบดำแบบพิกเซล ---------- */
+.world-title small { color: var(--dg-candle); letter-spacing: .32em; font-weight: 700;
+  text-shadow: 1px 0 #000, -1px 0 #000, 0 1px #000, 0 -1px #000, 0 0 10px #000; }
+.world-title h1 { color: var(--dg-ink); font-weight: 700;
+  text-shadow: 2px 0 #000, -2px 0 #000, 0 2px #000, 0 -2px #000, 2px 2px #000, -2px 2px #000, 0 4px 0 #000000b3, 0 0 22px #000; }
+
+/* ---------- ป้าย "เปิดประตู": ศิลาแขวนกรอบเหล็ก ---------- */
+.gate-enter {
+  border: 0 !important; clip-path: var(--dg-notch-lg); cursor: pointer;
+  padding: 26px 36px 24px !important; min-width: 250px;
+  color: var(--dg-ink);
+  background:
+    radial-gradient(circle at 14px 16px, var(--dg-iron-hi) 0 2px, #2a2236 2px 4px, transparent 4.5px),
+    radial-gradient(circle at calc(100% - 14px) 16px, var(--dg-iron-hi) 0 2px, #2a2236 2px 4px, transparent 4.5px),
+    radial-gradient(circle at 14px calc(100% - 16px), var(--dg-iron-hi) 0 2px, #2a2236 2px 4px, transparent 4.5px),
+    radial-gradient(circle at calc(100% - 14px) calc(100% - 16px), var(--dg-iron-hi) 0 2px, #2a2236 2px 4px, transparent 4.5px),
+    radial-gradient(110% 80% at 50% 0%, #403352, var(--dg-stone) 55%, var(--dg-stone-lo)) !important;
+  box-shadow:
+    inset 0 0 0 3px var(--dg-iron),
+    inset 0 0 0 5px #0e0a14,
+    inset 0 0 0 6px color-mix(in srgb, var(--dg-iron-hi) 45%, transparent),
+    inset 0 0 46px color-mix(in srgb, var(--dg-candle) 16%, transparent) !important;
+  filter: drop-shadow(0 6px 0 #000000c0) drop-shadow(0 0 26px color-mix(in srgb, var(--dg-candle) 30%, transparent));
+  transition: filter .2s ease-out, transform .12s ease-out;
+}
+.gate-enter small { display: block; font-weight: 700; color: var(--dg-dim); letter-spacing: .3em; }
+.gate-enter b { color: var(--dg-ink); font-weight: 700; letter-spacing: 0;
+  text-shadow: 0 2px 0 #000, 0 0 18px color-mix(in srgb, var(--dg-candle) 45%, transparent); }
+.gate-enter > span { display: inline-flex; gap: 6px; align-items: center; color: var(--dg-candle); font-size: 13px !important; font-weight: 600; }
+.gate-enter:hover, .gate-enter:focus-visible {
+  outline: none;
+  filter: drop-shadow(0 6px 0 #000000c0) drop-shadow(0 0 34px color-mix(in srgb, var(--dg-candle) 55%, transparent));
+}
+.gate-enter:focus-visible { box-shadow: inset 0 0 0 3px var(--dg-candle), inset 0 0 0 5px #0e0a14, inset 0 0 46px color-mix(in srgb, var(--dg-candle) 22%, transparent) !important; }
+.gate-enter:active { transform: translate(-50%, calc(-50% + 2px)); }
+/* แสงเทียนวูบ: เฉพาะความสว่างของวงแสงด้านใน (เปลี่ยนแค่ opacity ของชั้นที่ซ้อน) */
+.gate-enter::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(70% 55% at 50% 100%, color-mix(in srgb, var(--dg-candle) 20%, transparent), transparent 70%);
+  animation: dg-candle 3.6s ease-in-out infinite alternate; }
+@keyframes dg-candle { 0% { opacity: .55; } 40% { opacity: 1; } 55% { opacity: .7; } 100% { opacity: .9; } }
+
+/* ---------- แถบล่าง: แถบช่องเก็บของ ---------- */
+.hud-tools {
+  gap: 6px !important; padding: 7px; clip-path: var(--dg-notch);
+  background: linear-gradient(180deg, #2b2237, #1a1422) !important;
+  box-shadow: inset 0 0 0 2px var(--dg-iron), inset 0 3px 0 -1px color-mix(in srgb, var(--dg-iron-hi) 40%, transparent);
+  filter: drop-shadow(0 4px 0 #000000b3);
+}
+.hud-tools button {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  width: 68px; min-height: 64px; padding: 7px 3px 6px !important;
+  border: 0 !important; border-radius: 0 !important; clip-path: var(--dg-notch);
+  color: var(--dg-candle);
+  background: linear-gradient(180deg, var(--dg-socket), #16111e) !important;
+  box-shadow: inset 0 3px 0 #000000b3, inset 0 0 0 1px color-mix(in srgb, var(--dg-iron) 70%, transparent), inset 0 -2px 0 color-mix(in srgb, var(--dg-iron-hi) 30%, transparent) !important;
+  transition: background-color .15s ease-out, color .15s ease-out, transform .12s ease-out;
+}
+.hud-tools button .hud-ic { width: 24px; height: 24px; }
+/* ป้ายสองบรรทัดต้องตัดตามคำ — "ไบโอมคืน / นี้" อ่านผิด · ห่อคำท้ายไว้ไม่ให้แยก (ตัวโปรแกรมอ่านจอใช้ aria-label เต็มคำ) */
+.hud-tools small .nw { white-space: nowrap; }
+.hud-tools small { display: block; font-size: 11px !important; line-height: 1.25; font-weight: 600; color: var(--dg-ink) !important; text-align: center; white-space: normal !important; }
+.hud-tools button:hover { background: linear-gradient(180deg, #221a2c, #1a1424) !important; color: #ffc27a; }
+.hud-tools button:active { transform: translateY(2px); }
+.hud-tools button:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--dg-candle), inset 0 3px 0 #000000b3 !important; }
+
+/* ---------- มือถือ: ช่องเท่ากันหกช่องพอดีความกว้าง · ป้ายสองบรรทัดได้ ---------- */
+@media (max-width: 600px) {
+  .hud-top { gap: 6px !important; }
+  .hud-top button { min-width: 44px; min-height: 44px; padding: 0 9px; }
+  .hud-top .hud-guide { padding: 0 10px 0 8px !important; font-size: 13px !important; }
+  .hud-top .hud-wallet { min-height: 44px; padding: 0 10px !important; font-size: 14px; }
+  .hud-tools { gap: 4px !important; padding: 5px; width: calc(100% - 16px) !important; }
+  .hud-tools button { flex: 1; width: auto; min-width: 0; max-width: none; min-height: 62px; padding: 6px 2px 5px !important; }
+  .hud-tools small { font-size: 11px !important; }
+  .gate-enter { min-width: 0; width: min(86vw, 300px); padding: 22px 22px 20px !important; }
+}
+
+/* ---------- หน้าต่าง (คู่มือ · เควส · กระเป๋า · ร้าน ฯลฯ): แผ่นหินกรอบเหล็กชุดเดียวกับ HUD ----------
+   คลาสกลางที่ทุกหน้าต่างใช้ร่วมกัน · กระดานมินิเกม (เถาวัลย์ · เรือ · ขุด) ไม่แตะ — เป็นภาพในเกมที่ออกแบบแยกไว้ */
+.event-dialog {
+  border: 0 !important; border-radius: 0 !important; clip-path: var(--dg-notch-lg);
+  color: var(--dg-ink);
+  background: radial-gradient(120% 60% at 50% 0%, #2f253c, var(--dg-stone) 45%, var(--dg-stone-lo)) !important;
+  box-shadow: inset 0 0 0 3px var(--dg-iron), inset 0 0 0 5px #0e0a14, inset 0 0 0 6px color-mix(in srgb, var(--dg-iron-hi) 40%, transparent) !important;
+}
+.event-dialog::backdrop { background: #07050ccc; }
+.dialog-top h2 { color: var(--dg-ink); font-weight: 700; }
+.dialog-top { padding-bottom: 12px; border-bottom: 2px solid color-mix(in srgb, var(--dg-iron) 70%, transparent); }
+.dialog-x, .event-dialog .secondary, .event-dialog .dialog-footer button:not(.primary), .item-source-button, .recipe-cost button,
+.filter-button, .tier-buttons button, .comparison-controls button, .biome-level, .quest-difficulty button, .item-info button {
+  border: 0 !important; border-radius: 0 !important; clip-path: var(--dg-notch);
+  color: var(--dg-ink) !important;
+  background: linear-gradient(180deg, var(--dg-stone-hi), var(--dg-stone) 55%, var(--dg-stone-lo)) !important;
+  box-shadow: inset 0 0 0 2px var(--dg-iron), inset 0 4px 0 -2px color-mix(in srgb, var(--dg-iron-hi) 50%, transparent), inset 0 -4px 0 -2px #00000080 !important;
+  min-height: 44px;
+}
+.dialog-x { width: 44px; height: 44px; min-width: 44px; display: grid; place-items: center; font-size: 20px; }
+.event-dialog .primary {
+  border: 0 !important; border-radius: 0 !important; clip-path: var(--dg-notch);
+  color: #1d1009 !important; font-weight: 700; font-size: 14px; min-height: 46px;
+  background: linear-gradient(180deg, #ffc27a, var(--dg-candle) 55%, #c9732f) !important;
+  box-shadow: inset 0 0 0 2px #7a3f17, inset 0 4px 0 -2px #ffe2b5, inset 0 -4px 0 -2px #00000059 !important;
+}
+.event-dialog .quiet-button { color: var(--dg-candle) !important; }
+:is(.dialog-x, .event-dialog .secondary, .event-dialog .dialog-footer button, .item-source-button, .recipe-cost button, .filter-button,
+  .tier-buttons button, .comparison-controls button, .biome-level, .quest-difficulty button, .item-info button):hover:not(:disabled) { filter: brightness(1.12); }
+:is(.dialog-x, .event-dialog .primary, .event-dialog .secondary, .event-dialog .dialog-footer button, .item-source-button, .recipe-cost button,
+  .filter-button, .tier-buttons button, .comparison-controls button, .biome-level, .quest-difficulty button, .item-info button):focus-visible {
+  outline: none; box-shadow: inset 0 0 0 2px var(--dg-candle), inset 0 0 0 4px var(--dg-stone-lo) !important; }
+:is(.filter-button, .comparison-controls button, .tier-buttons button)[aria-pressed=true] { color: var(--dg-candle) !important;
+  box-shadow: inset 0 0 0 2px var(--dg-candle), inset 0 3px 0 #000000b3 !important; }
+/* แผงรองในหน้าต่าง = ช่องเว้าลงในหิน */
+.source-card, .requirement {
+  border: 0 !important; clip-path: var(--dg-notch);
+  background: linear-gradient(180deg, var(--dg-socket), #15101c) !important;
+  box-shadow: inset 0 3px 0 #000000a6, inset 0 0 0 1px color-mix(in srgb, var(--dg-iron) 70%, transparent);
+}
+/* เลขขั้นในคู่มือ = หมุดเหล็กสี่เหลี่ยม */
+.guide-steps li:before { border: 0 !important; clip-path: var(--dg-notch); font-weight: 700;
+  background: linear-gradient(180deg, var(--dg-iron-hi), var(--dg-iron)); box-shadow: inset 0 -2px 0 #0007; color: #140f1c !important; }
+.guide-steps li { border-bottom: 2px dashed color-mix(in srgb, var(--dg-iron) 55%, transparent) !important; }
+.guide-steps h3, .source-card h3 { color: var(--dg-ink) !important; font-weight: 700 !important; }
+.guide-steps p, .source-card p, .guide-intro { color: var(--dg-dim) !important; }
+.difficulty { border-radius: 0; clip-path: var(--dg-notch); border: 0 !important; box-shadow: inset 0 0 0 1px currentColor; }
+/* ป้ายชื่อสถานที่ในฉาก (ชี้/แตะแล้วโผล่) = ป้ายไม้แขวน */
+.world-scene .spot-label, .world-scene .portal-label {
+  border: 0 !important; clip-path: var(--dg-notch); color: var(--dg-ink) !important;
+  background: linear-gradient(180deg, #2c2238, #18121f) !important;
+  box-shadow: inset 0 0 0 2px var(--dg-iron), inset 0 3px 0 -1px color-mix(in srgb, var(--dg-iron-hi) 45%, transparent) !important;
+}
+
+/* ---------- ลดการเคลื่อนไหว: ไม่วูบ ไม่ยุบ ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .gate-enter::after { animation: none; opacity: .8; }
+  .hud-top button:active, .hud-tools button:active { transform: none; }
+  .gate-enter:active { transform: translate(-50%, -50%); }
+}
+html[data-motion="still"] .gate-enter::after { animation: none; opacity: .8; }

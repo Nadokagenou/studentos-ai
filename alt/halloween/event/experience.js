@@ -134,11 +134,30 @@
   }
   function currentBiome() { return Core.biomeAt(read(),config,Date.now()).id; }
   function worldContext() { return {Core,Catalog,config,doc:read(),now:Date.now(),name,duration,difficulty:biomeDifficulty}; }
+  // ไอคอน HUD ดันเจี้ยน (24 ต.ค. 69) — เดิมเป็นอักขระ Unicode (⌂ ✧ ▤ ◇ ❧ ⚗ ⚙ ♪ Ⅱ) ขนาด/น้ำหนักเส้นไม่เท่ากันและหน้าตาเปลี่ยนตามเครื่อง
+  // วาดเป็นเส้นชุดเดียว 24px ปลายเส้นเหลี่ยม (เข้ากับฉากพิกเซล) · ทุกตัวยังสื่อความหมายเดิม ห้ามสลับเป็นรูปตกแต่งที่ไม่บอกหน้าที่
+  const HUD_ICON = {
+    home: 'M4 21V10l8-6 8 6v11zM10 21v-6h4v6',
+    guide: 'M6 3h10l3 3v15H6zM9.5 10a2.5 2.5 0 1 1 3.3 2.4c-.5.2-.8.6-.8 1.1V14M12 17v1',
+    candy: 'M8.5 12a3.5 3.5 0 1 0 7 0 3.5 3.5 0 1 0-7 0M8.5 12 4 8.5v7zM15.5 12l4.5-3.5v7z',
+    soundOn: 'M4 9h4l5-4v14l-5-4H4zM16 9.5a3.5 3.5 0 0 1 0 5M18.5 7a7 7 0 0 1 0 10',
+    soundOff: 'M4 9h4l5-4v14l-5-4H4zM16 9l5 6M21 9l-5 6',
+    pause: 'M8 5v14M16 5v14',
+    play: 'M7 5l12 7-12 7z',
+    settings: 'M10 2h4l.7 2.7 2.4 1 2.4-1.4 2.8 2.8-1.4 2.4 1 2.4L22 10v4l-2.7.7-1 2.4 1.4 2.4-2.8 2.8-2.4-1.4-2.4 1-.7 2.7h-4l-.7-2.7-2.4-1-2.4 1.4-2.8-2.8 1.4-2.4-1-2.4L2 14v-4l2.7-.7 1-2.4-1.4-2.4 2.8-2.8 2.4 1.4 2.4-1zM9 12a3 3 0 1 0 6 0 3 3 0 1 0-6 0',
+    biome: 'M5 21V11a7 7 0 0 1 14 0v10M3 21h18M12 9l1.1 2.4 2.4 1.1-2.4 1.1L12 16l-1.1-2.4-2.4-1.1 2.4-1.1z',
+    quests: 'M5 4h13v15H7a2 2 0 0 0-2 2zM5 4v17M8.5 8h6M8.5 12h6',
+    vault: 'M3 10h18v10H3zM3 10l2-5h14l2 5M10.5 13h3v3h-3z',
+    garden: 'M12 21v-9M12 12C12 8 9 6 5 6c0 4 3 6 7 6zM12 15c0-3 2.5-5 6-5 0 3.5-2.5 5-6 5z',
+    tasks: 'M5 3h14v18H5zM8.5 10l2 2 4-4M8.5 16h7',
+    potion: 'M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3M7 15h10',
+  };
+  const hudIcon = name => '<svg class="hud-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="'+HUD_ICON[name]+'"/></svg>';
   function worldToolbar() {
-    return '<div class="scene-hud"><div class="hud-top"><button class="hud-home" data-route="hub" aria-label="กลับโถงกลาง">⌂</button><button class="hud-guide" data-open-guide aria-label="วิธีเล่น">? วิธีเล่น</button><span class="hud-wallet" title="Candy ห้องลอง">◈ <b data-scene-wallet>'+read().event.candy.toLocaleString('th-TH')+'</b></span><button data-toggle-scene-sound aria-label="'+(prefs.sound?'ปิดเสียง':'เปิดเสียง')+'">'+(prefs.sound?'♫':'♪')+'</button><button class="hud-motion" data-toggle-scene-motion aria-label="'+(reduced()?'เปิดอนิเมชัน':'หยุดอนิเมชัน')+'">'+(reduced()?'▶':'Ⅱ')+'</button><button data-open-preferences aria-label="ตั้งค่า">⚙</button></div><nav class="hud-tools" aria-label="อุปกรณ์การผจญภัย">'+[['biome','ไบโอมคืนนี้','✧'],['quests','สมุดเควส','▤'],['vault','กระเป๋า','◇'],['garden','สวน','❧'],['tasks','งานวันนี้','✓']].map(([id,label,symbol])=>'<button data-route="'+id+'" aria-label="'+label+'"><span aria-hidden="true">'+symbol+'</span><small>'+label+'</small></button>').join('')+'<button data-open-potion aria-label="น้ำยาหลงไบโอม"><span aria-hidden="true">⚗</span><small>น้ำยา</small></button></nav></div>';
+    return '<div class="scene-hud"><div class="hud-top"><button class="hud-home" data-route="hub" aria-label="กลับโถงกลาง">'+hudIcon('home')+'</button><button class="hud-guide" data-open-guide aria-label="วิธีเล่น">'+hudIcon('guide')+'<span>วิธีเล่น</span></button><span class="hud-wallet" title="Candy ห้องลอง">'+hudIcon('candy')+'<b data-scene-wallet>'+read().event.candy.toLocaleString('th-TH')+'</b></span><button data-toggle-scene-sound aria-label="'+(prefs.sound?'ปิดเสียง':'เปิดเสียง')+'">'+hudIcon(prefs.sound?'soundOn':'soundOff')+'</button><button class="hud-motion" data-toggle-scene-motion aria-label="'+(reduced()?'เปิดอนิเมชัน':'หยุดอนิเมชัน')+'">'+hudIcon(reduced()?'play':'pause')+'</button><button data-open-preferences aria-label="ตั้งค่า">'+hudIcon('settings')+'</button></div><nav class="hud-tools" aria-label="อุปกรณ์การผจญภัย">'+[['biome','ไบโอมคืนนี้','ไบโอม<span class="nw">คืนนี้</span>'],['quests','สมุดเควส'],['vault','กระเป๋า'],['garden','สวน'],['tasks','งานวันนี้','งาน<span class="nw">วันนี้</span>']].map(([id,label,shown])=>'<button data-route="'+id+'" aria-label="'+label+'">'+hudIcon(id)+'<small>'+(shown||label)+'</small></button>').join('')+'<button data-open-potion aria-label="น้ำยาหลงไบโอม">'+hudIcon('potion')+'<small>น้ำยา</small></button></nav></div>';
   }
   function rememberPrefs(){try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch{}}
-  async function syncSoundUI(){document.querySelectorAll('[data-toggle-scene-sound]').forEach(b=>{b.textContent=prefs.sound?'♫':'♪';b.setAttribute('aria-label',prefs.sound?'ปิดเสียง':'เปิดเสียง');b.setAttribute('aria-pressed',String(prefs.sound));});await audio.setEnabled(prefs.sound);document.documentElement.dataset.sound=audio.state().playing?'on':prefs.sound?'waiting':'off';}
+  async function syncSoundUI(){document.querySelectorAll('[data-toggle-scene-sound]').forEach(b=>{b.innerHTML=hudIcon(prefs.sound?'soundOn':'soundOff');b.setAttribute('aria-label',prefs.sound?'ปิดเสียง':'เปิดเสียง');b.setAttribute('aria-pressed',String(prefs.sound));});await audio.setEnabled(prefs.sound);document.documentElement.dataset.sound=audio.state().playing?'on':prefs.sound?'waiting':'off';}
   function showGuide(first=false){
     const info=Guide.instructions(activeRoom||route);prefs.guideSeen=true;rememberPrefs();
     openDetail(dialogShell(first?'ยินดีต้อนรับ · เริ่มเล่นตรงนี้':info.title,'<p class="guide-intro">ทุกอย่างกดจากในฉากได้ ถ้าหาของไม่เจอ ให้กด “ดูวิธีหา” ใต้ของที่เควสต้องการ</p><ol class="guide-steps">'+info.steps.map(s=>'<li><h3>'+esc(s.title)+'</h3><p>'+esc(s.text)+'</p>'+(s.route?'<button class="secondary" data-route="'+s.route+'">'+esc(s.action)+'</button>':s.village?'<button class="secondary" data-guide-village>ไปหาวัตถุดิบ</button>':'')+'</li>').join('')+'</ol><button class="quiet-button" data-open-balance>โอกาสได้ของ · ความยากแต่ละ NPC</button>',(first?'<button class="secondary" data-start-with-sound>เริ่มพร้อมเสียงและอนิเมชัน</button>':'')+'<button class="primary" data-close-detail>เข้าใจแล้ว</button>'));
@@ -182,7 +201,7 @@
     const four=Balance.cooldownComparison(config,4),one=Balance.cooldownComparison(config,1);
     openDetail(dialogShell('โอกาสได้ของและความยาก','<p class="guide-intro">คำนวณจากตารางของล่าสุด ใช้ Treat สมมติเปลี่ยนไบโอมได้ทันทีและไม่มีค่าเดินทาง คิดการสะสมของทุกชิ้นร่วมกัน เป็นค่าเฉลี่ยทางสถิติ ไม่ใช่เวลาที่รับประกันว่าจะจบเควส</p><p class="tiny">ตารางนี้เริ่มของจากศูนย์ ผู้เล่นใหม่เริ่มสะสมเอง ของที่มีอยู่ช่วยลดภาระได้ ส่วนระดับในหน้าคุยเควสคิดจากของที่คุณยังขาดอยู่</p><div class="guide-grid">'+cards+'</div><h3>บ้านพัก 4 ชม. เทียบแนวคิด 1 ชม.</h3><p class="subtle">สมมติอยู่ไบโอมเดิมและเคาะครบ 5 หลังทุกรอบ: ทั้งสองแบบติดเพดาน 300 Candy หลัง Treat '+four.attempts+' ครั้ง ซึ่งมีจังหวะสุ่มของเฉลี่ย '+four.expectedDraws+' ครั้งทุกระดับมีของแล้ว แบบ 4 ชม. ใช้ประมาณ '+four.capHours+' ชม. ส่วน 1 ชม. ใช้ '+one.capHours+' ชม. จึงใช้โควตาเร็วขึ้น แต่ไม่ได้เพิ่มโควตาของต่อ 24 ชม.</p><p class="tiny">1 ชั่วโมงยังไม่ยืนยัน · การหมุนไบโอมทุก 6 ชั่วโมงและค่า Totem อาจทำให้เวลาที่เล่นจริงต่างจากสมมติฐานนี้</p><h3>งาน StudentOS เป็นอีกทางหา Candy</h3><p class="subtle">งานวันนี้ในเกมยังเป็นตัวอย่าง รับงานละ '+config.proposals.taskCandy+' Candy เพดาน '+config.proposals.taskDailyCap+' Candy/วัน แยกจากเพดานบ้าน ยังไม่เชื่อมการทำงานเรียนจริงของบัญชี</p>','<button class="secondary" data-close-detail>กลับฉาก</button><button class="primary" data-route="tasks">ดูงานวันนี้</button>'));
   }
-  function syncMotionUI(){document.documentElement.dataset.motion=reduced()?'still':'full';document.querySelectorAll('[data-toggle-scene-motion]').forEach(b=>{b.textContent=reduced()?'▶':'Ⅱ';b.setAttribute('aria-label',reduced()?'เปิดอนิเมชัน':'หยุดอนิเมชัน');});if(reduced())finishTyping();}
+  function syncMotionUI(){document.documentElement.dataset.motion=reduced()?'still':'full';document.querySelectorAll('[data-toggle-scene-motion]').forEach(b=>{b.innerHTML=hudIcon(reduced()?'play':'pause');b.setAttribute('aria-label',reduced()?'เปิดอนิเมชัน':'หยุดอนิเมชัน');});if(reduced())finishTyping();}
   function npcSpeech(id,line){
     const npc=window.HalloweenNPCs.characters[id];
     return '<div class="npc-conversation"><div class="npc-portrait">'+window.HalloweenWorld.portrait(id)+'</div><div><small>'+esc(npc.role)+'</small><p class="npc-line">'+esc(line)+'</p></div></div>';
