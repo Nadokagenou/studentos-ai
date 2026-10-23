@@ -127,10 +127,39 @@ const COLLECT = `(() => {
       halo: cs.textShadow !== 'none' && cs.textShadow.replace(/(rgba?|color|oklab|oklch)[(][^)]*[)]/g, '').split(',')
         .every(sh => { const n = sh.trim().split(' ').map(parseFloat); return n[0] === 0 && n[1] === 0; }) });
   }
+  // ---------- ไอคอนบนปุ่ม (24 ต.ค. 69) ----------
+  // เจ้าของส่งภาพไอคอนบนไทล์มืดที่จางจนแทบมองไม่เห็น — เครื่องมือเดิมวัดแค่ชิ้นที่มีตัวหนังสือ และข้าม aria-hidden
+  // ซึ่งไอคอนในปุ่มเกือบทุกตัวติดไว้ (คำอ่านอยู่ที่ปุ่ม) จึงไม่เคยวัดไอคอนเลยสักตัว
+  // วัดแบบเดียวกับตัวหนังสือ: ซ่อนเฉพาะไอคอน (data-tc-ic) ถ่ายพื้น → เทียบสีเส้นไอคอนกับพิกเซลพื้นจริง · เกณฑ์ 3:1 (DESIGN.md ข้อ 2)
+  // เฉพาะไอคอนที่อยู่ในของที่กดได้ · ข้ามภาพประกอบ (ใหญ่กว่า 48px) · ข้ามโลโก้/ไอคอนหลายสี (ไล่สี · รูป) · ข้ามชั้นฉาก/ลายตกแต่ง
+  for (const sc of scope) for (const svg of sc.querySelectorAll('svg')) {
+    const host = svg.closest('button, a, [role="button"], label, .tg-ic, .tab');
+    if (!host || svg.closest('.hw-scene, .hw-ornament, .hw-biome-scene, .fx, .starfield, :disabled, [aria-disabled="true"]')) continue;
+    if (host.closest('[aria-hidden="true"]')) continue;
+    { const d = svg.closest('details'); if (d && !d.open && !svg.closest('summary')) continue; }
+    const b = svg.getBoundingClientRect(); if (b.width < 8 || b.height < 8 || b.width > 48 || b.height > 48) continue;
+    if (b.top < 0 || b.bottom > innerHeight || b.left < 0 || b.right > innerWidth) continue;
+    const cs = getComputedStyle(svg); if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+    if (svg.querySelector('image, linearGradient, radialGradient')) continue;
+    const shape = svg.querySelector('path, circle, rect, line, polyline, polygon, ellipse, use'); if (!shape) continue;
+    const ss = getComputedStyle(shape);
+    const paint = ss.stroke && ss.stroke !== 'none' ? ss.stroke : ss.fill;
+    if (!paint || paint === 'none' || /url/.test(paint)) continue;
+    const fg = parse(paint); if (!fg) continue;
+    const top = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+    if (top && !svg.contains(top) && !host.contains(top) && !top.contains(svg)) continue;
+    let op = 1; for (let n = shape; n && n.nodeType === 1; n = n.parentElement) op *= +getComputedStyle(n).opacity;
+    op *= +(ss.strokeOpacity && ss.stroke !== 'none' ? ss.strokeOpacity : ss.fillOpacity) || 1;
+    if (op < 0.05) continue;
+    svg.setAttribute('data-tc-ic', '1');
+    const label = (host.getAttribute('aria-label') || host.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 22) || '(ไม่มีคำ)';
+    const key = 'icon < ' + (host.tagName.toLowerCase() + (typeof host.className === 'string' && host.className.trim() ? '.' + host.className.trim().split(/\s+/).slice(0, 2).join('.') : ''));
+    items.push({ key, text: '[ไอคอน] ' + label, rects: [[b.left, b.top, b.width, b.height]], fg, stops: null, op, fs: 0, fw: 0, fam: '', icon: true, large: true, tiny: false, badFont: false, halo: false });
+  }
   return { items, gradText, w: innerWidth };
 })()`;
 const HIDE = keepShadow => `(() => { let s = document.getElementById('__tcHide'); if (!s) { s = document.createElement('style'); s.id = '__tcHide'; document.head.appendChild(s); }
-  s.textContent = '*, *::before, *::after { -webkit-text-fill-color: transparent !important; caret-color: transparent !important;${keepShadow ? '' : ' text-shadow: none !important;'} } [data-tc-grad] { background-image: none !important; }';
+  s.textContent = '*, *::before, *::after { -webkit-text-fill-color: transparent !important; caret-color: transparent !important;${keepShadow ? '' : ' text-shadow: none !important;'} } [data-tc-grad] { background-image: none !important; } [data-tc-ic] { visibility: hidden !important; }';
   return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => r(1))))})()`;
 const SHOW = `(() => { const s = document.getElementById('__tcHide'); if (s) s.remove(); return 1; })()`;
 
@@ -164,9 +193,28 @@ async function run() {
     await ev(HIDE(false));
     const shotB = await cmd('Page.captureScreenshot', { format: 'png' });
     await ev(SHOW);
+    // ภาพจริงตอนไอคอนโชว์ — ไอคอนวัดจากพิกเซลล้วน (ภาพนี้ vs ภาพที่ซ่อนไอคอน) ไม่อ่านสีจาก CSS
+    // (ไอคอนในแอปวาดผ่าน <use> ชี้เข้าสไปรต์ สีจริงอยู่ในสไปรต์ · อ่าน stroke/fill ของ <use> ได้ดำค่าเริ่มต้น = ฟ้องผิดทั้งแอป)
+    const shotC = c.items.some(it => it.icon) ? await cmd('Page.captureScreenshot', { format: 'png' }) : null;
     const imgA = decodePng(Buffer.from(shotA.data, 'base64')), imgB = decodePng(Buffer.from(shotB.data, 'base64')); const k = imgA.w / c.w;
+    const imgC = shotC ? decodePng(Buffer.from(shotC.data, 'base64')) : null;
     const rows = [];
     for (const it of c.items) {
+      if (it.icon) {
+        // พิกเซลที่ต่างกันระหว่างโชว์/ซ่อน = เส้นไอคอนจริง · เอาค่าที่ 90% ของเส้น (แกนเส้น ไม่ใช่ขอบเบลอของ antialias)
+        // ไม่มีพิกเซลไหนต่างเลย = ไอคอนกลืนไปกับพื้นทั้งตัว → 1.0
+        const [x, y, w, h] = it.rects[0], vals = [];
+        for (let py = Math.floor(y * k); py < Math.min(imgB.h, (y + h) * k); py++) for (let px = Math.floor(x * k); px < Math.min(imgB.w, (x + w) * k); px++) {
+          const i = (py * imgB.w + px) * 4;
+          const d = Math.abs(imgC.px[i] - imgB.px[i]) + Math.abs(imgC.px[i + 1] - imgB.px[i + 1]) + Math.abs(imgC.px[i + 2] - imgB.px[i + 2]);
+          if (d < 24) continue;
+          vals.push(ratio(lum(imgC.px[i], imgC.px[i + 1], imgC.px[i + 2]), lum(imgB.px[i], imgB.px[i + 1], imgB.px[i + 2])));
+        }
+        vals.sort((a, b) => a - b);
+        const v = vals.length < 4 ? 1 : vals[Math.floor(vals.length * 0.9)];
+        rows.push({ ...it, ratio: +v.toFixed(2), need: 3, rects: undefined });
+        continue;
+      }
       const img = it.halo ? imgA : imgB;
       const fa = it.fg[3] * it.op, vals = [];
       for (const [x, y0, w, h0] of it.rects) {
@@ -197,8 +245,16 @@ async function run() {
     await sleep(400);
     res[th] = { checked: 0, gradText: 0, fails: [] };
     for (const id of SCREENS) {
-      await ev(`(()=>{ for (let i=0;i<5&&typeof openOverlayEl==='function'&&openOverlayEl();i++) dismissTopOverlay(); go('${id}'); return 1 })()`);
+      // ตั้งธีมซ้ำทุกจอ — จอตั้งค่า (scr-settings) วาดธีมที่เก็บไว้ (light) กลับมาให้ธีมที่ยังไม่ได้ปลดล็อก
+      // (24 ต.ค. 69 · เดิมตั้งครั้งเดียวต่อธีม จอหลังจากตั้งค่าทั้งแปดจอของธีมพวกนั้นจึงถูกวัดเป็น light ทั้งหมด)
+      // เครื่องช้า (รันหลายตัวพร้อมกัน) แอปอาจยังบูตไม่เสร็จ — go ยังไม่มี → ลองซ้ำจนพร้อม แทนที่จะพังทั้งรอบ
+      let again; for (let t = 0; t < 40; t++) { again = await ev(`(()=>{ if (!document.getElementById('${id}')) return '__noscreen'; for (let i=0;i<5&&typeof openOverlayEl==='function'&&openOverlayEl();i++) dismissTopOverlay(); go('${id}'); const r = document.documentElement; r.dataset.hwTone = '${thTone || 'dark'}'; r.dataset.theme = '${thName}'; return r.dataset.theme })()`); if (again === thName || again === '__noscreen') break; await sleep(500); }
+      // จอที่ไม่มีแล้วใน alt (เช่น scr-explore) — เดิม go() พังเงียบแล้ววัดจอก่อนหน้าซ้ำ · ตอนนี้ข้ามไปเลย
+      if (again === '__noscreen') continue;
+      if (again !== thName) throw new Error('ธีมไม่ติดที่ ' + id + ': ' + th + ' ได้ ' + JSON.stringify(again));
       await sleep(600);
+      // ตั้งซ้ำอีกครั้งหลังจอวาดเสร็จ — ถ้าแอปสลับกลับระหว่างรอ (ตอนเปิดจอ/แอนิเมชันเปลี่ยนธีม) จะได้ไม่วัดผิดธีม
+      if ((await ev(`(()=>{ const r = document.documentElement; const was = r.dataset.theme; r.dataset.hwTone = '${thTone || 'dark'}'; r.dataset.theme = '${thName}'; return was })()`)) !== thName) await sleep(400);
       const seenKey = new Set();
       for (let p = 0; p < 4; p++) {
         if (p) { const moved = await ev(`(() => { const s = document.querySelector('.screen.on'); let any = false; [s, ...s.querySelectorAll('*')].filter(e => e.scrollHeight > e.clientHeight + 40 && /auto|scroll/.test(getComputedStyle(e).overflowY)).forEach(e => { const t = Math.min(e.scrollHeight - e.clientHeight, ${p} * innerHeight * 0.8); if (t > e.scrollTop + 20) { e.scrollTop = t; any = true; } }); return any; })()`); if (moved !== true) break; await sleep(300); }
