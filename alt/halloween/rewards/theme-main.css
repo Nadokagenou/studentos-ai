@@ -38,14 +38,12 @@
 }
 :root[data-theme="halloween"] :is(.tn-head,.tn-body){border-color:#ad735b88;background:linear-gradient(130deg,#3b2532f5,#241b2df5)}
 :root[data-theme="halloween"] .tn-head{position:relative;overflow:hidden}
-:root[data-theme="halloween"] .tn-head:after{content:"✧";position:absolute;right:17px;top:8px;font-size:46px;color:#dba77b23;pointer-events:none}
 :root[data-theme="halloween"] :is(.tn-why,.tn-why2,.tn-foot,.hm-help,.sh-sub){color:#c7b8ca}
 :root[data-theme="halloween"] :is(.tn-stats,.tn-stat,.tn-band,.tn-cell,.tn-row){background:#140f1b80;border-color:#b290a52b}
 :root[data-theme="halloween"] :is(.task,.task-card,.task-item,.tcard,.hw-card,.qa-task,.tl-item){background:linear-gradient(115deg,#2c2332f5,#1d1926f5);border-color:#ad8ba636;border-radius:16px 5px 16px 5px;box-shadow:inset 4px 0 #a8726144,0 5px 17px #06030b2e}
 :root[data-theme="halloween"] :is(.task,.task-card,.task-item,.tcard,.mtile,.tk-cta,.show-tile,.fx-row){transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
 @media(hover:hover){:root[data-theme="halloween"] :is(.task,.task-card,.task-item,.tcard,.mtile,.tk-cta,.show-tile,.fx-row):hover{transform:translateY(-2px);border-color:#c8938b90;box-shadow:0 7px 25px #ad648e24}}
 :root[data-theme="halloween"] :is(button.btn,.btn-primary,.main-btn,.tc-main,.tn-cta,.tc-cta,.fm-start,.fm-save,.qa-save,.tb-go,.fx-buy,.pro-cta,.on-next){background:linear-gradient(125deg,#683c3b,#8d4635 60%,#6b3b39);color:#fff1df;border:1px solid #eeaf75a8;border-radius:17px 5px 17px 5px;box-shadow:inset 0 1px #ffd7b243,inset 0 -3px #2d152e66,0 5px 22px #dc785f24;position:relative;overflow:hidden}
-:root[data-theme="halloween"] :is(.tc-main,.tn-cta,.tc-cta,.fm-start,.qa-save):after{content:"";position:absolute;inset:-1px;background:linear-gradient(115deg,transparent 35%,#ffe2c01a 48%,transparent 60%);transform:translateX(-110%);animation:hw-button-shine 7s ease-in-out infinite;pointer-events:none}
 :root[data-theme="halloween"] :is(button,.btn):focus-visible{outline:2px solid #d6b1ef;outline-offset:4px}
 :root[data-theme="halloween"] button:active{filter:brightness(1.13)}
 :root[data-theme="halloween"] :is(input:not([type=checkbox]):not([type=range]),textarea,select,.ask-box,.hm-ask,.ai-input-wrap,.qa-input){background:#14111de8;color:#f3e6d8;border-color:#9b788d66;box-shadow:inset 0 2px 8px #07040b55;border-radius:14px 5px 14px 5px}
@@ -116,7 +114,6 @@ html[data-hw-framed="true"] .hw-controls{display:none}
 :root[data-theme="halloween"] #menuBody :is(.tn-head,.tn-body){background:transparent;border:0;border-radius:0;box-shadow:none}
 :root[data-theme="halloween"] #menuBody .tn-head{border-bottom:1px solid #ad8a7338}
 :root[data-theme="halloween"] #menuBody .tn-head:before{display:none}
-:root[data-theme="halloween"] #menuBody .tn-head:after{content:"✧";inset:8px 14px auto auto;width:auto;height:auto;font-size:48px;background:none;border:0;transform:none;color:#deb7ce13}
 :root[data-theme="halloween"] #menuBody .tn-cta{background:linear-gradient(120deg,#723f38,#954e37 65%,#653145)!important;border:1px solid #d99f7299!important;border-radius:15px 5px 15px 5px!important;color:#fff1df!important;box-shadow:inset 0 1px #ffcf9c3d,0 5px 20px #c3784729!important}
 :root[data-theme="halloween"] #menuBody .tn-cta .tc-main{background:none;border:0;box-shadow:none;padding:0;border-radius:0;overflow:visible;color:inherit}
 :root[data-theme="halloween"] #menuBody .td-ask{background:#211729!important;border:1px solid #8e6a8f80!important;border-radius:18px 5px 18px 5px;box-shadow:inset 0 0 0 3px #100c1766,0 0 22px #a778b61f!important}
@@ -341,3 +338,10 @@ html[data-theme="halloween"][data-lite="1"] button:after{animation:none!importan
 :root[data-theme="halloween"] #menuBody .tn-cta{background:linear-gradient(125deg,#76503a,#945e3f)!important;border-color:#dfb78399!important;color:#fff0de!important}
 :root[data-theme="halloween"] #menuBody .tg-ic{background:linear-gradient(145deg,#352c40,#282231)!important;border-color:#a089a755!important;box-shadow:inset 0 1px #ffffff10,0 4px 12px #08040e44!important}
 :root[data-theme="halloween"] #menuBody .tg-ic svg{color:#d2c2d9!important}
+/* 23 Oct 2026, owner: "too much on the buttons". Removed: the shine that swept across every primary button
+   and the large star glyph behind the task card heading. The floating motion/sound buttons hide below the
+   desktop layout, where they sat on top of the shortcut tiles; the same switches live in Settings > theme. */
+@media(max-width:1023px){:root:is([data-theme="halloween"],[data-theme="moonlight"]) .hw-controls{display:none!important}}
+/* The card ghost sits at the card's bottom-right, which on the task card is exactly where the clock button is.
+   Keep the smoke, drip and cobweb on that card; drop the ghost so no button carries a drawing behind it. */
+:root[data-theme="halloween"] :is(.td-now,.td-clear)>.hw-ornament .hw-card-ghost{display:none}

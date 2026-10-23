@@ -23,4 +23,17 @@
  :root body:not(.login-mode) #menuBody>.td-railwrap{margin:0;align-self:center}
  :root body:not(.login-mode) #menuBody .tg-t{height:72px;min-height:0}
  :root body:not(.login-mode) #menuBody .tg-ic{width:44px;height:44px}
+ /* 24 ต.ค. 69 · เจ้าของ (ภาพหน้าแรก ~900px ตอนกลางคืน): "แก้ให้มันตรง ... และทำให้เต็มจอ"
+    เดิมก้อนที่ไม่อยู่ในรายชื่อเต็มแถวได้แค่คอลัมน์เดียว — ตอนกลางคืนแถบตัวเลขไม่ขึ้น การ์ดน้องฮูกจึงไม่มีคู่
+    ค้างครึ่งซ้าย · รายการ "ที่เหลือของวันนี้" ก็ครึ่งซ้ายเสมอ · ขวาว่างเป็นช่อง ขอบขวาไม่ตรงกับก้อนอื่น
+    และทุกก้อนโดนเพดาน 620px (กฎจอกว้าง ≥720 ใน alt.css) เนื้อหาจึงเกาะซ้ายในกรอบ 760 ขวาเว้นโหว่ 110px
+    ตอนนี้: ทุกก้อนเต็มแถวเป็นค่าเริ่มต้น · แถบตัวเลขกับการ์ดน้องฮูกคู่กันเฉพาะตอนมีครบทั้งสองชิ้น
+    ปลดเพดาน 620/760 · ขอบซ้ายขวาให้ .screen คุมที่เดียว (clamp 28–70px) — เนื้อหากว้างเต็มจอทุกขนาดในช่วงนี้ */
+ :root body:not(.login-mode) #menuBody{max-width:none;padding-inline:0}
+ :root body:not(.login-mode) #scr-menu .menu-body>*{max-width:none}
+ :root body:not(.login-mode) #menuBody>*{grid-column:1/-1}
+ :root body:not(.login-mode) #menuBody>.td-stats:has(+ .saih),:root body:not(.login-mode) #menuBody>.td-stats+.saih{grid-column:auto}
 }
+/* 23 ต.ค. 69 · เจ้าของ: ปุ่มเยอะจนรก — ปุ่มลอย "ตรวจหน้าจอ" ทับป้ายไทล์หน้าแรกบนมือถือ/แท็บเล็ตทุกธีม
+   ซ่อนต่ำกว่า 1024px · ยังเข้าได้จากลิงก์ "ตรวจหน้าจอ ALT" ในจอตั้งค่า (.alt-lab-entry) */
+@media(max-width:1023px){.alt-device-preview{display:none}}

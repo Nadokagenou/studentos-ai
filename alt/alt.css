@@ -14797,7 +14797,8 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 /* วงสถิติ "รวม · ชม." — กฎของ #statFull ใช้ตัวหลักจาง 55% (3.9:1) ชนะกฎรวมข้างบนด้วย id */
 #statFull .dn-mid i { color: var(--muted); }
 /* เวลาในไทม์ไลน์ที่ยังไม่ใส่ตาราง ("06:00 ตื่นนอน") วางบนฉากตรง ๆ — ปลาในธีมทะเลว่ายผ่าน */
-.phone .dayrow :is(.dayrow-t, .dayrow-l) { text-shadow: 0 0 1px var(--scr), 0 0 6px var(--scr), 0 0 12px var(--scr); }
+.phone .dayrow :is(.dayrow-t, .dayrow-l, .dayrow-due) { text-shadow: 0 0 1px var(--scr), 0 0 6px var(--scr), 0 0 12px var(--scr); }
+/* 23 ต.ค. 69 · .dayrow-due ("ถึงกำหนด · …") ถูกลืมไว้นอกกฎนี้ — บนฉากเรือผี/สุสานมันทับใบเรือสว่างได้ 2.05:1 */
 /* ตัวรองบนพื้นอมสี/กระจกที่ได้ 4.2–4.45 (เฉียดเกณฑ์) — --muted เข้มขึ้นอีกนิด ยังเป็นระดับรองเหมือนเดิม */
 .phone :is(.ctx-empty, .pslot .ptime .e, .tk-chip:not(.hot), .sd-tx span, .st-tx span, .tb-grp > b, .tb-grp > button, .tn-plan-note:not(.warn), .sd-all, .sh-badge) {
   color: color-mix(in srgb, var(--muted) 70%, var(--ink));
@@ -15351,3 +15352,29 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 .prs-b:active { transform: scale(.98); }
 .prs-b.primary { border-color: transparent; background: var(--fill); color: var(--on-fill); }
 .prs-b.quiet { border-color: transparent; background: none; color: var(--muted); font-weight: 600; }
+/* ============================================================
+   ความชัดของตัวหนังสือ/ไอคอนทั้งแอป · รอบ 1 · 24 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ: "แก้ความชัดฟอนต์ทั้งแอปและทุกธีม" · วัดด้วย textcheck ครบ 22 ธีม (เพิ่มการวัดไอคอนแล้ว)
+   ต้นเหตุใหญ่: โทเคนตัวหนังสือของธีมพื้นสว่างจางเกินบนพื้นรอง --card2 (ชิป · กล่อง) — แก้ที่โทเคน
+   ลดแค่ความสว่าง (OKLCH) จนได้ ≥ 4.8:1 บน --card2 และ --scr · สีเดิม เข้มขึ้นนิดเดียว
+   ============================================================ */
+:root[data-theme="light"]{--faint:#586B86}
+:root[data-theme="warm"]{--faint:#855B6D;--blue:#BC2C6A;--alert:#C3293E;--warn:#865F00}
+:root[data-theme="earth"]{--muted:#556B60;--faint:#576B60;--blue:#167456;--warn:#865F00}
+:root[data-theme="earth2"]{--muted:#516D58;--faint:#546C59;--blue:#247339;--warn:#865F00}
+:root[data-theme="ocean"]{--muted:#45687C;--faint:#486879;--blue:#056A8E;--alert:#B83023;--good:#007068;--warn:#845C00}
+:root[data-theme="sweet"]{--muted:#79598E;--faint:#79598B;--blue:#A22DBD;--alert:#BA2A69;--good:#007365;--warn:#8C5B00}
+:root[data-theme="genesis"]{--alert:#AF254D;--good:#00695F;--warn:#7D5500}
+/* ส่วนประกอบที่พังทุกธีม (ต้นเหตุยืนยันแล้ว) */
+#ctxBody .cx2-axis { color: var(--muted); }                       /* เดิม --ink 50% โปร่ง = 3.0–4.2 ใน 14 ธีม */
+.stp-v i { color: var(--muted); }                                 /* เดิม --ink 60% โปร่ง · light เคยแก้แยกไว้ธีมเดียว */
+.td-now .tn-why-go svg:last-child { opacity: 1; }                 /* ลูกศรจาง .55 = 1.8:1 ใน 15 ธีม */
+.tk-skin .ts-try, .tk-skin.r-mythic .ts-rar { color: color-mix(in srgb, #B45CFF 62%, var(--ink)); } /* ม่วงฝังตายบนขาว 2.9 */
+.ig-tick { color: color-mix(in srgb, var(--blue) 60%, var(--ink)); } /* ฟ้าบนพื้นฟ้าจาง 3.3 */
+/* "+100" ชิปรางวัล: ไล่สี --grad-brand + ตัวขาวฝังตาย = 2.0–2.2 ใน 13 ธีม → คู่ --fill/--on-fill ที่ DESIGN.md รับประกัน */
+#scr-profile .pf-entry .pe-v.pe-reward:not(:empty), .phone .pe .pe-v.pe-reward:not(:empty) { background: var(--fill); color: var(--on-fill); }
+/* ไฟ "ต่อเนื่อง": เปลวขาวบนส้มอ่อน #FB923C (2.2) + หรี่ .84 → ส้มเข้มขึ้น ขาวได้ ≥ 3 แม้ตอนหรี่ */
+.shw-streak .shw-ic { background: linear-gradient(160deg, #C2410C, #9A3412); }
+/* "เพิ่ม" ใต้ปุ่ม + นั่งบนวงแสงของปุ่ม (2.9 ใน 14 ธีม) — ป้ายอื่นในแถบผ่าน · เข้มขึ้นเฉพาะป้ายนี้ */
+.tabbar .tab.scan > span:not(.scan-dot) { color: color-mix(in srgb, var(--muted) 45%, var(--ink)); }

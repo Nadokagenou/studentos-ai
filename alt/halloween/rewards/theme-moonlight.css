@@ -108,7 +108,6 @@
 }
 :root[data-theme="moonlight"] :is(.tn-head,.tn-body){border-color:var(--hw-blue-line-strong);background:linear-gradient(130deg,var(--hw-card-hi),var(--hw-card)),var(--hw-glass-base)}
 :root[data-theme="moonlight"] .tn-head{position:relative;overflow:hidden}
-:root[data-theme="moonlight"] .tn-head:after{content:"✧";position:absolute;right:17px;top:8px;font-size:46px;color:#7DD3FF23;pointer-events:none}
 :root[data-theme="moonlight"] :is(.tn-why,.tn-why2,.tn-foot,.hm-help,.sh-sub){color:var(--hw-ink-blue)}
 :root[data-theme="moonlight"] :is(.tn-stats,.tn-stat,.tn-band,.tn-cell,.tn-row){background:color-mix(in srgb,var(--hw-card-well) 60%,transparent);border-color:var(--hw-blue-line)}
 :root[data-theme="moonlight"] :is(.task,.task-card,.task-item,.tcard,.hw-card,.qa-task,.tl-item){background:linear-gradient(115deg,var(--hw-card),var(--hw-card-low)),var(--hw-glass-base);border-color:var(--hw-blue-line);border-radius:16px 5px 16px 5px;box-shadow:inset 4px 0 var(--hw-sky),0 5px 17px var(--hw-shadow)}
@@ -118,7 +117,6 @@
 :root[data-theme="moonlight"] :is(button.btn.primary,.btn-primary,.main-btn,.tc-main,.tn-cta,.tc-cta,.fm-start,.fm-save,.qa-save,.tb-go,.fx-buy,.pro-cta,.on-next){background:linear-gradient(180deg,var(--hw-orange-cta),var(--hw-orange-cta-low));color:var(--hw-on-orange);border:1px solid var(--hw-orange-hi);border-radius:17px 5px 17px 5px;box-shadow:inset 0 -3px #5A160033,var(--hw-candle);position:relative;overflow:hidden}
 :root[data-theme="moonlight"] button.btn:is(.secondary,.ghost){background:linear-gradient(135deg,var(--hw-card-hi),var(--hw-card)),var(--hw-glass-base);color:var(--hw-ink);border:1px solid var(--hw-blue-line-strong);border-radius:17px 5px 17px 5px;box-shadow:inset 0 1px #FFFFFF14,0 4px 14px var(--hw-shadow);position:relative;overflow:hidden}
 :root[data-theme="moonlight"] button.btn.text{color:var(--hw-sky-text)}
-:root[data-theme="moonlight"] :is(.tc-main,.tn-cta,.tc-cta,.fm-start,.qa-save):after{content:"";position:absolute;inset:-1px;background:linear-gradient(115deg,transparent 35%,#FFE2C02a 48%,transparent 60%);transform:translateX(-110%);animation:hw-button-shine 7s ease-in-out infinite;pointer-events:none}
 :root[data-theme="moonlight"] :is(button,.btn):focus-visible{outline:2px solid var(--hw-sky);outline-offset:4px}
 :root[data-theme="moonlight"] button:active{filter:brightness(1.13)}
 :root[data-theme="moonlight"] :is(input:not([type=checkbox]):not([type=range]),textarea,select,.ask-box,.hm-ask,.ai-input-wrap,.qa-input){background:var(--hw-well);color:var(--hw-ink);border-color:var(--hw-violet-line);box-shadow:inset 0 2px 8px var(--hw-shadow);border-radius:14px 5px 14px 5px}
@@ -170,7 +168,6 @@ html[data-quality="medium"] .hw-scene *,html[data-hw-motion="still"] .hw-scene *
 :root[data-theme="moonlight"] #menuBody :is(.tn-head,.tn-body){background:transparent;border:0;border-radius:0;box-shadow:none}
 :root[data-theme="moonlight"] #menuBody .tn-head{border-bottom:1px solid var(--hw-blue-line)}
 :root[data-theme="moonlight"] #menuBody .tn-head:before{display:none}
-:root[data-theme="moonlight"] #menuBody .tn-head:after{content:"✧";inset:8px 14px auto auto;width:auto;height:auto;font-size:48px;background:none;border:0;transform:none;color:#7DD3FF1a}
 :root[data-theme="moonlight"] #menuBody .tn-cta{background:linear-gradient(180deg,var(--hw-orange-cta),var(--hw-orange-cta-low))!important;border:1px solid var(--hw-orange-hi)!important;border-radius:15px 5px 15px 5px!important;color:var(--hw-on-orange)!important;box-shadow:var(--hw-candle)!important}
 :root[data-theme="moonlight"] #menuBody .tn-cta .tc-main{background:none;border:0;box-shadow:none;padding:0;border-radius:0;overflow:visible;color:inherit}
 :root[data-theme="moonlight"] #menuBody .td-ask{background:var(--hw-chrome)!important;border:1px solid var(--hw-violet-line)!important;border-radius:18px 5px 18px 5px;box-shadow:inset 0 0 0 3px var(--hw-ring),0 0 22px #8B5CFF1f!important}
@@ -413,3 +410,17 @@ html[data-lite="1"][data-theme="moonlight"] *{-webkit-backdrop-filter:none!impor
 :root[data-theme="moonlight"] #scr-profile :is(.hw-me-grp>.pe,.hw-me-feat>.pe-pro) .pe-ic svg{color:var(--hw-sky-text)!important}
 :root[data-theme="moonlight"] #scr-profile .hw-me-grp>.pe .pe-go{color:var(--hw-ink-3)}
 :root[data-theme="moonlight"] #scr-profile :is(.pe-soon,.pe-pro) .pe-v{background:none!important;color:var(--hw-ink-3)!important;font-weight:500}
+/* 23 ต.ค. 69 · textcheck — สองชิ้นที่เฉียดเกณฑ์ (4.4:1)
+   • เวลาจบในจอแผน (.ptime .e) นั่งบนภาพฉากจันทร์/เทียน ไม่มีการ์ดรอง → ขอบนุ่มสีพื้นจอ (สูตรเดียวกับเวลาในเส้นเวลา .dayrow-t)
+   • โทนแสงจันทร์: ตัวขาว (--on-fill) บนการ์ดน้ำเงิน แต่ป้าย "โอกาสเสร็จทัน" ทาขาวโปร่งทับ = พื้นสว่างขึ้นใต้ตัวขาว → ทาดำโปร่งแทน */
+:root[data-theme="moonlight"] .phone .pslot .ptime .e{text-shadow:0 0 1px var(--scr),0 0 6px var(--scr),0 0 12px var(--scr)}
+:root[data-theme="moonlight"][data-hw-tone="light"] .wy2-warn{background:rgba(0,0,0,.18)}
+/* กล่อง "ไม่ทัน" ในจอวันนี้: แดงจาง ~10% บนภาพฉากจันทร์ = ตัวหนังสือ 4.0:1 → รองพื้นการ์ดทึบใต้สีจางเดิม */
+:root[data-theme="moonlight"] .dayvd.bad{background:linear-gradient(var(--alert-soft),var(--alert-soft)),var(--hw-card)}
+/* โทนแสงจันทร์: ตัวรองชั้นสาม (--hw-ink-3 #4A5690) บนพื้นม่วงอ่อนได้ 4.2–4.5:1 (เฉียดเกณฑ์) ที่บรรทัดรุ่นแอปกับป้าย "เร็ว ๆ นี้" ในแท็บฉัน
+   → --hw-ink-2 ที่เข้มกว่าหนึ่งขั้น เฉพาะโทนนี้ (โทนกลางคืนผ่านอยู่แล้ว) */
+:root[data-theme="moonlight"][data-hw-tone="light"] .app-ver,
+:root[data-theme="moonlight"][data-hw-tone="light"] #scr-profile :is(.pe-soon,.pe-pro) .pe-v{color:var(--hw-ink-2)!important}
+/* 23 Oct 2026, owner: "too much on the buttons". Same cuts as theme-main.css: no shine sweeping across primary
+   buttons, no star glyph behind the task card heading, and no ghost on the task card (it sat behind the clock button). */
+:root[data-theme="moonlight"] :is(.td-now,.td-clear)>.hw-ornament .hw-card-ghost{display:none}
