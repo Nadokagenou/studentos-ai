@@ -19068,7 +19068,7 @@ function syncLiteRow() { syncGfxRow(); }
   stashSharedText(); // ข้อความที่แชร์มาก็เก็บก่อนเหมือนกัน กันหายตอน sw สั่งรีโหลด
   // ล้างคิวรีออกจาก URL ครั้งเดียวตรงนี้ — ค่าที่ต้องใช้ถูกอ่านเก็บไว้ใน BOOT_Q แล้ว
   // ปล่อยค้างไว้ = รีเฟรชทีไรก็เข้าร่วมซ้ำ/เพิ่มงานซ้ำทุกที
-  try { if (location.search) history.replaceState(null, '', location.pathname); } catch (_) {}
+  try { if (location.search && !window.__HW_SHOWROOM__) history.replaceState(null, '', location.pathname); } catch (_) {}
 
   // ป้ายเลขรุ่นกลางหัวจอถูกเอาออกจาก index.html แล้ว — บรรทัดนี้จึงไม่เจอ #verBadge
   // เก็บไว้เฉย ๆ เผื่อวันไหนเอาป้ายกลับมา จะได้ไม่ต้องมาไล่ต่อสายให้ APP_VERSION ใหม่

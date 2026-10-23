@@ -1,6 +1,9 @@
 /* The reward fitting room uses memory storage and never connects a real account. */
 (() => {
- if(!new URLSearchParams(location.search).has('halloween-showroom'))return;
+ let fittingRoom=new URLSearchParams(location.search).has('halloween-showroom');
+ // The parent survives service-worker reloads even if the app cleans its URL.
+ try{fittingRoom ||= window.parent!==window&&window.parent.__STUDENTOS_HALLOWEEN_COLLECTION__===true;}catch{}
+ if(!fittingRoom)return;
  const makeStorage=()=>{const data=new Map();return {get length(){return data.size;},getItem:k=>data.get(String(k))??null,setItem:(k,v)=>data.set(String(k),String(v)),removeItem:k=>data.delete(String(k)),clear:()=>data.clear(),key:i=>[...data.keys()][i]??null};};
  try{
   Object.defineProperty(window,'SUPABASE_CONFIG',{configurable:false,get:()=>({}),set:()=>{}});

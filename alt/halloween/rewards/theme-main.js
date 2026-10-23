@@ -146,7 +146,7 @@
   function queue() { if (!queued && active) { queued = true; requestAnimationFrame(decorate); } }
   function restore() {
     ungroupMe();
-    for (const [img, src] of originals) { if (img.isConnected) { img.setAttribute('src', src); delete img.dataset.hwCharacter; } }
+    for (const [img, src] of originals) { if (img.isConnected) { img.setAttribute('src', window.HalloweenCosmetics?.costumeForSource(src) || src); delete img.dataset.hwCharacter; } }
     for (const [use, href] of iconOriginals) if (use.isConnected) use.setAttribute('href', href);
     for (const [mark, href] of brandOriginals) if (mark.isConnected) mark.setAttribute('href', href);
     brandOriginals.clear();

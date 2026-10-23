@@ -302,7 +302,7 @@
       "id": "jacks-hollow-shovel",
       "name": "Shovel",
       "kind": "quest-item",
-      "source": null,
+      "source": "win-death-fragments",
       "rarity": null
     },
     {
@@ -364,6 +364,30 @@
       "name": "Garlic",
       "rarity": null,
       "sourceBiome": null
+    },
+    {
+      "id": "pending-soul-vessel",
+      "name": "Soul Vessel",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-grim-scythe",
+      "name": "Grim Scythe",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-scrap-iron",
+      "name": "Scrap Iron",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-soul-stick",
+      "name": "Soul Stick",
+      "rarity": null,
+      "sourceBiome": null
     }
   ],
   "garden": {
@@ -390,6 +414,20 @@
       "rounds": null,
       "differencesPerRound": null,
       "timeLimitSeconds": null
-    }
+    },
+    "graveyard": [
+      {
+        "id": "grave-digging",
+        "name": "ขุดหลุมศพ",
+        "requiredCompletions": 1
+      },
+      {
+        "id": "catch-all-ghosts",
+        "name": "จับผีทั้งหมดภายในเวลา 30 วินาที",
+        "timeLimitSeconds": 30,
+        "requiredCatch": "all",
+        "ghostCount": null
+      }
+    ]
   }
 }

@@ -1,5 +1,7 @@
 # คู่มือส่งต่องาน — StudentOS AI
 
+> **22 ต.ค. รอบต่อ:** ของตกแต่ง Halloween 23 แบบเปิดใช้ใน ALT แล้วผ่านตัวเลือกเดิม ดู halloween/README.md; integration.js เชื่อมชุด/ห้อง/ธีม/เอฟเฟกต์ ส่วน effect-games.js/css ให้เล่นแตะ/ลากได้ วัตถุ Mystical และเหรียญยังไม่เข้า inventory และรออีเวนต์ บันทึก NPC ครบ 4 คนรวม Win แล้ว อย่าใช้ haptic(done) เป็นตัวเรียกเกมจริง เพราะมีหลายการกระทำที่ใช้ haptic นี้ ให้ผ่าน doneFxActive/openDoneFx เพื่อเก็บลำดับงานถัดไป
+
 > **22 ต.ค. Halloween Collection:** อ่าน [halloween/README.md](halloween/README.md) หน้าแชร์ทีม /alt/halloween/event/rewards.html มี 28 แบบ แยก event/ ที่ลบได้กับ rewards/ ถาวร บท NPC 3 สายอยู่ halloween/docs/ และ event/data/ ห้องลองใช้หน่วยความจำ ไม่เปิดรับของหรือ Candy จริง ใช้หลักสี 60–30–10 การควบคุมอนิเมชันต้องเลือก button[data-hw-motion] เท่านั้น (root ก็มี data-hw-motion ห้ามแก้ textContent ของ root) เลขแอปคง 1C60
 
 > **20 ต.ค. 2569 · ผังคอมบน ALT:** `desktop.css` จัดเต็มจอเฉพาะ ≥1024px + hover + pointer:fine; `desktop-entry.js` โหลด `desktop.js` เมื่อผ่านเงื่อนไขเท่านั้น ทางลัดเรียกฟังก์ชันเดิมผ่าน `desktop-navigation.mjs` ไม่แก้แผนหรือข้อมูลผู้ใช้ คีย์ใหม่ `studentos.desktop.sidebar` จำแค่สถานะเมนูข้าง การแก้ชุดนี้อยู่ใน `alt/` เท่านั้น ดูรายละเอียดและขอบเขต QA ใน PATCHNOTES; พรีวิวข้อมูลจำลอง `node alt/devtools/desktop-preview.mjs --port=4196` และหน้า `/alt/devtools/desktop-parity-review.html` ไม่ถูกโหลดหรือแคชโดยแอปจริง
