@@ -10,7 +10,7 @@
   const portraits={hub:['portrait-hub.png',0,0,1],dutchman:['portrait-biomes.png',0,0,2],jack:['portrait-biomes.png',1,0,2],vampire:['portrait-biomes.png',0,1,2],graveyard:['portrait-biomes.png',1,1,2],shop:['portrait-rooms.png',0,0,2],cauldron:['portrait-rooms.png',1,0,2],ritual:['portrait-rooms.png',0,1,2],garden:['portrait-rooms.png',1,1,2]};
   function spot(label,attrs,x,y,extra='',mobile=[x,y]){
     const activity=attrs.includes('data-game-info=');
-    return '<button class="world-spot scene-point '+extra+(activity?' activity-point':'')+(x<20?' label-right':x>80?' label-left':'')+'" style="--x:'+x+'%;--y:'+y+'%;--px:'+mobile[0]+'%;--py:'+mobile[1]+'%" '+attrs+' aria-label="'+esc(label)+'"><span class="spot-dot" aria-hidden="true">'+(activity?'▶':'?')+'</span>'+(activity?'<span class="spot-kind" aria-hidden="true">มินิเกม</span>':'')+'<span class="spot-label">'+esc(label)+'</span></button>';
+    return '<button class="world-spot scene-point '+extra+(activity?' activity-point':'')+(x<20?' label-right':x>80?' label-left':'')+'" style="--x:'+x+'%;--y:'+y+'%;--px:'+mobile[0]+'%;--py:'+mobile[1]+'%" '+attrs+' aria-label="'+esc(label)+'"><span class="spot-dot" aria-hidden="true"></span><span class="spot-label">'+esc(label)+'</span></button>';
   }
   function scene(key,label,contents,extra=''){
     const p=portraits[key];
@@ -82,7 +82,7 @@
       const open=Core.portalStatus(doc,config,id,now).open;
       return '<button class="world-portal '+(open?'portal-open':'portal-closed')+'" data-enter-biome="'+id+'" style="--left:'+(23+i*13.3)+'%;--px:'+(i%2?55:23)+'%;--py:'+(i<2?15:36)+'%;--pw:24%;--ph:'+(i<2?17:19)+'%;--portal-color:'+Catalog.biomes[shorts[i]].color+'" aria-label="'+thai[i]+' · '+(open?'เปิดเข้าได้':'ยังไม่เปิด')+'"><span class="portal-number" aria-hidden="true">'+(i+1)+'</span><span class="portal-label"><b>'+thai[i]+'</b><small>'+(open?'✦ เปิดเข้าได้':'◈ ยังไม่เปิด')+'</small></span></button>';
     }).join('');
-    return '<section class="world-page"><div class="world-title"><small>THE MIDNIGHT ACADEMY</small><h1>โถงกลาง</h1></div>'+scene('hub','โถงกลางพิกเซล ร้านค้าซ้าย เตาผสมขวา และประตูสี่ไบโอมด้านหน้า',portals+spot('ร้านยามเที่ยงคืน','data-route="shop"',12,60,'',[16,68])+spot('เตาผสมเวทมนตร์','data-route="cauldron"',87,60,'',[84,68])+spot('วงเวทอัญเชิญ','data-route="ritual"',50,72,'',[50,76])+spot('สวนรัตติกาล','data-route="garden"',33,82,'',[22,80]))+'<div class="world-caption"><button class="quiet-button" data-route="totems">Totem · เปิดเส้นทางส่วนตัว</button></div><p class="scene-help">แตะหมุด ? เพื่อดูสถานที่ · หมุด ▶ คือมินิเกม</p></section>';
+    return '<section class="world-page"><div class="world-title"><small>THE MIDNIGHT ACADEMY</small><h1>โถงกลาง</h1></div>'+scene('hub','โถงกลางพิกเซล ร้านค้าซ้าย เตาผสมขวา และประตูสี่ไบโอมด้านหน้า',portals+spot('ร้านยามเที่ยงคืน','data-route="shop"',12,60,'',[16,68])+spot('เตาผสมเวทมนตร์','data-route="cauldron"',87,60,'',[84,68])+spot('วงเวทอัญเชิญ','data-route="ritual"',50,72,'',[50,76])+spot('สวนรัตติกาล','data-route="garden"',33,82,'',[22,80]))+'<div class="world-caption"><button class="quiet-button" data-route="totems">Totem · เปิดเส้นทางส่วนตัว</button></div><p class="scene-help">แตะจุดสีแดงเพื่อดูสถานที่หรือมินิเกม</p></section>';
   }
   function biome(c){
     const {Core,Catalog,config,doc,now}=c, id=Core.biomeAt(doc,config,now).id, i=Core.BIOMES.indexOf(id), meta=Catalog.biomes[shorts[i]];
