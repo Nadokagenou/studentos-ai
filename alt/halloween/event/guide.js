@@ -24,7 +24,8 @@
       if(crop.seed===id)found.push({kind:'seed',biome});
       if(crop.harvest===id)found.push({kind:'garden',biome});
     }
-    for(const recipe of config.proposals?.recipes||[])if(recipe.reward===id)found.push({kind:recipe.channel,recipe:recipe.id});
+    for(const [boss,rule]of Object.entries(config.proposals?.bosses||{}))if(rule.rewards?.includes(id))found.push({kind:'boss',boss});
+    for(const recipe of config.proposals?.recipes||[])if(recipe.reward===id&&!recipe.retired)found.push({kind:recipe.channel,recipe:recipe.id});
     if(id==='dutchmans-soul-soul-anchor')found.push({kind:'game',biome:'dutchmans-soul',game:'ghost-ship-hunt'});
     if(config.proposals?.shop?.[id])found.push({kind:'shop'});
     if(id==='random-biome-potion')found.push({kind:'potion'});

@@ -5,10 +5,10 @@ import vm from 'node:vm';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),C=require('../rewards/catalog.js');
 const json=name=>JSON.parse(fs.readFileSync(new URL('../event/data/'+name,import.meta.url),'utf8'));
-test('all 28 rewards have unique IDs and distributable art; outfits stay in rituals',()=>{
- assert.equal(C.items.length,28);assert.equal(new Set(C.items.map(x=>x.id)).size,28);
+test('all 30 rewards have unique IDs and distributable art; outfits stay in rituals',()=>{
+ assert.equal(C.items.length,30);assert.equal(new Set(C.items.map(x=>x.id)).size,30);
  const counts={};for(const item of C.items){counts[item.kind]=(counts[item.kind]||0)+1;assert.ok(C.biomes[item.biome]);assert.ok(item.permanent);assert.ok(fs.existsSync(new URL('../rewards/'+(item.asset||'assets/'+item.id+'.svg'),import.meta.url)),item.id);}
- assert.deepEqual(counts,{room:8,costume:2,theme:5,effect:8,relic:4,badge:1});
+ assert.deepEqual(counts,{room:8,costume:2,theme:6,effect:8,relic:4,badge:2});
  for(const item of C.items.filter(x=>x.kind==='costume')){assert.equal(item.rarity,'Rare');assert.equal(item.source,'ritual');}
  assert.equal(C.find('crown-of-midnight').source,'complete-shop');
 });

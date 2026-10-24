@@ -9,8 +9,7 @@
   // Night (dark) is the default tone; light swaps the palette tokens only. index.html reads the same key before first paint.
   const TONE_KEY = 'studentos.alt.halloween.tone';
   const TONE_BAR = { dark: '#170B36', light: '#F3EDFF' };
-  // Moon & Candle (theme-moonlight.css) is a separate sample theme that reuses this scene and runtime.
-  // Only it gets the light tone and the grouped Me list; Halloween itself keeps its original look.
+  // Halloween and Moon & Candle share one scene and layout, with dark and light palettes.
   const FAMILY = ['halloween', 'moonlight'];
   const isMoon = () => root.dataset.theme === 'moonlight';
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
@@ -20,7 +19,7 @@
   let volume = Math.max(0, Math.min(1, Number(read(VOLUME_KEY, '.35')) || 0));
   let motion = read(MOTION_KEY, reduced.matches ? 'still' : 'full');
   let musicEnabled = read(MUSIC_KEY, '1') === '1';
-  let paletteTone = read(TONE_KEY, 'dark') === 'light' ? 'light' : 'dark';
+  let paletteTone = isMoon() ? 'light' : 'dark';
   let active = false, scene, controls, context, master, wind, windGain;
   let musicBus, musicTimer = 0, nextBarAt = 0, musicBar = 0;
   const musicVoices = new Set();
@@ -114,7 +113,7 @@
   function decorate() {
     queued = false;
     if (!active) return;
-    mount(); preferences(); if (isMoon()) groupMe();
+    mount(); preferences(); if (active) groupMe();
     // 23 Oct 2026, owner: "too much on the buttons, it looks cluttered". Smoke, blood and a ghost used to go on
     // every primary button, Me row and tasks-tab button. Now only the one "do this now" card per screen
     // carries them; everything you tap stays plain. The scene behind the app still sets the mood.
@@ -260,7 +259,7 @@
     const moving = motion === 'full' && root.dataset.lite !== '1' && root.dataset.quality !== 'low';
     const m = document.querySelector('[data-hw-pref-motion]'); if (m) { m.textContent = moving ? 'หยุดภาพ' : 'เปิดภาพเคลื่อนไหว'; m.setAttribute('aria-pressed', String(moving)); }
     document.querySelectorAll('button[data-hw-motion]').forEach(button=>{const label=moving?'หยุดภาพเคลื่อนไหว Halloween':'เปิดภาพเคลื่อนไหว Halloween';button.textContent=moving?'Ⅱ':'▶';button.title=label;button.setAttribute('aria-label',label);button.setAttribute('aria-pressed',String(moving));});
-    const t = document.querySelector('[data-hw-pref-tone]'); if (t) { t.parentElement.hidden = !isMoon(); const light = root.dataset.hwTone === 'light'; t.textContent = light ? 'แสงจันทร์' : 'กลางคืน'; t.setAttribute('aria-pressed', String(light)); t.setAttribute('aria-label', light ? 'เปลี่ยนเป็นโทนกลางคืน' : 'เปลี่ยนเป็นโทนแสงจันทร์'); }
+    const t = document.querySelector('[data-hw-pref-tone]'); if (t) { t.parentElement.hidden = !active; const light = root.dataset.hwTone === 'light'; t.textContent = light ? 'แสงจันทร์' : 'กลางคืน'; t.setAttribute('aria-pressed', String(light)); t.setAttribute('aria-label', light ? 'เปลี่ยนเป็นโทนกลางคืน' : 'เปลี่ยนเป็นโทนแสงจันทร์'); }
     const prefs = document.getElementById('hwPreferences'); if (prefs) prefs.hidden = !active;
     root.dataset.hwSound = enabled ? 'on' : 'off';
     if (parent !== window) { const screen = document.querySelector('.screen.on'); parent.postMessage({ type: 'studentos-halloween-status', sound: enabled, motion, active, audio: root.dataset.hwAudio || 'off', moving: active && getComputedStyle(document.querySelector('.hw-haze')).animationName !== 'none', ornaments: document.querySelectorAll('.hw-ornament').length, viewport: [innerWidth, innerHeight], overflow: document.documentElement.scrollWidth > innerWidth, screen: screen?.id, screenScroll: screen ? screen.scrollHeight - screen.clientHeight : 0 }, location.origin); }
@@ -275,11 +274,12 @@
   }
   function setTone(value) {
     paletteTone = value === 'light' ? 'light' : 'dark'; write(TONE_KEY, paletteTone); root.dataset.hwTone = paletteTone;
+    if(active&&typeof setTheme==='function')setTheme(paletteTone==='light'?'moonlight':'halloween');
     paintBar(); updateControls();
   }
   function paintBar() {
     const meta = document.querySelector('meta[name=theme-color]');
-    if (meta && active && isMoon()) meta.content = TONE_BAR[paletteTone];
+    if (meta && active) meta.content = TONE_BAR[paletteTone];
   }
   function toggleMotion() { setMotion(motion === 'full' && root.dataset.lite !== '1' && root.dataset.quality !== 'low' ? 'still' : 'full'); }
   function burst(x = lastTap.x, y = lastTap.y, count = 12) {
@@ -295,7 +295,7 @@
     const next = FAMILY.includes(root.dataset.theme);
     if (next !== active) { active = next; if (active) { mount(); decorate(); } else { restore(); stopAudio(); } }
     // Switching straight between the two family themes keeps the scene but must regroup or ungroup the list.
-    if (active && isMoon()) groupMe(); else ungroupMe();
+    if(active){paletteTone=isMoon()?'light':'dark';root.dataset.hwTone=paletteTone;groupMe();}else ungroupMe();
     if (scene) scene.hidden = !active;
     paintBar(); updateControls();
   }

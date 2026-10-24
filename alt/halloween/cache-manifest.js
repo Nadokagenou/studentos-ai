@@ -3,6 +3,8 @@ self.HALLOWEEN_SHELL = [
   "halloween/cache-manifest.js",
   "halloween/rewards/preview-mode.js",
   "halloween/rewards/catalog.js",
+  "halloween/rewards/assets/theme-moon-candle.svg",
+  "halloween/rewards/assets/midnight-conqueror.svg",
   "halloween/rewards/runtime.js",
   "halloween/rewards/integration.js",
   "halloween/rewards/effect-games.js",

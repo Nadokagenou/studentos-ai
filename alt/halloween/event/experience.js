@@ -218,12 +218,12 @@
   function showBoss(id){
     const status=Core.bossStatus(read(),config,id,Date.now()),rule=status.rule;if(!rule)return;
     const usable=Core.weaponStatus(read(),config,read().event.equipment).usable;
-    openDetail(dialogShell(esc(rule.name),'<div class="boss-card-head">'+window.HalloweenBattleUI.bossArt(rule)+'<div><span class="difficulty" data-level="5">'+esc(rule.level)+'</span><p>พลังชีวิต '+rule.hp+' · โจมตี '+rule.damage+'</p></div></div><p class="npc-line">'+esc(rule.intro)+'</p><p class="subtle">อ่านช่องโจมตีที่บอสบอก เลือกหลบ ตั้งรับ หรือใช้ท่าอาวุธ เป็นการต่อสู้ทีละเทิร์น แพ้ลองใหม่ได้โดยไม่เสียอาวุธ</p><p class="boss-unlock-note">'+(status.won?'✓ พิชิตและรับรางวัลแล้ว':!status.unlocked?esc(status.reason):!usable?'ต้องถืออาวุธที่ใช้ได้ก่อนเริ่มต่อสู้':rule.theme?'ชนะจึงได้รับธีม '+esc(config.rewards[rule.theme].name):id==='midnight-sovereign'?'ชนะเพื่อเปิดพิธีรับธีม Midnight Academy':'รางวัล: มงกุฎเงาไร้นาม และบทส่งท้ายลับ')+'</p>',
+    openDetail(dialogShell(esc(rule.name),'<div class="boss-card-head">'+window.HalloweenBattleUI.bossArt(rule)+'<div><span class="difficulty" data-level="5">'+esc(rule.level)+'</span><p>พลังชีวิต '+rule.hp+' · โจมตี '+rule.damage+'</p></div></div><p class="npc-line">'+esc(rule.intro)+'</p><p class="subtle">อ่านช่องโจมตีที่บอสบอก เลือกหลบ ตั้งรับ หรือใช้ท่าอาวุธ เป็นการต่อสู้ทีละเทิร์น แพ้ลองใหม่ได้โดยไม่เสียอาวุธ</p><p class="boss-unlock-note">'+(status.won?'✓ พิชิตและรับรางวัลแล้ว':!status.unlocked?esc(status.reason):!usable?'ต้องถืออาวุธที่ใช้ได้ก่อนเริ่มต่อสู้':rule.theme?'ชนะจึงได้รับธีม '+esc(config.rewards[rule.theme].name):id==='midnight-sovereign'?'รางวัล: Halloween โทนมืด + Moon & Candle โทนสว่าง + ตราผู้พิชิต':'รางวัล: มงกุฎเงาไร้นาม และบทส่งท้ายลับ')+'</p>',
       '<button class="secondary" data-close-detail>กลับฉาก</button><button class="secondary" data-equipment>เลือกอาวุธ</button>'+(!status.won?'<button class="primary" data-start-boss="'+id+'" '+(!status.unlocked||!usable||read().event.closed?'disabled':'')+'>เริ่มต่อสู้</button>':'')));
   }
   function showBossList(){
     const doc=read(),ids=['midnight-sovereign'];if(doc.event.bossWins?.['midnight-sovereign']&&doc.rewards['theme-midnight-academy'])ids.push('nameless-afterlight');
-    openDetail(dialogShell('บัลลังก์เที่ยงคืน','<p class="subtle">จบเควสและชนะผู้พิทักษ์สี่ไบโอม รับธีมทั้งสี่ แล้วกลับมาท้าราชันก่อนทำพิธีธีมสุดท้าย</p><div class="boss-list">'+Object.entries(config.proposals.bosses).filter(([id,b])=>b.biome||ids.includes(id)).map(([id,b])=>{
+    openDetail(dialogShell('บัลลังก์เที่ยงคืน','<p class="subtle">จบเควสและชนะผู้พิทักษ์สี่ไบโอม รับธีมทั้งสี่ แล้วกลับมาท้าราชันเพื่อรับธีมทั้งสองโทนพร้อมตราชัยชนะ</p><div class="boss-list">'+Object.entries(config.proposals.bosses).filter(([id,b])=>b.biome||ids.includes(id)).map(([id,b])=>{
       const s=Core.bossStatus(doc,config,id,Date.now());return '<article class="boss-card"><div class="boss-card-head">'+window.HalloweenBattleUI.bossArt(b)+'<div><h3>'+esc(b.name)+'</h3><small>'+esc(b.level)+'</small></div></div><p>'+(s.won?'✓ พิชิตแล้ว':s.unlocked?'พร้อมท้าสู้':esc(s.reason))+'</p><button class="secondary" data-boss="'+id+'">ดูการท้าทาย</button></article>';
     }).join('')+'</div>','<button class="secondary" data-close-detail>กลับวงเวท</button>'));
   }
@@ -275,7 +275,7 @@
     openDetail(dialogShell('ของที่หาได้ · กติกาบ้าน',houseRuleSummary()+'<div class="guide-grid">'+config.materials.biomes.map(b=>'<section class="source-card"><h3>'+esc(b.name)+'</h3>'+b.items.map(item=>'<div class="pool-row"><span>'+esc(item.name)+'</span><small>'+item.rarity+'</small>'+sourceButton(item.id)+'</div>').join('')+'</section>').join('')+'</div>','<button class="secondary" data-close-detail>กลับฉาก</button>'));
   }
   function recipes(channel) {
-    const doc=read(),ritual=channel==='ritual',list=config.proposals.recipes.filter(r=>r.channel===channel);
+    const doc=read(),ritual=channel==='ritual',list=config.proposals.recipes.filter(r=>r.channel===channel&&!r.retired);
     const recipe=list.find(r=>r.id===recipeSelection[channel])||list[0],item=config.rewards[recipe.reward],owned=!!doc.rewards[item.id];
     let blocked='';
     try{Core.checkRequirements(doc,{candy:recipe.candy,items:recipe.items.map(([id,quantity])=>({id,quantity}))});}catch(e){blocked=e.message;}
@@ -345,7 +345,7 @@
   function inventory() {
     const doc = read(), owned = Object.keys(doc.rewards);
     const inventory = Object.entries(doc.event.inventory).filter(([,n]) => n>0);
-    return '<section class="satchel-scene">'+pageHead('THE ADVENTURER’S SATCHEL','กระเป๋าเดินทางของฉัน','แตะของเพื่อดูรายละเอียด อาวุธถือได้จากช่องอาวุธ', owned.length+' / 28 รางวัล') +
+    return '<section class="satchel-scene">'+pageHead('THE ADVENTURER’S SATCHEL','กระเป๋าเดินทางของฉัน','แตะของเพื่อดูรายละเอียด อาวุธถือได้จากช่องอาวุธ', owned.length+' / '+Catalog.items.length+' รางวัล') +
       '<div class="shop-controls inventory-tabs"><button class="filter-button" data-vault-tab="rewards" aria-pressed="' + (vaultTab==='rewards') + '">รางวัล ' + owned.length + '</button><button class="filter-button" data-vault-tab="materials" aria-pressed="' + (vaultTab==='materials') + '">วัตถุดิบ ' + inventory.length + '</button><button class="filter-button" data-vault-tab="ledger" aria-pressed="' + (vaultTab==='ledger') + '">รับ–ใช้ Candy</button><button class="filter-button" data-open-potion>น้ำยาไบโอม</button><span class="tiny">รางวัลที่รับไว้เก็บถาวร</span></div>' +
       (vaultTab==='materials' ? (inventory.length?'<div class="satchel-slots">' + inventory.map(([id,n]) => '<button class="bag-slot" data-bag-item="'+esc(id)+'"><span class="bag-pouch" aria-hidden="true">◈</span><b>' + esc(name(id)) + '</b><small>' + esc(config.items[id]?.rarity || 'ไอเท็มเควส') + (doc.event.grown[id] ? ' · ปลูกเอง '+doc.event.grown[id] : '') + '</small><strong>×' + n + '</strong></button>').join('')+'</div>':'<p class="satchel-empty">ช่องวัตถุดิบยังว่างอยู่ เคาะบ้านหรือทำเควสแล้วของจะเก็บที่นี่</p>') : vaultTab==='ledger' ? '<div class="ledger">' + (doc.event.ledger.length?[...doc.event.ledger].reverse().map(row => '<div class="ledger-row"><span>' + esc({'preview-supplies':'ชุดทดสอบ','house':'เคาะบ้าน','spend':'ส่งเควส / ผสม','quest':'รางวัลเควส','shop':'ซื้อจากร้าน','crop-sale':'ขายผลผลิต','studentos-mission':'ภารกิจ StudentOS','death-quest':'เควสมรณะ','potion-purchase':'ซื้อน้ำยา','ship-chest':'กล่องจากเรือ','ship-repair':'ซ่อมเรือ','visitor':'นักเดินทาง','task':'งานตัวอย่าง','totem':'Totem'}[row.source] || row.source) + '</span><small>' + new Date(row.at).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}) + '</small><b>' + (row.amount>0 ? '+' : '') + row.amount + '</b></div>').join(''):'<p class="satchel-empty">ยังไม่มีรายการรับหรือใช้ Candy</p>') + '</div>' : owned.length ? '<div class="satchel-rewards">' + owned.map(id => {
         const item = config.rewards[id], restriction = doc.rewards[id].restriction;
@@ -587,6 +587,7 @@
           return doc;
         }});
         read();
+        if(!read().event.closed&&read().event.bossWins?.['midnight-sovereign']&&config.proposals.bosses['midnight-sovereign'].rewards.some(id=>!read().rewards[id]))await perform({type:'claim-final-theme-set'},{silent:true});
       }
       if(preview)market=window.HalloweenMarket.create({Core,config:()=>config,read,now,detail,refresh:()=>showPanel('shop-stock'),perform,audio,onRewards:acquisition,esc,asset,name,duration,portrait:id=>window.HalloweenWorld.portrait(id),cropArt:index=>window.HalloweenWorld.pixelCrop(index)});
       const hash = location.hash.slice(1); if (['gate','hub','biome','garden'].includes(hash)) route=hash;

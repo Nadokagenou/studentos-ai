@@ -327,6 +327,7 @@
     } else if (action.type === 'craft') {
       requirePreview(config);
       const recipe = config.proposals.recipes.find(x => x.id === action.recipe) || fail('ยังไม่มีสูตรนี้');
+      if(recipe.retired)fail('ธีมคู่นี้รับพร้อมตราเมื่อชนะราชันเที่ยงคืน ไม่ต้องทำพิธีเพิ่ม');
       if (document.rewards[recipe.reward]) fail('มีรางวัลชิ้นนี้แล้ว');
       if (recipe.requiresAllMainQuests && !config.quests.filter(x => x.finalMainQuest).every(x => event.quests[x.id]?.complete)) fail('พิธีทดลองนี้ต้องผ่าน Main Quest ทั้งสี่คน');
       if(recipe.requiresBoss&&!event.bossWins?.[recipe.requiresBoss])fail('ต้องชนะราชันเที่ยงคืนก่อนทำพิธีรับธีม');
@@ -396,10 +397,13 @@
       if(battle.finished&&battle.clear){
         event.bossWins||={};if(event.bossWins[battle.id])fail('รับรางวัลบอสแล้ว');
         event.bossWins[battle.id]={at,tx,turns:battle.turn,weapon:battle.weapon};
-        if(rule.theme&&!document.rewards[rule.theme]){Ownership.grant(document,{id:rule.theme},tx,at);result.rewards.push(rule.theme);}
+        for(const id of rule.rewards||(rule.theme?[rule.theme]:[]))if(!document.rewards[id]){Ownership.grant(document,{id},tx,at);result.rewards.push(id);}
         if(battle.id==='nameless-afterlight'){addItem(event,'nameless-crown',1);event.secretEnding=true;}
       }
       result.battle=clone(battle);
+    } else if(action.type==='claim-final-theme-set'){
+      requirePreview(config);if(!event.bossWins?.['midnight-sovereign'])fail('ต้องชนะราชันเที่ยงคืนก่อน');
+      for(const id of config.proposals.bosses['midnight-sovereign'].rewards)if(!document.rewards[id]){Ownership.grant(document,{id},tx,at);result.rewards.push(id);}
     } else if(action.type==='buy-biome-potion'){
       requirePreview(config);
       if(event.location?.room!=='cauldron')fail('ซื้อน้ำยากับมอราในห้องเตาผสมก่อน');

@@ -118,7 +118,11 @@
     "status": "proposed-preview-only-not-owner-confirmed",
     "intervalMs": 3600000,
     "lots": 6,
-    "rarityWeightsPercent": {"Common": 60, "Uncommon": 30, "Epic": 10},
+    "rarityWeightsPercent": {
+      "Common": 60,
+      "Uncommon": 30,
+      "Epic": 10
+    },
     "selection": "uniform-with-replacement",
     "scope": "local-preview-save",
     "notice": "ทดลองร้าน 6 ชิ้นต่อรอบชั่วโมง สุ่มระดับ 60/30/10 แล้วสุ่มชื่อเท่ากัน ของซ้ำรวมจำนวน ซื้อรางวัลถาวรได้ชื่อเดียวครั้งเดียว ไม่ขายวัตถุดิบหรือของเควส"
@@ -227,7 +231,8 @@
       "candy": 300,
       "items": [],
       "requiresAllMainQuests": true,
-      "requiresBoss": "midnight-sovereign"
+      "requiresBoss": "midnight-sovereign",
+      "retired": true
     }
   ],
   "additionalPools": {},
@@ -319,7 +324,12 @@
       "color": "#d7ba81",
       "shape": "sovereign",
       "level": "สุดโหด",
-      "intro": "สี่ตราแห่งชัยชนะเปิดบัลลังก์นี้ได้ แต่ไม่มีใครเคยเดินกลับออกไปพร้อมมงกุฎ..."
+      "intro": "สี่ตราแห่งชัยชนะเปิดบัลลังก์นี้ได้ แต่ไม่มีใครเคยเดินกลับออกไปพร้อมมงกุฎ...",
+      "rewards": [
+        "theme-midnight-academy",
+        "theme-moon-candle",
+        "midnight-conqueror"
+      ]
     },
     "nameless-afterlight": {
       "name": "เงาไร้นามหลังรุ่งสาง",

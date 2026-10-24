@@ -15,7 +15,7 @@
     try{const raw=localStorage.getItem(key);rewards=raw?O.validate(JSON.parse(raw),owner,season).rewards:{};}
     catch(error){document.getElementById('vaultStatus').textContent=error.message;return;}
     const owned=Object.keys(rewards).map(id=>C.find(id)).filter(Boolean);
-    document.getElementById('vaultCount').textContent=owned.length+' / 28 ความทรงจำ';
+    document.getElementById('vaultCount').textContent=owned.length+' / '+C.items.length+' ความทรงจำ';
     document.getElementById('vaultFilters').innerHTML=Object.entries(kinds).map(([id,label])=>'<button data-kind="'+id+'" aria-pressed="'+(kind===id)+'">'+label+'</button>').join('');
     const filtered=owned.filter(x=>kind==='all'||x.kind===kind);
     content.innerHTML=filtered.length?filtered.map(item=>'<button class="memory-card" data-item="'+item.id+'" style="--tier:'+C.tiers[item.rarity].color+'"><div class="art"><img src="'+asset(item)+'" alt="'+esc(item.name)+'" loading="lazy"></div><div class="copy"><small>'+item.rarity+'</small><h2>'+esc(item.name)+'</h2><p>'+esc(C.biomes[item.biome].name)+(rewards[item.id].restriction?' · Restricted':'')+'</p></div></button>').join(''):'<p class="empty">ยังไม่มีความทรงจำในหมวดนี้<br>ของที่ได้รับในห้องลองจะถูกเก็บไว้ที่นี่</p>';

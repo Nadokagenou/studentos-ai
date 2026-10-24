@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <script src="halloween/rewards/preview-mode.js"></script>
-  <script src="halloween/rewards/catalog.js"></script>
+  <script src="halloween/rewards/catalog.js?rev=family-20261024"></script>
   <meta name="google-site-verification" content="EL8HSk9rzF6WS9GYcfkFaYwxf00p2PzEKganiKXzDh0" />
   <title>Student OS — ผู้ช่วยจัดลำดับงานสำหรับนักเรียน</title>
   <meta name="description" content="Student OS คือ AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงานหรือแปะข้อความจาก LINE แล้ว AI จัดลำดับความสำคัญพร้อมเหตุผล ไม่ต้องเดาว่าจะทำอะไรก่อน">
@@ -45,7 +45,7 @@
       // (CSS ของโทนอยู่ใต้ [data-theme="moonlight"] เท่านั้น ธีมอื่นไม่สนแอตทริบิวต์นี้)
       // คีย์ต้องตรงกับ TONE_KEY ใน halloween/rewards/theme-main.js
       var hwLight = false;
-      try { hwLight = localStorage.getItem('studentos.alt.halloween.tone') === 'light'; } catch (e) {}
+      hwLight = t === 'moonlight';
       if (hwLight) document.documentElement.dataset.hwTone = 'light';
       // 24 ต.ค. 69 · ช่วงฮาโลวีน จอโหลดกับจอเข้าสู่ระบบแต่งเป็นฮาโลวีน (halloween/season/season.css)
       // ต้องรู้ก่อนวาดจอแรก จึงตัดสินที่นี่ ไม่รอ config.json · วันจบต้องตรงกับ endsAt ใน halloween/event/config.json
@@ -149,8 +149,8 @@
   <link rel="stylesheet" href="halloween/rewards/theme-main.css">
   <link rel="stylesheet" href="halloween/rewards/biome-themes.css">
   <link rel="stylesheet" href="halloween/rewards/effect-games.css">
-  <!-- ธีมตัวอย่าง Moon & Candle — แยกจาก Halloween ทุกกฎ ให้ทีมพัฒนาต่อ (halloween/docs/moon-and-candle.md) -->
-  <link rel="stylesheet" href="halloween/rewards/theme-moonlight.css">
+  <!-- Halloween / Moon & Candle: shared design, dark and light reward tones. -->
+  <link rel="stylesheet" href="halloween/rewards/theme-moonlight.css?rev=family-20261024">
   <!-- ช่วงฮาโลวีน: จอโหลด (ค้างคาว) + จอเข้าสู่ระบบ — มีผลเฉพาะตอน <html> มีคลาส hw-season -->
   <link rel="stylesheet" href="halloween/season/season.css">
 </head>
@@ -2577,9 +2577,9 @@
 <script src="halloween/death-quest-main.js"></script>
 <link rel="stylesheet" href="halloween/death-quest-main.css">
 <script src="desktop-entry.js"></script>
-<script src="halloween/rewards/theme-main.js"></script>
+<script src="halloween/rewards/theme-main.js?rev=family-20261024"></script>
 <script src="halloween/rewards/effect-games.js"></script>
-<script src="halloween/rewards/runtime.js"></script>
+<script src="halloween/rewards/runtime.js?rev=family-20261024"></script>
 <script src="halloween/rewards/integration.js"></script>
 <script src="device-preview-bridge.js"></script>
 

@@ -8,14 +8,14 @@ test('updating controls changes buttons while preserving the application root',(
  vm.runInNewContext(program+';updateControls();',context);
  assert.equal(root.textContent,'APPLICATION');assert.deepEqual(root.attrs,{});assert.equal(motion.textContent,'Ⅱ');assert.equal(sound.attrs['aria-pressed'],'false');
 });
-test('the tone toggle saves the choice and repaints the status bar only while Moon & Candle is active',()=>{
+test('the tone toggle saves the choice and repaints the status bar for both paired themes',()=>{
  const from=source.indexOf('  function setTone('),to=source.indexOf('  function toggleMotion(',from);
- const run=(active,theme='moonlight')=>{const root={dataset:{theme}},saved=[],meta={content:'#F7FAFF'};const context={root,active,isMoon:()=>root.dataset.theme==='moonlight',TONE_KEY:'studentos.alt.halloween.tone',TONE_BAR:{dark:'#170B36',light:'#F3EDFF'},write(k,v){saved.push([k,v]);},updateControls(){},document:{querySelector:s=>s==='meta[name=theme-color]'?meta:null}};
+ const run=(active,theme='moonlight')=>{const root={dataset:{theme}},saved=[],meta={content:'#F7FAFF'};const context={root,active,isMoon:()=>root.dataset.theme==='moonlight',setTheme:t=>{root.dataset.theme=t;},TONE_KEY:'studentos.alt.halloween.tone',TONE_BAR:{dark:'#170B36',light:'#F3EDFF'},write(k,v){saved.push([k,v]);},updateControls(){},document:{querySelector:s=>s==='meta[name=theme-color]'?meta:null}};
   vm.runInNewContext('let paletteTone="dark";'+source.slice(from,to)+';setTone("light");',context);return {root,saved,meta};};
  const on=run(true);
  assert.equal(on.root.dataset.hwTone,'light');assert.deepEqual(on.saved,[['studentos.alt.halloween.tone','light']]);assert.equal(on.meta.content,'#F3EDFF');
  assert.equal(run(false).meta.content,'#F7FAFF');
- assert.equal(run(true,'halloween').meta.content,'#F7FAFF','Halloween keeps its own status bar colour');
+ const pair=run(true,'halloween');assert.equal(pair.meta.content,'#F3EDFF');assert.equal(pair.root.dataset.theme,'moonlight');
 });
 // A tiny DOM: enough for groupMe/ungroupMe (children, append, remove, :scope > selector).
 class Node0{constructor(attrs={}){this.attrs=attrs;this.className=attrs.class||'';this.id=attrs.id||'';this.children=[];this.parentElement=null;this.textContent=attrs.text||'';}

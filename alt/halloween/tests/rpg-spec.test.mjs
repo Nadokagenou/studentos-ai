@@ -102,3 +102,11 @@ test('biome progress counts completed phases and the actual guardian win; reward
   const doc=Core.initial(config,'review',at),biome=Core.BIOMES[0],chain=config.quests.filter(q=>q.biome===biome),boss=Object.entries(config.proposals.bosses).find(([,b])=>b.biome===biome)[0],initial=JSON.stringify(doc);
   assert.equal(Core.biomeProgress(doc,config,biome).value,0);assert.equal(JSON.stringify(doc),initial);doc.event.quests[chain[0].id]={phase:1};assert.equal(Core.biomeProgress(doc,config,biome).value,Math.min(1,chain[0].phases.length-1));for(const q of chain)doc.event.quests[q.id]={complete:true};let p=Core.biomeProgress(doc,config,biome);assert.equal(p.complete,false);assert.equal(p.value,p.total-1);doc.event.bossWins={[boss]:{at}};p=Core.biomeProgress(doc,config,biome);assert.equal(p.complete,true);assert.equal(p.percent,100);
 });
+
+test('the final sovereign grants both Halloween tones and a victory badge in the same win transaction',async()=>{
+  const h=harness(d=>{ready(d,'midnight-sovereign');d.event.location={kind:'room',room:'ritual'};for(const [id,b]of Object.entries(config.proposals.bosses))if(b.biome){d.event.bossWins||={};d.event.bossWins[id]={at};d.rewards[b.theme]={id:b.theme};}});
+  await defeat(h,'midnight-sovereign');const d=h.store.read();for(const id of ['theme-midnight-academy','theme-moon-candle','midnight-conqueror'])assert.ok(d.rewards[id],id);assert.equal(d.rewards['crown-of-midnight'],undefined);const before=JSON.stringify(d.rewards);await assert.rejects(h.apply({type:'start-boss',boss:'midnight-sovereign'}));assert.equal(JSON.stringify(h.store.read().rewards),before);
+});
+test('previous final-boss winners receive missing paired rewards once; a forged claim grants nothing',async()=>{
+  const no=harness();await assert.rejects(no.apply({type:'claim-final-theme-set'}));const h=harness(d=>{d.event.bossWins={'midnight-sovereign':{at}};d.rewards['theme-midnight-academy']={id:'theme-midnight-academy',receipt:'old'};});await h.apply({type:'claim-final-theme-set'});await h.apply({type:'claim-final-theme-set'});const d=h.store.read();assert.ok(d.rewards['theme-moon-candle']);assert.ok(d.rewards['midnight-conqueror']);assert.equal(d.rewards['theme-midnight-academy'].receipt,'old');assert.equal(d.event.candy,0);
+});

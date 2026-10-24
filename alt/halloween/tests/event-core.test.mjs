@@ -351,7 +351,7 @@ test('the totem cannot reset a house cooldown or advance a quest cycle',async()=
   assert.equal(Core.biomeAt(h.store.read(),h.config,time).cycle,cycle);
   await assert.rejects(h.apply({type:'house',house:1,choice:'treat'}),/คูลดาวน์/);
 });
-test('the complete four-NPC journey, games, garden, shop and rituals yields exactly 28 review rewards',async()=>{
+test('the complete four-NPC journey, games, garden, shop and rituals yields exactly 30 review rewards',async()=>{
   const h=harness({prepare:stock});
   await h.biome(Core.BIOMES[0]);await quest(h,'dutchman-light-in-darkness');await winGame(h,'ghost-ship-hunt');await quest(h,'dutchman-repair-and-prove');await quest(h,'dutchman-ghost-commander');
   assert.equal(h.store.read().rewards['greater-spear'],undefined);await quest(h,'dutchman-ghost-commander');await winBoss(h,'drowned-admiral');
@@ -376,9 +376,9 @@ test('the complete four-NPC journey, games, garden, shop and rituals yields exac
     await h.apply({type:'buy',item});
   }
   await h.apply({type:'enter-room',room:'ritual'});await winBoss(h,'midnight-sovereign');
-  for(const recipe of proposals.recipes) await h.apply({type:'craft',recipe:recipe.id});
+  for(const recipe of proposals.recipes.filter(r=>!r.retired)) await h.apply({type:'craft',recipe:recipe.id});
   await winBoss(h,'nameless-afterlight');assert.equal(h.store.read().event.inventory['nameless-crown'],1);
-  const doc=h.store.read();assert.equal(Object.keys(doc.rewards).length,28);assert.equal(configCompleted(h),14);
+  const doc=h.store.read();assert.equal(Object.keys(doc.rewards).length,30);assert.equal(configCompleted(h),14);
   const before=JSON.stringify(doc.rewards);await h.apply({type:'preview-close'});assert.equal(JSON.stringify(h.store.read().rewards),before);
 });
 function configCompleted(h){return h.config.quests.filter(q=>h.store.read().event.quests[q.id]?.complete).length;}
