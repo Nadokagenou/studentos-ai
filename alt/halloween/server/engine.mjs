@@ -207,6 +207,37 @@ const factories={
     if (!positive(reward.quantity)) fail('จำนวนรางวัลไม่ถูกต้อง');
     addItem(event, reward.id, reward.quantity); return null;
   }
+  // เควสที่ผู้เล่นต้องทำต่อในไบโอมนี้ และของที่ยังขาด — อ่านอย่างเดียว ให้แถบภารกิจและหัวหมู่บ้านบนจอใช้ ไม่เปลี่ยนกติกา
+  function questNeeds(document, config, biome, now = document.event.clock - document.event.timeOffset) {
+    const event = document.event, chain = config.quests.filter(q => q.biome === biome);
+    const quest = chain.find(q => !event.quests[q.id]?.complete);
+    if (!quest) return null;
+    const status = questStatus(document, config, quest), phase = quest.phases[Math.min(status.phase, quest.phases.length - 1)];
+    const branches = phase.requirements.anyOf ? phase.requirements.anyOf.map(x => x.id) : [null];
+    let best = null;
+    for (const branch of branches) {
+      let requirements;
+      try { requirements = resolveRequirements(config, quest, phase.requirements, branch); } catch (error) { if (!best) best = {branch, requirements:null, missing:[], error:error.message}; continue; }
+      const missing = [];
+      if ((requirements.candy || 0) > event.candy) missing.push({kind:'candy', id:'candy', have:event.candy, need:requirements.candy});
+      for (const item of requirements.items || []) {
+        const need = item.consume === false && item.mustPossess ? 1 : item.quantity;
+        const have = item.mustBePlayerGrown ? Math.min(event.grown[item.id] || 0, event.inventory[item.id] || 0) : event.inventory[item.id] || 0;
+        if (have < need) missing.push({kind:'item', id:item.id, have, need, grown:!!item.mustBePlayerGrown});
+      }
+      if (requirements.objective && !event.proofs[requirements.objective.id]?.complete) missing.push({kind:'game', id:requirements.objective.id, have:0, need:1});
+      const mini = requirements.minigame;
+      if (mini) {
+        const id = mini.id || 'ghost-ship-hunt', proof = event.proofs[id];
+        if ((mini.mustClear && !proof?.clear) || (mini.mustComplete && !proof?.complete)) missing.push({kind:'game', id, have:0, need:1});
+      }
+      const row = {branch, requirements, missing, error:null};
+      if (!best || best.error || missing.length < best.missing.length) best = row;
+      if (!missing.length) break;
+    }
+    const waitCycle = questWait(document, config, quest, now).waiting;
+    return {quest, status, phase:status.phase, phases:quest.phases.length, ...best, ready:!best.error && !best.missing.length && !waitCycle, waitCycle};
+  }
   function houseAvailability(document, config, id, now) {
     const event = document.event, at = moment(document, now), biome = biomeAt(document, config, now).id;
     const next = event.houses[biome + ':' + id] || 0;
@@ -549,7 +580,7 @@ const factories={
     event.clock = at;
     return result;
   }
-  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,questWait,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, houseAvailability,questAidStatus, gameDefinition, dispatch});
+  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,questWait,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, questNeeds, houseAvailability,questAidStatus, gameDefinition, dispatch});
 });
 
 },
