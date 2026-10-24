@@ -45,14 +45,13 @@ test('after the shovel the objective points at the dig game, then the ghosts, ne
   o=next(doc,'biome');assert.equal(o.action.game,'catch-all-ghosts');
 });
 
-test('a missing low-tier item from another biome still routes to the houses, and the luck meter can deliver it',()=>{
+test('a missing low-tier item from another biome still routes to the houses',()=>{
   const morning=Date.parse('2026-10-24T08:00:00+07:00'),doc=fresh();
   doc.event.visits.stories['jacks-hollow']=true;doc.event.quests['jack-clear-garden']={phase:2,complete:true};
   doc.event.inventory['jacks-hollow-pumpkin']=3;doc.event.grown['jacks-hollow-pumpkin']=3;doc.event.inventory['jacks-hollow-jack-o-wood']=1;doc.event.inventory['dutchmans-soul-seaweed']=1;
   const o=next(doc,'biome',morning);
   assert.deepEqual(o.need.map(n=>n.id),['jacks-hollow-shovel']);
   assert.equal(o.action.kind,'village');
-  assert.ok(Core.pityTargets(doc,config,'jacks-hollow',morning).wanted.some(x=>x.id==='jacks-hollow-shovel'));
 });
 
 test('a finished chain asks for the guardian, then points at the next gate with work left',()=>{
@@ -62,39 +61,11 @@ test('a finished chain asks for the guardian, then points at the next gate with 
   o=next(doc,'biome');assert.equal(o.action.kind,'wait');assert.equal(o.wait.biome,'dutchmans-soul');
 });
 
-test('luck meter guarantees a missing quest item after the threshold and resets on a hit',()=>{
-  // หาเมล็ดที่ Treat สุ่มไม่ได้ของสองครั้งติด เพื่อพิสูจน์ว่าครั้งที่สามการันตี (เควสแรก เกณฑ์ 1)
-  let checked=0;
-  for(let seed=1;seed<4000&&checked<40;seed++){
-    const doc=fresh(seed);doc.event.previewBiome='eternal-graveyard';
-    const r1=Core.dispatch(doc,config,{type:'house',house:1,choice:'treat'},{now:at,tx:'a'});
-    if(r1.wanted)continue;
-    assert.equal(doc.event.luck['win-death-fragments'],1);
-    const r2=Core.dispatch(doc,config,{type:'house',house:2,choice:'treat'},{now:at,tx:'b'});
-    assert.equal(r2.item.pity,true);assert.equal(r2.wanted,true);
-    assert.ok(['pending-human-bone','pending-human-skull'].includes(r2.item.id));
-    assert.equal(doc.event.luck['win-death-fragments'],0);
-    checked++;
-  }
-  assert.ok(checked>=40);
-});
-
-test('luck meter never guarantees rare items and never fires on a Trick that paid nothing',()=>{
-  const doc=fresh(7);doc.event.previewBiome='eternal-graveyard';
-  for(const id of ['win-death-fragments','win-gravekeeper-trial'])doc.event.quests[id]={phase:9,complete:true};
-  const p=Core.pityTargets(doc,config,'eternal-graveyard',at);
-  assert.equal(p.quest,'win-forge-blade');
-  assert.deepEqual(p.wanted,[],'Soul Vessel / Grim Scythe / Scrap Iron are Epic+ so no guarantee');
-  const d2=fresh(3);d2.event.previewBiome='eternal-graveyard';d2.event.luck={'win-death-fragments':5};
-  let zero=null;
-  for(let h=1;h<=5&&!zero;h++){const r=Core.dispatch(d2,config,{type:'house',house:h,choice:'trick'},{now:at,tx:'t'+h});if(r.candy===0)zero=r;else break;}
-  if(zero){assert.equal(zero.item,null);}
-});
-
-test('first Win quest finishes within the five houses of one visit thanks to the luck meter',()=>{
-  for(let seed=1;seed<=500;seed++){
-    const doc=fresh(seed);doc.event.previewBiome='eternal-graveyard';
-    for(let h=1;h<=5;h++)Core.dispatch(doc,config,{type:'house',house:h,choice:'treat'},{now:at,tx:'k'+h});
-    assert.ok(doc.event.inventory['pending-human-bone']>=1&&doc.event.inventory['pending-human-skull']>=1,'seed '+seed);
-  }
+test('questNeeds only reads the save: drop rates and the confirmed 30-house aid stay as they were',()=>{
+  const doc=fresh();const before=JSON.stringify(doc);
+  const needs=Core.questNeeds(doc,config,'eternal-graveyard',at);
+  assert.equal(needs.quest.id,'win-death-fragments');assert.equal(needs.ready,false);
+  assert.equal(JSON.stringify(doc),before);
+  assert.equal(config.proposals.questAid.visits,30);
+  assert.equal(config.proposals.houses.pity,undefined);
 });

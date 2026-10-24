@@ -398,6 +398,7 @@ test('the permanent vault and its required resources have no dependency on the r
   for(const [,ref] of html.matchAll(/(?:src|href)="([^"]+)"/g)) {
     assert.ok(!ref.includes('/event/'),ref);
     if(ref==='../../')continue;
+    if(ref.startsWith('https://')){assert.equal(ref,'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.min.js');continue;}
     assert.ok(fs.existsSync(new URL('../rewards/'+ref,import.meta.url)),ref);
   }
   const source=fs.readFileSync(new URL('../rewards/vault.js',import.meta.url),'utf8');

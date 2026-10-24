@@ -29,7 +29,7 @@
   effectSession={layer,done:onClose,key,close,visibility};layer.querySelector('button').addEventListener('click',close);document.addEventListener('keydown',key,true);window.addEventListener('popstate',close);document.addEventListener('visibilitychange',visibility);phone.append(layer);layer.querySelector('button').focus({preventScroll:true});
   fxTimer=setTimeout(close,reduced?2200:item.rarity==='Legendary'?6200:4200);
  }
- function paintCostume(){if(!current||current.kind!=='costume')return;const prefix=current.mascot==='sai'?'sai':'hook';document.querySelectorAll('img').forEach(img=>{const src=img.getAttribute('src')||'';if((prefix==='sai'?/(?:^|\/)sai-(?:face-[\w-]+|chibi)\.webp$|(?:^|\/)sai-avatar\.png$/:/(?:^|\/)hook-(?:body|face)\.webp$|(?:^|\/)hook-avatar\.png$/).test(src)&&img.src!==asset(current)){img.src=asset(current);img.dataset.hwCostumePreview=current.id;}});}
+ function paintCostume(){if(!current||current.kind!=='costume')return;const prefix=current.mascot==='sai'?'sai':'hook';document.querySelectorAll('img').forEach(img=>{const src=img.getAttribute('src')||'';if((prefix==='sai'?/(?:^|\/)sai-(?:face-[\w-]+|chibi)\.webp$|(?:^|\/)sai-avatar\.png$/:/(?:^|\/)hook-(?:body|face)\.webp$|(?:^|\/)hook-avatar\.png$|(?:^|\/)hook-hat-(?:body|face|avatar)\.svg$/).test(src)&&img.src!==asset(current)){img.src=asset(current);img.dataset.hwCostumePreview=current.id;}});}
  function paintRoom(){if(!current||current.kind!=='room')return;const svg=document.querySelector('#roomBody .rm-scene');if(!svg||svg.querySelector('.hw-room-item')||svg.querySelector('[data-hw-room]'))return;const slots={desk:[89,113,100,92],shelf:[199,68,53,53],poster:[104,25,55,60],hanging:[162,0,100,95],pet:[208,156,91,80]},[x,y,w,h]=slots[current.slot];const image=document.createElementNS('http://www.w3.org/2000/svg','image');image.setAttribute('class','hw-room-item');for(const [key,value]of Object.entries({x,y,width:w,height:h,href:asset(current)}))image.setAttribute(key,value);svg.append(image);}
  function queue(){if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;paintCostume();paintRoom();});}
  function preview(id){if(!window.__HW_SHOWROOM__)return false;const item=C.find(id);if(!item)return false;clearPresentation();current=item;
@@ -46,12 +46,12 @@
   // The event switch is fetched separately. Removing event/ hides its entry.
   // 24 Oct: the entry moved from a card under the profile header to the event slot on the home screen (eventSlot in app.js), as the owner chose.
   if(!window.__HW_SHOWROOM__)fetch(new URL('../event/config.json',base),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(config=>{
-   const end=config?.endsAt?Date.parse(config.endsAt):NaN,preview=config?.claimingEnabled!==true;
+   const end=config?.endsAt?Date.parse(config.endsAt):NaN,start=config?.startsAt?Date.parse(config.startsAt):NaN,preview=config?.claimingEnabled!==true||(Number.isFinite(start)&&Date.now()<start);
    // 24 Oct: index.html turns on the Halloween boot/login skin (:root.hw-season) before this file loads.
    // Turning the event off in config.json, or passing endsAt, takes the skin off as well.
    if(!config?.enabled||(Number.isFinite(end)&&end<=Date.now()))root.classList.remove('hw-season');
    if(!config?.enabled)return;
-   const destination=new URL('../event/index.html',base);if(preview)destination.searchParams.set('preview','1');destination.searchParams.set('rev','red-dots-20261023');
+   const destination=new URL('../event/index.html',base);if(preview)destination.searchParams.set('preview','1');destination.searchParams.set('rev','launch-20261024');
    const eventDir=new URL('../event/',base),card=config.card||{};
    window.HalloweenEventEntry=Object.freeze({name:config.name||'Halloween',tagline:config.tagline||'',blurb:config.blurb||'',href:destination.href,preview,
     // Home event card art, resolved against event/ so removing event/ takes the art with it
@@ -64,9 +64,9 @@
     // Sub-areas listed on the app's event screen (events.js) — each opens event/index.html#<id>
     sections:Array.isArray(config.sections)?config.sections.filter(x=>x&&typeof x.id==='string'&&/^[\w-]+$/.test(x.id)).map(x=>Object.freeze({id:x.id,label:String(x.label||x.id),hint:String(x.hint||''),icon:/^[a-z-]+$/.test(x.icon||'')?x.icon:''})):[],
     // null = the event has ended and the button hides itself · '' = no endsAt, so no countdown
-    countdown(now=Date.now()){if(!Number.isFinite(end))return'';const left=end-now;if(left<=0)return null;const hours=Math.ceil(left/36e5);return hours<24?'เหลือ '+hours+' ชม.':'เหลือ '+Math.ceil(left/864e5)+' วัน';},
+    countdown(now=Date.now()){if(Number.isFinite(start)&&now<start)return 'เปิด 28 ต.ค. · อีก '+Math.ceil((start-now)/864e5)+' วัน';if(!Number.isFinite(end))return'';const left=end-now;if(left<=0)return null;const hours=Math.ceil(left/36e5);return hours<24?'เหลือ '+hours+' ชม.':'เหลือ '+Math.ceil(left/864e5)+' วัน';},
     // Preview Candy lives on this device (KEY in event/experience.js). Real claiming has no store to read yet, so it shows nothing.
-    candy(){if(!preview)return null;try{const doc=JSON.parse(localStorage.getItem('studentos.alt.halloween.preview.v1')||'null');return Number.isSafeInteger(doc?.event?.candy)?doc.event.candy:0;}catch{return null;}}});
+    candy(){if(!preview){try{return window.HalloweenAccountState?.ready()?window.HalloweenAccountState.read().event.candy:null;}catch{return null;}}try{const doc=JSON.parse(localStorage.getItem('studentos.alt.halloween.preview.v1')||'null');return Number.isSafeInteger(doc?.event?.candy)?doc.event.candy:0;}catch{return null;}}});
    try{if(typeof renderMenu==='function')renderMenu();}catch{}
   }).catch(()=>{});
   if(window.__HW_SHOWROOM__){

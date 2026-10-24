@@ -23,3 +23,21 @@ test('hiding or leaving clears audio, and returning cannot duplicate its clocks'
   h.audio.setVisible(true);await Promise.resolve();assert.equal(h.timers.size,1);
   h.audio.dispose();assert.equal(h.timers.size,0);assert.equal(h.audio.state().playing,false);assert.equal(h.contexts[0].state,'closed');
 });
+test('dungeon HUD presses have their own stone, rune and gate sounds that stay silent until enabled and always stop',async()=>{
+ const h=harness();for(const kind of ['stone','rune','gate'])assert.equal(h.audio.play(kind),false);
+ await h.audio.setEnabled(true);const before=h.nodes.length;
+ for(const kind of ['stone','rune','gate'])assert.equal(h.audio.play(kind),true);
+ const made=h.nodes.slice(before),sources=made.filter(n=>n.osc||n.source);
+ assert.ok(made.filter(n=>n.source).length>=3,'each press sound includes a noise burst');
+ assert.ok(sources.every(n=>Number.isFinite(n.stopped)&&n.stopped>n.started&&n.stopped-n.started<=1),'press sounds are short and always stop');
+ assert.ok(sources.some(n=>n.stopped-h.contexts[0].currentTime>=.75),'the gate sound runs long enough to hear the hinge and the clank');
+ await h.audio.setEnabled(false);assert.equal(h.audio.play('gate'),false);
+});
+
+test('character voices require opt-in, throttle syllables and stop independently of the music',async()=>{
+ const h=harness();assert.equal(h.audio.syllable('tang'),false);await h.audio.setEnabled(true);
+ const baseline=h.audio.state().voices;assert.equal(h.audio.syllable('jack'),true);for(let i=0;i<100;i++)assert.equal(h.audio.syllable('jack',i),false);
+ assert.equal(h.audio.state().voices,baseline+2);assert.equal(h.nodes.filter(n=>n.osc&&n.type==='square').length,2);
+ h.audio.stopDialogue();assert.equal(h.audio.state().voices,baseline);assert.equal(h.timers.size,1);
+ h.contexts[0].currentTime+=.11;assert.equal(h.audio.syllable('win'),true);h.audio.setVisible(false);assert.equal(h.audio.syllable('win'),false);assert.equal(h.audio.state().voices,0);
+});

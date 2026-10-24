@@ -140,12 +140,12 @@ main[data-objective]:not([data-objective=""]) .biome-level{display:none}
 .hunt-copy{display:grid;gap:2px;min-width:0}
 .hunt-copy small{font-size:11px;letter-spacing:.06em;color:var(--hw-gold)}
 .hunt-copy b{font-size:15px;font-weight:600;line-height:1.3}
-.luck-meter{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;background:#141029;border:1.5px solid #7a4cff66;border-radius:14px;padding:8px 12px;margin:0 0 10px;font-size:13px}
-.luck-pips{display:flex;gap:4px}
-.luck-pips i{width:22px;height:10px;border-radius:3px;background:#2a2f45}
-.luck-pips i.on{background:linear-gradient(#b48cff,#7a4cff);box-shadow:0 0 8px #9a6cff}
-.luck-pips i.goal{background:none;border:1.5px dashed #b48cff;width:20px}
-.luck-meter small{flex-basis:100%;color:#cbb6ff;font-size:12px}
+.aid-meter{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;background:#141029;border:1.5px solid #7a4cff66;border-radius:14px;padding:8px 12px;margin:0 0 10px;font-size:13px}
+.aid-meter progress{flex:1;min-width:90px;height:10px;accent-color:#9a6cff}
+.aid-meter b{color:#cbb6ff}
+.aid-meter small{flex-basis:100%;color:#cbb6ff;font-size:12px}
+.kr-gift{margin:10px 0 0;font-weight:700;color:#d9c2ff}
+.kr-aid{margin:6px 0 0;font-size:12px;color:#b9a6e6}
 .knock-mode{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 4px}
 .knock-mode button{display:grid;gap:1px;text-align:left;padding:8px 12px;border-radius:12px;border:1.5px solid #ffffff22;background:#151a2a;color:#cfd3e2;min-height:48px;cursor:pointer}
 .knock-mode button b{font-size:14px;font-weight:600}

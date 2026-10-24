@@ -102,20 +102,32 @@
     const planted=g.plantedAt!=null,until=planted?g.plantedAt+config.proposals.garden.growthMs:null;
     return {id,index:i,crop,g,planted,until,ready:planted&&g.watered&&Core.moment(doc,now)>=until,unlocked:Core.gardenUnlocked(doc),seeds:doc.event.inventory[crop.seed]||0,harvested:Math.min(doc.event.grown[crop.harvest]||0,doc.event.inventory[crop.harvest]||0)};
   }
+  // กรอบแปลงในสวน = กรอบไม้ในภาพจริง (24 ต.ค. 69 · เจ้าของ: "ให้มันตรงกรอบ แก้ทุกอัน")
+  // เดิมกะเป็นเปอร์เซ็นต์ของจอ — แนวนอนเยื้อง · แนวตั้งใช้ขนาดตายตัว 37%×16% ไม่ผ่านการครอปของภาพแนวตั้ง จึงเยื้องหนัก
+  // ตอนนี้วัดจากพิกเซลของภาพ [x0,y0,x1,y1] (สัดส่วน 0–1) · ภาพแนวนอนยืดเต็มฉาก และภาพแนวตั้ง (มุมขวาล่างของ portrait-rooms.png
+  // ขยาย 200% เลื่อน −100%) ก็เต็มฉากพอดี → สัดส่วนบนภาพ = สัดส่วนบนฉาก ใช้ตรง ๆ ได้ทั้งสองแบบ
+  // แปลงเป็นสี่เหลี่ยมคางหมู: ขอบด้านทางเดินตั้งตรง ขอบด้านนอกเอียง ~20% → --tl/--tr ใช้ตัดแสงไฮไลต์ให้ตรงรูปแปลง
+  const GARDEN_BEDS_LAND=[[.197,.485,.465,.600],[.521,.485,.795,.600],[.092,.636,.456,.808],[.537,.636,.903,.808]];
+  const GARDEN_BEDS_PORT=[[.093,.461,.451,.556],[.513,.461,.878,.558],[.007,.586,.442,.722],[.524,.586,.996,.722]];
+  function bedBox(i){
+    const pc=v=>+(v*100).toFixed(2)+'%',L=GARDEN_BEDS_LAND[i],P=GARDEN_BEDS_PORT[i];
+    return '--x:'+pc((L[0]+L[2])/2)+';--y:'+pc((L[1]+L[3])/2)+';--bed-width:'+pc(L[2]-L[0])+';--bed-height:'+pc(L[3]-L[1])+
+      ';--px:'+pc((P[0]+P[2])/2)+';--py:'+pc((P[1]+P[3])/2)+';--pbw:'+pc(P[2]-P[0])+';--pbh:'+pc(P[3]-P[1])+(i%2?';--tr:20%':';--tl:20%');
+  }
   function garden(c){
     const {Core}=c;
     const beds=Core.BIOMES.map((id,i)=>{
       const s=cropState(c,id),state=!s.unlocked?'รอเปิดแปลง':!s.planted?'แปลงว่าง':s.ready?'เก็บเกี่ยวได้':!s.g.watered?'รอรดน้ำ':'กำลังเติบโต';
-      return '<button class="garden-bed '+(s.ready?'crop-ready':s.planted?'crop-growing':'crop-empty')+'" data-plot-biome="'+id+'" data-until="'+(s.until||'')+'" style="--x:'+(i<2?(i%2?67:33):(i%2?73:28))+'%;--y:'+(i<2?54:73)+'%;--px:'+(i%2?72:28)+'%;--py:'+(i<2?52:66)+'%;--bed-width:'+(i<2?27:36)+'%;--bed-height:'+(i<2?13:17)+'%" aria-label="แปลง'+s.crop.name+' · '+state+'"><span class="bed-plants" aria-hidden="true">'+(s.planted?Array.from({length:3},()=>'<span>'+pixelCrop(i)+'</span>').join(''):'<i>✧</i>')+'</span><span class="spot-label">'+s.crop.name+'<small>'+state+'</small></span></button>';
+      return '<button class="garden-bed '+(s.ready?'crop-ready':s.planted?'crop-growing':'crop-empty')+'" data-plot-biome="'+id+'" data-until="'+(s.until||'')+'" style="'+bedBox(i)+'" aria-label="แปลง'+s.crop.name+' · '+state+'"><span class="bed-plants" aria-hidden="true">'+(s.planted?Array.from({length:3},()=>'<span>'+pixelCrop(i)+'</span>').join(''):'<i>✧</i>')+'</span><span class="spot-label">'+s.crop.name+'<small>'+state+'</small></span></button>';
     }).join('');
     return '<section class="world-page"><div class="world-title"><small>THE MIDNIGHT GARDEN</small><h1>สวนรัตติกาล</h1></div>'+scene('garden','สวนรัตติกาล แปลงปลูกสี่ชนิดแยกจากไบโอม',beds,'garden-zone')+'<p class="scene-help">ทำเควสรับเมล็ด → เลือกแปลงปลูก → เก็บผลผลิตไปขายกับมอร์โรในร้าน</p></section>';
   }
   function village(c){
     const {Core,config,doc,now,duration}=c,id=Core.biomeAt(doc,config,now).id,k=c.knock||{},choice=k.choice==='trick'?'trick':'treat';
     const need=(k.need||[]).filter(n=>n.kind==='item');
-    // หัวหมู่บ้าน: กำลังหาอะไรให้ใคร + ดวงสะสม (ถ้ากติกานี้ช่วยของที่ขาดได้)
+    // หัวหมู่บ้าน: กำลังหาอะไรให้ใคร + ตัวนับของขวัญนักเดินทาง (ครบ 30 บ้านได้ของที่ขาด)
     const head='<div class="village-hunt">'+(need.length?'<div class="hunt-copy"><small>กำลังหาให้ '+esc(k.npc||'')+'</small><b>'+need.map(n=>esc(n.name)).join(' · ')+'</b></div><div class="obj-need">'+need.map(n=>'<span class="obj-slot'+(n.have>=n.need?' got':'')+'" data-need="'+esc(n.id)+'"><i>'+n.icon+'</i><small>'+n.have+'/'+n.need+'</small></span>').join('')+'</div>':'<div class="hunt-copy"><small>หมู่บ้านใน'+thai[Core.BIOMES.indexOf(id)]+'</small><b>เคาะบ้านรับ Candy และลุ้นวัตถุดิบ</b></div>')+'</div>'+
-      (k.luck&&need.length?'<div class="luck-meter" data-luck="'+k.luck.value+'"><span>🔮 ดวงสะสม</span><span class="luck-pips">'+Array.from({length:k.luck.threshold+1},(_,n)=>'<i class="'+(n<k.luck.value?'on':n===k.luck.threshold?'goal':'')+'"></i>').join('')+'</span><small>'+(k.luck.value>=k.luck.threshold?'ครั้งหน้าการันตีของที่หา!':'ไม่ได้ของที่หาอีก '+(k.luck.threshold-k.luck.value)+' ครั้ง → การันตี')+'</small></div>':'');
+      (k.aid?'<div class="aid-meter"><span>🎁 ของขวัญนักเดินทาง</span><progress value="'+k.aid.visits+'" max="'+k.aid.target+'" aria-label="เคาะบ้านสะสมในไบโอมนี้"></progress><b>'+k.aid.visits+'/'+k.aid.target+'</b><small>เคาะครบ '+k.aid.target+' ครั้งในไบโอมนี้ รับของที่เควสยังขาด 1 ชิ้น</small></div>':'');
     const mode='<div class="knock-mode" role="radiogroup" aria-label="วิธีเคาะ"><button role="radio" aria-checked="'+(choice==='treat')+'" data-knock-choice="treat"><b>🍬 Treat</b><small>ได้ 10 ชัวร์ + ลุ้นของ</small></button><button role="radio" aria-checked="'+(choice==='trick')+'" data-knock-choice="trick"><b>🎲 Trick</b><small>เสี่ยง 20 หรือ 0</small></button></div>';
     return head+mode+'<p class="knock-tip">แตะบ้านเพื่อเคาะทันที</p><section class="village-lane">'+Array.from({length:5},(_,n)=>{
       const a=Core.houseAvailability(doc,config,n+1,now),at=Core.moment(doc,now),wait=a.availableAt;
