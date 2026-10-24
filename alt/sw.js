@@ -6,7 +6,7 @@
 // จะเสิร์ฟโลโก้เก่าจากแคชต่อไปโดยไม่มีอะไรบอกว่ามีของใหม่
 // แยกชื่อแคช ALT จากเว็บหลัก: ปล่อยเฉพาะ ALT ต้องไม่ล้างแคชของเว็บหลักบน origin เดียวกัน
 const CACHE_PREFIX = 'studentos-alt-';
-const CACHE = CACHE_PREFIX + '1c60-contrast-layout-20261024'; // ตัวหนังสืออ่านชัดในธีมฮาโลวีน · ปุ่มเรียบ · ผังแท็บเล็ตตรง · เลขแอปคงเดิม
+const CACHE = CACHE_PREFIX + '1c60-halloween-invite-poster2-20261024'; // โปสเตอร์ QR: ตัวไทยกึ่งกลางบน iPhone · ปุ่มบันทึกโปสเตอร์ QR · ชวนเพื่อน (รหัส · QR) ในจออีเวนต์ + ภารกิจปลดธีม Halloween · เลขแอปคงเดิม
 let HALLOWEEN_FILES = [];
 try { importScripts('halloween/cache-manifest.js'); HALLOWEEN_FILES = self.HALLOWEEN_SHELL || []; } catch (_) {}
 // ทุกไฟล์ที่ index.html อ้างถึงต้องอยู่ในรายการนี้ — ไฟล์ที่หน้าเรียกแต่ไม่ได้แคชไว้
@@ -18,8 +18,11 @@ try { importScripts('halloween/cache-manifest.js'); HALLOWEEN_FILES = self.HALLO
 // ได้ "หน้าแม่ใหม่ + ตัวแก้ดีไซน์เก่า" ซึ่งอาการคือกดแล้วไม่มีอะไรเกิดขึ้น
 const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'room.css', 'social.css', 'feed.css', 'safety.css', 'hw.css', 'topic.css', 'sai.css', 'hoop.css', 'fxgames.css', 'gacha-fx.css', 'board.css', 'custom.css',
   'engine.js', 'context.js', 'planner.js', 'facts.js', 'profile.js', 'simulate.js', 'calibrate.js', 'loss.js', 'decide.js', 'brain.js', 'inbox.js', 'linelink.js', 'integrations.js', 'room.js', 'social.js', 'feed.js', 'hw.js', 'topic.js', 'safety.js', 'sai.js', 'fxgames.js', 'fx3d.js', 'hoop.js', 'gacha-fx.js', 'quickadd.js', 'board.js', 'news.js', 'app.js', 'config.js', 'remote-config.js',
-  'manifest.json', 'compat.js', 'staff-news.js', 'bug-reports.js', 'bug-reports.css', 'classrooms.js', 'classrooms.css', 'notification-policy.mjs',
+  'manifest.json', 'compat.js', 'staff-news.js', 'bug-reports.js', 'bug-reports.css', 'events.js', 'events.css', 'classrooms.js', 'classrooms.css', 'notification-policy.mjs',
+  'halloween/death-quests.js', 'halloween/death-quest-main.js', 'halloween/death-quest-main.css',
   'device-preview.html', 'device-preview.css', 'device-preview.js', 'device-preview-controls.css', 'device-preview-bridge.js', ...HALLOWEEN_FILES,
+  // 24 ต.ค. 69 · ชุดแต่งจอโหลด/จอเข้าสู่ระบบช่วงฮาโลวีน (index.html อ้างถึงตรง ๆ จึงอยู่ที่นี่ ไม่อยู่ใน cache-manifest ของรางวัลถาวร)
+  'halloween/season/season.css', 'halloween/season/hook-mummy-224.webp',
   'shortcut-draft.js', 'desktop.css', 'desktop-entry.js', 'desktop.js', 'desktop-navigation.mjs',
   // 15 ต.ค. 69 · ข่าวสารจากทีม — แคชไว้ให้เปิดจอข่าวตอนออฟไลน์ได้ (drafts.json ไม่แคช: แอปไม่ได้โหลดมัน)
   'news/announcements.json',

@@ -7,6 +7,7 @@ self.HALLOWEEN_SHELL = [
   "halloween/rewards/integration.js",
   "halloween/rewards/effect-games.js",
   "halloween/rewards/effect-games.css",
+  "halloween/rewards/effect-ceremony.css",
   "halloween/rewards/theme-main.css",
   "halloween/rewards/theme-main.js",
   "halloween/rewards/biome-themes.css",
@@ -22,6 +23,9 @@ self.HALLOWEEN_SHELL = [
   "halloween/rewards/theme-assets/sai-witch.webp",
   "halloween/rewards/theme-assets/hook-mummy.webp",
   "halloween/rewards/theme-assets/app-icon.webp",
+  "halloween/rewards/assets/ghostship-sea.svg",
+  "halloween/rewards/assets/ghostship-vessel.svg",
+  "halloween/rewards/assets/vampire-distance.svg",
   "halloween/rewards/assets/harbor-lantern.svg",
   "halloween/rewards/assets/laughing-pumpkin.svg",
   "halloween/rewards/assets/crimson-candle.svg",
@@ -47,5 +51,10 @@ self.HALLOWEEN_SHELL = [
   "halloween/rewards/assets/jacks-axe.svg",
   "halloween/rewards/assets/cruor-quill.svg",
   "halloween/rewards/assets/dullahan-scythe.svg",
-  "halloween/rewards/assets/crown-of-midnight.svg"
+  "halloween/rewards/assets/crown-of-midnight.svg",
+  "halloween/rewards/assets/theme-moon-candle.svg",
+  "halloween/rewards/assets/midnight-conqueror.svg",
+  "halloween/invite-friend/invite-friend.js",
+  "halloween/invite-friend/invite-friend.css",
+  "halloween/invite-friend/qrcode-generator.js"
 ];

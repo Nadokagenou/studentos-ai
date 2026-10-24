@@ -30,8 +30,8 @@
   }
   function player(c){return '<div class="world-player" aria-hidden="true">'+hero(c)+'</div>';}
   function npcSpot(id,attrs,x,y,mobile=[x,y]){
-    const npc=NPCs.characters[id];
-    return '<button class="world-spot npc-character npc-spot'+(x<25?' label-right':x>75?' label-left':'')+'" style="--x:'+x+'%;--y:'+y+'%;--px:'+mobile[0]+'%;--py:'+mobile[1]+'%" '+attrs+' aria-label="คุยกับ '+esc(npc.name)+'">'+portrait(id)+'<span class="spot-label">คุยกับ '+esc(npc.name)+'</span></button>';
+    const npc=NPCs.characters[id],label=attrs.includes('data-tutor')?'เวสเปอร์ · สอนเล่น':'คุยกับ '+npc.name;
+    return '<button class="world-spot npc-character npc-spot'+(x<25?' label-right':x>75?' label-left':'')+'" style="--x:'+x+'%;--y:'+y+'%;--px:'+mobile[0]+'%;--py:'+mobile[1]+'%" '+attrs+' aria-label="'+esc(label)+'">'+portrait(id)+'<span class="spot-label">'+esc(label)+'</span></button>';
   }
   function shouldArm({pointerType,detail,armed,labelVisible=false,markerVisible=false}){return detail!==0&&['touch','pen'].includes(pointerType)&&!armed&&!labelVisible&&!markerVisible;}
   function activity(c,id){
@@ -80,9 +80,10 @@
     const {Core,Catalog,config,doc,now}=c, active=Core.biomeAt(doc,config,now).id;
     const portals=Core.BIOMES.map((id,i)=>{
       const open=Core.portalStatus(doc,config,id,now).open;
-      return '<button class="world-portal '+(open?'portal-open':'portal-closed')+'" data-enter-biome="'+id+'" style="--left:'+(23+i*13.3)+'%;--px:'+(i%2?55:23)+'%;--py:'+(i<2?15:36)+'%;--pw:24%;--ph:'+(i<2?17:19)+'%;--portal-color:'+Catalog.biomes[shorts[i]].color+'" aria-label="'+thai[i]+' · '+(open?'เปิดเข้าได้':'ยังไม่เปิด')+'"><span class="portal-number" aria-hidden="true">'+(i+1)+'</span><span class="portal-label"><b>'+thai[i]+'</b><small>'+(open?'✦ เปิดเข้าได้':'◈ ยังไม่เปิด')+'</small></span></button>';
+      const progress=Core.biomeProgress(doc,config,id);
+      return '<button class="world-portal '+(open?'portal-open':'portal-closed')+'" data-enter-biome="'+id+'" style="--left:'+(23+i*13.3)+'%;--px:'+(i%2?55:23)+'%;--py:'+(i<2?15:36)+'%;--pw:24%;--ph:'+(i<2?17:19)+'%;--portal-color:'+Catalog.biomes[shorts[i]].color+'" aria-label="'+thai[i]+' · '+(open?'เปิดเข้าได้':'ยังไม่เปิด')+'"><span class="portal-number" aria-hidden="true">'+(i+1)+'</span><span class="portal-label"><b>'+thai[i]+'</b><small>'+(open?'✦ เปิดเข้าได้':'◈ ยังไม่เปิด')+'</small><small>เส้นทาง '+progress.percent+'% · '+progress.value+'/'+progress.total+'</small></span><span class="portal-progress" aria-hidden="true"><i style="width:'+progress.percent+'%"></i></span></button>';
     }).join('');
-    return '<section class="world-page"><div class="world-title"><small>THE MIDNIGHT ACADEMY</small><h1>โถงกลาง</h1></div>'+scene('hub','โถงกลางพิกเซล ร้านค้าซ้าย เตาผสมขวา และประตูสี่ไบโอมด้านหน้า',portals+spot('ร้านยามเที่ยงคืน','data-route="shop"',12,60,'',[16,68])+spot('เตาผสมเวทมนตร์','data-route="cauldron"',87,60,'',[84,68])+spot('วงเวทอัญเชิญ','data-route="ritual"',50,72,'',[50,76])+spot('สวนรัตติกาล','data-route="garden"',33,82,'',[22,80]))+'<div class="world-caption"><button class="quiet-button" data-route="totems">Totem · เปิดเส้นทางส่วนตัว</button></div><p class="scene-help">แตะจุดสีแดงเพื่อดูสถานที่หรือมินิเกม</p></section>';
+    return '<section class="world-page"><div class="world-title"><small>THE MIDNIGHT ACADEMY</small><h1>โถงกลาง</h1></div>'+scene('hub','โถงกลางพิกเซล ร้านค้าซ้าย เตาผสมขวา และประตูสี่ไบโอมด้านหน้า',portals+npcSpot('vesper','data-tutor',30,76,[33,80])+spot('ร้านยามเที่ยงคืน','data-route="shop"',12,60,'',[16,68])+spot('เตาผสมเวทมนตร์','data-route="cauldron"',87,60,'',[84,68])+spot('วงเวทอัญเชิญ','data-route="ritual"',50,72,'',[51,76])+spot('สวนรัตติกาล','data-route="garden"',33,82,'',[22,85]))+'<div class="world-caption"><button class="quiet-button" data-route="totems">Totem · เปิดเส้นทางส่วนตัว</button></div><p class="scene-help">แตะจุดสีแดงเพื่อดูสถานที่หรือมินิเกม</p></section>';
   }
   function biome(c){
     const {Core,Catalog,config,doc,now}=c, id=Core.biomeAt(doc,config,now).id, i=Core.BIOMES.indexOf(id), meta=Catalog.biomes[shorts[i]];
@@ -125,8 +126,12 @@
     const {Core,config,doc,now,duration}=c,id=Core.biomeAt(doc,config,now).id;
     return '<p class="village-intro">หมู่บ้านใน'+thai[Core.BIOMES.indexOf(id)]+' · แหล่งวัตถุดิบส่งเควส</p><p class="subtle">แนะนำ Treat: รับ 10 Candy และมีสิทธิ์สุ่มของ 60% ส่วน Trick ลุ้น 20/0 Candy ถ้าได้ 0 จะไม่ได้วัตถุดิบ ของที่สุ่มอาจไม่ใช่ชิ้นที่ต้องการ</p><section class="village-lane">'+Array.from({length:5},(_,n)=>{
       const a=Core.houseAvailability(doc,config,n+1,now),at=Core.moment(doc,now),wait=a.availableAt;
-      return '<button class="village-door" data-knock="'+(n+1)+'" '+(!a.ready||doc.event.closed?'disabled':'')+'><span aria-hidden="true">⌂</span><b>บ้าน '+(n+1)+'</b><small data-house-status="'+(n+1)+'">'+(a.ready?'เคาะประตู':(a.remaining===0?'เปิดได้เร็วสุดอีก ':'เปิดอีก ')+duration(wait-at))+'</small></button>';
+      return '<button class="village-door" data-knock="'+(n+1)+'" '+(!a.ready||doc.event.closed?'disabled':'')+'>'+houseArt(n)+'<b>บ้าน '+(n+1)+'</b><small data-house-status="'+(n+1)+'">'+(a.ready?'เคาะประตู':(a.remaining===0?'เปิดได้เร็วสุดอีก ':'เปิดอีก ')+duration(wait-at))+'</small></button>';
     }).join('')+'</section><p class="tiny">บ้านที่เคาะแล้วพัก 4 ชั่วโมง แยกแต่ละหลังและไบโอม · เพดานนับย้อนหลัง 24 ชั่วโมง</p><p class="subtle" data-house-limit></p><button class="secondary" data-open-balance>ดูโอกาสได้ของและความยาก</button>';
   }
-    return {gate,hub,biome,garden,room,portrait,hero,weaponArt,player,cropState,shouldArm,activity,village,thai,portraits};
+  function houseArt(index=0){
+    const wall=['#4b5c67','#685844','#5a4d66','#4e665e','#6b4b50'][index%5];
+    return '<svg class="village-house-art" viewBox="0 0 96 110" shape-rendering="crispEdges" aria-hidden="true"><path d="M12 40h72v64H12z" fill="'+wall+'"/><path d="M4 42v-8h8v-8h8v-8h8v-8h40v8h8v8h8v8h8v8z" fill="#242f44" stroke="#8294a1" stroke-width="2"/><path d="M68 4h10v25H68z" fill="#485565"/><path d="M20 50h17v24H20zm39 0h17v24H59z" fill="#d2ac68" stroke="#29333e" stroke-width="3"/><path d="M28 50v24m40-24v24M20 62h17m22 0h17" stroke="#4e493d" stroke-width="2"/><path class="house-door-leaf" d="M39 66h18v38H39z" fill="#302c2c" stroke="#a18b62" stroke-width="2"/><path d="M39 80h18m-9-14v38" stroke="#5c5041" stroke-width="2"/><path d="M52 84h3v3h-3z" fill="#d45452"/><path d="M8 104h80v5H8z" fill="#84939d"/></svg>';
+  }
+    return {gate,hub,biome,garden,room,portrait,hero,weaponArt,player,pixelCrop,houseArt,cropState,shouldArm,activity,village,thai,portraits};
 });

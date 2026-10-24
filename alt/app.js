@@ -158,7 +158,7 @@ function funnelMerge(remote) {
   if (!remote || typeof remote !== 'object') return;
   const f = funnel();
   const iso = v => typeof v === 'string' && v ? v : null;
-  for (const k of ['firstOpen', 'firstTask', 'firstDone', 'notifAskedAt', 'lineLinkedAt']) {
+  for (const k of ['firstOpen', 'firstTask', 'firstDone', 'notifAskedAt', 'lineLinkedAt', 'hwTaskAt']) {
     const a = iso(f[k]), b = iso(remote[k]);
     if (b && (!a || b < a)) {
       f[k] = b;
@@ -223,6 +223,8 @@ function funnelTask(via) {
 function funnelDone() {
   funnelMark('firstDone');
   funnelBump('doneEver');
+  // ภารกิจธีม Halloween ข้อ 2 (halloween/invite-friend/invite-friend.js) — ทุกทางที่ติ๊กงานเสร็จผ่านตรงนี้ จึงดักที่เดียวพอ
+  if (typeof inviteOnTaskDone === 'function') inviteOnTaskDone();
 }
 
 // จอที่ "เคยเปิด" — เขียนครั้งเดียวต่อจอ จึงถูกพอที่จะเรียกจากทุกการเปลี่ยนจอได้
@@ -573,7 +575,17 @@ function themePref() {
   // ต้องตรงกับสคริปต์ใน <head> ของ index.html เสมอ ไม่งั้นจอแรกกะพริบสลับโทน
   // ธีมจากโค้ดที่ยังไม่มีโค้ด (ค่าค้างจากรุ่นที่ยังฟรี · แก้ localStorage เอง) = ค่าเริ่มต้น ไม่ใช่ธีมนั้น
   if (THEME_CODE[v] && !codeThemeOwned(v)) return 'light';
+  // ธีมจากภารกิจชวนเพื่อน (INVITE_THEME = 'halloween') ไม่ตัดกลับเป็นค่าเริ่มต้นตรงนี้ — Halloween เคยเป็นธีมฟรี
+  // คนที่ใช้อยู่ก่อนเปิดภารกิจใช้ต่อได้ (ช่วงผ่อนผันใน themeVisible) · เปลี่ยนออกแล้วกดกลับ = เปิดแผ่นภารกิจ (inviteThemeGate)
   return THEMES.includes(v) ? v : 'light';
+}
+// 24 ต.ค. 69 · ช่วงฮาโลวีน (:root.hw-season) จอเข้าสู่ระบบเป็นพื้นกลางคืนทุกธีม (halloween/season/season.css)
+// แถบสถานะของเครื่องจึงต้องมืดตามตอนอยู่จอนั้น ไม่ว่าธีมที่เลือกจะสว่างแค่ไหน
+function themeBar(theme) {
+  let onLogin = false;
+  try { onLogin = curScreen === 'scr-login'; } catch (e) {}   // curScreen ประกาศด้วย let ไว้ข้างล่าง — เรียกก่อนบรรทัดนั้นต้องไม่ล้ม
+  if (onLogin && document.documentElement.classList.contains('hw-season')) return '#120A24';
+  return THEME_BAR[theme];
 }
 function systemDark() { return matchMedia('(prefers-color-scheme: dark)').matches; }
 
@@ -583,7 +595,7 @@ function applyTheme() {
   const theme = pref === 'system' ? (systemDark() ? 'dark' : 'light') : pref;
   document.documentElement.dataset.theme = theme;
   const meta = document.querySelector('meta[name=theme-color]');
-  if (meta) meta.content = THEME_BAR[theme];
+  if (meta) meta.content = themeBar(theme);
   document.querySelectorAll('#themePick button').forEach(b =>
     b.classList.toggle('active', b.dataset.th === pref));
   genesisLoop(theme === 'genesis'); // อีเวนต์ 99 วิ เดินเฉพาะตอนอยู่ในธีมนี้
@@ -627,6 +639,8 @@ function themeReveal(update) {
 }
 
 function setTheme(pref) {
+  // ธีมจากภารกิจชวนเพื่อน: ยังไม่ครบ = เปิดแผ่นภารกิจให้เห็นว่าต้องทำอะไร แทน toast "ยังไม่มีธีมนี้"
+  if (typeof inviteThemeGate === 'function' && inviteThemeGate(pref)) return;
   // กันเลือกธีมที่ยังไม่ได้เป็นเจ้าของ (เช่นกดจากที่อื่นหรือค่าค้างใน localStorage)
   // ธีมที่ใช้อยู่ตอนนี้ผ่านได้เสมอ — ไม่ยึดของที่เขาใช้อยู่คืน
   if (typeof themeVisible === 'function' && pref !== 'system' && !themeVisible(pref)) {
@@ -1065,7 +1079,9 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
   'scr-hw': 'scr-tasks',
   'scr-compose': 'scr-menu', 'scr-post': 'scr-menu', 'scr-user': 'scr-menu',
   // กระดานอันดับเข้าจากจอเพื่อน (ซึ่งยืมไฟแท็บ "วันนี้") หรือแท็บ "ฉัน" — ยืมไฟตามจอเพื่อน
-  'scr-board': 'scr-menu' };
+  'scr-board': 'scr-menu',
+  // 24 ต.ค. 69 · จออีเวนต์เข้าจากการ์ดบนหน้าแรก
+  'scr-events': 'scr-menu' };
 
 // ---------- 1A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
 // บนมือถือ การสลับไปแอปอื่นแล้วกลับมามักทำให้ระบบโหลดหน้าใหม่ทั้งหน้า
@@ -1149,7 +1165,7 @@ function resumeScreen() {
 var backFrom = {};
 var goingBack = false;
 const RETURN_TO = new Set(['scr-context', 'scr-ttscan', 'scr-news', 'scr-pro', 'scr-shop', 'scr-mates',
-  'scr-setopt', 'scr-badges', 'scr-scan', 'scr-login']);
+  'scr-setopt', 'scr-badges', 'scr-scan', 'scr-login', 'scr-events']);
 // จอลูกกลับขึ้นมาหาจอแม่ด้วยปุ่มตายตัว (สุ่ม → go('scr-shop')) ไม่ใช่ "การพาเข้ามา" — จำแล้ววนกลับไปจอลูก
 function backIsChild(origin, id) {
   if (backFrom[origin] === id) return true;
@@ -1231,6 +1247,11 @@ function go(id) {
   if (typeof saiStart === 'function') saiStart();   // ลูปมาสคอตหยุดเองตอนอยู่จออื่น — กลับมาจอที่มีมาสคอตต้องปลุก
   // ซ่อนแถบล่างในจอที่ยังไม่ได้เข้าแอปจริง (บัญชี / ทำความรู้จัก)
   document.body.classList.toggle('login-mode', id === 'scr-login' || id === 'scr-onboard');
+  // 24 ต.ค. 69 · ช่วงฮาโลวีนจอเข้าสู่ระบบเป็นพื้นกลางคืน — แถบสถานะของเครื่องมืดตาม ออกจากจอแล้วคืนสีธีม (themeBar)
+  if (document.documentElement.classList.contains('hw-season')) {
+    const bar = document.querySelector('meta[name=theme-color]');
+    if (bar) bar.content = themeBar(document.documentElement.dataset.theme);
+  }
   // ปุ่มช่องทางล็อกอินวาดด้วย JS (รายชื่อมาจาก config) และต้องรีเซ็ตกลับหน้าแรกของมัน
   // ทุกครั้งที่กลับเข้าจอนี้ — ไม่ใช่ค้างอยู่ที่ช่องกรอกรหัสของรอบที่แล้ว
   if (id === 'scr-login') { loginView = 'root'; renderLoginOpts(); loginNote('');
@@ -1465,6 +1486,7 @@ async function initCloud() {
     currentUser = sess ? sess.user : null;
     if (typeof bugAccountChanged === 'function') bugAccountChanged();
     if (typeof classroomAccountChanged === 'function') classroomAccountChanged();
+    if (typeof inviteAccountChanged === 'function') inviteAccountChanged();
     syncTokenAdmin();
     if (currentUser && !wasLoggedIn) {
       // เพิ่งล็อกอินเสร็จ (รวมถึงกลับมาจากหน้า Google)
@@ -1483,7 +1505,9 @@ async function initCloud() {
       // รายการตัวเชื่อมอยู่ฝั่งเซิร์ฟเวอร์ ไม่ได้อยู่ในก้อนข้อมูลผู้ใช้ — ต้องถามเอง
       // หลังล็อกอินเสร็จ ไม่งั้นหน้าตัวเชื่อมจะขึ้นว่า "ยังไม่ได้เชื่อมอะไรเลย" ทั้งที่เชื่อมไว้แล้ว
       if (typeof integLoad === 'function') integLoad(true);
-      syncFromCloud().then(() => { routeAfterLogin(); return applyJoinToken(); });
+      syncFromCloud().then(() => { routeAfterLogin(); return applyJoinToken(); })
+        .then(() => typeof applyInviteCode === 'function' && applyInviteCode())
+        .then(() => typeof inviteRefresh === 'function' && inviteRefresh());
     } else {
       renderAll();
     }
@@ -1693,11 +1717,13 @@ async function cloudPull() {
   // รูปโปรไฟล์ย้ายมาอยู่คอลัมน์ของตัวเองแล้ว — ประกอบกลับเข้า vault ให้ vaultImport
   // ทำงานเหมือนเดิม ตัวมันไม่ต้องรู้ว่าข้างล่างเก็บแยกกันแล้ว
   if (remote.vault && data.avatar) remote.vault.avatar = data.avatar;
-  state.tasks = syncMergeById(state.tasks, remote.tasks, base && base.tasks);
+  const localQuestParts=typeof HalloweenDeathQuests!=='undefined'?HalloweenDeathQuests.split(state.tasks,state.sessions):null;
+  const remoteQuestParts=typeof HalloweenDeathQuests!=='undefined'?HalloweenDeathQuests.split(remote.tasks,remote.sessions):null;
+  state.tasks = localQuestParts?syncMergeById(localQuestParts.tasks,remoteQuestParts.tasks,base&&base.tasks).concat(localQuestParts.localTasks):syncMergeById(state.tasks, remote.tasks, base && base.tasks);
   state.settings = syncMergeKeys(state.settings, remote.settings, base && base.settings);
   // รอบจับเวลารวมตาม id เหมือนงาน — แต่ละรอบเกิดบนเครื่องเดียวและไม่เคยถูกแก้ทีหลัง
   // เครื่องไหนบันทึกไว้ก็ของจริงทั้งคู่ เอามารวมกันแล้วเรียงตามเวลาเริ่ม
-  state.sessions = syncMergeById(state.sessions, remote.sessions, base && base.sessions)
+  state.sessions = (localQuestParts?syncMergeById(localQuestParts.sessions,remoteQuestParts.sessions,base&&base.sessions).concat(localQuestParts.localSessions):syncMergeById(state.sessions, remote.sessions, base && base.sessions))
     .sort((a, b) => (a.start || '').localeCompare(b.start || ''))
     .slice(-SESSION_CAP);
   // หมุดปฏิทินรวมตาม id เหมือนงาน — ปักจากเครื่องไหนก็เป็นของจริงทั้งคู่
@@ -1790,8 +1816,10 @@ function pushSnapshot() {
   // 1C38 · ของฝากให้รอบเย็นของ send-reminders (ดู pushHints) — คิดพังต้องไม่พาการซิงก์งานพังตาม
   let push;
   try { push = pushHints(); } catch (e) { console.warn('[sync] hints failed:', e.message); }
-  const body = { tasks: state.tasks, settings: state.settings,
-    sessions: state.sessions || [],
+  const localQuestParts=typeof HalloweenDeathQuests!=='undefined'?HalloweenDeathQuests.split(state.tasks,state.sessions):null;
+  if(localQuestParts&&push?.plans)push={...push,plans:push.plans.filter(p=>!localQuestParts.ids.has(p.id))};
+  const body = { tasks: localQuestParts?localQuestParts.tasks:state.tasks, settings: state.settings,
+    sessions: localQuestParts?localQuestParts.sessions:state.sessions || [],
     marks: state.marks || [],
     ctx: typeof ctxExport === 'function' ? ctxExport() : undefined,
     vault, push, funnel: funnelExport(),
@@ -2589,32 +2617,18 @@ function dismissReplan(lostMin) {
 //   ตอนนี้ทำอะไร · ทำไมอันนี้ · นานแค่ไหน · แล้วอะไรต่อ · วันนี้ทันไหม
 
 // ---------- หัวจอ: ทักทาย + ตัวเลขสามตัวที่ตอบว่า "วันนี้หนักไหม" ----------
-function todayHead(sp, now) {
+function todayHead(sp, now, slim) {
+  // 24 ต.ค. 69 · แถบบนสุด (todayTop) เปิดอยู่ = ไม่มีหัวจอเลย
+  // เจ้าของ: "ด้านบนมันแคบ ๆ ไป · ลบตรงสวัสดีออกดีไหม" แล้วตามด้วย "ว่าง 2 ชม. ค้าง 4 ข้อความนี้ตัดทิ้ง"
+  // คำทักทาย รูปฉัน (ซ้ำกับแท็บ "ฉัน") และบรรทัดตัวเลขหายไปทั้งหมด · อันดับกับกระดิ่งย้ายไปอยู่ในแถบบนสุด
+  // ปิดแถบใน Home Builder = หัวจอเต็มกลับมาพร้อมของทั้งหมดนี้
+  if (slim) return '';
   const h = now.getHours();
   const greet = h < 11 ? 'สวัสดีตอนเช้า' : h < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนเย็น';
-  const win = sp.plan.windows;
-  const pend = pendingTasks();
   // ชื่อที่กรอกเองมาก่อนเสมอ · ถ้ายังไม่เคยกรอก ใช้ชื่อจากบัญชีที่ล็อกอินมาแทน
   // เดิมใช้แค่ who() ซึ่งอ่านจาก state.settings.name อย่างเดียว — คนที่ล็อกอิน Google
   // แล้วข้ามหน้าทำความรู้จักไปจึงเจอ "สวัสดีตอนเย็น" ห้วน ๆ ทั้งที่แอปรู้ชื่อเขาอยู่แล้ว
   const name = who() || accountName();
-  // กระดิ่งชี้ไปกล่องเข้า ไม่ใช่ศูนย์แจ้งเตือนใบใหม่ — ของที่ "เข้ามาเองระหว่างที่ไม่ได้เปิดแอป"
-  // มีที่เดียวคือกล่องเข้า · สร้างที่เก็บแจ้งเตือนอีกที่คือสร้างของค้างชุดที่สองให้ต้องเคลียร์
-  const wait = typeof inboxPending === 'function' ? inboxPending().length : 0;
-
-  // บรรทัดรองต้องเป็นตัวเลขที่เปลี่ยนพฤติกรรมได้ ไม่ใช่คำทักทายรอบสอง
-  // "เหลือเวลาว่างเท่าไหร่" คือข้อมูลที่ทำให้การ์ดข้างล่างมีความหมาย — 40 นาทีในสามชั่วโมง
-  // กับ 40 นาทีในห้าสิบนาที เป็นคนละสถานการณ์กันคนละเรื่อง
-  // สั้นลงใน 1B24 — หัวจอมีปุ่มมุมขวาสองปุ่มแล้ว (นาฬิกา "เวลามาจากการเดา" + กระดิ่ง)
-  // บรรทัดนี้จึงเหลือความกว้างน้อยลง แล้วคำว่า "เหลือเวลาว่าง" ที่ยาวห้าตัวอักษร
-  // ดันให้ทั้งบรรทัดตกไปสองบรรทัด ทั้งที่ตัวเลขคือของชิ้นเดียวที่ต้องอ่าน
-  const sub = sp.now
-    ? `ว่าง ${esc(humanMin(win.budgetMin))} · ค้าง ${pend.length} งาน`
-    : pend.length ? `${pend.length} รายการรออยู่`
-    : 'ไม่มีอะไรค้าง วันนี้พักได้';
-
-  const notifN = typeof notifUnread === 'function' ? notifUnread() : wait;
-  if (typeof notifKick === 'function') notifKick();
   return `<header class="td-head">
     <button class="th-me" onclick="go('scr-profile')" aria-label="หน้าของฉัน">${
       headFace()
@@ -2623,26 +2637,53 @@ function todayHead(sp, now) {
     }</button>
     <div class="th-tx">
       <h1 class="th-greet">${greet}${name ? ' ' + esc(name) : ''}</h1>
-      <p class="th-sub">${sub}</p>
+      <p class="th-sub">${headSub(sp)}</p>
     </div>
-    <!-- 1B25: นาฬิกา "เวลามาจากการเดา" ย้ายลงไปอยู่ในกริดข้างล่างแล้ว
+    ${headRank()}${headBell()}
+  </header>`;
+}
+
+function headSub(sp) {
+  const win = sp.plan.windows;
+  const pend = pendingTasks();
+  // บรรทัดรองต้องเป็นตัวเลขที่เปลี่ยนพฤติกรรมได้ ไม่ใช่คำทักทายรอบสอง
+  // "เหลือเวลาว่างเท่าไหร่" คือข้อมูลที่ทำให้การ์ดข้างล่างมีความหมาย — 40 นาทีในสามชั่วโมง
+  // กับ 40 นาทีในห้าสิบนาที เป็นคนละสถานการณ์กันคนละเรื่อง
+  // สั้นลงใน 1B24 — หัวจอมีปุ่มมุมขวาสองปุ่มแล้ว (นาฬิกา "เวลามาจากการเดา" + กระดิ่ง)
+  // บรรทัดนี้จึงเหลือความกว้างน้อยลง แล้วคำว่า "เหลือเวลาว่าง" ที่ยาวห้าตัวอักษร
+  // ดันให้ทั้งบรรทัดตกไปสองบรรทัด ทั้งที่ตัวเลขคือของชิ้นเดียวที่ต้องอ่าน
+  return sp.now
+    ? `ว่าง ${esc(humanMin(win.budgetMin))} · ค้าง ${pend.length} งาน`
+    : pend.length ? `${pend.length} รายการรออยู่`
+    : 'ไม่มีอะไรค้าง วันนี้พักได้';
+}
+
+// ปุ่มมุมขวาของหัวจอเต็ม · ตอนแถบบนสุดเปิด อันดับเป็นชิปในแถบ (todayTop) และกระดิ่งอยู่ท้ายแถบ
+function headRank() {
+  // 9 ต.ค. 69 · ทางเข้ากระดานอันดับบนหน้าแรก (เจ้าของ: "อยู่หน้าฉันด้วย หายาก ต้องมาอยู่หน้าวันนี้")
+  // อยู่ในหัวจอข้างกระดิ่ง ไม่กินความสูงสักพิกเซล — หน้าแรกต้องไม่ต้องเลื่อน
+  // ป้าย #อันดับ ขึ้นเมื่อโหลดอันดับแล้วเท่านั้น (board.js · boardRankLabel) ไม่เดา
+  return typeof openBoard === 'function' && currentUser && (typeof sosFeature !== 'function' || sosFeature('social'))
+    ? `<button class="th-rank" onclick="openBoard('scr-menu')" aria-label="อันดับ">${icon('trophy')}<span id="thRank">${
+        typeof boardRankLabel === 'function' ? boardRankLabel() : ''}</span></button>` : '';
+}
+function headBell() {
+  // กระดิ่งชี้ไปกล่องเข้า ไม่ใช่ศูนย์แจ้งเตือนใบใหม่ — ของที่ "เข้ามาเองระหว่างที่ไม่ได้เปิดแอป"
+  // มีที่เดียวคือกล่องเข้า · สร้างที่เก็บแจ้งเตือนอีกที่คือสร้างของค้างชุดที่สองให้ต้องเคลียร์
+  const wait = typeof inboxPending === 'function' ? inboxPending().length : 0;
+  const notifN = typeof notifUnread === 'function' ? notifUnread() : wait;
+  if (typeof notifKick === 'function') notifKick();
+  return `<!-- 1B25: นาฬิกา "เวลามาจากการเดา" ย้ายลงไปอยู่ในกริดข้างล่างแล้ว
          มันเคยขึ้นมาอยู่ตรงนี้เพื่อให้ติดกับตัวเลขที่มันกำกับ แต่กลายเป็นปุ่มที่สองมุมขวาบน
          แล้วหัวจอที่มีปุ่มสองปุ่มก็บีบบรรทัดตัวเลขจนตกสองแถว — แลกไม่คุ้ม
          ของชิ้นเดียวกันนี้อยู่ในกริดอยู่แล้วในรูปไทล์ "สแกนตารางเรียน" ที่ติดป้าย !
          ซึ่งเป็นทางที่เร็วกว่าด้วย (ถ่ายรูปตารางทีเดียวจบ แทนการกรอกทีละคาบ) -->
     <!-- 1C40 · กระดิ่งพาไปจอการแจ้งเตือน (ข้อความจากเพื่อน + งานเข้ากล่อง) แทนกล่องเข้าอย่างเดียว
          จุดแดงนับทั้งสองสาย · ตัวเลขยังไม่ใส่ ด้วยเหตุผลเดิมของ .th-dot -->
-    <!-- 9 ต.ค. 69 · ทางเข้ากระดานอันดับบนหน้าแรก (เจ้าของ: "อยู่หน้าฉันด้วย หายาก ต้องมาอยู่หน้าวันนี้")
-         อยู่ในหัวจอข้างกระดิ่ง ไม่กินความสูงสักพิกเซล — หน้าแรกต้องไม่ต้องเลื่อน
-         ป้าย #อันดับ ขึ้นเมื่อโหลดอันดับแล้วเท่านั้น (board.js · boardRankLabel) ไม่เดา -->
-    ${typeof openBoard === 'function' && currentUser && (typeof sosFeature !== 'function' || sosFeature('social'))
-      ? `<button class="th-rank" onclick="openBoard('scr-menu')" aria-label="อันดับ">${icon('trophy')}<span id="thRank">${
-          typeof boardRankLabel === 'function' ? boardRankLabel() : ''}</span></button>` : ''}
     <button class="th-bell" onclick="go('scr-notif')"
       aria-label="${notifN ? 'การแจ้งเตือน ใหม่ ' + notifN + ' รายการ' : 'การแจ้งเตือน'}">
       ${icon('bell')}${notifN ? `<span class="th-dot n">${notifN > 9 ? '9+' : notifN}</span>` : ''}
-    </button>
-  </header>`;
+    </button>`;
 }
 
 // ---------- กล่องข้อสังเกตของ AI — ถอดออกแล้วใน 1A9 ----------
@@ -2997,6 +3038,24 @@ function dayRail(sp, split, now) {
 
   rows.sort((a, b) => a.at - b.at);
 
+  // 24 ต.ค. 69 · หน้าแรกแบบใหม่: รางโชว์ทีละแถวเต็ม (2–3 แถว) แล้วปิดด้วยลิงก์ "ดูแผนทั้งวัน"
+  // ของเดิมบนมือถือจอเตี้ยคือกล่องสูง 80px เลื่อนในตัว ซึ่งตัดแถวที่สองครึ่งบรรทัด ("20:25 พัก 10 นาที" เห็นครึ่งเดียว)
+  // ดูเหมือนแอปพัง และไม่มีอะไรบอกว่าเลื่อนได้ · ลิงก์ท้ายรางแทนไทล์ "แผนวันนี้" ที่ถอดออกจากกริดด้วย
+  const v2 = homeBlockOn('todayTop');
+  // สามแถวเต็ม · สองแถวเมื่อการ์ดตั้งค่า "สแกนตารางเรียน" ยังขึ้นอยู่ (ไม่งั้นไทล์ตกจอ 375×812)
+  const setupDue = typeof ctxIsEmpty === 'function' && ctxIsEmpty() && (typeof sosFeature !== 'function' || sosFeature('ttscan'));
+  const RAIL_MAX = setupDue ? 2 : 3;
+  let more = 0;
+  // เวลารวมบนหัวข้อต้องเป็นของทั้งวัน ไม่ใช่เฉพาะแถวที่เหลือโชว์ — นับก่อนตัด
+  const allWork = rows.filter(r => r.kind === 'work');
+  const allCount = rows.length;
+  if (v2 && rows.length > RAIL_MAX) {
+    const keep = rows.slice(0, RAIL_MAX);
+    while (keep.length > 1 && keep[keep.length - 1].kind === 'brk') keep.pop();   // ไม่จบรางด้วยแถว "พัก"
+    more = rows.slice(keep.length).filter(r => r.kind !== 'brk').length;
+    rows.length = 0; rows.push(...keep);
+  }
+
   // เส้นปิดของวัน — ปลายของช่วงว่างก้อนสุดท้ายที่ตัวจัดแผนยอมใช้
   // ไม่ใช่ของประดับ: มันคือคำตอบของ "แล้วเหลือเวลาถึงกี่โมง" ซึ่งเป็นสิ่งที่ทำให้แถวข้างบน
   // มีความหมาย — งานสี่ใบก่อนสามทุ่มกับงานสี่ใบก่อนเที่ยงคืนเป็นคนละสถานการณ์
@@ -3067,11 +3126,11 @@ function dayRail(sp, split, now) {
   // โครงตั๋วอยู่ที่การ์ดบนที่เดียว รางกลับไปเป็นรายการเงียบ ๆ ที่มีหัวข้อบรรทัดเดียว
   // ตัวเลข "หมดเวลา 21:30" ไม่ได้หายไป — มันยังเป็นแถวสุดท้ายบนแกนอยู่แล้ว
   // ซึ่งเป็นที่ที่ถูกกว่า เพราะปลายทางเป็นของที่อยู่ "ท้ายเส้น" ไม่ใช่ "บนหัว"
-  const workRows = rows.filter(r => r.kind === 'work');
+  const workRows = allWork;
   const workMin = workRows.reduce((a, r) => a + r.slot.min, 0);
   // "3 ช่วง" ถูกตัดออก — แถวข้างล่างนับเองได้ด้วยตาในหนึ่งวินาที
   // ตัวเลขที่นับเองไม่ได้คือเวลารวม ซึ่งเป็นตัวเดียวที่ควรเขียน
-  const sumTx = workRows.length ? humanMin(workMin) : rows.length + ' รายการ';
+  const sumTx = workRows.length ? humanMin(workMin) : allCount + ' รายการ';
 
   // 1B38 · หัวข้อออกมาอยู่นอกการ์ด บนพื้นจอ
   // ตอนมันอยู่ในการ์ด มันเป็น "ป้ายกำกับของกล่อง" ซึ่งอ่านเป็นของชิ้นเดียวกับแถวข้างล่าง
@@ -3079,16 +3138,20 @@ function dayRail(sp, split, now) {
   // ขนาดจึงขึ้นตามหน้าที่ได้โดยไม่ต้องแข่งกับอะไร (การ์ดฟ้ายังใหญ่กว่าและมีสี)
   const RP = {
     label: `<div class="rl-lb">
-      <b>${esc(typeof sosText === 'function' ? sosText('railTitle', 'ที่เหลือของวันนี้') : 'ที่เหลือของวันนี้')}</b><span>${esc(sumTx)}</span>
+      <b>${esc(typeof sosText === 'function' ? sosText('railTitle', 'ที่เหลือของวันนี้') : 'ที่เหลือของวันนี้')}</b>${railDayChip(now)}<span>${esc(sumTx)}</span>
     </div>`,
     rows: body,
-    end: endHm ? `<div class="dr-row end">
+    end: (endHm && !more ? `<div class="dr-row end">
       <span class="dr-t mono">${esc(endHm)}</span>
       <span class="dr-b">หมดเวลาว่าง</span>
-    </div>` : '',
+    </div>` : '') + (v2 ? `<button type="button" class="dr-row dr-more" onclick="go('scr-plan')">
+      <span class="dr-t mono">${more ? '+' + more : ''}</span>
+      <span class="dr-b">${more ? 'อีก ' + more + ' งานหลังจากนี้ · ' : ''}ดูแผนทั้งวัน</span>
+      <span class="dr-go">${icon('chevron')}</span>
+    </button>` : ''),
   };
 
-  return `<section class="td-railwrap">
+  return `<section class="td-railwrap${v2 ? ' capped' : ''}">
     ${partsHtml('rail', RAIL_PARTS, 'head', RP)}
     <div class="td-rail">${partsHtml('rail', RAIL_PARTS, 'body', RP)}</div>
   </section>`;
@@ -3152,13 +3215,24 @@ function toolsGrid() {
     ['chart', 'สถิติ', 'me', "go('scr-stats')", '', false],
     ['medal', 'ของสะสม', 'me', "go('scr-badges')", '', false],
     ['bag', 'ร้านค้า', 'me', "go('scr-shop')", gift ? ' ' : '', true, 'shop'],
-  ].filter(t => !t[6] || typeof sosFeature !== 'function' || sosFeature(t[6]));
+  ].filter(t => !t[6] || typeof sosFeature !== 'function' || sosFeature(t[6]))
+    // 24 ต.ค. 69 · หน้าแรกแบบใหม่ถอดสามก้อนที่มีทางเข้าอื่นอยู่แล้วบนจอเดียวกัน — ไทล์เหลือแถวเดียว
+    //   สแกนตารางเรียน → การ์ดตั้งค่าครั้งเดียวเหนือไทล์ โผล่เฉพาะตอนยังไม่มีตารางเรียน (setupCard) · ป้าย ! ไม่ค้างตลอดไปอีก
+    //   แผนวันนี้      → ลิงก์ "ดูแผนทั้งวัน" ท้ายราง
+    //   กล่องเข้า      → กระดิ่ง (จอการแจ้งเตือนมีแถว "กล่องเข้า" บนสุด)
+    .filter(t => !homeBlockOn('todayTop') || !['scan', 'plan', 'inbox'].includes(t[0]));
   // QA 6 ต.ค. 69 เคยถอดแถวล่าง (สถิติ · ของสะสม · ร้านค้า · Pro) ออกจากหน้าแรก เพราะทำให้ล้นจอ 375×812
   // 7 ต.ค. 69 เจ้าของสั่งเอากลับมา ("เอาแถวล่างกลับมาด้วย") — ยังพอดี 375×812 ได้ด้วยการเลิกจองความสูง
   // ป้ายสองบรรทัดใต้ไทล์ (กฎท้าย alt.css) · เพิ่มอะไรบนหน้าแรกอีก ต้องวัดใหม่ทุกครั้ง
 
-  return `<section class="td-tiles">
-    <div class="tg-grid">
+  const setup = homeBlockOn('todayTop') && noCtx && (typeof sosFeature !== 'function' || sosFeature('ttscan'))
+    ? `<button type="button" class="td-setup" onclick="openTtScan()">
+        <span class="ts-ic2">${icon('scan')}</span>
+        <span class="ts-tx"><b>ตั้งค่าครั้งเดียว · สแกนตารางเรียน</b><small>แผนจะตรงกับเวลาว่างจริง ทำแล้วการ์ดนี้หายไป</small></span>
+        <span class="ts-go">${icon('chevron')}</span>
+      </button>` : '';
+  return `${setup}<section class="td-tiles">
+    <div class="tg-grid" style="--tg-n:${tiles.length}">
       ${tiles.map(([ic, lb, tone, act, ct, hot]) => `<button class="tg-t tone-${tone}" onclick="${act}">
         <span class="tg-ic">${icon(ic)}${ct !== '' ? `<i class="tg-ct${hot ? ' hot' : ''}${
           ct === ' ' ? ' dot' : ''}">${String(ct).trim()}</i>` : ''}</span>
@@ -3488,6 +3562,211 @@ const STATS_PARTS = [
   { id: 'streak',  zone: 'row', lock: false },
 ];
 
+// ---------- 24 ต.ค. 69 · แถบบนสุดแบบ Duolingo + ช่องอีเวนต์ ----------
+// เจ้าของเลือกแบบ Duolingo แล้วให้จัดโครงหน้า "วันนี้" ใหม่เอง ("ปรับตามคุณเลย · ต้องมีปุ่มหรือช่องเข้า event ด้วย")
+// แบ่งหน้าที่สามชั้น บนลงล่าง:
+//   1 แถบบนสุด (todayTop)  สถานะของเรา — วันต่อเนื่อง · โทเคน · อันดับ · กระดิ่ง ตัวเลขล้วน ไม่มีปุ่มอีเวนต์ปน
+//   2 ช่องอีเวนต์ (eventSlot) การ์ดเต็มความกว้างของอีเวนต์ที่กำลังจัด โผล่เฉพาะช่วงอีเวนต์
+//   3 การ์ด "ตอนนี้" ลงไป    แกนของแอปเหมือนเดิม
+// รอบก่อนอัดปุ่มอีเวนต์ไว้ในแถบตัวเลข (เจ้าของ: "แคบ ๆ · ยังไม่ชอบขนาดนั้น") — ปุ่มเล็กจนบอกอะไรไม่ได้
+// และทำให้แถบตัวเลขล้นจอเมื่อล็อกอินแล้วมี #อันดับ · แยกชั้นแล้วแต่ละชั้นมีที่พอ
+// เปิดแถบนี้แล้วหัวจอ (todayHead) หายทั้งก้อน — ดู slim ใน todayHead
+function todayTop() {
+  const streak = typeof loginStreak === 'function' ? loginStreak() : 0;
+  const bal = typeof tokenBalance === 'function' ? tokenBalance() : 0;
+  // ช่องที่ไม่มีที่ให้ไปเป็นป้ายเฉย ๆ — ปุ่มที่กดแล้วเงียบแย่กว่าไม่มีปุ่ม (กฎเดียวกับ toolsGrid)
+  const shop = typeof sosFeature !== 'function' || sosFeature('shop');
+  // อันดับโชว์ทุกคน ไม่ใช่เฉพาะคนที่ล็อกอิน (เจ้าของ: "ตารางอันดับเอาให้อยู่ด้วย ของ alt ไม่มี") —
+  // ยังไม่ล็อกอินกดแล้วเจอจอชวนเข้าร่วมของกระดานเอง (boardGuestHTML) · ป้าย #อันดับ เฉพาะคนที่ล็อกอิน
+  const rank = typeof openBoard === 'function' && (typeof sosFeature !== 'function' || sosFeature('social'));
+  // Candy ของอีเวนต์มาอยู่แถวเดียวกับไฟกับเหรียญ (เจ้าของ: "เอา candy ไปอยู่ด้านบนด้วย") · หายเองเมื่อไม่มีอีเวนต์
+  const ev = window.HalloweenEventEntry || null;
+  const candy = ev && ev.countdown() !== null ? ev.candy() : null;
+  return `<div class="td-top">
+    <button type="button" class="tt-chip tt-streak" onclick="openDailyCheck()" aria-label="ต่อเนื่อง ${streak} วัน · เช็คอินรายวัน">
+      ${STAT_ART.streak}<b>${streak}</b></button>
+    ${shop
+      ? `<button type="button" class="tt-chip tt-tok" onclick="go('scr-shop')" aria-label="โทเคน ${esc(fmtTok(bal))} · ร้านค้า">`
+      : `<span class="tt-chip tt-tok" aria-label="โทเคน ${esc(fmtTok(bal))}">`}
+      ${coin(20)}<b data-tok="${isFinite(bal) ? bal : ''}" data-tok-int>${esc(fmtTok(bal))}</b>${shop ? '</button>' : '</span>'}
+    ${candy !== null && candy !== undefined
+      ? `<a class="tt-chip tt-candy" href="#events" onclick="openEvents('halloween');return false" aria-label="Candy ${candy}${ev.preview ? ' ในห้องลอง' : ''} · เข้าอีเวนต์">${HW_CANDY}<b>${candy}</b></a>` : ''}
+    ${rank
+      ? `<button type="button" class="tt-chip tt-rank" onclick="openBoard('scr-menu')" aria-label="อันดับ">${icon('trophy')}<b${
+          currentUser ? ' id="thRank"' : ''}>${currentUser && typeof boardRankLabel === 'function' ? boardRankLabel() : 'อันดับ'}</b></button>` : ''}
+    <span class="tt-acts">${headBell()}</span>
+  </div>`;
+}
+
+// ---------- ช่องอีเวนต์ ----------
+// ช่องเดียวสำหรับทุกอีเวนต์ — อีเวนต์หน้าแค่ส่งข้อมูลชุดเดียวกับ HalloweenEventEntry มา (ชื่อ · คำโปรย · ลิงก์ · ตัวนับ · เหรียญอีเวนต์)
+// ตอนนี้มีแหล่งเดียวคือ halloween/rewards/runtime.js ซึ่งอ่าน event/config.json
+// ไม่มีตัวนั้น (ปิดอีเวนต์ · ลบ event/ · โหลดไม่ขึ้น) หรือเลย endsAt = ช่องนี้ไม่วาดอะไรเลย ไม่เหลือกรอบว่าง
+// ทางเข้าอีเวนต์เคยเป็นการ์ดใต้หัวโปรไฟล์ในแท็บ "ฉัน" ซึ่งต้องกดเข้าไปหาก่อน (เจ้าของสั่งเอาออก)
+const HW_PUMPKIN = `<svg viewBox="0 0 32 30" aria-hidden="true">
+  <path d="M16 6c.8-2.6 2.6-4 4.8-4" fill="none" stroke="#7fbf3f" stroke-width="2.2" stroke-linecap="round"/>
+  <ellipse cx="10.5" cy="18" rx="8" ry="9.5" fill="#f07f16"/><ellipse cx="21.5" cy="18" rx="8" ry="9.5" fill="#f07f16"/>
+  <ellipse cx="16" cy="18" rx="7" ry="10.5" fill="#ff9a2e"/>
+  <path d="M10.5 15.5l2.6 2.8H8zM21.5 15.5l2.6 2.8H19z" fill="#3a1600"/>
+  <path d="M9.5 21.5q6.5 4.6 13 0l-1.8 2.8-1.8-1-1.9 1.9-1.9-1.9-1.9 1.9-1.8-1z" fill="#3a1600"/>
+</svg>`;
+const HW_CANDY = `<svg viewBox="0 0 24 24" aria-hidden="true">
+  <path d="M2.5 8l4.6 2.4-.9 3.4-3.7 2.2zM21.5 8l-4.6 2.4.9 3.4 3.7 2.2z" fill="currentColor" opacity=".65"/>
+  <circle cx="12" cy="12" r="5.6" fill="currentColor"/>
+  <path d="M9 10.2q3 .9 6 3.9" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.4" stroke-linecap="round"/>
+</svg>`;
+
+function eventSlot() {
+  const ev = window.HalloweenEventEntry || null;
+  const left = ev ? ev.countdown() : null;
+  if (!ev || left === null) return '';
+  const label = `เข้าอีเวนต์ ${esc(ev.name)}${left ? ' · ' + esc(left) : ''}`;
+  const tryTag = ev.preview ? '<i class="te-try">ห้องลอง</i>' : '';
+  // อีเวนต์ที่ไม่มีภาพการ์ด (config.json ไม่มี card) ได้การ์ดฟักทองเรียบ ๆ แทน — ช่องนี้ต้องใช้ได้กับทุกอีเวนต์
+  if (!ev.art) return `<a class="td-event" href="#events" onclick="openEvents('halloween');return false" aria-label="${label}">
+    <span class="te-art">${HW_PUMPKIN}</span>
+    <span class="te-tx"><b>${esc(ev.name)}${ev.tagline ? `<span class="te-tag"> · ${esc(ev.tagline)}</span>` : ''}</b>
+      <span class="te-meta">${left ? `<i class="te-left">${esc(left)}</i>` : ''}${tryTag}</span></span>
+    <span class="te-go">Event</span>
+  </a>`;
+  // 24 ต.ค. 69 · เจ้าของ: "ปรับให้การ์ด halloween สวย ๆ ด้วยได้ไหม มันตัวละครอะไรพวกนั้น"
+  // ฉากโถงประตูสี่บานของอีเวนต์เป็นพื้น · NPC สี่ไบโอมยืนเรียงหน้าประตู (Tang · Jack · Dech · ยมทูต) · ภาพย่อจากชุดภาพของอีเวนต์เอง
+  return `<a class="td-event art" href="#events" onclick="openEvents('halloween');return false" aria-label="${label}" style="--te-art:url('${esc(ev.art)}')">
+    <span class="te-bg" aria-hidden="true"></span>
+    <span class="te-cast" aria-hidden="true">${ev.cast.map((u, i) =>
+      `<img src="${esc(u)}" alt="" decoding="async" style="--i:${i}">`).join('')}</span>
+    <span class="te-tx">
+      ${left ? `<i class="te-left">${esc(left)}</i>` : ''}
+      <b class="te-name">${esc(ev.name)}</b>
+      ${ev.tagline ? `<span class="te-tag">${esc(ev.tagline)}</span>` : ''}
+      <span class="te-foot"><span class="te-go">Event</span>${tryTag}</span>
+    </span>
+  </a>`;
+}
+
+// ---------- 24 ต.ค. 69 · การ์ดหลักเป็นสไลด์: "ตอนนี้" ⇄ อีเวนต์ ----------
+// เจ้าของ: "ตรงการ์ดหลักงานที่ต้องทำ อยากให้เป็นสไลด์ อีกอันเป็น halloween ขอการ์ดสวย ๆ … แล้วสลับกัน เลื่อนเองก็ได้"
+// 24 ต.ค. 69 (รอบสอง) · เจ้าของ: "สไลด์อยากให้มันเลื่อนเองด้วย 3 วิเลื่อน สไลด์แรกเป็น event เลย … อัน 2 ก็งานหลัก"
+//   • สไลด์แรก = อีเวนต์ · สไลด์สอง = การ์ดงาน (เดิมเปิดที่การ์ดงานก่อน)
+//   • เลื่อนเองวนไปเรื่อย ๆ (เดิม งาน 7 วิ → อีเวนต์ 5 วิ สองรอบแล้วหยุด)
+//   • รอบสาม · เจ้าของ: "อยากให้มันเลื่อนไปขวาตลอด ๆ เปลี่ยนเป็น 5 วิแทน" — ทุก 5 วิ และไปทางเดียวตลอด
+//     ท้ายรางมีสำเนาสไลด์อีเวนต์ (dk-clone · inert) · งาน → สำเนา เลื่อนไปข้างหน้าเหมือนเดิม
+//     พอนิ่งที่สำเนาแล้วกระโดดกลับสไลด์จริงทันทีแบบไม่มีแอนิเมชัน — สองสไลด์หน้าตาเดียวกัน ตาจึงไม่เห็นการกระโดด
+//   • รอบสี่ · เจ้าของ: "ตั้งค่าวนลูปให้หน่อยเผื่อใครเลื่อนด้วยมือ" — หัวรางมีสำเนาการ์ดงานด้วย
+//     ราง = [สำเนางาน, อีเวนต์, งาน, สำเนาอีเวนต์] · ปัดย้อนจากอีเวนต์ = ไปการ์ดงาน · ปัดต่อจากงาน = ไปอีเวนต์ วนได้ทั้งสองทาง
+//     สำเนาตัด id ทิ้ง ไม่ให้ getElementById ไปเจอตัวสำเนาแทนตัวจริง
+//   • แตะ/ปัดเมื่อไหร่ = หยุดเลื่อนเองทันทีจนกว่าจะเปิดแอปใหม่ (คนที่กำลังอ่านต้องไม่โดนดึงหนี)
+//   • ไม่เลื่อนเองเลยเมื่อเครื่องตั้งลดการเคลื่อนไหว · ไม่อยู่จอวันนี้ · แอปอยู่เบื้องหลัง
+//   • renderMenu วาดทับทั้งจอทุกนาที — ตำแหน่งสไลด์เก็บไว้ที่ deck.idx แล้ววางคืนหลังวาด (deckMount)
+// ช่องอีเวนต์เล็ก (eventSlot) ไม่วาดเมื่อมีสไลด์นี้ ไม่งั้นอีเวนต์เดียวกันขึ้นสองที่
+function eventHero(ev, left) {
+  const candy = ev.candy();
+  // 24 ต.ค. 69 · ป้ายใต้ตัวละครเป็นชื่อสั้น (names) ชื่อเต็มของเควส (fullNames) อยู่ใน title — ชื่อเต็มยาวเกินป้ายสี่ใบในแถวเดียว
+  const cast = ev.cast.map((u, i) => `<figure style="--i:${i}"><img src="${esc(u)}" alt="" decoding="async">${
+    ev.names[i] ? `<figcaption${ev.fullNames && ev.fullNames[i] ? ` title="${esc(ev.fullNames[i])}"` : ''}>${esc(ev.names[i])}</figcaption>` : ''}</figure>`).join('');
+  return `<a class="td-hero" href="#events" onclick="openEvents('halloween');return false" aria-label="เข้าอีเวนต์ ${esc(ev.name)}${left ? ' · ' + esc(left) : ''}" style="--te-art:url('${esc(ev.art)}')">
+    <span class="th-bg" aria-hidden="true"></span>
+    <span class="th-moon" aria-hidden="true"></span>
+    <span class="th-top">
+      <i class="th-kind">อีเวนต์</i>${left ? `<i class="th-left">${esc(left)}</i>` : ''}${ev.preview ? '<i class="th-try">ห้องลอง</i>' : ''}
+    </span>
+    <span class="th-title"><b>${esc(ev.name)}</b>${ev.tagline ? `<span>${esc(ev.tagline)}</span>` : ''}</span>
+    ${ev.blurb ? `<span class="th-blurb">${esc(ev.blurb)}</span>` : ''}
+    <span class="th-cast" aria-hidden="true">${cast}</span>
+    <span class="th-foot">
+      <span class="th-go">Event ${icon('chevron')}</span>
+      ${candy !== null && candy !== undefined ? `<span class="th-candy">${HW_CANDY}<b>${candy}</b> Candy</span>` : ''}
+    </span>
+  </a>`;
+}
+
+function heroDeck(nowHtml) {
+  const ev = window.HalloweenEventEntry || null;
+  const left = ev ? ev.countdown() : null;
+  if (!ev || left === null || !ev.art || !homeBlockOn('eventSlot')) return nowHtml;
+  const evHtml = eventHero(ev, left);
+  const copy = html => `<div class="dk-slide dk-clone" aria-hidden="true" inert>${html.replace(/\sid="[^"]*"/g, '')}</div>`;
+  return `<section class="td-deck" aria-roledescription="สไลด์" aria-label="การ์ดหลัก">
+    <div class="dk-track" id="dkTrack">
+      ${copy(nowHtml)}
+      <div class="dk-slide" aria-label="อีเวนต์ ${esc(ev.name)}">${evHtml}</div>
+      <div class="dk-slide" aria-label="งานตอนนี้">${nowHtml}</div>
+      ${copy(evHtml)}
+    </div>
+    <div class="dk-dots" role="tablist">
+      <button type="button" class="dk-dot ev" role="tab" onclick="deckGo(0, true)" aria-label="อีเวนต์ ${esc(ev.name)}"><i></i></button>
+      <button type="button" class="dk-dot" role="tab" onclick="deckGo(1, true)" aria-label="งานตอนนี้"><i></i></button>
+    </div>
+  </section>`;
+}
+
+const DECK_STAY = [5000, 5000];   // ค้างที่การ์ดอีเวนต์ / การ์ดงาน (มิลลิวินาที)
+const DECK_N = 2;                 // สไลด์จริง — ราง = [สำเนาสไลด์สุดท้าย, สไลด์จริง DECK_N ใบ, สำเนาสไลด์แรก]
+const deck = { idx: 0, held: false, timer: 0 };
+
+// ตำแหน่งเลื่อนของสไลด์ช่องที่ k ในราง · สไลด์ห่างกันด้วยระยะเว้น (margin) จึงคูณความกว้างตรง ๆ ไม่ได้
+function deckPos(t, k) { return t.children[k].offsetLeft - t.children[0].offsetLeft; }
+function deckNearest(t) {
+  let best = 0;
+  for (let k = 1; k < t.children.length; k++)
+    if (Math.abs(deckPos(t, k) - t.scrollLeft) < Math.abs(deckPos(t, best) - t.scrollLeft)) best = k;
+  return best;
+}
+// i = สไลด์จริง (0 … DECK_N-1) อยู่ช่อง i+1 ของราง · i = DECK_N คือ "ถัดจากใบสุดท้าย" = สำเนาสไลด์แรกท้ายราง
+function deckGo(i, byUser) {
+  const t = document.getElementById('dkTrack');
+  if (!t || !t.children[i + 1]) return;
+  if (byUser) deckHold();
+  deck.idx = i % DECK_N;
+  t.scrollTo({ left: deckPos(t, i + 1), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  deckPaint();
+}
+function deckHold() { deck.held = true; clearTimeout(deck.timer); deckPaint(); }
+function deckPaint() {
+  const root = document.querySelector('.td-deck');
+  if (!root) return;
+  root.querySelectorAll('.dk-dot').forEach((d, i) => d.classList.toggle('on', i === deck.idx));
+  // แถบเวลาในจุดที่กำลังโชว์ = อีกนานแค่ไหนจะเลื่อน · หยุดเลื่อนแล้วแถบเต็มนิ่ง
+  root.style.setProperty('--dk-stay', DECK_STAY[deck.idx] + 'ms');
+  root.classList.toggle('auto', !deck.held);
+  root.classList.remove('tick'); void root.offsetWidth; root.classList.add('tick');
+}
+function deckArm() {
+  clearTimeout(deck.timer);
+  if (deck.held || matchMedia('(prefers-reduced-motion: reduce)').matches) { deck.held = true; deckPaint(); return; }
+  deck.timer = setTimeout(() => {
+    if (!document.getElementById('dkTrack')) return;
+    // ไม่อยู่จอวันนี้ / แอปอยู่เบื้องหลัง = รอรอบหน้า
+    if (curScreen !== 'scr-menu' || document.hidden) { deckArm(); return; }
+    deckGo(deck.idx + 1);   // ไปข้างหน้าเสมอ · สไลด์สุดท้าย → สำเนาสไลด์แรกท้ายราง (deckMount พากลับเอง)
+    deckArm();
+  }, DECK_STAY[deck.idx]);
+}
+// เรียกหลัง renderMenu วาดเสร็จทุกครั้ง — วางสไลด์คืนที่เดิม ผูกตัวฟังใหม่ (โหนดเดิมถูกทิ้งไปกับ innerHTML)
+function deckMount() {
+  const t = document.getElementById('dkTrack');
+  if (!t) return;
+  t.scrollTo({ left: deckPos(t, deck.idx + 1), behavior: 'instant' });
+  let settle = 0;
+  t.addEventListener('scroll', () => {
+    clearTimeout(settle);
+    settle = setTimeout(() => {
+      const k = deckNearest(t);
+      // นิ่งที่สำเนา (เลื่อนเองหรือปัดเองก็ตาม) = กระโดดไปตัวจริงของมันแบบไม่มีแอนิเมชัน
+      // ช่อง 0 = สำเนาใบสุดท้าย → ช่อง DECK_N · ช่อง DECK_N+1 = สำเนาใบแรก → ช่อง 1
+      const real = k === 0 ? DECK_N : k === DECK_N + 1 ? 1 : k;
+      if (real !== k) t.scrollTo({ left: deckPos(t, real), behavior: 'instant' });
+      const i = real - 1;
+      if (i !== deck.idx) { deck.idx = i; deckPaint(); }
+    }, 90);
+  }, { passive: true });
+  // นิ้วแตะสไลด์ = กำลังอ่านหรือปัดเอง → หยุดเลื่อนเอง
+  t.addEventListener('pointerdown', deckHold, { passive: true });
+  t.addEventListener('focusin', deckHold);
+  deckPaint();
+  if (!deck.held && !deck.timer) deckArm();
+}
+
 // ---------- ALT: ทะเบียนบล็อกของหน้าแรก (Home Builder) ----------
 // เดิมหน้าแรกคือสตริงเจ็ดก้อนต่อกันตรง ๆ ใน renderMenu ซึ่งอ่านง่ายมาก
 // แต่แปลว่าลำดับสายตาที่อธิบายไว้ยาวเหยียดข้างบนถูกล็อกไว้ในโค้ด
@@ -3496,10 +3775,19 @@ const STATS_PARTS = [
 // ทะเบียนนี้ไม่ได้เปลี่ยนว่าแต่ละบล็อกวาดอะไร — เปลี่ยนแค่ว่า "ใครสั่งลำดับ"
 // ค่าเริ่มต้นคือลำดับเดิมเป๊ะ (HOME_ORDER) จึงไม่มีอะไรขยับจนกว่าจะมีคนไปจัดใหม่จริง
 const HOME_BLOCKS = {
-  todayHead:  ctx => todayHead(ctx.sp, ctx.now),
+  // 24 ต.ค. 69 · แถบบนสุดแบบ Duolingo (ตัวเลขของเรา) + ช่องอีเวนต์ (ดู todayTop · eventSlot)
+  todayTop:   ()  => todayTop(),
+  // การ์ดหลักเปิดอยู่ = อีเวนต์ไปอยู่ในสไลด์ของการ์ดหลักแทน (heroDeck) · ช่องนี้วาดเองเฉพาะตอนปิดการ์ดหลัก
+  eventSlot:  ()  => (homeBlockOn('nowCard') ? '' : eventSlot()),
+  todayHead:  ctx => todayHead(ctx.sp, ctx.now, homeBlockOn('todayTop')),
   // 18 ต.ค. 69 · "วันนี้อยู่ไหน" — ปิดเทอม/อยู่บ้าน/ออกไปข้างนอก เปลี่ยนเวลาว่างของทั้งวัน
   // อยู่เหนือการ์ด "ตอนนี้" เพราะคำตอบของมันเปลี่ยนสิ่งที่การ์ดนั้นพูด
-  dayCtx:     ctx => dayCtxBlock(ctx.now),
+  // 24 ต.ค. 69 · แถบบนสุดเปิด = บรรทัดนี้ออกจากหน้าแรก ให้ช่องอีเวนต์ใช้ที่ (เจ้าของ: "วันนี้ไปไหน อาจจะต้องเอาออก
+  // จริง ๆ ทำมาเพื่ออัปเดตว่าคนใช้ว่างไหมแต่ละวัน วันหยุดจะได้ไม่ใช้ตารางเก่า") · ทางเข้าแผ่นเดิมย้ายไปเป็นป้ายเล็ก
+  // บนหัวข้อ "ที่เหลือของวันนี้" (railDayChip) ซึ่งเป็นรางที่คิดจากคำตอบนี้ · คำถาม "ปิดเทอมแล้วใช่ไหม" ยังขึ้นเต็มบรรทัดตามเดิม
+  dayCtx:     ctx => homeBlockOn('todayTop')
+    ? (typeof breakAskDue === 'function' && breakAskDue(ctx.now) ? breakAskHtml() : '')
+    : dayCtxBlock(ctx.now),
   // 1C41 · วันที่รางมีของ แถบตัวเลขหลบให้ (เจ้าของเลือก) — เลขชุดเดียวกันอยู่บนหัวจออยู่แล้ว
   // ราง + แถบตัวเลข + กริด ล้นจอ 375×812 ราว 160px · รางคือ "ทำอะไรต่อ" ซึ่งสำคัญกว่าตัวเลขซ้ำ
   // การ์ด "วันนี้หมดเวลาแล้ว" (outOfTime) ก็เป็นบล็อกเพิ่มแบบเดียวกัน — หลบให้ด้วยเหตุผลเดียวกัน
@@ -3514,9 +3802,10 @@ const HOME_BLOCKS = {
   saiHero:    ctx => (typeof saiHero === 'function' && ctx.sp.now ? saiHero(ctx) : ''),
   // การ์ด "ตอนนี้" กับจอว่างเป็นบล็อกเดียวกัน เพราะมันคือของสองหน้าของคำถามเดียวกัน:
   // มีอะไรให้ทำไหม · แยกเป็นสองบล็อกเมื่อไหร่ จะมีวันที่จอโชว์ทั้งคู่หรือไม่โชว์เลย
-  nowCard:    ctx => ctx.sp.now
+  // 24 ต.ค. 69 · ช่วงอีเวนต์ การ์ดนี้เป็นสไลด์สองของ heroDeck (สไลด์แรกคือการ์ดอีเวนต์ใหญ่ · เจ้าของสั่งสลับ)
+  nowCard:    ctx => heroDeck(ctx.sp.now
     ? nowCard(ctx.sp, ctx.now) + (ctx.outOfTime ? noTimeLeft(ctx.sp, ctx.now) : '')
-    : todayEmpty(ctx.now, ctx.hasReminders),
+    : todayEmpty(ctx.now, ctx.hasReminders)),
   dayRail:    ctx => dayRail(ctx.sp, ctx.split, ctx.now),
   // 1B40 · ของที่มาเติมครึ่งล่างที่ว่างลงหลัง 1B39 (เจ้าของเลือกเอง: "เพื่อนกำลังทำอะไรอยู่"
   // วางใต้ "ที่เหลือของวันนี้") · ไฟล์ hw.js อาจโหลดไม่ขึ้น จึงต้องเช็คก่อนเรียกเสมอ
@@ -3531,7 +3820,7 @@ const HOME_BLOCKS = {
 // คำตอบว่า "ทำอะไรตอนนี้" คือสิ่งที่แอปขาย จึงต้องเป็นของแรกที่ตาเจอ · หัวจอ (โลโก้ · คำทัก · กระดิ่ง) ยังอยู่บนสุดของจอ
 // แล้วแถวตัวเลข (เวลาว่าง · งานค้าง · วันต่อเนื่อง) ตามขึ้นมาอยู่ใต้การ์ด "ตอนนี้" — เจ้าของวาดลูกศรอีกรอบ
 // (ต้องตรงกับ home.blocks ใน remote-config.js — saiHero ไม่อยู่ในค่านั้น homeLayout() แทรกต่อหลัง todayStats ตามลำดับนี้)
-const HOME_ORDER = ['todayHead', 'dayCtx', 'nowCard', 'todayStats', 'saiHero', 'askBar', 'dayRail', 'hwNowBlock', 'toolsGrid'];
+const HOME_ORDER = ['todayTop', 'todayHead', 'eventSlot', 'dayCtx', 'nowCard', 'todayStats', 'saiHero', 'askBar', 'dayRail', 'hwNowBlock', 'toolsGrid'];
 
 // QA 6 ต.ค. 69 · แถบตัวเลขปิดไว้เป็นค่าเริ่มต้น — "ว่าง 45 นาที · ค้าง 1 งาน" บนหัวจอพูดเลขชุดเดียวกันอยู่แล้ว
 // สองช่องซ้ำกันกิน 125px ที่ทำให้หน้าแรกล้นจอ 375×812 จนกริดไทล์จมใต้แถบล่าง (ผิดกฎ "หน้าแรกไม่ต้องเลื่อน")
@@ -3566,6 +3855,8 @@ function homeLayout() {
   }
   return out;
 }
+
+function homeBlockOn(id) { return homeLayout().some(b => b.id === id && b.on); }
 
 // บล็อกใบเดียวพังต้องไม่ทำให้ทั้งหน้าแรกว่าง — จอขาวคืออาการที่ผู้ใช้กู้เองไม่ได้
 function renderHomeBlocks(ctx) {
@@ -3617,9 +3908,12 @@ function renderMenu() {
   //
   // ที่กริดเคยอยู่ตอนนี้ไม่มีอะไรเลย ซึ่งถูกแล้ว: ของที่เคยคิดจะใส่แทน (งานถัดไป ·
   // คำแนะนำ AI) อยู่บนจอแล้วทั้งคู่ — การ์ดฟ้าคือคำแนะนำ ส่วนรางคืองานถัดไป
+  // 24 ต.ค. 69 · หน้าแรกแบบใหม่ (แถบบนสุดเปิด) — ราง ช่องถาม และไทล์จัดใหม่ตาม home-v2 · ปิดแถบ = หน้าตาเดิมทั้งหมด
+  body.classList.toggle('home-v2', homeBlockOn('todayTop'));
   body.innerHTML = renderHomeBlocks({
     sp, now, split, outOfTime, hasReminders: split.reminders.length > 0,
   });
+  deckMount();
 
   // เวทีน้องไซเพิ่งถูกวาดใหม่ทั้งก้อน — ลูปที่เคยเดินอยู่หยุดตัวเองไปแล้วตอนหาเวทีไม่เจอ
   // ต้องปลุกทุกครั้งหลังวาด ไม่ใช่ปลุกครั้งเดียวตอนเปิดแอป (renderMenu ถูกเรียกทุกนาที)
@@ -5097,6 +5391,15 @@ function dayCtxView(now) {
   if (g.kind === 'free') return { ic: 'sofa', text: 'วันนี้ไม่มีเรียน', sub: '' };
   // ask = แอปยังไม่รู้อะไรเลย ต้องให้นักเรียนตอบ · บรรทัดนี้กลายเป็นปุ่มชวนกด (19 ต.ค. 69)
   return { ic: 'pin', text: 'วันนี้ไปไหน?', sub: 'บอกก่อน แผนจะตรง', ask: true };
+}
+
+// ป้ายเล็กบนหัวข้อราง — ทางเข้าแผ่น "วันนี้ไปไหน" ตอนแถบบนสุดเปิด (บรรทัดเต็มออกจากหน้าแรกแล้ว ดู dayCtx ใน HOME_BLOCKS)
+// ยังไม่รู้ = "วันนี้ไปไหน?" สีเน้น · รู้แล้ว = คำเดาเงียบ ๆ เช่น "ไปเรียน" · แตะเพื่อเปลี่ยน
+function railDayChip(now) {
+  if (typeof ctxDayGuess !== 'function' || !homeBlockOn('todayTop')) return '';
+  const v = dayCtxView(now);
+  return `<button type="button" class="rl-day${v.ask ? ' ask' : ''}" onclick="openDaySheet()" aria-label="วันนี้: ${esc(v.text)} · ${v.ask ? 'บอกเลย' : 'เปลี่ยน'}">
+    ${icon(v.ic)}<em>${esc(v.text)}</em></button>`;
 }
 
 function dayCtxBlock(now) {
@@ -8774,6 +9077,7 @@ function renderFriends(force) {
   // อย่าพับกลับอีกจนกว่าจะมีคนใช้จริงที่มีเพื่อนกันแล้วเป็นสิบคน
   body.innerHTML = `
     <div id="frMeRow"></div>
+    <div id="frInviteRow"></div>
     <div id="frBoardRow"></div>
     <div class="fr-search big" id="frSearchBox">
       ${icon('search')}
@@ -8787,6 +9091,8 @@ function renderFriends(force) {
     <div id="frListBox"></div>`;
   body.dataset.built = '1';
   paintFriendParts();
+  // การ์ดชวนเพื่อน · ภารกิจธีม Halloween (halloween/invite-friend/invite-friend.js) — วาดจากแคชก่อน แล้วถามเซิร์ฟเวอร์เงียบ ๆ
+  if (typeof paintInviteEntry === 'function') { paintInviteEntry(); inviteRefresh(); }
   // การ์ด "อันดับ" (board.js) — โหลดอันดับของเราไว้เงียบ ๆ ให้การ์ดบอกตัวเลขได้เลย
   if (typeof paintBoardEntry === 'function') { paintBoardEntry(); boardWarm(); }
 }
@@ -10144,16 +10450,20 @@ function craftTheme(id) {
   showToast({ title: 'คราฟธีม' + c.name + 'สำเร็จ', body: 'เลือกใช้ได้ที่จอตั้งค่า · เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
 }
 
-function themeLocked(id) { return THEME_GACHA.includes(id) || !!THEME_SHOP[id] || !!THEME_CODE[id]; }
+// ธีมจากภารกิจชวนเพื่อน (halloween/invite-friend/invite-friend.js · INVITE_THEME) ล็อกจนกว่าจะครบสองภารกิจ
+function inviteThemeId(id) { return typeof INVITE_THEME !== 'undefined' && id === INVITE_THEME; }
+function themeLocked(id) { return THEME_GACHA.includes(id) || !!THEME_SHOP[id] || !!THEME_CODE[id] || inviteThemeId(id); }
 function themeOwned(id) {
   if (!themeLocked(id)) return true;
   if (THEME_CODE[id]) return codeThemeOwned(id);
+  if (inviteThemeId(id)) return inviteUnlocked();
   const s = tokenState();
   if (THEME_GACHA.includes(id)) return ((s.skins || {})[id] || 0) > 0;
   return (s.bought || []).includes(id);
 }
 // ธีมจากโค้ดไม่มีช่วงผ่อนผัน "ใช้อยู่ก่อนแล้วใช้ต่อได้" — มีโค้ดเท่านั้นถึงเห็น
-function themeVisible(id) { return THEME_CODE[id] ? codeThemeOwned(id) : (themeOwned(id) || themePref() === id); }
+// ธีมจากภารกิจโชว์ปุ่มไว้เสมอ (ติดกุญแจ) — กดแล้วพาไปดูภารกิจ คนต้องรู้ว่ามีของให้ล่า
+function themeVisible(id) { return THEME_CODE[id] ? codeThemeOwned(id) : (themeOwned(id) || themePref() === id || inviteThemeId(id)); }
 
 // ซ่อน/โชว์ปุ่มธีมตามสิทธิ์ — เรียกทุกครั้งที่สิทธิ์เปลี่ยน
 function applyThemeLocks() {
@@ -10161,6 +10471,7 @@ function applyThemeLocks() {
     const id = b.dataset.th;
     if (!themeLocked(id)) return;                 // ธีมฟรี ไม่ต้องยุ่ง
     b.hidden = !themeVisible(id);
+    if (inviteThemeId(id)) { b.classList.toggle('th-mission', !themeOwned(id)); return; }
     // ธีมที่ยังใช้อยู่แต่ยังไม่ได้เป็นเจ้าของ ติดป้ายบอกว่าใช้ต่อได้แต่เปลี่ยนออกแล้วจะหาย
     b.classList.toggle('th-grace', themeVisible(id) && !themeOwned(id));
   });
@@ -12273,6 +12584,7 @@ var SCREEN_RENDER = {
   'scr-form': [], 'scr-sai': [], 'scr-dayfull': [], 'scr-bugs': [], 'scr-ctxwiz': [], 'scr-compose': [], 'scr-consent': [],
   'scr-privacy': [], 'scr-user': [], 'scr-post': [], 'scr-chat': [], 'scr-hw': [], 'scr-topic': [], 'scr-tthread': [],
   'scr-dm': [], 'scr-board': [], 'scr-setopt': [],
+  'scr-events': ['renderEvents'],
   // ไม่ใส่: ล็อกอิน · แนะนำแอป · สแกน/ครอบรูป/กำลังอ่าน — จังหวะพิเศษ ปล่อยวาดทั้งหมดแบบเดิม
 };
 // เดิม renderEverything กรองรายการสำรวจใหม่เมื่ออยู่จอนี้ — ห่อเป็นตัววาดให้ตารางเรียกได้
@@ -19217,6 +19529,8 @@ function syncLiteRow() { syncGfxRow(); }
   if (typeof window.bootStep === 'function') window.bootStep('cloud');
   // ตอนนี้รู้แล้วว่าล็อกอินสำเร็จจริงไหม — ถ้ามี token ค้างจากลิงก์กลุ่ม ใช้ตรงนี้
   await applyJoinToken();
+  // รหัสเชิญจากลิงก์/QR ของเพื่อน (halloween/invite-friend/invite-friend.js) ใช้จังหวะเดียวกัน · แล้วโหลดความคืบหน้าภารกิจ
+  if (typeof applyInviteCode === 'function') { await applyInviteCode(); inviteRefresh(); }
   // เคยกดอนุญาตไว้แล้ว + ล็อกอินอยู่ → ต่อ push ให้อัตโนมัติ (เผื่อ subscription หลุด)
   // ยังไม่ล็อกอินก็ต้องผ่านตรงนี้ — pushState ต้องได้ค่าจริงไว้ให้จอตั้งค่าใช้
   await ensurePush();

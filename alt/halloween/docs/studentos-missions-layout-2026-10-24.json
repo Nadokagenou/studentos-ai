@@ -1,0 +1,161 @@
+{
+  "states": [
+    {
+      "requested": [
+        320,
+        568
+      ],
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        320,
+        568
+      ]
+    },
+    {
+      "requested": [
+        375,
+        812
+      ],
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        375,
+        812
+      ]
+    },
+    {
+      "requested": [
+        390,
+        844
+      ],
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        390,
+        844
+      ]
+    },
+    {
+      "requested": [
+        812,
+        375
+      ],
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        812,
+        375
+      ]
+    },
+    {
+      "requested": [
+        844,
+        390
+      ],
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        844,
+        390
+      ]
+    },
+    {
+      "requested": [
+        768,
+        1024
+      ],
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        768,
+        1024
+      ]
+    },
+    {
+      "requested": [
+        1024,
+        768
+      ],
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        1024,
+        768
+      ]
+    },
+    {
+      "requested": [
+        1280,
+        720
+      ],
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        1280,
+        720
+      ]
+    },
+    {
+      "requested": [
+        1440,
+        900
+      ],
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        1440,
+        900
+      ]
+    },
+    {
+      "requested": [
+        2560,
+        1080
+      ],
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        2560,
+        1080
+      ]
+    }
+  ],
+  "flow": {
+    "initial": 0,
+    "partial": [
+      "1/1",
+      "10/15",
+      "0/1"
+    ],
+    "ready": [
+      "1/1",
+      "15/15",
+      "1/1"
+    ],
+    "claimedCandy": 30,
+    "reloadCandy": 30,
+    "referralCandy": 0,
+    "fixtureOrigin": "127.0.0.1:4279"
+  }
+}

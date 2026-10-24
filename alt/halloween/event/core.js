@@ -1,8 +1,8 @@
 /* กติกาที่ตรวจได้โดยไม่พึ่ง DOM; ตัวเลขเสนอใช้ได้เฉพาะ preview:true */
 (function(root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('../rewards/ownership.js'),require('./combat.js'));
-  else root.HalloweenEventCore = factory(root.HalloweenOwnership,root.HalloweenCombat);
-})(typeof globalThis === 'undefined' ? this : globalThis, (Ownership,Combat) => {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('../rewards/ownership.js'),require('./combat.js'),require('./missions.js'),require('../death-quests.js'));
+  else root.HalloweenEventCore = factory(root.HalloweenOwnership,root.HalloweenCombat,root.HalloweenStudentMissions,root.HalloweenDeathQuests);
+})(typeof globalThis === 'undefined' ? this : globalThis, (Ownership,Combat,Missions,Death) => {
   'use strict';
   const BIOMES = ['dutchmans-soul', 'jacks-hollow', 'vampire-mansion', 'eternal-graveyard'];
   const SHORT = ['dutchman', 'jack', 'vampire', 'graveyard'];
@@ -32,6 +32,7 @@
   function initial(config, owner, now, seed = 246813579) {
     const document = Ownership.create(owner, config.season.id);
     document.event = {candy:0, inventory:{}, grown:{}, ledger:[], houses:{}, quests:{}, proofs:{}, games:{}, purchases:[], crafts:[], garden:{plantedAt:null, watered:false}, totem:null, closed:false, timeOffset:0, clock:now, rng:seed >>> 0, repairs:0, taskClaims:{}, taskEarned:[], visitors:{}, visits:{hub:false,biomes:{},stories:{}}, location:{kind:'gate'}};
+    document.event.shopSeed=seed>>>0;
     return document;
   }
   function random(event) {
@@ -49,6 +50,27 @@
     fail('ระบบรับของจริงยังไม่ได้เชื่อมผู้ตัดสินธุรกรรม');
   }
   function moment(document, now) { return now + document.event.timeOffset; }
+  // Pure hourly projection: opening/reloading does not reroll stock or advance house RNG.
+  function shopStock(document,config,now) {
+    requirePreview(config);
+    const rule=config.proposals.shopStock;
+    if(rule?.intervalMs!==HOUR||!positive(rule.lots))fail('กติกาสต็อกร้านยังไม่พร้อม');
+    const epoch=Math.floor(moment(document,now)/rule.intervalMs),saved=document.event.shopStock;
+    if(saved?.epoch===epoch)return {...clone(saved),nextAt:(epoch+1)*rule.intervalMs};
+    let hash=2166136261;
+    for(const c of document.owner+document.season+':'+(document.event.shopSeed??'legacy')+':'+epoch){hash^=c.charCodeAt(0);hash=Math.imul(hash,16777619)>>>0;}
+    const rng={rng:hash||1},remaining=Object.fromEntries(Object.keys(config.proposals.shop).map(id=>[id,0]));
+    const tiers=Object.entries(rule.rarityWeightsPercent);
+    if(tiers.reduce((n,[,w])=>n+w,0)!==100)fail('น้ำหนักสต็อกร้านไม่ครบ');
+    for(let i=0;i<rule.lots;i++){
+      const roll=random(rng)*100;let acc=0,tier;
+      for(const [rarity,weight] of tiers){acc+=weight;if(roll<acc){tier=rarity;break;}}
+      const pool=Object.keys(remaining).filter(id=>config.rewards[id]?.rarity===tier&&['room','effect'].includes(config.rewards[id].kind));
+      if(!pool.length)fail('ระดับของสต็อกร้านไม่มีสินค้า');
+      remaining[pool[Math.floor(random(rng)*pool.length)]]++;
+    }
+    return {epoch,remaining,nextAt:(epoch+1)*rule.intervalMs};
+  }
   function biomeAt(document, config, now) {
     const at = moment(document, now), event = document.event;
     if (config.preview) {
@@ -79,6 +101,12 @@
   function questStatus(document, config, quest) {
     const progress = document.event.quests[quest.id];
     return {phase:progress?.phase || 0, complete:progress?.complete === true, unlocked:!quest.prerequisite || document.event.quests[quest.prerequisite]?.complete === true};
+  }
+  function biomeProgress(document,config,biome){
+    const chain=config.quests.filter(q=>q.biome===biome),event=document.event;
+    const phases=chain.reduce((n,q)=>n+q.phases.length,0),finished=chain.reduce((n,q)=>{const p=event.quests[q.id];return n+(p?.complete?q.phases.length:Math.max(0,Math.min(q.phases.length-1,Math.floor(p?.phase||0))));},0);
+    const boss=Object.entries(config.proposals?.bosses||{}).find(([,b])=>b.biome===biome),won=!!boss&&!!event.bossWins?.[boss[0]],total=phases+(boss?1:0),value=finished+(won&&finished===phases?1:0);
+    return {biome,value,total,phases,finished,boss:boss?.[0]||null,bossWon:won,percent:total?Math.floor(value/total*100):0,complete:total>0&&value===total};
   }
   function gardenUnlocked(document){return document.event.quests['jack-clear-garden']?.complete===true;}
   function weaponStatus(document,config,id){
@@ -192,7 +220,7 @@
     const prior = event.proofs[game.id] || {};
     event.proofs[game.id] = {complete:true, clear:prior.clear || clear, at:now, session:game.session};
   }
-  function dispatch(document, config, action, {now, tx}) {
+  function dispatch(document, config, action, {now, tx, studentOS,studentOwner='',studentFocus}) {
     if (!tx || !Number.isFinite(now)) fail('ธุรกรรมไม่มีเวลาอ้างอิง');
     if (!document.event || document.season !== config.season.id) fail('ไม่พบข้อมูลฤดูกาล');
     const event = document.event, at = moment(document, now);
@@ -286,7 +314,12 @@
       const price = config.proposals.shop[action.item];
       if (!positive(price) || !config.rewards[action.item]) fail('ของชิ้นนี้ไม่ได้ขายในร้าน');
       if (document.rewards[action.item] || event.purchases.includes(action.item)) fail('มีของชิ้นนี้แล้ว');
+      if(event.location?.kind!=='room'||event.location.room!=='shop')fail('ไปชั่งสินค้าที่ร้านก่อน');
+      const stock=shopStock(document,config,now);
+      if(action.stockEpoch!==stock.epoch)fail('สต็อกเปลี่ยนรอบแล้ว กรุณาหยิบสินค้าใหม่');
+      if(!positive(stock.remaining[action.item]))fail('สินค้าชิ้นนี้หมดแล้ว รอร้านเติมรอบถัดไป');
       addCandy(event, -price, 'shop', at, tx);
+      stock.remaining[action.item]--;event.shopStock={epoch:stock.epoch,remaining:stock.remaining};
       Ownership.grant(document, {id:action.item}, tx, at); event.purchases.push(action.item); result.rewards.push(action.item);
       if (Object.keys(config.proposals.shop).every(id => event.purchases.includes(id))) {
         Ownership.grant(document, {id:'crown-of-midnight'}, tx, at); result.rewards.push('crown-of-midnight');
@@ -294,6 +327,7 @@
     } else if (action.type === 'craft') {
       requirePreview(config);
       const recipe = config.proposals.recipes.find(x => x.id === action.recipe) || fail('ยังไม่มีสูตรนี้');
+      if(recipe.retired)fail('ธีมคู่นี้รับพร้อมตราเมื่อชนะราชันเที่ยงคืน ไม่ต้องทำพิธีเพิ่ม');
       if (document.rewards[recipe.reward]) fail('มีรางวัลชิ้นนี้แล้ว');
       if (recipe.requiresAllMainQuests && !config.quests.filter(x => x.finalMainQuest).every(x => event.quests[x.id]?.complete)) fail('พิธีทดลองนี้ต้องผ่าน Main Quest ทั้งสี่คน');
       if(recipe.requiresBoss&&!event.bossWins?.[recipe.requiresBoss])fail('ต้องชนะราชันเที่ยงคืนก่อนทำพิธีรับธีม');
@@ -320,6 +354,7 @@
       const rules = config.proposals.garden;
       if (action.type==='sell-crop') {
         const quantity = action.quantity;
+        if((action.expectedGrown!=null&&action.expectedGrown!==(event.grown[crop.harvest]||0))||(action.expectedInventory!=null&&action.expectedInventory!==(event.inventory[crop.harvest]||0)))fail('จำนวนผลผลิตเปลี่ยนแล้ว กรุณาชั่งใหม่');
         if (!positive(quantity) || quantity>(event.grown[crop.harvest]||0) || quantity>(event.inventory[crop.harvest]||0)) fail('ขายได้เฉพาะผลผลิตที่ปลูกจนโตและเก็บแล้ว');
         addItem(event,crop.harvest,-quantity); event.grown[crop.harvest]-=quantity;
         addCandy(event,quantity*crop.sellCandy,'crop-sale',at,tx); result.candy=quantity*crop.sellCandy;
@@ -362,10 +397,13 @@
       if(battle.finished&&battle.clear){
         event.bossWins||={};if(event.bossWins[battle.id])fail('รับรางวัลบอสแล้ว');
         event.bossWins[battle.id]={at,tx,turns:battle.turn,weapon:battle.weapon};
-        if(rule.theme&&!document.rewards[rule.theme]){Ownership.grant(document,{id:rule.theme},tx,at);result.rewards.push(rule.theme);}
+        for(const id of rule.rewards||(rule.theme?[rule.theme]:[]))if(!document.rewards[id]){Ownership.grant(document,{id},tx,at);result.rewards.push(id);}
         if(battle.id==='nameless-afterlight'){addItem(event,'nameless-crown',1);event.secretEnding=true;}
       }
       result.battle=clone(battle);
+    } else if(action.type==='claim-final-theme-set'){
+      requirePreview(config);if(!event.bossWins?.['midnight-sovereign'])fail('ต้องชนะราชันเที่ยงคืนก่อน');
+      for(const id of config.proposals.bosses['midnight-sovereign'].rewards)if(!document.rewards[id]){Ownership.grant(document,{id},tx,at);result.rewards.push(id);}
     } else if(action.type==='buy-biome-potion'){
       requirePreview(config);
       if(event.location?.room!=='cauldron')fail('ซื้อน้ำยากับมอราในห้องเตาผสมก่อน');
@@ -397,14 +435,23 @@
       const pool = config.materials.biomes.find(x => x.id === current.id).items.filter(x => x.rarity === 'Common');
       const id = pool[index % pool.length]?.id || (index ? 'pending-human-skull' : 'pending-human-bone');
       addItem(event, id, -rule.quantity); addCandy(event, rule.candy, 'visitor', at, tx); event.visitors[key] = true;
-    } else if (action.type === 'task') {
-      requirePreview(config);
-      if (!['review-task-1','review-task-2','review-task-3'].includes(action.task)) fail('ไม่พบงานตัวอย่าง');
-      if (event.taskClaims[action.task]) fail('งานนี้รับ Candy แล้ว');
-      const today = event.taskEarned.filter(x => x.at > at - DAY).reduce((sum,x) => sum+x.amount,0);
-      const amount = Math.min(config.proposals.taskCandy, config.proposals.taskDailyCap - today);
-      if (amount <= 0) fail('รางวัลงานตัวอย่างครบแล้ว');
-      addCandy(event, amount, 'task', at, tx); event.taskClaims[action.task] = true; event.taskEarned.push({at,amount});
+    } else if(action.type==='death-quest-enroll'){
+      requirePreview(config);event.deathQuests||={};const key=Death.day(now),today=event.deathQuests[key];
+      const active=Object.values(event.deathQuests).find(q=>!event.taskClaims['death:'+q.taskId]&&now-q.issuedAt<DAY);
+      const existing=today||active;
+      if(existing){if(existing.owner!==studentOwner)fail('เควสที่ค้างอยู่ผูกกับผู้ใช้เดิมบนเครื่อง');result.deathQuest=clone(existing);}
+      else{const q=Death.create(now,tx,studentOwner);event.deathQuests[key]=q;result.deathQuest=clone(q);}
+    } else if(action.type==='death-quest-claim'){
+      requirePreview(config);const q=Object.values(event.deathQuests||{}).find(q=>q.id===action.quest);
+      if(!q||now-q.issuedAt>DAY)fail('เควสนี้หมดเวลาแล้ว รับเควสใหม่ได้');
+      const key='death:'+q.taskId;if(event.taskClaims[key])fail('เควสนี้รับ Candy แล้ว');
+      const status=Death.status(q,studentOS,studentFocus?.[q.taskId],studentOwner,now);
+      if(!status.ready)fail(status.reason);
+      const earned=event.taskEarned.filter(x=>x.at>at-DAY).reduce((sum,x)=>sum+x.amount,0),amount=Math.min(config.proposals.taskCandy,config.proposals.taskDailyCap-earned);
+      if(amount<=0)fail('Candy จากภารกิจครบเพดาน 24 ชั่วโมงแล้ว');
+      addCandy(event,amount,'death-quest',at,tx);event.taskClaims[key]=true;event.taskEarned.push({at,amount});result.candy=amount;
+    } else if (action.type === 'studentos-mission'||action.type==='task') {
+      requirePreview(config);fail('เปลี่ยนเป็นเควสมรณะแล้ว รับเควสและทำงานที่ผูกไว้ก่อน');
     } else if (action.type === 'start-game') {
       requirePreview(config);
       const rule = gameDefinition(action.game, config);
@@ -451,5 +498,5 @@
     event.clock = at;
     return result;
   }
-  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, biomeAt, portalStatus, questStatus, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, houseAvailability, gameDefinition, dispatch});
+  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, houseAvailability, gameDefinition, dispatch});
 });

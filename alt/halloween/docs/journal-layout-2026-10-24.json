@@ -1,0 +1,1308 @@
+{
+  "journal": [
+    {
+      "requested": [
+        320,
+        568
+      ],
+      "page": "สารบัญ",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "สารบัญ",
+      "overflow": false,
+      "size": [
+        320,
+        568
+      ]
+    },
+    {
+      "requested": [
+        320,
+        568
+      ],
+      "page": "เควส",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เควส",
+      "overflow": false,
+      "size": [
+        320,
+        568
+      ]
+    },
+    {
+      "requested": [
+        320,
+        568
+      ],
+      "page": "กระเป๋า",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "กระเป๋า",
+      "overflow": false,
+      "size": [
+        320,
+        568
+      ]
+    },
+    {
+      "requested": [
+        320,
+        568
+      ],
+      "page": "เส้นทาง",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เส้นทาง",
+      "overflow": false,
+      "size": [
+        320,
+        568
+      ]
+    },
+    {
+      "requested": [
+        320,
+        568
+      ],
+      "page": "วิธีเล่น",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "วิธีเล่น",
+      "overflow": false,
+      "size": [
+        320,
+        568
+      ]
+    },
+    {
+      "requested": [
+        375,
+        812
+      ],
+      "page": "สารบัญ",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "สารบัญ",
+      "overflow": false,
+      "size": [
+        375,
+        812
+      ]
+    },
+    {
+      "requested": [
+        375,
+        812
+      ],
+      "page": "เควส",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เควส",
+      "overflow": false,
+      "size": [
+        375,
+        812
+      ]
+    },
+    {
+      "requested": [
+        375,
+        812
+      ],
+      "page": "กระเป๋า",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "กระเป๋า",
+      "overflow": false,
+      "size": [
+        375,
+        812
+      ]
+    },
+    {
+      "requested": [
+        375,
+        812
+      ],
+      "page": "เส้นทาง",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เส้นทาง",
+      "overflow": false,
+      "size": [
+        375,
+        812
+      ]
+    },
+    {
+      "requested": [
+        375,
+        812
+      ],
+      "page": "วิธีเล่น",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "วิธีเล่น",
+      "overflow": false,
+      "size": [
+        375,
+        812
+      ]
+    },
+    {
+      "requested": [
+        390,
+        844
+      ],
+      "page": "สารบัญ",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "สารบัญ",
+      "overflow": false,
+      "size": [
+        390,
+        844
+      ]
+    },
+    {
+      "requested": [
+        390,
+        844
+      ],
+      "page": "เควส",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เควส",
+      "overflow": false,
+      "size": [
+        390,
+        844
+      ]
+    },
+    {
+      "requested": [
+        390,
+        844
+      ],
+      "page": "กระเป๋า",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "กระเป๋า",
+      "overflow": false,
+      "size": [
+        390,
+        844
+      ]
+    },
+    {
+      "requested": [
+        390,
+        844
+      ],
+      "page": "เส้นทาง",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เส้นทาง",
+      "overflow": false,
+      "size": [
+        390,
+        844
+      ]
+    },
+    {
+      "requested": [
+        390,
+        844
+      ],
+      "page": "วิธีเล่น",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "วิธีเล่น",
+      "overflow": false,
+      "size": [
+        390,
+        844
+      ]
+    },
+    {
+      "requested": [
+        812,
+        375
+      ],
+      "page": "สารบัญ",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "สารบัญ",
+      "overflow": false,
+      "size": [
+        812,
+        375
+      ]
+    },
+    {
+      "requested": [
+        812,
+        375
+      ],
+      "page": "เควส",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เควส",
+      "overflow": false,
+      "size": [
+        812,
+        375
+      ]
+    },
+    {
+      "requested": [
+        812,
+        375
+      ],
+      "page": "กระเป๋า",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "กระเป๋า",
+      "overflow": false,
+      "size": [
+        812,
+        375
+      ]
+    },
+    {
+      "requested": [
+        812,
+        375
+      ],
+      "page": "เส้นทาง",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เส้นทาง",
+      "overflow": false,
+      "size": [
+        812,
+        375
+      ]
+    },
+    {
+      "requested": [
+        812,
+        375
+      ],
+      "page": "วิธีเล่น",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "วิธีเล่น",
+      "overflow": false,
+      "size": [
+        812,
+        375
+      ]
+    },
+    {
+      "requested": [
+        844,
+        390
+      ],
+      "page": "สารบัญ",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "สารบัญ",
+      "overflow": false,
+      "size": [
+        844,
+        390
+      ]
+    },
+    {
+      "requested": [
+        844,
+        390
+      ],
+      "page": "เควส",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เควส",
+      "overflow": false,
+      "size": [
+        844,
+        390
+      ]
+    },
+    {
+      "requested": [
+        844,
+        390
+      ],
+      "page": "กระเป๋า",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "กระเป๋า",
+      "overflow": false,
+      "size": [
+        844,
+        390
+      ]
+    },
+    {
+      "requested": [
+        844,
+        390
+      ],
+      "page": "เส้นทาง",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เส้นทาง",
+      "overflow": false,
+      "size": [
+        844,
+        390
+      ]
+    },
+    {
+      "requested": [
+        844,
+        390
+      ],
+      "page": "วิธีเล่น",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "วิธีเล่น",
+      "overflow": false,
+      "size": [
+        844,
+        390
+      ]
+    },
+    {
+      "requested": [
+        768,
+        1024
+      ],
+      "page": "สารบัญ",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "สารบัญ",
+      "overflow": false,
+      "size": [
+        768,
+        1024
+      ]
+    },
+    {
+      "requested": [
+        768,
+        1024
+      ],
+      "page": "เควส",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เควส",
+      "overflow": false,
+      "size": [
+        768,
+        1024
+      ]
+    },
+    {
+      "requested": [
+        768,
+        1024
+      ],
+      "page": "กระเป๋า",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "กระเป๋า",
+      "overflow": false,
+      "size": [
+        768,
+        1024
+      ]
+    },
+    {
+      "requested": [
+        768,
+        1024
+      ],
+      "page": "เส้นทาง",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เส้นทาง",
+      "overflow": false,
+      "size": [
+        768,
+        1024
+      ]
+    },
+    {
+      "requested": [
+        768,
+        1024
+      ],
+      "page": "วิธีเล่น",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "วิธีเล่น",
+      "overflow": false,
+      "size": [
+        768,
+        1024
+      ]
+    },
+    {
+      "requested": [
+        1024,
+        768
+      ],
+      "page": "สารบัญ",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "สารบัญ",
+      "overflow": false,
+      "size": [
+        1024,
+        768
+      ]
+    },
+    {
+      "requested": [
+        1024,
+        768
+      ],
+      "page": "เควส",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เควส",
+      "overflow": false,
+      "size": [
+        1024,
+        768
+      ]
+    },
+    {
+      "requested": [
+        1024,
+        768
+      ],
+      "page": "กระเป๋า",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "กระเป๋า",
+      "overflow": false,
+      "size": [
+        1024,
+        768
+      ]
+    },
+    {
+      "requested": [
+        1024,
+        768
+      ],
+      "page": "เส้นทาง",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เส้นทาง",
+      "overflow": false,
+      "size": [
+        1024,
+        768
+      ]
+    },
+    {
+      "requested": [
+        1024,
+        768
+      ],
+      "page": "วิธีเล่น",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "วิธีเล่น",
+      "overflow": false,
+      "size": [
+        1024,
+        768
+      ]
+    },
+    {
+      "requested": [
+        1280,
+        720
+      ],
+      "page": "สารบัญ",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "สารบัญ",
+      "overflow": false,
+      "size": [
+        1280,
+        720
+      ]
+    },
+    {
+      "requested": [
+        1280,
+        720
+      ],
+      "page": "เควส",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เควส",
+      "overflow": false,
+      "size": [
+        1280,
+        720
+      ]
+    },
+    {
+      "requested": [
+        1280,
+        720
+      ],
+      "page": "กระเป๋า",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "กระเป๋า",
+      "overflow": false,
+      "size": [
+        1280,
+        720
+      ]
+    },
+    {
+      "requested": [
+        1280,
+        720
+      ],
+      "page": "เส้นทาง",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เส้นทาง",
+      "overflow": false,
+      "size": [
+        1280,
+        720
+      ]
+    },
+    {
+      "requested": [
+        1280,
+        720
+      ],
+      "page": "วิธีเล่น",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "วิธีเล่น",
+      "overflow": false,
+      "size": [
+        1280,
+        720
+      ]
+    },
+    {
+      "requested": [
+        1440,
+        900
+      ],
+      "page": "สารบัญ",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "สารบัญ",
+      "overflow": false,
+      "size": [
+        1440,
+        900
+      ]
+    },
+    {
+      "requested": [
+        1440,
+        900
+      ],
+      "page": "เควส",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เควส",
+      "overflow": false,
+      "size": [
+        1440,
+        900
+      ]
+    },
+    {
+      "requested": [
+        1440,
+        900
+      ],
+      "page": "กระเป๋า",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "กระเป๋า",
+      "overflow": false,
+      "size": [
+        1440,
+        900
+      ]
+    },
+    {
+      "requested": [
+        1440,
+        900
+      ],
+      "page": "เส้นทาง",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เส้นทาง",
+      "overflow": false,
+      "size": [
+        1440,
+        900
+      ]
+    },
+    {
+      "requested": [
+        1440,
+        900
+      ],
+      "page": "วิธีเล่น",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "วิธีเล่น",
+      "overflow": false,
+      "size": [
+        1440,
+        900
+      ]
+    },
+    {
+      "requested": [
+        2560,
+        1080
+      ],
+      "page": "สารบัญ",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "สารบัญ",
+      "overflow": false,
+      "size": [
+        2560,
+        1080
+      ]
+    },
+    {
+      "requested": [
+        2560,
+        1080
+      ],
+      "page": "เควส",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เควส",
+      "overflow": false,
+      "size": [
+        2560,
+        1080
+      ]
+    },
+    {
+      "requested": [
+        2560,
+        1080
+      ],
+      "page": "กระเป๋า",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "กระเป๋า",
+      "overflow": false,
+      "size": [
+        2560,
+        1080
+      ]
+    },
+    {
+      "requested": [
+        2560,
+        1080
+      ],
+      "page": "เส้นทาง",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "เส้นทาง",
+      "overflow": false,
+      "size": [
+        2560,
+        1080
+      ]
+    },
+    {
+      "requested": [
+        2560,
+        1080
+      ],
+      "page": "วิธีเล่น",
+      "broken": 0,
+      "controls": [],
+      "dialogFits": true,
+      "focus": "วิธีเล่น",
+      "overflow": false,
+      "size": [
+        2560,
+        1080
+      ]
+    }
+  ],
+  "hub": [
+    {
+      "requested": [
+        320,
+        568
+      ],
+      "book": 1,
+      "dock": 0,
+      "dots": [
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ]
+      ],
+      "overflow": false,
+      "overlaps": [],
+      "size": [
+        320,
+        568
+      ],
+      "tutor": [
+        77.796875,
+        314.9375,
+        62,
+        82.65625
+      ]
+    },
+    {
+      "requested": [
+        375,
+        812
+      ],
+      "book": 1,
+      "dock": 0,
+      "dots": [
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ]
+      ],
+      "overflow": false,
+      "overlaps": [],
+      "size": [
+        375,
+        812
+      ],
+      "tutor": [
+        93.75,
+        478.390625,
+        67.5,
+        90
+      ]
+    },
+    {
+      "requested": [
+        390,
+        844
+      ],
+      "book": 1,
+      "dock": 0,
+      "dots": [
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ]
+      ],
+      "overflow": false,
+      "overlaps": [],
+      "size": [
+        390,
+        844
+      ],
+      "tutor": [
+        97.5,
+        497.21875,
+        70.1875,
+        93.578125
+      ]
+    },
+    {
+      "requested": [
+        812,
+        375
+      ],
+      "book": 1,
+      "dock": 0,
+      "dots": [
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ]
+      ],
+      "overflow": false,
+      "overlaps": [],
+      "size": [
+        812,
+        375
+      ],
+      "tutor": [
+        212.59375,
+        187.34375,
+        62,
+        82.65625
+      ]
+    },
+    {
+      "requested": [
+        844,
+        390
+      ],
+      "book": 1,
+      "dock": 0,
+      "dots": [
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ]
+      ],
+      "overflow": false,
+      "overlaps": [],
+      "size": [
+        844,
+        390
+      ],
+      "tutor": [
+        221.5390625,
+        196.40625,
+        63.296875,
+        84.390625
+      ]
+    },
+    {
+      "requested": [
+        768,
+        1024
+      ],
+      "book": 1,
+      "dock": 0,
+      "dots": [
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ]
+      ],
+      "overflow": false,
+      "overlaps": [],
+      "size": [
+        768,
+        1024
+      ],
+      "tutor": [
+        213.609375,
+        590.140625,
+        95,
+        126.65625
+      ]
+    },
+    {
+      "requested": [
+        1024,
+        768
+      ],
+      "book": 1,
+      "dock": 0,
+      "dots": [
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ]
+      ],
+      "overflow": false,
+      "overlaps": [],
+      "size": [
+        1024,
+        768
+      ],
+      "tutor": [
+        268.7890625,
+        450.5625,
+        76.796875,
+        102.390625
+      ]
+    },
+    {
+      "requested": [
+        1280,
+        720
+      ],
+      "book": 1,
+      "dock": 0,
+      "dots": [
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ]
+      ],
+      "overflow": false,
+      "overlaps": [],
+      "size": [
+        1280,
+        720
+      ],
+      "tutor": [
+        336,
+        390.390625,
+        96,
+        128
+      ]
+    },
+    {
+      "requested": [
+        1440,
+        900
+      ],
+      "book": 1,
+      "dock": 0,
+      "dots": [
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ]
+      ],
+      "overflow": false,
+      "overlaps": [],
+      "size": [
+        1440,
+        900
+      ],
+      "tutor": [
+        378,
+        504,
+        108,
+        144
+      ]
+    },
+    {
+      "requested": [
+        2560,
+        1080
+      ],
+      "book": 1,
+      "dock": 0,
+      "dots": [
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          13
+        ]
+      ],
+      "overflow": false,
+      "overlaps": [],
+      "size": [
+        2560,
+        1080
+      ],
+      "tutor": [
+        713,
+        630.9375,
+        110,
+        146.65625
+      ]
+    }
+  ],
+  "indexRecheck": [
+    {
+      "requested": [
+        320,
+        568
+      ],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        320,
+        568
+      ]
+    },
+    {
+      "requested": [
+        375,
+        812
+      ],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        375,
+        812
+      ]
+    },
+    {
+      "requested": [
+        390,
+        844
+      ],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        390,
+        844
+      ]
+    },
+    {
+      "requested": [
+        812,
+        375
+      ],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        812,
+        375
+      ]
+    },
+    {
+      "requested": [
+        844,
+        390
+      ],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        844,
+        390
+      ]
+    },
+    {
+      "requested": [
+        768,
+        1024
+      ],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        768,
+        1024
+      ]
+    },
+    {
+      "requested": [
+        1024,
+        768
+      ],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        1024,
+        768
+      ]
+    },
+    {
+      "requested": [
+        1280,
+        720
+      ],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        1280,
+        720
+      ]
+    },
+    {
+      "requested": [
+        1440,
+        900
+      ],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        1440,
+        900
+      ]
+    },
+    {
+      "requested": [
+        2560,
+        1080
+      ],
+      "dialogFits": true,
+      "overflow": false,
+      "size": [
+        2560,
+        1080
+      ]
+    }
+  ]
+}

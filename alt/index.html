@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <script src="halloween/rewards/preview-mode.js"></script>
-  <script src="halloween/rewards/catalog.js"></script>
+  <script src="halloween/rewards/catalog.js?rev=family-20261024"></script>
   <meta name="google-site-verification" content="EL8HSk9rzF6WS9GYcfkFaYwxf00p2PzEKganiKXzDh0" />
   <title>Student OS — ผู้ช่วยจัดลำดับงานสำหรับนักเรียน</title>
   <meta name="description" content="Student OS คือ AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงานหรือแปะข้อความจาก LINE แล้ว AI จัดลำดับความสำคัญพร้อมเหตุผล ไม่ต้องเดาว่าจะทำอะไรก่อน">
@@ -47,6 +47,10 @@
       var hwLight = false;
       try { hwLight = localStorage.getItem('studentos.alt.halloween.tone') === 'light'; } catch (e) {}
       if (hwLight) document.documentElement.dataset.hwTone = 'light';
+      // 24 ต.ค. 69 · ช่วงฮาโลวีน จอโหลดกับจอเข้าสู่ระบบแต่งเป็นฮาโลวีน (halloween/season/season.css)
+      // ต้องรู้ก่อนวาดจอแรก จึงตัดสินที่นี่ ไม่รอ config.json · วันจบต้องตรงกับ endsAt ใน halloween/event/config.json
+      // (runtime.js ถอดคลาสออกเองถ้า config.json ปิดอีเวนต์ — แก้ที่เดียวก็ปิดได้)
+      if (Date.now() < Date.parse('2026-11-30T23:59:59+07:00')) document.documentElement.classList.add('hw-season');
       // โหมดเครื่องเบา — ต้องติดก่อนวาดจอแรก ไม่งั้นเครื่องช้าได้วาดของหนักไปหนึ่งรอบก่อนถูกถอด
       // ธงมาจากการวัดจริงรอบก่อน (liteProbe ใน app.js) · แรมต่ำกว่า 4GB (Chrome บอกได้) = เบาตั้งแต่ครั้งแรก
       // Chrome ปัดแรมลงเป็นเลขยกกำลังสอง (3GB → 2 · เครื่องที่ขายว่า 4GB แต่ระบบเห็น 3.7 → 2) จึงได้แค่ 2 หรือ 4 — < 4 คือ "ต่ำกว่า 4GB" ตรงตัว
@@ -123,6 +127,7 @@
   <!-- ชุดความปลอดภัย: รายงาน · ยินยอม · นโยบาย -->
   <link rel="stylesheet" href="safety.css">
   <link rel="stylesheet" href="bug-reports.css">
+  <link rel="stylesheet" href="events.css">
   <!-- ห้องการบ้าน: แถวใต้การ์ดงาน + จอห้อง -->
   <link rel="stylesheet" href="hw.css">
 
@@ -140,13 +145,17 @@
   <link rel="stylesheet" href="board.css">
   <link rel="stylesheet" href="custom.css">
   <link rel="stylesheet" href="classrooms.css">
+  <link rel="stylesheet" href="halloween/invite-friend/invite-friend.css">
   <link rel="stylesheet" href="desktop.css" media="(min-width:1024px) and (hover:hover) and (pointer:fine)">
   <link rel="stylesheet" href="device-preview-controls.css">
   <link rel="stylesheet" href="halloween/rewards/theme-main.css">
-  <link rel="stylesheet" href="halloween/rewards/biome-themes.css">
-  <link rel="stylesheet" href="halloween/rewards/effect-games.css">
-  <!-- ธีมตัวอย่าง Moon & Candle — แยกจาก Halloween ทุกกฎ ให้ทีมพัฒนาต่อ (halloween/docs/moon-and-candle.md) -->
-  <link rel="stylesheet" href="halloween/rewards/theme-moonlight.css">
+  <link rel="stylesheet" href="halloween/rewards/biome-themes.css?rev=distance-20261024">
+  <link rel="stylesheet" href="halloween/rewards/effect-games.css?rev=ceremony-20261024">
+  <link rel="stylesheet" href="halloween/rewards/effect-ceremony.css?rev=ceremony-20261024">
+  <!-- Moon & Candle retains its own original design and optional palette tone. -->
+  <link rel="stylesheet" href="halloween/rewards/theme-moonlight.css?rev=restore-appearance-20261024">
+  <!-- ช่วงฮาโลวีน: จอโหลด (ค้างคาว) + จอเข้าสู่ระบบ — มีผลเฉพาะตอน <html> มีคลาส hw-season -->
+  <link rel="stylesheet" href="halloween/season/season.css">
 </head>
 <body>
 
@@ -160,7 +169,16 @@
      • แถบวิ่งตามของจริง ไม่วิ่งนำ — ขั้นทั้งหมดอยู่ในสคริปต์ข้างล่าง (12 ต.ค. 69 · ต้องถึง 75% ก่อนถึงจะเข้าแอปได้)
      • จำกัดความเร็วแถบไว้ที่ 0→100 ใน 0.7 วินาที — โหลดจากแคชเร็วแค่ไหนก็ยังเห็นแถบวิ่งเต็ม แต่ไม่ช้ากว่านั้น
      • กันค้าง: สคริปต์ล้มกลางทางก็ยังเข้าแอปได้ (ดูทางหนีไฟในสคริปต์ · 12 วินาที = ออกแน่นอน) -->
+<!-- 24 ต.ค. 69 · ค้างคาวตัวเดียวที่จอโหลดกับจอเข้าสู่ระบบช่วงฮาโลวีนใช้ร่วมกัน (<use href="#hw-bat">)
+     ต้องอยู่นอก #boot — #boot ถูกถอดทิ้งหลังเข้าแอป ถ้า symbol อยู่ข้างในค้างคาวบนจอเข้าสู่ระบบจะหายหมด -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="hw-bat" viewBox="0 0 64 32"><path d="M32 10L34 10L35.5 5L37.2 10.6Q46 5 62 11Q56 12.5 54.5 18Q50.5 14.5 46 17.5Q42.5 15.5 38.5 19.5Q36 21 32 25Q28 21 25.5 19.5Q21.5 15.5 18 17.5Q13.5 14.5 9.5 18Q8 12.5 2 11Q18 5 26.8 10.6L28.5 5L30 10Z"/><circle class="eye" cx="30.6" cy="12.6" r=".9"/><circle class="eye" cx="33.4" cy="12.6" r=".9"/></symbol></svg>
 <div id="boot" class="boot" aria-hidden="true">
+  <!-- ช่วงฮาโลวีน: ท้องฟ้ากลางคืน พระจันทร์ ป่าช้า และค้างคาว (โชว์เฉพาะ :root.hw-season · halloween/season/season.css) -->
+  <div class="hb-sky">
+    <i class="hb-stars"></i><i class="hb-moon"></i><i class="hb-fog"></i><i class="hb-grave"></i>
+    <span class="hb-fly"><i style="--y:13vh;--w:34px;--t:6.5s;--d:0.3s"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i class="rev" style="--y:24vh;--w:24px;--t:8s;--d:1.1s"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--y:31vh;--w:18px;--t:9.5s;--d:2.2s"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i class="rev" style="--y:8vh;--w:20px;--t:7.2s;--d:3s"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i></span>
+    <span class="hb-burst"><i style="--a:-150deg;--d:0s;--s:1"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--a:-110deg;--d:0.08s;--s:0.8"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--a:-70deg;--d:0.04s;--s:1.1"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--a:-30deg;--d:0.12s;--s:0.85"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--a:15deg;--d:0.06s;--s:1"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--a:60deg;--d:0.1s;--s:0.75"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--a:120deg;--d:0.02s;--s:0.95"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--a:170deg;--d:0.14s;--s:0.8"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i></span>
+  </div>
   <div class="boot-mid">
     <img class="boot-mark" src="logo-mark.png" alt="" width="92" height="92" decoding="async">
     <!-- เหลือแค่แถบ — ป้าย "กำลังเปิดแอป" กับตัวเลข % ถูกตัดออก (เจ้าของ: "จัดการเลย" ต่อข้อเสนอให้ดูสบายตาขึ้น)
@@ -180,7 +198,8 @@
     // แถบสถานะของเครื่อง (theme-color) ขาวตามระหว่างหน้าโหลด แล้วคืนสีของธีมตอนหน้าโหลดจางออก (out)
     var m = document.querySelector('meta[name=theme-color]');
     var barColor = m && m.content;
-    if (m) m.content = '#FFFFFF';
+    // ช่วงฮาโลวีนหน้าโหลดเป็นกลางคืน (season.css) — แถบสถานะมืดตาม
+    if (m) m.content = document.documentElement.classList.contains('hw-season') ? '#120A24' : '#FFFFFF';
 
     // 12 ต.ค. 69 · เจ้าของ: "แก้ไขให้ในหน้าโหลดก่อนเข้าแอปคือการโหลดข้อมูลแอปก่อนเพื่อไม่ให้แอปมันค้าง
     //   ให้ได้ 75 เปอร์เซ็นต์ขึ้นไปถึงจะโหลดเข้าแอปได้ เพื่อลดปัญหาค้างตอนเปิดแอปในอุปกรณ์ที่สเปคค่อนข้างช้า"
@@ -242,6 +261,9 @@
       root.classList.add('boot-reveal');
       el.classList.add('out');
       if (m && barColor) m.content = barColor;
+      // ช่วงฮาโลวีนจอเข้าสู่ระบบก็เป็นกลางคืน (go() ใน app.js ตั้งไว้แล้ว แต่บรรทัดบนเพิ่งคืนสีธีมทับ)
+      var lg = document.getElementById('scr-login');
+      if (m && root.classList.contains('hw-season') && lg && lg.classList.contains('on')) m.content = '#120A24';
       // ตั้งเวลาถอดชั้นนี้ก่อนเรียกของแอป — ถ้าตัวเลขหมุน/คำทักทายล้มกลางทาง ชั้นนี้ต้องยังหายไปตามเวลา
       setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 450);
       setTimeout(function () { root.classList.remove('boot-reveal'); }, 700);
@@ -570,6 +592,9 @@
            4) น้องไซโผล่มาพร้อมหน้า — 1C13 สั่งว่าจอต้องมีภาพ ไม่ใช่มีแต่ตัวหนังสือ
               และจอแรกที่คนเห็นคือที่ที่ตัวละครควรทักทายที่สุด -->
       <div class="screen" id="scr-login">
+        <!-- 24 ต.ค. 69 · ช่วงฮาโลวีน: ดาวหลังการ์ด + ค้างคาวบินผ่านหน้าการ์ด (season.css · ซ่อนเมื่อไม่ใช่ช่วงอีเวนต์) -->
+        <div class="lg-hw" aria-hidden="true"><i class="lh-stars"></i></div>
+        <div class="lg-hw top" aria-hidden="true"><span class="lh-fly"><i style="--y:6%;--w:34px;--t:11s;--d:1.5s"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i class="rev" style="--y:17%;--w:28px;--t:14s;--d:6s"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--y:44%;--w:22px;--t:17s;--d:10s"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i></span></div>
         <div class="login-wrap">
           <!-- 20 ต.ค. 69 · ปุ่มกลับ — โผล่เฉพาะตอนเปิดจากในแอป (go() ตั้ง hidden ตาม backFrom) · ตอนเปิดแอปครั้งแรก/หลังออกจากระบบซ่อน -->
           <button type="button" class="lg-back" onclick="goBack('scr-profile')" aria-label="กลับ" hidden>
@@ -595,6 +620,9 @@
                  ที่อยู่ในนั้น · และการคร่อมขอบทำให้ใบพระเอกกับรายการข้างล่างเชื่อมกัน
                  แทนที่จะเป็นสองก้อนที่บังเอิญวางเรียงกัน -->
             <img class="lg-sai" src="hook-hat-avatar.svg" data-mav alt="" aria-hidden="true">
+            <!-- ช่วงฮาโลวีน: น้องฮูกชุดมัมมี่แทนวงเดิม + ค้างคาวหน้าพระจันทร์ (season.css) -->
+            <img class="lg-sai-hw" src="halloween/season/hook-mummy-224.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">
+            <span class="lh-moonbats" aria-hidden="true"><i><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i></span>
           </div>
 
           <!-- L2 · ชิปสามใบ "ฟรีตลอดไป · ไม่ต้องผูกบัตร · ไม่มีโฆษณา" ถูกถอดออก (เจ้าของวงให้ลบ
@@ -621,6 +649,8 @@
                ท้ายการ์ดเป็นแถบพื้นเข้มกว่า (.tx-foot) แบบแถบ "Already have an account?" ของเดโม
                ที่ว่างเปล่ากลางจอ (เดิม ~170px ระหว่างสามบรรทัดกับปุ่ม) หายไปเพราะทั้งสองอยู่ในการ์ดเดียวกันแล้ว -->
           <div class="tx-card">
+          <!-- ช่วงฮาโลวีน: ใยแมงมุมจาง ๆ มุมซ้ายบนของการ์ด (season.css) -->
+          <svg class="lh-web" viewBox="0 0 92 92" aria-hidden="true"><path d="M0 0L92 30M0 0L70 70M0 0L30 92M0 22Q12 20 20 10Q22 4 22 0M0 46Q26 42 40 24Q46 12 46 0M0 70Q38 62 58 38Q68 20 68 0"/></svg>
           <div class="tx-body">
           <div class="lg-feats">
             <div class="lg-feat">
@@ -1413,7 +1443,7 @@
                ต่างแค่ปุ่ม (แก้ไขโปรไฟล์ / ดูแบบที่เพื่อนเห็น แทน ทัก / เพิ่มเพื่อน)
                ส่วนตัวเลขส่วนตัวย้ายลงใต้เส้นประ ติดป้ายว่าเห็นคนเดียว -->
           <div id="pfHead"></div>
-          <div id="halloweenEventEntry"></div>
+          <!-- 24 ต.ค. 69 · การ์ดเข้าอีเวนต์ Halloween ที่เคยอยู่ตรงนี้ย้ายไปเป็นปุ่มบนแถบบนสุดของหน้าแรก (todayTop) — เจ้าของเลือกให้มีทางเข้าเดียว -->
           <input type="file" id="avInput" accept="image/*" hidden>
           <!-- 11 ต.ค. 69 · การ์ดรางวัลฟีดแบ็ก — เจ้าของ: "เห็นยากอยู่นะ" (แถวในลิสต์อยู่ล่างเกินไป)
                อยู่ใต้หัวโปรไฟล์ เปิดแท็บก็เห็น · ซ่อนเองเมื่อรับโทเคนแล้ว (renderProfile · state.settings.fbPaid) -->
@@ -1865,6 +1895,13 @@
            วาดทั้งจอจาก renderBoard() (board.js) รวมปุ่มกลับ · ทางเข้า: จอเพื่อน · แท็บ "ฉัน" -->
       <div class="screen flush" id="scr-board">
         <div class="scr-body bd-body" id="boardBody"></div>
+      </div>
+
+      <!-- ============ SCREEN: อีเวนต์ (24 ต.ค. 69) ============
+           แอป → อีเวนต์ → กิจกรรม → ส่วนย่อย · วาดจาก renderEvents() (events.js) รวมปุ่มกลับ
+           ทางเข้า: การ์ดอีเวนต์บนหน้าแรก · ชิป Candy บนแถบบนสุด -->
+      <div class="screen flush" id="scr-events">
+        <div class="scr-body ev-body" id="eventsBody"></div>
       </div>
 
       <!-- ============ SCREEN: เหรียญตรา (ALT 1A6M3) ============ -->
@@ -2545,11 +2582,17 @@
 <script src="news.js"></script>
 <script src="staff-news.js"></script>
 <script src="bug-reports.js"></script>
+<script src="halloween/death-quests.js"></script>
+<script src="events.js"></script>
+<!-- ชวนเพื่อน · ภารกิจปลดธีม Halloween — ต้องมาก่อน app.js (เก็บรหัสจาก ?invite= ก่อน URL ถูกล้าง) -->
+<script src="halloween/invite-friend/invite-friend.js"></script>
 <script src="app.js"></script>
+<script src="halloween/death-quest-main.js"></script>
+<link rel="stylesheet" href="halloween/death-quest-main.css">
 <script src="desktop-entry.js"></script>
-<script src="halloween/rewards/theme-main.js"></script>
-<script src="halloween/rewards/effect-games.js"></script>
-<script src="halloween/rewards/runtime.js"></script>
+<script src="halloween/rewards/theme-main.js?rev=restore-appearance-20261024"></script>
+<script src="halloween/rewards/effect-games.js?rev=ceremony-20261024"></script>
+<script src="halloween/rewards/runtime.js?rev=events-slides-20261024"></script>
 <script src="halloween/rewards/integration.js"></script>
 <script src="device-preview-bridge.js"></script>
 

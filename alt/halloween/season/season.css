@@ -1,0 +1,251 @@
+/* ============================================================
+   ช่วงฮาโลวีน · จอโหลดกับจอเข้าสู่ระบบ (24 ต.ค. 69)
+   ------------------------------------------------------------
+   เจ้าของ: "อยากให้หน้านี้แล้วหน้าที่เข้าแอป เป็นเกี่ยวกับ halloween …
+            เข้าแอปอยากให้เป็นธีม halloween แบบ animation เท่ ๆ มีค้างคาว"
+
+   • ทุกกฎอยู่ใต้ :root.hw-season — สคริปต์ใน <head> ของ index.html ติดคลาสนี้ก่อนวาดจอแรก
+     ถ้ายังไม่เลย endsAt ของ halloween/event/config.json · runtime.js ถอดคลาสออกเองเมื่อ config ปิดอีเวนต์
+     หมดช่วง = จอโหลดขาวกับจอเข้าสู่ระบบแบบเดิมกลับมาเอง ไม่ต้องแก้โค้ด
+   • ไม่ขึ้นกับธีมที่เลือก — คนเปิดแอปครั้งแรกยังไม่มีธีม จอสองจอนี้จึงหน้าตาเดียวกันทุกเครื่อง
+   • จอโหลดยังเป็นแค่ชั้นบัง: ไม่มีอะไรรอแอนิเมชันจบ (เหตุผลอยู่เหนือ #boot ใน index.html)
+     ค้างคาวฝูงแรกจึงพุ่งออกในวินาทีแรก — เปิดจากแคชเร็วแค่ไหนก็ยังทันเห็น
+   • ลดการเคลื่อนไหว = ภาพนิ่ง · โหมดลื่น (data-lite) = ค้างคาวครึ่งเดียว
+   ============================================================ */
+
+/* ---------- ค้างคาว (ใช้ทั้งสองจอ) ----------
+   ตัวค้างคาวคือ <symbol id="hw-bat"> ใน #boot · กระพือปีก = ยืด-หดแนวตั้งเร็ว ๆ ซึ่งถูกกว่าขยับปีกทีละข้าง
+   ขอบเรืองม่วงจาง ๆ ให้เห็นตัวบนพื้นกลางคืน (เงาดำล้วนหายไปกับพื้น) */
+.hw-bat { display: block; width: 100%; height: auto; overflow: visible; fill: #07040e;
+  filter: drop-shadow(0 0 3px rgba(196, 150, 255, .55)); transform-origin: 50% 40%;
+  animation: hw-flap .2s ease-in-out infinite alternate; }
+.hw-bat .eye { fill: #ffb347; }
+@keyframes hw-flap { from { transform: scaleY(1); } to { transform: scaleY(.32) translateY(4px); } }
+
+.hb-sky, .lg-hw { display: none; }
+
+/* ============================================================
+   จอโหลด
+   ============================================================ */
+html:root.hw-season .boot {
+  --fill: #ff8a1f; --grad-brand: linear-gradient(90deg, #ffb04a, #ff7a18 45%, #b77dff);
+  --ink: #f6eefe; --muted: #b9a8d6;
+  background:
+    radial-gradient(90% 55% at 50% 46%, rgba(124, 58, 237, .28), transparent 70%),
+    radial-gradient(70% 40% at 82% 12%, rgba(255, 170, 80, .16), transparent 70%),
+    linear-gradient(180deg, #150b2b 0%, #0d0719 55%, #07040e 100%) !important;
+  color: var(--ink); overflow: hidden;
+}
+html:root.hw-season .hb-sky { display: block; position: absolute; inset: 0; pointer-events: none; }
+.hb-sky > * { position: absolute; display: block; }
+
+/* ดาว — จุดเล็กหลายจุดในพื้นหลังเดียว กะพริบทั้งชั้นพร้อมกัน */
+.hb-stars, .lg-hw .lh-stars { inset: 0; opacity: .8;
+  background-image:
+    radial-gradient(1.4px 1.4px at 12% 18%, #fff 60%, transparent),
+    radial-gradient(1px 1px at 28% 8%, #e9dcff 60%, transparent),
+    radial-gradient(1.2px 1.2px at 44% 22%, #fff 60%, transparent),
+    radial-gradient(1px 1px at 63% 6%, #ffe9c7 60%, transparent),
+    radial-gradient(1.5px 1.5px at 74% 30%, #fff 60%, transparent),
+    radial-gradient(1px 1px at 88% 44%, #e9dcff 60%, transparent),
+    radial-gradient(1.2px 1.2px at 8% 52%, #fff 60%, transparent),
+    radial-gradient(1px 1px at 22% 66%, #e9dcff 60%, transparent),
+    radial-gradient(1.3px 1.3px at 92% 70%, #fff 60%, transparent),
+    radial-gradient(1px 1px at 55% 38%, #fff 60%, transparent),
+    radial-gradient(1px 1px at 36% 48%, #ffe9c7 60%, transparent);
+  animation: hw-twinkle 2.6s ease-in-out infinite alternate; }
+@keyframes hw-twinkle { from { opacity: .45; } to { opacity: .95; } }
+
+/* พระจันทร์ — ลอยขึ้นตอนเปิด แล้วเรืองช้า ๆ */
+.hb-moon { top: 9vh; right: 11vw; width: 104px; height: 104px; border-radius: 50%;
+  background:
+    radial-gradient(circle at 64% 30%, rgba(214, 170, 96, .55) 0 7px, transparent 8px),
+    radial-gradient(circle at 34% 62%, rgba(214, 170, 96, .45) 0 11px, transparent 12px),
+    radial-gradient(circle at 70% 70%, rgba(214, 170, 96, .35) 0 5px, transparent 6px),
+    radial-gradient(circle at 38% 34%, #fff8e3, #ffe2a1 55%, #f2b45a 100%);
+  box-shadow: 0 0 40px 10px rgba(255, 196, 110, .35), 0 0 140px 50px rgba(255, 140, 50, .14);
+  animation: hb-moon-in 1.1s cubic-bezier(.22, 1, .36, 1) both, hb-moon-glow 3.2s 1.1s ease-in-out infinite alternate; }
+@keyframes hb-moon-in { from { opacity: 0; transform: translateY(40px) scale(.9); } }
+@keyframes hb-moon-glow { to { box-shadow: 0 0 52px 16px rgba(255, 196, 110, .45), 0 0 170px 64px rgba(255, 140, 50, .2); } }
+
+/* หมอกกับป่าช้าที่ก้นจอ — ภาพเดียวกับฉากธีม Midnight Academy (แคชไว้แล้ว) */
+.hb-grave { left: -10%; right: -10%; bottom: 0; height: 170px; opacity: .9;
+  background: url('../rewards/theme-assets/graveyard.svg') center bottom / auto 100% no-repeat; }
+.hb-fog { left: -40%; right: -40%; bottom: -30px; height: 200px;
+  background: radial-gradient(ellipse at 30% 70%, rgba(168, 140, 220, .22), transparent 55%),
+              radial-gradient(ellipse at 72% 60%, rgba(255, 150, 80, .12), transparent 50%);
+  animation: hb-fog 9s ease-in-out infinite alternate; }
+@keyframes hb-fog { to { transform: translate3d(8%, -10px, 0); } }
+
+/* แสงฟักทองหลังโลโก้ */
+html:root.hw-season .boot .boot-mid::before { content: ""; position: absolute; left: 50%; top: 50%;
+  width: 230px; height: 230px; margin: -115px 0 0 -115px; border-radius: 50%; z-index: -1;
+  background: radial-gradient(circle, rgba(255, 138, 31, .32), rgba(124, 58, 237, .16) 45%, transparent 70%);
+  animation: hb-halo 2.4s ease-in-out infinite alternate; }
+@keyframes hb-halo { from { transform: scale(.88); opacity: .75; } to { transform: scale(1.08); opacity: 1; } }
+html:root.hw-season .boot .boot-mid { z-index: 2; }
+html:root.hw-season .boot .boot-mark { border-radius: 24px;
+  filter: drop-shadow(0 0 18px rgba(255, 138, 31, .45)) drop-shadow(0 10px 22px rgba(0, 0, 0, .6));
+  animation: boot-in .6s cubic-bezier(.22, 1, .36, 1) both, hb-bob 2.8s .6s ease-in-out infinite alternate; }
+@keyframes hb-bob { to { transform: translateY(-6px); } }
+html:root.hw-season .boot.out .boot-mark { transform: scale(1.08); animation: none; }
+
+/* แถบโหลด: ไล่ส้มฟักทอง → ม่วง บนรางมืด */
+html:root.hw-season .boot .hp-track { background: rgba(255, 255, 255, .1); }
+html:root.hw-season .boot .hp-fill { background: linear-gradient(90deg, #7c3aed, #ff8a1f) !important; box-shadow: 0 0 12px rgba(255, 138, 31, .55) !important; }
+html:root.hw-season .boot .hp-track::after { background: #ffd08a; box-shadow: 0 0 0 2px rgba(255, 138, 31, .25), 0 0 12px 3px rgba(255, 138, 31, .6); }
+html:root.hw-season .boot .boot-from { z-index: 2; }
+html:root.hw-season .boot .boot-from span { color: var(--muted); }
+
+/* ฝูงแรก: ค้างคาวแปดตัวพุ่งออกจากหลังโลโก้กระจายทุกทิศ (เริ่มทันทีที่จอขึ้น)
+   ออกตัวช้าใกล้โลโก้แล้วเร่งออกนอกจอ — ช่วงแรกต้องอยู่ในจอนานพอให้ทันเห็นแม้จอโหลดอยู่แค่วินาทีเดียว */
+.hb-burst { left: 50%; top: 50%; width: 0; height: 0; z-index: 1; }
+.hb-burst i { position: absolute; left: 0; top: 0; width: calc(48px * var(--s, 1)); margin: -12px 0 0 calc(-24px * var(--s, 1));
+  opacity: 0; animation: hb-burst 2.4s var(--d, 0s) linear both; }
+@keyframes hb-burst {
+  0%   { opacity: 0; transform: rotate(var(--a)) translateX(0) rotate(calc(-1 * var(--a))) scale(.25); }
+  10%  { opacity: 1; transform: rotate(var(--a)) translateX(64px) rotate(calc(-1 * var(--a))) scale(.55); }
+  40%  { opacity: 1; transform: rotate(calc(var(--a) + 12deg)) translateX(120px) rotate(calc(-1 * var(--a) - 12deg)) scale(.85); }
+  70%  { opacity: 1; transform: rotate(calc(var(--a) - 8deg)) translateX(220px) rotate(calc(-1 * var(--a) + 8deg)) scale(1.05); }
+  100% { opacity: 0; transform: rotate(var(--a)) translateX(520px) rotate(calc(-1 * var(--a))) scale(1.3); }
+}
+/* ฝูงที่สอง: บินผ่านหน้าพระจันทร์เป็นคลื่น ไม่จบจนกว่าจอนี้จะหาย */
+.hb-fly { inset: 0; }
+.hb-fly i, .lg-hw .lh-fly i { position: absolute; left: 0; top: var(--y); width: var(--w, 30px);
+  animation: hw-cross var(--t, 7s) var(--d, 0s) linear infinite both; }
+@keyframes hw-cross {
+  0%   { transform: translate3d(-60px, 0, 0); }
+  25%  { transform: translate3d(25vw, -22px, 0); }
+  50%  { transform: translate3d(52vw, 10px, 0); }
+  75%  { transform: translate3d(78vw, -16px, 0); }
+  100% { transform: translate3d(calc(100vw + 60px), 6px, 0); }
+}
+.hb-fly i.rev, .lg-hw .lh-fly i.rev { animation-name: hw-cross-rev; }
+@keyframes hw-cross-rev {
+  0%   { transform: translate3d(calc(100vw + 60px), 0, 0); }
+  30%  { transform: translate3d(68vw, 18px, 0); }
+  60%  { transform: translate3d(38vw, -14px, 0); }
+  100% { transform: translate3d(-60px, 8px, 0); }
+}
+
+/* ============================================================
+   จอเข้าสู่ระบบ
+   ------------------------------------------------------------
+   เปลี่ยนโทเคนของธีมเฉพาะในจอนี้ — ปุ่ม ตัวหนังสือ ไอคอน ที่ใช้ --ink/--fill/--card อยู่แล้วเปลี่ยนตามเอง
+   ใบพระเอกยังเป็นใบเดียวที่มีสีเต็ม (กฎ 1C13) แค่เปลี่ยนเป็นม่วงคืน → ส้มฟักทอง
+   ============================================================ */
+/* จอนี้สูงแค่เนื้อหา ส่วนที่เหลือคือพื้นของ .phone — พื้นกลางคืนจึงต้องทาที่ .phone (และ html/body ตอนเด้งสุดจอ)
+   ไม่ใช่ที่ #scr-login ไม่งั้นเห็นแถบสว่างใต้การ์ด */
+html:root.hw-season:has(#scr-login.on), html:root.hw-season:has(#scr-login.on) body { background: #0b0716; }
+html:root.hw-season .phone:has(#scr-login.on) {
+  background:
+    radial-gradient(110% 45% at 85% 0%, rgba(124, 58, 237, .38), transparent 65%),
+    radial-gradient(80% 35% at 0% 100%, rgba(255, 122, 24, .14), transparent 70%),
+    linear-gradient(180deg, #170c2e 0%, #0e0820 55%, #0b0716 100%) !important;
+}
+html:root.hw-season #scr-login {
+  --scr: #120a24; --card: #1d1433; --ink: #f6eefe; --muted: #b9a8d6; --line: rgba(190, 160, 255, .18);
+  --fill: #ff8a1f; --on-fill: #fff; --blue: #ffad5c; --blue-soft: rgba(255, 138, 31, .14);
+  position: relative; isolation: isolate; color: var(--ink); background: transparent !important;
+}
+html:root.hw-season #scr-login .login-wrap { position: relative; z-index: 1; }
+
+/* ชั้นตกแต่งทั้งจอสองชั้น: ดาวอยู่หลังการ์ด · ค้างคาวบินผ่านอยู่หน้าการ์ด (กดทะลุได้) */
+html:root.hw-season .lg-hw { display: block; position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+html:root.hw-season .lg-hw.top { z-index: 2; }
+.lg-hw > * { position: absolute; display: block; }
+.lg-hw .lh-fly { inset: 0; }
+
+/* ใบพระเอก: ม่วงคืนไล่ไปส้มฟักทอง ขอบเรืองส้ม */
+html:root.hw-season #scr-login .lg-hero {
+  background-image:
+    radial-gradient(120% 90% at 100% 100%, rgba(255, 122, 24, .55), transparent 55%),
+    linear-gradient(150deg, #2a1257 0%, #4c1d95 52%, #6b2a8a 100%);
+  border: 1px solid rgba(255, 170, 90, .35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 18px 40px -18px rgba(255, 122, 24, .55), 0 0 0 1px rgba(0, 0, 0, .25);
+}
+/* วงกลมจางมุมขวาบนกลายเป็นพระจันทร์ */
+html:root.hw-season #scr-login .lg-hero::after {
+  right: 18px; top: 16px; width: 56px; height: 56px; clip-path: none; z-index: 1;
+  background:
+    radial-gradient(circle at 66% 30%, rgba(214, 170, 96, .55) 0 5px, transparent 6px),
+    radial-gradient(circle at 34% 64%, rgba(214, 170, 96, .45) 0 7px, transparent 8px),
+    radial-gradient(circle at 38% 34%, #fff8e3, #ffe2a1 55%, #f2b45a 100%);
+  box-shadow: 0 0 26px 6px rgba(255, 196, 110, .4), 0 0 80px 20px rgba(255, 140, 50, .18);
+  animation: hb-moon-glow-sm 3.2s ease-in-out infinite alternate;
+}
+@keyframes hb-moon-glow-sm { to { box-shadow: 0 0 34px 10px rgba(255, 196, 110, .5), 0 0 96px 28px rgba(255, 140, 50, .24); } }
+html:root.hw-season #scr-login .lg-mark { background: transparent; padding: 0; box-shadow: 0 0 14px rgba(255, 138, 31, .45); }
+html:root.hw-season #scr-login .lg-brand::after { content: " · Halloween"; color: #ffc078; }
+html:root.hw-season #scr-login .lg-h { text-shadow: 0 0 22px rgba(255, 150, 60, .55), 0 2px 0 rgba(0, 0, 0, .25); }
+html:root.hw-season #scr-login .lg-p { color: #f3e6ff; }
+
+/* ค้างคาวสองตัวเกาะอยู่หน้าพระจันทร์ในใบพระเอก ลอยขึ้นลงเบา ๆ */
+.lg-hero .lh-moonbats { display: none; }
+html:root.hw-season #scr-login .lg-hero .lh-moonbats { display: block; position: absolute; right: 12px; top: 22px; width: 84px; height: 56px; z-index: 2; pointer-events: none; }
+.lh-moonbats i { position: absolute; display: block; width: 30px; animation: lh-hover 2.4s ease-in-out infinite alternate; }
+.lh-moonbats i:first-child { left: 4px; top: 22px; }
+.lh-moonbats i:last-child { right: 0; top: 2px; width: 22px; animation-delay: -1.2s; }
+@keyframes lh-hover { from { transform: translate(0, 0); } to { transform: translate(-6px, -8px); } }
+
+/* มาสคอต: น้องฮูกชุดมัมมี่ (ชุดเดียวกับรางวัลฮาโลวีน · ย่อเหลือ 224px สำหรับวงนี้) */
+.lg-sai-hw { display: none; }
+html:root.hw-season #scr-login .lg-sai { display: none; }
+html:root.hw-season #scr-login .lg-sai-hw { display: block; position: absolute; right: 16px; bottom: -32px; z-index: 3;
+  width: 84px; height: 84px; border-radius: 50%; object-fit: contain; padding: 4px; pointer-events: none;
+  background: radial-gradient(circle at 50% 40%, #3b1d6b, #150b2b 75%);
+  border: 3px solid #ff9a3c;
+  box-shadow: 0 0 0 4px #120a24, 0 0 24px rgba(255, 138, 31, .55);
+  animation: lh-float 3s ease-in-out infinite alternate; }
+@keyframes lh-float { to { transform: translateY(-5px) rotate(-3deg); } }
+
+/* การ์ดล่าง: กระจกมืด ขอบม่วง · ใยแมงมุมจาง ๆ มุมซ้ายบน */
+html:root.hw-season #scr-login .tx-card {
+  position: relative;
+  background: linear-gradient(180deg, rgba(42, 25, 76, .86), rgba(20, 12, 38, .92));
+  box-shadow: 0 0 0 1px rgba(190, 150, 255, .22), inset 0 1px 0 rgba(255, 255, 255, .08), 0 20px 40px -20px rgba(0, 0, 0, .8);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.tx-card .lh-web { display: none; }
+html:root.hw-season #scr-login .tx-card .lh-web { display: block; position: absolute; left: 0; top: 0; width: 92px; height: 92px; opacity: .3; pointer-events: none;
+  stroke: #d9c8ff; stroke-width: 1; fill: none; }
+html:root.hw-season #scr-login .lf-ic { background: rgba(255, 138, 31, .14); color: #ffad5c; box-shadow: inset 0 0 0 1px rgba(255, 160, 80, .28); }
+html:root.hw-season #scr-login .lg-feat b { color: #f6eefe; }
+html:root.hw-season #scr-login .tx-sep { border-top-color: rgba(0, 0, 0, .45); border-bottom-color: rgba(255, 255, 255, .07); }
+html:root.hw-season #scr-login .tx-foot { background: rgba(8, 5, 16, .55); border-top-color: rgba(255, 255, 255, .06); box-shadow: none; }
+html:root.hw-season #scr-login .login-what { color: #c9b6ea; }
+
+/* ปุ่มหลัก: ฟักทองเรือง มีแสงวาบวิ่งผ่านเป็นระยะ */
+html:root.hw-season #scr-login .lg-opts .btn.lg-go {
+  position: relative; overflow: hidden; color: #fff;
+  background: linear-gradient(180deg, #ffb04a, #ff7a18 55%, #e0560f);
+  border: 1px solid #a8400c;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), inset 0 -2px 0 rgba(120, 30, 0, .35), 0 10px 26px -10px rgba(255, 122, 24, .9);
+  text-shadow: 0 1px 1px rgba(120, 40, 0, .45);
+}
+html:root.hw-season #scr-login .lg-opts .btn.lg-go::after { content: ""; position: absolute; top: 0; bottom: 0; left: -40%; width: 30%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .45), transparent); transform: skewX(-18deg);
+  animation: lh-shine 3.6s 1s ease-in-out infinite; pointer-events: none; }
+@keyframes lh-shine { 0%, 55% { left: -40%; } 100% { left: 130%; } }
+/* ปุ่ม Google คงพื้นสว่างตามแนวทางของ Google · ตัวหนังสือต้องตั้งเอง เพราะ --ink ของจอนี้เป็นสีสว่างแล้ว */
+html:root.hw-season #scr-login .lg-opts .btn.lg-main {
+  background: linear-gradient(180deg, #ffffff, #efe8fa); color: #1f1534;
+  border: 1px solid rgba(255, 255, 255, .6);
+  box-shadow: inset 0 1px 0 #fff, 0 8px 20px -12px rgba(0, 0, 0, .8);
+}
+html:root.hw-season #scr-login .lg-in { background: rgba(10, 6, 20, .6); color: var(--ink); border-color: rgba(190, 150, 255, .3); }
+
+/* ============================================================
+   เครื่องเบา / ลดการเคลื่อนไหว
+   ============================================================ */
+:root[data-lite] .hb-burst i:nth-child(even), :root[data-lite] .hb-fly i:nth-child(n+3),
+:root[data-lite] .lg-hw .lh-fly i:nth-child(n+2) { display: none; }
+html:root.hw-season[data-lite] #scr-login .tx-card { -webkit-backdrop-filter: none; backdrop-filter: none; }
+@media (prefers-reduced-motion: reduce) {
+  .hw-bat, .hb-stars, .lg-hw .lh-stars, .hb-moon, .hb-fog, .lh-moonbats i,
+  html:root.hw-season .boot .boot-mid::before, html:root.hw-season .boot .boot-mark,
+  html:root.hw-season #scr-login .lg-hero::after, html:root.hw-season #scr-login .lg-sai-hw { animation: none; }
+  html:root.hw-season #scr-login .lg-opts .btn.lg-go::after { display: none; }
+  /* ค้างคาวที่บินผ่าน/พุ่งออกต้องขยับถึงจะมีความหมาย — ลดการเคลื่อนไหวแล้วซ่อน ฉากที่เหลือยังเป็นฮาโลวีนครบ */
+  .hb-burst, .hb-fly, .lg-hw .lh-fly { display: none !important; }
+}

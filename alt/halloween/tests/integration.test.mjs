@@ -4,8 +4,8 @@ import {createRequire} from 'node:module';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const require=createRequire(import.meta.url),C=require('../rewards/catalog.js'),N=require('../rewards/integration.js');
-test('ALT enables precisely 23 cosmetics and never enables relics or badges',()=>{
- assert.equal(N.items.length,23);for(const item of C.items)assert.equal(N.available(item.id),!['relic','badge'].includes(item.kind));
+test('ALT enables precisely 24 cosmetics and never enables relics or badges',()=>{
+ assert.equal(N.items.length,24);for(const item of C.items)assert.equal(N.available(item.id),!['relic','badge'].includes(item.kind));
  assert.equal(N.available('unknown'),false);assert.equal(N.isEffect('cruor-quill'),false);
 });
 test('room items fit existing native slots and are selectable without buying',()=>{
