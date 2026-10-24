@@ -1,6 +1,7 @@
 {
-  "status": "proposed-preview-only-not-owner-confirmed",
-  "notice": "ราคา สูตร และรายละเอียดที่ยังไม่ยืนยันในไฟล์นี้ใช้เฉพาะห้องลอง ไม่ใช้แจกของในบัญชีจริง",
+  "status": "owner-confirmed-2026-10-24",
+  "notice": "เจ้าของยืนยันกติกานี้สำหรับ ALT จริงวันที่ 24 ต.ค. 2026; รางวัลจริงต้องผ่านบริการบัญชีในช่วงกิจกรรม",
+  "questAid": {"visits": 30},
   "houses": {
     "cooldownScope": "house-per-biome",
     "capWindow": "rolling-24h",

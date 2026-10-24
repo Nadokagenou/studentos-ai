@@ -3,7 +3,7 @@
   "collection": "halloween/event/rewards.html",
   "experience": "halloween/event/index.html",
   "name": "Halloween",
-  "claimingEnabled": false,
+  "claimingEnabled": true,
   "endsAt": "2026-12-01T00:00:00+07:00",
   "tagline": "ประตูรัตติกาล",
   "card": {

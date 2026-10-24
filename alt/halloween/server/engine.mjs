@@ -146,12 +146,12 @@ const factories={
     for (const item of req.items || []) {
       if (item.consume === false && item.mustPossess) continue;
       if (item.quantity == null) {
-        const n = config.preview && config.proposals.questQuantities[quest.id];
+        const n = (config.preview || config.authoritative) && config.proposals.questQuantities[quest.id];
         if (!positive(n)) fail('จำนวนวัตถุดิบเควสนี้ยังไม่กำหนด');
         item.quantity = n;
       }
       if (item.id === 'jacks-hollow-shovel') {
-        if (!config.preview || typeof config.proposals.garden.consumeShovel !== 'boolean') fail('ยังรอกติกาการใช้ Shovel');
+        if (!(config.preview || config.authoritative) || typeof config.proposals.garden.consumeShovel !== 'boolean') fail('ยังรอกติกาการใช้ Shovel');
         item.consume = config.proposals.garden.consumeShovel;
       }
     }
@@ -213,6 +213,40 @@ const factories={
     const receipts=event.ledger.filter(x => x.source === 'house' && x.amount > 0 && x.at > at - DAY && x.at <= at);
     const earned=receipts.reduce((n,x)=>n+x.amount,0),capNextAt=receipts.length?Math.min(...receipts.map(x=>x.at))+DAY:0;
     return {nextAt:next, capNextAt, availableAt:Math.max(next,earned>=300?capNextAt:0), remaining:Math.max(0, 300 - earned), ready:at >= next && earned < 300};
+  }
+  function questAidStatus(document,config,biome) {
+    const target=config.proposals?.questAid?.visits;
+    if(!positive(target))return null;
+    const home=new Map((config.materials.biomes.find(b=>b.id===biome)?.items||[]).filter(i=>i.source==='house-item-pool'&&i.rarity!=='Mystical').map(i=>[i.id,i])),missing=new Map();
+    for(const quest of config.quests){
+      const state=questStatus(document,config,quest);
+      if(!state.unlocked||state.complete)continue;
+      const requirements=quest.phases[state.phase]?.requirements;
+      if(!requirements)continue;
+      for(const branch of requirements.anyOf||[requirements]){
+        const req=resolveRequirements(config,quest,requirements,branch.id),totals={};
+        for(const item of req.items||[])if(home.has(item.id)&&!item.mustBePlayerGrown){
+          const amount=item.consume===false&&item.mustPossess?1:item.quantity;
+          if(positive(amount))totals[item.id]=(totals[item.id]||0)+amount;
+        }
+        for(const [id,amount] of Object.entries(totals))if((document.event.inventory[id]||0)<amount)missing.set(id,home.get(id));
+      }
+    }
+    const weights=config.materials.houseItems.rarityWeightsPercent;
+    const candidates=[...missing.values()].sort((a,b)=>(weights[a.rarity]??Infinity)-(weights[b.rarity]??Infinity)||a.id.localeCompare(b.id));
+    return {target,visits:Math.min(target,Math.max(0,document.event.questAid?.[biome]?.visits||0)),missing:candidates};
+  }
+  function awardQuestAid(document,config,biome,at,tx) {
+    const status=questAidStatus(document,config,biome);
+    if(!status)return null;
+    const counters=document.event.questAid||=( {} ),counter=counters[biome]||={visits:0,grants:0};
+    counter.visits=Math.min(status.target,status.visits+1);
+    let gift=null;
+    if(counter.visits===status.target&&status.missing.length){
+      const item=status.missing[0];gift={id:item.id,quantity:1,rarity:item.rarity,biome};
+      addItem(document.event,item.id,1);counter.visits=0;counter.grants=(counter.grants||0)+1;counter.lastGift={id:item.id,at,tx};
+    }
+    return {visits:counter.visits,target:status.target,item:gift};
   }
   function gameDefinition(id, config) {
     const g = config.proposals?.games;
@@ -293,6 +327,7 @@ const factories={
           result.item = {id, quantity:rules.itemQuantity, rarity, biome:destination, breakthrough:destination !== current.id,breakthroughRoll};
         }
       }
+      result.questAid=awardQuestAid(document,config,current.id,at,tx);
     } else if (action.type === 'quest') {
       const quest = config.quests.find(x => x.id === action.quest) || fail('ไม่พบเควส');
       const status = questStatus(document, config, quest);
@@ -514,7 +549,7 @@ const factories={
     event.clock = at;
     return result;
   }
-  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,questWait,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, houseAvailability, gameDefinition, dispatch});
+  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,questWait,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, houseAvailability,questAidStatus, gameDefinition, dispatch});
 });
 
 },
