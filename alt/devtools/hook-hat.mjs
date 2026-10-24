@@ -7,7 +7,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const ALT = fileURLToPath(new URL('..', import.meta.url));
-const OUT = ALT + 'halloween/rewards/theme-assets/';
+const OUT = ALT;
 
 // หมวกวาดรอบจุด (0,0) = กลางปีกหมวก กว้าง 200
 const HAT = `

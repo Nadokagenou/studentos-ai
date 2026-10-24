@@ -33,7 +33,8 @@ const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.cs
   'sai-face-serious.webp', 'sai-face-sleepy.webp', 'sai-face-sulk.webp',
   'sai-chibi.webp',
   // น้องฮูก (Hook) — มาสคอตค่าเริ่มต้นตั้งแต่ 9 ต.ค. 69 · ภาพเดียวตัดเป็นสามขนาด สีหน้ามาจาก CSS
-  'hook-avatar.png', 'hook-face.webp', 'hook-body.webp'];
+  // 24 ต.ค. 69 · เจ้าของ: ใช้น้องฮูกใส่หมวกแม่มดแทนตัวเดิมทุกธีม (ภาพต้นฉบับยังอยู่ — devtools/hook-hat.mjs ใช้สร้าง)
+  'hook-hat-avatar.svg', 'hook-hat-face.svg', 'hook-hat-body.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
