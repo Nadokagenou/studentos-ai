@@ -63,7 +63,9 @@
   :root body:not(.login-mode) .tabbar .ic-wrap { width:24px; height:24px; flex:none; }
   :root body:not(.login-mode) .tabbar .tab.scan { min-height:54px!important; height:54px!important; margin-block:8px; }
   :root body:not(.login-mode) .tabbar .tab.scan .scan-dot {
-    width:32px!important; height:32px!important; margin:-4px; border-radius:10px; box-shadow:none;
+    /* margin ต้อง !important เหมือนขนาด — กฎแถบข้างใน alt.css (.phone .tabbar ... 0 0 4px) specificity สูงกว่า
+       เคยชนะ margin แต่แพ้ขนาด ก้อน 32px จึงกินที่เต็ม ไอคอนเยื้องขวา 4px ป้าย "เพิ่ม" เยื้อง 8px (24 ต.ค. 69) */
+    width:32px!important; height:32px!important; margin:-4px!important; border-radius:10px; box-shadow:none;
   }
   :root body:not(.login-mode) .tabbar .tab.scan>span:last-child { margin-left:0; }
   :root body:not(.login-mode) .tabbar .tab[data-scr="scr-profile"] { margin-top:auto; margin-bottom:40px; }
@@ -80,6 +82,13 @@
   :root body:not(.login-mode) #menuBody>:not(:is(.td-top,.td-event,.td-deck,.td-head,.dc-line,.break-ask,.td-now,.td-clear,.saih,.td-ask,.td-railwrap,.td-tiles)) { grid-column:1 / -1; }
   :root body:not(.login-mode) #menuBody:has(>.td-clear) { grid-template-areas:'head head' 'context context' 'focus focus' 'ask ask' 'tools tools'; }
   :root body:not(.login-mode) #menuBody:has(>.td-note) { grid-template-areas:'head head' 'context context' 'focus companion' 'focus rail' 'notice rail' 'ask ask' 'tools tools'; }
+  /* 24 ต.ค. 69 · หน้าแรกใหม่ (แถบบน + ชุดการ์ด) ไม่มีรายการ "ที่เหลือของวันนี้" (.td-railwrap) แล้ว
+     ช่อง rail จึงว่างเป็นโพรงใต้การ์ดน้องฮูก · ช่องถามได้แค่คอลัมน์ซ้าย · แถบตัวเลขไม่มีช่องของตัวเองเลยไปเต็มแถวบนสุด
+     (ภาพเจ้าของ 24 ต.ค. ธีม Astral) → คอลัมน์ขวาเรียง น้องฮูก · ตัวเลข · ช่องถาม ให้สูงพอ ๆ กับชุดการ์ดซ้าย
+     การ์ดตั้งค่าตารางเรียนต้องมีช่องของตัวเองด้วย ไม่งั้น grid ยัดมันขึ้นแถว context ที่ว่างบนสุด (ลำดับต่างจากมือถือ) */
+  :root body:not(.login-mode) #menuBody:not(:has(>:is(.td-railwrap,.td-clear,.td-note))) { grid-template-areas:'head head' 'context context' 'focus companion' 'focus stats' 'focus ask' 'setup setup' 'tools tools'; }
+  :root body:not(.login-mode) #menuBody:not(:has(>:is(.td-railwrap,.td-clear,.td-note)))>.td-stats { grid-area:stats; grid-column:auto; }
+  :root body:not(.login-mode) #menuBody:not(:has(>:is(.td-railwrap,.td-clear,.td-note)))>.td-setup { grid-area:setup; }
   /* แถบบนสุดกับหัวจอเต็มไม่เคยอยู่พร้อมกัน (todayHead ว่างเมื่อแถบเปิด) จึงใช้แถวเดียวกัน */
   :root body:not(.login-mode) #menuBody>.td-top { grid-area:head; }
   /* การ์ดอีเวนต์เล็กขึ้นเฉพาะตอนปิดการ์ดหลัก (ปกติอีเวนต์อยู่ในสไลด์) · แถวบริบทว่างแทบทุกวัน จึงใช้ที่นั้น */

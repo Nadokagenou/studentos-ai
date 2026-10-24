@@ -16,7 +16,7 @@
   try{storage.setItem(COSTUME_KEY,JSON.stringify({...readCostumes(storage),[item.mascot]:id}));return true;}catch{return false;}}
  function browserCostumes(){try{return readCostumes(localStorage);}catch{return {};}}
  function costumeAsset(mascot){const id=browserCostumes()[mascot],item=items.find(x=>x.id===id);return item?asset(item):null;}
- function costumeForSource(src){const id=/(?:^|\/)sai-(?:face-[\w-]+|chibi)\.webp$|(?:^|\/)sai-avatar\.png$/.test(src)?'sai':/(?:^|\/)hook-(?:body|face)\.webp$|(?:^|\/)hook-avatar\.png$/.test(src)?'hook':null;return id?costumeAsset(id):null;}
+ function costumeForSource(src){const id=/(?:^|\/)sai-(?:face-[\w-]+|chibi)\.webp$|(?:^|\/)sai-avatar\.png$/.test(src)?'sai':/(?:^|\/)hook-(?:body|face)\.webp$|(?:^|\/)hook-avatar\.png$|(?:^|\/)hook-hat-(?:body|face|avatar)\.svg$/.test(src)?'hook':null;return id?costumeAsset(id):null;}
  function roomEntries(base){const positions={desk:[136,38,96,96],shelf:[170,12,76,76],poster:[92,9,80,80],hanging:[196,-27,86,86],pet:[2,138,104,104]};
   return items.filter(x=>x.kind==='room').map(item=>{const [x,y,w,h]=positions[item.slot],src=new URL(item.asset||'assets/'+item.id+'.svg',base).href;
    return {id:'hw-'+item.id,name:item.name+' · Halloween',slot:item.slot==='hanging'?'ceiling':item.slot,cost:0,svg:'<image class="hw-native-room-item" data-hw-room="'+item.id+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" href="'+src+'"/>'};});}

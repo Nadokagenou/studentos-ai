@@ -141,11 +141,38 @@
   }
   function currentBiome() { return Core.biomeAt(read(),config,Date.now()).id; }
   function worldContext() { return {Core,Catalog,config,doc:read(),now:Date.now(),name,duration,difficulty:biomeDifficulty}; }
+  // ไอคอน HUD ดันเจี้ยน (24 ต.ค. 69) — เดิมเป็นอักขระ Unicode (⌂ ✧ ▤ ◇ ❧ ⚗ ⚙ ♪ Ⅱ) ขนาด/น้ำหนักเส้นไม่เท่ากันและหน้าตาเปลี่ยนตามเครื่อง
+  // วาดเป็นเส้นชุดเดียว 24px ปลายเส้นเหลี่ยม (เข้ากับฉากพิกเซล) · ทุกตัวยังสื่อความหมายเดิม ห้ามสลับเป็นรูปตกแต่งที่ไม่บอกหน้าที่
+  const HUD_ICON = {
+    exit: 'M13 4H5v16h8M10 12h11M17 8l4 4-4 4',
+    home: 'M4 21V10l8-6 8 6v11zM10 21v-6h4v6',
+    guide: 'M6 3h10l3 3v15H6zM9.5 10a2.5 2.5 0 1 1 3.3 2.4c-.5.2-.8.6-.8 1.1V14M12 17v1',
+    candy: 'M8.5 12a3.5 3.5 0 1 0 7 0 3.5 3.5 0 1 0-7 0M8.5 12 4 8.5v7zM15.5 12l4.5-3.5v7z',
+    soundOn: 'M4 9h4l5-4v14l-5-4H4zM16 9.5a3.5 3.5 0 0 1 0 5M18.5 7a7 7 0 0 1 0 10',
+    soundOff: 'M4 9h4l5-4v14l-5-4H4zM16 9l5 6M21 9l-5 6',
+    pause: 'M8 5v14M16 5v14',
+    play: 'M7 5l12 7-12 7z',
+    settings: 'M10 2h4l.7 2.7 2.4 1 2.4-1.4 2.8 2.8-1.4 2.4 1 2.4L22 10v4l-2.7.7-1 2.4 1.4 2.4-2.8 2.8-2.4-1.4-2.4 1-.7 2.7h-4l-.7-2.7-2.4-1-2.4 1.4-2.8-2.8 1.4-2.4-1-2.4L2 14v-4l2.7-.7 1-2.4-1.4-2.4 2.8-2.8 2.4 1.4 2.4-1zM9 12a3 3 0 1 0 6 0 3 3 0 1 0-6 0',
+    biome: 'M5 21V11a7 7 0 0 1 14 0v10M3 21h18M12 9l1.1 2.4 2.4 1.1-2.4 1.1L12 16l-1.1-2.4-2.4-1.1 2.4-1.1z',
+    quests: 'M5 4h13v15H7a2 2 0 0 0-2 2zM5 4v17M8.5 8h6M8.5 12h6',
+    vault: 'M3 10h18v10H3zM3 10l2-5h14l2 5M10.5 13h3v3h-3z',
+    garden: 'M12 21v-9M12 12C12 8 9 6 5 6c0 4 3 6 7 6zM12 15c0-3 2.5-5 6-5 0 3.5-2.5 5-6 5z',
+    tasks: 'M5 3h14v18H5zM8.5 10l2 2 4-4M8.5 16h7',
+    potion: 'M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3M7 15h10',
+  };
+  const hudIcon = name => '<svg class="hud-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="'+HUD_ICON[name]+'"/></svg>';
+  // อนิเมชันตอนกด (24 ต.ค. 69): ติดคลาส dg-press ตอนนิ้วแตะ (ไม่รอปล่อย) · คีย์บอร์ดติดตอน click ที่ detail=0
+  // CSS วาดรูนเรืองในช่อง + ไอคอนสะดุ้ง · ถอดคลาสเองหลัง 340ms ให้กดซ้ำรัว ๆ ได้ทุกครั้ง
+  const PRESS_TARGETS = '.hud-top button,.hud-tools button,.event-dialog :is(.dialog-x,.primary,.secondary,.dialog-footer button,.item-source-button)';
+  function pressFx(button){ if(!button||button.disabled)return; button.classList.remove('dg-press'); void button.offsetWidth; button.classList.add('dg-press'); clearTimeout(button._dgPress); button._dgPress=setTimeout(()=>button.classList.remove('dg-press'),340); }
+  document.addEventListener('pointerdown',e=>{const b=e.target.closest&&e.target.closest(PRESS_TARGETS);if(b)pressFx(b);},{passive:true});
+  // เสียงตามชนิดปุ่ม: แถบล่าง = รูน · ปุ่มบน/ปุ่มในหน้าต่าง = หินกระทบ · ประตู = บานพับเหล็ก · คุยกับตัวละคร = เสียงเดิม
+  function pressSound(button){ return button.dataset.npc||button.dataset.quest?'npc':button.hasAttribute('data-enter-hub')?'gate':button.closest('.hud-tools')?'rune':button.closest('.hud-top')||button.matches('.event-dialog :is(.dialog-x,.primary,.secondary,.dialog-footer button,.item-source-button)')?'stone':'tap'; }
   function worldToolbar() {
-    return '<div class="scene-hud"><div class="hud-top"><a class="hud-studentos" href="../../" aria-label="กลับระบบหลัก StudentOS">← StudentOS</a><span class="hud-wallet" title="Candy ห้องลอง">◈ <b data-scene-wallet>'+read().event.candy.toLocaleString('th-TH')+'</b></span><button data-toggle-scene-sound aria-label="'+(prefs.sound?'ปิดเสียง':'เปิดเสียง')+'">'+(prefs.sound?'♫':'♪')+'</button><button class="hud-motion" data-toggle-scene-motion aria-label="'+(reduced()?'เปิดอนิเมชัน':'หยุดอนิเมชัน')+'">'+(reduced()?'▶':'Ⅱ')+'</button><button data-open-preferences aria-label="ตั้งค่า">⚙</button></div>'+(route!=='hub'&&route!=='gate'?'<button class="scene-return" data-route="hub" aria-label="กลับโถงกลาง"><span aria-hidden="true">↶</span><b>โถงกลาง</b></button>':'')+window.HalloweenJournal.cover()+'</div>';
+    return '<div class="scene-hud"><div class="hud-top"><button class="hud-exit" data-exit-app aria-label="ออกไปหน้าแอป StudentOS">'+hudIcon('exit')+'<span>ออก</span></button><span class="hud-wallet" title="Candy ห้องลอง">'+hudIcon('candy')+'<b data-scene-wallet>'+read().event.candy.toLocaleString('th-TH')+'</b></span><button data-toggle-scene-sound aria-label="'+(prefs.sound?'ปิดเสียง':'เปิดเสียง')+'">'+hudIcon(prefs.sound?'soundOn':'soundOff')+'</button><button class="hud-motion" data-toggle-scene-motion aria-label="'+(reduced()?'เปิดอนิเมชัน':'หยุดอนิเมชัน')+'">'+hudIcon(reduced()?'play':'pause')+'</button><button data-open-preferences aria-label="ตั้งค่า">'+hudIcon('settings')+'</button></div>'+(route!=='hub'&&route!=='gate'?'<button class="scene-return" data-route="hub" aria-label="กลับโถงกลาง"><span aria-hidden="true">↶</span><b>โถงกลาง</b></button>':'')+window.HalloweenJournal.cover()+'</div>';
   }
   function rememberPrefs(){try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch{}}
-  async function syncSoundUI(){document.querySelectorAll('[data-toggle-scene-sound]').forEach(b=>{b.textContent=prefs.sound?'♫':'♪';b.setAttribute('aria-label',prefs.sound?'ปิดเสียง':'เปิดเสียง');b.setAttribute('aria-pressed',String(prefs.sound));});await audio.setEnabled(prefs.sound);document.documentElement.dataset.sound=audio.state().playing?'on':prefs.sound?'waiting':'off';}
+  async function syncSoundUI(){document.querySelectorAll('[data-toggle-scene-sound]').forEach(b=>{b.innerHTML=hudIcon(prefs.sound?'soundOn':'soundOff');b.setAttribute('aria-label',prefs.sound?'ปิดเสียง':'เปิดเสียง');b.setAttribute('aria-pressed',String(prefs.sound));});await audio.setEnabled(prefs.sound);document.documentElement.dataset.sound=audio.state().playing?'on':prefs.sound?'waiting':'off';}
   function showJournal(page='index'){
     journalPage=['index','quests','vault','map','guide','tasks'].includes(page)?page:'index';
     if(journalPage==='guide'&&!prefs.guideSeen){prefs.guideSeen=true;rememberPrefs();}
@@ -196,7 +223,7 @@
     const four=Balance.cooldownComparison(config,4),one=Balance.cooldownComparison(config,1);
     openDetail(dialogShell('โอกาสได้ของและความยาก','<p class="guide-intro">คำนวณจากตารางของล่าสุด ใช้ Treat สมมติเปลี่ยนไบโอมได้ทันทีและไม่มีค่าเดินทาง คิดการสะสมของทุกชิ้นร่วมกัน เป็นค่าเฉลี่ยทางสถิติ ไม่ใช่เวลาที่รับประกันว่าจะจบเควส</p><p class="tiny">ตารางนี้เริ่มของจากศูนย์ ผู้เล่นใหม่เริ่มสะสมเอง ของที่มีอยู่ช่วยลดภาระได้ ส่วนระดับในหน้าคุยเควสคิดจากของที่คุณยังขาดอยู่</p><div class="guide-grid">'+cards+'</div><h3>บ้านพัก 4 ชม. เทียบแนวคิด 1 ชม.</h3><p class="subtle">สมมติอยู่ไบโอมเดิมและเคาะครบ 5 หลังทุกรอบ: ทั้งสองแบบติดเพดาน 300 Candy หลัง Treat '+four.attempts+' ครั้ง ซึ่งมีจังหวะสุ่มของเฉลี่ย '+four.expectedDraws+' ครั้งทุกระดับมีของแล้ว แบบ 4 ชม. ใช้ประมาณ '+four.capHours+' ชม. ส่วน 1 ชม. ใช้ '+one.capHours+' ชม. จึงใช้โควตาเร็วขึ้น แต่ไม่ได้เพิ่มโควตาของต่อ 24 ชม.</p><p class="tiny">1 ชั่วโมงยังไม่ยืนยัน · การหมุนไบโอมทุก 6 ชั่วโมงและค่า Totem อาจทำให้เวลาที่เล่นจริงต่างจากสมมติฐานนี้</p><h3>งาน StudentOS เป็นอีกทางหา Candy</h3><p class="subtle">รับเควสมรณะจากสมุด แล้วทำงานที่เสกเข้า StudentOS เปิดโฟกัสให้ครบ 20 นาทีและกดทำเสร็จ รับเควสละ '+config.proposals.taskCandy+' Candy เพดาน '+config.proposals.taskDailyCap+' Candy ใน 24 ชั่วโมง แยกจากเพดานบ้าน รางวัลยังอยู่เฉพาะห้องลอง ส่วนการยืนยันเพื่อนใหม่ยังไม่เปิด</p>','<button class="secondary" data-close-detail>กลับฉาก</button><button class="primary" data-route="tasks">ดูภารกิจ StudentOS</button>'));
   }
-  function syncMotionUI(){document.documentElement.dataset.motion=reduced()?'still':'full';document.querySelectorAll('[data-toggle-scene-motion]').forEach(b=>{b.textContent=reduced()?'▶':'Ⅱ';b.setAttribute('aria-label',reduced()?'เปิดอนิเมชัน':'หยุดอนิเมชัน');});if(reduced())finishTyping();}
+  function syncMotionUI(){document.documentElement.dataset.motion=reduced()?'still':'full';document.querySelectorAll('[data-toggle-scene-motion]').forEach(b=>{b.innerHTML=hudIcon(reduced()?'play':'pause');b.setAttribute('aria-label',reduced()?'เปิดอนิเมชัน':'หยุดอนิเมชัน');});if(reduced())finishTyping();}
   function npcSpeech(id,line){
     const npc=window.HalloweenNPCs.characters[id];
     return '<div class="npc-conversation"><div class="npc-portrait">'+window.HalloweenWorld.portrait(id)+'</div><div><small>'+esc(npc.role)+'</small><p class="npc-line">'+esc(line)+'</p></div></div>';
@@ -485,6 +512,8 @@
     document.querySelectorAll('[data-armed]').forEach(b=>delete b.dataset.armed);
     if(button.hasAttribute('data-toggle-scene-sound')){prefs.sound=!prefs.sound;rememberPrefs();syncSoundUI();return;}
     if(button.hasAttribute('data-start-with-sound')){prefs.sound=true;prefs.motion='full';prefs.motionChosen=true;rememberPrefs();syncSoundUI();syncMotionUI();detail.close();return;}
+    // ปุ่มออก (24 ต.ค. 69 · เจ้าของ: "สร้างปุ่มออกไปหน้าแอป") — เดิมทางกลับมีแค่โลโก้ในหัวหน้าที่ world.css ซ่อนไว้ · ปุ่มบ้านพากลับโถงกลาง ไม่ใช่แอป
+    if(button.hasAttribute('data-exit-app')){location.href=new URL('../../',location.href).href;return;}
     if(button.dataset.deathAction){button.disabled=true;const action=button.dataset.deathAction;if(action==='claim'){const q=activeDeathQuest(),result=q&&await perform({type:'death-quest-claim',quest:q.id});refreshStudentMissions();if(result)toast('พันธสัญญาสำเร็จ รับ '+result.candy+' Candy ห้องลองแล้ว');return;}const result=action==='enroll'?await perform({type:'death-quest-enroll'}):{deathQuest:activeDeathQuest()};try{if(result?.deathQuest){Death.publish(localStorage,result.deathQuest,action==='retry');refreshStudentMissions();toast('ส่งคำขอแล้ว เปิด StudentOS เพื่อให้เควสปรากฏในรายการงาน');}}catch{toast('ส่งงานเควสไม่สำเร็จ ลองส่งอีกครั้งได้โดยไม่สร้างเควสซ้ำ',true);}button.disabled=false;return;}
     if(button.hasAttribute('data-refresh-studentos')){refreshStudentMissions();return;}
     if(button.hasAttribute('data-copy-studentos')){try{await navigator.clipboard.writeText('https://nadokagenou.github.io/studentos-ai/alt/');toast('คัดลอกลิงก์แล้ว ส่งชวนเพื่อนได้เลย');}catch{toast('คัดลอกอัตโนมัติไม่ได้ กดเลือกลิงก์ด้านบนแล้วคัดลอกได้เลย');}return;}
@@ -505,7 +534,8 @@
     if(button.dataset.sourceVillage){await goToVillage(button.dataset.sourceVillage);return;}
     if(button.dataset.itemSource){showSources(button.dataset.itemSource,{quest:button.dataset.sourceQuest,branch:button.dataset.sourceBranch,panel:button.dataset.sourcePanel});return;}
     if(button.hasAttribute('data-source-back')){if(sourceReturn.quest)showQuest(sourceReturn.quest,sourceReturn.branch||null);else if(sourceReturn.panel)navigate(sourceReturn.panel);else detail.close();return;}
-    audio.play(button.dataset.npc||button.dataset.quest?'npc':'tap');
+    if(e.detail===0&&button.matches(PRESS_TARGETS))pressFx(button);
+    audio.play(pressSound(button));
     if(mapTarget&&!reduced()){
       const rect=button.getBoundingClientRect(),spark=document.createElement('i');spark.className='scene-tap';spark.style.left=(e.clientX||rect.x+rect.width/2)+'px';spark.style.top=(e.clientY||rect.y+rect.height/2)+'px';document.body.append(spark);setTimeout(()=>spark.remove(),500);
     }
@@ -517,7 +547,7 @@
     if(button.hasAttribute('data-trade')){showTrade();return;}
     if(button.dataset.plotBiome){showPlot(button.dataset.plotBiome);return;}
     if(button.hasAttribute('data-enter-hub')){
-      button.disabled=true;main.querySelector('.world-scene')?.classList.add('gate-opening');
+      button.disabled=true;button.classList.add('dg-unseal');main.querySelector('.world-scene')?.classList.add('gate-opening');
       const result=await perform({type:'enter-hub'},{silent:true});
       if(result)setTimeout(()=>navigate('hub'),reduced()?0:650);else button.disabled=false;
       return;

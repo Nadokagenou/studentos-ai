@@ -327,7 +327,7 @@ textarea.line-in { resize: none; min-height: 34px; overflow: hidden; }
       <span class="blob b1"></span><span class="blob b2"></span>
       <span class="tag" id="bannerTag">User test · 7 วัน</span>
       <span class="big" id="bannerBig">ช่วยบอกหน่อย<br>แอปเป็นยังไงบ้าง</span>
-      <img src="hook-body.webp" alt="">
+      <img src="hook-hat-body.svg" alt="">
     </div>
     <div class="head-body">
       <h1 id="formTitle">ฟีดแบ็ก Student OS</h1>
@@ -430,7 +430,7 @@ textarea.line-in { resize: none; min-height: 34px; overflow: hidden; }
         + '<b>ฟิสิกส์ · ทำโจทย์บทที่ 4</b>วันนี้ 23:59 · เหลือ 5 ชม.</span></div></div>';
     },
     hook: function () {
-      return '<div class="mk-hook"><img src="hook-avatar.png" alt=""><div class="mk-bub">'
+      return '<div class="mk-hook"><img src="hook-hat-avatar.svg" alt=""><div class="mk-bub">'
         + '<span class="mk-say">เย็นนี้ว่างชั่วโมงนึง ทำฟิสิกส์ก่อนดีไหม</span>'
         + '<span class="mk-ask hl">ถามน้องฮูก…<i>↑</i></span></div></div>';
     },
@@ -620,7 +620,7 @@ textarea.line-in { resize: none; min-height: 34px; overflow: hidden; }
   function showDone() {
     var daily = MODE === 'daily';
     if (!daily && !paid) { showCelebrate(); return; }
-    $('body').innerHTML = '<div class="card state"><img src="hook-avatar.png" alt="">'
+    $('body').innerHTML = '<div class="card state"><img src="hook-hat-avatar.svg" alt="">'
       + '<h2>' + (daily ? 'บันทึกเช็คอินวันนี้แล้ว' : 'ส่งคำตอบแล้ว ขอบคุณมาก') + '</h2>'
       + '<p>' + (daily ? 'พรุ่งนี้เย็นกลับมาตอบอีกครั้งนะ' : 'ทุกคำตอบถูกอ่านจริง และเอาไปแก้แอปรอบถัดไป') + '</p>'
       + '<div class="nav"><button class="btn ghost" id="edit" type="button">แก้คำตอบ</button>'
@@ -652,7 +652,7 @@ textarea.line-in { resize: none; min-height: 34px; overflow: hidden; }
 
   function showLogin(msg) {
     $('who').textContent = 'ยังไม่ได้ล็อกอิน';
-    $('body').innerHTML = '<div class="card state"><img src="hook-avatar.png" alt="">'
+    $('body').innerHTML = '<div class="card state"><img src="hook-hat-avatar.svg" alt="">'
       + '<h2>ล็อกอินในแอปก่อน</h2><p>' + esc(msg || 'คำตอบจะผูกกับบัญชี Student OS ของคุณ เปิดแอป ล็อกอิน แล้วกลับมาที่ลิงก์นี้อีกครั้ง') + '</p>'
       + '<div class="nav"><a class="btn fill" href="./" style="text-decoration:none">เปิดแอป</a>'
       + '<button class="btn ghost" type="button" onclick="location.reload()">ล็อกอินแล้ว ลองใหม่</button></div></div>';

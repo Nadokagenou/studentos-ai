@@ -49,8 +49,10 @@ const MASCOT_KEY = 'studentos.alt.mascot';
 const MASCOTS = {
   hook: {
     name: 'น้องฮูก', en: 'Hook',
-    avatar: 'hook-avatar.png', body: 'hook-body.webp',
-    faces: null, face: 'hook-face.webp',
+    // 24 ต.ค. 69 · เจ้าของ: ใช้น้องฮูกใส่หมวกแม่มดแทนตัวเดิมทุกธีม · จะกลับเป็นตัวเดิมให้ชี้กลับไป
+    // hook-avatar.png / hook-body.webp / hook-face.webp (ยังอยู่ใน repo) และแก้ index.html land.html feedback.html sw.js ด้วย
+    avatar: 'hook-hat-avatar.svg', body: 'hook-hat-body.svg',
+    faces: null, face: 'hook-hat-face.svg',
   },
   sai: {
     name: 'น้องไซ', en: 'Synara',

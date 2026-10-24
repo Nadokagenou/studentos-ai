@@ -6,7 +6,7 @@
 // จะเสิร์ฟโลโก้เก่าจากแคชต่อไปโดยไม่มีอะไรบอกว่ามีของใหม่
 // แยกชื่อแคช ALT จากเว็บหลัก: ปล่อยเฉพาะ ALT ต้องไม่ล้างแคชของเว็บหลักบน origin เดียวกัน
 const CACHE_PREFIX = 'studentos-alt-';
-const CACHE = CACHE_PREFIX + '1c60-halloween-invite-poster2-20261024'; // โปสเตอร์ QR: ตัวไทยกึ่งกลางบน iPhone · ปุ่มบันทึกโปสเตอร์ QR · ชวนเพื่อน (รหัส · QR) ในจออีเวนต์ + ภารกิจปลดธีม Halloween · เลขแอปคงเดิม
+const CACHE = CACHE_PREFIX + '1c60-hookhat-dungeon-layout-20261024'; // น้องฮูกใส่หมวกทุกธีม · หน้าอีเวนต์ดันเจี้ยน + ปุ่มออก · ปุ่ม + ตรงแนวแท็บเล็ต/คอม · หน้าแรกใหม่พอดีแท็บเล็ต/คอม · เลขแอปคงเดิม
 let HALLOWEEN_FILES = [];
 try { importScripts('halloween/cache-manifest.js'); HALLOWEEN_FILES = self.HALLOWEEN_SHELL || []; } catch (_) {}
 // ทุกไฟล์ที่ index.html อ้างถึงต้องอยู่ในรายการนี้ — ไฟล์ที่หน้าเรียกแต่ไม่ได้แคชไว้
@@ -36,7 +36,8 @@ const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.cs
   'sai-face-serious.webp', 'sai-face-sleepy.webp', 'sai-face-sulk.webp',
   'sai-chibi.webp',
   // น้องฮูก (Hook) — มาสคอตค่าเริ่มต้นตั้งแต่ 9 ต.ค. 69 · ภาพเดียวตัดเป็นสามขนาด สีหน้ามาจาก CSS
-  'hook-avatar.png', 'hook-face.webp', 'hook-body.webp'];
+  // 24 ต.ค. 69 · เจ้าของ: ใช้น้องฮูกใส่หมวกแม่มดแทนตัวเดิมทุกธีม (ภาพต้นฉบับยังอยู่ — devtools/hook-hat.mjs ใช้สร้าง)
+  'hook-hat-avatar.svg', 'hook-hat-face.svg', 'hook-hat-body.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

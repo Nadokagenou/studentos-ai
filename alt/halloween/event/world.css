@@ -61,7 +61,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#080d15}.event-heade
   .world-portal{left:var(--px);top:var(--py);width:var(--pw);height:var(--ph)}
   .world-scene .portal-label{font-size:12px;min-width:0;max-width:145px}.world-scene .portal-label b{font-size:13px}
   .npc-character,.room-scene .npc-character{width:23%;min-width:65px;max-width:180px}
-  .garden-bed{width:37%;height:16%;min-height:44px}
+  .garden-bed{width:var(--pbw,37%);height:var(--pbh,16%);min-height:44px}
   .world-title{top:max(70px,env(safe-area-inset-top));left:5%;right:5%}.world-title h1{font-size:22px}
   .event-dialog[data-scene-panel=room]{width:100vw;height:100dvh;max-height:100dvh;max-width:none;margin:0;padding:0;inset:0;border:0;outline:0;overflow:clip}
   .event-dialog[data-scene-panel=room] .world-page,.event-dialog[data-scene-panel=room] .scene-shell,.event-dialog[data-scene-panel=room] .world-scene{height:100dvh;min-height:100dvh;width:100vw!important;aspect-ratio:auto}
@@ -97,3 +97,35 @@ html,body{width:100%;height:100%;overflow:hidden;background:#080d15}.event-heade
 .activity-tag{display:inline-block;font-size:12px;color:#d6dfbd;padding:6px 10px;border:1px solid #95ad8c77;background:#1b2b22;border-radius:4px}.activity-status{padding:12px 14px;border:1px solid #9db78c77;background:#19251e;color:#d7e4c8;font-size:14px;line-height:1.8}.activity-status.activity-locked{border-color:#af946777;background:#2b2322;color:#e5d4b8}
 @media(max-height:500px) and (orientation:landscape){.world-scene .scene-point[data-visitors]{left:12%;top:78%}.world-scene .scene-point[data-route="garden"]{left:88%;top:82%}.world-scene .scene-point[data-story]{left:90%;top:35%}}
 @media(max-width:600px) and (orientation:portrait){.comparison-controls{display:flex}.difference-pair{grid-template-columns:1fr;max-width:360px;margin:auto}.difference-pair[data-view=altered] .difference-picture:first-child,.difference-pair[data-view=original] .difference-picture:last-child{display:none}.difference-picture{height:auto;aspect-ratio:300/330}.difference-picture svg{height:100%;width:100%}.difference-hit{min-width:44px;min-height:44px}.game-hint,.game-note{font-size:13px;line-height:1.8}.game-dialog{padding:16px}.game-top h2{font-size:18px}}
+/* ---------- ภาพฉากไม่ถูกยืด (24 ต.ค. 69 · เจ้าของ: "ในหน้าพวกนี้ปรับภาพหน่อย มันยังดูแปลก ๆ") ----------
+   เดิมภาพพื้นหลังเป็น object-fit:fill ยืดเต็มจอโดยไม่สนสัดส่วน · วัดจริง: 898×769 ภาพถูกบีบแนวนอน 22% (1.17 แทน 1.5)
+   มือถือ 375×812 บีบ 18% (0.46 แทน 0.56) → วงเข็มทิศบนพื้น ดวงจันทร์ ซุ้มประตู กลายเป็นวงรีผอม ตัวละครผอม
+   ตอนนี้กล่องฉาก (.world-scene) ถือสัดส่วนของภาพเอง แล้วขยายเต็มจอแบบ cover แต่ซูมเกินขนาดพอดีภาพได้ไม่เกิน 25%
+   จุดกด/แปลง/ป้ายประตูวางเป็นสัดส่วนของกล่องนี้อยู่แล้ว → ขยับตามภาพพอดีทุกขนาดจอ
+   จอสัดส่วนสุดโต่งที่ซูมไม่พอ: ช่องที่เหลือเป็นภาพฉากเดียวกันเบลอมืด ไม่ใช่แถบดำ
+   ใช้กับฉากเต็มจอเท่านั้น (หน้าหลัก + ห้องเต็มจอตอนจอแนวตั้ง) · ห้องในหน้าต่างแนวนอนเป็น 3/2 ถูกสัดส่วนอยู่แล้ว ไม่แตะ */
+#eventMain .scene-shell { position: relative; overflow: clip; }
+#eventMain .scene-shell::before {
+  content: ''; position: absolute; inset: -30px; pointer-events: none;
+  background: var(--scene-art) center / cover no-repeat; filter: blur(18px) brightness(.4) saturate(.85);
+}
+#eventMain .scene-shell > .world-scene {
+  --R: 1.5;
+  --fit-w: min(100%, calc(100dvh * var(--R)));
+  --fill-w: max(100%, calc(100dvh * var(--R)));
+  position: absolute !important; left: 50%; top: 50%; margin: 0;
+  width: min(var(--fill-w), calc(var(--fit-w) * 1.25)) !important;
+  height: auto !important; min-height: 0 !important; aspect-ratio: var(--R) !important;
+  transform: translate(-50%, -50%);
+}
+@media (orientation: portrait) {
+  #eventMain .scene-shell > .world-scene { --R: .5628; }
+  .event-dialog[data-scene-panel=room] .scene-shell { position: relative; overflow: clip; }
+  .event-dialog[data-scene-panel=room] .scene-shell > .world-scene {
+    --R: .5628; --fit-w: min(100%, calc(100dvh * var(--R))); --fill-w: max(100%, calc(100dvh * var(--R)));
+    position: absolute !important; left: 50%; top: 50%; margin: 0;
+    width: min(var(--fill-w), calc(var(--fit-w) * 1.25)) !important;
+    height: auto !important; min-height: 0 !important; aspect-ratio: var(--R) !important;
+    transform: translate(-50%, -50%);
+  }
+}
