@@ -413,8 +413,20 @@ async function inviteShare() {
 // เจ้าของ: "อยากได้ภาพเป็นคิวอาร์โค้ดบันทึกเข้าเท่ ๆ" — โปสเตอร์แนวตั้ง 1080×1620 วาดบน canvas เอง (ไม่ต้องโหลดรูปเพิ่ม)
 // QR วาดจากตารางโมดูลชุดเดียวกับ inviteQrSvg (จุดกลม .48 · ตาโคม · ฟักทองกลาง · ระดับ H) — สแกนติดเท่ากัน
 // ส่งออก: เมนูแชร์ของเครื่องพร้อมไฟล์ (iPhone เลือก "บันทึกภาพ" ได้) · ไม่มีก็ดาวน์โหลดไฟล์ PNG
-function ivPosterFont() {
-  try { return getComputedStyle(document.body).fontFamily || 'sans-serif'; } catch (_) { return 'sans-serif'; }
+// ฟอนต์ไทยที่มีอยู่ในเครื่องจริง — ห้ามใช้ชุดฟอนต์ของ body ตรง ๆ (ตัวแรก "IBM Plex Sans Thai" ไม่ได้โหลดไว้)
+// iPhone เจ้าของ 24 ต.ค. 69: canvas ใช้ฟอนต์สำรองแทนแล้ววัดความกว้างตัวไทยผิด ข้อความไทยเริ่มที่กลางภาพแล้วล้นขอบขวา
+// (ตัวอังกฤษ Space Mono โหลดจริงจึงไม่เป็น) · Sukhumvit Set / Thonburi = iOS · Leelawadee UI = Windows · Noto = Android
+const IV_THAI = "'Sukhumvit Set', Thonburi, 'Noto Sans Thai', 'Leelawadee UI', 'Sarabun', sans-serif";
+function ivPosterFont() { return IV_THAI; }
+// วาดข้อความกึ่งกลางเอง: วัดความกว้าง ย่อขนาดถ้าเกิน maxW แล้ววางชิดซ้ายที่ (W - กว้าง) / 2
+// ไม่พึ่ง textAlign = 'center' ของ canvas ซึ่งเพี้ยนบน WebKit เมื่อใช้ฟอนต์สำรองกับตัวไทย
+function ivText(ctx, str, cx, y, weight, px, family, maxW) {
+  let size = px;
+  ctx.font = `${weight} ${size}px ${family}`;
+  let w = ctx.measureText(str).width;
+  if (w > maxW) { size = Math.floor(px * maxW / w); ctx.font = `${weight} ${size}px ${family}`; w = ctx.measureText(str).width; }
+  ctx.textAlign = 'left';
+  ctx.fillText(str, cx - w / 2, y);
 }
 function ivRound(ctx, x, y, w, h, r) {
   ctx.beginPath();
@@ -481,16 +493,17 @@ async function invitePoster(code) {
   [70, 140, 215, 290].forEach(r => { ctx.beginPath(); for (let a = 0; a <= 4; a++) { const t = a / 4 * Math.PI / 2, px = Math.cos(t) * r, py = Math.sin(t) * r; a ? ctx.quadraticCurveTo(Math.cos(t - .2) * r * .8, Math.sin(t - .2) * r * .8, px, py) : ctx.moveTo(px, py); } ctx.stroke(); });
   // หัวเรื่อง
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = '#ffb347'; ctx.font = `700 34px 'Space Mono', ui-monospace, monospace`;
+  const MONO = "'Space Mono', ui-monospace, monospace", MAX = W - 120;
+  ctx.fillStyle = '#ffb347';
   ctx.shadowColor = 'rgba(255,122,26,.7)'; ctx.shadowBlur = 18;
-  ctx.fillText('HALLOWEEN · TRICK OR INVITE', W / 2, 450);
+  ivText(ctx, 'HALLOWEEN · TRICK OR INVITE', W / 2, 450, 700, 34, MONO, MAX);
   ctx.shadowBlur = 0;
-  ctx.fillStyle = '#fff3dc'; ctx.font = `900 76px ${font}`;
+  ctx.fillStyle = '#fff3dc';
   ctx.shadowColor = 'rgba(255,150,40,.55)'; ctx.shadowBlur = 24;
-  ctx.fillText('มาใช้ StudentOS AI ด้วยกัน', W / 2, 545);
+  ivText(ctx, 'มาใช้ StudentOS AI ด้วยกัน', W / 2, 545, 800, 76, font, MAX);
   ctx.shadowBlur = 0;
-  ctx.fillStyle = 'rgba(241,235,255,.78)'; ctx.font = `600 38px ${font}`;
-  ctx.fillText('แอปที่บอกว่าตอนนี้ควรทำการบ้านอะไรก่อน', W / 2, 603);
+  ctx.fillStyle = 'rgba(241,235,255,.78)';
+  ivText(ctx, 'แอปที่บอกว่าตอนนี้ควรทำการบ้านอะไรก่อน', W / 2, 603, 600, 38, font, MAX);
   // ตั๋ว + QR
   const qs = 520, qx = (W - qs) / 2, qy = 710;
   ctx.fillStyle = 'rgba(18,10,34,.55)'; ivRound(ctx, qx - 90, qy - 50, qs + 180, qs + 270, 48); ctx.fill();
@@ -499,8 +512,8 @@ async function invitePoster(code) {
   ctx.fillStyle = '#7a3a12'; ivRound(ctx, qx - 14, qy - 14, qs + 28, qs + 28, 48); ctx.fill();
   ctx.shadowBlur = 0;
   ivDrawQr(ctx, inviteLink(code), qx, qy, qs);
-  ctx.fillStyle = 'rgba(241,235,255,.7)'; ctx.font = `600 34px ${font}`;
-  ctx.fillText('รหัสเชิญ', W / 2, qy + qs + 75);
+  ctx.fillStyle = 'rgba(241,235,255,.7)';
+  ivText(ctx, 'รหัสเชิญ', W / 2, qy + qs + 75, 600, 34, font, MAX);
   // รหัส — คำสีขาว ขีดสีฟักทอง
   const words = code.split('-');
   ctx.font = `700 64px 'Space Mono', ui-monospace, monospace`;
@@ -510,12 +523,12 @@ async function invitePoster(code) {
   let tx = (W - total) / 2; ctx.textAlign = 'left';
   ctx.shadowColor = 'rgba(255,179,71,.6)'; ctx.shadowBlur = 16;
   parts.forEach(([t, c]) => { ctx.fillStyle = c; ctx.fillText(t, tx, qy + qs + 160); tx += ctx.measureText(t).width; });
-  ctx.shadowBlur = 0; ctx.textAlign = 'center';
+  ctx.shadowBlur = 0;
   // ท้ายภาพ
-  ctx.fillStyle = '#ffd67a'; ctx.font = `800 40px ${font}`;
-  ctx.fillText('สแกน QR หรือใส่รหัสตอนสมัคร 🎃', W / 2, 1520);
-  ctx.fillStyle = 'rgba(241,235,255,.55)'; ctx.font = `600 30px ${font}`;
-  ctx.fillText('StudentOS AI · ' + location.host, W / 2, 1576);
+  ctx.fillStyle = '#ffd67a';
+  ivText(ctx, 'สแกน QR หรือใส่รหัสตอนสมัคร 🎃', W / 2, 1520, 700, 40, font, MAX);
+  ctx.fillStyle = 'rgba(241,235,255,.55)';
+  ivText(ctx, 'StudentOS AI · ' + location.host, W / 2, 1576, 600, 30, font, MAX);
   return new Promise(res => cv.toBlob(b => res(b), 'image/png'));
 }
 
