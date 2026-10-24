@@ -153,6 +153,13 @@
     potion: 'M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3M7 15h10',
   };
   const hudIcon = name => '<svg class="hud-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="'+HUD_ICON[name]+'"/></svg>';
+  // อนิเมชันตอนกด (24 ต.ค. 69): ติดคลาส dg-press ตอนนิ้วแตะ (ไม่รอปล่อย) · คีย์บอร์ดติดตอน click ที่ detail=0
+  // CSS วาดรูนเรืองในช่อง + ไอคอนสะดุ้ง · ถอดคลาสเองหลัง 340ms ให้กดซ้ำรัว ๆ ได้ทุกครั้ง
+  const PRESS_TARGETS = '.hud-top button,.hud-tools button,.event-dialog :is(.dialog-x,.primary,.secondary,.dialog-footer button,.item-source-button)';
+  function pressFx(button){ if(!button||button.disabled)return; button.classList.remove('dg-press'); void button.offsetWidth; button.classList.add('dg-press'); clearTimeout(button._dgPress); button._dgPress=setTimeout(()=>button.classList.remove('dg-press'),340); }
+  document.addEventListener('pointerdown',e=>{const b=e.target.closest&&e.target.closest(PRESS_TARGETS);if(b)pressFx(b);},{passive:true});
+  // เสียงตามชนิดปุ่ม: แถบล่าง = รูน · ปุ่มบน/ปุ่มในหน้าต่าง = หินกระทบ · ประตู = บานพับเหล็ก · คุยกับตัวละคร = เสียงเดิม
+  function pressSound(button){ return button.dataset.npc||button.dataset.quest?'npc':button.hasAttribute('data-enter-hub')?'gate':button.closest('.hud-tools')?'rune':button.closest('.hud-top')||button.matches('.event-dialog :is(.dialog-x,.primary,.secondary,.dialog-footer button,.item-source-button)')?'stone':'tap'; }
   function worldToolbar() {
     return '<div class="scene-hud"><div class="hud-top"><button class="hud-home" data-route="hub" aria-label="กลับโถงกลาง">'+hudIcon('home')+'</button><button class="hud-guide" data-open-guide aria-label="วิธีเล่น">'+hudIcon('guide')+'<span>วิธีเล่น</span></button><span class="hud-wallet" title="Candy ห้องลอง">'+hudIcon('candy')+'<b data-scene-wallet>'+read().event.candy.toLocaleString('th-TH')+'</b></span><button data-toggle-scene-sound aria-label="'+(prefs.sound?'ปิดเสียง':'เปิดเสียง')+'">'+hudIcon(prefs.sound?'soundOn':'soundOff')+'</button><button class="hud-motion" data-toggle-scene-motion aria-label="'+(reduced()?'เปิดอนิเมชัน':'หยุดอนิเมชัน')+'">'+hudIcon(reduced()?'play':'pause')+'</button><button data-open-preferences aria-label="ตั้งค่า">'+hudIcon('settings')+'</button></div><nav class="hud-tools" aria-label="อุปกรณ์การผจญภัย">'+[['biome','ไบโอมคืนนี้','ไบโอม<span class="nw">คืนนี้</span>'],['quests','สมุดเควส'],['vault','กระเป๋า'],['garden','สวน'],['tasks','งานวันนี้','งาน<span class="nw">วันนี้</span>']].map(([id,label,shown])=>'<button data-route="'+id+'" aria-label="'+label+'">'+hudIcon(id)+'<small>'+(shown||label)+'</small></button>').join('')+'<button data-open-potion aria-label="น้ำยาหลงไบโอม">'+hudIcon('potion')+'<small>น้ำยา</small></button></nav></div>';
   }
@@ -513,7 +520,8 @@
     if(button.dataset.sourceVillage){await goToVillage(button.dataset.sourceVillage);return;}
     if(button.dataset.itemSource){showSources(button.dataset.itemSource,{quest:button.dataset.sourceQuest,branch:button.dataset.sourceBranch,panel:button.dataset.sourcePanel});return;}
     if(button.hasAttribute('data-source-back')){if(sourceReturn.quest)showQuest(sourceReturn.quest,sourceReturn.branch||null);else if(sourceReturn.panel)navigate(sourceReturn.panel);else detail.close();return;}
-    audio.play(button.dataset.npc||button.dataset.quest?'npc':'tap');
+    if(e.detail===0&&button.matches(PRESS_TARGETS))pressFx(button);
+    audio.play(pressSound(button));
     if(mapTarget&&!reduced()){
       const rect=button.getBoundingClientRect(),spark=document.createElement('i');spark.className='scene-tap';spark.style.left=(e.clientX||rect.x+rect.width/2)+'px';spark.style.top=(e.clientY||rect.y+rect.height/2)+'px';document.body.append(spark);setTimeout(()=>spark.remove(),500);
     }
@@ -530,7 +538,7 @@
       openDetail(dialogShell('มอร์โร · ตกลงรับซื้อ',npcSpeech('morro','ข้ารับ'+crop.name+' '+quantity+' ชิ้น แลก '+quantity*crop.sellCandy+' Candy ตกลงไหม?')+(id===Core.BIOMES[1]?'<p class="subtle">Jack Q2 ต้องใช้ฟักทองปลูกเอง 3 ชิ้น เผื่อไว้ส่งเควสได้</p>':''),'<button class="secondary" data-trade>เก็บไว้ก่อน</button><button class="primary" data-confirm-crop="'+id+'" data-quantity="'+quantity+'">ตกลงขาย</button>'));return;
     }
     if(button.hasAttribute('data-enter-hub')){
-      button.disabled=true;main.querySelector('.world-scene')?.classList.add('gate-opening');
+      button.disabled=true;button.classList.add('dg-unseal');main.querySelector('.world-scene')?.classList.add('gate-opening');
       const result=await perform({type:'enter-hub'},{silent:true});
       if(result)setTimeout(()=>navigate('hub'),reduced()?0:650);else button.disabled=false;
       return;

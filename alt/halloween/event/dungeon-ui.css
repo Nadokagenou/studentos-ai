@@ -236,6 +236,40 @@ body, .event-dialog, .scene-hud, button, input, select { font-family: 'Sriracha'
   box-shadow: inset 0 0 0 2px var(--dg-iron), inset 0 3px 0 -1px color-mix(in srgb, var(--dg-iron-hi) 45%, transparent) !important;
 }
 
+/* ---------- อนิเมชันตอนกด + จุดเด่นตอนเปิดประตู (24 ต.ค. 69 · เจ้าของ: "ทำอนิเมชันกดกับเสียงเอฟเฟกต์") ----------
+   คลาส dg-press ติดจาก experience.js ตอนนิ้วแตะ (ไม่รอปล่อย) · เสียงคู่กันอยู่ใน sound.js (stone · rune · gate)
+   • ปุ่ม HUD + ปุ่มควบคุมในหน้าต่าง (ไม่รวมจุดกดในฉากที่วางแบบ absolute): รูนสีไฟเทียนเรืองจากกลางช่องแล้วจาง (โปร่งใส+ขยาย — ไม่ขยับผัง) · ไอคอนสะดุ้งเอียงแล้วเด้งกลับ
+   • ป้าย "เปิดประตู" (จุดเด่นจุดเดียว): ป้ายเหล็กสั่นกึก ๆ แบบโซ่สะดุ้ง ตัวอักษรแดงเลือดลุกวาบ แล้วลูกกรงแง้มออก (ของเดิม)
+   ทั้งหมดใช้แค่ transform/opacity/filter ช่วงสั้น และเริ่มจากการกดของผู้เล่นเท่านั้น */
+.hud-top button, .hud-tools button, .event-dialog :is(.dialog-x,.primary,.secondary,.dialog-footer button,.item-source-button) { position: relative; }
+.hud-top button::after, .hud-tools button::after, .event-dialog :is(.dialog-x,.primary,.secondary,.dialog-footer button,.item-source-button)::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--dg-candle) 60%, transparent) 0, color-mix(in srgb, var(--dg-ember) 30%, transparent) 38%, transparent 66%);
+}
+.dg-press::after { animation: dg-rune .34s cubic-bezier(.16, 1, .3, 1) both; }
+@keyframes dg-rune { 0% { opacity: 0; transform: scale(.55); } 30% { opacity: 1; } 100% { opacity: 0; transform: scale(1.3); } }
+.dg-press .hud-ic { animation: dg-jolt .28s cubic-bezier(.16, 1, .3, 1); }
+@keyframes dg-jolt { 0% { transform: none; } 30% { transform: translateY(2px) rotate(-10deg) scale(.86); } 65% { transform: rotate(4deg) scale(1.06); } 100% { transform: none; } }
+.gate-enter.dg-unseal { animation: dg-unseal .36s steps(1, end) both; }
+@keyframes dg-unseal {
+  0% { transform: translate(-50%, -50%); } 14% { transform: translate(calc(-50% - 5px), calc(-50% + 2px)) rotate(-1.2deg); }
+  28% { transform: translate(calc(-50% + 4px), calc(-50% - 1px)) rotate(1deg); } 42% { transform: translate(calc(-50% - 3px), calc(-50% + 1px)) rotate(-.6deg); }
+  57% { transform: translate(calc(-50% + 2px), -50%); } 71% { transform: translate(calc(-50% - 1px), -50%); } 100% { transform: translate(-50%, -50%); }
+}
+/* html นำหน้า: ไฟกะพริบของป้าย (html:not([data-motion]) .gate-enter b) หนักกว่าเดิม ลุกวาบเลยไม่เล่น · ตอนนี้เท่ากันและมาทีหลัง */
+html .gate-enter.dg-unseal b { animation: dg-flare .7s cubic-bezier(.16, 1, .3, 1) both; }
+@keyframes dg-flare { 0% { filter: url(#dg-rough) brightness(1); } 25% { filter: url(#dg-rough) brightness(1.9) drop-shadow(0 0 14px #ff2a3a); } 100% { filter: url(#dg-rough) brightness(1.15) drop-shadow(0 0 8px #ff2a3a88); } }
+/* ลดการเคลื่อนไหว: ไม่สั่น ไม่สะดุ้ง ไม่ขยาย — เหลือรูนเรืองแบบจางเข้าจางออก ให้ยังรู้ว่ากดติด */
+@media (prefers-reduced-motion: reduce) {
+  .dg-press::after { animation-name: dg-rune-still; }
+  .dg-press .hud-ic, .gate-enter.dg-unseal { animation: none; }
+}
+/* โหมดหยุดอนิเมชันของอีเวนต์ (experience.css) ปิดทุกอนิเมชันด้วย !important — รวมการยืนยันว่ากดติดด้วย
+   คืนให้เฉพาะรูนจางเข้าจางออก (ไม่ขยับ ไม่ขยาย) · ลดการเคลื่อนไหว = ขยับน้อยลง ไม่ใช่ไม่บอกว่ากดติด */
+html[data-motion="still"] .dg-press::after { animation: dg-rune-still .3s ease-out both !important; }
+html[data-motion="still"] .dg-press .hud-ic, html[data-motion="still"] .gate-enter.dg-unseal { animation: none; }
+@keyframes dg-rune-still { 0% { opacity: 0; } 30% { opacity: .9; } 100% { opacity: 0; } }
+
 /* ---------- ลดการเคลื่อนไหว: ไม่วูบ ไม่ยุบ ---------- */
 @media (prefers-reduced-motion: reduce) {
   .gate-enter::after { animation: none; opacity: .8; }
