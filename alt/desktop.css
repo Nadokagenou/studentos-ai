@@ -1,6 +1,7 @@
 /* Desktop layout for the main application at /studentos-ai/.
-   Keep native screens, actions and theme tokens. No rules apply below 1024px. */
-@media (min-width:1024px) and (hover:hover) and (pointer:fine) {
+   Keep native screens, actions and theme tokens. No rules apply below 1025px.
+   1024 คือ iPad แนวนอน — 24 ต.ค. 69 เจ้าของ: "ทำให้ไอแพดแนวนอนปุ่มเหมือนในโทรศัพท์" → ใช้แถบล่างของช่วงแท็บเล็ต (device-preview-controls.css) */
+@media (min-width:1025px) and (hover:hover) and (pointer:fine) {
   :root { --desktop-expanded:248px; --desktop-rail:var(--desktop-expanded); --desktop-gap:24px; }
   :root body:not(.login-mode) { overflow:hidden; background:var(--scr); }
   :root body:not(.login-mode) .stage {
@@ -167,7 +168,7 @@
   :root[data-desktop-sidebar] body.focus-on :is(.desktop-nav-toggle,.tabbar),
   :root[data-desktop-sidebar] body.as-open .desktop-nav-toggle { visibility:hidden; }
 }
-@media (min-width:1024px) and (max-width:1199px) and (hover:hover) and (pointer:fine) {
+@media (min-width:1025px) and (max-width:1199px) and (hover:hover) and (pointer:fine) {
   :root { --desktop-expanded:224px; --desktop-gap:18px; }
   :root body:not(.login-mode) .stage .phone .tabbar { padding-inline:12px!important; }
   :root body:not(.login-mode) .tabbar::before { font-size:18px; padding-left:43px; background-size:34px 34px; }
@@ -176,7 +177,7 @@
   :root body:not(.login-mode) #menuBody .td-now .tn-title { font-size:24px; }
   :root body:not(.login-mode) #menuBody .td-now :is(.tn-head,.tn-body) { padding-inline:18px; }
 }
-@media (min-width:1024px) and (max-height:760px) and (hover:hover) and (pointer:fine) {
+@media (min-width:1025px) and (max-height:760px) and (hover:hover) and (pointer:fine) {
   :root { --desktop-gap:18px; }
   :root body:not(.login-mode) #menuBody { padding-top:24px; }
   :root body:not(.login-mode) #menuBody .th-greet { font-size:26px; }

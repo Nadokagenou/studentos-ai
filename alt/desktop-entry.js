@@ -1,6 +1,6 @@
 // Load desktop controls only when entering a desktop-sized viewport.
 (() => {
-  const wide = matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');
+  const wide = matchMedia('(min-width:1025px) and (hover:hover) and (pointer:fine)');
   let loaded = false;
   const load = () => {
     if (!wide.matches || loaded) return;
