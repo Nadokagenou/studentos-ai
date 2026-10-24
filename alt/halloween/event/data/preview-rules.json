@@ -7,7 +7,13 @@
     "capPayout": "clamp-positive-only",
     "itemQuantity": 1,
     "itemSelection": "uniform",
-    "emptyPool": "no-item"
+    "emptyPool": "no-item",
+    "pity": {
+      "note": "ดวงสะสม: เคาะแล้วไม่ได้ของที่เควสปัจจุบันขาด นับ +1 · ครบเกณฑ์ ครั้งถัดไปที่ได้ Candy การันตีของที่ขาด 1 ชิ้น · ใช้เฉพาะของระดับ Common/Uncommon จากบ้าน",
+      "threshold": 2,
+      "firstQuestThreshold": 1,
+      "rarities": ["Common", "Uncommon"]
+    }
   },
   "garden": {
     "growthMs": 60000,

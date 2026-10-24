@@ -196,6 +196,46 @@
     if (!positive(reward.quantity)) fail('จำนวนรางวัลไม่ถูกต้อง');
     addItem(event, reward.id, reward.quantity); return null;
   }
+  // เควสที่ผู้เล่นต้องทำต่อในไบโอมนี้ และของที่ยังขาด — ใช้ร่วมกันระหว่างแถบภารกิจบนจอกับดวงสะสมของบ้าน
+  function questNeeds(document, config, biome, now = document.event.clock - document.event.timeOffset) {
+    const event = document.event, chain = config.quests.filter(q => q.biome === biome);
+    const quest = chain.find(q => !event.quests[q.id]?.complete);
+    if (!quest) return null;
+    const status = questStatus(document, config, quest), phase = quest.phases[Math.min(status.phase, quest.phases.length - 1)];
+    const branches = phase.requirements.anyOf ? phase.requirements.anyOf.map(x => x.id) : [null];
+    let best = null;
+    for (const branch of branches) {
+      let requirements;
+      try { requirements = resolveRequirements(config, quest, phase.requirements, branch); } catch (error) { if (!best) best = {branch, requirements:null, missing:[], error:error.message}; continue; }
+      const missing = [];
+      if ((requirements.candy || 0) > event.candy) missing.push({kind:'candy', id:'candy', have:event.candy, need:requirements.candy});
+      for (const item of requirements.items || []) {
+        const need = item.consume === false && item.mustPossess ? 1 : item.quantity;
+        const have = item.mustBePlayerGrown ? Math.min(event.grown[item.id] || 0, event.inventory[item.id] || 0) : event.inventory[item.id] || 0;
+        if (have < need) missing.push({kind:'item', id:item.id, have, need, grown:!!item.mustBePlayerGrown});
+      }
+      if (requirements.objective && !event.proofs[requirements.objective.id]?.complete) missing.push({kind:'game', id:requirements.objective.id, have:0, need:1});
+      const mini = requirements.minigame;
+      if (mini) {
+        const id = mini.id || 'ghost-ship-hunt', proof = event.proofs[id];
+        if ((mini.mustClear && !proof?.clear) || (mini.mustComplete && !proof?.complete)) missing.push({kind:'game', id, have:0, need:1});
+      }
+      const row = {branch, requirements, missing, error:null};
+      if (!best || best.error || missing.length < best.missing.length) best = row;
+      if (!missing.length) break;
+    }
+    const waitCycle = !!quest.availability?.mustWaitForNextOccurrence && biomeAt(document, config, now).cycle <= (event.quests[quest.prerequisite]?.completedCycle ?? -Infinity);
+    return {quest, status, phase:status.phase, phases:quest.phases.length, ...best, ready:!best.error && !best.missing.length && !waitCycle, waitCycle};
+  }
+  // ของที่ขาดซึ่ง "ดวงสะสม" ช่วยได้: ของบ้านระดับต่ำเท่านั้น ไม่การันตีของหายากหรือของจากเควส
+  function pityTargets(document, config, biome, now) {
+    const rule = config.proposals?.houses?.pity, needs = rule && questNeeds(document, config, biome, now);
+    if (!needs) return {wanted:[], threshold:Infinity};
+    const pool = {};
+    for (const b of config.materials.biomes) for (const x of b.items) if (x.source === 'house-item-pool' && rule.rarities.includes(x.rarity)) pool[x.id] ||= {id:x.id, rarity:x.rarity, biome:b.id};
+    const wanted = needs.missing.filter(m => m.kind === 'item' && !m.grown && pool[m.id]).map(m => pool[m.id]);
+    return {wanted, threshold:needs.quest.order === 1 ? rule.firstQuestThreshold : rule.threshold, quest:needs.quest.id};
+  }
   function houseAvailability(document, config, id, now) {
     const event = document.event, at = moment(document, now), biome = biomeAt(document, config, now).id;
     const next = event.houses[biome + ':' + id] || 0;
@@ -270,7 +310,14 @@
       addCandy(event, candy, 'house', at, tx);
       event.houses[current.id + ':' + action.house] = at + config.materials.houseCandy.initialCooldownHours * HOUR;
       result.candy = candy; result.item = null;
-      if (candy > 0 && random(event) < config.materials.houseItems.dropChanceGivenCandy) {
+      const pity = pityTargets(document, config, current.id, now), luckKey = pity.quest || '';
+      event.luck ||= {};
+      if (candy > 0 && pity.wanted.length && (event.luck[luckKey] || 0) >= pity.threshold) {
+        // ดวงสะสมครบ: แทนการสุ่มรอบนี้ด้วยของที่เควสยังขาด 1 ชิ้น (สุ่มชื่อเท่ากันถ้าขาดหลายชิ้น)
+        const pick = pity.wanted[Math.floor(random(event) * pity.wanted.length)];
+        addItem(event, pick.id, rules.itemQuantity);
+        result.item = {id:pick.id, quantity:rules.itemQuantity, rarity:pick.rarity, biome:pick.biome, breakthrough:pick.biome !== current.id, breakthroughRoll:false, pity:true};
+      } else if (candy > 0 && random(event) < config.materials.houseItems.dropChanceGivenCandy) {
         const roll = random(event) * 100; let acc = 0, rarity;
         for (const [tier, weight] of Object.entries(config.materials.houseItems.rarityWeightsPercent)) { acc += weight; if (roll < acc) { rarity = tier; break; } }
         const breakthroughRoll=random(event)<config.materials.houseItems.breakthrough.triggerChance;
@@ -280,6 +327,11 @@
           const id = pool[Math.floor(random(event) * pool.length)]; addItem(event, id, rules.itemQuantity);
           result.item = {id, quantity:rules.itemQuantity, rarity, biome:destination, breakthrough:destination !== current.id,breakthroughRoll};
         }
+      }
+      if (pity.wanted.length) {
+        const hit = !!result.item && pity.wanted.some(x => x.id === result.item.id);
+        event.luck[luckKey] = hit ? 0 : (event.luck[luckKey] || 0) + 1;
+        result.wanted = hit; result.luck = {value:event.luck[luckKey], threshold:pity.threshold};
       }
     } else if (action.type === 'quest') {
       const quest = config.quests.find(x => x.id === action.quest) || fail('ไม่พบเควส');
@@ -498,5 +550,5 @@
     event.clock = at;
     return result;
   }
-  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, houseAvailability, gameDefinition, dispatch});
+  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, questNeeds, pityTargets, houseAvailability, gameDefinition, dispatch});
 });
