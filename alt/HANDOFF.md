@@ -3,7 +3,7 @@
 ## 24 ต.ค. 2026 — เจ้าของยืนยันกติกาและ deploy บัญชีแล้ว
 - Supabase halloween-event v1 ACTIVE/JWT, unauthenticated POST 401; เปิด client ตามวันไทย 28 ต.ค.–30 พ.ย.
 - เพิ่มตัวช่วยของเควส 30 บ้านต่อไบโอม แยกจากเรทสุ่ม/เก็บสิทธิ์หากไม่ขาด และแก้ live Dech quantities / Shovel reuse
-- Halloween 148/148; ยังไม่อ้างว่าทดสอบสองอุปกรณ์จริงหรือโฟกัสจริง 20 นาที
+- Halloween 149/149; ยังไม่อ้างว่าทดสอบสองอุปกรณ์จริงหรือโฟกัสจริง 20 นาที
 
 
 > **24 ต.ค. เตรียมเปิด 28 ต.ค.–30 พ.ย. + มินิเกมสุ่ม:** อ่าน halloween/docs/LAUNCH-REVIEW-2026-10-24.md และ halloween/server/README.md ก่อนต่อ โค้ดบัญชี/RPC/heartbeat พร้อมตรวจ แต่ edge deploy ถูก automatic approval ปฏิเสธ ยังไม่ขึ้นบริการจริง จึงคง claimingEnabled false ห้ามอ้างพร้อม live ทั้งหมด ตาราง DB/RPC สร้างและ rollback-test แล้ว ยืนยัน user จาก Auth ไม่รับเซฟ/เวลา/ยอดจาก browser preview tools ถูกปฏิเสธสองชั้น เพิ่มเสียงตัวละคร/feedback สุ่มห้ามินิเกม และแถบนัด Dech Q3 โดยคง next-cycle gate รวม origin/main c054d47 ของอีกคน (events/invite QR/poster) แล้ว เก็บทั้งหมด ตรวจ Halloween 144, SW6, sync36, account33, inbox18 ผ่าน เลข 1C60/คีย์/ธีมหลักเดิม ไม่รีเซ็ตเซฟเจ้าของ งานโปรโมตภาพจริง 4 คนรอทำหลังเก็บงานนี้

@@ -23,7 +23,7 @@
     const existing=document.getElementById('hwDeathTaskCard');if(!ready()||curScreen!=='scr-tasks'){existing?.remove();return;}
     const t=state.tasks.find(t=>Q.isLocal(t)&&!t.done&&!t.deleted&&t.halloweenDeathQuest.owner===Q.owner(localStorage)&&Date.now()-t.halloweenDeathQuest.issuedAt<86400000);if(!t){existing?.remove();return;}if(existing?.dataset.taskId===t.id)return;existing?.remove();
     const list=document.getElementById('taskList');if(!list)return;const card=document.createElement('aside');card.id='hwDeathTaskCard';card.className='hw-death-task';
-    card.dataset.taskId=t.id;card.innerHTML='<div><b>เควสมรณะ · พันธสัญญา 20 นาที</b><small>เลือกงานที่จะลงมือ แล้วรักษาแสงโฟกัสให้ครบก่อนกลับไปรับ Candy ทดลอง</small></div><button type="button">เริ่มโฟกัสเควส</button>';card.querySelector('button').addEventListener('click',()=>startFocus(t.id));list.prepend(card);
+    card.dataset.taskId=t.id;card.innerHTML='<div><b>เควสมรณะ · พันธสัญญา 20 นาที</b><small>เลือกงานที่จะลงมือ แล้วรักษาแสงโฟกัสให้ครบก่อนกลับไปรับ Candy'+(t.halloweenDeathQuest.authoritative?' ในบัญชี':' ทดลอง')+'</small></div><button type="button">เริ่มโฟกัสเควส</button>';card.querySelector('button').addEventListener('click',()=>startFocus(t.id));list.prepend(card);
   }
   function flush(){
     if(busy||!ready())return;const requests=Q.get(localStorage,Q.REQUEST_KEY,[]);if(!Array.isArray(requests)||!requests.length)return;busy=true;

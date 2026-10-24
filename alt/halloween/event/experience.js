@@ -252,7 +252,7 @@
       const location={shop:['ร้านมอร์โร','shop'],cauldron:['เตาของมอรา','cauldron-recipes'],ritual:['วงเวทอัญเชิญ','ritual-recipes'],potion:['แม่มดมอรา','cauldron']}[s.kind];
       return location?'<article class="source-card"><h3>'+location[0]+'</h3><p>เตรียม Candy และวัตถุดิบตามรายการก่อนรับของ</p><button class="secondary" data-route="'+location[1]+'">ไปที่นี่</button></article>':'';
     }).join('');
-    openDetail(dialogShell('วิธีหา '+esc(name(id)),'<p class="guide-intro">'+esc(Guide.summary(config,id))+'</p>'+content+(!sources.length?'<p class="subtle">ไอเทมนี้ยังไม่มีจุดรับในกติกาที่เปิดอยู่</p>':'')+(best.chance?'<p class="tiny">แนะนำ Treat สำหรับหาวัตถุดิบ · บ้านที่เคาะแล้วพัก 4 ชั่วโมง · อัตราของตามรายการล่าสุด · เวลาและราคาอื่นยังเป็นค่าห้องลอง</p>':''),'<button class="secondary" data-source-back>กลับ</button>'));
+    openDetail(dialogShell('วิธีหา '+esc(name(id)),'<p class="guide-intro">'+esc(Guide.summary(config,id))+'</p>'+content+(!sources.length?'<p class="subtle">ไอเทมนี้ยังไม่มีจุดรับในกติกาที่เปิดอยู่</p>':'')+(best.chance?'<p class="tiny">แนะนำ Treat สำหรับหาวัตถุดิบ · บ้านที่เคาะแล้วพัก 4 ชั่วโมง · อัตราสุ่มปกติตามรายการล่าสุด · มีตัวช่วยของเควสครบ 30 ครั้งในไบโอม</p>':''),'<button class="secondary" data-source-back>กลับ</button>'));
   }
   async function goToVillage(biome=currentBiome()){
     if(!Core.portalStatus(read(),config,biome,clockNow()).open){toast('ไบโอมนี้ยังไม่เปิดในรอบนี้',true);return;}
@@ -737,7 +737,7 @@
       if(!preview){
         const mode=await load('config.json');phase=window.HalloweenSeason.state();
         if(mode.claimingEnabled===true){
-          account=window.HalloweenAccount.create({client:window.HalloweenAccount.client()});
+          account=window.HalloweenAccount.create({client:window.HalloweenAccount.client(),onChange:snapshot=>{if(snapshot===null)location.reload();}});
           try{const remote=await account.refresh();store=account;phase=remote.phase;playable=phase==='active';}catch(error){toast(error.message,true);}
         }
       }
@@ -766,7 +766,7 @@
       document.getElementById('modeBanner').textContent='ยังไม่พร้อมใช้งาน';
     }
   }
-  const refreshAccount=async()=>{if(!account)return;try{await account.refresh();if(playable){updateWallet();updateDeathProgress();if(!detail.open&&!document.getElementById('gameDialog').open)render();}}catch(error){toast(error.message,true);}};
+  const refreshAccount=async()=>{if(!account)return;try{const remote=await account.refresh();if(remote.phase!==phase||(!playable&&remote.phase==='active')){location.reload();return;}if(playable){updateWallet();updateDeathProgress();if(!detail.open&&!document.getElementById('gameDialog').open)render();}}catch(error){if(playable)toast(error.message,true);}};
   window.addEventListener('online',refreshAccount);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshAccount();});
   setInterval(()=>{if(!document.hidden)refreshAccount();},30000);
   boot();
