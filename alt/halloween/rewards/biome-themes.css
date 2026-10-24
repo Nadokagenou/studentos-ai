@@ -1,4 +1,19 @@
 /* Permanent biome themes. Main Halloween retains the richest scene and music. */
+/* A small ship travels through the distant sea; separate wrappers own travel and swell. */
+.hw-sea-voyage{display:none;position:absolute;inset:0;pointer-events:none;overflow:hidden}
+:root[data-theme="hw-ghostship"] .hw-sea-voyage{display:block}
+:root[data-theme="hw-ghostship"] .hw-biome-view{animation:none;background-position:center 45%;opacity:.5}
+.hw-ship-course{position:absolute;top:58%;left:0;width:clamp(115px,27vw,240px);aspect-ratio:450/390;animation:hwr-voyage 38s -14s linear infinite;opacity:.72;will-change:transform}
+.hw-ship-bob{width:100%;height:100%;animation:hwr-swell 4.6s ease-in-out infinite;transform-origin:50% 85%}
+.hw-ship-bob img{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px #071a2180)}
+.hw-ship-wake{position:absolute;left:-37%;bottom:10%;width:84%;height:10%;border-bottom:1px solid #b8ecdf66;border-radius:50%;background:linear-gradient(transparent,#b8ecdf15,transparent);transform:skewX(-20deg)}
+.hw-sea-wave{position:absolute;left:-25%;width:150%;height:16%;bottom:13%;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 80'%3E%3Cpath d='M-20 40 Q20 15 60 40 T140 40 T220 40 T300 40 T380 40' fill='none' stroke='%239edacb' stroke-opacity='.36' stroke-width='1.5'/%3E%3Cpath d='M-20 55 Q20 30 60 55 T140 55 T220 55 T300 55 T380 55' fill='none' stroke='%239edacb' stroke-opacity='.16'/%3E%3C/svg%3E") center/300px 80px repeat-x;animation:hwr-wave 11s ease-in-out infinite alternate;opacity:.65}
+.hw-sea-wave.back{bottom:20%;opacity:.3;animation-duration:16s;animation-direction:alternate-reverse}
+@keyframes hwr-voyage{from{transform:translateX(-260px)}to{transform:translateX(calc(100vw + 260px))}}
+@keyframes hwr-swell{0%,100%{transform:translateY(2px) rotate(-1.8deg)}50%{transform:translateY(-6px) rotate(1.4deg)}}
+@keyframes hwr-wave{from{transform:translate3d(-35px,2px,0)}to{transform:translate3d(35px,-3px,0)}}
+html[data-lite="1"] .hw-ship-course,html[data-hw-motion="still"] .hw-ship-course{transform:translateX(52vw)}
+@media(prefers-reduced-motion:reduce){html:not([data-hw-motion="full"]) .hw-ship-course{transform:translateX(52vw)}}
 html[data-hw-showroom="true"] #boot{display:none!important}
 :root[data-theme^="hw-"]{color-scheme:dark;--scr:#101b24;--card:#1d2c35;--card2:#263840;--surface:#263840;--ink:#e9ede1;--muted:#b4c7c6;--faint:#93afaf;--fill:#a4d7c8;--on-fill:#14252a;--fill-on:#14252a;--blue:#aeddd1;--blue-soft:#27463f;--blue-deep:#bcdfcb;--line:#b8d9c232;--pg:#101b24;--pg-ink:#e9ede1;--pg-muted:#b4c7c6;--frame:#101b24;--on-accent:#14252a;--tint:#284740;--tint2:#2a3b40;--good:#9bd2b6;--good-soft:#9bd2b61a;--warn:#e5bf8d;--warn-soft:#e5bf8d1a;--alert:#eea4ae;--alert-soft:#eea4ae1a;--soft-card:#1b2b34ed;--soft-shadow:0 12px 35px #050b1455;--shadow:0 12px 35px #050b1455;--glass:#1b2b34e8;--grad-brand:linear-gradient(125deg,#618b88,#3e676c);--grad-hero:linear-gradient(140deg,#2b4a49,#162630)}
 :root[data-theme="hw-jackhollow"]{--scr:#21151c;--card:#35232a;--card2:#422d33;--surface:#422d33;--ink:#f4e6d5;--muted:#d3b6aa;--faint:#bd9b8c;--fill:#e5b37d;--on-fill:#301c24;--blue:#e8c094;--blue-soft:#573a32;--line:#d7ac7e38;--pg:#21151c;--frame:#21151c;--soft-card:#35232aeb;--grad-brand:linear-gradient(125deg,#a66b43,#71483d)}
