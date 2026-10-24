@@ -1752,7 +1752,8 @@ span.tt-chip { cursor: default; }
 :root #menuBody.home-v2 .td-ask .tk-go.tk-go { width: 34px; height: 34px; }
 #menuBody.home-v2 .td-ask:not(:focus-within)::before { opacity: 0; animation: none; }
 
-#menuBody.home-v2 .tg-grid { grid-template-columns: repeat(var(--tg-n, 4), minmax(0, 1fr)); }
+/* --tg-cols: หกปุ่มแบ่ง 3+3 (24 ต.ค. 69 เจ้าของ) · จำนวนอื่นยังแถวเดียว · จอคอม (desktop.css) ใช้ --tg-n แถวเดียวเหมือนเดิม */
+#menuBody.home-v2 .tg-grid { grid-template-columns: repeat(var(--tg-cols, var(--tg-n, 4)), minmax(0, 1fr)); }
 #menuBody.home-v2 .td-tiles { margin-top: 12px; }
 
 .td-setup {

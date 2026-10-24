@@ -28,8 +28,13 @@
  :root body:not(.login-mode) #menuBody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 18px;padding:22px 30px}
  :root body:not(.login-mode) #menuBody>:is(.td-head,.dc-line,.td-now,.td-clear,.td-ask,.td-tiles){grid-column:1/-1;margin-block:0}
  :root body:not(.login-mode) #menuBody>.td-railwrap{margin:0;align-self:center}
- :root body:not(.login-mode) #menuBody .tg-t{height:72px;min-height:0}
- :root body:not(.login-mode) #menuBody .tg-ic{width:44px;height:44px}
+ /* 24 ต.ค. 69 · เจ้าของ (ภาพไทล์แท็บเล็ต): "ใส่กรอบให้เหมือนโทรศัพท์ ทำให้มันเต็มขึ้นหน่อย"
+    เดิมบีบกรอบเหลือ 44px วงกลม แต่ชิปขาวข้างใน 39px (ไอคอน 23 + ขอบ 8×2) กินเกือบหมด กรอบใสจึงหายไป
+    โทรศัพท์: กรอบ 60 มุม 17 ชิป 35 เห็นขอบกรอบรอบชิป → ทรงเดียวกัน ขยายเป็น 72 ให้เต็มช่องที่กว้างกว่า */
+ :root body:not(.login-mode) #menuBody .tg-t{height:auto;min-height:0;gap:8px}
+ :root body:not(.login-mode) #menuBody .tg-grid .tg-ic{width:72px;height:72px;aspect-ratio:1;border-radius:20px}
+ :root body:not(.login-mode) #menuBody .tg-ic svg{width:24px;height:24px;padding:9px}
+ :root body:not(.login-mode) #menuBody .tg-lb2{font-size:13px}
  /* 24 ต.ค. 69 · เจ้าของ (ภาพหน้าแรก ~900px ตอนกลางคืน): "แก้ให้มันตรง ... และทำให้เต็มจอ"
     เดิมก้อนที่ไม่อยู่ในรายชื่อเต็มแถวได้แค่คอลัมน์เดียว — ตอนกลางคืนแถบตัวเลขไม่ขึ้น การ์ดน้องฮูกจึงไม่มีคู่
     ค้างครึ่งซ้าย · รายการ "ที่เหลือของวันนี้" ก็ครึ่งซ้ายเสมอ · ขวาว่างเป็นช่อง ขอบขวาไม่ตรงกับก้อนอื่น
