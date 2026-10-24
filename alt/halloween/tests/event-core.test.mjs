@@ -19,12 +19,15 @@ function harness({preview=true,seed=12345,prepare=()=>{},storage:provided}={}) {
   const initial = () => {const doc=Core.initial(config,'review',time,seed);prepare(doc);return doc;};
   const store = Ownership.createStore({storage,key:'test',owner:'review',season:config.season.id,initial});
   let n=0;
-  const apply = (action,id='tx-'+(++n)) => store.transact(id,doc=>Core.dispatch(doc,config,action,{now:time,tx:id}));
+  const apply = (action,id='tx-'+(++n)) => store.transact(id,doc=>Core.dispatch(doc,config,action.type==='buy'&&preview?{...action,stockEpoch:Core.shopStock(doc,config,time).epoch}:action,{now:time,tx:id}));
   const biome = id => apply({type:'preview-biome',biome:id});
   return {config,store,apply,biome,storage};
 }
 const stock = doc => {
   doc.event.candy=20000;
+  // Ownership fixtures stock all cosmetics; shop-stock.test covers random hourly inventory.
+  doc.event.location={kind:'room',room:'shop'};
+  doc.event.shopStock={epoch:Math.floor(time/Core.HOUR),remaining:Object.fromEntries(Object.keys(proposals.shop).map(id=>[id,1]))};
   for (const item of Object.values(Core.definitions(materials))) if (item.rarity!=='Mystical' && !['event-feature','tool'].includes(item.kind) && !['jacks-hollow-shovel','jacks-hollow-pumpkin'].includes(item.id)) doc.event.inventory[item.id]=40;
 };
 const quest = (h,id,branch) => h.apply({type:'quest',quest:id,branch});
@@ -364,7 +367,14 @@ test('the complete four-NPC journey, games, garden, shop and rituals yields exac
   await winGame(h,'dech-house-spot-difference');await quest(h,'dech-rare-materials');
   await assert.rejects(quest(h,'dech-wrong-letter'),/วัฏจักรถัดไป/);
   await h.apply({type:'preview-time',ms:Core.DAY});await quest(h,'dech-wrong-letter');await winBoss(h,'blood-countess');
-  for(const item of Object.keys(proposals.shop)) await h.apply({type:'buy',item});
+  await h.apply({type:'enter-room',room:'shop'});
+  for(const item of Object.keys(proposals.shop)) {
+    for(let tries=0;Core.shopStock(h.store.read(),h.config,time).remaining[item]===0;tries++){
+      assert.ok(tries<100,'cosmetic should recur in hourly shop');
+      await h.apply({type:'preview-time',ms:Core.HOUR});
+    }
+    await h.apply({type:'buy',item});
+  }
   await h.apply({type:'enter-room',room:'ritual'});await winBoss(h,'midnight-sovereign');
   for(const recipe of proposals.recipes) await h.apply({type:'craft',recipe:recipe.id});
   await winBoss(h,'nameless-afterlight');assert.equal(h.store.read().event.inventory['nameless-crown'],1);

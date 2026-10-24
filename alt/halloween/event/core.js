@@ -32,6 +32,7 @@
   function initial(config, owner, now, seed = 246813579) {
     const document = Ownership.create(owner, config.season.id);
     document.event = {candy:0, inventory:{}, grown:{}, ledger:[], houses:{}, quests:{}, proofs:{}, games:{}, purchases:[], crafts:[], garden:{plantedAt:null, watered:false}, totem:null, closed:false, timeOffset:0, clock:now, rng:seed >>> 0, repairs:0, taskClaims:{}, taskEarned:[], visitors:{}, visits:{hub:false,biomes:{},stories:{}}, location:{kind:'gate'}};
+    document.event.shopSeed=seed>>>0;
     return document;
   }
   function random(event) {
@@ -49,6 +50,27 @@
     fail('ระบบรับของจริงยังไม่ได้เชื่อมผู้ตัดสินธุรกรรม');
   }
   function moment(document, now) { return now + document.event.timeOffset; }
+  // Pure hourly projection: opening/reloading does not reroll stock or advance house RNG.
+  function shopStock(document,config,now) {
+    requirePreview(config);
+    const rule=config.proposals.shopStock;
+    if(rule?.intervalMs!==HOUR||!positive(rule.lots))fail('กติกาสต็อกร้านยังไม่พร้อม');
+    const epoch=Math.floor(moment(document,now)/rule.intervalMs),saved=document.event.shopStock;
+    if(saved?.epoch===epoch)return {...clone(saved),nextAt:(epoch+1)*rule.intervalMs};
+    let hash=2166136261;
+    for(const c of document.owner+document.season+':'+(document.event.shopSeed??'legacy')+':'+epoch){hash^=c.charCodeAt(0);hash=Math.imul(hash,16777619)>>>0;}
+    const rng={rng:hash||1},remaining=Object.fromEntries(Object.keys(config.proposals.shop).map(id=>[id,0]));
+    const tiers=Object.entries(rule.rarityWeightsPercent);
+    if(tiers.reduce((n,[,w])=>n+w,0)!==100)fail('น้ำหนักสต็อกร้านไม่ครบ');
+    for(let i=0;i<rule.lots;i++){
+      const roll=random(rng)*100;let acc=0,tier;
+      for(const [rarity,weight] of tiers){acc+=weight;if(roll<acc){tier=rarity;break;}}
+      const pool=Object.keys(remaining).filter(id=>config.rewards[id]?.rarity===tier&&['room','effect'].includes(config.rewards[id].kind));
+      if(!pool.length)fail('ระดับของสต็อกร้านไม่มีสินค้า');
+      remaining[pool[Math.floor(random(rng)*pool.length)]]++;
+    }
+    return {epoch,remaining,nextAt:(epoch+1)*rule.intervalMs};
+  }
   function biomeAt(document, config, now) {
     const at = moment(document, now), event = document.event;
     if (config.preview) {
@@ -286,7 +308,12 @@
       const price = config.proposals.shop[action.item];
       if (!positive(price) || !config.rewards[action.item]) fail('ของชิ้นนี้ไม่ได้ขายในร้าน');
       if (document.rewards[action.item] || event.purchases.includes(action.item)) fail('มีของชิ้นนี้แล้ว');
+      if(event.location?.kind!=='room'||event.location.room!=='shop')fail('ไปชั่งสินค้าที่ร้านก่อน');
+      const stock=shopStock(document,config,now);
+      if(action.stockEpoch!==stock.epoch)fail('สต็อกเปลี่ยนรอบแล้ว กรุณาหยิบสินค้าใหม่');
+      if(!positive(stock.remaining[action.item]))fail('สินค้าชิ้นนี้หมดแล้ว รอร้านเติมรอบถัดไป');
       addCandy(event, -price, 'shop', at, tx);
+      stock.remaining[action.item]--;event.shopStock={epoch:stock.epoch,remaining:stock.remaining};
       Ownership.grant(document, {id:action.item}, tx, at); event.purchases.push(action.item); result.rewards.push(action.item);
       if (Object.keys(config.proposals.shop).every(id => event.purchases.includes(id))) {
         Ownership.grant(document, {id:'crown-of-midnight'}, tx, at); result.rewards.push('crown-of-midnight');
@@ -320,6 +347,7 @@
       const rules = config.proposals.garden;
       if (action.type==='sell-crop') {
         const quantity = action.quantity;
+        if((action.expectedGrown!=null&&action.expectedGrown!==(event.grown[crop.harvest]||0))||(action.expectedInventory!=null&&action.expectedInventory!==(event.inventory[crop.harvest]||0)))fail('จำนวนผลผลิตเปลี่ยนแล้ว กรุณาชั่งใหม่');
         if (!positive(quantity) || quantity>(event.grown[crop.harvest]||0) || quantity>(event.inventory[crop.harvest]||0)) fail('ขายได้เฉพาะผลผลิตที่ปลูกจนโตและเก็บแล้ว');
         addItem(event,crop.harvest,-quantity); event.grown[crop.harvest]-=quantity;
         addCandy(event,quantity*crop.sellCandy,'crop-sale',at,tx); result.candy=quantity*crop.sellCandy;
@@ -451,5 +479,5 @@
     event.clock = at;
     return result;
   }
-  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, biomeAt, portalStatus, questStatus, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, houseAvailability, gameDefinition, dispatch});
+  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, houseAvailability, gameDefinition, dispatch});
 });

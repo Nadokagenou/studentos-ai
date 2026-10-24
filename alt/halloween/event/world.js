@@ -105,7 +105,7 @@
     const {Core}=c;
     const beds=Core.BIOMES.map((id,i)=>{
       const s=cropState(c,id),state=!s.unlocked?'รอเปิดแปลง':!s.planted?'แปลงว่าง':s.ready?'เก็บเกี่ยวได้':!s.g.watered?'รอรดน้ำ':'กำลังเติบโต';
-      return '<button class="garden-bed '+(s.ready?'crop-ready':s.planted?'crop-growing':'crop-empty')+'" data-plot-biome="'+id+'" data-until="'+(s.until||'')+'" style="--x:'+(i<2?(i%2?67:33):(i%2?73:28))+'%;--y:'+(i<2?54:73)+'%;--px:'+(i%2?72:28)+'%;--py:'+(i<2?45:66)+'%;--bed-width:'+(i<2?27:36)+'%;--bed-height:'+(i<2?13:17)+'%" aria-label="แปลง'+s.crop.name+' · '+state+'"><span class="bed-plants" aria-hidden="true">'+(s.planted?Array.from({length:3},()=>'<span>'+pixelCrop(i)+'</span>').join(''):'<i>✧</i>')+'</span><span class="spot-label">'+s.crop.name+'<small>'+state+'</small></span></button>';
+      return '<button class="garden-bed '+(s.ready?'crop-ready':s.planted?'crop-growing':'crop-empty')+'" data-plot-biome="'+id+'" data-until="'+(s.until||'')+'" style="--x:'+(i<2?(i%2?67:33):(i%2?73:28))+'%;--y:'+(i<2?54:73)+'%;--px:'+(i%2?72:28)+'%;--py:'+(i<2?52:66)+'%;--bed-width:'+(i<2?27:36)+'%;--bed-height:'+(i<2?13:17)+'%" aria-label="แปลง'+s.crop.name+' · '+state+'"><span class="bed-plants" aria-hidden="true">'+(s.planted?Array.from({length:3},()=>'<span>'+pixelCrop(i)+'</span>').join(''):'<i>✧</i>')+'</span><span class="spot-label">'+s.crop.name+'<small>'+state+'</small></span></button>';
     }).join('');
     return '<section class="world-page"><div class="world-title"><small>THE MIDNIGHT GARDEN</small><h1>สวนรัตติกาล</h1></div>'+scene('garden','สวนรัตติกาล แปลงปลูกสี่ชนิดแยกจากไบโอม',beds,'garden-zone')+'<p class="scene-help">ทำเควสรับเมล็ด → เลือกแปลงปลูก → เก็บผลผลิตไปขายกับมอร์โรในร้าน</p></section>';
   }
@@ -113,8 +113,12 @@
     const {Core,config,doc,now,duration}=c,id=Core.biomeAt(doc,config,now).id;
     return '<p class="village-intro">หมู่บ้านใน'+thai[Core.BIOMES.indexOf(id)]+' · แหล่งวัตถุดิบส่งเควส</p><p class="subtle">แนะนำ Treat: รับ 10 Candy และมีสิทธิ์สุ่มของ 60% ส่วน Trick ลุ้น 20/0 Candy ถ้าได้ 0 จะไม่ได้วัตถุดิบ ของที่สุ่มอาจไม่ใช่ชิ้นที่ต้องการ</p><section class="village-lane">'+Array.from({length:5},(_,n)=>{
       const a=Core.houseAvailability(doc,config,n+1,now),at=Core.moment(doc,now),wait=a.availableAt;
-      return '<button class="village-door" data-knock="'+(n+1)+'" '+(!a.ready||doc.event.closed?'disabled':'')+'><span aria-hidden="true">⌂</span><b>บ้าน '+(n+1)+'</b><small data-house-status="'+(n+1)+'">'+(a.ready?'เคาะประตู':(a.remaining===0?'เปิดได้เร็วสุดอีก ':'เปิดอีก ')+duration(wait-at))+'</small></button>';
+      return '<button class="village-door" data-knock="'+(n+1)+'" '+(!a.ready||doc.event.closed?'disabled':'')+'>'+houseArt(n)+'<b>บ้าน '+(n+1)+'</b><small data-house-status="'+(n+1)+'">'+(a.ready?'เคาะประตู':(a.remaining===0?'เปิดได้เร็วสุดอีก ':'เปิดอีก ')+duration(wait-at))+'</small></button>';
     }).join('')+'</section><p class="tiny">บ้านที่เคาะแล้วพัก 4 ชั่วโมง แยกแต่ละหลังและไบโอม · เพดานนับย้อนหลัง 24 ชั่วโมง</p><p class="subtle" data-house-limit></p><button class="secondary" data-open-balance>ดูโอกาสได้ของและความยาก</button>';
   }
-    return {gate,hub,biome,garden,room,portrait,hero,weaponArt,player,cropState,shouldArm,activity,village,thai,portraits};
+  function houseArt(index=0){
+    const wall=['#4b5c67','#685844','#5a4d66','#4e665e','#6b4b50'][index%5];
+    return '<svg class="village-house-art" viewBox="0 0 96 110" shape-rendering="crispEdges" aria-hidden="true"><path d="M12 40h72v64H12z" fill="'+wall+'"/><path d="M4 42v-8h8v-8h8v-8h8v-8h40v8h8v8h8v8h8v8z" fill="#242f44" stroke="#8294a1" stroke-width="2"/><path d="M68 4h10v25H68z" fill="#485565"/><path d="M20 50h17v24H20zm39 0h17v24H59z" fill="#d2ac68" stroke="#29333e" stroke-width="3"/><path d="M28 50v24m40-24v24M20 62h17m22 0h17" stroke="#4e493d" stroke-width="2"/><path class="house-door-leaf" d="M39 66h18v38H39z" fill="#302c2c" stroke="#a18b62" stroke-width="2"/><path d="M39 80h18m-9-14v38" stroke="#5c5041" stroke-width="2"/><path d="M52 84h3v3h-3z" fill="#d45452"/><path d="M8 104h80v5H8z" fill="#84939d"/></svg>';
+  }
+    return {gate,hub,biome,garden,room,portrait,hero,weaponArt,player,pixelCrop,houseArt,cropState,shouldArm,activity,village,thai,portraits};
 });
