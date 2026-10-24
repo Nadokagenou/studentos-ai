@@ -16,7 +16,10 @@
  :root body:not(.login-mode) .as-card{left:0;right:0;bottom:0;width:auto;max-width:none}
  :root body:not(.login-mode) .tabbar{top:auto!important;bottom:14px!important;width:calc(100% - 56px)!important;height:68px!important;min-height:0;flex-direction:row!important;justify-content:space-around;padding:6px 10px!important;transform:none!important}
  :root body:not(.login-mode) .tabbar .tab{flex:1;min-height:48px!important;height:auto!important;padding:3px!important;gap:3px!important}
- :root body:not(.login-mode) .tabbar .scan-dot{width:38px;height:38px;margin:0!important}
+ /* 24 ต.ค. 69 · ป้าย "เพิ่ม" ต่ำกว่าป้ายอื่น 10px — ช่วงนี้แอปตั้ง data-nav="side" กฎแถบข้างใน alt.css จึงขยายปุ่มเป็น 42px
+    ทับ 38px ที่ไม่มี !important และ margin:0 ทำให้ทั้งก้อนกินที่ในผัง (42 เทียบไอคอน 22) ดันป้ายลงครึ่งหนึ่งของส่วนต่าง
+    แบบเดียวกับมือถือ: 38 − 13 − 3 = 22 เท่าไอคอนพอดี ส่วนที่เกินโผล่ขึ้นเหนือแถว ไม่ดันอะไร */
+ :root body:not(.login-mode) .tabbar .scan-dot{width:38px!important;height:38px!important;margin:-13px 0 -3px!important}
  :root body:not(.login-mode) #scr-menu{padding-bottom:96px!important}
  :root body:not(.login-mode) #menuBody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 18px;padding:22px 30px}
  :root body:not(.login-mode) #menuBody>:is(.td-head,.dc-line,.td-now,.td-clear,.td-ask,.td-tiles){grid-column:1/-1;margin-block:0}

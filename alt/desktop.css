@@ -63,7 +63,9 @@
   :root body:not(.login-mode) .tabbar .ic-wrap { width:24px; height:24px; flex:none; }
   :root body:not(.login-mode) .tabbar .tab.scan { min-height:54px!important; height:54px!important; margin-block:8px; }
   :root body:not(.login-mode) .tabbar .tab.scan .scan-dot {
-    width:32px!important; height:32px!important; margin:-4px; border-radius:10px; box-shadow:none;
+    /* margin ต้อง !important เหมือนขนาด — กฎแถบข้างใน alt.css (.phone .tabbar ... 0 0 4px) specificity สูงกว่า
+       เคยชนะ margin แต่แพ้ขนาด ก้อน 32px จึงกินที่เต็ม ไอคอนเยื้องขวา 4px ป้าย "เพิ่ม" เยื้อง 8px (24 ต.ค. 69) */
+    width:32px!important; height:32px!important; margin:-4px!important; border-radius:10px; box-shadow:none;
   }
   :root body:not(.login-mode) .tabbar .tab.scan>span:last-child { margin-left:0; }
   :root body:not(.login-mode) .tabbar .tab[data-scr="scr-profile"] { margin-top:auto; margin-bottom:40px; }
