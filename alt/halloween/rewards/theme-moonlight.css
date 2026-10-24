@@ -424,3 +424,20 @@ html[data-lite="1"][data-theme="moonlight"] *{-webkit-backdrop-filter:none!impor
 /* 23 Oct 2026, owner: "too much on the buttons". Same cuts as theme-main.css: no shine sweeping across primary
    buttons, no star glyph behind the task card heading, and no ghost on the task card (it sat behind the clock button). */
 :root[data-theme="moonlight"] :is(.td-now,.td-clear)>.hw-ornament .hw-card-ghost{display:none}
+
+/* ============================================================
+   24 ต.ค. 69 · เจ้าของ (ภาพโปรไฟล์ Moon & Candle): "อันไหนยังไม่สวยหรือยังไม่เข้ากับธีม แก้ให้หมด"
+   ============================================================ */
+/* ตัวเลขโปรไฟล์: กฎ "#scr-profile button" ข้างบนใส่การ์ดให้ทุกปุ่ม → "โพสต์" กับ "ช่วยแล้ว" (ปุ่ม) ได้กรอบ
+   แต่ "เพื่อน" (div ธรรมดา) ไม่ได้ · สามช่องต้องหน้าตาเดียวกัน */
+:root[data-theme="moonlight"] #scr-profile .ig-stats { gap: 6px; }
+:root[data-theme="moonlight"] #scr-profile .ig-stats > * {
+  background-color: var(--hw-card); border-radius: 12px 4px; box-shadow: 0 1px 0 rgba(255,255,255,.07) inset;
+}
+/* ป้าย "พรุ่งนี้" ในการ์ดเช็คอิน: เดิมเป็นปุ่มส้ม CTA ทั้งที่กดไม่ได้ (เช็คอินแล้ว แค่บอกให้กลับมาพรุ่งนี้)
+   และกว้าง 29px ไม่มีระยะขอบ ตัวหนังสือล้นออกไปโดนตัดที่ขอบการ์ด → ป้ายขอบบางสีท้องฟ้า กว้างตามตัวหนังสือ */
+:root[data-theme="moonlight"] #scr-profile .pe-daily-go {
+  flex: none; white-space: nowrap; padding: 3px 10px;
+  background: transparent; color: color-mix(in srgb, var(--hw-sky, #8FDAFF) 70%, var(--ink));
+  border: 1px solid color-mix(in srgb, var(--hw-sky, #8FDAFF) 45%, transparent);
+}

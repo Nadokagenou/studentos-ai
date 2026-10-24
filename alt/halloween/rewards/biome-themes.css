@@ -69,3 +69,21 @@ img[src*="halloween/rewards/theme-assets/sai-witch.webp"],img[src*="halloween/re
 /* เหรียญตราที่ได้แล้ว (.an-bd.got) พื้นเป็นทองจางโปร่งล้วน — บนฉากสว่าง (เรือผี · แวมไพร์) ตัวทองจมเหลือ 1.9:1
    → รองพื้นการ์ดทึบใต้ทองจางเดิม (สูตรเดียวกับกล่อง "ไม่ทัน" ข้างบน) */
 :root[data-theme^="hw-"] .an-bd.got{background:linear-gradient(var(--gold-soft),var(--gold-soft)),var(--card)}
+
+/* ============================================================
+   24 ต.ค. 69 · เจ้าของ (/ui-ux-pro-max · ภาพโปรไฟล์ Moon & Candle): "อันไหนยังไม่สวยหรือยังไม่เข้ากับธีม แก้ให้หมด"
+   ============================================================ */
+/* ไอคอนไทล์โปรไฟล์ (ห้อง · เหรียญตรา · ต่อเนื่อง) เป็นสี่เหลี่ยมสีสดแบนแบบไอคอนแอปธีมสว่าง ทุกธีม Halloween
+   → แบบโคมไฟ: พื้นมืดย้อมสีของไทล์จาง ๆ · ขอบในสีเดียวกัน · แสงฟุ้งรอบนอก · ไอคอนสีสว่าง
+   แบบขอบเรือง + แสงฟุ้งใต้ก้อนของ Halo (Cult UI · MIT) ที่แอปพอร์ตไว้แล้ว (alt.css "Halo")
+   ทองของเหรียญตรายังเป็นทอง — เป็นของที่ได้มาจริง (กติกาสีทอง) */
+:root:is([data-theme^="hw-"], [data-theme="moonlight"], [data-theme="halloween"]) .shw-room   { --shw-c: var(--fill); }
+:root:is([data-theme^="hw-"], [data-theme="moonlight"], [data-theme="halloween"]) .shw-badge  { --shw-c: #F0C14A; }
+:root:is([data-theme^="hw-"], [data-theme="moonlight"], [data-theme="halloween"]) .shw-streak { --shw-c: #F97316; }
+:root:is([data-theme^="hw-"], [data-theme="moonlight"], [data-theme="halloween"]) .shw:is(.shw-room, .shw-badge, .shw-streak) .shw-ic {
+  background: color-mix(in srgb, var(--shw-c) 22%, var(--hw-card, var(--card2)));
+  color: color-mix(in srgb, var(--shw-c) 72%, #fff);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--shw-c) 55%, transparent), 0 0 16px -5px var(--shw-c);
+  filter: none;
+}
+:root:is([data-theme^="hw-"], [data-theme="moonlight"], [data-theme="halloween"]) .shw:not(.got) .shw-ic { opacity: 1; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--shw-c) 30%, transparent); }

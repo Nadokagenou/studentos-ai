@@ -153,3 +153,6 @@
 :root[data-theme="astral"] .pctx-note { background: color-mix(in srgb, var(--card) 92%, transparent); }
 /* ไอคอนสีบนพื้นสีแบรนด์/เหรียญ — ขอบมืดบาง ๆ ให้ขอบไอคอนแยกจากพื้นที่สีใกล้กัน (ปุ่ม + 2.7 · เหรียญโทเคน 2.4) */
 .phone .tabbar .tab.scan .scan-dot svg, #menuBody .tt-tok svg { filter: drop-shadow(0 0 .7px color-mix(in srgb, var(--ink) 70%, transparent)); }
+
+/* ---------- การ์ดสรุป 7 วันในโปรไฟล์ · "ดูทั้งหมด >" ชนหัวแท่งกราฟ (ทุกธีม) ---------- */
+.st-card .st-h-row { margin-bottom: 10px; }
