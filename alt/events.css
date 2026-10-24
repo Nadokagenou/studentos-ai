@@ -171,3 +171,6 @@
 .hq-lock svg { width: 15px; height: 15px; }
 
 @media (max-width: 340px) { .ev-banner { height: 270px; } .ev-cast img { height: 76px; } .ev-blurb { display: none; } }
+
+/* ปุ่มบันทึกโปสเตอร์ QR (invite-friend.js inviteSaveImage) — แถวเต็มใต้สองปุ่มแรก */
+.hq-btns .hq-save { grid-column: 1 / -1; }

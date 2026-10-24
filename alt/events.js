@@ -327,6 +327,7 @@ function questDetail(e) {
         <div class="hq-btns">
           <button type="button" class="hq-btn" onclick="inviteShare()">${icon('share')}ส่งลิงก์</button>
           <button type="button" class="hq-btn ghost" onclick="inviteCopy('code')">${icon('copy')}คัดลอกรหัส</button>
+          <button type="button" class="hq-btn ghost hq-save" onclick="inviteSaveImage()">${icon('download')}บันทึกเป็นภาพ</button>
         </div>
       </div>`;
 

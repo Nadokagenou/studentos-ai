@@ -311,6 +311,7 @@ function ivPaintSheet(sh, first) {
           <button class="iv-btn iv-pri" type="button" onclick="inviteCopy('code')">${typeof icon === 'function' ? icon('copy') : ''}คัดลอกรหัส</button>
           <button class="iv-btn" type="button" onclick="inviteShare()">${typeof icon === 'function' ? icon('share') : ''}ส่งลิงก์</button>
         </div>
+        <button class="iv-btn iv-save" type="button" onclick="inviteSaveImage()">${typeof icon === 'function' ? icon('download') : ''}บันทึกเป็นภาพ</button>
       </div>`;
 
   sh.innerHTML = `
@@ -406,6 +407,134 @@ async function inviteShare() {
     catch (e) { if (e && e.name === 'AbortError') return; }
   }
   inviteCopy('link');
+}
+
+// ---------- บันทึกเป็นภาพ (24 ต.ค. 69) ----------
+// เจ้าของ: "อยากได้ภาพเป็นคิวอาร์โค้ดบันทึกเข้าเท่ ๆ" — โปสเตอร์แนวตั้ง 1080×1620 วาดบน canvas เอง (ไม่ต้องโหลดรูปเพิ่ม)
+// QR วาดจากตารางโมดูลชุดเดียวกับ inviteQrSvg (จุดกลม .48 · ตาโคม · ฟักทองกลาง · ระดับ H) — สแกนติดเท่ากัน
+// ส่งออก: เมนูแชร์ของเครื่องพร้อมไฟล์ (iPhone เลือก "บันทึกภาพ" ได้) · ไม่มีก็ดาวน์โหลดไฟล์ PNG
+function ivPosterFont() {
+  try { return getComputedStyle(document.body).fontFamily || 'sans-serif'; } catch (_) { return 'sans-serif'; }
+}
+function ivRound(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function ivDrawQr(ctx, text, x, y, size) {
+  const qr = qrcode(0, 'H');
+  qr.addData(text); qr.make();
+  const n = qr.getModuleCount(), m = size / (n + 4), ox = x + 2 * m, oy = y + 2 * m;
+  const eye = (r, c) => (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
+  const mid = n / 2, hole = n * 0.13;
+  ctx.fillStyle = '#fff8ec'; ivRound(ctx, x, y, size, size, m * 4); ctx.fill();
+  ctx.fillStyle = '#1c0d2e';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    if (!qr.isDark(r, c) || eye(r, c)) continue;
+    if (Math.abs(r + 0.5 - mid) < hole && Math.abs(c + 0.5 - mid) < hole) continue;
+    ctx.beginPath(); ctx.arc(ox + (c + 0.5) * m, oy + (r + 0.5) * m, 0.48 * m, 0, Math.PI * 2); ctx.fill();
+  }
+  [[0, 0], [n - 7, 0], [0, n - 7]].forEach(([ex, ey]) => {
+    ctx.strokeStyle = '#1c0d2e'; ctx.lineWidth = m;
+    ivRound(ctx, ox + (ex + 0.5) * m, oy + (ey + 0.5) * m, 6 * m, 6 * m, 1.8 * m); ctx.stroke();
+    ivRound(ctx, ox + (ex + 2) * m, oy + (ey + 2) * m, 3 * m, 3 * m, m); ctx.fill();
+  });
+  // ฟักทองกลางรูป — ขนาดเท่ากับช่องที่เว้นไว้ (หน่วยเดียวกับ SVG: 10 หน่วย = hole * .92 โมดูล)
+  const cx = ox + mid * m, cy = oy + mid * m, k = hole * 0.92 * m / 10;
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(k, k);
+  ctx.fillStyle = '#3f7a1e'; ctx.fill(new Path2D('M-1 -8.5c.4-1.6 1.6-2.4 2.8-2.6l.4 1.3c-.9.3-1.5.8-1.7 1.6z'));
+  ctx.fillStyle = '#ff7a1a'; ctx.strokeStyle = '#b84a05'; ctx.lineWidth = .5;
+  [[-4, 5.2, 7.6], [4, 5.2, 7.6], [0, 5.4, 8]].forEach(([ex, rx, ry]) => { ctx.beginPath(); ctx.ellipse(ex, 0, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); });
+  ctx.fillStyle = '#2a1340';
+  ctx.fill(new Path2D('M-4.6 -1.8l1.8-2.6 1.6 2.6zM1.2 -1.8l1.8-2.6 1.6 2.6zM-5 2.2c2.6 3 7.4 3 10 0l-1.6.4-.9 1.5-1.4-1.2-1.4 1.2-1.4-1.2-1.4 1.2-.9-1.5z'));
+  ctx.restore();
+}
+const IV_BAT_D = 'M32 9c1.4-3 2.4-4 3-6 .6 2 1 3 1.2 4.6 4-3.6 12-6 20-4.6-3 1.4-5 3.6-5.6 6.6 3-.4 6.6.4 9.4 2.4-4.6.4-8.6 2.6-10.4 6-2.4-2-6.4-2.4-9 0-1.6-2.4-4.6-3.6-8.6-3.4-4 -.2-7 1-8.6 3.4-2.6-2.4-6.6-2-9 0-1.8-3.4-5.8-5.6-10.4-6 2.8-2 6.4-2.8 9.4-2.4-.6-3-2.6-5.2-5.6-6.6 8-1.4 16 1 20 4.6.2-1.6.6-2.6 1.2-4.6.6 2 1.6 3 3 6z';
+
+async function invitePoster(code) {
+  if (!(await ivLoadQr())) return null;
+  try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (_) {}
+  const W = 1080, H = 1620, cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d'), font = ivPosterFont();
+  // ฟ้าคืน
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#3d1b5a'); sky.addColorStop(.45, '#2a1340'); sky.addColorStop(1, '#120a22');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+  // ดาว (สุ่มแบบคงที่ — ภาพเดิมทุกครั้งที่บันทึก)
+  let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  for (let i = 0; i < 70; i++) { ctx.fillStyle = `rgba(241,235,255,${.25 + rnd() * .5})`; ctx.beginPath(); ctx.arc(rnd() * W, rnd() * H * .55, 1 + rnd() * 2.2, 0, 7); ctx.fill(); }
+  // จันทร์ + แสงเรือง
+  const glow = ctx.createRadialGradient(840, 230, 40, 840, 230, 330);
+  glow.addColorStop(0, 'rgba(255,214,122,.45)'); glow.addColorStop(1, 'rgba(255,214,122,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, 700);
+  ctx.fillStyle = '#ffe9b0'; ctx.beginPath(); ctx.arc(840, 230, 120, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(214,170,90,.35)';
+  [[800, 200, 22], [880, 270, 16], [860, 180, 10]].forEach(([x, y, r]) => { ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); });
+  // ค้างคาว
+  const bat = new Path2D(IV_BAT_D);
+  ctx.fillStyle = '#120a22';
+  [[650, 330, 2.6, -.15], [180, 170, 1.8, .2], [930, 430, 1.4, .1]].forEach(([x, y, k, a]) => { ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.scale(k, k); ctx.translate(-32, -14); ctx.fill(bat); ctx.restore(); });
+  // หยากไย่มุมซ้ายบน
+  ctx.strokeStyle = 'rgba(241,235,255,.22)'; ctx.lineWidth = 2;
+  for (let a = 0; a <= 4; a++) { const t = a / 4 * Math.PI / 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(t) * 300, Math.sin(t) * 300); ctx.stroke(); }
+  [70, 140, 215, 290].forEach(r => { ctx.beginPath(); for (let a = 0; a <= 4; a++) { const t = a / 4 * Math.PI / 2, px = Math.cos(t) * r, py = Math.sin(t) * r; a ? ctx.quadraticCurveTo(Math.cos(t - .2) * r * .8, Math.sin(t - .2) * r * .8, px, py) : ctx.moveTo(px, py); } ctx.stroke(); });
+  // หัวเรื่อง
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#ffb347'; ctx.font = `700 34px 'Space Mono', ui-monospace, monospace`;
+  ctx.shadowColor = 'rgba(255,122,26,.7)'; ctx.shadowBlur = 18;
+  ctx.fillText('HALLOWEEN · TRICK OR INVITE', W / 2, 450);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#fff3dc'; ctx.font = `900 76px ${font}`;
+  ctx.shadowColor = 'rgba(255,150,40,.55)'; ctx.shadowBlur = 24;
+  ctx.fillText('มาใช้ StudentOS AI ด้วยกัน', W / 2, 545);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(241,235,255,.78)'; ctx.font = `600 38px ${font}`;
+  ctx.fillText('แอปที่บอกว่าตอนนี้ควรทำการบ้านอะไรก่อน', W / 2, 603);
+  // ตั๋ว + QR
+  const qs = 520, qx = (W - qs) / 2, qy = 710;
+  ctx.fillStyle = 'rgba(18,10,34,.55)'; ivRound(ctx, qx - 90, qy - 50, qs + 180, qs + 270, 48); ctx.fill();
+  ctx.setLineDash([16, 12]); ctx.strokeStyle = 'rgba(255,179,71,.5)'; ctx.lineWidth = 3; ctx.stroke(); ctx.setLineDash([]);
+  ctx.shadowColor = 'rgba(255,122,26,.55)'; ctx.shadowBlur = 50;
+  ctx.fillStyle = '#7a3a12'; ivRound(ctx, qx - 14, qy - 14, qs + 28, qs + 28, 48); ctx.fill();
+  ctx.shadowBlur = 0;
+  ivDrawQr(ctx, inviteLink(code), qx, qy, qs);
+  ctx.fillStyle = 'rgba(241,235,255,.7)'; ctx.font = `600 34px ${font}`;
+  ctx.fillText('รหัสเชิญ', W / 2, qy + qs + 75);
+  // รหัส — คำสีขาว ขีดสีฟักทอง
+  const words = code.split('-');
+  ctx.font = `700 64px 'Space Mono', ui-monospace, monospace`;
+  const dash = '-', parts = []; words.forEach((w, i) => { if (i) parts.push([dash, '#ff7a1a']); parts.push([w, '#fff3dc']); });
+  let total = parts.reduce((a, [t]) => a + ctx.measureText(t).width, 0);
+  if (total > W - 260) { const k = (W - 260) / total; ctx.font = `700 ${Math.floor(64 * k)}px 'Space Mono', ui-monospace, monospace`; total = parts.reduce((a, [t]) => a + ctx.measureText(t).width, 0); }
+  let tx = (W - total) / 2; ctx.textAlign = 'left';
+  ctx.shadowColor = 'rgba(255,179,71,.6)'; ctx.shadowBlur = 16;
+  parts.forEach(([t, c]) => { ctx.fillStyle = c; ctx.fillText(t, tx, qy + qs + 160); tx += ctx.measureText(t).width; });
+  ctx.shadowBlur = 0; ctx.textAlign = 'center';
+  // ท้ายภาพ
+  ctx.fillStyle = '#ffd67a'; ctx.font = `800 40px ${font}`;
+  ctx.fillText('สแกน QR หรือใส่รหัสตอนสมัคร 🎃', W / 2, 1520);
+  ctx.fillStyle = 'rgba(241,235,255,.55)'; ctx.font = `600 30px ${font}`;
+  ctx.fillText('StudentOS AI · ' + location.host, W / 2, 1576);
+  return new Promise(res => cv.toBlob(b => res(b), 'image/png'));
+}
+
+async function inviteSaveImage() {
+  const d = ivData;
+  if (!d || !d.code) return;
+  if (typeof haptic === 'function') haptic('tap');
+  const blob = await invitePoster(d.code);
+  if (!blob) { showToast({ title: 'สร้างภาพไม่ได้', body: 'เช็กอินเทอร์เน็ตแล้วลองใหม่' }); return; }
+  const name = 'studentos-invite-' + d.code.toLowerCase() + '.png';
+  const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
+  if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: 'ชวนใช้ StudentOS' }); return; }
+    catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  showToast({ title: 'บันทึกภาพแล้ว', body: 'ดูได้ในไฟล์ที่ดาวน์โหลด' });
 }
 
 // ---------- การ์ดทางเข้าในจอเพื่อน ----------

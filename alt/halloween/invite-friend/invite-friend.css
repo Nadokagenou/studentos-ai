@@ -160,6 +160,7 @@
 }
 .iv-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; }
 .iv-btn:active { transform: scale(.97); }
+.iv-save { width: 100%; justify-content: center; }  /* บันทึกโปสเตอร์ QR · 24 ต.ค. 69 */
 .iv-pri {
   color: #2a1000; border-color: transparent;
   background: linear-gradient(180deg, #ffb347 0%, #ff7a1a 100%);
