@@ -134,8 +134,8 @@ function eventsDetail(e) {
       </span>
     </div>
     ${dots}
-    ${shelf ? `<h3 class="ev-sub">เล่นแล้วได้อะไร · รางวัล ${total} ชิ้น</h3><div class="ev-shelf" id="evShelf">${shelf}${
-      shelf.replace(/class="ev-rw/g, 'aria-hidden="true" inert class="ev-rw ev-clone')}</div>` : ''}
+    ${shelf ? `<h3 class="ev-sub">เล่นแล้วได้อะไร · รางวัล ${total} ชิ้น</h3><div class="ev-shelf" id="evShelf"><div class="ev-flow">${shelf}${
+      shelf.replace(/<div class="ev-rw/g, '<div aria-hidden="true" inert class="ev-rw ev-clone')}</div></div>` : ''}
     ${chips ? `<div class="ev-chips">${chips}</div>` : ''}`;
 }
 
@@ -208,19 +208,28 @@ function evDeckMount() {
 // 25 ต.ค. 69 · เจ้าของ: "ด้านล่างเลื่อนเร็ว ๆ กว่าด้านบน ไปเรื่อย ๆ" — แบนเนอร์บนเปลี่ยนทีละสไลด์ทุก 5 วิ
 // แถวรางวัลไหลต่อเนื่องแทน (40px/วิ ≈ การ์ดละ 2.5 วิ เร็วกว่าแบนเนอร์) · ต่อท้ายด้วยสำเนาทั้งแถว (inert)
 // ไหลถึงต้นสำเนาเมื่อไหร่ถอยกลับไปหนึ่งชุด — หน้าตาเหมือนกันเป๊ะ ตาไม่เห็นการกระโดด
+// 25 ต.ค. 69 (รอบสอง) · เจ้าของ: "มันบั๊คยาวเฉย แล้วมันช้าตอนเคลื่อน"
+//   • ยาว: สำเนาแทนคลาสกว้างไปโดน ev-rw-im ด้วย รูปในสำเนาไม่มีกรอบ ขยายเต็มขนาดจริง การ์ดทั้งแถวยืดตาม → แทนเฉพาะ <div class="ev-rw
+//   • ช้า: เดิมตั้ง scrollLeft ทุกเฟรมด้วย JS — iPhone เลื่อนแบบนั้นไม่ลื่น · ตอนนี้ไหลด้วย transform ผ่าน Web Animations
+//     (การ์ดจอทำเอง ไม่ผ่านเธรดหลัก) · แตะเมื่อไหร่แปลงตำแหน่งแอนิเมชันเป็น scrollLeft ให้ปัดต่อจากตรงนั้นได้ ปล่อยแล้วแปลงกลับ
 // นิ้วแตะ = หยุดให้ปัดเอง · ปล่อยแล้ว 3 วิไหลต่อจากตรงที่ปัดไว้ (ต่างจากแบนเนอร์ที่หยุดถาวร — แถวนี้ไม่มีอะไรให้อ่านค้าง)
-// ไม่ไหลเมื่อตั้งลดการเคลื่อนไหว · โหมดลื่น · ไม่อยู่จอนี้ · แอปอยู่เบื้องหลัง (กติกาเดียวกับแบนเนอร์)
+// ไม่ไหลเมื่อตั้งลดการเคลื่อนไหว · โหมดลื่น · แอปอยู่เบื้องหลังเบราว์เซอร์หยุดแอนิเมชันเอง
 const EV_FLOW = 40;   // px ต่อวินาที
-const evFlow = { raf: 0, wait: 0, pos: 0, span: 0, last: 0, el: null };
+const evFlow = { anim: null, wait: 0, span: 0, el: null };
 
 function evFlowStop() {
-  cancelAnimationFrame(evFlow.raf); clearTimeout(evFlow.wait); evFlow.raf = evFlow.wait = 0;
-  if (evFlow.el) evFlow.el.classList.remove('run');
+  clearTimeout(evFlow.wait); evFlow.wait = 0;
+  const s = evFlow.el, a = evFlow.anim;
+  evFlow.anim = null;
+  if (!a) return;
+  const pos = ((a.currentTime || 0) * EV_FLOW / 1000) % evFlow.span;
+  a.cancel();
+  if (s) { s.classList.remove('run'); s.scrollLeft = pos; }
 }
 function evFlowStart(delay) {
   evFlowStop();
-  const s = evFlow.el;
-  if (!s || !s.isConnected) return;
+  const s = evFlow.el, row = s && s.firstElementChild;
+  if (!row || !s.isConnected || !row.animate) return;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.lite;
   if (reduce) return;
   evFlow.wait = setTimeout(() => {
@@ -228,22 +237,16 @@ function evFlowStart(delay) {
     if (!s.isConnected) return;
     if (typeof curScreen !== 'undefined' && curScreen !== 'scr-events' || document.hidden) { evFlowStart(1000); return; }
     // วัดตอนนี้ (หลังเบราว์เซอร์จัดผังแล้ว) ไม่ใช่ตอนเพิ่งเขียน innerHTML
-    const first = s.children[0], half = s.children[s.children.length / 2];
+    const first = row.children[0], half = row.children[row.children.length / 2];
     evFlow.span = half && first ? half.offsetLeft - first.offsetLeft : 0;
     if (evFlow.span < s.clientWidth) return;   // ชุดเดียวยังไม่ล้นจอ ไม่ต้องไหล
-    evFlow.pos = s.scrollLeft % evFlow.span;
-    evFlow.last = 0;
+    const pos = s.scrollLeft % evFlow.span;
     s.classList.add('run');
-    const tick = now => {
-      if (!s.isConnected) { evFlowStop(); return; }
-      if (typeof curScreen !== 'undefined' && curScreen !== 'scr-events' || document.hidden) { evFlowStart(1000); return; }
-      if (evFlow.last) evFlow.pos += Math.min(now - evFlow.last, 100) * EV_FLOW / 1000;   // แอปค้างนาน ๆ ไม่กระโดดไกล
-      evFlow.last = now;
-      if (evFlow.pos >= evFlow.span) evFlow.pos -= evFlow.span;
-      s.scrollLeft = evFlow.pos;   // จำตำแหน่งทศนิยมเอง — บางเครื่องปัด scrollLeft เป็นจำนวนเต็ม ถ้าอ่านคืนจะไม่ขยับ
-      evFlow.raf = requestAnimationFrame(tick);
-    };
-    evFlow.raf = requestAnimationFrame(tick);
+    s.scrollLeft = 0;
+    const ms = evFlow.span / EV_FLOW * 1000;
+    evFlow.anim = row.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${-evFlow.span}px)` }],
+      { duration: ms, iterations: Infinity, easing: 'linear' });
+    evFlow.anim.currentTime = pos / EV_FLOW * 1000;   // ไหลต่อจากตรงที่ปัดค้างไว้
   }, delay);
 }
 function evFlowMount() {
