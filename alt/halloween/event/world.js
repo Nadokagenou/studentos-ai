@@ -30,8 +30,8 @@
   }
   function player(c){return '<div class="world-player" aria-hidden="true">'+hero(c)+'</div>';}
   function npcSpot(id,attrs,x,y,mobile=[x,y]){
-    const npc=NPCs.characters[id];
-    return '<button class="world-spot npc-character npc-spot'+(x<25?' label-right':x>75?' label-left':'')+'" style="--x:'+x+'%;--y:'+y+'%;--px:'+mobile[0]+'%;--py:'+mobile[1]+'%" '+attrs+' aria-label="คุยกับ '+esc(npc.name)+'">'+portrait(id)+'<span class="spot-label">คุยกับ '+esc(npc.name)+'</span></button>';
+    const npc=NPCs.characters[id],label=attrs.includes('data-tutor')?'เวสเปอร์ · สอนเล่น':'คุยกับ '+npc.name;
+    return '<button class="world-spot npc-character npc-spot'+(x<25?' label-right':x>75?' label-left':'')+'" style="--x:'+x+'%;--y:'+y+'%;--px:'+mobile[0]+'%;--py:'+mobile[1]+'%" '+attrs+' aria-label="'+esc(label)+'">'+portrait(id)+'<span class="spot-label">'+esc(label)+'</span></button>';
   }
   function shouldArm({pointerType,detail,armed,labelVisible=false,markerVisible=false}){return detail!==0&&['touch','pen'].includes(pointerType)&&!armed&&!labelVisible&&!markerVisible;}
   function activity(c,id){
@@ -80,9 +80,10 @@
     const {Core,Catalog,config,doc,now}=c, active=Core.biomeAt(doc,config,now).id;
     const portals=Core.BIOMES.map((id,i)=>{
       const open=Core.portalStatus(doc,config,id,now).open;
-      return '<button class="world-portal '+(open?'portal-open':'portal-closed')+'" data-enter-biome="'+id+'" style="--left:'+(23+i*13.3)+'%;--px:'+(i%2?55:23)+'%;--py:'+(i<2?15:36)+'%;--pw:24%;--ph:'+(i<2?17:19)+'%;--portal-color:'+Catalog.biomes[shorts[i]].color+'" aria-label="'+thai[i]+' · '+(open?'เปิดเข้าได้':'ยังไม่เปิด')+'"><span class="portal-number" aria-hidden="true">'+(i+1)+'</span><span class="portal-label"><b>'+thai[i]+'</b><small>'+(open?'✦ เปิดเข้าได้':'◈ ยังไม่เปิด')+'</small></span></button>';
+      const progress=Core.biomeProgress(doc,config,id);
+      return '<button class="world-portal '+(open?'portal-open':'portal-closed')+'" data-enter-biome="'+id+'" style="--left:'+(23+i*13.3)+'%;--px:'+(i%2?55:23)+'%;--py:'+(i<2?15:36)+'%;--pw:24%;--ph:'+(i<2?17:19)+'%;--portal-color:'+Catalog.biomes[shorts[i]].color+'" aria-label="'+thai[i]+' · '+(open?'เปิดเข้าได้':'ยังไม่เปิด')+'"><span class="portal-number" aria-hidden="true">'+(i+1)+'</span><span class="portal-label"><b>'+thai[i]+'</b><small>'+(open?'✦ เปิดเข้าได้':'◈ ยังไม่เปิด')+'</small><small>เส้นทาง '+progress.percent+'% · '+progress.value+'/'+progress.total+'</small></span><span class="portal-progress" aria-hidden="true"><i style="width:'+progress.percent+'%"></i></span></button>';
     }).join('');
-    return '<section class="world-page"><div class="world-title"><small>THE MIDNIGHT ACADEMY</small><h1>โถงกลาง</h1></div>'+scene('hub','โถงกลางพิกเซล ร้านค้าซ้าย เตาผสมขวา และประตูสี่ไบโอมด้านหน้า',portals+spot('ร้านยามเที่ยงคืน','data-route="shop"',12,60,'',[16,68])+spot('เตาผสมเวทมนตร์','data-route="cauldron"',87,60,'',[84,68])+spot('วงเวทอัญเชิญ','data-route="ritual"',50,72,'',[50,76])+spot('สวนรัตติกาล','data-route="garden"',33,82,'',[22,80]))+'<div class="world-caption"><button class="quiet-button" data-route="totems">Totem · เปิดเส้นทางส่วนตัว</button></div><p class="scene-help">แตะจุดสีแดงเพื่อดูสถานที่หรือมินิเกม</p></section>';
+    return '<section class="world-page"><div class="world-title"><small>THE MIDNIGHT ACADEMY</small><h1>โถงกลาง</h1></div>'+scene('hub','โถงกลางพิกเซล ร้านค้าซ้าย เตาผสมขวา และประตูสี่ไบโอมด้านหน้า',portals+npcSpot('vesper','data-tutor',30,76,[33,80])+spot('ร้านยามเที่ยงคืน','data-route="shop"',12,60,'',[16,68])+spot('เตาผสมเวทมนตร์','data-route="cauldron"',87,60,'',[84,68])+spot('วงเวทอัญเชิญ','data-route="ritual"',50,72,'',[51,76])+spot('สวนรัตติกาล','data-route="garden"',33,82,'',[22,85]))+'<div class="world-caption"><button class="quiet-button" data-route="totems">Totem · เปิดเส้นทางส่วนตัว</button></div><p class="scene-help">แตะจุดสีแดงเพื่อดูสถานที่หรือมินิเกม</p></section>';
   }
   function biome(c){
     const {Core,Catalog,config,doc,now}=c, id=Core.biomeAt(doc,config,now).id, i=Core.BIOMES.indexOf(id), meta=Catalog.biomes[shorts[i]];

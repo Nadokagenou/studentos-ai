@@ -1,0 +1,308 @@
+{
+  "hub": [
+    {
+      "hitOverlaps": [],
+      "labelOverlap": false,
+      "overflow": false,
+      "screen": [
+        320,
+        568
+      ],
+      "tubes": 4
+    },
+    {
+      "hitOverlaps": [],
+      "labelOverlap": false,
+      "overflow": false,
+      "screen": [
+        375,
+        812
+      ],
+      "tubes": 4
+    },
+    {
+      "hitOverlaps": [],
+      "labelOverlap": false,
+      "overflow": false,
+      "screen": [
+        390,
+        844
+      ],
+      "tubes": 4
+    },
+    {
+      "hitOverlaps": [],
+      "labelOverlap": false,
+      "overflow": false,
+      "screen": [
+        547,
+        892
+      ],
+      "tubes": 4
+    },
+    {
+      "hitOverlaps": [],
+      "labelOverlap": false,
+      "overflow": false,
+      "screen": [
+        600,
+        960
+      ],
+      "tubes": 4
+    },
+    {
+      "hitOverlaps": [],
+      "labelOverlap": false,
+      "overflow": false,
+      "screen": [
+        768,
+        1024
+      ],
+      "tubes": 4
+    },
+    {
+      "hitOverlaps": [],
+      "labelOverlap": false,
+      "overflow": false,
+      "screen": [
+        1024,
+        768
+      ],
+      "tubes": 4
+    },
+    {
+      "hitOverlaps": [],
+      "labelOverlap": false,
+      "overflow": false,
+      "screen": [
+        1280,
+        720
+      ],
+      "tubes": 4
+    },
+    {
+      "hitOverlaps": [],
+      "labelOverlap": false,
+      "overflow": false,
+      "screen": [
+        1440,
+        900
+      ],
+      "tubes": 4
+    },
+    {
+      "hitOverlaps": [],
+      "labelOverlap": false,
+      "overflow": false,
+      "screen": [
+        844,
+        390
+      ],
+      "tubes": 4
+    }
+  ],
+  "map": [
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "map",
+      "screen": [
+        320,
+        568
+      ],
+      "tubes": 4
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "map",
+      "screen": [
+        375,
+        812
+      ],
+      "tubes": 4
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "map",
+      "screen": [
+        390,
+        844
+      ],
+      "tubes": 4
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "map",
+      "screen": [
+        547,
+        892
+      ],
+      "tubes": 4
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "map",
+      "screen": [
+        600,
+        960
+      ],
+      "tubes": 4
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "map",
+      "screen": [
+        768,
+        1024
+      ],
+      "tubes": 4
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "map",
+      "screen": [
+        1024,
+        768
+      ],
+      "tubes": 4
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "map",
+      "screen": [
+        1280,
+        720
+      ],
+      "tubes": 4
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "map",
+      "screen": [
+        1440,
+        900
+      ],
+      "tubes": 4
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "map",
+      "screen": [
+        844,
+        390
+      ],
+      "tubes": 4
+    }
+  ],
+  "death": [
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "death-quest",
+      "screen": [
+        320,
+        568
+      ]
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "death-quest",
+      "screen": [
+        375,
+        812
+      ]
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "death-quest",
+      "screen": [
+        390,
+        844
+      ]
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "death-quest",
+      "screen": [
+        547,
+        892
+      ]
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "death-quest",
+      "screen": [
+        600,
+        960
+      ]
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "death-quest",
+      "screen": [
+        768,
+        1024
+      ]
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "death-quest",
+      "screen": [
+        1024,
+        768
+      ]
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "death-quest",
+      "screen": [
+        1280,
+        720
+      ]
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "death-quest",
+      "screen": [
+        1440,
+        900
+      ]
+    },
+    {
+      "dialogOutside": false,
+      "overflow": false,
+      "page": "death-quest",
+      "screen": [
+        844,
+        390
+      ]
+    }
+  ],
+  "reset": {
+    "gate": true,
+    "candy": 0,
+    "ordinaryTasksPreserved": 1,
+    "questTasks": 0,
+    "proofEmpty": true
+  },
+  "liveFocusMsBeforePause": 46167.19970703125,
+  "claimEvidence": "synthetic 20-minute fixture",
+  "claimCandy": 10
+}

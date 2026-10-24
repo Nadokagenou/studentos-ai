@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 import {createRequire} from 'node:module';
 const require = createRequire(import.meta.url);
 const Core = require('../event/core.js');
@@ -339,11 +340,10 @@ test('closing the season blocks acquisition while the independent reward reader 
   const doc=h.store.read();doc.event=null;
   assert.deepEqual(Ownership.list(doc).map(x=>x.id),['harbor-lantern']);
 });
-test('work rewards are claimed once per work item and never from a cosmetic effect',async()=>{
-  const h=harness();await h.apply({type:'task',task:'review-task-1'});
-  await assert.rejects(h.apply({type:'task',task:'review-task-1'}),/รับ Candy แล้ว/);
-  await assert.rejects(h.apply({type:'task',task:'fx-jacks-verdict'}),/ไม่พบงาน/);assert.equal(h.store.read().event.candy,10);
+test('old one-click example rewards are retired without deleting existing receipts or Candy',async()=>{
+  const h=harness({prepare:d=>{d.event.candy=10;d.event.taskClaims['review-task-1']=true;}});await assert.rejects(h.apply({type:'task',task:'review-task-2'}),/เควสมรณะ/);assert.equal(h.store.read().event.candy,10);assert.equal(h.store.read().event.taskClaims['review-task-1'],true);
 });
+
 test('the totem cannot reset a house cooldown or advance a quest cycle',async()=>{
   const h=harness({prepare:stock});await h.biome(Core.BIOMES[0]);await h.apply({type:'house',house:1,choice:'treat'});
   const cycle=Core.biomeAt(h.store.read(),h.config,time).cycle;
@@ -402,4 +402,94 @@ test('the permanent vault and its required resources have no dependency on the r
   }
   const source=fs.readFileSync(new URL('../rewards/vault.js',import.meta.url),'utf8');
   assert.ok(!/fetch\s*\(|require\s*\(|import\s*\(/.test(source));
+});
+
+
+// StudentOS missions use the same transaction and Candy cap, with no writes to the main app.
+const missionState=(at=time)=>({tasks:[{id:'real-task',createdAt:new Date(at-30*60000).toISOString(),done:true,doneAt:new Date(at-60000).toISOString(),detail:'private task title'}],sessions:[{id:'focus-1',taskId:'real-task',start:new Date(at-20*60000).toISOString(),end:new Date(at-5*60000).toISOString(),min:15}]});
+const claimMission=(h,id,state,tx,at=time)=>h.store.transact(tx,doc=>Core.dispatch(doc,h.config,{type:'studentos-mission',mission:id},{now:at,tx,studentOS:state}));
+test('StudentOS progress uses actual dated records, excludes deleted/future/duplicate tasks, and never exposes titles',()=>{
+  const M=require('../event/missions.js'),state=missionState(),original=JSON.stringify(state);
+  state.tasks.push({...state.tasks[0]},{id:'deleted',deleted:true,createdAt:new Date(time).toISOString(),done:true,doneAt:new Date(time).toISOString()},{id:'future',createdAt:new Date(time+1000).toISOString(),done:true,doneAt:new Date(time+1000).toISOString()});
+  const frozen=JSON.stringify(state),p=M.assess(state,time);assert.equal(p.available,true);assert.equal(p.rows.find(r=>r.id==='add-task').value,1);assert.equal(p.rows.find(r=>r.id==='finish-task').value,1);assert.equal(p.rows.find(r=>r.id==='focus-15').value,15);assert.equal(JSON.stringify(state),frozen);assert.ok(!JSON.stringify(p).includes('private task title'));assert.ok(original.includes('private task title'));
+});
+test('focus minutes clip at Bangkok midnight and merge overlapping sessions instead of double counting',()=>{
+  const M=require('../event/missions.js'),at=Date.parse('2026-10-24T00:10:00+07:00'),s=missionState(at);
+  s.sessions=[{id:'a',taskId:'real-task',start:'2026-10-23T23:50:00+07:00',end:'2026-10-24T00:05:00+07:00',min:15},{id:'b',taskId:'real-task',start:'2026-10-24T00:03:00+07:00',end:'2026-10-24T00:10:00+07:00',min:7},{id:'bad',taskId:'missing-task',start:'2026-10-24T00:00:00+07:00',end:'2026-10-24T00:10:00+07:00',min:1000}];
+  s.running={taskId:'real-task',start:'2026-10-24T00:00:00+07:00'};assert.equal(M.assess(s,at).rows.find(r=>r.id==='focus-15').value,10);assert.equal(M.dayKey(at),'2026-10-24');
+});
+test('missing, malformed or unreadable StudentOS data never counts as completed',()=>{
+  const M=require('../event/missions.js');for(const s of [null,{},'bad',{tasks:'bad'}])assert.equal(M.assess(s,time).available,false);
+  assert.equal(M.read({getItem(){throw Error('blocked');}}),null);assert.equal(M.read({getItem:()=>'{bad'}),null);assert.equal(M.read({getItem:()=>null}),null);
+});
+test('production still rejects StudentOS mission claims while real event claiming is disabled',()=>{
+  const config=Core.build({materials,chains,catalog:Catalog,proposals,preview:false}),doc=Core.initial(config,'review',time);assert.throws(()=>Core.dispatch(doc,config,{type:'studentos-mission',mission:'add-task'},{now:time,tx:'prod',studentOS:missionState()}));assert.equal(doc.event.candy,0);
+});
+
+
+test('accepting a quick/inbox task records its actual creation time without modifying the inbox message',async()=>{
+  const vm=await import('node:vm'),source=fs.readFileSync(new URL('../../inbox.js',import.meta.url),'utf8').replaceAll('\r\n','\n'),start=source.indexOf('function inboxToTask('),fn=source.slice(start,source.indexOf('\n}',start)+2);
+  class Clock extends Date{constructor(...args){super(...(args.length?args:[time]));}static now(){return time;}}
+  const item={id:'inbox-real',source:'quick',raw:'private text',at:'2026-10-22T10:00:00+07:00',parsed:{subject:'math',detail:'test',estMin:30}},before=JSON.stringify(item),context={state:{tasks:[]},uid:()=> 'quick-task',Date:Clock};vm.runInNewContext(fn+';this.created=inboxToTask('+JSON.stringify(item)+');',context);
+  assert.equal(context.created.createdAt,new Date(time).toISOString());assert.equal(context.state.tasks.length,1);assert.equal(JSON.stringify(item),before);
+});
+
+
+const Death=require('../death-quests.js');
+const enrollDeath=async h=>{await h.store.transact('enroll-0001',d=>Core.dispatch(d,h.config,{type:'death-quest-enroll'},{now:time,tx:'enroll-0001',studentOwner:'owner-a'}));return h.store.read().event.deathQuests[Death.day(time)];};
+const deathEvidence=q=>{const t=Death.task(q),end=q.issuedAt+20*60000;t.done=true;t.doneAt=new Date(end).toISOString();let p;for(let at=q.issuedAt+5000;at<=end;at+=5000)p=Death.credit(p,q,{wall:at,monoDelta:5000,wallDelta:5000,eligible:true});return {state:{tasks:[t],sessions:[{id:'session',taskId:t.id,start:new Date(q.issuedAt).toISOString(),end:new Date(end).toISOString(),min:20}]},proof:{[q.taskId]:p},at:end+1000};};
+const claimDeath=(h,q,e,tx='claim-0001',owner='owner-a')=>h.store.transact(tx,d=>Core.dispatch(d,h.config,{type:'death-quest-claim',quest:q.id,complete:true},{now:e.at,tx,studentOS:e.state,studentFocus:e.proof,studentOwner:owner}));
+test('receiving a death quest preserves real tasks, creates exactly one local task and rejects another owner',()=>{
+  const q=Death.create(time,'nonce-0001','owner-a'),real={id:'real',detail:'private homework'},state={tasks:[real]};assert.equal(Death.receive(state,[q,q],'owner-a',time).added.length,1);assert.equal(state.tasks.length,2);assert.equal(state.tasks[0],real);assert.equal(Death.isLocal(state.tasks[1]),true);assert.equal(state.tasks[1].due,null);
+  const other={tasks:[real]};Death.receive(other,[q],'owner-b',time);assert.equal(other.tasks.length,1);state.tasks[1].deleted=true;Death.receive(state,[q],'owner-a',time);assert.equal(state.tasks[1].deleted,true);Death.receive(state,[{...q,restore:true}],'owner-a',time);assert.equal(state.tasks[1].deleted,false);assert.equal(state.tasks[1].halloweenDeathQuest.nonce,q.nonce);
+});
+test('hidden time, paused time, a clock jump and overlapping heartbeat writers cannot create focus credit',()=>{
+  const q=Death.create(time,'nonce-0001','owner-a');let p=Death.credit(null,q,{wall:time+5000,monoDelta:5000,wallDelta:5000,eligible:true});assert.equal(p.activeMs,5000);p=Death.credit(p,q,{wall:time+5000,monoDelta:5000,wallDelta:5000,eligible:true});assert.equal(p.activeMs,5000);
+  for(const x of [{wall:time+10000,monoDelta:5000,wallDelta:5000,eligible:false},{wall:time+60000,monoDelta:5000,wallDelta:55000,eligible:true},{wall:time+3600000,monoDelta:3600000,wallDelta:3600000,eligible:true}])p=Death.credit(p,q,x);assert.equal(p.activeMs,5000);
+});
+test('death quest requires its own task, actual focus credit, recorded session and completion after twenty minutes',async()=>{
+  const h=harness(),q=await enrollDeath(h),e=deathEvidence(q),snapshot=JSON.stringify(e.state);assert.equal(Death.status(q,e.state,e.proof[q.taskId],'owner-a',e.at).ready,true);
+  for(const mutate of [x=>{x.state.tasks[0].doneAt=new Date(time+1000).toISOString();},x=>{x.proof={};},x=>{x.state.sessions[0].taskId='another-task';},x=>{x.state.tasks[0].halloweenDeathQuest.nonce='forged';},x=>{x.state.tasks[0].deleted=true;},x=>{x.state.tasks[0].done=false;}]){const bad=JSON.parse(JSON.stringify(e));mutate(bad);await assert.rejects(claimDeath(h,q,bad,'bad-'+Math.random()));}
+  await assert.rejects(claimDeath(h,q,e,'wrong-owner','owner-b'));assert.equal(h.store.read().event.candy,0);await claimDeath(h,q,e);await claimDeath(h,q,e);await assert.rejects(claimDeath(h,q,e,'second-claim'));assert.equal(h.store.read().event.candy,10);assert.equal(JSON.stringify(e.state),snapshot);
+});
+test('death quests share the legacy rolling cap and old receipts survive',async()=>{
+  const h=harness({prepare:d=>{d.event.taskEarned=[{at:time,amount:proposals.taskDailyCap-5}];d.event.taskClaims['review-task-1']=true;}}),q=await enrollDeath(h),e=deathEvidence(q);await claimDeath(h,q,e);assert.equal(h.store.read().event.candy,5);assert.equal(h.store.read().event.taskClaims['review-task-1'],true);assert.deepEqual(h.store.read().event.houses,{});
+});
+test('one quest per real day cannot be reissued by deleting the task or advancing the game clock',async()=>{
+  const h=harness(),q=await enrollDeath(h);await h.store.transact('skip-0001',d=>Core.dispatch(d,h.config,{type:'preview-time',ms:Core.DAY},{now:time,tx:'skip-0001'}));await h.store.transact('enroll-0002',d=>Core.dispatch(d,h.config,{type:'death-quest-enroll'},{now:time,tx:'enroll-0002',studentOwner:'owner-a'}));assert.equal(h.store.read().event.deathQuests[q.day].nonce,q.nonce);assert.equal(Object.keys(h.store.read().event.deathQuests).length,1);
+  await assert.rejects(h.store.transact('easy',d=>Core.dispatch(d,h.config,{type:'studentos-mission',mission:'add-task'},{now:time,tx:'easy',studentOS:missionState()})),/เควสมรณะ/);
+});
+test('concurrent death quest claims and failed writes cannot split or duplicate a grant',async()=>{
+  const h=harness(),q=await enrollDeath(h),e=deathEvidence(q),r=await Promise.allSettled([claimDeath(h,q,e,'one'),claimDeath(h,q,e,'two')]);assert.equal(r.filter(x=>x.status==='fulfilled').length,1);assert.equal(h.store.read().event.candy,10);
+  const data=new Map();let full=false;const h2=harness({storage:{getItem:k=>data.get(k)||null,setItem(k,v){if(full)throw Error('full');data.set(k,v);}}}),q2=await enrollDeath(h2),e2=deathEvidence(q2);full=true;await assert.rejects(claimDeath(h2,q2,e2));assert.equal(h2.store.read().event.candy,0);
+});
+test('local quest tasks and their focus sessions are excluded from cloud parts without modifying other work',()=>{
+  const q=Death.create(time,'nonce-0001','owner-a'),task=Death.task(q),normal={id:'normal',detail:'private'},sessions=[{id:'local-session',taskId:task.id},{id:'real-session',taskId:'normal'}],input={tasks:[normal,task],sessions},before=JSON.stringify(input),parts=Death.split(input.tasks,input.sessions);assert.deepEqual(parts.tasks,[normal]);assert.equal(parts.sessions.length,1);assert.equal(parts.sessions[0].id,'real-session');assert.equal(parts.localTasks[0],task);assert.equal(JSON.stringify(input),before);
+});
+
+test('actual main-app cloud payload omits preview work and reminders, and pulls preserve the local quest',async()=>{
+  const source=fs.readFileSync(new URL('../../app.js',import.meta.url),'utf8');
+  const cut=name=>{const start=source.indexOf(name);assert.ok(start>=0);return source.slice(start,source.indexOf('\n}',start)+2);};
+  const q=Death.create(time,'nonce-0001','owner-a'),local=Death.task(q),ordinary={id:'ordinary',detail:'real work'},remote={tasks:[{id:'remote',detail:'other device'}],sessions:[{id:'remote-session',taskId:'remote'}],settings:{},marks:[]};
+  // Even malformed quest metadata must remain local; validity governs awards, not transport.
+  local.halloweenDeathQuest.nonce='edited';
+  const context=vm.createContext({HalloweenDeathQuests:Death,state:{tasks:[ordinary,local],sessions:[{id:'quest-session',taskId:local.id},{id:'ordinary-session',taskId:'ordinary'}],settings:{},marks:[]},
+    console,SESSION_CAP:400,currentUser:{id:'owner-a'},lastSeenRev:-1,lastPushedAvatar:null,
+    sb:{from(){let columns;const query={select(c){columns=c;return query;},eq(){return query;},async maybeSingle(){return {data:columns==='rev'?{rev:2}:{data:remote,rev:2},error:null};}};return query;}},
+    syncBaseNow:()=>null,syncMergeById:(a=[],b=[])=>[...new Map([...a,...b].map(x=>[x.id,x])).values()],syncMergeKeys:(a,b)=>({...a,...b}),
+    persistState:()=>true,funnelMerge:()=>{},funnelExport:()=>({}),setSyncBase:()=>{},syncBaseFrom:x=>x,
+    pushHints:()=>({plans:[{id:local.id},{id:'ordinary'}]})});
+  vm.runInContext(cut('function cheapHash(')+'\n'+cut('function pushSnapshot(')+'\n'+cut('async function cloudPull('),context);
+  const snap=context.pushSnapshot();assert.deepEqual(Array.from(snap.body.tasks,t=>t.id),['ordinary']);assert.deepEqual(Array.from(snap.body.sessions,s=>s.id),['ordinary-session']);assert.deepEqual(Array.from(snap.body.push.plans,p=>p.id),['ordinary']);assert.equal(context.state.tasks.length,2);
+  assert.equal(await context.cloudPull(),true);assert.deepEqual(Array.from(context.state.tasks,t=>t.id).sort(),[local.id,'ordinary','remote'].sort());assert.ok(context.state.sessions.some(s=>s.id==='quest-session'));assert.ok(context.state.sessions.some(s=>s.id==='remote-session'));
+});
+
+test('production rejects death quest enrollment and invalid dates do not crash validation',async()=>{
+  const h=harness({preview:false});await assert.rejects(h.store.transact('enroll',d=>Core.dispatch(d,h.config,{type:'death-quest-enroll'},{now:time,tx:'enroll'})));const q=Death.create(time,'nonce-0001','owner-a');for(const issuedAt of [NaN,Infinity,1e20,-1])assert.equal(Death.valid({...q,issuedAt}),false);
+});
+
+test('starting the preview over removes only older local quest work, sessions and its running timer',()=>{
+  const q=Death.create(time,'reset-0001','owner-a'),newQ=Death.create(time+2000,'reset-0002','owner-a'),ordinary={id:'ordinary',done:false},state={tasks:[ordinary,Death.task(q),Death.task(newQ)],sessions:[{id:'normal',taskId:'ordinary'},{id:'quest',taskId:q.taskId}],running:{taskId:q.taskId,start:time},settings:{name:'kept'}};
+  assert.equal(Death.resetLocal(state,{at:time+1000,owner:'owner-b'},'owner-a'),false);assert.equal(state.tasks.length,3);
+  assert.equal(Death.resetLocal(state,{at:time+1000,owner:'owner-a'},'owner-a'),true);assert.deepEqual(state.tasks.map(t=>t.id),['ordinary',newQ.taskId]);assert.deepEqual(state.sessions,[{id:'normal',taskId:'ordinary'}]);assert.equal(state.running,null);assert.deepEqual(state.settings,{name:'kept'});assert.equal(Death.resetLocal(state,{at:time+1000,owner:'owner-a'},'owner-a'),false);
 });

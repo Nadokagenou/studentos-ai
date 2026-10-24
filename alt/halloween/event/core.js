@@ -1,8 +1,8 @@
 /* กติกาที่ตรวจได้โดยไม่พึ่ง DOM; ตัวเลขเสนอใช้ได้เฉพาะ preview:true */
 (function(root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('../rewards/ownership.js'),require('./combat.js'));
-  else root.HalloweenEventCore = factory(root.HalloweenOwnership,root.HalloweenCombat);
-})(typeof globalThis === 'undefined' ? this : globalThis, (Ownership,Combat) => {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('../rewards/ownership.js'),require('./combat.js'),require('./missions.js'),require('../death-quests.js'));
+  else root.HalloweenEventCore = factory(root.HalloweenOwnership,root.HalloweenCombat,root.HalloweenStudentMissions,root.HalloweenDeathQuests);
+})(typeof globalThis === 'undefined' ? this : globalThis, (Ownership,Combat,Missions,Death) => {
   'use strict';
   const BIOMES = ['dutchmans-soul', 'jacks-hollow', 'vampire-mansion', 'eternal-graveyard'];
   const SHORT = ['dutchman', 'jack', 'vampire', 'graveyard'];
@@ -101,6 +101,12 @@
   function questStatus(document, config, quest) {
     const progress = document.event.quests[quest.id];
     return {phase:progress?.phase || 0, complete:progress?.complete === true, unlocked:!quest.prerequisite || document.event.quests[quest.prerequisite]?.complete === true};
+  }
+  function biomeProgress(document,config,biome){
+    const chain=config.quests.filter(q=>q.biome===biome),event=document.event;
+    const phases=chain.reduce((n,q)=>n+q.phases.length,0),finished=chain.reduce((n,q)=>{const p=event.quests[q.id];return n+(p?.complete?q.phases.length:Math.max(0,Math.min(q.phases.length-1,Math.floor(p?.phase||0))));},0);
+    const boss=Object.entries(config.proposals?.bosses||{}).find(([,b])=>b.biome===biome),won=!!boss&&!!event.bossWins?.[boss[0]],total=phases+(boss?1:0),value=finished+(won&&finished===phases?1:0);
+    return {biome,value,total,phases,finished,boss:boss?.[0]||null,bossWon:won,percent:total?Math.floor(value/total*100):0,complete:total>0&&value===total};
   }
   function gardenUnlocked(document){return document.event.quests['jack-clear-garden']?.complete===true;}
   function weaponStatus(document,config,id){
@@ -214,7 +220,7 @@
     const prior = event.proofs[game.id] || {};
     event.proofs[game.id] = {complete:true, clear:prior.clear || clear, at:now, session:game.session};
   }
-  function dispatch(document, config, action, {now, tx}) {
+  function dispatch(document, config, action, {now, tx, studentOS,studentOwner='',studentFocus}) {
     if (!tx || !Number.isFinite(now)) fail('ธุรกรรมไม่มีเวลาอ้างอิง');
     if (!document.event || document.season !== config.season.id) fail('ไม่พบข้อมูลฤดูกาล');
     const event = document.event, at = moment(document, now);
@@ -425,14 +431,23 @@
       const pool = config.materials.biomes.find(x => x.id === current.id).items.filter(x => x.rarity === 'Common');
       const id = pool[index % pool.length]?.id || (index ? 'pending-human-skull' : 'pending-human-bone');
       addItem(event, id, -rule.quantity); addCandy(event, rule.candy, 'visitor', at, tx); event.visitors[key] = true;
-    } else if (action.type === 'task') {
-      requirePreview(config);
-      if (!['review-task-1','review-task-2','review-task-3'].includes(action.task)) fail('ไม่พบงานตัวอย่าง');
-      if (event.taskClaims[action.task]) fail('งานนี้รับ Candy แล้ว');
-      const today = event.taskEarned.filter(x => x.at > at - DAY).reduce((sum,x) => sum+x.amount,0);
-      const amount = Math.min(config.proposals.taskCandy, config.proposals.taskDailyCap - today);
-      if (amount <= 0) fail('รางวัลงานตัวอย่างครบแล้ว');
-      addCandy(event, amount, 'task', at, tx); event.taskClaims[action.task] = true; event.taskEarned.push({at,amount});
+    } else if(action.type==='death-quest-enroll'){
+      requirePreview(config);event.deathQuests||={};const key=Death.day(now),today=event.deathQuests[key];
+      const active=Object.values(event.deathQuests).find(q=>!event.taskClaims['death:'+q.taskId]&&now-q.issuedAt<DAY);
+      const existing=today||active;
+      if(existing){if(existing.owner!==studentOwner)fail('เควสที่ค้างอยู่ผูกกับผู้ใช้เดิมบนเครื่อง');result.deathQuest=clone(existing);}
+      else{const q=Death.create(now,tx,studentOwner);event.deathQuests[key]=q;result.deathQuest=clone(q);}
+    } else if(action.type==='death-quest-claim'){
+      requirePreview(config);const q=Object.values(event.deathQuests||{}).find(q=>q.id===action.quest);
+      if(!q||now-q.issuedAt>DAY)fail('เควสนี้หมดเวลาแล้ว รับเควสใหม่ได้');
+      const key='death:'+q.taskId;if(event.taskClaims[key])fail('เควสนี้รับ Candy แล้ว');
+      const status=Death.status(q,studentOS,studentFocus?.[q.taskId],studentOwner,now);
+      if(!status.ready)fail(status.reason);
+      const earned=event.taskEarned.filter(x=>x.at>at-DAY).reduce((sum,x)=>sum+x.amount,0),amount=Math.min(config.proposals.taskCandy,config.proposals.taskDailyCap-earned);
+      if(amount<=0)fail('Candy จากภารกิจครบเพดาน 24 ชั่วโมงแล้ว');
+      addCandy(event,amount,'death-quest',at,tx);event.taskClaims[key]=true;event.taskEarned.push({at,amount});result.candy=amount;
+    } else if (action.type === 'studentos-mission'||action.type==='task') {
+      requirePreview(config);fail('เปลี่ยนเป็นเควสมรณะแล้ว รับเควสและทำงานที่ผูกไว้ก่อน');
     } else if (action.type === 'start-game') {
       requirePreview(config);
       const rule = gameDefinition(action.game, config);
@@ -479,5 +494,5 @@
     event.clock = at;
     return result;
   }
-  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, houseAvailability, gameDefinition, dispatch});
+  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, houseAvailability, gameDefinition, dispatch});
 });

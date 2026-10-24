@@ -786,6 +786,7 @@ function inboxToTask(item) {
   const p = item.parsed;
   const t = {
     id: uid(),
+    createdAt: new Date().toISOString(),
     subject: p.subject, detail: p.detail, teacher: p.teacher || '',
     scorePct: p.scorePct != null ? p.scorePct : null,
     estMin: p.estMin || 30,

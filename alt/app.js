@@ -1706,11 +1706,13 @@ async function cloudPull() {
   // รูปโปรไฟล์ย้ายมาอยู่คอลัมน์ของตัวเองแล้ว — ประกอบกลับเข้า vault ให้ vaultImport
   // ทำงานเหมือนเดิม ตัวมันไม่ต้องรู้ว่าข้างล่างเก็บแยกกันแล้ว
   if (remote.vault && data.avatar) remote.vault.avatar = data.avatar;
-  state.tasks = syncMergeById(state.tasks, remote.tasks, base && base.tasks);
+  const localQuestParts=typeof HalloweenDeathQuests!=='undefined'?HalloweenDeathQuests.split(state.tasks,state.sessions):null;
+  const remoteQuestParts=typeof HalloweenDeathQuests!=='undefined'?HalloweenDeathQuests.split(remote.tasks,remote.sessions):null;
+  state.tasks = localQuestParts?syncMergeById(localQuestParts.tasks,remoteQuestParts.tasks,base&&base.tasks).concat(localQuestParts.localTasks):syncMergeById(state.tasks, remote.tasks, base && base.tasks);
   state.settings = syncMergeKeys(state.settings, remote.settings, base && base.settings);
   // รอบจับเวลารวมตาม id เหมือนงาน — แต่ละรอบเกิดบนเครื่องเดียวและไม่เคยถูกแก้ทีหลัง
   // เครื่องไหนบันทึกไว้ก็ของจริงทั้งคู่ เอามารวมกันแล้วเรียงตามเวลาเริ่ม
-  state.sessions = syncMergeById(state.sessions, remote.sessions, base && base.sessions)
+  state.sessions = (localQuestParts?syncMergeById(localQuestParts.sessions,remoteQuestParts.sessions,base&&base.sessions).concat(localQuestParts.localSessions):syncMergeById(state.sessions, remote.sessions, base && base.sessions))
     .sort((a, b) => (a.start || '').localeCompare(b.start || ''))
     .slice(-SESSION_CAP);
   // หมุดปฏิทินรวมตาม id เหมือนงาน — ปักจากเครื่องไหนก็เป็นของจริงทั้งคู่
@@ -1803,8 +1805,10 @@ function pushSnapshot() {
   // 1C38 · ของฝากให้รอบเย็นของ send-reminders (ดู pushHints) — คิดพังต้องไม่พาการซิงก์งานพังตาม
   let push;
   try { push = pushHints(); } catch (e) { console.warn('[sync] hints failed:', e.message); }
-  const body = { tasks: state.tasks, settings: state.settings,
-    sessions: state.sessions || [],
+  const localQuestParts=typeof HalloweenDeathQuests!=='undefined'?HalloweenDeathQuests.split(state.tasks,state.sessions):null;
+  if(localQuestParts&&push?.plans)push={...push,plans:push.plans.filter(p=>!localQuestParts.ids.has(p.id))};
+  const body = { tasks: localQuestParts?localQuestParts.tasks:state.tasks, settings: state.settings,
+    sessions: localQuestParts?localQuestParts.sessions:state.sessions || [],
     marks: state.marks || [],
     ctx: typeof ctxExport === 'function' ? ctxExport() : undefined,
     vault, push, funnel: funnelExport(),

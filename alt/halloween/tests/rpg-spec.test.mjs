@@ -85,3 +85,20 @@ test('all six combat encounters support victory and failure; a blind attack is n
     assert.equal(lost.clear,false);assert.equal(lost.hp,0);
   }
 });
+
+
+test('each weapon skill changes the battle rules, not just its damage multiplier',()=>{
+  const rule={id:'test',hp:400,damage:30},random=()=>0;
+  const make=type=>{const b=Combat.start(rule,type,'s',at,random);b.hp=60;b.intent={kind:'hex',danger:[0,1,2],phase:1,damage:30};return b;};
+  const spear=make('spear');Combat.move(spear,rule,{type:'spear',power:20},'skill',at,random);assert.equal(spear.hp,52);assert.equal(spear.effects.anchor,1);spear.intent={kind:'hex',danger:[0,1,2],phase:1,damage:30};Combat.move(spear,rule,{type:'spear',power:20},'strike',at+1,random);assert.equal(spear.hp,37);assert.equal(spear.effects.anchor,0);
+  const axe=make('axe');Combat.move(axe,rule,{type:'axe',power:20},'skill',at,random);assert.equal(axe.hp,60);assert.equal(axe.bossHp,370);assert.equal(axe.turn,1);
+  const quill=make('quill');Combat.move(quill,rule,{type:'quill',power:20},'skill',at,random);assert.equal(quill.effects.bleed,2);const after=quill.bossHp;quill.intent={kind:'sweep',danger:[0],phase:1,damage:30};Combat.move(quill,rule,{type:'quill',power:20},'dodge-1',at+1,random);assert.equal(quill.bossHp,after-13-6);assert.equal(quill.hp,42);
+  const scythe=make('scythe');scythe.bossHp=115;Combat.move(scythe,rule,{type:'scythe',power:20},'skill',at,random);assert.equal(scythe.clear,true);assert.equal(scythe.hp,76);assert.ok(scythe.log.includes('ปิดฉาก'));
+});
+test('an old active battle without effect fields resumes, and insufficient mana cannot trigger weapon effects',()=>{
+  const rule={id:'test',hp:400,damage:30},b=Combat.start(rule,'spear','s',at,()=>0);delete b.effects;b.mana=0;const before=JSON.stringify(b);assert.throws(()=>Combat.move(b,rule,{type:'spear',power:20},'skill',at,()=>0));assert.equal(JSON.stringify(b),before);Combat.move(b,rule,{type:'spear',power:20},'guard',at,()=>0);assert.ok(b.effects);assert.equal(b.turn,1);
+});
+test('biome progress counts completed phases and the actual guardian win; rewards alone cannot fill the tube',()=>{
+  const doc=Core.initial(config,'review',at),biome=Core.BIOMES[0],chain=config.quests.filter(q=>q.biome===biome),boss=Object.entries(config.proposals.bosses).find(([,b])=>b.biome===biome)[0],initial=JSON.stringify(doc);
+  assert.equal(Core.biomeProgress(doc,config,biome).value,0);assert.equal(JSON.stringify(doc),initial);doc.event.quests[chain[0].id]={phase:1};assert.equal(Core.biomeProgress(doc,config,biome).value,Math.min(1,chain[0].phases.length-1));for(const q of chain)doc.event.quests[q.id]={complete:true};let p=Core.biomeProgress(doc,config,biome);assert.equal(p.complete,false);assert.equal(p.value,p.total-1);doc.event.bossWins={[boss]:{at}};p=Core.biomeProgress(doc,config,biome);assert.equal(p.complete,true);assert.equal(p.percent,100);
+});
