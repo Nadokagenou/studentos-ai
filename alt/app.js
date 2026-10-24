@@ -3633,7 +3633,10 @@ function eventSlot() {
 // เจ้าของ: "ตรงการ์ดหลักงานที่ต้องทำ อยากให้เป็นสไลด์ อีกอันเป็น halloween ขอการ์ดสวย ๆ … แล้วสลับกัน เลื่อนเองก็ได้"
 // 24 ต.ค. 69 (รอบสอง) · เจ้าของ: "สไลด์อยากให้มันเลื่อนเองด้วย 3 วิเลื่อน สไลด์แรกเป็น event เลย … อัน 2 ก็งานหลัก"
 //   • สไลด์แรก = อีเวนต์ · สไลด์สอง = การ์ดงาน (เดิมเปิดที่การ์ดงานก่อน)
-//   • เลื่อนเองทุก 3 วิ วนไปเรื่อย ๆ (เดิม งาน 7 วิ → อีเวนต์ 5 วิ สองรอบแล้วหยุด)
+//   • เลื่อนเองวนไปเรื่อย ๆ (เดิม งาน 7 วิ → อีเวนต์ 5 วิ สองรอบแล้วหยุด)
+//   • รอบสาม · เจ้าของ: "อยากให้มันเลื่อนไปขวาตลอด ๆ เปลี่ยนเป็น 5 วิแทน" — ทุก 5 วิ และไปทางเดียวตลอด
+//     ท้ายรางมีสำเนาสไลด์อีเวนต์ (dk-clone · inert) · งาน → สำเนา เลื่อนไปข้างหน้าเหมือนเดิม
+//     พอนิ่งที่สำเนาแล้วกระโดดกลับสไลด์จริงทันทีแบบไม่มีแอนิเมชัน — สองสไลด์หน้าตาเดียวกัน ตาจึงไม่เห็นการกระโดด
 //   • แตะ/ปัดเมื่อไหร่ = หยุดเลื่อนเองทันทีจนกว่าจะเปิดแอปใหม่ (คนที่กำลังอ่านต้องไม่โดนดึงหนี)
 //   • ไม่เลื่อนเองเลยเมื่อเครื่องตั้งลดการเคลื่อนไหว · ไม่อยู่จอวันนี้ · แอปอยู่เบื้องหลัง
 //   • renderMenu วาดทับทั้งจอทุกนาที — ตำแหน่งสไลด์เก็บไว้ที่ deck.idx แล้ววางคืนหลังวาด (deckMount)
@@ -3666,6 +3669,7 @@ function heroDeck(nowHtml) {
     <div class="dk-track" id="dkTrack">
       <div class="dk-slide" aria-label="อีเวนต์ ${esc(ev.name)}">${eventHero(ev, left)}</div>
       <div class="dk-slide" aria-label="งานตอนนี้">${nowHtml}</div>
+      <div class="dk-slide dk-clone" aria-hidden="true" inert>${eventHero(ev, left)}</div>
     </div>
     <div class="dk-dots" role="tablist">
       <button type="button" class="dk-dot ev" role="tab" onclick="deckGo(0, true)" aria-label="อีเวนต์ ${esc(ev.name)}"><i></i></button>
@@ -3674,15 +3678,25 @@ function heroDeck(nowHtml) {
   </section>`;
 }
 
-const DECK_STAY = [3000, 3000];   // ค้างที่การ์ดอีเวนต์ / การ์ดงาน (มิลลิวินาที)
+const DECK_STAY = [5000, 5000];   // ค้างที่การ์ดอีเวนต์ / การ์ดงาน (มิลลิวินาที)
+const DECK_N = 2;                 // สไลด์จริง — ช่องที่ DECK_N ในรางคือสำเนาสไลด์แรก (ไว้วนไปข้างหน้า)
 const deck = { idx: 0, held: false, timer: 0 };
 
-function deckGo(i, byUser) {
+// ตำแหน่งเลื่อนของสไลด์ช่องที่ k ในราง · สไลด์ห่างกันด้วยระยะเว้น (margin) จึงคูณความกว้างตรง ๆ ไม่ได้
+function deckPos(t, k) { return t.children[k].offsetLeft - t.children[0].offsetLeft; }
+function deckNearest(t) {
+  let best = 0;
+  for (let k = 1; k < t.children.length; k++)
+    if (Math.abs(deckPos(t, k) - t.scrollLeft) < Math.abs(deckPos(t, best) - t.scrollLeft)) best = k;
+  return best;
+}
+// slot = ช่องในราง (0 … DECK_N) · ช่อง DECK_N คือสำเนา จุดใต้การ์ดจึงขึ้นที่สไลด์แรก
+function deckGo(slot, byUser) {
   const t = document.getElementById('dkTrack');
-  if (!t) return;
+  if (!t || !t.children[slot]) return;
   if (byUser) deckHold();
-  deck.idx = i;
-  t.scrollTo({ left: i * t.clientWidth, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  deck.idx = slot % DECK_N;
+  t.scrollTo({ left: deckPos(t, slot), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   deckPaint();
 }
 function deckHold() { deck.held = true; clearTimeout(deck.timer); deckPaint(); }
@@ -3702,7 +3716,7 @@ function deckArm() {
     if (!document.getElementById('dkTrack')) return;
     // ไม่อยู่จอวันนี้ / แอปอยู่เบื้องหลัง = รอรอบหน้า
     if (curScreen !== 'scr-menu' || document.hidden) { deckArm(); return; }
-    deckGo(deck.idx ? 0 : 1);
+    deckGo(deck.idx + 1);   // ไปข้างหน้าเสมอ · สไลด์สุดท้าย → สำเนาสไลด์แรก (deckMount พากลับเอง)
     deckArm();
   }, DECK_STAY[deck.idx]);
 }
@@ -3710,12 +3724,15 @@ function deckArm() {
 function deckMount() {
   const t = document.getElementById('dkTrack');
   if (!t) return;
-  t.scrollLeft = deck.idx * t.clientWidth;
+  t.scrollTo({ left: deckPos(t, deck.idx), behavior: 'instant' });
   let settle = 0;
   t.addEventListener('scroll', () => {
     clearTimeout(settle);
     settle = setTimeout(() => {
-      const i = Math.round(t.scrollLeft / Math.max(1, t.clientWidth));
+      const k = deckNearest(t);
+      // นิ่งที่สำเนา (เลื่อนเองหรือปัดเองก็ตาม) = กระโดดกลับสไลด์จริงช่องแรกแบบไม่มีแอนิเมชัน
+      if (k === DECK_N) t.scrollTo({ left: 0, behavior: 'instant' });
+      const i = k % DECK_N;
       if (i !== deck.idx) { deck.idx = i; deckPaint(); }
     }, 90);
   }, { passive: true });
