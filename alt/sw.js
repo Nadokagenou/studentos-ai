@@ -18,7 +18,7 @@ try { importScripts('halloween/cache-manifest.js'); HALLOWEEN_FILES = self.HALLO
 // ได้ "หน้าแม่ใหม่ + ตัวแก้ดีไซน์เก่า" ซึ่งอาการคือกดแล้วไม่มีอะไรเกิดขึ้น
 const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'room.css', 'social.css', 'feed.css', 'safety.css', 'hw.css', 'topic.css', 'sai.css', 'hoop.css', 'fxgames.css', 'gacha-fx.css', 'board.css', 'custom.css',
   'engine.js', 'context.js', 'planner.js', 'facts.js', 'profile.js', 'simulate.js', 'calibrate.js', 'loss.js', 'decide.js', 'brain.js', 'inbox.js', 'linelink.js', 'integrations.js', 'room.js', 'social.js', 'feed.js', 'hw.js', 'topic.js', 'safety.js', 'sai.js', 'fxgames.js', 'fx3d.js', 'hoop.js', 'gacha-fx.js', 'quickadd.js', 'board.js', 'news.js', 'app.js', 'config.js', 'remote-config.js',
-  'manifest.json', 'compat.js', 'staff-news.js', 'bug-reports.js', 'bug-reports.css', 'events.js', 'events.css', 'classrooms.js', 'classrooms.css', 'notification-policy.mjs',
+  'manifest.json', 'compat.js', 'staff-news.js', 'bug-reports.js', 'bug-reports.css', 'events.js', 'events.css', 'classrooms.js', 'classrooms.css', 'contrast.css', 'notification-policy.mjs',
   'halloween/death-quests.js', 'halloween/death-quest-main.js', 'halloween/death-quest-main.css',
   'device-preview.html', 'device-preview.css', 'device-preview.js', 'device-preview-controls.css', 'device-preview-bridge.js', ...HALLOWEEN_FILES,
   // 24 ต.ค. 69 · ชุดแต่งจอโหลด/จอเข้าสู่ระบบช่วงฮาโลวีน (index.html อ้างถึงตรง ๆ จึงอยู่ที่นี่ ไม่อยู่ใน cache-manifest ของรางวัลถาวร)

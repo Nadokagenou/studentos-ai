@@ -1,0 +1,155 @@
+/* ============================================================
+   ความคมชัดรอบสอง (24 ต.ค. 69) — โหลดหลังสุด ชนะสีตายตัวในไฟล์อื่น
+   เจ้าของ: "มีข้อความมองไม่เห็น ตรวจทั้งหมด ถ้ามีอันไหนมองไม่เห็นหรือไม่ชัดให้แก้ให้หมด"
+   วัดด้วย devtools/textcheck.mjs ทั้ง 22 ธีม (ตัวหนังสือ ≥ 4.5 · ตัวใหญ่/ไอคอน ≥ 3)
+
+   หลักเดียวทั้งไฟล์: สีแบรนด์/สีจางที่เคยตายตัว → ผสมกับ --ink ของธีม
+   ธีมสว่าง ink เข้ม สีจึงเข้มขึ้น · ธีมมืด ink สว่าง สีจึงสว่างขึ้น — สีเดิมยังจำได้ แต่ขึ้นจากพื้นทุกธีม
+   และเลิกใช้ opacity ลดความเด่น: มันคูณกับสีที่จางอยู่แล้ว (จางสองชั้น) และพาไอคอนจางตามไปด้วย
+   ============================================================ */
+
+/* ---------- หน้าแรก · แถบบนสุด (today.css ใส่สีแบรนด์ค่าเดียวทุกธีม: ธีมสว่างได้ 1.65–2.65) ---------- */
+#menuBody .tt-streak { color: color-mix(in srgb, #F97316 66%, var(--ink)); }
+#menuBody .tt-rank { color: color-mix(in srgb, #D9A21F 58%, var(--ink)); }
+#menuBody .tt-rank b { color: color-mix(in srgb, var(--gold-text, #D9A21F) 58%, var(--ink)); }
+#menuBody .tt-candy { color: color-mix(in srgb, #f0569a 60%, var(--ink)); opacity: 1; }
+#menuBody .tt-candy b { color: color-mix(in srgb, #f0569a 52%, var(--ink)); }
+#menuBody .tt-tok svg { color: color-mix(in srgb, currentColor 70%, var(--ink)); }
+
+/* ---------- หน้าแรก · รายการ "ที่เหลือของวันนี้" ---------- */
+/* ลูกศร > สี --muted แล้วยัง opacity .5 ซ้ำ → 2.1 ใน 16 ธีม */
+.dr-go { opacity: 1; }
+/* ชื่อวิชา 12px ใช้สีวิชาล้วน → 2.65 · ผสม ink ให้อ่านได้ แต่ยังเป็นโทนสีวิชา (ตัวเชื่อมกับแถบสีหน้าแถว) */
+.dr-sj { color: color-mix(in srgb, var(--sj, var(--muted)) 58%, var(--ink)); }
+
+/* ---------- หน้าแรก · ป้ายไทล์ (opacity .78 ทับ ink) ---------- */
+.tg-lb2 { opacity: 1; }
+
+/* ---------- แถบเมนูล่าง · ป้ายแท็บที่ไม่ได้เลือก ----------
+   แถบเป็นกระจกโปร่ง ป้าย --muted จึงจางตามพื้นข้างใต้ (หน้าบริบท 2.99 ใน 14 ธีม) */
+:root:not([data-nav="side"]) .tabbar .tab:not(.active) { color: color-mix(in srgb, var(--muted) 55%, var(--ink)); }
+
+/* ---------- ร้านค้า · สกินโทเคน ----------
+   alt.css แก้เป็นสีผสมแล้ว แต่ hoop.css โหลดทีหลังใส่ #B45CFF ล้วนทับ → 2.86 ใน 13 ธีม */
+.tk-skin .ts-try, .tk-skin.r-mythic .ts-rar { color: color-mix(in srgb, #B45CFF 55%, var(--ink)); }
+.tb-bd i { color: color-mix(in srgb, var(--muted) 55%, var(--ink)); }
+
+/* ---------- เหรียญตรา · "ได้แล้ว" (ทองบนการ์ดทอง 1.78 ใน 12 ธีม) ---------- */
+.phone .an-bd.got .ab-ds { color: color-mix(in srgb, var(--gold-text, #8A6206) 50%, var(--ink)); }
+
+/* ---------- ห้อง · แท็บที่ไม่ได้เลือก (เพดาน/ผนัง ฯลฯ บนพื้นกระจก 2.36) ---------- */
+.rm-tabs .rm-tab:not(.on) { color: color-mix(in srgb, var(--muted) 50%, var(--ink)); }
+
+/* ---------- โปรไฟล์ ---------- */
+.ig-id > i.ig-off { color: color-mix(in srgb, #C2410C 55%, var(--ink)); }
+:root[data-theme="moonlight"] .ig-id > i.ig-off { color: color-mix(in srgb, var(--hw-warn, #FFCF5C) 70%, var(--ink)); }
+/* เลขรุ่นแอปท้ายจอ วางบนภาพฉากของธีม --muted จึงจมไปกับภาพ (2.54) */
+.app-ver { color: color-mix(in srgb, var(--muted) 45%, var(--ink)); }
+
+/* ---------- สถิติ ---------- */
+.at-v i { color: inherit; opacity: 1; }
+
+/* ---------- บริบทของฉัน · ตัวเลข/วัน (ink 55% โปร่ง → 3.45) ---------- */
+#ctxBody .cx2-big, #ctxBody .cx2-day span { color: color-mix(in srgb, var(--ink) 74%, transparent); }
+
+/* ---------- ปุ่มอันตราย (ลบบริบท · ล้างประวัติแชท) บนพื้นกระจก ---------- */
+:root .ctx-wipe, .set-btns button.warn { color: color-mix(in srgb, var(--alert) 68%, var(--ink)) !important; }
+
+/* ---------- แถบเมนูล่าง · ปุ่ม + ----------
+   ไอคอนขาวตายตัวบน --grad-brand · ธีมที่สีแบรนด์อ่อน (glitch ฟ้าอ่อน · magic · sweet) ได้ 2.42
+   ธีมมี --on-fill (สีบนปุ่มเต็ม) อยู่แล้ว แต่กฎ .phone ใส่ #fff !important ทับ */
+.phone .tabbar .tab.scan .scan-dot { color: var(--on-fill, #fff) !important; }
+
+/* ---------- แจ้งเตือน · ไอคอนแถวเข้าสู่ระบบ/กล่องเข้า (สีแบรนด์บนกรอบผสมแบรนด์ 12%) ---------- */
+.nt-av.src { color: color-mix(in srgb, var(--fill) 60%, var(--ink)); }
+
+/* ---------- กล่องคำอธิบายสั้น ๆ (แผน · น้องฮูก · ป้าย AI) ----------
+   alt.css ผสม muted 45% แล้ว แต่วางบนพื้นโปร่ง/ฉาก ยังได้ 2.5–4.2 ในธีมมืด → ใช้ ink ล้วน ๆ เกือบเต็ม */
+.phone :is(.pctx-note, .ai-priv-tx, .ai-priv-go, .sh-badge) { color: color-mix(in srgb, var(--muted) 25%, var(--ink)); }
+
+/* ---------- โปรไฟล์ · ป้าย "นักเรียน" (ฟ้าบนพื้นฟ้าอ่อน 3.33) ---------- */
+.ig-tick { color: color-mix(in srgb, var(--blue) 45%, var(--ink)); }
+
+/* ---------- สถิติ / เหรียญตรา ---------- */
+#statFull .an-tile.gold .at-k { color: color-mix(in srgb, var(--gold-text, #8A6206) 55%, var(--ink)); opacity: 1; }
+.an-grp, .an-grp button { color: color-mix(in srgb, var(--muted) 50%, var(--ink)); }
+.an-bd.got .ab-nm { color: color-mix(in srgb, var(--gold-text, #8A6206) 55%, var(--ink)); }
+
+/* ---------- ห้อง · "ใช้อยู่" · ยอดโทเคน ---------- */
+.rm-on { color: color-mix(in srgb, var(--blue) 55%, var(--ink)); }
+.rm-bal, .rm-bal span { color: color-mix(in srgb, var(--muted) 45%, var(--ink)); }
+
+/* ---------- ร้านค้า · เป้าโทเคน (ทองบนการ์ดของธีม Halloween 2.61) ---------- */
+.phone .tk-goal b { color: color-mix(in srgb, var(--gold-text, #8A6206) 55%, var(--ink)); }
+
+/* ---------- จออีเวนต์ (events.css) ---------- */
+/* ป้ายชนิดรางวัล "ธีม/ชุด/อาวุธ" 9.5px สีรางวัลล้วนบนพื้นสีเดียวกัน 28% → 1.45 และเล็กกว่าเกณฑ์ 11px */
+.ev-rw i { font-size: 11px; color: color-mix(in srgb, var(--c, #f0a03a) 45%, var(--ink)); }
+/* ไอคอนชิป สมุดเควส/สวน/ร้าน — ส้มล้วนบนการ์ดขาว 2.14 */
+.ev-chip svg { color: color-mix(in srgb, #f0a03a 62%, var(--ink)); }
+
+/* ---------- จอเพื่อน (social.css) ---------- */
+/* การ์ดตัวอย่างเคยจางทั้งใบ 72% (ตัวหนังสือ 2.96) · ป้าย "ตัวอย่าง" บนการ์ดบอกอยู่แล้วว่าเป็นตัวอย่าง */
+.so-demo { opacity: 1; }
+.so-egtag { color: color-mix(in srgb, var(--muted) 50%, var(--ink)); }
+.ep .ep-at > span, .ep .ep-at > svg { color: color-mix(in srgb, var(--ink) 66%, transparent); }
+.ep-count { color: color-mix(in srgb, var(--muted) 55%, var(--ink)); }
+
+/* ============ รอบตรวจซ้ำ (หลังสามชุดแรก: light 26→2 · ocean 59→12 · earth2 36→12 · genesis 43→28) ============ */
+
+/* genesis: พื้นจอเป็นม่วง #8E9BE8 · --muted #2E345E ได้ 4.05–4.38 กับพื้นนี้ (ป้ายนอกการ์ดหลายจุดตกนิดเดียว)
+   เข้มขึ้นหนึ่งขั้น — บนการ์ด #EDF0FF ยังเป็นสีรองเหมือนเดิม */
+:root[data-theme="genesis"] { --muted: #22284D; }
+
+/* ร้านค้า · "มีแล้ว" เขียว #16A34A ตายตัว (2.90 ใน genesis ocean earth2 moonlight) */
+.tb-row.own .tb-bd i { color: color-mix(in srgb, #16A34A 55%, var(--ink)); }
+
+/* จอเพื่อน · ชิปวิชาที่เลือก เขียว/แดงบนพื้นสีเดียวกันอ่อน (2.37) */
+.so-chip.good.on { color: color-mix(in srgb, var(--good) 55%, var(--ink)); }
+.so-chip.need.on { color: color-mix(in srgb, var(--alert) 55%, var(--ink)); }
+.ep .ep-count, .ep-f .ep-count { color: color-mix(in srgb, var(--muted) 40%, var(--ink)); }
+.ep-face-tx i { color: color-mix(in srgb, var(--muted) 45%, var(--ink)); }
+
+/* สถิติ · ตัวเลขบนไทล์ทอง (หน่วย "%"/"วัน" สืบสีนี้) · ป้ายเทียบสัปดาห์ */
+#statFull .an-tile.gold .at-v { color: color-mix(in srgb, var(--gold-text, #8A6206) 55%, var(--ink)); }
+#statFull .an-tile:not(.gold) .at-k { color: color-mix(in srgb, var(--ink) 80%, transparent); }
+
+/* ขยับเพิ่มสำหรับตัวที่ยังตกนิดเดียวหลังรอบแรก */
+.app-ver { color: color-mix(in srgb, var(--muted) 30%, var(--ink)); }
+.ev-rw i { color: color-mix(in srgb, var(--c, #f0a03a) 35%, var(--ink)); }
+.rm-tabs .rm-tab:not(.on) { color: color-mix(in srgb, var(--muted) 35%, var(--ink)); }
+#menuBody .tt-streak b { color: color-mix(in srgb, #F97316 50%, var(--ink)); }
+
+/* โปรไฟล์ · ป้ายใต้ตัวเลข (โพสต์ · เพื่อน · ช่วยแล้ว) — moonlight 2.50 */
+.ig-stats > * > span, .ig-stats span { color: color-mix(in srgb, var(--muted) 45%, var(--ink)); }
+
+/* เหรียญที่ได้แล้ว · ธีม halloween ได้พื้นครีมของธีมสว่าง (ไม่อยู่ในรายชื่อธีมมืด) แต่ตัวหนังสือผสม ink สว่าง
+   → อ่อนบนอ่อน 2.07 · ให้พื้นเป็นทองโปร่งบนการ์ดมืดแบบธีมมืดอื่น ตัวหนังสือตัดเอง และเข้าโทนมืดของธีม */
+:root[data-theme="halloween"] .phone .an-bd.got { background: color-mix(in srgb, #F0C14A 26%, var(--card)); }
+
+/* ============ รอบตรวจซ้ำครั้งที่สอง (ทั้ง 22 ธีม · รวมจอเพื่อน/กล่องเข้า/อีเวนต์) ============ */
+/* genesis: ป้ายนอกการ์ดหลายจุดยังได้ 3.9–4.4 บนพื้นจอม่วง → ink เข้มขึ้นอีกขั้น (บนการ์ดสว่างยังเหมือนเดิม) */
+:root[data-theme="genesis"] { --ink: #12163D; --muted: #1C2147; }
+
+/* กล่องเข้า · ปุ่ม "จัดการ" สี --fill ล้วน (hw 2.80 · sweet 3.50) */
+.ib2-sec button { color: color-mix(in srgb, var(--fill) 50%, var(--ink)); }
+/* น้องฮูก · แถบ "น้องฮูกเห็นงาน…" บนพื้นฟ้าโปร่ง (meta galaxy 2.85) */
+.phone :is(.ai-priv-tx, .ai-priv-go) { color: var(--ink); }
+/* สถิติ · หน่วยบนไทล์สี (ไม่ใช่ทอง) 12px ต้อง 4.5 แต่ตัวเลข 75% สีไทล์ใช้ได้เฉพาะตัวใหญ่ */
+#statFull .an-tile:not(.gold) .at-v i { color: color-mix(in srgb, var(--tc, currentColor) 40%, var(--ink)); }
+/* จอเพื่อน · ชิปวิชาที่เลือก ยังได้ 3.0–3.6 */
+.so-chip.good.on { color: color-mix(in srgb, var(--good) 35%, var(--ink)); }
+.so-chip.need.on { color: color-mix(in srgb, var(--alert) 35%, var(--ink)); }
+.ep-face-tx i { color: color-mix(in srgb, var(--muted) 30%, var(--ink)); }
+/* ห้อง · บริบท — ตกนิดเดียวในธีม hw */
+.rm-tabs .rm-tab:not(.on) { color: color-mix(in srgb, var(--muted) 25%, var(--ink)); }
+:root .ctx-wipe, .set-btns button.warn { color: color-mix(in srgb, var(--alert) 55%, var(--ink)) !important; }
+/* เหรียญที่ได้แล้วใน halloween (หลังเปลี่ยนพื้นเป็นทองโปร่ง ยัง 3.2–3.5) */
+:root[data-theme="halloween"] .phone .an-bd.got :is(.ab-nm, .ab-ds) { color: color-mix(in srgb, #F0C14A 35%, var(--ink)); }
+/* moonlight โทนสว่าง · หัวข้อหมวด (คราฟธีม ฯลฯ) ฟ้าท้องฟ้าบนฉากมืด 2.54 */
+:root[data-theme="moonlight"] :is(.eyebrow, .sec-label, .tn-eyebrow) { color: color-mix(in srgb, var(--hw-sky-text, #0050C8) 50%, var(--ink)); }
+/* astral · ทองบนพื้นทอง (ไอคอนร้านค้าในโปรไฟล์ 1.48) · กล่องข้อความแผนโปร่งบนภาพดาว (2.49) */
+#scr-profile .pf-entry .pe.pe-shop .pe-ic { color: color-mix(in srgb, var(--gold-text, var(--warn)) 55%, var(--ink)); }
+:root[data-theme="astral"] .pctx-note { background: color-mix(in srgb, var(--card) 92%, transparent); }
+/* ไอคอนสีบนพื้นสีแบรนด์/เหรียญ — ขอบมืดบาง ๆ ให้ขอบไอคอนแยกจากพื้นที่สีใกล้กัน (ปุ่ม + 2.7 · เหรียญโทเคน 2.4) */
+.phone .tabbar .tab.scan .scan-dot svg, #menuBody .tt-tok svg { filter: drop-shadow(0 0 .7px color-mix(in srgb, var(--ink) 70%, transparent)); }
