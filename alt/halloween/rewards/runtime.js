@@ -42,8 +42,11 @@
   // The event switch is fetched separately. Removing event/ hides its entry.
   // 24 Oct: the entry moved from a card under the profile header to the event slot on the home screen (eventSlot in app.js), as the owner chose.
   if(!window.__HW_SHOWROOM__)fetch(new URL('../event/config.json',base),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(config=>{
+   const end=config?.endsAt?Date.parse(config.endsAt):NaN,preview=config?.claimingEnabled!==true;
+   // 24 Oct: index.html turns on the Halloween boot/login skin (:root.hw-season) before this file loads.
+   // Turning the event off in config.json, or passing endsAt, takes the skin off as well.
+   if(!config?.enabled||(Number.isFinite(end)&&end<=Date.now()))root.classList.remove('hw-season');
    if(!config?.enabled)return;
-   const end=config.endsAt?Date.parse(config.endsAt):NaN,preview=config.claimingEnabled!==true;
    const destination=new URL('../event/index.html',base);if(preview)destination.searchParams.set('preview','1');destination.searchParams.set('rev','red-dots-20261023');
    const eventDir=new URL('../event/',base),card=config.card||{};
    window.HalloweenEventEntry=Object.freeze({name:config.name||'Halloween',tagline:config.tagline||'',blurb:config.blurb||'',href:destination.href,preview,

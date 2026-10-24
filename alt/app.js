@@ -575,6 +575,14 @@ function themePref() {
   if (THEME_CODE[v] && !codeThemeOwned(v)) return 'light';
   return THEMES.includes(v) ? v : 'light';
 }
+// 24 ต.ค. 69 · ช่วงฮาโลวีน (:root.hw-season) จอเข้าสู่ระบบเป็นพื้นกลางคืนทุกธีม (halloween/season/season.css)
+// แถบสถานะของเครื่องจึงต้องมืดตามตอนอยู่จอนั้น ไม่ว่าธีมที่เลือกจะสว่างแค่ไหน
+function themeBar(theme) {
+  let onLogin = false;
+  try { onLogin = curScreen === 'scr-login'; } catch (e) {}   // curScreen ประกาศด้วย let ไว้ข้างล่าง — เรียกก่อนบรรทัดนั้นต้องไม่ล้ม
+  if (onLogin && document.documentElement.classList.contains('hw-season')) return '#120A24';
+  return THEME_BAR[theme];
+}
 function systemDark() { return matchMedia('(prefers-color-scheme: dark)').matches; }
 
 function applyTheme() {
@@ -583,7 +591,7 @@ function applyTheme() {
   const theme = pref === 'system' ? (systemDark() ? 'dark' : 'light') : pref;
   document.documentElement.dataset.theme = theme;
   const meta = document.querySelector('meta[name=theme-color]');
-  if (meta) meta.content = THEME_BAR[theme];
+  if (meta) meta.content = themeBar(theme);
   document.querySelectorAll('#themePick button').forEach(b =>
     b.classList.toggle('active', b.dataset.th === pref));
   genesisLoop(theme === 'genesis'); // อีเวนต์ 99 วิ เดินเฉพาะตอนอยู่ในธีมนี้
@@ -1231,6 +1239,11 @@ function go(id) {
   if (typeof saiStart === 'function') saiStart();   // ลูปมาสคอตหยุดเองตอนอยู่จออื่น — กลับมาจอที่มีมาสคอตต้องปลุก
   // ซ่อนแถบล่างในจอที่ยังไม่ได้เข้าแอปจริง (บัญชี / ทำความรู้จัก)
   document.body.classList.toggle('login-mode', id === 'scr-login' || id === 'scr-onboard');
+  // 24 ต.ค. 69 · ช่วงฮาโลวีนจอเข้าสู่ระบบเป็นพื้นกลางคืน — แถบสถานะของเครื่องมืดตาม ออกจากจอแล้วคืนสีธีม (themeBar)
+  if (document.documentElement.classList.contains('hw-season')) {
+    const bar = document.querySelector('meta[name=theme-color]');
+    if (bar) bar.content = themeBar(document.documentElement.dataset.theme);
+  }
   // ปุ่มช่องทางล็อกอินวาดด้วย JS (รายชื่อมาจาก config) และต้องรีเซ็ตกลับหน้าแรกของมัน
   // ทุกครั้งที่กลับเข้าจอนี้ — ไม่ใช่ค้างอยู่ที่ช่องกรอกรหัสของรอบที่แล้ว
   if (id === 'scr-login') { loginView = 'root'; renderLoginOpts(); loginNote('');
@@ -3618,8 +3631,9 @@ function eventSlot() {
 
 // ---------- 24 ต.ค. 69 · การ์ดหลักเป็นสไลด์: "ตอนนี้" ⇄ อีเวนต์ ----------
 // เจ้าของ: "ตรงการ์ดหลักงานที่ต้องทำ อยากให้เป็นสไลด์ อีกอันเป็น halloween ขอการ์ดสวย ๆ … แล้วสลับกัน เลื่อนเองก็ได้"
-// สัญญาของแอปคือ "เปิดแอป → รู้ว่าต้องทำอะไร" — สไลด์จึงต้องเปิดที่การ์ดงานเสมอ แล้วค่อยพาไปดูอีเวนต์
-//   • เลื่อนเอง: งาน 7 วิ → อีเวนต์ 5 วิ → กลับงาน · สองรอบต่อการเปิดหน้าแรก แล้วหยุดที่การ์ดงาน
+// 24 ต.ค. 69 (รอบสอง) · เจ้าของ: "สไลด์อยากให้มันเลื่อนเองด้วย 3 วิเลื่อน สไลด์แรกเป็น event เลย … อัน 2 ก็งานหลัก"
+//   • สไลด์แรก = อีเวนต์ · สไลด์สอง = การ์ดงาน (เดิมเปิดที่การ์ดงานก่อน)
+//   • เลื่อนเองทุก 3 วิ วนไปเรื่อย ๆ (เดิม งาน 7 วิ → อีเวนต์ 5 วิ สองรอบแล้วหยุด)
 //   • แตะ/ปัดเมื่อไหร่ = หยุดเลื่อนเองทันทีจนกว่าจะเปิดแอปใหม่ (คนที่กำลังอ่านต้องไม่โดนดึงหนี)
 //   • ไม่เลื่อนเองเลยเมื่อเครื่องตั้งลดการเคลื่อนไหว · ไม่อยู่จอวันนี้ · แอปอยู่เบื้องหลัง
 //   • renderMenu วาดทับทั้งจอทุกนาที — ตำแหน่งสไลด์เก็บไว้ที่ deck.idx แล้ววางคืนหลังวาด (deckMount)
@@ -3650,18 +3664,18 @@ function heroDeck(nowHtml) {
   if (!ev || left === null || !ev.art || !homeBlockOn('eventSlot')) return nowHtml;
   return `<section class="td-deck" aria-roledescription="สไลด์" aria-label="การ์ดหลัก">
     <div class="dk-track" id="dkTrack">
-      <div class="dk-slide" aria-label="งานตอนนี้">${nowHtml}</div>
       <div class="dk-slide" aria-label="อีเวนต์ ${esc(ev.name)}">${eventHero(ev, left)}</div>
+      <div class="dk-slide" aria-label="งานตอนนี้">${nowHtml}</div>
     </div>
     <div class="dk-dots" role="tablist">
-      <button type="button" class="dk-dot" role="tab" onclick="deckGo(0, true)" aria-label="งานตอนนี้"><i></i></button>
-      <button type="button" class="dk-dot ev" role="tab" onclick="deckGo(1, true)" aria-label="อีเวนต์ ${esc(ev.name)}"><i></i></button>
+      <button type="button" class="dk-dot ev" role="tab" onclick="deckGo(0, true)" aria-label="อีเวนต์ ${esc(ev.name)}"><i></i></button>
+      <button type="button" class="dk-dot" role="tab" onclick="deckGo(1, true)" aria-label="งานตอนนี้"><i></i></button>
     </div>
   </section>`;
 }
 
-const DECK_STAY = [7000, 5000];   // ค้างที่การ์ดงาน / การ์ดอีเวนต์ (มิลลิวินาที)
-const deck = { idx: 0, laps: 0, held: false, timer: 0 };
+const DECK_STAY = [3000, 3000];   // ค้างที่การ์ดอีเวนต์ / การ์ดงาน (มิลลิวินาที)
+const deck = { idx: 0, held: false, timer: 0 };
 
 function deckGo(i, byUser) {
   const t = document.getElementById('dkTrack');
@@ -3683,14 +3697,12 @@ function deckPaint() {
 }
 function deckArm() {
   clearTimeout(deck.timer);
-  if (deck.held || deck.laps >= 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) { deck.held = true; deckPaint(); return; }
+  if (deck.held || matchMedia('(prefers-reduced-motion: reduce)').matches) { deck.held = true; deckPaint(); return; }
   deck.timer = setTimeout(() => {
     if (!document.getElementById('dkTrack')) return;
-    // ไม่อยู่จอวันนี้ / แอปอยู่เบื้องหลัง = รอรอบหน้า ไม่นับรอบ
+    // ไม่อยู่จอวันนี้ / แอปอยู่เบื้องหลัง = รอรอบหน้า
     if (curScreen !== 'scr-menu' || document.hidden) { deckArm(); return; }
-    const next = deck.idx ? 0 : 1;
-    if (next === 0) deck.laps++;
-    deckGo(next);
+    deckGo(deck.idx ? 0 : 1);
     deckArm();
   }, DECK_STAY[deck.idx]);
 }
@@ -3749,7 +3761,7 @@ const HOME_BLOCKS = {
   saiHero:    ctx => (typeof saiHero === 'function' && ctx.sp.now ? saiHero(ctx) : ''),
   // การ์ด "ตอนนี้" กับจอว่างเป็นบล็อกเดียวกัน เพราะมันคือของสองหน้าของคำถามเดียวกัน:
   // มีอะไรให้ทำไหม · แยกเป็นสองบล็อกเมื่อไหร่ จะมีวันที่จอโชว์ทั้งคู่หรือไม่โชว์เลย
-  // 24 ต.ค. 69 · ช่วงอีเวนต์ การ์ดนี้เป็นสไลด์แรกของ heroDeck (สไลด์สองคือการ์ดอีเวนต์ใหญ่)
+  // 24 ต.ค. 69 · ช่วงอีเวนต์ การ์ดนี้เป็นสไลด์สองของ heroDeck (สไลด์แรกคือการ์ดอีเวนต์ใหญ่ · เจ้าของสั่งสลับ)
   nowCard:    ctx => heroDeck(ctx.sp.now
     ? nowCard(ctx.sp, ctx.now) + (ctx.outOfTime ? noTimeLeft(ctx.sp, ctx.now) : '')
     : todayEmpty(ctx.now, ctx.hasReminders)),

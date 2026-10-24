@@ -6,7 +6,7 @@
 // จะเสิร์ฟโลโก้เก่าจากแคชต่อไปโดยไม่มีอะไรบอกว่ามีของใหม่
 // แยกชื่อแคช ALT จากเว็บหลัก: ปล่อยเฉพาะ ALT ต้องไม่ล้างแคชของเว็บหลักบน origin เดียวกัน
 const CACHE_PREFIX = 'studentos-alt-';
-const CACHE = CACHE_PREFIX + '1c60-halloween-logo-20261024'; // โลโก้ฮาโลวีนใหม่ทั้ง ALT (ไอคอน · จอโหลด · จอคั่น iOS) · เลขแอปคงเดิม
+const CACHE = CACHE_PREFIX + '1c60-halloween-season-20261024'; // จอโหลด/จอเข้าสู่ระบบช่วงฮาโลวีน + สไลด์อีเวนต์ก่อน 3 วิ · เลขแอปคงเดิม
 let HALLOWEEN_FILES = [];
 try { importScripts('halloween/cache-manifest.js'); HALLOWEEN_FILES = self.HALLOWEEN_SHELL || []; } catch (_) {}
 // ทุกไฟล์ที่ index.html อ้างถึงต้องอยู่ในรายการนี้ — ไฟล์ที่หน้าเรียกแต่ไม่ได้แคชไว้
@@ -20,6 +20,8 @@ const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.cs
   'engine.js', 'context.js', 'planner.js', 'facts.js', 'profile.js', 'simulate.js', 'calibrate.js', 'loss.js', 'decide.js', 'brain.js', 'inbox.js', 'linelink.js', 'integrations.js', 'room.js', 'social.js', 'feed.js', 'hw.js', 'topic.js', 'safety.js', 'sai.js', 'fxgames.js', 'fx3d.js', 'hoop.js', 'gacha-fx.js', 'quickadd.js', 'board.js', 'news.js', 'app.js', 'config.js', 'remote-config.js',
   'manifest.json', 'compat.js', 'staff-news.js', 'bug-reports.js', 'bug-reports.css', 'classrooms.js', 'classrooms.css', 'notification-policy.mjs',
   'device-preview.html', 'device-preview.css', 'device-preview.js', 'device-preview-controls.css', 'device-preview-bridge.js', ...HALLOWEEN_FILES,
+  // 24 ต.ค. 69 · ชุดแต่งจอโหลด/จอเข้าสู่ระบบช่วงฮาโลวีน (index.html อ้างถึงตรง ๆ จึงอยู่ที่นี่ ไม่อยู่ใน cache-manifest ของรางวัลถาวร)
+  'halloween/season/season.css', 'halloween/season/hook-mummy-224.webp',
   'shortcut-draft.js', 'desktop.css', 'desktop-entry.js', 'desktop.js', 'desktop-navigation.mjs',
   // 15 ต.ค. 69 · ข่าวสารจากทีม — แคชไว้ให้เปิดจอข่าวตอนออฟไลน์ได้ (drafts.json ไม่แคช: แอปไม่ได้โหลดมัน)
   'news/announcements.json',
