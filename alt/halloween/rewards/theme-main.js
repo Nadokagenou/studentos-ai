@@ -131,7 +131,11 @@
     document.querySelectorAll('img').forEach(img => {
       const src = img.getAttribute('src') || '';
       let target;
-      if (/(?:^|\/)hook-(?:body|face)\.webp$|(?:^|\/)hook-avatar\.png$/.test(src)) target = 'halloween/rewards/theme-assets/hook-mummy.webp';
+      // น้องฮูก (24 ต.ค. 69 · เจ้าของ: "ทำให้กลับเป็นน้องเดิมแค่ใส่หมวกฮาลาวีน") — เดิมเปลี่ยนทั้งตัวเป็นมัมมี่
+      // ตอนนี้เป็นตัวเดิมใส่หมวกแม่มด แยกไฟล์ตามภาพต้นฉบับ (ขนาดเท่าเดิม) · สร้างด้วย devtools/hook-hat.mjs
+      // ชุดมัมมี่ยังเป็นของสะสม — ถ้าเลือกใส่ไว้ในคอลเลกชัน ใช้ชุดที่เลือกแทน
+      const hook = /(?:^|\/)hook-(body|face)\.webp$|(?:^|\/)hook-(avatar)\.png$/.exec(src);
+      if (hook) target = window.HalloweenCosmetics?.costumeForSource(src) || 'halloween/rewards/theme-assets/hook-hat-' + (hook[1] || hook[2]) + '.svg';
       if (/(?:^|\/)sai-(?:chibi|face-[\w-]+)\.webp$|(?:^|\/)sai-avatar\.png$/.test(src)) target = 'halloween/rewards/theme-assets/sai-witch.webp';
       if (/(?:^|\/)(?:logo-splash(?:-light)?|logo-mark|icon-(?:alt-)?192)\.png$/.test(src)) target = 'halloween/rewards/theme-assets/app-icon.webp';
       if (target) { if (!originals.has(img)) originals.set(img, src); img.setAttribute('src', target); img.dataset.hwCharacter = 'true'; }
