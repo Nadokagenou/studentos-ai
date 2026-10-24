@@ -12,8 +12,8 @@ function block(selector) {
   for (const [, name, value] of body.matchAll(/(--[\w-]+):([^;]+);/g)) map[name] = value.trim();
   return map;
 }
-const night = block(':root:is([data-theme="halloween"],[data-theme="moonlight"])');
-const light = { ...night, ...block(':root:is([data-theme="halloween"],[data-theme="moonlight"])[data-hw-tone="light"]') };
+const night = block(':root[data-theme="moonlight"]');
+const light = { ...night, ...block(':root[data-theme="moonlight"][data-hw-tone="light"]') };
 const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
 const toHex = c => '#' + c.map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
 // Paint a possibly translucent colour over an opaque one.
@@ -78,7 +78,7 @@ test('solid app tokens match what the glass looks like, so other screens blend w
     }
 });
 test('the light tone redefines every palette colour, so nothing from night leaks into it', () => {
-  const lightOwn = block(':root:is([data-theme="halloween"],[data-theme="moonlight"])[data-hw-tone="light"]');
+  const lightOwn = block(':root[data-theme="moonlight"][data-hw-tone="light"]');
   const palette = Object.keys(night).filter(name => name.startsWith('--hw-'));
   assert.deepEqual(palette.filter(name => !(name in lightOwn)), []);
 });
@@ -92,7 +92,7 @@ test('status colours keep their meaning and never reuse the accent', () => {
     for (const status of ['--hw-good', '--hw-warn', '--hw-alert']) assert.notEqual(resolve(map, status), accent, status);
   }
 });
-test('shared palette rules stay inside the Halloween and Moon & Candle family', () => {
+test('every rule in the sample theme is scoped to it, so the Halloween theme cannot change', () => {
   const leaks = css.replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/)
     .filter(line => /^[^\s@}]/.test(line) && line.includes('{'))
     .filter(line => !line.includes('[data-theme="moonlight"]') && !line.startsWith('.sw-moonlight'));

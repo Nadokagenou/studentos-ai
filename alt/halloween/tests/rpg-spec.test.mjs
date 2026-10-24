@@ -103,7 +103,7 @@ test('biome progress counts completed phases and the actual guardian win; reward
   assert.equal(Core.biomeProgress(doc,config,biome).value,0);assert.equal(JSON.stringify(doc),initial);doc.event.quests[chain[0].id]={phase:1};assert.equal(Core.biomeProgress(doc,config,biome).value,Math.min(1,chain[0].phases.length-1));for(const q of chain)doc.event.quests[q.id]={complete:true};let p=Core.biomeProgress(doc,config,biome);assert.equal(p.complete,false);assert.equal(p.value,p.total-1);doc.event.bossWins={[boss]:{at}};p=Core.biomeProgress(doc,config,biome);assert.equal(p.complete,true);assert.equal(p.percent,100);
 });
 
-test('the final sovereign grants both Halloween tones and a victory badge in the same win transaction',async()=>{
+test('the final sovereign grants both original themes and a victory badge in the same win transaction',async()=>{
   const h=harness(d=>{ready(d,'midnight-sovereign');d.event.location={kind:'room',room:'ritual'};for(const [id,b]of Object.entries(config.proposals.bosses))if(b.biome){d.event.bossWins||={};d.event.bossWins[id]={at};d.rewards[b.theme]={id:b.theme};}});
   await defeat(h,'midnight-sovereign');const d=h.store.read();for(const id of ['theme-midnight-academy','theme-moon-candle','midnight-conqueror'])assert.ok(d.rewards[id],id);assert.equal(d.rewards['crown-of-midnight'],undefined);const before=JSON.stringify(d.rewards);await assert.rejects(h.apply({type:'start-boss',boss:'midnight-sovereign'}));assert.equal(JSON.stringify(h.store.read().rewards),before);
 });
