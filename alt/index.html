@@ -127,6 +127,7 @@
   <!-- ชุดความปลอดภัย: รายงาน · ยินยอม · นโยบาย -->
   <link rel="stylesheet" href="safety.css">
   <link rel="stylesheet" href="bug-reports.css">
+  <link rel="stylesheet" href="events.css">
   <!-- ห้องการบ้าน: แถวใต้การ์ดงาน + จอห้อง -->
   <link rel="stylesheet" href="hw.css">
 
@@ -1895,6 +1896,13 @@
         <div class="scr-body bd-body" id="boardBody"></div>
       </div>
 
+      <!-- ============ SCREEN: อีเวนต์ (24 ต.ค. 69) ============
+           แอป → อีเวนต์ → กิจกรรม → ส่วนย่อย · วาดจาก renderEvents() (events.js) รวมปุ่มกลับ
+           ทางเข้า: การ์ดอีเวนต์บนหน้าแรก · ชิป Candy บนแถบบนสุด -->
+      <div class="screen flush" id="scr-events">
+        <div class="scr-body ev-body" id="eventsBody"></div>
+      </div>
+
       <!-- ============ SCREEN: เหรียญตรา (ALT 1A6M3) ============ -->
       <div class="screen flush" id="scr-badges">
         <div class="scr-body bg-body" id="badgesBody"></div>
@@ -2574,13 +2582,14 @@
 <script src="staff-news.js"></script>
 <script src="bug-reports.js"></script>
 <script src="halloween/death-quests.js"></script>
+<script src="events.js"></script>
 <script src="app.js"></script>
 <script src="halloween/death-quest-main.js"></script>
 <link rel="stylesheet" href="halloween/death-quest-main.css">
 <script src="desktop-entry.js"></script>
 <script src="halloween/rewards/theme-main.js?rev=restore-appearance-20261024"></script>
 <script src="halloween/rewards/effect-games.js?rev=ceremony-20261024"></script>
-<script src="halloween/rewards/runtime.js?rev=distance-20261024"></script>
+<script src="halloween/rewards/runtime.js?rev=events-hub-20261024"></script>
 <script src="halloween/rewards/integration.js"></script>
 <script src="device-preview-bridge.js"></script>
 

@@ -1073,7 +1073,9 @@ const TAB_OWNER = { 'scr-timeline': 'scr-tasks',
   'scr-hw': 'scr-tasks',
   'scr-compose': 'scr-menu', 'scr-post': 'scr-menu', 'scr-user': 'scr-menu',
   // กระดานอันดับเข้าจากจอเพื่อน (ซึ่งยืมไฟแท็บ "วันนี้") หรือแท็บ "ฉัน" — ยืมไฟตามจอเพื่อน
-  'scr-board': 'scr-menu' };
+  'scr-board': 'scr-menu',
+  // 24 ต.ค. 69 · จออีเวนต์เข้าจากการ์ดบนหน้าแรก
+  'scr-events': 'scr-menu' };
 
 // ---------- 1A7V2: ออกจากแอปแล้วกลับเข้ามา ต้องอยู่ที่เดิม ----------
 // บนมือถือ การสลับไปแอปอื่นแล้วกลับมามักทำให้ระบบโหลดหน้าใหม่ทั้งหน้า
@@ -1157,7 +1159,7 @@ function resumeScreen() {
 var backFrom = {};
 var goingBack = false;
 const RETURN_TO = new Set(['scr-context', 'scr-ttscan', 'scr-news', 'scr-pro', 'scr-shop', 'scr-mates',
-  'scr-setopt', 'scr-badges', 'scr-scan', 'scr-login']);
+  'scr-setopt', 'scr-badges', 'scr-scan', 'scr-login', 'scr-events']);
 // จอลูกกลับขึ้นมาหาจอแม่ด้วยปุ่มตายตัว (สุ่ม → go('scr-shop')) ไม่ใช่ "การพาเข้ามา" — จำแล้ววนกลับไปจอลูก
 function backIsChild(origin, id) {
   if (backFrom[origin] === id) return true;
@@ -3579,7 +3581,7 @@ function todayTop() {
       : `<span class="tt-chip tt-tok" aria-label="โทเคน ${esc(fmtTok(bal))}">`}
       ${coin(20)}<b data-tok="${isFinite(bal) ? bal : ''}" data-tok-int>${esc(fmtTok(bal))}</b>${shop ? '</button>' : '</span>'}
     ${candy !== null && candy !== undefined
-      ? `<a class="tt-chip tt-candy" href="${esc(ev.href)}" aria-label="Candy ${candy}${ev.preview ? ' ในห้องลอง' : ''} · เข้าอีเวนต์">${HW_CANDY}<b>${candy}</b></a>` : ''}
+      ? `<a class="tt-chip tt-candy" href="#events" onclick="openEvents('halloween');return false" aria-label="Candy ${candy}${ev.preview ? ' ในห้องลอง' : ''} · เข้าอีเวนต์">${HW_CANDY}<b>${candy}</b></a>` : ''}
     ${rank
       ? `<button type="button" class="tt-chip tt-rank" onclick="openBoard('scr-menu')" aria-label="อันดับ">${icon('trophy')}<b${
           currentUser ? ' id="thRank"' : ''}>${currentUser && typeof boardRankLabel === 'function' ? boardRankLabel() : 'อันดับ'}</b></button>` : ''}
@@ -3612,7 +3614,7 @@ function eventSlot() {
   const label = `เข้าอีเวนต์ ${esc(ev.name)}${left ? ' · ' + esc(left) : ''}`;
   const tryTag = ev.preview ? '<i class="te-try">ห้องลอง</i>' : '';
   // อีเวนต์ที่ไม่มีภาพการ์ด (config.json ไม่มี card) ได้การ์ดฟักทองเรียบ ๆ แทน — ช่องนี้ต้องใช้ได้กับทุกอีเวนต์
-  if (!ev.art) return `<a class="td-event" href="${esc(ev.href)}" aria-label="${label}">
+  if (!ev.art) return `<a class="td-event" href="#events" onclick="openEvents('halloween');return false" aria-label="${label}">
     <span class="te-art">${HW_PUMPKIN}</span>
     <span class="te-tx"><b>${esc(ev.name)}${ev.tagline ? `<span class="te-tag"> · ${esc(ev.tagline)}</span>` : ''}</b>
       <span class="te-meta">${left ? `<i class="te-left">${esc(left)}</i>` : ''}${tryTag}</span></span>
@@ -3620,7 +3622,7 @@ function eventSlot() {
   </a>`;
   // 24 ต.ค. 69 · เจ้าของ: "ปรับให้การ์ด halloween สวย ๆ ด้วยได้ไหม มันตัวละครอะไรพวกนั้น"
   // ฉากโถงประตูสี่บานของอีเวนต์เป็นพื้น · NPC สี่ไบโอมยืนเรียงหน้าประตู (Tang · Jack · Dech · ยมทูต) · ภาพย่อจากชุดภาพของอีเวนต์เอง
-  return `<a class="td-event art" href="${esc(ev.href)}" aria-label="${label}" style="--te-art:url('${esc(ev.art)}')">
+  return `<a class="td-event art" href="#events" onclick="openEvents('halloween');return false" aria-label="${label}" style="--te-art:url('${esc(ev.art)}')">
     <span class="te-bg" aria-hidden="true"></span>
     <span class="te-cast" aria-hidden="true">${ev.cast.map((u, i) =>
       `<img src="${esc(u)}" alt="" decoding="async" style="--i:${i}">`).join('')}</span>
@@ -3653,7 +3655,7 @@ function eventHero(ev, left) {
   // 24 ต.ค. 69 · ป้ายใต้ตัวละครเป็นชื่อสั้น (names) ชื่อเต็มของเควส (fullNames) อยู่ใน title — ชื่อเต็มยาวเกินป้ายสี่ใบในแถวเดียว
   const cast = ev.cast.map((u, i) => `<figure style="--i:${i}"><img src="${esc(u)}" alt="" decoding="async">${
     ev.names[i] ? `<figcaption${ev.fullNames && ev.fullNames[i] ? ` title="${esc(ev.fullNames[i])}"` : ''}>${esc(ev.names[i])}</figcaption>` : ''}</figure>`).join('');
-  return `<a class="td-hero" href="${esc(ev.href)}" aria-label="เข้าอีเวนต์ ${esc(ev.name)}${left ? ' · ' + esc(left) : ''}" style="--te-art:url('${esc(ev.art)}')">
+  return `<a class="td-hero" href="#events" onclick="openEvents('halloween');return false" aria-label="เข้าอีเวนต์ ${esc(ev.name)}${left ? ' · ' + esc(left) : ''}" style="--te-art:url('${esc(ev.art)}')">
     <span class="th-bg" aria-hidden="true"></span>
     <span class="th-moon" aria-hidden="true"></span>
     <span class="th-top">
@@ -12565,6 +12567,7 @@ var SCREEN_RENDER = {
   'scr-form': [], 'scr-sai': [], 'scr-dayfull': [], 'scr-bugs': [], 'scr-ctxwiz': [], 'scr-compose': [], 'scr-consent': [],
   'scr-privacy': [], 'scr-user': [], 'scr-post': [], 'scr-chat': [], 'scr-hw': [], 'scr-topic': [], 'scr-tthread': [],
   'scr-dm': [], 'scr-board': [], 'scr-setopt': [],
+  'scr-events': ['renderEvents'],
   // ไม่ใส่: ล็อกอิน · แนะนำแอป · สแกน/ครอบรูป/กำลังอ่าน — จังหวะพิเศษ ปล่อยวาดทั้งหมดแบบเดิม
 };
 // เดิม renderEverything กรองรายการสำรวจใหม่เมื่ออยู่จอนี้ — ห่อเป็นตัววาดให้ตารางเรียกได้
