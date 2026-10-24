@@ -1,4 +1,5 @@
 /* Permanent biome themes. Main Halloween retains the richest scene and music. */
+:root[data-theme="hw-vampire"] .hw-biome-view{animation:none;background-position:center 32%;opacity:.58}
 /* A small ship travels through the distant sea; separate wrappers own travel and swell. */
 .hw-sea-voyage{display:none;position:absolute;inset:0;pointer-events:none;overflow:hidden}
 :root[data-theme="hw-ghostship"] .hw-sea-voyage{display:block}
