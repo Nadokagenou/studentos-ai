@@ -51,7 +51,7 @@
    const eventDir=new URL('../event/',base),card=config.card||{};
    window.HalloweenEventEntry=Object.freeze({name:config.name||'Halloween',tagline:config.tagline||'',blurb:config.blurb||'',href:destination.href,preview,
     // Home event card art, resolved against event/ so removing event/ takes the art with it
-    art:card.art?new URL(card.art,eventDir).href:'',cast:Array.isArray(card.cast)?card.cast.map(x=>new URL(x,eventDir).href):[],names:Array.isArray(card.names)?card.names.map(String):[],
+    art:card.art?new URL(card.art,eventDir).href:'',cast:Array.isArray(card.cast)?card.cast.map(x=>new URL(x,eventDir).href):[],names:Array.isArray(card.names)?card.names.map(String):[],fullNames:Array.isArray(card.fullNames)?card.fullNames.map(String):[],
     // null = the event has ended and the button hides itself · '' = no endsAt, so no countdown
     countdown(now=Date.now()){if(!Number.isFinite(end))return'';const left=end-now;if(left<=0)return null;const hours=Math.ceil(left/36e5);return hours<24?'เหลือ '+hours+' ชม.':'เหลือ '+Math.ceil(left/864e5)+' วัน';},
     // Preview Candy lives on this device (KEY in event/experience.js). Real claiming has no store to read yet, so it shows nothing.

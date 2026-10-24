@@ -3637,14 +3637,18 @@ function eventSlot() {
 //   • รอบสาม · เจ้าของ: "อยากให้มันเลื่อนไปขวาตลอด ๆ เปลี่ยนเป็น 5 วิแทน" — ทุก 5 วิ และไปทางเดียวตลอด
 //     ท้ายรางมีสำเนาสไลด์อีเวนต์ (dk-clone · inert) · งาน → สำเนา เลื่อนไปข้างหน้าเหมือนเดิม
 //     พอนิ่งที่สำเนาแล้วกระโดดกลับสไลด์จริงทันทีแบบไม่มีแอนิเมชัน — สองสไลด์หน้าตาเดียวกัน ตาจึงไม่เห็นการกระโดด
+//   • รอบสี่ · เจ้าของ: "ตั้งค่าวนลูปให้หน่อยเผื่อใครเลื่อนด้วยมือ" — หัวรางมีสำเนาการ์ดงานด้วย
+//     ราง = [สำเนางาน, อีเวนต์, งาน, สำเนาอีเวนต์] · ปัดย้อนจากอีเวนต์ = ไปการ์ดงาน · ปัดต่อจากงาน = ไปอีเวนต์ วนได้ทั้งสองทาง
+//     สำเนาตัด id ทิ้ง ไม่ให้ getElementById ไปเจอตัวสำเนาแทนตัวจริง
 //   • แตะ/ปัดเมื่อไหร่ = หยุดเลื่อนเองทันทีจนกว่าจะเปิดแอปใหม่ (คนที่กำลังอ่านต้องไม่โดนดึงหนี)
 //   • ไม่เลื่อนเองเลยเมื่อเครื่องตั้งลดการเคลื่อนไหว · ไม่อยู่จอวันนี้ · แอปอยู่เบื้องหลัง
 //   • renderMenu วาดทับทั้งจอทุกนาที — ตำแหน่งสไลด์เก็บไว้ที่ deck.idx แล้ววางคืนหลังวาด (deckMount)
 // ช่องอีเวนต์เล็ก (eventSlot) ไม่วาดเมื่อมีสไลด์นี้ ไม่งั้นอีเวนต์เดียวกันขึ้นสองที่
 function eventHero(ev, left) {
   const candy = ev.candy();
+  // 24 ต.ค. 69 · ป้ายใต้ตัวละครเป็นชื่อสั้น (names) ชื่อเต็มของเควส (fullNames) อยู่ใน title — ชื่อเต็มยาวเกินป้ายสี่ใบในแถวเดียว
   const cast = ev.cast.map((u, i) => `<figure style="--i:${i}"><img src="${esc(u)}" alt="" decoding="async">${
-    ev.names[i] ? `<figcaption>${esc(ev.names[i])}</figcaption>` : ''}</figure>`).join('');
+    ev.names[i] ? `<figcaption${ev.fullNames && ev.fullNames[i] ? ` title="${esc(ev.fullNames[i])}"` : ''}>${esc(ev.names[i])}</figcaption>` : ''}</figure>`).join('');
   return `<a class="td-hero" href="${esc(ev.href)}" aria-label="เข้าอีเวนต์ ${esc(ev.name)}${left ? ' · ' + esc(left) : ''}" style="--te-art:url('${esc(ev.art)}')">
     <span class="th-bg" aria-hidden="true"></span>
     <span class="th-moon" aria-hidden="true"></span>
@@ -3665,11 +3669,14 @@ function heroDeck(nowHtml) {
   const ev = window.HalloweenEventEntry || null;
   const left = ev ? ev.countdown() : null;
   if (!ev || left === null || !ev.art || !homeBlockOn('eventSlot')) return nowHtml;
+  const evHtml = eventHero(ev, left);
+  const copy = html => `<div class="dk-slide dk-clone" aria-hidden="true" inert>${html.replace(/\sid="[^"]*"/g, '')}</div>`;
   return `<section class="td-deck" aria-roledescription="สไลด์" aria-label="การ์ดหลัก">
     <div class="dk-track" id="dkTrack">
-      <div class="dk-slide" aria-label="อีเวนต์ ${esc(ev.name)}">${eventHero(ev, left)}</div>
+      ${copy(nowHtml)}
+      <div class="dk-slide" aria-label="อีเวนต์ ${esc(ev.name)}">${evHtml}</div>
       <div class="dk-slide" aria-label="งานตอนนี้">${nowHtml}</div>
-      <div class="dk-slide dk-clone" aria-hidden="true" inert>${eventHero(ev, left)}</div>
+      ${copy(evHtml)}
     </div>
     <div class="dk-dots" role="tablist">
       <button type="button" class="dk-dot ev" role="tab" onclick="deckGo(0, true)" aria-label="อีเวนต์ ${esc(ev.name)}"><i></i></button>
@@ -3679,7 +3686,7 @@ function heroDeck(nowHtml) {
 }
 
 const DECK_STAY = [5000, 5000];   // ค้างที่การ์ดอีเวนต์ / การ์ดงาน (มิลลิวินาที)
-const DECK_N = 2;                 // สไลด์จริง — ช่องที่ DECK_N ในรางคือสำเนาสไลด์แรก (ไว้วนไปข้างหน้า)
+const DECK_N = 2;                 // สไลด์จริง — ราง = [สำเนาสไลด์สุดท้าย, สไลด์จริง DECK_N ใบ, สำเนาสไลด์แรก]
 const deck = { idx: 0, held: false, timer: 0 };
 
 // ตำแหน่งเลื่อนของสไลด์ช่องที่ k ในราง · สไลด์ห่างกันด้วยระยะเว้น (margin) จึงคูณความกว้างตรง ๆ ไม่ได้
@@ -3690,13 +3697,13 @@ function deckNearest(t) {
     if (Math.abs(deckPos(t, k) - t.scrollLeft) < Math.abs(deckPos(t, best) - t.scrollLeft)) best = k;
   return best;
 }
-// slot = ช่องในราง (0 … DECK_N) · ช่อง DECK_N คือสำเนา จุดใต้การ์ดจึงขึ้นที่สไลด์แรก
-function deckGo(slot, byUser) {
+// i = สไลด์จริง (0 … DECK_N-1) อยู่ช่อง i+1 ของราง · i = DECK_N คือ "ถัดจากใบสุดท้าย" = สำเนาสไลด์แรกท้ายราง
+function deckGo(i, byUser) {
   const t = document.getElementById('dkTrack');
-  if (!t || !t.children[slot]) return;
+  if (!t || !t.children[i + 1]) return;
   if (byUser) deckHold();
-  deck.idx = slot % DECK_N;
-  t.scrollTo({ left: deckPos(t, slot), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  deck.idx = i % DECK_N;
+  t.scrollTo({ left: deckPos(t, i + 1), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   deckPaint();
 }
 function deckHold() { deck.held = true; clearTimeout(deck.timer); deckPaint(); }
@@ -3716,7 +3723,7 @@ function deckArm() {
     if (!document.getElementById('dkTrack')) return;
     // ไม่อยู่จอวันนี้ / แอปอยู่เบื้องหลัง = รอรอบหน้า
     if (curScreen !== 'scr-menu' || document.hidden) { deckArm(); return; }
-    deckGo(deck.idx + 1);   // ไปข้างหน้าเสมอ · สไลด์สุดท้าย → สำเนาสไลด์แรก (deckMount พากลับเอง)
+    deckGo(deck.idx + 1);   // ไปข้างหน้าเสมอ · สไลด์สุดท้าย → สำเนาสไลด์แรกท้ายราง (deckMount พากลับเอง)
     deckArm();
   }, DECK_STAY[deck.idx]);
 }
@@ -3724,15 +3731,17 @@ function deckArm() {
 function deckMount() {
   const t = document.getElementById('dkTrack');
   if (!t) return;
-  t.scrollTo({ left: deckPos(t, deck.idx), behavior: 'instant' });
+  t.scrollTo({ left: deckPos(t, deck.idx + 1), behavior: 'instant' });
   let settle = 0;
   t.addEventListener('scroll', () => {
     clearTimeout(settle);
     settle = setTimeout(() => {
       const k = deckNearest(t);
-      // นิ่งที่สำเนา (เลื่อนเองหรือปัดเองก็ตาม) = กระโดดกลับสไลด์จริงช่องแรกแบบไม่มีแอนิเมชัน
-      if (k === DECK_N) t.scrollTo({ left: 0, behavior: 'instant' });
-      const i = k % DECK_N;
+      // นิ่งที่สำเนา (เลื่อนเองหรือปัดเองก็ตาม) = กระโดดไปตัวจริงของมันแบบไม่มีแอนิเมชัน
+      // ช่อง 0 = สำเนาใบสุดท้าย → ช่อง DECK_N · ช่อง DECK_N+1 = สำเนาใบแรก → ช่อง 1
+      const real = k === 0 ? DECK_N : k === DECK_N + 1 ? 1 : k;
+      if (real !== k) t.scrollTo({ left: deckPos(t, real), behavior: 'instant' });
+      const i = real - 1;
       if (i !== deck.idx) { deck.idx = i; deckPaint(); }
     }, 90);
   }, { passive: true });
