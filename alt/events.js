@@ -280,101 +280,83 @@ function evFlowMount() {
 // ---------- ภารกิจปลดล็อกธีม Halloween (24 ต.ค. 69) ----------
 // เจ้าของ: "event ถัดไปของ hallow คือธีมสี halloween … ปลดล็อกธีมด้วยภารกิจ 2 อย่าง
 //          1. เชิญเพื่อนมาใช้ StudentOS AI ให้ครบ 3 คน 2. ทำงานให้เสร็จอย่างน้อย 1 งานภายในแอป"
-// ข้อ 1 นับที่เซิร์ฟเวอร์เท่านั้น (my_invite_count · ลิงก์ ?inv= · ดู supabase/migrations/20261024120000_invites.sql)
-//   ยอดในเครื่องแก้เองได้ — ทีมก่อนหน้าห้ามนับแบบนั้นไว้แล้ว (halloween/docs/STUDENTOS-MISSIONS-2026-10-24.md)
-// ข้อ 2 นับในเครื่อง: งานที่ติ๊กเสร็จ (ไม่อยู่ในถังขยะ) ตั้งแต่เปิดภารกิจ — ต้องทำหลังเห็นภารกิจ ไม่ใช่ของเก่าที่เสร็จไปแล้ว
-// ครบทั้งสอง → ปุ่มรับธีม → ธง THEME_QUEST (app.js) · เครื่องอื่นเปิดจอนี้แล้วกดรับซ้ำได้ เพราะทั้งสองข้อตามบัญชีไป
-const HWQ_OPEN = Date.parse('2026-10-24T00:00:00+07:00');   // ต้องตรงกับ v_open ใน claim_invite
-const HWQ_NEED = 3;
-const hwq = { invited: null, at: 0, busy: false, err: false };
-
-function hwqDone() {
-  return (state.tasks || []).filter(t => t.done && !t.deleted && t.doneAt && Date.parse(t.doneAt) >= HWQ_OPEN).length;
+// รอบสอง: "ผมทำคิวอาร์แล้วหนิอยู่ในไฟล์ ลองเอามาใช้แล้วปรับตามธีมดู" — ระบบชวนเพื่อนของเจ้าของอยู่ที่
+// halloween/invite-friend/invite-friend.js (รหัสสามคำ · ลิงก์ ?invite= · QR · นับที่เซิร์ฟเวอร์ redeem_invite)
+// หน้านี้ไม่มีกติกาหรือที่เก็บของตัวเองแล้ว — อ่านจากไฟล์นั้นทั้งหมด (inviteCount · inviteTaskMet · inviteUnlocked · ivData)
+// ต่างจากแผ่น openInvite() ตรงหน้าตา: แผ่นเป็นโทนคืนฮาโลวีนตายตัว ส่วนหน้านี้ใช้โทเคนของธีมที่ใช้อยู่ (--card · --ink · --muted)
+// ให้เข้ากับจออีเวนต์ส่วนที่เหลือ · ตัว QR พื้นสว่างเสมอ (สีของ invite-friend.css) เพราะกล้องต้องอ่านออก
+var hwqAt = 0;
+function hwqWarm() {
+  if (typeof inviteRefresh !== 'function') return;
+  if (Date.now() - hwqAt > 20000) { hwqAt = Date.now(); inviteRefresh(); }
+  if (typeof ivLoadQr === 'function' && typeof qrcode !== 'function') ivLoadQr().then(ok => { if (ok) hwqRepaint(); });
 }
-function hwqSignedIn() { return typeof sb !== 'undefined' && !!sb && typeof currentUser !== 'undefined' && !!currentUser; }
-
-// ถามยอดชวนใหม่เมื่อเปิดจอนี้ (เก่ากว่า 20 วิ) — เพื่อนสมัครระหว่างที่เราเปิดแอปค้างไว้ต้องขึ้นโดยไม่ต้องปิดเปิดแอป
-function hwqLoad() {
-  if (!hwqSignedIn() || hwq.busy || Date.now() - hwq.at < 20000) return;
-  hwq.busy = true;
-  sb.rpc('my_invite_count').then(({ data, error }) => {
-    hwq.busy = false; hwq.at = Date.now();
-    hwq.err = !!error;
-    if (!error && Number.isInteger(data)) hwq.invited = data;
-    if (curScreen === 'scr-events' && eventsPick === 'hw-theme') renderEvents();
-  }, () => { hwq.busy = false; hwq.at = Date.now(); hwq.err = true; });
+// invite-friend.js เรียก paintInvite() ทุกครั้งที่ข้อมูลเปลี่ยน — จออีเวนต์วาดใหม่ตาม (ดู paintInvite)
+function hwqRepaint() {
+  if (typeof curScreen !== 'undefined' && curScreen === 'scr-events' && eventsPick === 'hw-theme') renderEvents();
 }
 
 function questDetail(e) {
-  hwqLoad();
-  const owned = typeof questThemeOwned === 'function' && questThemeOwned('halloween');
-  const signed = hwqSignedIn();
-  const inv = Math.min(hwq.invited || 0, HWQ_NEED);
-  const done = Math.min(hwqDone(), 1);
-  const ok1 = inv >= HWQ_NEED, ok2 = done >= 1;
+  if (typeof inviteCount !== 'function') return `<div class="ev-empty"><b>ยังเปิดภารกิจไม่ได้</b><span>ลองเปิดแอปใหม่อีกครั้ง</span></div>`;
+  hwqWarm();
+  const signed = typeof ivReady === 'function' && ivReady();
+  const d = signed ? (ivData || ivReadCache()) : null;
+  const code = d && d.code ? d.code : '';
+  const inv = Math.min(inviteCount(), INVITE_GOAL);
+  const ok1 = inv >= INVITE_GOAL, ok2 = inviteTaskMet();
+  const owned = inviteUnlocked();
+  const using = typeof themePref === 'function' && themePref() === INVITE_THEME;
+  // ช่องใส่รหัสจากเพื่อน: บัญชีใหม่เท่านั้น (กติกาเดียวกับ redeem_invite · เงื่อนไขเดียวกับแผ่นใน invite-friend.js)
+  const born = signed && currentUser.created_at ? Date.parse(currentUser.created_at) : 0;
+  const canRedeem = !!(d && !d.invited_by && born && Date.now() - born < INVITE_NEW_DAYS * 864e5);
+  const left = d ? Math.max(0, (Number(d.max_uses) || 0) - (Number(d.used) || 0)) : null;
   const bar = (n, of) => `<span class="hq-bar" aria-hidden="true"><i style="width:${Math.round(n / of * 100)}%"></i></span>`;
   const tick = on => `<span class="hq-tick${on ? ' on' : ''}" aria-hidden="true">${on ? icon('check') : ''}</span>`;
 
-  // ข้อ 1 — ยังไม่ล็อกอิน = ยังนับไม่ได้ (ยอดอยู่ที่บัญชี) บอกตรง ๆ แทนการขึ้น 0/3 ที่ไม่จริง
-  const invAct = ok1 ? '' : !signed
-    ? `<button type="button" class="hq-btn" onclick="setLoginView('root');go('scr-login')">เข้าสู่ระบบ</button>`
-    : `<button type="button" class="hq-btn" onclick="hwqShare()">${icon('share')}ส่งลิงก์เชิญ</button>`;
-  const invSub = !signed ? 'ต้องเข้าสู่ระบบก่อน ยอดชวนนับตามบัญชี'
-    : hwq.invited === null ? (hwq.err ? 'ยังนับไม่ได้ตอนนี้ ลองเปิดจอนี้ใหม่อีกครั้ง' : 'กำลังนับ…')
-    : ok1 ? 'ครบแล้ว' : 'เพื่อนกดลิงก์ของเธอ แล้วสมัครบัญชีใหม่ = นับ 1 คน';
+  // บัตรเชิญ: QR + รหัส + ปุ่ม · ยังไม่ล็อกอิน/กำลังโหลด/โหลดไม่ได้ บอกตรง ๆ ไม่ขึ้นรหัสหลอก
+  const ticket = !signed ? `<div class="hq-ticket off"><p>เข้าบัญชีก่อน แล้วจะได้รหัสเชิญกับ QR ของเธอเอง</p>
+        <button type="button" class="hq-btn" onclick="ivLogin()">เข้าสู่ระบบ</button></div>`
+    : !code && ivFailed ? `<div class="hq-ticket off"><p>ยังสร้างรหัสเชิญไม่ได้ เช็กอินเทอร์เน็ตแล้วลองใหม่</p>
+        <button type="button" class="hq-btn ghost" onclick="hwqAt=0;hwqWarm()">ลองใหม่</button></div>`
+    : !code ? `<div class="hq-ticket off" aria-busy="true"><p>กำลังสร้างรหัสเชิญ…</p></div>`
+    : `<div class="hq-ticket">
+        <div class="hq-qr">${inviteQrSvg(inviteLink(code)) || '<span>QR จะขึ้นเมื่อออนไลน์</span>'}</div>
+        <div class="hq-code-wrap"><small>รหัสเชิญของเธอ</small>
+          <div class="hq-code" aria-label="${esc(code.split('-').join(' '))}">${code.split('-').map(w => `<span>${esc(w)}</span>`).join('<i>-</i>')}</div>
+          <small>${left == null ? '' : left > 0 ? `ใช้ได้อีก ${left} คน` : 'รหัสนี้มีคนใช้ครบแล้ว'}</small></div>
+        <div class="hq-btns">
+          <button type="button" class="hq-btn" onclick="inviteShare()">${icon('share')}ส่งลิงก์</button>
+          <button type="button" class="hq-btn ghost" onclick="inviteCopy('code')">${icon('copy')}คัดลอกรหัส</button>
+        </div>
+      </div>`;
+
+  const friends = d && Array.isArray(d.friends) && d.friends.length
+    ? d.friends.slice(0, 6).map(f => esc(f.handle ? '@' + f.handle : f.name)).join(' · ') : '';
+  const invSub = !signed ? 'ยอดชวนนับตามบัญชี ต้องเข้าสู่ระบบก่อน'
+    : friends || 'นับเมื่อเพื่อนที่ไม่เคยใช้ StudentOS สมัครแล้วใส่รหัสของเธอ';
   const doneAct = ok2 ? '' : `<button type="button" class="hq-btn" onclick="go('scr-menu')">ไปทำงาน</button>`;
 
   const cta = owned
-    ? `<button type="button" class="hq-claim" onclick="setTheme('halloween')">ใช้ธีม Halloween</button>`
-    : ok1 && ok2
-      ? `<button type="button" class="hq-claim" onclick="hwqClaim()">${icon('sparkles')}รับธีม Halloween</button>`
-      : `<span class="hq-lock">${icon('lock')}ทำครบ 2 ภารกิจเพื่อปลดล็อก</span>`;
+    ? (using ? '' : `<button type="button" class="hq-claim" onclick="setTheme('${INVITE_THEME}')">${icon('sparkles')}ใช้ธีม Halloween</button>`)
+    : `<span class="hq-lock">${icon('lock')}ทำครบ 2 ภารกิจ ธีมปลดล็อกเองทันที</span>`;
 
   return `<div class="hq-banner" style="--ev-art:url('${esc(e.art)}')">
       <span class="ev-tags">${e.left ? `<i class="ev-left">${esc(e.left)}</i>` : ''}${owned ? '<i class="hq-own">ปลดล็อกแล้ว</i>' : ''}</span>
       <span class="hq-sw sw-halloween" aria-hidden="true"></span>
-      <h2>ธีม Halloween<span>ธีมสีกลางคืน · ฉากโรงเรียนรัตติกาล</span></h2>
-      <p>ทำภารกิจครบสองข้อ แล้วธีมนี้เป็นของเธอถาวร</p>
+      <h2>ธีม Halloween<span>ชวนเพื่อน · ปลดล็อกถาวร</span></h2>
     </div>
+    ${ticket}
     <h3 class="ev-sub">ภารกิจ · ${(ok1 ? 1 : 0) + (ok2 ? 1 : 0)}/2</h3>
     <div class="hq-list">
       <div class="hq-row${ok1 ? ' ok' : ''}">${tick(ok1)}
-        <div class="hq-tx"><b>เชิญเพื่อนมาใช้ StudentOS AI ให้ครบ 3 คน</b><small>${esc(invSub)}</small>
-          ${signed ? `<span class="hq-prog">${bar(inv, HWQ_NEED)}<em>${inv}/${HWQ_NEED}</em></span>` : ''}</div>
-        ${invAct}</div>
+        <div class="hq-tx"><b>เชิญเพื่อนมาใช้ StudentOS AI ให้ครบ ${INVITE_GOAL} คน</b><small>${invSub}</small>
+          <span class="hq-prog">${bar(inv, INVITE_GOAL)}<em>${inv}/${INVITE_GOAL}</em></span></div></div>
       <div class="hq-row${ok2 ? ' ok' : ''}">${tick(ok2)}
-        <div class="hq-tx"><b>ทำงานให้เสร็จอย่างน้อย 1 งาน</b><small>${ok2 ? 'ครบแล้ว' : 'ติ๊กงานเสร็จในแอปตั้งแต่วันนี้ไป'}</small>
-          <span class="hq-prog">${bar(done, 1)}<em>${done}/1</em></span></div>
+        <div class="hq-tx"><b>ทำงานให้เสร็จอย่างน้อย 1 งาน</b><small>${ok2 ? 'เสร็จแล้ว' : 'ติ๊กงานไหนก็ได้ว่าเสร็จ'}</small>
+          <span class="hq-prog">${bar(ok2 ? 1 : 0, 1)}<em>${ok2 ? 1 : 0}/1</em></span></div>
         ${doneAct}</div>
     </div>
-    ${cta}`;
-}
-
-// ลิงก์ = ที่อยู่แอปนี้ + ?inv=<id บัญชีเรา> · เมนูแชร์ของเครื่องก่อน (LINE/IG) ไม่มีก็คัดลอก
-// ไม่นับอะไรตรงนี้ — นับเมื่อเพื่อนสมัครจริงเท่านั้น
-function hwqShare() {
-  if (!hwqSignedIn()) return;
-  const url = new URL('.', location.href).href + '?inv=' + encodeURIComponent(currentUser.id);
-  const text = 'มาใช้ StudentOS AI ด้วยกัน — แอปที่บอกว่าตอนนี้ควรทำการบ้านอะไรก่อน';
-  if (typeof haptic === 'function') haptic('tap');
-  if (navigator.share) {
-    navigator.share({ title: 'StudentOS AI', text, url }).catch(() => {});
-    return;
-  }
-  try {
-    navigator.clipboard.writeText(text + '\n' + url).then(
-      () => showToast({ title: 'คัดลอกลิงก์เชิญแล้ว', body: 'ส่งให้เพื่อน · นับเมื่อเพื่อนสมัครบัญชีใหม่' }),
-      () => showToast({ title: 'คัดลอกไม่ได้', body: url }));
-  } catch (_) { showToast({ title: 'ลิงก์เชิญของเธอ', body: url }); }
-}
-
-function hwqClaim() {
-  if (hwqDone() < 1 || (hwq.invited || 0) < HWQ_NEED) { renderEvents(); return; }
-  try { localStorage.setItem(THEME_QUEST.halloween, '1'); } catch (_) { return; }
-  if (typeof applyThemeLocks === 'function') applyThemeLocks();
-  if (typeof haptic === 'function') haptic('done');
-  if (typeof splashBurst === 'function') splashBurst(20, 'egg-star');
-  setTheme('halloween');
-  showToast({ title: 'ได้ธีม Halloween แล้ว', body: 'เปลี่ยนธีมได้ที่จอตั้งค่า · เป็นของเธอถาวร' });
-  renderEvents();
+    ${cta}
+    ${canRedeem ? `<button type="button" class="hq-more" onclick="openInvite()">มีรหัสเชิญจากเพื่อน? ใส่รหัสที่นี่</button>` : ''}
+    ${d && d.invited_by ? `<p class="hq-fine">เธอมาจากคำชวนของ ${esc(d.invited_by.handle ? '@' + d.invited_by.handle : d.invited_by.name)}</p>` : ''}`;
 }
