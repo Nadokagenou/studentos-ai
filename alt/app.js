@@ -303,6 +303,13 @@ const THEME_CODE = { astral: 'studentos.alt.astralUnlocked' };
 function codeThemeOwned(id) {
   try { return !!THEME_CODE[id] && localStorage.getItem(THEME_CODE[id]) === '1'; } catch (_) { return false; }
 }
+// 24 ต.ค. 69 · ธีมที่ปลดล็อกด้วยภารกิจในจออีเวนต์ (events.js hwQuest) — เดิม Halloween เป็นธีมฟรี
+// เจ้าของ: ปลดด้วย "เชิญเพื่อนครบ 3 คน + ทำงานเสร็จ 1 งาน" · ต่างจาก THEME_CODE ตรงที่มีช่วงผ่อนผัน:
+// คนที่ใช้ Halloween อยู่ก่อนแล้วใช้ต่อได้ (ไม่ยึดของที่เขาใช้อยู่คืน) แต่เปลี่ยนออกแล้วต้องทำภารกิจก่อน
+const THEME_QUEST = { halloween: 'studentos.alt.hwThemeUnlocked' };
+function questThemeOwned(id) {
+  try { return !!THEME_QUEST[id] && localStorage.getItem(THEME_QUEST[id]) === '1'; } catch (_) { return false; }
+}
 const THEME_KEY = 'studentos.alt.theme';   // ALT: แยกจากตัวจริง (ต้องตรงกับสคริปต์ใน <head>)
 // สีแถบสถานะของแต่ละโทน (ต้องตรงกับ --scr ใน style.css/alt.css และตารางในสคริปต์ <head>)
 const THEME_BAR = {
@@ -640,6 +647,7 @@ function setTheme(pref) {
   if (typeof themeVisible === 'function' && pref !== 'system' && !themeVisible(pref)) {
     haptic('snooze');
     showToast({ title: 'ยังไม่มีธีมนี้', body: THEME_SHOP[pref] ? 'ซื้อได้ที่ร้านค้า'
+      : THEME_QUEST[pref] ? 'ปลดล็อกด้วยภารกิจในจออีเวนต์'
       : THEME_CODE[pref] ? 'ธีมนี้ยังไม่ได้ปลดล็อก' : 'ได้จากการสุ่มสกินในร้านค้า' });
     return;
   }
@@ -1498,7 +1506,7 @@ async function initCloud() {
       // รายการตัวเชื่อมอยู่ฝั่งเซิร์ฟเวอร์ ไม่ได้อยู่ในก้อนข้อมูลผู้ใช้ — ต้องถามเอง
       // หลังล็อกอินเสร็จ ไม่งั้นหน้าตัวเชื่อมจะขึ้นว่า "ยังไม่ได้เชื่อมอะไรเลย" ทั้งที่เชื่อมไว้แล้ว
       if (typeof integLoad === 'function') integLoad(true);
-      syncFromCloud().then(() => { routeAfterLogin(); return applyJoinToken(); });
+      syncFromCloud().then(() => { routeAfterLogin(); applyInviteCode(); return applyJoinToken(); });
     } else {
       renderAll();
     }
@@ -10438,10 +10446,11 @@ function craftTheme(id) {
   showToast({ title: 'คราฟธีม' + c.name + 'สำเร็จ', body: 'เลือกใช้ได้ที่จอตั้งค่า · เหลือ ' + fmtTok(s.bal) + ' โทเคน' });
 }
 
-function themeLocked(id) { return THEME_GACHA.includes(id) || !!THEME_SHOP[id] || !!THEME_CODE[id]; }
+function themeLocked(id) { return THEME_GACHA.includes(id) || !!THEME_SHOP[id] || !!THEME_CODE[id] || !!THEME_QUEST[id]; }
 function themeOwned(id) {
   if (!themeLocked(id)) return true;
   if (THEME_CODE[id]) return codeThemeOwned(id);
+  if (THEME_QUEST[id]) return questThemeOwned(id);
   const s = tokenState();
   if (THEME_GACHA.includes(id)) return ((s.skins || {})[id] || 0) > 0;
   return (s.bought || []).includes(id);
@@ -18770,6 +18779,35 @@ function stashJoinToken() {
   } catch (_) { /* ที่เก็บเต็มหรือถูกปิด — ปล่อยผ่าน ไม่ใช่เรื่องที่ต้องหยุดทั้งแอป */ }
 }
 
+// ---------- ลิงก์เชิญเพื่อน (?inv=<id บัญชีคนชวน>) · 24 ต.ค. 69 ----------
+// ภารกิจปลดล็อกธีม Halloween ข้อ 1 (events.js) · กติกาเดียวกับลิงก์กลุ่มข้างบน: เก็บไว้ก่อน ใช้หลังล็อกอิน
+// การนับเกิดที่เซิร์ฟเวอร์ทั้งหมด (claim_invite · supabase/migrations/20261024120000_invites.sql)
+// ฝั่งนี้แค่ส่งรหัสไป — บัญชีเก่า ชวนตัวเอง หรือถูกนับไปแล้ว เซิร์ฟเวอร์ปัดตกเอง
+const INVITE_KEY = 'studentos.alt.inviteCode';
+
+function stashInviteCode() {
+  try {
+    const c = (BOOT_Q.get('inv') || '').trim().toLowerCase();
+    if (/^[0-9a-f-]{36}$/.test(c)) localStorage.setItem(INVITE_KEY, c);
+  } catch (_) {}
+}
+
+async function applyInviteCode() {
+  let c = null;
+  try { c = localStorage.getItem(INVITE_KEY); } catch (_) { return; }
+  if (!c || !(sb && currentUser)) return;
+  try {
+    const { data, error } = await sb.rpc('claim_invite', { p_code: c });
+    if (error) throw error;
+    // คำตอบไหนก็ตาม (นับแล้ว · บัญชีเก่า · ลิงก์ตัวเอง) ใช้ซ้ำไม่ได้อีก — ทิ้งได้ · ไม่บอกผู้ใช้ เพราะไม่ใช่เรื่องที่เขาต้องทำอะไร
+    try { localStorage.removeItem(INVITE_KEY); } catch (_) {}
+    if (data === 'ok') showToast({ title: 'ยินดีต้อนรับสู่ StudentOS', body: 'เพื่อนที่ชวนเธอมาได้นับแต้มภารกิจแล้ว' });
+  } catch (e) {
+    // ไม่ลบ — เน็ตหลุด หรือเซิร์ฟเวอร์ยังไม่ได้รันไฟล์ SQL ต้องได้ลองใหม่รอบหน้า
+    console.warn('[invite] ส่งรหัสเชิญไม่สำเร็จ:', (e && e.message) || e);
+  }
+}
+
 // เรียกได้หลายครั้ง ปลอดภัยเสมอ — ไม่มี token หรือยังไม่ล็อกอินก็แค่ออก
 async function applyJoinToken() {
   let t = null;
@@ -19360,6 +19398,7 @@ function syncLiteRow() { syncGfxRow(); }
   purgeOldTrash(); // ของในถังขยะที่เกิน 30 วัน ทิ้งถาวรตอนเปิดแอป
   funnelOpen();    // นับการเปิดแอป — ต้องอยู่หลัง load() ไม่งั้นนับทับก้อนเปล่า
   stashJoinToken();  // เก็บ token จากลิงก์กลุ่มไว้ก่อน ใช้จริงหลังล็อกอิน
+  stashInviteCode(); // รหัสลิงก์เชิญเพื่อน — แบบเดียวกัน
   stashSharedText(); // ข้อความที่แชร์มาก็เก็บก่อนเหมือนกัน กันหายตอน sw สั่งรีโหลด
   // ล้างคิวรีออกจาก URL ครั้งเดียวตรงนี้ — ค่าที่ต้องใช้ถูกอ่านเก็บไว้ใน BOOT_Q แล้ว
   // ปล่อยค้างไว้ = รีเฟรชทีไรก็เข้าร่วมซ้ำ/เพิ่มงานซ้ำทุกที
@@ -19512,6 +19551,7 @@ function syncLiteRow() { syncGfxRow(); }
   if (typeof window.bootStep === 'function') window.bootStep('cloud');
   // ตอนนี้รู้แล้วว่าล็อกอินสำเร็จจริงไหม — ถ้ามี token ค้างจากลิงก์กลุ่ม ใช้ตรงนี้
   await applyJoinToken();
+  applyInviteCode();   // ไม่ต้องรอ — ไม่มีอะไรข้างล่างที่ใช้ผลของมัน
   // เคยกดอนุญาตไว้แล้ว + ล็อกอินอยู่ → ต่อ push ให้อัตโนมัติ (เผื่อ subscription หลุด)
   // ยังไม่ล็อกอินก็ต้องผ่านตรงนี้ — pushState ต้องได้ค่าจริงไว้ให้จอตั้งค่าใช้
   await ensurePush();
