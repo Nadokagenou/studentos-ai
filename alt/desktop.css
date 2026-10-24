@@ -47,7 +47,7 @@
   :root body:not(.login-mode) .tabbar::before {
     content:'Student OS'; display:block; flex:none; height:46px;
     margin:0 4px 28px; padding:9px 0 0 50px; color:var(--ink);
-    background:url('logo-mark.png') 4px center / 32px 32px no-repeat, radial-gradient(circle,#fff 69%,transparent 71%) left center / 40px 40px no-repeat;
+    background:url('logo-mark.png') left center / 40px 40px no-repeat;   /* 24 ต.ค. 69 · ตราใหม่มีพื้นของตัวเอง ไม่ต้องมีวงขาวรอง */
     font:600 21px/1.4 'Outfit','Sarabun',sans-serif; white-space:nowrap;
   }
   :root body:not(.login-mode) .tabbar::after {

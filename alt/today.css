@@ -1752,3 +1752,11 @@ span.tt-chip { cursor: default; }
 .td-setup .ts-go { color: var(--muted); display: grid; place-items: center; }
 .td-setup .ts-go svg { width: 16px; height: 16px; }
 .td-setup:active { transform: scale(.99); }
+
+/* ---------- 24 ต.ค. 69 · โลโก้ใหม่ทั้ง ALT (เจ้าของ: "เอาโลโก้ใหม่นี้ไปแทน alt ทั้งหมด") ----------
+   ตราเก่าเป็นหนังสือกรมท่าบนพื้นใส วาดมาสำหรับพื้นขาว จึงมีแผ่นรองขาว + ช่องว่างในทุกที่ที่ตราขึ้น
+   ตราใหม่เป็นไอคอนเต็มใบ มีพื้นม่วงกลางคืนและมุมมนในภาพเอง (logo-mark / logo-splash-light / logo-splash)
+   แผ่นขาวรอบไอคอนจะกลายเป็นกรอบขาวหนา ๆ — เลิกแผ่นรองและช่องว่าง ให้ภาพเต็มกรอบ */
+.lg-mark, .ob-mark, .ig-icon img, .toast .tav, #appToast .tav, .th-face.th-brand {
+  background: none; padding: 0; object-fit: cover;
+}
