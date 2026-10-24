@@ -3618,7 +3618,7 @@ function eventSlot() {
     <span class="te-art">${HW_PUMPKIN}</span>
     <span class="te-tx"><b>${esc(ev.name)}${ev.tagline ? `<span class="te-tag"> · ${esc(ev.tagline)}</span>` : ''}</b>
       <span class="te-meta">${left ? `<i class="te-left">${esc(left)}</i>` : ''}${tryTag}</span></span>
-    <span class="te-go">เข้าเล่น</span>
+    <span class="te-go">Event</span>
   </a>`;
   // 24 ต.ค. 69 · เจ้าของ: "ปรับให้การ์ด halloween สวย ๆ ด้วยได้ไหม มันตัวละครอะไรพวกนั้น"
   // ฉากโถงประตูสี่บานของอีเวนต์เป็นพื้น · NPC สี่ไบโอมยืนเรียงหน้าประตู (Tang · Jack · Dech · ยมทูต) · ภาพย่อจากชุดภาพของอีเวนต์เอง
@@ -3630,7 +3630,7 @@ function eventSlot() {
       ${left ? `<i class="te-left">${esc(left)}</i>` : ''}
       <b class="te-name">${esc(ev.name)}</b>
       ${ev.tagline ? `<span class="te-tag">${esc(ev.tagline)}</span>` : ''}
-      <span class="te-foot"><span class="te-go">เข้าเล่น</span>${tryTag}</span>
+      <span class="te-foot"><span class="te-go">Event</span>${tryTag}</span>
     </span>
   </a>`;
 }
@@ -3665,7 +3665,7 @@ function eventHero(ev, left) {
     ${ev.blurb ? `<span class="th-blurb">${esc(ev.blurb)}</span>` : ''}
     <span class="th-cast" aria-hidden="true">${cast}</span>
     <span class="th-foot">
-      <span class="th-go">เข้าเล่น ${icon('chevron')}</span>
+      <span class="th-go">Event ${icon('chevron')}</span>
       ${candy !== null && candy !== undefined ? `<span class="th-candy">${HW_CANDY}<b>${candy}</b> Candy</span>` : ''}
     </span>
   </a>`;

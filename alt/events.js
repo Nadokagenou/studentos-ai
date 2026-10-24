@@ -88,6 +88,7 @@ function renderEvents() {
     <nav class="ev-tabs" aria-label="กิจกรรมทั้งหมด">${tabs}</nav>
     <section class="ev-main">${detail}</section>`;
   evDeckMount();
+  evFlowMount();
 }
 
 // 24 ต.ค. 69 (รอบสาม) · เจ้าของ: "หน้า hallow ในนี้ อยากให้เป็นสไลด์เลื่อนเหมือนกัน แต่เป็นภาพตัวอย่างในกิจกรรมนี้"
@@ -133,7 +134,8 @@ function eventsDetail(e) {
       </span>
     </div>
     ${dots}
-    ${shelf ? `<h3 class="ev-sub">เล่นแล้วได้อะไร · รางวัล ${total} ชิ้น</h3><div class="ev-shelf">${shelf}</div>` : ''}
+    ${shelf ? `<h3 class="ev-sub">เล่นแล้วได้อะไร · รางวัล ${total} ชิ้น</h3><div class="ev-shelf" id="evShelf">${shelf}${
+      shelf.replace(/class="ev-rw/g, 'aria-hidden="true" inert class="ev-rw ev-clone')}</div>` : ''}
     ${chips ? `<div class="ev-chips">${chips}</div>` : ''}`;
 }
 
@@ -200,4 +202,62 @@ function evDeckMount() {
   t.addEventListener('focusin', evDeckHold);
   evDeckPaint();
   if (n > 1) evDeckArm();
+}
+
+// ---------- แถวรางวัลไหลเอง ----------
+// 25 ต.ค. 69 · เจ้าของ: "ด้านล่างเลื่อนเร็ว ๆ กว่าด้านบน ไปเรื่อย ๆ" — แบนเนอร์บนเปลี่ยนทีละสไลด์ทุก 5 วิ
+// แถวรางวัลไหลต่อเนื่องแทน (40px/วิ ≈ การ์ดละ 2.5 วิ เร็วกว่าแบนเนอร์) · ต่อท้ายด้วยสำเนาทั้งแถว (inert)
+// ไหลถึงต้นสำเนาเมื่อไหร่ถอยกลับไปหนึ่งชุด — หน้าตาเหมือนกันเป๊ะ ตาไม่เห็นการกระโดด
+// นิ้วแตะ = หยุดให้ปัดเอง · ปล่อยแล้ว 3 วิไหลต่อจากตรงที่ปัดไว้ (ต่างจากแบนเนอร์ที่หยุดถาวร — แถวนี้ไม่มีอะไรให้อ่านค้าง)
+// ไม่ไหลเมื่อตั้งลดการเคลื่อนไหว · โหมดลื่น · ไม่อยู่จอนี้ · แอปอยู่เบื้องหลัง (กติกาเดียวกับแบนเนอร์)
+const EV_FLOW = 40;   // px ต่อวินาที
+const evFlow = { raf: 0, wait: 0, pos: 0, span: 0, last: 0, el: null };
+
+function evFlowStop() {
+  cancelAnimationFrame(evFlow.raf); clearTimeout(evFlow.wait); evFlow.raf = evFlow.wait = 0;
+  if (evFlow.el) evFlow.el.classList.remove('run');
+}
+function evFlowStart(delay) {
+  evFlowStop();
+  const s = evFlow.el;
+  if (!s || !s.isConnected) return;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.lite;
+  if (reduce) return;
+  evFlow.wait = setTimeout(() => {
+    evFlow.wait = 0;
+    if (!s.isConnected) return;
+    if (typeof curScreen !== 'undefined' && curScreen !== 'scr-events' || document.hidden) { evFlowStart(1000); return; }
+    // วัดตอนนี้ (หลังเบราว์เซอร์จัดผังแล้ว) ไม่ใช่ตอนเพิ่งเขียน innerHTML
+    const first = s.children[0], half = s.children[s.children.length / 2];
+    evFlow.span = half && first ? half.offsetLeft - first.offsetLeft : 0;
+    if (evFlow.span < s.clientWidth) return;   // ชุดเดียวยังไม่ล้นจอ ไม่ต้องไหล
+    evFlow.pos = s.scrollLeft % evFlow.span;
+    evFlow.last = 0;
+    s.classList.add('run');
+    const tick = now => {
+      if (!s.isConnected) { evFlowStop(); return; }
+      if (typeof curScreen !== 'undefined' && curScreen !== 'scr-events' || document.hidden) { evFlowStart(1000); return; }
+      if (evFlow.last) evFlow.pos += Math.min(now - evFlow.last, 100) * EV_FLOW / 1000;   // แอปค้างนาน ๆ ไม่กระโดดไกล
+      evFlow.last = now;
+      if (evFlow.pos >= evFlow.span) evFlow.pos -= evFlow.span;
+      s.scrollLeft = evFlow.pos;   // จำตำแหน่งทศนิยมเอง — บางเครื่องปัด scrollLeft เป็นจำนวนเต็ม ถ้าอ่านคืนจะไม่ขยับ
+      evFlow.raf = requestAnimationFrame(tick);
+    };
+    evFlow.raf = requestAnimationFrame(tick);
+  }, delay);
+}
+function evFlowMount() {
+  evFlowStop();
+  const s = document.getElementById('evShelf');
+  evFlow.el = s;
+  if (!s) return;
+  const hold = () => evFlowStop();
+  const rest = () => evFlowStart(3000);
+  s.addEventListener('pointerdown', hold, { passive: true });
+  s.addEventListener('touchstart', hold, { passive: true });
+  s.addEventListener('wheel', () => { hold(); rest(); }, { passive: true });
+  s.addEventListener('pointerup', rest, { passive: true });
+  s.addEventListener('pointercancel', rest, { passive: true });
+  s.addEventListener('touchend', rest, { passive: true });
+  evFlowStart(1500);
 }

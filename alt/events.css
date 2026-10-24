@@ -80,6 +80,8 @@
 .ev-sub { margin: 4px 0 -2px; font-size: 14px; font-weight: 800; color: var(--ink); }
 .ev-shelf { display: flex; gap: 8px; margin: 0 -16px; padding: 0 16px 2px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding-inline: 16px; }
 .ev-shelf::-webkit-scrollbar { display: none; }
+/* ตอนไหลเองต้องปิด snap ไม่งั้นเบราว์เซอร์ดึงกลับไปที่ขอบการ์ดทุกเฟรม (events.js evFlow) */
+.ev-shelf.run { scroll-snap-type: none; }
 .ev-rw { flex: none; width: 92px; padding: 8px 6px 7px; border-radius: 16px; scroll-snap-align: start;
   display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
   background: var(--card); border: 1px solid var(--line, rgba(127, 127, 127, .25)); }
