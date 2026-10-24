@@ -61,7 +61,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#080d15}.event-heade
   .world-portal{left:var(--px);top:var(--py);width:var(--pw);height:var(--ph)}
   .world-scene .portal-label{font-size:12px;min-width:0;max-width:145px}.world-scene .portal-label b{font-size:13px}
   .npc-character,.room-scene .npc-character{width:23%;min-width:65px;max-width:180px}
-  .garden-bed{width:37%;height:16%;min-height:44px}
+  .garden-bed{width:var(--pbw,37%);height:var(--pbh,16%);min-height:44px}
   .world-title{top:max(70px,env(safe-area-inset-top));left:5%;right:5%}.world-title h1{font-size:22px}
   .event-dialog[data-scene-panel=room]{width:100vw;height:100dvh;max-height:100dvh;max-width:none;margin:0;padding:0;inset:0;border:0;outline:0;overflow:clip}
   .event-dialog[data-scene-panel=room] .world-page,.event-dialog[data-scene-panel=room] .scene-shell,.event-dialog[data-scene-panel=room] .world-scene{height:100dvh;min-height:100dvh;width:100vw!important;aspect-ratio:auto}

@@ -270,6 +270,21 @@ html[data-motion="still"] .dg-press::after { animation: dg-rune-still .3s ease-o
 html[data-motion="still"] .dg-press .hud-ic, html[data-motion="still"] .gate-enter.dg-unseal { animation: none; }
 @keyframes dg-rune-still { 0% { opacity: 0; } 30% { opacity: .9; } 100% { opacity: 0; } }
 
+/* ---------- แปลงในสวน: ไฮไลต์ตรงรูปแปลง (24 ต.ค. 69 · เจ้าของ: "ให้มันตรงกรอบ แก้ทุกอัน") ----------
+   ตำแหน่ง/ขนาดมาจากพิกัดบนภาพแล้ว (world.js bedBox) · แต่แปลงในภาพเป็นคางหมู ขอบสี่เหลี่ยมเดิมจึงไม่มีวันตรงกรอบ
+   → ถอดขอบ ใช้แสงไฟเทียนที่ตัดเป็นคางหมูตามแปลง (--tl/--tr = ขอบด้านนอกที่เอียง) แทน
+   จุดแดงย้ายจากมุมขวาบนของกล่อง (แปลงฝั่งขวามุมนั้นตกไปอยู่บนทางเดิน) มาไว้กลางขอบไม้ด้านบน ซึ่งอยู่บนกรอบทุกแปลง */
+.world-scene .garden-bed { border-color: transparent !important; box-shadow: none !important; }
+.world-scene .garden-bed::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  clip-path: polygon(var(--tl, 0%) 0, calc(100% - var(--tr, 0%)) 0, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--dg-candle) 26%, transparent), color-mix(in srgb, var(--dg-candle) 12%, transparent));
+  transition: opacity .15s ease-out;
+}
+.world-scene .garden-bed:is(:hover, :focus-visible, [data-armed=true])::before { opacity: 1; }
+.world-scene .garden-bed:focus-visible { outline: none; }
+.world-scene .garden-bed::after { right: auto !important; left: 50% !important; top: -7px !important; transform: translateX(-50%); }
+
 /* ---------- ลดการเคลื่อนไหว: ไม่วูบ ไม่ยุบ ---------- */
 @media (prefers-reduced-motion: reduce) {
   .gate-enter::after { animation: none; opacity: .8; }
