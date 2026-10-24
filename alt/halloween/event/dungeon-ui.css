@@ -98,6 +98,8 @@ body, .event-dialog, .scene-hud, button, input, select { font-family: 'Sriracha'
 }
 .hud-top button { min-width: 46px; min-height: 46px; padding: 0 11px; }
 .hud-top .hud-guide { font-size: 14px !important; font-weight: 600; padding: 0 14px 0 11px !important; }
+/* ปุ่มออกไปหน้าแอป (24 ต.ค. 69) — ซ้ายสุด เว้นช่องจากปุ่มในโลก ให้แยกออกว่า "ออกจากอีเวนต์" ไม่ใช่ "กลับโถง" */
+.hud-top .hud-exit { font-size: 14px; font-weight: 600; padding: 0 14px 0 11px; margin-right: 6px; white-space: nowrap; }
 .hud-top .hud-wallet { min-height: 46px; padding: 0 14px !important; font-size: 16px; font-weight: 700; color: var(--dg-ink); }
 .hud-top .hud-wallet .hud-ic { color: var(--dg-candle); }
 .hud-top button:hover { color: var(--dg-candle); }
@@ -175,6 +177,8 @@ body, .event-dialog, .scene-hud, button, input, select { font-family: 'Sriracha'
   .hud-top { gap: 6px !important; }
   .hud-top button { min-width: 44px; min-height: 44px; padding: 0 9px; }
   .hud-top .hud-guide { padding: 0 10px 0 8px !important; font-size: 13px !important; }
+  .hud-top .hud-exit { padding: 0 9px; margin-right: 0; }
+  .hud-top .hud-exit span { display: none; }
   .hud-top .hud-wallet { min-height: 44px; padding: 0 10px !important; font-size: 14px; }
   .hud-tools { gap: 4px !important; padding: 5px; width: calc(100% - 16px) !important; }
   .hud-tools button { flex: 1; width: auto; min-width: 0; max-width: none; min-height: 62px; padding: 6px 2px 5px !important; }

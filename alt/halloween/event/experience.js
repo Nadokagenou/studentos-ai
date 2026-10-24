@@ -137,6 +137,7 @@
   // ไอคอน HUD ดันเจี้ยน (24 ต.ค. 69) — เดิมเป็นอักขระ Unicode (⌂ ✧ ▤ ◇ ❧ ⚗ ⚙ ♪ Ⅱ) ขนาด/น้ำหนักเส้นไม่เท่ากันและหน้าตาเปลี่ยนตามเครื่อง
   // วาดเป็นเส้นชุดเดียว 24px ปลายเส้นเหลี่ยม (เข้ากับฉากพิกเซล) · ทุกตัวยังสื่อความหมายเดิม ห้ามสลับเป็นรูปตกแต่งที่ไม่บอกหน้าที่
   const HUD_ICON = {
+    exit: 'M13 4H5v16h8M10 12h11M17 8l4 4-4 4',
     home: 'M4 21V10l8-6 8 6v11zM10 21v-6h4v6',
     guide: 'M6 3h10l3 3v15H6zM9.5 10a2.5 2.5 0 1 1 3.3 2.4c-.5.2-.8.6-.8 1.1V14M12 17v1',
     candy: 'M8.5 12a3.5 3.5 0 1 0 7 0 3.5 3.5 0 1 0-7 0M8.5 12 4 8.5v7zM15.5 12l4.5-3.5v7z',
@@ -161,7 +162,7 @@
   // เสียงตามชนิดปุ่ม: แถบล่าง = รูน · ปุ่มบน/ปุ่มในหน้าต่าง = หินกระทบ · ประตู = บานพับเหล็ก · คุยกับตัวละคร = เสียงเดิม
   function pressSound(button){ return button.dataset.npc||button.dataset.quest?'npc':button.hasAttribute('data-enter-hub')?'gate':button.closest('.hud-tools')?'rune':button.closest('.hud-top')||button.matches('.event-dialog :is(.dialog-x,.primary,.secondary,.dialog-footer button,.item-source-button)')?'stone':'tap'; }
   function worldToolbar() {
-    return '<div class="scene-hud"><div class="hud-top"><button class="hud-home" data-route="hub" aria-label="กลับโถงกลาง">'+hudIcon('home')+'</button><button class="hud-guide" data-open-guide aria-label="วิธีเล่น">'+hudIcon('guide')+'<span>วิธีเล่น</span></button><span class="hud-wallet" title="Candy ห้องลอง">'+hudIcon('candy')+'<b data-scene-wallet>'+read().event.candy.toLocaleString('th-TH')+'</b></span><button data-toggle-scene-sound aria-label="'+(prefs.sound?'ปิดเสียง':'เปิดเสียง')+'">'+hudIcon(prefs.sound?'soundOn':'soundOff')+'</button><button class="hud-motion" data-toggle-scene-motion aria-label="'+(reduced()?'เปิดอนิเมชัน':'หยุดอนิเมชัน')+'">'+hudIcon(reduced()?'play':'pause')+'</button><button data-open-preferences aria-label="ตั้งค่า">'+hudIcon('settings')+'</button></div><nav class="hud-tools" aria-label="อุปกรณ์การผจญภัย">'+[['biome','ไบโอมคืนนี้','ไบโอม<span class="nw">คืนนี้</span>'],['quests','สมุดเควส'],['vault','กระเป๋า'],['garden','สวน'],['tasks','งานวันนี้','งาน<span class="nw">วันนี้</span>']].map(([id,label,shown])=>'<button data-route="'+id+'" aria-label="'+label+'">'+hudIcon(id)+'<small>'+(shown||label)+'</small></button>').join('')+'<button data-open-potion aria-label="น้ำยาหลงไบโอม">'+hudIcon('potion')+'<small>น้ำยา</small></button></nav></div>';
+    return '<div class="scene-hud"><div class="hud-top"><button class="hud-exit" data-exit-app aria-label="ออกไปหน้าแอป">'+hudIcon('exit')+'<span>ออก</span></button><button class="hud-home" data-route="hub" aria-label="กลับโถงกลาง">'+hudIcon('home')+'</button><button class="hud-guide" data-open-guide aria-label="วิธีเล่น">'+hudIcon('guide')+'<span>วิธีเล่น</span></button><span class="hud-wallet" title="Candy ห้องลอง">'+hudIcon('candy')+'<b data-scene-wallet>'+read().event.candy.toLocaleString('th-TH')+'</b></span><button data-toggle-scene-sound aria-label="'+(prefs.sound?'ปิดเสียง':'เปิดเสียง')+'">'+hudIcon(prefs.sound?'soundOn':'soundOff')+'</button><button class="hud-motion" data-toggle-scene-motion aria-label="'+(reduced()?'เปิดอนิเมชัน':'หยุดอนิเมชัน')+'">'+hudIcon(reduced()?'play':'pause')+'</button><button data-open-preferences aria-label="ตั้งค่า">'+hudIcon('settings')+'</button></div><nav class="hud-tools" aria-label="อุปกรณ์การผจญภัย">'+[['biome','ไบโอมคืนนี้','ไบโอม<span class="nw">คืนนี้</span>'],['quests','สมุดเควส'],['vault','กระเป๋า'],['garden','สวน'],['tasks','งานวันนี้','งาน<span class="nw">วันนี้</span>']].map(([id,label,shown])=>'<button data-route="'+id+'" aria-label="'+label+'">'+hudIcon(id)+'<small>'+(shown||label)+'</small></button>').join('')+'<button data-open-potion aria-label="น้ำยาหลงไบโอม">'+hudIcon('potion')+'<small>น้ำยา</small></button></nav></div>';
   }
   function rememberPrefs(){try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch{}}
   async function syncSoundUI(){document.querySelectorAll('[data-toggle-scene-sound]').forEach(b=>{b.innerHTML=hudIcon(prefs.sound?'soundOn':'soundOff');b.setAttribute('aria-label',prefs.sound?'ปิดเสียง':'เปิดเสียง');b.setAttribute('aria-pressed',String(prefs.sound));});await audio.setEnabled(prefs.sound);document.documentElement.dataset.sound=audio.state().playing?'on':prefs.sound?'waiting':'off';}
@@ -507,6 +508,8 @@
     if(prefs.sound)audio.setEnabled(true);
     if(button.hasAttribute('data-toggle-scene-sound')){prefs.sound=!prefs.sound;rememberPrefs();syncSoundUI();return;}
     if(button.hasAttribute('data-start-with-sound')){prefs.sound=true;prefs.motion='full';prefs.motionChosen=true;rememberPrefs();syncSoundUI();syncMotionUI();detail.close();return;}
+    // ปุ่มออก (24 ต.ค. 69 · เจ้าของ: "สร้างปุ่มออกไปหน้าแอป") — เดิมทางกลับมีแค่โลโก้ในหัวหน้าที่ world.css ซ่อนไว้ · ปุ่มบ้านพากลับโถงกลาง ไม่ใช่แอป
+    if(button.hasAttribute('data-exit-app')){location.href=new URL('../../',location.href).href;return;}
     if(button.hasAttribute('data-open-guide')){showGuide();return;}
     if(button.dataset.gameInfo){showGameInfo(button.dataset.gameInfo);return;}
     if(button.hasAttribute('data-open-balance')){showBalance();return;}
