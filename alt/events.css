@@ -20,7 +20,10 @@
 .ev-tab-tx small { font-size: 11px; font-weight: 700; color: var(--muted); }
 .ev-tab.on { border-color: #f0a03a; box-shadow: 0 0 0 2px color-mix(in srgb, #f0a03a 40%, transparent); }
 .ev-tab:active { transform: scale(.97); }
-.ev-tab.soon { cursor: default; opacity: .55; border-style: dashed; background: transparent; }
+/* 24 ต.ค. 69 · เจ้าของ (ภาพชิปมืดไอคอนจาง): "มีข้อความมองไม่เห็น" — เดิม opacity .55 ทั้งชิป ซ้อนกับไอคอนสี --muted
+   ธีมมืดเลยจางสองชั้นจนหาย · ยังบอกว่า "ยังไม่เปิด" ด้วยขอบประ ไม่มีพื้น และตัวหนาสีรอง แทนการทำให้ทั้งก้อนโปร่ง */
+.ev-tab.soon { cursor: default; border-style: dashed; background: transparent; }
+.ev-tab.soon .ev-tab-tx b { color: var(--muted); }
 
 .ev-main { display: flex; flex-direction: column; gap: 10px; }
 

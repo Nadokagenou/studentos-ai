@@ -164,6 +164,9 @@
   :root[data-desktop-sidebar] body:not(.login-mode) :is(.desktop-link,.desktop-nav-toggle):focus-visible { outline:3px solid var(--fill); outline-offset:2px; }
   :root[data-desktop-sidebar] body:not(.login-mode) .desktop-nav-toggle { position:absolute; top:27px; left:calc(var(--desktop-expanded) - 49px); z-index:6; display:flex; align-items:center; justify-content:center; gap:9px; width:32px; height:34px; padding:6px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); cursor:pointer; font:inherit; font-size:13px; }
   :root[data-desktop-sidebar] body:not(.login-mode) .desktop-nav-toggle svg { width:19px; height:19px; flex:none; }
+  /* 24 ต.ค. 69 · เจ้าของ (ภาพปุ่มพับแถบ): "แก้ให้มันตรง" — ป้าย <span> ว่างตอนแถบเปิด แต่ยังเป็นชิ้นใน flex
+     gap 9px จึงดันไอคอนไปซ้าย 4.5px · ไม่มีป้ายก็ไม่ต้องจองช่อง */
+  :root[data-desktop-sidebar] body:not(.login-mode) .desktop-nav-toggle span:empty { display:none; }
   :root[data-desktop-sidebar="closed"] { --desktop-rail:0px; --desktop-gap:14px; }
   :root[data-desktop-sidebar="closed"] body:not(.login-mode) .stage .phone .tabbar { visibility:hidden; pointer-events:none; transform:translateX(-100%); }
   :root[data-desktop-sidebar="closed"] body:not(.login-mode) .screens { margin:56px 0 0!important; width:100%; height:calc(100% - 56px); }
