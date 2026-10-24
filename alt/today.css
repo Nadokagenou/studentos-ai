@@ -1549,6 +1549,23 @@ span.tt-chip { cursor: default; }
 /* กระดิ่งของหัวจอมาต่อท้ายแถบ (headBell) ชิดขวา */
 .tt-acts { display: flex; align-items: center; flex: none; margin-left: auto; }
 
+/* 24 ต.ค. 69 · แถบมีกรอบของมันเอง (เจ้าของ: "ยังดูลอยไป อยากให้มันมีกรอบ") — ตัวเลขลอยบนฉากธีมไม่มีขอบเขต
+   ตาเลยไม่รู้ว่าเป็นชุดเดียวกัน · กรอบกระจกบาง ๆ ใบเดียวรวมทั้งแถบรวมกระดิ่ง สูงเท่าเดิม (ไม่ดันหน้าแรกลง)
+   ใช้ --glass/--glass-line ของธีม จึงเข้ากับทุกธีมเอง · กระดิ่งเลิกวงกลมแยก กลายเป็นปุ่มในกรอบ */
+#menuBody .td-top {
+  min-height: 48px; padding: 2px 4px 2px 8px; gap: 2px; border-radius: 999px;
+  background: var(--glass, var(--card));
+  border: 1px solid var(--glass-line, var(--line));
+  box-shadow: 0 8px 22px -16px rgba(0, 0, 0, .55), inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2);
+}
+#menuBody .td-top .tt-chip { height: 40px; }
+#menuBody .td-top .th-bell {
+  width: 40px; height: 40px; border: 0; box-shadow: none;
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+}
+:root[data-lite] #menuBody .td-top { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--card); }
+
 /* ---------- ช่องอีเวนต์ (eventSlot ใน app.js) ----------
    การ์ดเต็มความกว้าง สูง 60px — สูงพอให้รูปฟักทอง ชื่อ ตัวนับ และปุ่มอ่านได้ในแวบเดียว
    แต่เตี้ยกว่าการ์ด "ตอนนี้" มาก จึงไม่แย่งว่าอะไรสำคัญที่สุด · สีม่วงกลางคืนคงที่ทุกธีม เพราะเป็นสีของอีเวนต์ ไม่ใช่ของแอป */
