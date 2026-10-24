@@ -50,7 +50,7 @@
       // 24 ต.ค. 69 · ช่วงฮาโลวีน จอโหลดกับจอเข้าสู่ระบบแต่งเป็นฮาโลวีน (halloween/season/season.css)
       // ต้องรู้ก่อนวาดจอแรก จึงตัดสินที่นี่ ไม่รอ config.json · วันจบต้องตรงกับ endsAt ใน halloween/event/config.json
       // (runtime.js ถอดคลาสออกเองถ้า config.json ปิดอีเวนต์ — แก้ที่เดียวก็ปิดได้)
-      if (Date.now() < Date.parse('2026-11-30T23:59:59+07:00')) document.documentElement.classList.add('hw-season');
+      if (Date.now() < Date.parse('2026-12-01T00:00:00+07:00')) document.documentElement.classList.add('hw-season');
       // โหมดเครื่องเบา — ต้องติดก่อนวาดจอแรก ไม่งั้นเครื่องช้าได้วาดของหนักไปหนึ่งรอบก่อนถูกถอด
       // ธงมาจากการวัดจริงรอบก่อน (liteProbe ใน app.js) · แรมต่ำกว่า 4GB (Chrome บอกได้) = เบาตั้งแต่ครั้งแรก
       // Chrome ปัดแรมลงเป็นเลขยกกำลังสอง (3GB → 2 · เครื่องที่ขายว่า 4GB แต่ระบบเห็น 3.7 → 2) จึงได้แค่ 2 หรือ 4 — < 4 คือ "ต่ำกว่า 4GB" ตรงตัว
@@ -2587,12 +2587,13 @@
 <!-- ชวนเพื่อน · ภารกิจปลดธีม Halloween — ต้องมาก่อน app.js (เก็บรหัสจาก ?invite= ก่อน URL ถูกล้าง) -->
 <script src="halloween/invite-friend/invite-friend.js"></script>
 <script src="app.js"></script>
-<script src="halloween/death-quest-main.js"></script>
+<script src="halloween/rewards/account-store.js?rev=launch-20261024"></script>
+<script src="halloween/death-quest-main.js?rev=launch-20261024"></script>
 <link rel="stylesheet" href="halloween/death-quest-main.css">
 <script src="desktop-entry.js"></script>
 <script src="halloween/rewards/theme-main.js?rev=restore-appearance-20261024"></script>
 <script src="halloween/rewards/effect-games.js?rev=ceremony-20261024"></script>
-<script src="halloween/rewards/runtime.js?rev=events-slides-20261024"></script>
+<script src="halloween/rewards/runtime.js?rev=launch-20261024"></script>
 <script src="halloween/rewards/integration.js"></script>
 <script src="device-preview-bridge.js"></script>
 

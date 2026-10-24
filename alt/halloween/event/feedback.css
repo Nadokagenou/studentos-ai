@@ -1,0 +1,38 @@
+/* Quiet, contextual response. All ornaments let taps pass through. */
+.event-pressed{animation:event-press .22s ease-out}
+@keyframes event-press{40%{scale:.97}to{scale:1}}
+.event-moment{position:fixed;inset:0;z-index:1400;pointer-events:none;display:grid;place-content:center;justify-items:center;color:#e8d4a6;text-shadow:0 2px 8px #100e19;isolation:isolate}
+.moment-seal{display:grid;place-items:center;width:96px;height:96px;border:1px solid #d5bd8655;border-radius:50%;font-size:46px;background:radial-gradient(circle,#272139e6,#16132199);box-shadow:0 0 45px #d6b77e16;animation:moment-seal 1.1s ease-out both}
+.moment-caption{font-size:13px;margin-top:14px;padding:5px 13px;border-radius:18px;background:#171321dd;color:#eee1cf;animation:moment-copy 1.1s ease-out both}
+.event-moment>i{position:absolute;left:50%;top:47%;width:4px;height:4px;background:#d9c6a0;rotate:var(--angle);border-radius:1px;animation:moment-particle 1s calc(var(--piece)*.014s) ease-out both;box-shadow:0 0 7px #e4bf7c55}
+.moment-water{color:#b4d6e0}.moment-water>i{background:#a4d7e3;border-radius:65% 10% 65% 65%;width:5px;height:9px}
+.moment-plant,.moment-harvest{color:#b7d9b1}.moment-plant>i,.moment-harvest>i{background:#b3d19b;width:6px;height:10px;border-radius:70% 15%}
+.moment-quest{color:#d5b4e3}.moment-quest>i{background:#cab2e7;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);width:10px;height:10px}
+@keyframes moment-seal{from{opacity:0;transform:translateY(10px) scale(.8)}25%,65%{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(-15px) scale(1.08)}}
+@keyframes moment-copy{from{opacity:0;transform:translateY(6px)}20%,70%{opacity:1;transform:none}to{opacity:0;transform:translateY(-8px)}}
+@keyframes moment-particle{from{opacity:0;transform:translateX(18px) scale(.3)}25%{opacity:.8}to{opacity:0;transform:translateX(120px) scale(.3)}}
+.voyage-stage{height:125px;position:relative;overflow:hidden;border-radius:12px;margin:0 0 16px;background:radial-gradient(ellipse at 65% 5%,#758e9244,transparent 45%),linear-gradient(#111c2c,#23343e)}
+.voyage-stage:before{content:"";position:absolute;right:13%;top:12px;width:26px;height:26px;border-radius:50%;background:#e3dac8;box-shadow:0 0 25px #e9e1cb22}
+.voyage-ship{position:absolute;left:4%;bottom:6px;width:76px;height:87px;object-fit:contain;transform:translateX(calc(var(--ship-step)*27px));animation:voyage-step .65s ease-out both;filter:drop-shadow(0 4px 6px #09121a)}
+.voyage-wave{position:absolute;left:-5%;width:110%;height:35px;bottom:-17px;border-top:1px solid #a4c9c477;border-radius:50%;background:#36515a44;animation:voyage-wave 4s ease-in-out infinite alternate}
+.voyage-wave.back{bottom:-2px;opacity:.35;animation-delay:-2s}
+@keyframes voyage-wave{to{translate:12px -5px}}
+@keyframes voyage-step{from{transform:translateX(calc(var(--ship-from)*27px)) rotate(-2deg)}to{transform:translateX(calc(var(--ship-step)*27px)) rotate(1deg)}}
+.vines-board .found .vine-art{animation:vine-cut .55s ease-out both}.dig-board .found .dig-art{animation:earth-lift .55s ease-out both}
+@keyframes vine-cut{to{opacity:.2;transform:translate(4px,8px) rotate(12deg)}}
+@keyframes earth-lift{40%{transform:translateY(-6px) rotate(-3deg)}to{transform:none}}
+.npc-portrait,.quest-npc-portrait{position:relative}.npc-line[data-typing]~*{pointer-events:auto}
+.npc-conversation:has([data-typing]) .npc-portrait .npc-sprite{animation:npc-speak .24s steps(2,end) infinite}
+@keyframes npc-speak{50%{translate:0 -2px;rotate:1deg}}
+[data-still=true] .voyage-stage *,[data-motion=still] .event-pressed,[data-motion=still] .npc-sprite,[data-still=true] .found svg{animation:none!important}
+.moment-still *{animation:none!important}.moment-still>i{display:none}
+.game-dialog[data-variant="1"] .voyage-stage{background:radial-gradient(ellipse at 20% 80%,#386e6555,transparent 55%),linear-gradient(#15252e,#2c4e51)}
+.game-dialog[data-variant="2"] .voyage-stage{background:radial-gradient(ellipse at 80% 5%,#b2a38233,transparent 50%),linear-gradient(#252338,#31394d)}
+.game-dialog[data-variant="1"] .voyage-stage:after{content:"";position:absolute;bottom:16px;right:8%;width:68px;height:38px;background:#486b64;clip-path:polygon(0 100%,20% 60%,36% 70%,55% 12%,70% 35%,84% 0,100% 100%);opacity:.65}
+.game-dialog[data-variant="2"] .voyage-stage:after{content:"";position:absolute;right:9%;bottom:22px;width:12px;height:48px;background:linear-gradient(#e5cd8b 0 7px,#7f8690 7px);box-shadow:0 -8px 28px #e6cd8c88}
+.game-dialog[data-variant="1"] .vine-art{filter:hue-rotate(32deg)}.game-dialog[data-variant="2"] .vine-art{filter:hue-rotate(-28deg)}
+.game-dialog[data-variant="1"] .dig-art{filter:sepia(.25) hue-rotate(130deg)}.game-dialog[data-variant="2"] .dig-art{filter:sepia(.3)}
+.game-dialog[data-variant="1"] .catch-ghost svg{filter:sepia(.35) hue-rotate(80deg)}.game-dialog[data-variant="2"] .catch-ghost svg{filter:sepia(.25) hue-rotate(300deg)}
+.quest-appointment{margin:16px 0;padding:14px;border:1px solid #aabbd13b;border-radius:12px;background:#26364a55;font-size:13px;line-height:1.7;color:#d5e1ed}
+.quest-appointment b{display:block;margin-bottom:4px;color:#e3d3b0}.quest-appointment small{display:block;margin-top:5px;color:#bac7d4}
+@media(prefers-reduced-motion:reduce){html:not([data-motion=full]) .event-pressed{animation:none}html:not([data-motion=full]) .event-moment *{animation:none}html:not([data-motion=full]) .event-moment>i{display:none}}

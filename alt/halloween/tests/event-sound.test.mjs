@@ -33,3 +33,11 @@ test('dungeon HUD presses have their own stone, rune and gate sounds that stay s
  assert.ok(sources.some(n=>n.stopped-h.contexts[0].currentTime>=.75),'the gate sound runs long enough to hear the hinge and the clank');
  await h.audio.setEnabled(false);assert.equal(h.audio.play('gate'),false);
 });
+
+test('character voices require opt-in, throttle syllables and stop independently of the music',async()=>{
+ const h=harness();assert.equal(h.audio.syllable('tang'),false);await h.audio.setEnabled(true);
+ const baseline=h.audio.state().voices;assert.equal(h.audio.syllable('jack'),true);for(let i=0;i<100;i++)assert.equal(h.audio.syllable('jack',i),false);
+ assert.equal(h.audio.state().voices,baseline+2);assert.equal(h.nodes.filter(n=>n.osc&&n.type==='square').length,2);
+ h.audio.stopDialogue();assert.equal(h.audio.state().voices,baseline);assert.equal(h.timers.size,1);
+ h.contexts[0].currentTime+=.11;assert.equal(h.audio.syllable('win'),true);h.audio.setVisible(false);assert.equal(h.audio.syllable('win'),false);assert.equal(h.audio.state().voices,0);
+});
