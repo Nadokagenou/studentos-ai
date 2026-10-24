@@ -81,9 +81,12 @@ function renderEvents() {
   const detail = cur ? eventsDetail(cur) : `<div class="ev-empty">
       <b>ตอนนี้ยังไม่มีอีเวนต์</b><span>มีกิจกรรมใหม่เมื่อไหร่ จะขึ้นที่นี่และบนหน้าแรก</span></div>`;
 
-  box.innerHTML = `<div class="ev-head">
+  // 25 ต.ค. 69 · เจ้าของวงหัวจอจาก iPhone ("บั๊กสีแปลก ๆ") — เดิมหัวนี้วาดเองเป็นแถบกระจก (--glass) เต็มกว้างลอดใต้นาฬิกา
+  // ทั้งที่หัวจออื่นทุกจอบนมือถือโปร่งใสหมดแล้ว (alt.css "remove the long glass frame") จึงเห็นเป็นแถบสีเทาม่วงทับฉากธีม
+  // ใช้หัวแบบเดียวกับจออื่น (.sticky-head.sh-inline) — โปร่ง · ติดขอบบน · เลื่อนลงแล้วชื่อจางเหลือปุ่มกลับ (.stuck ใน app.js)
+  box.innerHTML = `<div class="sticky-head row sh-inline ev-head">
+      <div><h2 class="sh-title">อีเวนต์</h2></div>
       <button class="sh-btn" onclick="goBack('scr-menu')" aria-label="กลับ"><svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
-      <h1>อีเวนต์</h1>
     </div>
     <nav class="ev-tabs" aria-label="กิจกรรมทั้งหมด">${tabs}</nav>
     <section class="ev-main">${detail}</section>`;

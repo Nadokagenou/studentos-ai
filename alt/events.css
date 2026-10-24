@@ -2,11 +2,8 @@
    คอลัมน์เดียวสำหรับมือถือแนวตั้ง (รอบแรกเป็นรางซ้ายแบบเกมแนวนอน — กินที่และเหลือช่องว่าง ดู renderEvents)
    แถบกิจกรรมแนวนอน → แบนเนอร์สไลด์เต็มความกว้าง (ปุ่มเข้าเล่น + Candy ในตัว) → แถวรางวัล → ชิปทางลัดส่วนย่อย
    ใช้โทเคนของธีม (--card · --ink · --muted · --line) ทุกที่ ยกเว้นแบนเนอร์ที่มีภาพของอีเวนต์เองเป็นพื้น */
-.ev-body { padding: 0 16px 120px; }
-.ev-head { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 10px;
-  margin: 0 -16px; padding: calc(12px + env(safe-area-inset-top)) 16px 10px;
-  background: var(--glass); backdrop-filter: blur(18px) saturate(180%); -webkit-backdrop-filter: blur(18px) saturate(180%); }
-.ev-head h1 { margin: 0; font-size: 22px; font-weight: 900; color: var(--ink); }
+/* หัวจอใช้ .sticky-head.sh-inline ร่วมกับจออื่น (โปร่ง ไม่มีแถบกระจก) · จอ flush ต้องกัน notch เองที่ตัวเนื้อ แบบ .pf-body */
+.ev-body { padding: calc(6px + env(safe-area-inset-top)) 16px 120px; }
 
 /* แถบกิจกรรม — ปัดข้างได้เมื่อกิจกรรมเยอะ · ไม่มีแถบเลื่อนให้เห็น */
 .ev-tabs { display: flex; gap: 8px; margin: 0 -16px; padding: 2px 16px 12px; overflow-x: auto; scrollbar-width: none;
