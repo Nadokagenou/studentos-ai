@@ -1,77 +1,79 @@
 /* ---------- 24 ต.ค. 69 · จออีเวนต์ (scr-events · events.js) ----------
-   แบบศูนย์กิจกรรมในเกม: รางกิจกรรมแคบทางซ้าย · หน้ากิจกรรมที่เลือกทางขวา
-   ใช้โทเคนของธีม (--card · --ink · --muted) ทุกที่ ยกเว้นแบนเนอร์ที่มีภาพของอีเวนต์เองเป็นพื้น */
+   คอลัมน์เดียวสำหรับมือถือแนวตั้ง (รอบแรกเป็นรางซ้ายแบบเกมแนวนอน — กินที่และเหลือช่องว่าง ดู renderEvents)
+   แถบกิจกรรมแนวนอน → แบนเนอร์เต็มความกว้าง (ปุ่มเข้าเล่น + Candy ในตัว) → ไทล์ส่วนย่อยสองคอลัมน์
+   ใช้โทเคนของธีม (--card · --ink · --muted · --line) ทุกที่ ยกเว้นแบนเนอร์ที่มีภาพของอีเวนต์เองเป็นพื้น */
 .ev-body { padding: 0 16px 120px; }
 .ev-head { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 10px;
   margin: 0 -16px; padding: calc(12px + env(safe-area-inset-top)) 16px 10px;
   background: var(--glass); backdrop-filter: blur(18px) saturate(180%); -webkit-backdrop-filter: blur(18px) saturate(180%); }
 .ev-head h1 { margin: 0; font-size: 22px; font-weight: 900; color: var(--ink); }
 
-.ev-wrap { margin-top: 0; display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 12px; align-items: start; }
-
-/* รางซ้าย — ติดอยู่กับที่ตอนเลื่อนรายละเอียดทางขวา */
-.ev-rail { position: sticky; top: calc(76px + env(safe-area-inset-top)); display: flex; flex-direction: column; gap: 8px; }
-.ev-tab { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; width: 100%;
-  padding: 6px 4px 8px; border: 1px solid var(--line, rgba(127, 127, 127, .25)); border-radius: 16px;
-  background: var(--card); color: var(--ink); font: inherit; text-align: center; cursor: pointer;
-  -webkit-tap-highlight-color: transparent; }
-.ev-tab-art { display: grid; place-items: center; width: 100%; aspect-ratio: 1.25; border-radius: 11px; overflow: hidden;
+/* แถบกิจกรรม — ปัดข้างได้เมื่อกิจกรรมเยอะ · ไม่มีแถบเลื่อนให้เห็น */
+.ev-tabs { display: flex; gap: 8px; margin: 0 -16px; padding: 2px 16px 12px; overflow-x: auto; scrollbar-width: none;
+  scroll-snap-type: x proximity; }
+.ev-tabs::-webkit-scrollbar { display: none; }
+.ev-tab { flex: none; display: flex; align-items: center; gap: 8px; height: 50px; padding: 5px 14px 5px 5px; scroll-snap-align: start;
+  border: 1px solid var(--line, rgba(127, 127, 127, .25)); border-radius: 16px; background: var(--card); color: var(--ink);
+  font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.ev-tab-art { flex: none; display: grid; place-items: center; width: 52px; height: 38px; border-radius: 11px;
   background: var(--ev-art, none) 50% 30% / cover no-repeat, color-mix(in srgb, var(--muted) 18%, transparent); color: var(--muted); }
-.ev-tab-art svg { width: 22px; height: 22px; }
-.ev-tab b { font-size: 12px; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
-.ev-tab small { font-size: 10px; font-weight: 700; color: var(--muted); line-height: 1.2; }
-.ev-tab.on { border-color: #f0a03a; box-shadow: 0 0 0 2px color-mix(in srgb, #f0a03a 45%, transparent); }
-.ev-tab.on::before { content: ""; position: absolute; left: -9px; top: 22%; bottom: 22%; width: 4px; border-radius: 4px; background: #f0a03a; }
+.ev-tab-art svg { width: 18px; height: 18px; }
+.ev-tab-tx { display: flex; flex-direction: column; line-height: 1.2; }
+.ev-tab-tx b { font-size: 13.5px; font-weight: 800; }
+.ev-tab-tx small { font-size: 11px; font-weight: 700; color: var(--muted); }
+.ev-tab.on { border-color: #f0a03a; box-shadow: 0 0 0 2px color-mix(in srgb, #f0a03a 40%, transparent); }
 .ev-tab:active { transform: scale(.97); }
 .ev-tab.soon { cursor: default; opacity: .55; border-style: dashed; background: transparent; }
 
-/* หน้ากิจกรรม */
-.ev-main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ev-main { display: flex; flex-direction: column; gap: 10px; }
+
+/* แบนเนอร์ — หน้าตาเดียวกับการ์ดอีเวนต์บนหน้าแรก (today.css .td-hero) คนกดมาจะรู้ว่ามาถูกที่ */
 .ev-banner { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; gap: 2px;
-  min-height: 210px; padding: 12px 14px; border-radius: 22px; color: #f6efff; background: #120c2a; border: 1px solid #9d7cf0; }
+  min-height: 300px; padding: 14px 16px 14px; border-radius: 24px; color: #f6efff; background: #120c2a; border: 1px solid #9d7cf0;
+  box-shadow: 0 18px 40px -24px rgba(122, 79, 224, 1); }
 .ev-banner-bg { position: absolute; inset: 0; z-index: -2; background: var(--ev-art, none) 50% 22% / cover no-repeat; }
 .ev-banner-bg::after { content: ""; position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(14, 9, 34, .8) 0%, rgba(14, 9, 34, .25) 45%, rgba(14, 9, 34, .85) 100%); }
+  background: linear-gradient(180deg, rgba(14, 9, 34, .85) 0%, rgba(14, 9, 34, .3) 40%, rgba(14, 9, 34, .2) 62%, rgba(14, 9, 34, .9) 100%); }
 .ev-tags { display: flex; gap: 6px; flex-wrap: wrap; }
 .ev-tags i { font-style: normal; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; line-height: 1.2; }
 .ev-left { background: #ffc94d; color: #2a1600; font-variant-numeric: tabular-nums; }
 .ev-try { background: rgba(0, 0, 0, .4); color: #cbbcf5; }
-.ev-banner h2 { margin: 4px 0 0; font-size: 28px; font-weight: 900; line-height: 1.05; color: #fff3dc;
-  text-shadow: 0 0 16px rgba(255, 150, 40, .6), 0 3px 0 #3b1d00; }
-.ev-tagline { margin: 0; font-size: 13px; font-weight: 800; color: #d9c8ff; text-shadow: 0 1px 3px #000; }
-.ev-cast { position: absolute; z-index: -1; left: 0; right: 0; bottom: 6px; display: flex; justify-content: center; align-items: flex-end; pointer-events: none; }
+.ev-banner h2 { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin: 6px 0 0;
+  font-size: 30px; font-weight: 900; line-height: 1.05; color: #fff3dc; text-shadow: 0 0 16px rgba(255, 150, 40, .6), 0 3px 0 #3b1d00; }
+.ev-banner h2 span { font-size: 14px; font-weight: 800; color: #d9c8ff; text-shadow: 0 1px 3px #000; }
+.ev-blurb { margin: 2px 0 0; max-width: 92%; font-size: 12.5px; font-weight: 600; line-height: 1.4; color: #e6dcff; text-shadow: 0 1px 3px #000; }
+.ev-cast { position: absolute; z-index: -1; left: 0; right: 0; bottom: 68px; display: flex; justify-content: center; align-items: flex-end; pointer-events: none; }
 .ev-cast figure { margin: 0 -5px; display: flex; flex-direction: column; align-items: center; }
-.ev-cast img { display: block; height: 78px; width: auto; filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .6)); }
-.ev-cast figcaption { margin-top: -2px; padding: 1px 6px; border-radius: 999px; font-size: 9.5px; font-weight: 800; color: #fff;
+.ev-cast img { display: block; height: 92px; width: auto; filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .6)); }
+.ev-cast figcaption { margin-top: -2px; padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; color: #fff;
   background: rgba(10, 6, 26, .75); border: 1px solid rgba(255, 255, 255, .18); white-space: nowrap; }
-
-.ev-blurb { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink); }
-.ev-wallet { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 14px; background: var(--card);
-  border: 1px solid var(--line, rgba(127, 127, 127, .25)); font-size: 13px; color: var(--muted); }
-.ev-wallet svg { width: 20px; height: 20px; color: #ff6fae; flex: none; }
-.ev-wallet b { margin-left: auto; font-size: 16px; color: var(--ink); font-variant-numeric: tabular-nums; }
-
-.ev-play { display: inline-flex; align-items: center; justify-content: center; gap: 4px; width: 100%; height: 50px; border: 0; border-radius: 16px;
+.ev-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ev-play { display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex: 1; max-width: 64%; height: 48px; border: 0; border-radius: 16px;
   font: inherit; font-size: 17px; font-weight: 900; color: #2a1100; cursor: pointer;
   background: linear-gradient(180deg, #ffbe5c, #f07f16); box-shadow: 0 4px 0 #8a3b00; }
 .ev-play svg { width: 18px; height: 18px; }
 .ev-play:active { transform: translateY(2px); box-shadow: 0 2px 0 #8a3b00; }
+.ev-candy { display: inline-flex; align-items: center; gap: 5px; height: 36px; padding: 0 12px; border-radius: 999px;
+  background: rgba(10, 6, 26, .7); color: #ffd0e4; font-size: 13px; font-weight: 700; }
+.ev-candy svg { width: 18px; height: 18px; color: #ff6fae; }
+.ev-candy b { font-size: 15px; color: #fff; font-variant-numeric: tabular-nums; }
 
-.ev-sub { margin: 6px 0 -4px; font-size: 13px; font-weight: 800; color: var(--muted); }
-.ev-parts { display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; background: var(--card);
-  border: 1px solid var(--line, rgba(127, 127, 127, .25)); }
-.ev-part { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 12px; border: 0; background: none;
-  font: inherit; text-align: left; color: var(--ink); cursor: pointer; }
-.ev-part + .ev-part { border-top: 1px solid var(--line, rgba(127, 127, 127, .2)); }
-.ev-part-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; line-height: 1.3; }
-.ev-part-tx b { font-size: 14px; font-weight: 800; }
-.ev-part-tx small { font-size: 11.5px; color: var(--muted); }
-.ev-part-go { color: var(--muted); display: grid; place-items: center; }
-.ev-part-go svg { width: 16px; height: 16px; }
-.ev-part:active { background: color-mix(in srgb, var(--muted) 12%, transparent); }
+/* ส่วนย่อย — ไทล์สองคอลัมน์ หกส่วนเป็นสามแถว ไม่ต้องเลื่อนหา */
+.ev-sub { margin: 4px 0 -2px; font-size: 13px; font-weight: 800; color: var(--muted); }
+.ev-parts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.ev-part { display: flex; align-items: center; gap: 9px; min-height: 58px; padding: 8px 10px; border-radius: 16px;
+  border: 1px solid var(--line, rgba(127, 127, 127, .25)); background: var(--card); color: var(--ink);
+  font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.ev-part-ic { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px;
+  background: color-mix(in srgb, #f0a03a 18%, transparent); color: #f0a03a; }
+.ev-part-ic svg { width: 18px; height: 18px; }
+.ev-part-tx { min-width: 0; display: flex; flex-direction: column; gap: 1px; line-height: 1.25; }
+.ev-part-tx b { font-size: 13px; font-weight: 800; }
+.ev-part-tx small { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev-part:active { transform: scale(.98); }
 
 .ev-empty { display: flex; flex-direction: column; gap: 4px; padding: 28px 16px; border-radius: 18px; text-align: center;
   background: var(--card); color: var(--muted); font-size: 13px; }
 .ev-empty b { color: var(--ink); font-size: 15px; }
 
-@media (max-width: 340px) { .ev-wrap { grid-template-columns: 70px minmax(0, 1fr); gap: 9px; } .ev-cast img { height: 64px; } }
+@media (max-width: 340px) { .ev-banner { min-height: 270px; } .ev-cast img { height: 76px; } .ev-blurb { display: none; } }

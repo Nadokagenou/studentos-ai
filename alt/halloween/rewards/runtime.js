@@ -53,7 +53,7 @@
     // Home event card art, resolved against event/ so removing event/ takes the art with it
     art:card.art?new URL(card.art,eventDir).href:'',cast:Array.isArray(card.cast)?card.cast.map(x=>new URL(x,eventDir).href):[],names:Array.isArray(card.names)?card.names.map(String):[],fullNames:Array.isArray(card.fullNames)?card.fullNames.map(String):[],
     // Sub-areas listed on the app's event screen (events.js) — each opens event/index.html#<id>
-    sections:Array.isArray(config.sections)?config.sections.filter(x=>x&&typeof x.id==='string'&&/^[\w-]+$/.test(x.id)).map(x=>Object.freeze({id:x.id,label:String(x.label||x.id),hint:String(x.hint||'')})):[],
+    sections:Array.isArray(config.sections)?config.sections.filter(x=>x&&typeof x.id==='string'&&/^[\w-]+$/.test(x.id)).map(x=>Object.freeze({id:x.id,label:String(x.label||x.id),hint:String(x.hint||''),icon:/^[a-z-]+$/.test(x.icon||'')?x.icon:''})):[],
     // null = the event has ended and the button hides itself · '' = no endsAt, so no countdown
     countdown(now=Date.now()){if(!Number.isFinite(end))return'';const left=end-now;if(left<=0)return null;const hours=Math.ceil(left/36e5);return hours<24?'เหลือ '+hours+' ชม.':'เหลือ '+Math.ceil(left/864e5)+' วัน';},
     // Preview Candy lives on this device (KEY in event/experience.js). Real claiming has no store to read yet, so it shows nothing.
