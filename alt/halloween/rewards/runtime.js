@@ -6,6 +6,10 @@
  let current=null,scene,fxTimer=0,lastRequest=null,queued=false,effectSession=null;
  const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const themes=C.items.filter(x=>x.kind==='theme');
+ // Event screen shelf order: the first few tiles show different kinds of reward
+ const KIND_ORDER=['theme','costume','relic','effect','room','badge'];
+ // One of each kind in turn (theme, costume, relic, effect, room, badge, theme, ...), best tier first within a kind
+ function shelfOrder(){const groups=KIND_ORDER.map(k=>C.items.filter(x=>x.kind===k&&x.rarity!=='Secret').sort((a,b)=>C.tiers[b.rarity].order-C.tiers[a.rarity].order)),out=[];for(let i=0;groups.some(g=>g[i]);i++)groups.forEach(g=>{if(g[i])out.push(g[i]);});return out;}
  function syncScene(){const item=themes.find(x=>x.theme===root.dataset.theme&&!['halloween','moonlight'].includes(x.theme));if(!scene){scene=document.createElement('div');scene.className='hw-biome-scene';scene.setAttribute('aria-hidden','true');scene.innerHTML='<i class="hw-biome-view"></i><i class="hw-biome-fog"></i><i class="hw-biome-glints"></i><div class="hw-sea-voyage"><span class="hw-sea-wave back"></span><div class="hw-ship-course"><span class="hw-ship-wake"></span><div class="hw-ship-bob"><img src="'+new URL('assets/ghostship-vessel.svg',base).href+'" alt=""></div></div><span class="hw-sea-wave front"></span></div>';document.querySelector('.phone')?.prepend(scene);}scene.hidden=!item;if(item){scene.style.setProperty('--biome-art','url("'+(item.theme==='hw-ghostship'?new URL('assets/ghostship-sea.svg',base).href:item.theme==='hw-vampire'?new URL('assets/vampire-distance.svg',base).href:asset(item))+'")');scene.style.setProperty('--biome-glow',C.biomes[item.biome].color);}}
  function clearPresentation(){finishEffect();clearTimeout(fxTimer);document.querySelectorAll('.hw-reward-fx,.hw-relic-inspect,.hw-room-item').forEach(x=>x.remove());}
  function inspect(item){const layer=document.createElement('div');layer.className='hw-relic-inspect';layer.dataset.tier=item.rarity;layer.setAttribute('role','dialog');layer.setAttribute('aria-label',item.name);layer.setAttribute('aria-modal','true');layer.innerHTML='<button class="hw-reward-close" aria-label="ปิดตัวอย่าง">×</button><span class="hw-reward-eyebrow">'+escape(item.rarity+' · '+C.biomes[item.biome].name)+'</span><div class="hw-relic-ring"><img src="'+asset(item)+'" alt="'+escape(item.name)+'"></div><h2>'+escape(item.name)+'</h2><p>'+escape(item.kind==='badge'?(item.source==='final-boss'?'ตราชัยชนะ · พิชิตราชันเที่ยงคืน':'ตัวอย่างเหรียญ · ซื้อของครบตามรายการร้านอีเวนต์'):'Main Quest · '+C.biomes[item.biome].npc)+'</p>';layer.querySelector('button').addEventListener('click',()=>layer.remove());document.querySelector('.phone').append(layer);layer.querySelector('button').focus({preventScroll:true});}
@@ -52,6 +56,11 @@
    window.HalloweenEventEntry=Object.freeze({name:config.name||'Halloween',tagline:config.tagline||'',blurb:config.blurb||'',href:destination.href,preview,
     // Home event card art, resolved against event/ so removing event/ takes the art with it
     art:card.art?new URL(card.art,eventDir).href:'',cast:Array.isArray(card.cast)?card.cast.map(x=>new URL(x,eventDir).href):[],names:Array.isArray(card.names)?card.names.map(String):[],fullNames:Array.isArray(card.fullNames)?card.fullNames.map(String):[],
+    // Preview slides on the app's event screen (events.js): one scene per area of the event
+    slides:Array.isArray(config.slides)?config.slides.filter(x=>x&&x.art).map(x=>Object.freeze({art:new URL(x.art,eventDir).href,title:String(x.title||''),sub:String(x.sub||'')})):[],
+    // Rewards shelf on the event screen, straight from the permanent catalog. Secret items stay hidden and are only counted.
+    rewards:shelfOrder().map(x=>Object.freeze({id:x.id,name:x.name.split(' · ')[0],kind:x.kind,rarity:x.rarity,color:C.biomes[x.biome].color,art:asset(x)})),
+    secretRewards:C.items.filter(x=>x.rarity==='Secret').length,
     // Sub-areas listed on the app's event screen (events.js) — each opens event/index.html#<id>
     sections:Array.isArray(config.sections)?config.sections.filter(x=>x&&typeof x.id==='string'&&/^[\w-]+$/.test(x.id)).map(x=>Object.freeze({id:x.id,label:String(x.label||x.id),hint:String(x.hint||''),icon:/^[a-z-]+$/.test(x.icon||'')?x.icon:''})):[],
     // null = the event has ended and the button hides itself · '' = no endsAt, so no countdown

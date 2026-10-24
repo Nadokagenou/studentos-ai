@@ -1,6 +1,6 @@
 /* ---------- 24 ต.ค. 69 · จออีเวนต์ (scr-events · events.js) ----------
    คอลัมน์เดียวสำหรับมือถือแนวตั้ง (รอบแรกเป็นรางซ้ายแบบเกมแนวนอน — กินที่และเหลือช่องว่าง ดู renderEvents)
-   แถบกิจกรรมแนวนอน → แบนเนอร์เต็มความกว้าง (ปุ่มเข้าเล่น + Candy ในตัว) → ไทล์ส่วนย่อยสองคอลัมน์
+   แถบกิจกรรมแนวนอน → แบนเนอร์สไลด์เต็มความกว้าง (ปุ่มเข้าเล่น + Candy ในตัว) → แถวรางวัล → ชิปทางลัดส่วนย่อย
    ใช้โทเคนของธีม (--card · --ink · --muted · --line) ทุกที่ ยกเว้นแบนเนอร์ที่มีภาพของอีเวนต์เองเป็นพื้น */
 .ev-body { padding: 0 16px 120px; }
 .ev-head { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 10px;
@@ -27,27 +27,38 @@
 
 .ev-main { display: flex; flex-direction: column; gap: 10px; }
 
-/* แบนเนอร์ — หน้าตาเดียวกับการ์ดอีเวนต์บนหน้าแรก (today.css .td-hero) คนกดมาจะรู้ว่ามาถูกที่ */
-.ev-banner { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; gap: 2px;
-  min-height: 300px; padding: 14px 16px 14px; border-radius: 24px; color: #f6efff; background: #120c2a; border: 1px solid #9d7cf0;
-  box-shadow: 0 18px 40px -24px rgba(122, 79, 224, 1); }
-.ev-banner-bg { position: absolute; inset: 0; z-index: -2; background: var(--ev-art, none) 50% 22% / cover no-repeat; }
-.ev-banner-bg::after { content: ""; position: absolute; inset: 0;
+/* แบนเนอร์ — หน้าตาเดียวกับการ์ดอีเวนต์บนหน้าแรก (today.css .td-hero) คนกดมาจะรู้ว่ามาถูกที่
+   ข้างในเป็นรางสไลด์ (ปก + ฉากในกิจกรรม) · ป้ายมุมบนกับปุ่มเข้าเล่น/Candy ลอยอยู่กับที่ ไม่เลื่อนตามสไลด์ */
+.ev-banner { position: relative; isolation: isolate; overflow: hidden; height: 300px; border-radius: 24px; color: #f6efff;
+  background: #120c2a; border: 1px solid #9d7cf0; box-shadow: 0 18px 40px -24px rgba(122, 79, 224, 1); }
+.ev-track { position: absolute; inset: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+  overscroll-behavior-x: contain; }
+.ev-track::-webkit-scrollbar { display: none; }
+.ev-slide { position: relative; isolation: isolate; flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always;
+  display: flex; flex-direction: column; gap: 2px; padding: 44px 16px 0; overflow: hidden; }
+.ev-slide-bg { position: absolute; inset: 0; z-index: -2; background: var(--ev-art, none) 50% 22% / cover no-repeat; }
+.ev-slide-bg::after, .ev-slide.scene::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background: linear-gradient(180deg, rgba(14, 9, 34, .85) 0%, rgba(14, 9, 34, .3) 40%, rgba(14, 9, 34, .2) 62%, rgba(14, 9, 34, .9) 100%); }
-.ev-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.ev-slide.scene::after { background: linear-gradient(180deg, rgba(14, 9, 34, .55) 0%, rgba(14, 9, 34, 0) 30%, rgba(14, 9, 34, .1) 55%, rgba(14, 9, 34, .92) 100%); }
+.ev-slide.scene img { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; }
+.ev-cap { position: absolute; left: 16px; right: 16px; bottom: 76px; display: flex; flex-direction: column; gap: 1px; text-shadow: 0 1px 4px #000; }
+.ev-cap b { font-size: 20px; font-weight: 900; line-height: 1.15; color: #fff3dc; }
+.ev-cap span { font-size: 12.5px; font-weight: 700; color: #e6dcff; }
+.ev-tags { position: absolute; z-index: 2; left: 16px; top: 14px; display: flex; gap: 6px; flex-wrap: wrap; pointer-events: none; }
 .ev-tags i { font-style: normal; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; line-height: 1.2; }
 .ev-left { background: #ffc94d; color: #2a1600; font-variant-numeric: tabular-nums; }
 .ev-try { background: rgba(0, 0, 0, .4); color: #cbbcf5; }
-.ev-banner h2 { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin: 6px 0 0;
+.ev-slide h2 { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin: 0;
   font-size: 30px; font-weight: 900; line-height: 1.05; color: #fff3dc; text-shadow: 0 0 16px rgba(255, 150, 40, .6), 0 3px 0 #3b1d00; }
-.ev-banner h2 span { font-size: 14px; font-weight: 800; color: #d9c8ff; text-shadow: 0 1px 3px #000; }
+.ev-slide h2 span { font-size: 14px; font-weight: 800; color: #d9c8ff; text-shadow: 0 1px 3px #000; }
 .ev-blurb { margin: 2px 0 0; max-width: 92%; font-size: 12.5px; font-weight: 600; line-height: 1.4; color: #e6dcff; text-shadow: 0 1px 3px #000; }
 .ev-cast { position: absolute; z-index: -1; left: 0; right: 0; bottom: 68px; display: flex; justify-content: center; align-items: flex-end; pointer-events: none; }
 .ev-cast figure { margin: 0 -5px; display: flex; flex-direction: column; align-items: center; }
 .ev-cast img { display: block; height: 92px; width: auto; filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .6)); }
 .ev-cast figcaption { margin-top: -2px; padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; color: #fff;
   background: rgba(10, 6, 26, .75); border: 1px solid rgba(255, 255, 255, .18); white-space: nowrap; }
-.ev-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ev-foot { position: absolute; z-index: 2; left: 16px; right: 16px; bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; pointer-events: none; }
+.ev-foot > * { pointer-events: auto; }
 .ev-play { display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex: 1; max-width: 64%; height: 48px; border: 0; border-radius: 16px;
   font: inherit; font-size: 17px; font-weight: 900; color: #2a1100; cursor: pointer;
   background: linear-gradient(180deg, #ffbe5c, #f07f16); box-shadow: 0 4px 0 #8a3b00; }
@@ -58,22 +69,41 @@
 .ev-candy svg { width: 18px; height: 18px; color: #ff6fae; }
 .ev-candy b { font-size: 15px; color: #fff; font-variant-numeric: tabular-nums; }
 
-/* ส่วนย่อย — ไทล์สองคอลัมน์ หกส่วนเป็นสามแถว ไม่ต้องเลื่อนหา */
-.ev-sub { margin: 4px 0 -2px; font-size: 13px; font-weight: 800; color: var(--muted); }
-.ev-parts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.ev-part { display: flex; align-items: center; gap: 9px; min-height: 58px; padding: 8px 10px; border-radius: 16px;
+/* จุดบอกสไลด์ — ใบที่อยู่ยืดเป็นแท่งสีส้ม แบบจุดของการ์ดหน้าแรก */
+.ev-dots { display: flex; justify-content: center; gap: 2px; margin: -4px 0 -6px; }
+.ev-dot { display: grid; place-items: center; width: 18px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; }
+.ev-dot i { width: 7px; height: 7px; border-radius: 9px; background: color-mix(in srgb, var(--muted) 45%, transparent); transition: width .25s, background .25s; }
+.ev-dot.on { width: 30px; }
+.ev-dot.on i { width: 24px; background: #f0a03a; }
+
+/* แถวรางวัล — ของจริงจากแคตตาล็อก ปัดข้างได้ · ดูอย่างเดียว (รับของเกิดในเกม) */
+.ev-sub { margin: 4px 0 -2px; font-size: 14px; font-weight: 800; color: var(--ink); }
+.ev-shelf { display: flex; gap: 8px; margin: 0 -16px; padding: 0 16px 2px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding-inline: 16px; }
+.ev-shelf::-webkit-scrollbar { display: none; }
+.ev-rw { flex: none; width: 92px; padding: 8px 6px 7px; border-radius: 16px; scroll-snap-align: start;
+  display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
+  background: var(--card); border: 1px solid var(--line, rgba(127, 127, 127, .25)); }
+.ev-rw-im { display: grid; place-items: center; width: 68px; height: 68px; border-radius: 12px;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--c, #f0a03a) 45%, transparent), transparent 70%); }
+.ev-rw-im img { max-width: 62px; max-height: 62px; }
+.ev-rw b { font-size: 11px; font-weight: 800; color: var(--ink); line-height: 1.2; height: 2.4em; overflow: hidden; }
+.ev-rw i { font-style: normal; font-size: 9.5px; font-weight: 800; padding: 1px 7px; border-radius: 999px;
+  background: color-mix(in srgb, var(--c, #f0a03a) 28%, transparent); color: var(--c, #f0a03a); }
+.ev-rw.secret { border-style: dashed; }
+.ev-rw.secret .ev-rw-im { font-size: 30px; font-weight: 900; color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+.ev-rw.secret i { color: var(--muted); background: color-mix(in srgb, var(--muted) 16%, transparent); }
+
+/* ทางลัดเข้าส่วนย่อย — ชิปบรรทัดเดียว ปัดข้างได้ */
+.ev-chips { display: flex; gap: 6px; margin: 0 -16px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
+.ev-chips::-webkit-scrollbar { display: none; }
+.ev-chip { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 36px; padding: 0 13px; border-radius: 999px;
   border: 1px solid var(--line, rgba(127, 127, 127, .25)); background: var(--card); color: var(--ink);
-  font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.ev-part-ic { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px;
-  background: color-mix(in srgb, #f0a03a 18%, transparent); color: #f0a03a; }
-.ev-part-ic svg { width: 18px; height: 18px; }
-.ev-part-tx { min-width: 0; display: flex; flex-direction: column; gap: 1px; line-height: 1.25; }
-.ev-part-tx b { font-size: 13px; font-weight: 800; }
-.ev-part-tx small { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ev-part:active { transform: scale(.98); }
+  font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.ev-chip svg { width: 15px; height: 15px; color: #f0a03a; }
+.ev-chip:active { transform: scale(.97); }
 
 .ev-empty { display: flex; flex-direction: column; gap: 4px; padding: 28px 16px; border-radius: 18px; text-align: center;
   background: var(--card); color: var(--muted); font-size: 13px; }
 .ev-empty b { color: var(--ink); font-size: 15px; }
 
-@media (max-width: 340px) { .ev-banner { min-height: 270px; } .ev-cast img { height: 76px; } .ev-blurb { display: none; } }
+@media (max-width: 340px) { .ev-banner { height: 270px; } .ev-cast img { height: 76px; } .ev-blurb { display: none; } }
