@@ -77,28 +77,35 @@
     height:auto!important; min-height:100%; overflow:visible!important;
   }
   :root body:not(.login-mode) #menuBody>* { min-width:0; width:100%; max-width:none; margin:0; }
-  :root body:not(.login-mode) #menuBody>:not(:is(.td-head,.dc-line,.break-ask,.td-now,.td-clear,.saih,.td-ask,.td-railwrap,.td-tiles)) { grid-column:1 / -1; }
+  :root body:not(.login-mode) #menuBody>:not(:is(.td-top,.td-event,.td-deck,.td-head,.dc-line,.break-ask,.td-now,.td-clear,.saih,.td-ask,.td-railwrap,.td-tiles)) { grid-column:1 / -1; }
   :root body:not(.login-mode) #menuBody:has(>.td-clear) { grid-template-areas:'head head' 'context context' 'focus focus' 'ask ask' 'tools tools'; }
   :root body:not(.login-mode) #menuBody:has(>.td-note) { grid-template-areas:'head head' 'context context' 'focus companion' 'focus rail' 'notice rail' 'ask ask' 'tools tools'; }
+  /* แถบบนสุดกับหัวจอเต็มไม่เคยอยู่พร้อมกัน (todayHead ว่างเมื่อแถบเปิด) จึงใช้แถวเดียวกัน */
+  :root body:not(.login-mode) #menuBody>.td-top { grid-area:head; }
+  /* การ์ดอีเวนต์เล็กขึ้นเฉพาะตอนปิดการ์ดหลัก (ปกติอีเวนต์อยู่ในสไลด์) · แถวบริบทว่างแทบทุกวัน จึงใช้ที่นั้น */
+  :root body:not(.login-mode) #menuBody>.td-event { grid-area:context; }
   :root body:not(.login-mode) #menuBody>.td-head { grid-area:head; padding:0; }
   :root body:not(.login-mode) #menuBody .th-greet { font-size:28px; line-height:1.5; }
   :root body:not(.login-mode) #menuBody .th-sub { font-size:14px; margin-top:5px; }
   :root body:not(.login-mode) #menuBody>:is(.dc-line,.break-ask) { grid-area:context; min-height:42px; font-size:13px; }
-  :root body:not(.login-mode) #menuBody>:is(.td-now,.td-clear) { grid-area:focus; }
+  :root body:not(.login-mode) #menuBody>:is(.td-now,.td-clear,.td-deck) { grid-area:focus; }
   :root body:not(.login-mode) #menuBody>.saih { grid-area:companion; align-self:start; }
   :root body:not(.login-mode) #menuBody>.td-ask { grid-area:ask; min-height:54px; }
   :root body:not(.login-mode) #menuBody>.td-railwrap { grid-area:rail; }
   :root body:not(.login-mode) #menuBody>.td-tiles { grid-area:tools; padding:0; }
   :root body:not(.login-mode) #menuBody:has(>.td-note)>.td-note { grid-area:notice; }
-  :root body:not(.login-mode) #menuBody>.td-now .tn-head { padding:22px 24px 18px; }
-  :root body:not(.login-mode) #menuBody>.td-now .tn-body { padding:16px 24px 22px; }
-  :root body:not(.login-mode) #menuBody>.td-now .tn-title { font-size:27px; line-height:1.5; }
-  :root body:not(.login-mode) #menuBody>.td-now .tn-cta { min-height:52px; }
-  :root body:not(.login-mode) #menuBody>.td-now .tn-why-pane:not(.open) { display:none; }
+  :root body:not(.login-mode) #menuBody .td-now .tn-head { padding:22px 24px 18px; }
+  :root body:not(.login-mode) #menuBody .td-now .tn-body { padding:16px 24px 22px; }
+  :root body:not(.login-mode) #menuBody .td-now .tn-title { font-size:27px; line-height:1.5; }
+  :root body:not(.login-mode) #menuBody .td-now .tn-cta { min-height:52px; }
+  :root body:not(.login-mode) #menuBody .td-now .tn-why-pane:not(.open) { display:none; }
   :root body:not(.login-mode) #menuBody>.td-clear { min-height:300px; }
   :root body:not(.login-mode) #menuBody>.saih .saih-title { font-size:17px; line-height:1.6; }
   :root body:not(.login-mode) #menuBody .td-rail { max-height:400px; overflow-y:auto; scrollbar-width:thin; }
   :root body:not(.login-mode) #menuBody .tg-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+  /* หน้าแรกแบบใหม่ไทล์เหลือห้าก้อน — แถวเดียวเต็มความกว้าง ไม่ใช่สี่บวกหนึ่ง */
+  :root body:not(.login-mode) #menuBody.home-v2 .tg-grid { grid-template-columns:repeat(var(--tg-n,4),minmax(0,1fr)); }
+  :root body:not(.login-mode) #menuBody>.td-setup { grid-column:1 / -1; }
   :root body:not(.login-mode) #menuBody .tg-t { height:64px; min-height:64px; padding:10px 12px; gap:10px; flex-direction:row; justify-content:flex-start; background:var(--card); border:1px solid var(--line); border-radius:14px; }
   :root body:not(.login-mode) #menuBody .tg-ic { width:36px; height:36px; flex:none; aspect-ratio:1; border-radius:10px; }
   :root body:not(.login-mode) #menuBody .tg-ic svg { width:19px; height:19px; padding:4px; }
@@ -157,13 +164,13 @@
   :root body:not(.login-mode) .tabbar::before { font-size:18px; padding-left:43px; background-size:34px 34px; }
   :root[data-desktop-sidebar] body:not(.login-mode) .tabbar::before { font-size:18px; }
   :root body:not(.login-mode) #menuBody { grid-template-columns:minmax(0,1.5fr) minmax(250px,1fr); }
-  :root body:not(.login-mode) #menuBody>.td-now .tn-title { font-size:24px; }
-  :root body:not(.login-mode) #menuBody>.td-now :is(.tn-head,.tn-body) { padding-inline:18px; }
+  :root body:not(.login-mode) #menuBody .td-now .tn-title { font-size:24px; }
+  :root body:not(.login-mode) #menuBody .td-now :is(.tn-head,.tn-body) { padding-inline:18px; }
 }
 @media (min-width:1024px) and (max-height:760px) and (hover:hover) and (pointer:fine) {
   :root { --desktop-gap:18px; }
   :root body:not(.login-mode) #menuBody { padding-top:24px; }
   :root body:not(.login-mode) #menuBody .th-greet { font-size:26px; }
-  :root body:not(.login-mode) #menuBody>.td-now .tn-head { padding-top:18px; padding-bottom:14px; }
-  :root body:not(.login-mode) #menuBody>.td-now .tn-body { padding-top:12px; padding-bottom:18px; }
+  :root body:not(.login-mode) #menuBody .td-now .tn-head { padding-top:18px; padding-bottom:14px; }
+  :root body:not(.login-mode) #menuBody .td-now .tn-body { padding-top:12px; padding-bottom:18px; }
 }

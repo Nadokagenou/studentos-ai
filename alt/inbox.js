@@ -1609,7 +1609,16 @@ function renderNotif() {
   const bucket = n => n.at >= today0 ? 'วันนี้' : n.at >= yest0 ? 'เมื่อวาน' : n.at >= week0 ? '7 วันที่ผ่านมา' : 'ก่อนหน้านี้';
   const groups = [['ใหม่', fresh]];
   for (const name of ['วันนี้', 'เมื่อวาน', '7 วันที่ผ่านมา', 'ก่อนหน้านี้']) groups.push([name, older.filter(n => bucket(n) === name)]);
-  body.innerHTML = chips + login
+  // 24 ต.ค. 69 · หน้าแรกแบบใหม่ถอดไทล์ "กล่องเข้า" ออก กระดิ่งคือทางเข้าเดียว — แถวนี้พาไปดูกล่องเข้าทั้งกล่อง
+  // (แจ้งเตือนแต่ละอันพาไปที่งานชิ้นนั้นอย่างเดียว ไม่เห็นของที่ตรวจไปแล้ว)
+  const waiting = typeof inboxPending === 'function' ? inboxPending().length : 0;
+  const inboxRow = notifFilter !== 'dm'
+    ? `<button class="nt-login nt-inbox" onclick="go('scr-inbox')">
+        <span class="nt-av src">${icon('inbox')}</span>
+        <span class="nt-bd"><span class="nt-t"><b>กล่องเข้า</b> ${waiting ? waiting + ' รายการรอตรวจ' : 'งานทั้งหมดที่ส่งเข้ามา'}</span></span>
+        ${icon('chevron')}
+      </button>` : '';
+  body.innerHTML = chips + login + inboxRow
     + (!list.length ? empty : '')
     + groups.filter(g => g[1].length).map(([name, items]) =>
         `<div class="ib2-sec"><span>${name}</span></div><div class="ib2-list">${items.map(row).join('')}</div>`).join('');

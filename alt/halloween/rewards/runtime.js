@@ -40,13 +40,20 @@
   syncScene();new MutationObserver(syncScene).observe(root,{attributes:true,attributeFilter:['data-theme']});
   if(window.__HW_SHOWROOM__)new MutationObserver(queue).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['src']});
   // The event switch is fetched separately. Removing event/ hides its entry.
+  // 24 Oct: the entry moved from a card under the profile header to the event slot on the home screen (eventSlot in app.js), as the owner chose.
   if(!window.__HW_SHOWROOM__)fetch(new URL('../event/config.json',base),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(config=>{
    if(!config?.enabled)return;
-   const target=document.getElementById('halloweenEventEntry');if(!target)return;
-   const destination=new URL('../event/index.html',base);if(config.claimingEnabled!==true)destination.searchParams.set('preview','1');destination.searchParams.set('rev','red-dots-20261023');
-   const entry=document.createElement('a');entry.className='hw-collection-entry';entry.href=destination.href;entry.setAttribute('aria-label','เข้าอีเวนต์ Halloween');
-   entry.innerHTML='<span aria-hidden="true">✧</span><span><b>เข้าอีเวนต์ Halloween</b><small>ประตูรัตติกาล · สำรวจ เควส ปลูกสวน และร้านเวทมนตร์</small></span><i>'+(config.claimingEnabled===true?'เข้าเล่น →':'ห้องลอง →')+'</i>';
-   target.replaceChildren(entry);
+   const end=config.endsAt?Date.parse(config.endsAt):NaN,preview=config.claimingEnabled!==true;
+   const destination=new URL('../event/index.html',base);if(preview)destination.searchParams.set('preview','1');destination.searchParams.set('rev','red-dots-20261023');
+   const eventDir=new URL('../event/',base),card=config.card||{};
+   window.HalloweenEventEntry=Object.freeze({name:config.name||'Halloween',tagline:config.tagline||'',blurb:config.blurb||'',href:destination.href,preview,
+    // Home event card art, resolved against event/ so removing event/ takes the art with it
+    art:card.art?new URL(card.art,eventDir).href:'',cast:Array.isArray(card.cast)?card.cast.map(x=>new URL(x,eventDir).href):[],names:Array.isArray(card.names)?card.names.map(String):[],
+    // null = the event has ended and the button hides itself · '' = no endsAt, so no countdown
+    countdown(now=Date.now()){if(!Number.isFinite(end))return'';const left=end-now;if(left<=0)return null;const hours=Math.ceil(left/36e5);return hours<24?'เหลือ '+hours+' ชม.':'เหลือ '+Math.ceil(left/864e5)+' วัน';},
+    // Preview Candy lives on this device (KEY in event/experience.js). Real claiming has no store to read yet, so it shows nothing.
+    candy(){if(!preview)return null;try{const doc=JSON.parse(localStorage.getItem('studentos.alt.halloween.preview.v1')||'null');return Number.isSafeInteger(doc?.event?.candy)?doc.event.candy:0;}catch{return null;}}});
+   try{if(typeof renderMenu==='function')renderMenu();}catch{}
   }).catch(()=>{});
   if(window.__HW_SHOWROOM__){
    const originalHaptic=window.haptic;

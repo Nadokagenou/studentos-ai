@@ -1525,3 +1525,230 @@
    ส้มทุกธีม (ไฟสีเดียวไม่ว่าพื้นจะเป็นอะไร) · เปลวในเป็นเหลืองอำพัน (--ts-c2) ให้ดูมีแกนร้อนตรงกลาง
    Astral Black ยังเป็นขาวดำตามกฎ grayscale ข้างบน */
 .ts.g { --ts-c: #F97316; --ts-c2: #FBBF24; }
+
+/* ---------- 24 ต.ค. 69 · แถบบนสุดแบบ Duolingo (todayTop ใน app.js) ----------
+   ตัวเลขของเราล้วน ๆ: วันต่อเนื่อง · โทเคน · Candy (ช่วงอีเวนต์) · อันดับ ชิดซ้าย กระดิ่งชิดขวา · สูง 44px บรรทัดเดียว
+   ชิปไม่มีกรอบ (ตัวเลขกับไอคอนพอแล้ว แบบ Duolingo) · ปุ่มอีเวนต์ย้ายไปเป็นช่องของตัวเองข้างล่าง (.td-event) */
+.td-top { display: flex; align-items: center; gap: 4px; min-height: 44px; }
+.tt-chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 9px;
+  border: 0; border-radius: 999px; background: transparent; color: var(--ink);
+  font: inherit; font-size: 17px; font-weight: 800; text-decoration: none; cursor: pointer;
+  font-variant-numeric: tabular-nums; -webkit-tap-highlight-color: transparent;
+}
+.tt-chip:first-child { padding-left: 2px; }
+span.tt-chip { cursor: default; }
+.tt-chip:active { background: var(--card2); }
+.tt-chip:focus-visible, .td-event:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.tt-chip svg { width: 24px; height: 24px; flex: none; }
+.tt-streak { color: #F97316; --ts-c2: #FBBF24; }
+.tt-tok b { color: var(--ink); }
+.tt-candy { color: #f0569a; }
+.tt-rank { color: #D9A21F; }
+.tt-rank b { color: var(--gold-text, #D9A21F); font-size: 15px; }
+/* กระดิ่งของหัวจอมาต่อท้ายแถบ (headBell) ชิดขวา */
+.tt-acts { display: flex; align-items: center; flex: none; margin-left: auto; }
+
+/* ---------- ช่องอีเวนต์ (eventSlot ใน app.js) ----------
+   การ์ดเต็มความกว้าง สูง 60px — สูงพอให้รูปฟักทอง ชื่อ ตัวนับ และปุ่มอ่านได้ในแวบเดียว
+   แต่เตี้ยกว่าการ์ด "ตอนนี้" มาก จึงไม่แย่งว่าอะไรสำคัญที่สุด · สีม่วงกลางคืนคงที่ทุกธีม เพราะเป็นสีของอีเวนต์ ไม่ใช่ของแอป */
+.td-event {
+  position: relative; display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 10px 8px 8px;
+  border-radius: 18px; text-decoration: none; color: #f4eeff; overflow: hidden;
+  background: radial-gradient(120% 140% at 0% 0%, #7a4fe0 0%, #3b2580 45%, #1d1640 100%);
+  border: 1px solid #9d7cf0; box-shadow: 0 8px 22px -14px rgba(122, 79, 224, .9);
+  -webkit-tap-highlight-color: transparent;
+}
+/* ดาวจาง ๆ มุมขวา — บอกว่าเป็นของพิเศษช่วงนี้ โดยไม่ต้องมีข้อความ */
+.td-event::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background: radial-gradient(1.5px 1.5px at 72% 22%, #fff, transparent), radial-gradient(1px 1px at 84% 70%, #fff, transparent),
+    radial-gradient(1.2px 1.2px at 60% 78%, #fff, transparent), radial-gradient(1px 1px at 93% 30%, #fff, transparent);
+}
+.td-event:active { transform: scale(.985); }
+.te-art { flex: none; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 14px;
+  background: radial-gradient(circle at 50% 60%, rgba(255, 154, 46, .35), transparent 70%); }
+.te-art svg { width: 42px; height: 40px; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .35)); animation: te-bob 3.2s ease-in-out infinite; }
+@keyframes te-bob { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-2px) rotate(3deg); } }
+.te-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.te-tx b { font-size: 15px; font-weight: 800; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.te-tag { font-weight: 600; color: #d9c8ff; }
+.te-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; line-height: 1.2; }
+.te-meta i { font-style: normal; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; }
+.te-left { color: #ffd166; font-variant-numeric: tabular-nums; }
+.te-candy { color: #ff8cc0; font-variant-numeric: tabular-nums; }
+.te-candy svg { width: 15px; height: 15px; }
+.te-try { color: #cbbcf5; font-weight: 600 !important; padding: 1px 7px; border-radius: 999px; background: rgba(255, 255, 255, .12); }
+.te-go { position: relative; z-index: 1; flex: none; padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 800;
+  background: #fff; color: #4b2aa8; box-shadow: 0 3px 0 rgba(0, 0, 0, .25); }
+:root[data-lite] .te-art svg { animation: none; }
+@media (prefers-reduced-motion: reduce) { .te-art svg { animation: none; } .td-event:active { transform: none; } }
+
+/* ---------- การ์ดอีเวนต์แบบมีภาพ (.td-event.art) ----------
+   เจ้าของ: "ปรับให้การ์ด halloween สวย ๆ ด้วยได้ไหม มันตัวละครอะไรพวกนั้น" — ได้ที่ของบรรทัด "วันนี้ไปไหน" มา
+   พื้น = โถงประตูสี่บานของอีเวนต์ · ฝั่งซ้ายไล่มืดให้ตัวหนังสืออ่านได้ · NPC สี่ไบโอมยืนเรียงฝั่งขวา ขยับหายใจเหลื่อมกัน
+   สูง ~120px (ที่ของบรรทัด "วันนี้ไปไหน" + การ์ดอีเวนต์เดิม) · ยังเตี้ยกว่าการ์ด "ตอนนี้" มาก ลำดับความสำคัญของจอไม่เปลี่ยน */
+.td-event.art {
+  display: block; min-height: 118px; padding: 10px 14px 11px; gap: 0; line-height: 1.2;
+  background: #140f2e; border: 1px solid #8f6fe8; box-shadow: 0 10px 26px -16px rgba(122, 79, 224, 1);
+  isolation: isolate;
+}
+.td-event.art::after { display: none; }
+.te-bg { position: absolute; inset: 0; z-index: -1; background: var(--te-art) 50% 35% / cover no-repeat; }
+.te-bg::after { content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(16, 10, 38, .94) 0%, rgba(16, 10, 38, .8) 38%, rgba(16, 10, 38, .25) 68%, rgba(16, 10, 38, .05) 100%),
+    linear-gradient(0deg, rgba(16, 10, 38, .7) 0%, transparent 45%); }
+.te-cast { position: absolute; right: 2px; bottom: -3px; display: flex; align-items: flex-end; z-index: 0; pointer-events: none; }
+.te-cast img { display: block; height: 76px; width: auto; margin-left: -13px; transform-origin: 50% 100%;
+  filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .55)); animation: te-idle 3.4s ease-in-out infinite; animation-delay: calc(var(--i) * -.85s); }
+.te-cast img:nth-child(2) { height: 82px; }
+.te-cast img:nth-child(3) { height: 74px; }
+.te-cast img:nth-child(4) { height: 84px; }
+@keyframes te-idle { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-1.5px) scaleY(1.015); } }
+.td-event.art .te-tx { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; max-width: 58%; }
+.td-event.art .te-left { font-style: normal; font-size: 11px; font-weight: 800; color: #2a1600; background: #ffc94d;
+  padding: 2px 8px; border-radius: 999px; font-variant-numeric: tabular-nums; box-shadow: 0 2px 0 rgba(0, 0, 0, .3); }
+.te-name { font-size: 22px !important; font-weight: 900 !important; letter-spacing: .01em; line-height: 1.1 !important; margin-top: 4px;
+  color: #fff3dc; text-shadow: 0 0 14px rgba(255, 150, 40, .55), 0 2px 0 #3b1d00; }
+.td-event.art .te-tag { font-size: 12px; font-weight: 700; line-height: 1.3; color: #d9c8ff; text-shadow: 0 1px 2px #000; }
+.te-foot { display: flex; align-items: center; gap: 7px; margin-top: 4px; }
+.td-event.art .te-go { padding: 6px 16px; font-size: 13px; line-height: 1.2; background: linear-gradient(180deg, #ffb347, #f07f16); color: #2a1100;
+  box-shadow: 0 3px 0 #8a3b00; }
+.td-event.art .te-try { font-style: normal; font-size: 11px; }
+:root[data-lite] .te-cast img { animation: none; }
+@media (prefers-reduced-motion: reduce) { .te-cast img { animation: none; } }
+
+/* ---------- ป้าย "วันนี้ไปไหน" บนหัวข้อราง (railDayChip) ----------
+   แทนบรรทัดเต็มที่ออกจากหน้าแรก · เงียบเมื่อรู้แล้ว สีเน้นเมื่อยังไม่รู้ (ask) */
+.rl-lb .rl-day {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 4px; max-width: 46%; height: 24px; padding: 0 9px 0 7px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--muted);
+  font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; align-self: center;
+}
+.rl-lb .rl-day svg { width: 13px; height: 13px; flex: none; }
+.rl-lb .rl-day em { font-style: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rl-lb .rl-day.ask { background: var(--fill, #2563EB); border-color: transparent; color: var(--on-fill, #fff); }
+.rl-lb:has(.rl-day) > span { margin-left: 0; }
+
+/* จอแคบมาก (≤340px): ชิปชิดกันขึ้น ตัวอักษรเล็กลงหนึ่งขั้น · การ์ดอีเวนต์เหลือ NPC สองตัว */
+@media (max-width: 340px) {
+  .tt-chip { padding: 0 5px; font-size: 15px; } .tt-chip svg { width: 21px; height: 21px; }
+  .td-event { gap: 9px; } .td-event:not(.art) .te-tag { display: none; } .te-go { padding: 7px 11px; }
+  .te-cast img:nth-child(1), .te-cast img:nth-child(3) { display: none; }
+}
+
+/* ---------- 24 ต.ค. 69 · การ์ดหลักเป็นสไลด์ (heroDeck ใน app.js) ----------
+   รางแนวนอน scroll-snap ของเบราว์เซอร์เอง — ปัดด้วยนิ้วลื่นเท่าแอปจริงโดยไม่ต้องเขียนตัวลากเอง
+   สองสไลด์สูงเท่ากันเสมอ (ยืดตามการ์ดงาน) · จุดใต้การ์ดบอกว่าอยู่สไลด์ไหน ในจุดมีแถบเวลานับถอยหลังก่อนเลื่อนเอง */
+.td-deck { position: relative; }
+#menuBody > .td-deck { margin-top: 12px; }
+.dk-track {
+  display: flex; align-items: stretch; overflow-x: auto; overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory; scrollbar-width: none; border-radius: 28px;
+  /* เงาของการ์ดงานล้นออกนอกกรอบได้ — เผื่อขอบให้เงาไม่โดนตัด */
+  margin: -14px -14px 0; padding: 14px 14px 18px; scroll-padding-inline: 14px;
+}
+.dk-track::-webkit-scrollbar { display: none; }
+.dk-slide { flex: 0 0 100%; min-width: 0; scroll-snap-align: center; scroll-snap-stop: always; display: flex; flex-direction: column; }
+.dk-slide + .dk-slide { margin-left: 28px; }
+.dk-slide > * { margin-top: 0 !important; }
+/* รางสไลด์ตัดทุกอย่างที่ล้นขอบ รวมถึงเงา — เงาใหญ่ของการ์ดงานจึงโดนตัดเป็นกรอบจาง ๆ ให้เห็นบนธีมสว่าง
+   ในสไลด์ใช้เงาที่สั้นพอจะจบในระยะเผื่อของราง */
+.dk-slide > :is(.td-now, .td-clear, .td-empty, .td-hero) { box-shadow: 0 10px 18px -14px rgba(0, 0, 0, .45) !important; }
+.dk-slide > .td-now, .dk-slide > .td-clear, .dk-slide > .td-empty, .dk-slide > .td-hero { flex: 1; }
+.dk-dots { display: flex; justify-content: center; gap: 6px; margin-top: -8px; }
+.dk-dot { position: relative; width: 8px; height: 8px; padding: 0; border: 0; border-radius: 999px; overflow: hidden;
+  background: color-mix(in srgb, var(--ink) 22%, transparent); cursor: pointer; transition: width .25s ease; }
+.dk-dot::before { content: ""; position: absolute; inset: -10px -4px; }   /* ที่กดใหญ่กว่าจุด */
+.dk-dot.on { width: 28px; }
+.dk-dot i { position: absolute; inset: 0; border-radius: inherit; background: var(--blue); transform-origin: 0 50%; transform: scaleX(0); }
+.dk-dot.ev i { background: #ff9a2e; }
+.dk-dot.on i { transform: scaleX(1); }
+.td-deck.auto.tick .dk-dot.on i { animation: dk-fill var(--dk-stay, 6000ms) linear both; }
+@keyframes dk-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ---------- การ์ดอีเวนต์ใหญ่ในสไลด์ (eventHero) ----------
+   ขนาดเท่าการ์ดงาน · โถงประตูสี่บานเต็มการ์ด · ชื่ออีเวนต์ตัวใหญ่เรืองส้ม · NPC สี่ไบโอมยืนเรียงหน้าประตูพร้อมชื่อ
+   ปุ่ม "เข้าเล่น" ใหญ่เท่าปุ่ม "เริ่มทำเลย" ของการ์ดงาน — สองสไลด์ต้องมีปุ่มหลักที่ตำแหน่งใกล้กัน */
+.td-hero {
+  position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; gap: 4px;
+  min-height: 250px; padding: 16px 18px 16px; border-radius: 28px; text-decoration: none; color: #f6efff;
+  background: #120c2a; border: 1px solid #9d7cf0; box-shadow: 0 18px 40px -22px rgba(122, 79, 224, 1);
+  line-height: 1.25; -webkit-tap-highlight-color: transparent;
+  /* สูงตามการ์ดงานในสไลด์แรก (บางวันเป็นการ์ดจอว่าง 250px) — วัดความสูงตัวเองเพื่อหลบคำโปรยเมื่อเตี้ย */
+  container: th / size;
+}
+@container th (max-height: 268px) { .th-blurb { display: none; } }
+.th-bg { position: absolute; inset: 0; z-index: -2; background: var(--te-art) 50% 22% / cover no-repeat;
+  animation: th-drift 18s ease-in-out infinite alternate; }
+.th-bg::after { content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(14, 9, 34, .82) 0%, rgba(14, 9, 34, .35) 38%, rgba(14, 9, 34, .15) 58%, rgba(14, 9, 34, .9) 100%); }
+@keyframes th-drift { from { transform: scale(1.04) translateX(-1.5%); } to { transform: scale(1.1) translateX(1.5%); } }
+/* แสงจันทร์จาง ๆ มุมขวาบน + หมอกพื้น — ให้ฉากมีชั้นลึก ไม่ใช่รูปแปะ */
+.th-moon { position: absolute; z-index: -1; right: -40px; top: -60px; width: 200px; height: 200px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 236, 190, .28), transparent 65%); pointer-events: none; }
+.th-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.th-top i { font-style: normal; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; line-height: 1.2; }
+.th-kind { background: rgba(255, 255, 255, .14); color: #e9dcff; letter-spacing: .04em; }
+.th-left { background: #ffc94d; color: #2a1600; font-variant-numeric: tabular-nums; box-shadow: 0 2px 0 rgba(0, 0, 0, .3); }
+.th-try { background: rgba(0, 0, 0, .35); color: #cbbcf5; }
+.th-title { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.th-title b { font-size: 32px; font-weight: 900; line-height: 1.05; letter-spacing: .01em; color: #fff3dc;
+  text-shadow: 0 0 18px rgba(255, 150, 40, .6), 0 3px 0 #3b1d00; }
+.th-title span { font-size: 14px; font-weight: 800; color: #d9c8ff; text-shadow: 0 1px 3px #000; }
+.th-blurb { font-size: 12.5px; font-weight: 600; color: #e6dcff; opacity: .9; text-shadow: 0 1px 3px #000; max-width: 92%; }
+.th-cast { position: absolute; z-index: -1; left: 0; right: 0; bottom: 70px; display: flex; justify-content: center; align-items: flex-end; gap: 2px; pointer-events: none; }
+.th-cast figure { margin: 0 -6px; display: flex; flex-direction: column; align-items: center; }
+.th-cast img { display: block; height: 90px; width: auto; transform-origin: 50% 100%;
+  filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .6)); animation: te-idle 3.4s ease-in-out infinite; animation-delay: calc(var(--i) * -.85s); }
+.th-cast figure:nth-child(2) img, .th-cast figure:nth-child(4) img { height: 97px; }
+.th-cast figcaption { margin-top: -2px; padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; color: #fff;
+  background: rgba(10, 6, 26, .75); border: 1px solid rgba(255, 255, 255, .18); }
+.th-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.th-go { display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex: 1; max-width: 62%; height: 46px; border-radius: 16px;
+  font-size: 16px; font-weight: 900; color: #2a1100; background: linear-gradient(180deg, #ffbe5c, #f07f16); box-shadow: 0 4px 0 #8a3b00; }
+.th-go svg { width: 18px; height: 18px; }
+.th-candy { display: inline-flex; align-items: center; gap: 5px; height: 36px; padding: 0 12px; border-radius: 999px;
+  background: rgba(10, 6, 26, .7); color: #ffd0e4; font-size: 13px; font-weight: 700; }
+.th-candy svg { width: 18px; height: 18px; color: #ff6fae; }
+.th-candy b { font-size: 15px; color: #fff; font-variant-numeric: tabular-nums; }
+.td-hero:active .th-go { transform: translateY(2px); box-shadow: 0 2px 0 #8a3b00; }
+:root[data-lite] :is(.th-bg, .th-cast img) { animation: none; }
+@media (prefers-reduced-motion: reduce) { :is(.th-bg, .th-cast img) { animation: none; } .dk-dot { transition: none; } }
+@media (max-width: 340px) { .th-cast img { height: 78px !important; } .th-title b { font-size: 27px; } .th-blurb { display: none; } }
+
+/* ---------- 24 ต.ค. 69 · หน้าแรกแบบใหม่ (#menuBody.home-v2 = แถบบนสุดเปิด) ----------
+   เก็บสี่จุดที่ตรวจเจอหลังจัดโครงใหม่ (ภาพเทียบส่งเจ้าของแล้ว):
+   1 รางตัดแถวกลางบรรทัด → แถวเต็ม 2–3 แถว + ลิงก์ "ดูแผนทั้งวัน" (dayRail)
+   2 ช่องถามสูงและมีวงแสงหมุนตลอด ทั้งที่แถบล่างมีแท็บน้องฮูกอยู่แล้ว → บางลง แสงขึ้นเฉพาะตอนพิมพ์
+   3 ไทล์ที่ทำครั้งเดียว/ซ้ำของบนจอ → ถอดออก ไทล์เหลือแถวเดียว · สแกนตารางเป็นการ์ดตั้งค่าครั้งเดียว
+   4 กล่องเข้าซ้ำกับกระดิ่ง → เหลือกระดิ่ง */
+.phone #menuBody.home-v2 .td-railwrap.capped .td-rail { max-height: none; overflow: visible; }
+.dr-row.dr-more { width: 100%; min-height: 36px; padding-block: 6px; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; color: var(--blue); }
+.dr-row.dr-more::before { display: none; }
+.dr-more .dr-t { color: var(--blue); font-weight: 800; }
+.dr-more .dr-b { font-size: 12.5px; font-weight: 700; color: var(--blue); }
+.dr-more .dr-go { margin-left: auto; display: grid; place-items: center; color: var(--blue); }
+.dr-more .dr-go svg { width: 16px; height: 16px; }
+
+#menuBody.home-v2 .td-ask { min-height: 42px; padding-block: 2px; }
+:root #menuBody.home-v2 .td-ask .tk-go.tk-go { width: 34px; height: 34px; }
+#menuBody.home-v2 .td-ask:not(:focus-within)::before { opacity: 0; animation: none; }
+
+#menuBody.home-v2 .tg-grid { grid-template-columns: repeat(var(--tg-n, 4), minmax(0, 1fr)); }
+#menuBody.home-v2 .td-tiles { margin-top: 12px; }
+
+.td-setup {
+  display: flex; align-items: center; gap: 11px; width: 100%; margin-top: 10px; padding: 9px 12px 9px 10px;
+  border: 1px dashed color-mix(in srgb, var(--blue) 55%, transparent); border-radius: 16px;
+  background: color-mix(in srgb, var(--blue) 9%, var(--card)); color: var(--ink);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.td-setup .ts-ic2 { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 11px; background: var(--fill, #2563EB); color: var(--on-fill, #fff); }
+.td-setup .ts-ic2 svg { width: 19px; height: 19px; }
+.td-setup .ts-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; line-height: 1.3; }
+.td-setup .ts-tx b { font-size: 13.5px; font-weight: 800; }
+.td-setup .ts-tx small { font-size: 11.5px; color: var(--muted); }
+.td-setup .ts-go { color: var(--muted); display: grid; place-items: center; }
+.td-setup .ts-go svg { width: 16px; height: 16px; }
+.td-setup:active { transform: scale(.99); }
