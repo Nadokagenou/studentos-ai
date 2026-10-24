@@ -30,8 +30,11 @@ var eventsPick = null;   // กิจกรรมที่เลือกอย�
 function openEvents(id) {
   if (id) eventsPick = id;
   evDeck.held = false;   // เปิดจอนี้ใหม่ = สไลด์กลับมาเลื่อนเอง
+  // 25 ต.ค. 69 · เจ้าของ: "มันค้าง ๆ" — เดิม go() วาดจอนี้ (ตาราง SCREEN_RENDER) แล้วเรียกวาดซ้ำอีกรอบตรงนี้
+  // วัด (CPU ช้า 6 เท่า): วาดสองรอบ 430–660ms จากกดจนเห็นจอ 570–900ms · วาดรอบเดียวผ่าน go() พอ
+  // ล้างตราประทับก่อน ไม่งั้น go() ถือว่าจอที่วาดไว้ไม่เกิน 30 วิยังสด แล้วข้ามไป (วันที่เหลือ/Candy ค้างค่าเก่า)
+  if (typeof screenStamp === 'object' && screenStamp) delete screenStamp['scr-events'];
   go('scr-events');
-  renderEvents();
 }
 
 function eventsSelect(id) {
@@ -144,7 +147,15 @@ function evDeckGo(k, byHand) {
   const t = document.getElementById('evTrack');
   if (!t || !t.children[k]) return;
   if (byHand) evDeckHold();
-  t.scrollTo({ left: t.children[k].offsetLeft - t.children[0].offsetLeft, behavior: 'smooth' });
+  t.scrollTo({ left: k * t.clientWidth, behavior: 'smooth' });   // สไลด์กว้าง 100% ไม่มีช่องไฟ
+}
+// ภาพฉากโหลดแบบ lazy — ถ้ารอให้เลื่อนถึงก่อน เบราว์เซอร์จะโหลดและถอดรหัสภาพกลางการปัด = กระตุก/เห็นช่องว่าง
+// จึงอุ่นสไลด์ถัดไปไว้ล่วงหน้าทีละใบตอนเครื่องว่าง (ถอดรหัสนอกเธรดหลักด้วย decode())
+function evWarm(t, k) {
+  const img = t.children[k] && t.children[k].querySelector('img[loading="lazy"]');
+  if (!img) return;
+  const go = () => { img.loading = 'eager'; if (img.decode) img.decode().catch(() => {}); };
+  if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 1500 }); else setTimeout(go, 300);
 }
 function evDeckHold() { evDeck.held = true; clearTimeout(evDeck.timer); evDeck.timer = 0; }
 function evDeckPaint() {
@@ -170,8 +181,10 @@ function evDeckMount() {
   if (!t) return;
   const n = t.children.length - 1;   // สไลด์จริง (ไม่นับสำเนาปกท้ายราง)
   if (evDeck.idx >= n) evDeck.idx = 0;
-  const pos = k => t.children[k].offsetLeft - t.children[0].offsetLeft;
-  t.scrollTo({ left: pos(evDeck.idx), behavior: 'instant' });
+  // ห้ามอ่านขนาด/ตำแหน่งตรงนี้ — เพิ่งเขียน innerHTML เสร็จ การอ่านบังคับให้คำนวณผังทั้งหน้าทันที (~90ms ที่ CPU ช้า 6 เท่า)
+  // รางใหม่เริ่มที่สไลด์แรกอยู่แล้ว · ต้องวางคืนที่อื่นค่อยทำในเฟรมถัดไปหลังเบราว์เซอร์จัดผังเอง
+  if (evDeck.idx) { const k = evDeck.idx; requestAnimationFrame(() => t.scrollTo({ left: k * t.clientWidth, behavior: 'instant' })); }
+  evWarm(t, evDeck.idx + 1);
   let settle = 0;
   t.addEventListener('scroll', () => {
     clearTimeout(settle);
@@ -180,6 +193,7 @@ function evDeckMount() {
       if (k >= n) { t.scrollTo({ left: 0, behavior: 'instant' }); evDeck.idx = 0; }
       else evDeck.idx = k;
       evDeckPaint();
+      evWarm(t, evDeck.idx + 1);
     }, 90);
   }, { passive: true });
   t.addEventListener('pointerdown', evDeckHold, { passive: true });
