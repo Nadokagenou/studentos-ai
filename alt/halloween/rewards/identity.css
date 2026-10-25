@@ -22,7 +22,7 @@
 :root[data-theme="halloween"] {
   --id-tile: 6px 18px 18px 6px; --id-chip: 50%; --id-btn: 8px 18px 18px 8px; --id-tab: 5px 14px 14px 5px;
   --id-bar: 12px 26px 26px 12px; --id-back: 5px 14px 14px 5px; --id-ctl: 4px 12px 12px 4px; --id-in: 6px 16px 16px 6px;
-  --id-title-ink: linear-gradient(100deg, #F3D9A8, #DFB783 45%, #C9A7E8);
+  --id-title-ink: linear-gradient(100deg, #FFC27A, #F59A45 45%, #C58BFF);   /* ฟักทอง → แม่มด (26 ต.ค. 69) */
   --hwi-ring: inset 3px 0 0 #C9A06A;                                     /* สันหนังสือ */
 }
 :root[data-theme="moonlight"] {
@@ -273,3 +273,20 @@ html[data-hw-motion="still"] :is(.hw-scene, .hw-biome-scene)::after { display: n
 :root[data-theme="moonlight"] .phone #menuBody .rl-day.ask {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--blue) 50%, transparent) !important;
 }
+
+/* ---------- Halloween คลาสสิก · ส้มฟักทอง + ม่วงแม่มด (26 ต.ค. 69 · เจ้าของ: "ธีม halloween ด้วย") ----------
+   แบบเดียวกับ Moon & Candle แต่สลับบท: ส้ม = ของกดหลัก (--fill) · ม่วง = สีรอง (--blue ใน theme-main.css)
+   ปุ่ม "+" = แสงน้ำยาแม่มดสีม่วง · ชิป "วันนี้ไปไหน?" = ม่วงอ่อน */
+:root[data-theme="halloween"] .phone .tabbar .tab.scan .scan-dot {
+  background:
+    radial-gradient(120% 90% at 26% -4%, rgba(255, 255, 255, .45) 0%, rgba(255, 255, 255, .08) 44%, transparent 64%),
+    radial-gradient(circle at 40% 30%, #C792F5, #8A3FD4 55%, #4E1C80) !important;   /* ม่วงลึกพอให้ไอคอนขาวถึง 3:1 ทั้งก้อน */
+  color: #FFFFFF !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 0 18px -2px rgba(164, 91, 234, .75) !important;
+}
+:root[data-theme="halloween"] .phone #menuBody .rl-day.ask {
+  background: color-mix(in srgb, var(--blue) 22%, transparent) !important;
+  color: var(--blue-deep) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--blue) 50%, transparent) !important;
+}
+:root[data-theme="halloween"] .phone #menuBody .rl-day.ask * { color: inherit !important; }
