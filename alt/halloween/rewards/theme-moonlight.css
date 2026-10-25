@@ -441,3 +441,6 @@ html[data-lite="1"][data-theme="moonlight"] *{-webkit-backdrop-filter:none!impor
   background: transparent; color: color-mix(in srgb, var(--hw-sky, #8FDAFF) 70%, var(--ink));
   border: 1px solid color-mix(in srgb, var(--hw-sky, #8FDAFF) 45%, transparent);
 }
+/* "ดูทั้งหมด >" ในการ์ดสรุป 7 วัน ออกแบบมาเป็นลิงก์ตัวหนังสือ (padding 0) แต่กฎ "#scr-profile button" ข้างบนใส่พื้นแคปซูลให้
+   ตัวหนังสือเลยชิดขอบซ้ายของแคปซูลพอดี (ห่าง 0px) และส่วนที่ยื่นของอักษรไทยล้นออกนอกกรอบ → เว้นขอบในให้เท่ากันสองฝั่ง */
+:root[data-theme="moonlight"] #scr-profile .st-open-go { padding: 3px 7px 3px 10px; gap: 2px; }
