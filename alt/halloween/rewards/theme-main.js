@@ -114,17 +114,13 @@
   function decorate() {
     queued = false;
     if (!active) return;
-    mount(); preferences(); if (isMoon()) groupMe();
-    // 23 Oct 2026, owner: "too much on the buttons, it looks cluttered". Smoke, blood and a ghost used to go on
-    // every primary button, Me row and tasks-tab button. Now only the one "do this now" card per screen
-    // carries them; everything you tap stays plain. The scene behind the app still sets the mood.
-    document.querySelectorAll('.td-now,.td-clear,#scr-tasks .tb-focus').forEach(card => {
-      card.classList.add('hw-art-host');
-      if (card.querySelector(':scope > .hw-ornament')) return;
-      const art = document.createElement('span'); art.className = 'hw-ornament'; art.setAttribute('aria-hidden', 'true');
-      art.innerHTML = '<i class="hw-card-smoke"></i><i class="hw-card-blood"></i><i class="hw-card-ghost">' + ghost + '</i>';
-      card.append(art);
-    });
+    mount(); preferences();
+    // 25 Oct 2026, owner: "make every button in Moon & Candle and Halloween like the main themes, only the
+    // colours and the background change". So the theme no longer regroups the Me list (groupMe) or hangs
+    // smoke/blood/ghost ornaments on the "do this now" card; both themes keep the main layout and components.
+    // The scene behind the app (theme-main.css / theme-moonlight.css) is what makes them Halloween now.
+    ungroupMe();
+    document.querySelectorAll('.hw-art-host > .hw-ornament').forEach(art => { art.parentElement.classList.remove('hw-art-host'); art.remove(); });
     document.querySelectorAll('svg image.brand-light,svg image.brand-dark').forEach(mark => { if (!brandOriginals.has(mark)) brandOriginals.set(mark, mark.getAttribute('href')); mark.setAttribute('href', 'halloween/rewards/theme-assets/app-icon.webp'); });
     for (const [img] of originals) if (!img.isConnected) originals.delete(img);
     for (const [use] of iconOriginals) if (!use.isConnected) iconOriginals.delete(use);
@@ -297,8 +293,8 @@
   function sync() {
     const next = FAMILY.includes(root.dataset.theme);
     if (next !== active) { active = next; if (active) { mount(); decorate(); } else { restore(); stopAudio(); } }
-    // Switching straight between the two family themes keeps the scene but must regroup or ungroup the list.
-    if (active && isMoon()) groupMe(); else ungroupMe();
+    // The Me list is no longer regrouped in either theme (see decorate); undo any grouping left from an older build.
+    ungroupMe();
     if (scene) scene.hidden = !active;
     paintBar(); updateControls();
   }

@@ -10,15 +10,14 @@
    ============================================================ */
 
 /* ธีม Halloween เป็นธีมมืดแต่ไม่อยู่ในรายชื่อโทเคนกระจกมืดของ 1C40 → ได้ขอบขาวจ้าแบบธีมสว่าง (ปุ่มกลับ · ปุ่มกระจก · แถบล่าง) */
-:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]) {
+:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]:not([data-hw-tone="light"])) {
   --lg-hi: rgba(255,255,255,.72); --lg-mid: rgba(255,255,255,.38); --lg-lo: rgba(255,255,255,.18);
   --lg-glow: rgba(255,255,255,.12); --lg-drop: rgba(0,0,0,.55);
   --lgb-top: rgba(255,255,255,.14); --lgb-bot: rgba(255,255,255,.02); --lgb-edge: rgba(0,0,0,.35);
 }
 
-/* ---------- แถบเมนูล่าง (dock) ----------
-   Moon & Candle กับ Halloween คลาสสิกมีแถบที่ออกแบบเฉพาะธีมไว้แล้ว ไม่แตะ */
-:root:not([data-theme="moonlight"]):not([data-theme="halloween"]) .phone .tabbar {
+/* ---------- แถบเมนูล่าง (dock) ---------- ทุกธีม (Moon & Candle กับ Halloween คลาสสิกใช้แถบแบบธีมหลักแล้วตั้งแต่ 25 ต.ค. 69) */
+.phone .tabbar {
   /* ขอบเคยเป็นน้ำเงิน rgba(37,99,235,.3) ตายตัวทุกธีม */
   border-color: color-mix(in srgb, var(--fill) 30%, var(--lg-mid)) !important;
   background-image:
@@ -61,28 +60,9 @@
    ตอนนี้: คงสีพื้นเดิมของแต่ละธีม แล้วซ้อนกระจกชุดเดียวกัน (ประกายมุม · ขอบสะท้อน · แสงขอบแบบเลนส์ในสีเน้นของธีม)
    และลดความทึบลงให้ฝ้าเบลอของข้างหลังโผล่ (backdrop-filter ของ 1C40 ยังทำงานอยู่)
    ============================================================ */
-:root[data-theme="moonlight"] .phone .tabbar {
-  background:
-    radial-gradient(70% 140% at 8% -30%, rgba(255,255,255,.22), transparent 60%),
-    linear-gradient(180deg, color-mix(in srgb, var(--hw-chrome-2) 82%, transparent), color-mix(in srgb, var(--hw-chrome) 84%, transparent)) !important;
-  box-shadow:
-    inset 0 1.5px 0 rgba(255,255,255,.34), inset 0 -1px 0 rgba(255,255,255,.08),
-    inset 0 0 0 1px rgba(255,255,255,.06),
-    inset 0 0 22px -4px color-mix(in srgb, var(--hw-sky, #8FDAFF) 38%, transparent),
-    0 -5px 30px rgba(5,1,18,.6), 0 14px 30px -12px rgba(0,0,0,.6) !important;
-}
-:root[data-theme="halloween"] .phone .tabbar {
-  background:
-    radial-gradient(70% 140% at 8% -30%, rgba(255,226,196,.2), transparent 60%),
-    linear-gradient(180deg, #291b30d4, #15111fd9) !important;
-  box-shadow:
-    inset 0 1.5px 0 rgba(255,226,196,.3), inset 0 -1px 0 rgba(255,255,255,.06),
-    inset 0 0 0 1px rgba(255,255,255,.05),
-    inset 0 0 22px -4px color-mix(in srgb, #dfb783 40%, transparent),
-    0 -5px 30px #09030c55, 0 14px 30px -12px rgba(0,0,0,.6) !important;
-  -webkit-backdrop-filter: blur(22px) saturate(160%); backdrop-filter: blur(22px) saturate(160%);
-}
-:root[data-theme^="hw-"] .phone .tabbar {
+:root:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]) .phone .tabbar {
+  /* ธีมมืดหลักได้ชั้นกระจกมืดจากรายชื่อใน alt.css · สามกลุ่มนี้ไม่อยู่ในรายชื่อ พื้นแถบจึงโปร่งใสล้วน
+     จอที่มีของสีสว่างอยู่ใต้แถบ (จอบริบท) แถบเลยกลายเป็นสีครีม ป้ายแท็บสีอ่อนหายไป (2.3) → รองพื้นด้วย --soft-card ของธีม */
   background-color: color-mix(in srgb, var(--soft-card, var(--card)) 80%, transparent) !important;
 }
 
@@ -91,7 +71,7 @@
    ธีม Halloween เคยถอดทั้งสองชั้นออกเหลือการ์ดมืดแบน (biome-themes.css · theme-main.css · theme-moonlight.css)
    ใช้สีหลักของแต่ละธีมเอง (ทองเทียน · ฟ้าจันทร์ · ชมพูแวมไพร์ ฯลฯ) จึงยังเข้าธีม · ขนาดไทล์คงไว้ตามเดิม (หน้าแรกห้ามเลื่อน)
    ตัวเลือกมี body เพิ่มเพื่อให้ชนะกฎเดิมที่ใช้ #menuBody + !important */
-:root:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]) body #menuBody .tg-ic {
+:root[data-theme^="hw-"] body #menuBody .tg-ic {
   background-color: color-mix(in srgb, var(--fill) 70%, var(--card)) !important;
   background-image:
     radial-gradient(130% 80% at 16% -6%, rgba(255,255,255,.5) 0%, rgba(255,255,255,.12) 38%, transparent 62%),
@@ -108,7 +88,7 @@
     0 14px 24px -12px var(--lg-drop), 0 0 18px -6px color-mix(in srgb, var(--fill) 60%, transparent) !important;
   -webkit-backdrop-filter: blur(18px) saturate(180%); backdrop-filter: blur(18px) saturate(180%);
 }
-:root:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]) body #menuBody .tg-ic svg {
+:root[data-theme^="hw-"] body #menuBody .tg-ic svg {
   background: linear-gradient(160deg, rgba(255,255,255,.97), color-mix(in srgb, var(--fill) 22%, rgba(255,255,255,.82))) !important;
   border: 1px solid rgba(255,255,255,.9) !important;
   border-radius: 50% !important;
@@ -118,16 +98,12 @@
   box-shadow: inset 0 1px 0 #fff, inset 0 -1.5px 2px rgba(0,0,0,.14), 0 5px 10px -3px rgba(0,0,0,.4), 0 0 0 .5px rgba(0,0,0,.12) !important;
 }
 @media (min-width: 600px) {
-  :root:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]) body #menuBody .tg-ic { border-radius: 20px !important; }
-  :root:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]) body #menuBody .tg-ic svg { padding: 9px !important; }
-}
-/* Halloween คลาสสิกกับ Moon & Candle ย่อไทล์เหลือ 49px บนมือถือ (ให้หน้าแรกไม่ต้องเลื่อน) → ย่อชิปตามสัดส่วนเดียวกับธีมอื่น (~68% ของไทล์) */
-@media (max-width: 599px) {
-  :root:is([data-theme="halloween"], [data-theme="moonlight"]) body #menuBody .tg-ic svg { width: 20px !important; height: 20px !important; padding: 6px !important; }
+  :root[data-theme^="hw-"] body #menuBody .tg-ic { border-radius: 20px !important; }
+  :root[data-theme^="hw-"] body #menuBody .tg-ic svg { padding: 9px !important; }
 }
 /* ขอบไทล์ย้อมสีธีม — เจ้าของ: "ให้สีตรงขอบเข้ากับสีธีมด้วย"
    เดิมขอบกับเส้นสะท้อนเป็นขาวใส (--lg-*) เหมือนกันทุกธีม · ตอนนี้ผสม --fill ของธีมลงไป ขอบบนสว่างกว่า (แสงตกกระทบ) ล่างเข้มกว่า */
-:root:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]) body #menuBody .tg-ic {
+:root[data-theme^="hw-"] body #menuBody .tg-ic {
   border: 1.5px solid color-mix(in srgb, var(--fill) 80%, #fff) !important;
   border-bottom-color: color-mix(in srgb, var(--fill) 70%, #000) !important;
   box-shadow:
@@ -137,7 +113,7 @@
     0 0 0 1px color-mix(in srgb, var(--fill) 30%, transparent),
     0 14px 24px -12px var(--lg-drop), 0 0 20px -5px color-mix(in srgb, var(--fill) 70%, transparent) !important;
 }
-:root:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]) body #menuBody .tg-ic svg {
+:root[data-theme^="hw-"] body #menuBody .tg-ic svg {
   border-color: color-mix(in srgb, var(--fill) 45%, #fff) !important;
 }
 
@@ -168,7 +144,7 @@ body #menuBody .td-top {
 
 /* ② ช่อง "ถามน้องฮูก…" ในธีม Halloween — biome-themes.css ถอดวงกระจกออก (:before/:after) เหลือการ์ดทึบแบน
    ให้เป็นกระจกชิ้นเดียวกับแถบบน (ขอบสะท้อน + แสงขอบสีธีม) · ตอนพิมพ์ขอบสว่างขึ้นเป็นสีธีม */
-:root:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]) body #menuBody .td-ask {
+:root[data-theme^="hw-"] body #menuBody .td-ask {
   background:
     radial-gradient(60% 160% at 6% -40%, rgba(255,255,255,.16), transparent 62%),
     color-mix(in srgb, var(--soft-card, var(--card)) 74%, transparent) !important;
@@ -179,7 +155,7 @@ body #menuBody .td-top {
     0 10px 24px -14px var(--lg-drop) !important;
   -webkit-backdrop-filter: blur(18px) saturate(160%) !important; backdrop-filter: blur(18px) saturate(160%) !important;
 }
-:root:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]) body #menuBody .td-ask:focus-within {
+:root[data-theme^="hw-"] body #menuBody .td-ask:focus-within {
   border-color: color-mix(in srgb, var(--fill) 75%, transparent) !important;
   box-shadow:
     inset 0 1.5px 0 var(--lg-hi), inset 0 0 20px -4px color-mix(in srgb, var(--fill) 55%, transparent),

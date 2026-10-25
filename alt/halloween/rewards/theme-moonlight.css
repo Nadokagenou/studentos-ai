@@ -1,3 +1,9 @@
+/* 25 ต.ค. 69 · เจ้าของ: "ให้ธีม Moon & Candle และ Halloween มีปุ่มทั้งหมดคล้ายธีมหลัก เปลี่ยนสีกับพื้นหลัง พวก UI ทำให้เหมือนให้หมด"
+   ไฟล์นี้เคยแต่งทุกคอมโพเนนต์ใหม่หมด (มุมเบี้ยว 17px/5px · ไล่สีเฉพาะ · ขอบเฉพาะ · ปุ่ม/การ์ด/แถบ/แผ่น/ช่องกรอก ~240 กฎ)
+   ตอนนี้เหลือแค่ ① โทเคนสีของธีม (:root[data-theme=…]) ② ฉากพื้นหลัง (.hw-scene · ท้องฟ้า · สุสาน · เทียน · ผี · ค้างคาว)
+   ③ ปุ่มเสียง/การเคลื่อนไหว (.hw-controls) · เอฟเฟกต์คลิก · กล่องตั้งค่าธีม ④ กฎคุมการเคลื่อนไหวของฉาก (โหมดประหยัด/ลดการเคลื่อนไหว)
+   ปุ่ม การ์ด แถบล่าง ช่องกรอก ใช้กฎเดียวกับธีมหลักทั้งหมด จึงต่างแค่สีกับฉาก
+   กฎที่ถอดออกดูได้ใน git (คอมมิตก่อนหน้านี้) · แยกด้วยสคริปต์ที่จัดกลุ่มตามตัวเลือก ไม่ได้ลบมือทีละกฎ */
 /* Moon & Candle (theme id: moonlight) — a sample theme for the team to develop further.
    Built on the Halloween scene and runtime (theme-main.js treats it as part of the Halloween family),
    but every rule here is scoped to [data-theme="moonlight"], so the Halloween theme is untouched.
@@ -101,50 +107,6 @@
  :root[data-theme="moonlight"] .hw-wanderer{animation-duration:24s;opacity:.47}
  :root[data-theme="moonlight"] .hw-wanderer.distant{animation-duration:36s;opacity:.26}
 }
-:root[data-theme="moonlight"] :is(.page-title,.big-title,.sh-title,.th-greet,.tn-title,.set-hd,.pe-name){color:var(--hw-ink);text-shadow:0 2px 20px #8B5CFF40;letter-spacing:.01em}
-:root[data-theme="moonlight"] :is(.eyebrow,.sec-label,.tn-eyebrow){color:var(--hw-sky-text);letter-spacing:.13em}
-:root[data-theme="moonlight"] :is(.card,.hm-card,.tn-card,.tn-head,.tn-body,.tn-cells,.hm-rail,.hm-row,.mtile,.qa-card,.as-card,.set-blk,.set-block,.st-card,.tk-hero,.tk-cta,.tb-row,.fx-row,.profile-head,.ph-card,.bg-card,.show-tile,.set-row,.set-opt,.on-card,.r-card,.fd-post,.ai-panel,.qn-card,.sc-card,.cls-card){
- background:linear-gradient(135deg,var(--hw-card),var(--hw-card-low)),var(--hw-glass-base);border:1px solid var(--hw-blue-line);border-radius:20px 7px 20px 7px;box-shadow:inset 0 0 0 3px var(--hw-ring),0 8px 24px var(--hw-shadow);color:var(--ink)
-}
-:root[data-theme="moonlight"] :is(.tn-head,.tn-body){border-color:var(--hw-blue-line-strong);background:linear-gradient(130deg,var(--hw-card-hi),var(--hw-card)),var(--hw-glass-base)}
-:root[data-theme="moonlight"] .tn-head{position:relative;overflow:hidden}
-:root[data-theme="moonlight"] :is(.tn-why,.tn-why2,.tn-foot,.hm-help,.sh-sub){color:var(--hw-ink-blue)}
-:root[data-theme="moonlight"] :is(.tn-stats,.tn-stat,.tn-band,.tn-cell,.tn-row){background:color-mix(in srgb,var(--hw-card-well) 60%,transparent);border-color:var(--hw-blue-line)}
-:root[data-theme="moonlight"] :is(.task,.task-card,.task-item,.tcard,.hw-card,.qa-task,.tl-item){background:linear-gradient(115deg,var(--hw-card),var(--hw-card-low)),var(--hw-glass-base);border-color:var(--hw-blue-line);border-radius:16px 5px 16px 5px;box-shadow:inset 4px 0 var(--hw-sky),0 5px 17px var(--hw-shadow)}
-:root[data-theme="moonlight"] :is(.task,.task-card,.task-item,.tcard,.mtile,.tk-cta,.show-tile,.fx-row){transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
-@media(hover:hover){:root[data-theme="moonlight"] :is(.task,.task-card,.task-item,.tcard,.mtile,.tk-cta,.show-tile,.fx-row):hover{transform:translateY(-2px);border-color:var(--hw-blue-line-strong);box-shadow:0 7px 25px #2F8CFF33}}
-/* 10%: only primary actions turn orange. Secondary, text and ghost buttons stay in the blue tier. */
-:root[data-theme="moonlight"] :is(button.btn.primary,.btn-primary,.main-btn,.tc-main,.tn-cta,.tc-cta,.fm-start,.fm-save,.qa-save,.tb-go,.fx-buy,.pro-cta,.on-next){background:linear-gradient(180deg,var(--hw-orange-cta),var(--hw-orange-cta-low));color:var(--hw-on-orange);border:1px solid var(--hw-orange-hi);border-radius:17px 5px 17px 5px;box-shadow:inset 0 -3px #5A160033,var(--hw-candle);position:relative;overflow:hidden}
-:root[data-theme="moonlight"] button.btn:is(.secondary,.ghost){background:linear-gradient(135deg,var(--hw-card-hi),var(--hw-card)),var(--hw-glass-base);color:var(--hw-ink);border:1px solid var(--hw-blue-line-strong);border-radius:17px 5px 17px 5px;box-shadow:inset 0 1px #FFFFFF14,0 4px 14px var(--hw-shadow);position:relative;overflow:hidden}
-:root[data-theme="moonlight"] button.btn.text{color:var(--hw-sky-text)}
-:root[data-theme="moonlight"] :is(button,.btn):focus-visible{outline:2px solid var(--hw-sky);outline-offset:4px}
-:root[data-theme="moonlight"] button:active{filter:brightness(1.13)}
-:root[data-theme="moonlight"] :is(input:not([type=checkbox]):not([type=range]),textarea,select,.ask-box,.hm-ask,.ai-input-wrap,.qa-input){background:var(--hw-well);color:var(--hw-ink);border-color:var(--hw-violet-line);box-shadow:inset 0 2px 8px var(--hw-shadow);border-radius:14px 5px 14px 5px}
-:root[data-theme="moonlight"] :is(input,textarea)::placeholder{color:var(--hw-ink-2);opacity:1}
-:root[data-theme="moonlight"] :is(input,textarea,select):focus{border-color:var(--hw-sky);box-shadow:0 0 0 3px #5CC8FF33}
-:root[data-theme="moonlight"] :is(.tabbar,.desktop-extra-nav){background:linear-gradient(180deg,var(--hw-chrome-2),var(--hw-chrome));border-color:var(--hw-violet-line);box-shadow:0 -7px 30px var(--hw-shadow),inset 0 1px #FFFFFF14}
-:root[data-theme="moonlight"] .tabbar{border-radius:22px 8px 22px 8px}
-:root[data-theme="moonlight"] :is(.tab,.tab-btn,.tabbar button){color:var(--hw-ink-2);border-radius:15px 5px 15px 5px}
-/* Selected navigation is hierarchy (30%), matching the app's own solid --fill tab; orange stays on the + button. */
-:root[data-theme="moonlight"] :is(.tab.active,.tab.on,.tab-btn.active,.tabbar button.active,.desktop-link.is-current){color:var(--on-fill);background:var(--fill);box-shadow:inset 0 1px #FFFFFF40,0 0 16px #2F8CFF40}
-:root[data-theme="moonlight"] :is(.tab-add,.tabbar .add-btn,.tb-plus,.tab-plus){background:radial-gradient(circle at 35% 25%,var(--hw-orange-hi),var(--hw-orange-cta) 60%,var(--hw-orange-cta-low));color:var(--hw-on-orange);border:2px solid #FFD2B2;box-shadow:var(--hw-candle);border-radius:50%}
-:root[data-theme="moonlight"] :is(.sticky-head,.page-head,.fd-top){background:linear-gradient(180deg,var(--hw-chrome),color-mix(in srgb,var(--hw-chrome) 85%,transparent));border-color:var(--hw-violet-line)}
-:root[data-theme="moonlight"] :is(.modal,.sheet,.sheet-card,.as-sheet,.qa-sheet,.cf-box,.confirm-box,.dialog,.toast,.app-sheet,.quick-sheet,.fm-panel,.cal-pop){background:linear-gradient(145deg,var(--hw-chrome-2),var(--hw-chrome));color:var(--ink);border:1px solid var(--hw-violet-line);border-radius:23px 7px 23px 7px;box-shadow:inset 0 0 0 4px var(--hw-ring),0 22px 70px var(--hw-shadow)}
-:root[data-theme="moonlight"] :is(.overlay,.modal-overlay,.sheet-backdrop,.as-overlay){background:var(--hw-scrim);backdrop-filter:blur(7px)}
-:root[data-theme="moonlight"] :is(.calendar,.cal-grid,.tl-grid,.week-grid){background:color-mix(in srgb,var(--hw-chrome) 80%,transparent);border-color:var(--hw-violet-line)}
-:root[data-theme="moonlight"] :is(.cal-day,.cal-cell,.tl-day){border-color:var(--hw-violet-line)}
-:root[data-theme="moonlight"] :is(.cal-day.today,.cal-cell.today){outline:1px solid var(--hw-orange);background:color-mix(in srgb,var(--hw-orange) 22%,transparent);border-radius:13px 4px 13px 4px}
-:root[data-theme="moonlight"] :is(.hm-ask-ic,.mt-ic,.set-ic,.tile,.sh-btn,.tn-ib){background:color-mix(in srgb,var(--hw-blue) 22%,transparent);color:var(--hw-sky-text);border-color:var(--hw-blue-line)}
-:root[data-theme="moonlight"] :is(.ph-avatar,.tc-art,.th-me,.ai-av){border-color:var(--hw-blue-line-strong);box-shadow:0 0 22px #2F8CFF2b;background:var(--hw-card-low)}
-:root[data-theme="moonlight"] .tc-art img{object-fit:contain!important;background:var(--hw-card-low)}
-:root[data-theme="moonlight"] img[data-hw-character]{filter:drop-shadow(0 0 15px #5CC8FF44)}
-:root[data-theme="moonlight"] :is(.sai-stage,.syn-stage,.syn-hero,.sh-hero){position:relative;background:radial-gradient(ellipse at 50% 75%,#2F8CFF28,transparent 65%)}
-:root[data-theme="moonlight"] :is(.ai-bubble,.ai-reply,.sai-message,.sh-note){background:color-mix(in srgb,var(--hw-chrome-2) 82%,transparent);border-color:var(--hw-violet-line);border-radius:18px 5px 18px 5px}
-:root[data-theme="moonlight"] :is(.tk-skin,.bg-card,.fx-row){background:linear-gradient(135deg,var(--hw-card-hi),var(--hw-card-low)),var(--hw-glass-base);border-color:var(--hw-blue-line)}
-/* Gold stays reserved for things already earned. */
-:root[data-theme="moonlight"] :is(.tk-skin.got,.bg-card.got){border-color:#F0C14A99;box-shadow:inset 0 0 25px #F0C14A15,0 0 20px #F0C14A10}
-:root[data-theme="moonlight"] :is(.fm-ring,.fm-face,.focus-ring){filter:drop-shadow(0 0 18px #5CC8FF30)}
-.sw-moonlight{background:conic-gradient(#D63F00 0 12%,#1C4BB5 12% 42%,#5CC8FF 42% 48%,#170B36 48% 100%);border:1px solid #A487FF}
 :root[data-theme="moonlight"] .hw-preferences input[type=range]{width:120px;accent-color:var(--fill)}
 :root[data-theme="moonlight"] .hw-controls{position:fixed;z-index:97;bottom:88px;right:12px;display:flex;gap:5px;align-items:center;opacity:.9}
 :root[data-theme="moonlight"] .hw-controls button{width:33px;height:33px;display:grid;place-items:center;background:var(--hw-chrome-2,#2A1763);color:var(--hw-ink,#F4F2FF);border:1px solid var(--hw-violet-line,#A487FF4D);border-radius:11px;font:14px/1 sans-serif;cursor:pointer;box-shadow:0 4px 14px var(--hw-shadow,#05011299)}
@@ -152,295 +114,25 @@
 :root[data-theme="moonlight"] .hw-burst:nth-of-type(2n){background:#FF9A5C;box-shadow:0 0 13px #FF6A2B}
 :root[data-theme="moonlight"] .hw-ring{position:fixed;z-index:9998;pointer-events:none;border:1px solid #7DD3FF;border-radius:50%;width:60px;height:60px;margin:-30px;left:var(--x);top:var(--y);animation:hw-ring .8s ease-out forwards;box-shadow:0 0 25px #5CC8FF33}
 html[data-quality="medium"] .hw-scene *,html[data-hw-motion="still"] .hw-scene *,html[data-hw-motion="still"][data-theme="moonlight"] button:after{animation:none!important}
-@media(prefers-reduced-motion:reduce){html:not([data-hw-motion="full"]) .hw-scene *,html[data-theme="moonlight"]:not([data-hw-motion="full"]) button:after,html:not([data-hw-motion="full"]) :is(.hw-burst,.hw-ring){animation:none!important}html:not([data-hw-motion="full"]) :is(.hw-burst,.hw-ring){display:none!important}html[data-theme="moonlight"] :is(.task,.task-card,.mtile,.fx-row){transition:none!important}}
+@media(prefers-reduced-motion:reduce){html:not([data-hw-motion="full"]) .hw-scene *,html[data-theme="moonlight"]:not([data-hw-motion="full"]) button:after,html:not([data-hw-motion="full"]) :is(.hw-burst,.hw-ring){animation:none!important}html:not([data-hw-motion="full"]) :is(.hw-burst,.hw-ring){display:none!important}}
 @media(min-width:1024px) and (hover:hover) and (pointer:fine){
- :root[data-theme="moonlight"] .tabbar{border-right:1px solid var(--hw-violet-line)!important;background:linear-gradient(180deg,var(--hw-chrome-2),var(--hw-chrome))!important;box-shadow:7px 0 45px var(--hw-shadow)!important}
  :root[data-theme="moonlight"] .hw-night{background-position:center 38%;opacity:.8}
- :root[data-theme="moonlight"] .desktop-extra-nav{background:transparent;box-shadow:none}
  :root[data-theme="moonlight"] .hw-controls{bottom:16px;right:18px}
  .hw-controls button{width:37px;height:37px}
  :root[data-theme="moonlight"] .hw-ghost{left:38%;top:13%;width:70px}
  :root[data-theme="moonlight"] .hw-candle{left:calc(var(--desktop-rail,248px) + 10px);bottom:30px}
 }
 :root[data-theme="moonlight"] .hw-controls{right:144px}
-/* Match the actual primary UI components, including the glass controls. */
-:root[data-theme="moonlight"] #menuBody .td-now{background:linear-gradient(135deg,var(--hw-card-hi),var(--hw-card-low)),var(--hw-glass-base);border:1px solid var(--hw-blue-line-strong);border-radius:23px 7px 23px 7px;box-shadow:inset 0 0 0 4px var(--hw-ring),0 12px 30px var(--hw-shadow);overflow:hidden}
-:root[data-theme="moonlight"] #menuBody :is(.tn-head,.tn-body){background:transparent;border:0;border-radius:0;box-shadow:none}
-:root[data-theme="moonlight"] #menuBody .tn-head{border-bottom:1px solid var(--hw-blue-line)}
-:root[data-theme="moonlight"] #menuBody .tn-head:before{display:none}
-:root[data-theme="moonlight"] #menuBody .tn-cta{background:linear-gradient(180deg,var(--hw-orange-cta),var(--hw-orange-cta-low))!important;border:1px solid var(--hw-orange-hi)!important;border-radius:15px 5px 15px 5px!important;color:var(--hw-on-orange)!important;box-shadow:var(--hw-candle)!important}
-:root[data-theme="moonlight"] #menuBody .tn-cta .tc-main{background:none;border:0;box-shadow:none;padding:0;border-radius:0;overflow:visible;color:inherit}
-:root[data-theme="moonlight"] #menuBody .td-ask{background:var(--hw-chrome)!important;border:1px solid var(--hw-violet-line)!important;border-radius:18px 5px 18px 5px;box-shadow:inset 0 0 0 3px var(--hw-ring),0 0 22px #8B5CFF1f!important}
-:root[data-theme="moonlight"] #menuBody .td-ask:before,:root[data-theme="moonlight"] #menuBody .td-ask:after{display:none!important}
-:root[data-theme="moonlight"] #menuBody .td-ask .tk-in{background:transparent;box-shadow:none;border:0}
-:root[data-theme="moonlight"] #menuBody .tg-ic,:root[data-theme="moonlight"] .phone :is(.th-bell,.tk-go){background:linear-gradient(145deg,var(--hw-card-hi),var(--hw-card)),var(--hw-glass-base)!important;border:1px solid var(--hw-blue-line-strong)!important;color:var(--hw-ink)!important;box-shadow:inset 0 1px #FFFFFF1f,0 4px 12px var(--hw-shadow)!important;filter:none!important;border-radius:17px 5px 17px 5px!important}
-:root[data-theme="moonlight"] #menuBody .tg-ic svg{color:var(--hw-sky-text)!important;background:transparent!important;box-shadow:none!important;border:0!important;filter:none!important;padding:3px!important}
-:root[data-theme="moonlight"] .phone .tabbar{background:linear-gradient(180deg,color-mix(in srgb,var(--hw-chrome-2) 93%,transparent),color-mix(in srgb,var(--hw-chrome) 93%,transparent))!important;border:1px solid var(--hw-violet-line)!important;box-shadow:inset 0 1px #FFFFFF14,0 -5px 30px var(--hw-shadow)!important;backdrop-filter:blur(14px)}
-:root[data-theme="moonlight"] .phone .tabbar:before,:root[data-theme="moonlight"] .phone .tabbar:after{display:none!important}
-:root[data-theme="moonlight"] .phone .tabbar .tab{background:transparent!important;box-shadow:none!important;border:0!important;color:var(--hw-ink-2)!important}
-:root[data-theme="moonlight"] .phone .tabbar .tab.active{background:var(--fill)!important;box-shadow:inset 0 1px #FFFFFF40,0 0 16px #2F8CFF40!important;color:var(--on-fill)!important}
-:root[data-theme="moonlight"] .phone .tabbar .ic{filter:none!important;box-shadow:none!important;background:none!important;color:inherit!important}
-:root[data-theme="moonlight"] .phone .tabbar .scan-dot{border-radius:50%!important;background:radial-gradient(circle at 35% 25%,var(--hw-orange-hi),var(--hw-orange-cta) 60%,var(--hw-orange-cta-low))!important;border:1px solid #FFD2B2!important;color:var(--hw-on-orange)!important;box-shadow:0 0 0 1px #FFBA8CB3,var(--hw-candle)!important;outline-color:var(--hw-chrome)!important}
-:root[data-theme="moonlight"] .phone .tabbar .scan-dot svg{color:var(--hw-on-orange);filter:none}
-:root[data-theme="moonlight"] .th-brand{background:var(--hw-chrome);padding:0}
-:root[data-theme="moonlight"] .dc-line{background:color-mix(in srgb,var(--hw-card) 88%,transparent);border:1px solid var(--hw-blue-line);border-radius:13px 4px 13px 4px}
-:root[data-theme="moonlight"] :is(.pe,.pf-entry,.saih,.t-card,.ts-card,.tp-card){background:linear-gradient(130deg,var(--hw-card),var(--hw-card-low)),var(--hw-glass-base);border-color:var(--hw-blue-line)}
-:root[data-theme="moonlight"] :is(.pe-ic,.saih-face){box-shadow:0 0 20px #2F8CFF21;background:var(--hw-card-hi);border-color:var(--hw-blue-line)}
 @media(max-width:599px){
- :root[data-theme="moonlight"] #menuBody .tn-head{padding:12px 14px 10px}
- :root[data-theme="moonlight"] #menuBody .tn-body{padding:10px 14px}
- :root[data-theme="moonlight"] #menuBody .tn-title{font-size:24px}
- :root[data-theme="moonlight"] #menuBody .tg-ic{width:49px;height:49px}
- :root[data-theme="moonlight"] #menuBody .tg-t{gap:4px}
- :root[data-theme="moonlight"] #menuBody .td-tiles{row-gap:9px;margin-top:9px}
  :root[data-theme="moonlight"] .hw-controls{bottom:75px;right:8px}
  :root[data-theme="moonlight"] .hw-night{background-position:65% center}
 }
-/* Edge ornaments: smoke, blood drips and a small ghost; text remains clear. */
-/* A zero-specificity fallback anchors art without overriding native sheets,
-   absolute icon buttons, sticky controls, or responsive positioning. */
-:where(html[data-theme="moonlight"] .hw-art-host){position:relative}
-:root[data-theme="moonlight"] :is(.td-now,.td-clear,.tn-cta,.tc-cta,.tk-cta,.fm-start,.main-btn,.btn-primary,.qa-save,.on-next){isolation:isolate}
-:root[data-theme="moonlight"] .hw-ornament{display:block;position:absolute;inset:0;overflow:hidden;border-radius:inherit;pointer-events:none;z-index:0;contain:paint}
-:root[data-theme="moonlight"] :is(.td-now,.td-clear)>.hw-ornament{z-index:3}
-:root[data-theme="moonlight"] :is(.tn-cta,.tc-cta,.tk-cta,.fm-start,.main-btn,.btn-primary,.qa-save,.on-next)>.hw-ornament .hw-card-blood{width:48px;height:23px;right:8px;opacity:.6}
-:root[data-theme="moonlight"] :is(.tn-cta,.tc-cta,.tk-cta,.fm-start,.main-btn,.btn-primary,.qa-save,.on-next)>.hw-ornament .hw-card-ghost{width:22px;height:29px;left:13px;right:auto;bottom:5px;opacity:.17}
-:root[data-theme="moonlight"] .boot{background:var(--hw-canvas)!important;color:var(--hw-ink)}
-:root[data-theme="moonlight"] .boot .hp-fill{background:linear-gradient(90deg,var(--hw-blue),var(--hw-violet))!important;box-shadow:0 0 14px #5CC8FF55}
-html[data-theme="moonlight"][data-lite="1"] button:after{animation:none!important}
-@media(prefers-reduced-motion:reduce){html:not([data-hw-motion="full"]) :is(.hw-card-smoke,.hw-card-ghost){animation:none!important}}
 :root[data-theme="moonlight"] .hw-controls{right:144px!important}
-:root[data-theme="moonlight"] .dc-line.ask :is(.dc-tx b,.dc-tx small,.dc-ic svg){color:var(--hw-ink)!important}
-:root[data-theme="moonlight"] .dc-line.ask>i{background:var(--hw-card-hi);color:var(--hw-ink);box-shadow:none}
-/* Readable duration chip: the blue fill pair is contrast-checked in both tones. */
-:root[data-theme="moonlight"] .phone .tn-route .tk-line>i{color:var(--on-fill)!important;background:var(--fill)!important;font-style:normal;font-weight:700;text-shadow:none!important;opacity:1!important;padding:2px 7px;border-radius:6px;box-shadow:0 0 0 1px var(--hw-blue-line)}
-/* The rest of today: mist over an etched spirit trail. No extra height. */
-:root[data-theme="moonlight"] :is(.td-rail,.sai-day,.sd-task,.as-card,.as-hero,.as-row){isolation:isolate}
-:root[data-theme="moonlight"] .td-rail{background:linear-gradient(145deg,var(--hw-card),var(--hw-card-low)),var(--hw-glass-base)!important;border-radius:18px 5px 18px 5px;box-shadow:inset 0 0 0 1px var(--hw-blue-line),inset 0 0 0 4px var(--hw-ring)}
-:root[data-theme="moonlight"] .rl-lb{position:relative;padding-left:20px;color:var(--hw-ink)}
-:root[data-theme="moonlight"] .rl-lb:before{content:"✧";position:absolute;left:0;top:0;color:var(--hw-sky-text);font-size:17px;text-shadow:0 0 12px #5CC8FF55}
-:root[data-theme="moonlight"] .td-rail .dr-row{position:relative;border-color:var(--hw-blue-line)}
-:root[data-theme="moonlight"] .td-rail .dr-t{color:var(--hw-ink)}
-:root[data-theme="moonlight"] .td-rail .dr-row.end{color:var(--hw-ink-blue)}
-/* Subject names keep their hue but take lightness from the ink, so every subject colour reads on blue cards in both tones. */
-:root[data-theme="moonlight"] .dr-sj{color:color-mix(in srgb,var(--sj,var(--hw-ink-blue)) 35%,var(--hw-ink))}
-:root[data-theme="moonlight"] .td-rail>.hw-ornament .hw-card-ghost{width:22px;height:29px;opacity:.11;right:11px;bottom:9px}
-:root[data-theme="moonlight"] .td-rail>.hw-ornament .hw-card-blood{width:48px;height:16px;right:20px;opacity:.4}
-/* The add sheet becomes a small spellbook; keep the existing action layout. */
-:root[data-theme="moonlight"] .phone .as-card{background:linear-gradient(145deg,var(--hw-chrome-2),var(--hw-chrome))!important;border:1px solid var(--hw-violet-line)!important;border-radius:25px 8px 25px 8px!important;box-shadow:inset 0 0 0 4px var(--hw-ring),0 20px 60px var(--hw-shadow)!important;overflow:hidden}
-:root[data-theme="moonlight"] .as-grip{background:var(--hw-violet-line)}
-:root[data-theme="moonlight"] .as-h{color:var(--hw-ink);text-shadow:0 2px 20px #8B5CFF33}
-:root[data-theme="moonlight"] .as-or{color:var(--hw-ink-2)}
-:root[data-theme="moonlight"] .phone .as-hero{background:linear-gradient(135deg,var(--hw-card-hi),var(--hw-card)),var(--hw-glass-base)!important;color:var(--hw-ink)!important;border:1px solid var(--hw-blue-line-strong)!important;border-radius:18px 5px 18px 5px!important;box-shadow:inset 0 1px #FFFFFF1f,0 5px 18px var(--hw-shadow)!important;overflow:hidden}
-:root[data-theme="moonlight"] .phone .as-hero.wide{background:linear-gradient(120deg,var(--hw-card),var(--hw-card-low)),var(--hw-glass-base)!important;border-color:var(--hw-blue-line)!important}
-:root[data-theme="moonlight"] .phone :is(.as-hero-ic,.as-ic){background:var(--hw-card-low)!important;color:var(--hw-sky-text)!important;border:1px solid var(--hw-blue-line);border-radius:12px 4px 12px 4px;box-shadow:inset 0 1px #FFFFFF14!important}
-:root[data-theme="moonlight"] .phone .as-row{background:color-mix(in srgb,var(--hw-card) 45%,transparent)!important;border-color:var(--hw-blue-line)!important;border-radius:12px 4px 12px 4px;color:var(--hw-ink)!important;box-shadow:inset 0 0 0 1px var(--hw-blue-line);overflow:hidden}
-:root[data-theme="moonlight"] .as-row .as-go{color:var(--hw-sky-text)}
-/* Daily overview: sealed parchment with a separate, readable inner task. */
-:root[data-theme="moonlight"] .phone .sai-day{background:linear-gradient(145deg,var(--hw-card),var(--hw-card-low)),var(--hw-glass-base)!important;border-color:var(--hw-blue-line);border-radius:21px 6px 21px 6px;box-shadow:inset 0 0 0 4px var(--hw-ring),0 8px 26px var(--hw-shadow);overflow:hidden}
-:root[data-theme="moonlight"] .phone .sd-task{background:linear-gradient(125deg,var(--hw-card-hi),var(--hw-card)),var(--hw-glass-base)!important;border:1px solid var(--hw-blue-line);border-radius:15px 4px 15px 4px;overflow:hidden}
-:root[data-theme="moonlight"] .sai-day .sd-tx b{color:var(--hw-ink)}
-:root[data-theme="moonlight"] .sai-day .sd-tx>span{color:var(--hw-ink-blue)}
-:root[data-theme="moonlight"] .sai-day button{background:color-mix(in srgb,var(--hw-card-low) 70%,transparent);color:var(--hw-ink);border-color:var(--hw-blue-line);border-radius:10px 4px 10px 4px}
-:root[data-theme="moonlight"] .sai-day>.hw-ornament .hw-card-blood{right:45%;width:55px;height:19px;opacity:.45}
-:root[data-theme="moonlight"] .sai-day .st-lb.red{color:var(--hw-alert)}
-:root[data-theme="moonlight"] .sai-day .st-lb.yellow{color:var(--hw-warn)}
-:root[data-theme="moonlight"] .sai-day .st-lb.green{color:var(--hw-good)}
-:root[data-theme="moonlight"] .sai-day .st-go{background:linear-gradient(180deg,var(--hw-orange-cta),var(--hw-orange-cta-low))!important;color:var(--hw-on-orange)!important;border:1px solid var(--hw-orange-hi);border-radius:13px 4px 13px 4px;box-shadow:inset 0 1px #FFD2B240}
-/* Every button in Me receives the theme, including small profile controls. */
-:root[data-theme="moonlight"] #scr-profile button{isolation:isolate;background-color:var(--hw-card);color:var(--hw-ink);border-color:var(--hw-blue-line);border-radius:12px 4px 12px 4px;box-shadow:inset 0 1px #FFFFFF12;transition:background-color .18s,border-color .18s}
-:root[data-theme="moonlight"] #scr-profile button:focus-visible{outline:2px solid var(--hw-sky);outline-offset:3px}
-:root[data-theme="moonlight"] #scr-profile :is(.pf-entry,.pf-me){background:linear-gradient(135deg,var(--hw-card),var(--hw-card-low)),var(--hw-glass-base);border:1px solid var(--hw-blue-line);border-radius:21px 6px 21px 6px;box-shadow:inset 0 0 0 3px var(--hw-ring)}
-:root[data-theme="moonlight"] #scr-profile .pe{background:linear-gradient(100deg,color-mix(in srgb,var(--hw-card-hi) 30%,transparent),color-mix(in srgb,var(--hw-card-low) 30%,transparent))!important;border-color:var(--hw-blue-line)!important;color:var(--hw-ink)!important;overflow:hidden}
-:root[data-theme="moonlight"] #scr-profile .pe:nth-child(3n+2){background:linear-gradient(100deg,color-mix(in srgb,var(--hw-violet) 16%,transparent),color-mix(in srgb,var(--hw-card-low) 30%,transparent))!important}
-:root[data-theme="moonlight"] #scr-profile .pe-tx b{color:var(--hw-ink)}
-:root[data-theme="moonlight"] #scr-profile .pe-v:not(.pe-reward){color:var(--hw-ink-blue)!important}
-:root[data-theme="moonlight"] #scr-profile .pe-go{color:var(--hw-sky-text)}
-:root[data-theme="moonlight"] #scr-profile .pe-ic{background:linear-gradient(145deg,var(--hw-card-hi),var(--hw-card)),var(--hw-glass-base)!important;border:1px solid var(--hw-blue-line-strong)!important;border-radius:12px 4px 12px 4px!important;color:var(--hw-sky-text)!important;box-shadow:inset 0 1px #FFFFFF1c!important}
-:root[data-theme="moonlight"] #scr-profile :is(.pe-shop,.pe-daily){background:linear-gradient(125deg,color-mix(in srgb,var(--hw-sky) 14%,transparent),transparent 80%)!important;border-color:var(--hw-blue-line-strong)!important;color:var(--hw-ink);overflow:hidden}
-/* Glass never sits on glass: boxes inside a glass card are a thin tint only. */
-:root[data-theme="moonlight"] #scr-profile :is(.pf-me .st-card,.pf-entry .pe-ic){background:color-mix(in srgb,var(--hw-sky) 12%,transparent)!important}
-:root[data-theme="moonlight"] #scr-profile .pe-daily-go{background:var(--hw-orange-cta);color:var(--hw-on-orange);border:1px solid var(--hw-orange-hi);border-radius:10px 3px 10px 3px}
-:root[data-theme="moonlight"] #scr-profile .shw{background:linear-gradient(150deg,var(--hw-card-hi),var(--hw-card-low)),var(--hw-glass-base)!important;border:1px solid var(--hw-blue-line-strong)!important;border-radius:17px 5px 17px 5px;box-shadow:inset 0 1px #FFFFFF20,0 5px 15px var(--hw-shadow)!important;overflow:hidden}
-:root[data-theme="moonlight"] #scr-profile .shw b{color:var(--hw-ink)}
-:root[data-theme="moonlight"] #scr-profile .shw>i{color:var(--hw-ink-blue)}
-:root[data-theme="moonlight"] #scr-profile :is(.ig-set,.ig-av-cam,.st-open-go){background:var(--hw-card-hi)!important;color:var(--hw-ink)!important;border:1px solid var(--hw-blue-line-strong)!important;box-shadow:inset 0 1px #FFFFFF1a!important}
-:root[data-theme="moonlight"] #scr-profile :is(.pri,.fb-promo){background:linear-gradient(125deg,var(--hw-chrome-2),var(--hw-card))!important;color:var(--hw-ink)!important;border-color:var(--hw-violet-line);overflow:hidden}
-:root[data-theme="moonlight"] #scr-profile .st-bar{background:color-mix(in srgb,var(--hw-card-low) 50%,transparent);border-color:var(--hw-blue-line);border-radius:8px 3px 8px 3px}
-:root[data-theme="moonlight"] #scr-profile .st-bar.now{box-shadow:inset 0 0 0 1px var(--hw-orange)}
-/* "Not signed in" is a warning state, so it uses the status colour rather than the orange accent. */
-:root[data-theme="moonlight"] .ig-id>i.ig-off{color:var(--hw-warn);background:color-mix(in srgb,var(--hw-warn) 14%,var(--hw-card));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hw-warn) 35%,transparent)}
-:root[data-theme="moonlight"] .ig-id>i.ig-off::before{background:var(--hw-warn);box-shadow:0 0 0 3px color-mix(in srgb,var(--hw-warn) 22%,transparent)}
-@media(hover:hover){:root[data-theme="moonlight"] #scr-profile button:hover{background-color:var(--hw-card-hi);border-color:var(--hw-blue-line-strong)}}
-/* Small cobwebs and quieter ornaments on compact controls. */
-:root[data-theme="moonlight"] .phone .hw-ornament{position:absolute!important;inset:0!important;display:block!important;width:auto!important;height:auto!important;margin:0!important;padding:0!important;pointer-events:none!important}
-:root[data-theme="moonlight"] .hw-ornament:after{content:"";position:absolute;right:0;top:0;width:48px;height:48px;opacity:.2;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'%3E%3Cg fill='none' stroke='%23d9bfd9' stroke-width='.8'%3E%3Cpath d='M50 0 0 50M50 0 4 18M50 0 31 48M50 0 0 0M50 0v50M38 0q1 9 12 12M25 0q3 20 25 25M12 0q5 32 38 38M0 0q5 44 50 50M14 14q13 4 22 22M25 9q9 3 16 16'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
-:root[data-theme="moonlight"] .phone .hw-ornament-mini .hw-card-smoke{opacity:.25;animation:none}
-:root[data-theme="moonlight"] .phone .hw-ornament-mini .hw-card-blood{right:7px;width:35px;height:13px;opacity:.35}
-:root[data-theme="moonlight"] .phone .hw-ornament-mini .hw-card-ghost{right:8px;left:auto;bottom:5px;width:16px;height:21px;opacity:.09;animation:none}
-:root[data-theme="moonlight"] .hw-ornament-mini:after{width:28px;height:28px;opacity:.15}
-/* Tasks: every action shares the seasonal language across all three views. */
-:root[data-theme="moonlight"] #scr-tasks button{isolation:isolate;background:linear-gradient(135deg,var(--hw-card-hi),var(--hw-card)),var(--hw-glass-base)!important;color:var(--hw-ink)!important;border-color:var(--hw-blue-line)!important;border-radius:12px 4px 12px 4px;box-shadow:inset 0 1px #FFFFFF1c,0 3px 12px var(--hw-shadow)!important}
-:root[data-theme="moonlight"] #scr-tasks button:focus-visible{outline:2px solid var(--hw-sky);outline-offset:3px}
-:root[data-theme="moonlight"] #scr-tasks button:disabled{opacity:.45;box-shadow:none!important}
-:root[data-theme="moonlight"] #scr-tasks .page-head{background:linear-gradient(180deg,var(--hw-chrome),color-mix(in srgb,var(--hw-chrome) 45%,transparent));border-color:var(--hw-violet-line)}
-:root[data-theme="moonlight"] #scr-tasks .tk-modes{background:color-mix(in srgb,var(--hw-chrome) 80%,transparent)!important;border:1px solid var(--hw-violet-line);border-radius:15px 5px 15px 5px;box-shadow:inset 0 1px #FFFFFF10;padding:4px}
-:root[data-theme="moonlight"] #scr-tasks .tk-mode{background:transparent!important;border:1px solid transparent!important;box-shadow:none!important;color:var(--hw-ink-2)!important;border-radius:11px 4px 11px 4px}
-:root[data-theme="moonlight"] #scr-tasks .tk-mode.on,:root[data-theme="moonlight"] #scr-tasks .tk-mode[aria-selected="true"]{background:var(--fill)!important;color:var(--on-fill)!important;border-color:var(--hw-blue-line-strong)!important;box-shadow:inset 0 1px #FFFFFF33,0 2px 12px #2F8CFF33!important}
-:root[data-theme="moonlight"] #scr-tasks :is(.tb-focus,.tk.sw-card,.wk-row){isolation:isolate}
-:root[data-theme="moonlight"] #scr-tasks .tb-focus{background:linear-gradient(140deg,var(--hw-card-hi),var(--hw-card-low)),var(--hw-glass-base)!important;border:1px solid var(--hw-blue-line-strong);border-radius:22px 6px 22px 6px;box-shadow:inset 0 0 0 4px var(--hw-ring),0 8px 25px var(--hw-shadow);overflow:hidden}
-:root[data-theme="moonlight"] #scr-tasks .tb-fc-lb{color:var(--hw-sky-text)}
-:root[data-theme="moonlight"] #scr-tasks .tb-fc-t{color:var(--hw-ink)}
-:root[data-theme="moonlight"] #scr-tasks .tb-fc-s{color:var(--hw-ink-blue)}
-:root[data-theme="moonlight"] #scr-tasks .tb-fc-pri{color:var(--hw-alert-ink);border-color:color-mix(in srgb,var(--hw-alert) 40%,transparent);background:var(--hw-alert-bg)}
-:root[data-theme="moonlight"] #scr-tasks .tb-fc-pri *{color:inherit}
-:root[data-theme="moonlight"] #scr-tasks .tb-fc-go{background:linear-gradient(180deg,var(--hw-orange-cta),var(--hw-orange-cta-low))!important;color:var(--hw-on-orange)!important;border:1px solid var(--hw-orange-hi)!important;border-radius:14px 4px 14px 4px;box-shadow:var(--hw-candle)!important;overflow:hidden}
-:root[data-theme="moonlight"] #scr-tasks :is(.tb-nudge,.tb-more,.bin-btn){background:linear-gradient(120deg,var(--hw-chrome-2),var(--hw-chrome))!important;border:1px solid var(--hw-violet-line)!important;color:var(--hw-ink)!important;overflow:hidden}
-:root[data-theme="moonlight"] #scr-tasks .tb-nd-ic{background:color-mix(in srgb,var(--hw-blue) 22%,transparent);color:var(--hw-sky-text);border:1px solid var(--hw-blue-line);border-radius:11px 4px 11px 4px}
-:root[data-theme="moonlight"] #scr-tasks :is(.tb-nd-tx b,.tb-nd-tx span){color:var(--hw-ink)}
-:root[data-theme="moonlight"] #scr-tasks .tb-tl-r{background:linear-gradient(100deg,var(--hw-card),var(--hw-card-low)),var(--hw-glass-base)!important;border:1px solid var(--hw-blue-line)!important;border-radius:14px 4px 14px 4px;overflow:hidden}
-:root[data-theme="moonlight"] #scr-tasks .tb-tl-t{color:var(--hw-sky-text)}
-:root[data-theme="moonlight"] #scr-tasks .tb-tl-x b{color:var(--hw-ink)}
-:root[data-theme="moonlight"] #scr-tasks .tb-tl-x i{color:var(--hw-ink-blue)}
-:root[data-theme="moonlight"] #scr-tasks .tb-grp{color:var(--hw-ink-2)}
-:root[data-theme="moonlight"] #scr-tasks .tb-grp>button{padding:5px 9px;border:1px solid var(--hw-blue-line);border-radius:9px 3px 9px 3px;color:var(--hw-ink)!important}
-:root[data-theme="moonlight"] #scr-tasks .wk-row{background:linear-gradient(115deg,color-mix(in srgb,var(--hw-card) 85%,transparent),color-mix(in srgb,var(--hw-card-low) 90%,transparent));border-color:var(--hw-blue-line);border-radius:17px 5px 17px 5px;box-shadow:inset 0 0 0 1px var(--hw-blue-line)}
-:root[data-theme="moonlight"] #scr-tasks .wk-card{background:linear-gradient(145deg,var(--hw-card),var(--hw-card-low)),var(--hw-glass-base)!important;border:1px solid var(--hw-blue-line-strong)!important;border-radius:21px 6px 21px 6px;box-shadow:inset 0 0 0 3px var(--hw-ring),0 8px 25px var(--hw-shadow)!important}
-:root[data-theme="moonlight"] #scr-tasks .wk-row.now{border-color:var(--hw-orange);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hw-orange) 60%,transparent)}
-:root[data-theme="moonlight"] #scr-tasks .wk-d{background:linear-gradient(150deg,var(--hw-card-hi),var(--hw-card)),var(--hw-glass-base);color:var(--hw-ink);border-color:var(--hw-blue-line);border-radius:12px 4px 12px 4px}
-:root[data-theme="moonlight"] #scr-tasks .wk-d b{color:var(--hw-ink)!important}
-:root[data-theme="moonlight"] #scr-tasks .wk-d i{color:var(--hw-ink-blue)!important}
-:root[data-theme="moonlight"] #scr-tasks .wk-row.now .wk-d{background:linear-gradient(180deg,var(--hw-orange-cta),var(--hw-orange-cta-low))!important}
-:root[data-theme="moonlight"] #scr-tasks .wk-row.now .wk-d :is(b,i){color:var(--hw-on-orange)!important}
-:root[data-theme="moonlight"] #scr-tasks .wk-pill{background:color-mix(in srgb,var(--hw-card-low) 65%,transparent);color:var(--hw-ink-blue);border-color:var(--hw-blue-line)}
-:root[data-theme="moonlight"] #scr-tasks .wc{background:linear-gradient(120deg,var(--hw-card-hi),var(--hw-card)),var(--hw-glass-base)!important;border-color:var(--hw-blue-line)!important;box-shadow:inset 3px 0 var(--sj,var(--hw-sky)),inset 0 1px #FFFFFF1a!important;border-radius:12px 4px 12px 4px;overflow:hidden}
-:root[data-theme="moonlight"] #scr-tasks .wc>i{color:var(--hw-ink-blue)}
-:root[data-theme="moonlight"] #scr-tasks .wc.late{border-color:color-mix(in srgb,var(--hw-alert) 55%,transparent)!important}
-:root[data-theme="moonlight"] #scr-tasks .tk{background:linear-gradient(125deg,var(--hw-card),var(--hw-card-low)),var(--hw-glass-base)!important;border-color:var(--hw-blue-line);border-radius:17px 5px 17px 5px;box-shadow:inset 0 0 0 1px var(--hw-blue-line),0 5px 15px var(--hw-shadow)}
-:root[data-theme="moonlight"] #scr-tasks :is(.tk-sub,.tk-min){color:var(--hw-ink-blue)}
-:root[data-theme="moonlight"] #scr-tasks .tk-ttl{color:var(--hw-ink)}
-:root[data-theme="moonlight"] #scr-tasks .tk-chip{background:color-mix(in srgb,var(--hw-card-low) 80%,transparent);color:var(--hw-ink-blue);border-color:var(--hw-blue-line)}
-:root[data-theme="moonlight"] #scr-tasks :is(.tk-pri.red,.tk-chip.hot,.wc>i.red){color:var(--hw-alert)}
-:root[data-theme="moonlight"] #scr-tasks :is(.tk-pri.yellow,.wc>i.yellow){color:var(--hw-warn)}
-:root[data-theme="moonlight"] #scr-tasks :is(.tk-pri.green,.wc>i.green){color:var(--hw-good)}
-:root[data-theme="moonlight"] #scr-tasks :is(.tk-tick,.wc-tick){background:var(--hw-card-low)!important;color:var(--hw-ink-blue)!important;border:1px solid var(--hw-blue-line-strong)!important;border-radius:8px 2px 8px 2px;box-shadow:inset 0 0 0 2px var(--hw-ring)!important}
-:root[data-theme="moonlight"] #scr-tasks :is(.tk-tick.on,.wc-tick.on,.tk-sb.on){background:var(--hw-good-bg)!important;color:var(--hw-good-ink)!important;border-color:var(--hw-good)!important}
-:root[data-theme="moonlight"] #scr-tasks :is(.tk-tick,.wc-tick):not(.on) svg{opacity:.35}
-:root[data-theme="moonlight"] #scr-tasks .tk-search{background:var(--hw-well)!important;border-color:var(--hw-violet-line)!important;border-radius:14px 4px 14px 4px;box-shadow:inset 0 0 0 3px var(--hw-ring)!important}
-:root[data-theme="moonlight"] #scr-tasks .tk-search input{color:var(--hw-ink);background:transparent;border:0;box-shadow:none}
-:root[data-theme="moonlight"] #scr-tasks .tk-search input::placeholder{color:var(--hw-ink-2)}
-:root[data-theme="moonlight"] #scr-tasks :is(.bin-act .del,.sw-actions .del){background:var(--hw-alert-bg)!important;color:var(--hw-alert-ink)!important;border-color:color-mix(in srgb,var(--hw-alert) 45%,transparent)!important}
-:root[data-theme="moonlight"] #scr-tasks .hw-ornament-mini .hw-card-smoke{opacity:.16}
-:root[data-theme="moonlight"] #scr-tasks .tk-mode .hw-card-blood{width:22px;height:9px;right:3px;opacity:.3}
-:root[data-theme="moonlight"] #scr-tasks .tk-mode .hw-card-ghost{display:none}
-:root[data-theme="moonlight"] #scr-tasks .tk-mode .hw-ornament:after{width:20px;height:20px;opacity:.16}
-:root[data-theme="moonlight"] #scr-tasks .wk-row>.hw-ornament .hw-card-ghost{display:none}
-:root[data-theme="moonlight"] #scr-tasks .wk-row>.hw-ornament .hw-card-blood{width:43px;height:15px;opacity:.35}
-@media(hover:hover){:root[data-theme="moonlight"] #scr-tasks button:not(:disabled):hover{border-color:var(--hw-blue-line-strong)!important;filter:brightness(1.09)}}
-/* The shared running-work bar uses a pale green in this theme. */
-:root[data-theme="moonlight"] .runbar{color:#04130e}
-:root[data-theme="moonlight"] .runbar :is(.rb-stop,.rb-timer){color:#04130e;background:#0000001f;box-shadow:inset 0 0 0 1px #00000024}
-:root[data-theme="moonlight"] .runbar .rb-k{opacity:1}
-/* Theme settings and the all-clear card use the same midnight surfaces. */
-:root[data-theme="moonlight"] #menuBody .td-clear{background:radial-gradient(ellipse at 10% 0,#8B5CFF2b,transparent 65%),linear-gradient(135deg,var(--hw-card),var(--hw-card-low)),var(--hw-glass-base);border:1px solid var(--hw-blue-line);border-radius:22px 7px 22px 7px;box-shadow:inset 0 0 0 3px var(--hw-ring),0 8px 24px var(--hw-shadow)}
-:root[data-theme="moonlight"] #menuBody .td-clear .tc-tx b{color:var(--hw-ink);text-shadow:0 2px 18px #8B5CFF2e}
-:root[data-theme="moonlight"] #menuBody .td-clear .tc-tx p{color:var(--hw-ink-blue)}
-:root[data-theme="moonlight"] #menuBody .td-clear .tc-badge{background:var(--hw-good-bg);color:var(--hw-good-ink);border:1px solid color-mix(in srgb,var(--hw-good) 50%,transparent)}
-:root[data-theme="moonlight"] #menuBody .td-clear .tc-steps{background:color-mix(in srgb,var(--hw-card-well) 60%,transparent);color:var(--hw-ink-blue);border:1px solid var(--hw-blue-line)}
-:root[data-theme="moonlight"] #menuBody .td-clear .tc-room{color:var(--hw-sky-text)}
-:root[data-theme="moonlight"] #setBlkTheme .hd{padding:12px;border:1px solid var(--hw-blue-line);border-radius:16px 5px 16px 5px;background:linear-gradient(125deg,var(--hw-card-hi),var(--hw-card-low)),var(--hw-glass-base);color:var(--hw-ink)}
-:root[data-theme="moonlight"] #setBlkTheme :is(.lb,.nm){color:var(--hw-ink)}
-:root[data-theme="moonlight"] #setBlkTheme :is(.sb,.alt-lab-entry){color:var(--hw-ink-blue)}
-:root[data-theme="moonlight"] .phone #themePick button:not(.active){background:var(--hw-card-low)!important;color:var(--hw-ink);border-color:var(--hw-blue-line)!important;border-radius:13px 4px 13px 4px}
-:root[data-theme="moonlight"] .phone #themePick button.active{background:linear-gradient(125deg,var(--hw-card-hi),var(--hw-card)),var(--hw-glass-base)!important;color:var(--hw-ink);border:1px solid var(--hw-sky)!important;border-radius:13px 4px 13px 4px;box-shadow:inset 0 0 0 2px #5CC8FF26,0 0 16px #5CC8FF26}
-:root[data-theme="moonlight"] #scr-settings [onclick="openSetOpt('theme')"]{background:linear-gradient(125deg,var(--hw-card-hi),var(--hw-card-low)),var(--hw-glass-base);border:1px solid var(--hw-blue-line);color:var(--hw-ink)}
 /* 60% stays visible: the night art sits under a purple wash instead of hiding the canvas. */
 :root[data-theme="moonlight"] .hw-night{opacity:.58}
-:root[data-theme="moonlight"] #menuBody :is(.td-now,.td-clear),:root[data-theme="moonlight"] :is(.set-card,.set-row,.pf-me,.saih,.t-card,.ts-card,.tp-card){border-color:var(--hw-blue-line-strong)}
-:root[data-theme="moonlight"] #menuBody .tg-ic svg{color:var(--hw-sky-text)!important}
 /* Light tone (แสงจันทร์): same structure, the night art fades to a pale wash. */
 :root[data-theme="moonlight"][data-hw-tone="light"] .hw-night{opacity:.13}
 :root[data-theme="moonlight"][data-hw-tone="light"] .hw-graveyard{opacity:.22}
 :root[data-theme="moonlight"][data-hw-tone="light"] :is(.hw-bats,.hw-candle){opacity:.3}
 :root[data-theme="moonlight"][data-hw-tone="light"] :is(.hw-spark,.hw-wanderer,.hw-ghost){opacity:.16}
 :root[data-theme="moonlight"][data-hw-tone="light"] .hw-haze{background:radial-gradient(ellipse at 15% 80%,#0858D61a,transparent 40%),radial-gradient(ellipse at 82% 28%,#6D3BFF22,transparent 45%)}
-:root[data-theme="moonlight"][data-hw-tone="light"] :is(.hw-card-smoke,.hw-card-blood){opacity:.22}
-:root[data-theme="moonlight"][data-hw-tone="light"] .hw-ornament:after{opacity:.12;filter:invert(.55)}
-:root[data-theme="moonlight"][data-hw-tone="light"] :is(.page-title,.big-title,.sh-title,.th-greet,.tn-title,.set-hd,.pe-name,.as-h){text-shadow:none}
-:root[data-theme="moonlight"][data-hw-tone="light"] :is(.tn-head,#menuBody .tn-head):after{color:#0858D614}
-/* ===== Moonlight and candle (owner pick 22 Oct, thin glass) =====================
-   One light story for the 60:30:10 split: purple is the night sky, blue is moonlight
-   on glass, orange is the only candle. Layout and positions are untouched. */
-/* One hero per screen: the night sky with moonlight from the top right; it keeps the spellbook corners. */
-:root[data-theme="moonlight"] :is(#menuBody .td-now,#menuBody .td-clear,#scr-tasks .tb-focus){background:radial-gradient(120% 75% at 88% -12%,var(--hw-moon),transparent 55%),linear-gradient(165deg,var(--hw-hero-a),var(--hw-hero-b) 72%)!important;border:1px solid var(--hw-hero-line)!important;border-top-color:var(--hw-moon-rim)!important;box-shadow:0 26px 60px var(--hw-shadow)!important}
-:root[data-theme="moonlight"] #menuBody .tn-head{border-bottom-color:var(--hw-hero-line)}
-:root[data-theme="moonlight"] :is(#menuBody .tn-title,#scr-tasks .tb-fc-t){text-shadow:0 0 26px #A0CDFF47}
-/* Everything else is thin moonlit glass: the top edge catches the light, corners are calm and even. */
-:root[data-theme="moonlight"] :is(.card,.hm-card,.tn-card,.mtile,.qa-card,.set-blk,.set-block,.st-card,.tk-hero,.tk-cta,.tb-row,.fx-row,.profile-head,.ph-card,.bg-card,.show-tile,.set-row,.set-opt,.on-card,.r-card,.fd-post,.ai-panel,.qn-card,.sc-card,.cls-card,.task,.task-card,.task-item,.tcard,.hw-card,.qa-task,.tl-item,.pe,.pf-entry,.pf-me,.saih,.t-card,.ts-card,.tp-card,.td-rail,.dc-line,.sai-day,.sd-task,#scr-profile .shw,#scr-tasks .tk,#scr-tasks .wk-row,#scr-tasks .wk-card,#scr-tasks .tb-tl-r,#setBlkTheme .hd){border-top-color:var(--hw-moon-rim)!important;border-radius:18px!important}
-:root[data-theme="moonlight"] #menuBody .td-ask{background:linear-gradient(160deg,var(--hw-card),var(--hw-card-low) 70%),var(--hw-glass-base)!important;border:1px solid var(--hw-blue-line)!important;border-top-color:var(--hw-moon-rim)!important;border-radius:18px!important;box-shadow:0 10px 28px var(--hw-shadow)!important}
-:root[data-theme="moonlight"] :is(#menuBody .tg-ic,.phone .th-bell,.phone .tk-go){border-top-color:var(--hw-moon-rim)!important;border-radius:16px!important}
-:root[data-theme="moonlight"] :is(#scr-tasks,#scr-profile) button:not(.tb-fc-go):not(.pe-daily-go):not(.pe-shop):not(.pe-pro){border-radius:12px!important}
-:root[data-theme="moonlight"] :is(.td-rail,.dc-line,#menuBody .td-ask,#menuBody .tg-ic,.phone .th-bell,.sai-day,.mtile,#scr-tasks .tk,#scr-tasks .wk-row,#scr-tasks .wc,#scr-tasks .tb-tl-r,#scr-profile .pe,#scr-profile .pf-entry,#scr-profile .pf-me,#scr-profile .shw){-webkit-backdrop-filter:var(--hw-glass-blur);backdrop-filter:var(--hw-glass-blur)}
-html[data-lite="1"][data-theme="moonlight"] *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
-/* Moonlight on icons and the selected tab. */
-:root[data-theme="moonlight"] #menuBody .tg-ic svg{filter:drop-shadow(0 0 6px #7DD3FF73)!important}
-:root[data-theme="moonlight"]:not([data-hw-tone="light"]) .phone .tabbar .tab.active{background:linear-gradient(160deg,var(--hw-sky),var(--hw-sky-2))!important;box-shadow:0 0 22px #7DBEFF73!important}
-/* The candle is the only warm light, so decorations step back: they stay on the hero and the add sheet only. */
-:root[data-theme="moonlight"] .phone .hw-ornament{display:none!important}
-:root[data-theme="moonlight"] .phone :is(#menuBody .td-now,#menuBody .td-clear,#scr-tasks .tb-focus,.as-card)>.hw-ornament{display:block!important}
-:root[data-theme="moonlight"] .phone #menuBody .td-now>.hw-ornament .hw-card-ghost{opacity:.07}
-/* ===== Me list: featured pair + three engraved headstones (owner pick 22 Oct) =====
-   theme-main.js groups the rows only while Halloween is active. The shop is the one
-   candle in the list; dead states ("coming soon", "not on sale") are quiet text. */
-:root[data-theme="moonlight"] #scr-profile .pf-entry{display:block;background:none!important;border:0!important;box-shadow:none!important;padding:0!important;overflow:visible;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
-:root[data-theme="moonlight"] #scr-profile .hw-me-feat{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 16px}
-:root[data-theme="moonlight"] #scr-profile .hw-me-feat>.pe.pe{flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:6px;width:100%;min-height:132px;margin:0;padding:30px 14px 14px;text-align:left;overflow:hidden;background:linear-gradient(160deg,var(--hw-card),var(--hw-card-low) 70%),var(--hw-glass-base)!important;border:1px solid var(--hw-blue-line)!important;border-top-color:var(--hw-moon-rim)!important;border-radius:50% 50% 14px 14px / 40px 40px 14px 14px!important;box-shadow:inset 0 -4px 0 var(--hw-ring),0 12px 28px var(--hw-shadow)!important}
-:root[data-theme="moonlight"] #scr-profile .hw-me-feat>.pe>*{flex-shrink:0}
-:root[data-theme="moonlight"] #scr-profile .hw-me-feat>.pe .pe-go{display:none}
-:root[data-theme="moonlight"] #scr-profile .hw-me-feat>.pe .pe-tx b{font-size:17px}
-:root[data-theme="moonlight"] #scr-profile .hw-me-feat>.pe .pe-v{background:none!important;padding:0!important;margin:0;font-size:12px}
-:root[data-theme="moonlight"] #scr-profile .hw-me-feat>.pe-shop .pe-v{color:var(--hw-orange)!important;font-weight:700}
-:root[data-theme="moonlight"] #scr-profile .hw-me-feat>.pe-shop .pe-ic{width:40px;height:44px;background:radial-gradient(circle at 50% 72%,color-mix(in srgb,var(--hw-orange) 60%,transparent),color-mix(in srgb,var(--hw-orange-cta) 25%,transparent) 58%,transparent)!important;border:1px solid color-mix(in srgb,var(--hw-orange-hi) 70%,transparent)!important;border-radius:50% 50% 9px 9px / 60% 60% 9px 9px!important;box-shadow:0 0 18px var(--hw-orange-glow)!important;color:var(--hw-candle-ink)!important}
-:root[data-theme="moonlight"] #scr-profile .hw-me-feat>.pe-shop .pe-ic svg{color:var(--hw-candle-ink)!important}
-:root[data-theme="moonlight"] #scr-profile .hw-me-grp{position:relative;margin:0 0 16px;padding:28px 6px 6px;background:linear-gradient(160deg,var(--hw-card),var(--hw-card-low) 70%),var(--hw-glass-base);border:1px solid var(--hw-blue-line);border-top-color:var(--hw-moon-rim);border-radius:50% 50% 18px 18px / 30px 30px 18px 18px;box-shadow:inset 0 -4px 0 var(--hw-ring),0 12px 28px var(--hw-shadow);-webkit-backdrop-filter:var(--hw-glass-blur);backdrop-filter:var(--hw-glass-blur)}
-:root[data-theme="moonlight"] #scr-profile .hw-me-h{position:absolute;top:9px;left:0;right:0;text-align:center;font-size:12px;font-weight:700;color:var(--hw-ink-2);text-shadow:var(--hw-engrave);pointer-events:none}
-:root[data-theme="moonlight"] #scr-profile .hw-me-grp>.pe.pe{width:100%;margin:0;background:transparent!important;border:0!important;border-radius:12px!important;box-shadow:none!important;-webkit-backdrop-filter:none;backdrop-filter:none}
-:root[data-theme="moonlight"] #scr-profile .hw-me-grp>.pe+.pe{border-top:1px solid var(--hw-blue-line)!important;border-radius:0!important}
-:root[data-theme="moonlight"] #scr-profile :is(.hw-me-grp>.pe,.hw-me-feat>.pe-pro) .pe-ic{background:color-mix(in srgb,var(--hw-sky) 10%,transparent)!important;border:1px solid color-mix(in srgb,var(--hw-sky) 25%,transparent)!important;box-shadow:none!important;color:var(--hw-sky-text)!important}
-:root[data-theme="moonlight"] #scr-profile :is(.hw-me-grp>.pe,.hw-me-feat>.pe-pro) .pe-ic svg{color:var(--hw-sky-text)!important}
-:root[data-theme="moonlight"] #scr-profile .hw-me-grp>.pe .pe-go{color:var(--hw-ink-3)}
-:root[data-theme="moonlight"] #scr-profile :is(.pe-soon,.pe-pro) .pe-v{background:none!important;color:var(--hw-ink-3)!important;font-weight:500}
-/* 23 ต.ค. 69 · textcheck — สองชิ้นที่เฉียดเกณฑ์ (4.4:1)
-   • เวลาจบในจอแผน (.ptime .e) นั่งบนภาพฉากจันทร์/เทียน ไม่มีการ์ดรอง → ขอบนุ่มสีพื้นจอ (สูตรเดียวกับเวลาในเส้นเวลา .dayrow-t)
-   • โทนแสงจันทร์: ตัวขาว (--on-fill) บนการ์ดน้ำเงิน แต่ป้าย "โอกาสเสร็จทัน" ทาขาวโปร่งทับ = พื้นสว่างขึ้นใต้ตัวขาว → ทาดำโปร่งแทน */
-:root[data-theme="moonlight"] .phone .pslot .ptime .e{text-shadow:0 0 1px var(--scr),0 0 6px var(--scr),0 0 12px var(--scr)}
-:root[data-theme="moonlight"][data-hw-tone="light"] .wy2-warn{background:rgba(0,0,0,.18)}
-/* กล่อง "ไม่ทัน" ในจอวันนี้: แดงจาง ~10% บนภาพฉากจันทร์ = ตัวหนังสือ 4.0:1 → รองพื้นการ์ดทึบใต้สีจางเดิม */
-:root[data-theme="moonlight"] .dayvd.bad{background:linear-gradient(var(--alert-soft),var(--alert-soft)),var(--hw-card)}
-/* โทนแสงจันทร์: ตัวรองชั้นสาม (--hw-ink-3 #4A5690) บนพื้นม่วงอ่อนได้ 4.2–4.5:1 (เฉียดเกณฑ์) ที่บรรทัดรุ่นแอปกับป้าย "เร็ว ๆ นี้" ในแท็บฉัน
-   → --hw-ink-2 ที่เข้มกว่าหนึ่งขั้น เฉพาะโทนนี้ (โทนกลางคืนผ่านอยู่แล้ว) */
-:root[data-theme="moonlight"][data-hw-tone="light"] .app-ver,
-:root[data-theme="moonlight"][data-hw-tone="light"] #scr-profile :is(.pe-soon,.pe-pro) .pe-v{color:var(--hw-ink-2)!important}
-/* 23 Oct 2026, owner: "too much on the buttons". Same cuts as theme-main.css: no shine sweeping across primary
-   buttons, no star glyph behind the task card heading, and no ghost on the task card (it sat behind the clock button). */
-:root[data-theme="moonlight"] :is(.td-now,.td-clear)>.hw-ornament .hw-card-ghost{display:none}
-
-/* ============================================================
-   24 ต.ค. 69 · เจ้าของ (ภาพโปรไฟล์ Moon & Candle): "อันไหนยังไม่สวยหรือยังไม่เข้ากับธีม แก้ให้หมด"
-   ============================================================ */
-/* ตัวเลขโปรไฟล์: กฎ "#scr-profile button" ข้างบนใส่การ์ดให้ทุกปุ่ม → "โพสต์" กับ "ช่วยแล้ว" (ปุ่ม) ได้กรอบ
-   แต่ "เพื่อน" (div ธรรมดา) ไม่ได้ · สามช่องต้องหน้าตาเดียวกัน */
-:root[data-theme="moonlight"] #scr-profile .ig-stats { gap: 6px; }
-:root[data-theme="moonlight"] #scr-profile .ig-stats > * {
-  background-color: var(--hw-card); border-radius: 12px 4px; box-shadow: 0 1px 0 rgba(255,255,255,.07) inset;
-}
-/* ป้าย "พรุ่งนี้" ในการ์ดเช็คอิน: เดิมเป็นปุ่มส้ม CTA ทั้งที่กดไม่ได้ (เช็คอินแล้ว แค่บอกให้กลับมาพรุ่งนี้)
-   และกว้าง 29px ไม่มีระยะขอบ ตัวหนังสือล้นออกไปโดนตัดที่ขอบการ์ด → ป้ายขอบบางสีท้องฟ้า กว้างตามตัวหนังสือ */
-:root[data-theme="moonlight"] #scr-profile .pe-daily-go {
-  flex: none; white-space: nowrap; padding: 3px 10px;
-  background: transparent; color: color-mix(in srgb, var(--hw-sky, #8FDAFF) 70%, var(--ink));
-  border: 1px solid color-mix(in srgb, var(--hw-sky, #8FDAFF) 45%, transparent);
-}
-/* "ดูทั้งหมด >" ในการ์ดสรุป 7 วัน ออกแบบมาเป็นลิงก์ตัวหนังสือ (padding 0) แต่กฎ "#scr-profile button" ข้างบนใส่พื้นแคปซูลให้
-   ตัวหนังสือเลยชิดขอบซ้ายของแคปซูลพอดี (ห่าง 0px) และส่วนที่ยื่นของอักษรไทยล้นออกนอกกรอบ → เว้นขอบในให้เท่ากันสองฝั่ง */
-:root[data-theme="moonlight"] #scr-profile .st-open-go { padding: 3px 7px 3px 10px; gap: 2px; }
