@@ -8274,14 +8274,16 @@ function calHtml(now) {
       <h1 class="page-title">ปฏิทิน</h1>
     </div>
     ${tlModeTabs()}${hint}
-    <div class="calbar">
-      <button onclick="calShift(-1)" aria-label="เดือนก่อน">${icon('chevron')}</button>
-      <b>${MONTH_FULL[m]} ${y + 543}</b>
-      <button onclick="calShift(1)" aria-label="เดือนถัดไป">${icon('chevron')}</button>
+    <div class="cal-card">
+      <div class="calbar">
+        <button onclick="calShift(-1)" aria-label="เดือนก่อน">${icon('chevron')}</button>
+        <b>${MONTH_FULL[m]} ${y + 543}</b>
+        <button onclick="calShift(1)" aria-label="เดือนถัดไป">${icon('chevron')}</button>
+      </div>
+      <div class="calwd">${['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
+        .map(x => `<span>${x}</span>`).join('')}</div>
+      <div class="calgrid">${cells}</div>
     </div>
-    <div class="calwd">${['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
-      .map(x => `<span>${x}</span>`).join('')}</div>
-    <div class="calgrid">${cells}</div>
     ${detail}`;
 }
 
