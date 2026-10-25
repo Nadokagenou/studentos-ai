@@ -106,9 +106,39 @@
 .ev-chip svg { width: 15px; height: 15px; color: #f0a03a; }
 .ev-chip:active { transform: scale(.97); }
 
-.ev-empty { display: flex; flex-direction: column; gap: 4px; padding: 28px 16px; border-radius: 18px; text-align: center;
-  background: var(--card); color: var(--muted); font-size: 13px; }
-.ev-empty b { color: var(--ink); font-size: 15px; }
+/* 25 ต.ค. 69 · เจ้าของ: "ตรงตอนนี้ยังไม่มีอีเวนต์ให้ใส่ขอบ ดูสวยกว่านี้" — เดิมเป็นกล่อง --card ทึบเปล่า ๆ ลอยทับฉาก
+   ขอบแบบ HaloField (Cult UI · MIT · ตัวเดียวกับช่องแก้โปรไฟล์ ใช้ @property --hf-a กับ hf-spin ใน alt.css)
+   ไล่สีวนช้า ๆ ในสีของธีม (--fill · --halo-2/3) · พื้นกระจกฝ้าให้ฉากธีมโผล่ · ไอคอนปฏิทินในวงแสงบอกว่า "รอกิจกรรมถัดไป" */
+.ev-empty { --hf-c1: color-mix(in srgb, var(--fill) 85%, transparent);
+  --hf-c2: color-mix(in srgb, var(--halo-2, var(--fill)) 30%, transparent);
+  --hf-c3: color-mix(in srgb, var(--halo-3, var(--fill)) 55%, transparent);
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 24px 18px 26px; border-radius: 20px; text-align: center;
+  border: 1.5px solid transparent;
+  background:
+    radial-gradient(120% 90% at 50% -20%, color-mix(in srgb, var(--fill) 16%, transparent), transparent 62%) padding-box,
+    linear-gradient(color-mix(in srgb, var(--card) 80%, transparent), color-mix(in srgb, var(--card) 80%, transparent)) padding-box,
+    conic-gradient(from var(--hf-a), var(--hf-c1), var(--hf-c2), var(--hf-c3), var(--hf-c1)) border-box;
+  -webkit-backdrop-filter: blur(14px) saturate(150%); backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 0 0 4px color-mix(in srgb, var(--fill) 8%, transparent),
+    0 16px 34px -18px color-mix(in srgb, var(--fill) 75%, transparent);
+  animation: hf-spin 12s steps(180) infinite;
+  color: var(--muted); font-size: 13px; }
+.ev-empty b { color: var(--ink); font-size: 15.5px; margin-top: 6px; }
+.ev-empty-ic { position: relative; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px;
+  color: var(--fill);
+  background: radial-gradient(90% 90% at 25% 10%, rgba(255,255,255,.22), transparent 60%), color-mix(in srgb, var(--fill) 16%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 45%, transparent), 0 0 22px -6px color-mix(in srgb, var(--fill) 80%, transparent); }
+.ev-empty-ic svg { width: 24px; height: 24px; }
+.ev-empty-ic .ev-empty-sp { position: absolute; top: -7px; right: -7px; width: 16px; height: 16px;
+  color: color-mix(in srgb, var(--fill) 60%, #fff); animation: ev-twinkle 2.4s ease-in-out infinite; }
+@keyframes ev-twinkle { 50% { opacity: .35; transform: scale(.8) rotate(20deg); } }
+:root[data-lite] .ev-empty, :root[data-lite] .ev-empty-sp { animation: none; }
+@media (prefers-reduced-motion: reduce) { .ev-empty, .ev-empty-sp { animation: none; } }
+
+/* ชิป "เร็ว ๆ นี้" — ขอบประกับไอคอนย้อมสีธีม (เดิมเทา --line / --muted จนจางหายบนฉากมืด) */
+.ev-tab.soon { border-color: color-mix(in srgb, var(--fill) 55%, transparent); background: color-mix(in srgb, var(--card) 45%, transparent);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.ev-tab.soon .ev-tab-art { color: var(--fill); background: color-mix(in srgb, var(--fill) 16%, transparent); }
 
 /* ---------- 24 ต.ค. 69 · ภารกิจปลดล็อกธีม Halloween (events.js questDetail) ----------
    แบนเนอร์เล็กกว่าของฮาโลวีน (ไม่มีสไลด์) พื้นเป็นฉากของธีมเอง · รายการภารกิจใช้โทเคนธีมเหมือนแถวรางวัล
