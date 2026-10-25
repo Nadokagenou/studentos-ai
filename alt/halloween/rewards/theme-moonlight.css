@@ -136,3 +136,13 @@ html[data-quality="medium"] .hw-scene *,html[data-hw-motion="still"] .hw-scene *
 :root[data-theme="moonlight"][data-hw-tone="light"] :is(.hw-bats,.hw-candle){opacity:.3}
 :root[data-theme="moonlight"][data-hw-tone="light"] :is(.hw-spark,.hw-wanderer,.hw-ghost){opacity:.16}
 :root[data-theme="moonlight"][data-hw-tone="light"] .hw-haze{background:radial-gradient(ellipse at 15% 80%,#0858D61a,transparent 40%),radial-gradient(ellipse at 82% 28%,#6D3BFF22,transparent 45%)}
+
+/* 26 ต.ค. 69 · เจ้าของ: "Moon & Candle ปรับให้พวก UI มีสีหลักคือฟ้ากับส้มหน่อย"
+   เดิมทั้งแอปเป็นฟ้าล้วน (--fill กับ --blue เป็นฟ้าทั้งคู่) ส้มเทียนมีแค่ปุ่ม "+" กับขีดใต้แท็บ
+   แบ่งหน้าที่สองสีตามชื่อธีม: ฟ้าจันทร์ = ของที่กดหลัก (--fill · ปุ่มเริ่ม · ไทล์ · ปุ่มส่ง) · ส้มเทียน = สีรองทั้งแอป (--blue)
+   --blue ถูกใช้ ~250 ที่ (ลิงก์ "ดูทั้งหมด" · ชิป · ตัวเน้น · ตัวเลือกที่เลือกอยู่ · แถบความคืบหน้า) ส้มจึงกระจายไปทุกจอเอง
+   ของที่ทาพื้นด้วย --blue ใช้ตัวหนังสือ --on-accent: โทนมืด = กรมท่าเข้มบนส้มอ่อน · โทนสว่าง = ขาวบนส้มเข้ม (ตั้งให้ใหม่ด้านล่าง)
+   ไล่สีแบรนด์ (แถบความคืบหน้า · ก้อนที่ใช้ --grad-brand) = จันทร์ → เทียน
+   --blue-soft (พื้นของที่เลือกอยู่ เช่นแท็บห้อง) เป็นม่วงอมส้มทึบ ไม่ใช่ส้มโปร่ง — ส้มโปร่งบนพื้นมืดทำให้ตัวหนังสือสว่างข้างบนได้แค่ 3.0 */
+:root[data-theme="moonlight"]{--blue:#FFB27A;--blue-soft:#5A2C46;--blue-deep:#FFC9A0;--grad-brand:linear-gradient(125deg,#5CC8FF,#FF8A3D)}
+:root[data-theme="moonlight"][data-hw-tone="light"]{--blue:#B83C00;--blue-soft:#FFE3CC;--blue-deep:#8A2E00;--on-accent:#FFFFFF;--grad-brand:linear-gradient(125deg,#0858D6,#D63F00)}

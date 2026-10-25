@@ -28,11 +28,11 @@
 :root[data-theme="moonlight"] {
   --id-tile: 50%; --id-chip: 50%; --id-btn: 999px; --id-tab: 999px;
   --id-bar: 30px; --id-back: 50%; --id-ctl: 999px; --id-in: 999px;
-  --id-title-ink: linear-gradient(100deg, #F4F2FF, #A9DCFF 55%, #7DD3FF);
+  --id-title-ink: linear-gradient(100deg, #A9DCFF, #7DD3FF 45%, #FFB27A);   /* จันทร์ → เทียน (26 ต.ค. 69) */
   --hwi-ring: inset -5px -4px 0 -1px rgba(6, 12, 48, .28);               /* เงาเสี้ยวจันทร์ */
 }
 :root[data-theme="moonlight"][data-hw-tone="light"] {
-  --id-title-ink: linear-gradient(100deg, #1D4FC4, #3A1C8C);
+  --id-title-ink: linear-gradient(100deg, #0858D6, #3A1C8C 55%, #B83C00);
   --hwi-ring: inset -5px -4px 0 -1px rgba(30, 40, 120, .14);
 }
 :root[data-theme="hw-ghostship"] {
@@ -250,4 +250,26 @@ html[data-hw-motion="still"] :is(.hw-scene, .hw-biome-scene)::after { display: n
 @media (prefers-reduced-motion: reduce) {
   html:not([data-hw-motion="full"]) :is(.hw-scene, .hw-biome-scene)::after { display: none; }
   html:not([data-hw-motion="full"]) .hw-biome-scene::before { animation: none; }
+}
+
+/* ---------- Moon & Candle · ฟ้าจันทร์ + ส้มเทียน (26 ต.ค. 69 · เจ้าของ: "ให้พวก UI มีสีหลักคือฟ้ากับส้ม") ----------
+   ของกดหลักเป็นฟ้า (--fill) · สีรองทั้งแอปเป็นส้ม (--blue ใน theme-moonlight.css) · สองจุดนี้เป็นตัวแทนของ "เทียน" ที่ต้องเห็นชัด:
+   ปุ่ม "+" กลางแถบล่าง = เปลวเทียน (เคยเป็นส้มก่อนถอดกฎแต่งของธีม แล้วกลายเป็นฟ้าตามธีมหลัก)
+   ชิป "วันนี้ไปไหน?" = ทางลัดรอง ไม่ใช่ปุ่มหลัก → ส้มอ่อน */
+:root[data-theme="moonlight"] .phone .tabbar .tab.scan .scan-dot {
+  background:
+    radial-gradient(120% 90% at 26% -4%, rgba(255, 255, 255, .5) 0%, rgba(255, 255, 255, .08) 44%, transparent 64%),
+    radial-gradient(circle at 40% 30%, #FFC08F, #FF7A2E 55%, #C23F00) !important;
+  color: #2A0E00 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 0 18px -2px rgba(255, 122, 46, .7) !important;
+}
+:root[data-theme="moonlight"] .phone #menuBody .rl-day.ask {
+  background: color-mix(in srgb, var(--blue) 22%, transparent) !important;
+  color: var(--blue) !important;
+}
+/* ตัวหนังสือข้างในชิปมีสีของตัวเอง (em) ไม่รับสีจากปุ่ม · โทนสว่างใช้ส้มเข้มกว่า (--blue-deep) ให้ถึง 4.5 บนพื้นส้มอ่อน */
+:root[data-theme="moonlight"] .phone #menuBody .rl-day.ask * { color: inherit !important; }
+:root[data-theme="moonlight"][data-hw-tone="light"] .phone #menuBody .rl-day.ask { color: #6E2200 !important; background: color-mix(in srgb, var(--blue) 12%, #fff) !important; }
+:root[data-theme="moonlight"] .phone #menuBody .rl-day.ask {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--blue) 50%, transparent) !important;
 }

@@ -201,7 +201,7 @@
 
 /* ธีมที่มีฉาก (Halloween · Moon & Candle มืด · hw-*) — ตัวเลขโพสต์/เพื่อน/ช่วยแล้วบนจอ "ฉัน" วางบนฉากตรง ๆ (ธีมหลักไม่มีกล่อง)
    และตกตรงดวงจันทร์พอดี → ป้ายขาวบนจันทร์ 2.2 · เงานุ่มสีเข้มรอบตัวหนังสือแทนการใส่กล่อง (หน้าตายังเหมือนธีมหลัก) */
-:root:is([data-theme="halloween"], [data-theme="moonlight"]:not([data-hw-tone="light"]), [data-theme^="hw-"]) :is(#scr-profile .ig-stats :is(button, span, b, small), .sec-label, .povf-why) {
+:root:is([data-theme="halloween"], [data-theme="moonlight"]:not([data-hw-tone="light"]), [data-theme^="hw-"]) :is(#scr-profile .ig-stats :is(button, span, b, small), .sec-label, .povf-why, .dayrow-l, .pslot .ptime :is(.s, .e)) {
   text-shadow: 0 1px 2px rgba(0,0,0,.75), 0 0 10px rgba(0,0,0,.7);
 }
 
