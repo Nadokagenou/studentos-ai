@@ -22,24 +22,47 @@
 .hw-bat .eye { fill: #ffb347; }
 @keyframes hw-flap { from { transform: scaleY(1); } to { transform: scaleY(.32) translateY(4px); } }
 
-.hb-sky, .lg-hw { display: none; }
+.hb-sky, .lg-hw, .hb-rays, .hb-wave, .hb-ring { display: none; }
 
 /* ============================================================
    จอโหลด
+   ------------------------------------------------------------
+   25 ต.ค. 69 · รอบสอง — เจ้าของ: "ปรับอนิเมชันหน้านี้หน่อย ตอนนี้ยังกากอยู่ … สร้างสิ่งมหัศจรรย์ของโลกขึ้นมา"
+   รอบแรกเป็นพื้นแบน ดาวกะพริบพร้อมกันทั้งชั้น ค้างคาวเป็นขีดเล็ก ๆ — รอบนี้เป็นฉากลึกหลายชั้น:
+     ฟ้า: เนบิวลาหายใจ · ดาวกะพริบทีละดวง (สคริปต์โรย) · ดาวตก
+     พระจันทร์: ขึ้นจากขอบฟ้า · รัศมีเต้น · เมฆลอยตัด · แม่มดขี่ไม้กวาดบินผ่านหน้าดวง
+     พื้น: เนินกับปราสาท (ไฟหน้าต่างวูบ) · หมอกสองชั้นไหลสวนกัน · ป่าช้า (ยาวเต็มจอ) · แสงฟักทองวูบที่พื้น
+     กลาง: วงเวทสามชั้นวาดตัวเองแล้วหมุนสวนกัน · ลำแสงหมุน · คลื่นแสงขยายออก · ค้างคาวแปดตัวพุ่งออก
+     หน้า: ประกายไฟลอยขึ้น (สคริปต์โรย)
+   • ทุกอย่างขยับด้วย transform/opacity เท่านั้น — หน้านี้นับ "เฟรมลื่น" เพื่อตัดสินว่าเครื่องว่างหรือยัง (สคริปต์ใต้ #boot)
+     ถ้าฉากกินเครื่องเอง คนจะติดอยู่ที่หน้านี้นานขึ้น · เรืองแสงที่เคยกะพริบด้วย box-shadow (วาดใหม่ทุกเฟรม) เปลี่ยนเป็นชั้นแยกที่จางเข้าออก
+   • ของที่ "ว้าว" เริ่มในครึ่งวินาทีแรก — เปิดจากแคช หน้านี้อยู่ราววินาทีเดียว
    ============================================================ */
 html:root.hw-season .boot {
   --fill: #ff8a1f; --grad-brand: linear-gradient(90deg, #ffb04a, #ff7a18 45%, #b77dff);
   --ink: #f6eefe; --muted: #b9a8d6;
   background:
-    radial-gradient(90% 55% at 50% 46%, rgba(124, 58, 237, .28), transparent 70%),
-    radial-gradient(70% 40% at 82% 12%, rgba(255, 170, 80, .16), transparent 70%),
-    linear-gradient(180deg, #150b2b 0%, #0d0719 55%, #07040e 100%) !important;
+    radial-gradient(90% 55% at 50% 46%, rgba(124, 58, 237, .26), transparent 70%),
+    radial-gradient(70% 40% at 82% 12%, rgba(255, 170, 80, .14), transparent 70%),
+    linear-gradient(180deg, #150b2b 0%, #0f0820 50%, #07040e 100%) !important;
   color: var(--ink); overflow: hidden;
 }
-html:root.hw-season .hb-sky { display: block; position: absolute; inset: 0; pointer-events: none; }
+html:root.hw-season .hb-sky { display: block; position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+  animation: hb-open 1s ease-out both; }
+/* เปิดฉาก: ทั้งฟ้าสว่างขึ้นจากมืด (จางอย่างเดียว ไม่เบลอ — เบลอทั้งจอแพงเกินสำหรับหน้านี้) */
+@keyframes hb-open { from { opacity: .25; } }
 .hb-sky > * { position: absolute; display: block; }
 
-/* ดาว — จุดเล็กหลายจุดในพื้นหลังเดียว กะพริบทั้งชั้นพร้อมกัน */
+/* เนบิวลา — ก้อนแสงม่วง/ชมพูสองก้อน หมุนช้า ๆ ให้ฟ้าดูมีชีวิต */
+.hb-neb { left: -30%; top: -20%; width: 160%; height: 90%; opacity: .9;
+  background:
+    radial-gradient(38% 30% at 30% 40%, rgba(147, 72, 255, .22), transparent 70%),
+    radial-gradient(30% 26% at 70% 62%, rgba(255, 90, 160, .12), transparent 70%),
+    radial-gradient(26% 22% at 58% 28%, rgba(80, 140, 255, .1), transparent 70%);
+  animation: hb-neb 16s ease-in-out infinite alternate; }
+@keyframes hb-neb { to { transform: translate3d(4%, 3%, 0) rotate(6deg) scale(1.08); } }
+
+/* ดาว — ชั้นพื้นหลังจาง ๆ (ใช้ร่วมกับจอเข้าสู่ระบบ) + ดาวทีละดวงที่สคริปต์โรย */
 .hb-stars, .lg-hw .lh-stars { inset: 0; opacity: .8;
   background-image:
     radial-gradient(1.4px 1.4px at 12% 18%, #fff 60%, transparent),
@@ -55,45 +78,162 @@ html:root.hw-season .hb-sky { display: block; position: absolute; inset: 0; poin
     radial-gradient(1px 1px at 36% 48%, #ffe9c7 60%, transparent);
   animation: hw-twinkle 2.6s ease-in-out infinite alternate; }
 @keyframes hw-twinkle { from { opacity: .45; } to { opacity: .95; } }
+.hb-starf { inset: 0; }
+.hb-starf i { position: absolute; width: 3px; height: 3px; margin: -1.5px; border-radius: 50%; background: #fff;
+  box-shadow: 0 0 6px 1px rgba(220, 200, 255, .7); transform: scale(var(--z, 1));
+  animation: hb-star var(--t, 2s) var(--d, 0s) ease-in-out infinite alternate; }
+/* ดาวดวงใหญ่บางดวงมีแฉกแสง */
+.hb-starf i:nth-child(7n)::before, .hb-starf i:nth-child(7n)::after { content: ""; position: absolute; left: 50%; top: 50%;
+  width: 18px; height: 1px; margin: -.5px 0 0 -9px; background: linear-gradient(90deg, transparent, #fff, transparent); }
+.hb-starf i:nth-child(7n)::after { transform: rotate(90deg); }
+@keyframes hb-star { from { opacity: .15; transform: scale(calc(var(--z, 1) * .5)); } to { opacity: 1; transform: scale(var(--z, 1)); } }
 
-/* พระจันทร์ — ลอยขึ้นตอนเปิด แล้วเรืองช้า ๆ */
-.hb-moon { top: 9vh; right: 11vw; width: 104px; height: 104px; border-radius: 50%;
+/* ดาวตก — ลากผ่านฟ้าด้านซ้ายครั้งแรกที่ 0.5 วิ แล้วทุก ๆ 5 วิ */
+.hb-shoot { left: 8%; top: 10vh; width: 150px; height: 2px; border-radius: 2px; opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 230, 190, .9) 70%, #fff);
+  transform-origin: 100% 50%;
+  animation: hb-shoot 5s .5s cubic-bezier(.3, .6, .4, 1) infinite; }
+.hb-shoot::after { content: ""; position: absolute; right: -3px; top: -3px; width: 8px; height: 8px; border-radius: 50%;
+  background: radial-gradient(circle, #fff, rgba(255, 220, 160, .6) 40%, transparent 70%); }
+@keyframes hb-shoot {
+  0%   { opacity: 0; transform: translate3d(0, 0, 0) rotate(24deg) scaleX(.2); }
+  4%   { opacity: 1; }
+  16%  { opacity: 0; transform: translate3d(48vw, 22vh, 0) rotate(24deg) scaleX(1); }
+  100% { opacity: 0; transform: translate3d(48vw, 22vh, 0) rotate(24deg) scaleX(1); }
+}
+
+/* ---------- พระจันทร์ + เมฆ + แม่มด ----------
+   ทั้งชุดอยู่ในกล่องเดียว (.hb-moonwrap) ที่ขนาดเท่าดวง — แม่มดกับเมฆขยับรอบดวงด้วยพิกัดของกล่องนี้ จะจอกว้างแค่ไหนก็ตัดหน้าดวงพอดี */
+.hb-moonwrap { top: 8vh; right: 11vw; width: 112px; height: 112px;
+  animation: hb-moon-in 1.3s cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes hb-moon-in { from { opacity: 0; transform: translate3d(0, 60px, 0) scale(.82); } }
+.hb-moonwrap > * { position: absolute; display: block; }
+.hb-moon { inset: 0; border-radius: 50%;
   background:
-    radial-gradient(circle at 64% 30%, rgba(214, 170, 96, .55) 0 7px, transparent 8px),
-    radial-gradient(circle at 34% 62%, rgba(214, 170, 96, .45) 0 11px, transparent 12px),
+    radial-gradient(circle at 64% 30%, rgba(214, 170, 96, .55) 0 8px, transparent 9px),
+    radial-gradient(circle at 34% 62%, rgba(214, 170, 96, .45) 0 12px, transparent 13px),
     radial-gradient(circle at 70% 70%, rgba(214, 170, 96, .35) 0 5px, transparent 6px),
-    radial-gradient(circle at 38% 34%, #fff8e3, #ffe2a1 55%, #f2b45a 100%);
-  box-shadow: 0 0 40px 10px rgba(255, 196, 110, .35), 0 0 140px 50px rgba(255, 140, 50, .14);
-  animation: hb-moon-in 1.1s cubic-bezier(.22, 1, .36, 1) both, hb-moon-glow 3.2s 1.1s ease-in-out infinite alternate; }
-@keyframes hb-moon-in { from { opacity: 0; transform: translateY(40px) scale(.9); } }
-@keyframes hb-moon-glow { to { box-shadow: 0 0 52px 16px rgba(255, 196, 110, .45), 0 0 170px 64px rgba(255, 140, 50, .2); } }
+    radial-gradient(circle at 22% 36%, rgba(214, 170, 96, .3) 0 4px, transparent 5px),
+    radial-gradient(circle at 38% 34%, #fffaf0, #ffe2a1 55%, #f2b45a 100%);
+  box-shadow: 0 0 40px 10px rgba(255, 196, 110, .35), inset -10px -12px 24px rgba(180, 100, 30, .35); }
+/* รัศมี — ชั้นแยกที่เต้นด้วย scale/opacity (การ์ดจอทำเอง) แทน box-shadow ที่ต้องวาดใหม่ทุกเฟรม */
+.hb-moonhalo { left: -160%; top: -160%; width: 420%; height: 420%; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 200, 120, .34) 0 16%, rgba(255, 140, 50, .12) 30%, rgba(160, 90, 255, .06) 46%, transparent 64%);
+  animation: hb-halo 3.4s ease-in-out infinite alternate; }
+@keyframes hb-halo { from { transform: scale(.9); opacity: .75; } to { transform: scale(1.06); opacity: 1; } }
+/* เมฆบาง ๆ สองก้อนลอยตัดหน้าดวง */
+.hb-cloud { top: 54%; left: -120%; width: 200px; height: 34px; border-radius: 50%; opacity: .75;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(56, 34, 92, .95), rgba(56, 34, 92, .5) 55%, transparent 72%);
+  animation: hb-cloud 14s -4s linear infinite; }
+.hb-cloud.c2 { top: 16%; width: 150px; height: 24px; opacity: .55; animation-duration: 19s; animation-delay: -12s; }
+@keyframes hb-cloud { from { transform: translate3d(-40px, 0, 0); } to { transform: translate3d(420px, 0, 0); } }
+/* แม่มดขี่ไม้กวาด — โผล่จากซ้ายของดวง ตัดหน้าดวงเป็นเงาดำ แล้วโค้งขึ้นออกขวา (ครั้งแรกเริ่มที่ 0.35 วิ) */
+.hb-witch { left: 50%; top: 50%; width: 74px; height: 37px; margin: -18px 0 0 -37px; fill: #0a0614; overflow: visible;
+  filter: drop-shadow(0 0 2px rgba(255, 190, 120, .45)); opacity: 0;
+  animation: hb-witch 7.5s .35s cubic-bezier(.45, .05, .55, .95) infinite; }
+@keyframes hb-witch {
+  0%   { opacity: 0; transform: translate3d(-210px, 46px, 0) rotate(-10deg) scale(.7); }
+  6%   { opacity: 1; }
+  24%  { transform: translate3d(-40px, 6px, 0) rotate(-6deg) scale(.95); }
+  36%  { transform: translate3d(30px, -6px, 0) rotate(-12deg) scale(1); }
+  52%  { opacity: 1; transform: translate3d(190px, -70px, 0) rotate(-22deg) scale(.8); }
+  58%, 100% { opacity: 0; transform: translate3d(240px, -96px, 0) rotate(-24deg) scale(.7); }
+}
 
-/* หมอกกับป่าช้าที่ก้นจอ — ภาพเดียวกับฉากธีม Midnight Academy (แคชไว้แล้ว) */
-.hb-grave { left: -10%; right: -10%; bottom: 0; height: 170px; opacity: .9;
-  background: url('../rewards/theme-assets/graveyard.svg') center bottom / auto 100% no-repeat; }
-.hb-fog { left: -40%; right: -40%; bottom: -30px; height: 200px;
-  background: radial-gradient(ellipse at 30% 70%, rgba(168, 140, 220, .22), transparent 55%),
-              radial-gradient(ellipse at 72% 60%, rgba(255, 150, 80, .12), transparent 50%);
+/* ---------- ขอบฟ้า: เนินสองชั้น (ยืดเต็มความกว้าง) + ปราสาทบนเนิน ---------- */
+.hb-hills { left: 0; bottom: 0; width: 100%; height: 200px; animation: hb-rise 1.1s cubic-bezier(.22, 1, .36, 1) both; }
+.hb-hills path { fill: #170d2c; }
+.hb-hills .near { fill: #0e0819; }
+.hb-castle { left: 50%; bottom: 104px; width: min(340px, 86vw, 46vh); height: auto; transform: translateX(-50%);
+  fill: #20133f; filter: drop-shadow(0 0 12px rgba(150, 100, 255, .28)); animation: hb-castle 1.2s .1s cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes hb-castle { from { opacity: 0; transform: translate3d(-50%, 30px, 0); } }
+/* ไฟหน้าต่างนิ่ง — กะพริบทีละบานคือแอนิเมชันในตัว SVG ซึ่งเบราว์เซอร์ต้องวาดใหม่ทุกเฟรม (วัดแล้วเฟรมสะดุดตอนจำลองเครื่องช้า) */
+.hb-castle .win rect { fill: #ffb04a; opacity: .9; }
+@keyframes hb-rise { from { opacity: 0; transform: translate3d(0, 30px, 0); } }
+
+/* หมอกสองชั้นไหลสวนกันกับป่าช้าที่ก้นจอ — ป่าช้าเป็นภาพเดียวกับฉากธีม Midnight Academy (แคชไว้แล้ว) เรียงต่อกันเต็มความกว้าง */
+.hb-grave { left: 0; right: 0; bottom: 0; height: 170px; opacity: .95;
+  background: url('../rewards/theme-assets/graveyard.svg') center bottom / auto 100% repeat-x;
+  animation: hb-rise 1s cubic-bezier(.22, 1, .36, 1) both; }
+.hb-fog { left: -40%; right: -40%; bottom: 40px; height: 220px;
+  background: radial-gradient(ellipse 40% 50% at 30% 70%, rgba(168, 140, 220, .26), transparent 70%),
+              radial-gradient(ellipse 30% 40% at 72% 60%, rgba(255, 150, 80, .13), transparent 70%);
   animation: hb-fog 9s ease-in-out infinite alternate; }
-@keyframes hb-fog { to { transform: translate3d(8%, -10px, 0); } }
+.hb-fog.f2 { bottom: -40px; opacity: .8; transform: scaleX(-1); animation: hb-fog2 12s ease-in-out infinite alternate; }
+@keyframes hb-fog { to { transform: translate3d(9%, -12px, 0); } }
+@keyframes hb-fog2 { from { transform: scaleX(-1) translate3d(0, 0, 0); } to { transform: scaleX(-1) translate3d(12%, -8px, 0); } }
+/* แสงฟักทองวูบที่พื้น */
+.hb-lamp { left: 0; right: 0; bottom: -60px; height: 180px;
+  background: radial-gradient(40% 60% at 50% 100%, rgba(255, 130, 30, .3), transparent 70%);
+  animation: hb-lamp 2.2s ease-in-out infinite; }
+@keyframes hb-lamp { 0%, 100% { opacity: .7; } 30% { opacity: 1; } 55% { opacity: .55; } 75% { opacity: .9; } }
 
-/* แสงฟักทองหลังโลโก้ */
-html:root.hw-season .boot .boot-mid::before { content: ""; position: absolute; left: 50%; top: 50%;
-  width: 230px; height: 230px; margin: -115px 0 0 -115px; border-radius: 50%; z-index: -1;
-  background: radial-gradient(circle, rgba(255, 138, 31, .32), rgba(124, 58, 237, .16) 45%, transparent 70%);
-  animation: hb-halo 2.4s ease-in-out infinite alternate; }
-@keyframes hb-halo { from { transform: scale(.88); opacity: .75; } to { transform: scale(1.08); opacity: 1; } }
+/* ประกายไฟลอยขึ้นจากป่าช้า ส่ายไปมาแล้วดับ (สคริปต์โรย · 1 ใน 5 เป็นสีม่วง) */
+.hb-embers { inset: 0; }
+.hb-embers i { position: absolute; bottom: 60px; width: 4px; height: 4px; border-radius: 50%; opacity: 0;
+  background: #ffc46b; box-shadow: 0 0 8px 2px rgba(255, 138, 31, .75);
+  animation: hb-ember var(--t, 4s) var(--d, 0s) linear infinite; }
+.hb-embers i.v { background: #e2c6ff; box-shadow: 0 0 8px 2px rgba(167, 102, 255, .8); }
+@keyframes hb-ember {
+  0%   { opacity: 0; transform: translate3d(0, 0, 0) scale(var(--z, 1)); }
+  12%  { opacity: 1; }
+  50%  { transform: translate3d(calc(var(--dx, 0px) * -.6), -30vh, 0) scale(var(--z, 1)); }
+  80%  { opacity: .8; }
+  100% { opacity: 0; transform: translate3d(var(--dx, 0px), -62vh, 0) scale(calc(var(--z, 1) * .3)); }
+}
+
+/* ---------- วงเวทรอบโลโก้ ---------- */
 html:root.hw-season .boot .boot-mid { z-index: 2; }
-html:root.hw-season .boot .boot-mark { border-radius: 24px;
-  filter: drop-shadow(0 0 18px rgba(255, 138, 31, .45)) drop-shadow(0 10px 22px rgba(0, 0, 0, .6));
-  animation: boot-in .6s cubic-bezier(.22, 1, .36, 1) both, hb-bob 2.8s .6s ease-in-out infinite alternate; }
-@keyframes hb-bob { to { transform: translateY(-6px); } }
-html:root.hw-season .boot.out .boot-mark { transform: scale(1.08); animation: none; }
+html:root.hw-season .boot .boot-mid > .hb-rays, html:root.hw-season .boot .boot-mid > .hb-wave,
+html:root.hw-season .boot .boot-mid > .hb-ring { display: block; position: absolute; left: 50%; top: 46px; pointer-events: none; }
+/* ลำแสงหมุนหลังโลโก้ — สีส้มสลับม่วง จางออกเป็นวง */
+.hb-rays { width: 440px; height: 440px; margin: -220px 0 0 -220px; border-radius: 50%; z-index: -2;
+  background:
+    radial-gradient(circle, rgba(255, 138, 31, .4), rgba(124, 58, 237, .2) 32%, transparent 62%),
+    repeating-conic-gradient(from 0deg, rgba(255, 170, 80, .16) 0 5deg, transparent 5deg 15deg, rgba(167, 102, 255, .14) 15deg 19deg, transparent 19deg 30deg);
+  -webkit-mask: radial-gradient(circle, #000 18%, transparent 68%); mask: radial-gradient(circle, #000 18%, transparent 68%);
+  animation: hb-rays-in .9s cubic-bezier(.22, 1, .36, 1) both, hb-spin 36s linear infinite; }
+@keyframes hb-rays-in { from { opacity: 0; } }
+/* หมุนด้วยคุณสมบัติ rotate แยกจาก transform — วงเวทมีแอนิเมชันเข้าจอ (scale) ซ้อนอยู่ ถ้าหมุนด้วย transform อันหลังจะทับอันแรกจนวงไม่ขยายเข้า */
+@keyframes hb-spin { to { rotate: 360deg; } }
+@keyframes hb-spin-r { to { rotate: -360deg; } }
+/* คลื่นแสงขยายออกจากโลโก้เป็นจังหวะหัวใจ (ลูกแรกที่ 0.25 วิ) */
+.hb-wave { width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; z-index: -1; opacity: 0;
+  border: 2px solid rgba(255, 170, 90, .9); box-shadow: 0 0 18px rgba(255, 138, 31, .6), inset 0 0 18px rgba(167, 102, 255, .5);
+  animation: hb-wave 2.4s .25s cubic-bezier(.2, .7, .3, 1) infinite; }
+.hb-wave.w2 { animation-delay: 1.45s; border-color: rgba(190, 140, 255, .8); }
+@keyframes hb-wave { 0% { opacity: .95; transform: scale(.7); } 100% { opacity: 0; transform: scale(3.4); } }
+/* วงสามชั้น: นอกสุดจุดไข่ปลาหมุนตามเข็ม · กลางวาดตัวเองเป็นวงพร้อมอัญมณีสี่ทิศ หมุนทวน · ในเส้นประหมุนเร็ว */
+.hb-ring { width: 200px; height: 200px; margin: -100px 0 0 -100px; overflow: visible; fill: none; z-index: -1; }
+.hb-ring circle { stroke-width: 1.4; }
+.hb-ring.r1 { stroke: #ffb46b; opacity: .8; animation: hb-ring-in .8s .05s cubic-bezier(.22, 1, .36, 1) both, hb-spin 22s linear infinite; }
+.hb-ring.r2 { stroke: #c79bff; animation: hb-ring-in .8s cubic-bezier(.22, 1, .36, 1) both, hb-spin-r 30s linear infinite;
+  filter: drop-shadow(0 0 4px rgba(170, 110, 255, .9)); }
+.hb-ring.r2 .draw { stroke-width: 1.8; stroke-dasharray: 1; stroke-dashoffset: 1; animation: hb-draw .9s .1s cubic-bezier(.6, 0, .3, 1) forwards; }
+@keyframes hb-draw { to { stroke-dashoffset: 0; } }
+.hb-ring.r2 .gem { fill: #ffd08a; stroke: none; }
+.hb-ring.r2 .gem.sm { fill: #e7d2ff; }
+.hb-ring.r3 { stroke: #ff9a3c; opacity: .7; animation: hb-ring-in .8s .12s cubic-bezier(.22, 1, .36, 1) both, hb-spin 12s linear infinite; }
+@keyframes hb-ring-in { from { opacity: 0; transform: scale(.4); } }
 
-/* แถบโหลด: ไล่ส้มฟักทอง → ม่วง บนรางมืด */
-html:root.hw-season .boot .hp-track { background: rgba(255, 255, 255, .1); }
-html:root.hw-season .boot .hp-fill { background: linear-gradient(90deg, #7c3aed, #ff8a1f) !important; box-shadow: 0 0 12px rgba(255, 138, 31, .55) !important; }
-html:root.hw-season .boot .hp-track::after { background: #ffd08a; box-shadow: 0 0 0 2px rgba(255, 138, 31, .25), 0 0 12px 3px rgba(255, 138, 31, .6); }
+html:root.hw-season .boot .boot-mark { position: relative; border-radius: 24px;
+  filter: drop-shadow(0 0 18px rgba(255, 138, 31, .5)) drop-shadow(0 10px 22px rgba(0, 0, 0, .6));
+  animation: hb-mark-in .9s cubic-bezier(.34, 1.56, .64, 1) both, hb-bob 2.8s .9s ease-in-out infinite alternate; }
+@keyframes hb-mark-in { 0% { opacity: 0; transform: scale(.3) rotate(-14deg); } 60% { opacity: 1; } }
+@keyframes hb-bob { from { transform: translateY(0) rotate(0); } to { transform: translateY(-6px) rotate(1.5deg); } }
+/* ออก: วงเวทกับลำแสงพุ่งขยายแล้วจางพร้อมทั้งจอ — เหมือนประตูเปิดเข้าแอป */
+html:root.hw-season .boot.out .boot-mark { transform: scale(1.14); animation: none; }
+html:root.hw-season .boot.out .hb-ring, html:root.hw-season .boot.out .hb-rays {
+  animation: none; transform: scale(1.9); opacity: 0; transition: transform .42s cubic-bezier(.22, 1, .36, 1), opacity .42s ease; }
+
+/* แถบโหลด: ไล่ม่วง → ส้มฟักทอง บนรางมืด · หัวแถบเป็นเปลวไฟวูบ */
+html:root.hw-season .boot .boot-bar { z-index: 1; }
+html:root.hw-season .boot .hp-track { background: rgba(255, 255, 255, .1); box-shadow: 0 0 0 1px rgba(190, 150, 255, .14); }
+html:root.hw-season .boot .hp-fill { background: linear-gradient(90deg, #7c3aed, #c04cff 45%, #ff8a1f) !important; box-shadow: 0 0 12px rgba(255, 138, 31, .55) !important; }
+html:root.hw-season .boot .hp-track::after { width: 10px; height: 10px; background: radial-gradient(circle at 50% 60%, #fff, #ffd08a 40%, #ff8a1f 75%);
+  box-shadow: 0 0 0 2px rgba(255, 138, 31, .25), 0 0 14px 4px rgba(255, 138, 31, .7);
+  animation: hb-flame .32s ease-in-out infinite alternate; }
+@keyframes hb-flame { from { transform: translate(-50%, -50%) scale(.85); } to { transform: translate(-50%, -50%) scale(1.2); } }
 html:root.hw-season .boot .boot-from { z-index: 2; }
 html:root.hw-season .boot .boot-from span { color: var(--muted); }
 
@@ -240,12 +380,20 @@ html:root.hw-season #scr-login .lg-in { background: rgba(10, 6, 20, .6); color: 
    ============================================================ */
 :root[data-lite] .hb-burst i:nth-child(even), :root[data-lite] .hb-fly i:nth-child(n+3),
 :root[data-lite] .lg-hw .lh-fly i:nth-child(n+2) { display: none; }
+/* โหมดลื่น: ตัดชั้นที่เบลอ/ใหญ่ทั้งจอ (เนบิวลา หมอกชั้นสอง) กับวงในสุด · กราฟิกน้อย: ตัดของที่ขยับตลอดเกือบหมด เหลือฉากนิ่ง + วงเวทวาดครั้งเดียว */
+:root[data-lite] .hb-neb, :root[data-lite] .hb-fog.f2, :root[data-lite] .hb-ring.r3, :root[data-lite] .hb-wave.w2,
+:root[data-lite] .hb-starf i:nth-child(7n)::before, :root[data-lite] .hb-starf i:nth-child(7n)::after { display: none !important; }
+:root[data-lite] .hb-ring.r2 { filter: none; }
+:root[data-quality="low"] .hb-starf, :root[data-quality="low"] .hb-embers, :root[data-quality="low"] .hb-cloud,
+:root[data-quality="low"] .hb-shoot, :root[data-quality="low"] .hb-rays { display: none !important; }
 html:root.hw-season[data-lite] #scr-login .tx-card { -webkit-backdrop-filter: none; backdrop-filter: none; }
 @media (prefers-reduced-motion: reduce) {
-  .hw-bat, .hb-stars, .lg-hw .lh-stars, .hb-moon, .hb-fog, .lh-moonbats i,
-  html:root.hw-season .boot .boot-mid::before, html:root.hw-season .boot .boot-mark,
+  .hw-bat, .hb-stars, .lg-hw .lh-stars, .hb-moonwrap, .hb-moonhalo, .hb-fog, .lh-moonbats i, .hb-sky, .hb-neb, .hb-castle, .hb-hills,
+  .hb-grave, .hb-lamp, .hb-ring, .hb-ring .draw, .hb-rays, html:root.hw-season .boot .hp-track::after,
+  html:root.hw-season .boot .boot-mark,
   html:root.hw-season #scr-login .lg-hero::after, html:root.hw-season #scr-login .lg-sai-hw { animation: none; }
   html:root.hw-season #scr-login .lg-opts .btn.lg-go::after { display: none; }
   /* ค้างคาวที่บินผ่าน/พุ่งออกต้องขยับถึงจะมีความหมาย — ลดการเคลื่อนไหวแล้วซ่อน ฉากที่เหลือยังเป็นฮาโลวีนครบ */
-  .hb-burst, .hb-fly, .lg-hw .lh-fly { display: none !important; }
+  .hb-burst, .hb-fly, .lg-hw .lh-fly, .hb-starf, .hb-embers, .hb-shoot, .hb-witch, .hb-cloud, .hb-wave { display: none !important; }
+  .hb-ring .draw { stroke-dashoffset: 0; }
 }

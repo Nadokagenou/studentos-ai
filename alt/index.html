@@ -173,13 +173,29 @@
      ต้องอยู่นอก #boot — #boot ถูกถอดทิ้งหลังเข้าแอป ถ้า symbol อยู่ข้างในค้างคาวบนจอเข้าสู่ระบบจะหายหมด -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="hw-bat" viewBox="0 0 64 32"><path d="M32 10L34 10L35.5 5L37.2 10.6Q46 5 62 11Q56 12.5 54.5 18Q50.5 14.5 46 17.5Q42.5 15.5 38.5 19.5Q36 21 32 25Q28 21 25.5 19.5Q21.5 15.5 18 17.5Q13.5 14.5 9.5 18Q8 12.5 2 11Q18 5 26.8 10.6L28.5 5L30 10Z"/><circle class="eye" cx="30.6" cy="12.6" r=".9"/><circle class="eye" cx="33.4" cy="12.6" r=".9"/></symbol></svg>
 <div id="boot" class="boot" aria-hidden="true">
-  <!-- ช่วงฮาโลวีน: ท้องฟ้ากลางคืน พระจันทร์ ป่าช้า และค้างคาว (โชว์เฉพาะ :root.hw-season · halloween/season/season.css) -->
+  <!-- ช่วงฮาโลวีน: ท้องฟ้ากลางคืน พระจันทร์ ป่าช้า และค้างคาว (โชว์เฉพาะ :root.hw-season · halloween/season/season.css)
+       25 ต.ค. 69 · เจ้าของ: "ปรับอนิเมชันหน้านี้หน่อย ตอนนี้ยังกากอยู่ … สร้างสิ่งมหัศจรรย์ของโลกขึ้นมา"
+       รอบสองเป็นฉากหลายชั้น (ไกล → ใกล้): เนบิวลา · ดาวกะพริบทีละดวง (สคริปต์ข้างล่างโรย) · ดาวตก · พระจันทร์ + เมฆ + แม่มดขี่ไม้กวาด
+       · ปราสาทบนเนิน · หมอกสองชั้น · ป่าช้า · ค้างคาว · ประกายไฟลอยขึ้น (สคริปต์โรย)
+       หน้าโหลดอาจอยู่แค่ราววินาทีเดียว — ของที่ "ว้าว" (วงเวทวาดตัวเอง คลื่นแสง ค้างคาวพุ่ง แม่มดตัดพระจันทร์) จึงเริ่มในครึ่งวินาทีแรก -->
   <div class="hb-sky">
-    <i class="hb-stars"></i><i class="hb-moon"></i><i class="hb-fog"></i><i class="hb-grave"></i>
+    <i class="hb-neb"></i><i class="hb-stars"></i><span class="hb-starf"></span><i class="hb-shoot"></i>
+    <span class="hb-moonwrap"><i class="hb-moonhalo"></i><i class="hb-moon"></i><i class="hb-cloud c1"></i><i class="hb-cloud c2"></i>
+      <svg class="hb-witch" viewBox="0 0 100 50"><path d="M3 35 81 26.5l.4 2.2L4 37.2Z"/><path d="M18 33.5 0 26l5 7.6L.5 42 18 36Z"/><path d="M41 31.5Q43 19 51 14.5l7 1.4Q59.5 25 63.5 30Z"/><path d="M45 19Q31 15 22 25q11-2.5 20 4Z"/><circle cx="55.3" cy="12" r="3.6"/><path d="M48 10.8 63.5 9.6 57.6 7.8 47.5-3.6 52.3 8.6Z"/><path d="m59 28.6 8 5.2 3.2-.6-.4 1.6-4 .6-8.6-5Z"/></svg>
+    </span>
+    <svg class="hb-castle" viewBox="0 0 400 170"><path d="M96 170V96h5v-5h5v5h5v-5h5v5h5V60l-4 0L131 22l14 38h-4v24h12V52l-5 0 19-44 19 44h-5v32h12V58h-4l14-34 14 34h-4v38h5v-5h5v5h5v-5h5v5h5v74Z"/><path d="M190 8v-7l9 3-9 3"/><g class="win"><rect x="134" y="66" width="4" height="7" rx="2"/><rect x="167" y="60" width="5" height="9" rx="2.5"/><rect x="167" y="78" width="5" height="8" rx="2.5"/><rect x="226" y="64" width="4" height="7" rx="2"/><rect x="150" y="98" width="5" height="7" rx="2"/><rect x="198" y="98" width="5" height="7" rx="2"/><rect x="113" y="110" width="4" height="6" rx="2"/><rect x="244" y="110" width="4" height="6" rx="2"/></g></svg>
+    <svg class="hb-hills" viewBox="0 0 400 100" preserveAspectRatio="none"><path d="M0 100V52Q60 30 130 44T260 36T400 48V100Z"/><path class="near" d="M0 100V70Q90 54 190 66T400 62V100Z"/></svg>
+    <i class="hb-fog"></i><i class="hb-fog f2"></i><i class="hb-grave"></i><i class="hb-lamp"></i>
     <span class="hb-fly"><i style="--y:13vh;--w:34px;--t:6.5s;--d:0.3s"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i class="rev" style="--y:24vh;--w:24px;--t:8s;--d:1.1s"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--y:31vh;--w:18px;--t:9.5s;--d:2.2s"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i class="rev" style="--y:8vh;--w:20px;--t:7.2s;--d:3s"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i></span>
+    <span class="hb-embers"></span>
     <span class="hb-burst"><i style="--a:-150deg;--d:0s;--s:1"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--a:-110deg;--d:0.08s;--s:0.8"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--a:-70deg;--d:0.04s;--s:1.1"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--a:-30deg;--d:0.12s;--s:0.85"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--a:15deg;--d:0.06s;--s:1"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--a:60deg;--d:0.1s;--s:0.75"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--a:120deg;--d:0.02s;--s:0.95"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--a:170deg;--d:0.14s;--s:0.8"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i></span>
   </div>
   <div class="boot-mid">
+    <!-- วงเวทรอบโลโก้: ลำแสงหมุน · คลื่นแสงขยายออก · วงสามชั้นหมุนสวนกัน (แต่ละวงเป็น <svg> ของตัวเอง ให้การ์ดจอหมุนทั้งชิ้น ไม่ต้องวาดใหม่ทุกเฟรม) -->
+    <i class="hb-rays"></i><i class="hb-wave"></i><i class="hb-wave w2"></i>
+    <svg class="hb-ring r1" viewBox="0 0 200 200"><circle cx="100" cy="100" r="96" stroke-dasharray="1.5 5.2"/><circle cx="100" cy="100" r="90" stroke-dasharray="26 8 3 8" opacity=".55"/></svg>
+    <svg class="hb-ring r2" viewBox="0 0 200 200"><circle class="draw" cx="100" cy="100" r="82" pathLength="1"/><path class="gem" d="M100 12l4 6-4 6-4-6zM100 176l4 6-4 6-4-6zM12 100l6-4 6 4-6 4zM176 100l6-4 6 4-6 4z"/><path class="gem sm" d="m162 38 2 4-2 4-2-4zM38 38l2 4-2 4-2-4zM162 154l2 4-2 4-2-4zM38 154l2 4-2 4-2-4z"/></svg>
+    <svg class="hb-ring r3" viewBox="0 0 200 200"><circle cx="100" cy="100" r="70" stroke-dasharray="14 5 2 5"/></svg>
     <img class="boot-mark" src="logo-mark.png" alt="" width="92" height="92" decoding="async">
     <!-- เหลือแค่แถบ — ป้าย "กำลังเปิดแอป" กับตัวเลข % ถูกตัดออก (เจ้าของ: "จัดการเลย" ต่อข้อเสนอให้ดูสบายตาขึ้น)
          ตัวหนังสือเล็กสองชิ้นนั้นอ่านไม่ทันอยู่แล้ว แถบที่วิ่งบอกได้ครบว่ากำลังโหลด -->
@@ -200,6 +216,27 @@
     var barColor = m && m.content;
     // ช่วงฮาโลวีนหน้าโหลดเป็นกลางคืน (season.css) — แถบสถานะมืดตาม
     if (m) m.content = document.documentElement.classList.contains('hw-season') ? '#120A24' : '#FFFFFF';
+    // ช่วงฮาโลวีน: โรยดาวกะพริบกับประกายไฟลอยขึ้น — สุ่มตำแหน่งทุกครั้งที่เปิด ฉากจึงไม่ซ้ำเดิม
+    // โหมดลื่น (data-lite) โรยครึ่งเดียว · กราฟิกน้อย (data-quality=low) กับลดการเคลื่อนไหว ไม่โรยเลย (season.css ซ่อนไว้อยู่แล้ว)
+    try {
+      var R = document.documentElement;
+      if (R.classList.contains('hw-season') && R.dataset.quality !== 'low' && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        var lite = R.hasAttribute('data-lite');
+        var sprinkle = function (host, count, make) {
+          var h = el.querySelector(host), html = '';
+          for (var i = 0; i < count; i++) html += make(Math.random, i);
+          if (h) h.innerHTML = html;
+        };
+        sprinkle('.hb-starf', lite ? 18 : 42, function (r) {
+          return '<i style="left:' + (r() * 100).toFixed(1) + '%;top:' + (r() * 62).toFixed(1) + '%;--z:' + (0.6 + r() * 1.6).toFixed(2) +
+            ';--t:' + (1.4 + r() * 2.6).toFixed(2) + 's;--d:-' + (r() * 4).toFixed(2) + 's"></i>';
+        });
+        sprinkle('.hb-embers', lite ? 8 : 20, function (r, i) {
+          return '<i class="' + (i % 5 === 0 ? 'v' : '') + '" style="left:' + (r() * 100).toFixed(1) + '%;--z:' + (0.5 + r() * 1.1).toFixed(2) +
+            ';--t:' + (3.2 + r() * 3.4).toFixed(2) + 's;--d:-' + (r() * 6).toFixed(2) + 's;--dx:' + ((r() - 0.5) * 120).toFixed(0) + 'px"></i>';
+        });
+      }
+    } catch (e) {}
 
     // 12 ต.ค. 69 · เจ้าของ: "แก้ไขให้ในหน้าโหลดก่อนเข้าแอปคือการโหลดข้อมูลแอปก่อนเพื่อไม่ให้แอปมันค้าง
     //   ให้ได้ 75 เปอร์เซ็นต์ขึ้นไปถึงจะโหลดเข้าแอปได้ เพื่อลดปัญหาค้างตอนเปิดแอปในอุปกรณ์ที่สเปคค่อนข้างช้า"
