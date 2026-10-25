@@ -1,66 +1,51 @@
 // ============================================================
-// THE CURSED SHIP · ฉากงานเสร็จช่วงฮาโลวีน (จอ "เสร็จแล้ว" ของโหมดโฟกัส)
+// THE CURSED SHIP · เอฟเฟกต์ตอนงานเสร็จ (ตัวเลือกในตั้งค่า › ธีมสี › เอฟเฟกต์ตอนงานเสร็จ)
 // ------------------------------------------------------------
 // เจ้าของส่งสตอรีบอร์ด 12 ช่อง (25 ต.ค. 69) แล้วขอ "ให้เหมือนที่สุดเท่าที่เป็นไปได้"
-// รอบแรกวาดเรือด้วย SVG เอง — ออกมาเป็นภาพคนละแบบกับภาพวาดของเจ้าของ
-// รอบนี้ภาพทุกช็อตตัดมาจากสตอรีบอร์ดของเจ้าของเอง (cursed-ship/*.webp · ลบป้ายตัวเลข/การ์ดเดิมออกแล้ว)
-// แล้วตัดต่อเป็นช็อตตามลำดับช่อง:
+// ภาพทุกช็อตตัดมาจากสตอรีบอร์ดของเจ้าของเอง (cursed-ship/*.webp · ลบป้ายตัวเลข/การ์ดเดิมออกแล้ว
+// สร้างใหม่ได้ด้วย halloween/tools/build-cursed-ship-art.py) แล้วตัดต่อเป็นช็อตตามลำดับช่อง:
 //   ช่อง 1 ใบงานเรือง → 2 หมอกม่วง → 3 เรือผีโผล่ → 4 ใบงานลอยบนดาดฟ้า (พลังเขียว)
-//   → 5 ตราประทับ CLAIMED BY THE DUTCHMAN → 6 เรือแล่นหาย → 11 จันทร์กับป่าช้า → 7–10 หน้าสรุป
+//   → 5 ตราประทับ CLAIMED BY DUTCHMAN → 6 เรือแล่นหาย → 11 จันทร์กับป่าช้า → 7–10 หน้าสรุป
 // ตัวหนังสือและตัวเลขทั้งหมดเป็น HTML ของจริงที่วางทับภาพ ไม่ใช่ตัวหนังสือในภาพ
 //
+// รอบแรกฉากนี้เล่นเองทุกครั้งในช่วงฮาโลวีน เฉพาะโหมดโฟกัส — เจ้าของหาไม่เจอ แล้วสั่งให้เป็น
+// "เอฟเฟกต์ตอนงานเสร็จอันใหม่" แทน: เลือกเองในตั้งค่า แล้วเล่นทุกที่ที่ติ๊กงานเสร็จ
+// (โหมดโฟกัส · ติ๊กจากหน้าแรก/รายการ) ผ่านช่องทางเดียวกับเอฟเฟกต์อื่นใน hoop.js
+//
 // กติกาที่ตั้งใจ (อย่าแก้โดยไม่รู้เหตุผล):
-//   • งานถูกบันทึกว่าเสร็จก่อนฉากนี้เริ่ม (finishFocus ใน app.js) — ฉากเป็นแค่ฉลอง
-//     ไฟล์นี้ไม่แตะ state ไม่แตะสถิติ ตัวเลขบนใบที่ลอยคือตัวเลขที่ app.js คิดมาแล้ว
-//   • ทั้งฉาก 2.95 วิ แตะตรงไหนก็ข้าม · Esc/ปุ่มย้อนกลับ = ข้าม · onEnd เรียกครั้งเดียวเสมอ
-//   • ลดการเคลื่อนไหว (ระบบ) · ภาพนิ่งฮาโลวีน (data-hw-motion="still") · กราฟิกน้อย · ปิดเอฟเฟกต์เอง
-//     = ไม่เล่นฉาก เห็นหน้าสรุปฉบับฮาโลวีนทันที (ช่องที่ 12)
-//   • ภาพยังโหลดไม่ครบ = ไม่เล่นฉาก (play คืน false) — ฉากที่ภาพโผล่ทีละช็อตแย่กว่าไม่มีฉาก
-//   • ผู้ใช้เลือกเอฟเฟกต์งานเสร็จแบบเกมไว้ (hoop.js) = เกมนั้นชนะ — ของที่เขาเลือกเองต้องได้เล่น
+//   • งานถูกบันทึกว่าเสร็จก่อนฉากนี้เริ่ม (finishFocus / toggleDone ใน app.js) — ฉากเป็นแค่ฉลอง
+//     ไฟล์นี้ไม่แตะ state ไม่แตะสถิติ ตัวเลขบนใบคืออ่านจากงานจริงด้วยสูตรเดียวกับจอ "เสร็จแล้ว"
+//   • ทั้งฉาก 2.95 วิ แตะตรงไหนก็ข้าม · Esc/ปุ่มย้อนกลับ = ข้าม · onClose เรียกครั้งเดียวเสมอ
+//   • ลดการเคลื่อนไหว (ระบบ) · ภาพนิ่งฮาโลวีน (data-hw-motion="still") · กราฟิกน้อย · ภาพยังโหลดไม่ครบ
+//     = ไม่เล่นฉาก (doneFxActive ตอบ false) แต่จอ "เสร็จแล้ว" ของโหมดโฟกัสยังเป็นฉบับเรือผี (ช่อง 12)
 //   • ไม่มีเสียง — ฉากไม่พึ่งเสียง จึงไม่มีอะไรพังตอนปิดเสียง/ไม่มีไฟล์
-//   • ฉากอยู่ใน #focusWrap — closeFocus/startFocus ล้าง innerHTML แล้วฉากหายไปด้วยเอง
-// ค่าที่เก็บ: localStorage['studentos.alt.cursedShip'] = '0' เมื่อผู้ใช้ปิดเอฟเฟกต์ (ไม่มีค่า = เปิด)
 // ============================================================
 (function () {
   'use strict';
-  const PREF_KEY = 'studentos.alt.cursedShip';
-  const TOTAL = 2950;          // ฉากทั้งชุด (ms)
-  const REVEAL_AT = 2700;      // หน้าสรุปเริ่มโผล่ — ซ้อนกับช็อตป่าช้า ภาพหลังจึงต่อกันเป็นภาพเดียว
-  const STAMP_AT = 1850;       // ตราประทับตก (ต้องตรงกับ animation-delay ของ .cs-seal ใน cursed-ship.css)
+  const ID = 'cursedship';        // id ใน FX_SHOP / ค่าใน localStorage['studentos.alt.doneFx']
+  const TOTAL = 2950;             // ฉากทั้งชุด (ms)
+  const REVEAL_AT = 2700;         // จอข้างหลังเริ่มโผล่ — ซ้อนกับช็อตป่าช้า
+  const STAMP_AT = 1850;          // ตราประทับตก (ต้องตรงกับ animation-delay ของ .cs-seal ใน cursed-ship.css)
 
-  // ภาพแต่ละช็อต: ขนาดจริงของไฟล์ (หาอัตราส่วน) · cx = จุดบนภาพ (แนวนอน) ที่อยากให้อยู่กลางจอ
-  // ต้องตรงกับ --ar / --cx ใน cursed-ship.css
-  const ART = {
-    fog: { cx: .5 }, ship: { cx: .5 }, deck: { cx: .55 }, far: { cx: .55 }, yard: { cx: .62 },
-  };
+  // cx = จุดบนภาพ (แนวนอน) ที่อยากให้อยู่กลางจอ — ต้องตรงกับ --cx ใน cursed-ship.css
+  const ART = { fog: { cx: .5 }, ship: { cx: .5 }, deck: { cx: .55 }, far: { cx: .55 }, yard: { cx: .62 } };
   const FILES = ['fog', 'ship', 'deck', 'far', 'yard'].flatMap(k => [k + '.webp', k + '-bg.webp']).concat('banner.webp', 'seal.webp');
 
   const root = document.documentElement;
-  const readPref = () => { try { return localStorage.getItem(PREF_KEY) !== '0'; } catch (_) { return true; } };
-  const writePref = on => { try { on ? localStorage.removeItem(PREF_KEY) : localStorage.setItem(PREF_KEY, '0'); } catch (_) {} };
+  const DONEFX = 'studentos.alt.doneFx';   // คีย์เดียวกับ DONEFX_KEY ใน hoop.js (อ่านอย่างเดียว)
+  const selected = () => { try { return localStorage.getItem(DONEFX) === ID; } catch (_) { return false; } };
 
-  // ตัดสินว่าจะเล่นแบบไหน — แยกเป็นฟังก์ชันล้วนให้เทสต์ได้โดยไม่ต้องมี DOM
-  //   'off'       = ไม่ใช่ช่วงฮาโลวีน → จอเดิมทุกอย่าง
-  //   'still'     = หน้าสรุปฉบับฮาโลวีน ไม่มีฉาก
-  //   'cinematic' = เล่นฉากเรือผีก่อน
-  function decide(o) {
-    if (!o.season) return 'off';
-    if (o.otherFx) return 'still';
-    if (!o.pref || o.reduced || o.still || o.quality === 'low') return 'still';
-    return 'cinematic';
-  }
-  function env(otherFx) {
+  // เล่นฉากได้ไหม — แยกเป็นฟังก์ชันล้วนให้เทสต์ได้โดยไม่ต้องมี DOM
+  function motionOk(o) { return !o.reduced && !o.still && o.quality !== 'low'; }
+  function env() {
     return {
-      season: root.classList.contains('hw-season'),
-      otherFx: !!otherFx,
-      pref: readPref(),
       reduced: !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches),
       still: root.dataset.hwMotion === 'still',
       quality: root.dataset.quality || '',
     };
   }
 
-  // ---------- ภาพ: โหลดล่วงหน้าตอนว่าง (~150KB ทั้งชุด) ----------
+  // ---------- ภาพ: โหลดล่วงหน้าตอนว่าง (~150KB ทั้งชุด) เฉพาะคนที่เลือกเอฟเฟกต์นี้ ----------
   const script = document.currentScript;
   const BASE = (() => { try { return new URL('cursed-ship/', script && script.src).href; } catch (_) { return 'halloween/season/cursed-ship/'; } })();
   let loaded = 0, failed = false, started = false;
@@ -75,50 +60,45 @@
     });
   }
   const ready = () => !failed && loaded >= FILES.length;
-  if (root.classList.contains('hw-season')) {
-    const go = () => preload();
-    if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(go, { timeout: 5000 });
-    else setTimeout(go, 2500);
+  if (selected()) {
+    if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(preload, { timeout: 5000 });
+    else setTimeout(preload, 2500);
   }
+  // hoop.js ถามก่อนเปิดเอฟเฟกต์ทุกครั้ง — ภาพไม่ครบ/ขอลดการเคลื่อนไหว = ตอบ false แอปฉลองแบบปกติแทน
+  const canPlay = () => { preload(); return motionOk(env()) && ready(); };
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-  // ---------- หน้าสรุป ----------
-  // ฉากหลังของหน้าสรุป = ช็อตป่าช้าตัวเดียวกับท้ายฉาก (ช่อง 11) + แสงโคม/เทียนมุมล่าง (ช่อง 7, 9)
+  // ตัวเลขบนใบ = สองช่องเดียวกับสตอรีบอร์ด (งานเสร็จวันนี้ · เสร็จทั้งหมด) จากงานจริง
+  // สูตรเดียวกับ finishFocus ใน app.js — ห้ามแต่งตัวเลขให้ฉากดูดี
+  function stats() {
+    try {
+      const dk = new Date().toDateString();
+      const today = liveTasks().filter(x => x.done && x.doneAt && new Date(x.doneAt).toDateString() === dk).length;
+      return [[today, 'งานเสร็จวันนี้'], [doneCount(), 'เสร็จทั้งหมด']];
+    } catch (_) { return []; }
+  }
+
+  // ---------- จอ "เสร็จแล้ว" ของโหมดโฟกัส (ใช้เมื่อเลือกเอฟเฟกต์นี้) ----------
+  const skinOn = () => selected();
+  // ฉากหลัง = ช็อตป่าช้าตัวเดียวกับท้ายฉาก (ช่อง 11) + แสงโคม/เทียนมุมล่าง (ช่อง 7, 9)
   function scene() {
     return `<div class="cs-scene" aria-hidden="true"><i class="cs-bgl k-yard"></i><i class="cs-art k-yard"></i>
       <i class="cs-mist"></i><i class="cs-lamp l"></i><i class="cs-lamp r"></i></div>`;
   }
-  // ปุ่มเล็กมุมขวาบน — ช่องที่ 12 ของสตอรีบอร์ด "ปิดเอฟเฟกต์ได้ จะเห็นแค่หน้าสรุปแบบปกติ"
-  const fxLabel = on => (on ? 'ปิดเอฟเฟกต์' : 'เปิดเอฟเฟกต์');
-  function fxButton() {
-    const on = readPref();
-    return `<button type="button" class="cs-fxbtn" onclick="CursedShip.toggle(this)" aria-pressed="${on ? 'false' : 'true'}"><span aria-hidden="true">⚙</span>${fxLabel(on)}</button>`;
-  }
-  function toggle(btn) {
-    const on = !readPref();
-    writePref(on);
-    if (on) preload();
-    if (btn && btn.lastChild) { btn.lastChild.textContent = fxLabel(on); btn.setAttribute('aria-pressed', on ? 'false' : 'true'); }
-    if (typeof window.showToast === 'function') window.showToast({
-      title: on ? 'เปิดฉากเรือผีแล้ว' : 'ปิดฉากเรือผีแล้ว',
-      body: on ? 'งานถัดไปที่ทำเสร็จจะเห็นเรือมารับ' : 'ต่อไปจะเห็นแค่หน้าสรุป',
-    });
-  }
 
   // ---------- ฉาก ----------
-  let run = null;   // { ov, sheet, timers, anims, onEnd, done }
+  let run = null;   // { ov, sheet, timers, anims, onClose, done }
 
-  function cardHtml(d) {
+  function cardHtml(title, st) {
     return `<div class="cs-card">
       <div class="cs-card-h"><span class="cs-card-tick"></span><b>เสร็จแล้ว</b></div>
-      <p class="cs-card-p">${esc(d.title)}</p>
-      <div class="cs-card-s">${(d.stats || []).map(([v, k]) => `<div><b>${esc(v)}</b><span>${esc(k)}</span></div>`).join('')}</div>
+      <p class="cs-card-p">${esc(title)}</p>
+      <div class="cs-card-s">${st.map(([v, k]) => `<div><b>${esc(v)}</b><span>${esc(k)}</span></div>`).join('')}</div>
       <i class="cs-seal"></i>
     </div>`;
   }
   const shot = k => `<div class="cs-shot k-${k}"><i class="cs-bgl k-${k}"></i><i class="cs-art k-${k}"></i></div>`;
-
   function at(ms, fn) { run.timers.push(setTimeout(fn, ms)); }
 
   // จุดบนภาพของช็อต k (fx, fy = สัดส่วนบนไฟล์ภาพ) → พิกัดในกรอบฉาก
@@ -129,15 +109,36 @@
     return { x: W / 2 - ART[k].cx * w + fx * w, y: H / 2 - h / 2 + fy * h, w };
   }
 
-  // sheet = .fc-sheet.done.cs-done ที่วาดเสร็จแล้ว (ข้อมูลจริงอยู่ในนั้นครบ) · data = { title, stats }
-  // คืน true ถ้าเริ่มเล่น — false แปลว่าผู้เรียกต้องจบงานเอง (onEnd ไม่ถูกเรียก)
-  function play(sheet, data, onEnd) {
-    const wrap = sheet && sheet.parentElement;
-    if (!wrap || decide(env(false)) !== 'cinematic') return false;
+  // ใบงานเริ่มที่ "ตำแหน่งเดิม": ใบพระเอกของจอเสร็จแล้ว (โหมดโฟกัส) · การ์ดที่เพิ่งติ๊ก (หน้าแรก/รายการ) · กลางจอ
+  function origin(host) {
+    const hero = document.querySelector('#focusWrap:not([hidden]) .fw-hero');
+    const card = !hero && document.querySelector('.just-done');
+    const el = hero || card;
+    const hr = host.getBoundingClientRect();
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    if (r.width < 40 || r.bottom < hr.top || r.top > hr.bottom) return null;
+    return { x: r.left - hr.left + r.width / 2, y: r.top - hr.top + Math.min(r.height, 260) / 2, w: r.width };
+  }
+
+  // เปิดจาก openDoneFx (hoop.js) — title = ชื่องาน · onClose = ทุกอย่างที่แอปรอทำหลังฉลอง (วาดใหม่ · บอกงานถัดไป)
+  function playFx(title, onClose, preview) {
+    const host = document.querySelector('.phone');
     preload();
-    if (!ready()) return false;
+    // ปุ่ม "ลองเล่นดู" กดทันทีหลังเลือก — ภาพอาจยังโหลดไม่เสร็จ รอได้ไม่เกิน 3 วิ (งานจริงไม่รอ: doneFxActive กันไว้แล้ว)
+    if (preview && host && motionOk(env()) && !ready() && !failed && !(preview > 25)) {
+      setTimeout(() => playFx(title, onClose, (typeof preview === 'number' ? preview : 0) + 1), 120);
+      return;
+    }
+    if (!host || !motionOk(env()) || !ready()) {
+      if (preview && typeof window.showToast === 'function') window.showToast(!motionOk(env())
+        ? { title: 'ปิดการเคลื่อนไหวอยู่', body: 'เครื่องนี้ขอลดการเคลื่อนไหว ฉากเรือผีจึงไม่เล่น' }
+        : { title: 'กำลังโหลดภาพเรือผี', body: 'ลองกดอีกครั้งในอีกสักครู่' });
+      if (typeof onClose === 'function') onClose();
+      return;
+    }
     stop(true);
-    const hero = sheet.querySelector('.fw-hero');
+    const sheet = document.querySelector('#focusWrap:not([hidden]) .fc-sheet.done.cs-done');
     const lite = root.dataset.lite === '1';
 
     const ov = document.createElement('div');
@@ -149,12 +150,12 @@
       <i class="cs-flash"></i><i class="cs-blood"></i>
       <i class="cs-fog l"></i><i class="cs-fog r"></i>
       <i class="cs-halo"></i>
-      ${cardHtml(data || {})}
+      ${cardHtml(title, stats())}
       <i class="cs-fog front"></i><i class="cs-vig"></i>
       <button type="button" class="cs-skip">ข้าม</button>`;
-    sheet.classList.add('cs-playing');
-    wrap.appendChild(ov);
-    run = { ov, sheet, timers: [], onEnd, done: false, anims: [] };
+    if (sheet) sheet.classList.add('cs-playing');
+    host.appendChild(ov);
+    run = { ov, sheet, timers: [], onClose, done: false, anims: [] };
 
     // แตะที่ไหนก็ข้าม — pointerdown ไม่ใช่ click จะได้ไม่ต้องรอปล่อยนิ้ว
     ov.addEventListener('pointerdown', e => { e.preventDefault(); skip(); });
@@ -162,17 +163,14 @@
     ov.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skip(); } });
     try { ov.querySelector('.cs-skip').focus({ preventScroll: true }); } catch (_) {}
 
-    // ใบงานเริ่มที่ตำแหน่งใบพระเอกของหน้าสรุป ("ลอยขึ้นจากตำแหน่งเดิม") แล้วตามกล้องไปทีละช็อต
     // ตำแหน่งในช็อตอื่นอ่านจากภาพจริง: เท้าเรือ (ช่อง 3) · จุดที่ใบงานลอยบนดาดฟ้า (ช่อง 4) · แสงเรือที่แล่นไกล (ช่อง 6)
     const card = ov.querySelector('.cs-card');
     const W = ov.clientWidth, H = ov.clientHeight;
-    const wr = wrap.getBoundingClientRect();
-    const hr = hero ? hero.getBoundingClientRect() : null;
-    const cw = Math.min(hr ? hr.width - 24 : W - 48, 360);
+    const o0 = origin(host);
+    const cw = Math.min(o0 ? o0.w - 24 : W - 48, 360);
     card.style.width = cw + 'px';
     const ch = card.offsetHeight || 150;
-    const x0 = hr ? hr.left - wr.left + hr.width / 2 : W / 2;
-    const y0 = hr ? hr.top - wr.top + Math.min(hr.height, 260) / 2 : H * .25;
+    const x0 = o0 ? o0.x : W / 2, y0 = o0 ? o0.y : H * .3;
     card.style.left = (x0 - cw / 2) + 'px';
     card.style.top = (y0 - ch / 2) + 'px';
     const halo = ov.querySelector('.cs-halo');
@@ -202,9 +200,8 @@
     }
 
     at(STAMP_AT, () => { if (typeof window.haptic === 'function') window.haptic('tap'); });
-    at(REVEAL_AT, () => { sheet.classList.add('cs-reveal'); sheet.classList.remove('cs-playing'); ov.classList.add('out'); });
+    at(REVEAL_AT, () => { if (sheet) { sheet.classList.add('cs-reveal'); sheet.classList.remove('cs-playing'); } ov.classList.add('out'); });
     at(TOTAL, () => finish());
-    return true;
   }
 
   function finish() {
@@ -213,20 +210,19 @@
     r.done = true;
     r.timers.forEach(clearTimeout);
     r.anims.forEach(a => { try { a.cancel(); } catch (_) {} });
-    r.sheet.classList.remove('cs-playing');
-    r.sheet.classList.add('cs-reveal');
+    if (r.sheet) { r.sheet.classList.remove('cs-playing'); r.sheet.classList.add('cs-reveal'); }
     const hadFocus = r.ov.contains(document.activeElement);
     r.ov.remove();
     run = null;
-    if (hadFocus) { const go = r.sheet.querySelector('.fc-go'); if (go) try { go.focus({ preventScroll: true }); } catch (_) {} }
-    if (typeof r.onEnd === 'function') r.onEnd();
+    if (hadFocus && r.sheet) { const go = r.sheet.querySelector('.fc-go'); if (go) try { go.focus({ preventScroll: true }); } catch (_) {} }
+    if (typeof r.onClose === 'function') r.onClose();
   }
-  // ข้าม = หน้าสรุปขึ้นทันที ไม่มีจังหวะจางรอ — คนที่กดข้ามคือคนที่รีบ
-  function skip() { if (run && !run.done) { run.sheet.classList.add('cs-skipped'); finish(); } }
-  // หยุดเงียบ ๆ (ไม่เรียก onEnd) — ใช้ตอนเริ่มฉากใหม่ทับ หรือจอถูกปิด
+  // ข้าม = จอข้างหลังขึ้นทันที ไม่มีจังหวะจางรอ — คนที่กดข้ามคือคนที่รีบ
+  function skip() { if (run && !run.done) { if (run.sheet) run.sheet.classList.add('cs-skipped'); finish(); } }
+  // หยุดเงียบ ๆ (ไม่เรียก onClose) — ใช้ตอนเริ่มฉากใหม่ทับ
   function stop(silent) {
     if (!run) return;
-    if (silent) { run.onEnd = null; }
+    if (silent) run.onClose = null;
     finish();
   }
   const active = () => !!(run && !run.done && run.ov.isConnected);
@@ -236,9 +232,16 @@
     if (e.key === 'Escape' && active()) { e.preventDefault(); e.stopImmediatePropagation(); skip(); }
   }, true);
 
+  // ลงทะเบียนเป็นเอฟเฟกต์ตอนงานเสร็จ — ฟรีแบบเดียวกับเอฟเฟกต์ Halloween ชุดอื่น (integration.js)
+  // ต่อท้ายตาราง = อยู่ท้ายแถวในหน้าธีม
+  const ICON = `<img class="hw-effect-icon" src="${BASE}seal.webp" alt="">`;
+  if (typeof FX_SHOP !== 'undefined' && !FX_SHOP[ID]) {
+    FX_SHOP[ID] = { cost: 0, name: 'The Cursed Ship', desc: 'เรือผีมารับงาน ตราประทับคำสาป แล้วแล่นหายในหมอก', emoji: '⚓', halloween: true, free: true, icon: ICON };
+    if (typeof renderFxPick === 'function') try { renderFxPick(); } catch (_) {}
+  }
+
   window.CursedShip = Object.freeze({
-    PREF_KEY, TOTAL, FILES, decide, ready, preload,
-    mode: otherFx => decide(env(otherFx)),
-    scene, fxButton, toggle, play, skip, stop, active,
+    ID, TOTAL, FILES, motionOk, ready, preload, canPlay, stats,
+    skinOn, scene, playFx, skip, stop, active,
   });
 })();

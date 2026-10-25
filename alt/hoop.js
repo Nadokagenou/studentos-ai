@@ -39,12 +39,14 @@ const FX_SHOP = {
   glass:   { cost: 10, name: 'ปาแก้ว', desc: 'ปาแก้วใส่กำแพงให้แตกกระจาย', emoji: '🥂' },
 };
 function fxIcon(id) {
+  if (FX_SHOP[id]?.icon) return FX_SHOP[id].icon;   // 25 ต.ค. 69 · เอฟเฟกต์ที่ลงทะเบียนเองพร้อมไอคอน (The Cursed Ship)
   if (window.HalloweenCosmetics?.isEffect(id)) return window.HalloweenCosmetics.effectIcon(id);
   if (id === 'hoop') return HOOP_ICON;
   return (typeof FX_ICONS === 'object' && FX_ICONS[id]) || '';
 }
 
-function fxOwned(id) { return !!window.HalloweenCosmetics?.isEffect(id) || (tokenState().fx || []).includes(id); }
+// typeof: เทสต์ของ Halloween (integration.test.mjs) ตัดฟังก์ชันนี้ไปรันเดี่ยว ๆ โดยไม่มี FX_SHOP
+function fxOwned(id) { return !!(typeof FX_SHOP === 'object' && FX_SHOP[id]?.free) || !!window.HalloweenCosmetics?.isEffect(id) || (tokenState().fx || []).includes(id); }
 
 // ---------- โหมด 3D (ได้จากการสุ่มเท่านั้น · fx3d.js) ----------
 // มี 3D แต่ยังไม่ได้ซื้อเอฟเฟกต์ปกติ = ยังใช้ไม่ได้ (เจ้าของสั่ง) — ของไม่หาย ซื้อเมื่อไหร่ใช้ได้ทันที
@@ -80,6 +82,8 @@ function doneFxPref() {
 function doneFxActive() {
   const id = doneFxPref();
   if (id === 'confetti') return false;
+  // The Cursed Ship (halloween/season/cursed-ship.js) ตอบเองว่าเล่นได้ไหม — ภาพต้องโหลดครบ และเครื่องไม่ได้ขอลดการเคลื่อนไหว
+  if (id === 'cursedship') return !!window.CursedShip?.canPlay() && !!document.querySelector('.phone');
   if (window.HalloweenCosmetics?.isEffect(id)) return !!document.querySelector('.phone');
   if (id !== 'hoop' && !(typeof FX_GAMES === 'object' && FX_GAMES[id])) return false;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
@@ -88,6 +92,7 @@ function doneFxActive() {
 // เปิดเอฟเฟกต์ที่เลือกไว้ · id ระบุเองได้ (ปุ่ม "ลอง")
 function openDoneFx(title, onClose, preview, id) {
   id = id || doneFxPref();
+  if (id === 'cursedship' && window.CursedShip) return window.CursedShip.playFx(title, onClose, preview);
   if (window.HalloweenCosmetics?.isEffect(id)) return window.HalloweenCosmetics.playEffect(id, onClose, title);
   if (id !== 'confetti' && fx3dMode(id) && fx3dUsable(id) && typeof open3D === 'function') return open3D(id, title, onClose, preview);
   if (id === 'hoop') return openHoop(title, onClose, preview);
@@ -96,7 +101,7 @@ function openDoneFx(title, onClose, preview, id) {
 }
 // เกมตัวอย่างเปิดอยู่แล้ว = ไม่ทำอะไร — ทุกเกมเปิดผ่าน fxShell ซึ่งปิดของเดิมแล้วสร้างใหม่
 // แตะ "ลองเล่นดู" ซ้ำระหว่างเกมยังโหลด (เครื่องช้า · 3D) เดิมจึงปิด-สร้างวนไปเรื่อย ๆ
-const fxOpenNow = () => !!document.querySelector('.hoop-ov:not(.out)');
+const fxOpenNow = () => !!document.querySelector('.hoop-ov:not(.out), .cs-ov:not(.out)');
 function previewFx(id) { if (fxOpenNow()) return; openDoneFx('ตัวอย่าง · เล่นได้เลย', null, true, id); }
 // ดูตัวอย่าง 3D ได้ทุกคน แม้ยังสุ่มไม่ได้ — แบบเกมที่ให้ลองสกินก่อนสุ่ม (คนเห็นว่าของสวยแค่ไหนถึงอยากได้)
 // เล่นได้ครบ แต่เป็นโหมดตัวอย่าง: ไม่นับงานเสร็จ ไม่ปลดล็อกอะไร · ใช้จริงตอนงานเสร็จยังต้องสุ่มได้ก่อน
@@ -110,6 +115,7 @@ function previewFx3d(id) {
 function setDoneFx(id) {
   if (id !== 'confetti' && !fxOwned(id)) return;
   try { localStorage.setItem(DONEFX_KEY, id); } catch (_) {}
+  if (id === 'cursedship') window.CursedShip?.preload();   // ภาพ ~150KB เริ่มโหลดตั้งแต่ตอนเลือก งานถัดไปที่เสร็จจะได้เล่นทันที
   // 18 ต.ค. 69 · เจ้าของ: "ให้เลือกก่อนแล้วกดเล่น ไม่ใช่กดเลือกแล้วเล่นเลย"
   // เดิมแตะชื่อทีไรเกมเปิดทันที — ไล่แตะดูหลายตัว = โหลดเกม (3D หนัก) ซ้ำ ๆ เครื่องช้าสะดุด
   // ตอนนี้แตะ = เลือก (ขอบไฮไลต์ + ชื่อมุมขวาบน) · เล่นด้วยปุ่ม "ลองเล่นดู" · เทสต์: devtools/fxpickcheck.js
@@ -174,7 +180,7 @@ function renderFxPick() {
       + (waiting.length ? `<p class="fx-wait">มี 3D รอปลดล็อก: ${waiting.map(id => esc(FX_SHOP[id].name)).join(' · ')}</p>` : '');
   }
   const tr = document.getElementById('fxTry');
-  if (mode && window.HalloweenCosmetics?.isEffect(cur)) mode.innerHTML = '<p class="fx-wait">Halloween · ฉลองงานเสร็จ ข้ามได้ตลอดเวลา</p>';
+  if (mode && (window.HalloweenCosmetics?.isEffect(cur) || cur === 'cursedship')) mode.innerHTML = '<p class="fx-wait">Halloween · ฉลองงานเสร็จ ข้ามได้ตลอดเวลา</p>';
   if (tr) tr.hidden = cur === 'confetti';
 }
 

@@ -13574,13 +13574,12 @@ function finishFocus() {
     .filter(s => s.task && !s.task.done && (!nxt || s.task.id !== nxt.task.id))
     .slice(0, 3);
 
-  // 25 ต.ค. 69 · ช่วงฮาโลวีน: หน้าสรุปแต่งเป็นฉากเรือผี และ (ถ้าไม่ได้เลือกเกมเอฟเฟกต์ไว้) เล่นฉาก
-  // "THE CURSED SHIP" ก่อน — halloween/season/cursed-ship.js · ข้อมูลบนจอยังเป็นชุดเดียวกับข้างบนทุกตัว
+  // 25 ต.ค. 69 · เลือกเอฟเฟกต์ "The Cursed Ship" ไว้ = จอนี้แต่งเป็นฉากป่าช้ากับผืนผ้าแขวน (halloween/season/cursed-ship.js)
+  // ทั้งตอนที่ฉากเรือเล่นและตอนที่เล่นไม่ได้ (ลดการเคลื่อนไหว) · ข้อมูลบนจอยังเป็นชุดเดียวกับข้างบนทุกตัว
   const fxGame = typeof doneFxActive === 'function' && doneFxActive();
-  const cs = window.CursedShip ? CursedShip.mode(fxGame) : 'off';
+  const skin = !!(window.CursedShip && CursedShip.skinOn());
   const wrap = document.getElementById('focusWrap');
-  wrap.innerHTML = `${cs !== 'off' ? CursedShip.scene() : ''}<div class="fc-sheet done${cs !== 'off' ? ' cs-done' : ''}">
-    ${cs !== 'off' ? CursedShip.fxButton() : ''}
+  wrap.innerHTML = `${skin ? CursedShip.scene() : ''}<div class="fc-sheet done${skin ? ' cs-done' : ''}">
     <div class="fw-hero">
       <div class="fw-ring">${icon('check')}</div>
       <!-- คำทักกับชื่องานห่อรวมกันอยู่ใน .fw-mid — ใบใช้ space-between กระจายลูกสามก้อน
@@ -13620,13 +13619,11 @@ function finishFocus() {
     </div>`}
   </div>`;
   // เอฟเฟกต์ "โยนลงห่วง" ลอยทับจอฉลองนี้ — ปิดแล้วค่อยพ่นเศษกระดาษจากวงติ๊กตามเดิม
-  // หน้าเรือผีไม่พ่นเศษกระดาษ — วงติ๊กเรืองเขียวขึ้นเองตอนหน้าสรุปโผล่ (cursed-ship.css) · เหรียญใหม่รอฉากจบก่อน
-  const ring = () => { if (cs === 'off') celebrate(document.querySelector('.fw-ring')); };
-  if (fxGame) openDoneFx(taskTitleText(t), ring);
-  else if (cs === 'cinematic' && CursedShip.play(wrap.querySelector('.fc-sheet'),
-    { title: taskTitleText(t), stats }, () => setTimeout(checkBadges, 600))) return;
-  else ring();
-  setTimeout(checkBadges, 1800);
+  // จอเรือผีไม่พ่นเศษกระดาษ — วงติ๊กเรืองเขียวขึ้นเองตอนจอโผล่ (cursed-ship.css)
+  // เหรียญใหม่เด้งหลังเอฟเฟกต์ปิด ไม่ใช่นับจากตอนกด — เดิมเด้งทับกลางเกม (แบบเดียวกับ toggleDone)
+  const ring = () => { if (!skin) celebrate(document.querySelector('.fw-ring')); };
+  if (fxGame) openDoneFx(taskTitleText(t), () => { ring(); setTimeout(checkBadges, 600); });
+  else { ring(); setTimeout(checkBadges, 1800); }
 }
 
 // ---------- task actions ----------
