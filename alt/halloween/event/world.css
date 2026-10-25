@@ -129,3 +129,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:#080d15}.event-heade
     transform: translate(-50%, -50%);
   }
 }
+
+/* ---------- ประตูสี่ไบโอมในโถง: กรอบตรงช่องซุ้มในภาพ (24 ต.ค. 69) ----------
+   ตำแหน่ง/ขนาดมาจาก gateBox() ใน world.js (วัดจากภาพ) · ยอดเป็นครึ่งวงกลมเหมือนซุ้มหิน
+   --arch คือรัศมีแนวตั้งเป็น % ของความสูงกรอบ (กล่องฉากล็อกสัดส่วนภาพไว้ ทรงจึงไม่เพี้ยนตามจอ)
+   .world-scene นำหน้าเพื่อชนะกฎเก่าทุกตัว รวมถึง left:calc(var(--left) - 1%) ในจอ ≤760px */
+.world-scene .world-portal {
+  left: var(--left); top: var(--top); width: var(--w); height: var(--h);
+  border-radius: 50% 50% 0 0 / var(--arch) var(--arch) 0 0;
+}
+@media (orientation: portrait) {
+  .world-scene .world-portal {
+    left: var(--px); top: var(--py); width: var(--pw); height: var(--ph);
+    border-radius: 50% 50% 0 0 / var(--parch) var(--parch) 0 0;
+  }
+}

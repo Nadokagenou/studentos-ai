@@ -10862,7 +10862,7 @@ button.df-r:active .df-x { transform: scale(.985); }
 .gbg-ring::before {
   content: ''; position: absolute; inset: -60%;
   background: conic-gradient(from 220deg, var(--fill) 0%, color-mix(in srgb, var(--fill) 45%, #fff) 18%,
-    color-mix(in srgb, var(--fill) 55%, #22D3EE) 36%, var(--fill) 52%, color-mix(in srgb, var(--fill) 55%, #F472B6) 70%,
+    color-mix(in srgb, var(--fill) 55%, var(--halo-3)) 36%, var(--fill) 52%, color-mix(in srgb, var(--fill) 55%, var(--halo-2)) 70%,
     color-mix(in srgb, var(--fill) 40%, #fff) 86%, var(--fill) 100%);
   animation: gbg-spin 3.2s linear infinite;
 }
@@ -11526,8 +11526,8 @@ button.df-r:active .df-x { transform: scale(.985); }
 #menuBody .td-ask::before {
   content: ''; position: absolute; inset: -3px; z-index: -1; border-radius: inherit; pointer-events: none;
   background: conic-gradient(from var(--ha-a),
-    var(--fill), color-mix(in srgb, var(--fill) 45%, #F472B6), color-mix(in srgb, var(--fill) 40%, #38BDF8),
-    color-mix(in srgb, var(--fill) 60%, #A78BFA), var(--fill));
+    var(--fill), color-mix(in srgb, var(--fill) 45%, var(--halo-2)), color-mix(in srgb, var(--fill) 40%, var(--halo-3)),
+    color-mix(in srgb, var(--fill) 60%, var(--halo-4)), var(--fill));
   filter: blur(8px); opacity: .7;
   /* steps ไม่ใช่ linear — มุมใน conic-gradient ขยับบน compositor ไม่ได้ ทุกครั้งที่ขยับคือวาดใหม่ + เบลอใหม่ทั้งวง
      และไอคอนกระจกฝ้าข้างล่าง (.tg-ic) ต้องเบลอพื้นหลังใหม่ตามด้วยเพราะแสงฟุ้งไปถึง
@@ -11802,8 +11802,8 @@ button.df-r:active .df-x { transform: scale(.985); }
 @property --hf-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 .ep .ep-f > input[type="text"], .ep .ep-f > textarea, .ep .ep-at {
   --hf-c1: color-mix(in srgb, var(--fill) 28%, transparent);
-  --hf-c2: color-mix(in srgb, #F472B6 22%, transparent);
-  --hf-c3: color-mix(in srgb, #38BDF8 22%, transparent);
+  --hf-c2: color-mix(in srgb, var(--halo-2) 22%, transparent);
+  --hf-c3: color-mix(in srgb, var(--halo-3) 22%, transparent);
   border: 1.5px solid transparent; border-radius: 16px;
   background:
     linear-gradient(color-mix(in srgb, var(--card) 88%, transparent), color-mix(in srgb, var(--card) 88%, transparent)) padding-box,
@@ -11814,8 +11814,8 @@ button.df-r:active .df-x { transform: scale(.985); }
 }
 .ep .ep-f > input[type="text"]:focus, .ep .ep-f > textarea:focus, .ep .ep-at:focus-within {
   --hf-c1: var(--fill);
-  --hf-c2: color-mix(in srgb, var(--fill) 45%, #F472B6);
-  --hf-c3: color-mix(in srgb, var(--fill) 45%, #38BDF8);
+  --hf-c2: color-mix(in srgb, var(--fill) 45%, var(--halo-2));
+  --hf-c3: color-mix(in srgb, var(--fill) 45%, var(--halo-3));
   outline: none; border-color: transparent;
   background:
     linear-gradient(var(--card), var(--card)) padding-box,
@@ -11847,8 +11847,8 @@ button.df-r:active .df-x { transform: scale(.985); }
    + บรรทัดคำอธิบายใต้ช่อง (HaloFieldDescription) + ข้อผิดพลาดสีแดงของชื่อผู้ใช้ (HaloFieldError · epHandleCheck) */
 .ep .ep-f > input[type="text"], .ep .ep-f > textarea, .ep .ep-at {
   --hf-c1: color-mix(in srgb, var(--fill) 70%, transparent);
-  --hf-c2: color-mix(in srgb, #F472B6 60%, transparent);
-  --hf-c3: color-mix(in srgb, #38BDF8 55%, transparent);
+  --hf-c2: color-mix(in srgb, var(--halo-2) 60%, transparent);
+  --hf-c3: color-mix(in srgb, var(--halo-3) 55%, transparent);
   border-width: 2px;
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--fill) 6%, transparent), 0 8px 22px -16px color-mix(in srgb, var(--fill) 60%, transparent);
   animation: hf-spin 12s steps(180) infinite;
@@ -11945,8 +11945,8 @@ button.df-r:active .df-x { transform: scale(.985); }
    ============================================================ */
 #dmBody .dm-find input {
   --hf-c1: color-mix(in srgb, var(--fill) 65%, transparent);
-  --hf-c2: color-mix(in srgb, #F472B6 55%, transparent);
-  --hf-c3: color-mix(in srgb, #38BDF8 50%, transparent);
+  --hf-c2: color-mix(in srgb, var(--halo-2) 55%, transparent);
+  --hf-c3: color-mix(in srgb, var(--halo-3) 50%, transparent);
   padding: 12px 40px 12px 40px; border: 2px solid transparent; border-radius: 999px; color: var(--ink);
   background:
     linear-gradient(color-mix(in srgb, var(--card) 90%, transparent), color-mix(in srgb, var(--card) 90%, transparent)) padding-box,
@@ -11959,8 +11959,8 @@ button.df-r:active .df-x { transform: scale(.985); }
 #dmBody .dm-find input:focus {
   outline: none;
   --hf-c1: var(--fill);
-  --hf-c2: color-mix(in srgb, var(--fill) 45%, #F472B6);
-  --hf-c3: color-mix(in srgb, var(--fill) 45%, #38BDF8);
+  --hf-c2: color-mix(in srgb, var(--fill) 45%, var(--halo-2));
+  --hf-c3: color-mix(in srgb, var(--fill) 45%, var(--halo-3));
   background:
     linear-gradient(var(--card), var(--card)) padding-box,
     conic-gradient(from var(--hf-a), var(--hf-c1), var(--hf-c2), var(--hf-c3), var(--hf-c1)) border-box;
@@ -11977,8 +11977,8 @@ button.df-r:active .df-x { transform: scale(.985); }
 /* กำลังค้นหา */
 #dmBody .dm-find.busy input {
   --hf-c1: var(--fill);
-  --hf-c2: color-mix(in srgb, var(--fill) 40%, #F472B6);
-  --hf-c3: color-mix(in srgb, var(--fill) 40%, #38BDF8);
+  --hf-c2: color-mix(in srgb, var(--fill) 40%, var(--halo-2));
+  --hf-c3: color-mix(in srgb, var(--fill) 40%, var(--halo-3));
   animation-duration: 1.4s; animation-timing-function: steps(21);
 }
 .dm-find-load {
@@ -12030,8 +12030,8 @@ button.df-r:active .df-x { transform: scale(.985); }
 #chatBody .ch-bar { background: transparent; border-top: 0; align-items: center; }
 #chatBody .ch-field {
   --hf-c1: color-mix(in srgb, var(--fill) 60%, transparent);
-  --hf-c2: color-mix(in srgb, #F472B6 50%, transparent);
-  --hf-c3: color-mix(in srgb, #38BDF8 45%, transparent);
+  --hf-c2: color-mix(in srgb, var(--halo-2) 50%, transparent);
+  --hf-c3: color-mix(in srgb, var(--halo-3) 45%, transparent);
   position: relative; flex: 1; min-width: 0; padding: 3px 4px 3px 16px; border: 2px solid transparent; border-radius: 999px;
   background:
     linear-gradient(color-mix(in srgb, var(--card) 92%, transparent), color-mix(in srgb, var(--card) 92%, transparent)) padding-box,
@@ -12043,8 +12043,8 @@ button.df-r:active .df-x { transform: scale(.985); }
 }
 #chatBody .ch-field:focus-within {
   --hf-c1: var(--fill);
-  --hf-c2: color-mix(in srgb, var(--fill) 45%, #F472B6);
-  --hf-c3: color-mix(in srgb, var(--fill) 45%, #38BDF8);
+  --hf-c2: color-mix(in srgb, var(--fill) 45%, var(--halo-2));
+  --hf-c3: color-mix(in srgb, var(--fill) 45%, var(--halo-3));
   border-color: transparent;
   background:
     linear-gradient(var(--card), var(--card)) padding-box,
@@ -12393,14 +12393,14 @@ button.df-r:active .df-x { transform: scale(.985); }
 }
 .st-nav .st-next.hb::before {
   content: ''; position: absolute; inset: -3px; z-index: -1; border-radius: inherit; pointer-events: none;
-  background: conic-gradient(from var(--hf-a), var(--fill), color-mix(in srgb, var(--fill) 45%, #F472B6),
-    color-mix(in srgb, var(--fill) 40%, #38BDF8), color-mix(in srgb, var(--fill) 55%, #A78BFA), var(--fill));
+  background: conic-gradient(from var(--hf-a), var(--fill), color-mix(in srgb, var(--fill) 45%, var(--halo-2)),
+    color-mix(in srgb, var(--fill) 40%, var(--halo-3)), color-mix(in srgb, var(--fill) 55%, var(--halo-4)), var(--fill));
   filter: blur(8px); opacity: .7; animation: hf-spin 6s linear infinite;
 }
 .st-nav .st-back.hb.hb-glass {
   --hf-c1: color-mix(in srgb, var(--fill) 45%, transparent);
-  --hf-c2: color-mix(in srgb, #F472B6 40%, transparent);
-  --hf-c3: color-mix(in srgb, #38BDF8 35%, transparent);
+  --hf-c2: color-mix(in srgb, var(--halo-2) 40%, transparent);
+  --hf-c3: color-mix(in srgb, var(--halo-3) 35%, transparent);
   border: 1.5px solid transparent; color: color-mix(in srgb, var(--ink) 75%, transparent);
   background:
     linear-gradient(color-mix(in srgb, var(--card) 75%, transparent), color-mix(in srgb, var(--card) 75%, transparent)) padding-box,
@@ -12560,7 +12560,7 @@ button.df-r:active .df-x { transform: scale(.985); }
   position: relative; isolation: isolate; border: 2px solid transparent; border-radius: 22px;
   background:
     linear-gradient(160deg, color-mix(in srgb, var(--card) 86%, #fff), color-mix(in srgb, var(--card) 90%, var(--fill))) padding-box,
-    conic-gradient(from var(--hf-a), color-mix(in srgb, var(--fill) 70%, #fff), #F9A8D4, #93C5FD, #C4B5FD, color-mix(in srgb, var(--fill) 70%, #fff)) border-box;
+    conic-gradient(from var(--hf-a), color-mix(in srgb, var(--fill) 70%, #fff), var(--halo-2), var(--halo-3), var(--halo-4), color-mix(in srgb, var(--fill) 70%, #fff)) border-box;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 0 0 4px color-mix(in srgb, var(--fill) 8%, transparent),
     0 14px 30px -18px color-mix(in srgb, var(--fill) 70%, transparent);
   animation: hf-spin 8s linear infinite;

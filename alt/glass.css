@@ -1,0 +1,95 @@
+/* ============================================================
+   กระจก Liquid Glass รอบสอง (25 ต.ค. 69) — เจ้าของ: /liquid-glass-js "ใช้ปรับในตรงที่เคยใช้ไปแล้ว"
+   เลือกแบบ CSS ล้วน (ไม่ใช้ WebGL ตามกติกาโปรเจกต์ · ไลบรารีถ่ายภาพหน้าจอครั้งเดียว จอที่สลับ/เลื่อนในกล่องจึงเห็นภาพค้าง)
+   แนวคิดยกมาจาก shader ของ liquid-glass-js (dashersw · MIT) แปลงเป็น CSS:
+     tintOpacity    → กระจกย้อมสีหลักของธีมจาง ๆ (เดิมขาว/เทาเหมือนกันทุกธีม)
+     edgeIntensity  → ขอบหักเหแบบเลนส์: วงแสงด้านในที่หนาที่ขอบแล้วจางเข้าหากลาง
+     rimIntensity   → เส้นขอบสะท้อนบนสุดคม · ล่างจาง (มีอยู่แล้วในกฎ 1C40 · คงไว้)
+     cornerBoost    → ประกายมุมบนซ้าย
+   โหลดหลังสุด · กฎกระจกเดิมใน alt.css ใช้ !important จึงต้องใช้ !important ทับเหมือนกัน
+   ============================================================ */
+
+/* ธีม Halloween เป็นธีมมืดแต่ไม่อยู่ในรายชื่อโทเคนกระจกมืดของ 1C40 → ได้ขอบขาวจ้าแบบธีมสว่าง (ปุ่มกลับ · ปุ่มกระจก · แถบล่าง) */
+:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]:not([data-hw-tone="light"])) {
+  --lg-hi: rgba(255,255,255,.72); --lg-mid: rgba(255,255,255,.38); --lg-lo: rgba(255,255,255,.18);
+  --lg-glow: rgba(255,255,255,.12); --lg-drop: rgba(0,0,0,.55);
+  --lgb-top: rgba(255,255,255,.14); --lgb-bot: rgba(255,255,255,.02); --lgb-edge: rgba(0,0,0,.35);
+}
+
+/* ---------- แถบเมนูล่าง (dock) ---------- ทุกธีม (Moon & Candle กับ Halloween คลาสสิกใช้แถบแบบธีมหลักแล้วตั้งแต่ 25 ต.ค. 69) */
+.phone .tabbar {
+  /* ขอบเคยเป็นน้ำเงิน rgba(37,99,235,.3) ตายตัวทุกธีม */
+  border-color: color-mix(in srgb, var(--fill) 30%, var(--lg-mid)) !important;
+  background-image:
+    radial-gradient(70% 140% at 8% -30%, color-mix(in srgb, #fff 34%, transparent), transparent 60%),   /* cornerBoost */
+    linear-gradient(180deg, color-mix(in srgb, var(--fill) 9%, transparent), color-mix(in srgb, var(--fill) 4%, transparent)) !important;   /* tint */
+  box-shadow:
+    inset 0 1.5px 0 var(--lg-hi), inset 0 -1px 0 var(--lg-lo),
+    inset 0 0 0 1px color-mix(in srgb, #fff 10%, transparent),
+    inset 0 0 20px -3px color-mix(in srgb, var(--fill) 42%, transparent),   /* edge lens */
+    inset 0 0 22px var(--lg-glow),
+    0 0 0 .5px rgba(255,255,255,.5), 0 16px 34px -10px var(--lg-drop) !important;
+}
+
+/* ---------- ไอคอนกระจกบนไทล์หน้าแรก ---------- */
+.phone .tg-ic {
+  box-shadow:
+    inset 0 1.5px 0 var(--lg-hi), inset 1.5px 0 0 var(--lg-mid),
+    inset 0 -1.5px 0 var(--lg-lo), inset -1px 0 0 var(--lg-lo),
+    inset 0 0 14px -2px color-mix(in srgb, var(--fill) 45%, transparent),   /* edge lens ย้อมสีธีม */
+    inset 0 0 26px var(--lg-glow),
+    0 0 0 .5px rgba(15,27,45,.14),
+    0 14px 24px -12px var(--lg-drop), 0 3px 6px -2px rgba(15,27,45,.2) !important;
+}
+
+/* ---------- ปุ่มกลับ / ปิด (กระจกใส) ---------- */
+.phone :is(.sh-btn, .set-back, .ch-back, .hw-back, .tp-back, .sh-back, .lg-back, .rp-back, .back, .fc-x, button[aria-label^="กลับ"]) {
+  background:
+    radial-gradient(90% 90% at 18% 0%, color-mix(in srgb, #fff 40%, transparent), transparent 58%),   /* cornerBoost */
+    linear-gradient(160deg, rgba(255,255,255,.26), rgba(255,255,255,.06) 55%, rgba(255,255,255,.14)),
+    color-mix(in srgb, var(--fill) 10%, rgba(255,255,255,.12)) !important;   /* tint */
+  box-shadow:
+    inset 0 1.5px 0 var(--lg-hi), inset 1px 0 0 var(--lg-mid), inset 0 -1px 0 var(--lg-lo),
+    inset 0 0 12px -3px color-mix(in srgb, var(--fill) 40%, transparent),   /* edge lens */
+    0 0 0 .5px rgba(15,27,45,.12), 0 8px 16px -8px var(--lg-drop) !important;
+}
+
+/* ============================================================
+   ธีมใหม่ (Halloween ทั้ง 6) — เจ้าของ: "แก้ในธีมใหม่ด้วย"
+   รอบแรกเว้น Moon & Candle กับ Halloween คลาสสิกไว้ (แถบล่างออกแบบเฉพาะธีม) และ hw-* พื้นทึบ 92% จนชั้นแสงแทบไม่เห็น
+   ตอนนี้: คงสีพื้นเดิมของแต่ละธีม แล้วซ้อนกระจกชุดเดียวกัน (ประกายมุม · ขอบสะท้อน · แสงขอบแบบเลนส์ในสีเน้นของธีม)
+   และลดความทึบลงให้ฝ้าเบลอของข้างหลังโผล่ (backdrop-filter ของ 1C40 ยังทำงานอยู่)
+   ============================================================ */
+:root:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]) .phone .tabbar {
+  /* ธีมมืดหลักได้ชั้นกระจกมืดจากรายชื่อใน alt.css · สามกลุ่มนี้ไม่อยู่ในรายชื่อ พื้นแถบจึงโปร่งใสล้วน
+     จอที่มีของสีสว่างอยู่ใต้แถบ (จอบริบท) แถบเลยกลายเป็นสีครีม ป้ายแท็บสีอ่อนหายไป (2.3) → รองพื้นด้วย --soft-card ของธีม */
+  background-color: color-mix(in srgb, var(--soft-card, var(--card)) 80%, transparent) !important;
+}
+
+
+/* ============================================================
+   รอบสาม (25 ต.ค. 69) — เจ้าของ: /liquid-glass-js "ลองเอาไปแก้จุดที่ควรแก้หน่อย"
+   ยังเป็น CSS ล้วนตามกติกา (ไม่มี WebGL) · เลือกของที่ "ลอย" อยู่บนฉากและยังแบนอยู่ ซึ่งคือที่ที่กระจกช่วยจริง
+   ============================================================ */
+
+/* (25 ต.ค. 69 · ไทล์หน้าแรกกับช่อง "ถามน้องฮูก" ของธีม Halloween ทั้ง 6 กลับไปใช้กฎธีมหลักแล้ว — ถอดกฎเฉพาะออกจากไฟล์นี้) */
+/* ① แถบบนสุดของหน้าแรก (สตรีค · เหรียญ · Candy · อันดับ · กระดิ่ง)
+   ธีม hw-* ทุกธีมได้ --glass ของ hw- ตัวฐาน (#1b2b34 ฟ้าอมเขียวของเรือผี) เพราะธีมย่อยไม่ได้ตั้ง --glass เอง
+   → แวมไพร์/ฟักทอง/สุสานได้แถบสีฟ้าที่ไม่เข้าธีม · ใช้ --soft-card ของแต่ละธีมแทน
+   แล้วซ้อนชุดกระจกเดียวกับแถบล่าง: ประกายมุม (cornerBoost) · ขอบสะท้อนบนคมล่างจาง (rim) · แสงขอบสีธีม (edge lens) */
+:root[data-theme^="hw-"] body #menuBody .td-top {
+  background-color: color-mix(in srgb, var(--soft-card, var(--card)) 72%, transparent);
+}
+body #menuBody .td-top {
+  border-color: color-mix(in srgb, var(--fill) 28%, var(--lg-mid));
+  background-image:
+    radial-gradient(60% 160% at 6% -40%, color-mix(in srgb, #fff 30%, transparent), transparent 62%),
+    linear-gradient(180deg, color-mix(in srgb, var(--fill) 8%, transparent), color-mix(in srgb, var(--fill) 3%, transparent));
+  box-shadow:
+    inset 0 1.5px 0 var(--lg-hi), inset 0 -1px 0 var(--lg-lo),
+    inset 0 0 18px -4px color-mix(in srgb, var(--fill) 40%, transparent),
+    0 10px 26px -14px var(--lg-drop);
+  -webkit-backdrop-filter: blur(20px) saturate(170%); backdrop-filter: blur(20px) saturate(170%);
+}
+:root[data-lite] body #menuBody .td-top { -webkit-backdrop-filter: none; backdrop-filter: none; }
+
