@@ -35,6 +35,16 @@
   const ART = { fog: { cx: .5 }, ship: { cx: .5 }, deck: { cx: .55 }, far: { cx: .55 }, yard: { cx: .62 } };
   const FILES = ['fog', 'ship', 'deck', 'far', 'yard'].flatMap(k => [k + '.webp', k + '-bg.webp']).concat('banner.webp', 'seal.webp');
 
+  // ---------- คลิปวิดีโอ (เจ้าของสร้างเองตามบรีฟ · 25 ต.ค. 69) ----------
+  // เจ้าของ: "ภาพเบลอ ดูไม่รู้เรื่อง ทำเป็นเฟรมให้สมจริง ไม่ใช่เอาภาพเดียว" — เครื่องที่ทำงานนี้สร้างภาพ/วิดีโอเองไม่ได้
+  // เจ้าของจึงสร้างคลิปแนวตั้งด้วย AI วิดีโอ แล้วแอปเล่นคลิปนั้น วางใบงานจริง (HTML) ลอยตามเส้นทางข้างล่าง
+  // ใส่ไฟล์ที่ cursed-ship/<file> แล้วตั้งค่าตรงนี้ · null = ใช้ฉากภาพนิ่ง 3 ช็อตเดิม
+  //   path: t = วินาทีในคลิป · x, y = สัดส่วนบนเฟรมคลิป (0–1) · w = ความกว้างใบเทียบเฟรม · r = องศา · o = ความทึบ
+  //         จุดที่ไม่มี x, y = ตำแหน่งเดิมของใบ (ใบพระเอก/การ์ดที่เพิ่งติ๊ก)
+  //   seal = วินาทีที่ตราประทับตก · out = วินาทีที่ฉากจบ (ตัดท้ายคลิปได้)
+  // คลิปเล่นไม่ได้ (เช่น iPhone โหมดประหยัดพลังงานไม่ยอมเล่นวิดีโอเอง) = ถอยไปฉากภาพนิ่งเดิม
+  const CLIP = null;
+
   const root = document.documentElement;
   const DONEFX = 'studentos.alt.doneFx';   // คีย์เดียวกับ DONEFX_KEY ใน hoop.js (อ่านอย่างเดียว)
   const selected = () => { try { return localStorage.getItem(DONEFX) === ID; } catch (_) { return false; } };
@@ -53,7 +63,17 @@
   const script = document.currentScript;
   const BASE = (() => { try { return new URL('cursed-ship/', script && script.src).href; } catch (_) { return 'halloween/season/cursed-ship/'; } })();
   let loaded = 0, failed = false, started = false;
+  // คลิปโหลดทั้งไฟล์เป็น blob ก่อนเล่น — iOS ขอวิดีโอเป็นช่วง ๆ (Range) ซึ่ง service worker ของแอปเก็บแคชให้ไม่ได้
+  // และฉากที่ค้างรอโหลดกลางทางแย่กว่าไม่เล่นเลย
+  let clipUrl = null, clipStarted = false;
+  function preloadClip() {
+    if (!CLIP || clipStarted || typeof fetch !== 'function' || typeof URL.createObjectURL !== 'function') return;
+    clipStarted = true;
+    fetch(BASE + CLIP.file).then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+      .then(b => { clipUrl = URL.createObjectURL(b); }).catch(() => {});
+  }
   function preload() {
+    preloadClip();
     if (started || typeof Image !== 'function') return;
     started = true;
     FILES.forEach(f => {
@@ -64,12 +84,13 @@
     });
   }
   const ready = () => !failed && loaded >= FILES.length;
+  const usable = () => !!clipUrl || ready();
   if (selected()) {
     if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(preload, { timeout: 5000 });
     else setTimeout(preload, 2500);
   }
   // hoop.js ถามก่อนเปิดเอฟเฟกต์ทุกครั้ง — ภาพไม่ครบ/ขอลดการเคลื่อนไหว = ตอบ false แอปฉลองแบบปกติแทน
-  const canPlay = () => { preload(); return motionOk(env()) && ready(); };
+  const canPlay = () => { preload(); return motionOk(env()) && usable(); };
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
@@ -130,11 +151,11 @@
     const host = document.querySelector('.phone');
     preload();
     // ปุ่ม "ลองเล่นดู" กดทันทีหลังเลือก — ภาพอาจยังโหลดไม่เสร็จ รอได้ไม่เกิน 3 วิ (งานจริงไม่รอ: doneFxActive กันไว้แล้ว)
-    if (preview && host && motionOk(env()) && !ready() && !failed && !(preview > 25)) {
+    if (preview && host && motionOk(env()) && !usable() && !failed && !(preview > 25)) {
       setTimeout(() => playFx(title, onClose, (typeof preview === 'number' ? preview : 0) + 1), 120);
       return;
     }
-    if (!host || !motionOk(env()) || !ready()) {
+    if (!host || !motionOk(env()) || !usable()) {
       if (preview && typeof window.showToast === 'function') window.showToast(!motionOk(env())
         ? { title: 'ปิดการเคลื่อนไหวอยู่', body: 'เครื่องนี้ขอลดการเคลื่อนไหว ฉากเรือผีจึงไม่เล่น' }
         : { title: 'กำลังโหลดภาพเรือผี', body: 'ลองกดอีกครั้งในอีกสักครู่' });
@@ -143,6 +164,101 @@
     }
     stop(true);
     const sheet = document.querySelector('#focusWrap:not([hidden]) .fc-sheet.done.cs-done');
+    if (clipUrl) return playClip(title, onClose, host, sheet);
+    playStills(title, onClose, host, sheet);
+  }
+
+  // ทั้งสองแบบใช้: แตะที่ไหนก็ข้าม (pointerdown ไม่ใช่ click จะได้ไม่ต้องรอปล่อยนิ้ว) · Enter/Space บนปุ่มข้าม
+  function mount(host, sheet, ov, onClose) {
+    if (sheet) sheet.classList.add('cs-playing');
+    host.appendChild(ov);
+    run = { ov, sheet, timers: [], onClose, done: false, anims: [], raf: 0, video: null };
+    ov.addEventListener('pointerdown', e => { e.preventDefault(); skip(); });
+    ov.querySelector('.cs-skip').addEventListener('click', skip);
+    ov.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skip(); } });
+    try { ov.querySelector('.cs-skip').focus({ preventScroll: true }); } catch (_) {}
+  }
+  // วางใบงานไว้ที่ตำแหน่งเดิมก่อนเริ่มขยับ — คืนจุดกลาง (x0, y0) กับความกว้าง cw
+  function placeCard(ov, host) {
+    const card = ov.querySelector('.cs-card');
+    const W = ov.clientWidth, H = ov.clientHeight;
+    const o0 = origin(host);
+    const cw = Math.min(o0 ? o0.w - 24 : W - 48, 360);
+    card.style.width = cw + 'px';
+    const ch = card.offsetHeight || 150;
+    const x0 = o0 ? o0.x : W / 2, y0 = o0 ? o0.y : H * .3;
+    card.style.left = (x0 - cw / 2) + 'px';
+    card.style.top = (y0 - ch / 2) + 'px';
+    return { card, W, H, cw, ch, x0, y0 };
+  }
+  const reveal = sheet => { if (sheet) { sheet.classList.add('cs-reveal'); sheet.classList.remove('cs-playing'); } };
+
+  // จุดบนเฟรมคลิป → พิกัดในกรอบ (คลิปแสดงแบบ object-fit: cover — ขอบซ้ายขวาหรือบนล่างถูกตัด)
+  function clipBox(ov, video) {
+    const W = ov.clientWidth, H = ov.clientHeight;
+    const vw = video.videoWidth || 1080, vh = video.videoHeight || 1920;
+    const k = Math.max(W / vw, H / vh), w = vw * k, h = vh * k;
+    return { left: (W - w) / 2, top: (H - h) / 2, w, h };
+  }
+
+  function playClip(title, onClose, host, sheet) {
+    const ov = document.createElement('div');
+    ov.className = 'cs-ov cs-clip';
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-label', 'งานเสร็จแล้ว · เรือผีมารับงาน แตะเพื่อข้าม');
+    ov.innerHTML = `<video class="cs-video" muted playsinline webkit-playsinline preload="auto" aria-hidden="true"></video>
+      <i class="cs-vig"></i>${cardHtml(title, stats())}
+      <button type="button" class="cs-skip">ข้าม</button>`;
+    const video = ov.querySelector('video');
+    video.muted = true; video.defaultMuted = true;   // iOS เล่นเองได้เฉพาะวิดีโอที่ปิดเสียง
+    video.src = clipUrl;
+    mount(host, sheet, ov, onClose);
+    run.video = video;
+    const me = run;
+    const { card, cw, x0, y0 } = placeCard(ov, host);
+    const end = CLIP.out;
+    let anim = null, stamped = false, outed = false;
+
+    const build = () => {
+      if (anim || !card.animate) return;
+      const b = clipBox(ov, video);
+      anim = card.animate(CLIP.path.map(p => {
+        const x = p.x == null ? x0 : b.left + p.x * b.w, y = p.y == null ? y0 : b.top + p.y * b.h;
+        const sc = p.w == null ? 1 : (p.w * b.w) / cw;
+        return { offset: Math.min(1, p.t / end), opacity: p.o == null ? 1 : p.o, easing: 'ease-in-out',
+          transform: `translate(${x - x0}px,${y - y0}px) rotate(${p.r || 0}deg) scale(${sc})` };
+      }), { duration: end * 1000, easing: 'linear', fill: 'both' });
+      anim.pause();
+      me.anims.push(anim);
+    };
+    // ใบงานเดินตามเวลาของคลิปทุกเฟรม ไม่ใช่นาฬิกาแยก — คลิปสะดุด ใบก็หยุดรอ ไม่หลุดจากเรือ
+    const tick = () => {
+      if (run !== me || me.done) return;
+      const t = video.currentTime || 0;
+      if (anim) anim.currentTime = Math.min(t, end) * 1000;
+      if (!stamped && t >= CLIP.seal) {
+        stamped = true; card.classList.add('stamp'); ov.classList.add('shake');
+        if (typeof window.haptic === 'function') window.haptic('tap');
+      }
+      if (!outed && t >= end - .25) { outed = true; reveal(sheet); ov.classList.add('out'); }
+      if (t >= end || video.ended) { finish(); return; }
+      me.raf = requestAnimationFrame(tick);
+    };
+    const go = () => { build(); tick(); };
+    let p;
+    try { p = video.play(); } catch (e) { p = Promise.reject(e); }
+    Promise.resolve(p).then(go, () => {
+      // เครื่องไม่ยอมเล่นวิดีโอ — ปิดฉากคลิปเงียบ ๆ แล้วเล่นฉากภาพนิ่งแทน (ถ้าภาพพร้อม) ไม่งั้นจบเลย
+      if (run !== me || me.done) return;
+      me.onClose = null; finish();
+      if (ready()) playStills(title, onClose, host, sheet);
+      else if (typeof onClose === 'function') onClose();
+    });
+    // กันคลิปค้าง (เน็ต/ถอดรหัสสะดุด) — ไม่ว่าอะไรเกิดขึ้น ฉากจบภายใน out + 2 วิ
+    at((end + 2) * 1000, finish);
+  }
+
+  function playStills(title, onClose, host, sheet) {
     const lite = root.dataset.lite === '1';
 
     const ov = document.createElement('div');
@@ -157,26 +273,10 @@
       ${cardHtml(title, stats())}
       <i class="cs-fog front"></i><i class="cs-vig"></i>
       <button type="button" class="cs-skip">ข้าม</button>`;
-    if (sheet) sheet.classList.add('cs-playing');
-    host.appendChild(ov);
-    run = { ov, sheet, timers: [], onClose, done: false, anims: [] };
-
-    // แตะที่ไหนก็ข้าม — pointerdown ไม่ใช่ click จะได้ไม่ต้องรอปล่อยนิ้ว
-    ov.addEventListener('pointerdown', e => { e.preventDefault(); skip(); });
-    ov.querySelector('.cs-skip').addEventListener('click', skip);
-    ov.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skip(); } });
-    try { ov.querySelector('.cs-skip').focus({ preventScroll: true }); } catch (_) {}
+    mount(host, sheet, ov, onClose);
 
     // ตำแหน่งอ่านจากภาพจริง: โคมเขียวบนดาดฟ้าเรือ (ช่อง 3) คือที่ที่ใบงานถูกดูดเข้าไป
-    const card = ov.querySelector('.cs-card');
-    const W = ov.clientWidth, H = ov.clientHeight;
-    const o0 = origin(host);
-    const cw = Math.min(o0 ? o0.w - 24 : W - 48, 360);
-    card.style.width = cw + 'px';
-    const ch = card.offsetHeight || 150;
-    const x0 = o0 ? o0.x : W / 2, y0 = o0 ? o0.y : H * .3;
-    card.style.left = (x0 - cw / 2) + 'px';
-    card.style.top = (y0 - ch / 2) + 'px';
+    const { card, W, H, cw, ch, x0, y0 } = placeCard(ov, host);
     const halo = ov.querySelector('.cs-halo');
     halo.style.left = x0 + 'px'; halo.style.top = (y0 + ch / 2 + 6) + 'px'; halo.style.width = cw * 1.1 + 'px';
 
@@ -208,7 +308,7 @@
     }
 
     at(STAMP_AT, () => { if (typeof window.haptic === 'function') window.haptic('tap'); });
-    at(REVEAL_AT, () => { if (sheet) { sheet.classList.add('cs-reveal'); sheet.classList.remove('cs-playing'); } ov.classList.add('out'); });
+    at(REVEAL_AT, () => { reveal(sheet); ov.classList.add('out'); });
     at(TOTAL, () => finish());
   }
 
@@ -217,6 +317,8 @@
     const r = run;
     r.done = true;
     r.timers.forEach(clearTimeout);
+    if (r.raf) cancelAnimationFrame(r.raf);
+    if (r.video) try { r.video.pause(); } catch (_) {}
     r.anims.forEach(a => { try { a.cancel(); } catch (_) {} });
     if (r.sheet) { r.sheet.classList.remove('cs-playing'); r.sheet.classList.add('cs-reveal'); }
     const hadFocus = r.ov.contains(document.activeElement);
@@ -249,7 +351,7 @@
   }
 
   window.CursedShip = Object.freeze({
-    ID, TOTAL, FILES, motionOk, ready, preload, canPlay, stats,
+    ID, TOTAL, FILES, CLIP, motionOk, ready, preload, canPlay, stats,
     skinOn, scene, playFx, skip, stop, active,
   });
 })();

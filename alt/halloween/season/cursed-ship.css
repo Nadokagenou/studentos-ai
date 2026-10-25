@@ -267,6 +267,19 @@
 .cs-skip:focus-visible { outline: 2px solid #7CF5C8; outline-offset: 2px; }
 @keyframes csSkip { from { opacity: 0; } to { opacity: 1; } }
 
+/* ---------- โหมดคลิปวิดีโอ (CLIP ใน cursed-ship.js) ----------
+   คลิปเต็มจอแบบ cover · ใบงานเดินตามเวลาของคลิป (ไม่ใช่ตามไทม์ไลน์ 3.2 วิของฉากภาพนิ่ง)
+   จึงปิดแอนิเมชันที่ผูกเวลาไว้ทุกตัว แล้วให้คลาส .stamp / .shake จาก JS เป็นตัวสั่งแทน */
+.cs-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #05030A; pointer-events: none; }
+.cs-clip { animation: none; background: #05030A; }
+.cs-clip.shake { animation: csShake .18s linear 1; }
+.cs-clip .cs-card { animation: none;
+  box-shadow: 0 0 0 1.5px rgba(124, 245, 200, .85), 0 0 22px 4px rgba(124, 245, 200, .7), 0 0 70px 14px rgba(46, 200, 160, .35); }
+.cs-clip .cs-card::after { animation: none; opacity: 0; transition: opacity .3s; }
+.cs-clip .cs-card.stamp::after { opacity: 1; }
+.cs-clip .cs-seal { animation: none; opacity: 0; }
+.cs-clip .cs-card.stamp .cs-seal { animation: csSeal .32s cubic-bezier(.3, 1.5, .5, 1) both; }
+
 /* เครื่องเบา: ตัดหมอกหน้า หมอกฝั่งขวา แสงวาบแบบผสมสี และเงาตรา (ชั้นที่กินพื้นที่วาดมากที่สุด) */
 .cs-ov.lite .cs-fog.front, .cs-ov.lite .cs-fog.r { display: none; }
 .cs-ov.lite .cs-flash { mix-blend-mode: normal; }

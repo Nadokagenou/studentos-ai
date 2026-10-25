@@ -111,3 +111,21 @@ test('the motion CSS honours reduced motion and the lite device mode', () => {
   assert.match(css, /\.cs-ov\.lite/);
   assert.doesNotMatch(css, /filter:\s*blur/, 'no full-layer blur on phones');
 });
+
+// คลิปของเจ้าของ (CLIP ใน cursed-ship.js) — ยังไม่มี = null · มีเมื่อไหร่ต้องตั้งค่าครบและไฟล์ต้องอยู่จริง
+test('the clip setting is either off or complete and points at a real file', () => {
+  const { api } = load();
+  const c = api.CLIP;
+  if (c === null) return;
+  assert.ok(fs.existsSync(new URL('../season/cursed-ship/' + c.file, import.meta.url)), c.file);
+  assert.ok(c.out > 0 && c.out <= 5, 'out ' + c.out);
+  assert.ok(c.seal > 0 && c.seal < c.out, 'seal inside the clip');
+  assert.equal(c.path[0].t, 0);
+  for (let i = 1; i < c.path.length; i++) assert.ok(c.path[i].t > c.path[i - 1].t, 'path times rise');
+  assert.ok(c.path.at(-1).t <= c.out, 'path ends inside the clip');
+});
+test('a clip that will not play falls back to the still scene instead of leaving a black screen', () => {
+  assert.match(source, /Promise\.resolve\(p\)\.then\(go, \(\) => \{/);
+  assert.match(source, /if \(ready\(\)\) playStills\(title, onClose, host, sheet\);/);
+  assert.match(source, /at\(\(end \+ 2\) \* 1000, finish\)/, 'stalled clip still ends');
+});
