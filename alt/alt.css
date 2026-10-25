@@ -15440,7 +15440,7 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 @keyframes tg-visit{from{transform:translate3d(0,4px,0);opacity:.22}to{transform:translate3d(-14px,-9px,0);opacity:.55}}
 @keyframes tg-firefly{from{transform:translateY(7px);opacity:.15}to{transform:translateY(-9px);opacity:.8}}
 .tg-scene.tg-still *{animation:none!important}
-@media(prefers-reduced-motion:reduce){.tg-scene *{animation:none!important}}
+
 .iv-theme-preview{width:calc(100% - 20px);max-width:440px;height:calc(100dvh - 20px);max-height:900px;margin:auto;padding:0;overflow:hidden;border:1px solid #BDA47166;border-radius:20px;background:#0B1817;color:#F0EAD5}
 .iv-theme-preview::backdrop{background:#020A07CC}
 .iv-theme-preview header{display:flex;gap:10px;align-items:center;justify-content:space-between;min-height:58px;padding:10px 14px;background:#11251F}
@@ -15451,3 +15451,56 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 .iv-preview-body{position:relative;flex:1;min-height:0;overflow:hidden}
 .iv-theme-preview iframe{display:block;position:absolute;left:50%;top:50%;width:375px;height:812px;max-width:none;border:0;background:#0B1817;transform:translate(-50%,-50%) scale(var(--iv-preview-scale,1))}
 .hq-thai-note{font-size:12px;color:var(--muted);line-height:1.8}
+
+/* หมวดสะสมใช้ปุ่มเดิมทั้งหมด ไม่เผยชื่อ/จำนวนธีมลับที่ยังซ่อนอยู่ */
+#themePick.th-catalog{display:flex;flex-direction:column;gap:19px;width:100%;min-width:0}
+.th-rarity{display:block;width:100%;min-width:0;padding-top:2px}
+.th-rarity[hidden]{display:none!important}
+.th-rarity h3{display:flex;align-items:center;justify-content:space-between;gap:8px;border-left:3px solid var(--rarity-color);padding:3px 0 3px 9px;margin:0 0 9px;color:var(--ink);font-size:13px;font-weight:800;line-height:1.5}
+.th-rarity h3 small{font-size:11px;color:var(--muted);font-weight:600}
+.th-rarity h3 em{font-size:10px;font-weight:500;font-style:normal;color:var(--muted);white-space:nowrap}
+.th-rarity>.th-grid{width:100%;margin:0;min-width:0}
+.th-rarity>.th-grid>button{min-width:0}
+.th-rarity[data-rarity="limited"]{padding:12px;border:1px solid color-mix(in srgb,var(--rarity-color) 48%,transparent);border-radius:18px 5px 18px 5px;background:color-mix(in srgb,var(--rarity-color) 7%,var(--card))}
+.th-rarity[data-rarity="limited"] h3{border-left:0;padding-left:0}
+
+/* เรือนลับแล: เพิ่มความหลอนผ่านเงา แสงช้า และลายแกะ ไม่ใช้แฟลชหรือภาพทับงาน */
+:root[data-theme="thai-ghost"] .tg-estate{opacity:.95}
+:root[data-theme="thai-ghost"] .tg-veil{background:linear-gradient(#04110C70,transparent 24%,#04110C33 60%,#04110CDD)}
+.tg-moon-halo{position:absolute;left:47%;top:6%;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,#B9C59418,transparent 68%);animation:tg-breath 11s ease-in-out infinite alternate}
+.tg-window-light{position:absolute;left:35%;top:60%;width:32%;height:17%;background:radial-gradient(ellipse,#D7AD5A26,transparent 67%);animation:tg-window 7s ease-in-out infinite alternate}
+:root[data-theme="thai-ghost"] .tg-visitor{width:65px;height:145px;right:1%;bottom:10%;opacity:.48;animation:tg-haunt 19s ease-in-out infinite alternate}
+:root[data-theme="thai-ghost"] .tg-visitor.far{width:38px;height:84px;right:auto;left:3%;bottom:39%;opacity:.25;animation:tg-haunt-far 31s -11s ease-in-out infinite alternate}
+.tg-hanging{position:absolute;right:8%;top:-14px;width:27px;height:135px;transform-origin:50% 0;animation:tg-talisman 8s ease-in-out infinite alternate;opacity:.5;color:#C8B179}
+.tg-hanging i{position:absolute;left:50%;top:0;height:103px;width:1px;background:linear-gradient(#4A513B,#B49D67)}
+.tg-hanging b{position:absolute;left:0;bottom:0;width:27px;height:36px;border:1px solid #BDA47177;border-radius:2px 2px 40% 40%;background:#253024;text-align:center;font:18px/30px serif;box-shadow:inset 0 0 0 3px #09170F}
+.tg-fireflies i{left:var(--x,50%);top:var(--y,50%)}
+.tg-ornament{display:none}
+:root[data-theme="thai-ghost"] .tg-decorated{position:relative;isolation:isolate}
+:root[data-theme="thai-ghost"] .tg-ornament{display:block;position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:inherit;z-index:0;opacity:.38;color:#CDB786}
+.tg-ornament>svg{position:absolute;right:5px;bottom:3px;width:47px;height:34px;opacity:.6}
+.tg-ornament>i{position:absolute;inset:4px;border:1px solid #BDA47120;border-radius:15px 3px 15px 3px}
+:root[data-theme="thai-ghost"] :is(.td-now,.td-clear,.set-card){border-color:#BDA47166;box-shadow:inset 0 0 0 3px #020C0944,0 10px 30px #020A0770}
+:root[data-theme="thai-ghost"] .tg-sound-quick{flex:none;width:32px;min-width:32px;padding:5px;color:var(--blue);border:1px solid var(--line);border-radius:50%;background:#0B181777}
+:root[data-theme="thai-ghost"] .tg-sound-quick[aria-pressed="true"]{background:var(--blue-soft);color:var(--ink);box-shadow:0 0 12px #BDA47122}
+@media(max-width:599px){:root[data-theme="thai-ghost"] .td-top .tt-rank b{display:none}}
+@media(max-width:359px){:root[data-theme="thai-ghost"] .td-top{gap:2px}:root[data-theme="thai-ghost"] .td-top .tt-chip:not(.tg-sound-quick){padding-inline:5px;gap:3px}}
+.tg-sound-quick[hidden],.tg-preferences[hidden]{display:none!important}
+.tg-preferences{display:grid;gap:13px;margin-top:22px;padding:17px 15px;border:1px solid #BDA47155;border-radius:18px 5px 18px 5px;background:linear-gradient(140deg,#1C3028,#0D201A);color:#F0EAD5}
+.tg-pref-title{display:flex;gap:12px;align-items:center}
+.tg-pref-title>svg{width:42px;height:34px;color:#D7C293;flex:none}
+.tg-pref-title b{font-size:14px}
+.tg-pref-title small,.tg-motion small{display:block;font-size:11px;color:#C2CFBA;margin-top:4px}
+.tg-preferences button{padding:11px 15px;border:1px solid #BDA47177;border-radius:12px;background:#2B4435;color:#F0EAD5;font:inherit;font-size:13px;font-weight:700;min-height:42px}
+.tg-volume{display:grid;gap:7px;font-size:12px;color:#C2CFBA}
+.tg-volume input{width:100%;accent-color:#D7C293;min-height:28px}
+.tg-motion{display:flex;justify-content:space-between;align-items:center;gap:15px;font-size:13px}
+.tg-motion input{width:22px;height:22px;accent-color:#B9D3AC;flex:none}
+.tg-audio-hint{margin:0;color:#C2CFBA;font-size:11px;line-height:1.6}
+.tg-audio-hint:empty{display:none}
+@keyframes tg-haunt{0%{transform:translate3d(4px,10px,0);opacity:.22}55%{transform:translate3d(-24px,-10px,0);opacity:.55}100%{transform:translate3d(-44px,2px,0);opacity:.32}}
+@keyframes tg-haunt-far{from{transform:translate3d(-20px,6px,0);opacity:.12}to{transform:translate3d(22px,-11px,0);opacity:.37}}
+@keyframes tg-talisman{from{transform:rotate(-5deg)}to{transform:rotate(6deg)}}
+@keyframes tg-breath{from{transform:scale(.9);opacity:.3}to{transform:scale(1.12);opacity:.8}}
+@keyframes tg-window{0%{opacity:.35}40%{opacity:.7}100%{opacity:.45}}
+@media(prefers-reduced-motion:reduce){:root:not([data-tg-motion="full"]) .tg-scene *{animation:none!important}}

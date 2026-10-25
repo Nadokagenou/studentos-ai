@@ -12,6 +12,7 @@ self.HALLOWEEN_SHELL = [
   "halloween/rewards/theme-main.js",
   "halloween/rewards/biome-themes.css",
   "halloween/rewards/theme-moonlight.css",
+  "halloween/rewards/theme-rarity.js",
   "halloween/rewards/ownership.js",
   "halloween/rewards/account-store.js",
   "halloween/rewards/acquisition.js",
@@ -59,5 +60,6 @@ self.HALLOWEEN_SHELL = [
   "halloween/invite-friend/invite-friend.css",
   "halloween/invite-friend/qrcode-generator.js",
   "halloween/invite-friend/thai-theme.js",
+  "halloween/invite-friend/thai-ranat.js",
   "halloween/invite-friend/thai-estate.svg"
 ];

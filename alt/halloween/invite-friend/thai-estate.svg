@@ -34,6 +34,7 @@
  <path d="M171 761h229m93 0h235M182 731v56m35-56v56m35-56v56m35-56v56m35-56v56m35-56v56m188-56v56m35-56v56m35-56v56m35-56v56m35-56v56m35-56v56" stroke="#746d49" stroke-width="3"/>
 </g>
 <path d="M0 945q150-41 315-9t305-8 280 16v256H0z" fill="#091713"/>
+<g opacity=".48" transform="translate(715 840)"><path d="M-15 29q-8-54 17-55 26 0 19 58L12 63H-9z" fill="#020A07"/><ellipse cx="2" cy="-1" rx="8" ry="13" fill="#CBD3B8"/><path d="M-7-17Q2-30 12-13l7 50-12-22L2-11-5 23l-11 17z" fill="#030C08"/><path d="M-7 23-16 48l-9 72 17-10 10 12 12-13 17 9-11-72-11-23z" fill="#B4C6AC" fill-opacity=".7"/><path d="M-2 0h3m4 0h3" stroke="#4C5E3E" stroke-width="2"/></g>
 <path d="M200 977h497l79 223H123z" fill="url(#water)"/><path d="M316 1007h254m-226 25h203m-232 33h258m-310 42h363m-295 44h208" stroke="#a7b391" stroke-opacity=".12" stroke-width="2"/>
 <g stroke="#0a1713" stroke-width="24"><path d="M97 1096q-18-285 23-519M828 1092q22-267-14-497"/></g>
 <use href="#leaf" transform="translate(119 598) scale(1.5)"/><use href="#leaf" transform="translate(814 616) scale(1.5)"/>
