@@ -727,6 +727,10 @@ function navMode() {
 
 function applyNav() {
   document.documentElement.dataset.nav = navMode();
+  // ค่าที่ผู้ใช้เลือกเอง (auto/bottom/side) — CSS ช่วงแท็บเล็ต (device-preview-controls.css) บังคับแถบล่างแบบมือถือ
+  // แต่ data-nav="side" เกิดได้ทั้งจาก "อัตโนมัติ" บนจอกว้างและจากการกด "ด้านซ้าย" เอง จึงแยกสองกรณีไม่ออก
+  // (26 ต.ค. 69 · เจ้าของ: "ในไอแพดปุ่มเมื่อกดไม่ไปอยู่ฝั่งซ้าย") → บอก CSS ด้วยว่าผู้ใช้สั่งเองหรือเปล่า
+  document.documentElement.dataset.navPref = navPref();
   syncTimelineNow(); // ความกว้างจอเปลี่ยน → หมุด "ตอนนี้" ต้องคำนวณใหม่
 }
 
