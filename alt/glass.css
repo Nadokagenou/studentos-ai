@@ -54,3 +54,34 @@
     inset 0 0 12px -3px color-mix(in srgb, var(--fill) 40%, transparent),   /* edge lens */
     0 0 0 .5px rgba(15,27,45,.12), 0 8px 16px -8px var(--lg-drop) !important;
 }
+
+/* ============================================================
+   ธีมใหม่ (Halloween ทั้ง 6) — เจ้าของ: "แก้ในธีมใหม่ด้วย"
+   รอบแรกเว้น Moon & Candle กับ Halloween คลาสสิกไว้ (แถบล่างออกแบบเฉพาะธีม) และ hw-* พื้นทึบ 92% จนชั้นแสงแทบไม่เห็น
+   ตอนนี้: คงสีพื้นเดิมของแต่ละธีม แล้วซ้อนกระจกชุดเดียวกัน (ประกายมุม · ขอบสะท้อน · แสงขอบแบบเลนส์ในสีเน้นของธีม)
+   และลดความทึบลงให้ฝ้าเบลอของข้างหลังโผล่ (backdrop-filter ของ 1C40 ยังทำงานอยู่)
+   ============================================================ */
+:root[data-theme="moonlight"] .phone .tabbar {
+  background:
+    radial-gradient(70% 140% at 8% -30%, rgba(255,255,255,.22), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, var(--hw-chrome-2) 82%, transparent), color-mix(in srgb, var(--hw-chrome) 84%, transparent)) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,.34), inset 0 -1px 0 rgba(255,255,255,.08),
+    inset 0 0 0 1px rgba(255,255,255,.06),
+    inset 0 0 22px -4px color-mix(in srgb, var(--hw-sky, #8FDAFF) 38%, transparent),
+    0 -5px 30px rgba(5,1,18,.6), 0 14px 30px -12px rgba(0,0,0,.6) !important;
+}
+:root[data-theme="halloween"] .phone .tabbar {
+  background:
+    radial-gradient(70% 140% at 8% -30%, rgba(255,226,196,.2), transparent 60%),
+    linear-gradient(180deg, #291b30d4, #15111fd9) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,226,196,.3), inset 0 -1px 0 rgba(255,255,255,.06),
+    inset 0 0 0 1px rgba(255,255,255,.05),
+    inset 0 0 22px -4px color-mix(in srgb, #dfb783 40%, transparent),
+    0 -5px 30px #09030c55, 0 14px 30px -12px rgba(0,0,0,.6) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(160%); backdrop-filter: blur(22px) saturate(160%);
+}
+:root[data-theme^="hw-"] .phone .tabbar {
+  background-color: color-mix(in srgb, var(--soft-card, var(--card)) 80%, transparent) !important;
+}
