@@ -1,126 +1,125 @@
 /* ============================================================
    THE CURSED SHIP · จอ "เสร็จแล้ว" ช่วงฮาโลวีน (คู่กับ cursed-ship.js)
    ------------------------------------------------------------
-   ทุกกฎอยู่ใต้ .cs-done / .cs-ov / .cs-scene — สองคลาสนี้ app.js ใส่ให้เฉพาะตอน
-   :root.hw-season เท่านั้น นอกช่วงฮาโลวีนจอ "เสร็จแล้ว" เป็นของเดิมทุกพิกเซล
+   ทุกกฎอยู่ใต้ .cs-done / .cs-ov / .cs-scene — app.js ใส่ให้เฉพาะตอน :root.hw-season
+   นอกช่วงฮาโลวีนจอ "เสร็จแล้ว" เป็นของเดิมทุกพิกเซล
 
-   สี: ดำอมม่วงเป็นพื้น (60) · เขียววิญญาณซีดสำหรับแสง/ของที่สำเร็จ (30) · แดงเข้มเฉพาะตราประทับ (10)
-   ตัวหนังสือบนพื้นจอใช้ --cs-ink / --cs-muted เท่านั้น — วัดบน #140B26 ได้ 15.6 : 1 / 8.4 : 1
+   ภาพทุกช็อตตัดมาจากสตอรีบอร์ดของเจ้าของ (cursed-ship/*.webp) — ดูหัวไฟล์ cursed-ship.js
+   ตัวหนังสือบนพื้นจอใช้ #F3ECFF / #C7B9E6 + เงาตัวอักษร เพราะพื้นหลังเป็นภาพวาด ความสว่างไม่คงที่
    ============================================================ */
-#focusWrap .cs-scene, #focusWrap .cs-ov {
-  --cs-bg: #0C0718; --cs-bg2: #1A0F33; --cs-ink: #F3ECFF; --cs-muted: #C7B9E6;
-  --cs-ghost: #7CF5C8; --cs-ghost-d: #2E8E74; --cs-violet: #8B5CF6; --cs-blood: #B3121F;
-}
 
-/* ---------- ฉากหลังของหน้าสรุป (อยู่ใต้ .fc-sheet ไม่เลื่อนตาม) ---------- */
-.cs-scene {
-  position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
-  background:
-    radial-gradient(120% 70% at 50% 0%, #2A1652 0%, transparent 60%),
-    linear-gradient(180deg, #160C2C 0%, #0F0820 55%, #08050F 100%);
+/* ---------- ภาพของช็อต: ภาพคมอยู่กลาง + ภาพเบลอตัวเดียวกันเต็มจอ (ขอบภาพจึงไม่โผล่เป็นเส้น) ---------- */
+.cs-ov, .cs-scene { container-type: size; }
+.cs-bgl { position: absolute; inset: -6%; display: block; background: #0C0718 center / cover no-repeat; }
+.cs-art {
+  position: absolute; left: 50%; top: 50%; display: block;
+  /* กว้าง 1.6 เท่าของด้านสั้นของกรอบ — จอตั้งเห็นเรือทั้งลำ (เกินจอซ้ายขวานิดหน่อย) · จอนอนสูงเกือบเต็มจอ
+     ห้ามบังคับ cover ด้วยความสูง: จอตั้ง 375×812 จะได้ภาพกว้าง 1,400px เห็นแค่เสากระโดงท่อนเดียว (วัดจริงรอบแรก) */
+  width: max(160vmin, 100%);
+  /* + ต้องคลุมทั้งซ้ายและขวาของกรอบแม้ภาพถูกเลื่อนตาม --cx (ป่าช้าเลื่อนให้เห็นพระจันทร์ — จอ 1280 เคยเห็นขอบภาพเป็นเส้น) */
+  width: max(160cqmin, 100cqw, calc(50cqw / (1 - var(--cx))), calc(50cqw / var(--cx)));
+  aspect-ratio: var(--ar);
+  transform: translate(calc(var(--cx) * -100%), -50%);
+  background: center / 100% 100% no-repeat;
+  -webkit-mask: linear-gradient(180deg, transparent 0, #000 13%, #000 84%, transparent 100%);
+          mask: linear-gradient(180deg, transparent 0, #000 13%, #000 84%, transparent 100%);
 }
-.cs-scene i { position: absolute; display: block; }
-.cs-moonbg {
-  right: 8%; top: 5%; width: 92px; height: 92px; border-radius: 50%;
-  background: radial-gradient(circle at 38% 36%, #F4F0FF 0%, #D9CCF5 38%, #9E8CC9 72%, #6F5E9C 100%);
-  box-shadow: 0 0 40px 10px rgba(190, 170, 255, .22), 0 0 120px 40px rgba(124, 92, 246, .14);
-  opacity: .88;
-}
-.cs-stars {
-  inset: 0 0 50% 0;
-  background-image:
-    radial-gradient(1.2px 1.2px at 12% 18%, #fff8 50%, transparent 51%),
-    radial-gradient(1px 1px at 32% 8%, #fff7 50%, transparent 51%),
-    radial-gradient(1.4px 1.4px at 58% 22%, #fff6 50%, transparent 51%),
-    radial-gradient(1px 1px at 72% 40%, #fff5 50%, transparent 51%),
-    radial-gradient(1px 1px at 20% 44%, #fff4 50%, transparent 51%),
-    radial-gradient(1.2px 1.2px at 46% 34%, #fff5 50%, transparent 51%);
-}
-.cs-mist {
-  left: -20%; right: -20%; bottom: 8%; height: 34%;
-  background:
-    radial-gradient(40% 60% at 25% 60%, rgba(150, 120, 220, .16), transparent 70%),
-    radial-gradient(45% 55% at 75% 55%, rgba(124, 245, 200, .07), transparent 70%);
-  animation: csMist 18s ease-in-out infinite alternate;
-}
+/* อัตราส่วนและจุดกลางต้องตรงกับ ART ใน cursed-ship.js */
+.k-fog  { --ar: 870 / 620; --cx: .5; }
+.k-ship { --ar: 868 / 504; --cx: .5; }
+.k-deck { --ar: 870 / 570; --cx: .55; }
+.k-far  { --ar: 868 / 570; --cx: .55; }
+.k-yard { --ar: 870 / 590; --cx: .62; }
+.cs-art.k-fog  { background-image: url(cursed-ship/fog.webp); }
+.cs-art.k-ship { background-image: url(cursed-ship/ship.webp); }
+.cs-art.k-deck { background-image: url(cursed-ship/deck.webp); }
+.cs-art.k-far  { background-image: url(cursed-ship/far.webp); }
+.cs-art.k-yard { background-image: url(cursed-ship/yard.webp); }
+.cs-bgl.k-fog  { background-image: url(cursed-ship/fog-bg.webp); }
+.cs-bgl.k-ship { background-image: url(cursed-ship/ship-bg.webp); }
+.cs-bgl.k-deck { background-image: url(cursed-ship/deck-bg.webp); }
+.cs-bgl.k-far  { background-image: url(cursed-ship/far-bg.webp); }
+.cs-bgl.k-yard { background-image: url(cursed-ship/yard-bg.webp); }
+
+/* ---------- ฉากหลังของหน้าสรุป = ช็อตป่าช้า (ช่อง 11) ---------- */
+.cs-scene { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: #0C0718; }
+.cs-scene > i { position: absolute; display: block; }
+/* ม่านมืดบาง ๆ — ภาพวาดมีจุดสว่าง (พระจันทร์ หมอก) ตัวหนังสือต้องอ่านออกทุกตำแหน่ง */
+.cs-scene::after { content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(12, 7, 24, .25) 0%, rgba(12, 7, 24, .5) 45%, rgba(8, 4, 16, .62) 100%); }
+.cs-mist { left: -20%; right: -20%; bottom: 6%; height: 34%;
+  background: radial-gradient(40% 60% at 25% 60%, rgba(150, 120, 220, .14), transparent 70%),
+              radial-gradient(45% 55% at 75% 55%, rgba(124, 245, 200, .06), transparent 70%);
+  animation: csMist 18s ease-in-out infinite alternate; }
 @keyframes csMist { to { transform: translateX(8%); } }
-.cs-yard { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 22%; min-height: 90px; display: block; }
-.cs-lamp { bottom: 9%; width: 120px; height: 120px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 170, 80, .30), rgba(255, 120, 40, .08) 45%, transparent 70%);
+/* เทียน/โคมมุมล่าง (ช่อง 7 · 9) — แสงส้มอุ่นเป็นสีเดียวที่ไม่ใช่ม่วง/เขียวบนจอ */
+.cs-lamp { bottom: 2%; width: 150px; height: 150px; border-radius: 50%; z-index: 1;
+  background: radial-gradient(circle, rgba(255, 170, 80, .34), rgba(255, 120, 40, .1) 45%, transparent 70%);
   animation: csCandle 2.6s ease-in-out infinite alternate; }
-.cs-lamp.l { left: -34px; } .cs-lamp.r { right: -34px; animation-delay: -1.3s; }
-@keyframes csCandle { 0% { opacity: .75; } 40% { opacity: 1; } 60% { opacity: .82; } 100% { opacity: .95; } }
+.cs-lamp.l { left: -46px; } .cs-lamp.r { right: -46px; animation-delay: -1.3s; }
+@keyframes csCandle { 0% { opacity: .7; } 40% { opacity: 1; } 60% { opacity: .8; } 100% { opacity: .95; } }
 
-/* ---------- หน้าสรุปฉบับฮาโลวีน ---------- */
-.fc-sheet.done.cs-done { position: relative; z-index: 1; color: var(--cs-ink, #F3ECFF);
+/* ---------- หน้าสรุปฉบับฮาโลวีน (ช่อง 7–10) ---------- */
+.fc-sheet.done.cs-done { position: relative; z-index: 1; color: #F3ECFF;
   --ink: #F3ECFF; --muted: #C7B9E6; --line: rgba(199, 185, 230, .16); }
 .cs-done .cs-fxbtn {
-  align-self: flex-end; margin: 0 0 -4px; padding: 6px 12px; min-height: 32px;
-  border: 1px solid rgba(199, 185, 230, .26); border-radius: 999px;
-  background: rgba(12, 7, 24, .55); color: #C7B9E6;
-  font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+  align-self: flex-end; display: inline-flex; align-items: center; gap: 5px;
+  margin: 0 0 -6px; padding: 6px 8px; min-height: 32px; border: 0; background: none;
+  color: #B9A7E8; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, .8);
 }
-.cs-done .cs-fxbtn:focus-visible { outline: 2px solid #7CF5C8; outline-offset: 2px; }
+.cs-done .cs-fxbtn span { font-size: 14px; color: #9D86E0; }
+.cs-done .cs-fxbtn:focus-visible { outline: 2px solid #7CF5C8; outline-offset: 2px; border-radius: 8px; }
 
-/* ใบพระเอกเป็นป้ายแขวนในฉาก ไม่ใช่การ์ดสีแบรนด์วางทับ — พื้นโปร่งดำม่วง ขอบเรืองเขียวจาง */
+/* ใบพระเอก = ผ้าขาดแขวนเสา มีโคมกับเทียน (ภาพจากช่อง 9 ลบตัวหนังสือแล้ว) — ตัวหนังสือจริงวางกลางผืนผ้า */
 .cs-done .fw-hero {
-  margin-top: 12px; padding: 26px 20px 30px; text-align: center; align-items: center;
-  background:
-    radial-gradient(90% 60% at 50% 0%, rgba(124, 245, 200, .10), transparent 70%),
-    linear-gradient(180deg, rgba(34, 20, 64, .97), rgba(16, 9, 32, .98));   /* ทึบพอไม่ให้พระจันทร์ข้างหลังเป็นรอยเปื้อนบนจอแคบ */
-  border: 1px solid rgba(124, 245, 200, .22);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, .5), 0 18px 40px rgba(0, 0, 0, .55), inset 0 0 40px rgba(124, 92, 246, .14);
-  color: #F3ECFF;
+  margin: 10px -8px 0; padding: 15% 15% 12% 11%; text-align: center; align-items: center;
+  background: url(cursed-ship/banner.webp) center / 100% 100% no-repeat;
+  border-radius: 0; box-shadow: none; color: #F3ECFF;
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, .55));
 }
-/* มุมกรอบแบบโกธิก — แทนวงกลมจางของจอเดิม */
-.cs-done .fw-hero::after {
-  inset: 8px; width: auto; height: auto;
-  border-radius: 20px; background: none; clip-path: none;
-  border: 1px solid rgba(199, 185, 230, .10);
-  -webkit-mask: linear-gradient(#000 0 0) top left / 22px 22px no-repeat, linear-gradient(#000 0 0) top right / 22px 22px no-repeat,
-                linear-gradient(#000 0 0) bottom left / 22px 22px no-repeat, linear-gradient(#000 0 0) bottom right / 22px 22px no-repeat;
-          mask: linear-gradient(#000 0 0) top left / 22px 22px no-repeat, linear-gradient(#000 0 0) top right / 22px 22px no-repeat,
-                linear-gradient(#000 0 0) bottom left / 22px 22px no-repeat, linear-gradient(#000 0 0) bottom right / 22px 22px no-repeat;
-  border-color: rgba(124, 245, 200, .45);
-}
+.cs-done .fw-hero::after { display: none; }
 .cs-done .fw-ring {
-  width: 66px; height: 66px; color: #7CF5C8;
-  background: radial-gradient(circle, rgba(124, 245, 200, .18), rgba(124, 245, 200, .02) 70%);
-  box-shadow: inset 0 0 0 2px rgba(124, 245, 200, .75), 0 0 22px rgba(124, 245, 200, .45), 0 0 60px rgba(124, 245, 200, .18);
+  width: 56px; height: 56px; color: #8FF7D2;
+  background: radial-gradient(circle, rgba(124, 245, 200, .22), rgba(124, 245, 200, .03) 70%);
+  box-shadow: inset 0 0 0 2px rgba(124, 245, 200, .8), 0 0 18px rgba(124, 245, 200, .55), 0 0 50px rgba(124, 245, 200, .25);
 }
-.cs-done .fw-mid { margin: 16px 0 20px; }
-.cs-done .fw-t { font-size: 34px; color: #F3ECFF; text-shadow: 0 0 18px rgba(124, 245, 200, .25); }
-.cs-done .fw-p { margin-left: auto; margin-right: auto; color: #E2D8F6; max-width: 18em; }
-.cs-done .fw-stats { justify-content: center; padding-right: 0; width: 100%; max-width: 300px; }
-.cs-done .fw-stats > div { text-align: center; padding: 0 12px; }
-.cs-done .fw-stats > div:first-child { padding-left: 12px; }
+.cs-done .fw-ring svg { width: 26px; height: 26px; }
+.cs-done .fw-mid { margin: 12px 0 14px; }
+.cs-done .fw-t { font-size: 30px; color: #F3ECFF; text-shadow: 0 2px 10px rgba(0, 0, 0, .7); }
+.cs-done .fw-p { margin: 6px auto 0; color: #E2D8F6; max-width: 17em; font-size: 14px; text-shadow: 0 1px 6px rgba(0, 0, 0, .8); }
+.cs-done .fw-stats { justify-content: center; padding-right: 0; width: 100%; max-width: 260px;
+  padding-top: 12px; border-top: 1px solid rgba(199, 185, 230, .18); }
+.cs-done .fw-stats > div { text-align: center; padding: 0 10px; }
+.cs-done .fw-stats > div:first-child { padding-left: 10px; }
 .cs-done .fw-stats > div + div { border-left-color: rgba(199, 185, 230, .22); }
-.cs-done .fw-stats b { color: #F3ECFF; }
-.cs-done .fw-stats span { color: #C7B9E6; opacity: 1; }
-/* น้องไซ/ฮูกย้ายขึ้นมุมขวาบนของป้าย — ตัวเลขอยู่กลางป้ายแล้ว มุมล่างขวาจะทับช่องที่สอง (วัดที่ 375px) */
-.cs-done .fw-sai { top: -16px; bottom: auto; right: 12px; width: 58px; height: 58px; }
-.cs-done .fw-sai { border-color: #140B26; box-shadow: 0 0 0 2px rgba(124, 245, 200, .35), 0 8px 20px rgba(0, 0, 0, .5); }
+.cs-done .fw-stats b { color: #F3ECFF; font-size: 24px; text-shadow: 0 2px 8px rgba(0, 0, 0, .7); }
+.cs-done .fw-stats span { color: #D3C6EE; opacity: 1; }
+/* น้องฮูกนั่งมุมขวาล่างของผืนผ้า (ตำแหน่งเดียวกับฮูกในช่อง 9) */
+.cs-done .fw-sai { right: 2px; bottom: -16px; width: 52px; height: 52px;
+  border-color: #1A0F33; box-shadow: 0 0 0 2px rgba(124, 245, 200, .3), 0 8px 18px rgba(0, 0, 0, .6); }
 
-/* งานถัดไป = ใบเดียวที่ต้องเด่นรองจากใบพระเอก · ป้ายเขียววิญญาณ */
-.cs-done .fw-next {
-  margin-top: 34px; padding: 14px 16px; border-radius: 16px;
-  background: rgba(20, 12, 40, .72); border: 1px solid rgba(139, 92, 246, .30);
-}
-.cs-done .fw-next .fw-lb { color: #7CF5C8; }
-.cs-done .fw-next b { color: #F3ECFF; }
-.cs-done .fw-min, .cs-done .fw-lb, .cs-done .fw-rt, .cs-done .fw-rm { color: #C7B9E6; }
+/* งานถัดไป (ช่อง 8) — เส้นบางมีหัวลูกศรคั่น แล้วตามด้วยชื่องาน ไม่มีกล่อง */
+.cs-done .fw-next { position: relative; margin-top: 30px; padding: 18px 4px 0; }
+.cs-done .fw-next::before { content: ''; position: absolute; left: 4px; right: 4px; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(199, 185, 230, .5) 20%, rgba(199, 185, 230, .5) 80%, transparent); }
+.cs-done .fw-next::after { content: ''; position: absolute; left: 50%; top: -4px; border: 4.5px solid transparent;
+  border-left: 7px solid #E8DFFA; filter: drop-shadow(0 0 4px rgba(232, 223, 250, .8)); }
+.cs-done .fw-next .fw-lb { color: #8FF7D2; }
+.cs-done .fw-next b { color: #F3ECFF; text-shadow: 0 1px 8px rgba(0, 0, 0, .8); }
+.cs-done .fw-min, .cs-done .fw-lb, .cs-done .fw-rt, .cs-done .fw-rm { color: #CDBFEA; text-shadow: 0 1px 6px rgba(0, 0, 0, .8); }
 .cs-done .fw-rest { padding: 0 4px; }
-.cs-done .fw-rx { color: #E8DFFA; }
+.cs-done .fw-rx { color: #ECE4FB; text-shadow: 0 1px 6px rgba(0, 0, 0, .8); }
 .cs-done .fw-row { border-top-color: rgba(199, 185, 230, .14); }
 
-/* ปุ่มหลักเรืองม่วง — ของชิ้นเดียวบนจอที่ "กดได้" ต้องเห็นชัดที่สุด */
+/* ปุ่ม "ทำต่อเลย" (ช่อง 10) — ม่วงเรือง ขอบสว่าง · ปุ่มรองเป็นลิงก์ตัวเล็กข้างใต้ */
 .cs-done .fc-go {
-  background: linear-gradient(180deg, #7A4BE8, #5A2EC2);
-  color: #fff; border: 1px solid rgba(200, 170, 255, .55);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, .4), 0 0 24px rgba(139, 92, 246, .45), inset 0 1px 0 rgba(255, 255, 255, .22);
+  background: linear-gradient(180deg, #6C42CF, #4B2799);
+  color: #fff; border: 1.5px solid rgba(206, 182, 255, .75);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .45), 0 0 26px rgba(139, 92, 246, .5), inset 0 1px 0 rgba(255, 255, 255, .25);
 }
 .cs-done .fc-go:focus-visible { outline: 2px solid #7CF5C8; outline-offset: 3px; }
-.cs-done .fc-later { color: #C7B9E6; border-color: rgba(199, 185, 230, .24); background: rgba(12, 7, 24, .4); }
+.cs-done .fw-act .fc-later { min-height: 44px; border: 0; background: none; color: #A996DB; font-size: 13px; text-shadow: 0 1px 6px rgba(0, 0, 0, .8); }
 
 /* ระหว่างฉาก: ของบนหน้าสรุปยังจัดผังอยู่ (ใบที่ลอยวัดตำแหน่งจากใบพระเอก) แต่มองไม่เห็น */
 .cs-done.cs-playing > * { opacity: 0; }
@@ -138,138 +137,110 @@
   100% { transform: none; }
 }
 
-/* ---------- ฉากเรือผี (2.8 วิ · ตัวเลข % = ส่วนของ 2.8 วิ) ---------- */
+/* ============================================================
+   ฉากเรือผี · 2.95 วิ — % ทุกตัวคือส่วนของ 2.95 วิ (1% ≈ 29.5ms)
+   ช็อต:  1 ใบงานเรือง 0–0.7 · 2 หมอก 0.12–1.05 · 3 เรือ 0.7–1.4 · 4 ดาดฟ้า 1.4–1.79
+          5 ตราประทับ 1.79–2.2 · 6 เรือแล่นหาย 2.2–2.78 · 11 ป่าช้า 2.5– → หน้าสรุป 2.7
+   ============================================================ */
 .cs-ov {
-  position: absolute; inset: 0; z-index: 5; overflow: hidden;
+  position: absolute; inset: 0; z-index: 5; overflow: hidden; background: transparent;
   cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none;
-  animation: csShake .16s linear 1.46s 1;
-  transition: opacity .38s ease;
+  animation: csShake .18s linear 1.85s 1;
+  transition: opacity .25s ease;
 }
 .cs-ov.out { opacity: 0; pointer-events: none; }
 .cs-ov > i { position: absolute; display: block; pointer-events: none; }
-@keyframes csShake { 25% { transform: translate(3px, -2px); } 50% { transform: translate(-3px, 2px); } 75% { transform: translate(2px, 1px); } }
+@keyframes csShake { 20% { transform: translate(4px, -3px); } 45% { transform: translate(-4px, 2px); } 70% { transform: translate(2px, 2px); } }
 
-/* 1 · จอมืดลง ม่วงดำไล่ลงทะเล */
-.cs-dark { inset: 0;
-  background: radial-gradient(110% 80% at 50% 30%, rgba(40, 20, 80, .94), rgba(8, 4, 16, .98) 70%);
-  animation: csDark 2.8s linear both; }
-@keyframes csDark { 0% { opacity: .55; } 11% { opacity: 1; } 100% { opacity: 1; } }
-/* แสงกะพริบ: เขียวซีดสามแวบตอนเปิด · แดงหนึ่งแวบตอนตราตก */
-.cs-flash { inset: 0; background: radial-gradient(80% 60% at 50% 40%, rgba(200, 255, 235, .55), rgba(124, 245, 200, .1) 60%, transparent);
-  opacity: 0; mix-blend-mode: screen; animation: csFlash 2.8s linear both; }
+/* จอมืดลง (ช่อง 1 → 2) */
+.cs-dark { inset: 0; background: radial-gradient(110% 80% at 50% 30%, #1C0F38, #07040E 75%);
+  animation: csDark 2.95s linear both; }
+@keyframes csDark { 0% { opacity: .55; } 10% { opacity: 1; } 100% { opacity: 1; } }
+
+.cs-shot { position: absolute; inset: 0; opacity: 0; pointer-events: none; animation: 2.95s linear both; }
+.cs-shot .cs-art { animation: 2.95s linear both; }
+.cs-shot.k-fog  { animation-name: csShotFog; }
+.cs-shot.k-ship { animation-name: csShotShip; }
+.cs-shot.k-deck { animation-name: csShotDeck; }
+.cs-shot.k-far  { animation-name: csShotFar; }
+.cs-shot.k-yard { animation-name: csShotYard; }
+@keyframes csShotFog  { 0%, 4% { opacity: 0; } 14% { opacity: 1; } 30% { opacity: 1; } 36%, 100% { opacity: 0; } }
+@keyframes csShotShip { 0%, 23.7% { opacity: 0; } 32% { opacity: 1; } 46.4% { opacity: 1; } 47.5%, 100% { opacity: 0; } }
+@keyframes csShotDeck { 0%, 46.4% { opacity: 0; } 47.5% { opacity: 1; } 74.6% { opacity: 1; } 75.6%, 100% { opacity: 0; } }
+@keyframes csShotFar  { 0%, 74.6% { opacity: 0; } 75.6% { opacity: 1; } 86.8% { opacity: 1; } 94.2%, 100% { opacity: 0; } }
+@keyframes csShotYard { 0%, 84.7% { opacity: 0; } 93.2%, 100% { opacity: 1; } }
+/* กล้อง: หมอกค่อย ๆ ดันเข้า · เรือลอยขึ้นจากทะเล · ดาดฟ้าซูมช้า · เรือไกลแล่นออกไป */
+.cs-shot.k-fog  .cs-art { animation-name: csCamFog; }
+.cs-shot.k-ship .cs-art { animation-name: csCamShip; }
+.cs-shot.k-deck .cs-art { animation-name: csCamDeck; }
+.cs-shot.k-far  .cs-art { animation-name: csCamFar; }
+@keyframes csCamFog  { 0% { scale: 1.14; } 36% { scale: 1; } 100% { scale: 1; } }
+@keyframes csCamShip { 0%, 23.7% { translate: 0 9%; scale: 1.06; } 42% { translate: 0 0; scale: 1; } 47.5%, 100% { translate: 0 -1%; scale: .99; } }
+@keyframes csCamDeck { 0%, 46.4% { scale: 1; } 61% { scale: 1.05; } 61.1% { scale: 1.16; } 75.6%, 100% { scale: 1.2; } }
+@keyframes csCamFar  { 0%, 74.6% { scale: 1; translate: 0 0; } 94.2%, 100% { scale: .9; translate: 3% -1%; } }
+
+/* แสงวาบ: เขียวซีดตอนเปิด · ฟ้าผ่าตอนเรือโผล่ */
+.cs-flash { inset: 0; opacity: 0; mix-blend-mode: screen; animation: csFlash 2.95s linear both;
+  background: radial-gradient(80% 60% at 50% 35%, rgba(210, 255, 240, .6), rgba(124, 245, 200, .12) 60%, transparent); }
 @keyframes csFlash {
-  0%, 2% { opacity: 0; } 3% { opacity: .55; } 4% { opacity: .05; } 6% { opacity: .4; } 8%, 50% { opacity: 0; }
-  52% { opacity: .5; background: radial-gradient(70% 50% at 50% 45%, rgba(255, 60, 80, .5), transparent 70%); } 58%, 100% { opacity: 0; }
+  0%, 2% { opacity: 0; } 3% { opacity: .5; } 4% { opacity: .05; } 6% { opacity: .35; } 8% { opacity: 0; }
+  26% { opacity: 0; } 26.6% { opacity: .75; } 27.4% { opacity: .1; } 29% { opacity: .55; } 31%, 100% { opacity: 0; }
 }
-/* ตำแหน่ง/ขนาดเดียวกับ .cs-moonbg ของหน้าสรุป — ตอนฉากจางออกจะได้เห็นพระจันทร์ดวงเดียว ไม่ใช่สองดวงซ้อน */
-.cs-moon { right: 8%; top: 5%; width: 92px; height: 92px; border-radius: 50%;
-  background: radial-gradient(circle at 38% 36%, #F4F0FF, #CFC2F0 40%, #8F7DBE 75%, #5E4E8A);
-  box-shadow: 0 0 50px 14px rgba(180, 160, 255, .22);
-  animation: csMoon 2.8s ease both; }
-@keyframes csMoon { 0%, 12% { opacity: 0; transform: translateY(10px); } 32%, 100% { opacity: .9; transform: none; } }
+/* ตราประทับ (ช่อง 5): ขอบจอแดงเลือด เฉพาะช็อตนี้ */
+.cs-blood { inset: 0; opacity: 0; animation: csBlood 2.95s linear both;
+  background: radial-gradient(75% 60% at 50% 45%, transparent 35%, rgba(120, 6, 18, .55) 80%, rgba(60, 0, 8, .85) 100%); }
+@keyframes csBlood { 0%, 60.6% { opacity: 0; } 61% { opacity: .6; } 62.7% { opacity: .6; } 63.4% { opacity: 1; } 74.6% { opacity: .9; } 75.6%, 100% { opacity: 0; } }
 
-/* 2 · หมอกไหลเข้าจากขอบจอ — ไล่สีหลายวงซ้อน ไม่ใช้ filter:blur (มือถือเครื่องช้าลากไม่ไหว) */
-.cs-fog { top: 18%; bottom: 0; width: 90%;
+/* หมอกไหลเข้าจากขอบ (ช่อง 2) แล้วถอยออกตอนเรือโผล่ (ช่อง 3 เรือต้องสว่างชัด — รอบแรกหมอกทับจนเรือหม่น)
+   และกลับมากลืนเรือ (ช่อง 6) — ไล่สีซ้อน ไม่ใช้ filter:blur */
+.cs-fog { top: 14%; bottom: 0; width: 95%;
   background:
-    radial-gradient(50% 35% at 50% 70%, rgba(150, 120, 220, .38), transparent 70%),
+    radial-gradient(50% 35% at 50% 70%, rgba(150, 120, 220, .36), transparent 70%),
     radial-gradient(40% 30% at 30% 40%, rgba(124, 92, 246, .26), transparent 70%),
-    radial-gradient(45% 28% at 70% 88%, rgba(124, 245, 200, .14), transparent 70%); }
-.cs-fog.l { left: -40%; animation: csFogL 2.8s cubic-bezier(.2, .7, .3, 1) both; }
-.cs-fog.r { right: -40%; animation: csFogR 2.8s cubic-bezier(.2, .7, .3, 1) both; }
-@keyframes csFogL { 0% { transform: translateX(-60%); opacity: 0; } 30% { transform: translateX(0); opacity: 1; }
-  80% { transform: translateX(14%); opacity: .9; } 100% { transform: translateX(22%); opacity: .3; } }
-@keyframes csFogR { 0% { transform: translateX(60%); opacity: 0; } 30% { transform: translateX(0); opacity: 1; }
-  80% { transform: translateX(-14%); opacity: .9; } 100% { transform: translateX(-22%); opacity: .3; } }
-.cs-fog.front { left: -10%; right: -10%; width: auto; top: auto; bottom: -4%; height: 40%; z-index: 3;
-  background: radial-gradient(55% 45% at 25% 40%, rgba(170, 150, 230, .30), transparent 70%),
-              radial-gradient(50% 40% at 75% 35%, rgba(150, 130, 220, .26), transparent 70%),
-              radial-gradient(60% 50% at 50% 80%, rgba(40, 24, 72, .85), transparent 75%),
-              radial-gradient(55% 60% at 80% 80%, rgba(124, 245, 200, .12), transparent 70%);
-  animation: csFogFront 2.8s ease-in-out both; }
-@keyframes csFogFront { 0%, 8% { opacity: 0; transform: translateX(-12%); } 40% { opacity: 1; }
-  85% { opacity: 1; transform: translateX(6%); } 100% { opacity: .2; transform: translateX(10%); } }
+    radial-gradient(45% 28% at 70% 88%, rgba(124, 245, 200, .12), transparent 70%); }
+.cs-fog.l { left: -45%; animation: csFogL 2.95s ease-in-out both; }
+.cs-fog.r { right: -45%; animation: csFogR 2.95s ease-in-out both; }
+@keyframes csFogL { 0% { transform: translateX(-60%); opacity: 0; } 20% { transform: translateX(0); opacity: 1; } 31% { opacity: .2; } 47% { transform: translateX(10%); opacity: 0; }
+  60% { opacity: 0; } 76% { transform: translateX(0); opacity: .3; } 94% { transform: translateX(30%); opacity: 1; } 100% { transform: translateX(34%); opacity: .6; } }
+@keyframes csFogR { 0% { transform: translateX(60%); opacity: 0; } 20% { transform: translateX(0); opacity: 1; } 31% { opacity: .2; } 47% { transform: translateX(-10%); opacity: 0; }
+  60% { opacity: 0; } 76% { transform: translateX(0); opacity: .3; } 94% { transform: translateX(-30%); opacity: 1; } 100% { transform: translateX(-34%); opacity: .6; } }
+.cs-fog.front { left: -10%; right: -10%; width: auto; top: auto; bottom: -4%; height: 34%; z-index: 3;
+  background: radial-gradient(55% 45% at 25% 50%, rgba(170, 150, 230, .26), transparent 70%),
+              radial-gradient(50% 40% at 75% 45%, rgba(150, 130, 220, .22), transparent 70%),
+              radial-gradient(70% 60% at 50% 95%, rgba(12, 6, 26, .9), transparent 75%);
+  animation: csFogFront 2.95s ease-in-out both; }
+@keyframes csFogFront { 0%, 20% { opacity: 0; transform: translateX(-8%); } 32% { opacity: 1; } 46.4% { opacity: 1; } 47.5% { opacity: 0; }
+  74.6% { opacity: 0; } 78% { opacity: 1; transform: translateX(0); } 95% { opacity: 1; transform: translateX(8%); } 100% { opacity: .4; } }
+.cs-vig { inset: 0; z-index: 4; background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(5, 2, 10, .7) 100%); }
 
-/* ทะเลมืด — เส้นคลื่นเรืองเขียวจาง ๆ */
-.cs-sea { left: 0; right: 0; bottom: 0; height: 36%;
-  background:
-    repeating-linear-gradient(176deg, transparent 0 14px, rgba(124, 245, 200, .06) 14px 15px),
-    linear-gradient(180deg, rgba(10, 20, 32, .0), #050A12 40%, #03050A);
-  animation: csSea 2.8s ease both; }
-@keyframes csSea { 0%, 6% { opacity: 0; } 24%, 100% { opacity: 1; } }
+/* วงแสงใต้ใบงาน (ช่อง 1) */
+.cs-halo { height: 26px; transform: translate(-50%, -50%); border-radius: 50%;
+  border: 1px solid rgba(255, 220, 170, .35); box-shadow: 0 0 18px rgba(255, 210, 150, .25), inset 0 0 12px rgba(255, 210, 150, .2);
+  animation: csHalo 2.95s ease both; }
+@keyframes csHalo { 0% { opacity: 0; } 5% { opacity: 1; } 18% { opacity: 1; } 24%, 100% { opacity: 0; } }
 
-/* 3 · เรือโผล่จากทะเล → โยกบนคลื่น → 5 · แล่นหายในหมอก */
-.cs-shipwrap { position: absolute; left: 50%; bottom: 17%; width: min(118%, 520px); aspect-ratio: 4 / 3;
-  transform: translateX(-50%); pointer-events: none; z-index: 1; }
-.cs-ship { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible;
-  transform-origin: 50% 85%; animation: csShip 2.8s cubic-bezier(.3, .1, .3, 1) both; }
-.cs-reflect { position: absolute; left: 0; right: 0; top: 84%; width: 100%; height: 100%;
-  transform: scaleY(-.55); transform-origin: 50% 0; opacity: .22;
-  -webkit-mask: linear-gradient(180deg, transparent 40%, #000 100%); mask: linear-gradient(180deg, transparent 40%, #000 100%);
-  animation: csReflect 2.8s cubic-bezier(.3, .1, .3, 1) both; }
-@keyframes csShip {
-  0%, 9% { opacity: 0; transform: translateY(30%) scale(.94); }
-  22% { opacity: .5; }
-  39% { opacity: 1; transform: translateY(0) scale(1) rotate(-.6deg); }
-  52% { transform: translateY(-1.5%) rotate(.8deg); }
-  68% { opacity: 1; transform: translate(0, 0) rotate(-.4deg); }
-  92%, 100% { opacity: 0; transform: translate(30%, -3%) scale(.68) rotate(.6deg); }
-}
-@keyframes csReflect {
-  0%, 20% { opacity: 0; } 40%, 66% { opacity: .22; }
-  92%, 100% { opacity: 0; transform: translateX(30%) scaleY(-.4) scaleX(.68); }
-}
-/* แสงวิญญาณเขียวรอบลำเรือ — ทำให้เงาดำลอยออกจากพื้นม่วง โดยไม่ต้องใช้ filter บนทั้งลำ */
-.cs-shipwrap::before { content: ''; position: absolute; inset: 8% 4% 16%; border-radius: 50%;
-  background: radial-gradient(50% 50% at 50% 60%, rgba(124, 245, 200, .20), rgba(46, 142, 116, .08) 55%, transparent 75%);
-  animation: csAura 2.8s ease both; }
-@keyframes csAura { 0%, 14% { opacity: 0; transform: scale(.8); } 40%, 70% { opacity: 1; transform: none; } 92%, 100% { opacity: 0; transform: translateX(30%) scale(.7); } }
-.cs-rig { fill: none; stroke: rgba(150, 200, 185, .28); stroke-width: 1; }
-.cs-mast { fill: none; stroke: #0A1218; stroke-width: 4.5; stroke-linecap: round; }
-.cs-spar { fill: none; stroke: #0A1218; stroke-width: 3; stroke-linecap: round; }
-.cs-sails path { stroke: rgba(190, 240, 222, .30); stroke-width: 1.2; stroke-linejoin: round; }
-.cs-holes path { fill: #0B0716; opacity: .9; }
-.cs-tears { fill: none; stroke: #0B0716; stroke-width: 1.6; stroke-linecap: round; opacity: .8; }
-.cs-shred { fill: none; stroke: rgba(170, 220, 205, .28); stroke-width: 1.4; stroke-linecap: round; }
-.cs-flag { fill: #6E0A14; stroke: #2A0207; stroke-width: 1; }
-.cs-rim { fill: none; stroke: rgba(124, 245, 200, .65); stroke-width: 2; stroke-linecap: round; }
-.cs-plank { fill: none; stroke: rgba(124, 245, 200, .12); stroke-width: 1.2; }
-.cs-fig { fill: #1A2A33; stroke: rgba(124, 245, 200, .5); stroke-width: 1; }
-.cs-wisp { fill: none; stroke: rgba(124, 245, 200, .10); stroke-width: 9; stroke-linecap: round;
-  stroke-dasharray: 40 30; animation: csWisp 1.6s linear infinite; }
-@keyframes csWisp { to { stroke-dashoffset: -140; } }
-.cs-ov.lite .cs-wisp { animation: none; }
-.cs-ports rect { fill: #7CF5C8; opacity: .85; animation: csPort 1.1s steps(2) infinite alternate; }
-.cs-ports rect:nth-child(3n) { animation-delay: -.4s; } .cs-ports rect:nth-child(2n) { opacity: .55; }
-.cs-lamps circle:nth-child(2n) { fill: #E9FFF3; }
-.cs-lamps circle:nth-child(2n+1) { animation: csLampPulse 1.4s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
-@keyframes csPort { to { opacity: .45; } }
-@keyframes csLampPulse { from { opacity: .7; transform: scale(.9); } to { opacity: 1; transform: scale(1.15); } }
-
-/* เงาขนาดใหญ่ (ใบเรือ/ปีกนก) ตัดผ่านหน้าจอครั้งเดียว */
-.cs-shadow { top: -10%; left: -60%; width: 70%; height: 120%; z-index: 2;
-  background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, .55), transparent 72%);
-  transform: skewX(-18deg); animation: csShadow 2.8s ease-in-out both; }
-@keyframes csShadow { 0%, 22% { transform: translateX(0) skewX(-18deg); opacity: 0; } 30% { opacity: 1; }
-  52% { opacity: 1; } 58%, 100% { transform: translateX(260%) skewX(-18deg); opacity: 0; } }
-
-/* 4 · ใบงานที่ลอยไปหาเรือ — กระดาษเก่าสีครีม (ช่องที่ 1 ของสตอรีบอร์ด) · การเคลื่อนที่มาจาก cursed-ship.js */
+/* ใบงาน — กระดาษเก่าสีครีม (ช่อง 1) · การเคลื่อนที่มาจาก cursed-ship.js · แสงรอบใบเปลี่ยนตามช็อต */
 .cs-card {
-  position: absolute; z-index: 4; box-sizing: border-box; padding: 16px 18px 18px;
-  border-radius: 14px; color: #3A2418; text-align: left; will-change: transform, opacity;
-  background:
-    radial-gradient(120% 90% at 30% 20%, #FFF4DA 0%, #F1DDB4 55%, #D9BC88 100%);
-  box-shadow: 0 0 0 1px rgba(90, 60, 30, .35), 0 16px 34px rgba(0, 0, 0, .55), 0 0 26px rgba(255, 220, 160, .35);
-  animation: csCardGlow 2.8s ease both;
+  position: absolute; z-index: 2; box-sizing: border-box; padding: 16px 18px 18px;
+  border-radius: 12px; color: #3A2418; text-align: left; will-change: transform, opacity;
+  background: radial-gradient(120% 90% at 30% 20%, #FFF3D6 0%, #EFD9AE 55%, #D2B27C 100%);
+  animation: csCardGlow 2.95s linear both;
 }
 @keyframes csCardGlow {
-  0% { box-shadow: 0 0 0 1px rgba(90, 60, 30, .35), 0 16px 34px rgba(0, 0, 0, .55), 0 0 18px rgba(255, 220, 160, .3); }
-  20% { box-shadow: 0 0 0 1px rgba(90, 60, 30, .35), 0 16px 34px rgba(0, 0, 0, .55), 0 0 34px rgba(255, 220, 160, .55); }
-  40%, 100% { box-shadow: 0 0 0 1px rgba(90, 60, 30, .35), 0 16px 34px rgba(0, 0, 0, .55), 0 0 30px rgba(124, 245, 200, .75), 0 0 70px rgba(124, 245, 200, .35); }
+  0%   { box-shadow: 0 0 0 1px rgba(90, 60, 30, .35), 0 16px 34px rgba(0, 0, 0, .55), 0 0 14px rgba(255, 220, 160, .3); }
+  12%  { box-shadow: 0 0 0 1px rgba(90, 60, 30, .35), 0 16px 34px rgba(0, 0, 0, .55), 0 0 40px rgba(255, 220, 160, .6); }
+  46%  { box-shadow: 0 0 0 1px rgba(90, 60, 30, .35), 0 16px 34px rgba(0, 0, 0, .55), 0 0 30px rgba(255, 220, 160, .4); }
+  47.5%, 60% { box-shadow: 0 0 0 1.5px rgba(124, 245, 200, .9), 0 0 24px 4px rgba(124, 245, 200, .85), 0 0 80px 18px rgba(46, 200, 160, .45); }
+  61%, 100%  { box-shadow: 0 0 0 1px rgba(60, 20, 20, .5), 0 20px 40px rgba(0, 0, 0, .7), 0 0 30px rgba(160, 20, 30, .35); }
 }
+/* ช่อง 5 — ใบงานโดนคำสาป สีกระดาษหม่นลง */
+.cs-card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(90% 80% at 70% 50%, rgba(90, 20, 20, .18), rgba(40, 20, 30, .32));
+  opacity: 0; animation: csCurse 2.95s linear both; }
+@keyframes csCurse { 0%, 62.5% { opacity: 0; } 64%, 100% { opacity: 1; } }
 .cs-card-h { display: flex; align-items: center; gap: 10px; }
 .cs-card-h b { font-size: 21px; font-weight: 800; letter-spacing: -.02em; }
-.cs-card-tick { flex: none; width: 26px; height: 26px; border-radius: 50%; position: relative;
-  box-shadow: inset 0 0 0 2px #6B4A2E; }
+.cs-card-tick { flex: none; width: 26px; height: 26px; border-radius: 50%; position: relative; box-shadow: inset 0 0 0 2px #6B4A2E; }
 .cs-card-tick::after { content: ''; position: absolute; left: 8px; top: 5px; width: 7px; height: 12px;
   border: solid #6B4A2E; border-width: 0 2.4px 2.4px 0; transform: rotate(45deg); }
 .cs-card-p { margin: 6px 0 12px; font-size: 13.5px; line-height: 1.45; color: #4A3020;
@@ -281,15 +252,14 @@
 .cs-card-s b { display: block; font-size: 22px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .cs-card-s span { display: block; font-size: 11px; font-weight: 600; color: #6B4A2E; }
 
-/* ตราประทับคำสาป — ตกลงบนใบตอนลอยค้าง (0.78 + 1.4×0.48 ≈ 1.45 วิ) */
-.cs-seal { position: absolute; right: -6%; top: 50%; width: 62%; max-width: 190px; aspect-ratio: 1;
-  transform: translateY(-50%) rotate(-14deg); opacity: 0; overflow: visible;
-  filter: drop-shadow(0 6px 10px rgba(60, 0, 8, .6));
-  animation: csSeal .3s cubic-bezier(.3, 1.6, .5, 1) 1.45s both; }
-@keyframes csSeal { 0% { opacity: 0; transform: translateY(-50%) rotate(-30deg) scale(2.4); }
-  70% { opacity: 1; transform: translateY(-50%) rotate(-12deg) scale(.92); } 100% { opacity: 1; transform: translateY(-50%) rotate(-14deg) scale(1); } }
-.cs-seal-t { font-family: Georgia, 'Times New Roman', serif; font-weight: 700; font-size: 17px; letter-spacing: .06em; fill: #FFD9DC; }
-.cs-seal-t.big { font-size: 19px; }
+/* ตราขี้ผึ้ง (ภาพจากช่อง 5) ตกลงบนใบ — 1.85 วิ ตรงกับ STAMP_AT ใน cursed-ship.js */
+.cs-seal { position: absolute; z-index: 1; right: -6%; top: 50%; width: 58%; aspect-ratio: 1;
+  background: url(cursed-ship/seal.webp) center / contain no-repeat;
+  transform: translateY(-50%) rotate(-8deg); opacity: 0;
+  filter: drop-shadow(0 8px 12px rgba(40, 0, 6, .7));
+  animation: csSeal .32s cubic-bezier(.3, 1.5, .5, 1) 1.85s both; }
+@keyframes csSeal { 0% { opacity: 0; transform: translateY(-50%) rotate(-26deg) scale(2.6); }
+  65% { opacity: 1; transform: translateY(-50%) rotate(-6deg) scale(.9); } 100% { opacity: 1; transform: translateY(-50%) rotate(-8deg) scale(1); } }
 
 .cs-skip { position: absolute; z-index: 6; right: 14px; top: calc(14px + env(safe-area-inset-top));
   padding: 7px 14px; min-height: 34px; border-radius: 999px; cursor: pointer;
@@ -299,13 +269,12 @@
 .cs-skip:focus-visible { outline: 2px solid #7CF5C8; outline-offset: 2px; }
 @keyframes csSkip { from { opacity: 0; } to { opacity: 1; } }
 
-/* เครื่องเบา: ตัดเงาสะท้อน หมอกหน้า และเงาที่ตัดผ่าน (สามชั้นที่กินพื้นที่วาดมากที่สุด) */
-.cs-ov.lite .cs-reflect, .cs-ov.lite .cs-fog.front, .cs-ov.lite .cs-shadow { display: none; }
+/* เครื่องเบา: ตัดหมอกหน้า หมอกฝั่งขวา แสงวาบแบบผสมสี และเงาตรา (ชั้นที่กินพื้นที่วาดมากที่สุด) */
+.cs-ov.lite .cs-fog.front, .cs-ov.lite .cs-fog.r { display: none; }
+.cs-ov.lite .cs-flash { mix-blend-mode: normal; }
 .cs-ov.lite .cs-seal { filter: none; }
 
-/* จอเตี้ย/จอแคบ: เรือเล็กลง ให้ใบงานยังมีที่ลอย */
-@media (max-height: 620px) { .cs-shipwrap { width: min(92%, 420px); bottom: 12%; } }
-@media (max-width: 340px) { .cs-card-h b { font-size: 18px; } .cs-card-s b { font-size: 19px; } }
+@media (max-width: 340px) { .cs-card-h b { font-size: 18px; } .cs-card-s b { font-size: 19px; } .cs-done .fw-t { font-size: 26px; } }
 
 /* ปลอดภัยไว้ก่อน: ถ้าฉากถูกสร้างทั้งที่ระบบขอลดการเคลื่อนไหว (cursed-ship.js กันไว้แล้ว) ก็ไม่มีอะไรขยับ */
 @media (prefers-reduced-motion: reduce) {

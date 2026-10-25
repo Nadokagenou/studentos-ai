@@ -13,7 +13,7 @@ function load({ season = true, pref = null, reduced = false, motion, quality } =
   if (motion) root.dataset.hwMotion = motion;
   if (quality) root.dataset.quality = quality;
   const window = { addEventListener() {} };
-  const ctx = { window, document: { documentElement: root }, matchMedia: () => ({ matches: reduced }),
+  const ctx = { window, document: { documentElement: root, currentScript: { src: 'https://x.test/alt/halloween/season/cursed-ship.js' } }, URL, setTimeout() {}, matchMedia: () => ({ matches: reduced }),
     localStorage: { getItem: k => store.has(k) ? store.get(k) : null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) } };
   window.matchMedia = ctx.matchMedia;
   vm.runInNewContext(source, ctx);
@@ -40,6 +40,22 @@ test('the effect toggle writes one new key and turning it back on removes it', (
   assert.equal(api.mode(false), 'still');
   api.toggle(null);
   assert.equal(store.has('studentos.alt.cursedShip'), false);
+});
+test('the cinematic refuses to start until every storyboard image has loaded', () => {
+  const { api } = load();
+  assert.equal(api.ready(), false);
+  const sheet = { parentElement: {}, querySelector: () => null, classList: { add() {} } };
+  assert.equal(api.play(sheet, { title: 'x', stats: [] }, () => assert.fail('onEnd must not run')), false);
+});
+test('every image the CSS and the script name exists and is in the offline shell', () => {
+  const { api } = load();
+  const css = read('../season/cursed-ship.css'), sw = read('../../sw.js');
+  const used = new Set([...css.matchAll(/url\(cursed-ship\/([\w-]+\.webp)\)/g)].map(m => m[1]));
+  for (const f of new Set([...api.FILES, ...used])) {
+    assert.ok(fs.existsSync(new URL('../season/cursed-ship/' + f, import.meta.url)), f);
+    assert.ok(sw.includes("'halloween/season/cursed-ship/" + f + "'"), 'sw shell: ' + f);
+  }
+  for (const f of used) assert.ok(api.FILES.includes(f), 'preloaded: ' + f);
 });
 test('the whole sequence stays inside the 2.5–3 second target', () => {
   const { api } = load();
