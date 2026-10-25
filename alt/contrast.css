@@ -204,3 +204,12 @@
 :root:is([data-theme="halloween"], [data-theme="moonlight"]:not([data-hw-tone="light"]), [data-theme^="hw-"]) :is(#scr-profile .ig-stats :is(button, span, b, small), .sec-label, .povf-why) {
   text-shadow: 0 1px 2px rgba(0,0,0,.75), 0 0 10px rgba(0,0,0,.7);
 }
+
+/* หัวข้อจอไล่สี (background-clip: text) ตัดสระบน/วรรณยุกต์ไทย — 26 ต.ค. 69 · เจ้าของ (ภาพ "งานทั้งหมด" ธีม Halloween): "ให้มันมาให้เห็นครบทั้งข้อความด้วย"
+   บั๊กเดียวกับที่แก้ให้ธีมหลักไปแล้วเมื่อ 12 ต.ค. (alt.css ใต้ "⑤ หัวข้อจอ") แต่ธีม Halloween ทั้ง 6 เพิ่งได้หัวข้อไล่สีใน identity.css
+   จึงไม่อยู่ในรายชื่อนั้น → ใช้เทคนิคเดียวกันทุกตัว: ขยายกรอบ .3em · ยกกลับด้วย position: relative · คืนที่ด้วย margin-bottom −.6em
+   (ไม่แตะ margin-top · แต่ละจอตั้งไว้ไม่เท่ากัน) + กฎซ้ำของหัวจองานที่ตั้ง margin: 0 ด้วย id */
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.page-title, .fd-title) {
+  padding-block: .3em; position: relative; top: -.3em; margin-bottom: -.6em;
+}
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone #scr-tasks .tk-head-row .page-title { margin-bottom: -.6em; }
