@@ -140,3 +140,48 @@
 :root:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]) body #menuBody .tg-ic svg {
   border-color: color-mix(in srgb, var(--fill) 45%, #fff) !important;
 }
+
+/* ============================================================
+   รอบสาม (25 ต.ค. 69) — เจ้าของ: /liquid-glass-js "ลองเอาไปแก้จุดที่ควรแก้หน่อย"
+   ยังเป็น CSS ล้วนตามกติกา (ไม่มี WebGL) · เลือกของที่ "ลอย" อยู่บนฉากและยังแบนอยู่ ซึ่งคือที่ที่กระจกช่วยจริง
+   ============================================================ */
+
+/* ① แถบบนสุดของหน้าแรก (สตรีค · เหรียญ · Candy · อันดับ · กระดิ่ง)
+   ธีม hw-* ทุกธีมได้ --glass ของ hw- ตัวฐาน (#1b2b34 ฟ้าอมเขียวของเรือผี) เพราะธีมย่อยไม่ได้ตั้ง --glass เอง
+   → แวมไพร์/ฟักทอง/สุสานได้แถบสีฟ้าที่ไม่เข้าธีม · ใช้ --soft-card ของแต่ละธีมแทน
+   แล้วซ้อนชุดกระจกเดียวกับแถบล่าง: ประกายมุม (cornerBoost) · ขอบสะท้อนบนคมล่างจาง (rim) · แสงขอบสีธีม (edge lens) */
+:root[data-theme^="hw-"] body #menuBody .td-top {
+  background-color: color-mix(in srgb, var(--soft-card, var(--card)) 72%, transparent);
+}
+body #menuBody .td-top {
+  border-color: color-mix(in srgb, var(--fill) 28%, var(--lg-mid));
+  background-image:
+    radial-gradient(60% 160% at 6% -40%, color-mix(in srgb, #fff 30%, transparent), transparent 62%),
+    linear-gradient(180deg, color-mix(in srgb, var(--fill) 8%, transparent), color-mix(in srgb, var(--fill) 3%, transparent));
+  box-shadow:
+    inset 0 1.5px 0 var(--lg-hi), inset 0 -1px 0 var(--lg-lo),
+    inset 0 0 18px -4px color-mix(in srgb, var(--fill) 40%, transparent),
+    0 10px 26px -14px var(--lg-drop);
+  -webkit-backdrop-filter: blur(20px) saturate(170%); backdrop-filter: blur(20px) saturate(170%);
+}
+:root[data-lite] body #menuBody .td-top { -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* ② ช่อง "ถามน้องฮูก…" ในธีม Halloween — biome-themes.css ถอดวงกระจกออก (:before/:after) เหลือการ์ดทึบแบน
+   ให้เป็นกระจกชิ้นเดียวกับแถบบน (ขอบสะท้อน + แสงขอบสีธีม) · ตอนพิมพ์ขอบสว่างขึ้นเป็นสีธีม */
+:root:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]) body #menuBody .td-ask {
+  background:
+    radial-gradient(60% 160% at 6% -40%, rgba(255,255,255,.16), transparent 62%),
+    color-mix(in srgb, var(--soft-card, var(--card)) 74%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--fill) 30%, var(--lg-mid)) !important;
+  box-shadow:
+    inset 0 1.5px 0 var(--lg-hi), inset 0 -1px 0 var(--lg-lo),
+    inset 0 0 18px -4px color-mix(in srgb, var(--fill) 38%, transparent),
+    0 10px 24px -14px var(--lg-drop) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(160%) !important; backdrop-filter: blur(18px) saturate(160%) !important;
+}
+:root:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]) body #menuBody .td-ask:focus-within {
+  border-color: color-mix(in srgb, var(--fill) 75%, transparent) !important;
+  box-shadow:
+    inset 0 1.5px 0 var(--lg-hi), inset 0 0 20px -4px color-mix(in srgb, var(--fill) 55%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--fill) 16%, transparent), 0 10px 24px -14px var(--lg-drop) !important;
+}
