@@ -66,62 +66,13 @@
   background-color: color-mix(in srgb, var(--soft-card, var(--card)) 80%, transparent) !important;
 }
 
-/* ---------- ไอคอนไทล์หน้าแรกในธีม Halloween ทั้ง 6 ---------- เจ้าของ: "แก้อันนี้ทุกธีมฮาลาวีนเลยให้เหมือนธีมอื่น"
-   ธีมอื่นเป็นกระจกสองชั้น: แผ่นกระจกย้อมสีหลักของธีม (--fill 76% บนการ์ด) + ชิปกระจกขาวที่ไอคอนนั่งอยู่
-   ธีม Halloween เคยถอดทั้งสองชั้นออกเหลือการ์ดมืดแบน (biome-themes.css · theme-main.css · theme-moonlight.css)
-   ใช้สีหลักของแต่ละธีมเอง (ทองเทียน · ฟ้าจันทร์ · ชมพูแวมไพร์ ฯลฯ) จึงยังเข้าธีม · ขนาดไทล์คงไว้ตามเดิม (หน้าแรกห้ามเลื่อน)
-   ตัวเลือกมี body เพิ่มเพื่อให้ชนะกฎเดิมที่ใช้ #menuBody + !important */
-:root[data-theme^="hw-"] body #menuBody .tg-ic {
-  background-color: color-mix(in srgb, var(--fill) 70%, var(--card)) !important;
-  background-image:
-    radial-gradient(130% 80% at 16% -6%, rgba(255,255,255,.5) 0%, rgba(255,255,255,.12) 38%, transparent 62%),
-    radial-gradient(90% 60% at 88% 112%, rgba(255,255,255,.24) 0%, transparent 62%),
-    linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 42%, rgba(0,0,0,.1)) !important;
-  border: 1px solid var(--lg-mid) !important;
-  border-radius: 18px !important;
-  color: var(--on-fill) !important;
-  box-shadow:
-    inset 0 1.5px 0 var(--lg-hi), inset 1.5px 0 0 var(--lg-mid),
-    inset 0 -1.5px 0 var(--lg-lo), inset -1px 0 0 var(--lg-lo),
-    inset 0 0 14px -2px color-mix(in srgb, #fff 30%, transparent),
-    0 0 0 .5px rgba(0,0,0,.3),
-    0 14px 24px -12px var(--lg-drop), 0 0 18px -6px color-mix(in srgb, var(--fill) 60%, transparent) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(180%); backdrop-filter: blur(18px) saturate(180%);
-}
-:root[data-theme^="hw-"] body #menuBody .tg-ic svg {
-  background: linear-gradient(160deg, rgba(255,255,255,.97), color-mix(in srgb, var(--fill) 22%, rgba(255,255,255,.82))) !important;
-  border: 1px solid rgba(255,255,255,.9) !important;
-  border-radius: 50% !important;
-  color: color-mix(in srgb, var(--on-fill) 82%, var(--fill)) !important;
-  padding: 8px !important;
-  filter: none !important;
-  box-shadow: inset 0 1px 0 #fff, inset 0 -1.5px 2px rgba(0,0,0,.14), 0 5px 10px -3px rgba(0,0,0,.4), 0 0 0 .5px rgba(0,0,0,.12) !important;
-}
-@media (min-width: 600px) {
-  :root[data-theme^="hw-"] body #menuBody .tg-ic { border-radius: 20px !important; }
-  :root[data-theme^="hw-"] body #menuBody .tg-ic svg { padding: 9px !important; }
-}
-/* ขอบไทล์ย้อมสีธีม — เจ้าของ: "ให้สีตรงขอบเข้ากับสีธีมด้วย"
-   เดิมขอบกับเส้นสะท้อนเป็นขาวใส (--lg-*) เหมือนกันทุกธีม · ตอนนี้ผสม --fill ของธีมลงไป ขอบบนสว่างกว่า (แสงตกกระทบ) ล่างเข้มกว่า */
-:root[data-theme^="hw-"] body #menuBody .tg-ic {
-  border: 1.5px solid color-mix(in srgb, var(--fill) 80%, #fff) !important;
-  border-bottom-color: color-mix(in srgb, var(--fill) 70%, #000) !important;
-  box-shadow:
-    inset 0 1.5px 0 color-mix(in srgb, var(--fill) 35%, #fff), inset 1.5px 0 0 color-mix(in srgb, var(--fill) 55%, transparent),
-    inset 0 -1.5px 0 color-mix(in srgb, var(--fill) 40%, transparent), inset -1px 0 0 color-mix(in srgb, var(--fill) 40%, transparent),
-    inset 0 0 14px -2px color-mix(in srgb, #fff 26%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--fill) 30%, transparent),
-    0 14px 24px -12px var(--lg-drop), 0 0 20px -5px color-mix(in srgb, var(--fill) 70%, transparent) !important;
-}
-:root[data-theme^="hw-"] body #menuBody .tg-ic svg {
-  border-color: color-mix(in srgb, var(--fill) 45%, #fff) !important;
-}
 
 /* ============================================================
    รอบสาม (25 ต.ค. 69) — เจ้าของ: /liquid-glass-js "ลองเอาไปแก้จุดที่ควรแก้หน่อย"
    ยังเป็น CSS ล้วนตามกติกา (ไม่มี WebGL) · เลือกของที่ "ลอย" อยู่บนฉากและยังแบนอยู่ ซึ่งคือที่ที่กระจกช่วยจริง
    ============================================================ */
 
+/* (25 ต.ค. 69 · ไทล์หน้าแรกกับช่อง "ถามน้องฮูก" ของธีม Halloween ทั้ง 6 กลับไปใช้กฎธีมหลักแล้ว — ถอดกฎเฉพาะออกจากไฟล์นี้) */
 /* ① แถบบนสุดของหน้าแรก (สตรีค · เหรียญ · Candy · อันดับ · กระดิ่ง)
    ธีม hw-* ทุกธีมได้ --glass ของ hw- ตัวฐาน (#1b2b34 ฟ้าอมเขียวของเรือผี) เพราะธีมย่อยไม่ได้ตั้ง --glass เอง
    → แวมไพร์/ฟักทอง/สุสานได้แถบสีฟ้าที่ไม่เข้าธีม · ใช้ --soft-card ของแต่ละธีมแทน
@@ -142,22 +93,3 @@ body #menuBody .td-top {
 }
 :root[data-lite] body #menuBody .td-top { -webkit-backdrop-filter: none; backdrop-filter: none; }
 
-/* ② ช่อง "ถามน้องฮูก…" ในธีม Halloween — biome-themes.css ถอดวงกระจกออก (:before/:after) เหลือการ์ดทึบแบน
-   ให้เป็นกระจกชิ้นเดียวกับแถบบน (ขอบสะท้อน + แสงขอบสีธีม) · ตอนพิมพ์ขอบสว่างขึ้นเป็นสีธีม */
-:root[data-theme^="hw-"] body #menuBody .td-ask {
-  background:
-    radial-gradient(60% 160% at 6% -40%, rgba(255,255,255,.16), transparent 62%),
-    color-mix(in srgb, var(--soft-card, var(--card)) 74%, transparent) !important;
-  border: 1px solid color-mix(in srgb, var(--fill) 30%, var(--lg-mid)) !important;
-  box-shadow:
-    inset 0 1.5px 0 var(--lg-hi), inset 0 -1px 0 var(--lg-lo),
-    inset 0 0 18px -4px color-mix(in srgb, var(--fill) 38%, transparent),
-    0 10px 24px -14px var(--lg-drop) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(160%) !important; backdrop-filter: blur(18px) saturate(160%) !important;
-}
-:root[data-theme^="hw-"] body #menuBody .td-ask:focus-within {
-  border-color: color-mix(in srgb, var(--fill) 75%, transparent) !important;
-  box-shadow:
-    inset 0 1.5px 0 var(--lg-hi), inset 0 0 20px -4px color-mix(in srgb, var(--fill) 55%, transparent),
-    0 0 0 3px color-mix(in srgb, var(--fill) 16%, transparent), 0 10px 24px -14px var(--lg-drop) !important;
-}
