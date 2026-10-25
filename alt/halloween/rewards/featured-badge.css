@@ -60,7 +60,7 @@
 .phone .hw-featured-picker::backdrop { background: color-mix(in srgb, var(--scr, #000) 70%, transparent); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
 .phone .hw-featured-head {
   position: sticky; top: 0; z-index: 2; margin: 0 -16px; padding: 22px 56px 10px 18px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--fill) 8%, var(--card)) 82%, transparent);
+  background: color-mix(in srgb, var(--fill) 8%, var(--card));
 }
 .phone .hw-featured-head .hw-badge-close {
   position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; border-radius: 50%;
@@ -72,7 +72,21 @@
 .phone .hw-featured-message { min-height: 0; margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
 .phone .hw-featured-message:empty { display: none; }
 .phone .hw-featured-options { gap: 10px; padding-top: 6px; }
-.phone .hw-featured-options h3 { margin: 12px 0 2px; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+/* หัวกลุ่มตรา (ตรา Student OS · ตราอีเวนต์ Halloween) — 26 ต.ค. 69 · เจ้าของ: "เพิ่มขนาดกับความชัดให้คำว่าตรา อย่าให้มันเลื่อนตามไปด้วย"
+   ใหญ่ขึ้น (12.5 → 15px) หนาขึ้น สีหมึกเต็ม มีขีดสีธีมนำหน้า · ค้างใต้หัวแผ่นตอนเลื่อน จนหัวกลุ่มถัดไปมาดันออก
+   --fh = ความสูงหัวแผ่น (featured-badge.js วัดตอนเปิดแผ่น · ResizeObserver วัดใหม่เมื่อข้อความในหัวเปลี่ยน) · พื้นทึบกันการ์ดลอดข้างหลัง */
+.phone .hw-featured-options h3 {
+  position: sticky; top: var(--fh, 104px); z-index: 1;
+  display: flex; align-items: center; gap: 8px;
+  margin: 8px -16px 2px; padding: 9px 16px;
+  font-size: 15px; font-weight: 800; letter-spacing: -.01em; color: var(--ink);
+  background: color-mix(in srgb, var(--fill) 8%, var(--card));
+  border-bottom: 1px solid color-mix(in srgb, var(--fill) 22%, var(--line));
+}
+.phone .hw-featured-options h3::before {
+  content: ""; flex: none; width: 4px; height: 18px; border-radius: 2px; background: var(--fill);
+  box-shadow: 0 0 10px -1px color-mix(in srgb, var(--fill) 70%, transparent);
+}
 .phone .hw-featured-choice {
   padding: 10px 8px 12px; border-radius: 16px; color: var(--ink);
   background: color-mix(in srgb, var(--card2, var(--card)) 85%, transparent); border: 1px solid var(--line);
