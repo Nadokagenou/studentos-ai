@@ -163,3 +163,91 @@
   :root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone .tg-t:active .tg-ic { transform: none !important; }
   :root[data-theme="hw-graveyard"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go):active { transform: none !important; }
 }
+
+/* ============================================================
+   ของแต่งมุมการ์ด + เอฟเฟกต์บรรยากาศ — 25 ต.ค. 69
+   เจ้าของ: "ทำให้มันดูเป็นฮาลาวีนมากกว่านี้" (เลือก: สี UI ให้เข้ากว่านี้แต่อย่าให้รกตา · ของแต่งมุมการ์ด · เอฟเฟกต์บรรยากาศ)
+   ข้อจำกัดที่ตั้งเอง (เคยถอดผี/ควัน/เลือดออกจากปุ่มเพราะ "ดูรก" 23 ต.ค.):
+     • ของแต่งอยู่เฉพาะมุมขวาบนของการ์ดใหญ่ไม่กี่ใบ (การ์ด "ทำอันนี้ก่อน" · การ์ดโฟกัสในจองาน · การ์ดสถิติ) ไม่แตะปุ่ม
+     • วาดใต้เนื้อหา (z-index -1 ในการ์ดที่ isolate) โปร่ง .3 ย้อมสีหลักของธีม — ไม่บังป้าย "ด่วนมาก" หรือตัวหนังสือ
+     • รูปเป็น SVG ใช้เป็น mask สีจึงมาจาก --fill ของธีม ไม่ใช่สีฝังในรูป
+     • บรรยากาศ: ของบินผ่านนาน ๆ ครั้ง (บินจริง ~4 วิ ใน 26 วิ) · หมอกพื้นล่าง · อยู่ในฉากหลังเนื้อหาเสมอ
+     • ขยับด้วย transform/opacity เท่านั้น · โหมดประหยัดและลดการเคลื่อนไหว = ไม่มีของบิน หมอกหยุดนิ่ง
+   ============================================================ */
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.td-now, .td-clear, #scr-tasks .tb-focus, .st-card) {
+  position: relative; isolation: isolate;
+}
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.td-now, .td-clear, #scr-tasks .tb-focus, .st-card)::before {
+  content: ""; position: absolute; top: 0; right: 0; width: 54px; height: 54px; z-index: -1; pointer-events: none;
+  background: color-mix(in srgb, var(--fill) 70%, #fff); opacity: .3;
+  -webkit-mask: var(--hwi-corner) top right / contain no-repeat; mask: var(--hwi-corner) top right / contain no-repeat;
+}
+/* การ์ด "ทำอันนี้ก่อน" กับการ์ดโฟกัสในจองานมีหัวทาสีหลักทึบ ของที่อยู่ใต้เนื้อหาจะโดนหัวบังมิด
+   → วางบนหัวแทน ตรงที่ว่างขวามือใต้ป้าย "ด่วนมาก" (หัวสูง ~125px · ป้ายอยู่แถวบนสุด) เป็นรอยปั๊มสีเข้มจาง ๆ บนสีหลัก */
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.td-now, .td-clear, #scr-tasks .tb-focus)::before {
+  top: 46px; right: 12px; width: 46px; height: 46px; z-index: 1;
+  background: var(--on-fill); opacity: .18;
+}
+/* หนังสือคาถา: ใยแมงมุมที่มุม · สุสาน: แมงมุมห้อยจากเส้นใย */
+:root[data-theme="halloween"] { --hwi-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none' stroke='%23000' stroke-width='1.3' stroke-linecap='round'%3E%3Cpath d='M47 1H5M47 1L12 23M47 1L28 37M47 1v41'/%3E%3Cpath d='M37 1q-1 6 4 7.5t6 5.5M27 1q-1 11 8 14.5T47 26M16 1q-1 16 12 22.5T47 38' stroke-width='1'/%3E%3C/svg%3E"); }
+:root[data-theme="hw-graveyard"] { --hwi-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='round'%3E%3Cpath d='M36 0v17'/%3E%3Cpath d='M32.5 20l-6-4M32 23h-7M32.5 26l-6 4M39.5 20l6-4M40 23h7M39.5 26l6 4'/%3E%3Ccircle cx='36' cy='24' r='4.5' fill='%23000'/%3E%3Ccircle cx='36' cy='18.5' r='2.4' fill='%23000'/%3E%3C/svg%3E"); }
+/* จันทร์เสี้ยว + ดาว */
+:root[data-theme="moonlight"] { --hwi-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M37 5a12 12 0 1 0 9 19A10 10 0 1 1 37 5z'/%3E%3Cpath d='M20 9l1.2 3.3 3.3 1.2-3.3 1.2L20 18l-1.2-3.3-3.3-1.2 3.3-1.2zM27 27l.8 2.2 2.2.8-2.2.8L27 33l-.8-2.2-2.2-.8 2.2-.8z'/%3E%3C/svg%3E"); }
+/* พวงมาลัยเรือ */
+:root[data-theme="hw-ghostship"] { --hwi-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none' stroke='%23000' stroke-linecap='round'%3E%3Ccircle cx='33' cy='15' r='9' stroke-width='2.4'/%3E%3Ccircle cx='33' cy='15' r='2.6' fill='%23000'/%3E%3Cpath d='M33 1v28M19 15h28M23 5l20 20M43 5L23 25' stroke-width='2'/%3E%3C/svg%3E"); }
+/* ฟักทองกับเถา */
+:root[data-theme="hw-jackhollow"] { --hwi-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cellipse cx='33' cy='24' rx='12' ry='9.5'/%3E%3Cpath d='M32 15c-.5-3 .5-5.5 2.5-7' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'/%3E%3Cpath d='M35 11c4-5 9-4 11-1' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E"); }
+/* ค้างคาว */
+:root[data-theme="hw-vampire"] { --hwi-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M33 17c-1.3-1.8-2.7-1.8-3.8-.8-1-3-4.8-4.8-9.7-3.8 2.8 1 3.9 2.9 3.9 5.8-1.9-1-3.9-1-5.8 0 2.9 1 4.8 2.9 5.8 5.8 1.9-1.9 4.8-2.9 7.7-1.9.9-1.9 1.4-2.4 1.9-2.4s1 .5 1.9 2.4c2.9-1 5.8 0 7.7 1.9 1-2.9 2.9-4.8 5.8-5.8-1.9-1-3.9-1-5.8 0 0-2.9 1.1-4.8 3.9-5.8-4.9-1-8.7.8-9.7 3.8-1.1-1-2.5-1-3.8.8z'/%3E%3C/svg%3E"); }
+
+/* ---------- บรรยากาศ: ของบินผ่านฟ้านาน ๆ ครั้ง ----------
+   ฉาก Halloween/Moon & Candle คือ .hw-scene · ธีมชีวนิเวศคือ .hw-biome-scene — ทั้งคู่อยู่หลังเนื้อหา กดทะลุได้ */
+:root:is([data-theme="halloween"], [data-theme="moonlight"]) .hw-scene::after,
+:root[data-theme^="hw-"] .hw-biome-scene::after {
+  content: ""; position: absolute; left: 0; top: 13%; width: 46px; height: 26px; pointer-events: none; z-index: 3;
+  background: color-mix(in srgb, var(--scr) 55%, #000);
+  -webkit-mask: var(--hwi-flyer) center / contain no-repeat; mask: var(--hwi-flyer) center / contain no-repeat;
+  opacity: 0; animation: hwi-fly 26s linear infinite; will-change: transform, opacity;
+}
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme="hw-jackhollow"], [data-theme="hw-vampire"]) {
+  --hwi-flyer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 26'%3E%3Cpath d='M23 9c-1.5-2-3-2-4.2-.9-1.1-3.4-5.4-5.4-10.9-4.3 3.1 1.1 4.4 3.3 4.4 6.5-2.2-1.1-4.4-1.1-6.5 0 3.3 1.1 5.4 3.3 6.5 6.5 2.2-2.2 5.4-3.3 8.7-2.2 1-2.2 1.6-2.7 2-2.7s1 .5 2 2.7c3.3-1.1 6.5 0 8.7 2.2 1.1-3.2 3.2-5.4 6.5-6.5-2.1-1.1-4.3-1.1-6.5 0 0-3.2 1.3-5.4 4.4-6.5-5.5-1.1-9.8.9-10.9 4.3-1.2-1.1-2.7-1.1-4.2.9z'/%3E%3C/svg%3E");
+}
+/* เรือผี · สุสาน: ดวงไฟผีลอยผ่านแทนค้างคาว — เรืองสีหลักของธีม */
+:root:is([data-theme="hw-ghostship"], [data-theme="hw-graveyard"]) .hw-biome-scene::after {
+  width: 14px; height: 14px; border-radius: 50%; top: 42%;
+  -webkit-mask: none; mask: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--fill) 70%, #fff) 0 30%, color-mix(in srgb, var(--fill) 55%, transparent) 55%, transparent 72%);
+  box-shadow: 0 0 18px 6px color-mix(in srgb, var(--fill) 35%, transparent);
+  animation: hwi-wisp 30s ease-in-out infinite;
+}
+@keyframes hwi-fly {
+  0%, 84% { opacity: 0; transform: translate3d(-60px, 0, 0) scale(.8); }
+  86% { opacity: .85; }
+  90% { transform: translate3d(38vw, -14px, 0) scale(.9); }
+  95% { transform: translate3d(72vw, 6px, 0) scale(.75); opacity: .75; }
+  100% { opacity: 0; transform: translate3d(calc(100vw + 60px), -10px, 0) scale(.65); }
+}
+@keyframes hwi-wisp {
+  0%, 70% { opacity: 0; transform: translate3d(8vw, 0, 0); }
+  76% { opacity: .9; transform: translate3d(22vw, -16px, 0); }
+  84% { opacity: .55; transform: translate3d(44vw, 8px, 0); }
+  92% { opacity: .85; transform: translate3d(66vw, -10px, 0); }
+  100% { opacity: 0; transform: translate3d(84vw, 4px, 0); }
+}
+/* หมอกพื้นในธีมชีวนิเวศ (Halloween/Moon & Candle มีหมอกของฉากอยู่แล้ว) — ลอยช้า ๆ ใต้แถบล่าง */
+:root[data-theme^="hw-"] .hw-biome-scene::before {
+  content: ""; position: absolute; left: -20%; right: -20%; bottom: -30px; height: 190px; pointer-events: none; z-index: 2;
+  background:
+    radial-gradient(ellipse 45% 55% at 30% 75%, color-mix(in srgb, var(--fill) 16%, rgba(255,255,255,.1)), transparent 70%),
+    radial-gradient(ellipse 40% 50% at 72% 85%, color-mix(in srgb, var(--fill) 12%, rgba(255,255,255,.08)), transparent 70%);
+  animation: hwi-fog 22s ease-in-out infinite alternate; will-change: transform;
+}
+@keyframes hwi-fog { from { transform: translate3d(-5%, 0, 0); opacity: .7; } to { transform: translate3d(5%, -10px, 0); opacity: 1; } }
+
+:root[data-lite] :is(.hw-scene, .hw-biome-scene)::after,
+html[data-hw-motion="still"] :is(.hw-scene, .hw-biome-scene)::after { display: none; }
+:root[data-lite] .hw-biome-scene::before, html[data-hw-motion="still"] .hw-biome-scene::before { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-hw-motion="full"]) :is(.hw-scene, .hw-biome-scene)::after { display: none; }
+  html:not([data-hw-motion="full"]) .hw-biome-scene::before { animation: none; }
+}

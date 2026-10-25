@@ -72,3 +72,12 @@ img[src*="halloween/rewards/theme-assets/sai-witch.webp"],img[src*="halloween/re
 :root[data-theme="hw-jackhollow"]{--glass:#35232ae8;--grad-hero:linear-gradient(140deg,#4a2e2c,#21151c);--tint:#573a32;--blue-deep:#f0cfa6;--on-accent:#301c24}
 :root[data-theme="hw-vampire"]{--glass:#302031e8;--grad-hero:linear-gradient(140deg,#4a2a44,#1b1425);--tint:#56324b;--blue-deep:#ecc6dc;--on-accent:#2d182b}
 :root[data-theme="hw-graveyard"]{--glass:#29263be8;--grad-hero:linear-gradient(140deg,#3b3358,#171728);--tint:#42365b;--blue-deep:#d6cbf2;--on-accent:#211b32}
+
+/* 25 ต.ค. 69 · เจ้าของ: "ทำให้มันดูเป็นฮาลาวีนมากกว่านี้ · ปรับพวกสี UI ให้เข้ากว่านี้ แต่อย่าให้รกตา"
+   สีหลักเดิมเป็นพาสเทลจาง (มิ้นต์ · น้ำตาลอ่อน · ชมพูหวาน · ลาเวนเดอร์) อ่านเป็นแอปน่ารักมากกว่าคืนฮาโลวีน
+   → สีเดียวกันแต่ "เข้มข้นแบบผี": เรือผีเขียววิญญาณเรืองแสง · ฟักทองส้มสด · แวมไพร์แดงกุหลาบเลือด · สุสานเขียวแม่มดบนคืนม่วง
+   เปลี่ยนเฉพาะโทเคน (--fill · --on-fill · --blue · --grad-brand) ทุกชิ้นตามเอง · ตัวบนปุ่มยังเข้มบนสีสว่าง */
+:root[data-theme="hw-ghostship"]{--fill:#6FEFC4;--on-fill:#06231B;--fill-on:#06231B;--on-accent:#06231B;--blue:#8FF2D2;--grad-brand:linear-gradient(125deg,#2E8F78,#1B5A55)}
+:root[data-theme="hw-jackhollow"]{--fill:#FF9A3C;--on-fill:#2A1206;--fill-on:#2A1206;--on-accent:#2A1206;--blue:#FFC27A;--grad-brand:linear-gradient(125deg,#D2691E,#7A3412)}
+:root[data-theme="hw-vampire"]{--fill:#F2708C;--on-fill:#2A0B16;--fill-on:#2A0B16;--on-accent:#2A0B16;--blue:#F5A9BF;--grad-brand:linear-gradient(125deg,#B3264A,#5C1530)}
+:root[data-theme="hw-graveyard"]{--fill:#A8E27C;--on-fill:#15220C;--fill-on:#15220C;--on-accent:#15220C;--blue:#C9BBEA;--grad-brand:linear-gradient(125deg,#5E8E3A,#3B3060)}

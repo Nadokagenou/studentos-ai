@@ -113,3 +113,8 @@ html[data-lite="1"] .hw-scene *{animation:none!important}
 /* สีลำดับความสำคัญกับสีทองแบบธีมมืด — ชุดเดียวกับธีมหลักมืด (alt.css: magic/galaxy/…) และ hw-*
    เดิมธีมนี้ไม่ได้ตั้ง จึงได้ค่าธีมสว่างจาก style.css (ตัวหนังสือน้ำตาลเข้ม/แดงเข้ม) บนการ์ดมืด → "โทเคน" 2.2 · ป้ายแดง 1.9 */
 :root[data-theme="halloween"]{--pri-red-soft:rgba(255,107,124,.28);--pri-red-text:#FF9AA6;--pri-yellow-soft:rgba(240,185,10,.28);--pri-yellow-text:#F3C64B;--pri-green-soft:rgba(52,211,153,.28);--pri-green-text:#5BDC93;--gold-soft:rgba(240,193,74,.26);--gold-text:#F0C14A}
+
+/* 25 ต.ค. 69 · เจ้าของ: "ทำให้มันดูเป็นฮาลาวีนมากกว่านี้ · ปรับพวกสี UI ให้เข้ากว่านี้ แต่อย่าให้รกตา"
+   สีหลักเดิมเป็นทองหม่น (#dfb783) ปุ่มทั้งแอปออกน้ำตาลอ่อน ไม่บอกว่าฮาโลวีน → ส้มฟักทอง คู่กับม่วงแม่มดที่มีอยู่แล้ว (--blue)
+   ส้ม+ม่วงบนกลางคืนคือคู่สีประจำเทศกาล · ตัวบนปุ่มยังเข้มบนส้มสว่าง (คอนทราสต์ > 7) */
+:root[data-theme="halloween"]{--hw-accent:#F59A45;--fill:#F59A45;--on-fill:#24110A;--fill-on:#24110A;--on-accent:#24110A;--grad-brand:linear-gradient(125deg,#8B4FB0,#C4561F)}
