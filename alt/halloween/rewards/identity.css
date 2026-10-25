@@ -1,0 +1,165 @@
+/* ============================================================
+   ตัวตนของธีม Halloween ทั้ง 6 — 25 ต.ค. 69
+   เจ้าของ (/ui-ux-pro-max): "ปรับให้ UI แต่ธีมมีเอกลักษณ์ของแต่ละธีมฮาลาวีน
+     Dutchman · Moon & Candle · Halloween · Jack'o Lantern · Vampire Mansion · Eternal Graveyard"
+   ก่อนหน้านี้ทั้ง 6 ธีมถอดการแต่งคอมโพเนนต์เองออกให้ใช้ UI ของธีมหลัก (ปุ่มเหมือนกันหมด ต่างแค่สีกับฉาก)
+   รอบนี้ใส่ตัวตนกลับด้วย "ระบบตัวตนของธีมหลัก" ตัวเดียวกับ 12 ธีมใน alt.css (ทรง --id-* · ผิวปุ่มหลัก · แท็บที่เลือก
+   · หัวข้อจอ · ท่าเปลี่ยนจอ · ท่ากดไอคอน) — UI ยังเป็นชุดเดียวกับธีมหลัก ต่างกันที่ทรงกับนิสัยแบบที่ธีมหลักต่างกันเอง
+   แต่ละธีมมีแนวคิดเดียว ทุกชิ้นตามแนวคิดนั้น:
+     Halloween คลาสสิก (Midnight Academy) — หนังสือคาถา: มุมสันหนังสือ · สันทองด้านซ้าย · เปลี่ยนจอแบบพลิกหน้า
+     Moon & Candle — ข้างขึ้นข้างแรม: ทรงกลม · เงาเสี้ยวจันทร์ · แท็บที่เลือกมีเปลวเทียนส้มใต้ · จันทร์ขึ้น
+     Dutchman — เรือผี: ช่องหน้าต่างเรือกลมขอบทองเหลือง · เรือโคลงตอนกด · คลื่นยกตอนเปลี่ยนจอ
+     Jack'o Lantern — ฟักทองจุดเทียน: ทรงฟักทองป้อม · แสงเทียนอุ่นในปุ่ม · ไฟกะพริบตอนเปลี่ยนจอ
+     Vampire Mansion — คฤหาสน์: ตราประจำตระกูล (ล่างโค้ง) · กรอบรูปเส้นคู่ · ค่อย ๆ ปรากฏแบบผ้ากำมะหยี่
+     Eternal Graveyard — ป้ายหลุมศพ: หัวโค้งฐานตรง · ฐานหินหนา · โผล่ขึ้นจากดิน · กดแล้วจมลงดิน
+   กติกาที่ยังคงไว้ (เหมือนระบบเดิม): ไทล์กริดหน้าแรก (.tg-ic) ทรงเดียวกันทุกธีม (เจ้าของสั่ง 12 ต.ค. 69)
+   · สีบอกสถานะไม่เปลี่ยน · ทองเฉพาะของสำเร็จจริง (สันทองหนังสือ/ขอบทองเหลืองเป็นสีของวัสดุ ไม่ใช่เหรียญ/รางวัล — ใช้โทนทองหม่น)
+   · ทุกท่าใช้ transform/opacity · ลดการเคลื่อนไหว = ไม่ขยับ
+   โหลดหลัง glass.css (ปุ่มกลับกระจกใน glass.css ใช้ !important) จึงต้องมาทีหลังจึงชนะ
+   ============================================================ */
+
+/* ---------- ทรงของแต่ละธีม (ชื่อตัวแปรเดียวกับ alt.css) ---------- */
+:root[data-theme="halloween"] {
+  --id-tile: 6px 18px 18px 6px; --id-chip: 50%; --id-btn: 8px 18px 18px 8px; --id-tab: 5px 14px 14px 5px;
+  --id-bar: 12px 26px 26px 12px; --id-back: 5px 14px 14px 5px; --id-ctl: 4px 12px 12px 4px; --id-in: 6px 16px 16px 6px;
+  --id-title-ink: linear-gradient(100deg, #F3D9A8, #DFB783 45%, #C9A7E8);
+  --hwi-ring: inset 3px 0 0 #C9A06A;                                     /* สันหนังสือ */
+}
+:root[data-theme="moonlight"] {
+  --id-tile: 50%; --id-chip: 50%; --id-btn: 999px; --id-tab: 999px;
+  --id-bar: 30px; --id-back: 50%; --id-ctl: 999px; --id-in: 999px;
+  --id-title-ink: linear-gradient(100deg, #F4F2FF, #A9DCFF 55%, #7DD3FF);
+  --hwi-ring: inset -5px -4px 0 -1px rgba(6, 12, 48, .28);               /* เงาเสี้ยวจันทร์ */
+}
+:root[data-theme="moonlight"][data-hw-tone="light"] {
+  --id-title-ink: linear-gradient(100deg, #1D4FC4, #3A1C8C);
+  --hwi-ring: inset -5px -4px 0 -1px rgba(30, 40, 120, .14);
+}
+:root[data-theme="hw-ghostship"] {
+  --id-tile: 50%; --id-chip: 50%; --id-btn: 999px; --id-tab: 999px;
+  --id-bar: 30px; --id-back: 50%; --id-ctl: 999px; --id-in: 999px;
+  --id-title-ink: linear-gradient(100deg, #E6F7F0, #A4D7C8 50%, #6FB8A8);
+  --hwi-ring: 0 0 0 2px #B89A62, 0 0 0 3px rgba(0, 0, 0, .35);           /* ขอบทองเหลืองช่องหน้าต่างเรือ */
+}
+:root[data-theme="hw-jackhollow"] {
+  --id-tile: 46% 46% 42% 42% / 54% 54% 46% 46%; --id-chip: 50%; --id-btn: 22px; --id-tab: 18px;
+  --id-bar: 28px; --id-back: 46% 46% 42% 42% / 54% 54% 46% 46%; --id-ctl: 14px; --id-in: 18px;
+  --id-title-ink: linear-gradient(100deg, #FFD9A0, #F0A04B 55%, #E5B37D);
+  --hwi-ring: inset 0 0 12px rgba(255, 150, 50, .5), 0 0 14px -4px rgba(255, 140, 40, .6);   /* แสงเทียนในฟักทอง */
+}
+:root[data-theme="hw-vampire"] {
+  --id-tile: 12px 12px 50% 50% / 12px 12px 34% 34%; --id-chip: 50%; --id-btn: 10px; --id-tab: 10px;
+  --id-bar: 16px; --id-back: 10px 10px 50% 50% / 10px 10px 36% 36%; --id-ctl: 6px; --id-in: 10px;
+  --id-title-ink: linear-gradient(100deg, #F7D3E2, #DAA4BA 50%, #C2577E);
+  --hwi-ring: 0 0 0 1px var(--fill), 0 0 0 3px var(--card), 0 0 0 4px color-mix(in srgb, var(--fill) 55%, transparent);   /* กรอบรูปเส้นคู่ */
+}
+:root[data-theme="hw-graveyard"] {
+  --id-tile: 50% 50% 6px 6px / 42% 42% 6px 6px; --id-chip: 50%; --id-btn: 18px 18px 6px 6px; --id-tab: 14px 14px 5px 5px;
+  --id-bar: 24px 24px 12px 12px; --id-back: 50% 50% 6px 6px / 44% 44% 6px 6px; --id-ctl: 12px 12px 4px 4px; --id-in: 14px 14px 6px 6px;
+  --id-title-ink: linear-gradient(100deg, #F2EEF8, #C1B4E7 55%, #9C8FC8);
+  --hwi-ring: inset 0 -3px 0 rgba(0, 0, 0, .3), 0 0 0 1px color-mix(in srgb, var(--fill) 35%, transparent);   /* ฐานหิน */
+}
+
+/* ---------- ใช้ทรงกับชิ้นเดียวกับที่ธีมหลักใช้ ---------- */
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.es-ic, .nt-empty-ic, .set-ic, .pe-ic, .as-ic, .tb-nd-ic, .soon-ic, .bd-entry-ic, .bd-guest-ic, .fd-blank-ic, .dm-blank-ic) {
+  border-radius: var(--id-tile) !important;
+}
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.tc-cta, .btn.primary, .fm-save, .sai-cta, .ck-cta, .pro-cta, .ep-save, .ai-read, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go, .fr-go, .gc-go) {
+  border-radius: var(--id-btn) !important;
+}
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]):not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { border-radius: var(--id-tab); }
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.sh-btn, .set-back, .ch-back, .hw-back, .tp-back, .sh-back, .lg-back, .rp-back, .back, .fc-x, button[aria-label^="กลับ"]) {
+  border-radius: var(--id-back) !important;
+}
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone .tabbar { border-radius: var(--id-bar) !important; }
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.tk-thumb, .tk-mode.on, .gbg-ind, .bd-seg-k, .fd-scope.on, .chip, .cp-chip, .so-chip, .cx2-chip, .sp, .tk-modes, .gbg, .bd-seg) {
+  border-radius: var(--id-ctl) !important;
+}
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.fr-search, .sai-bar, #menuBody .td-ask, .ep .ep-f > input[type="text"], .set-row input[type="text"]) {
+  border-radius: var(--id-in) !important;
+}
+/* หัวข้อจอไล่สีของธีม (ตัวหนังสือล้วน · ไม่ใช้กับคำทักทายหน้าแรก — เหตุผลเดียวกับ alt.css ⑤) */
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.page-title, .fd-title) {
+  background-image: var(--id-title-ink); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+
+/* ---------- ลายเซ็นของแต่ละธีม: วงรอบไอคอนในแถว · ปุ่มกลับ ---------- */
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.set-ic, .pe-ic, .as-ic) { box-shadow: var(--hwi-ring) !important; }
+
+/* ---------- ผิวปุ่มหลัก ---------- */
+:root[data-theme="halloween"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 4px 0 0 #C9A06A, inset 0 1px 0 rgba(255, 255, 255, .45), 0 12px 24px -10px rgba(139, 91, 153, .7) !important;
+}
+:root[data-theme="moonlight"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 0 0 1px rgba(169, 220, 255, .35), 0 0 26px -6px rgba(125, 211, 255, .75) !important;
+}
+:root[data-theme="hw-ghostship"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 0 0 2px #B89A62, 0 0 0 3.5px rgba(0, 0, 0, .3), 0 12px 24px -10px rgba(20, 60, 60, .8) !important;
+}
+:root[data-theme="hw-jackhollow"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 0 18px rgba(255, 170, 70, .45), 0 0 28px -6px rgba(255, 130, 30, .75) !important;
+}
+:root[data-theme="hw-vampire"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 0 0 2px var(--card), 0 0 0 3px var(--fill), 0 14px 26px -10px rgba(120, 30, 70, .8) !important;
+}
+:root[data-theme="hw-graveyard"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 4px 0 color-mix(in srgb, var(--fill) 45%, #12101e), 0 12px 20px -8px rgba(0, 0, 0, .6) !important;
+}
+:root[data-theme="hw-graveyard"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go):active {
+  transform: translateY(3px) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 1px 0 color-mix(in srgb, var(--fill) 45%, #12101e) !important;
+}
+
+/* ---------- แท็บที่เลือกบนแถบล่าง ---------- */
+:root[data-theme="halloween"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: inset 3px 0 0 #C9A06A !important; }
+:root[data-theme="moonlight"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: inset 0 -2.5px 0 #FF9A3D, 0 6px 14px -6px rgba(255, 154, 61, .7) !important; }
+:root[data-theme="hw-ghostship"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: 0 0 0 1.5px #B89A62 !important; }
+:root[data-theme="hw-jackhollow"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: inset 0 0 12px rgba(255, 160, 60, .55), 0 0 16px -4px rgba(255, 130, 30, .7) !important; }
+:root[data-theme="hw-vampire"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: 0 0 0 1px var(--fill), 0 0 0 3px var(--card), 0 0 0 4px color-mix(in srgb, var(--fill) 50%, transparent) !important; }
+:root[data-theme="hw-graveyard"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .28), 0 0 0 1px color-mix(in srgb, var(--fill) 40%, transparent) !important; }
+
+/* ---------- ท่าเปลี่ยนจอ (เฉพาะเข้าจอย่อย/ถอยกลับ · กดแท็บล่างใช้ท่ากลางเหมือนทุกธีม — กติกาเดียวกับ alt.css) ---------- */
+/* หนังสือคาถา: พลิกหน้า — เอียงเข้าจากขอบนิดเดียว */
+:root[data-theme="halloween"] body:not([data-godir="lat"]) .screen.on { animation: hwi-page .42s cubic-bezier(.22, 1, .36, 1) both; transform-origin: 0 50%; }
+@keyframes hwi-page { from { opacity: 0; transform: translate3d(calc(var(--id-dx) * .5), 0, 0) skewY(.6deg) scaleX(.985); } }
+/* จันทร์ขึ้น: ลอยขึ้นช้า ๆ */
+:root[data-theme="moonlight"] body:not([data-godir="lat"]) .screen.on { animation: hwi-moonrise .52s cubic-bezier(.16, 1, .3, 1) both; }
+@keyframes hwi-moonrise { from { opacity: 0; transform: translate3d(calc(var(--id-dx) * .4), 12px, 0); } }
+/* เรือผี: คลื่นยก — ขึ้นแล้วโยนกลับนิดหนึ่ง */
+:root[data-theme="hw-ghostship"] body:not([data-godir="lat"]) .screen.on { animation: hwi-swell .56s cubic-bezier(.3, 1, .4, 1) both; }
+@keyframes hwi-swell {
+  0% { opacity: 0; transform: translate3d(calc(var(--id-dx) * .5), 10px, 0); }
+  60% { opacity: 1; transform: translate3d(0, -2px, 0); }
+  100% { opacity: 1; transform: none; }
+}
+/* ฟักทอง: ไฟเทียนกะพริบสองจังหวะก่อนติดเต็ม */
+:root[data-theme="hw-jackhollow"] body:not([data-godir="lat"]) .screen.on { animation: hwi-flicker .4s linear both; }
+@keyframes hwi-flicker {
+  0% { opacity: 0; transform: translate3d(calc(var(--id-dx) * .4), 4px, 0); }
+  30% { opacity: .85; transform: translate3d(calc(var(--id-dx) * .15), 1px, 0); }
+  45% { opacity: .6; }
+  70% { opacity: 1; transform: none; }
+  100% { opacity: 1; transform: none; }
+}
+/* คฤหาสน์: ค่อย ๆ ปรากฏแบบผ้ากำมะหยี่ — ช้า นุ่ม หดจากใหญ่นิดเดียว */
+:root[data-theme="hw-vampire"] body:not([data-godir="lat"]) .screen.on { animation: hwi-velvet .5s cubic-bezier(.4, 0, .2, 1) both; }
+@keyframes hwi-velvet { from { opacity: 0; transform: translate3d(calc(var(--id-dx) * .3), 0, 0) scale(1.012); } }
+/* สุสาน: โผล่ขึ้นจากดิน */
+:root[data-theme="hw-graveyard"] body:not([data-godir="lat"]) .screen.on { animation: hwi-rise .48s cubic-bezier(.22, 1, .36, 1) both; transform-origin: 50% 100%; }
+@keyframes hwi-rise { from { opacity: 0; transform: translate3d(calc(var(--id-dx) * .4), 14px, 0) scaleY(.985); } }
+
+/* ---------- ท่าตอนกดไอคอนหน้าแรก ---------- */
+:root[data-theme="halloween"] .phone .tg-t:active .tg-ic { transform: rotate(-3deg) scale(.94) !important; }
+:root[data-theme="moonlight"] .phone .tg-t:active .tg-ic { transform: scale(.9) !important; }
+:root[data-theme="hw-ghostship"] .phone .tg-t:active .tg-ic { transform: rotate(-5deg) translateY(2px) scale(.95) !important; }
+:root[data-theme="hw-jackhollow"] .phone .tg-t:active .tg-ic { transform: translateY(2px) scale(.93) !important; filter: brightness(1.18); }
+:root[data-theme="hw-vampire"] .phone .tg-t:active .tg-ic { transform: scale(.94) !important; opacity: .85; }
+:root[data-theme="hw-graveyard"] .phone .tg-t:active .tg-ic { transform: translateY(4px) scale(.96) !important; }
+
+/* ลดการเคลื่อนไหว = ไม่ขยับ (กฎใน alt.css มาก่อนไฟล์นี้ จึงต้องเขียนซ้ำให้ชนะท่าข้างบน) */
+@media (prefers-reduced-motion: reduce) {
+  :root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) body[data-godir] .screen.on { animation: none !important; }
+  :root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone .tg-t:active .tg-ic { transform: none !important; }
+  :root[data-theme="hw-graveyard"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go):active { transform: none !important; }
+}
