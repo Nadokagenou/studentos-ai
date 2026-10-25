@@ -125,12 +125,16 @@ function saiAim(x, y) {
   saiTouched = true;
   saiPX = Math.max(-1, Math.min(1, (x / window.innerWidth - 0.5) * 2.2));
   saiPY = Math.max(-1, Math.min(1, (y / window.innerHeight - 0.5) * 2.2));
+  saiStart();   // ลูปหยุดตอนนิ่ง (ดู saiTick) — แตะแล้วต้องปลุกให้หันตามนิ้ว
 }
 
 function saiTick() {
   // 9 ต.ค. 69 · นับเฉพาะเวทีบนจอที่เห็นอยู่ — หน้าแรกไม่เคยถูกลบออกจากหน้า (แค่ซ่อน) ลูปจึงเคยเดิน 60 ครั้ง/วิ
   // ตลอดทั้งรอบที่เปิดแอป แม้อยู่จออื่น · go() ปลุกใหม่ทุกครั้งที่เปลี่ยนจอ
-  const els = [...document.querySelectorAll('.saih-stage, .saip-stage')].filter(el => el.closest('.screen.on'));
+  // 26 ต.ค. 69 · ค้นเฉพาะในจอที่เปิดอยู่ (ผลเท่าเดิม) — เดิมกวาดทั้งหน้าแล้วกรอง closest() ทุกเฟรม
+  // โปรไฟล์ที่ CPU ช้า 8 เท่า: querySelectorAll ของบรรทัดนี้กินเวลา 680ms ใน 11 วิ มากสุดในแอป
+  const scr = document.querySelector('.screen.on');
+  const els = scr ? [...scr.querySelectorAll('.saih-stage, .saip-stage')] : [];
   // ไม่มีเวทีบนจอ = หยุดลูปทิ้ง · saiStart() จะปลุกใหม่เองตอนมีเวทีโผล่
   // ลูปที่เดินต่อไปเรื่อย ๆ ทั้งที่ไม่มีอะไรให้ขยับ คือแบตที่หายไปโดยไม่มีใครได้อะไร
   if (!els.length) { saiLoop = false; return; }
@@ -146,8 +150,11 @@ function saiTick() {
     saiPY = Math.sin(t * 0.7) * 0.22;
   }
 
-  saiCX += (saiPX - saiCX) * 0.09;
-  saiCY += (saiPY - saiCY) * 0.09;
+  // โหมดลื่น: หันตามนิ้วทันทีครั้งเดียว ไม่ไล่ตามแบบหน่วง (หน่วง = เขียนสไตล์ ~60 เฟรมต่อการแตะหนึ่งครั้ง
+  // โปรไฟล์ lowspec เครื่อง low 26 ต.ค. 69: 2.7 วิใน 2 นาที) · เครื่องปกติยังไล่ตามนุ่ม ๆ เหมือนเดิม
+  const k = document.documentElement.dataset.lite ? 1 : 0.09;
+  saiCX += (saiPX - saiCX) * k;
+  saiCY += (saiPY - saiCY) * k;
   // เขียนเฉพาะตอนค่าเปลี่ยนจริง — ทุกครั้งที่เขียน --sx/--sy เบราว์เซอร์คิดสไตล์ใหม่และวาดหน้าเธอใหม่
   // (object-position ขยับบน compositor ไม่ได้) · เดิมเขียนทุกเฟรม 60 ครั้ง/วิ ตลอดเวลาที่อยู่หน้าแรก
   // แม้ตอนหยุดนิ่งแล้ว · ทศนิยม 2 ตำแหน่ง = เอียง 0.06° ต่อขั้น ตาแยกไม่ออก
@@ -158,6 +165,11 @@ function saiTick() {
     el._sx = sx; el._sy = sy;
     el.style.setProperty('--sx', sx); el.style.setProperty('--sy', sy);
   });
+  // 26 ต.ค. 69 · หยุดลูปเมื่อนิ่งแล้ว — ไม่แกว่งเอง (แตะแล้ว หรือโหมดลื่น) และไล่ถึงเป้าแล้ว
+  // เดิมวนต่อทุกเฟรมตลอดที่หน้าแรกเปิดอยู่ ทั้งที่ค่าไม่เปลี่ยนแล้ว (โหมดลื่น 3 วินาทีนิ่ง ๆ = 361 รอบ)
+  // ตื่นใหม่: saiAim (แตะ/ลากนิ้ว) · go() เปลี่ยนจอ — ทั้งคู่เรียก saiStart()
+  const swaying = !saiTouched && !document.documentElement.dataset.lite;
+  if (!swaying && Math.abs(saiPX - saiCX) < 0.004 && Math.abs(saiPY - saiCY) < 0.004) { saiLoop = false; return; }
   requestAnimationFrame(saiTick);
 }
 
