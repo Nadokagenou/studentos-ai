@@ -1,8 +1,8 @@
 /* ============================================================
    THE CURSED SHIP · จอ "เสร็จแล้ว" ช่วงฮาโลวีน (คู่กับ cursed-ship.js)
    ------------------------------------------------------------
-   ทุกกฎอยู่ใต้ .cs-done / .cs-ov / .cs-scene — app.js ใส่ให้เฉพาะตอน :root.hw-season
-   นอกช่วงฮาโลวีนจอ "เสร็จแล้ว" เป็นของเดิมทุกพิกเซล
+   เอฟเฟกต์ตอนงานเสร็จ "The Cursed Ship" — ทุกกฎอยู่ใต้ .cs-done / .cs-ov / .cs-scene
+   ซึ่งมีเฉพาะตอนผู้ใช้เลือกเอฟเฟกต์นี้ · ไม่ได้เลือก = จอ "เสร็จแล้ว" เป็นของเดิมทุกพิกเซล
 
    ภาพทุกช็อตตัดมาจากสตอรีบอร์ดของเจ้าของ (cursed-ship/*.webp) — ดูหัวไฟล์ cursed-ship.js
    ตัวหนังสือบนพื้นจอใช้ #F3ECFF / #C7B9E6 + เงาตัวอักษร เพราะพื้นหลังเป็นภาพวาด ความสว่างไม่คงที่
@@ -62,15 +62,6 @@
 /* ---------- หน้าสรุปฉบับฮาโลวีน (ช่อง 7–10) ---------- */
 .fc-sheet.done.cs-done { position: relative; z-index: 1; color: #F3ECFF;
   --ink: #F3ECFF; --muted: #C7B9E6; --line: rgba(199, 185, 230, .16); }
-.cs-done .cs-fxbtn {
-  align-self: flex-end; display: inline-flex; align-items: center; gap: 5px;
-  margin: 0 0 -6px; padding: 6px 8px; min-height: 32px; border: 0; background: none;
-  color: #B9A7E8; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, .8);
-}
-.cs-done .cs-fxbtn span { font-size: 14px; color: #9D86E0; }
-.cs-done .cs-fxbtn:focus-visible { outline: 2px solid #7CF5C8; outline-offset: 2px; border-radius: 8px; }
-
 /* ใบพระเอก = ผ้าขาดแขวนเสา มีโคมกับเทียน (ภาพจากช่อง 9 ลบตัวหนังสือแล้ว) — ตัวหนังสือจริงวางกลางผืนผ้า */
 .cs-done .fw-hero {
   margin: 10px -8px 0; padding: 15% 15% 12% 11%; text-align: center; align-items: center;
@@ -143,7 +134,8 @@
           5 ตราประทับ 1.79–2.2 · 6 เรือแล่นหาย 2.2–2.78 · 11 ป่าช้า 2.5– → หน้าสรุป 2.7
    ============================================================ */
 .cs-ov {
-  position: absolute; inset: 0; z-index: 5; overflow: hidden; background: transparent;
+  /* ชั้นเดียวกับเอฟเฟกต์อื่น (.hoop-ov = 96) — อยู่เหนือโหมดโฟกัส (92) ทั้งตอนเปิดจากจอเสร็จแล้วและจากหน้าแรก */
+  position: absolute; inset: 0; z-index: 96; overflow: hidden; background: transparent;
   cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none;
   animation: csShake .18s linear 1.85s 1;
   transition: opacity .25s ease;
