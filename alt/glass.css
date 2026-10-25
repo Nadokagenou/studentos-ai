@@ -125,3 +125,18 @@
 @media (max-width: 599px) {
   :root:is([data-theme="halloween"], [data-theme="moonlight"]) body #menuBody .tg-ic svg { width: 20px !important; height: 20px !important; padding: 6px !important; }
 }
+/* ขอบไทล์ย้อมสีธีม — เจ้าของ: "ให้สีตรงขอบเข้ากับสีธีมด้วย"
+   เดิมขอบกับเส้นสะท้อนเป็นขาวใส (--lg-*) เหมือนกันทุกธีม · ตอนนี้ผสม --fill ของธีมลงไป ขอบบนสว่างกว่า (แสงตกกระทบ) ล่างเข้มกว่า */
+:root:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]) body #menuBody .tg-ic {
+  border: 1.5px solid color-mix(in srgb, var(--fill) 80%, #fff) !important;
+  border-bottom-color: color-mix(in srgb, var(--fill) 70%, #000) !important;
+  box-shadow:
+    inset 0 1.5px 0 color-mix(in srgb, var(--fill) 35%, #fff), inset 1.5px 0 0 color-mix(in srgb, var(--fill) 55%, transparent),
+    inset 0 -1.5px 0 color-mix(in srgb, var(--fill) 40%, transparent), inset -1px 0 0 color-mix(in srgb, var(--fill) 40%, transparent),
+    inset 0 0 14px -2px color-mix(in srgb, #fff 26%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--fill) 30%, transparent),
+    0 14px 24px -12px var(--lg-drop), 0 0 20px -5px color-mix(in srgb, var(--fill) 70%, transparent) !important;
+}
+:root:is([data-theme^="hw-"], [data-theme="halloween"], [data-theme="moonlight"]) body #menuBody .tg-ic svg {
+  border-color: color-mix(in srgb, var(--fill) 45%, #fff) !important;
+}
