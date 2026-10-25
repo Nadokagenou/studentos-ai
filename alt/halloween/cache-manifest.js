@@ -5,6 +5,8 @@ self.HALLOWEEN_SHELL = [
   "halloween/rewards/catalog.js",
   "halloween/rewards/runtime.js",
   "halloween/rewards/integration.js",
+  "halloween/rewards/effect-stage.js",
+  "halloween/rewards/effect-stage.css",
   "halloween/rewards/effect-games.js",
   "halloween/rewards/effect-games.css",
   "halloween/rewards/effect-ceremony.css",

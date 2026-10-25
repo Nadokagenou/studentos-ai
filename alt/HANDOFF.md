@@ -1,3 +1,5 @@
+> 25 ต.ค. เอฟเฟกต์งานเสร็จ: อ่าน halloween/docs/effects-20261025/README.md เพิ่ม effect-stage.js/css ฉากเวกเตอร์เฉพาะทั้ง 8 เสียงตามจังหวะ/ปิดเสียงร่วมคีย์เดิม ลาก/โยนระยะสั้นและประกายจำกัด 64 ชิ้น Legendary ปิด 2.8s และข้ามได้ คงตัวตัดสินเกม/ข้อมูล/สิทธิ์เดิม ห้ามใช้ชื่อ hw-scene ชนพื้นหลังธีม ใช้ hw-effect-scene แทน ตรวจ Halloween194, worker6, scene207 และ 24 รูปแบบจอ คง1C60 แคช effects-stage-20261025
+
 > 25 ต.ค. ระนาด/หมวดธีม: อ่าน halloween/docs/thai-ghost/README.md ส่วนล่าสุด มี thai-ranat.js (เสียงสังเคราะห์เริ่มหลังแตะ) และ theme-rarity.js จัดปุ่มเดิม 23 แบบจาก metadata ห้ามเผยธีมลับที่ยังซ่อน/เปลี่ยนเรทสุ่ม คง 1C60 และสิทธิ์ชวนเพื่อนเดิม
 
 > 25 ต.ค. เรือนลับแล: ย้าย INVITE_THEME ไป thai-ghost แล้ว Halloween/Moon & Candle ไม่ติดกฎชวนเพื่อน อ่าน halloween/docs/thai-ghost/README.md เงื่อนไขเดิม 3 คนใหม่ + งานเสร็จ 1 คงยอด/คีย์/1C60 ไม่แก้ RPC หรือ schema มีห้องลองแบบ memory แยกบัญชี
