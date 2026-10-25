@@ -85,6 +85,7 @@ def build(p):
 def pil(bgr):
     return Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGRA2RGBA if bgr.shape[2] == 4 else cv2.COLOR_BGR2RGB))
 
+# คุณภาพ webp 92 (เดิม 80): ภาพต้นทางเล็ก บล็อกบีบอัดเห็นชัดบนจอ 3x ของ iPhone
 def up(im):
     im = im.resize((im.width * 2, im.height * 2), Image.LANCZOS)
     return im.filter(ImageFilter.UnsharpMask(radius=1.6, percent=55, threshold=2))
@@ -94,11 +95,11 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     for k, bgr in art.items():
         im = pil(bgr)
-        up(im).save(os.path.join(OUT, k + '.webp'), quality=80, method=6)
+        up(im).save(os.path.join(OUT, k + '.webp'), quality=92, method=6)
         bg = im.resize((96, int(96 * im.height / im.width)), Image.LANCZOS).filter(ImageFilter.GaussianBlur(5))
         ImageEnhance.Brightness(bg).enhance(.7).save(os.path.join(OUT, k + '-bg.webp'), quality=70)
-    up(pil(ban)).save(os.path.join(OUT, 'banner.webp'), quality=80, method=6)
-    up(pil(seal)).save(os.path.join(OUT, 'seal.webp'), quality=85, method=6)
+    up(pil(ban)).save(os.path.join(OUT, 'banner.webp'), quality=92, method=6)
+    up(pil(seal)).save(os.path.join(OUT, 'seal.webp'), quality=92, method=6)
     for f in sorted(os.listdir(OUT)):
         print(f, os.path.getsize(os.path.join(OUT, f)) // 1024, 'KB')
 
