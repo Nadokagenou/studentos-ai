@@ -1,6 +1,6 @@
 {
-  "status": "owner-confirmed-2026-10-24",
-  "notice": "เจ้าของยืนยันกติกานี้สำหรับ ALT จริงวันที่ 24 ต.ค. 2026; รางวัลจริงต้องผ่านบริการบัญชีในช่วงกิจกรรม",
+  "status": "owner-confirmed-2026-10-25",
+  "notice": "ปรับตามคำสั่งเจ้าของ 25 ต.ค. 2026: ประตูรายชั่วโมง พันธสัญญางานจริง และเกมพักสมอง; รางวัลจริงตรวจผ่านบริการบัญชี",
   "questAid": {
     "visits": 30
   },
@@ -348,8 +348,11 @@
     }
   },
   "journey": {
-    "freeTravel": true,
-    "bonusCandyMultiplier": 1.5,
-    "dechWaitMs": 1200000
+    "freeTravel": false,
+    "bonusCandyMultiplier": 1,
+    "dechWaitMs": 1200000,
+    "enabled": true,
+    "hourly": true,
+    "finishActiveBattles": true
   }
 }

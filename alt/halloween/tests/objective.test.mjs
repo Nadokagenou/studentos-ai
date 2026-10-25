@@ -7,16 +7,15 @@ const load=x=>JSON.parse(fs.readFileSync(new URL('../event/data/'+x+'.json',impo
 const config=Core.build({materials:load('materials'),chains:['dutchman','jack','vampire','graveyard'].map(x=>load('quests.'+x)),catalog:Catalog,proposals:load('preview-rules'),preview:true});
 // 20:00 เวลาไทย = ช่วงประตูสุสาน (18–24)
 const at=Date.parse('2026-10-24T20:00:00+07:00');
-const fresh=(seed=1)=>{const doc=Core.initial(config,'test',at,seed);return doc;};
+const fresh=(seed=1)=>{const doc=Core.initial(config,'test',at,seed);doc.event.previewBiome='eternal-graveyard';return doc;};
 const next=(doc,route,now=at)=>Objective.next({Core,Guide,config,doc,now,route});
 
-test('the graveyard is the open gate at 20:00 Bangkok time and has no travel deadline',()=>{
+test('the hourly timetable exposes a real close time and next opening',()=>{
   const doc=fresh();
-  assert.equal(Core.biomeAt(doc,config,at).id,'eternal-graveyard');
-  assert.equal(Objective.windowOf(Core,doc,config,at).closesAt,null);assert.equal(Objective.windowOf(Core,doc,config,at).bonusBiome,'eternal-graveyard');
-  assert.equal(Objective.nextOpen(Core,doc,at,'dutchmans-soul'),Date.parse('2026-10-25T00:00:00+07:00'));
-  assert.equal(Objective.nextOpen(Core,doc,at,'eternal-graveyard'),at);
-  assert.equal(Objective.nextOpen(Core,doc,at,'eternal-graveyard',true),Date.parse('2026-10-25T18:00:00+07:00'));
+  delete doc.event.previewBiome;const w=Core.Rotations.window(at),id=Core.BIOMES[w.index];
+  assert.equal(Core.biomeAt(doc,config,at).id,id);assert.equal(Objective.windowOf(Core,doc,config,at).closesAt,w.endAt);
+  for(const biome of Core.BIOMES){const open=Objective.nextOpen(Core,doc,at,biome);assert.equal(Core.biomeAt(doc,config,open).id,biome);assert.ok(open>=at&&open<at+5*Core.HOUR);}
+
 });
 
 test('a new player is walked gate → portal → Win → houses → hand-in, one step at a time',()=>{
@@ -47,18 +46,18 @@ test('after the shovel the objective points at the dig game, then the ghosts, ne
 
 test('a missing low-tier item from another biome still routes to the houses',()=>{
   const morning=Date.parse('2026-10-24T08:00:00+07:00'),doc=fresh();
-  doc.event.visits.stories['jacks-hollow']=true;doc.event.quests['jack-clear-garden']={phase:2,complete:true};
+  doc.event.previewBiome='jacks-hollow';doc.event.visits.stories['jacks-hollow']=true;doc.event.quests['jack-clear-garden']={phase:2,complete:true};
   doc.event.inventory['jacks-hollow-pumpkin']=3;doc.event.grown['jacks-hollow-pumpkin']=3;doc.event.inventory['jacks-hollow-jack-o-wood']=1;doc.event.inventory['dutchmans-soul-seaweed']=1;
   const o=next(doc,'biome',morning);
   assert.deepEqual(o.need.map(n=>n.id),['jacks-hollow-shovel']);
-  assert.equal(o.action.kind,'enter-biome');assert.equal(o.action.biome,'eternal-graveyard');
+  assert.equal(o.action.kind,'wait');assert.equal(o.action.biome,'eternal-graveyard');
 });
 
 test('a finished chain asks for the guardian, then points at the next gate with work left',()=>{
   const doc=fresh();for(const q of config.quests.filter(q=>q.biome==='eternal-graveyard'))doc.event.quests[q.id]={phase:q.phases.length,complete:true};
   let o=next(doc,'biome');assert.equal(o.action.kind,'boss');assert.equal(o.target,'boss');
   doc.event.bossWins={'headless-warden':{at}};
-  o=next(doc,'biome');assert.equal(o.action.kind,'enter-biome');assert.equal(o.action.biome,'dutchmans-soul');
+  o=next(doc,'biome');assert.equal(o.action.kind,'wait');assert.notEqual(o.wait.biome,'eternal-graveyard');assert.ok(o.wait.at<at+5*Core.HOUR);
 });
 
 test('questNeeds only reads the save: drop rates and the confirmed 30-house aid stay as they were',()=>{

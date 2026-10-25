@@ -21,15 +21,11 @@
     const at=Core.moment(doc,now),active=Core.biomeAt(doc,config,now),e=doc.event;
     if(config.proposals?.journey?.freeTravel)return {closesAt:null,personal:active.override,bonusBiome:active.bonusBiome};
     if(active.override)return {closesAt:e.totem&&at<e.totem.until?e.totem.until:null,personal:true};
+    if(config.proposals?.journey?.hourly)return {closesAt:Core.Rotations.window(at).endAt,personal:false};
     return {closesAt:Math.floor((at+BKK)/SLOT)*SLOT-BKK+SLOT,personal:false};
   }
   // เวลาที่ประตูนี้เปิดครั้งถัดไป (เวลาในเกม) · later=true ข้ามรอบที่เปิดอยู่ตอนนี้ไปรอบหน้า
-  function nextOpen(Core,doc,now,biome,later=false){
-    const index=Core.BIOMES.indexOf(biome),at=Core.moment(doc,now),slot=Math.floor((at+BKK)/SLOT);
-    if(!later&&slot%4===index)return at;
-    for(let k=1;k<=4;k++)if((slot+k)%4===index)return (slot+k)*SLOT-BKK;
-    return at;
-  }
+  function nextOpen(Core,doc,now,biome,later=false){return Core.Rotations.next(Core.moment(doc,now),Core.BIOMES.indexOf(biome),later);}
   // หาว่าของที่ขาดชิ้นนี้ไปเอาที่ไหนเร็วที่สุด
   function routeFor(ctx,need,activeIndex){
     const {Core,Guide,config,doc}=ctx;
@@ -43,7 +39,7 @@
     if(need.grown)return {kind:'garden',label:'ปลูกในสวนรัตติกาล',target:'garden'};
     const sources=Guide?Guide.sources(config,need.id):[];
     const homes=sources.filter(s=>s.kind==='house');
-    if(homes.length){const home=homes.find(s=>s.biome===Core.BIOMES[activeIndex])||homes[0];if(config.proposals?.journey?.freeTravel&&home.biome!==Core.BIOMES[activeIndex])return {kind:'enter-biome',biome:home.biome,label:'ไปหาของที่'+THAI[Core.BIOMES.indexOf(home.biome)]};return {kind:'village',label:'เคาะบ้านหาของ',target:'village'};}
+    if(homes.length){const home=homes.find(s=>s.biome===Core.BIOMES[activeIndex])||homes[0];if(home.biome!==Core.BIOMES[activeIndex])return {kind:config.proposals?.journey?.freeTravel?'enter-biome':'wait',biome:home.biome,label:'ไปหาของที่'+THAI[Core.BIOMES.indexOf(home.biome)]};return {kind:'village',label:'เคาะบ้านหาของ',target:'village'};}
     const game=sources.find(s=>s.kind==='game');
     if(game)return Core.BIOMES.indexOf(game.biome)===activeIndex?{kind:'game',game:game.game,label:'เล่น'+GAME_NAMES[game.game],target:'game:'+game.game}:{kind:config.proposals?.journey?.freeTravel?'enter-biome':'wait',biome:game.biome,label:'ไป'+THAI[Core.BIOMES.indexOf(game.biome)]};
     const quest=sources.find(s=>s.kind==='quest');
@@ -60,7 +56,7 @@
     const i=Core.BIOMES.indexOf(active),win=windowOf(Core,doc,config,now),inBiome=route==='biome';
     const base={biome:active,biomeName:THAI[i],npc:NPC[i],npcId:NPC_ID[i],closesAt:win.closesAt,personal:win.personal,need:[],steps:null};
     if(route==='gate')return {...base,key:'gate',title:'เปิดประตูเข้าโถงกลาง',detail:'แตะประตูเหล็กเพื่อเริ่ม',action:{kind:'enter-hub',label:'เปิดประตู'},target:'gate'};
-    if(config.proposals?.journey?.freeTravel&&!e.welcomeClaimed&&!e.quests['dutchman-light-in-darkness']?.complete&&route==='hub')return {...base,key:'welcome',title:'รับคำเชิญแล้วไปหา Tang',detail:'เติม Candy ให้ถึง 50 พร้อมหินก้นเหวและตะเกียงเรือผีที่ขาด · รับครั้งเดียว',action:{kind:'welcome',label:'รับชุดเริ่มต้น'},target:'npc'};
+    if(config.proposals?.journey?.enabled&&!e.welcomeClaimed&&!e.quests['dutchman-light-in-darkness']?.complete&&route==='hub')return {...base,key:'welcome',title:'รับคำเชิญแล้วไปหา Tang',detail:'เติม Candy ให้ถึง 50 พร้อมของเควสแรก · เปิดทางหา Tang 15 นาที ครั้งเดียว',action:{kind:'welcome',label:'รับชุดเริ่มต้น'},target:'npc'};
     const goBiome={kind:'enter-biome',biome:active,label:'เข้าประตู'+THAI[i]};
     const needs=Core.questNeeds(doc,config,active,now);
     if(!needs){

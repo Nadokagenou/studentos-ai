@@ -7,6 +7,6 @@ let bundle='// Generated from the tested shared engine. Run node alt/halloween/s
 bundle+='export const Core=load("event/core.js"),Catalog=load("rewards/catalog.js"),Death=load("death-quests.js"),Season=load("event/season.js"),Authority=load("server/authority.cjs"),Handler=load("server/handler.cjs");\n';
 fs.writeFileSync(path.join(__dirname,'engine.mjs'),bundle);
 const json=name=>JSON.parse(fs.readFileSync(path.join(root,'event/data',name+'.json'),'utf8'));
-const proposals=json('preview-rules');proposals.status='owner-confirmed-2026-10-24';proposals.notice='กติกาอีเวนต์ ALT ตรวจและบันทึกผ่านบริการบัญชีเท่านั้น';proposals.shopStock.status='owner-confirmed-2026-10-24';proposals.shopStock.scope='account-season';
+const proposals=json('preview-rules');proposals.status='owner-confirmed-2026-10-25';proposals.notice='กติกาอีเวนต์ ALT ตรวจและบันทึกผ่านบริการบัญชีเท่านั้น';proposals.shopStock.status='owner-confirmed-2026-10-24';proposals.shopStock.scope='account-season';
 fs.writeFileSync(path.join(__dirname,'rules.json'),JSON.stringify({materials:json('materials'),chains:['dutchman','jack','vampire','graveyard'].map(n=>json('quests.'+n)),proposals}));
 console.log('Bundled '+seen.size+' tested modules for the event service.');

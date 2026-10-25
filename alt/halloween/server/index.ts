@@ -9,6 +9,7 @@ async function database(route,body){
  return response.json();
 }
 const db={
+ async studyTask(uid,id){const rows=await database('user_state?id=eq.'+uid+'&select=tasks:data->tasks');const task=(rows[0]?.tasks||[]).find(t=>t.id===id);if(!task)return null;return {id:task.id,type:task.type,done:task.done,deleted:task.deleted,draft:task.draft,sample:task.sample,demo:task.demo,halloweenDeathQuest:task.halloweenDeathQuest};},
  async read(uid,season){return (await database('halloween_states?user_id=eq.'+uid+'&season=eq.'+season+'&select=document'))[0];},
  async receipt(uid,season,tx){return (await database('halloween_requests?user_id=eq.'+uid+'&season=eq.'+season+'&request_id=eq.'+tx+'&select=action,result'))[0];},
  async commit(x){return database('rpc/halloween_commit',{p_user:x.uid,p_season:x.season,p_expected:x.expected,p_request:x.tx,p_action:x.action,p_document:x.document,p_result:x.result});}

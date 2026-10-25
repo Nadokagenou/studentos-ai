@@ -3,9 +3,9 @@ const factories={
 "event/core.js":function(module,exports,require){
 /* Shared rules. The trusted service enables authoritative mode; preview tools remain preview-only. */
 (function(root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require("rewards/ownership.js"),require("event/combat.js"),require("event/missions.js"),require("death-quests.js"));
-  else root.HalloweenEventCore = factory(root.HalloweenOwnership,root.HalloweenCombat,root.HalloweenStudentMissions,root.HalloweenDeathQuests);
-})(typeof globalThis === 'undefined' ? this : globalThis, (Ownership,Combat,Missions,Death) => {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require("rewards/ownership.js"),require("event/combat.js"),require("event/missions.js"),require("death-quests.js"),require("study-pact.js"),require("event/brain-games.js"),require("event/rotations.js"));
+  else root.HalloweenEventCore = factory(root.HalloweenOwnership,root.HalloweenCombat,root.HalloweenStudentMissions,root.HalloweenDeathQuests,root.HalloweenStudyPact,root.HalloweenBrainGames,root.HalloweenRotations);
+})(typeof globalThis === 'undefined' ? this : globalThis, (Ownership,Combat,Missions,Death,Pact,Brain,Rotations) => {
   'use strict';
   const BIOMES = ['dutchmans-soul', 'jacks-hollow', 'vampire-mansion', 'eternal-graveyard'];
   const SHORT = ['dutchman', 'jack', 'vampire', 'graveyard'];
@@ -82,8 +82,9 @@ const factories={
       const personal=event.totem&&at<event.totem.until;
       // Daily Bangkok rotation: four six-hour windows. Personal routes never advance the daily quest cycle.
       const hour = new Date(at + 7 * HOUR).getUTCHours();
-      const featured=personal?event.totem.biome:BIOMES[Math.floor(hour/6)];
-      const selected=config.preview&&event.previewBiome?event.previewBiome:event.selectedBiome;
+      const featured=personal?event.totem.biome:config.proposals.journey?.hourly?BIOMES[Rotations.window(at).index]:BIOMES[Math.floor(hour/6)];
+      if(config.preview&&event.previewBiome)return {id:event.previewBiome,cycle,override:true,bonusBiome:null};
+      const selected=event.selectedBiome;
       return {id:config.proposals.journey?.freeTravel&&BIOMES.includes(selected)?selected:featured,cycle,override:!!personal,bonusBiome:featured};
     }
     return {id:null, cycle:null, override:false};
@@ -112,7 +113,7 @@ const factories={
     if(!quest.availability?.mustWaitForNextOccurrence)return {waiting:false,nextAt:null};
     const previous=document.event.quests[quest.prerequisite];
     if(!previous?.complete)return {waiting:false,nextAt:null};
-    if(config.proposals.journey?.dechWaitMs){const nextAt=(previous.completedAt??0)+config.proposals.journey.dechWaitMs;return {waiting:moment(document,now)<nextAt,nextAt};}
+    if(config.proposals?.journey?.dechWaitMs){const nextAt=(previous.completedAt??0)+config.proposals.journey.dechWaitMs;return {waiting:moment(document,now)<nextAt,nextAt};}
     const current=biomeAt(document,config,now),waiting=current.cycle<=previous.completedCycle;
     return {waiting,nextAt:waiting?(previous.completedCycle+1)*DAY-7*HOUR+BIOMES.indexOf(quest.biome)*6*HOUR:null};
   }
@@ -299,7 +300,7 @@ const factories={
     const prior = event.proofs[game.id] || {};
     event.proofs[game.id] = {complete:true, clear:prior.clear || clear, at:now, session:game.session};
   }
-  function dispatch(document, config, action, {now, tx, studentOS,studentOwner='',studentFocus}) {
+  function dispatch(document, config, action, {now, tx, studentOS,studentOwner='',studentFocus,studyPact}) {
     if (!tx || !Number.isFinite(now)) fail('ธุรกรรมไม่มีเวลาอ้างอิง');
     if (!document.event || document.season !== config.season.id) fail('ไม่พบข้อมูลฤดูกาล');
     const event = document.event, at = moment(document, now);
@@ -332,7 +333,7 @@ const factories={
     } else if (action.type === 'enter-biome') {
       if (!portalStatus(document,config,action.biome,now).open) fail('ประตูไบโอมนี้ยังไม่เปิด ลองกลับมาในรอบของมันหรือใช้ Totem');
       event.visits ||= {hub:false,biomes:{},stories:{}};
-      event.selectedBiome=action.biome;delete event.previewBiome;
+      event.selectedBiome=action.biome;if(!config.preview)delete event.previewBiome;
       event.visits.biomes[action.biome] = true; event.location = {kind:'biome',biome:action.biome};
       result.firstStory = !event.visits.stories[action.biome]; result.biome = action.biome;
     } else if (action.type === 'story-seen') {
@@ -366,10 +367,11 @@ const factories={
       result.questAid=awardQuestAid(document,config,current.id,at,tx);
     } else if(action.type==='claim-welcome'){
       requireRules(config);
-      if(!config.proposals.journey?.freeTravel||event.welcomeClaimed||event.quests['dutchman-light-in-darkness']?.complete)fail('รับชุดเริ่มต้นแล้ว');
+      if(!config.proposals.journey?.enabled||event.welcomeClaimed||event.quests['dutchman-light-in-darkness']?.complete)fail('รับชุดเริ่มต้นแล้ว');
       const candy=Math.max(0,50-event.candy);addCandy(event,candy,'welcome',at,tx);
       for(const id of ['dutchmans-soul-abyssal-rock','dutchmans-soul-dutchman-s-lantern'])if(!(event.inventory[id]>0))addItem(event,id,1);
       event.welcomeClaimed={at,tx};event.selectedBiome=BIOMES[0];delete event.previewBiome;
+      if(config.proposals.journey?.hourly)event.totem={biome:BIOMES[0],until:at+15*60000,source:'welcome'};
       event.visits.biomes[BIOMES[0]]=true;event.location={kind:'biome',biome:BIOMES[0]};result.candy=candy;
     } else if (action.type === 'quest') {
       const quest = config.quests.find(x => x.id === action.quest) || fail('ไม่พบเควส');
@@ -482,7 +484,7 @@ const factories={
       if(!battle||battle.session!==action.session||battle.finished)fail('การต่อสู้รอบนี้จบแล้ว');
       const rule=config.proposals.bosses[battle.id],weapon=weaponStatus(document,config,battle.weapon);
       if(!weapon.usable)fail('อาวุธนี้ยังใช้ไม่ได้');
-      if(rule.biome&&rule.biome!==current.id&&action.move!=='retreat'&&!config.proposals.journey?.freeTravel)fail('ไบโอมเปลี่ยนแล้ว ถอยกลับก่อนเริ่มใหม่');
+      if(rule.biome&&rule.biome!==current.id&&action.move!=='retreat'&&!config.proposals.journey?.finishActiveBattles)fail('ไบโอมเปลี่ยนแล้ว ถอยกลับก่อนเริ่มใหม่');
       Combat.move(battle,rule,weapon.weapon,action.move,at,()=>random(event));
       if(battle.finished&&battle.clear){
         event.bossWins||={};if(event.bossWins[battle.id])fail('รับรางวัลบอสแล้ว');
@@ -527,7 +529,7 @@ const factories={
       if (!BIOMES.includes(action.biome)) fail('เลือกไบโอมก่อน');
       addCandy(event, -config.proposals.totem.price, 'totem', at, tx);
       event.totem = {biome:action.biome, until:at + config.proposals.totem.durationMs};
-      if(config.proposals.journey?.freeTravel){event.selectedBiome=action.biome;delete event.previewBiome;}
+      if(config.proposals.journey?.freeTravel){event.selectedBiome=action.biome;if(!config.preview)delete event.previewBiome;}
     } else if (action.type === 'visitor') {
       requireRules(config);
       const index = action.index, rule = config.proposals.anonymousNpc, slot = Math.floor(at / rule.lifetimeMs);
@@ -537,6 +539,18 @@ const factories={
       const pool = config.materials.biomes.find(x => x.id === current.id).items.filter(x => x.rarity === 'Common');
       const id = pool[index % pool.length]?.id || (index ? 'pending-human-skull' : 'pending-human-bone');
       addItem(event, id, -rule.quantity); addCandy(event, rule.candy, 'visitor', at, tx); event.visitors[key] = true;
+    } else if(action.type==='study-claim'){
+      requireRules(config);const q=config.preview?studyPact:event.studyPacts?.active;
+      const uid=config.preview?studentOwner:document.owner;if(!Pact.ready(q,uid,now)||q.id!==action.pact)fail('ทำพันธสัญญางานจริงให้ครบก่อนรับ');
+      const key='study:'+q.day+':'+q.index;if(event.taskClaims[key])fail('รับพันธสัญญาช่วงนี้แล้ว');
+      const earned=event.taskEarned.filter(x=>x.at>at-DAY).reduce((s,x)=>s+x.amount,0),amount=Math.max(0,Math.min(10,config.proposals.taskDailyCap-earned));
+      addCandy(event,amount,'study-pact',at,tx);event.taskClaims[key]=true;if(amount)event.taskEarned.push({at,amount});
+      result.chapter=Pact.chapter(event,q,at);if(!config.preview)event.studyPacts.active.claimed=true;
+      result.candy=amount;result.pact=q.id;
+    } else if(action.type==='brain-start'){
+      requireRules(config);if(event.brainGame&&!event.brainGame.finished)fail('จบรอบปัจจุบันหรือพักก่อนเริ่มใหม่');result.brainGame=clone(Brain.start(event,tx,at,()=>random(event)));
+    } else if(action.type==='brain-move'){
+      requireRules(config);const g=event.brainGame;if(!g||g.session!==action.session)fail('ไม่พบเกมพักสมองรอบนี้');result.brainGame=clone(Brain.move(g,action.move,at,()=>random(event)));
     } else if(action.type==='death-quest-enroll'){
       requireRules(config);event.deathQuests||={};const key=Death.day(now),today=event.deathQuests[key];
       const active=Object.values(event.deathQuests).find(q=>!event.taskClaims['death:'+q.taskId]&&now-q.issuedAt<DAY);
@@ -563,8 +577,8 @@ const factories={
       if(rule.total)game.board=shuffled(event,Array.from({length:rule.total},(_,i)=>i));
       if(action.game==='dech-house-spot-difference')game.differences=shuffled(event,[0,1,2,3,4,5,6,7]).slice(0,rule.total);
       if(action.game==='catch-all-ghosts')game.spawnSlots=shuffled(event,[0,1,2,3,4,5,6,7,8]).slice(0,rule.total);
-      if(config.proposals.journey?.freeTravel&&action.game==='clear-jacks-garden-vines'){game.mode='memory';game.sequence=shuffled(event,Array.from({length:rule.total},(_,i)=>i));game.revealUntil=at+4500;}
-      if(config.proposals.journey?.freeTravel&&action.game==='grave-digging'){game.mode='pairs';game.tiles=shuffled(event,Array.from({length:rule.total},(_,i)=>Math.floor(i/2)));game.open=[];}
+      if(config.proposals.journey?.enabled&&action.game==='clear-jacks-garden-vines'){game.mode='memory';game.sequence=shuffled(event,Array.from({length:rule.total},(_,i)=>i));game.revealUntil=at+4500;}
+      if(config.proposals.journey?.enabled&&action.game==='grave-digging'){game.mode='pairs';game.tiles=shuffled(event,Array.from({length:rule.total},(_,i)=>Math.floor(i/2)));game.open=[];}
       if (action.game === 'ghost-ship-hunt') {
         if (!(event.inventory['spectral-lantern'] > 0)) fail('คราฟต์ Spectral Lantern กับ Tang ก่อน');
         if (event.repairs) fail('ซ่อมเรือก่อนออกเดินทาง');
@@ -619,7 +633,7 @@ const factories={
     event.clock = at;
     return result;
   }
-  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,questWait,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, questNeeds, houseAvailability,questAidStatus, gameDefinition, dispatch});
+  return Object.freeze({BIOMES, SHORT, DAY, HOUR,Rotations, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,questWait,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, questNeeds, houseAvailability,questAidStatus, gameDefinition, dispatch});
 });
 
 },
@@ -842,6 +856,78 @@ const factories={
 });
 
 },
+"study-pact.js":function(module,exports,require){
+/* Real-work contracts. No task titles leave the main app; preview evidence stays local. */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else{root.HalloweenStudyPact=factory();try{const mode=new URLSearchParams(location.search).get('halloweenStudyPreview');if(mode!==null)sessionStorage.setItem('studentos.alt.halloween.studyPreviewMode',mode==='1'?'1':'0');root.HalloweenStudyPreview=sessionStorage.getItem('studentos.alt.halloween.studyPreviewMode')==='1';}catch{root.HalloweenStudyPreview=false;}}})(globalThis,()=>{
+ 'use strict';const DAY=86400000,KEY='studentos.alt.halloween.studyPreview.v1',minutes=[5,8,10],npcs=['tang','jack','dech','win'];
+ const stories={
+  tang:[['แผนที่ใต้หมอก','Tang คลี่แผนที่เปียกบนโต๊ะ เส้นทางที่เคยขาดปรากฏขึ้นอีกเส้น หลังเจ้าลงมือกับงานของตัวเอง'],['ระฆังที่ไร้ลม','เสียงระฆังดังครั้งเดียวจากเรือว่างเปล่า Tang ยิ้ม “บางครั้งการเริ่มก็ก้องไปไกลกว่าที่คิด”'],['บันทึกกัปตัน','เขาฝากหน้าบันทึกไว้ให้ “พักได้ แต่อย่าลืมว่ากำลังเดินทางไปไหน”'],['ท่าเรือก่อนรุ่งสาง','หมอกเปิดให้เห็นฝั่งอีกด้าน Tang ยกหมวกให้เจ้า เส้นทางวันนี้เป็นของเจ้าแล้ว']],
+  jack:[['เมล็ดใต้ฟักทอง','Jack พบเมล็ดสีเงินในฟักทองที่เงียบที่สุด เขาแบ่งให้เจ้าเก็บไว้ในบันทึก'],['รั้วไม้หัวเราะ','รั้วไม้ส่งเสียงเอี๊ยดเหมือนหัวเราะ Jack วางฟักทองเล็กไว้ข้างงานที่เจ้าลงมือทำ'],['แสงในโรงนา','ตะเกียงในโรงนาติดทีละดวง “ไม่ต้องทำทุกอย่างรวดเดียวหรอก” Jack กระซิบ'],['ฟักทองลูกสุดท้าย','Jack ไม่กินฟักทองลูกสุดท้าย เขาแกะเป็นโคมให้เส้นทางกลับของเจ้า']],
+  dech:[['จดหมายไร้นาม','Dech เลื่อนจดหมายครั่งแดงมาให้ “เจ้ารักษาคำพูด ข้าจึงรักษาสัญญา”'],['นาฬิกาไม่เดิน','นาฬิกาในปราสาทหยุดเดิน แต่หน้ากระดาษของเจ้าคืบหน้าไปแล้ว Dech ยกแก้วอย่างพอใจ'],['หมึกใต้แสงจันทร์','ปลายปากกาของ Dech จุ่มหมึกสีเข้ม เขาเขียนชื่อเจ้าลงในรายชื่อแขกที่ไว้ใจ'],['หน้าต่างก่อนรุ่งอรุณ','ม่านกำมะหยี่แง้มออก “กลับไปพักเถอะ งานที่ทำวันนี้จะยังอยู่เมื่อเจ้ากลับมา”']],
+  win:[['เสียงใต้ศิลา','Win วางนิ้วบนศิลา เสียงกระซิบสงบลงเมื่อเจ้ารักษาสัญญาที่ให้ตัวเอง'],['ดอกไม้ไร้เงา','ดอกไม้สีซีดบานระหว่างหลุมศพ Win เก็บภาพมันไว้ในสมุดให้เจ้า'],['ทางเดินเงียบ','เขาพาเจ้าเดินผ่านทางที่เคยหลง “ค่อย ๆ ไปทีละช่วง ก็ยังเป็นการไปข้างหน้า”'],['ผู้เฝ้าคืนสุดท้าย','วิญญาณยกมือให้เจ้าจากอีกฝั่ง Win พยักหน้า คืนนี้เจ้ากลับบ้านได้อย่างสบายใจ']]
+ };
+ const day=at=>new Date(at+7*3600000).toISOString().slice(0,10),copy=x=>JSON.parse(JSON.stringify(x));
+ function eligible(t){return !!t&&typeof t.id==='string'&&t.id.length>0&&t.id.length<=180&&!t.done&&!t.deleted&&!t.draft&&!t.sample&&!t.demo&&!t.halloweenDeathQuest&&!['event','activity','reminder','exam'].includes(t.type);}
+ function state(event){return event.studyPacts||=( {days:{},album:[],active:null} );}
+ function valid(q,owner,at){return !!q&&q.owner===owner&&typeof q.id==='string'&&typeof q.taskId==='string'&&minutes[q.index]===q.minutes&&npcs.includes(q.npc)&&Number.isSafeInteger(q.issuedAt)&&q.issuedAt<=at&&at-q.issuedAt<DAY&&q.day===day(q.issuedAt);}
+ function enroll(event,task,owner,at,tx){if(!eligible(task))throw Error('เลือกงานจริงที่ยังทำไม่เสร็จใน StudentOS ก่อน');const s=state(event),old=s.active;
+  if(valid(old,owner,at)&&!old.claimed){if(old.taskId!==task.id){old.taskId=task.id;old.proof={activeMs:0,lastAt:0,session:null};}return old;}
+  const key=day(at),index=s.days[key]||0;if(index>=3)throw Error('ครบสามพันธสัญญาของวันนี้แล้ว พรุ่งนี้มีเรื่องเล่าต่อ');let hash=0;for(const c of owner+key)hash=(Math.imul(hash,31)+c.charCodeAt(0))>>>0;
+  const q={id:'study-'+tx,owner,taskId:task.id,issuedAt:at,day:key,index,minutes:minutes[index],npc:npcs[(hash+index)%4],proof:{activeMs:0,lastAt:0,session:null},claimed:false};s.days[key]=index+1;s.active=q;return q;
+ }
+ function pulse(q,session,active,at){if(typeof session!=='string'||session.length<16)throw Error('รอบโฟกัสไม่ถูกต้อง');const p=q.proof,elapsed=at-p.lastAt;if(p.doneAt)return p;
+  if(active){if(p.session===session&&elapsed>0&&elapsed<=16000)p.activeMs=Math.min(q.minutes*60000,p.activeMs+elapsed);if(!p.session||p.session===session||elapsed>16000){p.session=session;p.lastAt=at;}}
+  else if(p.session===session){p.lastAt=0;p.session=null;}return p;
+ }
+ function finish(q,at){if(q.proof.activeMs<q.minutes*60000||at-q.issuedAt<q.minutes*60000)throw Error('เวลาโฟกัสที่ยืนยันยังไม่ครบ');q.proof.doneAt=at;q.proof.session=null;q.proof.lastAt=0;return q;}
+ function ready(q,owner,at){return valid(q,owner,at)&&!q.claimed&&q.proof?.activeMs>=q.minutes*60000&&q.proof.activeMs<=at-q.issuedAt&&Number.isSafeInteger(q.proof.doneAt)&&q.proof.doneAt>=q.issuedAt+q.minutes*60000&&q.proof.doneAt<=at;}
+ function chapter(event,q,at){const s=state(event),index=stories[q.npc].findIndex((_,i)=>!s.album.some(x=>x.id===q.npc+':'+i));if(index<0)return null;const item={id:q.npc+':'+index,npc:q.npc,index,at};s.album.push(item);return item;}
+ function read(storage,owner){try{const saved=JSON.parse(storage.getItem(KEY)||'null');return saved?.owner===owner?saved:{owner,event:{}};}catch{return {owner,event:{}};}}
+ function write(storage,value){storage.setItem(KEY,JSON.stringify(value));}
+ return Object.freeze({DAY,KEY,minutes,npcs,stories,day,copy,eligible,state,valid,enroll,pulse,finish,ready,chapter,read,write});
+});
+
+},
+"event/brain-games.js":function(module,exports,require){
+/* Short, untimed practice. No currency or ownership rewards depend on these games. */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.HalloweenBrainGames=factory();})(globalThis,()=>{
+ 'use strict';const kinds=['memory','math','path','odd','pattern','balance'],names={memory:'รูนในหมอก',math:'หม้อปรุงยามอรา',path:'สะพานเรือผี',odd:'ตราแวมไพร์ผิดเพี้ยน',pattern:'ลำดับเลขต้องคำสาป',balance:'ตาชั่งวิญญาณ'};
+ const pick=(a,r)=>a[Math.floor(r()*a.length)],shuffle=(a,r)=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+ function reachable(walls){const todo=[0],seen=new Set(todo);for(const n of todo)for(const next of [n-4,n+4,n-1,n+1])if(next>=0&&next<16&&Math.abs(next%4-n%4)+Math.abs(Math.floor(next/4)-Math.floor(n/4))===1&&!walls.includes(next)&&!seen.has(next)){seen.add(next);todo.push(next);}return seen.has(15);}
+ function question(g,at,r){g.message='';if(g.kind==='memory')return {sequence:shuffle([0,1,2,3,4,5],r).slice(0,3+g.round),board:shuffle([0,1,2,3,4,5],r),found:[],revealUntil:at+4500};
+  if(g.kind==='math'){let a=2+Math.floor(r()*18),b=1+Math.floor(r()*9),op=pick(['+','−','×'],r);if(op==='×')a=2+Math.floor(r()*8);if(op==='−'&&b>a)[a,b]=[b,a];const answer=op==='+'?a+b:op==='−'?a-b:a*b,choices=shuffle([answer,...shuffle([-2,-1,1,2,3,4].map(n=>answer+n).filter(n=>n>=0),r).slice(0,3)],r);return {a,b,op,answer,choices};}
+  if(g.kind==='path'){let walls;for(let tries=0;tries<30;tries++){walls=shuffle(Array.from({length:14},(_,i)=>i+1),r).slice(0,4);if(reachable(walls))break;}if(!reachable(walls))walls=[5,6,9,10];return {walls,path:[0],goal:15};}
+  if(g.kind==='odd')return {odd:Math.floor(r()*9),asset:pick(['little-wisp','velvet-bat','crimson-candle','quiet-gravestone'],r)};
+  const a=1+Math.floor(r()*12),step=1+Math.floor(r()*5),answer=g.kind==='balance'?a:a+step*4;return g.kind==='balance'?{b:step,sum:a+step,answer,choices:shuffle([a,a+1,a+2,a+3],r)}:{sequence:Array.from({length:4},(_,i)=>a+step*i),step,answer,choices:shuffle([answer,...shuffle([-2,-1,1,2,3,4].map(n=>answer+n).filter(n=>n>=0),r).slice(0,3)],r)};
+ }
+ function start(event,session,at,r){const recent=event.brainHistory||[],pool=kinds.filter(k=>!recent.slice(-2).includes(k)),weighted=pool.flatMap(k=>['math','balance','pattern'].includes(k)?[k,k]:[k]),kind=pick(weighted,r),g={session,kind,round:0,total:kind==='path'?1:3,startAt:at,finished:false,clear:false,mistakes:0};g.q=question(g,at,r);event.brainHistory=[...recent,kind].slice(-3);event.brainGame=g;return g;}
+ function move(g,value,at,r){if(!g||g.finished)throw Error('เกมพักสมองรอบนี้จบแล้ว');if(value==='abandon'){g.finished=true;g.clear=false;return g;}const q=g.q;let success=false;
+  if(g.kind==='memory'&&value==='hint'){q.revealUntil=at+4500;return g;}
+  if(!Number.isInteger(value))throw Error('เลือกคำตอบบนหน้าจอ');
+  if(g.kind==='memory'){if(at<q.revealUntil)throw Error('จำรูนก่อน แล้วค่อยตอบ');if(value<0||value>5)throw Error('ไม่พบรูน');if(value===q.sequence[q.found.length])q.found.push(value);else{q.found=[];q.revealUntil=at+4500;g.mistakes++;g.message='ดูอีกครั้งได้ ไม่เสียของหรือ Candy';}success=q.found.length===q.sequence.length;}
+  else if(g.kind==='path'){const n=q.path.at(-1);if(value<0||value>15||q.walls.includes(value)||Math.abs(value%4-n%4)+Math.abs(Math.floor(value/4)-Math.floor(n/4))!==1)throw Error('เดินไปช่องติดกันที่ไม่ใช่คลื่น');const visited=q.path.indexOf(value);if(visited<0)q.path.push(value);else q.path=q.path.slice(0,visited+1);success=value===q.goal;}
+  else {const allowed=g.kind==='odd'?value>=0&&value<9:q.choices.includes(value);if(!allowed)throw Error('ไม่พบตัวเลือก');success=value===(g.kind==='odd'?q.odd:q.answer);if(!success){g.mistakes++;g.message=g.kind==='math'?q.a+' '+q.op+' '+q.b+' = '+q.answer+' · ลองเลือกคำตอบนี้อีกครั้ง':g.kind==='balance'?'สองฝั่งต้องเท่ากัน: '+q.sum+' − '+q.b+' = '+q.answer:g.kind==='pattern'?'เพิ่มทีละ '+q.step+' · จำนวนถัดไปคือ '+q.answer:'ตราที่ต่างถูกหมุนไปอีกมุมหนึ่ง';}}
+  if(success){g.round++;g.message='ถูกแล้ว!';if(g.round===g.total){g.finished=true;g.clear=true;g.endedAt=at;}else g.q=question(g,at,r);}return g;
+ }
+ return Object.freeze({kinds,names,reachable,start,move});
+});
+
+},
+"event/rotations.js":function(module,exports,require){
+/* Shared public hourly timetable. Refreshing never rerolls a door. */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.HalloweenRotations=factory();})(globalThis,()=>{
+ 'use strict';const HOUR=3600000,ANCHOR=Date.parse('2026-10-01T00:00:00+07:00'),cache=new Map([[0,[3,0,1,2]]]);
+ const permutations=a=>a.length?a.flatMap((n,i)=>permutations(a.filter((_,k)=>k!==i)).map(p=>[n,...p])):[[]],all=permutations([0,1,2,3]);
+ function order(block){block=Math.max(0,block);if(cache.has(block))return cache.get(block);let last=cache.size-1;
+  for(let b=last+1;b<=block;b++){const previous=cache.get(b-1),pool=all.filter(p=>p[0]!==previous[3]&&p.every((id,i)=>i-previous.indexOf(id)<=1));let seed=Math.imul(b+20261028,2654435761)>>>0;seed^=seed>>>16;cache.set(b,pool[(seed>>>0)%pool.length]);}return cache.get(block);
+ }
+ function window(at){const slot=Math.floor((at-ANCHOR)/HOUR),block=Math.floor(slot/4),index=((slot%4)+4)%4;return {index:order(block)[index],startAt:ANCHOR+slot*HOUR,endAt:ANCHOR+(slot+1)*HOUR};}
+ function upcoming(at,count=8){const first=window(at).startAt;return Array.from({length:count},(_,i)=>window(first+i*HOUR));}
+ function next(at,index,later=false){if(!later&&window(at).index===index)return at;return upcoming(window(at).endAt,6).find(w=>w.index===index)?.startAt??null;}
+ return Object.freeze({HOUR,window,upcoming,next});
+});
+
+},
 "rewards/catalog.js":function(module,exports,require){
 /* Permanent Halloween reward definitions; no currency, grants or random draws. */
 (function(root,factory){const catalog=factory();if(typeof module==='object'&&module.exports)module.exports=catalog;else root.StudentOSHalloweenRewards=catalog;})(typeof globalThis!=='undefined'?globalThis:this,()=>{
@@ -897,9 +983,10 @@ const factories={
 "server/authority.cjs":function(module,exports,require){
 /* Runs only on the trusted service. Browser state, clocks and reward lists are never input. */
 'use strict';
+const Pact=require("study-pact.js");
 function create({Core,Death,Season,config,randomSeed}) {
- const allowed=new Set(['claim-welcome','training-start','training-move','enter-hub','enter-room','enter-biome','story-seen','house','quest','buy','craft','seed-quest','plant','water','harvest','sell-crop','equip-weapon','start-boss','battle-move','claim-final-theme-set','buy-biome-potion','drink-biome-potion','totem','visitor','death-quest-enroll','death-quest-claim','start-game','game-move','repair','focus-pulse','focus-finish']);
- const keys=['type','room','biome','house','choice','quest','branch','item','stockEpoch','recipe','quantity','expectedGrown','expectedInventory','weapon','boss','session','move','index','game','taskId','active'];
+ const allowed=new Set(['study-enroll','study-pulse','study-finish','study-claim','brain-start','brain-move','claim-welcome','training-start','training-move','enter-hub','enter-room','enter-biome','story-seen','house','quest','buy','craft','seed-quest','plant','water','harvest','sell-crop','equip-weapon','start-boss','battle-move','claim-final-theme-set','buy-biome-potion','drink-biome-potion','totem','visitor','death-quest-enroll','death-quest-claim','start-game','game-move','repair','focus-pulse','focus-finish']);
+ const keys=['type','room','biome','house','choice','quest','branch','item','stockEpoch','recipe','quantity','expectedGrown','expectedInventory','weapon','boss','session','move','index','game','taskId','active','pact'];
  const copy=x=>JSON.parse(JSON.stringify(x));
  function clean(input){
   if(!input||typeof input!=='object'||!allowed.has(input.type))throw Error('ไม่รองรับคำสั่งนี้ในกิจกรรมจริง');
@@ -908,16 +995,24 @@ function create({Core,Death,Season,config,randomSeed}) {
  }
  function publicDocument(document){const d=copy(document);delete d.event.rng;delete d.event._lastActionAt;d.receipts={};return d;}
  function initial(uid,at){const d=Core.initial(config,uid,at,randomSeed());d.event.authoritative=true;return d;}
- function apply(document,input,{uid,at,tx}){
+ function apply(document,input,{uid,at,tx,studyTask}){
   const action=clean(input);
   if(document.owner!==uid||document.season!==Season.id)throw Error('เซฟไม่ตรงกับบัญชีนี้');
   if(Season.state(at)!=='active')throw Error(Season.state(at)==='upcoming'?'กิจกรรมเปิดวันที่ 28 ตุลาคม':'กิจกรรมจบแล้ว รางวัลที่ได้รับยังอยู่ในบัญชี');
   const d=copy(document),e=d.event;e.timeOffset=0;delete e.previewBiome;
   // Unpredictable entropy is supplied by the server for every transaction.
   e.rng=randomSeed();
-  if(['house','game-move','battle-move','training-move'].includes(action.type)&&at<(e._lastActionAt||0)+120)throw Error('รอสักครู่ก่อนทำรายการถัดไป');
+  if(['house','game-move','brain-move','battle-move','training-move'].includes(action.type)&&at<(e._lastActionAt||0)+120)throw Error('รอสักครู่ก่อนทำรายการถัดไป');
   let result;
-  if(action.type==='focus-pulse'||action.type==='focus-finish'){
+  if(action.type==='study-enroll'){
+   if(!Pact.eligible(studyTask)||studyTask.id!==action.taskId)throw Error('ยังไม่พบงานนี้ในบัญชี บันทึกงานขึ้นบัญชีก่อนแล้วลองอีกครั้ง');
+   const q=Pact.enroll(e,studyTask,uid,at,tx);result={at,type:action.type,rewards:[],studyPact:copy(q)};
+  }else if(action.type==='study-pulse'||action.type==='study-finish'){
+   const q=e.studyPacts?.active;if(!Pact.valid(q,uid,at)||q.claimed||q.id!==action.pact)throw Error('ไม่พบพันธสัญญางานจริงที่กำลังทำ');
+   if(action.type==='study-finish')Pact.finish(q,at);
+   else if(!action.active||!Object.values(e.focusProofs||{}).some(p=>p.session&&at-p.lastAt<=16000))Pact.pulse(q,action.session,action.active===true,at);
+   result={at,type:action.type,rewards:[],studyPact:copy(q)};
+  }else if(action.type==='focus-pulse'||action.type==='focus-finish'){
    const q=Object.values(e.deathQuests||{}).find(q=>q.taskId===action.taskId&&q.owner===uid);
    if(!q||at-q.issuedAt>Core.DAY||e.taskClaims['death:'+q.taskId])throw Error('ไม่พบเควสที่กำลังทำ');
    e.focusProofs||={};const p=e.focusProofs[q.taskId]||{activeMs:0,lastAt:0,session:null,doneAt:null};
@@ -926,7 +1021,7 @@ function create({Core,Death,Season,config,randomSeed}) {
     p.doneAt=at;p.lastAt=0;p.session=null;
    }else{
     if(typeof action.session!=='string'||action.session.length<16)throw Error('รอบโฟกัสไม่ถูกต้อง');
-    if(action.active===true){
+    if(action.active===true&&!(e.studyPacts?.active?.proof?.session&&at-e.studyPacts.active.proof.lastAt<=16000)){
      const elapsed=at-p.lastAt;
      if(p.session===action.session&&elapsed>0&&elapsed<=16000)p.activeMs=Math.min(q.minutes*60000,p.activeMs+elapsed);
      // A second tab cannot steal an active lease or count the same seconds again.
@@ -976,8 +1071,9 @@ function create({authority,db,authenticate,clock=Date.now,season}){
    const action=authority.clean(body.action),tx=body.requestId;
    const previous=await db.receipt(uid,season.id,tx);
    if(previous){if(JSON.stringify(Object.entries(previous.action).sort())!==JSON.stringify(Object.entries(action).sort()))return reply({error:'รหัสธุรกรรมนี้ถูกใช้กับรายการอื่นแล้ว'},409);return reply({result:previous.result,document:authority.publicDocument(await snapshot()),serverNow:clock(),replay:true});}
+   const studyTask=action.type==='study-enroll'?await db.studyTask(uid,action.taskId):undefined;
    for(let attempt=0;attempt<4;attempt++){
-    const current=await snapshot(),next=authority.apply(current,action,{uid,at:clock(),tx});
+    const current=await snapshot(),next=authority.apply(current,action,{uid,at:clock(),tx,studyTask});
     const saved=await db.commit({uid,season:season.id,expected:current.revision,tx,action,...next});
     if(saved.committed)return reply({result:saved.result,document:authority.publicDocument(await snapshot()),serverNow:clock(),replay:saved.replay});
    }

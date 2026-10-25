@@ -5,7 +5,7 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),Core=require('../event/core.js'),C=require('../rewards/catalog.js'),Death=require('../death-quests.js'),Season=require('../event/season.js'),A=require('../server/authority.cjs'),H=require('../server/handler.cjs');
 const json=n=>JSON.parse(fs.readFileSync(new URL('../event/data/'+n+'.json',import.meta.url),'utf8'));
 const config=Core.build({materials:json('materials'),chains:['dutchman','jack','vampire','graveyard'].map(n=>json('quests.'+n)),catalog:C,proposals:json('preview-rules'),authoritative:true,season:{startAt:Season.startAt,endAt:Season.endAt,timezone:Season.timezone,claimingEnabled:true}});
-const at=Date.parse('2026-10-28T01:00:00+07:00'),uid='00000000-0000-4000-8000-000000000001';
+const at=Core.Rotations.next(Date.parse('2026-10-28T01:00:00+07:00'),0),uid='00000000-0000-4000-8000-000000000001';
 const authority=A.create({Core,Death,Season,config,randomSeed:()=>19483922});
 const apply=(d,a,t=at,tx=crypto.randomUUID())=>authority.apply(d,a,{uid,at:t,tx});
 test('Bangkok opening and closing boundaries cover all of November 30',()=>{assert.equal(Season.state(Date.parse(Season.startAt)-1),'upcoming');assert.equal(Season.state(Date.parse(Season.startAt)),'active');assert.equal(Season.state(Date.parse(Season.endAt)-1),'active');assert.equal(Season.state(Date.parse(Season.endAt)),'ended');});
@@ -18,7 +18,7 @@ test('server rejects every preview escape and ignores forged clocks, owners, see
  assert.throws(()=>apply(d,{type:'house',house:1,choice:'treat'},Date.parse(Season.endAt)));
  assert.equal(d.revision,0);
 });
-test('server alone grants Candy once and enforces the house cooldown',()=>{let d=authority.initial(uid,at);d=apply(d,{type:'enter-biome',biome:Core.BIOMES[0]}).document;const x=apply(d,{type:'house',house:1,choice:'treat'},at+1000);assert.equal(x.document.event.candy,15);assert.equal(d.event.candy,0);assert.throws(()=>apply(x.document,{type:'house',house:1,choice:'treat'},at+2000));assert.equal(x.document.revision,2);const p=authority.publicDocument(x.document);assert.equal(p.event.rng,undefined);assert.deepEqual(p.receipts,{});});
+test('server alone grants Candy once and enforces the house cooldown',()=>{let d=authority.initial(uid,at);d=apply(d,{type:'enter-biome',biome:Core.BIOMES[0]}).document;const x=apply(d,{type:'house',house:1,choice:'treat'},at+1000);assert.equal(x.document.event.candy,10);assert.equal(d.event.candy,0);assert.throws(()=>apply(x.document,{type:'house',house:1,choice:'treat'},at+2000));assert.equal(x.document.revision,2);const p=authority.publicDocument(x.document);assert.equal(p.event.rng,undefined);assert.deepEqual(p.receipts,{});});
 test('a real server quest cannot be completed with client focus counters or accelerated / overlapping heartbeats',()=>{
  let d=apply(authority.initial(uid,at),{type:'death-quest-enroll'}).document;const q=Object.values(d.event.deathQuests)[0];assert.equal(q.owner,uid);assert.equal(q.authoritative,true);
  assert.throws(()=>apply(d,{type:'death-quest-claim',quest:q.id,activeMs:1200000},at+1200001));
@@ -59,6 +59,6 @@ test('the live engine is not preview and independently rejects tools even withou
  const live=Core.build({materials:json('materials'),chains:['dutchman','jack','vampire','graveyard'].map(n=>json('quests.'+n)),catalog:C,proposals:json('preview-rules'),authoritative:true,season:{startAt:Season.startAt,endAt:Season.endAt,timezone:Season.timezone,claimingEnabled:true}});
  assert.equal(live.preview,false);const d=Core.initial(live,uid,at,42);
  for(const type of ['preview-supplies','preview-time','preview-biome','preview-close'])assert.throws(()=>Core.dispatch(d,live,{type,ms:3600000,biome:Core.BIOMES[1]},{now:at,tx:'no-tool'}));
- Core.dispatch(d,live,{type:'enter-biome',biome:Core.BIOMES[0]},{now:at,tx:'enter'});const result=Core.dispatch(d,live,{type:'house',house:1,choice:'treat'},{now:at+1000,tx:'house'});assert.equal(result.candy,15);
+ Core.dispatch(d,live,{type:'enter-biome',biome:Core.BIOMES[0]},{now:at,tx:'enter'});const result=Core.dispatch(d,live,{type:'house',house:1,choice:'treat'},{now:at+1000,tx:'house'});assert.equal(result.candy,10);
  assert.throws(()=>Core.dispatch(d,live,{type:'enter-hub'},{now:Date.parse(Season.endAt),tx:'ended'}));
 });

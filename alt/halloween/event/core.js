@@ -1,8 +1,8 @@
 /* Shared rules. The trusted service enables authoritative mode; preview tools remain preview-only. */
 (function(root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('../rewards/ownership.js'),require('./combat.js'),require('./missions.js'),require('../death-quests.js'));
-  else root.HalloweenEventCore = factory(root.HalloweenOwnership,root.HalloweenCombat,root.HalloweenStudentMissions,root.HalloweenDeathQuests);
-})(typeof globalThis === 'undefined' ? this : globalThis, (Ownership,Combat,Missions,Death) => {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('../rewards/ownership.js'),require('./combat.js'),require('./missions.js'),require('../death-quests.js'),require('../study-pact.js'),require('./brain-games.js'),require('./rotations.js'));
+  else root.HalloweenEventCore = factory(root.HalloweenOwnership,root.HalloweenCombat,root.HalloweenStudentMissions,root.HalloweenDeathQuests,root.HalloweenStudyPact,root.HalloweenBrainGames,root.HalloweenRotations);
+})(typeof globalThis === 'undefined' ? this : globalThis, (Ownership,Combat,Missions,Death,Pact,Brain,Rotations) => {
   'use strict';
   const BIOMES = ['dutchmans-soul', 'jacks-hollow', 'vampire-mansion', 'eternal-graveyard'];
   const SHORT = ['dutchman', 'jack', 'vampire', 'graveyard'];
@@ -79,8 +79,9 @@
       const personal=event.totem&&at<event.totem.until;
       // Daily Bangkok rotation: four six-hour windows. Personal routes never advance the daily quest cycle.
       const hour = new Date(at + 7 * HOUR).getUTCHours();
-      const featured=personal?event.totem.biome:BIOMES[Math.floor(hour/6)];
-      const selected=config.preview&&event.previewBiome?event.previewBiome:event.selectedBiome;
+      const featured=personal?event.totem.biome:config.proposals.journey?.hourly?BIOMES[Rotations.window(at).index]:BIOMES[Math.floor(hour/6)];
+      if(config.preview&&event.previewBiome)return {id:event.previewBiome,cycle,override:true,bonusBiome:null};
+      const selected=event.selectedBiome;
       return {id:config.proposals.journey?.freeTravel&&BIOMES.includes(selected)?selected:featured,cycle,override:!!personal,bonusBiome:featured};
     }
     return {id:null, cycle:null, override:false};
@@ -109,7 +110,7 @@
     if(!quest.availability?.mustWaitForNextOccurrence)return {waiting:false,nextAt:null};
     const previous=document.event.quests[quest.prerequisite];
     if(!previous?.complete)return {waiting:false,nextAt:null};
-    if(config.proposals.journey?.dechWaitMs){const nextAt=(previous.completedAt??0)+config.proposals.journey.dechWaitMs;return {waiting:moment(document,now)<nextAt,nextAt};}
+    if(config.proposals?.journey?.dechWaitMs){const nextAt=(previous.completedAt??0)+config.proposals.journey.dechWaitMs;return {waiting:moment(document,now)<nextAt,nextAt};}
     const current=biomeAt(document,config,now),waiting=current.cycle<=previous.completedCycle;
     return {waiting,nextAt:waiting?(previous.completedCycle+1)*DAY-7*HOUR+BIOMES.indexOf(quest.biome)*6*HOUR:null};
   }
@@ -296,7 +297,7 @@
     const prior = event.proofs[game.id] || {};
     event.proofs[game.id] = {complete:true, clear:prior.clear || clear, at:now, session:game.session};
   }
-  function dispatch(document, config, action, {now, tx, studentOS,studentOwner='',studentFocus}) {
+  function dispatch(document, config, action, {now, tx, studentOS,studentOwner='',studentFocus,studyPact}) {
     if (!tx || !Number.isFinite(now)) fail('ธุรกรรมไม่มีเวลาอ้างอิง');
     if (!document.event || document.season !== config.season.id) fail('ไม่พบข้อมูลฤดูกาล');
     const event = document.event, at = moment(document, now);
@@ -329,7 +330,7 @@
     } else if (action.type === 'enter-biome') {
       if (!portalStatus(document,config,action.biome,now).open) fail('ประตูไบโอมนี้ยังไม่เปิด ลองกลับมาในรอบของมันหรือใช้ Totem');
       event.visits ||= {hub:false,biomes:{},stories:{}};
-      event.selectedBiome=action.biome;delete event.previewBiome;
+      event.selectedBiome=action.biome;if(!config.preview)delete event.previewBiome;
       event.visits.biomes[action.biome] = true; event.location = {kind:'biome',biome:action.biome};
       result.firstStory = !event.visits.stories[action.biome]; result.biome = action.biome;
     } else if (action.type === 'story-seen') {
@@ -363,10 +364,11 @@
       result.questAid=awardQuestAid(document,config,current.id,at,tx);
     } else if(action.type==='claim-welcome'){
       requireRules(config);
-      if(!config.proposals.journey?.freeTravel||event.welcomeClaimed||event.quests['dutchman-light-in-darkness']?.complete)fail('รับชุดเริ่มต้นแล้ว');
+      if(!config.proposals.journey?.enabled||event.welcomeClaimed||event.quests['dutchman-light-in-darkness']?.complete)fail('รับชุดเริ่มต้นแล้ว');
       const candy=Math.max(0,50-event.candy);addCandy(event,candy,'welcome',at,tx);
       for(const id of ['dutchmans-soul-abyssal-rock','dutchmans-soul-dutchman-s-lantern'])if(!(event.inventory[id]>0))addItem(event,id,1);
       event.welcomeClaimed={at,tx};event.selectedBiome=BIOMES[0];delete event.previewBiome;
+      if(config.proposals.journey?.hourly)event.totem={biome:BIOMES[0],until:at+15*60000,source:'welcome'};
       event.visits.biomes[BIOMES[0]]=true;event.location={kind:'biome',biome:BIOMES[0]};result.candy=candy;
     } else if (action.type === 'quest') {
       const quest = config.quests.find(x => x.id === action.quest) || fail('ไม่พบเควส');
@@ -479,7 +481,7 @@
       if(!battle||battle.session!==action.session||battle.finished)fail('การต่อสู้รอบนี้จบแล้ว');
       const rule=config.proposals.bosses[battle.id],weapon=weaponStatus(document,config,battle.weapon);
       if(!weapon.usable)fail('อาวุธนี้ยังใช้ไม่ได้');
-      if(rule.biome&&rule.biome!==current.id&&action.move!=='retreat'&&!config.proposals.journey?.freeTravel)fail('ไบโอมเปลี่ยนแล้ว ถอยกลับก่อนเริ่มใหม่');
+      if(rule.biome&&rule.biome!==current.id&&action.move!=='retreat'&&!config.proposals.journey?.finishActiveBattles)fail('ไบโอมเปลี่ยนแล้ว ถอยกลับก่อนเริ่มใหม่');
       Combat.move(battle,rule,weapon.weapon,action.move,at,()=>random(event));
       if(battle.finished&&battle.clear){
         event.bossWins||={};if(event.bossWins[battle.id])fail('รับรางวัลบอสแล้ว');
@@ -524,7 +526,7 @@
       if (!BIOMES.includes(action.biome)) fail('เลือกไบโอมก่อน');
       addCandy(event, -config.proposals.totem.price, 'totem', at, tx);
       event.totem = {biome:action.biome, until:at + config.proposals.totem.durationMs};
-      if(config.proposals.journey?.freeTravel){event.selectedBiome=action.biome;delete event.previewBiome;}
+      if(config.proposals.journey?.freeTravel){event.selectedBiome=action.biome;if(!config.preview)delete event.previewBiome;}
     } else if (action.type === 'visitor') {
       requireRules(config);
       const index = action.index, rule = config.proposals.anonymousNpc, slot = Math.floor(at / rule.lifetimeMs);
@@ -534,6 +536,18 @@
       const pool = config.materials.biomes.find(x => x.id === current.id).items.filter(x => x.rarity === 'Common');
       const id = pool[index % pool.length]?.id || (index ? 'pending-human-skull' : 'pending-human-bone');
       addItem(event, id, -rule.quantity); addCandy(event, rule.candy, 'visitor', at, tx); event.visitors[key] = true;
+    } else if(action.type==='study-claim'){
+      requireRules(config);const q=config.preview?studyPact:event.studyPacts?.active;
+      const uid=config.preview?studentOwner:document.owner;if(!Pact.ready(q,uid,now)||q.id!==action.pact)fail('ทำพันธสัญญางานจริงให้ครบก่อนรับ');
+      const key='study:'+q.day+':'+q.index;if(event.taskClaims[key])fail('รับพันธสัญญาช่วงนี้แล้ว');
+      const earned=event.taskEarned.filter(x=>x.at>at-DAY).reduce((s,x)=>s+x.amount,0),amount=Math.max(0,Math.min(10,config.proposals.taskDailyCap-earned));
+      addCandy(event,amount,'study-pact',at,tx);event.taskClaims[key]=true;if(amount)event.taskEarned.push({at,amount});
+      result.chapter=Pact.chapter(event,q,at);if(!config.preview)event.studyPacts.active.claimed=true;
+      result.candy=amount;result.pact=q.id;
+    } else if(action.type==='brain-start'){
+      requireRules(config);if(event.brainGame&&!event.brainGame.finished)fail('จบรอบปัจจุบันหรือพักก่อนเริ่มใหม่');result.brainGame=clone(Brain.start(event,tx,at,()=>random(event)));
+    } else if(action.type==='brain-move'){
+      requireRules(config);const g=event.brainGame;if(!g||g.session!==action.session)fail('ไม่พบเกมพักสมองรอบนี้');result.brainGame=clone(Brain.move(g,action.move,at,()=>random(event)));
     } else if(action.type==='death-quest-enroll'){
       requireRules(config);event.deathQuests||={};const key=Death.day(now),today=event.deathQuests[key];
       const active=Object.values(event.deathQuests).find(q=>!event.taskClaims['death:'+q.taskId]&&now-q.issuedAt<DAY);
@@ -560,8 +574,8 @@
       if(rule.total)game.board=shuffled(event,Array.from({length:rule.total},(_,i)=>i));
       if(action.game==='dech-house-spot-difference')game.differences=shuffled(event,[0,1,2,3,4,5,6,7]).slice(0,rule.total);
       if(action.game==='catch-all-ghosts')game.spawnSlots=shuffled(event,[0,1,2,3,4,5,6,7,8]).slice(0,rule.total);
-      if(config.proposals.journey?.freeTravel&&action.game==='clear-jacks-garden-vines'){game.mode='memory';game.sequence=shuffled(event,Array.from({length:rule.total},(_,i)=>i));game.revealUntil=at+4500;}
-      if(config.proposals.journey?.freeTravel&&action.game==='grave-digging'){game.mode='pairs';game.tiles=shuffled(event,Array.from({length:rule.total},(_,i)=>Math.floor(i/2)));game.open=[];}
+      if(config.proposals.journey?.enabled&&action.game==='clear-jacks-garden-vines'){game.mode='memory';game.sequence=shuffled(event,Array.from({length:rule.total},(_,i)=>i));game.revealUntil=at+4500;}
+      if(config.proposals.journey?.enabled&&action.game==='grave-digging'){game.mode='pairs';game.tiles=shuffled(event,Array.from({length:rule.total},(_,i)=>Math.floor(i/2)));game.open=[];}
       if (action.game === 'ghost-ship-hunt') {
         if (!(event.inventory['spectral-lantern'] > 0)) fail('คราฟต์ Spectral Lantern กับ Tang ก่อน');
         if (event.repairs) fail('ซ่อมเรือก่อนออกเดินทาง');
@@ -616,5 +630,5 @@
     event.clock = at;
     return result;
   }
-  return Object.freeze({BIOMES, SHORT, DAY, HOUR, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,questWait,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, questNeeds, houseAvailability,questAidStatus, gameDefinition, dispatch});
+  return Object.freeze({BIOMES, SHORT, DAY, HOUR,Rotations, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,questWait,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, questNeeds, houseAvailability,questAidStatus, gameDefinition, dispatch});
 });

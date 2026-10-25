@@ -44,10 +44,10 @@ async function winBoss(h,id){
   assert.fail('boss never finished');
 }
 
-test('all four portals open, and story acknowledgement persists across re-entry',async()=>{
+test('only the active hourly portal opens, and story acknowledgement persists across re-entry',async()=>{
   const h=harness();await h.biome(Core.BIOMES[0]);
-  assert.equal(Core.BIOMES.filter(id=>Core.portalStatus(h.store.read(),h.config,id,time).open).length,4);
-  await h.apply({type:'enter-biome',biome:Core.BIOMES[1]});
+  assert.equal(Core.BIOMES.filter(id=>Core.portalStatus(h.store.read(),h.config,id,time).open).length,1);
+  await assert.rejects(h.apply({type:'enter-biome',biome:Core.BIOMES[1]}),/ยังไม่เปิด/);
   const first=await h.apply({type:'enter-biome',biome:Core.BIOMES[0]});assert.equal(first.result.firstStory,true);
   await h.apply({type:'story-seen',biome:Core.BIOMES[0]});
   const again=await h.apply({type:'enter-biome',biome:Core.BIOMES[0]});assert.equal(again.result.firstStory,false);
@@ -97,10 +97,10 @@ test('repeat seed request unlocks after a main quest and consumes the requested 
   assert.equal(after.event.inventory[crop.seed],before.event.inventory[crop.seed]+2);
   assert.equal(after.event.candy,before.event.candy);
 });
-test('world scenes expose click destinations and four open portals without movement controls',()=>{
+test('world scenes expose click destinations and one open portal without movement controls',()=>{
   const h=harness(),doc=h.store.read();doc.event.previewBiome=Core.BIOMES[0];
   const html=World.hub({Core,Catalog,config:h.config,doc,now:time});
-  assert.equal((html.match(/portal-open/g)||[]).length,4);
+  assert.equal((html.match(/portal-open/g)||[]).length,1);
   assert.equal((html.match(/class="world-portal /g)||[]).length,4);
   assert.match(html,/data-route="shop"/);assert.match(html,/data-route="cauldron"/);
   assert.doesNotMatch(html,/data-move=/);
@@ -170,13 +170,13 @@ test('drinking a potion changes to another biome and consumes exactly one bottle
   await h.apply({type:'drink-biome-potion'},'potion-drink');
   await assert.rejects(h.apply({type:'drink-biome-potion'}),/วัตถุดิบไม่พอ/);
 });
-test('a potion preserves house cooldowns, quest cycles and keeps its destination after the bonus expires',async()=>{
+test('a potion preserves house cooldowns, quest cycles and returns to the hourly door after the private route expires',async()=>{
   const h=harness({prepare:doc=>{stock(doc);doc.event.inventory['random-biome-potion']=1;doc.event.quests['dech-rare-materials']={complete:true,completedCycle:10};}});await h.biome(Core.BIOMES[0]);
   await h.apply({type:'house',house:1,choice:'treat'});const before=h.store.read(),cycle=Core.biomeAt(before,h.config,time).cycle;
   const potion=await h.apply({type:'drink-biome-potion'});assert.deepEqual(h.store.read().event.houses,before.event.houses);assert.deepEqual(h.store.read().event.quests,before.event.quests);
   assert.equal(Core.biomeAt(h.store.read(),h.config,time).cycle,cycle);
   await h.apply({type:'preview-time',ms:proposals.randomBiomePotion.durationMs});
-  assert.equal(Core.biomeAt(h.store.read(),h.config,time).id,potion.result.biome);assert.equal(Core.biomeAt(h.store.read(),h.config,time).bonusBiome,Core.BIOMES[1]);assert.deepEqual(h.store.read().event.houses,before.event.houses);
+  assert.equal(Core.biomeAt(h.store.read(),h.config,time).id,Core.BIOMES[Core.Rotations.window(Core.moment(h.store.read(),time)).index]);assert.deepEqual(h.store.read().event.houses,before.event.houses);
 });
 test('all three other biomes are reachable by potion, without adding cosmetics',async()=>{
   const seen=new Set();for(let n=1;n<=24;n++){
