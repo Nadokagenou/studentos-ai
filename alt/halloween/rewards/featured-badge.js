@@ -61,7 +61,7 @@
   async function openPicker(){
    if(picker?.open)return;picker=document.createElement('dialog');picker.className='hw-featured-picker';picker.setAttribute('aria-labelledby','hwFeaturedTitle');
    picker.innerHTML='<div class="hw-featured-head"><button type="button" class="hw-badge-close" data-feature-close aria-label="ปิดการเลือกตรา">×</button><small>STUDENT OS · PROFILE BADGE</small><h2 id="hwFeaturedTitle">ตราบนโปรไฟล์</h2><p class="hw-featured-message" role="status" aria-live="polite"></p></div><div class="hw-featured-options"></div><div class="hw-featured-actions"><button type="button" data-feature-clear>ไม่แสดงตรา</button><button type="button" data-feature-reload>ตรวจอีกครั้ง</button><button type="button" data-feature-login>เข้าสู่ระบบ</button></div>';
-   const current=picker;picker.addEventListener('close',()=>{current.remove();if(picker===current)picker=null;document.querySelector('.screen.on [data-feature-choose]')?.focus({preventScroll:true});},{once:true});document.querySelector('.phone').append(picker);picker.showModal();paintPicker();{const head=picker.querySelector('.hw-featured-head');const fit=()=>picker.style.setProperty('--fh',head.offsetHeight+'px');fit();if(typeof ResizeObserver!=='undefined')new ResizeObserver(fit).observe(head);}
+   const current=picker;picker.addEventListener('close',()=>{current.remove();if(picker===current)picker=null;document.querySelector('.screen.on [data-feature-choose]')?.focus({preventScroll:true});},{once:true});document.querySelector('.phone').append(picker);picker.showModal();paintPicker();
    if(!preview&&owner())await refresh();
   }
   async function equip(id){

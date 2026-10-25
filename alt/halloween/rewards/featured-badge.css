@@ -116,3 +116,21 @@
 }
 .phone .hw-featured-actions button[data-feature-login] { background: var(--fill); color: var(--on-fill); border-color: transparent; }
 .phone .hw-featured-picker button:focus-visible { outline: 2px solid var(--fill); outline-offset: 3px; }
+
+/* ============================================================
+   26 ต.ค. 69 รอบสาม · เจ้าของ (ภาพหัวแผ่น ข้อความ "เข้าสู่ระบบเพื่อเลือก…" ยังโดนตัดครึ่ง): "อย่าทำให้มันขยับ"
+   ต้นเหตุ: ทั้งแผ่นยังเป็นกล่องเลื่อนกล่องเดียว แล้วเอาของสองชั้นมาค้างด้วย sticky (หัวแผ่น + หัวกลุ่ม)
+   ตอนเลื่อน ของเลยไหลซ้อนกันและเว้นช่องตามความสูงหัวที่เปลี่ยนได้ — ตาเห็นว่าหัวขยับ/โดนตัด
+   แก้ที่โครง: แผ่นแบ่งสามส่วนตายตัว — หัว (นิ่งสนิท ไม่อยู่ในส่วนที่เลื่อน) · รายการตรา (เลื่อนได้ส่วนเดียว) · ปุ่มล่าง (นิ่ง)
+   หัวกลุ่ม "ตรา Student OS" ค้างที่ขอบบนของรายการเอง (ไม่ต้องรู้ความสูงหัวแผ่นอีกแล้ว)
+   ============================================================ */
+.phone .hw-featured-picker[open] { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+.phone .hw-featured-head { position: static; flex: none; margin: 0; padding: 22px 56px 12px 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--fill) 18%, var(--line)); }
+.phone .hw-featured-options { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: none; padding: 0 16px 14px; align-content: start; }
+.phone .hw-featured-options::-webkit-scrollbar { display: none; }
+.phone .hw-featured-options h3 { top: 0; margin: 0 -16px 2px; }
+.phone .hw-featured-options h3 ~ h3 { margin-top: 10px; }
+.phone .hw-featured-actions { position: static; flex: none; margin: 0; padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
+  background: var(--card); }
