@@ -13213,6 +13213,8 @@ function startFocus(taskId) {
 // เรียงจากชั้นบนสุดลงล่าง — ปิดทีละชั้นต่อหนึ่งครั้งที่กด
 const OVERLAYS = [
   { sel: '.face-zoom',       close: el => el.remove() },
+  // 25 ต.ค. 69 · ฉากเรือผีบนจอ "เสร็จแล้ว" (halloween/season/cursed-ship.js) — ย้อนกลับ = ข้ามฉาก ไม่ใช่ปิดโหมดโฟกัส
+  { sel: '.cs-ov:not(.out)', close: () => CursedShip.skip() },
   // 17 ต.ค. 69 · เอฟเฟกต์ฉลองงานเสร็จ (hoop.js · เต็มจอ) — เดิมไม่อยู่ในรายการ: กดย้อนกลับ = จอข้างหลังเปลี่ยนทั้งที่เอฟเฟกต์ยังค้าง
   // และจอใหม่โปร่งใสค้าง (ระหว่างเอฟเฟกต์ .phone.fx-on หยุดอนิเมชันทุกจอ อนิเมชันเข้าจอเลยค้างที่เฟรมแรก)
   // ย้อนกลับ = ปิดเอฟเฟกต์แบบเดียวกับกด "ข้าม" · :not(.out) = ไม่นับอันที่กำลังจางออก · เทสต์: devtools/backcheck.js
@@ -13518,6 +13520,9 @@ function renderFocus() {
 function finishFocus() {
   const t = state.tasks.find(x => x.id === focusId);
   if (!t) { closeFocus(); return; }
+  // 25 ต.ค. 69 · กันบันทึกซ้ำ — ติ๊กขั้นสุดท้าย (toggleStep เรียกเราตามหลัง 350ms) แล้วกด "ทำเสร็จแล้ว" ซ้อน
+  // เดิมรอบสองเขียน doneAt ทับ วาดจอฉลองใหม่ และเล่นเอฟเฟกต์ซ้ำ · จอฉลองขึ้นแล้ว = งานใบนี้จบไปแล้ว
+  if (document.querySelector('#focusWrap .fc-sheet.done')) return;
   stopWork(true);
   // ทางนี้คือปลายลูกโซ่หลัก (เริ่มทำ → ทำเสร็จ) แต่เดิมไม่ได้นับ doneEver เลย — ตัวเลขทำเสร็จจึงต่ำกว่าจริง
   if (!t.done) funnelDone();
@@ -13570,8 +13575,12 @@ function finishFocus() {
     .filter(s => s.task && !s.task.done && (!nxt || s.task.id !== nxt.task.id))
     .slice(0, 3);
 
+  // 25 ต.ค. 69 · เลือกเอฟเฟกต์ "The Cursed Ship" ไว้ = จอนี้แต่งเป็นฉากป่าช้ากับผืนผ้าแขวน (halloween/season/cursed-ship.js)
+  // ทั้งตอนที่ฉากเรือเล่นและตอนที่เล่นไม่ได้ (ลดการเคลื่อนไหว) · ข้อมูลบนจอยังเป็นชุดเดียวกับข้างบนทุกตัว
+  const fxGame = typeof doneFxActive === 'function' && doneFxActive();
+  const skin = !!(window.CursedShip && CursedShip.skinOn());
   const wrap = document.getElementById('focusWrap');
-  wrap.innerHTML = `<div class="fc-sheet done">
+  wrap.innerHTML = `${skin ? CursedShip.scene() : ''}<div class="fc-sheet done${skin ? ' cs-done' : ''}">
     <div class="fw-hero">
       <div class="fw-ring">${icon('check')}</div>
       <!-- คำทักกับชื่องานห่อรวมกันอยู่ใน .fw-mid — ใบใช้ space-between กระจายลูกสามก้อน
@@ -13611,10 +13620,11 @@ function finishFocus() {
     </div>`}
   </div>`;
   // เอฟเฟกต์ "โยนลงห่วง" ลอยทับจอฉลองนี้ — ปิดแล้วค่อยพ่นเศษกระดาษจากวงติ๊กตามเดิม
-  const ring = () => celebrate(document.querySelector('.fw-ring'));
-  if (typeof doneFxActive === 'function' && doneFxActive()) openDoneFx(taskTitleText(t), ring);
-  else ring();
-  setTimeout(checkBadges, 1800);
+  // จอเรือผีไม่พ่นเศษกระดาษ — วงติ๊กเรืองเขียวขึ้นเองตอนจอโผล่ (cursed-ship.css)
+  // เหรียญใหม่เด้งหลังเอฟเฟกต์ปิด ไม่ใช่นับจากตอนกด — เดิมเด้งทับกลางเกม (แบบเดียวกับ toggleDone)
+  const ring = () => { if (!skin) celebrate(document.querySelector('.fw-ring')); };
+  if (fxGame) openDoneFx(taskTitleText(t), () => { ring(); setTimeout(checkBadges, 600); });
+  else { ring(); setTimeout(checkBadges, 1800); }
 }
 
 // ---------- task actions ----------

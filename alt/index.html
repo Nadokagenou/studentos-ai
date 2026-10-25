@@ -159,6 +159,7 @@
   <link rel="stylesheet" href="halloween/rewards/theme-moonlight.css?rev=restore-appearance-20261024">
   <!-- ช่วงฮาโลวีน: จอโหลด (ค้างคาว) + จอเข้าสู่ระบบ — มีผลเฉพาะตอน <html> มีคลาส hw-season -->
   <link rel="stylesheet" href="halloween/season/season.css">
+  <link rel="stylesheet" href="halloween/season/cursed-ship.css?rev=cursed-ship-fx-20261025">
 </head>
 <body>
 
@@ -250,7 +251,7 @@
     //   งานจริงของแอปยังบูตข้างใต้ตามเดิม ทางหนีไฟ 3/10/12 วินาทีไม่เปลี่ยน
     var story = hw;
     try { if (matchMedia('(prefers-reduced-motion: reduce)').matches) story = false; } catch (e) {}
-    var STORY_BAR = story ? 1100 : 0, STORY_END = 520, t0 = performance.now();
+    var STORY_BAR = story ? 1100 : 0, STORY_END = 720, t0 = performance.now();
     if (hw) { var mk = el.querySelector('.boot-mark'); if (mk) mk.src = 'halloween/rewards/theme-assets/app-icon.webp'; }
 
     // 12 ต.ค. 69 · เจ้าของ: "แก้ไขให้ในหน้าโหลดก่อนเข้าแอปคือการโหลดข้อมูลแอปก่อนเพื่อไม่ให้แอปมันค้าง
@@ -2668,6 +2669,8 @@
 <script src="halloween/rewards/badges.js?rev=featured-20261025"></script>
 <script src="halloween/rewards/featured-badge.js?rev=featured-20261025"></script>
 <script src="halloween/rewards/theme-rarity.js?rev=ranat-rarity-20261025"></script>
+<!-- เอฟเฟกต์งานเสร็จ The Cursed Ship — ลงทะเบียนตัวเองใน FX_SHOP (hoop.js) จึงต้องมาหลัง hoop.js · เล่นตอนกดเท่านั้น จึงโหลดท้ายแถวได้ -->
+<script src="halloween/season/cursed-ship.js?rev=cursed-ship-fx-20261025"></script>
 <script src="device-preview-bridge.js"></script>
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────
