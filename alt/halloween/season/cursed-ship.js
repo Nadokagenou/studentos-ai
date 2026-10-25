@@ -15,7 +15,7 @@
 // กติกาที่ตั้งใจ (อย่าแก้โดยไม่รู้เหตุผล):
 //   • งานถูกบันทึกว่าเสร็จก่อนฉากนี้เริ่ม (finishFocus / toggleDone ใน app.js) — ฉากเป็นแค่ฉลอง
 //     ไฟล์นี้ไม่แตะ state ไม่แตะสถิติ ตัวเลขบนใบคืออ่านจากงานจริงด้วยสูตรเดียวกับจอ "เสร็จแล้ว"
-//   • ทั้งฉาก 2.95 วิ แตะตรงไหนก็ข้าม · Esc/ปุ่มย้อนกลับ = ข้าม · onClose เรียกครั้งเดียวเสมอ
+//   • ทั้งฉาก 3.2 วิ แตะตรงไหนก็ข้าม · Esc/ปุ่มย้อนกลับ = ข้าม · onClose เรียกครั้งเดียวเสมอ
 //   • ลดการเคลื่อนไหว (ระบบ) · ภาพนิ่งฮาโลวีน (data-hw-motion="still") · กราฟิกน้อย · ภาพยังโหลดไม่ครบ
 //     = ไม่เล่นฉาก (doneFxActive ตอบ false) แต่จอ "เสร็จแล้ว" ของโหมดโฟกัสยังเป็นฉบับเรือผี (ช่อง 12)
 //   • ไม่มีเสียง — ฉากไม่พึ่งเสียง จึงไม่มีอะไรพังตอนปิดเสียง/ไม่มีไฟล์
@@ -23,8 +23,12 @@
 (function () {
   'use strict';
   const ID = 'cursedship';        // id ใน FX_SHOP / ค่าใน localStorage['studentos.alt.doneFx']
-  const TOTAL = 2950;             // ฉากทั้งชุด (ms)
-  const REVEAL_AT = 2700;         // จอข้างหลังเริ่มโผล่ — ซ้อนกับช็อตป่าช้า
+  // 25 ต.ค. 69 · เจ้าของอัดจอมือถือจริงมาให้ดูแล้วบอกว่า "มันคืออะไรไม่เข้าใจ"
+  // รอบก่อนตัด 6 ช็อตใน 2.95 วิ (ช็อตละ ~0.4 วิ) และใบงานลอยบังตัวเรือพอดี — ตาตามไม่ทัน
+  // ตอนนี้เหลือ 3 ช็อตที่เล่าเรื่องชัด: เรือโผล่ค้างให้เห็นทั้งลำ → ใบงานถูกดูดเข้าโคมเรือ
+  // → ภาพใกล้ตราประทับ → เรือแล่นหาย · ยาวขึ้นเป็น 3.2 วิเพื่อให้แต่ละช็อตอ่านออก (ข้ามได้ตลอด)
+  const TOTAL = 3200;             // ฉากทั้งชุด (ms)
+  const REVEAL_AT = 2950;         // จอข้างหลังเริ่มโผล่ — ซ้อนกับตอนเรือจางในหมอก
   const STAMP_AT = 1850;          // ตราประทับตก (ต้องตรงกับ animation-delay ของ .cs-seal ใน cursed-ship.css)
 
   // cx = จุดบนภาพ (แนวนอน) ที่อยากให้อยู่กลางจอ — ต้องตรงกับ --cx ใน cursed-ship.css
@@ -146,8 +150,8 @@
     ov.setAttribute('role', 'dialog');
     ov.setAttribute('aria-label', 'งานเสร็จแล้ว · เรือผีมารับงาน แตะเพื่อข้าม');
     ov.innerHTML = `<i class="cs-dark"></i>
-      ${shot('fog')}${shot('ship')}${shot('deck')}${shot('far')}${shot('yard')}
-      <i class="cs-flash"></i><i class="cs-blood"></i>
+      ${shot('fog')}${shot('ship')}${shot('deck')}${shot('far')}
+      <i class="cs-flash"></i><i class="cs-blood"></i><i class="cs-glint"></i>
       <i class="cs-fog l"></i><i class="cs-fog r"></i>
       <i class="cs-halo"></i>
       ${cardHtml(title, stats())}
@@ -163,7 +167,7 @@
     ov.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skip(); } });
     try { ov.querySelector('.cs-skip').focus({ preventScroll: true }); } catch (_) {}
 
-    // ตำแหน่งในช็อตอื่นอ่านจากภาพจริง: เท้าเรือ (ช่อง 3) · จุดที่ใบงานลอยบนดาดฟ้า (ช่อง 4) · แสงเรือที่แล่นไกล (ช่อง 6)
+    // ตำแหน่งอ่านจากภาพจริง: โคมเขียวบนดาดฟ้าเรือ (ช่อง 3) คือที่ที่ใบงานถูกดูดเข้าไป
     const card = ov.querySelector('.cs-card');
     const W = ov.clientWidth, H = ov.clientHeight;
     const o0 = origin(host);
@@ -176,26 +180,30 @@
     const halo = ov.querySelector('.cs-halo');
     halo.style.left = x0 + 'px'; halo.style.top = (y0 + ch / 2 + 6) + 'px'; halo.style.width = cw * 1.1 + 'px';
 
-    const p3 = artPoint(ov, 'ship', .53, .86), p4 = artPoint(ov, 'deck', .556, .516), p6 = artPoint(ov, 'far', .553, .667);
-    const p5 = { x: W / 2, y: H * .45 };
-    const s3 = .32 * p3.w / cw, s4 = .425 * p4.w / cw, s5 = Math.min(1.02, (W * .8) / cw);
+    const lamp = artPoint(ov, 'ship', .655, .7);
+    const glint = ov.querySelector('.cs-glint');
+    glint.style.left = lamp.x + 'px'; glint.style.top = lamp.y + 'px';
+    // ภาพใกล้ตราประทับ: ใบงานกลางจอ เล็กพอให้ตรา (ล้นขวาใบ 6%) ยังอยู่ในจอทั้งดวง
+    const p5 = { x: W * .47, y: H * .45 };
+    const s5 = Math.min(1, (W * .74) / cw);
+    const mid = { x: (x0 + lamp.x) / 2, y: (y0 + lamp.y) / 2 - 30 };
     const to = (p, s, r) => `translate(${p.x - x0}px,${p.y - y0}px) rotate(${r}deg) scale(${s})`;
     const o = { x: x0, y: y0 };
     if (card.animate) {
-      const K = (t, transform, opacity = 1) => ({ offset: t / TOTAL, transform, opacity });
+      // easing ต้องอยู่รายช่วง — ใส่ที่ตัว animation จะบิดเวลาทั้งเส้น ช็อตคลาดจาก CSS
+      const K = (t, transform, opacity = 1) => ({ offset: t / TOTAL, transform, opacity, easing: 'ease-in-out' });
       run.anims.push(card.animate([
         K(0, to(o, 1, 0)),
-        K(380, to({ x: x0, y: y0 - 10 }, 1.02, -1)),                 // 1 · ใบงานเรือง ยกตัวนิดหนึ่ง
-        K(700, to({ x: x0, y: y0 - 14 }, 1.02, -1.5), .5),            // 2 · ใบงานจมลงในความมืดพร้อมหมอก
-        K(1150, to(p3, s3, -3)),                                     // 3 · ถูกดึงไปที่เท้าเรือ (เล็กลงตามระยะ)
-        K(1370, to(p3, s3 * .98, -4)),
-        K(1400, to(p4, s4, -10)),                                    // ตัด → 4 · ลอยบนดาดฟ้า
-        K(1760, to({ x: p4.x, y: p4.y - 16 }, s4 * 1.03, -8)),
-        K(1790, to(p5, s5, -12)),                                    // ตัด → 5 · ภาพใกล้ ตราประทับตก
-        K(2190, to({ x: p5.x + 4, y: p5.y + 3 }, s5 * .98, -12.5)),
-        K(2230, to(p6, .22 * p6.w / cw, -6)),                         // ตัด → 6 · ใบงานถูกพาไปกับเรือ
-        K(2560, to(p6, .03, -2), 0),
-        K(TOTAL, to(p6, .03, -2), 0),
+        K(350, to({ x: x0, y: y0 - 10 }, 1.02, -1)),                 // 1 · ใบงานเรือง ยกตัวนิดหนึ่ง
+        K(650, to({ x: x0, y: y0 - 14 }, 1.0, -1.5), .55),            // 2 · จมลงในความมืดพร้อมหมอก
+        K(1000, to(mid, .42, -6), .95),                               // 3 · เรือโผล่ ใบงานหดเล็กลอยออกข้างเรือ (ไม่บังตัวเรือ)
+        K(1450, to(lamp, .14, -12), 1),                              //     ลอยเข้าหาโคมเขียว
+        K(1600, to(lamp, .02, -18), 0),                              //     ถูกดูดหายเข้าโคม (แสงวาบเขียว)
+        K(1700, to(p5, s5 * 1.12, -10), 0),                          // ตัด → ภาพใกล้
+        K(1760, to(p5, s5, -9), 1),
+        K(2400, to({ x: p5.x + 3, y: p5.y + 4 }, s5 * .97, -9.5), 1),  //     ตราประทับตกที่ 1.85 วิ แล้วค้างให้อ่าน
+        K(2460, to({ x: p5.x + 3, y: p5.y + 4 }, s5 * .97, -9.5), 0),  // ตัด → เรือแล่นหาย
+        K(TOTAL, to({ x: p5.x, y: p5.y }, s5, -9.5), 0),
       ], { duration: TOTAL, easing: 'linear', fill: 'both' }));
     }
 
