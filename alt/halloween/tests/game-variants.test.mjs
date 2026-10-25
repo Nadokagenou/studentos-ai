@@ -9,11 +9,11 @@ test('five games randomize their scene and boards once per round, retaining vali
  assert.equal(variants.size,3,id);if(id!=='ghost-ship-hunt')assert.ok(boards.size>20,id);
  }
 });
-test('Dech Q3 exposes the actual next appointment and releases the gate on the next Bangkok day',()=>{
+test('Dech Q3 exposes the actual next appointment and releases the gate after twenty minutes',()=>{
  const d=Core.initial(config,'test',at,42),q=config.quests.find(q=>q.id==='dech-wrong-letter');d.event.previewBiome=q.biome;
  const completedAt=Date.parse('2026-10-28T16:00:00+07:00'),cycle=Math.floor((completedAt+7*Core.HOUR)/Core.DAY);
  d.event.quests[q.prerequisite]={complete:true,completedAt,completedCycle:cycle};
- const wait=Core.questWait(d,config,q,completedAt);assert.equal(wait.waiting,true);assert.equal(wait.nextAt,Date.parse('2026-10-29T12:00:00+07:00'));
- assert.equal(Core.questWait(d,config,q,Date.parse('2026-10-28T23:59:59+07:00')).waiting,true);
- assert.equal(Core.questWait(d,config,q,Date.parse('2026-10-29T00:00:00+07:00')).waiting,false);
+ const wait=Core.questWait(d,config,q,completedAt);assert.equal(wait.waiting,true);assert.equal(wait.nextAt,completedAt+20*60000);
+ assert.equal(Core.questWait(d,config,q,completedAt+20*60000-1).waiting,true);
+ assert.equal(Core.questWait(d,config,q,completedAt+20*60000).waiting,false);
 });

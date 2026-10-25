@@ -18,7 +18,7 @@ test('server rejects every preview escape and ignores forged clocks, owners, see
  assert.throws(()=>apply(d,{type:'house',house:1,choice:'treat'},Date.parse(Season.endAt)));
  assert.equal(d.revision,0);
 });
-test('server alone grants Candy once and enforces the house cooldown',()=>{let d=authority.initial(uid,at);d=apply(d,{type:'enter-biome',biome:Core.BIOMES[0]}).document;const x=apply(d,{type:'house',house:1,choice:'treat'},at+1000);assert.equal(x.document.event.candy,10);assert.equal(d.event.candy,0);assert.throws(()=>apply(x.document,{type:'house',house:1,choice:'treat'},at+2000));assert.equal(x.document.revision,2);const p=authority.publicDocument(x.document);assert.equal(p.event.rng,undefined);assert.deepEqual(p.receipts,{});});
+test('server alone grants Candy once and enforces the house cooldown',()=>{let d=authority.initial(uid,at);d=apply(d,{type:'enter-biome',biome:Core.BIOMES[0]}).document;const x=apply(d,{type:'house',house:1,choice:'treat'},at+1000);assert.equal(x.document.event.candy,15);assert.equal(d.event.candy,0);assert.throws(()=>apply(x.document,{type:'house',house:1,choice:'treat'},at+2000));assert.equal(x.document.revision,2);const p=authority.publicDocument(x.document);assert.equal(p.event.rng,undefined);assert.deepEqual(p.receipts,{});});
 test('a real server quest cannot be completed with client focus counters or accelerated / overlapping heartbeats',()=>{
  let d=apply(authority.initial(uid,at),{type:'death-quest-enroll'}).document;const q=Object.values(d.event.deathQuests)[0];assert.equal(q.owner,uid);assert.equal(q.authoritative,true);
  assert.throws(()=>apply(d,{type:'death-quest-claim',quest:q.id,activeMs:1200000},at+1200001));
@@ -29,7 +29,7 @@ test('a real server quest cannot be completed with client focus counters or acce
  assert.throws(()=>apply(d,{type:'focus-finish',taskId:q.taskId},at+61000));
  for(let t=70000;t<=1260000;t+=10000)pulse('session-a-long-enough',at+t);
  assert.equal(d.event.focusProofs[q.taskId].activeMs,1200000);d=apply(d,{type:'focus-finish',taskId:q.taskId},at+1270000).document;
- const result=apply(d,{type:'death-quest-claim',quest:q.id},at+1280000);assert.equal(result.document.event.candy,10);assert.throws(()=>apply(result.document,{type:'death-quest-claim',quest:q.id},at+1290000));
+ const result=apply(d,{type:'death-quest-claim',quest:q.id},at+1280000);assert.equal(result.document.event.candy,30);assert.throws(()=>apply(result.document,{type:'death-quest-claim',quest:q.id},at+1290000));
 });
 function harness(){let doc=null,time=at;const receipts=new Map();const db={async read(){return doc&&{document:structuredClone(doc)};},async receipt(u,s,tx){return receipts.get(tx);},async commit(x){if((doc?.revision||0)!==x.expected)return {committed:false};if(receipts.has(x.tx))return {committed:true,replay:true,result:receipts.get(x.tx).result};doc=structuredClone(x.document);receipts.set(x.tx,{action:x.action,result:x.result});return {committed:true,replay:false,result:x.result};}};const handler=H.create({authority,db,authenticate:async token=>token==='Bearer valid'?uid:null,clock:()=>time+=1000,season:Season});return {handler,db,receipts,read:()=>doc};}
 const request=(action,requestId=crypto.randomUUID(),token='Bearer valid')=>new Request('https://example.test/halloween-event',{method:'POST',headers:{authorization:token,'content-type':'application/json'},body:JSON.stringify({action,requestId})});
@@ -59,6 +59,6 @@ test('the live engine is not preview and independently rejects tools even withou
  const live=Core.build({materials:json('materials'),chains:['dutchman','jack','vampire','graveyard'].map(n=>json('quests.'+n)),catalog:C,proposals:json('preview-rules'),authoritative:true,season:{startAt:Season.startAt,endAt:Season.endAt,timezone:Season.timezone,claimingEnabled:true}});
  assert.equal(live.preview,false);const d=Core.initial(live,uid,at,42);
  for(const type of ['preview-supplies','preview-time','preview-biome','preview-close'])assert.throws(()=>Core.dispatch(d,live,{type,ms:3600000,biome:Core.BIOMES[1]},{now:at,tx:'no-tool'}));
- Core.dispatch(d,live,{type:'enter-biome',biome:Core.BIOMES[0]},{now:at,tx:'enter'});const result=Core.dispatch(d,live,{type:'house',house:1,choice:'treat'},{now:at+1000,tx:'house'});assert.equal(result.candy,10);
+ Core.dispatch(d,live,{type:'enter-biome',biome:Core.BIOMES[0]},{now:at,tx:'enter'});const result=Core.dispatch(d,live,{type:'house',house:1,choice:'treat'},{now:at+1000,tx:'house'});assert.equal(result.candy,15);
  assert.throws(()=>Core.dispatch(d,live,{type:'enter-hub'},{now:Date.parse(Season.endAt),tx:'ended'}));
 });

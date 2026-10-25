@@ -1,7 +1,7 @@
 /* Runs only on the trusted service. Browser state, clocks and reward lists are never input. */
 'use strict';
 function create({Core,Death,Season,config,randomSeed}) {
- const allowed=new Set(['enter-hub','enter-room','enter-biome','story-seen','house','quest','buy','craft','seed-quest','plant','water','harvest','sell-crop','equip-weapon','start-boss','battle-move','claim-final-theme-set','buy-biome-potion','drink-biome-potion','totem','visitor','death-quest-enroll','death-quest-claim','start-game','game-move','repair','focus-pulse','focus-finish']);
+ const allowed=new Set(['claim-welcome','training-start','training-move','enter-hub','enter-room','enter-biome','story-seen','house','quest','buy','craft','seed-quest','plant','water','harvest','sell-crop','equip-weapon','start-boss','battle-move','claim-final-theme-set','buy-biome-potion','drink-biome-potion','totem','visitor','death-quest-enroll','death-quest-claim','start-game','game-move','repair','focus-pulse','focus-finish']);
  const keys=['type','room','biome','house','choice','quest','branch','item','stockEpoch','recipe','quantity','expectedGrown','expectedInventory','weapon','boss','session','move','index','game','taskId','active'];
  const copy=x=>JSON.parse(JSON.stringify(x));
  function clean(input){
@@ -18,7 +18,7 @@ function create({Core,Death,Season,config,randomSeed}) {
   const d=copy(document),e=d.event;e.timeOffset=0;delete e.previewBiome;
   // Unpredictable entropy is supplied by the server for every transaction.
   e.rng=randomSeed();
-  if(['house','game-move','battle-move'].includes(action.type)&&at<(e._lastActionAt||0)+120)throw Error('รอสักครู่ก่อนทำรายการถัดไป');
+  if(['house','game-move','battle-move','training-move'].includes(action.type)&&at<(e._lastActionAt||0)+120)throw Error('รอสักครู่ก่อนทำรายการถัดไป');
   let result;
   if(action.type==='focus-pulse'||action.type==='focus-finish'){
    const q=Object.values(e.deathQuests||{}).find(q=>q.taskId===action.taskId&&q.owner===uid);

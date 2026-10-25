@@ -24,8 +24,8 @@
     const index={spear:0,axe:1,quill:2,scythe:3}[type]??0;
     return '<span class="weapon-sprite" aria-hidden="true" style="--weapon-x:'+index*100/3+'%"></span>';
   }
-  function hero(c,weaponId=c.doc.event.equipment){
-    const status=c.Core.weaponStatus(c.doc,c.config,weaponId),w=status.usable?status.weapon:null;
+  function hero(c,weaponId=c.doc.event.equipment,practice=false){
+    const status=c.Core.weaponStatus(c.doc,c.config,weaponId),w=status.usable||practice?status.weapon:null;
     return '<span class="hero-pixel" role="img" aria-label="นักผจญภัย'+(w?' ถือ '+esc(w.name):' ยังไม่มีอาวุธ')+'"><span class="rpg-sprite" aria-hidden="true" style="--atlas-x:'+(c.doc.event.secretEnding?100:0)+'%;--atlas-y:'+(c.doc.event.secretEnding?100:0)+'%"></span>'+(w?'<span class="hero-weapon" style="--weapon-color:'+w.color+'">'+weaponArt(w.type,w.color)+'</span>':'')+'</span>';
   }
   function player(c){return '<div class="world-player" aria-hidden="true">'+hero(c)+'</div>';}
@@ -37,10 +37,10 @@
   function activity(c,id){
     const {doc,config}=c,event=doc.event;
     const games={
-      'ghost-ship-hunt':{name:'ล่าสมบัติเรือผี',description:'ใช้แสงโคมนำเรือฝ่าหมอก เลือกหน้า ซ้าย หรือขวาตามสัญญาณให้ถูก 6 ครั้ง ผิดหรือหมดเวลารวม 3 ครั้งเรือจะล่ม',instructions:'แต่ละช่วงมีเวลา 15 → 5 วินาที ผ่านแล้วได้ Candy และ Soul Anchor ถ้าเรือล่มต้องซ่อมก่อนออกใหม่'},
-      'clear-jacks-garden-vines':{name:'เคลียร์วัชพืชของ Jack',description:'ตัดเถาวัลย์ตามลำดับที่ส่องสัญญาณจนครบ '+config.proposals.games.vines+' จุด เพื่อคืนแปลงปลูกให้ Jack',instructions:'ผ่านแล้วกลับไปส่งเควสกับ Jack เพื่อเปิดสวนทุกแปลง เล่นซ้ำได้ แต่ไม่ได้แปลงหรือเมล็ดเพิ่มจากการเล่นอย่างเดียว'},
+      'ghost-ship-hunt':{name:'ล่าสมบัติเรือผี',description:'ใช้แสงโคมนำเรือฝ่าหมอก เลือกหน้า ซ้าย หรือขวาตามสัญญาณให้ถูก 6 ครั้ง ผิดหรือหมดเวลารวม 3 ครั้งเรือจะล่ม',instructions:'ชนะครั้งแรกได้ 35 Candy · เล่นซ้ำได้ Soul Anchor แต่ไม่รับ Candy เพิ่ม · เรือล่มซ่อมก่อนออกใหม่'},
+      'clear-jacks-garden-vines':{name:'เคลียร์วัชพืชของ Jack',description:'จดจำลำดับเถาวัลย์แล้วแตะให้ครบ '+config.proposals.games.vines+' จุด เพื่อคืนแปลงปลูกให้ Jack · ขอคำใบ้ซ้ำได้',instructions:'ผ่านแล้วกลับไปส่งเควสกับ Jack เพื่อเปิดสวนทุกแปลง เล่นซ้ำได้ แต่ไม่ได้แปลงหรือเมล็ดเพิ่มจากการเล่นอย่างเดียว'},
       'dech-house-spot-difference':{name:'จับผิดภาพในคฤหาสน์',description:'เทียบภาพต้นฉบับกับภาพที่เปลี่ยนไป หาให้ครบ '+config.proposals.games.differences+' จุดภายใน '+config.proposals.games.differenceSeconds+' วินาที',instructions:'มือถือสลับภาพได้ ผ่านแล้วใช้ส่งเควสที่ 2 ของ Dech'},
-      'grave-digging':{name:'ขุดหลุมศพ',description:'ขุดตามจุดที่มีสัญญาณจนครบ '+config.proposals.games.digSteps+' ชั้น เพื่อปลุกวิญญาณและผ่านบททดสอบแรกของ Win',instructions:'ต้องมีพลั่วจากเควสแรกของ Win · เล่นจบแล้วใช้ส่งเควสที่ 2 ของ Win'},
+      'grave-digging':{name:'ขุดหลุมศพ',description:'จับคู่สัญลักษณ์ใต้แผ่นหิน '+config.proposals.games.digSteps+' แผ่น เพื่อปลุกวิญญาณและผ่านบททดสอบแรกของ Win',instructions:'มีพลั่วจาก Win แล้วเปิดแผ่นหินหาสัญลักษณ์เหมือนกัน 4 คู่ · ไม่จับเวลา'},
       'catch-all-ghosts':{name:'จับผี',description:'จับวิญญาณให้ครบ '+config.proposals.games.ghostCount+' ดวงภายใน 30 วินาที เพื่อผ่านบททดสอบยามเฝ้าสุสาน',instructions:'เล่นขุดหลุมจบก่อน แล้วจับให้ครบทันเวลา · ผ่านแล้วใช้ส่งเควสที่ 2 ของ Win'}
     };
     if(!games[id])return null;
@@ -79,11 +79,11 @@
   function hub(c){
     const {Core,Catalog,config,doc,now}=c, active=Core.biomeAt(doc,config,now).id;
     const portals=Core.BIOMES.map((id,i)=>{
-      const open=Core.portalStatus(doc,config,id,now).open;
+      const status=Core.portalStatus(doc,config,id,now),open=status.open;
       const progress=Core.biomeProgress(doc,config,id);
-      return '<button class="world-portal '+(open?'portal-open':'portal-closed')+'" data-enter-biome="'+id+'" style="--left:'+(23+i*13.3)+'%;--px:'+(i%2?55:23)+'%;--py:'+(i<2?15:36)+'%;--pw:24%;--ph:'+(i<2?17:19)+'%;--portal-color:'+Catalog.biomes[shorts[i]].color+'" aria-label="'+thai[i]+' · '+(open?'เปิดเข้าได้':'ยังไม่เปิด')+'"><span class="portal-number" aria-hidden="true">'+(i+1)+'</span><span class="portal-label"><b>'+thai[i]+'</b><small>'+(open?'✦ เปิดเข้าได้':'◈ ยังไม่เปิด')+'</small><small>เส้นทาง '+progress.percent+'% · '+progress.value+'/'+progress.total+'</small></span><span class="portal-progress" aria-hidden="true"><i style="width:'+progress.percent+'%"></i></span></button>';
+      return '<button class="world-portal '+(open?'portal-open':'portal-closed')+'" data-enter-biome="'+id+'" style="--left:'+(23+i*13.3)+'%;--px:'+(i%2?55:23)+'%;--py:'+(i<2?15:36)+'%;--pw:24%;--ph:'+(i<2?17:19)+'%;--portal-color:'+Catalog.biomes[shorts[i]].color+'" aria-label="'+thai[i]+' · '+(status.featured?'โบนัสบ้าน +50%':open?'เปิดเข้าได้ฟรี':'ยังไม่เปิด')+'"><span class="portal-number" aria-hidden="true">'+(i+1)+'</span><span class="portal-label"><b>'+thai[i]+'</b><small>'+(status.featured?'✦ โบนัสบ้าน +50%':open?'เปิดเข้าได้ฟรี':'◈ ยังไม่เปิด')+'</small><small>เส้นทาง '+progress.percent+'% · '+progress.value+'/'+progress.total+'</small></span><span class="portal-progress" aria-hidden="true"><i style="width:'+progress.percent+'%"></i></span></button>';
     }).join('');
-    return '<section class="world-page"><div class="world-title"><small>THE MIDNIGHT ACADEMY</small><h1>โถงกลาง</h1></div>'+scene('hub','โถงกลางพิกเซล ร้านค้าซ้าย เตาผสมขวา และประตูสี่ไบโอมด้านหน้า',portals+npcSpot('vesper','data-tutor',30,76,[33,80])+spot('ร้านยามเที่ยงคืน','data-route="shop"',12,60,'',[17,62])+spot('เตาผสมเวทมนตร์','data-route="cauldron"',87,60,'',[84,68])+spot('วงเวทอัญเชิญ','data-route="ritual"',50,72,'',[51,76])+spot('สวนรัตติกาล','data-route="garden"',33,82,'',[78,73]))+'<div class="world-caption"><button class="quiet-button" data-route="totems">Totem · เปิดเส้นทางส่วนตัว</button></div><p class="scene-help">แตะป้ายเพื่อเข้าไปดู · ป้ายทองคือจุดที่ควรไปตอนนี้</p></section>';
+    return '<section class="world-page"><div class="world-title"><small>THE MIDNIGHT ACADEMY</small><h1>โถงกลาง</h1><p class="journey-note">เข้าสี่ไบโอมได้ตลอด · โบนัสบ้านหมุนทุก 6 ชั่วโมง</p></div>'+scene('hub','โถงกลางพิกเซล ร้านค้าซ้าย เตาผสมขวา และประตูสี่ไบโอมด้านหน้า',portals+npcSpot('vesper','data-tutor',30,76,[33,80])+spot('ร้านยามเที่ยงคืน','data-route="shop"',12,60,'',[17,62])+spot('เตาผสมเวทมนตร์','data-route="cauldron"',87,60,'',[84,68])+spot('วงเวทอัญเชิญ','data-route="ritual"',50,72,'',[51,76])+spot('สวนรัตติกาล','data-route="garden"',33,82,'',[78,73]))+'<div class="world-caption"><button class="quiet-button" data-route="totems">Totem · เลือกโบนัสบ้าน</button></div><p class="scene-help">แตะป้ายเพื่อเข้าไปดู · ป้ายทองคือจุดที่ควรไปตอนนี้</p></section>';
   }
   function biome(c){
     const {Core,Catalog,config,doc,now}=c, id=Core.biomeAt(doc,config,now).id, i=Core.BIOMES.indexOf(id), meta=Catalog.biomes[shorts[i]];

@@ -19,6 +19,7 @@
   // ช่วงเวลาประตู (ห้องลอง): 00–06 ท่าเรือผี · 06–12 สวนฟักทอง · 12–18 คฤหาสน์ · 18–24 สุสาน ตามเวลาไทย
   function windowOf(Core,doc,config,now){
     const at=Core.moment(doc,now),active=Core.biomeAt(doc,config,now),e=doc.event;
+    if(config.proposals?.journey?.freeTravel)return {closesAt:null,personal:active.override,bonusBiome:active.bonusBiome};
     if(active.override)return {closesAt:e.totem&&at<e.totem.until?e.totem.until:null,personal:true};
     return {closesAt:Math.floor((at+BKK)/SLOT)*SLOT-BKK+SLOT,personal:false};
   }
@@ -35,17 +36,18 @@
     if(need.kind==='candy')return {kind:'village',label:'เคาะบ้านเก็บ Candy',target:'village'};
     if(need.kind==='game'){
       const id=need.id,biome=GAME_BIOME[id];
-      if(biome!==activeIndex)return {kind:'wait',biome:Core.BIOMES[biome],label:'รอประตู'+THAI[biome]};
+      if(biome!==activeIndex)return {kind:config.proposals?.journey?.freeTravel?'enter-biome':'wait',biome:Core.BIOMES[biome],label:'ไป'+THAI[biome]};
       if(id==='catch-all-ghosts'&&!doc.event.proofs['grave-digging']?.complete)return {kind:'game',game:'grave-digging',label:'เล่นขุดหลุมศพ',target:'game:grave-digging'};
       return {kind:'game',game:id,label:'เล่น'+GAME_NAMES[id],target:'game:'+id};
     }
     if(need.grown)return {kind:'garden',label:'ปลูกในสวนรัตติกาล',target:'garden'};
     const sources=Guide?Guide.sources(config,need.id):[];
-    if(sources.some(s=>s.kind==='house'))return {kind:'village',label:'เคาะบ้านหาของ',target:'village'};
+    const homes=sources.filter(s=>s.kind==='house');
+    if(homes.length){const home=homes.find(s=>s.biome===Core.BIOMES[activeIndex])||homes[0];if(config.proposals?.journey?.freeTravel&&home.biome!==Core.BIOMES[activeIndex])return {kind:'enter-biome',biome:home.biome,label:'ไปหาของที่'+THAI[Core.BIOMES.indexOf(home.biome)]};return {kind:'village',label:'เคาะบ้านหาของ',target:'village'};}
     const game=sources.find(s=>s.kind==='game');
-    if(game)return Core.BIOMES.indexOf(game.biome)===activeIndex?{kind:'game',game:game.game,label:'เล่น'+GAME_NAMES[game.game],target:'game:'+game.game}:{kind:'wait',biome:game.biome,label:'รอประตู'+THAI[Core.BIOMES.indexOf(game.biome)]};
+    if(game)return Core.BIOMES.indexOf(game.biome)===activeIndex?{kind:'game',game:game.game,label:'เล่น'+GAME_NAMES[game.game],target:'game:'+game.game}:{kind:config.proposals?.journey?.freeTravel?'enter-biome':'wait',biome:game.biome,label:'ไป'+THAI[Core.BIOMES.indexOf(game.biome)]};
     const quest=sources.find(s=>s.kind==='quest');
-    if(quest){const i=Core.BIOMES.indexOf(quest.biome);return i===activeIndex?{kind:'quest',quest:quest.quest,label:'ทำเควส '+NPC[i],target:'npc'}:{kind:'wait',biome:quest.biome,label:'รับจาก '+NPC[i]+' ตอนประตู'+THAI[i]+'เปิด'};}
+    if(quest){const i=Core.BIOMES.indexOf(quest.biome);return i===activeIndex?{kind:'quest',quest:quest.quest,label:'ทำเควส '+NPC[i],target:'npc'}:{kind:config.proposals?.journey?.freeTravel?'enter-biome':'wait',biome:quest.biome,label:'ไปหา '+NPC[i]+' ที่'+THAI[i]};}
     if(sources.some(s=>s.kind==='garden'))return {kind:'garden',label:'ปลูกในสวนรัตติกาล',target:'garden'};
     const room=sources.find(s=>['shop','cauldron','ritual','potion'].includes(s.kind));
     if(room){const r=room.kind==='potion'?'cauldron':room.kind;return {kind:'room',route:r,label:{shop:'ไปร้านมอร์โร',cauldron:'ไปเตาผสมของมอรา',ritual:'ไปวงเวท'}[r],target:r};}
@@ -58,6 +60,7 @@
     const i=Core.BIOMES.indexOf(active),win=windowOf(Core,doc,config,now),inBiome=route==='biome';
     const base={biome:active,biomeName:THAI[i],npc:NPC[i],npcId:NPC_ID[i],closesAt:win.closesAt,personal:win.personal,need:[],steps:null};
     if(route==='gate')return {...base,key:'gate',title:'เปิดประตูเข้าโถงกลาง',detail:'แตะประตูเหล็กเพื่อเริ่ม',action:{kind:'enter-hub',label:'เปิดประตู'},target:'gate'};
+    if(config.proposals?.journey?.freeTravel&&!e.welcomeClaimed&&!e.quests['dutchman-light-in-darkness']?.complete&&route==='hub')return {...base,key:'welcome',title:'รับคำเชิญแล้วไปหา Tang',detail:'เติม Candy ให้ถึง 50 พร้อมหินก้นเหวและตะเกียงเรือผีที่ขาด · รับครั้งเดียว',action:{kind:'welcome',label:'รับชุดเริ่มต้น'},target:'npc'};
     const goBiome={kind:'enter-biome',biome:active,label:'เข้าประตู'+THAI[i]};
     const needs=Core.questNeeds(doc,config,active,now);
     if(!needs){
@@ -68,6 +71,7 @@
       }
       // ไบโอมนี้จบแล้ว ชี้ไปไบโอมถัดไปที่ยังมีงาน
       const pending=Core.BIOMES.map((b,k)=>({b,k,at:nextOpen(Core,doc,now,b)})).filter(x=>x.b!==active&&Core.questNeeds(doc,config,x.b,now)).sort((a,b)=>a.at-b.at)[0];
+      if(pending&&config.proposals?.journey?.freeTravel)return {...base,key:'done:'+active,title:'จบงานใน'+THAI[i]+'แล้ว',detail:'ต่อไป: '+NPC[pending.k]+' ที่'+THAI[pending.k],action:{kind:'enter-biome',biome:pending.b,label:'ไปหา '+NPC[pending.k]},target:'portal'};
       if(pending)return {...base,key:'done:'+active,title:'จบงานใน'+THAI[i]+'แล้ว',detail:'ต่อไป: '+NPC[pending.k]+' ที่'+THAI[pending.k],action:{kind:'wait',biome:pending.b,at:pending.at,label:'ประตู'+THAI[pending.k]+'เปิด'},target:'garden',wait:{biome:pending.b,at:pending.at}};
       return {...base,key:'all-done',title:'พิชิตครบทุกไบโอมแล้ว',detail:'ไปวงเวทเพื่อท้าราชันเที่ยงคืน',action:{kind:'room',route:'ritual',label:'ไปวงเวท'},target:'ritual'};
     }
@@ -77,8 +81,8 @@
     const steps=['เข้าประตู','คุยกับ '+NPC[i],!need.length?'ครบแล้ว':need.every(n=>n.kind==='game')?'เล่นเกม':'หาของ','ส่งเควส'].map((label,k)=>({label,state:k<stage?'done':k===stage?'now':'todo'}));
     const quest={id:q.id,name:q.name,order:q.order,phase:needs.phase,phases:needs.phases};
     const common={...base,quest,need,steps};
-    if(needs.waitCycle){const at=nextOpen(Core,doc,now,active,true);return {...common,key:'cycle:'+q.id,title:NPC[i]+' ให้มาใหม่รอบหน้า',detail:'เควสต่อไปเปิดเมื่อประตู'+THAI[i]+'วนกลับมา',action:{kind:'wait',biome:active,at,label:'รอรอบหน้า'},target:null,wait:{biome:active,at}};}
-    if(!inBiome)return {...common,key:'enter:'+q.id,title:'ไปหา '+NPC[i]+' ที่'+THAI[i],detail:'ประตูนี้เปิดอยู่ตอนนี้',action:goBiome,target:'portal'};
+    if(needs.waitCycle){const at=Core.questWait(doc,config,q,now).nextAt;return {...common,key:'cycle:'+q.id,title:NPC[i]+' กำลังเตรียมจดหมาย',detail:'รอเตรียมจดหมาย 20 นาทีหลังเควสก่อนหน้า · ระหว่างนี้ไปเล่นไบโอมอื่นได้',action:{kind:'wait',biome:active,at,label:'ดูเวลานัด'},target:null,wait:{biome:active,at}};}
+    if(!inBiome)return {...common,key:'enter:'+q.id,title:'ไปหา '+NPC[i]+' ที่'+THAI[i],detail:'เดินทางไปได้ทันที',action:goBiome,target:'portal'};
     if(needs.ready)return {...common,key:'ready:'+q.id,title:'ของครบแล้ว! ส่งให้ '+NPC[i],detail:'แตะ '+NPC[i]+' แล้วกดส่งเควส',action:{kind:'quest',quest:q.id,label:'ส่งเควสให้ '+NPC[i]},target:'npc',ready:true};
     if(!metNpc||needs.error)return {...common,key:'talk:'+q.id,title:'คุยกับ '+NPC[i],detail:'ฟังว่าเขาอยากได้อะไร',action:{kind:'quest',quest:q.id,label:'คุยกับ '+NPC[i]},target:'npc'};
     const first=need[0],go=routeFor(ctx,first,i);

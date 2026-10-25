@@ -1,7 +1,9 @@
 {
   "status": "owner-confirmed-2026-10-24",
   "notice": "เจ้าของยืนยันกติกานี้สำหรับ ALT จริงวันที่ 24 ต.ค. 2026; รางวัลจริงต้องผ่านบริการบัญชีในช่วงกิจกรรม",
-  "questAid": {"visits": 30},
+  "questAid": {
+    "visits": 30
+  },
   "houses": {
     "cooldownScope": "house-per-biome",
     "capWindow": "rolling-24h",
@@ -18,7 +20,7 @@
     "consumeShovel": false
   },
   "randomBiomePotion": {
-    "price": 25,
+    "price": 10,
     "durationMs": 900000,
     "excludeCurrent": true
   },
@@ -86,10 +88,10 @@
   },
   "totem": {
     "durationMs": 900000,
-    "price": 40,
+    "price": 20,
     "advancesCycle": false
   },
-  "taskCandy": 10,
+  "taskCandy": 30,
   "taskDailyCap": 30,
   "anonymousNpc": {
     "count": 2,
@@ -344,5 +346,10 @@
       "level": "บอสลับ · สุดโหด",
       "intro": "คิดว่าได้ธีมแล้วจะจบหรือ? ข้าคือเงาที่หลบอยู่หลังแสงสุดท้าย หยิบอาวุธขึ้นมาอีกครั้ง!"
     }
+  },
+  "journey": {
+    "freeTravel": true,
+    "bonusCandyMultiplier": 1.5,
+    "dechWaitMs": 1200000
   }
 }

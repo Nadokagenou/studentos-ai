@@ -31,7 +31,7 @@ test('Jack requires player-grown pumpkins, then one offer followed by surprise h
  assert.deepEqual(q[2].rewards.map(x=>x.id),['jacks-axe','theme-jackhollow']);
  for(const quests of [q,json('quests.dutchman.json').quests])for(let i=1;i<quests.length;i++)assert.equal(quests[i].prerequisite,quests[i-1].id);
 });
-test('Dech awards the quill in Quest 1 and requires the next biome cycle for the finale',()=>{
+test('Dech awards the quill in Quest 1 and retains the legacy finale gate metadata for the runtime wait rule',()=>{
  const spec=json('quests.vampire.json'),q=spec.quests;assert.equal(q[0].rewards[0].id,'cruor-quill');
  assert.deepEqual(q[0].phases[0].requirements.items.map(x=>x.quantity),[1,1,1]);
  assert.equal(spec.minigame.kind,'spot-the-difference');assert.equal(spec.minigame.location,'บ้านเดช');assert.equal(q[1].phases[0].requirements.minigame.clears,1);
