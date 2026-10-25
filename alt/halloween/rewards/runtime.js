@@ -46,12 +46,12 @@
   // The event switch is fetched separately. Removing event/ hides its entry.
   // 24 Oct: the entry moved from a card under the profile header to the event slot on the home screen (eventSlot in app.js), as the owner chose.
   if(!window.__HW_SHOWROOM__)fetch(new URL('../event/config.json',base),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(config=>{
-   const end=config?.endsAt?Date.parse(config.endsAt):NaN,preview=config?.claimingEnabled!==true;
+   const end=config?.endsAt?Date.parse(config.endsAt):NaN,start=config?.startsAt?Date.parse(config.startsAt):NaN,preview=config?.claimingEnabled!==true||(Number.isFinite(start)&&Date.now()<start);
    // 24 Oct: index.html turns on the Halloween boot/login skin (:root.hw-season) before this file loads.
    // Turning the event off in config.json, or passing endsAt, takes the skin off as well.
    if(!config?.enabled||(Number.isFinite(end)&&end<=Date.now()))root.classList.remove('hw-season');
    if(!config?.enabled)return;
-   const destination=new URL('../event/index.html',base);if(preview)destination.searchParams.set('preview','1');destination.searchParams.set('rev','red-dots-20261023');
+   const destination=new URL('../event/index.html',base);if(preview)destination.searchParams.set('preview','1');destination.searchParams.set('rev','launch-20261024');
    const eventDir=new URL('../event/',base),card=config.card||{};
    window.HalloweenEventEntry=Object.freeze({name:config.name||'Halloween',tagline:config.tagline||'',blurb:config.blurb||'',href:destination.href,preview,
     // Home event card art, resolved against event/ so removing event/ takes the art with it
@@ -64,9 +64,9 @@
     // Sub-areas listed on the app's event screen (events.js) — each opens event/index.html#<id>
     sections:Array.isArray(config.sections)?config.sections.filter(x=>x&&typeof x.id==='string'&&/^[\w-]+$/.test(x.id)).map(x=>Object.freeze({id:x.id,label:String(x.label||x.id),hint:String(x.hint||''),icon:/^[a-z-]+$/.test(x.icon||'')?x.icon:''})):[],
     // null = the event has ended and the button hides itself · '' = no endsAt, so no countdown
-    countdown(now=Date.now()){if(!Number.isFinite(end))return'';const left=end-now;if(left<=0)return null;const hours=Math.ceil(left/36e5);return hours<24?'เหลือ '+hours+' ชม.':'เหลือ '+Math.ceil(left/864e5)+' วัน';},
+    countdown(now=Date.now()){if(Number.isFinite(start)&&now<start)return 'เปิด 28 ต.ค. · อีก '+Math.ceil((start-now)/864e5)+' วัน';if(!Number.isFinite(end))return'';const left=end-now;if(left<=0)return null;const hours=Math.ceil(left/36e5);return hours<24?'เหลือ '+hours+' ชม.':'เหลือ '+Math.ceil(left/864e5)+' วัน';},
     // Preview Candy lives on this device (KEY in event/experience.js). Real claiming has no store to read yet, so it shows nothing.
-    candy(){if(!preview)return null;try{const doc=JSON.parse(localStorage.getItem('studentos.alt.halloween.preview.v1')||'null');return Number.isSafeInteger(doc?.event?.candy)?doc.event.candy:0;}catch{return null;}}});
+    candy(){if(!preview){try{return window.HalloweenAccountState?.ready()?window.HalloweenAccountState.read().event.candy:null;}catch{return null;}}try{const doc=JSON.parse(localStorage.getItem('studentos.alt.halloween.preview.v1')||'null');return Number.isSafeInteger(doc?.event?.candy)?doc.event.candy:0;}catch{return null;}}});
    try{if(typeof renderMenu==='function')renderMenu();}catch{}
   }).catch(()=>{});
   if(window.__HW_SHOWROOM__){

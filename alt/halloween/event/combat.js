@@ -13,7 +13,8 @@
   };
   const skillInfo=weapon=>skills[weapon.type]||{name:'ปล่อยพลัง',description:'โจมตี 2.1 เท่า'};
   function intent(rule,turn,hp,random){
-    const phase=hp<=rule.hp/2?2:1,kind=turn%4===3?'hex':turn%4===1?'crush':'sweep';
+    const patterns={admiral:['sweep','crush','sweep','hex'],pumpkin:['sweep','hex','crush','sweep'],vampire:['sweep','hex','sweep','crush'],reaper:['sweep','crush','hex','sweep'],sovereign:['sweep','crush','sweep','hex'],shadow:['sweep','hex','crush','hex']};
+    const phase=hp<=rule.hp/2?2:1,kind=(patterns[rule.shape]||patterns.admiral)[turn%4];
     const lane=Math.floor(random()*3),danger=kind==='hex'?[0,1,2]:kind==='sweep'&&phase===2&&rule.hp>=200?[lane,(lane+1)%3]:[lane];
     return {kind,danger,phase,damage:rule.damage+(phase===2?5:0)};
   }
@@ -54,9 +55,11 @@
     b.log=description+' · ทำ '+hit+' ดาเมจ · รับ '+damage+' ดาเมจ'+(b.hp>before?' · ฟื้นพลังแล้ว':'');
     if(b.hp===0){b.finished=true;b.clear=false;b.endedAt=at;}
     if(!b.finished)b.intent=intent(rule,b.turn,b.bossHp,random);
+    return {hit,damage};
   }
+  function forecast(b,rule,weapon,action){const copy=JSON.parse(JSON.stringify(b));const outcome=move(copy,rule,weapon,action,b.startAt+copy.turn+1,()=>0);return {...outcome,hp:copy.hp,bossHp:copy.bossHp};}
   function hint(i){
     return i.kind==='hex'?'คำสาปครอบคลุมทุกช่อง · ตั้งรับเพื่อลดความเสียหาย':(i.kind==='crush'?'ทุบทะลุการตั้งรับ':'กวาดโจมตี')+'ทาง'+i.danger.map(n=>lanes[n]).join('และ')+' · หลบไปช่องที่ว่าง';
   }
-  return {start,move,hint,lanes,skillInfo};
+  return {start,move,hint,lanes,skillInfo,forecast};
 });

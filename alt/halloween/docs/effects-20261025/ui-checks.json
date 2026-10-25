@@ -1,0 +1,262 @@
+{
+  "completion": [
+    {
+      "name": "รอยคลื่นวิญญาณ",
+      "particles": 44,
+      "status": "สำเร็จ! งานนี้ผ่านไปแล้ว",
+      "step": "3",
+      "svg": true,
+      "won": true
+    },
+    {
+      "name": "ประกายฟักทอง",
+      "particles": 44,
+      "status": "สำเร็จ! งานนี้ผ่านไปแล้ว",
+      "step": "3",
+      "svg": true,
+      "won": true
+    },
+    {
+      "name": "ปีกกำมะหยี่",
+      "particles": 30,
+      "status": "สำเร็จ! งานนี้ผ่านไปแล้ว",
+      "step": "1",
+      "svg": true,
+      "won": true
+    },
+    {
+      "name": "ดอกไม้วิญญาณ",
+      "particles": 44,
+      "status": "สำเร็จ! งานนี้ผ่านไปแล้ว",
+      "step": "4",
+      "svg": true,
+      "won": true
+    },
+    {
+      "name": "The Dutchman Arrives",
+      "particles": 30,
+      "status": "สำเร็จ! งานนี้ผ่านไปแล้ว",
+      "step": "1",
+      "svg": true,
+      "won": true
+    },
+    {
+      "name": "Jack’s Final Verdict",
+      "particles": 44,
+      "status": "สำเร็จ! งานนี้ผ่านไปแล้ว",
+      "step": "3",
+      "svg": true,
+      "won": true
+    },
+    {
+      "name": "Crimson Eclipse",
+      "particles": 44,
+      "status": "สำเร็จ! งานนี้ผ่านไปแล้ว",
+      "step": "3",
+      "svg": true,
+      "won": true
+    },
+    {
+      "name": "Reaper’s Gate",
+      "particles": 30,
+      "status": "สำเร็จ! งานนี้ผ่านไปแล้ว",
+      "step": "1",
+      "svg": true,
+      "won": true
+    }
+  ],
+  "layouts": [
+    {
+      "id": "wake",
+      "width": 375,
+      "height": 812,
+      "fieldHeight": 517.9375,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "sparks",
+      "width": 375,
+      "height": 812,
+      "fieldHeight": 517.9375,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "bats",
+      "width": 375,
+      "height": 812,
+      "fieldHeight": 517.9375,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "bloom",
+      "width": 375,
+      "height": 812,
+      "fieldHeight": 517.9375,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "arrival",
+      "width": 375,
+      "height": 812,
+      "fieldHeight": 517.9375,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "verdict",
+      "width": 375,
+      "height": 812,
+      "fieldHeight": 517.9375,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "eclipse",
+      "width": 375,
+      "height": 812,
+      "fieldHeight": 517.9375,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "gate",
+      "width": 375,
+      "height": 812,
+      "fieldHeight": 517.9375,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "wake",
+      "width": 320,
+      "height": 568,
+      "fieldHeight": 309.125,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "sparks",
+      "width": 320,
+      "height": 568,
+      "fieldHeight": 309.125,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "bats",
+      "width": 320,
+      "height": 568,
+      "fieldHeight": 309.125,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "bloom",
+      "width": 320,
+      "height": 568,
+      "fieldHeight": 309.125,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "arrival",
+      "width": 320,
+      "height": 568,
+      "fieldHeight": 309.125,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "verdict",
+      "width": 320,
+      "height": 568,
+      "fieldHeight": 309.125,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "eclipse",
+      "width": 320,
+      "height": 568,
+      "fieldHeight": 309.125,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "gate",
+      "width": 320,
+      "height": 568,
+      "fieldHeight": 309.125,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "wake",
+      "width": 1280,
+      "height": 900,
+      "fieldHeight": 595.53125,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "sparks",
+      "width": 1280,
+      "height": 900,
+      "fieldHeight": 595.53125,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "bats",
+      "width": 1280,
+      "height": 900,
+      "fieldHeight": 595.53125,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "bloom",
+      "width": 1280,
+      "height": 900,
+      "fieldHeight": 595.53125,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "arrival",
+      "width": 1280,
+      "height": 900,
+      "fieldHeight": 595.53125,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "verdict",
+      "width": 1280,
+      "height": 900,
+      "fieldHeight": 595.53125,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "eclipse",
+      "width": 1280,
+      "height": 900,
+      "fieldHeight": 595.53125,
+      "outside": [],
+      "sceneVisible": true
+    },
+    {
+      "id": "gate",
+      "width": 1280,
+      "height": 900,
+      "fieldHeight": 595.53125,
+      "outside": [],
+      "sceneVisible": true
+    }
+  ]
+}

@@ -1,4 +1,28 @@
+> 25 ต.ค. ตราทั้งหมด/รีโมเดล: อ่าน halloween/docs/all-badges-20261025/README.md เพิ่ม SVG เฉพาะ 11 แบบ profile-assets/ ผ่าน build-profile-badges.cjs ใช้ใน collection/stats/profile เลือก 1 จาก 13 ได้จริงตามสิทธิ์ halloween-badge v2 ACTIVE/JWT อ่าน user_state+receipt ไม่รับ owned จาก client Migration ledger20261025142719 scope studentos/halloween-2026 คง RLS/grants เดิม ไม่ต้องมีเซฟ event สำหรับตราปกติ vault เพิ่ม badgeSecrets สามสิทธิ์กับคีย์เดิม คงสูตร Crystal/1C60 แคชall-badges-20261025 ตรวจ231+RLS10+account33+sync36+worker6 และ UIสามขนาด
+
+> 25 ต.ค. ติดตราโปรไฟล์: อ่าน halloween/docs/featured-badge-20261025/README.md และ halloween/server/featured/README.md ใช้ featured-badge.js/css + ช่องจาก profileHeadHTML/frName เลือก 1 อันจากสิทธิ์จริง Server halloween-badge v1 ACTIVE/JWT เก็บตาราง halloween_featured_badges อ่านเฉพาะเจ้าของ/เพื่อนที่รับแล้วและไม่บล็อก ไม่มี browser write ไม่แก้เกม/สูตร Crystal ห้องลอง memory เท่านั้น Migration ALT ledger20261025134306 ตรวจ225+RLS8+account33+sync36+worker6+scene207 รวม main 95b82ff ฉากเรือผีจังหวะใหม่ คง1C60 แคชfeatured-badge-20261025
+
+> 25 ต.ค. ตราอีเวนต์: อ่าน halloween/docs/badges-20261025/README.md ใหม่ badges.js/css แทรกสองตราในหน้าเหรียญตราโดยไม่เพิ่ม BADGES (คงสูตร Crystal) อ่าน receipt จากบัญชีเจ้าของเท่านั้น ห้องลองเป็นตัวอย่าง เปลี่ยน SVG ผู้พิชิตเป็นโล่มงกุฎ/ปีก/จันทร์ และผู้สะสมเป็นวงกลมสี่ไบโอมตามคำทักว่าคล้ายกัน คง ID/เงื่อนไข/1C60 ตรวจ202+account33+worker6+scene207 แคชboot-badges-20261025
+
+> 25 ต.ค. เอฟเฟกต์งานเสร็จ: อ่าน halloween/docs/effects-20261025/README.md เพิ่ม effect-stage.js/css ฉากเวกเตอร์เฉพาะทั้ง 8 เสียงตามจังหวะ/ปิดเสียงร่วมคีย์เดิม ลาก/โยนระยะสั้นและประกายจำกัด 64 ชิ้น Legendary ปิด 2.8s และข้ามได้ คงตัวตัดสินเกม/ข้อมูล/สิทธิ์เดิม ห้ามใช้ชื่อ hw-scene ชนพื้นหลังธีม ใช้ hw-effect-scene แทน ตรวจ Halloween194, worker6, scene207 และ 24 รูปแบบจอ คง1C60 แคช effects-stage-20261025
+
+> 25 ต.ค. ระนาด/หมวดธีม: อ่าน halloween/docs/thai-ghost/README.md ส่วนล่าสุด มี thai-ranat.js (เสียงสังเคราะห์เริ่มหลังแตะ) และ theme-rarity.js จัดปุ่มเดิม 23 แบบจาก metadata ห้ามเผยธีมลับที่ยังซ่อน/เปลี่ยนเรทสุ่ม คง 1C60 และสิทธิ์ชวนเพื่อนเดิม
+
+> 25 ต.ค. เรือนลับแล: ย้าย INVITE_THEME ไป thai-ghost แล้ว Halloween/Moon & Candle ไม่ติดกฎชวนเพื่อน อ่าน halloween/docs/thai-ghost/README.md เงื่อนไขเดิม 3 คนใหม่ + งานเสร็จ 1 คงยอด/คีย์/1C60 ไม่แก้ RPC หรือ schema มีห้องลองแบบ memory แยกบัญชี
+
+> Halloween ล่าสุด 25 ต.ค.: อ่าน halloween/docs/STUDY-PACTS-HOURLY-2026-10-25.md แทนกติกาเปิดฟรีด้านล่าง ประตูสุ่มทุก 1 ชม. เกมพักสมอง 6 แบบ (คณิต 3) พันธสัญญาอ่านงานจริงจาก studyPlan() ห้ามเพิ่มตัวจัดแผนอีกตัว Main adapter ไม่สร้าง/ปิดงานแทน คงเลข 1C60 และคีย์เดิม
+
+> Halloween 25 ต.ค. 2569: อ่าน halloween/docs/JOURNEY-REVIEW-2026-10-25.md ก่อนแก้กติกา เดินทางฟรีทั้งสี่ไบโอม โบนัสบ้านหมุนแทนล็อกประตู ชุดเริ่มต้น เรือ และสนามฝึกตรวจผ่าน authority เดียวกัน ห้ามนำเซฟห้องลองเข้าบัญชีจริง
+
 # คู่มือส่งต่องาน — StudentOS AI
+
+## 24 ต.ค. 2026 — เจ้าของยืนยันกติกาและ deploy บัญชีแล้ว
+- Supabase halloween-event v1 ACTIVE/JWT, unauthenticated POST 401; เปิด client ตามวันไทย 28 ต.ค.–30 พ.ย.
+- เพิ่มตัวช่วยของเควส 30 บ้านต่อไบโอม แยกจากเรทสุ่ม/เก็บสิทธิ์หากไม่ขาด และแก้ live Dech quantities / Shovel reuse
+- Halloween 155/155; ยังไม่อ้างว่าทดสอบสองอุปกรณ์จริงหรือโฟกัสจริง 20 นาที
+
+
+> **24 ต.ค. เตรียมเปิด 28 ต.ค.–30 พ.ย. + มินิเกมสุ่ม:** อ่าน halloween/docs/LAUNCH-REVIEW-2026-10-24.md และ halloween/server/README.md ก่อนต่อ โค้ดบัญชี/RPC/heartbeat พร้อมตรวจ แต่ edge deploy ถูก automatic approval ปฏิเสธ ยังไม่ขึ้นบริการจริง จึงคง claimingEnabled false ห้ามอ้างพร้อม live ทั้งหมด ตาราง DB/RPC สร้างและ rollback-test แล้ว ยืนยัน user จาก Auth ไม่รับเซฟ/เวลา/ยอดจาก browser preview tools ถูกปฏิเสธสองชั้น เพิ่มเสียงตัวละคร/feedback สุ่มห้ามินิเกม และแถบนัด Dech Q3 โดยคง next-cycle gate รวม origin/main c054d47 ของอีกคน (events/invite QR/poster) แล้ว เก็บทั้งหมด ตรวจ Halloween 144, SW6, sync36, account33, inbox18 ผ่าน เลข 1C60/คีย์/ธีมหลักเดิม ไม่รีเซ็ตเซฟเจ้าของ งานโปรโมตภาพจริง 4 คนรอทำหลังเก็บงานนี้
 
 > **24 ต.ค. ข้อ 4 เอฟเฟกต์:** เพิ่ม effect-ceremony.css กับ stage ที่เป็น aria-hidden ใน effect-games.js: วงแสงสองชั้น หมอก ประกาย 12 จุด วงน้ำ กลีบดอก/ค้างคาว/สะเก็ดไฟตามชนิด กระดาษกรอบ/ตราและวงฉลองเมื่อจบ ไม่มีการแก้กติกา ตัวจับเวลา หรือข้อมูลการทำงาน ปุ่มหยุดภาพหยุดทุกแอนิเมชัน ตรวจเล่นจริงครบ 8 ชนิดบน 375×812 และวัด 320×568 / 1280×900 ปุ่มไม่หลุดจอ โหมดหยุดภาพมี animation 0 เพิ่มไฟล์ใน manifest และแก้ตัวสร้างให้เก็บฉากเรือ/ปราสาทครบ แคช effect-ceremony-20261024 เลขแอป 1C60 เดิม ธีม Halloween/Moon & Candle ยังคงแบบดั้งเดิมตามคำสั่งล่าสุด
 

@@ -1,0 +1,82 @@
+{
+  "selection": [
+    {
+      "id": "hello",
+      "pass": true
+    },
+    {
+      "id": "try",
+      "pass": true
+    },
+    {
+      "id": "hard",
+      "pass": true
+    },
+    {
+      "id": "nah",
+      "pass": true
+    },
+    {
+      "id": "unstoppable",
+      "pass": true
+    },
+    {
+      "id": "deep",
+      "pass": true
+    },
+    {
+      "id": "tree",
+      "pass": true
+    },
+    {
+      "id": "sophyra",
+      "pass": true
+    },
+    {
+      "id": "genesis",
+      "pass": true
+    },
+    {
+      "id": "metaworld",
+      "pass": true
+    },
+    {
+      "id": "err404",
+      "pass": true
+    },
+    {
+      "id": "midnight-conqueror",
+      "pass": true
+    },
+    {
+      "id": "crown-of-midnight",
+      "pass": true
+    }
+  ],
+  "sizes": [
+    {
+      "broken": 0,
+      "height": 812,
+      "options": 13,
+      "overflow": false,
+      "width": 375,
+      "within": true
+    },
+    {
+      "broken": 0,
+      "height": 568,
+      "options": 13,
+      "overflow": false,
+      "width": 320,
+      "within": true
+    },
+    {
+      "broken": 0,
+      "height": 900,
+      "options": 13,
+      "overflow": false,
+      "width": 1280,
+      "within": true
+    }
+  ]
+}

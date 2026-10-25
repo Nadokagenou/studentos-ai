@@ -1,0 +1,56 @@
+[
+  {
+    "id": "midnight-conqueror",
+    "width": 375,
+    "height": 812,
+    "artLoaded": true,
+    "closeVisible": true,
+    "dialogWithinViewport": true,
+    "noHorizontalOverflow": true
+  },
+  {
+    "id": "crown-of-midnight",
+    "width": 375,
+    "height": 812,
+    "artLoaded": true,
+    "closeVisible": true,
+    "dialogWithinViewport": true,
+    "noHorizontalOverflow": true
+  },
+  {
+    "id": "midnight-conqueror",
+    "width": 320,
+    "height": 568,
+    "artLoaded": true,
+    "closeVisible": true,
+    "dialogWithinViewport": true,
+    "noHorizontalOverflow": true
+  },
+  {
+    "id": "crown-of-midnight",
+    "width": 320,
+    "height": 568,
+    "artLoaded": true,
+    "closeVisible": true,
+    "dialogWithinViewport": true,
+    "noHorizontalOverflow": true
+  },
+  {
+    "id": "midnight-conqueror",
+    "width": 1280,
+    "height": 900,
+    "artLoaded": true,
+    "closeVisible": true,
+    "dialogWithinViewport": true,
+    "noHorizontalOverflow": true
+  },
+  {
+    "id": "crown-of-midnight",
+    "width": 1280,
+    "height": 900,
+    "artLoaded": true,
+    "closeVisible": true,
+    "dialogWithinViewport": true,
+    "noHorizontalOverflow": true
+  }
+]

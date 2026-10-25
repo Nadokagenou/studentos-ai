@@ -223,7 +223,7 @@ function funnelTask(via) {
 function funnelDone() {
   funnelMark('firstDone');
   funnelBump('doneEver');
-  // ภารกิจธีม Halloween ข้อ 2 (halloween/invite-friend/invite-friend.js) — ทุกทางที่ติ๊กงานเสร็จผ่านตรงนี้ จึงดักที่เดียวพอ
+  // ภารกิจธีมเรือนลับแล ข้อ 2 (halloween/invite-friend/invite-friend.js) — ทุกทางที่ติ๊กงานเสร็จผ่านตรงนี้ จึงดักที่เดียวพอ
   if (typeof inviteOnTaskDone === 'function') inviteOnTaskDone();
 }
 
@@ -311,13 +311,13 @@ const THEME_BAR = {
   light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
   earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
   deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8', genesis: '#8E9BE8',
-  meta: '#050A16', glitch: '#04060A', astral: '#000000', ...(window.StudentOSHalloweenRewards?.themeBars || {}),
+  meta: '#050A16', glitch: '#04060A', astral: '#000000', 'thai-ghost': '#0B1817', ...(window.StudentOSHalloweenRewards?.themeBars || {}),
 };
 const THEME_NAME = {
   system: 'ตามระบบ', light: 'สว่าง', dark: 'มืด', warm: 'ชมพู', space: 'อวกาศ',
   earth: 'โลก', ocean: 'มหาสมุทร', magic: 'เวทมนตร์', galaxy: 'กาแล็กซี',
   deepocean: 'ทะเลลึก', earth2: 'ต้นไม้โลก', sweet: 'จักรวาลหวานแหว', genesis: 'Crystal',
-  meta: 'Metaverse', glitch: 'Glitch', astral: 'Astral Black', ...(window.StudentOSHalloweenRewards?.themeNames || {}),
+  meta: 'Metaverse', glitch: 'Glitch', astral: 'Astral Black', 'thai-ghost': 'เรือนลับแล', ...(window.StudentOSHalloweenRewards?.themeNames || {}),
 };
 // ---------- ALT 1A6M3: อีสเตอร์เอกก์ ธีมลับ ----------
 // กดปุ่มธีมเดิมซ้ำ 5 ครั้งรวด = ปลดล็อกธีมลับของโทนนั้น
@@ -575,8 +575,8 @@ function themePref() {
   // ต้องตรงกับสคริปต์ใน <head> ของ index.html เสมอ ไม่งั้นจอแรกกะพริบสลับโทน
   // ธีมจากโค้ดที่ยังไม่มีโค้ด (ค่าค้างจากรุ่นที่ยังฟรี · แก้ localStorage เอง) = ค่าเริ่มต้น ไม่ใช่ธีมนั้น
   if (THEME_CODE[v] && !codeThemeOwned(v)) return 'light';
-  // ธีมจากภารกิจชวนเพื่อน (INVITE_THEME = 'halloween') ไม่ตัดกลับเป็นค่าเริ่มต้นตรงนี้ — Halloween เคยเป็นธีมฟรี
-  // คนที่ใช้อยู่ก่อนเปิดภารกิจใช้ต่อได้ (ช่วงผ่อนผันใน themeVisible) · เปลี่ยนออกแล้วกดกลับ = เปิดแผ่นภารกิจ (inviteThemeGate)
+  // เรือนลับแลใช้ภารกิจชวนเพื่อน ส่วน Halloween / Moon & Candle ไม่ถูกดักด้วยภารกิจนี้
+  // คงค่าธีมเดิมและข้อมูลผู้ใช้ไว้ การกดเลือกเรือนลับแลตรวจที่ inviteThemeGate
   return THEMES.includes(v) ? v : 'light';
 }
 // 24 ต.ค. 69 · ช่วงฮาโลวีน (:root.hw-season) จอเข้าสู่ระบบเป็นพื้นกลางคืนทุกธีม (halloween/season/season.css)
@@ -9094,7 +9094,7 @@ function renderFriends(force) {
     <div id="frListBox"></div>`;
   body.dataset.built = '1';
   paintFriendParts();
-  // การ์ดชวนเพื่อน · ภารกิจธีม Halloween (halloween/invite-friend/invite-friend.js) — วาดจากแคชก่อน แล้วถามเซิร์ฟเวอร์เงียบ ๆ
+  // การ์ดชวนเพื่อน · ภารกิจธีมเรือนลับแล (halloween/invite-friend/invite-friend.js) — วาดจากแคชก่อน แล้วถามเซิร์ฟเวอร์เงียบ ๆ
   if (typeof paintInviteEntry === 'function') { paintInviteEntry(); inviteRefresh(); }
   // การ์ด "อันดับ" (board.js) — โหลดอันดับของเราไว้เงียบ ๆ ให้การ์ดบอกตัวเลขได้เลย
   if (typeof paintBoardEntry === 'function') { paintBoardEntry(); boardWarm(); }
@@ -9130,7 +9130,8 @@ function frName(p) {
   const nm = (p.display_name || '').trim();
   const hd = (p.handle || '').trim();
   return `<div class="fr-nm">${esc(nm || (hd ? '@' + hd : 'ยังไม่ได้ตั้งชื่อ'))}</div>
-    ${hd && nm ? `<div class="fr-hd">@${esc(hd)}</div>` : ''}`;
+    ${hd && nm ? `<div class="fr-hd">@${esc(hd)}</div>` : ''}
+    ${window.HalloweenFeaturedBadge?.html(p.id, {compact:true}) || ''}`;
 }
 // ============================================================
 // 1B52 · แถวเพื่อนต้องตอบว่า "ช่วยกันได้ตรงไหน"
@@ -10376,7 +10377,7 @@ function renderBadges() {
       const on = badgeEarned(b);
       const prog = !on && b.goal ? Math.min(done, b.goal) + ' / ' + b.goal : '';
       return `<div class="bg-row${on ? ' on' : ''} ${b.tone}">
-        <div class="bg-mark"><span>${b.mark}</span></div>
+        <div class="bg-mark hw-core-art"><img src="halloween/rewards/profile-assets/${b.id}.svg" alt=""></div>
         <div class="bg-bd">
           <div class="bg-nm${b.secret || b.genesis || b.skin ? ' fancy' : ''}">${esc(b.name)}</div>
           <div class="bg-ds">${on ? esc(b.desc) : (b.secret || b.genesis || b.skin ? '— — —' : esc(b.desc))}</div>
@@ -10719,6 +10720,7 @@ function vaultExport() {
     at: +(localStorage.getItem(VAULT_AT_KEY) || 0),
     tokens: rawTokenState(),   // ยอดจริง ไม่ใช่ ∞ ของบัญชีแอดมิน
     allBadges: localStorage.getItem(ALLBADGE_KEY) === '1',
+    badgeSecrets: Object.keys(SECRETS).filter(secretUnlocked), // สิทธิ์ตราธีมลับตามบัญชีเหมือนของสะสมอื่น
     luck: localStorage.getItem(LUCK_KEY) === '1',
     genesis: localStorage.getItem(GENESIS_KEY) === '1',
     codeThemes: Object.keys(THEME_CODE).filter(codeThemeOwned),
@@ -10737,6 +10739,7 @@ function vaultImport(r) {
   // ธงปลดล็อก: ปลดแล้วปลดเลย ไม่มีทางย้อนกลับ จึงรวมแบบ "เครื่องไหนเคยได้ ถือว่าได้"
   try {
     if (r.allBadges) localStorage.setItem(ALLBADGE_KEY, '1');
+    for (const id of Array.isArray(r.badgeSecrets) ? r.badgeSecrets : []) if (SECRETS[id]) localStorage.setItem(SECRETS[id].store, '1');
     if (r.luck) localStorage.setItem(LUCK_KEY, '1');
     if (r.genesis) localStorage.setItem(GENESIS_KEY, '1');
     for (const id of r.codeThemes || []) if (THEME_CODE[id]) localStorage.setItem(THEME_CODE[id], '1');
@@ -12400,7 +12403,7 @@ function renderStatFull(now, d) {
     <div class="an-badges">
       ${badgeCells.map(b => { const got = badgeEarned(b);
         return `<div class="an-bd${got ? ' got' : ''}">
-          <span class="ab-mark">${got ? esc(b.mark) : icon('lock')}</span>
+          <span class="ab-mark hw-core-art">${got ? `<img src="halloween/rewards/profile-assets/${b.id}.svg" alt="">` : icon('lock')}</span>
           <span class="ab-nm">${esc(b.name)}</span>
           <span class="ab-ds">${got ? 'ได้แล้ว' : 'ทำให้ครบ ' + b.goal + ' งาน'}</span>
         </div>`;
@@ -13215,6 +13218,8 @@ function startFocus(taskId) {
 // เรียงจากชั้นบนสุดลงล่าง — ปิดทีละชั้นต่อหนึ่งครั้งที่กด
 const OVERLAYS = [
   { sel: '.face-zoom',       close: el => el.remove() },
+  // 25 ต.ค. 69 · ฉากเรือผีบนจอ "เสร็จแล้ว" (halloween/season/cursed-ship.js) — ย้อนกลับ = ข้ามฉาก ไม่ใช่ปิดโหมดโฟกัส
+  { sel: '.cs-ov:not(.out)', close: () => CursedShip.skip() },
   // 17 ต.ค. 69 · เอฟเฟกต์ฉลองงานเสร็จ (hoop.js · เต็มจอ) — เดิมไม่อยู่ในรายการ: กดย้อนกลับ = จอข้างหลังเปลี่ยนทั้งที่เอฟเฟกต์ยังค้าง
   // และจอใหม่โปร่งใสค้าง (ระหว่างเอฟเฟกต์ .phone.fx-on หยุดอนิเมชันทุกจอ อนิเมชันเข้าจอเลยค้างที่เฟรมแรก)
   // ย้อนกลับ = ปิดเอฟเฟกต์แบบเดียวกับกด "ข้าม" · :not(.out) = ไม่นับอันที่กำลังจางออก · เทสต์: devtools/backcheck.js
@@ -13520,6 +13525,9 @@ function renderFocus() {
 function finishFocus() {
   const t = state.tasks.find(x => x.id === focusId);
   if (!t) { closeFocus(); return; }
+  // 25 ต.ค. 69 · กันบันทึกซ้ำ — ติ๊กขั้นสุดท้าย (toggleStep เรียกเราตามหลัง 350ms) แล้วกด "ทำเสร็จแล้ว" ซ้อน
+  // เดิมรอบสองเขียน doneAt ทับ วาดจอฉลองใหม่ และเล่นเอฟเฟกต์ซ้ำ · จอฉลองขึ้นแล้ว = งานใบนี้จบไปแล้ว
+  if (document.querySelector('#focusWrap .fc-sheet.done')) return;
   stopWork(true);
   // ทางนี้คือปลายลูกโซ่หลัก (เริ่มทำ → ทำเสร็จ) แต่เดิมไม่ได้นับ doneEver เลย — ตัวเลขทำเสร็จจึงต่ำกว่าจริง
   if (!t.done) funnelDone();
@@ -13572,8 +13580,12 @@ function finishFocus() {
     .filter(s => s.task && !s.task.done && (!nxt || s.task.id !== nxt.task.id))
     .slice(0, 3);
 
+  // 25 ต.ค. 69 · เลือกเอฟเฟกต์ "The Cursed Ship" ไว้ = จอนี้แต่งเป็นฉากป่าช้ากับผืนผ้าแขวน (halloween/season/cursed-ship.js)
+  // ทั้งตอนที่ฉากเรือเล่นและตอนที่เล่นไม่ได้ (ลดการเคลื่อนไหว) · ข้อมูลบนจอยังเป็นชุดเดียวกับข้างบนทุกตัว
+  const fxGame = typeof doneFxActive === 'function' && doneFxActive();
+  const skin = !!(window.CursedShip && CursedShip.skinOn());
   const wrap = document.getElementById('focusWrap');
-  wrap.innerHTML = `<div class="fc-sheet done">
+  wrap.innerHTML = `${skin ? CursedShip.scene() : ''}<div class="fc-sheet done${skin ? ' cs-done' : ''}">
     <div class="fw-hero">
       <div class="fw-ring">${icon('check')}</div>
       <!-- คำทักกับชื่องานห่อรวมกันอยู่ใน .fw-mid — ใบใช้ space-between กระจายลูกสามก้อน
@@ -13613,10 +13625,11 @@ function finishFocus() {
     </div>`}
   </div>`;
   // เอฟเฟกต์ "โยนลงห่วง" ลอยทับจอฉลองนี้ — ปิดแล้วค่อยพ่นเศษกระดาษจากวงติ๊กตามเดิม
-  const ring = () => celebrate(document.querySelector('.fw-ring'));
-  if (typeof doneFxActive === 'function' && doneFxActive()) openDoneFx(taskTitleText(t), ring);
-  else ring();
-  setTimeout(checkBadges, 1800);
+  // จอเรือผีไม่พ่นเศษกระดาษ — วงติ๊กเรืองเขียวขึ้นเองตอนจอโผล่ (cursed-ship.css)
+  // เหรียญใหม่เด้งหลังเอฟเฟกต์ปิด ไม่ใช่นับจากตอนกด — เดิมเด้งทับกลางเกม (แบบเดียวกับ toggleDone)
+  const ring = () => { if (!skin) celebrate(document.querySelector('.fw-ring')); };
+  if (fxGame) openDoneFx(taskTitleText(t), () => { ring(); setTimeout(checkBadges, 600); });
+  else { ring(); setTimeout(checkBadges, 1800); }
 }
 
 // ---------- task actions ----------

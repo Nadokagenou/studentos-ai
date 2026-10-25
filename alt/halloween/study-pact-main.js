@@ -1,0 +1,38 @@
+/* A small adapter to the existing planner and focus view. Never creates or completes work. */
+(()=>{
+ 'use strict';const P=window.HalloweenStudyPact;if(!P)return;const preview=window.HalloweenStudyPreview,session=crypto.randomUUID();let cloud=null,busy=false,last=Date.now(),lastMono=performance.now(),lastTask=null,cloudLastAt=0,memo=null,memoKey='',message='';
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const owner=()=>typeof currentUser!=='undefined'&&currentUser?.id||localStorage.getItem('studentos.alt.owner')||'';
+ const ready=()=>typeof state!=='undefined'&&Array.isArray(state.tasks)&&typeof curScreen!=='undefined';
+ const season=()=>preview||Date.now()>=Date.parse('2026-10-28T00:00:00+07:00')&&Date.now()<Date.parse('2026-12-01T00:00:00+07:00');
+ const read=()=>preview?P.read(localStorage,owner()).event:cloud?.ready()?cloud.read().event:{};
+ const active=()=>{const q=read().studyPacts?.active;return P.valid(q,owner(),Date.now())?q:null;};
+ function recommendation(){if(!ready()||typeof studyPlan!=='function')return null;const key=String(typeof stateRev==='undefined'?0:stateRev)+':'+Math.floor(Date.now()/60000);if(key!==memoKey){memoKey=key;try{const q=studyPlan(state,new Date()).now?.task;memo=P.eligible(q)?q:null;}catch{memo=null;}}return memo;}
+ async function account(){if(!owner()||typeof sb==='undefined'||!sb||typeof currentUser==='undefined'||!currentUser)throw Error('เข้าสู่ระบบ StudentOS ก่อนรับพันธสัญญา');if(!cloud)cloud=window.HalloweenAccount.create({client:sb});if(!cloud.ready())await cloud.refresh();return cloud;}
+ const link=()=>new URL('halloween/event/'+(preview?'?preview=1':'')+'#tasks',location.href).href;
+ async function accept(){if(busy)return;busy=true;try{const t=recommendation();if(!t)throw Error('ยังไม่มีงานที่แอปแนะนำ เพิ่มงานจริงของเธอก่อน');
+   if(preview){const data=P.read(localStorage,owner());P.enroll(data.event,t,owner(),Date.now(),crypto.randomUUID());P.write(localStorage,data);}
+   else {if(typeof pushToCloud==='function')await pushToCloud(true);await(await account()).dispatch({type:'study-enroll',taskId:t.id});}
+   message='';startFocus(t.id);
+  }catch(e){message=e.message;if(typeof showToast==='function')showToast({title:'ยังรับพันธสัญญาไม่ได้',body:message});}finally{busy=false;paint();}}
+ function paint(){if(!ready())return;const old=document.getElementById('hwStudyCard');if(!season()||curScreen!=='scr-tasks'){old?.remove();return;}const q=active(),bound=q&&!q.claimed?state.tasks.find(t=>t.id===q.taskId):null,t=P.eligible(bound)?bound:recommendation(),rebind=!!q&&!q.claimed&&t?.id!==q.taskId,issued=read().studyPacts?.days?.[P.day(Date.now())]||0,p=q?.proof,finished=q&&P.ready(q,owner(),Date.now()),names={tang:'Tang',jack:'Jack',dech:'Dech',win:'Win'};
+  const text=q&&!q.claimed?(finished?'แสงโฟกัสครบแล้ว กลับไปรับบันทึกของเจ้า':(names[q.npc]||'เวสเปอร์')+' ฝากรักษาแสงโฟกัส '+q.minutes+' นาที'):'พันธสัญญาจากงานที่ StudentOS แนะนำ · 5 / 8 / 10 นาที';
+  let card=old;if(!card){const list=document.getElementById('taskList');if(!list)return;card=document.createElement('aside');card.id='hwStudyCard';card.className='hw-study-card';list.before(card);}
+  const title=t?(typeof taskTitleText==='function'?taskTitleText(t):t.detail||t.subject||'งานของฉัน'):'วันนี้ยังไม่มีงานที่แอปแนะนำ';
+  const html='<span class="hw-study-moon" aria-hidden="true">☾</span><div><small>HALLOWEEN · งานจริงของฉัน'+(preview?' · ห้องลอง':'')+'</small><b>'+esc(title)+'</b><p>'+esc(message||text)+'</p>'+(q&&!q.claimed?'<progress max="'+q.minutes*60000+'" value="'+(p?.activeMs||0)+'" aria-label="เวลาโฟกัสที่ยืนยัน"></progress>':'')+'<div class="hw-study-links">'+(finished?'<a href="'+link()+'">รับบันทึกจาก NPC →</a>':issued>=3&&(!q||q.claimed)?'<small>ครบสามช่วงวันนี้แล้ว พรุ่งนี้มีเรื่องเล่าต่อ</small>':t?'<button type="button" data-study-go>'+(rebind?'เปลี่ยนงาน · เริ่มนับใหม่':!q||q.claimed?'รับคำท้า · เริ่มงานนี้':'ทำงานนี้ต่อ')+'</button>':'')+'<a href="'+link()+'">สมุด · เกมพักสมอง</a></div></div>';
+  if(card.dataset.view!==html){card.dataset.view=html;card.innerHTML=html;card.querySelector('[data-study-go]')?.addEventListener('click',()=>{if(q&&!q.claimed&&!rebind&&t&&P.eligible(t))startFocus(t.id);else accept();});}
+ }
+ async function tick(){const wall=Date.now(),mono=performance.now(),delta=mono-lastMono,wallDelta=wall-last;last=wall;lastMono=mono;if(!ready()||!season())return;
+  if(!preview&&!busy&&(curScreen==='scr-tasks'||document.body.classList.contains('focus-on'))&&Date.now()-cloudLastAt>25000&&typeof currentUser!=='undefined'&&currentUser&&typeof sb!=='undefined'&&sb){busy=true;try{await(await account()).refresh();cloudLastAt=Date.now();}catch{}finally{busy=false;}}
+  const q=active();if(!q||q.claimed){document.querySelector('.hw-study-focus')?.remove();paint();return;}
+  const t=state.tasks.find(t=>t.id===q.taskId),eligible=!!t&&!t.deleted&&state.running?.taskId===t.id&&!document.hidden&&!document.getElementById('focusWrap')?.hidden&&document.body.classList.contains('focus-on');
+  if(preview){const data=P.read(localStorage,owner()),current=data.event.studyPacts?.active;if(current?.id===q.id){const continuous=eligible&&lastTask===q.taskId&&delta>=0&&delta<=6500&&Math.abs(delta-wallDelta)<1500;P.pulse(current,session,continuous,wall);if(current.proof.activeMs>=current.minutes*60000&&!current.proof.doneAt)P.finish(current,wall);P.write(localStorage,data);}}
+  else if(!busy&&(eligible||q.proof.session===session)){busy=true;try{await cloud.dispatch({type:'study-pulse',pact:q.id,session,active:eligible});const current=active();if(current?.proof.activeMs>=current.minutes*60000&&!current.proof.doneAt)await cloud.dispatch({type:'study-finish',pact:q.id});message='';}catch(e){message='ยังยืนยันออนไลน์ไม่ได้ เชื่อมต่อแล้วทำต่อได้';}finally{busy=false;}}
+  lastTask=eligible?q.taskId:null;paint();const current=active(),wrap=document.getElementById('focusWrap');let bar=document.querySelector('.hw-study-focus');if(!eligible||!wrap){bar?.remove();return;}if(!bar){bar=document.createElement('aside');bar.className='hw-study-focus';bar.setAttribute('role','status');wrap.querySelector('.fc-act')?.before(bar);}
+  bar.innerHTML='<b>☾ พันธสัญญางานจริง · '+Math.floor((current?.proof.activeMs||0)/60000)+' / '+q.minutes+' นาที</b><progress max="'+q.minutes*60000+'" value="'+(current?.proof.activeMs||0)+'"></progress><small>'+esc(message||(current?.proof.doneAt?'ครบแล้ว พักและกลับไปรับบันทึกได้เลย':'นับเฉพาะโฟกัสงานนี้ขณะหน้าจอเปิด · พักได้เสมอ'))+'</small>';
+ }
+ for(const name of ['go','renderTasks'])if(typeof window[name]==='function'){const original=window[name];window[name]=function(...args){const r=original.apply(this,args);requestAnimationFrame(paint);return r;};}
+ document.addEventListener('visibilitychange',()=>{lastTask=null;tick();});window.addEventListener('storage',e=>{if(e.key===P.KEY)paint();});
+ if(preview){const url=new URL(location.href);url.searchParams.set('halloweenStudyPreview','1');history.replaceState(null,'',url.href);}
+ setInterval(tick,5000);paint();
+})();

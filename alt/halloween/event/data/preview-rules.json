@@ -1,6 +1,9 @@
 {
-  "status": "proposed-preview-only-not-owner-confirmed",
-  "notice": "ราคา สูตร และรายละเอียดที่ยังไม่ยืนยันในไฟล์นี้ใช้เฉพาะห้องลอง ไม่ใช้แจกของในบัญชีจริง",
+  "status": "owner-confirmed-2026-10-25",
+  "notice": "ปรับตามคำสั่งเจ้าของ 25 ต.ค. 2026: ประตูรายชั่วโมง พันธสัญญางานจริง และเกมพักสมอง; รางวัลจริงตรวจผ่านบริการบัญชี",
+  "questAid": {
+    "visits": 30
+  },
   "houses": {
     "cooldownScope": "house-per-biome",
     "capWindow": "rolling-24h",
@@ -17,7 +20,7 @@
     "consumeShovel": false
   },
   "randomBiomePotion": {
-    "price": 25,
+    "price": 10,
     "durationMs": 900000,
     "excludeCurrent": true
   },
@@ -85,10 +88,10 @@
   },
   "totem": {
     "durationMs": 900000,
-    "price": 40,
+    "price": 20,
     "advancesCycle": false
   },
-  "taskCandy": 10,
+  "taskCandy": 30,
   "taskDailyCap": 30,
   "anonymousNpc": {
     "count": 2,
@@ -343,5 +346,13 @@
       "level": "บอสลับ · สุดโหด",
       "intro": "คิดว่าได้ธีมแล้วจะจบหรือ? ข้าคือเงาที่หลบอยู่หลังแสงสุดท้าย หยิบอาวุธขึ้นมาอีกครั้ง!"
     }
+  },
+  "journey": {
+    "freeTravel": false,
+    "bonusCandyMultiplier": 1,
+    "dechWaitMs": 1200000,
+    "enabled": true,
+    "hourly": true,
+    "finishActiveBattles": true
   }
 }

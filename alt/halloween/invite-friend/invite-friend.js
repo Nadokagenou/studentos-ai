@@ -1,5 +1,5 @@
 // ============================================================
-// ชวนเพื่อน · ภารกิจปลดล็อกธีม Halloween (23 ต.ค. 69)
+// ชวนเพื่อน · ภารกิจปลดล็อกธีมเรือนลับแล (23 ต.ค. 69)
 // ------------------------------------------------------------
 // ภารกิจสองข้อ ครบทั้งคู่ = ได้ธีม INVITE_THEME
 //   1. ชวนเพื่อนมาใช้ให้ครบ 3 คน — นับที่เซิร์ฟเวอร์ (redeem_invite · migration 20261023150000)
@@ -11,12 +11,12 @@
 // ลิงก์ถูกเก็บรหัสไว้ตั้งแต่สคริปต์นี้โหลด (ก่อน app.js ล้าง URL) แล้วใช้หลังล็อกอินเสร็จ
 // เหมือน ?join= ของห้อง LINE — คนที่สแกน QR มาส่วนใหญ่ยังไม่มีบัญชี
 //
-// 24 ต.ค. 69 · เจ้าของ: ภารกิจนี้ปลด "ธีม Halloween เดิม" (ไม่ใช่ธีมใหม่) → INVITE_THEME = 'halloween'
-// ล็อก/ปลดล็อกใน app.js (themeLocked · themeOwned · setTheme) ใช้ id นี้ · คนที่ใช้ Halloween อยู่ก่อนแล้วใช้ต่อได้
+// 25 ต.ค. 69 · เจ้าของย้ายรางวัลชวนเพื่อนไปธีมผีไทย เรือนลับแล
+// Halloween / Moon & Candle เป็นรางวัลบอสสุดท้าย ไม่ถูกกฎชวนเพื่อนดักอีก
 // หน้าภารกิจหลักอยู่ในจออีเวนต์ (events.js questDetail) ใช้ฟังก์ชันในไฟล์นี้ทั้งหมด · แผ่น openInvite() ยังเปิดจากจอเพื่อนกับปุ่มธีม
 // ============================================================
 
-const INVITE_THEME = 'halloween';
+const INVITE_THEME = 'thai-ghost';
 const INVITE_GOAL = 3;
 const INVITE_SINCE = '2026-10-23';                          // งานที่เสร็จตั้งแต่วันเปิดภารกิจถึงนับ
 const INVITE_KEY = 'studentos.alt.inviteCode';              // รหัสจากลิงก์ รอใช้หลังล็อกอิน
@@ -72,7 +72,7 @@ function inviteThemeReady() { return typeof THEME_NAME !== 'undefined' && !!THEM
 
 // เรียกจาก setTheme — กดปุ่มธีมนี้ตอนยังไม่ปลดล็อก = เปิดแผ่นภารกิจแทน (ไม่ใช่ toast "ยังไม่มีธีมนี้")
 function inviteThemeGate(id) {
-  if (id !== INVITE_THEME || inviteUnlocked()) return false;
+  if (id !== INVITE_THEME || window.__HW_SHOWROOM__ || inviteUnlocked()) return false;
   if (typeof haptic === 'function') haptic('snooze');
   openInvite();
   return true;
@@ -147,7 +147,7 @@ async function applyInviteCode(manual) {
 // ---------- ฉลองตอนปลดล็อก (ครั้งเดียว) ----------
 function inviteCheckUnlock() {
   if (!inviteUnlocked()) return;
-  const uid = ivUid() || 'local';
+  const uid = (ivUid() || 'local') + ':' + INVITE_THEME;
   let seen = null;
   try { seen = localStorage.getItem(INVITE_SEEN_KEY); } catch (_) {}
   if (seen === uid) return;
@@ -156,7 +156,7 @@ function inviteCheckUnlock() {
   paintInvite();
   if (typeof haptic === 'function') haptic('done');
   if (typeof splashBurst === 'function') splashBurst(24, 'egg-star');
-  showToast({ title: 'ปลดล็อกธีม Halloween แล้ว 🎃',
+  showToast({ title: 'ปลดล็อกธีมเรือนลับแล แล้ว ✦',
     body: inviteThemeReady() ? 'เลือกใช้ได้ที่จอธีม' : 'ธีมกำลังจะมาในอัปเดตถัดไป สิทธิ์ของคุณเก็บไว้แล้ว' });
 }
 
@@ -251,6 +251,22 @@ function closeInvite() {
 }
 function ivEsc(e) { if (e.key === 'Escape') closeInvite(); }
 
+// ห้องลองใช้ memory storage ของ preview-mode.js ไม่สลับธีมหรือให้สิทธิ์ในบัญชีจริง
+function previewInviteTheme() {
+  if (document.querySelector('.iv-theme-preview')) return;
+  const before = document.activeElement, dialog = document.createElement('dialog');
+  dialog.className = 'iv-theme-preview'; dialog.setAttribute('aria-label', 'ลองธีมเรือนลับแล');
+  const url = new URL('../../', IV_BASE); url.searchParams.set('halloween-showroom', '1'); url.searchParams.set('thai-ghost-preview', '1');
+  dialog.innerHTML = '<header><div><b>เรือนลับแล · ธีมผีไทย</b><small>ห้องลอง · ไม่เปลี่ยนธีมหรือสิทธิ์ของบัญชี</small></div><button type="button" aria-label="ปิดห้องลอง">×</button></header><div class="iv-preview-body"><iframe title="ตัวอย่าง StudentOS ธีมเรือนลับแล" src="' + url.href + '"></iframe></div>';
+  const body = dialog.querySelector('.iv-preview-body'), fit = new ResizeObserver(() => {
+    dialog.style.setProperty('--iv-preview-scale', Math.min(body.clientWidth / 375, body.clientHeight / 812));
+  });
+  const close = () => { fit.disconnect(); dialog.close(); dialog.remove(); if (before?.isConnected) before.focus({preventScroll:true}); };
+  dialog.querySelector('button').onclick = close;
+  dialog.oncancel = e => { e.preventDefault(); close(); };
+  document.body.append(dialog); dialog.showModal(); fit.observe(body); dialog.querySelector('button').focus({preventScroll:true});
+}
+
 // ค้างค้างคาวกับหยากไย่ไว้เป็น SVG ในไฟล์ — ไม่ต้องโหลดรูปเพิ่ม และสีตามโทเคนของแผ่น
 const IV_BAT = '<svg viewBox="0 0 64 28" aria-hidden="true"><path d="M32 9c1.4-3 2.4-4 3-6 .6 2 1 3 1.2 4.6 4-3.6 12-6 20-4.6-3 1.4-5 3.6-5.6 6.6 3-.4 6.6.4 9.4 2.4-4.6.4-8.6 2.6-10.4 6-2.4-2-6.4-2.4-9 0-1.6-2.4-4.6-3.6-8.6-3.4-4 -.2-7 1-8.6 3.4-2.6-2.4-6.6-2-9 0-1.8-3.4-5.8-5.6-10.4-6 2.8-2 6.4-2.8 9.4-2.4-.6-3-2.6-5.2-5.6-6.6 8-1.4 16 1 20 4.6.2-1.6.6-2.6 1.2-4.6.6 2 1.6 3 3 6z"/></svg>';
 const IV_WEB = '<svg viewBox="0 0 80 80" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width=".9"><path d="M0 0L80 80M0 0L40 80M0 0L80 40M0 0L80 12M0 0L12 80"/><path d="M14 0Q12 7 0 14M30 0Q27 15 0 30M48 0Q44 24 0 48M66 0Q60 34 0 66" /></g></svg>';
@@ -258,7 +274,7 @@ const IV_WEB = '<svg viewBox="0 0 80 80" aria-hidden="true"><g fill="none" strok
 function ivSlots(n) {
   let s = '';
   for (let i = 0; i < INVITE_GOAL; i++) {
-    s += `<span class="iv-slot${i < n ? ' on' : ''}" aria-hidden="true">${i < n ? '🎃' : ''}</span>`;
+    s += `<span class="iv-slot${i < n ? ' on' : ''}" aria-hidden="true">${i < n ? '✦' : ''}</span>`;
   }
   return s;
 }
@@ -325,8 +341,8 @@ function ivPaintSheet(sh, first) {
       </div>
       <button class="iv-x" type="button" onclick="closeInvite()" aria-label="ปิด">✕</button>
       <div class="iv-head">
-        <div class="iv-kicker">HALLOWEEN · TRICK OR INVITE</div>
-        <h2 id="ivTitle">ชวนเพื่อน ปลดล็อกธีม Halloween</h2>
+        <div class="iv-kicker">เรือนลับแล · THAI GHOST COLLECTION</div>
+        <h2 id="ivTitle">ชวนเพื่อน ปลดล็อกธีมเรือนลับแล</h2><button class="iv-btn iv-theme-try" type="button" onclick="previewInviteTheme()">ลองธีมผีไทยก่อน</button>
         <p class="iv-sub">${left == null ? 'ส่งรหัสให้เพื่อนที่ยังไม่เคยใช้ StudentOS'
           : left > 0 ? `รหัสนี้ใช้ได้อีก <b>${left} คน</b> · แบ่งให้เพื่อนที่ไว้ใจ`
           : 'รหัสนี้มีเพื่อนใช้ครบแล้ว'}</p>
@@ -349,7 +365,7 @@ function ivPaintSheet(sh, first) {
         </div>
         <div class="iv-reward${unlocked ? ' on' : ''}">
           <span class="iv-lock" aria-hidden="true">${unlocked ? '🔓' : '🔒'}</span>
-          <div><b>${unlocked ? 'ปลดล็อกธีม Halloween แล้ว' : 'รางวัล: ธีม Halloween'}</b>
+          <div><b>${unlocked ? 'ปลดล็อกธีมเรือนลับแล แล้ว' : 'รางวัล: ธีมเรือนลับแล'}</b>
             <small>${unlocked
               ? (inviteThemeReady() ? 'กดใช้ได้เลย' : 'ธีมกำลังจะมาในอัปเดตถัดไป สิทธิ์ของคุณเก็บไว้แล้ว')
               : 'ครบสองภารกิจแล้วได้ธีมทันที ใช้ได้ถาวร'}</small></div>
@@ -401,7 +417,7 @@ async function inviteShare() {
   const d = ivData;
   if (!d || !d.code) return;
   const url = inviteLink(d.code);
-  const text = `มาใช้ StudentOS ด้วยกัน 🎃 ใส่รหัสเชิญ ${d.code} หรือกดลิงก์นี้`;
+  const text = `มาใช้ StudentOS ด้วยกัน ✦ ใส่รหัสเชิญ ${d.code} หรือกดลิงก์นี้`;
   if (navigator.share) {
     try { await navigator.share({ title: 'ชวนใช้ StudentOS', text, url }); return; }
     catch (e) { if (e && e.name === 'AbortError') return; }
@@ -496,7 +512,7 @@ async function invitePoster(code) {
   const MONO = "'Space Mono', ui-monospace, monospace", MAX = W - 120;
   ctx.fillStyle = '#ffb347';
   ctx.shadowColor = 'rgba(255,122,26,.7)'; ctx.shadowBlur = 18;
-  ivText(ctx, 'HALLOWEEN · TRICK OR INVITE', W / 2, 450, 700, 34, MONO, MAX);
+  ivText(ctx, 'RUEN LUB LAE · INVITE', W / 2, 450, 700, 34, MONO, MAX);
   ctx.shadowBlur = 0;
   ctx.fillStyle = '#fff3dc';
   ctx.shadowColor = 'rgba(255,150,40,.55)'; ctx.shadowBlur = 24;
@@ -526,7 +542,7 @@ async function invitePoster(code) {
   ctx.shadowBlur = 0;
   // ท้ายภาพ
   ctx.fillStyle = '#ffd67a';
-  ivText(ctx, 'สแกน QR หรือใส่รหัสตอนสมัคร 🎃', W / 2, 1520, 700, 40, font, MAX);
+  ivText(ctx, 'สแกน QR หรือใส่รหัสตอนสมัคร ✦', W / 2, 1520, 700, 40, font, MAX);
   ctx.fillStyle = 'rgba(241,235,255,.55)';
   ivText(ctx, 'StudentOS AI · ' + location.host, W / 2, 1576, 600, 30, font, MAX);
   return new Promise(res => cv.toBlob(b => res(b), 'image/png'));
@@ -558,8 +574,8 @@ function paintInviteEntry() {
   const unlocked = inviteUnlocked();
   box.innerHTML = `
     <button class="iv-entry${unlocked ? ' done' : ''}" type="button" onclick="openInvite()">
-      <span class="iv-entry-art" aria-hidden="true">🎃<i>${IV_BAT}</i></span>
-      <span class="iv-entry-t"><b>${unlocked ? 'ได้ธีม Halloween แล้ว' : 'ชวนเพื่อน 3 คน รับธีม Halloween'}</b>
+      <span class="iv-entry-art" aria-hidden="true">✦<i>${IV_BAT}</i></span>
+      <span class="iv-entry-t"><b>${unlocked ? 'ได้ธีมเรือนลับแล แล้ว' : 'ชวนเพื่อน 3 คน รับธีมเรือนลับแล'}</b>
         <small>${unlocked ? 'ชวนต่อได้ · ดูรหัสเชิญและ QR' : `ชวนแล้ว ${used}/${INVITE_GOAL} · รหัสเชิญและ QR ของคุณ`}</small></span>
       <span class="iv-entry-go" aria-hidden="true">›</span>
     </button>`;

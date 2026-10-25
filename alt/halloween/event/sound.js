@@ -7,19 +7,19 @@
     const Context=env.AudioContext||root.AudioContext||root.webkitAudioContext;
     const later=env.setTimer||root.setTimeout.bind(root),cancel=env.clearTimer||root.clearTimeout.bind(root);
     let enabled=false,visible=true,context=null,master=null,wind=null,timer=0,scene='hub',epoch=0;
-    const voices=new Set();
+    const voices=new Set(),speechVoices=new Set();let lastSyllable=-Infinity;
     function stop(){
       epoch++;cancel(timer);timer=0;
       if(wind){try{wind.stop();wind.disconnect();}catch{}wind=null;}
       for(const voice of voices){try{voice.stop();voice.disconnect();}catch{}}
-      voices.clear();
+      voices.clear();speechVoices.clear();lastSyllable=-Infinity;
     }
     function tone(frequency,at,length,volume,type='sine'){
       if(!context||!master)return;
       const osc=context.createOscillator(),gain=context.createGain();osc.type=type;osc.frequency.setValueAtTime(frequency,at);
       gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(volume,at+.025);gain.gain.exponentialRampToValueAtTime(.0001,at+length);
-      osc.connect(gain);gain.connect(master);voices.add(osc);osc.onended=()=>{voices.delete(osc);try{osc.disconnect();gain.disconnect();}catch{}};
-      osc.start(at);osc.stop(at+length+.02);
+      osc.connect(gain);gain.connect(master);voices.add(osc);osc.onended=()=>{voices.delete(osc);speechVoices.delete(osc);try{osc.disconnect();gain.disconnect();}catch{}};
+      osc.start(at);osc.stop(at+length+.02);return osc;
     }
     // เสียงกดของ HUD ดันเจี้ยน (24 ต.ค. 69) — สังเคราะห์สด ไม่โหลดไฟล์ · ทุกเสียงลงทะเบียนใน voices จึงหยุดพร้อมกันตอนปิดเสียง/ออกจากหน้า
     let noiseBuffer=null;
@@ -74,8 +74,17 @@
       const notes=({tap:[390],door:[98,146.83],npc:[261.63,311.13],coins:[523.25,659.25,783.99],water:[440,329.63,261.63],harvest:[329.63,440,659.25],magic:[164.81,246.94,369.99,493.88],ghost:[196,146.83,110],error:[130.81,123.47]})[kind]||[390];
       notes.forEach((f,i)=>tone(f,context.currentTime+i*.075,kind==='door'?.5:.22,kind==='tap'?.09:.3,kind==='door'?'triangle':'sine'));return true;
     }
+    function syllable(character='vesper',step=0){
+      if(!enabled||!visible||!context||context.state!=='running'||context.currentTime-lastSyllable<.105)return false;
+      lastSyllable=context.currentTime;
+      const [base,type]=({tang:[145,'triangle'],jack:[220,'square'],dech:[185,'sine'],win:[105,'triangle'],morro:[165,'triangle'],mora:[285,'sine'],vesper:[235,'sine']})[character]||[210,'sine'];
+      const f=base*[1,1.125,1,.89,1.25][step%5];
+      for(const [ratio,volume]of [[1,.22],[2.02,.055]]){const voice=tone(f*ratio,context.currentTime,.085,volume,type);if(voice)speechVoices.add(voice);}
+      return true;
+    }
+    function stopDialogue(){for(const voice of speechVoices){try{voice.stop();voice.disconnect();}catch{}voices.delete(voice);}speechVoices.clear();}
     function dispose(){enabled=false;stop();const old=context;context=null;master=null;noiseBuffer=null;try{old?.close()?.catch(()=>{});}catch{}}
-    return {setEnabled,setVisible,setScene,play,dispose,state:()=>({enabled,visible,playing:!!timer,voices:voices.size,scene})};
+    return {setEnabled,setVisible,setScene,play,syllable,stopDialogue,dispose,state:()=>({enabled,visible,playing:!!timer,voices:voices.size,scene})};
   }
   return {create};
 });

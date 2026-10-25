@@ -1092,6 +1092,7 @@ function profileHeadHTML(u, opts) {
       ${!o.mine && where ? `<i>${esc(where)}</i>` : ''}
       ${o.extra || ''}
     </div>
+    ${window.HalloweenFeaturedBadge?.html(u.id, {mine:!!o.mine}) || ''}
     ${u.bio ? `<p class="ig-bio">${esc(u.bio)}</p>` : ''}
     ${o.buttons || ''}
     ${!o.mine && chips.length ? `<div class="ig-strip">${chips.join('')}</div>` : ''}`;

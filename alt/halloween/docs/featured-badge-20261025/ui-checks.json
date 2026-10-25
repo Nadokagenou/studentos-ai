@@ -1,0 +1,29 @@
+[
+  {
+    "width": 375,
+    "height": 812,
+    "actualHeight": 812,
+    "actualWidth": 375,
+    "noHorizontalOverflow": true,
+    "withinViewport": true,
+    "removed": true
+  },
+  {
+    "width": 320,
+    "height": 568,
+    "actualHeight": 568,
+    "actualWidth": 320,
+    "noHorizontalOverflow": true,
+    "withinViewport": true,
+    "removed": true
+  },
+  {
+    "width": 1280,
+    "height": 900,
+    "actualHeight": 900,
+    "actualWidth": 1280,
+    "noHorizontalOverflow": true,
+    "withinViewport": true,
+    "removed": true
+  }
+]

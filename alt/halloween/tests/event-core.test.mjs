@@ -44,7 +44,7 @@ async function winBoss(h,id){
   assert.fail('boss never finished');
 }
 
-test('only the active portal opens, and story acknowledgement persists across re-entry',async()=>{
+test('only the active hourly portal opens, and story acknowledgement persists across re-entry',async()=>{
   const h=harness();await h.biome(Core.BIOMES[0]);
   assert.equal(Core.BIOMES.filter(id=>Core.portalStatus(h.store.read(),h.config,id,time).open).length,1);
   await assert.rejects(h.apply({type:'enter-biome',biome:Core.BIOMES[1]}),/ยังไม่เปิด/);
@@ -170,13 +170,13 @@ test('drinking a potion changes to another biome and consumes exactly one bottle
   await h.apply({type:'drink-biome-potion'},'potion-drink');
   await assert.rejects(h.apply({type:'drink-biome-potion'}),/วัตถุดิบไม่พอ/);
 });
-test('a potion preserves house cooldowns, quest cycles and returns after its duration',async()=>{
+test('a potion preserves house cooldowns, quest cycles and returns to the hourly door after the private route expires',async()=>{
   const h=harness({prepare:doc=>{stock(doc);doc.event.inventory['random-biome-potion']=1;doc.event.quests['dech-rare-materials']={complete:true,completedCycle:10};}});await h.biome(Core.BIOMES[0]);
   await h.apply({type:'house',house:1,choice:'treat'});const before=h.store.read(),cycle=Core.biomeAt(before,h.config,time).cycle;
-  await h.apply({type:'drink-biome-potion'});assert.deepEqual(h.store.read().event.houses,before.event.houses);assert.deepEqual(h.store.read().event.quests,before.event.quests);
+  const potion=await h.apply({type:'drink-biome-potion'});assert.deepEqual(h.store.read().event.houses,before.event.houses);assert.deepEqual(h.store.read().event.quests,before.event.quests);
   assert.equal(Core.biomeAt(h.store.read(),h.config,time).cycle,cycle);
   await h.apply({type:'preview-time',ms:proposals.randomBiomePotion.durationMs});
-  assert.equal(Core.biomeAt(h.store.read(),h.config,time).id,Core.BIOMES[0]);assert.equal(Core.houseAvailability(h.store.read(),h.config,1,time).ready,false);
+  assert.equal(Core.biomeAt(h.store.read(),h.config,time).id,Core.BIOMES[Core.Rotations.window(Core.moment(h.store.read(),time)).index]);assert.deepEqual(h.store.read().event.houses,before.event.houses);
 });
 test('all three other biomes are reachable by potion, without adding cosmetics',async()=>{
   const seen=new Set();for(let n=1;n<=24;n++){
@@ -187,8 +187,10 @@ test('all three other biomes are reachable by potion, without adding cosmetics',
 async function winGame(h,id) {
   await h.apply({type:'start-game',game:id});
   let game=h.store.read().event.games[id];
+  if(game.mode==='memory')await h.apply({type:'preview-time',ms:4500});
+  const order=game.mode==='pairs'?Object.values(Object.groupBy(game.tiles.map((v,i)=>({v,i})),x=>x.v)).flatMap(p=>p.map(x=>x.i)):null;let index=0;
   while(!game.finished) {
-    await h.apply({type:'game-move',game:id,session:game.session,move:id==='ghost-ship-hunt'?game.target:game.found.length});
+    await h.apply({type:'game-move',game:id,session:game.session,move:id==='ghost-ship-hunt'?game.target:game.mode==='memory'?game.sequence[game.found.length]:order?order[index++]:game.found.length});
     game=h.store.read().event.games[id];
   }
   assert.equal(game.clear,true);
@@ -365,7 +367,7 @@ test('the complete four-NPC journey, games, garden, shop and rituals yields exac
   await quest(h,'win-forge-blade');await quest(h,'win-restricted-scythe');await quest(h,'win-unbind-scythe');await winBoss(h,'headless-warden');
   await h.biome(Core.BIOMES[2]);await quest(h,'dech-intruder-punishment');assert.ok(h.store.read().rewards['cruor-quill']);
   await winGame(h,'dech-house-spot-difference');await quest(h,'dech-rare-materials');
-  await assert.rejects(quest(h,'dech-wrong-letter'),/วัฏจักรถัดไป/);
+  await assert.rejects(quest(h,'dech-wrong-letter'),/20 นาที/);
   await h.apply({type:'preview-time',ms:Core.DAY});await quest(h,'dech-wrong-letter');await winBoss(h,'blood-countess');
   await h.apply({type:'enter-room',room:'shop'});
   for(const item of Object.keys(proposals.shop)) {
@@ -398,6 +400,7 @@ test('the permanent vault and its required resources have no dependency on the r
   for(const [,ref] of html.matchAll(/(?:src|href)="([^"]+)"/g)) {
     assert.ok(!ref.includes('/event/'),ref);
     if(ref==='../../')continue;
+    if(ref.startsWith('https://')){assert.equal(ref,'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.min.js');continue;}
     assert.ok(fs.existsSync(new URL('../rewards/'+ref,import.meta.url)),ref);
   }
   const source=fs.readFileSync(new URL('../rewards/vault.js',import.meta.url),'utf8');
@@ -450,7 +453,7 @@ test('hidden time, paused time, a clock jump and overlapping heartbeat writers c
 test('death quest requires its own task, actual focus credit, recorded session and completion after twenty minutes',async()=>{
   const h=harness(),q=await enrollDeath(h),e=deathEvidence(q),snapshot=JSON.stringify(e.state);assert.equal(Death.status(q,e.state,e.proof[q.taskId],'owner-a',e.at).ready,true);
   for(const mutate of [x=>{x.state.tasks[0].doneAt=new Date(time+1000).toISOString();},x=>{x.proof={};},x=>{x.state.sessions[0].taskId='another-task';},x=>{x.state.tasks[0].halloweenDeathQuest.nonce='forged';},x=>{x.state.tasks[0].deleted=true;},x=>{x.state.tasks[0].done=false;}]){const bad=JSON.parse(JSON.stringify(e));mutate(bad);await assert.rejects(claimDeath(h,q,bad,'bad-'+Math.random()));}
-  await assert.rejects(claimDeath(h,q,e,'wrong-owner','owner-b'));assert.equal(h.store.read().event.candy,0);await claimDeath(h,q,e);await claimDeath(h,q,e);await assert.rejects(claimDeath(h,q,e,'second-claim'));assert.equal(h.store.read().event.candy,10);assert.equal(JSON.stringify(e.state),snapshot);
+  await assert.rejects(claimDeath(h,q,e,'wrong-owner','owner-b'));assert.equal(h.store.read().event.candy,0);await claimDeath(h,q,e);await claimDeath(h,q,e);await assert.rejects(claimDeath(h,q,e,'second-claim'));assert.equal(h.store.read().event.candy,30);assert.equal(JSON.stringify(e.state),snapshot);
 });
 test('death quests share the legacy rolling cap and old receipts survive',async()=>{
   const h=harness({prepare:d=>{d.event.taskEarned=[{at:time,amount:proposals.taskDailyCap-5}];d.event.taskClaims['review-task-1']=true;}}),q=await enrollDeath(h),e=deathEvidence(q);await claimDeath(h,q,e);assert.equal(h.store.read().event.candy,5);assert.equal(h.store.read().event.taskClaims['review-task-1'],true);assert.deepEqual(h.store.read().event.houses,{});
@@ -460,7 +463,7 @@ test('one quest per real day cannot be reissued by deleting the task or advancin
   await assert.rejects(h.store.transact('easy',d=>Core.dispatch(d,h.config,{type:'studentos-mission',mission:'add-task'},{now:time,tx:'easy',studentOS:missionState()})),/เควสมรณะ/);
 });
 test('concurrent death quest claims and failed writes cannot split or duplicate a grant',async()=>{
-  const h=harness(),q=await enrollDeath(h),e=deathEvidence(q),r=await Promise.allSettled([claimDeath(h,q,e,'one'),claimDeath(h,q,e,'two')]);assert.equal(r.filter(x=>x.status==='fulfilled').length,1);assert.equal(h.store.read().event.candy,10);
+  const h=harness(),q=await enrollDeath(h),e=deathEvidence(q),r=await Promise.allSettled([claimDeath(h,q,e,'one'),claimDeath(h,q,e,'two')]);assert.equal(r.filter(x=>x.status==='fulfilled').length,1);assert.equal(h.store.read().event.candy,30);
   const data=new Map();let full=false;const h2=harness({storage:{getItem:k=>data.get(k)||null,setItem(k,v){if(full)throw Error('full');data.set(k,v);}}}),q2=await enrollDeath(h2),e2=deathEvidence(q2);full=true;await assert.rejects(claimDeath(h2,q2,e2));assert.equal(h2.store.read().event.candy,0);
 });
 test('local quest tasks and their focus sessions are excluded from cloud parts without modifying other work',()=>{
