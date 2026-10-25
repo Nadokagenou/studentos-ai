@@ -11,3 +11,7 @@ Migration was created with the Supabase CLI under ALT, applied with the migratio
 Deployment: `halloween-badge` v1 ACTIVE with JWT verification on, 25 October 2026. Upload `index.ts` and `handler.mjs` without changing the original `halloween-event` function. Live unauthenticated POST returned 401; allowed-origin OPTIONS returned 204. No advisor findings reference the new table. Existing unrelated project advisor findings were left untouched.
 
 Successful ownership/write paths and Auth/header forwarding are tested with fixtures using the real handler/entry code. The live owner did not receive test medals and no human two-device test was performed before opening day.
+
+## All existing badges · v2, 25 October 2026
+
+The handler now accepts all eleven core IDs plus the two event IDs. It returns only the available ID list, computed from the authenticated user's synced tasks/vault and private event receipts; client-supplied ownership is ignored. Normal badges keep existing app eligibility (including legacy codes), not the event anti-cheat receipt model. No normal earned date is invented. Migration 20261025142719 keeps the same one-row preference, grants and RLS, removes dependence on having an event save, and checks the ID/scope pair. The normal unlock flags travel through existing per-account vault sync. All ten transactional RLS checks passed on the live database with rollback. v2 is ACTIVE with JWT verification. See docs/all-badges-20261025/README.md for UI and test evidence.

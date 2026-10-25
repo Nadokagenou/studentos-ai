@@ -4,11 +4,43 @@
 <div class="phone"><header><b>แบบจำลองบัญชี · ทดสอบ UI</b><small>ข้อมูลสมมติในหน่วยความจำ ไม่เชื่อมบัญชีหรือบริการจริง</small></header><nav><button onclick="switchActor('a')">บัญชี A</button><button onclick="switchActor('b')">บัญชี B</button><button onclick="switchActor('guest')">ออกจากระบบ</button></nav><section class="screen on" id="qa-screen"><div id="pfHead"></div><div id="qaFriend"></div></section></div>
 <script src="../../rewards/catalog.js"></script>
 <script>
+const BADGES = [
+  { id: 'hello', tone: 'b1', mark: 'I', name: 'โอ้..สวัดดี!',
+    desc: 'ก้าวแรกที่นับได้จริง', goal: 1 },
+  { id: 'try', tone: 'b2', mark: 'C', name: 'ฉันพึ่งลองใช้ StudentOS',
+    desc: 'เริ่มจับจังหวะของตัวเองได้แล้ว', goal: 10 },
+  { id: 'hard', tone: 'b3', mark: 'M', name: 'การบ้านนี่มันลำบากจริง ๆ',
+    desc: 'ผ่านมาหลายคืนกว่าจะถึงตรงนี้', goal: 25 },
+  { id: 'nah', tone: 'b4', mark: 'V', name: 'คุณจะเลิกทำการบ้านไหม? Nah I\'d ทำการบ้าน',
+    desc: 'ยืนยันคำตอบเดิมทุกครั้งที่ถูกถาม', goal: 75 },
+  { id: 'unstoppable', tone: 'b5', mark: 'X', name: 'หยุดไม่ได้แล้ว!',
+    desc: 'กลายเป็นนิสัยไปแล้วเรียบร้อย', goal: 100 },
+  { id: 'deep', tone: 'sea', mark: '≡', name: 'Challenger Deep',
+    desc: 'ลงไปได้ลึกกว่าที่ควรจะเป็น', secret: 'ocean' },
+  { id: 'tree', tone: 'tree', mark: '✦', name: 'World Tree',
+    desc: 'ยังมีลมพัดอยู่ตรงนั้นเสมอ', secret: 'earth' },
+  { id: 'sophyra', tone: 'sweet', mark: '✧', name: 'Sophyra',
+    desc: 'บางอย่างสวยเกินกว่าจะเป็นเรื่องบังเอิญ', secret: 'galaxy' },
+  // เหรียญปลายทาง — ผูกกับการปลดล็อกธีม Crystal (ซึ่งต้องได้เหรียญอื่นครบก่อน)
+  { id: 'genesis', tone: 'genesis', mark: '◆', name: 'Crystal',
+    desc: 'จุดที่ทุกอย่างเริ่มต้นใหม่อีกครั้ง', genesis: true },
+  // เหรียญของธีมระดับลับ — ชื่อโผล่ให้ทุกคนเห็น แต่คำบรรยายขึ้น "— — —" จนกว่าจะได้
+  // ติด postGenesis ไว้เพื่อ **ไม่ให้ไปนับรวมในเงื่อนไขปลดล็อก Crystal**
+  // ไม่งั้น Crystal จะกลายเป็นของที่ต้องรอสุ่มระดับลับก่อน ซึ่งไม่ใช่กติกาเดิม
+  { id: 'metaworld', tone: 'meta', mark: '◇', name: 'MetaWorld!',
+    desc: 'โลกทั้งใบถูกสร้างขึ้นมา ไม่มีอะไรจริงสักอย่าง แต่ก็ยืนอยู่บนนั้นได้',
+    skin: 'meta', postGenesis: true },
+  { id: 'err404', tone: 'glitch', mark: '!', name: 'Erorr 404',
+    desc: 'ไม่พบสิ่งที่ตามหา แต่ไปเจออย่างอื่นเข้าแทน',
+    skin: 'glitch', postGenesis: true },
+];
+
+
  const actors={a:'00000000-0000-4000-8000-000000000001',b:'00000000-0000-4000-8000-000000000002'},selected=new Map();
  var currentUser={id:actors.a};
  const items=()=>StudentOSHalloweenRewards.items.filter(x=>x.kind==='badge').map(x=>({...x,owned:!!currentUser&&(currentUser.id===actors.a||x.id==='crown-of-midnight')}));
  window.HalloweenBadges={viewOwn:()=>({status:currentUser?'ready':'login',entries:items()}),refreshOwn:async()=>{}};
- var sb={functions:{async invoke(_name,{body}){const who=currentUser?.id;if(!who)return {error:true};if(body.action==='equip'){if(body.badgeId&&!items().some(x=>x.id===body.badgeId&&x.owned))return {error:true};selected.set(who,body.badgeId?{user_id:who,season:'halloween-2026',badge_id:body.badgeId,earned_at:'2026-10-29T01:00:00Z',selected_at:'2026-10-30T01:00:00Z'}:null);}return {data:{selection:selected.get(who)||null}};}},from(){return {select(){return {async in(_key,users){return {data:users.map(id=>selected.get(id)).filter(Boolean)};}};}};}};
+ var sb={functions:{async invoke(_name,{body}){const who=currentUser?.id;if(!who)return {error:true};if(body.action==='equip'){if(body.badgeId&&!([... (who===actors.a?BADGES.map(b=>b.id):['hello']),...items().filter(x=>x.owned).map(x=>x.id)]).includes(body.badgeId))return {error:true};selected.set(who,body.badgeId?{user_id:who,season:BADGES.some(b=>b.id===body.badgeId)?'studentos':'halloween-2026',badge_id:body.badgeId,earned_at:BADGES.some(b=>b.id===body.badgeId)?null:'2026-10-29T01:00:00Z',selected_at:'2026-10-30T01:00:00Z'}:null);}return {data:{selection:selected.get(who)||null,available:[...(who===actors.a?BADGES.map(b=>b.id):['hello']),...items().filter(x=>x.owned).map(x=>x.id)]}};}},from(){return {select(){return {async in(_key,users){return {data:users.map(id=>selected.get(id)).filter(Boolean)};}};}};}};
  function renderProfileHead(){const self=currentUser?currentUser.id===actors.a?'A':'B':'ผู้เยี่ยมชม';document.getElementById('pfHead').innerHTML='<article><small class="who">โปรไฟล์ของฉัน</small><h2>บัญชี '+self+'</h2>'+ (window.HalloweenFeaturedBadge?.html(currentUser?.id,{mine:true})||'')+'</article>';document.getElementById('qaFriend').innerHTML=currentUser?.id===actors.b?'<article><small class="who">เพื่อนที่รับแล้ว</small><h2>บัญชี A</h2>'+window.HalloweenFeaturedBadge.html(actors.a,{compact:true})+'</article>':'';}
  function switchActor(name){currentUser=actors[name]?{id:actors[name]}:null;renderProfileHead();}
  function showToast(){}function go(){}function setLoginView(){}

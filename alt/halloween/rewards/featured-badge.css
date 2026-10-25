@@ -27,3 +27,16 @@
 .hw-featured-actions button:disabled {opacity:.5;cursor:default}
 .hw-featured-chip:focus-visible,.hw-featured-empty:focus-visible,.hw-featured-picker button:focus-visible {outline:2px solid #bba5d3;outline-offset:3px}
 @media(max-height:650px){.hw-featured-picker {padding-top:25px}.hw-featured-choice img {height:100px}.hw-featured-picker h2 {font-size:20px}.hw-featured-message {min-height:0}.hw-featured-choice strong {font-size:11px}}
+
+.hw-featured-options h3 {grid-column:1/-1;margin:10px 0 0;font-size:12px;color:#cfbfda;text-align:left}
+.hw-featured-choice img {height:100px}
+.hw-featured-choice strong {font-size:11px}
+.hw-featured-actions {position:sticky;bottom:-19px;background:#181422;padding:12px 0 8px;border-top:1px solid #57465d}
+.phone .bg-row .bg-mark.hw-core-art,.phone .an-bd .ab-mark.hw-core-art {background:transparent;box-shadow:none;border-radius:0;overflow:visible;animation:none}
+.phone .bg-row .bg-mark.hw-core-art {width:62px;height:75px}
+.phone .bg-mark.hw-core-art::before,.phone .bg-mark.hw-core-art::after {display:none}
+.phone .hw-core-art img {display:block;width:100%;height:100%;object-fit:contain}
+.phone .bg-row:not(.on) .hw-core-art img {opacity:.5}
+.phone .an-bd .hw-core-art img {height:52px;width:46px}
+
+.phone .an-bd .ab-mark.hw-core-art {width:46px;height:52px}

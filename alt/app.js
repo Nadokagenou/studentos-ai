@@ -10374,7 +10374,7 @@ function renderBadges() {
       const on = badgeEarned(b);
       const prog = !on && b.goal ? Math.min(done, b.goal) + ' / ' + b.goal : '';
       return `<div class="bg-row${on ? ' on' : ''} ${b.tone}">
-        <div class="bg-mark"><span>${b.mark}</span></div>
+        <div class="bg-mark hw-core-art"><img src="halloween/rewards/profile-assets/${b.id}.svg" alt=""></div>
         <div class="bg-bd">
           <div class="bg-nm${b.secret || b.genesis || b.skin ? ' fancy' : ''}">${esc(b.name)}</div>
           <div class="bg-ds">${on ? esc(b.desc) : (b.secret || b.genesis || b.skin ? '— — —' : esc(b.desc))}</div>
@@ -10717,6 +10717,7 @@ function vaultExport() {
     at: +(localStorage.getItem(VAULT_AT_KEY) || 0),
     tokens: rawTokenState(),   // ยอดจริง ไม่ใช่ ∞ ของบัญชีแอดมิน
     allBadges: localStorage.getItem(ALLBADGE_KEY) === '1',
+    badgeSecrets: Object.keys(SECRETS).filter(secretUnlocked), // สิทธิ์ตราธีมลับตามบัญชีเหมือนของสะสมอื่น
     luck: localStorage.getItem(LUCK_KEY) === '1',
     genesis: localStorage.getItem(GENESIS_KEY) === '1',
     codeThemes: Object.keys(THEME_CODE).filter(codeThemeOwned),
@@ -10735,6 +10736,7 @@ function vaultImport(r) {
   // ธงปลดล็อก: ปลดแล้วปลดเลย ไม่มีทางย้อนกลับ จึงรวมแบบ "เครื่องไหนเคยได้ ถือว่าได้"
   try {
     if (r.allBadges) localStorage.setItem(ALLBADGE_KEY, '1');
+    for (const id of Array.isArray(r.badgeSecrets) ? r.badgeSecrets : []) if (SECRETS[id]) localStorage.setItem(SECRETS[id].store, '1');
     if (r.luck) localStorage.setItem(LUCK_KEY, '1');
     if (r.genesis) localStorage.setItem(GENESIS_KEY, '1');
     for (const id of r.codeThemes || []) if (THEME_CODE[id]) localStorage.setItem(THEME_CODE[id], '1');
@@ -12398,7 +12400,7 @@ function renderStatFull(now, d) {
     <div class="an-badges">
       ${badgeCells.map(b => { const got = badgeEarned(b);
         return `<div class="an-bd${got ? ' got' : ''}">
-          <span class="ab-mark">${got ? esc(b.mark) : icon('lock')}</span>
+          <span class="ab-mark hw-core-art">${got ? `<img src="halloween/rewards/profile-assets/${b.id}.svg" alt="">` : icon('lock')}</span>
           <span class="ab-nm">${esc(b.name)}</span>
           <span class="ab-ds">${got ? 'ได้แล้ว' : 'ทำให้ครบ ' + b.goal + ' งาน'}</span>
         </div>`;
