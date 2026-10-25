@@ -14,7 +14,7 @@
   const now=new Date(),due=new Date(now);due.setHours(23,59,0,0);
   const base={type:'homework',teacher:'ครูตัวอย่าง',done:false,progress:0,createdAt:now.toISOString()};
   memory.setItem('studentos.alt.v1',JSON.stringify({tasks:[{...base,id:'hw-sample-math',subject:'คณิตศาสตร์',detail:'แบบฝึกหัดฟังก์ชัน ข้อ 1–10',estMin:40,scorePct:15,due:due.toISOString()},{...base,id:'hw-sample-bio',subject:'ชีววิทยา',detail:'สรุปบทระบบนิเวศ',estMin:30,scorePct:5,due:new Date(+due+86400000).toISOString()}],settings:{name:'ห้องลองรางวัล',freeHours:2.5},marks:[],sessions:[],running:null}));
-  for(const [k,v]of Object.entries({skipLogin:'1',onboardSkipped:'1',lastScreen:'scr-menu',checkinAsked:now.toISOString().slice(0,10),theme:'dark',gfx:'high',lite:'0'}))memory.setItem('studentos.alt.'+k,v);
+  for(const [k,v]of Object.entries({skipLogin:'1',onboardSkipped:'1',lastScreen:'scr-menu',checkinAsked:now.toISOString().slice(0,10),theme:new URLSearchParams(location.search).has('thai-ghost-preview')?'thai-ghost':'dark',gfx:'high',lite:'0'}))memory.setItem('studentos.alt.'+k,v);
   window.__HW_SHOWROOM__=true;document.documentElement.dataset.hwShowroom='true';
  }catch{document.documentElement.dataset.hwShowroom='unavailable';}
 })();

@@ -15378,3 +15378,76 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 .shw-streak .shw-ic { background: linear-gradient(160deg, #C2410C, #9A3412); }
 /* "เพิ่ม" ใต้ปุ่ม + นั่งบนวงแสงของปุ่ม (2.9 ใน 14 ธีม) — ป้ายอื่นในแถบผ่าน · เข้มขึ้นเฉพาะป้ายนี้ */
 .tabbar .tab.scan > span:not(.scan-dot) { color: color-mix(in srgb, var(--muted) 45%, var(--ink)); }
+
+/* 25 ต.ค. 69 · เรือนลับแล — รางวัลชวนเพื่อน แยกสิทธิ์จากธีมบอสฮาโลวีน */
+:root[data-theme="thai-ghost"]{
+ color-scheme:dark;
+ --scr:#0B1817;--card:#172C27;--card2:#223B33;--surface:#223B33;
+ --ink:#F0EAD5;--muted:#C2CFBA;--faint:#A9BAA6;--line:#BDA47140;
+ --fill:#B9D3AC;--on-fill:#14251C;--fill-on:#14251C;--on-accent:#14251C;
+ --blue:#D7C293;--blue-deep:#E4D1A7;--blue-soft:#3B3B28;--neon:#B9D3AC;
+ --alert:#FFADB8;--alert-soft:#FFADB81A;--warn:#F4CF85;--warn-soft:#F4CF851A;
+ --good:#ACD5B6;--good-soft:#ACD5B61A;--fire:#FFADB8;
+ --gold-text:#E1C38A;--gold-soft:#E1C38A22;
+ --tint:#283E32;--tint2:#344032;--glass:#10231FED;--glass-line:#BDA47140;
+ --pg:#0B1817;--pg-ink:#F0EAD5;--pg-muted:#C2CFBA;--frame:#0B1817;
+ --soft-card:#172C27F5;--soft-shadow:0 8px 25px #020A0755;--soft-shadow-lg:0 16px 40px #020A0777;
+ --shadow:0 12px 32px #020A0755;--shadow-lg:0 20px 55px #020A0788;--shadow-brand:0 8px 25px #A8CAA21A;
+ --grad-brand:linear-gradient(125deg,#516443,#2F5144);--grad-hero:linear-gradient(140deg,#294235,#112720);
+ --tile-plan:#34483A;--tile-tasks:#2A443D;--tile-route:#3F3E30;--tile-me:#3A3431;--tile-on:#ECE5D0;
+ --tg-gold:#BDA471;--tg-gold-soft:#BDA47140;--tg-ornament:#D7C293;--tg-shadow:#020A07;
+}
+.sw-thai-ghost{background:linear-gradient(135deg,#10271E 42%,#BDA471 43% 53%,#35503E 54%);box-shadow:inset 0 0 0 1px #C9B78066}
+:root[data-theme="thai-ghost"] .phone{isolation:isolate;background:var(--scr)}
+:root[data-theme="thai-ghost"] :is(.fx,.starfield){display:none!important}
+:root[data-theme="thai-ghost"] .screens{position:relative;z-index:1;background:transparent}
+:root[data-theme="thai-ghost"] .screen{background:transparent}
+:root[data-theme="thai-ghost"] :is(.brand-light){display:none}
+:root[data-theme="thai-ghost"] :is(.brand-dark){display:block}
+:root[data-theme="thai-ghost"] :is(.tabbar,.topbar,.as-card){background:var(--glass)!important;border-color:var(--line)!important}
+:root[data-theme="thai-ghost"] :is(.page-title,.big-title,.sh-title,.th-greet,.tn-title,.set-hd){color:var(--ink);text-shadow:0 2px 20px #D3C18D16}
+:root[data-theme="thai-ghost"] :is(.card,.td-now,.td-clear,.set-card,.set-row,.pf-me,.shw,.saih,.t-card,.ts-card,.tp-card,.tb-row,.fd-post,.ai-panel,.r-card,.qn-card,.cls-card){
+ background:linear-gradient(135deg,#1C3028F7,#11251FF7);border:1px solid var(--tg-gold-soft);border-radius:18px 5px 18px 5px;box-shadow:inset 0 0 0 3px #0B181744,0 8px 24px #020A0740;color:var(--ink)
+}
+:root[data-theme="thai-ghost"] #menuBody :is(.tn-head,.tn-body){background:transparent;border-color:var(--line)}
+:root[data-theme="thai-ghost"] #menuBody .tn-head{position:relative;overflow:hidden;border-bottom:1px solid var(--tg-gold-soft)}
+:root[data-theme="thai-ghost"] #menuBody .tn-head::after{content:"";position:absolute;right:17px;top:13px;width:25px;height:25px;border:1px solid var(--tg-gold-soft);border-radius:2px 12px 2px 12px;transform:rotate(-45deg);pointer-events:none}
+:root[data-theme="thai-ghost"] #menuBody .tn-cta{background:linear-gradient(125deg,#C4D9B7,#9EBF9B)!important;color:var(--on-fill)!important;border:1px solid var(--tg-gold)!important;box-shadow:inset 0 1px #F5EBD080,0 5px 20px #8DAE7C20!important}
+:root[data-theme="thai-ghost"] #menuBody .tn-cta .tc-main{background:none;box-shadow:none;border:0;color:inherit}
+:root[data-theme="thai-ghost"] #menuBody .tg-ic{background:linear-gradient(145deg,#2E4133,#1A3028)!important;border:1px solid var(--tg-gold-soft)!important;box-shadow:inset 0 1px #E8D5A516,0 6px 18px #020A0755!important;border-radius:17px 5px 17px 5px}
+:root[data-theme="thai-ghost"] #menuBody .tg-ic svg{color:var(--tg-ornament)!important}
+:root[data-theme="thai-ghost"] #menuBody .tg-ic svg{background:linear-gradient(145deg,#3B5140,#233E32)!important;box-shadow:inset 0 1px #DAC39433,0 5px 12px #020A0755!important}
+:root[data-theme="thai-ghost"] #menuBody :is(.tn-eyebrow,.tn-why2,.tn-route .tk-t){color:var(--muted)!important}
+:root[data-theme="thai-ghost"] #menuBody .tn-route .tk-line{background:var(--tg-gold-soft)}
+:root[data-theme="thai-ghost"] #menuBody .td-ask{background:var(--card)!important;border-color:var(--line)!important}
+:root[data-theme="thai-ghost"] .td-ask::before,:root[data-theme="thai-ghost"] .td-ask::after{display:none}
+:root[data-theme="thai-ghost"] .td-ask .tk-in{background:transparent}
+:root[data-theme="thai-ghost"] :is(input,textarea,select){background:var(--scr);color:var(--ink);border-color:var(--line)}
+:root[data-theme="thai-ghost"] #scr-tasks :is(.wk-card,.wk-d,.tb-focus){background:var(--card)!important;color:var(--ink)!important;border-color:var(--line)!important}
+:root[data-theme="thai-ghost"] #themePick button:not(.active){background:var(--card)!important;color:var(--muted);border-color:var(--line)!important}
+:root[data-theme="thai-ghost"] #themePick button.active{background:var(--blue-soft)!important;color:var(--ink);border-color:var(--tg-gold)!important}
+:root[data-theme="thai-ghost"] .runbar,:root[data-theme="thai-ghost"] .runbar :is(.rb-timer,.rb-stop){color:var(--on-fill)}
+.tg-scene{position:absolute;inset:0;z-index:0;isolation:isolate;overflow:hidden;pointer-events:none;background:#0B1817}
+.tg-scene[hidden]{display:none!important}
+.tg-estate{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 75%;opacity:.84}
+.tg-veil{position:absolute;inset:0;background:linear-gradient(#0B181744,transparent 25%,#0B18172B 65%,#0B1817CC)}
+.tg-fog{position:absolute;inset:45% -35% -15%;background:radial-gradient(ellipse at 35% 50%,#C1D8B528,transparent 52%),radial-gradient(ellipse at 75% 70%,#7AAB9B25,transparent 50%);animation:tg-incense 26s ease-in-out infinite alternate}
+.tg-fog.distant{inset:5% -30% 35%;opacity:.5;animation-direction:alternate-reverse;animation-duration:37s}
+.tg-visitor{position:absolute;right:5%;bottom:13%;width:46px;height:102px;opacity:.5;animation:tg-visit 14s ease-in-out infinite alternate}
+.tg-visitor svg{display:block;width:100%;height:100%}
+.tg-fireflies i{position:absolute;left:calc(7% + var(--i)*13%);top:calc(26% + var(--i)*8%);width:2px;height:2px;border-radius:50%;background:#D1E1AC;box-shadow:0 0 9px 2px #B1D39C45;opacity:.5;animation:tg-firefly calc(5s + var(--i)*1s) calc(var(--i)*-.8s) ease-in-out infinite alternate}
+@keyframes tg-incense{from{transform:translate3d(-3%,5px,0);opacity:.45}to{transform:translate3d(6%,-14px,0);opacity:.9}}
+@keyframes tg-visit{from{transform:translate3d(0,4px,0);opacity:.22}to{transform:translate3d(-14px,-9px,0);opacity:.55}}
+@keyframes tg-firefly{from{transform:translateY(7px);opacity:.15}to{transform:translateY(-9px);opacity:.8}}
+.tg-scene.tg-still *{animation:none!important}
+@media(prefers-reduced-motion:reduce){.tg-scene *{animation:none!important}}
+.iv-theme-preview{width:calc(100% - 20px);max-width:440px;height:calc(100dvh - 20px);max-height:900px;margin:auto;padding:0;overflow:hidden;border:1px solid #BDA47166;border-radius:20px;background:#0B1817;color:#F0EAD5}
+.iv-theme-preview::backdrop{background:#020A07CC}
+.iv-theme-preview header{display:flex;gap:10px;align-items:center;justify-content:space-between;min-height:58px;padding:10px 14px;background:#11251F}
+.iv-theme-preview header small{display:block;color:#C2CFBA;font-size:11px;margin-top:3px}
+.iv-theme-preview header button{flex-shrink:0;background:#223B33;color:#F0EAD5;border:1px solid #BDA47166;border-radius:10px;min-width:40px;min-height:40px}
+.iv-theme-preview[open]{display:flex;flex-direction:column}
+.iv-theme-preview header{flex-shrink:0}
+.iv-preview-body{position:relative;flex:1;min-height:0;overflow:hidden}
+.iv-theme-preview iframe{display:block;position:absolute;left:50%;top:50%;width:375px;height:812px;max-width:none;border:0;background:#0B1817;transform:translate(-50%,-50%) scale(var(--iv-preview-scale,1))}
+.hq-thai-note{font-size:12px;color:var(--muted);line-height:1.8}

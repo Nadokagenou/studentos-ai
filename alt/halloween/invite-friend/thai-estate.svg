@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" fill="none">
+<defs>
+ <linearGradient id="sky" x2="0" y2="1200" gradientUnits="userSpaceOnUse"><stop stop-color="#081414"/><stop offset=".5" stop-color="#24453d"/><stop offset="1" stop-color="#081311"/></linearGradient>
+ <radialGradient id="halo"><stop stop-color="#c9d8aa" stop-opacity=".3"/><stop offset="1" stop-color="#b2d6b1" stop-opacity="0"/></radialGradient>
+ <linearGradient id="moon" x2="1" y2="1"><stop stop-color="#f4e7b9"/><stop offset="1" stop-color="#799985"/></linearGradient>
+ <linearGradient id="wood" x2="0" y2="1"><stop stop-color="#344136"/><stop offset="1" stop-color="#111c18"/></linearGradient>
+ <linearGradient id="roof" x2="0" y2="1"><stop stop-color="#28382e"/><stop offset="1" stop-color="#0c1714"/></linearGradient>
+ <linearGradient id="water" x2="0" y2="1"><stop stop-color="#6c8c7040"/><stop offset="1" stop-color="#0b181700"/></linearGradient>
+ <linearGradient id="mist" x2="1"><stop stop-color="#b5d3b6" stop-opacity="0"/><stop offset=".5" stop-color="#b5d3b6" stop-opacity=".16"/><stop offset="1" stop-color="#b5d3b6" stop-opacity="0"/></linearGradient>
+ <pattern id="tiles" width="22" height="12" patternUnits="userSpaceOnUse"><path d="M0 12 11 0l11 12M0 6h22" stroke="#bda879" stroke-opacity=".1"/></pattern>
+ <pattern id="panels" width="27" height="90" patternUnits="userSpaceOnUse"><path d="M0 0v90M26 0v90M4 8h18v70H4z" stroke="#a8966b" stroke-opacity=".23"/></pattern>
+ <g id="window"><path d="M-18 65V8L0-13 18 8v57z" fill="#d0ac6a" fill-opacity=".55" stroke="#be9d66"/><path d="M0-10v75M-18 28h36M-18 48h36" stroke="#17251c" stroke-width="4"/><path d="m-15 11 15-18 15 18" stroke="#e0c78e" stroke-width="2"/></g>
+ <g id="leaf"><path d="M0 0Q-56-95-103-67-46-69 0 0Q-98-45-128 2-64-24 0 0Q-14-126 33-130 1-65 0 0Q50-108 95-67 43-62 0 0Q87-57 123-7 59-26 0 0" fill="#0a1914"/></g>
+</defs>
+<path fill="url(#sky)" d="M0 0h900v1200H0z"/>
+<circle cx="634" cy="267" r="235" fill="url(#halo)"/><circle cx="634" cy="267" r="91" fill="url(#moon)"/><circle cx="657" cy="250" r="79" fill="#10251f"/>
+<path d="M-50 356q170-82 350-18t330-12 340-15M-20 402q240-88 460-24t470-45" stroke="url(#mist)" stroke-width="35" stroke-linecap="round"/>
+<g fill="#152d25"><path d="m0 637 70-98 34 44 81-115 50 85 63-59 95 169zM507 651l98-115 50 51 81-110 93 103 71-62v160z"/></g>
+<!-- เรือนยกพื้นอยู่ลึกในสวน ไม่วางอาคารทับพื้นที่อ่านงาน -->
+<g transform="translate(0 60)">
+ <path d="M180 614h538v180H180z" fill="url(#wood)" stroke="#7e7a54" stroke-width="2"/>
+ <path d="M190 622h518v160H190z" fill="url(#panels)"/>
+ <path d="M165 621q152-103 280-308 133 207 289 308-51-6-80-20H246q-33 16-81 20z" fill="url(#roof)" stroke="#b39c65" stroke-width="3"/>
+ <path d="M183 610q144-100 262-283 123 185 270 283z" fill="url(#tiles)"/>
+ <path d="M234 593q119-105 211-254 91 150 213 254M251 577h390M269 559h352M288 539h312M310 514h270M334 487h223" stroke="#9c8a5e" stroke-opacity=".25"/>
+ <path d="M445 313q-11-32 8-63-2 32 13 43l-21 20M165 621q-34-15-42-52 28 28 42 27M734 621q35-15 42-52-28 28-42 27" stroke="#c4ad76" stroke-width="3" fill="#24372b"/>
+ <path d="m366 559 79-143 81 143z" fill="#202c22" stroke="#b49b64" stroke-width="2"/>
+ <path d="m390 546 55-102 57 102zM423 541l22-45 24 45M412 513h68" stroke="#b49b64" stroke-opacity=".55"/>
+ <g transform="translate(267 661)"><use href="#window"/></g><g transform="translate(347 661)"><use href="#window"/></g><g transform="translate(548 661)"><use href="#window"/></g><g transform="translate(628 661)"><use href="#window"/></g>
+ <path d="M413 789V660q32-41 64 0v129" fill="#091512" stroke="#b09c6b" stroke-width="2"/><path d="M445 641v149M418 669h54" stroke="#907a4f"/>
+ <path d="M168 787h563v18H168z" fill="#3a4531" stroke="#9b8d61"/>
+ <path d="M212 806v115M286 806v108M606 806v108M688 806v115" stroke="#101d17" stroke-width="16"/>
+ <path d="m411 805-55 114m126-114 54 114M399 830h95m-108 24h120m-132 25h144m-158 25h170" stroke="#596248" stroke-width="7"/>
+ <path d="M171 761h229m93 0h235M182 731v56m35-56v56m35-56v56m35-56v56m35-56v56m35-56v56m188-56v56m35-56v56m35-56v56m35-56v56m35-56v56m35-56v56" stroke="#746d49" stroke-width="3"/>
+</g>
+<path d="M0 945q150-41 315-9t305-8 280 16v256H0z" fill="#091713"/>
+<path d="M200 977h497l79 223H123z" fill="url(#water)"/><path d="M316 1007h254m-226 25h203m-232 33h258m-310 42h363m-295 44h208" stroke="#a7b391" stroke-opacity=".12" stroke-width="2"/>
+<g stroke="#0a1713" stroke-width="24"><path d="M97 1096q-18-285 23-519M828 1092q22-267-14-497"/></g>
+<use href="#leaf" transform="translate(119 598) scale(1.5)"/><use href="#leaf" transform="translate(814 616) scale(1.5)"/>
+<path d="M-5 0q51 31 85 98T121 330q12 100-12 178M-4 124q38 46 45 133t-16 157M900 4q-81 94-71 234t-26 267" stroke="#071310" stroke-width="27"/>
+<g stroke="#25402c" stroke-opacity=".65"><path d="M52 83q86 75 46 244m-29-186q73 35 56 200M844 113q-54 113-32 245m39-221q-15 123-58 190"/></g>
+<path d="M-70 1048q240-69 470-20t560-30M-70 1100q300-39 490-10t530-29" stroke="url(#mist)" stroke-width="52" stroke-linecap="round"/>
+<g fill="#c7d9ae" opacity=".65"><circle cx="160" cy="868" r="2"/><circle cx="750" cy="830" r="2"/><circle cx="630" cy="1010" r="1.6"/><circle cx="252" cy="943" r="1.4"/><circle cx="681" cy="433" r="1.5"/></g>
+<!-- ลายดอกบัวเป็นกรอบทองบาง ไม่แย่งจุดอ่าน -->
+<g stroke="#bda471" stroke-opacity=".35"><path d="M28 45v1092h844V45M39 65v1060h822V65"/><path d="M28 135q60-10 66-80M872 135q-60-10-66-80M28 1052q60 10 66 80M872 1052q-60 10-66 80"/><path d="M420 59q30-50 60 0-30 19-60 0zm30 0q-39-2-45-24 34-3 45 24 11-27 45-24-6 22-45 24z"/></g>
+</svg>

@@ -57,5 +57,7 @@ self.HALLOWEEN_SHELL = [
   "halloween/rewards/assets/midnight-conqueror.svg",
   "halloween/invite-friend/invite-friend.js",
   "halloween/invite-friend/invite-friend.css",
-  "halloween/invite-friend/qrcode-generator.js"
+  "halloween/invite-friend/qrcode-generator.js",
+  "halloween/invite-friend/thai-theme.js",
+  "halloween/invite-friend/thai-estate.svg"
 ];

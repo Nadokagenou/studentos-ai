@@ -27,7 +27,7 @@
       var BAR = { light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
         earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
         deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8', genesis: '#8E9BE8',
-        meta: '#050A16', glitch: '#04060A', astral: '#000000', ...(window.StudentOSHalloweenRewards?.themeBars || {}) };
+        meta: '#050A16', glitch: '#04060A', astral: '#000000', 'thai-ghost': '#0B1817', ...(window.StudentOSHalloweenRewards?.themeBars || {}) };
       var pref = null;
       try { pref = localStorage.getItem('studentos.alt.theme'); } catch (e) {} // ALT: คนละคีย์กับตัวจริง
       if (pref === 'library') pref = 'ocean'; // 1A6M3: ธีมห้องสมุดถูกแทนที่ด้วยมหาสมุทร
@@ -2222,6 +2222,7 @@
               </span>
               <a class="alt-lab-entry" href="device-preview.html">ตรวจหน้าจอ ALT · มือถือ / แท็บเล็ต / คอม ↗</a>
               <div class="th-grid" id="themePick">
+                <button type="button" data-th="thai-ghost" onclick="setTheme('thai-ghost')"><span class="sw sw-thai-ghost"></span><span class="nm">เรือนลับแล</span></button>
                 <button type="button" data-th="halloween" onclick="setTheme('halloween')"><span class="sw sw-halloween"></span><span class="nm">Halloween</span></button>
                 <button type="button" data-th="moonlight" onclick="setTheme('moonlight')"><span class="sw sw-moonlight"></span><span class="nm">Moon &amp; Candle</span></button>
                 <button type="button" class="th-sys" data-th="system" onclick="setTheme('system')">
@@ -2585,8 +2586,9 @@
 <script src="halloween/death-quests.js"></script>
 <script src="halloween/study-pact.js?rev=pacts-20261025"></script>
 <script src="events.js"></script>
-<!-- ชวนเพื่อน · ภารกิจปลดธีม Halloween — ต้องมาก่อน app.js (เก็บรหัสจาก ?invite= ก่อน URL ถูกล้าง) -->
-<script src="halloween/invite-friend/invite-friend.js"></script>
+<!-- ชวนเพื่อน · ภารกิจปลดธีมเรือนลับแล — ต้องมาก่อน app.js (เก็บรหัสจาก ?invite= ก่อน URL ถูกล้าง) -->
+<script src="halloween/invite-friend/invite-friend.js?rev=thai-ghost-20261025"></script>
+<script src="halloween/invite-friend/thai-theme.js?rev=thai-ghost-20261025"></script>
 <script src="app.js"></script>
 <script src="halloween/rewards/account-store.js?rev=launch-20261024"></script>
 <script src="halloween/death-quest-main.js?rev=launch-20261024"></script>

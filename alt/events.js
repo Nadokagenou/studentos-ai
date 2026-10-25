@@ -17,14 +17,14 @@ const EVENT_SOURCES = [
       art: ev.art, cast: ev.cast, names: ev.names, left, candy: ev.candy(), sections: ev.sections || [],
       slides: ev.slides || [], rewards: ev.rewards || [], secretRewards: ev.secretRewards || 0 };
   },
-  // 24 ต.ค. 69 · กิจกรรมถัดไปของฮาโลวีน (แทนช่อง "เร็ว ๆ นี้") — ปลดล็อกธีม Halloween ด้วยภารกิจ 2 อย่าง
+  // 24 ต.ค. 69 · กิจกรรมถัดไปของฮาโลวีน (แทนช่อง "เร็ว ๆ นี้") — ปลดล็อกธีมผีไทย เรือนลับแล ด้วยภารกิจ 2 อย่าง
   // อยู่เท่าที่อีเวนต์ฮาโลวีนยังจัด (นับถอยหลังเดียวกัน) · ปลดแล้วธีมเป็นของเขาถาวร ไม่หายตามอีเวนต์
   () => {
     const ev = window.HalloweenEventEntry || null;
     const left = ev ? ev.countdown() : null;
     if (!ev || left === null) return null;
-    return { id: 'hw-theme', kind: 'quest', name: 'ธีม Halloween', tagline: 'ภารกิจปลดล็อก', left,
-      art: 'halloween/rewards/theme-assets/night-academy.svg' };
+    return { id: 'hw-theme', kind: 'quest', name: 'เรือนลับแล · ผีไทย', tagline: 'ภารกิจปลดล็อก', left,
+      art: 'halloween/invite-friend/thai-estate.svg' };
   },
 ];
 
@@ -277,7 +277,7 @@ function evFlowMount() {
   evFlowStart(1500);
 }
 
-// ---------- ภารกิจปลดล็อกธีม Halloween (24 ต.ค. 69) ----------
+// ---------- ภารกิจปลดล็อกธีมเรือนลับแล (25 ต.ค. 69 ย้ายรางวัลจาก Halloween) ----------
 // เจ้าของ: "event ถัดไปของ hallow คือธีมสี halloween … ปลดล็อกธีมด้วยภารกิจ 2 อย่าง
 //          1. เชิญเพื่อนมาใช้ StudentOS AI ให้ครบ 3 คน 2. ทำงานให้เสร็จอย่างน้อย 1 งานภายในแอป"
 // รอบสอง: "ผมทำคิวอาร์แล้วหนิอยู่ในไฟล์ ลองเอามาใช้แล้วปรับตามธีมดู" — ระบบชวนเพื่อนของเจ้าของอยู่ที่
@@ -338,14 +338,16 @@ function questDetail(e) {
   const doneAct = ok2 ? '' : `<button type="button" class="hq-btn" onclick="go('scr-menu')">ไปทำงาน</button>`;
 
   const cta = owned
-    ? (using ? '' : `<button type="button" class="hq-claim" onclick="setTheme('${INVITE_THEME}')">${icon('sparkles')}ใช้ธีม Halloween</button>`)
+    ? (using ? '' : `<button type="button" class="hq-claim" onclick="setTheme('${INVITE_THEME}')">${icon('sparkles')}ใช้ธีมเรือนลับแล</button>`)
     : `<span class="hq-lock">${icon('lock')}ทำครบ 2 ภารกิจ ธีมปลดล็อกเองทันที</span>`;
 
   return `<div class="hq-banner" style="--ev-art:url('${esc(e.art)}')">
       <span class="ev-tags">${e.left ? `<i class="ev-left">${esc(e.left)}</i>` : ''}${owned ? '<i class="hq-own">ปลดล็อกแล้ว</i>' : ''}</span>
-      <span class="hq-sw sw-halloween" aria-hidden="true"></span>
-      <h2>ธีม Halloween<span>ชวนเพื่อน · ปลดล็อกถาวร</span></h2>
+      <span class="hq-sw sw-thai-ghost" aria-hidden="true"></span>
+      <h2>เรือนลับแล<span>ธีมผีไทย · รางวัลชวนเพื่อน</span></h2>
     </div>
+    <p class="hq-thai-note">เรือนไทยใต้จันทร์ดับ · หมอกธูป เงาวิญญาณ และลายทองเก่า<br>Halloween และ Moon &amp; Candle รับจากบอสสุดท้าย ไม่ต้องชวนเพื่อน</p>
+    <button type="button" class="hq-btn ghost" onclick="previewInviteTheme()">ลองธีมเรือนลับแล</button>
     ${ticket}
     <h3 class="ev-sub">ภารกิจ · ${(ok1 ? 1 : 0) + (ok2 ? 1 : 0)}/2</h3>
     <div class="hq-list">

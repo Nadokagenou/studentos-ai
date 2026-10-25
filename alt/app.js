@@ -223,7 +223,7 @@ function funnelTask(via) {
 function funnelDone() {
   funnelMark('firstDone');
   funnelBump('doneEver');
-  // ภารกิจธีม Halloween ข้อ 2 (halloween/invite-friend/invite-friend.js) — ทุกทางที่ติ๊กงานเสร็จผ่านตรงนี้ จึงดักที่เดียวพอ
+  // ภารกิจธีมเรือนลับแล ข้อ 2 (halloween/invite-friend/invite-friend.js) — ทุกทางที่ติ๊กงานเสร็จผ่านตรงนี้ จึงดักที่เดียวพอ
   if (typeof inviteOnTaskDone === 'function') inviteOnTaskDone();
 }
 
@@ -311,13 +311,13 @@ const THEME_BAR = {
   light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
   earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
   deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8', genesis: '#8E9BE8',
-  meta: '#050A16', glitch: '#04060A', astral: '#000000', ...(window.StudentOSHalloweenRewards?.themeBars || {}),
+  meta: '#050A16', glitch: '#04060A', astral: '#000000', 'thai-ghost': '#0B1817', ...(window.StudentOSHalloweenRewards?.themeBars || {}),
 };
 const THEME_NAME = {
   system: 'ตามระบบ', light: 'สว่าง', dark: 'มืด', warm: 'ชมพู', space: 'อวกาศ',
   earth: 'โลก', ocean: 'มหาสมุทร', magic: 'เวทมนตร์', galaxy: 'กาแล็กซี',
   deepocean: 'ทะเลลึก', earth2: 'ต้นไม้โลก', sweet: 'จักรวาลหวานแหว', genesis: 'Crystal',
-  meta: 'Metaverse', glitch: 'Glitch', astral: 'Astral Black', ...(window.StudentOSHalloweenRewards?.themeNames || {}),
+  meta: 'Metaverse', glitch: 'Glitch', astral: 'Astral Black', 'thai-ghost': 'เรือนลับแล', ...(window.StudentOSHalloweenRewards?.themeNames || {}),
 };
 // ---------- ALT 1A6M3: อีสเตอร์เอกก์ ธีมลับ ----------
 // กดปุ่มธีมเดิมซ้ำ 5 ครั้งรวด = ปลดล็อกธีมลับของโทนนั้น
@@ -575,8 +575,8 @@ function themePref() {
   // ต้องตรงกับสคริปต์ใน <head> ของ index.html เสมอ ไม่งั้นจอแรกกะพริบสลับโทน
   // ธีมจากโค้ดที่ยังไม่มีโค้ด (ค่าค้างจากรุ่นที่ยังฟรี · แก้ localStorage เอง) = ค่าเริ่มต้น ไม่ใช่ธีมนั้น
   if (THEME_CODE[v] && !codeThemeOwned(v)) return 'light';
-  // ธีมจากภารกิจชวนเพื่อน (INVITE_THEME = 'halloween') ไม่ตัดกลับเป็นค่าเริ่มต้นตรงนี้ — Halloween เคยเป็นธีมฟรี
-  // คนที่ใช้อยู่ก่อนเปิดภารกิจใช้ต่อได้ (ช่วงผ่อนผันใน themeVisible) · เปลี่ยนออกแล้วกดกลับ = เปิดแผ่นภารกิจ (inviteThemeGate)
+  // เรือนลับแลใช้ภารกิจชวนเพื่อน ส่วน Halloween / Moon & Candle ไม่ถูกดักด้วยภารกิจนี้
+  // คงค่าธีมเดิมและข้อมูลผู้ใช้ไว้ การกดเลือกเรือนลับแลตรวจที่ inviteThemeGate
   return THEMES.includes(v) ? v : 'light';
 }
 // 24 ต.ค. 69 · ช่วงฮาโลวีน (:root.hw-season) จอเข้าสู่ระบบเป็นพื้นกลางคืนทุกธีม (halloween/season/season.css)
@@ -9091,7 +9091,7 @@ function renderFriends(force) {
     <div id="frListBox"></div>`;
   body.dataset.built = '1';
   paintFriendParts();
-  // การ์ดชวนเพื่อน · ภารกิจธีม Halloween (halloween/invite-friend/invite-friend.js) — วาดจากแคชก่อน แล้วถามเซิร์ฟเวอร์เงียบ ๆ
+  // การ์ดชวนเพื่อน · ภารกิจธีมเรือนลับแล (halloween/invite-friend/invite-friend.js) — วาดจากแคชก่อน แล้วถามเซิร์ฟเวอร์เงียบ ๆ
   if (typeof paintInviteEntry === 'function') { paintInviteEntry(); inviteRefresh(); }
   // การ์ด "อันดับ" (board.js) — โหลดอันดับของเราไว้เงียบ ๆ ให้การ์ดบอกตัวเลขได้เลย
   if (typeof paintBoardEntry === 'function') { paintBoardEntry(); boardWarm(); }
