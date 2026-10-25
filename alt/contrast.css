@@ -169,3 +169,27 @@
   --halo-3: var(--blue);
   --halo-4: color-mix(in srgb, var(--fill) 65%, var(--ink));
 }
+
+/* ============================================================
+   25 ต.ค. 69 · เจ้าของ: "ปรับให้เป็นสีที่มองเห็นชัดสิ ตรวจให้หมดทั้งแอป" (ภาพ: แท่งกราฟวันว่างในจอ "ฉัน")
+   ============================================================ */
+/* กราฟ 7 วันในจอ "ฉัน" — รางของวันที่ยังไม่มีงานเป็นหมึก 6% เกือบกลืนกับการ์ดในธีมมืดทุกธีม (เห็นแค่กรอบ "วันนี้" ลอยอยู่)
+   → รางย้อมสีหลักของธีม + เส้นขอบ ให้เห็นว่ามีช่องรออยู่ · ช่องวันนี้ขอบเข้มกว่า */
+.st-bar .trk {
+  background: color-mix(in srgb, var(--fill) 16%, transparent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 34%, transparent);
+}
+.st-bar.now .trk { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fill) 80%, transparent); }
+
+/* ปุ่ม "+" กลางแถบล่างในธีม hw-* — พื้นเป็น --grad-brand (สีกลางค่อนเข้ม) แต่ไอคอนถูกตั้งเป็น --on-fill (เข้ม) → เข้มบนเข้ม 2.4–3.0
+   ใช้หมึกสว่างของธีมแทน (≥ 4 บนทั้งสองปลายของไล่สี) */
+:root[data-theme^="hw-"] .phone .tabbar .tab.scan .scan-dot { color: var(--ink) !important; }
+:root[data-theme^="hw-"] .phone .tabbar .tab.scan .scan-dot svg { filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
+
+/* Moon & Candle · กล่องสถิติบนจอ "ฉัน" (โพสต์ · เพื่อน · ช่วยแล้ว) โปร่ง 22% วางทับดวงจันทร์ → ป้ายขาวบนจันทร์ขาว 2.9
+   ซ้อนพื้นม่วงเข้มใต้สีเดิม + เบลอข้างหลัง สีกล่องยังเหมือนเดิมแต่ตัวหนังสือไม่จมจันทร์ */
+:root[data-theme="moonlight"] #scr-profile .ig-stats > * {
+  background-image: linear-gradient(var(--hw-card), var(--hw-card)) !important;
+  background-color: #150c38c4 !important;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
