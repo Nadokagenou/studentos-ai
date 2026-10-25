@@ -72,12 +72,13 @@
     const picker = document.getElementById('themePick');
     if (!picker || document.getElementById('hwPreferences')) return;
     const box = document.createElement('div'); box.id = 'hwPreferences'; box.className = 'hw-preferences';
-    box.innerHTML = '<div><span><b>บรรยากาศ Halloween</b><small>เปิดเสียงเพื่อฟังเพลงและเสียงประกอบ</small></span><button type="button" data-hw-pref-sound></button></div><label>ระดับเสียง <input aria-label="ระดับเสียง Halloween" type="range" min="0" max="100" value="' + Math.round(volume * 100) + '"></label><div><span>เพลงพื้นหลัง<small>Midnight Waltz · กล่องดนตรี</small></span><button type="button" data-hw-pref-music></button></div><div><span>ฉากเคลื่อนไหว</span><button type="button" data-hw-pref-motion></button></div><div><span>โทนสี<small>กลางคืน (มืด) หรือแสงจันทร์ (สว่าง)</small></span><button type="button" data-hw-pref-tone></button></div>';
+    box.innerHTML = '<div><span><b>บรรยากาศ Halloween</b><small>เปิดเสียงเพื่อฟังเพลงและเสียงประกอบ</small></span><button type="button" data-hw-pref-sound></button></div><label>ระดับเสียง <input class="hw-vol" aria-label="ระดับเสียง Halloween" type="range" min="0" max="100" value="' + Math.round(volume * 100) + '" style="--hw-v:' + Math.round(volume * 100) + '%"></label><div><span>เพลงพื้นหลัง<small>Midnight Waltz · กล่องดนตรี</small></span><button type="button" data-hw-pref-music></button></div><div><span>ฉากเคลื่อนไหว</span><button type="button" data-hw-pref-motion></button></div><div><span>โทนสี<small>กลางคืน (มืด) หรือแสงจันทร์ (สว่าง)</small></span><button type="button" data-hw-pref-tone></button></div>';
     box.querySelector('[data-hw-pref-tone]').addEventListener('click', () => setTone(paletteTone === 'light' ? 'dark' : 'light'));
     box.querySelector('[data-hw-pref-sound]').addEventListener('click', () => sound(!enabled));
     box.querySelector('[data-hw-pref-motion]').addEventListener('click', toggleMotion);
     box.querySelector('[data-hw-pref-music]').addEventListener('click', () => setMusic(!musicEnabled));
-    box.querySelector('input').addEventListener('input', e => setVolume(Number(e.target.value) / 100));
+    // --hw-v = ตำแหน่งเติมสีของรางเสียง (theme-main.css วาดจากค่านี้) — ตั้งทุกครั้งที่ลาก
+    box.querySelector('input').addEventListener('input', e => { e.target.style.setProperty('--hw-v', e.target.value + '%'); setVolume(Number(e.target.value) / 100); });
     picker.after(box); updateControls();
   }
   // Me list, Moon & Candle only: a featured pair and three engraved headstones. Every other theme keeps
