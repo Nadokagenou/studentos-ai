@@ -9127,7 +9127,8 @@ function frName(p) {
   const nm = (p.display_name || '').trim();
   const hd = (p.handle || '').trim();
   return `<div class="fr-nm">${esc(nm || (hd ? '@' + hd : 'ยังไม่ได้ตั้งชื่อ'))}</div>
-    ${hd && nm ? `<div class="fr-hd">@${esc(hd)}</div>` : ''}`;
+    ${hd && nm ? `<div class="fr-hd">@${esc(hd)}</div>` : ''}
+    ${window.HalloweenFeaturedBadge?.html(p.id, {compact:true}) || ''}`;
 }
 // ============================================================
 // 1B52 · แถวเพื่อนต้องตอบว่า "ช่วยกันได้ตรงไหน"

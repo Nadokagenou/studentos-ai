@@ -1,6 +1,7 @@
 /* Permanent badge display. Server receipts are read, never granted here. */
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./catalog.js'));else{root.HalloweenBadges=factory(root.StudentOSHalloweenRewards);root.HalloweenBadges.install();}})(globalThis,C=>{
  'use strict';
+ let ownReader=null,ownPreview=false;
  const ids=['midnight-conqueror','crown-of-midnight'];
  const condition=id=>id==='midnight-conqueror'?'พิชิตราชันเที่ยงคืน · รับพร้อมธีม Halloween และ Moon & Candle':'ซื้อของครบตามรายการร้านอีเวนต์';
  function entries({owner,document,preview=false}={}){
@@ -10,7 +11,7 @@
  function createReader({owner,create,onChange=()=>{},clock=Date.now}){
   let uid=null,account=null,document=null,status='login',pending=null,generation=0,lastRead=0;
   function identity(){const next=owner()||null;if(next===uid)return;generation++;const old=account;uid=next;account=null;document=null;pending=null;lastRead=0;status=uid?'idle':'login';old?.dispose();}
-  function view(){identity();return {status,entries:entries({owner:uid,document})};}
+  function view(){identity();return {owner:uid,status,entries:entries({owner:uid,document})};}
   function refresh(force=false){
    identity();if(!uid)return Promise.resolve(view());if(pending)return pending;if(!force&&status==='ready'&&clock()-lastRead<30000)return Promise.resolve(view());
    const epoch=generation,requestedOwner=uid;status='loading';onChange();
@@ -29,7 +30,8 @@
  function install(){
   if(typeof document==='undefined'||!C||typeof renderBadges!=='function')return;
   const base=new URL('.',document.currentScript.src),asset=item=>new URL('assets/'+item.id+'.svg',base).href,preview=window.__HW_SHOWROOM__===true;
-  const reader=preview?null:createReader({owner:()=>typeof currentUser==='undefined'?null:currentUser?.id,create:onChange=>{if(typeof sb==='undefined'||!sb||!window.HalloweenAccount)throw Error('Account unavailable');return window.HalloweenAccount.create({client:sb,onChange});},onChange:paint});
+  ownPreview=preview;const reader=preview?null:createReader({owner:()=>typeof currentUser==='undefined'?null:currentUser?.id,create:onChange=>{if(typeof sb==='undefined'||!sb||!window.HalloweenAccount)throw Error('Account unavailable');return window.HalloweenAccount.create({client:sb,onChange});},onChange:paint});
+  ownReader=reader;
   function info(id){
    const row=(preview?entries({preview:true}):reader.view().entries).find(x=>x.id===id);if(!row)return;
    document.querySelector('.hw-badge-detail')?.remove();const dialog=document.createElement('dialog');dialog.className='hw-badge-detail';dialog.setAttribute('aria-labelledby','hwBadgeDetailTitle');
@@ -51,5 +53,5 @@
   const originalGo=window.go;if(typeof originalGo==='function')window.go=function(id,...args){if(id!=='scr-badges')document.querySelector('.hw-badge-detail')?.close();return originalGo.call(this,id,...args);};
   paint();
  }
- return Object.freeze({entries,createReader,install});
+ return Object.freeze({entries,createReader,install,viewOwn:()=>ownPreview?{status:'preview',entries:entries({preview:true})}:ownReader?.view(),refreshOwn:()=>ownReader?.refresh(true)});
 });
