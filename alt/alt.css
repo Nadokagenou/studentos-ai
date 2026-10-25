@@ -15548,3 +15548,16 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
   -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
 }
 :root[data-lite] :is(.cal-card, .cal-card + .cal-day) { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--card); }
+
+/* ============================================================
+   ไม่ให้ของขาดหรือล้นจอ — 26 ต.ค. 69 · เจ้าของ: "ทำให้ปุ่มหรืออะไรก็ตามอยู่เต็มหน้าจอเสมอ และไม่ขาด ทั้งแอปเลย"
+   ตรวจด้วย devtools/fitcheck.mjs (16 จอ × 8 ขนาด 320–1600px) · ที่เจอแล้วแก้ที่นี่:
+   ============================================================ */
+/* ไทม์ไลน์รายวัน · แถว "ถึงกำหนด · ชื่องาน" เป็น inline-flex ไม่มีขอบเขต ชื่องานยาวพุ่งพ้นจอ 62px ทุกขนาด
+   → กว้างไม่เกินคอลัมน์ ตัดบรรทัดได้ (เห็นชื่อครบ ไม่ใช่ตัด "…" เพราะเป็นชื่องานที่ต้องรู้ว่าอะไรถึงกำหนด) */
+.dayrow-due { display: flex; align-items: flex-start; max-width: 100%; overflow-wrap: anywhere; line-height: 1.4; }
+.dayrow-due svg { flex: none; margin-top: 2px; }
+/* ชื่อเหรียญตรา (ตัดสองบรรทัดพร้อม "…" อยู่แล้ว) — "คุณจะเลิกทำการบ้านไหม?" ทั้งก้อนกว้างกว่าช่อง 4px ที่ 600px
+   จัดกลางจึงโดนตัดข้างละ 2px · overflow-wrap: anywhere ไม่ช่วย (เบราว์เซอร์ไม่นับว่าก้อนนี้ล้น) · ช่องเหลือ padding 6px แล้ว
+   ตัวอักษร 11px คือขั้นต่ำที่อ่านได้ → ยอมให้ตัดบรรทัดกลางคำเฉพาะชื่อเหรียญ (ไม่ตัดกลางสระ/วรรณยุกต์ · ยังตัด 2 บรรทัดเหมือนเดิม) */
+.ab-nm { word-break: break-all; }
