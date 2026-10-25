@@ -73,9 +73,18 @@ test('every image the CSS and the script name exists and is in the offline shell
   }
   for (const f of used) assert.ok(api.FILES.includes(f), 'preloaded: ' + f);
 });
-test('the whole sequence stays inside the 2.5–3 second target', () => {
+// เป้าเดิม 2.5–3 วิ · เจ้าของดูบนมือถือแล้วไม่เข้าใจเพราะช็อตสั้นเกิน จึงยอมยาวขึ้นได้ไม่เกิน 3.5 วิ (ข้ามได้ตลอด)
+test('the whole sequence stays short (at most 3.5 seconds) and every shot holds long enough to read', () => {
   const { api } = load();
-  assert.ok(api.TOTAL >= 2500 && api.TOTAL <= 3000, String(api.TOTAL));
+  assert.ok(api.TOTAL >= 2500 && api.TOTAL <= 3500, String(api.TOTAL));
+  const css = read('../season/cursed-ship.css');
+  for (const k of ['Ship', 'Deck', 'Far']) {
+    // เวลาที่เห็นช็อตนี้เต็มตา = ตั้งแต่ขึ้นเต็ม จนจางหายหมด
+    const m = css.match(new RegExp('@keyframes csShot' + k + '\\s+\\{ 0%, [\\d.]+% \\{ opacity: 0; \\} ([\\d.]+)% \\{ opacity: 1; \\} [\\d.]+% \\{ opacity: 1; \\} ([\\d.]+)%'));
+    assert.ok(m, k);
+    const heldMs = (+m[2] - +m[1]) / 100 * api.TOTAL;
+    assert.ok(heldMs >= 600, k + ' holds ' + Math.round(heldMs) + 'ms');
+  }
 });
 test('finishFocus saves before any effect and refuses a second save', () => {
   const body = app.slice(app.indexOf('function finishFocus()'), app.indexOf('// ---------- task actions ----------'));
