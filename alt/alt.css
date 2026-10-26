@@ -15461,6 +15461,11 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 :root[data-theme="thai-ghost"] :is(.page-title,.big-title,.sh-title,.th-greet,.set-hd,.td-sec,.sec-h,.tg-l){color:var(--ink);text-shadow:0 1px 10px #04110CE6,0 0 2px #04110C}
 :root[data-theme="thai-ghost"] :is(input,textarea,select){background:#0A1F18A6;color:var(--ink);border-color:#D8E8C933}
 :root[data-theme="thai-ghost"] #scr-tasks :is(.wk-card,.wk-d,.tb-focus){background:var(--tg-glass)!important;color:var(--ink)!important;border-color:var(--tg-edge)!important}
+/* 26 ต.ค. 69 · เจ้าของ (ภาพช่อง "26 ต.ค." จอสัปดาห์): "ทำให้เป็นสีที่มองเห็นได้" — ช่องวันนี้ใช้ตัวหนังสือ --on-fill (เขียวเข้ม ทำไว้วางบนพื้นจันทร์)
+   แต่กฎบนเปลี่ยนพื้นทุกช่องเป็นกระจกเขียวเข้ม (และ --grad-brand ของธีมนี้ก็เขียวเข้ม) = เข้มบนเข้ม มองไม่เห็น
+   → ช่องวันนี้เป็นพื้นจันทร์หยก สัญญาณ "ตอนนี้/ที่เลือก" ชุดเดียวกับแท็บที่เลือกและปุ่มเริ่ม · ตัวหนังสือเข้มบนจันทร์ ≈ 9:1 */
+:root[data-theme="thai-ghost"] #scr-tasks .wk-row.now .wk-d{background:var(--tg-moon)!important;border-color:transparent!important;box-shadow:0 0 0 3px #D8E8C924,0 6px 16px -8px #D8E8C9AA!important}
+:root[data-theme="thai-ghost"] #scr-tasks .wk-row.now .wk-d :is(b,i){color:var(--on-fill)!important}
 :root[data-theme="thai-ghost"] #themePick button:not(.active){background:var(--card)!important;color:var(--muted);border-color:var(--line)!important}
 :root[data-theme="thai-ghost"] #themePick button.active{background:var(--blue-soft)!important;color:var(--ink);border-color:var(--tg-moon)!important}
 :root[data-theme="thai-ghost"] .runbar,:root[data-theme="thai-ghost"] .runbar :is(.rb-timer,.rb-stop){color:var(--on-fill)}
