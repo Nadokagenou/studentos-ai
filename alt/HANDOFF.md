@@ -1,7 +1,7 @@
-> รอบนี้ prepare migration 20261026140834 และบริการ economy v1/event v5/badge v3 ขึ้นแล้ว JWT เปิดครบ HTTP401/OPTIONS204 ตรวจผ่าน activation20261026142938เปิดแล้ว baseline23/23 RLS7ตาราง browser grants0 กำลังpush ดู docs/SECURE-REWARDS-20261026.md
+> รอบนี้ prepare migration 20261026140834 และบริการ economy v1/event v5/badge v3 ขึ้นแล้ว JWT เปิดครบ HTTP401/OPTIONS204 ตรวจผ่าน activation20261026142938เปิดแล้ว baseline23/23 RLS7ตาราง browser grants0 ส่งclient2bcb9f7 Pagesสำเร็จแล้ว ดู docs/SECURE-REWARDS-20261026.md
 
 
-> 26 ต.ค. ระบบรางวัลบัญชี/ฉากตามไบโอมกำลังส่ง: อ่าน docs/SECURE-REWARDS-20261026.md เป็นสถานะล่าสุด คง Jade Moon/เพลงรอบ 1:30 จากทีม d55ce4f ใช้ Cursed Ship ฉากเดียว 6 วิเป็นฐาน รางวัล 8 ID มีฉากไบโอมของตนเอง ห้ามอ้าง deploy ก่อนตรวจผลจริง คง 1C60/คีย์/งานเดิม
+> 26 ต.ค. ระบบรางวัลบัญชี/ฉากตามไบโอมเปิดใช้แล้ว: อ่าน docs/SECURE-REWARDS-20261026.md เป็นสถานะล่าสุด คง Jade Moon/เพลงรอบ 1:30 จากทีม d55ce4f ใช้ Cursed Ship ฉากเดียว 6 วิเป็นฐาน รางวัล 8 ID มีฉากไบโอมของตนเอง ห้ามอ้าง deploy ก่อนตรวจผลจริง คง 1C60/คีย์/งานเดิม
 
 > 26 ต.ค. แก้ป้ายภารกิจบังปุ่มสวน: อ่าน halloween/docs/launch-polish-20261026/README.md ภารกิจเป็นปุ่ม44pxด้านบน เปิด/ปิดเอง ไม่แปะทับแผนที่ ตรวจจุดสวน4ขนาดและกดเข้าจริง แก้ go=login/profile root+ALT ด้วยทางจอเดิม กันยืนยันบัญชีแล้ววนเข้าlogin แยก copy จริง/ห้องลอง คง1C60/เซฟ/กติกา/สิทธิ์เดิม แคชlaunch-polish-20261026 Halloween234+navigation24+account33ทั้งสองสาย ไม่อ้าง two-device/20นาทีจริง
 

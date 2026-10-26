@@ -14,4 +14,6 @@ Production assets:
 
 The spirit's alpha comes from the generation tool. Assets were only converted to WebP; no scripted background removal. Original generated files are preserved outside the repository. Combined production assets are about 1.46 MB. Cold assets preload before animation; normal task completion falls back safely if art is unavailable.
 
-Browser checks: eight endings finish once in 6053–6077 ms, dispose actors and paper, and leave no errors. The updated spirit grip was visually checked at impact. Automated suite: 283 passing assertions, including async image readiness and one shared preload.
+Browser checks: eight endings finish once in 6051–6067 ms, dispose actors and paper, and leave no errors. The updated spirit grip was visually checked at impact. Automated suite: 283 passing assertions, including async image readiness and one shared preload.
+
+Published viewer: https://nadokagenou.github.io/studentos-ai/alt/halloween/rewards/cinematic-preview.html?scene=fx-soulwake&rev=biome-powers-20261026 · Pages2bcb9f7 success. Live spirit scene manually played, JS/CSS/sprite hashes matched, console clean.

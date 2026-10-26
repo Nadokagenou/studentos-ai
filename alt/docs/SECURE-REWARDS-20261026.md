@@ -1,6 +1,6 @@
 # ระบบรางวัลบัญชีและฉากฉลอง · 26 ตุลาคม 2569
 
-สถานะ: ฐานข้อมูลและบริการบัญชีเปิดใช้จริงแล้ว กำลังส่ง client ตามผลเผยแพร่ด้านล่าง
+สถานะ: เปิดใช้จริงและส่งขึ้นเว็บแล้ว GitHub Pages ของ 2bcb9f7 สำเร็จ ตรวจห้องชมฉากจากเว็บจริงแล้ว
 
 ## สิ่งที่เปลี่ยน
 
@@ -23,7 +23,7 @@
 
 ## หลักฐานและขอบเขต
 
-- ชุดอัตโนมัติล่าสุด 283 ข้อผ่านรวมเทสต์ preload วิญญาณ; ชุดท่าจบ/คัตซีนใหม่ผ่าน และเบราว์เซอร์ท่าจบใหม่ 8/8 ใช้เวลา 6053–6077ms ต่อฉาก callback ครั้งเดียว ไม่มีโหนดค้าง
+- ชุดอัตโนมัติล่าสุด 283 ข้อผ่านรวมเทสต์ preload วิญญาณ; ชุดท่าจบ/คัตซีนใหม่ผ่าน และเบราว์เซอร์ท่าจบใหม่ 8/8 ใช้เวลา 6051–6067ms ต่อฉาก callback ครั้งเดียว ไม่มีโหนดค้าง
 - รวมโค้ดและงานทีมไว้ใน local merge commit 28d4fd2 แล้ว รวมงานทีม d55ce4f เพิ่มแล้วที่ 544e959 ก่อนส่ง client
 
 - ทดสอบฐานข้อมูลจริงแบบ BEGIN/ROLLBACK: ไม่มี anon/authenticated อ่านหรือเขียนคลัง เรียก commit หรือปลอมใบรับได้ งานทั่วไปยังบันทึกได้ ยอด/ของปลอมถูกแทนด้วยข้อมูลยืนยัน การส่งซ้ำไม่หักซ้ำ และข้อมูลเดิมกับอันดับเก่ารักษาไว้ ไม่มีบัญชีจำลองตกค้าง
@@ -42,6 +42,18 @@
 
 ## ผลเผยแพร่จริง
 
-การตรวจอนุมัติกลับมาใช้งานได้แล้ว จึงส่งผ่านเครื่องมือเดิมตามลำดับ: prepare migration `20261026140834` สำเร็จ (active=false), บริการ `studentos-economy` v1 / `halloween-event` v5 / `halloween-badge` v3 ACTIVE และเปิด JWT verification ทุกตัว ตรวจ HTTP ผู้ไม่เข้าสู่ระบบ 401 และ allowed-origin OPTIONS 204 ครบทั้งสามตัว activation migration `20261026142938` สำเร็จ (active=true) เก็บ baseline ครบ23/23บัญชี RLSครบ7ตาราง ไม่มี browser grants ไม่มีบัญชีจำลองค้าง และ counters ของยอดทีมงานกระทบครบ กำลังส่ง client
+การตรวจอนุมัติกลับมาใช้งานได้แล้ว จึงส่งผ่านเครื่องมือเดิมตามลำดับ: prepare migration `20261026140834` สำเร็จ (active=false), บริการ `studentos-economy` v1 / `halloween-event` v5 / `halloween-badge` v3 ACTIVE และเปิด JWT verification ทุกตัว ตรวจ HTTP ผู้ไม่เข้าสู่ระบบ 401 และ allowed-origin OPTIONS 204 ครบทั้งสามตัว activation migration `20261026142938` สำเร็จ (active=true) เก็บ baseline ครบ23/23บัญชี RLSครบ7ตาราง ไม่มี browser grants ไม่มีบัญชีจำลองค้าง และ counters ของยอดทีมงานกระทบครบ ส่ง client ที่ 2bcb9f7 แล้ว
 
 เพิ่มการกระทบยอด staff grants/debits ที่ยังไม่ถูกรับเข้าคลังลง baseline โดยไม่แก้ user_state เดิม ทดสอบบัญชีจำลองยอด50 +25 -5 ได้70 ไม่ซ้ำ รักษาอันดับเก่าและปฏิเสธงานปลอม ผ่านบนฐานข้อมูลจริงแบบ rollback ไม่มีบัญชีจำลองค้าง
+
+## ตรวจหลังเผยแพร่
+
+- [GitHub Pages 2bcb9f7](https://github.com/Nadokagenou/studentos-ai/actions/runs/40340321329) completed/success
+- [ห้องชมฉากบน ALT](https://nadokagenou.github.io/studentos-ai/alt/halloween/rewards/cinematic-preview.html?scene=fx-soulwake&rev=biome-powers-20261026) HTTP200 เล่นฉากผีน้ำจริงได้ ไม่มี console error/warning
+- ห้องชมฉาก, biome-finishes.js/css และภาพวิญญาณ WebP บนเว็บตรง SHA256 กับไฟล์ที่ส่ง หน้า root ตรง SHA256 หน้า ALT ตรงหลัง normalize CRLF/LF มี guard/wallet/biome/pickerใหม่ครบ
+- ตรวจฐานข้อมูลซ้ำหลัง activation แบบ rollback ผ่าน ไม่มี browser อ่าน/เขียนคลังหรือเรียก commit ได้ ไม่มีบัญชี QA เหลือ
+- Advisor ระบบใหม่ไม่มี WARN/ERROR: INFO RLS-no-policy เป็น service-only โดยตั้งใจ และ index-unused เป็นดัชนีตารางเพิ่งเปิดใช้ [RLS lint](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy), [index lint](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index)
+- ชุด283ผ่านหลังรวม d55ce4f, สลับบัญชี33/33ทั้งrootและALT, syncจำลอง36/36, navigation14/14, ALT SW6/6, main SW5/5, ฉากพื้นหลัง184กฎผ่าน และ syntax9ไฟล์สำคัญที่รวมล่าสุดผ่าน
+- เบราว์เซอร์หลังเพิ่ม preload/มือวิญญาณ:8/8จบใน6051–6067ms callback1ครั้ง/รางวัล โหนดค้าง0 ไม่มี console error/warning
+- หน้าแรกธีม Jade Moon ที่375×812 ไม่มีล้นข้างและ menuScroll0 ใช้ข้อมูลจำลองแยกจากบัญชีจริง ไม่เปลี่ยนเพลงที่ทีมทำ
+- โค้ดพร้อมใช้งาน แต่ยังไม่มีผลทดลองนักเรียนจริงหลายวัน และไม่ได้พิสูจน์ว่าป้องกันบอตทุกประเภทได้
