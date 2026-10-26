@@ -26,7 +26,9 @@
 //   viaInbox  = ไหลผ่านกล่องเข้าไหม (ถ้าไม่ = เข้าฟอร์มตรง ๆ ตัวเลขนับจึงไม่ต้องโชว์)
 //   blocker   = ติดอะไรอยู่ · เขียนให้ผู้ใช้อ่านรู้เรื่อง ไม่ใช่ศัพท์ภายใน
 const SOURCES = [
-  { id: 'line', name: 'LINE (บอทในกลุ่มห้อง)', icon: 'chat',
+  // 24 ต.ค. 69 · ไอคอนเส้น (lu-message) แทน lu-chat ทึบจาง 34% — แถวนี้ซีดกว่าแถวอื่นในกล่องเข้า (textcheck 1.60)
+  //   เหตุผลเดียวกับไทล์ "ข้อความ" บนหน้าแรก (ดูหมายเหตุที่ #lu-message ใน index.html)
+  { id: 'line', name: 'LINE (บอทในกลุ่มห้อง)', icon: 'message',
     kind: 'connector', state: 'live', toggle: true, link: 'line', viaInbox: true,
     desc: 'งานที่ครูสั่งในกลุ่มห้อง' },
 

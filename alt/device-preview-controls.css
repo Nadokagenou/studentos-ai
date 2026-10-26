@@ -1,10 +1,14 @@
 /* This inspection shortcut belongs to ALT and is independent of app themes. */
 .alt-device-preview{position:fixed;right:14px;bottom:88px;z-index:96;display:flex;align-items:center;gap:7px;padding:8px 11px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:11px;box-shadow:0 4px 20px #0002;text-decoration:none;font:500 11px/1.2 Sarabun,sans-serif}
 .alt-device-preview svg{width:19px;height:19px}.alt-device-preview:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
-@media(min-width:1024px){.alt-device-preview{bottom:16px}}
+@media(min-width:1025px){.alt-device-preview{bottom:16px}}
 
 .alt-lab-entry{display:block;margin:10px 0 14px;color:var(--blue);font-size:13px;text-decoration:none}
-@media(min-width:600px) and (max-width:1023px){
+/* ช่วงแท็บเล็ต: แถบล่างแคปซูลแบบโทรศัพท์ + เนื้อหาเต็มจอ
+   24 ต.ค. 69 · เจ้าของ (ภาพ iPad แนวนอน มีแถบข้างแบบคอม): "ทำให้ไอแพดแนวนอนปุ่มเหมือนในโทรศัพท์"
+   ขาที่สอง: iPad จริงแนวนอนกว้าง 1080–1366 ใช้นิ้ว (pointer:coarse) — เดิมเกิน 1023 จึงได้แถบข้างของ alt.css
+   desktop.css เลื่อนไปเริ่ม 1025 ให้ 1024 (iPad แนวนอนในหน้าตรวจหน้าจอบนคอม) อยู่ช่วงนี้ด้วย */
+@media(min-width:600px) and (max-width:1024px),(min-width:600px) and (max-width:1366px) and (pointer:coarse){
  :root body:not(.login-mode) .stage{padding:0;display:block;width:100%;max-width:none;height:100dvh}
  :root body:not(.login-mode) .phone{width:100%;max-width:none;height:100dvh;border:0;border-radius:0}
  :root body:not(.login-mode) .stage-note{display:none}
@@ -24,8 +28,13 @@
  :root body:not(.login-mode) #menuBody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 18px;padding:22px 30px}
  :root body:not(.login-mode) #menuBody>:is(.td-head,.dc-line,.td-now,.td-clear,.td-ask,.td-tiles){grid-column:1/-1;margin-block:0}
  :root body:not(.login-mode) #menuBody>.td-railwrap{margin:0;align-self:center}
- :root body:not(.login-mode) #menuBody .tg-t{height:72px;min-height:0}
- :root body:not(.login-mode) #menuBody .tg-ic{width:44px;height:44px}
+ /* 24 ต.ค. 69 · เจ้าของ (ภาพไทล์แท็บเล็ต): "ใส่กรอบให้เหมือนโทรศัพท์ ทำให้มันเต็มขึ้นหน่อย"
+    เดิมบีบกรอบเหลือ 44px วงกลม แต่ชิปขาวข้างใน 39px (ไอคอน 23 + ขอบ 8×2) กินเกือบหมด กรอบใสจึงหายไป
+    โทรศัพท์: กรอบ 60 มุม 17 ชิป 35 เห็นขอบกรอบรอบชิป → ทรงเดียวกัน ขยายเป็น 72 ให้เต็มช่องที่กว้างกว่า */
+ :root body:not(.login-mode) #menuBody .tg-t{height:auto;min-height:0;gap:8px}
+ :root body:not(.login-mode) #menuBody .tg-grid .tg-ic{width:72px;height:72px;aspect-ratio:1;border-radius:20px}
+ :root body:not(.login-mode) #menuBody .tg-ic svg{width:24px;height:24px;padding:9px}
+ :root body:not(.login-mode) #menuBody .tg-lb2{font-size:13px}
  /* 24 ต.ค. 69 · เจ้าของ (ภาพหน้าแรก ~900px ตอนกลางคืน): "แก้ให้มันตรง ... และทำให้เต็มจอ"
     เดิมก้อนที่ไม่อยู่ในรายชื่อเต็มแถวได้แค่คอลัมน์เดียว — ตอนกลางคืนแถบตัวเลขไม่ขึ้น การ์ดน้องฮูกจึงไม่มีคู่
     ค้างครึ่งซ้าย · รายการ "ที่เหลือของวันนี้" ก็ครึ่งซ้ายเสมอ · ขวาว่างเป็นช่อง ขอบขวาไม่ตรงกับก้อนอื่น
@@ -49,5 +58,5 @@
  :root body:not(.login-mode) .statusbar{display:none}
 }
 /* 23 ต.ค. 69 · เจ้าของ: ปุ่มเยอะจนรก — ปุ่มลอย "ตรวจหน้าจอ" ทับป้ายไทล์หน้าแรกบนมือถือ/แท็บเล็ตทุกธีม
-   ซ่อนต่ำกว่า 1024px · ยังเข้าได้จากลิงก์ "ตรวจหน้าจอ ALT" ในจอตั้งค่า (.alt-lab-entry) */
-@media(max-width:1023px){.alt-device-preview{display:none}}
+   ซ่อนที่ 1024px ลงมา · ยังเข้าได้จากลิงก์ "ตรวจหน้าจอ ALT" ในจอตั้งค่า (.alt-lab-entry) */
+@media(max-width:1024px){.alt-device-preview{display:none}}

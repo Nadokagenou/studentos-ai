@@ -76,12 +76,22 @@
   function gate(){
     return '<section class="world-page gate-page"><div class="world-title"><small>STUDENTOS · THE MIDNIGHT CHAPTER</small><h1>หลังประตูนี้… มีใครรออยู่</h1></div>'+scene('hub','ประตูรั้วหน้าโถงกลาง','<div class="iron-gate" aria-hidden="true"><i></i><i></i></div><button class="gate-enter" data-enter-hub><small>THE MIDNIGHT ACADEMY</small><b>เปิดประตู</b><span>แตะเพื่อเข้าโถงกลาง →</span></button>','entrance-scene')+'<p class="world-caption">เสียงบานพับเก่าดังขึ้นกลางหมอก คืนนี้เธอจะพบเรื่องราวอะไร</p></section>';
   }
+  // ช่องประตูในภาพโถง [x0,y0,x1,y1] เป็นสัดส่วนของภาพ (24 ต.ค. 69 · เจ้าของ: กรอบประตูไม่ตรงซุ้มในภาพ)
+  // เดิมคิดเป็นสูตร 23+i×13.3% กว้าง 12.6% สูง 28% — กว้างกว่าช่องจริง 4% เยื้องซ้าย 3% และสูงเกินยอดโค้ง
+  // วัดด้วย devtools/hotspot-measure.html · ยอดซุ้มเป็นครึ่งวงกลม: รัศมีแนวตั้ง = ครึ่งความกว้าง (px) ÷ ความสูง (px)
+  const HUB_GATES_LAND=[[.258,.182,.346,.405],[.388,.182,.475,.405],[.520,.182,.609,.405],[.651,.182,.738,.405]];
+  const HUB_GATES_PORT=[[.260,.158,.444,.319],[.551,.158,.737,.319],[.260,.381,.444,.542],[.551,.381,.737,.542]];
+  function gateBox(i){
+    const pc=v=>+(v*100).toFixed(2)+'%',L=HUB_GATES_LAND[i],P=HUB_GATES_PORT[i],arch=(b,w,h)=>pc((b[2]-b[0])*w/2/((b[3]-b[1])*h));
+    return '--left:'+pc(L[0])+';--top:'+pc(L[1])+';--w:'+pc(L[2]-L[0])+';--h:'+pc(L[3]-L[1])+';--arch:'+arch(L,1536,1024)+
+      ';--px:'+pc(P[0])+';--py:'+pc(P[1])+';--pw:'+pc(P[2]-P[0])+';--ph:'+pc(P[3]-P[1])+';--parch:'+arch(P,941,1672);
+  }
   function hub(c){
     const {Core,Catalog,config,doc,now}=c, active=Core.biomeAt(doc,config,now).id;
     const portals=Core.BIOMES.map((id,i)=>{
       const status=Core.portalStatus(doc,config,id,now),open=status.open;
       const progress=Core.biomeProgress(doc,config,id);
-      return '<button class="world-portal '+(open?'portal-open':'portal-closed')+'" data-enter-biome="'+id+'" style="--left:'+(23+i*13.3)+'%;--px:'+(i%2?55:23)+'%;--py:'+(i<2?15:36)+'%;--pw:24%;--ph:'+(i<2?17:19)+'%;--portal-color:'+Catalog.biomes[shorts[i]].color+'" aria-label="'+thai[i]+' · '+(open?'เปิดอยู่':'เปิด '+new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit'}).format(Core.Rotations.next(Core.moment(doc,now),i)))+'"><span class="portal-number" aria-hidden="true">'+(i+1)+'</span><span class="portal-label"><b>'+thai[i]+'</b><small>'+(open?'✦ เปิดอยู่':'◈ รอรอบถัดไป')+'</small><small>เส้นทาง '+progress.percent+'% · '+progress.value+'/'+progress.total+'</small></span><span class="portal-progress" aria-hidden="true"><i style="width:'+progress.percent+'%"></i></span></button>';
+      return '<button class="world-portal '+(open?'portal-open':'portal-closed')+'" data-enter-biome="'+id+'" style="'+gateBox(i)+';--portal-color:'+Catalog.biomes[shorts[i]].color+'" aria-label="'+thai[i]+' · '+(open?'เปิดอยู่':'เปิด '+new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit'}).format(Core.Rotations.next(Core.moment(doc,now),i)))+'"><span class="portal-number" aria-hidden="true">'+(i+1)+'</span><span class="portal-label"><b>'+thai[i]+'</b><small>'+(open?'✦ เปิดอยู่':'◈ รอรอบถัดไป')+'</small><small>เส้นทาง '+progress.percent+'% · '+progress.value+'/'+progress.total+'</small></span><span class="portal-progress" aria-hidden="true"><i style="width:'+progress.percent+'%"></i></span></button>';
     }).join('');
     return '<section class="world-page"><div class="world-title"><small>THE MIDNIGHT ACADEMY</small><h1>โถงกลาง</h1><p class="journey-note">ประตูสุ่มเปลี่ยนทุก 1 ชั่วโมง · ดูตารางในสมุด</p></div>'+scene('hub','โถงกลางพิกเซล ร้านค้าซ้าย เตาผสมขวา และประตูสี่ไบโอมด้านหน้า',portals+npcSpot('vesper','data-tutor',30,76,[33,80])+spot('ร้านยามเที่ยงคืน','data-route="shop"',12,60,'',[17,62])+spot('เตาผสมเวทมนตร์','data-route="cauldron"',87,60,'',[84,68])+spot('วงเวทอัญเชิญ','data-route="ritual"',50,72,'',[51,76])+spot('สวนรัตติกาล','data-route="garden"',33,82,'',[78,73]))+'<div class="world-caption"><button class="quiet-button" data-route="totems">Totem · เปิดทางส่วนตัว</button></div><p class="scene-help">แตะป้ายเพื่อเข้าไปดู · ป้ายทองคือจุดที่ควรไปตอนนี้</p></section>';
   }
@@ -93,7 +103,7 @@
     const gameAttrs='data-game-info="'+games[1]+'"',gameLabel=games[0];
     const ghostAttrs='data-game-info="catch-all-ghosts"';
     const boss=Object.entries(config.proposals.bosses||{}).find(([,b])=>b.biome===id),bossReady=boss&&doc.event.quests[boss[1].quest]?.complete;
-    const extra=(i===3?spot('จับผี',ghostAttrs,74,34,'',[70,35]):'')+spot('นักเดินทางนิรนาม · แลกของเป็น Candy','data-visitors',28,84,'',[20,71])+spot('หาของ · เคาะบ้าน','data-route="village"',12,35,'village-sign',[15,30])+player(c)+(bossReady?spot((doc.event.bossWins?.[boss[0]]?'✓ พิชิตแล้ว · ':'ท้าบอส · ')+boss[1].name,'data-boss="'+boss[0]+'"',48,48,'boss-sign',[50,50]):'');
+    const extra=(i===3?spot('จับผี',ghostAttrs,78,35,'',[79,31]):'')+spot('นักเดินทางนิรนาม · แลกของเป็น Candy','data-visitors',28,84,'',[20,71])+spot('หาของ · เคาะบ้าน','data-route="village"',12,35,'village-sign',[15,30])+player(c)+(bossReady?spot((doc.event.bossWins?.[boss[0]]?'✓ พิชิตแล้ว · ':'ท้าบอส · ')+boss[1].name,'data-boss="'+boss[0]+'"',48,48,'boss-sign',[50,50]):'');
     return '<section class="world-page"><div class="world-title"><small>'+esc(meta.name)+'</small><h1>'+thai[i]+'</h1>'+(c.difficulty?.[id]?'<button class="biome-level" data-open-balance>ความยาก '+esc(c.difficulty[id])+' · ดูเกณฑ์</button>':'')+'</div>'+scene(shorts[i],thai[i],npc+spot(gameLabel,gameAttrs,games[2],games[3],'',[[72,42],[25,51],[70,41],[27,59]][i])+extra+spot('กลับไปปลูกที่สวนรัตติกาล','data-route="garden"',i===1?57:53,82,'',[56,71])+spot('อ่านเรื่องราวอีกครั้ง','data-story="'+id+'"',90,18,'',[88,35])+(i===0&&doc.event.repairs?spot('ซ่อมเรือ · '+doc.event.repairs+' Candy','data-action="repair"',62,57):''))+'</section>';
   }
   function cropState(c,id){

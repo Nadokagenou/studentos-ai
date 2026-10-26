@@ -1,0 +1,22 @@
+<!doctype html><meta charset="utf-8"><title>hotspot measure</title>
+<!-- วัดพิกัดในภาพฉากอีเวนต์เป็น % ของภาพทั้งภาพ — ใช้วางจุดกด/กรอบให้ตรงกับของในภาพ
+     ?img=../halloween/event/assets/world-hub.png&x0=15&x1=75&y0=0&y1=35  (ช่วงที่ครอป เป็น % ของภาพ)
+     เส้นบาง = ทุก 1% · เส้นหนา + ตัวเลข = ทุก 5% · &boxes=x,y,w,h;x,y,w,h วาดกรอบเทียบ (สีฟ้า) -->
+<style>body{margin:0;background:#111;color:#ff0;font:11px monospace}canvas{display:block}</style>
+<canvas id="c"></canvas>
+<script>
+const q=new URLSearchParams(location.search),n=k=>+q.get(k);
+const img=new Image();img.src=q.get('img');
+img.onload=()=>{
+  const W=img.naturalWidth,H=img.naturalHeight,x0=n('x0'),x1=n('x1')||100,y0=n('y0'),y1=n('y1')||100;
+  const sx=W*x0/100,sy=H*y0/100,sw=W*(x1-x0)/100,sh=H*(y1-y0)/100,scale=Math.min(innerWidth/sw,innerHeight/sh);
+  const c=document.getElementById('c');c.width=sw*scale;c.height=sh*scale;const g=c.getContext('2d');
+  g.imageSmoothingEnabled=false;g.drawImage(img,sx,sy,sw,sh,0,0,c.width,c.height);
+  const X=p=>(p-x0)/(x1-x0)*c.width,Y=p=>(p-y0)/(y1-y0)*c.height;
+  for(let p=Math.ceil(x0);p<=x1;p++){g.strokeStyle=p%5?'#ffff0040':'#ffff00c0';g.lineWidth=p%5?1:2;g.beginPath();g.moveTo(X(p),0);g.lineTo(X(p),c.height);g.stroke();if(!(p%5)){g.fillStyle='#ff0';g.font='bold 14px monospace';g.fillText(p,X(p)+2,14);}}
+  for(let p=Math.ceil(y0);p<=y1;p++){g.strokeStyle=p%5?'#ffff0040':'#ffff00c0';g.lineWidth=p%5?1:2;g.beginPath();g.moveTo(0,Y(p));g.lineTo(c.width,Y(p));g.stroke();if(!(p%5)){g.fillStyle='#ff0';g.font='bold 14px monospace';g.fillText(p,2,Y(p)-2);}}
+  for(const b of (q.get('boxes')||'').split(';').filter(Boolean)){const [x,y,w,h]=b.split(',').map(Number);g.strokeStyle='#0ff';g.lineWidth=2;g.strokeRect(X(x),Y(y),X(x+w)-X(x),Y(y+h)-Y(y));}
+  // &pts=x,y,ชื่อ;... จุดกึ่งกลางของ spot (ค่า --x/--y ใน world.js) วาดเป็นวงแดงพร้อมชื่อ
+  for(const p of (q.get('pts')||'').split(';').filter(Boolean)){const [x,y,label='']=p.split(',');g.fillStyle='#ff2d55';g.strokeStyle='#fff';g.lineWidth=2;g.beginPath();g.arc(X(+x),Y(+y),8,0,7);g.fill();g.stroke();g.font='bold 13px sans-serif';g.lineWidth=4;g.strokeStyle='#000';g.strokeText(label,X(+x)+11,Y(+y)+4);g.fillStyle='#fff';g.fillText(label,X(+x)+11,Y(+y)+4);}
+};
+</script>

@@ -12,6 +12,7 @@ const authenticate=async authorization=>{
  return allowed.ok&&await allowed.json()===true?user.id:null;
 };
 Deno.serve(create({authenticate,
+ async readCoreData(uid){return (await database('user_state?id=eq.'+uid+'&select=tasks:data->tasks,vault:data->vault'))[0]||null;},
  async readReward(uid){return (await database('halloween_states?user_id=eq.'+uid+'&season=eq.halloween-2026&select=document'))[0]?.document;},
  async readSelection(uid){return (await database('halloween_featured_badges?user_id=eq.'+uid+'&select=user_id,season,badge_id,earned_at,selected_at'))[0]||null;},
  async writeSelection(row,uid){if(!row){await database('halloween_featured_badges?user_id=eq.'+uid,'DELETE');return null;}return (await database('halloween_featured_badges?on_conflict=user_id','POST',row))[0];}

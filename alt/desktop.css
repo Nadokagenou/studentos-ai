@@ -1,6 +1,7 @@
 /* Desktop layout for the main application at /studentos-ai/.
-   Keep native screens, actions and theme tokens. No rules apply below 1024px. */
-@media (min-width:1024px) and (hover:hover) and (pointer:fine) {
+   Keep native screens, actions and theme tokens. No rules apply below 1025px.
+   1024 คือ iPad แนวนอน — 24 ต.ค. 69 เจ้าของ: "ทำให้ไอแพดแนวนอนปุ่มเหมือนในโทรศัพท์" → ใช้แถบล่างของช่วงแท็บเล็ต (device-preview-controls.css) */
+@media (min-width:1025px) and (hover:hover) and (pointer:fine) {
   :root { --desktop-expanded:248px; --desktop-rail:var(--desktop-expanded); --desktop-gap:24px; }
   :root body:not(.login-mode) { overflow:hidden; background:var(--scr); }
   :root body:not(.login-mode) .stage {
@@ -85,10 +86,14 @@
   /* 24 ต.ค. 69 · หน้าแรกใหม่ (แถบบน + ชุดการ์ด) ไม่มีรายการ "ที่เหลือของวันนี้" (.td-railwrap) แล้ว
      ช่อง rail จึงว่างเป็นโพรงใต้การ์ดน้องฮูก · ช่องถามได้แค่คอลัมน์ซ้าย · แถบตัวเลขไม่มีช่องของตัวเองเลยไปเต็มแถวบนสุด
      (ภาพเจ้าของ 24 ต.ค. ธีม Astral) → คอลัมน์ขวาเรียง น้องฮูก · ตัวเลข · ช่องถาม ให้สูงพอ ๆ กับชุดการ์ดซ้าย
-     การ์ดตั้งค่าตารางเรียนต้องมีช่องของตัวเองด้วย ไม่งั้น grid ยัดมันขึ้นแถว context ที่ว่างบนสุด (ลำดับต่างจากมือถือ) */
-  :root body:not(.login-mode) #menuBody:not(:has(>:is(.td-railwrap,.td-clear,.td-note))) { grid-template-areas:'head head' 'context context' 'focus companion' 'focus stats' 'focus ask' 'setup setup' 'tools tools'; }
+     การ์ดตั้งค่าตารางเรียนต้องมีช่องของตัวเองด้วย ไม่งั้น grid ยัดมันขึ้นแถว context ที่ว่างบนสุด (ลำดับต่างจากมือถือ)
+     จองแถว setup เฉพาะตอนมีการ์ดจริง — แถวว่างยังกิน gap สองช่อง เป็นช่องโหว่ระหว่างช่องถามกับไทล์
+     ตอนกลางคืนที่มีรายการ "ที่เหลือของวันนี้" (.td-railwrap) การ์ดตั้งค่าก็ต้องอยู่ที่เดียวกัน */
+  :root body:not(.login-mode) #menuBody:not(:has(>:is(.td-railwrap,.td-clear,.td-note))) { grid-template-areas:'head head' 'context context' 'focus companion' 'focus stats' 'focus ask' 'tools tools'; }
+  :root body:not(.login-mode) #menuBody:has(>.td-setup):not(:has(>:is(.td-railwrap,.td-clear,.td-note))) { grid-template-areas:'head head' 'context context' 'focus companion' 'focus stats' 'focus ask' 'setup setup' 'tools tools'; }
+  :root body:not(.login-mode) #menuBody:has(>.td-setup):has(>.td-railwrap):not(:has(>:is(.td-clear,.td-note))) { grid-template-areas:'head head' 'context context' 'focus companion' 'focus rail' 'ask rail' 'setup setup' 'tools tools'; }
   :root body:not(.login-mode) #menuBody:not(:has(>:is(.td-railwrap,.td-clear,.td-note)))>.td-stats { grid-area:stats; grid-column:auto; }
-  :root body:not(.login-mode) #menuBody:not(:has(>:is(.td-railwrap,.td-clear,.td-note)))>.td-setup { grid-area:setup; }
+  :root body:not(.login-mode) #menuBody:has(>.td-setup):not(:has(>:is(.td-clear,.td-note)))>.td-setup { grid-area:setup; }
   /* แถบบนสุดกับหัวจอเต็มไม่เคยอยู่พร้อมกัน (todayHead ว่างเมื่อแถบเปิด) จึงใช้แถวเดียวกัน */
   :root body:not(.login-mode) #menuBody>.td-top { grid-area:head; }
   /* การ์ดอีเวนต์เล็กขึ้นเฉพาะตอนปิดการ์ดหลัก (ปกติอีเวนต์อยู่ในสไลด์) · แถวบริบทว่างแทบทุกวัน จึงใช้ที่นั้น */
@@ -159,6 +164,9 @@
   :root[data-desktop-sidebar] body:not(.login-mode) :is(.desktop-link,.desktop-nav-toggle):focus-visible { outline:3px solid var(--fill); outline-offset:2px; }
   :root[data-desktop-sidebar] body:not(.login-mode) .desktop-nav-toggle { position:absolute; top:27px; left:calc(var(--desktop-expanded) - 49px); z-index:6; display:flex; align-items:center; justify-content:center; gap:9px; width:32px; height:34px; padding:6px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); cursor:pointer; font:inherit; font-size:13px; }
   :root[data-desktop-sidebar] body:not(.login-mode) .desktop-nav-toggle svg { width:19px; height:19px; flex:none; }
+  /* 24 ต.ค. 69 · เจ้าของ (ภาพปุ่มพับแถบ): "แก้ให้มันตรง" — ป้าย <span> ว่างตอนแถบเปิด แต่ยังเป็นชิ้นใน flex
+     gap 9px จึงดันไอคอนไปซ้าย 4.5px · ไม่มีป้ายก็ไม่ต้องจองช่อง */
+  :root[data-desktop-sidebar] body:not(.login-mode) .desktop-nav-toggle span:empty { display:none; }
   :root[data-desktop-sidebar="closed"] { --desktop-rail:0px; --desktop-gap:14px; }
   :root[data-desktop-sidebar="closed"] body:not(.login-mode) .stage .phone .tabbar { visibility:hidden; pointer-events:none; transform:translateX(-100%); }
   :root[data-desktop-sidebar="closed"] body:not(.login-mode) .screens { margin:56px 0 0!important; width:100%; height:calc(100% - 56px); }
@@ -167,7 +175,7 @@
   :root[data-desktop-sidebar] body.focus-on :is(.desktop-nav-toggle,.tabbar),
   :root[data-desktop-sidebar] body.as-open .desktop-nav-toggle { visibility:hidden; }
 }
-@media (min-width:1024px) and (max-width:1199px) and (hover:hover) and (pointer:fine) {
+@media (min-width:1025px) and (max-width:1199px) and (hover:hover) and (pointer:fine) {
   :root { --desktop-expanded:224px; --desktop-gap:18px; }
   :root body:not(.login-mode) .stage .phone .tabbar { padding-inline:12px!important; }
   :root body:not(.login-mode) .tabbar::before { font-size:18px; padding-left:43px; background-size:34px 34px; }
@@ -176,7 +184,7 @@
   :root body:not(.login-mode) #menuBody .td-now .tn-title { font-size:24px; }
   :root body:not(.login-mode) #menuBody .td-now :is(.tn-head,.tn-body) { padding-inline:18px; }
 }
-@media (min-width:1024px) and (max-height:760px) and (hover:hover) and (pointer:fine) {
+@media (min-width:1025px) and (max-height:760px) and (hover:hover) and (pointer:fine) {
   :root { --desktop-gap:18px; }
   :root body:not(.login-mode) #menuBody { padding-top:24px; }
   :root body:not(.login-mode) #menuBody .th-greet { font-size:26px; }

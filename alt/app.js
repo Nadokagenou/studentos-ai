@@ -3219,8 +3219,11 @@ function toolsGrid() {
     // 24 ต.ค. 69 · หน้าแรกแบบใหม่ถอดสามก้อนที่มีทางเข้าอื่นอยู่แล้วบนจอเดียวกัน — ไทล์เหลือแถวเดียว
     //   สแกนตารางเรียน → การ์ดตั้งค่าครั้งเดียวเหนือไทล์ โผล่เฉพาะตอนยังไม่มีตารางเรียน (setupCard) · ป้าย ! ไม่ค้างตลอดไปอีก
     //   แผนวันนี้      → ลิงก์ "ดูแผนทั้งวัน" ท้ายราง
-    //   กล่องเข้า      → กระดิ่ง (จอการแจ้งเตือนมีแถว "กล่องเข้า" บนสุด)
-    .filter(t => !homeBlockOn('todayTop') || !['scan', 'plan', 'inbox'].includes(t[0]));
+    //   กล่องเข้า      → กระดิ่ง (จอการแจ้งเตือนมีแถว "กล่องเข้า" บนสุด) — เจ้าของเอากลับมาเป็นไทล์แล้ว (ข้างล่าง)
+    // 24 ต.ค. 69 · เจ้าของ (ภาพไทล์ห้าปุ่มแถวเดียว): "แบ่งเป็น 3 3 ไม่ให้มันว่างเกินไป" แล้ว "เอาปุ่มกล่องเข้ากลับมา"
+    //   → กล่องเข้ากลับมาเป็นปุ่มที่หก (ลองอันดับก่อน เจ้าของเปลี่ยนเป็นกล่องเข้า · อันดับยังอยู่ที่ชิปบนแถบบน)
+    //   แถวบน ข้อความ · เพื่อนฉัน · กล่องเข้า · แถวล่าง สถิติ · ของสะสม · ร้านค้า
+    .filter(t => !homeBlockOn('todayTop') || !['scan', 'plan'].includes(t[0]));
   // QA 6 ต.ค. 69 เคยถอดแถวล่าง (สถิติ · ของสะสม · ร้านค้า · Pro) ออกจากหน้าแรก เพราะทำให้ล้นจอ 375×812
   // 7 ต.ค. 69 เจ้าของสั่งเอากลับมา ("เอาแถวล่างกลับมาด้วย") — ยังพอดี 375×812 ได้ด้วยการเลิกจองความสูง
   // ป้ายสองบรรทัดใต้ไทล์ (กฎท้าย alt.css) · เพิ่มอะไรบนหน้าแรกอีก ต้องวัดใหม่ทุกครั้ง
@@ -3232,7 +3235,7 @@ function toolsGrid() {
         <span class="ts-go">${icon('chevron')}</span>
       </button>` : '';
   return `${setup}<section class="td-tiles">
-    <div class="tg-grid" style="--tg-n:${tiles.length}">
+    <div class="tg-grid" style="--tg-n:${tiles.length};--tg-cols:${tiles.length === 6 ? 3 : tiles.length}">
       ${tiles.map(([ic, lb, tone, act, ct, hot]) => `<button class="tg-t tone-${tone}" onclick="${act}">
         <span class="tg-ic">${icon(ic)}${ct !== '' ? `<i class="tg-ct${hot ? ' hot' : ''}${
           ct === ' ' ? ' dot' : ''}">${String(ct).trim()}</i>` : ''}</span>
@@ -10374,7 +10377,7 @@ function renderBadges() {
       const on = badgeEarned(b);
       const prog = !on && b.goal ? Math.min(done, b.goal) + ' / ' + b.goal : '';
       return `<div class="bg-row${on ? ' on' : ''} ${b.tone}">
-        <div class="bg-mark"><span>${b.mark}</span></div>
+        <div class="bg-mark hw-core-art"><img src="halloween/rewards/profile-assets/${b.id}.svg" alt=""></div>
         <div class="bg-bd">
           <div class="bg-nm${b.secret || b.genesis || b.skin ? ' fancy' : ''}">${esc(b.name)}</div>
           <div class="bg-ds">${on ? esc(b.desc) : (b.secret || b.genesis || b.skin ? '— — —' : esc(b.desc))}</div>
@@ -10717,6 +10720,7 @@ function vaultExport() {
     at: +(localStorage.getItem(VAULT_AT_KEY) || 0),
     tokens: rawTokenState(),   // ยอดจริง ไม่ใช่ ∞ ของบัญชีแอดมิน
     allBadges: localStorage.getItem(ALLBADGE_KEY) === '1',
+    badgeSecrets: Object.keys(SECRETS).filter(secretUnlocked), // สิทธิ์ตราธีมลับตามบัญชีเหมือนของสะสมอื่น
     luck: localStorage.getItem(LUCK_KEY) === '1',
     genesis: localStorage.getItem(GENESIS_KEY) === '1',
     codeThemes: Object.keys(THEME_CODE).filter(codeThemeOwned),
@@ -10735,6 +10739,7 @@ function vaultImport(r) {
   // ธงปลดล็อก: ปลดแล้วปลดเลย ไม่มีทางย้อนกลับ จึงรวมแบบ "เครื่องไหนเคยได้ ถือว่าได้"
   try {
     if (r.allBadges) localStorage.setItem(ALLBADGE_KEY, '1');
+    for (const id of Array.isArray(r.badgeSecrets) ? r.badgeSecrets : []) if (SECRETS[id]) localStorage.setItem(SECRETS[id].store, '1');
     if (r.luck) localStorage.setItem(LUCK_KEY, '1');
     if (r.genesis) localStorage.setItem(GENESIS_KEY, '1');
     for (const id of r.codeThemes || []) if (THEME_CODE[id]) localStorage.setItem(THEME_CODE[id], '1');
@@ -12398,7 +12403,7 @@ function renderStatFull(now, d) {
     <div class="an-badges">
       ${badgeCells.map(b => { const got = badgeEarned(b);
         return `<div class="an-bd${got ? ' got' : ''}">
-          <span class="ab-mark">${got ? esc(b.mark) : icon('lock')}</span>
+          <span class="ab-mark hw-core-art">${got ? `<img src="halloween/rewards/profile-assets/${b.id}.svg" alt="">` : icon('lock')}</span>
           <span class="ab-nm">${esc(b.name)}</span>
           <span class="ab-ds">${got ? 'ได้แล้ว' : 'ทำให้ครบ ' + b.goal + ' งาน'}</span>
         </div>`;
@@ -18856,7 +18861,7 @@ function takeSharedText() {
 // ลิงก์เก่าจากหน้า land.html ที่ส่ง ?start=timeline มายังต้องพาไปที่ที่มีของให้ดู
 // ไม่ใช่จอที่ออกไปไหนไม่ได้นอกจากกดแถบล่าง
 // 'quick' = ปุ่มลัด "เพิ่มงานด่วน" (quickadd.js) — ไปหน้าแรกแล้วเด้งแผ่นพิมพ์งานทับ
-const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-tasks', quick: 'scr-menu', assistant: 'scr-ai', today: 'scr-menu' };
+const SHORTCUT_SCREENS = { login: 'scr-login', profile: 'scr-profile', scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-tasks', quick: 'scr-menu', assistant: 'scr-ai', today: 'scr-menu' };
 // อ่านจาก BOOT_Q ไม่ใช่ location.search — initApp() ล้าง URL ทิ้งก่อน routeStart() จะถูกเรียก
 // เดิมอ่าน location.search ตรง ๆ จึงเจอ URL เปล่าทุกครั้ง ปุ่มลัดทุกปุ่มพาไปหน้าแรกเงียบ ๆ (พบ 9 ต.ค. 69)
 // ใช้ได้ครั้งเดียว — routeStart() รอบสองต้องไม่เด้งแผ่นซ้ำ หรือดึงคนกลับจากจอที่เขาเดินไปแล้ว
@@ -18884,6 +18889,7 @@ function shortcutTarget() {
   // ไม่ลบที่จดไว้ตรงนี้ — รีโหลดของ service worker มักมาหลังแผ่นเด้งไปแล้ว ลบตอนนี้ = แผ่นหายพร้อมรีโหลด
   // แผ่นเพิ่มงานด่วนลบเองตอนส่ง/ปิด (quickClose) · ปุ่มลัดอื่นหมดอายุเองใน 30 วิ
   shortcutUsed = true;
+  if (g === 'login' && (currentUser || hasStoredSession())) return 'scr-profile'; // Reuse native session validation; do not route returning accounts into login.
   if (g === 'quick' && typeof quickOpen === 'function') setTimeout(quickOpen, 80);
   return SHORTCUT_SCREENS[g];
 }

@@ -296,10 +296,8 @@ html[data-motion="still"] .dg-press .hud-ic, html[data-motion="still"] .gate-ent
    • ป้ายแจ้งเตือน (toast) เป็นฟองม่วงอ่อนสว่างบนดันเจี้ยนมืด → แผ่นหินกรอบเหล็กชุดเดียวกับ HUD
    • แถบเลื่อน · สีไฮไลต์ข้อความ · วงตอนแตะฉาก (เขียวซีด) · แถบเลื่อนระดับเสียง (ทอง) → เหล็ก/ไฟเทียนของธีม */
 .event-dialog[data-scene-panel] .dialog-top { border-bottom: 0 !important; padding-bottom: 0 !important; }
-@media (orientation: landscape) {
-  .event-dialog[data-scene-panel=room] { width: fit-content !important; max-width: calc(100vw - 28px) !important; }
-  .event-dialog[data-scene-panel=room] .scene-shell { width: min(calc(100vw - 58px), calc(150dvh - 312px)) !important; }
-}
+/* (ถอดแล้ว 24 ต.ค. 69) ขนาดหน้าต่างห้องแนวนอนแบบมีหัว/ท้าย — main เปลี่ยนหน้าต่างห้องเป็นเต็มจอ (counter.css: ฉาก min(100vw,150dvh) 3/2)
+   กฎเดิมที่นี่ (!important) บีบช่องภาพเหลือ 150dvh − 312px → ที่ 1200×800 ช่องกว้าง 888 ภาพ 1200 ถูกตัดข้างละ 156px */
 .event-toast {
   border-radius: 0 !important; clip-path: var(--dg-notch); font-size: 14px !important;
   color: var(--dg-ink) !important;

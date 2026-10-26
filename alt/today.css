@@ -1673,15 +1673,22 @@ span.tt-chip { cursor: default; }
    ในสไลด์ใช้เงาที่สั้นพอจะจบในระยะเผื่อของราง */
 .dk-slide > :is(.td-now, .td-clear, .td-empty, .td-hero) { box-shadow: 0 10px 18px -14px rgba(0, 0, 0, .45) !important; }
 .dk-slide > .td-now, .dk-slide > .td-clear, .dk-slide > .td-empty, .dk-slide > .td-hero { flex: 1; }
-.dk-dots { display: flex; justify-content: center; gap: 6px; margin-top: -8px; }
-.dk-dot { position: relative; width: 8px; height: 8px; padding: 0; border: 0; border-radius: 999px; overflow: hidden;
-  background: color-mix(in srgb, var(--ink) 22%, transparent); cursor: pointer; transition: width .25s ease; }
-.dk-dot::before { content: ""; position: absolute; inset: -10px -4px; }   /* ที่กดใหญ่กว่าจุด */
-.dk-dot.on { width: 28px; }
-.dk-dot i { position: absolute; inset: 0; border-radius: inherit; background: var(--blue); transform-origin: 0 50%; transform: scaleX(0); }
-.dk-dot.ev i { background: #ff9a2e; }
-.dk-dot.on i { transform: scaleX(1); }
-.td-deck.auto.tick .dk-dot.on i { animation: dk-fill var(--dk-stay, 6000ms) linear both; }
+/* 25 ต.ค. 69 · เจ้าของ: "ปรับให้มันกดง่ายกว่านี้ ปุ่มใหญ่กว่านี้" — เดิมปุ่มคือจุด 8×8 เอง
+   (::before ที่ตั้งใจขยายที่กดโดน overflow:hidden ของจุดตัดทิ้ง จึงกดได้แค่ 8px จริง ๆ)
+   ตอนนี้ตัวปุ่มเป็นช่องกดโปร่ง 36×28 (ตัวที่เลือกอยู่ 48) · จุดที่เห็นย้ายไปอยู่ใน <i> ใหญ่ขึ้นเป็น 10px (ตัวที่เลือก 34px)
+   ขอบติดลบบน/ล่างรวมกันเท่าความสูงปุ่ม แถวจึงกินที่เท่าเดิม (หน้าแรกห้ามเลื่อน) · หลอดเวลายังวิ่งด้วย transform ตามกติกา */
+.dk-dots { display: flex; justify-content: center; gap: 2px; margin: -18px 0 -10px; }
+.dk-dot { position: relative; display: grid; place-items: center; width: 36px; height: 28px; padding: 0; border: 0;
+  background: none; cursor: pointer; transition: width .25s ease; -webkit-tap-highlight-color: transparent; }
+.dk-dot.on { width: 48px; }
+.dk-dot i { position: relative; display: block; width: 10px; height: 10px; border-radius: 999px; overflow: hidden;
+  background: color-mix(in srgb, var(--ink) 30%, transparent); transition: width .25s ease; }
+.dk-dot.on i { width: 34px; }
+.dk-dot i::after { content: ""; position: absolute; inset: 0; background: var(--blue); transform-origin: 0 50%; transform: scaleX(0); }
+.dk-dot.ev i::after { background: #ff9a2e; }
+.dk-dot.on i::after { transform: scaleX(1); }
+.dk-dot:active i { transform: scale(.88); }
+.td-deck.auto.tick .dk-dot.on i::after { animation: dk-fill var(--dk-stay, 6000ms) linear both; }
 @keyframes dk-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 /* ---------- การ์ดอีเวนต์ใหญ่ในสไลด์ (eventHero) ----------
@@ -1731,7 +1738,7 @@ span.tt-chip { cursor: default; }
 .th-candy b { font-size: 15px; color: #fff; font-variant-numeric: tabular-nums; }
 .td-hero:active .th-go { transform: translateY(2px); box-shadow: 0 2px 0 #8a3b00; }
 :root[data-lite] :is(.th-bg, .th-cast img) { animation: none; }
-@media (prefers-reduced-motion: reduce) { :is(.th-bg, .th-cast img) { animation: none; } .dk-dot { transition: none; } }
+@media (prefers-reduced-motion: reduce) { :is(.th-bg, .th-cast img) { animation: none; } .dk-dot, .dk-dot i { transition: none; } }
 @media (max-width: 340px) { .th-cast img { height: 78px !important; } .th-title b { font-size: 27px; } .th-blurb { display: none; } }
 
 /* ---------- 24 ต.ค. 69 · หน้าแรกแบบใหม่ (#menuBody.home-v2 = แถบบนสุดเปิด) ----------
@@ -1752,7 +1759,8 @@ span.tt-chip { cursor: default; }
 :root #menuBody.home-v2 .td-ask .tk-go.tk-go { width: 34px; height: 34px; }
 #menuBody.home-v2 .td-ask:not(:focus-within)::before { opacity: 0; animation: none; }
 
-#menuBody.home-v2 .tg-grid { grid-template-columns: repeat(var(--tg-n, 4), minmax(0, 1fr)); }
+/* --tg-cols: หกปุ่มแบ่ง 3+3 (24 ต.ค. 69 เจ้าของ) · จำนวนอื่นยังแถวเดียว · จอคอม (desktop.css) ใช้ --tg-n แถวเดียวเหมือนเดิม */
+#menuBody.home-v2 .tg-grid { grid-template-columns: repeat(var(--tg-cols, var(--tg-n, 4)), minmax(0, 1fr)); }
 #menuBody.home-v2 .td-tiles { margin-top: 12px; }
 
 .td-setup {

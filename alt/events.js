@@ -88,6 +88,7 @@ function renderEvents() {
       <span class="ev-tab-tx"><b>เร็ว ๆ นี้</b><small>กิจกรรมถัดไป</small></span></span>`;
 
   const detail = cur ? (cur.kind === 'quest' ? questDetail(cur) : eventsDetail(cur)) : `<div class="ev-empty">
+      <span class="ev-empty-ic" aria-hidden="true">${icon('calendar')}${icon('sparkles', 'ev-empty-sp')}</span>
       <b>ตอนนี้ยังไม่มีอีเวนต์</b><span>มีกิจกรรมใหม่เมื่อไหร่ จะขึ้นที่นี่และบนหน้าแรก</span></div>`;
 
   // 24 ต.ค. 69 · เจ้าของวงหัวจอจาก iPhone ("บั๊กสีแปลก ๆ") — เดิมหัวนี้วาดเองเป็นแถบกระจก (--glass) เต็มกว้างลอดใต้นาฬิกา
