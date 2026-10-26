@@ -130,8 +130,8 @@
   });
   const sceneLoads=new Map();
   function sceneUrl(v){return new URL(v.scene,BASE+'../').href;}
-  function preloadVariant(item){const v=variants[item?.id];if(!v?.scene)return Promise.resolve(true);if(sceneLoads.has(v.scene))return sceneLoads.get(v.scene).promise;if(typeof Image!=='function')return Promise.resolve(false);const state={ready:false,promise:null};state.promise=new Promise(resolve=>{const image=new Image();image.onload=()=>{state.ready=true;resolve(true);};image.onerror=()=>resolve(false);image.src=sceneUrl(v);});sceneLoads.set(v.scene,state);return state.promise;}
-  function variantReady(item){const v=variants[item?.id];return !v?.scene||sceneLoads.get(v.scene)?.ready===true;}
+  function preloadVariant(item){const extra=window.HalloweenCinematicFinishes?.preload?.(item?.id)||Promise.resolve(true),v=variants[item?.id];if(!v?.scene)return extra;const combine=p=>Promise.all([p,extra]).then(values=>values.every(Boolean));if(sceneLoads.has(v.scene))return combine(sceneLoads.get(v.scene).promise);if(typeof Image!=='function')return Promise.resolve(false);const state={ready:false,promise:null};state.promise=new Promise(resolve=>{const image=new Image();image.onload=()=>{state.ready=true;resolve(true);};image.onerror=()=>resolve(false);image.src=sceneUrl(v);});sceneLoads.set(v.scene,state);return combine(state.promise);}
+  function variantReady(item){const v=variants[item?.id];return (!v?.scene||sceneLoads.get(v.scene)?.ready===true)&&window.HalloweenCinematicFinishes?.ready?.(item?.id)!==false;}
   function decorateVariant(ov,item) {
     const v=variants[item?.id];if(!v)return;
     if(v.scene){ov.style.setProperty('--cs-scene','url("'+sceneUrl(v)+'")');ov.style.setProperty('--cs-point-x',v.target.x*100+'%');ov.style.setProperty('--cs-point-y',v.target.y*100+'%');}

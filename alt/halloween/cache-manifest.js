@@ -100,5 +100,6 @@ self.HALLOWEEN_SHELL = [
   "halloween/season/cursed-ship/yard.webp",
   "halloween/season/biome-cinematics/graveyard-night.webp",
   "halloween/season/biome-cinematics/jack-night.webp",
+  "halloween/season/biome-cinematics/undertow-specter.webp",
   "halloween/season/biome-cinematics/vampire-night.webp"
 ];

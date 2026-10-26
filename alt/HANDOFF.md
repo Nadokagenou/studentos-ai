@@ -1,4 +1,5 @@
-> รอบนี้ยังไม่ deploy/push: automatic approval review ส่ง migration ทำงานไม่ได้เพราะโควตาหมด เครื่องมือระบุไม่ได้ execute ห้ามใช้ SQL/ช่องทางอื่นข้ามการตรวจ โค้ดและห้องชมฉากใหม่อยู่ในเครื่อง ดู docs/SECURE-REWARDS-20261026.md
+> รอบนี้ prepare migration 20261026140834 และบริการ economy v1/event v5/badge v3 ขึ้นแล้ว JWT เปิดครบ HTTP401/OPTIONS204 ตรวจผ่าน ยังรอเปิด guard/push ดู docs/SECURE-REWARDS-20261026.md
+
 
 > 26 ต.ค. ระบบรางวัลบัญชี/ฉากตามไบโอมกำลังส่ง: อ่าน docs/SECURE-REWARDS-20261026.md เป็นสถานะล่าสุด คง Jade Moon/เพลงรอบ 1:30 จากทีม 522a20f ใช้ Cursed Ship ฉากเดียว 6 วิเป็นฐาน รางวัล 8 ID มีฉากไบโอมของตนเอง ห้ามอ้าง deploy ก่อนตรวจผลจริง คง 1C60/คีย์/งานเดิม
 

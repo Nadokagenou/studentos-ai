@@ -2,9 +2,17 @@
 -- Existing user saves are copied, never deleted; future browser reward fields are ignored.
 lock table public.user_state,public.staff_token_grants,public.staff_token_debits in share row exclusive mode;
 insert into public.studentos_economy_baselines(user_id,data,at,staff_minted,staff_debited)
-select s.id,s.data,(extract(epoch from clock_timestamp())*1000)::bigint,coalesce(g.n,0),coalesce(d.n,0) from public.user_state s
+select s.id,s.data||jsonb_build_object('vault',v.value||jsonb_build_object('tokens',t.value||jsonb_build_object(
+ 'bal',greatest(0,balance.value+coalesce(g.n,0)-least(seen.m,coalesce(g.n,0))-coalesce(d.n,0)+least(seen.d,coalesce(d.n,0))),
+ 'staffMinted',coalesce(g.n,0),'staffDebited',coalesce(d.n,0)))),
+ (extract(epoch from clock_timestamp())*1000)::bigint,coalesce(g.n,0),coalesce(d.n,0) from public.user_state s
 left join (select target,sum(amount) n from public.staff_token_grants group by target) g on g.target=s.id
 left join (select target,sum(amount) n from public.staff_token_debits group by target) d on d.target=s.id
+cross join lateral(select case when jsonb_typeof(s.data->'vault')='object' then s.data->'vault' else '{}'::jsonb end as value)v
+cross join lateral(select case when jsonb_typeof(v.value->'tokens')='object' then v.value->'tokens' else '{}'::jsonb end as value)t
+cross join lateral(select case when coalesce(t.value->>'staffMinted','')~'^[0-9]{1,14}$' then (t.value->>'staffMinted')::bigint else 0 end as m,
+ case when coalesce(t.value->>'staffDebited','')~'^[0-9]{1,14}$' then (t.value->>'staffDebited')::bigint else 0 end as d)seen
+cross join lateral(select case when coalesce(t.value->>'bal','')~'^[0-9]{1,12}([.][0-9]{1,6})?$' then (t.value->>'bal')::numeric else 0 end as value)balance
 where not exists(select 1 from public.studentos_economy_release where id and active)
 on conflict(user_id) do nothing;
 insert into public.studentos_economy_completions(user_id,task_id,completed_at,task_key,legacy)
