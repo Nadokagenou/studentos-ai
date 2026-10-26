@@ -58,7 +58,7 @@ test('card numbers come from real tasks: done today and done overall', () => {
   assert.equal(JSON.stringify(load().api.stats()), JSON.stringify([[1, 'งานเสร็จวันนี้'], [146, 'เสร็จทั้งหมด']]));
 });
 test('hoop.js routes the new id through the shared effect path', () => {
-  assert.match(hoop, /function fxOwned\(id\) \{ return !!\(typeof FX_SHOP === 'object' && FX_SHOP\[id\]\?\.free\)/);
+  assert.match(hoop, /if \(window\.HalloweenCosmetics\?\.isEffect\(id\)\) return window\.HalloweenCosmetics\.owns\(id\)/);
   assert.match(hoop, /if \(id === 'cursedship'\) return !!window\.CursedShip\?\.canPlay\(\)/);
   assert.match(hoop, /if \(id === 'cursedship' && window\.CursedShip\) return window\.CursedShip\.playFx\(title, onClose, preview\)/);
   assert.match(hoop, /const fxOpenNow = \(\) => !!document\.querySelector\('\.hoop-ov:not\(\.out\), \.cs-ov:not\(\.out\)'\)/);

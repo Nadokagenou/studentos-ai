@@ -27,9 +27,10 @@
       var BAR = { light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
         earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
         deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8', genesis: '#8E9BE8',
-        meta: '#050A16', glitch: '#04060A', astral: '#000000', 'thai-ghost': '#0B1817', ...(window.StudentOSHalloweenRewards?.themeBars || {}) };
+        meta: '#050A16', glitch: '#04060A', astral: '#000000', 'thai-ghost': '#080D19', ...(window.StudentOSHalloweenRewards?.themeBars || {}) };
       var pref = null;
       try { pref = localStorage.getItem('studentos.alt.theme'); } catch (e) {} // ALT: คนละคีย์กับตัวจริง
+      if (!window.__HW_SHOWROOM__ && window.StudentOSHalloweenRewards?.items.some(x => x.kind === 'theme' && x.theme === pref)) pref = 'dark';
       if (pref === 'library') pref = 'ocean'; // 1A6M3: ธีมห้องสมุดถูกแทนที่ด้วยมหาสมุทร
       // Astral Black ได้จากโค้ดเท่านั้น — ไม่มีธงปลดล็อก ห้ามวาดจอแรกเป็นธีมนี้ (ตรงกับ THEME_CODE ใน app.js)
       try { if (pref === 'astral' && localStorage.getItem('studentos.alt.astralUnlocked') !== '1') pref = 'light'; } catch (e) {}
@@ -166,6 +167,9 @@
   <link rel="stylesheet" href="glass.css">
   <!-- ตัวตนของธีม Halloween ทั้ง 6 (ทรง · ผิวปุ่ม · ท่าเปลี่ยนจอ) — ต้องอยู่หลัง glass.css -->
   <link rel="stylesheet" href="halloween/rewards/identity.css?rev=spooky-20261025">
+  <link rel="stylesheet" href="halloween/invite-friend/thai-night.css?rev=night-canal-20261026">
+  <link rel="stylesheet" href="halloween/season/cinematic-variants.css?rev=single-cinematic-20261026">
+<link rel="stylesheet" href="economy/client.css?rev=secure-20261026">
 </head>
 <body>
 
@@ -2657,26 +2661,35 @@
 <script src="halloween/study-pact.js?rev=pacts-20261025"></script>
 <script src="events.js"></script>
 <!-- ชวนเพื่อน · ภารกิจปลดธีมเรือนลับแล — ต้องมาก่อน app.js (เก็บรหัสจาก ?invite= ก่อน URL ถูกล้าง) -->
-<script src="halloween/invite-friend/invite-friend.js?rev=thai-ghost-20261025"></script>
+<script src="halloween/invite-friend/invite-friend.js?rev=secure-rewards-20261026"></script>
 <script src="halloween/invite-friend/thai-ranat.js?rev=ranat-rarity-20261025"></script>
-<script src="halloween/invite-friend/thai-theme.js?rev=ranat-rarity-20261025"></script>
+<script src="halloween/invite-friend/thai-theme.js?rev=secure-rewards-20261026"></script>
+<script data-economy-guard>
+/* Durable rewards require the account service, including offline or failed-script starts. */
+(()=>{if(window.__HW_SHOWROOM__===true)return;
+const noop=()=>null,deny=()=>false,unavailable=()=>{window.showToast?.({title:'เชื่อมต่อบัญชีเพื่อใช้รางวัล',body:'งานยังบันทึกได้ ยอดและของเดิมจะกลับมาเมื่อออนไลน์'});return null;},empty=()=>[],locked=new Set(['earth','ocean','magic','galaxy','meta','glitch','warm','space','deepocean','earth2','sweet','genesis','astral','thai-ghost']);
+window.StudentOSEconomy=Object.freeze({ready:deny,refresh:deny,tokens:()=>({bal:0,skins:{},fx:[],fx3d:{},bought:[],freeSpins:0}),document:noop,vault:noop,roomOwned:empty,available:empty,admin:deny,ownsBadge:deny,ownsTheme:id=>locked.has(id)?false:null,daily:unavailable,paySpin:()=>{unavailable();return {ok:false,storage:true};},flip:noop,clearDraw:noop,buyTheme:unavailable,craftTheme:unavailable,buyFx:unavailable,roomBuy:unavailable,unlockSecret:unavailable,redeem:unavailable,adminGrant:unavailable,claimInvite:noop,feedback:noop,board:noop,startTask:noop,finishTask:noop,focusTick:noop});})();
+</script>
 <script src="app.js"></script>
-<script src="halloween/rewards/account-store.js?rev=launch-20261024"></script>
-<script src="halloween/death-quest-main.js?rev=launch-20261024"></script>
+<script src="halloween/rewards/account-store.js?rev=secure-rewards-20261026"></script>
+<script src="economy/focus-checkpoints.js?rev=secure-20261026"></script>
+<script src="halloween/rewards/entitlements.js?rev=account-rights-20261026"></script>
+<script src="halloween/death-quest-main.js?rev=secure-rewards-20261026"></script>
 <link rel="stylesheet" href="halloween/death-quest-main.css">
-<script src="halloween/study-pact-main.js?rev=pacts-20261025"></script>
+<script src="halloween/study-pact-main.js?rev=secure-rewards-20261026"></script>
 <link rel="stylesheet" href="halloween/study-pact-main.css?rev=pacts-20261025">
 <script src="desktop-entry.js"></script>
 <script src="halloween/rewards/theme-main.js?rev=mainlike-20261025"></script>
 <script src="halloween/rewards/effect-stage.js?rev=stage-20261025"></script>
 <script src="halloween/rewards/effect-games.js?rev=stage-20261025"></script>
-<script src="halloween/rewards/runtime.js?rev=merge2-20261025"></script>
+<script src="halloween/rewards/runtime.js?rev=secure-rewards-20261026"></script>
 <script src="halloween/rewards/integration.js"></script>
 <script src="halloween/rewards/badges.js?rev=all-badges-20261025"></script>
 <script src="halloween/rewards/featured-badge.js?rev=all-badges-20261025"></script>
 <script src="halloween/rewards/theme-rarity.js?rev=ranat-rarity-20261025"></script>
 <!-- เอฟเฟกต์งานเสร็จ The Cursed Ship — ลงทะเบียนตัวเองใน FX_SHOP (hoop.js) จึงต้องมาหลัง hoop.js · เล่นตอนกดเท่านั้น จึงโหลดท้ายแถวได้ -->
-<script src="halloween/season/cursed-ship.js?rev=cursed-ship-pace-20261025"></script>
+<script src="halloween/season/cursed-ship.js?rev=secure-rewards-20261026"></script>
+<script src="economy/client.js?rev=secure-20261026"></script>
 <script src="device-preview-bridge.js"></script>
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────

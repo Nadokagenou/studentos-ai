@@ -1,0 +1,418 @@
+{
+  "version": 1,
+  "daily": [
+    9,
+    1,
+    3,
+    1,
+    1,
+    3,
+    "spin"
+  ],
+  "spinCost": {
+    "one": 2,
+    "ten": 10
+  },
+  "spin": [
+    {
+      "id": "tk1",
+      "rarity": "common",
+      "kind": "token",
+      "label": "โทเคน",
+      "weight": 81.8
+    },
+    {
+      "id": "earth",
+      "rarity": "rare",
+      "kind": "skin",
+      "theme": "earth",
+      "label": "โลก",
+      "weight": 8
+    },
+    {
+      "id": "magic",
+      "rarity": "rare",
+      "kind": "skin",
+      "theme": "magic",
+      "label": "เวทมนตร์",
+      "weight": 8
+    },
+    {
+      "id": "ocean",
+      "rarity": "legendary",
+      "kind": "skin",
+      "theme": "ocean",
+      "label": "มหาสมุทร",
+      "weight": 0.5
+    },
+    {
+      "id": "galaxy",
+      "rarity": "legendary",
+      "kind": "skin",
+      "theme": "galaxy",
+      "label": "กาแล็กซี",
+      "weight": 0.5
+    },
+    {
+      "id": "meta",
+      "rarity": "secret",
+      "kind": "skin",
+      "theme": "meta",
+      "label": "METAVERSE",
+      "weight": 0.2
+    },
+    {
+      "id": "glitch",
+      "rarity": "secret",
+      "kind": "skin",
+      "theme": "glitch",
+      "label": "GL!TCH",
+      "weight": 0.2
+    },
+    {
+      "id": "x3_hoop",
+      "rarity": "mythic",
+      "kind": "fx3d",
+      "fx": "hoop",
+      "label": "โยนลงห่วง 3D",
+      "weight": 0.1
+    },
+    {
+      "id": "x3_goal",
+      "rarity": "mythic",
+      "kind": "fx3d",
+      "fx": "goal",
+      "label": "ยิงประตู 3D",
+      "weight": 0.1
+    },
+    {
+      "id": "x3_bat",
+      "rarity": "mythic",
+      "kind": "fx3d",
+      "fx": "bat",
+      "label": "ตีโฮมรัน 3D",
+      "weight": 0.1
+    },
+    {
+      "id": "x3_golf",
+      "rarity": "mythic",
+      "kind": "fx3d",
+      "fx": "golf",
+      "label": "พัตต์ลงหลุม 3D",
+      "weight": 0.1
+    },
+    {
+      "id": "x3_slice",
+      "rarity": "mythic",
+      "kind": "fx3d",
+      "fx": "slice",
+      "label": "หั่นผลไม้ 3D",
+      "weight": 0.1
+    },
+    {
+      "id": "x3_bomb",
+      "rarity": "mythic",
+      "kind": "fx3d",
+      "fx": "bomb",
+      "label": "ปาระเบิดใส่ 3D",
+      "weight": 0.1
+    },
+    {
+      "id": "x3_crumple",
+      "rarity": "mythic",
+      "kind": "fx3d",
+      "fx": "crumple",
+      "label": "ขยำงาน 3D",
+      "weight": 0.1
+    },
+    {
+      "id": "x3_glass",
+      "rarity": "mythic",
+      "kind": "fx3d",
+      "fx": "glass",
+      "label": "ปาแก้ว 3D",
+      "weight": 0.1
+    }
+  ],
+  "duplicates": {
+    "rare": 1.5,
+    "legendary": 2.5,
+    "secret": 5,
+    "mythic": 10
+  },
+  "themes": {
+    "warm": {
+      "cost": 30,
+      "name": "ชมพู"
+    },
+    "space": {
+      "cost": 30,
+      "name": "อวกาศ"
+    }
+  },
+  "craft": {
+    "deepocean": {
+      "base": "ocean",
+      "secret": "ocean",
+      "cost": 120,
+      "name": "ทะเลลึก"
+    },
+    "sweet": {
+      "base": "galaxy",
+      "secret": "galaxy",
+      "cost": 120,
+      "name": "จักรวาลหวานแหว"
+    },
+    "earth2": {
+      "base": "earth",
+      "secret": "earth",
+      "cost": 60,
+      "name": "ต้นไม้โลก"
+    }
+  },
+  "fx": {
+    "hoop": {
+      "cost": 10,
+      "name": "โยนลงห่วง"
+    },
+    "goal": {
+      "cost": 10,
+      "name": "ยิงประตู"
+    },
+    "bat": {
+      "cost": 10,
+      "name": "ตีโฮมรัน"
+    },
+    "golf": {
+      "cost": 10,
+      "name": "พัตต์ลงหลุม"
+    },
+    "slice": {
+      "cost": 10,
+      "name": "หั่นผลไม้"
+    },
+    "bomb": {
+      "cost": 10,
+      "name": "ปาระเบิดใส่"
+    },
+    "crumple": {
+      "cost": 10,
+      "name": "ขยำงาน"
+    },
+    "glass": {
+      "cost": 10,
+      "name": "ปาแก้ว"
+    }
+  },
+  "rooms": {
+    "wall:cream": {
+      "cost": 0,
+      "name": "ครีม"
+    },
+    "wall:sky": {
+      "cost": 0,
+      "name": "ฟ้าอ่อน"
+    },
+    "wall:blush": {
+      "cost": 15,
+      "name": "ชมพูอ่อน"
+    },
+    "wall:mint": {
+      "cost": 15,
+      "name": "เขียวมิ้นต์"
+    },
+    "wall:navy": {
+      "cost": 25,
+      "name": "กรมท่า"
+    },
+    "wall:plum": {
+      "cost": 25,
+      "name": "ม่วงเข้ม"
+    },
+    "wall:dots": {
+      "cost": 35,
+      "name": "ลายจุด"
+    },
+    "wall:stripe": {
+      "cost": 35,
+      "name": "ลายทาง"
+    },
+    "floor:wood": {
+      "cost": 0,
+      "name": "ไม้"
+    },
+    "floor:dark": {
+      "cost": 15,
+      "name": "ไม้เข้ม"
+    },
+    "floor:tile": {
+      "cost": 20,
+      "name": "กระเบื้อง"
+    },
+    "floor:carpet": {
+      "cost": 20,
+      "name": "พรมเทา"
+    },
+    "light:warm": {
+      "cost": 0,
+      "name": "อุ่น"
+    },
+    "light:cool": {
+      "cost": 0,
+      "name": "ขาวนวล"
+    },
+    "light:pink": {
+      "cost": 20,
+      "name": "ชมพู"
+    },
+    "light:lime": {
+      "cost": 20,
+      "name": "เขียวเรือง"
+    },
+    "window:day": {
+      "cost": 0,
+      "name": "กลางวัน"
+    },
+    "window:night": {
+      "cost": 15,
+      "name": "กลางคืน"
+    },
+    "window:rain": {
+      "cost": 20,
+      "name": "ฝนตก"
+    },
+    "window:dusk": {
+      "cost": 25,
+      "name": "พระอาทิตย์ตก"
+    },
+    "poster:none": {
+      "cost": 0,
+      "name": "ไม่มี"
+    },
+    "poster:abstract": {
+      "cost": 20,
+      "name": "วงกลม"
+    },
+    "poster:cat": {
+      "cost": 25,
+      "name": "แมวใหญ่"
+    },
+    "poster:mountain": {
+      "cost": 25,
+      "name": "ภูเขา"
+    },
+    "poster:neon": {
+      "cost": 40,
+      "name": "ป้ายนีออน"
+    },
+    "shelf:none": {
+      "cost": 0,
+      "name": "ไม่มี"
+    },
+    "shelf:books": {
+      "cost": 0,
+      "name": "หนังสือ"
+    },
+    "shelf:plant": {
+      "cost": 20,
+      "name": "ต้นไม้"
+    },
+    "shelf:trophy": {
+      "cost": 35,
+      "name": "ถ้วยรางวัล"
+    },
+    "shelf:figure": {
+      "cost": 35,
+      "name": "ตุ๊กตา"
+    },
+    "shelf:crystal": {
+      "cost": 60,
+      "name": "คริสตัล"
+    },
+    "desk:none": {
+      "cost": 0,
+      "name": "ไม่มี"
+    },
+    "desk:laptop": {
+      "cost": 0,
+      "name": "โน้ตบุ๊ก"
+    },
+    "desk:books": {
+      "cost": 15,
+      "name": "กองหนังสือ"
+    },
+    "desk:coffee": {
+      "cost": 20,
+      "name": "กาแฟ + สมุด"
+    },
+    "desk:cactus": {
+      "cost": 20,
+      "name": "แคคตัส"
+    },
+    "desk:vinyl": {
+      "cost": 45,
+      "name": "เครื่องเล่นแผ่น"
+    },
+    "ceiling:none": {
+      "cost": 0,
+      "name": "ไม่มี"
+    },
+    "ceiling:string": {
+      "cost": 25,
+      "name": "ไฟราว"
+    },
+    "ceiling:moon": {
+      "cost": 40,
+      "name": "โคมพระจันทร์"
+    },
+    "ceiling:stars": {
+      "cost": 40,
+      "name": "ดาวเรืองแสง"
+    },
+    "pet:none": {
+      "cost": 0,
+      "name": "ไม่มี"
+    },
+    "pet:rug": {
+      "cost": 0,
+      "name": "พรมเปล่า"
+    },
+    "pet:cat": {
+      "cost": 30,
+      "name": "แมว"
+    },
+    "pet:dog": {
+      "cost": 30,
+      "name": "หมา"
+    },
+    "pet:beanbag": {
+      "cost": 25,
+      "name": "เบาะนั่ง"
+    },
+    "pet:capybara": {
+      "cost": 60,
+      "name": "คาปิบารา"
+    }
+  },
+  "adminHashes": [
+    "568431e398cceb7470cf0b7c2d825f26d6f269741a0aeb635443130f236829a6",
+    "0378159474d683e4cdab0a3fff7f4d6191c64dfb91905826cbe7ec377cbd7f42"
+  ],
+  "gifts": {
+    "5c774939904173ffdc62b2f78e88d8fdbce4074c636cd887c0b4f6700fdc4e33": {
+      "id": "g1",
+      "tokens": 10000,
+      "adminOnly": true
+    },
+    "dd5ffe1c63293b21d17dfc192de4ec660e5aa2467bba77e930fbbe639d5c0866": {
+      "id": "astral",
+      "theme": "astral",
+      "adminOnly": false
+    },
+    "d0d6428a8d4915cfc07084ff980daeb70966c9a2092f87ec3333bb5659f5b589": {
+      "id": "all",
+      "all": true,
+      "adminOnly": true
+    }
+  }
+}

@@ -257,7 +257,13 @@ const ROOM_SLOTS = [
 // ---------- สถานะห้อง ----------
 // อยู่ใน state.settings เพื่อให้ติดรถไปกับ sync ก้อนเดิม ไม่ต้องมีท่อของตัวเอง
 function roomState() {
-  const r = (state && state.settings && state.settings.room) || {};
+  const raw=(state && state.settings && state.settings.room)||{};
+  const r={...raw,on:{...raw.on}};
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) {
+    r.owned=window.StudentOSEconomy.roomOwned();
+    for(const [slot,id]of Object.entries(r.on)){const item=roomFind(slot,id);if(item?.cost && !r.owned.includes(slot+':'+id))r.on[slot]='none';}
+    for(const [slot,fallback]of [['wall','cream'],['floor','wood'],['light','warm']]){const id=r[slot],item=roomFind(slot,id);if(item?.cost && !r.owned.includes(slot+':'+id))r[slot]=fallback;}
+  }
   return {
     name:   typeof r.name === 'string' ? r.name : '',
     status: typeof r.status === 'string' ? r.status : '',
@@ -280,6 +286,7 @@ function roomOwns(kind, id) {
   const it = roomFind(kind, id);
   if (!it) return false;
   if (!it.cost) return true;
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) return window.StudentOSEconomy.roomOwned().includes(kind+':'+id);
   return roomState().owned.includes(kind + ':' + id);
 }
 function roomFind(kind, id) {
@@ -508,6 +515,7 @@ function roomPick(kind, id) {
 }
 
 function roomBuy(kind, id) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) return window.StudentOSEconomy.roomBuy(kind,id);
   const it = roomFind(kind, id);
   if (!it || !it.cost) return;
   const s = tokenState();

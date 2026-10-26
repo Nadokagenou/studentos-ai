@@ -15382,7 +15382,7 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 /* 25 ต.ค. 69 · เรือนลับแล — รางวัลชวนเพื่อน แยกสิทธิ์จากธีมบอสฮาโลวีน */
 :root[data-theme="thai-ghost"]{
  color-scheme:dark;
- --scr:#0B1817;--card:#172C27;--card2:#223B33;--surface:#223B33;
+ --scr:#080D19;--card:#172C27;--card2:#223B33;--surface:#223B33;
  --ink:#F0EAD5;--muted:#C2CFBA;--faint:#A9BAA6;--line:#BDA47140;
  --fill:#B9D3AC;--on-fill:#14251C;--fill-on:#14251C;--on-accent:#14251C;
  --blue:#D7C293;--blue-deep:#E4D1A7;--blue-soft:#3B3B28;--neon:#B9D3AC;
@@ -15390,7 +15390,7 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
  --good:#ACD5B6;--good-soft:#ACD5B61A;--fire:#FFADB8;
  --gold-text:#E1C38A;--gold-soft:#E1C38A22;
  --tint:#283E32;--tint2:#344032;--glass:#10231FED;--glass-line:#BDA47140;
- --pg:#0B1817;--pg-ink:#F0EAD5;--pg-muted:#C2CFBA;--frame:#0B1817;
+ --pg:#080D19;--pg-ink:#F0EAD5;--pg-muted:#C2CFBA;--frame:#080D19;
  --soft-card:#172C27F5;--soft-shadow:0 8px 25px #020A0755;--soft-shadow-lg:0 16px 40px #020A0777;
  --shadow:0 12px 32px #020A0755;--shadow-lg:0 20px 55px #020A0788;--shadow-brand:0 8px 25px #A8CAA21A;
  --grad-brand:linear-gradient(125deg,#516443,#2F5144);--grad-hero:linear-gradient(140deg,#294235,#112720);

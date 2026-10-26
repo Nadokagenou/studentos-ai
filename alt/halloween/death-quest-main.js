@@ -14,6 +14,8 @@
       const active=!t.done&&state.running?.taskId===t.id&&!document.hidden&&!document.getElementById('focusWrap')?.hidden&&document.body.classList.contains('focus-on');
       const proof=cloud.read().event.focusProofs?.[t.id];
       if(active||proof?.session===cloudSession)await cloud.dispatch({type:'focus-pulse',taskId:t.id,session:cloudSession,active});
+      const checked=cloud.read().event.focusProofs?.[t.id];
+      if(active&&checked?.attention?.challenge)window.FocusCheckpoints?.show(checked.attention.challenge,async(checkpoint,answer)=>{const r=await cloud.dispatch({type:'focus-check',taskId:t.id,checkpoint,answer});return r.result?.correct===true;});
       if(t.done&&proof?.activeMs>=1200000&&!proof.doneAt)await cloud.dispatch({type:'focus-finish',taskId:t.id});
     }catch(error){const note=document.querySelector('.hw-death-focus small');if(note)note.textContent='ยังยืนยันออนไลน์ไม่ได้ เปิดเน็ตแล้วรอสักครู่ เวลาและรางวัลให้เซิร์ฟเวอร์ตรวจ';}
     finally{cloudBusy=false;}
@@ -47,7 +49,7 @@
   if(typeof startFocus==='function'){const original=startFocus;window.startFocus=function(...args){const result=original.apply(this,args);sample();syncCloudFocus(true);return result;};}
   if(typeof stopWork==='function'){const original=stopWork;window.stopWork=function(...args){sample();const result=original.apply(this,args);lastEligibleTask=null;return result;};}
   if(typeof closeFocus==='function'){const original=closeFocus;window.closeFocus=function(...args){sample();const result=original.apply(this,args);lastEligibleTask=null;return result;};}
-  if(typeof finishFocus==='function'){const original=finishFocus;window.finishFocus=function(...args){const t=state.tasks.find(t=>t.id===state.running?.taskId);if(!t?.halloweenDeathQuest?.authoritative)return original.apply(this,args);const self=this;return(async()=>{await syncCloudFocus(true);const proof=cloud?.ready()&&cloud.read().event.focusProofs?.[t.id];if(!proof||proof.activeMs<1200000){showToast({title:'แสงโฟกัสยังไม่ครบ 20 นาทีที่ยืนยันออนไลน์',body:'รอให้หลอดเควสครบก่อน หากเน็ตขาดให้เชื่อมต่อแล้วทำต่อได้'});return;}const result=original.apply(self,args);await syncCloudFocus(true);return result;})();};}
+  if(typeof finishFocus==='function'){const original=finishFocus;window.finishFocus=function(...args){const t=state.tasks.find(t=>t.id===state.running?.taskId);if(!t?.halloweenDeathQuest?.authoritative)return original.apply(this,args);const self=this;return(async()=>{await syncCloudFocus(true);const proof=cloud?.ready()&&cloud.read().event.focusProofs?.[t.id];if(!proof||proof.activeMs<1200000||proof.attention?.challenge){showToast({title:'แสงโฟกัสยังไม่ครบ 20 นาทีที่ยืนยันออนไลน์',body:'รอให้หลอดเควสครบก่อน หากเน็ตขาดให้เชื่อมต่อแล้วทำต่อได้'});return;}const result=original.apply(self,args);await syncCloudFocus(true);return result;})();};}
   setInterval(syncCloudFocus,5000);
   window.addEventListener('storage',e=>{if(e.key===Q.RESET_KEY)applyReset();if(e.key===Q.REQUEST_KEY)flush();});document.addEventListener('visibilitychange',()=>{sample();syncCloudFocus();if(!document.hidden){applyReset();flush();}});
   document.addEventListener('DOMContentLoaded',()=>{applyReset();flush();});setInterval(sample,5000);applyReset();flush();

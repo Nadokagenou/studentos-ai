@@ -91,6 +91,36 @@
       <i class="cs-mist"></i><i class="cs-lamp l"></i><i class="cs-lamp r"></i></div>`;
   }
 
+  const variants = Object.freeze({
+    'fx-soulwake':{biome:'dutchman',color:'#9ACFC4',metal:'#B7C8BA'},
+    'fx-dutchman-arrival':{biome:'dutchman',color:'#8CDEC9',metal:'#E2C789'},
+    'fx-pumpkin-sparks':{biome:'jack',color:'#D6A268',metal:'#CAA273'},
+    'fx-jacks-verdict':{biome:'jack',color:'#EDBC79',metal:'#E5CC91'},
+    'fx-velvet-flight':{biome:'vampire',color:'#B97996',metal:'#C2ADB9'},
+    'fx-crimson-eclipse':{biome:'vampire',color:'#D78FA7',metal:'#E1C78F'},
+    'fx-soul-bloom':{biome:'graveyard',color:'#B9A5D2',metal:'#C0B7D0'},
+    'fx-reaper-gate':{biome:'graveyard',color:'#CBB4EB',metal:'#E5D09C'}
+  });
+  function decorateVariant(ov,item) {
+    const v=variants[item?.id];if(!v)return;
+    ov.dataset.rewardBiome=v.biome;ov.dataset.rewardTier=item.rarity;ov.style.setProperty('--cs-accent',v.color);ov.style.setProperty('--cs-metal',v.metal);
+    const wash=document.createElement('i');wash.className='cs-variant-wash';wash.setAttribute('aria-hidden','true');ov.prepend(wash);
+    const mark=document.createElement('div');mark.className='cs-variant-mark';mark.innerHTML='<img src="'+new URL('../rewards/'+(item.asset||'assets/'+item.id+'.svg'),BASE+'../').href+'" alt=""><span><small>'+esc(item.rarity.toUpperCase())+' · HALLOWEEN</small>'+esc(item.name)+'</span>';ov.append(mark);
+  }
+  function stillVariant(item,title,onClose) {
+    const host=document.querySelector('.phone');if(!host){if(typeof onClose==='function')onClose();return false;}stop(true);
+    const ov=document.createElement('div');ov.className='cs-ov cs-still';ov.setAttribute('role','dialog');ov.setAttribute('aria-label','งานเสร็จแล้ว · ข้ามได้');
+    const src=new URL('../rewards/'+(item.asset||'assets/'+item.id+'.svg'),BASE+'../').href;
+    ov.innerHTML='<div class="cs-still-card"><img src="'+src+'" alt=""><strong>เสร็จแล้ว</strong><p>'+esc(title||'ผ่านไปอีกหนึ่งงาน')+'</p><small>'+esc(item.name)+'</small></div><button type="button" class="cs-skip">ข้าม</button>';
+    host.appendChild(ov);run={ov,sheet:null,timers:[],onClose,done:false,anims:[],previousFocus:document.activeElement};ov.addEventListener('pointerdown',skip);ov.querySelector('.cs-skip').addEventListener('click',skip);ov.querySelector('.cs-skip').focus({preventScroll:true});at(1000,finish);return true;
+  }
+  function playVariant(item,onClose,title,preview=false) {
+    const canonical=window.StudentOSHalloweenRewards?.find(item?.id);
+    if(!canonical||!variants[canonical.id]){if(typeof onClose==='function')onClose();return false;}preload();
+    if(!motionOk(env())||!ready()&&!preview)return stillVariant(canonical,title,onClose);
+    playFx(title,onClose,preview,canonical);return true;
+  }
+
   // ---------- ฉาก ----------
   let run = null;   // { ov, sheet, timers, anims, onClose, done }
 
@@ -126,12 +156,12 @@
   }
 
   // เปิดจาก openDoneFx (hoop.js) — title = ชื่องาน · onClose = ทุกอย่างที่แอปรอทำหลังฉลอง (วาดใหม่ · บอกงานถัดไป)
-  function playFx(title, onClose, preview) {
+  function playFx(title, onClose, preview, variant) {
     const host = document.querySelector('.phone');
     preload();
     // ปุ่ม "ลองเล่นดู" กดทันทีหลังเลือก — ภาพอาจยังโหลดไม่เสร็จ รอได้ไม่เกิน 3 วิ (งานจริงไม่รอ: doneFxActive กันไว้แล้ว)
     if (preview && host && motionOk(env()) && !ready() && !failed && !(preview > 25)) {
-      setTimeout(() => playFx(title, onClose, (typeof preview === 'number' ? preview : 0) + 1), 120);
+      setTimeout(() => playFx(title, onClose, (typeof preview === 'number' ? preview : 0) + 1, variant), 120);
       return;
     }
     if (!host || !motionOk(env()) || !ready()) {
@@ -157,9 +187,10 @@
       ${cardHtml(title, stats())}
       <i class="cs-fog front"></i><i class="cs-vig"></i>
       <button type="button" class="cs-skip">ข้าม</button>`;
+    if (variant) decorateVariant(ov, variant);
     if (sheet) sheet.classList.add('cs-playing');
     host.appendChild(ov);
-    run = { ov, sheet, timers: [], onClose, done: false, anims: [] };
+    run = { ov, sheet, timers: [], onClose, done: false, anims: [], previousFocus: document.activeElement };
 
     // แตะที่ไหนก็ข้าม — pointerdown ไม่ใช่ click จะได้ไม่ต้องรอปล่อยนิ้ว
     ov.addEventListener('pointerdown', e => { e.preventDefault(); skip(); });
@@ -223,6 +254,7 @@
     r.ov.remove();
     run = null;
     if (hadFocus && r.sheet) { const go = r.sheet.querySelector('.fc-go'); if (go) try { go.focus({ preventScroll: true }); } catch (_) {} }
+    if (hadFocus && !r.sheet && r.previousFocus?.isConnected) try { r.previousFocus.focus({preventScroll:true}); } catch (_) {}
     if (typeof r.onClose === 'function') r.onClose();
   }
   // ข้าม = จอข้างหลังขึ้นทันที ไม่มีจังหวะจางรอ — คนที่กดข้ามคือคนที่รีบ
@@ -240,6 +272,9 @@
     if (e.key === 'Escape' && active()) { e.preventDefault(); e.stopImmediatePropagation(); skip(); }
   }, true);
 
+  document.addEventListener?.('visibilitychange',()=>{if(document.hidden&&active())skip();});
+  window.addEventListener('pagehide',()=>{if(active())skip();});
+
   // ลงทะเบียนเป็นเอฟเฟกต์ตอนงานเสร็จ — ฟรีแบบเดียวกับเอฟเฟกต์ Halloween ชุดอื่น (integration.js)
   // ต่อท้ายตาราง = อยู่ท้ายแถวในหน้าธีม
   const ICON = `<img class="hw-effect-icon" src="${BASE}seal.webp" alt="">`;
@@ -250,6 +285,6 @@
 
   window.CursedShip = Object.freeze({
     ID, TOTAL, FILES, motionOk, ready, preload, canPlay, stats,
-    skinOn, scene, playFx, skip, stop, active,
+    skinOn, scene, playFx, playVariant, variants, skip, stop, active,
   });
 })();

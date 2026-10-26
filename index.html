@@ -129,6 +129,7 @@
   <link rel="stylesheet" href="custom.css">
   <link rel="stylesheet" href="halloween-countdown.css?rev=20261026">
   <link rel="stylesheet" href="desktop.css" media="(min-width:1024px) and (hover:hover) and (pointer:fine)">
+<link rel="stylesheet" href="alt/economy/client.css?rev=secure-20261026">
 </head>
 <body>
 
@@ -2484,7 +2485,16 @@
 <script src="staff-news.js"></script>
 <script src="bug-reports.js"></script>
 <script src="halloween-countdown.js?rev=20261026"></script>
+<script data-economy-guard>
+/* Durable rewards require the account service, including offline or failed-script starts. */
+(()=>{if(window.__HW_SHOWROOM__===true)return;
+const noop=()=>null,deny=()=>false,unavailable=()=>{window.showToast?.({title:'เชื่อมต่อบัญชีเพื่อใช้รางวัล',body:'งานยังบันทึกได้ ยอดและของเดิมจะกลับมาเมื่อออนไลน์'});return null;},empty=()=>[],locked=new Set(['earth','ocean','magic','galaxy','meta','glitch','warm','space','deepocean','earth2','sweet','genesis','astral','thai-ghost']);
+window.StudentOSEconomy=Object.freeze({ready:deny,refresh:deny,tokens:()=>({bal:0,skins:{},fx:[],fx3d:{},bought:[],freeSpins:0}),document:noop,vault:noop,roomOwned:empty,available:empty,admin:deny,ownsBadge:deny,ownsTheme:id=>locked.has(id)?false:null,daily:unavailable,paySpin:()=>{unavailable();return {ok:false,storage:true};},flip:noop,clearDraw:noop,buyTheme:unavailable,craftTheme:unavailable,buyFx:unavailable,roomBuy:unavailable,unlockSecret:unavailable,redeem:unavailable,adminGrant:unavailable,claimInvite:noop,feedback:noop,board:noop,startTask:noop,finishTask:noop,focusTick:noop});})();
+</script>
 <script src="app.js"></script>
+<script src="alt/halloween/rewards/account-store.js?rev=secure-20261026"></script>
+<script src="alt/economy/focus-checkpoints.js?rev=secure-20261026"></script>
+<script src="alt/economy/client.js?rev=secure-20261026"></script>
 <script src="desktop-entry.js"></script>
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────

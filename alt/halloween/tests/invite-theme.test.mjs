@@ -25,7 +25,7 @@ test('the isolated fitting room can show the Thai theme without unlocking the re
 });
 test('the limited Thai theme is registered consistently and every invitation surface names the replacement',()=>{
  const app=read('../../app.js'),html=read('../../index.html'),inv=read('../invite-friend/invite-friend.js'),events=read('../../events.js');
- assert.ok(/'thai-ghost':\s*'#0B1817'/.test(app));assert.ok(/'thai-ghost':\s*'เรือนลับแล'/.test(app));assert.ok(/data-th="thai-ghost"/.test(html));assert.ok(/'thai-ghost':\s*'#0B1817'/.test(html));
+ assert.ok(/'thai-ghost':\s*'#080D19'/.test(app));assert.ok(/'thai-ghost':\s*'เรือนลับแล'/.test(app));assert.ok(/data-th="thai-ghost"/.test(html));assert.ok(/'thai-ghost':\s*'#080D19'/.test(html));
  assert.doesNotMatch(inv,/ชวนเพื่อน ปลดล็อกธีม Halloween|รางวัล: ธีม Halloween|รับธีม Halloween/);
  assert.doesNotMatch(events,/name: 'ธีม Halloween'|<h2>ธีม Halloween/);
  assert.match(read('../invite-friend/thai-theme.js'),/prefers-reduced-motion/);

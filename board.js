@@ -115,6 +115,7 @@ function boardPrevKey(key) {
 // boardPaying กันจ่ายซ้ำ — loadBoard ถามได้สองรอบติดกัน และธงจ่ายแล้วถูกตั้งหลังรอเซิร์ฟเวอร์ตอบ
 let boardPaying = false;
 async function boardPayout(cur) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) return window.StudentOSEconomy.board(cur);
   const prev = boardPrevKey(cur && cur.season && cur.season.key);
   if (!prev || !state.settings || state.settings.boardPaid === prev || boardPaying) return;
   boardPaying = true;

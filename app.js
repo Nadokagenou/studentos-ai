@@ -302,6 +302,7 @@ function pendingTasks() { return state.tasks.filter(t => !t.done && !t.deleted);
 // ชื่อคีย์ธงต้องตรงกับสคริปต์ใน <head> ของ index.html
 const THEME_CODE = { astral: 'studentos.alt.astralUnlocked' };
 function codeThemeOwned(id) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.vault()?.codeThemes.includes(id) === true; }
   try { return !!THEME_CODE[id] && localStorage.getItem(THEME_CODE[id]) === '1'; } catch (_) { return false; }
 }
 const THEME_KEY = 'studentos.alt.theme';   // ALT: แยกจากตัวจริง (ต้องตรงกับสคริปต์ใน <head>)
@@ -341,6 +342,7 @@ const SECRETS = {
 let tapTheme = '', tapCount = 0, tapAt = 0;
 
 function secretUnlocked(id) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.vault()?.badgeSecrets.includes(id) === true; }
   const s = SECRETS[id];
   try { return !!s && localStorage.getItem(s.store) === '1'; } catch (_) { return false; }
 }
@@ -362,6 +364,7 @@ const GENESIS_EVENT = 20_000;  // อีเวนต์ยาว 20 วิ
 let genesisTimer = null, genesisEndTimer = null;
 
 function genesisUnlocked() {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.vault()?.genesis === true; }
   try { return localStorage.getItem(GENESIS_KEY) === '1'; } catch (_) { return false; }
 }
 
@@ -526,6 +529,7 @@ function genesisLoop(on) {
 }
 
 function unlockSecret(id) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.unlockSecret(id); }
   const s = SECRETS[id];
   if (!s) return;
   try { localStorage.setItem(s.store, '1'); } catch (_) {}
@@ -574,6 +578,7 @@ function themePref() {
   // ต้องตรงกับสคริปต์ใน <head> ของ index.html เสมอ ไม่งั้นจอแรกกะพริบสลับโทน
   // ธีมจากโค้ดที่ยังไม่มีโค้ด (ค่าค้างจากรุ่นที่ยังฟรี · แก้ localStorage เอง) = ค่าเริ่มต้น ไม่ใช่ธีมนั้น
   if (THEME_CODE[v] && !codeThemeOwned(v)) return 'light';
+  if (typeof window !== 'undefined' && window.StudentOSEconomy && window.StudentOSEconomy.ownsTheme(v) === false) return 'light';
   return THEMES.includes(v) ? v : 'light';
 }
 function systemDark() { return matchMedia('(prefers-color-scheme: dark)').matches; }
@@ -9875,10 +9880,12 @@ function doneCount() { return liveTasks().filter(t => t.done).length; }
 // ไม่ไปปลอมจำนวนงานที่ทำเสร็จ ตัวเลข "ผลของฉัน" จึงยังเป็นของจริงอยู่
 const ALLBADGE_KEY = 'studentos.alt.allBadges';
 function allBadgesGranted() {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.vault()?.allBadges === true; }
   try { return localStorage.getItem(ALLBADGE_KEY) === '1'; } catch (_) { return false; }
 }
 
 function badgeEarned(b) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.ownsBadge(b.id); }
   if (b.skin) return themeOwned(b.skin);   // เหรียญธีมลับ — ต้องได้ธีมนั้นมาจริง ๆ เท่านั้น
   if (allBadgesGranted()) return true;
   if (b.genesis) return genesisUnlocked();
@@ -9976,6 +9983,7 @@ const THEME_CRAFT = {
 };
 
 function craftTheme(id) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.craftTheme(id); }
   const c = THEME_CRAFT[id];
   if (!c || secretUnlocked(c.secret)) return;
   if (!themeOwned(c.base)) {
@@ -10003,6 +10011,7 @@ function craftTheme(id) {
 
 function themeLocked(id) { return THEME_GACHA.includes(id) || !!THEME_SHOP[id] || !!THEME_CODE[id]; }
 function themeOwned(id) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { const right=window.StudentOSEconomy.ownsTheme(id); if(right!==null)return right; }
   if (!themeLocked(id)) return true;
   if (THEME_CODE[id]) return codeThemeOwned(id);
   const s = tokenState();
@@ -10010,7 +10019,7 @@ function themeOwned(id) {
   return (s.bought || []).includes(id);
 }
 // ธีมจากโค้ดไม่มีช่วงผ่อนผัน "ใช้อยู่ก่อนแล้วใช้ต่อได้" — มีโค้ดเท่านั้นถึงเห็น
-function themeVisible(id) { return THEME_CODE[id] ? codeThemeOwned(id) : (themeOwned(id) || themePref() === id); }
+function themeVisible(id) { if (typeof window !== 'undefined' && window.StudentOSEconomy && window.StudentOSEconomy.ownsTheme(id)!==null)return window.StudentOSEconomy.ownsTheme(id); return THEME_CODE[id] ? codeThemeOwned(id) : (themeOwned(id) || themePref() === id); }
 
 // ซ่อน/โชว์ปุ่มธีมตามสิทธิ์ — เรียกทุกครั้งที่สิทธิ์เปลี่ยน
 function applyThemeLocks() {
@@ -10024,6 +10033,7 @@ function applyThemeLocks() {
 }
 
 function buyTheme(id) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.buyTheme(id); }
   const t = THEME_SHOP[id];
   if (!t || themeOwned(id)) return;
   const s = tokenState();
@@ -10121,6 +10131,7 @@ new MutationObserver(recs => {
 const LUCK_KEY = 'studentos.alt.luck';
 const LUCK_MULT = 10;
 function luckOn() {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.admin() && window.StudentOSEconomy.vault()?.luck === true; }
   try { return localStorage.getItem(LUCK_KEY) === '1'; } catch (_) { return false; }
 }
 function spinWeight(p) {
@@ -10148,6 +10159,7 @@ function rollPrize() {
 
 // ให้ของจริงตอนหงายการ์ด — เช็ค "ซ้ำ" ณ ตอนนี้ ใบที่สองของรอบเดียวกันจึงนับเป็นซ้ำถูกต้อง
 function grantPrize(r) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.flip(r); }
   if (r.granted) return r;
   const s = tokenState();
   if (r.kind === 'token') {
@@ -10179,6 +10191,7 @@ function grantPrize(r) {
 
 // n = จำนวนใบ · คิดเงินก่อนสุ่ม ถ้าไม่พอไม่สุ่มเลยสักใบ (ไม่หักครึ่ง ๆ กลาง ๆ)
 function paySpin(n) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.paySpin(n); }
   const s = tokenState();
   if (n === 1 && (s.freeSpins || 0) > 0) {
     s.freeSpins -= 1;
@@ -10238,6 +10251,8 @@ function vaultTouch() {
 }
 
 function vaultExport() {
+  const verified = typeof window !== 'undefined' && window.StudentOSEconomy?.vault();
+  if(verified)return {...verified,avatar:(typeof userAvatar==='function'?userAvatar():'')||undefined};
   const av = typeof userAvatar === 'function' ? userAvatar() : '';
   return {
     at: +(localStorage.getItem(VAULT_AT_KEY) || 0),
@@ -10253,6 +10268,7 @@ function vaultExport() {
 
 // รวมของจาก cloud เข้ากับของในเครื่อง — สองแบบ ไม่ใช่แบบเดียว
 function vaultImport(r) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { if(r?.avatar && typeof AV_KEY!=='undefined')try{localStorage.setItem(AV_KEY,r.avatar);}catch{} window.StudentOSEconomy.refresh(); return; }
   if (!r) return;
   const localAt = +(localStorage.getItem(VAULT_AT_KEY) || 0);
   const remoteAt = +r.at || 0;
@@ -10298,6 +10314,7 @@ const TOKEN_ADMIN = [
 let tokenAdmin = false, tokenAdminFor = null;
 // เรียกทุกครั้งที่ currentUser เปลี่ยน · SHA-256 เป็น async จึงจำผลไว้ ให้ tokenState() อ่านได้ทันที
 async function syncTokenAdmin() {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { tokenAdmin=window.StudentOSEconomy.admin(); return; }
   const email = (currentUser && currentUser.email || '').trim().toLowerCase();
   if (email === tokenAdminFor) return;
   tokenAdminFor = email;
@@ -10314,11 +10331,13 @@ function rawTokenState() {
   try { return JSON.parse(localStorage.getItem(TOKEN_KEY)) || {}; } catch (_) { return {}; }
 }
 function tokenState() {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { const verified=window.StudentOSEconomy.tokens(); return window.StudentOSEconomy.admin()?Object.assign(verified,{bal:Infinity}):verified; }
   const s = rawTokenState();
   if (tokenAdmin) s.bal = Infinity;
   return s;
 }
 function saveTokenState(s, quiet) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { window.StudentOSEconomy.refresh(); return false; }
   // ∞ แปลงเป็น JSON ไม่ได้ (กลายเป็น null = ยอดหาย) — เขียนยอดจริงที่มีอยู่กลับลงไปแทน
   if (!Number.isFinite(s.bal)) s = Object.assign({}, s, { bal: rawTokenState().bal || 0 });
   try { localStorage.setItem(TOKEN_KEY, JSON.stringify(s)); } catch (_) {}
@@ -10331,6 +10350,7 @@ function tokenBalance() { return tokenState().bal || 0; }
 function loginStreak() { return tokenState().streak || 0; }
 function skinsOwned() { return tokenState().skins || {}; }
 function addTokens(n) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { window.StudentOSEconomy.refresh(); return window.StudentOSEconomy.tokens().bal || 0; }
   // 12 ต.ค. 69 · ยอดจริง ไม่ใช่ยอดที่โชว์ — บัญชีแอดมินโชว์ ∞ (tokenState) แล้ว ∞ + 100 ถูกเขียนกลับ
   // เป็นยอดเดิมใน saveTokenState = ของรางวัลหายเงียบ ๆ (เจอกับรางวัลฟีดแบ็กของบัญชีเจ้าของ)
   const s = rawTokenState();
@@ -10352,6 +10372,7 @@ function pendingCycleDay() {
 
 // รับของรางวัลของวันนี้ — วันละครั้ง ไม่ว่าจะเปิดแอปกี่รอบ
 function claimDaily() {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.daily(); }
   if (!dailyPending()) return null;
   const s = tokenState();
   const today = rewardDayKey();
@@ -10483,10 +10504,11 @@ function closeDailyCheck() {
   if (wrap) { wrap.hidden = true; wrap.innerHTML = ''; }
   ckClaiming = false;
 }
-function claimDailyFromSheet(btn) {
+async function claimDailyFromSheet(btn) {
   if (ckClaiming) return;                 // กดรัวตอนอนิเมชันเล่นอยู่ = ไม่มีอะไรเกิดซ้ำ
-  const got = claimDaily();
-  if (!got) { closeDailyCheck(); return; }
+  ckClaiming = true;
+  const got = await claimDaily();
+  if (!got) { ckClaiming=false; closeDailyCheck(); return; }
   ckClaiming = true;
   haptic('done');
   const sheet = document.querySelector('#checkin .ck-sheet');
@@ -10792,8 +10814,9 @@ const RANK = { common: 0, rare: 1, legendary: 2, secret: 3, mythic: 4 };
 
 function flipCard(i) {
   if (drawOpen[i]) return;
-  drawOpen[i] = true;
-  const r = grantPrize(drawResults[i]);     // ของเข้ากระเป๋าตอนนี้ ไม่ใช่ตอนกดปุ่ม
+  const r = grantPrize(drawResults[i]);
+  if(!r)return;
+  drawOpen[i]=true;     // ของเข้ากระเป๋าตอนนี้ ไม่ใช่ตอนกดปุ่ม
   const el = document.querySelector('.gc[data-i="' + i + '"]');
   if (el) {
     el.querySelector('.gc-face').innerHTML = cardFace(r);   // เติมหน้าการ์ดตอนจะพลิกเท่านั้น
@@ -10851,7 +10874,7 @@ function oddsText(rarity) {
 function renderWheel() {
   const box = document.getElementById('wheelBody');
   if (!box) return;
-  if (drawResults.length && curScreen === 'scr-wheel') return;  // กำลังโชว์การ์ดอยู่ ห้ามวาดทับ
+  if (drawResults.length && curScreen === 'scr-wheel' && document.querySelector('#gcRing')) return;  // กำลังโชว์การ์ดอยู่ ห้ามวาดทับ
   const s = tokenState();
   const free = s.freeSpins || 0;
   box.innerHTML = `<div class="page-head gc-head">
@@ -10897,6 +10920,7 @@ function renderWheel() {
         ${luckOn() ? '<span class="gc-luck">โชค ×' + LUCK_MULT + '</span>' : ''}
       </div>
     </div>`;
+  renderAccountPendingDraw();
 }
 
 // ความกว้างของแถบอัตรา — ต่างจาก oddsText ตรงที่ต้องเป็นตัวเลขล้วนและมีพื้นขั้นต่ำ
@@ -10927,8 +10951,9 @@ function refreshDrawHead() {
 
 async function doSpin(n) {
   if (drawing || drawBusy()) return;
-  const pay = paySpin(n);
+  const pay = await paySpin(n);
   if (!pay.ok) {
+    if(pay.storage)return;
     haptic('snooze');
     showToast({ title: 'โทเคนไม่พอ', body: 'ต้องใช้ ' + pay.cost + ' โทเคน ยังขาดอีก ' + fmtTok(pay.short) });
     return;
@@ -10938,8 +10963,8 @@ async function doSpin(n) {
   document.getElementById('gcGo10').disabled = true;
 
   // ล็อกผลไว้ตั้งแต่ตอนนี้ (ยุติธรรม — หงายช้าเร็วไม่เปลี่ยนของ) แต่ยังไม่ให้ของ
-  drawResults = Array.from({ length: n }, () => rollPrize());
-  drawOpen = drawResults.map(() => false);
+  drawResults = (typeof window !== 'undefined' && window.StudentOSEconomy) ? window.StudentOSEconomy.tokens().pendingDraw.results : Array.from({ length: n }, () => rollPrize());
+  drawOpen = drawResults.map(r => !!r.granted);
   applyDrawLock();
 
   // ดาวตกก่อน — สีของมันบอกของที่ดีที่สุดในรอบนี้ ก่อนจะเห็นการ์ด (gacha-fx.js · แตะข้ามได้)
@@ -17203,6 +17228,7 @@ let fbPaying = false;
 //   4. บัญชีแอดมินโชว์ยอด ∞ — addTokens เดิมบวกเข้า ∞ แล้วทิ้ง ยอดจริงไม่ขยับ (แก้ที่ addTokens)
 // ============================================================
 async function feedbackPayout(force) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.feedback(force); }
   if (!sb || !currentUser || fbPaying) return;
   let sent = false, last = 0, tried = '';
   try {
@@ -17562,6 +17588,7 @@ async function codeFingerprint(s) {
 }
 
 async function redeemCode() {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.redeem(); }
   const input = document.getElementById('codeInput');
   const msg = document.getElementById('codeMsg');
   if (!input) return;
@@ -17625,6 +17652,7 @@ async function redeemCode() {
 
 // ปลดธีมจากโค้ดแล้วเปลี่ยนให้เลย — คนที่พิมพ์โค้ดธีมมาคือคนที่อยากเห็นธีมนั้นตอนนี้
 function codeUnlockTheme(id) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.refresh(true); }
   try { localStorage.setItem(THEME_CODE[id], '1'); } catch (_) {}
   vaultTouch();
   applyThemeLocks();
@@ -17637,6 +17665,7 @@ function codeUnlockTheme(id) {
 
 // เปิด/ปิดโชคเพิ่ม — เก็บเป็นธงในเครื่อง ไม่ผูกกับยอดโทเคน
 function codeSetLuck(on) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.adminGrant(on ? 'luckOn' : 'luckOff'); }
   try { on ? localStorage.setItem(LUCK_KEY, '1') : localStorage.removeItem(LUCK_KEY); } catch (_) {}
   vaultTouch();
   haptic('done');
@@ -17650,6 +17679,7 @@ function codeSetLuck(on) {
 
 // แจกธีมที่ต้องสุ่ม/ซื้อ · withSecret = แจกระดับลับด้วยไหม
 function grantThemes(withSecret) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.adminGrant('all'); }
   const ts = tokenState();
   ts.skins = ts.skins || {};
   THEME_GACHA
@@ -17662,6 +17692,7 @@ function grantThemes(withSecret) {
 
 // โค้ดใบที่ให้ทุกอย่างจริง ๆ รวมถึงธีมระดับลับ
 function codeGrantEverything() {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.adminGrant('all'); }
   codeGrantAll();
   grantThemes(true);
   renderAll();
@@ -17673,6 +17704,7 @@ function codeGrantEverything() {
 // · เอฟเฟกต์งานเสร็จทั้ง 8 แบบ พร้อมรุ่น 3D · ของแต่งห้องทุกชิ้น
 // ไม่แตะ: ธีม Astral Black (THEME_CODE.astral — ได้จากโค้ดของมันเองเท่านั้น) · ยอดโทเคน (ไม่ใช่ของ) · โชคเพิ่ม (เป็นตัวตั้งค่า)
 function codeGrantAllButAstral() {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.adminGrant('all'); }
   codeGrantAll();          // เหรียญ · ธีมซื้อ/สุ่มที่ไม่ใช่ระดับลับ · ธีมลับกดรัว · Crystal (และเปลี่ยนเป็นธีม Crystal ให้)
   grantThemes(true);       // + ธีมสุ่มระดับลับ
   const ts = tokenState();
@@ -17694,6 +17726,7 @@ function codeGrantAllButAstral() {
 
 // โค้ดโทเคน — เติมยอดให้ก้อนใหญ่ ไว้ลองสุ่มสกินโดยไม่ต้องรอเช็คอินหลายวัน
 function codeGrantTokens(n = CODE_TOKEN_GRANT) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.adminGrant('tokens'); }
   const bal = addTokens(n);
   haptic('done');
   splashBurst(22, 'egg-star');
@@ -17703,6 +17736,7 @@ function codeGrantTokens(n = CODE_TOKEN_GRANT) {
 
 // โค้ดที่ 1 — เปิดทุกอย่างในแอปให้เลย: เหรียญครบทุกอัน + ธีมลับครบทุกโทน
 function codeGrantAll() {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.adminGrant('all'); }
   try { localStorage.setItem(ALLBADGE_KEY, '1'); } catch (_) {}
   vaultTouch();
   // ธีมที่ต้องสุ่ม/ซื้อ ก็เปิดให้ด้วย ไม่งั้น "ปลดล็อกทุกอย่าง" ก็ยังใช้ธีมไม่ได้ครึ่งหนึ่ง
@@ -19493,3 +19527,13 @@ document.addEventListener('keydown', e => {
     e.preventDefault(); roomLampToggle();
   }
 });
+
+// A paid account draw survives reloads without accepting browser-generated cards.
+function renderAccountPendingDraw(){
+  if(typeof window==='undefined'||!window.StudentOSEconomy||curScreen!=='scr-wheel')return;
+  const pending=window.StudentOSEconomy.tokens().pendingDraw,area=document.getElementById('gcArea');
+  if(!pending||!area||area.querySelector('#gcRing'))return;
+  drawResults=pending.results;drawOpen=drawResults.map(r=>!!r.granted);area.className='';area.innerHTML=drawCardsHtml();
+  drawResults.forEach((r,i)=>{if(!r.granted)return;const el=area.querySelector('.gc[data-i="'+i+'"]');if(!el)return;el.querySelector('.gc-face').innerHTML=cardFace(r);el.classList.add('open','lit-'+r.rarity);});
+  ringStop();ringLayout();ringBind();gcRot=0;ringPaint();refreshDrawHead();refreshDrawFooter();applyDrawLock();
+}

@@ -27,9 +27,9 @@ test('a real server quest cannot be completed with client focus counters or acce
  pulse('session-a-long-enough',at+11100);assert.equal(d.event.focusProofs[q.taskId].activeMs,10100);
  pulse('session-a-long-enough',at+60000);assert.equal(d.event.focusProofs[q.taskId].activeMs,10100);
  assert.throws(()=>apply(d,{type:'focus-finish',taskId:q.taskId},at+61000));
- for(let t=70000;t<=1260000;t+=10000)pulse('session-a-long-enough',at+t);
- assert.equal(d.event.focusProofs[q.taskId].activeMs,1200000);d=apply(d,{type:'focus-finish',taskId:q.taskId},at+1270000).document;
- const result=apply(d,{type:'death-quest-claim',quest:q.id},at+1280000);assert.equal(result.document.event.candy,30);assert.throws(()=>apply(result.document,{type:'death-quest-claim',quest:q.id},at+1290000));
+ for(let t=70000;t<=1500000&&d.event.focusProofs[q.taskId].activeMs<1200000;t+=10000){pulse('session-a-long-enough',at+t);const a=d.event.focusProofs[q.taskId].attention;if(a?.challenge)d=apply(d,{type:'focus-check',taskId:q.taskId,checkpoint:a.challenge.id,answer:a.expected},at+t+1).document;}
+ assert.equal(d.event.focusProofs[q.taskId].activeMs,1200000);d=apply(d,{type:'focus-finish',taskId:q.taskId},at+1600000).document;
+ const result=apply(d,{type:'death-quest-claim',quest:q.id},at+1610000);assert.equal(result.document.event.candy,30);assert.throws(()=>apply(result.document,{type:'death-quest-claim',quest:q.id},at+1620000));
 });
 function harness(){let doc=null,time=at;const receipts=new Map();const db={async read(){return doc&&{document:structuredClone(doc)};},async receipt(u,s,tx){return receipts.get(tx);},async commit(x){if((doc?.revision||0)!==x.expected)return {committed:false};if(receipts.has(x.tx))return {committed:true,replay:true,result:receipts.get(x.tx).result};doc=structuredClone(x.document);receipts.set(x.tx,{action:x.action,result:x.result});return {committed:true,replay:false,result:x.result};}};const handler=H.create({authority,db,authenticate:async token=>token==='Bearer valid'?uid:null,clock:()=>time+=1000,season:Season});return {handler,db,receipts,read:()=>doc};}
 const request=(action,requestId=crypto.randomUUID(),token='Bearer valid')=>new Request('https://example.test/halloween-event',{method:'POST',headers:{authorization:token,'content-type':'application/json'},body:JSON.stringify({action,requestId})});

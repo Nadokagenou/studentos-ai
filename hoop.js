@@ -107,6 +107,7 @@ function setDoneFx(id) {
 }
 
 function buyFx(id) {
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) return window.StudentOSEconomy.buyFx(id);
   const f = FX_SHOP[id];
   if (!f || fxOwned(id)) return;
   const s = tokenState();

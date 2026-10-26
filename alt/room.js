@@ -257,7 +257,14 @@ const ROOM_SLOTS = [
 // ---------- สถานะห้อง ----------
 // อยู่ใน state.settings เพื่อให้ติดรถไปกับ sync ก้อนเดิม ไม่ต้องมีท่อของตัวเอง
 function roomState() {
-  const r = (state && state.settings && state.settings.room) || {};
+  const raw = (state && state.settings && state.settings.room) || {};
+  const r = { ...raw, on: { ...raw.on } };
+  for (const [slot,id] of Object.entries(r.on)) if (typeof id === 'string' && id.startsWith('hw-') && !window.HalloweenCosmetics?.owns(id.slice(3))) r.on[slot] = 'none';
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) {
+    r.owned=window.StudentOSEconomy.roomOwned();
+    for(const [slot,id]of Object.entries(r.on)){const item=roomFind(slot,id);if(item?.cost && !r.owned.includes(slot+':'+id))r.on[slot]='none';}
+    for(const [slot,fallback]of [['wall','cream'],['floor','wood'],['light','warm']]){const id=r[slot],item=roomFind(slot,id);if(item?.cost && !r.owned.includes(slot+':'+id))r[slot]=fallback;}
+  }
   return {
     name:   typeof r.name === 'string' ? r.name : '',
     status: typeof r.status === 'string' ? r.status : '',
@@ -279,7 +286,9 @@ function saveRoom(r) {
 function roomOwns(kind, id) {
   const it = roomFind(kind, id);
   if (!it) return false;
+  if (id.startsWith('hw-')) return window.HalloweenCosmetics?.owns(id.slice(3)) === true;
   if (!it.cost) return true;
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) return window.StudentOSEconomy.roomOwned().includes(kind+':'+id);
   return roomState().owned.includes(kind + ':' + id);
 }
 function roomFind(kind, id) {
@@ -454,11 +463,11 @@ function renderRoom() {
           : `<span class="rm-mini">${roomThumb(roomTab, it)}</span>`;
         return `<button class="rm-opt${active ? ' on' : ''}${owned ? '' : ' locked'}"
           onclick="roomPick('${roomTab}','${it.id}')"
-          aria-label="${esc(it.name)}${owned ? '' : ' ' + it.cost + ' โทเคน'}">
+          aria-label="${esc(it.name)}${owned ? '' : it.id.startsWith('hw-') ? ' รางวัล Halloween' : ' ' + it.cost + ' โทเคน'}">
           ${sw}
           <span class="rm-nm">${esc(it.name)}</span>
           ${owned ? (active ? '<span class="rm-on">ใช้อยู่</span>' : '')
-                  : `<span class="rm-cost">${it.cost}</span>`}
+                  : `<span class="rm-cost">${it.id.startsWith('hw-') ? 'อีเวนต์' : it.cost}</span>`}
         </button>`;
       }).join('')}
     </div>
@@ -508,6 +517,8 @@ function roomPick(kind, id) {
 }
 
 function roomBuy(kind, id) {
+  if(id.startsWith('hw-')){window.HalloweenRewardAccess?.explain();return;}
+  if (typeof window !== 'undefined' && window.StudentOSEconomy) return window.StudentOSEconomy.roomBuy(kind,id);
   const it = roomFind(kind, id);
   if (!it || !it.cost) return;
   const s = tokenState();

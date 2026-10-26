@@ -1,5 +1,11 @@
 // Permanent rewards only. event/ can be removed without breaking installation.
 self.HALLOWEEN_SHELL = [
+  "economy/client.js",
+  "economy/client.css",
+  "economy/focus-checkpoints.js",
+  "halloween/invite-friend/thai-night.css",
+  "halloween/invite-friend/thai-estate-night.webp",
+  "halloween/season/cinematic-variants.css",
   "halloween/cache-manifest.js",
   "halloween/rewards/preview-mode.js",
   "halloween/rewards/catalog.js",
@@ -22,6 +28,7 @@ self.HALLOWEEN_SHELL = [
   "halloween/rewards/featured-badge.css",
   "halloween/rewards/ownership.js",
   "halloween/rewards/account-store.js",
+  "halloween/rewards/entitlements.js",
   "halloween/rewards/acquisition.js",
   "halloween/rewards/acquisition.css",
   "halloween/rewards/vault.html",
