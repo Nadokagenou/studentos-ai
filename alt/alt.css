@@ -15634,3 +15634,57 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
   background: color-mix(in srgb, var(--fill) 8%, transparent);
 }
 @media (hover: hover) { .phone #scr-tasks .tk-tick:not(.on):hover { background: color-mix(in srgb, var(--fill) 18%, transparent); } }
+
+/* ============================================================
+   การ์ดงาน · ตกแต่ง + ตัวหนังสือเด่นขึ้น — 26 ต.ค. 69
+   เจ้าของ (ภาพรายการงาน ธีม Halloween): "ตกแต่งสักหน่อยให้มันสวยกว่านี้ ฟอนต์สีเด่นขึ้นมาหน่อย"
+   ① เปลือกการ์ดแบบ Halo (cult-ui · MIT — ชุดเดียวกับช่องถามน้องฮูก/แถบโหลดที่แอปพอร์ตไว้แล้ว):
+      ขอบสะท้อนบน 1px + เส้นขอบบาง + เงาสัมผัส + เงาฟุ้ง · พื้นยังเป็นกระจกเดิม (backdrop-filter ไม่แตะ)
+   ② แสงมุมซ้ายบนสีวิชา — ไอเดีย Spotlight Card (React Bits · MIT + Commons Clause) แต่ตายตัว ไม่ตามนิ้ว
+      (ไม่มีงานต่อเฟรม เครื่องช้าไม่สะดุด) · สีวิชาเป็น "ป้ายชื่อ" ตามกติกาหัวไฟล์ (.sj-*) ไม่ใช่สีความด่วน
+      จึงแค่ฟุ้งจาง ๆ ที่มุม ไม่ย้อมทั้งใบ — แดงของวิชาคณิตต้องไม่ถูกอ่านว่า "ด่วน"
+   ③ ตัวหนังสือ: ชื่องาน 16px หนา หมึกเต็ม · ชื่อวิชามีจุดสีวิชานำหน้า ตัวหนังสือผสมสีวิชากับหมึก (อ่านได้ทั้งธีมมืด/สว่าง)
+      · เวลาที่ใช้เป็นแคปซูลมีไอคอนนาฬิกา · ชิปสถานะหนาขึ้นและมีวงขอบสีของตัวเอง
+   ④ ปุ่ม "เสร็จแล้ว · N งาน" ท้ายรายการ = เปลือกเดียวกับการ์ด ไอคอนเขียว (เขียว = เสร็จ ตามกติกาสีสถานะ)
+   ============================================================ */
+.phone #scr-tasks .tk.sw-card {
+  background:
+    radial-gradient(130% 110% at 0% 0%, color-mix(in srgb, var(--sj) 17%, transparent), transparent 52%),
+    linear-gradient(180deg, color-mix(in srgb, #fff 5%, transparent), transparent 42%),
+    color-mix(in srgb, var(--card) 93%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 10%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--sj) 20%, var(--glass-line, var(--line))),
+    0 1px 2px rgba(0, 0, 0, .22),
+    0 16px 32px -18px rgba(0, 0, 0, .65);
+}
+.phone #scr-tasks .tk.sw-card .tk-ttl { font-size: 16px; font-weight: 700; color: var(--ink); letter-spacing: -.01em; margin-top: 2px; }
+.phone #scr-tasks .tk.sw-card .tk-sub {
+  display: flex; align-items: center; gap: 6px;
+  color: color-mix(in srgb, var(--sj) 45%, var(--ink)); font-weight: 700;
+}
+.phone #scr-tasks .tk.sw-card .tk-sub .sjdot { width: 8px; height: 8px; box-shadow: 0 0 8px -1px var(--sj); }
+.phone #scr-tasks .tk.sw-card .tk-sub .tk-pri { margin-left: 2px; }
+.tk-min svg { width: 13px; height: 13px; flex: none; }
+.phone #scr-tasks .tk.sw-card .tk-min {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px;
+  color: color-mix(in srgb, var(--ink) 88%, transparent);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent);
+}
+.phone #scr-tasks .tk.sw-card .tk-chip { font-weight: 700; font-size: 11.5px; }
+.phone #scr-tasks .tk.sw-card .tk-chip.hot  { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--alert) 45%, transparent); border-color: transparent; }
+.phone #scr-tasks .tk.sw-card .tk-chip.warm { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 45%, transparent); border-color: transparent; }
+.phone #scr-tasks .tk.sw-card .tk-chip.warn { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pri-yellow-text, var(--warn)) 40%, transparent); border-color: transparent; }
+.phone #scr-tasks .tk.sw-card .tk-chip.good,
+.phone #scr-tasks .tk.sw-card .tk-chip.ok   { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--good) 45%, transparent); border-color: transparent; }
+
+.phone #scr-tasks .bin-btn {
+  font-weight: 700; color: color-mix(in srgb, var(--ink) 88%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #fff 5%, transparent), transparent 50%),
+    color-mix(in srgb, var(--card) 90%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 9%, transparent), inset 0 0 0 1px var(--glass-line, var(--line)), 0 10px 24px -16px rgba(0, 0, 0, .6);
+}
+.phone #scr-tasks .bin-btn svg { width: 17px; height: 17px; }
+.phone #scr-tasks .bin-btn.bin-done svg { color: var(--good); }

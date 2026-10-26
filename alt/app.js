@@ -5002,7 +5002,7 @@ function taskCard(t, now, focus) {
   const stars = t.due ? priorityInfo(t, now).stars : 0;
   const hasSubj = subj && subj !== 'อื่น ๆ';
   const subLine = hasSubj || stars
-    ? `<div class="tk-sub">${hasSubj ? esc(subj) : ''}${stars
+    ? `<div class="tk-sub">${hasSubj ? `<span class="sjdot"></span>${esc(subj)}` : ''}${stars
       ? `<span class="tk-pri ${priorityTone(stars)}${hasSubj ? '' : ' solo'}">${starsHtml(stars)}</span>` : ''}</div>`
     : '';
 
@@ -5012,13 +5012,13 @@ function taskCard(t, now, focus) {
   return `<div class="swipe">
     <div class="sw-act done" aria-hidden="true"><span class="sw-ic">${icon('check')}</span>ทำเสร็จแล้ว</div>
     <div class="sw-act snooze" aria-hidden="true">เลื่อนไปพรุ่งนี้<span class="sw-ic">${icon('clock')}</span></div>
-    <div class="tk sw-card${focus ? ' tk-focus' : ''}" data-id="${t.id}" onclick="openForm('${t.id}')">
+    <div class="tk sw-card ${subjClass(subj)}${focus ? ' tk-focus' : ''}" data-id="${t.id}" onclick="openForm('${t.id}')">
       <button class="tk-tick" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
         aria-label="ทำเสร็จ">${icon('check')}</button>
       ${subLine}
       <div class="tk-ttl">${esc(t.detail || '')}</div>
       <div class="tk-meta">${chips}<span class="tk-sp"></span>
-        ${ti.schedulable ? `<span class="tk-min">~${remainingMin(t)} นาที</span>` : ''}</div>
+        ${ti.schedulable ? `<span class="tk-min">${icon('clock')}~${remainingMin(t)} นาที</span>` : ''}</div>
       ${subsHtml}
       ${typeof hwStrip === 'function' ? hwStrip(t) : ''}
       ${typeof topicStrip === 'function' ? topicStrip(t) : ''}
@@ -7428,7 +7428,7 @@ function renderTasks() {
     // (เตี้ยกว่าการ์ดงานหนึ่งใบเสมอ ไม่งั้นมันแย่งที่ของงานที่ใกล้ส่ง ซึ่งเป็นเหตุผลหลักที่คนเปิดแอป)
     + (typeof topicNewsCard === 'function' ? topicNewsCard() : '')
     + (rows.length ? listHTML : tasksEmpty(now, days))
-    + (done.length ? `<button class="bin-btn" onclick="setFilter('done')">
+    + (done.length ? `<button class="bin-btn bin-done" onclick="setFilter('done')">
         ${icon('check-circle')}เสร็จแล้ว · ${done.length} งาน</button>` : '')
     + (bin.length ? `<button class="bin-btn" onclick="setFilter('bin')">
         ${icon('trash')}ถังขยะ · ${bin.length} รายการ</button>` : '');
