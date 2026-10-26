@@ -15466,6 +15466,16 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
    → ช่องวันนี้เป็นพื้นจันทร์หยก สัญญาณ "ตอนนี้/ที่เลือก" ชุดเดียวกับแท็บที่เลือกและปุ่มเริ่ม · ตัวหนังสือเข้มบนจันทร์ ≈ 9:1 */
 :root[data-theme="thai-ghost"] #scr-tasks .wk-row.now .wk-d{background:var(--tg-moon)!important;border-color:transparent!important;box-shadow:0 0 0 3px #D8E8C924,0 6px 16px -8px #D8E8C9AA!important}
 :root[data-theme="thai-ghost"] #scr-tasks .wk-row.now .wk-d :is(b,i){color:var(--on-fill)!important}
+/* 26 ต.ค. 69 · เจ้าของ (ภาพแถบ "เลยเวลาทำงานแล้ว · ว่างอีกที 06:00 พรุ่งนี้ [ขยายเวลา]"): "ปรับให้เห็นได้ชัดกว่านี้"
+   แถบ .dc-line ผสมทุกสีจาก --fill ซึ่งธีมนี้เป็นจันทร์ซีด → พื้นเขียวเข้มทึบบนภาพเข้ม · ขอบ 20% · ปุ่ม "ขยายเวลา" จันทร์ 15% = ก้อนเทา
+   → ขอบจันทร์ชัด + เส้นสะท้อนบน ให้แยกจากฉาก · นาฬิกาเป็นสีเตือน (--warn อำพัน — สีสถานะ "เลยเวลา" ไม่ใช่ทองตกแต่ง)
+   · ข้อความรองสว่างขึ้น · "ขยายเวลา" เป็นแคปซูลจันทร์ทึบ ตัวเข้ม (ดูออกว่ากดได้) · ความสูงเท่าเดิม (หน้าแรกห้ามต้องเลื่อน) */
+:root[data-theme="thai-ghost"] #menuBody .dc-line.td-night{background:#0B2219F2!important;border-color:#D8E8C966!important;box-shadow:inset 0 1px 0 #FFFFFF1F,0 0 0 1px #00000040,0 8px 20px -10px #000000AA}
+:root[data-theme="thai-ghost"] #menuBody .dc-line.td-night .dc-ic{background:color-mix(in srgb,var(--warn) 22%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--warn) 45%,transparent)}
+:root[data-theme="thai-ghost"] #menuBody .dc-line.td-night .dc-ic svg{color:var(--warn)}
+:root[data-theme="thai-ghost"] #menuBody .dc-line.td-night .dc-tx b{color:#FFFFFF}
+:root[data-theme="thai-ghost"] #menuBody .dc-line.td-night .dc-tx small{color:#DCEBDD;font-weight:600}
+:root[data-theme="thai-ghost"] #menuBody .dc-line.td-night > i{background:var(--tg-moon);color:var(--on-fill);font-weight:800;box-shadow:inset 0 1px 0 #FFFFFFB3,0 2px 8px -2px #00000066}
 :root[data-theme="thai-ghost"] #themePick button:not(.active){background:var(--card)!important;color:var(--muted);border-color:var(--line)!important}
 :root[data-theme="thai-ghost"] #themePick button.active{background:var(--blue-soft)!important;color:var(--ink);border-color:var(--tg-moon)!important}
 :root[data-theme="thai-ghost"] .runbar,:root[data-theme="thai-ghost"] .runbar :is(.rb-timer,.rb-stop){color:var(--on-fill)}
