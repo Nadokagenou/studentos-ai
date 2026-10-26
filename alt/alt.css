@@ -6215,6 +6215,24 @@ body.deep-scr .top-friends { display: none; }
   color: var(--muted);
 }
 .set-go { width: 16px; height: 16px; flex: none; color: var(--faint); }
+/* 26 ต.ค. 69 · เจ้าของ (ภาพจอตั้งค่า ธีม Halloween): "ให้มันมองดูออกกว่านี้ ตรงธีมให้เห็นเป็นสีธีมและชื่อที่ใช้เลย"
+   ค่าท้ายแถวเป็น --muted 13px น้ำหนักปกติ บนฉากมืดเลยจางจนต้องเพ่ง → หมึกหลัก 78% หนาขึ้น · ลูกศรชัดขึ้นเล็กน้อย
+   แถวธีม = ป้ายเม็ดยาสีธีม: ช่องสีของธีมจริง (.shw-sw .sw-* ชุดเดียวกับตารางเลือกธีม) + ชื่อธีมตัวหนา
+   ป้ายย้อม --fill จาง ๆ ไม่ใช่ทึบ — มันคือ "ค่าที่ตั้งอยู่" ไม่ใช่ปุ่มหลักของจอ */
+.set-row .set-val { font-size: 13.5px; font-weight: 600; color: color-mix(in srgb, var(--ink) 78%, transparent); }
+.set-row .set-go { color: color-mix(in srgb, var(--ink) 45%, transparent); }
+.set-row .set-val.set-val-theme {
+  display: inline-flex; align-items: center; gap: 7px; max-width: 52%;
+  padding: 4px 11px 4px 4px; border-radius: 999px;
+  background: color-mix(in srgb, var(--fill) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 45%, transparent);
+  color: var(--ink);
+}
+.set-val-theme .shw-sw {
+  flex: none; width: 22px; height: 22px; margin: 0; border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--card), 0 0 10px -2px var(--fill);
+}
+.set-val-theme b { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
 .set-row.danger .set-lb { color: var(--alert); }
 .set-row.danger .set-ic { background: var(--alert-soft); color: var(--alert); }
 
@@ -15579,3 +15597,204 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
    จัดกลางจึงโดนตัดข้างละ 2px · overflow-wrap: anywhere ไม่ช่วย (เบราว์เซอร์ไม่นับว่าก้อนนี้ล้น) · ช่องเหลือ padding 6px แล้ว
    ตัวอักษร 11px คือขั้นต่ำที่อ่านได้ → ยอมให้ตัดบรรทัดกลางคำเฉพาะชื่อเหรียญ (ไม่ตัดกลางสระ/วรรณยุกต์ · ยังตัด 2 บรรทัดเหมือนเดิม) */
 .ab-nm { word-break: break-all; }
+
+/* ============================================================
+   จองาน · อ่านง่ายขึ้น + แถบค้นหาใต้สวิตช์โหมด + ปุ่มเสร็จมีขอบ — 26 ต.ค. 69
+   เจ้าของ (ภาพรายการงาน ธีม Halloween): "ปรับให้ฟอนต์สีชัดกว่านี้ · ปุ่มค้นหาไปอยู่ข้างงานทั้งหมด · ปุ่มเสร็จงานให้มีขอบ"
+   ① ชื่อวิชา (.tk-sub) กับเวลาที่ใช้ (.tk-min) เป็น --muted 11px น้ำหนักปกติ — บนการ์ดมืดจางจนต้องเพ่ง
+      → หมึกหลัก 78% หนาขึ้น ใหญ่ขึ้นนิด · ดาวความสำคัญโตตาม (ยังเล็กกว่าชื่อวิชา)
+   ② ช่องค้นหาเคยอยู่ท้ายรายการ → แถบค้นหาใต้สวิตช์ วันนี้/สัปดาห์/รายการ เหนือการ์ดใบแรก (เจ้าของชี้ตำแหน่งในภาพ)
+      เคยลองเป็นปุ่มแว่นข้างชื่อจอ แต่บนจอกว้างปุ่มทับชื่อจอ และต้องกดก่อนถึงจะเห็นช่อง
+   ③ วงติ๊กเสร็จ: ขอบ 1.5px สี --line (โปร่ง 26% ในธีมมืด) แทบหายไปบนการ์ด → ขอบ 2px สีธีมผสมหมึก
+      ยังเป็นวงกลวง (ยังไม่เสร็จ) · ติ๊กแล้วใช้สีเขียวเดิม (.on) ไม่แตะ
+   ============================================================ */
+.phone #scr-tasks .tk-sub { font-size: 12px; font-weight: 600; color: color-mix(in srgb, var(--ink) 78%, transparent); }
+.phone #scr-tasks .tk-sub .tk-pri { font-size: 11px; }
+.phone #scr-tasks .tk-min { font-size: 12px; font-weight: 600; color: color-mix(in srgb, var(--ink) 78%, transparent); }
+
+#scr-tasks .page-head + .tk-search { margin: 0 0 12px; }
+/* ช่องค้นหา: เดิมพื้น --card2 ไม่มีขอบ บนฉากมืด = กล่องมืดบนพื้นมืด · คำว่า "ค้นหางาน" กับแว่นเป็น --faint
+   → ขอบสีธีม (เงาใน ไม่ดันผัง) · แว่นสีธีม · คำแนะนำในช่องเป็นหมึก 70% · กดแล้วยังได้วงโฟกัสเดิม */
+.phone #scr-tasks .tk-search {
+  background: var(--card);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fill) 55%, transparent), 0 8px 20px -14px rgba(0,0,0,.6);
+}
+.phone #scr-tasks .tk-search > svg { width: 19px; height: 19px; color: color-mix(in srgb, var(--fill) 80%, var(--ink)); stroke-width: 2.4; }
+.phone #scr-tasks .tk-search input { font-weight: 600; }
+.phone #scr-tasks .tk-search input::placeholder { color: color-mix(in srgb, var(--ink) 70%, transparent); font-weight: 500; }
+.phone #scr-tasks .tk-search:focus-within { outline: 2px solid var(--fill); outline-offset: -2px; }
+/* ช่องพิมพ์ข้างในมีวงโฟกัสของตัวเอง (สีรองของธีม) ซ้อนในวงสีธีมของกรอบ — เห็นเป็นกล่องสองชั้น · กรอบบอกโฟกัสแล้ว */
+.phone #scr-tasks .tk-search input:focus { outline: none; }
+/* สวิตช์โหมดอยู่ต่อตอนค้นหา (ไม่มีช่องไหนถูกเลือก) — ปุ่มที่ถูกเลือกสูงกว่าปุ่มปกติ 2px แล้วดึงทั้งแถวให้สูงตาม
+   พิมพ์ตัวแรกแถวเลยเตี้ยลง แถบค้นหาข้างล่างขยับขึ้นใต้นิ้ว → ล็อกความสูงปุ่มเท่ากันทุกสถานะ */
+#scr-tasks .tk-modes .tk-mode { min-height: 32px; }
+
+.phone #scr-tasks .tk-tick:not(.on) {
+  border: 2px solid color-mix(in srgb, var(--fill) 65%, var(--ink));
+  background: color-mix(in srgb, var(--fill) 8%, transparent);
+}
+@media (hover: hover) { .phone #scr-tasks .tk-tick:not(.on):hover { background: color-mix(in srgb, var(--fill) 18%, transparent); } }
+
+/* ============================================================
+   การ์ดงาน · ตกแต่ง + ตัวหนังสือเด่นขึ้น — 26 ต.ค. 69
+   เจ้าของ (ภาพรายการงาน ธีม Halloween): "ตกแต่งสักหน่อยให้มันสวยกว่านี้ ฟอนต์สีเด่นขึ้นมาหน่อย"
+   ① เปลือกการ์ดแบบ Halo (cult-ui · MIT — ชุดเดียวกับช่องถามน้องฮูก/แถบโหลดที่แอปพอร์ตไว้แล้ว):
+      ขอบสะท้อนบน 1px + เส้นขอบบาง + เงาสัมผัส + เงาฟุ้ง · พื้นยังเป็นกระจกเดิม (backdrop-filter ไม่แตะ)
+   ② แสงมุมซ้ายบนสีวิชา — ไอเดีย Spotlight Card (React Bits · MIT + Commons Clause) แต่ตายตัว ไม่ตามนิ้ว
+      (ไม่มีงานต่อเฟรม เครื่องช้าไม่สะดุด) · สีวิชาเป็น "ป้ายชื่อ" ตามกติกาหัวไฟล์ (.sj-*) ไม่ใช่สีความด่วน
+      จึงแค่ฟุ้งจาง ๆ ที่มุม ไม่ย้อมทั้งใบ — แดงของวิชาคณิตต้องไม่ถูกอ่านว่า "ด่วน"
+   ③ ตัวหนังสือ: ชื่องาน 16px หนา หมึกเต็ม · ชื่อวิชามีจุดสีวิชานำหน้า ตัวหนังสือผสมสีวิชากับหมึก (อ่านได้ทั้งธีมมืด/สว่าง)
+      · เวลาที่ใช้เป็นแคปซูลมีไอคอนนาฬิกา · ชิปสถานะหนาขึ้นและมีวงขอบสีของตัวเอง
+   ④ ปุ่ม "เสร็จแล้ว · N งาน" ท้ายรายการ = เปลือกเดียวกับการ์ด ไอคอนเขียว (เขียว = เสร็จ ตามกติกาสีสถานะ)
+   ============================================================ */
+.phone #scr-tasks .tk.sw-card {
+  background:
+    radial-gradient(130% 110% at 0% 0%, color-mix(in srgb, var(--sj) 17%, transparent), transparent 52%),
+    linear-gradient(180deg, color-mix(in srgb, #fff 5%, transparent), transparent 42%),
+    color-mix(in srgb, var(--card) 93%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 10%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--sj) 20%, var(--glass-line, var(--line))),
+    0 1px 2px rgba(0, 0, 0, .22),
+    0 16px 32px -18px rgba(0, 0, 0, .65);
+}
+.phone #scr-tasks .tk.sw-card .tk-ttl { font-size: 16px; font-weight: 700; color: var(--ink); letter-spacing: -.01em; margin-top: 2px; }
+.phone #scr-tasks .tk.sw-card .tk-sub {
+  display: flex; align-items: center; gap: 6px;
+  color: color-mix(in srgb, var(--sj) 45%, var(--ink)); font-weight: 700;
+}
+.phone #scr-tasks .tk.sw-card .tk-sub .sjdot { width: 8px; height: 8px; box-shadow: 0 0 8px -1px var(--sj); }
+.phone #scr-tasks .tk.sw-card .tk-sub .tk-pri { margin-left: 2px; }
+.tk-min svg { width: 13px; height: 13px; flex: none; }
+.phone #scr-tasks .tk.sw-card .tk-min {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px;
+  color: color-mix(in srgb, var(--ink) 88%, transparent);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent);
+}
+.phone #scr-tasks .tk.sw-card .tk-chip { font-weight: 700; font-size: 11.5px; }
+.phone #scr-tasks .tk.sw-card .tk-chip.hot  { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--alert) 45%, transparent); border-color: transparent; }
+.phone #scr-tasks .tk.sw-card .tk-chip.warm { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 45%, transparent); border-color: transparent; }
+.phone #scr-tasks .tk.sw-card .tk-chip.warn { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pri-yellow-text, var(--warn)) 40%, transparent); border-color: transparent; }
+.phone #scr-tasks .tk.sw-card .tk-chip.good,
+.phone #scr-tasks .tk.sw-card .tk-chip.ok   { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--good) 45%, transparent); border-color: transparent; }
+
+.phone #scr-tasks .bin-btn {
+  font-weight: 700; color: color-mix(in srgb, var(--ink) 88%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #fff 5%, transparent), transparent 50%),
+    color-mix(in srgb, var(--card) 90%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 9%, transparent), inset 0 0 0 1px var(--glass-line, var(--line)), 0 10px 24px -16px rgba(0, 0, 0, .6);
+}
+.phone #scr-tasks .bin-btn svg { width: 17px; height: 17px; }
+.phone #scr-tasks .bin-btn.bin-done svg { color: var(--good); }
+
+/* ============================================================
+   ปุ่ม "ลองเล่นดู" ของเอฟเฟกต์งานเสร็จ — 26 ต.ค. 69
+   เจ้าของ (ภาพจอเลือกเอฟเฟกต์ ธีม Halloween): "ปรับให้ปุ่มลองเล่นดูน่าสนใจกว่านี้ ใช้สีที่มองเห็นชัดเจน"
+   เดิม (hoop.css): พื้นโปร่ง ขอบเส้นประ ตัวหนังสือสีรองบาง ๆ — หน้าตาเหมือนช่องว่างให้วางของ ไม่ใช่ปุ่ม
+   ตอนนี้: ปุ่มทึบสีธีม (--fill + --on-fill ชุดเดียวกับปุ่มหลักทั้งแอป จึงอ่านชัดทุกธีม) · ไอคอนเล่น ▶ วาดด้วย clip-path
+   · เปลือกแบบ Halo (cult-ui · MIT: ขอบสะท้อนบน + เงาฟุ้งสีธีม) · แถบแสงวาบพาดผ่านเป็นจังหวะ แบบปุ่ม shine ของ Uiverse (MIT)
+   แสงวาบขยับด้วย transform อย่างเดียว · วิ่ง 0.9 วิ แล้วพัก ~3 วิ (ชวนกด ไม่กระพริบรบกวน)
+   โหมดลื่นหยุด · ลดการเคลื่อนไหวไม่มีแสงวาบ
+   ============================================================ */
+.phone .fx-try {
+  position: relative; overflow: hidden; isolation: isolate;
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  min-height: 46px; margin-top: 12px; border: 0; border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 55%),
+    var(--fill);
+  color: var(--on-fill, #fff);
+  font-size: 15px; font-weight: 800; letter-spacing: .01em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 10px 22px -10px color-mix(in srgb, var(--fill) 80%, transparent);
+  transition: transform .16s cubic-bezier(.23, 1, .32, 1), box-shadow .2s ease;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.phone .fx-try::before {
+  content: ""; flex: none; width: 13px; height: 14px; margin-left: 2px;
+  background: currentColor; clip-path: polygon(0 0, 100% 50%, 0 100%); border-radius: 2px;
+}
+.phone .fx-try::after {
+  content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: 0; width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .38), transparent);
+  transform: translateX(-120%) skewX(-18deg);
+  animation: fx-try-shine 4s cubic-bezier(.45, 0, .2, 1) 1s infinite;
+}
+@keyframes fx-try-shine {
+  0% { transform: translateX(-120%) skewX(-18deg); }
+  22%, 100% { transform: translateX(330%) skewX(-18deg); }
+}
+.phone .fx-try:active { transform: scale(.97); }
+@media (hover: hover) { .phone .fx-try:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 14px 28px -10px color-mix(in srgb, var(--fill) 90%, transparent); } }
+.phone .fx-try:focus-visible { outline: 2px solid var(--fill); outline-offset: 3px; }
+:root[data-lite] .phone .fx-try::after { animation: none; opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .phone .fx-try::after { animation: none; opacity: 0; } .phone .fx-try { transition: none; } }
+
+/* ============================================================
+   เส้นเวลา "ที่เหลือของวันนี้" (จอน้องฮูก · sai.js .dt) · ตกแต่ง — 26 ต.ค. 69
+   เจ้าของ (ภาพ ธีมสว่าง): "ปรับตรงนี้หน่อย มันยังไม่ค่อยสวย"
+   คงของที่เจ้าของเคาะไว้: เวลาตัวหนาคอลัมน์ซ้ายเด่นสุด · ไม่มีรางเส้นตั้ง · ปุ่มเล่าไม่มีดาว (9 ต.ค.)
+   ① การ์ดงาน = เปลือกแบบ Halo (cult-ui · MIT — ชุดเดียวกับการ์ดจองาน): ขอบสะท้อนบน + เส้นขอบบาง + เงาฟุ้ง
+      + จุดสีวิชาหน้าบรรทัดรอง (sai.js ใส่ .sj-* · ดูก็รู้ว่าวิชาไหน เหมือนการ์ดจองาน)
+   ② ตื่น · นอน · พัก: เดิมตัวหนังสือเทาลอย ๆ ขนาดไม่เข้ากับเวลาตัวหนาข้างบน → แคปซูลจางมีไอคอน ☀ ☾ ☕
+      เวลาของแถวพวกนี้กลับมาขนาดเดียวกับแถวงาน (จางกว่า) แถวเวลาจึงเรียงเป็นคอลัมน์เดียวกันทั้งราง
+   ③ "ตอนนี้": แคปซูลแดงมีวงเรืองจาง ๆ · เส้นจางลงเร็วขึ้น (เดิมเส้นแดงยาวเต็มจอแย่งสายตากับงานถัดไป)
+   ④ "ให้น้องฮูกเล่าให้ฟังทีละข้อ": เดิมตัวหนังสือขีดเส้นใต้แบบลิงก์เว็บ → แคปซูลโปร่งสีธีม (ยังเบากว่าปุ่มหลัก)
+   ============================================================ */
+#saiBody .dt-c {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #fff 9%, transparent), transparent 46%),
+    color-mix(in srgb, var(--card) 94%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 18%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--ink) 9%, transparent),
+    0 1px 2px rgba(0, 0, 0, .08),
+    0 12px 26px -16px rgba(0, 0, 0, .45);
+}
+#saiBody .dt-job .dt-x i { font-weight: 600; color: color-mix(in srgb, var(--ink) 70%, transparent); }
+/* จุดเป็น inline ไม่ใช่ flex — บรรทัดรองยาวตัดลงบรรทัดสอง จุดต้องอยู่หน้าบรรทัดแรก ไม่ลอยกลางสองบรรทัด */
+#saiBody .dt-job .dt-x i .sjdot { display: inline-block; width: 7px; height: 7px; margin-right: 6px; vertical-align: 1px; box-shadow: 0 0 6px -1px var(--sj); }
+#saiBody .dt-job.hot .dt-c {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #fff 12%, transparent), transparent 46%),
+    color-mix(in srgb, var(--fill) 15%, var(--card));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 22%, transparent),
+    0 0 0 1.5px color-mix(in srgb, var(--fill) 60%, transparent),
+    0 12px 26px -12px color-mix(in srgb, var(--fill) 65%, transparent);
+}
+#saiBody .dt-tag { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 4px 10px -4px color-mix(in srgb, var(--fill) 80%, transparent); padding: 4px 11px; }
+
+#saiBody .dt-line { align-items: center; }
+#saiBody .dt-line .dt-t { padding-top: 0; font-size: 15px; font-weight: 700; color: color-mix(in srgb, var(--ink) 55%, transparent); }
+#saiBody .dt-l {
+  justify-self: start; display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px 6px 10px; border-radius: 999px;
+  font-size: 13.5px; font-weight: 700; color: color-mix(in srgb, var(--ink) 78%, transparent);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 9%, transparent);
+}
+#saiBody .dt-l svg { width: 15px; height: 15px; flex: none; color: color-mix(in srgb, var(--fill) 70%, var(--ink)); }
+#saiBody .dt-sleep .dt-l svg { color: color-mix(in srgb, #8B7CF6 75%, var(--ink)); }
+#saiBody .dt-wake .dt-l svg { color: color-mix(in srgb, #F2A93B 80%, var(--ink)); }
+
+/* แคปซูล "ตอนนี้" กว้างกว่าคอลัมน์เวลา 52px เลยยื่นออกซ้ายเลยแนวเวลา → คอลัมน์ 58px ทั้งราง + แคปซูลกระชับลง */
+#saiBody :is(.dt-r, .dt-now) { grid-template-columns: 58px minmax(0, 1fr); }
+#saiBody .dt-gap { margin-left: 68px; }
+#saiBody .dt-now span { padding: 3px 8px 3px 6px; gap: 4px; }
+#saiBody .dt-now span { box-shadow: 0 0 0 3px color-mix(in srgb, var(--alert) 18%, transparent), 0 4px 12px -4px color-mix(in srgb, var(--alert) 70%, transparent); }
+#saiBody .dt-now i { height: 2px; background: linear-gradient(90deg, var(--alert), color-mix(in srgb, var(--alert) 35%, transparent) 35%, transparent 85%); }
+
+#saiBody .sai-tour {
+  display: flex !important; align-items: center; justify-content: center; gap: 6px;
+  width: fit-content; margin: 8px auto 4px; padding: 10px 18px; border-radius: 999px;
+  text-decoration: none !important;
+  color: color-mix(in srgb, var(--fill) 60%, var(--ink)) !important;
+  background: color-mix(in srgb, var(--fill) 9%, transparent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 38%, transparent) !important;
+}
+#saiBody .sai-tour::after {
+  content: ""; width: 7px; height: 7px; margin-left: 2px; border: solid currentColor; border-width: 2px 2px 0 0;
+  transform: rotate(45deg); border-radius: 1px;
+}
+#saiBody .sai-tour:active { transform: scale(.97); background: color-mix(in srgb, var(--fill) 16%, transparent) !important; }

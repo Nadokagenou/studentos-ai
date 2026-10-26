@@ -969,10 +969,15 @@ function stashSetOpt() {
 // โดยไม่ต้องกดเข้าไปดูทีละหัวข้อ
 function syncSetVals() {
   const put = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
-  const th = themePref();
-  put('setValTheme', th === 'system'
-    ? 'ตามระบบ · ' + THEME_NAME[systemDark() ? 'dark' : 'light']
-    : (THEME_NAME[th] || ''));
+  // 26 ต.ค. 69 · เจ้าของ: "ตรงธีมให้เห็นเป็นสีธีมและชื่อที่ใช้เลย" — ช่องสีจากคลาส .sw-* ชุดเดียวกับตารางเลือกธีม
+  // ชื่อธีมฮาโลวีนบางตัวไม่อยู่ใน THEME_NAME (runtime.js เพิ่มปุ่มเอง) จึงอ่านชื่อจากปุ่มในตารางแทน
+  const th = themePref(), act = activeTheme();
+  const thName = THEME_NAME[act] || document.querySelector(`#themePick [data-th="${act}"] .nm`)?.textContent || '';
+  const thEl = document.getElementById('setValTheme');
+  if (thEl) {
+    thEl.classList.add('set-val-theme');
+    thEl.innerHTML = `<span class="shw-sw sw-${esc(act)}"></span><b>${esc(th === 'system' ? 'ตามระบบ · ' + thName : thName)}</b>`;
+  }
   put('setValWidget', WG_NAME[widgetPref()] || '');
   put('setValFont', FONT_NAME[fontPref()] || '');
   const nav = navPref();
@@ -5008,7 +5013,7 @@ function taskCard(t, now, focus) {
   const stars = t.due ? priorityInfo(t, now).stars : 0;
   const hasSubj = subj && subj !== 'อื่น ๆ';
   const subLine = hasSubj || stars
-    ? `<div class="tk-sub">${hasSubj ? esc(subj) : ''}${stars
+    ? `<div class="tk-sub">${hasSubj ? `<span class="sjdot"></span>${esc(subj)}` : ''}${stars
       ? `<span class="tk-pri ${priorityTone(stars)}${hasSubj ? '' : ' solo'}">${starsHtml(stars)}</span>` : ''}</div>`
     : '';
 
@@ -5018,13 +5023,13 @@ function taskCard(t, now, focus) {
   return `<div class="swipe">
     <div class="sw-act done" aria-hidden="true"><span class="sw-ic">${icon('check')}</span>ทำเสร็จแล้ว</div>
     <div class="sw-act snooze" aria-hidden="true">เลื่อนไปพรุ่งนี้<span class="sw-ic">${icon('clock')}</span></div>
-    <div class="tk sw-card${focus ? ' tk-focus' : ''}" data-id="${t.id}" onclick="openForm('${t.id}')">
+    <div class="tk sw-card ${subjClass(subj)}${focus ? ' tk-focus' : ''}" data-id="${t.id}" onclick="openForm('${t.id}')">
       <button class="tk-tick" onclick="event.stopPropagation();toggleDone('${t.id}',this)"
         aria-label="ทำเสร็จ">${icon('check')}</button>
       ${subLine}
       <div class="tk-ttl">${esc(t.detail || '')}</div>
       <div class="tk-meta">${chips}<span class="tk-sp"></span>
-        ${ti.schedulable ? `<span class="tk-min">~${remainingMin(t)} นาที</span>` : ''}</div>
+        ${ti.schedulable ? `<span class="tk-min">${icon('clock')}~${remainingMin(t)} นาที</span>` : ''}</div>
       ${subsHtml}
       ${typeof hwStrip === 'function' ? hwStrip(t) : ''}
       ${typeof topicStrip === 'function' ? topicStrip(t) : ''}
@@ -6877,6 +6882,8 @@ function aiVoice() {
 // Reminders) มีหมด · ที่นี่ไม่เคยมี ทั้งที่นักเรียนคนหนึ่งสะสมงานได้เป็นสิบใบภายในสัปดาห์เดียว
 // ค้นในเครื่องล้วน ไม่แตะเน็ต จึงไม่ต้องหน่วงเวลาเหมือนช่องค้นหาเพื่อน
 let taskQ = '';
+// 26 ต.ค. 69 · ช่องค้นหาเคยอยู่ท้ายรายการ (1B47) ต้องเลื่อนผ่านทุกใบก่อนถึง · เจ้าของลองปุ่มแว่นข้างชื่อจอแล้ว
+// (บนจอกว้างปุ่มทับชื่อจอ) ชี้ให้ย้ายลงมา "ใต้สวิตช์ วันนี้/สัปดาห์/รายการ เหนือการ์ดใบแรก" → เป็นแถบค้นหาเห็นตลอด
 
 // ============================================================
 // 1B93 · สวิตช์สองโหมดบนหัวจองาน — เจ้าของสั่งเอง (13 ก.ย. 2569)
@@ -6921,7 +6928,9 @@ let taskView = 'today';
 let tkSwapTimer = 0;
 function setTaskView(v) {
   const next = TASK_VIEWS.includes(v) ? v : 'today';
-  if (next === taskView) return;
+  // กดสวิตช์ระหว่างค้นหา = ออกจากการค้น (สวิตช์ไม่หายตอนค้นแล้ว · ดู viewTabs ใน renderTasks)
+  const hadQ = !!taskQ; taskQ = '';
+  if (next === taskView) { if (hadQ) renderTasks(); return; }
   const dir = TASK_VIEWS.indexOf(next) > TASK_VIEWS.indexOf(taskView) ? 1 : -1;
   taskView = next;
   haptic('tap');
@@ -7353,10 +7362,12 @@ function renderTasks() {
     : taskView === 'today' ? 'วันนี้' : 'สัปดาห์นี้';
   // สวิตช์ไม่โผล่ตอนค้นหา — ผลค้นหาเป็นรายการเรียบเสมออยู่แล้ว (ดู listHTML ข้างล่าง)
   // ปุ่มที่กดแล้วไม่มีอะไรเปลี่ยนคือปุ่มที่ทำให้คนเลิกเชื่อปุ่มอื่นในจอเดียวกัน
-  const viewTabs = taskQ ? '' : `<div class="tk-modes" role="tablist">
+  // 26 ต.ค. 69 · สวิตช์อยู่ต่อแม้กำลังค้น — แถบค้นหาอยู่ใต้มัน ถ้าสวิตช์หายตอนพิมพ์ตัวแรก แถบจะกระโดดขึ้นใต้นิ้ว
+  // ค้นอยู่ = ไม่มีช่องไหนถูกเลือก (ผลค้นเป็นรายการเรียบ ไม่ใช่โหมดไหน) · กดช่องไหน = ออกจากการค้นไปโหมดนั้น (setTaskView)
+  const viewTabs = `<div class="tk-modes" role="tablist">
       ${[['today', 'วันนี้'], ['week', 'สัปดาห์'], ['list', 'รายการ']].map(([id, lb]) =>
-        `<button role="tab" class="tk-mode${taskView === id ? ' on' : ''}"
-          aria-selected="${taskView === id}" onclick="setTaskView('${id}')">${lb}</button>`).join('')}
+        `<button role="tab" class="tk-mode${taskView === id && !taskQ ? ' on' : ''}"
+          aria-selected="${taskView === id && !taskQ}" onclick="setTaskView('${id}')">${lb}</button>`).join('')}
     </div>`;
   // โหมดวันนี้พูดถึงวันเดียว ไม่ใช่ช่วงเจ็ดวัน — บรรทัดบนจึงต้องเป็นวันนั้นกับเวลาว่างของวันนั้น
   // ใช้ช่วงสัปดาห์ต่อไปจะเป็นตัวเลขที่ไม่เกี่ยวกับอะไรบนจอเลยสักตัว
@@ -7380,14 +7391,8 @@ function renderTasks() {
       ${viewTabs}
     </div>`;
 
-  // โหมดวันนี้มีเนื้อจอเป็นของตัวเองทั้งก้อน — ไม่ใช่รายการงานที่ถูกกรองให้เหลือวันเดียว
-  // จึงออกตรงนี้เลย ไม่ต้องเดินต่อไปสร้างลิสต์ ช่องค้นหา และปุ่มถังขยะที่จอนี้ไม่ได้ใช้
-  if (taskView === 'today' && !taskQ) { el.innerHTML = pageHead + todayBoard(now); tkThumbMount(); return; }
-
-  // ช่องค้นหาโผล่เมื่อมีงานพอที่จะหาไม่เจอด้วยตาเปล่า — ต่ำกว่านั้นมันคือช่องว่าง
-  // ที่กินพื้นที่บนสุดของจอโดยไม่มีประโยชน์ (เกณฑ์เดียวกับที่แอปอื่นซ่อนช่องค้นหา
-  // ในลิสต์สั้น ๆ) · แต่ถ้ากำลังค้นอยู่ต้องอยู่ต่อเสมอ ไม่งั้นลบคำค้นแล้วช่องหายไปทั้งช่อง
-  const searchBox = (pending.length >= 6 || taskQ)
+  // แถบค้นหาอยู่ใต้สวิตช์โหมด เหนือการ์ดใบแรก — ขึ้นเมื่อมีงานค้างให้ค้น (หรือกำลังค้นอยู่ ไม่งั้นลบคำค้นแล้วช่องหายทั้งช่อง)
+  const searchBox = (pending.length || taskQ)
     ? `<div class="fr-search tk-search">
         ${icon('search')}
         <input id="tkQ" autocomplete="off" spellcheck="false" placeholder="ค้นหางาน"
@@ -7395,6 +7400,11 @@ function renderTasks() {
         <button class="fr-clear" ${taskQ ? '' : 'hidden'} onclick="clearTaskSearch()"
           aria-label="ล้างคำค้น">${icon('x')}</button>
       </div>` : '';
+
+  // โหมดวันนี้มีเนื้อจอเป็นของตัวเองทั้งก้อน — ไม่ใช่รายการงานที่ถูกกรองให้เหลือวันเดียว
+  // จึงออกตรงนี้เลย ไม่ต้องเดินต่อไปสร้างลิสต์ ช่องค้นหา และปุ่มถังขยะที่จอนี้ไม่ได้ใช้
+  if (taskView === 'today' && !taskQ) { el.innerHTML = pageHead + searchBox + todayBoard(now); tkThumbMount(); return; }
+
 
   // ============================================================
   // 1B47 · หัวจอเหลือชื่อจอกับช่องค้นหา
@@ -7404,8 +7414,7 @@ function renderTasks() {
   // "อยากเห็นงานของวันไหน" — ซึ่งมุมมองสัปดาห์ตอบด้วยการวางงานลงวันของมันเลย
   // ไม่ต้องมีตัวกรองแยกอีกชั้น
   // ภาพร่างมีสองอย่าง: หัวจอกับสัปดาห์ · ช่องค้นหาไม่เคยอยู่ในนั้น
-  // มันย้ายไปท้ายจอแทน (ดู el.innerHTML ข้างล่าง) — คนที่จะค้นหาเลื่อนลงไปหาได้
-  // ส่วนคนที่เปิดมาดูว่าวันนี้มีอะไร ไม่ต้องเลื่อนผ่านช่องที่ตัวเองไม่ได้จะใช้
+  // มันเคยย้ายไปท้ายจอ — 26 ต.ค. 69 กลับขึ้นมาเป็นแถบใต้สวิตช์โหมด (เจ้าของชี้ตำแหน่งเอง) คนจะค้นไม่ต้องเลื่อนลงไปหา
   const head = pageHead;
 
   // ใบแรกของรายการที่ยังไม่เสร็จได้แถบฟ้า = "ใบนี้คือใบที่ควรลงมือ"
@@ -7424,14 +7433,13 @@ function renderTasks() {
     listHTML = rows.map(t => taskCard(t, now, t === firstPending)).join('');
   else listHTML = weekView(rows, now, firstPending);
 
-  el.innerHTML = head
+  el.innerHTML = head + searchBox
     // "มีคนตอบคำถามที่คุณถามไว้" — อยู่บนสุดของรายการงานเพราะจอนี้คือจอที่นักเรียน
     // เปิดทุกวัน · ของที่อยู่ในจอที่ต้องเดินไปหา เท่ากับของที่ไม่มีอยู่
     // (เตี้ยกว่าการ์ดงานหนึ่งใบเสมอ ไม่งั้นมันแย่งที่ของงานที่ใกล้ส่ง ซึ่งเป็นเหตุผลหลักที่คนเปิดแอป)
     + (typeof topicNewsCard === 'function' ? topicNewsCard() : '')
     + (rows.length ? listHTML : tasksEmpty(now, days))
-    + (pending.length >= 6 || taskQ ? searchBox : '')
-    + (done.length ? `<button class="bin-btn" onclick="setFilter('done')">
+    + (done.length ? `<button class="bin-btn bin-done" onclick="setFilter('done')">
         ${icon('check-circle')}เสร็จแล้ว · ${done.length} งาน</button>` : '')
     + (bin.length ? `<button class="bin-btn" onclick="setFilter('bin')">
         ${icon('trash')}ถังขยะ · ${bin.length} รายการ</button>` : '');
@@ -18509,6 +18517,10 @@ function codeGrantEverything() {
 // โค้ด "ได้ทุกอย่าง ยกเว้น Astral Black" (CODE_GIFT · all) — 9 ต.ค. 69
 // ทุกอย่างที่ปลดล็อกได้ในแอป: เหรียญตราครบ · ธีมซื้อ/สุ่มครบรวมระดับลับ · ธีมลับที่ต้องกดรัว · Crystal
 // · เอฟเฟกต์งานเสร็จทั้ง 8 แบบ พร้อมรุ่น 3D · ของแต่งห้องทุกชิ้น
+// 26 ต.ค. 69 · ของจริงอยู่ที่เซิร์ฟเวอร์แล้ว (StudentOSEconomy.adminGrant('all') → economy/server/engine.cjs adminGrant)
+//   เจ้าของ: "freeall ปลดล็อกทุกอย่างตอนนี้ ยกเว้น Astral Black" → ฝั่งเซิร์ฟเวอร์เพิ่มธีมเรือนลับแล (inviteTheme) ให้ด้วย
+//   ของ Halloween ที่เหลือไม่ต้องแจก: ธีม 6 แบบ · เอฟเฟกต์ (ใส่ FX_SHOP ราคา 0) · ของแต่งห้อง · ชุดมาสคอต ไม่มีล็อกในแอปอยู่แล้ว
+//   ที่โค้ดนี้ "แจกไม่ได้" และตั้งใจไม่แจก: ตรา/วัตถุของอีเวนต์ Halloween — เซิร์ฟเวอร์ออกใบรับเองเมื่อชนะจริงเท่านั้น
 // ไม่แตะ: ธีม Astral Black (THEME_CODE.astral — ได้จากโค้ดของมันเองเท่านั้น) · ยอดโทเคน (ไม่ใช่ของ) · โชคเพิ่ม (เป็นตัวตั้งค่า)
 function codeGrantAllButAstral() {
   if (typeof window !== 'undefined' && window.StudentOSEconomy) { return window.StudentOSEconomy.adminGrant('all'); }

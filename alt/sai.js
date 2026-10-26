@@ -607,7 +607,7 @@ function renderSaiPlan() {
         if (!r.over && k.at - cur >= GAP_MIN) items.push({ kind: 'gap', at: cur, to: k.at });
         items.push(k.brk
           ? { kind: 'brk', at: k.at, to: k.at + k.min, title: 'พัก ' + hm(k.min) }
-          : { kind: 'job', at: k.at, to: k.at + k.min, title: k.title, id: k.id,
+          : { kind: 'job', at: k.at, to: k.at + k.min, title: k.title, id: k.id, sj: k.subject,
               sub: [k.subject, hm(k.min), r.over ? 'เลยเวลาว่าง' : ''].filter(Boolean).join(' · '),
               hot: k.id === nowId && k.at === nowAt });
         cur = Math.max(cur, k.at + k.min);
@@ -635,10 +635,12 @@ function renderSaiPlan() {
     if (it.kind === 'gap') return pre + '<div class="dt-gap' + past + '"' + st + '>ว่าง ' + esc(hm(it.to - it.at)) + '</div>';
     const time = '<span class="dt-t">' + esc(min2hm(it.at)) + '</span>';
     if (it.kind === 'job') {
-      return pre + '<div class="dt-r dt-job' + (it.hot ? ' hot' : '') + past + '"' + st + '>' + time
+      // 26 ต.ค. 69 · จุดสีวิชาหน้าบรรทัดรอง — ชุดสีเดียวกับการ์ดงาน (.sj-* ใน alt.css) ดูก็รู้ว่าวิชาไหน
+      const sj = typeof subjClass === 'function' ? ' ' + subjClass(it.sj) : '';
+      return pre + '<div class="dt-r dt-job' + sj + (it.hot ? ' hot' : '') + past + '"' + st + '>' + time
         // 20 ต.ค. 69 · แตะแถว = แผ่นล่างที่เริ่ม/เสร็จ/เลื่อนได้เลย (เดิมเปิดฟอร์มแก้ไข ไกลเกินสำหรับสิ่งที่ทำบ่อยสุด)
         + '<button class="dt-c" onclick="openPlanRowSheet(\'' + it.id + '\',' + (it.to - it.at) + ')">'
-        + '<span class="dt-x"><b>' + esc(it.title) + '</b><i>' + esc(it.sub) + '</i></span>'
+        + '<span class="dt-x"><b>' + esc(it.title) + '</b><i>' + (sj ? '<span class="sjdot"></span>' : '') + esc(it.sub) + '</i></span>'
         + (runId === it.id && typeof runTimerPill === 'function' ? runTimerPill('dt-timer')
           : it.hot ? '<em class="dt-tag">ทำก่อน</em>' : icon('chevron')) + '</button></div>';
     }
@@ -646,9 +648,10 @@ function renderSaiPlan() {
       return pre + '<div class="dt-r dt-' + it.kind + past + '"' + st + '>' + time
         + '<div class="dt-c"><span class="dt-x"><b>' + esc(it.title) + '</b>' + (it.sub ? '<i>' + esc(it.sub) + '</i>' : '') + '</span></div></div>';
     }
-    // พัก · ตื่น · นอน — บรรทัดเล็ก ไม่มีการ์ด
+    // พัก · ตื่น · นอน — บรรทัดเล็ก ไม่มีการ์ด · 26 ต.ค. 69 เป็นแคปซูลจาง ๆ มีไอคอนบอกชนิด (เดิมตัวหนังสือเทาลอย ๆ)
+    const ic = { wake: 'sun', sleep: 'moon', brk: 'coffee' }[it.kind];
     return pre + '<div class="dt-r dt-line dt-' + it.kind + past + '"' + st + '>' + time
-      + '<span class="dt-l">' + esc(it.title) + '</span></div>';
+      + '<span class="dt-l">' + (ic ? icon(ic) : '') + esc(it.title) + '</span></div>';
   }).join('') + (markedNow ? '' : nowLine);
 
   // ---- การ์ดบนสุด: งานถัดไป + ปุ่มเริ่ม ----
