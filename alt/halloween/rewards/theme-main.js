@@ -72,12 +72,13 @@
     const picker = document.getElementById('themePick');
     if (!picker || document.getElementById('hwPreferences')) return;
     const box = document.createElement('div'); box.id = 'hwPreferences'; box.className = 'hw-preferences';
-    box.innerHTML = '<div><span><b>บรรยากาศ Halloween</b><small>เปิดเสียงเพื่อฟังเพลงและเสียงประกอบ</small></span><button type="button" data-hw-pref-sound></button></div><label>ระดับเสียง <input aria-label="ระดับเสียง Halloween" type="range" min="0" max="100" value="' + Math.round(volume * 100) + '"></label><div><span>เพลงพื้นหลัง<small>Midnight Waltz · กล่องดนตรี</small></span><button type="button" data-hw-pref-music></button></div><div><span>ฉากเคลื่อนไหว</span><button type="button" data-hw-pref-motion></button></div><div><span>โทนสี<small>กลางคืน (มืด) หรือแสงจันทร์ (สว่าง)</small></span><button type="button" data-hw-pref-tone></button></div>';
-    box.querySelector('[data-hw-pref-tone]').addEventListener('click', () => setTone(paletteTone === 'light' ? 'dark' : 'light'));
+    box.innerHTML = '<div><span><b>บรรยากาศ Halloween</b><small>เปิดเสียงเพื่อฟังเพลงและเสียงประกอบ</small></span><button type="button" class="hw-sw" role="switch" aria-label="เสียงบรรยากาศ Halloween" data-hw-pref-sound><i></i></button></div><label>ระดับเสียง <input class="hw-vol" aria-label="ระดับเสียง Halloween" type="range" min="0" max="100" value="' + Math.round(volume * 100) + '" style="--hw-v:' + Math.round(volume * 100) + '%"></label><div><span>เพลงพื้นหลัง<small>Midnight Waltz · กล่องดนตรี</small></span><button type="button" class="hw-sw" role="switch" aria-label="เพลงพื้นหลัง Halloween" data-hw-pref-music><i></i></button></div><div><span>ฉากเคลื่อนไหว</span><button type="button" class="hw-sw" role="switch" aria-label="ฉากเคลื่อนไหว Halloween" data-hw-pref-motion><i></i></button></div><div><span>โทนสี<small>กลางคืน (มืด) หรือแสงจันทร์ (สว่าง)</small></span><span class="hw-seg" role="radiogroup" aria-label="โทนสี" data-hw-pref-tone><button type="button" role="radio" data-tone="dark">กลางคืน</button><button type="button" role="radio" data-tone="light">แสงจันทร์</button></span></div>';
+    box.querySelectorAll('[data-hw-pref-tone] button').forEach(b => b.addEventListener('click', () => setTone(b.dataset.tone)));
     box.querySelector('[data-hw-pref-sound]').addEventListener('click', () => sound(!enabled));
     box.querySelector('[data-hw-pref-motion]').addEventListener('click', toggleMotion);
     box.querySelector('[data-hw-pref-music]').addEventListener('click', () => setMusic(!musicEnabled));
-    box.querySelector('input').addEventListener('input', e => setVolume(Number(e.target.value) / 100));
+    // --hw-v = ตำแหน่งเติมสีของรางเสียง (theme-main.css วาดจากค่านี้) — ตั้งทุกครั้งที่ลาก
+    box.querySelector('input').addEventListener('input', e => { e.target.style.setProperty('--hw-v', e.target.value + '%'); setVolume(Number(e.target.value) / 100); });
     picker.after(box); updateControls();
   }
   // Me list, Moon & Candle only: a featured pair and three engraved headstones. Every other theme keeps
@@ -254,12 +255,13 @@
   }
   function updateControls() {
     document.querySelectorAll('button[data-hw-sound]').forEach(button => { button.setAttribute('aria-label', enabled ? 'ปิดเสียง Halloween' : 'เปิดเสียง Halloween'); button.title = enabled ? 'ปิดเสียง Halloween' : 'เปิดเสียง Halloween'; button.setAttribute('aria-pressed', String(enabled)); });
-    const s = document.querySelector('[data-hw-pref-sound]'); if (s) s.textContent = enabled ? 'เสียงเปิดอยู่' : 'เปิดเสียง';
-    const music = document.querySelector('[data-hw-pref-music]'); if (music) { music.textContent = musicEnabled ? 'เปิดไว้' : 'ปิดไว้'; music.setAttribute('aria-pressed', String(musicEnabled)); music.setAttribute('aria-label', musicEnabled ? 'ปิดเพลงพื้นหลัง Halloween' : 'เปิดเพลงพื้นหลัง Halloween'); }
+    // สวิตช์ในกล่องตัวเลือก: สถานะอยู่ที่ aria-checked (CSS เลื่อนปุ่มกลมจากค่านี้) ไม่ใช่ข้อความบนปุ่ม
+    const s = document.querySelector('[data-hw-pref-sound]'); if (s) s.setAttribute('aria-checked', String(enabled));
+    const music = document.querySelector('[data-hw-pref-music]'); if (music) music.setAttribute('aria-checked', String(musicEnabled));
     const moving = motion === 'full' && root.dataset.lite !== '1' && root.dataset.quality !== 'low';
-    const m = document.querySelector('[data-hw-pref-motion]'); if (m) { m.textContent = moving ? 'หยุดภาพ' : 'เปิดภาพเคลื่อนไหว'; m.setAttribute('aria-pressed', String(moving)); }
+    const m = document.querySelector('[data-hw-pref-motion]'); if (m) m.setAttribute('aria-checked', String(moving));
     document.querySelectorAll('button[data-hw-motion]').forEach(button=>{const label=moving?'หยุดภาพเคลื่อนไหว Halloween':'เปิดภาพเคลื่อนไหว Halloween';button.textContent=moving?'Ⅱ':'▶';button.title=label;button.setAttribute('aria-label',label);button.setAttribute('aria-pressed',String(moving));});
-    const t = document.querySelector('[data-hw-pref-tone]'); if (t) { t.parentElement.hidden = !isMoon(); const light = root.dataset.hwTone === 'light'; t.textContent = light ? 'แสงจันทร์' : 'กลางคืน'; t.setAttribute('aria-pressed', String(light)); t.setAttribute('aria-label', light ? 'เปลี่ยนเป็นโทนกลางคืน' : 'เปลี่ยนเป็นโทนแสงจันทร์'); }
+    const t = document.querySelector('[data-hw-pref-tone]'); if (t) { t.parentElement.hidden = !isMoon(); const tone = root.dataset.hwTone === 'light' ? 'light' : 'dark'; t.dataset.on = tone; t.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', String(b.dataset.tone === tone))); }
     const prefs = document.getElementById('hwPreferences'); if (prefs) prefs.hidden = !active;
     root.dataset.hwSound = enabled ? 'on' : 'off';
     if (parent !== window) { const screen = document.querySelector('.screen.on'); parent.postMessage({ type: 'studentos-halloween-status', sound: enabled, motion, active, audio: root.dataset.hwAudio || 'off', moving: active && getComputedStyle(document.querySelector('.hw-haze')).animationName !== 'none', ornaments: document.querySelectorAll('.hw-ornament').length, viewport: [innerWidth, innerHeight], overflow: document.documentElement.scrollWidth > innerWidth, screen: screen?.id, screenScroll: screen ? screen.scrollHeight - screen.clientHeight : 0 }, location.origin); }

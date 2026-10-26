@@ -738,6 +738,10 @@ function navMode() {
 
 function applyNav() {
   document.documentElement.dataset.nav = navMode();
+  // ค่าที่ผู้ใช้เลือกเอง (auto/bottom/side) — CSS ช่วงแท็บเล็ต (device-preview-controls.css) บังคับแถบล่างแบบมือถือ
+  // แต่ data-nav="side" เกิดได้ทั้งจาก "อัตโนมัติ" บนจอกว้างและจากการกด "ด้านซ้าย" เอง จึงแยกสองกรณีไม่ออก
+  // (26 ต.ค. 69 · เจ้าของ: "ในไอแพดปุ่มเมื่อกดไม่ไปอยู่ฝั่งซ้าย") → บอก CSS ด้วยว่าผู้ใช้สั่งเองหรือเปล่า
+  document.documentElement.dataset.navPref = navPref();
   syncTimelineNow(); // ความกว้างจอเปลี่ยน → หมุด "ตอนนี้" ต้องคำนวณใหม่
 }
 
@@ -3719,7 +3723,13 @@ const DECK_N = 2;                 // สไลด์จริง — ราง =
 const deck = { idx: 0, held: false, timer: 0 };
 
 // ตำแหน่งเลื่อนของสไลด์ช่องที่ k ในราง · สไลด์ห่างกันด้วยระยะเว้น (margin) จึงคูณความกว้างตรง ๆ ไม่ได้
-function deckPos(t, k) { return t.children[k].offsetLeft - t.children[0].offsetLeft; }
+// 26 ต.ค. 69 · จำระยะห่างสไลด์ไว้ (ทุกสไลด์กว้าง 100% + เว้น 28px เท่ากันหมด today.css → ช่องที่ k = k × ระยะ)
+// เดิมอ่าน offsetLeft ทุกครั้ง (ตอนวาดหน้าแรก · ตอนเลื่อน · ทุก 5 วิที่สไลด์เลื่อนเอง) = บังคับคิดผังทั้งหน้าทุกครั้ง
+// โปรไฟล์ lowspec เครื่อง low: deckPos กินเวลาของตัวเอง 3.6 วิใน 2 นาที มากสุดของโค้ดแอป
+// วัดใหม่เมื่อรางเปลี่ยนขนาด (ResizeObserver เรียกหลังคิดผังแล้ว การอ่านตรงนั้นแทบไม่เสียอะไร)
+let deckPitch = 0;
+function deckMeasure(t) { const p = t.children[1] ? t.children[1].offsetLeft - t.children[0].offsetLeft : 0; if (p > 0) deckPitch = p; }
+function deckPos(t, k) { if (!deckPitch) deckMeasure(t); return k * deckPitch; }
 function deckNearest(t) {
   let best = 0;
   for (let k = 1; k < t.children.length; k++)
@@ -3743,7 +3753,11 @@ function deckPaint() {
   // แถบเวลาในจุดที่กำลังโชว์ = อีกนานแค่ไหนจะเลื่อน · หยุดเลื่อนแล้วแถบเต็มนิ่ง
   root.style.setProperty('--dk-stay', DECK_STAY[deck.idx] + 'ms');
   root.classList.toggle('auto', !deck.held);
-  root.classList.remove('tick'); void root.offsetWidth; root.classList.add('tick');
+  // เริ่มแถบเวลาใหม่ด้วยการสลับชื่ออนิเมชัน (tick ↔ tock · keyframes คนละชื่อ เนื้อเดียวกันใน today.css)
+  // 26 ต.ค. 69 · เดิมถอด class แล้วอ่าน offsetWidth ให้เบราว์เซอร์ลืมอนิเมชันเก่า — การอ่านนั้นบังคับคิดสไตล์
+  // ทั้งหน้าแรกใหม่ทันทีทุกครั้งที่วาด (โปรไฟล์ CPU ช้า 8 เท่า: 137ms ต่อการเปิดหน้าแรก)
+  const odd = root.classList.contains('tick');
+  root.classList.toggle('tick', !odd); root.classList.toggle('tock', odd);
 }
 function deckArm() {
   clearTimeout(deck.timer);
@@ -3760,6 +3774,7 @@ function deckArm() {
 function deckMount() {
   const t = document.getElementById('dkTrack');
   if (!t) return;
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => deckMeasure(t)).observe(t);
   t.scrollTo({ left: deckPos(t, deck.idx + 1), behavior: 'instant' });
   let settle = 0;
   t.addEventListener('scroll', () => {
@@ -8285,14 +8300,16 @@ function calHtml(now) {
       <h1 class="page-title">ปฏิทิน</h1>
     </div>
     ${tlModeTabs()}${hint}
-    <div class="calbar">
-      <button onclick="calShift(-1)" aria-label="เดือนก่อน">${icon('chevron')}</button>
-      <b>${MONTH_FULL[m]} ${y + 543}</b>
-      <button onclick="calShift(1)" aria-label="เดือนถัดไป">${icon('chevron')}</button>
+    <div class="cal-card">
+      <div class="calbar">
+        <button onclick="calShift(-1)" aria-label="เดือนก่อน">${icon('chevron')}</button>
+        <b>${MONTH_FULL[m]} ${y + 543}</b>
+        <button onclick="calShift(1)" aria-label="เดือนถัดไป">${icon('chevron')}</button>
+      </div>
+      <div class="calwd">${['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
+        .map(x => `<span>${x}</span>`).join('')}</div>
+      <div class="calgrid">${cells}</div>
     </div>
-    <div class="calwd">${['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
-      .map(x => `<span>${x}</span>`).join('')}</div>
-    <div class="calgrid">${cells}</div>
     ${detail}`;
 }
 
@@ -20060,10 +20077,15 @@ function syncLiteRow() { syncGfxRow(); }
       get() { return d.get.call(inp); },
       set(v) { d.set.call(inp, v); sync(false); },
     });
-    place();
+    // 26 ต.ค. 69 · วัดตำแหน่งช่องในเฟรมถัดไป ไม่ใช่ทันที — attach รันจาก MutationObserver ตอนหน้าแรกเพิ่งถูกวาดใหม่
+    // อ่าน offsetLeft/getComputedStyle ตอนนั้น = บังคับคิดสไตล์+ผังทั้งหน้าซ้ำอีกรอบ (CPU ช้า 8 เท่า: ~100ms ต่อการเปิดหน้าแรก)
+    // เฟรมถัดไปผังถูกคิดไว้แล้วตามปกติ การอ่านแทบไม่เสียอะไร · ชั้นเงาว่างอยู่หนึ่งเฟรม (ข้อความตัวอย่างค่อย ๆ ไหลเข้ามาอยู่แล้ว)
+    requestAnimationFrame(place);
     sync(false);
     showPhrase(phrases[0]);
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(place);
+    // วัดซ้ำหลังฟอนต์โหลดเสร็จ — เฉพาะตอนที่ยังโหลดไม่เสร็จจริง · ฟอนต์พร้อมแล้ว .then() จะรัน place ทันทีเป็น microtask
+    // (ก่อนเฟรม) = บังคับคิดผังซ้ำ ซึ่งลบผลของ requestAnimationFrame ข้างบน (trace 26 ต.ค. 69: 136ms ที่บรรทัดนี้)
+    if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(() => requestAnimationFrame(place));
     if (phrases.length > 1) cycle = setInterval(tick, 3600);
   }
 

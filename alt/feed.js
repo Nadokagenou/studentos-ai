@@ -90,11 +90,19 @@ function avStyleDark(name) {
   return `background:hsl(${h} 38% 26%);color:hsl(${h} 70% 82%)`;
 }
 // ธีมมืดต้องใช้อีกชุด ไม่งั้นตัวหนังสือเข้มบนพื้นอ่อนจะแสบตากลางฟีดสีดำ
+// 26 ต.ค. 69 · จำผลไว้ต่อธีม+โทน — getComputedStyle ตรงนี้ถูกเรียกทุกรูปโปรไฟล์ระหว่างที่จอกำลังวาดใหม่
+// เบราว์เซอร์จึงต้องคิดสไตล์ทั้งหน้าใหม่ทันทีทุกครั้ง (โปรไฟล์ที่ CPU ช้า 8 เท่า: 200ms ตอนเปิดแท็บ "ฉัน")
+// color-scheme เปลี่ยนเฉพาะตอนเปลี่ยนธีม/โทน → อ่านครั้งเดียวต่อค่านั้น
+let avDarkKey = '', avDark = false;
 function avOf(name) {
-  const dark = getComputedStyle(document.documentElement)
-    .getPropertyValue('color-scheme').trim() === 'dark'
-    || matchMedia('(prefers-color-scheme: dark)').matches;
-  return dark ? avStyleDark(name) : avStyle(name);
+  const r = document.documentElement;
+  const sysDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const key = (r.dataset.theme || '') + '|' + (r.dataset.hwTone || '') + '|' + sysDark;
+  if (key !== avDarkKey) {
+    avDarkKey = key;
+    avDark = getComputedStyle(r).getPropertyValue('color-scheme').trim() === 'dark' || sysDark;
+  }
+  return avDark ? avStyleDark(name) : avStyle(name);
 }
 
 // ============================================================

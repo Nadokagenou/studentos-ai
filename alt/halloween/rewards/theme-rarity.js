@@ -11,9 +11,14 @@
  function install(){if(typeof document==='undefined')return;const picker=document.getElementById('themePick');if(!picker)return;
   picker.classList.add('th-catalog');const source=()=>({catalog:window.StudentOSHalloweenRewards,spinTable:typeof SPIN_TABLE==='undefined'?[]:SPIN_TABLE,shop:typeof THEME_SHOP==='undefined'?{}:THEME_SHOP,craft:typeof THEME_CRAFT==='undefined'?{}:THEME_CRAFT});
   const sections=new Map();for(const t of tiers){const box=document.createElement('section');box.className='th-rarity';box.dataset.rarity=t.id;box.style.setProperty('--rarity-color',t.color);box.hidden=true;const h=document.createElement('h3');h.innerHTML='<span>'+t.en+' <small>· '+t.name+'</small></span><em></em>';const grid=document.createElement('div');grid.className='th-grid';box.append(h,grid);picker.append(box);sections.set(t.id,{box,grid,h});}
-  let queued=false;function paint(){queued=false;const data=source();for(const b of picker.querySelectorAll('button[data-th]')){const tier=classify(b.dataset.th,data),group=sections.get(tier)||sections.get('basic');if(b.parentElement!==group.grid)group.grid.append(b);}
+  // 26 ต.ค. 69 · วาดเฉพาะตอนจอที่มีตัวเลือกธีมเปิดอยู่ — paint อ่าน getComputedStyle ของทุกปุ่มธีม (บังคับคิดสไตล์ทั้งหน้า)
+  // และตัวฟังด้านล่างยิงทุกครั้งที่ class/ธีมของ <html> เปลี่ยน ซึ่งเกิดทุกครั้งที่สลับจอ (โปรไฟล์ CPU ช้า 8 เท่า: 190ms ระหว่างสลับจอ)
+  // ตัวเลือกธีมไม่ได้อยู่ในจอตลอด — พักไว้ใน #setStash (ซ่อน) แล้วถูกย้ายเข้าจอตอนเปิดหน้าตั้งค่าธีม จึงเช็คจากจอไม่ได้
+  // ใช้ IntersectionObserver บอกว่าตัวเลือกโผล่ให้เห็นจริงหรือยัง (ไม่ต้องอ่านผัง) · มองไม่เห็น = จดไว้ แล้ววาดครั้งเดียวตอนโผล่ · ผลบนจอเหมือนเดิม
+  let vis=typeof IntersectionObserver==='undefined',dirty=false;
+  let queued=false;function paint(){queued=false;if(!vis){dirty=true;return;}dirty=false;const data=source();for(const b of picker.querySelectorAll('button[data-th]')){const tier=classify(b.dataset.th,data),group=sections.get(tier)||sections.get('basic');if(b.parentElement!==group.grid)group.grid.append(b);}
    for(const {box,grid,h}of sections.values()){const n=[...grid.children].filter(b=>!b.hidden&&getComputedStyle(b).display!=='none').length;if(box.hidden===(n>0))box.hidden=!n;const text=n+' ธีม';if(h.querySelector('em').textContent!==text)h.querySelector('em').textContent=text;}}
-  const queue=()=>{if(!queued){queued=true;requestAnimationFrame(paint);}};new MutationObserver(queue).observe(picker,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class']});new MutationObserver(queue).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class','data-deep','data-earth2','data-sweet','data-genesis']});paint();
+  const queue=()=>{if(!queued){queued=true;requestAnimationFrame(paint);}};new MutationObserver(queue).observe(picker,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class']});new MutationObserver(queue).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class','data-deep','data-earth2','data-sweet','data-genesis']});if(!vis)new IntersectionObserver(es=>{vis=es[es.length-1].isIntersecting;if(vis&&dirty)queue();}).observe(picker);paint();
  }
  return Object.freeze({tiers,classify,groups,install});
 });
