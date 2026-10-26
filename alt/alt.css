@@ -15493,6 +15493,10 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 :root[data-theme="thai-ghost"] #menuBody .tn-cta .tc-main{background:none;box-shadow:none;border:0;color:inherit}
 :root[data-theme="thai-ghost"] #menuBody .tn-ib{background:var(--tg-glass);border:1px solid #D8E8C933;color:var(--tg-moon)}
 :root[data-theme="thai-ghost"] #menuBody :is(.tn-route .tk-t){color:#FFFFFF}
+/* 26 ต.ค. 69 · เจ้าของ (ภาพหัวการ์ด "ยังไม่มีคิว · ใช้เวลา 40 นาที" แทบมองไม่เห็น): "ปรับตรงนี้หน่อย"
+   บรรทัดเส้นทางมีสองแบบ: มีเวลา (.tk-t — ตั้งขาวไว้แล้ว) กับยังไม่มีคิว (.tk-solo — ตกหล่น ได้ --on-fill เขียวเข้มบนหัวเขียวป่า)
+   → จันทร์หยกแบบเดียวกับชื่อวิชา/คะแนนบนหัวเดียวกัน (≥ 4.5 บน #174E39 ตามเทสต์ธีม) · ทึบเต็ม ไม่ใช้ opacity .9 เดิม */
+:root[data-theme="thai-ghost"] #menuBody .td-now .tn-head .tn-route .tk-solo{color:#D8E8C9!important;opacity:1;font-weight:700}
 :root[data-theme="thai-ghost"] #menuBody .td-ask{background:var(--tg-glass)!important;border-color:var(--tg-edge)!important;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 :root[data-theme="thai-ghost"] .td-ask::before,:root[data-theme="thai-ghost"] .td-ask::after{display:none}
 :root[data-theme="thai-ghost"] .td-ask .tk-in{background:transparent}
