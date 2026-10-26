@@ -64,3 +64,12 @@ test('Jade Moon: painted night scene, one solid forest-green hero block, no ghos
  assert.match(css,/@media \(prefers-reduced-motion: reduce\)\{[^@]*thai-ghost/);
  assert.match(css,/data-theme="thai-ghost"\] \.set-card \.set-row\{[^}]*background:transparent/);
 });
+test('accounts the owner granted by hand use the Thai theme without the quest; everyone else still needs 3 friends and 1 task',()=>{
+ const h=harness();
+ for(const id of ['d824e935-0929-4330-a2e8-98a56c171b57','cba92754-b051-4a3b-ad13-06eef10064dd','bcc25fe2-7b6c-460a-a623-e10a7ab66995']){
+  h.run(`currentUser={id:'${id}'};ivData={used:0};state.funnel={};state.tasks=[]`);
+  assert.equal(h.run('inviteUnlocked()'),true,id);assert.equal(h.run("inviteThemeGate('thai-ghost')"),false);
+ }
+ h.run("currentUser={id:'someone-else'};ivData={used:2};state.funnel={hwTaskAt:'2026-10-24T10:00:00Z'}");assert.equal(h.run('inviteUnlocked()'),false);
+ h.run('currentUser=null');assert.equal(h.run('inviteUnlocked()'),false);
+});
