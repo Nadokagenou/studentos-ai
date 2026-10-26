@@ -1365,7 +1365,7 @@ function accountLocalKeys() {
   const take = f => { try { const k = f(); if (typeof k === 'string' && k) out.push(k); } catch (_) {} };
   [() => TOKEN_KEY, () => ALLBADGE_KEY, () => LUCK_KEY, () => GENESIS_KEY, () => VAULT_AT_KEY, () => AV_KEY,
     () => AI_LOG_KEY, () => AI_CHATS_KEY, () => PLAN_KEY, () => NOTIF_KEY, () => SOCIAL_SEEN_KEY,
-    () => CHECKIN_ASKED_KEY, () => SYNC_BASE_KEY].forEach(take);
+    () => CHECKIN_ASKED_KEY, () => SYNC_BASE_KEY, () => INVITE_CODE_KEY].forEach(take);
   try { for (const k of Object.values(THEME_CODE)) out.push(k); } catch (_) {}
   try { for (const s of Object.values(SECRETS)) if (s && s.store) out.push(s.store); } catch (_) {}
   return [...new Set(out)];
@@ -10749,6 +10749,8 @@ function vaultExport() {
     luck: localStorage.getItem(LUCK_KEY) === '1',
     genesis: localStorage.getItem(GENESIS_KEY) === '1',
     codeThemes: Object.keys(THEME_CODE).filter(codeThemeOwned),
+    // ธีมเรือนลับแลที่ปลดด้วยโค้ด (ไม่ใช่ด้วยภารกิจ — อันนั้นเซิร์ฟเวอร์นับเอง) · ตัวแปรอยู่ใน invite-friend.js
+    inviteTheme: typeof INVITE_CODE_KEY === 'string' && localStorage.getItem(INVITE_CODE_KEY) === '1',
     // รูปโปรไฟล์ย่อเป็นจัตุรัส 256px คุณภาพ .82 มาแล้ว ราว 20KB — เล็กพอจะพกไปด้วย
     avatar: av || undefined,
   };
@@ -10768,6 +10770,7 @@ function vaultImport(r) {
     if (r.luck) localStorage.setItem(LUCK_KEY, '1');
     if (r.genesis) localStorage.setItem(GENESIS_KEY, '1');
     for (const id of r.codeThemes || []) if (THEME_CODE[id]) localStorage.setItem(THEME_CODE[id], '1');
+    if (r.inviteTheme && typeof INVITE_CODE_KEY === 'string') localStorage.setItem(INVITE_CODE_KEY, '1');
   } catch (_) {}
 
   const local = rawTokenState();
@@ -18302,6 +18305,7 @@ async function clearAll() {
     try { localStorage.removeItem(ALLBADGE_KEY); } catch (_) {}
     try { localStorage.removeItem(GENESIS_KEY); } catch (_) {}
     for (const k of Object.values(THEME_CODE)) { try { localStorage.removeItem(k); } catch (_) {} }
+    if (typeof INVITE_CODE_KEY === 'string') { try { localStorage.removeItem(INVITE_CODE_KEY); } catch (_) {} }
     applySecrets();
     applyGenesisUnlock();
     applyThemeLocks();
@@ -18318,6 +18322,7 @@ function relockSecrets() {
   // เหรียญที่เปิดด้วยโค้ดก็ล็อกกลับพร้อมกัน — ปุ่มนี้ต้องพากลับไปจุดเริ่มต้นได้จริง
   try { localStorage.removeItem(ALLBADGE_KEY); } catch (_) {}
   for (const k of Object.values(THEME_CODE)) { try { localStorage.removeItem(k); } catch (_) {} }
+  if (typeof INVITE_CODE_KEY === 'string') { try { localStorage.removeItem(INVITE_CODE_KEY); } catch (_) {} }
   applySecrets();
   applyGenesisUnlock();
   applyThemeLocks();
@@ -18479,8 +18484,14 @@ function codeGrantEverything() {
 // โค้ด "ได้ทุกอย่าง ยกเว้น Astral Black" (CODE_GIFT · all) — 9 ต.ค. 69
 // ทุกอย่างที่ปลดล็อกได้ในแอป: เหรียญตราครบ · ธีมซื้อ/สุ่มครบรวมระดับลับ · ธีมลับที่ต้องกดรัว · Crystal
 // · เอฟเฟกต์งานเสร็จทั้ง 8 แบบ พร้อมรุ่น 3D · ของแต่งห้องทุกชิ้น
+// 26 ต.ค. 69 · เจ้าของ: "freeall แก้ให้ปลดล็อกทุกอย่างตอนนี้ ยกเว้น Astral Black" → + ธีมเรือนลับแล (ภารกิจชวนเพื่อน · INVITE_CODE_KEY)
+//   ของ Halloween ที่เหลือไม่ต้องแจก: ธีม 6 แบบ · เอฟเฟกต์ (ใส่ FX_SHOP ราคา 0) · ของแต่งห้อง · ชุดมาสคอต ไม่มีล็อกในแอปอยู่แล้ว
+//   ที่โค้ดนี้ "แจกไม่ได้" และตั้งใจไม่แจก: ตรา/วัตถุของอีเวนต์ Halloween — เซิร์ฟเวอร์ออกใบรับเองเมื่อชนะจริงเท่านั้น
+//   (badges.js: "Server receipts are read, never granted here") · ทองใช้กับของที่ทำสำเร็จจริงเท่านั้น
 // ไม่แตะ: ธีม Astral Black (THEME_CODE.astral — ได้จากโค้ดของมันเองเท่านั้น) · ยอดโทเคน (ไม่ใช่ของ) · โชคเพิ่ม (เป็นตัวตั้งค่า)
 function codeGrantAllButAstral() {
+  // ตั้งก่อน codeGrantAll — มัน vaultTouch() ส่งขึ้น cloud ให้ในรอบเดียวกัน
+  if (typeof INVITE_CODE_KEY === 'string') { try { localStorage.setItem(INVITE_CODE_KEY, '1'); } catch (_) {} }
   codeGrantAll();          // เหรียญ · ธีมซื้อ/สุ่มที่ไม่ใช่ระดับลับ · ธีมลับกดรัว · Crystal (และเปลี่ยนเป็นธีม Crystal ให้)
   grantThemes(true);       // + ธีมสุ่มระดับลับ
   const ts = tokenState();
@@ -18497,7 +18508,7 @@ function codeGrantAllButAstral() {
   }
   renderAll();
   setTimeout(() => showToast({ title: 'ได้ครบทุกอย่างแล้ว',
-    body: 'ธีม เหรียญ เอฟเฟกต์งานเสร็จ (รวม 3D) และของแต่งห้องทุกชิ้น · ยกเว้นธีม Astral Black' }), 900);
+    body: 'ธีม (รวมเรือนลับแล) เหรียญ เอฟเฟกต์งานเสร็จ (รวม 3D) และของแต่งห้องทุกชิ้น · ยกเว้นธีม Astral Black' }), 900);
 }
 
 // โค้ดโทเคน — เติมยอดให้ก้อนใหญ่ ไว้ลองสุ่มสกินโดยไม่ต้องรอเช็คอินหลายวัน

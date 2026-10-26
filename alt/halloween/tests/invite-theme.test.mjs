@@ -73,3 +73,18 @@ test('accounts the owner granted by hand use the Thai theme without the quest; e
  h.run("currentUser={id:'someone-else'};ivData={used:2};state.funnel={hwTaskAt:'2026-10-24T10:00:00Z'}");assert.equal(h.run('inviteUnlocked()'),false);
  h.run('currentUser=null');assert.equal(h.run('inviteUnlocked()'),false);
 });
+test('the owner\'s "everything except Astral Black" code unlocks the Thai theme on this device without the quest',()=>{
+ const h=harness();
+ h.run("currentUser={id:'someone-else'};ivData={used:0};state.funnel={};state.tasks=[]");assert.equal(h.run('inviteUnlocked()'),false);
+ h.data.set(h.run('INVITE_CODE_KEY'),'1');
+ assert.equal(h.run('inviteUnlocked()'),true);assert.equal(h.run("inviteThemeGate('thai-ghost')"),false);assert.equal(h.run('opened'),0);
+ // any other value is not a grant
+ h.data.set(h.run('INVITE_CODE_KEY'),'0');assert.equal(h.run('inviteUnlocked()'),false);
+ // the flag lives under the app's own prefix so account switching and the cloud vault treat it like the other code unlocks
+ assert.match(h.run('INVITE_CODE_KEY'),/^studentos\.alt\./);
+ // and the app's code really sets it and carries it through the vault
+ const app=read('../../app.js').replace(/\r\n/g,'\n'),grant=app.split('function codeGrantAllButAstral()')[1]?.split('\n}\n')[0]||'';
+ assert.match(grant,/INVITE_CODE_KEY/);
+ assert.match(app,/inviteTheme:\s*typeof INVITE_CODE_KEY/);
+ assert.match(app,/if \(r\.inviteTheme && typeof INVITE_CODE_KEY/);
+});

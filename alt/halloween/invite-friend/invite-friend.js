@@ -22,6 +22,9 @@ const INVITE_SINCE = '2026-10-23';                          // งานที�
 const INVITE_KEY = 'studentos.alt.inviteCode';              // รหัสจากลิงก์ รอใช้หลังล็อกอิน
 const INVITE_CACHE_KEY = 'studentos.alt.inviteCache';       // ผลล่าสุดจากเซิร์ฟเวอร์ ไว้วาดตอนออฟไลน์
 const INVITE_SEEN_KEY = 'studentos.alt.inviteUnlockSeen';   // ฉลองปลดล็อกไปแล้ว (ครั้งเดียวต่อบัญชี)
+// 26 ต.ค. 69 · เจ้าของ: โค้ด "ได้ทุกอย่าง ยกเว้น Astral Black" (codeGrantAllButAstral ใน app.js) ต้องปลดธีมนี้ด้วย
+// ธงในเครื่อง + ขึ้น cloud ผ่าน vault (inviteTheme) แบบเดียวกับธงปลดล็อกอื่นของโค้ด · ไม่แตะยอดเชิญหรือข้อมูลฝั่งเซิร์ฟเวอร์
+const INVITE_CODE_KEY = 'studentos.alt.inviteThemeCode';
 const INVITE_NEW_DAYS = 7;                                   // ต้องตรงกับ redeem_invite ฝั่ง SQL
 // "ชวนเพื่อน" = ชวนคนที่ไม่เคยใช้ StudentOS (เจ้าของสั่ง 23 ต.ค. 69) · ฝั่ง SQL ตัดสินจริง ฝั่งนี้แค่ซ่อนช่องให้ตรงกัน
 const INVITE_FIRST_GRACE = 864e5;                            // เปิดแอปก่อนสมัครได้ไม่เกิน 1 วัน (ต้องตรงกับ SQL)
@@ -74,7 +77,8 @@ function inviteTaskMet() {
   if (t && typeof funnelMark === 'function') funnelMark('hwTaskAt', t.doneAt);
   return !!t;
 }
-function inviteUnlocked() { return INVITE_GRANTED.has(ivUid()) || (inviteCount() >= INVITE_GOAL && inviteTaskMet()); }
+function inviteCodeUnlocked() { try { return localStorage.getItem(INVITE_CODE_KEY) === '1'; } catch (_) { return false; } }
+function inviteUnlocked() { return inviteCodeUnlocked() || INVITE_GRANTED.has(ivUid()) || (inviteCount() >= INVITE_GOAL && inviteTaskMet()); }
 function inviteThemeReady() { return typeof THEME_NAME !== 'undefined' && !!THEME_NAME[INVITE_THEME]; }
 
 // เรียกจาก setTheme — กดปุ่มธีมนี้ตอนยังไม่ปลดล็อก = เปิดแผ่นภารกิจแทน (ไม่ใช่ toast "ยังไม่มีธีมนี้")
