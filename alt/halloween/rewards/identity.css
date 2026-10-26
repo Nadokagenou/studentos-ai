@@ -290,3 +290,82 @@ html[data-hw-motion="still"] :is(.hw-scene, .hw-biome-scene)::after { display: n
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--blue) 50%, transparent) !important;
 }
 :root[data-theme="halloween"] .phone #menuBody .rl-day.ask * { color: inherit !important; }
+
+/* ============================================================
+   เรือนลับแล (thai-ghost) · ตัวตนของธีม — 26 ต.ค. 69
+   เจ้าของ (/ui-ux-pro-max): "แก้ธีมเรือนลับแล ให้ธีมมีเอกลักษณ์ของแต่ละธีม" (แบบที่ธีม Halloween ทั้ง 6 ได้ในไฟล์นี้)
+   แนวคิดเดียว: "โคมลอยเหนือสระจันทร์หยก" — ต่อจากลายเซ็นที่เจ้าของเลือกเองแล้ว (ภาพวาดจันทร์หยก + โคมลอย ใน alt.css)
+   ฐานจากคลัง ui-ux-pro-max: Organic Biophilic (โค้งธรรมชาติ · เงานุ่ม · เขียว) — คลังไม่มีสไตล์สถาปัตยกรรมไทยโดยตรง
+     ทรง      = โคม: มนทั้งบนล่าง บนอิ่มกว่า (สัดส่วนเดียวกับโคม .tg-lanterns ในฉาก) · ไม่ซ้ำทรงธีมไหน (ใบไม้เป็นของ earth/genesis)
+     วง       = ระลอกน้ำสองชั้นรอบไอคอน/ปุ่มหลัก/แท็บ — เหมือนเงาจันทร์ตกลงสระ
+     ปุ่มหลัก = จันทร์หยก + แสงโคมอุ่นที่ขอบล่าง (แสงไฟ ไม่ใช่สีทองตกแต่ง — ทองยังสงวนให้ของสำเร็จจริง)
+     หัวข้อ   = แสงจันทร์ → หยก
+     เปลี่ยนจอ = ลอยขึ้นแบบโคม โยกนิดหนึ่งก่อนนิ่ง · กดไอคอน = แตะผิวน้ำ จุ่มลงแล้วมีระลอก
+   ข้อห้ามเดิมของธีมนี้ยังอยู่ครบ: ไม่มีผี ไม่มีลายบัว/เครื่องราง/กรอบทอง และ "ไม่มีของแต่งบนปุ่ม" (เทสต์ invite-theme)
+   — ตัวตนมาจากทรง เงา และท่าเคลื่อนไหวเท่านั้น · ไทล์กริดหน้าแรก (.tg-ic) ทรงเดิมเหมือนทุกธีม
+   ============================================================ */
+:root[data-theme="thai-ghost"] {
+  --id-tile: 46% 46% 38% 38% / 52% 52% 40% 40%; --id-chip: 50%; --id-btn: 22px 22px 15px 15px; --id-tab: 16px 16px 11px 11px;
+  --id-bar: 28px 28px 22px 22px; --id-back: 46% 46% 38% 38% / 52% 52% 40% 40%; --id-ctl: 14px 14px 9px 9px; --id-in: 18px 18px 12px 12px;
+  --id-title-ink: linear-gradient(100deg, #F6FBF3, #D8E8C9 40%, #8FCDA9);
+  --tgi-ripple: 0 0 0 1px #D8E8C966, 0 0 0 4px #D8E8C914, 0 0 0 5px #D8E8C92E;
+}
+:root[data-theme="thai-ghost"] .phone :is(.es-ic, .nt-empty-ic, .set-ic, .pe-ic, .as-ic, .tb-nd-ic, .soon-ic, .bd-entry-ic, .bd-guest-ic, .fd-blank-ic, .dm-blank-ic) {
+  border-radius: var(--id-tile) !important;
+}
+:root[data-theme="thai-ghost"] .phone :is(.tc-cta, .btn.primary, .fm-save, .sai-cta, .ck-cta, .pro-cta, .ep-save, .ai-read, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go, .fr-go, .gc-go) {
+  border-radius: var(--id-btn) !important;
+}
+:root[data-theme="thai-ghost"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { border-radius: var(--id-tab); }
+:root[data-theme="thai-ghost"] .phone :is(.sh-btn, .set-back, .ch-back, .hw-back, .tp-back, .sh-back, .lg-back, .rp-back, .back, .fc-x, button[aria-label^="กลับ"]) {
+  border-radius: var(--id-back) !important;
+}
+:root[data-theme="thai-ghost"] .phone .tabbar { border-radius: var(--id-bar) !important; }
+:root[data-theme="thai-ghost"] .phone :is(.tk-thumb, .tk-mode.on, .gbg-ind, .bd-seg-k, .fd-scope.on, .chip, .cp-chip, .so-chip, .cx2-chip, .sp, .tk-modes, .gbg, .bd-seg) {
+  border-radius: var(--id-ctl) !important;
+}
+:root[data-theme="thai-ghost"] .phone :is(.fr-search, .sai-bar, #menuBody .td-ask, .ep .ep-f > input[type="text"], .set-row input[type="text"]) {
+  border-radius: var(--id-in) !important;
+}
+/* หัวข้อจอ: ไล่แสงจันทร์ → หยก · เงาตัวหนังสือเดิม (text-shadow ใน alt.css) ซึมผ่านตัวอักษรโปร่งแล้วขุ่น
+   จึงย้ายเงาไปเป็น drop-shadow ของทั้งก้อน · กรอบสูงขึ้น .3em แล้วยกกลับ — สระบน/วรรณยุกต์ไทยไม่โดนตัด (เทคนิคเดียวกับ contrast.css) */
+:root[data-theme="thai-ghost"] .phone :is(.page-title, .fd-title) {
+  background-image: var(--id-title-ink); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent; text-shadow: none;
+  filter: drop-shadow(0 1px 6px #04110CE6);
+  padding-block: .3em; position: relative; top: -.3em; margin-bottom: -.6em;
+}
+:root[data-theme="thai-ghost"] .phone #scr-tasks .tk-head-row .page-title { margin-bottom: -.6em; }
+/* ระลอกน้ำรอบไอคอนในแถว */
+:root[data-theme="thai-ghost"] .phone :is(.set-ic, .pe-ic, .as-ic) { box-shadow: var(--tgi-ripple) !important; }
+/* ปุ่มหลัก: จันทร์หยก + ระลอก + แสงโคมอุ่นใต้ขอบล่าง */
+:root[data-theme="thai-ghost"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), inset 0 -10px 14px -10px rgba(246, 180, 90, .55),
+    0 0 0 1px #D8E8C980, 0 0 0 5px #D8E8C91A, 0 12px 26px -12px rgba(0, 8, 4, .85) !important;
+}
+/* ปุ่ม "เริ่มทำเลย" ของการ์ดหน้าแรก — ปุ่มที่กดบ่อยที่สุดของแอป ต้องได้ตัวตนด้วย
+   (กฎใน alt.css ใช้ #menuBody + !important จึงต้องเจาะจงเท่ากันขึ้นไป) · ปุ่มข้าง ✓ ⏰ ได้ทรงโคมตาม ไม่มีของแต่ง */
+:root[data-theme="thai-ghost"] .phone #menuBody .tn-cta {
+  border-radius: var(--id-btn) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), inset 0 -10px 14px -10px rgba(246, 180, 90, .55),
+    0 0 0 1px #D8E8C980, 0 0 0 5px #D8E8C91A, 0 12px 26px -12px rgba(0, 8, 4, .85) !important;
+}
+:root[data-theme="thai-ghost"] .phone #menuBody .tn-ib { border-radius: var(--id-ctl) !important; }
+/* แท็บที่เลือก: จันทร์ + ระลอกจาง */
+:root[data-theme="thai-ghost"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) {
+  box-shadow: 0 0 0 3px #D8E8C924, 0 0 14px -4px #D8E8C999 !important;
+}
+/* เปลี่ยนจอ: ลอยขึ้นแบบโคม แล้วโยกนิดหนึ่ง (เฉพาะเข้าจอย่อย/ถอยกลับ — กดแท็บล่างใช้ท่ากลางเหมือนทุกธีม) */
+:root[data-theme="thai-ghost"] body:not([data-godir="lat"]) .screen.on { animation: tgi-float .6s cubic-bezier(.2, .9, .3, 1) both; }
+@keyframes tgi-float {
+  0% { opacity: 0; transform: translate3d(calc(var(--id-dx) * .35), 16px, 0) rotate(-.4deg); }
+  65% { opacity: 1; transform: translate3d(0, -2px, 0) rotate(.15deg); }
+  100% { opacity: 1; transform: none; }
+}
+/* กดไอคอนหน้าแรก: แตะผิวน้ำ — จุ่มลงพร้อมระลอก */
+:root[data-theme="thai-ghost"] .phone .tg-t .tg-ic { transition: transform .18s cubic-bezier(.23, 1, .32, 1), box-shadow .3s ease; }
+:root[data-theme="thai-ghost"] .phone .tg-t:active .tg-ic { transform: translateY(2px) scale(.94) !important; box-shadow: 0 0 0 6px #D8E8C91F, 0 0 0 1px #D8E8C966 !important; }
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="thai-ghost"] body[data-godir] .screen.on { animation: none !important; }
+  :root[data-theme="thai-ghost"] .phone .tg-t:active .tg-ic { transform: none !important; }
+}
