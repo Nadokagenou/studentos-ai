@@ -15622,11 +15622,11 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 .phone #scr-tasks .tk-search > svg { width: 19px; height: 19px; color: color-mix(in srgb, var(--fill) 80%, var(--ink)); stroke-width: 2.4; }
 .phone #scr-tasks .tk-search input { font-weight: 600; }
 .phone #scr-tasks .tk-search input::placeholder { color: color-mix(in srgb, var(--ink) 70%, transparent); font-weight: 500; }
-.phone #scr-tasks .tk-search:focus-within { outline: 2px solid var(--fill); outline-offset: -2px; }
-/* ช่องพิมพ์ข้างในมีวงโฟกัสของตัวเอง (สีรองของธีม) ซ้อนในวงสีธีมของกรอบ — เห็นเป็นกล่องสองชั้น · กรอบบอกโฟกัสแล้ว */
-.phone #scr-tasks .tk-search input:focus { outline: none; }
+.phone #scr-tasks .tk-search:focus-within { outline: 2px solid var(--fill); outline-offset: -2px; }
+/* ช่องพิมพ์ข้างในมีวงโฟกัสของตัวเอง (สีรองของธีม) ซ้อนในวงสีธีมของกรอบ — เห็นเป็นกล่องสองชั้น · กรอบบอกโฟกัสแล้ว */
+.phone #scr-tasks .tk-search input:focus { outline: none; }
 /* สวิตช์โหมดอยู่ต่อตอนค้นหา (ไม่มีช่องไหนถูกเลือก) — ปุ่มที่ถูกเลือกสูงกว่าปุ่มปกติ 2px แล้วดึงทั้งแถวให้สูงตาม
-   พิมพ์ตัวแรกแถวเลยเตี้ยลง แถบค้นหาข้างล่างขยับขึ้นใต้นิ้ว → ล็อกความสูงปุ่มเท่ากันทุกสถานะ */
+   พิมพ์ตัวแรกแถวเลยเตี้ยลง แถบค้นหาข้างล่างขยับขึ้นใต้นิ้ว → ล็อกความสูงปุ่มเท่ากันทุกสถานะ */
 #scr-tasks .tk-modes .tk-mode { min-height: 32px; }
 
 .phone #scr-tasks .tk-tick:not(.on) {
