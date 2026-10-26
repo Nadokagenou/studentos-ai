@@ -9,22 +9,30 @@
    ขาที่สอง: iPad จริงแนวนอนกว้าง 1080–1366 ใช้นิ้ว (pointer:coarse) — เดิมเกิน 1023 จึงได้แถบข้างของ alt.css
    desktop.css เลื่อนไปเริ่ม 1025 ให้ 1024 (iPad แนวนอนในหน้าตรวจหน้าจอบนคอม) อยู่ช่วงนี้ด้วย */
 @media(min-width:600px) and (max-width:1024px),(min-width:600px) and (max-width:1366px) and (pointer:coarse){
+ /* 26 ต.ค. 69 · เจ้าของ (ภาพ iPad แนวนอน): "ในไอแพดปุ่มเมื่อกดไม่ไปอยู่ฝั่งซ้าย" — กฎแถบล่างแบบมือถือข้างล่างบังคับด้วย !important
+    เลยทับค่าที่ผู้ใช้เลือก "ด้านซ้าย" เองด้วย · ตอนนี้บังคับเฉพาะ "อัตโนมัติ" กับ "ด้านล่าง" (data-nav-pref มาจาก applyNav ใน app.js)
+    เลือก "ด้านซ้าย" เอง = ได้แถบข้างแบบจอกว้างของ alt.css เหมือนก่อน 24 ต.ค. */
  :root body:not(.login-mode) .stage{padding:0;display:block;width:100%;max-width:none;height:100dvh}
  :root body:not(.login-mode) .phone{width:100%;max-width:none;height:100dvh;border:0;border-radius:0}
  :root body:not(.login-mode) .stage-note{display:none}
  :root body:not(.login-mode) .screen{padding-inline:clamp(28px,6vw,70px)}
- :root body:not(.login-mode) .tabbar{max-width:650px;margin-inline:auto;left:0;right:0}
+ :root:not([data-nav-pref="side"]) body:not(.login-mode) .tabbar{max-width:650px;margin-inline:auto;left:0;right:0}
  :root body:not(.login-mode) :is(.th-grid,.mt-grid){grid-template-columns:repeat(3,minmax(0,1fr))}
  :root body:not(.login-mode) #menuBody{max-width:760px;margin-inline:auto}
- :root body:not(.login-mode) .screens{margin-left:0!important}
+ :root:not([data-nav-pref="side"]) body:not(.login-mode) .screens{margin-left:0!important}
  :root body:not(.login-mode) .as-card{left:0;right:0;bottom:0;width:auto;max-width:none}
- :root body:not(.login-mode) .tabbar{top:auto!important;bottom:14px!important;width:calc(100% - 56px)!important;height:68px!important;min-height:0;flex-direction:row!important;justify-content:space-around;padding:6px 10px!important;transform:none!important}
- :root body:not(.login-mode) .tabbar .tab{flex:1;min-height:48px!important;height:auto!important;padding:3px!important;gap:3px!important}
+ :root:not([data-nav-pref="side"]) body:not(.login-mode) .tabbar{top:auto!important;bottom:14px!important;width:calc(100% - 56px)!important;height:68px!important;min-height:0;flex-direction:row!important;justify-content:space-around;padding:6px 10px!important;transform:none!important}
+ :root:not([data-nav-pref="side"]) body:not(.login-mode) .tabbar .tab{flex:1;min-height:48px!important;height:auto!important;padding:3px!important;gap:3px!important}
  /* 24 ต.ค. 69 · ป้าย "เพิ่ม" ต่ำกว่าป้ายอื่น 10px — ช่วงนี้แอปตั้ง data-nav="side" กฎแถบข้างใน alt.css จึงขยายปุ่มเป็น 42px
     ทับ 38px ที่ไม่มี !important และ margin:0 ทำให้ทั้งก้อนกินที่ในผัง (42 เทียบไอคอน 22) ดันป้ายลงครึ่งหนึ่งของส่วนต่าง
     แบบเดียวกับมือถือ: 38 − 13 − 3 = 22 เท่าไอคอนพอดี ส่วนที่เกินโผล่ขึ้นเหนือแถว ไม่ดันอะไร */
- :root body:not(.login-mode) .tabbar .scan-dot{width:38px!important;height:38px!important;margin:-13px 0 -3px!important}
- :root body:not(.login-mode) #scr-menu{padding-bottom:96px!important}
+ :root:not([data-nav-pref="side"]) body:not(.login-mode) .tabbar .scan-dot{width:38px!important;height:38px!important;margin:-13px 0 -3px!important}
+ :root:not([data-nav-pref="side"]) body:not(.login-mode) #scr-menu{padding-bottom:96px!important}
+ /* 26 ต.ค. 69 · fitcheck (devtools/fitcheck.mjs) ที่ 1024×768: ของชิ้นสุดท้ายของเกือบทุกจออยู่ใต้แถบล่าง กดไม่ได้
+    (ออกจากระบบ · สมุดเควส · ส่งคำถาม · ของในห้อง) — ขนาดนี้แอปยังอยู่โหมดแถบข้าง จอจึงเว้นล่างแค่ 28px (alt.css)
+    แต่แถบล่างลอยสูง 68 ห่างขอบ 14 = บัง 82px → เว้นที่ให้แถบทุกจอ (หน้าแรกเว้นไว้ข้างบนแล้ว) · จอแชทตั้ง padding ด้วย id จึงต้องเขียนแยก */
+ :root:not([data-nav-pref="side"]) body:not(.login-mode) .screens>.screen{padding-bottom:110px!important}
+ :root:not([data-nav-pref="side"]) body:not(.login-mode) #scr-ai.screen{padding-bottom:92px!important}
  :root body:not(.login-mode) #menuBody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 18px;padding:22px 30px}
  :root body:not(.login-mode) #menuBody>:is(.td-head,.dc-line,.td-now,.td-clear,.td-ask,.td-tiles){grid-column:1/-1;margin-block:0}
  :root body:not(.login-mode) #menuBody>.td-railwrap{margin:0;align-self:center}

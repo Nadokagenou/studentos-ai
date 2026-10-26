@@ -60,6 +60,8 @@ for (let i = 0; i < 60; i++) tasks.push({ id: 'p' + i, subject: SUBJ[i % 8], det
 for (let i = 0; i < 200; i++) tasks.push({ id: 'd' + i, subject: SUBJ[i % 8], detail: 'งานเสร็จชิ้นที่ ' + i, estMin: 30, due: iso(-i * 3.5), done: true, doneAt: iso(-i * 3.6), createdAt: iso(-i * 3.6 - 30) });
 const seed = { 'studentos.alt.onboardSkipped': '1', 'studentos.alt.skipLogin': '1', 'studentos.alt.theme': THEME, 'studentos.alt.checkinAsked': new Date().toISOString().slice(0, 10),
   'studentos.alt.v1': JSON.stringify({ tasks, settings: { name: 'ทดสอบ', freeHours: 2.5 }, marks: [], sessions: [], running: null }) };
+// BLOCK=glass.css,identity.css → ไม่โหลดไฟล์เหล่านี้ (ทดสอบ A/B: วัดว่าของชุดไหนทำให้ช้า เทียบกันบนเครื่องเดียวกันในรอบเดียวกัน · 26 ต.ค. 69)
+if (process.env.BLOCK) { await cmd('Network.enable'); await cmd('Network.setBlockedURLs', { urls: process.env.BLOCK.split(',').map(x => '*' + x.trim() + '*') }); }
 await cmd('Page.navigate', { url: URL }); await sleep(2500);
 await ev(`(()=>{localStorage.clear();const s=${JSON.stringify(seed)};for(const k in s)localStorage.setItem(k,s[k]);return 1})()`);
 await cmd('Page.addScriptToEvaluateOnNewDocument', { source: `
@@ -116,10 +118,15 @@ const ACTIONS = [
 
 const t0 = Date.now(); const timeline = []; let acts = 0; const actLog = [];
 let nextCheck = t0;
+// PROFILE=ไฟล์.cpuprofile → อัดโปรไฟล์ CPU ตลอดรอบใช้งาน (เปิดใน DevTools > Performance หรือรวมตามฟังก์ชันเอง) · 26 ต.ค. 69
+if (process.env.PROFILE) { await cmd('Profiler.enable'); await cmd('Profiler.setSamplingInterval', { interval: 500 }); await cmd('Profiler.start'); }
 while (Date.now() - t0 < MIN * 60000) {
   if (Date.now() >= nextCheck) {
-    const c = await ev(CHECK, 30000); const m = await metrics();
-    const lt = await ev(`(() => { const a = __lt.splice(0); const e = __et.splice(0); return { n: a.length, sum: a.reduce((s, x) => s + x[1], 0), max: Math.max(0, ...a.map(x => x[1])), tapN: e.length, tapMax: Math.max(0, ...e.map(x => x[1])), tapMed: e.length ? e.map(x => x[1]).sort((a, b) => a - b)[e.length >> 1] : 0 }; })()`, 30000);
+    // 26 ต.ค. 69 · ตัวตรวจ (CHECK) ไล่ getComputedStyle ทุกชิ้นในหน้า — ที่ CPU ช้า 8–12 เท่า กินเวลาเอง ~1 วิต่อรอบ
+    // เคยถูกนับรวมเป็น "งานยาวของแอป" (โปรไฟล์: 8–10 วิใน 2 นาที) → จดช่วงเวลาที่ตัวตรวจรัน แล้วตัดงานยาว/การแตะที่ทับช่วงนั้นออก
+    const c = await ev(`(() => { const s0 = performance.now(); const r = ${CHECK}; (window.__chk = window.__chk || []).push([s0, performance.now()]); return r; })()`, 30000); const m = await metrics();
+    const lt = await ev(`(() => { const ck = (window.__chk || []).splice(0); const hit = x => ck.some(([s, e]) => x[0] < e + 50 && x[0] + x[1] > s - 50);
+      const a = __lt.splice(0).filter(x => !hit(x)); const e = __et.splice(0).filter(x => !hit(x)); return { n: a.length, sum: a.reduce((s, x) => s + x[1], 0), max: Math.max(0, ...a.map(x => x[1])), tapN: e.length, tapMax: Math.max(0, ...e.map(x => x[1])), tapMed: e.length ? e.map(x => x[1]).sort((a, b) => a - b)[e.length >> 1] : 0 }; })()`, 30000);
     timeline.push({ t: Math.round((Date.now() - t0) / 1000), ...c, ...m, lt, acts });
     nextCheck = Date.now() + 10000;
   }
@@ -128,6 +135,7 @@ while (Date.now() - t0 < MIN * 60000) {
   actLog.push(`${Math.round((t1 - t0) / 1000)}s ${r} ${Date.now() - t1}ms`); acts++;
   await sleep(600 + Math.random() * 900);
 }
+if (process.env.PROFILE) { const { profile } = await cmd('Profiler.stop'); writeFileSync(process.env.PROFILE.replace('{tier}', TIER), JSON.stringify(profile)); }
 const shot = await cmd('Page.captureScreenshot', { format: 'png' }).catch(() => null);
 if (OUT && shot) writeFileSync(OUT + '.png', Buffer.from(shot.data, 'base64'));
 const res = { TIER, RATE, MEM, THEME, MIN, acts, errors: [...new Set(errors)].slice(0, 8), timeline, slowActs: actLog.filter(l => +l.split(' ').pop().replace('ms', '') > 8000 || /STUCK|ERR/.test(l)).slice(0, 15) };
@@ -137,6 +145,8 @@ const first = timeline[0], last = timeline[timeline.length - 1];
 console.log(`${TIER} (${RATE}× mem${MEM}) ${THEME} ${MIN}min acts=${acts} lite=${last.lite} errors=${res.errors.length}`);
 console.log(`  heap ${first.heapMB}→${last.heapMB}MB · nodes ${first.nodes}→${last.nodes} · listeners ${first.listeners}→${last.listeners} · anims ${first.anims}→${last.anims} (finished ${last.finished}, paused ${last.paused})`);
 console.log(`  long tasks/10s: ${timeline.map(x => x.lt.sum).join(' ')}  ·  tap max/10s: ${timeline.map(x => x.lt.tapMax).join(' ')}`);
+{ const all = timeline.slice(1).map(x => x.lt); const lts = all.reduce((s, x) => s + x.sum, 0), meds = all.map(x => x.tapMed).filter(Boolean).sort((a, b) => a - b), maxs = all.map(x => x.tapMax).sort((a, b) => a - b);
+  console.log(`  สรุป (ไม่นับเวลาของตัวตรวจเอง): งานยาวรวม ${lts}ms · แตะแล้วรอ มัธยฐาน ${meds[meds.length >> 1] || 0}ms · สูงสุดช่วงที่ 2 จากบน ${maxs[maxs.length - 2] || 0}ms · สูงสุด ${maxs[maxs.length - 1] || 0}ms`); }
 const anomalies = timeline.filter(x => x.tabHidden.length || x.nInvisible || x.docScroll || x.docOver > 2 || (x.menuOver > 2 && x.scr === 'scr-menu') || x.overlays.length || x.tabT.length);
 console.log(`  anomalies at ${anomalies.length}/${timeline.length} checks`);
 anomalies.slice(0, 8).forEach(x => console.log(`   t=${x.t}s scr=${x.scr} tabHidden=${JSON.stringify(x.tabHidden)} tabT=${JSON.stringify(x.tabT)} invisible(${x.nInvisible})=${JSON.stringify(x.invisible)} docScroll=${x.docScroll} docOver=${x.docOver} menuOver=${x.menuOver} overlays=${JSON.stringify(x.overlays)}`));

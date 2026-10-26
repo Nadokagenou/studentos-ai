@@ -1689,7 +1689,10 @@ span.tt-chip { cursor: default; }
 .dk-dot.on i::after { transform: scaleX(1); }
 .dk-dot:active i { transform: scale(.88); }
 .td-deck.auto.tick .dk-dot.on i::after { animation: dk-fill var(--dk-stay, 6000ms) linear both; }
+/* tock = สำเนาของ tick ด้วย keyframes คนละชื่อ — deckPaint สลับสองตัวนี้เพื่อเริ่มแถบใหม่โดยไม่ต้องบังคับคิดผัง (app.js) */
+.td-deck.auto.tock .dk-dot.on i::after { animation: dk-fill2 var(--dk-stay, 6000ms) linear both; }
 @keyframes dk-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes dk-fill2 { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 /* ---------- การ์ดอีเวนต์ใหญ่ในสไลด์ (eventHero) ----------
    ขนาดเท่าการ์ดงาน · โถงประตูสี่บานเต็มการ์ด · ชื่ออีเวนต์ตัวใหญ่เรืองส้ม · NPC สี่ไบโอมยืนเรียงหน้าประตูพร้อมชื่อ

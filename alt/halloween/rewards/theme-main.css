@@ -69,7 +69,7 @@ html[data-quality="low"] :is(.hw-burst,.hw-ring),html[data-hw-motion="still"] :i
  :root[data-theme="halloween"] .hw-candle{left:calc(var(--desktop-rail,248px) + 10px);bottom:30px}
 }
 
-.hw-preferences[hidden]{display:none}
+.hw-preferences[hidden],.hw-preferences>div[hidden]{display:none}
 html[data-hw-framed="true"] .hw-controls{display:none}
 :root[data-theme="halloween"] .hw-controls{right:144px}
 @media(max-width:599px){
@@ -118,3 +118,103 @@ html[data-lite="1"] .hw-scene *{animation:none!important}
    สีหลักเดิมเป็นทองหม่น (#dfb783) ปุ่มทั้งแอปออกน้ำตาลอ่อน ไม่บอกว่าฮาโลวีน → ส้มฟักทอง คู่กับม่วงแม่มดที่มีอยู่แล้ว (--blue)
    ส้ม+ม่วงบนกลางคืนคือคู่สีประจำเทศกาล · ตัวบนปุ่มยังเข้มบนส้มสว่าง (คอนทราสต์ > 7) */
 :root[data-theme="halloween"]{--hw-accent:#F59A45;--fill:#F59A45;--on-fill:#24110A;--fill-on:#24110A;--on-accent:#24110A;--grad-brand:linear-gradient(125deg,#8B4FB0,#C4561F)}
+
+/* 26 ต.ค. 69 · เจ้าของ (หลังแบ่ง Moon & Candle เป็นฟ้า+ส้ม): "ธีม halloween ด้วย"
+   ส้มฟักทองเป็นสีหลักอยู่แล้ว (--fill) แต่สีรอง --blue เป็นม่วงจางเกือบขาว (#D7B6EB) จึงแทบไม่เห็นสองสี
+   → ม่วงแม่มดสดขึ้นเป็นสีรองทั้งแอป (ลิงก์ · ชิป · ตัวเลือกที่เลือกอยู่ · แถบความคืบหน้า) · พื้นของที่เลือกเป็นม่วงเข้มทึบ
+   ตัวหนังสือบนพื้นม่วง (--on-accent) เป็นน้ำตาลเข้มเดิม: บนม่วงสด #C58BFF ได้ > 7 */
+:root[data-theme="halloween"]{--blue:#C58BFF;--blue-soft:#3F2560;--blue-deep:#DDB8FF}
+
+/* ---------- แถบระดับเสียง (บรรยากาศ Halloween) — 26 ต.ค. 69 · เจ้าของ: "แก้ปุ่มนี้หน่อย ทำอนิเมชันสักหน่อย" ----------
+   เดิมเป็นแถบเลื่อนพื้นฐานของเบราว์เซอร์ (แค่ accent-color) แล้วโดนสไตล์ช่องกรอกของแอปห่อ (พื้น · padding · มุมโค้ง)
+   จึงเห็นเป็นแถบเล็ก ๆ ติดอยู่ในกล่อง · ตอนนี้: รางมนเติมสีธีมตามระดับ (--hw-v จาก theme-main.js) · ปุ่มกลมเรืองแสง
+   ชี้ = ปุ่มขยายนิด · กด/ลาก = ขยายเด้ง + วงแสงสีธีมรอบปุ่ม (แบบวงเรืองของ Halo · Cult UI ที่แอปใช้กับช่องกรอก) · สีเติมไหลนุ่มตามนิ้ว
+   ขยับด้วย transform/box-shadow ของปุ่มเล็ก ๆ ชิ้นเดียว · ลดการเคลื่อนไหว = ไม่มีทรานซิชัน */
+@property --hw-v { syntax: '<percentage>'; inherits: true; initial-value: 35%; }
+.hw-preferences input.hw-vol {
+  -webkit-appearance: none; appearance: none; width: 148px; height: 30px; margin: 0; padding: 0;
+  border: 0; border-radius: 999px; background: transparent; box-shadow: none; outline: none; cursor: pointer;
+  transition: --hw-v .16s ease-out;
+}
+.hw-preferences input.hw-vol::-webkit-slider-runnable-track {
+  height: 8px; border-radius: 999px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--fill) 70%, #fff) 0%, var(--fill) var(--hw-v), color-mix(in srgb, var(--ink) 16%, transparent) var(--hw-v) 100%);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .35), 0 0 12px -5px var(--fill);
+}
+.hw-preferences input.hw-vol::-moz-range-track { height: 8px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 16%, transparent); }
+.hw-preferences input.hw-vol::-moz-range-progress { height: 8px; border-radius: 999px; background: linear-gradient(90deg, color-mix(in srgb, var(--fill) 70%, #fff), var(--fill)); }
+.hw-preferences input.hw-vol::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 20px; height: 20px; margin-top: -6px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff 0 18%, color-mix(in srgb, var(--fill) 45%, #fff) 45%, var(--fill));
+  border: 2px solid var(--card);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--fill) 30%, transparent), 0 3px 8px rgba(0, 0, 0, .45), 0 0 10px -2px var(--fill);
+  transition: transform .2s cubic-bezier(.3, 1.6, .5, 1), box-shadow .22s ease;
+}
+.hw-preferences input.hw-vol::-moz-range-thumb {
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--card);
+  background: radial-gradient(circle at 35% 30%, #fff 0 18%, color-mix(in srgb, var(--fill) 45%, #fff) 45%, var(--fill));
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .45), 0 0 10px -2px var(--fill);
+  transition: transform .2s cubic-bezier(.3, 1.6, .5, 1), box-shadow .22s ease;
+}
+.hw-preferences input.hw-vol:hover::-webkit-slider-thumb { transform: scale(1.12); }
+.hw-preferences input.hw-vol:hover::-moz-range-thumb { transform: scale(1.12); }
+.hw-preferences input.hw-vol:active::-webkit-slider-thumb {
+  transform: scale(1.3);
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--fill) 26%, transparent), 0 3px 10px rgba(0, 0, 0, .5), 0 0 16px 0 var(--fill);
+}
+.hw-preferences input.hw-vol:active::-moz-range-thumb {
+  transform: scale(1.3);
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--fill) 26%, transparent), 0 3px 10px rgba(0, 0, 0, .5), 0 0 16px 0 var(--fill);
+}
+.hw-preferences input.hw-vol:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--fill); }
+.hw-preferences input.hw-vol:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--fill); }
+@media (prefers-reduced-motion: reduce) {
+  .hw-preferences input.hw-vol { transition: none; }
+  .hw-preferences input.hw-vol::-webkit-slider-thumb, .hw-preferences input.hw-vol::-moz-range-thumb { transition: none; }
+}
+
+/* ---------- สวิตช์ในกล่องตัวเลือก Halloween — 26 ต.ค. 69 · เจ้าของ: "ปรับหน่อย" (ปุ่ม เปิดเสียง/เปิดไว้/หยุดภาพ/กลางคืน)
+   เดิมเป็นกล่องข้อความทึบ 4 ปุ่มหน้าตาเหมือนกัน และบางปุ่มบอก "สถานะ" (เปิดไว้) บางปุ่มบอก "สิ่งที่จะเกิดถ้ากด" (เปิดเสียง)
+   อ่านแล้วต้องเดาว่าตอนนี้เปิดหรือปิด · ตอนนี้: เปิด/ปิด = สวิตช์ (รางสีธีมเมื่อเปิด · ปุ่มกลมเลื่อนไปขวา)
+   โทนสี = ตัวเลือกสองช่องมีเม็ดสีธีมเลื่อนไปอยู่ใต้ตัวที่เลือก · สถานะอ่านจาก aria-checked / data-on ที่ theme-main.js ตั้ง
+   ขยับด้วย transform ของชิ้นเล็กชิ้นเดียว · ลดการเคลื่อนไหว = สลับทันที */
+.hw-preferences button.hw-sw {
+  position: relative; flex: none; width: 50px; height: 30px; padding: 0; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+  background: color-mix(in srgb, var(--ink) 22%, transparent);
+  transition: background-color .22s ease, border-color .22s ease, box-shadow .22s ease;
+}
+.hw-preferences button.hw-sw i {
+  position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35);
+  transition: transform .32s cubic-bezier(.3,1.5,.5,1);
+}
+.hw-preferences button.hw-sw[aria-checked="true"] {
+  background: var(--fill); border-color: var(--fill);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--fill) 45%, transparent);
+}
+.hw-preferences button.hw-sw[aria-checked="true"] i { transform: translateX(20px); }
+.hw-preferences button.hw-sw:active i { transform: scale(.88); }
+.hw-preferences button.hw-sw[aria-checked="true"]:active i { transform: translateX(20px) scale(.88); }
+.hw-preferences button.hw-sw:focus-visible { outline: 2px solid var(--fill); outline-offset: 3px; }
+
+.hw-preferences .hw-seg {
+  position: relative; flex: none; display: grid; grid-template-columns: 1fr 1fr; padding: 3px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+.hw-preferences .hw-seg::before {
+  content: ""; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 999px;
+  background: var(--fill); box-shadow: 0 0 12px color-mix(in srgb, var(--fill) 40%, transparent);
+  transition: transform .34s cubic-bezier(.3,1.3,.5,1);
+}
+.hw-preferences .hw-seg[data-on="light"]::before { transform: translateX(100%); }
+.hw-preferences .hw-seg button {
+  position: relative; z-index: 1; padding: 7px 12px; border: 0; border-radius: 999px; background: none;
+  font-size: 13px; font-weight: 700; color: var(--muted); transition: color .22s ease;
+}
+.hw-preferences .hw-seg button[aria-checked="true"] { color: var(--on-fill); }
+.hw-preferences .hw-seg button:focus-visible { outline: 2px solid var(--fill); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .hw-preferences button.hw-sw, .hw-preferences button.hw-sw i, .hw-preferences .hw-seg::before, .hw-preferences .hw-seg button { transition: none; }
+}

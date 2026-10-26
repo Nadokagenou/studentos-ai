@@ -93,3 +93,40 @@ body #menuBody .td-top {
 }
 :root[data-lite] body #menuBody .td-top { -webkit-backdrop-filter: none; backdrop-filter: none; }
 
+/* ============================================================
+   ปุ่มสำคัญได้สีของธีม — 26 ต.ค. 69 · เจ้าของ: "ปรับสีพวก UI บางปุ่มให้ดูสวย และเปลี่ยนปุ่มที่สำคัญให้ดูสีเด่นน่าสนใจตามสีธีม"
+   สำรวจหน้าแรก จองาน แท็บฉัน ใน 4 ธีม: ปุ่มหลัก ("เริ่มทำเลย" · "+" · ไทล์ · "เข้าสู่ระบบ") ได้สีธีมอยู่แล้วทุกธีม
+   ที่ยังเป็นก้อนเทาเหมือนกันทุกธีมคือปุ่มข้างปุ่มหลักบนการ์ด "ทำอันนี้ก่อน" กับปุ่มส่งของช่องถามน้องฮูก
+   ใช้กระจกชุดเดียวกับรอบก่อน (ขอบสะท้อนบน + ย้อมสี) ปุ่มจึงเข้ากับแถบล่าง/ไทล์ ไม่ใช่ก้อนสีแบน
+   ============================================================ */
+/* ✓ ทำเสร็จแล้ว — เขียวตามกติกาสีสถานะ (เขียว = เสร็จ) ไม่ใช่สีธีม · ย้อมพื้นและขอบให้รู้ว่ากดแล้ว "เสร็จ" ก่อนอ่านไอคอน */
+.phone .td-now .tn-ib.done {
+  --ib-c: var(--good, var(--green, #16A34A));
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,0) 55%),
+    color-mix(in srgb, var(--ib-c) 18%, transparent);
+  border-color: color-mix(in srgb, var(--ib-c) 50%, transparent);
+  color: var(--ib-c);
+  box-shadow: inset 0 1px 0 var(--lg-lo), 0 6px 14px -8px color-mix(in srgb, var(--ib-c) 70%, transparent);
+}
+/* ⏰ เลื่อนไปก่อน — ปุ่มรอง: สีธีมจาง ๆ (เด่นน้อยกว่าปุ่มหลักและปุ่มเสร็จ) */
+.phone .td-now .tn-ib:not(.done) {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0) 55%),
+    color-mix(in srgb, var(--fill) 12%, transparent);
+  border-color: color-mix(in srgb, var(--fill) 38%, transparent);
+  color: color-mix(in srgb, var(--fill) 60%, var(--ink));
+  box-shadow: inset 0 1px 0 var(--lg-lo);
+}
+/* ปุ่มส่ง ↑ ของช่องถามน้องฮูก — ตอนยังไม่พิมพ์เป็นสีธีมจาง (ยังบอกว่า "ยังไม่มีอะไรให้ส่ง") ตอนพิมพ์เป็นสีธีมเต็มตามกฎเดิมใน alt.css
+   เดิมตอนว่างเป็นวงกลมกรมท่า/เทาเหมือนกันทุกธีม ไม่เกี่ยวกับธีมที่ใช้อยู่ */
+:root .phone #menuBody .td-ask:not(:focus-within):not(.ha-has) .tk-go {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 60%),
+    color-mix(in srgb, var(--fill) 22%, var(--card)) !important;
+  color: color-mix(in srgb, var(--fill) 70%, var(--ink)) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 45%, transparent), inset 0 1px 0 var(--lg-lo) !important;
+}
+:root .phone #menuBody .td-ask:is(:focus-within, .ha-has) .tk-go {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 6px 16px -6px color-mix(in srgb, var(--fill) 75%, transparent) !important;
+}
