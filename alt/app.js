@@ -6871,6 +6871,17 @@ function aiVoice() {
 // Reminders) มีหมด · ที่นี่ไม่เคยมี ทั้งที่นักเรียนคนหนึ่งสะสมงานได้เป็นสิบใบภายในสัปดาห์เดียว
 // ค้นในเครื่องล้วน ไม่แตะเน็ต จึงไม่ต้องหน่วงเวลาเหมือนช่องค้นหาเพื่อน
 let taskQ = '';
+// 26 ต.ค. 69 · เจ้าของ: "ปุ่มค้นหาไปอยู่ข้างงานทั้งหมด" — ช่องค้นหาเคยอยู่ท้ายรายการ (1B47) ต้องเลื่อนผ่านทุกใบก่อนถึง
+// ตอนนี้เป็นปุ่มแว่นขยายข้างชื่อจอ กดแล้วช่องโผล่ใต้หัวจอ · กดซ้ำ = ปิดและล้างคำค้น
+// ค้นอยู่ (taskQ ไม่ว่าง) ช่องเปิดค้างเสมอ ไม่งั้นวาดจอใหม่แล้วช่องหายไปพร้อมคำที่พิมพ์
+let taskSearchOpen = false;
+function toggleTaskSearch() {
+  const open = taskSearchOpen || !!taskQ;
+  taskSearchOpen = !open;
+  if (open) taskQ = '';
+  renderTasks();
+  if (!open) document.getElementById('tkQ')?.focus();
+}
 
 // ============================================================
 // 1B93 · สวิตช์สองโหมดบนหัวจองาน — เจ้าของสั่งเอง (13 ก.ย. 2569)
@@ -7366,22 +7377,20 @@ function renderTasks() {
     : esc(range) + (freeWk ? ' · ว่างรวม ' + daysMin(freeWk) : '') + ' · ค้าง ' + pending.length;
   // บรรทัดวัน/เวลาว่างย้ายไปอยู่ "หลัง" ชื่อจอบนบรรทัดเดียวกัน (เจ้าของ: "ลองเอามาไว้หลังคำว่าวันนี้")
   // เดิมอยู่เหนือชื่อจอ (1B58) — หัวจอสูงสองชั้นทั้งที่ชื่อจอสั้นแค่คำเดียว · ยาวไม่พอดีก็ปัดลงบรรทัดใหม่เอง
+  const searchOn = taskSearchOpen || !!taskQ;
+  const findBtn = (pending.length || taskQ) ? `<button type="button" class="tk-find${searchOn ? ' on' : ''}"
+      onclick="toggleTaskSearch()" aria-label="${searchOn ? 'ปิดการค้นหา' : 'ค้นหางาน'}" aria-expanded="${searchOn}">${icon('search')}</button>` : '';
   const pageHead = `<div class="page-head">
       <div class="tk-head-row">
         <h1 class="page-title">${viewTitle}</h1>
+        ${findBtn}
         <div class="eyebrow">${eyebrow}</div>
       </div>
       ${viewTabs}
     </div>`;
 
-  // โหมดวันนี้มีเนื้อจอเป็นของตัวเองทั้งก้อน — ไม่ใช่รายการงานที่ถูกกรองให้เหลือวันเดียว
-  // จึงออกตรงนี้เลย ไม่ต้องเดินต่อไปสร้างลิสต์ ช่องค้นหา และปุ่มถังขยะที่จอนี้ไม่ได้ใช้
-  if (taskView === 'today' && !taskQ) { el.innerHTML = pageHead + todayBoard(now); tkThumbMount(); return; }
-
-  // ช่องค้นหาโผล่เมื่อมีงานพอที่จะหาไม่เจอด้วยตาเปล่า — ต่ำกว่านั้นมันคือช่องว่าง
-  // ที่กินพื้นที่บนสุดของจอโดยไม่มีประโยชน์ (เกณฑ์เดียวกับที่แอปอื่นซ่อนช่องค้นหา
-  // ในลิสต์สั้น ๆ) · แต่ถ้ากำลังค้นอยู่ต้องอยู่ต่อเสมอ ไม่งั้นลบคำค้นแล้วช่องหายไปทั้งช่อง
-  const searchBox = (pending.length >= 6 || taskQ)
+  // ช่องค้นหาโผล่เมื่อกดปุ่มแว่นข้างชื่อจอ (หรือกำลังค้นอยู่) — ไม่กินที่ตอนไม่ได้ใช้
+  const searchBox = searchOn
     ? `<div class="fr-search tk-search">
         ${icon('search')}
         <input id="tkQ" autocomplete="off" spellcheck="false" placeholder="ค้นหางาน"
@@ -7389,6 +7398,11 @@ function renderTasks() {
         <button class="fr-clear" ${taskQ ? '' : 'hidden'} onclick="clearTaskSearch()"
           aria-label="ล้างคำค้น">${icon('x')}</button>
       </div>` : '';
+
+  // โหมดวันนี้มีเนื้อจอเป็นของตัวเองทั้งก้อน — ไม่ใช่รายการงานที่ถูกกรองให้เหลือวันเดียว
+  // จึงออกตรงนี้เลย ไม่ต้องเดินต่อไปสร้างลิสต์ ช่องค้นหา และปุ่มถังขยะที่จอนี้ไม่ได้ใช้
+  if (taskView === 'today' && !taskQ) { el.innerHTML = pageHead + searchBox + todayBoard(now); tkThumbMount(); return; }
+
 
   // ============================================================
   // 1B47 · หัวจอเหลือชื่อจอกับช่องค้นหา
@@ -7398,8 +7412,8 @@ function renderTasks() {
   // "อยากเห็นงานของวันไหน" — ซึ่งมุมมองสัปดาห์ตอบด้วยการวางงานลงวันของมันเลย
   // ไม่ต้องมีตัวกรองแยกอีกชั้น
   // ภาพร่างมีสองอย่าง: หัวจอกับสัปดาห์ · ช่องค้นหาไม่เคยอยู่ในนั้น
-  // มันย้ายไปท้ายจอแทน (ดู el.innerHTML ข้างล่าง) — คนที่จะค้นหาเลื่อนลงไปหาได้
-  // ส่วนคนที่เปิดมาดูว่าวันนี้มีอะไร ไม่ต้องเลื่อนผ่านช่องที่ตัวเองไม่ได้จะใช้
+  // มันเคยย้ายไปท้ายจอ — 26 ต.ค. 69 กลายเป็นปุ่มแว่นข้างชื่อจอ (toggleTaskSearch) ช่องโผล่เฉพาะตอนกด
+  // คนที่เปิดมาดูว่าวันนี้มีอะไรยังไม่ต้องเลื่อนผ่านช่องที่ตัวเองไม่ได้จะใช้ · คนที่จะค้นไม่ต้องเลื่อนลงไปหา
   const head = pageHead;
 
   // ใบแรกของรายการที่ยังไม่เสร็จได้แถบฟ้า = "ใบนี้คือใบที่ควรลงมือ"
@@ -7418,13 +7432,12 @@ function renderTasks() {
     listHTML = rows.map(t => taskCard(t, now, t === firstPending)).join('');
   else listHTML = weekView(rows, now, firstPending);
 
-  el.innerHTML = head
+  el.innerHTML = head + searchBox
     // "มีคนตอบคำถามที่คุณถามไว้" — อยู่บนสุดของรายการงานเพราะจอนี้คือจอที่นักเรียน
     // เปิดทุกวัน · ของที่อยู่ในจอที่ต้องเดินไปหา เท่ากับของที่ไม่มีอยู่
     // (เตี้ยกว่าการ์ดงานหนึ่งใบเสมอ ไม่งั้นมันแย่งที่ของงานที่ใกล้ส่ง ซึ่งเป็นเหตุผลหลักที่คนเปิดแอป)
     + (typeof topicNewsCard === 'function' ? topicNewsCard() : '')
     + (rows.length ? listHTML : tasksEmpty(now, days))
-    + (pending.length >= 6 || taskQ ? searchBox : '')
     + (done.length ? `<button class="bin-btn" onclick="setFilter('done')">
         ${icon('check-circle')}เสร็จแล้ว · ${done.length} งาน</button>` : '')
     + (bin.length ? `<button class="bin-btn" onclick="setFilter('bin')">

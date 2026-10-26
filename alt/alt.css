@@ -15597,3 +15597,40 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
    จัดกลางจึงโดนตัดข้างละ 2px · overflow-wrap: anywhere ไม่ช่วย (เบราว์เซอร์ไม่นับว่าก้อนนี้ล้น) · ช่องเหลือ padding 6px แล้ว
    ตัวอักษร 11px คือขั้นต่ำที่อ่านได้ → ยอมให้ตัดบรรทัดกลางคำเฉพาะชื่อเหรียญ (ไม่ตัดกลางสระ/วรรณยุกต์ · ยังตัด 2 บรรทัดเหมือนเดิม) */
 .ab-nm { word-break: break-all; }
+
+/* ============================================================
+   จองาน · อ่านง่ายขึ้น + ปุ่มค้นหาข้างชื่อจอ + ปุ่มเสร็จมีขอบ — 26 ต.ค. 69
+   เจ้าของ (ภาพรายการงาน ธีม Halloween): "ปรับให้ฟอนต์สีชัดกว่านี้ · ปุ่มค้นหาไปอยู่ข้างงานทั้งหมด · ปุ่มเสร็จงานให้มีขอบ"
+   ① ชื่อวิชา (.tk-sub) กับเวลาที่ใช้ (.tk-min) เป็น --muted 11px น้ำหนักปกติ — บนการ์ดมืดจางจนต้องเพ่ง
+      → หมึกหลัก 78% หนาขึ้น ใหญ่ขึ้นนิด · ดาวความสำคัญโตตาม (ยังเล็กกว่าชื่อวิชา)
+   ② ช่องค้นหาเคยอยู่ท้ายรายการ → ปุ่มแว่นขยายกลมข้างชื่อจอ หน้าตาชุดเดียวกับปุ่มเพื่อนมุมขวาบน
+      กดแล้วช่องโผล่ใต้หัวจอ (toggleTaskSearch ใน app.js) · เปิดอยู่ = ย้อมสีธีม
+   ③ วงติ๊กเสร็จ: ขอบ 1.5px สี --line (โปร่ง 26% ในธีมมืด) แทบหายไปบนการ์ด → ขอบ 2px สีธีมผสมหมึก
+      ยังเป็นวงกลวง (ยังไม่เสร็จ) · ติ๊กแล้วใช้สีเขียวเดิม (.on) ไม่แตะ
+   ============================================================ */
+.phone #scr-tasks .tk-sub { font-size: 12px; font-weight: 600; color: color-mix(in srgb, var(--ink) 78%, transparent); }
+.phone #scr-tasks .tk-sub .tk-pri { font-size: 11px; }
+.phone #scr-tasks .tk-min { font-size: 12px; font-weight: 600; color: color-mix(in srgb, var(--ink) 78%, transparent); }
+
+.tk-find {
+  flex: none; width: 34px; height: 34px; padding: 0; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); background: var(--card); color: var(--blue);
+  box-shadow: var(--shadow); cursor: pointer;
+  transition: transform .14s ease, background-color .2s ease, color .2s ease;
+}
+.tk-find svg { width: 17px; height: 17px; stroke-width: 2.3; }
+.tk-find:active { transform: scale(.92); }
+.tk-find.on {
+  background: var(--fill); border-color: var(--fill); color: var(--on-fill);
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--fill) 75%, transparent);
+}
+.tk-find:focus-visible { outline: 2px solid var(--fill); outline-offset: 2px; }
+#scr-tasks .page-head + .tk-search { margin: 2px 0 12px; }
+
+.phone #scr-tasks .tk-tick:not(.on) {
+  border: 2px solid color-mix(in srgb, var(--fill) 65%, var(--ink));
+  background: color-mix(in srgb, var(--fill) 8%, transparent);
+}
+@media (hover: hover) { .phone #scr-tasks .tk-tick:not(.on):hover { background: color-mix(in srgb, var(--fill) 18%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .tk-find { transition: none; } }
