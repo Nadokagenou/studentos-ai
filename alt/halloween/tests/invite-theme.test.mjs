@@ -38,3 +38,18 @@ test('Thai theme text, secondary labels and primary controls remain readable aga
  for(const fg of ['--ink','--muted','--faint','--blue'])for(const bg of ['--scr','--card','--card2'])assert.ok(ratio(tokens[fg],tokens[bg])>=4.5,fg+' on '+bg);
  assert.ok(ratio(tokens['--on-fill'],tokens['--fill'])>=4.5);
 });
+test('the Thai hero card keeps its one solid lacquer block, and ornaments never sit on controls',()=>{
+ const css=read('../../alt.css'),js=read('../invite-friend/thai-theme.js'),body=css.split(':root[data-theme="thai-ghost"]{')[1]?.split('}')[0];
+ const tokens=Object.fromEntries([...body.matchAll(/(--[\w-]+):\s*(#[0-9a-f]{6});/gi)].map(m=>[m[1],m[2]]));
+ const lum=hex=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);
+ const ratio=(a,b)=>(Math.max(lum(a),lum(b))+.05)/(Math.min(lum(a),lum(b))+.05);
+ // 1B28: the home screen has exactly one solid block; a transparent head let the moon bleed through and left the minute label as a pale slab
+ assert.doesNotMatch(css,/data-theme="thai-ghost"\] #menuBody :is\(\.tn-head,\.tn-body\)\{background:transparent/);
+ assert.match(css,/data-theme="thai-ghost"\] #menuBody \.td-now \.tn-head\{[^}]*var\(--tg-lacquer\)/);
+ assert.match(css,/data-theme="thai-ghost"\] #menuBody \.td-now \.tk-line i\{[^}]*background:var\(--tg-lacquer\)/);
+ for(const fg of ['--ink','--muted'])for(const bg of ['--tg-lacquer','--tg-lacquer-deep'])assert.ok(ratio(tokens[fg],tokens[bg])>=4.5,fg+' on '+bg);
+ // the lotus used to land on the hero's snooze button and on the last settings control
+ assert.doesNotMatch(js,/querySelectorAll\('\.td-now/);
+ assert.match(js,/matches\('\.td-clear'\)\?lotus:''/);
+ assert.match(css,/data-theme="thai-ghost"\] \.set-card \.set-row\{[^}]*background:transparent/);
+});

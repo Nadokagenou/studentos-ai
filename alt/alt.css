@@ -15396,6 +15396,7 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
  --grad-brand:linear-gradient(125deg,#516443,#2F5144);--grad-hero:linear-gradient(140deg,#294235,#112720);
  --tile-plan:#34483A;--tile-tasks:#2A443D;--tile-route:#3F3E30;--tile-me:#3A3431;--tile-on:#ECE5D0;
  --tg-gold:#BDA471;--tg-gold-soft:#BDA47140;--tg-ornament:#D7C293;--tg-shadow:#020A07;
+ --tg-lacquer:#15291F;--tg-lacquer-deep:#0A1914;
 }
 .sw-thai-ghost{background:linear-gradient(135deg,#10271E 42%,#BDA471 43% 53%,#35503E 54%);box-shadow:inset 0 0 0 1px #C9B78066}
 :root[data-theme="thai-ghost"] .phone{isolation:isolate;background:var(--scr)}
@@ -15409,9 +15410,8 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 :root[data-theme="thai-ghost"] :is(.card,.td-now,.td-clear,.set-card,.set-row,.pf-me,.shw,.saih,.t-card,.ts-card,.tp-card,.tb-row,.fd-post,.ai-panel,.r-card,.qn-card,.cls-card){
  background:linear-gradient(135deg,#1C3028F7,#11251FF7);border:1px solid var(--tg-gold-soft);border-radius:18px 5px 18px 5px;box-shadow:inset 0 0 0 3px #0B181744,0 8px 24px #020A0740;color:var(--ink)
 }
-:root[data-theme="thai-ghost"] #menuBody :is(.tn-head,.tn-body){background:transparent;border-color:var(--line)}
+:root[data-theme="thai-ghost"] #menuBody .tn-body{background:transparent;border-color:var(--line)}
 :root[data-theme="thai-ghost"] #menuBody .tn-head{position:relative;overflow:hidden;border-bottom:1px solid var(--tg-gold-soft)}
-:root[data-theme="thai-ghost"] #menuBody .tn-head::after{content:"";position:absolute;right:17px;top:13px;width:25px;height:25px;border:1px solid var(--tg-gold-soft);border-radius:2px 12px 2px 12px;transform:rotate(-45deg);pointer-events:none}
 :root[data-theme="thai-ghost"] #menuBody .tn-cta{background:linear-gradient(125deg,#C4D9B7,#9EBF9B)!important;color:var(--on-fill)!important;border:1px solid var(--tg-gold)!important;box-shadow:inset 0 1px #F5EBD080,0 5px 20px #8DAE7C20!important}
 :root[data-theme="thai-ghost"] #menuBody .tn-cta .tc-main{background:none;box-shadow:none;border:0;color:inherit}
 :root[data-theme="thai-ghost"] #menuBody .tg-ic{background:linear-gradient(145deg,#2E4133,#1A3028)!important;border:1px solid var(--tg-gold-soft)!important;box-shadow:inset 0 1px #E8D5A516,0 6px 18px #020A0755!important;border-radius:17px 5px 17px 5px}
@@ -15486,6 +15486,23 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 @media(max-width:599px){:root[data-theme="thai-ghost"] .td-top .tt-rank b{display:none}}
 @media(max-width:359px){:root[data-theme="thai-ghost"] .td-top{gap:2px}:root[data-theme="thai-ghost"] .td-top .tt-chip:not(.tg-sound-quick){padding-inline:5px;gap:3px}}
 .tg-sound-quick[hidden],.tg-preferences[hidden]{display:none!important}
+/* 26 ต.ค. 69 · หัวการ์ด "ควรทำอะไร" เป็นตู้ลายรดน้ำ — ก้อนทึบก้อนเดียวของหน้าแรกตาม 1B28
+   เดิมหัวการ์ดโปร่ง: จันทร์ในฉากทะลุขึ้นมาครึ่งดวงหลังตัวหนังสือ และป้าย "40 นาที" ที่ใช้พื้น --fill เป็นแผ่นเขียวอ่อนลอยกลางเส้นประ
+   ลายประจำยามสีทองเก่าจางทางขวา ไล่หายใต้ตัวหนังสือ · กรอบเส้นคู่แบบตู้พระธรรม · จันทร์เสี้ยวมุมล่าง */
+:root[data-theme="thai-ghost"] #menuBody .td-now .tn-head{
+ background:linear-gradient(100deg,var(--tg-lacquer) 40%,#15291FC8 70%,#15291F60),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3E%3Cg fill='none' stroke='%23D7C293' stroke-opacity='.34' stroke-width='.8'%3E%3Cpath d='M15 5.5c3.2 4 3.2 5.3 0 9.5-3.2-4.2-3.2-5.5 0-9.5zM15 24.5c3.2-4 3.2-5.3 0-9.5-3.2 4.2-3.2 5.5 0 9.5zM5.5 15c4-3.2 5.3-3.2 9.5 0-4.2 3.2-5.5 3.2-9.5 0zM24.5 15c-4-3.2-5.3-3.2-9.5 0 4.2 3.2 5.5 3.2 9.5 0z'/%3E%3Ccircle cx='15' cy='15' r='1.5'/%3E%3C/g%3E%3Cg fill='%23D7C293' fill-opacity='.3'%3E%3Ccircle cx='0' cy='0' r='1.1'/%3E%3Ccircle cx='30' cy='0' r='1.1'/%3E%3Ccircle cx='0' cy='30' r='1.1'/%3E%3Ccircle cx='30' cy='30' r='1.1'/%3E%3C/g%3E%3C/svg%3E") 0 0/30px 30px,
+  linear-gradient(150deg,#1E3A2D,var(--tg-lacquer) 55%,var(--tg-lacquer-deep))!important;
+ color:var(--ink);border-bottom:1px solid #BDA47166}
+:root[data-theme="thai-ghost"] #menuBody .td-now .tn-head::after{content:"";position:absolute;inset:6px;width:auto;height:auto;border-radius:13px 3px 0 0;border:1px solid #BDA47138;border-bottom:0;background:none;transform:none;pointer-events:none}
+:root[data-theme="thai-ghost"] #menuBody .td-now .tn-head::before{content:"";position:absolute;right:30px;bottom:-26px;top:auto;width:62px;height:62px;border-radius:50%;background:none;box-shadow:13px -9px 0 0 #E6DCB52E;pointer-events:none}
+:root[data-theme="thai-ghost"] #menuBody .td-now :is(.tn-title,.tk-t){color:var(--ink)}
+:root[data-theme="thai-ghost"] #menuBody .td-now .tk-line{color:var(--tg-gold);opacity:.7}
+:root[data-theme="thai-ghost"] #menuBody .td-now .tk-line i{background:var(--tg-lacquer);color:var(--ink);border:1px solid #BDA47155;border-radius:2px 8px 2px 8px;padding:1px 8px}
+/* แถวตั้งค่าในการ์ดเดียวกันเคยได้กรอบ/เงาของการ์ดทุกแถว จึงเห็นกรอบซ้อนกรอบและเส้นทองซ้ายซ้ำ → แถวเรียบ คั่นด้วยเส้นบาง */
+:root[data-theme="thai-ghost"] .set-card .set-row{background:transparent;border:0;border-radius:0;box-shadow:none}
+:root[data-theme="thai-ghost"] .set-card .set-row+.set-row{border-top:1px solid var(--line)}
+
 .tg-preferences{display:grid;gap:13px;margin-top:22px;padding:17px 15px;border:1px solid #BDA47155;border-radius:18px 5px 18px 5px;background:linear-gradient(140deg,#1C3028,#0D201A);color:#F0EAD5}
 .tg-pref-title{display:flex;gap:12px;align-items:center}
 .tg-pref-title>svg{width:42px;height:34px;color:#D7C293;flex:none}
