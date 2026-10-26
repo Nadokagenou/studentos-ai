@@ -1,0 +1,10 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
+const root=new URL('../../../',import.meta.url);
+function extract(s,name){const a=s.search(new RegExp('(?:async )?function '+name+'\\('));assert.ok(a>=0,name);const b=s.indexOf('\n}',a);return s.slice(a,b+2);}
+test('both native draw screens present the canonical account result and delegate reveals without minting locally',async()=>{for(const file of ['app.js','alt/app.js']){
+ const s=fs.readFileSync(new URL(file,root),'utf8').replace(/\r\n/g,'\n'),cards=[{id:'server-card',drawId:'receipt',drawIndex:0,kind:'token',amount:0,rarity:'common',granted:false}],el={disabled:false,innerHTML:'',className:'',classList:{add(){},remove(){},toggle(){}}};let reveals=0,paid=0;
+ const api={tokens:()=>({bal:10,pendingDraw:{id:'receipt',results:structuredClone(cards)}}),admin:()=>false,paySpin:async n=>{paid+=n;return {ok:true};},flip:r=>{reveals++;return {...r,granted:true};}};
+ const ctx=vm.createContext({window:{StudentOSEconomy:api},drawing:false,drawResults:[],drawOpen:[],curScreen:'scr-wheel',GC_REDUCED:true,gcRot:0,drawBusy:()=>false,rollPrize:()=>({id:'local-forgery'}),rawTokenState:()=>({pendingDraw:{id:'forged',results:[{...cards[0],id:'local-forgery'}]}}),document:{getElementById:()=>el},setTimeout:fn=>fn(),gcIntro:async()=>{},applyDrawLock(){},drawCardsHtml:()=>'',refreshDrawFooter(){},refreshDrawHead(){},ringStop(){},ringLayout(){},ringBind(){},ringPaint(){},ringTo(){},console});
+ vm.runInContext([extract(s,'tokenState'),extract(s,'grantPrize'),extract(s,'paySpin'),...(file.startsWith('alt/')?[extract(s,'restorePendingDraw')]:[]),extract(s,'doSpin')].join('\n'),ctx);
+ await ctx.doSpin(1);assert.equal(paid,1,file);assert.equal(ctx.drawResults[0].id,'server-card',file);assert.equal(ctx.drawOpen[0],false,file);assert.equal(ctx.tokenState().bal,10);assert.equal(ctx.grantPrize(ctx.drawResults[0]).granted,true);assert.equal(reveals,1);assert.equal(ctx.tokenState().bal,10);
+}});

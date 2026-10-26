@@ -1,0 +1,17 @@
+/* Slow local protocol test: wall time really elapses; fake accounts, no network or real rewards. */
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),Core=require('../../halloween/event/core.js'),Catalog=require('../../halloween/rewards/catalog.js'),Death=require('../../halloween/death-quests.js'),Season=require('../../halloween/event/season.js'),Authority=require('../../halloween/server/authority.cjs'),Economy=require('../server/engine.cjs');
+const json=n=>JSON.parse(fs.readFileSync(path.join(__dirname,'../../halloween/event/data/'+n+'.json'),'utf8')),rules=JSON.parse(fs.readFileSync(path.join(__dirname,'../server/rules.json'),'utf8')),config=Core.build({materials:json('materials'),chains:['dutchman','jack','vampire','graveyard'].map(n=>json('quests.'+n)),catalog:Catalog,proposals:json('preview-rules'),authoritative:true,season:{startAt:Season.startAt,endAt:Season.endAt,timezone:Season.timezone,claimingEnabled:true}});
+const event=Authority.create({Core,Death,Season,config,randomSeed:()=>crypto.getRandomValues(new Uint32Array(1))[0]||1}),wallet=Economy.create({rules,random:()=>crypto.getRandomValues(new Uint32Array(1))[0]/4294967296}),uid='00000000-0000-4000-8000-00000000ca01',start=Date.now(),base=Date.parse(Season.startAt),session='real-wall-clock-fixture-session',now=()=>base+Date.now()-start;
+let d=event.initial(uid,base),w=wallet.initial(uid,null,base),task={id:'real-clock-fixture',type:'homework',done:false},coreDone=false,lastMinute=-1;
+function e(action){const r=event.apply(d,action,{uid,at:now(),tx:crypto.randomUUID()});d=r.document;return r.result;}
+function c(action){const r=wallet.apply(w,action,{uid,at:now(),tx:crypto.randomUUID(),task});w=r.document;return r.result;}
+e({type:'death-quest-enroll'});const q=Object.values(d.event.deathQuests)[0];c({type:'focus-start',taskId:task.id,session});
+const timer=setInterval(()=>{try{
+ const elapsed=Date.now()-start;if(elapsed>30*60000)throw Error('Clock test exceeded 30 minutes without enough valid focus');
+ e({type:'focus-pulse',taskId:q.taskId,session,active:true});let p=d.event.focusProofs[q.taskId];if(p.attention?.challenge)e({type:'focus-check',taskId:q.taskId,checkpoint:p.attention.challenge.id,answer:p.attention.expected});
+ if(!coreDone){c({type:'focus-pulse',taskId:task.id,session,active:true});const p=w.focus;if(p.attention?.challenge)c({type:'focus-check',taskId:task.id,checkpoint:p.attention.challenge.id,answer:p.attention.expected});if(p.activeMs>=300000){task.done=true;c({type:'focus-finish',taskId:task.id});if(elapsed<300000)throw Error('Early core badge credit');coreDone=true;}}
+ const minute=Math.floor(elapsed/60000);if(minute!==lastMinute){lastMinute=minute;console.log(JSON.stringify({wallMinutes:minute,verifiedDeathSeconds:Math.floor(p.activeMs/1000),coreFiveMinuteCredit:coreDone}));}
+ if(p.activeMs>=1200000){if(elapsed<1200000)throw Error('Early 20-minute credit');e({type:'focus-finish',taskId:q.taskId});const result=e({type:'death-quest-claim',quest:q.id});if(result.candy!==30)throw Error('Unexpected local quest result');clearInterval(timer);console.log(JSON.stringify({passed:true,realElapsedSeconds:Math.floor(elapsed/1000),verifiedSeconds:p.activeMs/1000,coreFiveMinuteCredit:coreDone,note:'Local fake-account protocol test only; no production account, device or human study claim.'}));}
+}catch(error){clearInterval(timer);console.error(error.message);process.exitCode=1;}},5000);
+console.log('Started local real-clock test; no production network calls or retained player data.');

@@ -7,20 +7,21 @@
  const COSTUME_KEY='studentos.alt.halloween.costumes';
  const items=Object.freeze(C.items.filter(x=>['theme','costume','room','effect'].includes(x.kind)));
  const available=id=>items.some(x=>x.id===id),isEffect=id=>items.some(x=>x.id===id&&x.kind==='effect');
+ const owns=id=>available(id)&&(globalThis.__HW_SHOWROOM__===true||globalThis.HalloweenRewardAccess?.owns(id)===true);
  const browserBase=typeof document==='undefined'?null:new URL('.',document.currentScript.src).href;
  const asset=item=>new URL(item.asset||'assets/'+item.id+'.svg',browserBase).href;
  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  function readCostumes(storage){let saved;try{saved=JSON.parse(storage.getItem(COSTUME_KEY)||'{}');}catch{return {};}
   const out={};for(const mascot of ['sai','hook'])if(items.some(x=>x.kind==='costume'&&x.id===saved?.[mascot]&&x.mascot===mascot))out[mascot]=saved[mascot];return out;}
- function saveCostume(storage,id){const item=items.find(x=>x.id===id&&x.kind==='costume');if(!item)return false;
+ function saveCostume(storage,id){const item=items.find(x=>x.id===id&&x.kind==='costume');if(!item||!owns(id))return false;
   try{storage.setItem(COSTUME_KEY,JSON.stringify({...readCostumes(storage),[item.mascot]:id}));return true;}catch{return false;}}
  function browserCostumes(){try{return readCostumes(localStorage);}catch{return {};}}
- function costumeAsset(mascot){const id=browserCostumes()[mascot],item=items.find(x=>x.id===id);return item?asset(item):null;}
+ function costumeAsset(mascot){const id=browserCostumes()[mascot],item=items.find(x=>x.id===id);return item&&owns(id)?asset(item):null;}
  function costumeForSource(src){const id=/(?:^|\/)sai-(?:face-[\w-]+|chibi)\.webp$|(?:^|\/)sai-avatar\.png$/.test(src)?'sai':/(?:^|\/)hook-(?:body|face)\.webp$|(?:^|\/)hook-avatar\.png$|(?:^|\/)hook-hat-(?:body|face|avatar)\.svg$/.test(src)?'hook':null;return id?costumeAsset(id):null;}
  function roomEntries(base){const positions={desk:[136,38,96,96],shelf:[170,12,76,76],poster:[92,9,80,80],hanging:[196,-27,86,86],pet:[2,138,104,104]};
   return items.filter(x=>x.kind==='room').map(item=>{const [x,y,w,h]=positions[item.slot],src=new URL(item.asset||'assets/'+item.id+'.svg',base).href;
    return {id:'hw-'+item.id,name:item.name+' · Halloween',slot:item.slot==='hanging'?'ceiling':item.slot,cost:0,svg:'<image class="hw-native-room-item" data-hw-room="'+item.id+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" href="'+src+'"/>'};});}
- function syncCostumes(){const selected=browserCostumes();document.querySelectorAll('button[data-hw-costume]').forEach(b=>{const item=C.find(b.dataset.hwCostume),on=selected[item.mascot]===item.id;b.setAttribute('aria-pressed',String(on));b.classList.toggle('active',on);});}
+ function syncCostumes(){const selected=browserCostumes();document.querySelectorAll('button[data-hw-costume]').forEach(b=>{const item=C.find(b.dataset.hwCostume),on=selected[item.mascot]===item.id;b.disabled=!owns(item.id);b.title=globalThis.__HW_SHOWROOM__===true?'ตัวอย่างในห้องลอง':owns(item.id)?'ได้รับจากบัญชีแล้ว':'รับจากอีเวนต์ก่อนเลือกใช้';b.setAttribute('aria-pressed',String(on));b.classList.toggle('active',on);});}
  function chooseCostume(id){const item=items.find(x=>x.id===id&&x.kind==='costume');if(!item)return;try{if(!saveCostume(localStorage,id))return;}catch{return;}
   if(typeof setMascot==='function')setMascot(item.mascot);syncCostumes();}
  function resetCostumes(){try{localStorage.removeItem(COSTUME_KEY);}catch{return;}if(typeof applyMascot==='function')applyMascot();if(typeof renderAll==='function')renderAll();syncCostumes();}
@@ -42,7 +43,7 @@
   if(typeof applyTheme==='function')applyTheme();
   if(document.querySelector('#scr-room.on')&&typeof renderRoom==='function')renderRoom();
  }
- return Object.freeze({items,available,isEffect,COSTUME_KEY,readCostumes,saveCostume,roomEntries,costumeAsset,costumeForSource,chooseCostume,resetCostumes,install,
+ return Object.freeze({items,available,isEffect,owns,syncCostumes,COSTUME_KEY,readCostumes,saveCostume,roomEntries,costumeAsset,costumeForSource,chooseCostume,resetCostumes,install,
   effectIcon:id=>isEffect(id)?'<img class="hw-effect-icon" src="'+asset(C.find(id))+'" alt="">':'',
-  playEffect:(id,onClose,title)=>isEffect(id)&&window.HalloweenRewards?.playEffect(id,onClose,title)});
+  playEffect:(id,onClose,title,preview)=>isEffect(id)&&window.HalloweenRewards?.playEffect(id,onClose,title,preview)});
 });

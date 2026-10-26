@@ -15,9 +15,11 @@ test('room items fit existing native slots and are selectable without buying',()
 });
 test('costume preference validates its mascot and cannot grant an event item',()=>{
  const map=new Map([['studentos.alt.v1','KEEP TASKS']]),storage={getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};
- assert.ok(N.saveCostume(storage,'sai-witch'));assert.equal(N.readCostumes(storage).sai,'sai-witch');assert.equal(map.get('studentos.alt.v1'),'KEEP TASKS');
+ const prior=globalThis.HalloweenRewardAccess;globalThis.HalloweenRewardAccess={owns:id=>id==='sai-witch'};
+ try{assert.ok(N.saveCostume(storage,'sai-witch'));assert.equal(N.readCostumes(storage).sai,'sai-witch');assert.equal(map.get('studentos.alt.v1'),'KEEP TASKS');
  assert.equal(N.saveCostume(storage,'crown-of-midnight'),false);assert.equal(N.saveCostume(storage,'cruor-quill'),false);
  map.set(N.COSTUME_KEY,JSON.stringify({sai:'hook-mummy',hook:'cruor-quill'}));assert.deepEqual(N.readCostumes(storage),{});
+ }finally{if(prior===undefined)delete globalThis.HalloweenRewardAccess;else globalThis.HalloweenRewardAccess=prior;}
 });
 test('Win retains the restricted scythe stage, non-consuming proof and permanent final theme',()=>{
  const spec=JSON.parse(fs.readFileSync(new URL('../event/data/quests.graveyard.json',import.meta.url),'utf8')),q=spec.quests;assert.equal(q.length,5);
@@ -30,7 +32,7 @@ test('native completion selection accepts Halloween without changing regular own
  let source=fs.readFileSync(new URL('../../hoop.js',import.meta.url),'utf8');
  if(process.env.HW_NATIVE_REGRESSION)source=source.replace("!!window.HalloweenCosmetics?.isEffect(id) || ",'').replace("  if (window.HalloweenCosmetics?.isEffect(id)) return !!document.querySelector('.phone');",'');
  const extract=(a,b)=>source.slice(source.indexOf(a),source.indexOf(b,source.indexOf(a)));
- const storage=new Map([['studentos.alt.doneFx','fx-soulwake']]),context={window:{HalloweenCosmetics:N},localStorage:{getItem:k=>storage.get(k)},DONEFX_KEY:'studentos.alt.doneFx',tokenState:()=>({fx:['goal']}),FX_GAMES:{goal:{}},document:{querySelector:()=>({})},matchMedia:()=>({matches:false})};
+ const storage=new Map([['studentos.alt.doneFx','fx-soulwake']]),context={window:{HalloweenCosmetics:{...N,owns:id=>id==='fx-soulwake'}},localStorage:{getItem:k=>storage.get(k)},DONEFX_KEY:'studentos.alt.doneFx',tokenState:()=>({fx:['goal']}),FX_GAMES:{goal:{}},document:{querySelector:()=>({})},matchMedia:()=>({matches:false})};
  vm.runInNewContext(extract('function fxOwned(', '// ---------- โหมด 3D')+extract('function doneFxPref(', '// เปิดเอฟเฟกต์ที่เลือกไว้'),context);
  assert.equal(context.fxOwned('fx-soulwake'),true);assert.equal(context.fxOwned('goal'),true);assert.equal(context.fxOwned('hoop'),false);assert.equal(context.fxOwned('dullahan-scythe'),false);assert.equal(context.doneFxPref(),'fx-soulwake');assert.equal(context.doneFxActive(),true);
 });

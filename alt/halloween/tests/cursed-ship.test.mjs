@@ -58,7 +58,7 @@ test('card numbers come from real tasks: done today and done overall', () => {
   assert.equal(JSON.stringify(load().api.stats()), JSON.stringify([[1, 'งานเสร็จวันนี้'], [146, 'เสร็จทั้งหมด']]));
 });
 test('hoop.js routes the new id through the shared effect path', () => {
-  assert.match(hoop, /function fxOwned\(id\) \{ return !!\(typeof FX_SHOP === 'object' && FX_SHOP\[id\]\?\.free\)/);
+  assert.match(hoop, /if \(window\.HalloweenCosmetics\?\.isEffect\(id\)\) return window\.HalloweenCosmetics\.owns\(id\)/);
   assert.match(hoop, /if \(id === 'cursedship'\) return !!window\.CursedShip\?\.canPlay\(\)/);
   assert.match(hoop, /if \(id === 'cursedship' && window\.CursedShip\) return window\.CursedShip\.playFx\(title, onClose, preview\)/);
   assert.match(hoop, /const fxOpenNow = \(\) => !!document\.querySelector\('\.hoop-ov:not\(\.out\), \.cs-ov:not\(\.out\)'\)/);
@@ -77,7 +77,7 @@ test('every image the CSS and the script name exists and is in the offline shell
 test('the scene stays on one ship image with no beam and no cut, about 5–7 seconds', () => {
   const { api } = load();
   assert.ok(api.TOTAL >= 5000 && api.TOTAL <= 7000, String(api.TOTAL));
-  const shots = [...source.matchAll(/\$\{shot\('(\w+)'\)\}/g)].map(m => m[1]);
+  const shots = [...source.matchAll(/\bshot\('(\w+)'\)/g)].map(m => m[1]);
   assert.deepEqual(shots, ['ship'], 'one shot only');
   const css = read('../season/cursed-ship.css').replace(/\/\*[\s\S]*?\*\//g, '');
   assert.doesNotMatch(css, /\.cs-beam|csShotFog|csShotFar|csShotDeck/);
@@ -134,6 +134,6 @@ test('the clip setting is either off or complete and points at a real file', () 
 });
 test('a clip that will not play falls back to the still scene instead of leaving a black screen', () => {
   assert.match(source, /Promise\.resolve\(p\)\.then\(go, \(\) => \{/);
-  assert.match(source, /if \(ready\(\)\) playStills\(title, onClose, host, sheet\);/);
+  assert.match(source, /if \(ready\(\)\) playStills\(title, onClose, host, sheet, variant\);/);
   assert.match(source, /at\(\(end \+ 2\) \* 1000, finish\)/, 'stalled clip still ends');
 });

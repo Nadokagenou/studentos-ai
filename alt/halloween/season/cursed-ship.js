@@ -113,6 +113,53 @@
       <i class="cs-mist"></i><i class="cs-lamp l"></i><i class="cs-lamp r"></i></div>`;
   }
 
+  const biomeScenes=Object.freeze({
+    jack:{sealLabel:'JACK’S HOLLOW',scene:'biome-cinematics/jack-night.webp',target:{x:.5,y:.62},captions:['งานนี้เสร็จแล้ว…','ประทับตราแห่ง Jack’s Hollow','ฟักทองรับงานไว้แล้ว']},
+    vampire:{sealLabel:'VAMPIRE MANSION',scene:'biome-cinematics/vampire-night.webp',target:{x:.5,y:.69},captions:['งานนี้เสร็จแล้ว…','ประทับตราแห่งคฤหาสน์','บันทึกงานลงสมุดรัตติกาลแล้ว']},
+    graveyard:{sealLabel:'ETERNAL GRAVEYARD',scene:'biome-cinematics/graveyard-night.webp',target:{x:.54,y:.66},captions:['งานนี้เสร็จแล้ว…','ประทับตราแห่งสุสาน','ฝากงานไว้หลังประตูวิญญาณแล้ว']}
+  });
+  const variants = Object.freeze({
+    'fx-soulwake':{biome:'dutchman',color:'#9ACFC4',metal:'#B7C8BA'},
+    'fx-dutchman-arrival':{biome:'dutchman',color:'#8CDEC9',metal:'#E2C789'},
+    'fx-pumpkin-sparks':{...biomeScenes.jack,biome:'jack',color:'#D6A268',metal:'#CAA273'},
+    'fx-jacks-verdict':{...biomeScenes.jack,biome:'jack',color:'#EDBC79',metal:'#E5CC91'},
+    'fx-velvet-flight':{...biomeScenes.vampire,biome:'vampire',color:'#B97996',metal:'#C2ADB9'},
+    'fx-crimson-eclipse':{...biomeScenes.vampire,biome:'vampire',color:'#D78FA7',metal:'#E1C78F'},
+    'fx-soul-bloom':{...biomeScenes.graveyard,biome:'graveyard',color:'#B9A5D2',metal:'#C0B7D0'},
+    'fx-reaper-gate':{...biomeScenes.graveyard,biome:'graveyard',color:'#CBB4EB',metal:'#E5D09C'}
+  });
+  const sceneLoads=new Map();
+  function sceneUrl(v){return new URL(v.scene,BASE+'../').href;}
+  function preloadVariant(item){const extra=window.HalloweenCinematicFinishes?.preload?.(item?.id)||Promise.resolve(true),v=variants[item?.id];if(!v?.scene)return extra;const combine=p=>Promise.all([p,extra]).then(values=>values.every(Boolean));if(sceneLoads.has(v.scene))return combine(sceneLoads.get(v.scene).promise);if(typeof Image!=='function')return Promise.resolve(false);const state={ready:false,promise:null};state.promise=new Promise(resolve=>{const image=new Image();image.onload=()=>{state.ready=true;resolve(true);};image.onerror=()=>resolve(false);image.src=sceneUrl(v);});sceneLoads.set(v.scene,state);return combine(state.promise);}
+  function variantReady(item){const v=variants[item?.id];return (!v?.scene||sceneLoads.get(v.scene)?.ready===true)&&window.HalloweenCinematicFinishes?.ready?.(item?.id)!==false;}
+  function decorateVariant(ov,item) {
+    const v=variants[item?.id];if(!v)return;
+    if(v.scene){ov.style.setProperty('--cs-scene','url("'+sceneUrl(v)+'")');ov.style.setProperty('--cs-point-x',v.target.x*100+'%');ov.style.setProperty('--cs-point-y',v.target.y*100+'%');}
+    if(v.scene){const seal=ov.querySelector('.cs-seal');if(seal)seal.innerHTML='<span class="cs-biome-wax"><img src="'+new URL('../rewards/'+(item.asset||'assets/'+item.id+'.svg'),BASE+'../').href+'" alt=""><b>'+esc(v.sealLabel)+'</b></span>';}
+    ov.dataset.rewardBiome=v.biome;ov.dataset.rewardTier=item.rarity;ov.style.setProperty('--cs-accent',v.color);ov.style.setProperty('--cs-metal',v.metal);
+    const wash=document.createElement('i');wash.className='cs-variant-wash';wash.setAttribute('aria-hidden','true');ov.prepend(wash);
+    const mark=document.createElement('div');mark.className='cs-variant-mark';mark.innerHTML='<img src="'+new URL('../rewards/'+(item.asset||'assets/'+item.id+'.svg'),BASE+'../').href+'" alt=""><span><small>'+esc(item.rarity.toUpperCase())+' · HALLOWEEN</small>'+esc(item.name)+'</span>';ov.append(mark);
+  }
+  function stillVariant(item,title,onClose) {
+    const host=document.querySelector('.phone');if(!host){if(typeof onClose==='function')onClose();return false;}stop(true);
+    const ov=document.createElement('div');ov.className='cs-ov cs-still';ov.setAttribute('role','dialog');ov.setAttribute('aria-label','งานเสร็จแล้ว · ข้ามได้');
+    const src=new URL('../rewards/'+(item.asset||'assets/'+item.id+'.svg'),BASE+'../').href;
+    ov.innerHTML='<div class="cs-still-card"><img src="'+src+'" alt=""><strong>เสร็จแล้ว</strong><p>'+esc(title||'ผ่านไปอีกหนึ่งงาน')+'</p><small>'+esc(item.name)+'</small></div><button type="button" class="cs-skip">ข้าม</button>';
+    host.appendChild(ov);run={ov,sheet:null,timers:[],onClose,done:false,anims:[],previousFocus:document.activeElement};ov.addEventListener('pointerdown',skip);ov.querySelector('.cs-skip').addEventListener('click',skip);ov.querySelector('.cs-skip').focus({preventScroll:true});at(1000,finish);return true;
+  }
+  function playVariant(item,onClose,title,preview=false) {
+    const canonical=window.StudentOSHalloweenRewards?.find(item?.id);
+    if(!canonical||!variants[canonical.id]||!document.querySelector('.phone')){if(typeof onClose==='function')onClose();return false;}preload();const loading=preloadVariant(canonical);
+    if(!motionOk(env()))return stillVariant(canonical,title,onClose);
+    if(!variantReady(canonical)){
+      if(!preview)return stillVariant(canonical,title,onClose);
+      let settled=false;const finishLoad=ok=>{if(settled)return;settled=true;clearTimeout(timeout);if(ok)playFx(title,onClose,preview,canonical);else stillVariant(canonical,title,onClose);};
+      const timeout=setTimeout(()=>finishLoad(false),3000);loading.then(finishLoad);return true;
+    }
+    if(!usable()&&!preview)return stillVariant(canonical,title,onClose);
+    playFx(title,onClose,preview,canonical);return true;
+  }
+
   // ---------- ฉาก ----------
   let run = null;   // { ov, sheet, timers, anims, onClose, done }
 
@@ -148,12 +195,12 @@
   }
 
   // เปิดจาก openDoneFx (hoop.js) — title = ชื่องาน · onClose = ทุกอย่างที่แอปรอทำหลังฉลอง (วาดใหม่ · บอกงานถัดไป)
-  function playFx(title, onClose, preview) {
+  function playFx(title, onClose, preview, variant) {
     const host = document.querySelector('.phone');
     preload();
     // ปุ่ม "ลองเล่นดู" กดทันทีหลังเลือก — ภาพอาจยังโหลดไม่เสร็จ รอได้ไม่เกิน 3 วิ (งานจริงไม่รอ: doneFxActive กันไว้แล้ว)
     if (preview && host && motionOk(env()) && !usable() && !failed && !(preview > 25)) {
-      setTimeout(() => playFx(title, onClose, (typeof preview === 'number' ? preview : 0) + 1), 120);
+      setTimeout(() => playFx(title, onClose, (typeof preview === 'number' ? preview : 0) + 1, variant), 120);
       return;
     }
     if (!host || !motionOk(env()) || !usable()) {
@@ -165,15 +212,16 @@
     }
     stop(true);
     const sheet = document.querySelector('#focusWrap:not([hidden]) .fc-sheet.done.cs-done');
-    if (clipUrl) return playClip(title, onClose, host, sheet);
-    playStills(title, onClose, host, sheet);
+    if (clipUrl&&!variants[variant?.id]?.scene) return playClip(title, onClose, host, sheet, variant);
+    playStills(title, onClose, host, sheet, variant);
   }
 
   // ทั้งสองแบบใช้: แตะที่ไหนก็ข้าม (pointerdown ไม่ใช่ click จะได้ไม่ต้องรอปล่อยนิ้ว) · Enter/Space บนปุ่มข้าม
-  function mount(host, sheet, ov, onClose) {
+  function mount(host, sheet, ov, onClose, variant) {
+    decorateVariant(ov,variant);
     if (sheet) sheet.classList.add('cs-playing');
     host.appendChild(ov);
-    run = { ov, sheet, timers: [], onClose, done: false, anims: [], raf: 0, video: null };
+    run = { ov, sheet, timers: [], onClose, done: false, anims: [], raf: 0, video: null, previousFocus:document.activeElement };
     ov.addEventListener('pointerdown', e => { e.preventDefault(); skip(); });
     ov.querySelector('.cs-skip').addEventListener('click', skip);
     ov.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skip(); } });
@@ -202,7 +250,7 @@
     return { left: (W - w) / 2, top: (H - h) / 2, w, h };
   }
 
-  function playClip(title, onClose, host, sheet) {
+  function playClip(title, onClose, host, sheet, variant) {
     const ov = document.createElement('div');
     ov.className = 'cs-ov cs-clip';
     ov.setAttribute('role', 'dialog');
@@ -213,7 +261,7 @@
     const video = ov.querySelector('video');
     video.muted = true; video.defaultMuted = true;   // iOS เล่นเองได้เฉพาะวิดีโอที่ปิดเสียง
     video.src = clipUrl;
-    mount(host, sheet, ov, onClose);
+    mount(host, sheet, ov, onClose, variant);
     run.video = video;
     const me = run;
     const { card, cw, x0, y0 } = placeCard(ov, host);
@@ -252,30 +300,31 @@
       // เครื่องไม่ยอมเล่นวิดีโอ — ปิดฉากคลิปเงียบ ๆ แล้วเล่นฉากภาพนิ่งแทน (ถ้าภาพพร้อม) ไม่งั้นจบเลย
       if (run !== me || me.done) return;
       me.onClose = null; finish();
-      if (ready()) playStills(title, onClose, host, sheet);
+      if (ready()) playStills(title, onClose, host, sheet, variant);
       else if (typeof onClose === 'function') onClose();
     });
     // กันคลิปค้าง (เน็ต/ถอดรหัสสะดุด) — ไม่ว่าอะไรเกิดขึ้น ฉากจบภายใน out + 2 วิ
     at((end + 2) * 1000, finish);
   }
 
-  function playStills(title, onClose, host, sheet) {
+  function playStills(title, onClose, host, sheet, variant) {
+    const v=variants[variant?.id],captions=v?.captions||CAPS;
     const lite = root.dataset.lite === '1';
 
     const ov = document.createElement('div');
     ov.className = 'cs-ov' + (lite ? ' lite' : '');
     ov.setAttribute('role', 'dialog');
-    ov.setAttribute('aria-label', 'งานเสร็จแล้ว · เรือผีมารับงาน แตะเพื่อข้าม');
+    ov.setAttribute('aria-label',v?.scene?'งานเสร็จแล้ว · ฉากฉลอง Halloween แตะเพื่อข้าม':'งานเสร็จแล้ว · เรือผีมารับงาน แตะเพื่อข้าม');
     ov.innerHTML = `<i class="cs-dark"></i>
-      ${shot('ship')}
+      ${v?.scene?'<div class="cs-biome-shot"><i class="cs-biome-backdrop"></i></div>':shot('ship')}
       <i class="cs-blood"></i>
       <i class="cs-fog l"></i><i class="cs-fog r"></i><i class="cs-fog front"></i>
       <i class="cs-halo"></i><i class="cs-glint"></i>
       ${cardHtml(title, stats())}
       <i class="cs-vig"></i>
-      <div class="cs-cap" aria-live="polite">${CAPS.map((c, i) => `<span class="c${i + 1}">${esc(c)}</span>`).join('')}</div>
+      <div class="cs-cap" aria-live="polite">${captions.map((c, i) => `<span class="c${i + 1}">${esc(c)}</span>`).join('')}</div>
       <button type="button" class="cs-skip">ข้าม</button>`;
-    mount(host, sheet, ov, onClose);
+    mount(host, sheet, ov, onClose, variant);
 
     // ตำแหน่งอ่านจากภาพจริง: โคมเขียวบนดาดฟ้าเรือ (ช่อง 3) คือที่ที่ใบงานถูกดูดเข้าไป
     const { card, W, H, cw, ch, x0, y0 } = placeCard(ov, host);
@@ -283,12 +332,13 @@
     halo.style.left = x0 + 'px'; halo.style.top = (y0 + ch / 2 + 6) + 'px'; halo.style.width = cw * 1.1 + 'px';
 
     // ตำแหน่งอ่านจากภาพจริง: โคมเขียวบนดาดฟ้าเรือ (ช่อง 3) คือที่ที่ใบงานลอยเข้าไปตอนจบ
-    const lamp = artPoint(ov, 'ship', .655, .7);
+    const lamp = v?.scene ? {x:W*v.target.x,y:H*v.target.y} : artPoint(ov, 'ship', .655, .7);
     const glint = ov.querySelector('.cs-glint');
     glint.style.left = lamp.x + 'px'; glint.style.top = lamp.y + 'px';
     const to = (p, sc, r) => `translate(${p.x - x0}px,${p.y - y0}px) rotate(${r}deg) scale(${sc})`;
     const o = { x: x0, y: y0 };
-    if (card.animate) {
+    const customFinish=card.animate&&variant&&window.HalloweenCinematicFinishes?.play(variant.id,{ov,card,W,H,cw,ch,x0,y0,target:lamp,schedule:at,animate(node,frames,timing){if(typeof node.animate==='function')run.anims.push(node.animate(frames,timing));}});
+    if (card.animate&&!customFinish) {
       // easing ต้องอยู่รายช่วง — ใส่ที่ตัว animation จะบิดเวลาทั้งเส้น ฉากคลาดจาก CSS
       const K = (t, transform, opacity = 1, easing = 'ease-in-out') => ({ offset: t / TOTAL, transform, opacity, easing });
       run.anims.push(card.animate([
@@ -320,6 +370,7 @@
     r.ov.remove();
     run = null;
     if (hadFocus && r.sheet) { const go = r.sheet.querySelector('.fc-go'); if (go) try { go.focus({ preventScroll: true }); } catch (_) {} }
+    if(hadFocus&&!r.sheet&&r.previousFocus?.isConnected)try{r.previousFocus.focus({preventScroll:true});}catch{}
     if (typeof r.onClose === 'function') r.onClose();
   }
   // ข้าม = จอข้างหลังขึ้นทันที ไม่มีจังหวะจางรอ — คนที่กดข้ามคือคนที่รีบ
@@ -337,6 +388,9 @@
     if (e.key === 'Escape' && active()) { e.preventDefault(); e.stopImmediatePropagation(); skip(); }
   }, true);
 
+  document.addEventListener?.('visibilitychange',()=>{if(document.hidden&&active())skip();});
+  window.addEventListener('pagehide',()=>{if(active())skip();});
+
   // ลงทะเบียนเป็นเอฟเฟกต์ตอนงานเสร็จ — ฟรีแบบเดียวกับเอฟเฟกต์ Halloween ชุดอื่น (integration.js)
   // ต่อท้ายตาราง = อยู่ท้ายแถวในหน้าธีม
   const ICON = `<img class="hw-effect-icon" src="${BASE}seal.webp" alt="">`;
@@ -347,6 +401,7 @@
 
   window.CursedShip = Object.freeze({
     ID, TOTAL, FILES, CLIP, motionOk, ready, preload, canPlay, stats,
-    skinOn, scene, playFx, skip, stop, active,
+    skinOn, scene, playFx, playVariant, variants, preloadVariant, skip, stop, active,
   });
+  try{const saved=localStorage.getItem(DONEFX);if(variants[saved]){preload();preloadVariant({id:saved});}}catch{}
 })();

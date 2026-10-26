@@ -1,0 +1,7 @@
+.economy-note{font-size:12px;line-height:1.6;color:var(--muted,#b5afbf);margin:10px 0 16px}
+.focus-checkpoint{width:min(390px,calc(100vw - 32px));padding:26px;border:1px solid #90795f;border-radius:20px;background:#161522;color:#f2ebdc;box-shadow:0 24px 90px #000b}
+.focus-checkpoint::backdrop{background:#030511b8;backdrop-filter:blur(7px)}
+.focus-checkpoint small{color:#c5ae80}.focus-checkpoint h2{font:700 23px/1.5 inherit;margin:8px 0}.focus-checkpoint p{line-height:1.6}
+.focus-checkpoint>div{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.focus-checkpoint button{min-height:48px;border:1px solid #8d795d;border-radius:12px;background:#2c2937;color:#f5ecdb;font:inherit;cursor:pointer}.focus-checkpoint button:focus-visible{outline:3px solid #dfbf7b;outline-offset:3px}
+.focus-checkpoint>button{width:100%;margin-top:8px;background:transparent}.focus-checkpoint-status{font-size:12px;color:#d6cab3}

@@ -14,21 +14,17 @@
  function clearPresentation(){finishEffect();clearTimeout(fxTimer);document.querySelectorAll('.hw-reward-fx,.hw-relic-inspect,.hw-room-item').forEach(x=>x.remove());}
  function inspect(item){const layer=document.createElement('div');layer.className='hw-relic-inspect';layer.dataset.tier=item.rarity;layer.setAttribute('role','dialog');layer.setAttribute('aria-label',item.name);layer.setAttribute('aria-modal','true');layer.innerHTML='<button class="hw-reward-close" aria-label="ปิดตัวอย่าง">×</button><span class="hw-reward-eyebrow">'+escape(item.rarity+' · '+C.biomes[item.biome].name)+'</span><div class="hw-relic-ring"><img src="'+asset(item)+'" alt="'+escape(item.name)+'"></div><h2>'+escape(item.name)+'</h2><p>'+escape(item.kind==='badge'?(item.source==='final-boss'?'ตราชัยชนะ · พิชิตราชันเที่ยงคืน':'ตัวอย่างเหรียญ · ซื้อของครบตามรายการร้านอีเวนต์'):'Main Quest · '+C.biomes[item.biome].npc)+'</p>';layer.querySelector('button').addEventListener('click',()=>layer.remove());document.querySelector('.phone').append(layer);layer.querySelector('button').focus({preventScroll:true});}
  function finishEffect(){
+  if(window.CursedShip?.active())window.CursedShip.skip();
   window.HalloweenEffectGames?.close();
   const session=effectSession;if(!session)return;effectSession=null;clearTimeout(fxTimer);session.layer.remove();
   document.removeEventListener('keydown',session.key,true);window.removeEventListener('popstate',session.close);document.removeEventListener('visibilitychange',session.visibility);
   if(typeof session.done==='function')session.done();
  }
- function effect(item,onClose,title){
-  if(window.HalloweenEffectGames){clearPresentation();return window.HalloweenEffectGames.open(item,{asset,title,onClose});}
-  clearPresentation();const phone=document.querySelector('.phone');if(!phone){if(typeof onClose==='function')onClose();return;}
-  const reduced=(matchMedia('(prefers-reduced-motion: reduce)').matches&&root.dataset.hwMotion!=='full')||root.dataset.hwMotion==='still'||root.dataset.lite==='1';
-  const layer=document.createElement('div');layer.className='hw-reward-fx fx-'+item.effect+(item.rarity==='Legendary'?' legendary':'')+(reduced?' still':'');layer.setAttribute('role','dialog');layer.setAttribute('aria-label','ฉลองงานเสร็จ · '+item.name);layer.setAttribute('aria-modal','true');layer.style.setProperty('--reward-color',C.biomes[item.biome].color);
-  layer.innerHTML='<button class="hw-reward-close">ข้าม</button><div class="hw-fx-aura"></div><div class="hw-fx-ring"></div><img class="hw-fx-object" src="'+asset(item)+'" alt=""><div class="hw-fx-particles">'+Array.from({length:item.rarity==='Legendary'?24:12},(_,i)=>'<i style="--i:'+i+';--angle:'+i*137.5+'deg;--travel:'+(50+i%5*23)+'px"></i>').join('')+'</div><div class="hw-fx-caption"><small>'+escape(item.rarity)+'</small><h2>'+escape(item.name)+'</h2><span>'+escape(title||'เสร็จอีกหนึ่งงานแล้ว')+'</span></div>';
-  const close=()=>finishEffect(),key=e=>{if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close();}},visibility=()=>{if(document.hidden)close();};
-  effectSession={layer,done:onClose,key,close,visibility};layer.querySelector('button').addEventListener('click',close);document.addEventListener('keydown',key,true);window.addEventListener('popstate',close);document.addEventListener('visibilitychange',visibility);phone.append(layer);layer.querySelector('button').focus({preventScroll:true});
-  fxTimer=setTimeout(close,reduced?2200:item.rarity==='Legendary'?6200:4200);
+ function effect(item,onClose,title,preview=false){
+  if(window.CursedShip?.playVariant)return window.CursedShip.playVariant(item,onClose,title,preview);
+  if(typeof onClose==='function')onClose();return false;
  }
+
  function paintCostume(){if(!current||current.kind!=='costume')return;const prefix=current.mascot==='sai'?'sai':'hook';document.querySelectorAll('img').forEach(img=>{const src=img.getAttribute('src')||'';if((prefix==='sai'?/(?:^|\/)sai-(?:face-[\w-]+|chibi)\.webp$|(?:^|\/)sai-avatar\.png$/:/(?:^|\/)hook-(?:body|face)\.webp$|(?:^|\/)hook-avatar\.png$|(?:^|\/)hook-hat-(?:body|face|avatar)\.svg$/).test(src)&&img.src!==asset(current)){img.src=asset(current);img.dataset.hwCostumePreview=current.id;}});}
  function paintRoom(){if(!current||current.kind!=='room')return;const svg=document.querySelector('#roomBody .rm-scene');if(!svg||svg.querySelector('.hw-room-item')||svg.querySelector('[data-hw-room]'))return;const slots={desk:[89,113,100,92],shelf:[199,68,53,53],poster:[104,25,55,60],hanging:[162,0,100,95],pet:[208,156,91,80]},[x,y,w,h]=slots[current.slot];const image=document.createElementNS('http://www.w3.org/2000/svg','image');image.setAttribute('class','hw-room-item');for(const [key,value]of Object.entries({x,y,width:w,height:h,href:asset(current)}))image.setAttribute(key,value);svg.append(image);}
  function queue(){if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;paintCostume();paintRoom();});}
@@ -36,7 +32,7 @@
   if(item.kind==='theme'){setTheme(item.theme);go('scr-menu');syncScene();}
   else if(item.kind==='costume'){setTheme('dark');if(typeof setMascot==='function')setMascot(item.mascot);go('scr-ai');queue();}
   else if(item.kind==='room'){setTheme('dark');go('scr-room');if(window.HalloweenCosmetics?.available(item.id)&&typeof roomPick==='function')roomPick(item.slot==='hanging'?'ceiling':item.slot,'hw-'+item.id);else queue();}
-  else if(item.kind==='effect'){setTheme('halloween');go('scr-menu');effect(item);}
+  else if(item.kind==='effect'){setTheme('halloween');go('scr-menu');effect(item,undefined,undefined,true);}
   else{setTheme('dark');go(item.kind==='badge'?'scr-badges':'scr-room');inspect(item);}
   return true;
  }
@@ -76,7 +72,7 @@
    window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==parent||parent===window||e.data?.type!=='studentos-halloween-reward-preview'||typeof e.data.id!=='string')return;const request=e.data.id+':'+e.data.request;if(request===lastRequest)return;lastRequest=request;preview(e.data.id);});
    parent.postMessage({type:'studentos-halloween-reward-ready'},location.origin);
   }
-  window.HalloweenRewards=Object.freeze({preview,playEffect(id,onClose,title){const item=C.find(id);if(item?.kind!=='effect')return false;effect(item,onClose,title);return true;},closeEffect:finishEffect});
+  window.HalloweenRewards=Object.freeze({preview,playEffect(id,onClose,title,preview){const item=C.find(id);if(item?.kind!=='effect')return false;effect(item,onClose,title,preview);return true;},closeEffect:finishEffect});
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();

@@ -1,7 +1,7 @@
 /* A permanent profile preference. This service cannot grant badges or event rewards. */
 export const CORE_BADGES=[{id:'hello',goal:1},{id:'try',goal:10},{id:'hard',goal:25},{id:'nah',goal:75},{id:'unstoppable',goal:100},{id:'deep',secret:'ocean'},{id:'tree',secret:'earth'},{id:'sophyra',secret:'galaxy'},{id:'genesis',genesis:true},{id:'metaworld',skin:'meta'},{id:'err404',skin:'glitch'}];
 const EVENT_BADGES=['midnight-conqueror','crown-of-midnight'],BADGES=new Set([...CORE_BADGES.map(x=>x.id),...EVENT_BADGES]);
-export function coreAvailable(data){const v=data?.vault||{},done=(Array.isArray(data?.tasks)?data.tasks:[]).filter(t=>t&&!t.deleted&&t.done).length;return CORE_BADGES.filter(b=>b.skin?Number(v.tokens?.skins?.[b.skin])>0:v.allBadges===true?true:b.genesis?v.genesis===true:b.secret?Array.isArray(v.badgeSecrets)&&v.badgeSecrets.includes(b.secret):done>=b.goal).map(b=>b.id);}
+export function coreAvailable(data){const ids=Array.isArray(data?.verifiedBadgeIds)?data.verifiedBadgeIds:[];return CORE_BADGES.filter(b=>ids.includes(b.id)).map(b=>b.id);}
 function eventReceipt(doc,id,uid){const r=doc?.rewards?.[id];return doc?.owner===uid&&doc?.season==='halloween-2026'&&r?.id===id&&r.permanent===true&&typeof r.receipt==='string'&&r.receipt?r:null;}
 export function create({authenticate,readReward,readCoreData=async()=>null,readSelection,writeSelection,clock=Date.now}){
  const origins=new Set(['https://nadokagenou.github.io','http://127.0.0.1:4201','http://127.0.0.1:4202']);

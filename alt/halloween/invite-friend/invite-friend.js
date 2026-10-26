@@ -4,7 +4,7 @@
 // ภารกิจสองข้อ ครบทั้งคู่ = ได้ธีม INVITE_THEME
 //   1. ชวนเพื่อนมาใช้ให้ครบ 3 คน — นับที่เซิร์ฟเวอร์ (redeem_invite · migration 20261023150000)
 //      เพราะเป็นเรื่องระหว่างสองบัญชี นับในเครื่องเมื่อไหร่ใครก็แก้ localStorage ให้ครบได้
-//   2. ทำงานในแอปเสร็จอย่างน้อย 1 งาน — นับในเครื่อง (งานเป็นของเจ้าตัวคนเดียวอยู่แล้ว)
+//   2. ทำงานเสร็จอย่างน้อย 1 งาน — หลังย้ายระบบใช้เครดิตโฟกัสบัญชี 5 นาที; งานเดิมใช้ baseline ที่ตรึงแล้ว
 //      จดลง funnel.hwTaskAt ครั้งเดียว ซิงก์ข้ามเครื่องไปกับ funnel · ลบงานทิ้งทีหลังภารกิจไม่ถอยกลับ
 //
 // ทางชวน: รหัสสามคำ (BAT-MOON-CANDY) พิมพ์/อ่านออกเสียงบอกกันได้ · ลิงก์ ?invite=รหัส · QR ของลิงก์นั้น
@@ -22,9 +22,6 @@ const INVITE_SINCE = '2026-10-23';                          // งานที�
 const INVITE_KEY = 'studentos.alt.inviteCode';              // รหัสจากลิงก์ รอใช้หลังล็อกอิน
 const INVITE_CACHE_KEY = 'studentos.alt.inviteCache';       // ผลล่าสุดจากเซิร์ฟเวอร์ ไว้วาดตอนออฟไลน์
 const INVITE_SEEN_KEY = 'studentos.alt.inviteUnlockSeen';   // ฉลองปลดล็อกไปแล้ว (ครั้งเดียวต่อบัญชี)
-// 26 ต.ค. 69 · เจ้าของ: โค้ด "ได้ทุกอย่าง ยกเว้น Astral Black" (codeGrantAllButAstral ใน app.js) ต้องปลดธีมนี้ด้วย
-// ธงในเครื่อง + ขึ้น cloud ผ่าน vault (inviteTheme) แบบเดียวกับธงปลดล็อกอื่นของโค้ด · ไม่แตะยอดเชิญหรือข้อมูลฝั่งเซิร์ฟเวอร์
-const INVITE_CODE_KEY = 'studentos.alt.inviteThemeCode';
 const INVITE_NEW_DAYS = 7;                                   // ต้องตรงกับ redeem_invite ฝั่ง SQL
 // "ชวนเพื่อน" = ชวนคนที่ไม่เคยใช้ StudentOS (เจ้าของสั่ง 23 ต.ค. 69) · ฝั่ง SQL ตัดสินจริง ฝั่งนี้แค่ซ่อนช่องให้ตรงกัน
 const INVITE_FIRST_GRACE = 864e5;                            // เปิดแอปก่อนสมัครได้ไม่เกิน 1 วัน (ต้องตรงกับ SQL)
@@ -70,6 +67,7 @@ function inviteCount() {
   return d ? Math.max(0, Number(d.used) || 0) : 0;
 }
 function inviteTaskMet() {
+  if(window.StudentOSEconomy)return window.StudentOSEconomy.document()?.inviteTask===true;
   if (typeof state === 'undefined' || !state) return false;
   const f = state.funnel || {};
   if (f.hwTaskAt) return true;
@@ -77,8 +75,7 @@ function inviteTaskMet() {
   if (t && typeof funnelMark === 'function') funnelMark('hwTaskAt', t.doneAt);
   return !!t;
 }
-function inviteCodeUnlocked() { try { return localStorage.getItem(INVITE_CODE_KEY) === '1'; } catch (_) { return false; } }
-function inviteUnlocked() { return inviteCodeUnlocked() || INVITE_GRANTED.has(ivUid()) || (inviteCount() >= INVITE_GOAL && inviteTaskMet()); }
+function inviteUnlocked() { if(window.StudentOSEconomy)return window.StudentOSEconomy.ownsTheme('thai-ghost')===true; return INVITE_GRANTED.has(ivUid()) || (inviteCount() >= INVITE_GOAL && inviteTaskMet()); }
 function inviteThemeReady() { return typeof THEME_NAME !== 'undefined' && !!THEME_NAME[INVITE_THEME]; }
 
 // เรียกจาก setTheme — กดปุ่มธีมนี้ตอนยังไม่ปลดล็อก = เปิดแผ่นภารกิจแทน (ไม่ใช่ toast "ยังไม่มีธีมนี้")
@@ -157,6 +154,7 @@ async function applyInviteCode(manual) {
 
 // ---------- ฉลองตอนปลดล็อก (ครั้งเดียว) ----------
 function inviteCheckUnlock() {
+  if(window.StudentOSEconomy&&!inviteUnlocked()){window.StudentOSEconomy.claimInvite();return;}
   if (!inviteUnlocked()) return;
   const uid = (ivUid() || 'local') + ':' + INVITE_THEME;
   let seen = null;
