@@ -15688,3 +15688,45 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 }
 .phone #scr-tasks .bin-btn svg { width: 17px; height: 17px; }
 .phone #scr-tasks .bin-btn.bin-done svg { color: var(--good); }
+
+/* ============================================================
+   ปุ่ม "ลองเล่นดู" ของเอฟเฟกต์งานเสร็จ — 26 ต.ค. 69
+   เจ้าของ (ภาพจอเลือกเอฟเฟกต์ ธีม Halloween): "ปรับให้ปุ่มลองเล่นดูน่าสนใจกว่านี้ ใช้สีที่มองเห็นชัดเจน"
+   เดิม (hoop.css): พื้นโปร่ง ขอบเส้นประ ตัวหนังสือสีรองบาง ๆ — หน้าตาเหมือนช่องว่างให้วางของ ไม่ใช่ปุ่ม
+   ตอนนี้: ปุ่มทึบสีธีม (--fill + --on-fill ชุดเดียวกับปุ่มหลักทั้งแอป จึงอ่านชัดทุกธีม) · ไอคอนเล่น ▶ วาดด้วย clip-path
+   · เปลือกแบบ Halo (cult-ui · MIT: ขอบสะท้อนบน + เงาฟุ้งสีธีม) · แถบแสงวาบพาดผ่านเป็นจังหวะ แบบปุ่ม shine ของ Uiverse (MIT)
+   แสงวาบขยับด้วย transform อย่างเดียว · วิ่ง 0.9 วิ แล้วพัก ~3 วิ (ชวนกด ไม่กระพริบรบกวน)
+   โหมดลื่นหยุด · ลดการเคลื่อนไหวไม่มีแสงวาบ
+   ============================================================ */
+.phone .fx-try {
+  position: relative; overflow: hidden; isolation: isolate;
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  min-height: 46px; margin-top: 12px; border: 0; border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 55%),
+    var(--fill);
+  color: var(--on-fill, #fff);
+  font-size: 15px; font-weight: 800; letter-spacing: .01em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 10px 22px -10px color-mix(in srgb, var(--fill) 80%, transparent);
+  transition: transform .16s cubic-bezier(.23, 1, .32, 1), box-shadow .2s ease;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.phone .fx-try::before {
+  content: ""; flex: none; width: 13px; height: 14px; margin-left: 2px;
+  background: currentColor; clip-path: polygon(0 0, 100% 50%, 0 100%); border-radius: 2px;
+}
+.phone .fx-try::after {
+  content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: 0; width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .38), transparent);
+  transform: translateX(-120%) skewX(-18deg);
+  animation: fx-try-shine 4s cubic-bezier(.45, 0, .2, 1) 1s infinite;
+}
+@keyframes fx-try-shine {
+  0% { transform: translateX(-120%) skewX(-18deg); }
+  22%, 100% { transform: translateX(330%) skewX(-18deg); }
+}
+.phone .fx-try:active { transform: scale(.97); }
+@media (hover: hover) { .phone .fx-try:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 14px 28px -10px color-mix(in srgb, var(--fill) 90%, transparent); } }
+.phone .fx-try:focus-visible { outline: 2px solid var(--fill); outline-offset: 3px; }
+:root[data-lite] .phone .fx-try::after { animation: none; opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .phone .fx-try::after { animation: none; opacity: 0; } .phone .fx-try { transition: none; } }
