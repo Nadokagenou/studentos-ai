@@ -6,7 +6,7 @@
 // จะเสิร์ฟโลโก้เก่าจากแคชต่อไปโดยไม่มีอะไรบอกว่ามีของใหม่
 // แยกชื่อแคช ALT จากเว็บหลัก: ปล่อยเฉพาะ ALT ต้องไม่ล้างแคชของเว็บหลักบน origin เดียวกัน
 const CACHE_PREFIX = 'studentos-alt-';
-const CACHE = CACHE_PREFIX + '1c60-secure-biomes-switches-20261026'; // รวมคลังบัญชี ฉากเฉพาะไบโอม และสวิตช์ของทีม · คงเลขแอป
+const CACHE = CACHE_PREFIX + '1c60-tasks-timeline-20261026'; // การ์ดงาน · แถบค้นหา · เส้นเวลาน้องฮูก · ปุ่มลองเล่น · freeall ได้เรือนลับแล (ฝั่งเซิร์ฟเวอร์) · คงเลขแอป
 let HALLOWEEN_FILES = [];
 try { importScripts('halloween/cache-manifest.js'); HALLOWEEN_FILES = self.HALLOWEEN_SHELL || []; } catch (_) {}
 // ทุกไฟล์ที่ index.html อ้างถึงต้องอยู่ในรายการนี้ — ไฟล์ที่หน้าเรียกแต่ไม่ได้แคชไว้
