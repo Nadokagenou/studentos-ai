@@ -365,7 +365,43 @@ html[data-hw-motion="still"] :is(.hw-scene, .hw-biome-scene)::after { display: n
 /* กดไอคอนหน้าแรก: แตะผิวน้ำ — จุ่มลงพร้อมระลอก */
 :root[data-theme="thai-ghost"] .phone .tg-t .tg-ic { transition: transform .18s cubic-bezier(.23, 1, .32, 1), box-shadow .3s ease; }
 :root[data-theme="thai-ghost"] .phone .tg-t:active .tg-ic { transform: translateY(2px) scale(.94) !important; box-shadow: 0 0 0 6px #D8E8C91F, 0 0 0 1px #D8E8C966 !important; }
+/* ---------- หัวการ์ด "ควรทำอะไร" ให้เป็นเรือนลับแล — 26 ต.ค. 69 · เจ้าของ: "ตรงนี้แต่งให้มันตรงธีมหน่อย" ----------
+   หัวเขียวป่าทึบ #174E39 ยังเป็นก้อนทึบก้อนเดียวของหน้าแรก (เทสต์ธีม) · แต่งจากลายเซ็นเดิมของธีมเท่านั้น ไม่มีบัว/เครื่องราง/ทอง
+   ① จันทร์เสี้ยวหยกหลังมุมขวา (::before · มาสก์วงกลมกัดเป็นเสี้ยว) + แสงฟุ้งรอบจันทร์ในพื้นหัว
+   ② โคมลอยสองดวงเล็ก ๆ ลอยขึ้นลงช้า ๆ (::after · transform อย่างเดียว · โหมดลื่น/ลดการเคลื่อนไหว = นิ่ง)
+   ③ ระลอกสระจาง ๆ สองวงที่ขอบล่างของหัว
+   ทุกชิ้นอยู่ใต้ตัวหนังสือ (ลูกของหัว z-index 2) · จันทร์จางพอให้ชื่องานที่ยาวทับแล้วยังอ่านออก */
+:root[data-theme="thai-ghost"] .phone #menuBody .td-now .tn-head {
+  background:
+    radial-gradient(circle at calc(100% - 52px) 78px, rgba(216,232,201,.22), transparent 74px),
+    radial-gradient(ellipse 130px 16px at 18% 104%, transparent 62%, rgba(216,232,201,.14) 64%, transparent 69%),
+    radial-gradient(ellipse 230px 26px at 18% 104%, transparent 72%, rgba(216,232,201,.09) 74%, transparent 78%),
+    radial-gradient(circle at 96% 0%, #5FB08A45, transparent 48%),
+    #174E39 !important;
+}
+:root[data-theme="thai-ghost"] .phone #menuBody .td-now .tn-head::before {
+  content: ""; display: block; position: absolute; z-index: 1; pointer-events: none;
+  top: 46px; right: 20px; width: 64px; height: 64px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 40%, #F6FBF3, #D8E8C9 58%, #A9CDB0);
+  -webkit-mask: radial-gradient(circle at 70% 32%, transparent 0 46%, #000 48%);
+          mask: radial-gradient(circle at 70% 32%, transparent 0 46%, #000 48%);
+  opacity: .5;
+}
+:root[data-theme="thai-ghost"] .phone #menuBody .td-now .tn-head::after {
+  content: ""; display: block; position: absolute; z-index: 1; pointer-events: none;
+  /* ระหว่างท้ายบรรทัด "ใช้เวลา … นาที" กับจันทร์ — มุมขวาบนเป็นที่ของป้าย "ด่วนมาก" (โคมเคยไปซ่อนหลังป้าย) */
+  top: 78px; right: 88px; width: 48px; height: 52px;   /* ใต้บรรทัดชื่องาน (ชื่อยาวบนมือถือวิ่งเกือบถึงขอบขวา) · ซ้ายจันทร์ */
+  background:
+    radial-gradient(ellipse 6.5px 8.5px at 24% 70%, #FFF3D0, #F6B45A 58%, transparent 82%),
+    radial-gradient(ellipse 5px 6.5px at 76% 28%, #FFF3D0, #F6B45A 58%, transparent 82%),
+    radial-gradient(ellipse 17px 19px at 24% 70%, rgba(246,178,90,.34), transparent 70%),
+    radial-gradient(ellipse 13px 15px at 76% 28%, rgba(246,178,90,.28), transparent 70%);
+  opacity: .9; animation: tgi-lantern 7s ease-in-out infinite alternate;
+}
+@keyframes tgi-lantern { from { transform: translate3d(0, 6px, 0); } to { transform: translate3d(3px, -6px, 0); } }
+:root[data-theme="thai-ghost"]:is([data-lite="1"], [data-quality="low"]) .phone #menuBody .td-now .tn-head::after { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   :root[data-theme="thai-ghost"] body[data-godir] .screen.on { animation: none !important; }
+  :root[data-theme="thai-ghost"] .phone #menuBody .td-now .tn-head::after { animation: none; }
   :root[data-theme="thai-ghost"] .phone .tg-t:active .tg-ic { transform: none !important; }
 }
