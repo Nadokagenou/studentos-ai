@@ -130,3 +130,34 @@ body #menuBody .td-top {
 :root .phone #menuBody .td-ask:is(:focus-within, .ha-has) .tk-go {
   box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 6px 16px -6px color-mix(in srgb, var(--fill) 75%, transparent) !important;
 }
+
+/* ============================================================
+   เรือนลับแล (thai-ghost) · ไทล์หน้าแรกเป็นกระจก — 26 ต.ค. 69 · เจ้าของ: /liquid-glass-js (ภาพไทล์ข้อความ/เพื่อน/กล่องเข้า… บนฉากสระ)
+   ไทล์ของธีมนี้เป็นก้อนเขียวทึบแบน เพราะกฎธีมใน alt.css (#menuBody .tg-ic) ตั้ง box-shadow:none !important ทับชุดกระจกข้างบน
+   และธีมนี้ไม่อยู่ในกลุ่มโทเคนกระจกมืด → ใส่ทั้งสองอย่าง · CSS ล้วนเหมือนทุกรอบ (ไทล์ 6 ช่อง × WebGL = ชนเพดาน context
+   และไลบรารีถ่ายฉากครั้งเดียว แต่ฉากธีมนี้มีหมอก/โคมขยับตลอด) · สูตรจาก shader ของ liquid-glass-js (dashersw · MIT):
+   ขอบสะท้อน (rim) · เลนส์ขอบย้อมสีจันทร์หยก (edge + tint) · ประกายมุมบนซ้าย (cornerBoost) · ฝ้าเบลอของสระข้างหลัง
+   ทรงไทล์คงเดิม (กติกา: ไทล์กริดหน้าแรกทรงเดียวกันทุกธีม) · เครื่องอ่อน/โหมดลื่น = ไม่เบลอ
+   ============================================================ */
+:root[data-theme="thai-ghost"] {
+  --lg-hi: rgba(255,255,255,.62); --lg-mid: rgba(255,255,255,.3); --lg-lo: rgba(255,255,255,.14);
+  --lg-glow: rgba(216,232,201,.10); --lg-drop: rgba(0,8,4,.6);
+}
+:root[data-theme="thai-ghost"] .phone #menuBody .tg-ic {
+  background:
+    radial-gradient(90% 90% at 18% 0%, rgba(216,232,201,.30), transparent 58%),
+    linear-gradient(160deg, rgba(255,255,255,.14), rgba(255,255,255,.03) 55%, rgba(255,255,255,.08)),
+    color-mix(in srgb, var(--tg-glass) 82%, transparent) !important;
+  border-color: rgba(216,232,201,.34) !important;
+  box-shadow:
+    inset 0 1.5px 0 var(--lg-hi), inset 1.5px 0 0 var(--lg-mid),
+    inset 0 -1.5px 0 var(--lg-lo), inset -1px 0 0 var(--lg-lo),
+    inset 0 0 14px -2px rgba(216,232,201,.42),
+    inset 0 0 26px var(--lg-glow),
+    0 14px 24px -12px var(--lg-drop), 0 3px 6px -2px rgba(0,8,4,.35) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
+}
+:root[data-theme="thai-ghost"]:is([data-lite="1"], [data-quality="low"]) .phone #menuBody .tg-ic {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  background: var(--card2) !important;
+}
