@@ -958,10 +958,15 @@ function stashSetOpt() {
 // โดยไม่ต้องกดเข้าไปดูทีละหัวข้อ
 function syncSetVals() {
   const put = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
-  const th = themePref();
-  put('setValTheme', th === 'system'
-    ? 'ตามระบบ · ' + THEME_NAME[systemDark() ? 'dark' : 'light']
-    : (THEME_NAME[th] || ''));
+  // 26 ต.ค. 69 · เจ้าของ: "ตรงธีมให้เห็นเป็นสีธีมและชื่อที่ใช้เลย" — ช่องสีจากคลาส .sw-* ชุดเดียวกับตารางเลือกธีม
+  // ชื่อธีมฮาโลวีนบางตัวไม่อยู่ใน THEME_NAME (runtime.js เพิ่มปุ่มเอง) จึงอ่านชื่อจากปุ่มในตารางแทน
+  const th = themePref(), act = activeTheme();
+  const thName = THEME_NAME[act] || document.querySelector(`#themePick [data-th="${act}"] .nm`)?.textContent || '';
+  const thEl = document.getElementById('setValTheme');
+  if (thEl) {
+    thEl.classList.add('set-val-theme');
+    thEl.innerHTML = `<span class="shw-sw sw-${esc(act)}"></span><b>${esc(th === 'system' ? 'ตามระบบ · ' + thName : thName)}</b>`;
+  }
   put('setValWidget', WG_NAME[widgetPref()] || '');
   put('setValFont', FONT_NAME[fontPref()] || '');
   const nav = navPref();

@@ -6215,6 +6215,24 @@ body.deep-scr .top-friends { display: none; }
   color: var(--muted);
 }
 .set-go { width: 16px; height: 16px; flex: none; color: var(--faint); }
+/* 26 ต.ค. 69 · เจ้าของ (ภาพจอตั้งค่า ธีม Halloween): "ให้มันมองดูออกกว่านี้ ตรงธีมให้เห็นเป็นสีธีมและชื่อที่ใช้เลย"
+   ค่าท้ายแถวเป็น --muted 13px น้ำหนักปกติ บนฉากมืดเลยจางจนต้องเพ่ง → หมึกหลัก 78% หนาขึ้น · ลูกศรชัดขึ้นเล็กน้อย
+   แถวธีม = ป้ายเม็ดยาสีธีม: ช่องสีของธีมจริง (.shw-sw .sw-* ชุดเดียวกับตารางเลือกธีม) + ชื่อธีมตัวหนา
+   ป้ายย้อม --fill จาง ๆ ไม่ใช่ทึบ — มันคือ "ค่าที่ตั้งอยู่" ไม่ใช่ปุ่มหลักของจอ */
+.set-row .set-val { font-size: 13.5px; font-weight: 600; color: color-mix(in srgb, var(--ink) 78%, transparent); }
+.set-row .set-go { color: color-mix(in srgb, var(--ink) 45%, transparent); }
+.set-row .set-val.set-val-theme {
+  display: inline-flex; align-items: center; gap: 7px; max-width: 52%;
+  padding: 4px 11px 4px 4px; border-radius: 999px;
+  background: color-mix(in srgb, var(--fill) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 45%, transparent);
+  color: var(--ink);
+}
+.set-val-theme .shw-sw {
+  flex: none; width: 22px; height: 22px; margin: 0; border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--card), 0 0 10px -2px var(--fill);
+}
+.set-val-theme b { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
 .set-row.danger .set-lb { color: var(--alert); }
 .set-row.danger .set-ic { background: var(--alert-soft); color: var(--alert); }
 
