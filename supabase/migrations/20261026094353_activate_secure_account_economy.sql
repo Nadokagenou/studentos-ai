@@ -1,5 +1,5 @@
 insert into public.studentos_economy_admins(user_id) select id from auth.users where email_confirmed_at is not null and encode(extensions.digest(lower(trim(email)),'sha256'),'hex') in ('568431e398cceb7470cf0b7c2d825f26d6f269741a0aeb635443130f236829a6','0378159474d683e4cdab0a3fff7f4d6191c64dfb91905826cbe7ec377cbd7f42') on conflict do nothing;
--- Run once in the same transaction as the reviewed board update, after both clients are deployed.
+-- Run once in the same transaction as the reviewed board update, after the services are verified and immediately before publishing the protected clients.
 -- Existing user saves are copied, never deleted; future browser reward fields are ignored.
 lock table public.user_state,public.staff_token_grants,public.staff_token_debits in share row exclusive mode;
 insert into public.studentos_economy_baselines(user_id,data,at,staff_minted,staff_debited)

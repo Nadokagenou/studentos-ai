@@ -23,17 +23,28 @@
 (function () {
   'use strict';
   const ID = 'cursedship';        // id ใน FX_SHOP / ค่าใน localStorage['studentos.alt.doneFx']
-  // 25 ต.ค. 69 · เจ้าของอัดจอมือถือจริงมาให้ดูแล้วบอกว่า "มันคืออะไรไม่เข้าใจ"
-  // รอบก่อนตัด 6 ช็อตใน 2.95 วิ (ช็อตละ ~0.4 วิ) และใบงานลอยบังตัวเรือพอดี — ตาตามไม่ทัน
-  // ตอนนี้เหลือ 3 ช็อตที่เล่าเรื่องชัด: เรือโผล่ค้างให้เห็นทั้งลำ → ใบงานถูกดูดเข้าโคมเรือ
-  // → ภาพใกล้ตราประทับ → เรือแล่นหาย · ยาวขึ้นเป็น 3.2 วิเพื่อให้แต่ละช็อตอ่านออก (ข้ามได้ตลอด)
-  const TOTAL = 3200;             // ฉากทั้งชุด (ms)
-  const REVEAL_AT = 2950;         // จอข้างหลังเริ่มโผล่ — ซ้อนกับตอนเรือจางในหมอก
-  const STAMP_AT = 1850;          // ตราประทับตก (ต้องตรงกับ animation-delay ของ .cs-seal ใน cursed-ship.css)
+  // ประวัติจังหวะ: 2.95 วิ 6 ช็อต ("ไม่เข้าใจ") → 3.2 วิ 3 ช็อต → 8.6 วิ เล่าเรื่องมีลำแสงเขียว
+  // 26 ต.ค. 69 · เจ้าของ: "เกลียดแสงเลเซอร์ · ฉากเปลี่ยนไปมาเหมือน AI · ไม่ต้องสลับตำแหน่งเยอะ
+  // แค่ดูมีคุณภาพ เข้าใจ จบ" → ภาพเรือภาพเดียวตลอดฉาก ไม่มีลำแสง ไม่ตัดช็อต ใบงานอยู่ที่เดิม
+  // ขยับครั้งเดียวตอนท้าย (ลอยเข้าหาโคมเรือแล้วจาง) · ไทม์ไลน์เต็มอยู่หัวส่วนฉากใน cursed-ship.css
+  const TOTAL = 6000;             // ฉากทั้งชุด (ms)
+  const REVEAL_AT = 5600;         // จอข้างหลังเริ่มโผล่ — ซ้อนกับตอนหมอกคลุมเรือ
+  const STAMP_AT = 2400;          // ตราประทับตก (ต้องตรงกับ animation-delay ของ .cs-seal ใน cursed-ship.css)
+  const CAPS = ['งานนี้เสร็จแล้ว…', 'ประทับตรา · ส่งงานแล้ว', 'เรือผีรับงานไปแล้ว'];
 
   // cx = จุดบนภาพ (แนวนอน) ที่อยากให้อยู่กลางจอ — ต้องตรงกับ --cx ใน cursed-ship.css
-  const ART = { fog: { cx: .5 }, ship: { cx: .5 }, deck: { cx: .55 }, far: { cx: .55 }, yard: { cx: .62 } };
-  const FILES = ['fog', 'ship', 'deck', 'far', 'yard'].flatMap(k => [k + '.webp', k + '-bg.webp']).concat('banner.webp', 'seal.webp');
+  const ART = { ship: { cx: .5 }, yard: { cx: .62 } };
+  const FILES = ['ship', 'yard'].flatMap(k => [k + '.webp', k + '-bg.webp']).concat('banner.webp', 'seal.webp');
+
+  // ---------- คลิปวิดีโอ (เจ้าของสร้างเองตามบรีฟ · 25 ต.ค. 69) ----------
+  // เจ้าของ: "ภาพเบลอ ดูไม่รู้เรื่อง ทำเป็นเฟรมให้สมจริง ไม่ใช่เอาภาพเดียว" — เครื่องที่ทำงานนี้สร้างภาพ/วิดีโอเองไม่ได้
+  // เจ้าของจึงสร้างคลิปแนวตั้งด้วย AI วิดีโอ แล้วแอปเล่นคลิปนั้น วางใบงานจริง (HTML) ลอยตามเส้นทางข้างล่าง
+  // ใส่ไฟล์ที่ cursed-ship/<file> แล้วตั้งค่าตรงนี้ · null = ใช้ฉากภาพนิ่ง 3 ช็อตเดิม
+  //   path: t = วินาทีในคลิป · x, y = สัดส่วนบนเฟรมคลิป (0–1) · w = ความกว้างใบเทียบเฟรม · r = องศา · o = ความทึบ
+  //         จุดที่ไม่มี x, y = ตำแหน่งเดิมของใบ (ใบพระเอก/การ์ดที่เพิ่งติ๊ก)
+  //   seal = วินาทีที่ตราประทับตก · out = วินาทีที่ฉากจบ (ตัดท้ายคลิปได้)
+  // คลิปเล่นไม่ได้ (เช่น iPhone โหมดประหยัดพลังงานไม่ยอมเล่นวิดีโอเอง) = ถอยไปฉากภาพนิ่งเดิม
+  const CLIP = null;
 
   const root = document.documentElement;
   const DONEFX = 'studentos.alt.doneFx';   // คีย์เดียวกับ DONEFX_KEY ใน hoop.js (อ่านอย่างเดียว)
@@ -53,7 +64,17 @@
   const script = document.currentScript;
   const BASE = (() => { try { return new URL('cursed-ship/', script && script.src).href; } catch (_) { return 'halloween/season/cursed-ship/'; } })();
   let loaded = 0, failed = false, started = false;
+  // คลิปโหลดทั้งไฟล์เป็น blob ก่อนเล่น — iOS ขอวิดีโอเป็นช่วง ๆ (Range) ซึ่ง service worker ของแอปเก็บแคชให้ไม่ได้
+  // และฉากที่ค้างรอโหลดกลางทางแย่กว่าไม่เล่นเลย
+  let clipUrl = null, clipStarted = false;
+  function preloadClip() {
+    if (!CLIP || clipStarted || typeof fetch !== 'function' || typeof URL.createObjectURL !== 'function') return;
+    clipStarted = true;
+    fetch(BASE + CLIP.file).then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+      .then(b => { clipUrl = URL.createObjectURL(b); }).catch(() => {});
+  }
   function preload() {
+    preloadClip();
     if (started || typeof Image !== 'function') return;
     started = true;
     FILES.forEach(f => {
@@ -64,12 +85,13 @@
     });
   }
   const ready = () => !failed && loaded >= FILES.length;
+  const usable = () => !!clipUrl || ready();
   if (selected()) {
     if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(preload, { timeout: 5000 });
     else setTimeout(preload, 2500);
   }
   // hoop.js ถามก่อนเปิดเอฟเฟกต์ทุกครั้ง — ภาพไม่ครบ/ขอลดการเคลื่อนไหว = ตอบ false แอปฉลองแบบปกติแทน
-  const canPlay = () => { preload(); return motionOk(env()) && ready(); };
+  const canPlay = () => { preload(); return motionOk(env()) && usable(); };
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
@@ -91,18 +113,29 @@
       <i class="cs-mist"></i><i class="cs-lamp l"></i><i class="cs-lamp r"></i></div>`;
   }
 
+  const biomeScenes=Object.freeze({
+    jack:{sealLabel:'JACK’S HOLLOW',scene:'biome-cinematics/jack-night.webp',target:{x:.5,y:.62},captions:['งานนี้เสร็จแล้ว…','ประทับตราแห่ง Jack’s Hollow','ฟักทองรับงานไว้แล้ว']},
+    vampire:{sealLabel:'VAMPIRE MANSION',scene:'biome-cinematics/vampire-night.webp',target:{x:.5,y:.69},captions:['งานนี้เสร็จแล้ว…','ประทับตราแห่งคฤหาสน์','บันทึกงานลงสมุดรัตติกาลแล้ว']},
+    graveyard:{sealLabel:'ETERNAL GRAVEYARD',scene:'biome-cinematics/graveyard-night.webp',target:{x:.54,y:.66},captions:['งานนี้เสร็จแล้ว…','ประทับตราแห่งสุสาน','ฝากงานไว้หลังประตูวิญญาณแล้ว']}
+  });
   const variants = Object.freeze({
     'fx-soulwake':{biome:'dutchman',color:'#9ACFC4',metal:'#B7C8BA'},
     'fx-dutchman-arrival':{biome:'dutchman',color:'#8CDEC9',metal:'#E2C789'},
-    'fx-pumpkin-sparks':{biome:'jack',color:'#D6A268',metal:'#CAA273'},
-    'fx-jacks-verdict':{biome:'jack',color:'#EDBC79',metal:'#E5CC91'},
-    'fx-velvet-flight':{biome:'vampire',color:'#B97996',metal:'#C2ADB9'},
-    'fx-crimson-eclipse':{biome:'vampire',color:'#D78FA7',metal:'#E1C78F'},
-    'fx-soul-bloom':{biome:'graveyard',color:'#B9A5D2',metal:'#C0B7D0'},
-    'fx-reaper-gate':{biome:'graveyard',color:'#CBB4EB',metal:'#E5D09C'}
+    'fx-pumpkin-sparks':{...biomeScenes.jack,biome:'jack',color:'#D6A268',metal:'#CAA273'},
+    'fx-jacks-verdict':{...biomeScenes.jack,biome:'jack',color:'#EDBC79',metal:'#E5CC91'},
+    'fx-velvet-flight':{...biomeScenes.vampire,biome:'vampire',color:'#B97996',metal:'#C2ADB9'},
+    'fx-crimson-eclipse':{...biomeScenes.vampire,biome:'vampire',color:'#D78FA7',metal:'#E1C78F'},
+    'fx-soul-bloom':{...biomeScenes.graveyard,biome:'graveyard',color:'#B9A5D2',metal:'#C0B7D0'},
+    'fx-reaper-gate':{...biomeScenes.graveyard,biome:'graveyard',color:'#CBB4EB',metal:'#E5D09C'}
   });
+  const sceneLoads=new Map();
+  function sceneUrl(v){return new URL(v.scene,BASE+'../').href;}
+  function preloadVariant(item){const v=variants[item?.id];if(!v?.scene)return Promise.resolve(true);if(sceneLoads.has(v.scene))return sceneLoads.get(v.scene).promise;if(typeof Image!=='function')return Promise.resolve(false);const state={ready:false,promise:null};state.promise=new Promise(resolve=>{const image=new Image();image.onload=()=>{state.ready=true;resolve(true);};image.onerror=()=>resolve(false);image.src=sceneUrl(v);});sceneLoads.set(v.scene,state);return state.promise;}
+  function variantReady(item){const v=variants[item?.id];return !v?.scene||sceneLoads.get(v.scene)?.ready===true;}
   function decorateVariant(ov,item) {
     const v=variants[item?.id];if(!v)return;
+    if(v.scene){ov.style.setProperty('--cs-scene','url("'+sceneUrl(v)+'")');ov.style.setProperty('--cs-point-x',v.target.x*100+'%');ov.style.setProperty('--cs-point-y',v.target.y*100+'%');}
+    if(v.scene){const seal=ov.querySelector('.cs-seal');if(seal)seal.innerHTML='<span class="cs-biome-wax"><img src="'+new URL('../rewards/'+(item.asset||'assets/'+item.id+'.svg'),BASE+'../').href+'" alt=""><b>'+esc(v.sealLabel)+'</b></span>';}
     ov.dataset.rewardBiome=v.biome;ov.dataset.rewardTier=item.rarity;ov.style.setProperty('--cs-accent',v.color);ov.style.setProperty('--cs-metal',v.metal);
     const wash=document.createElement('i');wash.className='cs-variant-wash';wash.setAttribute('aria-hidden','true');ov.prepend(wash);
     const mark=document.createElement('div');mark.className='cs-variant-mark';mark.innerHTML='<img src="'+new URL('../rewards/'+(item.asset||'assets/'+item.id+'.svg'),BASE+'../').href+'" alt=""><span><small>'+esc(item.rarity.toUpperCase())+' · HALLOWEEN</small>'+esc(item.name)+'</span>';ov.append(mark);
@@ -116,8 +149,14 @@
   }
   function playVariant(item,onClose,title,preview=false) {
     const canonical=window.StudentOSHalloweenRewards?.find(item?.id);
-    if(!canonical||!variants[canonical.id]){if(typeof onClose==='function')onClose();return false;}preload();
-    if(!motionOk(env())||!ready()&&!preview)return stillVariant(canonical,title,onClose);
+    if(!canonical||!variants[canonical.id]||!document.querySelector('.phone')){if(typeof onClose==='function')onClose();return false;}preload();const loading=preloadVariant(canonical);
+    if(!motionOk(env()))return stillVariant(canonical,title,onClose);
+    if(!variantReady(canonical)){
+      if(!preview)return stillVariant(canonical,title,onClose);
+      let settled=false;const finishLoad=ok=>{if(settled)return;settled=true;clearTimeout(timeout);if(ok)playFx(title,onClose,preview,canonical);else stillVariant(canonical,title,onClose);};
+      const timeout=setTimeout(()=>finishLoad(false),3000);loading.then(finishLoad);return true;
+    }
+    if(!usable()&&!preview)return stillVariant(canonical,title,onClose);
     playFx(title,onClose,preview,canonical);return true;
   }
 
@@ -160,11 +199,11 @@
     const host = document.querySelector('.phone');
     preload();
     // ปุ่ม "ลองเล่นดู" กดทันทีหลังเลือก — ภาพอาจยังโหลดไม่เสร็จ รอได้ไม่เกิน 3 วิ (งานจริงไม่รอ: doneFxActive กันไว้แล้ว)
-    if (preview && host && motionOk(env()) && !ready() && !failed && !(preview > 25)) {
+    if (preview && host && motionOk(env()) && !usable() && !failed && !(preview > 25)) {
       setTimeout(() => playFx(title, onClose, (typeof preview === 'number' ? preview : 0) + 1, variant), 120);
       return;
     }
-    if (!host || !motionOk(env()) || !ready()) {
+    if (!host || !motionOk(env()) || !usable()) {
       if (preview && typeof window.showToast === 'function') window.showToast(!motionOk(env())
         ? { title: 'ปิดการเคลื่อนไหวอยู่', body: 'เครื่องนี้ขอลดการเคลื่อนไหว ฉากเรือผีจึงไม่เล่น' }
         : { title: 'กำลังโหลดภาพเรือผี', body: 'ลองกดอีกครั้งในอีกสักครู่' });
@@ -173,32 +212,23 @@
     }
     stop(true);
     const sheet = document.querySelector('#focusWrap:not([hidden]) .fc-sheet.done.cs-done');
-    const lite = root.dataset.lite === '1';
+    if (clipUrl&&!variants[variant?.id]?.scene) return playClip(title, onClose, host, sheet, variant);
+    playStills(title, onClose, host, sheet, variant);
+  }
 
-    const ov = document.createElement('div');
-    ov.className = 'cs-ov' + (lite ? ' lite' : '');
-    ov.setAttribute('role', 'dialog');
-    ov.setAttribute('aria-label', 'งานเสร็จแล้ว · เรือผีมารับงาน แตะเพื่อข้าม');
-    ov.innerHTML = `<i class="cs-dark"></i>
-      ${shot('fog')}${shot('ship')}${shot('deck')}${shot('far')}
-      <i class="cs-flash"></i><i class="cs-blood"></i><i class="cs-glint"></i>
-      <i class="cs-fog l"></i><i class="cs-fog r"></i>
-      <i class="cs-halo"></i>
-      ${cardHtml(title, stats())}
-      <i class="cs-fog front"></i><i class="cs-vig"></i>
-      <button type="button" class="cs-skip">ข้าม</button>`;
-    if (variant) decorateVariant(ov, variant);
+  // ทั้งสองแบบใช้: แตะที่ไหนก็ข้าม (pointerdown ไม่ใช่ click จะได้ไม่ต้องรอปล่อยนิ้ว) · Enter/Space บนปุ่มข้าม
+  function mount(host, sheet, ov, onClose, variant) {
+    decorateVariant(ov,variant);
     if (sheet) sheet.classList.add('cs-playing');
     host.appendChild(ov);
-    run = { ov, sheet, timers: [], onClose, done: false, anims: [], previousFocus: document.activeElement };
-
-    // แตะที่ไหนก็ข้าม — pointerdown ไม่ใช่ click จะได้ไม่ต้องรอปล่อยนิ้ว
+    run = { ov, sheet, timers: [], onClose, done: false, anims: [], raf: 0, video: null, previousFocus:document.activeElement };
     ov.addEventListener('pointerdown', e => { e.preventDefault(); skip(); });
     ov.querySelector('.cs-skip').addEventListener('click', skip);
     ov.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skip(); } });
     try { ov.querySelector('.cs-skip').focus({ preventScroll: true }); } catch (_) {}
-
-    // ตำแหน่งอ่านจากภาพจริง: โคมเขียวบนดาดฟ้าเรือ (ช่อง 3) คือที่ที่ใบงานถูกดูดเข้าไป
+  }
+  // วางใบงานไว้ที่ตำแหน่งเดิมก่อนเริ่มขยับ — คืนจุดกลาง (x0, y0) กับความกว้าง cw
+  function placeCard(ov, host) {
     const card = ov.querySelector('.cs-card');
     const W = ov.clientWidth, H = ov.clientHeight;
     const o0 = origin(host);
@@ -208,38 +238,122 @@
     const x0 = o0 ? o0.x : W / 2, y0 = o0 ? o0.y : H * .3;
     card.style.left = (x0 - cw / 2) + 'px';
     card.style.top = (y0 - ch / 2) + 'px';
+    return { card, W, H, cw, ch, x0, y0 };
+  }
+  const reveal = sheet => { if (sheet) { sheet.classList.add('cs-reveal'); sheet.classList.remove('cs-playing'); } };
+
+  // จุดบนเฟรมคลิป → พิกัดในกรอบ (คลิปแสดงแบบ object-fit: cover — ขอบซ้ายขวาหรือบนล่างถูกตัด)
+  function clipBox(ov, video) {
+    const W = ov.clientWidth, H = ov.clientHeight;
+    const vw = video.videoWidth || 1080, vh = video.videoHeight || 1920;
+    const k = Math.max(W / vw, H / vh), w = vw * k, h = vh * k;
+    return { left: (W - w) / 2, top: (H - h) / 2, w, h };
+  }
+
+  function playClip(title, onClose, host, sheet, variant) {
+    const ov = document.createElement('div');
+    ov.className = 'cs-ov cs-clip';
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-label', 'งานเสร็จแล้ว · เรือผีมารับงาน แตะเพื่อข้าม');
+    ov.innerHTML = `<video class="cs-video" muted playsinline webkit-playsinline preload="auto" aria-hidden="true"></video>
+      <i class="cs-vig"></i>${cardHtml(title, stats())}
+      <button type="button" class="cs-skip">ข้าม</button>`;
+    const video = ov.querySelector('video');
+    video.muted = true; video.defaultMuted = true;   // iOS เล่นเองได้เฉพาะวิดีโอที่ปิดเสียง
+    video.src = clipUrl;
+    mount(host, sheet, ov, onClose, variant);
+    run.video = video;
+    const me = run;
+    const { card, cw, x0, y0 } = placeCard(ov, host);
+    const end = CLIP.out;
+    let anim = null, stamped = false, outed = false;
+
+    const build = () => {
+      if (anim || !card.animate) return;
+      const b = clipBox(ov, video);
+      anim = card.animate(CLIP.path.map(p => {
+        const x = p.x == null ? x0 : b.left + p.x * b.w, y = p.y == null ? y0 : b.top + p.y * b.h;
+        const sc = p.w == null ? 1 : (p.w * b.w) / cw;
+        return { offset: Math.min(1, p.t / end), opacity: p.o == null ? 1 : p.o, easing: 'ease-in-out',
+          transform: `translate(${x - x0}px,${y - y0}px) rotate(${p.r || 0}deg) scale(${sc})` };
+      }), { duration: end * 1000, easing: 'linear', fill: 'both' });
+      anim.pause();
+      me.anims.push(anim);
+    };
+    // ใบงานเดินตามเวลาของคลิปทุกเฟรม ไม่ใช่นาฬิกาแยก — คลิปสะดุด ใบก็หยุดรอ ไม่หลุดจากเรือ
+    const tick = () => {
+      if (run !== me || me.done) return;
+      const t = video.currentTime || 0;
+      if (anim) anim.currentTime = Math.min(t, end) * 1000;
+      if (!stamped && t >= CLIP.seal) {
+        stamped = true; card.classList.add('stamp'); ov.classList.add('shake');
+        if (typeof window.haptic === 'function') window.haptic('tap');
+      }
+      if (!outed && t >= end - .25) { outed = true; reveal(sheet); ov.classList.add('out'); }
+      if (t >= end || video.ended) { finish(); return; }
+      me.raf = requestAnimationFrame(tick);
+    };
+    const go = () => { build(); tick(); };
+    let p;
+    try { p = video.play(); } catch (e) { p = Promise.reject(e); }
+    Promise.resolve(p).then(go, () => {
+      // เครื่องไม่ยอมเล่นวิดีโอ — ปิดฉากคลิปเงียบ ๆ แล้วเล่นฉากภาพนิ่งแทน (ถ้าภาพพร้อม) ไม่งั้นจบเลย
+      if (run !== me || me.done) return;
+      me.onClose = null; finish();
+      if (ready()) playStills(title, onClose, host, sheet, variant);
+      else if (typeof onClose === 'function') onClose();
+    });
+    // กันคลิปค้าง (เน็ต/ถอดรหัสสะดุด) — ไม่ว่าอะไรเกิดขึ้น ฉากจบภายใน out + 2 วิ
+    at((end + 2) * 1000, finish);
+  }
+
+  function playStills(title, onClose, host, sheet, variant) {
+    const v=variants[variant?.id],captions=v?.captions||CAPS;
+    const lite = root.dataset.lite === '1';
+
+    const ov = document.createElement('div');
+    ov.className = 'cs-ov' + (lite ? ' lite' : '');
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-label',v?.scene?'งานเสร็จแล้ว · ฉากฉลอง Halloween แตะเพื่อข้าม':'งานเสร็จแล้ว · เรือผีมารับงาน แตะเพื่อข้าม');
+    ov.innerHTML = `<i class="cs-dark"></i>
+      ${v?.scene?'<div class="cs-biome-shot"><i class="cs-biome-backdrop"></i></div>':shot('ship')}
+      <i class="cs-blood"></i>
+      <i class="cs-fog l"></i><i class="cs-fog r"></i><i class="cs-fog front"></i>
+      <i class="cs-halo"></i><i class="cs-glint"></i>
+      ${cardHtml(title, stats())}
+      <i class="cs-vig"></i>
+      <div class="cs-cap" aria-live="polite">${captions.map((c, i) => `<span class="c${i + 1}">${esc(c)}</span>`).join('')}</div>
+      <button type="button" class="cs-skip">ข้าม</button>`;
+    mount(host, sheet, ov, onClose, variant);
+
+    // ตำแหน่งอ่านจากภาพจริง: โคมเขียวบนดาดฟ้าเรือ (ช่อง 3) คือที่ที่ใบงานถูกดูดเข้าไป
+    const { card, W, H, cw, ch, x0, y0 } = placeCard(ov, host);
     const halo = ov.querySelector('.cs-halo');
     halo.style.left = x0 + 'px'; halo.style.top = (y0 + ch / 2 + 6) + 'px'; halo.style.width = cw * 1.1 + 'px';
 
-    const lamp = artPoint(ov, 'ship', .655, .7);
+    // ตำแหน่งอ่านจากภาพจริง: โคมเขียวบนดาดฟ้าเรือ (ช่อง 3) คือที่ที่ใบงานลอยเข้าไปตอนจบ
+    const lamp = v?.scene ? {x:W*v.target.x,y:H*v.target.y} : artPoint(ov, 'ship', .655, .7);
     const glint = ov.querySelector('.cs-glint');
     glint.style.left = lamp.x + 'px'; glint.style.top = lamp.y + 'px';
-    // ภาพใกล้ตราประทับ: ใบงานกลางจอ เล็กพอให้ตรา (ล้นขวาใบ 6%) ยังอยู่ในจอทั้งดวง
-    const p5 = { x: W * .47, y: H * .45 };
-    const s5 = Math.min(1, (W * .74) / cw);
-    const mid = { x: (x0 + lamp.x) / 2, y: (y0 + lamp.y) / 2 - 30 };
-    const to = (p, s, r) => `translate(${p.x - x0}px,${p.y - y0}px) rotate(${r}deg) scale(${s})`;
+    const to = (p, sc, r) => `translate(${p.x - x0}px,${p.y - y0}px) rotate(${r}deg) scale(${sc})`;
     const o = { x: x0, y: y0 };
-    if (card.animate) {
-      // easing ต้องอยู่รายช่วง — ใส่ที่ตัว animation จะบิดเวลาทั้งเส้น ช็อตคลาดจาก CSS
-      const K = (t, transform, opacity = 1) => ({ offset: t / TOTAL, transform, opacity, easing: 'ease-in-out' });
+    const customFinish=card.animate&&variant&&window.HalloweenCinematicFinishes?.play(variant.id,{ov,card,W,H,cw,ch,x0,y0,target:lamp,schedule:at,animate(node,frames,timing){if(typeof node.animate==='function')run.anims.push(node.animate(frames,timing));}});
+    if (card.animate&&!customFinish) {
+      // easing ต้องอยู่รายช่วง — ใส่ที่ตัว animation จะบิดเวลาทั้งเส้น ฉากคลาดจาก CSS
+      const K = (t, transform, opacity = 1, easing = 'ease-in-out') => ({ offset: t / TOTAL, transform, opacity, easing });
       run.anims.push(card.animate([
         K(0, to(o, 1, 0)),
-        K(350, to({ x: x0, y: y0 - 10 }, 1.02, -1)),                 // 1 · ใบงานเรือง ยกตัวนิดหนึ่ง
-        K(650, to({ x: x0, y: y0 - 14 }, 1.0, -1.5), .55),            // 2 · จมลงในความมืดพร้อมหมอก
-        K(1000, to(mid, .42, -6), .95),                               // 3 · เรือโผล่ ใบงานหดเล็กลอยออกข้างเรือ (ไม่บังตัวเรือ)
-        K(1450, to(lamp, .14, -12), 1),                              //     ลอยเข้าหาโคมเขียว
-        K(1600, to(lamp, .02, -18), 0),                              //     ถูกดูดหายเข้าโคม (แสงวาบเขียว)
-        K(1700, to(p5, s5 * 1.12, -10), 0),                          // ตัด → ภาพใกล้
-        K(1760, to(p5, s5, -9), 1),
-        K(2400, to({ x: p5.x + 3, y: p5.y + 4 }, s5 * .97, -9.5), 1),  //     ตราประทับตกที่ 1.85 วิ แล้วค้างให้อ่าน
-        K(2460, to({ x: p5.x + 3, y: p5.y + 4 }, s5 * .97, -9.5), 0),  // ตัด → เรือแล่นหาย
-        K(TOTAL, to({ x: p5.x, y: p5.y }, s5, -9.5), 0),
+        K(600, to({ x: x0, y: y0 - 8 }, 1.02, -1)),                 // งานนี้เสร็จแล้ว… ใบเรือง ยกตัวนิดเดียว
+        K(2380, to({ x: x0, y: y0 - 8 }, 1.02, -1), 1, 'ease-out'),
+        K(2500, to({ x: x0, y: y0 - 3 }, .99, -1.5)),               // ตราตก (2.4 วิ) ใบยุบลงตามแรงกระแทก
+        K(3600, to({ x: x0, y: y0 - 6 }, 1, -1.5), 1, 'cubic-bezier(.5, 0, .3, 1)'),  // ค้างให้อ่านตรา
+        K(4900, to(lamp, .12, -4), 0),                              // ลอยเข้าหาโคมเรือครั้งเดียว แล้วจาง
+        K(TOTAL, to(lamp, .12, -4), 0),
       ], { duration: TOTAL, easing: 'linear', fill: 'both' }));
     }
 
     at(STAMP_AT, () => { if (typeof window.haptic === 'function') window.haptic('tap'); });
-    at(REVEAL_AT, () => { if (sheet) { sheet.classList.add('cs-reveal'); sheet.classList.remove('cs-playing'); } ov.classList.add('out'); });
+    at(REVEAL_AT, () => { reveal(sheet); ov.classList.add('out'); });
     at(TOTAL, () => finish());
   }
 
@@ -248,13 +362,15 @@
     const r = run;
     r.done = true;
     r.timers.forEach(clearTimeout);
+    if (r.raf) cancelAnimationFrame(r.raf);
+    if (r.video) try { r.video.pause(); } catch (_) {}
     r.anims.forEach(a => { try { a.cancel(); } catch (_) {} });
     if (r.sheet) { r.sheet.classList.remove('cs-playing'); r.sheet.classList.add('cs-reveal'); }
     const hadFocus = r.ov.contains(document.activeElement);
     r.ov.remove();
     run = null;
     if (hadFocus && r.sheet) { const go = r.sheet.querySelector('.fc-go'); if (go) try { go.focus({ preventScroll: true }); } catch (_) {} }
-    if (hadFocus && !r.sheet && r.previousFocus?.isConnected) try { r.previousFocus.focus({preventScroll:true}); } catch (_) {}
+    if(hadFocus&&!r.sheet&&r.previousFocus?.isConnected)try{r.previousFocus.focus({preventScroll:true});}catch{}
     if (typeof r.onClose === 'function') r.onClose();
   }
   // ข้าม = จอข้างหลังขึ้นทันที ไม่มีจังหวะจางรอ — คนที่กดข้ามคือคนที่รีบ
@@ -284,7 +400,8 @@
   }
 
   window.CursedShip = Object.freeze({
-    ID, TOTAL, FILES, motionOk, ready, preload, canPlay, stats,
-    skinOn, scene, playFx, playVariant, variants, skip, stop, active,
+    ID, TOTAL, FILES, CLIP, motionOk, ready, preload, canPlay, stats,
+    skinOn, scene, playFx, playVariant, variants, preloadVariant, skip, stop, active,
   });
+  try{const saved=localStorage.getItem(DONEFX);if(variants[saved]){preload();preloadVariant({id:saved});}}catch{}
 })();

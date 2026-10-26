@@ -27,7 +27,7 @@
       var BAR = { light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
         earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
         deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8', genesis: '#8E9BE8',
-        meta: '#050A16', glitch: '#04060A', astral: '#000000', 'thai-ghost': '#080D19', ...(window.StudentOSHalloweenRewards?.themeBars || {}) };
+        meta: '#050A16', glitch: '#04060A', astral: '#000000', 'thai-ghost': '#0A1F18', ...(window.StudentOSHalloweenRewards?.themeBars || {}) };
       var pref = null;
       try { pref = localStorage.getItem('studentos.alt.theme'); } catch (e) {} // ALT: คนละคีย์กับตัวจริง
       if (!window.__HW_SHOWROOM__ && window.StudentOSHalloweenRewards?.items.some(x => x.kind === 'theme' && x.theme === pref)) pref = 'dark';
@@ -160,15 +160,15 @@
   <link rel="stylesheet" href="halloween/rewards/theme-moonlight.css?rev=mainlike-20261025">
   <!-- ช่วงฮาโลวีน: จอโหลด (ค้างคาว) + จอเข้าสู่ระบบ — มีผลเฉพาะตอน <html> มีคลาส hw-season -->
   <link rel="stylesheet" href="halloween/season/season.css">
-  <link rel="stylesheet" href="halloween/season/cursed-ship.css?rev=cursed-ship-pace-20261025">
+  <link rel="stylesheet" href="halloween/season/cursed-ship.css?rev=cursed-ship-calm-20261026">
   <!-- ความคมชัดรอบสอง (24 ต.ค. 69) — ต้องโหลดหลังสุด: แก้สีตายตัวของไฟล์อื่นด้วยการผสม --ink ของธีม -->
   <link rel="stylesheet" href="contrast.css">
   <!-- กระจก Liquid Glass รอบสอง (25 ต.ค. 69) · แนวคิดจาก shader ของ liquid-glass-js แปลงเป็น CSS ล้วน -->
   <link rel="stylesheet" href="glass.css">
   <!-- ตัวตนของธีม Halloween ทั้ง 6 (ทรง · ผิวปุ่ม · ท่าเปลี่ยนจอ) — ต้องอยู่หลัง glass.css -->
   <link rel="stylesheet" href="halloween/rewards/identity.css?rev=spooky-20261025">
-  <link rel="stylesheet" href="halloween/invite-friend/thai-night.css?rev=night-canal-20261026">
-  <link rel="stylesheet" href="halloween/season/cinematic-variants.css?rev=single-cinematic-20261026">
+  <link rel="stylesheet" href="halloween/invite-friend/thai-layout.css?rev=secure-rewards-20261026">
+  <link rel="stylesheet" href="halloween/season/biome-finishes.css?rev=unique-20261026"><link rel="stylesheet" href="halloween/season/cinematic-variants.css?rev=single-cinematic-20261026">
 <link rel="stylesheet" href="economy/client.css?rev=secure-20261026">
 </head>
 <body>
@@ -2350,6 +2350,7 @@
                 <div class="th-grid" id="fxPick"></div>
                 <div id="fxMode"></div>
                 <button type="button" class="fx-try" id="fxTry" onclick="previewFx(doneFxPref())">ลองเล่นดู</button>
+                <a class="fx-cinematic-link" href="halloween/rewards/cinematic-preview.html" target="_blank" rel="noopener">ห้องชมฉาก Halloween ↗</a>
               </div>
             </div>
 
@@ -2662,7 +2663,7 @@
 <script src="events.js"></script>
 <!-- ชวนเพื่อน · ภารกิจปลดธีมเรือนลับแล — ต้องมาก่อน app.js (เก็บรหัสจาก ?invite= ก่อน URL ถูกล้าง) -->
 <script src="halloween/invite-friend/invite-friend.js?rev=secure-rewards-20261026"></script>
-<script src="halloween/invite-friend/thai-ranat.js?rev=ranat-rarity-20261025"></script>
+<script src="halloween/invite-friend/thai-ranat.js?rev=ranat-haunt-20261026"></script>
 <script src="halloween/invite-friend/thai-theme.js?rev=secure-rewards-20261026"></script>
 <script data-economy-guard>
 /* Durable rewards require the account service, including offline or failed-script starts. */
@@ -2688,7 +2689,7 @@ window.StudentOSEconomy=Object.freeze({ready:deny,refresh:deny,tokens:()=>({bal:
 <script src="halloween/rewards/featured-badge.js?rev=all-badges-20261025"></script>
 <script src="halloween/rewards/theme-rarity.js?rev=ranat-rarity-20261025"></script>
 <!-- เอฟเฟกต์งานเสร็จ The Cursed Ship — ลงทะเบียนตัวเองใน FX_SHOP (hoop.js) จึงต้องมาหลัง hoop.js · เล่นตอนกดเท่านั้น จึงโหลดท้ายแถวได้ -->
-<script src="halloween/season/cursed-ship.js?rev=secure-rewards-20261026"></script>
+<script src="halloween/season/biome-finishes.js?rev=unique-20261026"></script><script src="halloween/season/cursed-ship.js?rev=secure-rewards-20261026"></script>
 <script src="economy/client.js?rev=secure-20261026"></script>
 <script src="device-preview-bridge.js"></script>
 

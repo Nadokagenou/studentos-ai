@@ -25,6 +25,13 @@ const INVITE_SEEN_KEY = 'studentos.alt.inviteUnlockSeen';   // ฉลองป�
 const INVITE_NEW_DAYS = 7;                                   // ต้องตรงกับ redeem_invite ฝั่ง SQL
 // "ชวนเพื่อน" = ชวนคนที่ไม่เคยใช้ StudentOS (เจ้าของสั่ง 23 ต.ค. 69) · ฝั่ง SQL ตัดสินจริง ฝั่งนี้แค่ซ่อนช่องให้ตรงกัน
 const INVITE_FIRST_GRACE = 864e5;                            // เปิดแอปก่อนสมัครได้ไม่เกิน 1 วัน (ต้องตรงกับ SQL)
+// เจ้าของแจกธีมให้บัญชีเหล่านี้เอง (26 ต.ค. 69) — ใช้ธีมได้ทันทีโดยไม่ต้องทำภารกิจ · เทียบกับ uid ของบัญชีที่ล็อกอินอยู่เท่านั้น
+// (ไม่ล็อกอิน = ไม่ได้) · ไม่เขียนข้อมูลผู้ใช้หรือยอดเชิญ บัญชีอื่นยังต้องชวนเพื่อน 3 คน + ทำงาน 1 งานเหมือนเดิม
+const INVITE_GRANTED = new Set([
+  'd824e935-0929-4330-a2e8-98a56c171b57',
+  'cba92754-b051-4a3b-ad13-06eef10064dd',
+  'bcc25fe2-7b6c-460a-a623-e10a7ab66995',
+]);
 
 // ---------- เก็บรหัสจากลิงก์ทันทีที่โหลด ----------
 (function stashInviteCode() {
@@ -68,7 +75,7 @@ function inviteTaskMet() {
   if (t && typeof funnelMark === 'function') funnelMark('hwTaskAt', t.doneAt);
   return !!t;
 }
-function inviteUnlocked() { if(window.StudentOSEconomy)return window.StudentOSEconomy.ownsTheme('thai-ghost')===true; return inviteCount() >= INVITE_GOAL && inviteTaskMet(); }
+function inviteUnlocked() { if(window.StudentOSEconomy)return window.StudentOSEconomy.ownsTheme('thai-ghost')===true; return INVITE_GRANTED.has(ivUid()) || (inviteCount() >= INVITE_GOAL && inviteTaskMet()); }
 function inviteThemeReady() { return typeof THEME_NAME !== 'undefined' && !!THEME_NAME[INVITE_THEME]; }
 
 // เรียกจาก setTheme — กดปุ่มธีมนี้ตอนยังไม่ปลดล็อก = เปิดแผ่นภารกิจแทน (ไม่ใช่ toast "ยังไม่มีธีมนี้")

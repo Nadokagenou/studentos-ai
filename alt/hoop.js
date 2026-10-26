@@ -116,7 +116,7 @@ function previewFx3d(id) {
 function setDoneFx(id) {
   if (id !== 'confetti' && !fxOwned(id)) return;
   try { localStorage.setItem(DONEFX_KEY, id); } catch (_) {}
-  if (id === 'cursedship' || window.HalloweenCosmetics?.isEffect(id)) window.CursedShip?.preload();   // ภาพ ~150KB เริ่มโหลดตั้งแต่ตอนเลือก งานถัดไปที่เสร็จจะได้เล่นทันที
+  if (id === 'cursedship' || window.HalloweenCosmetics?.isEffect(id)) {window.CursedShip?.preload();window.CursedShip?.preloadVariant?.({id});}   // ภาพ ~150KB เริ่มโหลดตั้งแต่ตอนเลือก งานถัดไปที่เสร็จจะได้เล่นทันที
   // 18 ต.ค. 69 · เจ้าของ: "ให้เลือกก่อนแล้วกดเล่น ไม่ใช่กดเลือกแล้วเล่นเลย"
   // เดิมแตะชื่อทีไรเกมเปิดทันที — ไล่แตะดูหลายตัว = โหลดเกม (3D หนัก) ซ้ำ ๆ เครื่องช้าสะดุด
   // ตอนนี้แตะ = เลือก (ขอบไฮไลต์ + ชื่อมุมขวาบน) · เล่นด้วยปุ่ม "ลองเล่นดู" · เทสต์: devtools/fxpickcheck.js

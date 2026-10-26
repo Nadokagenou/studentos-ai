@@ -1,4 +1,4 @@
--- Run once in the same transaction as the reviewed board update, after both clients are deployed.
+-- Run once in the same transaction as the reviewed board update, after the services are verified and immediately before publishing the protected clients.
 -- Existing user saves are copied, never deleted; future browser reward fields are ignored.
 lock table public.user_state,public.staff_token_grants,public.staff_token_debits in share row exclusive mode;
 insert into public.studentos_economy_baselines(user_id,data,at,staff_minted,staff_debited)

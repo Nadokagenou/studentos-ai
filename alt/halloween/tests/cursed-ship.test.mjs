@@ -73,18 +73,26 @@ test('every image the CSS and the script name exists and is in the offline shell
   }
   for (const f of used) assert.ok(api.FILES.includes(f), 'preloaded: ' + f);
 });
-// เป้าเดิม 2.5–3 วิ · เจ้าของดูบนมือถือแล้วไม่เข้าใจเพราะช็อตสั้นเกิน จึงยอมยาวขึ้นได้ไม่เกิน 3.5 วิ (ข้ามได้ตลอด)
-test('the whole sequence stays short (at most 3.5 seconds) and every shot holds long enough to read', () => {
+// เจ้าของ (26 ต.ค. 69): "เกลียดแสงเลเซอร์ · ฉากเปลี่ยนไปมาเหมือน AI · ไม่ต้องสลับตำแหน่งเยอะ" → ภาพเรือภาพเดียว ไม่มีลำแสง
+test('the scene stays on one ship image with no beam and no cut, about 5–7 seconds', () => {
   const { api } = load();
-  assert.ok(api.TOTAL >= 2500 && api.TOTAL <= 3500, String(api.TOTAL));
+  assert.ok(api.TOTAL >= 5000 && api.TOTAL <= 7000, String(api.TOTAL));
+  const shots = [...source.matchAll(/\bshot\('(\w+)'\)/g)].map(m => m[1]);
+  assert.deepEqual(shots, ['ship'], 'one shot only');
+  const css = read('../season/cursed-ship.css').replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.doesNotMatch(css, /\.cs-beam|csShotFog|csShotFar|csShotDeck/);
+  assert.doesNotMatch(source, /cs-beam/);
+  // ใบงานขยับครั้งเดียว: มีจุดหมายนอกตำแหน่งเดิมจุดเดียวคือโคมเรือ
+  assert.equal((source.match(/to\(lamp,/g) || []).length, 2, 'card moves only to the lantern');
+});
+// ทุกจังหวะต้องมีคำบรรยายบนจอ และตราต้องตกตรงเวลาเดียวกันทั้งใน JS และ CSS
+test('each beat has an on-screen caption and the seal drops at the same moment in JS and CSS', () => {
+  const caps = source.match(/const CAPS = \[([^\]]+)\]/);
+  assert.ok(caps && caps[1].split(',').length === 3, 'three captions');
+  const stamp = +source.match(/const STAMP_AT = (\d+)/)[1];
   const css = read('../season/cursed-ship.css');
-  for (const k of ['Ship', 'Deck', 'Far']) {
-    // เวลาที่เห็นช็อตนี้เต็มตา = ตั้งแต่ขึ้นเต็ม จนจางหายหมด
-    const m = css.match(new RegExp('@keyframes csShot' + k + '\\s+\\{ 0%, [\\d.]+% \\{ opacity: 0; \\} ([\\d.]+)% \\{ opacity: 1; \\} [\\d.]+% \\{ opacity: 1; \\} ([\\d.]+)%'));
-    assert.ok(m, k);
-    const heldMs = (+m[2] - +m[1]) / 100 * api.TOTAL;
-    assert.ok(heldMs >= 600, k + ' holds ' + Math.round(heldMs) + 'ms');
-  }
+  assert.match(css, new RegExp('csSeal [.\\d]+s cubic-bezier\\([^)]+\\) ' + stamp / 1000 + 's both'));
+  assert.match(css, new RegExp('csShake [.\\d]+s linear ' + stamp / 1000 + 's 1'));
 });
 test('finishFocus saves before any effect and refuses a second save', () => {
   const body = app.slice(app.indexOf('function finishFocus()'), app.indexOf('// ---------- task actions ----------'));
@@ -110,4 +118,22 @@ test('the motion CSS honours reduced motion and the lite device mode', () => {
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(css, /\.cs-ov\.lite/);
   assert.doesNotMatch(css, /filter:\s*blur/, 'no full-layer blur on phones');
+});
+
+// คลิปของเจ้าของ (CLIP ใน cursed-ship.js) — ยังไม่มี = null · มีเมื่อไหร่ต้องตั้งค่าครบและไฟล์ต้องอยู่จริง
+test('the clip setting is either off or complete and points at a real file', () => {
+  const { api } = load();
+  const c = api.CLIP;
+  if (c === null) return;
+  assert.ok(fs.existsSync(new URL('../season/cursed-ship/' + c.file, import.meta.url)), c.file);
+  assert.ok(c.out > 0 && c.out <= 5, 'out ' + c.out);
+  assert.ok(c.seal > 0 && c.seal < c.out, 'seal inside the clip');
+  assert.equal(c.path[0].t, 0);
+  for (let i = 1; i < c.path.length; i++) assert.ok(c.path[i].t > c.path[i - 1].t, 'path times rise');
+  assert.ok(c.path.at(-1).t <= c.out, 'path ends inside the clip');
+});
+test('a clip that will not play falls back to the still scene instead of leaving a black screen', () => {
+  assert.match(source, /Promise\.resolve\(p\)\.then\(go, \(\) => \{/);
+  assert.match(source, /if \(ready\(\)\) playStills\(title, onClose, host, sheet, variant\);/);
+  assert.match(source, /at\(\(end \+ 2\) \* 1000, finish\)/, 'stalled clip still ends');
 });

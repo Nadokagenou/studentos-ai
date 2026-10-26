@@ -1,3 +1,7 @@
+> รอบนี้ยังไม่ deploy/push: automatic approval review ส่ง migration ทำงานไม่ได้เพราะโควตาหมด เครื่องมือระบุไม่ได้ execute ห้ามใช้ SQL/ช่องทางอื่นข้ามการตรวจ โค้ดและห้องชมฉากใหม่อยู่ในเครื่อง ดู docs/SECURE-REWARDS-20261026.md
+
+> 26 ต.ค. ระบบรางวัลบัญชี/ฉากตามไบโอมกำลังส่ง: อ่าน docs/SECURE-REWARDS-20261026.md เป็นสถานะล่าสุด คง Jade Moon/เพลงรอบ 1:30 จากทีม 522a20f ใช้ Cursed Ship ฉากเดียว 6 วิเป็นฐาน รางวัล 8 ID มีฉากไบโอมของตนเอง ห้ามอ้าง deploy ก่อนตรวจผลจริง คง 1C60/คีย์/งานเดิม
+
 > 26 ต.ค. แก้ป้ายภารกิจบังปุ่มสวน: อ่าน halloween/docs/launch-polish-20261026/README.md ภารกิจเป็นปุ่ม44pxด้านบน เปิด/ปิดเอง ไม่แปะทับแผนที่ ตรวจจุดสวน4ขนาดและกดเข้าจริง แก้ go=login/profile root+ALT ด้วยทางจอเดิม กันยืนยันบัญชีแล้ววนเข้าlogin แยก copy จริง/ห้องลอง คง1C60/เซฟ/กติกา/สิทธิ์เดิม แคชlaunch-polish-20261026 Halloween234+navigation24+account33ทั้งสองสาย ไม่อ้าง two-device/20นาทีจริง
 
 > 26 ต.ค. Countdown บนเว็บหลัก root ตามคำระบุผู้ใช้ว่าไม่มี /alt/: อ่าน ../devtools/MAIN-HALLOWEEN-COUNTDOWN-TH.md แก้ root app.js/index.html/sw.js + halloween-countdown.js/css เท่านั้นในส่วนประกาศ ใช้ config เวลาเดิม ไม่มี preview link ก่อนเปิด จบซ่อน นาฬิกาเดี่ยวหยุดเบื้องหลัง entry=main ให้หัว ALT event กลับroot คง1C60/คีย์/แคชแยก ทีมล่าสุดef23d03อยู่ครบ ตรวจclock5+desktop7+mainSW5+altSW6+Halloween231 และ375×812 scroll0 ทั้งมี/ไม่มีงาน

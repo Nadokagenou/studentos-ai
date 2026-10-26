@@ -6,7 +6,7 @@
 // จะเสิร์ฟโลโก้เก่าจากแคชต่อไปโดยไม่มีอะไรบอกว่ามีของใหม่
 // แยกชื่อแคช ALT จากเว็บหลัก: ปล่อยเฉพาะ ALT ต้องไม่ล้างแคชของเว็บหลักบน origin เดียวกัน
 const CACHE_PREFIX = 'studentos-alt-';
-const CACHE = CACHE_PREFIX + '1c60-secure-rewards-20261026'; // ภารกิจไม่ทับสวน + ทางเข้าบัญชีอีเวนต์ · คงเลขแอป/ธีมเดิม
+const CACHE = CACHE_PREFIX + '1c60-secure-rewards-20261026'; // เพลงเรือนลับแลสามท่อน · คงเลขแอป
 let HALLOWEEN_FILES = [];
 try { importScripts('halloween/cache-manifest.js'); HALLOWEEN_FILES = self.HALLOWEEN_SHELL || []; } catch (_) {}
 // ทุกไฟล์ที่ index.html อ้างถึงต้องอยู่ในรายการนี้ — ไฟล์ที่หน้าเรียกแต่ไม่ได้แคชไว้
@@ -27,7 +27,7 @@ const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.cs
   // 25 ต.ค. 69 · ฉากเรือผีบนจอ "เสร็จแล้ว" (THE CURSED SHIP)
   'halloween/season/cursed-ship.js', 'halloween/season/cursed-ship.css',
   // ภาพทุกช็อตตัดจากสตอรีบอร์ดของเจ้าของ (~150KB) — ฉากไม่เล่นถ้าภาพไม่ครบ จึงต้องอยู่ในแคชติดเครื่อง
-  'halloween/season/cursed-ship/fog.webp', 'halloween/season/cursed-ship/fog-bg.webp', 'halloween/season/cursed-ship/ship.webp', 'halloween/season/cursed-ship/ship-bg.webp', 'halloween/season/cursed-ship/deck.webp', 'halloween/season/cursed-ship/deck-bg.webp', 'halloween/season/cursed-ship/far.webp', 'halloween/season/cursed-ship/far-bg.webp', 'halloween/season/cursed-ship/yard.webp', 'halloween/season/cursed-ship/yard-bg.webp', 'halloween/season/cursed-ship/banner.webp', 'halloween/season/cursed-ship/seal.webp',
+  'halloween/season/cursed-ship/ship.webp', 'halloween/season/cursed-ship/ship-bg.webp', 'halloween/season/cursed-ship/yard.webp', 'halloween/season/cursed-ship/yard-bg.webp', 'halloween/season/cursed-ship/banner.webp', 'halloween/season/cursed-ship/seal.webp',
   'shortcut-draft.js', 'desktop.css', 'desktop-entry.js', 'desktop.js', 'desktop-navigation.mjs',
   // 15 ต.ค. 69 · ข่าวสารจากทีม — แคชไว้ให้เปิดจอข่าวตอนออฟไลน์ได้ (drafts.json ไม่แคช: แอปไม่ได้โหลดมัน)
   'news/announcements.json',

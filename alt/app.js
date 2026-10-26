@@ -312,7 +312,7 @@ const THEME_BAR = {
   light: '#F7FAFF', dark: '#0D1220', warm: '#FFF6FA', space: '#0A0E24',
   earth: '#F1F6F1', ocean: '#E9F4FB', magic: '#150E26', galaxy: '#0B0618',
   deepocean: '#04121F', earth2: '#EFF7EE', sweet: '#FDF0F8', genesis: '#8E9BE8',
-  meta: '#050A16', glitch: '#04060A', astral: '#000000', 'thai-ghost': '#080D19', ...(window.StudentOSHalloweenRewards?.themeBars || {}),
+  meta: '#050A16', glitch: '#04060A', astral: '#000000', 'thai-ghost': '#0A1F18', ...(window.StudentOSHalloweenRewards?.themeBars || {}),
 };
 const THEME_NAME = {
   system: 'ตามระบบ', light: 'สว่าง', dark: 'มืด', warm: 'ชมพู', space: 'อวกาศ',
@@ -11085,7 +11085,7 @@ let drawOpen = [];
 let drawing = false;
 
 function restorePendingDraw() {
-  const p = rawTokenState().pendingDraw;
+  const p = (typeof window!=='undefined'&&window.StudentOSEconomy?window.StudentOSEconomy.tokens():rawTokenState()).pendingDraw;
   if (!p || !Array.isArray(p.results) || !p.results.length) { drawResults = []; drawOpen = []; return; }
   drawResults = p.results;
   drawOpen = p.results.map(r => !!r.granted);
