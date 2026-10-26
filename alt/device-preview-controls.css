@@ -16,6 +16,12 @@
  :root body:not(.login-mode) .phone{width:100%;max-width:none;height:100dvh;border:0;border-radius:0}
  :root body:not(.login-mode) .stage-note{display:none}
  :root body:not(.login-mode) .screen{padding-inline:clamp(28px,6vw,70px)}
+ /* 26 ต.ค. 69 · เจ้าของ (ภาพกระดานอันดับบนจอกว้าง ~770px): "ทำให้มันเต็มหน้าจอสิ" — ระยะขอบข้างบนนี้โดนจอกระดานด้วย
+    จอกระดานออกแบบเต็มขอบ (พื้นแสงออโรราด้านบน + แผ่นสีด้านล่าง) จึงเหลือช่องว่างข้างละ ~46px และเห็นเส้นตัดครึ่งจอของพื้นหลังตัวจอ
+    → จอนี้ไม่มีระยะขอบข้าง พื้นเต็มจอ · ของข้างในยังอยู่ในคอลัมน์ 680px กลางจอ (padding ของชั้นหน้า/หลัง ไม่ใช่ max-width
+    ของลูก — ของตกแต่งที่วาง inset:0 ในชั้นหลังยังกินเต็มกว้าง) · มือถือไม่โดน (ขอบในยังเป็น 16px เดิมของ board.css เป็นอย่างน้อย) */
+ :root body:not(.login-mode) #scr-board.screen{padding-inline:0}
+ :root body:not(.login-mode) #scr-board :is(.bd-bg,.bd-sheet){padding-inline:max(16px,calc((100% - 680px) / 2 + 16px))}
  :root:not([data-nav-pref="side"]) body:not(.login-mode) .tabbar{max-width:650px;margin-inline:auto;left:0;right:0}
  :root body:not(.login-mode) :is(.th-grid,.mt-grid){grid-template-columns:repeat(3,minmax(0,1fr))}
  :root body:not(.login-mode) #menuBody{max-width:760px;margin-inline:auto}
