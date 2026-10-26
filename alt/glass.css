@@ -130,3 +130,40 @@ body #menuBody .td-top {
 :root .phone #menuBody .td-ask:is(:focus-within, .ha-has) .tk-go {
   box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 6px 16px -6px color-mix(in srgb, var(--fill) 75%, transparent) !important;
 }
+
+/* ============================================================
+   เรือนลับแล (thai-ghost) · ไทล์หน้าแรกเป็นกระจก — 26 ต.ค. 69 · เจ้าของ: /liquid-glass-js (ภาพไทล์ข้อความ/เพื่อน/กล่องเข้า… บนฉากสระ)
+   ไทล์ของธีมนี้เป็นก้อนเขียวทึบแบน เพราะกฎธีมใน alt.css (#menuBody .tg-ic) ตั้ง box-shadow:none !important ทับชุดกระจกข้างบน
+   และธีมนี้ไม่อยู่ในกลุ่มโทเคนกระจกมืด → ใส่ทั้งสองอย่าง · CSS ล้วนเหมือนทุกรอบ (ไทล์ 6 ช่อง × WebGL = ชนเพดาน context
+   และไลบรารีถ่ายฉากครั้งเดียว แต่ฉากธีมนี้มีหมอก/โคมขยับตลอด) · สูตรจาก shader ของ liquid-glass-js (dashersw · MIT):
+   ขอบสะท้อน (rim) · เลนส์ขอบย้อมสีจันทร์หยก (edge + tint) · ประกายมุมบนซ้าย (cornerBoost) · ฝ้าเบลอของสระข้างหลัง
+   ทรงไทล์คงเดิม (กติกา: ไทล์กริดหน้าแรกทรงเดียวกันทุกธีม) · เครื่องอ่อน/โหมดลื่น = ไม่เบลอ
+   ============================================================ */
+:root[data-theme="thai-ghost"] {
+  --lg-hi: rgba(255,255,255,.62); --lg-mid: rgba(255,255,255,.3); --lg-lo: rgba(255,255,255,.14);
+  --lg-glow: rgba(216,232,201,.10); --lg-drop: rgba(0,8,4,.6);
+}
+:root[data-theme="thai-ghost"] .phone #menuBody .tg-ic {
+  /* รอบสอง (เจ้าของ: "ปรับสีหน่อยให้มันเหมือนของธีมอื่น") — สูตรเดียวกับไทล์ธีมหลัก: ก้อนสีธีมเงา ๆ + ชิปขาวข้างใน + ไอคอนสีเข้มของธีม
+     (รอบแรกเป็นกระจกเขียวเข้มโปร่ง + ชิปเขียวเข้มไอคอนขาว = กลับด้านกับทุกธีม) · สีก้อน = เขียวหยกป่าของธีม (--grad-brand)
+     ไม่ใช่ --fill เพราะ --fill ธีมนี้คือจันทร์ซีด ชิปขาวจะกลืนกับก้อน */
+  background:
+    radial-gradient(130% 80% at 16% -6%, rgba(255,255,255,.5) 0%, rgba(255,255,255,.12) 38%, transparent 62%),   /* cornerBoost */
+    radial-gradient(90% 60% at 88% 112%, rgba(216,232,201,.28) 0%, transparent 62%),
+    linear-gradient(rgba(255,255,255,.16), transparent 42%, rgba(255,255,255,.08)),
+    linear-gradient(160deg, #2E8A63, #1B5E44) !important;
+  border-color: rgba(255,255,255,.38) !important;
+  box-shadow:
+    inset 0 1.5px 0 var(--lg-hi), inset 1.5px 0 0 var(--lg-mid),
+    inset 0 -1.5px 0 var(--lg-lo), inset -1px 0 0 var(--lg-lo),
+    inset 0 0 14px -2px rgba(216,232,201,.45),
+    inset 0 0 26px var(--lg-glow),
+    0 14px 24px -12px var(--lg-drop), 0 3px 6px -2px rgba(0,8,4,.35) !important;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+/* ชิปข้างใน: ขาว → จันทร์หยก · ไอคอนเขียวป่าเข้ม (กฎธีมใน alt.css ตั้งชิปเขียวเข้ม + ไอคอนจันทร์ไว้ด้วย !important) */
+:root[data-theme="thai-ghost"] .phone #menuBody .tg-ic svg {
+  background: linear-gradient(160deg, rgba(255,255,255,.98), rgba(216,232,201,.88)) !important;
+  color: #174E39 !important;
+  box-shadow: inset 0 1px 0 #fff, inset 0 -1.5px 2px rgba(0,30,18,.14), 0 5px 10px -3px rgba(0,20,12,.45), 0 0 0 .5px rgba(0,20,12,.12) !important;
+}
