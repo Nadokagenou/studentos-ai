@@ -8,3 +8,10 @@ test('ranat creates no audio before explicit activation and repeated starts use 
 test('wooden-bar notes use bounded finite envelopes and stop completely on theme exit',async()=>{const h=harness();h.allow(true);await h.p.start();const c=h.contexts[0];assert.ok(c.voices.length>=3);for(const v of c.voices){assert.ok(v.stops[0]>v.at);assert.ok(v.frequency.events.every(([hz,t])=>Number.isFinite(hz)&&hz>20&&hz<18000&&Number.isFinite(t)));}h.p.setVolume(1000);h.p.stop();assert.equal(h.timers.size,0);assert.equal(c.state,'closed');assert.equal(h.p.status(),'off');assert.ok(c.voices.every(v=>v.disconnected));});
 test('a background timer cancels sound and never catches up a backlog',async()=>{const h=harness();h.allow(true);await h.p.start();h.contexts[0].currentTime=3600;for(const f of h.timers.values())f();assert.ok(h.contexts[0].voices.length<40);h.allow(false);for(const f of h.timers.values())f();assert.equal(h.timers.size,0);assert.equal(h.p.status(),'off');});
 test('canceling a pending browser resume cannot revive old audio or cancel a newer session',async()=>{const h=harness();h.allow(true);let resolve;h.resumeWith(()=>new Promise(r=>resolve=r));const old=h.p.start();h.p.stop();h.resumeWith(null);assert.equal(await h.p.start(),true);resolve();assert.equal(await old,false);assert.equal(h.contexts.length,2);assert.equal(h.timers.size,1);assert.equal(h.p.status(),'playing');});
+test('the lantern melody stays in D–E–G–A–B, plays short phrases and leaves real silence between them',()=>{
+ const pc=new Set([2,4,7,9,11]);const lines=M.score;
+ for(const l of lines)for(const n of l)if(n!==null)assert.ok(pc.has(n%12),'note '+n);
+ for(const l of lines){const c=l.filter(n=>n!==null).length;assert.ok(c===0||(c>=3&&c<=5),'phrase '+c);}
+ // every phrase is followed by at least one silent bar (≈3.1 s at 58 BPM) and phrases come to rest on D, A or B
+ lines.forEach((l,i)=>{if(l.some(n=>n!==null)){assert.ok(lines[(i+1)%lines.length].every(n=>n===null),'rest after '+i);const last=l.filter(n=>n!==null).at(-1);assert.ok([2,9,11].includes(last%12),'rests on '+last);}});
+});
