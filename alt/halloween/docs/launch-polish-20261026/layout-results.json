@@ -1,0 +1,42 @@
+[
+  {
+    "automaticPanel": 0,
+    "gardenHeight": 44,
+    "gardenHit": true,
+    "gardenWidth": 67.515625,
+    "height": 568,
+    "hudFits": true,
+    "overflowX": false,
+    "width": 320
+  },
+  {
+    "automaticPanel": 0,
+    "gardenHeight": 44,
+    "gardenHit": true,
+    "gardenWidth": 67.515625,
+    "height": 812,
+    "hudFits": true,
+    "overflowX": false,
+    "width": 375
+  },
+  {
+    "automaticPanel": 0,
+    "gardenHeight": 44,
+    "gardenHit": true,
+    "gardenWidth": 67.515625,
+    "height": 375,
+    "hudFits": true,
+    "overflowX": false,
+    "width": 812
+  },
+  {
+    "automaticPanel": 0,
+    "gardenHeight": 44,
+    "gardenHit": true,
+    "gardenWidth": 67.515625,
+    "height": 900,
+    "hudFits": true,
+    "overflowX": false,
+    "width": 1280
+  }
+]

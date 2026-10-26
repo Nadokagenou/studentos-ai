@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const C=window.StudentOSHalloweenRewards, O=window.HalloweenOwnership;
-  const preview=new URLSearchParams(location.search).get('preview')==='1';
+  const preview=new URLSearchParams(location.search).get('preview')==='1',appHref=new URLSearchParams(location.search).get('entry')==='main'?'../../../':'../../';
   const key='studentos.alt.halloween.preview.v1', owner='halloween-review-only', season='halloween-2026';
   const content=document.getElementById('permanentVault'),dialog=document.getElementById('permanentDetail');
   const kinds={all:'ทั้งหมด',room:'ห้อง',costume:'ชุด',theme:'ธีม',effect:'เอฟเฟกต์',relic:'Mystical',badge:'เหรียญ'};
@@ -11,7 +11,7 @@
   let account=null,kind='all',rewards={},cleanup=()=>{};
   function render(){
     document.getElementById('vaultMode').textContent=preview?'คลังห้องลอง · แยกจากบัญชีจริง':'คลังรางวัล StudentOS';
-    if(!preview&&!account?.ready()){document.getElementById('vaultCount').textContent='เชื่อมคลังบัญชี StudentOS';content.innerHTML='<p class="empty">เข้าสู่ระบบเพื่อดูรางวัลของบัญชีนี้<br><a href="../../?go=profile">ไปเข้าสู่ระบบ StudentOS →</a></p>';return;}
+    if(!preview&&!account?.ready()){document.getElementById('vaultCount').textContent='เชื่อมคลังบัญชี StudentOS';content.innerHTML='<p class="empty">เข้าสู่ระบบเพื่อดูรางวัลของบัญชีนี้<br><a href="'+appHref+'?go=login">ไปเข้าสู่ระบบ StudentOS →</a></p>';return;}
     try{if(preview){const raw=localStorage.getItem(key);rewards=raw?O.validate(JSON.parse(raw),owner,season).rewards:{};}else rewards=account.read().rewards;}
     catch(error){document.getElementById('vaultStatus').textContent=error.message;return;}
     const owned=Object.keys(rewards).map(id=>C.find(id)).filter(Boolean);

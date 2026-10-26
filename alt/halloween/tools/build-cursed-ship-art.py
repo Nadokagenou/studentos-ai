@@ -1,6 +1,8 @@
 # สร้างภาพฉาก THE CURSED SHIP จากสตอรีบอร์ด 12 ช่องของเจ้าของ (25 ต.ค. 69)
-# ใช้:   python alt/halloween/tools/build-cursed-ship-art.py <สตอรีบอร์ด 1312×1199>
-# ต้องมี: pip install pillow numpy opencv-python-headless
+# ใช้:   python alt/halloween/tools/build-cursed-ship-art.py <สตอรีบอร์ด 1312×1199> [--sr RealESRGAN_x4plus_anime_6B.pth]
+# ต้องมี: pip install pillow numpy opencv-python-headless  (+ torch ถ้าใช้ --sr)
+# --sr = ขยายด้วย AI (esrgan.py) แทนการยืดภาพธรรมดา — 26 ต.ค. 69 เจ้าของบ่นภาพเบลอซ้ำหลายรอบ
+#        ยืดภาพธรรมดาไม่เพิ่มรายละเอียด ภาพชุดที่อยู่ใน repo ตอนนี้ทำด้วย --sr ทุกไฟล์
 # ผล:    alt/halloween/season/cursed-ship/*.webp (ทับของเดิม) · ตัวสตอรีบอร์ดไม่เก็บใน repo
 #
 # ทุกช่องถูกลบป้ายเลขช่อง/คำบรรยายออก (inpaint) และลบการ์ดเดิมที่วาดไว้ในภาพ — การ์ดจริงเป็น HTML ที่วางทับ
@@ -48,14 +50,11 @@ def feather_paste(img, patch, x0, y0, f):
 
 def build(p):
     art = {}
-    # ช่อง 2 · หมอกม่วง — ลบการ์ดจาง ๆ กลางภาพ
-    fog = p[1]; art['fog'] = inpaint(fog, box(fog, 110, 95, 330, 250), 15)
     # ช่อง 3 · เรือผี — ตัดที่เส้นน้ำ (การ์ดเดิมอยู่ใต้เส้นน้ำ) · ทะเลข้างล่างเป็นหมอก CSS
     art['ship'] = inpaint(p[2])[0:252]
-    # ช่อง 4 · ดาดฟ้า — รอยลบการ์ดถูกการ์ดจริงทับพอดี (จุด .556, .516 ใน cursed-ship.js)
-    deck = p[3]; art['deck'] = inpaint(deck, box(deck, 150, 80, 335, 215), 12)[0:285]
-    # ช่อง 6 · เรือแล่นไกล · ช่อง 11 · จันทร์กับป่าช้า
-    art['far'] = inpaint(p[5]); art['yard'] = inpaint(p[10])
+    # ช่อง 2 (หมอก) · 4 (ดาดฟ้า) · 6 (เรือแล่นไกล) เลิกใช้ 26 ต.ค. 69 — ฉากเหลือภาพเรือภาพเดียว ไม่ตัดช็อต
+    # ช่อง 11 · จันทร์กับป่าช้า (ฉากหลังของหน้าสรุป)
+    art['yard'] = inpaint(p[10])
 
     # ช่อง 5 · ตราขี้ผึ้ง — วงกลมขอบนุ่ม + หยดสีแดงรอบวง
     s = p[4]; cx, cy, r = 245, 152, 92
@@ -63,8 +62,9 @@ def build(p):
     hh, ww = crop.shape[:2]
     yy, xx = np.mgrid[0:hh, 0:ww]; d = np.hypot(xx - ww / 2, yy - hh / 2)
     hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
-    red = ((hsv[..., 0] < 12) | (hsv[..., 0] > 165)) & (hsv[..., 1] > 110) & (hsv[..., 2] > 60)
-    alpha = np.maximum(np.clip((r + 2 - d) / 6, 0, 1), red.astype(float) * np.clip((r + 20 - d) / 10, 0, 1))
+    red = ((hsv[..., 0] < 12) | (hsv[..., 0] > 165)) & (hsv[..., 1] > 165) & (hsv[..., 2] > 70)   # แดงเข้มเท่านั้น — 110 ติดกระดาษชมพูซีดมาเป็นวง
+    # วงฐานเล็กกว่าขี้ผึ้งนิดหนึ่ง (r - 10) แล้วให้สีแดงขยายขอบเอง — วงเท่าขี้ผึ้งพอดีติดเงามืดเป็นเสี้ยวด้านบนมาด้วย
+    alpha = np.maximum(np.clip((r - 10 - d) / 6, 0, 1), red.astype(float) * np.clip((r + 20 - d) / 10, 0, 1))
     alpha = cv2.GaussianBlur(alpha, (3, 3), 0)
     seal = np.dstack([crop, (alpha * 255).astype(np.uint8)])
 
@@ -85,21 +85,38 @@ def build(p):
 def pil(bgr):
     return Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGRA2RGBA if bgr.shape[2] == 4 else cv2.COLOR_BGR2RGB))
 
-# คุณภาพ webp 92 (เดิม 80): ภาพต้นทางเล็ก บล็อกบีบอัดเห็นชัดบนจอ 3x ของ iPhone
+# ภาพในแอปเก็บที่ 3 เท่าของภาพช่องในสตอรีบอร์ด (กว้าง ~1,300px) — iPhone วาดเรือกว้าง ~1,500 จุดจริง
+# --sr: ขยาย 4 เท่าด้วย AI แล้วย่อลงเหลือ 3 เท่า (คมกว่ายืด 3 เท่าตรง ๆ มาก) · ไม่มี --sr: ยืดธรรมดา 2 เท่าแบบเดิม
+SR = None
 def up(im):
+    if SR is not None:
+        import esrgan
+        alpha = im.getchannel('A') if im.mode == 'RGBA' else None
+        big = esrgan.upscale(SR, im.convert('RGB'))
+        size = (im.width * 3, im.height * 3)
+        big = big.resize(size, Image.LANCZOS)
+        if alpha is not None:
+            big = big.convert('RGBA'); big.putalpha(alpha.resize(size, Image.LANCZOS))
+        return big
     im = im.resize((im.width * 2, im.height * 2), Image.LANCZOS)
     return im.filter(ImageFilter.UnsharpMask(radius=1.6, percent=55, threshold=2))
 
 def main():
+    global SR
+    if '--sr' in sys.argv:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import esrgan
+        model = sys.argv[sys.argv.index('--sr') + 1]
+        SR = esrgan.load(model, 6 if 'anime_6B' in model else 23)
     art, seal, ban = build(panels(sys.argv[1]))
     os.makedirs(OUT, exist_ok=True)
     for k, bgr in art.items():
         im = pil(bgr)
-        up(im).save(os.path.join(OUT, k + '.webp'), quality=92, method=6)
+        up(im).save(os.path.join(OUT, k + '.webp'), quality=88, method=6)
         bg = im.resize((96, int(96 * im.height / im.width)), Image.LANCZOS).filter(ImageFilter.GaussianBlur(5))
         ImageEnhance.Brightness(bg).enhance(.7).save(os.path.join(OUT, k + '-bg.webp'), quality=70)
-    up(pil(ban)).save(os.path.join(OUT, 'banner.webp'), quality=92, method=6)
-    up(pil(seal)).save(os.path.join(OUT, 'seal.webp'), quality=92, method=6)
+    up(pil(ban)).save(os.path.join(OUT, 'banner.webp'), quality=88, method=6)
+    up(pil(seal)).save(os.path.join(OUT, 'seal.webp'), quality=88, method=6)
     for f in sorted(os.listdir(OUT)):
         print(f, os.path.getsize(os.path.join(OUT, f)) // 1024, 'KB')
 

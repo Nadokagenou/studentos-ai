@@ -18878,7 +18878,7 @@ function takeSharedText() {
 // ลิงก์เก่าจากหน้า land.html ที่ส่ง ?start=timeline มายังต้องพาไปที่ที่มีของให้ดู
 // ไม่ใช่จอที่ออกไปไหนไม่ได้นอกจากกดแถบล่าง
 // 'quick' = ปุ่มลัด "เพิ่มงานด่วน" (quickadd.js) — ไปหน้าแรกแล้วเด้งแผ่นพิมพ์งานทับ
-const SHORTCUT_SCREENS = { scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-tasks', quick: 'scr-menu', assistant: 'scr-ai', today: 'scr-menu' };
+const SHORTCUT_SCREENS = { login: 'scr-login', profile: 'scr-profile', scan: 'scr-scan', home: 'scr-home', tasks: 'scr-tasks', timeline: 'scr-tasks', quick: 'scr-menu', assistant: 'scr-ai', today: 'scr-menu' };
 // อ่านจาก BOOT_Q ไม่ใช่ location.search — initApp() ล้าง URL ทิ้งก่อน routeStart() จะถูกเรียก
 // เดิมอ่าน location.search ตรง ๆ จึงเจอ URL เปล่าทุกครั้ง ปุ่มลัดทุกปุ่มพาไปหน้าแรกเงียบ ๆ (พบ 9 ต.ค. 69)
 // ใช้ได้ครั้งเดียว — routeStart() รอบสองต้องไม่เด้งแผ่นซ้ำ หรือดึงคนกลับจากจอที่เขาเดินไปแล้ว
@@ -18906,6 +18906,7 @@ function shortcutTarget() {
   // ไม่ลบที่จดไว้ตรงนี้ — รีโหลดของ service worker มักมาหลังแผ่นเด้งไปแล้ว ลบตอนนี้ = แผ่นหายพร้อมรีโหลด
   // แผ่นเพิ่มงานด่วนลบเองตอนส่ง/ปิด (quickClose) · ปุ่มลัดอื่นหมดอายุเองใน 30 วิ
   shortcutUsed = true;
+  if (g === 'login' && (currentUser || hasStoredSession())) return 'scr-profile'; // Reuse native session validation; do not route returning accounts into login.
   if (g === 'quick' && typeof quickOpen === 'function') setTimeout(quickOpen, 80);
   return SHORTCUT_SCREENS[g];
 }

@@ -79,5 +79,6 @@ self.HALLOWEEN_SHELL = [
   "halloween/invite-friend/qrcode-generator.js",
   "halloween/invite-friend/thai-theme.js",
   "halloween/invite-friend/thai-ranat.js",
-  "halloween/invite-friend/thai-estate.svg"
+  "halloween/invite-friend/thai-estate.svg",
+  "halloween/invite-friend/jade-moon.webp"
 ];

@@ -75,14 +75,14 @@
     return 'ไปตรงนี้';
   }
   // แถบล่าง: บอกสิ่งเดียวที่ต้องทำ + ของที่ขาด + ปุ่มพาไป
-  function bar(o,{duration,now}){
+  function bar(o,{duration,now,panel=false}){
     if(!o||o.key==='gate')return '';
     const need=o.need.length?'<div class="obj-need">'+o.need.map(n=>'<span class="obj-slot'+(n.have>=n.need?' got':'')+'" data-need="'+esc(n.id)+'"><i>'+n.icon+'</i><small>'+(n.kind==='candy'?n.have+'/'+n.need:n.have+'/'+n.need)+'</small></span>').join('')+'</div>':'';
     const nowStep=o.steps?o.steps.findIndex(s=>s.state==='now'):-1;
     const wait=o.wait?' · เปิด '+clock(o.wait.at):'';
     const close=o.closesAt&&!o.wait?'<small class="obj-clock" data-closes-at="'+o.closesAt+'" title="ประตู'+esc(o.biomeName)+'ปิดใน">⏳ ปิดใน '+esc(duration(o.closesAt-now))+'</small>':'';
     const button=o.action.kind==='wait'?'<button class="obj-go wait" data-objective-go>'+esc(o.action.label)+wait+'</button>':'<button class="obj-go" data-objective-go>'+esc(o.action.label)+' ▶</button>';
-    return '<section class="objective-bar'+(o.ready?' is-ready':'')+'" data-objective-key="'+esc(o.key)+'" aria-label="ภารกิจตอนนี้"><div class="obj-head"><span class="obj-eyebrow">ภารกิจตอนนี้'+(o.quest?' · '+esc(o.npc)+' เควส '+o.quest.order:'')+(nowStep>=0?' · ขั้น '+(nowStep+1)+'/'+o.steps.length:'')+'</span>'+close+'</div><div class="obj-main"><div class="obj-text"><h2>'+esc(o.title)+'</h2>'+(o.need.length?'':'<p>'+esc(o.detail)+'</p>')+'</div>'+need+'</div>'+button+'</section>';
+    return '<section class="objective-bar'+(panel?' objective-panel':'')+(o.ready?' is-ready':'')+'" data-objective-key="'+esc(o.key)+'" aria-label="ภารกิจตอนนี้"><div class="obj-head"><span class="obj-eyebrow">ภารกิจตอนนี้'+(o.quest?' · '+esc(o.npc)+' เควส '+o.quest.order:'')+(nowStep>=0?' · ขั้น '+(nowStep+1)+'/'+o.steps.length:'')+'</span>'+close+'</div><div class="obj-main"><div class="obj-text"><h2>'+esc(o.title)+'</h2>'+(o.need.length?'':'<p>'+esc(o.detail)+'</p>')+'</div>'+need+'</div>'+button+'</section>';
   }
   return {decorate,bar,selector,flagText,clock};
 });
