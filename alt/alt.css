@@ -15612,14 +15612,18 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 .phone #scr-tasks .tk-sub .tk-pri { font-size: 11px; }
 .phone #scr-tasks .tk-min { font-size: 12px; font-weight: 600; color: color-mix(in srgb, var(--ink) 78%, transparent); }
 
+/* เจ้าของ (รอบสอง): "ค้นหามันมองยากเกิน" — ปุ่มกลมพื้นการ์ดมืด + ไอคอนเส้นบาง กลืนกับฉาก
+   → ย้อมสีธีมตั้งแต่ยังไม่กด: พื้นสีธีมจาง ขอบสีธีม ไอคอนสีธีมหนา (กดแล้วยังทึบเต็มเหมือนเดิม) */
 .tk-find {
-  flex: none; width: 34px; height: 34px; padding: 0; border-radius: 50%;
+  flex: none; width: 36px; height: 36px; padding: 0; border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid var(--line); background: var(--card); color: var(--blue);
-  box-shadow: var(--shadow); cursor: pointer;
+  border: 1.5px solid color-mix(in srgb, var(--fill) 70%, transparent);
+  background: color-mix(in srgb, var(--fill) 18%, var(--card));
+  color: color-mix(in srgb, var(--fill) 80%, var(--ink));
+  box-shadow: 0 0 14px -4px color-mix(in srgb, var(--fill) 60%, transparent); cursor: pointer;
   transition: transform .14s ease, background-color .2s ease, color .2s ease;
 }
-.tk-find svg { width: 17px; height: 17px; stroke-width: 2.3; }
+.tk-find svg { width: 18px; height: 18px; stroke-width: 2.6; }
 .tk-find:active { transform: scale(.92); }
 .tk-find.on {
   background: var(--fill); border-color: var(--fill); color: var(--on-fill);
@@ -15627,6 +15631,16 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 }
 .tk-find:focus-visible { outline: 2px solid var(--fill); outline-offset: 2px; }
 #scr-tasks .page-head + .tk-search { margin: 2px 0 12px; }
+/* ช่องค้นหา: เดิมพื้น --card2 ไม่มีขอบ บนฉากมืด = กล่องมืดบนพื้นมืด · คำว่า "ค้นหางาน" กับแว่นเป็น --faint
+   → ขอบสีธีม (เงาใน ไม่ดันผัง) · แว่นสีธีม · คำแนะนำในช่องเป็นหมึก 70% · กดแล้วยังได้วงโฟกัสเดิม */
+.phone #scr-tasks .tk-search {
+  background: var(--card);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fill) 55%, transparent), 0 8px 20px -14px rgba(0,0,0,.6);
+}
+.phone #scr-tasks .tk-search > svg { width: 19px; height: 19px; color: color-mix(in srgb, var(--fill) 80%, var(--ink)); stroke-width: 2.4; }
+.phone #scr-tasks .tk-search input { font-weight: 600; }
+.phone #scr-tasks .tk-search input::placeholder { color: color-mix(in srgb, var(--ink) 70%, transparent); font-weight: 500; }
+.phone #scr-tasks .tk-search:focus-within { outline: 2px solid var(--fill); outline-offset: -2px; }
 
 .phone #scr-tasks .tk-tick:not(.on) {
   border: 2px solid color-mix(in srgb, var(--fill) 65%, var(--ink));
