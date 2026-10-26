@@ -15,3 +15,7 @@ Successful ownership/write paths and Auth/header forwarding are tested with fixt
 ## All existing badges · v2, 25 October 2026
 
 The handler now accepts all eleven core IDs plus the two event IDs. It returns only the available ID list, computed from the authenticated user's synced tasks/vault and private event receipts; client-supplied ownership is ignored. Normal badges keep existing app eligibility (including legacy codes), not the event anti-cheat receipt model. No normal earned date is invented. Migration 20261025142719 keeps the same one-row preference, grants and RLS, removes dependence on having an event save, and checks the ID/scope pair. The normal unlock flags travel through existing per-account vault sync. All ten transactional RLS checks passed on the live database with rollback. v2 is ACTIVE with JWT verification. See docs/all-badges-20261025/README.md for UI and test evidence.
+
+## Account authority · v3, 26 October 2026
+
+Core badge availability now reads `studentos_economy_states` or the frozen baseline through the tested wallet engine, never editable task/vault flags. Event badges continue to require private permanent receipts. Existing selections and earned rights are preserved. `halloween-badge` v3 is ACTIVE with JWT verification on; unauthenticated POST401 and allowed-origin OPTIONS204 verified. Private economy prepare/activation ledger:20261026140834/20261026142938. No test reward was granted to a real account. See ../../../docs/SECURE-REWARDS-20261026.md for the cutover and limits.
