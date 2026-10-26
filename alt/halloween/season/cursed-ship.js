@@ -23,19 +23,18 @@
 (function () {
   'use strict';
   const ID = 'cursedship';        // id ใน FX_SHOP / ค่าใน localStorage['studentos.alt.doneFx']
-  // 25 ต.ค. 69 · เจ้าของอัดจอมือถือจริงมาให้ดูแล้วบอกว่า "มันคืออะไรไม่เข้าใจ" (6 ช็อตใน 2.95 วิ)
-  // 26 ต.ค. 69 · ยังไม่เข้าใจ "ให้เป็นเรื่องเป็นราว · ยาว 7–10 วิได้" — การ์ดเคยถูกดูดหายเข้าโคม
-  // แล้วโผล่กลับมาใหญ่ให้ประทับตรา คนดูงงว่ากลับมาได้ยังไง · ตอนนี้เล่าเป็นเรื่องเดียว 8.6 วิ
-  // การ์ดอยู่ในจอตลอด: งานเสร็จ → เรือมาถึง → ประทับตราตรงนั้น → แสงเขียวดึงขึ้นเรือ → เรือจากไป
-  // แต่ละจังหวะมีคำบรรยายหนึ่งบรรทัด (CAPS) · ไทม์ไลน์เต็มอยู่หัวส่วนฉากใน cursed-ship.css
-  const TOTAL = 8600;             // ฉากทั้งชุด (ms)
-  const REVEAL_AT = 8100;         // จอข้างหลังเริ่มโผล่ — ซ้อนกับตอนเรือจางในหมอก
-  const STAMP_AT = 3400;          // ตราประทับตก (ต้องตรงกับ animation-delay ของ .cs-seal ใน cursed-ship.css)
-  const CAPS = ['งานนี้เสร็จแล้ว…', 'เรือผีมารับงานของคุณ', 'ประทับตรา · ส่งงานแล้ว', 'ไม่ต้องห่วงงานนี้อีกแล้ว'];
+  // ประวัติจังหวะ: 2.95 วิ 6 ช็อต ("ไม่เข้าใจ") → 3.2 วิ 3 ช็อต → 8.6 วิ เล่าเรื่องมีลำแสงเขียว
+  // 26 ต.ค. 69 · เจ้าของ: "เกลียดแสงเลเซอร์ · ฉากเปลี่ยนไปมาเหมือน AI · ไม่ต้องสลับตำแหน่งเยอะ
+  // แค่ดูมีคุณภาพ เข้าใจ จบ" → ภาพเรือภาพเดียวตลอดฉาก ไม่มีลำแสง ไม่ตัดช็อต ใบงานอยู่ที่เดิม
+  // ขยับครั้งเดียวตอนท้าย (ลอยเข้าหาโคมเรือแล้วจาง) · ไทม์ไลน์เต็มอยู่หัวส่วนฉากใน cursed-ship.css
+  const TOTAL = 6000;             // ฉากทั้งชุด (ms)
+  const REVEAL_AT = 5600;         // จอข้างหลังเริ่มโผล่ — ซ้อนกับตอนหมอกคลุมเรือ
+  const STAMP_AT = 2400;          // ตราประทับตก (ต้องตรงกับ animation-delay ของ .cs-seal ใน cursed-ship.css)
+  const CAPS = ['งานนี้เสร็จแล้ว…', 'ประทับตรา · ส่งงานแล้ว', 'เรือผีรับงานไปแล้ว'];
 
   // cx = จุดบนภาพ (แนวนอน) ที่อยากให้อยู่กลางจอ — ต้องตรงกับ --cx ใน cursed-ship.css
-  const ART = { fog: { cx: .5 }, ship: { cx: .5 }, far: { cx: .55 }, yard: { cx: .62 } };
-  const FILES = ['fog', 'ship', 'far', 'yard'].flatMap(k => [k + '.webp', k + '-bg.webp']).concat('banner.webp', 'seal.webp');
+  const ART = { ship: { cx: .5 }, yard: { cx: .62 } };
+  const FILES = ['ship', 'yard'].flatMap(k => [k + '.webp', k + '-bg.webp']).concat('banner.webp', 'seal.webp');
 
   // ---------- คลิปวิดีโอ (เจ้าของสร้างเองตามบรีฟ · 25 ต.ค. 69) ----------
   // เจ้าของ: "ภาพเบลอ ดูไม่รู้เรื่อง ทำเป็นเฟรมให้สมจริง ไม่ใช่เอาภาพเดียว" — เครื่องที่ทำงานนี้สร้างภาพ/วิดีโอเองไม่ได้
@@ -268,10 +267,10 @@
     ov.setAttribute('role', 'dialog');
     ov.setAttribute('aria-label', 'งานเสร็จแล้ว · เรือผีมารับงาน แตะเพื่อข้าม');
     ov.innerHTML = `<i class="cs-dark"></i>
-      ${shot('fog')}${shot('ship')}${shot('far')}
-      <i class="cs-flash"></i><i class="cs-blood"></i>
+      ${shot('ship')}
+      <i class="cs-blood"></i>
       <i class="cs-fog l"></i><i class="cs-fog r"></i><i class="cs-fog front"></i>
-      <i class="cs-halo"></i><i class="cs-beam"></i><i class="cs-glint"></i>
+      <i class="cs-halo"></i><i class="cs-glint"></i>
       ${cardHtml(title, stats())}
       <i class="cs-vig"></i>
       <div class="cs-cap" aria-live="polite">${CAPS.map((c, i) => `<span class="c${i + 1}">${esc(c)}</span>`).join('')}</div>
@@ -283,38 +282,23 @@
     const halo = ov.querySelector('.cs-halo');
     halo.style.left = x0 + 'px'; halo.style.top = (y0 + ch / 2 + 6) + 'px'; halo.style.width = cw * 1.1 + 'px';
 
-    // ตำแหน่งอ่านจากภาพจริง: โคมเขียวบนดาดฟ้าเรือ (ช่อง 3) คือที่ที่ใบงานถูกดึงขึ้นไป
+    // ตำแหน่งอ่านจากภาพจริง: โคมเขียวบนดาดฟ้าเรือ (ช่อง 3) คือที่ที่ใบงานลอยเข้าไปตอนจบ
     const lamp = artPoint(ov, 'ship', .655, .7);
     const glint = ov.querySelector('.cs-glint');
     glint.style.left = lamp.x + 'px'; glint.style.top = lamp.y + 'px';
-    // ใบงานลอยหน้าเรือ ต่ำกว่าตัวเรือ — ไม่บังเรือ และตราประทับ (ล้นขวาใบ 4%) อยู่ในจอทั้งดวง
-    const sf = Math.min(1, (W * .74) / cw);
-    // ห่างจากโคมพอให้เห็นลำแสงเขียวเต็มเส้น (รอบแรกใบอยู่ใกล้โคมเกิน ลำแสงจมอยู่หลังใบ)
-    const front = { x: W * .48, y: Math.max(lamp.y + 150 + ch * sf / 2, H * .78) };
-    // ลำแสงเขียว: จากโคมลงมาถึงใบงาน (ความยาว/มุมคิดจากสองจุดนี้)
-    const beam = ov.querySelector('.cs-beam');
-    const dx = front.x - lamp.x, dy = front.y - lamp.y;
-    beam.style.left = lamp.x + 'px'; beam.style.top = lamp.y + 'px';
-    beam.style.height = Math.hypot(dx, dy) + 'px';
-    beam.style.transform = `rotate(${-Math.atan2(dx, dy) * 180 / Math.PI}deg)`;
-    const mid = { x: (front.x + lamp.x) / 2, y: (front.y + lamp.y) / 2 };
     const to = (p, sc, r) => `translate(${p.x - x0}px,${p.y - y0}px) rotate(${r}deg) scale(${sc})`;
     const o = { x: x0, y: y0 };
     if (card.animate) {
-      // easing ต้องอยู่รายช่วง — ใส่ที่ตัว animation จะบิดเวลาทั้งเส้น ช็อตคลาดจาก CSS
-      const K = (t, transform, opacity = 1) => ({ offset: t / TOTAL, transform, opacity, easing: 'ease-in-out' });
+      // easing ต้องอยู่รายช่วง — ใส่ที่ตัว animation จะบิดเวลาทั้งเส้น ฉากคลาดจาก CSS
+      const K = (t, transform, opacity = 1, easing = 'ease-in-out') => ({ offset: t / TOTAL, transform, opacity, easing });
       run.anims.push(card.animate([
         K(0, to(o, 1, 0)),
-        K(500, to({ x: x0, y: y0 - 12 }, 1.03, -1)),                       // งานนี้เสร็จแล้ว… ใบเรืองยกตัว
-        K(1300, to({ x: x0, y: y0 - 16 }, 1.0, -1.5), .7),                  //   จอมืด หมอกเข้า
-        K(2600, to(front, sf, -5)),                                         // เรือผีมาถึง ใบลอยลงมาอยู่หน้าเรือ
-        K(3350, to({ x: front.x, y: front.y - 6 }, sf, -6)),                //   ค้างรอ…
-        K(3500, to({ x: front.x, y: front.y + 4 }, sf * .97, -8)),          // ประทับตรา (3.4 วิ) ใบสะดุ้งตามแรงกระแทก
-        K(4600, to({ x: front.x + 2, y: front.y }, sf, -8)),                //   ค้างให้อ่านตรา
-        K(5200, to({ x: front.x, y: front.y - 30 }, sf * .92, -10)),        // แสงเขียวลงมา ใบเริ่มลอยขึ้น
-        K(5700, to(mid, sf * .5, -14)),                                     //   ถูกดึงขึ้นตามลำแสง
-        K(6050, to(lamp, .06, -20), 0),                                     //   หายเข้าโคมเรือ (แสงวาบ)
-        K(TOTAL, to(lamp, .06, -20), 0),
+        K(600, to({ x: x0, y: y0 - 8 }, 1.02, -1)),                 // งานนี้เสร็จแล้ว… ใบเรือง ยกตัวนิดเดียว
+        K(2380, to({ x: x0, y: y0 - 8 }, 1.02, -1), 1, 'ease-out'),
+        K(2500, to({ x: x0, y: y0 - 3 }, .99, -1.5)),               // ตราตก (2.4 วิ) ใบยุบลงตามแรงกระแทก
+        K(3600, to({ x: x0, y: y0 - 6 }, 1, -1.5), 1, 'cubic-bezier(.5, 0, .3, 1)'),  // ค้างให้อ่านตรา
+        K(4900, to(lamp, .12, -4), 0),                              // ลอยเข้าหาโคมเรือครั้งเดียว แล้วจาง
+        K(TOTAL, to(lamp, .12, -4), 0),
       ], { duration: TOTAL, easing: 'linear', fill: 'both' }));
     }
 

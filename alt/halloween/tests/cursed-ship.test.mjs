@@ -73,23 +73,22 @@ test('every image the CSS and the script name exists and is in the offline shell
   }
   for (const f of used) assert.ok(api.FILES.includes(f), 'preloaded: ' + f);
 });
-// เป้าเดิม 2.5–3 วิ → เจ้าของไม่เข้าใจเรื่อง แล้วขอเองว่า "ยาว 7–10 วิได้" (26 ต.ค. 69) · ข้ามได้ตลอด
-test('the scene tells its story in 7–10 seconds and every shot holds long enough to read', () => {
+// เจ้าของ (26 ต.ค. 69): "เกลียดแสงเลเซอร์ · ฉากเปลี่ยนไปมาเหมือน AI · ไม่ต้องสลับตำแหน่งเยอะ" → ภาพเรือภาพเดียว ไม่มีลำแสง
+test('the scene stays on one ship image with no beam and no cut, about 5–7 seconds', () => {
   const { api } = load();
-  assert.ok(api.TOTAL >= 7000 && api.TOTAL <= 10000, String(api.TOTAL));
-  const css = read('../season/cursed-ship.css');
-  for (const k of ['Ship', 'Far']) {
-    // เวลาที่เห็นช็อตนี้เต็มตา = ตั้งแต่ขึ้นเต็ม จนจางหายหมด
-    const m = css.match(new RegExp('@keyframes csShot' + k + '\\s+\\{ 0%, [\\d.]+% \\{ opacity: 0; \\} ([\\d.]+)% \\{ opacity: 1; \\} [\\d.]+% \\{ opacity: 1; \\} ([\\d.]+)%'));
-    assert.ok(m, k);
-    const heldMs = (+m[2] - +m[1]) / 100 * api.TOTAL;
-    assert.ok(heldMs >= 1200, k + ' holds ' + Math.round(heldMs) + 'ms');
-  }
+  assert.ok(api.TOTAL >= 5000 && api.TOTAL <= 7000, String(api.TOTAL));
+  const shots = [...source.matchAll(/\$\{shot\('(\w+)'\)\}/g)].map(m => m[1]);
+  assert.deepEqual(shots, ['ship'], 'one shot only');
+  const css = read('../season/cursed-ship.css').replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.doesNotMatch(css, /\.cs-beam|csShotFog|csShotFar|csShotDeck/);
+  assert.doesNotMatch(source, /cs-beam/);
+  // ใบงานขยับครั้งเดียว: มีจุดหมายนอกตำแหน่งเดิมจุดเดียวคือโคมเรือ
+  assert.equal((source.match(/to\(lamp,/g) || []).length, 2, 'card moves only to the lantern');
 });
 // ทุกจังหวะต้องมีคำบรรยายบนจอ และตราต้องตกตรงเวลาเดียวกันทั้งใน JS และ CSS
 test('each beat has an on-screen caption and the seal drops at the same moment in JS and CSS', () => {
   const caps = source.match(/const CAPS = \[([^\]]+)\]/);
-  assert.ok(caps && caps[1].split(',').length === 4, 'four captions');
+  assert.ok(caps && caps[1].split(',').length === 3, 'three captions');
   const stamp = +source.match(/const STAMP_AT = (\d+)/)[1];
   const css = read('../season/cursed-ship.css');
   assert.match(css, new RegExp('csSeal [.\\d]+s cubic-bezier\\([^)]+\\) ' + stamp / 1000 + 's both'));
