@@ -24,7 +24,7 @@ const EVENT_SOURCES = [
     const left = ev ? ev.countdown() : null;
     if (!ev || left === null) return null;
     return { id: 'hw-theme', kind: 'quest', name: 'เรือนลับแล · ผีไทย', tagline: 'ภารกิจปลดล็อก', left,
-      art: 'halloween/invite-friend/thai-estate.svg' };
+      art: 'halloween/invite-friend/jade-moon.webp' };
   },
 ];
 
