@@ -6871,17 +6871,8 @@ function aiVoice() {
 // Reminders) มีหมด · ที่นี่ไม่เคยมี ทั้งที่นักเรียนคนหนึ่งสะสมงานได้เป็นสิบใบภายในสัปดาห์เดียว
 // ค้นในเครื่องล้วน ไม่แตะเน็ต จึงไม่ต้องหน่วงเวลาเหมือนช่องค้นหาเพื่อน
 let taskQ = '';
-// 26 ต.ค. 69 · เจ้าของ: "ปุ่มค้นหาไปอยู่ข้างงานทั้งหมด" — ช่องค้นหาเคยอยู่ท้ายรายการ (1B47) ต้องเลื่อนผ่านทุกใบก่อนถึง
-// ตอนนี้เป็นปุ่มแว่นขยายข้างชื่อจอ กดแล้วช่องโผล่ใต้หัวจอ · กดซ้ำ = ปิดและล้างคำค้น
-// ค้นอยู่ (taskQ ไม่ว่าง) ช่องเปิดค้างเสมอ ไม่งั้นวาดจอใหม่แล้วช่องหายไปพร้อมคำที่พิมพ์
-let taskSearchOpen = false;
-function toggleTaskSearch() {
-  const open = taskSearchOpen || !!taskQ;
-  taskSearchOpen = !open;
-  if (open) taskQ = '';
-  renderTasks();
-  if (!open) document.getElementById('tkQ')?.focus();
-}
+// 26 ต.ค. 69 · ช่องค้นหาเคยอยู่ท้ายรายการ (1B47) ต้องเลื่อนผ่านทุกใบก่อนถึง · เจ้าของลองปุ่มแว่นข้างชื่อจอแล้ว
+// (บนจอกว้างปุ่มทับชื่อจอ) ชี้ให้ย้ายลงมา "ใต้สวิตช์ วันนี้/สัปดาห์/รายการ เหนือการ์ดใบแรก" → เป็นแถบค้นหาเห็นตลอด
 
 // ============================================================
 // 1B93 · สวิตช์สองโหมดบนหัวจองาน — เจ้าของสั่งเอง (13 ก.ย. 2569)
@@ -6926,7 +6917,9 @@ let taskView = 'today';
 let tkSwapTimer = 0;
 function setTaskView(v) {
   const next = TASK_VIEWS.includes(v) ? v : 'today';
-  if (next === taskView) return;
+  // กดสวิตช์ระหว่างค้นหา = ออกจากการค้น (สวิตช์ไม่หายตอนค้นแล้ว · ดู viewTabs ใน renderTasks)
+  const hadQ = !!taskQ; taskQ = '';
+  if (next === taskView) { if (hadQ) renderTasks(); return; }
   const dir = TASK_VIEWS.indexOf(next) > TASK_VIEWS.indexOf(taskView) ? 1 : -1;
   taskView = next;
   haptic('tap');
@@ -7358,10 +7351,12 @@ function renderTasks() {
     : taskView === 'today' ? 'วันนี้' : 'สัปดาห์นี้';
   // สวิตช์ไม่โผล่ตอนค้นหา — ผลค้นหาเป็นรายการเรียบเสมออยู่แล้ว (ดู listHTML ข้างล่าง)
   // ปุ่มที่กดแล้วไม่มีอะไรเปลี่ยนคือปุ่มที่ทำให้คนเลิกเชื่อปุ่มอื่นในจอเดียวกัน
-  const viewTabs = taskQ ? '' : `<div class="tk-modes" role="tablist">
+  // 26 ต.ค. 69 · สวิตช์อยู่ต่อแม้กำลังค้น — แถบค้นหาอยู่ใต้มัน ถ้าสวิตช์หายตอนพิมพ์ตัวแรก แถบจะกระโดดขึ้นใต้นิ้ว
+  // ค้นอยู่ = ไม่มีช่องไหนถูกเลือก (ผลค้นเป็นรายการเรียบ ไม่ใช่โหมดไหน) · กดช่องไหน = ออกจากการค้นไปโหมดนั้น (setTaskView)
+  const viewTabs = `<div class="tk-modes" role="tablist">
       ${[['today', 'วันนี้'], ['week', 'สัปดาห์'], ['list', 'รายการ']].map(([id, lb]) =>
-        `<button role="tab" class="tk-mode${taskView === id ? ' on' : ''}"
-          aria-selected="${taskView === id}" onclick="setTaskView('${id}')">${lb}</button>`).join('')}
+        `<button role="tab" class="tk-mode${taskView === id && !taskQ ? ' on' : ''}"
+          aria-selected="${taskView === id && !taskQ}" onclick="setTaskView('${id}')">${lb}</button>`).join('')}
     </div>`;
   // โหมดวันนี้พูดถึงวันเดียว ไม่ใช่ช่วงเจ็ดวัน — บรรทัดบนจึงต้องเป็นวันนั้นกับเวลาว่างของวันนั้น
   // ใช้ช่วงสัปดาห์ต่อไปจะเป็นตัวเลขที่ไม่เกี่ยวกับอะไรบนจอเลยสักตัว
@@ -7377,20 +7372,16 @@ function renderTasks() {
     : esc(range) + (freeWk ? ' · ว่างรวม ' + daysMin(freeWk) : '') + ' · ค้าง ' + pending.length;
   // บรรทัดวัน/เวลาว่างย้ายไปอยู่ "หลัง" ชื่อจอบนบรรทัดเดียวกัน (เจ้าของ: "ลองเอามาไว้หลังคำว่าวันนี้")
   // เดิมอยู่เหนือชื่อจอ (1B58) — หัวจอสูงสองชั้นทั้งที่ชื่อจอสั้นแค่คำเดียว · ยาวไม่พอดีก็ปัดลงบรรทัดใหม่เอง
-  const searchOn = taskSearchOpen || !!taskQ;
-  const findBtn = (pending.length || taskQ) ? `<button type="button" class="tk-find${searchOn ? ' on' : ''}"
-      onclick="toggleTaskSearch()" aria-label="${searchOn ? 'ปิดการค้นหา' : 'ค้นหางาน'}" aria-expanded="${searchOn}">${icon('search')}</button>` : '';
   const pageHead = `<div class="page-head">
       <div class="tk-head-row">
         <h1 class="page-title">${viewTitle}</h1>
-        ${findBtn}
         <div class="eyebrow">${eyebrow}</div>
       </div>
       ${viewTabs}
     </div>`;
 
-  // ช่องค้นหาโผล่เมื่อกดปุ่มแว่นข้างชื่อจอ (หรือกำลังค้นอยู่) — ไม่กินที่ตอนไม่ได้ใช้
-  const searchBox = searchOn
+  // แถบค้นหาอยู่ใต้สวิตช์โหมด เหนือการ์ดใบแรก — ขึ้นเมื่อมีงานค้างให้ค้น (หรือกำลังค้นอยู่ ไม่งั้นลบคำค้นแล้วช่องหายทั้งช่อง)
+  const searchBox = (pending.length || taskQ)
     ? `<div class="fr-search tk-search">
         ${icon('search')}
         <input id="tkQ" autocomplete="off" spellcheck="false" placeholder="ค้นหางาน"
@@ -7412,8 +7403,7 @@ function renderTasks() {
   // "อยากเห็นงานของวันไหน" — ซึ่งมุมมองสัปดาห์ตอบด้วยการวางงานลงวันของมันเลย
   // ไม่ต้องมีตัวกรองแยกอีกชั้น
   // ภาพร่างมีสองอย่าง: หัวจอกับสัปดาห์ · ช่องค้นหาไม่เคยอยู่ในนั้น
-  // มันเคยย้ายไปท้ายจอ — 26 ต.ค. 69 กลายเป็นปุ่มแว่นข้างชื่อจอ (toggleTaskSearch) ช่องโผล่เฉพาะตอนกด
-  // คนที่เปิดมาดูว่าวันนี้มีอะไรยังไม่ต้องเลื่อนผ่านช่องที่ตัวเองไม่ได้จะใช้ · คนที่จะค้นไม่ต้องเลื่อนลงไปหา
+  // มันเคยย้ายไปท้ายจอ — 26 ต.ค. 69 กลับขึ้นมาเป็นแถบใต้สวิตช์โหมด (เจ้าของชี้ตำแหน่งเอง) คนจะค้นไม่ต้องเลื่อนลงไปหา
   const head = pageHead;
 
   // ใบแรกของรายการที่ยังไม่เสร็จได้แถบฟ้า = "ใบนี้คือใบที่ควรลงมือ"
