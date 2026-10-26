@@ -2623,7 +2623,7 @@ function todayHead(sp, now) {
       aria-label="${notifN ? 'การแจ้งเตือน ใหม่ ' + notifN + ' รายการ' : 'การแจ้งเตือน'}">
       ${icon('bell')}${notifN ? `<span class="th-dot n">${notifN > 9 ? '9+' : notifN}</span>` : ''}
     </button>
-  </header>`;
+  ${window.StudentOSHalloweenCountdown?.html() || ''}</header>`;
 }
 
 // ---------- กล่องข้อสังเกตของ AI — ถอดออกแล้วใน 1A9 ----------
@@ -3539,6 +3539,7 @@ function renderMenu() {
   // จำแผนที่เพิ่งแสดงไป เพื่อให้รอบหน้ารู้ว่าผู้ใช้พลาดช่วงไหน
   // ต้องบันทึกหลังวาด ไม่ใช่ก่อน — ไม่งั้นแผนที่ยังไม่มีใครเห็นจะถูกนับว่า "เคยบอกไปแล้ว"
   if (sp.plan.slots.length) commitPlan(sp.plan, state, now);
+  window.StudentOSHalloweenCountdown?.refresh();
 }
 
 // ---------- 1B24: คำเตือน "เวลามาจากการเดา" ย้ายไปเป็นสัญลักษณ์บนหัวจอ ----------

@@ -1,0 +1,41 @@
+[
+  {
+    "cardFits": true,
+    "height": 568,
+    "overflowX": false,
+    "screenScroll": 258,
+    "width": 320,
+    "dialog": {
+      "brokenImages": 0,
+      "height": 416.359375,
+      "scroll": 0,
+      "width": 282
+    }
+  },
+  {
+    "cardFits": true,
+    "height": 812,
+    "overflowX": false,
+    "screenScroll": 0,
+    "width": 375,
+    "dialog": {
+      "brokenImages": 0,
+      "height": 451.75,
+      "scroll": 0,
+      "width": 337
+    }
+  },
+  {
+    "cardFits": true,
+    "height": 900,
+    "overflowX": false,
+    "screenScroll": 58,
+    "width": 1280,
+    "dialog": {
+      "brokenImages": 0,
+      "height": 451.75,
+      "scroll": 0,
+      "width": 440
+    }
+  }
+]

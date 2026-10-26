@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+ // Main homepage launch entry returns to the same app URL; arbitrary return URLs are not accepted.
+ if(new URLSearchParams(location.search).get('entry')==='main'){const brand=document.querySelector('.event-brand');if(brand)brand.href='../../../';}
   const Core = window.HalloweenEventCore, Catalog = window.StudentOSHalloweenRewards;
   const Guide=window.HalloweenEventGuide,Balance=window.HalloweenEventBalance,audio=window.HalloweenEventSound.create();
   const StudentMissions=window.HalloweenStudentMissions,Death=window.HalloweenDeathQuests;
@@ -583,7 +585,7 @@
     const previousPanel=activePanel;
     requestAnimationFrame(publishDeviceStatus);
     if (!playable) {
-      main.innerHTML = '<section class="locked-event"><span class="eyebrow">STUDENTOS · THE HALLOWEEN CHAPTER</span><h1>เรื่องราวรัตติกาล กำลังจะเริ่ม</h1><img src="' + image('theme-midnight-academy') + '" alt="Midnight Academy"><p>บ้าน เควส สวนฟักทอง และร้านยามเที่ยงคืนพร้อมให้ลองในห้องแยก กิจกรรมวันที่ 28 ตุลาคม – 30 พฤศจิกายน 2569 (เวลาไทย) ความคืบหน้าและรางวัลจริงผูกกับบัญชี StudentOS</p><a class="primary" href="?preview=1">เปิดห้องลองอีเวนต์ ✧</a><p><a class="secondary" href="../../?go=profile">เข้าสู่ระบบ StudentOS</a> <a class="secondary" href="../rewards/vault.html">คลังรางวัลของฉัน</a></p><p class="tiny">ห้องลองแยกเซฟ และไม่นำของทดลองเข้าบัญชีจริง</p></section>'; return;
+      main.innerHTML = '<section class="locked-event"><span class="eyebrow">STUDENTOS · THE HALLOWEEN CHAPTER</span><h1>เรื่องราวรัตติกาล กำลังจะเริ่ม</h1><img src="' + image('theme-midnight-academy') + '" alt="Midnight Academy"><p>บ้าน เควส สวนฟักทอง และร้านยามเที่ยงคืนพร้อมให้ลองในห้องแยก กิจกรรมวันที่ 28 ตุลาคม – 30 พฤศจิกายน 2569 (เวลาไทย) ความคืบหน้าและรางวัลจริงผูกกับบัญชี StudentOS</p><a class="primary" href="?preview=1">เปิดห้องลองอีเวนต์ ✧</a><p><a class="secondary" href="../../?go=profile">เข้าสู่ระบบ StudentOS</a> <a class="secondary" href="../rewards/vault.html">คลังรางวัลของฉัน</a></p><p class="tiny">ห้องลองแยกเซฟ และไม่นำของทดลองเข้าบัญชีจริง</p></section>'; if(new URLSearchParams(location.search).get('entry')==='main')main.querySelector('.locked-event')?.insertAdjacentHTML('beforeend','<p><a class="secondary" href="../../../">กลับเว็บหลัก StudentOS</a></p>'); return;
     }
     const biome = currentBiome(), meta = Catalog.biomes[Core.SHORT[biomeIndex(biome)]];
     main.dataset.biome=biome;
