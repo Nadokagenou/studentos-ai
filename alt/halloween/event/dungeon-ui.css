@@ -197,6 +197,13 @@ body, .event-dialog, .scene-hud, button, input, select { font-family: 'Sriracha'
 .event-dialog::backdrop { background: #07050ccc; }
 .dialog-top h2 { color: var(--dg-ink); font-weight: 700; }
 .dialog-top { padding-bottom: 12px; border-bottom: 2px solid color-mix(in srgb, var(--dg-iron) 70%, transparent); }
+/* Long mobile titles and content must wrap inside the dialog, never widen it. */
+.event-dialog { min-width: 0; max-width: calc(100vw - 16px); }
+.dialog-top { min-width: 0; flex-wrap: wrap; }
+.dialog-top h2 { flex: 1 1 180px; min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.dialog-top .dialog-studentos { max-width: 100%; }
+.visitor-grid, .visitor-card { max-width: 100%; }
+
 .dialog-x, .event-dialog .secondary, .event-dialog .dialog-footer button:not(.primary), .item-source-button, .recipe-cost button,
 .filter-button, .tier-buttons button, .comparison-controls button, .biome-level, .quest-difficulty button, .item-info button {
   border: 0 !important; border-radius: 0 !important; clip-path: var(--dg-notch);

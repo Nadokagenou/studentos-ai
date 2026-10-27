@@ -33,6 +33,15 @@ function resolve(map, name, backdrop = raw(map, '--hw-canvas')) {
 const luminance = hex => { const [r, g, b] = rgb(hex).map(v => v / 255).map(v => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
 const ratio = (a, b) => { const x = luminance(a), y = luminance(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
 
+test('traveller cards keep both names and item requests readable on every background stop',()=>{
+  const style=fs.readFileSync(new URL('../event/experience.css',import.meta.url),'utf8');
+  const card=style.match(/\.visitor-card\{([^}]+)\}/)[1],small=style.match(/\.visitor-card small\{([^}]+)\}/)[1];
+  const surfaces=[...card.match(/background:([^;]+)/)[1].matchAll(/#[0-9a-f]{6}\b/gi)].map(m=>m[0]);
+  const nameColor=card.match(/(?:^|;)color:(#[0-9a-f]{6})\b/i)?.[1]||'#f2e6cc';
+  const itemColor=small.match(/(?:^|;)color:(#[0-9a-f]{6})\b/i)?.[1]||'#b5a9c2';
+  assert.ok(surfaces.length);for(const bg of surfaces)for(const fg of [nameColor,itemColor])assert.ok(ratio(fg,bg)>=4.5,fg+' on '+bg+' = '+ratio(fg,bg).toFixed(2));
+});
+
 // [foreground, background, minimum] — 4.5 for text, 3 for large shapes against their surroundings.
 const text = [
   ['--hw-ink', '--hw-canvas'], ['--hw-ink-2', '--hw-canvas'], ['--hw-ink-blue', '--hw-canvas'], ['--hw-sky-text', '--hw-canvas'],
