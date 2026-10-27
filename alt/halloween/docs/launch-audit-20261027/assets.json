@@ -1,0 +1,1085 @@
+{
+  "checkedAt": "2026-10-27T08:09:19.920Z",
+  "localFiles": 266,
+  "missing": [],
+  "outside": [],
+  "externalReferences": [
+    "https://nadokagenou.github.io/studentos-ai/alt/",
+    "https://fonts.googleapis.com",
+    "https://fonts.gstatic.com",
+    "https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Outfit:wght@500;600;700&family=Orbitron:wght@600;800&family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&display=swap",
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js",
+    "https://fonts.googleapis.com/css2?family=Creepster&family=Pattaya&family=Sriracha&display=swap",
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.min.js",
+    "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Sarabun:wght@400;500;600;700;800&display=swap"
+  ],
+  "live": true,
+  "liveFiles": 266,
+  "failed": [],
+  "rows": [
+    {
+      "file": "alt/app.js",
+      "status": 200
+    },
+    {
+      "file": "alt/brain.js",
+      "status": 200
+    },
+    {
+      "file": "alt/bug-reports.css",
+      "status": 200
+    },
+    {
+      "file": "alt/board.css",
+      "status": 200
+    },
+    {
+      "file": "alt/board.js",
+      "status": 200
+    },
+    {
+      "file": "alt/alt.css",
+      "status": 200
+    },
+    {
+      "file": "alt/calibrate.js",
+      "status": 200
+    },
+    {
+      "file": "alt/bug-reports.js",
+      "status": 200
+    },
+    {
+      "file": "alt/classrooms.js",
+      "status": 200
+    },
+    {
+      "file": "alt/classrooms.css",
+      "status": 200
+    },
+    {
+      "file": "alt/config.js",
+      "status": 200
+    },
+    {
+      "file": "alt/compat.js",
+      "status": 200
+    },
+    {
+      "file": "alt/context.js",
+      "status": 200
+    },
+    {
+      "file": "alt/contrast.css",
+      "status": 200
+    },
+    {
+      "file": "alt/decide.js",
+      "status": 200
+    },
+    {
+      "file": "alt/custom.css",
+      "status": 200
+    },
+    {
+      "file": "alt/desktop-entry.js",
+      "status": 200
+    },
+    {
+      "file": "alt/desktop.css",
+      "status": 200
+    },
+    {
+      "file": "alt/device-preview-controls.css",
+      "status": 200
+    },
+    {
+      "file": "alt/economy/focus-checkpoints.js",
+      "status": 200
+    },
+    {
+      "file": "alt/device-preview-bridge.js",
+      "status": 200
+    },
+    {
+      "file": "alt/economy/client.js",
+      "status": 200
+    },
+    {
+      "file": "alt/device-preview.html",
+      "status": 200
+    },
+    {
+      "file": "alt/economy/client.css",
+      "status": 200
+    },
+    {
+      "file": "alt/engine.js",
+      "status": 200
+    },
+    {
+      "file": "alt/events.css",
+      "status": 200
+    },
+    {
+      "file": "alt/events.js",
+      "status": 200
+    },
+    {
+      "file": "alt/feed.css",
+      "status": 200
+    },
+    {
+      "file": "alt/facts.js",
+      "status": 200
+    },
+    {
+      "file": "alt/feed.js",
+      "status": 200
+    },
+    {
+      "file": "alt/fx3d.js",
+      "status": 200
+    },
+    {
+      "file": "alt/fxgames.css",
+      "status": 200
+    },
+    {
+      "file": "alt/fxgames.js",
+      "status": 200
+    },
+    {
+      "file": "alt/gacha-fx.css",
+      "status": 200
+    },
+    {
+      "file": "alt/gacha-fx.js",
+      "status": 200
+    },
+    {
+      "file": "alt/glass.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/cache-manifest.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/death-quest-main.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/death-quests.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/death-quest-main.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/home-card-bg.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/home-card-npc-0.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/home-card-npc-1.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/home-card-npc-2.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/home-card-npc-3.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/feedback.html",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/adventure.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/rpg-weapon-atlas.png",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/portrait-rooms.png",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/portrait-hub.png",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/scene-cauldron.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/scene-garden.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/rpg-character-atlas.png",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/scene-hub.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/npc-atlas.png",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/scene-graveyard.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/scene-dutchman.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/scene-shop.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/portrait-biomes.png",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/scene-jack.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/scene-ritual.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/scene-vampire.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/world-garden.png",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/world-dutchman.png",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/world-jack.png",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/world-ritual.png",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/world-shop.png",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/world-vampire.png",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/world-graveyard.png",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/world-hub.png",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/assets/world-cauldron.png",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/brain-games.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/balance.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/battle-ui.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/config.json",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/brain-ui.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/battle.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/combat.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/collection.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/collection.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/data/materials.json",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/core.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/counter.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/data/preview-rules.json",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/data/quests.dutchman.json",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/data/quests.graveyard.json",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/data/quests.vampire.json",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/data/quests.jack.json",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/experience.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/dungeon-ui.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/experience.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/feedback.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/feedback.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/guide.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/games.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/hud.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/guide-ui.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/index.html",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/journal.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/market.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/missions.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/journal.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/journey.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/objective.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/season.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/npcs.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/rewards.html",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/rotations.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/invite-friend/invite-friend.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/sound.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/invite-friend/invite-friend.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/study-pact.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/invite-friend/jade-moon.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/invite-friend/qrcode-generator.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/invite-friend/thai-estate.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/invite-friend/thai-layout.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/invite-friend/thai-theme.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/invite-friend/thai-ranat.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/account-store.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/acquisition.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/theme-preview.html",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/acquisition.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/bottled-dutchman.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/crimson-candle.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/world.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/crown-of-midnight.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/cruor-quill.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/dullahan-scythe.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/fx-crimson-eclipse.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/fx-dutchman-arrival.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/fx-jacks-verdict.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/fx-pumpkin-sparks.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/fx-reaper-gate.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/fx-soul-bloom.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/fx-soulwake.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/fx-velvet-flight.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/ghostship-sea.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/ghostship-vessel.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/greater-spear.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/harbor-lantern.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/jacks-portrait.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/jacks-axe.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/laughing-pumpkin.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/little-wisp.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/midnight-conqueror.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/theme-ghostship.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/quiet-gravestone.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/theme-jackhollow.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/event/world.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/theme-midnight-academy.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/theme-vampire.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/theme-moon-candle.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/theme-graveyard.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/vampire-distance.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/assets/velvet-bat.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/badges.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/badges.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/biome-themes.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/catalog.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/cinematic-preview.html",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/effect-ceremony.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/effect-games.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/effect-games.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/effect-stage.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/entitlements.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/effect-stage.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/featured-badge.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/featured-badge.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/identity.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/integration.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/ownership.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/preview-mode.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/profile-assets/deep.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/profile-assets/err404.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/profile-assets/genesis.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/profile-assets/hard.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/profile-assets/hello.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/profile-assets/metaworld.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/profile-assets/nah.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/profile-assets/sophyra.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/profile-assets/tree.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/profile-assets/try.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/profile-assets/unstoppable.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/runtime.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/theme-assets/app-icon.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/theme-assets/graveyard.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/theme-assets/hook-mummy.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/theme-assets/night-academy.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/theme-assets/sai-witch.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/theme-main.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/theme-main.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/theme-moonlight.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/theme-rarity.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/vault.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/vault.html",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/biome-cinematics/graveyard-night.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/rewards/vault.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/biome-cinematics/jack-night.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/biome-cinematics/undertow-specter.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/biome-cinematics/vampire-night.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/biome-finishes.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/cinematic-variants.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/biome-finishes.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/cursed-ship.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/cursed-ship.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/cursed-ship/banner.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/cursed-ship/seal.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/cursed-ship/ship-bg.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/cursed-ship/yard-bg.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/cursed-ship/yard.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/cursed-ship/ship.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/hook-mummy-224.webp",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/study-pact-main.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/season/season.css",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/study-pact-main.js",
+      "status": 200
+    },
+    {
+      "file": "alt/halloween/study-pact.js",
+      "status": 200
+    },
+    {
+      "file": "alt/hook-hat-avatar.svg",
+      "status": 200
+    },
+    {
+      "file": "alt/hoop.css",
+      "status": 200
+    },
+    {
+      "file": "alt/hoop.js",
+      "status": 200
+    },
+    {
+      "file": "alt/hw.css",
+      "status": 200
+    },
+    {
+      "file": "alt/hw.js",
+      "status": 200
+    },
+    {
+      "file": "alt/icon-192.png",
+      "status": 200
+    },
+    {
+      "file": "alt/inbox.css",
+      "status": 200
+    },
+    {
+      "file": "alt/inbox.js",
+      "status": 200
+    },
+    {
+      "file": "alt/index.html",
+      "status": 200
+    },
+    {
+      "file": "alt/integrations.js",
+      "status": 200
+    },
+    {
+      "file": "alt/logo-mark.png",
+      "status": 200
+    },
+    {
+      "file": "alt/linelink.js",
+      "status": 200
+    },
+    {
+      "file": "alt/logo-splash-light.png",
+      "status": 200
+    },
+    {
+      "file": "alt/logo-splash.png",
+      "status": 200
+    },
+    {
+      "file": "alt/loss.js",
+      "status": 200
+    },
+    {
+      "file": "alt/manifest.json",
+      "status": 200
+    },
+    {
+      "file": "alt/news.js",
+      "status": 200
+    },
+    {
+      "file": "alt/planner.js",
+      "status": 200
+    },
+    {
+      "file": "alt/profile.js",
+      "status": 200
+    },
+    {
+      "file": "alt/quickadd.js",
+      "status": 200
+    },
+    {
+      "file": "alt/remote-config.js",
+      "status": 200
+    },
+    {
+      "file": "alt/room.js",
+      "status": 200
+    },
+    {
+      "file": "alt/room.css",
+      "status": 200
+    },
+    {
+      "file": "alt/safety.js",
+      "status": 200
+    },
+    {
+      "file": "alt/safety.css",
+      "status": 200
+    },
+    {
+      "file": "alt/sai-avatar.png",
+      "status": 200
+    },
+    {
+      "file": "alt/sai.js",
+      "status": 200
+    },
+    {
+      "file": "alt/sai.css",
+      "status": 200
+    },
+    {
+      "file": "alt/shortcut-draft.js",
+      "status": 200
+    },
+    {
+      "file": "alt/simulate.js",
+      "status": 200
+    },
+    {
+      "file": "alt/social.css",
+      "status": 200
+    },
+    {
+      "file": "alt/social.js",
+      "status": 200
+    },
+    {
+      "file": "alt/splash-1125x2436.png",
+      "status": 200
+    },
+    {
+      "file": "alt/land.html",
+      "status": 200
+    },
+    {
+      "file": "alt/splash-1170x2532.png",
+      "status": 200
+    },
+    {
+      "file": "alt/splash-1242x2208.png",
+      "status": 200
+    },
+    {
+      "file": "alt/splash-1206x2622.png",
+      "status": 200
+    },
+    {
+      "file": "alt/splash-1179x2556.png",
+      "status": 200
+    },
+    {
+      "file": "alt/splash-1242x2688.png",
+      "status": 200
+    },
+    {
+      "file": "alt/splash-1320x2868.png",
+      "status": 200
+    },
+    {
+      "file": "alt/staff-news.js",
+      "status": 200
+    },
+    {
+      "file": "alt/style.css",
+      "status": 200
+    },
+    {
+      "file": "alt/today.css",
+      "status": 200
+    },
+    {
+      "file": "alt/topic.css",
+      "status": 200
+    },
+    {
+      "file": "alt/topic.js",
+      "status": 200
+    },
+    {
+      "file": "alt/splash-1284x2778.png",
+      "status": 200
+    },
+    {
+      "file": "alt/splash-828x1792.png",
+      "status": 200
+    },
+    {
+      "file": "alt/splash-1290x2796.png",
+      "status": 200
+    },
+    {
+      "file": "alt/visual-editor.js",
+      "status": 200
+    },
+    {
+      "file": "alt/splash-750x1334.png",
+      "status": 200
+    }
+  ]
+}

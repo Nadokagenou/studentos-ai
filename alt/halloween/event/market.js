@@ -1,10 +1,10 @@
 /* Physical counter UI. Picking, dropping and changing quantity never write a save. */
 (() => {
   'use strict';
-  function create({Core,config,read,now,detail,refresh,perform,audio,onRewards,esc,asset,name,duration,portrait,cropArt}) {
+  function create({Core,preview=false,clock=Date.now,config,read,now,detail,refresh,perform,audio,onRewards,esc,asset,name,duration,portrait,cropArt}) {
     let mode='buy',held=null,placed=false,quantity=1,quote=null,busy=false,message='',epoch=null;
     const reset=()=>{held=null;placed=false;quantity=1;quote=null;};
-    const stock=()=>Core.shopStock(read(),config(),Date.now());
+    const stock=()=>Core.shopStock(read(),config(),clock());
     function setMode(next){mode=next;reset();message='';}
     function product(id){
       const cfg=config(),doc=read();
@@ -36,7 +36,7 @@
         '<div class="weighing-counter '+(placed?'scale-loaded':'')+'"><button class="scale-drop" data-market="place" '+(!chosen||placed||busy?'disabled':'')+' aria-label="วางของบนตาชั่ง"><span class="scale-object '+(chosen&&!placed?'carrying':'')+'">'+(chosen?chosen.art:'')+'</span><svg viewBox="0 0 260 155" preserveAspectRatio="none" aria-hidden="true" shape-rendering="crispEdges"><path d="M124 25h12v111h-12zM88 138h84v9H88zM108 128h44v12h-44z" fill="#b99760"/><g class="scale-beam"><path d="M28 28h204v7H28z" fill="#d9bd84"/><path d="M45 35v55m170-55v55" stroke="#b99760" stroke-width="3"/><path d="M12 90h68l-10 12H22zm168 0h68l-10 12h-48z" fill="#b99760"/></g><path d="M123 8h14v18h-14z" fill="#d9bd84"/></svg><span class="scale-prompt">'+(placed?'ชั่งเรียบร้อย':chosen?'แตะที่นี่เพื่อวาง':'หยิบของจากชั้นก่อน')+'</span></button>'+
         '<div class="counter-receipt"><h4>'+(chosen?esc(chosen.label):'จานตาชั่งว่าง')+'</h4>'+(chosen?'<p>'+esc(chosen.tier)+' · '+chosen.price+' Candy / ชิ้น</p>'+quantityUI+'<p>เหลือ'+(mode==='buy'?'บนชั้น':'ในกระเป๋า')+' '+chosen.left+' ชิ้น · หลังตกลง '+(chosen.left-quantity)+' ชิ้น</p><div class="weighed-total"><span>'+(mode==='buy'?'จ่าย':'รับ')+' Candy</span><strong>◈ '+total+'</strong></div><p class="wallet-after">ยอด '+doc.event.candy+' → '+after+' Candy</p>'+(after<0?'<p class="counter-error">Candy ยังไม่พอ เก็บไว้ก่อนได้</p>':''):'<p>มือถือ: แตะหยิบ แล้วแตะจาน<br>คอม: ลากจากชั้นมาวางได้</p>')+'</div>'+
         '<div class="counter-actions">'+control('return',placed?'เอาคืนจากตาชั่ง':'ยกเลิกการหยิบ','class="secondary" '+(!chosen||busy?'disabled':''))+control('confirm',busy?'กำลังบันทึก…':mode==='buy'?'ยืนยันซื้อ':'ยืนยันขาย','class="primary" '+(!ready?'disabled':''))+'</div><p class="counter-note">หยิบหรือวางยังไม่หักของ ยืนยันจึงบันทึก</p></div></div>'+
-        '<details class="market-rules"><summary>กติกาสต็อกทดลอง · '+doc.event.purchases.length+'/12 สะสมร้าน</summary><p>'+esc(cfg.proposals.shopStock.notice)+'</p><p>สต็อกเฉพาะเซฟห้องลองนี้ เติมรอบตามต้นชั่วโมงเวลาไทย ไม่มีของ Mystical หรือของเฉพาะเควส เรทบ้าน 60% และ 40/30/15/10/4/1 คงเดิม ซื้อครบ 12 แบบได้เหรียญผู้สะสม</p></details></section>';
+        '<details class="market-rules"><summary>กติกาสต็อก'+(preview?'ทดลอง':'')+' · '+doc.event.purchases.length+'/12 สะสมร้าน</summary><p>'+esc(preview?cfg.proposals.shopStock.notice:String(cfg.proposals.shopStock.notice||'').replace(/^ทดลองร้าน/,'ร้าน'))+'</p><p>สต็อกเฉพาะ'+(preview?'เซฟห้องลองนี้':'บัญชีของคุณในอีเวนต์นี้')+' เติมรอบตามต้นชั่วโมงเวลาไทย ไม่มีของ Mystical หรือของเฉพาะเควส เรทบ้าน 60% และ 40/30/15/10/4/1 คงเดิม ซื้อครบ 12 แบบได้เหรียญผู้สะสม</p></details></section>';
     }
     function redraw(focus){refresh();if(focus)detail.querySelector('[data-market="'+focus+'"]')?.focus({preventScroll:false});}
     function pick(id){const p=product(id);if(busy||!p||!p.left||p.owned||read().event.closed)return false;held=id;placed=false;quantity=1;quote=null;message='';return true;}

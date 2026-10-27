@@ -225,7 +225,7 @@
     journalPage=['index','quests','vault','map','guide','tasks'].includes(page)?page:'index';
     if(journalPage==='guide'&&!prefs.guideSeen){prefs.guideSeen=true;rememberPrefs();}
     const content={quests:questList,vault:inventory,tasks}[journalPage];
-    openDetail(window.HalloweenJournal.render({page:journalPage,content:content?.(),Guide,objective:currentObjective(),place:activeRoom||route,rotationRows:Core.Rotations.upcoming(now(),8).map(w=>({...w,name:biomeName(Core.BIOMES[w.index]),clock:window.HalloweenHUD.clock(w.startAt)+'–'+window.HalloweenHUD.clock(w.endAt)})),biomeName:biomeName(currentBiome()),candy:read().event.candy,garden:Core.gardenUnlocked(read()),portrait:window.HalloweenWorld.portrait('vesper'),biomes:Core.BIOMES.map(id=>({...Core.biomeProgress(read(),config,id),name:Guide.names[id]}))}),()=>history.replaceState(null,'','#'+route));
+    openDetail(window.HalloweenJournal.render({preview,page:journalPage,content:content?.(),Guide,objective:currentObjective(),place:activeRoom||route,rotationRows:Core.Rotations.upcoming(now(),8).map(w=>({...w,name:biomeName(Core.BIOMES[w.index]),clock:window.HalloweenHUD.clock(w.startAt)+'–'+window.HalloweenHUD.clock(w.endAt)})),biomeName:biomeName(currentBiome()),candy:read().event.candy,garden:Core.gardenUnlocked(read()),portrait:window.HalloweenWorld.portrait('vesper'),biomes:Core.BIOMES.map(id=>({...Core.biomeProgress(read(),config,id),name:Guide.names[id]}))}),()=>history.replaceState(null,'','#'+route));
     activePanel='journal';detail.dataset.scenePanel='journal';detail.dataset.journalPage=journalPage;
     detail.querySelector('.journal-paper').scrollTop=0;const pageFocus=detail.querySelector('[aria-current=page]')||detail.querySelector('#detailHeading');pageFocus.tabIndex=pageFocus.tagName==='BUTTON'?0:-1;pageFocus.focus({preventScroll:true});
     if(journalPage==='vault'){const b=document.createElement('button');b.className='primary';b.dataset.equipment='';b.textContent='อาวุธ · ถือและสวมใส่';detail.querySelector('.inventory-tabs').prepend(b);}
@@ -781,7 +781,7 @@
         read();
         if(!read().event.closed&&read().event.bossWins?.['midnight-sovereign']&&config.proposals.bosses['midnight-sovereign'].rewards.some(id=>!read().rewards[id]))await perform({type:'claim-final-theme-set'},{silent:true});
       }
-      if(playable)market=window.HalloweenMarket.create({Core,config:()=>config,read,now,detail,refresh:()=>showPanel('shop-stock'),perform,audio,onRewards:acquisition,esc,asset,name,duration,portrait:id=>window.HalloweenWorld.portrait(id),cropArt:index=>window.HalloweenWorld.pixelCrop(index)});
+      if(playable)market=window.HalloweenMarket.create({Core,preview,clock:clockNow,config:()=>config,read,now,detail,refresh:()=>showPanel('shop-stock'),perform,audio,onRewards:acquisition,esc,asset,name,duration,portrait:id=>window.HalloweenWorld.portrait(id),cropArt:index=>window.HalloweenWorld.pixelCrop(index)});
       const hash = location.hash.slice(1); if (['gate','hub','biome','garden'].includes(hash)) route=hash;
       else if(playable&&read().event.visits?.hub)route='hub';
       else if(PANEL_NAMES[hash])route='hub';
