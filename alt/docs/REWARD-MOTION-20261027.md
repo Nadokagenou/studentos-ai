@@ -24,4 +24,9 @@
 - Browserฉาก8/8จบ6055–6099ms callbackครั้งเดียว โหนดค้าง0 scene fixtureไม่มีerror/warning
 - app fixtureเล่นและตั้งค่าได้จริง แต่พบconsole MutationObserver.observe หนึ่งรายการโดยไม่มีsourceตำแหน่ง ไม่อ้างว่าconsoleทั้งแอปสะอาด ไฟล์รอบนี้ไม่ได้เพิ่มMutationObserver
 
-สถานะ: ตรวจพร้อมแล้ว กำลังส่งขึ้น ALT
+สถานะ: ส่งbae6402ขึ้นALTแล้ว [GitHub Pages](https://github.com/Nadokagenou/studentos-ai/actions/runs/40437332624) completed/success
+
+ตรวจเว็บจริงในห้องลองแยกจากบัญชี: ธีมdark เลือกThe Cursed Ship → ดูตัวอย่าง → เปิดฉากรางวัล เล่นได้ csSeal/running ตัวเลือกfullและข้อความอยู่ในหน้าเดียวกัน ไม่มีconsole error/warningในแท็บเว็บจริง ไฟล์hoop,cinematic JS/CSS และviewer HTTP200ตรงกับไฟล์ที่ส่งหลังnormalizeบรรทัด
+
+ปรับปุ่มตรวจภาพนิ่งในเครื่องให้เรียกทางจบงานจริง (ไม่ใช่ปุ่มmanual preview): ภาพนิ่งแสดงแล้วปิดใน1065ms callback1 โหนดค้าง0
+

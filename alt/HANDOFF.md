@@ -1,4 +1,4 @@
-> 27 ต.ค. เปิดฉากรางวัลในแอปโดยไม่ต้องมีธีม: อ่าน docs/REWARD-MOTION-20261027.md เพิ่ม policy เฉพาะฉากและตัวเลือกใกล้fxTry/ปุ่มenableในtoast คงค่าเริ่มต้นตามเครื่อง ไม่เปลี่ยนOS/matchMedia/เพลง/คลัง/สิทธิ์/1C60 ใช้คีย์ใหม่เฉพาะ preference ต่อเครื่อง รอผลเผยแพร่ในเอกสาร รวมทีม079526eแล้ว
+> 27 ต.ค. เปิดฉากรางวัลในแอปโดยไม่ต้องมีธีม: อ่าน docs/REWARD-MOTION-20261027.md เพิ่ม policy เฉพาะฉากและตัวเลือกใกล้fxTry/ปุ่มenableในtoast คงค่าเริ่มต้นตามเครื่อง ไม่เปลี่ยนOS/matchMedia/เพลง/คลัง/สิทธิ์/1C60 ใช้คีย์ใหม่เฉพาะ preference ต่อเครื่อง bae6402เผยแพร่Pagesสำเร็จและลองปุ่มบนเว็บจริงแล้ว288ผ่าน SW6/6 รวมทีม079526eแล้ว
 
 > รอบนี้ prepare migration 20261026140834 และบริการ economy v1/event v5/badge v3 ขึ้นแล้ว JWT เปิดครบ HTTP401/OPTIONS204 ตรวจผ่าน activation20261026142938เปิดแล้ว baseline23/23 RLS7ตาราง browser grants0 ส่งclient2bcb9f7 Pagesสำเร็จแล้ว ดู docs/SECURE-REWARDS-20261026.md
 
