@@ -31,4 +31,4 @@
 .cs-ov[data-finish="eclipse"] .cs-blood{display:none}
 .cs-ov[data-finish="undertow"] .cs-cap{top:6%}
 .cs-ov[data-finish] .cs-skip{z-index:12;min-height:44px}
-@media(prefers-reduced-motion:reduce){:root:not([data-cs-preview-motion="full"]) .csf-actor *{animation:none!important}}
+@media(prefers-reduced-motion:reduce){:root:not([data-cs-preview-motion="full"]):not([data-cs-motion="full"]) .csf-actor *{animation:none!important}}
