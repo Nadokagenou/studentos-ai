@@ -43,3 +43,12 @@ test('unchanged account reads and focus pulses do not rebuild all buttons under 
  const box={cache:null,paintedWalletKey:undefined,paint:()=>{box.paints++;},paints:0};vm.runInNewContext(grab(read('economy/client.js'),'paintAccount'),box);
  const d={owner:'same-owner',admin:false,vault:{tokens:{bal:3}},roomOwned:[],focusProofs:{x:0}};box.paintAccount(d);box.paintAccount({...d,focusProofs:{x:5}});assert.equal(box.paints,1);assert.equal(box.cache.focusProofs.x,5);box.paintAccount({...d,vault:{tokens:{bal:4}}});assert.equal(box.paints,2);box.paintAccount(null);box.paintAccount(null);assert.equal(box.paints,3);
 });
+
+ test('main update leaves large event artwork for first-use caching',()=>{
+ const sw=read('sw.js'),shell=JSON.parse(sw.match(/const SHELL = (\[[\s\S]*?\]);/)[1]);
+ assert.ok(!shell.some(p=>p.startsWith('halloween/event/assets/')));
+ assert.ok(shell.includes('halloween/event/experience.js'));
+ assert.match(sw,/if \(res\.ok\) caches\.open\(CACHE\)/);
+ const bytes=shell.reduce((n,p)=>n+(fs.statSync(path.join(root,p)).isFile()?fs.statSync(path.join(root,p)).size:0),0);
+ assert.ok(bytes<12*1024*1024,`Initial app update is ${bytes} bytes`);
+});

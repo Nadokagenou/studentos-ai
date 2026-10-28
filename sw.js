@@ -5,7 +5,8 @@
 // ⚠️ ทุกชื่อในลิสต์นี้ต้องมีไฟล์อยู่จริง — addAll จะล้มทั้งก้อนถ้ามีตัวใดตัวหนึ่ง 404
 //    แล้วแอปจะไม่มีแคชเลย (เปิดออฟไลน์ไม่ได้) โดยไม่มี error โผล่ให้เห็นที่หน้าจอ
 //    เคยพลาดมาแล้วตอนคัดลอกไฟล์จาก alt/ ขึ้นมา: ลิสต์ยังมี icon-alt-* ซึ่ง root ไม่มี
-const CACHE = 'studentos-main-1c60-standalone-hotfix-20261028';
+const CACHE = 'studentos-main-1c60-standalone-mobile-hotfix-20261028';
+// Large event artwork is cached on first use, not during the main app update.
 const SHELL = [
   "halloween-countdown.js",
   "halloween-countdown.css",
@@ -253,35 +254,6 @@ const SHELL = [
   "halloween/event/theme-preview.html",
   "halloween/event/world.css",
   "halloween/event/world.js",
-  "halloween/event/assets/home-card-bg.webp",
-  "halloween/event/assets/home-card-npc-0.webp",
-  "halloween/event/assets/home-card-npc-1.webp",
-  "halloween/event/assets/home-card-npc-2.webp",
-  "halloween/event/assets/home-card-npc-3.webp",
-  "halloween/event/assets/npc-atlas.png",
-  "halloween/event/assets/portrait-biomes.png",
-  "halloween/event/assets/portrait-hub.png",
-  "halloween/event/assets/portrait-rooms.png",
-  "halloween/event/assets/rpg-character-atlas.png",
-  "halloween/event/assets/rpg-weapon-atlas.png",
-  "halloween/event/assets/scene-cauldron.webp",
-  "halloween/event/assets/scene-dutchman.webp",
-  "halloween/event/assets/scene-garden.webp",
-  "halloween/event/assets/scene-graveyard.webp",
-  "halloween/event/assets/scene-hub.webp",
-  "halloween/event/assets/scene-jack.webp",
-  "halloween/event/assets/scene-ritual.webp",
-  "halloween/event/assets/scene-shop.webp",
-  "halloween/event/assets/scene-vampire.webp",
-  "halloween/event/assets/world-cauldron.png",
-  "halloween/event/assets/world-dutchman.png",
-  "halloween/event/assets/world-garden.png",
-  "halloween/event/assets/world-graveyard.png",
-  "halloween/event/assets/world-hub.png",
-  "halloween/event/assets/world-jack.png",
-  "halloween/event/assets/world-ritual.png",
-  "halloween/event/assets/world-shop.png",
-  "halloween/event/assets/world-vampire.png",
   "halloween/event/data/materials.json",
   "halloween/event/data/preview-rules.json",
   "halloween/event/data/quests.dutchman.json",
