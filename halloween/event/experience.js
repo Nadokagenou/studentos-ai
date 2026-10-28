@@ -24,6 +24,7 @@
   const image = id => '../rewards/assets/' + id + '.svg';
   let config, store, route = 'gate', vaultTab = 'rewards', toastTimer, detailAfterClose = null;
   let activePanel=null,activeRoom=null,typingFrame=0,typingLines=[],dialogueEpoch=0,market;
+  let viewEpoch=0;
   let sourceReturn={},journalPage='index';
   const recipeSelection={cauldron:null,ritual:null};
   let recipePrepared=false;
@@ -62,6 +63,7 @@
     return '<div class="dialog-top"><h2 id="detailHeading">' + title + '</h2><a class="dialog-studentos" href="../../">← StudentOS</a><button class="dialog-x" data-open-guide aria-label="วิธีเล่น">?</button><button class="dialog-x" data-close-detail aria-label="ปิดหน้าต่าง">×</button></div>' + body + (footer ? '<div class="dialog-footer">' + footer + '</div>' : '');
   }
   function openDetail(html,afterClose=null) {
+    viewEpoch++;
     finishTyping();activePanel=null;delete detail.dataset.scenePanel;detail.dataset.room=activeRoom||'';
     delete detail.dataset.guide;
     delete detail.dataset.plotBiome;
@@ -72,6 +74,8 @@
     typeDialogue();
   }
   detail.addEventListener('close',() => {
+    if(detail.open)return;
+    viewEpoch++;
     finishTyping();activePanel=null;delete detail.dataset.journalPage;
     if(activeRoom){activeRoom=null;if(playable&&store&&!read().event.closed)perform(route==='garden'?{type:'enter-room',room:'garden'}:route==='biome'?{type:'enter-biome',biome:currentBiome()}:{type:'enter-hub'},{silent:true});}
     delete detail.dataset.plotBiome;
@@ -137,24 +141,34 @@
     banner.innerHTML = (read().event.closed ? 'จำลองปิดอีเวนต์แล้ว · เปิดคลังใช้รางวัลต่อได้' : 'ห้องลองอีเวนต์ · ข้อมูลแยกจากบัญชีจริง') + '<a href="#" data-open-preferences>ราคาและสูตรทดลอง</a>';
   }
   let navigating=false;
-  async function navigate(next,{entered=false}={}) {
-    if(navigating)return;
+  async function navigate(next,{entered=false,biome=null}={}) {
+    if(navigating)return false;
+    if(next==='explore')next='hub';
+    const origin=viewEpoch,room=ROOM_ROUTES[next],destination=biome||currentBiome();
+    const action=room?{type:'enter-room',room}:next==='hub'&&!entered?{type:'enter-hub'}:['biome','village'].includes(next)&&!entered?{type:'enter-biome',biome:destination}:null;
+    if(action?.type==='enter-biome'&&!Core.portalStatus(read(),config,destination,clockNow()).open){toast('ไบโอมนี้ยังไม่เปิดในรอบนี้',true);return false;}
     navigating=true;main.setAttribute('aria-busy','true');
     try{
-    if (next==='explore') next='hub';
-    if(PANEL_NAMES[next]){
-      const room=ROOM_ROUTES[next];
-      if(room){if(playable&&!read().event.closed&&!await perform({type:'enter-room',room},{silent:true}))return;activeRoom=room;}
-      showPanel(next);history.replaceState(null,'','#'+next);return;
-    }
-    if (detail.open) { activeRoom=null;detail.close(); }
-    if(playable&&store&&!read().event.closed){
-      if(ROOM_ROUTES[next]&&!await perform({type:'enter-room',room:ROOM_ROUTES[next]},{silent:true}))return;
-      if(next==='hub'&&!entered&&!await perform({type:'enter-hub'},{silent:true}))return;
-    }
-    route = next; history.replaceState(null,'','#' + next); render();
-    main.focus({preventScroll:true}); window.scrollTo({top:0,behavior:'instant'});
-    }finally{navigating=false;main.removeAttribute('aria-busy');}
+      let result=null;
+      if(action&&playable&&store&&!read().event.closed){
+        main.dataset.opening='กำลังเปิด'+(PANEL_NAMES[next]||({garden:'สวน',hub:'โถงกลาง',biome:biomeName(destination)}[next])||'ฉาก')+'…';
+        result=await perform(action,{silent:true});
+        if(!result||origin!==viewEpoch)return false;
+      }
+      if(next==='village'){
+        activeRoom=null;activePanel=null;detailAfterClose=null;if(detail.open)detail.close();
+        route='biome';render();showPanel('village');history.replaceState(null,'','#village');return true;
+      }
+      if(PANEL_NAMES[next]){
+        if(room)activeRoom=room;
+        showPanel(next);history.replaceState(null,'','#'+next);return true;
+      }
+      if(detail.open){activeRoom=null;activePanel=null;detailAfterClose=null;detail.close();}
+      route=next;history.replaceState(null,'','#'+next);render();
+      main.focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});
+      if(result?.firstStory)showStory(destination);
+      return true;
+    }finally{navigating=false;delete main.dataset.opening;main.removeAttribute('aria-busy');}
   }
   function currentBiome() { return Core.biomeAt(read(),config,clockNow()).id; }
   function worldContext() { return {Core,Catalog,config,doc:read(),now:clockNow(),name,duration,difficulty:biomeDifficulty}; }
@@ -269,10 +283,7 @@
     openDetail(dialogShell('วิธีหา '+esc(name(id)),'<p class="guide-intro">'+esc(Guide.summary(config,id))+'</p>'+content+(!sources.length?'<p class="subtle">ไอเทมนี้ยังไม่มีจุดรับในกติกาที่เปิดอยู่</p>':'')+(best.chance?'<p class="tiny">แนะนำ Treat สำหรับหาวัตถุดิบ · บ้านที่เคาะแล้วพัก 4 ชั่วโมง · อัตราสุ่มปกติตามรายการล่าสุด · มีตัวช่วยของเควสครบ 30 ครั้งในไบโอม</p>':''),'<button class="secondary" data-source-back>กลับ</button>'));
   }
   async function goToVillage(biome=currentBiome()){
-    if(!Core.portalStatus(read(),config,biome,clockNow()).open){toast('ไบโอมนี้ยังไม่เปิดในรอบนี้',true);return;}
-    if(detail.open){activeRoom=null;activePanel=null;detailAfterClose=null;await new Promise(resolve=>{detail.addEventListener('close',resolve,{once:true});detail.close();});}
-    if(!await perform({type:'enter-biome',biome},{silent:true}))return;
-    await navigate('biome');await navigate('village');
+    return navigate('village',{biome});
   }
   function showBalance(){
     const cards=Core.BIOMES.map(biome=>{
@@ -587,7 +598,7 @@
     const o=currentObjective();if(!o)return;const a=o.action;
     if(a.kind==='welcome'){if(await perform({type:'claim-welcome'},{silent:true})){activeRoom=null;await navigate('biome');showQuest('dutchman-light-in-darkness');}return;}
     if(a.kind==='enter-hub'){main.querySelector('[data-enter-hub]')?.click();return;}
-    if(a.kind==='enter-biome'){const result=await perform({type:'enter-biome',biome:a.biome},{silent:true});if(result){await navigate('biome');if(result.firstStory)showStory(a.biome);}return;}
+    if(a.kind==='enter-biome'){await navigate('biome',{biome:a.biome});return;}
     if(a.kind==='village'){await goToVillage();return;}
     if(a.kind==='quest'){showQuest(a.quest);return;}
     if(a.kind==='game'){showGameInfo(a.game);return;}
@@ -597,6 +608,7 @@
     if(a.kind==='wait'){toast((o.wait?(config.proposals.journey?.freeTravel?'นัดรับจดหมาย ':'ประตู'+window.HalloweenObjective.THAI[Core.BIOMES.indexOf(o.wait.biome)]+'เปิด ')+window.HalloweenHUD.clock(o.wait.at)+' · ':'')+'ระหว่างรอ: ทำเควสมรณะในสมุดเพื่อรับ Candy หรือแวะสวนและร้าน');return;}
   }
   function render() {
+    viewEpoch++;
     const previousPanel=activePanel;
     requestAnimationFrame(publishDeviceStatus);
     if (!playable) {
@@ -721,15 +733,13 @@
     if(button.dataset.plotBiome){showPlot(button.dataset.plotBiome);return;}
     if(button.hasAttribute('data-enter-hub')){
       button.disabled=true;button.classList.add('dg-unseal');main.querySelector('.world-scene')?.classList.add('gate-opening');
-      const result=await perform({type:'enter-hub'},{silent:true});
-      if(result)setTimeout(()=>navigate('hub',{entered:true}),reduced()?0:650);else button.disabled=false;
+      if(!await navigate('hub')){button.disabled=false;button.classList.remove('dg-unseal');main.querySelector('.world-scene')?.classList.remove('gate-opening');}
       return;
     }
     if(button.dataset.enterBiome){
       const id=button.dataset.enterBiome;
       if(!Core.portalStatus(read(),config,id,clockNow()).open){openDetail(dialogShell('ประตูนี้ยังหลับอยู่','<p class="story-copy">'+esc(biomeName(id))+' ยังไม่เปิดในรอบนี้ กลับมาตอนประตูมีแสง หรือใช้ Totem เพื่อเปิดเส้นทางส่วนตัว</p>','<button class="secondary" data-close-detail>กลับโถงกลาง</button><button class="primary" data-route="totems">ดู Totem</button>'));return;}
-      const result=await perform({type:'enter-biome',biome:id},{silent:true});
-      if(result){navigate('biome');if(result.firstStory)showStory(id);}return;
+      await navigate('biome',{biome:id});return;
     }
     if(button.dataset.story){showStory(button.dataset.story);return;}
     if(button.hasAttribute('data-visitors')){showVisitors();return;}
@@ -740,8 +750,7 @@
     if (button.matches('[data-open-preferences]')) { e.preventDefault(); showPreferences(); return; }
     if (!playable && button.matches('[data-route]')) { e.preventDefault(); toast(preview?'เปิดห้องลองก่อนเพื่อสำรวจ':phase==='ended'?'อีเวนต์สิ้นสุดแล้ว ดูของที่ได้รับต่อได้ในคลัง':'เข้าสู่ระบบและรอเปิดอีเวนต์วันที่ 28 ต.ค.'); return; }
     if (button.dataset.route==='biome') {
-      const id=currentBiome(),result=await perform({type:'enter-biome',biome:id},{silent:true});
-      if(result){navigate('biome');if(result.firstStory)showStory(id);}return;
+      await navigate('biome');return;
     }
     if (button.dataset.route) { navigate(button.dataset.route); return; }
     if (preview && button.dataset.biome) { if (await perform({type:'preview-biome',biome:button.dataset.biome})) {preferences.close();navigate('hub');toast('เปิดประตูทดลอง ' + biomeName(button.dataset.biome));} return; }

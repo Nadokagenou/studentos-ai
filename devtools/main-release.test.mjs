@@ -52,7 +52,7 @@ test('Tang reuses an earned lantern in both the objective and submission require
 
 test('opening the gate saves entry once and normal hub navigation still saves once',async()=>{
  const s=read('halloween/event/experience.js'),a=s.indexOf('  async function navigate('),b=s.indexOf('  function currentBiome',a),g=s.indexOf("    if(button.hasAttribute('data-enter-hub'))"),h=s.indexOf('    if(button.dataset.enterBiome)',g);
- let calls=0;const box={navigating:false,main:{setAttribute(){},removeAttribute(){},querySelector:()=>({classList:{add(){}}}),focus(){}},button:{hasAttribute:()=>true,disabled:false,classList:{add(){}}},PANEL_NAMES:{},ROOM_ROUTES:{},detail:{open:false},playable:true,store:{},read:()=>({event:{closed:false}}),perform:async()=>{calls++;return {};},history:{replaceState(){}},route:'gate',render(){},window:{scrollTo(){}},setTimeout:fn=>fn(),reduced:()=>true};
+ let calls=0;const box={viewEpoch:0,currentBiome:()=>'ship',biomeName:()=>'เรือ',navigating:false,main:{dataset:{},setAttribute(){},removeAttribute(){},querySelector:()=>({classList:{add(){}}}),focus(){}},button:{hasAttribute:()=>true,disabled:false,classList:{add(){}}},PANEL_NAMES:{},ROOM_ROUTES:{},detail:{open:false},playable:true,store:{},read:()=>({event:{closed:false}}),perform:async()=>{calls++;return {};},history:{replaceState(){}},route:'gate',render(){},window:{scrollTo(){}},setTimeout:fn=>fn(),reduced:()=>true};
  vm.runInNewContext(s.slice(a,b)+'\nasync function enter(){'+s.slice(g,h)+'}\nthis.enterGate=enter;',box);await box.enterGate();await new Promise(r=>setImmediate(r));assert.equal(calls,1);
  await box.navigate('hub');assert.equal(calls,2);
 });

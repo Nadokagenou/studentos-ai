@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import path from 'node:path';
 test('repeated taps cannot queue the same server-backed navigation while it is opening',async()=>{
- let resolve,calls=0;const box={navigating:false,main:{setAttribute(){},removeAttribute(){},focus(){}},PANEL_NAMES:{},ROOM_ROUTES:{},detail:{open:false},playable:true,store:{},read:()=>({event:{closed:false}}),perform:()=>{calls++;return new Promise(r=>resolve=r);},history:{replaceState(){}},route:'gate',render(){},window:{scrollTo(){}}};
+ let resolve,calls=0;const box={viewEpoch:0,currentBiome:()=>'ship',biomeName:()=>'เรือ',navigating:false,main:{dataset:{},setAttribute(){},removeAttribute(){},focus(){}},PANEL_NAMES:{},ROOM_ROUTES:{},detail:{open:false},playable:true,store:{},read:()=>({event:{closed:false}}),perform:()=>{calls++;return new Promise(r=>resolve=r);},history:{replaceState(){}},route:'gate',render(){},window:{scrollTo(){}}};
  vm.runInNewContext('async '+grab(event,'navigate'),box);const first=box.navigate('hub');await box.navigate('hub');assert.equal(calls,1);resolve({});await first;assert.equal(box.navigating,false);assert.equal(box.route,'hub');
 });
 test('audio or cosmetic failures cannot turn a committed quest into a failed save',async()=>{
