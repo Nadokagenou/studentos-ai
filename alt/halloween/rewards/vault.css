@@ -1,1 +1,80 @@
 :root{color-scheme:dark;background:#100e19;color:#eee5f4;font-family:Tahoma,sans-serif}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0,#62426720,transparent 50%);min-height:100dvh}header{height:85px;padding:0 6%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #fff1;gap:20px}a{text-decoration:none;color:inherit}header a{font:bold 22px Georgia,serif}header a span{display:block;font:7px Tahoma,sans-serif;letter-spacing:2px;color:#b3a0c1;margin-top:6px}header>span{font-size:10px;color:#b1a0bd}main{max-width:1180px;margin:auto;padding:45px 30px 70px}.eyebrow{font:9px Georgia,serif;color:#d2b68c;letter-spacing:2.5px}.vault-intro h1{font-size:36px;font-weight:400;line-height:1.65;letter-spacing:-1px;margin:20px 0 15px}.vault-intro p{font-size:12px;line-height:2;color:#b5a3c1}.vault-intro output{display:inline-block;margin:15px 0 25px;color:#e1c99e;font:18px Georgia,serif}nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}button{font:inherit;cursor:pointer}nav button{font-size:11px;min-height:38px;border:1px solid #fff2;padding:9px 14px;border-radius:30px;background:transparent;color:#b6a3c7}nav button[aria-pressed=true]{background:#cfb08a18;color:#e6c69a;border-color:#cfb08a44}button:focus-visible,a:focus-visible{outline:2px solid #dfbe8e;outline-offset:4px}#permanentVault{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}.memory-card{border:1px solid #fff1;border-radius:16px;overflow:hidden;background:#1a1623;text-align:left;padding:0;color:inherit}.memory-card .art{height:195px;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 60%,color-mix(in srgb,var(--tier) 10%,transparent),transparent 65%)}.memory-card img{width:90%;height:180px;object-fit:contain;transition:transform .3s}.memory-card:hover img{transform:translateY(-5px)}.memory-card .copy{padding:7px 18px 20px}.memory-card small{font:8px Georgia,serif;letter-spacing:2px;color:var(--tier)}.memory-card h2{font-size:13px;line-height:1.8;font-weight:400;margin:8px 0}.memory-card p{font-size:10px;line-height:1.8;color:#a795b5}.empty{grid-column:1/-1;text-align:center;color:#b5a0c7;padding:70px 20px;border:1px dashed #fff2;border-radius:18px;font-size:13px;line-height:2}#vaultStatus{font-size:11px;color:#a18bad;line-height:2}dialog{width:min(570px,calc(100vw - 28px));max-height:calc(100dvh - 32px);background:#1a1522;color:#e5d9ed;border:1px solid #aa8fb638;border-radius:21px;padding:25px}dialog::backdrop{background:#07060cda;backdrop-filter:blur(7px)}.detail-top{display:flex;align-items:center;justify-content:space-between;gap:15px}.detail-top h2{font-size:19px;font-weight:400;line-height:1.7;margin:0}.detail-top button{width:35px;height:35px;flex-shrink:0;border:1px solid #fff2;border-radius:50%;background:transparent;color:#b9a5ca;font-size:21px}.detail-art{width:100%;height:265px;object-fit:contain;margin:15px 0}.detail-body p{font-size:12px;color:#b6a2c4;line-height:2}.detail-body small{font-size:10px;line-height:1.9;color:#a4bba7}.detail-actions{display:flex;gap:10px;justify-content:end;flex-wrap:wrap;margin-top:24px}.detail-actions button{min-height:42px;border:1px solid #dec29544;color:#dec295;background:#dec2950b;border-radius:10px;padding:10px 16px;font-size:11px}.preview-frame{width:100%;height:65dvh;border:1px solid #fff2;border-radius:12px;margin-top:20px}#vaultMode{line-height:1.8;text-align:right}.restriction{color:#d2a58b!important}@media(max-width:850px){#permanentVault{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:600px){header{height:73px;padding:0 19px}header a{font-size:18px}header a span{font-size:6px}header>span{font-size:9px}main{padding:32px 18px 45px}.vault-intro h1{font-size:29px}.vault-intro p{font-size:11px}.eyebrow{font-size:8px;letter-spacing:1.5px}#permanentVault{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.memory-card .art{height:155px}.memory-card img{height:145px}.memory-card .copy{padding:4px 13px 15px}.memory-card h2{font-size:12px}.memory-card p{font-size:10px}.memory-card small{font-size:7px}nav button{font-size:10px}.detail-art{height:220px}dialog{padding:21px}}@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ============================================================
+   คลังรางวัล · ตกแต่งใหม่ — 28 ต.ค. 69 · เจ้าของ (ภาพหน้าคลังตอนยังไม่ล็อกอิน): "ตกแต่งใหม่เลย"
+   ชุดเดียวกับจอเข้าสู่ระบบของอีเวนต์: ม่วงคืน + พระจันทร์ชมพู · ปุ่มหลักแชมเปญ · ฟอนต์ Sriracha ถ้าเครื่องมี (ไม่โหลดจาก Google Fonts —
+   เทสต์ event-core กำหนดให้คลังไม่พึ่งของภายนอกนอกจาก Supabase เพราะต้องอยู่ได้หลังถอดโฟลเดอร์อีเวนต์ · ไม่ใส่ ?rev= ด้วยเหตุผลเดียวกัน)
+   ฉาก: แสงจันทร์มุมขวาบน · ดาวนิ่ง (ไล่สีจุด ไม่ขยับ) · หมอกล่าง — ทั้งหมดเป็นพื้นหลัง ไม่มีงานต่อเฟรม
+   การ์ดรางวัล: เส้นบน + แสงเรืองสีระดับ (--tier) · ลอยขึ้นตอนชี้ (transform) · เปลือกแบบ Halo (cult-ui · MIT)
+   ปุ่มเข้าสู่ระบบ: แชมเปญไล่ + แสงเรือง + ลูกศร แบบเดียวกับ .le-main ของจออีเวนต์
+   ============================================================ */
+:root{font-family:'Sriracha','Sarabun','Leelawadee UI',Tahoma,sans-serif}
+body{position:relative;isolation:isolate;overflow-x:hidden;
+ background:
+  radial-gradient(circle at 86% 6%,#f3c9ea40 0,#c98bd626 9%,transparent 30%),
+  radial-gradient(ellipse at 50% 120%,#3a2a5a66,transparent 60%),
+  linear-gradient(180deg,#141022,#100e19 45%,#0c0a14)}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.55;
+ background:
+  radial-gradient(1.2px 1.2px at 12% 18%,#fff 98%,transparent),radial-gradient(1px 1px at 28% 8%,#fff 98%,transparent),
+  radial-gradient(1.4px 1.4px at 44% 22%,#f5e8ff 98%,transparent),radial-gradient(1px 1px at 63% 12%,#fff 98%,transparent),
+  radial-gradient(1.2px 1.2px at 74% 30%,#fff 98%,transparent),radial-gradient(1px 1px at 92% 20%,#fff 98%,transparent),
+  radial-gradient(1px 1px at 8% 44%,#fff 98%,transparent),radial-gradient(1.3px 1.3px at 36% 48%,#ead8ff 98%,transparent),
+  radial-gradient(1px 1px at 58% 40%,#fff 98%,transparent),radial-gradient(1px 1px at 84% 52%,#fff 98%,transparent)}
+body::after{content:"";position:fixed;left:-10%;right:-10%;bottom:0;height:34vh;z-index:-1;pointer-events:none;
+ background:radial-gradient(ellipse at 30% 100%,#4a3b6a40,transparent 62%),radial-gradient(ellipse at 75% 100%,#3a2f5a38,transparent 60%)}
+header{position:sticky;top:0;z-index:5;height:72px;padding:0 max(18px,calc((100% - 1120px) / 2));
+ background:#120f1cb3;-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border-bottom:1px solid #ffffff12}
+header a{font:400 22px 'Sriracha',Georgia,serif;color:#f1e6f7}
+header a span{font:600 8px Tahoma,sans-serif;letter-spacing:2.6px;color:#c3a9d4}
+header>span{font-size:12px;color:#e1c49a;padding:7px 13px;border-radius:999px;background:#e1c49a14;border:1px solid #e1c49a40}
+main{max-width:1120px;padding:34px 22px 80px}
+.vault-intro{text-align:center;display:flex;flex-direction:column;align-items:center}
+.vault-art{width:clamp(110px,18vw,150px);height:auto;border-radius:22px;margin-bottom:18px;
+ box-shadow:0 0 0 1px #ffffff14,0 18px 40px -16px #000c,0 0 60px -12px #d79be680}
+.eyebrow{font:600 10px Georgia,serif;letter-spacing:3px;color:#e1c49a}
+.vault-intro h1{font:400 clamp(28px,5.4vw,40px)/1.45 'Sriracha',serif;letter-spacing:0;margin:12px 0 6px;
+ background:linear-gradient(100deg,#fff4e2,#e1c49a 45%,#d6b4f2);-webkit-background-clip:text;background-clip:text;color:transparent;
+ padding-block:.18em}
+.vault-intro p{font-size:14px;line-height:1.9;color:#c2b0d0;max-width:440px;margin:4px auto 0}
+.vault-intro output{margin:18px 0 26px;padding:7px 16px;border-radius:999px;font:400 15px 'Sriracha',serif;color:#f1d6ae;
+ background:#e1c49a12;border:1px solid #e1c49a3d;box-shadow:inset 0 1px 0 #ffffff14}
+nav{justify-content:center;gap:8px;margin-bottom:26px}
+nav button{font-size:13px;min-height:40px;padding:8px 16px;background:#ffffff06;border-color:#ffffff1c;color:#c9b6d8}
+nav button[aria-pressed=true]{background:#e1c49a22;color:#f1d6ae;border-color:#e1c49a66;box-shadow:0 0 18px -6px #e1c49a88}
+#permanentVault{gap:16px}
+.memory-card{position:relative;border-color:#ffffff14;border-radius:18px;
+ background:linear-gradient(180deg,#ffffff0a,#ffffff00 40%),#1a1626;
+ box-shadow:inset 0 1px 0 #ffffff12,0 14px 30px -18px #000d;transition:transform .25s cubic-bezier(.23,1,.32,1),box-shadow .25s ease,border-color .25s ease}
+.memory-card::before{content:"";position:absolute;left:14%;right:14%;top:0;height:2px;border-radius:2px;background:var(--tier);opacity:.85;box-shadow:0 0 14px var(--tier)}
+.memory-card .art{background:radial-gradient(ellipse at 50% 60%,color-mix(in srgb,var(--tier) 22%,transparent),transparent 66%)}
+.memory-card:hover{transform:translateY(-4px);border-color:color-mix(in srgb,var(--tier) 45%,transparent);box-shadow:inset 0 1px 0 #ffffff1a,0 20px 36px -18px #000e,0 0 30px -12px var(--tier)}
+.memory-card:hover img{transform:none}
+.memory-card small{font:700 9px Georgia,serif;letter-spacing:2px}
+.memory-card h2{font:400 15px/1.6 'Sriracha',serif;color:#f1e6f7}
+.memory-card p{font-size:12px;color:#b6a5c4}
+.empty{border:1px solid #ffffff14;border-style:solid;background:linear-gradient(180deg,#ffffff08,#ffffff02),#16121f;
+ box-shadow:inset 0 1px 0 #ffffff10,0 20px 44px -24px #000;color:#cdbbe0;font-size:14px}
+.vault-signin{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:440px;margin:0 auto;padding:34px 24px 30px;justify-self:center}
+.vault-signin .vs-ic{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;color:#f1d6ae;
+ background:radial-gradient(circle at 35% 30%,#e1c49a33,#e1c49a10 70%);box-shadow:inset 0 0 0 1px #e1c49a55,0 0 28px -6px #e1c49a77}
+.vault-signin .vs-ic svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.vault-signin b{font-weight:400;font-size:17px;color:#f1e6f7}
+.vault-signin .vs-go{position:relative;overflow:hidden;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:10px;
+ width:min(300px,100%);min-height:50px;margin-top:6px;border-radius:12px;font-size:15px;color:#201724;
+ background:linear-gradient(180deg,#ffffff40,#ffffff00 52%),linear-gradient(135deg,#F1D9B4,#E1C49A 52%,#CDA977);
+ box-shadow:inset 0 1px 0 #ffffffb3,inset 0 -2px 0 #8a6a3f55,0 0 0 1px #f1d6ae88,0 12px 28px -10px #e1c49acc,0 0 34px -8px #e1c49a99;
+ transition:transform .16s cubic-bezier(.23,1,.32,1)}
+.vault-signin .vs-go::before{content:"";position:absolute;z-index:-1;top:0;bottom:0;left:0;width:42%;
+ background:linear-gradient(100deg,transparent,#ffffff8c,transparent);transform:translateX(-130%) skewX(-18deg);animation:vs-shine 4.2s cubic-bezier(.45,0,.2,1) 1.2s infinite}
+.vault-signin .vs-go::after{content:"";width:8px;height:8px;border:solid currentColor;border-width:2.4px 2.4px 0 0;border-radius:1px;transform:rotate(45deg);transition:transform .2s ease}
+.vault-signin .vs-go:hover::after{transform:translateX(3px) rotate(45deg)}
+.vault-signin .vs-go:active{transform:scale(.97)}
+@keyframes vs-shine{0%{transform:translateX(-130%) skewX(-18deg)}24%,100%{transform:translateX(360%) skewX(-18deg)}}
+#vaultStatus{text-align:center;font-size:12px;color:#c8a9b8}
+#vaultStatus:empty{display:none}
+dialog{border-radius:22px;background:linear-gradient(180deg,#ffffff08,#ffffff00 30%),#1a1522;box-shadow:0 30px 80px -20px #000}
+.detail-top h2{font:400 21px/1.6 'Sriracha',serif}
+.detail-actions button{font-size:13px}
+@media(max-width:600px){header{height:64px}header a{font-size:19px}header>span{font-size:11px;padding:6px 11px}
+ main{padding:26px 16px 60px}.vault-intro p{font-size:13px}.memory-card h2{font-size:14px}.memory-card p{font-size:11.5px}nav button{font-size:12px}}

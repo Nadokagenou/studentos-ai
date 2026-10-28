@@ -11,7 +11,7 @@
   let account=null,kind='all',rewards={},cleanup=()=>{};
   function render(){
     document.getElementById('vaultMode').textContent=preview?'คลังห้องลอง · แยกจากบัญชีจริง':'คลังรางวัล StudentOS';
-    if(!preview&&!account?.ready()){document.getElementById('vaultCount').textContent='เชื่อมคลังบัญชี StudentOS';content.innerHTML='<p class="empty">เข้าสู่ระบบเพื่อดูรางวัลของบัญชีนี้<br><a href="'+appHref+'?go=login">ไปเข้าสู่ระบบ StudentOS →</a></p>';return;}
+    if(!preview&&!account?.ready()){document.getElementById('vaultCount').textContent='เชื่อมคลังบัญชี StudentOS';content.innerHTML='<div class="empty vault-signin"><span class="vs-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></svg></span><b>เข้าสู่ระบบเพื่อดูรางวัลของบัญชีนี้</b><a class="vs-go" href="'+appHref+'?go=login">เข้าสู่ระบบ StudentOS</a></div>';/* 28 ต.ค. 69 · ตกแต่งใหม่ (เจ้าของ: "ตกแต่งใหม่เลย") · ปุ่มเดียวกับจออีเวนต์ */return;}
     try{if(preview){const raw=localStorage.getItem(key);rewards=raw?O.validate(JSON.parse(raw),owner,season).rewards:{};}else rewards=account.read().rewards;}
     catch(error){document.getElementById('vaultStatus').textContent=error.message;return;}
     const owned=Object.keys(rewards).map(id=>C.find(id)).filter(Boolean);
@@ -20,7 +20,7 @@
     const filtered=owned.filter(x=>kind==='all'||x.kind===kind);
     content.innerHTML=filtered.length?filtered.map(item=>'<button class="memory-card" data-item="'+item.id+'" style="--tier:'+C.tiers[item.rarity].color+'"><div class="art"><img src="'+asset(item)+'" alt="'+esc(item.name)+'" loading="lazy"></div><div class="copy"><small>'+item.rarity+'</small><h2>'+esc(item.name)+'</h2><p>'+esc(C.biomes[item.biome].name)+(rewards[item.id].restriction?' · Restricted':'')+'</p></div></button>').join(''):'<p class="empty">ยังไม่มีความทรงจำในหมวดนี้<br>'+(preview?'ของที่ได้รับในห้องลองจะถูกเก็บไว้ที่นี่':'รางวัลที่ได้รับระหว่างกิจกรรมจะเก็บไว้ในบัญชีนี้')+'</p>';
   }
-  if(!preview){try{account=window.HalloweenAccount.create({client:window.HalloweenAccount.client(),onChange:render});account.refresh().catch(error=>{document.getElementById('vaultStatus').textContent=error.message;});}catch(error){document.getElementById('vaultStatus').textContent=error.message;}}
+  if(!preview){try{account=window.HalloweenAccount.create({client:window.HalloweenAccount.client(),onChange:render});account.refresh().catch(error=>{if(!error.signedOut)document.getElementById('vaultStatus').textContent=error.message;});/* ยังไม่ล็อกอิน = การ์ดบอกพร้อมปุ่มอยู่แล้ว ไม่ต้องพิมพ์ซ้ำท้ายหน้า */}catch(error){document.getElementById('vaultStatus').textContent=error.message;}}
   function inspect(id){
     cleanup();cleanup=()=>{};
     const item=C.find(id),owned=rewards[id];if(!item||!owned)return;
