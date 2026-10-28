@@ -2,14 +2,16 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.HalloweenAccount=factory();})(globalThis,()=>{
  'use strict';
  function create({client,onChange=()=>{},uuid=()=>crypto.randomUUID(),clock=Date.now,endpoint="halloween-event",timeoutMs=12000}){
-  let snapshot=null,uid=null,offset=0,pending=null,queue=Promise.resolve(),refreshing=null;
+  let snapshot=null,uid=null,offset=0,pending=null,queue=Promise.resolve(),refreshing=null,preferDatabaseRegion=true;
   async function bounded(job){let timer;try{return await Promise.race([job,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('เครือข่ายตอบช้า รายการยังรอยืนยัน กดตรวจเซฟอีกครั้งเมื่อออนไลน์')),timeoutMs);})]);}finally{clearTimeout(timer);}}
   const clear=()=>{snapshot=null;uid=null;pending=null;refreshing=null;onChange(null);};
   async function identity(){const {data,error}=await bounded(client.auth.getSession());if(error||!data.session)throw Object.assign(Error('เข้าสู่ระบบ StudentOS ก่อนเล่นกิจกรรม'),{definitive:true});return data.session;}
   async function send(body){
    const session=await identity(),owner=session.user.id;if(uid&&uid!==owner)clear();uid=owner;
-   const {data,error}=await bounded(client.functions.invoke(endpoint,{body,headers:{Authorization:'Bearer '+session.access_token}}));
-   if(error){let message='เชื่อมเซิร์ฟเวอร์ไม่ได้ รายการยังรอยืนยัน กลับมาออนไลน์แล้วตรวจเซฟอีกครั้ง';try{const json=await error.context?.json();if(json?.error)message=json.error;}catch{}throw Object.assign(Error(message),{definitive:error.context?.status>=400&&error.context?.status<500});}
+   const regional=preferDatabaseRegion&&body.action?.type!=='read',route=regional?endpoint+(endpoint.includes('?')?'&':'?')+'forceFunctionRegion=ap-southeast-2':endpoint;
+   let response;try{response=await bounded(client.functions.invoke(route,{body,headers:{Authorization:'Bearer '+session.access_token}}));}catch(error){if(regional)preferDatabaseRegion=false;throw error;}
+   const {data,error}=response;
+   if(error){const definitive=error.context?.status>=400&&error.context?.status<500;if(regional&&!definitive)preferDatabaseRegion=false;let message='เชื่อมเซิร์ฟเวอร์ไม่ได้ รายการยังรอยืนยัน กลับมาออนไลน์แล้วตรวจเซฟอีกครั้ง';try{const json=await error.context?.json();if(json?.error)message=json.error;}catch{}throw Object.assign(Error(message),{definitive});}
    if(data?.error)throw Error(data.error);
    if(!data?.document||data.document.owner!==owner||owner!==(await identity()).user.id)throw Error('บัญชีเปลี่ยนระหว่างบันทึก กรุณาเปิดกิจกรรมใหม่');
    snapshot=data.document;offset=data.serverNow-clock();onChange(snapshot);return data;

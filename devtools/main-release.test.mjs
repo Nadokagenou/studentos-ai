@@ -14,6 +14,10 @@ test('simultaneous refresh triggers share one read before a player action',async
  let release;const gate=new Promise(r=>release=r),calls=[],client={auth:{getSession:async()=>({data:{session:{user:{id:'test'},access_token:'qa'}}})},functions:{invoke:async(_,{body})=>{calls.push(body.action.type);await gate;return {data:{document:{owner:'test',event:{candy:0},rewards:{}},serverNow:Date.now(),result:{rewards:[]}}};}}};
  const api=Account.create({client}),reads=[api.refresh(),api.refresh(),api.refresh()],action=api.dispatch({type:'enter-hub'});release();await Promise.all([...reads,action]);assert.deepEqual(calls,['read','enter-hub']);
 });
+test('event writes use the database region and a lost reply falls back with the same receipt',async()=>{
+ const calls=[];let lost=true;const client={auth:{getSession:async()=>({data:{session:{user:{id:'test'},access_token:'qa'}}})},functions:{invoke:async(name,{body})=>{calls.push({name,body});if(body.requestId&&lost){lost=false;return {error:{}};}return {data:{document:{owner:'test',event:{candy:0},rewards:{}},serverNow:Date.now(),result:{rewards:[]}}};}}};
+ const api=Account.create({client});await api.refresh();await api.dispatch({type:'enter-hub'},'same-receipt');assert.equal(calls[0].name,'halloween-event');assert.match(calls[1].name,/forceFunctionRegion=ap-southeast-2/);assert.equal(calls[2].name,'halloween-event');assert.equal(calls[1].body.requestId,calls[2].body.requestId);
+});
 
 test('same-account refresh retains verified themes until an authoritative answer arrives',async()=>{
  let release,slow=false,fail=false,owner='a';
