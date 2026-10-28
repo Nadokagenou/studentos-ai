@@ -56,3 +56,10 @@ test('opening the gate saves entry once and normal hub navigation still saves on
  vm.runInNewContext(s.slice(a,b)+'\nasync function enter(){'+s.slice(g,h)+'}\nthis.enterGate=enter;',box);await box.enterGate();await new Promise(r=>setImmediate(r));assert.equal(calls,1);
  await box.navigate('hub');assert.equal(calls,2);
 });
+
+test('public reward pages have no retired lab entry and their redirects resolve locally',()=>{
+ const html=read('halloween/event/rewards.html'),legacy=read('halloween/event/theme-preview.html');
+ assert.doesNotMatch(html,/device-preview|preview=1|halloween-showroom|เปิด ALT|รอระบบอีเวนต์|แชร์ให้ทีม/);
+ const redirect=legacy.match(/url=([^"\s>]+)/)?.[1];assert.ok(redirect);assert.ok(fs.existsSync(new URL('../halloween/event/'+redirect,import.meta.url)));
+ const script=read('halloween/event/collection.js');assert.doesNotMatch(script,/localStorage|postMessage|halloween-showroom|รอระบบอีเวนต์/);
+});
