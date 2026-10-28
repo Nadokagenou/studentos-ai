@@ -19,38 +19,30 @@
       '<path d="M275 213v56" stroke="#6a5265" stroke-width="3"/>' +
       '<rect x="112" y="18" width="16" height="44" fill="' + (changed(4) ? '#bc9c7b' : '#4e3b4d') + '"/></svg>';
   }
-  let active = null;
-  async function open(id, {perform, read, now, reduced, toast, onClose}) {
+  let active = null, inFlight = null;
+  async function open(id, options) {
+    const {perform, read, now, reduced, toast, onClose}=options;
     const dialog = document.getElementById('gameDialog');
     if (active) return;
     let timer, busy = false, localError = '', closed = false,comparisonView='altered',previousSteps=0;
     const getGame = () => read().event.games[id];
-    let game = getGame();
-    if (!game || game.finished) {
-      const result = await perform({type:'start-game',game:id}, {silent:true});
-      if (!result) return;
-      game = getGame();
+    let session;
+    const cleanup = () => { clearInterval(timer); active = null; dialog.innerHTML = ''; dialog.removeAttribute('aria-busy'); if (onClose) onClose(); };
+    // Closing the view never cancels a server transaction or invents a result.
+    // An unfinished round resumes with the same session and server deadline.
+    const close = () => { if(closed)return;closed=true;dialog.close();cleanup(); };
+    function waiting(value){
+      dialog.setAttribute('aria-busy',String(value));
+      if(value)dialog.querySelectorAll('[data-game-move],[data-game-hint]').forEach(b=>{b.disabled=true;});
+      if(value){const note=dialog.querySelector('.game-note');if(note)note.textContent='กำลังยืนยันกับเซิร์ฟเวอร์… ปิดหน้าต่างได้ รอบเดิมยังอยู่';}
     }
-    const session = game.session;
-    const cleanup = () => { clearInterval(timer); active = null; dialog.innerHTML = ''; if (onClose) onClose(); };
-    const close = async () => {
-      if (closed || busy) return;
-      const g = getGame();
-      if (g && !g.finished) {
-        busy = true;
-        const saved = await perform({type:'game-move',game:id,session,move:'abandon'}, {silent:true});
-        busy = false;
-        if (!saved) return;
-      }
-      closed = true; dialog.close(); cleanup();
-    };
+    async function act(action){const job=Promise.resolve().then(()=>perform(action,{silent:true}));inFlight=job;try{return await job;}finally{if(inFlight===job)inFlight=null;}}
     const move = async value => {
       if (busy || closed) return;
-      busy = true;
-      const result = await perform({type:'game-move',game:id,session,move:value}, {silent:true});
-      busy = false;
-      if (!result) localError = 'ยังไม่ใช่จุดนั้น ลองสังเกตอีกครั้ง'; else localError = '';
-      render();
+      busy = true;waiting(true);
+      try{const result=await act({type:'game-move',game:id,session,move:value});localError=result?'':'ยังยืนยันกับเซิร์ฟเวอร์ไม่ได้ ตรวจการเชื่อมต่อแล้วลองอีกครั้ง';}
+      catch{localError='ยังยืนยันกับเซิร์ฟเวอร์ไม่ได้ ตรวจการเชื่อมต่อแล้วลองอีกครั้ง';}
+      finally{busy=false;if(!closed)render();}
     };
     function arena(g) {
       if (g.finished) {
@@ -74,6 +66,7 @@
       return '<div class="game-arena"><div class="comparison-controls"><button data-compare="original" aria-pressed="'+(comparisonView==='original')+'">ดูต้นฉบับ</button><button data-compare="altered" aria-pressed="'+(comparisonView==='altered')+'">ดูภาพที่เปลี่ยนไป</button></div><p class="game-hint">ภาพที่เปลี่ยนไปต่างจากต้นฉบับ ' + g.total + ' จุด · กดสลับภาพเพื่อเทียบ แล้วแตะจุดที่ต่าง</p><div class="difference-pair" data-view="'+comparisonView+'"><div class="difference-picture"><span>ต้นฉบับ</span>' + mansion(false,selected,variant) + '</div><div class="difference-picture"><span>ภาพที่เปลี่ยนไป</span>' + mansion(true,selected,variant) + spots.slice(0,g.total).map((s,i) => '<button class="difference-hit ' + (g.found.includes(i) ? 'found' : '') + '" style="left:' + s.x + '%;top:' + s.y + '%" data-game-move="' + i + '" aria-label="ตรวจ' + s.name + '" ' + (g.found.includes(i) ? 'disabled' : '') + '></button>').join('') + '<button class="difference-hit decoy" style="left:9%;top:85%" data-game-decoy aria-label="ตรวจพื้นทางเดิน"></button><button class="difference-hit decoy" style="left:17%;top:20%" data-game-decoy aria-label="ตรวจค้างคาว"></button></div></div></div>';
     }
     function render() {
+      if(closed)return;
       const g = getGame();
       if (!g) return;
       const previousMove = dialog.querySelector(':focus')?.dataset.gameMove;
@@ -87,23 +80,35 @@
       dialog.querySelectorAll('[data-game-move]').forEach(b => b.addEventListener('click',() => move(Number(b.dataset.gameMove))));
       dialog.querySelector('[data-game-hint]')?.addEventListener('click',()=>move('hint'));
       dialog.querySelectorAll('[data-game-decoy]').forEach(b => b.addEventListener('click',() => { localError = 'ตรงนี้เหมือนเดิม ลองดูรายละเอียดอื่น'; const note = dialog.querySelector('.game-note'); if (note) note.textContent = localError; }));
-      previousSteps=g.steps||0;updateClock();
+      previousSteps=g.steps||0;updateClock();waiting(busy);
       if (dialog.open) {
         const previous = previousMove == null ? null : dialog.querySelector('[data-game-move="' + previousMove + '"]:not(:disabled)');
         (dialog.querySelector('[data-compare="'+previousCompare+'"]') || previous || dialog.querySelector('[data-game-move]:not(:disabled)') || dialog.querySelector('.primary'))?.focus({preventScroll:true});
       }
     }
     function updateClock() {
+      if(closed)return;
       const g = getGame(), counter = dialog.querySelector('[data-game-clock]');
       if(g?.mode==='pairs'&&!g.finished&&g.open.length===2&&now()>=g.flipAt+700&&dialog.querySelector('.stone-pair.flipped:not(.found)')){render();return;}
-      if(g?.mode==='memory'&&!g.finished){const revealing=now()<g.revealUntil;dialog.dataset.memoryReveal=String(revealing);const status=dialog.querySelector('.memory-status');if(status)status.textContent=revealing?'จดจำรูน · อีก '+Math.max(0,Math.ceil((g.revealUntil-now())/1000))+' วินาที':'ตาเจ้าแล้ว · แตะตามลำดับที่จำได้';dialog.querySelectorAll('[data-game-move]').forEach(b=>b.disabled=revealing||g.found.includes(Number(b.dataset.gameMove)));}
+      if(g?.mode==='memory'&&!g.finished){const revealing=now()<g.revealUntil;dialog.dataset.memoryReveal=String(revealing);const status=dialog.querySelector('.memory-status');if(status)status.textContent=revealing?'จดจำรูน · อีก '+Math.max(0,Math.ceil((g.revealUntil-now())/1000))+' วินาที':'ตาเจ้าแล้ว · แตะตามลำดับที่จำได้';dialog.querySelectorAll('[data-game-move]').forEach(b=>b.disabled=busy||revealing||g.found.includes(Number(b.dataset.gameMove)));}
       if (counter) counter.textContent = g && !g.finished && g.deadline ? Math.max(0,Math.ceil((g.deadline-now())/1000)) + 's' : '—';
       if (g && !g.finished && g.deadline && now() >= g.deadline && !busy) move('timeout');
     }
     const cancel = e => { e.preventDefault(); close(); };
     dialog.oncancel = cancel;
-    active = {close}; render(); dialog.showModal();
-    timer = setInterval(updateClock,250);
+    active={close};
+    dialog.innerHTML='<div class="game-top"><h2 id="gameHeading">'+esc(names[id])+'</h2><button class="dialog-x" data-game-close aria-label="ออกจากมินิเกม">×</button></div><p class="game-note" role="status">กำลังเปิดรอบเกมจากบัญชี…</p>';
+    dialog.querySelector('[data-game-close]').addEventListener('click',close);dialog.setAttribute('aria-busy','true');dialog.showModal();
+    try{
+      if(inFlight)await inFlight.catch(()=>{});
+      if(closed)return;
+      let game=getGame();
+      if(!game||game.finished){const result=await act({type:'start-game',game:id});if(closed)return;if(!result)throw Error('ยังเปิดเกมไม่ได้');game=getGame();}
+      session=game.session;render();timer=setInterval(updateClock,250);
+    }catch{
+      if(closed)return;dialog.removeAttribute('aria-busy');dialog.innerHTML='<h2 id="gameHeading">ยังเปิดเกมไม่ได้</h2><p class="game-note" role="status">ตรวจการเชื่อมต่อแล้วลองอีกครั้ง รอบและของเดิมยังอยู่</p><button class="primary" data-game-retry>ลองเปิดอีกครั้ง</button><button class="secondary" data-game-close>กลับไปสำรวจ</button>';
+      dialog.querySelector('[data-game-close]').addEventListener('click',close);dialog.querySelector('[data-game-retry]').addEventListener('click',()=>{close();open(id,options);});
+    }
   }
   window.HalloweenEventGames = Object.freeze({open, names, close:() => active?.close()});
 })();
