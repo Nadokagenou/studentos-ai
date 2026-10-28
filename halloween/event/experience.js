@@ -534,12 +534,13 @@
   }
   function showGameInfo(id){
     const info=window.HalloweenWorld.activity(worldContext(),id);if(!info)return;
+    const round=read().event.games[id],resuming=!!round&&!round.finished;
     let action;
     if(info.quest)action='<button class="primary" data-quest="'+info.quest+'">ดูเควสที่ต้องทำก่อน</button>';
     else if(info.game)action='<button class="primary" data-game-info="'+info.game+'">ไปดูเกมขุดหลุมศพ</button>';
     else if(info.repair)action='<button class="primary" data-action="repair">ซ่อมเรือ · '+read().event.repairs+' Candy</button>';
-    else action='<button class="primary" data-game="'+id+'" '+(read().event.closed?'disabled':'')+'>'+(info.complete?'เล่นอีกครั้ง':'เริ่มมินิเกม')+'</button>';
-    openDetail(dialogShell(esc(info.name),'<span class="activity-tag">▶ มินิเกมในฉากนี้</span><p class="story-copy">'+esc(info.description)+'</p><p class="subtle">'+esc(info.instructions)+'</p><p class="activity-status '+(info.locked?'activity-locked':'')+'">'+esc(info.locked?'ยังไม่เปิด · '+info.reason:info.complete?'✓ ผ่านแล้ว · เล่นซ้ำได้':'พร้อมเล่น · กดเริ่มเมื่อพร้อม')+'</p>','<button class="secondary" data-close-detail>กลับฉาก</button>'+action));
+    else action='<button class="primary" data-game="'+id+'" '+(read().event.closed?'disabled':'')+'>'+(resuming?'เล่นต่อรอบเดิม':info.complete?'เล่นอีกครั้ง':'เริ่มมินิเกม')+'</button>';
+    openDetail(dialogShell(esc(info.name),'<span class="activity-tag">▶ มินิเกมในฉากนี้</span><p class="story-copy">'+esc(info.description)+'</p><p class="subtle">'+esc(info.instructions)+'</p><p class="activity-status '+(info.locked?'activity-locked':'')+'">'+esc(info.locked?'ยังไม่เปิด · '+info.reason:resuming?(round.deadline?'รอบเดิมยังอยู่ · เวลายังคงเดินขณะปิดหน้าต่าง':'รอบเดิมยังอยู่ · กลับมาเล่นต่อได้'):info.complete?'✓ ผ่านแล้ว · เล่นซ้ำได้':'พร้อมเล่น · กดเริ่มเมื่อพร้อม')+'</p>','<button class="secondary" data-close-detail>กลับฉาก</button>'+action));
     detail.dataset.gameInfo=id;
   }
   function showPreferences() {
