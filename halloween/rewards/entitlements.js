@@ -7,8 +7,8 @@
   let uid=null,account=null,rights=new Set(),status='login',pending=null,epoch=0,at=0;
   function identity(){const next=owner()||null;if(next!==uid){const old=account;uid=next;account=null;rights=new Set();pending=null;at=0;epoch++;status=uid?'idle':'login';old?.dispose();}}
   const view=()=>{identity();return {owner:uid,status,owned:[...rights]};};
-  function owns(id){identity();return status==='ready'&&rights.has(id);}
-  function refresh(force=false){identity();if(!uid)return Promise.resolve(view());if(pending)return pending;if(!force&&status==='ready'&&clock()-at<30000)return Promise.resolve(view());const who=uid,generation=epoch;status='loading';rights=new Set();
+  function owns(id){identity();return (status==='ready'||status==='refreshing')&&rights.has(id);}
+  function refresh(force=false){identity();if(!uid)return Promise.resolve(view());if(pending)return pending;if(!force&&status==='ready'&&clock()-at<30000)return Promise.resolve(view());const who=uid,generation=epoch;status=status==='ready'?'refreshing':'loading';
    const job=Promise.resolve().then(async()=>{if(generation!==epoch||who!==owner())return view();try{account||=createAccount(()=>{if(generation!==epoch)return;rights=new Set();status='idle';onChange();});const current=account;await current.refresh();identity();if(generation!==epoch||who!==uid)return view();const doc=current.read();if(doc.owner!==who)throw Error('Account mismatch');rights=new Set([...ids].filter(id=>receipt(doc,who,id)));status='ready';at=clock();}catch{identity();if(generation===epoch){rights=new Set();status='error';}}finally{if(generation===epoch){pending=null;onChange();}}return view();});pending=job;onChange();return job;
   }
   return Object.freeze({view,owns,refresh});
