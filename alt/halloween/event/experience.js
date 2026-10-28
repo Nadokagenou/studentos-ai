@@ -593,13 +593,14 @@
     if (!playable) {
       const fromMain=new URLSearchParams(location.search).get('entry')==='main',appHref=fromMain?'../../../':'../../',signed=account?.ready();
       const heading=phase==='ended'?'คืนฮาโลวีนจบลงแล้ว':phase==='upcoming'?'เรื่องราวรัตติกาล กำลังจะเริ่ม':'เข้าสู่ระบบเพื่อร่วมอีเวนต์';
-      main.innerHTML='<section class="locked-event"><span class="eyebrow">STUDENTOS · THE HALLOWEEN CHAPTER</span><h1>'+heading+'</h1><img src="'+image('theme-midnight-academy')+'" alt="Midnight Academy"><p class="le-when"><b>28 ต.ค. – 30 พ.ย. 2569</b><span>ตามเวลาไทย · ความคืบหน้า Candy และรางวัลผูกบัญชี StudentOS</span></p>'
+      main.innerHTML='<section class="locked-event"><span class="eyebrow">STUDENTOS · THE HALLOWEEN CHAPTER</span><h1>'+heading+'</h1><img src="'+image('theme-midnight-academy')+'" alt="Midnight Academy"><p class="le-when"><b>28 ต.ค. – 30 พ.ย. 2569</b></p>'
         // 28 ต.ค. 69 · เจ้าของ: "จัดลำดับและลองแก้หน่อย" — เดิมปุ่มสี่ปุ่มหน้าตาเท่ากัน ตัดบรรทัดตามความยาวข้อความ (1-2-1)
         // และคำอธิบายห้องลองลอยแยกจากปุ่มของมัน · ตอนนี้เรียงตามสิ่งที่ควรทำ: เข้าสู่ระบบ (หลัก) → ลองก่อน (พร้อมคำอธิบายใต้ปุ่ม)
         // → คลังรางวัล → ลิงก์กลับเว็บหลักเงียบ ๆ ท้ายสุด (พาออกจากหน้า) · ปุ่มกว้างเท่ากันเป็นคอลัมน์เดียว
+        // เจ้าของวงลบเอง: บรรทัดอธิบายใต้วันที่ ("ตามเวลาไทย · ความคืบหน้า Candy …") กับคำอธิบายใต้ปุ่มห้องลอง
         +'<div class="le-actions">'
         +(signed?'<p class="le-signed">เชื่อมบัญชีแล้ว · '+(phase==='ended'?'เปิดคลังเพื่อดูรางวัลที่ได้รับ':'พบกันเมื่อประตูเปิด')+'</p>':'<a class="primary le-main" href="'+appHref+'?go=login">เข้าสู่ระบบ StudentOS</a>')
-        +'<div class="le-try"><a class="secondary" href="?preview=1'+(fromMain?'&amp;entry=main':'')+'">เปิดห้องลองอีเวนต์</a><small>ห้องลองแยกเซฟ ของทดลองไม่เข้าสู่บัญชีจริง</small></div>'
+        +'<a class="secondary" href="?preview=1'+(fromMain?'&amp;entry=main':'')+'">เปิดห้องลองอีเวนต์</a>'
         +'<a class="secondary" href="../rewards/vault.html'+(fromMain?'?entry=main':'')+'">คลังรางวัลของฉัน</a>'
         +'</div>'
         +'<a class="le-back" href="'+appHref+'">← กลับเว็บ'+(fromMain?'หลัก ':' ')+'StudentOS</a></section>';return;
