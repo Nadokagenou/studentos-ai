@@ -78,3 +78,12 @@ dialog{border-radius:22px;background:linear-gradient(180deg,#ffffff08,#ffffff00 
 .detail-actions button{font-size:13px}
 @media(max-width:600px){header{height:64px}header a{font-size:19px}header>span{font-size:11px;padding:6px 11px}
  main{padding:26px 16px 60px}.vault-intro p{font-size:13px}.memory-card h2{font-size:14px}.memory-card p{font-size:11.5px}nav button{font-size:12px}}
+/* ปุ่ม "ออก" — 28 ต.ค. 69 · เจ้าของ: "สร้างปุ่มออกด้วย" — เดิมทางกลับมีแค่โลโก้ StudentOS ซึ่งดูไม่ออกว่ากดได้
+   แคปซูลกระจก ‹ ออก สูง 44px (เป้านิ้ว) ซ้ายสุดของหัวหน้า · ปลายทางตั้งจาก vault.js (กลับเว็บหลักเมื่อมาจากเว็บหลัก) */
+.vault-head-l{display:flex;align-items:center;gap:14px;min-width:0}
+header a.vault-exit{display:inline-flex;align-items:center;gap:5px;min-height:44px;padding:0 15px 0 10px;border-radius:999px;font:400 14px 'Sriracha','Sarabun','Leelawadee UI',Tahoma,sans-serif;color:#f1e6f7;
+ background:linear-gradient(180deg,#ffffff14,#ffffff05);border:1px solid #ffffff26;box-shadow:inset 0 1px 0 #ffffff1f,0 6px 16px -10px #000;transition:background .2s ease,transform .15s cubic-bezier(.23,1,.32,1)}
+header a.vault-exit svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+header a.vault-exit:hover{background:linear-gradient(180deg,#ffffff22,#ffffff0a);border-color:#e1c49a66}
+header a.vault-exit:active{transform:scale(.96)}
+@media(max-width:600px){.vault-head-l{gap:10px}header a.vault-brand{font-size:17px}header a.vault-brand span{display:none}header a.vault-exit{padding:0 13px 0 8px}}
