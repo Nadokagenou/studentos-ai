@@ -11,7 +11,7 @@
   for(let i=0;i<10;i++){const particle=document.createElement('i');particle.style.setProperty('--piece',String(i));particle.style.setProperty('--angle',i*36+'deg');layer.append(particle);}
   document.body.append(layer);timer=setTimeout(clear,reduced?650:1150);
  }
- document.addEventListener('pointerdown',e=>{const b=e.target.closest('button:not(:disabled),a.primary');if(!b)return;b.classList.remove('event-pressed');void b.offsetWidth;b.classList.add('event-pressed');},{passive:true});
+ document.addEventListener('pointerdown',e=>{const b=e.target.closest('button:not(:disabled),a.primary');if(b)b.classList.add('event-pressed');},{passive:true});
  document.addEventListener('animationend',e=>{if(e.animationName==='event-press')e.target.classList.remove('event-pressed');});
  document.addEventListener('visibilitychange',()=>{if(document.hidden)clear();});window.addEventListener('pagehide',clear);
  window.HalloweenEventFeedback={present,clear};

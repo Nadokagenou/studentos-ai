@@ -5,6 +5,14 @@ import vm from 'node:vm';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};};
 const flush=()=>new Promise(r=>setImmediate(r));
+test('press feedback preserves button hit geometry and never forces synchronous layout',()=>{
+ const css=read('halloween/event/feedback.css'),frames=css.match(/@keyframes event-press\{[^\n]+/)[0];
+ assert.doesNotMatch(frames,/\b(?:scale|transform|translate|width|height)\s*:/);
+ const handlers={},classes=new Set(),button={classList:{add:x=>classes.add(x),remove:x=>classes.delete(x)},get offsetWidth(){throw Error('forced layout during pointerdown');}};
+ vm.runInNewContext(read('halloween/event/feedback.js'),{document:{addEventListener:(n,f)=>handlers[n]=f},window:{addEventListener(){}},clearTimeout(){}});
+ handlers.pointerdown({target:{closest:()=>button}});assert.ok(classes.has('event-pressed'));
+ handlers.animationend({animationName:'event-press',target:button});assert.equal(classes.size,0);
+});
 function fixture(){
  let nodes=[];const attrs={},classes=new Set();
  const events={};const dialog={open:false,dataset:{},attrs,classList:{add:n=>classes.add(n),remove:n=>classes.delete(n)},setAttribute(k,v){attrs[k]=v;},removeAttribute(k){delete attrs[k];},addEventListener(k,f){(events[k]??=[]).push(f);},showModal(){this.open=true;},close(){this.open=false;for(const f of events.close||[])f();},querySelectorAll(s){return nodes.filter(n=>s.split(',').some(q=>{const m=q.match(/\[([^=\]]+)(?:="([^"]*)")?\]/);if(m)return m[1] in n.attrs&&(m[2]===undefined||n.attrs[m[1]]===m[2])&&(!q.includes(':not(:disabled)')||!n.disabled);return q.startsWith('.')&&n.attrs.class?.split(' ').includes(q.slice(1));}));},querySelector(s){return this.querySelectorAll(s)[0]||null;}};

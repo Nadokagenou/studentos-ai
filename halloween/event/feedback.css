@@ -1,6 +1,6 @@
 /* Quiet, contextual response. All ornaments let taps pass through. */
 .event-pressed{animation:event-press .22s ease-out}
-@keyframes event-press{40%{scale:.97}to{scale:1}}
+@keyframes event-press{40%{filter:brightness(1.18)}to{filter:brightness(1)}}
 .event-moment{position:fixed;inset:0;z-index:1400;pointer-events:none;display:grid;place-content:center;justify-items:center;color:#e8d4a6;text-shadow:0 2px 8px #100e19;isolation:isolate}
 .moment-seal{display:grid;place-items:center;width:96px;height:96px;border:1px solid #d5bd8655;border-radius:50%;font-size:46px;background:radial-gradient(circle,#272139e6,#16132199);box-shadow:0 0 45px #d6b77e16;animation:moment-seal 1.1s ease-out both}
 .moment-caption{font-size:13px;margin-top:14px;padding:5px 13px;border-radius:18px;background:#171321dd;color:#eee1cf;animation:moment-copy 1.1s ease-out both}
