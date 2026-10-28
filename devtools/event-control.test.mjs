@@ -40,3 +40,20 @@ test('authoritative changes wait until the finger is released and then repaint o
 test('background painting waits for a mutation or a modal to finish',()=>{
  const f=refreshFixture();f.box.pending=true;f.set({...f.doc(),rewards:{lamp:{id:'lamp'}}});f.box.refreshScene();assert.equal(f.paints(),0);f.box.pending=false;f.box.detail.open=true;f.box.refreshScene();assert.equal(f.paints(),0);f.box.detail.open=false;f.box.refreshScene();assert.equal(f.paints(),1);
 });
+function actionFixture(){
+ const wait=deferred();let calls=0;const attrs={},button={disabled:false,isConnected:true,dataset:{},innerHTML:'ส่งเควส ✦',querySelector:()=>null,setAttribute:(k,v)=>attrs[k]=v,removeAttribute:k=>delete attrs[k]};
+ const box={viewEpoch:0,pending:false,toast(){},perform:()=>{calls++;return wait.promise;}};
+ vm.runInNewContext('async '+grab('runAction'),box);return {wait,button,box,attrs,calls:()=>calls};
+}
+test('quest/house/garden actions show waiting immediately and accept one tap until settled',async()=>{
+ for(const type of ['quest','house','plant','water','harvest']){
+  const f=actionFixture(),first=f.box.runAction(f.button,{type});await f.box.runAction(f.button,{type});assert.equal(f.calls(),1);assert.equal(f.button.disabled,true);assert.equal(f.button.dataset.saving,'true');assert.match(f.button.textContent,/กำลัง/);f.wait.resolve({saved:true});assert.ok(await first);assert.equal(f.button.disabled,false);assert.equal(f.button.dataset.saving,undefined);assert.equal(f.button.innerHTML,'ส่งเควส ✦');
+ }
+});
+test('failed actions restore controls and stale successful answers cannot reopen their view',async()=>{
+ for(const result of [null,{saved:true}]){const f=actionFixture(),first=f.box.runAction(f.button,{type:'quest'});f.box.viewEpoch++;f.wait.resolve(result);assert.equal(await first,null);assert.equal(f.button.disabled,false);assert.equal(f.button.dataset.saving,undefined);}
+});
+test('task journal refresh preserves unchanged controls and defers changed content during a press',()=>{
+ let paints=0,markup='same';const box={taskMarkup:'same',queuedMissionRefresh:false,pending:false,heldPointers:new Set(),heldKeys:new Set(),playable:true,store:{},detail:{open:true,querySelector:()=>({scrollTop:0})},activePanel:'journal',journalPage:'tasks',tasks:()=>markup,showJournal(){paints++;box.taskMarkup=markup;}};
+ vm.runInNewContext(grab('refreshStudentMissions'),box);box.refreshStudentMissions();assert.equal(paints,0);markup='changed';box.heldPointers.add(1);box.refreshStudentMissions();assert.equal(paints,0);box.heldPointers.clear();box.refreshStudentMissions();assert.equal(paints,1);
+});

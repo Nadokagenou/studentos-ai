@@ -36,8 +36,8 @@ test('a suspended phone audio engine cannot delay a guide/menu tap',async()=>{
  const promise=box.click({target:{closest:s=>s==='[data-typing]'?null:button},detail:1,pointerType:'touch',preventDefault(){}});assert.equal(opened,1);await promise;
 });
 test('a rejected quest submission restores its captured button after the DOM event ends',async()=>{
- const mark="detail.querySelector('#submitQuest')?.addEventListener('click',async e => {",a=event.indexOf(mark),b=event.indexOf('\n    });',a);assert.ok(a>=0&&b>a);const body=event.slice(a+mark.length,b),button={disabled:false},e={currentTarget:button};
- const box={perform:async()=>null,id:'quest',branch:null};vm.runInNewContext('async function submit(e){'+body+'\n}',box);const p=box.submit(e);assert.equal(button.disabled,true);e.currentTarget=null;await p;assert.equal(button.disabled,false);
+ const mark="detail.querySelector('#submitQuest')?.addEventListener('click',async e => {",a=event.indexOf(mark),b=event.indexOf('\n    });',a);assert.ok(a>=0&&b>a);const body=event.slice(a+mark.length,b),button={disabled:false,dataset:{},querySelector:()=>null,setAttribute(){},removeAttribute(){}},e={currentTarget:button};
+ const box={pending:false,viewEpoch:0,perform:async()=>null,id:'quest',branch:null};vm.runInNewContext('async '+grab(event,'runAction')+'\nasync function submit(e){'+body+'\n}',box);const p=box.submit(e);assert.equal(button.disabled,true);e.currentTarget=null;await p;assert.equal(button.disabled,false);
 });
 test('unchanged account reads and focus pulses do not rebuild all buttons under a finger',()=>{
  const box={cache:null,paintedWalletKey:undefined,paint:()=>{box.paints++;},paints:0};vm.runInNewContext(grab(read('economy/client.js'),'paintAccount'),box);

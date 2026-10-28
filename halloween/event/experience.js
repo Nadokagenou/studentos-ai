@@ -25,7 +25,7 @@
   let config, store, route = 'gate', vaultTab = 'rewards', toastTimer, detailAfterClose = null;
   let activePanel=null,activeRoom=null,typingFrame=0,typingLines=[],dialogueEpoch=0,market;
   let viewEpoch=0;
-  let sceneKey=null,queuedSceneRefresh=false,refreshTimer=0;
+  let sceneKey=null,queuedSceneRefresh=false,refreshTimer=0,taskMarkup=null,queuedMissionRefresh=false;
   const heldPointers=new Set(),heldKeys=new Set();
   function sceneStateKey(){const doc=read(),{clock,...event}=doc.event;return JSON.stringify({...doc,revision:undefined,event});}
   function refreshScene(force=false){
@@ -34,7 +34,7 @@
     if(pending||navigating||detail.open||document.getElementById('gameDialog').open||heldPointers.size||heldKeys.size)return;
     queuedSceneRefresh=false;render();
   }
-  function queueSceneRefresh(){if(queuedSceneRefresh){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>refreshScene(),0);}}
+  function queueSceneRefresh(){if(queuedSceneRefresh||queuedMissionRefresh){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>{if(queuedMissionRefresh)refreshStudentMissions();refreshScene();},0);}}
   document.addEventListener('pointerdown',e=>heldPointers.add(e.pointerId),{passive:true});
   for(const type of ['pointerup','pointercancel'])document.addEventListener(type,e=>{heldPointers.delete(e.pointerId);queueSceneRefresh();},{passive:true});
   document.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')heldKeys.add(e.key);});
@@ -136,7 +136,7 @@
     next();
   }
   let pending = false;
-  async function perform(action,{silent=false}={}) {
+  async function perform(action,{silent=false,repaint=true}={}) {
     if (pending && !silent) { toast('กำลังบันทึกรายการก่อนหน้า กรุณารอสักครู่'); return null; }
     if (!silent) pending = true;
     try {
@@ -145,10 +145,26 @@
       const cue=({'brain-start':'magic','brain-move':saved.result.brainGame?.clear?'magic':'tap','study-claim':'magic',house:saved.result.candy?'coins':'ghost',quest:'magic',plant:'water',water:'water',harvest:'harvest','sell-crop':'coins','drink-biome-potion':'magic','enter-biome':'door','enter-room':'door','game-move':'tap','equip-weapon':'magic','start-boss':'ghost','battle-move':saved.result.battle?.clear?'magic':action.move==='skill'?'magic':'tap'})[action.type];if(cue){try{audio.play(cue);}catch{}}
       updateWallet(); updateBanner();
       try{window.HalloweenEventFeedback?.present(action,saved.result,reduced());}catch{}
-      if (!silent) {try{render();}catch(error){console.warn('Event scene refresh failed after a saved action',error);}}
+      if(!silent&&!repaint)queuedSceneRefresh=true;
+      if (!silent&&repaint) {try{render();}catch(error){console.warn('Event scene refresh failed after a saved action',error);}}
       return saved.result;
-    } catch(error) { try{audio.play('error');}catch{}toast(error.message || 'บันทึกไม่สำเร็จ ยังไม่มีการหักของ',true); return null; }
+    } catch(error) { try{audio.play('error');}catch{}toast(error.message || 'ยังยืนยันรายการไม่ได้ ตรวจเซฟอีกครั้งเมื่อเชื่อมต่อได้',true); return null; }
     finally { if (!silent) pending = false;queueSceneRefresh(); }
+  }
+  async function runAction(button,action){
+    if(!button||button.disabled)return null;
+    if(pending){toast('กำลังบันทึกรายการก่อนหน้า กรุณารอสักครู่');return null;}
+    const origin=viewEpoch,label=button.querySelector('[data-house-status]')||button,markup=label.innerHTML;
+    button.disabled=true;button.dataset.saving='true';button.setAttribute('aria-busy','true');
+    label.textContent=action.type==='house'?'กำลังเคาะ…':'กำลังบันทึก…';
+    try{
+      const result=await perform(action,{repaint:false});
+      if(!result)return null;
+      if(origin!==viewEpoch||!button.isConnected){toast('บันทึกรายการแล้ว ตรวจผลล่าสุดในกระเป๋าหรือสมุดเควสได้');return null;}
+      return result;
+    }finally{
+      button.disabled=false;delete button.dataset.saving;button.removeAttribute('aria-busy');label.innerHTML=markup;
+    }
   }
   function updateWallet() { const value=playable&&store?read().event.candy.toLocaleString('th-TH'):'—';document.getElementById('wallet').textContent=value;document.querySelectorAll('[data-scene-wallet]').forEach(el=>el.textContent=value); }
   function updateBanner() {
@@ -225,9 +241,9 @@
   async function knock(n){
     const before=currentObjective(),choice=prefs.knockChoice==='trick'?'trick':'treat';
     const door=detail.querySelector('[data-knock="'+n+'"]');door?.classList.add('knocking');
-    const result=await perform({type:'house',house:n,choice});
+    const result=await runAction(door,{type:'house',house:n,choice});
     if(!result){door?.classList.remove('knocking');return;}
-    showKnockResult(n,result,before);
+    showPanel('village');showKnockResult(n,result,before);
   }
   function showKnockResult(n,result,before){
     const O=window.HalloweenObjective,gift=result.questAid?.item||null,found=result.item||gift,after=currentObjective(),ready=!!after?.ready&&!before?.ready;
@@ -260,8 +276,8 @@
   function showJournal(page='index'){
     journalPage=['index','quests','vault','map','guide','tasks'].includes(page)?page:'index';
     if(journalPage==='guide'&&!prefs.guideSeen){prefs.guideSeen=true;rememberPrefs();}
-    const content={quests:questList,vault:inventory,tasks}[journalPage];
-    openDetail(window.HalloweenJournal.render({preview,page:journalPage,content:content?.(),Guide,objective:currentObjective(),place:activeRoom||route,rotationRows:Core.Rotations.upcoming(now(),8).map(w=>({...w,name:biomeName(Core.BIOMES[w.index]),clock:window.HalloweenHUD.clock(w.startAt)+'–'+window.HalloweenHUD.clock(w.endAt)})),biomeName:biomeName(currentBiome()),candy:read().event.candy,garden:Core.gardenUnlocked(read()),portrait:window.HalloweenWorld.portrait('vesper'),biomes:Core.BIOMES.map(id=>({...Core.biomeProgress(read(),config,id),name:Guide.names[id]}))}),()=>history.replaceState(null,'','#'+route));
+    const content={quests:questList,vault:inventory,tasks}[journalPage],body=content?.();if(journalPage==='tasks')taskMarkup=body;
+    openDetail(window.HalloweenJournal.render({preview,page:journalPage,content:body,Guide,objective:currentObjective(),place:activeRoom||route,rotationRows:Core.Rotations.upcoming(now(),8).map(w=>({...w,name:biomeName(Core.BIOMES[w.index]),clock:window.HalloweenHUD.clock(w.startAt)+'–'+window.HalloweenHUD.clock(w.endAt)})),biomeName:biomeName(currentBiome()),candy:read().event.candy,garden:Core.gardenUnlocked(read()),portrait:window.HalloweenWorld.portrait('vesper'),biomes:Core.BIOMES.map(id=>({...Core.biomeProgress(read(),config,id),name:Guide.names[id]}))}),()=>history.replaceState(null,'','#'+route));
     activePanel='journal';detail.dataset.scenePanel='journal';detail.dataset.journalPage=journalPage;
     detail.querySelector('.journal-paper').scrollTop=0;const pageFocus=detail.querySelector('[aria-current=page]')||detail.querySelector('#detailHeading');pageFocus.tabIndex=pageFocus.tagName==='BUTTON'?0:-1;pageFocus.focus({preventScroll:true});
     if(journalPage==='vault'){const b=document.createElement('button');b.className='primary';b.dataset.equipment='';b.textContent='อาวุธ · ถือและสวมใส่';detail.querySelector('.inventory-tabs').prepend(b);}
@@ -341,8 +357,8 @@
     }).join('')+'</div>','<button class="secondary" data-close-detail>กลับวงเวท</button><button class="primary" data-training>สนามฝึก · หลบ / ตั้งรับ / สกิล</button>'));
   }
   async function openBattle(id){
-    const biome=config.proposals.bosses[id]?.biome;
-    if(biome){if(!await perform({type:'enter-biome',biome},{silent:true}))return;activeRoom=null;route='biome';history.replaceState(null,'','#biome');render();}
+    const origin=viewEpoch,biome=config.proposals.bosses[id]?.biome;
+    if(biome){if(!await perform({type:'enter-biome',biome},{silent:true})||origin!==viewEpoch)return;activeRoom=null;route='biome';history.replaceState(null,'','#biome');render();}
     await window.HalloweenBattleUI.open(id,{read,config,perform,context:worldContext,toast,onClose:()=>{render();showBoss(id);},onRewards:ids=>acquisition(ids,'quest')});
   }
   function showPotion(){
@@ -351,10 +367,11 @@
     openDetail(dialogShell('น้ำยาหลงไบโอม',bottle+'<p class="subtle">น้ำยาสุ่มเปิดทางส่วนตัวไปอีกไบโอม 15 นาที คูลดาวน์และเพดานบ้านยังอยู่</p><p class="plot-inventory">มี '+quantity+' ขวด</p><p class="tiny">ราคา '+rule.price+' Candy · เปิดทางส่วนตัว 15 นาที</p>','<button class="secondary" data-close-detail>เก็บไว้ก่อน</button>'+(canBuy?'<button class="secondary" data-buy-potion '+(closed||read().event.candy<rule.price?'disabled':'')+'>ซื้อ 1 ขวด · '+rule.price+' Candy</button>':'<button class="secondary" data-route="cauldron">ไปหามอรา</button>')+'<button class="primary" data-drink-potion '+(!quantity||closed?'disabled':'')+'>ดื่มน้ำยา</button>'));
   }
   async function drinkPotion(button){
-    button.disabled=true;const result=await perform({type:'drink-biome-potion'},{silent:true});if(!result){button.disabled=false;return;}
+    const result=await runAction(button,{type:'drink-biome-potion'});if(!result)return;
     activePanel=null;activeRoom=null;route='biome';detail.close();history.replaceState(null,'','#biome');render();
     const shift=document.createElement('div');shift.className='biome-shift';shift.innerHTML='<div class="shift-rings" aria-hidden="true"></div><p>ม่านหมอกพาเจ้ามาถึง<br><b>'+esc(biomeName(result.biome))+'</b></p>';main.append(shift);
-    setTimeout(()=>{shift.remove();if(result.firstStory)showStory(result.biome);else toast('เดินทางถึง '+biomeName(result.biome));},reduced()?80:1150);
+    setTimeout(()=>shift.remove(),reduced()?80:1150);
+    if(result.firstStory)showStory(result.biome);else toast('เดินทางถึง '+biomeName(result.biome));
   }
   function showTrade(){market.setMode('sell');showPanel('shop-stock');}
   function showPlot(id){
@@ -492,9 +509,8 @@
     detail.querySelector('[data-quest-game]')?.addEventListener('click',() => { detail.close(); openGame(game); });
     detail.querySelector('#submitQuest')?.addEventListener('click',async e => {
       const submitButton=e.currentTarget;
-      submitButton.disabled=true;
-      const result = await perform({type:'quest',quest:id,branch});
-      if (!result) { submitButton.disabled=false; return; }
+      const result = await runAction(submitButton,{type:'quest',quest:id,branch});
+      if (!result) return;
       const O=window.HalloweenObjective,done=Core.questStatus(read(),config,q).complete;
       const gained=done?q.rewards.filter(r=>!r.afterBoss).map(r=>r.id==='candy'?{icon:'🍬',text:r.quantity+' Candy'}:config.rewards[r.id]?{icon:'✦',text:config.rewards[r.id].name+(r.kind==='upgrade-existing'?' · ปลดผนึกแล้ว':'')}:{icon:O.icon(r.id),text:O.itemName(config,r.id)+' ×'+r.quantity}):[];
       if(result.seeds)gained.push({icon:'🌱',text:name(result.seeds.id)+' ×'+result.seeds.quantity});
@@ -529,10 +545,13 @@
     return studyTasks()+pageHead('A PACT WITH THE MIDNIGHT','เควสมรณะ','รับคำท้า แล้วให้เวทมนตร์ฝากงานพิเศษลงใน StudentOS ของเธอ',preview?'พรีวิว · อยู่เฉพาะเครื่อง':'ตรวจเวลาและรับรางวัลผ่านบัญชี')+'<section class="death-contract">'+npcSpeech('vesper','ข้าไม่ได้ขอให้เจ้ารีบกดว่าทำสำเร็จ… จงเลือกงานที่อยากลงมือ เปิดงานเควสที่ข้าเสกไว้ แล้วรักษาแสงโฟกัสให้ครบยี่สิบนาที เมื่อทำเสร็จค่อยกลับมารับของขวัญ')+'<div class="death-seal" aria-hidden="true">☾</div><h3>พันธสัญญา 20 นาที</h3><p>งานเควสจะเพิ่มในรายการงานของ StudentOS บนเครื่องนี้ เปิดโฟกัสของงานเควส ค้างหน้านั้นไว้จนครบเวลา แล้วกดทำเสร็จ งานอื่นและกำหนดส่งเดิมของเธอยังอยู่ครบ</p><p class="death-conditions">รับได้วันละ 1 เควส · แต่ละเควสมีเวลา 24 ชั่วโมง · รางวัล '+config.proposals.taskCandy+' Candy</p>'+(q?'<progress class="death-progress" data-death-progress value="'+v.status.minutes+'" max="20" aria-label="แสงโฟกัสของเควสมรณะ"></progress><p class="death-count"><b data-death-minutes>'+v.status.minutes+'</b> / 20 นาที</p><p class="death-status" data-death-status role="status">'+esc(v.claimed?'รับรางวัลของเควสนี้แล้ว':v.status.reason)+'</p><div class="death-actions"><a href="../../?go=tasks" target="_blank" rel="noopener">ไปทำเควสใน StudentOS ↗</a><button class="secondary" data-death-action="retry">ส่งงานเควสอีกครั้ง</button><button class="primary" data-death-action="claim" '+(!v.status.ready||v.claimed||!v.remaining||read().event.closed?'disabled':'')+'>'+(v.claimed?'รับแล้ว ✓':'รับ '+Math.min(config.proposals.taskCandy,v.remaining)+' Candy')+'</button></div>':'<button class="primary death-accept" data-death-action="enroll" '+(read().event.closed?'disabled':'')+'>รับเควสมรณะ · เสกงานเข้า StudentOS</button>')+'<button class="quiet-button" data-refresh-studentos>ตรวจความคืบหน้า</button><p class="mission-cap">ภารกิจรับรวมได้อีก '+v.remaining+' / '+config.proposals.taskDailyCap+' Candy ใน 24 ชั่วโมง · แยกจาก Candy ที่เคาะบ้าน</p></section><section class="student-invite"><small>รางวัลชวนเพื่อน · ธีมผีไทย</small><h3>เรือนลับแลรอเจ้าของคนใหม่</h3><p>ชวนเพื่อนใหม่ 3 คนและทำงานเสร็จ 1 งาน รับธีมเรือนไทยพร้อมหมอกและเงาวิญญาณ ใช้ยอดชวนเดิมของบัญชีได้</p><p class="invite-status">เปิดหน้าวันนี้ → อีเวนต์ → เรือนลับแล เพื่อรับรหัสเชิญและ QR ของเธอ</p><p>Halloween และ Moon &amp; Candle เป็นรางวัลบอสสุดท้าย ไม่ต้องชวนเพื่อน</p><a class="secondary" href="../../?go=today">ไปหน้า StudentOS ↗</a></section>';
   }
   function updateDeathProgress(){
-    if(!playable||!store||!detail.open||activePanel!=='journal'||journalPage!=='tasks')return;const q=activeDeathQuest();if(!q)return;const v=deathView(q),bar=detail.querySelector('[data-death-progress]'),minutes=detail.querySelector('[data-death-minutes]'),text=detail.querySelector('[data-death-status]'),claim=detail.querySelector('[data-death-action=claim]');if(bar)bar.value=v.status.minutes;if(minutes)minutes.textContent=v.status.minutes;if(text)text.textContent=v.claimed?'รับรางวัลของเควสนี้แล้ว':v.status.reason;if(claim)claim.disabled=!v.status.ready||v.claimed||!v.remaining||read().event.closed;
+    if(!playable||!store||!detail.open||activePanel!=='journal'||journalPage!=='tasks')return;const q=activeDeathQuest();if(!q)return;const v=deathView(q),bar=detail.querySelector('[data-death-progress]'),minutes=detail.querySelector('[data-death-minutes]'),text=detail.querySelector('[data-death-status]'),claim=detail.querySelector('[data-death-action=claim]');if(bar)bar.value=v.status.minutes;if(minutes)minutes.textContent=v.status.minutes;if(text)text.textContent=v.claimed?'รับรางวัลของเควสนี้แล้ว':v.status.reason;if(claim)claim.disabled=pending||!!claim.dataset.saving||!v.status.ready||v.claimed||!v.remaining||read().event.closed;
   }
   function refreshStudentMissions(){
-    if(!playable||!store||!detail.open||activePanel!=='journal'||journalPage!=='tasks')return;
+    if(!playable||!store||!detail.open||activePanel!=='journal'||journalPage!=='tasks'){queuedMissionRefresh=false;return;}
+    if(taskMarkup===tasks()){queuedMissionRefresh=false;return;}
+    if(pending||heldPointers.size||heldKeys.size){queuedMissionRefresh=true;return;}
+    queuedMissionRefresh=false;
     const scroll=detail.querySelector('.journal-paper')?.scrollTop||0;showJournal('tasks');detail.querySelector('.journal-paper').scrollTop=scroll;
   }
   function ghosts() {
@@ -610,9 +629,9 @@
     const o=currentObjective();if(!o||o.key==='gate')return;
     openDetail(dialogShell('ภารกิจตอนนี้',window.HalloweenHUD.bar(o,{duration,now:now(),panel:true}),'<button class="secondary" data-close-detail>กลับไปสำรวจ</button>'));
   }
-  async function runObjective(){
+  async function runObjective(button){
     const o=currentObjective();if(!o)return;const a=o.action;
-    if(a.kind==='welcome'){if(await perform({type:'claim-welcome'},{silent:true})){activeRoom=null;await navigate('biome');showQuest('dutchman-light-in-darkness');}return;}
+    if(a.kind==='welcome'){if(await runAction(button,{type:'claim-welcome'})){activeRoom=null;if(await navigate('biome',{entered:true}))showQuest('dutchman-light-in-darkness');}return;}
     if(a.kind==='enter-hub'){main.querySelector('[data-enter-hub]')?.click();return;}
     if(a.kind==='enter-biome'){await navigate('biome',{biome:a.biome});return;}
     if(a.kind==='village'){await goToVillage();return;}
@@ -646,6 +665,7 @@
     const q=config?.quests.find(q=>q.id===detail.dataset.questId),button=detail.querySelector('#submitQuest'),note=detail.querySelector('[data-quest-appointment]');if(!q||!button||!note)return;
     const doc=read(),wait=Core.questWait(doc,config,q,clockNow()),status=Core.questStatus(doc,config,q);let reason='';
     try{Core.checkRequirements(doc,Core.resolveRequirements(config,q,q.phases[status.phase]?.requirements,detail.dataset.questBranch||null));}catch(error){reason=error.message;}
+    if(button.dataset.saving)return;
     button.disabled=pending||status.complete||!status.unlocked||q.biome!==currentBiome()||wait.waiting||!!reason||doc.event.closed;
     if(wait.waiting){const date=new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(wait.nextAt));note.innerHTML='<b>◷ นัดครั้งถัดไปกับ Mr. Dech</b>ของครบเป็นหนึ่งเงื่อนไข Dech เตรียมจดหมาย 20 นาทีหลัง Quest 2 · รับได้เวลา '+esc(date)+' น.<small>อีก '+duration(wait.nextAt-now())+' · ระหว่างนี้กลับไปโฟกัสงานหรือสำรวจไบโอมอื่นได้</small>';button.textContent='รอจดหมายจาก Dech';}
     else{note.textContent=status.complete?'ส่งเควสนี้และรับรางวัลแล้ว':reason?'ถึงรอบนัดแล้ว · '+reason:'ถึงรอบนัดแล้ว ส่งเควสได้เมื่ออยู่ที่คฤหาสน์';button.textContent='ส่งเควส';}
@@ -659,7 +679,8 @@
     document.querySelectorAll('[data-closes-at]').forEach(el=>{const left=Number(el.dataset.closesAt)-at;if(left<=0){if(!detail.open)refreshScene(true);return;}el.textContent=el.textContent.replace(/ปิดใน .*/,'ปิดใน '+duration(left));});
     detail.querySelectorAll('[data-house-status]').forEach(label=>{
       const a=Core.houseAvailability(read(),config,Number(label.dataset.houseStatus),clockNow()),door=label.closest('button'),wait=a.availableAt;
-      door.disabled=!a.ready||read().event.closed;
+      door.disabled=pending||!!door.dataset.saving||!a.ready||read().event.closed;
+      if(door.dataset.saving)return;
       label.textContent=a.ready?'เคาะประตู':(a.remaining===0?'เปิดได้เร็วสุดอีก ':'เปิดอีก ')+duration(wait-at);
       if(!a.ready){
         // บ้านพักนานกว่าประตูเปิด: บอกตรง ๆ ว่าได้เคาะอีกทีรอบหน้า ไม่ใช่เวลาที่ประตูปิดไปแล้ว
@@ -669,11 +690,11 @@
       }
     });
     const lane=detail.querySelector('.village-lane');
-    if(lane){const idle=![...lane.querySelectorAll('[data-knock]')].some(b=>!b.disabled);let note=detail.querySelector('.village-rest');if(idle&&!note){note=document.createElement('p');note.className='village-rest';note.innerHTML='บ้านในไบโอมนี้กำลังพัก 💤 ดูเวลาประตูถัดไป หรือรับ <b>พันธสัญญางานจริง</b> และสุ่มเกมพักสมองในสมุด';lane.before(note);}else if(!idle)note?.remove();}
+    if(lane){const idle=!pending&&![...lane.querySelectorAll('[data-knock]')].some(b=>!b.disabled);let note=detail.querySelector('.village-rest');if(idle&&!note){note=document.createElement('p');note.className='village-rest';note.innerHTML='บ้านในไบโอมนี้กำลังพัก 💤 ดูเวลาประตูถัดไป หรือรับ <b>พันธสัญญางานจริง</b> และสุ่มเกมพักสมองในสมุด';lane.before(note);}else if(!idle)note?.remove();}
     const houseLimit=detail.querySelector('[data-house-limit]');if(houseLimit){const a=Core.houseAvailability(read(),config,1,clockNow());houseLimit.textContent='รับ Candy จากบ้านได้อีก '+a.remaining+' ในช่วง 24 ชั่วโมงนี้'+(a.capNextAt?' · โควตาเริ่มคืนอีก '+duration(a.capNextAt-at):'');}
     detail.querySelectorAll('[data-crop-countdown]').forEach(label=>{label.textContent=at>=Number(label.dataset.until)?'โตเต็มที่แล้ว':duration(Number(label.dataset.until)-at);});
     const plotId=detail.open&&detail.dataset.plotBiome;
-    if(plotId){const s=window.HalloweenWorld.cropState(worldContext(),plotId),harvest=detail.querySelector('[data-action="harvest"]');if(harvest){harvest.disabled=!s.ready||read().event.closed;if(s.ready)detail.querySelector('.crop-stage-title').textContent='โตเต็มที่แล้ว เก็บเกี่ยวได้';}}
+    if(plotId){const s=window.HalloweenWorld.cropState(worldContext(),plotId),harvest=detail.querySelector('[data-action="harvest"]');if(harvest){harvest.disabled=pending||!!harvest.dataset.saving||!s.ready||read().event.closed;if(s.ready)detail.querySelector('.crop-stage-title').textContent='โตเต็มที่แล้ว เก็บเกี่ยวได้';}}
     main.querySelectorAll('[data-plot-biome]').forEach(b=>{
       const s=window.HalloweenWorld.cropState(worldContext(),b.dataset.plotBiome),label=!s.unlocked?'รอเปิดแปลง':!s.planted?'แปลงว่าง':s.ready?'เก็บเกี่ยวได้':!s.g.watered?'รอรดน้ำ':'กำลังเติบโต';
       b.classList.toggle('crop-ready',s.ready);b.setAttribute('aria-label','แปลง'+s.crop.name+' · '+label);b.querySelector('.spot-label small').textContent=label;
@@ -711,13 +732,18 @@
     // ปุ่มออก (24 ต.ค. 69 · เจ้าของ: "สร้างปุ่มออกไปหน้าแอป") — เดิมทางกลับมีแค่โลโก้ในหัวหน้าที่ world.css ซ่อนไว้ · ปุ่มบ้านพากลับโถงกลาง ไม่ใช่แอป
     if(button.hasAttribute('data-exit-app')){location.href=new URL(new URLSearchParams(location.search).get('entry')==='main'?'../../':'../../',location.href).href;return;}
     if(button.hasAttribute('data-brain-open')){detail.close();await window.HalloweenBrainUI.open({read,perform,now,workHref:'../../?go=tasks'+(preview?'&halloweenStudyPreview=1':''),onClose:()=>showJournal('tasks')});return;}
-    if(button.dataset.studyClaim){button.disabled=true;const P=window.HalloweenStudyPact,uid=preview?Death.owner(localStorage):read().owner,result=await perform({type:'study-claim',pact:button.dataset.studyClaim},{silent:true});if(result&&preview){const local=P.read(localStorage,uid);if(local.event.studyPacts?.active?.id===result.pact){local.event.studyPacts.active.claimed=true;P.write(localStorage,local);}}showJournal('tasks');if(result)toast('เปิดบันทึกแล้ว'+(result.candy?' · +'+result.candy+' Candy':''));return;}
-    if(button.dataset.deathAction){button.disabled=true;const action=button.dataset.deathAction;if(action==='claim'){const q=activeDeathQuest(),result=q&&await perform({type:'death-quest-claim',quest:q.id});refreshStudentMissions();if(result)toast(candyReceipt(result.candy,'พันธสัญญาสำเร็จ · รับ'));return;}const result=action==='enroll'?await perform({type:'death-quest-enroll'}):{deathQuest:activeDeathQuest()};try{if(result?.deathQuest){Death.publish(localStorage,result.deathQuest,action==='retry');refreshStudentMissions();toast('ส่งคำขอแล้ว เปิด StudentOS เพื่อให้เควสปรากฏในรายการงาน');}}catch{toast('ส่งงานเควสไม่สำเร็จ ลองส่งอีกครั้งได้โดยไม่สร้างเควสซ้ำ',true);}button.disabled=false;return;}
+    if(button.dataset.studyClaim){const P=window.HalloweenStudyPact,uid=preview?Death.owner(localStorage):read().owner,result=await runAction(button,{type:'study-claim',pact:button.dataset.studyClaim});if(result&&preview){const local=P.read(localStorage,uid);if(local.event.studyPacts?.active?.id===result.pact){local.event.studyPacts.active.claimed=true;P.write(localStorage,local);}}if(result){showJournal('tasks');toast('เปิดบันทึกแล้ว'+(result.candy?' · +'+result.candy+' Candy':''));}return;}
+    if(button.dataset.deathAction){
+      const action=button.dataset.deathAction;
+      if(action==='claim'){const q=activeDeathQuest(),result=q&&await runAction(button,{type:'death-quest-claim',quest:q.id});if(result){refreshStudentMissions();toast(candyReceipt(result.candy,'พันธสัญญาสำเร็จ · รับ'));}return;}
+      const result=action==='enroll'?await runAction(button,{type:'death-quest-enroll'}):{deathQuest:activeDeathQuest()};
+      try{if(result?.deathQuest){Death.publish(localStorage,result.deathQuest,action==='retry');refreshStudentMissions();toast('ส่งคำขอแล้ว เปิด StudentOS เพื่อให้เควสปรากฏในรายการงาน');}}catch{toast('ส่งงานเควสไม่สำเร็จ ลองส่งอีกครั้งได้โดยไม่สร้างเควสซ้ำ',true);}return;
+    }
     if(button.hasAttribute('data-refresh-studentos')){refreshStudentMissions();return;}
     if(button.hasAttribute('data-copy-studentos')){try{await navigator.clipboard.writeText('https://nadokagenou.github.io/studentos-ai/');toast('คัดลอกลิงก์แล้ว ส่งชวนเพื่อนได้เลย');}catch{toast('คัดลอกอัตโนมัติไม่ได้ กดเลือกลิงก์ด้านบนแล้วคัดลอกได้เลย');}return;}
-    if(button.dataset.studentosMission){button.disabled=true;const result=await perform({type:'studentos-mission',mission:button.dataset.studentosMission});refreshStudentMissions();if(result)toast(candyReceipt(result.candy,'ภารกิจ StudentOS สำเร็จ · รับ'));return;}
+    if(button.dataset.studentosMission){const result=await runAction(button,{type:'studentos-mission',mission:button.dataset.studentosMission});if(result){refreshStudentMissions();toast(candyReceipt(result.candy,'ภารกิจ StudentOS สำเร็จ · รับ'));}return;}
     if(button.dataset.enterBiome&&!Core.portalStatus(read(),config,button.dataset.enterBiome,clockNow()).open){showPortalSchedule(button.dataset.enterBiome);return;}
-    if(button.hasAttribute('data-objective-go')){button.disabled=true;try{await runObjective();}finally{button.disabled=false;}return;}
+    if(button.hasAttribute('data-objective-go')){await runObjective(button);return;}
     if(button.hasAttribute('data-open-objective')){showObjective();return;}
     if(button.hasAttribute('data-open-journal')){showJournal();return;}
     if(button.dataset.journalPage){showJournal(button.dataset.journalPage);return;}
@@ -727,7 +753,7 @@
     if(button.hasAttribute('data-open-balance')){showBalance();return;}
     if(button.hasAttribute('data-item-pools')){showItemPools();return;}
     if(button.hasAttribute('data-equipment')){showEquipment();return;}
-    if(button.dataset.equipWeapon){if(await perform({type:'equip-weapon',weapon:button.dataset.equipWeapon})){showEquipment();toast('ถือ '+config.proposals.weapons[button.dataset.equipWeapon].name+' แล้ว');}return;}
+    if(button.dataset.equipWeapon){if(await runAction(button,{type:'equip-weapon',weapon:button.dataset.equipWeapon})){showEquipment();toast('ถือ '+config.proposals.weapons[button.dataset.equipWeapon].name+' แล้ว');}return;}
     if(button.hasAttribute('data-training')){detail.close();await window.HalloweenBattleUI.open('training',{read,config,perform,context:worldContext,onClose:()=>{render();showTutor();},onRewards:()=>{}});return;}
     if(button.hasAttribute('data-boss-list')){showBossList();return;}
     if(button.dataset.boss){showBoss(button.dataset.boss);return;}
@@ -743,7 +769,7 @@
     }
     if(button.hasAttribute('data-toggle-scene-motion')){prefs.motion=reduced()?'full':'still';prefs.motionChosen=true;try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch{}syncMotionUI();return;}
     if(button.hasAttribute('data-open-potion')){showPotion();return;}
-    if(button.hasAttribute('data-buy-potion')){button.disabled=true;if(await perform({type:'buy-biome-potion'})){showPotion();toast('มอราเตรียมน้ำยาให้แล้ว 1 ขวด');}else button.disabled=false;return;}
+    if(button.hasAttribute('data-buy-potion')){if(await runAction(button,{type:'buy-biome-potion'})){showPotion();toast('มอราเตรียมน้ำยาให้แล้ว 1 ขวด');}return;}
     if(button.hasAttribute('data-drink-potion')){drinkPotion(button);return;}
     if(button.dataset.npc){showNPC(button.dataset.npc,button.dataset.topic);return;}
     if(button.hasAttribute('data-trade')){showTrade();return;}
@@ -760,10 +786,10 @@
     }
     if(button.dataset.story){showStory(button.dataset.story);return;}
     if(button.hasAttribute('data-visitors')){showVisitors();return;}
-    if(button.dataset.finishStory){if(await perform({type:'story-seen',biome:button.dataset.finishStory},{silent:true})){detail.close();render();}return;}
+    if(button.dataset.finishStory){if(await runAction(button,{type:'story-seen',biome:button.dataset.finishStory})){detail.close();render();}return;}
     if(button.dataset.knock){await knock(Number(button.dataset.knock));return;}
     if(button.dataset.knockChoice){prefs.knockChoice=button.dataset.knockChoice;rememberPrefs();detail.querySelectorAll('[data-knock-choice]').forEach(b=>b.setAttribute('aria-checked',String(b===button)));return;}
-    if(button.dataset.seedQuest){const r=await perform({type:'seed-quest',biome:button.dataset.seedQuest});if(r){showPlot(button.dataset.seedQuest);toast('ส่งเควสสำเร็จ ได้เมล็ด '+r.seeds.quantity+' ชิ้น');}return;}
+    if(button.dataset.seedQuest){const r=await runAction(button,{type:'seed-quest',biome:button.dataset.seedQuest});if(r){render();showPlot(button.dataset.seedQuest);toast('ส่งเควสสำเร็จ ได้เมล็ด '+r.seeds.quantity+' ชิ้น');}return;}
     if (button.matches('[data-open-preferences]')) { e.preventDefault(); showPreferences(); return; }
     if (!playable && button.matches('[data-route]')) { e.preventDefault(); toast(preview?'เปิดห้องลองก่อนเพื่อสำรวจ':phase==='ended'?'อีเวนต์สิ้นสุดแล้ว ดูของที่ได้รับต่อได้ในคลัง':'เข้าสู่ระบบและรอเปิดอีเวนต์วันที่ 28 ต.ค.'); return; }
     if (button.dataset.route==='biome') {
@@ -776,18 +802,17 @@
     if (button.dataset.inspect) { inspect(button.dataset.inspect); return; }
     if (button.dataset.craft) {
       const recipe = config.proposals.recipes.find(r => r.id===button.dataset.craft);
-      button.disabled=true;
-      const result = await perform({type:'craft',recipe:recipe.id}); if (result) {recipePrepared=false;showPanel(recipe.channel+'-recipes');acquisition(result.rewards,recipe.channel);}else button.disabled=false; return;
+      const result = await runAction(button,{type:'craft',recipe:recipe.id}); if (result) {recipePrepared=false;showPanel(recipe.channel+'-recipes');acquisition(result.rewards,recipe.channel);}return;
     }
     if (button.dataset.theatre) {
       const item = Catalog.items.find(x => x.rarity===button.dataset.theatre);
       window.HalloweenAcquisition.open(item,{asset:asset(item),color:Catalog.tiers[item.rarity].color,channel:'cauldron',reduced:reduced(),sound:prefs.sound,presentationOnly:true}); return;
     }
     if (button.dataset.game) { openGame(button.dataset.game); return; }
-    if (button.hasAttribute('data-visitor')) { if (await perform({type:'visitor',index:Number(button.dataset.visitor)})) {showVisitors();toast('ส่งของแล้ว นักเดินทางฝาก Candy ไว้ให้');} return; }
-    if (button.dataset.task) { if (await perform({type:'task',task:button.dataset.task})) toast('งานตัวอย่างเสร็จแล้ว รับ Candy เรียบร้อย ✓'); return; }
-    if (button.dataset.totem) { if (await perform({type:'totem',biome:button.dataset.totem})) { navigate('explore'); toast('Totem เปิดเส้นทางส่วนตัว 15 นาที'); } return; }
-    if (button.dataset.action) { if (await perform({type:button.dataset.action,biome:button.dataset.cropBiome})) {if(button.dataset.cropBiome)showPlot(button.dataset.cropBiome);if(button.dataset.action==='repair'&&detail.dataset.gameInfo)showGameInfo(detail.dataset.gameInfo);toast(({harvest:'เก็บผลผลิตแล้ว นำไปขายกับพ่อค้าในร้านได้',water:'รดน้ำแล้ว รอผลผลิตได้เลย',plant:'ปลูกเมล็ดจากเควสแล้ว อย่าลืมรดน้ำ',repair:'ซ่อมเรือแล้ว ออกเดินทางได้เลย'})[button.dataset.action]);} }
+    if (button.hasAttribute('data-visitor')) { if (await runAction(button,{type:'visitor',index:Number(button.dataset.visitor)})) {showVisitors();toast('ส่งของแล้ว นักเดินทางฝาก Candy ไว้ให้');} return; }
+    if (button.dataset.task) { if (await runAction(button,{type:'task',task:button.dataset.task})){render();toast('งานตัวอย่างเสร็จแล้ว รับ Candy เรียบร้อย ✓');} return; }
+    if (button.dataset.totem) { if (await runAction(button,{type:'totem',biome:button.dataset.totem})) { navigate('explore'); toast('Totem เปิดเส้นทางส่วนตัว 15 นาที'); } return; }
+    if (button.dataset.action) { if (await runAction(button,{type:button.dataset.action,biome:button.dataset.cropBiome})) {render();if(button.dataset.cropBiome)showPlot(button.dataset.cropBiome);if(button.dataset.action==='repair'&&detail.dataset.gameInfo)showGameInfo(detail.dataset.gameInfo);toast(({harvest:'เก็บผลผลิตแล้ว นำไปขายกับพ่อค้าในร้านได้',water:'รดน้ำแล้ว รอผลผลิตได้เลย',plant:'ปลูกเมล็ดจากเควสแล้ว อย่าลืมรดน้ำ',repair:'ซ่อมเรือแล้ว ออกเดินทางได้เลย'})[button.dataset.action]);} }
   });
   document.getElementById('preferencesButton').addEventListener('click',showPreferences);
   window.addEventListener('storage',e=>{if(e.key===StudentMissions.STORE_KEY||e.key===Death.FOCUS_KEY)updateDeathProgress();});
