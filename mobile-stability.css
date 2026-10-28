@@ -1,6 +1,7 @@
 /* Mobile input stays responsive; retain artwork and transform/opacity motion. */
 :root #themePick button[hidden],:root #themePick .th-rarity[hidden]{display:none!important}
 @media(max-width:767px),(hover:none) and (pointer:coarse){
+ #eventMain .scene-shell::before{background:linear-gradient(#080d15,#101321);filter:none}
  button,a,[role=button]{touch-action:manipulation}
  .phone *,.event-dialog,.preferences-dialog{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
  .hw-haze,.hw-mist,.hw-ground-fog,.tg-mist{filter:none!important}

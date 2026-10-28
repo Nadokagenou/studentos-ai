@@ -7,14 +7,14 @@
   const shorts=['dutchman','jack','vampire','graveyard'];
   const thai=['ท่าเรือผี','สวนฟักทอง','คฤหาสน์แวมไพร์','สุสานนิรันดร์'];
   const hint=['ตามแสงโคม ล่าสมบัติบนเรือที่ไม่เคยกลับฝั่ง','ถางเถาวัลย์ ปลูกสวน และฟังคำขอของ Jack','เปิดประตูคฤหาสน์ มองหารายละเอียดที่เปลี่ยนไป','ขุดหลุมศพ แล้วนำวิญญาณกลับมาก่อนหมดเวลา'];
-  const portraits={hub:['portrait-hub.png',0,0,1],dutchman:['portrait-biomes.png',0,0,2],jack:['portrait-biomes.png',1,0,2],vampire:['portrait-biomes.png',0,1,2],graveyard:['portrait-biomes.png',1,1,2],shop:['portrait-rooms.png',0,0,2],cauldron:['portrait-rooms.png',1,0,2],ritual:['portrait-rooms.png',0,1,2],garden:['portrait-rooms.png',1,1,2]};
+  const portraits={hub:['portrait-hub.webp',0,0,1],dutchman:['portrait-biomes.webp',0,0,2],jack:['portrait-biomes.webp',1,0,2],vampire:['portrait-biomes.webp',0,1,2],graveyard:['portrait-biomes.webp',1,1,2],shop:['portrait-rooms.webp',0,0,2],cauldron:['portrait-rooms.webp',1,0,2],ritual:['portrait-rooms.webp',0,1,2],garden:['portrait-rooms.webp',1,1,2]};
   function spot(label,attrs,x,y,extra='',mobile=[x,y]){
     const activity=attrs.includes('data-game-info=');
     return '<button class="world-spot scene-point '+extra+(activity?' activity-point':'')+(x<20?' label-right':x>80?' label-left':'')+'" style="--x:'+x+'%;--y:'+y+'%;--px:'+mobile[0]+'%;--py:'+mobile[1]+'%" '+attrs+' aria-label="'+esc(label)+'"><span class="spot-dot" aria-hidden="true"></span><span class="spot-label">'+esc(label)+'</span></button>';
   }
   function scene(key,label,contents,extra=''){
     const p=portraits[key];
-    return '<div class="scene-shell '+extra+'" style="--scene-art:url(assets/world-'+key+'.png)"><div class="world-scene '+extra+'" style="--portrait-size:'+p[3]*100+'%;--portrait-left:'+(-p[1]*100)+'%;--portrait-top:'+(-p[2]*100)+'%"><picture class="scene-picture"><source media="(orientation:portrait)" srcset="assets/'+p[0]+'"><img class="scene-background" src="assets/world-'+key+'.png" alt="'+esc(label)+'" fetchpriority="high"></picture><div class="scene-shade" aria-hidden="true"></div>'+contents+'<div class="scene-fog" aria-hidden="true"></div></div></div>';
+    return '<div class="scene-shell '+extra+'" style="--scene-art:url(assets/world-'+key+'.webp)"><div class="world-scene '+extra+'" style="--portrait-size:'+p[3]*100+'%;--portrait-left:'+(-p[1]*100)+'%;--portrait-top:'+(-p[2]*100)+'%"><picture class="scene-picture"><source media="(orientation:portrait)" srcset="assets/'+p[0]+'"><img class="scene-background" src="assets/world-'+key+'.webp" alt="'+esc(label)+'" fetchpriority="high"></picture><div class="scene-shade" aria-hidden="true"></div>'+contents+'<div class="scene-fog" aria-hidden="true"></div></div></div>';
   }
   function portrait(id){
     const npc=NPCs.characters[id];if(!npc)return '';
@@ -114,7 +114,7 @@
   }
   // กรอบแปลงในสวน = กรอบไม้ในภาพจริง (24 ต.ค. 69 · เจ้าของ: "ให้มันตรงกรอบ แก้ทุกอัน")
   // เดิมกะเป็นเปอร์เซ็นต์ของจอ — แนวนอนเยื้อง · แนวตั้งใช้ขนาดตายตัว 37%×16% ไม่ผ่านการครอปของภาพแนวตั้ง จึงเยื้องหนัก
-  // ตอนนี้วัดจากพิกเซลของภาพ [x0,y0,x1,y1] (สัดส่วน 0–1) · ภาพแนวนอนยืดเต็มฉาก และภาพแนวตั้ง (มุมขวาล่างของ portrait-rooms.png
+  // ตอนนี้วัดจากพิกเซลของภาพ [x0,y0,x1,y1] (สัดส่วน 0–1) · ภาพแนวนอนยืดเต็มฉาก และภาพแนวตั้ง (มุมขวาล่างของ portrait-rooms.webp
   // ขยาย 200% เลื่อน −100%) ก็เต็มฉากพอดี → สัดส่วนบนภาพ = สัดส่วนบนฉาก ใช้ตรง ๆ ได้ทั้งสองแบบ
   // แปลงเป็นสี่เหลี่ยมคางหมู: ขอบด้านทางเดินตั้งตรง ขอบด้านนอกเอียง ~20% → --tl/--tr ใช้ตัดแสงไฮไลต์ให้ตรงรูปแปลง
   const GARDEN_BEDS_LAND=[[.197,.485,.465,.600],[.521,.485,.795,.600],[.092,.636,.456,.808],[.537,.636,.903,.808]];

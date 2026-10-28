@@ -1,9 +1,9 @@
 .world-player{position:absolute;left:59%;bottom:14%;width:55px;height:84px;pointer-events:none;z-index:4;filter:drop-shadow(0 5px 3px #060913b3)}
 .hero-pixel{display:inline-block;position:relative;width:60px;height:90px;image-rendering:pixelated;animation:hero-idle 2.4s steps(2,end) infinite}
 .hero-pixel>svg{width:100%;height:100%;overflow:visible}
-.rpg-sprite{display:block;width:100%;height:100%;background-image:url(assets/rpg-character-atlas.png);background-size:400% 200%;background-position:var(--atlas-x,0%) var(--atlas-y,0%);background-repeat:no-repeat;image-rendering:pixelated}
+.rpg-sprite{display:block;width:100%;height:100%;background-image:url(assets/rpg-character-atlas.webp);background-size:400% 200%;background-position:var(--atlas-x,0%) var(--atlas-y,0%);background-repeat:no-repeat;image-rendering:pixelated}
 .hero-pixel>.rpg-sprite{position:absolute;inset:0}
-.weapon-sprite{display:block;width:100%;height:100%;background-image:url(assets/rpg-weapon-atlas.png);background-repeat:no-repeat;background-size:400% 100%;background-position:var(--weapon-x) 0;image-rendering:pixelated}
+.weapon-sprite{display:block;width:100%;height:100%;background-image:url(assets/rpg-weapon-atlas.webp);background-repeat:no-repeat;background-size:400% 100%;background-position:var(--weapon-x) 0;image-rendering:pixelated}
 .boss-card-head .boss-sprite{width:68px;height:91px;flex-shrink:0}
 .hero-weapon{position:absolute;left:45%;top:-15%;width:70%;height:105%;transform:rotate(13deg);transform-origin:50% 70%;filter:drop-shadow(0 0 3px color-mix(in srgb,var(--weapon-color),transparent 80%))}
 .hero-weapon svg{width:100%;height:100%}

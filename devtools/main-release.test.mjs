@@ -63,3 +63,9 @@ test('public reward pages have no retired lab entry and their redirects resolve 
  const redirect=legacy.match(/url=([^"\s>]+)/)?.[1];assert.ok(redirect);assert.ok(fs.existsSync(new URL('../halloween/event/'+redirect,import.meta.url)));
  const script=read('halloween/event/collection.js');assert.doesNotMatch(script,/localStorage|postMessage|halloween-showroom|รอระบบอีเวนต์/);
 });
+
+test('optimized scene files preserve sprite dimensions and avoid duplicate mobile backdrops',()=>{
+ const base=new URL('../halloween/event/assets/',import.meta.url);let before=0,after=0;
+ for(const file of fs.readdirSync(base).filter(x=>x.endsWith('.png'))){const png=fs.readFileSync(new URL(file,base)),webp=fs.readFileSync(new URL(file.replace('.png','.webp'),base));assert.equal(webp.toString('ascii',12,16),'VP8L');const bits=webp.readUInt32LE(21);assert.equal((bits&0x3fff)+1,png.readUInt32BE(16),file+' width');assert.equal(((bits>>>14)&0x3fff)+1,png.readUInt32BE(20),file+' height');before+=png.length;after+=webp.length;}
+ assert.ok(after<before*.8);const world=read('halloween/event/world.js');assert.doesNotMatch(world,/portrait-[\w-]+\.png|world-'\+key\+'\.png/);assert.match(read('mobile-stability.css'),/\.scene-shell::before\{[^}]*background:linear-gradient[^}]*filter:none/);
+});
