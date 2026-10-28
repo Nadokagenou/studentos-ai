@@ -8,7 +8,8 @@
   const state=()=>({game,pending:!!flight||!!retryPacket||inputs.length>0,error});
   const notify=()=>{if(!closed)onChange(state());};
   function project(base,row){
-   const doc=clone(read()),inputAt=base.startAt+row[1];if(brain)doc.event.brainGame=clone(base);else doc.event.games[id]=clone(base);doc.event.clock=Math.min(doc.event.clock,inputAt);
+   // A move only writes these event containers. Keep the rest of the verified save shared and untouched.
+   const saved=read(),e=saved.event,doc={...saved,event:{...e,games:{...e.games},proofs:{...e.proofs},inventory:{...e.inventory},ledger:[...e.ledger]}},inputAt=base.startAt+row[1];if(brain)doc.event.brainGame=clone(base);else doc.event.games[id]=clone(base);doc.event.clock=Math.min(doc.event.clock,inputAt);
    Core.dispatch(doc,config,{type:brain?'brain-move':'game-move',...(!brain?{game:id}:{}),session,move:row[0]},{now:inputAt-doc.event.timeOffset,tx:'local-playback'});
    return brain?doc.event.brainGame:doc.event.games[id];
   }
@@ -25,7 +26,6 @@
      if(!saved||saved.session!==session){error='รอบเกมเปลี่ยนแล้ว อ่านผลจากเซฟล่าสุดก่อนเล่นต่อ';onError(error);break;}
      retryPacket=null;game=clone(saved);
      try{for(const row of inputs)game=project(game,row);}catch{error='ลำดับการเล่นเปลี่ยนไป อ่านผลจากเซฟล่าสุดก่อนเล่นต่อ';onError(error);break;}
-     notify();
     }
    })();
    flight=job;const settled=()=>{if(flight===job)flight=null;notify();};job.then(settled,settled);notify();return job;
@@ -34,7 +34,7 @@
    if(closed||error||game.finished)return false;
    const row=[move,Math.max(game.lastInputAt||game.startAt,Math.floor(now()))-game.startAt];
    try{game=project(game,row);}catch(e){if(!closed)onError(e.message);return false;}
-   inputs.push(row);notify();if(game.finished||inputs.length>=48)void flush();return true;
+   inputs.push(row);if(game.finished||inputs.length>=48)void flush();else notify();return true;
   }
   function reset(){game=clone(readGame());session=game.session;inputs=[];retryPacket=null;error='';notify();}
   return Object.freeze({state,tap,flush,reset,settling:()=>flight,close(){closed=true;return flush();}});

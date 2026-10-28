@@ -6,6 +6,16 @@ const authority=Authority.create({Core,Death,Season,config,randomSeed:()=>123456
 const Playback=require('../halloween/event/game-playback.js');
 function start(id){const d=authority.initial(uid,at),biome=Core.gameDefinition(id,config).biome;d.event.totem={biome,until:at+Core.HOUR};d.event.inventory['spectral-lantern']=1;d.event.quests['jack-clear-garden']={phase:1};d.event.quests['win-death-fragments']={complete:true};d.event.proofs['grave-digging']={complete:true};return authority.apply(d,{type:'start-game',game:id},{uid,at,tx:'start-session'}).document;}
 const submit=(d,id,inputs,receivedAt=at+1000,processedAt=receivedAt)=>authority.apply(d,{type:'game-inputs',game:id,session:'start-session',inputs},{uid,at:processedAt,receivedAt,tx:'input-batch'});
+function freeze(value){if(value&&typeof value==='object'){Object.freeze(value);for(const child of Object.values(value))freeze(child);}return value;}
+for(const id of ['ghost-ship-hunt','clear-jacks-garden-vines','dech-house-spot-difference','grave-digging','catch-all-ghosts'])test(id+' keeps the entire verified save immutable during fast local playback',async()=>{
+ let doc=freeze(authority.publicDocument(start(id))),time=at+5000,release;const before=JSON.stringify(doc),gate=new Promise(r=>release=r),c=Playback.create({id,Core,config,read:()=>doc,now:()=>time,perform:async action=>{await gate;const result=submit(doc,id,action.inputs,time+500);doc=result.document;return result.result;}});
+ for(let i=0;i<40&&!c.state().game.finished;i++){
+  const g=c.state().game;time=Math.max(time+10,g.revealUntil||0);let move;
+  if(id==='ghost-ship-hunt')move=g.target;else if(g.mode==='memory')move=g.sequence[g.found.length];else if(g.mode==='pairs'){move=g.open.length?g.tiles.findIndex((n,i)=>i!==g.open[0]&&!g.found.includes(i)&&n===g.tiles[g.open[0]]):g.tiles.findIndex((_,i)=>!g.found.includes(i));}else move=Array.from({length:g.total},(_,i)=>i).find(i=>!g.found.includes(i));
+  assert.equal(c.tap(move),true);
+ }
+ assert.equal(c.state().game.clear,true);assert.equal(JSON.stringify(doc),before);release();await c.flush();assert.equal(doc.event.games[id].clear,true);assert.equal(c.state().pending,false);
+});
 test('authenticated timed inputs use server arrival time rather than later database processing time',async()=>{
  const Handler=require('../alt/halloween/server/handler.cjs');let doc=start('catch-all-ghosts'),time=at+25000;
  const handler=Handler.create({authority,season:Season,clock:()=>time,authenticate:async()=>{time+=10000;return uid;},db:{read:async()=>({document:doc}),receipt:async()=>null,commit:async x=>{doc=x.document;return {committed:true,result:x.result};}}});

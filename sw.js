@@ -5,7 +5,23 @@
 // ⚠️ ทุกชื่อในลิสต์นี้ต้องมีไฟล์อยู่จริง — addAll จะล้มทั้งก้อนถ้ามีตัวใดตัวหนึ่ง 404
 //    แล้วแอปจะไม่มีแคชเลย (เปิดออฟไลน์ไม่ได้) โดยไม่มี error โผล่ให้เห็นที่หน้าจอ
 //    เคยพลาดมาแล้วตอนคัดลอกไฟล์จาก alt/ ขึ้นมา: ลิสต์ยังมี icon-alt-* ซึ่ง root ไม่มี
-const CACHE = 'studentos-main-1c60-brain-realtime-20261028';
+const CACHE = 'studentos-main-1c60-art-speed-20261028';
+// These filenames carry an immutable art version, so reuse them across app updates.
+const EVENT_ART_CACHE = 'studentos-event-art-v1', eventArtLoads = new Map();
+async function eventArt(request, key) {
+  let cache;
+  try { cache = await caches.open(EVENT_ART_CACHE); const saved = await cache.match(key); if (saved) return saved; } catch {}
+  let pending = eventArtLoads.get(key);
+  if (!pending) {
+    pending = fetch(request, { cache: 'force-cache' }).then(async response => {
+      if (response.ok && cache) { try { await cache.put(key, response.clone()); } catch {} }
+      return response;
+    });
+    eventArtLoads.set(key, pending);
+  }
+  try { return (await pending).clone(); }
+  finally { if (eventArtLoads.get(key) === pending) eventArtLoads.delete(key); }
+}
 // Large event artwork is cached on first use, not during the main app update.
 const SHELL = [
   "halloween-countdown.js",
@@ -320,6 +336,10 @@ self.addEventListener('fetch', e => {
   if (requestUrl.origin !== location.origin) return;
   const appPath = new URL(self.registration.scope).pathname;
   if (requestUrl.pathname.startsWith(appPath + 'alt/') || requestUrl.pathname.startsWith(appPath + 'android-shortcuts/')) return;
+  if (requestUrl.pathname.startsWith(appPath + 'halloween/event/assets/') && /\/[a-z0-9-]+-fast-v\d+\.webp$/.test(requestUrl.pathname)) {
+    e.respondWith(eventArt(e.request, requestUrl.origin + requestUrl.pathname));
+    return;
+  }
   // cache: 'no-store' สำคัญกว่าที่เห็น — network-first เฉย ๆ ยังไม่พอ
   // เพราะ HTTP cache ของเบราว์เซอร์นั่งขวางอยู่หน้า fetch() ของ SW อีกชั้น
   // GitHub Pages ส่ง max-age=600 มาด้วย แปลว่าอัปเดตแล้วผู้ใช้จะยังเห็นของเก่า
