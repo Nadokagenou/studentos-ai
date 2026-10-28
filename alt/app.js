@@ -6749,7 +6749,14 @@ function renderAi() {
     }, { capture: true, passive: true });
   }
   const th = el.querySelector('.ai-thread');
-  if (th) requestAnimationFrame(() => { if (th.isConnected) th.scrollTop = stick ? th.scrollHeight : oldTop; });
+  // 28 ต.ค. 69 · เจ้าของ (ภาพหน้าน้องฮูกตอนยังไม่คุย หน้าน้องฮูกโดนตัดครึ่ง หัวข้อหาย): "ลองปรับดู"
+  // จอว่างสูงกว่าจอ (ทัก + การ์ดวันนี้ + คำถามสำเร็จรูป) แล้วโดนเลื่อนลงล่างสุดเหมือนห้องแชท → หน้าน้องฮูกกับหัวข้อไปอยู่ใต้หัวจอ
+  // จอว่าง = เปิดที่บนสุด · ถ้าเลื่อนเองในจอว่างแล้วจำตำแหน่งไว้ (วาดซ้ำไม่กระโดด) · มีข้อความแล้ว = ตามล่างสุดเหมือนเดิม
+  if (th) requestAnimationFrame(() => {
+    if (!th.isConnected) return;
+    th.scrollTop = fresh ? (aiScroll.fresh ? oldTop : 0) : (stick ? th.scrollHeight : oldTop);
+    aiScroll.fresh = fresh;
+  });
   sgaMount();
 }
 
