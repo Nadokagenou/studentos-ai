@@ -16,7 +16,7 @@ test('biome navigation responds immediately and queues one authoritative entry f
  f.wait.resolve({firstStory:true});assert.equal(await first,true);assert.equal(f.box.route,'biome');assert.equal(f.stats().stories,1);assert.equal(f.box.navigating,false);assert.equal(f.box.main.dataset.opening,undefined);
 });
 test('dismissed navigation cannot replace a newer view after a late server response',async()=>{
- const f=navigation(),first=f.box.navigate('shop');f.box.viewEpoch++;f.wait.resolve({});assert.equal(await first,false);assert.equal(f.panels.length,0);assert.equal(f.box.navigating,false);
+ const f=navigation();f.box.detail.open=true;const first=f.box.navigate('shop');assert.match(f.notices[0],/กำลังเปิด/);f.box.viewEpoch++;f.wait.resolve({});assert.equal(await first,false);assert.equal(f.panels.length,0);assert.equal(f.box.navigating,false);
 });
 test('failed navigation restores waiting state and leaves the original scene intact',async()=>{
  const f=navigation(),first=f.box.navigate('biome',{biome:'ship'});f.wait.resolve(null);assert.equal(await first,false);assert.equal(f.box.route,'hub');assert.equal(f.stats().paints,0);assert.equal(f.box.main.dataset.opening,undefined);

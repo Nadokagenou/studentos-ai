@@ -103,7 +103,7 @@ body, .event-dialog, .scene-hud, button, input, select { font-family: 'Sriracha'
 .hud-top .hud-wallet { min-height: 46px; padding: 0 14px !important; font-size: 16px; font-weight: 700; color: var(--dg-ink); }
 .hud-top .hud-wallet .hud-ic { color: var(--dg-candle); }
 .hud-top button:hover { color: var(--dg-candle); }
-.hud-top button:active { transform: translateY(2px); filter: drop-shadow(0 1px 0 #000000b3); }
+.hud-top button:active { filter: drop-shadow(0 1px 0 #000000b3); }
 .hud-top button:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--dg-candle), inset 0 0 0 4px var(--dg-stone-lo) !important; }
 .hud-top [aria-pressed=true] { color: var(--dg-candle); }
 
@@ -141,7 +141,7 @@ body, .event-dialog, .scene-hud, button, input, select { font-family: 'Sriracha'
   filter: drop-shadow(0 6px 0 #000000c0) drop-shadow(0 0 34px color-mix(in srgb, var(--dg-candle) 55%, transparent));
 }
 .gate-enter:focus-visible { box-shadow: inset 0 0 0 3px var(--dg-candle), inset 0 0 0 5px #0e0a14, inset 0 0 46px color-mix(in srgb, var(--dg-candle) 22%, transparent) !important; }
-.gate-enter:active { transform: translate(-50%, calc(-50% + 2px)); }
+.gate-enter:active { filter: brightness(1.15); }
 /* แสงเทียนวูบ: เฉพาะความสว่างของวงแสงด้านใน (เปลี่ยนแค่ opacity ของชั้นที่ซ้อน) */
 .gate-enter::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background: radial-gradient(70% 55% at 50% 100%, color-mix(in srgb, var(--dg-candle) 20%, transparent), transparent 70%);
@@ -169,7 +169,7 @@ body, .event-dialog, .scene-hud, button, input, select { font-family: 'Sriracha'
 .hud-tools small .nw { white-space: nowrap; }
 .hud-tools small { display: block; font-size: 11px !important; line-height: 1.25; font-weight: 600; color: var(--dg-ink) !important; text-align: center; white-space: normal !important; }
 .hud-tools button:hover { background: linear-gradient(180deg, #221a2c, #1a1424) !important; color: #ffc27a; }
-.hud-tools button:active { transform: translateY(2px); }
+.hud-tools button:active { filter: brightness(1.15); }
 .hud-tools button:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--dg-candle), inset 0 3px 0 #000000b3 !important; }
 
 /* ---------- มือถือ: ช่องเท่ากันหกช่องพอดีความกว้าง · ป้ายสองบรรทัดได้ ---------- */

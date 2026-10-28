@@ -63,7 +63,7 @@
 .obj-slot.pop{animation:hw-pop .6s cubic-bezier(.2,1.6,.4,1)}
 @keyframes hw-pop{0%{transform:scale(.6)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
 .obj-go{display:block;width:100%;margin-top:8px;min-height:44px;border:0;border-radius:12px;background:linear-gradient(#ffe39f,#eaa83a);color:#2a1600;font:800 16px/1.2 inherit;box-shadow:0 4px 0 var(--hw-gold-deep);cursor:pointer}
-.obj-go:active{transform:translateY(2px);box-shadow:0 2px 0 var(--hw-gold-deep)}
+.obj-go:active{box-shadow:0 2px 0 var(--hw-gold-deep)}
 .obj-go.wait{background:#22263a;color:#cfd3e2;box-shadow:0 4px 0 #0008;font-weight:600}
 .objective-bar.is-ready .obj-go{animation:hw-glow 1.4s ease-in-out infinite}
 @keyframes hw-glow{0%,100%{box-shadow:0 4px 0 var(--hw-gold-deep),0 0 0 #f4c46a00}50%{box-shadow:0 4px 0 var(--hw-gold-deep),0 0 24px #f4c46acc}}

@@ -13,6 +13,11 @@ test('press feedback preserves button hit geometry and never forces synchronous 
  handlers.pointerdown({target:{closest:()=>button}});assert.ok(classes.has('event-pressed'));
  handlers.animationend({animationName:'event-press',target:button});assert.equal(classes.size,0);
 });
+test('HUD, gate and objective buttons keep their hit areas stationary while active',()=>{
+ for(const file of ['dungeon-ui.css','guide-ui.css'])for(const rule of read('halloween/event/'+file).matchAll(/[^{}]*:active[^{}]*\{([^{}]*)\}/g)){
+  const transform=rule[1].match(/transform\s*:\s*([^;}]*)/);if(transform)assert.ok(['none','translate(-50%,-50%)'].includes(transform[1].replaceAll(' ','')),rule[0]);
+ }
+});
 function fixture(){
  let nodes=[];const attrs={},classes=new Set();
  const events={};const dialog={open:false,dataset:{},attrs,classList:{add:n=>classes.add(n),remove:n=>classes.delete(n)},setAttribute(k,v){attrs[k]=v;},removeAttribute(k){delete attrs[k];},addEventListener(k,f){(events[k]??=[]).push(f);},showModal(){this.open=true;},close(){this.open=false;for(const f of events.close||[])f();},querySelectorAll(s){return nodes.filter(n=>s.split(',').some(q=>{const m=q.match(/\[([^=\]]+)(?:="([^"]*)")?\]/);if(m)return m[1] in n.attrs&&(m[2]===undefined||n.attrs[m[1]]===m[2])&&(!q.includes(':not(:disabled)')||!n.disabled);return q.startsWith('.')&&n.attrs.class?.split(' ').includes(q.slice(1));}));},querySelector(s){return this.querySelectorAll(s)[0]||null;}};

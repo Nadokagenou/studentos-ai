@@ -184,6 +184,7 @@
       let result=null;
       if(action&&playable&&store&&!read().event.closed){
         main.dataset.opening='กำลังเปิด'+(PANEL_NAMES[next]||({garden:'สวน',hub:'โถงกลาง',biome:biomeName(destination)}[next])||'ฉาก')+'…';
+        if(detail.open)toast(main.dataset.opening);
         result=await perform(action,{silent:true});
         if(!result||origin!==viewEpoch)return false;
       }
