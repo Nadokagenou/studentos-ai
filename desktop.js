@@ -1,6 +1,6 @@
 import {DESKTOP_LINKS,SIDEBAR_KEY,readSidebarCollapsed,desktopLinkEnabled,navigateDesktop} from './desktop-navigation.mjs';
 
-const wide=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');
+const wide=matchMedia('(min-width:1025px) and (hover:hover) and (pointer:fine)');
 const root=document.documentElement;
 let mounted=null,collapsed=false;
 try {collapsed=readSidebarCollapsed(localStorage);} catch { /* Storage can be unavailable. */ }

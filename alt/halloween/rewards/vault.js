@@ -3,6 +3,7 @@
   'use strict';
   const C=window.StudentOSHalloweenRewards, O=window.HalloweenOwnership;
   const preview=new URLSearchParams(location.search).get('preview')==='1',appHref=new URLSearchParams(location.search).get('entry')==='main'?'../../../':'../../';
+  const home=document.querySelector('header>a');if(home)home.href=appHref;
   const key='studentos.alt.halloween.preview.v1', owner='halloween-review-only', season='halloween-2026';
   const content=document.getElementById('permanentVault'),dialog=document.getElementById('permanentDetail');
   const kinds={all:'ทั้งหมด',room:'ห้อง',costume:'ชุด',theme:'ธีม',effect:'เอฟเฟกต์',relic:'Mystical',badge:'เหรียญ'};

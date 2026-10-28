@@ -801,6 +801,9 @@
 /* ============================================================
    ชั้นบรรยากาศของธีม (.fx) — พื้นหลังเคลื่อนไหวหลังเนื้อหา
    ทุกชั้นอยู่ z-index:0 ใต้ .screens (z-index:1) และไม่รับคลิก
+   ฉากขยับตลอดเวลาที่แอปเปิด — ขยับได้แค่ translate / rotate / scale / opacity (การ์ดจอทำเอง)
+   ห้าม background-position · margin · ขนาด · เงา · blur/drop-shadow — มือถือสเปคต่ำค้างเพราะสิ่งนี้มาแล้ว (16 ต.ค. 69)
+   แก้ฉากเสร็จต้องผ่าน: node alt/devtools/scene-check.cjs
    ============================================================ */
 .fx { display: none; }
 :root[data-theme="meta"] .fx,
@@ -877,12 +880,23 @@
 }
 :root[data-theme="genesis"] .fx-d {          /* หิมะ 2 ชั้น */
   left: 0; right: 0; top: -12%; bottom: -12%;
-  background-repeat: repeat;
-  background-size: 200px 320px, 150px 260px;
-  background-image:
-    radial-gradient(2.2px 2.2px at 30px 40px, rgba(255,255,255,.95), transparent),
-    radial-gradient(1.6px 1.6px at 120px 180px, rgba(226,244,255,.9), transparent);
-  animation: gen-snow 14s linear infinite;
+}
+/* 16 ต.ค. 69 · เดิมเลื่อน background-position ของกล่องสูงเกินจอ = วาดใหม่ทุกเฟรม (CPU ช้า 6 เท่า: หยุดหิมะลดเธรดหลักไป 15 จุด)
+   สองชั้นตกคนละทาง (ชั้นแรก: ขวา 40px ลง 640px · ชั้นสอง: ซ้าย 50px ลง 520px ต่อรอบ = ลงสองช่องลายพอดี)
+   → ชั้นละ ::before/::after ยาวเกินกล่องขึ้นไปเท่าระยะที่ตก แล้วเลื่อนทั้งชั้นด้วย translate
+   จุดเริ่มของลายตั้งให้ตรงของเดิม (40px 0 · 60px 0 = ตำแหน่งเดิมเมื่อนับจากมุมชั้นใหม่) · กระโดดตอนวนรอบเท่าของเดิมทุกอย่าง */
+:root[data-theme="genesis"] .fx-d::before,
+:root[data-theme="genesis"] .fx-d::after { content: ''; position: absolute; bottom: 0; background-repeat: repeat; animation: gen-snow-a 14s linear infinite; }
+:root[data-theme="genesis"] .fx-d::before {
+  left: -40px; right: 0; top: -640px;
+  background-image: radial-gradient(2.2px 2.2px at 30px 40px, rgba(255,255,255,.95), transparent);
+  background-size: 200px 320px; background-position: 40px 0;
+}
+:root[data-theme="genesis"] .fx-d::after {
+  left: 0; right: -50px; top: -520px;
+  background-image: radial-gradient(1.6px 1.6px at 120px 180px, rgba(226,244,255,.9), transparent);
+  background-size: 150px 260px; background-position: 60px 0;
+  animation-name: gen-snow-b;
 }
 :root[data-theme="genesis"] .fx-e {          /* เส้นตรง + สามเหลี่ยมพุ่งขึ้นจากพื้น */
   left: 0; right: 0; bottom: 0;
@@ -928,7 +942,8 @@
   animation-duration: 2.6s;                 /* ลมหมุนจัดขึ้นชัดเจน */
   opacity: 1;
 }
-:root[data-gevent="on"][data-theme="genesis"] .fx-d {
+:root[data-gevent="on"][data-theme="genesis"] .fx-d::before,
+:root[data-gevent="on"][data-theme="genesis"] .fx-d::after {
   animation-duration: 3.4s;                 /* หิมะตกเร็วขึ้น */
 }
 :root[data-gevent="on"][data-theme="genesis"] .fx-e {
@@ -948,9 +963,13 @@
   0%, 100% { opacity: .82; }
   50% { opacity: 1; }
 }
+/* 16 ต.ค. 69 · เดิมเงาเรืองแสง (drop-shadow) พองยุบไปพร้อมกัน — เบลอใหม่ทุกเฟรมบนเธรดหลัก
+   (CPU ช้า 6 เท่า: หยุดเพชรลดเธรดหลักไป 16 จุด · trace: "FilterRelatedPropertyMayMovePixels")
+   ตอนนี้เงาเรืองแสงนิ่งที่ค่ากลาง (กฎของ .fx-b: 26px) · เพชรยังลอยขึ้นลงและขยายเท่าเดิม — ขยายแล้วเงาก็ขยายตาม แสงยังดูหายใจอยู่
+   ตอนอีเวนต์ 20 วิ (gen-diamond-burst) ยังเรืองแสงแรงแบบเดิม — สั้นและนาน ๆ ครั้ง */
 @keyframes gen-diamond {
-  0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 22px rgba(190,230,255,.8)); }
-  50% { transform: translateY(-10px) scale(1.05); filter: drop-shadow(0 0 34px rgba(215,245,255,1)); }
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-10px) scale(1.05); }
 }
 @keyframes gen-diamond-burst {
   0% { transform: translateY(0) scale(1.12); filter: drop-shadow(0 0 30px rgba(215,245,255,.9)); }
@@ -959,10 +978,8 @@
   100% { transform: translateY(0) scale(1.12); filter: drop-shadow(0 0 30px rgba(215,245,255,.9)); }
 }
 @keyframes gen-wind { to { transform: rotate(360deg); } }
-@keyframes gen-snow {
-  from { background-position: 0 -320px, 60px -260px; }
-  to { background-position: 40px 320px, 10px 260px; }
-}
+@keyframes gen-snow-a { to { translate: 40px 640px; } }
+@keyframes gen-snow-b { to { translate: -50px 520px; } }
 @keyframes gen-rise {
   0% { opacity: 0; background-position: 16% 100%, 42% 100%, 76% 100%, 30% 100%, 62% 100%; }
   15% { opacity: .95; }
@@ -1070,7 +1087,7 @@
   background-size: 6px 6px, 5px 5px, 7px 7px;
   background-repeat: no-repeat;
   background-position: 26% 100%, 58% 100%, 86% 100%;
-  animation: sea-bubble 12s linear infinite;
+  --bub-t: 12s;
 }
 
 /* ---------- ต้นไม้โลก: ท้องฟ้า + ลม + นกบิน + ต้นไม้กลางจอ + หญ้า ---------- */
@@ -1201,12 +1218,14 @@
   background-size: 7px 5px, 5px 4px, 6px 5px;
   background-repeat: no-repeat;
   background-position: 22% 100%, 55% 100%, 82% 100%;
-  animation: sea-bubble 15s linear infinite;
+  --bub-t: 15s;
 }
+/* 16 ต.ค. 69 · เดิมขยับ background-position แนวนอนด้วย % ด้วย — แต่ริ้วลมกว้าง 100% เท่ากล่อง (background-size: 100% …)
+   ตามกติกา CSS ค่า % แนวนอนของภาพที่กว้างเท่ากล่องคิดเป็นศูนย์เสมอ ริ้วจึงไม่เคยเลื่อนจริง ตาเห็นแค่ความจางที่เปลี่ยน
+   แต่เบราว์เซอร์ยังวาดชั้นเต็มจอ (เบลอ 1px) ใหม่ทุกเฟรม · ตอนนี้เหลือแค่ความจาง = ภาพเหมือนเดิมทุกพิกเซล การ์ดจอทำเอง */
 @keyframes wind-blow {
-  0% { background-position: -60% 28%, -40% 44%, -80% 62%; opacity: .5; }
+  0%, 100% { opacity: .5; }
   50% { opacity: 1; }
-  100% { background-position: 160% 28%, 170% 44%, 150% 62%; opacity: .5; }
 }
 @keyframes tree-sway {
   0%, 100% { transform: rotate(-1.2deg); }
@@ -1302,7 +1321,7 @@
   background-size: 7px 7px, 5px 5px, 9px 9px;
   background-repeat: no-repeat;
   background-position: 14% 100%, 62% 100%, 84% 100%;
-  animation: sea-bubble 9s linear infinite;
+  --bub-t: 9s;
 }
 
 @keyframes sea-rays {
@@ -1311,19 +1330,28 @@
 }
 @keyframes sea-swim-r { from { transform: translateX(-16%); } to { transform: translateX(16%); } }
 @keyframes sea-swim-l { from { transform: translateX(16%); } to { transform: translateX(-16%); } }
+/* 16 ต.ค. 69 · เดิม margin-top = จัดผังใหม่ทุกเฟรม (ปลา · ดาวเคราะห์ · ใบไม้ ใน 5 ธีม) · translate ขยับระยะเท่ากัน แต่การ์ดจอทำเอง
+   translate เป็นคนละคุณสมบัติกับ transform จึงซ้อนกับท่าว่าย (sea-swim ใช้ transform) ได้โดยไม่ทับกัน */
 @keyframes sea-bob {
-  0%, 100% { margin-top: 0; }
-  50% { margin-top: 10px; }
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 10px; }
 }
 @keyframes sea-sway {
   0%, 100% { transform: rotate(-7deg); }
   50% { transform: rotate(8deg); }
 }
-@keyframes sea-bubble {
-  0%   { background-position: 14% 100%, 62% 100%, 84% 100%; opacity: 0; }
+/* ฟองลอยจากก้นจอถึงเลยขอบบน (-106% ของความสูงกล่อง) · +6px ชดเชยขนาดฟอง (ของเดิมวัดตำแหน่งจากขอบฟอง ไม่ใช่ขอบกล่อง) */
+@keyframes sea-bubble-a {
+  0%   { translate: 0 0; opacity: 0; }
   10%  { opacity: .9; }
   90%  { opacity: .5; }
-  100% { background-position: 17% -6%, 58% -6%, 88% -6%; opacity: 0; }
+  100% { translate: 3.5% calc(-106% + 6px); opacity: 0; }
+}
+@keyframes sea-bubble-b {
+  0%   { translate: 0 0; opacity: 0; }
+  10%  { opacity: .9; }
+  90%  { opacity: .5; }
+  100% { translate: -4% calc(-106% + 6px); opacity: 0; }
 }
 
 /* ---------- ทะเลลึก: น้ำมืด + ฉลาม + หมึกยักษ์ + แพลงก์ตอนเรืองแสง ---------- */
@@ -1407,8 +1435,28 @@
   background-size: 5px 5px, 3px 3px, 4px 4px, 3px 3px;
   background-repeat: no-repeat;
   background-position: 18% 100%, 44% 100%, 68% 100%, 88% 100%;
-  animation: sea-bubble 13s linear infinite;
+  --bub-t: 13s;
 }
+/* 16 ต.ค. 69 · ฟองอากาศ (ทะเล · ทะเลลึก · ต้นไม้โลก · หวานแหว) ลอยด้วยการ์ดจอ ไม่ใช่เธรดหลัก
+   เจ้าของ: "โทรศัพท์สเปค(ต่ำ) เริ่มใช้ไม่นานเครื่องจะค้างและกดอะไรไม่ได้"
+   เดิมขยับ background-position ของกล่องเต็มจอ = วาดทั้งจอใหม่ทุกเฟรม ตลอดเวลา + กระจกฝ้าทุกชิ้นที่ทับอยู่ต้องเบลอใหม่ตาม
+   วัดจริง (Chrome · CPU ช้าลง 6 เท่าเหมือนมือถือราคาถูก · วางเครื่องนิ่ง ไม่แตะ): ธีมทะเลเธรดหลักไม่ว่าง 69% · หยุดฟองอย่างเดียวเหลือ 15%
+   เธรดหลักคือตัวเดียวกับที่รับการแตะ — เต็มเมื่อไหร่ แตะแล้วต้องรอคิว = "ค้าง กดไม่ได้"
+   ตอนนี้: ฟองแต่ละลูกอยู่บนชั้นของตัวเอง (::before = ลูกที่ 1 กับ 3 ซึ่งลอยเฉียงทางเดียวกัน · ::after = ลูกที่ 2)
+   แล้วเลื่อนทั้งชั้นด้วย translate (การ์ดจอเลื่อนภาพที่วาดไว้แล้วเอง ไม่ต้องวาดใหม่)
+   ทางลอยเท่าเดิม: วัดตำแหน่งฟองเทียบของเดิมสี่จังหวะ ต่างไม่เกิน 4px · ความจางเท่าเดิมทุกจังหวะ
+   กล่องเดิมไม่วาดฟองเองแล้ว (ดันภาพพื้นหลังออกนอกกล่อง) · ภาพ ขนาด สีของฟองยังมาจากกฎของแต่ละธีมเหมือนเดิม (inherit) */
+:root:is([data-theme="ocean"], [data-theme="sweet"], [data-theme="earth2"], [data-theme="deepocean"]) .fx-shoot { background-position: -99px 0; }
+:root:is([data-theme="ocean"], [data-theme="sweet"], [data-theme="earth2"], [data-theme="deepocean"]) .fx-shoot::before,
+:root:is([data-theme="ocean"], [data-theme="sweet"], [data-theme="earth2"], [data-theme="deepocean"]) .fx-shoot::after {
+  content: ''; position: absolute; inset: 0;
+  background-image: inherit; background-size: inherit; background-repeat: no-repeat;
+  opacity: 0;
+  animation: sea-bubble-a var(--bub-t, 9s) linear infinite;
+}
+/* ภาพฟองชั้นที่ 4 ของทะเลลึก ใช้ตำแหน่งชุดแรกซ้ำ (กฎการวนรายการของ CSS) = ลอยไปกับลูกที่ 1 เหมือนของเดิม */
+:root:is([data-theme="ocean"], [data-theme="sweet"], [data-theme="earth2"], [data-theme="deepocean"]) .fx-shoot::before { background-position: 14% 100%, -99px 0, 84% 100%; }
+:root:is([data-theme="ocean"], [data-theme="sweet"], [data-theme="earth2"], [data-theme="deepocean"]) .fx-shoot::after { background-position: -99px 0, 62% 100%, -99px 0; animation-name: sea-bubble-b; }
 @keyframes deep-float {
   0%, 100% { transform: translate(0, 0); }
   30% { transform: translate(-6%, -8%); }
@@ -1531,8 +1579,12 @@
 }
 
 @keyframes fx-drift-x { from { transform: translateX(-8%); } to { transform: translateX(8%); } }
-@keyframes fx-spin { to { transform: rotate(360deg); } }
-@keyframes fx-breathe { 0%, 100% { opacity: .75; transform: scale(1); } 50% { opacity: 1; transform: scale(1.07); } }
+/* 16 ต.ค. 69 · เดิมทั้งสองท่าเขียน transform — ชิ้นที่ใช้คู่กัน (เนบิวลาของกาแล็กซี) Chrome ส่งให้การ์ดจอไม่ได้
+   (สองอนิเมชันแย่ง transform ตัวเดียวกัน · trace บอกเหตุผล "TargetHasIncompatibleAnimations") ทั้งคู่จึงไปวิ่งบนเธรดหลัก
+   บนชั้นใหญ่ 160% ของจอที่เบลอ 14px — วัด CPU ช้า 6 เท่า ธีมกาแล็กซีเธรดหลักไม่ว่าง 34% · หยุดชั้นนี้เหลือ 12%
+   แยกเป็น rotate กับ scale (คนละคุณสมบัติ ซ้อนกันได้ การ์ดจอทำเองทั้งคู่) · ทุกชิ้นที่ใช้สองท่านี้ไม่มี transform ตั้งไว้ถาวร ภาพจึงเหมือนเดิม */
+@keyframes fx-spin { to { rotate: 360deg; } }
+@keyframes fx-breathe { 0%, 100% { opacity: .75; scale: 1; } 50% { opacity: 1; scale: 1.07; } }
 @keyframes fx-lamp { 0%, 100% { opacity: .82; } 45% { opacity: 1; } }
 @keyframes fx-float {
   0%, 100% { transform: translate3d(0, 0, 0); }
@@ -1549,6 +1601,8 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .fx i, .fx span { animation: none !important; }
+  /* ฟองชั้นใหม่ (::before/::after) — หยุดนิ่งที่ก้นจอให้เห็นเหมือนตอนเป็นกล่องเดียว */
+  .fx span::before, .fx span::after { animation: none !important; opacity: 1; }
 }
 
 /* ============================================================
@@ -2818,27 +2872,25 @@
    จอกว้างแล้ววางแถบไว้ล่างสุดคือเสียพื้นที่แนวตั้งฟรี ๆ
    ย้ายเป็นแถบตั้งด้านซ้าย เนื้อหาได้ความสูงคืนเต็ม ๆ
    ============================================================ */
+/* เมนูซ้าย = เต็มหน้าต่างเสมอ ไม่ต้องมีกรอบเครื่องจำลอง
+   เดิมเต็มจอเฉพาะหน้าต่างกว้างไม่เกิน 1120px (แท็บเล็ต/ไอแพด) · กว้างกว่านั้น (แล็ปท็อป · จอคอม) กลับไปเป็นกรอบเครื่องจำลอง
+   ของ style.css: กว้างแค่ 928px (ติดเพดาน .stage 960px) ขอบหนามุมมน · แถบสถานะปลอม (นาฬิกา · สัญญาณ · แบต)
+   · ข้อความใต้กรอบล้นจนทั้งหน้าเว็บเลื่อนได้และโดนตัดครึ่ง (1280×800: เลื่อนได้ 78px)
+   17 ต.ค. 69 · เจ้าของ: "ตอนที่ปุ่มอยู่ฝั่งซ้าย … หน้าไม่เต็มจอ" → ใช้กฎชุดเดียวกับแท็บเล็ตทุกขนาด
+   เนื้อหายังเป็นคอลัมน์กว้างสุด 720px อยู่กลาง (กฎข้างล่าง) จอใหญ่จึงได้พื้นหลังเต็มจอ ไม่ใช่บรรทัดยาวเกินอ่าน */
+:root[data-nav="side"] .stage { padding: 0; gap: 0; max-width: none; }
+:root[data-nav="side"] .stage-note { display: none; }
 :root[data-nav="side"] .phone {
-  width: min(1080px, 94vw);
-  height: min(820px, 90vh);
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
 }
-/* แท็บเล็ต/ไอแพด (รวมแนวตั้ง 768px): เต็มจอไปเลย ไม่ต้องมีกรอบมือถือจำลอง
-   ที่จอขนาดนี้กรอบจำลองไม่ได้ช่วยอะไร มีแต่กินพื้นที่ไปฟรี ๆ */
-@media (max-width: 1120px) {
-  :root[data-nav="side"] .stage { padding: 0; gap: 0; max-width: none; }
-  :root[data-nav="side"] .stage-note { display: none; }
-  :root[data-nav="side"] .phone {
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    max-width: none;
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
-  }
-  :root[data-nav="side"] .statusbar { display: none; }
-  :root[data-nav="side"] .tabbar { top: calc(14px + env(safe-area-inset-top)); }
-}
+:root[data-nav="side"] .statusbar { display: none; }
+:root[data-nav="side"] .tabbar { top: calc(14px + env(safe-area-inset-top)); }
 :root[data-nav="side"] .tabbar {
   top: 14px;
   bottom: 14px;
@@ -3619,14 +3671,23 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
    ไม่มีของเล็ก ๆ วิ่งตัดสายตา ให้รู้สึกเป็นบรรยากาศ ไม่ใช่ของที่ต้องมอง */
 
 /* แสงเหนือ 2 ผืนไหลสวนทางกัน — วิ่งกลับไปกลับมา จึงไม่มีรอยต่อตอนวนซ้ำ */
-:root[data-theme="genesis"] .fx-g {
-  inset: 0;
-  background-image:
-    linear-gradient(102deg, transparent 26%, rgba(183,245,255,.16) 42%, rgba(255,255,255,.10) 50%, transparent 66%),
-    linear-gradient(76deg, transparent 50%, rgba(142,155,232,.18) 66%, transparent 84%);
-  background-size: 220% 100%, 280% 100%;
-  background-repeat: no-repeat;
-  animation: gen-aurora 26s ease-in-out infinite alternate;
+/* 16 ต.ค. 69 · เดิมเลื่อน background-position ของกล่องเต็มจอ = วาดใหม่ทุกเฟรม (CPU ช้า 6 เท่า: หยุดชั้นนี้ลดเธรดหลักไป 13 จุด)
+   ผืนละชั้น กว้างเท่าภาพเดิม (220% · 280% ของจอ) แล้วเลื่อนทั้งผืนด้วย translate
+   ระยะเท่าของเดิม: ผืนแรก 0 → −120% ของจอ (= −54.545% ของความกว้างตัวเอง) · ผืนสอง −180% → 0 (= −64.286%) */
+:root[data-theme="genesis"] .fx-g { inset: 0; }
+:root[data-theme="genesis"] .fx-g::before,
+:root[data-theme="genesis"] .fx-g::after {
+  content: ''; position: absolute; left: 0; top: 0; height: 100%;
+  animation: gen-aurora-a 26s ease-in-out infinite alternate;
+}
+:root[data-theme="genesis"] .fx-g::before {
+  width: 220%;
+  background: linear-gradient(102deg, transparent 26%, rgba(183,245,255,.16) 42%, rgba(255,255,255,.10) 50%, transparent 66%);
+}
+:root[data-theme="genesis"] .fx-g::after {
+  width: 280%;
+  background: linear-gradient(76deg, transparent 50%, rgba(142,155,232,.18) 66%, transparent 84%);
+  animation-name: gen-aurora-b;
 }
 
 /* ชั้นหมู่ดาวถูกถอดออกแล้ว — radial ที่ตั้ง stop ไว้ 18% บนไทล์ 168×112
@@ -3634,16 +3695,16 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
    ธีมนี้ควรสะอาด เหลือเพชร ลม แสงเหนือ และหิมะเม็ดเล็ก ๆ ก็พอ */
 :root[data-theme="genesis"] .fx-h { display: none; }
 
-@keyframes gen-aurora {
-  from { background-position: 0% 0, 100% 0; }
-  to   { background-position: 100% 0, 0% 0; }
-}
+@keyframes gen-aurora-a { from { translate: 0 0; } to { translate: -54.545% 0; } }
+@keyframes gen-aurora-b { from { translate: -64.286% 0; } to { translate: 0 0; } }
 
 /* ตอนอีเวนต์ 99 วิ ชั้นนี้เร่งขึ้นพร้อมของเดิม */
-:root[data-gevent="on"][data-theme="genesis"] .fx-g { animation-duration: 7s; }
+:root[data-gevent="on"][data-theme="genesis"] .fx-g::before,
+:root[data-gevent="on"][data-theme="genesis"] .fx-g::after { animation-duration: 7s; }   /* :is() ใส่ ::before ไม่ได้ จึงแยกบรรทัด */
 
 @media (prefers-reduced-motion: reduce) {
-  :root[data-theme="genesis"] .fx-g { animation: none; }
+  :root[data-theme="genesis"] .fx-g, :root[data-theme="genesis"] .fx-g::before, :root[data-theme="genesis"] .fx-g::after,
+  :root[data-theme="genesis"] .fx-d::before, :root[data-theme="genesis"] .fx-d::after { animation: none; }
 }
 
 /* ============================================================
@@ -4700,19 +4761,30 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
   animation: mv-horizon 6s ease-in-out infinite alternate;
 }
 /* ผงข้อมูลลอยขึ้นช้า ๆ */
-:root[data-theme="meta"] .fx-f {
-  inset: 0;
-  background-image:
-    radial-gradient(1.6px 1.6px at 40px 60px, rgba(160,220,255,.8), transparent),
-    radial-gradient(1.2px 1.2px at 150px 200px, rgba(120,200,255,.6), transparent);
-  background-size: 220px 300px, 170px 260px;
-  animation: mv-rise 26s linear infinite;
+/* 16 ต.ค. 69 · เดิมเลื่อน background-position ของกล่องเต็มจอ = วาดทั้งจอใหม่ทุกเฟรม (CPU ช้า 6 เท่า: เธรดหลักไม่ว่าง 43% · หยุดชั้นนี้เหลือ 12%)
+   สองชั้นลอยคนละความเร็ว (ขึ้นหนึ่งช่องลายต่อรอบ: 300px กับ 260px) → แยกเป็น ::before/::after ยาวเกินกล่องลงไปหนึ่งช่องลาย
+   แล้วเลื่อนทั้งชั้นขึ้นด้วย translate · ลายซ้ำทุก 300/260px พอดี วนรอบจึงต่อกันสนิทเหมือนเดิม */
+:root[data-theme="meta"] .fx-f { inset: 0; }
+:root[data-theme="meta"] .fx-f::before,
+:root[data-theme="meta"] .fx-f::after { content: ''; position: absolute; left: 0; right: 0; top: 0; }
+:root[data-theme="meta"] .fx-f::before {
+  bottom: -300px;
+  background-image: radial-gradient(1.6px 1.6px at 40px 60px, rgba(160,220,255,.8), transparent);
+  background-size: 220px 300px;
+  animation: mv-rise-a 26s linear infinite;
+}
+:root[data-theme="meta"] .fx-f::after {
+  bottom: -260px;
+  background-image: radial-gradient(1.2px 1.2px at 150px 200px, rgba(120,200,255,.6), transparent);
+  background-size: 170px 260px;
+  animation: mv-rise-b 26s linear infinite;
 }
 @keyframes mv-dome    { from { transform: translateY(-8px) scale(1); } to { transform: translateY(4px) scale(1.03); } }
 @keyframes mv-nodes   { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
 @keyframes mv-scan    { 0%,100% { opacity: .35; transform: translateY(10%); } 50% { opacity: .9; transform: translateY(0); } }
 @keyframes mv-horizon { from { opacity: .45; } to { opacity: 1; } }
-@keyframes mv-rise    { from { background-position: 0 0, 0 0; } to { background-position: 0 -300px, 0 -260px; } }
+@keyframes mv-rise-a  { to { translate: 0 -300px; } }
+@keyframes mv-rise-b  { to { translate: 0 -260px; } }
 
 /* ---------- Glitch: สัญญาณเสีย ---------- */
 :root[data-theme="glitch"] {
@@ -4743,17 +4815,32 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
     radial-gradient(70% 46% at 80% 62%, rgba(120,60,220,.14), transparent 70%);
 }
 /* ก้อนสัญญาณเสียลอยอยู่ในความมืด — เลื่อนกระตุกเป็นช่วง ไม่ไหลลื่น */
-:root[data-theme="glitch"] .fx-b {
+/* 16 ต.ค. 69 · เดิมสามก้อนอยู่บนพื้นหลังของกล่องเดียว แล้วกระโดดด้วย background-position (steps 6 ครั้ง)
+   เธรดหลักยังต้องคิดสไตล์ชั้นเต็มจอนี้ทุกเฟรม (CPU ช้า 6 เท่า: 32% · หยุดชั้นนี้เหลือ 18%)
+   ตอนนี้ก้อนละชิ้น (.fx-b · .fx-g · .fx-h — สองช่องหลังธีมนี้ไม่เคยใช้) กระโดดด้วย translate จังหวะ steps เดิม
+   ระยะกระโดด = (ความกว้างจอ − ความกว้างก้อน) × ระยะ % ที่เดิมเลื่อน — สูตรเดียวกับที่ background-position คิด ภาพจึงตรงทุกขนาดจอ
+   เส้นสแกน/สัญญาณรบกวน (c–f) ยกขึ้นเหนือก้อนเหมือนเดิม — g/h อยู่ท้ายใน HTML ถ้าไม่ยกจะวาดทับเส้นสแกน */
+:root[data-theme="glitch"] :is(.fx-b, .fx-g, .fx-h) {
   inset: 0;
-  background-image:
-    linear-gradient(90deg, rgba(39,224,245,.5) 0 34px, transparent 34px 100%),
-    linear-gradient(90deg, rgba(157,243,255,.36) 0 60px, transparent 60px 100%),
-    linear-gradient(90deg, rgba(255,46,136,.28) 0 22px, transparent 22px 100%);
-  background-size: 340px 16px, 260px 9px, 420px 6px;
-  background-position: 12% 26%, 68% 44%, 34% 68%;
   background-repeat: no-repeat;
   animation: gl-slide 5.2s steps(6, end) infinite;
 }
+:root[data-theme="glitch"] .fx-b {
+  background-image: linear-gradient(90deg, rgba(39,224,245,.5) 0 34px, transparent 34px 100%);
+  background-size: 340px 16px; background-position: 12% 26%;
+  --gl-dx: calc((100% - 340px) * .66);
+}
+:root[data-theme="glitch"] .fx-g {
+  background-image: linear-gradient(90deg, rgba(157,243,255,.36) 0 60px, transparent 60px 100%);
+  background-size: 260px 9px; background-position: 68% 44%;
+  --gl-dx: calc((100% - 260px) * -.6);
+}
+:root[data-theme="glitch"] .fx-h {
+  background-image: linear-gradient(90deg, rgba(255,46,136,.28) 0 22px, transparent 22px 100%);
+  background-size: 420px 6px; background-position: 34% 68%;
+  --gl-dx: calc((100% - 420px) * .42);
+}
+:root[data-theme="glitch"] :is(.fx-c, .fx-d, .fx-e, .fx-f) { z-index: 1; }
 /* เส้นสแกนแนวนอนทั้งจอ */
 :root[data-theme="glitch"] .fx-c {
   inset: 0;
@@ -4782,7 +4869,7 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
   inset: 0;
   background: repeating-linear-gradient(90deg, transparent 0 3px, rgba(255,46,136,.05) 3px 4px);
 }
-@keyframes gl-slide { to { background-position: 78% 26%, 8% 44%, 76% 68%; } }
+@keyframes gl-slide { to { translate: var(--gl-dx) 0; } }
 @keyframes gl-sweep { to { transform: translateY(520%); } }
 @keyframes gl-noise { 0% { transform: translate(0,0); } 33% { transform: translate(-2px,1px); } 66% { transform: translate(2px,-1px); } }
 
@@ -4856,7 +4943,11 @@ body[data-godir="lat"] .screen.on  { animation: scr-lat  .28s cubic-bezier(.25,.
   :root[data-theme="meta"] .fx-d,
   :root[data-theme="meta"] .fx-e,
   :root[data-theme="meta"] .fx-f,
+  :root[data-theme="meta"] .fx-f::before,
+  :root[data-theme="meta"] .fx-f::after,
   :root[data-theme="glitch"] .fx-b,
+  :root[data-theme="glitch"] .fx-g,
+  :root[data-theme="glitch"] .fx-h,
   :root[data-theme="glitch"] .fx-d,
   :root[data-theme="glitch"] .fx-e { animation: none; }
   :root[data-gfx="on"] .phone { animation: none; }
@@ -6124,6 +6215,24 @@ body.deep-scr .top-friends { display: none; }
   color: var(--muted);
 }
 .set-go { width: 16px; height: 16px; flex: none; color: var(--faint); }
+/* 26 ต.ค. 69 · เจ้าของ (ภาพจอตั้งค่า ธีม Halloween): "ให้มันมองดูออกกว่านี้ ตรงธีมให้เห็นเป็นสีธีมและชื่อที่ใช้เลย"
+   ค่าท้ายแถวเป็น --muted 13px น้ำหนักปกติ บนฉากมืดเลยจางจนต้องเพ่ง → หมึกหลัก 78% หนาขึ้น · ลูกศรชัดขึ้นเล็กน้อย
+   แถวธีม = ป้ายเม็ดยาสีธีม: ช่องสีของธีมจริง (.shw-sw .sw-* ชุดเดียวกับตารางเลือกธีม) + ชื่อธีมตัวหนา
+   ป้ายย้อม --fill จาง ๆ ไม่ใช่ทึบ — มันคือ "ค่าที่ตั้งอยู่" ไม่ใช่ปุ่มหลักของจอ */
+.set-row .set-val { font-size: 13.5px; font-weight: 600; color: color-mix(in srgb, var(--ink) 78%, transparent); }
+.set-row .set-go { color: color-mix(in srgb, var(--ink) 45%, transparent); }
+.set-row .set-val.set-val-theme {
+  display: inline-flex; align-items: center; gap: 7px; max-width: 52%;
+  padding: 4px 11px 4px 4px; border-radius: 999px;
+  background: color-mix(in srgb, var(--fill) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 45%, transparent);
+  color: var(--ink);
+}
+.set-val-theme .shw-sw {
+  flex: none; width: 22px; height: 22px; margin: 0; border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--card), 0 0 10px -2px var(--fill);
+}
+.set-val-theme b { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
 .set-row.danger .set-lb { color: var(--alert); }
 .set-row.danger .set-ic { background: var(--alert-soft); color: var(--alert); }
 
@@ -9515,6 +9624,34 @@ body.focus-on .top-friends { visibility: hidden; }
   #menuBody { padding-bottom: 12px; }
 }
 
+/* สำเนาทดลอง: คำเตือนของแผนใช้สีความหมายเดิม และอยู่ติดปุ่มลงมือ */
+.tn-plan-note { display: flex; align-items: center; gap: 6px; width: 100%; padding: 7px 8px;
+  margin: 0 0 8px; border: 0; border-radius: 10px; background: var(--card2); color: var(--muted);
+  font: inherit; font-size: 12px; text-align: left; line-height: 1.45; cursor: pointer; }
+.tn-plan-note svg { width: 15px; height: 15px; flex: 0 0 15px; }
+.tn-plan-note svg:last-child { margin-left: auto; }
+.tn-plan-note.warn { background: var(--alert-soft); color: var(--alert); }
+.fm-score-help { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+
+/* บนมือถือสั้น ตัวเลขซ้ำกับหัวจอหลบให้ปุ่มใช้งาน แต่ไทล์ทั้งแปดใบยังอยู่ครบ */
+@media (max-width: 619px) and (max-height: 860px) {
+  :root:not([data-nav="side"]) body:not(.login-mode) .screens > #scr-menu.screen { padding-bottom: var(--tb-under); }
+  .phone #menuBody { gap: 4px; padding-bottom: 10px; }
+  .phone #menuBody .td-stats { display: none; }
+  .phone #menuBody .saih { min-height: 0; height: 56px; padding: 6px 12px; }
+  .phone #menuBody .saih-stage { width: 44px; height: 44px; flex: 0 0 44px; }
+  .phone #menuBody .saih-face { width: 44px; height: 44px; }
+  .phone #menuBody .saih-go { font-size: 11px; }
+  .phone #menuBody:has(.td-railwrap) .saih { display: none; }
+  .phone #menuBody .td-railwrap { margin-top: 8px; }
+  .phone #menuBody .rl-lb { min-height: 0; height: 20px; line-height: 20px; margin-bottom: 4px; }
+  .phone #menuBody .rl-lb b { font-size: 14px; line-height: 20px; }
+  .phone #menuBody .td-rail { max-height: 80px; overflow-y: auto; }
+  .phone #menuBody .dr-row.end { display: none; }
+  .phone #menuBody > .td-now, .phone #menuBody > .td-empty { margin-top: 12px; }
+  .phone #menuBody .td-tiles { margin-top: 12px; }
+}
+
 /* #14 · ปุ่มส่งของช่องพิมพ์น้องไซจางเกิน (≈2.2:1 ในธีมมืด) — ไอคอนต้องได้ 3:1 ขึ้นไป */
 .phone .sai-bar .sb-send, .phone #aiBody .sai-bar.sai-cmp .sb-send { color: var(--muted) !important; }
 :is([data-theme=dark],[data-theme=space],[data-theme=magic],[data-theme=galaxy],[data-theme=deepocean],[data-theme=meta],[data-theme=glitch],[data-theme=astral])
@@ -10743,7 +10880,7 @@ button.df-r:active .df-x { transform: scale(.985); }
 .gbg-ring::before {
   content: ''; position: absolute; inset: -60%;
   background: conic-gradient(from 220deg, var(--fill) 0%, color-mix(in srgb, var(--fill) 45%, #fff) 18%,
-    color-mix(in srgb, var(--fill) 55%, #22D3EE) 36%, var(--fill) 52%, color-mix(in srgb, var(--fill) 55%, #F472B6) 70%,
+    color-mix(in srgb, var(--fill) 55%, var(--halo-3)) 36%, var(--fill) 52%, color-mix(in srgb, var(--fill) 55%, var(--halo-2)) 70%,
     color-mix(in srgb, var(--fill) 40%, #fff) 86%, var(--fill) 100%);
   animation: gbg-spin 3.2s linear infinite;
 }
@@ -11407,8 +11544,8 @@ button.df-r:active .df-x { transform: scale(.985); }
 #menuBody .td-ask::before {
   content: ''; position: absolute; inset: -3px; z-index: -1; border-radius: inherit; pointer-events: none;
   background: conic-gradient(from var(--ha-a),
-    var(--fill), color-mix(in srgb, var(--fill) 45%, #F472B6), color-mix(in srgb, var(--fill) 40%, #38BDF8),
-    color-mix(in srgb, var(--fill) 60%, #A78BFA), var(--fill));
+    var(--fill), color-mix(in srgb, var(--fill) 45%, var(--halo-2)), color-mix(in srgb, var(--fill) 40%, var(--halo-3)),
+    color-mix(in srgb, var(--fill) 60%, var(--halo-4)), var(--fill));
   filter: blur(8px); opacity: .7;
   /* steps ไม่ใช่ linear — มุมใน conic-gradient ขยับบน compositor ไม่ได้ ทุกครั้งที่ขยับคือวาดใหม่ + เบลอใหม่ทั้งวง
      และไอคอนกระจกฝ้าข้างล่าง (.tg-ic) ต้องเบลอพื้นหลังใหม่ตามด้วยเพราะแสงฟุ้งไปถึง
@@ -11683,8 +11820,8 @@ button.df-r:active .df-x { transform: scale(.985); }
 @property --hf-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 .ep .ep-f > input[type="text"], .ep .ep-f > textarea, .ep .ep-at {
   --hf-c1: color-mix(in srgb, var(--fill) 28%, transparent);
-  --hf-c2: color-mix(in srgb, #F472B6 22%, transparent);
-  --hf-c3: color-mix(in srgb, #38BDF8 22%, transparent);
+  --hf-c2: color-mix(in srgb, var(--halo-2) 22%, transparent);
+  --hf-c3: color-mix(in srgb, var(--halo-3) 22%, transparent);
   border: 1.5px solid transparent; border-radius: 16px;
   background:
     linear-gradient(color-mix(in srgb, var(--card) 88%, transparent), color-mix(in srgb, var(--card) 88%, transparent)) padding-box,
@@ -11695,8 +11832,8 @@ button.df-r:active .df-x { transform: scale(.985); }
 }
 .ep .ep-f > input[type="text"]:focus, .ep .ep-f > textarea:focus, .ep .ep-at:focus-within {
   --hf-c1: var(--fill);
-  --hf-c2: color-mix(in srgb, var(--fill) 45%, #F472B6);
-  --hf-c3: color-mix(in srgb, var(--fill) 45%, #38BDF8);
+  --hf-c2: color-mix(in srgb, var(--fill) 45%, var(--halo-2));
+  --hf-c3: color-mix(in srgb, var(--fill) 45%, var(--halo-3));
   outline: none; border-color: transparent;
   background:
     linear-gradient(var(--card), var(--card)) padding-box,
@@ -11728,8 +11865,8 @@ button.df-r:active .df-x { transform: scale(.985); }
    + บรรทัดคำอธิบายใต้ช่อง (HaloFieldDescription) + ข้อผิดพลาดสีแดงของชื่อผู้ใช้ (HaloFieldError · epHandleCheck) */
 .ep .ep-f > input[type="text"], .ep .ep-f > textarea, .ep .ep-at {
   --hf-c1: color-mix(in srgb, var(--fill) 70%, transparent);
-  --hf-c2: color-mix(in srgb, #F472B6 60%, transparent);
-  --hf-c3: color-mix(in srgb, #38BDF8 55%, transparent);
+  --hf-c2: color-mix(in srgb, var(--halo-2) 60%, transparent);
+  --hf-c3: color-mix(in srgb, var(--halo-3) 55%, transparent);
   border-width: 2px;
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--fill) 6%, transparent), 0 8px 22px -16px color-mix(in srgb, var(--fill) 60%, transparent);
   animation: hf-spin 12s steps(180) infinite;
@@ -11826,8 +11963,8 @@ button.df-r:active .df-x { transform: scale(.985); }
    ============================================================ */
 #dmBody .dm-find input {
   --hf-c1: color-mix(in srgb, var(--fill) 65%, transparent);
-  --hf-c2: color-mix(in srgb, #F472B6 55%, transparent);
-  --hf-c3: color-mix(in srgb, #38BDF8 50%, transparent);
+  --hf-c2: color-mix(in srgb, var(--halo-2) 55%, transparent);
+  --hf-c3: color-mix(in srgb, var(--halo-3) 50%, transparent);
   padding: 12px 40px 12px 40px; border: 2px solid transparent; border-radius: 999px; color: var(--ink);
   background:
     linear-gradient(color-mix(in srgb, var(--card) 90%, transparent), color-mix(in srgb, var(--card) 90%, transparent)) padding-box,
@@ -11840,8 +11977,8 @@ button.df-r:active .df-x { transform: scale(.985); }
 #dmBody .dm-find input:focus {
   outline: none;
   --hf-c1: var(--fill);
-  --hf-c2: color-mix(in srgb, var(--fill) 45%, #F472B6);
-  --hf-c3: color-mix(in srgb, var(--fill) 45%, #38BDF8);
+  --hf-c2: color-mix(in srgb, var(--fill) 45%, var(--halo-2));
+  --hf-c3: color-mix(in srgb, var(--fill) 45%, var(--halo-3));
   background:
     linear-gradient(var(--card), var(--card)) padding-box,
     conic-gradient(from var(--hf-a), var(--hf-c1), var(--hf-c2), var(--hf-c3), var(--hf-c1)) border-box;
@@ -11858,8 +11995,8 @@ button.df-r:active .df-x { transform: scale(.985); }
 /* กำลังค้นหา */
 #dmBody .dm-find.busy input {
   --hf-c1: var(--fill);
-  --hf-c2: color-mix(in srgb, var(--fill) 40%, #F472B6);
-  --hf-c3: color-mix(in srgb, var(--fill) 40%, #38BDF8);
+  --hf-c2: color-mix(in srgb, var(--fill) 40%, var(--halo-2));
+  --hf-c3: color-mix(in srgb, var(--fill) 40%, var(--halo-3));
   animation-duration: 1.4s; animation-timing-function: steps(21);
 }
 .dm-find-load {
@@ -11911,8 +12048,8 @@ button.df-r:active .df-x { transform: scale(.985); }
 #chatBody .ch-bar { background: transparent; border-top: 0; align-items: center; }
 #chatBody .ch-field {
   --hf-c1: color-mix(in srgb, var(--fill) 60%, transparent);
-  --hf-c2: color-mix(in srgb, #F472B6 50%, transparent);
-  --hf-c3: color-mix(in srgb, #38BDF8 45%, transparent);
+  --hf-c2: color-mix(in srgb, var(--halo-2) 50%, transparent);
+  --hf-c3: color-mix(in srgb, var(--halo-3) 45%, transparent);
   position: relative; flex: 1; min-width: 0; padding: 3px 4px 3px 16px; border: 2px solid transparent; border-radius: 999px;
   background:
     linear-gradient(color-mix(in srgb, var(--card) 92%, transparent), color-mix(in srgb, var(--card) 92%, transparent)) padding-box,
@@ -11924,8 +12061,8 @@ button.df-r:active .df-x { transform: scale(.985); }
 }
 #chatBody .ch-field:focus-within {
   --hf-c1: var(--fill);
-  --hf-c2: color-mix(in srgb, var(--fill) 45%, #F472B6);
-  --hf-c3: color-mix(in srgb, var(--fill) 45%, #38BDF8);
+  --hf-c2: color-mix(in srgb, var(--fill) 45%, var(--halo-2));
+  --hf-c3: color-mix(in srgb, var(--fill) 45%, var(--halo-3));
   border-color: transparent;
   background:
     linear-gradient(var(--card), var(--card)) padding-box,
@@ -12228,12 +12365,6 @@ button.df-r:active .df-x { transform: scale(.985); }
 
 /* แผงตั้งค่าในจอตัวเชื่อม (แถว "ปุ่มลัดเพิ่มงาน") */
 .qa-panel { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
-/* Capture and Android setup stay inside the existing + sheet. */
-.as-capture-form { margin: 14px 0; }
-.as-capture-form label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 8px; }
-.as-capture-form .qa-in { width: 100%; }
-.as-capture-form .btn { width: 100%; margin-top: 14px; min-height: 48px; }
-
 .qa-p { display: flex; flex-direction: column; gap: 6px; }
 .qa-h { font-size: 12px; font-weight: 800; letter-spacing: .02em; color: color-mix(in srgb, var(--ink) 60%, transparent); }
 .qa-p .src-in { font-size: 12px; }
@@ -12280,14 +12411,14 @@ button.df-r:active .df-x { transform: scale(.985); }
 }
 .st-nav .st-next.hb::before {
   content: ''; position: absolute; inset: -3px; z-index: -1; border-radius: inherit; pointer-events: none;
-  background: conic-gradient(from var(--hf-a), var(--fill), color-mix(in srgb, var(--fill) 45%, #F472B6),
-    color-mix(in srgb, var(--fill) 40%, #38BDF8), color-mix(in srgb, var(--fill) 55%, #A78BFA), var(--fill));
+  background: conic-gradient(from var(--hf-a), var(--fill), color-mix(in srgb, var(--fill) 45%, var(--halo-2)),
+    color-mix(in srgb, var(--fill) 40%, var(--halo-3)), color-mix(in srgb, var(--fill) 55%, var(--halo-4)), var(--fill));
   filter: blur(8px); opacity: .7; animation: hf-spin 6s linear infinite;
 }
 .st-nav .st-back.hb.hb-glass {
   --hf-c1: color-mix(in srgb, var(--fill) 45%, transparent);
-  --hf-c2: color-mix(in srgb, #F472B6 40%, transparent);
-  --hf-c3: color-mix(in srgb, #38BDF8 35%, transparent);
+  --hf-c2: color-mix(in srgb, var(--halo-2) 40%, transparent);
+  --hf-c3: color-mix(in srgb, var(--halo-3) 35%, transparent);
   border: 1.5px solid transparent; color: color-mix(in srgb, var(--ink) 75%, transparent);
   background:
     linear-gradient(color-mix(in srgb, var(--card) 75%, transparent), color-mix(in srgb, var(--card) 75%, transparent)) padding-box,
@@ -12447,7 +12578,7 @@ button.df-r:active .df-x { transform: scale(.985); }
   position: relative; isolation: isolate; border: 2px solid transparent; border-radius: 22px;
   background:
     linear-gradient(160deg, color-mix(in srgb, var(--card) 86%, #fff), color-mix(in srgb, var(--card) 90%, var(--fill))) padding-box,
-    conic-gradient(from var(--hf-a), color-mix(in srgb, var(--fill) 70%, #fff), #F9A8D4, #93C5FD, #C4B5FD, color-mix(in srgb, var(--fill) 70%, #fff)) border-box;
+    conic-gradient(from var(--hf-a), color-mix(in srgb, var(--fill) 70%, #fff), var(--halo-2), var(--halo-3), var(--halo-4), color-mix(in srgb, var(--fill) 70%, #fff)) border-box;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 0 0 4px color-mix(in srgb, var(--fill) 8%, transparent),
     0 14px 30px -18px color-mix(in srgb, var(--fill) 70%, transparent);
   animation: hf-spin 8s linear infinite;
@@ -12825,11 +12956,11 @@ button.df-r:active .df-x { transform: scale(.985); }
    ------------------------------------------------------------
    • หน้าโหลด: แถบขยับด้วย transform (การ์ดจอทำเองบนเลเยอร์ของมัน) แทน width ที่ต้องคำนวณผังใหม่ทุกเฟรม
    • ของเบลอที่ขยับอยู่ตลอด (แสงฟุ้ง/ก้อนแสง) ให้มีเลเยอร์ของตัวเอง — ขยับแล้วไม่ต้องวาดเบลอใหม่
-   • โหมดลื่น (data-lite): ปุ่มสวิตช์ในตั้งค่าเป็นสีเน้นตอนเปิด
+   • โหมดลื่น (data-lite): เดิมเป็นสวิตช์ในตั้งค่า — ตอนนี้คือระดับ "กลาง" ของปุ่มกราฟิก
    ============================================================ */
 .boot .hp-fill { width: 100% !important; transform-origin: 0 50%; transform: scaleX(0); will-change: transform; }
 .hdz-halo, .hs-b { will-change: transform; }
-#liteBtn.on { background: var(--fill); color: var(--on-fill, #fff); border-color: transparent; }
+/* #liteBtn ถูกแทนด้วยปุ่มสามระดับ #gfxSeg (19 ต.ค. 69) — ดูบล็อก "ระดับกราฟิก" ท้ายไฟล์ */
 
 /* ============================================================
    หน้า "เสร็จแล้ว" (doneView · แท็บงาน › เสร็จแล้ว) — แต่งให้สวย + อนิเมชันตอนกดเข้า
@@ -14442,6 +14573,115 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
    ขอบซ้ายขวา auto ทำให้ลูก flex หดเหลือแค่ความกว้างของเนื้อหา: จอน้องฮูกเลยกว้างแค่ 372px กลางจอ 764px
    → ให้กว้างเต็มก่อน (width:100%) แล้วเพดาน 720px ยังคุมอยู่ · มือถือไม่โดน (กฎเดิมมีเฉพาะจอกว้าง) */
 :root[data-nav="side"] :is(.home-body, .scr-body) { width: 100%; box-sizing: border-box; }
+/* ตัวอย่างหน้าแรกฉบับเรียบ: โฟกัสงานปัจจุบัน → งานถัดไป → ผู้ช่วย */
+#menuBody.home-simple { display:flex; flex-direction:column; gap:20px; padding-bottom:20px; }
+#menuBody.home-simple > * { margin:0; flex-shrink:0; }
+#menuBody.home-simple .th-rank { display:none; }
+#menuBody.home-simple .td-now { box-shadow:0 8px 28px -20px color-mix(in srgb,var(--ink) 25%,transparent); }
+#menuBody.home-simple .td-now::before,
+#menuBody.home-simple .td-now::after { display:none; }
+#menuBody.home-simple .tn-title { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden; }
+.home-next { padding:0 4px; }
+.hn-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.hn-head > b { font-size:15px; color:var(--ink); }
+.hn-head > button { display:flex; align-items:center; gap:4px; min-height:36px; background:none; border:0; color:var(--muted,var(--ink)); font:inherit; font-size:12px; cursor:pointer; }
+.hn-head svg, .hn-task > svg { width:16px; height:16px; flex-shrink:0; }
+.hn-task { display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:12px; border:1px solid color-mix(in srgb,var(--ink) 10%,transparent); border-radius:16px; color:var(--ink); background:color-mix(in srgb,var(--card) 80%,transparent); cursor:pointer; font:inherit; }
+.hn-icon { display:grid; place-items:center; width:38px; height:38px; border-radius:12px; background:color-mix(in srgb,var(--fill) 8%,transparent); color:var(--fill); flex-shrink:0; }
+.hn-icon svg { width:20px; height:20px; }
+.hn-copy { display:flex; flex:1; min-width:0; flex-direction:column; gap:3px; }
+.hn-copy b { font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hn-copy > span, .hn-empty { font-size:12px; line-height:1.6; color:var(--muted,var(--ink)); }
+.hn-empty { margin:0; padding:8px 0; }
+.hn-pending { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:6px; }
+.hn-pending button { display:flex; align-items:center; gap:5px; min-height:36px; background:none; border:0; color:var(--fill); font:inherit; font-size:12px; cursor:pointer; }
+.hn-pending svg { width:15px; height:15px; }
+.home-assistant { padding:16px; border-radius:20px; border:1px solid color-mix(in srgb,var(--ink) 10%,transparent); background:color-mix(in srgb,var(--card) 70%,transparent); }
+.ha-heading { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.ha-heading img { object-fit:contain; flex-shrink:0; }
+.ha-heading > div { display:flex; flex-direction:column; gap:2px; }
+.ha-heading b { font-size:14px; font-weight:600; color:var(--ink); }
+.ha-heading span { font-size:12px; color:var(--muted,var(--ink)); }
+#menuBody.home-simple .td-ask { margin:0; min-height:48px; background:var(--card); border:1px solid color-mix(in srgb,var(--ink) 12%,transparent); box-shadow:none; }
+#menuBody.home-simple .td-ask::before,
+#menuBody.home-simple .td-ask::after { display:none; }
+#menuBody.home-simple .td-ask:focus-within { outline:2px solid color-mix(in srgb,var(--fill) 35%,transparent); outline-offset:2px; }
+:root[data-nav="side"] #menuBody.home-simple { gap:12px; }
+:root[data-nav="side"] #menuBody.home-simple .tn-head { padding:12px 16px; }
+:root[data-nav="side"] #menuBody.home-simple .tn-body { padding:10px 14px; }
+:root[data-nav="side"] #menuBody.home-simple .home-assistant { padding:12px; }
+:root[data-nav="side"] #menuBody.home-simple .ha-heading { margin-bottom:8px; }
+@media(max-width:619px) and (max-height:860px) {
+  .phone #menuBody.home-simple { gap:16px; padding-bottom:14px; }
+  #menuBody.home-simple .home-assistant { padding:12px; }
+  #menuBody.home-simple .ha-heading { margin-bottom:8px; }
+}
+
+/* สำรวจฟีเจอร์: เห็นภาพรวมก่อน แล้วค่อยเปิดทีละหมวด */
+.feature-categories { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.feature-category { display:flex; flex-direction:column; align-items:flex-start; gap:5px; min-height:104px; text-align:left; padding:12px; border:1px solid color-mix(in srgb,var(--ink) 10%,transparent); border-radius:16px; background:var(--card); color:var(--ink); font:inherit; cursor:pointer; }
+.feature-category > svg { width:22px; height:22px; color:var(--fill); margin-bottom:3px; }
+.feature-category > b { font-size:14px; line-height:1.4; font-weight:600; }
+.feature-category > span { font-size:11px; line-height:1.6; color:var(--muted,var(--ink)); }
+.pf-feature-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:-12px; }
+.pf-feature-head > b { font-size:14px; }
+.pf-feature-head > button { display:flex; align-items:center; gap:3px; min-height:36px; border:0; background:none; color:var(--fill); font:inherit; font-size:12px; cursor:pointer; }
+.pf-feature-head svg { width:14px; height:14px; }
+.explore-body { display:flex; flex-direction:column; gap:18px; }
+.explore-header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.explore-header h2 { margin:0; font-size:24px; }
+.explore-header p { margin:4px 0 0; font-size:13px; color:var(--muted,var(--ink)); }
+.explore-back { display:grid; place-items:center; width:40px; height:40px; flex-shrink:0; border:1px solid color-mix(in srgb,var(--ink) 12%,transparent); border-radius:50%; background:var(--card); color:var(--ink); cursor:pointer; }
+.explore-back svg { width:20px; height:20px; transform:rotate(180deg); }
+.explore-search { display:flex; align-items:center; gap:10px; padding:0 12px; min-height:48px; border:1px solid color-mix(in srgb,var(--ink) 15%,transparent); border-radius:14px; background:var(--card); color:var(--muted,var(--ink)); }
+.explore-search svg { width:19px; height:19px; flex-shrink:0; }
+.explore-search input { min-width:0; width:100%; padding:12px 0; border:0; outline:none; background:transparent; color:var(--ink); font:inherit; font-size:13px; }
+.explore-search:focus-within { outline:2px solid color-mix(in srgb,var(--fill) 35%,transparent); }
+.explore-intro { display:flex; flex-direction:column; gap:6px; padding:14px; border-radius:16px; background:color-mix(in srgb,var(--fill) 8%,var(--card)); color:var(--ink); }
+.explore-intro b { font-size:14px; }
+.explore-intro span { font-size:12px; }
+.explore-intro button { display:flex; align-items:center; justify-content:center; gap:8px; min-height:40px; margin-top:5px; border:0; border-radius:10px; background:var(--fill); color:var(--on-fill); font:inherit; font-size:13px; cursor:pointer; }
+.explore-intro svg { width:17px; height:17px; }
+.explore-selected { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.explore-selected > button { display:flex; align-items:center; gap:4px; background:none; border:0; color:var(--fill); min-height:36px; font:inherit; font-size:13px; cursor:pointer; }
+.explore-selected svg { width:16px; height:16px; transform:rotate(180deg); }
+.explore-selected > b { font-size:14px; }
+.explore-section h3 { margin:0 0 10px; font-size:13px; color:var(--muted,var(--ink)); }
+.explore-section .pf-entry { overflow:hidden; border:1px solid color-mix(in srgb,var(--ink) 10%,transparent); border-radius:16px; background:var(--card); }
+.explore-section .pe { width:100%; color:var(--ink); text-align:left; }
+.explore-section .pe-ic { background:color-mix(in srgb,var(--fill) 10%,transparent); color:var(--fill); }
+.explore-section .pe > svg:last-child { width:16px; height:16px; flex-shrink:0; }
+.explore-no-results { font-size:14px; line-height:1.8; color:var(--muted,var(--ink)); text-align:center; padding:20px 10px; }
+#menuBody.home-simple .home-discover { display:flex; align-items:center; gap:10px; width:100%; min-height:44px; padding:4px 8px; border:0; border-radius:12px; background:none; color:var(--ink); text-align:left; font:inherit; cursor:pointer; }
+.home-discover > svg { width:19px; height:19px; color:var(--fill); flex-shrink:0; }
+.home-discover > svg:last-child { width:15px; height:15px; margin-left:auto; color:var(--muted,var(--ink)); }
+.home-discover > span { display:flex; flex-direction:column; gap:2px; }
+.home-discover b { font-size:13px; font-weight:600; }
+.home-discover span span { font-size:11px; color:var(--muted,var(--ink)); }
+#scr-explore [hidden] { display:none !important; }
+#scr-profile .pf-body > .feature-categories { margin-top:0; }
+#scr-profile .pf-body { gap:14px; }
+#scr-profile .feature-category { display:grid; grid-template-columns:22px minmax(0,1fr); column-gap:8px; row-gap:4px; min-height:72px; padding:10px; align-content:center; }
+#scr-profile .feature-category > svg { grid-row:1; margin:0; width:20px; height:20px; }
+#scr-profile .feature-category > b { align-self:center; font-size:12px; }
+#scr-profile .feature-category > span { grid-column:1/-1; font-size:10px; }
+#scr-profile .pf-feature-head { margin-bottom:-10px; }
+.pf-personal { border:1px solid color-mix(in srgb,var(--ink) 10%,transparent); border-radius:16px; background:var(--card); overflow:hidden; }
+.pf-personal > summary { display:flex; align-items:center; gap:8px; min-height:60px; padding:10px 12px; cursor:pointer; list-style:none; }
+.pf-personal > summary::-webkit-details-marker { display:none; }
+.pf-personal > summary > span { display:flex; flex:1; flex-direction:column; gap:3px; }
+.pf-personal summary b { font-size:13px; font-weight:600; }
+.pf-personal summary span span { font-size:11px; color:var(--muted,var(--ink)); }
+.pf-personal summary em { font-size:11px; font-style:normal; color:var(--fill); }
+.pf-personal > summary > svg { width:15px; height:15px; transform:rotate(90deg); flex-shrink:0; }
+.pf-personal[open] > summary > svg { transform:rotate(-90deg); }
+.pf-personal-body { display:flex; flex-direction:column; gap:12px; padding:4px 12px 12px; }
+.pf-personal #showBox .show-strip { margin:0; }
+@media(max-width:619px) and (max-height:860px) {
+  .phone #menuBody.home-simple { gap:8px; }
+  #menuBody.home-simple:has(.hn-task) .tn-title { -webkit-line-clamp:2; }
+  #scr-profile .feature-category { min-height:72px; }
+}
 
 /* ---------- จอกว้าง: จอเพื่อนของฉันเต็มความกว้าง (14 ต.ค. 69 · เจ้าของ: "ให้มันเต็มจอ") ----------
    ① #feedBody (feed.css · ทีมอื่น) ตั้ง margin: 0 auto อยู่ในกล่อง flex ของ .scr-body — ลูก flex ที่ขอบซ้ายขวา auto หดเหลือความกว้างเนื้อหา
@@ -14459,6 +14699,228 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 .tab-badge {
   min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;
   font: 700 10.5px/16px 'Outfit', 'Sarabun', sans-serif; font-variant-numeric: tabular-nums; letter-spacing: 0;
+}
+
+/* ---------- แผ่นเพิ่มงานที่กำลังปิด ต้องไม่บังการแตะ (17 ต.ค. 69 · คู่กับ openAddSheet/closeAddSheet ใน app.js) ----------
+   ตอนปิด แผ่นถอด .on แล้วรอตัวจับเวลา 200ms ถึงจะซ่อน — ระหว่างนั้นทั้งแผ่น (เต็มจอ · z-index 95) ยังรับการแตะ
+   ฉากหลังจางเป็น 0 แล้วจึงมองไม่เห็นว่ามีอะไรบังอยู่ · มือถือช้า ตัวจับเวลามาช้ากว่า 200ms มาก = แตะอะไรก็ไม่ติด
+   ไม่มี .on = ทะลุทั้งแผ่น · เทสต์: devtools/sheetcheck.js */
+.add-sheet:not(.on) { pointer-events: none; }
+
+/* ---------- เมนูซ้าย: แผ่นที่เลื่อนขึ้นจากล่างไม่ยืดเต็มหน้าต่าง ไม่ทับเมนู (17 ต.ค. 69) ----------
+   เจ้าของ: "ตอนที่ปุ่มอยู่ฝั่งซ้าย … อะไรต่าง ๆ ที่ยังเป็นปัญหาค้าง"
+   แผ่นทุกใบออกแบบมาสำหรับมือถือ (left:0 · right:0 / width:100%) — พอแอปเต็มหน้าต่างจอคอม แผ่นยืดตาม
+   วัดที่ 1920×1080: แผ่นเพิ่มงาน · กำลังจะเปิด · น้องฮูก · รายงาน · ติดตั้งแอป กว้าง 1920px · กล่องยืนยัน 1896px — ทุกใบทับเมนูซ้าย (x 14–106)
+   ปุ่มบนแผ่นยืดตามจนยาวเกือบเต็มจอ · ตอนนี้แผ่นอยู่ในพื้นที่ทางขวาของเมนู กว้างสุดเท่าคอลัมน์เนื้อหา (720px) อยู่กลาง
+   กล่องยืนยันแคบกว่า (480px) — คำถามสั้น ปุ่มสองปุ่ม กว้างกว่านี้ปุ่มห่างกันเกินสายตา */
+:root[data-nav="side"] :is(.as-card, .ah-card) { left: 106px; right: 0; max-width: 720px; margin-inline: auto; }
+:root[data-nav="side"] .ac-sheet { left: 106px; right: 0; max-width: 480px; margin-inline: auto; }
+:root[data-nav="side"] :is(.rp-sheet, #installGuide) { padding-left: 106px; justify-content: center; }
+:root[data-nav="side"] :is(.rp-card, .ig-sheet) { max-width: 720px; }
+
+/* ============================================================
+   ตัวหนังสืออ่านออกทุกธีม (17 ต.ค. 69)
+   ------------------------------------------------------------
+   เจ้าของ: "ตรวจสอบพวกฟอนต์หรือข้อความที่ยังไม่ชัดในแต่ละธีมและแก้ด้วย"
+   วัดด้วย devtools/textcheck.mjs — อ่านพิกเซลใต้ตัวอักษรจริง 15 ธีม × 16 จอ (~540 ชิ้นต่อธีม) เกณฑ์ DESIGN.md ข้อ 2–3
+   ก่อนแก้: สีจางเกินเกณฑ์ 77–129 ชิ้นต่อธีม · ตัวเล็กกว่า 11px 16 ชิ้น
+   รอบก่อน ๆ แก้เฉพาะธีมสว่าง/มืดทีละจุด — อีก 13 ธีมไม่เคยถูกวัด · รอบนี้แก้ที่ต้นเหตุ 5 แบบ ใช้โทเคนของธีม ไม่ไล่ใส่สีทีละธีม
+   ============================================================ */
+
+/* ① หรี่ทั้งแถวด้วย opacity เพื่อบอก "ยังไม่ได้ / ผ่านไปแล้ว / ซื้อไม่ได้" — ตัวหนังสือที่ต้องอ่านจางตามไปด้วย (1.4–2.6:1 ทุกธีม)
+     → แถวเต็มสี ตัวหนังสือใช้ --muted (≥4.5 บนการ์ดทุกธีม) · บอกสถานะด้วยเส้นประ/ไอคอนขาวดำแทน */
+.phone .tk-skin:not(.got) { opacity: 1; border-style: dashed; box-shadow: none; }
+.phone .tk-skin:not(.got) :is(.ts-nm, .ts-ct) { color: var(--muted); }
+.phone .bg-row:not(.on) { opacity: 1; }
+.phone .bg-row:not(.on) .bg-mark { filter: grayscale(1); }
+.phone .dayrow.past { opacity: 1; }
+.phone .dayrow.past :is(.dayrow-t, .dayrow-l) { color: var(--muted); font-weight: 400; }
+.phone .dayrow.past .dayrow-dot { opacity: .4; }
+.phone .tb-go.poor { opacity: 1; background: var(--card2); color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
+/* เส้นประกลางตั๋วจาง .55 ทั้งก้อน — ตัวเลขนาทีที่นั่งคร่อมเส้นจางตามไปด้วย → จางเฉพาะเส้น */
+.td-now .tk-line { opacity: 1; background: none; }
+.td-now .tk-line::before { content: ''; position: absolute; inset: 0; opacity: .55;
+  background: repeating-linear-gradient(to right, currentColor 0 4px, transparent 4px 8px); }
+.td-now .tk-line i { z-index: 1; }
+/* ป้ายเล็กบนพื้นสีเน้น (การ์ด "ทำก่อน" · การ์ดงานที่ควรทำก่อน) — เดิมจาง .72–.85 */
+.phone .wy2-k { opacity: .94; }
+.phone .wy2-stats span { opacity: .92; }
+.phone .tb-focus :is(.tb-fc-lb, .tb-fc-s) { opacity: 1; }
+
+/* ② ประกายกระจกของปุ่มหลัก/ชิปที่เลือก (1C40) ไหลลงมาถึงกลางปุ่ม = ตัวหนังสือนั่งบนพื้นที่ถูกทำให้สว่างขึ้น
+     ปุ่มหลักวัดได้ 3.8–4.2 ทั้งที่คู่สี --fill/--on-fill ของทุกธีมผ่าน 4.55+ → เก็บประกายไว้ที่ขอบบน · เงาเข้มบาง ๆ ใต้ตัวหนังสือ
+     (หน้าตากระจกเดิม: แสงมุมซ้ายบน + ไล่สว่างจากขอบบน — แค่ไม่ลงมาถึงบรรทัดตัวหนังสือ) */
+:root :is(.btn.primary, .fm-save, .sai-cta, .daysheet-go:not(.ghost), .ib-go, .fr-go, .ai-read, .cx2-scan,
+          .ep-save, .ep-face-go, .pro-cta:not(.done), .ig-btns button.pri, .ig-av-cam,
+          .cp-chip.on, .sp.active, .tk-mode.on, .rm-tab.on, .ds.on, .tg.on, .ctx-sw.on) {
+  background-image:
+    radial-gradient(110% 70% at 18% -18%, rgba(255,255,255,.42) 0%, rgba(255,255,255,.08) 45%, transparent 70%),
+    linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 32%, rgba(0,0,0,.06) 62%, rgba(0,0,0,.12)) !important;
+}
+.phone .ds.on .ds-d { color: color-mix(in srgb, var(--on-fill) 92%, transparent); }   /* "วันนี้" บนวันที่เลือก เดิม 72% */
+
+/* ③ สีตายตัวที่ไม่ตามธีม */
+.phone .td-now .tn-eyebrow { color: var(--on-fill); }   /* ชื่อวิชาบนหัวการ์ด "ตอนนี้" ขาว 80% ตายตัว — ธีมที่พื้นหัวการ์ดสว่าง (อวกาศ · Astral) มองแทบไม่เห็น 1.2:1 */
+.phone .tk-goal b { color: var(--gold-text); }   /* "10 โทเคน" อำพัน #E9A93C ตายตัว 2.0:1 → อำพันเข้มของธีม (สีเดิม เฉดอ่านออก) */
+:root:not([data-theme="astral"]) .tab-badge { background: color-mix(in srgb, var(--pri-red) 86%, #000); }   /* เลขบนจุดแดง 4.36 → แดงเข้มขึ้นนิดเดียว */
+
+/* ④ ตัวแดง/ส้มบนพื้นแดง/ส้มอ่อนของตัวเอง — คู่โทเคน --alert/--alert-soft ไม่ถึง 4.5 ใน 9 ธีม (sweet 3.6 · glitch 4.0)
+     ดึงสีตัวหนังสือเข้าหา --ink 28% — ธีมสว่างได้แดงเข้มขึ้น ธีมมืดได้แดงอ่อนลง ยังเป็นแดงเตือนเดิมทุกธีม */
+.phone :is(.tk-chip.hot, .nbadge.lv5, .tn-plan-note.warn, .wk-late-h i, .wy-sac, .bin-act .del) { color: color-mix(in srgb, var(--alert) 72%, var(--ink)); }
+.phone :is(.nbadge.lv4, .povf-head) { color: color-mix(in srgb, var(--warn) 68%, var(--ink)); }
+.phone .povf.danger .povf-head { color: color-mix(in srgb, var(--alert) 68%, var(--ink)); }
+
+/* ⑤ ตัวหนังสือที่วางบนฉากของธีมตรง ๆ (ไม่มีการ์ดรอง) — ดาวเคราะห์ · แมงกะพรุน · ปลา ลอยผ่านหลังตัวหนังสือ
+     (Astral: คำบรรยายหัวจอบนดาวเคราะห์สีเทา 1.7:1 · ทะเลลึก: "ดูแผนทั้งหมด" บนแมงกะพรุน 2.4:1)
+     → ขอบนุ่มสีพื้นจอรอบตัวอักษร (แบบชื่อสถานที่บนแผนที่) — พื้นเรียบไม่เห็นอะไรเปลี่ยน · มีของลอยผ่านตัวหนังสือยังอ่านออก */
+.phone :is(.page-head .page-sub, .hn-head > b, .hn-head > button, .home-discover b, .home-discover span span,
+           .povf-head, .tl-hint, .hn-empty) {
+  text-shadow: 0 0 1px var(--scr), 0 0 6px var(--scr), 0 0 12px var(--scr);
+}
+.phone .tl-hint b { color: var(--blue); }   /* "บอกตาราง" ใช้ --fill เป็นสีตัวหนังสือ (สีพื้นปุ่ม ไม่ใช่สีตัวหนังสือ) 3.5:1 ใน 3 ธีม */
+
+/* ตัวหนังสือจาง (--faint) บนพื้นรอง/กระจก — --faint ผ่านบนการ์ดทุกธีม แต่บน --card2 ไม่ถึง 4.5 ใน 6 ธีม → --muted */
+.phone :is(.ctx-empty, .dn-mid i, .shw i, .ab-ds, .bg-ct, .pslot .ptime .e) { color: var(--muted); }
+.phone .an-bd.got .ab-ds { opacity: 1; }   /* "ได้แล้ว" อำพันบนทองอ่อน จาง .8 */
+.phone .ai-priv-go { color: color-mix(in srgb, var(--blue) 62%, var(--ink)); }   /* ลิงก์ฟ้าบนแถบพื้นฟ้า 2.4:1 → ฟ้าที่ดึงเข้าหาสีตัวหนังสือ */
+.phone .pctx-nudge .pn-tx span { color: color-mix(in srgb, var(--ink) 74%, var(--blue)); }   /* บนพื้นฟ้าอ่อน 2.6:1 ในธีมมืด */
+
+/* ตัวหนังสือต่ำกว่า 11px ที่เป็นคำ (DESIGN.md ข้อ 3 · ต่ำกว่านี้ได้เฉพาะตัวเลขในแบดจ์) */
+.phone :is(.ts-rar, .bg-ct, .nbadge, .sh-badge, .ab-nm) { font-size: 11px; }
+#scr-profile .feature-category > span { font-size: 11px; }
+
+/* ---------- รอบ 2 (วัดซ้ำหลังรอบแรก: light 95→35 · warm 105→40 · ocean 127→74 · deepocean 90→29 · astral 77→27) ---------- */
+/* ป้ายบนแถบล่างกระจก — แถบเบลอเนื้อหาข้างหลัง: ฉากทะเลของ ocean (ป้ายเทาบนเขียวน้ำเงิน 2.0:1 ทุกจอ)
+   หรือปุ่มสีฟ้าที่เลื่อนไปอยู่หลังแถบ ("เพิ่ม" บนแสงฟ้า) → ขอบนุ่มสีการ์ดรอบตัวอักษร อ่านออกไม่ว่าอะไรอยู่ข้างหลัง */
+.tabbar .tab:not(.active) > span:last-child { text-shadow: 0 0 1px var(--card), 0 0 6px var(--card), 0 0 10px var(--card); }
+/* ชิ้นเล็กที่เลือกอยู่ (วันที่ · ปุ่มสลับมุมมอง · ชิป) — ตัวหนังสือชิดขอบบนที่มีประกาย · ธีมที่ใช้ตัวขาวเผื่อแค่ 4.55 (warm)
+   → ประกายเหลือแค่แถบบางที่ขอบบน · ป้ายบนวันที่เลือกเต็มสี (แยกลำดับด้วยขนาด ไม่ใช่ความจาง) */
+/* ต้องมี .phone — กฎกระจกของปุ่มใหญ่มี ".ig-btns button.pri" ในรายการ ความเฉพาะเลยเป็น (0,3,1)
+   ชนะกฎของชิ้นเล็ก (0,3,0) ที่เขียนทีหลัง → ชิ้นเล็กโดนประกาย/แสงในแบบปุ่มใหญ่มาตลอด (กฎ "ของชิ้นเล็ก" เดิมก็ไม่เคยทำงาน)
+   .tk-thumb = เม็ดเลื่อนของแถบสลับมุมมอง (ตัวปุ่มที่เลือกโปร่งใส สีพื้นมาจากเม็ดนี้) */
+:root .phone :is(.cp-chip.on, .sp.active, .tk-mode.on, .rm-tab.on, .ds.on, .tg.on, .ctx-sw.on, .tk-thumb) {
+  background-image: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 16%, rgba(0,0,0,.06) 55%, rgba(0,0,0,.12)) !important;
+}
+.phone .ds.on .ds-d { color: var(--on-fill); }
+/* ตัวหนังสือเล็กที่มุมสว่างของหัวการ์ดไล่สี (การ์ด "ตอนนี้" · การ์ด "ทำก่อน") — มุมซ้ายบนผสมขาว 22% ตามดีไซน์
+   ธีมตัวขาวทุกธีมได้ 3.3–3.7 ตรงนั้น (ชื่องานตัวใหญ่ผ่านเกณฑ์ตัวใหญ่อยู่แล้ว) · ลดมุมสว่างจนผ่านทุกธีม = ต้องเอามุมสว่างออกหมด
+   → คงไล่สีไว้ ใส่เงานุ่มสีเข้มของพื้นการ์ดเองใต้ตัวหนังสือเล็ก (แบบตัวขาวบนรูปถ่ายของ iOS)
+   เฉพาะ 8 ธีมที่ใช้ตัวขาวบนพื้นการ์ด — ธีมตัวเข้ม (อวกาศ · เวทมนตร์ · กาแล็กซี · ทะเลลึก · meta · glitch · Astral) มุมสว่าง = ยิ่งชัด
+   ใส่เงาเข้มใต้ตัวเข้มแล้วกลายเป็นรอยเปื้อน (ดูภาพแล้ว) · เพิ่มธีมตัวขาวใหม่ = เติมชื่อในรายการนี้ด้วย */
+:root:is(:not([data-theme]), [data-theme="light"], [data-theme="dark"], [data-theme="warm"], [data-theme="earth"],
+         [data-theme="ocean"], [data-theme="earth2"], [data-theme="sweet"], [data-theme="genesis"])
+  :is(.phone .td-now .tn-head .tn-eyebrow, .phone .wy2-hero .wy2-k) {
+  text-shadow: 0 0 1px color-mix(in srgb, var(--fill) 40%, #000), 0 0 3px color-mix(in srgb, var(--fill) 55%, #000), 0 0 8px color-mix(in srgb, var(--fill) 65%, #000);
+}
+/* วงสถิติ "รวม · ชม." — กฎของ #statFull ใช้ตัวหลักจาง 55% (3.9:1) ชนะกฎรวมข้างบนด้วย id */
+#statFull .dn-mid i { color: var(--muted); }
+/* เวลาในไทม์ไลน์ที่ยังไม่ใส่ตาราง ("06:00 ตื่นนอน") วางบนฉากตรง ๆ — ปลาในธีมทะเลว่ายผ่าน */
+.phone .dayrow :is(.dayrow-t, .dayrow-l, .dayrow-due) { text-shadow: 0 0 1px var(--scr), 0 0 6px var(--scr), 0 0 12px var(--scr); }
+/* 23 ต.ค. 69 · .dayrow-due ("ถึงกำหนด · …") ถูกลืมไว้นอกกฎนี้ — บนฉากเรือผี/สุสานมันทับใบเรือสว่างได้ 2.05:1 */
+/* ตัวรองบนพื้นอมสี/กระจกที่ได้ 4.2–4.45 (เฉียดเกณฑ์) — --muted เข้มขึ้นอีกนิด ยังเป็นระดับรองเหมือนเดิม */
+.phone :is(.ctx-empty, .pslot .ptime .e, .tk-chip:not(.hot), .sd-tx span, .st-tx span, .tb-grp > b, .tb-grp > button, .tn-plan-note:not(.warn), .sd-all, .sh-badge) {
+  color: color-mix(in srgb, var(--muted) 70%, var(--ink));
+}
+/* รอบ 3 · ชิ้นเล็กที่เลือก: เงาขาวด้านใน 12px ท่วมทั้งเม็ด (ปุ่มสูง ~32px) → ตัวหนังสือนั่งบนพื้นที่สว่างขึ้นทั้งเม็ด 3.5:1
+   → แสงในเหลือแค่ขอบ (6px · จางลง) ยังเห็นเป็นเม็ดกระจกเหมือนเดิม */
+:root .phone :is(.cp-chip.on, .sp.active, .tk-mode.on, .rm-tab.on, .ds.on, .tg.on, .ctx-sw.on, .ig-av-cam) {
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,.55), inset 0 -1.5px 3px rgba(0,0,0,.14),
+    inset 0 0 6px rgba(255,255,255,.06), 0 0 0 .5px var(--lgb-edge, transparent) !important;
+}
+/* เม็ดเลื่อน: แสงในเหลือแค่ขอบเหมือนกัน — ยกเว้น meta/glitch ที่ตั้งเรืองแสงนีออนของเม็ดไว้เป็นเอกลักษณ์ธีม */
+:root:not([data-theme="meta"]):not([data-theme="glitch"]) .phone .tk-thumb {
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,.55), inset 0 -1.5px 3px rgba(0,0,0,.14),
+    inset 0 0 6px rgba(255,255,255,.06), 0 0 0 .5px var(--lgb-edge, transparent) !important;
+}
+/* เม็ดเลื่อนที่ตั้งใจให้ปุ่มที่เลือกโปร่งใส — อย่าให้กฎบนไปใส่พื้นซ้อนให้ตัวปุ่ม (ปุ่มยังโปร่ง สีมาจากเม็ด) */
+:root .phone .tk-modes.has-thumb .tk-mode.on { background-image: none !important; box-shadow: none !important; }
+/* รอบ 3 · ข้อความรองที่วางบนฉากของธีมตรง ๆ — ฉากจริง (แสงลอดน้ำ · ไล่สีก้นจอ · ผลึกของ genesis) เข้มกว่าโทเคน --scr มาก
+   --muted ที่ผ่านบน --scr จึงไม่ผ่านบนฉากจริง (ocean "สำรวจแอป" 2.7 · earth "เข้านอน" 2.4 · genesis "บอกตาราง" 3.0)
+   → ดึงเข้าหาตัวหลัก (--ink) ครึ่งทาง ยังเบากว่าหัวข้อ · ขอบนุ่มสีพื้นจอจากรอบแรกยังอยู่ */
+.phone :is(.page-head .page-sub, .home-discover span span, .hn-head > button, .hn-empty, .dayrow-t, .dayrow-l, .th-sub, .sh-sub) {
+  color: color-mix(in srgb, var(--muted) 50%, var(--ink));
+}
+.phone .dayrow.past :is(.dayrow-t, .dayrow-l) { color: color-mix(in srgb, var(--muted) 62%, var(--ink)); }
+.phone .tl-hint b { color: color-mix(in srgb, var(--blue) 55%, var(--ink)); }
+/* หัวจอไล่สีของ genesis — คราม → ฟ้าอมเขียวอ่อน บนฉากลาเวนเดอร์ 1.1:1 (วัดหลังให้ตัววัดอ่านตัวหนังสือไล่สีได้)
+   → โทนเดิม (คราม · น้ำเงิน · ฟ้าอมเขียว) เฉดเข้มขึ้น ทุกจุดของไล่สีผ่านเกณฑ์ตัวใหญ่ 3:1 */
+:root[data-theme="genesis"] { --id-title-ink: linear-gradient(100deg, #1E2A8C, #2F3FB5 50%, #0B4A5E); }
+/* รอบ 4 · ป้ายเล็กบนหัวการ์ดไล่สี ("ทำก่อน" · "ที่ต้องใช้" · ชื่อวิชา) ยัง 3.5–4.0 ในธีมตัวขาว แม้มีเงารอง
+   → เต็มสี + มุมสว่างผสมขาวน้อยลง (22% → 12%) ทั้งสองการ์ดพร้อมกัน (เจ้าของสั่งให้สองใบนี้หน้าตาเดียวกัน) · มุมเข้มขวาล่างคงเดิม */
+.phone .wy2-k, .phone .wy2-stats span { opacity: 1; }
+.phone .td-now .tn-head, .phone .wy2-hero {
+  background: linear-gradient(140deg,
+    color-mix(in srgb, var(--fill) 88%, #fff) 0%,
+    var(--fill) 55%,
+    color-mix(in srgb, var(--fill) 78%, #000) 100%);
+}
+:root:is(:not([data-theme]), [data-theme="light"], [data-theme="dark"], [data-theme="warm"], [data-theme="earth"],
+         [data-theme="ocean"], [data-theme="earth2"], [data-theme="sweet"], [data-theme="genesis"]) .phone .wy2-hero .wy2-stats span { text-shadow: 0 0 1px color-mix(in srgb, var(--fill) 40%, #000), 0 0 6px color-mix(in srgb, var(--fill) 60%, #000); }
+/* แถวกิจวัตรในไทม์ไลน์ (ฉาก glitch/ทะเล/ผลึก) ยัง 3.7–4.2 → เข้าใกล้ตัวหลักอีก */
+.phone .dayrow :is(.dayrow-t, .dayrow-l), .phone .dayrow.past :is(.dayrow-t, .dayrow-l) { color: color-mix(in srgb, var(--muted) 30%, var(--ink)); }
+
+/* รอบ 5 (วัดครบ 15 ธีมไม่มีงานอื่นซ้อน: 1,494 → 330) */
+/* เงาใต้ "พรุ่งนี้ · กำหนดส่ง" เดิมใส่ทุกธีม — ธีมตัวเข้มได้เงาเข้มใต้ตัวเข้ม 2.8:1 → จำกัดเฉพาะธีมตัวขาว (แก้ที่กฎข้างบนแล้ว) */
+/* "เพิ่ม" บนแถบล่าง — เนื้อหาสีเข้มที่เลื่อนไปอยู่หลังกระจก (ปุ่มฟ้า "ถ่ายรูปตารางเรียน") ยังกลบได้ 2.5 → ขอบนุ่มหนาขึ้น */
+.tabbar .tab:not(.active) > span:last-child { text-shadow: 0 0 1px var(--card), 0 0 2px var(--card), 0 0 4px var(--card), 0 0 8px var(--card), 0 0 12px var(--card); }
+/* หัวจอไล่สีของ earth2 — ปลายเขียวอ่อน 2.7:1 (เกณฑ์ตัวใหญ่ 3) → เขียวเดิม เฉดเข้มขึ้น */
+:root[data-theme="earth2"] { --id-title-ink: linear-gradient(100deg, #1E5B2E, #3B7F2B); }
+/* ตัวรอง/ลิงก์ที่เหลือ 2.9–4.4 ในบางธีม — ดึงเข้าหาตัวหลัก */
+.phone :is(.ai-hello p, .pctx-note, .ai-priv-tx, .wy2-n, .tb-more, .sh-badge) { color: color-mix(in srgb, var(--muted) 45%, var(--ink)); }
+.phone :is(.ai-priv-go, .tl-hint b) { color: color-mix(in srgb, var(--blue) 45%, var(--ink)); }
+.phone .povf-head { color: color-mix(in srgb, var(--warn) 50%, var(--ink)); }
+.phone .tk-chip.warm { color: color-mix(in srgb, var(--warn) 60%, var(--ink)); }
+/* รอบ 6 · ป้าย "ไม่ทัน/แน่น" ในหัววันของไทม์ไลน์วางลอยบนฉากตรง ๆ พื้นป้ายโปร่ง 26% — ธีมมืดของในฉากลอยผ่านหลังป้าย 2.4:1
+   → พื้นป้ายทึบ (สีเตือนผสมพื้นการ์ด) ไม่ขึ้นกับฉาก */
+.phone .dayvd-h .tk-chip.hot { background: color-mix(in srgb, var(--alert) 22%, var(--card)); }
+.phone .dayvd-h .tk-chip.warm { background: color-mix(in srgb, var(--warn) 22%, var(--card)); }
+/* ป้ายแถบล่าง — แถบไม่มีสีพื้นของตัวเอง (โปร่ง + เบลอ + เร่งสี 2 เท่า) ปุ่มสีที่เลื่อนไปหลังแถบกลายเป็นพื้นสีสด
+   ขอบนุ่มอย่างเดียวได้ 2.7 → ตัวป้ายเข้มขึ้นหนึ่งระดับ (--faint → --muted) */
+:root:not([data-nav="side"]) .tabbar .tab:not(.active) { color: var(--muted); }
+
+/* ---------- ปุ่ม "เปิดแอปหลัก" (ตั้งค่า › แจ้งเตือน) · 18 ต.ค. 69 ----------
+   เจ้าของ: "แก้ให้ตรงและสวยหน่อย" — ปุ่มนี้เป็น <a> ตัวเดียวในแอปที่ใช้หน้าตา .btn
+   <button> จัดตัวหนังสือกึ่งกลางแนวตั้งให้เอง แต่ <a> เป็น display:block บรรทัดสูง 23px ในปุ่มสูง 34px
+   → ตัวหนังสือกองอยู่ข้างบน + มีขีดเส้นใต้ของลิงก์ติดมา
+   → จัดกึ่งกลางด้วย inline-flex เหมือนปุ่มข้าง ๆ · ลูกศรเฉียงขึ้น (↗) บอกว่าพาออกไปแอปอื่น */
+.phone a.btn.open-main {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  width: auto; min-height: 34px; padding: 0 12px 0 14px; flex-shrink: 0;
+  line-height: 1; white-space: nowrap; text-decoration: none;
+}
+.phone a.btn.open-main svg {
+  width: 13px; height: 13px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+  transform: rotate(45deg); opacity: .75;
+}
+
+/* ============================================================
+   ระดับกราฟิก น้อย · กลาง · มาก (ตั้งค่า › กราฟิก) · 19 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ: "ทำให้มีปุ่มสามารถปรับกราฟิกหรือความสวยได้หน่อย และก็ปรับตามนั้น มี น้อย กลาง มาก"
+   กลาง = กฎ :root[data-lite] เดิมทั้งหมด · น้อย = กลาง + ข้างล่างนี้ (:root[data-quality="low"] — ห้ามใช้ data-gfx: ธีม glitch ใช้สั่นจอแล้วลบทิ้ง) · ตัวควบคุมอยู่ที่ setGfx (app.js)
+   ปุ่มแบ่งช่องหน้าตาเดียวกับปุ่ม 2D/3D ของเอฟเฟกต์ (.fx-seg) และแถบสลับมุมมองงาน — แบบที่แอปใช้อยู่แล้ว ไม่ใช่ปุ่มแบบใหม่
+   ============================================================ */
+.gfx-row { flex-wrap: wrap; row-gap: 10px; }
+.gfx-row .set-lb { flex: 1; min-width: 0; }
+.gfx-seg { flex: 0 0 calc(100% - 48px); box-sizing: border-box; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 3px; margin-left: 48px;
+  border-radius: 999px; background: var(--card2); box-shadow: inset 0 0 0 1px var(--line); }
+.gfx-seg button { min-height: 36px; border: 0; border-radius: 999px; background: none; color: var(--muted);
+  font: 700 13.5px/1 'Sarabun', 'Leelawadee UI', sans-serif; cursor: pointer; transition: background-color .18s ease, color .18s ease; }
+.gfx-seg button.active { background: var(--fill); color: var(--on-fill); box-shadow: 0 2px 8px -4px color-mix(in srgb, var(--fill) 70%, transparent); }
+.gfx-seg button:active { transform: scale(.97); }
+:root[data-nav="side"] .gfx-seg { margin-left: 0; flex-basis: 100%; }
+
+/* น้อย: ไม่วาดฉากของธีมเลย (กลางแค่หยุดนิ่ง) — สีพื้นของธีมยังอยู่ */
+:root[data-quality="low"] :is(.fx, .starfield) { display: none !important; }
+/* น้อย: ไม่มีอนิเมชันเข้าจอ — จอใหม่โผล่ทันที
+   ชิ้นที่ไล่เข้าทีละชิ้น "เล่นจบทันที" (ไม่ใช่ animation:none) — บางชิ้นเริ่มจากโปร่งใสแล้วให้อนิเมชันพาให้เห็น
+   ปิดทิ้งเฉย ๆ จะค้างโปร่งใส · จบทันที = ไปอยู่ท่าสุดท้ายเสมอ */
+:root[data-quality="low"] .screen.on { animation: none !important; }
+:root[data-quality="low"] :is(.screen.just-in, .screen.fx-in) :is(*, *::before, *::after) {
+  animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important;
 }
 
 /* ============================================================
@@ -14548,11 +15010,6 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 .dc-brkq i { color: var(--blue); }
 
 /* ============================================================
-   21 ต.ค. 69 · ย้ายจาก alt ขึ้นแอปหลักเฉพาะที่เจ้าของเลือก (ไม่ใช่ซิงก์ทั้งก้อน)
-   ปุ่มกลับหน้าเข้าสู่ระบบ · จอแผนวันนี้แบบใหม่ · แถบกลางคืนบรรทัดเดียว · แคปซูลนาฬิกา + สีแถบจับเวลา
-   บล็อกข้างล่างก๊อปมาจาก alt/alt.css ตามต้นฉบับ — แก้ที่นั่นแล้วค่อยย้ายตาม
-   ============================================================ */
-/* ============================================================
    แผนวันนี้ อ่านง่าย ใช้ง่าย (scr-sai · renderSaiPlan) · 19 ต.ค. 69
    ------------------------------------------------------------
    เจ้าของ: "ปรับหน้าแผนวันนี้ให้มันดูเข้าใจง่าย ใช้งานง่าย"
@@ -14611,6 +15068,108 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 #saiBody .sd-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; margin-bottom: 0; }
 #saiBody .sd-head .sd-pastbtn { margin: 0; min-height: 32px; padding: 5px 12px; font-size: 12.5px; }
 
+/* ============================================================
+   แผนวันนี้: ช่อง "ว่าง" ใช้สีของธีม · 19 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ: "ปรับสีให้ตรงแต่ละธีมด้วย" — เดิมฟ้าตายตัว (#3B82F6 → --sig-blue → #1748A8) ทุกธีม
+   ธีมเขียว (earth) ชมพู (warm/sweet) ม่วง (galaxy) ก็ยังได้ก้อนน้ำเงินกลางจอ
+   ตอนนี้ไล่จาก --fill ของธีม (สีเดียวกับปุ่ม "เริ่มทำเลย") · ไล่แค่นิดเดียว (+8% ขาว → +12% ดำ)
+   ให้ตัวหนังสือ --on-fill ได้คอนทราสต์เท่ากับบนปุ่ม — บางธีม on-fill เป็นตัวเข้ม (galaxy) ไล่เข้มมากจะจม
+   ⚠️ ตัวหนังสือบนก้อนนี้ต้องสืบจาก --on-fill ทุกตัว ห้ามขาวตายตัว
+   การ์ดงานสีขาวที่ซ้อนอยู่ข้างในคงเดิม — ตัวเข้มบนขาว อ่านได้บนพื้นทุกสี
+   ============================================================ */
+#saiBody .sd-free .sd-x {
+  background: linear-gradient(150deg, color-mix(in srgb, var(--fill) 92%, #fff), var(--fill) 50%, color-mix(in srgb, var(--fill) 88%, #000));
+  box-shadow: 0 14px 28px -16px color-mix(in srgb, var(--fill) 80%, transparent), inset 0 1px 0 rgba(255,255,255,.22);
+}
+#saiBody .sd-free .sd-x::after { background: radial-gradient(closest-side, color-mix(in srgb, var(--on-fill) 16%, transparent), transparent 70%); }
+#saiBody .sd-free .sd-x > b { color: var(--on-fill); }
+#saiBody .sd-free .sd-x > i { color: color-mix(in srgb, var(--on-fill) 84%, transparent); }
+#saiBody .sd-free .sd-tag {
+  color: var(--on-fill); background: color-mix(in srgb, var(--on-fill) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--on-fill) 26%, transparent);
+}
+#saiBody .sd-free .sd-job.brk { border-color: color-mix(in srgb, var(--on-fill) 40%, transparent); background: color-mix(in srgb, var(--on-fill) 6%, transparent); }
+#saiBody .sd-free .sd-job.brk .sd-jx b { color: var(--on-fill); }
+#saiBody .sd-free .sd-job.brk :is(.sd-jt, .sd-jx i) { color: color-mix(in srgb, var(--on-fill) 78%, transparent); }
+
+/* ============================================================
+   แท็บฉัน › "ห้อง · เหรียญ · สถิติ": การ์ดสถิติไม่ซ้อนกล่อง · 19 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ (ภาพการ์ดสถิติ + กราฟ 7 วัน): "มันไม่ตรงขอบ"
+   .pf-me เป็นการ์ดเต็มใบ (พื้น · ขอบ · เงา · มุม 24px) แล้วถูกห่อด้วยแผงพับ .pf-personal
+   ซึ่งเป็นการ์ดอีกใบ (มุม 16px · ห่าง 12px) — ได้ขอบสองชั้นที่โค้งไม่เท่ากัน ช่องไฟเลยไม่สม่ำเสมอ
+   กล่องในกล่องแบบที่ 1C08 เคยถอดไปแล้วด้วยเหตุผลเดียวกัน (ดูคอมเมนต์เหนือ .pf-me)
+   ในแผงพับ: การ์ดในเหลือแค่เส้นคั่นบาง ๆ · ขยายเต็มความกว้างแผง ให้ตัวเลขตรงแนวกับหัวแผง
+   ============================================================ */
+.pf-personal .pf-me {
+  margin-inline: -12px; background: none; border: 0; border-radius: 0; box-shadow: none;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 9%, transparent);
+}
+.pf-personal .pf-me .st-card { padding-bottom: 2px; }
+
+/* ============================================================
+   หน้าแรก › บรรทัด "วันนี้" (.dc-line) อ่านออกว่าคืออะไร กดตรงไหน · 19 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ (ภาพบรรทัด "ไปเรียน · เปลี่ยน"): "แก้หน้านี้หน่อย"
+   เดิม: กล่องเปล่าเต็มความกว้าง ไอคอนลอย · "ไปเรียน" ไม่มีบริบท · "เปลี่ยน" ตัวหนังสือฟ้าตายตัวสุดขอบขวา
+   ตอนนี้: พื้นเจือสีธีม · ไอคอนในวงกลม · "วันนี้" + คำเดาตัวหนา · "เปลี่ยน" เป็นแคปซูลที่ดูออกว่ากดได้
+   สีทั้งหมดจาก --fill ของธีม (เดิม --blue ทุกธีม) · สูง 36px เท่าเดิม — หน้าแรกห้ามต้องเลื่อน
+   ============================================================ */
+.dc-line {
+  gap: 9px; padding: 5px 5px 5px 6px; border-radius: 999px;
+  border-color: color-mix(in srgb, var(--fill) 20%, transparent);
+  background: color-mix(in srgb, var(--fill) 7%, var(--card));
+}
+.dc-line .dc-ic {
+  display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  background: color-mix(in srgb, var(--fill) 24%, transparent);
+}
+.dc-line .dc-ic svg { width: 14px; height: 14px; color: color-mix(in srgb, var(--fill) 70%, var(--ink)); }
+.dc-line .dc-tx { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dc-line .dc-tx em { font-style: normal; font-weight: 600; color: var(--muted); }
+.dc-line .dc-tx b { font-weight: 800; color: var(--ink); }
+.dc-line > i, .dc-brkq > i {
+  padding: 4px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; line-height: 1.3;
+  color: color-mix(in srgb, var(--fill) 60%, var(--ink)); background: color-mix(in srgb, var(--fill) 15%, transparent);
+}
+.dc-line:active { transform: scale(.985); }
+
+/* ---------- บรรทัด "วันนี้" ตอนแอปยังไม่รู้ (.dc-line.ask) · 19 ต.ค. 69 ----------
+   เจ้าของ: "ทำให้มันดูเห็นเป็นที่สะดุดตาว่าเราควรทำอะไร" → เลือก "แถบวันนี้ ตอนแอปยังไม่รู้"
+   พื้น --fill เต็ม ตัวหนังสือ --on-fill (ทุกตัว — บางธีม on-fill เป็นตัวเข้ม) · หมุดมีวงกระเพื่อม · ปุ่ม "บอกเลย" ขาว
+   ไม่ใช่สีทอง — ทองใช้เฉพาะของที่ทำสำเร็จแล้ว · สูง 36px เท่าเดิม (หน้าแรกห้ามต้องเลื่อน)
+   กราฟิกน้อย/ลดการเคลื่อนไหว = วงไม่กระเพื่อม สียังเด่นเหมือนเดิม */
+.dc-line.ask {
+  border-color: transparent; color: var(--on-fill);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--fill) 88%, #fff), var(--fill) 55%, color-mix(in srgb, var(--fill) 88%, #000));
+  box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--fill) 85%, transparent), inset 0 1px 0 rgba(255,255,255,.22);
+}
+.dc-line.ask .dc-ic { position: relative; background: color-mix(in srgb, var(--on-fill) 20%, transparent); }
+.dc-line.ask .dc-ic svg { color: var(--on-fill); }
+.dc-line.ask .dc-ic::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--on-fill) 55%, transparent);
+  animation: dc-ask-ping 1.8s cubic-bezier(.22, 1, .36, 1) infinite;
+}
+@keyframes dc-ask-ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--on-fill) 55%, transparent); } 80%, 100% { box-shadow: 0 0 0 9px transparent; } }
+.dc-line.ask .dc-tx b { color: var(--on-fill); }
+.dc-line.ask .dc-tx small { color: color-mix(in srgb, var(--on-fill) 82%, transparent); }
+.dc-line.ask > i { color: var(--fill); background: var(--on-fill); box-shadow: 0 2px 8px -3px rgba(0,0,0,.3); }
+@media (prefers-reduced-motion: reduce) { .dc-line.ask .dc-ic::after { animation: none; } }
+:root[data-lite] .dc-line.ask .dc-ic::after { animation: none; }
+/* คอนทราสต์ (textcheck 19 ต.ค. 69): ไล่สีขึ้นสว่างที่หัวแถบทำให้ตัวขาว 12.5–13px ได้แค่ 3.4–4.0:1 ใน 7 ธีม
+   ธีมที่ on-fill เป็นตัวขาว (light dark warm earth earth2 ocean sweet genesis) → ไล่จาก --fill ลงเข้ม
+   ธีมที่ on-fill เป็นตัวเข้ม (astral deepocean galaxy glitch magic meta space) → ไล่จากสว่างขึ้นมาที่ --fill
+   ทิศไล่สีต้องหนีจากสีตัวหนังสือเสมอ — ไล่ผิดทางแปลว่าตัวหนังสือจมลงในพื้นตัวเอง */
+.dc-line.ask { background: linear-gradient(135deg, var(--fill), color-mix(in srgb, var(--fill) 74%, #000)); }
+:root:is([data-theme="astral"], [data-theme="deepocean"], [data-theme="galaxy"], [data-theme="glitch"], [data-theme="magic"], [data-theme="meta"], [data-theme="space"]) .dc-line.ask {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--fill) 78%, #fff), var(--fill));
+}
+.dc-line.ask .dc-tx small { color: var(--on-fill); font-weight: 500; }
+
+/* จอแผน: โน้ตที่เอนจินติด ⚠ (ทำไม่ครบก่อนกำหนด) — เดิม ⚠ หลุดมาเป็นตัวอักษร · ตอนนี้ถอดตัวอักษรออก แล้วบอกด้วยสีแทน (19 ต.ค. 69) */
+.pslot .work .nt.hot { color: var(--alert); font-weight: 600; }
 
 /* หน้าเข้าสู่ระบบ: ปุ่มกลับมุมซ้ายบน (เปิดจากในแอปเท่านั้น · 20 ต.ค. 69)
    กฎปุ่มกลับกลางตั้ง display:inline-grid !important — ทับ [hidden] ของเบราว์เซอร์ ต้องซ่อนเองด้วย !important */
@@ -14618,7 +15177,6 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 #scr-login .lg-back { align-self: flex-start; margin: 0 0 10px; }
 #scr-login .lg-back svg { transform: scaleX(-1); }
 .phone #scr-login .lg-back[hidden] { display: none !important; }
-
 
 /* ============================================================
    แผนวันนี้ รอบสอง: การ์ดบนเป็นพระเอกสีเต็ม · 20 ต.ค. 69
@@ -14679,7 +15237,6 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 #saiBody .sd-free .sd-job.brk .sd-jx b { color: var(--ink); }
 #saiBody .sd-free .sd-job.brk :is(.sd-jt, .sd-jx i) { color: var(--muted); }
 
-
 /* ============================================================
    แผนวันนี้ · ตารางทั้งวันแบบ ก "รายการเรียงเวลา" (sai.js · .tl) · 20 ต.ค. 69
    ------------------------------------------------------------
@@ -14734,7 +15291,6 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 @media (prefers-reduced-motion: reduce) { #saiBody .dt-r { animation: none; } }
 :root[data-quality="low"] #saiBody .dt-r { animation: none; }
 
-
 /* ============================================================
    แคปซูลนาฬิกา .run-timer (แบบ Timer ของ Cult UI · MIT · nolly-studio/cult-ui) · 20 ต.ค. 69
    ------------------------------------------------------------
@@ -14775,28 +15331,6 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 }
 :root:is([data-theme="astral"], [data-theme="dark"], [data-theme="deepocean"], [data-theme="galaxy"], [data-theme="glitch"], [data-theme="magic"], [data-theme="meta"], [data-theme="space"], [data-theme="sweet"]) .runbar .rb-k { opacity: 1; }
 
-
-/* แอปหลักยังไม่ได้ทรงใหม่ของบรรทัด "วันนี้" (.dc-line) — แถบกลางคืนพกทรงนั้นมาเองเฉพาะตัว (.td-night)
-   ไม่ให้บรรทัด "วันนี้" ของแอปหลักเปลี่ยนหน้าตาตามไปด้วย (21 ต.ค. 69 · ย้ายขึ้นแอปหลักเฉพาะที่เจ้าของเลือก) */
-.dc-line.td-night {
-  gap: 9px; padding: 5px 5px 5px 6px; border-radius: 999px;
-  border-color: color-mix(in srgb, var(--fill) 20%, transparent);
-  background: color-mix(in srgb, var(--fill) 7%, var(--card));
-}
-.dc-line.td-night .dc-ic {
-  display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
-  background: color-mix(in srgb, var(--fill) 24%, transparent);
-}
-.dc-line.td-night .dc-ic svg { width: 14px; height: 14px; color: color-mix(in srgb, var(--fill) 70%, var(--ink)); }
-.dc-line.td-night .dc-tx { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dc-line.td-night .dc-tx em { font-style: normal; font-weight: 600; color: var(--muted); }
-.dc-line.td-night .dc-tx b { font-weight: 800; color: var(--ink); }
-.dc-line.td-night > i {
-  padding: 4px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; line-height: 1.3;
-  color: color-mix(in srgb, var(--fill) 60%, var(--ink)); background: color-mix(in srgb, var(--fill) 15%, transparent);
-}
-.dc-line.td-night:active { transform: scale(.985); }
-
 /* ============================================================
    หน้าแรก › แถบ "เลยเวลาทำงานแล้ว" (.dc-line.td-night) · 20 ต.ค. 69
    ------------------------------------------------------------
@@ -14809,7 +15343,6 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 .dc-line.td-night .dc-ic { width: 22px; height: 22px; }
 .dc-line.td-night .dc-tx small { font-size: 12px; }
 .dc-line.td-night > i { padding: 3px 10px; font-size: 12px; }
-
 
 /* ============================================================
    แผ่นแตะแถวงานในเส้นเวลาจอแผน (#planRowSheet) · 20 ต.ค. 69
@@ -14837,3 +15370,450 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 .prs-b:active { transform: scale(.98); }
 .prs-b.primary { border-color: transparent; background: var(--fill); color: var(--on-fill); }
 .prs-b.quiet { border-color: transparent; background: none; color: var(--muted); font-weight: 600; }
+/* ============================================================
+   ความชัดของตัวหนังสือ/ไอคอนทั้งแอป · รอบ 1 · 24 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ: "แก้ความชัดฟอนต์ทั้งแอปและทุกธีม" · วัดด้วย textcheck ครบ 22 ธีม (เพิ่มการวัดไอคอนแล้ว)
+   ต้นเหตุใหญ่: โทเคนตัวหนังสือของธีมพื้นสว่างจางเกินบนพื้นรอง --card2 (ชิป · กล่อง) — แก้ที่โทเคน
+   ลดแค่ความสว่าง (OKLCH) จนได้ ≥ 4.8:1 บน --card2 และ --scr · สีเดิม เข้มขึ้นนิดเดียว
+   ============================================================ */
+:root[data-theme="light"]{--faint:#586B86}
+:root[data-theme="warm"]{--faint:#855B6D;--blue:#BC2C6A;--alert:#C3293E;--warn:#865F00}
+:root[data-theme="earth"]{--muted:#556B60;--faint:#576B60;--blue:#167456;--warn:#865F00}
+:root[data-theme="earth2"]{--muted:#516D58;--faint:#546C59;--blue:#247339;--warn:#865F00}
+:root[data-theme="ocean"]{--muted:#45687C;--faint:#486879;--blue:#056A8E;--alert:#B83023;--good:#007068;--warn:#845C00}
+:root[data-theme="sweet"]{--muted:#79598E;--faint:#79598B;--blue:#A22DBD;--alert:#BA2A69;--good:#007365;--warn:#8C5B00}
+:root[data-theme="genesis"]{--alert:#AF254D;--good:#00695F;--warn:#7D5500}
+/* ส่วนประกอบที่พังทุกธีม (ต้นเหตุยืนยันแล้ว) */
+#ctxBody .cx2-axis { color: var(--muted); }                       /* เดิม --ink 50% โปร่ง = 3.0–4.2 ใน 14 ธีม */
+.stp-v i { color: var(--muted); }                                 /* เดิม --ink 60% โปร่ง · light เคยแก้แยกไว้ธีมเดียว */
+.td-now .tn-why-go svg:last-child { opacity: 1; }                 /* ลูกศรจาง .55 = 1.8:1 ใน 15 ธีม */
+.tk-skin .ts-try, .tk-skin.r-mythic .ts-rar { color: color-mix(in srgb, #B45CFF 62%, var(--ink)); } /* ม่วงฝังตายบนขาว 2.9 */
+.ig-tick { color: color-mix(in srgb, var(--blue) 60%, var(--ink)); } /* ฟ้าบนพื้นฟ้าจาง 3.3 */
+/* "+100" ชิปรางวัล: ไล่สี --grad-brand + ตัวขาวฝังตาย = 2.0–2.2 ใน 13 ธีม → คู่ --fill/--on-fill ที่ DESIGN.md รับประกัน */
+#scr-profile .pf-entry .pe-v.pe-reward:not(:empty), .phone .pe .pe-v.pe-reward:not(:empty) { background: var(--fill); color: var(--on-fill); }
+/* ไฟ "ต่อเนื่อง": เปลวขาวบนส้มอ่อน #FB923C (2.2) + หรี่ .84 → ส้มเข้มขึ้น ขาวได้ ≥ 3 แม้ตอนหรี่ */
+.shw-streak .shw-ic { background: linear-gradient(160deg, #C2410C, #9A3412); }
+/* "เพิ่ม" ใต้ปุ่ม + นั่งบนวงแสงของปุ่ม (2.9 ใน 14 ธีม) — ป้ายอื่นในแถบผ่าน · เข้มขึ้นเฉพาะป้ายนี้ */
+.tabbar .tab.scan > span:not(.scan-dot) { color: color-mix(in srgb, var(--muted) 45%, var(--ink)); }
+
+/* 26 ต.ค. 69 · เรือนลับแล "จันทร์หยก" — รางวัลชวนเพื่อน (แยกสิทธิ์จากธีมบอสฮาโลวีน)
+   เจ้าของปฏิเสธสามแนวก่อนหน้า (เขียวหมึกเดิม · ผีไทยหลอนจัด · เวกเตอร์วาดเอง) แล้วส่งภาพวาดฉากเรือนไทยกลางสระใต้จันทร์เสี้ยวมาเอง
+   ฉากจึงเป็นภาพนั้นทั้งภาพ (jade-moon.webp) ไม่มีผี ไม่มีลายบัว/เครื่องราง/กรอบทอง — ลายเซ็นคือจันทร์หยกกับโคมลอย
+   การ์ดเป็นกระจกเขียวเข้ม (--tg-glass) ให้ภาพไม่ถูกตัดเป็นท่อน · หัวการ์ดหลักเขียวป่าลึกทึบ เป็นก้อนทึบก้อนเดียวของหน้าแรก (1B28)
+   สีระดับความสำคัญไม่แตะ · ทองไม่ใช้ตกแต่ง (สงวนให้ของที่ทำสำเร็จ) */
+:root[data-theme="thai-ghost"]{
+ color-scheme:dark;
+ --scr:#0A1F18;--card:#0E271E;--card2:#163428;--surface:#163428;
+ --ink:#EEF6EC;--muted:#B9D3C0;--faint:#A9C8B3;--line:#D8E8C933;
+ --fill:#D8E8C9;--on-fill:#123A2B;--fill-on:#123A2B;--on-accent:#123A2B;
+ --blue:#BFE3C9;--blue-deep:#D8E8C9;--blue-soft:#1F4A37;--neon:#BFE3C9;
+ --alert:#FFADB8;--alert-soft:#FFADB81A;--warn:#F4CF85;--warn-soft:#F4CF851A;
+ --good:#ACD5B6;--good-soft:#ACD5B61A;--fire:#FFADB8;
+ --gold-text:#E1C38A;--gold-soft:#E1C38A22;
+ --tint:#1F4A37;--tint2:#24503D;--glass:#0A1F18D9;--glass-line:#D8E8C933;
+ --pg:#0A1F18;--pg-ink:#EEF6EC;--pg-muted:#B9D3C0;--frame:#0A1F18;
+ --soft-card:#0E271EF2;--soft-shadow:0 8px 24px #00080455;--soft-shadow-lg:0 16px 40px #00080477;
+ --shadow:0 8px 24px #00080455;--shadow-lg:0 20px 50px #00080477;--shadow-brand:0 8px 24px #5FB08A22;
+ --grad-brand:linear-gradient(140deg,#247454,#174E39);--grad-hero:linear-gradient(140deg,#1C5A42,#0E271E);
+ --tile-plan:#1C4635;--tile-tasks:#1A3F31;--tile-route:#24503D;--tile-me:#213F33;--tile-on:#EEF6EC;
+ --tg-glass:#0B2219D1;--tg-forest:#174E39;--tg-moon:#D8E8C9;--tg-edge:#D8E8C92B;
+}
+.sw-thai-ghost{background:radial-gradient(circle at 72% 26%,#D8E8C9 0 13%,transparent 14%),linear-gradient(170deg,#163A2E,#0A1F18 55%,#1E5A44);box-shadow:inset 0 0 0 1px #D8E8C955}
+:root[data-theme="thai-ghost"] .phone{isolation:isolate;background:var(--scr)}
+:root[data-theme="thai-ghost"] :is(.fx,.starfield){display:none!important}
+:root[data-theme="thai-ghost"] .screens{position:relative;z-index:1;background:transparent}
+:root[data-theme="thai-ghost"] .screen{background:transparent}
+:root[data-theme="thai-ghost"] .brand-light{display:none}
+:root[data-theme="thai-ghost"] .brand-dark{display:block}
+
+/* ---------- ฉาก: ภาพวาด + ม่านอ่านง่าย + โคมลอย/หมอก/แสงหน้าต่างที่ขยับ ---------- */
+.tg-scene{position:absolute;inset:0;z-index:0;isolation:isolate;overflow:hidden;pointer-events:none;background:#0A1F18}
+.tg-scene[hidden]{display:none!important}
+/* ภาพสูง 852×1847 (สัดส่วนเท่าจอมือถือ) — ยึดขอบล่างไว้ เรือนกับสระจึงอยู่ตำแหน่งเดิมทุกความสูงจอ */
+.tg-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%}
+.tg-veil{position:absolute;inset:0;background:linear-gradient(#04110C66,#04110C14 28%,#04110C2E 62%,#04110C70)}
+.tg-mist{position:absolute;left:-12%;right:-12%;bottom:24%;height:16%;background:radial-gradient(ellipse at 40% 60%,#CFE6D633,transparent 62%),radial-gradient(ellipse at 78% 40%,#CFE6D626,transparent 55%);animation:tg-mist 22s ease-in-out infinite alternate}
+.tg-mist.far{bottom:36%;height:12%;opacity:.7;animation-duration:19s;animation-direction:alternate-reverse}
+.tg-glow{position:absolute;left:44%;top:63%;width:46%;height:10%;background:radial-gradient(ellipse,#FFC46A2E,transparent 68%);animation:tg-glow 6.5s ease-in-out infinite alternate}
+.tg-lanterns i{position:absolute;left:var(--x);top:var(--y);width:var(--w);height:calc(var(--w)*1.3);border-radius:35% 35% 28% 28%/40% 40% 22% 22%;
+ background:radial-gradient(ellipse at 50% 72%,#FFF0C4,#F6B45A 55%,#C2662A);box-shadow:0 0 calc(var(--w)*1.3) calc(var(--w)*.35) #F6B25A55;opacity:.85;
+ animation:tg-lantern var(--d) ease-in-out var(--o) infinite alternate}
+@keyframes tg-mist{from{transform:translate3d(-8px,0,0)}to{transform:translate3d(8px,0,0)}}
+@keyframes tg-glow{from{opacity:.55}to{opacity:1}}
+@keyframes tg-lantern{from{transform:translate3d(0,8px,0);opacity:.65}to{transform:translate3d(3px,-8px,0);opacity:.95}}
+.tg-scene.tg-still *{animation:none!important}
+@media (prefers-reduced-motion: reduce){:root[data-theme="thai-ghost"]:not([data-tg-motion="full"]) .tg-scene *{animation:none!important}
+ :root[data-theme="thai-ghost"] body .screen.on{animation:none!important}
+ :root[data-theme="thai-ghost"] :is(.tn-cta,.tg-t .tg-ic){transition:none!important}}
+
+/* ---------- การ์ด: กระจกเขียวเข้ม · ทึบพอให้ตัวรอง ≥ 4.5 แม้ทับจุดสว่างที่สุดของภาพ ---------- */
+:root[data-theme="thai-ghost"] :is(.card,.td-now,.td-clear,.set-card,.pf-me,.shw,.saih,.t-card,.ts-card,.tp-card,.tb-row,.fd-post,.ai-panel,.r-card,.qn-card,.cls-card){
+ background:var(--tg-glass);border:1px solid var(--tg-edge);border-radius:18px;box-shadow:0 8px 24px #00080455;color:var(--ink);
+ -webkit-backdrop-filter:blur(10px) saturate(1.1);backdrop-filter:blur(10px) saturate(1.1)}
+:root[data-theme="thai-ghost"] .set-card .set-row{background:transparent;border:0;border-radius:0;box-shadow:none}
+:root[data-theme="thai-ghost"] .set-card .set-row+.set-row{border-top:1px solid #D8E8C922}
+:root[data-theme="thai-ghost"] :is(.tabbar,.topbar,.as-card){background:var(--glass)!important;border-color:var(--tg-edge)!important;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+:root[data-theme="thai-ghost"] .tabbar .tab.active:not(.scan){background:var(--tg-moon)!important;color:var(--on-fill)!important;box-shadow:none!important}
+/* เครื่องอ่อน/โหมดประหยัด: เบลอหลังกระจกแพง → ทึบแทน */
+:root[data-theme="thai-ghost"]:is([data-lite="1"],[data-quality="low"]) :is(.card,.td-now,.td-clear,.set-card,.pf-me,.shw,.saih,.t-card,.ts-card,.tp-card,.tb-row,.fd-post,.ai-panel,.r-card,.qn-card,.cls-card,.tabbar,.topbar,.as-card,#menuBody .tg-ic,#menuBody .td-ask){backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:#0E271EF5!important}
+/* ตัวหนังสือที่วางบนภาพตรง ๆ (หัวข้อหมวด · ชื่อจอ · ป้ายใต้ไอคอน) ได้เงาเข้มรองไว้ */
+:root[data-theme="thai-ghost"] :is(.page-title,.big-title,.sh-title,.th-greet,.set-hd,.td-sec,.sec-h,.tg-l){color:var(--ink);text-shadow:0 1px 10px #04110CE6,0 0 2px #04110C}
+:root[data-theme="thai-ghost"] :is(input,textarea,select){background:#0A1F18A6;color:var(--ink);border-color:#D8E8C933}
+:root[data-theme="thai-ghost"] #scr-tasks :is(.wk-card,.wk-d,.tb-focus){background:var(--tg-glass)!important;color:var(--ink)!important;border-color:var(--tg-edge)!important}
+/* 26 ต.ค. 69 · เจ้าของ (ภาพช่อง "26 ต.ค." จอสัปดาห์): "ทำให้เป็นสีที่มองเห็นได้" — ช่องวันนี้ใช้ตัวหนังสือ --on-fill (เขียวเข้ม ทำไว้วางบนพื้นจันทร์)
+   แต่กฎบนเปลี่ยนพื้นทุกช่องเป็นกระจกเขียวเข้ม (และ --grad-brand ของธีมนี้ก็เขียวเข้ม) = เข้มบนเข้ม มองไม่เห็น
+   → ช่องวันนี้เป็นพื้นจันทร์หยก สัญญาณ "ตอนนี้/ที่เลือก" ชุดเดียวกับแท็บที่เลือกและปุ่มเริ่ม · ตัวหนังสือเข้มบนจันทร์ ≈ 9:1 */
+:root[data-theme="thai-ghost"] #scr-tasks .wk-row.now .wk-d{background:var(--tg-moon)!important;border-color:transparent!important;box-shadow:0 0 0 3px #D8E8C924,0 6px 16px -8px #D8E8C9AA!important}
+:root[data-theme="thai-ghost"] #scr-tasks .wk-row.now .wk-d :is(b,i){color:var(--on-fill)!important}
+/* 26 ต.ค. 69 · เจ้าของ (ภาพแถบ "เลยเวลาทำงานแล้ว · ว่างอีกที 06:00 พรุ่งนี้ [ขยายเวลา]"): "ปรับให้เห็นได้ชัดกว่านี้"
+   แถบ .dc-line ผสมทุกสีจาก --fill ซึ่งธีมนี้เป็นจันทร์ซีด → พื้นเขียวเข้มทึบบนภาพเข้ม · ขอบ 20% · ปุ่ม "ขยายเวลา" จันทร์ 15% = ก้อนเทา
+   → ขอบจันทร์ชัด + เส้นสะท้อนบน ให้แยกจากฉาก · นาฬิกาเป็นสีเตือน (--warn อำพัน — สีสถานะ "เลยเวลา" ไม่ใช่ทองตกแต่ง)
+   · ข้อความรองสว่างขึ้น · "ขยายเวลา" เป็นแคปซูลจันทร์ทึบ ตัวเข้ม (ดูออกว่ากดได้) · ความสูงเท่าเดิม (หน้าแรกห้ามต้องเลื่อน) */
+:root[data-theme="thai-ghost"] #menuBody .dc-line.td-night{background:#0B2219F2!important;border-color:#D8E8C966!important;box-shadow:inset 0 1px 0 #FFFFFF1F,0 0 0 1px #00000040,0 8px 20px -10px #000000AA}
+:root[data-theme="thai-ghost"] #menuBody .dc-line.td-night .dc-ic{background:color-mix(in srgb,var(--warn) 22%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--warn) 45%,transparent)}
+:root[data-theme="thai-ghost"] #menuBody .dc-line.td-night .dc-ic svg{color:var(--warn)}
+:root[data-theme="thai-ghost"] #menuBody .dc-line.td-night .dc-tx b{color:#FFFFFF}
+:root[data-theme="thai-ghost"] #menuBody .dc-line.td-night .dc-tx small{color:#DCEBDD;font-weight:600}
+:root[data-theme="thai-ghost"] #menuBody .dc-line.td-night > i{background:var(--tg-moon);color:var(--on-fill);font-weight:800;box-shadow:inset 0 1px 0 #FFFFFFB3,0 2px 8px -2px #00000066}
+:root[data-theme="thai-ghost"] #themePick button:not(.active){background:var(--card)!important;color:var(--muted);border-color:var(--line)!important}
+:root[data-theme="thai-ghost"] #themePick button.active{background:var(--blue-soft)!important;color:var(--ink);border-color:var(--tg-moon)!important}
+:root[data-theme="thai-ghost"] .runbar,:root[data-theme="thai-ghost"] .runbar :is(.rb-timer,.rb-stop){color:var(--on-fill)}
+
+/* ---------- หัวการ์ด "ควรทำอะไร": เขียวป่าลึกทึบ + แสงหยกมุมขวาบนแบบนิ่ง ---------- */
+:root[data-theme="thai-ghost"] #menuBody .td-now{border-radius:24px;overflow:hidden}
+:root[data-theme="thai-ghost"] #menuBody .td-now .tn-head{background:radial-gradient(circle at 96% 0%,#5FB08A45,transparent 48%),#174E39!important;border-bottom:1px solid #D8E8C926}
+:root[data-theme="thai-ghost"] #menuBody .td-now .tn-head::before,:root[data-theme="thai-ghost"] #menuBody .td-now .tn-head::after{display:none}
+:root[data-theme="thai-ghost"] #menuBody .td-now .tn-head :is(.tn-title,.tk-t){color:#FFFFFF}
+:root[data-theme="thai-ghost"] #menuBody .td-now .tn-head :is(.tn-eyebrow,.tn-why2){color:#D8E8C9!important}
+:root[data-theme="thai-ghost"] #menuBody .td-now .tk-line{color:#D8E8C9;opacity:.6}
+:root[data-theme="thai-ghost"] #menuBody .td-now .tk-line i{background:#174E39;color:#FFFFFF}
+:root[data-theme="thai-ghost"] #menuBody .tn-body{background:transparent;border-color:var(--line)}
+:root[data-theme="thai-ghost"] #menuBody .tn-cta{background:var(--tg-moon)!important;color:var(--on-fill)!important;border:0!important;box-shadow:0 4px 16px #00000040!important;transition:transform .12s ease}
+:root[data-theme="thai-ghost"] #menuBody .tn-cta .tc-main{background:none;box-shadow:none;border:0;color:inherit}
+:root[data-theme="thai-ghost"] #menuBody .tn-ib{background:var(--tg-glass);border:1px solid #D8E8C933;color:var(--tg-moon)}
+:root[data-theme="thai-ghost"] #menuBody :is(.tn-route .tk-t){color:#FFFFFF}
+/* 26 ต.ค. 69 · เจ้าของ (ภาพหัวการ์ด "ยังไม่มีคิว · ใช้เวลา 40 นาที" แทบมองไม่เห็น): "ปรับตรงนี้หน่อย"
+   บรรทัดเส้นทางมีสองแบบ: มีเวลา (.tk-t — ตั้งขาวไว้แล้ว) กับยังไม่มีคิว (.tk-solo — ตกหล่น ได้ --on-fill เขียวเข้มบนหัวเขียวป่า)
+   → จันทร์หยกแบบเดียวกับชื่อวิชา/คะแนนบนหัวเดียวกัน (≥ 4.5 บน #174E39 ตามเทสต์ธีม) · ทึบเต็ม ไม่ใช้ opacity .9 เดิม */
+:root[data-theme="thai-ghost"] #menuBody .td-now .tn-head .tn-route .tk-solo{color:#D8E8C9!important;opacity:1;font-weight:700}
+:root[data-theme="thai-ghost"] #menuBody .td-ask{background:var(--tg-glass)!important;border-color:var(--tg-edge)!important;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+:root[data-theme="thai-ghost"] .td-ask::before,:root[data-theme="thai-ghost"] .td-ask::after{display:none}
+:root[data-theme="thai-ghost"] .td-ask .tk-in{background:transparent}
+
+/* ---------- ไอคอนหน้าแรก: กระจกเดียวกับการ์ด · วงในเขียวป่า ไอคอนสีจันทร์ ---------- */
+:root[data-theme="thai-ghost"] #menuBody .tg-ic{background:var(--tg-glass)!important;border:1px solid var(--tg-edge)!important;border-radius:18px!important;box-shadow:none!important;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transition:transform .12s ease}
+:root[data-theme="thai-ghost"] #menuBody .tg-ic svg{background:#174E39!important;color:var(--tg-moon)!important;box-shadow:none!important}
+
+/* ---------- ท่า: เปลี่ยนจอ 8px + จาง 250ms · กดย่อ .98 ---------- */
+:root[data-theme="thai-ghost"] body:not([data-godir="lat"]) .screen.on{animation:tg-page .25s cubic-bezier(.22,1,.36,1) both}
+@keyframes tg-page{from{opacity:0;transform:translate3d(0,8px,0)}to{opacity:1;transform:none}}
+:root[data-theme="thai-ghost"] #menuBody :is(.tn-cta:active,.tg-t:active .tg-ic){transform:scale(.98)}
+
+/* ---------- ปุ่มเสียงบนหัวหน้าแรก ---------- */
+:root[data-theme="thai-ghost"] .tg-sound-quick{flex:none;width:32px;min-width:32px;padding:5px;color:var(--tg-moon);border:1px solid var(--line);border-radius:50%;background:#0A1F1899}
+:root[data-theme="thai-ghost"] .tg-sound-quick[aria-pressed="true"]{background:var(--tg-moon);color:var(--on-fill);box-shadow:0 0 12px #D8E8C933}
+@media(max-width:599px){:root[data-theme="thai-ghost"] .td-top .tt-rank b{display:none}}
+@media(max-width:359px){:root[data-theme="thai-ghost"] .td-top{gap:2px}:root[data-theme="thai-ghost"] .td-top .tt-chip:not(.tg-sound-quick){padding-inline:5px;gap:3px}}
+.tg-sound-quick[hidden],.tg-preferences[hidden]{display:none!important}
+
+.iv-theme-preview{width:calc(100% - 20px);max-width:440px;height:calc(100dvh - 20px);max-height:900px;margin:auto;padding:0;overflow:hidden;border:1px solid #BDA47166;border-radius:20px;background:#0B1817;color:#F0EAD5}
+.iv-theme-preview::backdrop{background:#020A07CC}
+.iv-theme-preview header{display:flex;gap:10px;align-items:center;justify-content:space-between;min-height:58px;padding:10px 14px;background:#11251F}
+.iv-theme-preview header small{display:block;color:#C2CFBA;font-size:11px;margin-top:3px}
+.iv-theme-preview header button{flex-shrink:0;background:#223B33;color:#F0EAD5;border:1px solid #BDA47166;border-radius:10px;min-width:40px;min-height:40px}
+.iv-theme-preview[open]{display:flex;flex-direction:column}
+.iv-theme-preview header{flex-shrink:0}
+.iv-preview-body{position:relative;flex:1;min-height:0;overflow:hidden}
+.iv-theme-preview iframe{display:block;position:absolute;left:50%;top:50%;width:375px;height:812px;max-width:none;border:0;background:#0B1817;transform:translate(-50%,-50%) scale(var(--iv-preview-scale,1))}
+.hq-thai-note{font-size:12px;color:var(--muted);line-height:1.8}
+
+/* หมวดสะสมใช้ปุ่มเดิมทั้งหมด ไม่เผยชื่อ/จำนวนธีมลับที่ยังซ่อนอยู่ */
+#themePick.th-catalog{display:flex;flex-direction:column;gap:19px;width:100%;min-width:0}
+.th-rarity{display:block;width:100%;min-width:0;padding-top:2px}
+.th-rarity[hidden]{display:none!important}
+.th-rarity h3{display:flex;align-items:center;justify-content:space-between;gap:8px;border-left:3px solid var(--rarity-color);padding:3px 0 3px 9px;margin:0 0 9px;color:var(--ink);font-size:13px;font-weight:800;line-height:1.5}
+.th-rarity h3 small{font-size:11px;color:var(--muted);font-weight:600}
+.th-rarity h3 em{font-size:10px;font-weight:500;font-style:normal;color:var(--muted);white-space:nowrap}
+.th-rarity>.th-grid{width:100%;margin:0;min-width:0}
+.th-rarity>.th-grid>button{min-width:0}
+.th-rarity[data-rarity="limited"]{padding:12px;border:1px solid color-mix(in srgb,var(--rarity-color) 48%,transparent);border-radius:18px 5px 18px 5px;background:color-mix(in srgb,var(--rarity-color) 7%,var(--card))}
+.th-rarity[data-rarity="limited"] h3{border-left:0;padding-left:0}
+
+/* แผงเสียง/ภาพในหน้าธีม */
+.tg-preferences{display:grid;gap:13px;margin-top:22px;padding:17px 15px;border:1px solid #D8E8C944;border-radius:18px;background:linear-gradient(150deg,#174E39,#0E271E);color:#EEF6EC}
+.tg-pref-title{display:flex;gap:12px;align-items:center}
+.tg-pref-title>svg{width:42px;height:34px;color:#D8E8C9;flex:none}
+.tg-pref-title b{font-size:14px}
+.tg-pref-title small,.tg-motion small{display:block;font-size:11px;color:#C9DECF;margin-top:4px}
+.tg-preferences button{padding:11px 15px;border:1px solid #D8E8C966;border-radius:12px;background:#D8E8C9;color:#123A2B;font:inherit;font-size:13px;font-weight:700;min-height:42px}
+.tg-volume{display:grid;gap:7px;font-size:12px;color:#C9DECF}
+.tg-volume input{width:100%;accent-color:#D8E8C9;min-height:28px}
+.tg-motion{display:flex;justify-content:space-between;align-items:center;gap:15px;font-size:13px}
+.tg-motion input{width:22px;height:22px;accent-color:#D8E8C9;flex:none}
+.tg-audio-hint{margin:0;color:#C9DECF;font-size:11px;line-height:1.6}
+.tg-audio-hint:empty{display:none}
+@keyframes tg-haunt{0%{transform:translate3d(4px,10px,0);opacity:.22}55%{transform:translate3d(-24px,-10px,0);opacity:.55}100%{transform:translate3d(-44px,2px,0);opacity:.32}}
+@keyframes tg-haunt-far{from{transform:translate3d(-20px,6px,0);opacity:.12}to{transform:translate3d(22px,-11px,0);opacity:.37}}
+@keyframes tg-talisman{from{transform:rotate(-5deg)}to{transform:rotate(6deg)}}
+@keyframes tg-breath{from{transform:scale(.9);opacity:.3}to{transform:scale(1.12);opacity:.8}}
+@keyframes tg-window{0%{opacity:.35}40%{opacity:.7}100%{opacity:.45}}
+@media(prefers-reduced-motion:reduce){:root:not([data-tg-motion="full"]) .tg-scene *{animation:none!important}}
+
+/* ============================================================
+   ปฏิทินเดือน · การ์ด + ช่องวันตรงคอลัมน์ — 26 ต.ค. 69
+   เจ้าของ (ภาพจอปฏิทินบนจอกว้าง ธีม Halloween): "แก้ให้หน่อยให้มันดูสวยกว่านี้"
+   ที่เห็นในภาพ: ① ปฏิทินลอยบนฉากตรง ๆ ไม่มีพื้น ตัวเลขแย่งที่กับภาพฉาก
+     ② ชื่อวัน (อา จ อ…) ไม่ตรงเลขวัน — ช่องวัน aspect-ratio: 1 + max-height 58px ทำให้กว้างแค่ 58px ด้วย
+        แล้วชิดซ้ายในคอลัมน์ที่กว้าง 200px+ ส่วนชื่อวันอยู่กลางคอลัมน์ (บนมือถือไม่เห็นเพราะคอลัมน์กว้าง ~48px พอดี)
+     ③ วันที่เลือกเป็นกล่องเปล่าห้อยใต้วงกลมวันนี้ · ④ ยืดเต็มจอกว้าง วันห่างกันเกินไป
+   แก้: ห่อเดือนด้วยการ์ดกระจก (calHtml ใน app.js เพิ่ม .cal-card) · ช่องวันเต็มคอลัมน์ สูงคงที่ ไม่ใช่จัตุรัส
+     · วันที่เลือกย้อมสีธีม · กว้างสุด 760px อยู่กลางจอ · แผ่นรายละเอียดของวันเป็นการ์ดคู่กัน
+   ============================================================ */
+.cal-card {
+  max-width: 760px; margin: 4px auto 0; padding: 12px 12px 10px; border-radius: 22px;
+  background: color-mix(in srgb, var(--soft-card, var(--card)) 88%, transparent);
+  border: 1px solid var(--glass-line, var(--line));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 10%, transparent), 0 12px 30px -18px rgba(0, 0, 0, .5);
+  -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
+}
+.cal-card .calbar { margin: 0 0 8px; }
+.cal-card .calbar b { font-size: 16px; font-weight: 700; }
+.cal-card .calbar button {
+  background: color-mix(in srgb, var(--fill) 12%, transparent); color: color-mix(in srgb, var(--fill) 65%, var(--ink));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 30%, transparent);
+}
+.cal-card .calwd { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.cal-card .calwd span { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.cal-card .calwd span:is(:first-child, :last-child) { color: color-mix(in srgb, var(--fill) 55%, var(--muted)); }
+.cal-card .calgrid { gap: 3px; }
+.cal-card .cal-c { width: 100%; aspect-ratio: auto; height: 52px; max-height: none; border-radius: 12px; }
+@media (hover: hover) { .cal-card .cal-c:not(.off):hover { background: color-mix(in srgb, var(--ink) 6%, transparent); } }
+.cal-card .cal-c.on {
+  background: color-mix(in srgb, var(--fill) 14%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fill) 55%, transparent);
+}
+.cal-card .cal-c.big.on { box-shadow: inset 0 0 0 1.5px var(--sj); }
+.cal-card .cal-c.today b { box-shadow: 0 0 12px -2px color-mix(in srgb, var(--fill) 80%, transparent); }
+/* แผ่นของวันที่เลือก = การ์ดคู่กับปฏิทิน (เดิมเป็นเส้นคั่นบนพื้นฉาก) */
+.cal-card + .cal-day {
+  max-width: 760px; margin: 12px auto 0; padding: 12px 14px; border-top: none; border-radius: 20px;
+  background: color-mix(in srgb, var(--soft-card, var(--card)) 88%, transparent);
+  border: 1px solid var(--glass-line, var(--line));
+  -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
+}
+:root[data-lite] :is(.cal-card, .cal-card + .cal-day) { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--card); }
+
+/* ============================================================
+   ไม่ให้ของขาดหรือล้นจอ — 26 ต.ค. 69 · เจ้าของ: "ทำให้ปุ่มหรืออะไรก็ตามอยู่เต็มหน้าจอเสมอ และไม่ขาด ทั้งแอปเลย"
+   ตรวจด้วย devtools/fitcheck.mjs (16 จอ × 8 ขนาด 320–1600px) · ที่เจอแล้วแก้ที่นี่:
+   ============================================================ */
+/* ไทม์ไลน์รายวัน · แถว "ถึงกำหนด · ชื่องาน" เป็น inline-flex ไม่มีขอบเขต ชื่องานยาวพุ่งพ้นจอ 62px ทุกขนาด
+   → กว้างไม่เกินคอลัมน์ ตัดบรรทัดได้ (เห็นชื่อครบ ไม่ใช่ตัด "…" เพราะเป็นชื่องานที่ต้องรู้ว่าอะไรถึงกำหนด) */
+.dayrow-due { display: flex; align-items: flex-start; max-width: 100%; overflow-wrap: anywhere; line-height: 1.4; }
+.dayrow-due svg { flex: none; margin-top: 2px; }
+/* ชื่อเหรียญตรา (ตัดสองบรรทัดพร้อม "…" อยู่แล้ว) — "คุณจะเลิกทำการบ้านไหม?" ทั้งก้อนกว้างกว่าช่อง 4px ที่ 600px
+   จัดกลางจึงโดนตัดข้างละ 2px · overflow-wrap: anywhere ไม่ช่วย (เบราว์เซอร์ไม่นับว่าก้อนนี้ล้น) · ช่องเหลือ padding 6px แล้ว
+   ตัวอักษร 11px คือขั้นต่ำที่อ่านได้ → ยอมให้ตัดบรรทัดกลางคำเฉพาะชื่อเหรียญ (ไม่ตัดกลางสระ/วรรณยุกต์ · ยังตัด 2 บรรทัดเหมือนเดิม) */
+.ab-nm { word-break: break-all; }
+
+/* ============================================================
+   จองาน · อ่านง่ายขึ้น + แถบค้นหาใต้สวิตช์โหมด + ปุ่มเสร็จมีขอบ — 26 ต.ค. 69
+   เจ้าของ (ภาพรายการงาน ธีม Halloween): "ปรับให้ฟอนต์สีชัดกว่านี้ · ปุ่มค้นหาไปอยู่ข้างงานทั้งหมด · ปุ่มเสร็จงานให้มีขอบ"
+   ① ชื่อวิชา (.tk-sub) กับเวลาที่ใช้ (.tk-min) เป็น --muted 11px น้ำหนักปกติ — บนการ์ดมืดจางจนต้องเพ่ง
+      → หมึกหลัก 78% หนาขึ้น ใหญ่ขึ้นนิด · ดาวความสำคัญโตตาม (ยังเล็กกว่าชื่อวิชา)
+   ② ช่องค้นหาเคยอยู่ท้ายรายการ → แถบค้นหาใต้สวิตช์ วันนี้/สัปดาห์/รายการ เหนือการ์ดใบแรก (เจ้าของชี้ตำแหน่งในภาพ)
+      เคยลองเป็นปุ่มแว่นข้างชื่อจอ แต่บนจอกว้างปุ่มทับชื่อจอ และต้องกดก่อนถึงจะเห็นช่อง
+   ③ วงติ๊กเสร็จ: ขอบ 1.5px สี --line (โปร่ง 26% ในธีมมืด) แทบหายไปบนการ์ด → ขอบ 2px สีธีมผสมหมึก
+      ยังเป็นวงกลวง (ยังไม่เสร็จ) · ติ๊กแล้วใช้สีเขียวเดิม (.on) ไม่แตะ
+   ============================================================ */
+.phone #scr-tasks .tk-sub { font-size: 12px; font-weight: 600; color: color-mix(in srgb, var(--ink) 78%, transparent); }
+.phone #scr-tasks .tk-sub .tk-pri { font-size: 11px; }
+.phone #scr-tasks .tk-min { font-size: 12px; font-weight: 600; color: color-mix(in srgb, var(--ink) 78%, transparent); }
+
+#scr-tasks .page-head + .tk-search { margin: 0 0 12px; }
+/* ช่องค้นหา: เดิมพื้น --card2 ไม่มีขอบ บนฉากมืด = กล่องมืดบนพื้นมืด · คำว่า "ค้นหางาน" กับแว่นเป็น --faint
+   → ขอบสีธีม (เงาใน ไม่ดันผัง) · แว่นสีธีม · คำแนะนำในช่องเป็นหมึก 70% · กดแล้วยังได้วงโฟกัสเดิม */
+.phone #scr-tasks .tk-search {
+  background: var(--card);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fill) 55%, transparent), 0 8px 20px -14px rgba(0,0,0,.6);
+}
+.phone #scr-tasks .tk-search > svg { width: 19px; height: 19px; color: color-mix(in srgb, var(--fill) 80%, var(--ink)); stroke-width: 2.4; }
+.phone #scr-tasks .tk-search input { font-weight: 600; }
+.phone #scr-tasks .tk-search input::placeholder { color: color-mix(in srgb, var(--ink) 70%, transparent); font-weight: 500; }
+.phone #scr-tasks .tk-search:focus-within { outline: 2px solid var(--fill); outline-offset: -2px; }
+/* ช่องพิมพ์ข้างในมีวงโฟกัสของตัวเอง (สีรองของธีม) ซ้อนในวงสีธีมของกรอบ — เห็นเป็นกล่องสองชั้น · กรอบบอกโฟกัสแล้ว */
+.phone #scr-tasks .tk-search input:focus { outline: none; }
+/* สวิตช์โหมดอยู่ต่อตอนค้นหา (ไม่มีช่องไหนถูกเลือก) — ปุ่มที่ถูกเลือกสูงกว่าปุ่มปกติ 2px แล้วดึงทั้งแถวให้สูงตาม
+   พิมพ์ตัวแรกแถวเลยเตี้ยลง แถบค้นหาข้างล่างขยับขึ้นใต้นิ้ว → ล็อกความสูงปุ่มเท่ากันทุกสถานะ */
+#scr-tasks .tk-modes .tk-mode { min-height: 32px; }
+
+.phone #scr-tasks .tk-tick:not(.on) {
+  border: 2px solid color-mix(in srgb, var(--fill) 65%, var(--ink));
+  background: color-mix(in srgb, var(--fill) 8%, transparent);
+}
+@media (hover: hover) { .phone #scr-tasks .tk-tick:not(.on):hover { background: color-mix(in srgb, var(--fill) 18%, transparent); } }
+
+/* ============================================================
+   การ์ดงาน · ตกแต่ง + ตัวหนังสือเด่นขึ้น — 26 ต.ค. 69
+   เจ้าของ (ภาพรายการงาน ธีม Halloween): "ตกแต่งสักหน่อยให้มันสวยกว่านี้ ฟอนต์สีเด่นขึ้นมาหน่อย"
+   ① เปลือกการ์ดแบบ Halo (cult-ui · MIT — ชุดเดียวกับช่องถามน้องฮูก/แถบโหลดที่แอปพอร์ตไว้แล้ว):
+      ขอบสะท้อนบน 1px + เส้นขอบบาง + เงาสัมผัส + เงาฟุ้ง · พื้นยังเป็นกระจกเดิม (backdrop-filter ไม่แตะ)
+   ② แสงมุมซ้ายบนสีวิชา — ไอเดีย Spotlight Card (React Bits · MIT + Commons Clause) แต่ตายตัว ไม่ตามนิ้ว
+      (ไม่มีงานต่อเฟรม เครื่องช้าไม่สะดุด) · สีวิชาเป็น "ป้ายชื่อ" ตามกติกาหัวไฟล์ (.sj-*) ไม่ใช่สีความด่วน
+      จึงแค่ฟุ้งจาง ๆ ที่มุม ไม่ย้อมทั้งใบ — แดงของวิชาคณิตต้องไม่ถูกอ่านว่า "ด่วน"
+   ③ ตัวหนังสือ: ชื่องาน 16px หนา หมึกเต็ม · ชื่อวิชามีจุดสีวิชานำหน้า ตัวหนังสือผสมสีวิชากับหมึก (อ่านได้ทั้งธีมมืด/สว่าง)
+      · เวลาที่ใช้เป็นแคปซูลมีไอคอนนาฬิกา · ชิปสถานะหนาขึ้นและมีวงขอบสีของตัวเอง
+   ④ ปุ่ม "เสร็จแล้ว · N งาน" ท้ายรายการ = เปลือกเดียวกับการ์ด ไอคอนเขียว (เขียว = เสร็จ ตามกติกาสีสถานะ)
+   ============================================================ */
+.phone #scr-tasks .tk.sw-card {
+  background:
+    radial-gradient(130% 110% at 0% 0%, color-mix(in srgb, var(--sj) 17%, transparent), transparent 52%),
+    linear-gradient(180deg, color-mix(in srgb, #fff 5%, transparent), transparent 42%),
+    color-mix(in srgb, var(--card) 93%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 10%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--sj) 20%, var(--glass-line, var(--line))),
+    0 1px 2px rgba(0, 0, 0, .22),
+    0 16px 32px -18px rgba(0, 0, 0, .65);
+}
+.phone #scr-tasks .tk.sw-card .tk-ttl { font-size: 16px; font-weight: 700; color: var(--ink); letter-spacing: -.01em; margin-top: 2px; }
+.phone #scr-tasks .tk.sw-card .tk-sub {
+  display: flex; align-items: center; gap: 6px;
+  color: color-mix(in srgb, var(--sj) 45%, var(--ink)); font-weight: 700;
+}
+.phone #scr-tasks .tk.sw-card .tk-sub .sjdot { width: 8px; height: 8px; box-shadow: 0 0 8px -1px var(--sj); }
+.phone #scr-tasks .tk.sw-card .tk-sub .tk-pri { margin-left: 2px; }
+.tk-min svg { width: 13px; height: 13px; flex: none; }
+.phone #scr-tasks .tk.sw-card .tk-min {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px;
+  color: color-mix(in srgb, var(--ink) 88%, transparent);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent);
+}
+.phone #scr-tasks .tk.sw-card .tk-chip { font-weight: 700; font-size: 11.5px; }
+.phone #scr-tasks .tk.sw-card .tk-chip.hot  { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--alert) 45%, transparent); border-color: transparent; }
+.phone #scr-tasks .tk.sw-card .tk-chip.warm { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 45%, transparent); border-color: transparent; }
+.phone #scr-tasks .tk.sw-card .tk-chip.warn { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pri-yellow-text, var(--warn)) 40%, transparent); border-color: transparent; }
+.phone #scr-tasks .tk.sw-card .tk-chip.good,
+.phone #scr-tasks .tk.sw-card .tk-chip.ok   { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--good) 45%, transparent); border-color: transparent; }
+
+.phone #scr-tasks .bin-btn {
+  font-weight: 700; color: color-mix(in srgb, var(--ink) 88%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #fff 5%, transparent), transparent 50%),
+    color-mix(in srgb, var(--card) 90%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 9%, transparent), inset 0 0 0 1px var(--glass-line, var(--line)), 0 10px 24px -16px rgba(0, 0, 0, .6);
+}
+.phone #scr-tasks .bin-btn svg { width: 17px; height: 17px; }
+.phone #scr-tasks .bin-btn.bin-done svg { color: var(--good); }
+
+/* ============================================================
+   ปุ่ม "ลองเล่นดู" ของเอฟเฟกต์งานเสร็จ — 26 ต.ค. 69
+   เจ้าของ (ภาพจอเลือกเอฟเฟกต์ ธีม Halloween): "ปรับให้ปุ่มลองเล่นดูน่าสนใจกว่านี้ ใช้สีที่มองเห็นชัดเจน"
+   เดิม (hoop.css): พื้นโปร่ง ขอบเส้นประ ตัวหนังสือสีรองบาง ๆ — หน้าตาเหมือนช่องว่างให้วางของ ไม่ใช่ปุ่ม
+   ตอนนี้: ปุ่มทึบสีธีม (--fill + --on-fill ชุดเดียวกับปุ่มหลักทั้งแอป จึงอ่านชัดทุกธีม) · ไอคอนเล่น ▶ วาดด้วย clip-path
+   · เปลือกแบบ Halo (cult-ui · MIT: ขอบสะท้อนบน + เงาฟุ้งสีธีม) · แถบแสงวาบพาดผ่านเป็นจังหวะ แบบปุ่ม shine ของ Uiverse (MIT)
+   แสงวาบขยับด้วย transform อย่างเดียว · วิ่ง 0.9 วิ แล้วพัก ~3 วิ (ชวนกด ไม่กระพริบรบกวน)
+   โหมดลื่นหยุด · ลดการเคลื่อนไหวไม่มีแสงวาบ
+   ============================================================ */
+.phone .fx-try {
+  position: relative; overflow: hidden; isolation: isolate;
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  min-height: 46px; margin-top: 12px; border: 0; border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 55%),
+    var(--fill);
+  color: var(--on-fill, #fff);
+  font-size: 15px; font-weight: 800; letter-spacing: .01em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 10px 22px -10px color-mix(in srgb, var(--fill) 80%, transparent);
+  transition: transform .16s cubic-bezier(.23, 1, .32, 1), box-shadow .2s ease;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.phone .fx-try::before {
+  content: ""; flex: none; width: 13px; height: 14px; margin-left: 2px;
+  background: currentColor; clip-path: polygon(0 0, 100% 50%, 0 100%); border-radius: 2px;
+}
+.phone .fx-try::after {
+  content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: 0; width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .38), transparent);
+  transform: translateX(-120%) skewX(-18deg);
+  animation: fx-try-shine 4s cubic-bezier(.45, 0, .2, 1) 1s infinite;
+}
+@keyframes fx-try-shine {
+  0% { transform: translateX(-120%) skewX(-18deg); }
+  22%, 100% { transform: translateX(330%) skewX(-18deg); }
+}
+.phone .fx-try:active { transform: scale(.97); }
+@media (hover: hover) { .phone .fx-try:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 14px 28px -10px color-mix(in srgb, var(--fill) 90%, transparent); } }
+.phone .fx-try:focus-visible { outline: 2px solid var(--fill); outline-offset: 3px; }
+:root[data-lite] .phone .fx-try::after { animation: none; opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .phone .fx-try::after { animation: none; opacity: 0; } .phone .fx-try { transition: none; } }
+
+/* ============================================================
+   เส้นเวลา "ที่เหลือของวันนี้" (จอน้องฮูก · sai.js .dt) · ตกแต่ง — 26 ต.ค. 69
+   เจ้าของ (ภาพ ธีมสว่าง): "ปรับตรงนี้หน่อย มันยังไม่ค่อยสวย"
+   คงของที่เจ้าของเคาะไว้: เวลาตัวหนาคอลัมน์ซ้ายเด่นสุด · ไม่มีรางเส้นตั้ง · ปุ่มเล่าไม่มีดาว (9 ต.ค.)
+   ① การ์ดงาน = เปลือกแบบ Halo (cult-ui · MIT — ชุดเดียวกับการ์ดจองาน): ขอบสะท้อนบน + เส้นขอบบาง + เงาฟุ้ง
+      + จุดสีวิชาหน้าบรรทัดรอง (sai.js ใส่ .sj-* · ดูก็รู้ว่าวิชาไหน เหมือนการ์ดจองาน)
+   ② ตื่น · นอน · พัก: เดิมตัวหนังสือเทาลอย ๆ ขนาดไม่เข้ากับเวลาตัวหนาข้างบน → แคปซูลจางมีไอคอน ☀ ☾ ☕
+      เวลาของแถวพวกนี้กลับมาขนาดเดียวกับแถวงาน (จางกว่า) แถวเวลาจึงเรียงเป็นคอลัมน์เดียวกันทั้งราง
+   ③ "ตอนนี้": แคปซูลแดงมีวงเรืองจาง ๆ · เส้นจางลงเร็วขึ้น (เดิมเส้นแดงยาวเต็มจอแย่งสายตากับงานถัดไป)
+   ④ "ให้น้องฮูกเล่าให้ฟังทีละข้อ": เดิมตัวหนังสือขีดเส้นใต้แบบลิงก์เว็บ → แคปซูลโปร่งสีธีม (ยังเบากว่าปุ่มหลัก)
+   ============================================================ */
+#saiBody .dt-c {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #fff 9%, transparent), transparent 46%),
+    color-mix(in srgb, var(--card) 94%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 18%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--ink) 9%, transparent),
+    0 1px 2px rgba(0, 0, 0, .08),
+    0 12px 26px -16px rgba(0, 0, 0, .45);
+}
+#saiBody .dt-job .dt-x i { font-weight: 600; color: color-mix(in srgb, var(--ink) 70%, transparent); }
+/* จุดเป็น inline ไม่ใช่ flex — บรรทัดรองยาวตัดลงบรรทัดสอง จุดต้องอยู่หน้าบรรทัดแรก ไม่ลอยกลางสองบรรทัด */
+#saiBody .dt-job .dt-x i .sjdot { display: inline-block; width: 7px; height: 7px; margin-right: 6px; vertical-align: 1px; box-shadow: 0 0 6px -1px var(--sj); }
+#saiBody .dt-job.hot .dt-c {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #fff 12%, transparent), transparent 46%),
+    color-mix(in srgb, var(--fill) 15%, var(--card));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 22%, transparent),
+    0 0 0 1.5px color-mix(in srgb, var(--fill) 60%, transparent),
+    0 12px 26px -12px color-mix(in srgb, var(--fill) 65%, transparent);
+}
+#saiBody .dt-tag { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 4px 10px -4px color-mix(in srgb, var(--fill) 80%, transparent); padding: 4px 11px; }
+
+#saiBody .dt-line { align-items: center; }
+#saiBody .dt-line .dt-t { padding-top: 0; font-size: 15px; font-weight: 700; color: color-mix(in srgb, var(--ink) 55%, transparent); }
+#saiBody .dt-l {
+  justify-self: start; display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px 6px 10px; border-radius: 999px;
+  font-size: 13.5px; font-weight: 700; color: color-mix(in srgb, var(--ink) 78%, transparent);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 9%, transparent);
+}
+#saiBody .dt-l svg { width: 15px; height: 15px; flex: none; color: color-mix(in srgb, var(--fill) 70%, var(--ink)); }
+#saiBody .dt-sleep .dt-l svg { color: color-mix(in srgb, #8B7CF6 75%, var(--ink)); }
+#saiBody .dt-wake .dt-l svg { color: color-mix(in srgb, #F2A93B 80%, var(--ink)); }
+
+/* แคปซูล "ตอนนี้" กว้างกว่าคอลัมน์เวลา 52px เลยยื่นออกซ้ายเลยแนวเวลา → คอลัมน์ 58px ทั้งราง + แคปซูลกระชับลง */
+#saiBody :is(.dt-r, .dt-now) { grid-template-columns: 58px minmax(0, 1fr); }
+#saiBody .dt-gap { margin-left: 68px; }
+#saiBody .dt-now span { padding: 3px 8px 3px 6px; gap: 4px; }
+#saiBody .dt-now span { box-shadow: 0 0 0 3px color-mix(in srgb, var(--alert) 18%, transparent), 0 4px 12px -4px color-mix(in srgb, var(--alert) 70%, transparent); }
+#saiBody .dt-now i { height: 2px; background: linear-gradient(90deg, var(--alert), color-mix(in srgb, var(--alert) 35%, transparent) 35%, transparent 85%); }
+
+#saiBody .sai-tour {
+  display: flex !important; align-items: center; justify-content: center; gap: 6px;
+  width: fit-content; margin: 8px auto 4px; padding: 10px 18px; border-radius: 999px;
+  text-decoration: none !important;
+  color: color-mix(in srgb, var(--fill) 60%, var(--ink)) !important;
+  background: color-mix(in srgb, var(--fill) 9%, transparent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 38%, transparent) !important;
+}
+#saiBody .sai-tour::after {
+  content: ""; width: 7px; height: 7px; margin-left: 2px; border: solid currentColor; border-width: 2px 2px 0 0;
+  transform: rotate(45deg); border-radius: 1px;
+}
+#saiBody .sai-tour:active { transform: scale(.97); background: color-mix(in srgb, var(--fill) 16%, transparent) !important; }

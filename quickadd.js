@@ -51,6 +51,7 @@ function quickPreview() {
   chips.push(d.due && p.due
     ? `<span class="qa-chip">${esc(fmtDue(p.due, new Date(), p))}</span>`
     : `<span class="qa-chip warn">ยังไม่มีวันส่ง</span>`);
+  if (p.doAt && typeof fmtClock === 'function') chips.push(`<span class="qa-chip">เตือน ${esc(fmtClock(new Date(p.doAt)))}</span>`);
   box.innerHTML = chips.join('');
 }
 

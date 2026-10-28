@@ -2,6 +2,8 @@
 (() => {
   'use strict';
   const root = document.documentElement;
+  const rewardBase = new URL('.', document.currentScript.src);
+  const rewardAsset = name => new URL('theme-assets/' + name, rewardBase).href;
   const SOUND_KEY = 'studentos.alt.halloween.sound';
   const VOLUME_KEY = 'studentos.alt.halloween.volume';
   const MOTION_KEY = 'studentos.alt.halloween.motion';
@@ -122,7 +124,7 @@
     // The scene behind the app (theme-main.css / theme-moonlight.css) is what makes them Halloween now.
     ungroupMe();
     document.querySelectorAll('.hw-art-host > .hw-ornament').forEach(art => { art.parentElement.classList.remove('hw-art-host'); art.remove(); });
-    document.querySelectorAll('svg image.brand-light,svg image.brand-dark').forEach(mark => { if (!brandOriginals.has(mark)) brandOriginals.set(mark, mark.getAttribute('href')); mark.setAttribute('href', 'halloween/rewards/theme-assets/app-icon.webp'); });
+    document.querySelectorAll('svg image.brand-light,svg image.brand-dark').forEach(mark => { if (!brandOriginals.has(mark)) brandOriginals.set(mark, mark.getAttribute('href')); mark.setAttribute('href', rewardAsset('app-icon.webp')); });
     for (const [img] of originals) if (!img.isConnected) originals.delete(img);
     for (const [use] of iconOriginals) if (!use.isConnected) iconOriginals.delete(use);
     document.querySelectorAll('img').forEach(img => {
@@ -132,8 +134,8 @@
       // ตอนนี้แอปใช้น้องฮูกใส่หมวกแม่มดทุกธีมอยู่แล้ว (sai.js) ธีมจึงไม่ต้องเปลี่ยนรูปเอง
       // ชุดมัมมี่ยังเป็นของสะสม — ถ้าเลือกใส่ไว้ในคอลเลกชัน ใช้ชุดที่เลือกแทน
       if (/(?:^|\/)hook-(?:body|face)\.webp$|(?:^|\/)hook-avatar\.png$|(?:^|\/)hook-hat-(?:body|face|avatar)\.svg$/.test(src)) target = window.HalloweenCosmetics?.costumeForSource(src);
-      if (/(?:^|\/)sai-(?:chibi|face-[\w-]+)\.webp$|(?:^|\/)sai-avatar\.png$/.test(src)) target = 'halloween/rewards/theme-assets/sai-witch.webp';
-      if (/(?:^|\/)(?:logo-splash(?:-light)?|logo-mark|icon-(?:alt-)?192)\.png$/.test(src)) target = 'halloween/rewards/theme-assets/app-icon.webp';
+      if (/(?:^|\/)sai-(?:chibi|face-[\w-]+)\.webp$|(?:^|\/)sai-avatar\.png$/.test(src)) target = rewardAsset('sai-witch.webp');
+      if (/(?:^|\/)(?:logo-splash(?:-light)?|logo-mark|icon-(?:alt-)?192)\.png$/.test(src)) target = rewardAsset('app-icon.webp');
       if (target) { if (!originals.has(img)) originals.set(img, src); img.setAttribute('src', target); img.dataset.hwCharacter = 'true'; }
     });
     // Icons are no longer swapped for Halloween drawings. The swap turned "messages" and "today's plan" into the

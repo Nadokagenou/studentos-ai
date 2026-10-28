@@ -76,6 +76,19 @@ function profileShrink(observed, n, prior) {
 // ข้อจำกัดที่รู้ตัว: freeSlots() ของวันย้อนหลังคำนวณจาก **ตารางเรียนปัจจุบัน**
 // ถ้าเพิ่งเปลี่ยนตาราง ตัวเลขของวันก่อนหน้าจะเพี้ยนไปบ้าง · ยอมรับได้เพราะ
 // ทางเลือกอื่นคือเก็บ snapshot ของตารางทุกวัน ซึ่งแพงกว่าประโยชน์ที่ได้มาก
+//
+// 17 ต.ค. 69 · ยังไม่รู้จักตารางเรียน (ctxIsEmpty) = ใช้หน้าต่างเดียวกับตัวจัดแผน (planWindows ใน context.js)
+// คือหลังมื้อเย็น EVENING_START → เส้นห้ามวางงาน — ไม่ใช่ freeSlots ดิบที่ไม่มีตารางให้หัก จึงคิดว่า "ว่าง" ตั้งแต่ตื่นยันค่ำ (06:00–21:30 = 930 นาที)
+// หารนาทีที่ทำจริงด้วยทั้งวัน อัตราจึงต่ำปลอมสำหรับทุกคนที่ยังไม่กรอกตาราง (ซึ่งคือคนส่วนใหญ่):
+// จับเวลาค่ำละ 3 ชม. 6 วัน ได้ rate 0.45 แทนที่จะชนเพดาน · และตัวจัดแผนกับตัวนี้เคยพูดเวลาว่างของวันเดียวกันคนละตัวเลข (150 กับ 930 นาที)
+// เทสต์: devtools/profilebench.js "วันที่ไม่กดจับเวลา ห้ามนับเป็นวันที่ไม่ได้ทำงาน" (พังบนโปรไฟล์ใหม่ก่อนแก้)
+function profileFreeSlots(d) {
+  if (typeof ctxIsEmpty === 'function' && ctxIsEmpty() && typeof EVENING_START === 'number') {
+    const end = hm2min(ctxPrefs().noWorkAfter) ?? 21 * 60 + 30;   // ค่าเดียวกับ planWindows
+    return EVENING_START + 10 <= end ? [{ from: EVENING_START, to: end, min: end - EVENING_START }] : [];
+  }
+  return freeSlots(d);
+}
 function studyProfile(state, now = new Date()) {
   const prior = typeof FOLLOW_RATE_PRIOR === 'number' ? FOLLOW_RATE_PRIOR : 0.7;
   const blank = {
@@ -109,7 +122,7 @@ function studyProfile(state, now = new Date()) {
     const w = worked[key] || [0, 0, 0];
 
     const free = [0, 0, 0];
-    for (const sl of freeSlots(d)) {
+    for (const sl of profileFreeSlots(d)) {
       // ช่วงที่คร่อมเส้นแบ่งถูกนับให้ช่วงที่มันเริ่ม — ไม่คุ้มจะหั่นให้ละเอียดกว่านี้
       free[profileBucketOf(Math.floor(sl.from / 60))] += sl.min;
     }

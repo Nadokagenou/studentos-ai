@@ -49,8 +49,10 @@ const MASCOT_KEY = 'studentos.alt.mascot';
 const MASCOTS = {
   hook: {
     name: 'น้องฮูก', en: 'Hook',
-    avatar: 'hook-avatar.png', body: 'hook-body.webp',
-    faces: null, face: 'hook-face.webp',
+    // 24 ต.ค. 69 · เจ้าของ: ใช้น้องฮูกใส่หมวกแม่มดแทนตัวเดิมทุกธีม · จะกลับเป็นตัวเดิมให้ชี้กลับไป
+    // hook-avatar.png / hook-body.webp / hook-face.webp (ยังอยู่ใน repo) และแก้ index.html land.html feedback.html sw.js ด้วย
+    avatar: 'hook-hat-avatar.svg', body: 'hook-hat-body.svg',
+    faces: null, face: 'hook-hat-face.svg',
   },
   sai: {
     name: 'น้องไซ', en: 'Synara',
@@ -65,7 +67,11 @@ function mascotId() {
   try { v = localStorage.getItem(MASCOT_KEY); } catch (_) {}
   return MASCOTS[v] ? v : MASCOT_DEFAULT;
 }
-function mascot() { return MASCOTS[mascotId()]; }
+function mascot() {
+  const id = mascotId(), original = MASCOTS[id];
+  const outfit = window.HalloweenCosmetics?.costumeAsset(id);
+  return outfit ? { ...original, avatar: outfit, body: outfit, face: outfit, faces: null } : original;
+}
 function mName() { return mascot().name; }
 
 function synFace(key) {
@@ -77,7 +83,7 @@ function synBody() { return mascot().body; }
 // ป้ายชื่อกับรูปที่อยู่ใน index.html ตรง ๆ (แถบล่าง · จอล็อกอิน · ปุ่ม "…เห็นอะไร")
 // ไม่ได้ถูกวาดใหม่ทุกครั้งเหมือนจอที่สร้างจาก JS — ต้องมีคนไปเปลี่ยนให้
 function applyMascot() {
-  const id = mascotId(), m = MASCOTS[id];
+  const id = mascotId(), m = mascot();
   document.documentElement.dataset.mascot = id;
   document.querySelectorAll('[data-mname]').forEach(el => { el.textContent = m.name; });
   document.querySelectorAll('img[data-mav]').forEach(el => { el.src = m.avatar; });
@@ -119,12 +125,16 @@ function saiAim(x, y) {
   saiTouched = true;
   saiPX = Math.max(-1, Math.min(1, (x / window.innerWidth - 0.5) * 2.2));
   saiPY = Math.max(-1, Math.min(1, (y / window.innerHeight - 0.5) * 2.2));
+  saiStart();   // ลูปหยุดตอนนิ่ง (ดู saiTick) — แตะแล้วต้องปลุกให้หันตามนิ้ว
 }
 
 function saiTick() {
   // 9 ต.ค. 69 · นับเฉพาะเวทีบนจอที่เห็นอยู่ — หน้าแรกไม่เคยถูกลบออกจากหน้า (แค่ซ่อน) ลูปจึงเคยเดิน 60 ครั้ง/วิ
   // ตลอดทั้งรอบที่เปิดแอป แม้อยู่จออื่น · go() ปลุกใหม่ทุกครั้งที่เปลี่ยนจอ
-  const els = [...document.querySelectorAll('.saih-stage, .saip-stage')].filter(el => el.closest('.screen.on'));
+  // 26 ต.ค. 69 · ค้นเฉพาะในจอที่เปิดอยู่ (ผลเท่าเดิม) — เดิมกวาดทั้งหน้าแล้วกรอง closest() ทุกเฟรม
+  // โปรไฟล์ที่ CPU ช้า 8 เท่า: querySelectorAll ของบรรทัดนี้กินเวลา 680ms ใน 11 วิ มากสุดในแอป
+  const scr = document.querySelector('.screen.on');
+  const els = scr ? [...scr.querySelectorAll('.saih-stage, .saip-stage')] : [];
   // ไม่มีเวทีบนจอ = หยุดลูปทิ้ง · saiStart() จะปลุกใหม่เองตอนมีเวทีโผล่
   // ลูปที่เดินต่อไปเรื่อย ๆ ทั้งที่ไม่มีอะไรให้ขยับ คือแบตที่หายไปโดยไม่มีใครได้อะไร
   if (!els.length) { saiLoop = false; return; }
@@ -140,8 +150,11 @@ function saiTick() {
     saiPY = Math.sin(t * 0.7) * 0.22;
   }
 
-  saiCX += (saiPX - saiCX) * 0.09;
-  saiCY += (saiPY - saiCY) * 0.09;
+  // โหมดลื่น: หันตามนิ้วทันทีครั้งเดียว ไม่ไล่ตามแบบหน่วง (หน่วง = เขียนสไตล์ ~60 เฟรมต่อการแตะหนึ่งครั้ง
+  // โปรไฟล์ lowspec เครื่อง low 26 ต.ค. 69: 2.7 วิใน 2 นาที) · เครื่องปกติยังไล่ตามนุ่ม ๆ เหมือนเดิม
+  const k = document.documentElement.dataset.lite ? 1 : 0.09;
+  saiCX += (saiPX - saiCX) * k;
+  saiCY += (saiPY - saiCY) * k;
   // เขียนเฉพาะตอนค่าเปลี่ยนจริง — ทุกครั้งที่เขียน --sx/--sy เบราว์เซอร์คิดสไตล์ใหม่และวาดหน้าเธอใหม่
   // (object-position ขยับบน compositor ไม่ได้) · เดิมเขียนทุกเฟรม 60 ครั้ง/วิ ตลอดเวลาที่อยู่หน้าแรก
   // แม้ตอนหยุดนิ่งแล้ว · ทศนิยม 2 ตำแหน่ง = เอียง 0.06° ต่อขั้น ตาแยกไม่ออก
@@ -152,6 +165,11 @@ function saiTick() {
     el._sx = sx; el._sy = sy;
     el.style.setProperty('--sx', sx); el.style.setProperty('--sy', sy);
   });
+  // 26 ต.ค. 69 · หยุดลูปเมื่อนิ่งแล้ว — ไม่แกว่งเอง (แตะแล้ว หรือโหมดลื่น) และไล่ถึงเป้าแล้ว
+  // เดิมวนต่อทุกเฟรมตลอดที่หน้าแรกเปิดอยู่ ทั้งที่ค่าไม่เปลี่ยนแล้ว (โหมดลื่น 3 วินาทีนิ่ง ๆ = 361 รอบ)
+  // ตื่นใหม่: saiAim (แตะ/ลากนิ้ว) · go() เปลี่ยนจอ — ทั้งคู่เรียก saiStart()
+  const swaying = !saiTouched && !document.documentElement.dataset.lite;
+  if (!swaying && Math.abs(saiPX - saiCX) < 0.004 && Math.abs(saiPY - saiCY) < 0.004) { saiLoop = false; return; }
   requestAnimationFrame(saiTick);
 }
 
@@ -589,7 +607,7 @@ function renderSaiPlan() {
         if (!r.over && k.at - cur >= GAP_MIN) items.push({ kind: 'gap', at: cur, to: k.at });
         items.push(k.brk
           ? { kind: 'brk', at: k.at, to: k.at + k.min, title: 'พัก ' + hm(k.min) }
-          : { kind: 'job', at: k.at, to: k.at + k.min, title: k.title, id: k.id,
+          : { kind: 'job', at: k.at, to: k.at + k.min, title: k.title, id: k.id, sj: k.subject,
               sub: [k.subject, hm(k.min), r.over ? 'เลยเวลาว่าง' : ''].filter(Boolean).join(' · '),
               hot: k.id === nowId && k.at === nowAt });
         cur = Math.max(cur, k.at + k.min);
@@ -617,10 +635,12 @@ function renderSaiPlan() {
     if (it.kind === 'gap') return pre + '<div class="dt-gap' + past + '"' + st + '>ว่าง ' + esc(hm(it.to - it.at)) + '</div>';
     const time = '<span class="dt-t">' + esc(min2hm(it.at)) + '</span>';
     if (it.kind === 'job') {
-      return pre + '<div class="dt-r dt-job' + (it.hot ? ' hot' : '') + past + '"' + st + '>' + time
+      // 26 ต.ค. 69 · จุดสีวิชาหน้าบรรทัดรอง — ชุดสีเดียวกับการ์ดงาน (.sj-* ใน alt.css) ดูก็รู้ว่าวิชาไหน
+      const sj = typeof subjClass === 'function' ? ' ' + subjClass(it.sj) : '';
+      return pre + '<div class="dt-r dt-job' + sj + (it.hot ? ' hot' : '') + past + '"' + st + '>' + time
         // 20 ต.ค. 69 · แตะแถว = แผ่นล่างที่เริ่ม/เสร็จ/เลื่อนได้เลย (เดิมเปิดฟอร์มแก้ไข ไกลเกินสำหรับสิ่งที่ทำบ่อยสุด)
         + '<button class="dt-c" onclick="openPlanRowSheet(\'' + it.id + '\',' + (it.to - it.at) + ')">'
-        + '<span class="dt-x"><b>' + esc(it.title) + '</b><i>' + esc(it.sub) + '</i></span>'
+        + '<span class="dt-x"><b>' + esc(it.title) + '</b><i>' + (sj ? '<span class="sjdot"></span>' : '') + esc(it.sub) + '</i></span>'
         + (runId === it.id && typeof runTimerPill === 'function' ? runTimerPill('dt-timer')
           : it.hot ? '<em class="dt-tag">ทำก่อน</em>' : icon('chevron')) + '</button></div>';
     }
@@ -628,9 +648,10 @@ function renderSaiPlan() {
       return pre + '<div class="dt-r dt-' + it.kind + past + '"' + st + '>' + time
         + '<div class="dt-c"><span class="dt-x"><b>' + esc(it.title) + '</b>' + (it.sub ? '<i>' + esc(it.sub) + '</i>' : '') + '</span></div></div>';
     }
-    // พัก · ตื่น · นอน — บรรทัดเล็ก ไม่มีการ์ด
+    // พัก · ตื่น · นอน — บรรทัดเล็ก ไม่มีการ์ด · 26 ต.ค. 69 เป็นแคปซูลจาง ๆ มีไอคอนบอกชนิด (เดิมตัวหนังสือเทาลอย ๆ)
+    const ic = { wake: 'sun', sleep: 'moon', brk: 'coffee' }[it.kind];
     return pre + '<div class="dt-r dt-line dt-' + it.kind + past + '"' + st + '>' + time
-      + '<span class="dt-l">' + esc(it.title) + '</span></div>';
+      + '<span class="dt-l">' + (ic ? icon(ic) : '') + esc(it.title) + '</span></div>';
   }).join('') + (markedNow ? '' : nowLine);
 
   // ---- การ์ดบนสุด: งานถัดไป + ปุ่มเริ่ม ----

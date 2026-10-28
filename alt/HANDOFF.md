@@ -1,3 +1,5 @@
+> 28 ต.ค. หน้าหลักหน้าตาเหมือน ALT ตามคำสั่งผู้ใช้: อ่าน ../devtools/MAIN-ALT-UI-20261028.md ปรับ root frontend/ฉากโหลด/ธีม/ตรา/อีเวนต์/ฉากรางวัล ใช้ไฟล์รางวัลร่วมใน alt/halloween/ คง main notifications=true และ config/manifest/ตัวเชื่อม/เซิร์ฟเวอร์เดิม113ไฟล์ คง1C60 สคริปต์ sync-to-root.py ยังปิดอยู่ ใช้ main-ui-parity.py เฉพาะ UI ที่ระบุ ก่อนส่งเว็บต้องมีคำสั่งผู้ใช้ตาม AGENTS
+
 > 27 ต.ค. นักเดินทางมือถือ: experience.css เคยใช้ #fff01a เป็นพื้นทึบเหลืองสด แก้พื้นม่วง/contrast และ grid minmax(0,1fr) กับ min-width:0 ป้องกันเนื้อหาดัน dialog กว้าง ปรับ header wrap ใน dungeon-ui.css คงกติกา/เพลง/เซฟ/1C60 หลักฐาน halloween/docs/visitor-fix-20261027.md และ contrast regression ใน palette.test.mjs
 
 > 27 ต.ค. ตรวจอีเวนต์ก่อนเปิด: อ่าน halloween/docs/launch-audit-20261027/README.md แก้copyจริง/ห้องลองและตำแหน่งภารกิจ + marketใช้clockNowจากบัญชีแทนDate.now ทดสอบclockเร็ว1ชั่วโมงกับpreview offsetไม่บวกซ้ำ ผ่าน291 SW6 ไฟล์เว็บ266ครบ เพิ่มเครื่องมือlaunch-assets.cjs/fixturelaunch-layout.html คง1C60/เพลง/เซฟ/กติกา/สิทธิ์ ผลตรวจและขอบเขตอยู่ในเอกสาร
