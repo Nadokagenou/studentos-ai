@@ -1,7 +1,7 @@
 /* Physical counter UI. Picking, dropping and changing quantity never write a save. */
 (() => {
   'use strict';
-  function create({Core,preview=false,clock=Date.now,config,read,now,detail,refresh,perform,audio,onRewards,esc,asset,name,duration,portrait,cropArt}) {
+  function create({Core,preview=false,clock=Date.now,config,read,now,detail,refresh,perform,audio,onRewards,onNotice=()=>{},esc,asset,name,duration,portrait,cropArt}) {
     let mode='buy',held=null,placed=false,quantity=1,quote=null,busy=false,message='',epoch=null;
     const reset=()=>{held=null;placed=false;quantity=1;quote=null;};
     const stock=()=>Core.shopStock(read(),config(),clock());
@@ -50,10 +50,14 @@
       else if(action==='plus'||action==='minus'){const p=held&&product(held);if(p&&mode==='sell')quantity=Math.max(1,Math.min(p.left,quantity+(action==='plus'?1:-1)));redraw(action);}
       else if(action==='confirm'){
         const p=held&&product(held);if(!placed||!quote||!p||quantity>p.left||read().event.closed)return true;
-        busy=true;const captured=mode;redraw();
-        const result=await perform(mode==='buy'?{type:'buy',item:held,stockEpoch:quote.stockEpoch}:{type:'sell-crop',biome:held,quantity,expectedGrown:quote.expectedGrown,expectedInventory:quote.expectedInventory},{silent:true});
-        busy=false;reset();message=result?(captured==='buy'?'ตกลงแล้ว ข้าห่อของใส่กระเป๋าให้เรียบร้อย':'รับผลผลิตแล้ว นี่ Candy '+result.candy+' ตามที่ชั่งไว้'):'ยังไม่ได้ทำรายการ กรุณาหยิบและชั่งอีกครั้ง';redraw();
-        if(result){audio.play('coins');if(result.rewards.length)onRewards(result.rewards,'shop');}
+        busy=true;const captured=mode;redraw();const origin=detail.querySelector('.market-scene');
+        let result=null;
+        try{result=await perform(mode==='buy'?{type:'buy',item:held,stockEpoch:quote.stockEpoch}:{type:'sell-crop',biome:held,quantity,expectedGrown:quote.expectedGrown,expectedInventory:quote.expectedInventory},{silent:true});}catch{}
+        finally{busy=false;reset();}
+        const visible=detail.open&&detail.dataset.scenePanel==='counter',sameView=visible&&detail.querySelector('.market-scene')===origin;
+        message=result?(captured==='buy'?'ตกลงแล้ว ข้าห่อของใส่กระเป๋าให้เรียบร้อย':'รับผลผลิตแล้ว นี่ Candy '+result.candy+' ตามที่ชั่งไว้'):'ยังยืนยันรายการไม่ได้ ตรวจการเชื่อมต่อและยอดล่าสุดก่อนลองอีกครั้ง';
+        if(visible)redraw();
+        if(result){audio.play('coins');if(sameView&&result.rewards?.length)onRewards(result.rewards,'shop');else if(!sameView)onNotice('บันทึกรายการร้านแล้ว ตรวจยอดและของที่ได้รับในคลังได้');}
       }
       return true;
     }
@@ -61,6 +65,8 @@
     detail.addEventListener('close',()=>{drag?.ghost?.remove();drag=null;detail.classList.remove('market-dragging');reset();message='';});
     detail.addEventListener('dragstart',e=>{if(e.target.closest('[data-market="pick"]'))e.preventDefault();});
     detail.addEventListener('pointerdown',e=>{
+      // Phones use tap-to-pick and native scrolling; drag is a mouse/pen gesture.
+      if(e.pointerType==='touch')return;
       const b=e.target.closest('[data-market="pick"]');if(!b||b.disabled||busy||e.button!==0)return;
       drag={id:b.dataset.product,x:e.clientX,y:e.clientY,pointer:e.pointerId,active:false,ghost:null};
     });

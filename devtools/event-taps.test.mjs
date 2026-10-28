@@ -7,8 +7,8 @@ const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {
 const flush=()=>new Promise(r=>setImmediate(r));
 function fixture(){
  let nodes=[];const attrs={},classes=new Set();
- const dialog={open:false,dataset:{},attrs,classList:{add:n=>classes.add(n),remove:n=>classes.delete(n)},setAttribute(k,v){attrs[k]=v;},removeAttribute(k){delete attrs[k];},showModal(){this.open=true;},close(){this.open=false;},querySelectorAll(s){return nodes.filter(n=>s.split(',').some(q=>{const m=q.match(/\[([^=\]]+)(?:="([^"]*)")?\]/);if(m)return m[1] in n.attrs&&(m[2]===undefined||n.attrs[m[1]]===m[2])&&(!q.includes(':not(:disabled)')||!n.disabled);return q.startsWith('.')&&n.attrs.class?.split(' ').includes(q.slice(1));}));},querySelector(s){return this.querySelectorAll(s)[0]||null;}};
- Object.defineProperty(dialog,'innerHTML',{get(){return this.markup||'';},set(value){this.markup=value;nodes=[...value.matchAll(/<(button|p)\b([^>]*)>/g)].map(m=>{const a=Object.fromEntries([...m[2].matchAll(/([\w-]+)(?:="([^"]*)")?/g)].map(x=>[x[1],x[2]??''])),listeners={};return {attrs:a,dataset:Object.fromEntries(Object.entries(a).filter(([k])=>k.startsWith('data-')).map(([k,v])=>[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase()),v])),disabled:'disabled'in a,textContent:'',addEventListener(k,f){listeners[k]=f;},click(){return (this.onclick||listeners.click)?.({currentTarget:this});},focus(){}};});}});
+ const events={};const dialog={open:false,dataset:{},attrs,classList:{add:n=>classes.add(n),remove:n=>classes.delete(n)},setAttribute(k,v){attrs[k]=v;},removeAttribute(k){delete attrs[k];},addEventListener(k,f){(events[k]??=[]).push(f);},showModal(){this.open=true;},close(){this.open=false;for(const f of events.close||[])f();},querySelectorAll(s){return nodes.filter(n=>s.split(',').some(q=>{const m=q.match(/\[([^=\]]+)(?:="([^"]*)")?\]/);if(m)return m[1] in n.attrs&&(m[2]===undefined||n.attrs[m[1]]===m[2])&&(!q.includes(':not(:disabled)')||!n.disabled);return q.startsWith('.')&&n.attrs.class?.split(' ').includes(q.slice(1));}));},querySelector(s){return this.querySelectorAll(s)[0]||null;}};
+ Object.defineProperty(dialog,'innerHTML',{get(){return this.markup||'';},set(value){this.markup=value;nodes=[...value.matchAll(/<(button|p|section)\b([^>]*)>/g)].map(m=>{const a=Object.fromEntries([...m[2].matchAll(/([\w-]+)(?:="([^"]*)")?/g)].map(x=>[x[1],x[2]??''])),listeners={};return {attrs:a,dataset:Object.fromEntries(Object.entries(a).filter(([k])=>k.startsWith('data-')).map(([k,v])=>[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase()),v])),disabled:'disabled'in a,textContent:'',addEventListener(k,f){listeners[k]=f;},click(){return (this.onclick||listeners.click)?.({currentTarget:this});},focus(){}};});}});
  const context={window:{HalloweenBrainGames:{names:{memory:'รูนในหมอก'}}},document:{getElementById:()=>dialog,activeElement:null},setInterval:f=>{context.tick=f;return 1;},clearInterval(){}};
  return {dialog,context};
 }
@@ -59,4 +59,18 @@ test('boss failed move restores the actions and presents a connection retry',asy
  const {dialog,context}=battleFixture();vm.runInNewContext(read('halloween/event/battle-ui.js'),context);
  await context.window.HalloweenBattleUI.open('test',{read:()=>({event:{battle:battle()}}),config:bossConfig,context:()=>({}),onRewards(){},onClose(){},perform:async()=>null});
  await dialog.querySelector('[data-battle-move]').click();assert.equal(dialog.attrs['aria-busy'],'false');assert.equal(dialog.querySelector('[data-battle-move]').disabled,false);assert.match(dialog.innerHTML,/ตรวจการเชื่อมต่อ/);
+});
+function marketFixture(result){
+ const f=fixture(),wait=deferred();let paints=0,reveals=0,calls=0;
+ const doc={event:{candy:1000,inventory:{},grown:{},purchases:[],closed:false},rewards:{}},config={rewards:{lamp:{name:'เทียน',rarity:'Common'}},proposals:{shop:{lamp:40},crops:{},shopStock:{notice:''}}};
+ vm.runInNewContext(read('halloween/event/market.js'),f.context);
+ let api;const refresh=()=>{paints++;f.dialog.open=true;f.dialog.dataset.scenePanel='counter';f.dialog.innerHTML=api.view();};
+ api=f.context.window.HalloweenMarket.create({Core:{BIOMES:[],shopStock:()=>({epoch:1,nextAt:20000,remaining:{lamp:1}})},config:()=>config,read:()=>doc,clock:()=>10000,now:()=>10000,detail:f.dialog,refresh,perform:()=>{calls++;return wait.promise;},audio:{play(){}},onRewards:()=>reveals++,onNotice(){},esc:String,asset:()=>'',name:String,duration:String,portrait:()=>'',cropArt:()=>''});
+ return {...f,api,wait,refresh,stats:()=>({paints,reveals,calls})};
+}
+for(const result of [null,{candy:0,rewards:['lamp']}])test('closed shop stays closed after a late '+(result?'successful':'failed')+' purchase',async()=>{
+ const f=marketFixture();f.refresh();const handle=(market,extra={})=>f.api.handle({dataset:{market,...extra}});
+ await handle('pick',{product:'lamp'});await handle('place');const job=handle('confirm');await flush();assert.equal(f.stats().calls,1);f.dialog.close();const paints=f.stats().paints;
+ f.wait.resolve(result);await job;assert.equal(f.dialog.open,false);assert.equal(f.stats().paints,paints);assert.equal(f.stats().reveals,0);
+ f.refresh();assert.doesNotMatch(f.dialog.innerHTML,/กำลังบันทึก/);
 });

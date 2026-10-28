@@ -790,7 +790,7 @@
         read();
         if(!read().event.closed&&read().event.bossWins?.['midnight-sovereign']&&config.proposals.bosses['midnight-sovereign'].rewards.some(id=>!read().rewards[id]))await perform({type:'claim-final-theme-set'},{silent:true});
       }
-      if(playable)market=window.HalloweenMarket.create({Core,preview,clock:clockNow,config:()=>config,read,now,detail,refresh:()=>showPanel('shop-stock'),perform,audio,onRewards:acquisition,esc,asset,name,duration,portrait:id=>window.HalloweenWorld.portrait(id),cropArt:index=>window.HalloweenWorld.pixelCrop(index)});
+      if(playable)market=window.HalloweenMarket.create({Core,preview,clock:clockNow,config:()=>config,read,now,detail,refresh:()=>showPanel('shop-stock'),perform,audio,onRewards:acquisition,onNotice:toast,esc,asset,name,duration,portrait:id=>window.HalloweenWorld.portrait(id),cropArt:index=>window.HalloweenWorld.pixelCrop(index)});
       const hash = location.hash.slice(1); if (['gate','hub','biome','garden'].includes(hash)) route=hash;
       else if(playable&&read().event.visits?.hub)route='hub';
       else if(PANEL_NAMES[hash])route='hub';
