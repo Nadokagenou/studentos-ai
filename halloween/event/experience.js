@@ -137,7 +137,7 @@
     banner.innerHTML = (read().event.closed ? 'จำลองปิดอีเวนต์แล้ว · เปิดคลังใช้รางวัลต่อได้' : 'ห้องลองอีเวนต์ · ข้อมูลแยกจากบัญชีจริง') + '<a href="#" data-open-preferences>ราคาและสูตรทดลอง</a>';
   }
   let navigating=false;
-  async function navigate(next) {
+  async function navigate(next,{entered=false}={}) {
     if(navigating)return;
     navigating=true;main.setAttribute('aria-busy','true');
     try{
@@ -150,7 +150,7 @@
     if (detail.open) { activeRoom=null;detail.close(); }
     if(playable&&store&&!read().event.closed){
       if(ROOM_ROUTES[next]&&!await perform({type:'enter-room',room:ROOM_ROUTES[next]},{silent:true}))return;
-      if(next==='hub'&&!await perform({type:'enter-hub'},{silent:true}))return;
+      if(next==='hub'&&!entered&&!await perform({type:'enter-hub'},{silent:true}))return;
     }
     route = next; history.replaceState(null,'','#' + next); render();
     main.focus({preventScroll:true}); window.scrollTo({top:0,behavior:'instant'});
@@ -429,7 +429,7 @@
     const status = Core.questStatus(doc,config,q), phase = q.phases[Math.min(status.phase,q.phases.length-1)];
     let requirements, blocked='';
     if (!branch && phase.requirements.anyOf) branch = Core.questNeeds(doc,config,q.biome,clockNow())?.quest?.id===q.id?Core.questNeeds(doc,config,q.biome,clockNow()).branch:phase.requirements.anyOf[0].id;
-    try { requirements = Core.resolveRequirements(config,q,phase.requirements,branch); Core.checkRequirements(doc,requirements); }
+    try { requirements = Core.questRequirements(doc,config,q,phase.requirements,branch); Core.checkRequirements(doc,requirements); }
     catch(error) { blocked = error.message; }
     if (status.complete) blocked='รับรางวัลแล้ว';
     else if (!status.unlocked) blocked='ต้องทำเควสก่อนหน้าให้ครบ';
@@ -447,6 +447,7 @@
     const difficulty = Balance.difficulty(config,q,doc.event.inventory);
     const body = '<div class="quest-head"><div class="quest-portrait">'+window.HalloweenWorld.portrait(npcId)+'</div><div><span class="eyebrow">เควส '+q.order+' / '+config.quests.filter(x=>x.biome===q.biome).length+(q.phases.length>1?' · เฟส '+Math.min(status.phase+1,q.phases.length)+' / '+q.phases.length:'')+'</span><h3 class="quest-title">'+esc(q.name)+'</h3><p class="quest-ask">'+esc(ask)+'</p></div></div>'
       + offer
+      + (q.preserveExistingCraft&&doc.event.inventory['spectral-lantern']>0&&!status.complete?'<p class="subtle">มี Spectral Lantern แล้ว · ใช้ยืนยันเควสได้โดยไม่หัก Candy หรือส่วนผสมอีก</p>':'')
       + (status.complete ? '<p class="subtle">✓ รางวัลอยู่ในคลังแล้ว</p>' : requirements ? '<span class="quest-label">ต้องเตรียม</span><div class="need-list">'+rows.map(r=>needRow(r,id,branch)).join('')+'</div>' : '<p class="subtle">'+esc(blocked)+'</p>')
       + (!status.complete ? '<span class="quest-label">ได้รับ</span>'+rewardChips(q) : '')
       + (blocked && !status.complete && !/ขาด|ไม่พอ|ยังไม่ได้|ยังไม่ผ่าน|ยังเล่น|Pumpkin ต้อง/.test(blocked) ? '<p class="quest-block">🔒 '+esc(blocked)+'</p>' : '')
@@ -720,7 +721,7 @@
     if(button.hasAttribute('data-enter-hub')){
       button.disabled=true;button.classList.add('dg-unseal');main.querySelector('.world-scene')?.classList.add('gate-opening');
       const result=await perform({type:'enter-hub'},{silent:true});
-      if(result)setTimeout(()=>navigate('hub'),reduced()?0:650);else button.disabled=false;
+      if(result)setTimeout(()=>navigate('hub',{entered:true}),reduced()?0:650);else button.disabled=false;
       return;
     }
     if(button.dataset.enterBiome){

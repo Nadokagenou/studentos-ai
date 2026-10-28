@@ -5,6 +5,9 @@ import vm from 'node:vm';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),Access=require('../halloween/rewards/entitlements.js');
 const Account=require('../halloween/rewards/account-store.js');
+const Core=require('../halloween/event/core.js'),Catalog=require('../halloween/rewards/catalog.js');
+const json=n=>JSON.parse(read('halloween/event/data/'+n+'.json'));
+const config=()=>Core.build({materials:json('materials'),chains:['dutchman','jack','vampire','graveyard'].map(x=>json('quests.'+x)),catalog:Catalog,proposals:json('preview-rules'),preview:true});
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8').replaceAll('\r\n','\n');
 const receipt=owner=>({owner,season:'halloween-2026',rewards:{'theme-ghostship':{id:'theme-ghostship',permanent:true,receipt:'verified-test'}}});
 
@@ -37,4 +40,19 @@ test('minigame marks pending taps, closes immediately, and never repaints after 
  api.close();assert.equal(dialog.open,false);const closedMarkup=dialog.innerHTML;release(null);await move;assert.equal(dialog.innerHTML,closedMarkup);assert.equal(calls,1);
  await api.open('ghost-ship-hunt',{...opts,perform:async()=>null});await dialog.querySelector('[data-game-move]').click();assert.match(dialog.innerHTML,/ตรวจการเชื่อมต่อ/);assert.doesNotMatch(dialog.innerHTML,/ยังไม่ใช่จุดนั้น/);
  api.close();
+});
+
+test('Tang reuses an earned lantern in both the objective and submission requirements without charging twice',()=>{
+ const c=config(),at=Date.now(),d=Core.initial(c,'test',at,42),q=c.quests.find(x=>x.preserveExistingCraft);d.event.previewBiome=q.biome;d.event.inventory['spectral-lantern']=1;
+ const objective=Core.questNeeds(d,c,q.biome,at);assert.equal(objective.ready,true);
+ const req=Core.questRequirements(d,c,q,q.phases[0].requirements);assert.equal(Core.checkRequirements(d,req),true);assert.equal(req.items[0].consume,false);
+ Core.dispatch(d,c,{type:'quest',quest:q.id},{now:at,tx:'existing-lantern'});assert.equal(d.event.candy,0);assert.equal(d.event.inventory['spectral-lantern'],1);
+ assert.match(read('halloween/event/experience.js'),/requirements = Core\.questRequirements\(doc,config,q,/);
+});
+
+test('opening the gate saves entry once and normal hub navigation still saves once',async()=>{
+ const s=read('halloween/event/experience.js'),a=s.indexOf('  async function navigate('),b=s.indexOf('  function currentBiome',a),g=s.indexOf("    if(button.hasAttribute('data-enter-hub'))"),h=s.indexOf('    if(button.dataset.enterBiome)',g);
+ let calls=0;const box={navigating:false,main:{setAttribute(){},removeAttribute(){},querySelector:()=>({classList:{add(){}}}),focus(){}},button:{hasAttribute:()=>true,disabled:false,classList:{add(){}}},PANEL_NAMES:{},ROOM_ROUTES:{},detail:{open:false},playable:true,store:{},read:()=>({event:{closed:false}}),perform:async()=>{calls++;return {};},history:{replaceState(){}},route:'gate',render(){},window:{scrollTo(){}},setTimeout:fn=>fn(),reduced:()=>true};
+ vm.runInNewContext(s.slice(a,b)+'\nasync function enter(){'+s.slice(g,h)+'}\nthis.enterGate=enter;',box);await box.enterGate();await new Promise(r=>setImmediate(r));assert.equal(calls,1);
+ await box.navigate('hub');assert.equal(calls,2);
 });

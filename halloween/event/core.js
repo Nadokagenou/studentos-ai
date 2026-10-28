@@ -158,6 +158,11 @@
     }
     return req;
   }
+  // The UI and objective must honor the same legacy-craft exception as dispatch.
+  function questRequirements(document,config,quest,requirements,branch){
+    if(quest.preserveExistingCraft&&(document.event.inventory['spectral-lantern']||0)>0)return {items:[{id:'spectral-lantern',name:'Spectral Lantern',quantity:1,consume:false,mustPossess:true}]};
+    return resolveRequirements(config,quest,requirements,branch);
+  }
   function checkRequirements(document, requirements) {
     const event = document.event;
     if (requirements.candy != null && (!Number.isSafeInteger(requirements.candy) || requirements.candy < 0)) fail('สูตร Candy ไม่ถูกต้อง');
@@ -218,7 +223,7 @@
     let best = null;
     for (const branch of branches) {
       let requirements;
-      try { requirements = resolveRequirements(config, quest, phase.requirements, branch); } catch (error) { if (!best) best = {branch, requirements:null, missing:[], error:error.message}; continue; }
+      try { requirements = questRequirements(document, config, quest, phase.requirements, branch); } catch (error) { if (!best) best = {branch, requirements:null, missing:[], error:error.message}; continue; }
       const missing = [];
       if ((requirements.candy || 0) > event.candy) missing.push({kind:'candy', id:'candy', have:event.candy, need:requirements.candy});
       for (const item of requirements.items || []) {
@@ -630,5 +635,5 @@
     event.clock = at;
     return result;
   }
-  return Object.freeze({BIOMES, SHORT, DAY, HOUR,Rotations, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,questWait,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, questNeeds, houseAvailability,questAidStatus, gameDefinition, dispatch});
+  return Object.freeze({BIOMES, SHORT, DAY, HOUR,Rotations, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,questWait,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, questRequirements, checkRequirements, questNeeds, houseAvailability,questAidStatus, gameDefinition, dispatch});
 });
