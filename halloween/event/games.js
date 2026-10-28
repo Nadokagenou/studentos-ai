@@ -19,25 +19,29 @@
       '<path d="M275 213v56" stroke="#6a5265" stroke-width="3"/>' +
       '<rect x="112" y="18" width="16" height="44" fill="' + (changed(4) ? '#bc9c7b' : '#4e3b4d') + '"/></svg>';
   }
-  let active = null, inFlight = null;
+  let active = null, inFlight = null, recoveryNeeded=false;
   async function open(id, options) {
     const {perform, read, now, reduced, toast, onClose}=options;
     const dialog = document.getElementById('gameDialog');
     if (active) return;
     let timer, busy = false, localError = '', closed = false,comparisonView='altered',previousSteps=0;
-    const getGame = () => read().event.games[id];
+    let playback=null;
+    const getGame = () => playback?playback.state().game:read().event.games[id];
+    function trackSave(job){inFlight=job;const done=()=>{if(inFlight===job)inFlight=null;if(playback?.state().error)recoveryNeeded=true;};job.then(done,done);return job;}
     let session;
     const cleanup = () => { clearInterval(timer); active = null; dialog.innerHTML = ''; dialog.removeAttribute('aria-busy'); if (onClose) onClose(); };
     // Closing the view never cancels a server transaction or invents a result.
     // An unfinished round resumes with the same session and server deadline.
-    const close = () => { if(closed)return;closed=true;dialog.close();cleanup(); };
+    const close = () => { if(closed)return;closed=true;if(playback)trackSave(playback.close());dialog.close();cleanup(); };
     function waiting(value){
+      if(playback){const state=playback.state();dialog.setAttribute('aria-busy',String(state.pending&&state.game.finished));if(state.error)dialog.querySelectorAll('[data-game-move],[data-game-hint]').forEach(b=>{b.disabled=true;});return;}
       dialog.setAttribute('aria-busy',String(value));
       if(value)dialog.querySelectorAll('[data-game-move],[data-game-hint]').forEach(b=>{b.disabled=true;});
       if(value){const note=dialog.querySelector('.game-note');if(note)note.textContent='กำลังยืนยันกับเซิร์ฟเวอร์… ปิดหน้าต่างได้ รอบเดิมยังอยู่';}
     }
     async function act(action){const job=Promise.resolve().then(()=>perform(action,{silent:true}));inFlight=job;try{return await job;}finally{if(inFlight===job)inFlight=null;}}
     const move = async value => {
+      if(playback){if(busy||closed)return;localError='';playback.tap(value);const job=playback.settling();if(job)trackSave(job);return;}
       if (busy || closed) return;
       busy = true;waiting(true);
       try{const result=await act({type:'game-move',game:id,session,move:value});localError=result?'':'ยังยืนยันกับเซิร์ฟเวอร์ไม่ได้ ตรวจการเชื่อมต่อแล้วลองอีกครั้ง';}
@@ -46,6 +50,7 @@
     };
     function arena(g) {
       if (g.finished) {
+        if(playback?.state().pending)return '<div class="game-end"><h3>จบรอบการเล่นแล้ว</h3><p role="status">'+esc(playback.state().error||'กำลังตรวจและบันทึกผลจากลำดับการกด…')+'</p><button class="secondary" data-game-close>กลับไปสำรวจ</button></div>';
         const win = g.clear;
         const art = id === 'ghost-ship-hunt' ? 'theme-ghostship' : id.includes('jack') ? 'laughing-pumpkin' : id.includes('dech') ? 'theme-vampire' : 'little-wisp';
         return '<div class="game-end"><img src="../rewards/assets/' + art + '.svg" alt=""><h3>' + (win ? 'เรื่องเล่าบทนี้สำเร็จแล้ว' : g.abandoned ? 'กลับมาลองใหม่ได้เสมอ' : 'ครั้งหน้าต้องไปได้ไกลกว่าเดิม') + '</h3><p>' + (win ? 'บันทึกผลเรียบร้อย กลับไปหา NPC เพื่อส่งเควสต่อได้เลย'+(id==='ghost-ship-hunt'?'<br>Soul Anchor +1 · '+(g.candy?'ชนะครั้งแรก +'+g.candy+' Candy':'เล่นซ้ำ · ไม่รับ Candy เพิ่ม'):'') : id === 'ghost-ship-hunt' && !g.abandoned ? 'เรือคว่ำกลับฝั่ง · ซ่อมเรือ ' + read().event.repairs + ' Candy แล้วลองใหม่' : 'ยังไม่ได้ผ่านด่านนี้ · กลับมาลองใหม่ได้') + '</p><button class="primary" data-game-close>กลับไปสำรวจ</button></div>';
@@ -54,7 +59,7 @@
       if(g.mode==='pairs'){
         const revealed=g.open.length<2||now()<g.flipAt+700?g.open:[];
         const arts=['quiet-gravestone','little-wisp','crimson-candle','bottled-dutchman'],labels=['ป้ายหิน','วิญญาณ','เชิงเทียน','เรือในขวด'];
-        return '<div class="game-arena pairs-game"><p class="game-hint">ขุดเปิดแผ่นหินทีละสองแผ่น จับคู่สัญลักษณ์ให้ครบ 4 คู่ · ไม่จับเวลา</p><div class="pairs-board">'+g.tiles.map((n,i)=>{const found=g.found.includes(i),open=found||revealed.includes(i);return '<button class="stone-pair '+(open?'flipped':'')+' '+(found?'found':'')+'" data-game-move="'+i+'" '+(found||revealed.includes(i)?'disabled':'')+' aria-label="แผ่นหิน '+(i+1)+(open?' · '+labels[n]:' · ยังไม่เปิด')+'"><span class="stone-back" aria-hidden="true">✧</span><img src="../rewards/assets/'+arts[n]+'.svg" alt="" aria-hidden="true"></button>';}).join('')+'</div><p class="pair-status" role="status">พบแล้ว '+g.found.length/2+' / 4 คู่'+(g.open.length===2?' · ไม่ตรงกัน ลองเปิดแผ่นถัดไป':'')+'</p></div>';
+        return '<div class="game-arena pairs-game"><p class="game-hint">ขุดเปิดแผ่นหินทีละสองแผ่น จับคู่สัญลักษณ์ให้ครบ 4 คู่ · ไม่จับเวลา</p><div class="pairs-board">'+g.tiles.map((n,i)=>{const found=g.found.includes(i),open=found||revealed.includes(i);return '<button class="stone-pair '+(open?'flipped':'')+' '+(found?'found':'')+'" data-game-move="'+i+'" '+(found||revealed.includes(i)||g.open.length===2&&now()<g.flipAt+700?'disabled':'')+' aria-label="แผ่นหิน '+(i+1)+(open?' · '+labels[n]:' · ยังไม่เปิด')+'"><span class="stone-back" aria-hidden="true">✧</span><img src="../rewards/assets/'+arts[n]+'.svg" alt="" aria-hidden="true"></button>';}).join('')+'</div><p class="pair-status" role="status">พบแล้ว '+g.found.length/2+' / 4 คู่'+(g.open.length===2?' · ไม่ตรงกัน ลองเปิดแผ่นถัดไป':'')+'</p></div>';
       }
       if (id === 'ghost-ship-hunt') return '<div class="game-arena ship"><div class="voyage-stage" aria-hidden="true" style="--ship-step:'+g.steps+';--ship-from:'+previousSteps+'"><span class="voyage-wave back"></span><img class="voyage-ship" src="../rewards/assets/ghostship-vessel.svg" alt=""><span class="voyage-wave"></span></div><div class="ship-cue"><span class="cue-arrow">' + arrows[g.target] + '</span>แสงโคมกะพริบจากด้าน' + directions[g.target] + '</div><div class="ship-choices">' + [1,0,2].map(i => '<button data-game-move="' + i + '"><span>' + arrows[i] + '</span>' + directions[i] + '</button>').join('') + '</div></div>';
       if (id === 'clear-jacks-garden-vines') return '<div class="game-arena"><p class="game-hint">ถางเถาวัลย์ตามลำดับอักขระ 1 → ' + g.total + '</p><div class="vines-board">' + (g.board||[3,0,5,2,4,1]).slice(0,g.total).map(i => '<button class="' + (g.found.includes(i) ? 'found' : i===g.found.length?'vine-next':'') + '" data-game-move="' + i + '" ' + (g.found.includes(i) ? 'disabled' : '') + ' aria-label="ถางเถาวัลย์หมายเลข ' + (i+1) + '">' + '<svg class="vine-art" viewBox="0 0 100 95" aria-hidden="true" shape-rendering="crispEdges"><path d="M44 92V65H32V49H20V28h13V15h23v13H43v13h15v17h14V37h12V24H72V12h17v13h6v24H82v22H64v21z" fill="#416f52" stroke="#163a2e" stroke-width="3"/><path d="M44 72H24V59h-9v-9h21v13h8zm14-27h15V31H59zM44 85h20V73H44z" fill="#7f9f68"/><path d="M35 33h9v8h-9zM77 42h9v8h-9z" fill="#b0bc7a"/></svg><span class="vine-rune">' + (i+1) + '</span></button>').join('') + '</div></div>';
@@ -80,6 +85,11 @@
       dialog.querySelectorAll('[data-game-move]').forEach(b => b.addEventListener('click',() => move(Number(b.dataset.gameMove))));
       dialog.querySelector('[data-game-hint]')?.addEventListener('click',()=>move('hint'));
       dialog.querySelectorAll('[data-game-decoy]').forEach(b => b.addEventListener('click',() => { localError = 'ตรงนี้เหมือนเดิม ลองดูรายละเอียดอื่น'; const note = dialog.querySelector('.game-note'); if (note) note.textContent = localError; }));
+      if(playback?.state().error){
+        const recovery=document.createElement('div');recovery.className='game-recovery';recovery.innerHTML='<button class="primary" data-game-sync>ส่งลำดับเดิมอีกครั้ง</button><button class="secondary" data-game-recover>อ่านผลจากเซฟล่าสุด</button>';dialog.append(recovery);
+        recovery.querySelector('[data-game-sync]').addEventListener('click',()=>trackSave(playback.flush()));
+        recovery.querySelector('[data-game-recover]').addEventListener('click',async()=>{if(busy)return;busy=true;try{if(options.refresh)await options.refresh();playback.reset();localError='';recoveryNeeded=false;}catch{localError='ยังอ่านเซฟไม่ได้ ตรวจการเชื่อมต่อแล้วลองอีกครั้ง';}finally{busy=false;if(!closed)render();}});
+      }
       previousSteps=g.steps||0;updateClock();waiting(busy);
       if (dialog.open) {
         const previous = previousMove == null ? null : dialog.querySelector('[data-game-move="' + previousMove + '"]:not(:disabled)');
@@ -89,7 +99,7 @@
     function updateClock() {
       if(closed)return;
       const g = getGame(), counter = dialog.querySelector('[data-game-clock]');
-      if(g?.mode==='pairs'&&!g.finished&&g.open.length===2&&now()>=g.flipAt+700&&dialog.querySelector('.stone-pair.flipped:not(.found)')){render();return;}
+      if(g?.mode==='pairs'&&!g.finished&&g.open.length===2&&now()>=g.flipAt+700)dialog.querySelectorAll('.stone-pair:not(.found)').forEach(b=>{b.classList.remove('flipped');b.disabled=busy;b.setAttribute('aria-label','แผ่นหิน '+(Number(b.dataset.gameMove)+1)+' · ยังไม่เปิด');});
       if(g?.mode==='memory'&&!g.finished){const revealing=now()<g.revealUntil;dialog.dataset.memoryReveal=String(revealing);const status=dialog.querySelector('.memory-status');if(status)status.textContent=revealing?'จดจำรูน · อีก '+Math.max(0,Math.ceil((g.revealUntil-now())/1000))+' วินาที':'ตาเจ้าแล้ว · แตะตามลำดับที่จำได้';dialog.querySelectorAll('[data-game-move]').forEach(b=>b.disabled=busy||revealing||g.found.includes(Number(b.dataset.gameMove)));}
       if (counter) counter.textContent = g && !g.finished && g.deadline ? Math.max(0,Math.ceil((g.deadline-now())/1000)) + 's' : '—';
       if (g && !g.finished && g.deadline && now() >= g.deadline && !busy) move('timeout');
@@ -102,8 +112,13 @@
     try{
       if(inFlight)await inFlight.catch(()=>{});
       if(closed)return;
+      if(recoveryNeeded&&options.refresh){await options.refresh();recoveryNeeded=false;if(closed)return;}
       let game=getGame();
       if(!game||game.finished){const result=await act({type:'start-game',game:id});if(closed)return;if(!result)throw Error('ยังเปิดเกมไม่ได้');game=getGame();}
+      if(options.Core&&options.config&&window.HalloweenGamePlayback){
+        if(game.playback!==2){if(!await act({type:'game-ready',game:id,session:game.session}))throw Error('ยังเตรียมรอบเกมไม่ได้');if(closed)return;game=getGame();}
+        playback=window.HalloweenGamePlayback.create({id,Core:options.Core,config:options.config,perform,read,now,onChange:()=>{if(!closed)render();},onError:message=>{localError=message;}});
+      }
       session=game.session;render();timer=setInterval(updateClock,250);
     }catch{
       if(closed)return;dialog.removeAttribute('aria-busy');dialog.innerHTML='<h2 id="gameHeading">ยังเปิดเกมไม่ได้</h2><p class="game-note" role="status">ตรวจการเชื่อมต่อแล้วลองอีกครั้ง รอบและของเดิมยังอยู่</p><button class="primary" data-game-retry>ลองเปิดอีกครั้ง</button><button class="secondary" data-game-close>กลับไปสำรวจ</button>';

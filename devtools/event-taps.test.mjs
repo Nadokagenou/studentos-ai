@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),GameCore=require('../halloween/event/core.js'),Playback=require('../halloween/event/game-playback.js'),GameCatalog=require('../halloween/rewards/catalog.js');
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};};
 const flush=()=>new Promise(r=>setImmediate(r));
@@ -29,6 +31,16 @@ const brain=()=>({session:'saved',kind:'memory',round:0,total:3,finished:false,q
 function battleFixture(){const f=fixture();f.context.window.HalloweenCombat={skillInfo:()=>({name:'สกิล',description:''}),forecast:()=>({hit:10,damage:0,hp:120}),lanes:['ซ้าย','กลาง','ขวา'],hint:()=>''};f.context.window.HalloweenWorld={hero:()=>''};f.context.window.HalloweenEventCore={BIOMES:[]};return f;}
 const battle=()=>({id:'test',session:'fight',weapon:'test',hp:120,maxHp:120,bossHp:100,maxBossHp:100,mana:4,heals:2,turn:0,finished:false,intent:{phase:1,danger:[0]},effects:{},log:'พร้อม'});
 const bossConfig={proposals:{bosses:{test:{id:'test',name:'บอสทดสอบ',shape:'vampire',color:'#fff',level:'ยาก'}},weapons:{test:{type:'quill',name:'ขนนก'}}}};
+test('ship UI accepts six live cue taps before a delayed save and waits to announce a verified win',async()=>{
+ const {dialog,context}=fixture(),json=n=>JSON.parse(read('halloween/event/data/'+n+'.json')),config=GameCore.build({materials:json('materials'),chains:['dutchman','jack','vampire','graveyard'].map(n=>json('quests.'+n)),catalog:GameCatalog,proposals:json('preview-rules'),preview:true}),at=Date.now(),doc=GameCore.initial(config,'qa',at,127),jobs=[];
+ doc.event.previewBiome='dutchmans-soul';doc.event.inventory['spectral-lantern']=1;GameCore.dispatch(doc,config,{type:'start-game',game:'ghost-ship-hunt'},{now:at,tx:'round'});const cues=[...doc.event.games['ghost-ship-hunt'].cues];context.window.HalloweenGamePlayback=Playback;
+ vm.runInNewContext(read('halloween/event/games.js'),context);
+ await context.window.HalloweenEventGames.open('ghost-ship-hunt',{Core:GameCore,config,read:()=>doc,now:()=>at+500,reduced:()=>true,onClose(){},perform:action=>new Promise(resolve=>jobs.push({action,resolve}))});
+ for(const [i,cue] of cues.slice(0,6).entries()){await dialog.querySelector('[data-game-move="'+cue+'"]').click();assert.equal(jobs.length,i===5?1:0);}
+ assert.equal(jobs.length,1);assert.match(dialog.innerHTML,/6 \/ 6/);assert.match(dialog.innerHTML,/กำลังตรวจและบันทึก/);assert.doesNotMatch(dialog.innerHTML,/บันทึกผลเรียบร้อย/);assert.equal(doc.event.candy,0);
+ const finish=job=>job.resolve(GameCore.dispatch(doc,config,job.action,{now:at+1000,receivedAt:at+1000,tx:'save'}));finish(jobs[0]);await flush();assert.equal(jobs.length,1);assert.equal(doc.event.candy,35);assert.match(dialog.innerHTML,/บันทึกผลเรียบร้อย/);
+ context.window.HalloweenEventGames.close();
+});
 test('brain view accepts one tap, stays busy across clock ticks, and closes before a slow answer',async()=>{
  const {dialog,context}=fixture(),wait=deferred();let calls=0,closed=0,g=brain();
  vm.runInNewContext(read('halloween/event/brain-ui.js'),context);

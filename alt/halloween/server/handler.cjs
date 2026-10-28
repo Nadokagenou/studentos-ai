@@ -9,9 +9,10 @@ function create({authority,db,authenticate,clock=Date.now,season}){
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers});
   if(request.method!=='POST')return reply({error:'ใช้ POST เพื่ออ่านหรือทำรายการ'},405);
   try{
+   const raw=await request.text();if(raw.length>6000)return reply({error:'คำสั่งยาวเกินไป'},413);
+   const receivedAt=clock();
    const uid=await authenticate(request.headers.get('authorization')||'');
    if(!uid)return reply({error:'เข้าสู่ระบบ StudentOS ก่อนเล่นกิจกรรม'},401);
-   const raw=await request.text();if(raw.length>6000)return reply({error:'คำสั่งยาวเกินไป'},413);
    let body;try{body=JSON.parse(raw);}catch{return reply({error:'รูปแบบคำสั่งไม่ถูกต้อง'},400);}
    const snapshot=async()=>{const row=await db.read(uid,season.id);return row?.document||authority.initial(uid,clock());};
    if(body.action?.type==='read')return reply({document:authority.publicDocument(await snapshot()),serverNow:clock(),phase:season.state(clock())});
@@ -21,7 +22,7 @@ function create({authority,db,authenticate,clock=Date.now,season}){
    if(previous){if(JSON.stringify(Object.entries(previous.action).sort())!==JSON.stringify(Object.entries(action).sort()))return reply({error:'รหัสธุรกรรมนี้ถูกใช้กับรายการอื่นแล้ว'},409);return reply({result:previous.result,document:authority.publicDocument(await snapshot()),serverNow:clock(),replay:true});}
    const studyTask=action.type==='study-enroll'?await db.studyTask(uid,action.taskId):undefined;
    for(let attempt=0;attempt<4;attempt++){
-    const current=attempt===0?first:await snapshot(),next=authority.apply(current,action,{uid,at:clock(),tx,studyTask});
+    const current=attempt===0?first:await snapshot(),next=authority.apply(current,action,{uid,at:clock(),tx,studyTask,receivedAt});
     const saved=await db.commit({uid,season:season.id,expected:current.revision,tx,action,...next});
     if(saved.committed)return reply({result:saved.result,document:authority.publicDocument(saved.replay?await snapshot():next.document),serverNow:clock(),replay:saved.replay});
    }

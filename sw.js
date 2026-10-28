@@ -5,7 +5,7 @@
 // ⚠️ ทุกชื่อในลิสต์นี้ต้องมีไฟล์อยู่จริง — addAll จะล้มทั้งก้อนถ้ามีตัวใดตัวหนึ่ง 404
 //    แล้วแอปจะไม่มีแคชเลย (เปิดออฟไลน์ไม่ได้) โดยไม่มี error โผล่ให้เห็นที่หน้าจอ
 //    เคยพลาดมาแล้วตอนคัดลอกไฟล์จาก alt/ ขึ้นมา: ลิสต์ยังมี icon-alt-* ซึ่ง root ไม่มี
-const CACHE = 'studentos-main-1c60-database-route-20261028';
+const CACHE = 'studentos-main-1c60-realtime-games-20261028';
 // Large event artwork is cached on first use, not during the main app update.
 const SHELL = [
   "halloween-countdown.js",
@@ -235,6 +235,7 @@ const SHELL = [
   "halloween/event/feedback.css",
   "halloween/event/feedback.js",
   "halloween/event/games.js",
+  "halloween/event/game-playback.js",
   "halloween/event/guide-ui.css",
   "halloween/event/guide.js",
   "halloween/event/hud.js",

@@ -145,7 +145,7 @@
       const cue=({'brain-start':'magic','brain-move':saved.result.brainGame?.clear?'magic':'tap','study-claim':'magic',house:saved.result.candy?'coins':'ghost',quest:'magic',plant:'water',water:'water',harvest:'harvest','sell-crop':'coins','drink-biome-potion':'magic','enter-biome':'door','enter-room':'door','game-move':'tap','equip-weapon':'magic','start-boss':'ghost','battle-move':saved.result.battle?.clear?'magic':action.move==='skill'?'magic':'tap'})[action.type];if(cue){try{audio.play(cue);}catch{}}
       updateWallet(); updateBanner();
       try{window.HalloweenEventFeedback?.present(action,saved.result,reduced());}catch{}
-      if(!silent&&!repaint)queuedSceneRefresh=true;
+      if(!silent&&!repaint||action.type==='game-inputs')queuedSceneRefresh=true;
       if (!silent&&repaint) {try{render();}catch(error){console.warn('Event scene refresh failed after a saved action',error);}}
       return saved.result;
     } catch(error) { try{audio.play('error');}catch{}toast(error.message || 'ยังยืนยันรายการไม่ได้ ตรวจเซฟอีกครั้งเมื่อเชื่อมต่อได้',true); return null; }
@@ -580,7 +580,7 @@
     detailAfterClose = () => { window.removeEventListener('message',ready); frame.removeAttribute('src'); };
   }
   async function openGame(id) {
-    await window.HalloweenEventGames.open(id,{perform,read,now,reduced,toast,onClose:()=>{render();if(detail.open&&detail.dataset.gameInfo)showGameInfo(detail.dataset.gameInfo);}});
+    await window.HalloweenEventGames.open(id,{Core,config,perform,read,now,reduced,toast,refresh:()=>account?account.refresh():Promise.resolve(),onClose:()=>{render();if(detail.open&&detail.dataset.gameInfo)showGameInfo(detail.dataset.gameInfo);}});
   }
   function showGameInfo(id){
     const info=window.HalloweenWorld.activity(worldContext(),id);if(!info)return;
