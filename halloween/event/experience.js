@@ -316,7 +316,7 @@
   async function openBattle(id){
     const biome=config.proposals.bosses[id]?.biome;
     if(biome){if(!await perform({type:'enter-biome',biome},{silent:true}))return;activeRoom=null;route='biome';history.replaceState(null,'','#biome');render();}
-    await window.HalloweenBattleUI.open(id,{read,config,perform,context:worldContext,onClose:()=>{render();showBoss(id);},onRewards:ids=>acquisition(ids,'quest')});
+    await window.HalloweenBattleUI.open(id,{read,config,perform,context:worldContext,toast,onClose:()=>{render();showBoss(id);},onRewards:ids=>acquisition(ids,'quest')});
   }
   function showPotion(){
     const quantity=read().event.inventory['random-biome-potion']||0,rule=config.proposals.randomBiomePotion,canBuy=activeRoom==='cauldron',closed=read().event.closed;
@@ -702,7 +702,7 @@
     if(button.hasAttribute('data-training')){detail.close();await window.HalloweenBattleUI.open('training',{read,config,perform,context:worldContext,onClose:()=>{render();showTutor();},onRewards:()=>{}});return;}
     if(button.hasAttribute('data-boss-list')){showBossList();return;}
     if(button.dataset.boss){showBoss(button.dataset.boss);return;}
-    if(button.dataset.startBoss){await openBattle(button.dataset.startBoss);return;}
+    if(button.dataset.startBoss){if(button.disabled)return;button.disabled=true;const label=button.textContent;button.textContent='กำลังเตรียมสนาม…';try{await openBattle(button.dataset.startBoss);}finally{if(button.isConnected){button.disabled=false;button.textContent=label;}}return;}
     if(button.hasAttribute('data-guide-village')){await goToVillage();return;}
     if(button.dataset.sourceVillage){await goToVillage(button.dataset.sourceVillage);return;}
     if(button.dataset.itemSource){showSources(button.dataset.itemSource,{quest:button.dataset.sourceQuest,branch:button.dataset.sourceBranch,panel:button.dataset.sourcePanel});return;}
