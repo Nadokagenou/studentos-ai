@@ -28,22 +28,23 @@
 .locked-event .le-actions{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:min(320px,100%);margin:0 auto}
 .locked-event .le-actions :is(.primary,.secondary){width:100%;min-height:48px;font-size:14px;border-radius:12px}
 /* ปุ่มหลัก "เข้าสู่ระบบ StudentOS" — 28 ต.ค. 69 · เจ้าของ: "ลองปรับให้ปุ่มสำคัญมันดูดึงดูดสายตากว่านี้"
-   เดิมก้อนแชมเปญซีด (#e1c49a) สว่างกว่าปุ่มรองนิดเดียว → ส้มฟักทองไล่สี (ฮาโลวีน ไม่ใช่ทอง — ทองสงวนให้ของสำเร็จ)
+   เดิมก้อนแชมเปญซีด (#e1c49a) สว่างกว่าปุ่มรองนิดเดียว → (รอบสอง เจ้าของเลือก "ม่วงจันทร์") ม่วงไล่เข้ม แสงชมพูจันทร์แบบพระจันทร์ในภาพ
+   ชมพูจันทร์เป็น "แสง" (มุมซ้ายบน · เรืองรอบปุ่ม) ไม่อยู่ใต้ตัวหนังสือ — ขาวบนชมพูอ่อนได้แค่ 1.7 · พื้นใต้ตัวหนังสือ #8A45AA→#6A3290 = 6.0–8.5
    + แสงเรืองส้ม + ขอบสะท้อนบน + แถบแสงวาบเป็นจังหวะ (แบบปุ่ม shine ของ Uiverse · MIT · transform อย่างเดียว)
    + ลูกศร › เลื่อนนิดตอนชี้ · ลดการเคลื่อนไหว = กฎรวมของหน้าหยุดแอนิเมชันให้อยู่แล้ว */
-.locked-event .le-main{position:relative;overflow:hidden;isolation:isolate;gap:10px;min-height:52px;font-size:15px;font-weight:800;letter-spacing:.2px;color:#2A1206;border:0;
- background:linear-gradient(180deg,#ffffff38,#ffffff00 52%),linear-gradient(135deg,#FFD08A,#F59A45 52%,#D9692A);
- box-shadow:inset 0 1px 0 #ffffffb3,inset 0 -2px 0 #9a3f1255,0 0 0 1px #ffb25a66,0 12px 28px -10px #f5893acc,0 0 34px -8px #f59a4599;
+.locked-event .le-main{position:relative;overflow:hidden;isolation:isolate;gap:10px;min-height:52px;font-size:15px;font-weight:800;letter-spacing:.2px;color:#FFFFFF;border:0;text-shadow:0 1px 2px #3a145566;
+ background:radial-gradient(60% 120% at 6% 0%,#F4C9EC8c,transparent 46%),linear-gradient(180deg,#ffffff24,#ffffff00 50%),linear-gradient(135deg,#8A45AA,#7A3B9E 55%,#6A3290);
+ box-shadow:inset 0 1px 0 #ffffff80,inset 0 -2px 0 #2a0f3f66,0 0 0 1px #E9B8E066,0 12px 28px -10px #9b4fc2cc,0 0 36px -8px #d79be6aa;
  transition:transform .16s cubic-bezier(.23,1,.32,1),box-shadow .2s ease}
 .locked-event .le-main::before{content:"";position:absolute;z-index:-1;top:0;bottom:0;left:0;width:42%;
  background:linear-gradient(100deg,transparent,#ffffff8c,transparent);transform:translateX(-130%) skewX(-18deg);
  animation:le-shine 4.2s cubic-bezier(.45,0,.2,1) 1.2s infinite}
 .locked-event .le-main::after{content:"";width:8px;height:8px;border:solid currentColor;border-width:2.4px 2.4px 0 0;border-radius:1px;transform:rotate(45deg);transition:transform .2s cubic-bezier(.23,1,.32,1)}
 @keyframes le-shine{0%{transform:translateX(-130%) skewX(-18deg)}24%,100%{transform:translateX(360%) skewX(-18deg)}}
-.locked-event .le-main:hover{background:linear-gradient(180deg,#ffffff4a,#ffffff00 52%),linear-gradient(135deg,#FFDA9E,#F8A657 52%,#E0742F);box-shadow:inset 0 1px 0 #ffffffb3,inset 0 -2px 0 #9a3f1255,0 0 0 1px #ffb25a88,0 14px 32px -10px #f5893aee,0 0 44px -6px #f59a45b3}
+.locked-event .le-main:hover{background:radial-gradient(60% 120% at 6% 0%,#F7D4F0a6,transparent 48%),linear-gradient(180deg,#ffffff2e,#ffffff00 50%),linear-gradient(135deg,#9450B4,#8243A8 55%,#713799);box-shadow:inset 0 1px 0 #ffffff8c,inset 0 -2px 0 #2a0f3f66,0 0 0 1px #E9B8E099,0 14px 32px -10px #a55ad0ee,0 0 46px -6px #e0a8eebb}
 .locked-event .le-main:hover::after{transform:translateX(3px) rotate(45deg)}
 .locked-event .le-main:active{transform:scale(.97)}
-.locked-event .le-main:focus-visible{outline:2px solid #FFD08A;outline-offset:3px}
+.locked-event .le-main:focus-visible{outline:2px solid #E9B8E0;outline-offset:3px}
 .locked-event .le-signed{margin:0;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.7;color:#d6c9e2;background:#ffffff08;border:1px solid #ffffff14}
 .locked-event .le-back{display:inline-block;margin-top:22px;padding:8px 10px;font-size:13px;color:#c7b1d5;text-decoration:none}
 .locked-event .le-back:hover{color:#e6d8f0;text-decoration:underline;text-underline-offset:3px}
