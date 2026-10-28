@@ -2,9 +2,9 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.HalloweenAccount=factory();})(globalThis,()=>{
  'use strict';
  function create({client,onChange=()=>{},uuid=()=>crypto.randomUUID(),clock=Date.now,endpoint="halloween-event",timeoutMs=12000}){
-  let snapshot=null,uid=null,offset=0,pending=null,queue=Promise.resolve();
+  let snapshot=null,uid=null,offset=0,pending=null,queue=Promise.resolve(),refreshing=null;
   async function bounded(job){let timer;try{return await Promise.race([job,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('เครือข่ายตอบช้า รายการยังรอยืนยัน กดตรวจเซฟอีกครั้งเมื่อออนไลน์')),timeoutMs);})]);}finally{clearTimeout(timer);}}
-  const clear=()=>{snapshot=null;uid=null;pending=null;onChange(null);};
+  const clear=()=>{snapshot=null;uid=null;pending=null;refreshing=null;onChange(null);};
   async function identity(){const {data,error}=await bounded(client.auth.getSession());if(error||!data.session)throw Object.assign(Error('เข้าสู่ระบบ StudentOS ก่อนเล่นกิจกรรม'),{definitive:true});return data.session;}
   async function send(body){
    const session=await identity(),owner=session.user.id;if(uid&&uid!==owner)clear();uid=owner;
@@ -27,7 +27,11 @@
     }
    });
   }
-  const refresh=()=>serial(async()=>{if(pending)await resolve();return send({action:{type:'read'}});});
+  function refresh(){
+   if(refreshing)return refreshing;
+   const job=serial(async()=>{if(pending)await resolve();return send({action:{type:'read'}});});refreshing=job;
+   const settled=()=>{if(refreshing===job)refreshing=null;};job.then(settled,settled);return job;
+  }
   const subscription=client.auth.onAuthStateChange?.((_event,session)=>{if(uid&&uid!==session?.user?.id)clear();});
   return Object.freeze({read:()=>{if(!snapshot)throw Error('กำลังเชื่อมเซฟบัญชี');return snapshot;},ready:()=>!!snapshot,refresh,dispatch,now:()=>clock()+offset,clear,dispose(){clear();subscription?.data?.subscription?.unsubscribe();}});
  }

@@ -10,6 +10,10 @@ const json=n=>JSON.parse(read('halloween/event/data/'+n+'.json'));
 const config=()=>Core.build({materials:json('materials'),chains:['dutchman','jack','vampire','graveyard'].map(x=>json('quests.'+x)),catalog:Catalog,proposals:json('preview-rules'),preview:true});
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8').replaceAll('\r\n','\n');
 const receipt=owner=>({owner,season:'halloween-2026',event:{candy:37},rewards:{'theme-ghostship':{id:'theme-ghostship',permanent:true,receipt:'verified-test'}}});
+test('simultaneous refresh triggers share one read before a player action',async()=>{
+ let release;const gate=new Promise(r=>release=r),calls=[],client={auth:{getSession:async()=>({data:{session:{user:{id:'test'},access_token:'qa'}}})},functions:{invoke:async(_,{body})=>{calls.push(body.action.type);await gate;return {data:{document:{owner:'test',event:{candy:0},rewards:{}},serverNow:Date.now(),result:{rewards:[]}}};}}};
+ const api=Account.create({client}),reads=[api.refresh(),api.refresh(),api.refresh()],action=api.dispatch({type:'enter-hub'});release();await Promise.all([...reads,action]);assert.deepEqual(calls,['read','enter-hub']);
+});
 
 test('same-account refresh retains verified themes until an authoritative answer arrives',async()=>{
  let release,slow=false,fail=false,owner='a';
