@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const C=window.StudentOSHalloweenRewards, O=window.HalloweenOwnership;
-  const preview=new URLSearchParams(location.search).get('preview')==='1',appHref=new URLSearchParams(location.search).get('entry')==='main'?'../../../':'../../';document.querySelectorAll('[data-app-link]').forEach(a=>{a.href=appHref;});/* 28 ต.ค. 69 · ปุ่ม "ออก" + โลโก้ กลับไปหน้าที่มา (เว็บหลักเมื่อ entry=main) แบบเดียวกับปุ่มเข้าสู่ระบบ */
+  const preview=new URLSearchParams(location.search).get('preview')==='1',appHref=new URLSearchParams(location.search).get('entry')==='main'?'../../../':'../../';document.querySelectorAll('[data-app-link]').forEach(a=>{a.href=appHref;});{const q=new URLSearchParams(location.search),x=document.querySelector('[data-exit-link]');if(x)x.href=q.get('from')==='event'?'../event/'+(q.get('entry')==='main'?'?entry=main':''):appHref;}/* ปุ่ม "ออก": เปิดจากจอเข้าสู่ระบบของอีเวนต์ (from=event) = กลับจอนั้น · ที่อื่นกลับแอป *//* 28 ต.ค. 69 · ปุ่ม "ออก" + โลโก้ กลับไปหน้าที่มา (เว็บหลักเมื่อ entry=main) แบบเดียวกับปุ่มเข้าสู่ระบบ */
   const key='studentos.alt.halloween.preview.v1', owner='halloween-review-only', season='halloween-2026';
   const content=document.getElementById('permanentVault'),dialog=document.getElementById('permanentDetail');
   const kinds={all:'ทั้งหมด',room:'ห้อง',costume:'ชุด',theme:'ธีม',effect:'เอฟเฟกต์',relic:'Mystical',badge:'เหรียญ'};
