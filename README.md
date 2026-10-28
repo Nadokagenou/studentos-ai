@@ -1,3 +1,5 @@
+> 28 ต.ค. main แยกไฟล์เกม/ธีม/รางวัลจาก ALT แล้ว อ่าน devtools/MAIN-STABILITY-20261028.md ก่อนแก้ ห้ามใช้ main-ui-parity.py --apply หรือคัดลอก ALT กลับมาทับ root
+
 # StudentOS AI — Working Prototype
 
 แอปจริงสำหรับ **Samsung Solve for Tomorrow 2026**

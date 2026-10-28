@@ -9,6 +9,7 @@ PROTECTED=['config.js','manifest.json','integrations.js','linelink.js','brain.js
 def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def text(p):return p.read_text(encoding='utf-8').replace('\r\n','\n')
 def main():
+ if '--apply' in sys.argv:raise SystemExit('Retired: the main entry is standalone. Do not copy ALT over it.')
  apply='--apply' in sys.argv
  protected={n:digest(R/n) for n in PROTECTED}
  protected.update({p.relative_to(R).as_posix():digest(p) for p in (R/'supabase').rglob('*') if p.is_file() and '.temp' not in p.parts})

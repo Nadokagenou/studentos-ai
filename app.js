@@ -10417,7 +10417,7 @@ function renderBadges() {
       const on = badgeEarned(b);
       const prog = !on && b.goal ? Math.min(done, b.goal) + ' / ' + b.goal : '';
       return `<div class="bg-row${on ? ' on' : ''} ${b.tone}">
-        <div class="bg-mark hw-core-art"><img src="alt/halloween/rewards/profile-assets/${b.id}.svg" alt=""></div>
+        <div class="bg-mark hw-core-art"><img src="halloween/rewards/profile-assets/${b.id}.svg" alt=""></div>
         <div class="bg-bd">
           <div class="bg-nm${b.secret || b.genesis || b.skin ? ' fancy' : ''}">${esc(b.name)}</div>
           <div class="bg-ds">${on ? esc(b.desc) : (b.secret || b.genesis || b.skin ? '— — —' : esc(b.desc))}</div>
@@ -10502,6 +10502,9 @@ function themeOwned(id) {
   if (typeof window !== 'undefined' && window.StudentOSEconomy) { const right=window.StudentOSEconomy.ownsTheme(id); if(right!==null)return right; }
   const eventOwned = eventThemeOwned(id);
   if (eventOwned !== null) return eventOwned;
+  if (id === 'genesis') return genesisUnlocked();
+  const secret = Object.entries(SECRETS).find(([,value]) => value.theme === id);
+  if (secret) return secretUnlocked(secret[0]);
   if (!themeLocked(id)) return true;
   if (THEME_CODE[id]) return codeThemeOwned(id);
   if (inviteThemeId(id)) return inviteUnlocked();
@@ -10509,19 +10512,17 @@ function themeOwned(id) {
   if (THEME_GACHA.includes(id)) return ((s.skins || {})[id] || 0) > 0;
   return (s.bought || []).includes(id);
 }
-// ธีมจากโค้ดไม่มีช่วงผ่อนผัน "ใช้อยู่ก่อนแล้วใช้ต่อได้" — มีโค้ดเท่านั้นถึงเห็น
-// ธีมจากภารกิจโชว์ปุ่มไว้เสมอ (ติดกุญแจ) — กดแล้วพาไปดูภารกิจ คนต้องรู้ว่ามีของให้ล่า
-function themeVisible(id) { if (typeof window !== 'undefined' && window.StudentOSEconomy && window.StudentOSEconomy.ownsTheme(id)!==null)return window.StudentOSEconomy.ownsTheme(id); if (eventThemeOwned(id) !== null) return themeOwned(id); return THEME_CODE[id] ? codeThemeOwned(id) : (themeOwned(id) || themePref() === id || inviteThemeId(id)); }
+// The picker contains only themes the current account owns, including secrets and event rewards.
+function themeVisible(id) { return themeOwned(id); }
 
 // ซ่อน/โชว์ปุ่มธีมตามสิทธิ์ — เรียกทุกครั้งที่สิทธิ์เปลี่ยน
 function applyThemeLocks() {
   document.querySelectorAll('#themePick button[data-th]').forEach(b => {
     const id = b.dataset.th;
-    if (!themeLocked(id)) return;                 // ธีมฟรี ไม่ต้องยุ่ง
     b.hidden = !themeVisible(id);
-    if (inviteThemeId(id)) { b.classList.toggle('th-mission', !themeOwned(id)); return; }
+    b.classList.remove('th-mission');
     // ธีมที่ยังใช้อยู่แต่ยังไม่ได้เป็นเจ้าของ ติดป้ายบอกว่าใช้ต่อได้แต่เปลี่ยนออกแล้วจะหาย
-    b.classList.toggle('th-grace', themeVisible(id) && !themeOwned(id));
+    b.classList.remove('th-grace');
   });
 }
 
@@ -12462,7 +12463,7 @@ function renderStatFull(now, d) {
     <div class="an-badges">
       ${badgeCells.map(b => { const got = badgeEarned(b);
         return `<div class="an-bd${got ? ' got' : ''}">
-          <span class="ab-mark hw-core-art">${got ? `<img src="alt/halloween/rewards/profile-assets/${b.id}.svg" alt="">` : icon('lock')}</span>
+          <span class="ab-mark hw-core-art">${got ? `<img src="halloween/rewards/profile-assets/${b.id}.svg" alt="">` : icon('lock')}</span>
           <span class="ab-nm">${esc(b.name)}</span>
           <span class="ab-ds">${got ? 'ได้แล้ว' : 'ทำให้ครบ ' + b.goal + ' งาน'}</span>
         </div>`;

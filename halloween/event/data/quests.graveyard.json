@@ -1,0 +1,273 @@
+{
+  "biome": "eternal-graveyard",
+  "biomeName": "Eternal Graveyard",
+  "npc": "Win, the Soul Reaper",
+  "status": "owner-confirmed-spec",
+  "updated": "2026-10-23",
+  "minigames": [
+    {
+      "id": "grave-digging",
+      "name": "ขุดหลุมศพ",
+      "requiredCompletions": 1
+    },
+    {
+      "id": "catch-all-ghosts",
+      "name": "จับผีทั้งหมดภายในเวลา 30 วินาที",
+      "timeLimitSeconds": 30,
+      "requiredCatch": "all",
+      "ghostCount": null
+    }
+  ],
+  "newDefinitions": [
+    {
+      "id": "pending-soul-vessel",
+      "name": "Soul Vessel",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-grim-scythe",
+      "name": "Grim Scythe",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-scrap-iron",
+      "name": "Scrap Iron",
+      "rarity": null,
+      "sourceBiome": null
+    },
+    {
+      "id": "pending-soul-stick",
+      "name": "Soul Stick",
+      "rarity": null,
+      "sourceBiome": null
+    }
+  ],
+  "quests": [
+    {
+      "id": "win-death-fragments",
+      "order": 1,
+      "name": "เศษเสี้ยวของความตาย",
+      "phases": [
+        {
+          "id": "turn-in",
+          "requirements": {
+            "items": [
+              {
+                "id": "pending-human-bone",
+                "name": "Human Bone",
+                "quantity": 1
+              },
+              {
+                "id": "pending-human-skull",
+                "name": "Human Skull",
+                "quantity": 1
+              }
+            ]
+          },
+          "acceptDialogue": "ย่างก้าวของเจ้าช่างเบาหวิว... แต่มันไม่รอดพ้นสายตาแห่งความตายไปได้หรอก ที่นี่คือสุสานนิรันดร์ ดินแดนของวิญญาณที่ยังไม่ได้ไปสู่สุขคติ หากเจ้าต้องการพิสูจน์ตนในดินแดนนี้ จงไปนำ Human Bone 1 ชิ้น และ Human Skull 1 ชิ้น มาให้ข้า... ของพวกนี้คือสิ่งยึดเหนี่ยววิญญาณที่ตกค้างอยู่บนโลกมนุษย์",
+          "completeDialogue": "อืม... สัมผัสได้ถึงความเจ็บปวดและพันธนาการที่ติดมากับเศษกระดูกพวกนี้ เจ้าทำได้ดี... รับ Shovel อันนี้ไป เจ้าจะต้องใช้มันขุดค้นความจริงที่ซ่อนอยู่ใต้แผ่นดินนี้"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "jacks-hollow-shovel",
+          "name": "Shovel",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "win-gravekeeper-trial",
+      "order": 2,
+      "name": "บททดสอบแห่งยามเฝ้าสุสาน",
+      "prerequisite": "win-death-fragments",
+      "phases": [
+        {
+          "id": "dig-one-grave",
+          "requirements": {
+            "minigame": {
+              "id": "grave-digging",
+              "name": "ขุดหลุมศพ",
+              "mustComplete": true,
+              "completions": 1
+            }
+          },
+          "acceptDialogue": "พลั่วพร้อมแล้ว แต่จิตใจของเจ้าพร้อมหรือยัง? งานของยมทูตไม่ใช่แค่การยืนมอง... จงนำพลั่วไป เล่นมินิเกมขุดหลุมศพ ให้จบสักหนึ่งรอบ ดูสิว่าเจ้ามีความอดทนพอที่จะเปิดประตูสู่โลกหลังความตายหรือไม่!",
+          "completeDialogue": "หึๆ... แรงขุดใช้ได้! แต่ดูเหมือนวิญญาณร้ายจะตกใจตื่นจากการขุดของเจ้าซะแล้ว พวกมันกำลังจะแหกสุสานออกไป! ถึงเวลาทดสอบความเร็ว... จง จับดวงวิญญาณทั้งหมดให้ได้ภายใน 30 วินาที ก่อนที่พวกมันจะสร้างความวุ่นวายไปมากกว่านี้!"
+        },
+        {
+          "id": "catch-every-ghost",
+          "requirements": {
+            "minigame": {
+              "id": "catch-all-ghosts",
+              "name": "จับผีทั้งหมด",
+              "mustClear": true,
+              "timeLimitSeconds": 30,
+              "requiredCatch": "all",
+              "ghostCount": null
+            }
+          },
+          "completeDialogue": "ทันเวลาพอดี! เจ้ามีความเร็วและจิตใจที่เด็ดเดี่ยวสาดแสงออกมา ข้ายอมรับในฝีมือของเจ้าแล้ว"
+        }
+      ],
+      "grantRewardsAfterFinalPhaseOnly": true,
+      "rewards": [
+        {
+          "id": "win-forge-access",
+          "name": "ปลดล็อกเควสสร้างอาวุธ",
+          "quantity": 1,
+          "kind": "quest-access"
+        }
+      ]
+    },
+    {
+      "id": "win-forge-blade",
+      "order": 3,
+      "name": "ตีหลอมใบคมมีดแห่งความตาย",
+      "prerequisite": "win-gravekeeper-trial",
+      "phases": [
+        {
+          "id": "turn-in",
+          "requirements": {
+            "items": [
+              {
+                "id": "pending-soul-vessel",
+                "name": "Soul Vessel",
+                "quantity": 3
+              },
+              {
+                "id": "pending-grim-scythe",
+                "name": "Grim Scythe",
+                "quantity": 1
+              },
+              {
+                "id": "pending-scrap-iron",
+                "name": "Scrap Iron",
+                "quantity": 5
+              }
+            ]
+          },
+          "acceptDialogue": "ในเมื่อเจ้าผ่านบททดสอบแล้ว ข้าจะสร้างอาวุธในตำนานให้เจ้าไว้ใช้ป้องกันตัว... แต่การจะตีหลอมอาวุธแห่งยมทูต เราต้องเริ่มจากส่วนสำคัญที่สุดอย่าง 'ใบคมเคียว' จงไปหา Soul Vessel 3 ชิ้น สำหรับบรรจุวิญญาณ, Grim Scythe 1 อัน เป็นโครงสร้างหลัก และ Scrap Iron 5 ชิ้น มาใช้เป็นเชื้อเพลิงและตัวประสานเหล็กซะ!",
+          "completeDialogue": "วัตถุดิบหลอมเข้ากันได้อย่างสมบูรณ์แบบ! คมเคียวเล่มนี้ช่างแหลมคมและเปี่ยมด้วยพลังวิญญาณ... แต่มันยังไม่เสร็จสมบูรณ์หรอกนะ"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "dullahan-blade-phase",
+          "name": "ส่วนคมของเคียว (Blade Phase)",
+          "quantity": 1,
+          "kind": "craft-stage"
+        }
+      ]
+    },
+    {
+      "id": "win-restricted-scythe",
+      "order": 4,
+      "name": "ด้ามจับและคำสาปอาศัยเขต",
+      "prerequisite": "win-forge-blade",
+      "phases": [
+        {
+          "id": "turn-in",
+          "requirements": {
+            "items": [
+              {
+                "id": "dutchmans-soul-abyssal-rock",
+                "name": "Abyssal rock",
+                "quantity": 2
+              },
+              {
+                "id": "jacks-hollow-jack-o-wood",
+                "name": "Jack'o Wood",
+                "quantity": 2
+              },
+              {
+                "id": "pending-vampire-teeth",
+                "name": "Vampire teeth",
+                "quantity": 2
+              },
+              {
+                "id": "jacks-hollow-vine",
+                "name": "Vine",
+                "quantity": 1
+              },
+              {
+                "id": "pending-soul-stick",
+                "name": "Soul Stick",
+                "quantity": 1
+              }
+            ]
+          },
+          "acceptDialogue": "ใบคมเคียวพร้อมแล้ว ต่อไปคือด้ามจับที่จะต้องรองรับพลังจากทั้งสี่ไบโอม! จงไปรวบรวมของจากทั่วทุกดินแดนมา... Abyssal rock 2 อัน จากทะเลลึก, Jack'o Wood 2 อัน จากป่าฟักทอง, Vampire teeth 2 อัน จากคฤหาสน์, Vine 1 เส้น สำหรับพันด้าม และ Soul Stick 1 อัน เพื่อเป็นแกนกลาง นำทั้งหมดมาให้ข้า!",
+          "completeDialogue": "เสร็จสิ้น! ดูความงดงามของ Scythe of Dullahan เล่มนี้สิ! ...แต่เดี๋ยวก่อน อย่าเพิ่งดีใจไป เคียวนี้นั้นทรงพลังและมีคำสาประดับสูง ตอนนี้มันถูกพันธนาการไว้ ทำให้ ไม่สามารถนำไปใช้ได้ หากเจ้าอยากปลดผนึกพลังที่แท้จริง เจ้าต้องทำพิธีขั้นสุดท้ายก่อน!"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "dullahan-scythe",
+          "name": "Scythe of Dullahan",
+          "quantity": 1,
+          "restriction": {
+            "status": "Restricted",
+            "allowedBiomes": []
+          },
+          "inventoryId": "eternal-graveyard-scythe-of-dullahan"
+        }
+      ]
+    },
+    {
+      "id": "win-unbind-scythe",
+      "order": 5,
+      "name": "ปลดพันธนาการเคียวแห่งหัวขาด",
+      "prerequisite": "win-restricted-scythe",
+      "phases": [
+        {
+          "id": "turn-in",
+          "requirements": {
+            "candy": 50,
+            "items": [
+              {
+                "id": "dutchmans-soul-dutchman-s-soul",
+                "name": "Dutchman's Soul",
+                "quantity": null,
+                "consume": false,
+                "purpose": "show",
+                "mustPossess": true,
+                "quantityUnspecified": true
+              }
+            ]
+          },
+          "acceptDialogue": "การจะล้างคำสาปพันธนาการ ต้องใช้พลังวิญญาณระดับสูงมาสะเทือนตราเวท... จงนำ 50 Candy มาเป็นสื่อกลางพิธีกรรม และข้าขอดู Dutchman's Soul วิญญาณกัปตันเรือผีสิงที่เจ้าครอบครองอยู่ เพื่อใช้ละอองพลังวิญญาณของมันสะบั้นตราพันธนาการนี้ซะ!",
+          "completeDialogue": "(ร่ายเวทมนตร์)... เพล้ง! ตราพันธนาการแตกสลายแล้ว! บัดนี้ Scythe of Dullahan เเละ ธีม Eternal Graveyard เป็นของเจ้าอย่างสมบูรณ์แบบ! เจ้าสามารถนำมันไปกวัดแกว่งและฟาดฟันศัตรูได้ในทุกไบโอม! ขอให้ความมืดมิดและพลังแห่งความตายอยู่เคียงข้างเจ้า... นักเดินทาง"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "dullahan-scythe",
+          "name": "Scythe of Dullahan",
+          "kind": "upgrade-existing",
+          "quantity": 1,
+          "removeRestriction": true,
+          "usableBiomes": "all",
+          "permanent": true,
+          "inventoryId": "eternal-graveyard-scythe-of-dullahan"
+        },
+        {
+          "id": "theme-graveyard",
+          "name": "ธีม Eternal Graveyard",
+          "quantity": 1,
+          "afterBoss": "headless-warden"
+        }
+      ],
+      "finalMainQuest": true,
+      "bossId": "headless-warden"
+    }
+  ],
+  "unresolved": [
+    "จำนวนวิญญาณและรูปแบบควบคุมเกมจับผี",
+    "กติกาเกมขุดหลุมศพ",
+    "ระดับและแหล่งไบโอมของ Soul Vessel, Grim Scythe, Scrap Iron และ Soul Stick",
+    "Shovel ถูกใช้แล้วหายหรือคงอยู่ยังไม่กำหนด"
+  ]
+}

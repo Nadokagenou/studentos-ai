@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <script>window.StudentOSMainEntry = true;</script>
-  <script src="alt/halloween/rewards/preview-mode.js"></script>
-  <script src="alt/halloween/rewards/catalog.js?rev=family-20261024"></script>
+  <script src="halloween/rewards/preview-mode.js"></script>
+  <script src="halloween/rewards/catalog.js?rev=family-20261024"></script>
   <meta name="google-site-verification" content="EL8HSk9rzF6WS9GYcfkFaYwxf00p2PzEKganiKXzDh0" />
   <title>Student OS — ผู้ช่วยจัดลำดับงานสำหรับนักเรียน</title>
   <meta name="description" content="Student OS คือ AI Decision Assistant สำหรับนักเรียนมัธยม สแกนใบงานหรือแปะข้อความจาก LINE แล้ว AI จัดลำดับความสำคัญพร้อมเหตุผล ไม่ต้องเดาว่าจะทำอะไรก่อน">
@@ -45,12 +45,12 @@
       document.documentElement.dataset.theme = t;
       // ธีม Moon & Candle มีสองโทน (กลางคืน/แสงจันทร์) — ต้องติดก่อนวาดจอแรก ไม่งั้นโทนสว่างกะพริบเป็นมืดก่อน
       // (CSS ของโทนอยู่ใต้ [data-theme="moonlight"] เท่านั้น ธีมอื่นไม่สนแอตทริบิวต์นี้)
-      // คีย์ต้องตรงกับ TONE_KEY ใน alt/halloween/rewards/theme-main.js
+      // คีย์ต้องตรงกับ TONE_KEY ใน halloween/rewards/theme-main.js
       var hwLight = false;
       try { hwLight = localStorage.getItem('studentos.alt.halloween.tone') === 'light'; } catch (e) {}
       if (hwLight) document.documentElement.dataset.hwTone = 'light';
-      // 24 ต.ค. 69 · ช่วงฮาโลวีน จอโหลดกับจอเข้าสู่ระบบแต่งเป็นฮาโลวีน (alt/halloween/season/season.css)
-      // ต้องรู้ก่อนวาดจอแรก จึงตัดสินที่นี่ ไม่รอ config.json · วันจบต้องตรงกับ endsAt ใน alt/halloween/event/config.json
+      // 24 ต.ค. 69 · ช่วงฮาโลวีน จอโหลดกับจอเข้าสู่ระบบแต่งเป็นฮาโลวีน (halloween/season/season.css)
+      // ต้องรู้ก่อนวาดจอแรก จึงตัดสินที่นี่ ไม่รอ config.json · วันจบต้องตรงกับ endsAt ใน halloween/event/config.json
       // (runtime.js ถอดคลาสออกเองถ้า config.json ปิดอีเวนต์ — แก้ที่เดียวก็ปิดได้)
       if (Date.now() < Date.parse('2026-12-01T00:00:00+07:00')) document.documentElement.classList.add('hw-season');
       // โหมดเครื่องเบา — ต้องติดก่อนวาดจอแรก ไม่งั้นเครื่องช้าได้วาดของหนักไปหนึ่งรอบก่อนถูกถอด
@@ -147,30 +147,31 @@
   <link rel="stylesheet" href="board.css">
   <link rel="stylesheet" href="custom.css">
   <link rel="stylesheet" href="classrooms.css">
-  <link rel="stylesheet" href="alt/halloween/invite-friend/invite-friend.css">
+  <link rel="stylesheet" href="halloween/invite-friend/invite-friend.css">
   <link rel="stylesheet" href="desktop.css?rev=main-ui-20261028" media="(min-width:1025px) and (hover:hover) and (pointer:fine)">
   <link rel="stylesheet" href="device-preview-controls.css">
-  <link rel="stylesheet" href="alt/halloween/rewards/theme-main.css?rev=switch-20261026">
-  <link rel="stylesheet" href="alt/halloween/rewards/biome-themes.css?rev=swatch-20261025">
-  <link rel="stylesheet" href="alt/halloween/rewards/effect-games.css?rev=ceremony-20261024">
-  <link rel="stylesheet" href="alt/halloween/rewards/effect-ceremony.css?rev=ceremony-20261024">
-  <link rel="stylesheet" href="alt/halloween/rewards/effect-stage.css?rev=stage-20261025">
-  <link rel="stylesheet" href="alt/halloween/rewards/badges.css?rev=badges-20261025">
-  <link rel="stylesheet" href="alt/halloween/rewards/featured-badge.css?rev=picker5-20261026">
+  <link rel="stylesheet" href="halloween/rewards/theme-main.css?rev=switch-20261026">
+  <link rel="stylesheet" href="halloween/rewards/biome-themes.css?rev=swatch-20261025">
+  <link rel="stylesheet" href="halloween/rewards/effect-games.css?rev=ceremony-20261024">
+  <link rel="stylesheet" href="halloween/rewards/effect-ceremony.css?rev=ceremony-20261024">
+  <link rel="stylesheet" href="halloween/rewards/effect-stage.css?rev=stage-20261025">
+  <link rel="stylesheet" href="halloween/rewards/badges.css?rev=badges-20261025">
+  <link rel="stylesheet" href="halloween/rewards/featured-badge.css?rev=picker5-20261026">
   <!-- Moon & Candle retains its own original design and optional palette tone. -->
-  <link rel="stylesheet" href="alt/halloween/rewards/theme-moonlight.css?rev=moon-candle-20261026">
+  <link rel="stylesheet" href="halloween/rewards/theme-moonlight.css?rev=moon-candle-20261026">
   <!-- ช่วงฮาโลวีน: จอโหลด (ค้างคาว) + จอเข้าสู่ระบบ — มีผลเฉพาะตอน <html> มีคลาส hw-season -->
-  <link rel="stylesheet" href="alt/halloween/season/season.css">
-  <link rel="stylesheet" href="alt/halloween/season/cursed-ship.css?rev=reward-motion-20261027">
+  <link rel="stylesheet" href="halloween/season/season.css">
+  <link rel="stylesheet" href="halloween/season/cursed-ship.css?rev=reward-motion-20261027">
   <!-- ความคมชัดรอบสอง (24 ต.ค. 69) — ต้องโหลดหลังสุด: แก้สีตายตัวของไฟล์อื่นด้วยการผสม --ink ของธีม -->
   <link rel="stylesheet" href="contrast.css">
   <!-- กระจก Liquid Glass รอบสอง (25 ต.ค. 69) · แนวคิดจาก shader ของ liquid-glass-js แปลงเป็น CSS ล้วน -->
   <link rel="stylesheet" href="glass.css">
   <!-- ตัวตนของธีม Halloween ทั้ง 6 (ทรง · ผิวปุ่ม · ท่าเปลี่ยนจอ) — ต้องอยู่หลัง glass.css -->
-  <link rel="stylesheet" href="alt/halloween/rewards/identity.css?rev=thai-hero-20261026">
-  <link rel="stylesheet" href="alt/halloween/invite-friend/thai-layout.css?rev=secure-rewards-20261026">
-  <link rel="stylesheet" href="alt/halloween/season/biome-finishes.css?rev=reward-motion-20261027"><link rel="stylesheet" href="alt/halloween/season/cinematic-variants.css?rev=reward-motion-20261027">
-<link rel="stylesheet" href="alt/economy/client.css?rev=secure-20261026">
+  <link rel="stylesheet" href="halloween/rewards/identity.css?rev=thai-hero-20261026">
+  <link rel="stylesheet" href="halloween/invite-friend/thai-layout.css?rev=secure-rewards-20261026">
+  <link rel="stylesheet" href="halloween/season/biome-finishes.css?rev=reward-motion-20261027"><link rel="stylesheet" href="halloween/season/cinematic-variants.css?rev=reward-motion-20261027">
+<link rel="stylesheet" href="economy/client.css?rev=secure-20261026">
+<link rel="stylesheet" href="mobile-stability.css?rev=hotfix-20261028">
 </head>
 <body>
 
@@ -188,7 +189,7 @@
      ต้องอยู่นอก #boot — #boot ถูกถอดทิ้งหลังเข้าแอป ถ้า symbol อยู่ข้างในค้างคาวบนจอเข้าสู่ระบบจะหายหมด -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="hw-bat" viewBox="0 0 64 32"><path d="M32 10L34 10L35.5 5L37.2 10.6Q46 5 62 11Q56 12.5 54.5 18Q50.5 14.5 46 17.5Q42.5 15.5 38.5 19.5Q36 21 32 25Q28 21 25.5 19.5Q21.5 15.5 18 17.5Q13.5 14.5 9.5 18Q8 12.5 2 11Q18 5 26.8 10.6L28.5 5L30 10Z"/><circle class="eye" cx="30.6" cy="12.6" r=".9"/><circle class="eye" cx="33.4" cy="12.6" r=".9"/></symbol></svg>
 <div id="boot" class="boot" aria-hidden="true">
-  <!-- ช่วงฮาโลวีน: ท้องฟ้ากลางคืน พระจันทร์ ป่าช้า และค้างคาว (โชว์เฉพาะ :root.hw-season · alt/halloween/season/season.css) -->
+  <!-- ช่วงฮาโลวีน: ท้องฟ้ากลางคืน พระจันทร์ ป่าช้า และค้างคาว (โชว์เฉพาะ :root.hw-season · halloween/season/season.css) -->
   <div class="hb-sky">
     <i class="hb-stars"></i><i class="hb-cloud"></i><i class="hb-cloud b"></i><i class="hb-moon"></i><i class="hb-fog"></i><i class="hb-grave"></i>
     <span class="hb-fly"><i style="--y:13vh;--w:34px;--t:6.5s;--d:0.3s"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i class="rev" style="--y:24vh;--w:24px;--t:8s;--d:1.1s"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i style="--y:31vh;--w:18px;--t:9.5s;--d:2.2s"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i class="rev" style="--y:8vh;--w:20px;--t:7.2s;--d:3s"><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i></span>
@@ -198,7 +199,7 @@
     <img class="boot-mark" src="logo-mark.png" alt="" width="92" height="92" decoding="async">
     <!-- 25 ต.ค. 69 · ช่วงฮาโลวีน: ผีสองตัว (น้องฮูกหมวกแม่มดถือถังฟักทอง · น้องไซหูตก) บินเข้ามารวมพลังปลุกไอคอน
          เจ้าของส่งภาพ 6 จังหวะ: เริ่มต้น → ผีมาปรากฏ → รวมพลัง → โหลดกำลังขึ้น → กำลังโหลด → เสร็จสิ้น
-         จังหวะทั้งหมดอยู่ใน alt/halloween/season/season.css · สคริปต์ข้างล่างแค่รอให้ถึงจังหวะ "รวมพลัง" ก่อนเริ่มแถบ แล้วเล่นจังหวะจบ (.done) -->
+         จังหวะทั้งหมดอยู่ใน halloween/season/season.css · สคริปต์ข้างล่างแค่รอให้ถึงจังหวะ "รวมพลัง" ก่อนเริ่มแถบ แล้วเล่นจังหวะจบ (.done) -->
     <div class="hb-cast">
       <i class="hb-swirl"></i><i class="hb-swirl b"></i><i class="hb-flash"></i>
       <span class="hb-spark"><i style="--x:-74px;--y:-70px;--d:0s"></i><i style="--x:70px;--y:-80px;--d:.5s;--s:.7"></i><i style="--x:96px;--y:24px;--d:.9s"></i><i style="--x:-100px;--y:40px;--d:.3s;--s:.6"></i><i style="--x:-30px;--y:-96px;--d:1.2s;--s:.55"></i><i style="--x:36px;--y:78px;--d:.7s;--s:.65"></i></span>
@@ -263,7 +264,7 @@
     var story = hw;
     try { if (matchMedia('(prefers-reduced-motion: reduce)').matches) story = false; } catch (e) {}
     var STORY_BAR = story ? 1100 : 0, STORY_END = 720, t0 = performance.now();
-    if (hw) { var mk = el.querySelector('.boot-mark'); if (mk) mk.src = 'alt/halloween/rewards/theme-assets/app-icon.webp'; }
+    if (hw) { var mk = el.querySelector('.boot-mark'); if (mk) mk.src = 'halloween/rewards/theme-assets/app-icon.webp'; }
 
     // 12 ต.ค. 69 · เจ้าของ: "แก้ไขให้ในหน้าโหลดก่อนเข้าแอปคือการโหลดข้อมูลแอปก่อนเพื่อไม่ให้แอปมันค้าง
     //   ให้ได้ 75 เปอร์เซ็นต์ขึ้นไปถึงจะโหลดเข้าแอปได้ เพื่อลดปัญหาค้างตอนเปิดแอปในอุปกรณ์ที่สเปคค่อนข้างช้า"
@@ -700,7 +701,7 @@
                  แทนที่จะเป็นสองก้อนที่บังเอิญวางเรียงกัน -->
             <img class="lg-sai" src="hook-hat-avatar.svg" data-mav alt="" aria-hidden="true">
             <!-- ช่วงฮาโลวีน: น้องฮูกชุดมัมมี่แทนวงเดิม + ค้างคาวหน้าพระจันทร์ (season.css) -->
-            <img class="lg-sai-hw" src="alt/halloween/season/hook-mummy-224.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">
+            <img class="lg-sai-hw" src="halloween/season/hook-mummy-224.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">
             <span class="lh-moonbats" aria-hidden="true"><i><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i><i><svg class="hw-bat" viewBox="0 0 64 32"><use href="#hw-bat"/></svg></i></span>
           </div>
 
@@ -2355,7 +2356,6 @@
                 <div class="th-grid" id="fxPick"></div>
                 <div id="fxMode"></div>
                 <button type="button" class="fx-try" id="fxTry" onclick="previewFx(doneFxPref())">ลองเล่นดู</button>
-                <a class="fx-cinematic-link" href="alt/halloween/rewards/cinematic-preview.html?entry=main" target="_blank" rel="noopener">ห้องชมฉาก Halloween ↗</a>
               </div>
             </div>
 
@@ -2663,13 +2663,13 @@
 <script src="news.js"></script>
 <script src="staff-news.js"></script>
 <script src="bug-reports.js"></script>
-<script src="alt/halloween/death-quests.js"></script>
-<script src="alt/halloween/study-pact.js?rev=pacts-20261025"></script>
+<script src="halloween/death-quests.js"></script>
+<script src="halloween/study-pact.js?rev=pacts-20261025"></script>
 <script src="events.js?rev=main-ui-20261028"></script>
 <!-- ชวนเพื่อน · ภารกิจปลดธีมเรือนลับแล — ต้องมาก่อน app.js (เก็บรหัสจาก ?invite= ก่อน URL ถูกล้าง) -->
-<script src="alt/halloween/invite-friend/invite-friend.js?rev=secure-rewards-20261026"></script>
-<script src="alt/halloween/invite-friend/thai-ranat.js?rev=ranat-haunt-20261026"></script>
-<script src="alt/halloween/invite-friend/thai-theme.js?rev=secure-rewards-20261026"></script>
+<script src="halloween/invite-friend/invite-friend.js?rev=secure-rewards-20261026"></script>
+<script src="halloween/invite-friend/thai-ranat.js?rev=ranat-haunt-20261026"></script>
+<script src="halloween/invite-friend/thai-theme.js?rev=secure-rewards-20261026"></script>
 <script data-economy-guard>
 /* Durable rewards require the account service, including offline or failed-script starts. */
 (()=>{if(window.__HW_SHOWROOM__===true)return;
@@ -2677,25 +2677,25 @@ const noop=()=>null,deny=()=>false,unavailable=()=>{window.showToast?.({title:'�
 window.StudentOSEconomy=Object.freeze({ready:deny,refresh:deny,tokens:()=>({bal:0,skins:{},fx:[],fx3d:{},bought:[],freeSpins:0}),document:noop,vault:noop,roomOwned:empty,available:empty,admin:deny,ownsBadge:deny,ownsTheme:id=>locked.has(id)?false:null,daily:unavailable,paySpin:()=>{unavailable();return {ok:false,storage:true};},flip:noop,clearDraw:noop,buyTheme:unavailable,craftTheme:unavailable,buyFx:unavailable,roomBuy:unavailable,unlockSecret:unavailable,redeem:unavailable,adminGrant:unavailable,claimInvite:noop,feedback:noop,board:noop,startTask:noop,finishTask:noop,focusTick:noop});})();
 </script>
 <script src="app.js"></script>
-<script src="alt/halloween/rewards/account-store.js?rev=secure-rewards-20261026"></script>
-<script src="alt/economy/focus-checkpoints.js?rev=secure-20261026"></script>
-<script src="alt/halloween/rewards/entitlements.js?rev=account-rights-20261026"></script>
-<script src="alt/halloween/death-quest-main.js?rev=secure-rewards-20261026"></script>
-<link rel="stylesheet" href="alt/halloween/death-quest-main.css">
-<script src="alt/halloween/study-pact-main.js?rev=secure-rewards-20261026"></script>
-<link rel="stylesheet" href="alt/halloween/study-pact-main.css?rev=pacts-20261025">
+<script src="halloween/rewards/account-store.js?rev=secure-rewards-20261026"></script>
+<script src="economy/focus-checkpoints.js?rev=secure-20261026"></script>
+<script src="halloween/rewards/entitlements.js?rev=account-rights-20261026"></script>
+<script src="halloween/death-quest-main.js?rev=secure-rewards-20261026"></script>
+<link rel="stylesheet" href="halloween/death-quest-main.css">
+<script src="halloween/study-pact-main.js?rev=secure-rewards-20261026"></script>
+<link rel="stylesheet" href="halloween/study-pact-main.css?rev=pacts-20261025">
 <script src="desktop-entry.js?rev=main-ui-20261028"></script>
-<script src="alt/halloween/rewards/theme-main.js?rev=switch-20261026"></script>
-<script src="alt/halloween/rewards/effect-stage.js?rev=stage-20261025"></script>
-<script src="alt/halloween/rewards/effect-games.js?rev=stage-20261025"></script>
-<script src="alt/halloween/rewards/runtime.js?rev=secure-rewards-20261026"></script>
-<script src="alt/halloween/rewards/integration.js"></script>
-<script src="alt/halloween/rewards/badges.js?rev=all-badges-20261025"></script>
-<script src="alt/halloween/rewards/featured-badge.js?rev=picker3-20261026"></script>
-<script src="alt/halloween/rewards/theme-rarity.js?rev=lazy-paint-20261026"></script>
+<script src="halloween/rewards/theme-main.js?rev=switch-20261026"></script>
+<script src="halloween/rewards/effect-stage.js?rev=stage-20261025"></script>
+<script src="halloween/rewards/effect-games.js?rev=stage-20261025"></script>
+<script src="halloween/rewards/runtime.js?rev=secure-rewards-20261026"></script>
+<script src="halloween/rewards/integration.js"></script>
+<script src="halloween/rewards/badges.js?rev=all-badges-20261025"></script>
+<script src="halloween/rewards/featured-badge.js?rev=picker3-20261026"></script>
+<script src="halloween/rewards/theme-rarity.js?rev=lazy-paint-20261026"></script>
 <!-- เอฟเฟกต์งานเสร็จ The Cursed Ship — ลงทะเบียนตัวเองใน FX_SHOP (hoop.js) จึงต้องมาหลัง hoop.js · เล่นตอนกดเท่านั้น จึงโหลดท้ายแถวได้ -->
-<script src="alt/halloween/season/biome-finishes.js?rev=unique-20261026"></script><script src="alt/halloween/season/cursed-ship.js?rev=reward-motion-20261027"></script>
-<script src="alt/economy/client.js?rev=secure-20261026"></script>
+<script src="halloween/season/biome-finishes.js?rev=unique-20261026"></script><script src="halloween/season/cursed-ship.js?rev=reward-motion-20261027"></script>
+<script src="economy/client.js?rev=secure-20261026"></script>
 
 
 <!-- ── Visual Editor (เครื่องมือแก้ UI ตอนออกแบบ) ──────────────
