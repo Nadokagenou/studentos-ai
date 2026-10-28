@@ -515,10 +515,13 @@
       const gained=done?q.rewards.filter(r=>!r.afterBoss).map(r=>r.id==='candy'?{icon:'🍬',text:r.quantity+' Candy'}:config.rewards[r.id]?{icon:'✦',text:config.rewards[r.id].name+(r.kind==='upgrade-existing'?' · ปลดผนึกแล้ว':'')}:{icon:O.icon(r.id),text:O.itemName(config,r.id)+' ×'+r.quantity}):[];
       if(result.seeds)gained.push({icon:'🌱',text:name(result.seeds.id)+' ×'+result.seeds.quantity});
       const after=currentObjective();
-      openDetail(dialogShell(esc(result.npc),'<div class="quest-done"><div class="quest-done-burst" aria-hidden="true"></div><span class="eyebrow">'+(done?'เควสสำเร็จ!':'ผ่านเฟสนี้แล้ว!')+'</span><h3 class="quest-title">'+esc(q.name)+'</h3>'+(gained.length?'<div class="reward-chips big">'+gained.map(x=>'<span class="reward-chip"><i>'+x.icon+'</i>'+esc(x.text)+'</span>').join('')+'</div>':'')+'<p class="quest-ask">“'+esc(result.dialogue)+'”</p>'+(after?'<p class="quest-next">ต่อไป: <b>'+esc(after.title)+'</b></p>':'')+'</div>','<button class="primary" data-close-detail>' + (result.rewards.length ? 'รับของที่สัญญาไว้ ✦' : 'ไปต่อ ▶') + '</button>'),() => acquisition(result.rewards,'quest'));
+      openDetail(dialogShell(esc(result.npc),'<div class="quest-done"><div class="quest-done-burst" aria-hidden="true"></div><span class="eyebrow">'+(done?'เควสสำเร็จ!':'ผ่านเฟสนี้แล้ว!')+'</span><h3 class="quest-title">'+esc(q.name)+'</h3>'+(gained.length?'<div class="reward-chips big">'+gained.map(x=>'<span class="reward-chip"><i>'+x.icon+'</i>'+esc(x.text)+'</span>').join('')+'</div>':'')+'<p class="quest-ask">“'+esc(questDialogue(q,result))+'”</p>'+(after?'<p class="quest-next">ต่อไป: <b>'+esc(after.title)+'</b></p>':'')+'</div>','<button class="primary" data-close-detail>' + (result.rewards.length ? 'รับของที่สัญญาไว้ ✦' : 'ไปต่อ ▶') + '</button>'),() => acquisition(result.rewards,'quest'));
       if(result.boss){const p=document.createElement('div');p.className='boss-unlock-note';p.innerHTML='ธีมถูกผู้พิทักษ์ผนึกไว้ ชนะบอสก่อนจึงได้ธีม<br><button class="primary" data-boss="'+result.boss+'">พบผู้พิทักษ์ ⚔️</button><button class="secondary" data-equipment>ดูอาวุธที่ถือ</button>';detail.querySelector('.dialog-footer').before(p);}
       if(result.seeds&&!Core.gardenUnlocked(read())){const p=document.createElement('p');p.className='subtle';p.textContent='เก็บเมล็ดไว้ก่อน สวนเปิดเมื่อจบเควสแรกของ Jack';detail.querySelector('.dialog-footer').before(p);}
     });
+  }
+  function questDialogue(quest,result){
+    return quest.id==='dech-wrong-letter'&&result.boss==='blood-countess'?quest.phases.at(-1).completeDialogue:result.dialogue;
   }
   function inventory() {
     const doc = read(), owned = Object.keys(doc.rewards);

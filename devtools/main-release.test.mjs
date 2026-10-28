@@ -49,6 +49,13 @@ test('Tang reuses an earned lantern in both the objective and submission require
  Core.dispatch(d,c,{type:'quest',quest:q.id},{now:at,tx:'existing-lantern'});assert.equal(d.event.candy,0);assert.equal(d.event.inventory['spectral-lantern'],1);
  assert.match(read('halloween/event/experience.js'),/requirements = Core\.questRequirements\(doc,config,q,/);
 });
+test('Dech final letter awards Candy while its theme remains locked behind the boss',()=>{
+ const c=config(),at=Date.now(),d=Core.initial(c,'test',at,42),q=c.quests.find(x=>x.id==='dech-wrong-letter');d.event.previewBiome=q.biome;
+ d.event.quests[q.prerequisite]={complete:true,phase:1,completedAt:at-21*60000};for(const id of Object.keys(c.items))d.event.inventory[id]=30;
+ const result=Core.dispatch(d,c,{type:'quest',quest:q.id},{now:at,tx:'dech-final-letter'});
+ assert.equal(d.event.candy,100);assert.equal(d.rewards['theme-vampire'],undefined);assert.equal(result.boss,'blood-countess');assert.match(result.dialogue,/ชนะ.*บอส/);
+ const box={};vm.runInNewContext(read('halloween/event/experience.js').match(/function questDialogue[\s\S]*?\n  }/)[0],box);assert.equal(box.questDialogue(q,{...result,dialogue:'ข้อความจากบริการรุ่นเก่า'}),q.phases.at(-1).completeDialogue);
+});
 
 test('opening the gate saves entry once and normal hub navigation still saves once',async()=>{
  const s=read('halloween/event/experience.js'),a=s.indexOf('  async function navigate('),b=s.indexOf('  function currentBiome',a),g=s.indexOf("    if(button.hasAttribute('data-enter-hub'))"),h=s.indexOf('    if(button.dataset.enterBiome)',g);
