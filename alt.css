@@ -15007,6 +15007,9 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
  :root body:not(.login-mode) #menuBody>.td-railwrap{margin:0;align-self:center}
  :root body:not(.login-mode) #menuBody .tg-t{height:72px;min-height:0}
  :root body:not(.login-mode) #menuBody .tg-ic{width:44px;height:44px}
+ /* 28 ต.ค. 69 · เจ้าของ (ภาพไทล์หน้าแรกจอแท็บเล็ต เหลือแต่ชิปขาวกลม): "ให้มันเอากรอบกลับมา" — ไทล์ย่อเหลือ 44px แต่ชิปขาวข้างในยัง 40px
+    ชิปเลยปิดไทล์เกือบหมด เห็นสีไทล์แค่เส้น 2px · ย่อชิปตามไทล์ (30px · เว้นใน 4px ให้ไอคอนใกล้ขนาดเดิม) → เห็นกรอบสีไทล์ ~7px รอบชิปเหมือน alt/ · ไทล์ยัง 44px ผังหน้าแรกไม่ขยับ */
+ :root body:not(.login-mode) #menuBody .tg-ic svg{box-sizing:border-box!important;width:30px!important;height:30px!important;padding:4px!important}
  /* ของแอปหลักเอง (alt ยังไม่มี): ก้อนเต็มแถวโดนเพดาน 620px (กฎ "ทุกก้อนกว้างเท่ากัน" ที่ 720px ขึ้นไป)
     แต่คู่สองคอลัมน์รวมกันกว้าง 690 → การ์ดน้องฮูกยื่นเลยขอบขวาของก้อนอื่น · ปลดเพดานในผังนี้ ขอบขวาจึงตรงกันทุกก้อน */
  :root body:not(.login-mode) #scr-menu .menu-body>*{max-width:none}
