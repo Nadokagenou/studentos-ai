@@ -25,6 +25,21 @@
   let config, store, route = 'gate', vaultTab = 'rewards', toastTimer, detailAfterClose = null;
   let activePanel=null,activeRoom=null,typingFrame=0,typingLines=[],dialogueEpoch=0,market;
   let viewEpoch=0;
+  let sceneKey=null,queuedSceneRefresh=false,refreshTimer=0;
+  const heldPointers=new Set(),heldKeys=new Set();
+  function sceneStateKey(){const doc=read(),{clock,...event}=doc.event;return JSON.stringify({...doc,revision:undefined,event});}
+  function refreshScene(force=false){
+    if(!playable||!store||(!force&&!queuedSceneRefresh&&sceneKey===sceneStateKey()))return;
+    queuedSceneRefresh=true;
+    if(pending||navigating||detail.open||document.getElementById('gameDialog').open||heldPointers.size||heldKeys.size)return;
+    queuedSceneRefresh=false;render();
+  }
+  function queueSceneRefresh(){if(queuedSceneRefresh){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>refreshScene(),0);}}
+  document.addEventListener('pointerdown',e=>heldPointers.add(e.pointerId),{passive:true});
+  for(const type of ['pointerup','pointercancel'])document.addEventListener(type,e=>{heldPointers.delete(e.pointerId);queueSceneRefresh();},{passive:true});
+  document.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')heldKeys.add(e.key);});
+  document.addEventListener('keyup',e=>{heldKeys.delete(e.key);queueSceneRefresh();});
+  window.addEventListener('blur',()=>{heldPointers.clear();heldKeys.clear();queueSceneRefresh();});
   let sourceReturn={},journalPage='index';
   const recipeSelection={cauldron:null,ritual:null};
   let recipePrepared=false;
@@ -81,6 +96,7 @@
     delete detail.dataset.plotBiome;
     detail.querySelectorAll('iframe').forEach(f => f.removeAttribute('src'));
     const fn = detailAfterClose; detailAfterClose = null; if (fn) fn();
+    queueSceneRefresh();
   });
   function finishTyping(){audio.stopDialogue();cancelAnimationFrame(typingFrame);dialogueEpoch++;for(const row of typingLines)if(row.el.isConnected){row.el.textContent=row.full;row.el.removeAttribute('data-typing');}typingLines=[];detail.querySelector('.dialogue-skip')?.remove();}
   function typeDialogue(){
@@ -132,7 +148,7 @@
       if (!silent) {try{render();}catch(error){console.warn('Event scene refresh failed after a saved action',error);}}
       return saved.result;
     } catch(error) { try{audio.play('error');}catch{}toast(error.message || 'บันทึกไม่สำเร็จ ยังไม่มีการหักของ',true); return null; }
-    finally { if (!silent) pending = false; }
+    finally { if (!silent) pending = false;queueSceneRefresh(); }
   }
   function updateWallet() { const value=playable&&store?read().event.candy.toLocaleString('th-TH'):'—';document.getElementById('wallet').textContent=value;document.querySelectorAll('[data-scene-wallet]').forEach(el=>el.textContent=value); }
   function updateBanner() {
@@ -168,7 +184,7 @@
       main.focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});
       if(result?.firstStory)showStory(destination);
       return true;
-    }finally{navigating=false;delete main.dataset.opening;main.removeAttribute('aria-busy');}
+    }finally{navigating=false;delete main.dataset.opening;main.removeAttribute('aria-busy');queueSceneRefresh();}
   }
   function currentBiome() { return Core.biomeAt(read(),config,clockNow()).id; }
   function worldContext() { return {Core,Catalog,config,doc:read(),now:clockNow(),name,duration,difficulty:biomeDifficulty}; }
@@ -624,6 +640,7 @@
     main.innerHTML = worldToolbar() + (views[route] || views.hub)();audio.setScene(activeRoom||route);if(previousPanel)showPanel(previousPanel);updateClock();
     if(['hub','garden'].includes(route))main.querySelector('.world-scene')?.insertAdjacentHTML('beforeend',world.player(worldContext()));
     guideScene();
+    sceneKey=sceneStateKey();queuedSceneRefresh=false;
   }
   function updateQuestAppointment(){
     const q=config?.quests.find(q=>q.id===detail.dataset.questId),button=detail.querySelector('#submitQuest'),note=detail.querySelector('[data-quest-appointment]');if(!q||!button||!note)return;
@@ -635,11 +652,11 @@
   }
   function updateClock() {
     if (!store || !playable) return;
-    if(main.dataset.biome!==currentBiome()&&['hub','biome'].includes(route)&&!detail.open&&!document.getElementById('gameDialog').open){render();return;}
+    if(main.dataset.biome!==currentBiome()&&['hub','biome'].includes(route)&&!detail.open&&!document.getElementById('gameDialog').open){refreshScene(true);return;}
     if(detail.open&&activePanel==='village'&&detail.dataset.villageBiome!==currentBiome()){detail.close();render();toast('ประตูเปลี่ยนรอบแล้ว เลือกประตูใหม่ก่อนเคาะบ้าน ความคืบหน้ายังอยู่ครบ');return;}
     market?.tick();if(detail.open)updateQuestAppointment();
     const at=now();
-    document.querySelectorAll('[data-closes-at]').forEach(el=>{const left=Number(el.dataset.closesAt)-at;if(left<=0){if(!detail.open)render();return;}el.textContent=el.textContent.replace(/ปิดใน .*/,'ปิดใน '+duration(left));});
+    document.querySelectorAll('[data-closes-at]').forEach(el=>{const left=Number(el.dataset.closesAt)-at;if(left<=0){if(!detail.open)refreshScene(true);return;}el.textContent=el.textContent.replace(/ปิดใน .*/,'ปิดใน '+duration(left));});
     detail.querySelectorAll('[data-house-status]').forEach(label=>{
       const a=Core.houseAvailability(read(),config,Number(label.dataset.houseStatus),clockNow()),door=label.closest('button'),wait=a.availableAt;
       door.disabled=!a.ready||read().event.closed;
@@ -814,7 +831,7 @@
     }
   }
   window.addEventListener('storage',e=>{if(e.key===window.HalloweenStudyPact.KEY)refreshStudentMissions();});
-  const refreshAccount=async()=>{if(!account)return;try{const remote=await account.refresh();if(remote.phase!==phase||(!playable&&remote.phase==='active')){location.reload();return;}if(playable){updateWallet();updateDeathProgress();if(detail.open&&detail.dataset?.journalPage==='tasks')refreshStudentMissions();if(!detail.open&&!document.getElementById('gameDialog').open)render();}}catch(error){if(playable)toast(error.message,true);}};
+  const refreshAccount=async()=>{if(!account)return;try{const remote=await account.refresh();if(remote.phase!==phase||(!playable&&remote.phase==='active')){location.reload();return;}if(playable){updateWallet();updateDeathProgress();if(detail.open&&detail.dataset?.journalPage==='tasks')refreshStudentMissions();refreshScene();}}catch(error){if(playable)toast(error.message,true);}};
   window.addEventListener('online',refreshAccount);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshAccount();});
   setInterval(()=>{if(!document.hidden)refreshAccount();},30000);
   boot();
