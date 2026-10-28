@@ -103,7 +103,8 @@
     const gameAttrs='data-game-info="'+games[1]+'"',gameLabel=games[0];
     const ghostAttrs='data-game-info="catch-all-ghosts"';
     const boss=Object.entries(config.proposals.bosses||{}).find(([,b])=>b.biome===id),bossReady=boss&&doc.event.quests[boss[1].quest]?.complete;
-    const extra=(i===3?spot('จับผี',ghostAttrs,78,35,'',[79,31]):'')+spot('นักเดินทางนิรนาม · แลกของเป็น Candy','data-visitors',28,84,'',[20,71])+spot('หาของ · เคาะบ้าน','data-route="village"',12,35,'village-sign',[15,30])+player(c)+(bossReady?spot((doc.event.bossWins?.[boss[0]]?'✓ พิชิตแล้ว · ':'ท้าบอส · ')+boss[1].name,'data-boss="'+boss[0]+'"',48,48,'boss-sign',[50,50]):'');
+    const visitorX=i%2===0?84:18;
+    const extra=(i===3?spot('จับผี',ghostAttrs,78,35,'',[79,31]):'')+spot('นักเดินทางนิรนาม · แลกของเป็น Candy','data-visitors',visitorX,84,'',[visitorX,78])+spot('หาของ · เคาะบ้าน','data-route="village"',12,35,'village-sign',[15,30])+player(c)+(bossReady?spot((doc.event.bossWins?.[boss[0]]?'✓ พิชิตแล้ว · ':'ท้าบอส · ')+boss[1].name,'data-boss="'+boss[0]+'"',48,48,'boss-sign',[50,50]):'');
     return '<section class="world-page"><div class="world-title"><small>'+esc(meta.name)+'</small><h1>'+thai[i]+'</h1>'+(c.difficulty?.[id]?'<button class="biome-level" data-open-balance>ความยาก '+esc(c.difficulty[id])+' · ดูเกณฑ์</button>':'')+'</div>'+scene(shorts[i],thai[i],npc+spot(gameLabel,gameAttrs,games[2],games[3],'',[[72,42],[25,51],[70,41],[27,59]][i])+extra+spot('กลับไปปลูกที่สวนรัตติกาล','data-route="garden"',i===1?57:53,82,'',[56,71])+spot('อ่านเรื่องราวอีกครั้ง','data-story="'+id+'"',90,18,'',[88,35])+(i===0&&doc.event.repairs?spot('ซ่อมเรือ · '+doc.event.repairs+' Candy','data-action="repair"',62,57):''))+'</section>';
   }
   function cropState(c,id){
