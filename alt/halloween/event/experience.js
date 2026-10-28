@@ -777,7 +777,7 @@
         const mode=await load('config.json');phase=window.HalloweenSeason.state();
         if(mode.claimingEnabled===true){
           account=window.HalloweenAccount.create({client:window.HalloweenAccount.client(),onChange:snapshot=>{if(snapshot===null)location.reload();}});
-          try{const remote=await account.refresh();store=account;phase=remote.phase;playable=phase==='active';}catch(error){toast(error.message,true);}
+          try{const remote=await account.refresh();store=account;phase=remote.phase;playable=phase==='active';}catch(error){if(!error.signedOut)toast(error.message,true);}   // 28 ต.ค. 69 · เจ้าของลบกล่อง "เข้าสู่ระบบ … ก่อนเล่นกิจกรรม": ยังไม่ล็อกอิน = จอนี้บอกพร้อมปุ่มเข้าสู่ระบบอยู่แล้ว · ข้อผิดพลาดอื่นยังแจ้งเหมือนเดิม
         }
       }
       if(playable)biomeDifficulty=Object.fromEntries(Core.BIOMES.map(id=>{const levels=config.quests.filter(q=>q.biome===id).map(q=>Balance.difficulty(config,q).level);return[id,Balance.labels[Math.min(...levels)-1]+' → '+Balance.labels[Math.max(...levels)-1]];}));

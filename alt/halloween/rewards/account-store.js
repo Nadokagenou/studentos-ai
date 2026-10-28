@@ -4,7 +4,7 @@
  function create({client,onChange=()=>{},uuid=()=>crypto.randomUUID(),clock=Date.now,endpoint="halloween-event"}){
   let snapshot=null,uid=null,offset=0,pending=null,queue=Promise.resolve();
   const clear=()=>{snapshot=null;uid=null;pending=null;onChange(null);};
-  async function identity(){const {data,error}=await client.auth.getSession();if(error||!data.session)throw Object.assign(Error('เข้าสู่ระบบ StudentOS ก่อนเล่นกิจกรรม'),{definitive:true});return data.session;}
+  async function identity(){const {data,error}=await client.auth.getSession();if(error||!data.session)throw Object.assign(Error('เข้าสู่ระบบ StudentOS ก่อนเล่นกิจกรรม'),{definitive:true,signedOut:true});return data.session;}
   async function send(body){
    const session=await identity(),owner=session.user.id;if(uid&&uid!==owner)clear();uid=owner;
    const {data,error}=await client.functions.invoke(endpoint,{body,headers:{Authorization:'Bearer '+session.access_token}});
