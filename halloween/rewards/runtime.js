@@ -41,12 +41,23 @@
   if(window.__HW_SHOWROOM__)new MutationObserver(queue).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['src']});
   // The event switch is fetched separately. Removing event/ hides its entry.
   // 24 Oct: the entry moved from a card under the profile header to the event slot on the home screen (eventSlot in app.js), as the owner chose.
-  if(!window.__HW_SHOWROOM__)fetch(new URL('../event/config.json',base),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(config=>{
+  let entryPending=null;
+  function publishEntry(){
+   if(typeof screenStamp==='object'&&screenStamp){delete screenStamp['scr-menu'];delete screenStamp['scr-events'];}
+   try{if(document.querySelector('#scr-menu.on')&&typeof renderMenu==='function')renderMenu();if(document.querySelector('#scr-events.on')&&typeof renderEvents==='function')renderEvents();}catch{}
+  }
+  window.addEventListener('studentos-halloween-account-change',publishEntry);
+  function loadEntry(){
+   if(entryPending)return entryPending;
+   window.HalloweenEventStatus='loading';publishEntry();
+   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12000);
+   entryPending=fetch(new URL('../event/config.json',base),{cache:'no-store',signal:controller.signal}).then(r=>{if(r.status===404)return null;if(!r.ok)throw Error('Event unavailable');return r.json();}).then(config=>{
+   window.HalloweenEventStatus='ready';window.HalloweenEventEntry=null;
    const end=config?.endsAt?Date.parse(config.endsAt):NaN,start=config?.startsAt?Date.parse(config.startsAt):NaN,preview=config?.claimingEnabled!==true||(Number.isFinite(start)&&Date.now()<start);
    // 24 Oct: index.html turns on the Halloween boot/login skin (:root.hw-season) before this file loads.
    // Turning the event off in config.json, or passing endsAt, takes the skin off as well.
    if(!config?.enabled||(Number.isFinite(end)&&end<=Date.now()))root.classList.remove('hw-season');
-   if(!config?.enabled)return;
+   if(!config?.enabled){publishEntry();return;}
    const destination=new URL('../event/index.html',base);if(preview&&!mainEntry)destination.searchParams.set('preview','1');if(mainEntry)destination.searchParams.set('entry','main');destination.searchParams.set('rev','launch-20261024');
    const eventDir=new URL('../event/',base),card=config.card||{};
    window.HalloweenEventEntry=Object.freeze({name:config.name||'Halloween',tagline:config.tagline||'',blurb:config.blurb||'',href:destination.href,preview,
@@ -61,10 +72,15 @@
     sections:Array.isArray(config.sections)?config.sections.filter(x=>x&&typeof x.id==='string'&&/^[\w-]+$/.test(x.id)).map(x=>Object.freeze({id:x.id,label:String(x.label||x.id),hint:String(x.hint||''),icon:/^[a-z-]+$/.test(x.icon||'')?x.icon:''})):[],
     // null = the event has ended and the button hides itself · '' = no endsAt, so no countdown
     countdown(now=Date.now()){if(Number.isFinite(start)&&now<start)return 'เปิด 28 ต.ค. · อีก '+Math.ceil((start-now)/864e5)+' วัน';if(!Number.isFinite(end))return'';const left=end-now;if(left<=0)return null;const hours=Math.ceil(left/36e5);return hours<24?'เหลือ '+hours+' ชม.':'เหลือ '+Math.ceil(left/864e5)+' วัน';},
-    // Preview Candy lives on this device (KEY in event/experience.js). Real claiming has no store to read yet, so it shows nothing.
-    candy(){if(!preview){try{return window.HalloweenAccountState?.ready()?window.HalloweenAccountState.read().event.candy:null;}catch{return null;}}try{const doc=JSON.parse(localStorage.getItem('studentos.alt.halloween.preview.v1')||'null');return Number.isSafeInteger(doc?.event?.candy)?doc.event.candy:0;}catch{return null;}}});
-   try{if(typeof renderMenu==='function')renderMenu();}catch{}
-  }).catch(()=>{});
+    // This summary comes from the same verified owner read as reward ownership.
+    candyStatus(){return preview?'preview':window.HalloweenRewardAccess?.view().status||'loading';},
+    candy(){if(!preview){try{const view=window.HalloweenRewardAccess?.view();return view?.owner&&['ready','refreshing'].includes(view.status)&&Number.isSafeInteger(view.candy)?view.candy:null;}catch{return null;}}try{const doc=JSON.parse(localStorage.getItem('studentos.alt.halloween.preview.v1')||'null');return Number.isSafeInteger(doc?.event?.candy)?doc.event.candy:0;}catch{return null;}}});
+   publishEntry();
+  }).catch(()=>{window.HalloweenEventStatus='error';publishEntry();}).finally(()=>{clearTimeout(timeout);entryPending=null;});return entryPending;
+  }
+  window.HalloweenEventReload=loadEntry;
+  window.addEventListener('online',()=>{if(window.HalloweenEventStatus==='error')loadEntry();});
+  if(!window.__HW_SHOWROOM__)loadEntry();
   if(window.__HW_SHOWROOM__){
    const originalHaptic=window.haptic;
    if(typeof originalHaptic==='function')window.haptic=function(kind){const result=originalHaptic.apply(this,arguments);if(kind==='done'&&current?.kind==='effect')setTimeout(()=>effect(current),80);return result;};

@@ -14,7 +14,7 @@ const EVENT_SOURCES = [
     const left = ev ? ev.countdown() : null;
     if (!ev || left === null) return null;
     return { id: 'halloween', name: ev.name, tagline: ev.tagline, blurb: ev.blurb, href: ev.href, preview: ev.preview,
-      art: ev.art, cast: ev.cast, names: ev.names, left, candy: ev.candy(), sections: ev.sections || [],
+      art: ev.art, cast: ev.cast, names: ev.names, left, candy: ev.candy(), candyStatus:ev.candyStatus?.()||'loading', sections: ev.sections || [],
       slides: ev.slides || [], rewards: ev.rewards || [], secretRewards: ev.secretRewards || 0 };
   },
   // 24 ต.ค. 69 · กิจกรรมถัดไปของฮาโลวีน (แทนช่อง "เร็ว ๆ นี้") — ปลดล็อกธีมผีไทย เรือนลับแล ด้วยภารกิจ 2 อย่าง
@@ -87,7 +87,7 @@ function renderEvents() {
       <span class="ev-tab-art" aria-hidden="true">${icon('sparkles')}</span>
       <span class="ev-tab-tx"><b>เร็ว ๆ นี้</b><small>กิจกรรมถัดไป</small></span></span>`;
 
-  const detail = cur ? (cur.kind === 'quest' ? questDetail(cur) : eventsDetail(cur)) : `<div class="ev-empty">
+  const detail = cur ? (cur.kind === 'quest' ? questDetail(cur) : eventsDetail(cur)) : window.HalloweenEventStatus!=='ready' ? `<div class="ev-empty" role="status"><b>${window.HalloweenEventStatus==='error'?'ยังโหลดอีเวนต์ไม่ได้':'กำลังโหลดอีเวนต์…'}</b><span>ข้อมูลและรางวัลเดิมยังอยู่</span>${window.HalloweenEventStatus==='error'?'<button type="button" onclick="window.HalloweenEventReload?window.HalloweenEventReload():location.reload()">ลองอีกครั้ง</button>':''}</div>` : `<div class="ev-empty">
       <span class="ev-empty-ic" aria-hidden="true">${icon('calendar')}${icon('sparkles', 'ev-empty-sp')}</span>
       <b>ตอนนี้ยังไม่มีอีเวนต์</b><span>มีกิจกรรมใหม่เมื่อไหร่ จะขึ้นที่นี่และบนหน้าแรก</span></div>`;
 
@@ -114,7 +114,7 @@ function eventsDetail(e) {
   const cast = (e.cast || []).map((u, i) => `<figure style="--i:${i}"><img src="${esc(u)}" alt="" decoding="async">${
     e.names && e.names[i] ? `<figcaption>${esc(e.names[i])}</figcaption>` : ''}</figure>`).join('');
   const candy = e.candy !== null && e.candy !== undefined
-    ? `<span class="ev-candy" aria-label="Candy ${esc(String(e.candy))}${e.preview ? ' ในห้องลอง' : ''}">${EV_CANDY}<b>${esc(String(e.candy))}</b></span>` : '';
+    ? `<span class="ev-candy" aria-label="Candy ${esc(String(e.candy))}${e.preview ? ' ในห้องลอง' : ''}">${EV_CANDY}<b>${esc(String(e.candy))}</b></span>` : e.candyStatus==='login'?'<span class="ev-candy"><small>เข้าสู่ระบบเพื่อดู Candy</small></span>':e.candyStatus==='error'?'<button class="ev-candy" type="button" onclick="window.HalloweenRewardAccess?.refresh(true)">ตรวจยอดอีกครั้ง</button>':'<span class="ev-candy" role="status"><small>กำลังตรวจ Candy…</small></span>';
   // สไลด์แรก = ปก (ภาพการ์ด + ตัวละคร) · ถัดไป = ฉากในกิจกรรม · ท้ายรางมีสำเนาปก (inert) ไว้วนต่อไปข้างหน้าแบบการ์ดหน้าแรก
   const cover = `<div class="ev-slide cover"${e.art ? ` style="--ev-art:url('${esc(e.art)}')"` : ''}>
       <span class="ev-slide-bg" aria-hidden="true"></span>
