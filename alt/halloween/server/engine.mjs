@@ -993,7 +993,7 @@ function create({Core,Death,Season,config,randomSeed}) {
  const copy=x=>JSON.parse(JSON.stringify(x));
  function clean(input){
   if(!input||typeof input!=='object'||!allowed.has(input.type))throw Error('ไม่รองรับคำสั่งนี้ในกิจกรรมจริง');
-  const a={};for(const key of keys){const v=input[key];if(v!==undefined){if(!['string','number','boolean'].includes(typeof v)||typeof v==='string'&&v.length>180||typeof v==='number'&&!Number.isSafeInteger(v))throw Error('รูปแบบคำสั่งไม่ถูกต้อง');a[key]=v;}}
+  const a={};for(const key of keys){const v=input[key];if(key==='branch'&&v===null)continue;if(v!==undefined){if(!['string','number','boolean'].includes(typeof v)||typeof v==='string'&&v.length>180||typeof v==='number'&&!Number.isSafeInteger(v))throw Error('รูปแบบคำสั่งไม่ถูกต้อง');a[key]=v;}}
   return a;
  }
  function publicDocument(document){const d=copy(document);delete d.event.rng;delete d.event._lastActionAt;for(const p of Object.values(d.event.focusProofs||{}))Attention.publicProof(p);Attention.publicProof(d.event.studyPacts?.active?.proof);d.receipts={};return d;}

@@ -510,7 +510,7 @@
     detail.querySelector('[data-quest-game]')?.addEventListener('click',() => { detail.close(); openGame(game); });
     detail.querySelector('#submitQuest')?.addEventListener('click',async e => {
       const submitButton=e.currentTarget;
-      const result = await runAction(submitButton,{type:'quest',quest:id,branch});
+      const result = await runAction(submitButton,{type:'quest',quest:id,...(branch==null?{}:{branch})});
       if (!result) return;
       const O=window.HalloweenObjective,done=Core.questStatus(read(),config,q).complete;
       const gained=done?q.rewards.filter(r=>!r.afterBoss).map(r=>r.id==='candy'?{icon:'🍬',text:r.quantity+' Candy'}:config.rewards[r.id]?{icon:'✦',text:config.rewards[r.id].name+(r.kind==='upgrade-existing'?' · ปลดผนึกแล้ว':'')}:{icon:O.icon(r.id),text:O.itemName(config,r.id)+' ×'+r.quantity}):[];

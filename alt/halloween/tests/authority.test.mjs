@@ -33,6 +33,12 @@ test('a real server quest cannot be completed with client focus counters or acce
 });
 function harness(){let doc=null,time=at;const receipts=new Map();const db={async read(){return doc&&{document:structuredClone(doc)};},async receipt(u,s,tx){return receipts.get(tx);},async commit(x){if((doc?.revision||0)!==x.expected)return {committed:false};if(receipts.has(x.tx))return {committed:true,replay:true,result:receipts.get(x.tx).result};doc=structuredClone(x.document);receipts.set(x.tx,{action:x.action,result:x.result});return {committed:true,replay:false,result:x.result};}};const handler=H.create({authority,db,authenticate:async token=>token==='Bearer valid'?uid:null,clock:()=>time+=1000,season:Season});return {handler,db,receipts,read:()=>doc};}
 const request=(action,requestId=crypto.randomUUID(),token='Bearer valid')=>new Request('https://example.test/halloween-event',{method:'POST',headers:{authorization:token,'content-type':'application/json'},body:JSON.stringify({action,requestId})});
+test('a new player can submit Tang through the real HTTP validator with a null optional branch',async()=>{
+ const h=harness();for(const action of [{type:'enter-hub'},{type:'claim-welcome'}])assert.equal((await h.handler(request(action))).status,200);
+ const tx=crypto.randomUUID(),response=await h.handler(request({type:'quest',quest:'dutchman-light-in-darkness',branch:null},tx)),body=await response.json();
+ assert.equal(response.status,200,JSON.stringify(body));assert.equal(body.document.event.quests['dutchman-light-in-darkness'].complete,true);assert.equal(body.document.event.candy,0);assert.equal(body.document.event.inventory['spectral-lantern'],1);
+ const replay=await h.handler(request({type:'quest',quest:'dutchman-light-in-darkness',branch:null},tx));assert.equal(replay.status,200);assert.equal((await replay.json()).replay,true);assert.equal(h.receipts.size,3);
+});
 test('HTTP boundary authenticates first, never accepts client documents and safely replays a lost response',async()=>{
  const h=harness();assert.equal((await h.handler(request({type:'read'},undefined,''))).status,401);
  const tx=crypto.randomUUID(),r=await h.handler(request({type:'enter-hub'},tx));assert.equal(r.status,200);const a=await r.json();assert.equal(a.document.owner,uid);
