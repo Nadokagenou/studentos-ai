@@ -145,7 +145,7 @@
       const cue=({'brain-start':'magic','brain-move':saved.result.brainGame?.clear?'magic':'tap','study-claim':'magic',house:saved.result.candy?'coins':'ghost',quest:'magic',plant:'water',water:'water',harvest:'harvest','sell-crop':'coins','drink-biome-potion':'magic','enter-biome':'door','enter-room':'door','game-move':'tap','equip-weapon':'magic','start-boss':'ghost','battle-move':saved.result.battle?.clear?'magic':action.move==='skill'?'magic':'tap'})[action.type];if(cue){try{audio.play(cue);}catch{}}
       updateWallet(); updateBanner();
       try{window.HalloweenEventFeedback?.present(action,saved.result,reduced());}catch{}
-      if(!silent&&!repaint||action.type==='game-inputs')queuedSceneRefresh=true;
+      if(!silent&&!repaint||['game-inputs','brain-inputs'].includes(action.type))queuedSceneRefresh=true;
       if (!silent&&repaint) {try{render();}catch(error){console.warn('Event scene refresh failed after a saved action',error);}}
       return saved.result;
     } catch(error) { try{audio.play('error');}catch{}toast(error.message || 'ยังยืนยันรายการไม่ได้ ตรวจเซฟอีกครั้งเมื่อเชื่อมต่อได้',true); return null; }
@@ -735,7 +735,7 @@
     if(button.hasAttribute('data-start-with-sound')){prefs.sound=true;prefs.motion='full';prefs.motionChosen=true;rememberPrefs();syncSoundUI();syncMotionUI();detail.close();return;}
     // ปุ่มออก (24 ต.ค. 69 · เจ้าของ: "สร้างปุ่มออกไปหน้าแอป") — เดิมทางกลับมีแค่โลโก้ในหัวหน้าที่ world.css ซ่อนไว้ · ปุ่มบ้านพากลับโถงกลาง ไม่ใช่แอป
     if(button.hasAttribute('data-exit-app')){location.href=new URL(new URLSearchParams(location.search).get('entry')==='main'?'../../':'../../',location.href).href;return;}
-    if(button.hasAttribute('data-brain-open')){detail.close();await window.HalloweenBrainUI.open({read,perform,now,workHref:'../../?go=tasks'+(preview?'&halloweenStudyPreview=1':''),onClose:()=>showJournal('tasks')});return;}
+    if(button.hasAttribute('data-brain-open')){detail.close();await window.HalloweenBrainUI.open({Core,config,read,perform,now,refresh:()=>account?account.refresh():Promise.resolve(),workHref:'../../?go=tasks'+(preview?'&halloweenStudyPreview=1':''),onClose:()=>showJournal('tasks')});return;}
     if(button.dataset.studyClaim){const P=window.HalloweenStudyPact,uid=preview?Death.owner(localStorage):read().owner,result=await runAction(button,{type:'study-claim',pact:button.dataset.studyClaim});if(result&&preview){const local=P.read(localStorage,uid);if(local.event.studyPacts?.active?.id===result.pact){local.event.studyPacts.active.claimed=true;P.write(localStorage,local);}}if(result){showJournal('tasks');toast('เปิดบันทึกแล้ว'+(result.candy?' · +'+result.candy+' Candy':''));}return;}
     if(button.dataset.deathAction){
       const action=button.dataset.deathAction;

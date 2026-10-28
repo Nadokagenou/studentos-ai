@@ -303,10 +303,10 @@
     if(game.id==='ghost-ship-hunt'){game.cueIndex=0;game.cues=[game.target,...Array.from({length:8},()=>Math.floor(random(event)*3))];}
   }
   function playInputs(document,config,action,now,tx,receivedAt) {
-    const source=document.event.games[action.game];
+    const brain=action.type==='brain-inputs',source=brain?document.event.brainGame:document.event.games[action.game];
     if(!source||source.session!==action.session||source.finished||source.playback!==2)fail('ไม่พบรอบเกมที่กำลังเล่น');
     if(!Array.isArray(action.inputs)||!action.inputs.length||action.inputs.length>96)fail('ลำดับการเล่นไม่ถูกต้อง');
-    const next=clone(document),arrival=moment(document,receivedAt),game=next.event.games[action.game];let candy=0;
+    const next=clone(document),arrival=moment(document,receivedAt),game=brain?next.event.brainGame:next.event.games[action.game];let candy=0;
     for(let i=0;i<action.inputs.length;i++){
       const row=action.inputs[i];
       if(!Array.isArray(row)||row.length!==2||!(Number.isSafeInteger(row[0])||['hint','timeout'].includes(row[0]))||!Number.isSafeInteger(row[1])||row[1]<0||row[1]>2*DAY)fail('ลำดับการเล่นไม่ถูกต้อง');
@@ -314,12 +314,12 @@
       if(inputAt<(game.lastInputAt??game.startAt)||inputAt>arrival)fail('เวลาการเล่นไม่ตรงกับรอบนี้');
       const deadline=game.deadline;
       next.event.clock=Math.min(next.event.clock,inputAt);
-      const result=dispatch(next,config,{type:'game-move',game:action.game,session:action.session,move:row[0]},{now:inputAt-next.event.timeOffset,tx:tx+':'+i});
+      const result=dispatch(next,config,{type:brain?'brain-move':'game-move',...(!brain?{game:action.game}:{}),session:action.session,move:row[0]},{now:inputAt-next.event.timeOffset,tx:tx+':'+i});
       if(game.finished&&game.clear&&deadline&&arrival>=deadline)fail('ผลเกมมาถึงหลังเวลาของรอบนี้หมดแล้ว');
       candy+=result.candy||0;game.lastInputAt=inputAt;
     }
     Object.assign(document.event,next.event);
-    return {game:clone(game),...(candy?{candy}:{})};
+    return {[brain?'brainGame':'game']:clone(game),...(candy?{candy}:{})};
   }
   function dispatch(document, config, action, {now, tx, studentOS,studentOwner='',studentFocus,studyPact,receivedAt=now}) {
     if (!tx || !Number.isFinite(now)) fail('ธุรกรรมไม่มีเวลาอ้างอิง');
@@ -570,8 +570,13 @@
       result.candy=amount;result.pact=q.id;
     } else if(action.type==='brain-start'){
       requireRules(config);if(event.brainGame&&!event.brainGame.finished)fail('จบรอบปัจจุบันหรือพักก่อนเริ่มใหม่');result.brainGame=clone(Brain.start(event,tx,at,()=>random(event)));
+    }
+    else if(action.type==='brain-ready'){
+      requireRules(config);const g=event.brainGame;if(!g||g.session!==action.session||g.finished)fail('ไม่พบเกมพักสมองรอบนี้');result.brainGame=clone(Brain.prepare(g,at,()=>random(event)));
+    } else if(action.type==='brain-inputs'){
+      requireRules(config);Object.assign(result,playInputs(document,config,action,now,tx,receivedAt));
     } else if(action.type==='brain-move'){
-      requireRules(config);const g=event.brainGame;if(!g||g.session!==action.session)fail('ไม่พบเกมพักสมองรอบนี้');result.brainGame=clone(Brain.move(g,action.move,at,()=>random(event)));
+      requireRules(config);const g=event.brainGame;if(!g||g.session!==action.session)fail('ไม่พบเกมพักสมองรอบนี้');result.brainGame=clone(Brain.move(g,action.move,at,()=>random(event)));g.lastInputAt=at;
     } else if(action.type==='death-quest-enroll'){
       requireRules(config);event.deathQuests||={};const key=Death.day(now),today=event.deathQuests[key];
       const active=Object.values(event.deathQuests).find(q=>!event.taskClaims['death:'+q.taskId]&&now-q.issuedAt<DAY);

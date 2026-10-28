@@ -5,13 +5,13 @@ const Attention=require('./attention.cjs');
 function create({Core,Death,Season,config,randomSeed}) {
  const allowed=new Set(['study-enroll','study-pulse','study-finish','study-claim','brain-start','brain-move','claim-welcome','training-start','training-move','enter-hub','enter-room','enter-biome','story-seen','house','quest','buy','craft','seed-quest','plant','water','harvest','sell-crop','equip-weapon','start-boss','battle-move','claim-final-theme-set','buy-biome-potion','drink-biome-potion','totem','visitor','death-quest-enroll','death-quest-claim','start-game','game-move','repair','focus-pulse','focus-finish']);
  allowed.add('focus-check');allowed.add('study-check');
- allowed.add('game-ready');allowed.add('game-inputs');
+ allowed.add('game-ready');allowed.add('game-inputs');allowed.add('brain-ready');allowed.add('brain-inputs');
  const keys=['type','room','biome','house','choice','quest','branch','item','stockEpoch','recipe','quantity','expectedGrown','expectedInventory','weapon','boss','session','move','index','game','taskId','active','pact','checkpoint','answer'];
  const copy=x=>JSON.parse(JSON.stringify(x));
  function clean(input){
   if(!input||typeof input!=='object'||!allowed.has(input.type))throw Error('ไม่รองรับคำสั่งนี้ในกิจกรรมจริง');
   const a={};for(const key of keys){const v=input[key];if(key==='branch'&&v===null)continue;if(v!==undefined){if(!['string','number','boolean'].includes(typeof v)||typeof v==='string'&&v.length>180||typeof v==='number'&&!Number.isSafeInteger(v))throw Error('รูปแบบคำสั่งไม่ถูกต้อง');a[key]=v;}}
-  if(input.type==='game-inputs'){
+  if(['game-inputs','brain-inputs'].includes(input.type)){
    if(!Array.isArray(input.inputs)||!input.inputs.length||input.inputs.length>96||input.inputs.some(r=>!Array.isArray(r)||r.length!==2||!(Number.isSafeInteger(r[0])||['hint','timeout'].includes(r[0]))||!Number.isSafeInteger(r[1])||r[1]<0||r[1]>2*86400000))throw Error('ลำดับการเล่นไม่ถูกต้อง');
    a.inputs=input.inputs.map(r=>[r[0],r[1]]);
   }

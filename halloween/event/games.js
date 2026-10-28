@@ -87,7 +87,7 @@
       dialog.querySelectorAll('[data-game-decoy]').forEach(b => b.addEventListener('click',() => { localError = 'ตรงนี้เหมือนเดิม ลองดูรายละเอียดอื่น'; const note = dialog.querySelector('.game-note'); if (note) note.textContent = localError; }));
       if(playback?.state().error){
         const recovery=document.createElement('div');recovery.className='game-recovery';recovery.innerHTML='<button class="primary" data-game-sync>ส่งลำดับเดิมอีกครั้ง</button><button class="secondary" data-game-recover>อ่านผลจากเซฟล่าสุด</button>';dialog.append(recovery);
-        recovery.querySelector('[data-game-sync]').addEventListener('click',()=>trackSave(playback.flush()));
+        recovery.querySelector('[data-game-sync]').addEventListener('click',()=>{localError='';trackSave(playback.flush());});
         recovery.querySelector('[data-game-recover]').addEventListener('click',async()=>{if(busy)return;busy=true;try{if(options.refresh)await options.refresh();playback.reset();localError='';recoveryNeeded=false;}catch{localError='ยังอ่านเซฟไม่ได้ ตรวจการเชื่อมต่อแล้วลองอีกครั้ง';}finally{busy=false;if(!closed)render();}});
       }
       previousSteps=g.steps||0;updateClock();waiting(busy);

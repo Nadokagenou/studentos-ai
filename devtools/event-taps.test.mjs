@@ -41,6 +41,17 @@ test('ship UI accepts six live cue taps before a delayed save and waits to annou
  const finish=job=>job.resolve(GameCore.dispatch(doc,config,job.action,{now:at+1000,receivedAt:at+1000,tx:'save'}));finish(jobs[0]);await flush();assert.equal(jobs.length,1);assert.equal(doc.event.candy,35);assert.match(dialog.innerHTML,/บันทึกผลเรียบร้อย/);
  context.window.HalloweenEventGames.close();
 });
+test('brain UI answers three rounds immediately and confirms only after its final save',async()=>{
+ const {dialog,context}=fixture(),json=n=>JSON.parse(read('halloween/event/data/'+n+'.json')),config=GameCore.build({materials:json('materials'),chains:['dutchman','jack','vampire','graveyard'].map(n=>json('quests.'+n)),catalog:GameCatalog,proposals:json('preview-rules'),preview:true}),at=Date.now(),doc=GameCore.initial(config,'qa',at,127),jobs=[],Brain=require('../halloween/event/brain-games.js');
+ Brain.start(doc.event,'brain-session',at,()=>.2);context.window.HalloweenBrainGames=Brain;context.window.HalloweenGamePlayback=Playback;
+ vm.runInNewContext(read('halloween/event/brain-ui.js'),context);
+ await context.window.HalloweenBrainUI.open({Core:GameCore,config,read:()=>doc,now:()=>at+500,onClose(){},perform:action=>new Promise(resolve=>jobs.push({action,resolve}))});
+ for(const [i,q] of [doc.event.brainGame.q,...doc.event.brainGame.questions.slice(1)].entries()){void dialog.querySelector('[data-brain-move="'+q.answer+'"]').click();await flush();assert.equal(jobs.length,i===2?1:0);assert.match(dialog.innerHTML,new RegExp('ผ่าน '+(i+1)+' / 3'));}
+ assert.match(dialog.innerHTML,/กำลังตรวจและบันทึก/);assert.equal(doc.event.brainGame.finished,false);assert.equal(dialog.querySelector('[data-brain-again]'),null);
+ jobs[0].resolve(null);await flush();assert.match(dialog.innerHTML,/ยังยืนยันผลไม่ได้/);dialog.querySelector('[data-brain-sync]').click();assert.equal(jobs.length,2);assert.deepEqual(jobs[1].action,jobs[0].action);
+ jobs[1].resolve(GameCore.dispatch(doc,config,jobs[1].action,{now:at+1000,tx:'brain-save'}));await flush();assert.equal(doc.event.brainGame.clear,true);assert.match(dialog.innerHTML,/วงเวทสงบแล้ว/);assert.doesNotMatch(dialog.innerHTML,/ยังยืนยันผลไม่ได้/);dialog.querySelector('[data-brain-close]').click();
+});
+
 test('brain view accepts one tap, stays busy across clock ticks, and closes before a slow answer',async()=>{
  const {dialog,context}=fixture(),wait=deferred();let calls=0,closed=0,g=brain();
  vm.runInNewContext(read('halloween/event/brain-ui.js'),context);

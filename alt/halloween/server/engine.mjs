@@ -306,10 +306,10 @@ const factories={
     if(game.id==='ghost-ship-hunt'){game.cueIndex=0;game.cues=[game.target,...Array.from({length:8},()=>Math.floor(random(event)*3))];}
   }
   function playInputs(document,config,action,now,tx,receivedAt) {
-    const source=document.event.games[action.game];
+    const brain=action.type==='brain-inputs',source=brain?document.event.brainGame:document.event.games[action.game];
     if(!source||source.session!==action.session||source.finished||source.playback!==2)fail('ไม่พบรอบเกมที่กำลังเล่น');
     if(!Array.isArray(action.inputs)||!action.inputs.length||action.inputs.length>96)fail('ลำดับการเล่นไม่ถูกต้อง');
-    const next=clone(document),arrival=moment(document,receivedAt),game=next.event.games[action.game];let candy=0;
+    const next=clone(document),arrival=moment(document,receivedAt),game=brain?next.event.brainGame:next.event.games[action.game];let candy=0;
     for(let i=0;i<action.inputs.length;i++){
       const row=action.inputs[i];
       if(!Array.isArray(row)||row.length!==2||!(Number.isSafeInteger(row[0])||['hint','timeout'].includes(row[0]))||!Number.isSafeInteger(row[1])||row[1]<0||row[1]>2*DAY)fail('ลำดับการเล่นไม่ถูกต้อง');
@@ -317,12 +317,12 @@ const factories={
       if(inputAt<(game.lastInputAt??game.startAt)||inputAt>arrival)fail('เวลาการเล่นไม่ตรงกับรอบนี้');
       const deadline=game.deadline;
       next.event.clock=Math.min(next.event.clock,inputAt);
-      const result=dispatch(next,config,{type:'game-move',game:action.game,session:action.session,move:row[0]},{now:inputAt-next.event.timeOffset,tx:tx+':'+i});
+      const result=dispatch(next,config,{type:brain?'brain-move':'game-move',...(!brain?{game:action.game}:{}),session:action.session,move:row[0]},{now:inputAt-next.event.timeOffset,tx:tx+':'+i});
       if(game.finished&&game.clear&&deadline&&arrival>=deadline)fail('ผลเกมมาถึงหลังเวลาของรอบนี้หมดแล้ว');
       candy+=result.candy||0;game.lastInputAt=inputAt;
     }
     Object.assign(document.event,next.event);
-    return {game:clone(game),...(candy?{candy}:{})};
+    return {[brain?'brainGame':'game']:clone(game),...(candy?{candy}:{})};
   }
   function dispatch(document, config, action, {now, tx, studentOS,studentOwner='',studentFocus,studyPact,receivedAt=now}) {
     if (!tx || !Number.isFinite(now)) fail('ธุรกรรมไม่มีเวลาอ้างอิง');
@@ -573,8 +573,13 @@ const factories={
       result.candy=amount;result.pact=q.id;
     } else if(action.type==='brain-start'){
       requireRules(config);if(event.brainGame&&!event.brainGame.finished)fail('จบรอบปัจจุบันหรือพักก่อนเริ่มใหม่');result.brainGame=clone(Brain.start(event,tx,at,()=>random(event)));
+    }
+    else if(action.type==='brain-ready'){
+      requireRules(config);const g=event.brainGame;if(!g||g.session!==action.session||g.finished)fail('ไม่พบเกมพักสมองรอบนี้');result.brainGame=clone(Brain.prepare(g,at,()=>random(event)));
+    } else if(action.type==='brain-inputs'){
+      requireRules(config);Object.assign(result,playInputs(document,config,action,now,tx,receivedAt));
     } else if(action.type==='brain-move'){
-      requireRules(config);const g=event.brainGame;if(!g||g.session!==action.session)fail('ไม่พบเกมพักสมองรอบนี้');result.brainGame=clone(Brain.move(g,action.move,at,()=>random(event)));
+      requireRules(config);const g=event.brainGame;if(!g||g.session!==action.session)fail('ไม่พบเกมพักสมองรอบนี้');result.brainGame=clone(Brain.move(g,action.move,at,()=>random(event)));g.lastInputAt=at;
     } else if(action.type==='death-quest-enroll'){
       requireRules(config);event.deathQuests||={};const key=Death.day(now),today=event.deathQuests[key];
       const active=Object.values(event.deathQuests).find(q=>!event.taskClaims['death:'+q.taskId]&&now-q.issuedAt<DAY);
@@ -930,16 +935,17 @@ const factories={
   if(g.kind==='odd')return {odd:Math.floor(r()*9),asset:pick(['little-wisp','velvet-bat','crimson-candle','quiet-gravestone'],r)};
   const a=1+Math.floor(r()*12),step=1+Math.floor(r()*5),answer=g.kind==='balance'?a:a+step*4;return g.kind==='balance'?{b:step,sum:a+step,answer,choices:shuffle([a,a+1,a+2,a+3],r)}:{sequence:Array.from({length:4},(_,i)=>a+step*i),step,answer,choices:shuffle([answer,...shuffle([-2,-1,1,2,3,4].map(n=>answer+n).filter(n=>n>=0),r).slice(0,3)],r)};
  }
- function start(event,session,at,r){const recent=event.brainHistory||[],pool=kinds.filter(k=>!recent.slice(-2).includes(k)),weighted=pool.flatMap(k=>['math','balance','pattern'].includes(k)?[k,k]:[k]),kind=pick(weighted,r),g={session,kind,round:0,total:kind==='path'?1:3,startAt:at,finished:false,clear:false,mistakes:0};g.q=question(g,at,r);event.brainHistory=[...recent,kind].slice(-3);event.brainGame=g;return g;}
+ function prepare(g,at,r){if(g.playback===2)return g;g.playback=2;g.lastInputAt=at;g.questions=Array.from({length:g.total},(_,round)=>round<=g.round?null:question({...g,round},0,r));return g;}
+ function start(event,session,at,r){const recent=event.brainHistory||[],pool=kinds.filter(k=>!recent.slice(-2).includes(k)),weighted=pool.flatMap(k=>['math','balance','pattern'].includes(k)?[k,k]:[k]),kind=pick(weighted,r),g={session,kind,round:0,total:kind==='path'?1:3,startAt:at,finished:false,clear:false,mistakes:0};g.q=question(g,at,r);event.brainHistory=[...recent,kind].slice(-3);event.brainGame=g;return prepare(g,at,r);}
  function move(g,value,at,r){if(!g||g.finished)throw Error('เกมพักสมองรอบนี้จบแล้ว');if(value==='abandon'){g.finished=true;g.clear=false;return g;}const q=g.q;let success=false;
   if(g.kind==='memory'&&value==='hint'){q.revealUntil=at+4500;return g;}
   if(!Number.isInteger(value))throw Error('เลือกคำตอบบนหน้าจอ');
   if(g.kind==='memory'){if(at<q.revealUntil)throw Error('จำรูนก่อน แล้วค่อยตอบ');if(value<0||value>5)throw Error('ไม่พบรูน');if(value===q.sequence[q.found.length])q.found.push(value);else{q.found=[];q.revealUntil=at+4500;g.mistakes++;g.message='ดูอีกครั้งได้ ไม่เสียของหรือ Candy';}success=q.found.length===q.sequence.length;}
   else if(g.kind==='path'){const n=q.path.at(-1);if(value<0||value>15||q.walls.includes(value)||Math.abs(value%4-n%4)+Math.abs(Math.floor(value/4)-Math.floor(n/4))!==1)throw Error('เดินไปช่องติดกันที่ไม่ใช่คลื่น');const visited=q.path.indexOf(value);if(visited<0)q.path.push(value);else q.path=q.path.slice(0,visited+1);success=value===q.goal;}
   else {const allowed=g.kind==='odd'?value>=0&&value<9:q.choices.includes(value);if(!allowed)throw Error('ไม่พบตัวเลือก');success=value===(g.kind==='odd'?q.odd:q.answer);if(!success){g.mistakes++;g.message=g.kind==='math'?q.a+' '+q.op+' '+q.b+' = '+q.answer+' · ลองเลือกคำตอบนี้อีกครั้ง':g.kind==='balance'?'สองฝั่งต้องเท่ากัน: '+q.sum+' − '+q.b+' = '+q.answer:g.kind==='pattern'?'เพิ่มทีละ '+q.step+' · จำนวนถัดไปคือ '+q.answer:'ตราที่ต่างถูกหมุนไปอีกมุมหนึ่ง';}}
-  if(success){g.round++;g.message='ถูกแล้ว!';if(g.round===g.total){g.finished=true;g.clear=true;g.endedAt=at;}else g.q=question(g,at,r);}return g;
+  if(success){g.round++;g.message='ถูกแล้ว!';if(g.round===g.total){g.finished=true;g.clear=true;g.endedAt=at;}else {g.q=g.questions?.[g.round]?JSON.parse(JSON.stringify(g.questions[g.round])):question(g,at,r);if(g.kind==='memory')g.q.revealUntil=at+4500;}}return g;
  }
- return Object.freeze({kinds,names,reachable,start,move});
+ return Object.freeze({kinds,names,reachable,start,prepare,move});
 });
 
 },
@@ -1019,13 +1025,13 @@ const Attention=require("server/attention.cjs");
 function create({Core,Death,Season,config,randomSeed}) {
  const allowed=new Set(['study-enroll','study-pulse','study-finish','study-claim','brain-start','brain-move','claim-welcome','training-start','training-move','enter-hub','enter-room','enter-biome','story-seen','house','quest','buy','craft','seed-quest','plant','water','harvest','sell-crop','equip-weapon','start-boss','battle-move','claim-final-theme-set','buy-biome-potion','drink-biome-potion','totem','visitor','death-quest-enroll','death-quest-claim','start-game','game-move','repair','focus-pulse','focus-finish']);
  allowed.add('focus-check');allowed.add('study-check');
- allowed.add('game-ready');allowed.add('game-inputs');
+ allowed.add('game-ready');allowed.add('game-inputs');allowed.add('brain-ready');allowed.add('brain-inputs');
  const keys=['type','room','biome','house','choice','quest','branch','item','stockEpoch','recipe','quantity','expectedGrown','expectedInventory','weapon','boss','session','move','index','game','taskId','active','pact','checkpoint','answer'];
  const copy=x=>JSON.parse(JSON.stringify(x));
  function clean(input){
   if(!input||typeof input!=='object'||!allowed.has(input.type))throw Error('ไม่รองรับคำสั่งนี้ในกิจกรรมจริง');
   const a={};for(const key of keys){const v=input[key];if(key==='branch'&&v===null)continue;if(v!==undefined){if(!['string','number','boolean'].includes(typeof v)||typeof v==='string'&&v.length>180||typeof v==='number'&&!Number.isSafeInteger(v))throw Error('รูปแบบคำสั่งไม่ถูกต้อง');a[key]=v;}}
-  if(input.type==='game-inputs'){
+  if(['game-inputs','brain-inputs'].includes(input.type)){
    if(!Array.isArray(input.inputs)||!input.inputs.length||input.inputs.length>96||input.inputs.some(r=>!Array.isArray(r)||r.length!==2||!(Number.isSafeInteger(r[0])||['hint','timeout'].includes(r[0]))||!Number.isSafeInteger(r[1])||r[1]<0||r[1]>2*86400000))throw Error('ลำดับการเล่นไม่ถูกต้อง');
    a.inputs=input.inputs.map(r=>[r[0],r[1]]);
   }

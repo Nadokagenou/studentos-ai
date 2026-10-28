@@ -1,15 +1,16 @@
 /* Local playback of server-issued boards. Only the server saves proofs and rewards. */
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.HalloweenGamePlayback=factory();})(globalThis,()=>{
  'use strict';const clone=x=>JSON.parse(JSON.stringify(x));
- function create({id,Core,config,read,now,perform,onChange=()=>{},onError=()=>{}}){
-  let game=clone(read().event.games[id]),inputs=[],retryPacket=null,flight=null,error='',closed=false;
-  const session=game.session;
+ function create({id,brain=false,Core,config,read,now,perform,onChange=()=>{},onError=()=>{}}){
+  const readGame=()=>brain?read().event.brainGame:read().event.games[id];
+  let game=clone(readGame()),inputs=[],retryPacket=null,flight=null,error='',closed=false;
+  let session=game.session;
   const state=()=>({game,pending:!!flight||!!retryPacket||inputs.length>0,error});
   const notify=()=>{if(!closed)onChange(state());};
   function project(base,row){
-   const doc=clone(read()),inputAt=base.startAt+row[1];doc.event.games[id]=clone(base);doc.event.clock=Math.min(doc.event.clock,inputAt);
-   Core.dispatch(doc,config,{type:'game-move',game:id,session,move:row[0]},{now:inputAt-doc.event.timeOffset,tx:'local-playback'});
-   return doc.event.games[id];
+   const doc=clone(read()),inputAt=base.startAt+row[1];if(brain)doc.event.brainGame=clone(base);else doc.event.games[id]=clone(base);doc.event.clock=Math.min(doc.event.clock,inputAt);
+   Core.dispatch(doc,config,{type:brain?'brain-move':'game-move',...(!brain?{game:id}:{}),session,move:row[0]},{now:inputAt-doc.event.timeOffset,tx:'local-playback'});
+   return brain?doc.event.brainGame:doc.event.games[id];
   }
   function flush(){
    if(flight)return flight;
@@ -17,10 +18,10 @@
    error='';
    const job=(async()=>{
     while(retryPacket||inputs.length){
-     const packet=retryPacket||{type:'game-inputs',game:id,session,inputs:inputs.splice(0,48)};retryPacket=packet;
+     const packet=retryPacket||{type:brain?'brain-inputs':'game-inputs',...(!brain?{game:id}:{}),session,inputs:inputs.splice(0,48)};retryPacket=packet;
      let result;try{result=await perform(packet,{silent:true});}catch{}
      if(!result){error='ยังยืนยันผลไม่ได้ ตรวจการเชื่อมต่อแล้วส่งลำดับเดิมอีกครั้ง';onError(error);break;}
-     const saved=read().event.games[id];
+     const saved=readGame();
      if(!saved||saved.session!==session){error='รอบเกมเปลี่ยนแล้ว อ่านผลจากเซฟล่าสุดก่อนเล่นต่อ';onError(error);break;}
      retryPacket=null;game=clone(saved);
      try{for(const row of inputs)game=project(game,row);}catch{error='ลำดับการเล่นเปลี่ยนไป อ่านผลจากเซฟล่าสุดก่อนเล่นต่อ';onError(error);break;}
@@ -35,7 +36,7 @@
    try{game=project(game,row);}catch(e){if(!closed)onError(e.message);return false;}
    inputs.push(row);notify();if(game.finished||inputs.length>=48)void flush();return true;
   }
-  function reset(){game=clone(read().event.games[id]);inputs=[];retryPacket=null;error='';notify();}
+  function reset(){game=clone(readGame());session=game.session;inputs=[];retryPacket=null;error='';notify();}
   return Object.freeze({state,tap,flush,reset,settling:()=>flight,close(){closed=true;return flush();}});
  }
  return Object.freeze({create});
