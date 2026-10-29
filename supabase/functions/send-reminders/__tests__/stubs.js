@@ -82,6 +82,8 @@ export function makeDb(tables, log) {
         if (st.order) out = [...out].sort((a, b) => String(a[st.order[0]]).localeCompare(String(b[st.order[0]])));
         if (st.range) out = out.slice(st.range[0], st.range[1] + 1);
         if (st.limit) out = out.slice(0, st.limit);
+        // จดการอ่านพร้อมคอลัมน์ — เทสต์ do_at_due ต้องเห็นว่ารอบนั้นลาก tasks ทั้งก้อนหรือเปล่า
+        log.push('select ' + name + ' ' + st.sel);
         return { data: out.map(r => pick(r, st.sel)), error: null };
       },
     };
@@ -92,5 +94,24 @@ export function makeDb(tables, log) {
     const m = /^jwt-(.+)$/.exec(String(jwt || ''));
     return { data: { user: m ? { id: m[1] } : null }, error: m ? null : { message: 'bad jwt' } };
   } };
-  return { from: q, auth };
+  // rpc เฉพาะตัวที่ index.ts เรียกจริง · do_at_due เลียนแบบ migration 20261029120000_do_at_due.sql
+  // (ตัวจริงทดสอบกับ Postgres แล้วใน supabase/tests/do_at_due.test.mjs — ที่นี่ทดสอบแค่ว่าฟังก์ชันใช้มันถูก)
+  // tables.__noRpc = true → จำลองตอนที่ยังไม่ได้รัน migration (PostgREST ตอบว่าไม่รู้จักฟังก์ชัน)
+  async function rpc(fn, args) {
+    log.push('rpc ' + fn);
+    if (tables.__noRpc) return { data: null, error: { message: 'Could not find the function public.' + fn } };
+    if (fn !== 'do_at_due') return { data: null, error: { message: 'stub: unknown rpc ' + fn } };
+    const ids = new Set(args.p_ids || []);
+    const from = Date.parse(args.p_from), to = Date.parse(args.p_to);
+    const out = [];
+    for (const u of tables.user_state || []) {
+      if (!ids.has(u.id)) continue;
+      const list = Array.isArray(u.data?.tasks) ? u.data.tasks : [];
+      const hit = list.filter(t => t && typeof t === 'object' && typeof t.doAt === 'string'
+        && Date.parse(t.doAt) >= from && Date.parse(t.doAt) <= to);
+      if (hit.length) out.push(clone({ id: u.id, tasks: hit, settings: { notifOff: u.data?.settings?.notifOff ?? null } }));
+    }
+    return { data: out, error: null };
+  }
+  return { from: q, auth, rpc };
 }
