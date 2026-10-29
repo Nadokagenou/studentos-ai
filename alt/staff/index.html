@@ -89,7 +89,8 @@
                 aria-label="ค้นหาผู้ใช้"
                 placeholder="ค้นหา @ชื่อผู้ใช้ ชื่อ หรือรหัสบัญชี"
                 maxlength="100"
-              /><button type="submit">ค้นหา</button>
+              /><button type="submit">ค้นหา</button
+              ><button type="button" id="messageGroup" class="primary" data-message-group="all">ส่งข่าวถึงกลุ่มนี้</button>
             </form>
             <div id="peopleChips" class="chips" role="group" aria-label="กลุ่มผู้ใช้"></div>
             <div class="table-scroll">
@@ -181,47 +182,54 @@
           </article>
         </section>
         <section id="view-notices" class="view" hidden>
-          <div class="two-col">
-            <article class="panel">
-              <h2>เขียนข่าวสาร</h2>
+          <div class="grid g32">
+            <article class="card">
+              <h2>เขียนข่าว</h2>
               <form id="noticeForm" class="stack">
-                <label
-                  >หัวข้อ<input
-                    id="noticeTitle"
-                    minlength="4"
-                    maxlength="60"
-                    required
-                    placeholder="ข่าวอะไรที่ผู้ใช้ต้องรู้" /></label
-                ><label
-                  >ข้อความ<textarea
-                    id="noticeBody"
-                    maxlength="280"
-                    required
-                    placeholder="อธิบายให้สั้น ชัด และตรงกับสิ่งที่เกิดขึ้นจริง"
-                  ></textarea></label
-                ><label
-                  >หมดอายุเมื่อใด (ไม่บังคับ)<input
-                    id="noticeUntil"
-                    type="datetime-local" /></label
-                ><button type="submit">บันทึกเป็นร่าง</button>
+                <label>หัวข้อ<input id="noticeTitle" minlength="4" maxlength="60" required placeholder="ข่าวอะไรที่ผู้ใช้ต้องรู้" /></label>
+                <label>ข้อความ <small id="bodyCount" class="footnote">0/280</small><textarea id="noticeBody" maxlength="280" required placeholder="อธิบายให้สั้น ชัด และตรงกับสิ่งที่เกิดขึ้นจริง"></textarea></label>
+                <fieldset class="aud" id="audience">
+                  <legend>ส่งถึงใคร</legend>
+                  <label class="opt"><input type="radio" name="aud" value="all" checked /><span>ทุกคน<small>ขึ้นในหน้าข่าวสารของทุกคน รวมคนที่ไม่ได้ล็อกอิน</small></span></label>
+                  <label class="opt"><input type="radio" name="aud" value="active" /><span>ใช้ใน 7 วัน</span></label>
+                  <label class="opt"><input type="radio" name="aud" value="gone" /><span>หายไปเกิน 3 วัน<small>เหมาะกับข่าวชวนกลับ</small></span></label>
+                  <label class="opt"><input type="radio" name="aud" value="new" /><span>คนใหม่ 7 วัน</span></label>
+                  <label class="opt"><input type="radio" name="aud" value="old" /><span>ใช้แอปรุ่นเก่า<small>เหมาะกับข่าวให้อัปเดต</small></span></label>
+                  <label class="opt"><input type="radio" name="aud" value="stuck" /><span>ยังไม่สร้างงาน</span></label>
+                  <label class="opt"><input type="radio" name="aud" value="grade" /><span>ตามชั้นปี <select id="audGrade" aria-label="ชั้นปี"><option>ม.1</option><option>ม.2</option><option>ม.3</option><option selected>ม.4</option><option>ม.5</option><option>ม.6</option></select></span></label>
+                  <label class="opt"><input type="radio" name="aud" value="pick" /><span>เลือกเอง<small id="pickedNames">เลือกจากหน้าผู้ใช้ → กดชื่อ → "ส่งข่าวหาคนนี้"</small></span></label>
+                </fieldset>
+                <p id="audCount" class="footnote" aria-live="polite"></p>
+                <div class="two-col tight">
+                  <label>ส่งเมื่อไหร่<select id="sendWhen"><option value="now">ส่งทันที</option><option value="later">ตั้งเวลา</option></select></label>
+                  <label id="sendAtWrap" hidden>วันเวลาที่ส่ง (เวลาไทย)<input id="sendAt" type="datetime-local" /></label>
+                </div>
+                <label>หายจากแอปเมื่อ (ไม่บังคับ)<input id="noticeUntil" type="datetime-local" /></label>
+                <label class="check"><input id="sendPush" type="checkbox" checked /> เด้งแจ้งเตือนบนมือถือด้วย</label>
+                <div class="actions">
+                  <button type="submit" class="primary">ตรวจแล้วส่ง</button>
+                  <button type="button" id="draftBtn">บันทึกร่าง (ทุกคน)</button>
+                </div>
               </form>
             </article>
-            <article class="panel soft">
-              <p class="eyebrow">ตัวอย่างที่ผู้ใช้จะเห็น</p>
-              <div class="notice-preview">
-                <span class="tag">ข่าวจากทีม Student OS</span>
-                <h2 id="previewTitle">หัวข้อประกาศ</h2>
-                <p id="previewBody">ข้อความที่เขียนจะแสดงตรงนี้</p>
-              </div>
-              <p class="footnote">
-                บันทึกร่างก่อน แล้วกดเผยแพร่จากรายการด้านล่าง
-                การแจ้งเตือนนอกแอปส่งเฉพาะเครื่องที่อนุญาตไว้ และพักช่วง
-                22:00–07:00 น.
-              </p>
-            </article>
+            <div class="grid">
+              <article class="card soft">
+                <p class="eyebrow">ตัวอย่างที่ผู้ใช้จะเห็น</p>
+                <div class="notice-preview">
+                  <span class="tag">ข่าวจากทีม Student OS</span>
+                  <h2 id="previewTitle">หัวข้อประกาศ</h2>
+                  <p id="previewBody">ข้อความที่เขียนจะแสดงตรงนี้</p>
+                </div>
+                <p class="footnote">ส่งถึงทุกคน = ขึ้นในหน้าข่าวสาร · ส่งถึงกลุ่ม = ขึ้นในกระดิ่งของคนในกลุ่มเท่านั้น · แจ้งเตือนนอกแอปส่งเฉพาะเครื่องที่อนุญาตไว้ และพักช่วง 22:00–07:00 น.</p>
+              </article>
+            </div>
           </div>
-          <article class="panel">
-            <h2>ร่างและประกาศที่เผยแพร่</h2>
+          <article class="card">
+            <div class="card-h"><h2>ข่าวที่ส่งและที่ตั้งเวลาไว้</h2></div>
+            <div id="sendList"></div>
+          </article>
+          <article class="card">
+            <h2>ร่างและประกาศแบบเดิม</h2>
             <div id="noticeList"></div>
           </article>
         </section>
