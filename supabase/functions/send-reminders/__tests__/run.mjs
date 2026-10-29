@@ -676,6 +676,26 @@ const doTask = (id, doMs, extra = {}) => hw(id, TH(9, 23, 59), { doAt: iso(doMs)
   check('doAt-only round leaves regular reminders alone', r.sent.length === 0 && t.push_sent.length === 0, JSON.stringify(r.sent));
 }
 
+// ---- 29 ต.ค. 69 · คัดนัดในฐานข้อมูล (do_at_due) แทนการลาก tasks ทั้งก้อนทุก 5 นาที ----
+// ข้อมูลจริง: รอบละ ~271 KB (7 คน) ทั้งที่งานที่มีนัดรวมกันแค่ ~1 KB · ~300 รอบ/วัน · Egress เกินแผนฟรี 363%
+const pullsAllTasks = () => sb.__log.some(x => /^select user_state .*tasks:data->tasks/.test(x));
+{
+  const t = rhythm({ tasks: [doTask('r1', TH(6, 20, 0)), hw('plain', TH(9, 23, 59), { detail: 'ก'.repeat(2000) })] });
+  sb.__log.length = 0;
+  const r = await atBody(TH(6, 20, 0), t, { only: 'doAt' });
+  check('doAt: fires through do_at_due', r.sent.length === 1 && r.sent[0].tag === 'do-r1', JSON.stringify(r.sent));
+  check('doAt: round never pulls the whole task list', !pullsAllTasks() && sb.__log.includes('rpc do_at_due'), JSON.stringify(sb.__log));
+}
+{
+  // migration ยังไม่ได้รัน → ต้องยังดังเหมือนเดิม (ถอยไปลากทั้งก้อน) และบอกไว้ใน errors ให้เห็น
+  const t = rhythm({ tasks: [doTask('fb', TH(6, 20, 0))] });
+  t.__noRpc = true;
+  sb.__log.length = 0;
+  const r = await atBody(TH(6, 20, 0), t, { only: 'doAt' });
+  check('doAt: rpc missing -> still fires (fallback)', r.sent.length === 1 && r.sent[0].tag === 'do-fb', JSON.stringify(r.sent));
+  check('doAt: rpc missing -> reported in errors', (r.body.errors || []).some(e => /do_at_due/.test(e)), JSON.stringify(r.body.errors));
+}
+
 for (const r of results) console.log((r.pass ? 'PASS  ' : 'FAIL  ') + r.name + (r.pass ? '' : '   >> ' + r.detail));
 const failed = results.filter(r => !r.pass);
 console.log('');
