@@ -1,6 +1,8 @@
 import { renderIssues, renderBugs } from './report-ui.mjs';
 import { createStaffSessionStorage, STAFF_AUTH_KEY } from './staff-auth.mjs';
 import { pushStatusHTML } from './push-status-ui.mjs';
+import { demoInsights } from './insights-demo.mjs';
+import { overviewHTML, usageHTML, outcomesHTML, peopleRowsHTML, peopleChipsHTML, personHTML } from './insights-ui.mjs';
 const $ = (id) => document.getElementById(id);
 const esc = (v) =>
   String(v ?? "").replace(
@@ -21,7 +23,9 @@ const when = (v) =>
     : "ยังไม่มีข้อมูล";
 const titles = {
   overview: "ภาพรวม",
-  users: "ผู้ใช้งาน",
+  usage: "การใช้งาน",
+  outcomes: "ผลของแอป",
+  users: "ผู้ใช้",
   tokens: "โทเคนและการแบน",
   notices: "ข่าวสารและแจ้งเตือน",
   issues: "รายงานและปัญหาแอป",
@@ -58,6 +62,10 @@ let pending = null;
 let pushPage=0,pushLoadSeq=0;
 let staffAuth, authEpoch = 0;
 let bugPage = 0, issuePage = 0, reportBucket = 'pending', reportLoadSeq = 0;
+let days = 7, peopleFilter = 'all', person = null, personSeq = 0, insightSeq = 0;
+// Renderers are looked up when a page loads, not at module start.
+const insightViews = { overview: 'overviewBody', usage: 'usageBody', outcomes: 'outcomesBody' };
+const renderInsight = (name, r) => (name === 'usage' ? usageHTML : name === 'outcomes' ? outcomesHTML : overviewHTML)(r);
 const data = { users: [], notices: [], issues: [], audit: [] };
 const demoUsers = Array.from({ length: 12 }, (_, i) => ({
   id: `00000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`,
@@ -151,6 +159,7 @@ async function api(action, payload = {}) {
   return body;
 }
 async function demoApi(action, p) {
+  if (['insights', 'people', 'person'].includes(action)) return demoInsights(action, p);
   if(action==='push_status') return {metrics:{pending:0,sending:0,accepted_24h:0,failed:0},items:[],generated_at:new Date().toISOString(),has_more:false};
   if (action === "session")
     return { login: "demo_developer", repo: "Nadokagenou/studentos-ai" };
@@ -319,36 +328,24 @@ async function refreshAfterReportSave(result) {
 }
 async function load() {
   if(view==='push_status') return loadPushStatus();
-  if (view === "overview") {
-    const r = await api("overview");
-    $("metrics").innerHTML = [
-      ["บัญชีที่เคยซิงก์", r.users, "ยังไม่นับผู้ใช้แบบไม่ล็อกอิน"],
-      ["ซิงก์ใน 24 ชั่วโมง", r.synced_24h, "นับเวลาซิงก์ล่าสุด"],
-      ["รายงานเนื้อหาที่ยังไม่ปิด", r.open_reports, "รับเรื่องและติดตามต่อได้"],
-      ["เพิ่มโทเคนวันนี้", r.tokens_today, "ยอดรวมจากรายการแอดมิน"],
-    ]
-      .map(
-        ([l, n, s]) =>
-          `<article class="metric"><span>${esc(l)}</span><b>${fmt(n)}</b><small>${esc(s)}</small></article>`,
-      )
-      .join("");
-    $("overviewIssues").innerHTML = issuesHTML(r.issues || [], true);
-    $("overviewAudit").innerHTML = auditHTML(r.audit || []);
+  if (insightViews[view]) {
+    const id = insightViews[view], seq = ++insightSeq, shown = view;
+    if (!$(id).innerHTML) $(id).innerHTML = empty("กำลังคำนวณตัวเลข…");
+    const r = await api("insights", { days });
+    if (seq !== insightSeq || view !== shown) return;
+    $(id).innerHTML = renderInsight(shown, r);
+    $("updatedAt").textContent = "อัปเดต " + when(r.generated_at);
   }
   if (view === "users") {
-    const r = await api("users", {
+    const r = await api("people", {
+      filter: peopleFilter,
       query: $("userQuery").value.trim(),
-      offset: page * 20,
+      offset: page * 50,
     });
     data.users = r.items || [];
-    $("usersRows").innerHTML = data.users.length
-      ? data.users
-          .map(
-            (x) =>
-              `<tr><td><b>${esc(x.display_name || "ยังไม่มีชื่อ")}</b><small>@${esc(x.handle || x.id.slice(0, 8))}</small>${x.banned ? `<small>แบน${x.ban_until ? 'ถึง ' + esc(when(x.ban_until)) : 'ถาวร'}</small>` : ''}</td><td>${esc(when(x.last_sync))}</td><td>${fmt(x.balance)}</td><td><button data-target="${esc(x.id)}">จัดการบัญชี</button></td></tr>`,
-          )
-          .join("")
-      : '<tr><td colspan="4">ไม่พบผู้ใช้</td></tr>';
+    data.today = r.today || new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+    $("peopleChips").innerHTML = peopleChipsHTML(r.counts, peopleFilter);
+    $("usersRows").innerHTML = peopleRowsHTML(data.users, data.today);
     $("usersPage").textContent = `หน้า ${page + 1}`;
     $("usersPrev").disabled = page === 0;
     $("usersNext").disabled = !r.has_more;
@@ -372,9 +369,29 @@ async function load() {
       : empty("ยังไม่มีประกาศ เริ่มจากบันทึกเป็นร่าง");
   }
 }
+async function openPerson(id) {
+  const seq = ++personSeq;
+  $("personBody").innerHTML = empty("กำลังโหลด…");
+  $("personDrawer").hidden = false;
+  try {
+    const p = await api("person", { id });
+    if (seq !== personSeq) return;
+    person = p;
+    $("personBody").innerHTML = personHTML(p, data.today);
+  } catch (e) {
+    if (seq === personSeq) $("personBody").innerHTML = empty(e.message);
+  }
+}
+function closePerson() {
+  ++personSeq;
+  $("personDrawer").hidden = true;
+}
 async function show(next) {
   if (!titles[next]) return;
   view = next;
+  closePerson();
+  $("range").hidden = !insightViews[next];
+  if (!insightViews[next]) $("updatedAt").textContent = "";
   document
     .querySelectorAll(".view")
     .forEach((e) => (e.hidden = e.id !== `view-${next}`));
@@ -432,8 +449,22 @@ async function mutate(action, payload, success) {
   }
 }
 document.addEventListener("click", async (e) => {
+  if (e.target.id === "personDrawer") return closePerson();
+  const row = e.target.closest("tr[data-person]");
+  if (row) return openPerson(row.dataset.person);
   const b = e.target.closest("button");
   if (!b) return;
+  if (b.dataset.closePerson !== undefined) return closePerson();
+  if (b.dataset.days) {
+    days = Number(b.dataset.days);
+    document.querySelectorAll("[data-days]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    return show(insightViews[view] ? view : "overview");
+  }
+  if (b.dataset.peopleFilter) {
+    peopleFilter = b.dataset.peopleFilter;
+    page = 0;
+    return show("users");
+  }
   if (b.dataset.view || b.dataset.jump)
     return show(b.dataset.view || b.dataset.jump);
   if (b.dataset.reportBucket) {
@@ -458,7 +489,8 @@ document.addEventListener("click", async (e) => {
   }
   if (b.dataset.target) {
     if (busy) return;
-    target = data.users.find((x) => x.id === b.dataset.target);
+    target = data.users.find((x) => x.id === b.dataset.target) || (person?.id === b.dataset.target ? person : null);
+    if (!target) return;
     $("grantTarget").value =
       `${target.display_name || ""} · @${target.handle || target.id}`;
     $('banCurrent').textContent = `${target.display_name || ''} · @${target.handle || target.id} · ${target.banned ? (target.ban_until ? 'แบนถึง ' + when(target.ban_until) : 'แบนถาวร') : 'ใช้งานปกติ'}`;
@@ -511,6 +543,11 @@ document.addEventListener("click", async (e) => {
     else if (result) await reloadData();
     return;
   }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("personDrawer").hidden) closePerson();
+  const row = e.target.closest?.("tr[data-person]");
+  if (row && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openPerson(row.dataset.person); }
 });
 document.addEventListener('submit', async (e) => {
   const form = e.target.closest('[data-bug-form]');
@@ -652,7 +689,8 @@ function adoptSession(next) {
     target = null; pending = null;
     for(const id of ['pushMetrics','pushRows','pushUpdated','pushHint']) $(id).textContent='';
     for (const key of Object.keys(data)) data[key] = [];
-    for (const id of ['identity', 'metrics', 'usersRows', 'noticeList', 'bugIssueList', 'issueList', 'auditList', 'overviewIssues', 'overviewAudit']) $(id).innerHTML = '';
+    person = null; ++personSeq; ++insightSeq; $('personDrawer').hidden = true;
+    for (const id of ['identity', 'overviewBody', 'usageBody', 'outcomesBody', 'peopleChips', 'personBody', 'updatedAt', 'usersRows', 'noticeList', 'bugIssueList', 'issueList', 'auditList']) $(id).innerHTML = '';
     document.querySelectorAll('form input, form textarea').forEach(el => el.value = '');
     gate('บัญชีเปลี่ยนแล้ว กรุณาเปิด Control Room อีกครั้ง');
   }
