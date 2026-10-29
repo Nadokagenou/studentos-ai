@@ -40,11 +40,12 @@ function staffNotifItems(cut) {
   const personal = user && user === staffPersonalUser ? staffPersonalRows.map(x => ({...x, personal: true})) : [];
   return [...publicRows, ...personal].filter(x => !x.until_at || Date.parse(x.until_at) > Date.now()).map(x => ({
     kind: "staff", at: Date.parse(x.published_at), unread: Date.parse(x.published_at) > cut,
-    staff: {id:x.id,title:x.title,body:x.body,personal:x.personal}
+    staff: {id:x.id,title:x.title,body:x.body,personal:x.personal,kind:x.kind}
   })).filter(x => Number.isFinite(x.at));
 }
 function staffNotifOpen(id) {
   const item = staffNotifItems(0).find(x => x.staff.id === id);
+  if (item?.staff.kind === "news") return; // group news from the team: the bell row already shows it in full
   if (item?.staff.personal) { if (typeof go === "function") go("scr-shop"); }
   else if (typeof go === "function") go("scr-news");
 }

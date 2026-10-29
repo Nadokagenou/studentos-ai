@@ -2,6 +2,7 @@ import { renderIssues, renderBugs } from './report-ui.mjs';
 import { createStaffSessionStorage, STAFF_AUTH_KEY } from './staff-auth.mjs';
 import { pushStatusHTML } from './push-status-ui.mjs';
 import { demoInsights } from './insights-demo.mjs';
+import { sendsHTML, sendSummary, audienceLabel, FILTER_TO_AUDIENCE } from './send-ui.mjs';
 import { overviewHTML, usageHTML, outcomesHTML, peopleRowsHTML, peopleChipsHTML, personHTML } from './insights-ui.mjs';
 const $ = (id) => document.getElementById(id);
 const esc = (v) =>
@@ -63,6 +64,7 @@ let pushPage=0,pushLoadSeq=0;
 let staffAuth, authEpoch = 0;
 let bugPage = 0, issuePage = 0, reportBucket = 'pending', reportLoadSeq = 0;
 let days = 7, peopleFilter = 'all', person = null, personSeq = 0, insightSeq = 0;
+let picked = [], audSeq = 0, audTimer = 0, lastAud = null;
 // Renderers are looked up when a page loads, not at module start.
 const insightViews = { overview: 'overviewBody', usage: 'usageBody', outcomes: 'outcomesBody' };
 const renderInsight = (name, r) => (name === 'usage' ? usageHTML : name === 'outcomes' ? outcomesHTML : overviewHTML)(r);
@@ -83,6 +85,10 @@ let demoNotices = [
     created_at: new Date().toISOString(),
     push_requested: false,
   },
+];
+let demoSends = [
+  { id: "00000000-0000-4000-8000-0000000000a1", title: "ภารกิจฮาโลวีนเหลือ 2 วัน", body: "ทำงานให้เสร็จ 3 ชิ้นวันนี้ รับของตกแต่งธีมฟักทองฟรี", audience: "ทุกคน", public: true, recipients: 0, status: "scheduled", scheduled_at: new Date(Date.now() + 5 * 3600000).toISOString(), push: true, push_total: 0, push_accepted: 0, push_failed: 0 },
+  { id: "00000000-0000-4000-8000-0000000000a2", title: "คิดถึงนะ กลับมาดูงานที่ค้างไว้", body: "มีงานใกล้ส่ง 2 ชิ้น เปิดแอปดูได้เลย", audience: "หายไปเกิน 3 วัน", public: false, recipients: 5, status: "published", published_at: new Date(Date.now() - 86400000).toISOString(), push: true, push_total: 2, push_accepted: 2, push_failed: 0 },
 ];
 let demoIssues = [
   {
@@ -160,6 +166,10 @@ async function api(action, payload = {}) {
 }
 async function demoApi(action, p) {
   if (['insights', 'people', 'person'].includes(action)) return demoInsights(action, p);
+  if (action === 'audience') { const n = { all: 24, active: 14, gone: 5, new: 3, old: 3, stuck: 1, grade: 10, pick: p.audience.ids?.length || 0 }[p.audience.kind]; return { recipients: n, push_ready: Math.round(n * 0.3) }; }
+  if (action === 'sends') return { items: demoSends };
+  if (action === 'send') { demoSends.unshift({ id: crypto.randomUUID(), title: p.title, body: p.body, audience: p.label, public: p.audience.kind === 'all', recipients: p.audience.kind === 'all' ? 0 : 5, status: p.at ? 'scheduled' : 'published', scheduled_at: p.at, published_at: p.at ? null : new Date().toISOString(), until_at: p.until, push: p.push, push_total: p.push && !p.at ? 2 : 0, push_accepted: 0, push_failed: 0 }); demoLog('send', p.title + ' · ' + p.label); return { id: p.request_id }; }
+  if (action === 'cancel_send') { const x = demoSends.find(y => y.id === p.batch_id); if (x) x.status = 'withdrawn'; demoLog('cancel_send', x?.title || ''); return { ok: true }; }
   if(action==='push_status') return {metrics:{pending:0,sending:0,accepted_24h:0,failed:0},items:[],generated_at:new Date().toISOString(),has_more:false};
   if (action === "session")
     return { login: "demo_developer", repo: "Nadokagenou/studentos-ai" };
@@ -345,6 +355,8 @@ async function load() {
     data.users = r.items || [];
     data.today = r.today || new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
     $("peopleChips").innerHTML = peopleChipsHTML(r.counts, peopleFilter);
+    $("messageGroup").dataset.messageGroup = peopleFilter;
+    $("messageGroup").hidden = !FILTER_TO_AUDIENCE[peopleFilter];
     $("usersRows").innerHTML = peopleRowsHTML(data.users, data.today);
     $("usersPage").textContent = `หน้า ${page + 1}`;
     $("usersPrev").disabled = page === 0;
@@ -358,7 +370,12 @@ async function load() {
     await loadReports();
   }
   if (view === "notices") {
-    data.notices = (await api("notices")).items || [];
+    const [notices, sends] = await Promise.allSettled([api("notices"), api("sends")]);
+    $("sendList").innerHTML = sends.status === "fulfilled" ? sendsHTML(sends.value.items || []) : empty("ยังโหลดรายการข่าวที่ส่งไม่ได้ กดรีเฟรชเพื่อลองใหม่");
+    if (notices.status === "rejected") throw notices.reason;
+    // Sends made from the new form are listed above; keep this list for drafts and older notices.
+    data.notices = (notices.value.items || []).filter((x) => !x.batch_id);
+    refreshAudience();
     $("noticeList").innerHTML = data.notices.length
       ? data.notices
           .map(
@@ -366,7 +383,7 @@ async function load() {
               `<div class="item"><h3>${esc(x.title)} <span class="tag ${x.status === "draft" ? "dim" : ""}">${esc({ draft: "ร่าง", published: "เผยแพร่แล้ว", withdrawn: "ถอนแล้ว" }[x.status] || x.status)}</span></h3><p>${esc(x.body)}</p><p>${esc(when(x.published_at || x.created_at))}${x.push_status ? " · " + esc(x.push_status) : ""}</p><div class="actions">${x.status === "draft" ? `<button data-publish="${esc(x.id)}">เผยแพร่เป็นข่าวในแอป</button><button data-push="${esc(x.id)}">เผยแพร่พร้อมแจ้งเตือน Push</button>` : ""}${x.status !== "withdrawn" ? `<button data-withdraw="${esc(x.id)}">ถอนประกาศ</button>` : ""}</div></div>`,
           )
           .join("")
-      : empty("ยังไม่มีประกาศ เริ่มจากบันทึกเป็นร่าง");
+      : empty("ยังไม่มีร่างหรือประกาศแบบเดิม");
   }
 }
 async function openPerson(id) {
@@ -455,6 +472,27 @@ document.addEventListener("click", async (e) => {
   const b = e.target.closest("button");
   if (!b) return;
   if (b.dataset.closePerson !== undefined) return closePerson();
+  if (b.dataset.messagePerson) {
+    const p = person?.id === b.dataset.messagePerson ? person : data.users.find((x) => x.id === b.dataset.messagePerson);
+    if (p && !picked.some((x) => x.id === p.id)) picked.push({ id: p.id, name: p.display_name || "@" + (p.handle || p.id.slice(0, 8)) });
+    await show("notices");
+    document.querySelector('input[name="aud"][value="pick"]').checked = true;
+    return refreshAudience();
+  }
+  if (b.dataset.messageGroup) {
+    await show("notices");
+    const input = document.querySelector(`input[name="aud"][value="${FILTER_TO_AUDIENCE[b.dataset.messageGroup] || "all"}"]`);
+    if (input) input.checked = true;
+    return refreshAudience();
+  }
+  if (b.dataset.cancelSend) {
+    const scheduled = b.textContent.includes("ยกเลิก");
+    if (!(await confirm(scheduled ? "ยกเลิกข่าวที่ตั้งเวลาไว้?" : "ถอนข่าวนี้?",
+      scheduled ? "ข่าวนี้จะไม่ถูกส่ง" : "ข่าวจะหายจากแอปของผู้รับ และยกเลิกแจ้งเตือนที่ยังไม่ได้ส่ง แจ้งเตือนที่เด้งไปแล้วเรียกคืนไม่ได้",
+      scheduled ? "ยกเลิกการตั้งเวลา" : "ถอนข่าว"))) return;
+    if (await mutate("cancel_send", { batch_id: b.dataset.cancelSend }, scheduled ? "ยกเลิกแล้ว" : "ถอนข่าวแล้ว")) await reloadData();
+    return;
+  }
   if (b.dataset.days) {
     days = Number(b.dataset.days);
     document.querySelectorAll("[data-days]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
@@ -634,26 +672,67 @@ $('banForm').addEventListener('submit', async e => {
     $('banReason').value = ''; $('banAction').value = target.banned ? 'unban' : '1d';
   }
 });
-$("noticeForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const payload = {
+function currentAudience() {
+  const kind = document.querySelector('input[name="aud"]:checked')?.value || "all";
+  if (kind === "grade") return { kind, grade: $("audGrade").value };
+  if (kind === "pick") return { kind, ids: picked.map((x) => x.id) };
+  return { kind };
+}
+// Datetime inputs are read as Thai wall-clock time whatever the device's own time zone is.
+const thaiTime = (v) => (v ? new Date(v + ":00+07:00").toISOString() : null);
+function refreshAudience() {
+  clearTimeout(audTimer);
+  const aud = currentAudience(), seq = ++audSeq;
+  $("pickedNames").textContent = picked.length ? picked.map((x) => x.name).join(", ") : 'เลือกจากหน้าผู้ใช้ → กดชื่อ → "ส่งข่าวหาคนนี้"';
+  if (aud.kind === "pick" && !picked.length) { lastAud = null; $("audCount").textContent = "ยังไม่ได้เลือกใคร"; return; }
+  $("audCount").textContent = "กำลังนับผู้รับ…";
+  audTimer = setTimeout(async () => {
+    try {
+      const r = await api("audience", { audience: aud });
+      if (seq !== audSeq) return;
+      lastAud = { key: JSON.stringify(aud), ...r };
+      $("audCount").textContent = `จะถึง ${fmt(r.recipients)} คน · ในนั้นเด้งบนมือถือได้ ${fmt(r.push_ready)} คน`;
+    } catch (e) {
+      if (seq === audSeq) $("audCount").textContent = "นับผู้รับไม่ได้: " + e.message;
+    }
+  }, 250);
+}
+function sendDraftPayload() {
+  return {
     title: $("noticeTitle").value.trim(),
     body: $("noticeBody").value.trim(),
-    until: $("noticeUntil").value
-      ? new Date($("noticeUntil").value).toISOString()
-      : null,
+    until: thaiTime($("noticeUntil").value),
   };
-  if (payload.title.length < 4 || !payload.body) {
-    message("กรอกหัวข้อและข้อความให้ครบ", true);
-    return;
-  }
-  if (await mutate("draft", payload, "บันทึกร่างแล้ว ยังไม่ได้ส่งให้ผู้ใช้")) {
-    e.target.reset();
-    preview();
-    await load();
-  }
+}
+function resetCompose() {
+  $("noticeForm").reset(); picked = []; preview(); refreshAudience(); $("sendAtWrap").hidden = true;
+}
+$("noticeForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const base = sendDraftPayload(), aud = currentAudience();
+  if (base.title.length < 4 || !base.body) return message("กรอกหัวข้อ (อย่างน้อย 4 ตัวอักษร) และข้อความให้ครบ", true);
+  if (aud.kind === "pick" && !picked.length) return message("ยังไม่ได้เลือกผู้รับ เลือกจากหน้าผู้ใช้ก่อนครับ", true);
+  const later = $("sendWhen").value === "later";
+  const at = later ? thaiTime($("sendAt").value) : null;
+  if (later && !at) return message("เลือกวันเวลาที่จะส่ง", true);
+  const label = audienceLabel(aud, picked), push = $("sendPush").checked;
+  const counts = lastAud?.key === JSON.stringify(aud) ? lastAud : {};
+  if (!(await confirm(later ? "ตรวจข่าวก่อนตั้งเวลา" : "ตรวจข่าวก่อนส่ง",
+    sendSummary({ ...base, aud, label, recipients: counts.recipients, pushReady: counts.push_ready, at, push }),
+    later ? "ตั้งเวลาส่ง" : "ส่งเลย"))) return;
+  const r = await mutate("send", { ...base, at, push, audience: aud, label },
+    later ? "ตั้งเวลาแล้ว ข่าวจะออกตามเวลาที่เลือก" : "ส่งข่าวแล้ว");
+  if (r) { resetCompose(); await load(); }
 });
+$("draftBtn").onclick = async () => {
+  const payload = sendDraftPayload();
+  if (payload.title.length < 4 || !payload.body) return message("กรอกหัวข้อและข้อความให้ครบ", true);
+  if (await mutate("draft", payload, "บันทึกร่างแล้ว ยังไม่ได้ส่งให้ผู้ใช้ · ร่างส่งได้ถึงทุกคนเท่านั้น")) { resetCompose(); await load(); }
+};
+$("audience").addEventListener("change", refreshAudience);
+$("sendWhen").onchange = () => { $("sendAtWrap").hidden = $("sendWhen").value !== "later"; };
 function preview() {
+  $("bodyCount").textContent = `${$("noticeBody").value.length}/280`;
   $("previewTitle").textContent = $("noticeTitle").value || "หัวข้อประกาศ";
   $("previewBody").textContent =
     $("noticeBody").value || "ข้อความที่เขียนจะแสดงตรงนี้";
@@ -690,7 +769,8 @@ function adoptSession(next) {
     for(const id of ['pushMetrics','pushRows','pushUpdated','pushHint']) $(id).textContent='';
     for (const key of Object.keys(data)) data[key] = [];
     person = null; ++personSeq; ++insightSeq; $('personDrawer').hidden = true;
-    for (const id of ['identity', 'overviewBody', 'usageBody', 'outcomesBody', 'peopleChips', 'personBody', 'updatedAt', 'usersRows', 'noticeList', 'bugIssueList', 'issueList', 'auditList']) $(id).innerHTML = '';
+    picked = []; lastAud = null; ++audSeq;
+    for (const id of ['identity', 'sendList', 'audCount', 'overviewBody', 'usageBody', 'outcomesBody', 'peopleChips', 'personBody', 'updatedAt', 'usersRows', 'noticeList', 'bugIssueList', 'issueList', 'auditList']) $(id).innerHTML = '';
     document.querySelectorAll('form input, form textarea').forEach(el => el.value = '');
     gate('บัญชีเปลี่ยนแล้ว กรุณาเปิด Control Room อีกครั้ง');
   }
