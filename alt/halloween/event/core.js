@@ -302,6 +302,9 @@
     game.playback=2;game.lastInputAt=at;
     if(game.id==='ghost-ship-hunt'){game.cueIndex=0;game.cues=[game.target,...Array.from({length:8},()=>Math.floor(random(event)*3))];}
   }
+  // Batches leave the browser after the final tap. Each tap is still judged at its own time;
+  // this only lets the trip to the server finish a round that was won in time.
+  const INPUT_GRACE_MS=5000;
   function playInputs(document,config,action,now,tx,receivedAt) {
     const brain=action.type==='brain-inputs',source=brain?document.event.brainGame:document.event.games[action.game];
     if(!source||source.session!==action.session||source.finished||source.playback!==2)fail('ไม่พบรอบเกมที่กำลังเล่น');
@@ -315,7 +318,7 @@
       const deadline=game.deadline;
       next.event.clock=Math.min(next.event.clock,inputAt);
       const result=dispatch(next,config,{type:brain?'brain-move':'game-move',...(!brain?{game:action.game}:{}),session:action.session,move:row[0]},{now:inputAt-next.event.timeOffset,tx:tx+':'+i});
-      if(game.finished&&game.clear&&deadline&&arrival>=deadline)fail('ผลเกมมาถึงหลังเวลาของรอบนี้หมดแล้ว');
+      if(game.finished&&game.clear&&deadline&&arrival>=deadline+INPUT_GRACE_MS)fail('ผลเกมมาถึงหลังเวลาของรอบนี้หมดแล้ว');
       candy+=result.candy||0;game.lastInputAt=inputAt;
     }
     Object.assign(document.event,next.event);
@@ -665,5 +668,5 @@
     event.clock = at;
     return result;
   }
-  return Object.freeze({BIOMES, SHORT, DAY, HOUR,Rotations, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,questWait,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, questNeeds, houseAvailability,questAidStatus, gameDefinition, dispatch});
+  return Object.freeze({BIOMES, SHORT, DAY, HOUR,Rotations, INPUT_GRACE_MS, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,questWait,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, questNeeds, houseAvailability,questAidStatus, gameDefinition, dispatch});
 });

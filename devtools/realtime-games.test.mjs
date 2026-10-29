@@ -31,7 +31,7 @@ test('ghosts and differences accept rapid local tap sequences while the server c
 });
 test('late, future and reordered traces cannot fabricate a timed win or partially save',()=>{
  const id='catch-all-ghosts',d=start(id),snapshot=JSON.stringify(d),inputs=Array.from({length:6},(_,i)=>[i,100+i*10]);
- assert.throws(()=>submit(d,id,inputs,at+30000));assert.throws(()=>submit(d,id,[[0,2000]],at+1000));assert.throws(()=>submit(d,id,[[0,200],[1,100]],at+1000));assert.equal(JSON.stringify(d),snapshot);
+ assert.throws(()=>submit(d,id,inputs,at+30000+Core.INPUT_GRACE_MS));assert.throws(()=>submit(d,id,[[0,2000]],at+1000));assert.throws(()=>submit(d,id,[[0,200],[1,100]],at+1000));assert.equal(JSON.stringify(d),snapshot);
  for(const bad of [[],[[99,100]],[[0,-1]],[[0,1.5]],Array.from({length:97},()=>[0,1]),{clear:true}])assert.throws(()=>submit(d,id,bad));
 });
 test('memory reveal and pair mismatch delays remain checked from bounded input times',()=>{
@@ -53,4 +53,21 @@ test('six ghost taps complete locally before any slow save and server proof stay
 test('a closed game drains its captured inputs without drawing a late response, and retries the exact failed packet',async()=>{
  let doc=start('catch-all-ghosts'),fail=true,paints=0;const calls=[],controller=Playback.create({id:'catch-all-ghosts',Core,config:{...config,preview:true},read:()=>doc,now:()=>at+500,onChange:()=>paints++,perform:async action=>{calls.push(JSON.stringify(action));if(fail){fail=false;return null;}const result=submit(doc,action.game,action.inputs);doc=result.document;return result.result;}});
  controller.tap(0);await controller.flush();assert.match(controller.state().error,/ยืนยัน/);const count=paints;await controller.close();assert.equal(paints,count);assert.equal(calls.length,2);assert.equal(calls[0],calls[1]);assert.deepEqual(doc.event.games['catch-all-ghosts'].found,[0]);
+});
+test('a timed win stays valid when its batch reaches the server shortly after the round deadline',()=>{
+ // The browser sends the whole round only after the final tap, so network time must not turn an in-time win into a loss.
+ for(const root of ['../halloween/','../alt/halloween/']){
+  const C=require(root+'event/core.js'),j=n=>JSON.parse(fs.readFileSync(new URL(root+'event/data/'+n+'.json',import.meta.url),'utf8'));
+  const cfg=C.build({materials:j('materials'),chains:['dutchman','jack','vampire','graveyard'].map(n=>j('quests.'+n)),catalog:Catalog,proposals:j('preview-rules'),authoritative:true,season:{startAt:Season.startAt,endAt:Season.endAt,timezone:Season.timezone,claimingEnabled:true}});
+  const auth=Authority.create({Core:C,Death,Season,config:cfg,randomSeed:()=>12345678});
+  const ship=()=>{const d=auth.initial(uid,at);d.event.totem={biome:C.gameDefinition('ghost-ship-hunt',cfg).biome,until:at+C.HOUR};d.event.inventory['spectral-lantern']=1;return auth.apply(d,{type:'start-game',game:'ghost-ship-hunt'},{uid,at,tx:'start-session'}).document;};
+  const send=(d,inputs,arrival)=>auth.apply(d,{type:'game-inputs',game:'ghost-ship-hunt',session:'start-session',inputs},{uid,at:arrival,receivedAt:arrival,tx:'input-batch'});
+  const d=ship(),cues=d.event.games['ghost-ship-hunt'].cues,taps=gap=>cues.slice(0,6).map((move,i)=>[move,(i+1)*gap]);
+  // Final cue allows 5 s; the last tap lands at 4 s and the batch arrives 1.2 s later.
+  const won=send(d,taps(4000),at+24000+1200).document.event.games['ghost-ship-hunt'];assert.equal(won.clear,true,root);assert.equal(won.steps,6,root);
+  // A tap made after its cue expired is still a miss, whatever the arrival time.
+  assert.notEqual(send(ship(),taps(5500),at+33000+100).document.event.games['ghost-ship-hunt'].clear,true,root);
+  // Arrival far beyond the deadline is still rejected and nothing is saved.
+  const snap=JSON.stringify(d);assert.throws(()=>send(d,taps(4000),at+20000+5000+C.INPUT_GRACE_MS),/หลังเวลา/,root);assert.equal(JSON.stringify(d),snap);
+ }
 });
